@@ -1,24 +1,38 @@
 # femacs
 
-用 Rust 重写并加速 Emacs 的编辑器项目。
+**English** · [简体中文](docs/i18n/zh-CN/README.md)
 
-## 名字的来历
+An editor project that rewrites and accelerates Emacs in Rust.
 
-`Fe` 是铁的元素符号，而 `Rust` 本义就是铁锈——铁锈由铁而生，两者互为表里。
-把一把用惯了的编辑器重新回炉，用 Rust 再锻打一遍，正是这个项目想做的事。
+## The name
 
-## 目标
+`Fe` is the chemical symbol of iron, and `Rust` is what iron turns into — rust comes from iron,
+and the two are two faces of the same thing. Taking an editor we already trust and forging it
+again in Rust is exactly what this project is about.
 
-- 用 Rust 重写编辑器内核，逐步替掉 Emacs 里历史包袱最重的部分
-- 保留 Emacs 真正值得保留的东西：Lisp 扩展能力、包生态、用户既有的配置习惯
-- 让启动时间、编辑延迟与批量操作提升一个数量级，用真线程而不是绕路方案
-- 把文本编辑当成系统问题来做：增量解析、异步 I/O、原生渲染
+## Goals
 
-## 现状
+- Rewrite the core of the editor in Rust, retiring the parts of Emacs that carry the most
+  historical weight.
+- Keep what makes Emacs worth keeping: Lisp extensibility, the package ecosystem, and the
+  configuration habits its users already have.
+- Make startup time, editing latency and bulk operations an order of magnitude better, using
+  real threads instead of workarounds.
+- Treat text editing as a systems problem: incremental parsing, asynchronous I/O, native
+  rendering.
 
-刚起步。仓库里目前只有说明和许可证，还没有可运行的实现。
+## Status
 
-## 许可证
+Early days. The repository currently holds documentation and a license, and no runnable
+implementation yet.
 
-femacs 与 GNU Emacs 采用同一许可证：**GNU General Public License 第 3 版或更新版本**
-（`GPL-3.0-or-later`）。完整条款见 [LICENSE](LICENSE)。
+## Documentation
+
+- [docs/i18n](docs/i18n/README.md) — language index. Translated documents live under
+  `docs/i18n/<locale>/`, mirroring the paths of their English originals.
+
+## License
+
+femacs is distributed under the same license as GNU Emacs: the
+**GNU General Public License, version 3 or later** (`GPL-3.0-or-later`). The full text is in
+[LICENSE](LICENSE).
