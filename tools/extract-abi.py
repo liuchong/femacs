@@ -73,7 +73,8 @@ def digest(text: str) -> str:
 
 
 def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
-    text = path.read_text(encoding="utf-8", errors="replace")
+    own = path.read_text(encoding="utf-8", errors="replace")
+    text = own
     if follow_includes:
         # a mirror includes the generated files it needs (for example
         # globals.rs); those declarations count as part of it
@@ -111,8 +112,10 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
                       "doc_digest": digest(sm.group("doc")) if sm else None,
                       "doc_style": ("string" if sm and sm.re is R_DOC_STRING else
                                     "comment" if sm else None)})
+    # Stub detection sees everything the unit compiles, including the mirrors it
+    # textually includes; the 5% line budget is about the ported file itself.
     bodies = {m.group("name"): m.group("body") for m in R_FN_BODY.finditer(text)}
-    return {"lines": text.count("\n"),
+    return {"lines": own.count("\n"),
             "functions": sorted({m.group("name") for m in R_FN.finditer(text)}),
             "macros": sorted({m.group("name") for m in R_MACRO.finditer(text)}),
             "structs": structs, "struct_types": struct_types,
@@ -264,6 +267,10 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
 
     empty_in_c = {f["name"] for f in c["functions"] if body_is_empty(c_path, f["name"])}
     for name, body in sorted(r["bodies"].items()):
+        if name not in c_funcs:
+            # an inline helper of a textually included mirror (for example
+            # lisp.h's own inline functions); it belongs to that file's ledger
+            continue
         flat = re.sub(r"\s+", "", body)
         if name in empty_in_c:
             continue          # the C body is empty too (for example a no-op hook)

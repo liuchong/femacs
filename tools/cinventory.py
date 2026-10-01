@@ -31,6 +31,7 @@ CFUNC = re.compile(r"^(?:\((?P<pname>[A-Za-z_]\w*)\)|(?P<name>[A-Za-z_]\w*))\s*\
 DEFUN = re.compile(r'^DEFUN\s*\(\s*"(?P<lisp>[^"]+)"\s*,\s*(?P<cname>\w+)\s*,\s*'
                    r'(?P<sname>\w+)\s*,\s*(?P<min>[^,]+?)\s*,\s*(?P<max>[^,]+?)\s*,\s*'
                    r'(?P<n>[^,]+?)\s*,\s*doc\s*:\s*/\*(?P<doc>.*?)\*/', re.S | re.M)
+ATTRIBUTES = re.compile(r"^[^)]*?attributes\s*:\s*(?P<list>[A-Za-z_ ]*)", re.S)
 DEFINE = re.compile(r"^#\s*define\s+(?P<name>[A-Za-z_]\w*)(?P<args>\([^)]*\))?\s*(?P<body>.*)$")
 STRUCT_OPEN_INLINE = re.compile(r"^(?P<kind>struct|union)\s+(?P<name>[A-Za-z_]\w*)?\s*\{")
 STRUCT_OPEN_NAME = re.compile(r"^(?P<kind>struct|union)\s+(?P<name>[A-Za-z_]\w*)?\s*$")
@@ -480,9 +481,18 @@ def defuns(text: str) -> list[dict]:
         line_no = text.count("\n", 0, m.start()) + 1
         if not live[line_no - 1]:
             continue
+        # make-docfile scans the text after the docstring for an
+        # `attributes: …` list and turns it into _Noreturn / NO_INLINE /
+        # ATTRIBUTE_CONST / ATTRIBUTE_PURE prefixes and suffixes on the EXFUN
+        # it writes to globals.h (lib-src/make-docfile.c 1081-1136), so the
+        # flags belong to the frozen DEFUN table.
+        tail = text[m.end(): m.end() + 200]
+        attr = ATTRIBUTES.search(tail)
+        flags = " ".join(attr.group("list").split()) if attr else ""
         out.append({"lisp_name": m.group("lisp"), "c_name": m.group("cname"),
                     "s_name": m.group("sname"), "min": m.group("min").strip(),
                     "max": m.group("max").strip(), "n": m.group("n").strip(),
+                    "flags": flags,
                     "line": line_no,
                     "doc_digest": hashlib.sha1(
                         re.sub(r"\s+", " ", m.group("doc")).strip().encode()).hexdigest()[:12]})

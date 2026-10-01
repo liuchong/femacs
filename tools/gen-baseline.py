@@ -55,16 +55,22 @@ def main() -> int:
             counters["files"] += 1
             for d_ in inv["defuns"]:
                 subrs.append((rel, d_["c_name"], d_["lisp_name"], d_["min"], d_["max"],
-                              d_["n"], d_["doc_digest"]))
+                              d_["n"], d_["flags"], d_["doc_digest"]))
+
+    def tsv_field(value) -> str:
+        """Tabs and newlines inside a field (interactive specs, docstrings) would
+        otherwise break the one-record-per-line TSV shape."""
+        return (str(value).replace("\\", "\\\\").replace("\t", "\\t")
+                .replace("\n", "\\n").replace("\r", "\\r"))
 
     with (out / "inventory.tsv").open("w", encoding="utf-8") as f:
         f.write("file\tlines\tfunctions\tsubrs\tmacros\tconstants\tstruct_fields\tglobals\n")
         for r in rows:
-            f.write("\t".join(str(x) for x in r) + "\n")
+            f.write("\t".join(tsv_field(x) for x in r) + "\n")
     with (out / "subrs.tsv").open("w", encoding="utf-8") as f:
-        f.write("file\tc_name\tlisp_name\tmin_args\tmax_args\tn\tldoc_digest\n")
+        f.write("file\tc_name\tlisp_name\tmin_args\tmax_args\tn\tflags\tldoc_digest\n")
         for r in subrs:
-            f.write("\t".join(r) + "\n")
+            f.write("\t".join(tsv_field(x) for x in r) + "\n")
     with (out / "totals.tsv").open("w", encoding="utf-8") as f:
         f.write("metric\tvalue\n")
         for key in ("files", "lines", "functions", "defuns", "macros", "constants",

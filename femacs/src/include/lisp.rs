@@ -18,11 +18,19 @@
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_ushort, c_void};
 
+// src/lisp.h 32 includes <inttypes.h>, which includes <stdint.h>; the port keeps
+// the same chain (lib/inttypes.in.rs will include this file once it exists).
+include!("../../lib/include/stdint.in.rs");
+
 // --- integers --------------------------------------------------------------
 // src/lisp.h: EMACS_INT is one word; the frozen configuration says 64 bits
 // (docs/baseline/config/darwin-arm64.json: ALIGNOF_EMACS_INT = 8).
 pub type EMACS_INT = isize;
 pub type EMACS_UINT = usize;
+/// C: `ptrdiff_t`/`size_t` come from <stddef.h> (src/lisp.h 29) and the system
+/// <stdint.h>; the frozen 64-bit target maps both to the Rust machine words.
+pub type ptrdiff_t = isize;
+pub type size_t = usize;
 // src/lisp.h 90-102 define these as enum members chosen from the integer widths;
 // on this target EMACS_INT is long long.
 pub const EMACS_INT_WIDTH: usize = 64;
@@ -350,7 +358,7 @@ macro_rules! eassert {
     ($cond:expr) => {
         #[cfg(enable_checking)]
         {
-            if !suppress_checking && !($cond) {
+            if !(unsafe { suppress_checking }) && !($cond) {
                 unsafe { die (c"eassert".as_ptr(), c"lisp.rs".as_ptr(), line!() as c_int) }
             }
         }
@@ -361,7 +369,7 @@ macro_rules! eassume {
     ($cond:expr) => {
         #[cfg(enable_checking)]
         {
-            if suppress_checking {
+            if unsafe { suppress_checking } {
                 assume!($cond);
             } else if !($cond) {
                 unsafe { die (c"eassume".as_ptr(), c"lisp.rs".as_ptr(), line!() as c_int) }
@@ -371,6 +379,14 @@ macro_rules! eassume {
         {
             assume!($cond);
         }
+    };
+}
+
+/// C23 spells `static_assert (cond)` as a keyword (src/lisp.h 2007); the port
+/// keeps the same name and evaluates it at compile time.
+macro_rules! static_assert {
+    ($cond:expr $(, $msg:expr)? $(,)?) => {
+        const _: () = assert!($cond $(, $msg)?);
     };
 }
 
@@ -612,8 +628,7 @@ pub fn XSYMBOL (a: Lisp_Object) -> *mut Lisp_Symbol {
     } else {
         a
     };
-    eassert! (BARE_SYMBOL_P (a));
-    XUNTAG! (a, Lisp_Type::Lisp_Symbol, Lisp_Symbol)
+    XBARE_SYMBOL (a)
 }
 
 // --- globals (src/lisp.h 912 includes the generated globals.h) --------------
@@ -1009,7 +1024,10 @@ pub type KBOARD = kboard;
 pub type intptr_t = isize;
 
 /// src/lisp.h 1999: iQnil == 0 && Lisp_Symbol == 0.
-pub const NIL_IS_ZERO: bool = true;
+/// src/lisp.h 1999: `enum { NIL_IS_ZERO = iQnil == 0 && Lisp_Symbol == 0 };`
+/// The port derives it from the generated symbol table, so an assertion that
+/// relies on it stays meaningful.
+pub const NIL_IS_ZERO: bool = iQnil == 0 && (Lisp_Type::Lisp_Symbol as isize) == 0;
 pub const CHARTAB_SIZE_BITS_0: usize = 6;
 pub const CHARTAB_SIZE_BITS_1: usize = 4;
 pub const CHARTAB_SIZE_BITS_2: usize = 5;
@@ -2155,7 +2173,6 @@ unsafe extern "C" {
     pub fn allocate_vector (size: isize) -> *mut Lisp_Vector;
     pub fn intern_1 (s: *const c_char, len: usize) -> Lisp_Object;
     pub fn intern_c_string_1 (s: *const c_char, len: usize) -> Lisp_Object;
-    pub fn Fsignal (error_symbol: Lisp_Object, data: Lisp_Object) -> !;
     pub fn xsignal0 (error_symbol: Lisp_Object) -> !;
     pub fn fast_string_match_internal (regexp: Lisp_Object, string: Lisp_Object,
                                        table: Lisp_Object) -> isize;
@@ -2167,7 +2184,8 @@ unsafe extern "C" {
     pub fn maybe_garbage_collect ();
     pub fn probably_quit () -> !;
     pub fn xfree (p: *mut c_void);
-    pub fn Fcons (car: Lisp_Object, cdr: Lisp_Object) -> Lisp_Object;
+    pub fn xmalloc (size: usize) -> *mut c_void;                     // src/lisp.h 5535
+    pub fn indirect_function (object: Lisp_Object) -> Lisp_Object;   // src/lisp.h 4167 (data.c)
     pub fn calln (fn_: Lisp_Object) -> Lisp_Object;
     pub fn egetenv_internal (var: *const c_char, len: usize) -> *mut c_char;
     pub static mut pending_signals: bool;
@@ -2192,7 +2210,7 @@ pub fn CHECK_OBARRAY (x: Lisp_Object) { CHECK_TYPE (OBARRAYP (x), Qobarrayp (), 
 
 #[inline(always)]
 pub fn make_lisp_obarray (o: *mut Lisp_Obarray) -> Lisp_Object {
-    eassert! (PSEUDOVECTOR_TYPEP (&raw mut (*o).header, pvec_type::PVEC_OBARRAY));
+    eassert! (unsafe { PSEUDOVECTOR_TYPEP (&raw mut (*o).header, pvec_type::PVEC_OBARRAY) });
     make_lisp_ptr (o as *mut c_void, Lisp_Type::Lisp_Vectorlike)
 }
 
@@ -2253,7 +2271,7 @@ pub fn XHASH_TABLE (a: Lisp_Object) -> *mut Lisp_Hash_Table {
 
 #[inline(always)]
 pub fn make_lisp_hash_table (h: *mut Lisp_Hash_Table) -> Lisp_Object {
-    eassert! (PSEUDOVECTOR_TYPEP (&raw mut (*h).header, pvec_type::PVEC_HASH_TABLE));
+    eassert! (unsafe { PSEUDOVECTOR_TYPEP (&raw mut (*h).header, pvec_type::PVEC_HASH_TABLE) });
     make_lisp_ptr (h as *mut c_void, Lisp_Type::Lisp_Vectorlike)
 }
 
@@ -2459,6 +2477,11 @@ pub fn maybe_gc () {
     if unsafe { consing_until_gc } < 0 {
         unsafe { maybe_garbage_collect () }
     }
+}
+
+unsafe extern "C" {
+    /// Mark every object of an array (src/lisp.h 4437, alloc.c).
+    pub fn mark_objects (p: *mut Lisp_Object, n: ptrdiff_t);
 }
 
 // --- strings and vectors ---------------------------------------------------
@@ -2797,6 +2820,9 @@ unsafe extern "C" {
     pub fn xnmalloc (n: usize, size: usize) -> *mut c_void;
     pub fn record_unwind_protect_array (array: *mut Lisp_Object, nelts: isize);
     pub fn record_unwind_protect_ptr (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void);
+    pub fn record_unwind_protect_ptr_mark (function: Option<unsafe extern "C" fn(*mut c_void)>,
+                                           arg: *mut c_void,
+                                           mark: Option<unsafe extern "C" fn(*mut c_void)>);
     pub fn memory_full_up () -> !;
 }
 
@@ -2992,19 +3018,21 @@ pub fn STRING_SET_UNIBYTE (str_: *mut Lisp_Object) {
 
 /// CALLMANY (f, array): call the subr with the array's element count.
 #[macro_export]
-macro_rules! CALLMANY { ($f:expr, $array:expr) => { unsafe { Ffuncall ($array.len () as isize, $array.as_ptr () as *mut Lisp_Object) } } }
+macro_rules! CALLMANY { ($f:expr, $array:expr) => { unsafe { ($f) ($array.len () as isize, $array.as_ptr () as *mut Lisp_Object) } } }
 
 #[macro_export]
 macro_rules! CALLN { ($f:expr, $($args:expr),* $(,)?) => {{
-    let mut arr: [Lisp_Object; 0 $(+ { let _ = &$args; 1 })*] = [$($args),*];
+    // ARRAYELTS has to be a constant expression, and evaluating an argument to
+    // count it is not (C evaluates each argument exactly once, when the array is
+    // initialised): stringify! counts without evaluating (PORTING.md 2.1).
+    let arr: [Lisp_Object; 0 $(+ { let _ = stringify!($args); 1 })*] = [$($args),*];
     CALLMANY! ($f, arr)
 }} }
 
 #[macro_export]
-macro_rules! calln { ($($args:expr),* $(,)?) => { CALLN! (Ffuncall (), $($args),*) } }
+macro_rules! calln { ($($args:expr),* $(,)?) => { CALLN! (Ffuncall, $($args),*) } }
 
 unsafe extern "C" {
-    pub fn Ffuncall (nargs: isize, args: *mut Lisp_Object) -> Lisp_Object;
     pub fn listn (nargs: isize, ...) -> Lisp_Object;
 }
 

@@ -47,12 +47,35 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
      与 C 一样按普通内联函数处理；
    - 作为 union 成员的 `#[repr(C)]` 结构体必须 `Copy`（C 结构体天然可平凡复制），
      这是 union 成员的硬性要求，不影响布局。（`spikes/layout.rs` 与 `lisp.rs` 均已实测）
-10. **草稿生成器只做机械部分，且从不写入镜像**：`tools/emit-mirror.py` 从 C 头文件机械地
+10. **`globals.rs` 是 `<globals.h>` 的镜像**：它同时给出两半——`Q*` 内联函数
+    （P-17）与**全部 DEFUN 的 `EXFUN` 原型**（`make-docfile` 写的
+    `_Noreturn` / `NO_INLINE` / `EXFUN (Ffoo, maxargs)` 前后缀，见
+    `lib-src/make-docfile.c` 740-780）。原型放在 `pub mod subrs { … }` 里再
+    `use subrs::*;`：Rust 里"同名声明 + 同名定义"是 `E0428`，而**同名定义会遮蔽整体
+    导入**（整体导入优先级最低），语义等于 C 的"原型 + 定义"（A6 实测：TU 内定义
+    `Fcons` + 调用 `Ffuncall`/`Fvector` 均编译通过，符号表证明 `CALLMANY!` 调用的是
+    自己的 `$f`）。
+    **推论（评审 F1）**：镜像里**不许**再手写任何 subr 的原型——C 的 subr 原型只来自
+    `<globals.h>`，手写一份就等于在 crate 根放了同名项，定义该 subr 的 TU 立刻 `E0428`
+    （`lisp.rs` 原先手写的 `Fcons`/`Ffuncall`/`Fsignal` 已按此删除）。
+11. **C 的"原型 ↔ 定义"类型检查在 subr 上失效（评审 F2，P-28）**：因为定义遮蔽整体
+    导入，生成的 `EXFUN` 原型不会与 `defun!` 定义比对；C 会在编译期拒绝的
+    arity/返回类型不一致（例如 noreturn subr 的 `-> !`）在 Rust 里**静默通过**。
+    第一个定义 subr 的 TU（`alloc.c`）开工前必须在 `tools/extract-abi.py` 里补上
+    机械替代：把 `defun!` 形式的参数个数与返回类型同 `docs/baseline/subrs.tsv`
+    对齐，并禁止 `pub mod subrs` 之外的 crate 根 `F*` 声明。
+12. **C 的前向声明没有 Rust 对应物**：`static void f (T *);` 之后再定义，在 Rust 是
+    `E0428`，而 Rust 的项与顺序无关。删除声明行、把定义留在 C 的位置，并在
+    `docs/ports/NAME.md` 的偏离项里记录。
+13. **C 的"先声明变量、再在分支里逐字段赋值"没有 Rust 对应物**（`E0381`：Rust 不支持
+    部分初始化）。按 C 自己的零值习惯先整体初始化（`T v = T { 空值 };`），后续字段赋值
+    逐条保留，并记录偏离。
+14. **草稿生成器只做机械部分，且从不写入镜像**：`tools/emit-mirror.py` 从 C 头文件机械地
    产出结构体/联合/typedef/字面常量/`extern` 声明（函数指针字段、位域结构体、无法映射的
    类型会被明确跳过并列入"人工工作"清单）。它的输出是**草稿**（`docs/ports/*-draft.rs`），
    必须逐类型补全并通过布局闸门后才允许合并进镜像——实测把未补全的草稿整块贴进镜像时，
    `xtask layout-check` 立刻以 `sizeof handler` 断言失败拦下，这正是期望行为。
-11. **布局断言由工具生成，不手写**：`xtask layout-asserts` 读
+15. **布局断言由工具生成，不手写**：`xtask layout-asserts` 读
    `docs/baseline/layout/c-layout-*.tsv`（C 编译器输出的冻结基线），生成 `const _: () =
    assert!(size_of/offset_of …);`；镜像里没有声明过的类型记为 pending，数量随移植递减，
    但不允许把 pending 当成通过。
@@ -65,8 +88,10 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
   `r#use`、`r#mod`、`r#final`。参照树中实际冲突（抽样）：`const` 96、`type` 31、
   `match` 9、`where` 5、`fn` 5、`use` 2、`mod` 2、`final` 2。
 - **声明 ≠ 定义**：C 的 `extern` 声明 → `unsafe extern "C" { … }`（头镜像内）；C 的定义
-  → `#[no_mangle] pub`（唯一单元内）。`static`（内部链接）→ 非 `pub`、不导出符号。
-- C 的全局变量（尤其 `Lisp_Object` 全局）在 Rust 侧写成 `#[no_mangle] pub static mut NAME: T`
+  → `#[unsafe(no_mangle)] pub`（唯一单元内；edition 2024 要求 unsafe 属性写法，裸
+  `#[no_mangle]` 直接报 "unsafe attribute used without unsafe"）。`static`（内部链接）→
+  非 `pub`、不导出符号。
+- C 的全局变量（尤其 `Lisp_Object` 全局）在 Rust 侧写成 `#[unsafe(no_mangle)] pub static mut NAME: T`
   ——`staticpro` 注册的是它的地址，地址必须稳定（不入 `Box`、不搬移）。
 
 ### 0.3 语句与顺序
@@ -202,6 +227,9 @@ pub type Lisp_Object = Lisp_Word;
   `size` 两次）、以及 release 下 `eassert`（**完全不求值**）。这些是“单次求值”规则的
   例外，必须逐条保留原求值次数（P-16）。
 - 变参宏（`__VA_ARGS__`）→ `($($args:tt)*)`。
+- **宏里需要"实参个数"时不能用求值表达式**：数组长度是常量表达式，C 的 `ARRAYELTS`
+  换成 `{ let _ = &$arg; 1 }` 会以 `E0435`（非常量值用于常量）失败，必须用
+  `{ let _ = stringify!($arg); 1 }` 计数、由数组初始化真正求值一次（A6 实测）。
 
 ### 2.2 `switch` / `goto` / 标签
 
@@ -253,6 +281,8 @@ Rust 侧三种形态逐一对应，`suppress_checking` 作为同名全局保留�
 `eassume` → `assume` 语义（`lib/verify.h:389` 的四种平台形态）。另需移植
 `clobbered_eassert`（`eval.c:1373` + 5 处）、`verify` 两态、`static_assert`（91 处）、
 `eassume`（184 处）。
+- `static_assert`（C23 关键字）→ `lisp.rs` 里的同名 `macro_rules!`，展开成
+  `const _: () = assert!(cond);`，调用点写成 `static_assert! (cond);`（A6 实测）。
 
 ### 2.6 数值与内建
 
@@ -374,8 +404,18 @@ defun!("cons", Fcons, Scons, 2, 2, 0,
 
 ### 5.2 注册与符号
 
-- `syms_of_*`/`keys_of_*` 同名、`#[no_mangle]`，内部调用顺序与 C 完全一致（顺序影响
+- `syms_of_*`/`keys_of_*` 同名、`#[unsafe(no_mangle)]`，内部调用顺序与 C 完全一致（顺序影响
   `Qnil`/`Qt` 初始化与 dump 内容）；`defsubr` 1,848 处、`DEFSYM` 2,310 调用逐处保留。
+- **`EXFUN` 的前后缀**：`attributes: noreturn`（8 个 subr，`docs/baseline/subrs.tsv` 的
+  `flags` 列）→ 声明为 `-> !`（C 写 `_Noreturn Lisp_Object Ffoo (…)` 并加后缀
+  `ATTRIBUTE_COLD`；Rust 无法同时表达"返回 Lisp_Object"与"从不返回"，取
+  `-> !`，`ATTRIBUTE_COLD` 只影响优化）。同一个 subr 名可以出现在多个配置分支里
+  （1,841 条记录 → 1,736 个名字），生成器按名字合并：签名不同即**报错退出**（照
+  `make-docfile` 的 error），`flags` 取并集。
+  `attributes: const`（15）/`pure`（6）/`noinline`/`ATTRIBUTE_COLD` 在 Rust 的 extern
+  声明上无对应物，只影响优化，逐个记录为不表达（P-25）。
+- **`defun!` 定义侧同样要遵守 `noreturn`（评审 F8，§5.1）**：`Fsignal`/`Fthrow` 等 8 个
+  subr 的定义必须是 `-> !`，否则定义与 `EXFUN` 原型不一致（Rust 不再检查，见 §0.1-11）。
 
 ### 5.3 动态模块 ABI
 
@@ -472,6 +512,12 @@ defun!("cons", Fcons, Scons, 2, 2, 0,
 | P-22 | `FOR_EACH_TAIL*`/`DOHASH*`/`DOOBARRAY` 是循环宏，Rust 形态（迭代器/闭包）尚待决策 | 待办 | `docs/ports/excluded-macros.txt`（kind=deferred），使用这些宏的文件暂不开工 |
 | P-23 | GDB 符号技巧（一个名字既是宏又是常量符号）在 Rust 无对应物 | 已定 | `docs/ports/excluded-macros.txt`（kind=debugger）；`xtask` 后续另行产出调试符号 |
 | P-24 | 检查器对头镜像的判定规则 | 已定 | 头文件不做行数漂移判定；结构体字段按**成员集合**比对（顺序由布局断言负责）；C 位域跳过；条件分支中的常量与宏别名不比对；排除/挂账项见 `docs/ports/excluded-macros.txt` |
+| P-25 | `EXFUN` 的 `const`/`pure`/`noinline` 前缀无 Rust 对应物 | 已定（偏离已记录） | 只影响优化；`noreturn` 已映射为 `-> !`（§5.2） |
+| P-26 | gnulib/系统头（`lib/stdint.in.h`、`lib/limits.in.h`、`lib/intprops.h`、`lib/verify.h`…）的镜像 | **部分完成**：`stdint.in.rs`/`limits.in.rs` 只含宽度一节（WIP） | 逐头文件补全并让 WIP 计数下降（§7.3） |
+| P-27 | 检查器只跟随一层 `include!` | 已定 | 名字（函数/宏/静态量/常量/subr）仍按"文件 + 一层镜像"收集；**桩检测看全部被包含文本**（否则可把实现放进被包含文件绕过），5% 行数预算只看文件自身；桩检测跳过 C 文件里没有的名字（镜像内联函数） |
+| P-28 | subr 的"原型 ↔ 定义"检查缺失 | **待办（阻断 `alloc.c`）** | `extract-abi.py` 对齐 `defun!` 与 `subrs.tsv` 的 arity/返回类型，并禁止 `pub mod subrs` 之外的 crate 根 `F*` 声明（§0.1-11） |
+| P-29 | `globals.rs` 的原型集是"全配置超集"（含 304 个仅 GUI/平台文件才有的名字），与 C 按 `GLOBAL_SOURCES` 生成的 `globals.h` 不同 | 已记录（偏离） | C 里调用未配置的 subr 是编译错误，Rust 里会到链接期才暴露；待 `xtask` 冻结每目标的源文件清单后按配置过滤（P-08 完成后） |
+| P-30 | 现有三道闸门**看不见行为错误**（评审 A 的 P0：`XSYMBOL` 少加 `lispsym` 基址，`--check`/`build-tu`/`layout-check` 全绿却会段错误） | **待办（阶段 B 前）** | 用差分对照把核心算法 TU 与参照对拍（评审 A 的 `/tmp/dt` 手法：C 侧 `cc -std=gnu2x` + mock 运行时，Rust 侧 `rustc --crate-type bin`，同一语料逐字节比对 stdout/标记轨迹；语料覆盖 n=1…5000、6 种键型、`values` 两态、`reverse` 两态、中途 signal/longjmp 与 GC 标记） |
 
 **P-17 说明（实测决定）**：参照用 `make-docfile` 生成 `globals.h`（`#define iQfoo N` +
 `DEFINE_LISP_SYMBOL (Qfoo)`），使 `Qfoo` 成为**编译期常量表达式**。Rust 无法把符号数组地址
@@ -492,3 +538,9 @@ defun!("cons", Fcons, Scons, 2, 2, 0,
 7. `DEFUN`/docstring/注册顺序按 §5 检查。
 8. `python3 tools/extract-abi.py --check emacs/<dir>/NAME.c femacs/<dir>/NAME.rs` 必须 OK。
 9. 提交前冻结工件并记录哈希；评审看的是提交后的固定版本。
+10. 删除 C 的前向声明（§0.1-12）、把"分支内逐字段赋值"改成先整体零值初始化（§0.1-13），
+    并在 `docs/ports/NAME.md` 的偏离项里写明；定义一律 `#[unsafe(no_mangle)]`（§0.2）。
+11. **镜像里的每个内联函数都要与 C 的"函数体"逐字比对，不能只看名字**：评审 A 在
+    `sort.rs` 上发现 `XSYMBOL` 少了 `XBARE_SYMBOL` 的 `+ lispsym` 基址（返回的是编码
+    偏移而不是指针），`--check`/`build-tu`/`layout-check` 三道闸门全绿却会段错误。
+    镜像改动用可运行探针验证；行为级差分见 P-30。

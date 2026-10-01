@@ -152,6 +152,10 @@ fn gen_globals() -> i32 {
          // symbol: same name, same value, call shape `Qnil()` (PORTING.md P-17).\n\n",
     );
     for (index, name) in &rows {
+        // The reference writes `#define iQfoo N` next to `DEFINE_LISP_SYMBOL (Qfoo)`;
+        // the port keeps the constant so that derivations such as NIL_IS_ZERO stay
+        // tied to the generated table (src/lisp.h 1999).
+        rs.push_str(&format!("pub const i{name}: usize = {index};\n"));
         rs.push_str(&format!(
             "#[inline(always)]\npub fn {name} () -> Lisp_Object {{ builtin_lisp_symbol ({index}) }}\n"
         ));
@@ -188,12 +192,87 @@ fn gen_globals() -> i32 {
         }
     }
 
+    // The other generated half of the reference's globals.h: make-docfile writes
+    // `EXFUN (Ffoo, maxargs)` for every DEFUN (lib-src/make-docfile.c 756), so every
+    // translation unit sees a prototype for every Lisp-callable function.  Rust
+    // cannot declare and define a function under one name in one module, so the
+    // prototypes live in a module that the unit glob-imports: a definition in the
+    // unit shadows the glob import, which is C's prototype-plus-definition pair
+    // (PORTING.md P-17).  Signatures come from the frozen DEFUN table, so they are
+    // the arities the reference compiler saw.
+    let subrs = Path::new(REPO).join("docs/baseline/subrs.tsv");
+    let mut n_subrs = 0usize;
+    if let Ok(text) = fs::read_to_string(&subrs) {
+        // One prototype per C name, like globals.h: a name may be defined in more
+        // than one configuration branch.  make-docfile refuses two definitions with
+        // differing signatures, so the generator refuses them too; the attribute
+        // flags are OR'ed (the reference keeps the flags of one record, the port
+        // keeps every flag it has seen).
+        let mut protos: std::collections::BTreeMap<String, (String, bool, String)> =
+            std::collections::BTreeMap::new();
+        let mut clashes = 0usize;
+        for line in text.lines().skip(1) {
+            let f: Vec<&str> = line.split('\t').collect();
+            if f.len() < 7 {
+                continue;
+            }
+            // make-docfile prefixes `_Noreturn` when the DEFUN lists the attribute;
+            // Rust's spelling of "never returns" is the return type `!`.
+            let noreturn = f[6].split_whitespace().any(|w| w == "noreturn");
+            let args = match f[4] {
+                "MANY" => "nargs: ptrdiff_t, args: *mut Lisp_Object".to_string(),
+                "UNEVALLED" => "args: Lisp_Object".to_string(),
+                n => match n.parse::<usize>() {
+                    // C's DEFUN_ARGS_n has no parameter names; Rust extern blocks
+                    // require them, so the port uses the union member names.
+                    Ok(k) => (0..k).map(|i| format!("a{i}: Lisp_Object"))
+                        .collect::<Vec<_>>().join(", "),
+                    Err(_) => continue,
+                },
+            };
+            match protos.get(f[1]) {
+                Some((seen, _, seen_max)) => {
+                    if *seen != args || *seen_max != f[4] {
+                        eprintln!("subr {}: signature {} vs {}", f[1], seen, args);
+                        clashes += 1;
+                    }
+                }
+                None => {
+                    protos.insert(f[1].to_string(), (args, noreturn, f[4].to_string()));
+                }
+            }
+            if noreturn {
+                if let Some(e) = protos.get_mut(f[1]) {
+                    e.1 = true;
+                }
+            }
+        }
+        rs.push_str(
+            "\n// --- EXFUN prototypes for every DEFUN (generated from subrs.tsv) ---\n\
+             // C: globals.h writes `EXFUN (Ffoo, maxargs)`; lisp.h includes <globals.h>,\n\
+             // so the prototype is visible in every translation unit.\n\
+             pub mod subrs {\n    use super::*;\n    unsafe extern \"C\" {\n",
+        );
+        for (name, (args, noreturn, _)) in &protos {
+            // C's globals.h writes `_Noreturn` before the EXFUN; Rust spells that
+            // "never returns" as the return type `!` (PORTING.md 5.2).
+            let ret = if *noreturn { "!" } else { "Lisp_Object" };
+            rs.push_str(&format!("        pub fn {name} ({args}) -> {ret};\n"));
+            n_subrs += 1;
+        }
+        rs.push_str("    }\n}\nuse subrs::*;\n");
+        if clashes != 0 {
+            eprintln!("{clashes} subr name(s) defined twice with different signatures");
+            return 1;
+        }
+    }
+
     let out = Path::new("src/include/globals.rs");
     fs::create_dir_all(out.parent().unwrap()).ok();
     if let Err(e) = fs::write(out, rs) {
         return fail(e);
     }
-    println!("wrote {} symbols and {} variables to {}", rows.len(), n_vars, out.display());
+    println!("wrote {} symbols, {} variables and {} subr prototypes to {}", rows.len(), n_vars, n_subrs, out.display());
     0
 }
 
