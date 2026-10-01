@@ -1,0 +1,181 @@
+// femacs: port of src/itree.h @ fd7afced403 (GNU Emacs 32.0.50).
+//
+// Header mirror: types, constants and accessors only, plus the `unsafe extern "C"`
+// declarations C spells as `extern` (PORTING.md 0.1).  The two loop macros are
+// deferred (P-33); see docs/ports/excluded-macros.txt.  Layouts are asserted from
+// the C compiler's numbers by `xtask layout-check`.
+
+/* This file implements an efficient interval data-structure.
+
+Copyright (C) 2017-2026 Free Software Foundation, Inc.
+
+This file is part of GNU Emacs.
+
+GNU Emacs is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or (at
+your option) any later version.
+
+GNU Emacs is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
+
+// The include guard has no Rust counterpart (PORTING.md 0.1).
+pub const ITREE_H: bool = true;
+
+/// The tree and node structs are mainly here, so they can be
+/// allocated.
+///
+/// NOTE: The only time where it is safe to modify node.begin and
+/// node.end directly, is while the node is not part of any tree.
+///
+/// NOTE: It is safe to read node.begin and node.end directly, if the
+/// node came from an iterator, because it validates the nodes it
+/// returns as a side-effect.  See ITREE_FOREACH.
+#[repr(C)]
+pub struct itree_node
+{
+  /// The normal parent, left and right links found in binary trees.
+  /// See also 'red', below, which completes the Red-Black tree
+  /// representation.
+  pub parent: *mut itree_node,
+  pub left: *mut itree_node,
+  pub right: *mut itree_node,
+
+  /// The following five fields comprise the interval abstraction.
+  ///
+  /// BEGIN, END are buffer positions describing the range.  When a
+  /// node is in a tree these fields are read only, written only by
+  /// itree functions.
+  ///
+  /// The LIMIT, OFFSET and OTICK fields should be considered internal
+  /// to itree.c and used only by itree functions.
+  ///
+  /// LIMIT is a buffer position, the maximum of END of this node and
+  /// its children.  See itree.c for its use.
+  ///
+  /// OFFSET is in buffer position units, and will be non-zero only
+  /// when the node is dirty.
+  ///
+  /// OTICK determines whether BEGIN, END, LIMIT and OFFSET are
+  /// considered dirty.  A node is clean when its OTICK is equal to
+  /// the OTICK of its tree (see struct itree_tree).  Otherwise, it is
+  /// dirty.
+  ///
+  /// In a clean node, BEGIN, END and LIMIT are correct buffer
+  /// positions, and OFFSET is zero.  The parent of a clean node is
+  /// also clean, recursively.
+  ///
+  /// In a dirty node, the node's OTICK won't equal its tree's OTICK,
+  /// and its OFFSET may be non-zero.  At all times the descendents of
+  /// a dirty node are also dirty.  BEGIN, END and LIMIT require
+  /// adjustment before use as buffer positions.
+  ///
+  /// NOTE: BEGIN and END must not be modified while the node is part
+  /// of a tree.  Use itree_insert_gap and itree_delete_gap instead.
+  ///
+  /// NOTE: The interval iterators ensure nodes are clean before
+  /// yielding them, so BEGIN and END may be safely used as buffer
+  /// positions then.
+  pub begin: ptrdiff_t,		/* The beginning of this interval. */
+  pub end: ptrdiff_t,		/* The end of the interval. */
+  pub limit: ptrdiff_t,		/* The maximum end in this subtree. */
+  pub offset: ptrdiff_t,	/* The amount of shift to apply to this subtree. */
+  pub otick: uintmax_t,		/* offset modified tick */
+  pub data: Lisp_Object,	/* Exclusively used by the client. */
+  /// bool_bf red : 1; bool_bf rear_advance : 1; bool_bf front_advance : 1;
+  /// (PORTING.md 1.3: the bitfields are packed explicitly; the offsets of the
+  /// neighbouring fields and sizeof itree_node are asserted against the C
+  /// compiler's numbers.)
+  pub bits: u32,
+}
+
+#[repr(C)]
+pub struct itree_tree
+{
+  pub root: *mut itree_node,
+  pub otick: uintmax_t,		/* offset tick, compared with node's otick. */
+  pub size: intmax_t,		/* Number of nodes in the tree. */
+}
+
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum itree_order
+  {
+    ITREE_ASCENDING,
+    ITREE_DESCENDING,
+    ITREE_PRE_ORDER,
+    ITREE_POST_ORDER,
+  }
+
+unsafe extern "C" {
+  // Parameter names come from the definitions in itree.c (C's prototypes have none).
+  pub fn itree_node_init (node: *mut itree_node, front_advance: bool, rear_advance: bool,
+                          data: Lisp_Object);
+  pub fn itree_node_begin (tree: *mut itree_tree, node: *mut itree_node) -> ptrdiff_t;
+  pub fn itree_node_end (tree: *mut itree_tree, node: *mut itree_node) -> ptrdiff_t;
+  pub fn itree_node_set_region (tree: *mut itree_tree, node: *mut itree_node,
+                                begin: ptrdiff_t, end: ptrdiff_t);
+  pub fn itree_create () -> *mut itree_tree;
+  pub fn itree_destroy (tree: *mut itree_tree);
+  pub fn itree_size (tree: *mut itree_tree) -> intmax_t;
+  pub fn itree_clear (tree: *mut itree_tree);
+  pub fn itree_insert (tree: *mut itree_tree, node: *mut itree_node,
+                       begin: ptrdiff_t, end: ptrdiff_t);
+  pub fn itree_remove (tree: *mut itree_tree, node: *mut itree_node) -> *mut itree_node;
+  pub fn itree_insert_gap (tree: *mut itree_tree, pos: ptrdiff_t, length: ptrdiff_t,
+                           before_markers: bool);
+  pub fn itree_delete_gap (tree: *mut itree_tree, pos: ptrdiff_t, length: ptrdiff_t);
+
+  /* Iteration functions.  Almost all code should use ITREE_FOREACH
+     instead.  */
+  pub fn itree_iterator_start (iterator: *mut itree_iterator, tree: *mut itree_tree,
+                               begin: ptrdiff_t, end: ptrdiff_t,
+                               order: itree_order) -> *mut itree_iterator;
+  pub fn itree_iterator_narrow (iterator: *mut itree_iterator, begin: ptrdiff_t,
+                                end: ptrdiff_t);
+  pub fn itree_iterator_next (iterator: *mut itree_iterator) -> *mut itree_node;
+}
+
+#[inline(always)]
+pub fn itree_empty_p (tree: *mut itree_tree) -> bool
+{
+  // `||` short-circuits exactly as C's `!tree || !tree->root` does, so the
+  // dereference only happens for a non-null tree (hence the unsafe block).
+  return tree.is_null () || unsafe { (*tree).root.is_null () };
+}
+
+/// State used when iterating interval.
+#[repr(C)]
+pub struct itree_iterator
+  {
+    pub node: *mut itree_node,
+    pub begin: ptrdiff_t,
+    pub end: ptrdiff_t,
+    pub otick: uintmax_t,	/* A copy of the tree's 'otick'.  */
+    pub order: itree_order,
+  }
+
+/* Iterate over the intervals between BEG and END in the tree T.
+   N will hold successive nodes.  ORDER can be one of : 'ASCENDING',
+   'DESCENDING', 'POST_ORDER', or 'PRE_ORDER'.
+   It should be used as:
+
+      ITREE_FOREACH (n, t, beg, end, order)
+        {
+          .. do the thing with n ..
+        }
+
+   BEWARE:
+   - The expression T may be evaluated more than once, so make sure
+     it is cheap and pure.
+   - Don't modify the tree during the iteration.
+ */
+// The macro itself is deferred (P-33): C declares its iterator at the expansion
+// site and ITREE_FOREACH_NARROW reads it, which Rust macro hygiene forbids.
+// Recorded in docs/ports/excluded-macros.txt; the five users (buffer.c,
+// itree.c, editfns.c, textprop.c, xdisp.c) wait for that decision.

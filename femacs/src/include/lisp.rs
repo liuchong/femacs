@@ -31,6 +31,8 @@ pub type EMACS_UINT = usize;
 /// <stdint.h>; the frozen 64-bit target maps both to the Rust machine words.
 pub type ptrdiff_t = isize;
 pub type size_t = usize;
+pub type intmax_t = i64;
+pub type uintmax_t = u64;
 // src/lisp.h 90-102 define these as enum members chosen from the integer widths;
 // on this target EMACS_INT is long long.
 pub const EMACS_INT_WIDTH: usize = 64;

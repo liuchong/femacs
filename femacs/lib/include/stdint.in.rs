@@ -15,3 +15,7 @@ pub const PTRDIFF_MAX: isize = isize::MAX;
 
 // stdint.in.h 727
 pub const PTRDIFF_WIDTH: usize = _GL_INTEGER_WIDTH (PTRDIFF_MIN, PTRDIFF_MAX);
+
+// The fast integer types the reference names in its own headers (character.h
+// uses int_fast64_t); the frozen target's widths come from the system header.
+pub type int_fast64_t = i64;

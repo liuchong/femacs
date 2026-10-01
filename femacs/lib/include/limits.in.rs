@@ -29,3 +29,8 @@ pub const fn _GL_COB4 (n: isize) -> usize {
     (((n & 8) != 0) as usize) + (((n & 4) != 0) as usize)
         + (((n & 2) != 0) as usize) + (((n & 1) != 0) as usize)
 }
+
+// <limits.h> values the reference names in its headers; UCHAR_MAX is what
+// character.c's `hexdigit[UCHAR_MAX + 1]` definition is sized by (CHAR_BIT is 8
+// on the frozen target).
+pub const UCHAR_MAX: c_int = 0xFF;
