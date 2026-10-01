@@ -971,3 +971,414 @@ pub fn c_symbol_p (sym: *mut Lisp_Symbol) -> bool {
     let offset = unsafe { sp.offset_from (bp) };
     0 <= offset && (offset as usize) < std::mem::size_of::<[Lisp_Symbol; lispsym_count]> ()
 }
+
+// --- batch 3: vectors, bool-vectors, char-tables, symbols (src/lisp.h 1740-2400) ---
+pub type bits_word = usize;
+pub const BITS_PER_BITS_WORD: usize = 64;      // SIZE_WIDTH from the configuration
+pub const BITS_WORD_MAX: usize = usize::MAX;
+pub const BOOL_VECTOR_BITS_PER_CHAR: usize = 8;
+/// src/lisp.h 1999: iQnil == 0 && Lisp_Symbol == 0.
+pub const NIL_IS_ZERO: bool = true;
+pub const CHARTAB_SIZE_BITS_0: usize = 6;
+pub const CHARTAB_SIZE_BITS_1: usize = 4;
+pub const CHARTAB_SIZE_BITS_2: usize = 5;
+pub const CHARTAB_SIZE_BITS_3: usize = 7;
+
+// Symbol redirect/trapped-write/interned states (src/lisp.h 2000-2040).
+pub const SYMBOL_PLAINVAL: u32 = 0;
+pub const SYMBOL_VARALIAS: u32 = 1;
+pub const SYMBOL_LOCALIZED: u32 = 2;
+pub const SYMBOL_FORWARDED: u32 = 3;
+pub const SYMBOL_UNTRAPPED_WRITE: u32 = 0;
+pub const SYMBOL_NOWRITE: u32 = 1;
+pub const SYMBOL_UNINTERNED: u32 = 0;
+pub const SYMBOL_INTERNED: u32 = 1;
+pub const SYMBOL_INTERNED_IN_INITIAL_OBARRAY: u32 = 2;
+
+#[repr(C, align(8))]
+pub struct Lisp_Bool_Vector {
+    pub header: vectorlike_header,
+    pub size: EMACS_INT,
+    pub data: [bits_word; 0],      // FLEXIBLE_ARRAY_MEMBER
+}
+
+#[repr(C, align(8))]
+pub struct Lisp_Char_Table {
+    pub header: vectorlike_header,
+    pub defalt: Lisp_Object,
+    pub parent: Lisp_Object,
+    pub purpose: Lisp_Object,
+    pub ascii: Lisp_Object,
+    pub contents: [Lisp_Object; 1 << CHARTAB_SIZE_BITS_0],
+    pub extras: [Lisp_Object; 0],  // FLEXIBLE_ARRAY_MEMBER
+}
+
+#[repr(C, align(8))]
+pub struct Lisp_Sub_Char_Table {
+    pub header: vectorlike_header,
+    pub depth: c_int,
+    pub min_char: c_int,
+    pub contents: [Lisp_Object; 0], // FLEXIBLE_ARRAY_MEMBER
+}
+
+unsafe extern "C" {
+    pub fn char_table_ref (table: Lisp_Object, idx: c_int) -> Lisp_Object;
+    pub fn char_table_set (table: Lisp_Object, idx: c_int, val: Lisp_Object);
+}
+
+#[inline(always)]
+pub fn gc_asize (array: Lisp_Object) -> isize {
+    // Like ASIZE, but also usable in the garbage collector.
+    unsafe { (*XVECTOR (array)).header.size & !ARRAY_MARK_FLAG }
+}
+
+#[inline(always)]
+pub fn PVSIZE (pv: Lisp_Object) -> isize { ASIZE (pv) & PSEUDOVECTOR_SIZE_MASK }
+
+#[inline(always)]
+pub fn VECTORP (x: Lisp_Object) -> bool {
+    VECTORLIKEP (x) && (ASIZE (x) & PSEUDOVECTOR_FLAG) == 0
+}
+
+#[inline(always)]
+pub fn CHECK_VECTOR (x: Lisp_Object) {
+    CHECK_TYPE (VECTORP (x), Qvectorp (), x);
+}
+
+#[inline(always)]
+pub fn PSEUDOVECTOR_TYPE (v: *mut vectorlike_header) -> pvec_type {
+    let size = unsafe { (*v).size };
+    if size & PSEUDOVECTOR_FLAG != 0 {
+        match (size & PVEC_TYPE_MASK) >> PSEUDOVECTOR_AREA_BITS {
+            0 => pvec_type::PVEC_NORMAL_VECTOR,
+            1 => pvec_type::PVEC_FREE,
+            2 => pvec_type::PVEC_BIGNUM,
+            3 => pvec_type::PVEC_MARKER,
+            4 => pvec_type::PVEC_OVERLAY,
+            5 => pvec_type::PVEC_FINALIZER,
+            6 => pvec_type::PVEC_SYMBOL_WITH_POS,
+            7 => pvec_type::PVEC_MISC_PTR,
+            8 => pvec_type::PVEC_USER_PTR,
+            9 => pvec_type::PVEC_PROCESS,
+            10 => pvec_type::PVEC_FRAME,
+            11 => pvec_type::PVEC_WINDOW,
+            12 => pvec_type::PVEC_BOOL_VECTOR,
+            13 => pvec_type::PVEC_BUFFER,
+            14 => pvec_type::PVEC_HASH_TABLE,
+            15 => pvec_type::PVEC_OBARRAY,
+            16 => pvec_type::PVEC_TERMINAL,
+            17 => pvec_type::PVEC_WINDOW_CONFIGURATION,
+            18 => pvec_type::PVEC_SUBR,
+            19 => pvec_type::PVEC_OTHER,
+            20 => pvec_type::PVEC_XWIDGET,
+            21 => pvec_type::PVEC_XWIDGET_VIEW,
+            22 => pvec_type::PVEC_THREAD,
+            23 => pvec_type::PVEC_MUTEX,
+            24 => pvec_type::PVEC_CONDVAR,
+            25 => pvec_type::PVEC_MODULE_FUNCTION,
+            26 => pvec_type::PVEC_NATIVE_COMP_UNIT,
+            27 => pvec_type::PVEC_TS_PARSER,
+            28 => pvec_type::PVEC_TS_NODE,
+            29 => pvec_type::PVEC_TS_COMPILED_QUERY,
+            30 => pvec_type::PVEC_SQLITE,
+            31 => pvec_type::PVEC_CLOSURE,
+            32 => pvec_type::PVEC_CHAR_TABLE,
+            33 => pvec_type::PVEC_SUB_CHAR_TABLE,
+            34 => pvec_type::PVEC_RECORD,
+            _ => pvec_type::PVEC_FONT,
+        }
+    } else {
+        pvec_type::PVEC_NORMAL_VECTOR
+    }
+}
+
+#[inline(always)]
+pub fn PSEUDOVECTOR_TYPEP (a: *mut vectorlike_header, code: pvec_type) -> bool {
+    unsafe { ((*a).size & (PSEUDOVECTOR_FLAG | PVEC_TYPE_MASK))
+        == (PSEUDOVECTOR_FLAG | ((code as isize) << PSEUDOVECTOR_AREA_BITS)) }
+}
+
+#[inline(always)]
+pub fn bool_vector_words (size: EMACS_INT) -> EMACS_INT {
+    eassume! (0 <= size && size <= EMACS_INT_MAX - (BITS_PER_BITS_WORD as EMACS_INT - 1));
+    (size + (BITS_PER_BITS_WORD as EMACS_INT - 1)) / BITS_PER_BITS_WORD as EMACS_INT
+}
+
+#[inline(always)]
+pub fn bool_vector_bytes (size: EMACS_INT) -> EMACS_INT {
+    eassume! (0 <= size && size <= EMACS_INT_MAX - (BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT - 1));
+    (size + (BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT - 1)) / BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT
+}
+
+#[inline(always)]
+pub fn bits_word_to_host_endian (val: bits_word) -> bits_word {
+    // WORDS_BIGENDIAN is not defined on this target, so C returns val unchanged.
+    val
+}
+
+#[inline(always)]
+pub fn BOOL_VECTOR_P (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_BOOL_VECTOR) }
+
+#[inline(always)]
+pub fn CHECK_BOOL_VECTOR (x: Lisp_Object) {
+    CHECK_TYPE (BOOL_VECTOR_P (x), Qbool_vector_p (), x);
+}
+
+#[inline(always)]
+pub fn XBOOL_VECTOR (a: Lisp_Object) -> *mut Lisp_Bool_Vector {
+    eassert! (BOOL_VECTOR_P (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Bool_Vector)
+}
+
+#[inline(always)]
+pub fn bool_vector_size (a: Lisp_Object) -> EMACS_INT {
+    let size = unsafe { (*XBOOL_VECTOR (a)).size };
+    eassume! (0 <= size);
+    size
+}
+
+#[inline(always)]
+pub fn bool_vector_data (a: Lisp_Object) -> *mut bits_word {
+    unsafe { std::ptr::addr_of_mut! ((*XBOOL_VECTOR (a)).data) as *mut bits_word }
+}
+
+#[inline(always)]
+pub fn bool_vector_uchar_data (a: Lisp_Object) -> *mut u8 { bool_vector_data (a) as *mut u8 }
+
+#[inline(always)]
+pub fn bool_vector_bitref (a: Lisp_Object, i: EMACS_INT) -> bool {
+    eassume! (0 <= i);
+    eassert! (i < bool_vector_size (a));
+    unsafe {
+        *bool_vector_uchar_data (a).add ((i / BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT) as usize)
+            & (1 << (i % BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT)) != 0
+    }
+}
+
+#[inline(always)]
+pub fn bool_vector_ref (a: Lisp_Object, i: EMACS_INT) -> Lisp_Object {
+    if bool_vector_bitref (a, i) { Qt () } else { Qnil () }
+}
+
+#[inline(always)]
+pub fn bool_vector_set (a: Lisp_Object, i: EMACS_INT, b: bool) {
+    eassume! (0 <= i);
+    eassert! (i < bool_vector_size (a));
+    unsafe {
+        let addr = bool_vector_uchar_data (a)
+            .add ((i / BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT) as usize);
+        let bit = 1u8 << (i % BOOL_VECTOR_BITS_PER_CHAR as EMACS_INT);
+        if b { *addr |= bit } else { *addr &= !bit }
+    }
+}
+
+#[inline(always)]
+pub fn AREF (array: Lisp_Object, idx: isize) -> Lisp_Object {
+    eassert! (0 <= idx && idx < gc_asize (array));
+    unsafe { (*XVECTOR (array)).contents[idx as usize] }
+}
+
+#[inline(always)]
+pub fn aref_addr (array: Lisp_Object, idx: isize) -> *mut Lisp_Object {
+    eassert! (0 <= idx && idx <= gc_asize (array));
+    unsafe { std::ptr::addr_of_mut! ((*XVECTOR (array)).contents[idx as usize]) }
+}
+
+#[inline(always)]
+pub fn ASET (array: Lisp_Object, idx: isize, val: Lisp_Object) {
+    eassert! (0 <= idx && idx < ASIZE (array));
+    unsafe { (*XVECTOR (array)).contents[idx as usize] = val }
+}
+
+#[inline(always)]
+pub fn gc_aset (array: Lisp_Object, idx: isize, val: Lisp_Object) {
+    eassert! (0 <= idx && idx < gc_asize (array));
+    unsafe { (*XVECTOR (array)).contents[idx as usize] = val }
+}
+
+#[inline(always)]
+pub fn memclear (p: *mut c_void, nbytes: isize) {
+    eassert! (0 <= nbytes);
+    // Since Qnil is zero, memset suffices.
+    unsafe { std::ptr::write_bytes (p as *mut u8, 0, nbytes as usize) }
+}
+
+#[inline(always)]
+pub fn ASCII_CHAR_P (c: isize) -> bool { 0 <= c && c < 0x80 }
+
+#[inline(always)]
+pub fn CHAR_TABLE_P (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_CHAR_TABLE) }
+
+#[inline(always)]
+pub fn XCHAR_TABLE (a: Lisp_Object) -> *mut Lisp_Char_Table {
+    eassert! (CHAR_TABLE_P (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Char_Table)
+}
+
+#[inline(always)]
+pub fn SUB_CHAR_TABLE_P (a: Lisp_Object) -> bool {
+    PSEUDOVECTORP (a, pvec_type::PVEC_SUB_CHAR_TABLE)
+}
+
+#[inline(always)]
+pub fn XSUB_CHAR_TABLE (a: Lisp_Object) -> *mut Lisp_Sub_Char_Table {
+    eassert! (SUB_CHAR_TABLE_P (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Sub_Char_Table)
+}
+
+#[inline(always)]
+pub fn CHAR_TABLE_REF_ASCII (ct: Lisp_Object, idx: isize) -> Lisp_Object {
+    let mut tbl = XCHAR_TABLE (ct);
+    loop {
+        let val = unsafe {
+            let ascii = (*tbl).ascii;
+            if SUB_CHAR_TABLE_P (ascii) {
+                (*XSUB_CHAR_TABLE (ascii)).contents[idx as usize]
+            } else {
+                ascii
+            }
+        };
+        let val = if NILP (val) { unsafe { (*tbl).defalt } } else { val };
+        if !NILP (val) || NILP (unsafe { (*tbl).parent }) {
+            return val;
+        }
+        tbl = XCHAR_TABLE (unsafe { (*tbl).parent });
+    }
+}
+
+#[inline(always)]
+pub fn CHAR_TABLE_REF (ct: Lisp_Object, idx: isize) -> Lisp_Object {
+    if ASCII_CHAR_P (idx) {
+        CHAR_TABLE_REF_ASCII (ct, idx)
+    } else {
+        unsafe { char_table_ref (ct, idx as c_int) }
+    }
+}
+
+#[inline(always)]
+pub fn CHAR_TABLE_SET (ct: Lisp_Object, idx: isize, val: Lisp_Object) {
+    if ASCII_CHAR_P (idx) && SUB_CHAR_TABLE_P (unsafe { (*XCHAR_TABLE (ct)).ascii }) {
+        unsafe { set_sub_char_table_contents ((*XCHAR_TABLE (ct)).ascii, idx, val) };
+    } else {
+        unsafe { char_table_set (ct, idx as c_int, val) }
+    }
+}
+
+#[inline(always)]
+pub fn CHAR_TABLE_EXTRA_SLOTS (ct: *mut Lisp_Char_Table) -> isize {
+    unsafe { ((*ct).header.size & PSEUDOVECTOR_SIZE_MASK) - CHAR_TABLE_STANDARD_SLOTS }
+}
+
+/// src/lisp.h 2243: PSEUDOVECSIZE (struct Lisp_Char_Table, contents) - 1 +
+/// (1 << CHARTAB_SIZE_BITS_0); the four preceding slots are defalt, parent,
+/// purpose and ascii after the header.
+pub const CHAR_TABLE_STANDARD_SLOTS: isize = 4 + (1 << CHARTAB_SIZE_BITS_0);
+
+#[inline(always)]
+pub fn SUBRP (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_SUBR) }
+
+#[inline(always)]
+pub fn XSUBR (a: Lisp_Object) -> *mut Lisp_Subr {
+    eassert! (SUBRP (a));
+    unsafe { std::ptr::addr_of_mut! ((*XUNTAG! (a, Lisp_Type::Lisp_Vectorlike,
+                                                Aligned_Lisp_Subr)).s) }
+}
+
+#[inline(always)]
+pub fn VALID_DOCSTRING_P (doc: Lisp_Object) -> bool {
+    FIXNUMP (doc) || STRINGP (doc)
+        || (CONSP (doc) && STRINGP (XCAR (doc)) && FIXNUMP (XCDR (doc)))
+}
+
+// --- symbol fields (src/lisp.h 2290-2390) ----------------------------------
+
+#[inline(always)]
+pub fn SYMBOL_VAL (sym: *mut Lisp_Symbol) -> Lisp_Object {
+    eassert! (unsafe { (*sym).u.s.bits & SYMBOL_REDIRECT_MASK } >> SYMBOL_REDIRECT_SHIFT == SYMBOL_PLAINVAL);
+    unsafe { (*sym).u.s.val.value }
+}
+
+#[inline(always)]
+pub fn SYMBOL_ALIAS (sym: *mut Lisp_Symbol) -> *mut Lisp_Symbol {
+    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_VARALIAS
+        && ! unsafe { (*sym).u.s.val.alias }.is_null ());
+    unsafe { (*sym).u.s.val.alias }
+}
+
+#[inline(always)]
+pub fn SYMBOL_BLV (sym: *mut Lisp_Symbol) -> *mut c_void {
+    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_LOCALIZED
+        && ! unsafe { (*sym).u.s.val.blv }.is_null ());
+    unsafe { (*sym).u.s.val.blv }
+}
+
+#[inline(always)]
+pub fn SYMBOL_FWD (sym: *mut Lisp_Symbol) -> *mut c_void {
+    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_FORWARDED
+        && ! unsafe { (*sym).u.s.val.fwd }.is_null ());
+    unsafe { (*sym).u.s.val.fwd }
+}
+
+#[inline(always)]
+pub fn SET_SYMBOL_VAL (sym: *mut Lisp_Symbol, v: Lisp_Object) {
+    eassert! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_PLAINVAL);
+    unsafe { (*sym).u.s.val.value = v }
+}
+
+#[inline(always)]
+pub fn SET_SYMBOL_ALIAS (sym: *mut Lisp_Symbol, v: *mut Lisp_Symbol) {
+    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_VARALIAS
+        && ! v.is_null ());
+    unsafe { (*sym).u.s.val.alias = v }
+}
+
+#[inline(always)]
+pub fn SET_SYMBOL_BLV (sym: *mut Lisp_Symbol, v: *mut c_void) {
+    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_LOCALIZED
+        && ! v.is_null ());
+    unsafe { (*sym).u.s.val.blv = v }
+}
+
+#[inline(always)]
+pub fn SET_SYMBOL_FWD (sym: *mut Lisp_Symbol, fwd: *mut c_void) {
+    eassume! (unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_FORWARDED
+        && ! fwd.is_null ());
+    unsafe { (*sym).u.s.val.fwd = fwd }
+}
+
+#[inline(always)]
+pub fn SYMBOL_NAME (sym: Lisp_Object) -> Lisp_Object { unsafe { (*XSYMBOL (sym)).u.s.name } }
+
+#[inline(always)]
+pub fn lisp_h_SYMBOL_TRAPPED_WRITE_P (sym: Lisp_Object) -> u32 {
+    unsafe { ((*XSYMBOL (sym)).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT }
+}
+
+#[inline(always)]
+pub fn SYMBOL_TRAPPED_WRITE_P (sym: Lisp_Object) -> u32 {
+    lisp_h_SYMBOL_TRAPPED_WRITE_P (sym)
+}
+
+#[inline(always)]
+pub fn lisp_h_SYMBOL_CONSTANT_P (sym: Lisp_Object) -> bool {
+    lisp_h_SYMBOL_TRAPPED_WRITE_P (sym) == SYMBOL_NOWRITE
+}
+
+#[inline(always)]
+pub fn SYMBOL_CONSTANT_P (sym: Lisp_Object) -> bool { lisp_h_SYMBOL_CONSTANT_P (sym) }
+
+#[inline(always)]
+pub fn SYMBOL_INTERNED_P (sym: Lisp_Object) -> bool {
+    unsafe { ((*XSYMBOL (sym)).u.s.bits & SYMBOL_INTERNED_MASK) >> SYMBOL_INTERNED_SHIFT
+        != SYMBOL_UNINTERNED }
+}
+
+#[inline(always)]
+pub fn SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P (sym: Lisp_Object) -> bool {
+    unsafe { ((*XSYMBOL (sym)).u.s.bits & SYMBOL_INTERNED_MASK) >> SYMBOL_INTERNED_SHIFT
+        == SYMBOL_INTERNED_IN_INITIAL_OBARRAY }
+}
+
+unsafe extern "C" {
+    pub fn set_sub_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object);
+}
