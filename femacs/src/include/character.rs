@@ -86,11 +86,11 @@ unsafe extern "C" {
 
 /* UTF-8 encodings.  Use \x escapes, so they are portable to pre-C11
    compilers and can be concatenated with ordinary string literals.  */
-// C spells these as string literals (`char[4]` with the implicit NUL) and the two
-// reference uses read `sizeof uLSQM - 1`; the port keeps the string content, so a
-// use site writes `uLSQM.len ()` where C writes `sizeof uLSQM - 1`.
-pub const uLSQM: &str = "\u{2018}"; /* U+2018 LEFT SINGLE QUOTATION MARK */
-pub const uRSQM: &str = "\u{2019}"; /* U+2019 RIGHT SINGLE QUOTATION MARK */
+// C spells these as string literals, i.e. `char[4]` with the implicit NUL; the port
+// keeps that shape with a C string constant, so a use site can hand `.as_ptr ()` to a
+// C API and writes `to_bytes ().len ()` where C writes `sizeof uLSQM - 1`.
+pub const uLSQM: &core::ffi::CStr = c"\u{2018}"; /* U+2018 LEFT SINGLE QUOTATION MARK */
+pub const uRSQM: &core::ffi::CStr = c"\u{2019}"; /* U+2019 RIGHT SINGLE QUOTATION MARK */
 
 /* True iff C is a character of code less than 0x100.  */
 #[inline(always)]
@@ -344,8 +344,12 @@ pub fn multibyte_length (p: *const u8, pend: *const u8, check: bool, allow_8bit:
 		    { return 4; }
 		  if !check || unsafe { p.offset (4) } < pend
 		    {
+		      // C: `w + ((p[4] & 0xC0) << 8)`.  The shift must be
+		      // parenthesised: Rust's `<<` binds *looser* than `+`, so the
+		      // unparenthesised form is `(w + x) << 8` and rejects every
+		      // valid five-byte form (review A, F1).
 		      let lw: int_fast64_t = (w as int_fast64_t)
-			+ (((unsafe { *p.offset (4) } as c_int) & 0xC0) as int_fast64_t) << 8;
+			+ ((((unsafe { *p.offset (4) } as c_int) & 0xC0) as int_fast64_t) << 8);
 		      let w3: int_fast64_t = (lw << 24) + ((d as int_fast64_t) << 16)
 			                     + ((e as int_fast64_t) << 8) + f as int_fast64_t;
 		      if 0xAAF8888080 <= w3 && w3 <= 0xAAF88FBFBD

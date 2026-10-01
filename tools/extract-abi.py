@@ -57,8 +57,51 @@ R_STRUCT = re.compile(r"(?:pub\s+)?(?:unsafe\s+)?(?:struct|union)\s+(?P<name>[A-
 R_FIELD = re.compile(r"^\s*(?:pub\s+)?(?:r#)?(?P<name>[A-Za-z_]\w*)\s*:", re.M)
 R_STATIC = re.compile(r"\b(?:pub\s+)?(?:static|const)\s+(?:mut\s+)?"
                       r"(?P<name>[A-Za-z_]\w*)")
-R_CONST = re.compile(r"\b(?:pub\s+)?const\s+(?P<name>[A-Za-z_]\w*)\s*:\s*[^=]+=\s*"
-                     r"(?P<value>[^;]+);")
+R_CONST_NAME = re.compile(r"\b(?:pub\s+)?const\s+(?P<name>[A-Za-z_]\w*)\s*:\s*[^=]+?=", re.S)
+
+
+def scan_const_value(text: str, start: int) -> str | None:
+    """The initialiser from START to the terminating `;`, with string and char
+    literals kept verbatim: a `;` inside one does not end the value (review B, F6)."""
+    out, i, n = [], start, len(text)
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            j = i + 1
+            while j < n:
+                if text[j] == "\\":
+                    j += 2
+                    continue
+                if text[j] == '"':
+                    j += 1
+                    break
+                j += 1
+            out.append(text[i:j])
+            i = j
+            continue
+        if ch == "'":
+            m = re.match(r"'(?:\\.|[^\\'])'", text[i:])
+            if m:
+                out.append(m.group(0))
+                i += m.end()
+                continue
+        if ch == ";":
+            break
+        out.append(ch)
+        i += 1
+    value = "".join(out).strip()
+    return value or None
+
+
+def constants_of(text: str) -> dict[str, str]:
+    """Every `const NAME: T = VALUE;` with the value exactly as written (whitespace
+    collapsed only outside literals)."""
+    out: dict[str, str] = {}
+    for m in R_CONST_NAME.finditer(text):
+        value = scan_const_value(text, m.end())
+        if value is not None:
+            out.setdefault(m.group("name"), re.sub(r"\s+", " ", value).strip())
+    return out
 R_DEFUN = re.compile(r"DEFUN!\s*\(\s*\"(?P<lisp>[^\"]+)\"\s*,\s*(?P<cname>\w+)\s*,\s*"
                      r"(?P<sname>\w+)\s*,\s*(?P<min>[^,]+?)\s*,\s*(?P<max>[^,]+?)\s*,\s*"
                      r"(?P<n>[^,]+?)\s*,", re.S)
@@ -151,8 +194,7 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
             "macros": sorted({m.group("name") for m in R_MACRO.finditer(text)}),
             "structs": structs, "struct_types": struct_types,
             "statics": sorted({m.group("name") for m in R_STATIC.finditer(text)}),
-            "constants": {m.group("name"): re.sub(r"\s+", " ", m.group("value")).strip()
-                          for m in R_CONST.finditer(text)},
+            "constants": constants_of(text),
             "subrs": subrs, "subr_defs": subr_defs, "bodies": bodies,
             "flat_own": flat_own, "text": text}
 
@@ -703,16 +745,21 @@ def main() -> int:
             # unchecked boxes; the gate only fails when the checklist says the
             # file is finished (or when there is no checklist at all).
             stem = c.stem
+            # A header's ledger is `include-<stem>.md` and a unit's is `<stem>.md`;
+            # resolving by stem alone let `character.c` report "in progress" because
+            # the *header* ledger had an unchecked box (review B, F3).
+            names = ([f"include-{stem}.md", f"{stem}.md"] if c.suffix == ".h"
+                     else [f"{stem}.md"])
             checklist = None
-            for cand in (Path(args.checklists) / f"{stem}.md",
-                         Path(args.checklists) / f"include-{stem}.md"):
+            for name in names:
+                cand = Path(args.checklists) / name
                 if cand.is_file():
                     checklist = cand
                     break
             if checklist is not None and "- [ ]" in checklist.read_text(encoding="utf-8"):
                 in_progress += 1
                 print(f"WIP  {c.relative_to(reference)} -> {rs} "
-                      f"({len(problems)} differences, checklist has unchecked boxes)")
+                      f"({len(problems)} differences, {checklist} has unchecked boxes)")
                 continue
             failing += 1
             print(f"FAIL {c.relative_to(reference)} -> {rs}")

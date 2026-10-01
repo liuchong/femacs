@@ -24,11 +24,14 @@
 `python3 tools/extract-abi.py --check emacs/src/itree.h femacs/src/include/itree.rs` -> `OK`.
 
 - `#if` branches: none in this header.
-- Layout: `itree_node` (three bitfields), `itree_tree` and `itree_iterator` are asserted
+- Layout: `itree_node`, `itree_tree` and `itree_iterator` are asserted field by field
   against the C compiler's numbers (`docs/baseline/layout/`, regenerated with
-  `spikes/run.sh`; `tools/gen-layout-fields.py` emits one offset per field).  The three
-  `bool_bf` bitfields are packed explicitly as `bits: u32` (PORTING.md 1.3); the
-  neighbouring field offsets and `sizeof itree_node` prove the packing.
+  `spikes/run.sh` + `tools/gen-layout-fields.py`).  The three `bool_bf` bitfields are
+  packed explicitly (PORTING.md 1.3) as `bits: u8`: `bool_bf` is one byte on this target
+  (`conf_post.h`) and clang's record layout puts the members at 72:0, 72:1, 72:2.  What
+  the gate cannot see: `offsetof` may not name a bitfield and `u8`/`u32`/`u64` all keep
+  the neighbours and `sizeof` at 80, so the *unit width* is recorded here, not proven
+  (P-35).
 - Deviations: `itree_empty_p`'s dereference sits in an `unsafe` block, with `||`
   short-circuiting exactly as C does; the include guard has no Rust counterpart
   (`pub const ITREE_H: bool = true`); `ITREE_FOREACH` / `ITREE_FOREACH_NARROW` are
@@ -37,4 +40,5 @@
   `docs/ports/excluded-macros.txt`.  Their five users (`buffer.c`, `itree.c`,
   `editfns.c`, `textprop.c`, `xdisp.c`, 23 sites) wait for that decision.
 - Call-relationship differences (D7): none; the parameter names in the `extern` block
-  come from the definitions in `itree.c`, because C's prototypes have none.
+  come from the definitions in `itree.c` (`iter`, `g`, …), because C's prototypes have
+  none.

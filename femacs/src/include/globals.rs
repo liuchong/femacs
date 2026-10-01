@@ -6364,842 +6364,848 @@ pub const lispsym_count: usize = 2118;
 unsafe extern "C" { pub static mut lispsym: [Lisp_Symbol; lispsym_count]; }
 
 // --- variables declared by DEFVAR_* (generated) ---
-pub static mut V_comp_no_native_file_h: Lisp_Object = std::ptr::null_mut(); // comp-no-native-file-h
-pub static mut Vafter_change_functions: Lisp_Object = std::ptr::null_mut(); // after-change-functions
-pub static mut Vafter_delete_frame_functions: Lisp_Object = std::ptr::null_mut(); // after-delete-frame-functions
-pub static mut Vafter_init_time: Lisp_Object = std::ptr::null_mut(); // after-init-time
-pub static mut Vafter_insert_file_functions: Lisp_Object = std::ptr::null_mut(); // after-insert-file-functions
-pub static mut Vafter_load_alist: Lisp_Object = std::ptr::null_mut(); // after-load-alist
-pub static mut Valternate_fontname_alist: Lisp_Object = std::ptr::null_mut(); // alternate-fontname-alist
-pub static mut Vambiguous_width_chars: Lisp_Object = std::ptr::null_mut(); // ambiguous-width-chars
-pub static mut Vandroid_build_fingerprint: Lisp_Object = std::ptr::null_mut(); // android-build-fingerprint
-pub static mut Vandroid_build_manufacturer: Lisp_Object = std::ptr::null_mut(); // android-build-manufacturer
-pub static mut Vandroid_os_language: Lisp_Object = std::ptr::null_mut(); // android-os-language
-pub static mut Vandroid_wait_for_event_timeout: Lisp_Object = std::ptr::null_mut(); // android-wait-for-event-timeout
-pub static mut Vauto_composition_emoji_eligible_codepoints: Lisp_Object = std::ptr::null_mut(); // auto-composition-emoji-eligible-codepoints
-pub static mut Vauto_composition_emoji_tty_eligible_codepoints: Lisp_Object = std::ptr::null_mut(); // auto-composition-emoji-tty-eligible-codepoints
-pub static mut Vauto_composition_emoji_unqualified_tail_initials: Lisp_Object = std::ptr::null_mut(); // auto-composition-emoji-unqualified-tail-initials
-pub static mut Vauto_composition_function: Lisp_Object = std::ptr::null_mut(); // auto-composition-function
-pub static mut Vauto_composition_mode: Lisp_Object = std::ptr::null_mut(); // auto-composition-mode
-pub static mut Vauto_fill_chars: Lisp_Object = std::ptr::null_mut(); // auto-fill-chars
-pub static mut Vauto_resize_tab_bars: Lisp_Object = std::ptr::null_mut(); // auto-resize-tab-bars
-pub static mut Vauto_resize_tool_bars: Lisp_Object = std::ptr::null_mut(); // auto-resize-tool-bars
-pub static mut Vauto_save_include_big_deletions: Lisp_Object = std::ptr::null_mut(); // auto-save-include-big-deletions
-pub static mut Vauto_save_list_file_name: Lisp_Object = std::ptr::null_mut(); // auto-save-list-file-name
-pub static mut Vauto_save_timeout: Lisp_Object = std::ptr::null_mut(); // auto-save-timeout
-pub static mut Vauto_save_visited_file_name: Lisp_Object = std::ptr::null_mut(); // auto-save-visited-file-name
-pub static mut Vbefore_change_functions: Lisp_Object = std::ptr::null_mut(); // before-change-functions
-pub static mut Vbefore_init_time: Lisp_Object = std::ptr::null_mut(); // before-init-time
-pub static mut Vblink_cursor_alist: Lisp_Object = std::ptr::null_mut(); // blink-cursor-alist
-pub static mut Vbuffer_access_fontified_property: Lisp_Object = std::ptr::null_mut(); // buffer-access-fontified-property
-pub static mut Vbuffer_access_fontify_functions: Lisp_Object = std::ptr::null_mut(); // buffer-access-fontify-functions
-pub static mut Vbuffer_list_update_hook: Lisp_Object = std::ptr::null_mut(); // buffer-list-update-hook
-pub static mut Vbuild_files: Lisp_Object = std::ptr::null_mut(); // build-files
-pub static mut Vbyte_boolean_vars: Lisp_Object = std::ptr::null_mut(); // byte-boolean-vars
-pub static mut Vbyte_code_meter: Lisp_Object = std::ptr::null_mut(); // byte-code-meter
-pub static mut Vbytecomp_version_regexp: Lisp_Object = std::ptr::null_mut(); // bytecomp-version-regexp
-pub static mut Vcairo_version_string: Lisp_Object = std::ptr::null_mut(); // cairo-version-string
-pub static mut Vcase_fold_search: Lisp_Object = std::ptr::null_mut(); // case-fold-search
-pub static mut Vchange_major_mode_hook: Lisp_Object = std::ptr::null_mut(); // change-major-mode-hook
-pub static mut Vchar_code_property_alist: Lisp_Object = std::ptr::null_mut(); // char-code-property-alist
-pub static mut Vchar_property_alias_alist: Lisp_Object = std::ptr::null_mut(); // char-property-alias-alist
-pub static mut Vchar_script_table: Lisp_Object = std::ptr::null_mut(); // char-script-table
-pub static mut Vchar_width_table: Lisp_Object = std::ptr::null_mut(); // char-width-table
-pub static mut Vcharset_list: Lisp_Object = std::ptr::null_mut(); // charset-list
-pub static mut Vcharset_map_path: Lisp_Object = std::ptr::null_mut(); // charset-map-path
-pub static mut Vcharset_revision_table: Lisp_Object = std::ptr::null_mut(); // charset-revision-table
-pub static mut Vclear_message_function: Lisp_Object = std::ptr::null_mut(); // clear-message-function
-pub static mut Vclone_indirect_buffer_hook: Lisp_Object = std::ptr::null_mut(); // clone-indirect-buffer-hook
-pub static mut Vcode_conversion_map_vector: Lisp_Object = std::ptr::null_mut(); // code-conversion-map-vector
-pub static mut Vcoding_category_list: Lisp_Object = std::ptr::null_mut(); // coding-category-list
-pub static mut Vcoding_system_alist: Lisp_Object = std::ptr::null_mut(); // coding-system-alist
-pub static mut Vcoding_system_for_read: Lisp_Object = std::ptr::null_mut(); // coding-system-for-read
-pub static mut Vcoding_system_for_write: Lisp_Object = std::ptr::null_mut(); // coding-system-for-write
-pub static mut Vcoding_system_list: Lisp_Object = std::ptr::null_mut(); // coding-system-list
-pub static mut Vcombine_after_change_calls: Lisp_Object = std::ptr::null_mut(); // combine-after-change-calls
-pub static mut Vcommand_debug_status: Lisp_Object = std::ptr::null_mut(); // command-debug-status
-pub static mut Vcommand_error_function: Lisp_Object = std::ptr::null_mut(); // command-error-function
-pub static mut Vcommand_history: Lisp_Object = std::ptr::null_mut(); // command-history
-pub static mut Vcommand_line_args: Lisp_Object = std::ptr::null_mut(); // command-line-args
-pub static mut Vcomment_use_syntax_ppss: Lisp_Object = std::ptr::null_mut(); // comment-use-syntax-ppss
-pub static mut Vcomp__hashdollar: Lisp_Object = std::ptr::null_mut(); // comp--#$
-pub static mut Vcomp_abi_hash: Lisp_Object = std::ptr::null_mut(); // comp-abi-hash
-pub static mut Vcomp_ctxt: Lisp_Object = std::ptr::null_mut(); // comp-ctxt
-pub static mut Vcomp_deferred_pending_h: Lisp_Object = std::ptr::null_mut(); // comp-deferred-pending-h
-pub static mut Vcomp_eln_to_el_h: Lisp_Object = std::ptr::null_mut(); // comp-eln-to-el-h
-pub static mut Vcomp_installed_trampolines_h: Lisp_Object = std::ptr::null_mut(); // comp-installed-trampolines-h
-pub static mut Vcomp_loaded_comp_units_h: Lisp_Object = std::ptr::null_mut(); // comp-loaded-comp-units-h
-pub static mut Vcomp_native_version_dir: Lisp_Object = std::ptr::null_mut(); // comp-native-version-dir
-pub static mut Vcomp_subr_arities_h: Lisp_Object = std::ptr::null_mut(); // comp-subr-arities-h
-pub static mut Vcomp_subr_list: Lisp_Object = std::ptr::null_mut(); // comp-subr-list
-pub static mut Vcompletion_ignored_extensions: Lisp_Object = std::ptr::null_mut(); // completion-ignored-extensions
-pub static mut Vcompletion_regexp_list: Lisp_Object = std::ptr::null_mut(); // completion-regexp-list
-pub static mut Vcompose_chars_after_function: Lisp_Object = std::ptr::null_mut(); // compose-chars-after-function
-pub static mut Vcomposition_function_table: Lisp_Object = std::ptr::null_mut(); // composition-function-table
-pub static mut Vconfigure_info_directory: Lisp_Object = std::ptr::null_mut(); // configure-info-directory
-pub static mut Vctags_program_name: Lisp_Object = std::ptr::null_mut(); // ctags-program-name
-pub static mut Vcurrent_iso639_language: Lisp_Object = std::ptr::null_mut(); // current-iso639-language
-pub static mut Vcurrent_key_remap_sequence: Lisp_Object = std::ptr::null_mut(); // current-key-remap-sequence
-pub static mut Vcurrent_load_list: Lisp_Object = std::ptr::null_mut(); // current-load-list
-pub static mut Vcurrent_minibuffer_command: Lisp_Object = std::ptr::null_mut(); // current-minibuffer-command
-pub static mut Vcurrent_prefix_arg: Lisp_Object = std::ptr::null_mut(); // current-prefix-arg
-pub static mut Vdata_directory: Lisp_Object = std::ptr::null_mut(); // data-directory
-pub static mut Vdbus_compiled_version: Lisp_Object = std::ptr::null_mut(); // dbus-compiled-version
-pub static mut Vdbus_debug: Lisp_Object = std::ptr::null_mut(); // dbus-debug
-pub static mut Vdbus_message_type_error: Lisp_Object = std::ptr::null_mut(); // dbus-message-type-error
-pub static mut Vdbus_message_type_invalid: Lisp_Object = std::ptr::null_mut(); // dbus-message-type-invalid
-pub static mut Vdbus_message_type_method_call: Lisp_Object = std::ptr::null_mut(); // dbus-message-type-method-call
-pub static mut Vdbus_message_type_method_return: Lisp_Object = std::ptr::null_mut(); // dbus-message-type-method-return
-pub static mut Vdbus_message_type_signal: Lisp_Object = std::ptr::null_mut(); // dbus-message-type-signal
-pub static mut Vdbus_registered_objects_table: Lisp_Object = std::ptr::null_mut(); // dbus-registered-objects-table
-pub static mut Vdbus_runtime_version: Lisp_Object = std::ptr::null_mut(); // dbus-runtime-version
-pub static mut Vdeactivate_mark: Lisp_Object = std::ptr::null_mut(); // deactivate-mark
-pub static mut Vdebug_ignored_errors: Lisp_Object = std::ptr::null_mut(); // debug-ignored-errors
-pub static mut Vdebug_on_error: Lisp_Object = std::ptr::null_mut(); // debug-on-error
-pub static mut Vdebug_on_event: Lisp_Object = std::ptr::null_mut(); // debug-on-event
-pub static mut Vdebug_on_message: Lisp_Object = std::ptr::null_mut(); // debug-on-message
-pub static mut Vdebug_on_signal: Lisp_Object = std::ptr::null_mut(); // debug-on-signal
-pub static mut Vdebugger: Lisp_Object = std::ptr::null_mut(); // debugger
-pub static mut Vdefault_file_name_coding_system: Lisp_Object = std::ptr::null_mut(); // default-file-name-coding-system
-pub static mut Vdefault_frame_alist: Lisp_Object = std::ptr::null_mut(); // default-frame-alist
-pub static mut Vdefault_frame_scroll_bars: Lisp_Object = std::ptr::null_mut(); // default-frame-scroll-bars
-pub static mut Vdefault_minibuffer_frame: *mut c_void = std::ptr::null_mut(); // default-minibuffer-frame
-pub static mut Vdefault_process_coding_system: Lisp_Object = std::ptr::null_mut(); // default-process-coding-system
-pub static mut Vdefault_text_properties: Lisp_Object = std::ptr::null_mut(); // default-text-properties
-pub static mut Vdelayed_warnings_list: Lisp_Object = std::ptr::null_mut(); // delayed-warnings-list
-pub static mut Vdelete_frame_functions: Lisp_Object = std::ptr::null_mut(); // delete-frame-functions
-pub static mut Vdelete_terminal_functions: Lisp_Object = std::ptr::null_mut(); // delete-terminal-functions
-pub static mut Vdescribe_bindings_check_shadowing_in_ranges: Lisp_Object = std::ptr::null_mut(); // describe-bindings-check-shadowing-in-ranges
-pub static mut Vdisable_point_adjustment: Lisp_Object = std::ptr::null_mut(); // disable-point-adjustment
-pub static mut Vdisplay_fill_column_indicator_character: Lisp_Object = std::ptr::null_mut(); // display-fill-column-indicator-character
-pub static mut Vdisplay_fill_column_indicator_column: Lisp_Object = std::ptr::null_mut(); // display-fill-column-indicator-column
-pub static mut Vdisplay_line_numbers: Lisp_Object = std::ptr::null_mut(); // display-line-numbers
-pub static mut Vdisplay_line_numbers_current_absolute: Lisp_Object = std::ptr::null_mut(); // display-line-numbers-current-absolute
-pub static mut Vdisplay_line_numbers_width: Lisp_Object = std::ptr::null_mut(); // display-line-numbers-width
-pub static mut Vdisplay_monitors_changed_functions: Lisp_Object = std::ptr::null_mut(); // display-monitors-changed-functions
-pub static mut Vdisplay_pixels_per_inch: Lisp_Object = std::ptr::null_mut(); // display-pixels-per-inch
-pub static mut Vdoc_directory: Lisp_Object = std::ptr::null_mut(); // doc-directory
-pub static mut Vdoc_file_name: Lisp_Object = std::ptr::null_mut(); // internal-doc-file-name
-pub static mut Vdos_display_scancodes: Lisp_Object = std::ptr::null_mut(); // dos-display-scancodes
-pub static mut Vdos_unsupported_char_glyph: Lisp_Object = std::ptr::null_mut(); // dos-unsupported-char-glyph
-pub static mut Vdos_version: Lisp_Object = std::ptr::null_mut(); // dos-version
-pub static mut Vdos_windows_version: Lisp_Object = std::ptr::null_mut(); // dos-windows-version
-pub static mut Vdouble_click_time: Lisp_Object = std::ptr::null_mut(); // double-click-time
-pub static mut Vdump_mode: Lisp_Object = std::ptr::null_mut(); // dump-mode
-pub static mut Vdynamic_library_alist: Lisp_Object = std::ptr::null_mut(); // dynamic-library-alist
-pub static mut Vdynamic_library_suffixes: Lisp_Object = std::ptr::null_mut(); // dynamic-library-suffixes
-pub static mut Vebrowse_program_name: Lisp_Object = std::ptr::null_mut(); // ebrowse-program-name
-pub static mut Vecho_keystrokes: Lisp_Object = std::ptr::null_mut(); // echo-keystrokes
-pub static mut Vemacs_copyright: Lisp_Object = std::ptr::null_mut(); // emacs-copyright
-pub static mut Vemacs_version: Lisp_Object = std::ptr::null_mut(); // emacs-version
-pub static mut Vemacsclient_program_name: Lisp_Object = std::ptr::null_mut(); // emacsclient-program-name
-pub static mut Vemulation_mode_map_alists: Lisp_Object = std::ptr::null_mut(); // emulation-mode-map-alists
-pub static mut Venable_character_translation: Lisp_Object = std::ptr::null_mut(); // enable-character-translation
-pub static mut Venable_disabled_menus_and_buttons: Lisp_Object = std::ptr::null_mut(); // enable-disabled-menus-and-buttons
-pub static mut Vetags_program_name: Lisp_Object = std::ptr::null_mut(); // etags-program-name
-pub static mut Veval_buffer_list: Lisp_Object = std::ptr::null_mut(); // eval-buffer-list
-pub static mut Vexec_directory: Lisp_Object = std::ptr::null_mut(); // exec-directory
-pub static mut Vexec_path: Lisp_Object = std::ptr::null_mut(); // exec-path
-pub static mut Vexec_suffixes: Lisp_Object = std::ptr::null_mut(); // exec-suffixes
-pub static mut Vexecuting_kbd_macro: Lisp_Object = std::ptr::null_mut(); // executing-kbd-macro
-pub static mut Vface_default_stipple: Lisp_Object = std::ptr::null_mut(); // face-default-stipple
-pub static mut Vface_font_lax_matched_attributes: Lisp_Object = std::ptr::null_mut(); // face-font-lax-matched-attributes
-pub static mut Vface_font_rescale_alist: Lisp_Object = std::ptr::null_mut(); // face-font-rescale-alist
-pub static mut Vface_ignored_fonts: Lisp_Object = std::ptr::null_mut(); // face-ignored-fonts
-pub static mut Vface_new_frame_defaults: Lisp_Object = std::ptr::null_mut(); // face--new-frame-defaults
-pub static mut Vface_remapping_alist: Lisp_Object = std::ptr::null_mut(); // face-remapping-alist
-pub static mut Vfeatures: Lisp_Object = std::ptr::null_mut(); // features
-pub static mut Vfile_coding_system_alist: Lisp_Object = std::ptr::null_mut(); // file-coding-system-alist
-pub static mut Vfile_name_coding_system: Lisp_Object = std::ptr::null_mut(); // file-name-coding-system
-pub static mut Vfile_name_handler_alist: Lisp_Object = std::ptr::null_mut(); // file-name-handler-alist
-pub static mut Vfind_word_boundary_function_table: Lisp_Object = std::ptr::null_mut(); // find-word-boundary-function-table
-pub static mut Vfirst_change_hook: Lisp_Object = std::ptr::null_mut(); // first-change-hook
-pub static mut Vfloat_output_format: Lisp_Object = std::ptr::null_mut(); // float-output-format
-pub static mut Vfont_encoding_alist: Lisp_Object = std::ptr::null_mut(); // font-encoding-alist
-pub static mut Vfont_encoding_charset_alist: Lisp_Object = std::ptr::null_mut(); // font-encoding-charset-alist
-pub static mut Vfont_log: Lisp_Object = std::ptr::null_mut(); // font-log
-pub static mut Vfontification_functions: Lisp_Object = std::ptr::null_mut(); // fontification-functions
-pub static mut Vfontset_alias_alist: Lisp_Object = std::ptr::null_mut(); // fontset-alias-alist
-pub static mut Vforward_comment_function: Lisp_Object = std::ptr::null_mut(); // forward-comment-function
-pub static mut Vframe_alpha_lower_limit: Lisp_Object = std::ptr::null_mut(); // frame-alpha-lower-limit
-pub static mut Vframe_title_format: Lisp_Object = std::ptr::null_mut(); // frame-title-format
-pub static mut Vfringe_bitmaps: Lisp_Object = std::ptr::null_mut(); // fringe-bitmaps
-pub static mut Vfunction_key_map: Lisp_Object = std::ptr::null_mut(); // function-key-map
-pub static mut Vgc_cons_percentage: Lisp_Object = std::ptr::null_mut(); // gc-cons-percentage
-pub static mut Vgc_elapsed: Lisp_Object = std::ptr::null_mut(); // gc-elapsed
-pub static mut Vglobal_disable_point_adjustment: Lisp_Object = std::ptr::null_mut(); // global-disable-point-adjustment
-pub static mut Vglobal_mode_string: Lisp_Object = std::ptr::null_mut(); // global-mode-string
-pub static mut Vglyph_table: Lisp_Object = std::ptr::null_mut(); // glyph-table
-pub static mut Vglyphless_char_display: Lisp_Object = std::ptr::null_mut(); // glyphless-char-display
-pub static mut Vgtk_version_string: Lisp_Object = std::ptr::null_mut(); // gtk-version-string
-pub static mut Vhaiku_allowed_ui_colors: Lisp_Object = std::ptr::null_mut(); // haiku-allowed-ui-colors
-pub static mut Vhaiku_control_keysym: Lisp_Object = std::ptr::null_mut(); // haiku-control-keysym
-pub static mut Vhaiku_drag_track_function: Lisp_Object = std::ptr::null_mut(); // haiku-drag-track-function
-pub static mut Vhaiku_drag_wheel_function: Lisp_Object = std::ptr::null_mut(); // haiku-drag-wheel-function
-pub static mut Vhaiku_lost_selection_functions: Lisp_Object = std::ptr::null_mut(); // haiku-lost-selection-functions
-pub static mut Vhaiku_meta_keysym: Lisp_Object = std::ptr::null_mut(); // haiku-meta-keysym
-pub static mut Vhaiku_shift_keysym: Lisp_Object = std::ptr::null_mut(); // haiku-shift-keysym
-pub static mut Vhaiku_super_keysym: Lisp_Object = std::ptr::null_mut(); // haiku-super-keysym
-pub static mut Vhelp_char: Lisp_Object = std::ptr::null_mut(); // help-char
-pub static mut Vhelp_event_list: Lisp_Object = std::ptr::null_mut(); // help-event-list
-pub static mut Vhelp_form: Lisp_Object = std::ptr::null_mut(); // help-form
-pub static mut Vhexl_program_name: Lisp_Object = std::ptr::null_mut(); // hexl-program-name
-pub static mut Vhistory_add_new_input: Lisp_Object = std::ptr::null_mut(); // history-add-new-input
-pub static mut Vhistory_length: Lisp_Object = std::ptr::null_mut(); // history-length
-pub static mut Vhourglass_delay: Lisp_Object = std::ptr::null_mut(); // hourglass-delay
-pub static mut Vhscroll_step: Lisp_Object = std::ptr::null_mut(); // hscroll-step
-pub static mut Vicon_title_format: Lisp_Object = std::ptr::null_mut(); // icon-title-format
-pub static mut Vignore_relative_composition: Lisp_Object = std::ptr::null_mut(); // ignore-relative-composition
-pub static mut Vimage_cache_eviction_delay: Lisp_Object = std::ptr::null_mut(); // image-cache-eviction-delay
-pub static mut Vimage_scaling_factor: Lisp_Object = std::ptr::null_mut(); // image-scaling-factor
-pub static mut Vimage_types: Lisp_Object = std::ptr::null_mut(); // image-types
-pub static mut Vinhibit_changing_match_data: Lisp_Object = std::ptr::null_mut(); // inhibit-changing-match-data
-pub static mut Vinhibit_debugger: Lisp_Object = std::ptr::null_mut(); // inhibit-debugger
-pub static mut Vinhibit_field_text_motion: Lisp_Object = std::ptr::null_mut(); // inhibit-field-text-motion
-pub static mut Vinhibit_file_name_handlers: Lisp_Object = std::ptr::null_mut(); // inhibit-file-name-handlers
-pub static mut Vinhibit_file_name_operation: Lisp_Object = std::ptr::null_mut(); // inhibit-file-name-operation
-pub static mut Vinhibit_point_motion_hooks: Lisp_Object = std::ptr::null_mut(); // inhibit-point-motion-hooks
-pub static mut Vinhibit_quit: Lisp_Object = std::ptr::null_mut(); // inhibit-quit
-pub static mut Vinhibit_read_only: Lisp_Object = std::ptr::null_mut(); // inhibit-read-only
-pub static mut Vinhibit_redisplay: Lisp_Object = std::ptr::null_mut(); // inhibit-redisplay
-pub static mut Vinitial_environment: Lisp_Object = std::ptr::null_mut(); // initial-environment
-pub static mut Vinitial_window_system: Lisp_Object = std::ptr::null_mut(); // initial-window-system
-pub static mut Vinput_decode_map: *mut c_void = std::ptr::null_mut(); // input-decode-map
-pub static mut Vinput_method_function: Lisp_Object = std::ptr::null_mut(); // input-method-function
-pub static mut Vinput_method_previous_message: Lisp_Object = std::ptr::null_mut(); // input-method-previous-message
-pub static mut Vinstallation_directory: Lisp_Object = std::ptr::null_mut(); // installation-directory
-pub static mut Vinternal__daemon_sockname: Lisp_Object = std::ptr::null_mut(); // internal--daemon-sockname
-pub static mut Vinternal__get_default_lexical_binding_function: Lisp_Object = std::ptr::null_mut(); // internal--get-default-lexical-binding-function
-pub static mut Vinternal__top_level_message: Lisp_Object = std::ptr::null_mut(); // internal--top-level-message
-pub static mut Vinternal_interpreter_environment: Lisp_Object = std::ptr::null_mut(); // internal-interpreter-environment
-pub static mut Vinternal_make_interpreted_closure_function: Lisp_Object = std::ptr::null_mut(); // internal-make-interpreted-closure-function
-pub static mut Vinterrupt_process_functions: Lisp_Object = std::ptr::null_mut(); // interrupt-process-functions
-pub static mut Vinvocation_directory: Lisp_Object = std::ptr::null_mut(); // invocation-directory
-pub static mut Vinvocation_name: Lisp_Object = std::ptr::null_mut(); // invocation-name
-pub static mut Vkbd_macro_termination_hook: Lisp_Object = std::ptr::null_mut(); // kbd-macro-termination-hook
-pub static mut Vkey_translation_map: Lisp_Object = std::ptr::null_mut(); // key-translation-map
-pub static mut Vkeyboard_translate_table: *mut c_void = std::ptr::null_mut(); // keyboard-translate-table
-pub static mut Vkill_buffer_query_functions: Lisp_Object = std::ptr::null_mut(); // kill-buffer-query-functions
-pub static mut Vkill_emacs_hook: Lisp_Object = std::ptr::null_mut(); // kill-emacs-hook
-pub static mut Vlast_code_conversion_error: Lisp_Object = std::ptr::null_mut(); // last-code-conversion-error
-pub static mut Vlast_coding_system_used: Lisp_Object = std::ptr::null_mut(); // last-coding-system-used
-pub static mut Vlast_command: *mut c_void = std::ptr::null_mut(); // last-command
-pub static mut Vlast_event_device: Lisp_Object = std::ptr::null_mut(); // last-event-device
-pub static mut Vlast_event_frame: Lisp_Object = std::ptr::null_mut(); // last-event-frame
-pub static mut Vlast_kbd_macro: *mut c_void = std::ptr::null_mut(); // last-kbd-macro
-pub static mut Vlast_prefix_arg: *mut c_void = std::ptr::null_mut(); // last-prefix-arg
-pub static mut Vlast_repeatable_command: *mut c_void = std::ptr::null_mut(); // last-repeatable-command
-pub static mut Vlatin_extra_code_table: Lisp_Object = std::ptr::null_mut(); // latin-extra-code-table
-pub static mut Vlexical_binding: Lisp_Object = std::ptr::null_mut(); // lexical-binding
-pub static mut Vlibgnutls_version: Lisp_Object = std::ptr::null_mut(); // libgnutls-version
-pub static mut Vline_number_display_limit: Lisp_Object = std::ptr::null_mut(); // line-number-display-limit
-pub static mut Vline_prefix: Lisp_Object = std::ptr::null_mut(); // line-prefix
-pub static mut Vload_file_name: Lisp_Object = std::ptr::null_mut(); // load-file-name
-pub static mut Vload_file_rep_suffixes: Lisp_Object = std::ptr::null_mut(); // load-file-rep-suffixes
-pub static mut Vload_history: Lisp_Object = std::ptr::null_mut(); // load-history
-pub static mut Vload_path: Lisp_Object = std::ptr::null_mut(); // load-path
-pub static mut Vload_path_filter_function: Lisp_Object = std::ptr::null_mut(); // load-path-filter-function
-pub static mut Vload_read_function: Lisp_Object = std::ptr::null_mut(); // load-read-function
-pub static mut Vload_source_file_function: Lisp_Object = std::ptr::null_mut(); // load-source-file-function
-pub static mut Vload_suffixes: Lisp_Object = std::ptr::null_mut(); // load-suffixes
-pub static mut Vload_true_file_name: Lisp_Object = std::ptr::null_mut(); // load-true-file-name
-pub static mut Vlocal_function_key_map: *mut c_void = std::ptr::null_mut(); // local-function-key-map
-pub static mut Vlocale_coding_system: Lisp_Object = std::ptr::null_mut(); // locale-coding-system
-pub static mut Vlong_line_threshold: Lisp_Object = std::ptr::null_mut(); // long-line-threshold
-pub static mut Vlread_unescaped_character_literals: Lisp_Object = std::ptr::null_mut(); // lread--unescaped-character-literals
-pub static mut Vmacroexp__dynvars: Lisp_Object = std::ptr::null_mut(); // macroexp--dynvars
-pub static mut Vmain_thread: Lisp_Object = std::ptr::null_mut(); // main-thread
-pub static mut Vmake_cursor_line_fully_visible: Lisp_Object = std::ptr::null_mut(); // make-cursor-line-fully-visible
-pub static mut Vmake_pointer_invisible: Lisp_Object = std::ptr::null_mut(); // make-pointer-invisible
-pub static mut Vmark_even_if_inactive: Lisp_Object = std::ptr::null_mut(); // mark-even-if-inactive
-pub static mut Vmax_image_size: Lisp_Object = std::ptr::null_mut(); // max-image-size
-pub static mut Vmax_mini_window_height: Lisp_Object = std::ptr::null_mut(); // max-mini-window-height
-pub static mut Vmaximum_scroll_margin: Lisp_Object = std::ptr::null_mut(); // maximum-scroll-margin
-pub static mut Vmemory_full: Lisp_Object = std::ptr::null_mut(); // memory-full
-pub static mut Vmemory_signal_data: Lisp_Object = std::ptr::null_mut(); // memory-signal-data
-pub static mut Vmenu_bar_final_items: Lisp_Object = std::ptr::null_mut(); // menu-bar-final-items
-pub static mut Vmenu_bar_mode: Lisp_Object = std::ptr::null_mut(); // menu-bar-mode
-pub static mut Vmenu_bar_update_hook: Lisp_Object = std::ptr::null_mut(); // menu-bar-update-hook
-pub static mut Vmenu_updating_frame: Lisp_Object = std::ptr::null_mut(); // menu-updating-frame
-pub static mut Vmessage_log_max: Lisp_Object = std::ptr::null_mut(); // message-log-max
-pub static mut Vmessages_buffer_name: Lisp_Object = std::ptr::null_mut(); // messages-buffer-name
-pub static mut Vminibuf_scroll_window: Lisp_Object = std::ptr::null_mut(); // minibuffer-scroll-window
-pub static mut Vminibuffer_completing_file_name: Lisp_Object = std::ptr::null_mut(); // minibuffer-completing-file-name
-pub static mut Vminibuffer_completion_confirm: Lisp_Object = std::ptr::null_mut(); // minibuffer-completion-confirm
-pub static mut Vminibuffer_completion_predicate: Lisp_Object = std::ptr::null_mut(); // minibuffer-completion-predicate
-pub static mut Vminibuffer_completion_table: Lisp_Object = std::ptr::null_mut(); // minibuffer-completion-table
-pub static mut Vminibuffer_exit_hook: Lisp_Object = std::ptr::null_mut(); // minibuffer-exit-hook
-pub static mut Vminibuffer_help_form: Lisp_Object = std::ptr::null_mut(); // minibuffer-help-form
-pub static mut Vminibuffer_history_position: Lisp_Object = std::ptr::null_mut(); // minibuffer-history-position
-pub static mut Vminibuffer_history_variable: Lisp_Object = std::ptr::null_mut(); // minibuffer-history-variable
-pub static mut Vminibuffer_local_map: Lisp_Object = std::ptr::null_mut(); // minibuffer-local-map
-pub static mut Vminibuffer_message_timeout: Lisp_Object = std::ptr::null_mut(); // minibuffer-message-timeout
-pub static mut Vminibuffer_prompt_properties: Lisp_Object = std::ptr::null_mut(); // minibuffer-prompt-properties
-pub static mut Vminibuffer_setup_hook: Lisp_Object = std::ptr::null_mut(); // minibuffer-setup-hook
-pub static mut Vminor_mode_map_alist: Lisp_Object = std::ptr::null_mut(); // minor-mode-map-alist
-pub static mut Vminor_mode_overriding_map_alist: Lisp_Object = std::ptr::null_mut(); // minor-mode-overriding-map-alist
-pub static mut Vmode_line_compact: Lisp_Object = std::ptr::null_mut(); // mode-line-compact
-pub static mut Vmodule_file_suffix: Lisp_Object = std::ptr::null_mut(); // module-file-suffix
-pub static mut Vmost_negative_fixnum: Lisp_Object = std::ptr::null_mut(); // most-negative-fixnum
-pub static mut Vmost_positive_fixnum: Lisp_Object = std::ptr::null_mut(); // most-positive-fixnum
-pub static mut Vmotif_version_string: Lisp_Object = std::ptr::null_mut(); // motif-version-string
-pub static mut Vmouse_autoselect_window: Lisp_Object = std::ptr::null_mut(); // mouse-autoselect-window
-pub static mut Vmouse_highlight: Lisp_Object = std::ptr::null_mut(); // mouse-highlight
-pub static mut Vmouse_leave_buffer_hook: Lisp_Object = std::ptr::null_mut(); // mouse-leave-buffer-hook
-pub static mut Vmouse_position_function: Lisp_Object = std::ptr::null_mut(); // mouse-position-function
-pub static mut Vmove_frame_functions: Lisp_Object = std::ptr::null_mut(); // move-frame-functions
-pub static mut Vmovemail_program_name: Lisp_Object = std::ptr::null_mut(); // movemail-program-name
-pub static mut Vnative_comp_eln_load_path: Lisp_Object = std::ptr::null_mut(); // native-comp-eln-load-path
-pub static mut Vnative_comp_enable_subr_trampolines: Lisp_Object = std::ptr::null_mut(); // native-comp-enable-subr-trampolines
-pub static mut Vnetwork_coding_system_alist: Lisp_Object = std::ptr::null_mut(); // network-coding-system-alist
-pub static mut Vnext_selection_coding_system: Lisp_Object = std::ptr::null_mut(); // next-selection-coding-system
-pub static mut Vnobreak_char_display: Lisp_Object = std::ptr::null_mut(); // nobreak-char-display
-pub static mut Vobarray: Lisp_Object = std::ptr::null_mut(); // obarray
-pub static mut Voperating_system_release: Lisp_Object = std::ptr::null_mut(); // operating-system-release
-pub static mut Votf_script_alist: Lisp_Object = std::ptr::null_mut(); // otf-script-alist
-pub static mut Vother_window_scroll_buffer: Lisp_Object = std::ptr::null_mut(); // other-window-scroll-buffer
-pub static mut Vother_window_scroll_default: Lisp_Object = std::ptr::null_mut(); // other-window-scroll-default
-pub static mut Voverflow_newline_into_fringe: Lisp_Object = std::ptr::null_mut(); // overflow-newline-into-fringe
-pub static mut Voverlay_arrow_position: Lisp_Object = std::ptr::null_mut(); // overlay-arrow-position
-pub static mut Voverlay_arrow_string: Lisp_Object = std::ptr::null_mut(); // overlay-arrow-string
-pub static mut Voverlay_arrow_variable_list: Lisp_Object = std::ptr::null_mut(); // overlay-arrow-variable-list
-pub static mut Voverriding_local_map: Lisp_Object = std::ptr::null_mut(); // overriding-local-map
-pub static mut Voverriding_local_map_menu_flag: Lisp_Object = std::ptr::null_mut(); // overriding-local-map-menu-flag
-pub static mut Voverriding_plist_environment: Lisp_Object = std::ptr::null_mut(); // overriding-plist-environment
-pub static mut Voverriding_terminal_local_map: *mut c_void = std::ptr::null_mut(); // overriding-terminal-local-map
-pub static mut Voverriding_text_conversion_style: Lisp_Object = std::ptr::null_mut(); // overriding-text-conversion-style
-pub static mut Vpath_separator: Lisp_Object = std::ptr::null_mut(); // path-separator
-pub static mut Vpdumper_fingerprint: Lisp_Object = std::ptr::null_mut(); // pdumper-fingerprint
-pub static mut Vpgtk_keysym_table: Lisp_Object = std::ptr::null_mut(); // pgtk-keysym-table
-pub static mut Vpgtk_lost_selection_functions: Lisp_Object = std::ptr::null_mut(); // pgtk-lost-selection-functions
-pub static mut Vpgtk_selection_alias_alist: Lisp_Object = std::ptr::null_mut(); // pgtk-selection-alias-alist
-pub static mut Vpgtk_sent_selection_functions: Lisp_Object = std::ptr::null_mut(); // pgtk-sent-selection-functions
-pub static mut Vpgtk_sent_selection_hooks: Lisp_Object = std::ptr::null_mut(); // pgtk-sent-selection-hooks
-pub static mut Vpgtk_use_im_context_on_new_connection: Lisp_Object = std::ptr::null_mut(); // pgtk-use-im-context-on-new-connection
-pub static mut Vpgtk_wait_for_event_timeout: Lisp_Object = std::ptr::null_mut(); // pgtk-wait-for-event-timeout
-pub static mut Vpolling_period: Lisp_Object = std::ptr::null_mut(); // polling-period
-pub static mut Vpost_command_hook: Lisp_Object = std::ptr::null_mut(); // post-command-hook
-pub static mut Vpost_gc_hook: Lisp_Object = std::ptr::null_mut(); // post-gc-hook
-pub static mut Vpost_select_region_hook: Lisp_Object = std::ptr::null_mut(); // post-select-region-hook
-pub static mut Vpost_self_insert_hook: Lisp_Object = std::ptr::null_mut(); // post-self-insert-hook
-pub static mut Vpre_command_hook: Lisp_Object = std::ptr::null_mut(); // pre-command-hook
-pub static mut Vpre_redisplay_function: Lisp_Object = std::ptr::null_mut(); // pre-redisplay-function
-pub static mut Vprefix_arg: *mut c_void = std::ptr::null_mut(); // prefix-arg
-pub static mut Vprefix_help_command: Lisp_Object = std::ptr::null_mut(); // prefix-help-command
-pub static mut Vpreloaded_file_list: Lisp_Object = std::ptr::null_mut(); // preloaded-file-list
-pub static mut Vprint__unreadable_callback_buffer: Lisp_Object = std::ptr::null_mut(); // print--unreadable-callback-buffer
-pub static mut Vprint_charset_text_property: Lisp_Object = std::ptr::null_mut(); // print-charset-text-property
-pub static mut Vprint_circle: Lisp_Object = std::ptr::null_mut(); // print-circle
-pub static mut Vprint_continuous_numbering: Lisp_Object = std::ptr::null_mut(); // print-continuous-numbering
-pub static mut Vprint_gensym: Lisp_Object = std::ptr::null_mut(); // print-gensym
-pub static mut Vprint_length: Lisp_Object = std::ptr::null_mut(); // print-length
-pub static mut Vprint_level: Lisp_Object = std::ptr::null_mut(); // print-level
-pub static mut Vprint_number_table: Lisp_Object = std::ptr::null_mut(); // print-number-table
-pub static mut Vprint_unreadable_function: Lisp_Object = std::ptr::null_mut(); // print-unreadable-function
-pub static mut Vprintable_chars: Lisp_Object = std::ptr::null_mut(); // printable-chars
-pub static mut Vprocess_adaptive_read_buffering: Lisp_Object = std::ptr::null_mut(); // process-adaptive-read-buffering
-pub static mut Vprocess_coding_system_alist: Lisp_Object = std::ptr::null_mut(); // process-coding-system-alist
-pub static mut Vprocess_connection_type: Lisp_Object = std::ptr::null_mut(); // process-connection-type
-pub static mut Vprocess_environment: Lisp_Object = std::ptr::null_mut(); // process-environment
-pub static mut Vpurify_flag: Lisp_Object = std::ptr::null_mut(); // purify-flag
-pub static mut Vquit_flag: Lisp_Object = std::ptr::null_mut(); // quit-flag
-pub static mut Vrcs2log_program_name: Lisp_Object = std::ptr::null_mut(); // rcs2log-program-name
-pub static mut Vread_buffer_function: Lisp_Object = std::ptr::null_mut(); // read-buffer-function
-pub static mut Vread_circle: Lisp_Object = std::ptr::null_mut(); // read-circle
-pub static mut Vread_expression_history: Lisp_Object = std::ptr::null_mut(); // read-expression-history
-pub static mut Vread_hide_char: Lisp_Object = std::ptr::null_mut(); // read-hide-char
-pub static mut Vread_symbol_shorthands: Lisp_Object = std::ptr::null_mut(); // read-symbol-shorthands
-pub static mut Vreal_last_command: *mut c_void = std::ptr::null_mut(); // real-last-command
-pub static mut Vreal_this_command: Lisp_Object = std::ptr::null_mut(); // real-this-command
-pub static mut Vrecenter_redisplay: Lisp_Object = std::ptr::null_mut(); // recenter-redisplay
-pub static mut Vredisplay__all_windows_cause: Lisp_Object = std::ptr::null_mut(); // redisplay--all-windows-cause
-pub static mut Vredisplay__mode_lines_cause: Lisp_Object = std::ptr::null_mut(); // redisplay--mode-lines-cause
-pub static mut Vregion_extract_function: Lisp_Object = std::ptr::null_mut(); // region-extract-function
-pub static mut Vreport_emacs_bug_address: Lisp_Object = std::ptr::null_mut(); // report-emacs-bug-address
-pub static mut Vresize_mini_windows: Lisp_Object = std::ptr::null_mut(); // resize-mini-windows
-pub static mut Vresume_tty_functions: Lisp_Object = std::ptr::null_mut(); // resume-tty-functions
-pub static mut Vring_bell_function: Lisp_Object = std::ptr::null_mut(); // ring-bell-function
-pub static mut Vsaved_region_selection: Lisp_Object = std::ptr::null_mut(); // saved-region-selection
-pub static mut Vscalable_fonts_allowed: Lisp_Object = std::ptr::null_mut(); // scalable-fonts-allowed
-pub static mut Vscript_representative_chars: Lisp_Object = std::ptr::null_mut(); // script-representative-chars
-pub static mut Vscroll_preserve_screen_position: Lisp_Object = std::ptr::null_mut(); // scroll-preserve-screen-position
-pub static mut Vsearch_spaces_regexp: Lisp_Object = std::ptr::null_mut(); // search-spaces-regexp
-pub static mut Vselect_active_regions: Lisp_Object = std::ptr::null_mut(); // select-active-regions
-pub static mut Vselect_safe_coding_system_function: Lisp_Object = std::ptr::null_mut(); // select-safe-coding-system-function
-pub static mut Vselection_coding_system: Lisp_Object = std::ptr::null_mut(); // selection-coding-system
-pub static mut Vselection_converter_alist: Lisp_Object = std::ptr::null_mut(); // selection-converter-alist
-pub static mut Vselection_inhibit_update_commands: Lisp_Object = std::ptr::null_mut(); // selection-inhibit-update-commands
-pub static mut Vset_auto_coding_function: Lisp_Object = std::ptr::null_mut(); // set-auto-coding-function
-pub static mut Vset_message_function: Lisp_Object = std::ptr::null_mut(); // set-message-function
-pub static mut Vsfnt_default_family_alist: Lisp_Object = std::ptr::null_mut(); // sfnt-default-family-alist
-pub static mut Vsfnt_uninstructable_family_regexp: Lisp_Object = std::ptr::null_mut(); // sfnt-uninstructable-family-regexp
-pub static mut Vshared_game_score_directory: Lisp_Object = std::ptr::null_mut(); // shared-game-score-directory
-pub static mut Vshell_file_name: Lisp_Object = std::ptr::null_mut(); // shell-file-name
-pub static mut Vshow_help_function: Lisp_Object = std::ptr::null_mut(); // show-help-function
-pub static mut Vshow_trailing_whitespace: Lisp_Object = std::ptr::null_mut(); // show-trailing-whitespace
-pub static mut Vsignal_hook_function: Lisp_Object = std::ptr::null_mut(); // signal-hook-function
-pub static mut Vsignal_process_functions: Lisp_Object = std::ptr::null_mut(); // signal-process-functions
-pub static mut Vsource_directory: Lisp_Object = std::ptr::null_mut(); // source-directory
-pub static mut Vspecial_event_map: Lisp_Object = std::ptr::null_mut(); // special-event-map
-pub static mut Vspecial_mirror_table: Lisp_Object = std::ptr::null_mut(); // special-mirror-table
-pub static mut Vstandard_display_table: Lisp_Object = std::ptr::null_mut(); // standard-display-table
-pub static mut Vstandard_input: Lisp_Object = std::ptr::null_mut(); // standard-input
-pub static mut Vstandard_output: Lisp_Object = std::ptr::null_mut(); // standard-output
-pub static mut Vstandard_translation_table_for_decode: Lisp_Object = std::ptr::null_mut(); // standard-translation-table-for-decode
-pub static mut Vstandard_translation_table_for_encode: Lisp_Object = std::ptr::null_mut(); // standard-translation-table-for-encode
-pub static mut Vsuspend_tty_functions: Lisp_Object = std::ptr::null_mut(); // suspend-tty-functions
-pub static mut Vsystem_configuration: Lisp_Object = std::ptr::null_mut(); // system-configuration
-pub static mut Vsystem_configuration_features: Lisp_Object = std::ptr::null_mut(); // system-configuration-features
-pub static mut Vsystem_configuration_options: Lisp_Object = std::ptr::null_mut(); // system-configuration-options
-pub static mut Vsystem_key_alist: *mut c_void = std::ptr::null_mut(); // system-key-alist
-pub static mut Vsystem_messages_locale: Lisp_Object = std::ptr::null_mut(); // system-messages-locale
-pub static mut Vsystem_name: Lisp_Object = std::ptr::null_mut(); // system-name
-pub static mut Vsystem_time_locale: Lisp_Object = std::ptr::null_mut(); // system-time-locale
-pub static mut Vsystem_type: Lisp_Object = std::ptr::null_mut(); // system-type
-pub static mut Vtab_bar_border: Lisp_Object = std::ptr::null_mut(); // tab-bar-border
-pub static mut Vtab_bar_button_margin: Lisp_Object = std::ptr::null_mut(); // tab-bar-button-margin
-pub static mut Vtab_bar_mode: Lisp_Object = std::ptr::null_mut(); // tab-bar-mode
-pub static mut Vtab_bar_position: Lisp_Object = std::ptr::null_mut(); // tab-bar-position
-pub static mut Vtab_bar_separator_image_expression: Lisp_Object = std::ptr::null_mut(); // tab-bar-separator-image-expression
-pub static mut Vtemp_buffer_show_function: Lisp_Object = std::ptr::null_mut(); // temp-buffer-show-function
-pub static mut Vtemporary_file_directory: Lisp_Object = std::ptr::null_mut(); // temporary-file-directory
-pub static mut Vterminal_frame: Lisp_Object = std::ptr::null_mut(); // terminal-frame
-pub static mut Vtext_conversion_edits: Lisp_Object = std::ptr::null_mut(); // text-conversion-edits
-pub static mut Vtext_conversion_face: Lisp_Object = std::ptr::null_mut(); // text-conversion-face
-pub static mut Vtext_property_default_nonsticky: Lisp_Object = std::ptr::null_mut(); // text-property-default-nonsticky
-pub static mut Vtext_quoting_style: Lisp_Object = std::ptr::null_mut(); // text-quoting-style
-pub static mut Vthis_command: Lisp_Object = std::ptr::null_mut(); // this-command
-pub static mut Vthis_command_keys_shift_translated: Lisp_Object = std::ptr::null_mut(); // this-command-keys-shift-translated
-pub static mut Vthis_original_command: Lisp_Object = std::ptr::null_mut(); // this-original-command
-pub static mut Vthrow_on_input: Lisp_Object = std::ptr::null_mut(); // throw-on-input
-pub static mut Vtimer_idle_list: Lisp_Object = std::ptr::null_mut(); // timer-idle-list
-pub static mut Vtimer_list: Lisp_Object = std::ptr::null_mut(); // timer-list
-pub static mut Vtool_bar_border: Lisp_Object = std::ptr::null_mut(); // tool-bar-border
-pub static mut Vtool_bar_button_margin: Lisp_Object = std::ptr::null_mut(); // tool-bar-button-margin
-pub static mut Vtool_bar_mode: Lisp_Object = std::ptr::null_mut(); // tool-bar-mode
-pub static mut Vtool_bar_separator_image_expression: Lisp_Object = std::ptr::null_mut(); // tool-bar-separator-image-expression
-pub static mut Vtool_bar_style: Lisp_Object = std::ptr::null_mut(); // tool-bar-style
-pub static mut Vtoolkit_theme: Lisp_Object = std::ptr::null_mut(); // toolkit-theme
-pub static mut Vtop_level: Lisp_Object = std::ptr::null_mut(); // top-level
-pub static mut Vtransient_mark_mode: Lisp_Object = std::ptr::null_mut(); // transient-mark-mode
-pub static mut Vtranslation_hash_table_vector: Lisp_Object = std::ptr::null_mut(); // translation-hash-table-vector
-pub static mut Vtranslation_table_for_input: Lisp_Object = std::ptr::null_mut(); // translation-table-for-input
-pub static mut Vtranslation_table_vector: Lisp_Object = std::ptr::null_mut(); // translation-table-vector
-pub static mut Vtreesit_extra_load_path: Lisp_Object = std::ptr::null_mut(); // treesit-extra-load-path
-pub static mut Vtreesit_language_remap_alist: Lisp_Object = std::ptr::null_mut(); // treesit-language-remap-alist
-pub static mut Vtreesit_languages_require_line_column_tracking: Lisp_Object = std::ptr::null_mut(); // treesit-languages-require-line-column-tracking
-pub static mut Vtreesit_load_name_override_list: Lisp_Object = std::ptr::null_mut(); // treesit-load-name-override-list
-pub static mut Vtreesit_major_mode_remap_alist: Lisp_Object = std::ptr::null_mut(); // treesit-major-mode-remap-alist
-pub static mut Vtreesit_thing_settings: Lisp_Object = std::ptr::null_mut(); // treesit-thing-settings
-pub static mut Vtruncate_partial_width_windows: Lisp_Object = std::ptr::null_mut(); // truncate-partial-width-windows
-pub static mut Vtty_defined_color_alist: Lisp_Object = std::ptr::null_mut(); // tty-defined-color-alist
-pub static mut Vtty_erase_char: Lisp_Object = std::ptr::null_mut(); // tty-erase-char
-pub static mut Vundo_outer_limit: Lisp_Object = std::ptr::null_mut(); // undo-outer-limit
-pub static mut Vundo_outer_limit_function: Lisp_Object = std::ptr::null_mut(); // undo-outer-limit-function
-pub static mut Vunicode_category_table: Lisp_Object = std::ptr::null_mut(); // unicode-category-table
-pub static mut Vunread_command_events: Lisp_Object = std::ptr::null_mut(); // unread-command-events
-pub static mut Vunread_input_method_events: Lisp_Object = std::ptr::null_mut(); // unread-input-method-events
-pub static mut Vunread_post_input_method_events: Lisp_Object = std::ptr::null_mut(); // unread-post-input-method-events
-pub static mut Vuse_default_ascent: Lisp_Object = std::ptr::null_mut(); // use-default-ascent
-pub static mut Vuser_full_name: Lisp_Object = std::ptr::null_mut(); // user-full-name
-pub static mut Vuser_init_file: Lisp_Object = std::ptr::null_mut(); // user-init-file
-pub static mut Vuser_login_name: Lisp_Object = std::ptr::null_mut(); // user-login-name
-pub static mut Vuser_real_login_name: Lisp_Object = std::ptr::null_mut(); // user-real-login-name
-pub static mut Vvalues: Lisp_Object = std::ptr::null_mut(); // values
-pub static mut Vvertical_centering_font_regexp: Lisp_Object = std::ptr::null_mut(); // vertical-centering-font-regexp
-pub static mut Vvoid_text_area_pointer: Lisp_Object = std::ptr::null_mut(); // void-text-area-pointer
-pub static mut Vw32_alt_is_meta: Lisp_Object = std::ptr::null_mut(); // w32-alt-is-meta
-pub static mut Vw32_apps_modifier: Lisp_Object = std::ptr::null_mut(); // w32-apps-modifier
-pub static mut Vw32_capslock_is_shiftlock: Lisp_Object = std::ptr::null_mut(); // w32-capslock-is-shiftlock
-pub static mut Vw32_charset_info_alist: Lisp_Object = std::ptr::null_mut(); // w32-charset-info-alist
-pub static mut Vw32_collate_ignore_punctuation: Lisp_Object = std::ptr::null_mut(); // w32-collate-ignore-punctuation
-pub static mut Vw32_color_map: Lisp_Object = std::ptr::null_mut(); // w32-color-map
-pub static mut Vw32_downcase_file_names: Lisp_Object = std::ptr::null_mut(); // w32-downcase-file-names
-pub static mut Vw32_enable_caps_lock: Lisp_Object = std::ptr::null_mut(); // w32-enable-caps-lock
-pub static mut Vw32_enable_num_lock: Lisp_Object = std::ptr::null_mut(); // w32-enable-num-lock
-pub static mut Vw32_enable_palette: Lisp_Object = std::ptr::null_mut(); // w32-enable-palette
-pub static mut Vw32_generate_fake_inodes: Lisp_Object = std::ptr::null_mut(); // w32-generate-fake-inodes
-pub static mut Vw32_get_true_file_attributes: Lisp_Object = std::ptr::null_mut(); // w32-get-true-file-attributes
-pub static mut Vw32_grab_focus_on_raise: Lisp_Object = std::ptr::null_mut(); // w32-grab-focus-on-raise
-pub static mut Vw32_lwindow_modifier: Lisp_Object = std::ptr::null_mut(); // w32-lwindow-modifier
-pub static mut Vw32_pass_alt_to_system: Lisp_Object = std::ptr::null_mut(); // w32-pass-alt-to-system
-pub static mut Vw32_pass_lwindow_to_system: Lisp_Object = std::ptr::null_mut(); // w32-pass-lwindow-to-system
-pub static mut Vw32_pass_rwindow_to_system: Lisp_Object = std::ptr::null_mut(); // w32-pass-rwindow-to-system
-pub static mut Vw32_phantom_key_code: Lisp_Object = std::ptr::null_mut(); // w32-phantom-key-code
-pub static mut Vw32_quote_process_args: Lisp_Object = std::ptr::null_mut(); // w32-quote-process-args
-pub static mut Vw32_recognize_altgr: Lisp_Object = std::ptr::null_mut(); // w32-recognize-altgr
-pub static mut Vw32_rwindow_modifier: Lisp_Object = std::ptr::null_mut(); // w32-rwindow-modifier
-pub static mut Vw32_scroll_lock_modifier: Lisp_Object = std::ptr::null_mut(); // w32-scroll-lock-modifier
-pub static mut Vw32_start_process_inherit_error_mode: Lisp_Object = std::ptr::null_mut(); // w32-start-process-inherit-error-mode
-pub static mut Vw32_start_process_share_console: Lisp_Object = std::ptr::null_mut(); // w32-start-process-share-console
-pub static mut Vw32_start_process_show_window: Lisp_Object = std::ptr::null_mut(); // w32-start-process-show-window
-pub static mut Vw32_swap_mouse_buttons: Lisp_Object = std::ptr::null_mut(); // w32-swap-mouse-buttons
-pub static mut Vw32_tooltip_extra_pixels: Lisp_Object = std::ptr::null_mut(); // w32-tooltip-extra-pixels
-pub static mut Vwhere_is_preferred_modifier: Lisp_Object = std::ptr::null_mut(); // where-is-preferred-modifier
-pub static mut Vwhile_no_input_ignore_events: Lisp_Object = std::ptr::null_mut(); // while-no-input-ignore-events
-pub static mut Vwindow_buffer_change_functions: Lisp_Object = std::ptr::null_mut(); // window-buffer-change-functions
-pub static mut Vwindow_combination_limit: Lisp_Object = std::ptr::null_mut(); // window-combination-limit
-pub static mut Vwindow_combination_resize: Lisp_Object = std::ptr::null_mut(); // window-combination-resize
-pub static mut Vwindow_configuration_change_hook: Lisp_Object = std::ptr::null_mut(); // window-configuration-change-hook
-pub static mut Vwindow_persistent_parameters: Lisp_Object = std::ptr::null_mut(); // window-persistent-parameters
-pub static mut Vwindow_point_insertion_type: Lisp_Object = std::ptr::null_mut(); // window-point-insertion-type
-pub static mut Vwindow_scroll_functions: Lisp_Object = std::ptr::null_mut(); // window-scroll-functions
-pub static mut Vwindow_selection_change_functions: Lisp_Object = std::ptr::null_mut(); // window-selection-change-functions
-pub static mut Vwindow_size_change_functions: Lisp_Object = std::ptr::null_mut(); // window-size-change-functions
-pub static mut Vwindow_state_change_functions: Lisp_Object = std::ptr::null_mut(); // window-state-change-functions
-pub static mut Vwindow_state_change_hook: Lisp_Object = std::ptr::null_mut(); // window-state-change-hook
-pub static mut Vwindow_system: *mut c_void = std::ptr::null_mut(); // window-system
-pub static mut Vword_combining_categories: Lisp_Object = std::ptr::null_mut(); // word-combining-categories
-pub static mut Vword_separating_categories: Lisp_Object = std::ptr::null_mut(); // word-separating-categories
-pub static mut Vwrap_prefix: Lisp_Object = std::ptr::null_mut(); // wrap-prefix
-pub static mut Vwrite_region_annotate_functions: Lisp_Object = std::ptr::null_mut(); // write-region-annotate-functions
-pub static mut Vwrite_region_annotations_so_far: Lisp_Object = std::ptr::null_mut(); // write-region-annotations-so-far
-pub static mut Vwrite_region_post_annotation_function: Lisp_Object = std::ptr::null_mut(); // write-region-post-annotation-function
-pub static mut Vx_allow_focus_stealing: Lisp_Object = std::ptr::null_mut(); // x-allow-focus-stealing
-pub static mut Vx_alt_keysym: Lisp_Object = std::ptr::null_mut(); // x-alt-keysym
-pub static mut Vx_auto_preserve_selections: Lisp_Object = std::ptr::null_mut(); // x-auto-preserve-selections
-pub static mut Vx_bitmap_file_path: Lisp_Object = std::ptr::null_mut(); // x-bitmap-file-path
-pub static mut Vx_ctrl_keysym: Lisp_Object = std::ptr::null_mut(); // x-ctrl-keysym
-pub static mut Vx_cursor_fore_pixel: Lisp_Object = std::ptr::null_mut(); // x-cursor-fore-pixel
-pub static mut Vx_detect_server_trust: Lisp_Object = std::ptr::null_mut(); // x-detect-server-trust
-pub static mut Vx_dnd_movement_function: Lisp_Object = std::ptr::null_mut(); // x-dnd-movement-function
-pub static mut Vx_dnd_native_test_function: Lisp_Object = std::ptr::null_mut(); // x-dnd-native-test-function
-pub static mut Vx_dnd_targets_list: Lisp_Object = std::ptr::null_mut(); // x-dnd-targets-list
-pub static mut Vx_dnd_unsupported_drop_function: Lisp_Object = std::ptr::null_mut(); // x-dnd-unsupported-drop-function
-pub static mut Vx_dnd_wheel_function: Lisp_Object = std::ptr::null_mut(); // x-dnd-wheel-function
-pub static mut Vx_fast_selection_list: Lisp_Object = std::ptr::null_mut(); // x-fast-selection-list
-pub static mut Vx_hourglass_pointer_shape: Lisp_Object = std::ptr::null_mut(); // x-hourglass-pointer-shape
-pub static mut Vx_hyper_keysym: Lisp_Object = std::ptr::null_mut(); // x-hyper-keysym
-pub static mut Vx_input_coding_function: Lisp_Object = std::ptr::null_mut(); // x-input-coding-function
-pub static mut Vx_input_coding_system: Lisp_Object = std::ptr::null_mut(); // x-input-coding-system
-pub static mut Vx_keysym_table: Lisp_Object = std::ptr::null_mut(); // x-keysym-table
-pub static mut Vx_lax_frame_positioning: Lisp_Object = std::ptr::null_mut(); // x-lax-frame-positioning
-pub static mut Vx_lost_selection_functions: Lisp_Object = std::ptr::null_mut(); // x-lost-selection-functions
-pub static mut Vx_max_tooltip_size: Lisp_Object = std::ptr::null_mut(); // x-max-tooltip-size
-pub static mut Vx_meta_keysym: Lisp_Object = std::ptr::null_mut(); // x-meta-keysym
-pub static mut Vx_mode_pointer_shape: Lisp_Object = std::ptr::null_mut(); // x-mode-pointer-shape
-pub static mut Vx_no_window_manager: Lisp_Object = std::ptr::null_mut(); // x-no-window-manager
-pub static mut Vx_nontext_pointer_shape: Lisp_Object = std::ptr::null_mut(); // x-nontext-pointer-shape
-pub static mut Vx_pixel_size_width_font_regexp: Lisp_Object = std::ptr::null_mut(); // x-pixel-size-width-font-regexp
-pub static mut Vx_pointer_shape: Lisp_Object = std::ptr::null_mut(); // x-pointer-shape
-pub static mut Vx_popup_menu_function: Lisp_Object = std::ptr::null_mut(); // x-popup-menu-function
-pub static mut Vx_pre_popup_menu_hook: Lisp_Object = std::ptr::null_mut(); // x-pre-popup-menu-hook
-pub static mut Vx_quit_keysym: Lisp_Object = std::ptr::null_mut(); // x-quit-keysym
-pub static mut Vx_resource_class: Lisp_Object = std::ptr::null_mut(); // x-resource-class
-pub static mut Vx_resource_name: Lisp_Object = std::ptr::null_mut(); // x-resource-name
-pub static mut Vx_scroll_event_delta_factor: Lisp_Object = std::ptr::null_mut(); // x-scroll-event-delta-factor
-pub static mut Vx_select_enable_clipboard_manager: Lisp_Object = std::ptr::null_mut(); // x-select-enable-clipboard-manager
-pub static mut Vx_selection_alias_alist: Lisp_Object = std::ptr::null_mut(); // x-selection-alias-alist
-pub static mut Vx_sensitive_text_pointer_shape: Lisp_Object = std::ptr::null_mut(); // x-sensitive-text-pointer-shape
-pub static mut Vx_sent_selection_functions: Lisp_Object = std::ptr::null_mut(); // x-sent-selection-functions
-pub static mut Vx_session_id: Lisp_Object = std::ptr::null_mut(); // x-session-id
-pub static mut Vx_session_previous_id: Lisp_Object = std::ptr::null_mut(); // x-session-previous-id
-pub static mut Vx_show_tooltip_timeout: Lisp_Object = std::ptr::null_mut(); // x-show-tooltip-timeout
-pub static mut Vx_super_keysym: Lisp_Object = std::ptr::null_mut(); // x-super-keysym
-pub static mut Vx_toolkit_scroll_bars: Lisp_Object = std::ptr::null_mut(); // x-toolkit-scroll-bars
-pub static mut Vx_treat_local_requests_remotely: Lisp_Object = std::ptr::null_mut(); // x-treat-local-requests-remotely
-pub static mut Vx_use_fast_mouse_position: Lisp_Object = std::ptr::null_mut(); // x-use-fast-mouse-position
-pub static mut Vx_wait_for_event_timeout: Lisp_Object = std::ptr::null_mut(); // x-wait-for-event-timeout
-pub static mut Vx_window_bottom_edge_shape: Lisp_Object = std::ptr::null_mut(); // x-window-bottom-edge-cursor
-pub static mut Vx_window_bottom_left_corner_shape: Lisp_Object = std::ptr::null_mut(); // x-window-bottom-left-corner-cursor
-pub static mut Vx_window_bottom_right_corner_shape: Lisp_Object = std::ptr::null_mut(); // x-window-bottom-right-corner-cursor
-pub static mut Vx_window_horizontal_drag_shape: Lisp_Object = std::ptr::null_mut(); // x-window-horizontal-drag-cursor
-pub static mut Vx_window_left_edge_shape: Lisp_Object = std::ptr::null_mut(); // x-window-left-edge-cursor
-pub static mut Vx_window_right_edge_shape: Lisp_Object = std::ptr::null_mut(); // x-window-right-edge-cursor
-pub static mut Vx_window_top_edge_shape: Lisp_Object = std::ptr::null_mut(); // x-window-top-edge-cursor
-pub static mut Vx_window_top_left_corner_shape: Lisp_Object = std::ptr::null_mut(); // x-window-top-left-corner-cursor
-pub static mut Vx_window_top_right_corner_shape: Lisp_Object = std::ptr::null_mut(); // x-window-top-right-corner-cursor
-pub static mut Vx_window_vertical_drag_shape: Lisp_Object = std::ptr::null_mut(); // x-window-vertical-drag-cursor
-pub static mut Vxft_color_font_whitelist: Lisp_Object = std::ptr::null_mut(); // xft-color-font-whitelist
-pub static mut Vxft_settings: Lisp_Object = std::ptr::null_mut(); // xft-settings
-pub static mut Vxwidget_list: Lisp_Object = std::ptr::null_mut(); // xwidget-list
-pub static mut Vxwidget_view_list: Lisp_Object = std::ptr::null_mut(); // xwidget-view-list
-pub static mut Vyes_or_no_prompt: Lisp_Object = std::ptr::null_mut(); // yes-or-no-prompt
-pub static mut alter_fullscreen_frames: Lisp_Object = std::ptr::null_mut(); // alter-fullscreen-frames
-pub static mut android_display_planes: EMACS_INT = 0; // android-display-planes
-pub static mut android_intercept_control_space: bool = false; // android-intercept-control-space
-pub static mut android_keyboard_bell_duration: EMACS_INT = 0; // android-keyboard-bell-duration
-pub static mut android_pass_multimedia_buttons_to_system: bool = false; // android-pass-multimedia-buttons-to-system
-pub static mut android_quit_keycode: EMACS_INT = 0; // android-quit-keycode
-pub static mut android_use_exec_loader: bool = false; // android-use-exec-loader
-pub static mut attempt_orderly_shutdown_on_fatal_signal: bool = false; // attempt-orderly-shutdown-on-fatal-signal
-pub static mut attempt_stack_overflow_recovery: bool = false; // attempt-stack-overflow-recovery
-pub static mut auto_raise_tab_bar_buttons_p: bool = false; // auto-raise-tab-bar-buttons
-pub static mut auto_raise_tool_bar_buttons_p: bool = false; // auto-raise-tool-bar-buttons
-pub static mut auto_save_interval: EMACS_INT = 0; // auto-save-interval
-pub static mut auto_save_no_message: bool = false; // auto-save-no-message
-pub static mut auto_window_vscroll_p: bool = false; // auto-window-vscroll
-pub static mut automatic_hscrolling: Lisp_Object = std::ptr::null_mut(); // auto-hscroll-mode
-pub static mut backtrace_on_error_noninteractive: bool = false; // backtrace-on-error-noninteractive
-pub static mut backtrace_on_redisplay_error: bool = false; // backtrace-on-redisplay-error
-pub static mut baud_rate: EMACS_INT = 0; // baud-rate
-pub static mut bidi_inhibit_bpa: bool = false; // bidi-inhibit-bpa
-pub static mut byte_metering_on: bool = false; // byte-metering-on
-pub static mut cannot_suspend: bool = false; // cannot-suspend
-pub static mut case_symbols_as_words: bool = false; // case-symbols-as-words
-pub static mut coding_system_require_warning: bool = false; // coding-system-require-warning
-pub static mut command_line_max_length: EMACS_INT = 0; // command-line-max-length
-pub static mut comment_end_can_be_escaped: bool = false; // comment-end-can-be-escaped
-pub static mut comp_file_preloaded_p: bool = false; // comp-file-preloaded-p
-pub static mut comp_sanitizer_active: bool = false; // comp-sanitizer-active
-pub static mut completion_ignore_case: bool = false; // completion-ignore-case
-pub static mut composition_break_at_point: bool = false; // composition-break-at-point
-pub static mut cons_cells_consed: EMACS_INT = 0; // cons-cells-consed
-pub static mut create_lockfiles: bool = false; // create-lockfiles
-pub static mut cross_disabled_images: bool = false; // cross-disabled-images
-pub static mut current_time_list: bool = false; // current-time-list
-pub static mut cursor_in_echo_area: bool = false; // cursor-in-echo-area
-pub static mut debug_end_pos: EMACS_INT = 0; // debug-end-pos
-pub static mut debug_on_next_call: bool = false; // debug-on-next-call
-pub static mut debug_on_quit: bool = false; // debug-on-quit
-pub static mut debugger_may_continue: bool = false; // debugger-may-continue
-pub static mut debugger_stack_frame_as_list: bool = false; // debugger-stack-frame-as-list
-pub static mut defining_kbd_macro: *mut c_void = std::ptr::null_mut(); // defining-kbd-macro
-pub static mut delete_auto_save_files: bool = false; // delete-auto-save-files
-pub static mut delete_by_moving_to_trash: bool = false; // delete-by-moving-to-trash
-pub static mut delete_exited_processes: bool = false; // delete-exited-processes
-pub static mut delete_frame_choose_selected: Lisp_Object = std::ptr::null_mut(); // delete-frame-choose-selected
-pub static mut disable_ascii_optimization: bool = false; // disable-ascii-optimization
-pub static mut disable_inhibit_text_conversion: bool = false; // disable-inhibit-text-conversion
-pub static mut display_fill_column_indicator: bool = false; // display-fill-column-indicator
-pub static mut display_hourglass_p: bool = false; // display-hourglass
-pub static mut display_line_numbers_major_tick: EMACS_INT = 0; // display-line-numbers-major-tick
-pub static mut display_line_numbers_minor_tick: EMACS_INT = 0; // display-line-numbers-minor-tick
-pub static mut display_line_numbers_offset: EMACS_INT = 0; // display-line-numbers-offset
-pub static mut display_line_numbers_widen: bool = false; // display-line-numbers-widen
-pub static mut display_raw_bytes_as_hex: bool = false; // display-raw-bytes-as-hex
-pub static mut documentation_dynamic_reload: bool = false; // documentation-dynamic-reload
-pub static mut dos_codepage: EMACS_INT = 0; // dos-codepage
-pub static mut dos_country_code: EMACS_INT = 0; // dos-country-code
-pub static mut dos_decimal_point: EMACS_INT = 0; // dos-decimal-point
-pub static mut dos_hyper_key: EMACS_INT = 0; // dos-hyper-key
-pub static mut dos_keyboard_layout: EMACS_INT = 0; // dos-keyboard-layout
-pub static mut dos_keypad_mode: EMACS_INT = 0; // dos-keypad-mode
-pub static mut dos_super_key: EMACS_INT = 0; // dos-super-key
-pub static mut dos_timezone_offset: EMACS_INT = 0; // dos-timezone-offset
-pub static mut double_click_fuzz: EMACS_INT = 0; // double-click-fuzz
-pub static mut echo_keystrokes_help: bool = false; // echo-keystrokes-help
-pub static mut emacs_scroll_step: EMACS_INT = 0; // scroll-step
-pub static mut enable_recursive_minibuffers: bool = false; // enable-recursive-minibuffers
-pub static mut eol_mnemonic_dos: Lisp_Object = std::ptr::null_mut(); // eol-mnemonic-dos
-pub static mut eol_mnemonic_mac: Lisp_Object = std::ptr::null_mut(); // eol-mnemonic-mac
-pub static mut eol_mnemonic_undecided: Lisp_Object = std::ptr::null_mut(); // eol-mnemonic-undecided
-pub static mut eol_mnemonic_unix: Lisp_Object = std::ptr::null_mut(); // eol-mnemonic-unix
-pub static mut executing_kbd_macro_index: EMACS_INT = 0; // executing-kbd-macro-index
-pub static mut expose_hidden_buffer: Lisp_Object = std::ptr::null_mut(); // expose-hidden-buffer
-pub static mut extra_keyboard_modifiers: EMACS_INT = 0; // extra-keyboard-modifiers
-pub static mut face_filters_always_match: bool = false; // face-filters-always-match
-pub static mut face_near_same_color_threshold: EMACS_INT = 0; // face-near-same-color-threshold
-pub static mut fast_but_imprecise_scrolling: bool = false; // fast-but-imprecise-scrolling
-pub static mut fast_read_process_output: bool = false; // fast-read-process-output
-pub static mut floats_consed: EMACS_INT = 0; // floats-consed
-pub static mut focus_follows_mouse: Lisp_Object = std::ptr::null_mut(); // focus-follows-mouse
-pub static mut force_load_messages: bool = false; // force-load-messages
-pub static mut frame_inhibit_implied_resize: Lisp_Object = std::ptr::null_mut(); // frame-inhibit-implied-resize
-pub static mut frame_internal_parameters: Lisp_Object = std::ptr::null_mut(); // frame-internal-parameters
-pub static mut frame_resize_pixelwise: bool = false; // frame-resize-pixelwise
-pub static mut frame_size_history: Lisp_Object = std::ptr::null_mut(); // frame-size-history
-pub static mut garbage_collection_messages: bool = false; // garbage-collection-messages
-pub static mut gc_cons_threshold: EMACS_INT = 0; // gc-cons-threshold
-pub static mut gcs_done: EMACS_INT = 0; // gcs-done
-pub static mut global_gnutls_log_level: EMACS_INT = 0; // gnutls-log-level
-pub static mut haiku_debug_on_fatal_error: bool = false; // haiku-debug-on-fatal-error
-pub static mut haiku_initialized: bool = false; // haiku-initialized
-pub static mut haiku_pass_control_tab_to_system: bool = false; // haiku-pass-control-tab-to-system
-pub static mut haiku_signal_invalid_refs: bool = false; // haiku-signal-invalid-refs
-pub static mut highlight_nonselected_windows: bool = false; // highlight-nonselected-windows
-pub static mut history_delete_duplicates: bool = false; // history-delete-duplicates
-pub static mut hscroll_margin: EMACS_INT = 0; // hscroll-margin
-pub static mut iconify_child_frame: Lisp_Object = std::ptr::null_mut(); // iconify-child-frame
-pub static mut imagemagick_render_type: EMACS_INT = 0; // imagemagick-render-type
-pub static mut indent_tabs_mode: bool = false; // indent-tabs-mode
-pub static mut inherit_process_coding_system: bool = false; // inherit-process-coding-system
-pub static mut inhibit_bidi_mirroring: bool = false; // inhibit-bidi-mirroring
-pub static mut inhibit_compacting_font_caches: bool = false; // inhibit-compacting-font-caches
-pub static mut inhibit_eol_conversion: bool = false; // inhibit-eol-conversion
-pub static mut inhibit_eval_during_redisplay: bool = false; // inhibit-eval-during-redisplay
-pub static mut inhibit_free_realized_faces: bool = false; // inhibit-free-realized-faces
-pub static mut inhibit_interaction: bool = false; // inhibit-interaction
-pub static mut inhibit_iso_escape_detection: bool = false; // inhibit-iso-escape-detection
-pub static mut inhibit_load_charset_map: bool = false; // inhibit-load-charset-map
-pub static mut inhibit_menubar_update: bool = false; // inhibit-menubar-update
-pub static mut inhibit_message: bool = false; // inhibit-message
-pub static mut inhibit_modification_hooks: bool = false; // inhibit-modification-hooks
-pub static mut inhibit_mouse_event_check: bool = false; // inhibit-mouse-event-check
-pub static mut inhibit_null_byte_detection: bool = false; // inhibit-null-byte-detection
-pub static mut inhibit_record_char: bool = false; // inhibit--record-char
-pub static mut inhibit_try_cursor_movement: bool = false; // inhibit-try-cursor-movement
-pub static mut inhibit_try_window_id: bool = false; // inhibit-try-window-id
-pub static mut inhibit_try_window_reusing: bool = false; // inhibit-try-window-reusing
-pub static mut inhibit_x_resources: bool = false; // inhibit-x-resources
-pub static mut input_pending_p_filter_events: bool = false; // input-pending-p-filter-events
-pub static mut integer_width: EMACS_INT = 0; // integer-width
-pub static mut intervals_consed: EMACS_INT = 0; // intervals-consed
-pub static mut inverse_video: bool = false; // inverse-video
-pub static mut kill_buffer_delete_auto_save_files: bool = false; // kill-buffer-delete-auto-save-files
-pub static mut kill_emacs_on_sigint: bool = false; // kill-emacs-on-sigint
-pub static mut large_hscroll_threshold: EMACS_INT = 0; // large-hscroll-threshold
-pub static mut last_command_event: Lisp_Object = std::ptr::null_mut(); // last-command-event
-pub static mut last_input_event: Lisp_Object = std::ptr::null_mut(); // last-input-event
-pub static mut last_nonmenu_event: Lisp_Object = std::ptr::null_mut(); // last-nonmenu-event
-pub static mut line_number_display_limit_width: EMACS_INT = 0; // line-number-display-limit-width
-pub static mut lisp_eval_depth_reserve: EMACS_INT = 0; // lisp-eval-depth-reserve
-pub static mut load_dangerous_libraries: bool = false; // load-dangerous-libraries
-pub static mut load_force_doc_strings: bool = false; // load-force-doc-strings
-pub static mut load_in_progress: bool = false; // load-in-progress
-pub static mut load_no_native: bool = false; // load-no-native
-pub static mut load_prefer_newer: bool = false; // load-prefer-newer
-pub static mut long_line_optimizations_bol_search_limit: EMACS_INT = 0; // long-line-optimizations-bol-search-limit
-pub static mut long_line_optimizations_region_size: EMACS_INT = 0; // long-line-optimizations-region-size
-pub static mut lucid__menu_grab_keyboard: bool = false; // lucid--menu-grab-keyboard
-pub static mut make_window_start_visible: bool = false; // make-window-start-visible
-pub static mut max_lisp_eval_depth: EMACS_INT = 0; // max-lisp-eval-depth
-pub static mut max_redisplay_ticks: EMACS_INT = 0; // max-redisplay-ticks
-pub static mut menu_prompt_more_char: Lisp_Object = std::ptr::null_mut(); // menu-prompt-more-char
-pub static mut menu_prompting: bool = false; // menu-prompting
-pub static mut message_truncate_lines: bool = false; // message-truncate-lines
-pub static mut meta_prefix_char: Lisp_Object = std::ptr::null_mut(); // meta-prefix-char
-pub static mut minibuffer_allow_text_properties: bool = false; // minibuffer-allow-text-properties
-pub static mut minibuffer_auto_raise: bool = false; // minibuffer-auto-raise
-pub static mut minibuffer_follows_selected_frame: Lisp_Object = std::ptr::null_mut(); // minibuffer-follows-selected-frame
-pub static mut mode_line_in_non_selected_windows: bool = false; // mode-line-in-non-selected-windows
-pub static mut mouse_fine_grained_tracking: bool = false; // mouse-fine-grained-tracking
-pub static mut mouse_prefer_closest_glyph: bool = false; // mouse-prefer-closest-glyph
-pub static mut multibyte_syntax_as_symbol: bool = false; // multibyte-syntax-as-symbol
-pub static mut multiple_frames: bool = false; // multiple-frames
-pub static mut multiple_terminals_merge_keyboards: bool = false; // multiple-terminals-merge-keyboards
-pub static mut mwheel_coalesce_scroll_events: bool = false; // mwheel-coalesce-scroll-events
-pub static mut native_comp_jit_compilation: bool = false; // native-comp-jit-compilation
-pub static mut next_screen_context_lines: EMACS_INT = 0; // next-screen-context-lines
-pub static mut no_redraw_on_reenter: bool = false; // no-redraw-on-reenter
-pub static mut nobreak_char_ascii_display: bool = false; // nobreak-char-ascii-display
-pub static mut noninteractive1: bool = false; // noninteractive
-pub static mut num_input_keys: EMACS_INT = 0; // num-input-keys
-pub static mut num_nonmacro_input_events: EMACS_INT = 0; // num-nonmacro-input-events
-pub static mut open_paren_in_column_0_is_defun_start: bool = false; // open-paren-in-column-0-is-defun-start
-pub static mut overline_margin: EMACS_INT = 0; // overline-margin
-pub static mut parse_sexp_ignore_comments: bool = false; // parse-sexp-ignore-comments
-pub static mut parse_sexp_lookup_properties: bool = false; // parse-sexp-lookup-properties
-pub static mut pgtk_selection_timeout: EMACS_INT = 0; // pgtk-selection-timeout
-pub static mut print_escape_control_characters: bool = false; // print-escape-control-characters
-pub static mut print_escape_multibyte: bool = false; // print-escape-multibyte
-pub static mut print_escape_newlines: bool = false; // print-escape-newlines
-pub static mut print_escape_nonascii: bool = false; // print-escape-nonascii
-pub static mut print_integers_as_characters: bool = false; // print-integers-as-characters
-pub static mut print_quoted: bool = false; // print-quoted
-pub static mut print_symbols_bare: bool = false; // print-symbols-bare
-pub static mut process_error_pause_time: EMACS_INT = 0; // process-error-pause-time
-pub static mut process_prioritize_lower_fds: bool = false; // process-prioritize-lower-fds
-pub static mut profiler_log_size: EMACS_INT = 0; // profiler-log-size
-pub static mut profiler_max_stack_depth: EMACS_INT = 0; // profiler-max-stack-depth
-pub static mut pure_bytes_used: EMACS_INT = 0; // pure-bytes-used
-pub static mut query_all_font_backends: bool = false; // query-all-font-backends
-pub static mut read_buffer_completion_ignore_case: bool = false; // read-buffer-completion-ignore-case
-pub static mut read_minibuffer_restore_windows: bool = false; // read-minibuffer-restore-windows
-pub static mut read_process_output_max: EMACS_INT = 0; // read-process-output-max
-pub static mut record_all_keys: bool = false; // record-all-keys
-pub static mut redisplay__inhibit_bidi: bool = false; // redisplay--inhibit-bidi
-pub static mut redisplay_adhoc_scroll_in_resize_mini_windows: bool = false; // redisplay-adhoc-scroll-in-resize-mini-windows
-pub static mut redisplay_skip_fontification_on_input: bool = false; // redisplay-skip-fontification-on-input
-pub static mut redisplay_skip_initial_frame: bool = false; // redisplay-skip-initial-frame
-pub static mut resize_mini_frames: Lisp_Object = std::ptr::null_mut(); // resize-mini-frames
-pub static mut scroll_bar_adjust_thumb_portion_p: bool = false; // scroll-bar-adjust-thumb-portion
-pub static mut scroll_conservatively: EMACS_INT = 0; // scroll-conservatively
-pub static mut scroll_margin: EMACS_INT = 0; // scroll-margin
-pub static mut scroll_minibuffer_conservatively: bool = false; // scroll-minibuffer-conservatively
-pub static mut sfnt_raster_glyphs_exactly: bool = false; // sfnt-raster-glyphs-exactly
-pub static mut string_chars_consed: EMACS_INT = 0; // string-chars-consed
-pub static mut strings_consed: EMACS_INT = 0; // strings-consed
-pub static mut symbols_consed: EMACS_INT = 0; // symbols-consed
-pub static mut symbols_with_pos_enabled: bool = false; // symbols-with-pos-enabled
-pub static mut syntax_propertize__done: EMACS_INT = 0; // syntax-propertize--done
-pub static mut system_uses_terminfo: bool = false; // system-uses-terminfo
-pub static mut tab_bar__dragging_in_progress: bool = false; // tab-bar--dragging-in-progress
-pub static mut tab_bar_button_relief: EMACS_INT = 0; // tab-bar-button-relief
-pub static mut tab_bar_truncate: bool = false; // tab-bar-truncate
-pub static mut text_quoting_flag: bool = false; // internal--text-quoting-flag
-pub static mut tool_bar_button_relief: EMACS_INT = 0; // tool-bar-button-relief
-pub static mut tool_bar_max_label_size: EMACS_INT = 0; // tool-bar-max-label-size
-pub static mut tooltip_reuse_hidden_frame: bool = false; // tooltip-reuse-hidden-frame
-pub static mut track_mouse: Lisp_Object = std::ptr::null_mut(); // track-mouse
-pub static mut translate_upper_case_key_bindings: bool = false; // translate-upper-case-key-bindings
-pub static mut tty_cursor_movement_use_TAB: bool = false; // tty-cursor-movement-use-TAB
-pub static mut tty_cursor_movement_use_TAB_BS: bool = false; // tty-cursor-movement-use-TAB-BS
-pub static mut tty_display_emoji_force_wide: bool = false; // tty-display-emoji-force-wide
-pub static mut tty_menu_calls_mouse_position_function: bool = false; // tty-menu-calls-mouse-position-function
-pub static mut underline_minimum_offset: EMACS_INT = 0; // underline-minimum-offset
-pub static mut undo_inhibit_record_point: bool = false; // undo-inhibit-record-point
-pub static mut undo_limit: EMACS_INT = 0; // undo-limit
-pub static mut undo_strong_limit: EMACS_INT = 0; // undo-strong-limit
-pub static mut unibyte_display_via_language_environment: bool = false; // unibyte-display-via-language-environment
-pub static mut use_default_font_for_symbols: bool = false; // use-default-font-for-symbols
-pub static mut use_dialog_box: bool = false; // use-dialog-box
-pub static mut use_file_dialog: bool = false; // use-file-dialog
-pub static mut use_short_answers: bool = false; // use-short-answers
-pub static mut use_system_font: bool = false; // font-use-system-font
-pub static mut use_system_tooltips: bool = false; // use-system-tooltips
-pub static mut vector_cells_consed: EMACS_INT = 0; // vector-cells-consed
-pub static mut visible_bell: bool = false; // visible-bell
-pub static mut visible_cursor: bool = false; // visible-cursor
-pub static mut w32__terminal_is_conhost: bool = false; // w32--terminal-is-conhost
-pub static mut w32_add_wrapped_menu_bar_lines: bool = false; // w32-add-wrapped-menu-bar-lines
-pub static mut w32_ansi_code_page: EMACS_INT = 0; // w32-ansi-code-page
-pub static mut w32_disable_abort_dialog: bool = false; // w32-disable-abort-dialog
-pub static mut w32_disable_double_buffering: bool = false; // w32-disable-double-buffering
-pub static mut w32_disable_new_uniscribe_apis: bool = false; // w32-disable-new-uniscribe-apis
-pub static mut w32_enable_synthesized_fonts: bool = false; // w32-enable-synthesized-fonts
-pub static mut w32_follow_system_dark_mode: bool = false; // w32-follow-system-dark-mode
-pub static mut w32_ignore_modifiers_on_IME_input: bool = false; // w32-ignore-modifiers-on-IME-input
-pub static mut w32_inhibit_dwrite: bool = false; // w32-inhibit-dwrite
-pub static mut w32_mouse_button_tolerance: EMACS_INT = 0; // w32-mouse-button-tolerance
-pub static mut w32_mouse_move_interval: EMACS_INT = 0; // w32-mouse-move-interval
-pub static mut w32_multibyte_code_page: EMACS_INT = 0; // w32-multibyte-code-page
-pub static mut w32_num_mouse_buttons: EMACS_INT = 0; // w32-num-mouse-buttons
-pub static mut w32_pass_extra_mouse_buttons_to_system: bool = false; // w32-pass-extra-mouse-buttons-to-system
-pub static mut w32_pass_multimedia_buttons_to_system: bool = false; // w32-pass-multimedia-buttons-to-system
-pub static mut w32_pipe_buffer_size: EMACS_INT = 0; // w32-pipe-buffer-size
-pub static mut w32_pipe_read_delay: EMACS_INT = 0; // w32-pipe-read-delay
-pub static mut w32_quit_key: EMACS_INT = 0; // w32-quit-key
-pub static mut w32_strict_painting: bool = false; // w32-strict-painting
-pub static mut w32_unicode_filenames: bool = false; // w32-unicode-filenames
-pub static mut w32_use_fallback_wm_chars_method: bool = false; // w32-use-fallback-wm-chars-method
-pub static mut w32_use_full_screen_buffer: bool = false; // w32-use-full-screen-buffer
-pub static mut w32_use_native_image_api: bool = false; // w32-use-native-image-API
-pub static mut w32_use_visible_system_caret: bool = false; // w32-use-visible-system-caret
-pub static mut w32_yes_no_dialog_show_cancel: bool = false; // w32-yes-no-dialog-show-cancel
-pub static mut when_entered_debugger: EMACS_INT = 0; // internal-when-entered-debugger
-pub static mut window_auto_redraw_on_parameter_change: bool = false; // window-auto-redraw-on-parameter-change
-pub static mut window_dead_windows_table: Lisp_Object = std::ptr::null_mut(); // window-dead-windows-table
-pub static mut window_resize_pixelwise: bool = false; // window-resize-pixelwise
-pub static mut window_restore_killed_buffer_windows: Lisp_Object = std::ptr::null_mut(); // window-restore-killed-buffer-windows
-pub static mut word_wrap_by_category: bool = false; // word-wrap-by-category
-pub static mut words_include_escapes: bool = false; // words-include-escapes
-pub static mut write_region_inhibit_fsync: bool = false; // write-region-inhibit-fsync
-pub static mut x_color_cache_bucket_size: EMACS_INT = 0; // x-color-cache-bucket-size
-pub static mut x_dnd_disable_motif_drag: bool = false; // x-dnd-disable-motif-drag
-pub static mut x_dnd_disable_motif_protocol: bool = false; // x-dnd-disable-motif-protocol
-pub static mut x_dnd_fix_motif_leave: bool = false; // x-dnd-fix-motif-leave
-pub static mut x_dnd_preserve_selection_data: bool = false; // x-dnd-preserve-selection-data
-pub static mut x_dnd_use_unsupported_drop: bool = false; // x-dnd-use-unsupported-drop
-pub static mut x_fast_protocol_requests: bool = false; // x-fast-protocol-requests
-pub static mut x_frame_normalize_before_maximize: bool = false; // x-frame-normalize-before-maximize
-pub static mut x_gtk_file_dialog_help_text: bool = false; // x-gtk-file-dialog-help-text
-pub static mut x_gtk_resize_child_frames: Lisp_Object = std::ptr::null_mut(); // x-gtk-resize-child-frames
-pub static mut x_gtk_show_hidden_files: bool = false; // x-gtk-show-hidden-files
-pub static mut x_gtk_use_native_input: bool = false; // x-gtk-use-native-input
-pub static mut x_gtk_use_old_file_dialog: bool = false; // x-gtk-use-old-file-dialog
-pub static mut x_gtk_use_window_move: bool = false; // x-gtk-use-window-move
-pub static mut x_input_grab_touch_events: bool = false; // x-input-grab-touch-events
-pub static mut x_mouse_click_focus_ignore_position: bool = false; // x-mouse-click-focus-ignore-position
-pub static mut x_mouse_click_focus_ignore_time: EMACS_INT = 0; // x-mouse-click-focus-ignore-time
-pub static mut x_selection_timeout: EMACS_INT = 0; // x-selection-timeout
-pub static mut x_set_frame_visibility_more_laxly: Lisp_Object = std::ptr::null_mut(); // x-set-frame-visibility-more-laxly
-pub static mut x_stretch_cursor_p: bool = false; // x-stretch-cursor
-pub static mut x_underline_at_descent_line: bool = false; // x-underline-at-descent-line
-pub static mut x_use_underline_position_properties: bool = false; // x-use-underline-position-properties
-pub static mut xft_font_ascent_descent_override: bool = false; // xft-font-ascent-descent-override
-pub static mut xft_ignore_color_fonts: bool = false; // xft-ignore-color-fonts
-pub static mut xwidget_webkit_disable_javascript: bool = false; // xwidget-webkit-disable-javascript
+pub mod variables {
+    use super::*;
+    unsafe extern "C" {
+        pub static mut V_comp_no_native_file_h: Lisp_Object; // comp-no-native-file-h
+        pub static mut Vafter_change_functions: Lisp_Object; // after-change-functions
+        pub static mut Vafter_delete_frame_functions: Lisp_Object; // after-delete-frame-functions
+        pub static mut Vafter_init_time: Lisp_Object; // after-init-time
+        pub static mut Vafter_insert_file_functions: Lisp_Object; // after-insert-file-functions
+        pub static mut Vafter_load_alist: Lisp_Object; // after-load-alist
+        pub static mut Valternate_fontname_alist: Lisp_Object; // alternate-fontname-alist
+        pub static mut Vambiguous_width_chars: Lisp_Object; // ambiguous-width-chars
+        pub static mut Vandroid_build_fingerprint: Lisp_Object; // android-build-fingerprint
+        pub static mut Vandroid_build_manufacturer: Lisp_Object; // android-build-manufacturer
+        pub static mut Vandroid_os_language: Lisp_Object; // android-os-language
+        pub static mut Vandroid_wait_for_event_timeout: Lisp_Object; // android-wait-for-event-timeout
+        pub static mut Vauto_composition_emoji_eligible_codepoints: Lisp_Object; // auto-composition-emoji-eligible-codepoints
+        pub static mut Vauto_composition_emoji_tty_eligible_codepoints: Lisp_Object; // auto-composition-emoji-tty-eligible-codepoints
+        pub static mut Vauto_composition_emoji_unqualified_tail_initials: Lisp_Object; // auto-composition-emoji-unqualified-tail-initials
+        pub static mut Vauto_composition_function: Lisp_Object; // auto-composition-function
+        pub static mut Vauto_composition_mode: Lisp_Object; // auto-composition-mode
+        pub static mut Vauto_fill_chars: Lisp_Object; // auto-fill-chars
+        pub static mut Vauto_resize_tab_bars: Lisp_Object; // auto-resize-tab-bars
+        pub static mut Vauto_resize_tool_bars: Lisp_Object; // auto-resize-tool-bars
+        pub static mut Vauto_save_include_big_deletions: Lisp_Object; // auto-save-include-big-deletions
+        pub static mut Vauto_save_list_file_name: Lisp_Object; // auto-save-list-file-name
+        pub static mut Vauto_save_timeout: Lisp_Object; // auto-save-timeout
+        pub static mut Vauto_save_visited_file_name: Lisp_Object; // auto-save-visited-file-name
+        pub static mut Vbefore_change_functions: Lisp_Object; // before-change-functions
+        pub static mut Vbefore_init_time: Lisp_Object; // before-init-time
+        pub static mut Vblink_cursor_alist: Lisp_Object; // blink-cursor-alist
+        pub static mut Vbuffer_access_fontified_property: Lisp_Object; // buffer-access-fontified-property
+        pub static mut Vbuffer_access_fontify_functions: Lisp_Object; // buffer-access-fontify-functions
+        pub static mut Vbuffer_list_update_hook: Lisp_Object; // buffer-list-update-hook
+        pub static mut Vbuild_files: Lisp_Object; // build-files
+        pub static mut Vbyte_boolean_vars: Lisp_Object; // byte-boolean-vars
+        pub static mut Vbyte_code_meter: Lisp_Object; // byte-code-meter
+        pub static mut Vbytecomp_version_regexp: Lisp_Object; // bytecomp-version-regexp
+        pub static mut Vcairo_version_string: Lisp_Object; // cairo-version-string
+        pub static mut Vcase_fold_search: Lisp_Object; // case-fold-search
+        pub static mut Vchange_major_mode_hook: Lisp_Object; // change-major-mode-hook
+        pub static mut Vchar_code_property_alist: Lisp_Object; // char-code-property-alist
+        pub static mut Vchar_property_alias_alist: Lisp_Object; // char-property-alias-alist
+        pub static mut Vchar_script_table: Lisp_Object; // char-script-table
+        pub static mut Vchar_width_table: Lisp_Object; // char-width-table
+        pub static mut Vcharset_list: Lisp_Object; // charset-list
+        pub static mut Vcharset_map_path: Lisp_Object; // charset-map-path
+        pub static mut Vcharset_revision_table: Lisp_Object; // charset-revision-table
+        pub static mut Vclear_message_function: Lisp_Object; // clear-message-function
+        pub static mut Vclone_indirect_buffer_hook: Lisp_Object; // clone-indirect-buffer-hook
+        pub static mut Vcode_conversion_map_vector: Lisp_Object; // code-conversion-map-vector
+        pub static mut Vcoding_category_list: Lisp_Object; // coding-category-list
+        pub static mut Vcoding_system_alist: Lisp_Object; // coding-system-alist
+        pub static mut Vcoding_system_for_read: Lisp_Object; // coding-system-for-read
+        pub static mut Vcoding_system_for_write: Lisp_Object; // coding-system-for-write
+        pub static mut Vcoding_system_list: Lisp_Object; // coding-system-list
+        pub static mut Vcombine_after_change_calls: Lisp_Object; // combine-after-change-calls
+        pub static mut Vcommand_debug_status: Lisp_Object; // command-debug-status
+        pub static mut Vcommand_error_function: Lisp_Object; // command-error-function
+        pub static mut Vcommand_history: Lisp_Object; // command-history
+        pub static mut Vcommand_line_args: Lisp_Object; // command-line-args
+        pub static mut Vcomment_use_syntax_ppss: Lisp_Object; // comment-use-syntax-ppss
+        pub static mut Vcomp__hashdollar: Lisp_Object; // comp--#$
+        pub static mut Vcomp_abi_hash: Lisp_Object; // comp-abi-hash
+        pub static mut Vcomp_ctxt: Lisp_Object; // comp-ctxt
+        pub static mut Vcomp_deferred_pending_h: Lisp_Object; // comp-deferred-pending-h
+        pub static mut Vcomp_eln_to_el_h: Lisp_Object; // comp-eln-to-el-h
+        pub static mut Vcomp_installed_trampolines_h: Lisp_Object; // comp-installed-trampolines-h
+        pub static mut Vcomp_loaded_comp_units_h: Lisp_Object; // comp-loaded-comp-units-h
+        pub static mut Vcomp_native_version_dir: Lisp_Object; // comp-native-version-dir
+        pub static mut Vcomp_subr_arities_h: Lisp_Object; // comp-subr-arities-h
+        pub static mut Vcomp_subr_list: Lisp_Object; // comp-subr-list
+        pub static mut Vcompletion_ignored_extensions: Lisp_Object; // completion-ignored-extensions
+        pub static mut Vcompletion_regexp_list: Lisp_Object; // completion-regexp-list
+        pub static mut Vcompose_chars_after_function: Lisp_Object; // compose-chars-after-function
+        pub static mut Vcomposition_function_table: Lisp_Object; // composition-function-table
+        pub static mut Vconfigure_info_directory: Lisp_Object; // configure-info-directory
+        pub static mut Vctags_program_name: Lisp_Object; // ctags-program-name
+        pub static mut Vcurrent_iso639_language: Lisp_Object; // current-iso639-language
+        pub static mut Vcurrent_key_remap_sequence: Lisp_Object; // current-key-remap-sequence
+        pub static mut Vcurrent_load_list: Lisp_Object; // current-load-list
+        pub static mut Vcurrent_minibuffer_command: Lisp_Object; // current-minibuffer-command
+        pub static mut Vcurrent_prefix_arg: Lisp_Object; // current-prefix-arg
+        pub static mut Vdata_directory: Lisp_Object; // data-directory
+        pub static mut Vdbus_compiled_version: Lisp_Object; // dbus-compiled-version
+        pub static mut Vdbus_debug: Lisp_Object; // dbus-debug
+        pub static mut Vdbus_message_type_error: Lisp_Object; // dbus-message-type-error
+        pub static mut Vdbus_message_type_invalid: Lisp_Object; // dbus-message-type-invalid
+        pub static mut Vdbus_message_type_method_call: Lisp_Object; // dbus-message-type-method-call
+        pub static mut Vdbus_message_type_method_return: Lisp_Object; // dbus-message-type-method-return
+        pub static mut Vdbus_message_type_signal: Lisp_Object; // dbus-message-type-signal
+        pub static mut Vdbus_registered_objects_table: Lisp_Object; // dbus-registered-objects-table
+        pub static mut Vdbus_runtime_version: Lisp_Object; // dbus-runtime-version
+        pub static mut Vdeactivate_mark: Lisp_Object; // deactivate-mark
+        pub static mut Vdebug_ignored_errors: Lisp_Object; // debug-ignored-errors
+        pub static mut Vdebug_on_error: Lisp_Object; // debug-on-error
+        pub static mut Vdebug_on_event: Lisp_Object; // debug-on-event
+        pub static mut Vdebug_on_message: Lisp_Object; // debug-on-message
+        pub static mut Vdebug_on_signal: Lisp_Object; // debug-on-signal
+        pub static mut Vdebugger: Lisp_Object; // debugger
+        pub static mut Vdefault_file_name_coding_system: Lisp_Object; // default-file-name-coding-system
+        pub static mut Vdefault_frame_alist: Lisp_Object; // default-frame-alist
+        pub static mut Vdefault_frame_scroll_bars: Lisp_Object; // default-frame-scroll-bars
+        pub static mut Vdefault_minibuffer_frame: *mut c_void; // default-minibuffer-frame
+        pub static mut Vdefault_process_coding_system: Lisp_Object; // default-process-coding-system
+        pub static mut Vdefault_text_properties: Lisp_Object; // default-text-properties
+        pub static mut Vdelayed_warnings_list: Lisp_Object; // delayed-warnings-list
+        pub static mut Vdelete_frame_functions: Lisp_Object; // delete-frame-functions
+        pub static mut Vdelete_terminal_functions: Lisp_Object; // delete-terminal-functions
+        pub static mut Vdescribe_bindings_check_shadowing_in_ranges: Lisp_Object; // describe-bindings-check-shadowing-in-ranges
+        pub static mut Vdisable_point_adjustment: Lisp_Object; // disable-point-adjustment
+        pub static mut Vdisplay_fill_column_indicator_character: Lisp_Object; // display-fill-column-indicator-character
+        pub static mut Vdisplay_fill_column_indicator_column: Lisp_Object; // display-fill-column-indicator-column
+        pub static mut Vdisplay_line_numbers: Lisp_Object; // display-line-numbers
+        pub static mut Vdisplay_line_numbers_current_absolute: Lisp_Object; // display-line-numbers-current-absolute
+        pub static mut Vdisplay_line_numbers_width: Lisp_Object; // display-line-numbers-width
+        pub static mut Vdisplay_monitors_changed_functions: Lisp_Object; // display-monitors-changed-functions
+        pub static mut Vdisplay_pixels_per_inch: Lisp_Object; // display-pixels-per-inch
+        pub static mut Vdoc_directory: Lisp_Object; // doc-directory
+        pub static mut Vdoc_file_name: Lisp_Object; // internal-doc-file-name
+        pub static mut Vdos_display_scancodes: Lisp_Object; // dos-display-scancodes
+        pub static mut Vdos_unsupported_char_glyph: Lisp_Object; // dos-unsupported-char-glyph
+        pub static mut Vdos_version: Lisp_Object; // dos-version
+        pub static mut Vdos_windows_version: Lisp_Object; // dos-windows-version
+        pub static mut Vdouble_click_time: Lisp_Object; // double-click-time
+        pub static mut Vdump_mode: Lisp_Object; // dump-mode
+        pub static mut Vdynamic_library_alist: Lisp_Object; // dynamic-library-alist
+        pub static mut Vdynamic_library_suffixes: Lisp_Object; // dynamic-library-suffixes
+        pub static mut Vebrowse_program_name: Lisp_Object; // ebrowse-program-name
+        pub static mut Vecho_keystrokes: Lisp_Object; // echo-keystrokes
+        pub static mut Vemacs_copyright: Lisp_Object; // emacs-copyright
+        pub static mut Vemacs_version: Lisp_Object; // emacs-version
+        pub static mut Vemacsclient_program_name: Lisp_Object; // emacsclient-program-name
+        pub static mut Vemulation_mode_map_alists: Lisp_Object; // emulation-mode-map-alists
+        pub static mut Venable_character_translation: Lisp_Object; // enable-character-translation
+        pub static mut Venable_disabled_menus_and_buttons: Lisp_Object; // enable-disabled-menus-and-buttons
+        pub static mut Vetags_program_name: Lisp_Object; // etags-program-name
+        pub static mut Veval_buffer_list: Lisp_Object; // eval-buffer-list
+        pub static mut Vexec_directory: Lisp_Object; // exec-directory
+        pub static mut Vexec_path: Lisp_Object; // exec-path
+        pub static mut Vexec_suffixes: Lisp_Object; // exec-suffixes
+        pub static mut Vexecuting_kbd_macro: Lisp_Object; // executing-kbd-macro
+        pub static mut Vface_default_stipple: Lisp_Object; // face-default-stipple
+        pub static mut Vface_font_lax_matched_attributes: Lisp_Object; // face-font-lax-matched-attributes
+        pub static mut Vface_font_rescale_alist: Lisp_Object; // face-font-rescale-alist
+        pub static mut Vface_ignored_fonts: Lisp_Object; // face-ignored-fonts
+        pub static mut Vface_new_frame_defaults: Lisp_Object; // face--new-frame-defaults
+        pub static mut Vface_remapping_alist: Lisp_Object; // face-remapping-alist
+        pub static mut Vfeatures: Lisp_Object; // features
+        pub static mut Vfile_coding_system_alist: Lisp_Object; // file-coding-system-alist
+        pub static mut Vfile_name_coding_system: Lisp_Object; // file-name-coding-system
+        pub static mut Vfile_name_handler_alist: Lisp_Object; // file-name-handler-alist
+        pub static mut Vfind_word_boundary_function_table: Lisp_Object; // find-word-boundary-function-table
+        pub static mut Vfirst_change_hook: Lisp_Object; // first-change-hook
+        pub static mut Vfloat_output_format: Lisp_Object; // float-output-format
+        pub static mut Vfont_encoding_alist: Lisp_Object; // font-encoding-alist
+        pub static mut Vfont_encoding_charset_alist: Lisp_Object; // font-encoding-charset-alist
+        pub static mut Vfont_log: Lisp_Object; // font-log
+        pub static mut Vfontification_functions: Lisp_Object; // fontification-functions
+        pub static mut Vfontset_alias_alist: Lisp_Object; // fontset-alias-alist
+        pub static mut Vforward_comment_function: Lisp_Object; // forward-comment-function
+        pub static mut Vframe_alpha_lower_limit: Lisp_Object; // frame-alpha-lower-limit
+        pub static mut Vframe_title_format: Lisp_Object; // frame-title-format
+        pub static mut Vfringe_bitmaps: Lisp_Object; // fringe-bitmaps
+        pub static mut Vfunction_key_map: Lisp_Object; // function-key-map
+        pub static mut Vgc_cons_percentage: Lisp_Object; // gc-cons-percentage
+        pub static mut Vgc_elapsed: Lisp_Object; // gc-elapsed
+        pub static mut Vglobal_disable_point_adjustment: Lisp_Object; // global-disable-point-adjustment
+        pub static mut Vglobal_mode_string: Lisp_Object; // global-mode-string
+        pub static mut Vglyph_table: Lisp_Object; // glyph-table
+        pub static mut Vglyphless_char_display: Lisp_Object; // glyphless-char-display
+        pub static mut Vgtk_version_string: Lisp_Object; // gtk-version-string
+        pub static mut Vhaiku_allowed_ui_colors: Lisp_Object; // haiku-allowed-ui-colors
+        pub static mut Vhaiku_control_keysym: Lisp_Object; // haiku-control-keysym
+        pub static mut Vhaiku_drag_track_function: Lisp_Object; // haiku-drag-track-function
+        pub static mut Vhaiku_drag_wheel_function: Lisp_Object; // haiku-drag-wheel-function
+        pub static mut Vhaiku_lost_selection_functions: Lisp_Object; // haiku-lost-selection-functions
+        pub static mut Vhaiku_meta_keysym: Lisp_Object; // haiku-meta-keysym
+        pub static mut Vhaiku_shift_keysym: Lisp_Object; // haiku-shift-keysym
+        pub static mut Vhaiku_super_keysym: Lisp_Object; // haiku-super-keysym
+        pub static mut Vhelp_char: Lisp_Object; // help-char
+        pub static mut Vhelp_event_list: Lisp_Object; // help-event-list
+        pub static mut Vhelp_form: Lisp_Object; // help-form
+        pub static mut Vhexl_program_name: Lisp_Object; // hexl-program-name
+        pub static mut Vhistory_add_new_input: Lisp_Object; // history-add-new-input
+        pub static mut Vhistory_length: Lisp_Object; // history-length
+        pub static mut Vhourglass_delay: Lisp_Object; // hourglass-delay
+        pub static mut Vhscroll_step: Lisp_Object; // hscroll-step
+        pub static mut Vicon_title_format: Lisp_Object; // icon-title-format
+        pub static mut Vignore_relative_composition: Lisp_Object; // ignore-relative-composition
+        pub static mut Vimage_cache_eviction_delay: Lisp_Object; // image-cache-eviction-delay
+        pub static mut Vimage_scaling_factor: Lisp_Object; // image-scaling-factor
+        pub static mut Vimage_types: Lisp_Object; // image-types
+        pub static mut Vinhibit_changing_match_data: Lisp_Object; // inhibit-changing-match-data
+        pub static mut Vinhibit_debugger: Lisp_Object; // inhibit-debugger
+        pub static mut Vinhibit_field_text_motion: Lisp_Object; // inhibit-field-text-motion
+        pub static mut Vinhibit_file_name_handlers: Lisp_Object; // inhibit-file-name-handlers
+        pub static mut Vinhibit_file_name_operation: Lisp_Object; // inhibit-file-name-operation
+        pub static mut Vinhibit_point_motion_hooks: Lisp_Object; // inhibit-point-motion-hooks
+        pub static mut Vinhibit_quit: Lisp_Object; // inhibit-quit
+        pub static mut Vinhibit_read_only: Lisp_Object; // inhibit-read-only
+        pub static mut Vinhibit_redisplay: Lisp_Object; // inhibit-redisplay
+        pub static mut Vinitial_environment: Lisp_Object; // initial-environment
+        pub static mut Vinitial_window_system: Lisp_Object; // initial-window-system
+        pub static mut Vinput_decode_map: *mut c_void; // input-decode-map
+        pub static mut Vinput_method_function: Lisp_Object; // input-method-function
+        pub static mut Vinput_method_previous_message: Lisp_Object; // input-method-previous-message
+        pub static mut Vinstallation_directory: Lisp_Object; // installation-directory
+        pub static mut Vinternal__daemon_sockname: Lisp_Object; // internal--daemon-sockname
+        pub static mut Vinternal__get_default_lexical_binding_function: Lisp_Object; // internal--get-default-lexical-binding-function
+        pub static mut Vinternal__top_level_message: Lisp_Object; // internal--top-level-message
+        pub static mut Vinternal_interpreter_environment: Lisp_Object; // internal-interpreter-environment
+        pub static mut Vinternal_make_interpreted_closure_function: Lisp_Object; // internal-make-interpreted-closure-function
+        pub static mut Vinterrupt_process_functions: Lisp_Object; // interrupt-process-functions
+        pub static mut Vinvocation_directory: Lisp_Object; // invocation-directory
+        pub static mut Vinvocation_name: Lisp_Object; // invocation-name
+        pub static mut Vkbd_macro_termination_hook: Lisp_Object; // kbd-macro-termination-hook
+        pub static mut Vkey_translation_map: Lisp_Object; // key-translation-map
+        pub static mut Vkeyboard_translate_table: *mut c_void; // keyboard-translate-table
+        pub static mut Vkill_buffer_query_functions: Lisp_Object; // kill-buffer-query-functions
+        pub static mut Vkill_emacs_hook: Lisp_Object; // kill-emacs-hook
+        pub static mut Vlast_code_conversion_error: Lisp_Object; // last-code-conversion-error
+        pub static mut Vlast_coding_system_used: Lisp_Object; // last-coding-system-used
+        pub static mut Vlast_command: *mut c_void; // last-command
+        pub static mut Vlast_event_device: Lisp_Object; // last-event-device
+        pub static mut Vlast_event_frame: Lisp_Object; // last-event-frame
+        pub static mut Vlast_kbd_macro: *mut c_void; // last-kbd-macro
+        pub static mut Vlast_prefix_arg: *mut c_void; // last-prefix-arg
+        pub static mut Vlast_repeatable_command: *mut c_void; // last-repeatable-command
+        pub static mut Vlatin_extra_code_table: Lisp_Object; // latin-extra-code-table
+        pub static mut Vlexical_binding: Lisp_Object; // lexical-binding
+        pub static mut Vlibgnutls_version: Lisp_Object; // libgnutls-version
+        pub static mut Vline_number_display_limit: Lisp_Object; // line-number-display-limit
+        pub static mut Vline_prefix: Lisp_Object; // line-prefix
+        pub static mut Vload_file_name: Lisp_Object; // load-file-name
+        pub static mut Vload_file_rep_suffixes: Lisp_Object; // load-file-rep-suffixes
+        pub static mut Vload_history: Lisp_Object; // load-history
+        pub static mut Vload_path: Lisp_Object; // load-path
+        pub static mut Vload_path_filter_function: Lisp_Object; // load-path-filter-function
+        pub static mut Vload_read_function: Lisp_Object; // load-read-function
+        pub static mut Vload_source_file_function: Lisp_Object; // load-source-file-function
+        pub static mut Vload_suffixes: Lisp_Object; // load-suffixes
+        pub static mut Vload_true_file_name: Lisp_Object; // load-true-file-name
+        pub static mut Vlocal_function_key_map: *mut c_void; // local-function-key-map
+        pub static mut Vlocale_coding_system: Lisp_Object; // locale-coding-system
+        pub static mut Vlong_line_threshold: Lisp_Object; // long-line-threshold
+        pub static mut Vlread_unescaped_character_literals: Lisp_Object; // lread--unescaped-character-literals
+        pub static mut Vmacroexp__dynvars: Lisp_Object; // macroexp--dynvars
+        pub static mut Vmain_thread: Lisp_Object; // main-thread
+        pub static mut Vmake_cursor_line_fully_visible: Lisp_Object; // make-cursor-line-fully-visible
+        pub static mut Vmake_pointer_invisible: Lisp_Object; // make-pointer-invisible
+        pub static mut Vmark_even_if_inactive: Lisp_Object; // mark-even-if-inactive
+        pub static mut Vmax_image_size: Lisp_Object; // max-image-size
+        pub static mut Vmax_mini_window_height: Lisp_Object; // max-mini-window-height
+        pub static mut Vmaximum_scroll_margin: Lisp_Object; // maximum-scroll-margin
+        pub static mut Vmemory_full: Lisp_Object; // memory-full
+        pub static mut Vmemory_signal_data: Lisp_Object; // memory-signal-data
+        pub static mut Vmenu_bar_final_items: Lisp_Object; // menu-bar-final-items
+        pub static mut Vmenu_bar_mode: Lisp_Object; // menu-bar-mode
+        pub static mut Vmenu_bar_update_hook: Lisp_Object; // menu-bar-update-hook
+        pub static mut Vmenu_updating_frame: Lisp_Object; // menu-updating-frame
+        pub static mut Vmessage_log_max: Lisp_Object; // message-log-max
+        pub static mut Vmessages_buffer_name: Lisp_Object; // messages-buffer-name
+        pub static mut Vminibuf_scroll_window: Lisp_Object; // minibuffer-scroll-window
+        pub static mut Vminibuffer_completing_file_name: Lisp_Object; // minibuffer-completing-file-name
+        pub static mut Vminibuffer_completion_confirm: Lisp_Object; // minibuffer-completion-confirm
+        pub static mut Vminibuffer_completion_predicate: Lisp_Object; // minibuffer-completion-predicate
+        pub static mut Vminibuffer_completion_table: Lisp_Object; // minibuffer-completion-table
+        pub static mut Vminibuffer_exit_hook: Lisp_Object; // minibuffer-exit-hook
+        pub static mut Vminibuffer_help_form: Lisp_Object; // minibuffer-help-form
+        pub static mut Vminibuffer_history_position: Lisp_Object; // minibuffer-history-position
+        pub static mut Vminibuffer_history_variable: Lisp_Object; // minibuffer-history-variable
+        pub static mut Vminibuffer_local_map: Lisp_Object; // minibuffer-local-map
+        pub static mut Vminibuffer_message_timeout: Lisp_Object; // minibuffer-message-timeout
+        pub static mut Vminibuffer_prompt_properties: Lisp_Object; // minibuffer-prompt-properties
+        pub static mut Vminibuffer_setup_hook: Lisp_Object; // minibuffer-setup-hook
+        pub static mut Vminor_mode_map_alist: Lisp_Object; // minor-mode-map-alist
+        pub static mut Vminor_mode_overriding_map_alist: Lisp_Object; // minor-mode-overriding-map-alist
+        pub static mut Vmode_line_compact: Lisp_Object; // mode-line-compact
+        pub static mut Vmodule_file_suffix: Lisp_Object; // module-file-suffix
+        pub static mut Vmost_negative_fixnum: Lisp_Object; // most-negative-fixnum
+        pub static mut Vmost_positive_fixnum: Lisp_Object; // most-positive-fixnum
+        pub static mut Vmotif_version_string: Lisp_Object; // motif-version-string
+        pub static mut Vmouse_autoselect_window: Lisp_Object; // mouse-autoselect-window
+        pub static mut Vmouse_highlight: Lisp_Object; // mouse-highlight
+        pub static mut Vmouse_leave_buffer_hook: Lisp_Object; // mouse-leave-buffer-hook
+        pub static mut Vmouse_position_function: Lisp_Object; // mouse-position-function
+        pub static mut Vmove_frame_functions: Lisp_Object; // move-frame-functions
+        pub static mut Vmovemail_program_name: Lisp_Object; // movemail-program-name
+        pub static mut Vnative_comp_eln_load_path: Lisp_Object; // native-comp-eln-load-path
+        pub static mut Vnative_comp_enable_subr_trampolines: Lisp_Object; // native-comp-enable-subr-trampolines
+        pub static mut Vnetwork_coding_system_alist: Lisp_Object; // network-coding-system-alist
+        pub static mut Vnext_selection_coding_system: Lisp_Object; // next-selection-coding-system
+        pub static mut Vnobreak_char_display: Lisp_Object; // nobreak-char-display
+        pub static mut Vobarray: Lisp_Object; // obarray
+        pub static mut Voperating_system_release: Lisp_Object; // operating-system-release
+        pub static mut Votf_script_alist: Lisp_Object; // otf-script-alist
+        pub static mut Vother_window_scroll_buffer: Lisp_Object; // other-window-scroll-buffer
+        pub static mut Vother_window_scroll_default: Lisp_Object; // other-window-scroll-default
+        pub static mut Voverflow_newline_into_fringe: Lisp_Object; // overflow-newline-into-fringe
+        pub static mut Voverlay_arrow_position: Lisp_Object; // overlay-arrow-position
+        pub static mut Voverlay_arrow_string: Lisp_Object; // overlay-arrow-string
+        pub static mut Voverlay_arrow_variable_list: Lisp_Object; // overlay-arrow-variable-list
+        pub static mut Voverriding_local_map: Lisp_Object; // overriding-local-map
+        pub static mut Voverriding_local_map_menu_flag: Lisp_Object; // overriding-local-map-menu-flag
+        pub static mut Voverriding_plist_environment: Lisp_Object; // overriding-plist-environment
+        pub static mut Voverriding_terminal_local_map: *mut c_void; // overriding-terminal-local-map
+        pub static mut Voverriding_text_conversion_style: Lisp_Object; // overriding-text-conversion-style
+        pub static mut Vpath_separator: Lisp_Object; // path-separator
+        pub static mut Vpdumper_fingerprint: Lisp_Object; // pdumper-fingerprint
+        pub static mut Vpgtk_keysym_table: Lisp_Object; // pgtk-keysym-table
+        pub static mut Vpgtk_lost_selection_functions: Lisp_Object; // pgtk-lost-selection-functions
+        pub static mut Vpgtk_selection_alias_alist: Lisp_Object; // pgtk-selection-alias-alist
+        pub static mut Vpgtk_sent_selection_functions: Lisp_Object; // pgtk-sent-selection-functions
+        pub static mut Vpgtk_sent_selection_hooks: Lisp_Object; // pgtk-sent-selection-hooks
+        pub static mut Vpgtk_use_im_context_on_new_connection: Lisp_Object; // pgtk-use-im-context-on-new-connection
+        pub static mut Vpgtk_wait_for_event_timeout: Lisp_Object; // pgtk-wait-for-event-timeout
+        pub static mut Vpolling_period: Lisp_Object; // polling-period
+        pub static mut Vpost_command_hook: Lisp_Object; // post-command-hook
+        pub static mut Vpost_gc_hook: Lisp_Object; // post-gc-hook
+        pub static mut Vpost_select_region_hook: Lisp_Object; // post-select-region-hook
+        pub static mut Vpost_self_insert_hook: Lisp_Object; // post-self-insert-hook
+        pub static mut Vpre_command_hook: Lisp_Object; // pre-command-hook
+        pub static mut Vpre_redisplay_function: Lisp_Object; // pre-redisplay-function
+        pub static mut Vprefix_arg: *mut c_void; // prefix-arg
+        pub static mut Vprefix_help_command: Lisp_Object; // prefix-help-command
+        pub static mut Vpreloaded_file_list: Lisp_Object; // preloaded-file-list
+        pub static mut Vprint__unreadable_callback_buffer: Lisp_Object; // print--unreadable-callback-buffer
+        pub static mut Vprint_charset_text_property: Lisp_Object; // print-charset-text-property
+        pub static mut Vprint_circle: Lisp_Object; // print-circle
+        pub static mut Vprint_continuous_numbering: Lisp_Object; // print-continuous-numbering
+        pub static mut Vprint_gensym: Lisp_Object; // print-gensym
+        pub static mut Vprint_length: Lisp_Object; // print-length
+        pub static mut Vprint_level: Lisp_Object; // print-level
+        pub static mut Vprint_number_table: Lisp_Object; // print-number-table
+        pub static mut Vprint_unreadable_function: Lisp_Object; // print-unreadable-function
+        pub static mut Vprintable_chars: Lisp_Object; // printable-chars
+        pub static mut Vprocess_adaptive_read_buffering: Lisp_Object; // process-adaptive-read-buffering
+        pub static mut Vprocess_coding_system_alist: Lisp_Object; // process-coding-system-alist
+        pub static mut Vprocess_connection_type: Lisp_Object; // process-connection-type
+        pub static mut Vprocess_environment: Lisp_Object; // process-environment
+        pub static mut Vpurify_flag: Lisp_Object; // purify-flag
+        pub static mut Vquit_flag: Lisp_Object; // quit-flag
+        pub static mut Vrcs2log_program_name: Lisp_Object; // rcs2log-program-name
+        pub static mut Vread_buffer_function: Lisp_Object; // read-buffer-function
+        pub static mut Vread_circle: Lisp_Object; // read-circle
+        pub static mut Vread_expression_history: Lisp_Object; // read-expression-history
+        pub static mut Vread_hide_char: Lisp_Object; // read-hide-char
+        pub static mut Vread_symbol_shorthands: Lisp_Object; // read-symbol-shorthands
+        pub static mut Vreal_last_command: *mut c_void; // real-last-command
+        pub static mut Vreal_this_command: Lisp_Object; // real-this-command
+        pub static mut Vrecenter_redisplay: Lisp_Object; // recenter-redisplay
+        pub static mut Vredisplay__all_windows_cause: Lisp_Object; // redisplay--all-windows-cause
+        pub static mut Vredisplay__mode_lines_cause: Lisp_Object; // redisplay--mode-lines-cause
+        pub static mut Vregion_extract_function: Lisp_Object; // region-extract-function
+        pub static mut Vreport_emacs_bug_address: Lisp_Object; // report-emacs-bug-address
+        pub static mut Vresize_mini_windows: Lisp_Object; // resize-mini-windows
+        pub static mut Vresume_tty_functions: Lisp_Object; // resume-tty-functions
+        pub static mut Vring_bell_function: Lisp_Object; // ring-bell-function
+        pub static mut Vsaved_region_selection: Lisp_Object; // saved-region-selection
+        pub static mut Vscalable_fonts_allowed: Lisp_Object; // scalable-fonts-allowed
+        pub static mut Vscript_representative_chars: Lisp_Object; // script-representative-chars
+        pub static mut Vscroll_preserve_screen_position: Lisp_Object; // scroll-preserve-screen-position
+        pub static mut Vsearch_spaces_regexp: Lisp_Object; // search-spaces-regexp
+        pub static mut Vselect_active_regions: Lisp_Object; // select-active-regions
+        pub static mut Vselect_safe_coding_system_function: Lisp_Object; // select-safe-coding-system-function
+        pub static mut Vselection_coding_system: Lisp_Object; // selection-coding-system
+        pub static mut Vselection_converter_alist: Lisp_Object; // selection-converter-alist
+        pub static mut Vselection_inhibit_update_commands: Lisp_Object; // selection-inhibit-update-commands
+        pub static mut Vset_auto_coding_function: Lisp_Object; // set-auto-coding-function
+        pub static mut Vset_message_function: Lisp_Object; // set-message-function
+        pub static mut Vsfnt_default_family_alist: Lisp_Object; // sfnt-default-family-alist
+        pub static mut Vsfnt_uninstructable_family_regexp: Lisp_Object; // sfnt-uninstructable-family-regexp
+        pub static mut Vshared_game_score_directory: Lisp_Object; // shared-game-score-directory
+        pub static mut Vshell_file_name: Lisp_Object; // shell-file-name
+        pub static mut Vshow_help_function: Lisp_Object; // show-help-function
+        pub static mut Vshow_trailing_whitespace: Lisp_Object; // show-trailing-whitespace
+        pub static mut Vsignal_hook_function: Lisp_Object; // signal-hook-function
+        pub static mut Vsignal_process_functions: Lisp_Object; // signal-process-functions
+        pub static mut Vsource_directory: Lisp_Object; // source-directory
+        pub static mut Vspecial_event_map: Lisp_Object; // special-event-map
+        pub static mut Vspecial_mirror_table: Lisp_Object; // special-mirror-table
+        pub static mut Vstandard_display_table: Lisp_Object; // standard-display-table
+        pub static mut Vstandard_input: Lisp_Object; // standard-input
+        pub static mut Vstandard_output: Lisp_Object; // standard-output
+        pub static mut Vstandard_translation_table_for_decode: Lisp_Object; // standard-translation-table-for-decode
+        pub static mut Vstandard_translation_table_for_encode: Lisp_Object; // standard-translation-table-for-encode
+        pub static mut Vsuspend_tty_functions: Lisp_Object; // suspend-tty-functions
+        pub static mut Vsystem_configuration: Lisp_Object; // system-configuration
+        pub static mut Vsystem_configuration_features: Lisp_Object; // system-configuration-features
+        pub static mut Vsystem_configuration_options: Lisp_Object; // system-configuration-options
+        pub static mut Vsystem_key_alist: *mut c_void; // system-key-alist
+        pub static mut Vsystem_messages_locale: Lisp_Object; // system-messages-locale
+        pub static mut Vsystem_name: Lisp_Object; // system-name
+        pub static mut Vsystem_time_locale: Lisp_Object; // system-time-locale
+        pub static mut Vsystem_type: Lisp_Object; // system-type
+        pub static mut Vtab_bar_border: Lisp_Object; // tab-bar-border
+        pub static mut Vtab_bar_button_margin: Lisp_Object; // tab-bar-button-margin
+        pub static mut Vtab_bar_mode: Lisp_Object; // tab-bar-mode
+        pub static mut Vtab_bar_position: Lisp_Object; // tab-bar-position
+        pub static mut Vtab_bar_separator_image_expression: Lisp_Object; // tab-bar-separator-image-expression
+        pub static mut Vtemp_buffer_show_function: Lisp_Object; // temp-buffer-show-function
+        pub static mut Vtemporary_file_directory: Lisp_Object; // temporary-file-directory
+        pub static mut Vterminal_frame: Lisp_Object; // terminal-frame
+        pub static mut Vtext_conversion_edits: Lisp_Object; // text-conversion-edits
+        pub static mut Vtext_conversion_face: Lisp_Object; // text-conversion-face
+        pub static mut Vtext_property_default_nonsticky: Lisp_Object; // text-property-default-nonsticky
+        pub static mut Vtext_quoting_style: Lisp_Object; // text-quoting-style
+        pub static mut Vthis_command: Lisp_Object; // this-command
+        pub static mut Vthis_command_keys_shift_translated: Lisp_Object; // this-command-keys-shift-translated
+        pub static mut Vthis_original_command: Lisp_Object; // this-original-command
+        pub static mut Vthrow_on_input: Lisp_Object; // throw-on-input
+        pub static mut Vtimer_idle_list: Lisp_Object; // timer-idle-list
+        pub static mut Vtimer_list: Lisp_Object; // timer-list
+        pub static mut Vtool_bar_border: Lisp_Object; // tool-bar-border
+        pub static mut Vtool_bar_button_margin: Lisp_Object; // tool-bar-button-margin
+        pub static mut Vtool_bar_mode: Lisp_Object; // tool-bar-mode
+        pub static mut Vtool_bar_separator_image_expression: Lisp_Object; // tool-bar-separator-image-expression
+        pub static mut Vtool_bar_style: Lisp_Object; // tool-bar-style
+        pub static mut Vtoolkit_theme: Lisp_Object; // toolkit-theme
+        pub static mut Vtop_level: Lisp_Object; // top-level
+        pub static mut Vtransient_mark_mode: Lisp_Object; // transient-mark-mode
+        pub static mut Vtranslation_hash_table_vector: Lisp_Object; // translation-hash-table-vector
+        pub static mut Vtranslation_table_for_input: Lisp_Object; // translation-table-for-input
+        pub static mut Vtranslation_table_vector: Lisp_Object; // translation-table-vector
+        pub static mut Vtreesit_extra_load_path: Lisp_Object; // treesit-extra-load-path
+        pub static mut Vtreesit_language_remap_alist: Lisp_Object; // treesit-language-remap-alist
+        pub static mut Vtreesit_languages_require_line_column_tracking: Lisp_Object; // treesit-languages-require-line-column-tracking
+        pub static mut Vtreesit_load_name_override_list: Lisp_Object; // treesit-load-name-override-list
+        pub static mut Vtreesit_major_mode_remap_alist: Lisp_Object; // treesit-major-mode-remap-alist
+        pub static mut Vtreesit_thing_settings: Lisp_Object; // treesit-thing-settings
+        pub static mut Vtruncate_partial_width_windows: Lisp_Object; // truncate-partial-width-windows
+        pub static mut Vtty_defined_color_alist: Lisp_Object; // tty-defined-color-alist
+        pub static mut Vtty_erase_char: Lisp_Object; // tty-erase-char
+        pub static mut Vundo_outer_limit: Lisp_Object; // undo-outer-limit
+        pub static mut Vundo_outer_limit_function: Lisp_Object; // undo-outer-limit-function
+        pub static mut Vunicode_category_table: Lisp_Object; // unicode-category-table
+        pub static mut Vunread_command_events: Lisp_Object; // unread-command-events
+        pub static mut Vunread_input_method_events: Lisp_Object; // unread-input-method-events
+        pub static mut Vunread_post_input_method_events: Lisp_Object; // unread-post-input-method-events
+        pub static mut Vuse_default_ascent: Lisp_Object; // use-default-ascent
+        pub static mut Vuser_full_name: Lisp_Object; // user-full-name
+        pub static mut Vuser_init_file: Lisp_Object; // user-init-file
+        pub static mut Vuser_login_name: Lisp_Object; // user-login-name
+        pub static mut Vuser_real_login_name: Lisp_Object; // user-real-login-name
+        pub static mut Vvalues: Lisp_Object; // values
+        pub static mut Vvertical_centering_font_regexp: Lisp_Object; // vertical-centering-font-regexp
+        pub static mut Vvoid_text_area_pointer: Lisp_Object; // void-text-area-pointer
+        pub static mut Vw32_alt_is_meta: Lisp_Object; // w32-alt-is-meta
+        pub static mut Vw32_apps_modifier: Lisp_Object; // w32-apps-modifier
+        pub static mut Vw32_capslock_is_shiftlock: Lisp_Object; // w32-capslock-is-shiftlock
+        pub static mut Vw32_charset_info_alist: Lisp_Object; // w32-charset-info-alist
+        pub static mut Vw32_collate_ignore_punctuation: Lisp_Object; // w32-collate-ignore-punctuation
+        pub static mut Vw32_color_map: Lisp_Object; // w32-color-map
+        pub static mut Vw32_downcase_file_names: Lisp_Object; // w32-downcase-file-names
+        pub static mut Vw32_enable_caps_lock: Lisp_Object; // w32-enable-caps-lock
+        pub static mut Vw32_enable_num_lock: Lisp_Object; // w32-enable-num-lock
+        pub static mut Vw32_enable_palette: Lisp_Object; // w32-enable-palette
+        pub static mut Vw32_generate_fake_inodes: Lisp_Object; // w32-generate-fake-inodes
+        pub static mut Vw32_get_true_file_attributes: Lisp_Object; // w32-get-true-file-attributes
+        pub static mut Vw32_grab_focus_on_raise: Lisp_Object; // w32-grab-focus-on-raise
+        pub static mut Vw32_lwindow_modifier: Lisp_Object; // w32-lwindow-modifier
+        pub static mut Vw32_pass_alt_to_system: Lisp_Object; // w32-pass-alt-to-system
+        pub static mut Vw32_pass_lwindow_to_system: Lisp_Object; // w32-pass-lwindow-to-system
+        pub static mut Vw32_pass_rwindow_to_system: Lisp_Object; // w32-pass-rwindow-to-system
+        pub static mut Vw32_phantom_key_code: Lisp_Object; // w32-phantom-key-code
+        pub static mut Vw32_quote_process_args: Lisp_Object; // w32-quote-process-args
+        pub static mut Vw32_recognize_altgr: Lisp_Object; // w32-recognize-altgr
+        pub static mut Vw32_rwindow_modifier: Lisp_Object; // w32-rwindow-modifier
+        pub static mut Vw32_scroll_lock_modifier: Lisp_Object; // w32-scroll-lock-modifier
+        pub static mut Vw32_start_process_inherit_error_mode: Lisp_Object; // w32-start-process-inherit-error-mode
+        pub static mut Vw32_start_process_share_console: Lisp_Object; // w32-start-process-share-console
+        pub static mut Vw32_start_process_show_window: Lisp_Object; // w32-start-process-show-window
+        pub static mut Vw32_swap_mouse_buttons: Lisp_Object; // w32-swap-mouse-buttons
+        pub static mut Vw32_tooltip_extra_pixels: Lisp_Object; // w32-tooltip-extra-pixels
+        pub static mut Vwhere_is_preferred_modifier: Lisp_Object; // where-is-preferred-modifier
+        pub static mut Vwhile_no_input_ignore_events: Lisp_Object; // while-no-input-ignore-events
+        pub static mut Vwindow_buffer_change_functions: Lisp_Object; // window-buffer-change-functions
+        pub static mut Vwindow_combination_limit: Lisp_Object; // window-combination-limit
+        pub static mut Vwindow_combination_resize: Lisp_Object; // window-combination-resize
+        pub static mut Vwindow_configuration_change_hook: Lisp_Object; // window-configuration-change-hook
+        pub static mut Vwindow_persistent_parameters: Lisp_Object; // window-persistent-parameters
+        pub static mut Vwindow_point_insertion_type: Lisp_Object; // window-point-insertion-type
+        pub static mut Vwindow_scroll_functions: Lisp_Object; // window-scroll-functions
+        pub static mut Vwindow_selection_change_functions: Lisp_Object; // window-selection-change-functions
+        pub static mut Vwindow_size_change_functions: Lisp_Object; // window-size-change-functions
+        pub static mut Vwindow_state_change_functions: Lisp_Object; // window-state-change-functions
+        pub static mut Vwindow_state_change_hook: Lisp_Object; // window-state-change-hook
+        pub static mut Vwindow_system: *mut c_void; // window-system
+        pub static mut Vword_combining_categories: Lisp_Object; // word-combining-categories
+        pub static mut Vword_separating_categories: Lisp_Object; // word-separating-categories
+        pub static mut Vwrap_prefix: Lisp_Object; // wrap-prefix
+        pub static mut Vwrite_region_annotate_functions: Lisp_Object; // write-region-annotate-functions
+        pub static mut Vwrite_region_annotations_so_far: Lisp_Object; // write-region-annotations-so-far
+        pub static mut Vwrite_region_post_annotation_function: Lisp_Object; // write-region-post-annotation-function
+        pub static mut Vx_allow_focus_stealing: Lisp_Object; // x-allow-focus-stealing
+        pub static mut Vx_alt_keysym: Lisp_Object; // x-alt-keysym
+        pub static mut Vx_auto_preserve_selections: Lisp_Object; // x-auto-preserve-selections
+        pub static mut Vx_bitmap_file_path: Lisp_Object; // x-bitmap-file-path
+        pub static mut Vx_ctrl_keysym: Lisp_Object; // x-ctrl-keysym
+        pub static mut Vx_cursor_fore_pixel: Lisp_Object; // x-cursor-fore-pixel
+        pub static mut Vx_detect_server_trust: Lisp_Object; // x-detect-server-trust
+        pub static mut Vx_dnd_movement_function: Lisp_Object; // x-dnd-movement-function
+        pub static mut Vx_dnd_native_test_function: Lisp_Object; // x-dnd-native-test-function
+        pub static mut Vx_dnd_targets_list: Lisp_Object; // x-dnd-targets-list
+        pub static mut Vx_dnd_unsupported_drop_function: Lisp_Object; // x-dnd-unsupported-drop-function
+        pub static mut Vx_dnd_wheel_function: Lisp_Object; // x-dnd-wheel-function
+        pub static mut Vx_fast_selection_list: Lisp_Object; // x-fast-selection-list
+        pub static mut Vx_hourglass_pointer_shape: Lisp_Object; // x-hourglass-pointer-shape
+        pub static mut Vx_hyper_keysym: Lisp_Object; // x-hyper-keysym
+        pub static mut Vx_input_coding_function: Lisp_Object; // x-input-coding-function
+        pub static mut Vx_input_coding_system: Lisp_Object; // x-input-coding-system
+        pub static mut Vx_keysym_table: Lisp_Object; // x-keysym-table
+        pub static mut Vx_lax_frame_positioning: Lisp_Object; // x-lax-frame-positioning
+        pub static mut Vx_lost_selection_functions: Lisp_Object; // x-lost-selection-functions
+        pub static mut Vx_max_tooltip_size: Lisp_Object; // x-max-tooltip-size
+        pub static mut Vx_meta_keysym: Lisp_Object; // x-meta-keysym
+        pub static mut Vx_mode_pointer_shape: Lisp_Object; // x-mode-pointer-shape
+        pub static mut Vx_no_window_manager: Lisp_Object; // x-no-window-manager
+        pub static mut Vx_nontext_pointer_shape: Lisp_Object; // x-nontext-pointer-shape
+        pub static mut Vx_pixel_size_width_font_regexp: Lisp_Object; // x-pixel-size-width-font-regexp
+        pub static mut Vx_pointer_shape: Lisp_Object; // x-pointer-shape
+        pub static mut Vx_popup_menu_function: Lisp_Object; // x-popup-menu-function
+        pub static mut Vx_pre_popup_menu_hook: Lisp_Object; // x-pre-popup-menu-hook
+        pub static mut Vx_quit_keysym: Lisp_Object; // x-quit-keysym
+        pub static mut Vx_resource_class: Lisp_Object; // x-resource-class
+        pub static mut Vx_resource_name: Lisp_Object; // x-resource-name
+        pub static mut Vx_scroll_event_delta_factor: Lisp_Object; // x-scroll-event-delta-factor
+        pub static mut Vx_select_enable_clipboard_manager: Lisp_Object; // x-select-enable-clipboard-manager
+        pub static mut Vx_selection_alias_alist: Lisp_Object; // x-selection-alias-alist
+        pub static mut Vx_sensitive_text_pointer_shape: Lisp_Object; // x-sensitive-text-pointer-shape
+        pub static mut Vx_sent_selection_functions: Lisp_Object; // x-sent-selection-functions
+        pub static mut Vx_session_id: Lisp_Object; // x-session-id
+        pub static mut Vx_session_previous_id: Lisp_Object; // x-session-previous-id
+        pub static mut Vx_show_tooltip_timeout: Lisp_Object; // x-show-tooltip-timeout
+        pub static mut Vx_super_keysym: Lisp_Object; // x-super-keysym
+        pub static mut Vx_toolkit_scroll_bars: Lisp_Object; // x-toolkit-scroll-bars
+        pub static mut Vx_treat_local_requests_remotely: Lisp_Object; // x-treat-local-requests-remotely
+        pub static mut Vx_use_fast_mouse_position: Lisp_Object; // x-use-fast-mouse-position
+        pub static mut Vx_wait_for_event_timeout: Lisp_Object; // x-wait-for-event-timeout
+        pub static mut Vx_window_bottom_edge_shape: Lisp_Object; // x-window-bottom-edge-cursor
+        pub static mut Vx_window_bottom_left_corner_shape: Lisp_Object; // x-window-bottom-left-corner-cursor
+        pub static mut Vx_window_bottom_right_corner_shape: Lisp_Object; // x-window-bottom-right-corner-cursor
+        pub static mut Vx_window_horizontal_drag_shape: Lisp_Object; // x-window-horizontal-drag-cursor
+        pub static mut Vx_window_left_edge_shape: Lisp_Object; // x-window-left-edge-cursor
+        pub static mut Vx_window_right_edge_shape: Lisp_Object; // x-window-right-edge-cursor
+        pub static mut Vx_window_top_edge_shape: Lisp_Object; // x-window-top-edge-cursor
+        pub static mut Vx_window_top_left_corner_shape: Lisp_Object; // x-window-top-left-corner-cursor
+        pub static mut Vx_window_top_right_corner_shape: Lisp_Object; // x-window-top-right-corner-cursor
+        pub static mut Vx_window_vertical_drag_shape: Lisp_Object; // x-window-vertical-drag-cursor
+        pub static mut Vxft_color_font_whitelist: Lisp_Object; // xft-color-font-whitelist
+        pub static mut Vxft_settings: Lisp_Object; // xft-settings
+        pub static mut Vxwidget_list: Lisp_Object; // xwidget-list
+        pub static mut Vxwidget_view_list: Lisp_Object; // xwidget-view-list
+        pub static mut Vyes_or_no_prompt: Lisp_Object; // yes-or-no-prompt
+        pub static mut alter_fullscreen_frames: Lisp_Object; // alter-fullscreen-frames
+        pub static mut android_display_planes: EMACS_INT; // android-display-planes
+        pub static mut android_intercept_control_space: bool; // android-intercept-control-space
+        pub static mut android_keyboard_bell_duration: EMACS_INT; // android-keyboard-bell-duration
+        pub static mut android_pass_multimedia_buttons_to_system: bool; // android-pass-multimedia-buttons-to-system
+        pub static mut android_quit_keycode: EMACS_INT; // android-quit-keycode
+        pub static mut android_use_exec_loader: bool; // android-use-exec-loader
+        pub static mut attempt_orderly_shutdown_on_fatal_signal: bool; // attempt-orderly-shutdown-on-fatal-signal
+        pub static mut attempt_stack_overflow_recovery: bool; // attempt-stack-overflow-recovery
+        pub static mut auto_raise_tab_bar_buttons_p: bool; // auto-raise-tab-bar-buttons
+        pub static mut auto_raise_tool_bar_buttons_p: bool; // auto-raise-tool-bar-buttons
+        pub static mut auto_save_interval: EMACS_INT; // auto-save-interval
+        pub static mut auto_save_no_message: bool; // auto-save-no-message
+        pub static mut auto_window_vscroll_p: bool; // auto-window-vscroll
+        pub static mut automatic_hscrolling: Lisp_Object; // auto-hscroll-mode
+        pub static mut backtrace_on_error_noninteractive: bool; // backtrace-on-error-noninteractive
+        pub static mut backtrace_on_redisplay_error: bool; // backtrace-on-redisplay-error
+        pub static mut baud_rate: EMACS_INT; // baud-rate
+        pub static mut bidi_inhibit_bpa: bool; // bidi-inhibit-bpa
+        pub static mut byte_metering_on: bool; // byte-metering-on
+        pub static mut cannot_suspend: bool; // cannot-suspend
+        pub static mut case_symbols_as_words: bool; // case-symbols-as-words
+        pub static mut coding_system_require_warning: bool; // coding-system-require-warning
+        pub static mut command_line_max_length: EMACS_INT; // command-line-max-length
+        pub static mut comment_end_can_be_escaped: bool; // comment-end-can-be-escaped
+        pub static mut comp_file_preloaded_p: bool; // comp-file-preloaded-p
+        pub static mut comp_sanitizer_active: bool; // comp-sanitizer-active
+        pub static mut completion_ignore_case: bool; // completion-ignore-case
+        pub static mut composition_break_at_point: bool; // composition-break-at-point
+        pub static mut cons_cells_consed: EMACS_INT; // cons-cells-consed
+        pub static mut create_lockfiles: bool; // create-lockfiles
+        pub static mut cross_disabled_images: bool; // cross-disabled-images
+        pub static mut current_time_list: bool; // current-time-list
+        pub static mut cursor_in_echo_area: bool; // cursor-in-echo-area
+        pub static mut debug_end_pos: EMACS_INT; // debug-end-pos
+        pub static mut debug_on_next_call: bool; // debug-on-next-call
+        pub static mut debug_on_quit: bool; // debug-on-quit
+        pub static mut debugger_may_continue: bool; // debugger-may-continue
+        pub static mut debugger_stack_frame_as_list: bool; // debugger-stack-frame-as-list
+        pub static mut defining_kbd_macro: *mut c_void; // defining-kbd-macro
+        pub static mut delete_auto_save_files: bool; // delete-auto-save-files
+        pub static mut delete_by_moving_to_trash: bool; // delete-by-moving-to-trash
+        pub static mut delete_exited_processes: bool; // delete-exited-processes
+        pub static mut delete_frame_choose_selected: Lisp_Object; // delete-frame-choose-selected
+        pub static mut disable_ascii_optimization: bool; // disable-ascii-optimization
+        pub static mut disable_inhibit_text_conversion: bool; // disable-inhibit-text-conversion
+        pub static mut display_fill_column_indicator: bool; // display-fill-column-indicator
+        pub static mut display_hourglass_p: bool; // display-hourglass
+        pub static mut display_line_numbers_major_tick: EMACS_INT; // display-line-numbers-major-tick
+        pub static mut display_line_numbers_minor_tick: EMACS_INT; // display-line-numbers-minor-tick
+        pub static mut display_line_numbers_offset: EMACS_INT; // display-line-numbers-offset
+        pub static mut display_line_numbers_widen: bool; // display-line-numbers-widen
+        pub static mut display_raw_bytes_as_hex: bool; // display-raw-bytes-as-hex
+        pub static mut documentation_dynamic_reload: bool; // documentation-dynamic-reload
+        pub static mut dos_codepage: EMACS_INT; // dos-codepage
+        pub static mut dos_country_code: EMACS_INT; // dos-country-code
+        pub static mut dos_decimal_point: EMACS_INT; // dos-decimal-point
+        pub static mut dos_hyper_key: EMACS_INT; // dos-hyper-key
+        pub static mut dos_keyboard_layout: EMACS_INT; // dos-keyboard-layout
+        pub static mut dos_keypad_mode: EMACS_INT; // dos-keypad-mode
+        pub static mut dos_super_key: EMACS_INT; // dos-super-key
+        pub static mut dos_timezone_offset: EMACS_INT; // dos-timezone-offset
+        pub static mut double_click_fuzz: EMACS_INT; // double-click-fuzz
+        pub static mut echo_keystrokes_help: bool; // echo-keystrokes-help
+        pub static mut emacs_scroll_step: EMACS_INT; // scroll-step
+        pub static mut enable_recursive_minibuffers: bool; // enable-recursive-minibuffers
+        pub static mut eol_mnemonic_dos: Lisp_Object; // eol-mnemonic-dos
+        pub static mut eol_mnemonic_mac: Lisp_Object; // eol-mnemonic-mac
+        pub static mut eol_mnemonic_undecided: Lisp_Object; // eol-mnemonic-undecided
+        pub static mut eol_mnemonic_unix: Lisp_Object; // eol-mnemonic-unix
+        pub static mut executing_kbd_macro_index: EMACS_INT; // executing-kbd-macro-index
+        pub static mut expose_hidden_buffer: Lisp_Object; // expose-hidden-buffer
+        pub static mut extra_keyboard_modifiers: EMACS_INT; // extra-keyboard-modifiers
+        pub static mut face_filters_always_match: bool; // face-filters-always-match
+        pub static mut face_near_same_color_threshold: EMACS_INT; // face-near-same-color-threshold
+        pub static mut fast_but_imprecise_scrolling: bool; // fast-but-imprecise-scrolling
+        pub static mut fast_read_process_output: bool; // fast-read-process-output
+        pub static mut floats_consed: EMACS_INT; // floats-consed
+        pub static mut focus_follows_mouse: Lisp_Object; // focus-follows-mouse
+        pub static mut force_load_messages: bool; // force-load-messages
+        pub static mut frame_inhibit_implied_resize: Lisp_Object; // frame-inhibit-implied-resize
+        pub static mut frame_internal_parameters: Lisp_Object; // frame-internal-parameters
+        pub static mut frame_resize_pixelwise: bool; // frame-resize-pixelwise
+        pub static mut frame_size_history: Lisp_Object; // frame-size-history
+        pub static mut garbage_collection_messages: bool; // garbage-collection-messages
+        pub static mut gc_cons_threshold: EMACS_INT; // gc-cons-threshold
+        pub static mut gcs_done: EMACS_INT; // gcs-done
+        pub static mut global_gnutls_log_level: EMACS_INT; // gnutls-log-level
+        pub static mut haiku_debug_on_fatal_error: bool; // haiku-debug-on-fatal-error
+        pub static mut haiku_initialized: bool; // haiku-initialized
+        pub static mut haiku_pass_control_tab_to_system: bool; // haiku-pass-control-tab-to-system
+        pub static mut haiku_signal_invalid_refs: bool; // haiku-signal-invalid-refs
+        pub static mut highlight_nonselected_windows: bool; // highlight-nonselected-windows
+        pub static mut history_delete_duplicates: bool; // history-delete-duplicates
+        pub static mut hscroll_margin: EMACS_INT; // hscroll-margin
+        pub static mut iconify_child_frame: Lisp_Object; // iconify-child-frame
+        pub static mut imagemagick_render_type: EMACS_INT; // imagemagick-render-type
+        pub static mut indent_tabs_mode: bool; // indent-tabs-mode
+        pub static mut inherit_process_coding_system: bool; // inherit-process-coding-system
+        pub static mut inhibit_bidi_mirroring: bool; // inhibit-bidi-mirroring
+        pub static mut inhibit_compacting_font_caches: bool; // inhibit-compacting-font-caches
+        pub static mut inhibit_eol_conversion: bool; // inhibit-eol-conversion
+        pub static mut inhibit_eval_during_redisplay: bool; // inhibit-eval-during-redisplay
+        pub static mut inhibit_free_realized_faces: bool; // inhibit-free-realized-faces
+        pub static mut inhibit_interaction: bool; // inhibit-interaction
+        pub static mut inhibit_iso_escape_detection: bool; // inhibit-iso-escape-detection
+        pub static mut inhibit_load_charset_map: bool; // inhibit-load-charset-map
+        pub static mut inhibit_menubar_update: bool; // inhibit-menubar-update
+        pub static mut inhibit_message: bool; // inhibit-message
+        pub static mut inhibit_modification_hooks: bool; // inhibit-modification-hooks
+        pub static mut inhibit_mouse_event_check: bool; // inhibit-mouse-event-check
+        pub static mut inhibit_null_byte_detection: bool; // inhibit-null-byte-detection
+        pub static mut inhibit_record_char: bool; // inhibit--record-char
+        pub static mut inhibit_try_cursor_movement: bool; // inhibit-try-cursor-movement
+        pub static mut inhibit_try_window_id: bool; // inhibit-try-window-id
+        pub static mut inhibit_try_window_reusing: bool; // inhibit-try-window-reusing
+        pub static mut inhibit_x_resources: bool; // inhibit-x-resources
+        pub static mut input_pending_p_filter_events: bool; // input-pending-p-filter-events
+        pub static mut integer_width: EMACS_INT; // integer-width
+        pub static mut intervals_consed: EMACS_INT; // intervals-consed
+        pub static mut inverse_video: bool; // inverse-video
+        pub static mut kill_buffer_delete_auto_save_files: bool; // kill-buffer-delete-auto-save-files
+        pub static mut kill_emacs_on_sigint: bool; // kill-emacs-on-sigint
+        pub static mut large_hscroll_threshold: EMACS_INT; // large-hscroll-threshold
+        pub static mut last_command_event: Lisp_Object; // last-command-event
+        pub static mut last_input_event: Lisp_Object; // last-input-event
+        pub static mut last_nonmenu_event: Lisp_Object; // last-nonmenu-event
+        pub static mut line_number_display_limit_width: EMACS_INT; // line-number-display-limit-width
+        pub static mut lisp_eval_depth_reserve: EMACS_INT; // lisp-eval-depth-reserve
+        pub static mut load_dangerous_libraries: bool; // load-dangerous-libraries
+        pub static mut load_force_doc_strings: bool; // load-force-doc-strings
+        pub static mut load_in_progress: bool; // load-in-progress
+        pub static mut load_no_native: bool; // load-no-native
+        pub static mut load_prefer_newer: bool; // load-prefer-newer
+        pub static mut long_line_optimizations_bol_search_limit: EMACS_INT; // long-line-optimizations-bol-search-limit
+        pub static mut long_line_optimizations_region_size: EMACS_INT; // long-line-optimizations-region-size
+        pub static mut lucid__menu_grab_keyboard: bool; // lucid--menu-grab-keyboard
+        pub static mut make_window_start_visible: bool; // make-window-start-visible
+        pub static mut max_lisp_eval_depth: EMACS_INT; // max-lisp-eval-depth
+        pub static mut max_redisplay_ticks: EMACS_INT; // max-redisplay-ticks
+        pub static mut menu_prompt_more_char: Lisp_Object; // menu-prompt-more-char
+        pub static mut menu_prompting: bool; // menu-prompting
+        pub static mut message_truncate_lines: bool; // message-truncate-lines
+        pub static mut meta_prefix_char: Lisp_Object; // meta-prefix-char
+        pub static mut minibuffer_allow_text_properties: bool; // minibuffer-allow-text-properties
+        pub static mut minibuffer_auto_raise: bool; // minibuffer-auto-raise
+        pub static mut minibuffer_follows_selected_frame: Lisp_Object; // minibuffer-follows-selected-frame
+        pub static mut mode_line_in_non_selected_windows: bool; // mode-line-in-non-selected-windows
+        pub static mut mouse_fine_grained_tracking: bool; // mouse-fine-grained-tracking
+        pub static mut mouse_prefer_closest_glyph: bool; // mouse-prefer-closest-glyph
+        pub static mut multibyte_syntax_as_symbol: bool; // multibyte-syntax-as-symbol
+        pub static mut multiple_frames: bool; // multiple-frames
+        pub static mut multiple_terminals_merge_keyboards: bool; // multiple-terminals-merge-keyboards
+        pub static mut mwheel_coalesce_scroll_events: bool; // mwheel-coalesce-scroll-events
+        pub static mut native_comp_jit_compilation: bool; // native-comp-jit-compilation
+        pub static mut next_screen_context_lines: EMACS_INT; // next-screen-context-lines
+        pub static mut no_redraw_on_reenter: bool; // no-redraw-on-reenter
+        pub static mut nobreak_char_ascii_display: bool; // nobreak-char-ascii-display
+        pub static mut noninteractive1: bool; // noninteractive
+        pub static mut num_input_keys: EMACS_INT; // num-input-keys
+        pub static mut num_nonmacro_input_events: EMACS_INT; // num-nonmacro-input-events
+        pub static mut open_paren_in_column_0_is_defun_start: bool; // open-paren-in-column-0-is-defun-start
+        pub static mut overline_margin: EMACS_INT; // overline-margin
+        pub static mut parse_sexp_ignore_comments: bool; // parse-sexp-ignore-comments
+        pub static mut parse_sexp_lookup_properties: bool; // parse-sexp-lookup-properties
+        pub static mut pgtk_selection_timeout: EMACS_INT; // pgtk-selection-timeout
+        pub static mut print_escape_control_characters: bool; // print-escape-control-characters
+        pub static mut print_escape_multibyte: bool; // print-escape-multibyte
+        pub static mut print_escape_newlines: bool; // print-escape-newlines
+        pub static mut print_escape_nonascii: bool; // print-escape-nonascii
+        pub static mut print_integers_as_characters: bool; // print-integers-as-characters
+        pub static mut print_quoted: bool; // print-quoted
+        pub static mut print_symbols_bare: bool; // print-symbols-bare
+        pub static mut process_error_pause_time: EMACS_INT; // process-error-pause-time
+        pub static mut process_prioritize_lower_fds: bool; // process-prioritize-lower-fds
+        pub static mut profiler_log_size: EMACS_INT; // profiler-log-size
+        pub static mut profiler_max_stack_depth: EMACS_INT; // profiler-max-stack-depth
+        pub static mut pure_bytes_used: EMACS_INT; // pure-bytes-used
+        pub static mut query_all_font_backends: bool; // query-all-font-backends
+        pub static mut read_buffer_completion_ignore_case: bool; // read-buffer-completion-ignore-case
+        pub static mut read_minibuffer_restore_windows: bool; // read-minibuffer-restore-windows
+        pub static mut read_process_output_max: EMACS_INT; // read-process-output-max
+        pub static mut record_all_keys: bool; // record-all-keys
+        pub static mut redisplay__inhibit_bidi: bool; // redisplay--inhibit-bidi
+        pub static mut redisplay_adhoc_scroll_in_resize_mini_windows: bool; // redisplay-adhoc-scroll-in-resize-mini-windows
+        pub static mut redisplay_skip_fontification_on_input: bool; // redisplay-skip-fontification-on-input
+        pub static mut redisplay_skip_initial_frame: bool; // redisplay-skip-initial-frame
+        pub static mut resize_mini_frames: Lisp_Object; // resize-mini-frames
+        pub static mut scroll_bar_adjust_thumb_portion_p: bool; // scroll-bar-adjust-thumb-portion
+        pub static mut scroll_conservatively: EMACS_INT; // scroll-conservatively
+        pub static mut scroll_margin: EMACS_INT; // scroll-margin
+        pub static mut scroll_minibuffer_conservatively: bool; // scroll-minibuffer-conservatively
+        pub static mut sfnt_raster_glyphs_exactly: bool; // sfnt-raster-glyphs-exactly
+        pub static mut string_chars_consed: EMACS_INT; // string-chars-consed
+        pub static mut strings_consed: EMACS_INT; // strings-consed
+        pub static mut symbols_consed: EMACS_INT; // symbols-consed
+        pub static mut symbols_with_pos_enabled: bool; // symbols-with-pos-enabled
+        pub static mut syntax_propertize__done: EMACS_INT; // syntax-propertize--done
+        pub static mut system_uses_terminfo: bool; // system-uses-terminfo
+        pub static mut tab_bar__dragging_in_progress: bool; // tab-bar--dragging-in-progress
+        pub static mut tab_bar_button_relief: EMACS_INT; // tab-bar-button-relief
+        pub static mut tab_bar_truncate: bool; // tab-bar-truncate
+        pub static mut text_quoting_flag: bool; // internal--text-quoting-flag
+        pub static mut tool_bar_button_relief: EMACS_INT; // tool-bar-button-relief
+        pub static mut tool_bar_max_label_size: EMACS_INT; // tool-bar-max-label-size
+        pub static mut tooltip_reuse_hidden_frame: bool; // tooltip-reuse-hidden-frame
+        pub static mut track_mouse: Lisp_Object; // track-mouse
+        pub static mut translate_upper_case_key_bindings: bool; // translate-upper-case-key-bindings
+        pub static mut tty_cursor_movement_use_TAB: bool; // tty-cursor-movement-use-TAB
+        pub static mut tty_cursor_movement_use_TAB_BS: bool; // tty-cursor-movement-use-TAB-BS
+        pub static mut tty_display_emoji_force_wide: bool; // tty-display-emoji-force-wide
+        pub static mut tty_menu_calls_mouse_position_function: bool; // tty-menu-calls-mouse-position-function
+        pub static mut underline_minimum_offset: EMACS_INT; // underline-minimum-offset
+        pub static mut undo_inhibit_record_point: bool; // undo-inhibit-record-point
+        pub static mut undo_limit: EMACS_INT; // undo-limit
+        pub static mut undo_strong_limit: EMACS_INT; // undo-strong-limit
+        pub static mut unibyte_display_via_language_environment: bool; // unibyte-display-via-language-environment
+        pub static mut use_default_font_for_symbols: bool; // use-default-font-for-symbols
+        pub static mut use_dialog_box: bool; // use-dialog-box
+        pub static mut use_file_dialog: bool; // use-file-dialog
+        pub static mut use_short_answers: bool; // use-short-answers
+        pub static mut use_system_font: bool; // font-use-system-font
+        pub static mut use_system_tooltips: bool; // use-system-tooltips
+        pub static mut vector_cells_consed: EMACS_INT; // vector-cells-consed
+        pub static mut visible_bell: bool; // visible-bell
+        pub static mut visible_cursor: bool; // visible-cursor
+        pub static mut w32__terminal_is_conhost: bool; // w32--terminal-is-conhost
+        pub static mut w32_add_wrapped_menu_bar_lines: bool; // w32-add-wrapped-menu-bar-lines
+        pub static mut w32_ansi_code_page: EMACS_INT; // w32-ansi-code-page
+        pub static mut w32_disable_abort_dialog: bool; // w32-disable-abort-dialog
+        pub static mut w32_disable_double_buffering: bool; // w32-disable-double-buffering
+        pub static mut w32_disable_new_uniscribe_apis: bool; // w32-disable-new-uniscribe-apis
+        pub static mut w32_enable_synthesized_fonts: bool; // w32-enable-synthesized-fonts
+        pub static mut w32_follow_system_dark_mode: bool; // w32-follow-system-dark-mode
+        pub static mut w32_ignore_modifiers_on_IME_input: bool; // w32-ignore-modifiers-on-IME-input
+        pub static mut w32_inhibit_dwrite: bool; // w32-inhibit-dwrite
+        pub static mut w32_mouse_button_tolerance: EMACS_INT; // w32-mouse-button-tolerance
+        pub static mut w32_mouse_move_interval: EMACS_INT; // w32-mouse-move-interval
+        pub static mut w32_multibyte_code_page: EMACS_INT; // w32-multibyte-code-page
+        pub static mut w32_num_mouse_buttons: EMACS_INT; // w32-num-mouse-buttons
+        pub static mut w32_pass_extra_mouse_buttons_to_system: bool; // w32-pass-extra-mouse-buttons-to-system
+        pub static mut w32_pass_multimedia_buttons_to_system: bool; // w32-pass-multimedia-buttons-to-system
+        pub static mut w32_pipe_buffer_size: EMACS_INT; // w32-pipe-buffer-size
+        pub static mut w32_pipe_read_delay: EMACS_INT; // w32-pipe-read-delay
+        pub static mut w32_quit_key: EMACS_INT; // w32-quit-key
+        pub static mut w32_strict_painting: bool; // w32-strict-painting
+        pub static mut w32_unicode_filenames: bool; // w32-unicode-filenames
+        pub static mut w32_use_fallback_wm_chars_method: bool; // w32-use-fallback-wm-chars-method
+        pub static mut w32_use_full_screen_buffer: bool; // w32-use-full-screen-buffer
+        pub static mut w32_use_native_image_api: bool; // w32-use-native-image-API
+        pub static mut w32_use_visible_system_caret: bool; // w32-use-visible-system-caret
+        pub static mut w32_yes_no_dialog_show_cancel: bool; // w32-yes-no-dialog-show-cancel
+        pub static mut when_entered_debugger: EMACS_INT; // internal-when-entered-debugger
+        pub static mut window_auto_redraw_on_parameter_change: bool; // window-auto-redraw-on-parameter-change
+        pub static mut window_dead_windows_table: Lisp_Object; // window-dead-windows-table
+        pub static mut window_resize_pixelwise: bool; // window-resize-pixelwise
+        pub static mut window_restore_killed_buffer_windows: Lisp_Object; // window-restore-killed-buffer-windows
+        pub static mut word_wrap_by_category: bool; // word-wrap-by-category
+        pub static mut words_include_escapes: bool; // words-include-escapes
+        pub static mut write_region_inhibit_fsync: bool; // write-region-inhibit-fsync
+        pub static mut x_color_cache_bucket_size: EMACS_INT; // x-color-cache-bucket-size
+        pub static mut x_dnd_disable_motif_drag: bool; // x-dnd-disable-motif-drag
+        pub static mut x_dnd_disable_motif_protocol: bool; // x-dnd-disable-motif-protocol
+        pub static mut x_dnd_fix_motif_leave: bool; // x-dnd-fix-motif-leave
+        pub static mut x_dnd_preserve_selection_data: bool; // x-dnd-preserve-selection-data
+        pub static mut x_dnd_use_unsupported_drop: bool; // x-dnd-use-unsupported-drop
+        pub static mut x_fast_protocol_requests: bool; // x-fast-protocol-requests
+        pub static mut x_frame_normalize_before_maximize: bool; // x-frame-normalize-before-maximize
+        pub static mut x_gtk_file_dialog_help_text: bool; // x-gtk-file-dialog-help-text
+        pub static mut x_gtk_resize_child_frames: Lisp_Object; // x-gtk-resize-child-frames
+        pub static mut x_gtk_show_hidden_files: bool; // x-gtk-show-hidden-files
+        pub static mut x_gtk_use_native_input: bool; // x-gtk-use-native-input
+        pub static mut x_gtk_use_old_file_dialog: bool; // x-gtk-use-old-file-dialog
+        pub static mut x_gtk_use_window_move: bool; // x-gtk-use-window-move
+        pub static mut x_input_grab_touch_events: bool; // x-input-grab-touch-events
+        pub static mut x_mouse_click_focus_ignore_position: bool; // x-mouse-click-focus-ignore-position
+        pub static mut x_mouse_click_focus_ignore_time: EMACS_INT; // x-mouse-click-focus-ignore-time
+        pub static mut x_selection_timeout: EMACS_INT; // x-selection-timeout
+        pub static mut x_set_frame_visibility_more_laxly: Lisp_Object; // x-set-frame-visibility-more-laxly
+        pub static mut x_stretch_cursor_p: bool; // x-stretch-cursor
+        pub static mut x_underline_at_descent_line: bool; // x-underline-at-descent-line
+        pub static mut x_use_underline_position_properties: bool; // x-use-underline-position-properties
+        pub static mut xft_font_ascent_descent_override: bool; // xft-font-ascent-descent-override
+        pub static mut xft_ignore_color_fonts: bool; // xft-ignore-color-fonts
+        pub static mut xwidget_webkit_disable_javascript: bool; // xwidget-webkit-disable-javascript
+    }
+}
+use variables::*;
 
 // --- EXFUN prototypes for every DEFUN (generated from subrs.tsv) ---
 // C: globals.h writes `EXFUN (Ffoo, maxargs)`; lisp.h includes <globals.h>,

@@ -173,23 +173,33 @@ fn gen_globals() -> i32 {
     let vars = Path::new(REPO).join("docs/baseline/globals/variables.tsv");
     let mut n_vars = 0usize;
     if let Ok(text) = fs::read_to_string(&vars) {
-        rs.push_str("\n// --- variables declared by DEFVAR_* (generated) ---\n");
+        // The reference keeps them inside struct emacs_globals (`globals.f_Vfoo`) so a
+        // debugger can list them; the port declares each as an extern global in a
+        // glob-imported module, and the unit that owns it defines it
+        // `#[unsafe(no_mangle)] pub static mut` — a definition shadows the glob
+        // import, exactly as a DEFUN shadows its generated prototype (PORTING.md
+        // 0.1-10/0.1-3, P-21).  Defining them here instead would give every
+        // translation unit its own NULL copy, which the first inlined reader of a
+        // DEFVAR'd table would then dereference (review A, F4).
+        rs.push_str("\n// --- variables declared by DEFVAR_* (generated) ---\n\
+                     pub mod variables {\n    use super::*;\n    unsafe extern \"C\" {\n");
         for line in text.lines().skip(1) {
             let f: Vec<&str> = line.split('\t').collect();
             if f.len() < 3 {
                 continue;
             }
             let (name, kind) = (f[0], f[1]);
-            let (ty, zero) = match kind {
-                "LISP_OBJECT" => ("Lisp_Object", "std::ptr::null_mut()"),
-                "EMACS_INTEGER" => ("EMACS_INT", "0"),
-                "BOOLEAN" => ("bool", "false"),
-                "KBOARD" => ("*mut c_void", "std::ptr::null_mut()"),
+            let ty = match kind {
+                "LISP_OBJECT" => "Lisp_Object",
+                "EMACS_INTEGER" => "EMACS_INT",
+                "BOOLEAN" => "bool",
+                "KBOARD" => "*mut c_void",
                 _ => continue,
             };
-            rs.push_str(&format!("pub static mut {name}: {ty} = {zero}; // {}\n", f[2]));
+            rs.push_str(&format!("        pub static mut {name}: {ty}; // {}\n", f[2]));
             n_vars += 1;
         }
+        rs.push_str("    }\n}\nuse variables::*;\n");
     }
 
     // The other generated half of the reference's globals.h: make-docfile writes
@@ -297,9 +307,15 @@ fn rust_type_expr(kind: &str, key: &str) -> Option<String> {
 
 /// Type names the port has already declared, so assertions are only emitted for
 /// what exists; the rest are reported as pending (a shrinking number).
+///
+/// The scan is whitespace- and attribute-tolerant and does not anchor at the line
+/// start: an earlier line-prefix scan dropped a type -- and with it every one of its
+/// assertions -- when the declaration merely had different whitespace or attributes,
+/// which turned the layout gate off silently (review B, F1).
 fn known_types() -> std::collections::BTreeSet<String> {
     let mut set = std::collections::BTreeSet::new();
-    let mut stack = vec![PathBuf::from("src/include"), PathBuf::from("src")];
+    let mut stack = vec![PathBuf::from("src/include"), PathBuf::from("src"),
+                         PathBuf::from("../lib/include")];
     while let Some(dir) = stack.pop() {
         let Ok(entries) = fs::read_dir(&dir) else { continue };
         for e in entries.filter_map(Result::ok) {
@@ -312,25 +328,140 @@ fn known_types() -> std::collections::BTreeSet<String> {
                 continue;
             }
             let Ok(text) = fs::read_to_string(&path) else { continue };
-            for line in text.lines() {
-                let t = line.trim_start();
-                for kw in ["struct ", "union ", "enum ", "type "] {
-                    if let Some(rest) = t.strip_prefix("pub ").and_then(|r| r.strip_prefix(kw))
-                        .or_else(|| t.strip_prefix(kw))
-                    {
-                        let name: String = rest
-                            .chars()
-                            .take_while(|c| c.is_alphanumeric() || *c == '_')
-                            .collect();
-                        if !name.is_empty() {
-                            set.insert(name);
-                        }
-                    }
+            // Comments and string literals are dropped first: `lisp.rs` mentions
+            // `struct itree_node` in a comment, and a mention must not count as a
+            // declaration (it would keep a renamed type's assertions alive).
+            let code = strip_comments_and_strings(&text);
+            for kw in ["struct", "union", "enum", "type"] {
+                for name in names_after_keyword(&code, kw) {
+                    set.insert(name);
                 }
             }
         }
     }
     set
+}
+
+/// TEXT without comments and without the contents of string/char literals, so a
+/// mention inside either cannot look like a declaration.
+fn strip_comments_and_strings(text: &str) -> String {
+    let (b, mut out) = (text.as_bytes(), Vec::with_capacity(text.len()));
+    let mut i = 0;
+    while i < b.len() {
+        match b[i] {
+            b'/' if i + 1 < b.len() && b[i + 1] == b'/' => {
+                while i < b.len() && b[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'/' if i + 1 < b.len() && b[i + 1] == b'*' => {
+                i += 2;
+                let mut depth = 1;
+                while i < b.len() && depth > 0 {
+                    if b[i] == b'/' && i + 1 < b.len() && b[i + 1] == b'*' {
+                        depth += 1;
+                        i += 2;
+                    } else if b[i] == b'*' && i + 1 < b.len() && b[i + 1] == b'/' {
+                        depth -= 1;
+                        i += 2;
+                    } else {
+                        i += 1;
+                    }
+                }
+                out.push(b' ');
+            }
+            b'\'' => {
+                // A char literal (`'x'`, '\n'), not a lifetime: only a closing quote
+                // two or three bytes away makes it one.
+                let mut j = i + 1;
+                if j < b.len() && b[j] == b'\\' {
+                    j += 2;
+                } else {
+                    j += 1;
+                }
+                if j < b.len() && b[j] == b'\'' {
+                    i = j + 1;
+                    out.push(b' ');
+                } else {
+                    out.push(b'\'');
+                    i += 1;
+                }
+            }
+            b'"' => {
+                i += 1;
+                while i < b.len() {
+                    if b[i] == b'\\' {
+                        i += 2;
+                    } else if b[i] == b'"' {
+                        i += 1;
+                        break;
+                    } else {
+                        i += 1;
+                    }
+                }
+                out.push(b' ');
+            }
+            c => {
+                out.push(c);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// Every identifier that follows KEYWORD as a whole word in TEXT (byte-wise, so the
+/// scan is safe on non-ASCII comments).
+fn names_after_keyword(text: &str, keyword: &str) -> Vec<String> {
+    let (bytes, kw) = (text.as_bytes(), keyword.as_bytes());
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i + kw.len() <= bytes.len() {
+        if &bytes[i..i + kw.len()] == kw {
+            let before_ok = i == 0
+                || !(bytes[i - 1].is_ascii_alphanumeric() || bytes[i - 1] == b'_');
+            if before_ok && bytes.get(i + kw.len()).copied().map(|c| c.is_ascii_whitespace()).unwrap_or(false) {
+                let mut j = i + kw.len();
+                while j < bytes.len() && bytes[j].is_ascii_whitespace() {
+                    j += 1;
+                }
+                let start = j;
+                while j < bytes.len() && (bytes[j].is_ascii_alphanumeric() || bytes[j] == b'_') {
+                    j += 1;
+                }
+                if j > start {
+                    out.push(text[start..j].to_string());
+                }
+            }
+        }
+        i += 1;
+    }
+    out
+}
+
+/// The asserted/pending counts the gate must not fall below: a type that disappears
+/// from the scan would drop assertions, and a dropped assertion is invisible in the
+/// compiled probe (review B, F1).  Adding mirrors only raises asserted / lowers
+/// pending, so this file stays as a floor.
+fn check_counts(asserted: usize, pending: usize) -> Result<(), String> {
+    let path = Path::new(REPO).join("docs/baseline/layout/counts.tsv");
+    let Ok(text) = fs::read_to_string(&path) else { return Ok(()) };
+    let mut want_asserted = 0usize;
+    let mut want_pending = usize::MAX;
+    for line in text.lines().skip(1) {
+        match line.split_once('\t') {
+            Some(("asserted", v)) => want_asserted = v.trim().parse().unwrap_or(0),
+            Some(("pending", v)) => want_pending = v.trim().parse().unwrap_or(usize::MAX),
+            _ => {}
+        }
+    }
+    if asserted < want_asserted || pending > want_pending {
+        return Err(format!(
+            "layout gate shrank: {asserted} asserted / {pending} pending, \
+             floor is {want_asserted} / {want_pending} ({})",
+            path.display()));
+    }
+    Ok(())
 }
 
 fn layout_asserts() -> Result<PathBuf, String> {
@@ -350,6 +481,10 @@ fn layout_asserts() -> Result<PathBuf, String> {
          // Every line is a number the C compiler printed for the reference headers.\n",
     );
     let known = known_types();
+    if std::env::var("XTASK_DEBUG_TYPES").is_ok() {
+        let hits: Vec<&String> = known.iter().filter(|n| n.contains("itree")).collect();
+        eprintln!("debug: itree-ish types: {hits:?}");
+    }
     let mut n = 0;
     let mut pending: Vec<String> = Vec::new();
     for line in text.lines().skip(1) {
@@ -370,6 +505,7 @@ fn layout_asserts() -> Result<PathBuf, String> {
     fs::create_dir_all(BUILD).ok();
     let path = Path::new(BUILD).join("layout_asserts.rs");
     fs::write(&path, out).map_err(|e| e.to_string())?;
+    check_counts(n, pending.len())?;
     println!("{n} layout assertions from {}", tsv.display());
     if !pending.is_empty() {
         println!("{} keys pending a mirror: {}", pending.len(),
@@ -395,9 +531,14 @@ fn layout_check() -> i32 {
     let mut mirrors: Vec<PathBuf> = fs::read_dir("src/include")
         .map(|d| d.filter_map(Result::ok).map(|e| e.path()).collect())
         .unwrap_or_default();
-    mirrors.sort();
-    mirrors.retain(|p| p.extension().map(|x| x == "rs").unwrap_or(false)
-                          && p.file_name().map(|n| n != "globals.rs").unwrap_or(true));
+    mirrors.retain(|p| p.extension().map(|x| x == "rs").unwrap_or(false));
+    // PORTING.md 0.1-4: expand the include! graph and dedupe by file, so a mirror that
+    // (like lib/inttypes.in.rs will) includes another mirror is not listed twice.
+    let mut included: std::collections::BTreeSet<PathBuf> = std::collections::BTreeSet::new();
+    for p in &mirrors {
+        collect_includes(p, &mut included);
+    }
+    mirrors.retain(|p| !included.contains(&canonical(p)));
     // lisp.rs first: it defines the macros (eassert, eassume, CHECK_*) the other
     // mirrors expand textually, exactly as C's headers get them from lisp.h.
     if let Some(i) = mirrors.iter().position(|p| p.file_name().map(|n| n == "lisp.rs").unwrap_or(false)) {
@@ -493,6 +634,30 @@ fn gate_fast() -> i32 {
     }
     println!("== layout gate ==");
     layout_check()
+}
+
+fn canonical(p: &Path) -> PathBuf {
+    p.canonicalize().unwrap_or_else(|_| p.to_path_buf())
+}
+
+/// Every file the `include!("…")` chain of ROOT reaches, resolved the way rustc does
+/// (relative to the file that contains the macro call) and added to SEEN.
+fn collect_includes(root: &Path, seen: &mut std::collections::BTreeSet<PathBuf>) {
+    let Ok(text) = fs::read_to_string(root) else { return };
+    let dir = root.parent().unwrap_or(Path::new("."));
+    let mut rest = text.as_str();
+    while let Some(pos) = rest.find("include!(") {
+        rest = &rest[pos + "include!(".len()..];
+        let Some(end) = rest.find(")") else { break };
+        let quoted = rest[..end].trim();
+        if let Some(name) = quoted.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
+            let inc = canonical(&dir.join(name));
+            if seen.insert(inc.clone()) && inc.is_file() {
+                collect_includes(&inc, seen);
+            }
+        }
+        rest = &rest[end..];
+    }
 }
 
 /// Compile every translation unit whose ledger says it is finished.  The textual

@@ -2,12 +2,14 @@
 # Build and run the three spikes once, then leave everything under build/ so the
 # caller can copy the report out and delete the products.  Nothing here writes to
 # the reference checkout.
-set -uo pipefail
+set -euo pipefail
 cd "$(dirname "$0")/.."
 REF=emacs
 CFG=build/emacs-ref
 OUT=build/spikes-out
 mkdir -p "$OUT"
+rm -f "$OUT/layout_c.txt" "$OUT/layout_c"          # never convert a stale probe
+python3 tools/gen-layout-fields.py > "$OUT/fields.txt"   # the field list first
 
 echo "# spike report $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$OUT/report.txt"
 echo "rustc: $(rustc --version)" >> "$OUT/report.txt"
@@ -15,11 +17,16 @@ echo "clang: $(clang --version | head -1)" >> "$OUT/report.txt"
 echo >> "$OUT/report.txt"
 
 echo "## spike 1: layout identity (C vs Rust)" >> "$OUT/report.txt"
-clang -std=gnu23 -O0 -I "$CFG/lib" -I spikes/shim -I "$CFG/src" \
-      -I "$REF/src" -I "$REF/lib" \
-      spikes/layout_c.c -o "$OUT/layout_c" 2> "$OUT/layout_c.err" \
-  && "$OUT/layout_c" > "$OUT/layout_c.txt" \
-  || { echo "C build failed:" >> "$OUT/report.txt"; cat "$OUT/layout_c.err" >> "$OUT/report.txt"; }
+if clang -std=gnu23 -O0 -I "$CFG/lib" -I spikes/shim -I "$CFG/src" \
+        -I "$REF/src" -I "$REF/lib" \
+        spikes/layout_c.c -o "$OUT/layout_c" 2> "$OUT/layout_c.err"; then
+  "$OUT/layout_c" > "$OUT/layout_c.txt"
+else
+  echo "C build failed:" >> "$OUT/report.txt"
+  cat "$OUT/layout_c.err" >> "$OUT/report.txt"
+  echo "spike 1 skipped: the C layout probe did not build (the baseline is NOT regenerated)"
+  exit 1
+fi
 rustc --edition 2024 -O spikes/layout.rs -o "$OUT/layout_rs" 2> "$OUT/layout_rs.err" \
   && "$OUT/layout_rs" > "$OUT/layout_rs.txt" \
   || { echo "Rust build failed:" >> "$OUT/report.txt"; cat "$OUT/layout_rs.err" >> "$OUT/report.txt"; }

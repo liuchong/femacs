@@ -88,10 +88,12 @@ pub struct itree_node
   pub otick: uintmax_t,		/* offset modified tick */
   pub data: Lisp_Object,	/* Exclusively used by the client. */
   /// bool_bf red : 1; bool_bf rear_advance : 1; bool_bf front_advance : 1;
-  /// (PORTING.md 1.3: the bitfields are packed explicitly; the offsets of the
-  /// neighbouring fields and sizeof itree_node are asserted against the C
-  /// compiler's numbers.)
-  pub bits: u32,
+  /// `bool_bf` is one byte on the frozen target (`conf_post.h`), so the three bits
+  /// share one byte: bits 0, 1 and 2 of this field (clang's record layout says
+  /// 72:0, 72:1, 72:2).  PORTING.md 1.3 wants the storage unit recorded; the
+  /// offsets around it and `sizeof itree_node` are asserted, but they cannot see
+  /// the unit's width (P-35).
+  pub bits: u8,
 }
 
 #[repr(C)]
@@ -133,10 +135,10 @@ unsafe extern "C" {
 
   /* Iteration functions.  Almost all code should use ITREE_FOREACH
      instead.  */
-  pub fn itree_iterator_start (iterator: *mut itree_iterator, tree: *mut itree_tree,
+  pub fn itree_iterator_start (iter: *mut itree_iterator, tree: *mut itree_tree,
                                begin: ptrdiff_t, end: ptrdiff_t,
                                order: itree_order) -> *mut itree_iterator;
-  pub fn itree_iterator_narrow (iterator: *mut itree_iterator, begin: ptrdiff_t,
+  pub fn itree_iterator_narrow (g: *mut itree_iterator, begin: ptrdiff_t,
                                 end: ptrdiff_t);
   pub fn itree_iterator_next (iterator: *mut itree_iterator) -> *mut itree_node;
 }
