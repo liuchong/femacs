@@ -87,15 +87,191 @@ def rust_type(c_type: str, depth: int, array: str, typedefs: dict | None = None,
     else:
         rust = base
     if array:
-        bounds = re.findall(r"\[(\d*)\]", array)
+        bounds = re.findall(r"\[([^\]]*)\]", array)
         for b in reversed(bounds):
-            rust = f"[{rust}; 0]" if b == "" else f"[{rust}; {b}]"
+            b = b.strip()
+            if b == "":
+                rust = f"[{rust}; 0]"          # a flexible array member (PORTING.md 1.3)
+            elif re.fullmatch(r"\d+", b):
+                rust = f"[{rust}; {b}]"
+            else:
+                # a named bound: C's `char local_flags[MAX_PER_BUFFER_VARS]`; the
+                # constant is an enum member (c_int), so the length needs the cast
+                rust = f"[{rust}; {b} as usize]"
     return rust
+
+
+# A field declaration: an optional tag or a plain type, pointer stars, then one or
+# more declarators (each with an optional bitfield width and array bound).
+FIELD = re.compile(r"^(?P<type>(?:struct|union|enum)\s+\w+"
+                   r"|unsigned\s+char|unsigned\s+int|unsigned\s+short|unsigned\s+long"
+                   r"|long\s+long"
+                   r"|signed\s+char|signed\s+int|short\s+int|long\s+int"
+                   r"|ENUM_BF\s*\(\s*\w+\s*\)"
+                   r"|[A-Za-z_]\w*)"
+                   r"\s*(?P<stars>\**)\s*(?P<decls>.+?)\s*;$")
+BITFIELD_UNIT = {"bool_bf": 1, "bool": 1, "unsigned": 4, "signed": 4, "int": 4,
+                 "unsigned int": 4, "short": 2, "unsigned short": 2,
+                 "char": 1, "signed char": 1, "unsigned char": 1}
+
+
+def struct_body(text: str, name: str) -> str | None:
+    """The raw body of `struct NAME { … };` (brace matched, comments kept)."""
+    m = re.search(rf"^(?:struct|union)\s+{re.escape(name)}\s*\n?\s*\{{", text, re.M)
+    if not m:
+        return None
+    depth, i = 0, text.index("{", m.start())
+    while i < len(text):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[m.end():i]
+        i += 1
+    return None
+
+
+def comment_lines(pending: list[str], indent: str = "    ") -> list[str]:
+    """The accumulated C comment as `///` lines (text preserved verbatim)."""
+    out = []
+    for line in pending:
+        text = line.strip()
+        for marker in ("/*", "*/", "*", "//"):
+            if text.startswith(marker):
+                text = text[len(marker):].strip()
+                break
+        out.append(f"{indent}/// {text}".rstrip())
+    return out
+
+
+def bitfield_unit_width(c_type: str) -> int:
+    t = re.sub(r"\s+", " ", c_type.strip())
+    m = re.match(r"ENUM_BF\s*\(\s*(\w+)\s*\)", t)
+    return 4 if m else BITFIELD_UNIT.get(t, 4)
+
+
+reported_preprocessor: list[str] = []
+
+
+def split_declarations(body: str) -> list[str]:
+    """The struct body split into comments and declarations.
+
+    Comments are yielded as `COMMENT:<text>` (their text kept verbatim, including
+    continuation lines that carry no leading `*`), declarations are the text between
+    `;` outside comments.  Preprocessor lines are dropped."""
+    out: list[str] = []
+    i, n, buf = 0, len(body), ""
+    while i < n:
+        if body.startswith("/*", i):
+            j = body.find("*/", i + 2)
+            j = n if j < 0 else j + 2
+            comment = body[i:j]
+            for part in comment.replace("/*", "\n", 1).replace("*/", "").splitlines():
+                if part.strip():
+                    out.append("COMMENT:" + part.strip())
+            i = j
+            continue
+        ch = body[i]
+        if ch == "#":                 # a directive: dropped, its fields are kept
+            j = body.find("\n", i)
+            reported_preprocessor.append(body[i:j if j > 0 else n].strip())
+            i = n if j < 0 else j + 1
+            continue
+        if ch == ";":
+            decl = " ".join(buf.split())
+            i += 1
+            # A comment that follows the `;` on the same physical line documents
+            # *this* field (C writes `ptrdiff_t gpt;  /* Char pos of gap.  */`), so
+            # it is emitted before it, not after.
+            j = i
+            while j < n and body[j] in " \t":
+                j += 1
+            if body.startswith("/*", j):
+                end = body.find("*/", j + 2)
+                end = n if end < 0 else end + 2
+                for part in body[j:end].replace("/*", "", 1).replace("*/", "").splitlines():
+                    if part.strip():
+                        out.append("COMMENT:" + part.strip())
+                i = end
+            if decl:
+                out.append(decl + ";")
+            buf = ""
+            continue
+        buf += ch
+        i += 1
+    return out
+
+
+def emit_struct(name: str, kind: str, body: str, typedefs: dict, known: set,
+                reported: dict) -> list[str] | None:
+    """Fields with their comments, runs of bitfields collapsed into one integer
+    field of the C storage unit's width (PORTING.md 1.3).  Returns None when a
+    field cannot be mapped (the caller falls back to reporting it)."""
+    rendered: list[str] = []
+    pending: list[str] = []
+    run: list[str] = []
+    run_width: int | None = None
+    run_index = 0
+
+    def flush_run() -> None:
+        nonlocal run, run_width, run_index
+        if not run:
+            return
+        run_index += 1
+        field = "bits" if run_index == 1 else f"bits{run_index}"
+        width = {1: "u8", 2: "u16", 4: "u32", 8: "u64"}[run_width or 4]
+        for decl in run:
+            rendered.append(f"    /// {decl}")
+        rendered.append(f"    pub {field}: {width},")
+        run, run_width = [], None
+
+    for line in split_declarations(body):
+        if line.startswith("COMMENT:"):
+            pending.append(line[len("COMMENT:"):])
+            continue
+        # a declaration (possibly several declarators, possibly a bitfield)
+        m = FIELD.match(line)
+        if not m:
+            reported["unparsed"].append(f"{name}: {line}")
+            continue
+        decls = [d.strip() for d in m.group("decls").split(",")]
+        is_bitfield = all(":" in d for d in decls)
+        if is_bitfield:
+            width = bitfield_unit_width(m.group("type"))
+            if run_width is not None and run_width != width:
+                flush_run()
+            run_width = width
+            for d in decls:
+                bf = re.match(r"(?P<stars>\**)\s*(?P<name>\w+)\s*:\s*(?P<bits>\d+)", d)
+                if bf:
+                    run.append(f"{m.group('type')} {bf.group('name')} : {bf.group('bits')};")
+            continue
+        flush_run()
+        for d in decls:
+            dm = re.match(r"(?P<stars>\**)\s*(?P<name>\w+)\s*(?P<array>\[[^\]]*\])?\s*$", d)
+            if not dm:
+                reported["unparsed"].append(f"{name}: {line}")
+                break
+            depth = len(m.group("stars") or "") + len(dm.group("stars") or "")
+            ty = rust_type(m.group("type"), depth, dm.group("array"), typedefs, known)
+            if ty is None:
+                reported["unmapped"].append(f"{name}.{dm.group('name')} ({m.group('type')})")
+                return None
+            rendered.extend(comment_lines(pending))
+            pending = []
+            rendered.append(f"    pub {dm.group('name')}: {ty},")
+    flush_run()
+    if not rendered:
+        return None
+    kw = "struct" if kind == "struct" else "union"
+    return ["#[repr(C, align(8))]", "#[derive(Clone, Copy)]", f"pub {kw} {name} {{",
+            *rendered, "}", ""]
 
 
 def decl_lines(text: str, skip: set[str], known: set[str] | None = None):
     """Yield Rust lines for the types, globals and literal constants."""
-    out, reported = [], {"bitfield": [], "unmapped": [], "array": []}
+    out, reported = [], {"bitfield": [], "unmapped": [], "array": [], "unparsed": []}
     typedefs = collect_typedefs(text)
     items = ci.struct_fields(text)
     by_container: dict[str, list[dict]] = {}
@@ -111,6 +287,12 @@ def decl_lines(text: str, skip: set[str], known: set[str] | None = None):
         if name.startswith("<anon") or name in skip:
             continue
         fields = by_container[name]
+        body = struct_body(text, name)
+        if body is not None:
+            lines = emit_struct(name, kind, body, typedefs, skip, reported)
+            if lines is not None:
+                out.extend(lines)
+                continue
         if any(f["bitfield"] for f in fields):
             reported["bitfield"].append(name)
             continue
@@ -182,6 +364,8 @@ def main() -> int:
         f"emitted {sum(1 for l in lines if l.startswith('pub '))} declarations; "
         f"skipped bitfield types {len(reported['bitfield'])}, "
         f"unmappable {len(reported['unmapped'])}, arrays {len(reported['array'])}\n")
+    if reported["unparsed"]:
+        sys.stderr.write("unparsed lines: " + "; ".join(reported["unparsed"][:6]) + "\n")
     if reported["bitfield"]:
         sys.stderr.write("bitfield types: " + ", ".join(reported["bitfield"][:12]) + "\n")
     if reported["unmapped"]:
