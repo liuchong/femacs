@@ -599,3 +599,375 @@ pub fn XSYMBOL (a: Lisp_Object) -> *mut Lisp_Symbol {
     eassert! (BARE_SYMBOL_P (a));
     XUNTAG! (a, Lisp_Type::Lisp_Symbol, Lisp_Symbol)
 }
+
+// --- globals (src/lisp.h 912 includes the generated globals.h) --------------
+// In the reference build this file comes from make-docfile; xtask gen-globals
+// produces the port's version (Q symbols and the built-in symbol array).
+include!("globals.rs");
+
+// --- batch 2: numbers, conses, strings, vectors (src/lisp.h 1170-1750) ---
+// Integer and pointer accessors, cons/string/vector accessors and the checks
+// that go with them.
+
+pub const INTMASK: EMACS_INT = EMACS_INT_MAX >> (INTTYPEBITS - 1);
+pub const MOST_POSITIVE_FIXNUM: EMACS_INT = EMACS_INT_MAX >> INTTYPEBITS;
+pub const MOST_NEGATIVE_FIXNUM: EMACS_INT = -1 - MOST_POSITIVE_FIXNUM;
+
+/// FIXNUM_OVERFLOW_P (i) from src/lisp.h 1178.
+#[inline(always)]
+pub fn FIXNUM_OVERFLOW_P (i: EMACS_INT) -> bool {
+    !((0 <= i || MOST_NEGATIVE_FIXNUM <= i) && i <= MOST_POSITIVE_FIXNUM)
+}
+
+/// `likely` from conf_post.h 377 was __builtin_expect; Rust has no equivalent
+/// branch hint in stable, so this is the identity and the deviation is recorded.
+#[inline(always)]
+pub fn likely (cond: bool) -> bool { cond }
+
+unsafe extern "C" {
+    pub fn slow_eq (x: Lisp_Object, y: Lisp_Object) -> bool;
+    pub fn memchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void;
+}
+
+// --- numbers ---------------------------------------------------------------
+
+#[inline(always)]
+pub fn lisp_h_FIXNUMP (x: Lisp_Object) -> bool {
+    (XTYPE (x) as isize & (Lisp_Type::Lisp_Int0 as isize | !(Lisp_Type::Lisp_Int1 as isize)))
+        == Lisp_Type::Lisp_Int0 as isize
+}
+
+#[inline(always)]
+pub fn FIXNUMP (x: Lisp_Object) -> bool { lisp_h_FIXNUMP (x) }
+
+#[inline(always)]
+pub fn make_fixnum (mut n: EMACS_INT) -> Lisp_Object {
+    eassert! (! FIXNUM_OVERFLOW_P (n));
+    let int0 = Lisp_Type::Lisp_Int0 as EMACS_INT;
+    // USE_LSB_TAG is the only supported configuration (PORTING.md P-02).
+    let u = n as EMACS_UINT;
+    n = (u << INTTYPEBITS) as EMACS_INT;
+    n += int0;
+    XIL (n)
+}
+
+#[inline(always)]
+pub fn make_ufixnum (mut n: EMACS_INT) -> Lisp_Object {
+    eassert! (0 <= n && n <= INTMASK);
+    let int0 = Lisp_Type::Lisp_Int0 as EMACS_INT;
+    let u = n as EMACS_UINT;
+    n = (u << INTTYPEBITS) as EMACS_INT;
+    n += int0;
+    XIL (n)
+}
+
+#[inline(always)]
+pub fn XFIXNUM_RAW (a: Lisp_Object) -> EMACS_INT {
+    let i = XLI (a);
+    // ! USE_LSB_TAG would shift left first; not a supported configuration.
+    i >> INTTYPEBITS
+}
+
+#[inline(always)]
+pub fn XFIXNUM (a: Lisp_Object) -> EMACS_INT {
+    eassert! (FIXNUMP (a));
+    XFIXNUM_RAW (a)
+}
+
+#[inline(always)]
+pub fn XUFIXNUM_RAW (a: Lisp_Object) -> EMACS_UINT {
+    let i = XLI (a) as EMACS_UINT;
+    i >> INTTYPEBITS
+}
+
+#[inline(always)]
+pub fn XUFIXNUM (a: Lisp_Object) -> EMACS_UINT {
+    eassert! (FIXNUMP (a));
+    XUFIXNUM_RAW (a)
+}
+
+#[inline(always)]
+pub fn lisp_h_XHASH (a: Lisp_Object) -> EMACS_UINT { XUFIXNUM_RAW (a) }
+
+#[inline(always)]
+pub fn XHASH (a: Lisp_Object) -> EMACS_UINT { lisp_h_XHASH (a) }
+
+#[inline(always)]
+pub fn make_fixed_natnum (n: EMACS_INT) -> Lisp_Object {
+    eassert! (0 <= n && n <= MOST_POSITIVE_FIXNUM);
+    make_fixnum (n)
+}
+
+#[inline(always)]
+pub fn XFIXNUMPTR (a: Lisp_Object) -> *mut c_char {
+    XUNTAG! (a, Lisp_Type::Lisp_Int0, c_char)
+}
+
+#[inline(always)]
+pub fn make_pointer_integer_unsafe (p: *mut c_void) -> Lisp_Object {
+    TAG_PTR_INITIALLY (Lisp_Type::Lisp_Int0, p as EMACS_INT)
+}
+
+#[inline(always)]
+pub fn make_pointer_integer (p: *mut c_void) -> Lisp_Object {
+    let a = make_pointer_integer_unsafe (p);
+    eassert! (FIXNUMP (a) && XFIXNUMPTR (a) == p as *mut c_char);
+    a
+}
+
+#[inline(always)]
+pub fn clip_to_bounds (lower: isize, num: isize, upper: isize) -> isize {
+    lower.max (num.min (upper))
+}
+
+#[inline(always)]
+pub fn dead_object () -> Lisp_Object {
+    make_lisp_ptr (std::ptr::null_mut (), Lisp_Type::Lisp_String)
+}
+
+// --- symbols, conses, strings, vectors -------------------------------------
+
+#[inline(always)]
+pub fn lisp_h_BASE_EQ (x: Lisp_Object, y: Lisp_Object) -> bool {
+    XLI (x) == XLI (y)
+}
+
+#[inline(always)]
+pub fn BASE_EQ (x: Lisp_Object, y: Lisp_Object) -> bool { lisp_h_BASE_EQ (x, y) }
+
+#[inline(always)]
+pub fn EQ (x: Lisp_Object, y: Lisp_Object) -> bool {
+    if BASE_EQ (x, y) {
+        true
+    } else if likely (! unsafe { symbols_with_pos_enabled }) {
+        false
+    } else {
+        unsafe { slow_eq (x, y) }
+    }
+}
+
+#[inline(always)]
+pub fn lisp_h_CHECK_SYMBOL (x: Lisp_Object) {
+    CHECK_TYPE (SYMBOLP (x), Qsymbolp(), x);
+}
+
+#[inline(always)]
+pub fn CHECK_SYMBOL (x: Lisp_Object) { lisp_h_CHECK_SYMBOL (x) }
+
+#[inline(always)]
+pub fn lisp_h_NILP (x: Lisp_Object) -> bool {
+    BASE_EQ (x, Qnil())
+}
+
+#[inline(always)]
+pub fn NILP (x: Lisp_Object) -> bool { lisp_h_NILP (x) }
+
+#[inline(always)]
+pub fn lisp_h_CONSP (x: Lisp_Object) -> bool {
+    TAGGEDP (x, Lisp_Type::Lisp_Cons)
+}
+
+#[inline(always)]
+pub fn CONSP (x: Lisp_Object) -> bool { lisp_h_CONSP (x) }
+
+#[inline(always)]
+pub fn CHECK_CONS (x: Lisp_Object) {
+    CHECK_TYPE (CONSP (x), Qconsp(), x);
+}
+
+#[inline(always)]
+pub fn XCONS (a: Lisp_Object) -> *mut Lisp_Cons {
+    eassert! (CONSP (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Cons, Lisp_Cons)
+}
+
+#[inline(always)]
+pub fn xcar_addr (c: Lisp_Object) -> *mut Lisp_Object {
+    unsafe { std::ptr::addr_of_mut! ((*XCONS (c)).u.s.car) }
+}
+
+#[inline(always)]
+pub fn xcdr_addr (c: Lisp_Object) -> *mut Lisp_Object {
+    unsafe { std::ptr::addr_of_mut! ((*XCONS (c)).u.s.u.cdr) }
+}
+
+#[inline(always)]
+pub fn lisp_h_XCAR (c: Lisp_Object) -> Lisp_Object { unsafe { (*XCONS (c)).u.s.car } }
+
+#[inline(always)]
+pub fn lisp_h_XCDR (c: Lisp_Object) -> Lisp_Object { unsafe { (*XCONS (c)).u.s.u.cdr } }
+
+#[inline(always)]
+pub fn XCAR (c: Lisp_Object) -> Lisp_Object { lisp_h_XCAR (c) }
+
+#[inline(always)]
+pub fn XCDR (c: Lisp_Object) -> Lisp_Object { lisp_h_XCDR (c) }
+
+#[inline(always)]
+pub fn XSETCAR (c: Lisp_Object, n: Lisp_Object) { unsafe { *xcar_addr (c) = n } }
+
+#[inline(always)]
+pub fn XSETCDR (c: Lisp_Object, n: Lisp_Object) { unsafe { *xcdr_addr (c) = n } }
+
+#[inline(always)]
+pub fn CAR (c: Lisp_Object) -> Lisp_Object {
+    if CONSP (c) { return XCAR (c); }
+    if !NILP (c) { unsafe { wrong_type_argument (Qlistp(), c) } }
+    Qnil()
+}
+
+#[inline(always)]
+pub fn CDR (c: Lisp_Object) -> Lisp_Object {
+    if CONSP (c) { return XCDR (c); }
+    if !NILP (c) { unsafe { wrong_type_argument (Qlistp(), c) } }
+    Qnil()
+}
+
+#[inline(always)]
+pub fn CAR_SAFE (c: Lisp_Object) -> Lisp_Object { if CONSP (c) { XCAR (c) } else { Qnil() } }
+
+#[inline(always)]
+pub fn CDR_SAFE (c: Lisp_Object) -> Lisp_Object { if CONSP (c) { XCDR (c) } else { Qnil() } }
+
+#[inline(always)]
+pub fn lisp_h_FLOATP (x: Lisp_Object) -> bool { TAGGEDP (x, Lisp_Type::Lisp_Float) }
+
+#[inline(always)]
+pub fn FLOATP (x: Lisp_Object) -> bool { lisp_h_FLOATP (x) }
+
+#[inline(always)]
+pub fn STRINGP (x: Lisp_Object) -> bool { TAGGEDP (x, Lisp_Type::Lisp_String) }
+
+#[inline(always)]
+pub fn CHECK_STRING (x: Lisp_Object) {
+    CHECK_TYPE (STRINGP (x), Qstringp(), x);
+}
+
+#[inline(always)]
+pub fn XSTRING (a: Lisp_Object) -> *mut Lisp_String {
+    eassert! (STRINGP (a));
+    XUNTAG! (a, Lisp_Type::Lisp_String, Lisp_String)
+}
+
+#[inline(always)]
+pub fn STRING_MULTIBYTE (str: Lisp_Object) -> bool {
+    unsafe { 0 <= (*XSTRING (str)).u.s.size_byte }
+}
+
+#[inline(always)]
+pub fn STRING_SET_MULTIBYTE (str: Lisp_Object) {
+    // The 0-length strings are unique and shared, so they cannot be modified.
+    eassert! (unsafe { (*XSTRING (str)).u.s.size } > 0);
+    unsafe { (*XSTRING (str)).u.s.size_byte = (*XSTRING (str)).u.s.size };
+}
+
+#[inline(always)]
+pub fn SDATA (string: Lisp_Object) -> *mut u8 { unsafe { (*XSTRING (string)).u.s.data } }
+
+#[inline(always)]
+pub fn SSDATA (string: Lisp_Object) -> *mut c_char { SDATA (string) as *mut c_char }
+
+#[inline(always)]
+pub fn SREF (string: Lisp_Object, index: usize) -> u8 { unsafe { *SDATA (string).add (index) } }
+
+#[inline(always)]
+pub fn SSET (string: Lisp_Object, index: usize, new: u8) { unsafe { *SDATA (string).add (index) = new } }
+
+#[inline(always)]
+pub fn SCHARS (string: Lisp_Object) -> isize {
+    let nchars = unsafe { (*XSTRING (string)).u.s.size };
+    eassume! (0 <= nchars);
+    nchars
+}
+
+#[inline(always)]
+pub fn STRING_BYTES (s: *mut Lisp_String) -> isize {
+    let nbytes = unsafe {
+        let sb = (*s).u.s.size_byte;
+        if sb < 0 { (*s).u.s.size } else { sb }
+    };
+    eassume! (0 <= nbytes);
+    nbytes
+}
+
+#[inline(always)]
+pub fn SBYTES (string: Lisp_Object) -> isize { STRING_BYTES (XSTRING (string)) }
+
+#[inline(always)]
+pub fn STRING_SET_CHARS (string: Lisp_Object, newsize: isize) {
+    eassert! (
+        if STRING_MULTIBYTE (string) {
+            0 <= newsize && newsize <= SBYTES (string)
+        } else {
+            newsize == SCHARS (string)
+        }
+    );
+    unsafe { (*XSTRING (string)).u.s.size = newsize };
+}
+
+#[inline(always)]
+pub fn CHECK_STRING_NULL_BYTES (string: Lisp_Object) {
+    CHECK_TYPE (
+        unsafe { memchr (SSDATA (string) as *const c_void, 0, SBYTES (string) as usize).is_null () },
+        Qfilenamep(),
+        string,
+    );
+}
+
+#[inline(always)]
+pub fn string_immovable_p (str: Lisp_Object) -> bool {
+    unsafe { (*XSTRING (str)).u.s.size_byte == -3 }
+}
+
+#[inline(always)]
+pub fn XVECTOR (a: Lisp_Object) -> *mut Lisp_Vector {
+    eassert! (VECTORLIKEP (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Vector)
+}
+
+#[inline(always)]
+pub fn ASIZE (array: Lisp_Object) -> isize {
+    let size = unsafe { (*XVECTOR (array)).header.size };
+    eassume! (0 <= size);
+    size
+}
+
+// --- batch 3a: built-in symbols (src/lisp.h 1110-1170) ---
+// The built-in symbols live in the array the generated globals.rs declares; a
+// symbol's Lisp_Object is its offset from the start of that array.
+
+#[inline(always)]
+pub fn XBARE_SYMBOL (a: Lisp_Object) -> *mut Lisp_Symbol {
+    eassert! (BARE_SYMBOL_P (a));
+    let i = XUNTAG! (a, Lisp_Type::Lisp_Symbol, Lisp_Symbol) as isize;
+    unsafe { (&raw mut lispsym as *mut u8).offset (i) as *mut Lisp_Symbol }
+}
+
+#[inline(always)]
+pub fn make_lisp_symbol_internal (sym: *mut Lisp_Symbol) -> Lisp_Object {
+    // No eassert here in C either, so that builtin symbols can be constant
+    // folded by the C compiler; the port keeps the same body.
+    let symoffset = unsafe { (sym as *mut u8).offset_from (&raw const lispsym as *const u8) };
+    TAG_PTR_INITIALLY (Lisp_Type::Lisp_Symbol, symoffset as EMACS_INT)
+}
+
+#[inline(always)]
+pub fn make_lisp_symbol (sym: *mut Lisp_Symbol) -> Lisp_Object {
+    let a = make_lisp_symbol_internal (sym);
+    eassert! (XBARE_SYMBOL (a) == sym);
+    a
+}
+
+#[inline(always)]
+pub fn builtin_lisp_symbol (index: usize) -> Lisp_Object {
+    make_lisp_symbol_internal (unsafe { (&raw mut lispsym as *mut Lisp_Symbol).add (index) })
+}
+
+#[inline(always)]
+pub fn c_symbol_p (sym: *mut Lisp_Symbol) -> bool {
+    let bp = unsafe { &raw const lispsym as *const u8 };
+    let sp = sym as *const u8;
+    // PTRDIFF_MAX < INTPTR_MAX is false on this target, so the offset form is used.
+    let offset = unsafe { sp.offset_from (bp) };
+    0 <= offset && (offset as usize) < std::mem::size_of::<[Lisp_Symbol; lispsym_count]> ()
+}

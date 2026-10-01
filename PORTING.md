@@ -464,6 +464,15 @@ defun!("cons", Fcons, Scons, 2, 2, 0,
 | P-14 | `.gdbinit` 的类型/枚举依赖 | 待办 | GDB 冒烟 |
 | P-15 | `ckd_*` 语义逐处核对 | 待办 | 溢出用例 |
 | P-16 | 多次求值宏与 release 断言 | 待办 | 宏展开对照 |
+| P-17 | `Q*` 符号（由生成的 `globals.h` 提供）在 Rust 侧实现为**同名内联函数** | 已定 | `xtask gen-globals` + `docs/baseline/globals/symbols.tsv` |
+
+**P-17 说明（实测决定）**：参照用 `make-docfile` 生成 `globals.h`（`#define iQfoo N` +
+`DEFINE_LISP_SYMBOL (Qfoo)`），使 `Qfoo` 成为**编译期常量表达式**。Rust 无法把符号数组地址
+折进常量，因此只有两种选择：`static mut Qfoo`（每个使用点都要 `unsafe`，在 590 个文件的
+规模上不可接受）或**同名内联函数** `Qfoo()`（无 unsafe、值相同、名字相同，仅调用形状多一对
+括号）。采用后者；`lisp.rs` 像 C 的 `#include <globals.h>` 一样 `include!("globals.rs")`。
+符号集合与 Lisp 名冻结在 `docs/baseline/globals/symbols.tsv`（2,118 个，`Qnil` = 0、`Qt` = 1，
+其余按确定性顺序；顺序本身是我们的生成器内部细节，dump 保存的是对象而不是索引）。
 
 ## 10. 逐文件自检清单
 
