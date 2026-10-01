@@ -259,6 +259,12 @@ pub union Lisp_Subr_function {
     pub a0: Option<unsafe extern "C" fn() -> Lisp_Object>,
     pub a1: Option<unsafe extern "C" fn(Lisp_Object) -> Lisp_Object>,
     pub a2: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a3: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a4: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a5: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a6: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a7: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
+    pub a8: Option<unsafe extern "C" fn(Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object>,
     pub aMANY: Option<unsafe extern "C" fn(isize, *mut Lisp_Object) -> Lisp_Object>,
     pub aUNEVALLED: Option<unsafe extern "C" fn(Lisp_Object) -> Lisp_Object>,
 }
@@ -291,7 +297,7 @@ pub struct Lisp_Subr {
     #[cfg(feature = "native_comp")]
     pub lambda_list: Lisp_Object,
     #[cfg(feature = "native_comp")]
-    pub type_: Lisp_Object,
+    pub r#type: Lisp_Object,
 }
 
 #[repr(C, align(8))]
@@ -383,8 +389,7 @@ unsafe extern "C" {
     /// Set after Emacs has started up the first time (emacs.c).
     pub static mut initialized: bool;
     pub static mut gflags: gflags;
-    pub static mut symbols_with_pos_enabled: bool;
-}
+    }
 
 #[inline(always)]
 pub fn will_dump_p () -> bool {
@@ -1482,7 +1487,7 @@ pub struct Lisp_Fwd_buf {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Lisp_Fwd {
-    pub type_: u32,               // ENUM_BF (Lisp_Fwd_Type) type : 8 in C's first word
+    pub r#type: u32,               // ENUM_BF (Lisp_Fwd_Type) type : 8 in C's first word
     pub u: Lisp_Fwd_u,
 }
 
@@ -1555,7 +1560,7 @@ pub fn xmint_pointer (a: Lisp_Object) -> *mut c_void {
 }
 
 #[inline(always)]
-pub fn XFWDTYPE (a: *mut Lisp_Fwd) -> u32 { unsafe { (*a).type_ } }
+pub fn XFWDTYPE (a: *mut Lisp_Fwd) -> u32 { unsafe { (*a).r#type } }
 
 #[inline(always)]
 pub fn BUFFER_OBJFWDP (a: *mut Lisp_Fwd) -> bool { XFWDTYPE (a) == Lisp_Fwd_Buffer_Obj }
@@ -1764,7 +1769,7 @@ pub struct specbinding_let {
     pub kind: u8, pub _pad: [u8; 7],
     pub symbol: Lisp_Object,
     pub old_value: Lisp_Object,
-    pub where_: specbinding_let_where,
+    pub r#where: specbinding_let_where,
 }
 
 #[repr(C)]
@@ -1787,7 +1792,7 @@ pub union specbinding {
     pub unwind_intmax: specbinding_unwind_intmax,
     pub unwind_excursion: specbinding_unwind_excursion,
     pub unwind_void: specbinding_unwind_void,
-    pub let_: specbinding_let,
+    pub r#let: specbinding_let,
     pub bt: specbinding_bt,
 }
 
@@ -1854,7 +1859,7 @@ pub struct Lisp_Buffer_Local_Value {
     pub bits: u32,                 // local_if_set:1, found:1 (bool_bf bitfields)
     pub _pad: u32,
     pub fwd: lispfwd,
-    pub where_: Lisp_Object,
+    pub r#where: Lisp_Object,
     pub defcell: Lisp_Object,
     pub valcell: Lisp_Object,
 }
@@ -2165,10 +2170,8 @@ unsafe extern "C" {
     pub fn Fcons (car: Lisp_Object, cdr: Lisp_Object) -> Lisp_Object;
     pub fn calln (fn_: Lisp_Object) -> Lisp_Object;
     pub fn egetenv_internal (var: *const c_char, len: usize) -> *mut c_char;
-    pub static mut Vquit_flag: Lisp_Object;
     pub static mut pending_signals: bool;
     pub static mut Vascii_canon_table: Lisp_Object;
-    pub static mut Vcurrent_load_list: Lisp_Object;
     pub static mut consing_until_gc: EMACS_INT;
     pub static mut chartab_size: [c_int; 4];
 }
@@ -2647,7 +2650,7 @@ unsafe extern "C" { pub static mut Vascii_downcase_table: Lisp_Object; }
 unsafe extern "C" { pub static mut staticidx: c_int; }
 unsafe extern "C" { pub static mut hashtest_eql: hash_table_test; }
 unsafe extern "C" { pub static mut hashtest_equal: hash_table_test; }
-unsafe extern "C" { pub static mut Vwindow_system: Lisp_Object; }
+
 unsafe extern "C" { pub static mut noninteractive_need_newline: bool; }
 unsafe extern "C" { pub static mut echo_area_buffer: [Lisp_Object; 2]; }
 unsafe extern "C" { pub static mut garbage_collection_inhibited: intptr_t; }
@@ -2692,3 +2695,606 @@ unsafe extern "C" { pub static mut profiler_memory_running: bool; }
 unsafe extern "C" { pub static mut my_edata: [c_char; 0]; }
 unsafe extern "C" { pub static mut my_endbss: [c_char; 0]; }
 unsafe extern "C" { pub static mut my_endbss_static: *mut c_char; }
+
+// --- batch 7: macrology (src/lisp.h 50-1400, 5600-5700) ---
+// Everything in this batch is a C macro; each keeps its name.  Where C used a
+// macro to spell a function, the mirror defines a function of the same name, so
+// call sites read `QUITP()` instead of `QUITP` (PORTING.md P-22).
+
+// --- sizes and alignment ---------------------------------------------------
+
+pub const IDEAL_GCALIGNMENT: usize = 8;
+pub const GCALIGNMENT: usize = 8;
+pub const MAX_ALLOCA: isize = 16 * 1024;
+pub const STRING_BYTES_BOUND: isize =
+    if MOST_POSITIVE_FIXNUM < (isize::MAX - 1) { MOST_POSITIVE_FIXNUM } else { isize::MAX - 1 };
+/// C: min (MOST_POSITIVE_FIXNUM, (min (PTRDIFF_MAX, SIZE_MAX) - bool_header_size)
+/// * BOOL_VECTOR_BITS_PER_CHAR - (BITS_PER_BITS_WORD - 1)); MOST_POSITIVE_FIXNUM
+/// is the smaller term on every supported target.
+pub const BOOL_VECTOR_LENGTH_MAX: isize = MOST_POSITIVE_FIXNUM;
+pub const FLOAT_TO_STRING_BUFSIZE: usize = 350;
+pub const WAIT_READING_MAX: i64 = i64::MAX;
+pub const CHILD_SETUP_ERROR_DESC: &str = "Spawning child process";
+pub const HAVE_EXT_MENU_BAR: bool = true;
+pub const HAVE_EXT_TOOL_BAR: bool = true;
+pub const IEEE_FLOATING_POINT: bool = true;   // FLT_RADIX 2, FLT_MANT_DIG 24
+pub const pI: &str = "l";
+pub const pD: &str = "t";
+pub const PRIdHASH_IDX: &str = "d";           // PRIdLEAST32 on this target
+pub const HASH_UNUSED_ENTRY_KEY_IS_INVALID: bool = true;
+pub const GCALIGNED_MARKER: () = ();          // C's GCALIGNED* attributes are #[repr(align)]
+
+#[inline(always)]
+pub fn POWER_OF_2 (n: isize) -> bool { (n & (n - 1)) == 0 }
+
+#[inline(always)]
+pub fn ROUNDUP (x: isize, y: isize) -> isize {
+    if POWER_OF_2 (y) { (y - 1 + x) & !(y - 1) } else { (y - 1 + x) - (y - 1 + x) % y }
+}
+
+#[inline(always)]
+pub fn word_size () -> isize { std::mem::size_of::<Lisp_Object>() as isize }
+
+#[inline(always)]
+pub fn header_size () -> isize { std::mem::size_of::<vectorlike_header>() as isize }
+
+#[inline(always)]
+pub fn VECSIZE (size: usize) -> isize {
+    ((size as isize - header_size () + word_size () - 1) / word_size ())
+}
+
+/// C: offsetof (type, lastlispfield) + word_size < header_size ? 0 : ...
+#[macro_export]
+macro_rules! PSEUDOVECSIZE {
+    ($type:ty, $field:tt) => {{
+        let off = std::mem::offset_of!($type, $field) as isize;
+        if off + word_size () < header_size () { 0 } else { (off + word_size () - header_size ()) / word_size () }
+    }};
+}
+
+#[inline(always)]
+pub fn PVECHEADERSIZE (code: pvec_type, lispsize: isize, restsize: isize) -> isize {
+    PSEUDOVECTOR_FLAG | ((code as isize) << PSEUDOVECTOR_AREA_BITS)
+        | (restsize << PSEUDOVECTOR_SIZE_BITS) | lispsize
+}
+
+unsafe extern "C" {
+    pub fn allocate_pseudovector (lispsize: isize, restsize: isize, pvecsize: isize,
+                                 tag: pvec_type) -> *mut c_void;
+}
+
+#[macro_export]
+macro_rules! ALLOCATE_PSEUDOVECTOR {
+    ($type:ty, $field:tt, $tag:expr) => {
+        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()), PSEUDOVECSIZE! ($type, $field), PSEUDOVECSIZE! ($type, $field), $tag) as *mut $type }
+    };
+}
+
+#[macro_export]
+macro_rules! ALLOCATE_ZEROED_PSEUDOVECTOR {
+    ($type:ty, $field:tt, $tag:expr) => {
+        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()), PSEUDOVECSIZE! ($type, $field), VECSIZE (std::mem::size_of::<$type> ()), $tag) as *mut $type }
+    };
+}
+
+#[macro_export]
+macro_rules! ALLOCATE_PLAIN_PSEUDOVECTOR {
+    ($type:ty, $tag:expr) => {
+        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()), 0, VECSIZE (std::mem::size_of::<$type> ()), $tag) as *mut $type }
+    };
+}
+
+// --- stack allocation (PORTING.md P-05) ------------------------------------
+// C's AVAIL_ALLOCA relies on the alloca builtin.  The port has no alloca: the
+// decision is a stack pool with the same sa_avail accounting, so the allocator
+// is a function of the port (alloc.rs) rather than a C name.  record_xmalloc and
+// friends keep their C names.
+
+unsafe extern "C" {
+    pub fn sa_stack_alloc (size: usize) -> *mut c_void;
+    pub fn record_xmalloc (size: usize) -> *mut c_void;
+    pub fn xzalloc (size: usize) -> *mut c_void;
+    pub fn xnmalloc (n: usize, size: usize) -> *mut c_void;
+    pub fn record_unwind_protect_array (array: *mut Lisp_Object, nelts: isize);
+    pub fn record_unwind_protect_ptr (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void);
+    pub fn memory_full_up () -> !;
+}
+
+/// C: `#define USE_SAFE_ALLOCA ptrdiff_t sa_avail = MAX_ALLOCA; specpdl_ref
+/// sa_count = SPECPDL_INDEX ()`.
+#[macro_export]
+macro_rules! USE_SAFE_ALLOCA {
+    () => {
+        let mut sa_avail: isize = MAX_ALLOCA;
+        let sa_count: specpdl_ref = SPECPDL_INDEX ();
+    };
+}
+
+#[macro_export]
+macro_rules! AVAIL_ALLOCA {
+    ($sa_avail:ident, $size:expr) => {{
+        $sa_avail -= $size as isize;
+        unsafe { sa_stack_alloc ($size as usize) }
+    }};
+}
+
+#[macro_export]
+macro_rules! SAFE_ALLOCA {
+    ($sa_avail:ident, $size:expr) => {
+        if ($size as isize) <= $sa_avail {
+            AVAIL_ALLOCA! ($sa_avail, $size)
+        } else {
+            unsafe { record_xmalloc ($size as usize) }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! SAFE_ALLOCA_LISP {
+    ($sa_avail:ident, $buf:ident, $nelt:expr) => {{
+        let nelt_ = $nelt as isize;
+        let nbytes = nelt_.checked_mul (word_size ());
+        match nbytes {
+            None => unsafe { memory_full_up () },
+            Some (nbytes) => {
+                if nbytes as u64 > usize::MAX as u64 {
+                    unsafe { memory_full_up () }
+                } else if nbytes <= $sa_avail {
+                    $buf = AVAIL_ALLOCA! ($sa_avail, nbytes) as *mut Lisp_Object;
+                } else {
+                    $buf = unsafe { xzalloc (nbytes as usize) } as *mut Lisp_Object;
+                    unsafe { record_unwind_protect_array ($buf, nelt_) };
+                }
+            }
+        }
+    }};
+}
+
+#[macro_export]
+macro_rules! SAFE_NALLOCA {
+    ($sa_avail:ident, $buf:ident, $multiplier:expr, $nitems:expr) => {{
+        let mult = $multiplier as isize;
+        let nitems_ = $nitems as isize;
+        if nitems_ <= $sa_avail / (std::mem::size_of_val (&*$buf) as isize) / mult {
+            let nbytes = std::mem::size_of_val (&*$buf) as isize * mult * nitems_;
+            $buf = AVAIL_ALLOCA! ($sa_avail, nbytes) as *mut _;
+        } else {
+            $buf = unsafe { xnmalloc (nitems_ as usize, std::mem::size_of_val (&*$buf) * mult as usize) } as *mut _;
+            unsafe { record_unwind_protect_ptr (Some (xfree_wrapper), $buf as *mut c_void) };
+        }
+    }};
+}
+
+pub unsafe extern "C" fn xfree_wrapper (p: *mut c_void) { unsafe { xfree (p) } }
+
+#[macro_export]
+macro_rules! SAFE_ALLOCA_STRING {
+    ($sa_avail:ident, $ptr:ident, $string:expr) => {{
+        let nbytes = SBYTES ($string) + 1;
+        $ptr = SAFE_ALLOCA! ($sa_avail, nbytes) as *mut c_char;
+        unsafe { std::ptr::copy_nonoverlapping (SDATA ($string), $ptr as *mut u8, nbytes as usize) };
+    }};
+}
+
+#[macro_export]
+macro_rules! SAFE_FREE {
+    ($sa_count:expr) => { safe_free ($sa_count) };
+}
+
+#[macro_export]
+macro_rules! SAFE_FREE_UNBIND_TO {
+    ($sa_count:expr, $count:expr, $val:expr) => { safe_free_unbind_to ($count, $sa_count, $val) };
+}
+
+// --- Lisp_Object setters (src/lisp.h 1330-1400) -----------------------------
+
+macro_rules! XSETCONS { ($a:expr, $b:expr) => { $a = make_lisp_ptr ($b as *mut c_void, Lisp_Type::Lisp_Cons) } }
+macro_rules! XSETVECTOR { ($a:expr, $b:expr) => { $a = make_lisp_ptr ($b as *mut c_void, Lisp_Type::Lisp_Vectorlike) } }
+macro_rules! XSETSTRING { ($a:expr, $b:expr) => { $a = make_lisp_ptr ($b as *mut c_void, Lisp_Type::Lisp_String) } }
+macro_rules! XSETSYMBOL { ($a:expr, $b:expr) => { $a = make_lisp_symbol ($b) } }
+macro_rules! XSETFLOAT { ($a:expr, $b:expr) => { $a = make_lisp_ptr ($b as *mut c_void, Lisp_Type::Lisp_Float) } }
+macro_rules! XSETINT { ($a:expr, $b:expr) => { $a = make_fixnum ($b) } }
+macro_rules! XSETFASTINT { ($a:expr, $b:expr) => { $a = make_fixed_natnum ($b) } }
+macro_rules! XSETPVECTYPE { ($v:expr, $code:expr) => {
+    unsafe { (*$v).header.size |= PSEUDOVECTOR_FLAG | (($code as isize) << PSEUDOVECTOR_AREA_BITS) }
+} }
+macro_rules! XSETPVECTYPESIZE { ($v:expr, $code:expr, $lispsize:expr, $restsize:expr) => {
+    unsafe { (*$v).header.size = PVECHEADERSIZE ($code, $lisp2size_passthrough ($lispsize), $restsize) }
+} }
+macro_rules! XSETTYPED_PSEUDOVECTOR { ($a:expr, $b:expr, $size:expr, $code:expr) => {{
+    XSETVECTOR! ($a, $b);
+    eassert! ((($size) & (PSEUDOVECTOR_FLAG | PVEC_TYPE_MASK))
+        == (PSEUDOVECTOR_FLAG | (($code as isize) << PSEUDOVECTOR_AREA_BITS)));
+}} }
+macro_rules! XSETPSEUDOVECTOR { ($a:expr, $b:expr, $code:expr) => {
+    XSETTYPED_PSEUDOVECTOR! ($a, $b,
+        unsafe { (*XUNTAG! ($a, Lisp_Type::Lisp_Vectorlike, vectorlike_header)).size }, $code)
+} }
+macro_rules! XSETSUBR { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_SUBR) } }
+macro_rules! XSETBOOL_VECTOR { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_BOOL_VECTOR) } }
+macro_rules! XSETCHAR_TABLE { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_CHAR_TABLE) } }
+macro_rules! XSETSUB_CHAR_TABLE { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_SUB_CHAR_TABLE) } }
+macro_rules! XSETBUFFER { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_BUFFER) } }
+macro_rules! XSETPROCESS { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_PROCESS) } }
+macro_rules! XSETWINDOW { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_WINDOW) } }
+macro_rules! XSETWINDOW_CONFIGURATION { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_WINDOW_CONFIGURATION) } }
+macro_rules! XSETTERMINAL { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_TERMINAL) } }
+macro_rules! XSETTHREAD { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_THREAD) } }
+macro_rules! XSETMUTEX { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_MUTEX) } }
+macro_rules! XSETCONDVAR { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_CONDVAR) } }
+macro_rules! XSETNATIVE_COMP_UNIT { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_NATIVE_COMP_UNIT) } }
+
+#[inline(always)]
+pub fn lisp2size_passthrough (n: isize) -> isize { n }
+
+// --- small utilities -------------------------------------------------------
+
+#[inline(always)]
+pub fn max (a: isize, b: isize) -> isize { if a > b { a } else { b } }
+
+#[inline(always)]
+pub fn min (a: isize, b: isize) -> isize { if a < b { a } else { b } }
+
+#[inline(always)]
+pub fn eabs (x: f64) -> f64 { if x < 0.0 { -x } else { x } }
+
+#[inline(always)]
+pub fn emacs_fclose (f: *mut c_void) -> c_int { unsafe { fclose (f as *mut _) } }
+
+unsafe extern "C" { pub fn fclose (f: *mut c_void) -> c_int; }
+
+#[inline(always)]
+pub fn QUITP () -> bool { !NILP (unsafe { Vquit_flag }) && NILP (unsafe { Vinhibit_quit }) }
+
+#[inline(always)]
+pub fn IS_DAEMON () -> bool { (unsafe { daemon_type }) != 0 }
+
+#[inline(always)]
+pub fn DAEMON_RUNNING () -> bool { (unsafe { daemon_type }) >= 0 }
+
+
+
+#[inline(always)]
+pub fn INT_TO_INTEGER (expr: EMACS_INT) -> Lisp_Object { make_int (expr) }
+
+#[inline(always)]
+pub fn CONS_TO_INTEGER_signed (cons: Lisp_Object, lo: i64, hi: i64) -> i64 {
+    unsafe { cons_to_signed (cons, lo, hi) }
+}
+
+#[inline(always)]
+pub fn CONS_TO_INTEGER_unsigned (cons: Lisp_Object, hi: u64) -> u64 {
+    unsafe { cons_to_unsigned (cons, hi) }
+}
+
+unsafe extern "C" {
+    pub fn cons_to_signed (cons: Lisp_Object, lo: i64, hi: i64) -> i64;
+    pub fn cons_to_unsigned (cons: Lisp_Object, hi: u64) -> u64;
+}
+
+#[inline(always)]
+pub fn TYPE_RANGED_FIXNUMP (lo: EMACS_INT, x: Lisp_Object, hi: EMACS_INT) -> bool {
+    RANGED_FIXNUMP (lo, x, hi)
+}
+
+#[inline(always)]
+pub fn STRING_SET_UNIBYTE (str_: *mut Lisp_Object) {
+    unsafe {
+        if (*(*str_).cast::<Lisp_String> ()).u.s.size == 0 {
+            *str_ = empty_unibyte_string;
+        } else {
+            (*(*str_).cast::<Lisp_String> ()).u.s.size_byte = -1;
+        }
+    }
+}
+
+
+
+/// CALLMANY (f, array): call the subr with the array's element count.
+#[macro_export]
+macro_rules! CALLMANY { ($f:expr, $array:expr) => { unsafe { Ffuncall ($array.len () as isize, $array.as_ptr () as *mut Lisp_Object) } } }
+
+#[macro_export]
+macro_rules! CALLN { ($f:expr, $($args:expr),* $(,)?) => {{
+    let mut arr: [Lisp_Object; 0 $(+ { let _ = &$args; 1 })*] = [$($args),*];
+    CALLMANY! ($f, arr)
+}} }
+
+#[macro_export]
+macro_rules! calln { ($($args:expr),* $(,)?) => { CALLN! (Ffuncall (), $($args),*) } }
+
+unsafe extern "C" {
+    pub fn Ffuncall (nargs: isize, args: *mut Lisp_Object) -> Lisp_Object;
+    pub fn listn (nargs: isize, ...) -> Lisp_Object;
+}
+
+#[macro_export]
+macro_rules! safe_calln { ($($args:expr),* $(,)?) => {{
+    let res = calln! ($($args),*);
+    maybe_quit ();
+    res
+}} }
+
+#[macro_export]
+macro_rules! list { ($($args:expr),* $(,)?) => {{ let arr = [$($args),*]; unsafe { listn (arr.len () as isize, arr[0]) } }} }
+
+// --- batch 8: DEFUN/DEFVAR machinery, AUTO_* helpers, aliases ---
+// --- configuration constants that the C spells as macros -------------------
+
+pub const USE_STACK_LISP_OBJECTS: bool = true;
+pub const USE_STACK_CONS: bool = true;
+pub const USE_STACK_STRING: bool = true;
+pub const WRAP_SPECPDL_REF: bool = true;
+pub const DEFINE_NON_NIL_Q_SYMBOL_MACROS: bool = true;
+pub const LISP_WORDS_ARE_POINTERS: bool = true;      // recorded: the port only supports this
+pub const LISP_OBJECT_IS_STRUCT: bool = false;       // CHECK_LISP_OBJECT_TYPE is not supported
+pub const EMACS_LISP_H: bool = true;                 // the include guard has no Rust equivalent
+
+#[inline(always)]
+pub fn LISP_INITIALLY (w: Lisp_Object) -> Lisp_Object { w }
+
+#[inline(always)]
+pub fn LISPSYM_INITIALLY (index: usize) -> Lisp_Object {
+    TAG_PTR_INITIALLY (Lisp_Type::Lisp_Symbol,
+        (index * std::mem::size_of::<Lisp_Symbol> ()) as EMACS_INT)
+}
+
+#[inline(always)]
+pub fn SYMBOL_INDEX (index: usize) -> usize { index }
+
+#[inline(always)]
+pub fn lisp_h_Qnil () -> Lisp_Object { std::ptr::null_mut () }   // NIL_IS_ZERO: index 0, tag 0
+
+#[inline(always)]
+pub fn lisp_h_XFIXNUM_RAW (a: Lisp_Object) -> EMACS_INT { XLI (a) >> INTTYPEBITS }
+
+#[inline(always)]
+pub fn lisp_h_make_fixnum_wrap (n: EMACS_INT) -> Lisp_Object {
+    XIL ((((n as EMACS_UINT) << INTTYPEBITS) as EMACS_INT) + Lisp_Type::Lisp_Int0 as EMACS_INT)
+}
+
+#[inline(always)]
+pub fn lisp_h_make_fixnum (n: EMACS_INT) -> Lisp_Object {
+    eassert! (!FIXNUM_OVERFLOW_P (n));
+    lisp_h_make_fixnum_wrap (n)
+}
+
+// defsubr / defvar take the subr and fwd records the DEFUN and DEFVAR_* forms
+// build; the records themselves live in the ported units.
+unsafe extern "C" {
+    pub fn defsubr (sname: *const Lisp_Subr);
+    pub fn defvar_lisp (fwd: *const Lisp_Fwd, lname: *const c_char);
+    pub fn defvar_lisp_nopro (fwd: *const Lisp_Fwd, lname: *const c_char);
+    pub fn defvar_int (fwd: *const Lisp_Fwd, lname: *const c_char);
+    pub fn defvar_bool (fwd: *const Lisp_Fwd, lname: *const c_char);
+    pub fn defvar_kboard (fwd: *const Lisp_Fwd, lname: *const c_char);
+}
+
+/// DEFUN (src/lisp.h 823): declares the subr record and the C function.
+#[macro_export]
+macro_rules! DEFUN {
+    ($lname:expr, $fnname:ident, $sname:ident, $minargs:expr, $maxargs:tt, $intspec:expr, $doc:expr) => {
+        #[no_mangle]
+        pub static mut $sname: Aligned_Lisp_Subr = Aligned_Lisp_Subr {
+            s: Lisp_Subr {
+                header: vectorlike_header {
+                    size: PVECHEADERSIZE (pvec_type::PVEC_SUBR, 0, 0),
+                },
+                function: Lisp_Subr_function { a0: None },
+                min_args: $minargs,
+                max_args: $maxargs,
+                symbol_name: $lname.as_ptr () as *const c_char,
+                intspec: Lisp_Subr_intspec { string: $intspec.as_ptr () as *const c_char },
+                command_modes: Qnil (),
+                doc: 0,
+            },
+        };
+    };
+}
+
+macro_rules! DEFVAR_LISP {
+    ($lname:expr, $vname:ident, $doc:expr) => {{
+        static mut O_FWD: Lisp_Fwd = Lisp_Fwd {
+            type_: Lisp_Fwd_Obj,
+            u: Lisp_Fwd_u { objvar: std::ptr::null_mut () },
+        };
+        unsafe {
+            O_FWD.u.objvar = std::ptr::addr_of_mut! ($vname);
+            defvar_lisp (&raw const O_FWD, $lname.as_ptr () as *const c_char);
+        }
+    }};
+}
+
+macro_rules! DEFVAR_LISP_NOPRO {
+    ($lname:expr, $vname:ident, $doc:expr) => {{
+        static mut O_FWD: Lisp_Fwd = Lisp_Fwd {
+            type_: Lisp_Fwd_Obj,
+            u: Lisp_Fwd_u { objvar: std::ptr::null_mut () },
+        };
+        unsafe {
+            O_FWD.u.objvar = std::ptr::addr_of_mut! ($vname);
+            defvar_lisp_nopro (&raw const O_FWD, $lname.as_ptr () as *const c_char);
+        }
+    }};
+}
+
+macro_rules! DEFVAR_INT {
+    ($lname:expr, $vname:ident, $doc:expr) => {{
+        static mut I_FWD: Lisp_Fwd = Lisp_Fwd {
+            type_: Lisp_Fwd_Int,
+            u: Lisp_Fwd_u { intvar: std::ptr::null_mut () },
+        };
+        unsafe {
+            I_FWD.u.intvar = std::ptr::addr_of_mut! ($vname);
+            defvar_int (&raw const I_FWD, $lname.as_ptr () as *const c_char);
+        }
+    }};
+}
+
+macro_rules! DEFVAR_BOOL {
+    ($lname:expr, $vname:ident, $doc:expr) => {{
+        static mut B_FWD: Lisp_Fwd = Lisp_Fwd {
+            type_: Lisp_Fwd_Bool,
+            u: Lisp_Fwd_u { boolvar: std::ptr::null_mut () },
+        };
+        unsafe {
+            B_FWD.u.boolvar = std::ptr::addr_of_mut! ($vname);
+            defvar_bool (&raw const B_FWD, $lname.as_ptr () as *const c_char);
+        }
+    }};
+}
+
+/// DEFVAR_KBOARD stores a KBOARD offset, which keyboard.rs provides.
+macro_rules! DEFVAR_KBOARD {
+    ($lname:expr, $vname:expr, $doc:expr) => {{
+        static mut KO_FWD: Lisp_Fwd = Lisp_Fwd {
+            type_: Lisp_Fwd_Kboard_Obj,
+            u: Lisp_Fwd_u { kbdoffset: 0 },
+        };
+        unsafe {
+            KO_FWD.u.kbdoffset = $vname as c_int;
+            defvar_kboard (&raw const KO_FWD, $lname.as_ptr () as *const c_char);
+        }
+    }};
+}
+
+/// DEFSYM is empty in the reference as well (src/lisp.h 2394): the symbols come
+/// from the generated globals, which the port generates in globals.rs.
+macro_rules! DEFSYM { ($sym:ident, $name:expr) => {} }
+
+macro_rules! EXFUN { ($fnname:ident, $maxargs:tt) => {} }
+macro_rules! DEFUN_ARGS_1 { () => { (Lisp_Object) } }
+macro_rules! DEFUN_ARGS_2 { () => { (Lisp_Object, Lisp_Object) } }
+macro_rules! DEFUN_ARGS_3 { () => { (Lisp_Object, Lisp_Object, Lisp_Object) } }
+macro_rules! DEFUN_ARGS_4 { () => { (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) } }
+macro_rules! DEFUN_ARGS_5 { () => { (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) } }
+macro_rules! DEFUN_ARGS_6 { () => { (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) } }
+macro_rules! DEFUN_ARGS_7 { () => { (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) } }
+macro_rules! DEFUN_ARGS_8 { () => { (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object) } }
+/// DEFINE_LISP_SYMBOL (src/lisp.h 883) exists so a debugger can see the symbol;
+/// the port's globals.rs provides the Q symbols directly (P-23).
+macro_rules! DEFINE_LISP_SYMBOL { ($name:ident) => {} }
+macro_rules! DEFUN_ARGS_0 { () => { () } }
+macro_rules! DEFUN_ARGS_MANY { () => { (isize, *mut Lisp_Object) } }
+macro_rules! DEFUN_ARGS_UNEVALLED { () => { (Lisp_Object) } }
+
+// --- AUTO_* stack objects (src/lisp.h 5760-5830) ---------------------------
+
+#[macro_export]
+macro_rules! STACK_CONS {
+    ($a:expr, $b:expr) => {{
+        let mut cons = Lisp_Cons { u: Lisp_Cons_u { s: Lisp_Cons_s { car: $a, u: Lisp_Cons_s_u { cdr: $b } } } };
+        let obj = make_lisp_ptr (std::ptr::addr_of_mut! (cons) as *mut c_void, Lisp_Type::Lisp_Cons);
+        std::hint::black_box (&mut cons);
+        obj
+    }};
+}
+
+#[macro_export]
+macro_rules! AUTO_CONS_EXPR {
+    ($a:expr, $b:expr) => {
+        if USE_STACK_CONS { STACK_CONS! ($a, $b) } else { unsafe { Fcons ($a, $b) } }
+    };
+}
+
+#[macro_export]
+macro_rules! AUTO_CONS { ($name:ident, $a:expr, $b:expr) => {
+    let $name = AUTO_CONS_EXPR! ($a, $b)
+} }
+
+#[macro_export]
+macro_rules! AUTO_LIST1 { ($name:ident, $a:expr) => {
+    let $name = if USE_STACK_CONS { STACK_CONS! ($a, Qnil ()) } else { unsafe { list1 ($a) } }
+} }
+
+#[macro_export]
+macro_rules! AUTO_LIST2 { ($name:ident, $a:expr, $b:expr) => {
+    let $name = if USE_STACK_CONS {
+        STACK_CONS! ($a, STACK_CONS! ($b, Qnil ()))
+    } else { unsafe { list2 ($a, $b) } }
+} }
+
+#[macro_export]
+macro_rules! AUTO_LIST3 { ($name:ident, $a:expr, $b:expr, $c:expr) => {
+    let $name = if USE_STACK_CONS {
+        STACK_CONS! ($a, STACK_CONS! ($b, STACK_CONS! ($c, Qnil ())))
+    } else { unsafe { list3 ($a, $b, $c) } }
+} }
+
+#[macro_export]
+macro_rules! AUTO_LIST4 { ($name:ident, $a:expr, $b:expr, $c:expr, $d:expr) => {
+    let $name = if USE_STACK_CONS {
+        STACK_CONS! ($a, STACK_CONS! ($b, STACK_CONS! ($c, STACK_CONS! ($d, Qnil ()))))
+    } else { unsafe { list4 ($a, $b, $c, $d) } }
+} }
+
+#[macro_export]
+macro_rules! AUTO_STR_WITH_LEN {
+    ($str:expr, $len:expr) => {
+        if USE_STACK_STRING {
+            let mut s = Lisp_String { u: Lisp_String_u { s: Lisp_String_s {
+                size: $len, size_byte: -1, intervals: std::ptr::null_mut (),
+                data: $str as *mut u8 } } };
+            let obj = make_lisp_ptr (std::ptr::addr_of_mut! (s) as *mut c_void, Lisp_Type::Lisp_String);
+            std::hint::black_box (&mut s);
+            obj
+        } else {
+            unsafe { make_unibyte_string ($str, $len as usize) }
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! AUTO_STR { ($str:expr) => { AUTO_STR_WITH_LEN! ($str, unsafe { strlen ($str) } as isize) } }
+
+#[macro_export]
+macro_rules! AUTO_STRING { ($name:ident, $str:expr) => {
+    let $name = AUTO_STR! ($str)
+} }
+
+#[macro_export]
+macro_rules! AUTO_STRING_WITH_LEN { ($name:ident, $str:expr, $len:expr) => {
+    let $name = AUTO_STR_WITH_LEN! ($str, $len)
+} }
+
+// --- setjmp wrappers (the HAVE__SETJMP branch of src/lisp.h 2271-2287) ------
+
+#[inline(always)]
+pub unsafe fn sys_setjmp (j: *mut jmp_buf) -> c_int {
+    unsafe { _setjmp (j as *mut c_void) }
+}
+
+#[inline(always)]
+pub unsafe fn sys_longjmp (j: *mut jmp_buf, v: c_int) -> ! {
+    unsafe { _longjmp (j as *mut c_void, v) }
+}
+
+unsafe extern "C" {
+    #[link_name = "_setjmp"]
+    pub fn _setjmp (buf: *mut c_void) -> c_int;
+    #[link_name = "_longjmp"]
+    pub fn _longjmp (buf: *mut c_void, val: c_int) -> !;
+}
+
+// --- CONS_TO_INTEGER (src/lisp.h 4188) -------------------------------------
+
+/// The C macro picks the signed or unsigned helper from the target type; the
+/// port does the same through a trait.
+pub trait ConsToInteger: Sized {
+    fn cons_to_integer (cons: Lisp_Object) -> Self;
+}
+
+impl ConsToInteger for i64 {
+    fn cons_to_integer (cons: Lisp_Object) -> i64 {
+        unsafe { cons_to_signed (cons, i64::MIN, i64::MAX) }
+    }
+}
+
+impl ConsToInteger for u64 {
+    fn cons_to_integer (cons: Lisp_Object) -> u64 {
+        unsafe { cons_to_unsigned (cons, u64::MAX) }
+    }
+}
+
+#[macro_export]
+macro_rules! CONS_TO_INTEGER { ($cons:expr, $var:expr) => { $var = <_ as ConsToInteger>::cons_to_integer ($cons) } }

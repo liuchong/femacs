@@ -468,6 +468,10 @@ defun!("cons", Fcons, Scons, 2, 2, 0,
 | P-18 | `flush_stack_call_func` 的寄存器冲刷用 `_setjmp` 屏障替代 `__builtin_unwind_init` | 已定 | `lisp.rs::flush_stack_barrier`（待 `A7-③` 复核） |
 | P-19 | `specpdl`/`specpdl_ptr`/`specpdl_end` 在 C 是线程局部宏；镜像先声明为 `extern` 存储 | 待办 | thread.rs 落地后改为 `current_thread` 访问 |
 | P-20 | `get_act_rec`/`set_act_rec` 需要 `current_thread`（thread.h） | 待办 | thread.rs 落地后补齐；其余函数已全部落地 |
+| P-21 | `DEFVAR_*` 的变量在 C 里是 `globals.f_V*`（为调试器聚合）；镜像按变量各声明一个 `static mut` | 已定 | `xtask gen-globals` + `docs/baseline/globals/variables.tsv` |
+| P-22 | `FOR_EACH_TAIL*`/`DOHASH*`/`DOOBARRAY` 是循环宏，Rust 形态（迭代器/闭包）尚待决策 | 待办 | `docs/ports/excluded-macros.txt`（kind=deferred），使用这些宏的文件暂不开工 |
+| P-23 | GDB 符号技巧（一个名字既是宏又是常量符号）在 Rust 无对应物 | 已定 | `docs/ports/excluded-macros.txt`（kind=debugger）；`xtask` 后续另行产出调试符号 |
+| P-24 | 检查器对头镜像的判定规则 | 已定 | 头文件不做行数漂移判定；结构体字段按**成员集合**比对（顺序由布局断言负责）；C 位域跳过；条件分支中的常量与宏别名不比对；排除/挂账项见 `docs/ports/excluded-macros.txt` |
 
 **P-17 说明（实测决定）**：参照用 `make-docfile` 生成 `globals.h`（`#define iQfoo N` +
 `DEFINE_LISP_SYMBOL (Qfoo)`），使 `Qfoo` 成为**编译期常量表达式**。Rust 无法把符号数组地址

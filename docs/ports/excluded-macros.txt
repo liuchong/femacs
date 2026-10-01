@@ -1,0 +1,37 @@
+# C macros in src/lisp.h that have no Rust counterpart, with the reason and the
+# construct that replaces them.  One `<name>\t<kind>\t<reason>` per line; the
+# inventory gate reports these separately instead of counting them as missing.
+#
+# kind=syntax   : the macro spells C syntax or an attribute; the port expresses
+#                 it structurally.
+# kind=config   : the macro selects a configuration branch that the port fixes.
+# kind=debugger : the macro exists only so a debugger can see a value.
+# kind=deferred : the macro is a control-flow construct whose Rust form is an
+#                 open design decision (see PORTING.md P-22); it must be
+#                 resolved before the files that use it are ported.
+AVOID	syntax	spells `_Noreturn ATTRIBUTE_COLD void`; the port writes `-> !`
+ENUM_BF	syntax	bitfield type spelling; the port packs bitfields explicitly
+GCALIGNED	syntax	alignment spelling; the port writes #[repr(align(GCALIGNMENT))]
+GCALIGNED_STRUCT	syntax	alignment spelling; the port writes #[repr(align(GCALIGNMENT))]
+GCALIGNED_UNION_MEMBER	syntax	alignment member; the port writes #[repr(align(GCALIGNMENT))]
+alignas	syntax	C11 alignment spelling; the port writes #[repr(align(N))]
+SUBR_SECTION_ATTRIBUTE	syntax	section attribute; the port uses #[link_section]
+__builtin_unwind_init	syntax	compiler builtin; the port uses the setjmp register barrier (P-18)
+LISP_OBJECT_IS_STRUCT	config	debug configuration the port does not support (P-01)
+DEFINE_KEY_OPS_AS_MACROS	config	the port always uses the inline-function forms
+DECLARE_GDB_SYM	debugger	debugger symbol trick; no Rust equivalent (P-23)
+DEFINE_GDB_SYMBOL_BEGIN	debugger	debugger symbol trick; no Rust equivalent (P-23)
+DEFINE_GDB_SYMBOL_END	debugger	debugger symbol trick; no Rust equivalent (P-23)
+DOHASH	deferred	loop macro; Rust form pending P-22
+DOHASH_SAFE	deferred	loop macro; Rust form pending P-22
+DOOBARRAY	deferred	loop macro; Rust form pending P-22
+FOR_EACH_TAIL	deferred	loop macro; Rust form pending P-22
+FOR_EACH_TAIL_BASIC	deferred	loop macro; Rust form pending P-22
+FOR_EACH_TAIL_INTERNAL	deferred	loop macro; Rust form pending P-22
+FOR_EACH_TAIL_SAFE	deferred	loop macro; Rust form pending P-22
+FOR_EACH_TAIL_STEP_CYCLEP	deferred	loop macro; Rust form pending P-22
+FOR_EACH_TAIL_THRESHOLD	deferred	loop macro; Rust form pending P-22
+FOR_EACH_ALIST_VALUE	deferred	loop macro; Rust form pending P-22
+get_act_rec	blocked	needs current_thread (thread.h); PORTING.md P-20
+set_act_rec	blocked	needs current_thread (thread.h); PORTING.md P-20
+allocate_native_comp_unit	blocked	needs struct Lisp_Native_Comp_Unit (comp.h)

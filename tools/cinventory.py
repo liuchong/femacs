@@ -360,7 +360,7 @@ def _field_declarator(segment: str) -> dict | None:
     if not seg or "=" in seg:
         return None
     bits = ""
-    mb = re.search(r":\s*(\d+)\s*$", seg)
+    mb = re.search(r":\s*([A-Za-z_0-9]+)\s*$", seg)   # width may be CHAR_BIT, not a number
     if mb:
         bits = mb.group(1)
         seg = seg[:mb.start()].strip()
@@ -489,6 +489,19 @@ def defuns(text: str) -> list[dict]:
     return out
 
 
+def macro_definitions (text: str) -> dict[str, int]:
+    """How often each macro name is defined (more than once means the C picks a
+    definition in a configuration branch)."""
+    counts: dict[str, int] = {}
+    for i, line, live in Lines(text):
+        if not live or not line.lstrip ().startswith ("#"):
+            continue
+        m = DEFINE.match (line.strip ())
+        if m:
+            counts[m.group ("name")] = counts.get (m.group ("name"), 0) + 1
+    return counts
+
+
 def inventory(path: Path) -> dict:
     text = path.read_text(encoding="utf-8", errors="replace")
     funcs = functions(text)
@@ -500,6 +513,7 @@ def inventory(path: Path) -> dict:
         "functions": funcs,
         "defuns": defs,
         "macros": macros(text),
+        "macro_duplicates": macro_definitions(text),
         "constants": constants(text),
         "struct_fields": structs,
         "globals": globals_(text),

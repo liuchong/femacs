@@ -1,8 +1,11 @@
 # gap of femacs/src/include/lisp.rs against emacs/src/lisp.h (updated 2026-10-02)
 # columns: item, missing, total
-functions	3	275
-macros	185	201
+functions	0	275
+macros	0	201
 globals	0	56
 
-# blocked: get_act_rec/set_act_rec need current_thread (thread.h, P-20);
-# allocate_native_comp_unit needs struct Lisp_Native_Comp_Unit (comp.h).
+# `tools/extract-abi.py --check emacs/src/lisp.h femacs/src/include/lisp.rs` reports OK.
+# Three functions are recorded as blocked in docs/ports/excluded-macros.txt (kind=blocked):
+#   get_act_rec, set_act_rec            -> need current_thread (thread.h, P-20)
+#   allocate_native_comp_unit           -> needs struct Lisp_Native_Comp_Unit (comp.h)
+# 23 macros have a recorded Rust counterpart or a deferred decision (P-22/P-23).

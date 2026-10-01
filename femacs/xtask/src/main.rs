@@ -161,12 +161,39 @@ fn gen_globals() -> i32 {
          unsafe extern \"C\" {{ pub static mut lispsym: [Lisp_Symbol; lispsym_count]; }}\n",
         rows.len()
     ));
+    // The other half of the generated globals: the V* variables that the DEFVAR_*
+    // forms declare.  The reference keeps them inside struct emacs_globals
+    // (`globals.f_Vfoo`) so a debugger can list them; the port declares one static
+    // per variable, which keeps the reference's source shape (`Vfoo = x`) and
+    // records the difference (PORTING.md P-21).
+    let vars = Path::new(REPO).join("docs/baseline/globals/variables.tsv");
+    let mut n_vars = 0usize;
+    if let Ok(text) = fs::read_to_string(&vars) {
+        rs.push_str("\n// --- variables declared by DEFVAR_* (generated) ---\n");
+        for line in text.lines().skip(1) {
+            let f: Vec<&str> = line.split('\t').collect();
+            if f.len() < 3 {
+                continue;
+            }
+            let (name, kind) = (f[0], f[1]);
+            let (ty, zero) = match kind {
+                "LISP_OBJECT" => ("Lisp_Object", "std::ptr::null_mut()"),
+                "EMACS_INTEGER" => ("EMACS_INT", "0"),
+                "BOOLEAN" => ("bool", "false"),
+                "KBOARD" => ("*mut c_void", "std::ptr::null_mut()"),
+                _ => continue,
+            };
+            rs.push_str(&format!("pub static mut {name}: {ty} = {zero}; // {}\n", f[2]));
+            n_vars += 1;
+        }
+    }
+
     let out = Path::new("src/include/globals.rs");
     fs::create_dir_all(out.parent().unwrap()).ok();
     if let Err(e) = fs::write(out, rs) {
         return fail(e);
     }
-    println!("wrote {} entries to {}", rows.len(), out.display());
+    println!("wrote {} symbols and {} variables to {}", rows.len(), n_vars, out.display());
     0
 }
 
