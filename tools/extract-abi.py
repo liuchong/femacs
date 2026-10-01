@@ -166,8 +166,15 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True) -> list[str]
     return problems
 
 
+# Only these directories are ported; everything else in the reference tree is
+# copied verbatim, so its files must never be paired with a ported mirror.
+PORTED_DIRS = ("src", "lib", "lib-src", "lwlib", "oldXMenu", "exec", "nt", "msdos")
+
+
 def pairs(reference: Path, root: Path):
-    for c in sorted(list(reference.rglob("*.c")) + list(reference.rglob("*.h"))):
+    candidates = [p for top in PORTED_DIRS for p in reference.joinpath(top).rglob("*")
+                  if p.suffix in (".c", ".h")]
+    for c in sorted(candidates):
         rel = c.relative_to(reference)
         cand = (root / rel.with_suffix(".rs"),
                 root / "src" / Path(rel.name).with_suffix(".rs"),
