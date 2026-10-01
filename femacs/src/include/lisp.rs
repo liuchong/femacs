@@ -16,7 +16,7 @@
 // Header mirrors are textually included (PORTING.md 0.1), so they carry no inner
 // attributes and no crate-relative paths; the including unit supplies both.
 
-use std::ffi::{c_char, c_double, c_int, c_void};
+use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_ushort, c_void};
 
 // --- integers --------------------------------------------------------------
 // src/lisp.h: EMACS_INT is one word; the frozen configuration says 64 bits
@@ -282,6 +282,16 @@ pub struct Lisp_Subr {
     pub command_modes: Lisp_Object,
     /// Positive: offset into etc/DOC; negative: native-comp doc index.
     pub doc: EMACS_INT,
+    // Present only when the reference is configured with HAVE_NATIVE_COMP
+    // (PORTING.md 9.2 structural condition).
+    #[cfg(feature = "native_comp")]
+    pub native_comp_u: Lisp_Object,
+    #[cfg(feature = "native_comp")]
+    pub native_c_name: *mut c_char,
+    #[cfg(feature = "native_comp")]
+    pub lambda_list: Lisp_Object,
+    #[cfg(feature = "native_comp")]
+    pub type_: Lisp_Object,
 }
 
 #[repr(C, align(8))]
@@ -318,6 +328,7 @@ pub struct Lisp_Marker {
 unsafe extern "C" {
     pub fn die (msg: *const c_char, file: *const c_char, line: c_int) -> !;
     pub static mut suppress_checking: bool;
+    pub fn strlen (s: *const c_char) -> usize;
 }
 
 /// lib/verify.h `assume`: a compile-time promise, undefined behaviour if false.
@@ -2045,3 +2056,567 @@ pub fn set_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object
     eassert! (0 <= idx && idx < (1 << CHARTAB_SIZE_BITS_0));
     unsafe { (*XCHAR_TABLE (table)).contents[idx as usize] = val }
 }
+
+// --- batch 6: obarrays, hash tables, sqlite, checks, constructors (src/lisp.h 2400-3400) ---
+pub type hash_hash_t = c_uint;
+pub type hash_idx_t = isize;
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct hash_table_test {
+    pub hashfn: Option<unsafe extern "C" fn(Lisp_Object, *mut Lisp_Hash_Table) -> hash_hash_t>,
+    pub cmpfn: Lisp_Object,
+    pub user_hash_function: Lisp_Object,
+    pub user_cmp_function: Lisp_Object,
+    pub name: Lisp_Object,
+}
+
+#[repr(C, align(8))]
+pub struct Lisp_Obarray {
+    pub header: vectorlike_header,
+    pub buckets: *mut Lisp_Object,
+    pub size_bits: c_uint,
+    pub count: c_uint,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct obarray_iter_t {
+    pub o: *mut Lisp_Obarray,
+    pub idx: isize,
+    pub symbol: *mut Lisp_Symbol,
+}
+
+#[repr(C, align(8))]
+pub struct Lisp_Hash_Table {
+    pub header: vectorlike_header,
+    pub index: *mut hash_idx_t,
+    pub hash: *mut hash_hash_t,
+    pub key_and_value: *mut Lisp_Object,
+    pub test: *const hash_table_test,
+    pub next: *mut hash_idx_t,
+    pub count: hash_idx_t,
+    pub next_free: hash_idx_t,
+    pub table_size: hash_idx_t,
+    pub index_bits: u8,
+    pub _pad: [u8; 3],
+    /// weakness:3, frozen_test:2, mutable:1 (ENUM_BF/bool_bf bitfields)
+    pub bits: u32,
+    pub next_weak: *mut Lisp_Hash_Table,
+}
+
+pub const HASH_WEAKNESS_KEY: u32 = 1;
+pub const HASH_WEAKNESS_VALUE: u32 = 2;
+pub const HASH_WEAKNESS_KEY_OR_VALUE: u32 = 3;
+pub const HASH_WEAKNESS_NONE: u32 = 0;
+pub const HASH_TABLE_MUTABLE: u32 = 1 << 5;
+
+#[repr(C, align(8))]
+pub struct Lisp_Sqlite {
+    pub header: vectorlike_header,
+    pub db: *mut c_void,
+    pub stmt: *mut c_void,
+    pub name: *mut c_char,
+    pub finalizer: Option<unsafe extern "C" fn(*mut c_void)>,
+    pub eof: bool,
+    pub is_statement: bool,
+}
+
+/// struct Lisp_Module_Function is defined in emacs-module.c; only pointers to
+/// it appear here.
+#[repr(C)]
+pub struct Lisp_Module_Function {
+    _private: [u8; 0],
+}
+
+unsafe extern "C" {
+    pub fn make_unibyte_string (s: *const c_char, len: usize) -> Lisp_Object;
+    pub fn make_string (s: *const c_char, len: usize) -> Lisp_Object;
+    pub fn allocate_vector (size: isize) -> *mut Lisp_Vector;
+    pub fn intern_1 (s: *const c_char, len: usize) -> Lisp_Object;
+    pub fn intern_c_string_1 (s: *const c_char, len: usize) -> Lisp_Object;
+    pub fn Fsignal (error_symbol: Lisp_Object, data: Lisp_Object) -> !;
+    pub fn xsignal0 (error_symbol: Lisp_Object) -> !;
+    pub fn fast_string_match_internal (regexp: Lisp_Object, string: Lisp_Object,
+                                       table: Lisp_Object) -> isize;
+    pub fn fast_c_string_match_internal (regexp: Lisp_Object, string: *const c_char,
+                                         len: usize, table: Lisp_Object) -> isize;
+    pub fn check_obarray_slow (obarray: Lisp_Object) -> Lisp_Object;
+    pub fn grow_specpdl_allocation ();
+    pub fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object;
+    pub fn maybe_garbage_collect ();
+    pub fn probably_quit () -> !;
+    pub fn xfree (p: *mut c_void);
+    pub fn Fcons (car: Lisp_Object, cdr: Lisp_Object) -> Lisp_Object;
+    pub fn calln (fn_: Lisp_Object) -> Lisp_Object;
+    pub fn egetenv_internal (var: *const c_char, len: usize) -> *mut c_char;
+    pub static mut Vquit_flag: Lisp_Object;
+    pub static mut pending_signals: bool;
+    pub static mut Vascii_canon_table: Lisp_Object;
+    pub static mut Vcurrent_load_list: Lisp_Object;
+    pub static mut consing_until_gc: EMACS_INT;
+    pub static mut chartab_size: [c_int; 4];
+}
+
+// --- obarrays (src/lisp.h 2400-2500) ---------------------------------------
+
+#[inline(always)]
+pub fn OBARRAYP (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_OBARRAY) }
+
+#[inline(always)]
+pub fn XOBARRAY (a: Lisp_Object) -> *mut Lisp_Obarray {
+    eassert! (OBARRAYP (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Obarray)
+}
+
+#[inline(always)]
+pub fn CHECK_OBARRAY (x: Lisp_Object) { CHECK_TYPE (OBARRAYP (x), Qobarrayp (), x) }
+
+#[inline(always)]
+pub fn make_lisp_obarray (o: *mut Lisp_Obarray) -> Lisp_Object {
+    eassert! (PSEUDOVECTOR_TYPEP (&raw mut (*o).header, pvec_type::PVEC_OBARRAY));
+    make_lisp_ptr (o as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+}
+
+#[inline(always)]
+pub fn obarray_size (o: *mut Lisp_Obarray) -> isize {
+    1isize << unsafe { (*o).size_bits }
+}
+
+#[inline(always)]
+pub fn check_obarray (obarray: Lisp_Object) -> Lisp_Object {
+    if OBARRAYP (obarray) { obarray } else { unsafe { check_obarray_slow (obarray) } }
+}
+
+#[inline(always)]
+pub fn make_obarray_iter (oa: *mut Lisp_Obarray) -> obarray_iter_t {
+    obarray_iter_t { o: oa, idx: -1, symbol: std::ptr::null_mut () }
+}
+
+#[inline(always)]
+pub fn obarray_iter_at_end (it: *mut obarray_iter_t) -> bool {
+    if ! unsafe { (*it).symbol }.is_null () {
+        return false;
+    }
+    let size = obarray_size (unsafe { (*it).o });
+    loop {
+        unsafe { (*it).idx += 1 };
+        if unsafe { (*it).idx } >= size {
+            return true;
+        }
+        let obj = unsafe { *(*((*it).o)).buckets.add ((*it).idx as usize) };
+        if !NILP (obj) {
+            unsafe { (*it).symbol = XSYMBOL (obj) };
+            return false;
+        }
+    }
+}
+
+#[inline(always)]
+pub fn obarray_iter_step (it: *mut obarray_iter_t) {
+    unsafe { (*it).symbol = (*(*it).symbol).u.s.next };
+}
+
+#[inline(always)]
+pub fn obarray_iter_symbol (it: *mut obarray_iter_t) -> Lisp_Object {
+    make_lisp_symbol (unsafe { (*it).symbol })
+}
+
+// --- hash tables (src/lisp.h 2510-2700) ------------------------------------
+
+#[inline(always)]
+pub fn HASH_TABLE_P (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_HASH_TABLE) }
+
+#[inline(always)]
+pub fn XHASH_TABLE (a: Lisp_Object) -> *mut Lisp_Hash_Table {
+    eassert! (HASH_TABLE_P (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Hash_Table)
+}
+
+#[inline(always)]
+pub fn make_lisp_hash_table (h: *mut Lisp_Hash_Table) -> Lisp_Object {
+    eassert! (PSEUDOVECTOR_TYPEP (&raw mut (*h).header, pvec_type::PVEC_HASH_TABLE));
+    make_lisp_ptr (h as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+}
+
+#[inline(always)]
+pub fn HASH_KEY (h: *mut Lisp_Hash_Table, idx: hash_idx_t) -> Lisp_Object {
+    eassert! (idx >= 0 && idx < unsafe { (*h).table_size });
+    unsafe { *(*h).key_and_value.add (2 * idx as usize) }
+}
+
+#[inline(always)]
+pub fn HASH_VALUE (h: *mut Lisp_Hash_Table, idx: hash_idx_t) -> Lisp_Object {
+    eassert! (idx >= 0 && idx < unsafe { (*h).table_size });
+    unsafe { *(*h).key_and_value.add (2 * idx as usize + 1) }
+}
+
+#[inline(always)]
+pub fn HASH_HASH (h: *mut Lisp_Hash_Table, idx: hash_idx_t) -> hash_hash_t {
+    eassert! (idx >= 0 && idx < unsafe { (*h).table_size });
+    unsafe { *(*h).hash.add (idx as usize) }
+}
+
+#[inline(always)]
+pub fn HASH_TABLE_SIZE (h: *mut Lisp_Hash_Table) -> hash_idx_t { unsafe { (*h).table_size } }
+
+#[inline(always)]
+pub fn hash_table_index_size (h: *mut Lisp_Hash_Table) -> isize {
+    1isize << unsafe { (*h).index_bits }
+}
+
+#[inline(always)]
+pub fn hash_from_key (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> hash_hash_t {
+    unsafe { ((*(*h).test).hashfn.unwrap_unchecked ()) (key, h) }
+}
+
+#[inline(always)]
+pub fn hash_unused_entry_key_p (key: Lisp_Object) -> bool {
+    BASE_EQ (key, HASH_UNUSED_ENTRY_KEY ())
+}
+
+/// src/lisp.h 2654: #define HASH_UNUSED_ENTRY_KEY INVALID_LISP_VALUE.
+#[inline(always)]
+pub fn HASH_UNUSED_ENTRY_KEY () -> Lisp_Object { INVALID_LISP_VALUE () }
+
+#[inline(always)]
+pub fn INVALID_LISP_VALUE () -> Lisp_Object {
+    // The C constant is a tag value that no real object can have.
+    TAG_PTR (Lisp_Type::Lisp_Int1, std::ptr::null_mut ())
+}
+
+#[inline(always)]
+pub fn set_hash_key_slot (h: *mut Lisp_Hash_Table, idx: hash_idx_t, val: Lisp_Object) {
+    eassert! (idx >= 0 && idx < unsafe { (*h).table_size });
+    unsafe { *(*h).key_and_value.add (2 * idx as usize) = val }
+}
+
+#[inline(always)]
+pub fn set_hash_value_slot (h: *mut Lisp_Hash_Table, idx: hash_idx_t, val: Lisp_Object) {
+    eassert! (idx >= 0 && idx < unsafe { (*h).table_size });
+    unsafe { *(*h).key_and_value.add (2 * idx as usize + 1) = val }
+}
+
+#[inline(always)]
+pub fn sxhash_combine (x: EMACS_UINT, y: EMACS_UINT) -> EMACS_UINT {
+    (x << 4).wrapping_add (x >> (EMACS_INT_WIDTH - 4)).wrapping_add (y)
+}
+
+#[inline(always)]
+pub fn SXHASH_REDUCE (x: EMACS_INT) -> EMACS_INT {
+    (x ^ x >> (EMACS_INT_WIDTH - FIXNUM_BITS)) & INTMASK
+}
+
+#[inline(always)]
+pub fn reduce_emacs_uint_to_hash_hash (x: EMACS_UINT) -> hash_hash_t {
+    // sizeof x <= 2 * sizeof (hash_hash_t): the C folds the upper half in.
+    (x ^ (x >> (8 * (std::mem::size_of::<EMACS_UINT>() - std::mem::size_of::<hash_hash_t>()))))
+        as hash_hash_t
+}
+
+#[inline(always)]
+pub fn knuth_hash (hash: hash_hash_t) -> c_uint {
+    let mut h = hash;
+    let alpha: c_uint = 2_654_435_769; // 2**32/phi
+    h = h.wrapping_mul (alpha);
+    h
+}
+
+pub const FIXNUM_BITS: usize = INTTYPEBITS + 1;
+
+// --- sqlite objects (src/lisp.h 3400) --------------------------------------
+
+#[inline(always)]
+pub fn SQLITEP (x: Lisp_Object) -> bool { PSEUDOVECTORP (x, pvec_type::PVEC_SQLITE) }
+
+#[inline(always)]
+pub fn SQLITE (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_SQLITE) }
+
+#[inline(always)]
+pub fn CHECK_SQLITE (x: Lisp_Object) { CHECK_TYPE (SQLITE (x), Qsqlitep (), x) }
+
+#[inline(always)]
+pub fn XSQLITE (a: Lisp_Object) -> *mut Lisp_Sqlite {
+    eassert! (SQLITEP (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Sqlite)
+}
+
+// --- argument checks -------------------------------------------------------
+
+#[inline(always)]
+pub fn CHECK_LIST (x: Lisp_Object) {
+    CHECK_TYPE (CONSP (x) || NILP (x), Qlistp (), x)
+}
+
+#[inline(always)]
+pub fn CHECK_LIST_END (x: Lisp_Object, y: Lisp_Object) {
+    CHECK_TYPE (NILP (x), Qlistp (), y)
+}
+
+#[inline(always)]
+pub fn CHECK_STRING_CAR (x: Lisp_Object) {
+    CHECK_TYPE (STRINGP (XCAR (x)), Qstringp (), XCAR (x))
+}
+
+#[inline(always)]
+pub fn CHECK_VECTOR_OR_STRING (x: Lisp_Object) -> isize {
+    if VECTORP (x) {
+        return ASIZE (x);
+    }
+    if STRINGP (x) {
+        return SCHARS (x);
+    }
+    unsafe { wrong_type_argument (Qarrayp (), x) }
+}
+
+#[inline(always)]
+pub fn CHECK_ARRAY (x: Lisp_Object, predicate: Lisp_Object) {
+    CHECK_TYPE (ARRAYP (x), predicate, x)
+}
+
+#[inline(always)]
+pub fn CHECK_SUBR (x: Lisp_Object) { CHECK_TYPE (SUBRP (x), Qsubrp (), x) }
+
+#[inline(always)]
+pub fn call0 (fn_: Lisp_Object) -> Lisp_Object { unsafe { calln (fn_) } }
+
+// --- specpdl helpers that use the storage -------------------------------
+
+#[inline(always)]
+pub fn specpdl_ref_to_ptr (r: specpdl_ref) -> *mut specbinding {
+    unsafe { (specpdl as *mut u8).offset (unwrap_specpdl_ref (r)) as *mut specbinding }
+}
+
+#[inline(always)]
+pub fn SPECPDL_INDEX () -> specpdl_ref {
+    unsafe { wrap_specpdl_ref (specpdl_ptr as isize - specpdl as isize) }
+}
+
+#[inline(always)]
+pub fn grow_specpdl () {
+    unsafe {
+        specpdl_ptr = specpdl_ptr.add (1);
+        if specpdl_ptr == specpdl_end {
+            grow_specpdl_allocation ();
+        }
+    }
+}
+
+#[inline(always)]
+pub fn record_in_backtrace (function: Lisp_Object, args: *mut Lisp_Object, nargs: isize) {
+    let count = SPECPDL_INDEX ();
+    eassert! (nargs >= UNEVALLED);
+    unsafe {
+        (*specpdl_ptr).bt.kind = SPECPDL_BACKTRACE as u8;
+        (*specpdl_ptr).bt.debug_on_exit = 0;
+        (*specpdl_ptr).bt.function = function;
+        (*specpdl_ptr).bt.args = args;
+        (*specpdl_ptr).bt.nargs = nargs;
+        grow_specpdl ();
+    }
+    let _ = count;
+}
+
+pub const UNEVALLED: isize = -2;
+pub const MANY: isize = -1;
+
+// --- quitting and collection ----------------------------------------------
+
+#[inline(always)]
+pub fn maybe_quit () {
+    if !NILP (unsafe { Vquit_flag }) || unsafe { pending_signals } {
+        unsafe { probably_quit () }
+    }
+}
+
+#[inline(always)]
+pub fn rarely_quit (count: u64) {
+    if count == 0 {
+        maybe_quit ()
+    }
+}
+
+#[inline(always)]
+pub fn maybe_gc () {
+    if unsafe { consing_until_gc } < 0 {
+        unsafe { maybe_garbage_collect () }
+    }
+}
+
+// --- strings and vectors ---------------------------------------------------
+
+#[inline(always)]
+pub fn build_unibyte_string (str_: *const c_char) -> Lisp_Object {
+    unsafe { make_unibyte_string (str_, strlen (str_)) }
+}
+
+#[inline(always)]
+pub fn build_string (str_: *const c_char) -> Lisp_Object {
+    unsafe { make_string (str_, strlen (str_)) }
+}
+
+#[inline(always)]
+pub fn make_uninit_vector (size: isize) -> Lisp_Object {
+    make_lisp_ptr (unsafe { allocate_vector (size) } as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+}
+
+#[inline(always)]
+pub fn make_uninit_sub_char_table (depth: c_int) -> Lisp_Object {
+    let slots = SUB_CHAR_TABLE_OFFSET + unsafe { chartab_size[depth as usize] } as isize;
+    let v = make_uninit_vector (slots);
+    unsafe {
+        let size = std::ptr::addr_of_mut! ((*XVECTOR (v)).header.size);
+        *size |= PSEUDOVECTOR_FLAG
+            | ((pvec_type::PVEC_SUB_CHAR_TABLE as isize) << PSEUDOVECTOR_AREA_BITS);
+    }
+    unsafe {
+        (*XSUB_CHAR_TABLE (v)).depth = depth;
+        (*XSUB_CHAR_TABLE (v)).min_char = 0;
+    }
+    v
+}
+
+/// src/lisp.h 2245: SUB_CHAR_TABLE_OFFSET = PSEUDOVECSIZE (struct
+/// Lisp_Sub_Char_Table, contents) - 1; the three preceding slots are header,
+/// depth and min_char.
+pub const SUB_CHAR_TABLE_OFFSET: isize = 2;
+
+#[inline(always)]
+pub fn LOADHIST_ATTACH (x: Lisp_Object) {
+    if unsafe { initialized } {
+        unsafe { Vcurrent_load_list = Fcons (x, Vcurrent_load_list) }
+    }
+}
+
+#[inline(always)]
+pub fn intern (str_: *const c_char) -> Lisp_Object {
+    unsafe { intern_1 (str_, strlen (str_)) }
+}
+
+#[inline(always)]
+pub fn intern_c_string (str_: *const c_char) -> Lisp_Object {
+    unsafe { intern_c_string_1 (str_, strlen (str_)) }
+}
+
+#[inline(always)]
+pub fn xsignal (error_symbol: Lisp_Object, data: Lisp_Object) -> ! {
+    unsafe { Fsignal (error_symbol, data) }
+}
+
+#[inline(always)]
+pub fn CHECK_KEYWORD_ARGS (nargs: isize) {
+    // A list of keyword/value pairs must not be missing a value.
+    if nargs & 1 != 0 {
+        unsafe { xsignal0 (Qmalformed_keyword_arg_list ()) }
+    }
+}
+
+#[inline(always)]
+pub fn fast_string_match (regexp: Lisp_Object, string: Lisp_Object) -> isize {
+    unsafe { fast_string_match_internal (regexp, string, Qnil ()) }
+}
+
+#[inline(always)]
+pub fn fast_string_match_ignore_case (regexp: Lisp_Object, string: Lisp_Object) -> isize {
+    unsafe { fast_string_match_internal (regexp, string, Vascii_canon_table) }
+}
+
+#[inline(always)]
+pub fn fast_c_string_match (regexp: Lisp_Object, string: *const c_char, len: usize) -> isize {
+    unsafe { fast_c_string_match_internal (regexp, string, len, Qnil ()) }
+}
+
+#[inline(always)]
+pub fn fast_c_string_match_ignore_case (regexp: Lisp_Object, string: *const c_char,
+                                        len: usize) -> isize {
+    unsafe { fast_c_string_match_internal (regexp, string, len, Vascii_canon_table) }
+}
+
+#[inline(always)]
+pub fn maybe_disable_address_randomization (argc: c_int) -> c_int { argc }
+
+#[inline(always)]
+pub fn lispstpcpy (dest: *mut c_char, string: Lisp_Object) -> *mut c_char {
+    let len = SBYTES (string);
+    unsafe {
+        std::ptr::copy_nonoverlapping (SDATA (string), dest as *mut u8, len as usize + 1);
+        dest.add (len as usize)
+    }
+}
+
+/// In C this is a no-op when LeakSanitizer support is not compiled in.
+#[inline(always)]
+pub fn __lsan_ignore_object (_p: *const c_void) {}
+
+#[inline(always)]
+pub fn egetenv (var: *const c_char) -> *mut c_char {
+    unsafe { egetenv_internal (var, strlen (var)) }
+}
+
+#[inline(always)]
+pub fn safe_free (sa_count: specpdl_ref) {
+    while unsafe { specpdl_ptr } != specpdl_ref_to_ptr (sa_count) {
+        unsafe {
+            specpdl_ptr = specpdl_ptr.sub (1);
+            eassert! ((*specpdl_ptr).kind == SPECPDL_UNWIND_PTR as u8);
+            xfree ((*specpdl_ptr).unwind_ptr.arg);
+        }
+    }
+}
+
+#[inline(always)]
+pub fn safe_free_unbind_to (count: specpdl_ref, sa_count: specpdl_ref, val: Lisp_Object) -> Lisp_Object {
+    eassert! (!specpdl_ref_lt (sa_count, count));
+    unsafe { unbind_to (count, val) }
+}
+
+// --- native compilation and modules (feature-disabled configurations) ------
+// The frozen configuration has neither HAVE_NATIVE_COMP nor HAVE_MODULES, so
+// these live behind the same structural conditions the C uses (PORTING.md 9.2).
+
+#[cfg(feature = "native_comp")]
+#[inline(always)]
+pub fn NATIVE_COMP_FUNCTIONP (a: Lisp_Object) -> bool {
+    PSEUDOVECTORP (a, pvec_type::PVEC_NATIVE_COMP_UNIT)
+}
+
+#[cfg(feature = "native_comp")]
+#[inline(always)]
+pub fn NATIVE_COMP_FUNCTION_DYNP (f: Lisp_Object) -> bool {
+    SUBRP (f) && unsafe { (*XSUBR (f)).native_comp_u } != 0
+}
+
+#[cfg(not(feature = "native_comp"))]
+#[inline(always)]
+pub fn NATIVE_COMP_FUNCTIONP (_a: Lisp_Object) -> bool { false }
+
+#[cfg(not(feature = "native_comp"))]
+#[inline(always)]
+pub fn NATIVE_COMP_FUNCTION_DYNP (_f: Lisp_Object) -> bool { false }
+
+#[cfg(feature = "native_comp")]
+#[inline(always)]
+pub fn SUBR_TYPE (a: Lisp_Object) -> Lisp_Object {
+    unsafe { (*XSUBR (a)).type_ }
+}
+
+// allocate_native_comp_unit is not mirrored yet: it allocates a
+// struct Lisp_Native_Comp_Unit, which lives in comp.h and arrives with comp.rs.
+// It stays on the missing list rather than shipping a placeholder (PORTING.md 0.3).
+
+#[cfg(feature = "modules")]
+#[inline(always)]
+pub fn MODULE_FUNCTIONP (o: Lisp_Object) -> bool {
+    PSEUDOVECTORP (o, pvec_type::PVEC_MODULE_FUNCTION)
+}
+
+#[cfg(feature = "modules")]
+#[inline(always)]
+pub fn XMODULE_FUNCTION (o: Lisp_Object) -> *mut Lisp_Module_Function {
+    eassert! (MODULE_FUNCTIONP (o));
+    XUNTAG! (o, Lisp_Type::Lisp_Vectorlike, Lisp_Module_Function)
+}
+
+#[cfg(not(feature = "modules"))]
+#[inline(always)]
+pub fn MODULE_FUNCTIONP (_o: Lisp_Object) -> bool { false }

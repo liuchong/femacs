@@ -467,6 +467,7 @@ defun!("cons", Fcons, Scons, 2, 2, 0,
 | P-17 | `Q*` 符号（由生成的 `globals.h` 提供）在 Rust 侧实现为**同名内联函数** | 已定 | `xtask gen-globals` + `docs/baseline/globals/symbols.tsv` |
 | P-18 | `flush_stack_call_func` 的寄存器冲刷用 `_setjmp` 屏障替代 `__builtin_unwind_init` | 已定 | `lisp.rs::flush_stack_barrier`（待 `A7-③` 复核） |
 | P-19 | `specpdl`/`specpdl_ptr`/`specpdl_end` 在 C 是线程局部宏；镜像先声明为 `extern` 存储 | 待办 | thread.rs 落地后改为 `current_thread` 访问 |
+| P-20 | `get_act_rec`/`set_act_rec` 需要 `current_thread`（thread.h） | 待办 | thread.rs 落地后补齐；其余函数已全部落地 |
 
 **P-17 说明（实测决定）**：参照用 `make-docfile` 生成 `globals.h`（`#define iQfoo N` +
 `DEFINE_LISP_SYMBOL (Qfoo)`），使 `Qfoo` 成为**编译期常量表达式**。Rust 无法把符号数组地址

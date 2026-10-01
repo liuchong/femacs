@@ -1,5 +1,8 @@
 # gap of femacs/src/include/lisp.rs against emacs/src/lisp.h (updated 2026-10-02)
 # columns: item, missing, total
-functions	73	275
+functions	3	275
 macros	185	201
-globals	55	56
+globals	52	56
+
+# blocked: get_act_rec/set_act_rec need current_thread (thread.h, P-20);
+# allocate_native_comp_unit needs struct Lisp_Native_Comp_Unit (comp.h).
