@@ -1,0 +1,9 @@
+# Pinned by PORTING.md P-04: C-variadic function definitions (49 va_list sites in
+# the reference) are still unstable on 1.98.1 and the VaList API moved again in
+# 1.100 nightly.  Until stable >= 1.99 ships, the port is built with nightly.
+#
+# Resolution on 2026-10-02: nightly 1.100.0-nightly (574ff7d98 2026-09-14).
+# Before the first variadic file lands, replace `nightly` with the dated
+# toolchain (nightly-2026-09-14) so the build is reproducible.
+[toolchain]
+channel = "nightly"

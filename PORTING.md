@@ -40,6 +40,17 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
    的每单元副本）；`INLINE` / `EXTERN_INLINE`（见 §10.6）逐个判定。
 7. **`cfg` 的来源**：`--cfg` 由 `xtask` 从同一份配置生成（§9.1/§9.2），不得手写。
 8. **`Lisp_Object` 与 `Lisp_Word` 是 C 的指针型别名**（见 §2.2），不做 newtype 包装。
+9. **头镜像的额外规则（A5 落地时实测）**：镜像被 `include!` 进编译单元，因此
+   - 不允许内部属性（`#![…]`）与 crate 相对路径（`use crate::…`），allow 由包含它的
+     单元给出；
+   - 访问器（`XLI`/`XIL`/`XTYPE`…）不能写成 `const fn`——指针与整数互转在常量求值里非法，
+     与 C 一样按普通内联函数处理；
+   - 作为 union 成员的 `#[repr(C)]` 结构体必须 `Copy`（C 结构体天然可平凡复制），
+     这是 union 成员的硬性要求，不影响布局。（`spikes/layout.rs` 与 `lisp.rs` 均已实测）
+10. **布局断言由工具生成，不手写**：`xtask layout-asserts` 读
+   `docs/baseline/layout/c-layout-*.tsv`（C 编译器输出的冻结基线），生成 `const _: () =
+   assert!(size_of/offset_of …);`；镜像里没有声明过的类型记为 pending，数量随移植递减，
+   但不允许把 pending 当成通过。
 
 ### 0.2 命名与可见性
 
@@ -439,7 +450,7 @@ defun!("cons", Fcons, Scons, 2, 2, 0,
 | P-05 | `alloca`：栈池 + `sa_avail` 记账 + 循环点特判 | 待 spike | 内存压力对拍 + 循环点用例 |
 | P-06 | `static mut` 地址稳定 | 已定 | `staticpro` 断言 |
 | P-07 | docstring 用字符串字面量，`--check` 校验摘要 | 已定 | `docs/baseline/subrs.tsv` |
-| P-08 | `config.h` 需按目标冻结 | 待办 | `docs/baseline/config/*.json` |
+| P-08 | `config.h` 需按目标冻结 | **部分完成**：darwin-arm64（minimal）已冻结；GUI/其他目标待冻结 | `docs/baseline/config/*.json` + `xtask gen-config` |
 | P-09 | `dmpstruct.awk` 需在 Rust 侧重实现 | 待办 | dump 双向互换 |
 | P-10 | setjmp 三分支 + Windows `__builtin_longjmp` 配对 | 待办 | 目标平台 spike |
 | P-11 | 断言族（`clobbered_eassert`/`assume`/`verify`/`static_assert`） | 待办 | 逐条映射表 |

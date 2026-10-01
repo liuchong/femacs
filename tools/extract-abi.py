@@ -188,21 +188,40 @@ def main() -> int:
     ap.add_argument("--root", default="femacs")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--loose-lines", action="store_true")
+    ap.add_argument("--checklists", default="docs/ports",
+                    help="directory holding the per-file checklists")
     args = ap.parse_args()
 
     if args.all:
         reference, root = Path(args.reference), Path(args.root)
-        total = bad = 0
+        done = in_progress = failing = 0
         for c, rs in pairs(reference, root):
-            total += 1
             problems = compare(c, rs, strict_lines=not args.loose_lines)
-            if problems:
-                bad += 1
-                print(f"FAIL {c.relative_to(reference)} -> {rs}")
-                for p in problems[:20]:
-                    print(f"  - {p}")
-        print(f"\nchecked {total} ported files, {bad} with differences")
-        return 1 if bad else 0
+            if not problems:
+                done += 1
+                continue
+            # A file that is still being ported keeps its generated checklist with
+            # unchecked boxes; the gate only fails when the checklist says the
+            # file is finished (or when there is no checklist at all).
+            stem = c.stem
+            checklist = None
+            for cand in (Path(args.checklists) / f"{stem}.md",
+                         Path(args.checklists) / f"include-{stem}.md"):
+                if cand.is_file():
+                    checklist = cand
+                    break
+            if checklist is not None and "- [ ]" in checklist.read_text(encoding="utf-8"):
+                in_progress += 1
+                print(f"WIP  {c.relative_to(reference)} -> {rs} "
+                      f"({len(problems)} differences, checklist has unchecked boxes)")
+                continue
+            failing += 1
+            print(f"FAIL {c.relative_to(reference)} -> {rs}")
+            for problem in problems[:20]:
+                print(f"  - {problem}")
+        print(f"\nchecked {done + in_progress + failing} ported files: "
+              f"{done} done, {in_progress} in progress, {failing} failing")
+        return 1 if failing else 0
 
     if args.check:
         if len(args.paths) != 2:

@@ -1,0 +1,10 @@
+# The workspace holds the tooling; the program itself is built by `xtask`, which
+# invokes rustc once per translation unit the way a C build invokes the compiler
+# once per .c file (see PORTING.md 0.1).
+[workspace]
+resolver = "3"
+members = ["xtask"]
+
+[workspace.package]
+edition = "2024"
+license = "GPL-3.0-or-later"

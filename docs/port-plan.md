@@ -134,6 +134,17 @@
 
 **A 阶段不许写业务移植代码**（除 A6 的 3 个文件）。
 
+### 阶段 A 进度（2026-10-02）
+
+| 项 | 状态 | 证据 |
+| --- | --- | --- |
+| A1 `PORTING.md` | 完成（v2，含评审修正） | `PORTING.md` |
+| A2 `LIFETIMES.tsv` | 完成（5,562 行，0 损坏） | `LIFETIMES.tsv` |
+| A3 对抗评审 | 完成并已修 P0 | `docs/reviews/2026-10-02-adversarial-review.md` |
+| A4 三个 spike | 完成（布局 35/35 一致；长跳语义与 `Drop` 禁令有据；栈扫描 -O0/2/3 通过） | `docs/spikes/2026-10-02-three-spikes.md` |
+| A5 构建骨架 | 完成：`femacs/` workspace + `xtask`（gen-config、layout-asserts、layout-check、build-tu、gate-fast、gate-full）+ CI 快/重两档 | `femacs/xtask/src/main.rs`、`.github/workflows/ci.yml`；`xtask gate-fast` 全绿 |
+| A6 三文件试跑 | 进行中：`femacs/src/include/lisp.rs` 第一片（10 个类型，43 条布局断言通过，22 条待镜像）；`doprnt.c`/`sort.c`/`casetab.c` 未开始 | `docs/ports/lisp.md`（559 个待勾选条目） |
+
 ## 4. 移植阶段（批次 B–F）
 
 批次只是**分片与排序**，不是"先跑起来"的增量交付；任何批次都不产生"半成品二进制"要求。

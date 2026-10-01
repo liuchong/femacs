@@ -43,6 +43,8 @@ for opt in 0 2 3; do
     || { echo "build failed at -O$opt:" >> "$OUT/report.txt"; cat "$OUT/scan$opt.err" >> "$OUT/report.txt"; continue; }
   "$OUT/scan$opt" >> "$OUT/report.txt" 2>&1
 done
+python3 spikes/to-baseline.py "$OUT/layout_c.txt" \
+        docs/baseline/layout/c-layout-darwin-arm64.tsv >> "$OUT/report.txt" 2>&1
 echo "## jmp_buf sizes reported by the C side" >> "$OUT/report.txt"
 grep -E "^sizeof (jmp_buf|sigjmp_buf)" "$OUT/layout_c.txt" >> "$OUT/report.txt" 2>/dev/null
 cat "$OUT/report.txt"
