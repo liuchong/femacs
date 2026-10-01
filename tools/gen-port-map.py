@@ -86,14 +86,18 @@ def target_for(rel: Path) -> tuple[str, str]:
         return "Verbatim", f"femacs/{rel}"
     top = rel.parts[0]
     if suffix in (".c", ".h") and top in C_SOURCE_DIRS:
-        sub = f"include/{stem}.rs" if suffix == ".h" and top == "src" else f"{rel.with_suffix('.rs')}"
-        return "1:1 Rust", f"femacs/{sub}"
+        # headers never collide with their .c twin: they declare the interface
+        if suffix == ".h":
+            return "1:1 Rust", f"femacs/{rel.parent}/include/{stem}.rs" \
+                if top != "src" else f"femacs/src/include/{stem}.rs"
+        return "1:1 Rust", f"femacs/{rel.with_suffix('.rs')}"
     if suffix == ".m":
         return "Swift", f"femacs/platform/macos/{stem}.swift"
     if suffix == ".cc":
         if stem in SWIFT_EXTRA_STEMS:
             return "Swift", f"femacs/platform/macos/{stem}.swift"
-        return "C++", f"femacs/platform/haiku/{stem}.cc"
+        return ("C++", f"femacs/platform/haiku/{stem}.cc") if stem in CPP_STEMS \
+            else ("C++", f"femacs/platform/{top}/{stem}.cc")
     if suffix == ".java":
         return "Kotlin", f"femacs/platform/android/kotlin/{stem}.kt"
     if suffix in (".s", ".S"):
@@ -101,8 +105,26 @@ def target_for(rel: Path) -> tuple[str, str]:
     return "Replaced", "-"
 
 
+def tracked_files(ref: Path) -> list[Path] | None:
+    """Files tracked by git in the reference, or None when it is not a repo.
+
+    The map must describe the pinned checkout, not build products that happen to
+    sit in the working tree.
+    """
+    import subprocess
+    out = subprocess.run(["git", "-C", str(ref), "ls-files", "-z"],
+                         capture_output=True)
+    if out.returncode != 0:
+        return None
+    names = out.stdout.decode("utf-8", "surrogateescape").split("\0")
+    return [ref / n for n in names if n]
+
+
 def collect(ref: Path):
     rows: list[dict] = []
+    tracked = tracked_files(ref)
+    if tracked is not None:
+        return collect_tracked(ref, tracked)
 
     for top in sorted(p.name for p in ref.iterdir()):
         if top.startswith("."):
@@ -157,6 +179,56 @@ def collect(ref: Path):
                          "files": len(other), "lines": sum(lines_of(p) for p in other),
                          "mode": "Replaced", "target": "-",
                          "note": "not part of the program"})
+    return rows
+
+
+def collect_tracked(ref: Path, tracked: list[Path]) -> list[dict]:
+    rows: list[dict] = []
+    seen_trees: dict[str, list[Path]] = {}
+    for path in tracked:
+        rel = path.relative_to(ref)
+        top = rel.parts[0]
+        if len(rel.parts) > 1 and top in VERBATIM_DIRS:
+            seen_trees.setdefault(top, []).append(path)
+            continue
+        if len(rel.parts) > 1 and top in REPLACED_DIRS:
+            seen_trees.setdefault(top, []).append(path)
+            continue
+        if len(rel.parts) > 1:
+            mode, target = target_for(rel)
+            if mode == "Replaced":
+                seen_trees.setdefault(f"{top}/**", []).append(path)
+                continue
+            rows.append({"source": str(rel), "lines": lines_of(path), "mode": mode,
+                         "target": target, "note": "", "target_lines": target_lines(target)})
+            continue
+        if top in VERBATIM_ROOT_FILES or top.startswith("ChangeLog"):
+            rows.append({"source": top, "files": 1, "lines": lines_of(path),
+                         "mode": "Verbatim", "target": "repository root",
+                         "note": "documentation"})
+        elif top in REPLACED_ROOT_FILES or top in ("AGENTS.md", "CLAUDE.md"):
+            rows.append({"source": top, "files": 1, "lines": lines_of(path),
+                         "mode": "Replaced", "target": "-",
+                         "note": "Cargo and xtask replace it" if top in REPLACED_ROOT_FILES
+                                 else "reference-only policy file"})
+        else:
+            mode, target = target_for(rel)
+            rows.append({"source": top, "files": 1, "lines": lines_of(path), "mode": mode,
+                         "target": target, "note": "", "target_lines": target_lines(target)})
+
+    for tree, files in sorted(seen_trees.items()):
+        mode = "Verbatim" if tree.rstrip("/**") in VERBATIM_DIRS else "Replaced"
+        note = "copied unchanged" if mode == "Verbatim" else "not part of the program"
+        if tree in REPLACED_DIRS:
+            note = "Cargo and xtask replace it"
+        ext = {"el": 0, "c": 0, "h": 0, "other": 0}
+        for f in files:
+            ext[{".el": "el", ".c": "c", ".h": "h"}.get(f.suffix, "other")] += 1
+        rows.append({"source": tree, "files": len(files),
+                     "lines": sum(lines_of(f) for f in files), "mode": mode,
+                     "target": f"femacs/{tree}" if mode == "Verbatim" else "-",
+                     "note": note + (f"  (.el {ext['el']}, .c {ext['c']}, .h {ext['h']}, other {ext['other']})"
+                                     if mode == "Verbatim" else "")})
     return rows
 
 
