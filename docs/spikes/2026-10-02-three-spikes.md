@@ -48,6 +48,19 @@ result of `bash spikes/run.sh` (one build round; products removed afterwards).
    reference checkout. `docs/baseline/config/darwin-arm64.json` freezes the macros
    that matter for `PORTING.md` P-08.
 
+## Toolchain finding (settles PORTING.md P-04)
+
+Measured on this host with `rustc --edition 2024 --emit=metadata`:
+
+| Toolchain | Result |
+| --- | --- |
+| stable 1.98.1 (active) | `E0658: C-variadic functions are unstable` — the 49 `va_list` sites cannot be ported |
+| nightly 1.100.0 (2026-09-14) | definitions compile, but the API has moved (`VaList<'a>`, no `arg()` method) |
+
+So the variadic files need a pinned nightly until stable >= 1.99 ships, and the
+exact `VaList` entry points must be re-confirmed at every toolchain bump with the
+`doprnt.c` `va_copy` / `vsnprintf` case. `PORTING.md` P-04 records this.
+
 ## Reproduction
 
 ```sh

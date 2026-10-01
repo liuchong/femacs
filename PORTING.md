@@ -214,10 +214,13 @@ Rust **没有 label-as-value（`&&label`）**，无法构造 `void *targets[]` �
 
 `va_list` 在 `doprnt.c` 里是**普通参数**传递，且用到 `va_copy`（`doprnt.c:595`）。
 
-- **P-04**：使用 **Rust 稳定版 ≥ 1.99** 的 `c_variadic`（该特性已在 1.99 稳定），
-  工具链在 `rust-toolchain.toml` 中锁定为具体稳定版本，**不使用 nightly**；在选定的
-  版本上确认 `VaList` 的确切 API 名（夜间版本曾用 `VaListImpl`/`with_copy`，已变动），
-  并在 spike 中验证 `va_copy`、`va_list` 作为参数传递、与 `vsnprintf` 的互操作。
+- **P-04（2026-10-02 实测更新）**：本机 stable 1.98.1 定义 C 变参函数报
+  `E0658: C-variadic functions are unstable`；nightly 1.100.0（2026-09-14）可定义，但
+  `VaList` 的方法名已与旧文档不同（实测 `args.arg()` 不存在）。结论：
+  1. 变参文件（`va_list` 49 处）在 stable ≥ 1.99 发布前必须用 nightly；
+  2. `rust-toolchain.toml` 锁定具体版本（当前 `nightly-2026-09-14`），并在每次升级时
+     用 `doprnt.c` 的 `va_copy`/`vsnprintf` 用例重新确认 API 名；
+  3. 若届时 stable 已支持，则切回 stable 并删除该偏离记录。
 - 变参**调用**（`printf` 家族）不受此限。
 
 ### 2.5 断言（v2 更正，评审判定为阻断级）
