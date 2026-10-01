@@ -13,6 +13,10 @@ include!("limits.in.rs");
 pub const PTRDIFF_MIN: isize = isize::MIN;
 pub const PTRDIFF_MAX: isize = isize::MAX;
 
+// stdint.in.h 539-550 covers SIZE_MAX the same way; the frozen target's
+// <stdint.h> supplies it, and buffer.h's BUF_BYTES_MAX names it.
+pub const SIZE_MAX: usize = usize::MAX;
+
 // stdint.in.h 727
 pub const PTRDIFF_WIDTH: usize = _GL_INTEGER_WIDTH (PTRDIFF_MIN, PTRDIFF_MAX);
 

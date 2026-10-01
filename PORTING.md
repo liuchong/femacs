@@ -575,6 +575,7 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
 | P-36 | 字符串常量：`cinventory` 记录前就折叠了空白，`"a  b"` 与 `"a b"` 会判等；`enum char_bits`（`lisp.h` 3218-3235）还没进 `lisp.rs` | 待办 | 给 `inventory` 增加"原始值"列并在比较时使用；`CHAR_MODIFIER_MASK` 等在 `character.c` 落地前补齐（评审 B 的 F6 / 评审 A 的 F6） |
 | P-32 | arity 表在 `lisp.rs` 里出现两次（`DEFUN_ARGS_*` 镜像宏、`DEFUN!` 的 11 个 arity 臂），`xtask` 生成原型时是第三次 | 已记录（待合并） | 三处可归并成一个来源；当前由 P-28 的类型检查与 `DEFUN_ARGS_*` 清单兜底 |
 | P-30 | 现有三道闸门**看不见行为错误**（评审 A 的 P0：`XSYMBOL` 少加 `lispsym` 基址，`--check`/`build-tu`/`layout-check` 全绿却会段错误） | **待办（阶段 B 前）** | 用差分对照把核心算法 TU 与参照对拍（评审 A 的 `/tmp/dt` 手法：C 侧 `cc -std=gnu2x` + mock 运行时，Rust 侧 `rustc --crate-type bin`，同一语料逐字节比对 stdout/标记轨迹；语料覆盖 n=1…5000、6 种键型、`values` 两态、`reverse` 两态、中途 signal/longjmp 与 GC 标记） |
+| P-37 | `macro_rules!` 无 token 粘贴：`BVAR (buf, field)` / `PER_BUFFER_VAR_OFFSET (VAR)` 在 C 里把 `_` 粘到字段名上，`GET_OVERLAYS_AT` 在 C 里读展开上下文的 `sa_avail` | 已定（偏离已记录） | 调用点写完整成员名（C 名 + `_`，宏只解引用 / 取 `offset_of!`），`GET_OVERLAYS_AT` 把 `sa_avail` 作为第一个实参；宏名与调用形状仍与 C 一一对应，见 `docs/ports/include-buffer.md` |
 
 **P-17 说明（实测决定）**：参照用 `make-docfile` 生成 `globals.h`（`#define iQfoo N` +
 `DEFINE_LISP_SYMBOL (Qfoo)`），使 `Qfoo` 成为**编译期常量表达式**。Rust 无法把符号数组地址

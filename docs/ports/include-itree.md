@@ -32,6 +32,10 @@
   the gate cannot see: `offsetof` may not name a bitfield and `u8`/`u32`/`u64` all keep
   the neighbours and `sizeof` at 80, so the *unit width* is recorded here, not proven
   (P-35).
+- The three packed bits are named `ITREE_RED` / `ITREE_REAR_ADVANCE` /
+  `ITREE_FRONT_ADVANCE` next to the field, so a reader that C spells as
+  `node->rear_advance` reads a mask (`buffer.rs` `OVERLAY_*_ADVANCE_P`); the names are
+  the port's, C has only the bitfields (PORTING.md 1.3).
 - Deviations: `itree_empty_p`'s dereference sits in an `unsafe` block, with `||`
   short-circuiting exactly as C does; the include guard has no Rust counterpart
   (`pub const ITREE_H: bool = true`); `ITREE_FOREACH` / `ITREE_FOREACH_NARROW` are

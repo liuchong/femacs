@@ -595,6 +595,9 @@ for headers (P-24).  The items that took real work, and their evidence:
 | `static_assert` | C23 keyword; the port's `macro_rules!` accepts the optional message and lands in this file (PORTING 2.5). |
 | `NIL_IS_ZERO` | Derived from the generated `iQnil` (plus `Lisp_Symbol == 0`) instead of a hand-written `true`, so `static_assert (NIL_IS_ZERO)` in a unit stays meaningful. |
 | `xmalloc`, `mark_objects`, `indirect_function`, `record_unwind_protect_ptr_mark` | Added from `lisp.h` 5535/4437/4167/4821 (the first ported unit needed them). |
+| `XSETPVECTYPESIZE` | Its body called `$lisp2size_passthrough ($lispsize)`, a name no metavariable defines, so every use was a parse error — invisible until `buffer.rs`'s `BUFFER_PVEC_INIT` became the first caller.  Fixed to pass `lispsize` through, as `lisp.h` 1365 does. |
+| `word_size` / `header_size` / `VECSIZE` | Now `const fn`: C's `PSEUDOVECSIZE`/`VECSIZE` are usable in constant expressions, and `buffer.h` uses them in an `enum` (`BUFFER_LISP_SIZE`, `BUFFER_REST_SIZE`). |
+| `marker_position`, `marker_byte_position`, `buf_charpos_to_bytepos`, `buf_bytepos_to_charpos`, `record_unwind_protect` | Added from `lisp.h` 4818/4952-4956 (buffer.h's inline accessors call them).  `struct buffer` is incomplete in this mirror, so the two buffer-taking declarations are `*mut c_void` with the C pointee in a comment (0.1-2); `buffer.rs` casts at its call sites. |
 
 ### Known, recorded deviations (not missing work)
 

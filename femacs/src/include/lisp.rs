@@ -1827,9 +1827,9 @@ pub union specbinding {
     pub bt: specbinding_bt,
 }
 
-/// The specpdl itself is per-thread state in C (`#define specpdl
-/// (current_thread->m_specpdl)`); the mirror declares the storage here and the
-/// thread accessor arrives with thread.rs.
+// The specpdl itself is per-thread state in C (`#define specpdl
+// (current_thread->m_specpdl)`); the mirror declares the storage here and the
+// thread accessor arrives with thread.rs.
 unsafe extern "C" {
     pub static mut specpdl: *mut specbinding;
     pub static mut specpdl_ptr: *mut specbinding;
@@ -2769,14 +2769,14 @@ pub fn ROUNDUP (x: isize, y: isize) -> isize {
 }
 
 #[inline(always)]
-pub fn word_size () -> isize { std::mem::size_of::<Lisp_Object>() as isize }
+pub const fn word_size () -> isize { std::mem::size_of::<Lisp_Object>() as isize }
 
 #[inline(always)]
-pub fn header_size () -> isize { std::mem::size_of::<vectorlike_header>() as isize }
+pub const fn header_size () -> isize { std::mem::size_of::<vectorlike_header>() as isize }
 
 #[inline(always)]
-pub fn VECSIZE (size: usize) -> isize {
-    ((size as isize - header_size () + word_size () - 1) / word_size ())
+pub const fn VECSIZE (size: usize) -> isize {
+    (size as isize - header_size () + word_size () - 1) / word_size ()
 }
 
 /// C: offsetof (type, lastlispfield) + word_size < header_size ? 0 : ...
@@ -2938,7 +2938,7 @@ macro_rules! XSETPVECTYPE { ($v:expr, $code:expr) => {
     unsafe { (*$v).header.size |= PSEUDOVECTOR_FLAG | (($code as isize) << PSEUDOVECTOR_AREA_BITS) }
 } }
 macro_rules! XSETPVECTYPESIZE { ($v:expr, $code:expr, $lispsize:expr, $restsize:expr) => {
-    unsafe { (*$v).header.size = PVECHEADERSIZE ($code, $lisp2size_passthrough ($lispsize), $restsize) }
+    unsafe { (*$v).header.size = PVECHEADERSIZE ($code, $lispsize, $restsize) }
 } }
 macro_rules! XSETTYPED_PSEUDOVECTOR { ($a:expr, $b:expr, $size:expr, $code:expr) => {{
     XSETVECTOR! ($a, $b);
@@ -3452,3 +3452,24 @@ impl ConsToInteger for u64 {
 
 #[macro_export]
 macro_rules! CONS_TO_INTEGER { ($cons:expr, $var:expr) => { $var = <_ as ConsToInteger>::cons_to_integer ($cons) } }
+
+// --- declarations lisp.h makes for definitions that live in other units -----
+// buffer.rs (which this mirror reaches the way buffer.h includes lisp.h) needs
+// these; they are declared once, here, because a second declaration of the same
+// name in one module is E0428.
+
+// src/lisp.h 4818 (the alloc.c group).
+unsafe extern "C" {
+  pub fn record_unwind_protect (function: Option<unsafe extern "C" fn (Lisp_Object)>,
+                                arg: Lisp_Object);
+}
+
+// src/lisp.h 4952-4956 (the marker.c group).  `struct buffer` is incomplete in
+// this mirror, so the parameter keeps C's pointee in a comment and is opaque
+// (PORTING.md 0.1-2); buffer.rs casts at the call sites.
+unsafe extern "C" {
+  pub fn marker_position (marker: Lisp_Object) -> ptrdiff_t;
+  pub fn marker_byte_position (marker: Lisp_Object) -> ptrdiff_t;
+  pub fn buf_charpos_to_bytepos (buffer: *mut c_void, charpos: ptrdiff_t) -> ptrdiff_t; // struct buffer *
+  pub fn buf_bytepos_to_charpos (buffer: *mut c_void, bytepos: ptrdiff_t) -> ptrdiff_t; // struct buffer *
+}

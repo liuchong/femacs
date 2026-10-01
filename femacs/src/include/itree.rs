@@ -96,6 +96,12 @@ pub struct itree_node
   pub bits: u8,
 }
 
+/// The three `bool_bf` members of itree_node, in itree.h's declaration order.
+/// C names the bits through the bitfields; Rust reads them by mask (PORTING.md 1.3).
+pub const ITREE_RED: u8 = 1 << 0;
+pub const ITREE_REAR_ADVANCE: u8 = 1 << 1;
+pub const ITREE_FRONT_ADVANCE: u8 = 1 << 2;
+
 #[repr(C)]
 pub struct itree_tree
 {
