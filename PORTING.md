@@ -70,12 +70,16 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
 13. **C 的"先声明变量、再在分支里逐字段赋值"没有 Rust 对应物**（`E0381`：Rust 不支持
     部分初始化）。按 C 自己的零值习惯先整体初始化（`T v = T { 空值 };`），后续字段赋值
     逐条保留，并记录偏离。
-14. **草稿生成器只做机械部分，且从不写入镜像**：`tools/emit-mirror.py` 从 C 头文件机械地
+14. **包含顺序：`config.rs` → `lisp.rs` → 其他镜像**。`lisp.rs` 里定义 `eassert!` /
+    `eassume!` / `CHECK_TYPE` 等宏，其余镜像（`character.rs`、`itree.rs`、`buffer.rs`…）
+    在函数体里**文本展开**它们，所以 `include!` 顺序与 C 的"先 `lisp.h`"一致；
+    `xtask` 的布局探针也按这个顺序拼装（A6 实测：顺序错了会 `cannot find macro eassert`）。
+15. **草稿生成器只做机械部分，且从不写入镜像**：`tools/emit-mirror.py` 从 C 头文件机械地
    产出结构体/联合/typedef/字面常量/`extern` 声明（函数指针字段、位域结构体、无法映射的
    类型会被明确跳过并列入"人工工作"清单）。它的输出是**草稿**（`docs/ports/*-draft.rs`），
    必须逐类型补全并通过布局闸门后才允许合并进镜像——实测把未补全的草稿整块贴进镜像时，
    `xtask layout-check` 立刻以 `sizeof handler` 断言失败拦下，这正是期望行为。
-15. **布局断言由工具生成，不手写**：`xtask layout-asserts` 读
+16. **布局断言由工具生成，不手写**：`xtask layout-asserts` 读
    `docs/baseline/layout/c-layout-*.tsv`（C 编译器输出的冻结基线），生成 `const _: () =
    assert!(size_of/offset_of …);`；镜像里没有声明过的类型记为 pending，数量随移植递减，
    但不允许把 pending 当成通过。
@@ -210,6 +214,10 @@ pub type Lisp_Object = Lisp_Word;
 - **位域**（`.c`+`.h` 共 557 行，含 282 处 `bool_bf`）在 Rust 无对应物 → 用等宽整数 +
   显式 `get_*`/`set_*` 辅助，位宽、位序、整体宽度必须逐位一致；与 dump/`memcpy`/`union`
   混用处逐个核对（§6.4）。`ENUM_BF (T) name : 2` 的宽度是 2 位，不是 `T` 的宽度。
+  **落地约定**（`Lisp_Marker`、`itree_node` 已用）：同一存储单元里连续的位域折成一个
+  整数字段，名字用 `bits`（与后一字段之间需要凑偏移时才加 `_pad`），字段上方用
+  `///` 逐条列出 C 的位域声明；**打包是否正确由 C 编译器的偏移/`sizeof` 断言证明**
+  （§0.1-16）。
 - 变长结构体（`FLEXIBLE_ARRAY_MEMBER` 11 处）→ `data: [u8; 0]` + `offset_of!`。
 
 ### 1.4 函数指针与类型双关
@@ -547,7 +555,7 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
 | P-21 | `DEFVAR_*` 的变量在 C 里是 `globals.f_V*`（为调试器聚合）；镜像按变量各声明一个 `static mut` | 已定 | `xtask gen-globals` + `docs/baseline/globals/variables.tsv` |
 | P-22 | `FOR_EACH_TAIL*`/`DOHASH*`/`DOOBARRAY` 是循环宏，Rust 形态（迭代器/闭包）尚待决策 | 待办 | `docs/ports/excluded-macros.txt`（kind=deferred），使用这些宏的文件暂不开工 |
 | P-23 | GDB 符号技巧（一个名字既是宏又是常量符号）在 Rust 无对应物 | 已定 | `docs/ports/excluded-macros.txt`（kind=debugger）；`xtask` 后续另行产出调试符号 |
-| P-24 | 检查器对头镜像的判定规则 | 已定 | 头文件不做行数漂移判定；结构体字段按**成员集合**比对（顺序由布局断言负责）；C 位域跳过；条件分支中的常量与宏别名不比对；排除/挂账项见 `docs/ports/excluded-macros.txt` |
+| P-24 | 检查器对头镜像的判定规则 | 已定 | 头文件不做行数漂移判定；结构体字段按**成员集合**比对（顺序由布局断言负责）；C 位域跳过；条件分支中的常量与宏别名不比对；**字符串常量按解码后的字节比对**（C 的 `"\xE2\x80\x98"` 与 Rust 的 `"\u{2018}"` 是同一串）；排除/挂账项见 `docs/ports/excluded-macros.txt` |
 | P-25 | `EXFUN` 的 `const`/`pure`/`noinline` 前缀无 Rust 对应物 | 已定（偏离已记录） | 只影响优化；`noreturn` 已映射为 `-> !`（§5.2） |
 | P-26 | gnulib/系统头（`lib/stdint.in.h`、`lib/limits.in.h`、`lib/intprops.h`、`lib/verify.h`…）的镜像 | **部分完成**：`stdint.in.rs`/`limits.in.rs` 只含宽度一节（WIP） | 逐头文件补全并让 WIP 计数下降（§7.3） |
 | P-27 | 检查器只跟随一层 `include!` | 已定 | 名字（函数/宏/静态量/常量/subr）仍按"文件 + 一层镜像"收集；**桩检测看全部被包含文本**（否则可把实现放进被包含文件绕过），5% 行数预算只看文件自身；桩检测跳过 C 文件里没有的名字（镜像内联函数） |
@@ -555,6 +563,8 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
 | P-29 | `globals.rs` 的原型集是"全配置超集"（含 304 个仅 GUI/平台文件才有的名字），与 C 按 `GLOBAL_SOURCES` 生成的 `globals.h` 不同 | 已记录（偏离） | C 里调用未配置的 subr 是编译错误，Rust 里会到链接期才暴露；待 `xtask` 冻结每目标的源文件清单后按配置过滤（P-08 完成后） |
 | P-28 | subr 的"原型 ↔ 定义"检查缺失 | **已完成**（`extract-abi.py`：注释无关的匹配、`DEFUN!` 参数**类型** vs `DEFUN_ARGS_*`、`attributes: noreturn` ⟺ C 的 flags、crate 根不许声明 subr 原型、`defsubr` 集合逐条对齐、`DEFUN!` 体也做桩检测、`maxargs` 不可解析时报错；`gate-fast` 现在还编译每个**已完成**的 TU） | 评审 A/B 的 40+ 个攻击用例全部按预期通过/拒绝；残余：doc 摘要为词级（字节级靠阶段 G 的 `etc/DOC`） |
 | P-31 | 有 5 个 `S…` 记录（`Sfont_drive_otf`、`Sfont_otf_alternates`、`Sdraw_string`、`Sframe_configuration`、`Srestore_frame_configuration`）由 `font.c`/`frame.c` 注册，但定义在 `.m` 一侧；另有 1 个 DEFUN（`minibuf.c` 的 `Fread_function`）参照从不注册 | 已记录 | `.m` 一侧的 Swift 实现要导出这 5 个记录（或由 Swift 侧注册）；`Fread_function` 照参照不注册；`--check` 按参照文件自己的 `defsubr` 集合对齐，两条都自然覆盖 |
+| P-33 | `ITREE_FOREACH` / `ITREE_FOREACH_NARROW`（5 个文件 23 处）是循环宏：C 在展开点声明迭代器、`_NARROW` 再引用它，Rust 的宏卫生不允许跨展开引用 | **待定（阻断 buffer.c/itree.c/editfns.c/textprop.c/xdisp.c）** | `docs/ports/excluded-macros.txt`（deferred）；候选形态：把迭代器名作为宏实参传入，或把 body 作为最后一个实参并在其中传入 `&mut` 迭代器；定下来后同一提交里给出 23 处的改写 |
+| P-34 | 布局基线只覆盖手挑的键（现 207 条，A6 起由 `tools/gen-layout-fields.py` 按"镜像结构体的每个非位域字段"生成） | 进行中 | 每加一个镜像，就在 `struct` 列表里加一项并 `bash spikes/run.sh` 重生成（数字永远来自 C 编译器） |
 | P-32 | arity 表在 `lisp.rs` 里出现两次（`DEFUN_ARGS_*` 镜像宏、`DEFUN!` 的 11 个 arity 臂），`xtask` 生成原型时是第三次 | 已记录（待合并） | 三处可归并成一个来源；当前由 P-28 的类型检查与 `DEFUN_ARGS_*` 清单兜底 |
 | P-30 | 现有三道闸门**看不见行为错误**（评审 A 的 P0：`XSYMBOL` 少加 `lispsym` 基址，`--check`/`build-tu`/`layout-check` 全绿却会段错误） | **待办（阶段 B 前）** | 用差分对照把核心算法 TU 与参照对拍（评审 A 的 `/tmp/dt` 手法：C 侧 `cc -std=gnu2x` + mock 运行时，Rust 侧 `rustc --crate-type bin`，同一语料逐字节比对 stdout/标记轨迹；语料覆盖 n=1…5000、6 种键型、`values` 两态、`reverse` 两态、中途 signal/longjmp 与 GC 标记） |
 

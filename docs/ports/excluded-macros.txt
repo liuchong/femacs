@@ -35,3 +35,5 @@ FOR_EACH_ALIST_VALUE	deferred	loop macro; Rust form pending P-22
 get_act_rec	blocked	needs current_thread (thread.h); PORTING.md P-20
 set_act_rec	blocked	needs current_thread (thread.h); PORTING.md P-20
 allocate_native_comp_unit	blocked	needs struct Lisp_Native_Comp_Unit (comp.h)
+ITREE_FOREACH	deferred	loop macro: C declares its iterator at the expansion site and ITREE_FOREACH_NARROW reads it, which Rust macro hygiene forbids; the shape is an open decision (PORTING.md P-33)
+ITREE_FOREACH_NARROW	deferred	same iteration-macro decision (PORTING.md P-33)

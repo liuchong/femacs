@@ -194,6 +194,46 @@ def decode_rust_string(text: str) -> str:
     return "".join(out)
 
 
+C_SIMPLE_ESCAPES = {"n": 10, "t": 9, "r": 13, "0": 0, "a": 7, "b": 8,
+                    "f": 12, "v": 11, "\\": 92, '"': 34, "'": 39, "?": 63}
+
+
+def decode_c_string(text: str) -> bytes:
+    """The bytes of a C string-literal body (PORTING.md 5.1: a string-valued
+    macro keeps its value, spelled with whichever escapes are portable)."""
+    s = text.strip()
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        s = s[1:-1]
+    out, i, n = bytearray(), 0, len(s)
+    while i < n:
+        ch = s[i]
+        if ch != "\\" or i + 1 >= n:
+            out += ch.encode("utf-8")
+            i += 1
+            continue
+        nxt = s[i + 1]
+        if nxt == "\n":                       # line splice: no byte at all
+            i += 2
+            continue
+        if nxt == "x":                         # C: all following hex digits
+            j = i + 2
+            while j < n and s[j] in "0123456789abcdefABCDEF":
+                j += 1
+            out.append(int(s[i + 2:j], 16) & 0xFF)
+            i = j
+            continue
+        if nxt in "01234567":                  # up to three octal digits
+            j = i + 1
+            while j < n and j < i + 4 and s[j] in "01234567":
+                j += 1
+            out.append(int(s[i + 1:j], 8) & 0xFF)
+            i = j
+            continue
+        out.append(C_SIMPLE_ESCAPES.get(nxt, ord(nxt)))
+        i += 2
+    return bytes(out)
+
+
 def strip_comments(text: str) -> str:
     """Rust comments removed without touching string or char literals, so a
     comment can never hide a definition from the static checks."""
@@ -384,6 +424,15 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             continue
         if c["macro_duplicates"].get (name, 0) > 1:
             continue
+        # A string literal is compared as its *value*: C spells a code point with
+        # byte escapes (`"\xE2\x80\x98"`), Rust with `"\u{2018}"`, and the two
+        # are the same bytes (PORTING.md 5.1).
+        if value.strip().startswith('"') and r["constants"][name].strip().startswith('"'):
+            rust_body = r["constants"][name].strip()[1:-1]   # decode_rust_string takes the body
+            if decode_c_string(value) != decode_rust_string(rust_body).encode("utf-8"):
+                problems.append(f"constant {name}: C {value} vs Rust "
+                                f"{r['constants'][name]} (different bytes)")
+            continue
         if r["constants"][name] in ("", "0") and norm_const (value) == "0":
             continue
         if norm_const (r["constants"][name]) != norm_const (value):
@@ -569,13 +618,25 @@ PORTED_DIRS = ("src", "lib", "lib-src", "lwlib", "oldXMenu", "exec", "nt", "msdo
 
 
 def pairs(reference: Path, root: Path):
+    """Pair every C source with its port.
+
+    PORTING.md 0.1 fixes the layout: a `.c` is `femacs/<same path>.rs` and a `.h` is
+    `femacs/<dir>/include/NAME.rs`.  The earlier fallback list let a *header* mirror
+    stand in for the `.c` of the same stem (character.c was checked against the
+    character.h mirror), so the kind of the reference file decides now.
+    """
     candidates = [p for top in PORTED_DIRS for p in reference.joinpath(top).rglob("*")
                   if p.suffix in (".c", ".h")]
     for c in sorted(candidates):
         rel = c.relative_to(reference)
-        cand = (root / rel.with_suffix(".rs"),
-                root / "src" / Path(rel.name).with_suffix(".rs"),
-                root / "src" / "include" / Path(rel.name).with_suffix(".rs"))
+        name = Path(rel.name).with_suffix(".rs")
+        if c.suffix == ".h":
+            cand = [root / rel.parent / "include" / name]
+        else:
+            cand = [root / rel.parent / name,
+                    # the port keeps the reference's directory names, but a few
+                    # directories are flattened (nt/inc/*.c, exec/*.c)
+                    root / "src" / name]
         for x in cand:
             if x.is_file():
                 yield c, x

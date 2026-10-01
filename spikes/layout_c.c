@@ -32,6 +32,9 @@ main (void)
   SZ (struct window);
   SZ (jmp_buf); SZ (sigjmp_buf);
 
+  /* every field of the mirrored structs (generated) */
+#include "layout_fields.h"
+
   OFF (union vectorlike_header, size);
   OFF (struct Lisp_String, u.s.size);
   OFF (struct Lisp_String, u.s.size_byte);

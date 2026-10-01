@@ -387,12 +387,25 @@ fn layout_check() -> i32 {
     };
     fs::create_dir_all(BUILD).ok();
     let probe = Path::new(BUILD).join("layout_probe.rs");
-    let config = Path::new("src/include/config.rs");
-    let lisp = Path::new("src/include/lisp.rs");
     let mut src = String::new();
     src.push_str("#![allow(non_camel_case_types, non_snake_case, dead_code, unused_imports, unused_macros)]\n");
     src.push_str("use std::mem::{align_of, size_of, offset_of};\n");
-    for path in [config, lisp, asserts.as_path()] {
+    // Every header mirror, so the assertions run for all of them; globals.rs is
+    // included by lisp.rs (mirroring lisp.h including <globals.h>).
+    let mut mirrors: Vec<PathBuf> = fs::read_dir("src/include")
+        .map(|d| d.filter_map(Result::ok).map(|e| e.path()).collect())
+        .unwrap_or_default();
+    mirrors.sort();
+    mirrors.retain(|p| p.extension().map(|x| x == "rs").unwrap_or(false)
+                          && p.file_name().map(|n| n != "globals.rs").unwrap_or(true));
+    // lisp.rs first: it defines the macros (eassert, eassume, CHECK_*) the other
+    // mirrors expand textually, exactly as C's headers get them from lisp.h.
+    if let Some(i) = mirrors.iter().position(|p| p.file_name().map(|n| n == "lisp.rs").unwrap_or(false)) {
+        let lisp = mirrors.remove(i);
+        mirrors.insert(0, lisp);
+    }
+    mirrors.push(asserts);
+    for path in mirrors {
         let full = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
         src.push_str(&format!("include!({:?});\n", full.display().to_string()));
     }
