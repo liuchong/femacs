@@ -474,6 +474,63 @@ fn gate_fast() -> i32 {
         Ok(s) => return fail(format!("cargo check failed ({s})")),
         Err(e) => return fail(e),
     }
+    println!("== translation units ==");
+    if let Err(e) = build_finished_tus() {
+        return fail(e);
+    }
     println!("== layout gate ==");
     layout_check()
+}
+
+/// Compile every translation unit whose ledger says it is finished.  The textual
+/// gates cannot see a unit that rustc rejects (that is how the noreturn record
+/// defect in the first DEFUN machinery passed them), so the fast gate compiles
+/// what it certifies.  A unit is finished when its checklist has no unchecked
+/// boxes (`docs/ports/README.md`); headers have `include-<stem>.md` ledgers and
+/// are compiled as part of the units that include them.
+fn build_finished_tus() -> Result<(), String> {
+    let ports = Path::new(REPO).join("docs/ports");
+    let mut entries: Vec<PathBuf> = fs::read_dir(&ports)
+        .map_err(|e| format!("{}: {e}", ports.display()))?
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .collect();
+    entries.sort();
+    let mut built = 0usize;
+    for ledger in entries {
+        if ledger.extension().map(|x| x != "md").unwrap_or(true) {
+            continue;
+        }
+        let stem = ledger.file_stem().unwrap_or_default().to_string_lossy().to_string();
+        if stem.starts_with("include-") || stem == "README" {
+            continue;
+        }
+        let unit = Path::new("src").join(format!("{stem}.rs"));
+        if !unit.is_file() {
+            continue;                                  // header mirror, not a unit
+        }
+        let checklist = fs::read_to_string(&ledger).map_err(|e| e.to_string())?;
+        if checklist.contains("- [ ]") {
+            continue;                                  // still being ported
+        }
+        fs::create_dir_all(BUILD).ok();
+        let out = Path::new(BUILD).join(format!("{stem}.o"));
+        let status = Command::new("rustc")
+            .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
+                   "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
+            .arg(&unit)
+            .arg("-o")
+            .arg(&out)
+            .status();
+        match status {
+            Ok(s) if s.success() => {
+                println!("built {}", unit.display());
+                built += 1;
+            }
+            Ok(s) => return Err(format!("rustc failed for {} ({s})", unit.display())),
+            Err(e) => return Err(format!("{}: {e}", unit.display())),
+        }
+    }
+    println!("{built} finished translation unit(s) compiled");
+    Ok(())
 }

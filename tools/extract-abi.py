@@ -47,7 +47,7 @@ def load(name: str = "cinventory"):
 
 ci = load()
 
-R_FN = re.compile(r"^\s*(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn\s+"
+R_FN = re.compile(r"^\s*(?:pub\s+)?(?:const\s+)?(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn\s+"
                   r"(?P<name>[A-Za-z_]\w*)", re.M)
 R_FN_BODY = re.compile(r"\bfn\s+(?P<name>[A-Za-z_]\w*)[^{;]*\{(?P<body>[^{}]*)\}",
                        re.S)
@@ -59,10 +59,18 @@ R_STATIC = re.compile(r"\b(?:pub\s+)?(?:static|const)\s+(?:mut\s+)?"
                       r"(?P<name>[A-Za-z_]\w*)")
 R_CONST = re.compile(r"\b(?:pub\s+)?const\s+(?P<name>[A-Za-z_]\w*)\s*:\s*[^=]+=\s*"
                      r"(?P<value>[^;]+);")
-R_DEFUN = re.compile(r"defun!\s*\(\s*\"(?P<lisp>[^\"]+)\"\s*,\s*(?P<cname>\w+)\s*,\s*"
+R_DEFUN = re.compile(r"DEFUN!\s*\(\s*\"(?P<lisp>[^\"]+)\"\s*,\s*(?P<cname>\w+)\s*,\s*"
                      r"(?P<sname>\w+)\s*,\s*(?P<min>[^,]+?)\s*,\s*(?P<max>[^,]+?)\s*,\s*"
                      r"(?P<n>[^,]+?)\s*,", re.S)
 R_DOC_STRING = re.compile(r'doc\s*:\s*"(?P<doc>(?:[^"\\]|\\.)*)"', re.S)
+# A `DEFUN!` definition (PORTING.md 5.1): C's DEFUN with the body as the last
+# argument, so the parameter tuple and the body follow the docstring.
+R_DEFUN_DEF = re.compile(
+    r"DEFUN!\s*\(\s*\"(?P<lisp>[^\"]+)\"\s*,\s*(?P<cname>\w+)\s*,\s*(?P<sname>\w+)\s*,"
+    r"\s*(?P<min>[^,]+?)\s*,\s*(?P<max>[^,]+?)\s*,\s*(?P<n>[^,]+?)\s*,"
+    r"\s*doc\s*:\s*\"(?:[^\"\\]|\\.)*\"\s*,"
+    r"(?P<attrs>\s*attributes\s*:\s*noreturn\s*,)?"
+    r"\s*\((?P<params>[^)]*)\)\s*,\s*\{", re.S)
 R_DOC_COMMENT = re.compile(r"doc\s*:\s*/\*(?P<doc>.*?)\*/", re.S)
 STUB_RE = re.compile(r"(unimplemented!|todo!|unreachable!\(\s*\)\s*$)")
 
@@ -102,19 +110,42 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
         structs[name] = [f.group("name").removeprefix("r#") for f in R_FIELD.finditer(body)]
         for f in re.finditer(r"^\s*(?:pub\s+)?(?:r#)?(\w+)\s*:\s*([A-Za-z_]\w*)", body, re.M):
             struct_types[(name, f.group(1))] = f.group(2)
+    # Comments and layout must not be able to hide a definition from the checks
+    # below, so every pattern that finds a `DEFUN!` runs on the collapsed view
+    # (string literals are preserved verbatim by strip_comments).
+    flat_own = normalise(own)
+    flat = normalise(text)
     subrs = []
-    for m in R_DEFUN.finditer(text):
-        tail = text[m.end():m.end() + 4000]
+    for m in R_DEFUN.finditer(flat):
+        tail = flat[m.end():m.end() + 4000]
         sm = R_DOC_STRING.search(tail) or R_DOC_COMMENT.search(tail)
+        # C's docstring is a comment; the port's is a Rust string literal, so the
+        # literal's escapes are decoded before the digest (PORTING.md 5.1).
+        doc = None
+        if sm:
+            doc = (decode_rust_string(sm.group("doc")) if sm.re is R_DOC_STRING
+                   else sm.group("doc"))
         subrs.append({"lisp_name": m.group("lisp"), "c_name": m.group("cname"),
                       "min": m.group("min").strip(), "max": m.group("max").strip(),
                       "n": m.group("n").strip(),
-                      "doc_digest": digest(sm.group("doc")) if sm else None,
+                      "doc_digest": digest(doc) if doc is not None else None,
                       "doc_style": ("string" if sm and sm.re is R_DOC_STRING else
                                     "comment" if sm else None)})
     # Stub detection sees everything the unit compiles, including the mirrors it
     # textually includes; the 5% line budget is about the ported file itself.
+    subr_defs = []
+    for m in R_DEFUN_DEF.finditer(flat_own):
+        params = [x for x in split_top_level(m.group("params")) if x.strip()]
+        open_brace = flat_own.index("{", m.end() - 1)
+        subr_defs.append({"lisp_name": m.group("lisp"), "c_name": m.group("cname"),
+                          "s_name": m.group("sname"),
+                          "min": m.group("min").strip(), "max": m.group("max").strip(),
+                          "n": m.group("n").strip(), "n_params": len(params),
+                          "params": [x.strip() for x in params],
+                          "noreturn": bool(m.group("attrs")),
+                          "body": block_body(flat_own, open_brace)})
     bodies = {m.group("name"): m.group("body") for m in R_FN_BODY.finditer(text)}
+    bodies.update({d["c_name"]: d["body"] for d in subr_defs})
     return {"lines": own.count("\n"),
             "functions": sorted({m.group("name") for m in R_FN.finditer(text)}),
             "macros": sorted({m.group("name") for m in R_MACRO.finditer(text)}),
@@ -122,7 +153,173 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
             "statics": sorted({m.group("name") for m in R_STATIC.finditer(text)}),
             "constants": {m.group("name"): re.sub(r"\s+", " ", m.group("value")).strip()
                           for m in R_CONST.finditer(text)},
-            "subrs": subrs, "bodies": bodies, "text": text}
+            "subrs": subrs, "subr_defs": subr_defs, "bodies": bodies,
+            "flat_own": flat_own, "text": text}
+
+
+def decode_rust_string(text: str) -> str:
+    """Decode the escapes a Rust string literal may carry (PORTING.md 5.1: the
+    docstring is a literal, C's is a comment, so `"` in a docstring is `\\"`).
+    Handles every escape rustc accepts, including `\\xNN`, `\\u{…}` and the
+    line continuation, so two different texts cannot decode to one value."""
+    out, i, n = [], 0, len(text)
+    simple = {"n": "\n", "t": "\t", "r": "\r", "0": "\0", "\\": "\\",
+              '"': '"', "'": "'"}
+    while i < n:
+        ch = text[i]
+        if ch != "\\":
+            out.append(ch)
+            i += 1
+            continue
+        if i + 1 >= n:                      # trailing backslash: not valid Rust
+            out.append(ch)
+            break
+        nxt = text[i + 1]
+        if nxt == "\n":                     # line continuation: newline and the
+            i += 2                           # next line's leading space vanish
+            while i < n and text[i] in " \t":
+                i += 1
+            continue
+        if nxt == "x" and i + 3 < n:
+            out.append(chr(int(text[i + 2:i + 4], 16)))
+            i += 4
+            continue
+        if nxt == "u" and i + 2 < n and text[i + 2] == "{":
+            end = text.find("}", i + 3)
+            out.append(chr(int(text[i + 3:end], 16)))
+            i = end + 1
+            continue
+        out.append(simple.get(nxt, nxt))
+        i += 2
+    return "".join(out)
+
+
+def strip_comments(text: str) -> str:
+    """Rust comments removed without touching string or char literals, so a
+    comment can never hide a definition from the static checks."""
+    out, i, n, depth = [], 0, len(text), 0
+    while i < n:
+        ch = text[i]
+        if depth == 0 and ch == '"':
+            j = i + 1
+            while j < n:
+                if text[j] == "\\":
+                    j += 2
+                    continue
+                if text[j] == '"':
+                    j += 1
+                    break
+                j += 1
+            out.append(text[i:j])
+            i = j
+            continue
+        if depth == 0 and text.startswith("//", i):
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+            continue
+        if text.startswith("/*", i):
+            depth += 1
+            i += 2
+            out.append(" ")
+            continue
+        if text.startswith("*/", i) and depth:
+            depth -= 1
+            i += 2
+            continue
+        if depth:
+            i += 1
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def normalise(text: str) -> str:
+    """The code with comments and layout taken out: whitespace runs collapse to
+    one space *outside* string literals, whose own bytes are data and are kept."""
+    text = strip_comments(text)
+    out, i, n, pending = [], 0, len(text), False
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            j = i + 1
+            while j < n:
+                if text[j] == "\\":
+                    j += 2
+                    continue
+                if text[j] == '"':
+                    j += 1
+                    break
+                j += 1
+            if pending and out:
+                out.append(" ")
+            pending = False
+            out.append(text[i:j])
+            i = j
+            continue
+        if ch.isspace():
+            pending = True
+            i += 1
+            continue
+        if pending and out:
+            out.append(" ")
+        pending = False
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def block_body(text: str, open_index: int) -> str:
+    """Body of the `{ … }` block that starts at OPEN_INDEX, literals skipped."""
+    depth, i, n = 0, open_index, len(text)
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            i += 1
+            while i < n:
+                if text[i] == "\\":
+                    i += 2
+                    continue
+                if text[i] == '"':
+                    break
+                i += 1
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[open_index + 1:i]
+        i += 1
+    return ""
+
+
+def spec_value(spec: str) -> str | None:
+    """The runtime value of a C `intspec` / Rust `intspec` literal: `0` and
+    `NULL` are the null pointer, a string literal decodes like C/Rust do."""
+    s = spec.strip().rstrip(",").strip()
+    if s in ("0", "NULL"):
+        return None
+    if len(s) >= 2 and s[0] == '"' and s[-1] == '"':
+        return decode_rust_string(s.replace("\\\n", ""))
+    return s
+
+
+def split_top_level(text: str) -> list[str]:
+    """Split on commas that are not nested in any bracket."""
+    out, depth, cur = [], 0, ""
+    for ch in text:
+        if ch in "([{<":
+            depth += 1
+        elif ch in ")]}>":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    if cur.strip():
+        out.append(cur)
+    return out
 
 
 def body_is_empty(c_path: Path, name: str) -> bool:
@@ -200,13 +397,94 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         if match["lisp_name"] != subr["lisp_name"]:
             problems.append(f"subr {subr['c_name']}: Lisp name {match['lisp_name']} "
                             f"vs {subr['lisp_name']}")
-        for key in ("min", "max", "n"):
+        for key in ("min", "max"):
             if match[key].strip() != subr[key].strip():
                 problems.append(f"subr {subr['c_name']}: {key} {match[key]} vs {subr[key]}")
+        # The interactive spec is compared by value: C splices a multi-line
+        # literal away, and a prompt's own spacing is meaning (P-24).
+        if spec_value(match["n"]) != spec_value(subr["n"]):
+            problems.append(f"subr {subr['c_name']}: n {match['n']} vs {subr['n']}")
         if match["doc_digest"] is None:
             problems.append(f"subr {subr['c_name']}: no docstring found on the Rust side")
         elif match["doc_digest"] != subr["doc_digest"]:
             problems.append(f"subr {subr['c_name']}: docstring differs")
+
+    # P-28 (PORTING.md 0.1-11): the generated `EXFUN` prototype is shadowed by the
+    # definition in the unit that defines the subr, so Rust itself cannot compare
+    # them (a wrong arity or a missing `-> !` would compile).  The gate compares
+    # each `DEFUN!` definition against the DEFUN table of the reference file.
+    def param_types(maxargs: str) -> list[str] | None:
+        """C's DEFUN_ARGS_<maxargs>, the parameter list the generated EXFUN gives
+        every translation unit (src/lisp.h 835-854)."""
+        if maxargs == "MANY":
+            return ["isize", "*mut Lisp_Object"]
+        if maxargs == "UNEVALLED":
+            return ["Lisp_Object"]
+        if maxargs.isdigit():
+            return ["Lisp_Object"] * int(maxargs)
+        return None
+
+    def param_type(decl: str) -> str:
+        return decl.split(":", 1)[1].strip() if ":" in decl else decl.strip()
+
+    c_by_name = {d["c_name"]: d for d in c["defuns"]}
+    defs_by_name: dict[str, list[dict]] = {}
+    for d in r.get("subr_defs", []):
+        defs_by_name.setdefault(d["c_name"], []).append(d)
+
+    for name, defs in sorted(defs_by_name.items()):
+        if name not in c_by_name:
+            problems.append(f"DEFUN! {name}: the reference file has no such DEFUN")
+        if len(defs) > 1:
+            problems.append(f"DEFUN! {name}: defined {len(defs)} times in this file")
+    for name in sorted(c_by_name):
+        if name not in defs_by_name:
+            problems.append(f"DEFUN! {name}: the reference DEFUN has no `DEFUN!` definition")
+
+    for d in r.get("subr_defs", []):
+        ref = c_by_name.get(d["c_name"])
+        if ref is None:
+            continue
+        want_types = param_types(ref["max"])
+        if want_types is None:
+            problems.append(f"DEFUN! {d['c_name']}: unparsable reference maxargs "
+                            f"{ref['max']!r}")
+        else:
+            got_types = [param_type(x) for x in d["params"]]
+            if len(got_types) != len(want_types):
+                problems.append(f"DEFUN! {d['c_name']}: {len(got_types)} parameters, "
+                                f"maxargs {ref['max']} needs {len(want_types)}")
+            elif got_types != want_types:
+                problems.append(f"DEFUN! {d['c_name']}: parameters {got_types} but "
+                                f"maxargs {ref['max']} needs {want_types}")
+        want_noreturn = "noreturn" in ref.get("flags", "")
+        if d["noreturn"] != want_noreturn:
+            problems.append(f"DEFUN! {d['c_name']}: attributes noreturn "
+                            f"{'missing' if want_noreturn else 'unexpected'} "
+                            f"(the reference declares it, so the definition must be `-> !`)")
+
+    # `syms_of_*` registers the file's subr records; the reference file's own
+    # calls are the source of truth, because a few are not what the DEFUN table
+    # suggests (upstream never registers minibuf.c's Fread_function, and font.c /
+    # frame.c register records that live in the .m side, PORTING.md P-31).
+    c_defsubr = set(re.findall(r"defsubr\s*\(\s*&\s*(S\w+)\s*\)",
+                               ci.blank_comments(c_path.read_text(encoding="utf-8", errors="replace"))))
+    r_defsubr = set(re.findall(r"defsubr\s*\(\s*&\s*(?:raw\s+(?:const|mut)\s+)?(S\w+)\s*\)",
+                               r.get("flat_own", "")))
+    for name in sorted(c_defsubr - r_defsubr):
+        problems.append(f"missing defsubr (&raw const {name})")
+    for name in sorted(r_defsubr - c_defsubr):
+        problems.append(f"unexpected defsubr (&{name}): the reference file does not register it")
+
+    # A crate-root declaration of a subr name collides with the unit's own
+    # definition (E0428); C's prototypes come from globals.h only.
+    if not str(rs_path).endswith("globals.rs"):
+        for name in re.findall(
+                r"\b(?:pub(?:\([^)]*\))?\s+)?(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn\s+"
+                r"(F\w+)\s*\([^;{]*?\)\s*[^;{]*?;", r.get("flat_own", "")):
+            if name in c_by_name:
+                problems.append(f"{name} is declared at crate root; C's prototype for a "
+                                f"subr comes from globals.h (E0428)")
 
     def flatten_with_wrappers (name: str, seen: set[str]) -> list[str]:
         if name in seen:
@@ -267,7 +545,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
 
     empty_in_c = {f["name"] for f in c["functions"] if body_is_empty(c_path, f["name"])}
     for name, body in sorted(r["bodies"].items()):
-        if name not in c_funcs:
+        if name not in c_funcs and name not in c_by_name:
             # an inline helper of a textually included mirror (for example
             # lisp.h's own inline functions); it belongs to that file's ledger
             continue
