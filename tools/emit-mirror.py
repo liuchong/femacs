@@ -56,6 +56,7 @@ def collect_typedefs(text: str) -> dict[str, tuple[str, int]]:
 def rust_type(c_type: str, depth: int, array: str, typedefs: dict | None = None,
               known: set | None = None) -> str | None:
     t = re.sub(r"\s+", " ", c_type.strip())
+    t = re.sub(r"^(?:extern|static)\s+", "", t)
     t = t.replace("const ", "").replace("volatile ", "")
     t = re.sub(r"\bstruct\s+", "", t)
     t = re.sub(r"\bunion\s+", "", t)

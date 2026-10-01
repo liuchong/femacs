@@ -988,6 +988,21 @@ pub type bits_word = usize;
 pub const BITS_PER_BITS_WORD: usize = 64;      // SIZE_WIDTH from the configuration
 pub const BITS_WORD_MAX: usize = usize::MAX;
 pub const BOOL_VECTOR_BITS_PER_CHAR: usize = 8;
+// Types the reference gets from <setjmp.h> and keyboard.h; the sizes come from
+// the frozen C layout baseline (docs/baseline/layout/c-layout-darwin-arm64.tsv:
+// sizeof jmp_buf 192, sizeof sigjmp_buf 196).
+pub type jmp_buf = [u8; 192];
+pub type sigjmp_buf = [u8; 196];
+
+/// `typedef struct kboard KBOARD;` — the definition is in keyboard.h.
+#[repr(C)]
+pub struct kboard {
+    _private: [u8; 0],
+}
+pub type KBOARD = kboard;
+
+pub type intptr_t = isize;
+
 /// src/lisp.h 1999: iQnil == 0 && Lisp_Symbol == 0.
 pub const NIL_IS_ZERO: bool = true;
 pub const CHARTAB_SIZE_BITS_0: usize = 6;
@@ -2620,3 +2635,60 @@ pub fn XMODULE_FUNCTION (o: Lisp_Object) -> *mut Lisp_Module_Function {
 #[cfg(not(feature = "modules"))]
 #[inline(always)]
 pub fn MODULE_FUNCTIONP (_o: Lisp_Object) -> bool { false }
+
+// --- extern declarations for reference globals (src/lisp.h) ---
+// The reference declares these objects extern in lisp.h; their definitions
+// live in the ported units (alloc.c, emacs.c, fns.c, ...).
+
+unsafe extern "C" { pub static mut finalizers: Lisp_Finalizer; }
+unsafe extern "C" { pub static mut doomed_finalizers: Lisp_Finalizer; }
+unsafe extern "C" { pub static mut memory_signal_data: Lisp_Object; }
+unsafe extern "C" { pub static mut Vascii_downcase_table: Lisp_Object; }
+unsafe extern "C" { pub static mut staticidx: c_int; }
+unsafe extern "C" { pub static mut hashtest_eql: hash_table_test; }
+unsafe extern "C" { pub static mut hashtest_equal: hash_table_test; }
+unsafe extern "C" { pub static mut Vwindow_system: Lisp_Object; }
+unsafe extern "C" { pub static mut noninteractive_need_newline: bool; }
+unsafe extern "C" { pub static mut echo_area_buffer: [Lisp_Object; 2]; }
+unsafe extern "C" { pub static mut garbage_collection_inhibited: intptr_t; }
+unsafe extern "C" { pub static mut pending_malloc_warning: *mut c_char; }
+unsafe extern "C" { pub static mut zero_vector: Lisp_Object; }
+unsafe extern "C" { pub static mut number_finalizers_run: c_int; }
+unsafe extern "C" { pub static mut gc_in_progress: bool; }
+unsafe extern "C" { pub static mut __malloc_extra_blocks: usize; }
+unsafe extern "C" { pub static mut Vprin1_to_string_buffer: Lisp_Object; }
+unsafe extern "C" { pub static mut print_level: c_int; }
+unsafe extern "C" { pub static mut Vautoload_queue: Lisp_Object; }
+unsafe extern "C" { pub static mut Vrun_hooks: Lisp_Object; }
+unsafe extern "C" { pub static mut Vsignaling_function: Lisp_Object; }
+unsafe extern "C" { pub static mut Vminibuffer_list: Lisp_Object; }
+unsafe extern "C" { pub static mut last_minibuf_string: Lisp_Object; }
+unsafe extern "C" { pub static mut minibuf_level: EMACS_INT; }
+unsafe extern "C" { pub static mut command_loop_level: EMACS_INT; }
+unsafe extern "C" { pub static mut echo_message_buffer: Lisp_Object; }
+unsafe extern "C" { pub static mut echo_kboard: *mut kboard; }
+unsafe extern "C" { pub static mut input_pending: bool; }
+unsafe extern "C" { pub static mut return_to_command_loop: sigjmp_buf; }
+unsafe extern "C" { pub static mut pending_funcalls: Lisp_Object; }
+unsafe extern "C" { pub static mut initial_argv: *mut *mut c_char; }
+unsafe extern "C" { pub static mut initial_argc: c_int; }
+unsafe extern "C" { pub static mut initial_argv0: *mut c_char; }
+unsafe extern "C" { pub static mut display_arg: bool; }
+unsafe extern "C" { pub static mut empty_unibyte_string: Lisp_Object; }
+unsafe extern "C" { pub static mut empty_multibyte_string: Lisp_Object; }
+unsafe extern "C" { pub static mut Vlibrary_cache: Lisp_Object; }
+unsafe extern "C" { pub static mut noninteractive: bool; }
+unsafe extern "C" { pub static mut no_site_lisp: bool; }
+unsafe extern "C" { pub static mut build_details: bool; }
+unsafe extern "C" { pub static mut daemon_type: c_int; }
+unsafe extern "C" { pub static mut w32_daemon_event: *mut c_void; }
+unsafe extern "C" { pub static mut fatal_error_in_progress: bool; }
+unsafe extern "C" { pub static mut inhibit_window_system: bool; }
+unsafe extern "C" { pub static mut running_asynch_code: bool; }
+unsafe extern "C" { pub static mut char_ins_del_vector: *mut c_int; }
+unsafe extern "C" { pub static mut Vface_alternative_font_family_alist: Lisp_Object; }
+unsafe extern "C" { pub static mut Vface_alternative_font_registry_alist: Lisp_Object; }
+unsafe extern "C" { pub static mut profiler_memory_running: bool; }
+unsafe extern "C" { pub static mut my_edata: [c_char; 0]; }
+unsafe extern "C" { pub static mut my_endbss: [c_char; 0]; }
+unsafe extern "C" { pub static mut my_endbss_static: *mut c_char; }
