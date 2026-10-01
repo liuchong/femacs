@@ -1,0 +1,1730 @@
+# will_dump_p (line 650, 7 lines)
+{
+#if HAVE_PDUMPER
+  return gflags.will_dump;
+#else
+  return false;
+#endif
+}
+
+# will_bootstrap_p (line 660, 7 lines)
+{
+#if HAVE_PDUMPER
+  return gflags.will_bootstrap;
+#else
+  return false;
+#endif
+}
+
+# will_dump_with_pdumper_p (line 670, 7 lines)
+{
+#if HAVE_PDUMPER
+  return gflags.will_dump_with_pdumper;
+#else
+  return false;
+#endif
+}
+
+# dumped_with_pdumper_p (line 680, 7 lines)
+{
+#if HAVE_PDUMPER
+  return gflags.dumped_with_pdumper;
+#else
+  return false;
+#endif
+}
+
+# XLI (line 701, 3 lines)
+{
+  return lisp_h_XLI (o);
+}
+
+# XIL (line 707, 3 lines)
+{
+  return lisp_h_XIL (i);
+}
+
+# XLP (line 713, 3 lines)
+{
+  return lisp_h_XLP (o);
+}
+
+# XTYPE (line 721, 8 lines)
+{
+#if USE_LSB_TAG
+  return lisp_h_XTYPE (a);
+#else
+  EMACS_UINT i = XLI (a);
+  return USE_LSB_TAG ? i & ~VALMASK : i >> VALBITS;
+#endif
+}
+
+# TAGGEDP (line 735, 3 lines)
+{
+  return lisp_h_TAGGEDP (a, tag);
+}
+
+# CHECK_TYPE (line 741, 3 lines)
+{
+  lisp_h_CHECK_TYPE (ok, predicate, x);
+}
+
+# PSEUDOVECTORP (line 1054, 6 lines)
+{
+  return (lisp_h_VECTORLIKEP (a)
+	  && ((XUNTAG (a, Lisp_Vectorlike, union vectorlike_header)->size
+	       & (PSEUDOVECTOR_FLAG | PVEC_TYPE_MASK))
+	      == (PSEUDOVECTOR_FLAG | (code << PSEUDOVECTOR_AREA_BITS))));
+}
+
+# BARE_SYMBOL_P (line 1063, 3 lines)
+{
+  return lisp_h_BARE_SYMBOL_P (x);
+}
+
+# SYMBOL_WITH_POS_P (line 1069, 3 lines)
+{
+  return lisp_h_SYMBOL_WITH_POS_P (x);
+}
+
+# SYMBOLP (line 1075, 4 lines)
+{
+  return (BARE_SYMBOL_P (x)
+	  || (symbols_with_pos_enabled && SYMBOL_WITH_POS_P (x)));
+}
+
+# XSYMBOL_WITH_POS (line 1082, 4 lines)
+{
+  eassert (SYMBOL_WITH_POS_P (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Symbol_With_Pos);
+}
+
+# XSYMBOL_WITH_POS_SYM (line 1089, 5 lines)
+{
+  Lisp_Object sym = XSYMBOL_WITH_POS (a)->sym;
+  eassume (BARE_SYMBOL_P (sym));
+  return sym;
+}
+
+# XSYMBOL_WITH_POS_POS (line 1097, 3 lines)
+{
+  return XSYMBOL_WITH_POS (a)->pos;
+}
+
+# maybe_remove_pos_from_symbol (line 1103, 4 lines)
+{
+  return (symbols_with_pos_enabled && SYMBOL_WITH_POS_P (x)
+	  ? XSYMBOL_WITH_POS_SYM (x) : x);
+}
+
+# XBARE_SYMBOL (line 1110, 6 lines)
+{
+  eassert (BARE_SYMBOL_P (a));
+  intptr_t i = (intptr_t) XUNTAG (a, Lisp_Symbol, struct Lisp_Symbol);
+  void *p = (char *) lispsym + i;
+  return p;
+}
+
+# XSYMBOL (line 1119, 8 lines)
+{
+  if (!BARE_SYMBOL_P (a))
+    {
+      eassume (symbols_with_pos_enabled);
+      a = XSYMBOL_WITH_POS_SYM (a);
+    }
+  return XBARE_SYMBOL (a);
+}
+
+# make_lisp_symbol_internal (line 1131, 9 lines)
+{
+  /* GCC 7 x86-64 generates faster code if lispsym is
+     cast to char * rather than to intptr_t.
+     Do not use eassert here, so that builtin symbols like Qnil compile to
+     constants; this is needed for some circa-2024 GCCs even with -O2.  */
+  char *symoffset = (char *) ((char *) sym - (char *) lispsym);
+  Lisp_Object a = TAG_PTR_INITIALLY (Lisp_Symbol, symoffset);
+  return a;
+}
+
+# make_lisp_symbol (line 1143, 5 lines)
+{
+  Lisp_Object a = make_lisp_symbol_internal (sym);
+  eassert (XBARE_SYMBOL (a) == sym);
+  return a;
+}
+
+# builtin_lisp_symbol (line 1151, 3 lines)
+{
+  return make_lisp_symbol_internal (&lispsym[index]);
+}
+
+# c_symbol_p (line 1157, 11 lines)
+{
+  char *bp = (char *) lispsym;
+  char *sp = (char *) sym;
+  if (PTRDIFF_MAX < INTPTR_MAX)
+    return bp <= sp && sp < bp + sizeof lispsym;
+  else
+    {
+      ptrdiff_t offset = sp - bp;
+      return 0 <= offset && offset < sizeof lispsym;
+    }
+}
+
+# CHECK_SYMBOL (line 1171, 3 lines)
+{
+  lisp_h_CHECK_SYMBOL (x);
+}
+
+# make_fixnum (line 1184, 4 lines)
+{
+  eassert (!FIXNUM_OVERFLOW_P (n));
+  return lisp_h_make_fixnum_wrap (n);
+}
+
+# XFIXNUM_RAW (line 1191, 3 lines)
+{
+  return lisp_h_XFIXNUM_RAW (a);
+}
+
+# make_ufixnum (line 1197, 4 lines)
+{
+  eassert (0 <= n && n <= INTMASK);
+  return lisp_h_make_fixnum_wrap (n);
+}
+
+# make_fixnum (line 1211, 16 lines)
+{
+  eassert (! FIXNUM_OVERFLOW_P (n));
+  EMACS_INT int0 = Lisp_Int0;
+  if (USE_LSB_TAG)
+    {
+      EMACS_UINT u = n;
+      n = u << INTTYPEBITS;
+      n += int0;
+    }
+  else
+    {
+      n &= INTMASK;
+      n += (int0 << VALBITS);
+    }
+  return XIL (n);
+}
+
+# XFIXNUM_RAW (line 1233, 9 lines)
+{
+  EMACS_INT i = XLI (a);
+  if (! USE_LSB_TAG)
+    {
+      EMACS_UINT u = i;
+      i = u << INTTYPEBITS;
+    }
+  return i >> INTTYPEBITS;
+}
+
+# make_ufixnum (line 1245, 13 lines)
+{
+  eassert (0 <= n && n <= INTMASK);
+  EMACS_INT int0 = Lisp_Int0;
+  if (USE_LSB_TAG)
+    {
+      EMACS_UINT u = n;
+      n = u << INTTYPEBITS;
+      n += int0;
+    }
+  else
+    n += int0 << VALBITS;
+  return XIL (n);
+}
+
+# FIXNUMP (line 1263, 3 lines)
+{
+  return lisp_h_FIXNUMP (x);
+}
+
+# XFIXNUM (line 1269, 4 lines)
+{
+  eassert (FIXNUMP (a));
+  return XFIXNUM_RAW (a);
+}
+
+# XUFIXNUM_RAW (line 1277, 4 lines)
+{
+  EMACS_UINT i = XLI (a);
+  return USE_LSB_TAG ? i >> INTTYPEBITS : i & INTMASK;
+}
+
+# XUFIXNUM (line 1283, 4 lines)
+{
+  eassert (FIXNUMP (a));
+  return XUFIXNUM_RAW (a);
+}
+
+# XHASH (line 1291, 3 lines)
+{
+  return lisp_h_XHASH (a);
+}
+
+# make_fixed_natnum (line 1298, 5 lines)
+{
+  eassert (0 <= n && n <= MOST_POSITIVE_FIXNUM);
+  EMACS_INT int0 = Lisp_Int0;
+  return USE_LSB_TAG ? make_fixnum (n) : XIL (n + (int0 << VALBITS));
+}
+
+# BASE_EQ (line 1307, 3 lines)
+{
+  return lisp_h_BASE_EQ (x, y);
+}
+
+# EQ (line 1315, 8 lines)
+{
+  if (BASE_EQ (x, y))
+    return true;
+  else if (likely (symbols_with_pos_enabled == false))
+    return false;
+  else
+    return slow_eq (x, y);
+}
+
+# clip_to_bounds (line 1326, 3 lines)
+{
+  return max (lower, min (num, upper));
+}
+
+# make_lisp_ptr (line 1334, 5 lines)
+{
+  Lisp_Object a = TAG_PTR_INITIALLY (type, ptr);
+  eassert (TAGGEDP (a, type) && XUNTAG (a, type, char) == ptr);
+  return a;
+}
+
+# dead_object (line 1353, 3 lines)
+{
+  return make_lisp_ptr (NULL, Lisp_String);
+}
+
+# XFIXNUMPTR (line 1401, 3 lines)
+{
+  return XUNTAG (a, Lisp_Int0, char);
+}
+
+# make_pointer_integer_unsafe (line 1407, 4 lines)
+{
+  Lisp_Object a = TAG_PTR_INITIALLY (Lisp_Int0, p);
+  return a;
+}
+
+# make_pointer_integer (line 1414, 5 lines)
+{
+  Lisp_Object a = make_pointer_integer_unsafe (p);
+  eassert (FIXNUMP (a) && XFIXNUMPTR (a) == p);
+  return a;
+}
+
+# NILP (line 1449, 3 lines)
+{
+  return lisp_h_NILP (x);
+}
+
+# CONSP (line 1455, 3 lines)
+{
+  return lisp_h_CONSP (x);
+}
+
+# CHECK_CONS (line 1461, 3 lines)
+{
+  CHECK_TYPE (CONSP (x), Qconsp, x);
+}
+
+# XCONS (line 1467, 4 lines)
+{
+  eassert (CONSP (a));
+  return XUNTAG (a, Lisp_Cons, struct Lisp_Cons);
+}
+
+# xcar_addr (line 1481, 3 lines)
+{
+  return &XCONS (c)->u.s.car;
+}
+
+# xcdr_addr (line 1486, 3 lines)
+{
+  return &XCONS (c)->u.s.u.cdr;
+}
+
+# XCAR (line 1494, 3 lines)
+{
+  return lisp_h_XCAR (c);
+}
+
+# XCDR (line 1500, 3 lines)
+{
+  return lisp_h_XCDR (c);
+}
+
+# XSETCAR (line 1510, 3 lines)
+{
+  *xcar_addr (c) = n;
+}
+
+# XSETCDR (line 1515, 3 lines)
+{
+  *xcdr_addr (c) = n;
+}
+
+# CAR (line 1522, 7 lines)
+{
+  if (CONSP (c))
+    return XCAR (c);
+  if (!NILP (c))
+    wrong_type_argument (Qlistp, c);
+  return Qnil;
+}
+
+# CDR (line 1531, 7 lines)
+{
+  if (CONSP (c))
+    return XCDR (c);
+  if (!NILP (c))
+    wrong_type_argument (Qlistp, c);
+  return Qnil;
+}
+
+# CAR_SAFE (line 1542, 3 lines)
+{
+  return CONSP (c) ? XCAR (c) : Qnil;
+}
+
+# CDR_SAFE (line 1547, 3 lines)
+{
+  return CONSP (c) ? XCDR (c) : Qnil;
+}
+
+# STRINGP (line 1582, 3 lines)
+{
+  return TAGGEDP (x, Lisp_String);
+}
+
+# CHECK_STRING (line 1588, 3 lines)
+{
+  CHECK_TYPE (STRINGP (x), Qstringp, x);
+}
+
+# XSTRING (line 1594, 4 lines)
+{
+  eassert (STRINGP (a));
+  return XUNTAG (a, Lisp_String, struct Lisp_String);
+}
+
+# STRING_MULTIBYTE (line 1602, 3 lines)
+{
+  return 0 <= XSTRING (str)->u.s.size_byte;
+}
+
+# STRING_SET_MULTIBYTE (line 1635, 5 lines)
+{
+  /* The 0-length strings are unique&shared so we can't modify them.  */
+  eassert (XSTRING (str)->u.s.size > 0);
+  XSTRING (str)->u.s.size_byte = XSTRING (str)->u.s.size;
+}
+
+# SDATA (line 1653, 3 lines)
+{
+  return XSTRING (string)->u.s.data;
+}
+
+# SSDATA (line 1658, 4 lines)
+{
+  /* Avoid "differ in sign" warnings.  */
+  return (char *) SDATA (string);
+}
+
+# SREF (line 1664, 3 lines)
+{
+  return SDATA (string)[index];
+}
+
+# SSET (line 1669, 3 lines)
+{
+  SDATA (string)[index] = new;
+}
+
+# SCHARS (line 1674, 5 lines)
+{
+  ptrdiff_t nchars = XSTRING (string)->u.s.size;
+  eassume (0 <= nchars);
+  return nchars;
+}
+
+# STRING_BYTES (line 1685, 9 lines)
+{
+#ifdef GC_CHECK_STRING_BYTES
+  ptrdiff_t nbytes = string_bytes (s);
+#else
+  ptrdiff_t nbytes = s->u.s.size_byte < 0 ? s->u.s.size : s->u.s.size_byte;
+#endif
+  eassume (0 <= nbytes);
+  return nbytes;
+}
+
+# SBYTES (line 1697, 3 lines)
+{
+  return STRING_BYTES (XSTRING (string));
+}
+
+# STRING_SET_CHARS (line 1702, 8 lines)
+{
+  /* This function cannot change the size of data allocated for the
+     string when it was created.  */
+  eassert (STRING_MULTIBYTE (string)
+	   ? 0 <= newsize && newsize <= SBYTES (string)
+	   : newsize == SCHARS (string));
+  XSTRING (string)->u.s.size = newsize;
+}
+
+# CHECK_STRING_NULL_BYTES (line 1713, 4 lines)
+{
+  CHECK_TYPE (memchr (SSDATA (string), '\0', SBYTES (string)) == NULL,
+	      Qfilenamep, string);
+}
+
+# string_immovable_p (line 1721, 3 lines)
+{
+  return XSTRING (str)->u.s.size_byte == -3;
+}
+
+# VECTORLIKEP (line 1735, 3 lines)
+{
+  return lisp_h_VECTORLIKEP (x);
+}
+
+# XVECTOR (line 1741, 4 lines)
+{
+  eassert (VECTORLIKEP (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Vector);
+}
+
+# ASIZE (line 1748, 5 lines)
+{
+  ptrdiff_t size = XVECTOR (array)->header.size;
+  eassume (0 <= size);
+  return size;
+}
+
+# gc_asize (line 1756, 4 lines)
+{
+  /* Like ASIZE, but also can be used in the garbage collector.  */
+  return XVECTOR (array)->header.size & ~ARRAY_MARK_FLAG;
+}
+
+# PVSIZE (line 1763, 3 lines)
+{
+  return ASIZE (pv) & PSEUDOVECTOR_SIZE_MASK;
+}
+
+# VECTORP (line 1769, 3 lines)
+{
+  return VECTORLIKEP (x) && ! (ASIZE (x) & PSEUDOVECTOR_FLAG);
+}
+
+# CHECK_VECTOR (line 1775, 3 lines)
+{
+  CHECK_TYPE (VECTORP (x), Qvectorp, x);
+}
+
+# PSEUDOVECTOR_TYPE (line 1784, 6 lines)
+{
+  ptrdiff_t size = v->header.size;
+  return (size & PSEUDOVECTOR_FLAG
+          ? (size & PVEC_TYPE_MASK) >> PSEUDOVECTOR_AREA_BITS
+          : PVEC_NORMAL_VECTOR);
+}
+
+# PSEUDOVECTOR_TYPEP (line 1794, 6 lines)
+{
+  /* We don't use PSEUDOVECTOR_TYPE here so as to avoid a shift
+   * operation when `code' is known.  */
+  return ((a->size & (PSEUDOVECTOR_FLAG | PVEC_TYPE_MASK))
+	  == (PSEUDOVECTOR_FLAG | (code << PSEUDOVECTOR_AREA_BITS)));
+}
+
+# bool_vector_words (line 1852, 4 lines)
+{
+  eassume (0 <= size && size <= EMACS_INT_MAX - (BITS_PER_BITS_WORD - 1));
+  return (size + (BITS_PER_BITS_WORD - 1)) / BITS_PER_BITS_WORD;
+}
+
+# bool_vector_bytes (line 1859, 4 lines)
+{
+  eassume (0 <= size && size <= EMACS_INT_MAX - (BITS_PER_BITS_WORD - 1));
+  return (size + (BOOL_VECTOR_BITS_PER_CHAR - 1)) / BOOL_VECTOR_BITS_PER_CHAR;
+}
+
+# bits_word_to_host_endian (line 1866, 21 lines)
+{
+#ifndef WORDS_BIGENDIAN
+  return val;
+#else
+  if (BITS_WORD_MAX >> 31 == 1)
+    return bswap_32 (val);
+  if (BITS_WORD_MAX >> 31 >> 31 >> 1 == 1)
+    return bswap_64 (val);
+  {
+    int i;
+    bits_word r = 0;
+    for (i = 0; i < sizeof val; i++)
+      {
+	r = ((r << 1 << (CHAR_BIT - 1))
+	     | (val & ((1u << 1 << (CHAR_BIT - 1)) - 1)));
+	val = val >> 1 >> (CHAR_BIT - 1);
+      }
+    return r;
+  }
+#endif
+}
+
+# BOOL_VECTOR_P (line 1890, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_BOOL_VECTOR);
+}
+
+# CHECK_BOOL_VECTOR (line 1896, 3 lines)
+{
+  CHECK_TYPE (BOOL_VECTOR_P (x), Qbool_vector_p, x);
+}
+
+# XBOOL_VECTOR (line 1902, 4 lines)
+{
+  eassert (BOOL_VECTOR_P (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Bool_Vector);
+}
+
+# bool_vector_size (line 1909, 5 lines)
+{
+  EMACS_INT size = XBOOL_VECTOR (a)->size;
+  eassume (0 <= size);
+  return size;
+}
+
+# bool_vector_data (line 1917, 3 lines)
+{
+  return XBOOL_VECTOR (a)->data;
+}
+
+# bool_vector_uchar_data (line 1923, 3 lines)
+{
+  return (unsigned char *) bool_vector_data (a);
+}
+
+# bool_vector_bitref (line 1931, 6 lines)
+{
+  eassume (0 <= i);
+  eassert (i < bool_vector_size (a));
+  return !! (bool_vector_uchar_data (a)[i / BOOL_VECTOR_BITS_PER_CHAR]
+	     & (1 << (i % BOOL_VECTOR_BITS_PER_CHAR)));
+}
+
+# bool_vector_ref (line 1940, 3 lines)
+{
+  return bool_vector_bitref (a, i) ? Qt : Qnil;
+}
+
+# bool_vector_set (line 1948, 10 lines)
+{
+  eassume (0 <= i);
+  eassert (i < bool_vector_size (a));
+  unsigned char *addr
+    = &bool_vector_uchar_data (a)[i / BOOL_VECTOR_BITS_PER_CHAR];
+  if (b)
+    *addr |= 1 << (i % BOOL_VECTOR_BITS_PER_CHAR);
+  else
+    *addr &= ~ (1 << (i % BOOL_VECTOR_BITS_PER_CHAR));
+}
+
+# AREF (line 1964, 4 lines)
+{
+  eassert (0 <= idx && idx < gc_asize (array));
+  return XVECTOR (array)->contents[idx];
+}
+
+# aref_addr (line 1971, 4 lines)
+{
+  eassert (0 <= idx && idx <= gc_asize (array));
+  return & XVECTOR (array)->contents[idx];
+}
+
+# ASET (line 1978, 4 lines)
+{
+  eassert (0 <= idx && idx < ASIZE (array));
+  XVECTOR (array)->contents[idx] = val;
+}
+
+# gc_aset (line 1985, 6 lines)
+{
+  /* Like ASET, but also can be used in the garbage collector:
+     sweep_weak_table calls set_hash_key etc. while the table is marked.  */
+  eassert (0 <= idx && idx < gc_asize (array));
+  XVECTOR (array)->contents[idx] = val;
+}
+
+# memclear (line 2004, 6 lines)
+{
+  eassert (0 <= nbytes);
+  static_assert (NIL_IS_ZERO);
+  /* Since Qnil is zero, memset suffices.  */
+  memset (p, 0, nbytes);
+}
+
+# ASCII_CHAR_P (line 2028, 3 lines)
+{
+  return 0 <= c && c < 0x80;
+}
+
+# CHAR_TABLE_P (line 2085, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_CHAR_TABLE);
+}
+
+# XCHAR_TABLE (line 2091, 4 lines)
+{
+  eassert (CHAR_TABLE_P (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Char_Table);
+}
+
+# SUB_CHAR_TABLE_P (line 2119, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_SUB_CHAR_TABLE);
+}
+
+# XSUB_CHAR_TABLE (line 2125, 4 lines)
+{
+  eassert (SUB_CHAR_TABLE_P (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Sub_Char_Table);
+}
+
+# CHAR_TABLE_REF_ASCII (line 2132, 13 lines)
+{
+  for (struct Lisp_Char_Table *tbl = XCHAR_TABLE (ct); ;
+       tbl = XCHAR_TABLE (tbl->parent))
+    {
+      Lisp_Object val = (SUB_CHAR_TABLE_P (tbl->ascii)
+			 ? XSUB_CHAR_TABLE (tbl->ascii)->contents[idx]
+			 : tbl->ascii);
+      if (NILP (val))
+	val = tbl->defalt;
+      if (!NILP (val) || NILP (tbl->parent))
+	return val;
+    }
+}
+
+# CHAR_TABLE_REF (line 2150, 5 lines)
+{
+  return (ASCII_CHAR_P (idx)
+	  ? CHAR_TABLE_REF_ASCII (ct, idx)
+	  : char_table_ref (ct, idx));
+}
+
+# CHAR_TABLE_SET (line 2160, 6 lines)
+{
+  if (ASCII_CHAR_P (idx) && SUB_CHAR_TABLE_P (XCHAR_TABLE (ct)->ascii))
+    set_sub_char_table_contents (XCHAR_TABLE (ct)->ascii, idx, val);
+  else
+    char_table_set (ct, idx, val);
+}
+
+# SUBRP (line 2216, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_SUBR);
+}
+
+# XSUBR (line 2222, 4 lines)
+{
+  eassert (SUBRP (a));
+  return &XUNTAG (a, Lisp_Vectorlike, union Aligned_Lisp_Subr)->s;
+}
+
+# VALID_DOCSTRING_P (line 2232, 4 lines)
+{
+  return FIXNUMP (doc) || STRINGP (doc)
+         || (CONSP (doc) && STRINGP (XCAR (doc)) && FIXNUMP (XCDR (doc)));
+}
+
+# CHAR_TABLE_EXTRA_SLOTS (line 2263, 4 lines)
+{
+  return ((ct->header.size & PSEUDOVECTOR_SIZE_MASK)
+	  - CHAR_TABLE_STANDARD_SLOTS);
+}
+
+# SYMBOL_VAL (line 2298, 4 lines)
+{
+  eassert (sym->u.s.redirect == SYMBOL_PLAINVAL);
+  return sym->u.s.val.value;
+}
+
+# SYMBOL_ALIAS (line 2305, 4 lines)
+{
+  eassume (sym->u.s.redirect == SYMBOL_VARALIAS && sym->u.s.val.alias);
+  return sym->u.s.val.alias;
+}
+
+# SYMBOL_BLV (line 2311, 4 lines)
+{
+  eassume (sym->u.s.redirect == SYMBOL_LOCALIZED && sym->u.s.val.blv);
+  return sym->u.s.val.blv;
+}
+
+# SYMBOL_FWD (line 2317, 4 lines)
+{
+  eassume (sym->u.s.redirect == SYMBOL_FORWARDED && sym->u.s.val.fwd);
+  return sym->u.s.val.fwd;
+}
+
+# SET_SYMBOL_VAL (line 2324, 4 lines)
+{
+  eassert (sym->u.s.redirect == SYMBOL_PLAINVAL);
+  sym->u.s.val.value = v;
+}
+
+# SET_SYMBOL_ALIAS (line 2331, 4 lines)
+{
+  eassume (sym->u.s.redirect == SYMBOL_VARALIAS && v);
+  sym->u.s.val.alias = v;
+}
+
+# SET_SYMBOL_BLV (line 2337, 4 lines)
+{
+  eassume (sym->u.s.redirect == SYMBOL_LOCALIZED && v);
+  sym->u.s.val.blv = v;
+}
+
+# SET_SYMBOL_FWD (line 2343, 4 lines)
+{
+  eassume (sym->u.s.redirect == SYMBOL_FORWARDED && fwd);
+  sym->u.s.val.fwd = fwd;
+}
+
+# SYMBOL_NAME (line 2350, 3 lines)
+{
+  return XSYMBOL (sym)->u.s.name;
+}
+
+# SYMBOL_INTERNED_P (line 2358, 3 lines)
+{
+  return XSYMBOL (sym)->u.s.interned != SYMBOL_UNINTERNED;
+}
+
+# SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P (line 2366, 3 lines)
+{
+  return XSYMBOL (sym)->u.s.interned == SYMBOL_INTERNED_IN_INITIAL_OBARRAY;
+}
+
+# SYMBOL_TRAPPED_WRITE_P (line 2376, 3 lines)
+{
+  return lisp_h_SYMBOL_TRAPPED_WRITE_P (sym);
+}
+
+# SYMBOL_CONSTANT_P (line 2387, 3 lines)
+{
+  return lisp_h_SYMBOL_CONSTANT_P (sym);
+}
+
+# OBARRAYP (line 2411, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_OBARRAY);
+}
+
+# XOBARRAY (line 2417, 4 lines)
+{
+  eassert (OBARRAYP (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Obarray);
+}
+
+# CHECK_OBARRAY (line 2424, 3 lines)
+{
+  CHECK_TYPE (OBARRAYP (x), Qobarrayp, x);
+}
+
+# make_lisp_obarray (line 2430, 4 lines)
+{
+  eassert (PSEUDOVECTOR_TYPEP (&o->header, PVEC_OBARRAY));
+  return make_lisp_ptr (o, Lisp_Vectorlike);
+}
+
+# obarray_size (line 2437, 3 lines)
+{
+  return (ptrdiff_t) {1} << o->size_bits;
+}
+
+# check_obarray (line 2446, 3 lines)
+{
+  return OBARRAYP (obarray) ? obarray : check_obarray_slow (obarray);
+}
+
+# make_obarray_iter (line 2461, 3 lines)
+{
+  return (obarray_iter_t){.o = oa, .idx = -1, .symbol = NULL};
+}
+
+# obarray_iter_at_end (line 2469, 15 lines)
+{
+  if (it->symbol)
+    return false;
+  ptrdiff_t size = obarray_size (it->o);
+  while (++it->idx < size)
+    {
+      Lisp_Object obj = it->o->buckets[it->idx];
+      if (!BASE_EQ (obj, make_fixnum (0)))
+	{
+	  it->symbol = XBARE_SYMBOL (obj);
+	  return false;
+	}
+    }
+  return true;
+}
+
+# obarray_iter_step (line 2488, 3 lines)
+{
+  it->symbol = it->symbol->u.s.next;
+}
+
+# obarray_iter_symbol (line 2495, 3 lines)
+{
+  return make_lisp_symbol (it->symbol);
+}
+
+# hash_unused_entry_key_p (line 2658, 3 lines)
+{
+  return BASE_EQ (key, HASH_UNUSED_ENTRY_KEY);
+}
+
+# HASH_TABLE_P (line 2664, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_HASH_TABLE);
+}
+
+# XHASH_TABLE (line 2670, 4 lines)
+{
+  eassert (HASH_TABLE_P (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Hash_Table);
+}
+
+# make_lisp_hash_table (line 2677, 4 lines)
+{
+  eassert (PSEUDOVECTOR_TYPEP (&h->header, PVEC_HASH_TABLE));
+  return make_lisp_ptr (h, Lisp_Vectorlike);
+}
+
+# HASH_KEY (line 2685, 4 lines)
+{
+  eassert (idx >= 0 && idx < h->table_size);
+  return h->key_and_value[2 * idx];
+}
+
+# HASH_VALUE (line 2693, 4 lines)
+{
+  eassert (idx >= 0 && idx < h->table_size);
+  return h->key_and_value[2 * idx + 1];
+}
+
+# HASH_HASH (line 2701, 4 lines)
+{
+  eassert (idx >= 0 && idx < h->table_size);
+  return h->hash[idx];
+}
+
+# HASH_TABLE_SIZE (line 2709, 3 lines)
+{
+  return h->table_size;
+}
+
+# hash_table_index_size (line 2716, 3 lines)
+{
+  return (ptrdiff_t) {1} << h->index_bits;
+}
+
+# hash_from_key (line 2723, 3 lines)
+{
+  return h->test->hashfn (key, h);
+}
+
+# sxhash_combine (line 2772, 3 lines)
+{
+  return (x << 4) + (x >> (EMACS_INT_WIDTH - 4)) + y;
+}
+
+# SXHASH_REDUCE (line 2780, 3 lines)
+{
+  return (x ^ x >> (EMACS_INT_WIDTH - FIXNUM_BITS)) & INTMASK;
+}
+
+# reduce_emacs_uint_to_hash_hash (line 2787, 6 lines)
+{
+  static_assert (sizeof x <= 2 * sizeof (hash_hash_t));
+  return (sizeof x == sizeof (hash_hash_t)
+	  ? x
+	  : x ^ (x >> (8 * (sizeof x - sizeof (hash_hash_t)))));
+}
+
+# knuth_hash (line 2797, 11 lines)
+{
+  /* Knuth multiplicative hashing, tailored for 32-bit indices
+     (avoiding a 64-bit multiply on typical platforms).  */
+  unsigned int h = hash;
+  unsigned int alpha = 2654435769;	/* 2**32/phi */
+  /* Multiply with unsigned int, ANDing in case UINT_WIDTH exceeds 32.  */
+  unsigned int product = (h * alpha) & 0xffffffffu;
+  /* Convert to a wider type, so that the shift works when BITS == 0.  */
+  unsigned long long int wide_product = product;
+  return wide_product >> (32 - bits);
+}
+
+# make_mint_ptr (line 2893, 4 lines)
+{
+  Lisp_Object val = TAG_PTR_INITIALLY (Lisp_Int0, a);
+  return FIXNUMP (val) && XFIXNUMPTR (val) == a ? val : make_misc_ptr (a);
+}
+
+# mint_ptrp (line 2900, 3 lines)
+{
+  return FIXNUMP (x) || PSEUDOVECTORP (x, PVEC_MISC_PTR);
+}
+
+# xmint_pointer (line 2906, 6 lines)
+{
+  eassert (mint_ptrp (a));
+  if (FIXNUMP (a))
+    return XFIXNUMPTR (a);
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Misc_Ptr)->pointer;
+}
+
+# FINALIZERP (line 2951, 3 lines)
+{
+  return PSEUDOVECTORP (x, PVEC_FINALIZER);
+}
+
+# XFINALIZER (line 2957, 4 lines)
+{
+  eassert (FINALIZERP (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Finalizer);
+}
+
+# MARKERP (line 2964, 3 lines)
+{
+  return PSEUDOVECTORP (x, PVEC_MARKER);
+}
+
+# XMARKER (line 2970, 4 lines)
+{
+  eassert (MARKERP (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Marker);
+}
+
+# OVERLAYP (line 2977, 3 lines)
+{
+  return PSEUDOVECTORP (x, PVEC_OVERLAY);
+}
+
+# XOVERLAY (line 2983, 4 lines)
+{
+  eassert (OVERLAYP (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Overlay);
+}
+
+# USER_PTRP (line 2990, 3 lines)
+{
+  return PSEUDOVECTORP (x, PVEC_USER_PTR);
+}
+
+# XUSER_PTR (line 2996, 4 lines)
+{
+  eassert (USER_PTRP (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_User_Ptr);
+}
+
+# SQLITEP (line 3003, 3 lines)
+{
+  return PSEUDOVECTORP (x, PVEC_SQLITE);
+}
+
+# SQLITE (line 3009, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_SQLITE);
+}
+
+# CHECK_SQLITE (line 3015, 3 lines)
+{
+  CHECK_TYPE (SQLITE (x), Qsqlitep, x);
+}
+
+# XSQLITE (line 3021, 4 lines)
+{
+  eassert (SQLITEP (a));
+  return XUNTAG (a, Lisp_Vectorlike, struct Lisp_Sqlite);
+}
+
+# BIGNUMP (line 3028, 3 lines)
+{
+  return PSEUDOVECTORP (x, PVEC_BIGNUM);
+}
+
+# INTEGERP (line 3034, 3 lines)
+{
+  return FIXNUMP (x) || BIGNUMP (x);
+}
+
+# make_int (line 3041, 3 lines)
+{
+  return FIXNUM_OVERFLOW_P (n) ? make_bigint (n) : make_fixnum (n);
+}
+
+# make_uint (line 3046, 3 lines)
+{
+  return FIXNUM_OVERFLOW_P (n) ? make_biguint (n) : make_fixnum (n);
+}
+
+# XFWDTYPE (line 3136, 3 lines)
+{
+  return a->type;
+}
+
+# BUFFER_OBJFWDP (line 3142, 3 lines)
+{
+  return XFWDTYPE (a) == Lisp_Fwd_Buffer_Obj;
+}
+
+# XBUFFER_OFFSET (line 3148, 4 lines)
+{
+  eassert (BUFFER_OBJFWDP (a));
+  return a->u.buf.offset;
+}
+
+# KBOARD_OBJFWDP (line 3155, 3 lines)
+{
+  return XFWDTYPE (a) == Lisp_Fwd_Kboard_Obj;
+}
+
+# FLOATP (line 3174, 3 lines)
+{
+  return lisp_h_FLOATP (x);
+}
+
+# XFLOAT (line 3180, 4 lines)
+{
+  eassert (FLOATP (a));
+  return XUNTAG (a, Lisp_Float, struct Lisp_Float);
+}
+
+# XFLOAT_DATA (line 3187, 3 lines)
+{
+  return XFLOAT (f)->u.data;
+}
+
+# FIXNATP (line 3239, 3 lines)
+{
+  return FIXNUMP (x) && 0 <= XFIXNUM (x);
+}
+
+# XFIXNAT (line 3246, 7 lines)
+{
+  eassert (FIXNUMP (a));
+  EMACS_INT int0 = Lisp_Int0;
+  EMACS_INT result = USE_LSB_TAG ? XFIXNUM (a) : XLI (a) - (int0 << VALBITS);
+  eassume (0 <= result);
+  return result;
+}
+
+# NUMBERP (line 3256, 3 lines)
+{
+  return INTEGERP (x) || FLOATP (x);
+}
+
+# RANGED_FIXNUMP (line 3262, 3 lines)
+{
+  return FIXNUMP (x) && lo <= XFIXNUM (x) && XFIXNUM (x) <= hi;
+}
+
+# AUTOLOADP (line 3273, 3 lines)
+{
+  return CONSP (x) && EQ (Qautoload, XCAR (x));
+}
+
+# WINDOW_CONFIGURATIONP (line 3282, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_WINDOW_CONFIGURATION);
+}
+
+# CLOSUREP (line 3288, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_CLOSURE);
+}
+
+# FRAMEP (line 3294, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_FRAME);
+}
+
+# RECORDP (line 3300, 3 lines)
+{
+  return PSEUDOVECTORP (a, PVEC_RECORD);
+}
+
+# CHECK_RECORD (line 3306, 3 lines)
+{
+  CHECK_TYPE (RECORDP (x), Qrecordp, x);
+}
+
+# IMAGEP (line 3313, 3 lines)
+{
+  return CONSP (x) && EQ (XCAR (x), Qimage);
+}
+
+# ARRAYP (line 3320, 3 lines)
+{
+  return VECTORP (x) || STRINGP (x) || CHAR_TABLE_P (x) || BOOL_VECTOR_P (x);
+}
+
+# CHECK_LIST (line 3326, 3 lines)
+{
+  CHECK_TYPE (CONSP (x) || NILP (x), Qlistp, x);
+}
+
+# CHECK_LIST_END (line 3332, 3 lines)
+{
+  CHECK_TYPE (NILP (x), Qlistp, y);
+}
+
+# CHECK_FIXNUM (line 3338, 3 lines)
+{
+  lisp_h_CHECK_FIXNUM (x);
+}
+
+# CHECK_STRING_CAR (line 3344, 3 lines)
+{
+  CHECK_TYPE (STRINGP (XCAR (x)), Qstringp, XCAR (x));
+}
+
+# CHECK_VECTOR_OR_STRING (line 3350, 7 lines)
+{
+  if (VECTORP (x))
+    return ASIZE (x);
+  if (STRINGP (x))
+    return SCHARS (x);
+  wrong_type_argument (Qarrayp, x);
+}
+
+# CHECK_ARRAY (line 3359, 3 lines)
+{
+  CHECK_TYPE (ARRAYP (x), predicate, x);
+}
+
+# CHECK_FIXNAT (line 3364, 3 lines)
+{
+  CHECK_TYPE (FIXNATP (x), Qwholenump, x);
+}
+
+# XFLOATINT (line 3370, 5 lines)
+{
+  return (FIXNUMP (n) ? XFIXNUM (n)
+	  : FLOATP (n) ? XFLOAT_DATA (n)
+	  : bignum_to_double (n));
+}
+
+# CHECK_NUMBER (line 3378, 3 lines)
+{
+  CHECK_TYPE (NUMBERP (x), Qnumberp, x);
+}
+
+# CHECK_INTEGER (line 3384, 3 lines)
+{
+  CHECK_TYPE (INTEGERP (x), Qintegerp, x);
+}
+
+# CHECK_SUBR (line 3390, 3 lines)
+{
+  CHECK_TYPE (SUBRP (x), Qsubrp, x);
+}
+
+# call0 (line 3467, 3 lines)
+{
+  return calln (fn);
+}
+
+# wrap_specpdl_ref (line 3653, 7 lines)
+{
+#ifdef WRAP_SPECPDL_REF
+  return (specpdl_ref){.bytes = bytes};
+#else
+  return bytes;
+#endif
+}
+
+# unwrap_specpdl_ref (line 3664, 7 lines)
+{
+#ifdef WRAP_SPECPDL_REF
+  return ref.bytes;
+#else
+  return ref;
+#endif
+}
+
+# specpdl_count_to_ref (line 3674, 3 lines)
+{
+  return wrap_specpdl_ref (count * sizeof (union specbinding));
+}
+
+# specpdl_ref_to_count (line 3680, 3 lines)
+{
+  return unwrap_specpdl_ref (ref) / sizeof (union specbinding);
+}
+
+# specpdl_ref_eq (line 3687, 3 lines)
+{
+  return unwrap_specpdl_ref (a) == unwrap_specpdl_ref (b);
+}
+
+# specpdl_ref_lt (line 3694, 3 lines)
+{
+  return unwrap_specpdl_ref (a) < unwrap_specpdl_ref (b);
+}
+
+# specpdl_ref_valid_p (line 3700, 3 lines)
+{
+  return unwrap_specpdl_ref (ref) >= 0;
+}
+
+# make_invalid_specpdl_ref (line 3706, 3 lines)
+{
+  return wrap_specpdl_ref (-1);
+}
+
+# specpdl_ref_add (line 3714, 4 lines)
+{
+  return wrap_specpdl_ref (unwrap_specpdl_ref (ref)
+			   + delta * sizeof (union specbinding));
+}
+
+# specpdl_ref_to_ptr (line 3721, 3 lines)
+{
+  return (union specbinding *)((char *)specpdl + unwrap_specpdl_ref (ref));
+}
+
+# SPECPDL_INDEX (line 3728, 3 lines)
+{
+  return wrap_specpdl_ref ((char *)specpdl_ptr - (char *)specpdl);
+}
+
+# backtrace_debug_on_exit (line 3734, 4 lines)
+{
+  eassert (pdl->kind == SPECPDL_BACKTRACE);
+  return pdl->bt.debug_on_exit;
+}
+
+# grow_specpdl (line 3752, 5 lines)
+{
+  specpdl_ptr++;
+  if (specpdl_ptr == specpdl_end)
+    grow_specpdl_allocation ();
+}
+
+# record_in_backtrace (line 3760, 11 lines)
+{
+  specpdl_ref count = SPECPDL_INDEX ();
+  eassert (nargs >= UNEVALLED);
+  specpdl_ptr->bt.kind = SPECPDL_BACKTRACE;
+  specpdl_ptr->bt.debug_on_exit = false;
+  specpdl_ptr->bt.function = function;
+  specpdl_ptr->bt.args = args;
+  specpdl_ptr->bt.nargs = nargs;
+  grow_specpdl ();
+  return count;
+}
+
+# maybe_quit (line 3897, 4 lines)
+{
+  if (!NILP (Vquit_flag) || pending_signals)
+    probably_quit ();
+}
+
+# rarely_quit (line 3908, 4 lines)
+{
+  if (! count)
+    maybe_quit ();
+}
+
+# xvector_contents_addr (line 3944, 8 lines)
+{
+  /* This should return &XVECTOR (a)->contents[i], but that would run
+     afoul of GCC bug 95072.  */
+  void *v = XVECTOR (a);
+  char *p = v;
+  void *w = p + header_size + i * word_size;
+  return w;
+}
+
+# xvector_contents (line 3957, 3 lines)
+{
+  return xvector_contents_addr (a, 0);
+}
+
+# vcopy (line 3965, 4 lines)
+{
+  eassert (0 <= offset && 0 <= count && offset + count <= ASIZE (v));
+  memcpy (xvector_contents_addr (v, offset), args, count * sizeof *args);
+}
+
+# set_hash_key_slot (line 3975, 4 lines)
+{
+  eassert (idx >= 0 && idx < h->table_size);
+  h->key_and_value[2 * idx] = val;
+}
+
+# set_hash_value_slot (line 3982, 4 lines)
+{
+  eassert (idx >= 0 && idx < h->table_size);
+  h->key_and_value[2 * idx + 1] = val;;
+}
+
+# set_symbol_function (line 3992, 3 lines)
+{
+  XSYMBOL (sym)->u.s.function = function;
+}
+
+# set_symbol_plist (line 3998, 3 lines)
+{
+  XSYMBOL (sym)->u.s.plist = plist;
+}
+
+# set_symbol_next (line 4004, 3 lines)
+{
+  XSYMBOL (sym)->u.s.next = next;
+}
+
+# make_symbol_constant (line 4010, 3 lines)
+{
+  XSYMBOL (sym)->u.s.trapped_write = SYMBOL_NOWRITE;
+}
+
+# blv_found (line 4018, 4 lines)
+{
+  eassert (blv->found == !BASE_EQ (blv->defcell, blv->valcell));
+  return blv->found;
+}
+
+# set_overlay_plist (line 4027, 3 lines)
+{
+  XOVERLAY (overlay)->plist = plist;
+}
+
+# string_intervals (line 4035, 3 lines)
+{
+  return XSTRING (s)->u.s.intervals;
+}
+
+# set_string_intervals (line 4043, 3 lines)
+{
+  XSTRING (s)->u.s.intervals = i;
+}
+
+# set_char_table_defalt (line 4052, 3 lines)
+{
+  XCHAR_TABLE (table)->defalt = val;
+}
+
+# set_char_table_purpose (line 4057, 3 lines)
+{
+  XCHAR_TABLE (table)->purpose = val;
+}
+
+# set_char_table_extras (line 4065, 4 lines)
+{
+  eassert (0 <= idx && idx < CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (table)));
+  XCHAR_TABLE (table)->extras[idx] = val;
+}
+
+# set_char_table_contents (line 4072, 4 lines)
+{
+  eassert (0 <= idx && idx < (1 << CHARTAB_SIZE_BITS_0));
+  XCHAR_TABLE (table)->contents[idx] = val;
+}
+
+# set_sub_char_table_contents (line 4079, 3 lines)
+{
+  XSUB_CHAR_TABLE (table)->contents[idx] = val;
+}
+
+# integer_to_intmax (line 4098, 13 lines)
+{
+  if (FIXNUMP (num))
+    {
+      *n = XFIXNUM (num);
+      return true;
+    }
+  else
+    {
+      intmax_t i = bignum_to_intmax (num);
+      *n = i;
+      return i != 0;
+    }
+}
+
+# integer_to_uintmax (line 4113, 13 lines)
+{
+  if (FIXNUMP (num))
+    {
+      *n = XFIXNUM (num);
+      return 0 <= XFIXNUM (num);
+    }
+  else
+    {
+      uintmax_t i = bignum_to_uintmax (num);
+      *n = i;
+      return i != 0;
+    }
+}
+
+# elogb (line 4130, 4 lines)
+{
+  int width = stdc_bit_width (n);
+  return width - 1;
+}
+
+# modiff_incr (line 4143, 11 lines)
+{
+  modiff_count a0 = *a;
+  /* Increase the counter more for a large modification and less for a
+     small modification.  Increase it logarithmically to avoid
+     increasing it too much.  */
+  static_assert (PTRDIFF_MAX <= ULLONG_MAX);
+  int incr = len == 0 ? 1 : elogb (len) + 1;
+  bool modiff_overflow = ckd_add (a, a0, incr);
+  eassert (!modiff_overflow && *a >> 30 >> 30 == 0);
+  return a0;
+}
+
+# modiff_to_integer (line 4157, 4 lines)
+{
+  eassume (0 <= a && a >> 30 >> 30 == 0);
+  return make_int (a);
+}
+
+# flush_stack_call_func (line 4465, 10 lines)
+{
+  __builtin_unwind_init ();
+  flush_stack_call_func1 (func, arg);
+  /* Work around GCC sibling call optimization making
+     '__builtin_unwind_init' ineffective (bug#65727).
+     See <https://gcc.gnu.org/bugzilla/show_bug.cgi?id=115132>.  */
+#if defined __GNUC__ && !defined __clang__ && !defined __OBJC__
+  __asm__ ("");
+#endif
+}
+
+# list1i (line 4514, 3 lines)
+{
+  return list1 (make_int (a));
+}
+
+# list2i (line 4520, 3 lines)
+{
+  return list2 (make_int (a), make_int (b));
+}
+
+# list3i (line 4526, 3 lines)
+{
+  return list3 (make_int (a), make_int (b), make_int (c));
+}
+
+# list4i (line 4532, 3 lines)
+{
+  return list4 (make_int (a), make_int (b), make_int (c), make_int (d));
+}
+
+# vector_nbytes (line 4548, 3 lines)
+{
+  return vectorlike_nbytes (&v->header);
+}
+
+# build_unibyte_string (line 4556, 3 lines)
+{
+  return make_unibyte_string (str, strlen (str));
+}
+
+# build_string (line 4574, 3 lines)
+{
+  return make_string (str, strlen (str));
+}
+
+# make_uninit_vector (line 4598, 3 lines)
+{
+  return make_lisp_ptr (allocate_vector (size), Lisp_Vectorlike);
+}
+
+# make_uninit_sub_char_table (line 4606, 8 lines)
+{
+  int slots = SUB_CHAR_TABLE_OFFSET + chartab_size[depth];
+  Lisp_Object v = make_uninit_vector (slots);
+  XSETPVECTYPE (XVECTOR (v), PVEC_SUB_CHAR_TABLE);
+  XSUB_CHAR_TABLE (v)->depth = depth;
+  XSUB_CHAR_TABLE (v)->min_char = min_char;
+  return v;
+}
+
+# make_nil_vector (line 4621, 3 lines)
+{
+  return make_lisp_ptr (allocate_nil_vector (size), Lisp_Vectorlike);
+}
+
+# LOADHIST_ATTACH (line 4735, 4 lines)
+{
+  if (initialized)
+    Vcurrent_load_list = Fcons (x, Vcurrent_load_list);
+}
+
+# intern (line 4757, 3 lines)
+{
+  return intern_1 (str, strlen (str));
+}
+
+# intern_c_string (line 4763, 3 lines)
+{
+  return intern_c_string_1 (str, strlen (str));
+}
+
+# xsignal (line 4788, 3 lines)
+{
+  Fsignal (error_symbol, data);
+}
+
+# CHECK_KEYWORD_ARGS (line 4850, 6 lines)
+{
+  /* Used to check if a list of keyword/value pairs is missing a
+     value.  */
+  if (nargs & 1)
+    xsignal0 (Qmalformed_keyword_arg_list);
+}
+
+# MODULE_FUNCTIONP (line 4873, 3 lines)
+{
+  return PSEUDOVECTORP (o, PVEC_MODULE_FUNCTION);
+}
+
+# XMODULE_FUNCTION (line 4879, 4 lines)
+{
+  eassert (MODULE_FUNCTIONP (o));
+  return XUNTAG (o, Lisp_Vectorlike, struct Lisp_Module_Function);
+}
+
+# fast_string_match (line 5005, 3 lines)
+{
+  return fast_string_match_internal (regexp, string, Qnil);
+}
+
+# fast_string_match_ignore_case (line 5011, 3 lines)
+{
+  return fast_string_match_internal (regexp, string, Vascii_canon_table);
+}
+
+# fast_c_string_match (line 5017, 3 lines)
+{
+  return fast_c_string_match_internal (regexp, string, len, Qnil);
+}
+
+# fast_c_string_match_ignore_case (line 5024, 4 lines)
+{
+  return fast_c_string_match_internal (regexp, string, len,
+				       Vascii_canon_table);
+}
+
+# get_act_rec (line 5234, 3 lines)
+{
+  return th->bc.fp;
+}
+
+# set_act_rec (line 5240, 3 lines)
+{
+  th->bc.fp = act_rec;
+}
+
+# maybe_disable_address_randomization (line 5277, 3 lines)
+{
+  return argc;
+}
+
+# NATIVE_COMP_FUNCTIONP (line 5492, 3 lines)
+{
+  return SUBRP (a) && !NILP (XSUBR (a)->native_comp_u);
+}
+
+# NATIVE_COMP_FUNCTION_DYNP (line 5498, 3 lines)
+{
+  return NATIVE_COMP_FUNCTIONP (a) && !NILP (XSUBR (a)->lambda_list);
+}
+
+# SUBR_TYPE (line 5504, 3 lines)
+{
+  return XSUBR (a)->type;
+}
+
+# allocate_native_comp_unit (line 5510, 4 lines)
+{
+  return ALLOCATE_ZEROED_PSEUDOVECTOR (struct Lisp_Native_Comp_Unit,
+				       data_vec, PVEC_NATIVE_COMP_UNIT);
+}
+
+# NATIVE_COMP_FUNCTIONP (line 5517, 3 lines)
+{
+  return false;
+}
+
+# NATIVE_COMP_FUNCTION_DYNP (line 5523, 3 lines)
+{
+  return false;
+}
+
+# lispstpcpy (line 5561, 5 lines)
+{
+  ptrdiff_t len = SBYTES (string);
+  memcpy (dest, SDATA (string), len + 1);
+  return dest + len;
+}
+
+# __lsan_ignore_object (line 5574, 2 lines)
+{
+}
+
+# egetenv (line 5584, 4 lines)
+{
+  /* When VAR is a string literal, strlen can be optimized away.  */
+  return egetenv_internal (var, strlen (var));
+}
+
+# safe_free (line 5661, 16 lines)
+{
+  while (specpdl_ptr != specpdl_ref_to_ptr (sa_count))
+    {
+      specpdl_ptr--;
+      if (specpdl_ptr->kind == SPECPDL_UNWIND_PTR)
+	{
+	  eassert (specpdl_ptr->unwind_ptr.func == xfree);
+	  xfree (specpdl_ptr->unwind_ptr.arg);
+	}
+      else
+	{
+	  eassert (specpdl_ptr->kind == SPECPDL_UNWIND_ARRAY);
+	  xfree (specpdl_ptr->unwind_array.array);
+	}
+    }
+}
+
+# safe_free_unbind_to (line 5689, 4 lines)
+{
+  eassert (!specpdl_ref_lt (sa_count, count));
+  return unbind_to (count, val);
+}
+
+# maybe_gc (line 5916, 4 lines)
+{
+  if (consing_until_gc < 0)
+    maybe_garbage_collect ();
+}

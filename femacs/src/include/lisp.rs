@@ -23,7 +23,10 @@ use std::ffi::{c_char, c_double, c_int, c_void};
 // (docs/baseline/config/darwin-arm64.json: ALIGNOF_EMACS_INT = 8).
 pub type EMACS_INT = isize;
 pub type EMACS_UINT = usize;
+// src/lisp.h 90-102 define these as enum members chosen from the integer widths;
+// on this target EMACS_INT is long long.
 pub const EMACS_INT_WIDTH: usize = 64;
+pub const EMACS_UINT_WIDTH: usize = 64;
 pub const EMACS_INT_MAX: EMACS_INT = EMACS_INT::MAX;
 pub const EMACS_INT_MIN: EMACS_INT = EMACS_INT::MIN;
 
@@ -301,4 +304,298 @@ pub struct Lisp_Marker {
     pub next: *mut Lisp_Marker,
     pub charpos: isize,
     pub bytepos: isize,
+}
+
+// --- support declarations and accessors (batch 1) ---
+// Sources: src/lisp.h 180-198 (assertions), 620-650 (gflags), 700-760 (tag
+// accessors), 869-880 (tag initialisers), 985-1050 (pseudovector bits).
+
+// --- assertions (src/lisp.h 180-198) ---------------------------------------
+// Three forms, exactly as C: with checking on, `suppress_checking` short
+// circuits and a failure calls die; with checking off the condition is not even
+// evaluated (PORTING.md 2.5).
+
+unsafe extern "C" {
+    pub fn die (msg: *const c_char, file: *const c_char, line: c_int) -> !;
+    pub static mut suppress_checking: bool;
+}
+
+/// lib/verify.h `assume`: a compile-time promise, undefined behaviour if false.
+macro_rules! assume {
+    ($cond:expr) => {
+        if !($cond) {
+            unsafe { core::hint::unreachable_unchecked() }
+        }
+    };
+}
+
+macro_rules! eassert {
+    ($cond:expr) => {
+        #[cfg(enable_checking)]
+        {
+            if !suppress_checking && !($cond) {
+                unsafe { die (c"eassert".as_ptr(), c"lisp.rs".as_ptr(), line!() as c_int) }
+            }
+        }
+    };
+}
+
+macro_rules! eassume {
+    ($cond:expr) => {
+        #[cfg(enable_checking)]
+        {
+            if suppress_checking {
+                assume!($cond);
+            } else if !($cond) {
+                unsafe { die (c"eassume".as_ptr(), c"lisp.rs".as_ptr(), line!() as c_int) }
+            }
+        }
+        #[cfg(not(enable_checking))]
+        {
+            assume!($cond);
+        }
+    };
+}
+
+// --- gflags (src/lisp.h 620-645) -------------------------------------------
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct gflags {
+    pub will_dump: bool,
+    pub will_bootstrap: bool,
+    pub will_dump_with_pdumper: bool,
+    pub dumped_with_pdumper: bool,
+}
+
+unsafe extern "C" {
+    /// Set after Emacs has started up the first time (emacs.c).
+    pub static mut initialized: bool;
+    pub static mut gflags: gflags;
+    pub static mut symbols_with_pos_enabled: bool;
+}
+
+#[inline(always)]
+pub fn will_dump_p () -> bool {
+    if HAVE_PDUMPER { unsafe { gflags.will_dump } } else { false }
+}
+
+#[inline(always)]
+pub fn will_bootstrap_p () -> bool {
+    if HAVE_PDUMPER { unsafe { gflags.will_bootstrap } } else { false }
+}
+
+#[inline(always)]
+pub fn will_dump_with_pdumper_p () -> bool {
+    if HAVE_PDUMPER { unsafe { gflags.will_dump_with_pdumper } } else { false }
+}
+
+#[inline(always)]
+pub fn dumped_with_pdumper_p () -> bool {
+    if HAVE_PDUMPER { unsafe { gflags.dumped_with_pdumper } } else { false }
+}
+
+// --- tag accessors (src/lisp.h 700-760) ------------------------------------
+// C's TAG_PTR/LISP_WORD_TAG and XUNTAG are macros; they keep their names and
+// their call shape here for the same reason the C keeps them as macros.
+
+pub type Lisp_Word_tag = EMACS_UINT;
+
+#[inline(always)]
+pub fn LISP_WORD_TAG (tag: Lisp_Word_tag) -> Lisp_Word_tag {
+    // USE_LSB_TAG is true in every supported configuration (PORTING.md P-02).
+    tag << 0
+}
+
+#[inline(always)]
+pub fn TAG_PTR (tag: Lisp_Type, p: *mut c_void) -> Lisp_Object {
+    ((p as EMACS_UINT) + LISP_WORD_TAG (tag as Lisp_Word_tag)) as Lisp_Object
+}
+
+#[inline(always)]
+pub fn TAG_PTR_INITIALLY (tag: Lisp_Type, p: EMACS_INT) -> Lisp_Object {
+    ((p as EMACS_UINT) + LISP_WORD_TAG (tag as Lisp_Word_tag)) as Lisp_Object
+}
+
+/// XUNTAG (a, tag, ctype): the C macro subtracts the tag and casts.
+macro_rules! XUNTAG {
+    ($a:expr, $tag:expr, $ctype:ty) => {
+        (($a as isize) - ($tag as isize)) as *mut $ctype
+    };
+}
+
+#[inline(always)]
+pub fn XLI (o: Lisp_Object) -> EMACS_INT { lisp_h_XLI (o) }
+
+#[inline(always)]
+pub fn XIL (i: EMACS_INT) -> Lisp_Object { lisp_h_XIL (i) }
+
+#[inline(always)]
+pub fn XLP (o: Lisp_Object) -> *mut c_void { lisp_h_XLP (o) }
+
+#[inline(always)]
+pub fn XTYPE (a: Lisp_Object) -> Lisp_Type { lisp_h_XTYPE (a) }
+
+#[inline(always)]
+pub fn TAGGEDP (a: Lisp_Object, tag: Lisp_Type) -> bool { lisp_h_TAGGEDP (a, tag) }
+
+#[inline(always)]
+pub fn lisp_h_CHECK_TYPE (ok: bool, predicate: Lisp_Object, x: Lisp_Object) {
+    if !ok {
+        unsafe { wrong_type_argument (predicate, x) }
+    }
+}
+
+#[inline(always)]
+pub fn CHECK_TYPE (ok: bool, predicate: Lisp_Object, x: Lisp_Object) {
+    lisp_h_CHECK_TYPE (ok, predicate, x)
+}
+
+unsafe extern "C" {
+    pub fn wrong_type_argument (predicate: Lisp_Object, value: Lisp_Object) -> !;
+}
+
+// --- pseudovector types (src/lisp.h 985-1050) ------------------------------
+
+pub const PSEUDOVECTOR_SIZE_BITS: isize = 12;
+pub const PSEUDOVECTOR_SIZE_MASK: isize = (1 << PSEUDOVECTOR_SIZE_BITS) - 1;
+pub const PSEUDOVECTOR_REST_BITS: isize = 12;
+pub const PSEUDOVECTOR_REST_MASK: isize =
+    ((1 << PSEUDOVECTOR_REST_BITS) - 1) << PSEUDOVECTOR_SIZE_BITS;
+pub const PSEUDOVECTOR_AREA_BITS: isize =
+    PSEUDOVECTOR_SIZE_BITS + PSEUDOVECTOR_REST_BITS;
+pub const PVEC_TYPE_MASK: isize = 0x3f << PSEUDOVECTOR_AREA_BITS;
+
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum pvec_type {
+    PVEC_NORMAL_VECTOR = 0,
+    PVEC_FREE = 1,
+    PVEC_BIGNUM = 2,
+    PVEC_MARKER = 3,
+    PVEC_OVERLAY = 4,
+    PVEC_FINALIZER = 5,
+    PVEC_SYMBOL_WITH_POS = 6,
+    PVEC_MISC_PTR = 7,
+    PVEC_USER_PTR = 8,
+    PVEC_PROCESS = 9,
+    PVEC_FRAME = 10,
+    PVEC_WINDOW = 11,
+    PVEC_BOOL_VECTOR = 12,
+    PVEC_BUFFER = 13,
+    PVEC_HASH_TABLE = 14,
+    PVEC_OBARRAY = 15,
+    PVEC_TERMINAL = 16,
+    PVEC_WINDOW_CONFIGURATION = 17,
+    PVEC_SUBR = 18,
+    PVEC_OTHER = 19,
+    PVEC_XWIDGET = 20,
+    PVEC_XWIDGET_VIEW = 21,
+    PVEC_THREAD = 22,
+    PVEC_MUTEX = 23,
+    PVEC_CONDVAR = 24,
+    PVEC_MODULE_FUNCTION = 25,
+    PVEC_NATIVE_COMP_UNIT = 26,
+    PVEC_TS_PARSER = 27,
+    PVEC_TS_NODE = 28,
+    PVEC_TS_COMPILED_QUERY = 29,
+    PVEC_SQLITE = 30,
+    PVEC_CLOSURE = 31,
+    PVEC_CHAR_TABLE = 32,
+    PVEC_SUB_CHAR_TABLE = 33,
+    PVEC_RECORD = 34,
+    PVEC_FONT = 35,
+}
+
+/// Kept equal to the highest member (src/lisp.h: PVEC_TAG_MAX = PVEC_FONT).
+pub const PVEC_TAG_MAX: pvec_type = pvec_type::PVEC_FONT;
+
+#[inline(always)]
+pub fn lisp_h_VECTORLIKEP (x: Lisp_Object) -> bool {
+    TAGGEDP (x, Lisp_Type::Lisp_Vectorlike)
+}
+
+#[inline(always)]
+pub fn VECTORLIKEP (x: Lisp_Object) -> bool { lisp_h_VECTORLIKEP (x) }
+
+/// struct Lisp_Symbol_With_Pos (src/lisp.h 947).
+#[repr(C, align(8))]
+#[derive(Clone, Copy)]
+pub struct Lisp_Symbol_With_Pos {
+    pub header: vectorlike_header,
+    pub sym: Lisp_Object,
+    pub pos: Lisp_Object,
+}
+
+#[inline(always)]
+pub fn PSEUDOVECTORP (a: Lisp_Object, code: pvec_type) -> bool {
+    lisp_h_VECTORLIKEP (a)
+        && unsafe {
+            let header = XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, vectorlike_header);
+            ((*header).size & (PSEUDOVECTOR_FLAG | PVEC_TYPE_MASK))
+                == (PSEUDOVECTOR_FLAG | ((code as isize) << PSEUDOVECTOR_AREA_BITS))
+        }
+}
+
+// --- symbols (src/lisp.h 1054-1160) ----------------------------------------
+
+#[inline(always)]
+pub fn lisp_h_SYMBOL_WITH_POS_P (x: Lisp_Object) -> bool {
+    PSEUDOVECTORP (x, pvec_type::PVEC_SYMBOL_WITH_POS)
+}
+
+#[inline(always)]
+pub fn lisp_h_BARE_SYMBOL_P (x: Lisp_Object) -> bool {
+    TAGGEDP (x, Lisp_Type::Lisp_Symbol)
+}
+
+#[inline(always)]
+pub fn BARE_SYMBOL_P (x: Lisp_Object) -> bool { lisp_h_BARE_SYMBOL_P (x) }
+
+#[inline(always)]
+pub fn SYMBOL_WITH_POS_P (x: Lisp_Object) -> bool { lisp_h_SYMBOL_WITH_POS_P (x) }
+
+#[inline(always)]
+pub fn SYMBOLP (x: Lisp_Object) -> bool {
+    BARE_SYMBOL_P (x)
+        || (unsafe { symbols_with_pos_enabled } && SYMBOL_WITH_POS_P (x))
+}
+
+#[inline(always)]
+pub fn XSYMBOL_WITH_POS (a: Lisp_Object) -> *mut Lisp_Symbol_With_Pos {
+    eassert! (SYMBOL_WITH_POS_P (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Symbol_With_Pos)
+}
+
+#[inline(always)]
+pub fn XSYMBOL_WITH_POS_SYM (a: Lisp_Object) -> Lisp_Object {
+    let sym = unsafe { (*XSYMBOL_WITH_POS (a)).sym };
+    eassume! (BARE_SYMBOL_P (sym));
+    sym
+}
+
+#[inline(always)]
+pub fn XSYMBOL_WITH_POS_POS (a: Lisp_Object) -> Lisp_Object {
+    unsafe { (*XSYMBOL_WITH_POS (a)).pos }
+}
+
+#[inline(always)]
+pub fn maybe_remove_pos_from_symbol (x: Lisp_Object) -> Lisp_Object {
+    if unsafe { symbols_with_pos_enabled } && SYMBOL_WITH_POS_P (x) {
+        XSYMBOL_WITH_POS_SYM (x)
+    } else {
+        x
+    }
+}
+
+#[inline(always)]
+pub fn XSYMBOL (a: Lisp_Object) -> *mut Lisp_Symbol {
+    let a = if !BARE_SYMBOL_P (a) {
+        eassume! (unsafe { symbols_with_pos_enabled });
+        XSYMBOL_WITH_POS_SYM (a)
+    } else {
+        a
+    };
+    eassert! (BARE_SYMBOL_P (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Symbol, Lisp_Symbol)
 }

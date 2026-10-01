@@ -1,6 +1,5 @@
-# gap of femacs/src/include/lisp.rs against emacs/src/lisp.h (2026-10-02)
-functions	274	275
-macros	193	201
-struct fields	10	180
-globals	56	56
-types declared	9	27
+# gap of femacs/src/include/lisp.rs against emacs/src/lisp.h (updated 2026-10-02)
+# columns: item, missing, total
+functions	254	275
+macros	190	201
+globals	55	56
