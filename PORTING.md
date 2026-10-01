@@ -47,7 +47,12 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
      与 C 一样按普通内联函数处理；
    - 作为 union 成员的 `#[repr(C)]` 结构体必须 `Copy`（C 结构体天然可平凡复制），
      这是 union 成员的硬性要求，不影响布局。（`spikes/layout.rs` 与 `lisp.rs` 均已实测）
-10. **布局断言由工具生成，不手写**：`xtask layout-asserts` 读
+10. **草稿生成器只做机械部分，且从不写入镜像**：`tools/emit-mirror.py` 从 C 头文件机械地
+   产出结构体/联合/typedef/字面常量/`extern` 声明（函数指针字段、位域结构体、无法映射的
+   类型会被明确跳过并列入"人工工作"清单）。它的输出是**草稿**（`docs/ports/*-draft.rs`），
+   必须逐类型补全并通过布局闸门后才允许合并进镜像——实测把未补全的草稿整块贴进镜像时，
+   `xtask layout-check` 立刻以 `sizeof handler` 断言失败拦下，这正是期望行为。
+11. **布局断言由工具生成，不手写**：`xtask layout-asserts` 读
    `docs/baseline/layout/c-layout-*.tsv`（C 编译器输出的冻结基线），生成 `const _: () =
    assert!(size_of/offset_of …);`；镜像里没有声明过的类型记为 pending，数量随移植递减，
    但不允许把 pending 当成通过。
