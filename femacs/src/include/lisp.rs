@@ -2453,8 +2453,8 @@ pub fn record_in_backtrace (function: Lisp_Object, args: *mut Lisp_Object, nargs
     let _ = count;
 }
 
-pub const UNEVALLED: isize = -2;
-pub const MANY: isize = -1;
+pub const MANY: isize = -2;
+pub const UNEVALLED: isize = -1;
 
 // --- quitting and collection ----------------------------------------------
 
@@ -3071,7 +3071,7 @@ pub fn LISPSYM_INITIALLY (index: usize) -> Lisp_Object {
 pub fn SYMBOL_INDEX (index: usize) -> usize { index }
 
 #[inline(always)]
-pub fn lisp_h_Qnil () -> Lisp_Object { std::ptr::null_mut () }   // NIL_IS_ZERO: index 0, tag 0
+pub const fn lisp_h_Qnil () -> Lisp_Object { std::ptr::null_mut () }   // NIL_IS_ZERO: index 0, tag 0
 
 #[inline(always)]
 pub fn lisp_h_XFIXNUM_RAW (a: Lisp_Object) -> EMACS_INT { XLI (a) >> INTTYPEBITS }
@@ -3090,7 +3090,7 @@ pub fn lisp_h_make_fixnum (n: EMACS_INT) -> Lisp_Object {
 // defsubr / defvar take the subr and fwd records the DEFUN and DEFVAR_* forms
 // build; the records themselves live in the ported units.
 unsafe extern "C" {
-    pub fn defsubr (sname: *const Lisp_Subr);
+    pub fn defsubr (sname: *mut Aligned_Lisp_Subr);
     pub fn defvar_lisp (fwd: *const Lisp_Fwd, lname: *const c_char);
     pub fn defvar_lisp_nopro (fwd: *const Lisp_Fwd, lname: *const c_char);
     pub fn defvar_int (fwd: *const Lisp_Fwd, lname: *const c_char);
@@ -3098,25 +3098,138 @@ unsafe extern "C" {
     pub fn defvar_kboard (fwd: *const Lisp_Fwd, lname: *const c_char);
 }
 
-/// DEFUN (src/lisp.h 823): declares the subr record and the C function.
+/// C's `intspec` is a string literal, `0` or `NULL` (src/lisp.h 3427-3431, and the
+/// frozen table has exactly those three); the union's first member is the C
+/// string, so a string becomes a NUL-terminated pointer and the other two are
+/// the null pointer, as C's `{intspec}` initialiser gives.
+#[macro_export]
+macro_rules! intspec_string {
+    (0) => { core::ptr::null () };
+    (NULL) => { core::ptr::null () };
+    ($s:literal) => { concat!($s, "\0").as_ptr () as *const core::ffi::c_char };
+}
+
+/// C's `DEFUN` stores the function's address in the union member whose type is
+/// `Lisp_Object (*) (…)` (`{.a ## maxargs = fnname}`); `_Noreturn` is a specifier
+/// on the *declaration*, not part of that type.  Rust's `-> !` *is* part of the
+/// type, so a noreturn subr's pointer is punned exactly where C's union
+/// initialiser puns it.  SAFETY: both sides are function pointers of the same
+/// size and the function never returns, so the return type is never observed.
+#[macro_export]
+macro_rules! subr_function_pointer {
+    (Lisp_Object, $cname:ident, ($($ty:ty),*)) => { Some ($cname) };
+    (!, $cname:ident, ($($ty:ty),*)) => {
+        Some (unsafe {
+            core::mem::transmute::<unsafe extern "C" fn($($ty),*) -> !,
+                                   unsafe extern "C" fn($($ty),*) -> Lisp_Object> (
+                $cname as unsafe extern "C" fn($($ty),*) -> !)
+        })
+    };
+}
+
+/// src/lisp.h 3406-3440: `DEFUN` declares the Lisp-callable function and the
+/// file-static record `defsubr` registers.  Both parts are kept, in C's field
+/// order; `maxargs` selects the union member exactly as C's
+/// `{ .a ## maxargs = fnname }` does, and the arity arms are C's
+/// `DEFUN_ARGS_0 … DEFUN_ARGS_8` / `MANY` / `UNEVALLED` table.  The docstring
+/// literal stays in the invocation on purpose: like `make-docfile`, the DOC
+/// generator reads docstrings from the source text (PORTING.md 5.1) and
+/// `extract-abi.py` checks its digest against the frozen `subrs.tsv`.
+///
+/// The invocation is C's DEFUN with the body as the last argument (a Rust macro
+/// invocation cannot be followed by items):
+///
+/// ```ignore
+/// DEFUN! ("cons", Fcons, Scons, 2, 2, 0,
+///         doc: "Create a new cons, give it CAR and CDR as components, and return it.",
+///         (car: Lisp_Object, cdr: Lisp_Object),
+///         {
+///             return CALLN! (Fcons, car, cdr);
+///         });
+/// ```
 #[macro_export]
 macro_rules! DEFUN {
-    ($lname:expr, $fnname:ident, $sname:ident, $minargs:expr, $maxargs:tt, $intspec:expr, $doc:expr) => {
-        #[no_mangle]
-        pub static mut $sname: Aligned_Lisp_Subr = Aligned_Lisp_Subr {
+    // Entry: C's field order, with C's optional `attributes:` list.
+    ($lname:literal, $cname:ident, $sname:ident, $minargs:expr, $maxargs:tt, $intspec:tt,
+     doc: $doc:literal, attributes: noreturn, ($($arg:ident : $ty:ty),* $(,)?), $body:block) => {
+        DEFUN! (@arity $lname, $cname, $sname, $minargs, $maxargs, $intspec,
+                ($($arg : $ty),*), $body, !);
+    };
+    ($lname:literal, $cname:ident, $sname:ident, $minargs:expr, $maxargs:tt, $intspec:tt,
+     doc: $doc:literal, ($($arg:ident : $ty:ty),* $(,)?), $body:block) => {
+        DEFUN! (@arity $lname, $cname, $sname, $minargs, $maxargs, $intspec,
+                ($($arg : $ty),*), $body, Lisp_Object);
+    };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 0, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, 0, $intspec,
+                 ($($arg : $ty),*), $body, a0, $ret); };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 1, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, 1, $intspec,
+                 ($($arg : $ty),*), $body, a1, $ret); };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 2, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, 2, $intspec,
+                 ($($arg : $ty),*), $body, a2, $ret); };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 3, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, 3, $intspec,
+                 ($($arg : $ty),*), $body, a3, $ret); };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 4, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, 4, $intspec,
+                 ($($arg : $ty),*), $body, a4, $ret); };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 5, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, 5, $intspec,
+                 ($($arg : $ty),*), $body, a5, $ret); };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 6, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, 6, $intspec,
+                 ($($arg : $ty),*), $body, a6, $ret); };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 7, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, 7, $intspec,
+                 ($($arg : $ty),*), $body, a7, $ret); };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, 8, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, 8, $intspec,
+                 ($($arg : $ty),*), $body, a8, $ret); };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, MANY, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, MANY, $intspec,
+                 ($($arg : $ty),*), $body, aMANY, $ret); };
+    (@arity $lname:literal, $cname:ident, $sname:ident, $minargs:expr, UNEVALLED, $intspec:tt,
+     ($($arg:ident : $ty:ty),*), $body:block, $ret:tt) =>
+        { DEFUN! (@record $lname, $cname, $sname, $minargs, UNEVALLED, $intspec,
+                 ($($arg : $ty),*), $body, aUNEVALLED, $ret); };
+    (@record $lname:literal, $cname:ident, $sname:ident, $minargs:expr, $maxargs:expr,
+     $intspec:tt, ($($arg:ident : $ty:ty),*), $body:block, $member:ident, $ret:tt) => {
+        // C: SUBR_SECTION_ATTRIBUTE + `static union Aligned_Lisp_Subr sname = {{{…}}};`
+        #[cfg_attr(target_os = "macos", unsafe(link_section = "__DATA,subrs"))]
+        #[cfg_attr(not(target_os = "macos"), unsafe(link_section = ".subrs"))]
+        static mut $sname: Aligned_Lisp_Subr = Aligned_Lisp_Subr {
             s: Lisp_Subr {
                 header: vectorlike_header {
-                    size: PVECHEADERSIZE (pvec_type::PVEC_SUBR, 0, 0),
+                    size: (pvec_type::PVEC_SUBR as isize) << PSEUDOVECTOR_AREA_BITS,
                 },
-                function: Lisp_Subr_function { a0: None },
-                min_args: $minargs,
-                max_args: $maxargs,
-                symbol_name: $lname.as_ptr () as *const c_char,
-                intspec: Lisp_Subr_intspec { string: $intspec.as_ptr () as *const c_char },
-                command_modes: Qnil (),
+                function: Lisp_Subr_function {
+                    $member: subr_function_pointer! ($ret, $cname, ($($ty),*)),
+                },
+                min_args: $minargs as i16,
+                max_args: $maxargs as i16,
+                symbol_name: concat!($lname, "\0").as_ptr () as *const core::ffi::c_char,
+                intspec: Lisp_Subr_intspec { string: intspec_string! ($intspec) },
+                command_modes: lisp_h_Qnil (),
                 doc: 0,
             },
         };
+
+        // C: `Lisp_Object fnname` (external linkage, declared here, not among the
+        // dump-only statics), plus the port's `#[unsafe(no_mangle)]` (PORTING.md 0.2).
+        #[unsafe(no_mangle)]
+        pub unsafe extern "C" fn $cname ($($arg : $ty),*) -> $ret $body
     };
 }
 

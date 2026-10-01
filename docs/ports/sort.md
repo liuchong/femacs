@@ -134,7 +134,7 @@ mid-sort signals) and reviewer B (toolchain/ABI/gate plumbing).  Resolutions:
 | B5 | Duplicate subr names: last-wins lost the 8th `noreturn` | Generator merges by name, errors on differing signatures, ORs flags; 8 `-> !` |
 | B6 | Prototype set is a whole-configuration superset (304 GUI-only names) | Recorded as deviation P-29 |
 | B7 | `static_assert!` accepted only one argument | Accepts the optional C23 message |
-| B8 | `_Noreturn` on the declaration only; `ATTRIBUTE_COLD`/`NO_INLINE` unrecorded | `defun!` definitions must also be `-> !` (§5.1/§5.2); other attributes recorded as not expressible (P-25) |
+| B8 | `_Noreturn` on the declaration only; `ATTRIBUTE_COLD`/`NO_INLINE` unrecorded | `DEFUN!` definitions must also be `-> !` (§5.1/§5.2); other attributes recorded as not expressible (P-25) |
 
 Reviewer A's positive verification (independent of the fixes): 2,088 non-signal cases and
 96 signal cases byte-identical to the C (including `cleanup_mem`'s relocation and the GC

@@ -59,10 +59,10 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     `<globals.h>`，手写一份就等于在 crate 根放了同名项，定义该 subr 的 TU 立刻 `E0428`
     （`lisp.rs` 原先手写的 `Fcons`/`Ffuncall`/`Fsignal` 已按此删除）。
 11. **C 的"原型 ↔ 定义"类型检查在 subr 上失效（评审 F2，P-28）**：因为定义遮蔽整体
-    导入，生成的 `EXFUN` 原型不会与 `defun!` 定义比对；C 会在编译期拒绝的
+    导入，生成的 `EXFUN` 原型不会与 `DEFUN!` 定义比对；C 会在编译期拒绝的
     arity/返回类型不一致（例如 noreturn subr 的 `-> !`）在 Rust 里**静默通过**。
     第一个定义 subr 的 TU（`alloc.c`）开工前必须在 `tools/extract-abi.py` 里补上
-    机械替代：把 `defun!` 形式的参数个数与返回类型同 `docs/baseline/subrs.tsv`
+    机械替代：把 `DEFUN!` 形式的参数个数与返回类型同 `docs/baseline/subrs.tsv`
     对齐，并禁止 `pub mod subrs` 之外的 crate 根 `F*` 声明。
 12. **C 的前向声明没有 Rust 对应物**：`static void f (T *);` 之后再定义，在 Rust 是
     `E0428`，而 Rust 的项与顺序无关。删除声明行、把定义留在 C 的位置，并在
@@ -91,6 +91,10 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
   → `#[unsafe(no_mangle)] pub`（唯一单元内；edition 2024 要求 unsafe 属性写法，裸
   `#[no_mangle]` 直接报 "unsafe attribute used without unsafe"）。`static`（内部链接）→
   非 `pub`、不导出符号。
+- **`DEFUN` 的文件级记录 `Sfoo`**：C 是 `static union Aligned_Lisp_Subr sname`（内部链接）。
+  Rust 侧是同名 `static mut Sfoo`，但 Rust 的静态符号会被 mangle（`_ZN…Sfoo`），
+  C 里叫 `Sfoo`（局部符号）。记录为偏离：源码里的名字、`defsubr (&raw mut Sfoo)` 的
+  引用与 C 逐字相同，符号表里的名字不同（参照里没有按名字查找 `S*` 的代码）。
 - C 的全局变量（尤其 `Lisp_Object` 全局）在 Rust 侧写成 `#[unsafe(no_mangle)] pub static mut NAME: T`
   ——`staticpro` 注册的是它的地址，地址必须稳定（不入 `Box`、不搬移）。
 
@@ -378,7 +382,7 @@ C 依赖的机制必须逐个给出 Rust 等价物，`black_box`/空 `asm!` **�
 
 ## 5. Lisp 接口
 
-### 5.1 `DEFUN` → `defun!`（1,841 个活跃 subr，v2 更正）
+### 5.1 `DEFUN` → `DEFUN!`（1,841 个活跃 subr，v2 更正；宏名与 C 逐字相同，PORTING 0.2）
 
 C：
 
@@ -391,10 +395,39 @@ Rust（**docstring 必须是字符串字面量**，v1 用注释的写法没有�
 `stringify!` 得到 `doc : ,`）：
 
 ```rust
-defun!("cons", Fcons, Scons, 2, 2, 0,
+DEFUN!("cons", Fcons, Scons, 2, 2, 0,
        doc: "Create a new cons, give it CAR and CDR as components, and return it.",
-       (car: Lisp_Object, cdr: Lisp_Object));
+       (car: Lisp_Object, cdr: Lisp_Object),
+       {
+           return CALLN! (Fcons, car, cdr);
+       });
 ```
+
+（宏调用**不能被紧跟的项**续写，所以函数体是宏的最后一个实参；字段顺序与 C 相同，
+`attributes: noreturn` 写在 `doc:` 之后，`maxargs` 决定联合成员 `.a<maxargs>`，
+`defsubr (&raw mut Scons)` 在 `syms_of_*` 里注册——C 的 `defsubr` 会写记录的
+`header.size`，所以指针是 `*mut`。）
+
+**`attributes: noreturn` 的记录**：C 把 `_Noreturn` 只写在**声明**上（`globals.h` 的
+`_Noreturn EXFUN (Ffoo, N)`），定义仍是 `Lisp_Object fnname (…)`，而 `_Noreturn` 不是
+类型的一部分，所以 `{.a2 = Fthrow}` 在 C 里没有类型冲突。Rust 的 `-> !` **是**类型的一部分，
+`fn(…) -> !` 不能存进 `fn(…) -> Lisp_Object` 的联合成员（`E0308`）。因此：
+- 生成的 `subrs` 原型按 C 的 `_Noreturn` 写 `-> !`；
+- `DEFUN!` 的定义也写 `-> !`（与原型同型，P-28 才可校验）；
+- **记录**里的指针用 `subr_function_pointer!` 打一次形（等价于 C 的联合初值
+  `{.a ## maxargs = fnname}`；两侧都是同宽函数指针且函数从不返回，SAFETY 注在宏上）。
+  A6 实测：noreturn 记录在 bin/lib 两种 crate 里都能编译，且记录里存的地址与函数地址
+  相同（`address_preserved=true`）。
+
+**多行 interactive 规格的坑**：C 的 `\`+换行是**行拼接**，只删掉换行、保留续行的
+缩进；Rust 字符串里的 `\`+换行是**行延续**，会把续行的前导空白一起吃掉。所以把 C 的
+多行 `intspec` 原样抄进 Rust 会**改变编译后的字符串值**。规则：多行 `intspec` 在 Rust
+里写成一行，用 `\t` 与显式空格把 C 拼接后的值原样表达；`--check` 现在按**解码后的
+值**逐字节比较，抄布局会直接 FAIL。
+
+**docstring 校验的粒度**：`--check` 比对的是**词级**摘要（C 的注释排版与 Rust 的字面量
+排版不同，空白串会被折叠）；`doc:` 字面量与 C 注释**逐字节一致**的保证由 §7.3 的
+`etc/DOC` 逐字节比对在阶段 G 兑现。
 
 - 参数上下限、interactive 规格、Lisp 名逐字一致；`--check` 比对 docstring 摘要（
   `docs/baseline/subrs.tsv` 的 `ldoc_digest`）。
@@ -406,6 +439,9 @@ defun!("cons", Fcons, Scons, 2, 2, 0,
 
 - `syms_of_*`/`keys_of_*` 同名、`#[unsafe(no_mangle)]`，内部调用顺序与 C 完全一致（顺序影响
   `Qnil`/`Qt` 初始化与 dump 内容）；`defsubr` 1,848 处、`DEFSYM` 2,310 调用逐处保留。
+- **`defsubr` 的调用形状**：C 的 `defsubr (union Aligned_Lisp_Subr *)` 会写记录的
+  `header.size`（`XSETPVECTYPE`），镜像因此声明为 `*mut`，调用点写
+  `defsubr (&raw mut Sfoo);`（`foo` 的定义文件里，顺序与 C 的 `syms_of_*` 相同）。
 - **`EXFUN` 的前后缀**：`attributes: noreturn`（8 个 subr，`docs/baseline/subrs.tsv` 的
   `flags` 列）→ 声明为 `-> !`（C 写 `_Noreturn Lisp_Object Ffoo (…)` 并加后缀
   `ATTRIBUTE_COLD`；Rust 无法同时表达"返回 Lisp_Object"与"从不返回"，取
@@ -414,7 +450,7 @@ defun!("cons", Fcons, Scons, 2, 2, 0,
   `make-docfile` 的 error），`flags` 取并集。
   `attributes: const`（15）/`pure`（6）/`noinline`/`ATTRIBUTE_COLD` 在 Rust 的 extern
   声明上无对应物，只影响优化，逐个记录为不表达（P-25）。
-- **`defun!` 定义侧同样要遵守 `noreturn`（评审 F8，§5.1）**：`Fsignal`/`Fthrow` 等 8 个
+- **`DEFUN!` 定义侧同样要遵守 `noreturn`（评审 F8，§5.1）**：`Fsignal`/`Fthrow` 等 8 个
   subr 的定义必须是 `-> !`，否则定义与 `EXFUN` 原型不一致（Rust 不再检查，见 §0.1-11）。
 
 ### 5.3 动态模块 ABI
@@ -515,8 +551,11 @@ defun!("cons", Fcons, Scons, 2, 2, 0,
 | P-25 | `EXFUN` 的 `const`/`pure`/`noinline` 前缀无 Rust 对应物 | 已定（偏离已记录） | 只影响优化；`noreturn` 已映射为 `-> !`（§5.2） |
 | P-26 | gnulib/系统头（`lib/stdint.in.h`、`lib/limits.in.h`、`lib/intprops.h`、`lib/verify.h`…）的镜像 | **部分完成**：`stdint.in.rs`/`limits.in.rs` 只含宽度一节（WIP） | 逐头文件补全并让 WIP 计数下降（§7.3） |
 | P-27 | 检查器只跟随一层 `include!` | 已定 | 名字（函数/宏/静态量/常量/subr）仍按"文件 + 一层镜像"收集；**桩检测看全部被包含文本**（否则可把实现放进被包含文件绕过），5% 行数预算只看文件自身；桩检测跳过 C 文件里没有的名字（镜像内联函数） |
-| P-28 | subr 的"原型 ↔ 定义"检查缺失 | **待办（阻断 `alloc.c`）** | `extract-abi.py` 对齐 `defun!` 与 `subrs.tsv` 的 arity/返回类型，并禁止 `pub mod subrs` 之外的 crate 根 `F*` 声明（§0.1-11） |
+| P-28 | subr 的"原型 ↔ 定义"检查缺失 | **已完成**（`extract-abi.py`：`DEFUN!` 参数个数 vs `maxargs`、`attributes: noreturn` ⟺ C 的 flags、crate 根不许声明 subr 原型） | 合成用例 + `--check` 回归 |
 | P-29 | `globals.rs` 的原型集是"全配置超集"（含 304 个仅 GUI/平台文件才有的名字），与 C 按 `GLOBAL_SOURCES` 生成的 `globals.h` 不同 | 已记录（偏离） | C 里调用未配置的 subr 是编译错误，Rust 里会到链接期才暴露；待 `xtask` 冻结每目标的源文件清单后按配置过滤（P-08 完成后） |
+| P-28 | subr 的"原型 ↔ 定义"检查缺失 | **已完成**（`extract-abi.py`：注释无关的匹配、`DEFUN!` 参数**类型** vs `DEFUN_ARGS_*`、`attributes: noreturn` ⟺ C 的 flags、crate 根不许声明 subr 原型、`defsubr` 集合逐条对齐、`DEFUN!` 体也做桩检测、`maxargs` 不可解析时报错；`gate-fast` 现在还编译每个**已完成**的 TU） | 评审 A/B 的 40+ 个攻击用例全部按预期通过/拒绝；残余：doc 摘要为词级（字节级靠阶段 G 的 `etc/DOC`） |
+| P-31 | 有 5 个 `S…` 记录（`Sfont_drive_otf`、`Sfont_otf_alternates`、`Sdraw_string`、`Sframe_configuration`、`Srestore_frame_configuration`）由 `font.c`/`frame.c` 注册，但定义在 `.m` 一侧；另有 1 个 DEFUN（`minibuf.c` 的 `Fread_function`）参照从不注册 | 已记录 | `.m` 一侧的 Swift 实现要导出这 5 个记录（或由 Swift 侧注册）；`Fread_function` 照参照不注册；`--check` 按参照文件自己的 `defsubr` 集合对齐，两条都自然覆盖 |
+| P-32 | arity 表在 `lisp.rs` 里出现两次（`DEFUN_ARGS_*` 镜像宏、`DEFUN!` 的 11 个 arity 臂），`xtask` 生成原型时是第三次 | 已记录（待合并） | 三处可归并成一个来源；当前由 P-28 的类型检查与 `DEFUN_ARGS_*` 清单兜底 |
 | P-30 | 现有三道闸门**看不见行为错误**（评审 A 的 P0：`XSYMBOL` 少加 `lispsym` 基址，`--check`/`build-tu`/`layout-check` 全绿却会段错误） | **待办（阶段 B 前）** | 用差分对照把核心算法 TU 与参照对拍（评审 A 的 `/tmp/dt` 手法：C 侧 `cc -std=gnu2x` + mock 运行时，Rust 侧 `rustc --crate-type bin`，同一语料逐字节比对 stdout/标记轨迹；语料覆盖 n=1…5000、6 种键型、`values` 两态、`reverse` 两态、中途 signal/longjmp 与 GC 标记） |
 
 **P-17 说明（实测决定）**：参照用 `make-docfile` 生成 `globals.h`（`#define iQfoo N` +
