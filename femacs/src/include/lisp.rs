@@ -1026,6 +1026,17 @@ pub type KBOARD = kboard;
 pub type intptr_t = isize;
 
 /// src/lisp.h 1999: iQnil == 0 && Lisp_Symbol == 0.
+/// src/lisp.h 4140: `typedef intmax_t modiff_count;`
+pub type modiff_count = intmax_t;
+
+/// src/lisp.h 1423: `typedef struct interval *INTERVAL;`.  `struct interval` is
+/// incomplete in lisp.h (its definition lives in intervals.h, which this header
+/// does not include), so the port keeps an opaque pointer here; naming the real
+/// type would force every translation unit to include intervals.rs
+/// (PORTING.md 0.1-2: C's incomplete `struct X *` becomes `*mut c_void` and the
+/// deviation is recorded).
+pub type INTERVAL = *mut c_void;
+
 /// src/lisp.h 1999: `enum { NIL_IS_ZERO = iQnil == 0 && Lisp_Symbol == 0 };`
 /// The port derives it from the generated symbol table, so an assertion that
 /// relies on it stays meaningful.
