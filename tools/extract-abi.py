@@ -198,6 +198,37 @@ C_SIMPLE_ESCAPES = {"n": 10, "t": 9, "r": 13, "0": 0, "a": 7, "b": 8,
                     "f": 12, "v": 11, "\\": 92, '"': 34, "'": 39, "?": 63}
 
 
+def is_string_literal(text: str) -> bool:
+    """A Rust string or byte-string literal (the two spellings a C string macro
+    can become)."""
+    return text.startswith('"') or text.startswith('b"') or text.startswith('c"')
+
+
+def rust_string_bytes(text: str) -> bytes:
+    """The content bytes a Rust string literal holds, without any terminator, so
+    `"…"`, `b"…\0"` and `c"…"` all compare as the same string as C's literal."""
+    if text.startswith("b\""):
+        body = text[2:-1]
+        out, i = bytearray(), 0
+        while i < len(body):
+            ch = body[i]
+            if ch == "\\" and i + 1 < len(body):
+                nxt = body[i + 1]
+                if nxt == "x":
+                    out.append(int(body[i + 2:i + 4], 16))
+                    i += 4
+                    continue
+                out.append({"n": 10, "t": 9, "r": 13, "0": 0, "\\": 92,
+                            '"': 34, "'": 39}.get(nxt, ord(nxt)))
+                i += 2
+                continue
+            out += ch.encode("utf-8")
+            i += 1
+        return bytes(out[:-1]) if bytes(out).endswith(b"\0") else bytes(out)
+    body = text[2:-1] if text.startswith("c\"") else text[1:-1]
+    return decode_rust_string(body).encode("utf-8")
+
+
 def decode_c_string(text: str) -> bytes:
     """The bytes of a C string-literal body (PORTING.md 5.1: a string-valued
     macro keeps its value, spelled with whichever escapes are portable)."""
@@ -427,9 +458,9 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         # A string literal is compared as its *value*: C spells a code point with
         # byte escapes (`"\xE2\x80\x98"`), Rust with `"\u{2018}"`, and the two
         # are the same bytes (PORTING.md 5.1).
-        if value.strip().startswith('"') and r["constants"][name].strip().startswith('"'):
-            rust_body = r["constants"][name].strip()[1:-1]   # decode_rust_string takes the body
-            if decode_c_string(value) != decode_rust_string(rust_body).encode("utf-8"):
+        rust_value = r["constants"][name].strip()
+        if value.strip().startswith('"') and is_string_literal(rust_value):
+            if decode_c_string(value) != rust_string_bytes(rust_value):
                 problems.append(f"constant {name}: C {value} vs Rust "
                                 f"{r['constants'][name]} (different bytes)")
             continue

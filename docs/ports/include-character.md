@@ -59,7 +59,12 @@
   (`eassert`/`eassume` and the accessors come from `lisp.rs`, as from `lisp.h` in C).
 - `uLSQM`/`uRSQM` are C string macros written with byte escapes; the port spells the same
   code point (`"\u{2018}"`) and `--check` compares string-valued constants by their
-  decoded bytes (tools/extract-abi.py, `decode_c_string`).
+  content bytes, so `"\u{2018}"`, `b"\xE2\x80\x98\0"` and `c"\u{2018}"` are all the
+  same string (tools/extract-abi.py).  Both reference uses read `sizeof uLSQM - 1`
+  (`doprnt.c` 493/495, `editfns.c` 4214) and take a `const char *` with an explicit
+  length, so the use sites write `uLSQM.as_ptr ()` and `uLSQM.len ()`; where C concatenates
+  a string macro into a literal (`"%"pI"d"`), the port uses `concat!` with the macro form
+  (`pD`/`pI` stay macros, `PORTING.md` 2.1).
 - `hexdigit` is `extern signed char const hexdigit[]` in C; the port declares
   `[c_char; 256]`, the size of the definition `hexdigit[UCHAR_MAX + 1]` in `character.c`
   (`UCHAR_MAX` lives in the WIP `lib/include/limits.in.rs` mirror, P-26).

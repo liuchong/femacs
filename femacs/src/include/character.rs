@@ -86,8 +86,9 @@ unsafe extern "C" {
 
 /* UTF-8 encodings.  Use \x escapes, so they are portable to pre-C11
    compilers and can be concatenated with ordinary string literals.  */
-// C spells these as `"\xE2\x80\x98"` / `"\xE2\x80\x99"`; Rust spells the same
-// code point, and `--check` compares the decoded bytes (tools/extract-abi.py).
+// C spells these as string literals (`char[4]` with the implicit NUL) and the two
+// reference uses read `sizeof uLSQM - 1`; the port keeps the string content, so a
+// use site writes `uLSQM.len ()` where C writes `sizeof uLSQM - 1`.
 pub const uLSQM: &str = "\u{2018}"; /* U+2018 LEFT SINGLE QUOTATION MARK */
 pub const uRSQM: &str = "\u{2019}"; /* U+2019 RIGHT SINGLE QUOTATION MARK */
 

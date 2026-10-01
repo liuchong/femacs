@@ -239,6 +239,11 @@ pub type Lisp_Object = Lisp_Word;
   `size` 两次）、以及 release 下 `eassert`（**完全不求值**）。这些是“单次求值”规则的
   例外，必须逐条保留原求值次数（P-16）。
 - 变参宏（`__VA_ARGS__`）→ `($($args:tt)*)`。
+- **C 的字符串宏** → 同名 `macro_rules!` 或 `pub const …: &str`，两者都保持**内容字节**
+  （比较时忽略 C 的隐式 NUL：`"t"`、`b"t\\0"`、`c"t"` 视为同一串）。用在 C 的相邻字面量
+  拼接处（`"%"pI"d"`）时必须是宏：`concat! ("%", pI! (), "d")` 实测可行（`macro_rules!`
+  的调用会在 `concat!` 里展开，而 `const` 不行）；`sizeof uLSQM - 1` 这类用法在使用点
+  写成 `.len ()`。
 - **宏里需要"实参个数"时不能用求值表达式**：数组长度是常量表达式，C 的 `ARRAYELTS`
   换成 `{ let _ = &$arg; 1 }` 会以 `E0435`（非常量值用于常量）失败，必须用
   `{ let _ = stringify!($arg); 1 }` 计数、由数组初始化真正求值一次（A6 实测）。
