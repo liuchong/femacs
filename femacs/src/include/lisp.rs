@@ -1382,3 +1382,263 @@ pub fn SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P (sym: Lisp_Object) -> bool {
 unsafe extern "C" {
     pub fn set_sub_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object);
 }
+
+// --- batch 4: misc pointers, overlays, finalizers, fwd objects (src/lisp.h 2890-3390) ---
+// Fwd object types (src/lisp.h 528) and the buffer-obj predicate (3120).
+pub const Lisp_Fwd_Int: u32 = 0;
+pub const Lisp_Fwd_Bool: u32 = 1;
+pub const Lisp_Fwd_Obj: u32 = 2;
+pub const Lisp_Fwd_Buffer_Obj: u32 = 3;
+pub const Lisp_Fwd_Kboard_Obj: u32 = 4;
+
+// enum Lisp_Fwd_Predicate (src/lisp.h 3099), in the C member order.
+pub const FWDPRED_Qnil: u32 = 0;
+pub const FWDPRED_Qintegerp: u32 = 1;
+pub const FWDPRED_Qsymbolp: u32 = 2;
+pub const FWDPRED_Qstringp: u32 = 3;
+pub const FWDPRED_Qnumberp: u32 = 4;
+pub const FWDPRED_Qfraction: u32 = 5;
+pub const FWDPRED_Qvertical_scroll_bar: u32 = 6;
+pub const FWDPRED_Qoverwrite_mode: u32 = 7;
+
+#[repr(C, align(8))]
+#[derive(Clone, Copy)]
+pub struct Lisp_Overlay {
+    pub header: vectorlike_header,
+    pub plist: Lisp_Object,
+    pub buffer: *mut c_void,        // struct buffer *
+    pub interval: *mut c_void,      // struct itree_node *
+}
+
+#[repr(C, align(8))]
+#[derive(Clone, Copy)]
+pub struct Lisp_Misc_Ptr {
+    pub header: vectorlike_header,
+    pub pointer: *mut c_void,
+}
+
+#[repr(C, align(8))]
+#[derive(Clone, Copy)]
+pub struct Lisp_User_Ptr {
+    pub header: vectorlike_header,
+    pub finalizer: Option<unsafe extern "C" fn(*mut c_void)>,
+    pub p: *mut c_void,
+}
+
+#[repr(C, align(8))]
+#[derive(Clone, Copy)]
+pub struct Lisp_Finalizer {
+    pub header: vectorlike_header,
+    pub function: Lisp_Object,
+    pub prev: *mut Lisp_Finalizer,
+    pub next: *mut Lisp_Finalizer,
+}
+
+/// struct Lisp_Fwd (src/lisp.h 3124): one enum bitfield followed by a union.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union Lisp_Fwd_u {
+    pub intvar: *mut i64,
+    pub boolvar: *mut bool,
+    pub objvar: *mut Lisp_Object,
+    pub buf: Lisp_Fwd_buf,
+    pub kbdoffset: c_int,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Lisp_Fwd_buf {
+    pub offset: u16,
+    pub predicate: u8,
+    pub _pad: u8,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Lisp_Fwd {
+    pub type_: u32,               // ENUM_BF (Lisp_Fwd_Type) type : 8 in C's first word
+    pub u: Lisp_Fwd_u,
+}
+
+unsafe extern "C" {
+    pub fn make_misc_ptr (a: *mut c_void) -> Lisp_Object;
+    pub fn bignum_to_double (n: Lisp_Object) -> f64;
+    pub fn make_bigint (n: i64) -> Lisp_Object;
+    pub fn make_biguint (n: u64) -> Lisp_Object;
+}
+
+#[inline(always)]
+pub fn FINALIZERP (x: Lisp_Object) -> bool { PSEUDOVECTORP (x, pvec_type::PVEC_FINALIZER) }
+
+#[inline(always)]
+pub fn XFINALIZER (a: Lisp_Object) -> *mut Lisp_Finalizer {
+    eassert! (FINALIZERP (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Finalizer)
+}
+
+#[inline(always)]
+pub fn MARKERP (x: Lisp_Object) -> bool { PSEUDOVECTORP (x, pvec_type::PVEC_MARKER) }
+
+#[inline(always)]
+pub fn XMARKER (a: Lisp_Object) -> *mut Lisp_Marker {
+    eassert! (MARKERP (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Marker)
+}
+
+#[inline(always)]
+pub fn OVERLAYP (x: Lisp_Object) -> bool { PSEUDOVECTORP (x, pvec_type::PVEC_OVERLAY) }
+
+#[inline(always)]
+pub fn XOVERLAY (a: Lisp_Object) -> *mut Lisp_Overlay {
+    eassert! (OVERLAYP (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Overlay)
+}
+
+#[inline(always)]
+pub fn USER_PTRP (x: Lisp_Object) -> bool { PSEUDOVECTORP (x, pvec_type::PVEC_USER_PTR) }
+
+#[inline(always)]
+pub fn XUSER_PTR (a: Lisp_Object) -> *mut Lisp_User_Ptr {
+    eassert! (USER_PTRP (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_User_Ptr)
+}
+
+#[inline(always)]
+pub fn make_mint_ptr (a: *mut c_void) -> Lisp_Object {
+    let val = TAG_PTR_INITIALLY (Lisp_Type::Lisp_Int0, a as EMACS_INT);
+    if FIXNUMP (val) && XFIXNUMPTR (val) == a as *mut c_char {
+        val
+    } else {
+        unsafe { make_misc_ptr (a) }
+    }
+}
+
+#[inline(always)]
+pub fn mint_ptrp (x: Lisp_Object) -> bool {
+    FIXNUMP (x) || PSEUDOVECTORP (x, pvec_type::PVEC_MISC_PTR)
+}
+
+#[inline(always)]
+pub fn xmint_pointer (a: Lisp_Object) -> *mut c_void {
+    eassert! (mint_ptrp (a));
+    if FIXNUMP (a) {
+        XFIXNUMPTR (a) as *mut c_void
+    } else {
+        unsafe { (*XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Misc_Ptr)).pointer }
+    }
+}
+
+#[inline(always)]
+pub fn XFWDTYPE (a: *mut Lisp_Fwd) -> u32 { unsafe { (*a).type_ } }
+
+#[inline(always)]
+pub fn BUFFER_OBJFWDP (a: *mut Lisp_Fwd) -> bool { XFWDTYPE (a) == Lisp_Fwd_Buffer_Obj }
+
+#[inline(always)]
+pub fn XBUFFER_OFFSET (a: *mut Lisp_Fwd) -> u16 {
+    eassert! (BUFFER_OBJFWDP (a));
+    unsafe { (*a).u.buf.offset }
+}
+
+#[inline(always)]
+pub fn KBOARD_OBJFWDP (a: *mut Lisp_Fwd) -> bool { XFWDTYPE (a) == Lisp_Fwd_Kboard_Obj }
+
+#[inline(always)]
+pub fn XFLOAT (a: Lisp_Object) -> *mut Lisp_Float {
+    eassert! (FLOATP (a));
+    XUNTAG! (a, Lisp_Type::Lisp_Float, Lisp_Float)
+}
+
+#[inline(always)]
+pub fn XFLOAT_DATA (f: Lisp_Object) -> f64 { unsafe { (*XFLOAT (f)).u.data } }
+
+#[inline(always)]
+pub fn lisp_h_CHECK_FIXNUM (x: Lisp_Object) {
+    CHECK_TYPE (FIXNUMP (x), Qfixnump (), x);
+}
+
+#[inline(always)]
+pub fn CHECK_FIXNUM (x: Lisp_Object) { lisp_h_CHECK_FIXNUM (x) }
+
+#[inline(always)]
+pub fn FIXNATP (x: Lisp_Object) -> bool { FIXNUMP (x) && 0 <= XFIXNUM (x) }
+
+#[inline(always)]
+pub fn XFIXNAT (a: Lisp_Object) -> EMACS_INT {
+    eassert! (FIXNUMP (a));
+    let result = XFIXNUM (a);
+    eassume! (0 <= result);
+    result
+}
+
+#[inline(always)]
+pub fn NUMBERP (x: Lisp_Object) -> bool { INTEGERP (x) || FLOATP (x) }
+
+#[inline(always)]
+pub fn RANGED_FIXNUMP (lo: EMACS_INT, x: Lisp_Object, hi: EMACS_INT) -> bool {
+    FIXNUMP (x) && lo <= XFIXNUM (x) && XFIXNUM (x) <= hi
+}
+
+#[inline(always)]
+pub fn XFLOATINT (n: Lisp_Object) -> f64 {
+    if FIXNUMP (n) {
+        XFIXNUM (n) as f64
+    } else if FLOATP (n) {
+        XFLOAT_DATA (n)
+    } else {
+        unsafe { bignum_to_double (n) }
+    }
+}
+
+#[inline(always)]
+pub fn CHECK_NUMBER (x: Lisp_Object) { CHECK_TYPE (NUMBERP (x), Qnumberp (), x) }
+
+#[inline(always)]
+pub fn CHECK_INTEGER (x: Lisp_Object) { CHECK_TYPE (INTEGERP (x), Qintegerp (), x) }
+
+#[inline(always)]
+pub fn CHECK_FIXNAT (x: Lisp_Object) { CHECK_TYPE (FIXNATP (x), Qwholenump (), x) }
+
+#[inline(always)]
+pub fn make_int (n: EMACS_INT) -> Lisp_Object {
+    if FIXNUM_OVERFLOW_P (n) { unsafe { make_bigint (n as i64) } } else { make_fixnum (n) }
+}
+
+#[inline(always)]
+pub fn make_uint (n: EMACS_INT) -> Lisp_Object {
+    if FIXNUM_OVERFLOW_P (n) { unsafe { make_biguint (n as u64) } } else { make_fixnum (n) }
+}
+
+#[inline(always)]
+pub fn BIGNUMP (x: Lisp_Object) -> bool { PSEUDOVECTORP (x, pvec_type::PVEC_BIGNUM) }
+
+#[inline(always)]
+pub fn INTEGERP (x: Lisp_Object) -> bool { FIXNUMP (x) || BIGNUMP (x) }
+
+#[inline(always)]
+pub fn ARRAYP (x: Lisp_Object) -> bool {
+    VECTORP (x) || STRINGP (x) || CHAR_TABLE_P (x) || BOOL_VECTOR_P (x)
+}
+
+#[inline(always)]
+pub fn IMAGEP (x: Lisp_Object) -> bool { CONSP (x) && EQ (XCAR (x), Qimage ()) }
+
+#[inline(always)]
+pub fn RECORDP (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_RECORD) }
+
+#[inline(always)]
+pub fn CHECK_RECORD (x: Lisp_Object) { CHECK_TYPE (RECORDP (x), Qrecordp (), x) }
+
+#[inline(always)]
+pub fn FRAMEP (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_FRAME) }
+
+#[inline(always)]
+pub fn CLOSUREP (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_CLOSURE) }
+
+#[inline(always)]
+pub fn AUTOLOADP (x: Lisp_Object) -> bool { CONSP (x) && EQ (Qautoload (), XCAR (x)) }
+
+#[inline(always)]
+pub fn WINDOW_CONFIGURATIONP (a: Lisp_Object) -> bool {
+    PSEUDOVECTORP (a, pvec_type::PVEC_WINDOW_CONFIGURATION)
+}

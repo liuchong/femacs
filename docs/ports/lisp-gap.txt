@@ -1,5 +1,5 @@
 # gap of femacs/src/include/lisp.rs against emacs/src/lisp.h (updated 2026-10-02)
 # columns: item, missing, total
-functions	148	275
+functions	110	275
 macros	185	201
 globals	55	56
