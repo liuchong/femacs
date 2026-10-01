@@ -1642,3 +1642,406 @@ pub fn AUTOLOADP (x: Lisp_Object) -> bool { CONSP (x) && EQ (Qautoload (), XCAR 
 pub fn WINDOW_CONFIGURATIONP (a: Lisp_Object) -> bool {
     PSEUDOVECTORP (a, pvec_type::PVEC_WINDOW_CONFIGURATION)
 }
+
+// --- batch 5: specpdl, buffer-local values, constructors, setters (src/lisp.h 3540-3900) ---
+// --- specpdl (src/lisp.h 3540-3790) ----------------------------------------
+// specpdl_ref is the wrapped form on 64-bit targets (WRAP_SPECPDL_REF is 1).
+
+pub const SPECPDL_UNWIND: u32 = 0;
+pub const SPECPDL_UNWIND_ARRAY: u32 = 1;
+pub const SPECPDL_UNWIND_PTR: u32 = 2;
+pub const SPECPDL_UNWIND_INT: u32 = 3;
+pub const SPECPDL_UNWIND_INTMAX: u32 = 4;
+pub const SPECPDL_UNWIND_EXCURSION: u32 = 5;
+pub const SPECPDL_UNWIND_VOID: u32 = 6;
+pub const SPECPDL_BACKTRACE: u32 = 7;
+pub const SPECPDL_NOP: u32 = 8;
+pub const SPECPDL_LET: u32 = 9;
+pub const SPECPDL_LET_LOCAL: u32 = 10;
+pub const SPECPDL_LET_DEFAULT: u32 = 11;
+
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct specpdl_ref {
+    pub bytes: isize,
+}
+
+// Each variant of the union starts with an 8-bit `kind` bitfield followed by
+// pointer-aligned members, so the mirror keeps one byte and pads to the word.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct specbinding_unwind {
+    pub kind: u8, pub _pad: [u8; 7],
+    pub func: Option<unsafe extern "C" fn(Lisp_Object)>,
+    pub arg: Lisp_Object,
+    pub eval_depth: EMACS_INT,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct specbinding_unwind_array {
+    pub kind: u8, pub _pad: [u8; 7],
+    pub nelts: isize,
+    pub array: *mut Lisp_Object,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct specbinding_unwind_ptr {
+    pub kind: u8, pub _pad: [u8; 7],
+    pub func: Option<unsafe extern "C" fn(*mut c_void)>,
+    pub arg: *mut c_void,
+    pub mark: Option<unsafe extern "C" fn(*mut c_void)>,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct specbinding_unwind_int {
+    pub kind: u8, pub _pad: [u8; 7],
+    pub func: Option<unsafe extern "C" fn(c_int)>,
+    pub arg: c_int,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct specbinding_unwind_intmax {
+    pub kind: u8, pub _pad: [u8; 7],
+    pub func: Option<unsafe extern "C" fn(i64)>,
+    pub arg: i64,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct specbinding_unwind_excursion {
+    pub kind: u8, pub _pad: [u8; 7],
+    pub marker: Lisp_Object,
+    pub window: Lisp_Object,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct specbinding_unwind_void {
+    pub kind: u8, pub _pad: [u8; 7],
+    pub func: Option<unsafe extern "C" fn()>,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union specbinding_let_where {
+    pub kbd: *mut c_void,          // KBOARD *
+    pub buf: Lisp_Object,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct specbinding_let {
+    pub kind: u8, pub _pad: [u8; 7],
+    pub symbol: Lisp_Object,
+    pub old_value: Lisp_Object,
+    pub where_: specbinding_let_where,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct specbinding_bt {
+    pub kind: u8, pub debug_on_exit: u8, pub _pad: [u8; 6],
+    pub function: Lisp_Object,
+    pub args: *mut Lisp_Object,
+    pub nargs: isize,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union specbinding {
+    pub kind: u8,
+    pub unwind: specbinding_unwind,
+    pub unwind_array: specbinding_unwind_array,
+    pub unwind_ptr: specbinding_unwind_ptr,
+    pub unwind_int: specbinding_unwind_int,
+    pub unwind_intmax: specbinding_unwind_intmax,
+    pub unwind_excursion: specbinding_unwind_excursion,
+    pub unwind_void: specbinding_unwind_void,
+    pub let_: specbinding_let,
+    pub bt: specbinding_bt,
+}
+
+/// The specpdl itself is per-thread state in C (`#define specpdl
+/// (current_thread->m_specpdl)`); the mirror declares the storage here and the
+/// thread accessor arrives with thread.rs.
+unsafe extern "C" {
+    pub static mut specpdl: *mut specbinding;
+    pub static mut specpdl_ptr: *mut specbinding;
+    pub static mut specpdl_end: *mut specbinding;
+}
+
+#[inline(always)]
+pub fn wrap_specpdl_ref (bytes: isize) -> specpdl_ref { specpdl_ref { bytes } }
+
+#[inline(always)]
+pub fn unwrap_specpdl_ref (r: specpdl_ref) -> isize { r.bytes }
+
+#[inline(always)]
+pub fn specpdl_count_to_ref (count: isize) -> specpdl_ref {
+    wrap_specpdl_ref (count * std::mem::size_of::<specbinding>() as isize)
+}
+
+#[inline(always)]
+pub fn specpdl_ref_to_count (r: specpdl_ref) -> isize {
+    unwrap_specpdl_ref (r) / std::mem::size_of::<specbinding>() as isize
+}
+
+#[inline(always)]
+pub fn specpdl_ref_eq (a: specpdl_ref, b: specpdl_ref) -> bool {
+    unwrap_specpdl_ref (a) == unwrap_specpdl_ref (b)
+}
+
+#[inline(always)]
+pub fn specpdl_ref_lt (a: specpdl_ref, b: specpdl_ref) -> bool {
+    unwrap_specpdl_ref (a) < unwrap_specpdl_ref (b)
+}
+
+#[inline(always)]
+pub fn specpdl_ref_valid_p (r: specpdl_ref) -> bool { unwrap_specpdl_ref (r) >= 0 }
+
+#[inline(always)]
+pub fn make_invalid_specpdl_ref () -> specpdl_ref { wrap_specpdl_ref (-1) }
+
+#[inline(always)]
+pub fn specpdl_ref_add (r: specpdl_ref, delta: isize) -> specpdl_ref {
+    wrap_specpdl_ref (unwrap_specpdl_ref (r) + delta * std::mem::size_of::<specbinding>() as isize)
+}
+
+#[inline(always)]
+pub fn backtrace_debug_on_exit (pdl: *mut specbinding) -> bool {
+    eassert! (unsafe { (*pdl).kind } == SPECPDL_BACKTRACE as u8);
+    unsafe { (*pdl).bt.debug_on_exit != 0 }
+}
+
+// --- buffer-local values (src/lisp.h 3110) ---------------------------------
+
+/// lispfwd is `struct Lisp_Fwd *`.
+pub type lispfwd = *mut Lisp_Fwd;
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Lisp_Buffer_Local_Value {
+    pub bits: u32,                 // local_if_set:1, found:1 (bool_bf bitfields)
+    pub _pad: u32,
+    pub fwd: lispfwd,
+    pub where_: Lisp_Object,
+    pub defcell: Lisp_Object,
+    pub valcell: Lisp_Object,
+}
+
+pub const BLV_LOCAL_IF_SET: u32 = 1 << 0;
+pub const BLV_FOUND: u32 = 1 << 1;
+
+#[inline(always)]
+pub fn blv_found (blv: *mut Lisp_Buffer_Local_Value) -> bool {
+    eassert! ((unsafe { (*blv).bits } & BLV_FOUND != 0)
+        == !BASE_EQ (unsafe { (*blv).defcell }, unsafe { (*blv).valcell }));
+    (unsafe { (*blv).bits } & BLV_FOUND) != 0
+}
+
+// --- constructors and helpers ----------------------------------------------
+
+unsafe extern "C" {
+    pub fn list1 (a: Lisp_Object) -> Lisp_Object;
+    pub fn list2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
+    pub fn list3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> Lisp_Object;
+    pub fn list4 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object, d: Lisp_Object) -> Lisp_Object;
+    pub fn allocate_nil_vector (size: isize) -> *mut Lisp_Vector;
+    pub fn vectorlike_nbytes (h: *const vectorlike_header) -> isize;
+    pub fn bignum_to_intmax (num: Lisp_Object) -> i64;
+    pub fn bignum_to_uintmax (num: Lisp_Object) -> u64;
+    pub fn flush_stack_call_func1 (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void);
+}
+
+#[inline(always)]
+pub fn xvector_contents_addr (a: Lisp_Object, i: isize) -> *mut c_void {
+    let offset = (std::mem::size_of::<vectorlike_header>()
+        + i as usize * std::mem::size_of::<Lisp_Object>()) as isize;
+    unsafe { (XVECTOR (a) as *mut u8).offset (offset) as *mut c_void }
+}
+
+#[inline(always)]
+pub fn xvector_contents (a: Lisp_Object) -> *mut c_void { xvector_contents_addr (a, 0) }
+
+#[inline(always)]
+pub fn vcopy (v: Lisp_Object, offset: isize, args: *const Lisp_Object, count: isize) {
+    eassert! (0 <= offset && 0 <= count && offset + count <= ASIZE (v));
+    unsafe {
+        std::ptr::copy_nonoverlapping (args, xvector_contents_addr (v, offset) as *mut Lisp_Object,
+                                       count as usize)
+    }
+}
+
+#[inline(always)]
+pub fn vector_nbytes (v: *mut Lisp_Vector) -> isize {
+    unsafe { vectorlike_nbytes (&raw const (*v).header) }
+}
+
+#[inline(always)]
+pub fn make_nil_vector (size: isize) -> Lisp_Object {
+    make_lisp_ptr (unsafe { allocate_nil_vector (size) } as *mut c_void, Lisp_Type::Lisp_Vectorlike)
+}
+
+#[inline(always)]
+pub fn list1i (a: EMACS_INT) -> Lisp_Object { unsafe { list1 (make_int (a)) } }
+
+#[inline(always)]
+pub fn list2i (a: EMACS_INT, b: EMACS_INT) -> Lisp_Object {
+    unsafe { list2 (make_int (a), make_int (b)) }
+}
+
+#[inline(always)]
+pub fn list3i (a: EMACS_INT, b: EMACS_INT, c: EMACS_INT) -> Lisp_Object {
+    unsafe { list3 (make_int (a), make_int (b), make_int (c)) }
+}
+
+#[inline(always)]
+pub fn list4i (a: EMACS_INT, b: EMACS_INT, c: EMACS_INT, d: EMACS_INT) -> Lisp_Object {
+    unsafe { list4 (make_int (a), make_int (b), make_int (c), make_int (d)) }
+}
+
+/// elogb: the smallest power of two exponent, from stdc_bit_width.
+#[inline(always)]
+pub fn elogb (n: u64) -> c_int {
+    let width = 64 - n.leading_zeros();
+    (width - 1) as c_int
+}
+
+#[inline(always)]
+pub fn integer_to_intmax (num: Lisp_Object, n: *mut i64) -> bool {
+    if FIXNUMP (num) {
+        unsafe { *n = XFIXNUM (num) as i64 };
+        true
+    } else {
+        let i = unsafe { bignum_to_intmax (num) };
+        unsafe { *n = i };
+        i != 0 || INTEGERP (num)
+    }
+}
+
+#[inline(always)]
+pub fn integer_to_uintmax (num: Lisp_Object, n: *mut u64) -> bool {
+    if FIXNUMP (num) {
+        let v = XFIXNUM (num);
+        unsafe { *n = v as u64 };
+        0 <= v
+    } else {
+        let i = unsafe { bignum_to_uintmax (num) };
+        unsafe { *n = i };
+        i != 0 || INTEGERP (num)
+    }
+}
+
+#[inline(always)]
+pub fn modiff_incr (a: *mut i64, len: isize) {
+    let a0 = unsafe { *a };
+    // Increase more for a large modification, logarithmically.
+    let incr: i64 = if len == 0 { 1 } else { elogb (len as u64) as i64 + 1 };
+    let (v, overflow) = a0.overflowing_add (incr);
+    eassert! (!overflow && v >> 30 >> 30 == 0);
+    unsafe { *a = v };
+}
+
+#[inline(always)]
+pub fn modiff_to_integer (a: i64) -> Lisp_Object {
+    eassume! (0 <= a && a >> 30 >> 30 == 0);
+    make_int (a as EMACS_INT)
+}
+
+#[inline(always)]
+pub fn flush_stack_call_func (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void) {
+    // C calls __builtin_unwind_init() here so the GC can see the registers; the
+    // port uses a setjmp-based barrier (PORTING.md 4.3) and forbids tail calls
+    // in this path (the C adds an empty asm for the same reason, bug#65727).
+    flush_stack_barrier ();
+    unsafe { flush_stack_call_func1 (func, arg) };
+    flush_stack_barrier ();
+}
+
+#[inline(never)]
+fn flush_stack_barrier () {
+    // SAFETY: a setjmp writes the callee-saved registers to this frame, which is
+    // the mechanism alloc.c relies on before it scans the stack.
+    unsafe {
+        let mut buf = std::mem::MaybeUninit::<[u8; 256]>::uninit ();
+        setjmp_for_barrier (buf.as_mut_ptr () as *mut c_void);
+        std::hint::black_box (&mut buf);
+    }
+}
+
+unsafe extern "C" {
+    #[link_name = "_setjmp"]
+    fn setjmp_for_barrier (b: *mut c_void) -> c_int;
+}
+
+// --- setters ---------------------------------------------------------------
+
+#[inline(always)]
+pub fn set_symbol_function (sym: Lisp_Object, function: Lisp_Object) {
+    unsafe { (*XSYMBOL (sym)).u.s.function = function }
+}
+
+#[inline(always)]
+pub fn set_symbol_plist (sym: Lisp_Object, plist: Lisp_Object) {
+    unsafe { (*XSYMBOL (sym)).u.s.plist = plist }
+}
+
+#[inline(always)]
+pub fn set_symbol_next (sym: Lisp_Object, next: *mut Lisp_Symbol) {
+    unsafe { (*XSYMBOL (sym)).u.s.next = next }
+}
+
+#[inline(always)]
+pub fn set_symbol_trapped_write (sym: Lisp_Object, trapped_write: u32) {
+    unsafe {
+        (*XSYMBOL (sym)).u.s.bits =
+            ((*XSYMBOL (sym)).u.s.bits & !SYMBOL_TRAPPED_WRITE_MASK)
+                | ((trapped_write << SYMBOL_TRAPPED_WRITE_SHIFT) & SYMBOL_TRAPPED_WRITE_MASK)
+    }
+}
+
+#[inline(always)]
+pub fn make_symbol_constant (sym: Lisp_Object) {
+    set_symbol_trapped_write (sym, SYMBOL_NOWRITE);
+}
+
+#[inline(always)]
+pub fn set_overlay_plist (overlay: Lisp_Object, plist: Lisp_Object) {
+    unsafe { (*XOVERLAY (overlay)).plist = plist }
+}
+
+#[inline(always)]
+pub fn string_intervals (s: Lisp_Object) -> *mut c_void {
+    unsafe { (*XSTRING (s)).u.s.intervals }
+}
+
+#[inline(always)]
+pub fn set_string_intervals (s: Lisp_Object, i: *mut c_void) {
+    unsafe { (*XSTRING (s)).u.s.intervals = i }
+}
+
+#[inline(always)]
+pub fn set_char_table_defalt (table: Lisp_Object, val: Lisp_Object) {
+    unsafe { (*XCHAR_TABLE (table)).defalt = val }
+}
+
+#[inline(always)]
+pub fn set_char_table_purpose (table: Lisp_Object, val: Lisp_Object) {
+    unsafe { (*XCHAR_TABLE (table)).purpose = val }
+}
+
+#[inline(always)]
+pub fn set_char_table_extras (table: Lisp_Object, idx: isize, val: Lisp_Object) {
+    eassert! (0 <= idx && idx < CHAR_TABLE_EXTRA_SLOTS (XCHAR_TABLE (table)));
+    unsafe { (*XCHAR_TABLE (table)).extras[idx as usize] = val }
+}
+
+#[inline(always)]
+pub fn set_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object) {
+    eassert! (0 <= idx && idx < (1 << CHARTAB_SIZE_BITS_0));
+    unsafe { (*XCHAR_TABLE (table)).contents[idx as usize] = val }
+}
