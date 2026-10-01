@@ -1,0 +1,32 @@
+{
+  "target": "darwin-arm64 (Apple Silicon), configure --without-all --with-x=no --with-ns=no",
+  "generated": "2026-10-02",
+  "source": "emacs/ @ fd7afced403",
+  "note": "Frozen input for PORTING.md P-08 (config.rs / --cfg). Values are what a minimal macOS configure decided on this host; a full GUI target must be configured separately and frozen the same way.",
+  "macros": {
+    "HAVE__SETJMP": "1",
+    "HAVE_SIGSETJMP": "1",
+    "HAVE_SETJMP": "absent",
+    "GC_SETJMP_WORKS": "1",
+    "HAVE___BUILTIN_UNWIND_INIT": "1",
+    "HAVE_PDUMPER": "1",
+    "HAVE_X_WINDOWS": "undefined",
+    "HAVE_NS": "undefined",
+    "HAVE_MODULES": "undefined",
+    "HAVE_GCC_LABELS": "absent",
+    "HAVE_STATEMENT_EXPRESSIONS": "1",
+    "HAVE_TYPEOF": "1",
+    "HAVE_C_ALIGNASOF": "1",
+    "HAVE_STRUCT_ATTRIBUTE_ALIGNED": "1",
+    "ALIGNOF_EMACS_INT": "8",
+    "HAVE_STDBIT_H": "undefined",
+    "HAVE_STDCKDINT_H": "1",
+    "HAVE_STDCOUNTOF_H": "1",
+    "SYSTEM_TYPE": "\"darwin\"",
+    "HAVE_NATIVE_COMP": "undefined",
+    "HAVE_UNEXEC": "absent",
+    "HAVE_TREE_SITTER": "undefined",
+    "HAVE_JSON": "absent",
+    "EMACS_INT_WIDTH": "absent"
+  }
+}
