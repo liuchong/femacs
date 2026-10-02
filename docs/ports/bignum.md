@@ -90,6 +90,14 @@ binary — round 5's reviewer A built such a harness for `floatfns.c` (a glue ob
   sites where the *mirror's* type was wrong were fixed in lisp.rs in the same commit:
   `make_unibyte_string`/`make_string` were declared with a `usize` length where lisp.h
   4541/4544 say `ptrdiff_t`.
+- **`emacs_mpz_pow_ui`'s `ckd_mul`** is spelled with the product in C's *common* type
+  (`(nbase as c_ulong).overflowing_mul (exp)`) rather than `exp as c_int`: C's `ckd_mul`
+  reports overflow when the product does not fit `int`, so narrowing the exponent first let
+  `2^31`-class exponents through to `mpz_pow_ui` (review A's A-2, a P1; the token/count
+  gates cannot see it, the differential is the evidence).
+- **`make_int`/`make_uint`** take `intmax_t`/`uintmax_t` as lisp.h 3041/3046 spell them; the
+  unsigned one decides in the unsigned width, which is what makes
+  `check_uinteger_max (…, UINTMAX_MAX)` produce C's bignum bound (review A's A-4).
 - **`mpz_t` values** are passed as `…as_mut_ptr ()`/`…as_ptr ()` (P-49); C's `mpz_t const
   *lim`/`mpz_t const *pn`-shaped declarations decay to `*const __mpz_struct` and are
   recorded in docs/ports/macro-body-notes.tsv.

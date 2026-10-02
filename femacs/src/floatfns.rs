@@ -287,7 +287,7 @@ DEFUN! ("abs", Fabs, Sabs, 1, 1, 0,
   if FIXNUMP (arg)
     {
       if XFIXNUM (arg) < 0
-	{ arg = make_int (-XFIXNUM (arg)); }
+	{ arg = make_int (-XFIXNUM (arg) as intmax_t); }
     }
   else if FLOATP (arg)
     {
@@ -442,7 +442,7 @@ unsafe fn rounding_driver (n: Lisp_Object, d: Lisp_Object,
 
       /* Divide fixnum by fixnum specially, for speed.  */
       if FIXNUMP (n)
-	{ return make_int (fixnum_divide (XFIXNUM (n), XFIXNUM (d))); }
+	{ return make_int (fixnum_divide (XFIXNUM (n), XFIXNUM (d)) as intmax_t); }
     }
   else if FLOATP (d)
     {

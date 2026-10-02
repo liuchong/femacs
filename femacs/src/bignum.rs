@@ -409,9 +409,9 @@ pub unsafe extern "C" fn emacs_mpz_pow_ui (rop: *mut __mpz_struct, base: *const 
 			  (GMP_NLIMBS_MAX - pow_ui_extra_limbs) as isize) as c_int;
 
   let nbase: c_int = emacs_mpz_size (base);
-  let (n, overflow) = nbase.overflowing_mul (exp as c_int);
-  if overflow || lim < n
-    { overflow_error (); }
+  // C's ckd_mul multiplies in the operands' common type, so `exp` is not narrowed first.
+  let (prod, mul_overflow) = (nbase as c_ulong).overflowing_mul (exp); let n = prod as c_int;
+  if mul_overflow || (INT_MAX as c_ulong) < prod || lim < n { overflow_error (); }
   mpz_pow_ui (rop, base, exp);
 }
 
@@ -507,7 +507,7 @@ pub unsafe extern "C" fn check_integer_range (x: Lisp_Object, lo: intmax_t,
   CHECK_INTEGER (x);
   let mut i: intmax_t = 0;
   if ! (integer_to_intmax (x, &mut i) && lo <= i && i <= hi)
-    { args_out_of_range_3 (x, make_int (lo as EMACS_INT), make_int (hi as EMACS_INT)); }
+    { args_out_of_range_3 (x, make_int (lo), make_int (hi)); }
   return i;
 }
 
@@ -520,7 +520,7 @@ pub unsafe extern "C" fn check_uinteger_max (x: Lisp_Object, hi: uintmax_t) -> u
   CHECK_INTEGER (x);
   let mut i: uintmax_t = 0;
   if ! (integer_to_uintmax (x, &mut i) && i <= hi)
-    { args_out_of_range_3 (x, make_fixnum (0), make_uint (hi as EMACS_INT)); }
+    { args_out_of_range_3 (x, make_fixnum (0), make_uint (hi)); }
   return i;
 }
 

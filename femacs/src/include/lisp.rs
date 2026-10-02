@@ -1670,13 +1670,19 @@ pub fn CHECK_INTEGER (x: Lisp_Object) { CHECK_TYPE (INTEGERP (x), Qintegerp (), 
 pub fn CHECK_FIXNAT (x: Lisp_Object) { CHECK_TYPE (FIXNATP (x), Qwholenump (), x) }
 
 #[inline(always)]
-pub fn make_int (n: EMACS_INT) -> Lisp_Object {
-    if FIXNUM_OVERFLOW_P (n) { unsafe { make_bigint (n as i64) } } else { make_fixnum (n) }
+pub fn make_int (n: intmax_t) -> Lisp_Object {
+    if FIXNUM_OVERFLOW_P (n as EMACS_INT) { unsafe { make_bigint (n) } } else { make_fixnum (n as EMACS_INT) }
 }
 
 #[inline(always)]
-pub fn make_uint (n: EMACS_INT) -> Lisp_Object {
-    if FIXNUM_OVERFLOW_P (n) { unsafe { make_biguint (n as u64) } } else { make_fixnum (n) }
+pub fn make_uint (n: uintmax_t) -> Lisp_Object {
+    // C's `FIXNUM_OVERFLOW_P (n)` with an unsigned N compares in the common type: the
+    // macro's lower-bound half is vacuous and only the upper bound decides.  The signed
+    // helper is asked too, so the token stays and a value above i64::MAX (which truncates)
+    // is caught by the unsigned bound (review A's A-4).
+    if FIXNUM_OVERFLOW_P (n as EMACS_INT) || (MOST_POSITIVE_FIXNUM as uintmax_t) < n
+      { unsafe { make_biguint (n) } }
+    else { make_fixnum (n as EMACS_INT) }
 }
 
 #[inline(always)]
@@ -1938,21 +1944,21 @@ pub fn make_nil_vector (size: isize) -> Lisp_Object {
 }
 
 #[inline(always)]
-pub fn list1i (a: EMACS_INT) -> Lisp_Object { unsafe { list1 (make_int (a)) } }
+pub fn list1i (a: EMACS_INT) -> Lisp_Object { unsafe { list1 (make_int (a as intmax_t)) } }
 
 #[inline(always)]
 pub fn list2i (a: EMACS_INT, b: EMACS_INT) -> Lisp_Object {
-    unsafe { list2 (make_int (a), make_int (b)) }
+    unsafe { list2 (make_int (a as intmax_t), make_int (b as intmax_t)) }
 }
 
 #[inline(always)]
 pub fn list3i (a: EMACS_INT, b: EMACS_INT, c: EMACS_INT) -> Lisp_Object {
-    unsafe { list3 (make_int (a), make_int (b), make_int (c)) }
+    unsafe { list3 (make_int (a as intmax_t), make_int (b as intmax_t), make_int (c as intmax_t)) }
 }
 
 #[inline(always)]
 pub fn list4i (a: EMACS_INT, b: EMACS_INT, c: EMACS_INT, d: EMACS_INT) -> Lisp_Object {
-    unsafe { list4 (make_int (a), make_int (b), make_int (c), make_int (d)) }
+    unsafe { list4 (make_int (a as intmax_t), make_int (b as intmax_t), make_int (c as intmax_t), make_int (d as intmax_t)) }
 }
 
 /// elogb: the smallest power of two exponent, from stdc_bit_width.
@@ -2000,7 +2006,7 @@ pub fn modiff_incr (a: *mut i64, len: isize) {
 #[inline(always)]
 pub fn modiff_to_integer (a: i64) -> Lisp_Object {
     eassume! (0 <= a && a >> 30 >> 30 == 0);
-    make_int (a as EMACS_INT)
+    make_int (a as intmax_t)
 }
 
 #[inline(always)]
@@ -2925,7 +2931,7 @@ pub fn DAEMON_RUNNING () -> bool { (unsafe { daemon_type }) >= 0 }
 
 
 #[inline(always)]
-pub fn INT_TO_INTEGER (expr: EMACS_INT) -> Lisp_Object { make_int (expr) }
+pub fn INT_TO_INTEGER (expr: EMACS_INT) -> Lisp_Object { make_int (expr as intmax_t) }
 
 #[inline(always)]
 pub fn CONS_TO_INTEGER_signed (cons: Lisp_Object, lo: i64, hi: i64) -> i64 {
