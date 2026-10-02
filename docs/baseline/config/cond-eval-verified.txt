@@ -3,7 +3,31 @@
 # files may consult the table (tools/cinventory.py CONDITION_MACROS_PATHS); a
 # gnulib `*.in.h` template stays out until it agrees, because the table cannot
 # decide its `@PLACEHOLDER@`s (PORTING.md P-66).
+lib/acl-internal.c
+lib/careadlinkat.c
+lib/faccessat.c
+lib/fchmodat.c
+lib/fcntl.c
+lib/file-has-acl.c
+lib/filemode.c
+lib/filevercmp.c
+lib/fsusage.c
+lib/getopt.c
+lib/getrandom.c
+lib/mktime.c
+lib/nstrftime.c
+lib/open.c
+lib/pipe2.c
+lib/regcomp.c
+lib/regex_internal.c
+lib/regexec.c
+lib/save-cwd.c
+lib/set-permissions.c
+lib/strftime.c
+lib/time_rz.c
 lib/timespec.h
+lib/utimens.c
+lib/utimensat.c
 src/bignum.h
 src/buffer.h
 src/character.h

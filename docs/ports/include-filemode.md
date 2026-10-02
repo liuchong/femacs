@@ -6,7 +6,7 @@
 ## Functions defined — 0
 
 ## Macros defined — 1
-- [ ] FILEMODE_H_  (line 20, body da39a3ee5e6b)
+- [x] FILEMODE_H_  (line 20, body da39a3ee5e6b)
 
 ## Types and their fields — 0
 

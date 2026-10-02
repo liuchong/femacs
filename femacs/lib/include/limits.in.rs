@@ -54,6 +54,9 @@ pub const UINT_MAX: c_uint = 4294967295;
 pub const SHRT_MAX: c_int = 32767;
 pub const SHRT_MIN: c_int = -32768;
 pub const USHRT_MAX: c_int = 65535;
+// PATH_MAX is gnulib's pathmax.h fallback value for this target; the frozen macro table
+// records it as 1024 (canonicalize-lgpl.c's `#ifdef PATH_MAX` arm reads it).
+pub const PATH_MAX: c_long = 1024;
 pub const ULONG_MAX: c_ulong = c_ulong::MAX;
 pub const LONG_MIN: c_long = c_long::MIN;
 pub const LONG_MAX: c_long = c_long::MAX;

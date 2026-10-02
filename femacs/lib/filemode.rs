@@ -89,7 +89,6 @@ unsafe fn ftypelet (bits: mode_t) -> c_char
 
 /* Like filemodestring, but rely only on MODE.  */
 #[cfg (feature = "have_decl_strmode")]
-#[unsafe(no_mangle)]
 pub unsafe extern "C" fn strmode (mode: mode_t, str_: *mut c_char)
 {
   *str_.offset (0) = ftypelet (mode);
@@ -115,7 +114,10 @@ pub unsafe extern "C" fn strmode (mode: mode_t, str_: *mut c_char)
   *str_.offset (11) = b'\0' as c_char;
 }
 
-/* C 107's `# define strmode`-less system entry: macOS's <string.h> declares `strmode`, which
+/* The dead arm's `strmode` carries no `#[unsafe(no_mangle)]`: the frozen configuration decides
+   `#if ! HAVE_DECL_STRMODE` false (this file is on the verified list now), so C defines no
+   `strmode` symbol here and the port's dead text must not invent one.  C 107's `# define
+   strmode`-less system entry: macOS's <string.h> declares `strmode`, which
    is what the live `filemodestring` calls (the header mirror records C's `#if
    !HAVE_DECL_STRMODE` arm as a cfg'd declaration of its own).  */
 mod system {

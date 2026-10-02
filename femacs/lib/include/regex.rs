@@ -293,3 +293,50 @@ pub mod re_protos {
     pub fn re_exec (string: *const c_char) -> c_int;
   }
 }
+
+/* The `re_pattern_buffer` flag unit (PORTING.md 1.3).  C's bitfields and the port's
+   accessors: `can_be_null : 1`, `regs_allocated : 2`, `fastmap_accurate : 1`,
+   `no_sub : 1`, `not_bol : 1`, `not_eol : 1`, `newline_anchor : 1` -- LSB first.  */
+pub const PB_CAN_BE_NULL_SHIFT: u32 = 0;
+pub const PB_REGS_ALLOCATED_SHIFT: u32 = 1;
+pub const PB_FASTMAP_ACCURATE_SHIFT: u32 = 3;
+pub const PB_NO_SUB_SHIFT: u32 = 4;
+pub const PB_NOT_BOL_SHIFT: u32 = 5;
+pub const PB_NOT_EOL_SHIFT: u32 = 6;
+pub const PB_NEWLINE_ANCHOR_SHIFT: u32 = 7;
+
+#[inline(always)]
+fn pb_get (bits: c_uint, shift: u32, mask: c_uint) -> c_uint { (bits >> shift) & mask }
+#[inline(always)]
+fn pb_set (bits: c_uint, shift: u32, mask: c_uint, value: c_uint) -> c_uint {
+    (bits & !(mask << shift)) | ((value & mask) << shift)
+}
+
+#[inline(always)]
+pub unsafe fn can_be_null_ (preg: *const re_pattern_buffer) -> c_uint { pb_get ((*preg).bits, PB_CAN_BE_NULL_SHIFT, 1) }
+#[inline(always)]
+pub unsafe fn set_can_be_null_ (preg: *mut re_pattern_buffer, value: c_uint) { (*preg).bits = pb_set ((*preg).bits, PB_CAN_BE_NULL_SHIFT, 1, value); }
+#[inline(always)]
+pub unsafe fn regs_allocated_ (preg: *const re_pattern_buffer) -> c_uint { pb_get ((*preg).bits, PB_REGS_ALLOCATED_SHIFT, 3) }
+#[inline(always)]
+pub unsafe fn set_regs_allocated_ (preg: *mut re_pattern_buffer, value: c_uint) { (*preg).bits = pb_set ((*preg).bits, PB_REGS_ALLOCATED_SHIFT, 3, value); }
+#[inline(always)]
+pub unsafe fn fastmap_accurate_ (preg: *const re_pattern_buffer) -> c_uint { pb_get ((*preg).bits, PB_FASTMAP_ACCURATE_SHIFT, 1) }
+#[inline(always)]
+pub unsafe fn set_fastmap_accurate_ (preg: *mut re_pattern_buffer, value: c_uint) { (*preg).bits = pb_set ((*preg).bits, PB_FASTMAP_ACCURATE_SHIFT, 1, value); }
+#[inline(always)]
+pub unsafe fn no_sub_ (preg: *const re_pattern_buffer) -> c_uint { pb_get ((*preg).bits, PB_NO_SUB_SHIFT, 1) }
+#[inline(always)]
+pub unsafe fn set_no_sub_ (preg: *mut re_pattern_buffer, value: c_uint) { (*preg).bits = pb_set ((*preg).bits, PB_NO_SUB_SHIFT, 1, value); }
+#[inline(always)]
+pub unsafe fn not_bol_ (preg: *const re_pattern_buffer) -> c_uint { pb_get ((*preg).bits, PB_NOT_BOL_SHIFT, 1) }
+#[inline(always)]
+pub unsafe fn set_not_bol_ (preg: *mut re_pattern_buffer, value: c_uint) { (*preg).bits = pb_set ((*preg).bits, PB_NOT_BOL_SHIFT, 1, value); }
+#[inline(always)]
+pub unsafe fn not_eol_ (preg: *const re_pattern_buffer) -> c_uint { pb_get ((*preg).bits, PB_NOT_EOL_SHIFT, 1) }
+#[inline(always)]
+pub unsafe fn set_not_eol_ (preg: *mut re_pattern_buffer, value: c_uint) { (*preg).bits = pb_set ((*preg).bits, PB_NOT_EOL_SHIFT, 1, value); }
+#[inline(always)]
+pub unsafe fn newline_anchor_ (preg: *const re_pattern_buffer) -> c_uint { pb_get ((*preg).bits, PB_NEWLINE_ANCHOR_SHIFT, 1) }
+#[inline(always)]
+pub unsafe fn set_newline_anchor_ (preg: *mut re_pattern_buffer, value: c_uint) { (*preg).bits = pb_set ((*preg).bits, PB_NEWLINE_ANCHOR_SHIFT, 1, value); }

@@ -6,6 +6,9 @@
 // module.  The `#if` arm below is kept as the cfg'd declaration the port's ledger wants (the
 // filemode.c dead-text arm defines that same function under the same feature, P-51).
 
+// The include guard has no Rust counterpart (PORTING.md 0.1).
+pub const FILEMODE_H_: bool = true;
+
 include!("sys_types.in.rs");   // <sys/types.h> (mode_t)
 include!("sys_stat.in.rs");    // <sys/stat.h> (struct stat)
 

@@ -649,6 +649,14 @@ pub struct bracket_elem_t {
 
 /* regex_internal.h 712-780: the bitset inline helpers (no C symbol; the mirror defines
    them the way the reference's `static inline` does).  */
+/// C: `re_charset_t.non_match : 1`
+#[inline(always)]
+pub unsafe fn non_match_ (cset: *const re_charset_t) -> c_uint { (*cset).bits & 1 }
+#[inline(always)]
+pub unsafe fn set_non_match_ (cset: *mut re_charset_t, value: c_uint) {
+    (*cset).bits = ((*cset).bits & !1) | (value & 1);
+}
+
 #[inline(always)]
 pub unsafe fn bitset_set (set: *mut bitset_word_t, i: Idx)
 {
@@ -844,6 +852,10 @@ pub unsafe fn constraint_ (token: *const re_token_t) -> c_uint { bits_get ((*tok
 pub unsafe fn set_constraint_ (token: *mut re_token_t, value: c_uint) { (*token).bits = bits_set ((*token).bits, TOKEN_CONSTRAINT_SHIFT, TOKEN_CONSTRAINT_MASK, value); }
 #[inline(always)]
 pub unsafe fn accept_mb_ (token: *const re_token_t) -> c_uint { bits_get ((*token).bits, TOKEN_ACCEPT_MB_SHIFT, TOKEN_ACCEPT_MB_MASK) }
+/// C: `re_token_t.mb_partial : 1` (bit 21).
+pub const TOKEN_MB_PARTIAL_SHIFT: u32 = 21;
+#[inline(always)]
+pub unsafe fn mb_partial_ (token: *const re_token_t) -> c_uint { bits_get ((*token).bits, TOKEN_MB_PARTIAL_SHIFT, 1) }
 #[inline(always)]
 pub unsafe fn set_accept_mb_ (token: *mut re_token_t, value: c_uint) { (*token).bits = bits_set ((*token).bits, TOKEN_ACCEPT_MB_SHIFT, TOKEN_ACCEPT_MB_MASK, value); }
 

@@ -325,8 +325,11 @@ def _cond_ident(name: str, depth: int = 0) -> int | None:
     if depth > 8:
         return None
     tokens = _cond_tokens(value)
-    if not tokens or "?" in tokens:
+    if not tokens:
         return None
+    # A macro whose value is a conditional expression (`HAVE_NATIVE_TIME_Z` in strftime.c
+    # 434) is expanded like any other: `_cond_parse` evaluates only the taken branch, so
+    # the old `"?" in tokens` bail-out made every `#if HAVE_NATIVE_TIME_Z` unknown.
     _COND_EXPANDING.add(name)
     try:
         result = _cond_parse(tokens, depth + 1)[0]
@@ -370,6 +373,25 @@ def _cond_parse(tokens: list[str], depth: int = 0) -> tuple[int | None, list[str
             return taken, tail
         return _cond_parse(tail, depth)
     return value, rest
+
+
+def _cond_parse_cond(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
+    """C's `?:`: `strftime.c` 434 defines `HAVE_NATIVE_TIME_Z` as a ternary over three
+    configuration macros, and `USE_C_LOCALE && HAVE_STRFTIME_L ? … : …` decides whether the
+    file's `#if HAVE_NATIVE_TIME_Z` arms are live.  Only the *taken* branch decides the
+    value; an unknown condition yields a value only when both branches agree."""
+    cond, rest = _cond_parse_or(tokens, depth)
+    if not (rest and rest[0] == "?"):
+        return cond, rest
+    then_value, rest2 = _cond_parse_cond(rest[1:], depth)
+    if not (rest2 and rest2[0] == ":"):
+        return None, []
+    else_value, rest3 = _cond_parse_cond(rest2[1:], depth)
+    if cond is not None:
+        return (then_value if cond else else_value), rest3
+    if then_value is not None and then_value == else_value:
+        return then_value, rest3
+    return None, rest3
 
 
 def _cond_parse_or(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
@@ -463,6 +485,16 @@ def _cond_parse_unary(tokens: list[str], depth: int) -> tuple[int | None, list[s
     if tokens and tokens[0] == "!":
         value, rest = _cond_parse_unary(tokens[1:], depth)
         return (None if value is None else int(not value)), rest
+    if tokens and tokens[0] in ("-", "+"):
+        # C writes a negative constant as `(-1)` (`# define FAILURE (-1)`,
+        # strftime.c 229) and `grep`-style conditions compare it with `==`; without the
+        # unary operators the evaluator answered "unknown" and the file could not join
+        # the verified list.
+        sign, rest = tokens[0], tokens[1:]
+        value, rest2 = _cond_parse_unary(rest, depth)
+        if value is None:
+            return None, rest2
+        return (-value if sign == "-" else value), rest2
     return _cond_parse_primary(tokens, depth)
 
 
@@ -534,8 +566,8 @@ def eval_condition(text: str) -> bool | None:
         return CONDITION_EVAL_CACHE[text]
     tokens = _cond_tokens(text)
     value: bool | None = None
-    if tokens and "?" not in tokens:
-        result, rest = _cond_parse_or(tokens, 0)
+    if tokens:
+        result, rest = _cond_parse_cond(tokens, 0)
         if result is not None and not rest:
             value = bool(result)
     CONDITION_EVAL_CACHE[text] = value
@@ -615,7 +647,14 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
             word = body.split(maxsplit=1)[0] if body else ""
             rest = body[len(word):].strip()
             if word in ("if", "ifdef", "ifndef"):
-                if word == "ifdef":
+                if outer_dead:
+                    # A condition inside a branch the configuration already disabled has no
+                    # effect: the nested branch is dead whatever it says, and that is what
+                    # the C preprocessor reports (`regexec.c` 225's `SHLIB_COMPAT (…)` sits
+                    # inside `#ifdef _LIBC`).  Evaluating it anyway made the file disagree
+                    # with clang and kept it off the verified list (P-66).
+                    cond = False
+                elif word == "ifdef":
                     cond = eval_condition (f"defined ({rest})")
                 elif word == "ifndef":
                     cond = eval_condition (f"! defined ({rest})")
@@ -934,10 +973,19 @@ def function_spans(text: str) -> list[dict]:
         p = i - 2
         while p >= 0:
             cand = rows[p].strip()
-            if cand:
-                prev = cand
-                break
-            p -= 1
+            if not cand:
+                p -= 1
+                continue
+            # An attribute on its own line is not the declaration: C splits
+            # `static reg_errcode_t __attribute_warn_unused_result__ name (…)`
+            # across three lines (regex_internal.c 40-46), and stopping on the
+            # attribute line lost the `static` (the P-77 lookback class).  Keep
+            # walking to the line that carries the declaration specifiers.
+            if re.match(r"^(?:__)?(?:attribute|_GL_ATTRIBUTE)|^ATTRIBUTE_", cand):
+                p -= 1
+                continue
+            prev = cand
+            break
         spans.append({"name": m.group("name") or m.group("pname"), "line": i,
                       "static": bool(re.search(r"\bstatic\b", prev)),
                       "return_type": prev, "body_start": body_line + 1,

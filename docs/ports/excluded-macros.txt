@@ -70,3 +70,4 @@ md5_buffer	dead-text	C 46's `#define md5_buffer __md5_buffer` is inside the dead
 _GL_U64_INLINE	syntax	u64.h 37-39's `#ifndef _GL_U64_INLINE / # define _GL_U64_INLINE _GL_INLINE` spells gnulib's `static inline`; the port's fourteen native operations are `macro_rules!` (the live `#if defined UINT64_MAX` arm) and the dead arm's fifteen functions are recorded in docs/ports/include-u64.md
 _GL_ATTRIBUTE_PURE	syntax	attribute (gnulib's `__attribute__ ((__pure__))`); no Rust counterpart (canonicalize-lgpl.c defines it in its `_LIBC` arm)
 WIN32_LEAN_AND_MEAN	config	the Windows arm's header-selection macro; dead on the frozen target (nanosleep.c)
+_GL_UTIMENS_INLINE	syntax	spells gnulib's `_GL_INLINE` (i.e. `static inline`); the port writes `#[inline(always)] pub fn` for the header's `lutimensat` and the unit's own `#define _GL_UTIMENS_INLINE _GL_EXTERN_INLINE` is a `pub const` (lib/utimens.h 59-61)

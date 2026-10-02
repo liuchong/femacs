@@ -28,3 +28,9 @@ halt	halt,set_halt,set_halt_	`re_dfastate_t.halt` (bit 4) is packed into `bits` 
 has_backref	has_backref,set_has_backref,set_has_backref_	`re_dfastate_t.has_backref` (bit 6) is packed into `bits` (regex_internal.c create_ci_newstate)
 has_constraint	has_constraint,set_has_constraint,set_has_constraint_	`re_dfastate_t.has_constraint` (bit 7) is packed into `bits` (regex_internal.c create_cd_newstate)
 context	context,set_context,set_context_	`re_dfastate_t.context` is the 4-bit field in `bits`; `context_`/`set_context_` are the port spellings (regex_internal.c create_cd_newstate/re_acquire_state_context)
+no_sub	no_sub,set_no_sub,set_no_sub_	`re_pattern_buffer.no_sub` is the 1-bit field in `bits`; `no_sub_`/`set_no_sub_` are the port spellings (regcomp.c re_compile_pattern/regcomp)
+can_be_null	can_be_null,set_can_be_null,set_can_be_null_	`re_pattern_buffer.can_be_null` (bit 0) is packed into `bits`; the port spellings (regcomp.c re_compile_fastmap_iter)
+fastmap_accurate	fastmap_accurate,set_fastmap_accurate,set_fastmap_accurate_	`re_pattern_buffer.fastmap_accurate` (bit 3) is packed into `bits` (regcomp.c re_compile_fastmap)
+regs_allocated	regs_allocated,set_regs_allocated,set_regs_allocated_	`re_pattern_buffer.regs_allocated` (bits 1-2) is packed into `bits` (regexec.c re_copy_regs)
+newline_anchor	newline_anchor,set_newline_anchor,set_newline_anchor_	`re_pattern_buffer.newline_anchor` (bit 7) is packed into `bits` (regcomp.c regcomp); `re_string_t.newline_anchor` is a plain byte and keeps the same spelling
+non_match	non_match,set_non_match,set_non_match_	`re_charset_t.non_match` is the 1-bit field packed into `bits` (regex_internal.h 334); the port spellings (regcomp.c re_compile_fastmap_iter/parse_bracket_exp)

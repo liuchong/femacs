@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 128 |
-| 其中 done / wip | 105 / 23 |
-| 待开工 | 462 |
+| 已有目标文件 | 132 |
+| 其中 done / wip | 107 / 25 |
+| 待开工 | 458 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 146 |
+| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 142 |
 | `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,716 | 368 | 1,834 | 2,175 | 981 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 146 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 142 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -265,7 +265,7 @@
 | `lib/readlinkat.c` | 123 | 1 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/readlinkat.rs` | done |
 | `lib/readutmp.h` | 352 | 0 | 0 | 32 | 8 | 21 | 0 | L | `femacs/lib/include/readutmp.rs` | todo |
 | `lib/realloc.c` | 101 | 1 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/realloc.rs` | done |
-| `lib/regcomp.c` | 3,814 | 63 | 0 | 19 | 2 | 0 | 2 | L | `femacs/lib/regcomp.rs` | todo |
+| `lib/regcomp.c` | 3,814 | 63 | 0 | 19 | 2 | 0 | 2 | L | `femacs/lib/regcomp.rs` | wip |
 | `lib/regex.c` | 82 | 0 | 0 | 14 | 1 | 0 | 1 | L | `femacs/lib/regex.rs` | todo |
 | `lib/regex.h` | 684 | 0 | 0 | 78 | 9 | 4 | 1 | L | `femacs/lib/include/regex.rs` | done |
 | `lib/regex_internal.c` | 1,718 | 34 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/regex_internal.rs` | done |
@@ -309,7 +309,7 @@
 | `lib/stpcpy.c` | 49 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stpcpy.rs` | todo |
 | `lib/str-two-way.h` | 455 | 3 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/str-two-way.rs` | todo |
 | `lib/streq.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/streq.rs` | done |
-| `lib/strftime.c` | 2,446 | 11 | 0 | 81 | 21 | 0 | 0 | L | `femacs/lib/strftime.rs` | todo |
+| `lib/strftime.c` | 2,446 | 11 | 0 | 81 | 21 | 0 | 0 | L | `femacs/lib/strftime.rs` | wip |
 | `lib/strftime.h` | 104 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/strftime.rs` | done |
 | `lib/string.in.h` | 1,852 | 2 | 0 | 45 | 4 | 0 | 0 | L | `femacs/lib/include/string.in.rs` | todo |
 | `lib/strnlen.c` | 34 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/strnlen.rs` | done |
@@ -340,8 +340,8 @@
 | `lib/unistd.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/unistd.rs` | done |
 | `lib/unistd.in.h` | 2,447 | 2 | 0 | 91 | 10 | 0 | 1 | L | `femacs/lib/include/unistd.in.rs` | wip |
 | `lib/unlocked-io.h` | 148 | 0 | 0 | 32 | 1 | 0 | 0 | L | `femacs/lib/include/unlocked-io.rs` | todo |
-| `lib/utimens.c` | 690 | 5 | 0 | 5 | 1 | 0 | 2 | L | `femacs/lib/utimens.rs` | todo |
-| `lib/utimens.h` | 82 | 1 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/include/utimens.rs` | todo |
+| `lib/utimens.c` | 690 | 5 | 0 | 5 | 1 | 0 | 2 | L | `femacs/lib/utimens.rs` | done |
+| `lib/utimens.h` | 82 | 1 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/include/utimens.rs` | done |
 | `lib/utimensat.c` | 222 | 0 | 0 | 6 | 0 | 0 | 0 | L | `femacs/lib/utimensat.rs` | todo |
 | `lib/verify.h` | 407 | 0 | 0 | 24 | 6 | 1 | 0 | L | `femacs/lib/include/verify.rs` | wip |
 | `lib/warn-on-use.h` | 153 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/warn-on-use.rs` | todo |
