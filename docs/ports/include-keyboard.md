@@ -64,3 +64,18 @@
 - [ ] extern int quit_char  (line 469)
 - [ ] extern bool input_was_pending  (line 470)
 - [ ] extern char dev_tty  (line 529)
+
+# ----------------------------------------------------------------------
+## Decisions (pre-implementation, measured 2026-10-02)
+
+- **Nothing about the two types is blocked any more.**  `union buffered_input_event` holds
+  `struct input_event ie` plus the `kind : EVENT_KIND_WIDTH` unit, and `struct input_event`
+  landed with termhooks.h (commit 4f5e38c); `struct kboard`'s 26 live fields are Lisp_Objects,
+  ints, `char *` and `KBOARD *next_kboard` (a pointer to its own type), so no stand-in is
+  needed for the types themselves.
+- **What still blocks the file's *functions*.**  `keyboard.h`'s prototypes name
+  `struct terminal`, `struct frame`, `struct buffer` (✓ mirrored) and `struct timespec`
+  (✓ mirrored as `Time`-adjacent), so `struct terminal` (termhooks) and `struct frame`
+  (frame.h) have to exist — or get P-70 stand-ins — before those prototypes are declared.
+  The 25 file-scope objects are `Lisp_Object V*` declarations, which the port spells the way
+  P-21 does for other headers.
