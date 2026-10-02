@@ -4007,6 +4007,12 @@ pub mod other_units {
       pub fn emacs_open (file: *const c_char, oflags: c_int, mode: c_int) -> c_int;
       /// C: int emacs_close (int)
       pub fn emacs_close (fd: c_int) -> c_int;
+      /* src/lisp.h 5362-5364.  */
+      /// C: Lisp_Object directory_files_internal (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, bool, Lisp_Object, Lisp_Object)
+      pub fn directory_files_internal (dir: Lisp_Object, full: Lisp_Object,
+                                       match_: Lisp_Object, nosort: Lisp_Object,
+                                       attr: bool, id: Lisp_Object, regexp: Lisp_Object)
+        -> Lisp_Object;
     }
 }
 use other_units::*;

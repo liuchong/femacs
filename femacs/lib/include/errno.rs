@@ -24,3 +24,46 @@ pub const ENOSYS: c_int = 78;
 
 /// <errno.h>: `#define ENOMEM 12`.
 pub const ENOMEM: c_int = 12;
+
+// The rest of the codes the ported lib/*.c files name, measured the same way:
+//
+//     $ cat > /tmp/eprobe.c <<'EOF'
+//     #include <errno.h>
+//     #include <stdio.h>
+//     int main(void){ printf("%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n",
+//       EPERM,ENOENT,EINTR,EIO,EBADF,EACCES,EEXIST,ENOTDIR,EINVAL,ENOSPC,EROFS,ELOOP,ENAMETOOLONG,
+//       ENOTSUP,EOVERFLOW,ERANGE); return 0; }
+//     EOF
+//     $ clang -o /tmp/eprobe /tmp/eprobe.c && /tmp/eprobe
+//     1 2 4 5 9 13 17 20 22 28 30 62 63 45 84 34
+
+/// <errno.h>: `#define EPERM 1`.
+pub const EPERM: c_int = 1;
+/// <errno.h>: `#define ENOENT 2`.
+pub const ENOENT: c_int = 2;
+/// <errno.h>: `#define EINTR 4`.
+pub const EINTR: c_int = 4;
+/// <errno.h>: `#define EIO 5`.
+pub const EIO: c_int = 5;
+/// <errno.h>: `#define EBADF 9`.
+pub const EBADF: c_int = 9;
+/// <errno.h>: `#define EACCES 13`.
+pub const EACCES: c_int = 13;
+/// <errno.h>: `#define EEXIST 17`.
+pub const EEXIST: c_int = 17;
+/// <errno.h>: `#define ENOTDIR 20`.
+pub const ENOTDIR: c_int = 20;
+/// <errno.h>: `#define ENOSPC 28`.
+pub const ENOSPC: c_int = 28;
+/// <errno.h>: `#define EROFS 30`.
+pub const EROFS: c_int = 30;
+/// <errno.h>: `#define ERANGE 34`.
+pub const ERANGE: c_int = 34;
+/// <errno.h>: `#define ENOTSUP 45`.
+pub const ENOTSUP: c_int = 45;
+/// <errno.h>: `#define ELOOP 62`.
+pub const ELOOP: c_int = 62;
+/// <errno.h>: `#define ENAMETOOLONG 63`.
+pub const ENAMETOOLONG: c_int = 63;
+/// <errno.h>: `#define EOVERFLOW 84`.
+pub const EOVERFLOW: c_int = 84;

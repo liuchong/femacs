@@ -47,3 +47,6 @@ unsafe extern "C" {
   pub fn getrlimit (resource: c_int, rlp: *mut rlimit) -> c_int;
   pub fn setrlimit (resource: c_int, rlp: *const rlimit) -> c_int;
 }
+
+// getrlimit's resource selector kqueue.c uses (RLIMIT_NOFILE = 8 on the frozen target).
+pub const RLIMIT_NOFILE: c_int = 8;

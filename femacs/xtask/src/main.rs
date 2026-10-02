@@ -764,9 +764,23 @@ fn build_tu(rel: Option<&String>) -> i32 {
     let stem = Path::new(rel).file_stem().unwrap_or_default().to_string_lossy().to_string();
     let cname = crate_name (&stem);
     let (crate_root, out) = if rel.ends_with(".h") {
-        (format!("src/include/{stem}.rs"), Path::new(BUILD).join(format!("include_{stem}.o")))
+        // The header mirror lives next to its unit's directory too: lib/regex.h is
+        // femacs/lib/include/regex.rs, not src/include/regex.rs.
+        let unit = ["src", "lib"]
+            .iter()
+            .map(|dir| format!("{dir}/include/{stem}.rs"))
+            .find(|cand| Path::new(cand).is_file())
+            .unwrap_or_else(|| format!("src/include/{stem}.rs"));
+        (unit, Path::new(BUILD).join(format!("include_{stem}.o")))
     } else {
-        (format!("src/{stem}.rs"), Path::new(BUILD).join(format!("{stem}.o")))
+        // A unit lives under src/ (a C file of the Emacs tree) or lib/ (a gnulib one);
+        // `finished_units` looks the same pair up, so `build-tu lib/getline.c` works too.
+        let unit = ["src", "lib"]
+            .iter()
+            .map(|dir| format!("{dir}/{stem}.rs"))
+            .find(|cand| Path::new(cand).is_file())
+            .unwrap_or_else(|| format!("src/{stem}.rs"));
+        (unit, Path::new(BUILD).join(format!("{stem}.o")))
     };
     if !Path::new(&crate_root).is_file() {
         return fail(format!("{crate_root} does not exist yet (ports of {rel} not written)"));
