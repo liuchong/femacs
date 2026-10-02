@@ -11,7 +11,8 @@
   callint.c 933 / terminfo.c 55），`lib/` 37 个
   （gnulib 包装与替换件，外加实现单元 rawmemchr.c 158 / memrchr.c 158 / malloc.c 56 /
   realloc.c 101 / lstat.c 97 / fstatat.c 150 / readlink.c 114 / symlink.c 57 /
-  readlinkat.c 123 / cloexec.c 83 / filemode.c 166）。
+  readlinkat.c 123 / cloexec.c 83 / filemode.c 166 / mini-gmp.c 4,699 / md5.c 394 /
+  sha1.c 362 / sha256.c 431 / sha3.c 442 / sha512.c 476）。
 - 已竣工镜像：`src/include/` 与 `lib/include/` 共 15 个（font.h、thread.h、comp.h、
   macros.h、category.h、tparam.h、sys_resource.h 及既有若干）。本轮新增 WIP 镜像
   `lib/include/{sys_stat.in,fcntl.in,unistd.in,stat-time}.rs`，并给 `sys_types.in.rs` 补上
@@ -135,3 +136,12 @@
 - **3.15 在飞工作的工作区纪律**：`extract-abi.py --all` 把"目标 .rs 已存在但没有清单"判为
   **failing**（只有清单里还有 `- [ ]` 才是 wip）。因此一个文件一落盘就要有 `docs/ports/<stem>.md`
   （头镜像用 `include-<stem>.md`），哪怕先只生成未勾选的占位清单。
+
+- **3.16 常量比较接受整型后缀（2026-10-03，工具修正）**：`tools/extract-abi.py` 的
+  `norm_const` 原来对**十进制**字面量做精确文本比较，于是 `regex.h` 76 的
+  `# define RE_BACKSLASH_ESCAPE_IN_LISTS 1ul` 只有把 Rust 写成 `1ul` 才能过——而 rustc 直接报
+  `invalid suffix 'ul'`，这个宏在端口里**不可能**满足；十六进制那批（`0xffffffffUL` 等）因为
+  不匹配字面量正则而落到"表达式 token"分支，只能逐条进 `macro-body-notes.tsv`。现在
+  `norm_const` 统一剥掉 `[uUlL]+` 并把字面量归一成十进制值（`1ul` → `1`，`0xffffffffUL` →
+  `4294967295`），语义就是比较想表达的东西，同时让那批十六进制 notes 行变成冗余。
+  影响：`lib/regex.h` 镜像转 OK（`--all` 的 done 计数 +1），sha*/mini-gmp 的检查不受影响。

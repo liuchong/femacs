@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 106 |
-| 其中 done / wip | 85 / 21 |
+| 其中 done / wip | 86 / 20 |
 | 待开工 | 484 |
 
 ## 2 按目录
@@ -267,7 +267,7 @@
 | `lib/realloc.c` | 101 | 1 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/realloc.rs` | done |
 | `lib/regcomp.c` | 3,814 | 63 | 0 | 19 | 2 | 0 | 2 | L | `femacs/lib/regcomp.rs` | todo |
 | `lib/regex.c` | 82 | 0 | 0 | 14 | 1 | 0 | 1 | L | `femacs/lib/regex.rs` | todo |
-| `lib/regex.h` | 684 | 0 | 0 | 78 | 9 | 4 | 1 | L | `femacs/lib/include/regex.rs` | wip |
+| `lib/regex.h` | 684 | 0 | 0 | 78 | 9 | 4 | 1 | L | `femacs/lib/include/regex.rs` | done |
 | `lib/regex_internal.c` | 1,718 | 34 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/regex_internal.rs` | todo |
 | `lib/regex_internal.h` | 850 | 12 | 0 | 90 | 66 | 102 | 0 | L | `femacs/lib/include/regex_internal.rs` | done |
 | `lib/regexec.c` | 4,306 | 64 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/regexec.rs` | todo |

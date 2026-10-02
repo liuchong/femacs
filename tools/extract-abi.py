@@ -973,7 +973,23 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         problems.extend(alias_count_problems(macro["body"], rust_body, skip_short=False))
     def norm_const (v: str) -> str:
         v = v.strip()
-        return {"true": "1", "false": "0"}.get (v, v)
+        v = {"true": "1", "false": "0"}.get (v, v)
+        # C spells an integer literal with a type suffix (`1ul`, `0xffffffffUL`,
+        # `0xc96996dcUL`) and Rust has no such suffix, so the two spellings are the
+        # same value; the suffix used to force an exact-text comparison that only
+        # `1ul` could satisfy, which Rust cannot even write (regex.h 76's
+        # `RE_BACKSLASH_ESCAPE_IN_LISTS`).  Normalising to the decimal value is what
+        # the comparison means, and it subsumes the notes rows that exempted the
+        # hex spelling one by one.
+        m = re.fullmatch (r"(-?)(0[xX][0-9a-fA-F]+|[0-9]+)[uUlL]*", v)
+        if m:
+            sign, digits = m.group (1), m.group (2)
+            base = 16 if digits[:2].lower () == "0x" else 10
+            try:
+                return sign + str (int (digits, base))
+            except ValueError:
+                return v
+        return v
 
     for name, value in sorted(c["constants"].items()):
         if name not in r["constants"] and name not in r["variants"]:
