@@ -56,8 +56,10 @@
 - `DEFUN!` bodies and the two `#[unsafe(no_mangle)] pub unsafe extern "C" fn`s
   (`init_casetab_once`, `syms_of_casetab`) keep C's shape, so the edition-2024
   `unsafe_op_in_unsafe_fn` lint warns inside them rather than an `unsafe {}` being added
-  per statement (the first TU where this shows up in bulk; the policy question is part of
-  P-38's allow-list note).
+  per statement (the first TU where this showed up in bulk).  `PORTING.md` P-43 fixed the
+  policy: every mirror carries the same allow list, including `unsafe_op_in_unsafe_fn`,
+  because review D's F12 found this file's 438 warnings and `doprnt.rs`'s 6 to be two
+  answers to one question inside one commit.
 - `Qcase_table`/`Qcase_table_p`/`Qchar_table_extra_slots` come from the generated
   `globals.rs`; `DEFSYM` is the empty macro C defines (lisp.h 2394), so the mirror writes
   `DEFSYM! (Qcase_table, "case-table");` with no effect, exactly as C does.

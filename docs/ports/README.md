@@ -22,6 +22,17 @@ tokens in `docs/ports/macro-body-notes.tsv`; the check still requires every othe
 so a mutation elsewhere in that macro still fails.  `docs/ports/excluded-macros.txt` is the
 stronger form: the macro has no counterpart at all, with a reason.
 
+Two more machine-checked records keep the "the port means the same thing" claim honest
+(reviews A and D, 2026-10-02):
+
+- `docs/ports/token-aliases.tsv` — token families the two languages spell differently
+  (`memcpy`/`copy_nonoverlapping`, `va_arg`/`next_arg`).  A family is canonicalised in
+  every body check *and* occurrence-checked: the port must use it at least as often as
+  the C body does, so deleting a call cannot hide behind a note (`PORTING.md` P-44).
+- `docs/ports/va-arg-types.tsv` — which object each `va_arg (ap, T)` /
+  `next_arg::<T> ()` reads.  The multiset of reads must be identical, and a type that is
+  not recorded is an error rather than a silent pass (`PORTING.md` P-45).
+
 A file is done when:
 
 1. every box is ticked,

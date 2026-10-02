@@ -40,8 +40,14 @@ result of `bash spikes/run.sh` (one build round; products removed afterwards).
    and `lisp.h` includes it unconditionally. gnulib's substitutes are produced by
    make rules rather than by configure:
    `make -C <build>/lib stdbit.h byteswap.h stdint.h limits.h` and
-   `make -C <build>/src globals.h`. `spikes/shim/` holds compile-only stand-ins for
-   `stdckdint.h` / `stdcountof.h`, which even those rules do not generate here.
+   `make -C <build>/src globals.h`. `spikes/shim/` holds a compile-only stand-in for
+   `stdbit.h` only, and the probes pass it with `-idirafter` so that a system or gnulib
+   header always wins (`PORTING.md` P-46).  The directory used to hold `stdckdint.h` and
+   `stdcountof.h` stand-ins as well; both of those headers *are* present here
+   (`HAVE_STDCKDINT_H`/`HAVE_STDCOUNTOF_H` are 1 in the frozen configuration), so the
+   stand-ins silently replaced the real implementations in every C reference built with
+   `-I spikes/shim` — review A's F3 measured the cost: `parse_format_integer`'s overflow
+   check became unreachable and `%99999999999999999999d` wrapped instead of raising.
 2. `configure` requires `makeinfo`; `build/tools/makeinfo` was a stub used only to
    pass that check (removed with the rest of the products).
 3. `configure` must run out of tree, otherwise it would dirty the read-only

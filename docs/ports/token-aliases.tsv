@@ -1,0 +1,11 @@
+# Token families that denote one operation but that the two languages spell
+# differently.  Column 1 is the canonical spelling both sides compare as; column 2 is
+# the comma-separated family; column 3 records why the family is legitimate.
+#
+# A family does two things: every body check canonicalises it to column 1, and the
+# family gets an occurrence check (the port must use it at least as often as the C body
+# does).  The occurrence check is not optional: a note that merely allowed `memcpy` to
+# be absent let a body with all three of doprnt's output copies deleted pass both
+# `--check` and `build-tu` (review D, F2).
+memcpy	memcpy,rpl_memcpy,mempcpy,rpl_mempcpy,copy_nonoverlapping	std::ptr::copy_nonoverlapping is the port's memcpy/mempcpy; gnulib's rpl_mempcpy keeps its C name
+va_arg	va_arg,next_arg	Rust spells C's va_arg macro as VaList::next_arg

@@ -1,7 +1,10 @@
 /* The C side of spikes/va-probe.sh: the va_list shapes doprnt.c uses — a variadic entry,
    forwarding the list to a function that takes `va_list`, and va_copy giving the callee an
    independent cursor while the caller keeps reading its own.  Pure C on purpose: the probe
-   is about the mechanism, not about the Emacs mirrors.  */
+   is about the mechanism, not about the Emacs mirrors.  Every read below reads an argument
+   that was actually passed: the first version read an `int` where the next argument was a
+   `double`, so two of the six lines were deterministic garbage that matched on both sides
+   and could not tell a correct cursor from an equally wrong pair (review D's F7).  */
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -19,21 +22,22 @@ static void copy_then_read (char const *tag, va_list ap)
 {
   va_list c;
   va_copy (c, ap);
-  int from_copy = va_arg (c, int);     /* the copy advances on its own */
-  int from_orig = va_arg (ap, int);    /* the caller's cursor is untouched */
-  int via_copy_again = va_arg (c, int);
+  int from_copy = va_arg (c, int);      /* the copy advances on its own */
+  int from_orig = va_arg (ap, int);     /* the caller's cursor is untouched */
+  double more = va_arg (c, double);     /* and the copy keeps its own position */
   va_end (c);
-  printf ("%s copy %d orig %d copy-again %d\n", tag, from_copy, from_orig, via_copy_again);
+  printf ("%s copy %d orig %d more %.1f\n", tag, from_copy, from_orig, more);
 }
 
 static void run (char const *tag, ...)
 {
   va_list ap;
   va_start (ap, tag);
-  take_va (tag, ap);            /* the list is passed by value (a struct copy here), so
-                                   its five reads do not move our cursor */
+  take_va (tag, ap);            /* the list is passed by value, which on this target is a
+                                   `char *` copy, so its five reads do not move our cursor
+                                   (PORTING.md P-04 records the platform model) */
   copy_then_read (tag, ap);
-  printf ("%s after %d %d\n", tag, va_arg (ap, int), va_arg (ap, int));
+  printf ("%s after %d %.1f\n", tag, va_arg (ap, int), va_arg (ap, double));
   va_end (ap);
 }
 

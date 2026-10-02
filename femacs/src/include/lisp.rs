@@ -18,11 +18,13 @@
 
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_ushort, c_void};
 
+// src/lisp.h 31 includes <float.h> first and <inttypes.h> (hence <stdint.h>) at 32;
+// the port keeps that order (review D's F10 found the two swapped).  gnulib has no
+// wrapper for <float.h>, so that mirror is a system mirror.
+include!("../../lib/include/float.in.rs");
 // src/lisp.h 32 includes <inttypes.h>, which includes <stdint.h>; the port keeps
 // the same chain (lib/inttypes.in.rs will include this file once it exists).
 include!("../../lib/include/stdint.in.rs");
-// lisp.h 31 includes <float.h>; gnulib has no wrapper, so the mirror is a system mirror.
-include!("../../lib/include/float.in.rs");
 
 // --- integers --------------------------------------------------------------
 // src/lisp.h: EMACS_INT is one word; the frozen configuration says 64 bits
@@ -2670,8 +2672,10 @@ pub const WAIT_READING_MAX: i64 = i64::MAX;
 pub const CHILD_SETUP_ERROR_DESC: &str = "Spawning child process";
 pub const HAVE_EXT_MENU_BAR: bool = true;
 pub const HAVE_EXT_TOOL_BAR: bool = true;
+// lisp.h 3201 spells the comparison FLT_RADIX, FLT_MANT_DIG, FLT_MIN_EXP, FLT_MAX_EXP;
+// the order is kept (review D's F9).
 pub const IEEE_FLOATING_POINT: bool =
-    FLT_RADIX == 2 && FLT_MANT_DIG == 24 && FLT_MAX_EXP == 128 && FLT_MIN_EXP == -125;
+    FLT_RADIX == 2 && FLT_MANT_DIG == 24 && FLT_MIN_EXP == -125 && FLT_MAX_EXP == 128;
 pub const pI: &str = "l";
 pub const pD: &str = "t";
 pub const PRIdHASH_IDX: &str = "d";           // PRIdLEAST32 on this target
@@ -3589,8 +3593,11 @@ pub const CHECK_LISP_OBJECT_TYPE: bool = false;          // lisp.h 597 (P-01: th
 pub const DEFAULT_HASH_SIZE: c_int = 0;                  // lisp.h 2766
 pub const NSTATICS: c_int = 2048;                        // lisp.h 3921
 pub const NEXT_ALMOST_PRIME_LIMIT: c_int = 11;           // lisp.h 4242
+// lisp.h 4294: the C compilation itself rejects a target whose radix is neither 2 nor
+// 16; the port has no such check unless it mirrors the static_assert (review D's F8).
+static_assert! (FLT_RADIX == 2 || FLT_RADIX == 16);
 // lisp.h 4295: `enum { LOG2_FLT_RADIX = FLT_RADIX == 2 ? 1 : 4 }`, with FLT_RADIX from
-// <float.h> (mirrored by lib/include/float.in.rs) and the static_assert at 4294.
+// <float.h> (mirrored by lib/include/float.in.rs).
 pub const LOG2_FLT_RADIX: c_int = if FLT_RADIX == 2 { 1 } else { 4 };
 pub const S2N_IGNORE_TRAILING: c_int = 1;                // lisp.h 4746
 pub const defined_GC_CHECK_STRING_BYTES: bool = false;   // lisp.h 5743 (C spells the value through `defined (…)`; the frozen configuration leaves it undefined)

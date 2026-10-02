@@ -6,7 +6,8 @@
 // because Rust has no goto and the tails must not be skipped (PORTING.md 2.2).
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs)]
+         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
+         unsafe_op_in_unsafe_fn)]
 
 /* Timsort for sequences.
 

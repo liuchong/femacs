@@ -307,7 +307,7 @@ same name, an `INLINE` function becomes an `#[inline(always)]` function.
   compiler and the mirror both print
   `2305843009213693950 75 47 984 2000` for `BUF_BYTES_MAX`, `BUFFER_LISP_SIZE`,
   `BUFFER_REST_SIZE`, `sizeof buffer` and `GAP_BYTES_DFL` (recipe:
-  `clang -std=gnu23 -O1 -I build/emacs-ref/lib -I spikes/shim -I build/emacs-ref/src
+  `clang -std=gnu23 -O1 -I build/emacs-ref/lib -idirafter spikes/shim -I build/emacs-ref/src
   -I emacs/src -I emacs/lib probe.c` against a `rustc --edition 2024 -O probe.rs` that
   includes the mirrors with the `lispsym` arena `spikes/inline_probe.rs` uses).  It
   constrains five values, not the expressions that produce them.

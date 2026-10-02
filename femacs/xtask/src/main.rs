@@ -29,6 +29,7 @@ fn main() {
         "layout-check" => layout_check(),
         "build-tu" => build_tu(args.get(1)),
         "gate-fast" => gate_fast(),
+        "gate-probes" => gate_probes(),
         "gate-full" => {
             eprintln!(
                 "gate-full needs the reference Emacs configured, built and its ERT suite \
@@ -40,7 +41,7 @@ fn main() {
         _ => {
             println!(
                 "usage: xtask <gen-config|layout-asserts|layout-check|build-tu <c-file>|\
-                 gate-fast|gate-full>"
+                 gate-fast|gate-probes|gate-full>"
             );
             0
         }
@@ -633,6 +634,10 @@ fn gate_fast() -> i32 {
     if let Err(e) = build_finished_tus() {
         return fail(e);
     }
+    println!("== probe programs ==");
+    if let Err(e) = probe_programs() {
+        return fail(e);
+    }
     println!("== layout gate ==");
     for probe in ["spikes/fam-probe.sh", "spikes/shadow-probe.sh", "spikes/macro-probe.sh"] {
         println!("== {probe} ==");
@@ -644,6 +649,64 @@ fn gate_fast() -> i32 {
         }
     }
     layout_check()
+}
+
+/// Compile every probe *program* the way its script does — from `femacs/`, so
+/// `rust-toolchain.toml` decides the toolchain — without running the C side.
+///
+/// `gate-fast` was blind to the probes, and `ec20c48` broke three of them: the scripts
+/// ran a bare `rustc` from the repository root, which has no `rust-toolchain.toml`, so
+/// the *stable* toolchain resolved and the mirrors' `VaList` parameter became E0658.
+/// The layout gate stayed green (review D's F1).  A probe that cannot even compile is
+/// not evidence, so this is part of the fast gate now; the C-differential half is
+/// `gate-probes`.
+fn probe_programs() -> Result<(), String> {
+    const PROBES: [&str; 7] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
+                               "../spikes/write_probe.rs", "../spikes/va_probe.rs",
+                               "../spikes/layout.rs", "../spikes/jump.rs", "../spikes/scan.rs"];
+    fs::create_dir_all("../build/probes").ok();
+    for probe in PROBES {
+        if !Path::new(probe).is_file() {
+            continue;
+        }
+        let stem = Path::new(probe).file_stem().unwrap().to_string_lossy().to_string();
+        let out = format!("../build/probes/{stem}.rmeta");
+        let status = Command::new("rustc")
+            .args(["--edition", "2024", "--crate-type", "bin", "--emit", "metadata"])
+            .arg(probe).arg("-o").arg(&out)
+            .status();
+        match status {
+            Ok(s) if s.success() => println!("probe {stem}: the Rust side compiles"),
+            Ok(s) => return Err(format!("probe {probe} does not compile ({s})")),
+            Err(e) => return Err(format!("probe {probe}: {e}")),
+        }
+    }
+    Ok(())
+}
+
+/// The C-differential tier: every probe that compares the C reference with the mirrors.
+/// It needs the frozen configure output, which is not in version control, so it is a
+/// command of its own — `gate-fast` must stay runnable in a clean checkout — but it is
+/// the tier that produced P-30's evidence and is run at every batch boundary.
+fn gate_probes() -> i32 {
+    let cfg = std::env::var("CFG").unwrap_or_else(|_| "build/emacs-ref".to_string());
+    let header = Path::new("../").join(&cfg).join("src/config.h");
+    if !header.is_file() {
+        return fail(format!(
+            "{} is missing: configure the reference tree out of tree first \
+             (docs/spikes/2026-10-02-three-spikes.md, Reproduction)", header.display()));
+    }
+    for probe in ["spikes/inline-probe.sh", "spikes/accessor-probe.sh",
+                  "spikes/write-probe.sh", "spikes/va-probe.sh"] {
+        println!("== {probe} ==");
+        let status = Command::new("bash").arg(probe).current_dir(REPO).status();
+        match status {
+            Ok(s) if s.success() => {}
+            Ok(s) => return fail(format!("{probe} failed ({s})")),
+            Err(e) => return fail(format!("{probe}: {e}")),
+        }
+    }
+    0
 }
 
 fn canonical(p: &Path) -> PathBuf {

@@ -276,13 +276,21 @@ Rust **没有 label-as-value（`&&label`）**，无法构造 `void *targets[]` �
 
 `va_list` 在 `doprnt.c` 里是**普通参数**传递，且用到 `va_copy`（`doprnt.c:595`）。
 
-- **P-04（2026-10-02 实测更新）**：本机 stable 1.98.1 定义 C 变参函数报
-  `E0658: C-variadic functions are unstable`；nightly 1.100.0（2026-09-14）可定义，但
-  `VaList` 的方法名已与旧文档不同（实测 `args.arg()` 不存在）。结论：
-  1. 变参文件（`va_list` 49 处）在 stable ≥ 1.99 发布前必须用 nightly；
-  2. `rust-toolchain.toml` 锁定具体版本（当前 `nightly-2026-09-14`），并在每次升级时
-     用 `doprnt.c` 的 `va_copy`/`vsnprintf` 用例重新确认 API 名；
-  3. 若届时 stable 已支持，则切回 stable 并删除该偏离记录。
+- **P-04（2026-10-02 定案）**：本机 stable 1.98.1 定义 C 变参函数报
+  `E0658: C-variadic functions are unstable`，而两个 dated nightly
+  （`nightly-2026-09-14` = 1.100.0-nightly、`nightly-2026-10-01` = 1.101.0-nightly）
+  都能在**没有** `#![feature]` 的情况下定义它（`c_variadic` 自 1.99.0 起 stable，两者
+  都在其之后；本段初稿所写“09-14 仍报 unstable”是错的，评审 A 的 F1 与评审 D 的 F6
+  各自实测推翻了它）。结论：
+  1. `femacs/rust-toolchain.toml` 锁**具体** dated nightly，当前 `nightly-2026-10-01`
+     ——选它是因为本轮全部闸门证据都在它上面测，不是因为它比 09-14 更“能编”；
+  2. 变参 API 名（`VaList::next_arg`/`clone`）与平台模型在升级时用
+     `spikes/va-probe.sh` 复测；
+  3. stable ≥ 1.99 发布后切回 stable 并删除该偏离记录；
+  4. `#![feature]` 无论如何不能用：镜像单元是被 `include!` 的，内部属性非法。
+  映射与证据：`docs/spikes/2026-10-02-variadics.md`；pin 下的 Miri 证据：
+  `spikes/miri-probe.sh`（需要 `rustup component add miri rust-src --toolchain <pin>`，
+  已对本 pin 安装，`miri-probe: clean (nightly-2026-10-01)`）。
 - 变参**调用**（`printf` 家族）不受此限。
 
 ### 2.5 断言（v2 更正，评审判定为阻断级）
@@ -541,7 +549,7 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
 | P-01 | `Lisp_Object` 用指针型别名；拒绝 wide-int / CHECK_LISP_OBJECT_TYPE | 已定 | 构建期拒绝逻辑 + 断言 |
 | P-02 | `USE_LSB_TAG` 作为 `cfg` 决策，仅支持 true 的 64 位目标 | 已定 | 配置生成器 + 断言 |
 | P-03 | computed goto 只移植 switch 版 | 已定（偏离已记录） | 基准对比 + ERT |
-| P-04 | 变参：稳定版 ≥1.99 的 `c_variadic`，锁具体版本 | 待 spike | `doprnt.c` 试跑 + `va_copy` 用例 |
+| P-04 | 变参：`c_variadic`（stable ≥1.99）+ 锁具体 dated nightly | **已定**（2026-10-02，pin `nightly-2026-10-01`） | `doprnt.c` 试跑 + `spikes/va-probe.sh` 6 行 + `docs/ports/va-arg-types.tsv` 的多重集检查（P-45）+ `gate-probes` |
 | P-05 | `alloca`：栈池 + `sa_avail` 记账 + 循环点特判 | 待 spike | 内存压力对拍 + 循环点用例 |
 | P-06 | `static mut` 地址稳定 | 已定 | `staticpro` 断言 |
 | P-07 | docstring 用字符串字面量，`--check` 校验摘要 | 已定 | `docs/baseline/subrs.tsv` |
@@ -580,6 +588,13 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
 | P-39 | `lisp.rs` crate 根的 `unsafe extern "C" { pub fn … }`（74 条，约 62 条是 Emacs C 函数：`make_string`/`intern_1`/`defsubr`/`marker_position`…）在**定义它们的单元**（`alloc.c`、`marker.c`…）落地时会 `E0428`——与历史 `Fcons`/`Ffuncall`/`Fsignal` 同型；`--check` 的 P-28 规则只覆盖 subr | 已记录（落地前必须做） | 把这些声明移进一个 `pub mod`（如 `pub mod c_functions { … }`）再 `use c_functions::*;`，让单元里的定义遮蔽整体导入（P-21/P-28 已验证的形状）；同一文件里再加一条闸门规则，禁止 crate 根出现"将由别的单元定义"的 `pub fn` 原型 |
 | P-40 | C 的**柔性数组成员**（`Lisp_Vector.contents`、`Lisp_Char_Table.contents`/`extras`、`Lisp_Sub_Char_Table.contents`、`Lisp_Bool_Vector.data`）在镜像里声明为 `[T; 0]`（这样 `sizeof` 与后续字段偏移与 C 一致），但 Rust 的 0 长数组**不能索引**：`arr[i]` 是边界检查，debug/release 都 panic（"the len is 0 but the index is 0"） | 已定（缺陷已修） | `FAM_ELEM! (place, idx)`：按地址取元素，且展开为 **place**，所以 C 的 `x->contents[i]`、`&x->contents[i]`、`x->contents[i] = v` 三种形状都能一一对应；证据 `spikes/fam-probe.sh`（四个 C 名访问器 + 两个 FAM，4 行；负对照：换回旧写法立刻 panic）。**这七个访问器（`AREF`/`ASET`/`aref_addr`/`gc_aset`/`CHAR_TABLE_REF_ASCII`/`set_char_table_extras`/`set_char_table_contents`）此前一直带着这个 P0**——`--check`/`layout-check` 只看文本与布局，`gate-full` 未实现，所以直到 `casetab.c` 成为第一个真正读 `extras` 的单元才暴露 |
 | P-41 | `Q*` 的**索引顺序**与 C 不同（P-17 已记录），但没人记录它的后果：`lread.c` 用 `defsym_name[i]` （**make-docfile 生成进 `globals.h` 的表**）给第 i 个内建符号命名。冻结配置里 C 有 1,560 个符号（`iQcase_table` = 339），port 有 2,118 个（`iQcase_table` = 491），集合包含但顺序不同（评审 A 实测：C 的 1,560 全在 port 的集合里，索引逐条一致） | **已记录（`lread.rs` 落地前必须做）** | `lread.rs` 必须按 **port 自己的顺序**重新生成 `defsym_name` 表，否则每个内建符号会被装上别的名字（静默的全局性故障）；`countof (lispsym)` 的变化也会让 `alloc.c` 的内存计数与参照不同；当前 `defsym_name` 在仓库里 0 命中 |
+| P-42 | **构建条件文件的离场边界**：`gmalloc.c`/`ralloc.c`/`vm-limit.c` 在冻结配置下不参与链接（`SYSTEM_MALLOC=1`、`REL_ALLOC` undef → `src/Makefile.in` 489-495 的三个 `*_OBJ` 皆空），而 `atimer.c` **在** `base_obj` 里（`src/Makefile.in:461`；此前“清单里没有”的说法是错的） | **范围已定** | 1:1 以**参照树的文件**为准，不以冻结配置的链接清单为准（`docs/port-plan.md` 第 8 行“每一个 `*.c`/`*.h`”）：这三个文件照样移植，验证只到 `--check` + 自身探针；运行时证据要等一个非 `SYSTEM_MALLOC` 的配置被冻结（P-08） |
+| P-43 | 同一仓库三种 lint 写法：`doprnt.rs` 允许 `unsafe_op_in_unsafe_fn`，`sort.rs`/`casetab.rs` 不允许 → 同一状态下 438 条 vs 6 条 warning | **已定**：每个 `femacs/src/**/*.rs` 顶部同一组 `#![allow(…)]`，含 `unsafe_op_in_unsafe_fn` | C 的语句本来就“处处 unsafe”，逐句加 `unsafe {}` 只造噪声；`gate-fast` 不看 warning，噪声正是“新 lint 类无人发现”的来源（评审 D F12）。复核方式：三处 allow 列表 `grep` 一致 |
+| P-44 | 同义 token 家族此前用“豁免”处理（`macro-body-notes.tsv` 允许 `memcpy`/`mempcpy` 缺席），而 token 检查是**单向包含**：把 `doprnt` 的三处输出拷贝**全删掉**，`--check` 与 `build-tu` 都绿 | **已定并实现**：`docs/ports/token-aliases.tsv` + `extract-abi.py` 的 `alias_count_problems`——家族在两侧折叠为同一拼写，并要求 **Rust 侧出现次数 ≥ C 侧** | 评审 D F2。实测：M2（删 1 处）/M3（删 2 处）/M8（删 3 处）/M1（`rpl_mempcpy`→`strcpy`）全部 `FAIL`，阴性对照（原样）`OK` |
+| P-45 | `va_arg (ap, T)` 的**读取类型**此前无任何守卫：`%u` 的 `c_uint` 改成 `c_int` 能编译、所有闸门绿（值流进变参 `sprintf`，编译期看不见） | **已定并实现**：`docs/ports/va-arg-types.tsv` + `extract-abi.py` 的 `va_arg_problems`——按**类型多重集**比对，未记录的类型直接报错 | 评审 D F4。实测变异 MV1（`c_uint`→`c_int`）现在 `FAIL`；`doprnt` 两侧各 12 处读取逐项对应 |
+| P-46 | `spikes/shim/stdckdint.h` 的 no-op 宏**影子掉**了系统真实实现（本机 `HAVE_STDCKDINT_H=1`），任何按探针命令构建的 C 参照都会静默失去溢出检测（`%99999999999999999999d` 回绕而不是 `error`） | **已定并实现**：shim 只留 `HAVE_*_H` 为 undefined 的头（现仅 `stdbit.h`），且探针一律 `-idirafter spikes/shim` | 评审 A F3；`spikes/shim/README.md` 写明规则与代价 |
+| P-47 | 闸门缺“探针可跑性”这一层：`ec20c48` 让三条探针在仓库根跑裸 `rustc`（解析到 stable）而全部闸门仍然绿 | **已定并实现**：`gate-fast` 增加“探针程序的 Rust 侧编译”；新增 `xtask gate-probes` 跑四个 C 差分脚本，`build/emacs-ref` 缺失时**报错**而不是跳过 | 评审 D F1。实测 `gate-probes`：`inline 6081` / `accessor 11` / `write 4` / `va 6` 行逐字节一致 |
+| P-48 | **残余**：端口**自造**的文件级常量只被“记录的偏离”覆盖——`doprnt.rs` 的 `TBUF_LEN = SIZE_BOUND_EXTRA + 50` 改成 `+ 500` 仍然全绿（`50` 被 `macro-body-notes.tsv` 豁免，而 `TBUF_LEN` 不是 C 名，没有东西能比它） | **已记录（批次 B 之前做）** | 建“自造常量 ↔ C 表达式”表 + token 包含检查（与 P-44/P-45 同型）；批次 B 起这类常量会变多（`floatfns.c` 的 `signbit`/`emacs_rint`、`bignum` 的 `GMP_NUMB_BITS`），落地时一并做；在那之前 ledger 必须逐条点名自造常量（评审 A F6） |
 
 **P-38/P-24 说明（docstring 的值，2026-10-02 第三轮）**：C 的 `doc: /* … */` 注释不是它的值——
 `lib-src/make-docfile.c` 的 `read_c_string_or_comment` 会**丢掉注释首尾空白**，并把 `\X` 读成 X（`\n`/`\t` 等控制字符除外），

@@ -33,6 +33,7 @@ import importlib.util
 import json
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -180,6 +181,51 @@ for _group in (
     for _spelling in _group:
         MACRO_TOKEN_EQUIV[_spelling] = _group[0]
 
+
+# `docs/ports/token-aliases.tsv`: token families that denote one operation but are
+# spelled differently by the two languages (C's `memcpy` and the port's
+# `std::ptr::copy_nonoverlapping`, C's `va_arg` and the port's `next_arg`).  A family
+# does two things: both sides canonicalise to the family's canonical spelling for the
+# set-based body checks, and the family gets an *occurrence* check -- the port must use
+# it at least as often as the C body does.  The occurrence check closes review D's F2:
+# a note that merely allowed `memcpy` to be absent let a body with all three of
+# `doprnt`'s output copies deleted pass both `--check` and `build-tu`.
+TOKEN_ALIASES: dict = {}
+TOKEN_ALIAS_EQUIV: dict = {}
+TOKEN_ALIAS_WARNINGS: list = []
+
+
+def load_token_aliases(path: Path) -> None:
+    """Read the families (`canonical<TAB>spelling,spelling<TAB>reason`)."""
+    TOKEN_ALIASES.clear()
+    TOKEN_ALIAS_EQUIV.clear()
+    del TOKEN_ALIAS_WARNINGS[:]
+    if not path.is_file():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) < 2:
+            continue
+        canon = parts[0].strip().lower()
+        spellings = {x.strip().lower() for x in parts[1].split(",") if x.strip()}
+        if not canon or not spellings:
+            continue
+        spellings.add(canon)
+        TOKEN_ALIASES[canon] = spellings
+        for one in sorted(spellings):
+            other = TOKEN_ALIAS_EQUIV.get(one)
+            if other is not None and other != canon:
+                TOKEN_ALIAS_WARNINGS.append(
+                    f"token {one!r} is claimed by both {other!r} and {canon!r}")
+            TOKEN_ALIAS_EQUIV[one] = canon
+
+
+def canon_token(low: str) -> str:
+    """One spelling per token family: the aliases file first, then MACRO_TOKEN_EQUIV."""
+    return TOKEN_ALIAS_EQUIV.get(low) or MACRO_TOKEN_EQUIV.get(low, low)
+
 # `docs/ports/macro-body-notes.tsv`: C macros whose Rust body legitimately cannot
 # mention one of the C body's tokens (a recorded deviation with a reason).
 def read_macro_notes(path: Path) -> list[tuple[str, set[str]]]:
@@ -206,6 +252,70 @@ def note_tokens(notes: list[tuple[str, set[str]]], name: str) -> set[str]:
             if fnmatch.fnmatchcase(name, one.strip()):
                 allowed |= toks
     return allowed
+
+
+# `docs/ports/va-arg-types.tsv`: which object each `va_arg (ap, T)` / `next_arg::<T> ()`
+# reads.  Neither rustc nor the token gate can see it -- the value is handed to a
+# variadic `sprintf`, so reading `%u` as `c_int` compiles and passes everything (review
+# D's F4, mutation MV1).  A type that is not recorded is reported, not ignored: the
+# table is the record of which C type each read answers for.
+VA_ARG_TYPES: dict = {}
+VA_ARG_RE = re.compile(r"\bva_arg\s*\(\s*[A-Za-z_]\w*\s*,\s*([^()]*?)\s*\)")
+R_NEXT_ARG_RE = re.compile(r"\bnext_arg\s*::\s*<\s*([^<>]*?)\s*>\s*\(\s*\)")
+
+
+def load_va_arg_types(path: Path) -> None:
+    """Read `C type<TAB>rust spelling[,spelling]<TAB>reason` rows."""
+    VA_ARG_TYPES.clear()
+    if not path.is_file():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) < 2:
+            continue
+        c_type = squash_space(parts[0])
+        rust = tuple(x for x in (squash_space(y) for y in parts[1].split(",")) if x)
+        if c_type and rust:
+            VA_ARG_TYPES[c_type] = rust
+
+
+def squash_space(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def va_arg_problems(c_text: str, rust_text: str) -> list:
+    """C's reads and the port's reads must be the same multiset of objects."""
+    if not VA_ARG_TYPES:
+        return []
+    c_types = [squash_space(t) for t in VA_ARG_RE.findall(strip_comments(c_text))]
+    r_types = [squash_space(t) for t in R_NEXT_ARG_RE.findall(strip_comments(rust_text))]
+    if not c_types and not r_types:
+        return []
+    out = []
+    for one in c_types:
+        if one not in VA_ARG_TYPES:
+            out.append(f"va_arg reads {one!r}, which docs/ports/va-arg-types.tsv does not "
+                       f"record (add a row, or fix the read)")
+    reverse = {spelling: c_type for c_type, spellings in VA_ARG_TYPES.items()
+               for spelling in spellings}
+    for one in r_types:
+        if one not in reverse:
+            out.append(f"next_arg reads {one!r}, which docs/ports/va-arg-types.tsv does not "
+                       f"record (add a row, or fix the read)")
+    if out:
+        return out
+    c_canon = list(c_types)
+    r_canon = [reverse[one] for one in r_types]
+    if Counter(c_canon) != Counter(r_canon):
+        extra_c = Counter(c_canon) - Counter(r_canon)
+        extra_r = Counter(r_canon) - Counter(c_canon)
+        out.append("va_arg reads differ: C reads "
+                   + ", ".join(f"{k} x{v}" for k, v in sorted(extra_c.items()))
+                   + "; the port reads "
+                   + ", ".join(f"{k} x{v}" for k, v in sorted(extra_r.items())))
+    return out
 
 
 def strip_char_literals(text: str) -> str:
@@ -240,24 +350,26 @@ def strip_char_literals(text: str) -> str:
     return "".join(out)
 
 
-def body_tokens(text: str, *, numbers: bool = True, skip_short: bool = False) -> set[str]:
+def body_token_seq(text: str, *, numbers: bool = True, skip_short: bool = False) -> list:
     """Identifiers (and numbers) of a C macro body or a Rust body, normalised.
 
     String and character literals are dropped (the constants rule compares their bytes),
     integer suffixes are folded into the number (`1u` is one token), and the `## _`
     suffix idiom of `BVAR`/`PER_BUFFER_VAR_OFFSET` is invisible because a trailing
-    underscore is stripped from both sides.
+    underscore is stripped from both sides.  Families from `token-aliases.tsv` are
+    folded to their canonical spelling, so the same sequence feeds the set checks and
+    the occurrence checks.
     """
     text = re.sub(r'"(?:[^"\\]|\\.)*"', '""', text)
     text = strip_char_literals(text)
     # preprocessor lines inside a body (`#ifdef`, `#endif`, `# define`) are not code
     text = "\n".join(l for l in text.split("\n") if not l.lstrip().startswith("#"))
     toks = re.findall(r"[A-Za-z_]\w*|\d+", text)
-    out = set()
+    out = []
     for tok in toks:
         if tok.isdigit():
             if numbers:
-                out.add(tok)
+                out.append(tok)
             continue
         low = tok.lower().removeprefix("r#")
         if low in MACRO_TOKEN_SKIP or low.strip("_") == "":
@@ -265,7 +377,34 @@ def body_tokens(text: str, *, numbers: bool = True, skip_short: bool = False) ->
         low = low.rstrip("_") or low
         if skip_short and len(low) <= 2:
             continue          # C's one/two-letter parameter and local names
-        out.add(MACRO_TOKEN_EQUIV.get(low, low))
+        out.append(canon_token(low))
+    return out
+
+
+def body_tokens(text: str, *, numbers: bool = True, skip_short: bool = False) -> set:
+    """The body's token *set* (see body_token_seq for the normalisation)."""
+    return set(body_token_seq(text, numbers=numbers, skip_short=skip_short))
+
+
+def alias_count_problems(c_text: str, rust_text: str, *, skip_short: bool) -> list:
+    """Every registered family must survive the port: rust count >= C count.
+
+    A set check cannot see a *deleted* call when a note exempted its token, and it can
+    never see that three calls became one (review D's M2/M3/M8 mutations kept every
+    other gate green).  Only deletion is reported: a port may legitimately spell one C
+    call as two Rust calls, never fewer.
+    """
+    if not TOKEN_ALIASES:
+        return []
+    c_counts = Counter(body_token_seq(c_text, skip_short=skip_short))
+    r_counts = Counter(body_token_seq(rust_text, skip_short=skip_short))
+    out = []
+    for canon in sorted(TOKEN_ALIASES):
+        c_n, r_n = c_counts.get(canon, 0), r_counts.get(canon, 0)
+        if r_n < c_n:
+            family = ",".join(sorted(TOKEN_ALIASES[canon]))
+            out.append(f"family {canon}: the C body uses it {c_n} time(s), the port {r_n} "
+                       f"({family})")
     return out
 
 
@@ -725,6 +864,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             problems.append("macro " + name + " does not mention "
                             + ", ".join(sorted(missing)) + " (C body: "
                             + re.sub(r"\s+", " ", macro["body"])[:60] + ")")
+        problems.extend(alias_count_problems(macro["body"], rust_body, skip_short=False))
     def norm_const (v: str) -> str:
         v = v.strip()
         return {"true": "1", "false": "0"}.get (v, v)
@@ -745,11 +885,23 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
                     and value.strip() != rust_variant.strip():
                 problems.append(f"constant {name}: C {value} vs Rust enum {rust_variant}")
             continue
-        # skip values that are not literals (macro aliases), and macros the C
-        # defines more than once because they depend on a configuration branch
-        if not re.fullmatch (r"-?0[xX][0-9a-fA-F]+|-?\d+|[0-9]+[uUlL]*|'.*'|\".*\"", value.strip ()):
-            continue
+        # A macro the C defines more than once depends on a configuration branch; the
+        # port spells the frozen branch's value (P-08), so neither comparison applies.
         if c["macro_duplicates"].get (name, 0) > 1:
+            continue
+        # Values that are not literals (an expression, a cast, an alias) used to be
+        # skipped entirely, so `DBL_MAX_10_EXP + 50` could become `+ 500` with every
+        # gate green (review D's F3).  They are compared by the tokens of the
+        # expression now; the literal cases below keep the value comparison.
+        if not re.fullmatch (r"-?0[xX][0-9a-fA-F]+|-?\d+|[0-9]+[uUlL]*|'.*'|\".*\"", value.strip ()):
+            expr_allowed = note_tokens(macro_notes, name)
+            if "*" not in expr_allowed:
+                rust_expr = r["constants"][name]
+                missing_expr = body_tokens(value) - body_tokens(rust_expr) - expr_allowed
+                if missing_expr:
+                    problems.append ("constant " + name + " does not mention "
+                                     + ", ".join(sorted(missing_expr))
+                                     + " (C value: " + re.sub(r"\s+", " ", value.strip())[:60] + ")")
             continue
         # A string literal is compared as its *value*: C spells a code point with
         # byte escapes (`"\xE2\x80\x98"`), Rust with `"\u{2018}"`, and the two
@@ -946,6 +1098,8 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         if missing:
             problems.append(f"function {name} does not mention "
                             + ", ".join(sorted(missing)))
+        problems.extend(alias_count_problems(c_text, rust_body, skip_short=True))
+        problems.extend(va_arg_problems(c_text, rust_body))
 
     empty_in_c = {f["name"] for f in c["functions"] if body_is_empty(c_path, f["name"])}
     # A Rust function whose name the reference also uses — as a function, a macro or a
@@ -1016,11 +1170,19 @@ def main() -> int:
                     help="C macros with no Rust counterpart, with reasons")
     ap.add_argument("--macro-notes", default="docs/ports/macro-body-notes.tsv",
                     help="C macros whose Rust body legitimately omits a named token")
+    ap.add_argument("--token-aliases", default="docs/ports/token-aliases.tsv",
+                    help="token families that mean the same thing in both languages")
+    ap.add_argument("--va-arg-types", default="docs/ports/va-arg-types.tsv",
+                    help="which object each va_arg/next_arg reads")
     args = ap.parse_args()
 
     excluded = read_exclusions(Path(args.excluded)) if Path(args.excluded).is_file() else {}
     notes_path = Path(args.macro_notes)
     macro_notes = read_macro_notes(notes_path) if notes_path.is_file() else {}
+    load_token_aliases(Path(args.token_aliases))
+    load_va_arg_types(Path(args.va_arg_types))
+    for warning in TOKEN_ALIAS_WARNINGS:
+        print(f"token-aliases: {warning}", file=sys.stderr)
     if args.all:
         reference, root = Path(args.reference), Path(args.root)
         done = in_progress = failing = 0

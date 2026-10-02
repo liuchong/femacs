@@ -1,3 +1,5 @@
+# round 1 (frozen f583f33): the artifacts review round 1 measured.  Later rounds
+# have their own records; the hashes below are round 1's, not the current files'.
 42a8c8043ba0da2567fb579f2c4c11507f6250cfe3ef2da6d418329ca3a455fb  tools/cinventory.py
 1f5cb7eeeee0794dcd30f35dc176fdd85b9e3de4c29360cf4efac8fbeb00dc87  tools/extract-abi.py
 f36a1e326db1a29fcec62a9b90ac65b262e6c77b872c731f7e425ac98dae0583  tools/gen-baseline.py

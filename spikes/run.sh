@@ -17,7 +17,7 @@ echo "clang: $(clang --version | head -1)" >> "$OUT/report.txt"
 echo >> "$OUT/report.txt"
 
 echo "## spike 1: layout identity (C vs Rust)" >> "$OUT/report.txt"
-if clang -std=gnu23 -O0 -I "$CFG/lib" -I spikes/shim -I "$CFG/src" \
+if clang -std=gnu23 -O0 -I "$CFG/lib" -idirafter spikes/shim -I "$CFG/src" \
         -I "$REF/src" -I "$REF/lib" \
         spikes/layout_c.c -o "$OUT/layout_c" 2> "$OUT/layout_c.err"; then
   "$OUT/layout_c" > "$OUT/layout_c.txt"

@@ -45,7 +45,7 @@ def live_bodies(ref: Path, cfg: Path, header: str) -> str:
     # gnulib's <sys/types.h> and <time.h> wrappers require config.h first, so the
     # preprocessor is told to include it (as spikes/layout_c.c does).
     cmd = ["clang", "-E", "-std=gnu23", f"-include{cfg}/src/config.h",
-           f"-I{cfg}/lib", "-Ispikes/shim", f"-I{cfg}/src",
+           f"-I{cfg}/lib", "-idirafterspikes/shim", f"-I{cfg}/src",
            f"-I{ref}/src", f"-I{ref}/lib", str(ref / header)]
     return subprocess.run(cmd, check=True, capture_output=True, text=True).stdout
 

@@ -1,6 +1,7 @@
 // The Rust side of spikes/va_probe.c: the same three shapes with `...` parameters,
 // `VaList::next_arg` (= C's `va_arg`), `VaList::clone` (= C's `va_copy`) and no
-// `va_start`/`va_end` (the parameter is the list; dropping it is `va_end`).
+// `va_start`/`va_end` (the parameter is the list; dropping it is `va_end`).  Every read
+// reads an argument that was actually passed (review D's F7).
 #![allow(unsafe_op_in_unsafe_fn, unused_unsafe)]
 use core::ffi::{c_char, c_double, c_int, c_long, c_ulong, VaList};
 
@@ -20,18 +21,18 @@ unsafe fn copy_then_read (tag: *const c_char, mut ap: VaList) {
   let mut c = ap.clone ();                       // va_copy
   let from_copy = c.next_arg::<c_int> ();        // the copy advances on its own
   let from_orig = ap.next_arg::<c_int> ();       // the caller's cursor is untouched
-  let via_copy_again = c.next_arg::<c_int> ();
+  let more = c.next_arg::<c_double> ();          // and the copy keeps its own position
   let name = std::ffi::CStr::from_ptr (tag);
-  println! ("{} copy {} orig {} copy-again {}", name.to_str ().unwrap (), from_copy,
-            from_orig, via_copy_again);
+  println! ("{} copy {} orig {} more {:.1}", name.to_str ().unwrap (), from_copy,
+            from_orig, more);
 }
 
 unsafe extern "C" fn run (tag: *const c_char, mut ap: ...) {
   take_va (tag, ap.clone ());      // C passes the list by value: an independent cursor
   copy_then_read (tag, ap.clone ());
   let name = std::ffi::CStr::from_ptr (tag);
-  println! ("{} after {} {}", name.to_str ().unwrap (), ap.next_arg::<c_int> (),
-            ap.next_arg::<c_int> ());
+  println! ("{} after {} {:.1}", name.to_str ().unwrap (), ap.next_arg::<c_int> (),
+            ap.next_arg::<c_double> ());
 }
 
 fn main () {

@@ -6,7 +6,8 @@
 // declarations lisp.rs carries for them (P-21, P-39).
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs)]
+         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
+         unsafe_op_in_unsafe_fn)]
 
 /* GNU Emacs routines to deal with case tables.
    Copyright (C) 1993-1994, 2001-2026 Free Software Foundation, Inc.

@@ -1,0 +1,19 @@
+# C's `va_arg (ap, T)` and the port's `next_arg::<T> ()` read the same object, and
+# neither rustc nor the token gate can see which: the value is handed to a variadic
+# `sprintf`, so reading `%u` as `c_int` compiles and passes every gate (review D, F4).
+# A read whose type is not recorded here is reported, not ignored -- the table *is* the
+# record of which C type each read answers for.
+#
+# Column 1: the C type as written in the reference.  Column 2: the port's spelling(s).
+# Column 3: why, when the spelling is not the C name.
+int	c_int
+unsigned	c_uint
+long	c_long
+unsigned long	c_ulong
+ptrdiff_t	ptrdiff_t
+EMACS_INT	EMACS_INT
+EMACS_UINT	EMACS_UINT
+intmax_t	i64	intmax_t is 64-bit on the frozen target; the port spells the width
+uintmax_t	u64	uintmax_t is 64-bit on the frozen target
+double	c_double
+char *	*mut c_char
