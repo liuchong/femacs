@@ -1,0 +1,9 @@
+[package]
+name = "miri-probe"
+version = "0.0.0"
+edition = "2024"
+# A standalone crate (outside the femacs workspace) so `cargo +nightly miri run` can
+# check the mirrors' unsafe code for undefined behaviour; see spikes/miri-probe.sh.
+[[bin]]
+name = "miri-probe"
+path = "src/main.rs"

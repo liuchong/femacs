@@ -634,6 +634,15 @@ fn gate_fast() -> i32 {
         return fail(e);
     }
     println!("== layout gate ==");
+    for probe in ["spikes/fam-probe.sh", "spikes/shadow-probe.sh", "spikes/macro-probe.sh"] {
+        println!("== {probe} ==");
+        let status = Command::new("bash").arg(probe).current_dir(REPO).status();
+        match status {
+            Ok(s) if s.success() => {}
+            Ok(s) => return fail(format!("{probe} failed ({s})")),
+            Err(e) => return fail(format!("{probe}: {e}")),
+        }
+    }
     layout_check()
 }
 
@@ -707,6 +716,28 @@ fn build_finished_tus() -> Result<(), String> {
                 built += 1;
             }
             Ok(s) => return Err(format!("rustc failed for {} ({s})", unit.display())),
+            Err(e) => return Err(format!("{}: {e}", unit.display())),
+        }
+        // The reference is built with --enable-checking by default, and the port's
+        // `eassert!`/`eassume!` are `#[cfg (enable_checking)]`: without this pass their
+        // bodies (die, stringify!, the conditions) are never compiled at all, so a
+        // checking build is the only way to see them (review C's F4).
+        let checked = Path::new(BUILD).join(format!("{stem}.checking.o"));
+        let status = Command::new("rustc")
+            .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
+                   "--cfg", "enable_checking",
+                   "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
+            .arg(&unit)
+            .arg("-o")
+            .arg(&checked)
+            .status();
+        match status {
+            Ok(s) if s.success() => {
+                println!("built {} (--cfg enable_checking)", unit.display());
+                built += 1;
+            }
+            Ok(s) => return Err(format!("rustc failed for {} with --cfg enable_checking ({s})",
+                                        unit.display())),
             Err(e) => return Err(format!("{}: {e}", unit.display())),
         }
     }

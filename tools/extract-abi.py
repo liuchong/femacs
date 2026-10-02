@@ -28,6 +28,7 @@ job of the ERT suite, the differential runs and the layout assertions.
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import importlib.util
 import json
 import re
@@ -102,6 +103,180 @@ def constants_of(text: str) -> dict[str, str]:
         if value is not None:
             out.setdefault(m.group("name"), re.sub(r"\s+", " ", value).strip())
     return out
+def rust_enum_variants(flat: str) -> dict[str, str]:
+    """Every Rust `enum` variant: name -> value text ("" when it has none).
+
+    `flat` is the normalised (comment-free) view, so splitting the body on commas at
+    bracket depth 0 is enough to separate variants, including `#[cfg (...)]` attributes
+    and generic arguments.
+    """
+    out: dict[str, str] = {}
+    for m in re.finditer(r"\benum\s+[A-Za-z_]\w*\s*\{", flat):
+        depth, i, n = 1, m.end(), len(flat)
+        while i < n and depth:
+            ch = flat[i]
+            if ch in "{[(":
+                depth += 1
+            elif ch in "}])":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        body = flat[m.end():i]
+        parts, cur, d = [], "", 0
+        for ch in body:
+            if ch in "([{<":
+                d += 1
+            elif ch in ")]}>":
+                d -= 1
+            if ch == "," and d == 0:
+                parts.append(cur)
+                cur = ""
+            else:
+                cur += ch
+        parts.append(cur)
+        for part in parts:
+            mm = re.match(r"^\s*([A-Za-z_]\w*)\s*(?:=\s*(.+?))?\s*$", part, re.S)
+            if mm and mm.group(1) not in ("pub", "enum"):
+                out.setdefault(mm.group(1), (mm.group(2) or "").strip())
+    return out
+
+
+# C's macro bodies and the port's macro bodies spell the same identifiers, with a few
+# documented differences, so a macro body that drops a field/helper/literal is visible
+# as a missing token (review B's M2/M3/M5/M6/M8/M9/M10 class).  Numbers count: `40` is
+# part of GET_OVERLAYS_AT's meaning.
+MACRO_TOKEN_SKIP = {
+    # C syntax that either language spells differently or that a body may not need
+    "struct", "union", "enum", "const", "static", "void", "int", "char", "long", "short",
+    "unsigned", "signed", "bool", "sizeof", "if", "else", "while", "for", "do", "return",
+    "offsetof", "defined", "u", "l", "ul", "ll",
+}
+# The same identity, spelled differently by the two languages.
+# Type and keyword tokens are spelled differently by the two languages when they appear at
+# all (C needs them for declarations and casts, Rust often infers), so they are skipped on
+# both sides of a body comparison.  Procedure names, field names and literals still count.
+MACRO_TOKEN_SKIP |= {
+    "lisp_object", "emacs_int", "emacs_uint", "lispsym_count", "ptrdiff_t", "size_t",
+    "intmax_t", "uintmax_t", "intptr_t", "uintptr_t", "bits_word", "modiff_count",
+    "specpdl_ref", "c_int", "c_uint", "c_char", "usize", "isize", "i64", "u64", "i32",
+    "u32", "u8", "i16", "u16", "f32", "f64",
+    "register", "extern", "inline", "volatile", "typedef", "constexpr", "auto",
+}
+# Both sides are canonicalised, because a C token may be spelled several ways in Rust (C's
+# `x != NULL` becomes `!x.is_null ()` as often as `x != null_mut ()`).
+MACRO_TOKEN_EQUIV = {}
+for _group in (
+    ("offsetof", "offset_of"),
+    ("ptrdiff_t", "isize"),
+    ("size_t", "usize"),
+    ("intptr_t", "isize"),
+    ("uintptr_t", "usize"),
+    ("null", "null_mut", "is_null"),
+    ("unsigned", "c_uint"),
+    ("double", "c_double"),
+    ("float", "c_float"),
+):
+    for _spelling in _group:
+        MACRO_TOKEN_EQUIV[_spelling] = _group[0]
+
+# `docs/ports/macro-body-notes.tsv`: C macros whose Rust body legitimately cannot
+# mention one of the C body's tokens (a recorded deviation with a reason).
+def read_macro_notes(path: Path) -> list[tuple[str, set[str]]]:
+    """(name pattern, allowed tokens) rows; a `*` token allows any token, and the
+    pattern may be a shell glob (`DEFVAR_*`), so a whole family is one recorded row."""
+    out: list[tuple[str, set[str]]] = []
+    if not path.is_file():
+        return out
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 3:
+            toks = {x.strip().lower() for x in parts[1].split(",") if x.strip()}
+            out.append((parts[0], toks))
+    return out
+
+
+def note_tokens(notes: list[tuple[str, set[str]]], name: str) -> set[str]:
+    """Allowed tokens for NAME; the name column may list several globs, comma-separated."""
+    allowed: set[str] = set()
+    for pattern, toks in notes:
+        for one in pattern.split(","):
+            if fnmatch.fnmatchcase(name, one.strip()):
+                allowed |= toks
+    return allowed
+
+
+def body_tokens(text: str, *, numbers: bool = True, skip_short: bool = False) -> set[str]:
+    """Identifiers (and numbers) of a C macro body or a Rust body, normalised.
+
+    String and character literals are dropped (the constants rule compares their bytes),
+    integer suffixes are folded into the number (`1u` is one token), and the `## _`
+    suffix idiom of `BVAR`/`PER_BUFFER_VAR_OFFSET` is invisible because a trailing
+    underscore is stripped from both sides.
+    """
+    text = re.sub(r'"(?:[^"\\]|\\.)*"', '""', text)
+    text = re.sub(r"'(?:[^'\\]|\\.)*'", "''", text)
+    # preprocessor lines inside a body (`#ifdef`, `#endif`, `# define`) are not code
+    text = "\n".join(l for l in text.split("\n") if not l.lstrip().startswith("#"))
+    toks = re.findall(r"[A-Za-z_]\w*|\d+", text)
+    out = set()
+    for tok in toks:
+        if tok.isdigit():
+            if numbers:
+                out.add(tok)
+            continue
+        low = tok.lower().removeprefix("r#")
+        if low in MACRO_TOKEN_SKIP or low.strip("_") == "":
+            continue
+        low = low.rstrip("_") or low
+        if skip_short and len(low) <= 2:
+            continue          # C's one/two-letter parameter and local names
+        out.add(MACRO_TOKEN_EQUIV.get(low, low))
+    return out
+
+
+def c_body_text(text: str, name: str) -> str | None:
+    """The reference body of NAME, comments blanked (None when the file lacks it)."""
+    for span in ci.function_spans(text):
+        if span["name"] == name:
+            lines = text.split("\n")[span["body_start"] - 1: span["body_end"]]
+            return ci.blank_comments("\n".join(lines))
+    return None
+
+
+def macro_body_of(rs: dict, name: str) -> str | None:
+    """The Rust text that answers for the C macro NAME: macro body, const value or fn."""
+    flat = rs["flat_own"]
+    m = re.search(rf"macro_rules!\s*{re.escape(name)}\s*\{{", flat)
+    if m:
+        return block_body(flat, flat.index("{", m.end() - 1))
+    if name in rs["constants"]:
+        # A const's value may be a block (`{ let …; … }`); take the whole initialiser
+        # rather than the first statement the value scanner stops at.
+        m = re.search(rf"\bconst\s+{re.escape(name)}\s*:\s*[^=]+?=", flat)
+        if m:
+            return block_text_until_semicolon(flat, m.end())
+        return rs["constants"][name]
+    return rs["bodies"].get(name)
+
+
+def block_text_until_semicolon(flat: str, start: int) -> str:
+    """Text from START up to the `;` that closes the item, braces balanced."""
+    depth, i, n = 0, start, len(flat)
+    while i < n:
+        ch = flat[i]
+        if ch in "{[(":
+            depth += 1
+        elif ch in "}])":
+            depth -= 1
+        elif ch == ";" and depth <= 0:
+            break
+        i += 1
+    return flat[start:i]
+
+
 R_DEFUN = re.compile(r"DEFUN!\s*\(\s*\"(?P<lisp>[^\"]+)\"\s*,\s*(?P<cname>\w+)\s*,\s*"
                      r"(?P<sname>\w+)\s*,\s*(?P<min>[^,]+?)\s*,\s*(?P<max>[^,]+?)\s*,\s*"
                      r"(?P<n>[^,]+?)\s*,", re.S)
@@ -167,7 +342,7 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
         doc = None
         if sm:
             doc = (decode_rust_string(sm.group("doc")) if sm.re is R_DOC_STRING
-                   else sm.group("doc"))
+                   else doc_comment_value(sm.group("doc")))
         subrs.append({"lisp_name": m.group("lisp"), "c_name": m.group("cname"),
                       "min": m.group("min").strip(), "max": m.group("max").strip(),
                       "n": m.group("n").strip(),
@@ -187,14 +362,29 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
                           "params": [x.strip() for x in params],
                           "noreturn": bool(m.group("attrs")),
                           "body": block_body(flat_own, open_brace)})
-    bodies = {m.group("name"): m.group("body") for m in R_FN_BODY.finditer(text)}
+    # A regex cannot see a body that contains braces (`{ { unimplemented!() } }` used to
+    # slip past the stub gate), so every definition is scanned with block_body.
+    bodies = {}
+    for m in re.finditer(r"\bfn\s+(?P<name>[A-Za-z_]\w*)\s*(?:<[^>{}]*>)?\s*\(", flat_own):
+        open_brace = flat_own.find("{", m.end())
+        if open_brace < 0:
+            continue
+        # a declaration ends in `;` before any `{`; skip those
+        semi = flat_own.find(";", m.end())
+        if 0 <= semi < open_brace:
+            continue
+        bodies.setdefault(m.group("name"), block_body(flat_own, open_brace))
     bodies.update({d["c_name"]: d["body"] for d in subr_defs})
+    # C's enum members live in Rust enums as often as in `pub const`s
+    # (`enum pvec_type { PVEC_BUFFER = 13, … }`), so both count as constants.
+    variants = rust_enum_variants(flat)
     return {"lines": own.count("\n"),
             "functions": sorted({m.group("name") for m in R_FN.finditer(text)}),
             "macros": sorted({m.group("name") for m in R_MACRO.finditer(text)}),
             "structs": structs, "struct_types": struct_types,
             "statics": sorted({m.group("name") for m in R_STATIC.finditer(text)}),
             "constants": constants_of(text),
+            "variants": variants,
             "subrs": subrs, "subr_defs": subr_defs, "bodies": bodies,
             "flat_own": flat_own, "text": text}
 
@@ -446,6 +636,11 @@ def body_is_empty(c_path: Path, name: str) -> bool:
     return False
 
 
+def doc_comment_value(comment: str) -> str:
+    """The C `doc: /* … */` value; cinventory owns the rule (make-docfile's)."""
+    return ci.doc_comment_value(comment)
+
+
 def read_exclusions(path: Path) -> dict[str, str]:
     """name -> reason, from docs/ports/excluded-macros.txt."""
     out = {}
@@ -459,10 +654,12 @@ def read_exclusions(path: Path) -> dict[str, str]:
 
 
 def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
-            excluded: dict[str, str] | None = None) -> list[str]:
+            excluded: dict[str, str] | None = None,
+            macro_notes: dict[str, set[str]] | None = None) -> list[str]:
     c = ci.inventory(c_path)
     r = rust_inventory(rs_path)
     excluded = excluded or {}
+    macro_notes = macro_notes or {}
     problems: list[str] = []
 
     c_funcs = {f["name"] for f in c["functions"]}
@@ -478,18 +675,43 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         print(f"  ({len(known_excluded)} C macros have a recorded Rust counterpart: "
               + ", ".join(known_excluded[:6]) + (" ..." if len(known_excluded) > 6 else "") + ")")
     for name, macro in sorted(c["macros"].items()):
-        if name in r["macros"]:
-            got = re.search(rf"macro_rules!\s*{re.escape(name)}\s*\{{(.*?)\n\}}",
-                            r["text"], re.S)
-            if got and digest(got.group(1)) != macro["digest"] and digest(got.group(1)) != "":
-                if not got.group(1).strip():
-                    problems.append(f"macro {name} has an empty body")
+        if name in excluded:
+            continue
+        rust_body = macro_body_of(r, name)
+        if rust_body is None:
+            continue          # absence is reported by the missing-macro rule above
+        if not rust_body.strip():
+            problems.append(f"macro {name} has an empty body")
+            continue
+        allowed = note_tokens(macro_notes, name)
+        # A macro's own parameter names are not semantics: Rust metavariables may be
+        # spelled differently (C's `VAR`/`lastlispfield` vs `$var`/`$field`).
+        params = {x.strip().lower() for x in macro["args"].split(",") if x.strip()}
+        missing = ((body_tokens(macro["body"]) - params) - body_tokens(rust_body))
+        missing = set() if "*" in allowed else (missing - allowed)
+        if missing:
+            problems.append("macro " + name + " does not mention "
+                            + ", ".join(sorted(missing)) + " (C body: "
+                            + re.sub(r"\s+", " ", macro["body"])[:60] + ")")
     def norm_const (v: str) -> str:
         v = v.strip()
         return {"true": "1", "false": "0"}.get (v, v)
 
     for name, value in sorted(c["constants"].items()):
+        if name not in r["constants"] and name not in r["variants"]:
+            # A constant C names is a constant the port must name: dropping an enum
+            # member or a literal `#define` used to pass unnoticed (review B's M14).
+            if name in excluded or c["macro_duplicates"].get (name, 0) > 1:
+                continue
+            problems.append(f"missing constant {name}")
+            continue
         if name not in r["constants"]:
+            # C's enum member lives in a Rust enum: compare the values when both sides
+            # spell a literal, and stay quiet when either side is an alias/expression.
+            rust_variant = r["variants"][name]
+            if value.strip().isdigit() and rust_variant.strip().isdigit() \
+                    and value.strip() != rust_variant.strip():
+                problems.append(f"constant {name}: C {value} vs Rust enum {rust_variant}")
             continue
         # skip values that are not literals (macro aliases), and macros the C
         # defines more than once because they depend on a configuration branch
@@ -665,11 +887,41 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         if obj["name"] not in set(r["statics"]) | set(r["constants"]):
             problems.append(f"missing file-scope object {obj['name']}")
 
+    # Function bodies get the same token containment as macro bodies (review C's 13-
+    # mutation matrix for casetab.rs: a wrong setter, a dropped call or a changed field
+    # all passed every gate).  Numbers count, so `i < 128` vs `i < 127` is visible.
+    c_source = c_path.read_text(encoding="utf-8", errors="replace")
+    # A type name declared in this very file (a struct/union tag, a typedef) is part of a
+    # declaration, not of the body's meaning, and the port spells them per its own rules.
+    local_types = {f["container"].lower() for f in c["struct_fields"]}
+    local_types |= {m.group(1).lower()
+                    for m in re.finditer(r"^\s*typedef\b[^;{}]*\b([A-Za-z_]\w*)\s*;", c_source, re.M)}
+    local_types |= {m.group(1).lower()
+                    for m in re.finditer(r"^\s*\}\s*([A-Za-z_]\w*)\s*;", c_source, re.M)}
+    for f in c["functions"]:
+        name = f["name"]
+        if name in excluded:
+            continue
+        allowed = note_tokens(macro_notes, name) | local_types
+        if "*" in allowed:
+            continue
+        rust_body = r["bodies"].get(name)
+        c_text = c_body_text(c_source, name)
+        if rust_body is None or c_text is None:
+            continue
+        missing = (body_tokens(c_text, skip_short=True)
+                   - body_tokens(rust_body, skip_short=True)) - allowed
+        if missing:
+            problems.append(f"function {name} does not mention "
+                            + ", ".join(sorted(missing)))
+
     empty_in_c = {f["name"] for f in c["functions"] if body_is_empty(c_path, f["name"])}
+    # A Rust function whose name the reference also uses — as a function, a macro or a
+    # constant — must not be a stub.  Helpers with no C counterpart (lisp_h_*,
+    # pointee_size, …) belong to no ledger and are not scanned here.
+    c_any_name = c_funcs | set(c_by_name) | set(c["macros"]) | set(c["constants"]) | set(excluded)
     for name, body in sorted(r["bodies"].items()):
-        if name not in c_funcs and name not in c_by_name:
-            # an inline helper of a textually included mirror (for example
-            # lisp.h's own inline functions); it belongs to that file's ledger
+        if name not in c_any_name:
             continue
         flat = re.sub(r"\s+", "", body)
         if name in empty_in_c:
@@ -730,14 +982,19 @@ def main() -> int:
                     help="directory holding the per-file checklists")
     ap.add_argument("--excluded", default="docs/ports/excluded-macros.txt",
                     help="C macros with no Rust counterpart, with reasons")
+    ap.add_argument("--macro-notes", default="docs/ports/macro-body-notes.tsv",
+                    help="C macros whose Rust body legitimately omits a named token")
     args = ap.parse_args()
 
     excluded = read_exclusions(Path(args.excluded)) if Path(args.excluded).is_file() else {}
+    notes_path = Path(args.macro_notes)
+    macro_notes = read_macro_notes(notes_path) if notes_path.is_file() else {}
     if args.all:
         reference, root = Path(args.reference), Path(args.root)
         done = in_progress = failing = 0
         for c, rs in pairs(reference, root):
-            problems = compare(c, rs, strict_lines=not args.loose_lines, excluded=excluded)
+            problems = compare(c, rs, strict_lines=not args.loose_lines, excluded=excluded,
+                               macro_notes=macro_notes)
             if not problems:
                 done += 1
                 continue
@@ -775,7 +1032,8 @@ def main() -> int:
             return 2
         c, rs = Path(args.paths[0]), Path(args.paths[1])
         ex = read_exclusions(Path(args.excluded)) if Path(args.excluded).is_file() else {}
-        problems = compare(c, rs, strict_lines=not args.loose_lines, excluded=ex)
+        problems = compare(c, rs, strict_lines=not args.loose_lines, excluded=ex,
+                           macro_notes=macro_notes)
         for p in problems:
             print(f"- {p}")
         print(f"{'FAIL' if problems else 'OK'} {c} -> {rs}")

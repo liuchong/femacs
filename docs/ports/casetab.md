@@ -64,6 +64,18 @@
 - Call-relationship differences (D7): none; every callee is either defined here or
   declared in lisp.rs's `other_units` module (`staticpro`, `map_char_table` were added
   from lisp.h 3919/4689 for this unit).
+- Docstrings: the five `doc:` literals carry **make-docfile's value**, not the raw comment
+  text — no leading/trailing whitespace, and C's `\"extra\"` becomes `"extra"` (the escape
+  keeps only the escaped character).  The reviewer measured the tree: 1,838 of 1,849 DEFUN
+  docs have trailing whitespace before `*/`, and 139 carry a `\`+non-`n/t` escape, so this
+  convention is what makes `etc/DOC` reachable at all; `cinventory.doc_comment_value` is the
+  one implementation both sides use (P-24's docstring comparison).
 - Evidence: `--check` -> OK; `xtask build-tu src/casetab.c` -> `built src/casetab.rs ->
-  build/femacs/casetab.o` (the first translation unit with `DEFUN`s, so P-28 and the DEFUN
-  machinery are exercised end to end); `xtask gate-fast` compiles both finished units.
+  build/femacs/casetab.o`, and the same unit again with `--cfg enable_checking` (P-38's
+  checking build), so the DEFUN machinery and the C assertions are both exercised.
+- Reviewer A built a **behavioural differential** for this file (a minimal model of
+  chartab/alloc/print on both sides, `casetab.c` vs `casetab.rs`, 10 scenarios): 153 output
+  lines identical, and 20 of 23 semantic mutants caught — including the `shuffle`/`set_canon`
+  map callbacks, which need a table whose three `extras` are all nil (in
+  `init_casetab_once`'s own call they are already filled, so those callbacks never run).
+  Recorded in P-30 as the method for the remaining `.c` units.

@@ -162,6 +162,32 @@ def strip_strings(line: str) -> str:
     return re.sub(r'"(?:[^"\\]|\\.)*"', '""', line)
 
 
+DOC_ESCAPE = {"t": "\t", "r": "\r", "n": "\n", "f": "\f", "b": "\b", "v": "\v",
+              "a": "\x07", "\\": "\\"}
+
+
+def doc_comment_value(comment: str) -> str:
+    """The value make-docfile stores for a `doc: /* … */` comment.
+
+    lib-src/make-docfile.c's read_c_string_or_comment drops the comment's leading and
+    trailing whitespace; a backslash escapes, so `\n`/`\t`/… are the control characters
+    and any other escaped character keeps just itself (C's `\"extra\"` is `"extra"`).
+    Comparing the raw comment text instead hid trailing whitespace in nearly every
+    docstring of the tree.
+    """
+    out, i = [], 0
+    while i < len(comment):
+        ch = comment[i]
+        if ch == "\\" and i + 1 < len(comment):
+            nxt = comment[i + 1]
+            out.append(DOC_ESCAPE.get(nxt, nxt))
+            i += 2
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out).strip(" \t").rstrip()
+
+
 def function_spans(text: str) -> list[dict]:
     """Every function definition, with the body span it occupies.
 
@@ -280,6 +306,47 @@ def macros(text: str) -> dict[str, dict]:
     return out
 
 
+def enum_constants(text: str) -> dict[str, str]:
+    """Enum members that carry an explicit value: name -> value.
+
+    Emacs writes both one-line enums (`enum { BEG = 1, BEG_BYTE = BEG };`) and
+    multi-member lines, so this scans the comment-blanked text with brace matching
+    instead of assuming one member per line (which silently extracted nothing from
+    buffer.h, and left the enum's `}` unread).
+    """
+    out: dict[str, str] = {}
+    body: list[str] = []
+    inside = False
+    for _, line, live in Lines(text):
+        if not live:
+            continue
+        code = strip_strings(line)
+        while code:
+            if not inside:
+                m = ENUM_OPEN.search(code)
+                if not m:
+                    break
+                code = code[m.end():]
+                inside, body = True, []
+                continue
+            brace = re.search(r"[{}]", code)
+            chunk = code if brace is None else code[:brace.start()]
+            body.append(chunk)
+            if brace is None:
+                code = ""
+                break
+            if brace.group() == "{":
+                body.append("{")
+            else:
+                for member in ",".join(body).split(","):
+                    m = re.match(r"\s*([A-Za-z_]\w*)\s*=\s*(.+?)\s*$", member, re.S)
+                    if m:
+                        out[m.group(1)] = " ".join(m.group(2).split())
+                inside, body = False, []
+            code = code[brace.end():]
+    return out
+
+
 def constants(text: str) -> dict[str, str]:
     """Object-like macros with a literal value, plus enum members assigned a value."""
     out = {}
@@ -290,22 +357,8 @@ def constants(text: str) -> dict[str, str]:
         if re.fullmatch(r"-?(0[xX][0-9a-fA-F]+|\d+)([uUlL]*)", value) or \
                 re.fullmatch(r"'.*'", value) or re.fullmatch(r'"(?:[^"\\]|\\.)*"', value):
             out[name] = value
-    # enum members with explicit values, scanned inside enum bodies
-    stack = []
-    for i, line, live in Lines(text):
-        s = strip_strings(line)
-        if not live:
-            continue
-        if ENUM_OPEN.match(s.strip()):
-            stack.append(i)
-            continue
-        if stack and s.strip().startswith("}"):
-            stack.pop()
-            continue
-        if stack:
-            m = ENUM_MEMBER.match(s)
-            if m and m.group("value"):
-                out[m.group("name")] = m.group("value").strip()
+    for name, value in enum_constants(text).items():
+        out.setdefault(name, value)
     return out
 
 
@@ -495,7 +548,8 @@ def defuns(text: str) -> list[dict]:
                     "flags": flags,
                     "line": line_no,
                     "doc_digest": hashlib.sha1(
-                        re.sub(r"\s+", " ", m.group("doc")).strip().encode()).hexdigest()[:12]})
+                        re.sub(r"\s+", " ", doc_comment_value(m.group("doc"))).encode()
+                    ).hexdigest()[:12]})
     return out
 
 

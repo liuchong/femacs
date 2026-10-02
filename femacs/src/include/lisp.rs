@@ -122,10 +122,6 @@ pub fn lisp_h_TAGGEDP(a: Lisp_Object, tag: Lisp_Type) -> bool {
     (lisp_h_XLI(a) & !VALMASK) == tag as EMACS_INT
 }
 
-#[inline(always)]
-pub fn make_lisp_ptr(ptr: *mut c_void, type_: Lisp_Type) -> Lisp_Object {
-    lisp_h_XIL((ptr as EMACS_INT) + type_ as EMACS_INT)
-}
 
 // --- vector-like header (src/lisp.h 923) -----------------------------------
 
@@ -1236,9 +1232,19 @@ pub fn bool_vector_set (a: Lisp_Object, i: EMACS_INT, b: bool) {
 // really does hold the elements, so the port reaches them by address; `FAM_ELEM!` is a
 // *place*, so C's `x->contents[i]`, `&x->contents[i]` and `x->contents[i] = v` all port
 // to it unchanged in shape.
+/// The base address of a flexible array member, without retagging: `as_mut_ptr ()` on a
+/// `[T; 0]` field first takes a `&mut [T; 0]`, a zero-size retag whose tag exists nowhere,
+/// so every `.add (i)` derived from it is undefined behaviour even for `i == 0` (Miri:
+/// "attempting a write access using <544> … that tag does not exist in the borrow stack").
+/// `addr_of_mut!` keeps the allocation's provenance, the idiom `bool_vector_data` uses.
+/// `N` is generic because two callers reach a *sized* array (`Lisp_Sub_Char_Table.contents`,
+/// `Lisp_Char_Table.contents`), not only a FAM.
+#[inline(always)]
+pub fn fam_base<T, const N: usize> (p: *mut [T; N]) -> *mut T { p as *mut T }
+
 #[macro_export]
 macro_rules! FAM_ELEM {
-    ($fam:expr, $idx:expr) => { *($fam).as_mut_ptr ().add ($idx as usize) };
+    ($fam:expr, $idx:expr) => { *fam_base (core::ptr::addr_of_mut! ($fam)).add ($idx as usize) };
 }
 
 #[inline(always)]
@@ -2084,6 +2090,14 @@ pub fn set_char_table_extras (table: Lisp_Object, idx: isize, val: Lisp_Object) 
     unsafe { FAM_ELEM! ((*XCHAR_TABLE (table)).extras, idx) = val }
 }
 
+// C defines this INLINE in lisp.h 4078; the mirror had declared it as an external symbol
+// with no definition anywhere in the port (review A's F3 — the one such case among the
+// 403 INLINE definitions of the four mirrored headers).
+#[inline(always)]
+pub fn set_sub_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object) {
+    unsafe { FAM_ELEM! ((*XSUB_CHAR_TABLE (table)).contents, idx) = val }
+}
+
 #[inline(always)]
 pub fn set_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object) {
     eassert! (0 <= idx && idx < (1 << CHARTAB_SIZE_BITS_0));
@@ -2725,12 +2739,16 @@ macro_rules! ALLOCATE_PLAIN_PSEUDOVECTOR {
 
 
 /// C: `#define USE_SAFE_ALLOCA ptrdiff_t sa_avail = MAX_ALLOCA; specpdl_ref
-/// sa_count = SPECPDL_INDEX ()`.
+/// sa_count = SPECPDL_INDEX ()` — it *declares* the two names the rest of the block uses.
+/// A Rust `macro_rules!` cannot: the `let`s it introduces are hygienic, so the caller
+/// never sees `sa_avail`/`sa_count` (the macro was unusable).  The call site therefore
+/// names them, the shape `SAFE_NALLOCA!` already takes: `USE_SAFE_ALLOCA! (sa_avail,
+/// sa_count);` — the one deviation, and the C name is kept.
 #[macro_export]
 macro_rules! USE_SAFE_ALLOCA {
-    () => {
-        let mut sa_avail: isize = MAX_ALLOCA;
-        let sa_count: specpdl_ref = SPECPDL_INDEX ();
+    ($sa_avail:ident, $sa_count:ident) => {
+        let mut $sa_avail: isize = MAX_ALLOCA;
+        let $sa_count: specpdl_ref = SPECPDL_INDEX ();
     };
 }
 
@@ -2820,6 +2838,18 @@ macro_rules! SAFE_FREE_UNBIND_TO {
 }
 
 // --- Lisp_Object setters (src/lisp.h 1330-1400) -----------------------------
+
+#[inline(always)]
+pub fn make_lisp_ptr(ptr: *mut c_void, type_: Lisp_Type) -> Lisp_Object {
+    // C's body is `Lisp_Object a = TAG_PTR_INITIALLY (type, ptr);
+    // eassert (TAGGEDP (a, type) && XUNTAG (a, type, char) == ptr); return a;` — the
+    // port had folded it to the arithmetic and dropped the round-trip assertion.
+    // It sits here, after `eassert!`, exactly where lisp.h 1334 has it (before the
+    // XSET* setter macros that call it).
+    let a = TAG_PTR_INITIALLY (type_, ptr as EMACS_INT);
+    eassert! (TAGGEDP (a, type_) && XUNTAG! (a, type_, c_char) as *mut c_void == ptr);
+    return a;
+}
 
 macro_rules! XSETCONS { ($a:expr, $b:expr) => { $a = make_lisp_ptr ($b as *mut c_void, Lisp_Type::Lisp_Cons) } }
 macro_rules! XSETVECTOR { ($a:expr, $b:expr) => { $a = make_lisp_ptr ($b as *mut c_void, Lisp_Type::Lisp_Vectorlike) } }
@@ -3125,7 +3155,7 @@ macro_rules! DEFUN {
 macro_rules! DEFVAR_LISP {
     ($lname:expr, $vname:ident, $doc:expr) => {{
         static mut O_FWD: Lisp_Fwd = Lisp_Fwd {
-            type_: Lisp_Fwd_Obj,
+            r#type: Lisp_Fwd_Obj,
             u: Lisp_Fwd_u { objvar: std::ptr::null_mut () },
         };
         unsafe {
@@ -3138,7 +3168,7 @@ macro_rules! DEFVAR_LISP {
 macro_rules! DEFVAR_LISP_NOPRO {
     ($lname:expr, $vname:ident, $doc:expr) => {{
         static mut O_FWD: Lisp_Fwd = Lisp_Fwd {
-            type_: Lisp_Fwd_Obj,
+            r#type: Lisp_Fwd_Obj,
             u: Lisp_Fwd_u { objvar: std::ptr::null_mut () },
         };
         unsafe {
@@ -3151,11 +3181,13 @@ macro_rules! DEFVAR_LISP_NOPRO {
 macro_rules! DEFVAR_INT {
     ($lname:expr, $vname:ident, $doc:expr) => {{
         static mut I_FWD: Lisp_Fwd = Lisp_Fwd {
-            type_: Lisp_Fwd_Int,
+            r#type: Lisp_Fwd_Int,
             u: Lisp_Fwd_u { intvar: std::ptr::null_mut () },
         };
         unsafe {
-            I_FWD.u.intvar = std::ptr::addr_of_mut! ($vname);
+            // C: `.u.intvar = &V` with `intmax_t *intvar` and `EMACS_INT` = intmax_t; the
+            // port spells the union with C's intmax_t (i64) and EMACS_INT as isize.
+            I_FWD.u.intvar = std::ptr::addr_of_mut! ($vname) as *mut i64;
             defvar_int (&raw const I_FWD, $lname.as_ptr () as *const c_char);
         }
     }};
@@ -3164,7 +3196,7 @@ macro_rules! DEFVAR_INT {
 macro_rules! DEFVAR_BOOL {
     ($lname:expr, $vname:ident, $doc:expr) => {{
         static mut B_FWD: Lisp_Fwd = Lisp_Fwd {
-            type_: Lisp_Fwd_Bool,
+            r#type: Lisp_Fwd_Bool,
             u: Lisp_Fwd_u { boolvar: std::ptr::null_mut () },
         };
         unsafe {
@@ -3178,7 +3210,7 @@ macro_rules! DEFVAR_BOOL {
 macro_rules! DEFVAR_KBOARD {
     ($lname:expr, $vname:expr, $doc:expr) => {{
         static mut KO_FWD: Lisp_Fwd = Lisp_Fwd {
-            type_: Lisp_Fwd_Kboard_Obj,
+            r#type: Lisp_Fwd_Kboard_Obj,
             u: Lisp_Fwd_u { kbdoffset: 0 },
         };
         unsafe {
@@ -3228,34 +3260,37 @@ macro_rules! AUTO_CONS_EXPR {
 }
 
 #[macro_export]
+// C's `#define AUTO_CONS(name, a, b) Lisp_Object name = AUTO_CONS_EXPR (a, b)`: the Rust
+// body carries the `;` the C declaration gets from the call site, because a macro whose
+// expansion ends in `let …` cannot be used where a statement is expected.
 macro_rules! AUTO_CONS { ($name:ident, $a:expr, $b:expr) => {
-    let $name = AUTO_CONS_EXPR! ($a, $b)
+    let $name = AUTO_CONS_EXPR! ($a, $b);
 } }
 
 #[macro_export]
 macro_rules! AUTO_LIST1 { ($name:ident, $a:expr) => {
-    let $name = if USE_STACK_CONS { STACK_CONS! ($a, Qnil ()) } else { unsafe { list1 ($a) } }
+    let $name = if USE_STACK_CONS { STACK_CONS! ($a, Qnil ()) } else { unsafe { list1 ($a) } };
 } }
 
 #[macro_export]
 macro_rules! AUTO_LIST2 { ($name:ident, $a:expr, $b:expr) => {
     let $name = if USE_STACK_CONS {
         STACK_CONS! ($a, STACK_CONS! ($b, Qnil ()))
-    } else { unsafe { list2 ($a, $b) } }
+    } else { unsafe { list2 ($a, $b) } };
 } }
 
 #[macro_export]
 macro_rules! AUTO_LIST3 { ($name:ident, $a:expr, $b:expr, $c:expr) => {
     let $name = if USE_STACK_CONS {
         STACK_CONS! ($a, STACK_CONS! ($b, STACK_CONS! ($c, Qnil ())))
-    } else { unsafe { list3 ($a, $b, $c) } }
+    } else { unsafe { list3 ($a, $b, $c) } };
 } }
 
 #[macro_export]
 macro_rules! AUTO_LIST4 { ($name:ident, $a:expr, $b:expr, $c:expr, $d:expr) => {
     let $name = if USE_STACK_CONS {
         STACK_CONS! ($a, STACK_CONS! ($b, STACK_CONS! ($c, STACK_CONS! ($d, Qnil ()))))
-    } else { unsafe { list4 ($a, $b, $c, $d) } }
+    } else { unsafe { list4 ($a, $b, $c, $d) } };
 } }
 
 #[macro_export]
@@ -3279,12 +3314,12 @@ macro_rules! AUTO_STR { ($str:expr) => { AUTO_STR_WITH_LEN! ($str, unsafe { strl
 
 #[macro_export]
 macro_rules! AUTO_STRING { ($name:ident, $str:expr) => {
-    let $name = AUTO_STR! ($str)
+    let $name = AUTO_STR! ($str);
 } }
 
 #[macro_export]
 macro_rules! AUTO_STRING_WITH_LEN { ($name:ident, $str:expr, $len:expr) => {
-    let $name = AUTO_STR_WITH_LEN! ($str, $len)
+    let $name = AUTO_STR_WITH_LEN! ($str, $len);
 } }
 
 // --- setjmp wrappers (the HAVE__SETJMP branch of src/lisp.h 2271-2287) ------
@@ -3370,7 +3405,6 @@ pub mod other_units {
         pub fn char_table_set (table: Lisp_Object, idx: c_int, val: Lisp_Object);
     }
     unsafe extern "C" {
-        pub fn set_sub_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object);
     }
     unsafe extern "C" {
         pub fn make_misc_ptr (a: *mut c_void) -> Lisp_Object;
@@ -3534,3 +3568,23 @@ pub mod other_units {
     }
 }
 use other_units::*;
+
+// --- constants the strengthened constant gate found missing (2026-10-02) -----------
+// These are lisp.h's own constants; they were absent from this mirror while the gate
+// still could not read one-line `enum { … };` forms (P-38), so `--check` reported the
+// header "done" without them.  They are grouped here instead of at their C line
+// position; docs/ports/lisp.md records that deviation.
+
+pub const CHECK_LISP_OBJECT_TYPE: bool = false;          // lisp.h 597 (P-01: the port rejects the true configuration)
+pub const DEFAULT_HASH_SIZE: c_int = 0;                  // lisp.h 2766
+pub const NSTATICS: c_int = 2048;                        // lisp.h 3921
+pub const NEXT_ALMOST_PRIME_LIMIT: c_int = 11;           // lisp.h 4242
+// lisp.h 31 includes <float.h>; the frozen target's header has FLT_RADIX == 2, which is
+// what the C static_assert at lisp.h 4294 and `enum { LOG2_FLT_RADIX = FLT_RADIX == 2 ?
+// 1 : 4 }` at 4295 resolve to.  The port has no mirror for a system-only header yet
+// (P-26 covers gnulib's wrappers), so the value is recorded here.
+pub const FLT_RADIX: c_int = 2;
+pub const LOG2_FLT_RADIX: c_int = if FLT_RADIX == 2 { 1 } else { 4 };
+pub const S2N_IGNORE_TRAILING: c_int = 1;                // lisp.h 4746
+pub const defined_GC_CHECK_STRING_BYTES: bool = false;   // lisp.h 5743 (C spells the value through `defined (…)`; the frozen configuration leaves it undefined)
+pub const SMALL_LIST_LEN_MAX: c_int = 127;               // lisp.h 5829

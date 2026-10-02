@@ -113,27 +113,27 @@ macro_rules! BEG_ADDR { () => { (*(*current_buffer).text).beg } }
 
 /* Address of beginning of accessible range of buffer.  */
 #[macro_export]
-macro_rules! BEGV_ADDR { () => { BYTE_POS_ADDR (BEGV_BYTE! ()) } }
+macro_rules! BEGV_ADDR { () => { BYTE_POS_ADDR ((*current_buffer).begv_byte) } }
 
 /* Address of point in buffer.  */
 #[macro_export]
-macro_rules! PT_ADDR { () => { BYTE_POS_ADDR (PT_BYTE! ()) } }
+macro_rules! PT_ADDR { () => { BYTE_POS_ADDR ((*current_buffer).pt_byte) } }
 
 /* Address of beginning of gap in buffer.  */
 #[macro_export]
-macro_rules! GPT_ADDR { () => { BEG_ADDR! ().offset ((*(*current_buffer).text).gpt_byte - BEG_BYTE as isize) } }
+macro_rules! GPT_ADDR { () => { (*(*current_buffer).text).beg.offset ((*(*current_buffer).text).gpt_byte - BEG_BYTE as isize) } }
 
 /* Address of end of gap in buffer.  */
 #[macro_export]
-macro_rules! GAP_END_ADDR { () => { BEG_ADDR! ().offset ((*(*current_buffer).text).gpt_byte + (*(*current_buffer).text).gap_size - BEG_BYTE as isize) } }
+macro_rules! GAP_END_ADDR { () => { (*(*current_buffer).text).beg.offset ((*(*current_buffer).text).gpt_byte + (*(*current_buffer).text).gap_size - BEG_BYTE as isize) } }
 
 /* Address of end of accessible range of buffer.  */
 #[macro_export]
-macro_rules! ZV_ADDR { () => { BYTE_POS_ADDR (ZV_BYTE! ()) } }
+macro_rules! ZV_ADDR { () => { BYTE_POS_ADDR ((*current_buffer).zv_byte) } }
 
 /* Address of end of buffer.  */
 #[macro_export]
-macro_rules! Z_ADDR { () => { BEG_ADDR! ().offset ((*(*current_buffer).text).gap_size + (*(*current_buffer).text).z_byte - BEG_BYTE as isize) } }
+macro_rules! Z_ADDR { () => { (*(*current_buffer).text).beg.offset ((*(*current_buffer).text).gap_size + (*(*current_buffer).text).z_byte - BEG_BYTE as isize) } }
 
 /* Size of gap.  */
 #[macro_export]
@@ -1152,7 +1152,7 @@ pub fn BYTE_TO_CHAR (bytepos: ptrdiff_t) -> ptrdiff_t
 #[inline(always)]
 pub fn PTR_BYTE_POS (ptr: *const u8) -> ptrdiff_t
 {
-  let byte = unsafe { ptr.offset_from (BEG_ADDR! ()) };
+  let byte = unsafe { ptr.offset_from ((*(*current_buffer).text).beg) };
   return byte - unsafe {
     if byte <= GPT_BYTE! () - BEG_BYTE as isize { 0 } else { GAP_SIZE! () }
   } + BEG_BYTE as isize;
@@ -1524,7 +1524,7 @@ pub fn BUF_CHAR_ADDRESS (buf: *mut buffer, pos: ptrdiff_t) -> *mut u8
 #[inline(always)]
 pub fn BUF_PTR_BYTE_POS (buf: *mut buffer, ptr: *mut u8) -> ptrdiff_t
 {
-  let byte = unsafe { ptr.offset_from (BUF_BEG_ADDR! (buf)) };
+  let byte = unsafe { ptr.offset_from ((*(*buf).text).beg) };
   return byte - unsafe {
     if byte <= BUF_GPT_BYTE! (buf) - BEG_BYTE as isize { 0 } else { BUF_GAP_SIZE! (buf) }
   } + BEG_BYTE as isize;

@@ -16,6 +16,12 @@ box as it is ported, and appends a `## Decisions` section recording:
 - every deviation from the reference, with the reason,
 - the call-relationship differences found (`D7`), or "none".
 
+When a macro's Rust body legitimately cannot mention one of the tokens of the C body
+(a deliberate re-shaping recorded in `PORTING.md`), the porter records the macro and those
+tokens in `docs/ports/macro-body-notes.tsv`; the check still requires every other token,
+so a mutation elsewhere in that macro still fails.  `docs/ports/excluded-macros.txt` is the
+stronger form: the macro has no counterpart at all, with a reason.
+
 A file is done when:
 
 1. every box is ticked,

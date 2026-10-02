@@ -13,15 +13,22 @@ mod m {
     include!("../femacs/src/include/buffer.rs");
 }
 use m::*;
+use core::ffi::c_void;
 #[unsafe(no_mangle)]
 pub static mut Vascii_downcase_table: Lisp_Object = lisp_h_Qnil ();
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn marker_position (_marker: Lisp_Object) -> ptrdiff_t { 0 }
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn staticpro (_var: *const Lisp_Object) {}
+// The decisive discriminator (review C's F5): lisp.rs declares `xmalloc (_n: usize)`, so
+// this **0-argument** local definition can only coexist with it if the local item is the
+// one that resolves — the coercion below would be a type error against the import.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xmalloc () -> *mut c_void { std::ptr::null_mut () }
 fn main () {
   unsafe {
-    println! ("shadow-probe {} {}", Vascii_downcase_table == lisp_h_Qnil (),
-              marker_position (Qnil ()));
+    let local_xmalloc: unsafe extern "C" fn () -> *mut c_void = xmalloc;
+    println! ("shadow-probe {} {} {}", Vascii_downcase_table == lisp_h_Qnil (),
+              marker_position (Qnil ()), local_xmalloc ().is_null ());
   }
 }
