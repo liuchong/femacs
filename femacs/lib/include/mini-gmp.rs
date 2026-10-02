@@ -77,6 +77,7 @@ pub type mp_srcptr = *const mp_limb_t;
 
 /* typedef struct { int _mp_alloc; int _mp_size; mp_limb_t *_mp_d; } __mpz_struct;  */
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct __mpz_struct
 {
   pub _mp_alloc: c_int,

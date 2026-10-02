@@ -2,7 +2,7 @@
 // mirrors, so a wrong constant or macro body in `math.rs`/`limits.in.rs`/`float.in.rs`
 // is visible (review B's B4: those files were outside every gate).
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_macros)]
-use core::ffi::{c_double, c_int};
+use core::ffi::{c_double, c_int, c_long, c_ulong};
 
 include!("../femacs/lib/include/limits.in.rs");
 include!("../femacs/lib/include/float.in.rs");

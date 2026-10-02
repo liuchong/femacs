@@ -40,6 +40,10 @@ pub const UCHAR_MAX: c_int = 0xFF;
 // gnulib's limits.in.h includes the system <limits.h> (its line 26) and its INT_WIDTH
 // line (117) uses INT_MIN/INT_MAX from it; the port reaches them through this mirror.
 // Values measured from the frozen target's clang:
-// `printf ("%d %d", INT_MIN, INT_MAX)` -> `-2147483648 2147483647`.
+// `printf ("%d %d | %lu", INT_MIN, INT_MAX, ULONG_MAX)` -> `-2147483648 2147483647 |
+// 18446744073709551615`.  ULONG_MAX is bignum.c's `GMP_NLIMBS_MAX`/`NLIMBS_LIMIT`.
 pub const INT_MIN: c_int = -2147483648;
 pub const INT_MAX: c_int = 2147483647;
+pub const ULONG_MAX: c_ulong = c_ulong::MAX;
+pub const LONG_MIN: c_long = c_long::MIN;
+pub const LONG_MAX: c_long = c_long::MAX;

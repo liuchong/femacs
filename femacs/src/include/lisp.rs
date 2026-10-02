@@ -2471,12 +2471,12 @@ pub fn maybe_gc () {
 
 #[inline(always)]
 pub fn build_unibyte_string (str_: *const c_char) -> Lisp_Object {
-    unsafe { make_unibyte_string (str_, strlen (str_)) }
+    unsafe { make_unibyte_string (str_, strlen (str_) as ptrdiff_t) }
 }
 
 #[inline(always)]
 pub fn build_string (str_: *const c_char) -> Lisp_Object {
-    unsafe { make_string (str_, strlen (str_)) }
+    unsafe { make_string (str_, strlen (str_) as ptrdiff_t) }
 }
 
 #[inline(always)]
@@ -3312,7 +3312,7 @@ macro_rules! AUTO_STR_WITH_LEN {
             std::hint::black_box (&mut s);
             obj
         } else {
-            unsafe { make_unibyte_string ($str, $len as usize) }
+            unsafe { make_unibyte_string ($str, $len as ptrdiff_t) }
         }
     };
 }
@@ -3382,6 +3382,13 @@ macro_rules! CONS_TO_INTEGER { ($cons:expr, $var:expr) => { $var = <_ as ConsToI
 pub mod other_units {
     // the mirror's own types/constants live in the crate root, as lisp.h's do
     use super::*;
+
+    // src/lisp.h 619, 5298, 5541: bignum.c's three remaining callees.
+    unsafe extern "C" {
+        pub fn args_out_of_range_3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> !;
+        pub fn get_random_ulong () -> c_ulong;
+        pub fn xrealloc (block: *mut c_void, size: usize) -> *mut c_void;
+    }
 
     // src/lisp.h 4093, 4210, 4652, 4797, 4835: helpers and subrs whose *definitions*
     // live in other units (floatfns.c is the first unit that calls them).  The port
@@ -3465,8 +3472,9 @@ pub mod other_units {
         pub fn flush_stack_call_func1 (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void);
     }
     unsafe extern "C" {
-        pub fn make_unibyte_string (s: *const c_char, len: usize) -> Lisp_Object;
-        pub fn make_string (s: *const c_char, len: usize) -> Lisp_Object;
+        // lisp.h 4544/4548 spell the length `ptrdiff_t`, not size_t.
+        pub fn make_unibyte_string (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
+        pub fn make_string (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
         pub fn allocate_vector (size: isize) -> *mut Lisp_Vector;
         pub fn intern_1 (s: *const c_char, len: usize) -> Lisp_Object;
         pub fn intern_c_string_1 (s: *const c_char, len: usize) -> Lisp_Object;
