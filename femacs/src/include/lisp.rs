@@ -3990,6 +3990,10 @@ pub mod other_units {
       /* src/lisp.h 4966.  */
       /// C: void syms_of_marker ()
       pub fn syms_of_marker ();
+
+      /* src/lisp.h 5551: the string allocator terminfo.c's tparam returns.  */
+      /// C: char *xstrdup (char const *)
+      pub fn xstrdup (s: *const c_char) -> *mut c_char;
     }
 }
 use other_units::*;

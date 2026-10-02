@@ -41,3 +41,11 @@
   `docs/ports/line-drift-tolerance.tsv` (this file's row is the first entry, with this
   reason), because the line count is the crude signal and the per-function token check is
   the real one: every C identifier, statement and its order are compared there and pass.
+
+## Decisions (2026-10-03, when terminfo.c was ported)
+
+- **`BC` and `UP` are declared here, not defined.**  tparam.h 41-42 declares them `extern`, and
+  the definitions are terminfo.c's (femacs/src/terminfo.rs, ported after this file); the port had
+  defined them in this unit, and porting terminfo.c corrected it.  The token check for tparam.c
+  is unchanged by the correction (still OK), because the C body reads the same two names.
+

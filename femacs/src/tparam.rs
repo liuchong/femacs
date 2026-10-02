@@ -81,10 +81,13 @@ pub unsafe extern "C" fn tparam (string: *const c_char, outstring: *mut c_char, 
                   arg.as_mut_ptr ());
 }
 
-#[unsafe(no_mangle)]
-pub static mut BC: *mut c_char = std::ptr::null_mut ();
-#[unsafe(no_mangle)]
-pub static mut UP: *mut c_char = std::ptr::null_mut ();
+/* tparam.h 41-42: `extern char *BC; extern char *UP;` - the two objects are *defined* in
+   terminfo.c (femacs/src/terminfo.rs) and this translation unit only declares them.  The port
+   had defined them here before terminfo.c was ported; corrected then.  */
+unsafe extern "C" {
+  pub static mut BC: *mut c_char;
+  pub static mut UP: *mut c_char;
+}
 
 // tparam.c 53: `static char tgoto_buf[50];` - a bss array, zero in C and here.
 static mut tgoto_buf: [c_char; 50] = [0; 50];
