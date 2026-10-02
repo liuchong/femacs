@@ -2786,7 +2786,7 @@ macro_rules! SAFE_ALLOCA_LISP {
         // the pair from `overflowing_mul` is ckd_mul's wrapped value and overflow flag
         // (P-15, the ckd_mul family in docs/ports/token-aliases.tsv).
         let (alloca_nbytes, overflow) = nelt_.overflowing_mul (word_size ());
-        if overflow || alloca_nbytes as u64 > usize::MAX as u64 {
+        if overflow || SIZE_MAX < alloca_nbytes as usize {
             unsafe { memory_full_up () }
         } else if alloca_nbytes <= $sa_avail {
             $buf = AVAIL_ALLOCA! ($sa_avail, alloca_nbytes) as *mut Lisp_Object;
@@ -2826,9 +2826,8 @@ pub unsafe extern "C" fn xfree_wrapper (p: *mut c_void) { unsafe { xfree (p) } }
 #[macro_export]
 macro_rules! SAFE_ALLOCA_STRING {
     ($sa_avail:ident, $ptr:ident, $string:expr) => {{
-        let nbytes = SBYTES ($string) + 1;
-        $ptr = SAFE_ALLOCA! ($sa_avail, nbytes) as *mut c_char;
-        unsafe { std::ptr::copy_nonoverlapping (SDATA ($string), $ptr as *mut u8, nbytes as usize) };
+        $ptr = SAFE_ALLOCA! ($sa_avail, SBYTES ($string) + 1) as *mut c_char;
+        unsafe { std::ptr::copy_nonoverlapping (SDATA ($string), $ptr as *mut u8, (SBYTES ($string) + 1) as usize) };
     }};
 }
 
@@ -3388,6 +3387,13 @@ pub mod other_units {
     // live in other units (floatfns.c is the first unit that calls them).  The port
     // declares them here, as lisp.h does, and the defining unit shadows the import
     // (P-39's shape).  `AVOID` is `-> !`.
+    // src/lisp.h 690, 4296, 4300: floatfns.c's three non-static definitions.
+    unsafe extern "C" {
+        pub fn extract_float (num: Lisp_Object) -> c_double;              // floatfns.c
+        pub fn double_integer_scale (d: c_double) -> c_int;               // floatfns.c
+        pub fn fmod_float (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object;  // floatfns.c
+    }
+
     unsafe extern "C" {
         pub fn double_to_integer (d: c_double) -> Lisp_Object;            // bignum.c
         pub fn expt_integer (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;  // data.c

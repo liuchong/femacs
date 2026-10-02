@@ -11,6 +11,7 @@ pub const HAVE_NATIVE_COMP: bool = false; // #undef in config.h
 pub const HAVE_NS: bool = false; // #undef in config.h
 pub const HAVE_PDUMPER: bool = true;
 pub const HAVE_RINT: bool = true;
+pub const HAVE_SIGNBIT: bool = true;
 pub const HAVE_SIGSETJMP: bool = true;
 pub const HAVE_STATEMENT_EXPRESSIONS: bool = true;
 pub const HAVE_STDBIT_H: bool = false; // #undef in config.h

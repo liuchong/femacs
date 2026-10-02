@@ -55,7 +55,7 @@
 
 ## Decisions
 
-`emacs/src/floatfns.c` @ `fd7afced403`; port `femacs/src/floatfns.rs` (666 lines).
+`emacs/src/floatfns.c` @ `fd7afced403`; port `femacs/src/floatfns.rs` (677 lines).
 
 What is verified, and by what.  `python3 tools/extract-abi.py --check emacs/src/floatfns.c
 femacs/src/floatfns.rs` -> `OK`; `xtask build-tu src/floatfns.c` compiles the unit in both
@@ -83,6 +83,13 @@ P-30's territory and needs the loading ladder.
   `DBL_MANT_DIG` (53) and `DBL_MIN_EXP` (-1021), which `double_integer_scale` and
   `rescale_for_division` need, were added to `lib/include/float.in.rs` from the same
   measured report.
+- **Exported symbols (review A's F1, P-52).**  `extract_float`, `fmod_float` and
+  `double_integer_scale` are non-`static` C definitions that `lisp.h` declares and five
+  other units call, so they are `#[unsafe(no_mangle)] pub unsafe extern "C" fn` here (a
+  plain `pub fn` had no C symbol at all), and `lisp.rs` declares them the way lisp.h does.
+  `nm -g build/femacs/floatfns.o` shows `_extract_float`, `_fmod_float`,
+  `_double_integer_scale`, `_syms_of_floatfns` and `_Fabs`; `extract-abi.py` now fails a
+  non-`static` C definition without the attribute.
 - **`signbit`.**  `floatfns.c` re-defines `signbit` under `#ifndef signbit`, but this
   target's `<math.h>` *does* define it, so the fallback is dead text (`feature =
   "no_signbit"`) and the live macro — `math.rs`'s — is `is_sign_negative`.  The two differ
@@ -111,8 +118,13 @@ P-30's territory and needs the loading ladder.
   `docs/ports/token-aliases.tsv` (P-44) rather than exempted.
 - **No Rust counterpart.**  `#if defined __FINITE_MATH_ONLY__ && __FINITE_MATH_ONLY__
   #error` is a check on the C compiler's flags; there is nothing for the port to mirror.
-- Call-relationship differences (D7): none beyond the above — `syms_of_floatfns` defines
-  the same 25 subrs in C's order, and no other unit defines a function this one calls
+- **The fallback compiles** (review B's B3/A's F2): it is C's `($x) == 0.0`, not Rust's
+  bitwise `!`, and `feature = "no_signbit"` is tied to the frozen `HAVE_SIGNBIT` by a
+  `const _` assertion; `xtask dead-arms` compiles this unit (and the other three finished
+  ones) with the non-frozen arms selected, which is what turned that arm's E0600 into a
+  checked property.
+- Call-relationship differences (D7): outbound, the three exports above (F1); inbound,
+  none beyond the above — `syms_of_floatfns` defines the same 25 subrs in C's order, and no other unit defines a function this one calls
   (`make_float`, `expt_integer`, `double_to_integer`, `overflow_error`, `eabs`, the mpz
   helpers) — those are declared here and defined in `alloc.c`, `data.c`, `bignum.c` and
   `lisp.rs`, and P-39's rule keeps them out of this unit's own definitions.

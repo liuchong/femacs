@@ -83,7 +83,8 @@ unsafe fn CHECK_FLOAT (x: Lisp_Object)
 
 /* Extract a Lisp number as a `double', or signal an error.  */
 
-pub unsafe fn extract_float (num: Lisp_Object) -> c_double
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn extract_float (num: Lisp_Object) -> c_double
 {
   CHECK_NUMBER (num);
   return XFLOATINT (num);
@@ -169,9 +170,13 @@ DEFUN! ("isnan", Fisnan, Sisnan, 1, 1, 0,
 #[cfg(feature = "no_signbit")]
 macro_rules! signbit {
     ($x:expr) => {
-        (($x) < 0.0 || (IEEE_FLOATING_POINT && !($x) && 1.0 / ($x) < 0.0))
+        // C's `!(x)` on a double is `(x) == 0`; Rust's `!` is bitwise and does not
+        // exist for f64 (review B's B3: this arm did not even compile).
+        (($x) < 0.0 || (IEEE_FLOATING_POINT && ($x) == 0.0 && 1.0 / ($x) < 0.0))
     };
 }
+
+const _: () = assert! (!cfg! (feature = "no_signbit") || !HAVE_SIGNBIT);
 
 DEFUN! ("copysign", Fcopysign, Scopysign, 2, 2, 0,
        doc: "Copy sign of X2 to value of X1, and return the result.\nCause an error if X1 or X2 is not a float.",
@@ -348,7 +353,8 @@ DEFUN! ("logb", Flogb, Slogb, 1, 1, 0,
    scale) if D is zero or tiny.  Return one greater than that if
    D is infinite, and two greater than that if D is a NaN.  */
 
-pub unsafe fn double_integer_scale (d: c_double) -> c_int
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn double_integer_scale (d: c_double) -> c_int
 {
   let exponent = ilogb (d);
   // C gates this block on `#ifdef HAIKU`; HAIKU is undefined in the frozen
@@ -532,6 +538,7 @@ const _: () = assert! (!cfg! (feature = "no_rint") || !HAVE_RINT);
 // #endif` — HAVE_TRUNC is 1 in the frozen configuration, so the <math.h> function is
 // the live one and `feature = "no_trunc"` selects this definition instead.
 #[cfg(feature = "no_trunc")]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn trunc (d: c_double) -> c_double
 {
   return if d < 0.0 { ceil (d) } else { floor (d) };
@@ -579,7 +586,8 @@ DEFUN! ("truncate", Ftruncate, Struncate, 1, 2, 0,
   return rounding_driver (arg, divisor, identity, mpz_tdiv_q, truncate2);
 });
 
-pub unsafe fn fmod_float (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn fmod_float (x: Lisp_Object, y: Lisp_Object) -> Lisp_Object
 {
   let mut f1: c_double = XFLOATINT (x);
   let f2: c_double = XFLOATINT (y);
@@ -637,6 +645,7 @@ DEFUN! ("ftruncate", Fftruncate, Sftruncate, 1, 1, 0,
   return make_float (d);
 });
 
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_floatfns ()
 {
   defsubr (&raw mut Sacos);

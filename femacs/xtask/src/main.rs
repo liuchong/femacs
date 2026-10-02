@@ -30,6 +30,7 @@ fn main() {
         "build-tu" => build_tu(args.get(1)),
         "gate-fast" => gate_fast(),
         "gate-probes" => gate_probes(),
+        "dead-arms" => dead_arms(),
         "gate-full" => {
             eprintln!(
                 "gate-full needs the reference Emacs configured, built and its ERT suite \
@@ -41,7 +42,7 @@ fn main() {
         _ => {
             println!(
                 "usage: xtask <gen-config|layout-asserts|layout-check|build-tu <c-file>|\
-                 gate-fast|gate-probes|gate-full>"
+                 gate-fast|gate-probes|dead-arms|gate-full>"
             );
             0
         }
@@ -306,6 +307,50 @@ fn rust_type_expr(kind: &str, key: &str) -> Option<String> {
     }
 }
 
+/// File-scope objects the mirrors declare, as name -> declared type text
+/// (`pub static mut mpz: [mpz_t; 5];` -> `mpz` -> `[mpz_t; 5]`).  The layout keys of a
+/// C *object* are resolved through this map instead of the type list.
+fn declared_object_types() -> std::collections::BTreeMap<String, String> {
+    let mut map = std::collections::BTreeMap::new();
+    let mut stack = vec![PathBuf::from("src/include"), PathBuf::from("src"),
+                         PathBuf::from("../lib/include")];
+    while let Some(dir) = stack.pop() {
+        let Ok(entries) = fs::read_dir(&dir) else { continue };
+        for e in entries.filter_map(Result::ok) {
+            let path = e.path();
+            if path.is_dir() {
+                stack.push(path);
+                continue;
+            }
+            if path.extension().map(|x| x != "rs").unwrap_or(true) {
+                continue;
+            }
+            let Ok(text) = fs::read_to_string(&path) else { continue };
+            let code = strip_comments_and_strings(&text);
+            for line in code.lines() {
+                let line = line.trim();
+                let rest = match line.strip_prefix("pub static ") {
+                    Some(r) => r,
+                    None => match line.strip_prefix("static ") {
+                        Some(r) => r,
+                        None => continue,
+                    },
+                };
+                let rest = rest.strip_prefix("mut ").unwrap_or(rest);
+                let Some((name, tail)) = rest.split_once(':') else { continue };
+                // strip the terminating `;` first: an array type contains one too
+                // (`[mpz_t; 5];`), and splitting on it truncated the type.
+                let ty = tail.trim_end().trim_end_matches(';').split('=').next()
+                    .unwrap_or("").trim();
+                if !name.trim().is_empty() && !ty.is_empty() {
+                    map.insert(name.trim().to_string(), ty.to_string());
+                }
+            }
+        }
+    }
+    map
+}
+
 /// Type names the port has already declared, so assertions are only emitted for
 /// what exists; the rest are reported as pending (a shrinking number).
 ///
@@ -446,16 +491,29 @@ fn names_after_keyword(text: &str, keyword: &str) -> Vec<String> {
 /// pending, so this file stays as a floor.
 fn check_counts(asserted: usize, pending: usize) -> Result<(), String> {
     let path = Path::new(REPO).join("docs/baseline/layout/counts.tsv");
-    let Ok(text) = fs::read_to_string(&path) else { return Ok(()) };
-    let mut want_asserted = 0usize;
-    let mut want_pending = usize::MAX;
+    // The ratchet must exist and parse: silently returning Ok would make every
+    // shrinkage check vacuous (review B's B5).
+    let text = fs::read_to_string(&path).map_err(|e| {
+        format!("{}: {e} (the layout ratchet must exist; 0.1 records why)", path.display())
+    })?;
+    let mut want_asserted: Option<usize> = None;
+    let mut want_pending: Option<usize> = None;
     for line in text.lines().skip(1) {
         match line.split_once('\t') {
-            Some(("asserted", v)) => want_asserted = v.trim().parse().unwrap_or(0),
-            Some(("pending", v)) => want_pending = v.trim().parse().unwrap_or(usize::MAX),
+            Some(("asserted", v)) => {
+                want_asserted = Some(v.trim().parse().map_err(|e| {
+                    format!("{}: asserted: {e}", path.display()) })?)
+            }
+            Some(("pending", v)) => {
+                want_pending = Some(v.trim().parse().map_err(|e| {
+                    format!("{}: pending: {e}", path.display()) })?)
+            }
             _ => {}
         }
     }
+    let (Some(want_asserted), Some(want_pending)) = (want_asserted, want_pending) else {
+        return Err(format!("{}: needs both `asserted` and `pending` rows", path.display()));
+    };
     if asserted < want_asserted || pending > want_pending {
         return Err(format!(
             "layout gate shrank: {asserted} asserted / {pending} pending, \
@@ -482,6 +540,7 @@ fn layout_asserts() -> Result<PathBuf, String> {
          // Every line is a number the C compiler printed for the reference headers.\n",
     );
     let known = known_types();
+    let objects = declared_object_types();
     if std::env::var("XTASK_DEBUG_TYPES").is_ok() {
         let hits: Vec<&String> = known.iter().filter(|n| n.contains("itree")).collect();
         eprintln!("debug: itree-ish types: {hits:?}");
@@ -493,7 +552,15 @@ fn layout_asserts() -> Result<PathBuf, String> {
         let mut parts = key.splitn(2, ' ');
         let (kind, rest) = (parts.next().unwrap_or(""), parts.next().unwrap_or(""));
         let root = rest.split('.').next().unwrap_or("");
-        if !known.contains(root) {
+        // A key's root is usually a type, but C also has file-scope *objects*
+        // (`extern mpz_t mpz[5]`): for those the mirror's own declaration supplies the
+        // type (`static mut mpz: [mpz_t; 5]`), which is what makes the bound visible to
+        // this gate (review B's B1: `[mpz_t; 6]` passed every gate).
+        let rest = match objects.get(root) {
+            Some(ty) if !known.contains(root) => ty.as_str(),
+            _ => rest,
+        };
+        if !known.contains(root) && !objects.contains_key(root) {
             pending.push(format!("{key} = {value}"));
             continue;
         }
@@ -684,6 +751,104 @@ fn probe_programs() -> Result<(), String> {
     Ok(())
 }
 
+/// Compile every finished translation unit with the **non-frozen** arms selected.
+///
+/// `config.rs` is generated from the frozen configuration, so the default build only
+/// ever compiles the frozen branches; C's dead `#else`/`#ifdef` text would otherwise be
+/// unchecked text (review B's B3).  This command copies `femacs/` into
+/// `build/dead-arms/`, flips the constants the features stand for, and compiles each
+/// finished unit with those features on.  It is part of `gate-probes` (batch boundaries),
+/// not of `gate-fast`, because it is a second compile of every unit.
+fn dead_arms() -> i32 {
+    // feature -> (config key, value with the feature on)
+    const FLIPS: [(&str, &str, &str); 5] = [
+        ("no_rint", "HAVE_RINT", "false"),
+        ("no_trunc", "HAVE_TRUNC", "false"),
+        ("no_signbit", "HAVE_SIGNBIT", "false"),
+        ("haiku", "HAIKU", "true"),
+        // HAVE_LOG2 is not gated on a feature (the condition keeps the constant), but
+        // the other arm is still C text that has to compile.
+        ("", "HAVE_LOG2", "false"),
+    ];
+    let root = Path::new("../build/dead-arms");
+    let _ = fs::remove_dir_all(root);
+    for dir in ["src", "lib"] {
+        if let Err(e) = copy_tree(Path::new(dir), &root.join(dir)) {
+            return fail(format!("copying {dir}: {e}"));
+        }
+    }
+    let config = root.join("src/include/config.rs");
+    let Ok(text) = fs::read_to_string(&config) else {
+        return fail(format!("{} is missing (run `xtask gen-config` first)", config.display()));
+    };
+    let mut flipped = text;
+    for (_, key, value) in FLIPS {
+        let mut touched = false;
+        let mut out = String::new();
+        for line in flipped.lines() {
+            let is_key = line.contains(&format!("pub const {key}:"));
+            if is_key {
+                let ty = if value == "false" || value == "true" { "bool" } else { "i64" };
+                out.push_str(&format!("pub const {key}: {ty} = {value};\n"));
+                touched = true;
+            } else {
+                out.push_str(line);
+                out.push('\n');
+            }
+        }
+        if !touched {
+            return fail(format!("config.rs has no {key} to flip"));
+        }
+        flipped = out;
+    }
+    if let Err(e) = fs::write(&config, flipped) {
+        return fail(e);
+    }
+    let units = match finished_units() {
+        Ok(u) => u,
+        Err(e) => return fail(e),
+    };
+    let mut n = 0;
+    for rel in units {
+        // rustc runs with cwd = the copy, so paths must be relative to it (the
+        // object lands next to the source in build/dead-arms/).
+        let out = format!("{}.o", rel.replace('/', "_").replace(".rs", ""));
+        let mut cmd = Command::new("rustc");
+        cmd.args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
+                  "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"]);
+        for (feature, _, _) in FLIPS {
+            if !feature.is_empty() {
+                cmd.arg("--cfg").arg(format!("feature=\"{feature}\""));
+            }
+        }
+        let status = cmd.current_dir(root).arg(&rel).arg("-o").arg(&out).status();
+        match status {
+            Ok(s) if s.success() => {
+                println!("dead arms compile: {rel}");
+                n += 1;
+            }
+            Ok(s) => return fail(format!("{rel} does not compile with the dead arms ({s})")),
+            Err(e) => return fail(format!("{rel}: {e}")),
+        }
+    }
+    println!("{n} translation unit(s) compiled with the non-frozen arms");
+    0
+}
+
+fn copy_tree(from: &Path, to: &Path) -> std::io::Result<()> {
+    fs::create_dir_all(to)?;
+    for entry in fs::read_dir(from)? {
+        let entry = entry?;
+        let target = to.join(entry.file_name());
+        if entry.file_type()?.is_dir() {
+            copy_tree(&entry.path(), &target)?;
+        } else {
+            fs::copy(entry.path(), &target)?;
+        }
+    }
+    Ok(())
+}
+
 /// The C-differential tier: every probe that compares the C reference with the mirrors.
 /// It needs the frozen configure output, which is not in version control, so it is a
 /// command of its own — `gate-fast` must stay runnable in a clean checkout — but it is
@@ -697,7 +862,8 @@ fn gate_probes() -> i32 {
              (docs/spikes/2026-10-02-three-spikes.md, Reproduction)", header.display()));
     }
     for probe in ["spikes/inline-probe.sh", "spikes/accessor-probe.sh",
-                  "spikes/write-probe.sh", "spikes/va-probe.sh"] {
+                  "spikes/write-probe.sh", "spikes/va-probe.sh",
+                  "spikes/syshdrs-probe.sh"] {
         println!("== {probe} ==");
         let status = Command::new("bash").arg(probe).current_dir(REPO).status();
         match status {
@@ -705,6 +871,11 @@ fn gate_probes() -> i32 {
             Ok(s) => return fail(format!("{probe} failed ({s})")),
             Err(e) => return fail(format!("{probe}: {e}")),
         }
+    }
+    println!("== dead arms ==");
+    let code = dead_arms();
+    if code != 0 {
+        return code;
     }
     0
 }
@@ -739,7 +910,9 @@ fn collect_includes(root: &Path, seen: &mut std::collections::BTreeSet<PathBuf>)
 /// what it certifies.  A unit is finished when its checklist has no unchecked
 /// boxes (`docs/ports/README.md`); headers have `include-<stem>.md` ledgers and
 /// are compiled as part of the units that include them.
-fn build_finished_tus() -> Result<(), String> {
+/// The units whose ledger says they are finished (`docs/ports/README.md`): a checklist
+/// with no unchecked box, and a `src/NAME.rs` to compile.
+fn finished_units() -> Result<Vec<String>, String> {
     let ports = Path::new(REPO).join("docs/ports");
     let mut entries: Vec<PathBuf> = fs::read_dir(&ports)
         .map_err(|e| format!("{}: {e}", ports.display()))?
@@ -747,7 +920,7 @@ fn build_finished_tus() -> Result<(), String> {
         .map(|e| e.path())
         .collect();
     entries.sort();
-    let mut built = 0usize;
+    let mut units = Vec::new();
     for ledger in entries {
         if ledger.extension().map(|x| x != "md").unwrap_or(true) {
             continue;
@@ -756,30 +929,37 @@ fn build_finished_tus() -> Result<(), String> {
         if stem.starts_with("include-") || stem == "README" {
             continue;
         }
-        let unit = Path::new("src").join(format!("{stem}.rs"));
-        if !unit.is_file() {
+        let unit = format!("src/{stem}.rs");
+        if !Path::new(&unit).is_file() {
             continue;                                  // header mirror, not a unit
         }
         let checklist = fs::read_to_string(&ledger).map_err(|e| e.to_string())?;
         if checklist.contains("- [ ]") {
             continue;                                  // still being ported
         }
-        fs::create_dir_all(BUILD).ok();
+        units.push(unit);
+    }
+    Ok(units)
+}
+
+fn build_finished_tus() -> Result<(), String> {
+    let units = finished_units()?;
+    let mut built = 0usize;
+    fs::create_dir_all(BUILD).ok();
+    for unit in &units {
+        let stem = Path::new(unit).file_stem().unwrap_or_default().to_string_lossy().to_string();
         let out = Path::new(BUILD).join(format!("{stem}.o"));
         let status = Command::new("rustc")
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
-            .arg(&unit)
+            .arg(unit)
             .arg("-o")
             .arg(&out)
             .status();
         match status {
-            Ok(s) if s.success() => {
-                println!("built {}", unit.display());
-                built += 1;
-            }
-            Ok(s) => return Err(format!("rustc failed for {} ({s})", unit.display())),
-            Err(e) => return Err(format!("{}: {e}", unit.display())),
+            Ok(s) if s.success() => { println!("built {unit}"); built += 1; }
+            Ok(s) => return Err(format!("rustc failed for {unit} ({s})")),
+            Err(e) => return Err(e.to_string()),
         }
         // The reference is built with --enable-checking by default, and the port's
         // `eassert!`/`eassume!` are `#[cfg (enable_checking)]`: without this pass their
@@ -790,18 +970,14 @@ fn build_finished_tus() -> Result<(), String> {
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
                    "--cfg", "enable_checking",
                    "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
-            .arg(&unit)
+            .arg(unit)
             .arg("-o")
             .arg(&checked)
             .status();
         match status {
-            Ok(s) if s.success() => {
-                println!("built {} (--cfg enable_checking)", unit.display());
-                built += 1;
-            }
-            Ok(s) => return Err(format!("rustc failed for {} with --cfg enable_checking ({s})",
-                                        unit.display())),
-            Err(e) => return Err(format!("{}: {e}", unit.display())),
+            Ok(s) if s.success() => { println!("built {unit} (--cfg enable_checking)"); built += 1; }
+            Ok(s) => return Err(format!("rustc failed for {unit} with --cfg enable_checking ({s})")),
+            Err(e) => return Err(e.to_string()),
         }
     }
     println!("{built} finished translation unit(s) compiled");

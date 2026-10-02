@@ -1,4 +1,4 @@
 key	value
-asserted	210
-pending	8
-note	2026-10-02: +10 asserted and +1 pending came with the bignum.h mirror (--mpz_struct, mpz_t, Lisp_Bignum).  The one new pending key is `sizeof mpz`: mpz is a static object, so no `size_of::<T>()` can assert it; the value (80) is pinned by the Rust twin's explicit line and is 5 * size_of::<mpz_t>().  The other 7 pending keys are `handler`/`window`, which have no mirror yet.
+asserted	211
+pending	7
+note	2026-10-02: asserted grew 200 -> 211 with the bignum.h mirror (__mpz_struct, mpz_t, mpz, Lisp_Bignum) and one tooling fix: a layout key whose root is a file-scope *object* (`sizeof mpz`) is now asserted from the mirror's own declaration (`static mut mpz: [mpz_t; 5]`), so `[mpz_t; 6]` fails the gate (review B's B1).  pending stays 7 (`handler`/`window`, unmirrored).  This file is a ratchet: `asserted` only grows and `pending` only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).

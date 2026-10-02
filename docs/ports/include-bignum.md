@@ -30,7 +30,8 @@
   resolves to gnulib's `lib/gmp.h` -> `lib/mini-gmp.h`.  `lib/` is batch F in
   docs/port-plan.md §4 (`lib/mini-gmp.c` is 4,699 lines), so the mirror of
   `lib/mini-gmp.h` does not exist yet: `bignum.rs` carries the subset bignum.h, bignum.c
-  and floatfns.c use, quoted C line by C line in the reference header's own order.  Batch F
+  and floatfns.c use (7 inline functions and 16 `mpz_*`/helper declarations), quoted C
+  line by C line in the reference header's own order.  Batch F
   moves those declarations into `femacs/lib/include/mini-gmp.rs` unchanged, and
   `lib/include/mini-gmp.h`'s row in docs/port-map.md stays unported until then.
 - **`mpz_t` keeps C's array-of-one typedef** (`typedef __mpz_struct mpz_t[1]`): the mirror
@@ -39,14 +40,24 @@
   A `mpz_t`-shaped *parameter* decays to a pointer in C, so the declarations use
   `*mut __mpz_struct` / `*const __mpz_struct`, and a `mpz_t` *value* is passed as
   `value.as_mut_ptr ()` / `value.as_ptr ()` at the call sites (P-49).
+- **The `mpz` bound is gated.**  C's `extern mpz_t mpz[5]` used to be the one layout key
+  with no assertion (review B's B1: `[mpz_t; 6]` passed `gate-fast`, `extract-abi` and
+  `spikes/run.sh`); `xtask layout-asserts` now resolves a key whose root is a file-scope
+  object through the mirror's own declaration, so `sizeof mpz` asserts
+  `size_of::<[mpz_t; 5]>() == 80` and the mutation fails the gate.
 - **Layout evidence.**  `tools/gen-layout-fields.py` now generates `Lisp_Bignum`'s fields,
   `spikes/layout_c.c` prints `__mpz_struct`, `mpz_t`, `mpz` and `Lisp_Bignum`, and the
-  frozen baseline grew from 208 to 218 keys (11 new: `sizeof __mpz_struct` 16,
+  frozen baseline grew from 207 to 218 keys (11 new: `sizeof __mpz_struct` 16,
   `offsetof __mpz_struct._mp_alloc` 0 / `._mp_size` 4 / `._mp_d` 8, `sizeof mpz_t` 16,
   `sizeof mpz` 80, `sizeof Lisp_Bignum` 24, `alignof Lisp_Bignum` 8,
   `offsetof Lisp_Bignum.header` 0 / `.value` 8, `alignof __mpz_struct` 8).  Re-running
   `spikes/run.sh` reports `shared keys: 46, mismatches: 0` and no Rust-only key, so the
   Rust declarations agree with the C compiler on every one of them.
+- **The `mpz[5]` bound is gated** (review B's B1): a layout key whose root is a file-scope
+  object is now resolved through the mirror's own declaration
+  (`pub static mut mpz: [mpz_t; 5]`), so `sizeof mpz` asserts
+  `size_of::<[mpz_t; 5]>() == 80`; `[mpz_t; 6]` fails the layout gate (it passed
+  everything before).
 - **Two recorded token deviations** (`docs/ports/macro-body-notes.tsv`): `GMP_NUMB_BITS`
   (`TYPE_WIDTH (mp_limb_t)` is written as `size_of::<mp_limb_t> () * 8`, because the port
   has no `CHAR_BIT` yet) and `bignum_integer` (C's cast `(mpz_t const *) tmp` is

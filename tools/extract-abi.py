@@ -386,6 +386,39 @@ def body_tokens(text: str, *, numbers: bool = True, skip_short: bool = False) ->
     return set(body_token_seq(text, numbers=numbers, skip_short=skip_short))
 
 
+def family_call_numbers(text: str, spellings: set) -> Counter:
+    """The numeric literals inside every call of a family member.
+
+    Counts alone let the argument change: review B's B2 turned
+    `mpz_set_uintmax`'s `v.overflowing_add (0)` into `(1)` and every gate stayed
+    green, because the body still mentions a `0` (`FASTER_BIGNUM != 0`).  The
+    numbers *inside the call* are the part of ckd_*/overflowing_* that carries the
+    operation, so they are compared too (the port may add numbers of its own).
+    """
+    out: Counter = Counter()
+    if not spellings:
+        return out
+    pattern = re.compile(r"\b(" + "|".join(sorted(map(re.escape, spellings))) + r")\s*\(")
+    for m in pattern.finditer(text):
+        depth, i = 0, m.end() - 1
+        while i < len(text):
+            if text[i] == "(":
+                depth += 1
+            elif text[i] == ")":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        # Array subscripts are not magnitudes: C's `sizeof s1->keys[0] * n` is a
+        # type-size idiom the port expresses with the element type, so `[0]` must not
+        # count as "the call passes a 0".
+        inside = re.sub(r"\[[^\[\]]*\]", "[]", text[m.end():i])
+        for token in re.findall(r"[A-Za-z_]\w*|\d+", inside):
+            if token.isdigit():
+                out[token] += 1
+    return out
+
+
 def alias_count_problems(c_text: str, rust_text: str, *, skip_short: bool) -> list:
     """Every registered family must survive the port: rust count >= C count.
 
@@ -405,6 +438,13 @@ def alias_count_problems(c_text: str, rust_text: str, *, skip_short: bool) -> li
             family = ",".join(sorted(TOKEN_ALIASES[canon]))
             out.append(f"family {canon}: the C body uses it {c_n} time(s), the port {r_n} "
                        f"({family})")
+            continue
+        missing_numbers = (family_call_numbers(c_text, TOKEN_ALIASES[canon])
+                           - family_call_numbers(rust_text, TOKEN_ALIASES[canon]))
+        if missing_numbers:
+            out.append(f"family {canon}: the C call passes "
+                       + ", ".join(sorted(missing_numbers))
+                       + ", which the port's call does not (its arguments must be C's)")
     return out
 
 
@@ -1115,8 +1155,31 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         if STUB_RE.search(body) or flat in ("", "()"):
             problems.append(f"stub or empty body in fn {name}")
 
-    is_header = str(c_path).endswith(".h")
-    if strict_lines and not is_header and c["lines"] and r["lines"]:
+    is_header_like = str(c_path).endswith(".h")
+    # C's non-`static` definitions are *exported symbols* (PORTING.md 0.2): a plain
+    # `pub fn` compiles but carries no C name, so the next translation unit that calls it
+    # cannot link — and no single-unit gate can see that (review A's F1 named
+    # floatfns.c's extract_float, fmod_float and double_integer_scale).  The `DEFUN!`
+    # macro emits `#[unsafe(no_mangle)]` itself, so subrs are excluded.
+    # Header definitions are `INLINE` (the port maps them to `#[inline(always)] fn`,
+    # P-12/P-37) and need no symbol, so the rule only applies to unit files.
+    subr_names = {sub["c_name"] for sub in r["subrs"]}
+    own_text = rs_path.read_text(encoding="utf-8", errors="replace")
+    for f in c["functions"]:
+        name = f["name"]
+        if is_header_like or f.get("static") or name in excluded or name in subr_names:
+            continue
+        if re.search(r"\bINLINE\b[^;{]{0,200}\b" + re.escape(name) + r"\s*\(", c_source):
+            continue          # C's INLINE: internal linkage, no symbol to keep
+        m = re.search(r"\bfn\s+" + re.escape(name) + r"\b", own_text)
+        if m is None:
+            continue          # not defined here: the missing-function rule owns that
+        head = own_text[max(0, m.start() - 400):m.start()]
+        if "no_mangle" not in head:
+            problems.append(f"function {name} is not static in C but has no "
+                            f"#[unsafe(no_mangle)] in the port (no C symbol to link)")
+
+    if strict_lines and not is_header_like and c["lines"] and r["lines"]:
         drift = abs(r["lines"] - c["lines"]) / max(c["lines"], 1)
         if drift > 0.05:
             problems.append(f"line count drifted {drift:.1%}: C {c['lines']} vs Rust {r['lines']}")

@@ -30,7 +30,7 @@ CALLMANY,CALLN,calln,safe_calln,list	*	the port's arity macros use Rust's array/
 USE_LSB_TAG,VALMASK,LISP_WORD_TAG,GCALIGNMENT,IEEE_FLOATING_POINT,LISP_WORDS_ARE_POINTERS	*	configuration predicates fixed by the frozen config (P-02)
 IS_DAEMON,DAEMON_RUNNING	*	the frozen config has no w32 daemon event (P-08)
 eassert,eassume	*	the port reports the condition text and the mirror's file (lisp.md)
-STRING_BYTES_BOUND,STRING_SET_UNIBYTE,SYMBOL_INDEX,EMACS_INT_MAX,ARRAY_MARK_FLAG,PSEUDOVECTOR_FLAG,BITS_WORD_MAX,BOOL_VECTOR_LENGTH_MAX,WAIT_READING_MAX,PRIdHASH_IDX,WRAP_SPECPDL_REF,XFIXNUM_RAW,XUNTAG,TYPE_RANGED_FIXNUMP,SAFE_ALLOCA_LISP,SAFE_ALLOCA_STRING,SAFE_NALLOCA,AUTO_STRING	*	narrow types, folds and helpers the port writes with Rust spellings (lisp.md, PORTING.md 5)
+STRING_BYTES_BOUND,STRING_SET_UNIBYTE,SYMBOL_INDEX,EMACS_INT_MAX,ARRAY_MARK_FLAG,PSEUDOVECTOR_FLAG,BITS_WORD_MAX,BOOL_VECTOR_LENGTH_MAX,WAIT_READING_MAX,PRIdHASH_IDX,WRAP_SPECPDL_REF,XFIXNUM_RAW,XUNTAG,TYPE_RANGED_FIXNUMP,SAFE_ALLOCA_STRING,SAFE_NALLOCA,AUTO_STRING	*	narrow types, folds and helpers the port writes with Rust spellings (lisp.md, PORTING.md 5)
 sys_setjmp,sys_longjmp	*	P-18: the port wraps _setjmp/_longjmp (sys_setjmp is a Rust fn, not a macro)
 make_fixnum,XFIXNUM_RAW,make_char_unibyte	*	DEFINE_KEY_OPS_AS_MACROS: the port's function carries the lisp_h_* body itself (PORTING.md 5.2)
 INVALID_LISP_VALUE	*	the port builds the tagged value with make_lisp_ptr (0.1-2)
@@ -68,3 +68,4 @@ BITS_PER_BITS_WORD	bool_vector_bits_per_char	lisp.h 137/141 defines it from SIZE
 GMP_NUMB_BITS	type_width	gnulib intprops.h spells TYPE_WIDTH (t) as `sizeof (t) * CHAR_BIT`; the port writes the same computation as size_of::<mp_limb_t> () * 8 because the port has no CHAR_BIT yet (lib/limits.in.rs is WIP, P-26).  The value is pinned by the layout gate's sizeof (__mpz_struct) / sizeof (mpz_t) keys (P-49)
 bignum_integer	mpz_t	C's cast `(mpz_t const *) tmp` has no Rust counterpart: the port's mpz_t is a Rust array type, so `(*tmp).as_ptr ()` is the same address with the same type (P-49)
 rescale_for_division	mpz_t	C declares `mpz_t const *pn`; a `mpz_t`-shaped declaration decays to `*const __mpz_struct` in the port (P-49), which is the type the emacs_mpz_* calls take
+SAFE_ALLOCA_LISP	false	the port's `{{ … }}` block is C's `do { … } while (false)` (PORTING.md 2.1); C's `ckd_mul` is the ckd_mul family of token-aliases.tsv, so review B's B2 guard-deletion is visible again

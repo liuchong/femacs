@@ -1,0 +1,31 @@
+/* The C side of spikes/syshdrs-probe.sh: the values and macros the port's *system*
+   header mirrors carry (`femacs/lib/include/math.rs`, `limits.in.rs`, `float.in.rs`).
+   These mirrors have no reference file to be paired with, so this probe is their gate:
+   the numbers and the four macros come from clang's own headers, and the Rust side must
+   print the same lines (review B's B4).  */
+#include <stdio.h>
+#include <math.h>
+#include <limits.h>
+#include <float.h>
+
+int
+main (void)
+{
+  printf ("HUGE_VAL_is_pos_inf %d\n", isinf (HUGE_VAL) && 0 < HUGE_VAL);
+  printf ("FP_ILOGB0 %d\n", FP_ILOGB0);
+  printf ("INT_MIN %d\n", INT_MIN);
+  printf ("INT_MAX %d\n", INT_MAX);
+  printf ("FLT_RADIX %d\n", FLT_RADIX);
+  printf ("FLT_MANT_DIG %d\n", FLT_MANT_DIG);
+  printf ("FLT_MAX_EXP %d\n", FLT_MAX_EXP);
+  printf ("FLT_MIN_EXP %d\n", FLT_MIN_EXP);
+  printf ("DBL_MAX_10_EXP %d\n", DBL_MAX_10_EXP);
+  printf ("DBL_MANT_DIG %d\n", DBL_MANT_DIG);
+  printf ("DBL_MIN_EXP %d\n", DBL_MIN_EXP);
+
+  double xs[] = { 0.0, -0.0, 1.5, -1.5, NAN, -NAN, -HUGE_VAL, HUGE_VAL };
+  for (size_t i = 0; i < sizeof xs / sizeof *xs; i++)
+    printf ("x %zu isnan %d isfinite %d isinf %d signbit %d\n", i,
+	    !!isnan (xs[i]), !!isfinite (xs[i]), !!isinf (xs[i]), !!signbit (xs[i]));
+  return 0;
+}
