@@ -12,4 +12,5 @@ realloc	0.15	C 101 vs the port's 88: the dead arms are `#[cfg (feature = "…")]
 callint	0.08	C 933 vs the port's 983 (5.4%): the two shared-body entry stages (C's `goto have_prefix_arg` and the two `FALLTHROUGH`s) and the invalid-letter helper each cost a few lines the C text does not have
 sigdescr_np	0.25	C 351 vs the port's 423 (20.5%): the 32 arms whose signal this target does not define carry the P-51 comment and the `#[cfg (feature = "signal_…")]` line that keep C's text, and the match's closing braces cost the arms C's `case …:` one-liners do not
 terminfo	0.45	C 55 vs the port's 76 (38.2%): a 55-line reference cannot absorb the port's standard fixed costs - the `// femacs:` note, the `#![allow (…)]` block and the unit's own `tparm` declaration block (C declares tparm on one line, the port needs an `unsafe extern` block) - while the arms, statements and objects all match one for one
+gettimeofday	0.50	C 154 vs the port's ~87: the Windows arm's three items are kept as `#[cfg (feature = "windows_native")]` text, each adding an attribute line, while the live body is five lines that C reaches through four nested `#if` levels
 

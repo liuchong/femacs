@@ -53,4 +53,7 @@ __has_feature	config	the compiler-builtin query C 28-30 falls back to (`#ifndef 
 reg_char	syntax	C 29's `#define reg_char char` inside the live `#else` arm of `#if defined _LIBC`; the port keeps the name as the alias `type reg_char = c_uchar;` the body reads, so no macro exists to compare
 __memrchr	syntax	C 41's `#define __memrchr memrchr` (the `#ifndef weak_alias` arm the frozen configuration takes) renames the definition C 45-46 writes; the port keeps C's function name in `fn __memrchr` and emits the symbol gnulib's <string.h> declares through `#[unsafe(export_name = "memrchr")]` (the mempcpy precedent, PORTING.md 10.13)
 CONSIDER	syntax	marker.c's two statement macros (C 100-136 for charpos, C 277-315 for bytepos), each ending in an early `return` and each deliberately not evaluating its second operand; `macro_rules!` cannot name the caller's locals, so the port's counterpart is the helper function `consider_charpos`/`consider_bytepos` (docs/ports/marker.md) and the `consider` token-aliases family carries the occurrence check
+LoadLibrary	syntax	the dead Windows arm's rename (C 36-37's `#define LoadLibrary LoadLibraryA`); the arm is kept as its tokens in docs/ports/macro-body-notes.tsv, so no counterpart exists
+GetProcAddress	syntax	the dead Windows arm's cast (C 40-41's `#define GetProcAddress (void *) GetProcAddress`), same treatment as the LoadLibrary row
+GetSystemTimePreciseAsFileTimeFunc	syntax	the dead Windows arm's alias (C 63's `#define GetSystemTimePreciseAsFileTimeFunc GetSystemTimePreciseAsFileTime`), same treatment
 
