@@ -6,3 +6,5 @@
 # `<stem>\t<tolerance>\t<reason>` per line; the check uses max(0.05, tolerance).
 tparam	0.40	C 284 vs the port's 383: C's three `label`s (`onedigit:`, `twodigit:`) and its four `FALLTHROUGH`s into the `%d`/`%3`/`%2` chain must become one shared statement sequence with an entry stage (PORTING.md 2.2), which costs physical lines the C text does not have
 itree	0.10	C 1435 vs the port's 1534: the three `bool_bf` bits of every itree_node are read and written through the ITREE_* masks instead of `node->red` (extra expression per access, PORTING.md 1.3), the iterator's `switch` becomes a `match` with braced arms, and the `while ((next = ...))` conditions become loops with an explicit test
+marker	0.20	C 874 vs the port's 988 (13.0%): the two CONSIDER macros become helper functions plus one `if let Some (value) = … { return value; }` per use site (twelve of them), the `#ifdef MARKER_DEBUG` arm keeps its three functions behind `#[cfg (feature = "marker_debug")]`, and the eight `DEFUN!` bodies carry the docstring in the invocation
+

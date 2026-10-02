@@ -3897,6 +3897,10 @@ pub mod other_units {
       pub fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdiff_t) -> ptrdiff_t;
       /// C: ptrdiff_t buf_bytepos_to_charpos (struct buffer *, ptrdiff_t)
       pub fn buf_bytepos_to_charpos (b: *mut c_void, bytepos: ptrdiff_t) -> ptrdiff_t;
+      /* src/lisp.h 4963.  */
+      /// C: Lisp_Object build_marker (struct buffer *, ptrdiff_t, ptrdiff_t)
+      pub fn build_marker (b: *mut c_void, charpos: ptrdiff_t, bytepos: ptrdiff_t)
+        -> Lisp_Object;
     }
 }
 use other_units::*;

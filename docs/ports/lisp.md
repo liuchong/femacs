@@ -630,3 +630,13 @@ for headers (P-24).  The items that took real work, and their evidence:
   `V*` are individual `static mut`s rather than `globals.f_V*` (P-21).
 - `specpdl`/`specpdl_ptr`/`specpdl_end` are declared as storage here until
   `thread.rs` supplies `current_thread` (P-19).
+
+## Decisions (2026-10-03, when marker.c was ported)
+
+- **`build_marker` added to `other_units`.**  marker.c calls it (twice in each conversion
+  function) and lisp.h 4963 declares it in the same group as the marker conversions; the
+  declaration uses the group's opaque `*mut c_void` for `struct buffer *` and marker.rs declares
+  the real `*mut buffer` prototype locally (the tparam.rs precedent).  The `/// C:` line keeps
+  the reference prototype, which spikes/lisp-abi-probe.sh type-checks against lisp.h (115
+  declarations now).
+
