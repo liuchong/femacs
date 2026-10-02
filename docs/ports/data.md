@@ -74,9 +74,9 @@
 - [x] indirect-variable  (Findirect_variable, 1/1, doc f3690ca988af, line 1291)
 - [x] symbol-value  (Fsymbol_value, 1/1, doc fb8e10325afe, line 1645)
 - [ ] set  (Fset, 2/2, doc 67b1a9246f28, line 1660)
-- [ ] add-variable-watcher  (Fadd_variable_watcher, 2/2, doc 6686d609c646, line 1857)
-- [ ] remove-variable-watcher  (Fremove_variable_watcher, 2/2, doc dc4012da0625, line 1885)
-- [ ] get-variable-watchers  (Fget_variable_watchers, 1/1, doc 7282bb591c7c, line 1904)
+- [x] add-variable-watcher  (Fadd_variable_watcher, 2/2, doc 6686d609c646, line 1857)
+- [x] remove-variable-watcher  (Fremove_variable_watcher, 2/2, doc dc4012da0625, line 1885)
+- [x] get-variable-watchers  (Fget_variable_watchers, 1/1, doc 7282bb591c7c, line 1904)
 - [ ] default-boundp  (Fdefault_boundp, 1/1, doc 38e91477c206, line 2006)
 - [ ] default-value  (Fdefault_value, 1/1, doc f123fcac4bbc, line 2019)
 - [ ] set-default  (Fset_default, 2/2, doc df2bb74cee8d, line 2130)
@@ -155,11 +155,11 @@
 - [x] swap_in_global_binding  (line 1548)
 - [x] swap_in_symval_forwarding  (line 1574, static)
 - [x] find_symbol_value  (line 1619)
-- [ ] set_internal  (line 1678)
+- [x] set_internal  (line 1678)
 - [x] set_symbol_trapped_write  (line 1834, static)
 - [x] restore_symbol_trapped_write  (line 1843, static)
-- [ ] harmonize_variable_watchers  (line 1849, static)
-- [ ] notify_variable_watchers  (line 1915)
+- [x] harmonize_variable_watchers  (line 1849, static)
+- [x] notify_variable_watchers  (line 1915)
 - [ ] default_value  (line 1962)
 - [ ] set_default_internal  (line 2034)
 - [ ] make_blv  (line 2149, static)
@@ -196,15 +196,14 @@
 ## Decisions
 
 - **Ported so far.**  data.c 41-165 (the 19 accessors and error helpers), 168-705 (40
-  subrs), 716-897 (the twelve symbol accessors and `fset`), 1029-1291 (`setplist`,
-  `subr-arity`, `subr-name`, `native-comp-function-p`, `subr-native-lambda-list`,
-  `subr-type`, `interactive-form`, `command-modes`, `indirect-variable`),
-  1314-1646 (the forwarding machinery) and 1832-1846
+  subrs), 716-897 (the twelve symbol accessors and `fset`), 1029-1291 (the subr
+  introspection subrs), 1314-1646 (the forwarding machinery), 1678-1960 (`set_internal`,
+  the watcher machinery and its three subrs) and 1832-1846
   (`set_symbol_trapped_write`/`restore_symbol_trapped_write`).  `cargo build-tu src/data.c`
-  builds, and `extract-abi.py --check` reports no incorrect item - only the 55 remaining
-  subrs, 29 functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*` plus the five
+  builds, and `extract-abi.py --check` reports no incorrect item - only the 52 remaining
+  subrs, 26 functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*` plus the five
   `bool_vector_*`), the 120 `defsubr` calls and the line-count drift of a partial file
-  (C 4400 vs Rust 1362, 69.0%).
+  (C 4400 vs Rust 1637, 62.8%).
 - **Five subrs wait for two headers.**  `type-of` (data.c 187-200) needs this file's own
   `cl-type-of` (data.c 202-310); `cl-type-of` calls `THREADP`, `MUTEXP`, `CONDVARP`
   (`thread.h` 222-320) and `FONT_SPEC_P`/`FONT_ENTITY_P`/`FONT_OBJECT_P` (`font.h`
@@ -342,3 +341,15 @@
   ("every token survives"): it was found by the human reading, and the fix hoists the
   binding to the function's scope (the `floatfns.rs`/`buffer.rs` precedent).  This is
   recorded in P-78's residuals as the third blind-spot class.
+- **data.c 1678-1960 has no preprocessor conditions.**  Both a line scan and the frozen
+  evaluator agree (the file has 74 dead lines in total - `user-ptrp`, the `HAVE_MODULES`
+  arms, the `HAVE_NATIVE_COMP` block and the three dead `defsubr` calls - and none of them
+  is in this range), so this segment has no dead-text decision to record; P-75's discard
+  rule has nothing to do here.
+- **A gate weakening the second reviewer found while checking this segment (its D1).**
+  `extract-abi.py`'s `local_types` regex used `\s*` around a `}` + `NAME;` pattern, and
+  `\s` crosses newlines: a `}` at the end of one line followed by `return;` or `break;`
+  on the next registered those *words* as "a type this file declares", exempting `break`
+  (and any such word) from every body comparison in the file.  With `[ \t]*` the fix
+  surfaced exactly one hidden token, `set_internal`'s `break` (now in
+  `macro-body-notes.tsv` with its reason), and `--all` stayed 17 done / 10 WIP / 0 failing.

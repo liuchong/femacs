@@ -3660,6 +3660,19 @@ pub mod other_units {
         pub fn kboard_for_bindings () -> *mut c_void;
         pub fn do_symval_forwarding (valcontents: *const Lisp_Fwd) -> Lisp_Object;
         pub fn swap_in_global_binding (symbol: *mut Lisp_Symbol);
+        // lisp.h 4748, 4800, 4864: data.c's watcher machinery calls these.
+        pub fn map_obarray (obarray: Lisp_Object,
+                            fn_: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
+                            arg: Lisp_Object);
+        pub fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
+                             arg_vector: *mut Lisp_Object) -> Lisp_Object;
+        pub fn let_shadows_buffer_binding_p (symbol: *mut Lisp_Symbol) -> bool;
+        // lisp.h 4208-4209: data.c's `set_internal` calls this (it is data.c's too); the
+        // fourth parameter is `KBOARD *`, unnameable from this mirror (P-72 item 4).
+        /// C: void set_default_internal (Lisp_Object, Lisp_Object, enum Set_Internal_Bind, KBOARD *)
+        pub fn set_default_internal (symbol: Lisp_Object, newval: Lisp_Object,
+                                     bindflag: Set_Internal_Bind,
+                                     buf: *mut c_void);
         // lisp.h 4243, 4272: the list helpers data.c calls (fns.c defines them).
         pub fn list_length (list: Lisp_Object) -> ptrdiff_t;
         pub fn assq_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object;

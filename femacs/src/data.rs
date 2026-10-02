@@ -1288,7 +1288,7 @@ unsafe fn swap_in_symval_forwarding (symbol: *mut Lisp_Symbol, blv: *mut Lisp_Bu
 
 // data.c 1832-1840.  C reads and writes the `trapped_write` bitfield; the mirror packs it
 // into `u.s.bits` (lisp.rs 224-225), so both sides go through the mask/shift.
-unsafe fn set_symbol_trapped_write (symbol: Lisp_Object, trap: u32)
+unsafe extern "C" fn set_symbol_trapped_write (symbol: Lisp_Object, trap: u32)
 {
   let sym: *mut Lisp_Symbol = XSYMBOL (symbol);
   if ((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT
@@ -1300,9 +1300,284 @@ unsafe fn set_symbol_trapped_write (symbol: Lisp_Object, trap: u32)
 }
 
 // data.c 1842-1846.
-unsafe fn restore_symbol_trapped_write (symbol: Lisp_Object)
+unsafe extern "C" fn restore_symbol_trapped_write (symbol: Lisp_Object)
 {
   set_symbol_trapped_write (symbol, SYMBOL_TRAPPED_WRITE);
+}
+
+/* Set the value of SYMBOL.  ... */
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_internal (symbol: Lisp_Object, newval: Lisp_Object,
+                                       r#where: Lisp_Object, bindflag: Set_Internal_Bind)
+{
+  let unbinding_p: bool = BASE_EQ (newval, Qunbound ());
+  let mut symbol = symbol;   // C's `XSETSYMBOL (symbol, sym)` below rebinds the argument
+
+  /* If restoring in a dead buffer, do nothing.  */
+
+  CHECK_SYMBOL (symbol);
+  let mut sym: *mut Lisp_Symbol = XSYMBOL (symbol);
+  match ((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT
+    {
+    SYMBOL_NOWRITE =>
+      {
+        if NILP (Fkeywordp (symbol))
+          || ! EQ (newval, Fsymbol_value (symbol))
+          { xsignal1 (Qsetting_constant (), symbol); }
+        else
+          /* Allow setting keywords to their own value.  */
+          { return; }
+      }
+
+    SYMBOL_TRAPPED_WRITE =>
+      {
+        /* Setting due to thread-switching doesn't count.  */
+        if bindflag != SET_INTERNAL_THREAD_SWITCH
+          { notify_variable_watchers (symbol, if unbinding_p { Qnil () } else { newval },
+                                      if bindflag == SET_INTERNAL_BIND { Qlet () }
+                                      else if bindflag == SET_INTERNAL_UNBIND { Qunlet () }
+                                      else if unbinding_p { Qmakunbound () } else { Qset () },
+                                      r#where); }
+      }
+
+    SYMBOL_UNTRAPPED_WRITE => {}
+
+    _ => { emacs_abort (); }
+    }
+
+  /* C's `start:` label and its `goto start` become this loop.  */
+  let mut r#where = r#where;
+  loop
+    {
+      match ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+        {
+        SYMBOL_VARALIAS =>
+          { sym = SYMBOL_ALIAS (sym); continue; }
+        SYMBOL_PLAINVAL =>
+          { SET_SYMBOL_VAL (sym, newval); return; }
+        SYMBOL_LOCALIZED =>
+          {
+            let blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value;
+
+            if unbinding_p && ! (*blv).fwd.is_null ()
+              /* Forbid unbinding built-in variables.  */
+              { error (c"Built-in variable may not be unbound : %s".as_ptr (),
+                       SDATA (SYMBOL_NAME (symbol))); }
+
+            if NILP (r#where)
+              { XSETBUFFER! (r#where, current_buffer); }
+
+            /* If the current buffer is not the buffer whose binding is
+               loaded, or if it's a Lisp_Buffer_Local_Value and
+               the default binding is loaded, the loaded binding may be the
+               wrong one.  */
+            if ! BASE_EQ ((*blv).r#where, r#where)
+              /* Also unload a global binding (if the var is local_if_set).  */
+              || (BASE_EQ ((*blv).valcell, (*blv).defcell))
+              {
+                /* The currently loaded binding is not necessarily valid.
+                   We need to unload it, and choose a new binding.  */
+
+                /* Write out `realvalue' to the old loaded binding.  */
+                if ! (*blv).fwd.is_null ()
+                  { set_blv_value (blv, do_symval_forwarding ((*blv).fwd)); }
+
+                /* Find the new binding.  */
+                XSETSYMBOL! (symbol, sym); /* May have changed via aliasing.  */
+                let mut tem1: Lisp_Object
+                  = assq_no_quit (symbol,
+                                  BVAR! (XBUFFER (r#where), local_var_alist_));
+                set_blv_where (blv, r#where);
+                /* C writes the one-bit field directly here (as in
+                   swap_in_symval_forwarding, PORTING.md 1.3): the asserted
+                   `set_blv_found` does not hold before `set_blv_valcell` below.  */
+                {
+                  let bits = (*blv).bits;
+                  (*blv).bits = bits | BLV_FOUND;
+                }
+
+                if NILP (tem1)
+                  {
+                    /* This buffer still sees the default value.  */
+
+                    /* If the variable is a Lisp_Some_Buffer_Local_Value,
+                       or if this is `let' rather than `set',
+                       make CURRENT-ALIST-ELEMENT point to itself,
+                       indicating that we're seeing the default value.
+                       Likewise if the variable has been let-bound
+                       in the current buffer.  */
+                    if bindflag != 0 || (*blv).bits & BLV_LOCAL_IF_SET == 0
+                      || let_shadows_buffer_binding_p (sym)
+                      {
+                        (*blv).bits = (*blv).bits & ! BLV_FOUND;
+                        tem1 = (*blv).defcell;
+                      }
+                    /* If it's a local_if_set, being set not bound,
+                       and we're not within a let that was made for this buffer,
+                       create a new buffer-local binding for the variable.
+                       That means, give this buffer a new assoc for a local value
+                       and load that binding.  */
+                    else
+                      {
+                        tem1 = Fcons (symbol, XCDR ((*blv).defcell));
+                        bset_local_var_alist
+                          (XBUFFER (r#where),
+                           Fcons (tem1, BVAR! (XBUFFER (r#where), local_var_alist_)));
+                      }
+                  }
+
+                /* Record which binding is now loaded.  */
+                set_blv_valcell (blv, tem1);
+              }
+
+            /* Store the new value in the cons cell.  */
+            set_blv_value (blv, newval);
+
+            if ! (*blv).fwd.is_null ()
+              { store_symval_forwarding ((*blv).fwd, newval,
+                                         if BUFFERP (r#where) { XBUFFER (r#where) }
+                                         else { current_buffer }); }
+            return;
+          }
+        SYMBOL_FORWARDED =>
+          {
+            let buf: *mut buffer
+              = if BUFFERP (r#where) { XBUFFER (r#where) } else { current_buffer };
+            let innercontents: lispfwd = SYMBOL_FWD (sym) as *mut Lisp_Fwd;
+
+            if unbinding_p
+              /* Forbid unbinding built-in variables.  */
+              { error (c"Built-in variable may not be unbound : %s".as_ptr (),
+                       SDATA (SYMBOL_NAME (symbol))); }
+
+            if BUFFER_OBJFWDP (innercontents)
+              {
+                let offset: c_int = XBUFFER_OFFSET (innercontents) as c_int;
+                let idx = PER_BUFFER_IDX (offset as ptrdiff_t);
+                if idx > 0 && bindflag == SET_INTERNAL_SET
+                  && ! PER_BUFFER_VALUE_P (buf, idx)
+                  {
+                    if let_shadows_buffer_binding_p (sym)
+                      { set_default_internal (symbol, newval, bindflag,
+                                              std::ptr::null_mut ()); }
+                    else
+                      { SET_PER_BUFFER_VALUE_P (buf, idx, true); }
+                  }
+              }
+
+            store_symval_forwarding (/* sym, */ innercontents, newval, buf);
+            return;
+          }
+        _ =>
+          { emacs_abort (); }
+        }
+    }
+}
+
+/* Called after `defvaralias' to make sure all aliases have the same
+   trap.  */
+
+unsafe extern "C" fn harmonize_variable_watchers (alias: Lisp_Object,
+                                                  base_variable: Lisp_Object)
+{
+  if ! EQ (base_variable, alias)
+    && EQ (base_variable, Findirect_variable (alias))
+    { set_symbol_trapped_write
+        (alias, ((*XSYMBOL (base_variable)).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK)
+               >> SYMBOL_TRAPPED_WRITE_SHIFT); }
+}
+
+DEFUN! ("add-variable-watcher", Fadd_variable_watcher, Sadd_variable_watcher,
+       2, 2, 0,
+       doc: "Cause WATCH-FUNCTION to be called when SYMBOL is about to be set.\n\nIt will be called with 4 arguments: (SYMBOL NEWVAL OPERATION WHERE).\nSYMBOL is the variable being changed.\nNEWVAL is the value it will be changed to.  (The variable still has\nthe old value when WATCH-FUNCTION is called.)\nOPERATION is a symbol representing the kind of change, one of: `set',\n`let', `unlet', `makunbound', and `defvaralias'.\nWHERE is a buffer if the buffer-local value of the variable is being\nchanged, nil otherwise.\n\nAll writes to aliases of SYMBOL will call WATCH-FUNCTION too.",
+       (symbol: Lisp_Object, watch_function: Lisp_Object),
+       {
+  let mut symbol = symbol;
+  symbol = Findirect_variable (symbol);
+  CHECK_SYMBOL (symbol);
+  set_symbol_trapped_write (symbol, SYMBOL_TRAPPED_WRITE);
+  map_obarray (Vobarray, Some (harmonize_variable_watchers), symbol);
+
+  let watchers = Fget (symbol, Qwatchers ());
+  let member = Fmember (watch_function, watchers);
+  if NILP (member)
+    { Fput (symbol, Qwatchers (), Fcons (watch_function, watchers)); }
+  return Qnil ();
+});
+
+DEFUN! ("remove-variable-watcher", Fremove_variable_watcher, Sremove_variable_watcher,
+       2, 2, 0,
+       doc: "Undo the effect of `add-variable-watcher'.\nRemove WATCH-FUNCTION from the list of functions to be called when\nSYMBOL (or its aliases) are set.",
+       (symbol: Lisp_Object, watch_function: Lisp_Object),
+       {
+  let mut symbol = symbol;
+  symbol = Findirect_variable (symbol);
+  let mut watchers = Fget (symbol, Qwatchers ());
+  watchers = Fdelete (watch_function, watchers);
+  if NILP (watchers)
+    {
+      set_symbol_trapped_write (symbol, SYMBOL_UNTRAPPED_WRITE);
+      map_obarray (Vobarray, Some (harmonize_variable_watchers), symbol);
+    }
+  Fput (symbol, Qwatchers (), watchers);
+  return Qnil ();
+});
+
+DEFUN! ("get-variable-watchers", Fget_variable_watchers, Sget_variable_watchers,
+       1, 1, 0,
+       doc: "Return a list of SYMBOL's active watchers.",
+       (symbol: Lisp_Object),
+       {
+  return if SYMBOL_TRAPPED_WRITE_P (symbol) == SYMBOL_TRAPPED_WRITE
+           { Fget (Findirect_variable (symbol), Qwatchers ()) }
+         else { Qnil () };
+});
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn notify_variable_watchers (symbol: Lisp_Object,
+                                                   newval: Lisp_Object,
+                                                   operation: Lisp_Object,
+                                                   r#where: Lisp_Object)
+{
+  let mut symbol = symbol;
+  let mut operation = operation;
+  let mut r#where = r#where;
+
+  symbol = Findirect_variable (symbol);
+
+  let count: specpdl_ref = SPECPDL_INDEX ();
+  record_unwind_protect (Some (restore_symbol_trapped_write), symbol);
+  /* Avoid recursion.  */
+  set_symbol_trapped_write (symbol, SYMBOL_UNTRAPPED_WRITE);
+
+  if NILP (r#where)
+    && ! EQ (operation, Qset_default ()) && ! EQ (operation, Qmakunbound ())
+    && ! NILP (Flocal_variable_if_set_p (symbol, Fcurrent_buffer ()))
+    {
+      XSETBUFFER! (r#where, current_buffer);
+    }
+
+  if EQ (operation, Qset_default ())
+    { operation = Qset (); }
+
+  let mut watchers = Fget (symbol, Qwatchers ());
+  while CONSP (watchers)
+    {
+      let watcher = XCAR (watchers);
+      /* Call subr directly to avoid gc.  */
+      if SUBRP (watcher)
+        {
+          let args: [Lisp_Object; 4] = [symbol, newval, operation, r#where];
+          funcall_subr (XSUBR (watcher), countof! (args) as ptrdiff_t,
+                        args.as_ptr () as *mut Lisp_Object);
+        }
+      else
+        { calln! (watcher, symbol, newval, operation, r#where); }
+      watchers = XCDR (watchers);
+    }
+
+  unbind_to (count, Qnil ());
 }
 
 /* Find the value of a symbol, returning Qunbound if it's not bound.

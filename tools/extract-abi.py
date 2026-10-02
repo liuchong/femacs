@@ -1161,8 +1161,12 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     local_types = {f["container"].lower() for f in c["struct_fields"]}
     local_types |= {m.group(1).lower()
                     for m in re.finditer(r"^\s*typedef\b[^;{}]*\b([A-Za-z_]\w*)\s*;", c_source, re.M)}
+    # `[ \t]*`, not `\s*`: the loose form let a `}` at one line and a `return;`/`break;` at
+    # the next register as "a type this file declares", which silently exempted `break`
+    # (and any other word that follows a closing brace on the next line) from *every* body
+    # in the file -- a deleted `break` compiled and passed every gate (review B's D1).
     local_types |= {m.group(1).lower()
-                    for m in re.finditer(r"^\s*\}\s*([A-Za-z_]\w*)\s*;", c_source, re.M)}
+                    for m in re.finditer(r"^[ \t]*\}[ \t]*([A-Za-z_]\w*)[ \t]*;", c_source, re.M)}
     # C's declaration specifiers (`struct`, `union`, `const`, `signed`, ...) are already in
     # MACRO_TOKEN_SKIP, so a `struct Lisp_Symbol *sym;` declaration costs only the type
     # name, which the mirror spells too (`let mut sym: *mut Lisp_Symbol`).  Review B's D4
