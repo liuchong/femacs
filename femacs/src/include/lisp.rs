@@ -2749,22 +2749,21 @@ pub fn SUBR_TYPE (a: Lisp_Object) -> Lisp_Object {
 // struct Lisp_Native_Comp_Unit, which lives in comp.h and arrives with comp.rs.
 // It stays on the missing list rather than shipping a placeholder (PORTING.md 0.3).
 
-#[cfg(feature = "modules")]
+// lisp.h 4872-4876 / 4878-4883: both are unconditional in C (the `#ifdef HAVE_MODULES`
+// in that region opens *after* them, at lisp.h 4885).  The port had gated the pair on a
+// `modules` feature nothing ever passed, so the frozen build compiled a `false` stub for
+// `MODULE_FUNCTIONP` while C compiled the real `PSEUDOVECTORP`; review B's F2 (found while
+// reviewing data.c's `module-function-p`, which calls it).
 #[inline(always)]
 pub fn MODULE_FUNCTIONP (o: Lisp_Object) -> bool {
     PSEUDOVECTORP (o, pvec_type::PVEC_MODULE_FUNCTION)
 }
 
-#[cfg(feature = "modules")]
 #[inline(always)]
 pub fn XMODULE_FUNCTION (o: Lisp_Object) -> *mut Lisp_Module_Function {
     eassert! (MODULE_FUNCTIONP (o));
     XUNTAG! (o, Lisp_Type::Lisp_Vectorlike, Lisp_Module_Function)
 }
-
-#[cfg(not(feature = "modules"))]
-#[inline(always)]
-pub fn MODULE_FUNCTIONP (_o: Lisp_Object) -> bool { false }
 
 // --- extern declarations for reference globals (src/lisp.h) ---
 // The reference declares these objects extern in lisp.h; their definitions
@@ -3621,6 +3620,11 @@ pub mod other_units {
         pub fn intern_1 (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
         pub fn intern_c_string_1 (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
         pub fn xsignal0 (error_symbol: Lisp_Object) -> !;
+        // lisp.h 4793-4795: the signal helpers data.c calls (eval.c defines them).
+        pub fn xsignal1 (error_symbol: Lisp_Object, arg: Lisp_Object) -> !;
+        pub fn xsignal2 (error_symbol: Lisp_Object, a1: Lisp_Object, a2: Lisp_Object) -> !;
+        pub fn xsignal3 (error_symbol: Lisp_Object, a1: Lisp_Object, a2: Lisp_Object,
+                         a3: Lisp_Object) -> !;
         pub fn fast_string_match_internal (regexp: Lisp_Object, string: Lisp_Object,
                                            table: Lisp_Object) -> isize;
         pub fn fast_c_string_match_internal (regexp: Lisp_Object, string: *const c_char,
@@ -3633,6 +3637,9 @@ pub mod other_units {
         pub fn xfree (p: *mut c_void);
         pub fn xmalloc (size: usize) -> *mut c_void;                     // src/lisp.h 5535
         pub fn indirect_function (object: Lisp_Object) -> Lisp_Object;   // src/lisp.h 4167 (data.c)
+        // lisp.h 4655, 4661: the two object helpers data.c calls (alloc.c defines them).
+        pub fn build_symbol_with_pos (symbol: Lisp_Object, position: Lisp_Object) -> Lisp_Object;
+        pub fn valid_lisp_object_p (obj: Lisp_Object) -> c_int;
         pub fn egetenv_internal (var: *const c_char, len: ptrdiff_t) -> *mut c_char;
         pub static mut pending_signals: bool;
         pub static mut Vascii_canon_table: Lisp_Object;

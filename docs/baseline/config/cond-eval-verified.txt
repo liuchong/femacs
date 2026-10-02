@@ -9,6 +9,7 @@ src/buffer.h
 src/character.h
 src/coding.h
 src/composite.h
+src/data.c
 src/dispextern.h
 src/font.h
 src/frame.h
