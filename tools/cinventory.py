@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import os
 from pathlib import Path
 
 CFUNC = re.compile(r"^(?:\((?P<pname>[A-Za-z_]\w*)\)|(?P<name>[A-Za-z_]\w*))\s*\(")
@@ -144,38 +145,64 @@ def set_condition_macros(macros: dict[str, str] | None) -> None:
 # **templates**: their conditions name `@PLACEHOLDER@`s and the *generated* header's state
 # (`#if @WINDOWS_STAT_INODES@ == 2`), so the frozen table cannot decide them and an
 # evaluator that answers wrongly is worse than one that answers `unknown` (P-66).
-CONDITION_MACROS_PATHS: set[str] | None = None
+# `(reference root, {absolute path})`: the match is *identity* after normalisation, not a
+# suffix.  A suffix match let `test/manual/etags/c-src/emacs/src/lisp.h` pass for
+# `src/lisp.h` (review A's F5); no such file is paired today, but the list is the thing
+# standing between a wrong branch verdict and the gate, so it has to be exact.
+CONDITION_MACROS_PATHS: tuple | None = None
 
 
-def set_condition_paths(paths) -> None:
+def set_condition_paths(paths, reference=None) -> None:
     """Restrict the macro table to these reference paths (None = every file)."""
     global CONDITION_MACROS_PATHS
-    CONDITION_MACROS_PATHS = None if paths is None else {str(p) for p in paths}
+    if paths is None:
+        CONDITION_MACROS_PATHS = None
+        return
+    root = None if reference is None else os.path.abspath(str(reference))
+    entries = set()
+    for entry in paths:
+        text = str(entry)
+        entries.add(os.path.abspath(text) if os.path.isabs(text)
+                    else os.path.abspath(os.path.join(root or ".", text)))
+    CONDITION_MACROS_PATHS = (root, entries)
+
+
+def blind_conditions(path):
+    """The blind scope for one reference path (`tools/extract-abi.py` uses it too)."""
+    return _BlindConditions(path)
 
 
 class _BlindConditions:
-    """Context manager: drop the macro table unless `path` is a verified file."""
+    """Context manager: drop the macro table unless `path` is a verified file.
+
+    Both globals go: `dead_branch_map` reads `CONDITION_MACROS_BASE` and re-installs it
+    through `set_condition_macros`, so clearing `CONDITION_MACROS` alone left the table in
+    force and made this whole scope a no-op (review A's F1 — the fix for it is the pair of
+    assignments below, not a documentation change).
+    """
 
     def __init__(self, path) -> None:
-        self.path = None if path is None else str(path)
+        self.path = None if path is None else os.path.abspath(str(path))
         self.saved = None
+        self.saved_base = None
         self.blind = False
 
     def __enter__(self):
-        global CONDITION_MACROS
+        global CONDITION_MACROS, CONDITION_MACROS_BASE
         if CONDITION_MACROS_PATHS is None or self.path is None:
             return self
-        if any(self.path.endswith(entry) for entry in CONDITION_MACROS_PATHS):
+        root, entries = CONDITION_MACROS_PATHS
+        if root is not None and self.path in entries:
             return self
-        self.saved = CONDITION_MACROS
-        CONDITION_MACROS = None
+        self.saved, self.saved_base = CONDITION_MACROS, CONDITION_MACROS_BASE
+        CONDITION_MACROS = CONDITION_MACROS_BASE = None
         self.blind = True
         return self
 
     def __exit__(self, *_exc) -> bool:
-        global CONDITION_MACROS
+        global CONDITION_MACROS, CONDITION_MACROS_BASE
         if self.blind:
-            CONDITION_MACROS = self.saved
+            CONDITION_MACROS, CONDITION_MACROS_BASE = self.saved, self.saved_base
         return False
 
 
@@ -434,6 +461,24 @@ def _cond_parse_unary(tokens: list[str], depth: int) -> tuple[int | None, list[s
     return _cond_parse_primary(tokens, depth)
 
 
+def _cond_int_value(text: str) -> int | None:
+    """A C integer constant: decimal, `0x` hex or `0`-prefixed octal, plus suffixes.
+
+    `int (text, 0)` is Python's rule and rejects C's octal (`0004000` in gnulib's
+    `S_ISUID`), which crashed the evaluator instead of answering `None` (review A's F4);
+    a crashed evaluator cannot even be measured by `tools/check-cond-eval.py`.
+    """
+    body = re.sub(r"[uUlL]+$", "", text)
+    try:
+        if body.lower().startswith("0x"):
+            return int(body, 16)
+        if len(body) > 1 and body[0] == "0":
+            return int(body, 8)          # C's `0`-prefixed octal
+        return int(body, 10)
+    except ValueError:
+        return None
+
+
 def _cond_parse_primary(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
     if not tokens:
         return None, []
@@ -451,8 +496,8 @@ def _cond_parse_primary(tokens: list[str], depth: int) -> tuple[int | None, list
         if rest:
             return _cond_ident_value(rest[0]), rest[1:]
         return None, []
-    if head.isdigit():
-        return int(head, 0), rest
+    if head[0].isdigit():
+        return _cond_int_value(head), rest
     if head == "?":
         return None, []
     # A function-like macro's call: `GNUC_PREREQ (4, 3, 2)` (lisp.h 109/5731).
@@ -797,6 +842,16 @@ def macros(text: str) -> dict[str, dict]:
     return out
 
 
+def integer_literal(text: str) -> int | None:
+    """The value of a C integer literal (decimal or hex, with u/U/l/L suffixes)."""
+    t = re.sub(r"[uUlL]+$", "", text.strip())
+    try:
+        return int(t, 0) if t.lower().startswith(("0x", "-0x")) or re.fullmatch(r"-?\d+", t) \
+            else None
+    except ValueError:
+        return None
+
+
 def enum_constants(text: str) -> dict[str, str]:
     """Enum members that carry an explicit value: name -> value.
 
@@ -851,10 +906,27 @@ def enum_constants(text: str) -> dict[str, str]:
         if ch == "{":
             body.append("{")
         elif ch == "}":
+            # Members without `=` take the predecessor's value plus one (C's rule).  They
+            # used to be dropped, and that is how `draw_glyphs_face`'s four implicit
+            # members (and `glyph_row_area`'s) could disagree with C with every gate green
+            # (review B's F1/F2): a name C compiles must be a name the gate compares.
+            # An implicit member after a non-literal (an alias, a cast, an expression) is
+            # left out: its value is not decidable from the text, and guessing it would
+            # make the gate wrong instead of silent.
+            running: int | None = -1     # C starts an enum at 0
             for member in split_top_level_commas("".join(body)):
                 m = re.match(r"\s*([A-Za-z_]\w*)\s*=\s*(.+?)\s*$", member, re.S)
                 if m:
-                    out[m.group(1)] = " ".join(m.group(2).split())
+                    value = " ".join(m.group(2).split())
+                    out[m.group(1)] = value
+                    running = integer_literal(value)
+                    continue
+                n = re.match(r"\s*([A-Za-z_]\w*)\s*$", member, re.S)
+                if n and running is not None:
+                    running += 1
+                    out[n.group(1)] = str(running)
+                else:
+                    running = None
             inside, body = False, []
         else:
             body.append(ch)

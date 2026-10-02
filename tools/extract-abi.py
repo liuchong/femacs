@@ -1145,7 +1145,12 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         if "*" in allowed:
             continue
         rust_body = r["bodies"].get(name)
-        c_text = c_body_text(c_source, name)
+        # `c_body_text`/`body_is_empty` run `dead_branch_map` again through
+        # `ci.function_spans`, i.e. *after* `inventory()` left its scope.  Without this the
+        # macro table decided liveness for files that must stay blind, and a dead branch
+        # made the body compare as "absent" (review A's F2: `doprnt.c`'s `exprintf`).
+        with ci.blind_conditions(c_path):
+            c_text = c_body_text(c_source, name)
         if rust_body is None or c_text is None:
             continue
         missing = (body_tokens(c_text, skip_short=True)
@@ -1156,7 +1161,9 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         problems.extend(alias_count_problems(c_text, rust_body, skip_short=True))
         problems.extend(va_arg_problems(c_text, rust_body))
 
-    empty_in_c = {f["name"] for f in c["functions"] if body_is_empty(c_path, f["name"])}
+    with ci.blind_conditions(c_path):
+        empty_in_c = {f["name"] for f in c["functions"]
+                      if body_is_empty(c_path, f["name"])}
     # A Rust function whose name the reference also uses — as a function, a macro or a
     # constant — must not be a stub.  Helpers with no C counterpart (lisp_h_*,
     # pointee_size, …) belong to no ledger and are not scanned here.
@@ -1276,10 +1283,15 @@ def main() -> int:
     if cond_paths.is_file():
         verified = [line.strip() for line in cond_paths.read_text(encoding="utf-8").split("\n")
                     if line.strip() and not line.startswith("#")]
-        ci.set_condition_paths(verified)
+        ci.set_condition_paths(verified, reference=args.reference)
     else:
-        verified = None
-        ci.set_condition_paths(None)
+        # Fail instead of widening: `None` means "every file may consult the table", which
+        # is the state the verified list exists to prevent (review A's F3).  A typo in the
+        # path, or running from another directory, must be loud.
+        return fail(f"{cond_paths} is missing: the `#if` evaluator may only run for files "
+                    "that tools/check-cond-eval.py has verified; regenerate it with "
+                    "`python3 tools/check-cond-eval.py --write-verified " + str(cond_paths)
+                    + " <headers>`")
     if cond_macros.is_file():
         table = ci.read_condition_macros(cond_macros)
         ci.set_condition_macros(table)
