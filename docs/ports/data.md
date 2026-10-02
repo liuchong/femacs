@@ -47,18 +47,18 @@
 - [x] cdr-safe  (Fcdr_safe, 1/1, doc e5dd456dd9a0, line 688)
 - [x] setcar  (Fsetcar, 2/2, doc 1e4de21757f9, line 695)
 - [x] setcdr  (Fsetcdr, 2/2, doc f85a472355bb, line 704)
-- [ ] boundp  (Fboundp, 1/1, doc 210c7be33e73, line 715)
-- [ ] fboundp  (Ffboundp, 1/1, doc 98372094c5aa, line 759)
-- [ ] makunbound  (Fmakunbound, 1/1, doc bf5e22734b1f, line 767)
-- [ ] fmakunbound  (Ffmakunbound, 1/1, doc 125cc62266a5, line 792)
-- [ ] symbol-function  (Fsymbol_function, 1/1, doc b6f4ce4b1691, line 810)
-- [ ] symbol-plist  (Fsymbol_plist, 1/1, doc 2c704bc14ab6, line 818)
-- [ ] symbol-name  (Fsymbol_name, 1/1, doc a9aa2c51c00c, line 826)
-- [ ] bare-symbol  (Fbare_symbol, 1/1, doc 3ea99e1587d6, line 840)
-- [ ] symbol-with-pos-pos  (Fsymbol_with_pos_pos, 1/1, doc 2c9a9ccea1bf, line 854)
-- [ ] remove-pos-from-symbol  (Fremove_pos_from_symbol, 1/1, doc f481f1408e2f, line 863)
-- [ ] position-symbol  (Fposition_symbol, 2/2, doc 9d0e2dc057aa, line 876)
-- [ ] fset  (Ffset, 2/2, doc 7af3608b8fe3, line 897)
+- [x] boundp  (Fboundp, 1/1, doc 210c7be33e73, line 715)
+- [x] fboundp  (Ffboundp, 1/1, doc 98372094c5aa, line 759)
+- [x] makunbound  (Fmakunbound, 1/1, doc bf5e22734b1f, line 767)
+- [x] fmakunbound  (Ffmakunbound, 1/1, doc 125cc62266a5, line 792)
+- [x] symbol-function  (Fsymbol_function, 1/1, doc b6f4ce4b1691, line 810)
+- [x] symbol-plist  (Fsymbol_plist, 1/1, doc 2c704bc14ab6, line 818)
+- [x] symbol-name  (Fsymbol_name, 1/1, doc a9aa2c51c00c, line 826)
+- [x] bare-symbol  (Fbare_symbol, 1/1, doc 3ea99e1587d6, line 840)
+- [x] symbol-with-pos-pos  (Fsymbol_with_pos_pos, 1/1, doc 2c9a9ccea1bf, line 854)
+- [x] remove-pos-from-symbol  (Fremove_pos_from_symbol, 1/1, doc f481f1408e2f, line 863)
+- [x] position-symbol  (Fposition_symbol, 2/2, doc 9d0e2dc057aa, line 876)
+- [x] fset  (Ffset, 2/2, doc 7af3608b8fe3, line 897)
 - [ ] defalias  (Fdefalias, 2/3, doc 0ddc4dab1693, line 1002)
 - [ ] setplist  (Fsetplist, 2/2, doc 3f68e5e7c348, line 1029)
 - [ ] subr-arity  (Fsubr_arity, 1/1, doc 540c5ca896e3, line 1038)
@@ -303,3 +303,10 @@
   see here: arm order, `>` vs `>=` in the `buffer_defaults` range test, and `idx <= 0`
   vs `idx < 0` are all silent, so those three points rest on the two recorded human
   readings until the ERT/differential layer exists.
+- **This file is where the subr-body hole surfaced (P-78).**  While porting 716-930 the
+  gate was probed with a mutation (`Feq`'s `EQ` -> `BASE_EQ`) and the mutation passed
+  every check, which led to `cinventory.defun_spans` and the loop that now compares subr
+  bodies too: 150 bodies across the ported units, 120 of them here.  The sweep's first
+  result for this file is two exemptions, both syntax-level: `Fboundp`'s
+  `switch`/`goto`/`redirect` and `Fmakunbound`'s `redirect` (the mirror packs that
+  bitfield into `u.s.bits`), recorded in `docs/ports/macro-body-notes.tsv`.

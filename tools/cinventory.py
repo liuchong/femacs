@@ -724,6 +724,135 @@ def doc_comment_value(comment: str) -> str:
     return "".join(out).strip(" \t").rstrip()
 
 
+def blank_literals(text: str) -> str:
+    """Replace string and character literals with spaces, preserving length and lines.
+
+    `blank_comments` leaves literals alone, and a brace inside one would throw the
+    depth count off: `printf ("}")` truncated a body and `char c = '{'` swallowed the
+    rest of the file (review B's D1).  The corpus happens to contain no such DEFUN
+    body, but the scan must not depend on that luck; `extract-abi.strip_char_literals`
+    is the Rust-side counterpart of the character half.
+    """
+    out, i, n = list(text), 0, len(text)
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            j = i + 1
+            while j < n:
+                if text[j] == "\\":
+                    j += 2
+                    continue
+                if text[j] == '"' or text[j] == "\n":
+                    break
+                j += 1
+            for k in range(i + 1, min(j, n)):
+                if out[k] != "\n":
+                    out[k] = " "
+            i = j + 1
+            continue
+        if ch == "'":
+            j, steps = i + 1, 0
+            while j < n and steps < 12:
+                if text[j] == "\\":
+                    j += 2
+                    steps += 1
+                    continue
+                if text[j] == "'" or text[j] == "\n":
+                    break
+                j += 1
+                steps += 1
+            if j < n and text[j] == "'" and j > i + 1:
+                for k in range(i + 1, j):
+                    if out[k] != "\n":
+                        out[k] = " "
+                i = j + 1
+                continue
+        i += 1
+    return "".join(out)
+
+
+def _matching(text: str, pos: int, open_ch: str, close_ch: str) -> int:
+    """The index of the `close_ch` that matches the `open_ch` at POS, or len(text)."""
+    depth = 0
+    i = pos
+    while i < len(text):
+        ch = text[i]
+        if ch == open_ch:
+            depth += 1
+        elif ch == close_ch:
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return len(text)
+
+
+def _defun_heads(text: str) -> list[tuple[str, str, int]]:
+    """`(lisp_name, c_name, index of the macro's '(')` for every `DEFUN (...)` head.
+
+    Scanned instead of matched: a lisp name may contain an escaped quote
+    (`"foo\\"bar"`), and the pattern this replaces (`"[^"]*"`) silently produced no
+    span for such a DEFUN, so its body would have been compared by nothing at all --
+    the failure mode is silence, not an error (review B's D2).  A name containing
+    parentheses must not be mistaken for the macro's parameter list either, so the
+    head is parsed character by character.
+    """
+    heads: list[tuple[str, str, int]] = []
+    for m in re.finditer(r"^DEFUN\s*\(", text, re.M):
+        open_paren = text.index("(", m.start())
+        j = open_paren + 1
+        while j < len(text) and text[j] in " \t":
+            j += 1
+        if j >= len(text) or text[j] != '"':
+            continue
+        k, chars = j + 1, []
+        while k < len(text) and text[k] != "\n":
+            if text[k] == "\\" and k + 1 < len(text):
+                chars.append(text[k:k + 2])
+                k += 2
+                continue
+            if text[k] == '"':
+                break
+            chars.append(text[k])
+            k += 1
+        k += 1
+        while k < len(text) and text[k] in ", \t":
+            k += 1
+        nm = re.match(r"[A-Za-z_]\w*", text[k:])
+        if not nm:
+            continue
+        heads.append(("".join(chars), nm.group(0), open_paren))
+    return heads
+
+
+def defun_spans(text: str) -> list[dict]:
+    """Every `DEFUN (...)` subr, with the body span its `fnname` defines.
+
+    `function_spans` skips these on purpose: the C text spells the *subr object*
+    (`Sname`) at the position a C parser expects the name, and the function's own
+    name is only the macro's second argument, so a body lookup by name never
+    found one -- which left the body of every subr uncompared (review of
+    data.c, P-78).  The body is the braced block after the parameter list that
+    follows the macro invocation.
+    """
+    scan = blank_literals(blank_comments(text))
+    spans: list[dict] = []
+    for lisp_name, name, macro_open in _defun_heads(scan):
+        macro_end = _matching(scan, macro_open, "(", ")")
+        open_paren = scan.find("(", macro_end + 1)
+        if open_paren == -1:
+            continue
+        args_end = _matching(scan, open_paren, "(", ")")
+        brace = scan.find("{", args_end)
+        if brace == -1:
+            continue
+        body_end = _matching(scan, brace, "{", "}")
+        spans.append({"name": name, "lisp_name": lisp_name,
+                      "body_start": text.count("\n", 0, brace) + 1,
+                      "body_end": text.count("\n", 0, body_end) + 1})
+    return spans
+
+
 def function_spans(text: str) -> list[dict]:
     """Every function definition, with the body span it occupies.
 

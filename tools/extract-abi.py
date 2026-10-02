@@ -362,8 +362,14 @@ def body_token_seq(text: str, *, numbers: bool = True, skip_short: bool = False)
     """
     text = re.sub(r'"(?:[^"\\]|\\.)*"', '""', text)
     text = strip_char_literals(text)
-    # preprocessor lines inside a body (`#ifdef`, `#endif`, `# define`) are not code
-    text = "\n".join(l for l in text.split("\n") if not l.lstrip().startswith("#"))
+    # C's preprocessor lines inside a body (`#ifdef`, `#endif`, `# define`) are not code,
+    # and the whole line goes.  A Rust `#[cfg (...)]` is not a line-based directive
+    # though: the port writes it on the same line as the statements it gates (P-51's dead
+    # text follows the live arm), so dropping the line erased the whole body --
+    # `floatfns.rs`'s `Fround` compared as `[]` (P-78).  Only the directive is removed.
+    text = "\n".join(l for l in text.split("\n")
+                     if not l.lstrip().startswith("#") or l.lstrip().startswith("#["))
+    text = re.sub(r"#\s*\[[^\]]*\]", "", text)
     toks = re.findall(r"[A-Za-z_]\w*|\d+", text)
     out = []
     for tok in toks:
@@ -458,9 +464,13 @@ def c_body_text(text: str, name: str) -> str | None:
     what the frozen configuration compiles.
     """
     window = ci.Lines(text)
-    for span in ci.function_spans(text):
+    rows = text.split("\n")
+    # A subr's body hangs off a `DEFUN (...)` invocation, which `function_spans` cannot
+    # name; `ci.defun_spans` finds those (P-78).  Both kinds are compared now, so a
+    # mutation inside a subr body is no longer silent.
+    for span in ci.function_spans(text) + ci.defun_spans(text):
         if span["name"] == name:
-            body = text.split("\n")[span["body_start"] - 1: span["body_end"]]
+            body = rows[span["body_start"] - 1: span["body_end"]]
             live = window.live[span["body_start"] - 1: span["body_end"]]
             return ci.blank_comments("\n".join(l for l, ok in zip(body, live) if ok))
     return None
@@ -849,7 +859,7 @@ def body_is_empty(c_path: Path, name: str) -> bool:
     """True when the reference function's body has no live statements."""
     text = c_path.read_text(encoding="utf-8", errors="replace")
     window = ci.Lines(text)
-    for span in ci.function_spans(text):
+    for span in ci.function_spans(text) + ci.defun_spans(text):
         if span["name"] == name:
             body = text.split("\n")[span["body_start"] - 1: span["body_end"]]
             live = window.live[span["body_start"] - 1: span["body_end"]]
@@ -1148,8 +1158,16 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
                     for m in re.finditer(r"^\s*typedef\b[^;{}]*\b([A-Za-z_]\w*)\s*;", c_source, re.M)}
     local_types |= {m.group(1).lower()
                     for m in re.finditer(r"^\s*\}\s*([A-Za-z_]\w*)\s*;", c_source, re.M)}
-    for f in c["functions"]:
-        name = f["name"]
+    # C's declaration specifiers (`struct`, `union`, `const`, `signed`, ...) are already in
+    # MACRO_TOKEN_SKIP, so a `struct Lisp_Symbol *sym;` declaration costs only the type
+    # name, which the mirror spells too (`let mut sym: *mut Lisp_Symbol`).  Review B's D4
+    # measured that adding them here again changes no body's verdict.
+    # Subrs are `DEFUN` invocations, so `c["functions"]` has never listed them and their
+    # bodies were compared by nothing at all (P-78: a `Feq` body mutation passed every
+    # gate).  Both kinds go through the same check now.
+    body_names = [("function", f["name"]) for f in c["functions"]]
+    body_names += [("subr", d["c_name"]) for d in c["defuns"]]
+    for kind, name in body_names:
         if name in excluded:
             continue
         allowed = note_tokens(macro_notes, name) | local_types
@@ -1167,7 +1185,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         missing = (body_tokens(c_text, skip_short=True)
                    - body_tokens(rust_body, skip_short=True)) - allowed
         if missing:
-            problems.append(f"function {name} does not mention "
+            problems.append(f"{kind} {name} does not mention "
                             + ", ".join(sorted(missing)))
         problems.extend(alias_count_problems(c_text, rust_body, skip_short=True))
         problems.extend(va_arg_problems(c_text, rust_body))

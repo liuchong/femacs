@@ -528,6 +528,202 @@ DEFUN! ("setcdr", Fsetcdr, Ssetcdr, 2, 2, 0,
   return newcdr;
 });
 
+DEFUN! ("boundp", Fboundp, Sboundp, 1, 1, 0,
+       doc: "Return t if SYMBOL's value is not void.\nNote that if `lexical-binding' is in effect, this refers to the\nglobal value outside of any lexical scope.",
+       (symbol: Lisp_Object),
+       {
+  CHECK_SYMBOL (symbol);
+  let mut sym: *mut Lisp_Symbol = XSYMBOL (symbol);
+
+  // C's `start:` label and its `goto start` (data.c 730, 736) become this loop.
+  let valcontents = loop
+    {
+      match unsafe { ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT }
+        {
+          SYMBOL_PLAINVAL => { break SYMBOL_VAL (sym); }
+          SYMBOL_VARALIAS => { sym = SYMBOL_ALIAS (sym); continue; }
+          SYMBOL_LOCALIZED =>
+            {
+              let blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value;
+              if ! unsafe { (*blv).fwd }.is_null ()
+                /* In set_internal, we un-forward vars when their value is
+                   set to Qunbound.  */
+                { return Qt (); }
+              else
+                {
+                  swap_in_symval_forwarding (sym, blv);
+                  break blv_value (blv);
+                }
+            }
+          SYMBOL_FORWARDED =>
+            /* In set_internal, we un-forward vars when their value is
+               set to Qunbound.  */
+            { return Qt (); }
+          _ => emacs_abort (),
+        }
+    };
+
+  return if BASE_EQ (valcontents, Qunbound ()) { Qnil () } else { Qt () };
+});
+
+DEFUN! ("fboundp", Ffboundp, Sfboundp, 1, 1, 0,
+       doc: "Return t if SYMBOL's function definition is not nil.",
+       (symbol: Lisp_Object),
+       {
+  CHECK_SYMBOL (symbol);
+  return if NILP (unsafe { (*XSYMBOL (symbol)).u.s.function }) { Qnil () } else { Qt () };
+});
+
+DEFUN! ("makunbound", Fmakunbound, Smakunbound, 1, 1, 0,
+       doc: "Empty out the value cell of SYMBOL, making it void as a variable.\nReturn SYMBOL.\nWhen applied to a variable alias, it undoes the `defvaralias'.\n\nIf a variable is void, trying to evaluate the variable signals a\n`void-variable' error, instead of returning a value.  For more\ndetails, see Info node `(elisp) Void Variables'.\n\nSee also `fmakunbound'.",
+       (symbol: Lisp_Object),
+       {
+  CHECK_SYMBOL (symbol);
+  if SYMBOL_CONSTANT_P (symbol)
+    { xsignal1 (Qsetting_constant (), symbol); }
+  if unsafe { ((*XSYMBOL (symbol)).u.s.bits & SYMBOL_REDIRECT_MASK)
+               >> SYMBOL_REDIRECT_SHIFT } == SYMBOL_VARALIAS
+    {
+      // C assigns the bitfield `redirect`; the mirror packs it with the other
+      // symbol bits (lisp.rs 1408-1500), so the port sets that field.
+      let sym = XSYMBOL (symbol);
+      let bits = unsafe { (*sym).u.s.bits };
+      unsafe { (*sym).u.s.bits = (bits & !SYMBOL_REDIRECT_MASK)
+                                 | (SYMBOL_PLAINVAL << SYMBOL_REDIRECT_SHIFT); }
+      SET_SYMBOL_VAL (XSYMBOL (symbol), Qunbound ());
+    }
+  else
+    { Fset (symbol, Qunbound ()); }
+  return symbol;
+});
+
+DEFUN! ("fmakunbound", Ffmakunbound, Sfmakunbound, 1, 1, 0,
+       doc: "Make SYMBOL's function definition be nil.\nReturn SYMBOL.\n\nIf a function definition is nil, trying to call a function by\nthat name will cause a `void-function' error.  For more details, see\nInfo node `(elisp) Function Cells'.\n\nSee also `makunbound'.",
+       (symbol: Lisp_Object),
+       {
+  CHECK_SYMBOL (symbol);
+  if NILP (symbol) || EQ (symbol, Qt ())
+    { xsignal1 (Qsetting_constant (), symbol); }
+  set_symbol_function (symbol, Qnil ());
+  return symbol;
+});
+
+DEFUN! ("symbol-function", Fsymbol_function, Ssymbol_function, 1, 1, 0,
+       doc: "Return SYMBOL's function definition.",
+       (symbol: Lisp_Object),
+       {
+  CHECK_SYMBOL (symbol);
+  return unsafe { (*XSYMBOL (symbol)).u.s.function };
+});
+
+DEFUN! ("symbol-plist", Fsymbol_plist, Ssymbol_plist, 1, 1, 0,
+       doc: "Return SYMBOL's property list.",
+       (symbol: Lisp_Object),
+       {
+  CHECK_SYMBOL (symbol);
+  return unsafe { (*XSYMBOL (symbol)).u.s.plist };
+});
+
+DEFUN! ("symbol-name", Fsymbol_name, Ssymbol_name, 1, 1, 0,
+       doc: "Return SYMBOL's name, a string.\n\nWarning: never alter the string returned by `symbol-name'.\nDoing that might make Emacs dysfunctional, and might even crash Emacs.",
+       (symbol: Lisp_Object),
+       {
+  let name: Lisp_Object;
+
+  CHECK_SYMBOL (symbol);
+  name = SYMBOL_NAME (symbol);
+  return name;
+});
+
+DEFUN! ("bare-symbol", Fbare_symbol, Sbare_symbol, 1, 1, 0,
+       doc: "Extract, if need be, the bare symbol from SYM.\nSYM must be either a symbol or a symbol with position, otherwise\nthe function will signal the `wrong-type-argument' error.\nThis function ignores `symbols-with-pos-enabled'.",
+       (sym: Lisp_Object),
+       {
+  if BARE_SYMBOL_P (sym)
+    { return sym; }
+  if SYMBOL_WITH_POS_P (sym)
+    { return XSYMBOL_WITH_POS_SYM (sym); }
+  wrong_type_argument (list2 (Qsymbolp (), Qsymbol_with_pos_p ()), sym);
+});
+
+DEFUN! ("symbol-with-pos-pos", Fsymbol_with_pos_pos, Ssymbol_with_pos_pos, 1, 1, 0,
+       doc: "Extract the position from the symbol with position SYMPOS.\nIgnore `symbols-with-pos-enabled'.",
+       (sympos: Lisp_Object),
+       {
+  CHECK_TYPE (SYMBOL_WITH_POS_P (sympos), Qsymbol_with_pos_p (), sympos);
+  return XSYMBOL_WITH_POS_POS (sympos);
+});
+
+DEFUN! ("remove-pos-from-symbol", Fremove_pos_from_symbol,
+       Sremove_pos_from_symbol, 1, 1, 0,
+       doc: "If ARG is a symbol with position, return it without the position.\nOtherwise, return ARG unchanged.  Ignore `symbols-with-pos-enabled'.\nCompare with `bare-symbol', which does the same, but signals an error\nif ARG is not a symbol.",
+       (arg: Lisp_Object),
+       {
+  if SYMBOL_WITH_POS_P (arg)
+    { return XSYMBOL_WITH_POS_SYM (arg); }
+  return arg;
+});
+
+DEFUN! ("position-symbol", Fposition_symbol, Sposition_symbol, 2, 2, 0,
+       doc: "Make a new symbol with position.\nSYM is a symbol, with or without position, the symbol to position.\nPOS, the position, is either a nonnegative fixnum,\nor a symbol with position from which the position will be taken.\nIgnore `symbols-with-pos-enabled'.",
+       (sym: Lisp_Object, pos: Lisp_Object),
+       {
+  let bare = Fbare_symbol (sym);
+  let position: Lisp_Object;
+
+  if FIXNUMP (pos)
+    { position = pos; }
+  else if SYMBOL_WITH_POS_P (pos)
+    { position = XSYMBOL_WITH_POS_POS (pos); }
+  else
+    { wrong_type_argument (Qfixnum_or_symbol_with_pos_p (), pos); }
+
+  return build_symbol_with_pos (bare, position);
+});
+
+DEFUN! ("fset", Ffset, Sfset, 2, 2, 0,
+       doc: "Set SYMBOL's function definition to DEFINITION, and return DEFINITION.\nIf the resulting chain of function definitions would contain a loop,\nsignal a `cyclic-function-indirection' error.",
+       (symbol: Lisp_Object, definition: Lisp_Object),
+       {
+  CHECK_SYMBOL (symbol);
+  /* Perhaps not quite the right error signal, but seems good enough.  */
+  if NILP (symbol) && ! NILP (definition)
+    /* There are so many other ways to shoot oneself in the foot, I don't
+       think this one little sanity check is worth its cost, but anyway.  */
+    { xsignal1 (Qsetting_constant (), symbol); }
+
+  eassert! (valid_lisp_object_p (definition) != 0);
+
+  /* Ensure non-circularity.  */
+  {
+    let mut s = definition;
+    while SYMBOLP (s) && ! NILP (s)
+      {
+        if EQ (s, symbol)
+          { xsignal1 (Qcyclic_function_indirection (), symbol); }
+        s = unsafe { (*XSYMBOL (s)).u.s.function };
+      }
+  }
+
+  // C gates this block on `#ifdef HAVE_NATIVE_COMP`; HAVE_NATIVE_COMP is undefined in
+  // the frozen configuration, so the port keeps the text under the same condition
+  // (PORTING.md P-08/P-51).  `native_comp` is what `xtask dead-arms` flips.
+  #[cfg(feature = "native_comp")]
+  {
+    let function = unsafe { (*XSYMBOL (symbol)).u.s.function };
+
+    if ! NILP (unsafe { Vnative_comp_enable_subr_trampolines })
+      && SUBRP (function)
+      && ! NATIVE_COMP_FUNCTIONP (function)
+      && ! EQ (definition, Fsymbol_function (symbol))
+      { calln! (Qcomp_subr_trampoline_install (), symbol); }
+  }
+
+  set_symbol_function (symbol, definition);
+
+  return definition;
+});
+
 /* Return the KBOARD to which bindings currently established and values
    set should apply.  */
 
