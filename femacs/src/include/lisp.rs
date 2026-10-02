@@ -3817,6 +3817,24 @@ pub mod other_units {
         pub fn inhibit_garbage_collection () -> specpdl_ref;
         // lisp.h 5354: category.h's CATEGORY_SET macro calls it; category.c defines it.
         pub fn char_category_set (c: c_int) -> Lisp_Object;
+        // lisp.h 4251-4256, 4685-4687: category.c's hash-table and char-table calls.
+        // Their pointer parameters have pointees the probe's type table cannot spell, so
+        // each carries the reference prototype and the probe checks it there (P-55).
+        /// C: Lisp_Object make_hash_table (const struct hash_table_test *, EMACS_INT, hash_table_weakness_t)
+        pub fn make_hash_table (test: *const hash_table_test, size: EMACS_INT,
+                                weakness: hash_table_weakness_t) -> Lisp_Object;
+        /// C: ptrdiff_t hash_find_get_hash (struct Lisp_Hash_Table *, Lisp_Object, hash_hash_t *)
+        pub fn hash_find_get_hash (h: *mut Lisp_Hash_Table, key: Lisp_Object,
+                                   phash: *mut hash_hash_t) -> ptrdiff_t;
+        /// C: Lisp_Object copy_char_table (Lisp_Object)
+        pub fn copy_char_table (table: Lisp_Object) -> Lisp_Object;
+        /// C: Lisp_Object char_table_ref_and_range (Lisp_Object, int, int *, int *)
+        pub fn char_table_ref_and_range (table: Lisp_Object, idx: c_int,
+                                         from: *mut c_int, to: *mut c_int) -> Lisp_Object;
+        /// C: void char_table_set_range (Lisp_Object, int, int, Lisp_Object)
+        pub fn char_table_set_range (table: Lisp_Object, from: c_int, to: c_int,
+                                     val: Lisp_Object);
+
         pub fn make_buffer_string (start: ptrdiff_t, end: ptrdiff_t, nprops: bool)
                                    -> Lisp_Object;
         /// C: Lisp_Object buffer_visited_file_modtime (struct buffer *)

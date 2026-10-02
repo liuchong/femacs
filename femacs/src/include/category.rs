@@ -119,8 +119,8 @@ pub fn CATEGORY_DOCSTRING (table: Lisp_Object, category: c_int) -> Lisp_Object
 /// (`ASET!` is lisp.rs's) and the callers write it as a statement.
 macro_rules! SET_CATEGORY_DOCSTRING {
     ($table:expr, $category:expr, $value:expr) => {
-        ASET! (Fchar_table_extra_slot ($table, make_fixnum (0)),
-               ($category - ' ' as c_int) as isize, $value)
+        ASET (Fchar_table_extra_slot ($table, make_fixnum (0)),
+               ($category) as isize - (' ' as isize), $value)
     };
 }
 
