@@ -162,6 +162,35 @@ def strip_strings(line: str) -> str:
     return re.sub(r'"(?:[^"\\]|\\.)*"', '""', line)
 
 
+def strip_char_literals(line: str) -> str:
+    """LINE with C character literals blanked.
+
+    A brace inside one (`image.c` has `'{'` and `'}'`) walks `brace_depth` off, which is how
+    `ct_colors_allocated_max` was skipped (review A's F3 diagnosis).  The scan is bounded the
+    way tools/extract-abi.py's is: a character literal is a few characters long, so an
+    unmatched apostrophe must not swallow the rest of the line.
+    """
+    out, i, n = [], 0, len(line)
+    while i < n:
+        ch = line[i]
+        if ch == "'":
+            j = i + 1
+            while j < n and j - i <= 8:
+                if line[j] == "\\":
+                    j += 2
+                    continue
+                if line[j] == "'":
+                    break
+                j += 1
+            if j < n and j - i <= 8 and line[j] == "'":
+                out.append(" " * (j - i + 1))
+                i = j + 1
+                continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
 DOC_ESCAPE = {"t": "\t", "r": "\r", "n": "\n", "f": "\f", "b": "\b", "v": "\v",
               "a": "\x07", "\\": "\\"}
 
@@ -332,11 +361,12 @@ def enum_constants(text: str) -> dict[str, str]:
 
     Only *file-scope* enums are read: C also declares enums inside functions
     (doprnt.c 218-225's `pDlen`/`pIlen`/`pMlen`/`maxmlen`), whose members are locals
-    the enclosing function's body-token check already covers.
+    the enclosing function's body-token check already covers.  The text it reads comes
+    from `flat_code`, which drops preprocessor lines so that neither an `extern "C" {`
+    nor a multi-line `#define`'s continuation can move the depth (F3/F4).
     """
     out: dict[str, str] = {}
-    lines = [strip_strings(line) for _, line, live in Lines(text) if live]
-    code = "\n".join(lines)
+    code = flat_code(text)
     # The keyword is followed by an optional tag and then the brace, possibly on the
     # next line — but *only* that: `enum foo bar (void) {` is a function definition,
     # and letting the search cross arbitrary text made it swallow the bodies after it.
@@ -370,13 +400,59 @@ def enum_constants(text: str) -> dict[str, str]:
     return out
 
 
-def brace_depth(text: str, pos: int) -> int:
-    """The `{` nesting depth at POS, ignoring literals and preprocessor lines."""
-    depth = 0
-    for line in text[:pos].split("\n"):
-        if line.lstrip().startswith("#"):
+def flat_code(text: str) -> str:
+    """The live, comment- and string-stripped code with preprocessor lines dropped.
+
+    Preprocessor lines are not code, and leaving them in the text broke three things
+    (review A's F3, 2026-10-02):
+
+    * the `extern "C" {` of a `#ifdef __cplusplus` block is a real live line, so the brace
+      depth stayed 1 for the rest of the file and *every* file-scope enum behind it was
+      discarded as "inside a function or struct" (lib/timespec.h, lib/readutmp.h,
+      lib/sha256.h, lib/sha3.h, lib/sha512.h, src/emacs-module.in.h, src/macfont.h,
+      src/xterm.h);
+    * the continuation lines of a multi-line `#define` were counted as braces
+      (`src/xterm.h`'s `do { … } while (false)` left a permanent depth of -1);
+    * an `#if`/`#else` *inside* an enum body glued onto the preceding member, so the
+      `name = value` regex failed on the leading `#` (`src/macfont.h`'s last member).
+
+    A logical preprocessor line starts with `#` (after optional blanks) and continues while
+    the physical line ends in a backslash.
+    """
+    out, skipping = [], False
+    for _, line, live in Lines(text):
+        if not live:
             continue
-        depth += line.count("{") - line.count("}")
+        # Character literals too: image.c has `'{'`/`'}'`, and a counted brace inside one
+        # walks the depth off (review A's F3 diagnosis).
+        stripped = strip_char_literals(strip_strings(line))
+        if skipping:
+            skipping = stripped.rstrip().endswith("\\")
+            continue
+        if stripped.lstrip().startswith("#"):
+            skipping = stripped.rstrip().endswith("\\")
+            continue
+        out.append(stripped)
+    return "\n".join(out)
+
+
+def brace_depth(code: str, pos: int) -> int:
+    """The `{` nesting depth at POS in flat code, not counting `extern "C" {`.
+
+    That brace is C++ linkage syntax, not a body: counting it hid the file-scope enums
+    behind it (see `flat_code`).  Its matching `}` is skipped too.
+    """
+    depth = 0
+    stack: list[bool] = []
+    for i, ch in enumerate(code[:pos]):
+        if ch == "{":
+            linkage = code[max(0, i - 12):i].rstrip().endswith('extern "C"')
+            stack.append(not linkage)
+            if not linkage:
+                depth += 1
+        elif ch == "}":
+            if stack.pop() if stack else False:
+                depth -= 1
     return depth
 
 

@@ -11,7 +11,10 @@ reverses the type mapping, and prints
 
 for every declaration it can map, so `clang -Werror=incompatible-pointer-types` against
 `emacs/src/lisp.h` turns any wrong width / const-ness / return type into an error.
-Declarations whose types it cannot map are counted and reported, not silently dropped.
+Declarations whose types it cannot map are counted and reported.  What is still outside the
+check is named in the report itself: `/// C:`-annotated declarations are checked for arity
+and width but not for the spelling of a nameable pointee, and object declarations
+(`pub static …`) are only inventoried (PORTING.md P-63/P-64).
 
     python3 tools/gen-lisp-abi-probe.py [--mirror femacs/src/include/lisp.rs]
 """
@@ -62,8 +65,12 @@ RULES = [
 # Declarations the harness must not type-check, each with the reason it is out of
 # reach.  They are printed with their reasons, so an addition here is visible.
 SKIP = {
-    # src/sysstdio.h declares it; lisp.h is what this harness includes.
-    "die": "declared in src/sysstdio.h, which the harness does not include",
+    # lisp.h 185 declares it inside `#ifdef ENABLE_CHECKING`, and the frozen configuration
+    # leaves that undefined (healthy build/emacs-ref/src/config.h); its definition is
+    # conditional too (alloc.c 7345-7355), so the frozen reference has no `die` symbol at
+    # all.  The mirror's declaration is reachable only through the `#[cfg
+    # (enable_checking)]` arms of `eassert!`/`eassume!`.
+    "die": "lisp.h 185's `#ifdef ENABLE_CHECKING` is undefined in the frozen configuration",
     # P-05: C's `alloca` has no Rust counterpart, so AVAIL_ALLOCA calls a port-side
     # allocator (alloc.rs).  lisp.h has no such declaration to check against.
     "sa_stack_alloc": "port-side alloca replacement (P-05), not a C name in lisp.h",
@@ -84,6 +91,51 @@ def strip_comments(text: str) -> str:
     text = re.sub(r"/\*.*?\*/", " ", text, flags=re.S)
     text = re.sub(r'"(?:\\.|[^"\\])*"', '""', text)
     return re.sub(r"//[^\n]*", " ", text)
+
+
+# Widths on the frozen darwin-arm64 target, for the `/// C:` cross-check below.  A pointer
+# is always 8 bytes; an unlisted name means "unknown, do not compare".
+WIDTH = {
+    "void": 0, "bool": 1, "char": 1, "signed char": 1, "unsigned char": 1,
+    "short": 2, "unsigned short": 2, "int": 4, "unsigned int": 4, "float": 4,
+    "long": 8, "unsigned long": 8, "long long": 8, "unsigned long long": 8,
+    "ptrdiff_t": 8, "size_t": 8, "intmax_t": 8, "uintmax_t": 8, "EMACS_INT": 8,
+    "EMACS_UINT": 8, "Lisp_Object": 8, "double": 8, "specpdl_ref": 8, "time_t": 8,
+}
+
+
+def c_width(c_type: str) -> int | None:
+    """C_TYPE's size, or None when the table does not know it."""
+    if "*" in c_type:
+        return 8
+    return WIDTH.get(" ".join(c_type.split()))
+
+
+def annotation_disagreement(name: str, ann_ret: str, ann_args: list, rust_ret: str,
+                            rust_args: list, tags: dict, typedefs: set) -> list:
+    """Reasons the `/// C:` prototype and the Rust declaration do not describe one function.
+
+    The annotation is what the probe compiles, so without this the Rust side of an annotated
+    declaration is unchecked — review B's F1 turned `charpos: ptrdiff_t` into `c_int`, changed
+    the return type and added a parameter, and the probe still printed 68 checked.  Compared
+    here: the arity, and the width of every parameter and of the return type, from C's own
+    spelling of each side.  A pointer whose pointee is a tag the mirror cannot name (P-55)
+    stays allowed: `*mut c_void` against `struct buffer *` is the same 8 bytes.
+    """
+    problems = []
+    if len(ann_args) != len(rust_args):
+        problems.append(f"{len(ann_args)} parameters in the `/// C:` prototype, "
+                        f"{len(rust_args)} in the Rust declaration")
+    for i, (c_ann, c_rust) in enumerate(zip(ann_args, rust_args)):
+        w_ann, w_rust = c_width(c_ann), c_width(c_rust)
+        if w_ann is not None and w_rust is not None and w_ann != w_rust:
+            problems.append(f"parameter {i + 1}: `/// C:` says {c_ann} ({w_ann} bytes), "
+                            f"the Rust declaration maps to {c_rust} ({w_rust})")
+    w_ann, w_rust = c_width(ann_ret), c_width(rust_ret)
+    if w_ann is not None and w_rust is not None and w_ann != w_rust:
+        problems.append(f"return type: `/// C:` says {ann_ret} ({w_ann} bytes), "
+                        f"the Rust declaration maps to {rust_ret} ({w_rust})")
+    return problems
 
 
 def reference_c_tables() -> tuple:
@@ -109,6 +161,24 @@ def to_c(rust_type: str, tags: dict, typedefs: set) -> str | None:
     t = " ".join(rust_type.split()).strip()
     if t in ("()", "!"):
         return "void"
+    # A C function pointer: `void (*)(void *)`.  C's prototypes write the parameters for
+    # function-pointer parameters (they have no names there), e.g. lisp.h 4442's
+    # `void flush_stack_call_func1 (void (*func) (void *arg), void *arg)`.
+    fp = re.fullmatch(r"Option<\s*unsafe extern \"C\" fn\s*\((.*)\)\s*>", t, re.S)
+    if fp:
+        params = []
+        for arg in split_top_level(fp.group(1)):
+            ty = arg.split(":", 1)[1] if ":" in arg else arg
+            mapped = to_c(ty, tags, typedefs)
+            if mapped is None:
+                return None
+            params.append(mapped)
+        return f"void (*) ({', '.join(params) or 'void'})"
+    # An array object type, `int[4]` (`[c_int; 4]` in the mirror).
+    arr = re.fullmatch(r"\[(.+);\s*(\d+)\]", t, re.S)
+    if arr:
+        inner = to_c(arr.group(1), tags, typedefs)
+        return None if inner is None else f"{inner}[{arr.group(2)}]"
     # A Rust type named after a C tag has to be spelled with the tag's keyword.
     m = re.fullmatch(r"\*(mut|const)\s+(\w+)", t)
     if m and m.group(2) in tags and m.group(2) not in typedefs:
@@ -150,6 +220,9 @@ def split_top_level(args: str) -> list:
     if cur.strip():
         out.append(cur)
     return out
+
+
+OBJECT_RE = re.compile(r"pub static (?:mut )?(\w+)\s*:\s*([^;]+);")
 
 
 def extern_blocks(text: str) -> list:
@@ -216,6 +289,10 @@ def main() -> int:
     print("#include \"lisp.h\"")
     print()
     tags, typedefs = reference_c_tables()
+    objects: list[str] = []
+    for block in extern_blocks(text):
+        for match in OBJECT_RE.finditer(block):
+            objects.append(match.group(1))
     checked: list[str] = []
     skipped: list[str] = []
     unmapped: list[str] = []
@@ -236,6 +313,18 @@ def main() -> int:
                 if not am or am.group(2) != name:
                     print(f"error: {name}: unparsable `/// C:` annotation "
                           f"{annotation!r} (it must name {name})", file=sys.stderr)
+                    return 1
+                ann_args = split_top_level(am.group(3))
+                rust_args = [a.split(":", 1)[1] if ":" in a else a
+                             for a in split_top_level(args)] if args else []
+                rust_mapped = [to_c(a, tags, typedefs) for a in rust_args]
+                rust_ret = to_c(ret, tags, typedefs)
+                bad = annotation_disagreement(name, am.group(1).strip(), ann_args,
+                                              rust_ret or "?", rust_mapped,
+                                              tags, typedefs)
+                if bad:
+                    for problem in bad:
+                        print(f"error: {name}: {problem}", file=sys.stderr)
                     return 1
                 print(f"static {am.group(1).strip()} (*p_{name}) "
                       f"({am.group(3).strip()}) = {name};   /* /// C: */")
@@ -268,6 +357,13 @@ def main() -> int:
     if unmapped:
         print("/* unmapped (no C type inferred, not checked): "
               + ", ".join(sorted(unmapped)) + " */", file=sys.stderr)
+    if objects:
+        # They were invisible until review B's F2: 61 of the mirror's 138 declarations are
+        # objects, and `extern const int chartab_size[4]` against `pub static mut
+        # chartab_size: [c_int; 4]` is not compared by anything yet (PORTING.md P-64).
+        print(f"/* {len(objects)} object declarations not type-checked yet "
+              "(PORTING.md P-64): " + ", ".join(sorted(objects)[:8])
+              + (" ... */" if len(objects) > 8 else " */"), file=sys.stderr)
     for name in sorted(skipped):
         print(f"/* skipped {name}: {SKIP[name]} */", file=sys.stderr)
     if len(checked) < 40:

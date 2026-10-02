@@ -400,7 +400,7 @@ macro_rules! static_assert {
     };
 }
 
-// C defines PSEUDOVECSIZE at lisp.h 3155, *after* the char-table constants (2231-2247) that
+// C defines PSEUDOVECSIZE at lisp.h 2022, *after* the char-table constants (2231-2247) that
 // are built from it.  Rust's `macro_rules!` is textually scoped (P-57) and those constants
 // are `const` initialisers that the macro has to be expanded in, so the port moves the
 // definition here, next to `static_assert!`; the body is C's, unchanged.
@@ -1377,7 +1377,7 @@ pub const CHAR_TABLE_STANDARD_SLOTS: isize =
 // They were missing from this mirror, which is why `SUB_CHAR_TABLE_OFFSET` could sit at 2
 // while C's is 1 (P-59/P-60): the C compiler proved it, the port did not.  C's `offsetof
 // (struct X, f)` is `std::mem::offset_of! (X, f)` and `sizeof (Lisp_Object)` is
-// `std::mem::size_of::<Lisp_Object> ()`, exactly as lisp.h 3141-3146 spells them.
+// `std::mem::size_of::<Lisp_Object> ()`, exactly as lisp.h 1831-1835 spells them.
 static_assert! (std::mem::offset_of! (Lisp_Char_Table, defalt) as isize == header_size);
 static_assert! (std::mem::offset_of! (Lisp_Char_Table, extras) as isize
                 == header_size + CHAR_TABLE_STANDARD_SLOTS
@@ -2149,7 +2149,12 @@ pub fn set_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object
 
 // --- batch 6: obarrays, hash tables, sqlite, checks, constructors (src/lisp.h 2400-3400) ---
 pub type hash_hash_t = c_uint;
-pub type hash_idx_t = isize;
+/// lisp.h 2559: `typedef int_least32_t hash_idx_t;` — a 32-bit index, *not* a
+/// `ptrdiff_t` (the C comment above it says "signed and a subtype of ptrdiff_t", which the
+/// port's `isize` read it as; review A's F1 measured `sizeof (struct Lisp_Hash_Table)` at 72
+/// in C against 88 in the port, 2026-10-02).  `PRIdHASH_IDX` (lisp.h 2560) is `PRIdLEAST32`,
+/// i.e. the `"d"` the port already uses.
+pub type hash_idx_t = i32;
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -2521,7 +2526,7 @@ pub fn make_uninit_vector (size: isize) -> Lisp_Object {
 }
 
 #[inline(always)]
-pub fn make_uninit_sub_char_table (depth: c_int) -> Lisp_Object {
+pub fn make_uninit_sub_char_table (depth: c_int, min_char: c_int) -> Lisp_Object {
     let slots = SUB_CHAR_TABLE_OFFSET + unsafe { chartab_size[depth as usize] } as isize;
     let v = make_uninit_vector (slots);
     unsafe {
@@ -2531,7 +2536,7 @@ pub fn make_uninit_sub_char_table (depth: c_int) -> Lisp_Object {
     }
     unsafe {
         (*XSUB_CHAR_TABLE (v)).depth = depth;
-        (*XSUB_CHAR_TABLE (v)).min_char = 0;
+        (*XSUB_CHAR_TABLE (v)).min_char = min_char;
     }
     v
 }
@@ -2727,12 +2732,14 @@ pub fn ROUNDUP (x: isize, y: isize) -> isize {
     if POWER_OF_2 (y) { (y - 1 + x) & !(y - 1) } else { (y - 1 + x) - (y - 1 + x) % y }
 }
 
-/// lisp.h 3141-3146: `enum { header_size = offsetof (struct Lisp_Vector, contents),
+/// lisp.h 1831-1835: `enum { header_size = offsetof (struct Lisp_Vector, contents),
 /// bool_header_size = offsetof (struct Lisp_Bool_Vector, data),
 /// word_size = sizeof (Lisp_Object) };` — three enum *constants*, not functions.  The port
 /// had `word_size`/`header_size` as `const fn`s, which the constant gate could not compare
 /// against C's enum members (C's members are only visible to the strengthened extractor
-/// since P-38's `enum NAME` + newline + `{` form landed).
+/// since P-38's `enum NAME` + newline + `{` form landed).  Their C type is `int`; the port
+/// spells them `isize`/`usize` because every use site is signed arithmetic — value-identical
+/// on the frozen target, recorded in PORTING.md P-63.
 pub const header_size: isize = std::mem::offset_of!(Lisp_Vector, contents) as isize;
 pub const bool_header_size: isize = std::mem::offset_of!(Lisp_Bool_Vector, data) as isize;
 pub const word_size: isize = std::mem::size_of::<Lisp_Object>() as isize;
@@ -2935,8 +2942,12 @@ macro_rules! eabs {
     ($x:expr) => { if $x < 0 { -$x } else { $x } };
 }
 
-#[inline(always)]
-pub fn emacs_fclose (f: *mut FILE) -> c_int { unsafe { fclose (f) } }
+/// lisp.h 5315-5319: the non-Android branch is `# define emacs_fclose fclose`, i.e. an
+/// object-like macro aliasing the function.  The port keeps a macro with C's name (P-37), so
+/// a call site reads `emacs_fclose! (f)`; a wrapper `fn` would be a *different* function (its
+/// address would not be `fclose`'s, PORTING.md 0.1-6), and mirrors declare, they do not
+/// define (0.1-2).  Recorded in docs/ports/lisp.md.
+macro_rules! emacs_fclose { ($f:expr) => { unsafe { fclose ($f) } }; }
 
 
 #[inline(always)]
@@ -3693,7 +3704,11 @@ pub const Cmp_Bit_GT: c_int = 2;
 pub const Cmp_EQ: c_int = 1 << Cmp_Bit_EQ;
 pub const Cmp_LT: c_int = 1 << Cmp_Bit_LT;
 pub const Cmp_GT: c_int = 1 << Cmp_Bit_GT;
-pub type cmp_bits_t = c_int;          // lisp.h 597 (P-01: the port rejects the true configuration)
+/// C's `typedef enum { Cmp_EQ = 1 << Cmp_Bit_EQ, … } cmp_bits_t;`: clang's
+/// `_Generic ((cmp_bits_t) 0, unsigned int: …)` picks `unsigned int` for the enum type while
+/// the enumerators themselves are `int` (which is why `Cmp_*` above are `c_int`).  Review A
+/// measured both.
+pub type cmp_bits_t = c_uint;          // lisp.h 597 (P-01: the port rejects the true configuration)
 pub const DEFAULT_HASH_SIZE: c_int = 0;                  // lisp.h 2766
 pub const NSTATICS: c_int = 2048;                        // lisp.h 3921
 pub const NEXT_ALMOST_PRIME_LIMIT: c_int = 11;           // lisp.h 4242

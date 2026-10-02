@@ -37,15 +37,26 @@ pub const KEYMAP_H: bool = true;
    We need one more byte for string terminator `\0'.  */
 pub const KEY_DESCRIPTION_SIZE: c_int = (2 * 6) + 1 + (CHARACTERBITS / 3) + 1 + 1;
 
-/// `KEYMAPP (m)` is C's macro (keymap.h 34): a value expression that expands its argument
-/// into `get_keymap`, so the port keeps the macro shape (P-37) and `m` is evaluated once,
-/// as C's macro does.
+/// `KEYMAPP (m)` is C's macro (keymap.h 34), and the port keeps both its name and its macro
+/// shape (PORTING.md 0.2: a C macro keeps its name).  Its argument is a plain Lisp_Object
+/// expression that both languages evaluate exactly once, so a Rust `fn` would be
+/// behaviourally equivalent; the macro is what C's `KEYMAPP` *is*, and the expansion below is
+/// C's text (`(!NILP (get_keymap (m, false, false)))`).
 macro_rules! KEYMAPP { ($m:expr) => { !NILP (get_keymap ($m, false, false)) }; }
+
+/// C: `typedef void (*map_keymap_function_t)
+///      (Lisp_Object key, Lisp_Object val, Lisp_Object args, void *data);`
+/// (`Option<…>` is the port's NULL-able C function pointer, PORTING.md 5.2.)
+pub type map_keymap_function_t = Option<unsafe extern "C" fn (key: Lisp_Object,
+                                                             val: Lisp_Object,
+                                                             args: Lisp_Object,
+                                                             data: *mut c_void)>;
 
 unsafe extern "C" {
   pub static mut current_global_map: Lisp_Object;
 
-  // Parameter names come from the definitions in keymap.c (C's prototypes have none).
+  // Parameter names come from the definitions in keymap.c (keymap.h names no parameter
+  // except `map_keymap_canonical`'s).
   pub fn push_key_description (ch: EMACS_INT, p: *mut c_char) -> *mut c_char;
   pub fn access_keymap (map: Lisp_Object, idx: Lisp_Object, t_ok: bool,
                         noinherit: bool) -> Lisp_Object;
@@ -62,10 +73,3 @@ unsafe extern "C" {
                                args: Lisp_Object, data: *mut c_void);
 }
 
-/// C: `typedef void (*map_keymap_function_t)
-///      (Lisp_Object key, Lisp_Object val, Lisp_Object args, void *data);`
-/// (`Option<…>` is the port's NULL-able C function pointer, PORTING.md 5.2.)
-pub type map_keymap_function_t = Option<unsafe extern "C" fn (key: Lisp_Object,
-                                                             val: Lisp_Object,
-                                                             args: Lisp_Object,
-                                                             data: *mut c_void)>;

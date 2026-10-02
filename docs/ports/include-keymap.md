@@ -24,15 +24,20 @@
 - `KEY_DESCRIPTION_SIZE` is a `const` rather than a macro, so `CHARACTERBITS` (lisp.h 3233, in
   `lisp.rs`) is read where C reads it — C's own keymap.h gets it from the same `lisp.h`.  The
   value is 22 either way: `(2 * 6) + 1 + (22 / 3) + 1 + 1` with C's integer division.
-- `KEYMAPP` keeps the macro shape (P-37): C's `(!NILP (get_keymap (m, false, false)))` is not a
-  place, but it is a macro whose argument must be evaluated exactly once and only when the
-  caller uses the result, which a function call cannot promise for a Lisp_Object side effect
-  (`get_keymap` can signal).  The port's `KEYMAPP! (m)` expands to the same call.
-- The `map_keymap_function_t` typedef: C's function pointer is NULL-able (both `map_keymap`
-  callers pass either a function or `0`), so the port spells it `Option<unsafe extern "C" fn …>`
-  (PORTING.md 5.2); `sizeof` is unchanged, which is what an ABI needs.
-- The parameter names in the `extern` block come from the definitions in `keymap.c` (C's
-  prototypes have none), as `docs/ports/include-itree.md` records for itree.h.
+- `KEYMAPP` keeps C's name and macro shape (PORTING.md 0.2 / P-37): it is not a place
+  expression, and a Rust `fn` would evaluate its argument exactly once just as C's macro does,
+  so the reason is that C's `KEYMAPP` *is* a macro and the port keeps the name; the body is
+  C's `(!NILP (get_keymap (m, false, false)))` (review B's F9 corrected the earlier, wrong
+  "a function call cannot promise single evaluation").
+- The `map_keymap_function_t` typedef is `Option<unsafe extern "C" fn …>`: the null-pointer
+  optimisation makes it `void (*)(…)` at the ABI level (`sizeof` and calls are identical),
+  which is what the type needs.  Review B's F4 showed the old note's justification ("both
+  callers pass either a function or `0`") was unsupported — no caller passes NULL as `fun`,
+  the NULL argument is `data` — so the reason recorded now is the ABI one.  It sits where C
+  declares it (keymap.h 42-44, before the two declarations that use it; review B's F8).
+- The parameter names in the `extern` block come from the definitions in `keymap.c`, as
+  `docs/ports/include-itree.md` records for itree.h; `keymap.h` itself names only
+  `map_keymap_canonical`'s four (`map`, `fun`, `args`, `data`), which the port keeps.
 
 ### Call-relationship differences (D7)
 
