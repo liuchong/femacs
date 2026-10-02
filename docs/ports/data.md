@@ -72,7 +72,7 @@
 - [ ] interactive-form  (Finteractive_form, 1/1, doc 10258d736327, line 1134)
 - [ ] command-modes  (Fcommand_modes, 1/1, doc 1fde4b17ab80, line 1218)
 - [ ] indirect-variable  (Findirect_variable, 1/1, doc f3690ca988af, line 1291)
-- [ ] symbol-value  (Fsymbol_value, 1/1, doc fb8e10325afe, line 1645)
+- [x] symbol-value  (Fsymbol_value, 1/1, doc fb8e10325afe, line 1645)
 - [ ] set  (Fset, 2/2, doc 67b1a9246f28, line 1660)
 - [ ] add-variable-watcher  (Fadd_variable_watcher, 2/2, doc 6686d609c646, line 1857)
 - [ ] remove-variable-watcher  (Fremove_variable_watcher, 2/2, doc dc4012da0625, line 1885)
@@ -145,16 +145,16 @@
 - [x] slow_eq  (line 160)
 - [ ] add_to_function_history  (line 934, static)
 - [ ] defalias  (line 971)
-- [ ] kboard_for_bindings  (line 1314)
-- [ ] do_symval_forwarding  (line 1337)
-- [ ] wrong_choice  (line 1365)
-- [ ] wrong_range  (line 1398, static)
-- [ ] check_choice  (line 1409, static)
-- [ ] check_fwd_predicate  (line 1417, static)
-- [ ] store_symval_forwarding  (line 1470, static)
-- [ ] swap_in_global_binding  (line 1548)
-- [ ] swap_in_symval_forwarding  (line 1574, static)
-- [ ] find_symbol_value  (line 1619)
+- [x] kboard_for_bindings  (line 1314)
+- [x] do_symval_forwarding  (line 1337)
+- [x] wrong_choice  (line 1365)
+- [x] wrong_range  (line 1398, static)
+- [x] check_choice  (line 1409, static)
+- [x] check_fwd_predicate  (line 1417, static)
+- [x] store_symval_forwarding  (line 1470, static)
+- [x] swap_in_global_binding  (line 1548)
+- [x] swap_in_symval_forwarding  (line 1574, static)
+- [x] find_symbol_value  (line 1619)
 - [ ] set_internal  (line 1678)
 - [ ] set_symbol_trapped_write  (line 1834, static)
 - [ ] restore_symbol_trapped_write  (line 1843, static)
@@ -196,14 +196,15 @@
 ## Decisions
 
 - **Ported so far.**  data.c 41-165 (the 19 forwarded-variable / buffer-local-value
-  accessors, the error helpers and `slow_eq`) by the previous round, and data.c 168-705
-  (40 of the 120 subrs: the type predicates and list accessors, in C's order) in this one.
-  The file continues at `boundp` (data.c 716).  `cargo build-tu src/data.c` builds, and
-  `extract-abi.py --check` reports no incorrect item - only the 77 remaining subrs, 36
-  functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*` plus `bool_vector_exclusive_or`,
-  `bool_vector_intersection`, `bool_vector_set_difference`, `bool_vector_subsetp`,
-  `bool_vector_union`), 120 `defsubr` calls and the line-count drift that any partial file
-  has (C 4400 vs Rust 542, 87.7%).
+  accessors, the error helpers and `slow_eq`), data.c 168-705 (40 of the 120 subrs: the
+  type predicates and list accessors, in C's order), and data.c 1314-1646 (the forwarding
+  machinery: `kboard_for_bindings`, `do_symval_forwarding`, `wrong_choice`, `wrong_range`,
+  `check_choice`, `check_fwd_predicate`, `store_symval_forwarding`,
+  `swap_in_global_binding`, `swap_in_symval_forwarding`, `find_symbol_value`,
+  `Fsymbol_value`).  `cargo build-tu src/data.c` builds, and `extract-abi.py --check`
+  reports no incorrect item - only the 76 remaining subrs, 26 functions, 1 macro
+  (`PUT_ERROR`), 12 constants (7 `A*` plus the five `bool_vector_*`), the 120 `defsubr`
+  calls and the line-count drift that any partial file has (C 4400 vs Rust 898, 79.6%).
 - **Five subrs wait for two headers.**  `type-of` (data.c 187-200) needs this file's own
   `cl-type-of` (data.c 202-310); `cl-type-of` calls `THREADP`, `MUTEXP`, `CONDVARP`
   (`thread.h` 222-320) and `FONT_SPEC_P`/`FONT_ENTITY_P`/`FONT_OBJECT_P` (`font.h`
@@ -267,3 +268,38 @@
   (comp.h 82-96) that this configuration compiles - i.e. the call is live but
   resolves to an empty body, so it needs `comp.rs` (106 lines) rather than a
   substitute.
+- **Segment order inside the file.**  The second segment is 1314-1646 rather than the
+  C-adjacent 716-930 because `boundp` (data.c 745) calls `swap_in_symval_forwarding`
+  (1574), whose own closure is `do_symval_forwarding` (1337), `store_symval_forwarding`
+  (1470), `check_fwd_predicate` (1417) and `kboard_for_bindings` (1314): Rust has no
+  forward declarations (PORTING.md 0.1-12), so the machinery has to exist before the
+  accessors that call it can be part of a compiling translation unit.  716-930 is the next
+  segment; the only hole left after it is 931-1313 (the `defalias` family), which waits for
+  `comp.rs` (comp.h's `static inline` no-op, PORTING.md P-51's text-preservation rule).
+- **Four lexical notes in `docs/ports/macro-body-notes.tsv`.**  C's `switch`/`case`/
+  `default`, `start:`/`goto start` and `FOR_EACH_LIVE_BUFFER` have no Rust spelling, so
+  those four function names carry an explicit exemption list (the `doprnt` precedent on the
+  same file); every other token of those bodies is still compared.
+- **The EXFUN prototypes are imported, not re-declared.**  C sees every `EXFUN (Ffoo, …)`
+  because lisp.h includes the generated globals.h; the mirror keeps them in
+  `globals.rs`'s `pub mod subrs`, so `lisp.rs` (which includes globals.rs) now carries
+  `use subrs::*;` - the same visibility through Rust's own mechanism, which is what lets
+  data.c's `Fconcat`/`Fmemq`/`Fleq`/`Fnumber_to_string`/`Fget`/`Fcurrent_buffer` calls
+  read exactly like the C (PORTING.md 0.1-14).
+- **Second review round (2026-10-02).**  `docs/reviews/2026-10-02-data-review-2.md`
+  records it.  Two real defects came out of it that are *not* in this file's text: the
+  mirror's `integer_to_intmax`/`integer_to_uintmax` had invented `|| INTEGERP (num)`
+  (lisp.h 4109/4122 is `i != 0`), which made this file's `store_symval_forwarding`
+  `Lisp_Fwd_Int` arm write 0 instead of signalling `overflow-error`; and
+  `swap_in_symval_forwarding` must write the `found` bit directly, because the asserted
+  `set_blv_found` does not hold mid-swap.  Both are fixed, together with `wrong_choice`'s
+  missing `-> !`.  The gate gained the reverse `no_mangle` rule (PORTING.md P-77).
+- **Evidence for this segment beyond `--check`.**  `rustc --cfg enable_checking` on the
+  materialized unit (the checking pass only covers finished units) compiles the four new
+  `eassert!` bodies, and `nm` on the object shows exactly C's linkage split: the five
+  exported helpers as `T _kboard_for_bindings`/`_do_symval_forwarding`/`_wrong_choice`/
+  `_swap_in_global_binding`/`_find_symbol_value` (plus `_Fsymbol_value`), the five `static`
+  ones as private mangled names.  Both reviewers also recorded what the token gate cannot
+  see here: arm order, `>` vs `>=` in the `buffer_defaults` range test, and `idx <= 0`
+  vs `idx < 0` are all silent, so those three points rest on the two recorded human
+  readings until the ERT/differential layer exists.

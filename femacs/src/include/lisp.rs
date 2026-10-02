@@ -656,6 +656,11 @@ pub fn XSYMBOL (a: Lisp_Object) -> *mut Lisp_Symbol {
 // In the reference build this file comes from make-docfile; xtask gen-globals
 // produces the port's version (Q symbols and the built-in symbol array).
 include!("globals.rs");
+// C sees every EXFUN through lisp.h's `#include <globals.h>`; the mirror keeps the
+// generated prototypes in `globals.rs`'s `pub mod subrs`, and `xtask gen-globals` ends
+// that file with `use subrs::*;`, which `include!` above puts in this scope -- the same
+// visibility by Rust's own mechanism (PORTING.md 0.1-14).  data.c is the first unit that
+// depends on it (review B's M3: the line must not be repeated here).
 
 // --- batch 2: numbers, conses, strings, vectors (src/lisp.h 1170-1750) ---
 // Integer and pointer accessors, cons/string/vector accessors and the checks
@@ -2037,7 +2042,13 @@ pub fn integer_to_intmax (num: Lisp_Object, n: *mut i64) -> bool {
     } else {
         let i = unsafe { bignum_to_intmax (num) };
         unsafe { *n = i };
-        i != 0 || INTEGERP (num)
+        // lisp.h 4109: `i != 0` is the whole test -- `bignum_to_intmax` answers 0 both for
+        // a value out of intmax range and for an impossible zero bignum, and *that* zero is
+        // the overflow signal.  The port had added `|| INTEGERP (num)`, which is true for
+        // every bignum, so the overflow branch of every caller became unreachable
+        // (review A's D1: data.c's `store_symval_forwarding` wrote 0 instead of signalling
+        // `overflow-error`, and bignum.rs's `check_integer_range` returned 0 silently).
+        i != 0
     }
 }
 
@@ -2050,7 +2061,8 @@ pub fn integer_to_uintmax (num: Lisp_Object, n: *mut u64) -> bool {
     } else {
         let i = unsafe { bignum_to_uintmax (num) };
         unsafe { *n = i };
-        i != 0 || INTEGERP (num)
+        // lisp.h 4122: same test as integer_to_intmax (review A's D1).
+        i != 0
     }
 }
 
@@ -3637,6 +3649,20 @@ pub mod other_units {
         pub fn xfree (p: *mut c_void);
         pub fn xmalloc (size: usize) -> *mut c_void;                     // src/lisp.h 5535
         pub fn indirect_function (object: Lisp_Object) -> Lisp_Object;   // src/lisp.h 4167 (data.c)
+        // lisp.h 4164, 4168, 4197, 4198, 4212: data.c's exported helpers (the port
+        // declares a unit's symbols in the same place C declares them).  `lispfwd` is
+        // `const struct Lisp_Fwd *` (lisp.h 759), and `KBOARD` lives in keyboard.rs,
+        // which this mirror cannot include (P-72 item 4), so that one carries the
+        // reference prototype in a `/// C:` line (P-55) and the probe checks it there.
+        pub fn wrong_choice (choice: Lisp_Object, wrong: Lisp_Object) -> !;
+        pub fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object;
+        /// C: KBOARD *kboard_for_bindings ()
+        pub fn kboard_for_bindings () -> *mut c_void;
+        pub fn do_symval_forwarding (valcontents: *const Lisp_Fwd) -> Lisp_Object;
+        pub fn swap_in_global_binding (symbol: *mut Lisp_Symbol);
+        // lisp.h 4243, 4272: the list helpers data.c calls (fns.c defines them).
+        pub fn list_length (list: Lisp_Object) -> ptrdiff_t;
+        pub fn assq_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object;
         // lisp.h 4655, 4661: the two object helpers data.c calls (alloc.c defines them).
         pub fn build_symbol_with_pos (symbol: Lisp_Object, position: Lisp_Object) -> Lisp_Object;
         pub fn valid_lisp_object_p (obj: Lisp_Object) -> c_int;

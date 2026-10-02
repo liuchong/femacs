@@ -109,3 +109,7 @@ FRAME_X_P	output_method	same four-bit field
 FRAME_LIVE_P	0	C compares the `terminal` pointer with 0; the port writes `!…is_null ()`, which is the same test
 SELECTED_FRAME	0,frame	C's fallback arm is `(emacs_abort (), (struct frame *) 0)`; the port writes `std::ptr::null_mut ()` after `emacs_abort ()`
 SET_FRAME_ICONIFIED	iconified	the flag is one bit of frame.h's packed unit 1; the port masks `bits1`, so C's field name cannot occur (the dead `HAVE_WINDOW_SYSTEM` half of the function is no longer compared — P-75)
+do_symval_forwarding	switch,case,default	C's switch/case/default on XFWDTYPE become the port's `match` arms and `_` (PORTING.md 2.2, the doprnt precedent on line 64)
+check_fwd_predicate	switch,case	C's switch/case become `match` arms, one per FWDPRED_* value (PORTING.md 2.2)
+store_symval_forwarding	switch,case,default,for_each_live_buffer,tail,buffer	C's switch and its `break` become a `match` arm and a labeled block; FOR_EACH_LIVE_BUFFER is the open P-22 loop macro (docs/ports/excluded-macros.txt) so the port writes FOR_EACH_ALIST_VALUE's own loop, named `list_var`; `struct buffer *b` is reached through XBUFFER (PORTING.md 2.2/P-22)
+find_symbol_value	switch,case,default,goto,start,redirect	C's `start:`/`goto start` becomes the port's loop, and `sym->u.s.redirect` is the bitfield the mirror packs into `u.s.bits` (lisp.rs 222-227), so neither token survives (PORTING.md 2.2, 0.1-12)

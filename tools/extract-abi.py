@@ -1198,19 +1198,52 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     # P-12/P-37) and need no symbol, so the rule only applies to unit files.
     subr_names = {sub["c_name"] for sub in r["subrs"]}
     own_text = rs_path.read_text(encoding="utf-8", errors="replace")
+
+    def defined_name_after_attribute(text: str, pos: int) -> str | None:
+        """The `fn NAME` an attribute at POS attaches to, skipping the attributes,
+        comments and whitespace in between.
+
+        The previous rule looked back a fixed 400 characters from the first `fn NAME`
+        in the file, which is both fragile (a long comment between the attribute and the
+        definition reads as "no attribute") and blind in the other direction: an extra
+        `#[unsafe(no_mangle)]` on a C-`static` helper inventing an exported symbol was
+        never reported (review B's M2, with mutation evidence).
+        """
+        i = pos
+        while True:
+            m = re.compile(r"(?:\s+|/\*.*?\*/|//[^\n]*|#!?\[[^\]]*\])+", re.S).match(text, i)
+            if m is None:
+                break
+            i = m.end()
+        m = re.compile(r'(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+"C"\s+)?fn\s+([A-Za-z_]\w*)').match(text, i)
+        return m.group(1) if m else None
+
+    no_mangle_names = {name for name in
+                       (defined_name_after_attribute(own_text, m.end())
+                        for m in re.finditer(r"#\[unsafe\(no_mangle\)\]", own_text))
+                       if name is not None}
+
     for f in c["functions"]:
         name = f["name"]
         if is_header_like or f.get("static") or name in excluded or name in subr_names:
             continue
         if re.search(r"\bINLINE\b[^;{]{0,200}\b" + re.escape(name) + r"\s*\(", c_source):
             continue          # C's INLINE: internal linkage, no symbol to keep
-        m = re.search(r"\bfn\s+" + re.escape(name) + r"\b", own_text)
-        if m is None:
+        if not re.search(r"\bfn\s+" + re.escape(name) + r"\b", own_text):
             continue          # not defined here: the missing-function rule owns that
-        head = own_text[max(0, m.start() - 400):m.start()]
-        if "no_mangle" not in head:
+        if name not in no_mangle_names:
             problems.append(f"function {name} is not static in C but has no "
                             f"#[unsafe(no_mangle)] in the port (no C symbol to link)")
+
+    # The other direction of the same rule: a `#[unsafe(no_mangle)]` in the port that C
+    # does not back with a non-static definition of that name exports a symbol the
+    # reference has not got (and, worse, links to whatever it finds).
+    if not is_header_like:
+        c_exported = {f["name"] for f in c["functions"] if not f.get("static")}
+        for name in sorted(no_mangle_names - c_exported):
+            problems.append(f"fn {name} carries #[unsafe(no_mangle)] but the reference "
+                            f"does not define a non-static function of that name "
+                            f"(invented exported symbol)")
 
     if strict_lines and not is_header_like and c["lines"] and r["lines"]:
         drift = abs(r["lines"] - c["lines"]) / max(c["lines"], 1)
