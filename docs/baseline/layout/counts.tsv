@@ -1,4 +1,4 @@
 key	value
-asserted	245
+asserted	247
 pending	7
-note	2026-10-02 round 10: asserted grew 237 -> 245 with Lisp_Fwd (6 keys) and Lisp_Buffer_Local_Value (6) minus the two bitfields, now that the generator's field filter only takes members at the struct's own brace level (PORTING.md P-65) — `offsetof (struct Lisp_Fwd, intvar)` (a member of the nested union `u`) does not compile, which is why these two were left out before.  pending stays 7 (handler/window; `glyph`/`glyph_slice` join STRUCTS together with the dispextern.h mirror, since a key whose type is missing counts as pending and the ratchet only shrinks pending).  The assertions are generated Rust, so field names are escaped with `r#` (`Lisp_Buffer_Local_Value.where`).  This file is a ratchet: asserted only grows and pending only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).
+note	2026-10-02 round 10 (second half): asserted 245 -> 247 with glyph_slice (dispextern.h's first type: 8-byte storage unit, 4-byte alignment -- the port stores it as [u32; 2] because #[repr(C, align(4))] cannot lower a u64's alignment and the assert failed with E0080 until it did).  pending stays 7.  This file is a ratchet: asserted only grows and pending only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).

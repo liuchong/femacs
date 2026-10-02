@@ -13,6 +13,7 @@ alignof Lisp_Vector	8
 alignof __mpz_struct	8
 alignof buffer	8
 alignof buffer_text	8
+alignof glyph_slice	4
 alignof hash_table_test	8
 alignof itree_iterator	8
 alignof itree_node	8
@@ -238,6 +239,7 @@ sizeof Lisp_Vector	8
 sizeof __mpz_struct	16
 sizeof buffer	984
 sizeof buffer_text	144
+sizeof glyph_slice	8
 sizeof handler	288
 sizeof hash_table_test	40
 sizeof itree_iterator	40

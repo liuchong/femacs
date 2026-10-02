@@ -195,3 +195,5 @@
   OFF (struct Lisp_Buffer_Local_Value, where);
   OFF (struct Lisp_Buffer_Local_Value, defcell);
   OFF (struct Lisp_Buffer_Local_Value, valcell);
+
+  SZ (struct glyph_slice); AL (struct glyph_slice);

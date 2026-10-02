@@ -46,6 +46,10 @@ STRUCTS = {
     # `glyph`/`glyph_slice` go in with the `dispextern.h` mirror.
     "Lisp_Fwd": "src/lisp.h",
     "Lisp_Buffer_Local_Value": "src/lisp.h",
+    # The display headers' first type: its four 16-bit bitfields share one 64-bit unit, so
+    # the port models it as `bits: u64` and `sizeof`/`alignof` (8/4) are what the gate can
+    # assert (PORTING.md 1.3).
+    "glyph_slice": "src/dispextern.h",
 }
 
 

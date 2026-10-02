@@ -885,8 +885,23 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     if known_excluded:
         print(f"  ({len(known_excluded)} C macros have a recorded Rust counterpart: "
               + ", ".join(known_excluded[:6]) + (" ..." if len(known_excluded) > 6 else "") + ")")
+    # A name C defines in more than one configuration branch: `c["macros"]` keeps the *last*
+    # definition, which for a frozen configuration is often the wrong one (`No_Cursor` is
+    # `(NULL)` for this target and `0` in the Android branch; `GCForeground` is `0x01` and
+    # `ANDROID_GC_FOREGROUND`).  The port spells the frozen branch (P-08), and until the
+    # extractor evaluates `#if`s against the frozen configuration (P-66) the body of such a
+    # macro is not compared — its presence still is.  The constants rule above already skips
+    # them for the same reason.
+    branch_macros = sorted(name for name in c["macros"]
+                           if c["macro_duplicates"].get(name, 0) > 1 and name not in excluded)
+    if branch_macros:
+        print(f"  ({len(branch_macros)} C macros have several definitions (configuration "
+              "branches), body not compared: " + ", ".join(branch_macros[:6])
+              + (" ..." if len(branch_macros) > 6 else "") + ")")
     for name, macro in sorted(c["macros"].items()):
         if name in excluded:
+            continue
+        if c["macro_duplicates"].get(name, 0) > 1:
             continue
         rust_body = macro_body_of(r, name)
         if rust_body is None:
