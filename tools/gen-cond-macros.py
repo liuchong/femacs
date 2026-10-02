@@ -32,8 +32,16 @@ def read_macros(config: Path, include_dirs: list[str]) -> dict[str, str]:
     `INTPTR_MAX` unknown the gate demanded the wrong branch of lisp.h.
     """
     probe = Path("/tmp/femacs-cond-macros.c")
-    probe.write_text("#include <config.h>\n#include <stdint.h>\n#include <stddef.h>\n"
-                     "#include <limits.h>\n#include <float.h>\n#include <string.h>\n")
+    # The Emacs headers test system macros too (`_STRUCT_TIMEVAL` from <sys/time.h>,
+    # `__GLIBC__`, …), so the probe includes the C library and POSIX headers Emacs's own
+    # headers pull in.
+    probe.write_text(
+        "#include <config.h>\n"
+        "#include <stdint.h>\n#include <stddef.h>\n#include <limits.h>\n"
+        "#include <float.h>\n#include <string.h>\n#include <stdlib.h>\n"
+        "#include <sys/types.h>\n#include <sys/time.h>\n#include <sys/stat.h>\n"
+        "#include <unistd.h>\n#include <signal.h>\n#include <setjmp.h>\n"
+        "#include <time.h>\n#include <fcntl.h>\n")
     cmd = ["clang", "-dM", "-E", "-std=gnu23", *include_dirs, str(probe)]
     out = subprocess.run(cmd, capture_output=True, text=True).stdout
     macros: dict[str, str] = {}

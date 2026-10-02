@@ -121,6 +121,9 @@ def blank_comments(text: str) -> str:
 # the inventory sees the text the frozen configuration compiles and not the platform
 # branches (PORTING.md P-08/P-66).  Without it the behaviour is the old one: only literal
 # `#if 0` is dead and every other condition leaves both branches live.
+# `(line_index, kind, expression, verdict)` for the conditions of the last
+# `dead_branch_map` call — read by tools/check-cond-eval.py.
+CONDITION_LOG: list = []
 CONDITION_MACROS: dict[str, str] | None = None
 CONDITION_MACROS_BASE: dict[str, str] | None = None
 CONDITION_EVAL_CACHE: dict[str, bool | None] = {}
@@ -132,6 +135,48 @@ def set_condition_macros(macros: dict[str, str] | None) -> None:
     CONDITION_MACROS = macros
     CONDITION_MACROS_BASE = macros
     CONDITION_EVAL_CACHE = {}
+
+
+# Which reference files may consult that table.  `tools/check-cond-eval.py` compares the
+# evaluator's branch verdicts with clang's for every condition in a header; only headers it
+# reports zero disagreements for are listed in `docs/baseline/config/cond-eval-verified.txt`,
+# and the table is used for those and nothing else.  The reason is gnulib's `*.in.h`
+# **templates**: their conditions name `@PLACEHOLDER@`s and the *generated* header's state
+# (`#if @WINDOWS_STAT_INODES@ == 2`), so the frozen table cannot decide them and an
+# evaluator that answers wrongly is worse than one that answers `unknown` (P-66).
+CONDITION_MACROS_PATHS: set[str] | None = None
+
+
+def set_condition_paths(paths) -> None:
+    """Restrict the macro table to these reference paths (None = every file)."""
+    global CONDITION_MACROS_PATHS
+    CONDITION_MACROS_PATHS = None if paths is None else {str(p) for p in paths}
+
+
+class _BlindConditions:
+    """Context manager: drop the macro table unless `path` is a verified file."""
+
+    def __init__(self, path) -> None:
+        self.path = None if path is None else str(path)
+        self.saved = None
+        self.blind = False
+
+    def __enter__(self):
+        global CONDITION_MACROS
+        if CONDITION_MACROS_PATHS is None or self.path is None:
+            return self
+        if any(self.path.endswith(entry) for entry in CONDITION_MACROS_PATHS):
+            return self
+        self.saved = CONDITION_MACROS
+        CONDITION_MACROS = None
+        self.blind = True
+        return self
+
+    def __exit__(self, *_exc) -> bool:
+        global CONDITION_MACROS
+        if self.blind:
+            CONDITION_MACROS = self.saved
+        return False
 
 
 def read_condition_macros(path) -> dict[str, str]:
@@ -146,7 +191,7 @@ def read_condition_macros(path) -> dict[str, str]:
 
 
 _COND_TOKENS = re.compile(
-    r"\s*(defined|&&|\|\||==|!=|<=|>=|[-+*/%<>&|^!~()?:]|\d+|[A-Za-z_]\w*)")
+    r"\s*(defined|&&|\|\||==|!=|<=|>=|[-+*/%<>&|^!~(),?:]|\d+|[A-Za-z_]\w*)")
 
 
 def _cond_tokens(text: str) -> list[str]:
@@ -169,9 +214,71 @@ def _cond_tokens(text: str) -> list[str]:
 _COND_EXPANDING: set[str] = set()
 
 
+def _cond_macro_params(value: str) -> tuple[list[str], str] | None:
+    """`(a, b) body` for a function-like macro's frozen value, else None."""
+    if not value.startswith("("):
+        return None
+    close = value.find(")")
+    if close < 0:
+        return None
+    params = [p.strip() for p in value[1:close].split(",") if p.strip()]
+    if not params:
+        return None
+    return params, value[close + 1:].strip()
+
+
+def _cond_call_args(tokens: list[str]) -> tuple[list[str] | None, list[str]]:
+    """The comma-separated arguments of a call whose `(` has been consumed."""
+    args, current, nesting = [], [], 0
+    for index, token in enumerate(tokens):
+        if token == "(":
+            nesting += 1
+        elif token == ")":
+            if nesting == 0:
+                args.append(" ".join(current))
+                return args, tokens[index + 1:]
+            nesting -= 1
+        if token == "," and nesting == 0:
+            args.append(" ".join(current))
+            current = []
+            continue
+        current.append(token)
+    return None, []
+
+
+def _cond_expand_call(name: str, args: list[str], depth: int) -> int | None:
+    """Expand `NAME (args…)` textually, the way the preprocessor would."""
+    macros = CONDITION_MACROS or {}
+    parsed = _cond_macro_params(macros.get(name, ""))
+    if parsed is None:
+        return None
+    params, body = parsed
+    if len(params) != len(args):
+        return None
+    for param, arg in zip(params, args):
+        body = re.sub(rf"\b{re.escape(param)}\b", f"({arg})", body)
+    tokens = _cond_tokens(body)
+    if not tokens or "?" in tokens:
+        return None
+    if name in _COND_EXPANDING:
+        return None
+    _COND_EXPANDING.add(name)
+    try:
+        return _cond_parse(tokens, depth + 1)[0]
+    finally:
+        _COND_EXPANDING.discard(name)
+
+
 def _cond_ident(name: str, depth: int = 0) -> int | None:
     """C's rule: an undefined identifier is 0; a macro's value is itself evaluated."""
     macros = CONDITION_MACROS or {}
+    # C23 (and the frozen build's <stdbool.h>) makes these keywords, not macros: `#if true`
+    # is 1.  Without this a mirror of `# define WRAP_SPECPDL_REF true` evaluated to 0 and the
+    # gate kept both branches of lisp.h's `#ifdef WRAP_SPECPDL_REF` live.
+    if name == "true":
+        return 1
+    if name == "false":
+        return 0
     if name not in macros or macros[name] == "undef":
         return 0
     if name in _COND_EXPANDING:
@@ -262,14 +369,29 @@ def _cond_parse_and(tokens: list[str], depth: int) -> tuple[int | None, list[str
 
 
 def _cond_parse_cmp(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
-    left, rest = _cond_parse_add(tokens, depth)
-    while rest and rest[0] in ("==", "!=", "<", ">", "<=", ">="):
+    left, rest = _cond_parse_shift(tokens, depth)
+    while rest and rest[0] in ("==", "!=", "<", ">", "<=", ">=") \
+            and not (len(rest) >= 2 and rest[1] == rest[0] and rest[0] in ("<", ">")):
         op = rest[0]
-        right, rest2 = _cond_parse_add(rest[1:], depth)
+        right, rest2 = _cond_parse_shift(rest[1:], depth)
         if left is None or right is None:
             left = None
         else:
             left = bool(eval(f"left {op} right", {"left": left, "right": right}))  # noqa: S307
+        rest = rest2
+    return left, rest
+
+
+def _cond_parse_shift(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
+    """`<<` and `>>`: `#if GCALIGNMENT != 1 << GCTYPEBITS` (lisp.h 276) needs them."""
+    left, rest = _cond_parse_add(tokens, depth)
+    while len(rest) >= 2 and rest[0] == rest[1] and rest[0] in ("<", ">"):
+        op = rest[0] * 2
+        right, rest2 = _cond_parse_add(rest[2:], depth)
+        if left is None or right is None or right < 0:
+            left = None
+        else:
+            left = (left << right) if op == "<<" else (left >> right)
         rest = rest2
     return left, rest
 
@@ -333,6 +455,13 @@ def _cond_parse_primary(tokens: list[str], depth: int) -> tuple[int | None, list
         return int(head, 0), rest
     if head == "?":
         return None, []
+    # A function-like macro's call: `GNUC_PREREQ (4, 3, 2)` (lisp.h 109/5731).
+    macros = CONDITION_MACROS or {}
+    if rest and rest[0] == "(" and _cond_macro_params(macros.get(head, "")) is not None:
+        args, rest2 = _cond_call_args(rest[1:])
+        if args is None:
+            return None, []
+        return _cond_expand_call(head, args, depth), rest2
     return _cond_ident(head, depth), rest
 
 
@@ -415,9 +544,18 @@ def dead_branch_map(text: str) -> list[bool]:
 
 
 def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bool]:
-    """The `dead_branch_map` state machine, with the working macro table installed."""
+    """The `dead_branch_map` state machine, with the working macro table installed.
+
+    Every condition it meets is recorded in `CONDITION_LOG` as
+    `(line_index, kind, expression, verdict)` — the verdict being what this evaluator answers
+    *with the file-local macro state of that line*, which is what
+    `tools/check-cond-eval.py` compares against the C preprocessor (PORTING.md P-66).
+    """
+    global CONDITION_LOG
+    CONDITION_LOG = []
     live: list[bool] = []
     stack: list[list[bool]] = []
+    line_index = 0
     for logical, physical in logical_lines(text):
         outer_dead = any(outer or not branch for outer, _, branch in stack)
         dead = outer_dead
@@ -435,6 +573,7 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
                     cond = eval_condition (rest)
                 if cond is None and word == "if" and rest in ("0", "false"):
                     cond = False
+                CONDITION_LOG.append((line_index, word, rest, cond))
                 branch = cond is not False
                 stack.append([outer_dead, cond is True, branch])
                 dead = outer_dead or not branch
@@ -445,6 +584,7 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
                         entry[2] = False
                     else:
                         cond = eval_condition (rest)
+                        CONDITION_LOG.append((line_index, word, rest, cond))
                         entry[2] = cond is not False
                         entry[1] = cond is True
                     dead = entry[0] or not entry[2]
@@ -476,6 +616,7 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
                     CONDITION_EVAL_CACHE.clear()
             # every other directive (`#include`, …) inherits the current state
         live.extend([not dead] * physical)
+        line_index += physical
     return live
 
 
@@ -1021,6 +1162,11 @@ def macro_definitions (text: str) -> dict[str, int]:
 
 
 def inventory(path: Path) -> dict:
+    with _BlindConditions(path):
+        return _inventory(path)
+
+
+def _inventory(path: Path) -> dict:
     text = path.read_text(encoding="utf-8", errors="replace")
     funcs = functions(text)
     defs = defuns(text)

@@ -1,0 +1,14 @@
+# Reference files whose `#if` conditions the frozen macro table decides exactly:
+# every condition here agreed with clang (tools/check-cond-eval.py).  Only these
+# files may consult the table (tools/cinventory.py CONDITION_MACROS_PATHS); a
+# gnulib `*.in.h` template stays out until it agrees, because the table cannot
+# decide its `@PLACEHOLDER@`s (PORTING.md P-66).
+lib/timespec.h
+src/bignum.h
+src/buffer.h
+src/character.h
+src/dispextern.h
+src/itree.h
+src/keymap.h
+src/lisp.h
+src/systime.h

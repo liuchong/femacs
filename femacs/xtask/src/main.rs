@@ -722,6 +722,25 @@ fn build_tu(rel: Option<&String>) -> i32 {
 // --- gates -----------------------------------------------------------------
 
 fn gate_fast() -> i32 {
+    // The inventory gate below reads `#if` conditions through the frozen macro table, so the
+    // table itself is gated first: every file allowed to consult it must still agree with
+    // clang on every branch it decides (PORTING.md P-66).  Without this step the table's
+    // accuracy would be a claim in a help string instead of a measurement.
+    println!("== condition evaluator ==");
+    if !Path::new("../build/emacs-ref/src/config.h").is_file() {
+        return fail("build/emacs-ref is missing: the `#if` differential needs the frozen \
+configuration (see PORTING.md 2.1's setup steps)");
+    }
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-cond-eval.py", "--verified",
+               "docs/baseline/config/cond-eval-verified.txt"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("condition evaluator: verified list agrees with clang"),
+        Ok(_) => return fail("the `#if` evaluator disagrees with clang on a verified header"),
+        Err(e) => return fail(e),
+    }
     println!("== inventory gate ==");
     let inv = Command::new("python3")
         .current_dir(REPO)

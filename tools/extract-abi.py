@@ -1250,14 +1250,19 @@ def main() -> int:
                     help="C macros whose Rust body legitimately omits a named token")
     ap.add_argument("--token-aliases", default="docs/ports/token-aliases.tsv",
                     help="token families that mean the same thing in both languages")
-    ap.add_argument("--cond-macros", default="",
+    ap.add_argument("--cond-macros",
+                    default="docs/baseline/config/darwin-arm64.macros.tsv",
                     help="the frozen configuration's macro table (tools/gen-cond-macros.py): "
                          "`#if`/`#ifdef` conditions are then evaluated against it, so a mirror "
                          "is compared with the text this target compiles (PORTING.md P-08/P-66). "
-                         "OFF by default: the evaluator must first pass "
-                         "`python3 tools/check-cond-eval.py src/lisp.h src/dispextern.h …` "
-                         "with zero disagreements — a gate that answers wrongly is worse than "
-                         "one that answers `unknown`")
+                         "ON by default; pass --cond-macros '' for the old blind behaviour")
+    ap.add_argument("--cond-macro-paths",
+                    default="docs/baseline/config/cond-eval-verified.txt",
+                    help="files allowed to consult that table: the ones "
+                         "tools/check-cond-eval.py found zero disagreements for.  Elsewhere "
+                         "the table is ignored and every condition but a literal `#if 0` "
+                         "leaves both branches live — a gate that answers wrongly is worse "
+                         "than one that answers `unknown` (PORTING.md P-66)")
     ap.add_argument("--va-arg-types", default="docs/ports/va-arg-types.tsv",
                     help="which object each va_arg/next_arg reads")
     args = ap.parse_args()
@@ -1267,11 +1272,24 @@ def main() -> int:
     macro_notes = read_macro_notes(notes_path) if notes_path.is_file() else {}
     load_token_aliases(Path(args.token_aliases))
     cond_macros = Path(args.cond_macros)
+    cond_paths = Path(args.cond_macro_paths)
+    if cond_paths.is_file():
+        verified = [line.strip() for line in cond_paths.read_text(encoding="utf-8").split("\n")
+                    if line.strip() and not line.startswith("#")]
+        ci.set_condition_paths(verified)
+    else:
+        verified = None
+        ci.set_condition_paths(None)
     if cond_macros.is_file():
         table = ci.read_condition_macros(cond_macros)
         ci.set_condition_macros(table)
+        where = ("every file" if verified is None else
+                 f"the {len(verified)} files in {cond_paths} (tools/check-cond-eval.py "
+                 "verifies them; elsewhere the table is not consulted, since it cannot "
+                 "decide a gnulib template's `@PLACEHOLDER@` conditions — P-66)")
         print(f"conditions: {len(table)} macros from {cond_macros} "
-              f"({sum(1 for v in table.values() if v != 'undef')} defined)", file=sys.stderr)
+              f"({sum(1 for v in table.values() if v != 'undef')} defined), applied to {where}",
+              file=sys.stderr)
     else:
         print(f"conditions: {cond_macros} is missing — `#if`s other than a literal `#if 0` "
               "leave both branches live (tools/gen-cond-macros.py regenerates it)",
