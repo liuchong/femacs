@@ -184,7 +184,8 @@ pub const GLYPH_SLICE_HEIGHT_SHIFT: u32 = 16;           // bits 16-31 of bits[1]
 
 /* Enumeration of the areas in a glyph row.  */
 pub type glyph_row_area = c_int;
-pub const LEFT_MARGIN_AREA: glyph_row_area = 0;         // dispextern.h 881-888
+pub const ANY_AREA: glyph_row_area = -1;                // dispextern.h 881-888
+pub const LEFT_MARGIN_AREA: glyph_row_area = 0;
 pub const TEXT_AREA: glyph_row_area = 1;
 pub const RIGHT_MARGIN_AREA: glyph_row_area = 2;
 pub const LAST_AREA: glyph_row_area = 3;
@@ -192,10 +193,11 @@ pub const LAST_AREA: glyph_row_area = 3;
 /* Values returned from coordinates_in_window — drawing operations.  */
 pub type draw_glyphs_face = c_int;                      // dispextern.h 1348-1357
 pub const DRAW_NORMAL_TEXT: draw_glyphs_face = 0;
-pub const DRAW_CURSOR: draw_glyphs_face = 1;
-pub const DRAW_MOUSE_FACE: draw_glyphs_face = 2;
-pub const DRAW_IMAGE_RAISED: draw_glyphs_face = 3;
-pub const DRAW_IMAGE_SUNKEN: draw_glyphs_face = 4;
+pub const DRAW_INVERSE_VIDEO: draw_glyphs_face = 1;
+pub const DRAW_CURSOR: draw_glyphs_face = 2;
+pub const DRAW_MOUSE_FACE: draw_glyphs_face = 3;
+pub const DRAW_IMAGE_RAISED: draw_glyphs_face = 4;
+pub const DRAW_IMAGE_SUNKEN: draw_glyphs_face = 5;
 
 /* Indices of face attributes in Lisp face vectors.  */
 pub type lface_attribute_index = c_int;                 // dispextern.h 1723-1748

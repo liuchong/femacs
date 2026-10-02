@@ -39,8 +39,8 @@ pub type intmax_t = i64;
 pub type uintmax_t = u64;
 // src/lisp.h 90-102 define these as enum members chosen from the integer widths;
 // on this target EMACS_INT is long long.
-pub const EMACS_INT_WIDTH: usize = LONG_WIDTH as usize;   // lisp.h 92 (the live branch)
-pub const EMACS_UINT_WIDTH: usize = ULONG_WIDTH as usize; // lisp.h 92
+pub const EMACS_INT_WIDTH: usize = LONG_WIDTH as usize;   // lisp.h 96 (the live branch)
+pub const EMACS_UINT_WIDTH: usize = ULONG_WIDTH as usize; // lisp.h 96
 pub const EMACS_INT_MAX: EMACS_INT = EMACS_INT::MAX;
 pub const EMACS_INT_MIN: EMACS_INT = EMACS_INT::MIN;
 
@@ -1068,6 +1068,7 @@ pub const SYMBOL_LOCALIZED: u32 = 2;
 pub const SYMBOL_FORWARDED: u32 = 3;
 pub const SYMBOL_UNTRAPPED_WRITE: u32 = 0;
 pub const SYMBOL_NOWRITE: u32 = 1;
+pub const SYMBOL_TRAPPED_WRITE: u32 = 2;   // lisp.h 777-783 (`enum symbol_trapped_write`)
 pub const SYMBOL_UNINTERNED: u32 = 0;
 pub const SYMBOL_INTERNED: u32 = 1;
 pub const SYMBOL_INTERNED_IN_INITIAL_OBARRAY: u32 = 2;
@@ -1769,6 +1770,34 @@ pub const SPECPDL_LET: u32 = 9;
 pub const SPECPDL_LET_LOCAL: u32 = 10;
 pub const SPECPDL_LET_DEFAULT: u32 = 11;
 
+// lisp.h 4198-4205: `enum Set_Internal_Bind` (the fourth argument of `set_internal`).
+pub type Set_Internal_Bind = c_int;
+pub const SET_INTERNAL_SET: Set_Internal_Bind = 0;
+pub const SET_INTERNAL_BIND: Set_Internal_Bind = 1;
+pub const SET_INTERNAL_UNBIND: Set_Internal_Bind = 2;
+pub const SET_INTERNAL_THREAD_SWITCH: Set_Internal_Bind = 3;
+
+// lisp.h 3803-3826: `enum handlertype` (the kind of a `struct handler`).
+pub type handlertype = c_int;
+pub const CATCHER: handlertype = 0;
+pub const CONDITION_CASE: handlertype = 1;
+pub const CATCHER_ALL: handlertype = 2;
+pub const CATCHER_ALL_DEBUGGABLE: handlertype = 3;
+pub const HANDLER_BIND: handlertype = 4;
+pub const SKIP_CONDITIONS: handlertype = 5;
+
+// lisp.h 3833-3837: `enum nonlocal_exit`.
+pub type nonlocal_exit = c_int;
+pub const NONLOCAL_EXIT_SIGNAL: nonlocal_exit = 0;
+pub const NONLOCAL_EXIT_THROW: nonlocal_exit = 1;
+
+// lisp.h 4496-4502: `enum gc_root_type`.
+pub type gc_root_type = c_int;
+pub const GC_ROOT_STATICPRO: gc_root_type = 0;
+pub const GC_ROOT_BUFFER_LOCAL_DEFAULT: gc_root_type = 1;
+pub const GC_ROOT_BUFFER_LOCAL_NAME: gc_root_type = 2;
+pub const GC_ROOT_C_SYMBOL: gc_root_type = 3;
+
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct specpdl_ref {
@@ -2149,6 +2178,19 @@ pub fn set_char_table_contents (table: Lisp_Object, idx: isize, val: Lisp_Object
 
 // --- batch 6: obarrays, hash tables, sqlite, checks, constructors (src/lisp.h 2400-3400) ---
 pub type hash_hash_t = c_uint;
+// lisp.h 2520-2525: `typedef enum hash_table_std_test_t { Test_eql, Test_eq, Test_equal }`.
+pub type hash_table_std_test_t = c_int;
+pub const Test_eql: hash_table_std_test_t = 0;
+pub const Test_eq: hash_table_std_test_t = 1;
+pub const Test_equal: hash_table_std_test_t = 2;
+
+// lisp.h 2544-2552: `typedef enum hash_table_weakness_t`.
+pub type hash_table_weakness_t = c_int;
+pub const Weak_None: hash_table_weakness_t = 0;
+pub const Weak_Key: hash_table_weakness_t = 1;
+pub const Weak_Value: hash_table_weakness_t = 2;
+pub const Weak_Key_Or_Value: hash_table_weakness_t = 3;
+pub const Weak_Key_And_Value: hash_table_weakness_t = 4;
 /// lisp.h 2559: `typedef int_least32_t hash_idx_t;` — a 32-bit index, *not* a
 /// `ptrdiff_t` (the C comment above it says "signed and a subtype of ptrdiff_t", which the
 /// port's `isize` read it as; review A's F1 measured `sizeof (struct Lisp_Hash_Table)` at 72

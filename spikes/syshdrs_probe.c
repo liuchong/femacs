@@ -11,7 +11,7 @@
 #include <inttypes.h>
 
 /* The four machine widths come from this target's C23 <limits.h>; SIZE_WIDTH does
-   not: the frozen build takes it from gnulib's stdint.in.h 731 (the macro table says
+   not: the frozen build takes it from gnulib's stdint.in.h 728 (the macro table says
    `_GL_INTEGER_WIDTH (0, SIZE_MAX)`), so it is covered by the stdint.in.md checklist
    rather than by this system-header probe.  */
 int
