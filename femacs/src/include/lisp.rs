@@ -3994,6 +3994,19 @@ pub mod other_units {
       /* src/lisp.h 5551: the string allocator terminfo.c's tparam returns.  */
       /// C: char *xstrdup (char const *)
       pub fn xstrdup (s: *const c_char) -> *mut c_char;
+
+      /* src/lisp.h 4490, 4982-4983, 5311-5314 (the kqueue.c group).  */
+      /// C: Lisp_Object list5 (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)
+      pub fn list5 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object, d: Lisp_Object,
+                    e: Lisp_Object) -> Lisp_Object;
+      /// C: void report_file_error (const char *, Lisp_Object)
+      pub fn report_file_error (string: *const c_char, err: Lisp_Object) -> !;
+      /// C: void report_file_notify_error (const char *, Lisp_Object)
+      pub fn report_file_notify_error (string: *const c_char, err: Lisp_Object) -> !;
+      /// C: int emacs_open (const char *, int, int)
+      pub fn emacs_open (file: *const c_char, oflags: c_int, mode: c_int) -> c_int;
+      /// C: int emacs_close (int)
+      pub fn emacs_close (fd: c_int) -> c_int;
     }
 }
 use other_units::*;

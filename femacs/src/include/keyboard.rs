@@ -254,3 +254,13 @@ unsafe extern "C" { pub static mut dev_tty: *mut c_char; }                      
 /* keyboard.h 483: `extern void temporarily_switch_to_single_kboard (struct frame *);` -
    callint.c's funcall-interactively calls it for a single-kboard configuration.  */
 unsafe extern "C" { pub fn temporarily_switch_to_single_kboard (f: *mut c_void); }
+
+/* keyboard.h 298-300, 498: the read-descriptor and event-queue entries kqueue.c uses.  The
+   event pointer and the callback's data stay `*mut c_void` (the mirror cannot name
+   `struct input_event` here, which termhooks.h owns).  */
+unsafe extern "C" {
+  pub fn add_read_fd (fd: c_int, func: Option<unsafe extern "C" fn (c_int, *mut c_void)>,
+                      data: *mut c_void);
+  pub fn delete_read_fd (fd: c_int);
+  pub fn kbd_buffer_store_event (event: *mut c_void);
+}
