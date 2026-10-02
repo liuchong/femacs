@@ -23,16 +23,16 @@
 | globals | 1,934 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 62 |
-| 其中 done / wip | 49 / 13 |
-| 待开工 | 528 |
+| 已有目标文件 | 64 |
+| 其中 done / wip | 51 / 13 |
+| 待开工 | 526 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 207 |
+| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 205 |
 | `lib-src/` | 14 | 20,960 | 262 | 0 | 150 | 220 | 78 | 81 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,161 | 490 | 1,104 | 1,976 | 432 | 40 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,619 | 368 | 1,834 | 2,175 | 974 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 207 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 205 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -235,7 +235,7 @@
 | `lib/memeq.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/memeq.rs` | done |
 | `lib/memmem.c` | 71 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/memmem.rs` | todo |
 | `lib/mempcpy.c` | 33 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/mempcpy.rs` | done |
-| `lib/memrchr.c` | 158 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/memrchr.rs` | todo |
+| `lib/memrchr.c` | 158 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/memrchr.rs` | done |
 | `lib/memset_explicit.c` | 54 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/memset_explicit.rs` | todo |
 | `lib/min-eloop-threshold.h` | 42 | 0 | 0 | 2 | 2 | 0 | 0 | L | `femacs/lib/include/min-eloop-threshold.rs` | todo |
 | `lib/min-max.h` | 6 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/min-max.rs` | todo |
@@ -260,7 +260,7 @@
 | `lib/pselect.c` | 115 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pselect.rs` | todo |
 | `lib/pthread_sigmask.c` | 84 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pthread_sigmask.rs` | todo |
 | `lib/qcopy-acl.c` | 125 | 2 | 0 | 3 | 3 | 0 | 0 | L | `femacs/lib/qcopy-acl.rs` | todo |
-| `lib/rawmemchr.c` | 158 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/rawmemchr.rs` | todo |
+| `lib/rawmemchr.c` | 158 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/rawmemchr.rs` | done |
 | `lib/readlink.c` | 114 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/readlink.rs` | todo |
 | `lib/readlinkat.c` | 123 | 1 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/readlinkat.rs` | todo |
 | `lib/readutmp.h` | 352 | 0 | 0 | 32 | 8 | 21 | 0 | L | `femacs/lib/include/readutmp.rs` | todo |

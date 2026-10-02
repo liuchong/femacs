@@ -7,10 +7,12 @@
 ## 1. 当前数字（每次提交后核对）
 
 - 已竣工单元：`src/` 6 个（data.c 4,400 / macros.c 444 / undo.c 490 / category.c 506 /
-  tparam.c 284〔见 §3.1〕/ vm-limit.c 220），`lib/` 24 个（gnulib 包装与替换件）。
+  tparam.c 284〔见 §3.1〕/ vm-limit.c 220），`lib/` 26 个（gnulib 包装与替换件，外加两个
+  实现单元 rawmemchr.c 158 / memrchr.c 158）。
 - 已竣工镜像：`src/include/` 与 `lib/include/` 共 11 个（font.h、thread.h、comp.h、
   macros.h、category.h、tparam.h、sys_resource.h 及既有若干）。
-- `python3 tools/extract-abi.py --all`：**0 failing**；done/in-progress 的数字以它为准。
+- `python3 tools/extract-abi.py --all`：**64 ported / 51 done / 13 wip / 0 failing**；
+  done/in-progress 的数字以它为准。
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
   （`gen-port-map`/`gen-baseline`/`gen-lifetimes` 后 `git diff --exit-code`）。
@@ -44,6 +46,10 @@
 - **3.5 `lib/binary-io.c` 整文件在 `#if defined __DJGPP__ || defined __EMX__` 之内**：
   这两个宏不在冻结宏表里，求值器保守地要求两支都活，且 `FLIPS` 无对应开关——移植它需要
   先定"未知条件"的既有政策（P-66 已记录该保守行为），否则会产出永不被编译的死文本。
-- **3.6 下一批候选**（依赖已就绪、体量可控）：`src/cm.c`(467，需 cm.h/termchar.h/
-  sysstdio.h 三镜像)、`src/decompress.c`(349，先核 `HAVE_ZLIB`/`HAVE_NATIVE_COMP`)、
-  `lib/allocator.c`(22)、`lib/futimens` 家族完成后的 `lib/utimens.c`(690)。
+- **3.6 下一批候选**：依赖已就绪且体量大的 `lib/mini-gmp.c`(4,699)、`lib/regexec.c`(4,306)
+  与 `lib/regex_internal.c`(1,718)、`src/json.c`(1,851，0 个预处理条件)、`src/itree.c`(1,435)、
+  `src/callint.c`(933)、`src/marker.c`(874)；小件 `lib/getgroups.c`(121)、`lib/group-member.c`(108)、
+  `lib/pselect.c`(115)、`lib/rawmemchr` 同族的 `lib/memrchr`(已做)。需要先建镜像的：
+  `src/cm.c`(467，需 cm.h/sysstdio.h/termchar.h 三镜像)、`src/decompress.c`(349，需 md5.h)。
+  注意 `lib/gettimeofday.c`/`pselect.c`/`pthread_sigmask.c`/`symlink.c`/`readlink.c`/`strtoimax.c`
+  在冻结宏表下整支可能为死文本，动它们前先核 `docs/baseline/config/darwin-arm64.macros.tsv`。
