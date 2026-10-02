@@ -23,9 +23,9 @@
 | globals | 1,934 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 33 |
-| 其中 done / wip | 21 / 12 |
-| 待开工 | 557 |
+| 已有目标文件 | 34 |
+| 其中 done / wip | 22 / 12 |
+| 待开工 | 556 |
 
 ## 2 按目录
 
@@ -38,14 +38,14 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 23 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 223 |
+| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 222 |
 
 ## 3 按批次
 
 | 批次 | 范围 | 完成判据 | 文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | todo |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 20 |
-| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 948 | 330 | 717 | 420 | 148 | 29 |
+| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 948 | 330 | 717 | 420 | 148 | 28 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 905 | 269 | 498 | 289 | 121 | 31 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,161 | 490 | 1,104 | 1,976 | 432 | 42 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,619 | 368 | 1,834 | 2,175 | 974 | 192 |
@@ -453,7 +453,7 @@
 | `src/casefiddle.c` | 764 | 17 | 11 | 0 | 6 | 9 | 0 | C | `femacs/src/casefiddle.rs` | todo |
 | `src/casetab.c` | 303 | 7 | 5 | 0 | 0 | 0 | 4 | C | `femacs/src/casetab.rs` | done |
 | `src/category.c` | 506 | 10 | 13 | 0 | 0 | 0 | 0 | C | `femacs/src/category.rs` | todo |
-| `src/category.h` | 124 | 2 | 0 | 12 | 0 | 0 | 0 | C | `femacs/src/include/category.rs` | todo |
+| `src/category.h` | 124 | 2 | 0 | 12 | 0 | 0 | 0 | C | `femacs/src/include/category.rs` | done |
 | `src/ccl.c` | 2,394 | 7 | 5 | 91 | 68 | 3 | 7 | C | `femacs/src/ccl.rs` | todo |
 | `src/ccl.h` | 88 | 0 | 0 | 8 | 5 | 14 | 0 | C | `femacs/src/include/ccl.rs` | todo |
 | `src/character.c` | 1,167 | 23 | 10 | 0 | 0 | 0 | 1 | C | `femacs/src/character.rs` | todo |

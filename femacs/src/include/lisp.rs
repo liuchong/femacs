@@ -3815,6 +3815,8 @@ pub mod other_units {
         // incomplete in lisp.h, so `buffer_visited_file_modtime` carries the reference
         // prototype and takes the untyped pointer (P-55/P-72).
         pub fn inhibit_garbage_collection () -> specpdl_ref;
+        // lisp.h 5354: category.h's CATEGORY_SET macro calls it; category.c defines it.
+        pub fn char_category_set (c: c_int) -> Lisp_Object;
         pub fn make_buffer_string (start: ptrdiff_t, end: ptrdiff_t, nprops: bool)
                                    -> Lisp_Object;
         /// C: Lisp_Object buffer_visited_file_modtime (struct buffer *)

@@ -47,3 +47,4 @@ _GL_INLINE_HEADER_BEGIN	syntax	spells `extern "C" {` in C++ only; nothing in C, 
 _GL_INLINE_HEADER_END	syntax	same, closing brace
 lisp_h_Qnil	config	P-17: the port spells the Q* macros as functions (`lisp_h_Qnil ()`), which is what every call site needs; the frozen branch's `# define lisp_h_Qnil 0` (lisp.h 374) is that function's body (lisp.h 384-386's `{0}` is the struct-Lisp_Object branch this target does not take)
 KVAR	syntax	keyboard.h 38: `((kboard)->field ## _)` pastes the field name — Rust has no token pasting; the port writes the field (every one it names ends in `_`) directly at each use site
+Vstandard_category_table	syntax	category.h 103: `BVAR (&buffer_defaults, category_table)` - the field name is pasted, so the port writes the BVAR expansion at each use site (the KVAR row's class)
