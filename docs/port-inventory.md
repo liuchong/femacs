@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 152 |
-| 其中 done / wip | 124 / 28 |
-| 待开工 | 438 |
+| 已有目标文件 | 153 |
+| 其中 done / wip | 125 / 28 |
+| 待开工 | 437 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 122 |
+| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 121 |
 | `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,741 | 368 | 1,834 | 2,175 | 981 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 122 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 121 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -200,7 +200,7 @@
 | `lib/getopt_int.h` | 118 | 0 | 0 | 2 | 4 | 9 | 0 | L | `femacs/lib/include/getopt_int.rs` | done |
 | `lib/getrandom.c` | 193 | 2 | 0 | 10 | 4 | 0 | 2 | L | `femacs/lib/getrandom.rs` | todo |
 | `lib/gettext.h` | 542 | 18 | 0 | 27 | 4 | 0 | 0 | L | `femacs/lib/include/gettext.rs` | wip |
-| `lib/gettime.c` | 51 | 2 | 0 | 0 | 0 | 1 | 0 | L | `femacs/lib/gettime.rs` | todo |
+| `lib/gettime.c` | 51 | 2 | 0 | 0 | 0 | 1 | 0 | L | `femacs/lib/gettime.rs` | done |
 | `lib/gettimeofday.c` | 154 | 2 | 0 | 4 | 0 | 0 | 2 | L | `femacs/lib/gettimeofday.rs` | done |
 | `lib/group-member.c` | 108 | 4 | 0 | 0 | 1 | 2 | 0 | L | `femacs/lib/group-member.rs` | done |
 | `lib/idx.h` | 152 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/idx.rs` | done |

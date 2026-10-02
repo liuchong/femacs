@@ -93,13 +93,21 @@ pub fn timespectod (a: timespec) -> c_double
   a.tv_sec as c_double + a.tv_nsec as c_double / 1e9
 }
 
-unsafe extern "C" {
-  // Parameter names come from the definitions in lib/timespec.c (C's prototypes have none).
-  pub fn timespec_add (a: timespec, b: timespec) -> timespec;
-  pub fn timespec_sub (a: timespec, b: timespec) -> timespec;
-  pub fn dtotimespec (sec: c_double) -> timespec;
-  pub fn gettime_res () -> c_long;
-  pub fn current_timespec () -> timespec;
-  pub fn gettime (ts: *mut timespec);
-  pub fn settime (ts: *const timespec) -> c_int;
+/* The seven declarations in a whole-import module: `femacs/lib/gettime.rs` and
+   `femacs/lib/timespec.rs` define `gettime`/`current_timespec` themselves, and a definition
+   shadows a glob import instead of colliding with it (PORTING.md 0.1-10).  */
+pub mod timespec_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    // Parameter names come from the definitions in lib/timespec.c (C's prototypes have none).
+    pub fn timespec_add (a: timespec, b: timespec) -> timespec;
+    pub fn timespec_sub (a: timespec, b: timespec) -> timespec;
+    pub fn dtotimespec (sec: c_double) -> timespec;
+    pub fn gettime_res () -> c_long;
+    pub fn current_timespec () -> timespec;
+    pub fn gettime (ts: *mut timespec);
+    pub fn settime (ts: *const timespec) -> c_int;
+  }
 }
+use timespec_decls::*;
