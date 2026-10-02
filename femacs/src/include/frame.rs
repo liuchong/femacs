@@ -88,11 +88,11 @@ pub struct frame
   pub tool_bar_height: c_int,
   pub n_tool_bar_rows: c_int,
   pub n_tool_bar_items: c_int,
-  pub decode_mode_spec_buffer: *mut c_void,   /// C: `char *decode_mode_spec_buffer`
-  pub insert_line_cost: *mut c_void,   /// C: `int *insert_line_cost`
-  pub delete_line_cost: *mut c_void,   /// C: `int *delete_line_cost`
-  pub insert_n_lines_cost: *mut c_void,   /// C: `int *insert_n_lines_cost`
-  pub delete_n_lines_cost: *mut c_void,   /// C: `int *delete_n_lines_cost`
+  pub decode_mode_spec_buffer: *mut c_char,   /// C: `char *decode_mode_spec_buffer`
+  pub insert_line_cost: *mut c_int,   /// C: `int *insert_line_cost`
+  pub delete_line_cost: *mut c_int,   /// C: `int *delete_line_cost`
+  pub insert_n_lines_cost: *mut c_int,   /// C: `int *insert_n_lines_cost`
+  pub delete_n_lines_cost: *mut c_int,   /// C: `int *delete_n_lines_cost`
   pub text_cols: c_int,
   pub text_lines: c_int,
   pub text_width: c_int,
@@ -182,5 +182,428 @@ pub const FRAME_WAS_INVISIBLE_SHIFT: u32 = 5;   // unit 2
 pub const FRAME_SELECT_MINI_WINDOW_FLAG_SHIFT: u32 = 6;   // unit 2
 pub const FRAME_BORDERS_RESPECT_ALPHA_BACKGROUND_SHIFT: u32 = 7;   // unit 2
 
-// C: frame.h 700-1900's 139 `FRAME_*` macros, the 37 inlines and the 7 file-scope objects
-// — (not mirrored yet; they land next, in this same file).
+// frame.h 27-44: `enum vertical_scroll_bar_type`.
+pub type vertical_scroll_bar_type = c_int;
+pub const vertical_scroll_bar_none: vertical_scroll_bar_type = 0;
+pub const vertical_scroll_bar_left: vertical_scroll_bar_type = 1;
+pub const vertical_scroll_bar_right: vertical_scroll_bar_type = 2;
+
+// frame.h 840-...: `XFRAME` is an expression in C (an assert plus `XUNTAG`), so the port keeps a
+// function of the same name.
+#[inline(always)]
+pub fn XFRAME (p: Lisp_Object) -> *mut frame
+{
+  eassert! (FRAMEP (p));
+  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, frame)
+}
+
+// C's `XSETFRAME (a, b)` writes into its first argument, so the port keeps the macro form the
+// other `XSET*` setters use (a function would take the value, not the caller's slot).
+macro_rules! XSETFRAME {
+    ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_FRAME) };
+}
+
+// frame.h 1459-1462: `SELECTED_FRAME`.  C's `emacs_abort ()` arm yields a null frame pointer.
+#[inline(always)]
+pub fn SELECTED_FRAME () -> *mut frame
+{
+  if FRAMEP (unsafe { selected_frame }) && FRAME_LIVE_P (XFRAME (unsafe { selected_frame }))
+    { XFRAME (unsafe { selected_frame }) }
+  else { unsafe { emacs_abort () }; std::ptr::null_mut () }
+}
+
+// frame.h 833-880: the frame's own fields (the accessors C writes as macros).  Every one reads a
+// field the layout gate asserts the offset of.
+#[inline(always)]
+pub fn FRAME_KBOARD (f: *mut frame) -> *mut c_void
+{ unsafe { (*unsafe { (*f).terminal }).kboard } }   /// C: `struct kboard *((f)->terminal->kboard)`
+
+#[inline(always)]
+pub fn FRAME_PARENT_FRAME (f: *mut frame) -> *mut frame
+{ if NILP (unsafe { (*f).parent_frame }) { std::ptr::null_mut () } else { XFRAME (unsafe { (*f).parent_frame }) } }
+
+#[inline(always)]
+pub fn FRAME_LIVE_P (f: *mut frame) -> bool { !unsafe { (*f).terminal }.is_null () }
+
+#[inline(always)]
+pub fn FRAME_INITIAL_P (f: *mut frame) -> bool
+{ frame_output_method (f) == output_initial }
+
+#[inline(always)]
+pub fn FRAME_TERMCAP_P (f: *mut frame) -> bool
+{ frame_output_method (f) == output_termcap }
+
+#[inline(always)]
+pub fn FRAME_X_P (f: *mut frame) -> bool
+{ frame_output_method (f) == output_x_window }
+
+// frame.h 846-880: the platforms this target is not.
+#[inline(always)]
+pub fn FRAME_W32_P (f: *mut frame) -> bool { let _ = f; false }
+#[inline(always)]
+pub fn FRAME_MSDOS_P (f: *mut frame) -> bool { let _ = f; false }
+#[inline(always)]
+pub fn FRAME_NS_P (f: *mut frame) -> bool { let _ = f; false }
+#[inline(always)]
+pub fn FRAME_PGTK_P (f: *mut frame) -> bool { let _ = f; false }
+#[inline(always)]
+pub fn FRAME_HAIKU_P (f: *mut frame) -> bool { let _ = f; false }
+#[inline(always)]
+pub fn FRAME_ANDROID_P (f: *mut frame) -> bool { let _ = f; false }
+#[inline(always)]
+pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { let _ = f; false }
+
+// frame.h 884-895.
+#[inline(always)]
+pub fn FRAME_RES_X (f: *mut frame) -> c_double { let _ = f; unsafe { default_pixels_per_inch_x () } }
+#[inline(always)]
+pub fn FRAME_RES_Y (f: *mut frame) -> c_double { let _ = f; unsafe { default_pixels_per_inch_y () } }
+#[inline(always)]
+pub fn FRAME_RES (f: *mut frame) -> c_double { let _ = f; unsafe { default_pixels_per_inch_y () } }
+
+#[inline(always)]
+pub fn FRAME_MINIBUF_ONLY_P (f: *mut frame) -> bool
+{ EQ (FRAME_ROOT_WINDOW (f), FRAME_MINIBUF_WINDOW (f)) }
+
+#[inline(always)]
+pub fn FRAME_HAS_MINIBUF_P (f: *mut frame) -> bool
+{
+  WINDOWP (unsafe { (*f).minibuffer_window })
+    && std::ptr::eq (XFRAME (unsafe { (*XWINDOW (unsafe { (*f).minibuffer_window })).frame }), f)
+}
+
+#[inline(always)]
+pub fn FRAME_SCALE_FACTOR (f: *mut frame) -> c_int { let _ = f; 1 }
+
+// frame.h 906-940: the sizes.
+#[inline(always)]
+pub fn FRAME_PIXEL_WIDTH (f: *mut frame) -> c_int { unsafe { (*f).pixel_width } }
+#[inline(always)]
+pub fn FRAME_PIXEL_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).pixel_height } }
+#[inline(always)]
+pub fn FRAME_TOTAL_COLS (f: *mut frame) -> c_int { unsafe { (*f).total_cols } }
+#[inline(always)]
+pub fn FRAME_TOTAL_LINES (f: *mut frame) -> c_int { unsafe { (*f).total_lines } }
+#[inline(always)]
+pub fn FRAME_TEXT_WIDTH (f: *mut frame) -> c_int { unsafe { (*f).text_width } }
+#[inline(always)]
+pub fn FRAME_TEXT_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).text_height } }
+#[inline(always)]
+pub fn FRAME_COLS (f: *mut frame) -> c_int { unsafe { (*f).text_cols } }
+#[inline(always)]
+pub fn FRAME_LINES (f: *mut frame) -> c_int { unsafe { (*f).text_lines } }
+
+// frame.h 950-1010: the menu-bar, tab-bar and tool-bar margins.
+#[inline(always)]
+pub fn FRAME_EXTERNAL_MENU_BAR (f: *mut frame) -> bool { let _ = f; false }
+#[inline(always)]
+pub fn FRAME_MENU_BAR_LINES (f: *mut frame) -> c_int { unsafe { (*f).menu_bar_lines } }
+#[inline(always)]
+pub fn FRAME_MENU_BAR_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).menu_bar_height } }
+#[inline(always)]
+pub fn FRAME_TAB_BAR_LINES (f: *mut frame) -> c_int { unsafe { (*f).tab_bar_lines } }
+#[inline(always)]
+pub fn FRAME_TAB_BAR_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).tab_bar_height } }
+#[inline(always)]
+pub fn FRAME_EXTERNAL_TOOL_BAR (f: *mut frame) -> bool { let _ = f; false }
+#[inline(always)]
+pub fn FRAME_TOOL_BAR_POSITION (f: *mut frame) -> Lisp_Object { unsafe { (*f).tool_bar_position } }
+#[inline(always)]
+pub fn FRAME_TOOL_BAR_LINES (f: *mut frame) -> c_int { unsafe { (*f).tool_bar_lines } }
+#[inline(always)]
+pub fn FRAME_TOOL_BAR_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).tool_bar_height } }
+#[inline(always)]
+pub fn FRAME_TOOL_BAR_TOP_HEIGHT (f: *mut frame) -> c_int
+{ if BASE_EQ (unsafe { (*f).tool_bar_position }, Qtop ()) { unsafe { (*f).tool_bar_height } } else { 0 } }
+#[inline(always)]
+pub fn FRAME_TOOL_BAR_TOP_LINES (f: *mut frame) -> c_int
+{ if BASE_EQ (unsafe { (*f).tool_bar_position }, Qtop ()) { unsafe { (*f).tool_bar_lines } } else { 0 } }
+#[inline(always)]
+pub fn FRAME_TOOL_BAR_BOTTOM_HEIGHT (f: *mut frame) -> c_int
+{ if BASE_EQ (unsafe { (*f).tool_bar_position }, Qbottom ()) { unsafe { (*f).tool_bar_height } } else { 0 } }
+#[inline(always)]
+pub fn FRAME_TOOL_BAR_BOTTOM_LINES (f: *mut frame) -> c_int
+{ if BASE_EQ (unsafe { (*f).tool_bar_position }, Qbottom ()) { unsafe { (*f).tool_bar_lines } } else { 0 } }
+
+#[inline(always)]
+pub fn FRAME_TOP_MARGIN (f: *mut frame) -> c_int
+{ FRAME_MENU_BAR_LINES (f) + FRAME_TAB_BAR_LINES (f) + FRAME_TOOL_BAR_TOP_LINES (f) }
+#[inline(always)]
+pub fn FRAME_TOP_MARGIN_HEIGHT (f: *mut frame) -> c_int
+{ FRAME_MENU_BAR_HEIGHT (f) + FRAME_TAB_BAR_HEIGHT (f) + FRAME_TOOL_BAR_TOP_HEIGHT (f) }
+#[inline(always)]
+pub fn FRAME_BOTTOM_MARGIN (f: *mut frame) -> c_int { FRAME_TOOL_BAR_BOTTOM_LINES (f) }
+#[inline(always)]
+pub fn FRAME_BOTTOM_MARGIN_HEIGHT (f: *mut frame) -> c_int { FRAME_TOOL_BAR_BOTTOM_HEIGHT (f) }
+#[inline(always)]
+pub fn FRAME_MARGINS (f: *mut frame) -> c_int
+{ FRAME_MENU_BAR_LINES (f) + FRAME_TAB_BAR_LINES (f) + FRAME_TOOL_BAR_LINES (f) }
+#[inline(always)]
+pub fn FRAME_MARGIN_HEIGHT (f: *mut frame) -> c_int
+{ FRAME_MENU_BAR_HEIGHT (f) + FRAME_TAB_BAR_HEIGHT (f) + FRAME_TOOL_BAR_HEIGHT (f) }
+
+// frame.h 1020-1080: the flag predicates (the flags are the two units the gate measured).
+#[inline(always)]
+pub fn FRAME_VISIBLE_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_VISIBLE_SHIFT) }
+#[inline(always)]
+pub fn FRAME_ICONIFIED_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_ICONIFIED_SHIFT) }
+#[inline(always)]
+pub fn FRAME_GARBAGED_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_GARBAGED_SHIFT) }
+#[inline(always)]
+pub fn FRAME_NO_SPLIT_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_NO_SPLIT_SHIFT) }
+#[inline(always)]
+pub fn FRAME_WANTS_MODELINE_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_WANTS_MODELINE_SHIFT) }
+#[inline(always)]
+pub fn FRAME_WINDOWS_FROZEN (f: *mut frame) -> bool { frame_bit1 (f, FRAME_FROZEN_WINDOW_STARTS_SHIFT) }
+#[inline(always)]
+pub fn FRAME_WINDOW_CHANGE (f: *mut frame) -> bool { frame_bit1 (f, FRAME_WINDOW_CHANGE_SHIFT) }
+#[inline(always)]
+pub fn FRAME_WINDOW_STATE_CHANGE (f: *mut frame) -> bool
+{ frame_bit1 (f, FRAME_WINDOW_STATE_CHANGE_SHIFT) }
+#[inline(always)]
+pub fn FRAME_UNDECORATED (f: *mut frame) -> c_int
+{ frame_bit1 (f, FRAME_UNDECORATED_SHIFT) as c_int }
+
+// frame.h 1090-1130: the windows and the scroll-bar bookkeeping.
+#[inline(always)]
+pub fn FRAME_MINIBUF_WINDOW (f: *mut frame) -> Lisp_Object { unsafe { (*f).minibuffer_window } }
+#[inline(always)]
+pub fn FRAME_ROOT_WINDOW (f: *mut frame) -> Lisp_Object { unsafe { (*f).root_window } }
+#[inline(always)]
+pub fn FRAME_SELECTED_WINDOW (f: *mut frame) -> Lisp_Object { unsafe { (*f).selected_window } }
+#[inline(always)]
+pub fn FRAME_OLD_SELECTED_WINDOW (f: *mut frame) -> Lisp_Object
+{ unsafe { (*f).old_selected_window } }
+#[inline(always)]
+pub fn FRAME_INSERT_COST (f: *mut frame) -> *mut c_int { unsafe { (*f).insert_line_cost } }
+#[inline(always)]
+pub fn FRAME_DELETE_COST (f: *mut frame) -> *mut c_int { unsafe { (*f).delete_line_cost } }
+#[inline(always)]
+pub fn FRAME_INSERTN_COST (f: *mut frame) -> *mut c_int { unsafe { (*f).insert_n_lines_cost } }
+#[inline(always)]
+pub fn FRAME_DELETEN_COST (f: *mut frame) -> *mut c_int { unsafe { (*f).delete_n_lines_cost } }
+#[inline(always)]
+pub fn FRAME_FOCUS_FRAME (f: *mut frame) -> Lisp_Object { unsafe { (*f).focus_frame } }
+#[inline(always)]
+pub fn FRAME_SCROLL_BARS (f: *mut frame) -> Lisp_Object { unsafe { (*f).scroll_bars } }
+#[inline(always)]
+pub fn FRAME_CONDEMNED_SCROLL_BARS (f: *mut frame) -> Lisp_Object
+{ unsafe { (*f).condemned_scroll_bars } }
+#[inline(always)]
+pub fn FRAME_MENU_BAR_ITEMS (f: *mut frame) -> Lisp_Object { unsafe { (*f).menu_bar_items } }
+
+// frame.h 1150-1220: the scroll bars this target does not have.
+#[inline(always)]
+pub fn FRAME_VERTICAL_SCROLL_BAR_TYPE (f: *mut frame) -> vertical_scroll_bar_type
+{ let _ = f; vertical_scroll_bar_none }
+#[inline(always)]
+pub fn FRAME_HAS_VERTICAL_SCROLL_BARS (f: *mut frame) -> c_int { let _ = f; 0 }
+#[inline(always)]
+pub fn FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT (f: *mut frame) -> c_int { let _ = f; 0 }
+#[inline(always)]
+pub fn FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f: *mut frame) -> c_int { let _ = f; 0 }
+#[inline(always)]
+pub fn FRAME_HAS_HORIZONTAL_SCROLL_BARS (f: *mut frame) -> c_int { let _ = f; 0 }
+#[inline(always)]
+pub fn FRAME_OVERRIDE_REDIRECT (f: *mut frame) -> c_int { let _ = f; 0 }
+#[inline(always)]
+pub fn FRAME_SKIP_TASKBAR (f: *mut frame) -> c_int { let _ = f; 0 }
+#[inline(always)]
+pub fn FRAME_NO_FOCUS_ON_MAP (f: *mut frame) -> c_int { let _ = f; 0 }
+#[inline(always)]
+pub fn FRAME_NO_ACCEPT_FOCUS (f: *mut frame) -> c_int { let _ = f; 0 }
+#[inline(always)]
+pub fn FRAME_TOOLTIP_P (f: *mut frame) -> bool { let _ = f; false }
+#[inline(always)]
+pub fn FRAME_NO_SPECIAL_GLYPHS (f: *mut frame) -> bool
+{ frame_bit1 (f, FRAME_NO_SPECIAL_GLYPHS_SHIFT) }
+
+#[inline(always)]
+pub fn FRAME_CONFIG_SCROLL_BAR_WIDTH (f: *mut frame) -> c_int
+{ unsafe { (*f).config_scroll_bar_width } }
+#[inline(always)]
+pub fn FRAME_CONFIG_SCROLL_BAR_HEIGHT (f: *mut frame) -> c_int
+{ unsafe { (*f).config_scroll_bar_height } }
+#[inline(always)]
+pub fn FRAME_CONFIG_SCROLL_BAR_COLS (f: *mut frame) -> c_int
+{ unsafe { (*f).config_scroll_bar_cols } }
+#[inline(always)]
+pub fn FRAME_CONFIG_SCROLL_BAR_LINES (f: *mut frame) -> c_int
+{ unsafe { (*f).config_scroll_bar_lines } }
+#[inline(always)]
+pub fn FRAME_LEFT_SCROLL_BAR_AREA_WIDTH (f: *mut frame) -> c_int
+{ if FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT (f) != 0 { FRAME_CONFIG_SCROLL_BAR_WIDTH (f) } else { 0 } }
+#[inline(always)]
+pub fn FRAME_RIGHT_SCROLL_BAR_AREA_WIDTH (f: *mut frame) -> c_int
+{ if FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f) != 0 { FRAME_CONFIG_SCROLL_BAR_WIDTH (f) } else { 0 } }
+#[inline(always)]
+pub fn FRAME_LEFT_SCROLL_BAR_COLS (f: *mut frame) -> c_int
+{ if FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT (f) != 0 { FRAME_CONFIG_SCROLL_BAR_COLS (f) } else { 0 } }
+#[inline(always)]
+pub fn FRAME_RIGHT_SCROLL_BAR_COLS (f: *mut frame) -> c_int
+{ if FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f) != 0 { FRAME_CONFIG_SCROLL_BAR_COLS (f) } else { 0 } }
+#[inline(always)]
+pub fn FRAME_SCROLL_BAR_AREA_WIDTH (f: *mut frame) -> c_int
+{ if FRAME_HAS_VERTICAL_SCROLL_BARS (f) != 0 { FRAME_CONFIG_SCROLL_BAR_WIDTH (f) } else { 0 } }
+#[inline(always)]
+pub fn FRAME_SCROLL_BAR_AREA_HEIGHT (f: *mut frame) -> c_int
+{ if FRAME_HAS_HORIZONTAL_SCROLL_BARS (f) != 0 { FRAME_CONFIG_SCROLL_BAR_HEIGHT (f) } else { 0 } }
+#[inline(always)]
+pub fn FRAME_SCROLL_BAR_COLS (f: *mut frame) -> c_int
+{ if FRAME_HAS_VERTICAL_SCROLL_BARS (f) != 0 { FRAME_CONFIG_SCROLL_BAR_COLS (f) } else { 0 } }
+#[inline(always)]
+pub fn FRAME_SCROLL_BAR_LINES (f: *mut frame) -> c_int
+{ if FRAME_HAS_HORIZONTAL_SCROLL_BARS (f) != 0 { FRAME_CONFIG_SCROLL_BAR_LINES (f) } else { 0 } }
+#[inline(always)]
+pub fn FRAME_CURSOR_X_LIMIT (f: *mut frame) -> c_int
+{ FRAME_COLS (f) + FRAME_LEFT_SCROLL_BAR_COLS (f) }
+#[inline(always)]
+pub fn FRAME_COST_BAUD_RATE (f: *mut frame) -> intmax_t
+{ unsafe { (*f).cost_calculation_baud_rate } }
+#[inline(always)]
+pub fn FRAME_DESIRED_CURSOR (f: *mut frame) -> text_cursor_kinds { unsafe { (*f).desired_cursor } }
+#[inline(always)]
+pub fn FRAME_BLINK_OFF_CURSOR (f: *mut frame) -> text_cursor_kinds
+{ unsafe { (*f).blink_off_cursor } }
+#[inline(always)]
+pub fn FRAME_CURSOR_WIDTH (f: *mut frame) -> c_int { unsafe { (*f).cursor_width } }
+#[inline(always)]
+pub fn FRAME_BLINK_OFF_CURSOR_WIDTH (f: *mut frame) -> c_int
+{ unsafe { (*f).blink_off_cursor_width } }
+#[inline(always)]
+pub fn FRAME_FOREGROUND_PIXEL (f: *mut frame) -> c_ulong { unsafe { (*f).foreground_pixel } }
+#[inline(always)]
+pub fn FRAME_BACKGROUND_PIXEL (f: *mut frame) -> c_ulong { unsafe { (*f).background_pixel } }
+#[inline(always)]
+pub fn FRAME_MESSAGE_BUF_SIZE (f: *mut frame) -> c_int { 4 * FRAME_COLS (f) }
+#[inline(always)]
+pub fn FRAME_LINE_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).line_height } }
+#[inline(always)]
+pub fn FRAME_COLUMN_WIDTH (f: *mut frame) -> c_int { unsafe { (*f).column_width } }
+
+// frame.h 1560-1645: the fringe/dimension helpers (they all go through `frame_dimension`,
+// which is zero on a target without a window system).
+#[inline(always)]
+pub fn frame_dimension (_x: c_int) -> c_int { 0 }
+
+#[inline(always)]
+pub fn FRAME_FRINGE_COLS (f: *mut frame) -> c_int { frame_dimension (unsafe { (*f).fringe_cols }) }
+#[inline(always)]
+pub fn FRAME_LEFT_FRINGE_WIDTH (f: *mut frame) -> c_int
+{ frame_dimension (unsafe { (*f).left_fringe_width }) }
+#[inline(always)]
+pub fn FRAME_RIGHT_FRINGE_WIDTH (f: *mut frame) -> c_int
+{ frame_dimension (unsafe { (*f).right_fringe_width }) }
+#[inline(always)]
+pub fn FRAME_TOTAL_FRINGE_WIDTH (f: *mut frame) -> c_int
+{ FRAME_LEFT_FRINGE_WIDTH (f) + FRAME_RIGHT_FRINGE_WIDTH (f) }
+#[inline(always)]
+pub fn FRAME_CHILD_FRAME_BORDER_WIDTH (f: *mut frame) -> c_int
+{ frame_dimension (unsafe { (*f).child_frame_border_width }) }
+#[inline(always)]
+pub fn FRAME_INTERNAL_BORDER_WIDTH (f: *mut frame) -> c_int
+{
+  if !FRAME_PARENT_FRAME (f).is_null ()
+    {
+      if FRAME_CHILD_FRAME_BORDER_WIDTH (f) >= 0 { FRAME_CHILD_FRAME_BORDER_WIDTH (f) }
+      else { frame_dimension (unsafe { (*f).internal_border_width }) }
+    }
+  else { frame_dimension (unsafe { (*f).internal_border_width }) }
+}
+#[inline(always)]
+pub fn FRAME_RIGHT_DIVIDER_WIDTH (f: *mut frame) -> c_int
+{ frame_dimension (unsafe { (*f).right_divider_width }) }
+#[inline(always)]
+pub fn FRAME_BOTTOM_DIVIDER_WIDTH (f: *mut frame) -> c_int
+{ frame_dimension (unsafe { (*f).bottom_divider_width }) }
+
+// frame.h 896-920: the two `NUMVAL` helpers (the inline plus the two defaults it feeds).
+#[inline(always)]
+pub fn NUMVAL (x: Lisp_Object) -> c_double
+{ if NUMBERP (x) { unsafe { XFLOATINT (x) } } else { -1.0 } }
+
+#[inline(always)]
+pub unsafe fn default_pixels_per_inch_x () -> c_double
+{
+  let v = if CONSP (Vdisplay_pixels_per_inch) { XCAR (Vdisplay_pixels_per_inch) }
+          else { Vdisplay_pixels_per_inch };
+  if NUMVAL (v) > 0.0 { NUMVAL (v) } else { 72.0 }
+}
+
+#[inline(always)]
+pub unsafe fn default_pixels_per_inch_y () -> c_double
+{
+  let v = if CONSP (Vdisplay_pixels_per_inch) { XCDR (Vdisplay_pixels_per_inch) }
+          else { Vdisplay_pixels_per_inch };
+  if NUMVAL (v) > 0.0 { NUMVAL (v) } else { 72.0 }
+}
+
+#[inline(always)]
+pub fn window_system_available (f: *mut frame) -> bool { let _ = f; false }
+
+// frame.h 1437-1450: sets the `iconified` flag (bit 9 of unit 1).
+#[inline(always)]
+pub fn SET_FRAME_ICONIFIED (f: *mut frame, i: c_int)
+{
+  eassert! (0 <= i && i <= 1);
+  let mask = 1u32 << FRAME_ICONIFIED_SHIFT;
+  unsafe { (*f).bits1 = ((*f).bits1 & !mask) | ((i as u32) << FRAME_ICONIFIED_SHIFT); }
+}
+
+// The readers the accessors above share: `output_method` is the four-bit field in the middle of
+// unit 1, and the flags are single bits of either unit (PORTING.md 1.3; the note file records
+// that C's field names cannot occur in the Rust bodies).
+#[inline(always)]
+fn frame_output_method (f: *mut frame) -> output_method
+{ ((unsafe { (*f).bits1 }) >> FRAME_OUTPUT_METHOD_SHIFT & FRAME_OUTPUT_METHOD_MASK) as output_method }
+
+#[inline(always)]
+fn frame_bit1 (f: *mut frame, shift: u32) -> bool { (unsafe { (*f).bits1 }) >> shift & 1 != 0 }
+
+// frame.h 1428-1521: the file-scope objects (the .c files define them).
+unsafe extern "C" { pub static mut frame_next_id: EMACS_UINT; }              // 1428
+unsafe extern "C" { pub static mut frame_garbaged: bool; }                   // 1433
+unsafe extern "C" { pub static mut selected_frame: Lisp_Object; }            // 1459
+unsafe extern "C" { pub static mut old_selected_frame: Lisp_Object; }        // 1460
+unsafe extern "C" { pub static mut frame_default_tab_bar_height: c_int; }    // 1462
+unsafe extern "C" { pub static mut frame_default_tool_bar_height: c_int; }   // 1465
+unsafe extern "C" { pub static mut Vframe_list: Lisp_Object; }               // 1521
+
+/* Most code should use these functions to set Lisp fields in struct frame.  */
+// frame.h 753-895: the frame's Lisp-Object setters, one assignment each (C's `fset_*`).
+#[inline(always)]
+pub fn fset_buffer_list (f: *mut frame, val: Lisp_Object) { unsafe { (*f).buffer_list = val; } }
+#[inline(always)]
+pub fn fset_buried_buffer_list (f: *mut frame, val: Lisp_Object) { unsafe { (*f).buried_buffer_list = val; } }
+#[inline(always)]
+pub fn fset_condemned_scroll_bars (f: *mut frame, val: Lisp_Object) { unsafe { (*f).condemned_scroll_bars = val; } }
+#[inline(always)]
+pub fn fset_face_hash_table (f: *mut frame, val: Lisp_Object) { unsafe { (*f).face_hash_table = val; } }
+#[inline(always)]
+pub fn fset_focus_frame (f: *mut frame, val: Lisp_Object) { unsafe { (*f).focus_frame = val; } }
+#[inline(always)]
+pub fn fset_icon_name (f: *mut frame, val: Lisp_Object) { unsafe { (*f).icon_name = val; } }
+#[inline(always)]
+pub fn fset_menu_bar_items (f: *mut frame, val: Lisp_Object) { unsafe { (*f).menu_bar_items = val; } }
+#[inline(always)]
+pub fn fset_menu_bar_vector (f: *mut frame, val: Lisp_Object) { unsafe { (*f).menu_bar_vector = val; } }
+#[inline(always)]
+pub fn fset_name (f: *mut frame, val: Lisp_Object) { unsafe { (*f).name = val; } }
+#[inline(always)]
+pub fn fset_param_alist (f: *mut frame, val: Lisp_Object) { unsafe { (*f).param_alist = val; } }
+#[inline(always)]
+pub fn fset_root_window (f: *mut frame, val: Lisp_Object) { unsafe { (*f).root_window = val; } }
+#[inline(always)]
+pub fn fset_scroll_bars (f: *mut frame, val: Lisp_Object) { unsafe { (*f).scroll_bars = val; } }
+#[inline(always)]
+pub fn fset_selected_window (f: *mut frame, val: Lisp_Object) { unsafe { (*f).selected_window = val; } }
+#[inline(always)]
+pub fn fset_old_selected_window (f: *mut frame, val: Lisp_Object) { unsafe { (*f).old_selected_window = val; } }
+#[inline(always)]
+pub fn fset_title (f: *mut frame, val: Lisp_Object) { unsafe { (*f).title = val; } }
+#[inline(always)]
+pub fn fset_tab_bar_items (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tab_bar_items = val; } }
+#[inline(always)]
+pub fn fset_tool_bar_items (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tool_bar_items = val; } }
+#[inline(always)]
+pub fn fset_tool_bar_position (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tool_bar_position = val; } }

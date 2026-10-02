@@ -3567,6 +3567,8 @@ pub mod other_units {
         pub fn die (msg: *const c_char, file: *const c_char, line: c_int) -> !;
         pub static mut suppress_checking: bool;
         pub fn strlen (s: *const c_char) -> usize;
+        // lisp.h 5302: `extern AVOID emacs_abort (void) NO_INLINE;` (the port keeps `-> !`).
+        pub fn emacs_abort () -> !;
     }
     unsafe extern "C" {
         /// Set after Emacs has started up the first time (emacs.c).

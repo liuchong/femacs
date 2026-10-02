@@ -449,11 +449,20 @@ def alias_count_problems(c_text: str, rust_text: str, *, skip_short: bool) -> li
 
 
 def c_body_text(text: str, name: str) -> str | None:
-    """The reference body of NAME, comments blanked (None when the file lacks it)."""
+    """The reference body of NAME: comments blanked and *dead* lines dropped.
+
+    A body may contain `#ifdef` arms this target does not compile — `SET_FRAME_ICONIFIED`'s
+    `HAVE_WINDOW_SYSTEM` half calls `gui_consider_frame_title` and sets `frame_window_p` — and the
+    token check must not demand them: those tokens are not in the port because that text is not in
+    the reference either (P-75).  The window is evaluated with the file's own macro state, which is
+    what the frozen configuration compiles.
+    """
+    window = ci.Lines(text)
     for span in ci.function_spans(text):
         if span["name"] == name:
-            lines = text.split("\n")[span["body_start"] - 1: span["body_end"]]
-            return ci.blank_comments("\n".join(lines))
+            body = text.split("\n")[span["body_start"] - 1: span["body_end"]]
+            live = window.live[span["body_start"] - 1: span["body_end"]]
+            return ci.blank_comments("\n".join(l for l, ok in zip(body, live) if ok))
     return None
 
 
@@ -837,13 +846,15 @@ def split_top_level(text: str) -> list[str]:
 
 
 def body_is_empty(c_path: Path, name: str) -> bool:
-    """True when the reference function's body has no statements."""
+    """True when the reference function's body has no live statements."""
     text = c_path.read_text(encoding="utf-8", errors="replace")
+    window = ci.Lines(text)
     for span in ci.function_spans(text):
         if span["name"] == name:
-            lines = text.split("\n")[span["body_start"] - 1: span["body_end"]]
+            body = text.split("\n")[span["body_start"] - 1: span["body_end"]]
+            live = window.live[span["body_start"] - 1: span["body_end"]]
             return all(not l.strip("\t ;{}") or l.strip().startswith(("/*", "*", "//"))
-                       for l in lines)
+                       for l, ok in zip(body, live) if ok)
     return False
 
 

@@ -93,3 +93,19 @@ WINDOW_PSEUDO_P	pseudo_window_p	same packed-flag unit (bit 11)
 WINDOW_HAS_FRINGES_OUTSIDE_MARGINS	fringes_outside_margins	same packed-flag unit (bit 12)
 WINDOW_BUFFER	qnil	C passes `Qnil`; the port's nil is the function `lisp_h_Qnil ()` (P-17)
 WINDOW_BUFFER_LOCAL_VALUE	qnil	same (P-17); the call itself is C's `buffer_local_value`
+FRAME_GARBAGED_P	garbaged	frame.h packs these flags into two 4-byte units; the port reads `frame.bits1` and masks
+FRAME_ICONIFIED_P	iconified	same packed-flag unit 1
+FRAME_NO_SPLIT_P	no_split	same packed-flag unit 1
+FRAME_VISIBLE_P	visible	same packed-flag unit 1 (the one `unsigned visible : 1`)
+FRAME_WANTS_MODELINE_P	wants_modeline	same packed-flag unit 1
+FRAME_WINDOWS_FROZEN	frozen_window_starts	same packed-flag unit 1
+FRAME_WINDOW_CHANGE	window_change	same packed-flag unit 1
+FRAME_WINDOW_STATE_CHANGE	window_state_change	same packed-flag unit 1
+FRAME_NO_SPECIAL_GLYPHS	no_special_glyphs	same packed-flag unit 1
+FRAME_UNDECORATED	undecorated	same packed-flag unit 1
+FRAME_INITIAL_P	output_method	`output_method` is a four-bit field inside that unit; the port reads it with `frame_output_method`
+FRAME_TERMCAP_P	output_method	same four-bit field
+FRAME_X_P	output_method	same four-bit field
+FRAME_LIVE_P	0	C compares the `terminal` pointer with 0; the port writes `!…is_null ()`, which is the same test
+SELECTED_FRAME	0,frame	C's fallback arm is `(emacs_abort (), (struct frame *) 0)`; the port writes `std::ptr::null_mut ()` after `emacs_abort ()`
+SET_FRAME_ICONIFIED	iconified	the flag is one bit of frame.h's packed unit 1; the port masks `bits1`, so C's field name cannot occur (the dead `HAVE_WINDOW_SYSTEM` half of the function is no longer compared — P-75)
