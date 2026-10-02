@@ -58,6 +58,11 @@ pub const O_CLOEXEC: c_int = 0x1000000;
 pub const O_SEARCH: c_int = 0x40100000;
 pub const O_EXEC: c_int = 0x40000000;
 pub const O_NOCTTY: c_int = 0x20000;
+/* gnulib's <fcntl.h> defines the text/binary distinction away on Unix: this target's system
+   header has neither, so gnulib's `#ifndef O_BINARY # define O_BINARY 0` and its `O_TEXT`
+   twin are the live values (they are what lib/pipe2.c's flag check compares against).  */
+pub const O_BINARY: c_int = 0;
+pub const O_TEXT: c_int = 0;
 
 /* `fcntl`'s commands and the descriptor flags.  */
 pub const F_DUPFD: c_int = 0;

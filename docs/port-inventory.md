@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 153 |
-| 其中 done / wip | 125 / 28 |
-| 待开工 | 437 |
+| 已有目标文件 | 157 |
+| 其中 done / wip | 129 / 28 |
+| 待开工 | 433 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 121 |
+| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 117 |
 | `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,741 | 368 | 1,834 | 2,175 | 981 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 121 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 117 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -122,7 +122,7 @@
 | `lib/at-func.c` | 142 | 1 | 0 | 5 | 1 | 0 | 0 | L | `femacs/lib/at-func.rs` | todo |
 | `lib/attribute.h` | 364 | 0 | 0 | 32 | 0 | 0 | 0 | L | `femacs/lib/include/attribute.rs` | wip |
 | `lib/binary-io.c` | 38 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/binary-io.rs` | todo |
-| `lib/binary-io.h` | 89 | 2 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/include/binary-io.rs` | todo |
+| `lib/binary-io.h` | 89 | 2 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/include/binary-io.rs` | done |
 | `lib/boot-time-aux.h` | 426 | 11 | 0 | 3 | 0 | 0 | 2 | L | `femacs/lib/include/boot-time-aux.rs` | todo |
 | `lib/boot-time.c` | 306 | 3 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/boot-time.rs` | todo |
 | `lib/boot-time.h` | 49 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/boot-time.rs` | todo |
@@ -198,7 +198,7 @@
 | `lib/getopt.in.h` | 66 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/getopt.in.rs` | wip |
 | `lib/getopt1.c` | 166 | 5 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/getopt1.rs` | done |
 | `lib/getopt_int.h` | 118 | 0 | 0 | 2 | 4 | 9 | 0 | L | `femacs/lib/include/getopt_int.rs` | done |
-| `lib/getrandom.c` | 193 | 2 | 0 | 10 | 4 | 0 | 2 | L | `femacs/lib/getrandom.rs` | todo |
+| `lib/getrandom.c` | 193 | 2 | 0 | 10 | 4 | 0 | 2 | L | `femacs/lib/getrandom.rs` | done |
 | `lib/gettext.h` | 542 | 18 | 0 | 27 | 4 | 0 | 0 | L | `femacs/lib/include/gettext.rs` | wip |
 | `lib/gettime.c` | 51 | 2 | 0 | 0 | 0 | 1 | 0 | L | `femacs/lib/gettime.rs` | done |
 | `lib/gettimeofday.c` | 154 | 2 | 0 | 4 | 0 | 0 | 2 | L | `femacs/lib/gettimeofday.rs` | done |
@@ -256,7 +256,7 @@
 | `lib/openat-proc.c` | 154 | 1 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/openat-proc.rs` | todo |
 | `lib/openat.h` | 137 | 6 | 0 | 6 | 0 | 0 | 0 | L | `femacs/lib/include/openat.rs` | todo |
 | `lib/pathmax.h` | 88 | 0 | 0 | 3 | 2 | 0 | 0 | L | `femacs/lib/include/pathmax.rs` | todo |
-| `lib/pipe2.c` | 166 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pipe2.rs` | todo |
+| `lib/pipe2.c` | 166 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pipe2.rs` | done |
 | `lib/pselect.c` | 115 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pselect.rs` | todo |
 | `lib/pthread_sigmask.c` | 84 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pthread_sigmask.rs` | todo |
 | `lib/qcopy-acl.c` | 125 | 2 | 0 | 3 | 3 | 0 | 0 | L | `femacs/lib/qcopy-acl.rs` | todo |
@@ -319,7 +319,7 @@
 | `lib/strtoll.c` | 33 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/strtoll.rs` | todo |
 | `lib/symlink.c` | 57 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/symlink.rs` | done |
 | `lib/sys-limits.h` | 38 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/include/sys-limits.rs` | done |
-| `lib/sys_random.in.h` | 105 | 0 | 0 | 4 | 2 | 0 | 0 | L | `femacs/lib/include/sys_random.in.rs` | todo |
+| `lib/sys_random.in.h` | 105 | 0 | 0 | 4 | 2 | 0 | 0 | L | `femacs/lib/include/sys_random.in.rs` | done |
 | `lib/sys_select.in.h` | 342 | 1 | 0 | 25 | 2 | 0 | 0 | L | `femacs/lib/include/sys_select.in.rs` | todo |
 | `lib/sys_stat.in.h` | 995 | 2 | 0 | 71 | 10 | 14 | 0 | L | `femacs/lib/include/sys_stat.in.rs` | wip |
 | `lib/sys_time.in.h` | 235 | 0 | 0 | 22 | 1 | 2 | 0 | L | `femacs/lib/include/sys_time.in.rs` | todo |

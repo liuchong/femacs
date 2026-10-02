@@ -29,3 +29,8 @@ macro_rules! _GL_CMP {
 /// counterpart; the name is a marker because the wrapper `.c` files define their own
 /// `_GL_*_INLINE` in terms of it and that relationship is what the macro ledger compares.
 pub const _GL_EXTERN_INLINE: () = ();
+
+/// gnulib's `_GL_INLINE` (m4/gnulib-common.m4's AH_VERBATIM: `static inline` or `__inline`).
+/// As with `_GL_EXTERN_INLINE`, the port's functions are ordinary Rust items, so the name is a
+/// marker for the mirrors whose own `*_INLINE` qualifier is defined in terms of it.
+pub const _GL_INLINE: () = ();
