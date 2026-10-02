@@ -48,3 +48,14 @@
 - Call-relationship differences (D7): none; the parameter names in the `extern` block
   come from the definitions in `itree.c` (`iter`, `g`, …), because C's prototypes have
   none.
+
+## Decisions (2026-10-03, when itree.c was ported)
+
+- **The `extern` block moved into `itree_externs`.**  itree.c's port defines every function
+  itree.h declares (`itree_node_init` … `itree_iterator_next`), and a Rust definition cannot
+  share a name with a foreign declaration in the same scope (E0428); the documented shape for
+  this is a module plus a glob import (P-21/P-39, the category.h precedent), so the
+  declarations are unchanged in name, order and signature but now live in
+  `pub mod itree_externs { use super::*; unsafe extern "C" { … } }` with `use
+  itree_externs::*;` after it.  The mirror's header comment records the same.
+

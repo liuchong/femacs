@@ -1,9 +1,12 @@
 // femacs: port of src/itree.h @ fd7afced403 (GNU Emacs 32.0.50).
 //
 // Header mirror: types, constants and accessors only, plus the `unsafe extern "C"`
-// declarations C spells as `extern` (PORTING.md 0.1).  The two loop macros are
-// deferred (P-33); see docs/ports/excluded-macros.txt.  Layouts are asserted from
-// the C compiler's numbers by `xtask layout-check`.
+// declarations C spells as `extern` (PORTING.md 0.1).  Those declarations sit in
+// `itree_externs`, because itree.c's port defines every one of them and a definition
+// must shadow the import instead of colliding with it (P-21/P-39, the category.h
+// shape).  The two loop macros are deferred (P-33); see
+// docs/ports/excluded-macros.txt.  Layouts are asserted from the C compiler's numbers
+// by `xtask layout-check`.
 
 /* This file implements an efficient interval data-structure.
 
@@ -120,34 +123,42 @@ pub enum itree_order
     ITREE_POST_ORDER,
   }
 
-unsafe extern "C" {
-  // Parameter names come from the definitions in itree.c (C's prototypes have none).
-  pub fn itree_node_init (node: *mut itree_node, front_advance: bool, rear_advance: bool,
-                          data: Lisp_Object);
-  pub fn itree_node_begin (tree: *mut itree_tree, node: *mut itree_node) -> ptrdiff_t;
-  pub fn itree_node_end (tree: *mut itree_tree, node: *mut itree_node) -> ptrdiff_t;
-  pub fn itree_node_set_region (tree: *mut itree_tree, node: *mut itree_node,
-                                begin: ptrdiff_t, end: ptrdiff_t);
-  pub fn itree_create () -> *mut itree_tree;
-  pub fn itree_destroy (tree: *mut itree_tree);
-  pub fn itree_size (tree: *mut itree_tree) -> intmax_t;
-  pub fn itree_clear (tree: *mut itree_tree);
-  pub fn itree_insert (tree: *mut itree_tree, node: *mut itree_node,
-                       begin: ptrdiff_t, end: ptrdiff_t);
-  pub fn itree_remove (tree: *mut itree_tree, node: *mut itree_node) -> *mut itree_node;
-  pub fn itree_insert_gap (tree: *mut itree_tree, pos: ptrdiff_t, length: ptrdiff_t,
-                           before_markers: bool);
-  pub fn itree_delete_gap (tree: *mut itree_tree, pos: ptrdiff_t, length: ptrdiff_t);
+/* The definitions are itree.c's; they are declared in a module so the unit that defines
+   them shadows the import instead of colliding with it (P-21/P-39).  */
+pub mod itree_externs {
+  use super::*;
 
-  /* Iteration functions.  Almost all code should use ITREE_FOREACH
-     instead.  */
-  pub fn itree_iterator_start (iter: *mut itree_iterator, tree: *mut itree_tree,
-                               begin: ptrdiff_t, end: ptrdiff_t,
-                               order: itree_order) -> *mut itree_iterator;
-  pub fn itree_iterator_narrow (g: *mut itree_iterator, begin: ptrdiff_t,
-                                end: ptrdiff_t);
-  pub fn itree_iterator_next (iterator: *mut itree_iterator) -> *mut itree_node;
+  unsafe extern "C" {
+    // Parameter names come from the definitions in itree.c (C's prototypes have none).
+    pub fn itree_node_init (node: *mut itree_node, front_advance: bool, rear_advance: bool,
+                            data: Lisp_Object);
+    pub fn itree_node_begin (tree: *mut itree_tree, node: *mut itree_node) -> ptrdiff_t;
+    pub fn itree_node_end (tree: *mut itree_tree, node: *mut itree_node) -> ptrdiff_t;
+    pub fn itree_node_set_region (tree: *mut itree_tree, node: *mut itree_node,
+                                  begin: ptrdiff_t, end: ptrdiff_t);
+    pub fn itree_create () -> *mut itree_tree;
+    pub fn itree_destroy (tree: *mut itree_tree);
+    pub fn itree_size (tree: *mut itree_tree) -> intmax_t;
+    pub fn itree_clear (tree: *mut itree_tree);
+    pub fn itree_insert (tree: *mut itree_tree, node: *mut itree_node,
+                         begin: ptrdiff_t, end: ptrdiff_t);
+    pub fn itree_remove (tree: *mut itree_tree, node: *mut itree_node) -> *mut itree_node;
+    pub fn itree_insert_gap (tree: *mut itree_tree, pos: ptrdiff_t, length: ptrdiff_t,
+                             before_markers: bool);
+    pub fn itree_delete_gap (tree: *mut itree_tree, pos: ptrdiff_t, length: ptrdiff_t);
+
+    /* Iteration functions.  Almost all code should use ITREE_FOREACH
+       instead.  */
+    pub fn itree_iterator_start (iter: *mut itree_iterator, tree: *mut itree_tree,
+                                 begin: ptrdiff_t, end: ptrdiff_t,
+                                 order: itree_order) -> *mut itree_iterator;
+    pub fn itree_iterator_narrow (g: *mut itree_iterator, begin: ptrdiff_t,
+                                  end: ptrdiff_t);
+    pub fn itree_iterator_next (iterator: *mut itree_iterator) -> *mut itree_node;
+  }
 }
+
+use itree_externs::*;
 
 #[inline(always)]
 pub fn itree_empty_p (tree: *mut itree_tree) -> bool
