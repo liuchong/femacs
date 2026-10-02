@@ -47,6 +47,9 @@ include!("include/character.rs");
 include!("include/itree.rs");
 include!("include/systime.rs");
 include!("include/dispextern.rs");
+// composite.h 28 includes "font.h", which data.c reaches through
+// keyboard.h -> coding.h -> composite.h (keyboard.h 23, coding.h 284).
+include!("include/font.rs");
 include!("include/composite.rs");
 include!("include/coding.rs");
 include!("include/buffer.rs");
@@ -180,11 +183,121 @@ DEFUN! ("null", Fnull, Snull, 1, 1, 0,
   return Qnil ();
 });
 
-// data.c 187-201: `type-of` needs `Fcl_type_of`, which data.c 202-310 defines; the port
-// keeps C's order by defining `cl-type-of` here, once `thread.rs`/`font.rs` land (its
-// `PVEC_THREAD`/`PVEC_MUTEX`/`PVEC_CONDVAR`/`PVEC_FONT` cases call `THREADP`, `MUTEXP`,
-// `CONDVARP` and `FONT_SPEC_P`, defined in `thread.h` and `font.h`, which the port has not
-// mirrored yet).  See docs/ports/data.md Decisions.
+DEFUN! ("type-of", Ftype_of, Stype_of, 1, 1, 0,
+       doc: "Return a symbol representing the type of OBJECT.\nThe symbol returned names the object's basic type;\nfor example, (type-of 1) returns `integer'.\nContrary to `cl-type-of', the returned type is not always the most\nprecise type possible, because instead this function tries to preserve\ncompatibility with the return value of previous Emacs versions.",
+       (object: Lisp_Object),
+       {
+  return if SYMBOLP (object) { Qsymbol () }
+         else if INTEGERP (object) { Qinteger () }
+         else if SUBRP (object) { Qsubr () }
+         else { Fcl_type_of (object) };
+});
+
+DEFUN! ("cl-type-of", Fcl_type_of, Scl_type_of, 1, 1, 0,
+       doc: "Return a symbol representing the type of OBJECT.\nThe returned symbol names the most specific possible type of the object.\nfor example, (cl-type-of nil) returns `null'.\nThe specific type returned may change depending on Emacs versions,\nso we recommend you use `cl-typep', `cl-typecase', or other predicates\nrather than compare the return value of this function against\na fixed set of types.",
+       (object: Lisp_Object),
+       {
+  #[allow(unreachable_patterns)]
+  match XTYPE (object)
+    {
+    Lisp_Type::Lisp_Int0 | Lisp_Type::Lisp_Int1 =>
+      { return Qfixnum (); }
+
+    Lisp_Type::Lisp_Symbol =>
+      {
+        return if NILP (object) { Qnull () }
+               else if EQ (object, Qt ()) { Qboolean () }
+               else { Qsymbol () };
+      }
+
+    Lisp_Type::Lisp_String =>
+      { return Qstring (); }
+
+    Lisp_Type::Lisp_Cons =>
+      { return Qcons (); }
+
+    Lisp_Type::Lisp_Vectorlike =>
+      {
+        /* WARNING!!  Keep 'cl--type-hierarchy' in sync with this code!!  */
+        match PSEUDOVECTOR_TYPE (XVECTOR (object))
+          {
+          pvec_type::PVEC_NORMAL_VECTOR => { return Qvector (); }
+          pvec_type::PVEC_BIGNUM => { return Qbignum (); }
+          pvec_type::PVEC_MARKER => { return Qmarker (); }
+          pvec_type::PVEC_SYMBOL_WITH_POS => { return Qsymbol_with_pos (); }
+          pvec_type::PVEC_OVERLAY => { return Qoverlay (); }
+          pvec_type::PVEC_FINALIZER => { return Qfinalizer (); }
+          pvec_type::PVEC_USER_PTR => { return Quser_ptr (); }
+          pvec_type::PVEC_WINDOW_CONFIGURATION => { return Qwindow_configuration (); }
+          pvec_type::PVEC_PROCESS => { return Qprocess (); }
+          pvec_type::PVEC_WINDOW => { return Qwindow (); }
+          pvec_type::PVEC_SUBR =>
+            {
+              return if (unsafe { (*XSUBR (object)).max_args }) as isize == UNEVALLED
+                     { Qspecial_form () }
+                     else if NATIVE_COMP_FUNCTIONP (object) { Qnative_comp_function () }
+                     else { Qprimitive_function () };
+            }
+          pvec_type::PVEC_CLOSURE =>
+            {
+              return if CONSP (AREF (object, CLOSURE_CODE as isize))
+                     { Qinterpreted_function () } else { Qbyte_code_function () };
+            }
+          pvec_type::PVEC_BUFFER => { return Qbuffer (); }
+          pvec_type::PVEC_CHAR_TABLE => { return Qchar_table (); }
+          pvec_type::PVEC_BOOL_VECTOR => { return Qbool_vector (); }
+          pvec_type::PVEC_FRAME => { return Qframe (); }
+          pvec_type::PVEC_HASH_TABLE => { return Qhash_table (); }
+          pvec_type::PVEC_OBARRAY => { return Qobarray (); }
+          pvec_type::PVEC_FONT =>
+            {
+              if FONT_SPEC_P (object)
+                { return Qfont_spec (); }
+              if FONT_ENTITY_P (object)
+                { return Qfont_entity (); }
+              if FONT_OBJECT_P (object)
+                { return Qfont_object (); }
+              else
+                { emacs_abort (); } /* return Qfont?  */
+            }
+          pvec_type::PVEC_THREAD => { return Qthread (); }
+          pvec_type::PVEC_MUTEX => { return Qmutex (); }
+          pvec_type::PVEC_CONDVAR => { return Qcondition_variable (); }
+          pvec_type::PVEC_TERMINAL => { return Qterminal (); }
+          pvec_type::PVEC_RECORD =>
+            {
+              let t_: Lisp_Object = AREF (object, 0);
+              if RECORDP (t_) && 1 < PVSIZE (t_)
+                /* Return the type name field of the class!  */
+                { return AREF (t_, 1); }
+              else
+                { return t_; }
+            }
+          pvec_type::PVEC_MODULE_FUNCTION => { return Qmodule_function (); }
+          pvec_type::PVEC_NATIVE_COMP_UNIT => { return Qnative_comp_unit (); }
+          pvec_type::PVEC_XWIDGET => { return Qxwidget (); }
+          pvec_type::PVEC_XWIDGET_VIEW => { return Qxwidget_view (); }
+          pvec_type::PVEC_TS_PARSER => { return Qtreesit_parser (); }
+          pvec_type::PVEC_TS_NODE => { return Qtreesit_node (); }
+          pvec_type::PVEC_TS_COMPILED_QUERY => { return Qtreesit_compiled_query (); }
+          pvec_type::PVEC_SQLITE => { return Qsqlite (); }
+          pvec_type::PVEC_SUB_CHAR_TABLE => { return Qsub_char_table (); }
+          /* "Impossible" cases.  */
+          pvec_type::PVEC_MISC_PTR
+            | pvec_type::PVEC_OTHER
+            | pvec_type::PVEC_FREE => { }
+          _ => { }
+          }
+        emacs_abort ();
+      }
+
+    Lisp_Type::Lisp_Float =>
+      { return Qfloat (); }
+
+    _ => { emacs_abort (); }
+    }
+});
+
 
 DEFUN! ("consp", Fconsp, Sconsp, 1, 1, 0,
        doc: "Return t if OBJECT is a cons cell.",
@@ -476,6 +589,34 @@ DEFUN! ("floatp", Ffloatp, Sfloatp, 1, 1, 0,
        (object: Lisp_Object),
        {
   if FLOATP (object)
+    { return Qt (); }
+  return Qnil ();
+});
+
+DEFUN! ("threadp", Fthreadp, Sthreadp, 1, 1, 0,
+       doc: "Return t if OBJECT is a thread.",
+       (object: Lisp_Object),
+       {
+  if THREADP (object)
+    { return Qt (); }
+  return Qnil ();
+});
+
+DEFUN! ("mutexp", Fmutexp, Smutexp, 1, 1, 0,
+       doc: "Return t if OBJECT is a mutex.",
+       (object: Lisp_Object),
+       {
+  if MUTEXP (object)
+    { return Qt (); }
+  return Qnil ();
+});
+
+DEFUN! ("condition-variable-p", Fcondition_variable_p, Scondition_variable_p,
+       1, 1, 0,
+       doc: "Return t if OBJECT is a condition variable.",
+       (object: Lisp_Object),
+       {
+  if CONDVARP (object)
     { return Qt (); }
   return Qnil ();
 });
@@ -4032,8 +4173,8 @@ pub unsafe extern "C" fn syms_of_data ()
   defsubr (&raw mut Scommand_modes);
   defsubr (&raw mut Seq);
   defsubr (&raw mut Snull);
-  // C: defsubr (&Stype_of);  - type_of is not ported yet (docs/ports/data.md).
-  // C: defsubr (&Scl_type_of);  - cl_type_of is not ported yet (docs/ports/data.md).
+  defsubr (&raw mut Stype_of);
+  defsubr (&raw mut Scl_type_of);
   defsubr (&raw mut Slistp);
   defsubr (&raw mut Snlistp);
   defsubr (&raw mut Sconsp);
@@ -4065,9 +4206,9 @@ pub unsafe extern "C" fn syms_of_data ()
   defsubr (&raw mut Sclosurep);
   defsubr (&raw mut Smodule_function_p);
   defsubr (&raw mut Schar_or_string_p);
-  // C: defsubr (&Sthreadp);  - threadp is not ported yet (docs/ports/data.md).
-  // C: defsubr (&Smutexp);  - mutexp is not ported yet (docs/ports/data.md).
-  // C: defsubr (&Scondition_variable_p);  - condition_variable_p is not ported yet (docs/ports/data.md).
+  defsubr (&raw mut Sthreadp);
+  defsubr (&raw mut Smutexp);
+  defsubr (&raw mut Scondition_variable_p);
   defsubr (&raw mut Scar);
   defsubr (&raw mut Scdr);
   defsubr (&raw mut Scar_safe);

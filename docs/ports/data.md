@@ -4,8 +4,8 @@
 ## Subrs (DEFUN) — 120
 - [x] eq  (Feq, 2/2, doc 1028c63ff39b, line 168)
 - [x] null  (Fnull, 1/1, doc 6217c247eda3, line 177)
-- [ ] type-of  (Ftype_of, 1/1, doc 7e5375018e2b, line 187)
-- [ ] cl-type-of  (Fcl_type_of, 1/1, doc fa1c9c6a2b31, line 202)
+- [x] type-of  (Ftype_of, 1/1, doc 7e5375018e2b, line 187)
+- [x] cl-type-of  (Fcl_type_of, 1/1, doc fa1c9c6a2b31, line 202)
 - [x] consp  (Fconsp, 1/1, doc 65aeaef031cc, line 311)
 - [x] atom  (Fatom, 1/1, doc 0c4a192148db, line 321)
 - [x] listp  (Flistp, 1/1, doc 1e19cedfe9eb, line 331)
@@ -25,7 +25,7 @@
 - [x] sequencep  (Fsequencep, 1/1, doc ce198ddb21d0, line 472)
 - [x] bufferp  (Fbufferp, 1/1, doc fb2b8014f592, line 481)
 - [x] markerp  (Fmarkerp, 1/1, doc 6dd1f0f02285, line 490)
-- [ ] user-ptrp  (Fuser_ptrp, 1/1, doc f13a66271ac6, line 500)
+- [x] user-ptrp  (Fuser_ptrp, 1/1, doc f13a66271ac6, line 500)  — dead in the frozen configuration: `#ifdef HAVE_MODULES` is untaken
 - [x] subrp  (Fsubrp, 1/1, doc ca4b4c3a8f44, line 510)
 - [x] closurep  (Fclosurep, 1/1, doc 18e39b08748d, line 521)
 - [x] byte-code-function-p  (Fbyte_code_function_p, 1/1, doc 8417d08f8119, line 531)
@@ -38,9 +38,9 @@
 - [x] numberp  (Fnumberp, 1/1, doc d385acb002ad, line 598)
 - [x] number-or-marker-p  (Fnumber_or_marker_p, 1/1, doc 9fe7352af47b, line 609)
 - [x] floatp  (Ffloatp, 1/1, doc ccc5b08fdb98, line 619)
-- [ ] threadp  (Fthreadp, 1/1, doc 32876f33665c, line 629)
-- [ ] mutexp  (Fmutexp, 1/1, doc 9ced90777cd7, line 638)
-- [ ] condition-variable-p  (Fcondition_variable_p, 1/1, doc 82ad2cc1ee4b, line 647)
+- [x] threadp  (Fthreadp, 1/1, doc 32876f33665c, line 629)
+- [x] mutexp  (Fmutexp, 1/1, doc 9ced90777cd7, line 638)
+- [x] condition-variable-p  (Fcondition_variable_p, 1/1, doc 82ad2cc1ee4b, line 647)
 - [x] car  (Fcar, 1/1, doc 94ed3b711d04, line 659)
 - [x] car-safe  (Fcar_safe, 1/1, doc 682e970140af, line 670)
 - [x] cdr  (Fcdr, 1/1, doc 69231fd30d7f, line 677)
@@ -66,9 +66,9 @@
 - [x] native-comp-function-p  (Fnative_comp_function_p, 1/1, doc 00558423036a, line 1067)
 - [x] subr-native-lambda-list  (Fsubr_native_lambda_list, 1/1, doc 6124590e68f8, line 1074)
 - [x] subr-type  (Fsubr_type, 1/1, doc 1a5b0e2f78cc, line 1089)
-- [ ] subr-native-comp-unit  (Fsubr_native_comp_unit, 1/1, doc c05c24047732, line 1104)
-- [ ] native-comp-unit-file  (Fnative_comp_unit_file, 1/1, doc 2842f3191124, line 1113)
-- [ ] native-comp-unit-set-file  (Fnative_comp_unit_set_file, 2/2, doc 2842f3191124, line 1122)
+- [x] subr-native-comp-unit  (Fsubr_native_comp_unit, 1/1, doc c05c24047732, line 1104)  — dead in the frozen configuration: `#ifdef HAVE_NATIVE_COMP` is untaken
+- [x] native-comp-unit-file  (Fnative_comp_unit_file, 1/1, doc 2842f3191124, line 1113)  — dead like the above
+- [x] native-comp-unit-set-file  (Fnative_comp_unit_set_file, 2/2, doc 2842f3191124, line 1122)  — dead like the above
 - [x] interactive-form  (Finteractive_form, 1/1, doc 10258d736327, line 1134)
 - [x] command-modes  (Fcommand_modes, 1/1, doc 1fde4b17ab80, line 1218)
 - [x] indirect-variable  (Findirect_variable, 1/1, doc f3690ca988af, line 1291)
@@ -252,7 +252,21 @@
   caller's loop variable (C's `for` mutates the caller's object) and takes the body as a
   second argument, because a Rust macro cannot own the statement that follows it.
 
-## Decisions (continued 2)
+- **`ternary`-free: this is the first file whose checklist can be closed.**  All 116 live
+  subrs, all 60 functions, the single file macro (`PUT_ERROR`) and the one struct
+  (`Lisp_Val_Fwd`) are ported, and `--check` says `OK`.  Two tooling facts made that
+  possible this round: `extract-abi.py`'s `defsubr` extraction now evaluates the condition
+  table (PORTING.md P-76, whose row this round flips from 待修 to 已修), so `syms_of_data`
+  does not have to spell four registrations the reference never compiles; and the two
+  header mirrors those four blocks need (`font.rs` for `cl-type-of`'s `FONT_SPEC_P` family,
+  `thread.rs` for `THREADP`/`MUTEXP`/`CONDVARP`) are now in the include chain, at the
+  positions C includes them (`lisp.h` 2289 for thread.h, `composite.h` 28 for font.h).
+- **`PSEUDOVECTOR_TYPE`'s mirror signature was wrong** and this file is the first caller:
+  lisp.h 1784 takes `const struct Lisp_Vector *` and reads `v->header.size`, while the
+  mirror said `*mut vectorlike_header` and read `(*v).size`.  Both are now C's.
+- **`cl-type-of`'s two switches are `match`es with a trailing `_ =>` arm** ("Impossible"
+  cases and any enumerator C does not name), which is the arm that reaches the `emacs_abort
+  ()` after the inner switch; the `macro-body-notes.tsv` row records the three keywords.
 
 - **Ported so far.**  data.c 41-165 (the 19 accessors and error helpers), 168-705 (40
   subrs), 716-897 (the twelve symbol accessors and `fset`), 1029-1291 (the subr
@@ -272,12 +286,15 @@
   the eight bool-vector subrs, then `syms_of_data` with its 138 `DEFSYM`s, the `PUT_ERROR`
   macro, two `DEFVAR_LISP`s, one `DEFVAR_BOOL` and 116 `defsubr` calls).  The file has 120
   `DEFUN`s, of which four are dead in this configuration (`user-ptrp` plus the three
-  `HAVE_NATIVE_COMP` ones): 111 of the 116 live subrs and 60 of the 60 functions are
-  ported.  `cargo build-tu src/data.c` builds, and `extract-abi.py --check` reports no
-  incorrect item and no line-count drift - only the five live subrs of the 187-311 and
-  629-658 blocks (which need `thread.rs`/`font.rs`, see below) and the `defsubr` lines of
-  those five plus the four dead subrs (`syms_of_data` keeps C's text as a comment, and the
-  dead ones are omitted).  The 934-1020 `defalias` block is complete.
+  `HAVE_NATIVE_COMP` ones): all 116 live subrs and all 60 functions are
+  ported.  **The file is complete**: `cargo build-tu src/data.c` builds and
+  `extract-abi.py --check emacs/src/data.c femacs/src/data.rs` reports `OK` - no missing
+  function, subr, macro, constant, field or `defsubr`, and no line-count drift (C 4400 vs
+  Rust 4393, 0.2%).  The four remaining subrs of the 120 are the ones the frozen
+  configuration never compiles (`user-ptrp` under `#ifdef HAVE_MODULES`, the three
+  `HAVE_NATIVE_COMP` registrations); the checker stops requiring them once its `defsubr`
+  extraction evaluates the condition table (PORTING.md P-76, fixed this round), and none of
+  them is ported, because there is no compiled C to mirror.
 
 - **`UNINIT` is `= {0,}` here, and that is a measured fact (this segment's decision).**
   `conf_post.h` 366-371 defines `UNINIT` as `= {0,}` when `GCC_LINT` or `lint` is defined

@@ -1082,8 +1082,18 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     # calls are the source of truth, because a few are not what the DEFUN table
     # suggests (upstream never registers minibuf.c's Fread_function, and font.c /
     # frame.c register records that live in the .m side, PORTING.md P-31).
-    c_defsubr = set(re.findall(r"defsubr\s*\(\s*&\s*(S\w+)\s*\)",
-                               ci.blank_comments(c_path.read_text(encoding="utf-8", errors="replace"))))
+    # Only the *live* calls are required: a `defsubr` inside an untaken `#if` is not part of
+    # the reference's own program for this configuration, and neither is the subr it names
+    # (data.c's three HAVE_NATIVE_COMP registrations and w32fns.c's HAVE_NTGUI ones).  The
+    # condition table is the one `main` installed, so the verdict is the frozen build's.
+    c_defsubr_text = ci.blank_comments(c_path.read_text(encoding="utf-8", errors="replace"))
+    c_defsubr_live = ci.dead_branch_map(c_defsubr_text)
+    c_defsubr = set()
+    for m in re.finditer(r"defsubr\s*\(\s*&\s*(S\w+)\s*\)", c_defsubr_text):
+        line = c_defsubr_text.count("\n", 0, m.start())
+        if line < len(c_defsubr_live) and not c_defsubr_live[line]:
+            continue
+        c_defsubr.add(m.group(1))
     r_defsubr = set(re.findall(r"defsubr\s*\(\s*&\s*(?:raw\s+(?:const|mut)\s+)?(S\w+)\s*\)",
                                r.get("flat_own", "")))
     for name in sorted(c_defsubr - r_defsubr):

@@ -1133,8 +1133,10 @@ pub fn CHECK_VECTOR (x: Lisp_Object) {
 }
 
 #[inline(always)]
-pub fn PSEUDOVECTOR_TYPE (v: *mut vectorlike_header) -> pvec_type {
-    let size = unsafe { (*v).size };
+// lisp.h 1784: `PSEUDOVECTOR_TYPE (const struct Lisp_Vector *v)` - the parameter is the
+// vector itself (whose first member is the header), which is what XVECTOR hands back.
+pub fn PSEUDOVECTOR_TYPE (v: *mut Lisp_Vector) -> pvec_type {
+    let size = unsafe { (*v).header.size };
     if size & PSEUDOVECTOR_FLAG != 0 {
         match (size & PVEC_TYPE_MASK) >> PSEUDOVECTOR_AREA_BITS {
             0 => pvec_type::PVEC_NORMAL_VECTOR,
@@ -1415,6 +1417,10 @@ pub fn VALID_DOCSTRING_P (doc: Lisp_Object) -> bool {
     FIXNUMP (doc) || STRINGP (doc)
         || (CONSP (doc) && STRINGP (XCAR (doc)) && FIXNUMP (XCDR (doc)))
 }
+
+// src/lisp.h 2289 includes "thread.h" unconditionally; the mirror carries the three
+// predicates data.c's type predicates use (docs/ports/include-thread.md).
+include!("thread.rs");
 
 // --- symbol fields (src/lisp.h 2290-2390) ----------------------------------
 

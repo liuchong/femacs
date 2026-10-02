@@ -4,12 +4,12 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 20
-- [ ] FONTP  (line 435)
-- [ ] FONT_SPEC_P  (line 442)
+- [x] FONTP  (line 435)
+- [x] FONT_SPEC_P  (line 442)
 - [ ] GC_FONT_SPEC_P  (line 449)
-- [ ] FONT_ENTITY_P  (line 456)
+- [x] FONT_ENTITY_P  (line 456)
 - [ ] GC_FONT_ENTITY_P  (line 463)
-- [ ] FONT_OBJECT_P  (line 470)
+- [x] FONT_OBJECT_P  (line 470)
 - [ ] GC_FONT_OBJECT_P  (line 477)
 - [ ] CHECK_FONT  (line 485)
 - [ ] CHECK_FONT_SPEC  (line 491)
@@ -26,7 +26,7 @@
 - [ ] font_data_structures_may_be_ill_formed  (line 1021)
 
 ## Macros defined — 28
-- [ ] EMACS_FONT_H  (line 23, body da39a3ee5e6b)
+- [x] EMACS_FONT_H  (line 23, body da39a3ee5e6b)
 - [ ] FONT_ADD_LOG  (line 1004, body 9c0a062da66b)
 - [ ] FONT_BASE  (line 245, body fa7425ff23ab)
 - [ ] FONT_DEBUG  (line 998, body da39a3ee5e6b)
@@ -58,7 +58,7 @@
 ## Types and their fields — 7
 - [ ] font: union vectorlike_header header, Lisp_Object props, int min_width, int max_width, int pixel_size, int height, int space_width, int average_width, int ascent, int descent, struct font_driver const* driver
 - [ ] font_bitmap: int bits_per_pixel, int rows, int width, int pitch, unsigned char* buffer, int left, int top, int advance
-- [ ] font_driver: Lisp_Object type, bool case_sensitive, Lisp_Object (*) get_cache, Lisp_Object (*) list, Lisp_Object (*) match, Lisp_Object (*) list_family, void (*) free_entity, void (*) close_font, void (*) prepare_face, void (*) done_face, int (*) has_char, unsigned (*) encode_char, int* x, Lisp_Object (*) otf_capability, Lisp_Object gstring_out, Lisp_Object idx, int (*) start_for_frame, int (*) end_for_frame, Lisp_Object (*) shape, int (*) check, int c, void (*) filter_properties, Lisp_Object (*) combining_capability, void (*) drop_xrender_surfaces
+- [ ] font_driver: Lisp_Object type, bool case_sensitive, Lisp_Object (*) get_cache, Lisp_Object (*) list, Lisp_Object (*) match, Lisp_Object (*) list_family, void (*) free_entity, Lisp_Object (*) open_font, void (*) close_font, void (*) prepare_face, void (*) done_face, int (*) has_char, unsigned (*) encode_char, void (*) text_extents, int (*) anchor_point, Lisp_Object (*) otf_capability, int (*) otf_drive, int (*) start_for_frame, int (*) end_for_frame, Lisp_Object (*) shape, int (*) check, int (*) get_variation_glyphs, void (*) filter_properties, bool (*) cached_font_ok, Lisp_Object (*) combining_capability, void (*) drop_xrender_surfaces
 - [ ] font_driver_list: bool on, struct font_driver const* driver, struct font_driver_list* next
 - [ ] font_entity: union vectorlike_header header, Lisp_Object props
 - [ ] font_metrics: short lbearing, short rbearing, short width, short ascent, short descent
