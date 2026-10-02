@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 70 |
-| 其中 done / wip | 58 / 12 |
-| 待开工 | 520 |
+| 已有目标文件 | 71 |
+| 其中 done / wip | 59 / 12 |
+| 待开工 | 519 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 203 |
+| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 202 |
 | `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 40 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,716 | 368 | 1,834 | 2,175 | 981 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 203 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 202 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -286,7 +286,7 @@
 | `lib/sha512.h` | 145 | 0 | 0 | 3 | 3 | 4 | 0 | L | `femacs/lib/include/sha512.rs` | todo |
 | `lib/sig2str.c` | 364 | 3 | 0 | 4 | 1 | 0 | 0 | L | `femacs/lib/sig2str.rs` | todo |
 | `lib/sig2str.h` | 32 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/include/sig2str.rs` | todo |
-| `lib/sigdescr_np.c` | 351 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/sigdescr_np.rs` | todo |
+| `lib/sigdescr_np.c` | 351 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/sigdescr_np.rs` | done |
 | `lib/signal.in.h` | 536 | 0 | 0 | 26 | 17 | 16 | 0 | L | `femacs/lib/include/signal.in.rs` | todo |
 | `lib/stat-time.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stat-time.rs` | done |
 | `lib/stat-time.h` | 266 | 10 | 0 | 6 | 1 | 0 | 0 | L | `femacs/lib/include/stat-time.rs` | todo |
