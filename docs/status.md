@@ -8,12 +8,12 @@
 
 - 已竣工单元：`src/` 8 个（data.c 4,400 / macros.c 444 / undo.c 490 / category.c 506 /
   tparam.c 284 / vm-limit.c 220 / itree.c 1,435 / marker.c 874 / json.c 1,851 /
-  callint.c 933 / terminfo.c 55），`lib/` 30 个
+  callint.c 933 / terminfo.c 55），`lib/` 31 个
   （gnulib 包装与替换件，外加四个实现单元 rawmemchr.c 158 / memrchr.c 158 / malloc.c 56 /
   realloc.c 101）。
 - 已竣工镜像：`src/include/` 与 `lib/include/` 共 11 个（font.h、thread.h、comp.h、
   macros.h、category.h、tparam.h、sys_resource.h 及既有若干）。
-- `python3 tools/extract-abi.py --all`：**73 ported / 61 done / 12 wip / 0 failing**；
+- `python3 tools/extract-abi.py --all`：**74 ported / 62 done / 12 wip / 0 failing**；
   done/in-progress 的数字以它为准。
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
