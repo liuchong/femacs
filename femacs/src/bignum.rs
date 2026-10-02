@@ -27,13 +27,13 @@ You should have received a copy of the GNU General Public License
 along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 include!("include/config.rs");
+include!("../lib/include/stdio.rs");
 include!("include/lisp.rs");
 include!("../lib/include/mini-gmp.rs");
 include!("include/bignum.rs");
 include!("../lib/include/math.rs");
 include!("../lib/include/stdlib.rs");
 include!("../lib/include/stdcountof.rs");
-
 
 /* mpz global temporaries.  Making them global saves the trouble of
    properly using mpz_init and mpz_clear on temporaries even when

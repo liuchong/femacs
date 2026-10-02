@@ -8,6 +8,7 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs)]
 include!("../femacs/src/include/config.rs");
+include!("../femacs/lib/include/stdio.rs");
 include!("../femacs/src/include/lisp.rs");
 include!("../femacs/src/include/itree.rs");
 include!("../femacs/src/include/character.rs");

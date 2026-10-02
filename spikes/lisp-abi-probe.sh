@@ -24,3 +24,6 @@ clang -std=gnu23 -fsyntax-only -Werror=incompatible-pointer-types \
       "$OUT/harness.c" 2> "$OUT/c.err" \
   || { echo "lisp-abi-probe: declarations do not type-check:"; head -20 "$OUT/c.err"; exit 1; }
 echo "lisp-abi-probe: $n declarations type-check against lisp.h" && grep -o "[0-9]* unmapped, [0-9]* baselined" "$OUT/gen.err" | sed "s/^/  (/" | sed "s/$/)/"
+# The unmapped and skipped names are part of the result: an addition to either list is
+# how a declaration stops being checked, so print them instead of only counting them.
+grep -E "^/\* (unmapped|skipped)" "$OUT/gen.err" | sed "s/^/  /"

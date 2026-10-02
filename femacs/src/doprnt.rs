@@ -68,6 +68,7 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 // lisp.rs pulls in (stdint/limits/float; P-26), and the four functions this file needs
 // from <stdio.h>/<string.h> are declared below until those mirrors carry them.
 include!("include/config.rs");
+include!("../lib/include/stdio.rs");
 include!("include/lisp.rs");
 include!("include/character.rs");
 

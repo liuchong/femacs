@@ -5,6 +5,7 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs)]
 mod m {
     include!("../femacs/src/include/config.rs");
+    include!("../femacs/lib/include/stdio.rs");
     include!("../femacs/src/include/lisp.rs");
     include!("../femacs/src/include/character.rs");
 }

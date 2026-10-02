@@ -29,6 +29,9 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
    - 函数与变量一律写成 `unsafe extern "C" { pub fn NAME(…); pub static mut NAME: T; }`；
    - 不允许出现 `#[no_mangle]` 的定义、`pub static` 的定义、`impl` 块或任何会产出
      符号的项——否则每个包含它的编译单元都会重复定义（评审已实测 `ld: duplicate symbols`）。
+   - 参照里**只以指针出现的不完整类型**（`struct buffer *`）在“不含 buffer.h 的编译单元也要
+     能编译”的镜像里拼不出来：Rust 侧写 ABI 等价的 `*mut c_void`，并在该声明上方留一行
+     `/// C: <参照原型>`，`spikes/lisp-abi-probe.sh` 按这一行核对参照头（P-55）。
 3. **单一定义点**：每个函数/全局对象在**唯一一个** `.rs`（其 `.c` 的镜像）里定义，
    并 `#[no_mangle] pub unsafe extern "C"` 导出；其余单元只通过头镜像声明引用。
 4. **包含去重**：`xtask` 先展开包含图（`include!` 链）并按文件去重，等价于 C 的
@@ -84,6 +87,10 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
    `docs/baseline/layout/c-layout-*.tsv`（C 编译器输出的冻结基线），生成 `const _: () =
    assert!(size_of/offset_of …);`；镜像里没有声明过的类型记为 pending，数量随移植递减，
    但不允许把 pending 当成通过。
+18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
+    探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
+    因此不能调用排在它后面的宏——`call0` 按 lisp.h 3462-3471 的顺序挪到了 `calln!`
+    之后（P-57）。
 
 ### 0.2 命名与可见性
 
@@ -614,7 +621,10 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
 | P-51 | 死分支的**文本**也要在镜像里（P-08 只决定哪支是活的）：`emacs_rint`/`trunc` 的 `#else`、`double_integer_scale` 的 `#ifdef HAIKU`、`signbit` 的 `#ifndef` | **已定** | 死文本用 `feature = "no_rint"`/`"no_trunc"`/`"haiku"`/`"no_signbit"` 包起来（特性名命名**非冻结**的一侧，默认即冻结配置），每条配 `const _: () = assert! (!cfg! (…) || …)` 绑住冻结常量；`--check` 因此能看到死分支的 token，评审也读得到 C 的原文。**第二轮评审（B3/F2）证明“保留文本”不等于“能编译”**（`no_signbit` 那支把 C 的 `!(x)` 写成 f64 的按位 `!`，根本编不过，且没有断言）：新增 `xtask dead-arms`——把 `femacs/` 复制到 `build/dead-arms/`、翻转对应的冻结常量、开对应 feature，逐个编译已完结的单元（现为 4 个），并由 `gate-probes` 调用 |
 | P-52 | C 的**非 `static` 定义就是导出符号**（PORTING.md 0.2），而 `floatfns.c` 的 `extract_float`/`fmod_float`/`double_integer_scale` 被移植成了普通 `pub fn`：`--check`/`build-tu`/`layout-check` 全绿，但目标文件里没有 `_extract_float` 等符号，下一个调用它们的单元（`data.c`/`timefns.c`/`indent.c`/`dispnew.c`/`dbusbind.c`）一链接就失败 | **已定并已修** | 三处（以及后来由新规则抓出的 `syms_of_floatfns`、死分支的 `trunc`）改成 `#[unsafe(no_mangle)] pub unsafe extern "C" fn`，并在 `lisp.rs` 按 lisp.h 补了三条声明（P-39 形状）。`extract-abi.py` 新增一条闸门规则：C 里非 `static`、非 `INLINE`、非 subr 的定义，Rust 侧必须在 `fn NAME` 前有 `#[unsafe(no_mangle)]`（头文件与 `DEFUN!` 生成的除外）；评审 A 的 F1 用 `nm` + `clang -r` 部分链接证明，修后 `nm` 能看到全部五个符号 |
 | P-53 | 布局闸门看不见**lib 镜像里的类型**：`known_types()`/`declared_object_types()` 扫的是 `../lib/include`，而 port 的 lib 镜像在 `femacs/lib/include`（从 `femacs/` 看是 `lib/include`）。`mini-gmp.rs` 一落地，`__mpz_struct`/`mpz_t` 的 6 条键立刻从 asserted 掉进 pending（205/13，被 ratchet 挡下） | **已修** | 扫描根同时包含 `lib/include` 与 `../lib/include`；另外 `layout-asserts` 现在**先写 pending 列表再查 ratchet**，失败时也能看到是哪几条键回归了。实测：修复后回到 211 asserted / 7 pending |
-| P-54 | `lisp.rs` 的 `other_units` 声明**只比名字不比类型**：`extract-abi.py` 看不见类型，`gen-gmp-abi-probe.py` 只看 mini-gmp，于是 `make_string`/`make_unibyte_string`/`intern_1`/`intern_c_string_1`/`fast_c_string_match_internal`/`egetenv_internal` 六条把 `ptrdiff_t` 写成 `usize`，另有 15 条与参照头类型不一致（评审 B 的 B-2） | **已定（工具已建，存量已列基线）** | 新增 `tools/gen-lisp-abi-probe.py` + `spikes/lisp-abi-probe.sh`：把 `other_units` 的声明反向生成 C 并用 `-Werror=incompatible-pointer-types` 对着参照 `lisp.h` 编译（66 条可映射、11 条暂不可映射），存量 15 条差异写进 `docs/ports/lisp-decl-abi-baseline.txt`（每条附 clang 的报错作理由），**新差异一律失败**；清空基线是后续单元（`data.c`/`lread.c`/`print.c`）落地时的前置工作。六条 `ptrdiff_t` 已在本轮修好 |
+| P-54 | `lisp.rs` 的 `other_units` 声明**只比名字不比类型**：`extract-abi.py` 看不见类型，`gen-gmp-abi-probe.py` 只看 mini-gmp，于是 `make_string`/`make_unibyte_string`/`intern_1`/`intern_c_string_1`/`fast_c_string_match_internal`/`egetenv_internal` 六条把 `ptrdiff_t` 写成 `usize`，另有 15 条与参照头类型不一致（评审 B 的 B-2） | **已清空基线（68 条受检）** | 新增 `tools/gen-lisp-abi-probe.py` + `spikes/lisp-abi-probe.sh`：把 `other_units` 的声明反向生成 C，用 `-Werror=incompatible-pointer-types` 对着参照 `lisp.h` 编译。第七轮把 15 条存量全部修掉，基线 `docs/ports/lisp-decl-abi-baseline.txt` **清零**：7 条是“Rust 类型名 = C tag”，生成器现在读 `lisp.h` 的 tag/typedef 表并补关键字（`union Aligned_Lisp_Subr *`、`struct Lisp_Fwd const *`、`const union vectorlike_header *`；typedef 优先——lisp.h 589 的 `struct Lisp_Object` 在未启用的 `CHECK_LISP_OBJECT_TYPE` 分支里）；`allocate_pseudovector` 的 `isize` 改成 `int`、`xnmalloc` 的 `usize` 改成 `ptrdiff_t`；`listn` 补回固定的 `Lisp_Object` 形参（`list!` 随之按 C 的两次求值展开）；`calln` 是宏不是函数（删掉发明的声明，`call0` 改用 `calln!`）；`fclose` 移到 `<stdio.h>` 镜像；两条 `struct buffer *` 用 `/// C:`。**覆盖也随之上升**：`allocate_nil_vector`/`allocate_vector`/`staticpro`/`mark_objects`/`record_unwind_protect_array` 原先被过宽的“含 `Lisp_…` 即不可映射”判据当成未检查，现在都在检查（68 受检 / 5 未映射=全是函数指针形参 / 2 跳过，跳过项现在连理由一起打印） |
+| P-55 | 参照里**只以指针出现的不完整类型**（`struct buffer *`）在镜像里没有 Rust 对应物：镜像要能出现在不含 `buffer.h` 的编译单元里，而 Rust 的类型定义全局唯一（写 `pub enum buffer {}` 会与 `buffer.rs` 的 `struct buffer` 撞 `E0428`）。用 `*mut c_void` 又丢掉了类型信息 | **已定并实现** | 该声明上方写一行 `/// C: <参照原型>`（如 `/// C: ptrdiff_t buf_charpos_to_bytepos (struct buffer *, ptrdiff_t)`），`gen-lisp-abi-probe.py` 改按这一行生成 C 侧指针并核对 `lisp.h`：注释写错、参照改签名都会编译失败。Rust 侧 `*mut c_void` 与 C 的指针 ABI 相同，调用点（`buffer.rs`）照旧显式转换 |
+| P-56 | `lisp.h` 38 行 `#include <stdio.h>`，5316-5318 在非 Android 配置下取 `# define emacs_fclose fclose`；`fclose` 与 `FILE` 此前被塞在 `lisp.rs` 和 `mini-gmp.rs` 里，而 `mini-gmp.rs` 并不拥有 `FILE` | **已定并实现** | 新增 `femacs/lib/include/stdio.rs`（`FILE` + 系统 `fclose`），由各编译单元按 C 的包含顺序 `config.rs → stdio.rs → lisp.rs` 包含（5 个单元 + 6 个 spike 探针 + `xtask` 生成的布局探针）；`mini-gmp.rs` 删掉重复声明（它本来就要求包含者先有 `FILE`）。实测：冻结的 `build/emacs-ref/lib/stdio.h` 里 `REPLACE_FCLOSE` 为 0（活支是 `_GL_CXXALIAS_SYS`），所以镜像的就是系统 `fclose` |
+| P-57 | 镜像内的函数体调用**排在它后面**的宏，在 crate 根能编译、被 `include!` 进 `mod` 时不能：`call0` 用了 `calln!` 而 `macro_rules! calln` 在其后 570 行 | **已修** | `call0` 按 lisp.h 3462-3471 的顺序挪到 `calln!` 定义之后（两处都是 4 行，行数不变）。§0.1 新增第 18 条把“宏必须先于使用”写成规则；`inline`/`write`/`accessor` 三个探针本来就把镜像 放进 `mod`，因此是这条规则的守门人 |
 
 **P-38/P-24 说明（docstring 的值，2026-10-02 第三轮）**：C 的 `doc: /* … */` 注释不是它的值——
 `lib-src/make-docfile.c` 的 `read_c_string_or_comment` 会**丢掉注释首尾空白**，并把 `\X` 读成 X（`\n`/`\t` 等控制字符除外），

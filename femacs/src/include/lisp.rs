@@ -2406,9 +2406,6 @@ pub fn CHECK_ARRAY (x: Lisp_Object, predicate: Lisp_Object) {
 #[inline(always)]
 pub fn CHECK_SUBR (x: Lisp_Object) { CHECK_TYPE (SUBRP (x), Qsubrp (), x) }
 
-#[inline(always)]
-pub fn call0 (fn_: Lisp_Object) -> Lisp_Object { unsafe { calln (fn_) } }
-
 // --- specpdl helpers that use the storage -------------------------------
 
 #[inline(always)]
@@ -2726,21 +2723,21 @@ pub fn PVECHEADERSIZE (code: pvec_type, lispsize: isize, restsize: isize) -> isi
 #[macro_export]
 macro_rules! ALLOCATE_PSEUDOVECTOR {
     ($type:ty, $field:tt, $tag:expr) => {
-        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()), PSEUDOVECSIZE! ($type, $field), PSEUDOVECSIZE! ($type, $field), $tag) as *mut $type }
+        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()) as c_int, PSEUDOVECSIZE! ($type, $field) as c_int, PSEUDOVECSIZE! ($type, $field) as c_int, $tag) as *mut $type }
     };
 }
 
 #[macro_export]
 macro_rules! ALLOCATE_ZEROED_PSEUDOVECTOR {
     ($type:ty, $field:tt, $tag:expr) => {
-        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()), PSEUDOVECSIZE! ($type, $field), VECSIZE (std::mem::size_of::<$type> ()), $tag) as *mut $type }
+        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()) as c_int, PSEUDOVECSIZE! ($type, $field) as c_int, VECSIZE (std::mem::size_of::<$type> ()) as c_int, $tag) as *mut $type }
     };
 }
 
 #[macro_export]
 macro_rules! ALLOCATE_PLAIN_PSEUDOVECTOR {
     ($type:ty, $tag:expr) => {
-        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()), 0, VECSIZE (std::mem::size_of::<$type> ()), $tag) as *mut $type }
+        unsafe { allocate_pseudovector (VECSIZE (std::mem::size_of::<$type> ()) as c_int, 0, VECSIZE (std::mem::size_of::<$type> ()) as c_int, $tag) as *mut $type }
     };
 }
 
@@ -2821,7 +2818,7 @@ macro_rules! SAFE_NALLOCA {
             let nbytes = pointee_size ($buf) as isize * mult * nitems_;
             $buf = AVAIL_ALLOCA! ($sa_avail, nbytes) as *mut _;
         } else {
-            $buf = unsafe { xnmalloc (nitems_ as usize, pointee_size ($buf) * mult as usize) } as *mut _;
+            $buf = unsafe { xnmalloc (nitems_, pointee_size ($buf) as isize * mult) } as *mut _;
             unsafe { record_unwind_protect_ptr (Some (xfree_wrapper), $buf as *mut c_void) };
         }
     }};
@@ -2916,7 +2913,7 @@ macro_rules! eabs {
 }
 
 #[inline(always)]
-pub fn emacs_fclose (f: *mut c_void) -> c_int { unsafe { fclose (f as *mut _) } }
+pub fn emacs_fclose (f: *mut FILE) -> c_int { unsafe { fclose (f) } }
 
 
 #[inline(always)]
@@ -2978,6 +2975,13 @@ macro_rules! CALLN { ($f:expr, $($args:expr),* $(,)?) => {{
 #[macro_export]
 macro_rules! calln { ($($args:expr),* $(,)?) => { CALLN! (Ffuncall, $($args),*) } }
 
+// C defines `call0` right after the CALLN/calln macros (lisp.h 3462-3471), and the port
+// keeps that order: a `macro_rules!` is only in textual scope after its definition, so a
+// body that used `calln!` above it would work at a crate root but not where the mirror is
+// included inside a module (PORTING.md 0.1-9, which wants position-independent mirrors).
+#[inline(always)]
+pub fn call0 (fn_: Lisp_Object) -> Lisp_Object { calln! (fn_) }
+
 
 #[macro_export]
 macro_rules! safe_calln { ($($args:expr),* $(,)?) => {{
@@ -2987,7 +2991,12 @@ macro_rules! safe_calln { ($($args:expr),* $(,)?) => {{
 }} }
 
 #[macro_export]
-macro_rules! list { ($($args:expr),* $(,)?) => {{ let arr = [$($args),*]; unsafe { listn (arr.len () as isize, arr[0]) } }} }
+macro_rules! list { ($($args:expr),* $(,)?) => {{
+    // C's `list` passes __VA_ARGS__ twice (countof, then the call), so each argument is
+    // evaluated once for the array and once for the argument — the port keeps that.
+    let arr = [$($args),*];
+    unsafe { listn (arr.len () as isize, $($args),*) }
+}} }
 
 // --- batch 8: DEFUN/DEFVAR machinery, AUTO_* helpers, aliases ---
 // --- configuration constants that the C spells as macros -------------------
@@ -3497,7 +3506,6 @@ pub mod other_units {
         pub fn xfree (p: *mut c_void);
         pub fn xmalloc (size: usize) -> *mut c_void;                     // src/lisp.h 5535
         pub fn indirect_function (object: Lisp_Object) -> Lisp_Object;   // src/lisp.h 4167 (data.c)
-        pub fn calln (fn_: Lisp_Object) -> Lisp_Object;
         pub fn egetenv_internal (var: *const c_char, len: ptrdiff_t) -> *mut c_char;
         pub static mut pending_signals: bool;
         pub static mut Vascii_canon_table: Lisp_Object;
@@ -3560,14 +3568,18 @@ pub mod other_units {
     unsafe extern "C" { pub static mut my_endbss: [c_char; 0]; }
     unsafe extern "C" { pub static mut my_endbss_static: *mut c_char; }
     unsafe extern "C" {
-        pub fn allocate_pseudovector (lispsize: isize, restsize: isize, pvecsize: isize,
-                                     tag: pvec_type) -> *mut c_void;
+        // src/lisp.h 4626-4627: `(int, int, int, enum pvec_type)`, returning
+        // `struct Lisp_Vector *` (the port's `*mut Lisp_Vector`).
+        pub fn allocate_pseudovector (lispsize: c_int, restsize: c_int, pvecsize: c_int,
+                                     tag: pvec_type) -> *mut Lisp_Vector;
     }
     unsafe extern "C" {
         pub fn sa_stack_alloc (size: usize) -> *mut c_void;
         pub fn record_xmalloc (size: usize) -> *mut c_void;
         pub fn xzalloc (size: usize) -> *mut c_void;
-        pub fn xnmalloc (n: usize, size: usize) -> *mut c_void;
+        // src/lisp.h 5544: `void *xnmalloc (ptrdiff_t, ptrdiff_t)`, not the
+        // `size_t, size_t` of `xcalloc` above it.
+        pub fn xnmalloc (n: isize, size: isize) -> *mut c_void;
         pub fn record_unwind_protect_array (array: *mut Lisp_Object, nelts: isize);
         pub fn record_unwind_protect_ptr (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void);
         pub fn record_unwind_protect_ptr_mark (function: Option<unsafe extern "C" fn(*mut c_void)>,
@@ -3575,13 +3587,14 @@ pub mod other_units {
                                                mark: Option<unsafe extern "C" fn(*mut c_void)>);
         pub fn memory_full_up () -> !;
     }
-    unsafe extern "C" { pub fn fclose (f: *mut c_void) -> c_int; }
     unsafe extern "C" {
         pub fn cons_to_signed (cons: Lisp_Object, lo: i64, hi: i64) -> i64;
         pub fn cons_to_unsigned (cons: Lisp_Object, hi: u64) -> u64;
     }
     unsafe extern "C" {
-        pub fn listn (nargs: isize, ...) -> Lisp_Object;
+        // src/lisp.h 4492: `Lisp_Object listn (ptrdiff_t, Lisp_Object, ...)`; the
+        // second parameter is fixed, only the rest are variadic.
+        pub fn listn (nargs: isize, first: Lisp_Object, ...) -> Lisp_Object;
     }
     // defsubr / defvar take the subr and fwd records the DEFUN and DEFVAR_* forms
     // build; the records themselves live in the ported units.
@@ -3604,14 +3617,19 @@ pub mod other_units {
       pub fn record_unwind_protect (function: Option<unsafe extern "C" fn (Lisp_Object)>,
                                     arg: Lisp_Object);
     }
-    // src/lisp.h 4952-4956 (the marker.c group).  `struct buffer` is incomplete in
-    // this mirror, so the parameter keeps C's pointee in a comment and is opaque
-    // (PORTING.md 0.1-2); buffer.rs casts at the call sites.
+    // src/lisp.h 4952-4956 (the marker.c group).  `struct buffer` is an incomplete type
+    // in C here (buffer.h owns the definition) and the port cannot name it in a mirror
+    // that units include without buffer.rs, so the pointer stays opaque: C only ever
+    // passes `struct buffer *`, and `sizeof` never sees the pointee.  The `/// C:` line
+    // carries the reference prototype, which spikes/lisp-abi-probe.sh type-checks
+    // against lisp.h (PORTING.md 0.1-2).
     unsafe extern "C" {
       pub fn marker_position (marker: Lisp_Object) -> ptrdiff_t;
       pub fn marker_byte_position (marker: Lisp_Object) -> ptrdiff_t;
-      pub fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdiff_t) -> ptrdiff_t; // struct buffer *b
-      pub fn buf_bytepos_to_charpos (b: *mut c_void, bytepos: ptrdiff_t) -> ptrdiff_t; // struct buffer *b
+      /// C: ptrdiff_t buf_charpos_to_bytepos (struct buffer *, ptrdiff_t)
+      pub fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdiff_t) -> ptrdiff_t;
+      /// C: ptrdiff_t buf_bytepos_to_charpos (struct buffer *, ptrdiff_t)
+      pub fn buf_bytepos_to_charpos (b: *mut c_void, bytepos: ptrdiff_t) -> ptrdiff_t;
     }
 }
 use other_units::*;

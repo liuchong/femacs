@@ -627,6 +627,12 @@ fn layout_check() -> i32 {
     if gmp.is_file() {
         mirrors.insert(1.min(mirrors.len()), gmp);
     }
+    // <stdio.h> comes before lisp.h in C (lisp.h 38 includes it), and lisp.rs uses `FILE`
+    // in the `emacs_fclose` macro's port, so the mirror has to be present too.
+    let stdio = PathBuf::from("lib/include/stdio.rs");
+    if stdio.is_file() {
+        mirrors.insert(0, stdio);
+    }
     mirrors.push(asserts);
     for path in mirrors {
         let full = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());

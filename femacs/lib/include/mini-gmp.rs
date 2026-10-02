@@ -10,9 +10,9 @@
 // P-39 shape); the typedefs and the macros stay at the crate root, where the mirrors that
 // use them expect them.
 //
-// `FILE` is <stdio.h>'s opaque type: the reference header declares `mpz_out_str` when the
-// includer already has `FILE` (lisp.h includes <stdio.h> first, so the frozen build always
-// does), and the port has no stdio mirror yet (P-26/P-50).
+// `FILE` is <stdio.h>'s opaque type (lib/include/stdio.rs): the reference header declares
+// `mpz_out_str` when the includer already has `FILE`, and lisp.h includes <stdio.h> before
+// bignum.h includes mini-gmp.h, so every unit that includes this file has it too.
 //
 // One deviation, recorded in docs/ports/include-mini-gmp.md: C's prototypes have no
 // parameter names, so the port names them positionally (`a`, `b`, …); the ABI is checked
@@ -55,9 +55,6 @@ see https://www.gnu.org/licenses/.  */
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const __MINI_GMP_H__: bool = true;
-
-/// <stdio.h>'s opaque `FILE` (P-26/P-50); `sizeof (FILE *)` is what matters here.
-pub enum FILE {}
 
 /* #ifndef MINI_GMP_LIMB_TYPE
    #define MINI_GMP_LIMB_TYPE long
