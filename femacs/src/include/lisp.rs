@@ -16,8 +16,12 @@
 // Header mirrors are textually included (PORTING.md 0.1), so they carry no inner
 // attributes and no crate-relative paths; the including unit supplies both.
 
-use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_ushort, c_void};
+use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uchar, c_uint, c_ulong,
+              c_ulonglong, c_ushort, c_void};
 
+// src/lisp.h 26 includes <stdbit.h>, ahead of <float.h> (31) and <inttypes.h> (32);
+// the port mirrors the C23 header cut down to the three functions data.c calls.
+include!("../../lib/include/stdbit.rs");
 // src/lisp.h 31 includes <float.h> first and <inttypes.h> (hence <stdint.h>) at 32;
 // the port keeps that order (review D's F10 found the two swapped).  gnulib has no
 // wrapper for <float.h>, so that mirror is a system mirror.
@@ -3624,10 +3628,27 @@ pub mod other_units {
         pub fn bignum_to_intmax (num: Lisp_Object) -> i64;
         pub fn bignum_to_uintmax (num: Lisp_Object) -> u64;
         pub fn flush_stack_call_func1 (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void);
+        // lisp.h 4537-4538: alloc.c's two bool-vector constructors (data.c's
+        // bool-vector drivers call the second).
+        pub fn make_clear_bool_vector (size: EMACS_INT, init: bool) -> Lisp_Object;
+        pub fn make_uninit_bool_vector (size: EMACS_INT) -> Lisp_Object;
     }
     unsafe extern "C" {
         // lisp.h 4541/4544 spell the length `ptrdiff_t`, not size_t.
         pub fn make_unibyte_string (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
+        // lisp.h 4710 and 4747: print.c's and lread.c's exporters data.c calls.
+        pub fn float_to_string (buf: *mut c_char, data: c_double) -> c_int;
+        // The third parameter's pointee has no spelling in the probe's type table, so
+        // the reference prototype rides along and the probe checks it there (P-55).
+        /// C: Lisp_Object string_to_number (char const *, int, ptrdiff_t *)
+        pub fn string_to_number (string: *const c_char, base: c_int,
+                                 len: *mut ptrdiff_t) -> Lisp_Object;
+        // src/lisp.h 4090 and 622: bignum.c's and data.c's own exporters (`number-to-string`
+        // calls `bignum_to_string`; print.c and friends call `fixnum_to_string`).  The two
+        // cons converters are already declared further down with lisp.h 4187's prototypes.
+        pub fn bignum_to_string (num: Lisp_Object, base: c_int) -> Lisp_Object;
+        pub fn fixnum_to_string (number: EMACS_INT, buffer: *mut c_char,
+                                 end: *mut c_char) -> *mut c_char;
         pub fn make_string (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
         pub fn allocate_vector (size: isize) -> *mut Lisp_Vector;
         pub fn intern_1 (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;

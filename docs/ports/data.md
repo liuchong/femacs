@@ -95,33 +95,33 @@
 - [x] <=  (Fleq, 1/MANY, doc bde064d281ce, line 2894)
 - [x] >=  (Fgeq, 1/MANY, doc 1702fecd3cf5, line 2905)
 - [x] /=  (Fneq, 2/2, doc 03ece8056e79, line 2916)
-- [ ] number-to-string  (Fnumber_to_string, 1/1, doc 2bdc2f8fb8f1, line 3067)
-- [ ] string-to-number  (Fstring_to_number, 1/2, doc daf9337fc5f1, line 3092)
-- [ ] +  (Fplus, 0/MANY, doc c061e22d5133, line 3307)
-- [ ] -  (Fminus, 0/MANY, doc ca2e2e6b4f09, line 3318)
-- [ ] *  (Ftimes, 0/MANY, doc fbafef6431df, line 3340)
-- [ ] /  (Fquo, 1/MANY, doc b394d7b907ce, line 3351)
-- [ ] %  (Frem, 2/2, doc 01aadb640853, line 3438)
-- [ ] mod  (Fmod, 2/2, doc a4d8f6946ac7, line 3448)
-- [ ] max  (Fmax, 1/MANY, doc d12cd985bfb1, line 3476)
-- [ ] min  (Fmin, 1/MANY, doc fa12411aa20f, line 3485)
-- [ ] logand  (Flogand, 0/MANY, doc 788507f831dc, line 3494)
-- [ ] logior  (Flogior, 0/MANY, doc 439d28cdda2c, line 3506)
-- [ ] logxor  (Flogxor, 0/MANY, doc aad160b1108d, line 3518)
-- [ ] logcount  (Flogcount, 1/1, doc eb5f3068a906, line 3530)
-- [ ] ash  (Fash, 2/2, doc 38d49e6c895c, line 3555)
-- [ ] 1+  (Fadd1, 1/1, doc 5a45c489a3cb, line 3654)
-- [ ] 1-  (Fsub1, 1/1, doc 94711ababf89, line 3669)
-- [ ] lognot  (Flognot, 1/1, doc fee96eb8ce5a, line 3684)
-- [ ] byteorder  (Fbyteorder, 0/0, doc e53e2910e90c, line 3695)
-- [ ] bool-vector-exclusive-or  (Fbool_vector_exclusive_or, 2/3, doc b7b59afea1db, line 3824)
-- [ ] bool-vector-union  (Fbool_vector_union, 2/3, doc 431ab63dee0f, line 3835)
-- [ ] bool-vector-intersection  (Fbool_vector_intersection, 2/3, doc 8af85dc276b4, line 3846)
-- [ ] bool-vector-set-difference  (Fbool_vector_set_difference, 2/3, doc 489e3f3c5559, line 3857)
-- [ ] bool-vector-subsetp  (Fbool_vector_subsetp, 2/2, doc 8aa108fe0f33, line 3868)
-- [ ] bool-vector-not  (Fbool_vector_not, 1/2, doc 2fb132fb32c5, line 3877)
-- [ ] bool-vector-count-population  (Fbool_vector_count_population, 1/1, doc 2038373dd2fa, line 3918)
-- [ ] bool-vector-count-consecutive  (Fbool_vector_count_consecutive, 3/3, doc 18367b3ab62b, line 3943)
+- [x] number-to-string  (Fnumber_to_string, 1/1, doc 2bdc2f8fb8f1, line 3067)
+- [x] string-to-number  (Fstring_to_number, 1/2, doc daf9337fc5f1, line 3092)
+- [x] +  (Fplus, 0/MANY, doc c061e22d5133, line 3307)
+- [x] -  (Fminus, 0/MANY, doc ca2e2e6b4f09, line 3318)
+- [x] *  (Ftimes, 0/MANY, doc fbafef6431df, line 3340)
+- [x] /  (Fquo, 1/MANY, doc b394d7b907ce, line 3351)
+- [x] %  (Frem, 2/2, doc 01aadb640853, line 3438)
+- [x] mod  (Fmod, 2/2, doc a4d8f6946ac7, line 3448)
+- [x] max  (Fmax, 1/MANY, doc d12cd985bfb1, line 3476)
+- [x] min  (Fmin, 1/MANY, doc fa12411aa20f, line 3485)
+- [x] logand  (Flogand, 0/MANY, doc 788507f831dc, line 3494)
+- [x] logior  (Flogior, 0/MANY, doc 439d28cdda2c, line 3506)
+- [x] logxor  (Flogxor, 0/MANY, doc aad160b1108d, line 3518)
+- [x] logcount  (Flogcount, 1/1, doc eb5f3068a906, line 3530)
+- [x] ash  (Fash, 2/2, doc 38d49e6c895c, line 3555)
+- [x] 1+  (Fadd1, 1/1, doc 5a45c489a3cb, line 3654)
+- [x] 1-  (Fsub1, 1/1, doc 94711ababf89, line 3669)
+- [x] lognot  (Flognot, 1/1, doc fee96eb8ce5a, line 3684)
+- [x] byteorder  (Fbyteorder, 0/0, doc e53e2910e90c, line 3695)
+- [x] bool-vector-exclusive-or  (Fbool_vector_exclusive_or, 2/3, doc b7b59afea1db, line 3824)
+- [x] bool-vector-union  (Fbool_vector_union, 2/3, doc 431ab63dee0f, line 3835)
+- [x] bool-vector-intersection  (Fbool_vector_intersection, 2/3, doc 8af85dc276b4, line 3846)
+- [x] bool-vector-set-difference  (Fbool_vector_set_difference, 2/3, doc 489e3f3c5559, line 3857)
+- [x] bool-vector-subsetp  (Fbool_vector_subsetp, 2/2, doc 8aa108fe0f33, line 3868)
+- [x] bool-vector-not  (Fbool_vector_not, 1/2, doc 2fb132fb32c5, line 3877)
+- [x] bool-vector-count-population  (Fbool_vector_count_population, 1/1, doc 2038373dd2fa, line 3918)
+- [x] bool-vector-count-consecutive  (Fbool_vector_count_consecutive, 3/3, doc 18367b3ab62b, line 3943)
 
 ## Functions defined — 60
 - [x] BOOLFWDP  (line 41, static)
@@ -170,30 +170,76 @@
 - [x] not_number_or_marker  (line 2712, static)
 - [x] arithcompare  (line 2718)
 - [x] arithcompare_driver  (line 2856, static)
-- [ ] cons_to_unsigned  (line 2932)
-- [ ] cons_to_signed  (line 2993)
-- [ ] fixnum_to_string  (line 3048)
-- [ ] floating_point_op  (line 3136, static)
-- [ ] floatop_arith_driver  (line 3148, static)
-- [ ] float_arith_driver  (line 3184, static)
-- [ ] bignum_arith_driver  (line 3200, static)
-- [ ] arith_driver  (line 3251, static)
-- [ ] integer_remainder  (line 3388, static)
-- [ ] minmax_driver  (line 3462, static)
-- [ ] expt_integer  (line 3624)
-- [ ] bool_vector_spare_mask  (line 3713, static)
-- [ ] bool_vector_binop_driver  (line 3725, static)
-- [ ] syms_of_data  (line 4021)
+- [x] cons_to_unsigned  (line 2932)
+- [x] cons_to_signed  (line 2993)
+- [x] fixnum_to_string  (line 3048)
+- [x] floating_point_op  (line 3136, static)
+- [x] floatop_arith_driver  (line 3148, static)
+- [x] float_arith_driver  (line 3184, static)
+- [x] bignum_arith_driver  (line 3200, static)
+- [x] arith_driver  (line 3251, static)
+- [x] integer_remainder  (line 3388, static)
+- [x] minmax_driver  (line 3462, static)
+- [x] expt_integer  (line 3624)
+- [x] bool_vector_spare_mask  (line 3713, static)
+- [x] bool_vector_binop_driver  (line 3725, static)
+- [x] syms_of_data  (line 4021)
 
 ## Macros defined — 1
-- [ ] PUT_ERROR  (line 4120, body c7f6139325fa)
+- [x] PUT_ERROR  (line 4120, body c7f6139325fa)
 
 ## Types and their fields — 1
 - [x] Lisp_Val_Fwd: Lisp_Object value, lispfwd fwd
 
 ## File-scope objects — 0
 
-## Decisions
+- **The two `goto next_arg`s are the loop's label and its back edge (this segment's
+  decision).**  `floatop_arith_driver` and `bignum_arith_driver` jump from *above* their
+  `while` into it, skipping the switch on the first pass, and C's `next_arg:` label marks
+  where the tail statements start.  The port names the loop `'next_arg` and spells the
+  loop's back edge as `continue 'next_arg`, so the `va_arg/next_arg` family in
+  `docs/ports/token-aliases.tsv` (whose occurrence check has no exemption mechanism) still
+  sees both of C's spellings; the "skip the switch once" jump itself is the `skip_switch`
+  flag, whose first pass is the jump's target.
+- **`set_dest` is a labelled loop, not a flag.**  `bool_vector_binop_driver`'s
+  `goto set_dest` leaves the `if` branch's switch and lands on the tail switch; the port
+  makes the whole body `'set_dest: loop` and jumps with `break 'set_dest`, which keeps C's
+  label and its four destinations, so only the keyword `goto` needs a `macro-body-notes`
+  row.
+- **`<stdbit.h>` now has a mirror (`femacs/lib/include/stdbit.rs`).**  `lisp.h` 26 includes
+  the C23 header, so `lisp.rs` includes the mirror in the same position; it carries the
+  five width variants of `stdc_count_ones`, `stdc_leading_zeros` and
+  `stdc_trailing_zeros` plus C's `sizeof`-dispatcher as three `macro_rules!` macros.  The
+  `_GL_STDBIT_HAS_BUILTIN_*` branches are the live ones, so the helpers are Rust's
+  `count_ones`/`leading_zeros`/`trailing_zeros` (P-26, P-79).
+- **`lisp.rs` also gained the two bool-vector constructors** (`make_clear_bool_vector`,
+  `make_uninit_bool_vector`) as `extern "C"` declarations for `alloc.c`'s definitions
+  (lisp.h 4537-4538), which is what `bool_vector_binop_driver` calls.
+- **`PUT_ERROR` is a `macro_rules!` inside `syms_of_data`.**  C defines the macro in the
+  middle of the body, so the port does too: the parameter names stay `sym`, `tail`, `msg`
+  and the two `Fput` calls stay in the expansion, which is what keeps the C body's tokens
+  visible to the comparison.  Its `msg` is a `c"..."` literal because `build_string` wants
+  a NUL-terminated `char *`.
+- **`Vmost_positive_fixnum`, `Vmost_negative_fixnum` and `symbols_with_pos_enabled` have
+  no definition in data.c.**  The reference's generated globals.h turns them into fields of
+  `struct emacs_globals` (`globals.h` 476-477: `#define Vmost_positive_fixnum
+  globals.f_Vmost_positive_fixnum`), which is why data.c can assign them; the port's
+  generated `globals.rs` declares the same names, so the `DEFVAR_LISP!`/`DEFVAR_BOOL!`
+  invocations here address the generated objects (the same shape `casetab.rs` uses for its
+  own globals).
+- **`TYPE_MAXIMUM (mp_bitcnt_t)` is `mp_bitcnt_t::MAX`.**  gnulib's intprops.h has no mirror
+  (P-26); `mp_bitcnt_t` is `unsigned long` (mini-gmp.h 68), so the port writes the type's
+  maximum and the `macro-body-notes` row for `Fash` records it (the `esprintf` precedent).
+- **C's `attributes: const` on `byteorder` has no counterpart.**  `DEFUN!` accepts only
+  `attributes: noreturn` (the marker is make-docfile's, and the port's `Lisp_Subr` record
+  has no field for it), so the port's invocation stops at the docstring.
+- **Six live subrs and two functions are still gaps** (187-311 `type-of`/`cl-type-of`,
+  629-658 `threadp`/`mutexp`/`condition-variable-p`, 934-1020 `add_to_function_history`/
+  `defalias`/`defalias`), which is why the checklist above keeps their boxes unchecked and
+  why `syms_of_data` keeps their six `defsubr` calls as comments.  Porting them is what
+  removes the last line-drift and the six-name exemption in `macro-body-notes.tsv`.
+
+## Decisions (continued)
 
 - **Ported so far.**  data.c 41-165 (the 19 accessors and error helpers), 168-705 (40
   subrs), 716-897 (the twelve symbol accessors and `fset`), 1029-1291 (the subr
@@ -205,14 +251,20 @@
   `make-local-variable`, `kill-local-variable`), 2414-2564 (`local-variable-p`,
   `local-variable-if-set-p`, `variable-binding-locus`, `indirect_function` and
   `indirect-function`), 2566-2717 (`aref`, `aset` and the four marker-coercion helpers of
-  the arithmetic section) and 2718-2930 (`arithcompare`, `arithcompare_driver` and the six
-  comparison subrs `=`/`<`/`>`/`<=`/`>=`/`/=`).  The file has 120 `DEFUN`s, of which four
-  are dead in this configuration (`user-ptrp` plus the three `HAVE_NATIVE_COMP` ones): 83
-  of the 116 live subrs and 44 of the 60 functions are ported.  `cargo build-tu src/data.c` builds, and
-  `extract-abi.py --check` reports no incorrect item - only the 33 remaining subrs, 16
-  functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*` plus the five `bool_vector_*`),
-  the 120 `defsubr` calls and the line-count drift of a partial file (C 4400 vs Rust 2662,
-  39.5%).
+  the arithmetic section), 2718-2930 (`arithcompare`, `arithcompare_driver` and the six
+  comparison subrs `=`/`<`/`>`/`<=`/`>=`/`/=`), 2931-3126 (the two cons converters,
+  `fixnum_to_string` and the `number-to-string`/`string-to-number` pair), and 3126-4400
+  (`enum arithop`, `floating_point_op`, the three arithmetic drivers, the 17 arithmetic
+  subrs, `enum bool_vector_op`, `bool_vector_spare_mask`, `bool_vector_binop_driver` and
+  the eight bool-vector subrs, then `syms_of_data` with its 138 `DEFSYM`s, the `PUT_ERROR`
+  macro, two `DEFVAR_LISP`s, one `DEFVAR_BOOL` and 116 `defsubr` calls).  The file has 120
+  `DEFUN`s, of which four are dead in this configuration (`user-ptrp` plus the three
+  `HAVE_NATIVE_COMP` ones): 110 of the 116 live subrs and 58 of the 60 functions are
+  ported.  `cargo build-tu src/data.c` builds, and `extract-abi.py --check` reports no
+  incorrect item - only the six live subrs and two functions of the remaining blocks
+  (187-311, 629-658, 934-1020), the six `defsubr` calls those subrs cannot yet supply
+  (`syms_of_data` keeps C's text as a comment, and the four dead ones are omitted), and the
+  line-count drift of the near-complete file (C 4400 vs Rust 4162, 5.4%).
 
 - **`UNINIT` is `= {0,}` here, and that is a measured fact (this segment's decision).**
   `conf_post.h` 366-371 defines `UNINIT` as `= {0,}` when `GCC_LINT` or `lint` is defined
@@ -448,6 +500,21 @@
   (reviewer A's F3 - the six callers are `unsafe extern "C" fn`s already, so nothing else
   changed).  `arithcompare` keeps the `unsafe extern "C" fn` shape every C-visible
   definition in this file has.
+- **The cons converters and the number<->string pair (this segment's decisions).**  The two
+  `UNINIT` locals are `= {0,}` again (the round-7 reading of conf_post.h 369), so
+  `cons_to_unsigned`/`cons_to_signed` share one notes row for `uninit` with that reason.
+  `Fnumber_to_string`'s buffer size is C's `max (FLOAT_TO_STRING_BUFSIZE,
+  INT_BUFSIZE_BOUND (EMACS_INT))`: `INT_BUFSIZE_BOUND` is a gnulib `intprops.h` macro with no
+  generic mirror (P-26/P-62, it needs C's `_GL_SIGNED_TYPE_OR_EXPR`), so the port carries the
+  one instantiation as a const - 21 for the signed 64-bit `EMACS_INT` - and spells C's `max`
+  as an if/else, which is why `max` is in that body's notes row.  The buffer itself stays
+  uninitialised as C leaves it (`MaybeUninit`, the lisp.rs `candidate_string` precedent)
+  rather than zeroing 350 bytes nothing reads.
+- **`bignum_to_string`, `float_to_string` and `string_to_number` join the mirror.**  They are
+  declared in lisp.h 4090/4710/4747 and defined in bignum.c/print.c/lread.c, so their
+  declarations live in `lisp.rs`'s `other_units`; the first attempt also re-declared
+  `cons_to_unsigned`/`cons_to_signed`, which were already there with lisp.h 4187's prototypes
+  (E0428 - removed).
 - **Five subrs wait for two headers.**  `type-of` (data.c 187-200) needs this file's own
   `cl-type-of` (data.c 202-310); `cl-type-of` calls `THREADP`, `MUTEXP`, `CONDVARP`
   (`thread.h` 222-320) and `FONT_SPEC_P`/`FONT_ENTITY_P`/`FONT_OBJECT_P` (`font.h`
