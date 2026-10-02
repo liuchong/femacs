@@ -23,9 +23,9 @@
 | globals | 1,934 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 27 |
-| 其中 done / wip | 17 / 10 |
-| 待开工 | 563 |
+| 已有目标文件 | 28 |
+| 其中 done / wip | 17 / 11 |
+| 待开工 | 562 |
 
 ## 2 按目录
 
@@ -38,7 +38,7 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 23 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 229 |
+| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 228 |
 
 ## 3 按批次
 
@@ -47,7 +47,7 @@
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 22 |
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 948 | 330 | 717 | 420 | 148 | 30 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 905 | 269 | 498 | 289 | 121 | 32 |
-| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,161 | 490 | 1,104 | 1,976 | 432 | 44 |
+| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,161 | 490 | 1,104 | 1,976 | 432 | 43 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,619 | 368 | 1,834 | 2,175 | 974 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 231 |
@@ -468,7 +468,7 @@
 | `src/coding.h` | 790 | 2 | 0 | 63 | 80 | 72 | 3 | C | `femacs/src/include/coding.rs` | done |
 | `src/commands.h` | 30 | 0 | 0 | 3 | 0 | 0 | 0 | B | `femacs/src/include/commands.rs` | todo |
 | `src/comp.c` | 5,857 | 140 | 15 | 91 | 17 | 3 | 4 | E | `femacs/src/comp.rs` | todo |
-| `src/comp.h` | 106 | 3 | 0 | 1 | 0 | 11 | 0 | E | `femacs/src/include/comp.rs` | todo |
+| `src/comp.h` | 106 | 3 | 0 | 1 | 0 | 11 | 0 | E | `femacs/src/include/comp.rs` | wip |
 | `src/composite.c` | 2,322 | 26 | 6 | 3 | 1 | 3 | 7 | C | `femacs/src/composite.rs` | todo |
 | `src/composite.h` | 362 | 5 | 0 | 53 | 20 | 11 | 2 | C | `femacs/src/include/composite.rs` | wip |
 | `src/conf_post.h` | 445 | 0 | 0 | 66 | 5 | 0 | 0 | B | `femacs/src/include/conf_post.rs` | todo |
