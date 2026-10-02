@@ -70,6 +70,8 @@ pub struct composition
 unsafe extern "C" { pub static mut composition_table: *mut *mut composition; }   // composite.h 182
 /* Number of the currently registered compositions.  */
 unsafe extern "C" { pub static mut n_compositions: ptrdiff_t; }                  // composite.h 184
+unsafe extern "C" { pub fn update_compositions (from: ptrdiff_t, to: ptrdiff_t,
+                                                check_mask: c_int); }                 // composite.h 198
 
 // C: composite.h 53-130's COMPOSITION_*/LGLYPH_* accessor macros and 194-198's five
 // prototypes — (not mirrored yet; they land with composite.c, batch C).

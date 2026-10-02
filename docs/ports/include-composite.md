@@ -71,3 +71,11 @@
 ## File-scope objects — 2
 - [ ] extern struct composition composition_table  (line 182)
 - [ ] extern ptrdiff_t n_compositions  (line 184)
+
+## Decisions (2026-10-03)
+
+- **`update_compositions` declared** (composite.h 198): json.c calls it after parsing into a
+  buffer, and the mirror had only its `CHECK_*` mask constants (composite.rs 28-36).  The
+  declaration sits next to `composition_table`/`n_compositions` in the mirror's one-line
+  `unsafe extern "C"` style.
+

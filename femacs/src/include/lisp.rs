@@ -3888,6 +3888,59 @@ pub mod other_units {
       /// C: void circular_list (Lisp_Object)
       pub fn circular_list (x: Lisp_Object) -> !;
     }
+
+    // src/lisp.h 4088-4089, 4321-4357, 4561-4817 (the json.c group).
+    unsafe extern "C" {
+      /* src/lisp.h 4088.  */
+      /// C: ptrdiff_t bignum_bufsize (Lisp_Object, int)
+      pub fn bignum_bufsize (num: Lisp_Object, base: c_int) -> ptrdiff_t;
+      /* src/lisp.h 4089.  */
+      /// C: ptrdiff_t bignum_to_c_string (char *, ptrdiff_t, Lisp_Object, int)
+      pub fn bignum_to_c_string (buf: *mut c_char, size: ptrdiff_t, num: Lisp_Object,
+                                 base: c_int) -> ptrdiff_t;
+      /* src/lisp.h 4321.  */
+      /// C: void make_gap (ptrdiff_t)
+      pub fn make_gap (nbytes: ptrdiff_t);
+      /* src/lisp.h 4333.  */
+      /// C: void insert_from_gap_1 (ptrdiff_t, ptrdiff_t, bool)
+      pub fn insert_from_gap_1 (nchars: ptrdiff_t, nbytes: ptrdiff_t,
+                                text_at_gap_tail: bool);
+      /* src/lisp.h 4353.  */
+      /// C: void prepare_to_modify_buffer (ptrdiff_t, ptrdiff_t, ptrdiff_t *)
+      pub fn prepare_to_modify_buffer (start: ptrdiff_t, end: ptrdiff_t,
+                                       preserve_ptr: *mut ptrdiff_t);
+      /* src/lisp.h 4355.  `struct buffer` is opaque here, as in the marker.c group.  */
+      /// C: void invalidate_buffer_caches (struct buffer *, ptrdiff_t, ptrdiff_t)
+      pub fn invalidate_buffer_caches (buf: *mut c_void, start: ptrdiff_t, end: ptrdiff_t);
+      /* src/lisp.h 4356.  */
+      /// C: void signal_after_change (ptrdiff_t, ptrdiff_t, ptrdiff_t)
+      pub fn signal_after_change (charpos: ptrdiff_t, lendel: ptrdiff_t,
+                                  lenins: ptrdiff_t);
+      /* src/lisp.h 4357-4358.  */
+      /// C: void adjust_after_insert (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t)
+      pub fn adjust_after_insert (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
+                                  newpos_byte: ptrdiff_t, newlen: ptrdiff_t);
+      /* src/lisp.h 4561.  */
+      /// C: Lisp_Object make_multibyte_string (const char *, ptrdiff_t, ptrdiff_t)
+      pub fn make_multibyte_string (contents: *const c_char, nchars: ptrdiff_t,
+                                    nbytes: ptrdiff_t) -> Lisp_Object;
+      /* src/lisp.h 4579.  */
+      /// C: Lisp_Object make_vector (ptrdiff_t, Lisp_Object)
+      pub fn make_vector (size: ptrdiff_t, init: Lisp_Object) -> Lisp_Object;
+      /* src/lisp.h 4730-4731.  */
+      /// C: Lisp_Object intern_c_multibyte (const char *, ptrdiff_t, ptrdiff_t)
+      pub fn intern_c_multibyte (str: *const c_char, nchars: ptrdiff_t,
+                                 nbytes: ptrdiff_t) -> Lisp_Object;
+      /* src/lisp.h 4796.  AVOID is `_Noreturn void`, which the port writes `-> !`.  */
+      /// C: void signal_error (const char *, Lisp_Object)
+      pub fn signal_error (message: *const c_char, arg: Lisp_Object) -> !;
+      /* src/lisp.h 4798.  */
+      /// C: void define_error (Lisp_Object, const char *, Lisp_Object)
+      pub fn define_error (name: Lisp_Object, message: *const c_char, parent: Lisp_Object);
+      /* src/lisp.h 4817.  */
+      /// C: void specbind (Lisp_Object, Lisp_Object)
+      pub fn specbind (symbol: Lisp_Object, value: Lisp_Object);
+    }
     // src/lisp.h 4952-4956 (the marker.c group).  `struct buffer` is an incomplete type
     // in C here (buffer.h owns the definition) and the port cannot name it in a mirror
     // that units include without buffer.rs, so the pointer stays opaque: C only ever
