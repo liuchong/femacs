@@ -250,3 +250,7 @@ unsafe extern "C" { pub static mut input_was_pending: bool; }                   
 unsafe extern "C" { pub static mut dev_tty: *mut c_char; }                                // 529
 
 // C: keyboard.h 511-529's prototypes — (not mirrored yet; they land with keyboard.c, batch E).
+
+/* keyboard.h 483: `extern void temporarily_switch_to_single_kboard (struct frame *);` -
+   callint.c's funcall-interactively calls it for a single-kboard configuration.  */
+unsafe extern "C" { pub fn temporarily_switch_to_single_kboard (f: *mut c_void); }

@@ -110,3 +110,11 @@
 - **Not yet done: none for this header.**  `extract-abi.py --check emacs/src/keyboard.h
   femacs/src/include/keyboard.rs` reports `OK`; the prototypes after line 520 are declarations
   (outside the checker's inventory, P-64) and land with keyboard.c.
+
+## Decisions (2026-10-03)
+
+- **`temporarily_switch_to_single_kboard` declared** (keyboard.h 483): callint.c's
+  `funcall-interactively` calls it when `multiple_terminals_merge_keyboards` is nil.  The
+  parameter is `*mut c_void` for the same reason the buffer pointers are (the mirror cannot
+  name `struct frame`).
+

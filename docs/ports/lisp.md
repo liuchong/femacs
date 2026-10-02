@@ -668,3 +668,11 @@ for headers (P-24).  The items that took real work, and their evidence:
   spelling was C 2801-2805 alone (it dropped the `wide_product >> (32 - bits)` reduction).  The
   mirror now carries C's signature and body; nothing else called it.
 
+## Decisions (2026-10-03, when callint.c was ported)
+
+- **`message1_nolog` (lisp.h 4391) declared** next to `message1`: callint.c's `read-char` arm
+  calls it after reading.
+- **The rest of the marker.c group declared** (lisp.h 4958-4966): `unchain_marker`,
+  `set_marker_restricted`, `set_marker_both`, `set_marker_restricted_both`, `syms_of_marker` -
+  callint.c calls `set_marker_both` for the `d`/`r`/`R` codes, and the group belongs together.
+

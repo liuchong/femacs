@@ -174,4 +174,6 @@ docs/ports/token-aliases.tsv would have to count spellings the ported doprnt.rs 
 do not use (measured: it failed both files), so this is a per-function note
 json_create_float	double	C 1225's `double value = strtod (…);`, the same class as
 json_out_float's row above
+syms_of_callint	doc	C 861-920's DEFVAR_KBOARD/DEFVAR_LISP/DEFVAR_BOOL invocations take C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no counterpart; the docstrings themselves are still compared by the constants rule (the syms_of_data precedent)
+Fcall_interactively	case,default,switch,fallthrough,goto,have_prefix_arg,kvar,bytes_left,letter,bytes_by_char_head,string_char	C 459-751's `switch (*tem)` is a `match` on the same characters with the same arms in the same order, so `switch`/`case`/`default` cannot reappear; the `goto have_prefix_arg` and the two `FALLTHROUGH`s become the entry selection of the N/n/p and R/r arms (one copy of each shared body, PORTING.md 2.2) and the invalid-letter body lives in the `invalid_control_letter` helper, so `goto`, `fallthrough`, `have_prefix_arg`, `bytes_left`, `letter`, `bytes_by_char_head` and `string_char` move there with it; C's `KVAR (current_kboard, Vlast_command)` is the port's `(*current_kboard).Vlast_command_` (keyboard.h 38's token-pasting macro, docs/ports/excluded-macros.txt)
 

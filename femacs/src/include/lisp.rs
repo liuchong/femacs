@@ -3848,6 +3848,11 @@ pub mod other_units {
         /// C: Lisp_Object buffer_visited_file_modtime (struct buffer *)
         pub fn buffer_visited_file_modtime (b: *mut c_void) -> Lisp_Object;
         pub fn message1 (s: *const c_char);
+
+        /* src/lisp.h 4390-4391: message1_nolog is message1's sibling, which callint.c's
+           `read-char` arm calls.  */
+        /// C: void message1_nolog (const char *)
+        pub fn message1_nolog (s: *const c_char);
         pub fn run_hook (hook: Lisp_Object);
         pub fn command_loop_2 (arg: Lisp_Object) -> Lisp_Object;
         // The second parameter's pointee has no spelling in the probe's type table, so
@@ -3965,10 +3970,26 @@ pub mod other_units {
       pub fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdiff_t) -> ptrdiff_t;
       /// C: ptrdiff_t buf_bytepos_to_charpos (struct buffer *, ptrdiff_t)
       pub fn buf_bytepos_to_charpos (b: *mut c_void, bytepos: ptrdiff_t) -> ptrdiff_t;
+      /* src/lisp.h 4958-4963, 4966: the rest of the marker.c group callint.c calls.  */
+      /// C: void unchain_marker (struct Lisp_Marker *)
+      pub fn unchain_marker (marker: *mut c_void);
+      /// C: Lisp_Object set_marker_restricted (Lisp_Object, Lisp_Object, Lisp_Object)
+      pub fn set_marker_restricted (marker: Lisp_Object, position: Lisp_Object,
+                                    buffer: Lisp_Object) -> Lisp_Object;
+      /// C: Lisp_Object set_marker_both (Lisp_Object, Lisp_Object, ptrdiff_t, ptrdiff_t)
+      pub fn set_marker_both (marker: Lisp_Object, buffer: Lisp_Object,
+                              charpos: ptrdiff_t, bytepos: ptrdiff_t) -> Lisp_Object;
+      /// C: Lisp_Object set_marker_restricted_both (Lisp_Object, Lisp_Object, ptrdiff_t, ptrdiff_t)
+      pub fn set_marker_restricted_both (marker: Lisp_Object, buffer: Lisp_Object,
+                                         charpos: ptrdiff_t, bytepos: ptrdiff_t)
+        -> Lisp_Object;
       /* src/lisp.h 4963.  */
       /// C: Lisp_Object build_marker (struct buffer *, ptrdiff_t, ptrdiff_t)
       pub fn build_marker (b: *mut c_void, charpos: ptrdiff_t, bytepos: ptrdiff_t)
         -> Lisp_Object;
+      /* src/lisp.h 4966.  */
+      /// C: void syms_of_marker ()
+      pub fn syms_of_marker ();
     }
 }
 use other_units::*;
