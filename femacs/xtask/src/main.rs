@@ -313,7 +313,7 @@ fn rust_type_expr(kind: &str, key: &str) -> Option<String> {
 fn declared_object_types() -> std::collections::BTreeMap<String, String> {
     let mut map = std::collections::BTreeMap::new();
     let mut stack = vec![PathBuf::from("src/include"), PathBuf::from("src"),
-                         PathBuf::from("../lib/include")];
+                         PathBuf::from("lib/include"), PathBuf::from("../lib/include")];
     while let Some(dir) = stack.pop() {
         let Ok(entries) = fs::read_dir(&dir) else { continue };
         for e in entries.filter_map(Result::ok) {
@@ -361,7 +361,7 @@ fn declared_object_types() -> std::collections::BTreeMap<String, String> {
 fn known_types() -> std::collections::BTreeSet<String> {
     let mut set = std::collections::BTreeSet::new();
     let mut stack = vec![PathBuf::from("src/include"), PathBuf::from("src"),
-                         PathBuf::from("../lib/include")];
+                         PathBuf::from("lib/include"), PathBuf::from("../lib/include")];
     while let Some(dir) = stack.pop() {
         let Ok(entries) = fs::read_dir(&dir) else { continue };
         for e in entries.filter_map(Result::ok) {
@@ -573,13 +573,17 @@ fn layout_asserts() -> Result<PathBuf, String> {
     fs::create_dir_all(BUILD).ok();
     let path = Path::new(BUILD).join("layout_asserts.rs");
     fs::write(&path, out).map_err(|e| e.to_string())?;
+    // The pending list is written before the ratchet check, so a failure still says which
+    // keys regressed.
+    if !pending.is_empty() {
+        let list = Path::new(BUILD).join("layout_pending.txt");
+        fs::write(&list, pending.join("\n") + "\n").ok();
+    }
     check_counts(n, pending.len())?;
     println!("{n} layout assertions from {}", tsv.display());
     if !pending.is_empty() {
         println!("{} keys pending a mirror: {}", pending.len(),
                  pending.iter().take(8).cloned().collect::<Vec<_>>().join(", "));
-        let list = Path::new(BUILD).join("layout_pending.txt");
-        fs::write(&list, pending.join("\n") + "\n").ok();
     }
     Ok(path)
 }
@@ -613,6 +617,15 @@ fn layout_check() -> i32 {
     if let Some(i) = mirrors.iter().position(|p| p.file_name().map(|n| n == "lisp.rs").unwrap_or(false)) {
         let lisp = mirrors.remove(i);
         mirrors.insert(0, lisp);
+    }
+    // A lib mirror that carries macros another mirror expands must come first: the probe
+    // compiles them in one crate, and `macro_rules!` are order-sensitive.  bignum.rs uses
+    // `mpz_odd_p!` from mini-gmp.rs, exactly as bignum.h uses <gmp.h>.
+    // `lib/include`, not `../lib/include`: the port's lib mirrors live inside femacs/
+    // (the same mistake P-53 records for the type scan).
+    let gmp = PathBuf::from("lib/include/mini-gmp.rs");
+    if gmp.is_file() {
+        mirrors.insert(1.min(mirrors.len()), gmp);
     }
     mirrors.push(asserts);
     for path in mirrors {
@@ -863,7 +876,7 @@ fn gate_probes() -> i32 {
     }
     for probe in ["spikes/inline-probe.sh", "spikes/accessor-probe.sh",
                   "spikes/write-probe.sh", "spikes/va-probe.sh",
-                  "spikes/syshdrs-probe.sh"] {
+                  "spikes/syshdrs-probe.sh", "spikes/gmp-abi-probe.sh"] {
         println!("== {probe} ==");
         let status = Command::new("bash").arg(probe).current_dir(REPO).status();
         match status {

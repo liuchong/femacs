@@ -41,106 +41,10 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const BIGNUM_H: bool = true;
 
-// --- <gmp.h> -> lib/mini-gmp.h, not mirrored yet (P-26, P-49) ---------------
-//
-// Declared here in the reference header's own order, with C's line above each one.
-// Only what bignum.h, bignum.c and floatfns.c use is listed: the full header is
-// mirrored when `lib/` (batch F) is ported.
-
-/* #ifndef MINI_GMP_LIMB_TYPE
-   #define MINI_GMP_LIMB_TYPE long
-   #endif
-
-   typedef unsigned MINI_GMP_LIMB_TYPE mp_limb_t;  */
-pub type mp_limb_t = c_ulong;
-/* typedef long mp_size_t;  */
-pub type mp_size_t = c_long;
-/* typedef unsigned long mp_bitcnt_t;  */
-pub type mp_bitcnt_t = c_ulong;
-
-/* typedef mp_limb_t *mp_ptr;  */
-pub type mp_ptr = *mut mp_limb_t;
-/* typedef const mp_limb_t *mp_srcptr;  */
-pub type mp_srcptr = *const mp_limb_t;
-
-/* typedef struct { int _mp_alloc; int _mp_size; mp_limb_t *_mp_d; } __mpz_struct;  */
-#[repr(C)]
-pub struct __mpz_struct
-{
-  pub _mp_alloc: c_int,
-  pub _mp_size: c_int,
-  pub _mp_d: *mut mp_limb_t,
-}
-
-/* typedef __mpz_struct mpz_t[1];  */
-pub type mpz_t = [__mpz_struct; 1];
-
-/* typedef __mpz_struct *mpz_ptr;  */
-pub type mpz_ptr = *mut __mpz_struct;
-/* typedef const __mpz_struct *mpz_srcptr;  */
-pub type mpz_srcptr = *const __mpz_struct;
-
-// A `mpz_t`-shaped parameter is `__mpz_struct *` after C's array decay, and a
-// `mpz_t const` parameter is `const __mpz_struct *`; that is the type every
-// declaration below uses, and the reason a `mpz_t` *value* is passed as
-// `value.as_mut_ptr ()` / `value.as_ptr ()` at the call sites.
-unsafe extern "C" {
-  /* int mpz_sgn (const mpz_t);  */
-  pub fn mpz_sgn (z: *const __mpz_struct) -> c_int;
-  /* int mpz_cmp (const mpz_t, const mpz_t);  */
-  pub fn mpz_cmp (a: *const __mpz_struct, b: *const __mpz_struct) -> c_int;
-
-  /* void mpz_abs (mpz_t, const mpz_t);  */
-  pub fn mpz_abs (r: *mut __mpz_struct, a: *const __mpz_struct);
-  /* void mpz_neg (mpz_t, const mpz_t);  */
-  pub fn mpz_neg (r: *mut __mpz_struct, a: *const __mpz_struct);
-
-  /* void mpz_add_ui (mpz_t, const mpz_t, unsigned long);  */
-  pub fn mpz_add_ui (r: *mut __mpz_struct, a: *const __mpz_struct, b: c_ulong);
-  /* void mpz_sub_ui (mpz_t, const mpz_t, unsigned long);  */
-  pub fn mpz_sub_ui (r: *mut __mpz_struct, a: *const __mpz_struct, b: c_ulong);
-  /* void mpz_sub (mpz_t, const mpz_t, const mpz_t);  */
-  pub fn mpz_sub (r: *mut __mpz_struct, a: *const __mpz_struct, b: *const __mpz_struct);
-
-  /* void mpz_cdiv_q (mpz_t, const mpz_t, const mpz_t);  */
-  pub fn mpz_cdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct, d: *const __mpz_struct);
-  /* void mpz_fdiv_q (mpz_t, const mpz_t, const mpz_t);  */
-  pub fn mpz_fdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct, d: *const __mpz_struct);
-  /* void mpz_tdiv_q (mpz_t, const mpz_t, const mpz_t);  */
-  pub fn mpz_tdiv_q (q: *mut __mpz_struct, n: *const __mpz_struct, d: *const __mpz_struct);
-  /* void mpz_tdiv_qr (mpz_t, mpz_t, const mpz_t, const mpz_t);  */
-  pub fn mpz_tdiv_qr (q: *mut __mpz_struct, r: *mut __mpz_struct, n: *const __mpz_struct,
-                      d: *const __mpz_struct);
-
-  /* size_t mpz_sizeinbase (const mpz_t, int);  */
-  pub fn mpz_sizeinbase (z: *const __mpz_struct, base: c_int) -> usize;
-
-  /* void mpz_set_si (mpz_t, signed long int);  */
-  pub fn mpz_set_si (r: *mut __mpz_struct, v: c_long);
-  /* void mpz_set_ui (mpz_t, unsigned long int);  */
-  pub fn mpz_set_ui (r: *mut __mpz_struct, v: c_ulong);
-  /* void mpz_set (mpz_t, const mpz_t);  */
-  pub fn mpz_set (r: *mut __mpz_struct, a: *const __mpz_struct);
-  /* void mpz_set_d (mpz_t, double);  */
-  pub fn mpz_set_d (r: *mut __mpz_struct, v: c_double);
-}
-
-/// mpz_odd_p (z): C's object-like macro over a `const mpz_t` — the mirror is the
-/// macro's body, so `mpz_odd_p! (&*p)` is C's `mpz_odd_p (p)` (PORTING.md 2.2).
-macro_rules! mpz_odd_p {
-    ($z:expr) => {
-        ((unsafe { (*$z)._mp_size } != 0) as c_int) & unsafe { (*(*$z)._mp_d) } as c_int
-    };
-}
-
-/// mpz_even_p (z): `! mpz_odd_p (z)`.
-macro_rules! mpz_even_p {
-    ($z:expr) => {
-        (!(mpz_odd_p! ($z) != 0)) as c_int
-    };
-}
-
-// --- end of the not-yet-mirrored gmp.h subset -------------------------------
+// <gmp.h> resolves to lib/mini-gmp.h on this target; its mirror
+// (femacs/lib/include/mini-gmp.rs) is included by the translation unit right before this
+// file, as bignum.h's `#include <gmp.h>` does (P-49; the typedefs, the `mpz_*`
+// declarations and the macros all come from there).
 
 /* Compile with -DFASTER_BIGNUM=0 to disable common optimizations and
    allow easier testing of some slow-path code.  */
@@ -163,35 +67,43 @@ pub struct Lisp_Bignum
   pub value: mpz_t,
 }
 
-// C: `extern mpz_t mpz[5];` — mpz_t is an array type, so this is the same object as
-// `__mpz_struct mpz[5][1]`.
-unsafe extern "C" {
-  pub static mut mpz: [mpz_t; 5];
+// C: `extern mpz_t mpz[5];` (bignum.h 45) and the eleven helper prototypes below.
+// They live in a module so that bignum.c — which *defines* every one of them, `mpz`
+// included — shadows the import instead of colliding with it (P-21/P-39; the same shape
+// `lisp.rs` uses for the globals and functions other units define).
+pub mod bignum_externs {
+  use super::*;
 
-  /* extern void init_bignum (void);  */
-  pub fn init_bignum ();
-  /* extern Lisp_Object make_integer_mpz (void);  */
-  pub fn make_integer_mpz () -> Lisp_Object;
-  /* extern bool mpz_to_intmax (mpz_t const, intmax_t *);  */
-  pub fn mpz_to_intmax (z: *const __mpz_struct, out: *mut intmax_t) -> bool;
-  /* extern bool mpz_to_uintmax (mpz_t const, uintmax_t *);  */
-  pub fn mpz_to_uintmax (z: *const __mpz_struct, out: *mut uintmax_t) -> bool;
-  /* extern void mpz_set_intmax_slow (mpz_t, intmax_t);  */
-  pub fn mpz_set_intmax_slow (r: *mut __mpz_struct, v: intmax_t);
-  /* extern void mpz_set_uintmax_slow (mpz_t, uintmax_t);  */
-  pub fn mpz_set_uintmax_slow (r: *mut __mpz_struct, v: uintmax_t);
-  /* extern void emacs_mpz_mul (mpz_t, mpz_t const, mpz_t const);  */
-  pub fn emacs_mpz_mul (r: *mut __mpz_struct, a: *const __mpz_struct,
-                        b: *const __mpz_struct);
-  /* extern void emacs_mpz_mul_2exp (mpz_t, mpz_t const, EMACS_INT);  */
-  pub fn emacs_mpz_mul_2exp (r: *mut __mpz_struct, a: *const __mpz_struct, b: EMACS_INT);
-  /* extern void emacs_mpz_pow_ui (mpz_t, mpz_t const, unsigned long);  */
-  pub fn emacs_mpz_pow_ui (r: *mut __mpz_struct, a: *const __mpz_struct, b: c_ulong);
-  /* extern double mpz_get_d_rounded (mpz_t const);  */
-  pub fn mpz_get_d_rounded (z: *const __mpz_struct) -> c_double;
-  /* extern Lisp_Object get_random_bignum (struct Lisp_Bignum const *);  */
-  pub fn get_random_bignum (i: *const Lisp_Bignum) -> Lisp_Object;
+  unsafe extern "C" {
+    pub static mut mpz: [mpz_t; 5];
+
+    /* extern void init_bignum (void);  */
+    pub fn init_bignum ();
+    /* extern Lisp_Object make_integer_mpz (void);  */
+    pub fn make_integer_mpz () -> Lisp_Object;
+    /* extern bool mpz_to_intmax (mpz_t const, intmax_t *);  */
+    pub fn mpz_to_intmax (z: *const __mpz_struct, out: *mut intmax_t) -> bool;
+    /* extern bool mpz_to_uintmax (mpz_t const, uintmax_t *);  */
+    pub fn mpz_to_uintmax (z: *const __mpz_struct, out: *mut uintmax_t) -> bool;
+    /* extern void mpz_set_intmax_slow (mpz_t, intmax_t);  */
+    pub fn mpz_set_intmax_slow (r: *mut __mpz_struct, v: intmax_t);
+    /* extern void mpz_set_uintmax_slow (mpz_t, uintmax_t);  */
+    pub fn mpz_set_uintmax_slow (r: *mut __mpz_struct, v: uintmax_t);
+    /* extern void emacs_mpz_mul (mpz_t, mpz_t const, mpz_t const);  */
+    pub fn emacs_mpz_mul (r: *mut __mpz_struct, a: *const __mpz_struct,
+                          b: *const __mpz_struct);
+    /* extern void emacs_mpz_mul_2exp (mpz_t, mpz_t const, EMACS_INT);  */
+    pub fn emacs_mpz_mul_2exp (r: *mut __mpz_struct, a: *const __mpz_struct, b: EMACS_INT);
+    /* extern void emacs_mpz_pow_ui (mpz_t, mpz_t const, unsigned long);  */
+    pub fn emacs_mpz_pow_ui (r: *mut __mpz_struct, a: *const __mpz_struct, b: c_ulong);
+    /* extern double mpz_get_d_rounded (mpz_t const);  */
+    pub fn mpz_get_d_rounded (z: *const __mpz_struct) -> c_double;
+    /* extern Lisp_Object get_random_bignum (struct Lisp_Bignum const *);  */
+    pub fn get_random_bignum (i: *const Lisp_Bignum) -> Lisp_Object;
+  }
 }
+
+use bignum_externs::*;
 
 /* INLINE struct Lisp_Bignum * XBIGNUM (Lisp_Object a)  */
 #[inline(always)]
