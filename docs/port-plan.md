@@ -158,6 +158,28 @@
 | F 平台与工具 | 平台后端全部 C 文件（`w32*`、`x*`、`pgtk*`、`android*`、`haiku*`、`msdos*`、`ns*` 的 C 部分）+ `lib-src/`、`lwlib/`、`oldXMenu/`、`exec/`、`nt/`、`lib/`（gnulib）+ `java/`→Kotlin、`*.m`→Swift、`*.cc`→C++ | 约 24 万行 | 各平台冒烟 + 工具命令对拍 |
 | G 收尾 | `pdumper.c`、`emacs-module.c`、`.elc` 兼容、模块 ABI、精简 unsafe、去重、性能 | 约 1 万行 | D12 全部互换通过 |
 
+### 4.1 下一个单元 `src/data.c` 的前置镜像链（2026-10-02 实测，勿重复推导）
+
+`data.c` 的 `#include` 是 `lisp.h`(✓) / `bignum.h`(✓) / `character.h`(✓) / `buffer.h`(✓) /
+`keymap.h`(✓ 本轮) / `process.h`(✗) / `frame.h`(✗) / `keyboard.h`(✗)。按冻结配置展开活分支后，
+真正被 `data.c` 的**代码**用到的是：`KBOARD`（keyboard.h 的 `struct kboard`）、
+`FRAME_KBOARD`（frame.h 919，展开成 `(f)->terminal->kboard`）、`SELECTED_FRAME`（frame.h 1526，
+用到 `FRAME_LIVE_P`/`XFRAME`/`emacs_abort`）、`KBOARD_OBJFWDP`（lisp.h 3155 ✓）。因此需要按下面
+顺序把镜像补齐（每个文件一条一份清单、一次签名提交，走 §5 的十步）：
+
+1. `src/systime.h`（94 行；`termhooks.h` 的 `Time`）→ 需要一个 `<timespec.h>` 系统镜像。
+2. `src/composite.h`（363）→ 3. `src/coding.h`（791，keyboard.h 为 `ENCODE_UTF_8`/`ENCODE_SYSTEM` 包含它）。
+4. `src/dispextern.h`（4026；`termhooks.h`/`window.h` 的 `glyph_matrix`/`glyph_pool`/`image_cache`/
+   `face_cache`/`text_conversion_state`）→ 5. `src/termhooks.h`（994；`struct input_event` 被
+   keyboard.h 的 `union buffered_input_event` **按值**包含，必须完整）→ 6. `src/window.h`（1268）
+   → 7. `src/frame.h`（1957）→ 8. `src/keyboard.h`（535）→ 9. `src/process.h`（320，只为 include
+   图；`HAVE_GNUTLS` 未定义，故不含 gnutls.h）→ 10. `src/data.c`（4400，120 个 subr）。
+
+约束：任何被声明的 `struct` 必须**字段完整**（`struct frame` 150 字段、`struct terminal` 71、
+`struct window` 90、`struct kboard` 26），并在落地时把类型加进 `tools/gen-layout-fields.py` 的
+`STRUCTS` 重新生成 `docs/baseline/layout/c-layout-*.tsv`（`sizeof window` 已在 pending 里，
+声明它就会立刻断言 520）；`GCALIGNED` 类的 `static_assert` 按 P-60 处理。
+
 ## 5. 单文件工作流（每个文件都必须走完，缺一即未完成）
 
 1. `python3 tools/extract-abi.py src/NAME.c > docs/ports/NAME.md`，生成待勾选清单。
