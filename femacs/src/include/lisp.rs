@@ -265,6 +265,10 @@ pub struct Lisp_Symbol {
     pub u: Lisp_Symbol_u,
 }
 
+// src/lisp.h 2168 includes "comp.h", which this configuration compiles to its
+// no-native-comp branch; the mirror carries the one entry point data.c calls.
+include!("comp.rs");
+
 // --- subrs (src/lisp.h 2174) -----------------------------------------------
 
 #[repr(C, align(8))]
@@ -3896,3 +3900,68 @@ pub const LOG2_FLT_RADIX: c_int = if FLT_RADIX == 2 { 1 } else { 4 };
 pub const S2N_IGNORE_TRAILING: c_int = 1;                // lisp.h 4746
 pub const defined_GC_CHECK_STRING_BYTES: bool = false;   // lisp.h 5743 (C spells the value through `defined (…)`; the frozen configuration leaves it undefined)
 pub const SMALL_LIST_LEN_MAX: c_int = 127;               // lisp.h 5829
+
+// --- FOR_EACH_TAIL_SAFE (src/lisp.h 5836-5912) ------------------------------
+/// C's `struct for_each_tail_internal` (lisp.h 5848-5854): Brent's teleporting
+/// tortoise-hare state for the two FOR_EACH_TAIL macros.
+#[repr(C)]
+pub struct for_each_tail_internal
+{
+  /* The object we're comparing to.  */
+  pub tortoise: Lisp_Object,
+  /* How many iterations of the algorithm have happened.  */
+  pub l: ptrdiff_t,
+}
+
+/// C: `#define FOR_EACH_TAIL_THRESHOLD 4096` (lisp.h 5900), whose lisp.h 5902
+/// `static_assert (POWER_OF_2 (FOR_EACH_TAIL_THRESHOLD))` the port repeats with the
+/// expression inlined, because the port's POWER_OF_2 is a function, not a macro.
+pub const FOR_EACH_TAIL_THRESHOLD: ptrdiff_t = 4096;
+static_assert! ((FOR_EACH_TAIL_THRESHOLD & (FOR_EACH_TAIL_THRESHOLD - 1)) == 0);
+
+/// FOR_EACH_TAIL_SAFE (lisp.h 5843-5846) is
+/// `FOR_EACH_TAIL_INTERNAL (tail, (void) ((tail) = Qnil), false)`, i.e. FOR_EACH_TAIL_BASIC's
+/// `for` loop (lisp.h 5873-5876) driven by FOR_EACH_TAIL_STEP_CYCLEP (lisp.h 5909-5912) with
+/// CHECK_QUIT false, so the stepper's trailing `(…, false)` keeps it false and the only
+/// effect is the periodic tortoise advance; the cycle arm sets TAIL to Qnil and the loop
+/// then ends.
+///
+/// `state` is the caller's loop variable: the macro re-binds it (C's `for` mutates the
+/// caller's object) so the body, which is the caller's own tokens, reads the value the
+/// stepper produced.  C's macro takes the following statement as its body; Rust has no macro
+/// form for that, so the body is the second argument:
+///
+/// ```ignore
+/// FOR_EACH_TAIL_SAFE! (tail, { if NILP (XCDR (tail)) { … } });
+/// ```
+macro_rules! FOR_EACH_TAIL_SAFE {
+    ($state:ident, $body:block) => {
+        {
+            /* C: `struct for_each_tail_internal li = { tail, 0 };` */
+            let mut $state: Lisp_Object = $state;
+            let mut li: for_each_tail_internal = for_each_tail_internal {
+                tortoise: $state,
+                l: 0,
+            };
+            /* C: `CONSP (tail) || (likely (NILP (tail)), false)` */
+            while CONSP ($state) || { likely (NILP ($state)); false }
+              {
+                $body
+
+                /* Stepper: `(tail) = XCDR (tail)`, then
+                   `! likely (! BASE_EQ (tail, li.tortoise))` — the "cycle found" disjunct.  */
+                $state = XCDR ($state);
+                if BASE_EQ ($state, li.tortoise)
+                  { $state = Qnil (); }
+                else if ! likely (({ li.l += 1; li.l } & (FOR_EACH_TAIL_THRESHOLD - 1)) != 0)
+                  {
+                    /* C's second disjunct is `((check_quit) ? maybe_quit () : (void) 0, false)
+                       || (POWER_OF_2 (li.l) && (li.tortoise = (tail), false))`, which is false
+                       either way; what survives is the tortoise advance.  */
+                    if false || (POWER_OF_2 (li.l) && { li.tortoise = $state; false })
+                      { }
+                  }
+              }
+        }
+    };
+}

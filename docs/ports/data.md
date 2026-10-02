@@ -59,7 +59,7 @@
 - [x] remove-pos-from-symbol  (Fremove_pos_from_symbol, 1/1, doc f481f1408e2f, line 863)
 - [x] position-symbol  (Fposition_symbol, 2/2, doc 9d0e2dc057aa, line 876)
 - [x] fset  (Ffset, 2/2, doc 7af3608b8fe3, line 897)
-- [ ] defalias  (Fdefalias, 2/3, doc 0ddc4dab1693, line 1002)
+- [x] defalias  (Fdefalias, 2/3, doc 0ddc4dab1693, line 1002)
 - [x] setplist  (Fsetplist, 2/2, doc 3f68e5e7c348, line 1029)
 - [x] subr-arity  (Fsubr_arity, 1/1, doc 540c5ca896e3, line 1038)
 - [x] subr-name  (Fsubr_name, 1/1, doc 044f0f555e5a, line 1056)
@@ -143,8 +143,8 @@
 - [x] args_out_of_range_3  (line 144)
 - [x] circular_list  (line 150)
 - [x] slow_eq  (line 160)
-- [ ] add_to_function_history  (line 934, static)
-- [ ] defalias  (line 971)
+- [x] add_to_function_history  (line 934, static)
+- [x] defalias  (line 971)
 - [x] kboard_for_bindings  (line 1314)
 - [x] do_symval_forwarding  (line 1337)
 - [x] wrong_choice  (line 1365)
@@ -239,7 +239,20 @@
   why `syms_of_data` keeps their six `defsubr` calls as comments.  Porting them is what
   removes the last line-drift and the six-name exemption in `macro-body-notes.tsv`.
 
-## Decisions (continued)
+- **The `defalias` block needed three mirrors, and two of them are no-ops.**  `defalias`
+  itself calls `maybe_defer_native_compilation`, whose live definition is comp.h's
+  `#else /* HAVE_NATIVE_COMP */` empty `static inline` (comp.h 90-95) - the file
+  `femacs/src/include/comp.rs` is that branch, and its empty body is the reference's, not a
+  port stub.  `add_to_function_history` iterates `Vcurrent_load_list` with
+  `FOR_EACH_TAIL_SAFE` (`FOR_EACH_TAIL_INTERNAL (tail, (void) ((tail) = Qnil), false)`),
+  which the port mirrors once in `lisp.rs` as `FOR_EACH_TAIL_SAFE!` with C's Brent
+  tortoise-hare stepper spelled out (`for_each_tail_internal`, `FOR_EACH_TAIL_THRESHOLD`,
+  `POWER_OF_2`); the C macro's body and each of its callers then differ only in the loop
+  form, which is why the notes row for it is empty of exemptions.  The macro re-binds the
+  caller's loop variable (C's `for` mutates the caller's object) and takes the body as a
+  second argument, because a Rust macro cannot own the statement that follows it.
+
+## Decisions (continued 2)
 
 - **Ported so far.**  data.c 41-165 (the 19 accessors and error helpers), 168-705 (40
   subrs), 716-897 (the twelve symbol accessors and `fset`), 1029-1291 (the subr
@@ -259,12 +272,12 @@
   the eight bool-vector subrs, then `syms_of_data` with its 138 `DEFSYM`s, the `PUT_ERROR`
   macro, two `DEFVAR_LISP`s, one `DEFVAR_BOOL` and 116 `defsubr` calls).  The file has 120
   `DEFUN`s, of which four are dead in this configuration (`user-ptrp` plus the three
-  `HAVE_NATIVE_COMP` ones): 110 of the 116 live subrs and 58 of the 60 functions are
+  `HAVE_NATIVE_COMP` ones): 111 of the 116 live subrs and 60 of the 60 functions are
   ported.  `cargo build-tu src/data.c` builds, and `extract-abi.py --check` reports no
-  incorrect item - only the six live subrs and two functions of the remaining blocks
-  (187-311, 629-658, 934-1020), the six `defsubr` calls those subrs cannot yet supply
-  (`syms_of_data` keeps C's text as a comment, and the four dead ones are omitted), and the
-  line-count drift of the near-complete file (C 4400 vs Rust 4162, 5.4%).
+  incorrect item and no line-count drift - only the five live subrs of the 187-311 and
+  629-658 blocks (which need `thread.rs`/`font.rs`, see below) and the `defsubr` lines of
+  those five plus the four dead subrs (`syms_of_data` keeps C's text as a comment, and the
+  dead ones are omitted).  The 934-1020 `defalias` block is complete.
 
 - **`UNINIT` is `= {0,}` here, and that is a measured fact (this segment's decision).**
   `conf_post.h` 366-371 defines `UNINIT` as `= {0,}` when `GCC_LINT` or `lint` is defined

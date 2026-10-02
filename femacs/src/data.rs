@@ -4087,7 +4087,7 @@ pub unsafe extern "C" fn syms_of_data ()
   defsubr (&raw mut Sboundp);
   defsubr (&raw mut Sfboundp);
   defsubr (&raw mut Sfset);
-  // C: defsubr (&Sdefalias);  - defalias is not ported yet (docs/ports/data.md).
+  defsubr (&raw mut Sdefalias);
   defsubr (&raw mut Ssetplist);
   defsubr (&raw mut Ssymbol_value);
   defsubr (&raw mut Sset);
@@ -4160,3 +4160,92 @@ pub unsafe extern "C" fn syms_of_data ()
   defsubr (&raw mut Sget_variable_watchers);
 
 }
+
+/* Add to FUNCTION's history a description of its previous definition OLDDEFF.  Called
+   by `defalias', and by `fset' and `defvar' via that.  */
+unsafe fn add_to_function_history (symbol: Lisp_Object, olddef: Lisp_Object)
+{
+  eassert! (! NILP (olddef));
+
+  let past: Lisp_Object = Fget (symbol, Qfunction_history ());
+  let mut file: Lisp_Object = Qnil ();
+  /* FIXME: Sadly, `Vload_file_name` gives less precise information
+     (it's sometimes non-nil when it should be nil).  */
+  let mut tail: Lisp_Object = Vcurrent_load_list;
+  FOR_EACH_TAIL_SAFE! (tail, {
+    if NILP (XCDR (tail)) && STRINGP (XCAR (tail))
+      { file = XCAR (tail); }
+  });
+
+  let tem: Lisp_Object = Fplist_member (past, file, Qequal ());
+  if ! NILP (tem)
+    { /* New def from a file used before.
+         Overwrite the previous record associated with this file.  */
+      if EQ (tem, past)
+        /* The new def is from the same file as the last change, so
+           there's nothing to do: unloading the file should revert to
+           the status before the last change rather than before this load.  */
+        { return; }
+      let pastlen: Lisp_Object = Flength (past);
+      let temlen: Lisp_Object = Flength (tem);
+      let tempos: EMACS_INT = XFIXNUM (pastlen) - XFIXNUM (temlen);
+      eassert! (tempos > 1);
+      let prev: Lisp_Object = Fnthcdr (make_fixnum (tempos - 2), past);
+      /* Remove the previous info for this file.
+         E.g. change `hist` from (... OTHERFILE DEF3 THISFILE DEF2 ...)
+         to (... OTHERFILE DEF2). */
+      XSETCDR (prev, XCDR (tem));
+    }
+  /* Push new def from new file.  */
+  Fput (symbol, Qfunction_history (), Fcons (file, Fcons (olddef, past)));
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn defalias (symbol: Lisp_Object, definition: Lisp_Object)
+{
+  {
+    let autoload: bool = AUTOLOADP (definition);
+    if ! will_dump_p () || ! autoload
+      { /* Only add autoload entries after dumping, because the ones before are
+	   not useful and else we get loads of them from the loaddefs.el.
+	   That saves us about 110KB in the pdmp file (Jan 2022).  */
+	LOADHIST_ATTACH (Fcons (Qdefun (), symbol));
+      }
+  }
+
+  {
+    let olddef: Lisp_Object = unsafe { (*XSYMBOL (symbol)).u.s.function };
+    if ! NILP (olddef)
+      {
+        if ! NILP (Vautoload_queue)
+          { Vautoload_queue = Fcons (symbol, Vautoload_queue); }
+        add_to_function_history (symbol, olddef);
+      }
+  }
+
+  { /* Handle automatic advice activation.  */
+    let hook: Lisp_Object = Fget (symbol, Qdefalias_fset_function ());
+    if ! NILP (hook)
+      { calln! (hook, symbol, definition); }
+    else
+      { Ffset (symbol, definition); }
+  }
+}
+
+DEFUN! ("defalias", Fdefalias, Sdefalias, 2, 3, 0,
+       doc: "Set SYMBOL's function definition to DEFINITION.\nAssociates the function with the current load file, if any.\nThe optional third argument DOCSTRING specifies the documentation string\nfor SYMBOL; if it is omitted or nil, SYMBOL uses the documentation string\ndetermined by DEFINITION.\n\nInternally, this normally uses `fset', but if SYMBOL has a\n`defalias-fset-function' property, the associated value is used instead.\n\nThe return value is undefined.",
+       (symbol: Lisp_Object, definition: Lisp_Object, docstring: Lisp_Object),
+       {
+  CHECK_SYMBOL (symbol);
+
+  defalias (symbol, definition);
+
+  maybe_defer_native_compilation (symbol, definition);
+
+  if ! NILP (docstring)
+    { Fput (symbol, Qfunction_documentation (), docstring); }
+  /* We used to return `definition', but now that `defun' and `defmacro' expand
+     to a call to `defalias', we return `symbol' for backward compatibility
+     (bug#11686).  */
+  return symbol;
+});
