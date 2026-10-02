@@ -1078,6 +1078,26 @@ def struct_fields(text: str) -> list[dict]:
             # after the aggregate vanished from the scan (see `coding_system`: `spec` and the
             # 17 members after it were invisible, so the 616-byte layout was unchecked).
             tail = re.match(r"^}\s*(?P<name>[A-Za-z_]\w*)\s*(?P<array>(?:\[[^\]]*\])*)\s*;", stripped)
+            if tail is None and re.fullmatch(r"}+", stripped):
+                # `}` and the declarator may be on separate lines (frame.h 653-663's
+                # `union output_data { … }\n  output_data;`), in which case the name is on the
+                # *next* line; remember to read it there rather than lose the member.
+                closers = stripped.count("}")
+                for _ in range(0):
+                    pass
+                if closers == 1 and stack:
+                    following = rows[i].strip() if i < len(rows) else ""
+                    tail2 = re.fullmatch(r"(?P<name>[A-Za-z_]\w*)\s*(?P<array>(?:\[[^\]]*\])*)\s*;",
+                                         following)
+                    if tail2:
+                        outer = next((e for e in stack if not e[1].startswith("<anon")), stack[-1])
+                        out.append({"container": outer[1], "container_kind": outer[0],
+                                    "nesting": " > ".join(e[1] for e in stack),
+                                    "line": i + 1, "name": tail2.group("name"),
+                                    "array": tail2.group("array"), "pointer_depth": 0,
+                                    "bitfield": False, "c_type": "<aggregate>",
+                                    "raw": following})
+                        i += 1          # consume the declarator line
             if tail and stack:
                 outer = next((e for e in stack if not e[1].startswith("<anon")), stack[-1])
                 out.append({"container": outer[1], "container_kind": outer[0],

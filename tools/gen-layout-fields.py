@@ -88,6 +88,9 @@ STRUCTS = {
     # the 4-byte unit at 500, so the port keys everything else and stores that unit as `bits`.
     "window": "src/window.h",
     "cursor_pos": "src/window.h",
+    # frame.h's record (568/8).  Its 37 flag members live in two 4-byte units at 240 and 244, so
+    # the generator keys the other 92 members and the port stores the units as `bits1`/`bits2`.
+    "frame": "src/frame.h",
 }
 
 # C unions the port mirrors as Rust unions.  They get `SZ (union …)`/`AL (union …)` keys and the
