@@ -1,4 +1,4 @@
 key	value
-asserted	403
+asserted	413
 pending	7
-note	2026-10-02 round 15: asserted 367 -> 403.  src/process.h is done: `struct Lisp_Process` (272/8, 19 Lisp_Objects from offset 8, pid 160, open_fd[6] 180, ticks 208/216, the two bitfield units at 232 and 248) contributes 36 keys, and the header's 5 inlines, 2 macros, 2 file-scope objects and 3 exit-status constants are in femacs/src/include/process.rs.  pending stays 7.  This file is a ratchet: asserted only grows and pending only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).  The asserted key *set* is ratcheted separately by asserted-keys.txt (review B's F4).
+note	2026-10-02 round 15: asserted 403 -> 413 with termhooks.h's `struct input_event` (64/8: `kind : 16` and `part : 16` share the unit at 0 -- `34 12 78 56` for kind 0x1234 / part 0x5678 -- then code 4, modifiers 8, x 16, y 24, timestamp 32, frame_or_window 40, arg 48, device 56).  pending stays 7.  This file is a ratchet: asserted only grows and pending only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).  The asserted key *set* is ratcheted separately by asserted-keys.txt (review B's F4).

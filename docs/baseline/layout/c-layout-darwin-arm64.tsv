@@ -25,6 +25,7 @@ alignof display_pos	8
 alignof emacs_mule_spec	4
 alignof glyph_slice	4
 alignof hash_table_test	8
+alignof input_event	8
 alignof iso_2022_spec	4
 alignof it_slice	8
 alignof itree_iterator	8
@@ -313,6 +314,14 @@ offsetof hash_table_test.hashfn	0
 offsetof hash_table_test.name	32
 offsetof hash_table_test.user_cmp_function	24
 offsetof hash_table_test.user_hash_function	16
+offsetof input_event.arg	48
+offsetof input_event.code	4
+offsetof input_event.device	56
+offsetof input_event.frame_or_window	40
+offsetof input_event.modifiers	8
+offsetof input_event.timestamp	32
+offsetof input_event.x	16
+offsetof input_event.y	24
 offsetof iso_2022_spec.cmp_status	36
 offsetof iso_2022_spec.ctext_extended_segment_len	28
 offsetof iso_2022_spec.current_designation	12
@@ -392,6 +401,7 @@ sizeof emacs_mule_spec	296
 sizeof glyph_slice	8
 sizeof handler	288
 sizeof hash_table_test	40
+sizeof input_event	64
 sizeof iso_2022_spec	332
 sizeof it_slice	32
 sizeof itree_iterator	40

@@ -75,6 +75,9 @@ STRUCTS = {
     # process.h's pseudovector: 272 bytes, with two bitfield units (one at 232 for the 2-bit
     # adaptive_read_buffering plus read_output_skip, one at 248 for eight bool_bf:1 members).
     "Lisp_Process": "src/process.h",
+    # termhooks.h's event record: the unit at offset 0 holds `kind : 16` and `part : 16`, so
+    # the keyable members are the seven after it (code … device).
+    "input_event": "src/termhooks.h",
 }
 
 

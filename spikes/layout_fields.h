@@ -353,3 +353,13 @@
   OFF (struct Lisp_Process, backlog);
   OFF (struct Lisp_Process, port);
   OFF (struct Lisp_Process, socktype);
+
+  SZ (struct input_event); AL (struct input_event);
+  OFF (struct input_event, code);
+  OFF (struct input_event, modifiers);
+  OFF (struct input_event, x);
+  OFF (struct input_event, y);
+  OFF (struct input_event, timestamp);
+  OFF (struct input_event, frame_or_window);
+  OFF (struct input_event, arg);
+  OFF (struct input_event, device);
