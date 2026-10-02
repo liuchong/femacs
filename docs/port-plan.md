@@ -167,7 +167,7 @@
 用到 `FRAME_LIVE_P`/`XFRAME`/`emacs_abort`）、`KBOARD_OBJFWDP`（lisp.h 3155 ✓）。因此需要按下面
 顺序把镜像补齐（每个文件一条一份清单、一次签名提交，走 §5 的十步）：
 
-1. `src/systime.h`（94 行；`termhooks.h` 的 `Time`）→ 需要一个 `<timespec.h>` 系统镜像。
+1. ~~`src/systime.h`~~（94 行）+ `lib/timespec.h`：**已完成**（2026-10-02 第八轮）；顺带落地 `femacs/lib/include/{timespec.rs, sys_time.rs, gnulib_config.rs}`、`config.rs` 增 `_GL_CONFIG_H_INCLUDED`、P-61/P-62。
 2. `src/composite.h`（363）→ 3. `src/coding.h`（791，keyboard.h 为 `ENCODE_UTF_8`/`ENCODE_SYSTEM` 包含它）。
 4. `src/dispextern.h`（4026；`termhooks.h`/`window.h` 的 `glyph_matrix`/`glyph_pool`/`image_cache`/
    `face_cache`/`text_conversion_state`）→ 5. `src/termhooks.h`（994；`struct input_event` 被
