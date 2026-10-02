@@ -23,9 +23,9 @@
 | globals | 1,934 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 64 |
-| 其中 done / wip | 51 / 13 |
-| 待开工 | 526 |
+| 已有目标文件 | 65 |
+| 其中 done / wip | 53 / 12 |
+| 待开工 | 525 |
 
 ## 2 按目录
 
@@ -38,14 +38,14 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 23 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 218 |
+| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 217 |
 
 ## 3 按批次
 
 | 批次 | 范围 | 完成判据 | 文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | todo |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 19 |
-| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 948 | 330 | 717 | 420 | 148 | 27 |
+| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 948 | 330 | 717 | 420 | 148 | 26 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 905 | 269 | 498 | 289 | 121 | 31 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,161 | 490 | 1,104 | 1,976 | 432 | 40 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,619 | 368 | 1,834 | 2,175 | 974 | 192 |
@@ -536,7 +536,7 @@
 | `src/insdel.c` | 2,592 | 55 | 1 | 6 | 0 | 4 | 2 | C | `femacs/src/insdel.rs` | todo |
 | `src/intervals.c` | 2,416 | 53 | 0 | 2 | 0 | 0 | 0 | C | `femacs/src/intervals.rs` | todo |
 | `src/intervals.h` | 314 | 3 | 0 | 29 | 0 | 14 | 0 | C | `femacs/src/include/intervals.rs` | todo |
-| `src/itree.c` | 1,435 | 45 | 0 | 0 | 0 | 6 | 0 | C | `femacs/src/itree.rs` | todo |
+| `src/itree.c` | 1,435 | 45 | 0 | 0 | 0 | 6 | 0 | C | `femacs/src/itree.rs` | done |
 | `src/itree.h` | 190 | 1 | 0 | 3 | 4 | 20 | 0 | C | `femacs/src/include/itree.rs` | done |
 | `src/json.c` | 1,851 | 55 | 4 | 3 | 7 | 25 | 0 | D | `femacs/src/json.rs` | todo |
 | `src/keyboard.c` | 14,682 | 183 | 38 | 19 | 9 | 12 | 83 | E | `femacs/src/keyboard.rs` | todo |
@@ -620,7 +620,7 @@
 | `src/thread.c` | 1,314 | 41 | 21 | 2 | 0 | 14 | 4 | D | `femacs/src/thread.rs` | todo |
 | `src/thread.h` | 348 | 9 | 0 | 18 | 0 | 43 | 2 | D | `femacs/src/include/thread.rs` | wip |
 | `src/timefns.c` | 2,144 | 48 | 14 | 8 | 10 | 9 | 5 | D | `femacs/src/timefns.rs` | todo |
-| `src/tparam.c` | 284 | 4 | 0 | 0 | 0 | 0 | 3 | E | `femacs/src/tparam.rs` | wip |
+| `src/tparam.c` | 284 | 4 | 0 | 0 | 0 | 0 | 3 | E | `femacs/src/tparam.rs` | done |
 | `src/tparam.h` | 49 | 0 | 0 | 1 | 0 | 0 | 3 | E | `femacs/src/include/tparam.rs` | done |
 | `src/treesit.c` | 5,634 | 70 | 58 | 58 | 1 | 6 | 24 | E | `femacs/src/treesit.rs` | todo |
 | `src/treesit.h` | 257 | 9 | 0 | 1 | 0 | 28 | 1 | E | `femacs/src/include/treesit.rs` | todo |
