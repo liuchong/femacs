@@ -692,3 +692,16 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
     包装文件里 `pub const _GL_X_INLINE: () = _GL_EXTERN_INLINE;`，函数体本身落在对应的
     `lib/include/<header>.rs` 或 `src/` 镜像里。这类文件**不写 `// femacs:` 文件头**：
     C 自己只有 20 行左右，漂移闸的 ±5% 容不下额外的头注释——出处写在 `docs/ports/<stem>.md`。
+
+13. **gnulib 的"标识符重命名"与"包含式 shim"**：①gnulib 的头会把被替换的函数名重命名
+    （`<string.h>` 在 `HAVE_MEMPCPY` 未定义时把 `mempcpy` 变成 `rpl_mempcpy`），所以
+    `lib/mempcpy.c` 的定义在 C 目标文件里发出的符号是 `rpl_mempcpy`。端口保留 C 的函数名
+    （台账按名字比对）并用 `#[unsafe(export_name = "rpl_mempcpy")]` 发出同一个符号；
+    `extract-abi.py` 的"这个函数是否导出"判据同时接受 `no_mangle` 与 `export_name`
+    （Rust 禁止两者并用），反向判据（导出 C 没有的符号）不变。②`lib/dtoastr.c`、
+    `lib/nstrftime.c`、`lib/strtoll.c` 是**包含式 shim**：`#define LENGTH 2` /
+    `#define my_strftime nstrftime` / `#define QUAD 1` 之后 `#include "ftoastr.c"` /
+    `"strftime.c"` / `<strtol.c>`，即同一份源码在不同宏绑定下产出不同符号。Rust 没有
+    解析前的文本宏替换，所以共享源码要先落成 prelude 里的 `macro_rules!`（`DEFUN!` 的
+    同型机制）或按绑定参数化，再由每个 shim 实例化一次；这三个文件因此排在共享源码
+    （`ftoastr`/`strftime`/`strtol`）之后落地，台账要逐实例记名。

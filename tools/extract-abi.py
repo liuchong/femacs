@@ -1261,9 +1261,16 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         m = re.compile(r'(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+"C"\s+)?fn\s+([A-Za-z_]\w*)').match(text, i)
         return m.group(1) if m else None
 
+    # `#[unsafe(export_name = "X")]` exports a symbol the same way `#[unsafe(no_mangle)]`
+    # does, and it is what a gnulib replacement needs: C's own object emits `rpl_mempcpy`
+    # because <string.h> renames the identifier, while the definition keeps C's name
+    # (PORTING.md 10.13).  Rust forbids combining the two attributes, so the port's rule is
+    # "one of them"; the exported-name comparison below then still catches an invented symbol.
     no_mangle_names = {name for name in
                        (defined_name_after_attribute(own_text, m.end())
-                        for m in re.finditer(r"#\[unsafe\(no_mangle\)\]", own_text))
+                        for m in re.finditer(
+                            r"#\[unsafe\((?:no_mangle|export_name\s*=\s*\"[^\"]*\")\)\]",
+                            own_text))
                        if name is not None}
 
     for f in c["functions"]:
