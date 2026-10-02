@@ -1364,11 +1364,14 @@ def main() -> int:
     else:
         # Fail instead of widening: `None` means "every file may consult the table", which
         # is the state the verified list exists to prevent (review A's F3).  A typo in the
-        # path, or running from another directory, must be loud.
-        return fail(f"{cond_paths} is missing: the `#if` evaluator may only run for files "
-                    "that tools/check-cond-eval.py has verified; regenerate it with "
-                    "`python3 tools/check-cond-eval.py --write-verified " + str(cond_paths)
-                    + " <headers>`")
+        # path, or running from another directory, must be loud.  (`fail` used to be an
+        # undefined name here, so this path raised NameError instead of the message -
+        # reviewer A's round-9 note.)
+        print(f"{cond_paths} is missing: the `#if` evaluator may only run for files that "
+              "tools/check-cond-eval.py has verified; regenerate it with "
+              f"`python3 tools/check-cond-eval.py --write-verified {cond_paths} <headers>`",
+              file=sys.stderr)
+        return 2
     if cond_macros.is_file():
         table = ci.read_condition_macros(cond_macros)
         ci.set_condition_macros(table)

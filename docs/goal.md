@@ -37,7 +37,7 @@ python3 tools/gen-port-inventory.py         # 刷新进度账
 **590 个 `.c`/`.h`（678,320 行）一比一复刻为 Rust**：同名文件、同名函数/宏/结构体/字段/全局、
 同语句顺序、同控制流、同内存布局、同错误模型。允许并鼓励 `unsafe`；**不许发明 C 里没有的行为**。
 
-- 结构级总量：函数 10,012、`DEFUN`/subr 1,841、宏 7,156、常量 1,834、结构体字段 5,441、全局 1,934。
+- 结构级总量：函数 10,012、`DEFUN`/subr 1,841、宏 7,156、常量 3,898、结构体字段 5,764、全局 1,934。
 - 目标路径：`src/NAME.c` → `femacs/src/NAME.rs`；`src/NAME.h` → `femacs/src/include/NAME.rs`；
   `lib/`、`lib-src/`、`lwlib/`、`oldXMenu/`、`exec/`、`nt/`、`msdos/` 原目录名照搬
   （规则唯一实现在 `tools/gen-port-map.py`，**不要照抄文档里的规则**）。

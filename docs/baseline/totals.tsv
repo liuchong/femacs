@@ -4,8 +4,8 @@ lines	678320
 functions	10012
 defuns	1841
 macros	7156
-constants	1834
-struct_fields	5441
+constants	3898
+struct_fields	5764
 globals	1934
 unique_defun_c_names	1736
 unique_defun_lisp_names	1736

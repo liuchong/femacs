@@ -816,7 +816,12 @@ def _defun_heads(text: str) -> list[tuple[str, str, int]]:
             chars.append(text[k])
             k += 1
         k += 1
-        while k < len(text) and text[k] in ", \t":
+        # The C name may sit on the next line: Emacs's own style puts
+        # `DEFUN ("name",\n       Fname, Sname, ...)` (treesit.c, xwidget.c, process.c,
+        # w32fns.c, xfaces.c, ...).  Skipping only ", \t" silently dropped every such
+        # DEFUN from the body comparison, which is exactly the blind spot P-78 exists to
+        # close (review B, round 9: 1708 of 1849 DEFUN bodies were reachable).
+        while k < len(text) and text[k] in ", \t\r\n":
             k += 1
         nm = re.match(r"[A-Za-z_]\w*", text[k:])
         if not nm:
@@ -1232,7 +1237,8 @@ def struct_fields(text: str) -> list[dict]:
                 out.append({"container": outer[1], "container_kind": outer[0],
                             "nesting": " > ".join(e[1] for e in stack),
                             "line": i, "name": tail.group("name"), "array": tail.group("array"),
-                            "pointer_depth": 0, "bitfield": False, "type": "<aggregate>"})
+                            "pointer_depth": 0, "bitfield": False, "c_type": "<aggregate>",
+                            "raw": tail.group(0)})
             pending = None
             continue
         if not stack:

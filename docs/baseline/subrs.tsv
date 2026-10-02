@@ -41,7 +41,7 @@ src/androidfns.c	Fandroid_display_monitor_attributes_list	android-display-monito
 src/androidfns.c	Fandroid_frame_geometry	android-frame-geometry	0	1	0		ed7876cab3f5
 src/androidfns.c	Fandroid_frame_edges	android-frame-edges	0	2	0		64d4478f2b7a
 src/androidfns.c	Fandroid_frame_list_z_order	android-frame-list-z-order	0	1	0		8284b62312ea
-src/androidfns.c	Fandroid_frame_restack	android-frame-restack	2	3	0		363a41868423
+src/androidfns.c	Fandroid_frame_restack	android-frame-restack	2	3	0		c8475239bd42
 src/androidfns.c	Fandroid_mouse_absolute_pixel_position	android-mouse-absolute-pixel-position	0	0	0		2bb0c7c5e565
 src/androidfns.c	Fandroid_set_mouse_absolute_pixel_position	android-set-mouse-absolute-pixel-position	2	2	0		25c2e597e3fa
 src/androidfns.c	Fandroid_get_connection	android-get-connection	0	0	0		09b93ba54aa2
@@ -75,7 +75,7 @@ src/buffer.c	Fget_truename_buffer	get-truename-buffer	1	1	0		e8838d6c0688
 src/buffer.c	Ffind_buffer	find-buffer	2	2	0		f6f54e199b9f
 src/buffer.c	Fget_buffer_create	get-buffer-create	1	2	0		f69306769dec
 src/buffer.c	Fmake_indirect_buffer	make-indirect-buffer	2	4	"bMake indirect buffer (to buffer): \\nBName of indirect buffer: "		b4df624ac527
-src/buffer.c	Fgenerate_new_buffer_name	generate-new-buffer-name	1	2	0		a8e53bd3d1d7
+src/buffer.c	Fgenerate_new_buffer_name	generate-new-buffer-name	1	2	0		233de01112fd
 src/buffer.c	Fbuffer_name	buffer-name	0	1	0		9379fc860728
 src/buffer.c	Fbuffer_last_name	buffer-last-name	0	1	0		ffd4c83f977f
 src/buffer.c	Fbuffer_file_name	buffer-file-name	0	1	0		36398bf34b79
@@ -103,7 +103,7 @@ src/buffer.c	Fbuffer_swap_text	buffer-swap-text	1	1	0		dbabad87013f
 src/buffer.c	Fset_buffer_multibyte	set-buffer-multibyte	1	1	0		958fcfa33680
 src/buffer.c	Fkill_all_local_variables	kill-all-local-variables	0	1	0		2d5eed48d46d
 src/buffer.c	Foverlayp	overlayp	1	1	0		df7486f32138
-src/buffer.c	Fmake_overlay	make-overlay	2	5	0		9b4484ba000f
+src/buffer.c	Fmake_overlay	make-overlay	2	5	0		3c7b11332446
 src/buffer.c	Fmove_overlay	move-overlay	3	4	0		09ecb43d2eff
 src/buffer.c	Fdelete_overlay	delete-overlay	1	1	0		cacc98bbbec6
 src/buffer.c	Fdelete_all_overlays	delete-all-overlays	0	1	0		8a8bc7dd1186
@@ -122,15 +122,15 @@ src/buffer.c	Foverlay_put	overlay-put	3	3	0		21d679a25e1e
 src/buffer.c	Foverlay_tree	overlay-tree	0	1	0		575d2a8a3106
 src/bytecode.c	Fbyte_code	byte-code	3	3	0		7fadbc008e25
 src/bytecode.c	Finternal_stack_stats	internal-stack-stats	0	0	0		9f33a7c798af
-src/callint.c	Finteractive	interactive	0	UNEVALLED	0	const	6aedb55f5898
+src/callint.c	Finteractive	interactive	0	UNEVALLED	0	const	982cfc4f7114
 src/callint.c	Ffuncall_interactively	funcall-interactively	1	MANY	0		4a20b9bc85fc
-src/callint.c	Fcall_interactively	call-interactively	1	3	0		fb98d1cbf39c
+src/callint.c	Fcall_interactively	call-interactively	1	3	0		c61e4f94d07e
 src/callint.c	Fprefix_numeric_value	prefix-numeric-value	1	1	0		d0884ed23a8f
-src/callproc.c	Fcall_process	call-process	1	MANY	0		fb81c54f4311
+src/callproc.c	Fcall_process	call-process	1	MANY	0		04456e39b1a1
 src/callproc.c	Fcall_process_region	call-process-region	3	MANY	0		ae6a6acb80d2
-src/callproc.c	Fgetenv_internal	getenv-internal	1	2	0		3849fc284845
+src/callproc.c	Fgetenv_internal	getenv-internal	1	2	0		f65f97a0358e
 src/casefiddle.c	Fupcase	upcase	1	1	0		78d4457b3aad
-src/casefiddle.c	Fdowncase	downcase	1	1	0		1716760b2476
+src/casefiddle.c	Fdowncase	downcase	1	1	0		5aba6fab22d2
 src/casefiddle.c	Fcapitalize	capitalize	1	1	0		842696f52bc6
 src/casefiddle.c	Fupcase_initials	upcase-initials	1	1	0		a7b3311d749c
 src/casefiddle.c	Fupcase_region	upcase-region	2	3	"(list (region-beginning) (region-end) (region-noncontiguous-p))"		6e9c3280b58d
@@ -143,7 +143,7 @@ src/casefiddle.c	Fcapitalize_word	capitalize-word	1	1	"p"		ae3c16607079
 src/casetab.c	Fcase_table_p	case-table-p	1	1	0		ebee4ceb1876
 src/casetab.c	Fcurrent_case_table	current-case-table	0	0	0		a86c09a33699
 src/casetab.c	Fstandard_case_table	standard-case-table	0	0	0		c0eac161a5be
-src/casetab.c	Fset_case_table	set-case-table	1	1	0		8ae09a26f937
+src/casetab.c	Fset_case_table	set-case-table	1	1	0		93dbcd87bfbd
 src/casetab.c	Fset_standard_case_table	set-standard-case-table	1	1	0		f61d0b0e2d03
 src/category.c	Fmake_category_set	make-category-set	1	1	0		d600fe9d3041
 src/category.c	Fdefine_category	define-category	2	3	0		3a551156c741
@@ -156,7 +156,7 @@ src/category.c	Fcopy_category_table	copy-category-table	0	1	0		8fa76c2df6e4
 src/category.c	Fmake_category_table	make-category-table	0	0	0		1ce8376f91e6
 src/category.c	Fset_category_table	set-category-table	1	1	0		d57426056948
 src/category.c	Fchar_category_set	char-category-set	1	1	0		70c199430b0d
-src/category.c	Fcategory_set_mnemonics	category-set-mnemonics	1	1	0		95faea8e619a
+src/category.c	Fcategory_set_mnemonics	category-set-mnemonics	1	1	0		ef56b571deaf
 src/category.c	Fmodify_category_entry	modify-category-entry	2	4	0		fd1ce60297ed
 src/ccl.c	Fccl_program_p	ccl-program-p	1	1	0		9aa179c90221
 src/ccl.c	Fccl_execute	ccl-execute	2	2	0		6e65496f40a9
@@ -169,7 +169,7 @@ src/character.c	Funibyte_char_to_multibyte	unibyte-char-to-multibyte	1	1	0		64df
 src/character.c	Fmultibyte_char_to_unibyte	multibyte-char-to-unibyte	1	1	0		ddb13c87d43c
 src/character.c	Fchar_width	char-width	1	1	0		88b52e6bd194
 src/character.c	Fstring_width	string-width	1	3	0		536768fcd28e
-src/character.c	Fstring	string	0	MANY	0		bd9a55b6e360
+src/character.c	Fstring	string	0	MANY	0		8f3e6569675d
 src/character.c	Funibyte_string	unibyte-string	0	MANY	0		8af29d1ebbca
 src/character.c	Fchar_resolve_modifiers	char-resolve-modifiers	1	1	0		2c0eabd42f7f
 src/character.c	Fget_byte	get-byte	0	2	0		beade79d86ca
@@ -180,7 +180,7 @@ src/charset.c	Fdefine_charset_alias	define-charset-alias	2	2	0		37a77a00f254
 src/charset.c	Fcharset_plist	charset-plist	1	1	0		511fced6848a
 src/charset.c	Fset_charset_plist	set-charset-plist	2	2	0		5656ad81baaf
 src/charset.c	Funify_charset	unify-charset	1	3	0		1e801c21b93e
-src/charset.c	Fget_unused_iso_final_char	get-unused-iso-final-char	2	2	0		ec869e4ba7d0
+src/charset.c	Fget_unused_iso_final_char	get-unused-iso-final-char	2	2	0		9337fbb3a4af
 src/charset.c	Fdeclare_equiv_charset	declare-equiv-charset	4	4	0		b5b08a69646e
 src/charset.c	Ffind_charset_region	find-charset-region	2	3	0		35f262aa3a91
 src/charset.c	Ffind_charset_string	find-charset-string	1	2	0		21ab9e6b2c14
@@ -189,16 +189,16 @@ src/charset.c	Fencode_char	encode-char	2	2	0		d913f93f163c
 src/charset.c	Fmake_char	make-char	1	5	0		34581bc70a56
 src/charset.c	Fsplit_char	split-char	1	1	0		a9da8161eac3
 src/charset.c	Fchar_charset	char-charset	1	2	0		58493dbc4ebd
-src/charset.c	Fcharset_after	charset-after	0	1	0		b1445c24343e
-src/charset.c	Fiso_charset	iso-charset	3	3	0		c24e7b4abb4b
-src/charset.c	Fclear_charset_maps	clear-charset-maps	0	0	0		903018ae3471
+src/charset.c	Fcharset_after	charset-after	0	1	0		34b2595d0bb9
+src/charset.c	Fiso_charset	iso-charset	3	3	0		874b381d17dc
+src/charset.c	Fclear_charset_maps	clear-charset-maps	0	0	0		3e651be780f3
 src/charset.c	Fcharset_priority_list	charset-priority-list	0	1	0		d4674c30efac
 src/charset.c	Fset_charset_priority	set-charset-priority	1	MANY	0		3ac6ad140695
 src/charset.c	Fcharset_id_internal	charset-id-internal	0	1	0		e613ccefa4a2
 src/charset.c	Fsort_charsets	sort-charsets	1	1	0		d33d82b8badb
 src/chartab.c	Fmake_char_table	make-char-table	1	2	0		4f6ce4501f87
-src/chartab.c	Fchar_table_subtype	char-table-subtype	1	1	0		a3570d98b5b8
-src/chartab.c	Fchar_table_parent	char-table-parent	1	1	0		23eb5d6523fc
+src/chartab.c	Fchar_table_subtype	char-table-subtype	1	1	0		b2d37c03edcf
+src/chartab.c	Fchar_table_parent	char-table-parent	1	1	0		ec18a3dbbb90
 src/chartab.c	Fset_char_table_parent	set-char-table-parent	2	2	0		b2f66da24a80
 src/chartab.c	Fchar_table_extra_slot	char-table-extra-slot	2	2	0		ba6952226506
 src/chartab.c	Fset_char_table_extra_slot	set-char-table-extra-slot	3	3	0		1404c78e518c
@@ -209,9 +209,9 @@ src/chartab.c	Fmap_char_table	map-char-table	2	2	0		67b81139fece
 src/chartab.c	Funicode_property_table_internal	unicode-property-table-internal	1	1	0		5ca60c4f77fc
 src/chartab.c	Fget_unicode_property_internal	get-unicode-property-internal	2	2	0		e216c1f26029
 src/chartab.c	Fput_unicode_property_internal	put-unicode-property-internal	3	3	0		f4fbd4ce1210
-src/cmds.c	Fforward_char	forward-char	0	1	"^p"		39b14a76bf25
-src/cmds.c	Fbackward_char	backward-char	0	1	"^p"		f7699b3b250c
-src/cmds.c	Fforward_line	forward-line	0	1	"^p"		44dd504a1b2f
+src/cmds.c	Fforward_char	forward-char	0	1	"^p"		2b646069b030
+src/cmds.c	Fbackward_char	backward-char	0	1	"^p"		e9d70374d745
+src/cmds.c	Fforward_line	forward-line	0	1	"^p"		dead6a31e5cf
 src/cmds.c	Fbeginning_of_line	beginning-of-line	0	1	"^p"		b81ad104b75b
 src/cmds.c	Fend_of_line	end-of-line	0	1	"^p"		9a203480fb79
 src/cmds.c	Fdelete_char	delete-char	1	2	"p\\nP"		862efc1e22dc
@@ -225,8 +225,8 @@ src/coding.c	Fdetect_coding_string	detect-coding-string	1	2	0		d9c949b4c720
 src/coding.c	Ffind_coding_systems_region_internal	find-coding-systems-region-internal	2	3	0		0b7ae33f1141
 src/coding.c	Funencodable_char_position	unencodable-char-position	3	5	0		b19151aa1cef
 src/coding.c	Fcheck_coding_systems_region	check-coding-systems-region	3	3	0		96db5e1db738
-src/coding.c	Fdecode_coding_region	decode-coding-region	3	4	"r\\nzCoding system: "		529bb11c1c08
-src/coding.c	Fencode_coding_region	encode-coding-region	3	4	"r\\nzCoding system: "		e5f5bf5e7b01
+src/coding.c	Fdecode_coding_region	decode-coding-region	3	4	"r\\nzCoding system: "		8c4a641b857c
+src/coding.c	Fencode_coding_region	encode-coding-region	3	4	"r\\nzCoding system: "		49c3d3b2ee5f
 src/coding.c	Finternal_encode_string_utf_8	internal-encode-string-utf-8	7	7	0		0b7ae33f1141
 src/coding.c	Finternal_decode_string_utf_8	internal-decode-string-utf-8	7	7	0		0b7ae33f1141
 src/coding.c	Fdecode_coding_string	decode-coding-string	2	4	0		9b49af4a4fff
@@ -240,7 +240,7 @@ src/coding.c	Fset_safe_terminal_coding_system_internal	set-safe-terminal-coding-
 src/coding.c	Fterminal_coding_system	terminal-coding-system	0	1	0		abb02a3d618b
 src/coding.c	Fset_keyboard_coding_system_internal	set-keyboard-coding-system-internal	1	2	0		0b7ae33f1141
 src/coding.c	Fkeyboard_coding_system	keyboard-coding-system	0	1	0		2bb359cfe415
-src/coding.c	Ffind_operation_coding_system	find-operation-coding-system	1	MANY	0		003a671e00a5
+src/coding.c	Ffind_operation_coding_system	find-operation-coding-system	1	MANY	0		8455320581ca
 src/coding.c	Fset_coding_system_priority	set-coding-system-priority	0	MANY	0		579e5d504109
 src/coding.c	Fcoding_system_priority_list	coding-system-priority-list	0	1	0		e3612b412178
 src/coding.c	Fdefine_coding_system_internal	define-coding-system-internal	coding_arg_max	MANY	0		3f0cdbd9fb29
@@ -251,8 +251,8 @@ src/coding.c	Fcoding_system_plist	coding-system-plist	1	1	0		b63238f60a3c
 src/coding.c	Fcoding_system_aliases	coding-system-aliases	1	1	0		1e886bbcc9e4
 src/coding.c	Fcoding_system_eol_type	coding-system-eol-type	1	1	0		285d8d12b6e1
 src/comp.c	Fcomp__subr_signature	comp--subr-signature	1	1	0		09d11991f8f0
-src/comp.c	Fcomp_el_to_eln_rel_filename	comp-el-to-eln-rel-filename	1	1	0		cef756438c7b
-src/comp.c	Fcomp_el_to_eln_filename	comp-el-to-eln-filename	1	2	0		1f90cd689c03
+src/comp.c	Fcomp_el_to_eln_rel_filename	comp-el-to-eln-rel-filename	1	1	0		5354fddc3cf7
+src/comp.c	Fcomp_el_to_eln_filename	comp-el-to-eln-filename	1	2	0		210d7f2abd72
 src/comp.c	Fcomp__install_trampoline	comp--install-trampoline	2	2	0		dc504d9dad8e
 src/comp.c	Fcomp__init_ctxt	comp--init-ctxt	0	0	0		c7dcfff8d133
 src/comp.c	Fcomp__release_ctxt	comp--release-ctxt	0	0	0		eb112b24493c
@@ -352,7 +352,7 @@ src/data.c	Fdefault_boundp	default-boundp	1	1	0		38e91477c206
 src/data.c	Fdefault_value	default-value	1	1	0		f123fcac4bbc
 src/data.c	Fset_default	set-default	2	2	0		df2bb74cee8d
 src/data.c	Fmake_variable_buffer_local	make-variable-buffer-local	1	1	"vMake Variable Buffer Local: "		72fb43518d24
-src/data.c	Fmake_local_variable	make-local-variable	1	1	"vMake Local Variable: "		9ebd2afa5d7e
+src/data.c	Fmake_local_variable	make-local-variable	1	1	"vMake Local Variable: "		c078681c6a7d
 src/data.c	Fkill_local_variable	kill-local-variable	1	1	"vKill Local Variable: "		9c6b3b90cf56
 src/data.c	Flocal_variable_p	local-variable-p	1	2	0		218d919232f7
 src/data.c	Flocal_variable_if_set_p	local-variable-if-set-p	1	2	0		941c0a96d181
@@ -453,7 +453,7 @@ src/editfns.c	Ffield_string	field-string	0	1	0		4b40496aacae
 src/editfns.c	Ffield_string_no_properties	field-string-no-properties	0	1	0		aa1186a8fef5
 src/editfns.c	Ffield_beginning	field-beginning	0	3	0		8a93cbefee1f
 src/editfns.c	Ffield_end	field-end	0	3	0		ac40c3f9402f
-src/editfns.c	Fconstrain_to_field	constrain-to-field	2	5	0		c986e0505333
+src/editfns.c	Fconstrain_to_field	constrain-to-field	2	5	0		fbf5f035635c
 src/editfns.c	Fpos_bol	pos-bol	0	1	0		1d67da1a29fe
 src/editfns.c	Fline_beginning_position	line-beginning-position	0	1	0		5cb221fc8c05
 src/editfns.c	Fpos_eol	pos-eol	0	1	0		c49af12e5531
@@ -484,14 +484,14 @@ src/editfns.c	Fuser_real_uid	user-real-uid	0	0	0		021be8beece5
 src/editfns.c	Fgroup_name	group-name	1	1	0		41ef496b7556
 src/editfns.c	Fgroup_gid	group-gid	0	0	0		5ff186a27e77
 src/editfns.c	Fgroup_real_gid	group-real-gid	0	0	0		62f2f7796155
-src/editfns.c	Fuser_full_name	user-full-name	0	1	0		9f71ebcf0278
+src/editfns.c	Fuser_full_name	user-full-name	0	1	0		0723e65af7ca
 src/editfns.c	Fsystem_name	system-name	0	0	0		a6607ffec50c
 src/editfns.c	Femacs_pid	emacs-pid	0	0	0		a635ecea1dc8
 src/editfns.c	Finsert	insert	0	MANY	0		e785e2313264
 src/editfns.c	Finsert_and_inherit	insert-and-inherit	0	MANY	0		9bd1cfe8e2fe
 src/editfns.c	Finsert_before_markers	insert-before-markers	0	MANY	0		53024a5b8c47
 src/editfns.c	Finsert_and_inherit_before_markers	insert-before-markers-and-inherit	0	MANY	0		29af1b378036
-src/editfns.c	Finsert_char	insert-char	1	3	"(list (read-char-by-name \\"Insert character (Unicode name or hex): \\")\\\n              (prefix-numeric-value current-prefix-arg)\\\n              t))"		9e64b97efc59
+src/editfns.c	Finsert_char	insert-char	1	3	"(list (read-char-by-name \\"Insert character (Unicode name or hex): \\")\\\n              (prefix-numeric-value current-prefix-arg)\\\n              t))"		2075e3718256
 src/editfns.c	Finsert_byte	insert-byte	2	3	0		70e12dbea455
 src/editfns.c	Fbuffer_substring	buffer-substring	2	2	0		44735ae23318
 src/editfns.c	Fbuffer_substring_no_properties	buffer-substring-no-properties	2	2	0		d902d8169498
@@ -504,18 +504,18 @@ src/editfns.c	Ftranslate_region_internal	translate-region-internal	3	3	0		c30c55
 src/editfns.c	Fdelete_region	delete-region	2	2	"r"		b5266e7b4cc0
 src/editfns.c	Fdelete_and_extract_region	delete-and-extract-region	2	2	0		80272bdd6c6c
 src/editfns.c	Fwiden	widen	0	0	""		86129b6dac1a
-src/editfns.c	Fnarrow_to_region	narrow-to-region	2	2	"r"		2318eb830004
+src/editfns.c	Fnarrow_to_region	narrow-to-region	2	2	"r"		45df255307b8
 src/editfns.c	Finternal__labeled_narrow_to_region	internal--labeled-narrow-to-region	3	3	0		262f20e50932
 src/editfns.c	Finternal__labeled_widen	internal--labeled-widen	1	1	0		7bbea6196481
-src/editfns.c	Fsave_restriction	save-restriction	0	UNEVALLED	0		ae09cc632c53
+src/editfns.c	Fsave_restriction	save-restriction	0	UNEVALLED	0		8d3fe54f810e
 src/editfns.c	Fngettext	ngettext	3	3	0		d52b55714c7c
-src/editfns.c	Fmessage	message	1	MANY	0		24f19aecd543
+src/editfns.c	Fmessage	message	1	MANY	0		bc55d24cbc3b
 src/editfns.c	Fmessage_box	message-box	1	MANY	0		ed279783d9b6
 src/editfns.c	Fmessage_or_box	message-or-box	1	MANY	0		9cdc988ea0eb
 src/editfns.c	Fcurrent_message	current-message	0	0	0		5ef26fd51acf
 src/editfns.c	Fpropertize	propertize	1	MANY	0		0cf493255562
-src/editfns.c	Fformat	format	1	MANY	0		de1270e38dca
-src/editfns.c	Fformat_message	format-message	1	MANY	0		f43517615b54
+src/editfns.c	Fformat	format	1	MANY	0		c39d441333f9
+src/editfns.c	Fformat_message	format-message	1	MANY	0		7ba5d7b4cc0a
 src/editfns.c	Fchar_equal	char-equal	2	2	0		20283acbf417
 src/editfns.c	Ftranspose_regions	transpose-regions	4	5	"(if (< (length mark-ring) 2)\\\n\t    (error \\"Other region must be marked before transposing two regions\\")\\\n\t  (let* ((num (if current-prefix-arg\\\n\t\t\t (prefix-numeric-value current-prefix-arg)\\\n\t\t\t0))\\\n\t\t (ring-length (length mark-ring))\\\n\t\t (eltnum (mod num ring-length))\\\n\t\t (eltnum2 (mod (1+ num) ring-length)))\\\n\t    (list (point) (mark) (elt mark-ring eltnum) (elt mark-ring eltnum2))))"		f80db51cb153
 src/emacs-module.c	Fmodule_load	module-load	1	1	0		c8a25845f6fb
@@ -531,7 +531,7 @@ src/eval.c	Fcond	cond	0	UNEVALLED	0		c005e478f89c
 src/eval.c	Fprogn	progn	0	UNEVALLED	0		6390607cd6f8
 src/eval.c	Fprog1	prog1	1	UNEVALLED	0		e4cfed571c49
 src/eval.c	Fsetq	setq	0	UNEVALLED	0		37425028d9f5
-src/eval.c	Fquote	quote	1	UNEVALLED	0		21366fe4d693
+src/eval.c	Fquote	quote	1	UNEVALLED	0		83828b50ec75
 src/eval.c	Fmake_interpreted_closure	make-interpreted-closure	3	5	0		623a264e092d
 src/eval.c	Ffunction	function	1	UNEVALLED	0		b13eb8ed5cbd
 src/eval.c	Fdefvaralias	defvaralias	2	3	0		cea4f491ac76
@@ -541,10 +541,10 @@ src/eval.c	Fset_default_toplevel_value	set-default-toplevel-value	2	2	0		41f35b5
 src/eval.c	Fbuffer_local_toplevel_value	buffer-local-toplevel-value	1	2	0		9a5a23e99ec3
 src/eval.c	Fset_buffer_local_toplevel_value	set-buffer-local-toplevel-value	2	3	0		587f0e6fb52f
 src/eval.c	Finternal__define_uninitialized_variable	internal--define-uninitialized-variable	1	2	0		9e41c9d1093e
-src/eval.c	Fdefvar	defvar	1	UNEVALLED	0		050f492b2811
-src/eval.c	Fdefvar_1	defvar-1	2	3	0		56877001ad3d
+src/eval.c	Fdefvar	defvar	1	UNEVALLED	0		f4ee57c77494
+src/eval.c	Fdefvar_1	defvar-1	2	3	0		441678ffced6
 src/eval.c	Fdefconst	defconst	2	UNEVALLED	0		dcec7bc59369
-src/eval.c	Fdefconst_1	defconst-1	2	3	0		8246beb29965
+src/eval.c	Fdefconst_1	defconst-1	2	3	0		fca586c635d5
 src/eval.c	Fmake_var_non_special	internal-make-var-non-special	1	1	0		352a4260511a
 src/eval.c	FletX	let*	1	UNEVALLED	0		8d5cb55cf077
 src/eval.c	Flet	let	1	UNEVALLED	0		5eccb608151a
@@ -554,22 +554,22 @@ src/eval.c	Fmacroexpand	macroexpand	1	2	0		73d5e0fc08e3
 src/eval.c	Fcatch	catch	1	UNEVALLED	0		0dbe0880c04f
 src/eval.c	Fthrow	throw	2	2	0	noreturn	6c10f6dc9de5
 src/eval.c	Funwind_protect	unwind-protect	1	UNEVALLED	0		cfc711042181
-src/eval.c	Fcondition_case	condition-case	2	UNEVALLED	0		10511d529466
+src/eval.c	Fcondition_case	condition-case	2	UNEVALLED	0		e004ef79ea61
 src/eval.c	Fhandler_bind_1	handler-bind-1	1	MANY	0		af4118f00c23
 src/eval.c	Fsignal	signal	1	2	0	noreturn	c24aa0b5e4c0
 src/eval.c	Fcommandp	commandp	1	2	0		3ea1a581ac99
 src/eval.c	Fautoload	autoload	2	5	0		db4482605e79
 src/eval.c	Fautoload_do_load	autoload-do-load	1	3	0		31e8592ef7d6
 src/eval.c	Feval	eval	1	2	0		c51962808e3d
-src/eval.c	Fapply	apply	1	MANY	0		5f9c8209e6a6
+src/eval.c	Fapply	apply	1	MANY	0		5e419ac23671
 src/eval.c	Frun_hooks	run-hooks	0	MANY	0		e26efb27c6eb
 src/eval.c	Frun_hook_with_args	run-hook-with-args	1	MANY	0		50e3ea2acb97
 src/eval.c	Frun_hook_with_args_until_success	run-hook-with-args-until-success	1	MANY	0		3dcb8005662b
-src/eval.c	Frun_hook_with_args_until_failure	run-hook-with-args-until-failure	1	MANY	0		fab67621204f
+src/eval.c	Frun_hook_with_args_until_failure	run-hook-with-args-until-failure	1	MANY	0		765d85bcffb5
 src/eval.c	Frun_hook_wrapped	run-hook-wrapped	2	MANY	0		ff6b55f9e424
 src/eval.c	Ffunctionp	functionp	1	1	0		de8f4dd3928c
 src/eval.c	Fdebugger_trap	debugger-trap	0	0	""		6b2737b0a565
-src/eval.c	Ffuncall	funcall	1	MANY	0		b3be65e0c15c
+src/eval.c	Ffuncall	funcall	1	MANY	0		5a2e8de93533
 src/eval.c	Ffunc_arity	func-arity	1	1	0		aab69875ba32
 src/eval.c	Fspecial_variable_p	special-variable-p	1	1	0		c31e1db5d38a
 src/eval.c	Fbacktrace_debug	backtrace-debug	2	3	0		e547b27e32fd
@@ -581,14 +581,14 @@ src/eval.c	Fbacktrace__locals	backtrace--locals	1	2	NULL		a6b428deb795
 src/fileio.c	Ffind_file_name_handler	find-file-name-handler	2	2	0		c345f60bfd27
 src/fileio.c	Ffile_name_directory	file-name-directory	1	1	0		5a662eae0e5d
 src/fileio.c	Ffile_name_nondirectory	file-name-nondirectory	1	1	0		4cdcafd1c0c3
-src/fileio.c	Funhandled_file_name_directory	unhandled-file-name-directory	1	1	0		2c753c8a3919
+src/fileio.c	Funhandled_file_name_directory	unhandled-file-name-directory	1	1	0		b1efc642ba7e
 src/fileio.c	Ffile_name_as_directory	file-name-as-directory	1	1	0		c8b820dd48ac
 src/fileio.c	Fdirectory_name_p	directory-name-p	1	1	0		52853278c183
 src/fileio.c	Fdirectory_file_name	directory-file-name	1	1	0		9ad1fab95041
 src/fileio.c	Fmake_temp_file_internal	make-temp-file-internal	4	4	0		88c289e57e06
 src/fileio.c	Fmake_temp_name	make-temp-name	1	1	0		6d1110a57090
 src/fileio.c	Ffile_name_concat	file-name-concat	1	MANY	0		c2e042359a2e
-src/fileio.c	Fexpand_file_name	expand-file-name	1	2	0		e997359c2492
+src/fileio.c	Fexpand_file_name	expand-file-name	1	2	0		0ebf926fd459
 src/fileio.c	Fsubstitute_in_file_name	substitute-in-file-name	1	1	0		0aad5ed9bd86
 src/fileio.c	Fcopy_file	copy-file	2	6	"fCopy file: \\nGCopy %s to file: \\np\\nP"		6a6acb20686e
 src/fileio.c	Fmake_directory_internal	make-directory-internal	1	1	0		75f5f779a811
@@ -600,13 +600,13 @@ src/fileio.c	Fadd_name_to_file	add-name-to-file	2	3	"fAdd name to file: \\nGName
 src/fileio.c	Fmake_symbolic_link	make-symbolic-link	2	3	"FMake symbolic link to file: \\nGMake symbolic link to file %s: \\np"		14f070e4a3c2
 src/fileio.c	Ffile_name_absolute_p	file-name-absolute-p	1	1	0		dd0941e76a20
 src/fileio.c	Ffile_exists_p	file-exists-p	1	1	0		1379985d2cda
-src/fileio.c	Ffile_executable_p	file-executable-p	1	1	0		713c5c409766
+src/fileio.c	Ffile_executable_p	file-executable-p	1	1	0		ba40359abd61
 src/fileio.c	Ffile_readable_p	file-readable-p	1	1	0		58f19f1a1fc8
 src/fileio.c	Ffile_writable_p	file-writable-p	1	1	0		70792cf4372d
 src/fileio.c	Faccess_file	access-file	2	2	0		5655bc8adf0b
 src/fileio.c	Ffile_symlink_p	file-symlink-p	1	1	0		55443df3d142
-src/fileio.c	Ffile_directory_p	file-directory-p	1	1	0		c69fefeb5432
-src/fileio.c	Ffile_accessible_directory_p	file-accessible-directory-p	1	1	0		386d5efb9965
+src/fileio.c	Ffile_directory_p	file-directory-p	1	1	0		6217deeb0b4c
+src/fileio.c	Ffile_accessible_directory_p	file-accessible-directory-p	1	1	0		49a7897d7a81
 src/fileio.c	Ffile_regular_p	file-regular-p	1	1	0		839b9be1b7d1
 src/fileio.c	Ffile_selinux_context	file-selinux-context	1	1	0		2b442d120724
 src/fileio.c	Fset_file_selinux_context	set-file-selinux-context	2	2	0		fbe9eb52b269
@@ -620,11 +620,11 @@ src/fileio.c	Fset_file_times	set-file-times	1	3	0		a4d2c50a605a
 src/fileio.c	Funix_sync	unix-sync	0	0	""		3d1500a87e55
 src/fileio.c	Ffile_newer_than_file_p	file-newer-than-file-p	2	2	0		f3f1f5f78bb4
 src/fileio.c	Finsert_file_contents	insert-file-contents	1	5	0		479dff06b9e2
-src/fileio.c	Fwrite_region	write-region	3	7	"r\\nFWrite region to file: \\ni\\ni\\ni\\np"		4f603fa68624
+src/fileio.c	Fwrite_region	write-region	3	7	"r\\nFWrite region to file: \\ni\\ni\\ni\\np"		0f1972265714
 src/fileio.c	Fcar_less_than_car	car-less-than-car	2	2	0		20a7d5199b11
 src/fileio.c	Fverify_visited_file_modtime	verify-visited-file-modtime	0	1	0		e351270d43ed
 src/fileio.c	Fvisited_file_modtime	visited-file-modtime	0	0	0		840b89b7983a
-src/fileio.c	Fset_visited_file_modtime	set-visited-file-modtime	0	1	0		e71e69cd24e2
+src/fileio.c	Fset_visited_file_modtime	set-visited-file-modtime	0	1	0		b977680607ce
 src/fileio.c	Fdo_auto_save	do-auto-save	0	2	""		efda7f8cf200
 src/fileio.c	Fset_buffer_auto_saved	set-buffer-auto-saved	0	0	0		1654282f7793
 src/fileio.c	Fclear_buffer_auto_save_failure	clear-buffer-auto-save-failure	0	0	0		18bca0a31c27
@@ -646,7 +646,7 @@ src/floatfns.c	Fsin	sin	1	1	0		67ea2cc774a2
 src/floatfns.c	Ftan	tan	1	1	0		8da4ccf0d80f
 src/floatfns.c	Fisnan	isnan	1	1	0		4b7d8cc11d30
 src/floatfns.c	Fcopysign	copysign	2	2	0		6df0eb8aced2
-src/floatfns.c	Ffrexp	frexp	1	1	0		8e456bc59b58
+src/floatfns.c	Ffrexp	frexp	1	1	0		45f7e9d72b7e
 src/floatfns.c	Fldexp	ldexp	2	2	0		ef8925fd59e5
 src/floatfns.c	Fexp	exp	1	1	0		9b9cdfe0e8d1
 src/floatfns.c	Fexpt	expt	2	2	0		a40a7bdf14bb
@@ -659,10 +659,10 @@ src/floatfns.c	Fceiling	ceiling	1	2	0		86c715e9a855
 src/floatfns.c	Ffloor	floor	1	2	0		335bc2662ee5
 src/floatfns.c	Fround	round	1	2	0		7e48eaffce19
 src/floatfns.c	Ftruncate	truncate	1	2	0		c8244a0222b5
-src/floatfns.c	Ffceiling	fceiling	1	1	0		86f152b9f24e
-src/floatfns.c	Fffloor	ffloor	1	1	0		c2c59e3b4d12
+src/floatfns.c	Ffceiling	fceiling	1	1	0		3ca76783da44
+src/floatfns.c	Fffloor	ffloor	1	1	0		00fed21d5a90
 src/floatfns.c	Ffround	fround	1	1	0		b93282dfcac5
-src/floatfns.c	Fftruncate	ftruncate	1	1	0		0ed55c8ad784
+src/floatfns.c	Fftruncate	ftruncate	1	1	0		36e36abc8c9e
 src/fns.c	Fidentity	identity	1	1	0	const	36fad1da8837
 src/fns.c	Frandom	random	0	1	0		0a667d88d480
 src/fns.c	Flength	length	1	1	0		3cb2462e76b0
@@ -674,23 +674,23 @@ src/fns.c	Fproper_list_p	proper-list-p	1	1	0		47223d7511a1
 src/fns.c	Fstring_bytes	string-bytes	1	1	0		8712900bd3cd
 src/fns.c	Fstring_distance	string-distance	2	3	0		f9baa3d66f70
 src/fns.c	Fstring_equal	string-equal	2	2	0		4662c12a2019
-src/fns.c	Fcompare_strings	compare-strings	6	7	0		7d8b39cf3032
+src/fns.c	Fcompare_strings	compare-strings	6	7	0		c210579b61eb
 src/fns.c	Fstring_lessp	string-lessp	2	2	0		f3c99a619f5d
-src/fns.c	Fstring_version_lessp	string-version-lessp	2	2	0		5b4c4fd24322
-src/fns.c	Fstring_collate_lessp	string-collate-lessp	2	4	0		7662bf051ce3
-src/fns.c	Fstring_collate_equalp	string-collate-equalp	2	4	0		14c3b7db8e57
+src/fns.c	Fstring_version_lessp	string-version-lessp	2	2	0		982612f065a7
+src/fns.c	Fstring_collate_lessp	string-collate-lessp	2	4	0		9332fe85bc69
+src/fns.c	Fstring_collate_equalp	string-collate-equalp	2	4	0		39f66c07cf85
 src/fns.c	Fappend	append	0	MANY	0		a938ac05beb6
 src/fns.c	Fconcat	concat	0	MANY	0		1d7af11c22db
 src/fns.c	Fvconcat	vconcat	0	MANY	0		f5aa3fb86978
 src/fns.c	Fcopy_sequence	copy-sequence	1	1	0		f0b49e20f8db
-src/fns.c	Fstring_make_multibyte	string-make-multibyte	1	1	0		45bf6bafd554
+src/fns.c	Fstring_make_multibyte	string-make-multibyte	1	1	0		fb244227dafd
 src/fns.c	Fstring_make_unibyte	string-make-unibyte	1	1	0		0e264d561172
 src/fns.c	Fstring_as_unibyte	string-as-unibyte	1	1	0		e1f16c84f76b
-src/fns.c	Fstring_as_multibyte	string-as-multibyte	1	1	0		73b5b47fef07
+src/fns.c	Fstring_as_multibyte	string-as-multibyte	1	1	0		a78f5b063612
 src/fns.c	Fstring_to_multibyte	string-to-multibyte	1	1	0		4d90bc2f1730
 src/fns.c	Fstring_to_unibyte	string-to-unibyte	1	1	0		75f1e5750125
 src/fns.c	Fcopy_alist	copy-alist	1	1	0		2b14462f4557
-src/fns.c	Fsubstring	substring	1	3	0		898d0480ca26
+src/fns.c	Fsubstring	substring	1	3	0		8d02188a4ecc
 src/fns.c	Fsubstring_no_properties	substring-no-properties	1	3	0		bf61bb755a20
 src/fns.c	Ftake	take	2	2	0		bed3bbb93d25
 src/fns.c	Fntake	ntake	2	2	0		ee145176fbfd
@@ -709,13 +709,13 @@ src/fns.c	Fdelete	delete	2	2	0		05698e5c5b37
 src/fns.c	Fnreverse	nreverse	1	1	0		f29587a834ae
 src/fns.c	Freverse	reverse	1	1	0		05b652fee31a
 src/fns.c	Fsort	sort	1	MANY	0		d6b00e74b2e0
-src/fns.c	Fplist_get	plist-get	2	3	0		e971bdec5bb4
+src/fns.c	Fplist_get	plist-get	2	3	0		196d06523522
 src/fns.c	Fget	get	2	2	0		3a06a6ed4e90
-src/fns.c	Fplist_put	plist-put	3	4	0		ff865fa71ecf
+src/fns.c	Fplist_put	plist-put	3	4	0		ff671588886d
 src/fns.c	Fput	put	3	3	0		558e24991e33
-src/fns.c	Fplist_member	plist-member	2	3	0		fa3a847764c9
-src/fns.c	Feql	eql	2	2	0		cd1109ff6f4c
-src/fns.c	Fequal	equal	2	2	0		7995437da702
+src/fns.c	Fplist_member	plist-member	2	3	0		b098019a6fb5
+src/fns.c	Feql	eql	2	2	0		09d70dba5aec
+src/fns.c	Fequal	equal	2	2	0		23ef7bfe99d7
 src/fns.c	Fequal_including_properties	equal-including-properties	2	2	0		2ce2a1e59fae
 src/fns.c	Fvaluelt	value<	2	2	0		7fa657a6810a
 src/fns.c	Ffillarray	fillarray	2	2	0		8d340145c8e8
@@ -725,7 +725,7 @@ src/fns.c	Fmapconcat	mapconcat	2	3	0		0d7fb2a58352
 src/fns.c	Fmapcar	mapcar	2	2	0		5a8ca0bcf369
 src/fns.c	Fmapc	mapc	2	2	0		861681b583f2
 src/fns.c	Fmapcan	mapcan	2	2	0		d378db7a3578
-src/fns.c	Fyes_or_no_p	yes-or-no-p	1	1	0		58b2b7ec4f3e
+src/fns.c	Fyes_or_no_p	yes-or-no-p	1	1	0		011197db2511
 src/fns.c	Fload_average	load-average	0	1	0		5a4d3ad18712
 src/fns.c	Ffeaturep	featurep	1	2	0		5c2985cfa486
 src/fns.c	Fprovide	provide	1	2	0		ca0bf6c80c42
@@ -770,7 +770,7 @@ src/fns.c	Fline_number_at_pos	line-number-at-pos	0	2	0		07dcc03b3783
 src/font.c	Ffontp	fontp	1	2	0		3ca7d704d1c7
 src/font.c	Ffont_spec	font-spec	0	MANY	0		ec9414fe6ee1
 src/font.c	Ffont_get	font-get	2	2	0		2f2420308ef5
-src/font.c	Ffont_face_attributes	font-face-attributes	1	2	0		ac841394ba23
+src/font.c	Ffont_face_attributes	font-face-attributes	1	2	0		781f52276506
 src/font.c	Ffont_put	font-put	3	3	0		f5bb85470fd8
 src/font.c	Flist_fonts	list-fonts	1	4	0		c7b7181d9a4d
 src/font.c	Ffont_family_list	font-family-list	0	1	0		fc76e80a3890
@@ -790,7 +790,7 @@ src/font.c	Ffont_at	font-at	1	3	0		7a94a72d9a67
 src/font.c	Fframe_font_cache	frame-font-cache	0	1	0		b5adaf653cce
 src/font.c	Ffont_info	font-info	1	2	0		bb3a24ac8a83
 src/fontset.c	Fquery_fontset	query-fontset	1	2	0		e59ecb73a82f
-src/fontset.c	Fset_fontset_font	set-fontset-font	3	5	0		3ac6443d2892
+src/fontset.c	Fset_fontset_font	set-fontset-font	3	5	0		96c3de0dc9ad
 src/fontset.c	Fnew_fontset	new-fontset	2	2	0		2f976cc20b6f
 src/fontset.c	Ffontset_info	fontset-info	1	2	0		d02713d5c41f
 src/fontset.c	Ffontset_font	fontset-font	2	3	0		d9e856bc8494
@@ -801,13 +801,13 @@ src/frame.c	Fframe_live_p	frame-live-p	1	1	0		11ff775ef2e0
 src/frame.c	Fframe_id	frame-id	0	1	0		f289fcbcb305
 src/frame.c	Fwindow_system	window-system	0	1	0		6a9b13da901e
 src/frame.c	Fframe_windows_min_size	frame-windows-min-size	4	4	0	const	76d779f19812
-src/frame.c	Fmake_terminal_frame	make-terminal-frame	1	1	0		a1f62e3480e8
+src/frame.c	Fmake_terminal_frame	make-terminal-frame	1	1	0		8bebd66a1678
 src/frame.c	Fselect_frame	select-frame	1	2	"e"		32cf6ee01793
 src/frame.c	Fhandle_switch_frame	handle-switch-frame	1	1	"^e"		35cbb1fd733e
 src/frame.c	Fselected_frame	selected-frame	0	0	0		3c054f509beb
 src/frame.c	Fold_selected_frame	old-selected-frame	0	0	0		c56243113513
 src/frame.c	Fframe_list	frame-list	0	0	0		f76baa4a6a2d
-src/frame.c	Fframe_parent	frame-parent	0	1	0		35f3660653f7
+src/frame.c	Fframe_parent	frame-parent	0	1	0		a8eac84d5397
 src/frame.c	Fframe_ancestor_p	frame-ancestor-p	2	2	0		f73cd3411ba9
 src/frame.c	Fframe_root_frame	frame-root-frame	0	1	0		e5ae09bb56e9
 src/frame.c	Fnext_frame	next-frame	0	2	0		9f1420a62c04
@@ -819,10 +819,10 @@ src/frame.c	Fmouse_pixel_position	mouse-pixel-position	0	0	0		10185049c011
 src/frame.c	Fset_mouse_position	set-mouse-position	3	3	0		4de496c9960a
 src/frame.c	Fset_mouse_pixel_position	set-mouse-pixel-position	3	3	0		7e21ca01935b
 src/frame.c	Fmake_frame_visible	make-frame-visible	0	1	""		eda3336bf392
-src/frame.c	Fmake_frame_invisible	make-frame-invisible	0	2	""		f07cf70c39b4
+src/frame.c	Fmake_frame_invisible	make-frame-invisible	0	2	""		b0f1cef2fec7
 src/frame.c	Ficonify_frame	iconify-frame	0	1	""		f12199e6dfd4
-src/frame.c	Fframe_visible_p	frame-visible-p	1	1	0		6d54aa642bb1
-src/frame.c	Fvisible_frame_list	visible-frame-list	0	0	0		f03821658c35
+src/frame.c	Fframe_visible_p	frame-visible-p	1	1	0		06bc2b37fec9
+src/frame.c	Fvisible_frame_list	visible-frame-list	0	0	0		070c2a01cb3b
 src/frame.c	Fraise_frame	raise-frame	0	1	""		bd313f46ee9a
 src/frame.c	Flower_frame	lower-frame	0	1	""		722310663b5f
 src/frame.c	Fredirect_frame_focus	redirect-frame-focus	1	2	0		c4706aeda107
@@ -891,7 +891,7 @@ src/gnutls.c	Fgnutls_macs	gnutls-macs	0	0	0		3d3b14dbc1c5
 src/gnutls.c	Fgnutls_digests	gnutls-digests	0	0	0		e0a1eb477dc9
 src/gnutls.c	Fgnutls_hash_mac	gnutls-hash-mac	3	3	0		80aada93b396
 src/gnutls.c	Fgnutls_hash_digest	gnutls-hash-digest	2	2	0		49bbe6dea930
-src/gnutls.c	Fgnutls_available_p	gnutls-available-p	0	0	0		c6ede346e097
+src/gnutls.c	Fgnutls_available_p	gnutls-available-p	0	0	0		af3baad084da
 src/haikufns.c	Fhaiku_set_mouse_absolute_pixel_position	haiku-set-mouse-absolute-pixel-position	2	2	0		e8edab7a0add
 src/haikufns.c	Fhaiku_mouse_absolute_pixel_position	haiku-mouse-absolute-pixel-position	0	0	0		156bc3bcb5dd
 src/haikufns.c	Fxw_display_color_p	xw-display-color-p	0	1	0		f3e009aa43c7
@@ -959,7 +959,7 @@ src/indent.c	Fmove_to_column	move-to-column	1	2	"NMove to column: "		5de5c991fcf
 src/indent.c	Fcompute_motion	compute-motion	7	7	0		d2234e9da88e
 src/indent.c	Fline_number_display_width	line-number-display-width	0	1	0		259ad48b0a17
 src/indent.c	Fvertical_motion	vertical-motion	1	3	0		60fd0183eb91
-src/inotify.c	Finotify_add_watch	inotify-add-watch	3	3	0		d98c507f2d21
+src/inotify.c	Finotify_add_watch	inotify-add-watch	3	3	0		7dc97369f392
 src/inotify.c	Finotify_rm_watch	inotify-rm-watch	1	1	0		2cd5294d8cd3
 src/inotify.c	Finotify_valid_p	inotify-valid-p	1	1	0		0f15a166894e
 src/inotify.c	Finotify_watch_list	inotify-watch-list	0	0	0		f884ab9be4d3
@@ -969,7 +969,7 @@ src/json.c	Fjson_serialize	json-serialize	1	MANY	NULL		297db3dd47e2
 src/json.c	Fjson_insert	json-insert	1	MANY	NULL		b68c2ced8d49
 src/json.c	Fjson_parse_string	json-parse-string	1	MANY	NULL		4be59a8668f7
 src/json.c	Fjson_parse_buffer	json-parse-buffer	0	MANY	NULL		8fc63522cdb9
-src/keyboard.c	Frecursive_edit	recursive-edit	0	0	""		40ddb14b62d2
+src/keyboard.c	Frecursive_edit	recursive-edit	0	0	""		302f2141adf3
 src/keyboard.c	Fcommand_error_default_function	command-error-default-function	3	3	0		d7be823f8752
 src/keyboard.c	Ftop_level	top-level	0	0	""	noreturn	fa16f528f026
 src/keyboard.c	Fexit_recursive_edit	exit-recursive-edit	0	0	""	noreturn	1c23b1556486
@@ -979,9 +979,9 @@ src/keyboard.c	Fcurrent_idle_time	current-idle-time	0	0	0		865cb82eef62
 src/keyboard.c	Fevent_symbol_parse_modifiers	internal-event-symbol-parse-modifiers	1	1	0		93b81128a741
 src/keyboard.c	Fevent_convert_list	event-convert-list	1	1	0		446cb1a37d24
 src/keyboard.c	Finternal_handle_focus_in	internal-handle-focus-in	1	1	0		711ea1f4463e
-src/keyboard.c	Fread_char	read-char	0	3	0		ca99246fec54
-src/keyboard.c	Fread_event	read-event	0	3	0		97e6029d000d
-src/keyboard.c	Fread_char_exclusive	read-char-exclusive	0	3	0		312e7d45a80d
+src/keyboard.c	Fread_char	read-char	0	3	0		70285ed40d05
+src/keyboard.c	Fread_event	read-event	0	3	0		5ddbfceb4fe8
+src/keyboard.c	Fread_char_exclusive	read-char-exclusive	0	3	0		e5a7c5674cd8
 src/keyboard.c	Fread_key_sequence	read-key-sequence	1	6	0		58569e51213e
 src/keyboard.c	Fread_key_sequence_vector	read-key-sequence-vector	1	6	0		dd9cad359995
 src/keyboard.c	Finput_pending_p	input-pending-p	0	1	0		12dd059be36d
@@ -1029,11 +1029,11 @@ src/keymap.c	Fcurrent_local_map	current-local-map	0	0	0		13ecc3b6911d
 src/keymap.c	Fcurrent_global_map	current-global-map	0	0	0		e23407fa894f
 src/keymap.c	Fcurrent_minor_mode_maps	current-minor-mode-maps	0	0	0		1bfc1e61d975
 src/keymap.c	Faccessible_keymaps	accessible-keymaps	1	2	0		b60fb9f9af43
-src/keymap.c	Fkey_description	key-description	1	2	0		2f105632b89e
+src/keymap.c	Fkey_description	key-description	1	2	0		ff4484db99a4
 src/keymap.c	Fsingle_key_description	single-key-description	1	2	0		2304c532f9c9
 src/keymap.c	Ftext_char_description	text-char-description	1	1	0		b5b3e8f573ed
-src/keymap.c	Fwhere_is_internal	where-is-internal	1	5	0		3a8951d31ed5
-src/keymap.c	Fdescribe_buffer_bindings	describe-buffer-bindings	1	3	0		ed306da89603
+src/keymap.c	Fwhere_is_internal	where-is-internal	1	5	0		3ff592a84273
+src/keymap.c	Fdescribe_buffer_bindings	describe-buffer-bindings	1	3	0		2f4a78bf33fe
 src/keymap.c	Fdescribe_vector	describe-vector	1	2	0		c1994f3164d9
 src/keymap.c	Fhelp__describe_vector	help--describe-vector	7	7	0		6405850ee26d
 src/kqueue.c	Fkqueue_add_watch	kqueue-add-watch	3	3	0		888179982130
@@ -1047,14 +1047,14 @@ src/lcms.c	Flcms_jab_to_jch	lcms-jab->jch	1	3	0		dd9cbfa1a296
 src/lcms.c	Flcms_cam02_ucs	lcms-cam02-ucs	2	4	0		75848d6366ee
 src/lcms.c	Flcms_temp_to_white_point	lcms-temp->white-point	1	1	0		1c97cc824f77
 src/lcms.c	Flcms2_available_p	lcms2-available-p	0	0	0		b74a96255080
-src/lread.c	Fget_load_suffixes	get-load-suffixes	0	0	0		1053d456a5e4
+src/lread.c	Fget_load_suffixes	get-load-suffixes	0	0	0		f7a01a9f2154
 src/lread.c	Fload	load	1	5	0		4db613402bca
 src/lread.c	Flocate_file_internal	locate-file-internal	2	4	0		6e9a69974960
-src/lread.c	Feval_buffer	eval-buffer	0	5	""		44e1d3b408bd
+src/lread.c	Feval_buffer	eval-buffer	0	5	""		73223f55a206
 src/lread.c	Feval_region	eval-region	2	4	"r"		74908b668a52
 src/lread.c	Fread	read	0	1	0		d6994cc637f6
 src/lread.c	Fread_positioning_symbols	read-positioning-symbols	0	1	0		8a887a2064d5
-src/lread.c	Fread_from_string	read-from-string	1	3	0		795d08486754
+src/lread.c	Fread_from_string	read-from-string	1	3	0		94d5662da4ef
 src/lread.c	Flread__substitute_object_in_subtree	lread--substitute-object-in-subtree	3	3	0		fff44325031e
 src/lread.c	Fintern	intern	1	2	0		1a053a055d51
 src/lread.c	Fintern_soft	intern-soft	1	2	0		665767d60851
@@ -1064,11 +1064,11 @@ src/lread.c	Fobarrayp	obarrayp	1	1	0		a0f38e9fd366
 src/lread.c	Fobarray_clear	obarray-clear	1	1	0		0495736f0713
 src/lread.c	Fmapatoms	mapatoms	1	2	0		d825e8c16401
 src/lread.c	Finternal__obarray_buckets	internal--obarray-buckets	1	1	0		6e6e7942f3a4
-src/macros.c	Fstart_kbd_macro	start-kbd-macro	1	2	"P"		487b461d1cba
-src/macros.c	Fend_kbd_macro	end-kbd-macro	0	2	"p"		16ff7f7ffea0
+src/macros.c	Fstart_kbd_macro	start-kbd-macro	1	2	"P"		f924528fce86
+src/macros.c	Fend_kbd_macro	end-kbd-macro	0	2	"p"		55ac676bcbe8
 src/macros.c	Fcancel_kbd_macro_events	cancel-kbd-macro-events	0	0	0		c4616c0a9cd9
 src/macros.c	Fstore_kbd_macro_event	store-kbd-macro-event	1	1	0		13d0eaf3bf7b
-src/macros.c	Fcall_last_kbd_macro	call-last-kbd-macro	0	2	"p"		fa019ab4e0b5
+src/macros.c	Fcall_last_kbd_macro	call-last-kbd-macro	0	2	"p"		ac036aa3aff4
 src/macros.c	Fexecute_kbd_macro	execute-kbd-macro	1	3	0		6850f1f4daba
 src/marker.c	Fmarker_buffer	marker-buffer	1	1	0		bff10359de2c
 src/marker.c	Fmarker_position	marker-position	1	1	0		3f494ac72575
@@ -1079,8 +1079,8 @@ src/marker.c	Fmarker_insertion_type	marker-insertion-type	1	1	0		1fac03de5903
 src/marker.c	Fset_marker_insertion_type	set-marker-insertion-type	2	2	0		beb59f9f2874
 src/marker.c	Fmarkers_in	markers-in	0	2	0		164eefa3e001
 src/menu.c	Fmenu_bar_menu_at_x_y	menu-bar-menu-at-x-y	2	3	0		6b58a5118997
-src/menu.c	Fx_popup_menu	x-popup-menu	2	2	0		5ee25771af25
-src/menu.c	Fx_popup_dialog	x-popup-dialog	2	3	0		46eaa73f4989
+src/menu.c	Fx_popup_menu	x-popup-menu	2	2	0		5e36404a6b3e
+src/menu.c	Fx_popup_dialog	x-popup-dialog	2	3	0		1b855d18935a
 src/minibuf.c	Factive_minibuffer_window	active-minibuffer-window	0	0	0		0a5c4e59d0c0
 src/minibuf.c	Fset_minibuffer_window	set-minibuffer-window	1	1	0		e36e1e6ffa59
 src/minibuf.c	Fminibufferp	minibufferp	0	2	0		f5529f1cb85c
@@ -1098,7 +1098,7 @@ src/minibuf.c	Fread_variable	read-variable	1	2	0		ec98c5cc4960
 src/minibuf.c	Fread_buffer	read-buffer	1	4	0		7dce689e28d0
 src/minibuf.c	Ftry_completion	try-completion	2	3	0		d37dc3dddd30
 src/minibuf.c	Fall_completions	all-completions	2	3	0		f6d4ef69d92b
-src/minibuf.c	Fcompleting_read	completing-read	2	8	0		ee9f4ba253fe
+src/minibuf.c	Fcompleting_read	completing-read	2	8	0		12ec42e7df7f
 src/minibuf.c	Ftest_completion	test-completion	2	3	0		a0ab7d03a764
 src/minibuf.c	Finternal_complete_buffer	internal-complete-buffer	3	3	0		60105765103f
 src/minibuf.c	Fassoc_string	assoc-string	2	3	0		715b68bb36d8
@@ -1117,7 +1117,7 @@ src/pdumper.c	Fpdumper_stats	pdumper-stats	0	0	0		da6d08f30070
 src/pgtkfns.c	Fx_export_frames	x-export-frames	0	2	0		f3e009aa43c7
 src/pgtkfns.c	Fpgtk_set_monitor_scale_factor	pgtk-set-monitor-scale-factor	2	2	0		3671d79627a1
 src/pgtkfns.c	Fx_create_frame	x-create-frame	1	1	0		f3e009aa43c7
-src/pgtkfns.c	Fpgtk_frame_restack	pgtk-frame-restack	2	3	0		e73383925de4
+src/pgtkfns.c	Fpgtk_frame_restack	pgtk-frame-restack	2	3	0		ad1c447b21e2
 src/pgtkfns.c	Fpgtk_set_resource	pgtk-set-resource	2	2	0		98b3ab29d279
 src/pgtkfns.c	Fx_server_max_request_size	x-server-max-request-size	0	1	0		f3e009aa43c7
 src/pgtkfns.c	Fx_display_screens	x-display-screens	0	1	0		f3e009aa43c7
@@ -1136,14 +1136,14 @@ src/pgtkfns.c	Fxw_display_color_p	xw-display-color-p	0	1	0		f3e009aa43c7
 src/pgtkfns.c	Fx_display_grayscale_p	x-display-grayscale-p	0	1	0		f3e009aa43c7
 src/pgtkfns.c	Fx_display_pixel_width	x-display-pixel-width	0	1	0		f3e009aa43c7
 src/pgtkfns.c	Fx_display_pixel_height	x-display-pixel-height	0	1	0		f3e009aa43c7
-src/pgtkfns.c	Fpgtk_display_monitor_attributes_list	pgtk-display-monitor-attributes-list	0	1	0		af2c77413f76
+src/pgtkfns.c	Fpgtk_display_monitor_attributes_list	pgtk-display-monitor-attributes-list	0	1	0		5352a5cc96b7
 src/pgtkfns.c	Fx_display_planes	x-display-planes	0	1	0		f3e009aa43c7
 src/pgtkfns.c	Fx_display_color_cells	x-display-color-cells	0	1	0		f3e009aa43c7
 src/pgtkfns.c	Fx_show_tip	x-show-tip	1	6	0		f3e009aa43c7
 src/pgtkfns.c	Fx_hide_tip	x-hide-tip	0	0	0		f3e009aa43c7
 src/pgtkfns.c	Fpgtk_frame_geometry	pgtk-frame-geometry	0	1	0		ed7876cab3f5
 src/pgtkfns.c	Fpgtk_frame_edges	pgtk-frame-edges	0	2	0		64d4478f2b7a
-src/pgtkfns.c	Fpgtk_set_mouse_absolute_pixel_position	pgtk-set-mouse-absolute-pixel-position	2	2	0		9743e3eec16d
+src/pgtkfns.c	Fpgtk_set_mouse_absolute_pixel_position	pgtk-set-mouse-absolute-pixel-position	2	2	0		084be46aa072
 src/pgtkfns.c	Fpgtk_mouse_absolute_pixel_position	pgtk-mouse-absolute-pixel-position	0	0	0		cdeb37cbd73d
 src/pgtkfns.c	Fpgtk_page_setup_dialog	pgtk-page-setup-dialog	0	0	0		1f78d7b819e2
 src/pgtkfns.c	Fpgtk_get_page_setup	pgtk-get-page-setup	0	0	0		8c480e8955ef
@@ -1155,18 +1155,18 @@ src/pgtkfns.c	Fx_gtk_debug	x-gtk-debug	1	1	0		f3e009aa43c7
 src/pgtkfns.c	Fx_gtk_launch_uri	x-gtk-launch-uri	2	2	0		8a8ac2ee9479
 src/pgtkim.c	Fpgtk_use_im_context	pgtk-use-im-context	1	2	0		333d160c6929
 src/pgtkmenu.c	Fx_menu_bar_open_internal	x-menu-bar-open-internal	0	1	"i"		4fc0a6ba4d93
-src/pgtkmenu.c	Fmenu_or_popup_active_p	menu-or-popup-active-p	0	0	0		6dd27cdc7cb3
-src/pgtkselect.c	Fpgtk_own_selection_internal	pgtk-own-selection-internal	2	3	0		befd2950d86e
-src/pgtkselect.c	Fpgtk_get_selection_internal	pgtk-get-selection-internal	2	4	0		407e858952e0
+src/pgtkmenu.c	Fmenu_or_popup_active_p	menu-or-popup-active-p	0	0	0		d538a9375427
+src/pgtkselect.c	Fpgtk_own_selection_internal	pgtk-own-selection-internal	2	3	0		75fba9772e38
+src/pgtkselect.c	Fpgtk_get_selection_internal	pgtk-get-selection-internal	2	4	0		1a51c9c5cafc
 src/pgtkselect.c	Fpgtk_disown_selection_internal	pgtk-disown-selection-internal	1	3	0		01ed96249ed6
-src/pgtkselect.c	Fpgtk_selection_owner_p	pgtk-selection-owner-p	0	2	0		fc221cce8308
+src/pgtkselect.c	Fpgtk_selection_owner_p	pgtk-selection-owner-p	0	2	0		73b1ca40f213
 src/pgtkselect.c	Fpgtk_selection_exists_p	pgtk-selection-exists-p	0	2	0		b469d962c385
 src/pgtkselect.c	Fpgtk_register_dnd_targets	pgtk-register-dnd-targets	2	2	0		bc8ab5145bda
 src/pgtkselect.c	Fpgtk_drop_finish	pgtk-drop-finish	3	3	0		6d9f94bc9c8b
 src/pgtkselect.c	Fpgtk_update_drop_status	pgtk-update-drop-status	2	2	0		26fadfa9366d
 src/print.c	Fwrite_char	write-char	1	2	0		d9c1ba4eccd9
 src/print.c	Fterpri	terpri	0	2	0		c9a6c2bc5e6e
-src/print.c	Fprin1	prin1	1	3	0		da9bec19c9e3
+src/print.c	Fprin1	prin1	1	3	0		d636ebe2c95c
 src/print.c	Fprin1_to_string	prin1-to-string	1	3	0		03be78d289b6
 src/print.c	Fprinc	princ	1	2	0		a09645f4e766
 src/print.c	Fprint	print	1	2	0		20886677c908
@@ -1197,7 +1197,7 @@ src/process.c	Fset_process_window_size	set-process-window-size	3	3	0		18adf9fa0e
 src/process.c	Fset_process_inherit_coding_system_flag	set-process-inherit-coding-system-flag	2	2	0		8567d526caeb
 src/process.c	Fset_process_query_on_exit_flag	set-process-query-on-exit-flag	2	2	0		a3e135682134
 src/process.c	Fprocess_query_on_exit_flag	process-query-on-exit-flag	1	1	0		d5711e0f9219
-src/process.c	Fprocess_contact	process-contact	1	3	0		af09385f5772
+src/process.c	Fprocess_contact	process-contact	1	3	0		1869999ddb05
 src/process.c	Fprocess_plist	process-plist	1	1	0		cb2551fe8560
 src/process.c	Fset_process_plist	set-process-plist	2	2	0		0b75e90ecbb8
 src/process.c	Fprocess_type	process-type	1	1	0		4fd03cf86585
@@ -1208,9 +1208,9 @@ src/process.c	Fmake_pipe_process	make-pipe-process	0	MANY	0		be2127447f4b
 src/process.c	Fprocess_datagram_address	process-datagram-address	1	1	0		5be3e57391ad
 src/process.c	Fset_process_datagram_address	set-process-datagram-address	2	2	0		ece193eda132
 src/process.c	Fset_network_process_option	set-network-process-option	3	4	0		e4a7cd01347a
-src/process.c	Fserial_process_configure	serial-process-configure	0	MANY	0		6b70f765b701
-src/process.c	Fmake_serial_process	make-serial-process	0	MANY	0		5281a4f16ec4
-src/process.c	Fmake_network_process	make-network-process	0	MANY	0		47a000c386a7
+src/process.c	Fserial_process_configure	serial-process-configure	0	MANY	0		d56d6e07bdc2
+src/process.c	Fmake_serial_process	make-serial-process	0	MANY	0		b37472a92a1f
+src/process.c	Fmake_network_process	make-network-process	0	MANY	0		201a53fc12f3
 src/process.c	Fnetwork_interface_list	network-interface-list	0	2	0		c77d59c848a6
 src/process.c	Fnetwork_interface_info	network-interface-info	1	1	0		f393fb192ae3
 src/process.c	Fnetwork_lookup_address_info	network-lookup-address-info	1	3	0		572eb659b5c9
@@ -1257,10 +1257,10 @@ src/search.c	Fre_search_backward	re-search-backward	1	4	"sRE search backward: "	
 src/search.c	Fre_search_forward	re-search-forward	1	4	"sRE search: "		86bb1432ad51
 src/search.c	Fposix_search_backward	posix-search-backward	1	4	"sPosix search backward: "		34ebffadd14a
 src/search.c	Fposix_search_forward	posix-search-forward	1	4	"sPosix search: "		9fd0153fcc65
-src/search.c	Freplace_match	replace-match	1	5	0		f81756daf20b
+src/search.c	Freplace_match	replace-match	1	5	0		1fe55b68aff5
 src/search.c	Fmatch_beginning	match-beginning	1	1	0		d40739eae873
 src/search.c	Fmatch_end	match-end	1	1	0		473d67654a26
-src/search.c	Fmatch_data	match-data	0	3	0		02af837aa076
+src/search.c	Fmatch_data	match-data	0	3	0		263a411e2a1b
 src/search.c	Fset_match_data	set-match-data	1	2	0		87182688ac02
 src/search.c	Fmatch_data__translate	match-data--translate	1	1	0		204a0fd489f3
 src/search.c	Fregexp_quote	regexp-quote	1	1	0		20da70c6da96
@@ -1295,17 +1295,17 @@ src/syntax.c	Fchar_syntax	char-syntax	1	1	0		ee705559d656
 src/syntax.c	Fsyntax_class_to_char	syntax-class-to-char	1	1	0		d0295bd86d69
 src/syntax.c	Fmatching_paren	matching-paren	1	1	0		6c58716a57c0
 src/syntax.c	Fstring_to_syntax	string-to-syntax	1	1	0		7798ca190dd4
-src/syntax.c	Fmodify_syntax_entry	modify-syntax-entry	2	3	"cSet syntax for character: \\nsSet syntax for %s to: "		330d4658b9f8
+src/syntax.c	Fmodify_syntax_entry	modify-syntax-entry	2	3	"cSet syntax for character: \\nsSet syntax for %s to: "		949126f6844c
 src/syntax.c	Finternal_describe_syntax_value	internal-describe-syntax-value	1	1	0		32e16c545dc6
 src/syntax.c	Fforward_word	forward-word	0	1	"^p"		479b1b66765b
-src/syntax.c	Fskip_chars_forward	skip-chars-forward	1	2	0		4e05a0276e83
+src/syntax.c	Fskip_chars_forward	skip-chars-forward	1	2	0		2323ebabe4ef
 src/syntax.c	Fskip_chars_backward	skip-chars-backward	1	2	0		7b4dc48de405
 src/syntax.c	Fskip_syntax_forward	skip-syntax-forward	1	2	0		0c459083d7ce
 src/syntax.c	Fskip_syntax_backward	skip-syntax-backward	1	2	0		6ab49b64a64c
-src/syntax.c	Fforward_comment	forward-comment	1	1	0		79e8e7d5490c
-src/syntax.c	Fscan_lists	scan-lists	3	3	0		20ed0e0cc71a
+src/syntax.c	Fforward_comment	forward-comment	1	1	0		4339b41022ad
+src/syntax.c	Fscan_lists	scan-lists	3	3	0		660afc9dca98
 src/syntax.c	Fscan_sexps	scan-sexps	2	2	0		33b6b3032f9c
-src/syntax.c	Fbackward_prefix_chars	backward-prefix-chars	0	0	0		5111e2c48d5d
+src/syntax.c	Fbackward_prefix_chars	backward-prefix-chars	0	0	0		e14e2d5a2384
 src/syntax.c	Fparse_partial_sexp	parse-partial-sexp	2	6	0		8be7f570e614
 src/sysdep.c	Fget_internal_run_time	get-internal-run-time	0	0	0		0d0022871dde
 src/term.c	Ftty_display_color_p	tty-display-color-p	0	1	0		2d5b4281f3a6
@@ -1354,7 +1354,7 @@ src/textprop.c	Fadd_text_properties	add-text-properties	3	4	0		63ed4d9329bf
 src/textprop.c	Fput_text_property	put-text-property	4	5	0		f58acd1bb0d9
 src/textprop.c	Fset_text_properties	set-text-properties	3	4	0		a22c157d75cd
 src/textprop.c	Fadd_face_text_property	add-face-text-property	3	5	0		aba49e9c629a
-src/textprop.c	Fremove_text_properties	remove-text-properties	3	4	0		5864a839242e
+src/textprop.c	Fremove_text_properties	remove-text-properties	3	4	0		e573a2acb3e2
 src/textprop.c	Fremove_list_of_text_properties	remove-list-of-text-properties	3	4	0		90cab0a8c9e5
 src/textprop.c	Ftext_property_any	text-property-any	4	5	0		2e168afcd3be
 src/textprop.c	Ftext_property_not_all	text-property-not-all	4	5	0		8f7d03e2a686
@@ -1385,8 +1385,8 @@ src/timefns.c	Ftime_less_p	time-less-p	2	2	0		1a4522e58f11
 src/timefns.c	Ftime_equal_p	time-equal-p	2	2	0		e40e1ce26f0b
 src/timefns.c	Ffloat_time	float-time	0	1	0		1451ee237e2e
 src/timefns.c	Fformat_time_string	format-time-string	1	3	0		e53a62da2dda
-src/timefns.c	Fdecode_time	decode-time	0	3	0		8a15824dce24
-src/timefns.c	Fencode_time	encode-time	1	MANY	0		9defbe74ea4c
+src/timefns.c	Fdecode_time	decode-time	0	3	0		30c8c20fa2dd
+src/timefns.c	Fencode_time	encode-time	1	MANY	0		1b55496165de
 src/timefns.c	Ftime_convert	time-convert	1	2	0		63e5be4eff28
 src/timefns.c	Fcurrent_time	current-time	0	0	0		d6c8d79bfa24
 src/timefns.c	Fcurrent_cpu_time	current-cpu-time	0	0	0		1cd53a5673d9
@@ -1438,8 +1438,8 @@ src/treesit.c	Ftreesit_node_prev_sibling	treesit-node-prev-sibling	1	2	0		cb7f67
 src/treesit.c	Ftreesit_node_first_child_for_pos	treesit-node-first-child-for-pos	2	3	0		1fec44b62e6d
 src/treesit.c	Ftreesit_node_descendant_for_range	treesit-node-descendant-for-range	3	4	0		77b1719dd123
 src/treesit.c	Ftreesit_node_eq	treesit-node-eq	2	2	0		f06ea60978b7
-src/treesit.c	Ftreesit_pattern_expand	treesit-pattern-expand	1	1	0		abdf9cb938c8
-src/treesit.c	Ftreesit_query_expand	treesit-query-expand	1	1	0		98ad1d5b975d
+src/treesit.c	Ftreesit_pattern_expand	treesit-pattern-expand	1	1	0		d0045006b4de
+src/treesit.c	Ftreesit_query_expand	treesit-query-expand	1	1	0		e06c6b19c1a9
 src/treesit.c	Ftreesit_query_compile	treesit-query-compile	2	3	0		688162bd3097
 src/treesit.c	Ftreesit_query_capture	treesit-query-capture	2	6	0		e8e768a62d81
 src/treesit.c	Ftreesit_search_subtree	treesit-search-subtree	2	5	0		8699bc06a744
@@ -1493,7 +1493,7 @@ src/w32fns.c	Fx_hide_tip	x-hide-tip	0	0	0		f3e009aa43c7
 src/w32fns.c	Fx_file_dialog	x-file-dialog	2	5	0		f3e009aa43c7
 src/w32fns.c	Fsystem_move_file_to_trash	system-move-file-to-trash	1	1	0		4e8f353b9231
 src/w32fns.c	Fw32_send_sys_command	w32-send-sys-command	1	2	0		1a640f3a6e1d
-src/w32fns.c	Fw32_shell_execute	w32-shell-execute	2	4	0		0879496df65e
+src/w32fns.c	Fw32_shell_execute	w32-shell-execute	2	4	0		e2e89eee2f36
 src/w32fns.c	Fw32_register_hot_key	w32-register-hot-key	1	1	0		76d64b8f8b7b
 src/w32fns.c	Fw32_unregister_hot_key	w32-unregister-hot-key	1	1	0		e5f0a27897e2
 src/w32fns.c	Fw32_registered_hot_keys	w32-registered-hot-keys	0	0	0		889d63def276
@@ -1503,20 +1503,20 @@ src/w32fns.c	Fw32_window_exists_p	w32-window-exists-p	2	2	0		080e67131108
 src/w32fns.c	Fw32_frame_geometry	w32-frame-geometry	0	1	0		9037a5dad388
 src/w32fns.c	Fw32_frame_edges	w32-frame-edges	0	2	0		64d4478f2b7a
 src/w32fns.c	Fw32_frame_list_z_order	w32-frame-list-z-order	0	1	0		c2185bda0a14
-src/w32fns.c	Fw32_frame_restack	w32-frame-restack	2	3	0		c4f8943e0299
+src/w32fns.c	Fw32_frame_restack	w32-frame-restack	2	3	0		00cb85937b47
 src/w32fns.c	Fw32_mouse_absolute_pixel_position	w32-mouse-absolute-pixel-position	0	0	0		156bc3bcb5dd
-src/w32fns.c	Fw32_set_mouse_absolute_pixel_position	w32-set-mouse-absolute-pixel-position	2	2	0		9743e3eec16d
+src/w32fns.c	Fw32_set_mouse_absolute_pixel_position	w32-set-mouse-absolute-pixel-position	2	2	0		084be46aa072
 src/w32fns.c	Ffile_system_info	file-system-info	1	1	0		381c0178c438
 src/w32fns.c	Fdefault_printer_name	default-printer-name	0	0	0		f0dd67f47a75
 src/w32fns.c	Fw32__menu_bar_in_use	w32--menu-bar-in-use	0	0	0		ef2684730b4e
-src/w32fns.c	Fw32_notification_notify	w32-notification-notify	0	MANY	0		ba5cf6b14ecc
+src/w32fns.c	Fw32_notification_notify	w32-notification-notify	0	MANY	0		643e566c16f9
 src/w32fns.c	Fw32_notification_close	w32-notification-close	1	1	0		6a52a82a76d1
 src/w32fns.c	Fw32_get_ime_open_status	w32-get-ime-open-status	0	0	0		688f0b9c452a
 src/w32fns.c	Fw32_set_ime_open_status	w32-set-ime-open-status	1	1	0		5bba9c66856d
 src/w32fns.c	Fw32_read_registry	w32-read-registry	3	3	0		e1bce7b5c9a9
 src/w32fns.c	Fw32_set_wallpaper	w32-set-wallpaper	1	1	0		f8b26a65d91d
 src/w32fns.c	Fw32_system_idle_time	w32-system-idle-time	0	0	0		11891647d211
-src/w32fns.c	Fw32_badge	w32-badge	3	3	0		6ad448b19891
+src/w32fns.c	Fw32_badge	w32-badge	3	3	0		3e2a97a78f62
 src/w32fns.c	Fw32_request_user_attention	w32-request-user-attention	1	1	0		a6b5801768b2
 src/w32fns.c	Fw32_progress_indicator	w32-progress-indicator	1	1	0		c89797cc7908
 src/w32fns.c	Fw32_block_system_sleep	w32-block-system-sleep	1	1	0		dea525f589c9
@@ -1534,7 +1534,7 @@ src/w32proc.c	Fw32_unload_winsock	w32-unload-winsock	0	0	0		0f9b2d540427
 src/w32proc.c	Fw32_short_file_name	w32-short-file-name	1	1	0		604724a1d774
 src/w32proc.c	Fw32_long_file_name	w32-long-file-name	1	1	0		e164baf9a972
 src/w32proc.c	Fw32_set_process_priority	w32-set-process-priority	2	2	0		cb7c619c6f3a
-src/w32proc.c	Fw32_application_type	w32-application-type	1	1	0		63b524d637f0
+src/w32proc.c	Fw32_application_type	w32-application-type	1	1	0		05a6848b69f8
 src/w32proc.c	Fw32_get_locale_info	w32-get-locale-info	1	2	0		478d5e8ee855
 src/w32proc.c	Fw32_get_current_locale_id	w32-get-current-locale-id	0	0	0		136db50de014
 src/w32proc.c	Fw32_get_valid_locale_ids	w32-get-valid-locale-ids	0	0	0		40f97c16d3cd
@@ -1576,7 +1576,7 @@ src/window.c	Fwindow_left_child	window-left-child	0	1	0		ed5a29cbf27a
 src/window.c	Fwindow_next_sibling	window-next-sibling	0	1	0		9fcb1e092cf6
 src/window.c	Fwindow_prev_sibling	window-prev-sibling	0	1	0		185fbadeee5c
 src/window.c	Fwindow_combination_limit	window-combination-limit	1	1	0		843459534ea4
-src/window.c	Fset_window_combination_limit	set-window-combination-limit	2	2	0		50ace3c06686
+src/window.c	Fset_window_combination_limit	set-window-combination-limit	2	2	0		1a30b352b71b
 src/window.c	Fwindow_use_time	window-use-time	0	1	0		356d8d9e8bb2
 src/window.c	Fwindow_bump_use_time	window-bump-use-time	0	1	0		7e99d30b4dd7
 src/window.c	Fwindow_pixel_width	window-pixel-width	0	1	0		1c331cacade2
@@ -1606,15 +1606,15 @@ src/window.c	Fwindow_scroll_bar_width	window-scroll-bar-width	0	1	0		830b493afb0
 src/window.c	Fwindow_scroll_bar_height	window-scroll-bar-height	0	1	0		1c95ade61829
 src/window.c	Fwindow_hscroll	window-hscroll	0	1	0		398661cdb6a2
 src/window.c	Fset_window_hscroll	set-window-hscroll	2	2	0		09a348384731
-src/window.c	Fcoordinates_in_window_p	coordinates-in-window-p	2	2	0		4fdaa57693e2
+src/window.c	Fcoordinates_in_window_p	coordinates-in-window-p	2	2	0		49e698b75566
 src/window.c	Fwindow_at	window-at	2	3	0		ad225008751d
 src/window.c	Fwindow_point	window-point	0	1	0		d601c3a5e7dd
 src/window.c	Fwindow_old_point	window-old-point	0	1	0		8deb1f7a03ec
 src/window.c	Fwindow_start	window-start	0	1	0		82115ed6b22e
 src/window.c	Fwindow_end	window-end	0	2	0		fa14c0781be1
 src/window.c	Fset_window_point	set-window-point	2	2	0		7acd012b45c7
-src/window.c	Fset_window_start	set-window-start	2	3	0		a9bfc06ec7be
-src/window.c	Fpos_visible_in_window_p	pos-visible-in-window-p	0	3	0		10352422f266
+src/window.c	Fset_window_start	set-window-start	2	3	0		27ce172c4f24
+src/window.c	Fpos_visible_in_window_p	pos-visible-in-window-p	0	3	0		7e9ae353a62b
 src/window.c	Fwindow_line_height	window-line-height	0	2	0		d80c84746bce
 src/window.c	Fwindow_lines_pixel_dimensions	window-lines-pixel-dimensions	0	6	0		875f40566858
 src/window.c	Fwindow_dedicated_p	window-dedicated-p	0	1	0		003bb3eb2796
@@ -1651,7 +1651,7 @@ src/window.c	Fdelete_window_internal	delete-window-internal	1	1	0		8b65e1d0ab37
 src/window.c	Fresize_mini_window_internal	resize-mini-window-internal	1	1	0		4c3341c95a9a
 src/window.c	Fscroll_up	scroll-up	0	1	"^P"		9b7b0100bfae
 src/window.c	Fscroll_down	scroll-down	0	1	"^P"		565795aa7a39
-src/window.c	Fother_window_for_scrolling	other-window-for-scrolling	0	0	0		e4390a1460f5
+src/window.c	Fother_window_for_scrolling	other-window-for-scrolling	0	0	0		84bcfb67494c
 src/window.c	Fscroll_left	scroll-left	0	2	"^P\\np"		421cca508f84
 src/window.c	Fscroll_right	scroll-right	0	2	"^P\\np"		0cdc0f952798
 src/window.c	Fminibuffer_selected_window	minibuffer-selected-window	0	0	0		69a7b47150c0
@@ -1701,7 +1701,7 @@ src/xdisp.c	Finvisible_p	invisible-p	1	1	0		babc2e0a077e
 src/xdisp.c	Flookup_image_map	lookup-image-map	3	3	0		ad21d2059180
 src/xfaces.c	Fdump_colors	dump-colors	0	0	0		4d6b2755fc44
 src/xfaces.c	Fclear_face_cache	clear-face-cache	0	1	0		6ffdead55fd2
-src/xfaces.c	Fbitmap_spec_p	bitmap-spec-p	1	1	0		6d41a7637304
+src/xfaces.c	Fbitmap_spec_p	bitmap-spec-p	1	1	0		2cc28d4f2fb5
 src/xfaces.c	Fcolor_values_from_color_spec	color-values-from-color-spec	1	1	0		7cdac59f272b
 src/xfaces.c	Fcolor_gray_p	color-gray-p	1	2	0		0b4d4ecd3c08
 src/xfaces.c	Fcolor_supported_p	color-supported-p	1	3	0		2aa2f0dc972f
@@ -1724,7 +1724,7 @@ src/xfaces.c	Finternal_lisp_face_empty_p	internal-lisp-face-empty-p	1	2	0		64d0b
 src/xfaces.c	Fframe_face_hash_table	frame--face-hash-table	0	1	0		428bbd446485
 src/xfaces.c	Fcolor_distance	color-distance	2	4	0		f68a053ce468
 src/xfaces.c	Fface_attributes_as_vector	face-attributes-as-vector	1	1	0		22718f8af056
-src/xfaces.c	Fdisplay_supports_face_attributes_p	display-supports-face-attributes-p	1	2	0		eb75876bc0f2
+src/xfaces.c	Fdisplay_supports_face_attributes_p	display-supports-face-attributes-p	1	2	0		78140bd0b17c
 src/xfaces.c	Finternal_set_font_selection_order	internal-set-font-selection-order	1	1	0		8e916e6b5867
 src/xfaces.c	Finternal_set_alternative_font_family_alist	internal-set-alternative-font-family-alist	1	1	0		b84466119bd8
 src/xfaces.c	Finternal_set_alternative_font_registry_alist	internal-set-alternative-font-registry-alist	1	1	0		3b5e875a1576
@@ -1734,34 +1734,34 @@ src/xfaces.c	Fdump_face	dump-face	0	1	0		da39a3ee5e6b
 src/xfaces.c	Fshow_face_resources	show-face-resources	0	0	0		da39a3ee5e6b
 src/xfns.c	Fx_wm_set_size_hint	x-wm-set-size-hint	0	1	0		3b3443b37abd
 src/xfns.c	Fx_create_frame	x-create-frame	1	1	0		3aa3bd717f23
-src/xfns.c	Fxw_color_defined_p	xw-color-defined-p	1	2	0		6ab61373e339
-src/xfns.c	Fxw_color_values	xw-color-values	1	2	0		904151a0206a
+src/xfns.c	Fxw_color_defined_p	xw-color-defined-p	1	2	0		111b36900236
+src/xfns.c	Fxw_color_values	xw-color-values	1	2	0		e7b922604837
 src/xfns.c	Fxw_display_color_p	xw-display-color-p	0	1	0		f4370b3dcc12
 src/xfns.c	Fx_display_grayscale_p	x-display-grayscale-p	0	1	0		9ed604d05b21
-src/xfns.c	Fx_display_pixel_width	x-display-pixel-width	0	1	0		110cfd90068a
-src/xfns.c	Fx_display_pixel_height	x-display-pixel-height	0	1	0		85d4f4cd369a
-src/xfns.c	Fx_display_planes	x-display-planes	0	1	0		b9d201811970
-src/xfns.c	Fx_display_color_cells	x-display-color-cells	0	1	0		25d60ca88be9
+src/xfns.c	Fx_display_pixel_width	x-display-pixel-width	0	1	0		3906524159d0
+src/xfns.c	Fx_display_pixel_height	x-display-pixel-height	0	1	0		89b5c1846a9d
+src/xfns.c	Fx_display_planes	x-display-planes	0	1	0		69a63406209b
+src/xfns.c	Fx_display_color_cells	x-display-color-cells	0	1	0		a83686202eba
 src/xfns.c	Fx_server_max_request_size	x-server-max-request-size	0	1	0		505f0bfe247c
-src/xfns.c	Fx_server_vendor	x-server-vendor	0	1	0		8f689935cbed
+src/xfns.c	Fx_server_vendor	x-server-vendor	0	1	0		de3c671fe93f
 src/xfns.c	Fx_server_version	x-server-version	0	1	0		10fe48a53058
 src/xfns.c	Fx_server_input_extension_version	x-server-input-extension-version	0	1	0		449a314f7618
-src/xfns.c	Fx_display_screens	x-display-screens	0	1	0		bfa79fe77dd3
-src/xfns.c	Fx_display_mm_height	x-display-mm-height	0	1	0		8bfe78d19ad4
-src/xfns.c	Fx_display_mm_width	x-display-mm-width	0	1	0		0ecbe7498d5e
+src/xfns.c	Fx_display_screens	x-display-screens	0	1	0		f43e36076c16
+src/xfns.c	Fx_display_mm_height	x-display-mm-height	0	1	0		47b82ab7c16c
+src/xfns.c	Fx_display_mm_width	x-display-mm-width	0	1	0		734047461f6a
 src/xfns.c	Fx_display_backing_store	x-display-backing-store	0	1	0		21d80c14fa58
-src/xfns.c	Fx_display_visual_class	x-display-visual-class	0	1	0		7d33195563bb
+src/xfns.c	Fx_display_visual_class	x-display-visual-class	0	1	0		0dbea69923e3
 src/xfns.c	Fx_display_save_under	x-display-save-under	0	1	0		4173a48aeac3
-src/xfns.c	Fx_display_monitor_attributes_list	x-display-monitor-attributes-list	0	1	0		7ebf333375a3
+src/xfns.c	Fx_display_monitor_attributes_list	x-display-monitor-attributes-list	0	1	0		0a47a80dde20
 src/xfns.c	Fx_frame_geometry	x-frame-geometry	0	1	0		13b3d6f56d48
 src/xfns.c	Fx_frame_edges	x-frame-edges	0	2	0		64d4478f2b7a
 src/xfns.c	Fx_frame_list_z_order	x-frame-list-z-order	0	1	0		2be8c7303b56
-src/xfns.c	Fx_frame_restack	x-frame-restack	2	3	0		e73383925de4
+src/xfns.c	Fx_frame_restack	x-frame-restack	2	3	0		ad1c447b21e2
 src/xfns.c	Fx_mouse_absolute_pixel_position	x-mouse-absolute-pixel-position	0	0	0		156bc3bcb5dd
-src/xfns.c	Fx_set_mouse_absolute_pixel_position	x-set-mouse-absolute-pixel-position	2	2	0		9743e3eec16d
+src/xfns.c	Fx_set_mouse_absolute_pixel_position	x-set-mouse-absolute-pixel-position	2	2	0		084be46aa072
 src/xfns.c	Fx_begin_drag	x-begin-drag	1	6	0		632d3703041d
-src/xfns.c	Fx_open_connection	x-open-connection	1	3	0		39f860c89c40
-src/xfns.c	Fx_close_connection	x-close-connection	1	1	0		7ee9f26a9feb
+src/xfns.c	Fx_open_connection	x-open-connection	1	3	0		29b173dc03f5
+src/xfns.c	Fx_close_connection	x-close-connection	1	1	0		2258c0dd8e82
 src/xfns.c	Fx_display_list	x-display-list	0	0	0		77ad9fb43043
 src/xfns.c	Fx_synchronize	x-synchronize	1	2	0		0ef4b46dd9a6
 src/xfns.c	Fx_change_window_property	x-change-window-property	2	7	0		466284409904
@@ -1787,14 +1787,14 @@ src/xfns.c	Fx_display_set_last_user_time	x-display-set-last-user-time	1	2	0		783
 src/xfns.c	Fx_internal_focus_input_context	x-internal-focus-input-context	1	1	0		b4c984459dfa
 src/xmenu.c	Fx_menu_bar_open_internal	x-menu-bar-open-internal	0	1	"i"		4fc0a6ba4d93
 src/xmenu.c	Fx_menu_bar_open_internal	x-menu-bar-open-internal	0	1	"i"		36b071aacbc1
-src/xmenu.c	Fmenu_or_popup_active_p	menu-or-popup-active-p	0	0	0		6dd27cdc7cb3
+src/xmenu.c	Fmenu_or_popup_active_p	menu-or-popup-active-p	0	0	0		d538a9375427
 src/xml.c	Flibxml_parse_html_region	libxml-parse-html-region	0	4	0		0986edef8180
 src/xml.c	Flibxml_parse_xml_region	libxml-parse-xml-region	0	4	0		83b689ce7bae
 src/xml.c	Flibxml_available_p	libxml-available-p	0	0	0		eb5cc6fe3238
-src/xselect.c	Fx_own_selection_internal	x-own-selection-internal	2	3	0		f9ceb0dd9d6f
-src/xselect.c	Fx_get_selection_internal	x-get-selection-internal	2	4	0		00004b70555d
+src/xselect.c	Fx_own_selection_internal	x-own-selection-internal	2	3	0		634095842544
+src/xselect.c	Fx_get_selection_internal	x-get-selection-internal	2	4	0		10f678f5b63e
 src/xselect.c	Fx_disown_selection_internal	x-disown-selection-internal	1	3	0		f7cf4b0376d9
-src/xselect.c	Fx_selection_owner_p	x-selection-owner-p	0	2	0		fe84df6947fc
+src/xselect.c	Fx_selection_owner_p	x-selection-owner-p	0	2	0		2db556fb19e1
 src/xselect.c	Fx_selection_exists_p	x-selection-exists-p	0	2	0		ef9b210333db
 src/xselect.c	Fx_get_local_selection	x-get-local-selection	0	2	0		c387b2f622fc
 src/xselect.c	Fx_get_atom_name	x-get-atom-name	1	2	0		e1939149455f

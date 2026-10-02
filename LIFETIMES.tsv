@@ -235,7 +235,9 @@ src/androidgui.h	struct_field	android_configuration_changed_event	struct	enum an
 src/androidgui.h	struct_field	android_configuration_changed_event	struct	double	0			dpi_x	android_configuration_changed_event > <anon@624> > <anon@625>							
 src/androidgui.h	struct_field	android_configuration_changed_event	struct	double	0			dpi_y	android_configuration_changed_event > <anon@624> > <anon@625>							
 src/androidgui.h	struct_field	android_configuration_changed_event	struct	double	0			dpi_scaled	android_configuration_changed_event > <anon@624> > <anon@625>							
+src/androidgui.h	struct_field	android_configuration_changed_event	struct	<aggregate>	0		False	pixel_density	android_configuration_changed_event > <anon@624>							
 src/androidgui.h	struct_field	android_configuration_changed_event	struct	int	0			ui_mode	android_configuration_changed_event > <anon@624>							
+src/androidgui.h	struct_field	android_configuration_changed_event	struct	<aggregate>	0		False	u	android_configuration_changed_event							
 src/androidgui.h	struct_field	android_event	union	enum android_event_type	0			type	android_event							
 src/androidgui.h	struct_field	android_event	union	struct android_any_event	0			xany	android_event							
 src/androidgui.h	struct_field	android_event	union	struct android_key_event	0			xkey	android_event							
@@ -602,6 +604,7 @@ src/coding.h	struct_field	composition_status	struct	bool	0			old_form	compositio
 src/coding.h	struct_field	composition_status	struct	int	0			length	composition_status							
 src/coding.h	struct_field	composition_status	struct	int	0			nchars	composition_status							
 src/coding.h	struct_field	composition_status	struct	int	0			ncomps	composition_status							
+src/coding.h	struct_field	composition_status	struct	int	0	[4 + MAX_COMPOSITION_COMPONENTS * 3 - 2 + 2 + MAX_COMPOSITION_COMPONENTS ]		carryover	composition_status							
 src/coding.h	struct_field	iso_2022_spec	struct	unsigned	0			flags	iso_2022_spec							
 src/coding.h	struct_field	iso_2022_spec	struct	int	0	[2]		current_invocation	iso_2022_spec							
 src/coding.h	struct_field	iso_2022_spec	struct	int	0	[4]		current_designation	iso_2022_spec							
@@ -632,12 +635,41 @@ src/coding.h	struct_field	coding_system	struct	bool_bf	0		1	insert_before_marker
 src/coding.h	struct_field	coding_system	struct	unsigned	0		3	eol_seen	coding_system							
 src/coding.h	struct_field	coding_system	struct	ENUM_BF (coding_result_code)	0		3	result	coding_system							
 src/coding.h	struct_field	coding_system	struct	int	0			max_charset_id	coding_system							
-src/coding.h	struct_field	coding_system	struct	struct iso_2022_spec	0			iso_2022	coding_system							
-src/coding.h	struct_field	coding_system	struct	struct ccl_spec	1			ccl	coding_system							
-src/coding.h	struct_field	coding_system	struct	struct utf_16_spec	0			utf_16	coding_system							
-src/coding.h	struct_field	coding_system	struct	enum utf_bom_type	0			utf_8_bom	coding_system							
-src/coding.h	struct_field	coding_system	struct	struct emacs_mule_spec	0			emacs_mule	coding_system							
-src/coding.h	struct_field	coding_system	struct	struct undecided_spec	0			undecided	coding_system							
+src/coding.h	struct_field	coding_system	struct	struct iso_2022_spec	0			iso_2022	coding_system > <anon@445>							
+src/coding.h	struct_field	coding_system	struct	struct ccl_spec	1			ccl	coding_system > <anon@445>							
+src/coding.h	struct_field	coding_system	struct	struct utf_16_spec	0			utf_16	coding_system > <anon@445>							
+src/coding.h	struct_field	coding_system	struct	enum utf_bom_type	0			utf_8_bom	coding_system > <anon@445>							
+src/coding.h	struct_field	coding_system	struct	struct emacs_mule_spec	0			emacs_mule	coding_system > <anon@445>							
+src/coding.h	struct_field	coding_system	struct	struct undecided_spec	0			undecided	coding_system > <anon@445>							
+src/coding.h	struct_field	coding_system	struct	<aggregate>	0		False	spec	coding_system							
+src/coding.h	struct_field	coding_system	struct	unsigned char	1			safe_charsets	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			head_ascii	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			detected_utf8_bytes	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			detected_utf8_chars	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			produced	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			produced_char	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			consumed	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			consumed_char	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			src_pos	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			src_pos_byte	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			src_chars	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			src_bytes	coding_system							
+src/coding.h	struct_field	coding_system	struct	Lisp_Object	0			src_object	coding_system	yes						
+src/coding.h	struct_field	coding_system	struct	const unsigned char	1			source	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			dst_pos	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			dst_pos_byte	coding_system							
+src/coding.h	struct_field	coding_system	struct	ptrdiff_t	0			dst_bytes	coding_system							
+src/coding.h	struct_field	coding_system	struct	Lisp_Object	0			dst_object	coding_system	yes						
+src/coding.h	struct_field	coding_system	struct	unsigned char	1			destination	coding_system							
+src/coding.h	struct_field	coding_system	struct	int	1			charbuf	coding_system							
+src/coding.h	struct_field	coding_system	struct	int	0			charbuf_size	coding_system							
+src/coding.h	struct_field	coding_system	struct	int	0			charbuf_used	coding_system							
+src/coding.h	struct_field	coding_system	struct	unsigned char	0	[64]		carryover	coding_system							
+src/coding.h	struct_field	coding_system	struct	int	0			carryover_bytes	coding_system							
+src/coding.h	struct_field	coding_system	struct	int	0			default_char	coding_system							
+src/coding.h	struct_field	coding_system	struct	bool (*)	0			detector	coding_system							
+src/coding.h	struct_field	coding_system	struct	void (*)	0			decoder	coding_system							
+src/coding.h	struct_field	coding_system	struct	bool (*)	0			encoder	coding_system							
 src/comp.h	struct_field	Lisp_Native_Comp_Unit	struct	union vectorlike_header	0			header	Lisp_Native_Comp_Unit							
 src/comp.h	struct_field	Lisp_Native_Comp_Unit	struct	Lisp_Object	0			file	Lisp_Native_Comp_Unit	yes						
 src/comp.h	struct_field	Lisp_Native_Comp_Unit	struct	Lisp_Object	0			optimize_qualities	Lisp_Native_Comp_Unit	yes						
@@ -691,13 +723,31 @@ src/dispextern.h	struct_field	glyph	struct	bool_bf	0		1	glyph_not_available_p	gl
 src/dispextern.h	struct_field	glyph	struct	bool_bf	0		1	avoid_cursor_p	glyph							
 src/dispextern.h	struct_field	glyph	struct	unsigned	0		7	resolved_level	glyph							
 src/dispextern.h	struct_field	glyph	struct	unsigned	0		3	bidi_type	glyph							
-src/dispextern.h	struct_field	glyph	struct	unsigned face_id :	0			FACE_ID_BITS	glyph							
+src/dispextern.h	struct_field	glyph	struct	unsigned	0		FACE_ID_BITS	face_id	glyph							
 src/dispextern.h	struct_field	glyph	struct	unsigned	0		3	font_type	glyph							
-src/dispextern.h	struct_field	glyph	struct	struct glyph_slice	0			img	glyph							
-src/dispextern.h	struct_field	glyph	struct	short	0			upper_xoff	glyph > <anon@583>							
-src/dispextern.h	struct_field	glyph	struct	short	0			upper_yoff	glyph > <anon@583>							
-src/dispextern.h	struct_field	glyph	struct	short	0			lower_xoff	glyph > <anon@583>							
-src/dispextern.h	struct_field	glyph	struct	short	0			lower_yoff	glyph > <anon@583>							
+src/dispextern.h	struct_field	glyph	struct	struct glyph_slice	0			img	glyph > <anon@575>							
+src/dispextern.h	struct_field	glyph	struct	short	0			upper_xoff	glyph > <anon@575> > <anon@583>							
+src/dispextern.h	struct_field	glyph	struct	short	0			upper_yoff	glyph > <anon@575> > <anon@583>							
+src/dispextern.h	struct_field	glyph	struct	short	0			lower_xoff	glyph > <anon@575> > <anon@583>							
+src/dispextern.h	struct_field	glyph	struct	short	0			lower_yoff	glyph > <anon@575> > <anon@583>							
+src/dispextern.h	struct_field	glyph	struct	<aggregate>	0		False	glyphless	glyph > <anon@575>							
+src/dispextern.h	struct_field	glyph	struct	<aggregate>	0		False	slice	glyph							
+src/dispextern.h	struct_field	glyph	struct	unsigned	0			ch	glyph > <anon@590>							
+src/dispextern.h	struct_field	glyph	struct	bool_bf	0		1	automatic	glyph > <anon@590> > <anon@596>							
+src/dispextern.h	struct_field	glyph	struct	unsigned	0		31	id	glyph > <anon@590> > <anon@596>							
+src/dispextern.h	struct_field	glyph	struct	<aggregate>	0		False	cmp	glyph > <anon@590>							
+src/dispextern.h	struct_field	glyph	struct	int	0			img_id	glyph > <anon@590>							
+src/dispextern.h	struct_field	glyph	struct	uint32_t	0			xwidget	glyph > <anon@590>							
+src/dispextern.h	struct_field	glyph	struct	unsigned	0		16	height	glyph > <anon@590> > <anon@613>							
+src/dispextern.h	struct_field	glyph	struct	unsigned	0		16	ascent	glyph > <anon@590> > <anon@613>							
+src/dispextern.h	struct_field	glyph	struct	<aggregate>	0		False	stretch	glyph > <anon@590>							
+src/dispextern.h	struct_field	glyph	struct	unsigned	0		2	method	glyph > <anon@590> > <anon@624>							
+src/dispextern.h	struct_field	glyph	struct	bool_bf	0		1	for_no_font	glyph > <anon@590> > <anon@624>							
+src/dispextern.h	struct_field	glyph	struct	unsigned	0		4	len	glyph > <anon@590> > <anon@624>							
+src/dispextern.h	struct_field	glyph	struct	unsigned	0		25	ch	glyph > <anon@590> > <anon@624>							
+src/dispextern.h	struct_field	glyph	struct	<aggregate>	0		False	glyphless	glyph > <anon@590>							
+src/dispextern.h	struct_field	glyph	struct	unsigned	0			val	glyph > <anon@590>							
+src/dispextern.h	struct_field	glyph	struct	<aggregate>	0		False	u	glyph							
 src/dispextern.h	struct_field	glyph_pool	struct	struct glyph	1			glyphs	glyph_pool							
 src/dispextern.h	struct_field	glyph_pool	struct	ptrdiff_t	0			nglyphs	glyph_pool							
 src/dispextern.h	struct_field	glyph_pool	struct	int	0			nrows	glyph_pool							
@@ -742,16 +792,16 @@ src/dispextern.h	struct_field	glyph_row	struct	struct display_pos	0			end	glyph_
 src/dispextern.h	struct_field	glyph_row	struct	struct text_pos	0			minpos	glyph_row							
 src/dispextern.h	struct_field	glyph_row	struct	struct text_pos	0			maxpos	glyph_row							
 src/dispextern.h	struct_field	glyph_row	struct	int	0			overlay_arrow_bitmap	glyph_row							
-src/dispextern.h	struct_field	glyph_row	struct	unsigned left_user_fringe_bitmap :	0			FRINGE_ID_BITS	glyph_row							
-src/dispextern.h	struct_field	glyph_row	struct	unsigned right_user_fringe_bitmap :	0			FRINGE_ID_BITS	glyph_row							
-src/dispextern.h	struct_field	glyph_row	struct	unsigned left_fringe_bitmap :	0			FRINGE_ID_BITS	glyph_row							
-src/dispextern.h	struct_field	glyph_row	struct	unsigned right_fringe_bitmap :	0			FRINGE_ID_BITS	glyph_row							
-src/dispextern.h	struct_field	glyph_row	struct	unsigned left_user_fringe_face_id :	0			FACE_ID_BITS	glyph_row							
-src/dispextern.h	struct_field	glyph_row	struct	unsigned right_user_fringe_face_id :	0			FACE_ID_BITS	glyph_row							
-src/dispextern.h	struct_field	glyph_row	struct	unsigned left_fringe_face_id :	0			FACE_ID_BITS	glyph_row							
-src/dispextern.h	struct_field	glyph_row	struct	unsigned right_fringe_face_id :	0			FACE_ID_BITS	glyph_row							
-src/dispextern.h	struct_field	glyph_row	struct	signed left_fringe_offset :	0			FRINGE_HEIGHT_BITS	glyph_row							
-src/dispextern.h	struct_field	glyph_row	struct	signed right_fringe_offset :	0			FRINGE_HEIGHT_BITS	glyph_row							
+src/dispextern.h	struct_field	glyph_row	struct	unsigned	0		FRINGE_ID_BITS	left_user_fringe_bitmap	glyph_row							
+src/dispextern.h	struct_field	glyph_row	struct	unsigned	0		FRINGE_ID_BITS	right_user_fringe_bitmap	glyph_row							
+src/dispextern.h	struct_field	glyph_row	struct	unsigned	0		FRINGE_ID_BITS	left_fringe_bitmap	glyph_row							
+src/dispextern.h	struct_field	glyph_row	struct	unsigned	0		FRINGE_ID_BITS	right_fringe_bitmap	glyph_row							
+src/dispextern.h	struct_field	glyph_row	struct	unsigned	0		FACE_ID_BITS	left_user_fringe_face_id	glyph_row							
+src/dispextern.h	struct_field	glyph_row	struct	unsigned	0		FACE_ID_BITS	right_user_fringe_face_id	glyph_row							
+src/dispextern.h	struct_field	glyph_row	struct	unsigned	0		FACE_ID_BITS	left_fringe_face_id	glyph_row							
+src/dispextern.h	struct_field	glyph_row	struct	unsigned	0		FACE_ID_BITS	right_fringe_face_id	glyph_row							
+src/dispextern.h	struct_field	glyph_row	struct	signed	0		FRINGE_HEIGHT_BITS	left_fringe_offset	glyph_row							
+src/dispextern.h	struct_field	glyph_row	struct	signed	0		FRINGE_HEIGHT_BITS	right_fringe_offset	glyph_row							
 src/dispextern.h	struct_field	glyph_row	struct	bool_bf	0		1	fringe_bitmap_periodic_p	glyph_row							
 src/dispextern.h	struct_field	glyph_row	struct	bool_bf	0		1	redraw_fringe_bitmaps_p	glyph_row							
 src/dispextern.h	struct_field	glyph_row	struct	bool_bf	0		1	enabled_p	glyph_row							
@@ -1004,8 +1054,12 @@ src/dispextern.h	struct_field	it	struct	int	0			face_id	it > iterator_stack_entr
 src/dispextern.h	struct_field	it	struct	Lisp_Object	0			object	it > iterator_stack_entry > <anon@2604> > <anon@2606>	yes						
 src/dispextern.h	struct_field	it	struct	struct it_slice	0			slice	it > iterator_stack_entry > <anon@2604> > <anon@2606>							
 src/dispextern.h	struct_field	it	struct	ptrdiff_t	0			image_id	it > iterator_stack_entry > <anon@2604> > <anon@2606>							
+src/dispextern.h	struct_field	it	struct	<aggregate>	0		False	image	it > iterator_stack_entry > <anon@2604>							
 src/dispextern.h	struct_field	it	struct	Lisp_Object	0			object	it > iterator_stack_entry > <anon@2604> > <anon@2612>	yes						
+src/dispextern.h	struct_field	it	struct	<aggregate>	0		False	stretch	it > iterator_stack_entry > <anon@2604>							
 src/dispextern.h	struct_field	it	struct	Lisp_Object	0			object	it > iterator_stack_entry > <anon@2604> > <anon@2616>	yes						
+src/dispextern.h	struct_field	it	struct	<aggregate>	0		False	xwidget	it > iterator_stack_entry > <anon@2604>							
+src/dispextern.h	struct_field	it	struct	<aggregate>	0		False	u	it > iterator_stack_entry							
 src/dispextern.h	struct_field	it	struct	struct text_pos	0			position	it > iterator_stack_entry							
 src/dispextern.h	struct_field	it	struct	struct display_pos	0			current	it > iterator_stack_entry							
 src/dispextern.h	struct_field	it	struct	Lisp_Object	0			from_overlay	it > iterator_stack_entry	yes						
@@ -1023,6 +1077,7 @@ src/dispextern.h	struct_field	it	struct	enum line_wrap_method	0			line_wrap	it >
 src/dispextern.h	struct_field	it	struct	short	0			voffset	it > iterator_stack_entry							
 src/dispextern.h	struct_field	it	struct	Lisp_Object	0			space_width	it > iterator_stack_entry	yes						
 src/dispextern.h	struct_field	it	struct	Lisp_Object	0			font_height	it > iterator_stack_entry	yes						
+src/dispextern.h	struct_field	it	struct	<aggregate>	0	[IT_STACK_SIZE]	False	stack	it							
 src/dispextern.h	struct_field	it	struct	int	0			sp	it							
 src/dispextern.h	struct_field	it	struct	ptrdiff_t	0			selective	it							
 src/dispextern.h	struct_field	it	struct	enum display_element_type	0			what	it							
@@ -1093,10 +1148,10 @@ src/dispextern.h	struct_field	it	struct	int	0			lnum_width	it
 src/dispextern.h	struct_field	it	struct	int	0			lnum_pixel_width	it							
 src/dispextern.h	struct_field	it	struct	ptrdiff_t	0			pt_lnum	it							
 src/dispextern.h	struct_field	it	struct	int	0			stretch_adjust	it							
-src/dispextern.h	struct_field	it	struct	unsigned left_user_fringe_bitmap :	0			FRINGE_ID_BITS	it							
-src/dispextern.h	struct_field	it	struct	unsigned right_user_fringe_bitmap :	0			FRINGE_ID_BITS	it							
-src/dispextern.h	struct_field	it	struct	unsigned left_user_fringe_face_id :	0			FACE_ID_BITS	it							
-src/dispextern.h	struct_field	it	struct	unsigned right_user_fringe_face_id :	0			FACE_ID_BITS	it							
+src/dispextern.h	struct_field	it	struct	unsigned	0		FRINGE_ID_BITS	left_user_fringe_bitmap	it							
+src/dispextern.h	struct_field	it	struct	unsigned	0		FRINGE_ID_BITS	right_user_fringe_bitmap	it							
+src/dispextern.h	struct_field	it	struct	unsigned	0		FACE_ID_BITS	left_user_fringe_face_id	it							
+src/dispextern.h	struct_field	it	struct	unsigned	0		FACE_ID_BITS	right_user_fringe_face_id	it							
 src/dispextern.h	struct_field	it	struct	bool_bf	0		1	bidi_p	it							
 src/dispextern.h	struct_field	it	struct	struct bidi_it	0			bidi_it	it							
 src/dispextern.h	struct_field	it	struct	bidi_dir_t	0			paragraph_embedding	it							
@@ -1110,28 +1165,29 @@ src/dispextern.h	struct_field	run	struct	int	0			height	run
 src/dispextern.h	struct_field	run	struct	int	0			nrows	run							
 src/dispextern.h	struct_field	redisplay_interface	struct	frame_parm_handler	1			frame_parm_handlers	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			produce_glyphs	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	enum glyph_row_area	0			area	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			write_glyphs	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			insert_glyphs	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			clear_end_of_line	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			scroll_run_hook	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			after_update_window_line_hook	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			update_window_begin_hook	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			update_window_end_hook	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			flush_display	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			clear_window_mouse_face	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	1			left	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	enum glyph_row_area	0			area	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	0			h	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			get_glyph_overhangs	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			fix_overlapping_area	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			draw_fringe_bitmap	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			define_fringe_bitmap	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			destroy_fringe_bitmap	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			compute_glyph_string_overhangs	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			draw_glyph_string	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			define_frame_cursor	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	0			width	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			clear_frame_area	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			clear_under_internal_border	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	0			cursor_width	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	0			on_p	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	0			x	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	0			y_0	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	0			x_0	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	0			x_1	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	0			y_0	redisplay_interface							
-src/dispextern.h	struct_field	redisplay_interface	struct	int	0			height	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			draw_window_cursor	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			draw_vertical_window_border	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			draw_window_divider	redisplay_interface							
+src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			shift_glyphs_for_insert	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			show_hourglass	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			hide_hourglass	redisplay_interface							
 src/dispextern.h	struct_field	redisplay_interface	struct	void (*)	0			default_font_parameter	redisplay_interface							
@@ -1189,6 +1245,7 @@ src/dispextern.h	struct_field	image_cache	struct	ptrdiff_t	0			refcount	image_ca
 src/dispextern.h	struct_field	image_cache	struct	int	0			scaling_col_width	image_cache							
 src/emacs-module.in.h	struct_field	emacs_runtime	struct	ptrdiff_t	0			size	emacs_runtime							
 src/emacs-module.in.h	struct_field	emacs_runtime	struct	struct emacs_runtime_private	1			private_members	emacs_runtime							
+src/emacs-module.in.h	struct_field	emacs_runtime	struct	emacs_env * (*)	0			get_environment	emacs_runtime							
 src/emacsgtkfixed.h	struct_field	_EmacsFixed	struct	GtkFixed	0			container	_EmacsFixed							
 src/emacsgtkfixed.h	struct_field	_EmacsFixed	struct	EmacsFixedPrivate	1			priv	_EmacsFixed							
 src/emacsgtkfixed.h	struct_field	_EmacsFixedClass	struct	GtkFixedClass	0			parent_class	_EmacsFixedClass							
@@ -1236,24 +1293,26 @@ src/font.h	struct_field	font_driver	struct	Lisp_Object (*)	0			list	font_driver	
 src/font.h	struct_field	font_driver	struct	Lisp_Object (*)	0			match	font_driver	yes						
 src/font.h	struct_field	font_driver	struct	Lisp_Object (*)	0			list_family	font_driver	yes						
 src/font.h	struct_field	font_driver	struct	void (*)	0			free_entity	font_driver							
+src/font.h	struct_field	font_driver	struct	Lisp_Object (*)	0			open_font	font_driver	yes						
 src/font.h	struct_field	font_driver	struct	void (*)	0			close_font	font_driver							
 src/font.h	struct_field	font_driver	struct	void (*)	0			prepare_face	font_driver							
 src/font.h	struct_field	font_driver	struct	void (*)	0			done_face	font_driver							
 src/font.h	struct_field	font_driver	struct	int (*)	0			has_char	font_driver							
 src/font.h	struct_field	font_driver	struct	unsigned (*)	0			encode_char	font_driver							
-src/font.h	struct_field	font_driver	struct	int	0			x	font_driver							
-src/font.h	struct_field	font_driver	struct	int	0			y	font_driver							
+src/font.h	struct_field	font_driver	struct	void (*)	0			text_extents	font_driver							
+src/font.h	struct_field	font_driver	struct	int (*)	0			draw	font_driver							
+src/font.h	struct_field	font_driver	struct	int (*)	0			get_bitmap	font_driver							
 src/font.h	struct_field	font_driver	struct	void (*)	0			free_bitmap	font_driver							
-src/font.h	struct_field	font_driver	struct	int	1			x	font_driver							
+src/font.h	struct_field	font_driver	struct	int (*)	0			anchor_point	font_driver							
 src/font.h	struct_field	font_driver	struct	Lisp_Object (*)	0			otf_capability	font_driver	yes						
-src/font.h	struct_field	font_driver	struct	Lisp_Object	0			gstring_out	font_driver	yes						
-src/font.h	struct_field	font_driver	struct	Lisp_Object	0			idx	font_driver	yes						
+src/font.h	struct_field	font_driver	struct	int (*)	0			otf_drive	font_driver							
 src/font.h	struct_field	font_driver	struct	int (*)	0			start_for_frame	font_driver							
 src/font.h	struct_field	font_driver	struct	int (*)	0			end_for_frame	font_driver							
 src/font.h	struct_field	font_driver	struct	Lisp_Object (*)	0			shape	font_driver	yes						
 src/font.h	struct_field	font_driver	struct	int (*)	0			check	font_driver							
-src/font.h	struct_field	font_driver	struct	int	0			c	font_driver							
+src/font.h	struct_field	font_driver	struct	int (*)	0			get_variation_glyphs	font_driver							
 src/font.h	struct_field	font_driver	struct	void (*)	0			filter_properties	font_driver							
+src/font.h	struct_field	font_driver	struct	bool (*)	0			cached_font_ok	font_driver							
 src/font.h	struct_field	font_driver	struct	Lisp_Object (*)	0			combining_capability	font_driver	yes						
 src/font.h	struct_field	font_driver	struct	void (*)	0			drop_xrender_surfaces	font_driver							
 src/font.h	struct_field	font_driver	struct	hb_font_t * (*)	0			begin_hb_font	font_driver							
@@ -1414,6 +1473,7 @@ src/frame.h	struct_field	frame	struct	struct ns_output	1			ns	frame > output_dat
 src/frame.h	struct_field	frame	struct	struct pgtk_output	1			pgtk	frame > output_data							
 src/frame.h	struct_field	frame	struct	struct haiku_output	1			haiku	frame > output_data							
 src/frame.h	struct_field	frame	struct	struct android_output	1			android	frame > output_data							
+src/frame.h	struct_field	frame	struct	<aggregate>	0		False	output_data	frame							
 src/frame.h	struct_field	frame	struct	struct font_driver_list	1			font_driver_list	frame							
 src/frame.h	struct_field	frame	struct	int	0			wait_event_type	frame							
 src/frame.h	struct_field	frame	struct	enum text_cursor_kinds	0			desired_cursor	frame							
@@ -1689,8 +1749,16 @@ src/intervals.h	struct_field	interval	struct	ptrdiff_t	0			total_length	interval
 src/intervals.h	struct_field	interval	struct	ptrdiff_t	0			position	interval							
 src/intervals.h	struct_field	interval	struct	struct interval	1			left	interval	yes						
 src/intervals.h	struct_field	interval	struct	struct interval	1			right	interval	yes						
-src/intervals.h	struct_field	interval	struct	struct interval	1			interval	interval	yes						
-src/intervals.h	struct_field	interval	struct	Lisp_Object	0			obj	interval	yes						
+src/intervals.h	struct_field	interval	struct	struct interval	1			interval	interval > <anon@47>	yes						
+src/intervals.h	struct_field	interval	struct	Lisp_Object	0			obj	interval > <anon@47>	yes						
+src/intervals.h	struct_field	interval	struct	<aggregate>	0		False	up	interval							
+src/intervals.h	struct_field	interval	struct	bool_bf	0		1	up_obj	interval							
+src/intervals.h	struct_field	interval	struct	bool_bf	0		1	gcmarkbit	interval							
+src/intervals.h	struct_field	interval	struct	bool_bf	0		1	write_protect	interval							
+src/intervals.h	struct_field	interval	struct	bool_bf	0		1	visible	interval							
+src/intervals.h	struct_field	interval	struct	bool_bf	0		1	front_sticky	interval							
+src/intervals.h	struct_field	interval	struct	bool_bf	0		1	rear_sticky	interval							
+src/intervals.h	struct_field	interval	struct	Lisp_Object	0			plist	interval	yes						
 src/itree.h	struct_field	itree_node	struct	struct itree_node	1			parent	itree_node							
 src/itree.h	struct_field	itree_node	struct	struct itree_node	1			left	itree_node							
 src/itree.h	struct_field	itree_node	struct	struct itree_node	1			right	itree_node							
@@ -1737,33 +1805,42 @@ src/keyboard.h	struct_field	kboard	struct	Lisp_Object	0			echo_string_	kboard	ye
 src/keyboard.h	struct_field	kboard	struct	bool_bf	0			kbd_queue_has_data	kboard							
 src/keyboard.h	struct_field	kboard	struct	bool_bf	0		1	immediate_echo	kboard							
 src/keyboard.h	struct_field	kboard	struct	Lisp_Object	0			echo_prompt_	kboard	yes						
-src/keyboard.h	struct_field	buffered_input_event	union	ENUM_BF (event_kind) kind :	0			EVENT_KIND_WIDTH	buffered_input_event							
+src/keyboard.h	struct_field	buffered_input_event	union	ENUM_BF (event_kind)	0		EVENT_KIND_WIDTH	kind	buffered_input_event							
 src/keyboard.h	struct_field	buffered_input_event	union	struct input_event	0			ie	buffered_input_event							
 src/keyboard.h	struct_field	buffered_input_event	union	struct selection_input_event	0			sie	buffered_input_event							
-src/lisp.h	struct_field	Lisp_Symbol	struct	bool_bf	0		1	gcmarkbit	Lisp_Symbol							
-src/lisp.h	struct_field	Lisp_Symbol	struct	ENUM_BF (symbol_redirect)	0		2	redirect	Lisp_Symbol							
-src/lisp.h	struct_field	Lisp_Symbol	struct	ENUM_BF (symbol_trapped_write)	0		2	trapped_write	Lisp_Symbol							
-src/lisp.h	struct_field	Lisp_Symbol	struct	ENUM_BF (symbol_interned)	0		2	interned	Lisp_Symbol							
-src/lisp.h	struct_field	Lisp_Symbol	struct	bool_bf	0		1	declared_special	Lisp_Symbol							
-src/lisp.h	struct_field	Lisp_Symbol	struct	Lisp_Object	0			name	Lisp_Symbol	yes						
-src/lisp.h	struct_field	Lisp_Symbol	struct	Lisp_Object	0			value	Lisp_Symbol > <anon@810>	yes						
-src/lisp.h	struct_field	Lisp_Symbol	struct	struct Lisp_Symbol	1			alias	Lisp_Symbol > <anon@810>	yes						
-src/lisp.h	struct_field	Lisp_Symbol	struct	struct Lisp_Buffer_Local_Value	1			blv	Lisp_Symbol > <anon@810>	yes						
-src/lisp.h	struct_field	Lisp_Symbol	struct	lispfwd	0			fwd	Lisp_Symbol > <anon@810>							
-src/lisp.h	struct_field	Lisp_Symbol	struct	Lisp_Object	0			function	Lisp_Symbol	yes						
-src/lisp.h	struct_field	Lisp_Symbol	struct	Lisp_Object	0			plist	Lisp_Symbol	yes						
-src/lisp.h	struct_field	Lisp_Symbol	struct	struct Lisp_Symbol	1			next	Lisp_Symbol	yes						
+src/lisp.h	struct_field	Lisp_Symbol	struct	bool_bf	0		1	gcmarkbit	Lisp_Symbol > <anon@787> > <anon@789>							
+src/lisp.h	struct_field	Lisp_Symbol	struct	ENUM_BF (symbol_redirect)	0		2	redirect	Lisp_Symbol > <anon@787> > <anon@789>							
+src/lisp.h	struct_field	Lisp_Symbol	struct	ENUM_BF (symbol_trapped_write)	0		2	trapped_write	Lisp_Symbol > <anon@787> > <anon@789>							
+src/lisp.h	struct_field	Lisp_Symbol	struct	ENUM_BF (symbol_interned)	0		2	interned	Lisp_Symbol > <anon@787> > <anon@789>							
+src/lisp.h	struct_field	Lisp_Symbol	struct	bool_bf	0		1	declared_special	Lisp_Symbol > <anon@787> > <anon@789>							
+src/lisp.h	struct_field	Lisp_Symbol	struct	Lisp_Object	0			name	Lisp_Symbol > <anon@787> > <anon@789>	yes						
+src/lisp.h	struct_field	Lisp_Symbol	struct	Lisp_Object	0			value	Lisp_Symbol > <anon@787> > <anon@789> > <anon@810>	yes						
+src/lisp.h	struct_field	Lisp_Symbol	struct	struct Lisp_Symbol	1			alias	Lisp_Symbol > <anon@787> > <anon@789> > <anon@810>	yes						
+src/lisp.h	struct_field	Lisp_Symbol	struct	struct Lisp_Buffer_Local_Value	1			blv	Lisp_Symbol > <anon@787> > <anon@789> > <anon@810>	yes						
+src/lisp.h	struct_field	Lisp_Symbol	struct	lispfwd	0			fwd	Lisp_Symbol > <anon@787> > <anon@789> > <anon@810>							
+src/lisp.h	struct_field	Lisp_Symbol	struct	<aggregate>	0		False	val	Lisp_Symbol > <anon@787> > <anon@789>							
+src/lisp.h	struct_field	Lisp_Symbol	struct	Lisp_Object	0			function	Lisp_Symbol > <anon@787> > <anon@789>	yes						
+src/lisp.h	struct_field	Lisp_Symbol	struct	Lisp_Object	0			plist	Lisp_Symbol > <anon@787> > <anon@789>	yes						
+src/lisp.h	struct_field	Lisp_Symbol	struct	struct Lisp_Symbol	1			next	Lisp_Symbol > <anon@787> > <anon@789>	yes						
+src/lisp.h	struct_field	Lisp_Symbol	struct	<aggregate>	0		False	s	Lisp_Symbol > <anon@787>							
+src/lisp.h	struct_field	Lisp_Symbol	struct	<aggregate>	0		False	u	Lisp_Symbol							
 src/lisp.h	struct_field	vectorlike_header	union	ptrdiff_t	0			size	vectorlike_header							
 src/lisp.h	struct_field	Lisp_Symbol_With_Pos	struct	union vectorlike_header	0			header	Lisp_Symbol_With_Pos							
 src/lisp.h	struct_field	Lisp_Symbol_With_Pos	struct	Lisp_Object	0			sym	Lisp_Symbol_With_Pos	yes						
 src/lisp.h	struct_field	Lisp_Symbol_With_Pos	struct	Lisp_Object	0			pos	Lisp_Symbol_With_Pos	yes						
-src/lisp.h	struct_field	Lisp_Cons	struct	Lisp_Object	0			car	Lisp_Cons	yes						
-src/lisp.h	struct_field	Lisp_Cons	struct	Lisp_Object	0			cdr	Lisp_Cons	yes						
-src/lisp.h	struct_field	Lisp_Cons	struct	struct Lisp_Cons	1			chain	Lisp_Cons	yes						
-src/lisp.h	struct_field	Lisp_String	struct	ptrdiff_t	0			size	Lisp_String							
-src/lisp.h	struct_field	Lisp_String	struct	ptrdiff_t	0			size_byte	Lisp_String							
-src/lisp.h	struct_field	Lisp_String	struct	INTERVAL	0			intervals	Lisp_String	yes						
-src/lisp.h	struct_field	Lisp_String	struct	unsigned char	1			data	Lisp_String							
+src/lisp.h	struct_field	Lisp_Cons	struct	Lisp_Object	0			car	Lisp_Cons > <anon@1427> > <anon@1429>	yes						
+src/lisp.h	struct_field	Lisp_Cons	struct	Lisp_Object	0			cdr	Lisp_Cons > <anon@1427> > <anon@1429> > <anon@1434>	yes						
+src/lisp.h	struct_field	Lisp_Cons	struct	struct Lisp_Cons	1			chain	Lisp_Cons > <anon@1427> > <anon@1429> > <anon@1434>	yes						
+src/lisp.h	struct_field	Lisp_Cons	struct	<aggregate>	0		False	u	Lisp_Cons > <anon@1427> > <anon@1429>							
+src/lisp.h	struct_field	Lisp_Cons	struct	<aggregate>	0		False	s	Lisp_Cons > <anon@1427>							
+src/lisp.h	struct_field	Lisp_Cons	struct	<aggregate>	0		False	u	Lisp_Cons							
+src/lisp.h	struct_field	Lisp_String	struct	ptrdiff_t	0			size	Lisp_String > <anon@1556> > <anon@1558>							
+src/lisp.h	struct_field	Lisp_String	struct	ptrdiff_t	0			size_byte	Lisp_String > <anon@1556> > <anon@1558>							
+src/lisp.h	struct_field	Lisp_String	struct	INTERVAL	0			intervals	Lisp_String > <anon@1556> > <anon@1558>	yes						
+src/lisp.h	struct_field	Lisp_String	struct	unsigned char	1			data	Lisp_String > <anon@1556> > <anon@1558>							
+src/lisp.h	struct_field	Lisp_String	struct	<aggregate>	0		False	s	Lisp_String > <anon@1556>							
+src/lisp.h	struct_field	Lisp_String	struct	struct Lisp_String	1			next	Lisp_String > <anon@1556>	yes						
+src/lisp.h	struct_field	Lisp_String	struct	<aggregate>	0		False	u	Lisp_String							
 src/lisp.h	struct_field	Lisp_Vector	struct	union vectorlike_header	0			header	Lisp_Vector							
 src/lisp.h	struct_field	Lisp_Vector	struct	Lisp_Object	0	[FLEXIBLE_ARRAY_MEMBER]		contents	Lisp_Vector	yes						
 src/lisp.h	struct_field	Lisp_Bool_Vector	struct	union vectorlike_header	0			header	Lisp_Bool_Vector							
@@ -1792,11 +1869,13 @@ src/lisp.h	struct_field	Lisp_Subr	struct	Lisp_Object (*)	0			a7	Lisp_Subr > <ano
 src/lisp.h	struct_field	Lisp_Subr	struct	Lisp_Object (*)	0			a8	Lisp_Subr > <anon@2177>	yes						
 src/lisp.h	struct_field	Lisp_Subr	struct	Lisp_Object (*)	0			aUNEVALLED	Lisp_Subr > <anon@2177>	yes						
 src/lisp.h	struct_field	Lisp_Subr	struct	Lisp_Object (*)	0			aMANY	Lisp_Subr > <anon@2177>	yes						
+src/lisp.h	struct_field	Lisp_Subr	struct	<aggregate>	0		False	function	Lisp_Subr							
 src/lisp.h	struct_field	Lisp_Subr	struct	short	0			min_args	Lisp_Subr							
 src/lisp.h	struct_field	Lisp_Subr	struct	short	0			max_args	Lisp_Subr							
 src/lisp.h	struct_field	Lisp_Subr	struct	const char	1			symbol_name	Lisp_Subr							
 src/lisp.h	struct_field	Lisp_Subr	struct	const char	1			string	Lisp_Subr > <anon@2192>							
 src/lisp.h	struct_field	Lisp_Subr	struct	Lisp_Object	0			native	Lisp_Subr > <anon@2192>	yes						
+src/lisp.h	struct_field	Lisp_Subr	struct	<aggregate>	0		False	intspec	Lisp_Subr							
 src/lisp.h	struct_field	Lisp_Subr	struct	Lisp_Object	0			command_modes	Lisp_Subr	yes						
 src/lisp.h	struct_field	Lisp_Subr	struct	EMACS_INT	0			doc	Lisp_Subr							
 src/lisp.h	struct_field	Lisp_Subr	struct	Lisp_Object	0			native_comp_u	Lisp_Subr	yes						
@@ -1861,46 +1940,60 @@ src/lisp.h	struct_field	Lisp_Buffer_Local_Value	struct	Lisp_Object	0			where	Lis
 src/lisp.h	struct_field	Lisp_Buffer_Local_Value	struct	Lisp_Object	0			defcell	Lisp_Buffer_Local_Value	yes						
 src/lisp.h	struct_field	Lisp_Buffer_Local_Value	struct	Lisp_Object	0			valcell	Lisp_Buffer_Local_Value	yes						
 src/lisp.h	struct_field	Lisp_Fwd	struct	ENUM_BF (Lisp_Fwd_Type)	0		8	type	Lisp_Fwd	yes						
-src/lisp.h	struct_field	Lisp_Fwd	struct	intmax_t	1			intvar	Lisp_Fwd							
-src/lisp.h	struct_field	Lisp_Fwd	struct	bool	1			boolvar	Lisp_Fwd							
-src/lisp.h	struct_field	Lisp_Fwd	struct	Lisp_Object	1			objvar	Lisp_Fwd	yes						
-src/lisp.h	struct_field	Lisp_Fwd	struct	uint16_t	0			offset	Lisp_Fwd							
-src/lisp.h	struct_field	Lisp_Fwd	struct	ENUM_BF (Lisp_Fwd_Predicate)	0		8	predicate	Lisp_Fwd	yes						
-src/lisp.h	struct_field	Lisp_Float	struct	double	0			data	Lisp_Float							
-src/lisp.h	struct_field	Lisp_Float	struct	struct Lisp_Float	1			chain	Lisp_Float	yes						
-src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag) kind :	0			CHAR_BIT	specbinding							
-src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag) kind :	0			CHAR_BIT	specbinding > <anon@3577>							
+src/lisp.h	struct_field	Lisp_Fwd	struct	intmax_t	1			intvar	Lisp_Fwd > <anon@3121>							
+src/lisp.h	struct_field	Lisp_Fwd	struct	bool	1			boolvar	Lisp_Fwd > <anon@3121>							
+src/lisp.h	struct_field	Lisp_Fwd	struct	Lisp_Object	1			objvar	Lisp_Fwd > <anon@3121>	yes						
+src/lisp.h	struct_field	Lisp_Fwd	struct	uint16_t	0			offset	Lisp_Fwd > <anon@3121> > <anon@3126>							
+src/lisp.h	struct_field	Lisp_Fwd	struct	ENUM_BF (Lisp_Fwd_Predicate)	0		8	predicate	Lisp_Fwd > <anon@3121> > <anon@3126>	yes						
+src/lisp.h	struct_field	Lisp_Fwd	struct	<aggregate>	0		False	buf	Lisp_Fwd > <anon@3121>							
+src/lisp.h	struct_field	Lisp_Fwd	struct	int	0			kbdoffset	Lisp_Fwd > <anon@3121>							
+src/lisp.h	struct_field	Lisp_Fwd	struct	<aggregate>	0		False	u	Lisp_Fwd							
+src/lisp.h	struct_field	Lisp_Float	struct	double	0			data	Lisp_Float > <anon@3164>							
+src/lisp.h	struct_field	Lisp_Float	struct	struct Lisp_Float	1			chain	Lisp_Float > <anon@3164>	yes						
+src/lisp.h	struct_field	Lisp_Float	struct	<aggregate>	0		False	u	Lisp_Float							
+src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag)	0		CHAR_BIT	kind	specbinding							
+src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag)	0		CHAR_BIT	kind	specbinding > <anon@3577>							
 src/lisp.h	struct_field	specbinding	union	void (*)	0			func	specbinding > <anon@3577>							
 src/lisp.h	struct_field	specbinding	union	Lisp_Object	0			arg	specbinding > <anon@3577>	yes						
 src/lisp.h	struct_field	specbinding	union	EMACS_INT	0			eval_depth	specbinding > <anon@3577>							
-src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag) kind :	0			CHAR_BIT	specbinding > <anon@3583>							
+src/lisp.h	struct_field	specbinding	union	<aggregate>	0		False	unwind	specbinding							
+src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag)	0		CHAR_BIT	kind	specbinding > <anon@3583>							
 src/lisp.h	struct_field	specbinding	union	ptrdiff_t	0			nelts	specbinding > <anon@3583>							
 src/lisp.h	struct_field	specbinding	union	Lisp_Object	1			array	specbinding > <anon@3583>	yes						
-src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag) kind :	0			CHAR_BIT	specbinding > <anon@3588>							
+src/lisp.h	struct_field	specbinding	union	<aggregate>	0		False	unwind_array	specbinding							
+src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag)	0		CHAR_BIT	kind	specbinding > <anon@3588>							
 src/lisp.h	struct_field	specbinding	union	void (*)	0			func	specbinding > <anon@3588>							
 src/lisp.h	struct_field	specbinding	union	void	1			arg	specbinding > <anon@3588>							
 src/lisp.h	struct_field	specbinding	union	void (*)	0			mark	specbinding > <anon@3588>							
-src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag) kind :	0			CHAR_BIT	specbinding > <anon@3594>							
+src/lisp.h	struct_field	specbinding	union	<aggregate>	0		False	unwind_ptr	specbinding							
+src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag)	0		CHAR_BIT	kind	specbinding > <anon@3594>							
 src/lisp.h	struct_field	specbinding	union	void (*)	0			func	specbinding > <anon@3594>							
 src/lisp.h	struct_field	specbinding	union	int	0			arg	specbinding > <anon@3594>							
-src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag) kind :	0			CHAR_BIT	specbinding > <anon@3599>							
+src/lisp.h	struct_field	specbinding	union	<aggregate>	0		False	unwind_int	specbinding							
+src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag)	0		CHAR_BIT	kind	specbinding > <anon@3599>							
 src/lisp.h	struct_field	specbinding	union	void (*)	0			func	specbinding > <anon@3599>							
 src/lisp.h	struct_field	specbinding	union	intmax_t	0			arg	specbinding > <anon@3599>							
-src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag) kind :	0			CHAR_BIT	specbinding > <anon@3604>							
+src/lisp.h	struct_field	specbinding	union	<aggregate>	0		False	unwind_intmax	specbinding							
+src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag)	0		CHAR_BIT	kind	specbinding > <anon@3604>							
 src/lisp.h	struct_field	specbinding	union	Lisp_Object	0			marker	specbinding > <anon@3604>	yes						
 src/lisp.h	struct_field	specbinding	union	Lisp_Object	0			window	specbinding > <anon@3604>	yes						
-src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag) kind :	0			CHAR_BIT	specbinding > <anon@3608>							
+src/lisp.h	struct_field	specbinding	union	<aggregate>	0		False	unwind_excursion	specbinding							
+src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag)	0		CHAR_BIT	kind	specbinding > <anon@3608>							
 src/lisp.h	struct_field	specbinding	union	void (*)	0			func	specbinding > <anon@3608>							
-src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag) kind :	0			CHAR_BIT	specbinding > <anon@3612>							
+src/lisp.h	struct_field	specbinding	union	<aggregate>	0		False	unwind_void	specbinding							
+src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag)	0		CHAR_BIT	kind	specbinding > <anon@3612>							
 src/lisp.h	struct_field	specbinding	union	Lisp_Object	0			symbol	specbinding > <anon@3612>	yes						
 src/lisp.h	struct_field	specbinding	union	Lisp_Object	0			old_value	specbinding > <anon@3612>	yes						
 src/lisp.h	struct_field	specbinding	union	KBOARD	1			kbd	specbinding > <anon@3612> > <anon@3617>							
 src/lisp.h	struct_field	specbinding	union	Lisp_Object	0			buf	specbinding > <anon@3612> > <anon@3617>	yes						
-src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag) kind :	0			CHAR_BIT	specbinding > <anon@3626>							
+src/lisp.h	struct_field	specbinding	union	<aggregate>	0		False	where	specbinding > <anon@3612>							
+src/lisp.h	struct_field	specbinding	union	<aggregate>	0		False	let	specbinding							
+src/lisp.h	struct_field	specbinding	union	ENUM_BF (specbind_tag)	0		CHAR_BIT	kind	specbinding > <anon@3626>							
 src/lisp.h	struct_field	specbinding	union	bool_bf	0		1	debug_on_exit	specbinding > <anon@3626>							
 src/lisp.h	struct_field	specbinding	union	Lisp_Object	0			function	specbinding > <anon@3626>	yes						
 src/lisp.h	struct_field	specbinding	union	Lisp_Object	1			args	specbinding > <anon@3626>	yes						
 src/lisp.h	struct_field	specbinding	union	ptrdiff_t	0			nargs	specbinding > <anon@3626>							
+src/lisp.h	struct_field	specbinding	union	<aggregate>	0		False	bt	specbinding							
 src/lisp.h	struct_field	handler	struct	enum handlertype	0			type	handler							
 src/lisp.h	struct_field	handler	struct	Lisp_Object	0			tag_or_ch	handler	yes						
 src/lisp.h	struct_field	handler	struct	enum nonlocal_exit	0			nonlocal_exit	handler							
@@ -2063,8 +2156,55 @@ src/pgtkterm.h	struct_field	scroll_bar	struct	int	0			whole	scroll_bar
 src/pgtkterm.h	struct_field	scroll_bar	struct	bool	0			horizontal	scroll_bar							
 src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct pgtk_display_info	1			next	pgtk_display_info							
 src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct terminal	1			terminal	pgtk_display_info							
-src/pgtkterm.h	struct_field	pgtk_display_info	struct	GdkDisplay	1			gdpy	pgtk_display_info							
-src/pgtkterm.h	struct_field	pgtk_display_info	struct	GdkDisplay	1			display	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	GdkDisplay	1			gdpy	pgtk_display_info > <anon@154>							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	GdkDisplay	1			display	pgtk_display_info > <anon@154>							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct pgtk_touch_point	1			touchpoints	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	Lisp_Object	0			name_list_element	pgtk_display_info	yes						
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	int	0			reference_count	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	unsigned	0			x_id	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	char	1			x_id_name	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	int	0			n_fonts	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	int	0			smallest_char_width	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	int	0			smallest_font_height	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct pgtk_bitmap_record	1			bitmaps	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	ptrdiff_t	0			bitmaps_size	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	ptrdiff_t	0			bitmaps_last	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	double	0			resx	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	double	0			resy	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	int	0			grabbed	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	int	0			n_planes	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	int	0			color_p	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	ptrdiff_t	0			icon_bitmap_id	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	Window	0			root_window	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	XrmDatabase	0			rdb	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	Emacs_Cursor	0			vertical_scroll_bar_cursor	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	Emacs_Cursor	0			horizontal_scroll_bar_cursor	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	Mouse_HLInfo	0			mouse_highlight	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct frame	1			highlight_frame	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct frame	1			x_focus_frame	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct frame	1			x_focus_event_frame	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct frame	1			last_mouse_frame	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct frame	1			last_mouse_motion_frame	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	int	0			last_mouse_motion_x	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	int	0			last_mouse_motion_y	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	XRectangle	0			last_mouse_glyph	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	Time	0			last_mouse_movement_time	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	guint32	0			last_user_time	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	void	1			last_mouse_scroll_bar	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	Emacs_Cursor	0			invisible_cursor	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	GdkCursor	1			xg_cursor	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct pgtk_device_t	1			devices	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct frame	1			last_mouse_glyph_frame	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	GdkEvent	1			last_click_event	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	GtkIMContext	1			context	pgtk_display_info > <anon@268>							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	struct frame	1			focused_frame	pgtk_display_info > <anon@268>							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	<aggregate>	0		False	im	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	double	0			acc_x	pgtk_display_info > <anon@274>							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	double	0			acc_y	pgtk_display_info > <anon@274>							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	double	0			x_per_char	pgtk_display_info > <anon@274>							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	double	0			y_per_line	pgtk_display_info > <anon@274>							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	<aggregate>	0		False	scroll	pgtk_display_info							
+src/pgtkterm.h	struct_field	pgtk_display_info	struct	int	0			connection	pgtk_display_info							
 src/pgtkterm.h	struct_field	pgtk_output	struct	unsigned long	0			foreground_color	pgtk_output							
 src/pgtkterm.h	struct_field	pgtk_output	struct	unsigned long	0			background_color	pgtk_output							
 src/pgtkterm.h	struct_field	pgtk_output	struct	void	1			toolbar	pgtk_output							
@@ -2145,7 +2285,7 @@ src/pgtkterm.h	struct_field	pgtk_output	struct	int	0			focus_state	pgtk_output
 src/pgtkterm.h	struct_field	pgtk_output	struct	double	0			watched_scale_factor	pgtk_output							
 src/pgtkterm.h	struct_field	pgtk_output	struct	struct atimer	1			scale_factor_atimer	pgtk_output							
 src/pgtkterm.h	struct_field	x_output	struct	int	0			unused	x_output							
-src/pgtkterm.h	struct_field	selection_input_event	struct	ENUM_BF (event_kind) kind :	0			EVENT_KIND_WIDTH	selection_input_event							
+src/pgtkterm.h	struct_field	selection_input_event	struct	ENUM_BF (event_kind)	0		EVENT_KIND_WIDTH	kind	selection_input_event							
 src/pgtkterm.h	struct_field	selection_input_event	struct	struct pgtk_display_info	1			dpyinfo	selection_input_event							
 src/pgtkterm.h	struct_field	selection_input_event	struct	GdkWindow	1			requestor	selection_input_event							
 src/pgtkterm.h	struct_field	selection_input_event	struct	GdkAtom	0			selection	selection_input_event							
@@ -2375,17 +2515,22 @@ src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	uint8_t	0			a	sfnt_
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int8_t	0			b	sfnt_compound_glyph_component > <anon@614>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	uint16_t	0			c	sfnt_compound_glyph_component > <anon@614>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int16_t	0			d	sfnt_compound_glyph_component > <anon@614>							
+src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	<aggregate>	0		False	argument1	sfnt_compound_glyph_component							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	uint8_t	0			a	sfnt_compound_glyph_component > <anon@623>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int8_t	0			b	sfnt_compound_glyph_component > <anon@623>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	uint16_t	0			c	sfnt_compound_glyph_component > <anon@623>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int16_t	0			d	sfnt_compound_glyph_component > <anon@623>							
+src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	<aggregate>	0		False	argument2	sfnt_compound_glyph_component							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int16_t	0			scale	sfnt_compound_glyph_component > <anon@631>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int16_t	0			xscale	sfnt_compound_glyph_component > <anon@631> > <anon@633>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int16_t	0			yscale	sfnt_compound_glyph_component > <anon@631> > <anon@633>							
+src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	<aggregate>	0		False	a	sfnt_compound_glyph_component > <anon@631>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int16_t	0			xscale	sfnt_compound_glyph_component > <anon@631> > <anon@637>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int16_t	0			scale01	sfnt_compound_glyph_component > <anon@631> > <anon@637>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int16_t	0			scale10	sfnt_compound_glyph_component > <anon@631> > <anon@637>							
 src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	int16_t	0			yscale	sfnt_compound_glyph_component > <anon@631> > <anon@637>							
+src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	<aggregate>	0		False	b	sfnt_compound_glyph_component > <anon@631>							
+src/sfnt.h	struct_field	sfnt_compound_glyph_component	struct	<aggregate>	0		False	u	sfnt_compound_glyph_component							
 src/sfnt.h	struct_field	sfnt_compound_glyph	struct	struct sfnt_compound_glyph_component	1			components	sfnt_compound_glyph							
 src/sfnt.h	struct_field	sfnt_compound_glyph	struct	size_t	0			num_components	sfnt_compound_glyph							
 src/sfnt.h	struct_field	sfnt_compound_glyph	struct	uint8_t	1			instructions	sfnt_compound_glyph							
@@ -2529,6 +2674,7 @@ src/sfnt.h	struct_field	sfnt_gvar_table	struct	uint32_t	0			offset_to_data	sfnt_
 src/sfnt.h	struct_field	sfnt_gvar_table	struct	size_t	0			data_size	sfnt_gvar_table							
 src/sfnt.h	struct_field	sfnt_gvar_table	struct	uint16_t	1			offset_word	sfnt_gvar_table > <anon@1277>							
 src/sfnt.h	struct_field	sfnt_gvar_table	struct	uint32_t	1			offset_long	sfnt_gvar_table > <anon@1277>							
+src/sfnt.h	struct_field	sfnt_gvar_table	struct	<aggregate>	0		False	u	sfnt_gvar_table							
 src/sfnt.h	struct_field	sfnt_gvar_table	struct	sfnt_f2dot14	1			global_coords	sfnt_gvar_table							
 src/sfnt.h	struct_field	sfnt_gvar_table	struct	unsigned char	1			glyph_variation_data	sfnt_gvar_table							
 src/sfnt.h	struct_field	sfnt_blend	struct	struct sfnt_fvar_table	1			fvar	sfnt_blend							
@@ -2591,6 +2737,9 @@ src/sfnt.h	struct_field	sfnt_interpreter_zone	struct	sfnt_f26dot6 *restrict	0			
 src/sfnt.h	struct_field	sfnt_interpreter_zone	struct	unsigned char	1			flags	sfnt_interpreter_zone							
 src/sfnt.h	struct_field	sfnt_interpreter_zone	struct	struct sfnt_simple_glyph	1			simple	sfnt_interpreter_zone							
 src/sfnt.h	struct_field	sfnt_graphics_state	struct	sfnt_f26dot6 (*)	0			round	sfnt_graphics_state							
+src/sfnt.h	struct_field	sfnt_graphics_state	struct	sfnt_f26dot6 (*)	0			project	sfnt_graphics_state							
+src/sfnt.h	struct_field	sfnt_graphics_state	struct	sfnt_f26dot6 (*)	0			dual_project	sfnt_graphics_state							
+src/sfnt.h	struct_field	sfnt_graphics_state	struct	void (*)	0			move	sfnt_graphics_state							
 src/sfnt.h	struct_field	sfnt_graphics_state	struct	sfnt_f2dot14	0			vector_dot_product	sfnt_graphics_state							
 src/sfnt.h	struct_field	sfnt_graphics_state	struct	bool	0			auto_flip	sfnt_graphics_state							
 src/sfnt.h	struct_field	sfnt_graphics_state	struct	sfnt_f26dot6	0			cvt_cut_in	sfnt_graphics_state							
@@ -2761,7 +2910,7 @@ src/termchar.h	struct_field	tty_display_info	struct	bool_bf	0		1	char_ins_del_ok
 src/termchar.h	struct_field	tty_display_info	struct	bool_bf	0		1	scroll_region_ok	tty_display_info							
 src/termchar.h	struct_field	tty_display_info	struct	bool_bf	0		1	memory_below_frame	tty_display_info							
 src/termchar.h	struct_field	tty_display_info	struct	int	0			scroll_region_cost	tty_display_info							
-src/termhooks.h	struct_field	input_event	struct	ENUM_BF (event_kind) kind :	0			EVENT_KIND_WIDTH	input_event							
+src/termhooks.h	struct_field	input_event	struct	ENUM_BF (event_kind)	0		EVENT_KIND_WIDTH	kind	input_event							
 src/termhooks.h	struct_field	input_event	struct	ENUM_BF (scroll_bar_part)	0		16	part	input_event							
 src/termhooks.h	struct_field	input_event	struct	unsigned	0			code	input_event							
 src/termhooks.h	struct_field	input_event	struct	unsigned	0			modifiers	input_event							
@@ -2789,6 +2938,7 @@ src/termhooks.h	struct_field	terminal	struct	struct ns_display_info	1			ns	termi
 src/termhooks.h	struct_field	terminal	struct	struct pgtk_display_info	1			pgtk	terminal > display_info							
 src/termhooks.h	struct_field	terminal	struct	struct haiku_display_info	1			haiku	terminal > display_info							
 src/termhooks.h	struct_field	terminal	struct	struct android_display_info	1			android	terminal > display_info							
+src/termhooks.h	struct_field	terminal	struct	<aggregate>	0		False	display_info	terminal							
 src/termhooks.h	struct_field	terminal	struct	struct coding_system	1			terminal_coding	terminal							
 src/termhooks.h	struct_field	terminal	struct	struct coding_system	1			keyboard_coding	terminal							
 src/termhooks.h	struct_field	terminal	struct	struct redisplay_interface	1			rif	terminal							
@@ -2808,8 +2958,9 @@ src/termhooks.h	struct_field	terminal	struct	void (*)	0			set_terminal_modes_hoo
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			update_begin_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			update_end_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			set_terminal_window_hook	terminal							
+src/termhooks.h	struct_field	terminal	struct	bool (*)	0			defined_color_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			query_frame_background_color	terminal							
-src/termhooks.h	struct_field	terminal	struct	void (*)	0			query_colors	terminal							
+src/termhooks.h	struct_field	terminal	struct	void (*)	0			mouse_position_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	Lisp_Object (*)	0			get_focus_frame	terminal	yes						
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			focus_frame_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			frame_rehighlight_hook	terminal							
@@ -2817,27 +2968,36 @@ src/termhooks.h	struct_field	terminal	struct	void (*)	0			frame_raise_lower_hook
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			frame_visible_invisible_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			fullscreen_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			iconify_frame_hook	terminal							
-src/termhooks.h	struct_field	terminal	struct	int	0			width	terminal							
-src/termhooks.h	struct_field	terminal	struct	register int	0			yoff	terminal							
+src/termhooks.h	struct_field	terminal	struct	void (*)	0			set_window_size_hook	terminal							
+src/termhooks.h	struct_field	terminal	struct	void (*)	0			set_window_size_and_position_hook	terminal							
+src/termhooks.h	struct_field	terminal	struct	void (*)	0			set_frame_offset_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			set_frame_alpha_hook	terminal							
+src/termhooks.h	struct_field	terminal	struct	Lisp_Object (*)	0			set_new_font_hook	terminal	yes						
 src/termhooks.h	struct_field	terminal	struct	bool (*)	0			set_bitmap_icon_hook	terminal							
-src/termhooks.h	struct_field	terminal	struct	Lisp_Object	0			title	terminal	yes						
+src/termhooks.h	struct_field	terminal	struct	void (*)	0			implicit_set_name_hook	terminal							
+src/termhooks.h	struct_field	terminal	struct	Lisp_Object (*)	0			menu_show_hook	terminal	yes						
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			activate_menubar_hook	terminal							
+src/termhooks.h	struct_field	terminal	struct	Lisp_Object (*)	0			popup_dialog_hook	terminal	yes						
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			change_tab_bar_height_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			change_tool_bar_height_hook	terminal							
+src/termhooks.h	struct_field	terminal	struct	void (*)	0			set_vertical_scroll_bar_hook	terminal							
+src/termhooks.h	struct_field	terminal	struct	void (*)	0			set_horizontal_scroll_bar_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			set_scroll_bar_default_width_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			set_scroll_bar_default_height_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			condemn_scroll_bars_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			redeem_scroll_bar_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			judge_scroll_bars_hook	terminal							
+src/termhooks.h	struct_field	terminal	struct	int (*)	0			read_socket_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			frame_up_to_date_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			buffer_flipping_unblocked_hook	terminal							
+src/termhooks.h	struct_field	terminal	struct	const char * (*)	0			get_string_resource_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			free_pixmap	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			delete_frame_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			delete_terminal_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	void (*)	0			toolkit_position_hook	terminal							
 src/termhooks.h	struct_field	terminal	struct	bool (*)	0			any_grab_hook	terminal							
 src/textconv.h	struct_field	textconv_interface	struct	void (*)	0			reset	textconv_interface							
+src/textconv.h	struct_field	textconv_interface	struct	void (*)	0			point_changed	textconv_interface							
 src/textconv.h	struct_field	textconv_interface	struct	void (*)	0			compose_region_changed	textconv_interface							
 src/textconv.h	struct_field	textconv_interface	struct	void (*)	0			notify_conversion	textconv_interface							
 src/textconv.h	struct_field	textconv_conversion_text	struct	ptrdiff_t	0			length	textconv_conversion_text							
@@ -3270,6 +3430,26 @@ src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_wm_window_moved	x_
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_wm_client_leader	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_wm_transient_for	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_editres	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_CLIPBOARD	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_TIMESTAMP	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_TEXT	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_DELETE	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_COMPOUND_TEXT	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_UTF8_STRING	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_MULTIPLE	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_INCR	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_EMACS_TMP	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_TARGETS	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_NULL	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_ATOM	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_ATOM_PAIR	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_CLIPBOARD_MANAGER	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_EMACS_SERVER_TIME_PROP	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_PIXEL_SIZE	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_AVERAGE_WIDTH	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_MULE_BASELINE_OFFSET	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_MULE_RELATIVE_COMPOSE	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_MULE_DEFAULT_ASCENT	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_DONE	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_PAGE	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_Scrollbar	x_display_info							
@@ -3277,11 +3457,29 @@ src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_Horizontal_Scrollb
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_XEMBED	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_XEMBED_INFO	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_NET_WM_CM_Sn	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_MOTIF_WM_HINTS	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_MOTIF_DRAG_WINDOW	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_MOTIF_DRAG_TARGETS	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_MOTIF_DRAG_AND_DROP_MESSAGE	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_MOTIF_DRAG_INITIATOR_INFO	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_MOTIF_DRAG_RECEIVER_INFO	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_EMACS_DRAG_ATOM	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_XmTRANSFER_SUCCESS	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_XmTRANSFER_FAILURE	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_DndProtocol	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_DND_PROTOCOL	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_text_plain_charset_utf_8	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_LENGTH	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_FILE_NAME	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_CHARACTER_POSITION	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_LINE_NUMBER	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_COLUMN_NUMBER	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_OWNER_OS	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_HOST_NAME	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_USER	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_CLASS	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_NAME	x_display_info							
+src/xterm.h	struct_field	x_display_info	struct	Atom	0			Xatom_SAVE_TARGETS	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	struct frame	1			x_focus_frame	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	struct frame	1			x_focus_event_frame	x_display_info							
 src/xterm.h	struct_field	x_display_info	struct	struct frame	1			highlight_frame	x_display_info							
@@ -3446,7 +3644,7 @@ src/xterm.h	struct_field	scroll_bar	struct	int	0			dragging	scroll_bar
 src/xterm.h	struct_field	scroll_bar	struct	enum scroll_bar_part	0			last_seen_part	scroll_bar							
 src/xterm.h	struct_field	scroll_bar	struct	int	0			whole	scroll_bar							
 src/xterm.h	struct_field	scroll_bar	struct	bool	0			horizontal	scroll_bar							
-src/xterm.h	struct_field	selection_input_event	struct	ENUM_BF (event_kind) kind :	0			EVENT_KIND_WIDTH	selection_input_event							
+src/xterm.h	struct_field	selection_input_event	struct	ENUM_BF (event_kind)	0		EVENT_KIND_WIDTH	kind	selection_input_event							
 src/xterm.h	struct_field	selection_input_event	struct	struct x_display_info	1			dpyinfo	selection_input_event							
 src/xterm.h	struct_field	selection_input_event	struct	Window	0			requestor	selection_input_event							
 src/xterm.h	struct_field	selection_input_event	struct	Atom	0			selection	selection_input_event							
@@ -3523,15 +3721,16 @@ lib/acl.h	struct_field	aclinfo	struct	char	1			buf	aclinfo
 lib/acl.h	struct_field	aclinfo	struct	ssize_t	0			size	aclinfo							
 lib/acl.h	struct_field	aclinfo	struct	char	1			scontext	aclinfo							
 lib/acl.h	struct_field	aclinfo	struct	int	0			scontext_err	aclinfo							
-lib/acl.h	struct_field	aclinfo	struct	int	0			err	aclinfo							
-lib/acl.h	struct_field	aclinfo	struct	char	0	[152]		_gl_acl_ch	aclinfo							
+lib/acl.h	struct_field	aclinfo	struct	int	0			err	aclinfo > <anon@65>							
+lib/acl.h	struct_field	aclinfo	struct	char	0	[152]		_gl_acl_ch	aclinfo > <anon@65>							
+lib/acl.h	struct_field	aclinfo	struct	<aggregate>	0		False	u	aclinfo							
 lib/allocator.h	struct_field	allocator	struct	void * (*)	0			allocate	allocator							
 lib/allocator.h	struct_field	allocator	struct	void * (*)	0			reallocate	allocator							
 lib/allocator.h	struct_field	allocator	struct	void (*)	0			free	allocator							
 lib/allocator.h	struct_field	allocator	struct	void (*)	0			die	allocator							
 lib/diffseq.h	struct_field	context	struct	ELEMENT const	1			xvec	context							
 lib/diffseq.h	struct_field	context	struct	ELEMENT const	1			yvec	context							
-lib/diffseq.h	struct_field	context	struct	OFFSET	1			fdiag	context							
+lib/diffseq.h	struct_field	context	struct	EXTRA_CONTEXT_FIELDS OFFSET	1			fdiag	context							
 lib/diffseq.h	struct_field	context	struct	OFFSET	1			bdiag	context							
 lib/diffseq.h	struct_field	context	struct	bool	0			heuristic	context							
 lib/diffseq.h	struct_field	context	struct	OFFSET	0			too_expensive	context							
@@ -3575,41 +3774,91 @@ lib/getopt_int.h	struct_field	_getopt_data	struct	enum __ord	0			__ordering	_get
 lib/getopt_int.h	struct_field	_getopt_data	struct	int	0			__first_nonopt	_getopt_data							
 lib/getopt_int.h	struct_field	_getopt_data	struct	int	0			__last_nonopt	_getopt_data							
 lib/ieee754.in.h	struct_field	ieee754_float	union	float	0			f	ieee754_float							
-lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		1	negative	ieee754_float							
-lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		8	exponent	ieee754_float							
-lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		23	mantissa	ieee754_float							
-lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		23	mantissa	ieee754_float							
-lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		8	exponent	ieee754_float							
-lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		1	negative	ieee754_float							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		1	negative	ieee754_float > <anon@47>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		8	exponent	ieee754_float > <anon@47>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		23	mantissa	ieee754_float > <anon@47>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		23	mantissa	ieee754_float > <anon@47>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		8	exponent	ieee754_float > <anon@47>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		1	negative	ieee754_float > <anon@47>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	<aggregate>	0		False	ieee	ieee754_float							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		1	negative	ieee754_float > <anon@62>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		8	exponent	ieee754_float > <anon@62>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		1	quiet_nan	ieee754_float > <anon@62>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		22	mantissa	ieee754_float > <anon@62>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		22	mantissa	ieee754_float > <anon@62>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		1	quiet_nan	ieee754_float > <anon@62>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		8	exponent	ieee754_float > <anon@62>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	unsigned int	0		1	negative	ieee754_float > <anon@62>							
+lib/ieee754.in.h	struct_field	ieee754_float	union	<aggregate>	0		False	ieee_nan	ieee754_float							
 lib/ieee754.in.h	struct_field	ieee754_double	union	double	0			d	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	negative	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		11	exponent	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		20	mantissa0	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		32	mantissa1	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		20	mantissa0	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		11	exponent	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	negative	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		32	mantissa1	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		32	mantissa1	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		20	mantissa0	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		11	exponent	ieee754_double							
-lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	negative	ieee754_double							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	negative	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		11	exponent	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		20	mantissa0	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		32	mantissa1	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		20	mantissa0	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		11	exponent	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	negative	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		32	mantissa1	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		32	mantissa1	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		20	mantissa0	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		11	exponent	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	negative	ieee754_double > <anon@87>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	<aggregate>	0		False	ieee	ieee754_double							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	negative	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		11	exponent	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	quiet_nan	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		19	mantissa0	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		32	mantissa1	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		19	mantissa0	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	quiet_nan	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		11	exponent	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	negative	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		32	mantissa1	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		32	mantissa1	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		19	mantissa0	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	quiet_nan	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		11	exponent	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	unsigned int	0		1	negative	ieee754_double > <anon@113>							
+lib/ieee754.in.h	struct_field	ieee754_double	union	<aggregate>	0		False	ieee_nan	ieee754_double							
 lib/ieee754.in.h	struct_field	ieee854_long_double	union	long double	0			d	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	negative	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		15	exponent	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		16	empty	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa0	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa1	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		15	exponent	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	negative	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		16	empty	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa0	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa1	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa1	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa0	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		15	exponent	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	negative	ieee854_long_double							
-lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		16	empty	ieee854_long_double							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	negative	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		15	exponent	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		16	empty	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa0	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa1	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		15	exponent	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	negative	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		16	empty	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa0	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa1	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa1	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa0	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		15	exponent	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	negative	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		16	empty	ieee854_long_double > <anon@149>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	<aggregate>	0		False	ieee	ieee854_long_double							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	negative	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		15	exponent	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		16	empty	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	one	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	quiet_nan	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		30	mantissa0	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa1	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		15	exponent	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	negative	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		16	empty	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		30	mantissa0	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	quiet_nan	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	one	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa1	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		32	mantissa1	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		30	mantissa0	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	quiet_nan	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	one	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		15	exponent	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		1	negative	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	unsigned int	0		16	empty	ieee854_long_double > <anon@176>							
+lib/ieee754.in.h	struct_field	ieee854_long_double	union	<aggregate>	0		False	ieee_nan	ieee854_long_double							
 lib/malloc/dynarray.h	struct_field	dynarray_header	struct	size_t	0			used	dynarray_header							
 lib/malloc/dynarray.h	struct_field	dynarray_header	struct	size_t	0			allocated	dynarray_header							
 lib/malloc/dynarray.h	struct_field	dynarray_header	struct	void	1			array	dynarray_header							
@@ -3640,12 +3889,20 @@ lib/readutmp.h	struct_field	utmpx32	struct	char	0	[_GL_UT_USER_SIZE]		ut_user	ut
 lib/readutmp.h	struct_field	utmpx32	struct	char	0	[_GL_UT_HOST_SIZE]		ut_host	utmpx32							
 lib/readutmp.h	struct_field	utmpx32	struct	struct __exit_status	0			ut_exit	utmpx32							
 lib/readutmp.h	struct_field	utmpx32	struct	int	0			ut_session	utmpx32							
-lib/readutmp.h	struct_field	utmpx32	struct	unsigned int	0			tv_sec	utmpx32							
-lib/readutmp.h	struct_field	utmpx32	struct	int	0			tv_usec	utmpx32							
+lib/readutmp.h	struct_field	utmpx32	struct	unsigned int	0			tv_sec	utmpx32 > <anon@158>							
+lib/readutmp.h	struct_field	utmpx32	struct	int	0			tv_usec	utmpx32 > <anon@158>							
+lib/readutmp.h	struct_field	utmpx32	struct	<aggregate>	0		False	ut_tv	utmpx32							
+lib/readutmp.h	struct_field	utmpx32	struct	int	0	[4]		ut_addr_v6	utmpx32							
+lib/readutmp.h	struct_field	utmpx32	struct	char	0	[20]		ut_reserved	utmpx32							
 lib/regex.h	struct_field	re_pattern_buffer	struct	size_t	0			re_nsub	re_pattern_buffer							
 lib/regex.h	struct_field	re_registers	struct	__re_size_t	0			num_regs	re_registers							
 lib/regex.h	struct_field	re_registers	struct	regoff_t	1			start	re_registers							
 lib/regex.h	struct_field	re_registers	struct	regoff_t	1			end	re_registers							
+lib/regex_internal.h	struct_field	<anon@354>	union	unsigned char	0			c	<anon@354>							
+lib/regex_internal.h	struct_field	<anon@354>	union	re_bitset_ptr_t	0			sbcset	<anon@354>							
+lib/regex_internal.h	struct_field	<anon@354>	union	re_charset_t	1			mbcset	<anon@354>							
+lib/regex_internal.h	struct_field	<anon@354>	union	Idx	0			idx	<anon@354>							
+lib/regex_internal.h	struct_field	<anon@354>	union	re_context_type	0			ctx_type	<anon@354>							
 lib/regex_internal.h	struct_field	re_string_t	struct	const unsigned char	1			raw_mbs	re_string_t							
 lib/regex_internal.h	struct_field	re_string_t	struct	unsigned char	1			mbs	re_string_t							
 lib/regex_internal.h	struct_field	re_string_t	struct	wint_t	1			wcs	re_string_t							
@@ -3740,6 +3997,9 @@ lib/regex_internal.h	struct_field	re_dfa_t	struct	bitset_t	0			word_char	re_dfa_
 lib/regex_internal.h	struct_field	re_dfa_t	struct	reg_syntax_t	0			syntax	re_dfa_t							
 lib/regex_internal.h	struct_field	re_dfa_t	struct	Idx	1			subexp_map	re_dfa_t							
 lib/regex_internal.h	struct_field	re_dfa_t	struct	char	1			re_str	re_dfa_t							
+lib/regex_internal.h	struct_field	<anon@710>	union	unsigned char	0			ch	<anon@710>							
+lib/regex_internal.h	struct_field	<anon@710>	union	unsigned char	1			name	<anon@710>							
+lib/regex_internal.h	struct_field	<anon@710>	union	wchar_t	0			wch	<anon@710>							
 lib/save-cwd.h	struct_field	saved_cwd	struct	int	0			desc	saved_cwd							
 lib/save-cwd.h	struct_field	saved_cwd	struct	char	1			name	saved_cwd							
 lib/sha1.h	struct_field	sha1_ctx	struct	uint32_t	0			A	sha1_ctx							
@@ -3775,9 +4035,12 @@ lib/signal.in.h	struct_field	siginfo_t	struct	void	1			si_addr	siginfo_t
 lib/signal.in.h	struct_field	siginfo_t	struct	int	0			si_status	siginfo_t							
 lib/signal.in.h	struct_field	siginfo_t	struct	long	0			si_band	siginfo_t							
 lib/signal.in.h	struct_field	siginfo_t	struct	union sigval	0			si_value	siginfo_t							
-lib/signal.in.h	struct_field	sigaction	struct	void (*)	0			_sa_handler	sigaction							
-lib/signal.in.h	struct_field	sigaction	struct	void (*)	0			_sa_sigaction	sigaction							
-lib/stdcountof.in.h	struct_field	_gl_verify_type	struct	unsigned int _gl_verify_error_if_negative:	0			w	_gl_verify_type							
+lib/signal.in.h	struct_field	sigaction	struct	void (*)	0			_sa_handler	sigaction > <anon@485>							
+lib/signal.in.h	struct_field	sigaction	struct	void (*)	0			_sa_sigaction	sigaction > <anon@485>							
+lib/signal.in.h	struct_field	sigaction	struct	<aggregate>	0		False	_sa_func	sigaction							
+lib/signal.in.h	struct_field	sigaction	struct	sigset_t	0			sa_mask	sigaction							
+lib/signal.in.h	struct_field	sigaction	struct	int	0			sa_flags	sigaction							
+lib/stdcountof.in.h	struct_field	_gl_verify_type	struct	unsigned int	0		w	_gl_verify_error_if_negative	_gl_verify_type							
 lib/stdio-impl.h	struct_field	__sfileext	struct	struct  __sbuf	0			_ub	__sfileext							
 lib/stdio-impl.h	struct_field	_gl_real_FILE	struct	unsigned char	1			_ptr	_gl_real_FILE							
 lib/stdio-impl.h	struct_field	_gl_real_FILE	struct	unsigned char	1			_base	_gl_real_FILE							
@@ -3814,7 +4077,7 @@ lib/time-internal.h	struct_field	tm_zone	struct	char	0			tz_is_set	tm_zone
 lib/time-internal.h	struct_field	tm_zone	struct	char	0	[FLEXIBLE_ARRAY_MEMBER]		abbrs	tm_zone							
 lib/time.in.h	struct_field	timespec	struct	time_t	0			tv_sec	timespec							
 lib/time.in.h	struct_field	timespec	struct	long int	0			tv_nsec	timespec							
-lib/verify.h	struct_field	_gl_verify_type	struct	unsigned int _gl_verify_error_if_negative:	0			w	_gl_verify_type							
+lib/verify.h	struct_field	_gl_verify_type	struct	unsigned int	0		w	_gl_verify_error_if_negative	_gl_verify_type							
 lib-src/pop.h	struct_field	_popserver	struct	int	0			file	_popserver							
 lib-src/pop.h	struct_field	_popserver	struct	int	0			data	_popserver							
 lib-src/pop.h	struct_field	_popserver	struct	char	1			buffer	_popserver							

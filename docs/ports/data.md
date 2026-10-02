@@ -310,15 +310,42 @@
   `goto start` implies a `continue`) and a per-token count floor (`rust_count >= c_count`, which
   would catch all four `buf` sites) - are recorded as the next gate work rather than invented
   mid-segment.
-- **Repo-level, pre-existing, found by reviewer B and confirmed here: the CI "Generated
-  artifacts are fresh" step is already red at HEAD.**  `python3 tools/gen-lifetimes.py` crashes
-  with `KeyError: 'c_type'` (its `ci.struct_fields` records no longer carry that key), and
-  `python3 tools/gen-baseline.py --out /tmp/bl` rewrites `inventory.tsv`/`subrs.tsv`/`totals.tsv`
-  differently from the committed `docs/baseline` (`src/alloc.c` constants 17 -> 40, fields
-  54 -> 60); both reproduce from a HEAD-archived copy of `tools/`, so neither is this segment's
-  doing.  With the already-recorded "CI has no `emacs/` checkout" (`docs/port-master-plan.md`
-  403), CI cannot be green until those generators and the derived baseline are repaired - a
-  separate change from this porting round.
+- **Repo-level, pre-existing, found by reviewer B, diagnosed and fixed in the follow-up commit:
+  the CI "Generated artifacts are fresh" step was already red at HEAD.**  Three separate
+  defects, none of them data.c's:
+  (a) `tools/cinventory.py`'s second `<aggregate>` branch built its record with the key `type`
+  where its sibling branch (seven lines above) uses `c_type` - 54 records in the headers
+  `gen-lifetimes.py` reads, 81 tree-wide - so `tools/gen-lifetimes.py` and `extract-abi.py`'s
+  per-file doc mode (the path that generates `docs/ports/*.md`) both died with
+  `KeyError: 'c_type'` on the first such header.  `tools/emit-mirror.py` was **not** affected:
+  it reads `c_type` only in a fallback branch these containers never reach (reviewer A measured
+  byte-identical output on all 12 affected headers).
+  (b) `gen-lifetimes.py` rewrote the whole table without carrying the five decision columns, so
+  the first `owner`/`freed_by` a porter fills would have been destroyed by any regeneration
+  (the committed file held 0 decisions, so nothing was lost yet - the loss was latent).  It now
+  keys the decisions by (the row's own non-decision columns, its occurrence among rows with
+  that key) - rows are duplicated on purpose, e.g. one anonymous struct under three `#if`
+  variants of `lib/ieee754.in.h`, and reviewer A's mutation showed a first-match pairing moving
+  a decision to the wrong copy - and reports **and fails on** any decision whose row is gone;
+  (c) `docs/baseline/{inventory,subrs,totals}.tsv` were stale relative to the current extractor
+  (last written at `7ad447f`): constants 1,834 -> 3,898 (+2112/-48, about 1,546 of them implicit
+  enum members and the rest explicit members a previous guard hid), struct fields
+  5,441 -> 5,764 (+324/-1, of which 84 are `<aggregate>` rows; the rest is P-73's multi-line
+  declarator fix and the removal of 33 pseudo-fields the old scanner invented from
+  function-pointer parameter lists, e.g. `redisplay_interface.width`), and the subr doc digests
+  (148 rows, one column, row set unchanged).  Both reviewers recomputed that decomposition, and
+  reviewer A confirmed HEAD's own extractor already yields 5,764 - i.e. nothing here is caused
+  by the key rename.  Regenerated, and the numbers quoted in `docs/port-master-plan.md` (the
+  per-directory table and its total), `docs/goal.md` and `PORTING.md`'s counting table were
+  updated to match.
+- **A second P-78-class hole, found by reviewer B and fixed here: `cinventory._defun_heads`
+  skipped only `", \t"` after the Lisp name**, so every `DEFUN ("name",\n       Fname, ...)` -
+  Emacs's own style, e.g. 47 of treesit.c's 58, 25 of xwidget.c's 36, 9 of process.c's 63 - fell
+  through `re.match` and never entered the body comparison: 1,708 of the tree's 1,849 DEFUN
+  bodies were reachable.  `\r\n` are skipped now; `treesit.c` goes 11 -> 58, `data.c` stays
+  120, the tree-wide count is 1,849 = the textual occurrence count P-78 recorded, and `--all`
+  is unchanged (the newly reachable bodies belong to files with no port yet - the hole would
+  have opened silently the day they are ported).
 - **Five subrs wait for two headers.**  `type-of` (data.c 187-200) needs this file's own
   `cl-type-of` (data.c 202-310); `cl-type-of` calls `THREADP`, `MUTEXP`, `CONDVARP`
   (`thread.h` 222-320) and `FONT_SPEC_P`/`FONT_ENTITY_P`/`FONT_OBJECT_P` (`font.h`
