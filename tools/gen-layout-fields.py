@@ -72,6 +72,9 @@ STRUCTS = {
     "undecided_spec": "src/coding.h",
     "utf_16_spec": "src/coding.h",
     "coding_system": "src/coding.h",
+    # process.h's pseudovector: 272 bytes, with two bitfield units (one at 232 for the 2-bit
+    # adaptive_read_buffering plus read_output_skip, one at 248 for eight bool_bf:1 members).
+    "Lisp_Process": "src/process.h",
 }
 
 

@@ -5,3 +5,7 @@
 
 /// The frozen target's `off_t` (a 64-bit signed integer).
 pub type off_t = i64;
+
+/// `pid_t` — `process.h` 160 uses it as `Lisp_Process.pid`.  The frozen target's
+/// `<sys/types.h>` makes it a 32-bit signed integer (`sizeof (pid_t) == 4`, measured).
+pub type pid_t = c_int;
