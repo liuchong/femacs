@@ -748,11 +748,21 @@ fn layout_check() -> i32 {
     }
 }
 
+/// rustc's `--crate-name` accepts alphanumerics and underscores only, while the port map
+/// keeps C's file names verbatim (`src/vm-limit.c` -> `femacs/src/vm-limit.rs`), so hyphens
+/// fold when the stem is used as a crate name.  Paths keep C's spelling.
+fn crate_name (stem: &str) -> String {
+    stem.chars ()
+        .map (|c| if c.is_ascii_alphanumeric () || c == '_' { c } else { '_' })
+        .collect ()
+}
+
 // --- translation units -----------------------------------------------------
 
 fn build_tu(rel: Option<&String>) -> i32 {
     let Some(rel) = rel else { return fail("build-tu needs a reference C file, e.g. src/doprnt.c") };
     let stem = Path::new(rel).file_stem().unwrap_or_default().to_string_lossy().to_string();
+    let cname = crate_name (&stem);
     let (crate_root, out) = if rel.ends_with(".h") {
         (format!("src/include/{stem}.rs"), Path::new(BUILD).join(format!("include_{stem}.o")))
     } else {
@@ -769,7 +779,7 @@ fn build_tu(rel: Option<&String>) -> i32 {
     };
     let status = Command::new("rustc")
         .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-               "--crate-name", &stem,
+               "--crate-name", &cname,
                "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
         .arg(&root)
         .arg("-o").arg(&out)
@@ -951,6 +961,7 @@ fn dead_arms() -> i32 {
         // (PORTING.md 0.1-4), inside the copy, so the flipped configuration and the
         // de-duplicated mirrors are what rustc sees.
         let stem = Path::new(&rel).file_stem().unwrap_or_default().to_string_lossy().to_string();
+        let cname = crate_name (&stem);
         let src = root.join(&rel);
         let dir = root.join("units").join(&stem);
         let materialized = match materialize(&src, &dir) {
@@ -960,7 +971,7 @@ fn dead_arms() -> i32 {
         let out = format!("{}.o", rel.replace('/', "_").replace(".rs", ""));
         let mut cmd = Command::new("rustc");
         cmd.args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-                  "--crate-name", &stem,
+                  "--crate-name", &cname,
                   "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"]);
         for (feature, _, _) in FLIPS {
             if !feature.is_empty() {
@@ -1238,6 +1249,7 @@ fn build_finished_tus() -> Result<(), String> {
     fs::create_dir_all(BUILD).ok();
     for unit in &units {
         let stem = Path::new(unit).file_stem().unwrap_or_default().to_string_lossy().to_string();
+        let cname = crate_name (&stem);
         let out = Path::new(BUILD).join(format!("{stem}.o"));
         let dir = Path::new(BUILD).join("units").join(&stem);
         let root = match materialize(Path::new(unit), &dir) {
@@ -1246,7 +1258,7 @@ fn build_finished_tus() -> Result<(), String> {
         };
         let status = Command::new("rustc")
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-                   "--crate-name", &stem,
+                   "--crate-name", &cname,
                    "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
             .arg(&root)
             .arg("-o")
@@ -1264,7 +1276,7 @@ fn build_finished_tus() -> Result<(), String> {
         let checked = Path::new(BUILD).join(format!("{stem}.checking.o"));
         let status = Command::new("rustc")
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
-                   "--crate-name", &stem,
+                   "--crate-name", &cname,
                    "--cfg", "enable_checking",
                    "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
             .arg(&root)
