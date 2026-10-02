@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 75 |
-| 其中 done / wip | 63 / 12 |
-| 待开工 | 515 |
+| 已有目标文件 | 76 |
+| 其中 done / wip | 64 / 12 |
+| 待开工 | 514 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 199 |
+| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 198 |
 | `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,716 | 368 | 1,834 | 2,175 | 981 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 199 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 198 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -186,7 +186,7 @@
 | `lib/get-permissions.c` | 291 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/get-permissions.rs` | todo |
 | `lib/getdelim.c` | 150 | 2 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/getdelim.rs` | todo |
 | `lib/getdtablesize.c` | 121 | 3 | 0 | 4 | 0 | 0 | 1 | L | `femacs/lib/getdtablesize.rs` | todo |
-| `lib/getgroups.c` | 121 | 2 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/getgroups.rs` | todo |
+| `lib/getgroups.c` | 121 | 2 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/getgroups.rs` | done |
 | `lib/getline.c` | 27 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/getline.rs` | done |
 | `lib/getloadavg.c` | 897 | 1 | 0 | 19 | 4 | 2 | 7 | L | `femacs/lib/getloadavg.rs` | todo |
 | `lib/getopt-cdefs.in.h` | 74 | 0 | 0 | 5 | 1 | 0 | 0 | L | `femacs/lib/include/getopt-cdefs.in.rs` | todo |
