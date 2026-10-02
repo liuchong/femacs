@@ -1883,3 +1883,240 @@ unsafe fn make_blv (sym: *mut Lisp_Symbol, forwarded: bool,
   __lsan_ignore_object (blv as *const c_void);
   return blv;
 }
+
+DEFUN! ("make-variable-buffer-local", Fmake_variable_buffer_local,
+       Smake_variable_buffer_local, 1, 1, "vMake Variable Buffer Local: ",
+       doc: "Make VARIABLE become buffer-local whenever it is set.\nAt any time, the value for the current buffer is in effect,\nunless the variable has never been set in this buffer,\nin which case the default value is in effect.\nNote that binding the variable with `let', or setting it while\na `let'-style binding made in this buffer is in effect,\ndoes not make the variable buffer-local.  Return VARIABLE.\n\nThis globally affects all uses of this variable, so it belongs together with\nthe variable declaration, rather than with its uses (if you just want to make\na variable local to the current buffer for one particular use, use\n`make-local-variable').  Buffer-local bindings are normally cleared\nwhile setting up a new major mode, unless they have a `permanent-local'\nproperty.\n\nThe function `default-value' gets the default value and `set-default' sets it.\n\nSee also `defvar-local'.",
+       (variable: Lisp_Object),
+       {
+  let mut sym: *mut Lisp_Symbol;
+  let mut blv: *mut Lisp_Buffer_Local_Value = std::ptr::null_mut ();
+  /* C's `UNINIT` is `= {0,}` in this configuration (conf_post.h 369: GCC_LINT is
+     defined, src/config.h 209), so both locals start zeroed; the raw text carries no
+     member name, which is why this body's notes row exempts `uninit`.  */
+  let mut valcontents: Lisp_Val_Fwd = Lisp_Val_Fwd { value: Qnil () };
+  let mut forwarded: bool = false;
+
+  CHECK_SYMBOL (variable);
+  sym = XSYMBOL (variable);
+
+  loop
+    {
+      match ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+        {
+        SYMBOL_VARALIAS =>
+          { sym = SYMBOL_ALIAS (sym); continue; }
+        SYMBOL_PLAINVAL =>
+          {
+            forwarded = false; valcontents.value = SYMBOL_VAL (sym);
+            if BASE_EQ (valcontents.value, Qunbound ())
+              { valcontents.value = Qnil (); }
+          }
+        SYMBOL_LOCALIZED =>
+          { blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value; }
+        SYMBOL_FORWARDED =>
+          {
+            forwarded = true; valcontents.fwd = SYMBOL_FWD (sym) as lispfwd;
+            if KBOARD_OBJFWDP (valcontents.fwd)
+              {
+                error (b"Symbol %s may not be buffer-local\0".as_ptr () as *const c_char,
+                       SDATA (SYMBOL_NAME (variable)));
+              }
+            else if BUFFER_OBJFWDP (valcontents.fwd)
+              { return variable; }
+          }
+        _ =>
+          { emacs_abort (); }
+        }
+      break;
+    }
+
+  if SYMBOL_CONSTANT_P (variable)
+    { xsignal1 (Qsetting_constant (), variable); }
+
+  if blv.is_null ()
+    {
+      blv = make_blv (sym, forwarded, valcontents);
+      /* C assigns the bitfield `redirect`; the mirror packs it into `u.s.bits`
+         (lisp.rs 221-226).  */
+      let bits = (*sym).u.s.bits;
+      (*sym).u.s.bits = (bits & ! SYMBOL_REDIRECT_MASK)
+                        | (SYMBOL_LOCALIZED << SYMBOL_REDIRECT_SHIFT);
+      SET_SYMBOL_BLV (sym, blv as *mut c_void);
+    }
+
+  (*blv).bits = (*blv).bits | BLV_LOCAL_IF_SET;
+  return variable;
+});
+
+DEFUN! ("make-local-variable", Fmake_local_variable,
+       Smake_local_variable, 1, 1, "vMake Local Variable: ",
+       doc: "Make VARIABLE have a separate value in the current buffer.\nOther buffers will continue to share a common default value.\n(The buffer-local value of VARIABLE starts out as the same value\nVARIABLE previously had.  If VARIABLE was void, it remains void.)\nReturn VARIABLE.\n\nIf the variable is already arranged to become local when set,\nthis function causes a local value to exist for this buffer,\njust as setting the variable would do.\n\nThis function returns VARIABLE, and therefore\n  (set (make-local-variable \\='VARIABLE) VALUE-EXP)\nworks.\n\nSee also `make-variable-buffer-local'.\n\nDo not use `make-local-variable' to make a hook variable buffer-local.\nInstead, use `add-hook' and specify t for the LOCAL argument.",
+       (variable: Lisp_Object),
+       {
+  let mut variable = variable;   // C's `XSETSYMBOL (variable, sym)` below rebinds the argument
+  let tem: Lisp_Object;
+  let mut forwarded: bool = false;   /* C's `bool forwarded UNINIT;` (see
+                                        `make-variable-buffer-local`).  */
+  let mut valcontents: Lisp_Val_Fwd = Lisp_Val_Fwd { value: Qnil () };
+  let mut sym: *mut Lisp_Symbol;
+  let mut blv: *mut Lisp_Buffer_Local_Value = std::ptr::null_mut ();
+
+  CHECK_SYMBOL (variable);
+  sym = XSYMBOL (variable);
+
+  loop
+    {
+      match ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+        {
+        SYMBOL_VARALIAS =>
+          { sym = SYMBOL_ALIAS (sym); continue; }
+        SYMBOL_PLAINVAL =>
+          { forwarded = false; valcontents.value = SYMBOL_VAL (sym); }
+        SYMBOL_LOCALIZED =>
+          { blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value; }
+        SYMBOL_FORWARDED =>
+          {
+            forwarded = true; valcontents.fwd = SYMBOL_FWD (sym) as lispfwd;
+            if KBOARD_OBJFWDP (valcontents.fwd)
+              {
+                error (b"Symbol %s may not be buffer-local\0".as_ptr () as *const c_char,
+                       SDATA (SYMBOL_NAME (variable)));
+              }
+          }
+        _ =>
+          { emacs_abort (); }
+        }
+      break;
+    }
+
+  if ((((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT)
+      == SYMBOL_NOWRITE)
+    { xsignal1 (Qsetting_constant (), variable); }
+
+  if blv.is_null ()
+    {
+      if forwarded && BUFFER_OBJFWDP (valcontents.fwd)
+        {
+          let offset = XBUFFER_OFFSET (valcontents.fwd) as c_int;
+          let idx = PER_BUFFER_IDX (offset as ptrdiff_t);
+          eassert! (idx != 0);
+          if idx > 0
+            /* If idx < 0, it's always buffer local, like `mode-name`.  */
+            { SET_PER_BUFFER_VALUE_P (current_buffer, idx, true); }
+          return variable;
+        }
+      blv = make_blv (sym, forwarded, valcontents);
+      let bits = (*sym).u.s.bits;
+      (*sym).u.s.bits = (bits & ! SYMBOL_REDIRECT_MASK)
+                        | (SYMBOL_LOCALIZED << SYMBOL_REDIRECT_SHIFT);
+      SET_SYMBOL_BLV (sym, blv as *mut c_void);
+    }
+
+  /* Make sure this buffer has its own value of symbol.  */
+  XSETSYMBOL! (variable, sym);	/* Update in case of aliasing.  */
+  tem = assq_no_quit (variable, BVAR! (current_buffer, local_var_alist_));
+  if NILP (tem)
+    {
+      if let_shadows_buffer_binding_p (sym)
+        {
+          AUTO_STRING! (format, b"Making %s buffer-local while locally let-bound!\0".as_ptr () as *const c_char);
+          CALLN! (Fmessage, format, SYMBOL_NAME (variable));
+        }
+
+      if BUFFERP ((*blv).r#where) && current_buffer == XBUFFER ((*blv).r#where)
+        /* Make sure the current value is permanently recorded, if it's the
+           default value.  */
+        { swap_in_global_binding (sym); }
+
+      bset_local_var_alist
+        (current_buffer,
+         Fcons (Fcons (variable, XCDR ((*blv).defcell)),
+                BVAR! (current_buffer, local_var_alist_)));
+
+      /* If the symbol forwards into a C variable, then load the binding
+         for this buffer now, to preserve the invariant that forwarded
+         variables must always hold the value corresponding to the
+         current buffer (they are swapped eagerly).
+         Otherwise, if C code modifies the variable before we load the
+         binding in, then that new value would clobber the default binding
+         the next time we unload it.  See bug#34318.  */
+      if ! (*blv).fwd.is_null ()
+        { swap_in_symval_forwarding (sym, blv); }
+    }
+
+  return variable;
+});
+
+DEFUN! ("kill-local-variable", Fkill_local_variable,
+       Skill_local_variable, 1, 1, "vKill Local Variable: ",
+       doc: "Make VARIABLE no longer have a separate value in the current buffer.\nFrom now on the default value will apply in this buffer.  Return VARIABLE.",
+       (variable: Lisp_Object),
+       {
+  let mut variable = variable;   // C's `XSETSYMBOL (variable, sym)` below rebinds the argument
+  let tem: Lisp_Object;
+  let blv: *mut Lisp_Buffer_Local_Value;
+  let mut sym: *mut Lisp_Symbol;
+
+  CHECK_SYMBOL (variable);
+  sym = XSYMBOL (variable);
+
+  loop
+    {
+      match ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+        {
+        SYMBOL_VARALIAS =>
+          { sym = SYMBOL_ALIAS (sym); continue; }
+        SYMBOL_PLAINVAL =>
+          { return variable; }
+        SYMBOL_FORWARDED =>
+          {
+            let valcontents: lispfwd = SYMBOL_FWD (sym) as lispfwd;
+            if BUFFER_OBJFWDP (valcontents)
+              {
+                let offset = XBUFFER_OFFSET (valcontents) as c_int;
+                let idx = PER_BUFFER_IDX (offset as ptrdiff_t);
+
+                if idx > 0
+                  {
+                    SET_PER_BUFFER_VALUE_P (current_buffer, idx, false);
+                    set_per_buffer_value (current_buffer, offset,
+                                          per_buffer_default (offset));
+                  }
+              }
+            return variable;
+          }
+        SYMBOL_LOCALIZED =>
+          { blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value; }
+        _ =>
+          { emacs_abort (); }
+        }
+      break;
+    }
+
+  if ((((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT)
+      == SYMBOL_TRAPPED_WRITE)
+    { notify_variable_watchers (variable, Qnil (), Qmakunbound (), Fcurrent_buffer ()); }
+
+  /* Get rid of this buffer's alist element, if any.  */
+  XSETSYMBOL! (variable, sym);	/* Propagate variable indirection.  */
+  tem = assq_no_quit (variable, BVAR! (current_buffer, local_var_alist_));
+  if ! NILP (tem)
+    {
+      bset_local_var_alist
+        (current_buffer,
+         Fdelq (tem, BVAR! (current_buffer, local_var_alist_)));
+    }
+
+  /* If the symbol is set up with the current buffer's binding
+     loaded, recompute its value.  We have to do it now, or else
+     forwarded objects won't work right.  */
+  {
+    let buf: Lisp_Object;
+    XSETBUFFER! (buf, current_buffer);
+    if BASE_EQ (buf, (*blv).r#where)
+      { swap_in_global_binding (sym); }
+  }
+
+  return variable;
+});
