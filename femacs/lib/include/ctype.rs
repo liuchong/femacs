@@ -23,4 +23,8 @@ unsafe extern "C" {
   pub fn isspace (c: c_int) -> c_int;
   /* int isupper (int c);  */
   pub fn isupper (c: c_int) -> c_int;
+  /* int toupper (int c);  */
+  pub fn toupper (c: c_int) -> c_int;
+  /* int tolower (int c);  */
+  pub fn tolower (c: c_int) -> c_int;
 }

@@ -116,6 +116,7 @@ pub const REG_STARTEND: c_int = 1 << 2;
 
 /* regex.h 346-372: the error codes.  */
 #[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum reg_errcode_t {
   _REG_ENOSYS = -1,
   _REG_NOERROR = 0,

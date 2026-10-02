@@ -209,11 +209,12 @@ pub const OP_PERIOD: c_int = 5;
 pub const COMPLEX_BRACKET: c_int = 6;
 pub const OP_UTF8_PERIOD: c_int = 7;
 pub const EPSILON_BIT: c_int = 8;
+pub const ANCHOR: c_int = EPSILON_BIT | 4;
 pub const CONCAT: c_int = 16;
 pub const SUBEXP: c_int = 17;
 
 macro_rules! IS_EPSILON_NODE {
-    ($type:expr) => { ($type) & EPSILON_BIT };
+    ($type:expr) => { ($type) & EPSILON_BIT as c_uint };
 }
 
 #[repr(C)]
@@ -275,6 +276,7 @@ pub struct re_charset_t {
    packed the way PORTING.md 1.3 prescribes: one integer for the bitfield run, the union
    spelled as `#[repr(C)] union` with C's member names.  */
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union re_token_opr_t {
   pub c: u8,
   pub sbcset: re_bitset_ptr_t,
@@ -284,6 +286,7 @@ pub union re_token_opr_t {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct re_token_t {
   pub opr: re_token_opr_t,
   /// C: `re_token_type_t type : 8; unsigned int constraint : 10; unsigned int duplicated : 1;
@@ -374,10 +377,10 @@ macro_rules! MIN {
 
 /* regex_internal.h 455-461: `HAVE_MALLOC_0_NONNULL` is 1 on the frozen target.  */
 macro_rules! re_malloc {
-    ($t:ty, $n:expr) => { malloc (($n) * std::mem::size_of::<$t> ()) as *mut $t };
+    ($t:ty, $n:expr) => { malloc (($n) as usize * std::mem::size_of::<$t> ()) as *mut $t };
 }
 macro_rules! re_realloc {
-    ($p:expr, $t:ty, $n:expr) => { realloc ($p as *mut c_void, ($n) * std::mem::size_of::<$t> ()) as *mut $t };
+    ($p:expr, $t:ty, $n:expr) => { realloc ($p as *mut c_void, ($n) as usize * std::mem::size_of::<$t> ()) as *mut $t };
 }
 macro_rules! re_free {
     ($p:expr) => { free ($p as *mut c_void) };
@@ -411,16 +414,16 @@ pub const CONTEXT_BEGBUF: c_int = CONTEXT_NEWLINE << 1;
 pub const CONTEXT_ENDBUF: c_int = CONTEXT_BEGBUF << 1;
 
 macro_rules! IS_WORD_CONTEXT {
-    ($c:expr) => { ($c) & CONTEXT_WORD };
+    ($c:expr) => { ($c) & CONTEXT_WORD as c_uint };
 }
 macro_rules! IS_NEWLINE_CONTEXT {
-    ($c:expr) => { ($c) & CONTEXT_NEWLINE };
+    ($c:expr) => { ($c) & CONTEXT_NEWLINE as c_uint };
 }
 macro_rules! IS_BEGBUF_CONTEXT {
-    ($c:expr) => { ($c) & CONTEXT_BEGBUF };
+    ($c:expr) => { ($c) & CONTEXT_BEGBUF as c_uint };
 }
 macro_rules! IS_ENDBUF_CONTEXT {
-    ($c:expr) => { ($c) & CONTEXT_ENDBUF };
+    ($c:expr) => { ($c) & CONTEXT_ENDBUF as c_uint };
 }
 macro_rules! IS_ORDINARY_CONTEXT {
     ($c:expr) => { ($c) == 0 };
@@ -436,23 +439,23 @@ macro_rules! IS_WIDE_WORD_CHAR {
     ($ch:expr) => { __iswalnum! ($ch) != 0 || ($ch) == b'_' as wint_t };
 }
 macro_rules! IS_WIDE_NEWLINE {
-    ($ch:expr) => { ($ch) == WIDE_NEWLINE_CHAR };
+    ($ch:expr) => { ($ch) == WIDE_NEWLINE_CHAR as wint_t };
 }
 
 macro_rules! NOT_SATISFY_PREV_CONSTRAINT {
     ($constraint:expr, $context:expr) => {
-        ((($constraint) & PREV_WORD_CONSTRAINT) != 0 && IS_WORD_CONTEXT! ($context) == 0)
-        || ((($constraint) & PREV_NOTWORD_CONSTRAINT) != 0 && IS_WORD_CONTEXT! ($context) != 0)
-        || ((($constraint) & PREV_NEWLINE_CONSTRAINT) != 0 && IS_NEWLINE_CONTEXT! ($context) == 0)
-        || ((($constraint) & PREV_BEGBUF_CONSTRAINT) != 0 && IS_BEGBUF_CONTEXT! ($context) == 0)
+        ((($constraint) & PREV_WORD_CONSTRAINT as c_uint) != 0 && IS_WORD_CONTEXT! ($context) == 0)
+        || ((($constraint) & PREV_NOTWORD_CONSTRAINT as c_uint) != 0 && IS_WORD_CONTEXT! ($context) != 0)
+        || ((($constraint) & PREV_NEWLINE_CONSTRAINT as c_uint) != 0 && IS_NEWLINE_CONTEXT! ($context) == 0)
+        || ((($constraint) & PREV_BEGBUF_CONSTRAINT as c_uint) != 0 && IS_BEGBUF_CONTEXT! ($context) == 0)
     };
 }
 macro_rules! NOT_SATISFY_NEXT_CONSTRAINT {
     ($constraint:expr, $context:expr) => {
-        ((($constraint) & NEXT_WORD_CONSTRAINT) != 0 && IS_WORD_CONTEXT! ($context) == 0)
-        || ((($constraint) & NEXT_NOTWORD_CONSTRAINT) != 0 && IS_WORD_CONTEXT! ($context) != 0)
-        || ((($constraint) & NEXT_NEWLINE_CONSTRAINT) != 0 && IS_NEWLINE_CONTEXT! ($context) == 0)
-        || ((($constraint) & NEXT_ENDBUF_CONSTRAINT) != 0 && IS_ENDBUF_CONTEXT! ($context) == 0)
+        ((($constraint) & NEXT_WORD_CONSTRAINT as c_uint) != 0 && IS_WORD_CONTEXT! ($context) == 0)
+        || ((($constraint) & NEXT_NOTWORD_CONSTRAINT as c_uint) != 0 && IS_WORD_CONTEXT! ($context) != 0)
+        || ((($constraint) & NEXT_NEWLINE_CONSTRAINT as c_uint) != 0 && IS_NEWLINE_CONTEXT! ($context) == 0)
+        || ((($constraint) & NEXT_ENDBUF_CONSTRAINT as c_uint) != 0 && IS_ENDBUF_CONTEXT! ($context) == 0)
     };
 }
 
@@ -619,6 +622,7 @@ macro_rules! re_node_set_free {
 
 /* regex_internal.h 688-698 */
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub enum bracket_elem_type {
   SB_CHAR = 0,
   MB_CHAR = 1,
@@ -629,6 +633,7 @@ pub enum bracket_elem_type {
 
 /* regex_internal.h 700-709 */
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union bracket_elem_opr_t {
   pub ch: u8,
   pub name: *mut u8,
@@ -636,6 +641,7 @@ pub union bracket_elem_opr_t {
 }
 
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct bracket_elem_t {
   pub type_: bracket_elem_type,
   pub opr: bracket_elem_opr_t,
@@ -774,3 +780,97 @@ pub unsafe fn re_string_elem_size_at (pstr: *const re_string_t, idx: Idx) -> c_i
 
   return 1;
 }
+
+/* The packed bitfields (PORTING.md 1.3).  C reads and writes them as struct fields;
+   the mirror keeps one integer per storage unit, so each accessor below is the port's
+   spelling of one C field.  The getters are named with a trailing `_` so the token
+   check still sees C's field name (`type_` folds to `type`, P-78); the setters'
+   `set_…` spellings are registered as families in docs/ports/token-aliases.tsv, which
+   also keeps an occurrence floor so a dropped write cannot pass.  Bit positions are
+   LSB-first within the unit, the little-endian layout GCC/Clang use on the frozen
+   target; P-35 records that the storage-unit bit order is not covered by the generated
+   layout assertions, so the probe scripts have to pin it.  */
+
+/// C: `re_token_t.type : 8` (bits 0-7).
+pub const TOKEN_TYPE_SHIFT: u32 = 0;
+pub const TOKEN_TYPE_MASK: c_uint = 0xff;
+/// C: `re_token_t.constraint : 10` (bits 8-17).
+pub const TOKEN_CONSTRAINT_SHIFT: u32 = 8;
+pub const TOKEN_CONSTRAINT_MASK: c_uint = 0x3ff;
+/// C: `re_token_t.accept_mb : 1` (bit 20).
+pub const TOKEN_ACCEPT_MB_SHIFT: u32 = 20;
+pub const TOKEN_ACCEPT_MB_MASK: c_uint = 1;
+
+/// C: `re_dfastate_t.context : 4` (bits 0-3).
+pub const STATE_CONTEXT_SHIFT: u32 = 0;
+pub const STATE_CONTEXT_MASK: c_uint = 0xf;
+/// C: `re_dfastate_t.halt : 1` (bit 4).
+pub const STATE_HALT_SHIFT: u32 = 4;
+pub const STATE_HALT_MASK: c_uint = 1;
+/// C: `re_dfastate_t.accept_mb : 1` (bit 5).
+pub const STATE_ACCEPT_MB_SHIFT: u32 = 5;
+pub const STATE_ACCEPT_MB_MASK: c_uint = 1;
+/// C: `re_dfastate_t.has_backref : 1` (bit 6).
+pub const STATE_HAS_BACKREF_SHIFT: u32 = 6;
+pub const STATE_HAS_BACKREF_MASK: c_uint = 1;
+/// C: `re_dfastate_t.has_constraint : 1` (bit 7).
+pub const STATE_HAS_CONSTRAINT_SHIFT: u32 = 7;
+pub const STATE_HAS_CONSTRAINT_MASK: c_uint = 1;
+
+/// C: `re_dfa_t.is_utf8 : 1` (bit 2).
+pub const DFA_IS_UTF8_SHIFT: u32 = 2;
+pub const DFA_IS_UTF8_MASK: c_uint = 1;
+/// C: `re_dfa_t.map_notascii : 1` (bit 3).
+pub const DFA_MAP_NOTASCII_SHIFT: u32 = 3;
+pub const DFA_MAP_NOTASCII_MASK: c_uint = 1;
+/// C: `re_dfa_t.word_ops_used : 1` (bit 4).
+pub const DFA_WORD_OPS_USED_SHIFT: u32 = 4;
+pub const DFA_WORD_OPS_USED_MASK: c_uint = 1;
+
+#[inline(always)]
+fn bits_get (bits: c_uint, shift: u32, mask: c_uint) -> c_uint { (bits >> shift) & mask }
+#[inline(always)]
+fn bits_set (bits: c_uint, shift: u32, mask: c_uint, value: c_uint) -> c_uint {
+    (bits & !(mask << shift)) | ((value & mask) << shift)
+}
+
+#[inline(always)]
+pub unsafe fn type_ (token: *const re_token_t) -> c_uint { bits_get ((*token).bits, TOKEN_TYPE_SHIFT, TOKEN_TYPE_MASK) }
+#[inline(always)]
+pub unsafe fn set_type_ (token: *mut re_token_t, value: c_uint) { (*token).bits = bits_set ((*token).bits, TOKEN_TYPE_SHIFT, TOKEN_TYPE_MASK, value); }
+#[inline(always)]
+pub unsafe fn constraint_ (token: *const re_token_t) -> c_uint { bits_get ((*token).bits, TOKEN_CONSTRAINT_SHIFT, TOKEN_CONSTRAINT_MASK) }
+#[inline(always)]
+pub unsafe fn set_constraint_ (token: *mut re_token_t, value: c_uint) { (*token).bits = bits_set ((*token).bits, TOKEN_CONSTRAINT_SHIFT, TOKEN_CONSTRAINT_MASK, value); }
+#[inline(always)]
+pub unsafe fn accept_mb_ (token: *const re_token_t) -> c_uint { bits_get ((*token).bits, TOKEN_ACCEPT_MB_SHIFT, TOKEN_ACCEPT_MB_MASK) }
+#[inline(always)]
+pub unsafe fn set_accept_mb_ (token: *mut re_token_t, value: c_uint) { (*token).bits = bits_set ((*token).bits, TOKEN_ACCEPT_MB_SHIFT, TOKEN_ACCEPT_MB_MASK, value); }
+
+#[inline(always)]
+pub unsafe fn context_ (state: *const re_dfastate_t) -> c_uint { bits_get ((*state).bits, STATE_CONTEXT_SHIFT, STATE_CONTEXT_MASK) }
+#[inline(always)]
+pub unsafe fn set_context_ (state: *mut re_dfastate_t, value: c_uint) { (*state).bits = bits_set ((*state).bits, STATE_CONTEXT_SHIFT, STATE_CONTEXT_MASK, value); }
+#[inline(always)]
+pub unsafe fn halt_ (state: *const re_dfastate_t) -> c_uint { bits_get ((*state).bits, STATE_HALT_SHIFT, STATE_HALT_MASK) }
+#[inline(always)]
+pub unsafe fn set_halt_ (state: *mut re_dfastate_t, value: c_uint) { (*state).bits = bits_set ((*state).bits, STATE_HALT_SHIFT, STATE_HALT_MASK, value); }
+#[inline(always)]
+pub unsafe fn state_accept_mb_ (state: *const re_dfastate_t) -> c_uint { bits_get ((*state).bits, STATE_ACCEPT_MB_SHIFT, STATE_ACCEPT_MB_MASK) }
+#[inline(always)]
+pub unsafe fn set_state_accept_mb_ (state: *mut re_dfastate_t, value: c_uint) { (*state).bits = bits_set ((*state).bits, STATE_ACCEPT_MB_SHIFT, STATE_ACCEPT_MB_MASK, value); }
+#[inline(always)]
+pub unsafe fn has_backref_ (state: *const re_dfastate_t) -> c_uint { bits_get ((*state).bits, STATE_HAS_BACKREF_SHIFT, STATE_HAS_BACKREF_MASK) }
+#[inline(always)]
+pub unsafe fn set_has_backref_ (state: *mut re_dfastate_t, value: c_uint) { (*state).bits = bits_set ((*state).bits, STATE_HAS_BACKREF_SHIFT, STATE_HAS_BACKREF_MASK, value); }
+#[inline(always)]
+pub unsafe fn has_constraint_ (state: *const re_dfastate_t) -> c_uint { bits_get ((*state).bits, STATE_HAS_CONSTRAINT_SHIFT, STATE_HAS_CONSTRAINT_MASK) }
+#[inline(always)]
+pub unsafe fn set_has_constraint_ (state: *mut re_dfastate_t, value: c_uint) { (*state).bits = bits_set ((*state).bits, STATE_HAS_CONSTRAINT_SHIFT, STATE_HAS_CONSTRAINT_MASK, value); }
+
+#[inline(always)]
+pub unsafe fn is_utf8_ (dfa: *const re_dfa_t) -> c_uint { bits_get ((*dfa).bits, DFA_IS_UTF8_SHIFT, DFA_IS_UTF8_MASK) }
+#[inline(always)]
+pub unsafe fn map_notascii_ (dfa: *const re_dfa_t) -> c_uint { bits_get ((*dfa).bits, DFA_MAP_NOTASCII_SHIFT, DFA_MAP_NOTASCII_MASK) }
+#[inline(always)]
+pub unsafe fn word_ops_used_ (dfa: *const re_dfa_t) -> c_uint { bits_get ((*dfa).bits, DFA_WORD_OPS_USED_SHIFT, DFA_WORD_OPS_USED_MASK) }

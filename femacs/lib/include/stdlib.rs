@@ -8,4 +8,12 @@
 unsafe extern "C" {
   /* double strtod (const char *nptr, char **endptr);  */
   pub fn strtod (nptr: *const c_char, endptr: *mut *mut c_char) -> c_double;
+  /* void *malloc (size_t size);  */
+  pub fn malloc (size: usize) -> *mut c_void;
+  /* void *realloc (void *ptr, size_t size);  */
+  pub fn realloc (ptr: *mut c_void, size: usize) -> *mut c_void;
+  /* void *calloc (size_t nmemb, size_t size);  */
+  pub fn calloc (nmemb: usize, size: usize) -> *mut c_void;
+  /* void free (void *ptr);  */
+  pub fn free (ptr: *mut c_void);
 }
