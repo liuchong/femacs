@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 97 |
-| 其中 done / wip | 72 / 25 |
-| 待开工 | 493 |
+| 已有目标文件 | 106 |
+| 其中 done / wip | 85 / 21 |
+| 待开工 | 484 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 177 |
+| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 168 |
 | `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,716 | 368 | 1,834 | 2,175 | 981 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 177 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 168 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -138,8 +138,8 @@
 | `lib/careadlinkat.c` | 173 | 2 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/careadlinkat.rs` | todo |
 | `lib/careadlinkat.h` | 82 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/careadlinkat.rs` | todo |
 | `lib/cdefs.h` | 900 | 0 | 0 | 125 | 5 | 0 | 0 | L | `femacs/lib/include/cdefs.rs` | todo |
-| `lib/cloexec.c` | 83 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/cloexec.rs` | todo |
-| `lib/cloexec.h` | 44 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/cloexec.rs` | todo |
+| `lib/cloexec.c` | 83 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/cloexec.rs` | done |
+| `lib/cloexec.h` | 44 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/cloexec.rs` | done |
 | `lib/close-stream.c` | 77 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/close-stream.rs` | todo |
 | `lib/close-stream.h` | 30 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/close-stream.rs` | todo |
 | `lib/copy-file-range.c` | 99 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/copy-file-range.rs` | todo |
@@ -163,8 +163,8 @@
 | `lib/fcntl.in.h` | 504 | 0 | 0 | 48 | 38 | 6 | 0 | L | `femacs/lib/include/fcntl.in.rs` | wip |
 | `lib/fdopendir.c` | 238 | 5 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/fdopendir.rs` | todo |
 | `lib/file-has-acl.c` | 986 | 16 | 0 | 8 | 8 | 0 | 0 | L | `femacs/lib/file-has-acl.rs` | todo |
-| `lib/filemode.c` | 166 | 3 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/filemode.rs` | todo |
-| `lib/filemode.h` | 50 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/filemode.rs` | todo |
+| `lib/filemode.c` | 166 | 3 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/filemode.rs` | done |
+| `lib/filemode.h` | 50 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/filemode.rs` | wip |
 | `lib/filename.h` | 115 | 0 | 0 | 11 | 1 | 0 | 0 | L | `femacs/lib/include/filename.rs` | todo |
 | `lib/filevercmp.c` | 188 | 5 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/filevercmp.rs` | todo |
 | `lib/filevercmp.h` | 93 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/filevercmp.rs` | todo |
@@ -231,7 +231,7 @@
 | `lib/malloc/scratch_buffer_set_array_size.c` | 64 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/scratch_buffer_set_array_size.rs` | todo |
 | `lib/md5-stream.c` | 134 | 1 | 0 | 7 | 2 | 0 | 0 | L | `femacs/lib/md5-stream.rs` | todo |
 | `lib/md5.c` | 394 | 7 | 0 | 16 | 1 | 0 | 0 | L | `femacs/lib/md5.rs` | done |
-| `lib/md5.h` | 181 | 0 | 0 | 14 | 5 | 7 | 0 | L | `femacs/lib/include/md5.rs` | wip |
+| `lib/md5.h` | 181 | 0 | 0 | 14 | 5 | 7 | 0 | L | `femacs/lib/include/md5.rs` | done |
 | `lib/memeq.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/memeq.rs` | done |
 | `lib/memmem.c` | 71 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/memmem.rs` | todo |
 | `lib/mempcpy.c` | 33 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/mempcpy.rs` | done |
@@ -262,7 +262,7 @@
 | `lib/qcopy-acl.c` | 125 | 2 | 0 | 3 | 3 | 0 | 0 | L | `femacs/lib/qcopy-acl.rs` | todo |
 | `lib/rawmemchr.c` | 158 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/rawmemchr.rs` | done |
 | `lib/readlink.c` | 114 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/readlink.rs` | done |
-| `lib/readlinkat.c` | 123 | 1 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/readlinkat.rs` | todo |
+| `lib/readlinkat.c` | 123 | 1 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/readlinkat.rs` | done |
 | `lib/readutmp.h` | 352 | 0 | 0 | 32 | 8 | 21 | 0 | L | `femacs/lib/include/readutmp.rs` | todo |
 | `lib/realloc.c` | 101 | 1 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/realloc.rs` | done |
 | `lib/regcomp.c` | 3,814 | 63 | 0 | 19 | 2 | 0 | 2 | L | `femacs/lib/regcomp.rs` | todo |
@@ -276,14 +276,14 @@
 | `lib/save-cwd.h` | 44 | 0 | 0 | 1 | 1 | 2 | 0 | L | `femacs/lib/include/save-cwd.rs` | todo |
 | `lib/scratch_buffer.h` | 117 | 0 | 0 | 6 | 0 | 0 | 0 | L | `femacs/lib/include/scratch_buffer.rs` | todo |
 | `lib/set-permissions.c` | 836 | 10 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/set-permissions.rs` | todo |
-| `lib/sha1.c` | 362 | 7 | 0 | 14 | 4 | 0 | 0 | L | `femacs/lib/sha1.rs` | wip |
-| `lib/sha1.h` | 136 | 0 | 0 | 4 | 4 | 8 | 0 | L | `femacs/lib/include/sha1.rs` | wip |
-| `lib/sha256.c` | 431 | 12 | 0 | 13 | 0 | 0 | 0 | L | `femacs/lib/sha256.rs` | wip |
-| `lib/sha256.h` | 142 | 0 | 0 | 3 | 3 | 4 | 0 | L | `femacs/lib/include/sha256.rs` | wip |
-| `lib/sha3.c` | 442 | 12 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/sha3.rs` | todo |
-| `lib/sha3.h` | 132 | 0 | 0 | 1 | 1 | 6 | 0 | L | `femacs/lib/include/sha3.rs` | todo |
-| `lib/sha512.c` | 476 | 12 | 0 | 12 | 0 | 0 | 0 | L | `femacs/lib/sha512.rs` | todo |
-| `lib/sha512.h` | 145 | 0 | 0 | 3 | 3 | 4 | 0 | L | `femacs/lib/include/sha512.rs` | todo |
+| `lib/sha1.c` | 362 | 7 | 0 | 14 | 4 | 0 | 0 | L | `femacs/lib/sha1.rs` | done |
+| `lib/sha1.h` | 136 | 0 | 0 | 4 | 4 | 8 | 0 | L | `femacs/lib/include/sha1.rs` | done |
+| `lib/sha256.c` | 431 | 12 | 0 | 13 | 0 | 0 | 0 | L | `femacs/lib/sha256.rs` | done |
+| `lib/sha256.h` | 142 | 0 | 0 | 3 | 3 | 4 | 0 | L | `femacs/lib/include/sha256.rs` | done |
+| `lib/sha3.c` | 442 | 12 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/sha3.rs` | done |
+| `lib/sha3.h` | 132 | 0 | 0 | 1 | 1 | 6 | 0 | L | `femacs/lib/include/sha3.rs` | done |
+| `lib/sha512.c` | 476 | 12 | 0 | 12 | 0 | 0 | 0 | L | `femacs/lib/sha512.rs` | done |
+| `lib/sha512.h` | 145 | 0 | 0 | 3 | 3 | 4 | 0 | L | `femacs/lib/include/sha512.rs` | done |
 | `lib/sig2str.c` | 364 | 3 | 0 | 4 | 1 | 0 | 0 | L | `femacs/lib/sig2str.rs` | todo |
 | `lib/sig2str.h` | 32 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/include/sig2str.rs` | todo |
 | `lib/sigdescr_np.c` | 351 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/sigdescr_np.rs` | done |

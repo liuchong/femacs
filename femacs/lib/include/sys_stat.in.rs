@@ -154,3 +154,21 @@ unsafe extern "C" {
   /* `stat`'s mode-setting twin from the same header: `umask`.  */
   pub fn umask (mask: mode_t) -> mode_t;
 }
+
+/* C 238-352's fallbacks for the file-type predicates this target's <sys/stat.h> does not
+   define (every one of them is `0` here, which is why `ftypelet`'s "nonstandard" tests in
+   lib/filemode.c are the tests that answer '?' on this platform).  The `#else` arms that name
+   S_IFMPB/S_IFMPC/S_IFNWK/S_ISNAM (AIX, V7, HP-UX) are dead on this target and their tokens
+   are in docs/ports/macro-body-notes.tsv.  */
+macro_rules! S_ISDOOR { ($m:expr) => { 0 }; }
+macro_rules! S_ISCTG { ($m:expr) => { 0 }; }
+macro_rules! S_ISMPB { ($m:expr) => { 0 }; }
+macro_rules! S_ISMPC { ($m:expr) => { 0 }; }
+macro_rules! S_ISMPX { ($m:expr) => { 0 }; }
+macro_rules! S_ISNWK { ($m:expr) => { 0 }; }
+macro_rules! S_ISPORT { ($m:expr) => { 0 }; }
+macro_rules! S_ISWHT { ($m:expr) => { 0 }; }
+macro_rules! S_TYPEISMQ { ($p:expr) => { 0 }; }
+macro_rules! S_TYPEISTMO { ($p:expr) => { 0 }; }
+macro_rules! S_TYPEISSEM { ($p:expr) => { 0 }; }
+macro_rules! S_TYPEISSHM { ($p:expr) => { 0 }; }
