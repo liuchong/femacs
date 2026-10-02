@@ -50,3 +50,7 @@ unsafe extern "C" {
 
 // getrlimit's resource selector kqueue.c uses (RLIMIT_NOFILE = 8 on the frozen target).
 pub const RLIMIT_NOFILE: c_int = 8;
+
+/// `<sys/resource.h>`'s `RLIM_INFINITY` for `rlim_t`: the all-ones value (measured with clang:
+/// `printf ("%llu", (unsigned long long) RLIM_INFINITY)` -> 9223372036854775807).
+pub const RLIM_INFINITY: rlim_t = 9223372036854775807;

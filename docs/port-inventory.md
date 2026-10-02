@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 141 |
-| 其中 done / wip | 115 / 26 |
-| 待开工 | 449 |
+| 已有目标文件 | 152 |
+| 其中 done / wip | 122 / 30 |
+| 待开工 | 438 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 133 |
+| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 122 |
 | `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,741 | 368 | 1,834 | 2,175 | 981 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 133 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 122 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -185,19 +185,19 @@
 | `lib/futimens.c` | 37 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/futimens.rs` | done |
 | `lib/get-permissions.c` | 291 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/get-permissions.rs` | todo |
 | `lib/getdelim.c` | 150 | 2 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/getdelim.rs` | done |
-| `lib/getdtablesize.c` | 121 | 3 | 0 | 4 | 0 | 0 | 1 | L | `femacs/lib/getdtablesize.rs` | todo |
+| `lib/getdtablesize.c` | 121 | 3 | 0 | 4 | 0 | 0 | 1 | L | `femacs/lib/getdtablesize.rs` | done |
 | `lib/getgroups.c` | 121 | 2 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/getgroups.rs` | done |
 | `lib/getline.c` | 27 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/getline.rs` | done |
 | `lib/getloadavg.c` | 897 | 1 | 0 | 19 | 4 | 2 | 7 | L | `femacs/lib/getloadavg.rs` | todo |
 | `lib/getopt-cdefs.in.h` | 74 | 0 | 0 | 5 | 1 | 0 | 0 | L | `femacs/lib/include/getopt-cdefs.in.rs` | todo |
-| `lib/getopt-core.h` | 96 | 0 | 0 | 1 | 1 | 0 | 4 | L | `femacs/lib/include/getopt-core.rs` | todo |
-| `lib/getopt-ext.h` | 77 | 0 | 0 | 4 | 4 | 4 | 0 | L | `femacs/lib/include/getopt-ext.rs` | todo |
-| `lib/getopt-pfx-core.h` | 76 | 0 | 0 | 10 | 1 | 0 | 0 | L | `femacs/lib/include/getopt-pfx-core.rs` | todo |
-| `lib/getopt-pfx-ext.h` | 69 | 0 | 0 | 9 | 2 | 0 | 0 | L | `femacs/lib/include/getopt-pfx-ext.rs` | todo |
-| `lib/getopt.c` | 811 | 6 | 0 | 8 | 0 | 0 | 5 | L | `femacs/lib/getopt.rs` | todo |
-| `lib/getopt.in.h` | 66 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/getopt.in.rs` | todo |
-| `lib/getopt1.c` | 166 | 5 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/getopt1.rs` | todo |
-| `lib/getopt_int.h` | 118 | 0 | 0 | 2 | 4 | 9 | 0 | L | `femacs/lib/include/getopt_int.rs` | todo |
+| `lib/getopt-core.h` | 96 | 0 | 0 | 1 | 1 | 0 | 4 | L | `femacs/lib/include/getopt-core.rs` | done |
+| `lib/getopt-ext.h` | 77 | 0 | 0 | 4 | 4 | 4 | 0 | L | `femacs/lib/include/getopt-ext.rs` | wip |
+| `lib/getopt-pfx-core.h` | 76 | 0 | 0 | 10 | 1 | 0 | 0 | L | `femacs/lib/include/getopt-pfx-core.rs` | done |
+| `lib/getopt-pfx-ext.h` | 69 | 0 | 0 | 9 | 2 | 0 | 0 | L | `femacs/lib/include/getopt-pfx-ext.rs` | wip |
+| `lib/getopt.c` | 811 | 6 | 0 | 8 | 0 | 0 | 5 | L | `femacs/lib/getopt.rs` | done |
+| `lib/getopt.in.h` | 66 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/getopt.in.rs` | wip |
+| `lib/getopt1.c` | 166 | 5 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/getopt1.rs` | done |
+| `lib/getopt_int.h` | 118 | 0 | 0 | 2 | 4 | 9 | 0 | L | `femacs/lib/include/getopt_int.rs` | wip |
 | `lib/getrandom.c` | 193 | 2 | 0 | 10 | 4 | 0 | 2 | L | `femacs/lib/getrandom.rs` | todo |
 | `lib/gettext.h` | 542 | 18 | 0 | 27 | 4 | 0 | 0 | L | `femacs/lib/include/gettext.rs` | wip |
 | `lib/gettime.c` | 51 | 2 | 0 | 0 | 0 | 1 | 0 | L | `femacs/lib/gettime.rs` | todo |
@@ -244,8 +244,8 @@
 | `lib/mini-gmp.h` | 314 | 0 | 0 | 6 | 0 | 0 | 1 | L | `femacs/lib/include/mini-gmp.rs` | done |
 | `lib/minmax.h` | 65 | 0 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/include/minmax.rs` | wip |
 | `lib/mkostemp.c` | 46 | 1 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/mkostemp.rs` | todo |
-| `lib/mktime-internal.h` | 83 | 0 | 0 | 11 | 0 | 0 | 0 | L | `femacs/lib/include/mktime-internal.rs` | todo |
-| `lib/mktime.c` | 582 | 12 | 0 | 8 | 6 | 0 | 0 | L | `femacs/lib/mktime.rs` | todo |
+| `lib/mktime-internal.h` | 83 | 0 | 0 | 11 | 0 | 0 | 0 | L | `femacs/lib/include/mktime-internal.rs` | done |
+| `lib/mktime.c` | 582 | 12 | 0 | 8 | 6 | 0 | 0 | L | `femacs/lib/mktime.rs` | done |
 | `lib/nanosleep.c` | 191 | 3 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/nanosleep.rs` | done |
 | `lib/nproc.c` | 582 | 7 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/nproc.rs` | todo |
 | `lib/nproc.h` | 46 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/nproc.rs` | todo |
