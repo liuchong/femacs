@@ -2284,3 +2284,152 @@ DEFUN! ("indirect-function", Findirect_function, Sindirect_function, 1, 2, 0,
        {
   return indirect_function (object);
 });
+
+/* Extract and set vector and string elements.  */
+
+DEFUN! ("aref", Faref, Saref, 2, 2, 0,
+       doc: "Return the element of ARRAY at index IDX.\nARRAY may be a vector, a string, a char-table, a bool-vector, a record,\nor a byte-code object.  IDX starts at 0.",
+       (array: Lisp_Object, idx: Lisp_Object),
+       {
+  let idxval: EMACS_INT;
+
+  CHECK_FIXNUM (idx);
+  idxval = XFIXNUM (idx);
+
+  if STRINGP (array)
+    {
+      let c: c_int;
+      let idxval_byte: ptrdiff_t;
+
+      if idxval < 0 || idxval >= SCHARS (array)
+        { args_out_of_range (array, idx); }
+      if ! STRING_MULTIBYTE (array)
+        { return make_fixnum (SREF (array, idxval as usize) as EMACS_INT); }
+      idxval_byte = string_char_to_byte (array, idxval);
+
+      c = STRING_CHAR (unsafe { SDATA (array).offset (idxval_byte) });
+      return make_fixnum (c as EMACS_INT);
+    }
+  else if BOOL_VECTOR_P (array)
+    {
+      if idxval < 0 || idxval >= bool_vector_size (array)
+        { args_out_of_range (array, idx); }
+      return bool_vector_ref (array, idxval);
+    }
+  else if CHAR_TABLE_P (array)
+    {
+      CHECK_CHARACTER (idx);
+      return CHAR_TABLE_REF (array, idxval);
+    }
+  else
+    {
+      let mut size: ptrdiff_t = 0;
+      if VECTORP (array)
+        { size = ASIZE (array); }
+      else if CLOSUREP (array) || RECORDP (array)
+        { size = PVSIZE (array); }
+      else
+        { wrong_type_argument (Qarrayp (), array); }
+
+      if idxval < 0 || idxval >= size
+        { args_out_of_range (array, idx); }
+      return AREF (array, idxval);
+    }
+});
+
+DEFUN! ("aset", Faset, Saset, 3, 3, 0,
+       doc: "Store into the element of ARRAY at index IDX the value NEWELT.\nReturn NEWELT.  ARRAY may be a vector, a string, a char-table or a\nbool-vector.  IDX starts at 0.\nIf ARRAY is a unibyte string, NEWELT must be a single byte (0-255).\nIf ARRAY is a multibyte string, NEWELT and the previous character at\nindex IDX must both be ASCII (0-127).",
+       (array: Lisp_Object, idx: Lisp_Object, newelt: Lisp_Object),
+       {
+  let idxval: EMACS_INT;
+
+  CHECK_FIXNUM (idx);
+  idxval = XFIXNUM (idx);
+  if ! RECORDP (array)
+    { CHECK_ARRAY (array, Qarrayp ()); }
+
+  if VECTORP (array)
+    {
+      if idxval < 0 || idxval >= ASIZE (array)
+        { args_out_of_range (array, idx); }
+      ASET (array, idxval, newelt);
+    }
+  else if BOOL_VECTOR_P (array)
+    {
+      if idxval < 0 || idxval >= bool_vector_size (array)
+        { args_out_of_range (array, idx); }
+      bool_vector_set (array, idxval, ! NILP (newelt));
+    }
+  else if CHAR_TABLE_P (array)
+    {
+      CHECK_CHARACTER (idx);
+      CHAR_TABLE_SET (array, idxval, newelt);
+    }
+  else if RECORDP (array)
+    {
+      if idxval < 0 || idxval >= PVSIZE (array)
+        { args_out_of_range (array, idx); }
+      ASET (array, idxval, newelt);
+    }
+  else /* STRINGP */
+    {
+      if idxval < 0 || idxval >= SCHARS (array)
+        { args_out_of_range (array, idx); }
+      CHECK_CHARACTER (newelt);
+      let c = XFIXNAT (newelt) as c_int;
+
+      if STRING_MULTIBYTE (array)
+        {
+          if c > 0x7f
+            { error (b"Attempt to store non-ASCII char into multibyte string\0".as_ptr ()
+                       as *const c_char); }
+          let idxval_byte = string_char_to_byte (array, idxval);
+          /* C's `unsigned char *p = SDATA (array) + idxval_byte;` - the byte itself is
+             reached through the mirror's `SREF`/`SSET`, which take its index, so the port
+             keeps C's name `p` as that index instead of a raw pointer (PORTING.md P-79:
+             no `unsafe` where a safe helper exists, and the unibyte branch below already
+             uses `SSET`).  */
+          let p = idxval_byte as usize;
+          if SREF (array, p) > 0x7f
+            { error (b"Attempt to replace non-ASCII char in multibyte string\0".as_ptr ()
+                       as *const c_char); }
+          SSET (array, p, c as u8);
+        }
+      else
+        {
+          if c > 0xff
+            { error (b"Attempt to store non-byte value into unibyte string\0".as_ptr ()
+                       as *const c_char); }
+          SSET (array, idxval as usize, c as u8);
+        }
+    }
+  return newelt;
+});
+
+/* Arithmetic functions */
+
+fn check_integer_coerce_marker (x: Lisp_Object) -> Lisp_Object
+{
+  if MARKERP (x)
+    { return make_fixnum (unsafe { marker_position (x) }); }
+  CHECK_TYPE (INTEGERP (x), Qinteger_or_marker_p (), x);
+  return x;
+}
+
+fn check_number_coerce_marker (x: Lisp_Object) -> Lisp_Object
+{
+  if MARKERP (x)
+    { return make_fixnum (unsafe { marker_position (x) }); }
+  CHECK_TYPE (NUMBERP (x), Qnumber_or_marker_p (), x);
+  return x;
+}
+
+fn coerce_marker (x: Lisp_Object) -> Lisp_Object
+{
+  return if MARKERP (x) { make_fixnum (unsafe { marker_position (x) }) } else { x };
+}
+
+fn not_number_or_marker (x: Lisp_Object) -> !
+{
+  unsafe { wrong_type_argument (Qnumber_or_marker_p (), x); }
+}

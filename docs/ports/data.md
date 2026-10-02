@@ -87,8 +87,8 @@
 - [x] local-variable-if-set-p  (Flocal_variable_if_set_p, 1/2, doc 941c0a96d181, line 2465)
 - [x] variable-binding-locus  (Fvariable_binding_locus, 1/1, doc 06a9101ba8cc, line 2500)
 - [x] indirect-function  (Findirect_function, 1/2, doc 4039ab149d9c, line 2557)
-- [ ] aref  (Faref, 2/2, doc 234ce1704f66, line 2568)
-- [ ] aset  (Faset, 3/3, doc 46c3c9de50cc, line 2619)
+- [x] aref  (Faref, 2/2, doc 234ce1704f66, line 2568)
+- [x] aset  (Faset, 3/3, doc 46c3c9de50cc, line 2619)
 - [ ] =  (Feqlsign, 1/MANY, doc 25b3b0f7463b, line 2864)
 - [ ] <  (Flss, 1/MANY, doc cb7e7022c510, line 2872)
 - [ ] >  (Fgtr, 1/MANY, doc a1fe723ff1b9, line 2883)
@@ -164,10 +164,10 @@
 - [x] set_default_internal  (line 2034)
 - [x] make_blv  (line 2149, static)
 - [x] indirect_function  (line 2550)
-- [ ] check_integer_coerce_marker  (line 2688, static)
-- [ ] check_number_coerce_marker  (line 2697, static)
-- [ ] coerce_marker  (line 2706, static)
-- [ ] not_number_or_marker  (line 2712, static)
+- [x] check_integer_coerce_marker  (line 2688, static)
+- [x] check_number_coerce_marker  (line 2697, static)
+- [x] coerce_marker  (line 2706, static)
+- [x] not_number_or_marker  (line 2712, static)
 - [ ] arithcompare  (line 2718)
 - [ ] arithcompare_driver  (line 2856, static)
 - [ ] cons_to_unsigned  (line 2932)
@@ -202,15 +202,16 @@
   three subrs), 1832-1846 (`set_symbol_trapped_write`/`restore_symbol_trapped_write`),
   1962-2176 (`default_value`, the three `default-*` subrs, `set_default_internal`,
   `union Lisp_Val_Fwd` and `make_blv`), 2178-2412 (`make-variable-buffer-local`,
-  `make-local-variable`, `kill-local-variable`) and 2414-2564 (`local-variable-p`,
+  `make-local-variable`, `kill-local-variable`), 2414-2564 (`local-variable-p`,
   `local-variable-if-set-p`, `variable-binding-locus`, `indirect_function` and
-  `indirect-function`).  The file has 120 `DEFUN`s, of which four are dead in this
-  configuration (`user-ptrp` plus the three `HAVE_NATIVE_COMP` ones): 75 of the 116 live
-  subrs and 38 of the 60 functions are ported.  `cargo build-tu src/data.c` builds, and
-  `extract-abi.py --check` reports no incorrect item - only the 41 remaining subrs, 22
+  `indirect-function`) and 2566-2717 (`aref`, `aset` and the four marker-coercion helpers
+  of the arithmetic section).  The file has 120 `DEFUN`s, of which four are dead in this
+  configuration (`user-ptrp` plus the three `HAVE_NATIVE_COMP` ones): 77 of the 116 live
+  subrs and 42 of the 60 functions are ported.  `cargo build-tu src/data.c` builds, and
+  `extract-abi.py --check` reports no incorrect item - only the 39 remaining subrs, 18
   functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*` plus the five `bool_vector_*`),
-  the 120 `defsubr` calls and the line-count drift of a partial file (C 4400 vs Rust 2286,
-  48.0%).
+  the 120 `defsubr` calls and the line-count drift of a partial file (C 4400 vs Rust 2435,
+  44.7%).
 
 - **`UNINIT` is `= {0,}` here, and that is a measured fact (this segment's decision).**
   `conf_post.h` 366-371 defines `UNINIT` as `= {0,}` when `GCC_LINT` or `lint` is defined
@@ -346,6 +347,47 @@
   120, the tree-wide count is 1,849 = the textual occurrence count P-78 recorded, and `--all`
   is unchanged (the newly reachable bodies belong to files with no port yet - the hole would
   have opened silently the day they are ported).
+- **This segment is the first written under P-79 (safe-first).**  `aref`/`aset` keep
+  `unsafe` for exactly two things: `aref`'s `SDATA (array).offset (idxval_byte)` handed to
+  `STRING_CHAR`, and `aset`'s three variadic `error` calls.  Everything else goes through
+  the mirror's helpers (`SREF`/`SSET`/`AREF`/`ASET`/`bool_vector_*`/`CHAR_TABLE_*`/
+  `ASIZE`/`PVSIZE`).  Reviewer A's F2 caught the first version, whose multibyte branch
+  dereferenced a raw `unsigned char *p` although `SREF`/`SSET` are its byte-for-byte safe
+  equivalent and the same body's unibyte branch already used `SSET`; the port now keeps
+  C's name `p` as the byte *index*, and the `SDATA` C's pointer expression spelled is
+  exempted for `Faset` in `macro-body-notes.tsv` with that reason.  The four static helpers
+  are plain safe `fn`s with narrow `unsafe` blocks around their three `marker_position` FFI
+  calls and the `wrong_type_argument` in `not_number_or_marker`, rather than the
+  `unsafe extern "C" fn` shape the earlier segments gave statics: they are file-local in C
+  and need no raw access, so the safe signature costs nothing (older statics keep their
+  shape until touched - P-79 clause 4).
+- **`string_char_to_byte` joins the mirror.**  lisp.h 4276 declares it, fns.c defines it,
+  and `aref`/`aset` are its first callers in the port: it is declared in `lisp.rs`'s
+  `other_units` beside `assq_no_quit` (same header, same defining file) with the lisp.h line
+  in the comment.  No `/// C:` line is needed - every parameter type is nameable.
+- **This segment needs exactly one `macro-body-notes.tsv` row.**  The bodies are `if`/`else
+  if` chains around named mirror helpers, so `aref` and the four helpers report no missing
+  token at all, and `aset` needs only `sdata` - the token C spells in the pointer
+  expression that P-79 replaced (see above).  No `switch`/`goto`-class exemption was
+  required for any of the six bodies.
+- **What the gate still cannot see in these six bodies (reviewer B's round-10 mutation
+  run).**  15 of 27 mutants stay green, all of them the known token-set classes: the
+  threshold constants (either `0x7f` may become `0xff`/`0x7e` because the tokenizer splits
+  `0x7f` into `0`+`x7f` and there are two sites), `idxval < 0` -> `idxval <= 0`, the
+  `! NILP (newelt)` polarity, swapping the `BOOL_VECTOR_P`/`CHAR_TABLE_P` arms (Faref and
+  Faset), swapping `VECTORP`/`CLOSUREP`, `ASIZE` <-> `PVSIZE` where both spellings survive,
+  the three `error` messages (string literals are dropped, and two of the three calls can be
+  deleted without a report), the `SREF`/`SSET` cast widths, and `SREF (array, p)` -> a wrong
+  index, since `p` and `c` are one character and `skip_short` drops them.  The cheapest
+  closures, both already named in P-78: the per-token count floor (`rust_count >= c_count`,
+  which closes 8 of the 15) and comparing string literals for `error`.  The four helpers are
+  the load-bearing counterexample inside this segment: none of their required tokens has C
+  count > 1, so every one of them is singly guarded.
+- **The new declaration's *type* is outside the fast gates (reviewer B's L1).**  A mutant
+  `string_char_to_byte (…, c_int) -> c_int` leaves `--check` byte-identical; `tools/gen-lisp-abi-probe.py`
+  does emit the check (93 -> 94 entries) but `spikes/lisp-abi-probe.sh` needs the heavy-tier
+  `build/emacs-ref`, so nothing in `gate-fast`/`layout-check` would catch a wrong signature.
+  Recorded rather than fixed: the prototype is lisp.h 4276's, verbatim.
 - **Five subrs wait for two headers.**  `type-of` (data.c 187-200) needs this file's own
   `cl-type-of` (data.c 202-310); `cl-type-of` calls `THREADP`, `MUTEXP`, `CONDVARP`
   (`thread.h` 222-320) and `FONT_SPEC_P`/`FONT_ENTITY_P`/`FONT_OBJECT_P` (`font.h`

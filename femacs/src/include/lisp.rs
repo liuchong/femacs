@@ -3674,9 +3674,11 @@ pub mod other_units {
         pub fn set_default_internal (symbol: Lisp_Object, newval: Lisp_Object,
                                      bindflag: Set_Internal_Bind,
                                      buf: *mut c_void);
-        // lisp.h 4243, 4272: the list helpers data.c calls (fns.c defines them).
+        // lisp.h 4243, 4272, 4276: the list and string helpers data.c calls (fns.c
+        // defines them; `string_char_to_byte` is `aref`/`aset`'s).
         pub fn list_length (list: Lisp_Object) -> ptrdiff_t;
         pub fn assq_no_quit (key: Lisp_Object, alist: Lisp_Object) -> Lisp_Object;
+        pub fn string_char_to_byte (string: Lisp_Object, char_index: ptrdiff_t) -> ptrdiff_t;
         // lisp.h 4655, 4661: the two object helpers data.c calls (alloc.c defines them).
         pub fn build_symbol_with_pos (symbol: Lisp_Object, position: Lisp_Object) -> Lisp_Object;
         pub fn valid_lisp_object_p (obj: Lisp_Object) -> c_int;
