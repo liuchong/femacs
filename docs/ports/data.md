@@ -83,10 +83,10 @@
 - [x] make-variable-buffer-local  (Fmake_variable_buffer_local, 1/1, doc 72fb43518d24, line 2178)
 - [x] make-local-variable  (Fmake_local_variable, 1/1, doc c078681c6a7d, line 2245)
 - [x] kill-local-variable  (Fkill_local_variable, 1/1, doc 9c6b3b90cf56, line 2350)
-- [ ] local-variable-p  (Flocal_variable_p, 1/2, doc 218d919232f7, line 2416)
-- [ ] local-variable-if-set-p  (Flocal_variable_if_set_p, 1/2, doc 941c0a96d181, line 2465)
-- [ ] variable-binding-locus  (Fvariable_binding_locus, 1/1, doc 06a9101ba8cc, line 2500)
-- [ ] indirect-function  (Findirect_function, 1/2, doc 4039ab149d9c, line 2557)
+- [x] local-variable-p  (Flocal_variable_p, 1/2, doc 218d919232f7, line 2416)
+- [x] local-variable-if-set-p  (Flocal_variable_if_set_p, 1/2, doc 941c0a96d181, line 2465)
+- [x] variable-binding-locus  (Fvariable_binding_locus, 1/1, doc 06a9101ba8cc, line 2500)
+- [x] indirect-function  (Findirect_function, 1/2, doc 4039ab149d9c, line 2557)
 - [ ] aref  (Faref, 2/2, doc 234ce1704f66, line 2568)
 - [ ] aset  (Faset, 3/3, doc 46c3c9de50cc, line 2619)
 - [ ] =  (Feqlsign, 1/MANY, doc 25b3b0f7463b, line 2864)
@@ -163,7 +163,7 @@
 - [x] default_value  (line 1962)
 - [x] set_default_internal  (line 2034)
 - [x] make_blv  (line 2149, static)
-- [ ] indirect_function  (line 2550)
+- [x] indirect_function  (line 2550)
 - [ ] check_integer_coerce_marker  (line 2688, static)
 - [ ] check_number_coerce_marker  (line 2697, static)
 - [ ] coerce_marker  (line 2706, static)
@@ -199,16 +199,18 @@
   subrs), 716-897 (the twelve symbol accessors and `fset`), 1029-1291 (the subr
   introspection subrs), 1314-1646 (the forwarding machinery), 1660-1676 (`set`, in C's
   order ahead of its callee), 1678-1960 (`set_internal`, the watcher machinery and its
-  three subrs), 1832-1846 (`set_symbol_trapped_write`/`restore_symbol_trapped_write`)
+  three subrs), 1832-1846 (`set_symbol_trapped_write`/`restore_symbol_trapped_write`),
   1962-2176 (`default_value`, the three `default-*` subrs, `set_default_internal`,
-  `union Lisp_Val_Fwd` and `make_blv`) and 2178-2412 (`make-variable-buffer-local`,
-  `make-local-variable`, `kill-local-variable`).  The file has 120 `DEFUN`s, of which
-  four are dead in this configuration (`user-ptrp` plus the three `HAVE_NATIVE_COMP`
-  ones): 71 of the 116 live subrs and 37 of the 60 functions are ported.  `cargo
-  build-tu src/data.c` builds, and `extract-abi.py --check` reports no incorrect item -
-  only the 45 remaining subrs, 23 functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*`
-  plus the five `bool_vector_*`), the 120 `defsubr` calls and the line-count drift of a
-  partial file (C 4400 vs Rust 2122, 51.8%).
+  `union Lisp_Val_Fwd` and `make_blv`), 2178-2412 (`make-variable-buffer-local`,
+  `make-local-variable`, `kill-local-variable`) and 2414-2564 (`local-variable-p`,
+  `local-variable-if-set-p`, `variable-binding-locus`, `indirect_function` and
+  `indirect-function`).  The file has 120 `DEFUN`s, of which four are dead in this
+  configuration (`user-ptrp` plus the three `HAVE_NATIVE_COMP` ones): 75 of the 116 live
+  subrs and 38 of the 60 functions are ported.  `cargo build-tu src/data.c` builds, and
+  `extract-abi.py --check` reports no incorrect item - only the 41 remaining subrs, 22
+  functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*` plus the five `bool_vector_*`),
+  the 120 `defsubr` calls and the line-count drift of a partial file (C 4400 vs Rust 2286,
+  48.0%).
 
 - **`UNINIT` is `= {0,}` here, and that is a measured fact (this segment's decision).**
   `conf_post.h` 366-371 defines `UNINIT` as `= {0,}` when `GCC_LINT` or `lint` is defined
@@ -235,9 +237,29 @@
   `false`/`true`.  `kill-local-variable`'s `0` token is satisfied by `if (idx > 0)`, so
   swapping that `false` for `true` would not be reported - a P-78-class residual, listed
   with the casetab `0`/`1` rows.
-- **Probe P1 is one step closer.**  `make-variable-buffer-local` (which sets
-  `local_if_set` = 1) is now ported, so the probe that needs a dirty, reused `blv` only
-  waits for `local-variable-if-set-p` (data.c 2465) to read the bit back.
+- **Probe P1 is now fully ported on both halves.**  `make-variable-buffer-local` sets the
+  `local_if_set` bit and `local-variable-if-set-p` (data.c 2465) reads it back through
+  `BLV_LOCAL_IF_SET`; only an Emacs build to run the probe against is still missing.
+- **C's one `FALLTHROUGH` (data.c 2528) is the port's shared tail.**  In
+  `variable-binding-locus`, the `SYMBOL_FORWARDED` arm either returns (kboard or
+  non-buffer forwarding) or falls into the `SYMBOL_LOCALIZED` arm's statements.  Rust has
+  no fallthrough, so the port keeps C's shape by giving the `match` a loop whose `break`
+  lands on exactly those statements: the `SYMBOL_LOCALIZED` arm is empty and the two arms
+  that reach the `break` are the two that reach C's tail.  The tail's own
+  `sym->u.s.redirect == SYMBOL_LOCALIZED` test is kept verbatim - it is what distinguishes
+  the fallthrough case - and `FALLTHROUGH` (`lib/attribute.h` 210) therefore appears in
+  that body's notes row.
+- **Two of this segment's switches have no `break` at all.**  `local-variable-p` and
+  `local-variable-if-set-p` return, `continue` or abort from every arm, so their ported
+  loops have no `break` either; a `loop` without one has type `!`, which is what the
+  `DEFUN!` body has to produce (`variable-binding-locus` needs the `break`, above).
+- **The `unused_parens` warnings this TU emits come from the mirror's bitfield spelling,
+  not from C (review A corrected an earlier version of this bullet).**  `build-tu src/data.c`
+  reports four "unnecessary parentheses around an `if` condition", at `data.rs` 1749, 1993 and
+  2097 and once inside an included mirror; all of them are the mirror's re-derivation
+  `if ((((*sym).u.s.bits & MASK) >> SHIFT) ...)`, whereas C writes `if (sym->u.redirect ==
+  SYMBOL_LOCALIZED)` with no inner pair, and this segment adds none (its own condition at
+  `data.rs` 2260 puts the comparison outside the parens).
 
 - **What this segment's notes rows still cannot see (reviewer B's round-7 mutation run).**
   The three rows are *exactly* the difference set (B measured `C - Rust - allowance = {}` and
@@ -267,9 +289,36 @@
 - **The ledger's generated header vs the generator (review B's F9).**  `extract-abi.py
   emacs/src/data.c` and `--check` now emit `## Subrs (DEFUN) - 116` (the condition table drops
   the four dead `DEFUN`s), while this file deliberately keeps C's 120 boxes (P-76).  The
-  arithmetic stays self-consistent - 71 ticked + 49 unticked = 120, the four dead ones stay
+  arithmetic stays self-consistent - 75 ticked + 45 unticked = 120, the four dead ones stay
   unticked - but a future regeneration of this checklist would emit 116 boxes and lose the
   four recorded dead lines, so this paragraph is the record that the 120 is deliberate.
+- **The new bodies repeat the round-7 blind spots, and here the fallthrough itself is outside
+  the gate (reviewer B's round-8 mutation run).**  B's mutants against `--check`, each verified
+  by command, stay green for: replacing the empty `SYMBOL_LOCALIZED` arm with `return Qnil ()` /
+  `return Qt ()`, deleting or `continue`-ing the `break` that reaches the shared tail, moving the
+  tail into the arm and deleting the post-loop one, appending `continue;` to the
+  `SYMBOL_FORWARDED` arm (all six leave the tail's control flow wrong); swapping
+  `SYMBOL_REDIRECT_MASK/_SHIFT` for the trapped-write pair, dropping the `>> SHIFT`, flipping the
+  tail's `== SYMBOL_LOCALIZED`, swapping the two arm labels, and swapping
+  `KBOARD_OBJFWDP`/`BUFFER_OBJFWDP`; turning the alias arms' `continue` into `break` or deleting
+  it; pointing `decode_buffer (buffer)`, `XSETBUFFER! (tmp, buf)`, `BVAR! (buf, ...)` or
+  `PER_BUFFER_VALUE_P (buf, ...)` at `current_buffer`; `!= 0` -> `== 0` on `BLV_LOCAL_IF_SET`;
+  and the `Qt`/`Qnil` ternaries.  Two sharp ends worth naming: `buffer` in `local-variable-p` is
+  satisfied by the Rust *type* `*mut buffer`, and `&&` is not a token at all, so polarity is
+  free.  B's two proposed mechanisms - a positive requirement table
+  (`docs/ports/required-tokens.tsv`: C's `FALLTHROUGH` implies the port has a `break`, C's
+  `goto start` implies a `continue`) and a per-token count floor (`rust_count >= c_count`, which
+  would catch all four `buf` sites) - are recorded as the next gate work rather than invented
+  mid-segment.
+- **Repo-level, pre-existing, found by reviewer B and confirmed here: the CI "Generated
+  artifacts are fresh" step is already red at HEAD.**  `python3 tools/gen-lifetimes.py` crashes
+  with `KeyError: 'c_type'` (its `ci.struct_fields` records no longer carry that key), and
+  `python3 tools/gen-baseline.py --out /tmp/bl` rewrites `inventory.tsv`/`subrs.tsv`/`totals.tsv`
+  differently from the committed `docs/baseline` (`src/alloc.c` constants 17 -> 40, fields
+  54 -> 60); both reproduce from a HEAD-archived copy of `tools/`, so neither is this segment's
+  doing.  With the already-recorded "CI has no `emacs/` checkout" (`docs/port-master-plan.md`
+  403), CI cannot be green until those generators and the derived baseline are repaired - a
+  separate change from this porting round.
 - **Five subrs wait for two headers.**  `type-of` (data.c 187-200) needs this file's own
   `cl-type-of` (data.c 202-310); `cl-type-of` calls `THREADP`, `MUTEXP`, `CONDVARP`
   (`thread.h` 222-320) and `FONT_SPEC_P`/`FONT_ENTITY_P`/`FONT_OBJECT_P` (`font.h`

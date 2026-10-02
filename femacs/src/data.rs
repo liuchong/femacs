@@ -2120,3 +2120,167 @@ DEFUN! ("kill-local-variable", Fkill_local_variable,
 
   return variable;
 });
+
+/* Lisp functions for creating and removing buffer-local variables.  */
+
+DEFUN! ("local-variable-p", Flocal_variable_p, Slocal_variable_p,
+       1, 2, 0,
+       doc: "Non-nil if VARIABLE has a local binding in buffer BUFFER.\nBUFFER defaults to the current buffer.\n\nAlso see `buffer-local-boundp'.",
+       (variable: Lisp_Object, buffer: Lisp_Object),
+       {
+  let mut variable = variable;   // C's `XSETSYMBOL (variable, sym)` below rebinds the argument
+  let buf: *mut buffer = decode_buffer (buffer);
+  let mut sym: *mut Lisp_Symbol;
+
+  CHECK_SYMBOL (variable);
+  sym = XSYMBOL (variable);
+
+  loop
+    {
+      match ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+        {
+        SYMBOL_VARALIAS =>
+          { sym = SYMBOL_ALIAS (sym); continue; }
+        SYMBOL_PLAINVAL =>
+          { return Qnil (); }
+        SYMBOL_LOCALIZED =>
+          {
+            let tmp: Lisp_Object;
+            let blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value;
+            XSETBUFFER! (tmp, buf);
+            XSETSYMBOL! (variable, sym); /* Update in case of aliasing.  */
+
+            if BASE_EQ ((*blv).r#where, tmp) /* The binding is already loaded.  */
+              { return if blv_found (blv) { Qt () } else { Qnil () }; }
+            else
+              { return if NILP (assq_no_quit (variable, BVAR! (buf, local_var_alist_)))
+                          { Qnil () }
+                        else
+                          { Qt () }; }
+          }
+        SYMBOL_FORWARDED =>
+          {
+            let valcontents: lispfwd = SYMBOL_FWD (sym) as lispfwd;
+            if BUFFER_OBJFWDP (valcontents)
+              {
+                let offset = XBUFFER_OFFSET (valcontents) as c_int;
+                let idx = PER_BUFFER_IDX (offset as ptrdiff_t);
+                if idx == -1 || PER_BUFFER_VALUE_P (buf, idx)
+                  { return Qt (); }
+              }
+            return Qnil ();
+          }
+        _ =>
+          { emacs_abort (); }
+        }
+    }
+});
+
+DEFUN! ("local-variable-if-set-p", Flocal_variable_if_set_p, Slocal_variable_if_set_p,
+       1, 2, 0,
+       doc: "Non-nil if VARIABLE is local in buffer BUFFER when set there.\nBUFFER defaults to the current buffer.\n\nMore precisely, return non-nil if either VARIABLE already has a local\nvalue in BUFFER, or if VARIABLE is automatically buffer-local (see\n`make-variable-buffer-local').",
+       (variable: Lisp_Object, buffer: Lisp_Object),
+       {
+  let mut variable = variable;   // C's `XSETSYMBOL (variable, sym)` below rebinds the argument
+  let mut sym: *mut Lisp_Symbol;
+
+  CHECK_SYMBOL (variable);
+  sym = XSYMBOL (variable);
+
+  loop
+    {
+      match ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+        {
+        SYMBOL_VARALIAS =>
+          { sym = SYMBOL_ALIAS (sym); continue; }
+        SYMBOL_PLAINVAL =>
+          { return Qnil (); }
+        SYMBOL_LOCALIZED =>
+          {
+            let blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value;
+            /* C reads the one-bit `local_if_set` field; the mirror reads the same bit
+               out of `u.s.bits` (lisp.rs 1971).  */
+            if (*blv).bits & BLV_LOCAL_IF_SET != 0
+              { return Qt (); }
+            XSETSYMBOL! (variable, sym); /* Update in case of aliasing.  */
+            return Flocal_variable_p (variable, buffer);
+          }
+        SYMBOL_FORWARDED =>
+          /* All BUFFER_OBJFWD slots become local if they are set.  */
+          { return if BUFFER_OBJFWDP (SYMBOL_FWD (sym) as lispfwd) { Qt () } else { Qnil () }; }
+        _ =>
+          { emacs_abort (); }
+        }
+    }
+});
+
+DEFUN! ("variable-binding-locus", Fvariable_binding_locus, Svariable_binding_locus,
+       1, 1, 0,
+       doc: "Return a value indicating where VARIABLE's current binding comes from.\nIf the current binding is buffer-local, the value is the current buffer.\nIf the current binding is global (the default), the value is nil.",
+       (variable: Lisp_Object),
+       {
+  let mut sym: *mut Lisp_Symbol;
+
+  CHECK_SYMBOL (variable);
+  sym = XSYMBOL (variable);
+
+  /* Make sure the current binding is actually swapped in.  */
+  find_symbol_value (variable);
+
+  loop
+    {
+      match ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+        {
+        SYMBOL_VARALIAS =>
+          { sym = SYMBOL_ALIAS (sym); continue; }
+        SYMBOL_PLAINVAL =>
+          { return Qnil (); }
+        SYMBOL_FORWARDED =>
+          {
+            let valcontents: lispfwd = SYMBOL_FWD (sym) as lispfwd;
+            if KBOARD_OBJFWDP (valcontents)
+              { return Fframe_terminal (selected_frame); }
+            else if ! BUFFER_OBJFWDP (valcontents)
+              { return Qnil (); }
+            /* C's `FALLTHROUGH;` sends this arm on into the SYMBOL_LOCALIZED arm's
+               statements: the port breaks out of the match to those statements.  */
+          }
+        SYMBOL_LOCALIZED =>
+          {}
+        _ =>
+          { emacs_abort (); }
+        }
+      break;
+    }
+
+  /* For a local variable, record both the symbol and which
+     buffer's or frame's value we are saving.  */
+  if ! NILP (Flocal_variable_p (variable, Qnil ()))
+    { return Fcurrent_buffer (); }
+  else if (((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT) == SYMBOL_LOCALIZED
+           && blv_found (SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value)
+    { return (* (SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value)).r#where; }
+  else
+    { return Qnil (); }
+});
+
+/* Find the function at the end of a chain of symbol function indirections.  */
+
+/* If OBJECT is a symbol, find the end of its function chain and
+   return the value found there.  If OBJECT is not a symbol, just
+   return it.  */
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn indirect_function (object: Lisp_Object) -> Lisp_Object
+{
+  let mut object = object;
+  while SYMBOLP (object) && ! NILP (object)
+    { object = (*XSYMBOL (object)).u.s.function; }
+  return object;
+}
+
+DEFUN! ("indirect-function", Findirect_function, Sindirect_function, 1, 2, 0,
+       doc: "Return the function at the end of OBJECT's function chain.\nIf OBJECT is not a symbol, just return it.  Otherwise, follow all\nfunction indirections to find the final function binding and return it.",
+       (object: Lisp_Object, noerror: Lisp_Object),
+       {
+  return indirect_function (object);
+});
