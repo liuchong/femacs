@@ -885,6 +885,31 @@ def read_exclusions(path: Path) -> dict[str, str]:
     return out
 
 
+def line_drift_tolerance(rs_path: Path, default: float = 0.05) -> float:
+    """The line-count tolerance for a ported file (docs/ports/line-drift-tolerance.tsv).
+
+    The 5% the rule allows every file is meant to catch text that was *left out*; a form
+    Rust cannot spell in the same number of physical lines legitimately costs more, and the
+    ledger names those forms per file (tparam.c's shared-statement chain, itree.c's bitfield
+    masks and `match` arms).  The per-function token check is unaffected by this table.
+    """
+    table = HERE.parent / "docs" / "ports" / "line-drift-tolerance.tsv"
+    try:
+        text = table.read_text(encoding="utf-8")
+    except OSError:
+        return default
+    for line in text.splitlines():
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 2 and parts[0] == rs_path.stem:
+            try:
+                return max(default, float(parts[1]))
+            except ValueError:
+                return default
+    return default
+
+
 def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             excluded: dict[str, str] | None = None,
             macro_notes: dict[str, set[str]] | None = None) -> list[str]:
@@ -1297,7 +1322,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
 
     if strict_lines and not is_header_like and c["lines"] and r["lines"]:
         drift = abs(r["lines"] - c["lines"]) / max(c["lines"], 1)
-        if drift > 0.05:
+        if drift > line_drift_tolerance(rs_path):
             problems.append(f"line count drifted {drift:.1%}: C {c['lines']} vs Rust {r['lines']}")
     return problems
 
