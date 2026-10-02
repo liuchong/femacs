@@ -1,6 +1,8 @@
 key	value
 alignof Lisp_Bignum	8
+alignof Lisp_Buffer_Local_Value	8
 alignof Lisp_Cons	8
+alignof Lisp_Fwd	8
 alignof Lisp_Hash_Table	8
 alignof Lisp_Obarray	8
 alignof Lisp_Object	8
@@ -20,6 +22,10 @@ alignof ts_linecol	8
 alignof vectorlike_header	8
 offsetof Lisp_Bignum.header	0
 offsetof Lisp_Bignum.value	8
+offsetof Lisp_Buffer_Local_Value.defcell	24
+offsetof Lisp_Buffer_Local_Value.fwd	8
+offsetof Lisp_Buffer_Local_Value.valcell	32
+offsetof Lisp_Buffer_Local_Value.where	16
 offsetof Lisp_Cons.u.s.car	0
 offsetof Lisp_Cons.u.s.u.cdr	8
 offsetof Lisp_Cons.u.s.u.chain	8
@@ -217,8 +223,10 @@ offsetof ts_linecol.line	8
 offsetof vectorlike_header.size	0
 sizeof Aligned_Lisp_Subr	56
 sizeof Lisp_Bignum	24
+sizeof Lisp_Buffer_Local_Value	40
 sizeof Lisp_Cons	16
 sizeof Lisp_Float	8
+sizeof Lisp_Fwd	16
 sizeof Lisp_Hash_Table	72
 sizeof Lisp_Marker	48
 sizeof Lisp_Obarray	24

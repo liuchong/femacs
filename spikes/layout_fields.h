@@ -187,3 +187,11 @@
   OFF (struct Lisp_Obarray, buckets);
   OFF (struct Lisp_Obarray, size_bits);
   OFF (struct Lisp_Obarray, count);
+
+  SZ (struct Lisp_Fwd); AL (struct Lisp_Fwd);
+
+  SZ (struct Lisp_Buffer_Local_Value); AL (struct Lisp_Buffer_Local_Value);
+  OFF (struct Lisp_Buffer_Local_Value, fwd);
+  OFF (struct Lisp_Buffer_Local_Value, where);
+  OFF (struct Lisp_Buffer_Local_Value, defcell);
+  OFF (struct Lisp_Buffer_Local_Value, valcell);

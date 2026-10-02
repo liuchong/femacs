@@ -290,9 +290,23 @@ fn gen_globals() -> i32 {
 
 // --- layout assertions -----------------------------------------------------
 
+/// C field/type names that Rust spells with a raw identifier (PORTING.md 0.2).  The
+/// assertions are generated Rust, so `Lisp_Buffer_Local_Value.where` has to come out as
+/// `r#where` — without this the layout probe does not compile (P-65's follow-up).
+fn rust_ident(name: &str) -> String {
+    const KEYWORDS: [&str; 15] = ["where", "type", "match", "fn", "use", "mod", "const",
+                                  "final", "loop", "move", "ref", "static", "struct",
+                                  "enum", "union"];
+    if KEYWORDS.contains(&name) {
+        format!("r#{name}")
+    } else {
+        name.to_string()
+    }
+}
+
 fn rust_type_expr(kind: &str, key: &str) -> Option<String> {
     let path: Vec<&str> = key.split('.').collect();
-    let ty = path[0];
+    let ty = rust_ident(path[0]);
     match kind {
         "sizeof" => Some(format!("size_of::<{ty}>()")),
         "alignof" => Some(format!("align_of::<{ty}>()")),
@@ -300,7 +314,8 @@ fn rust_type_expr(kind: &str, key: &str) -> Option<String> {
             if path.len() < 2 {
                 return None;
             }
-            let field = path[1..].join(".");
+            let field = path[1..].iter().map(|f| rust_ident(f))
+                .collect::<Vec<_>>().join(".");
             Some(format!("offset_of!({ty}, {field})"))
         }
         _ => None,

@@ -39,11 +39,13 @@ STRUCTS = {
     "Lisp_Hash_Table": "src/lisp.h",
     "hash_table_test": "src/lisp.h",
     "Lisp_Obarray": "src/lisp.h",
-    # `Lisp_Fwd` and `Lisp_Buffer_Local_Value` are left out for now: the generator's field
-    # filter takes any name that appears in the struct's body, so the members of a nested
-    # `union`/`struct` (`Lisp_Fwd`'s `intvar`, `boolvar`, …) leak out as `offsetof (struct
-    # Lisp_Fwd, intvar)`, which is not a member of the outer struct and does not compile.
-    # PORTING.md P-65.
+    # The nested-aggregate filter (`direct_field`, PORTING.md P-65) is what lets these two in:
+    # `Lisp_Fwd`'s value union is reached as `u.intvar` in C, and `offsetof (struct Lisp_Fwd,
+    # intvar)` does not compile.  A type is added only once its *mirror* declares it, because a
+    # key whose type is missing counts as pending and the ratchet forbids pending from growing:
+    # `glyph`/`glyph_slice` go in with the `dispextern.h` mirror.
+    "Lisp_Fwd": "src/lisp.h",
+    "Lisp_Buffer_Local_Value": "src/lisp.h",
 }
 
 
@@ -78,6 +80,22 @@ def struct_body(text: str, name: str) -> str:
     return ""
 
 
+def direct_field(body: str, field: str) -> bool:
+    """True when FIELD is a member of the struct itself, not of a nested aggregate.
+
+    `cinventory.struct_fields` flattens a nested (named) `union`/`struct` into its enclosing
+    container — `struct Lisp_Fwd`'s `intvar` comes back with `container == "Lisp_Fwd"` even
+    though C reaches it as `u.intvar`.  Emitting `offsetof (struct Lisp_Fwd, intvar)` for it
+    does not compile (PORTING.md P-65).  A member is direct when the name occurs at the body's
+    own brace level (depth 1 inside `{ ... }`); anything deeper belongs to a nested aggregate.
+    """
+    for match in re.finditer(rf"\b{re.escape(field)}\b", body):
+        depth = body[:match.start()].count("{") - body[:match.start()].count("}")
+        if depth == 1:
+            return True
+    return False
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--reference", default="emacs")
@@ -101,7 +119,7 @@ def main() -> int:
         inv = ci.inventory(ref / header)
         fields = [f for f in inv["struct_fields"]
                   if f["container"] == name and not f["bitfield"]
-                  and re.search(rf"\b{re.escape(f['name'])}\s*(?::|;|\[|,|\))", body)]
+                  and direct_field(body, f["name"])]
         lines.append("")
         lines.append(f"  SZ (struct {name}); AL (struct {name});")
         for f in fields:
