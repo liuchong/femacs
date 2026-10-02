@@ -12,3 +12,6 @@ pub type pid_t = c_int;
 
 // sys/types.h: the group id type gnulib's group-member.c and getgroups.c take.
 pub type gid_t = c_uint;
+
+// sys/types.h + gnulib: the type getgroups.c's groups come back in (gid_t on this target).
+pub type GETGROUPS_T = gid_t;
