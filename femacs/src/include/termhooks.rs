@@ -75,6 +75,24 @@ pub const scroll_bar_to_rightmost: scroll_bar_part = 16;
 // `buffered_input_event` share.
 pub const EVENT_KIND_WIDTH: c_int = 16;
 
+/* Bits in the modifiers member of the input_event structure.  */
+// termhooks.h 434-459: the modifier bits.  C's enum has type `int`, and the last six
+// members are aliases of character.h's `CHAR_*` constants, so the port keeps the same
+// expression C writes and the constant gate compares its tokens.
+pub const up_modifier: c_int = 1;
+pub const down_modifier: c_int = 2;
+pub const drag_modifier: c_int = 4;
+pub const click_modifier: c_int = 8;
+pub const double_modifier: c_int = 16;
+pub const triple_modifier: c_int = 32;
+pub const alt_modifier: c_int = CHAR_ALT;
+pub const super_modifier: c_int = CHAR_SUPER;
+pub const hyper_modifier: c_int = CHAR_HYPER;
+pub const shift_modifier: c_int = CHAR_SHIFT;
+pub const ctrl_modifier: c_int = CHAR_CTL;
+pub const meta_modifier: c_int = CHAR_META;
+
+
 /* Input events.  */
 // termhooks.h 373-412.  Measured (sizeof 64, align 8): `kind : EVENT_KIND_WIDTH` and
 // `part : 16` share the 4-byte unit at offset 0 (`34 12 78 56` for kind 0x1234 / part
@@ -120,10 +138,215 @@ pub fn EVENT_INIT (event: *mut input_event)
   }
 }
 
-// C: termhooks.h 54-355's `enum output_method` and the remaining `event_kind` documentation,
-// 414-886's modifier bits and terminal-adapter tables, and 888-1010's `struct terminal`, the
-// `FRAME_*`/`TERMINAL_*` macros, `TERMINALP`/`XTERMINAL`, `tset_charset_list`/
-// `tset_selection_alist`, `cursorX`/`cursorY` and the two file-scope objects — (not mirrored
-// yet; `struct terminal` needs P-70 stand-ins for `frame`, `window`, `glyph`,
-// `redisplay_interface`, `kboard` and the seven `*_display_info` types, and `cursorX`/`cursorY`
-// call `curX`/`curY` from termchar.h).
+// termhooks.h 57-68: `enum output_method`.
+pub type output_method = c_int;
+pub const output_initial: output_method = 0;
+pub const output_termcap: output_method = 1;
+pub const output_x_window: output_method = 2;
+pub const output_msdos_raw: output_method = 3;
+pub const output_w32: output_method = 4;
+pub const output_ns: output_method = 5;
+pub const output_pgtk: output_method = 6;
+pub const output_haiku: output_method = 7;
+pub const output_android: output_method = 8;
+
+// termhooks.h 533-542.  Every member's pointee is incomplete in *this* header too (the platform
+// headers that define them are included by the .c files, not here — `termhooks.h` includes only
+// lisp.h, dispextern.h and systime.h), so the port keeps the untyped pointer it uses for
+// incomplete targets (PORTING.md P-72 rule ③).  The union is 8 bytes, alignment 8.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union display_info
+{
+  // Each member's pointee is incomplete in this header (termchar.h/xterm.h/… are included by the
+  // platform .c files, not by termhooks.h), so the port keeps the untyped pointer it uses for
+  // incomplete targets — PORTING.md P-72 rule ③.
+  pub tty: *mut c_void,        // C: `struct tty_display_info *tty;`
+  pub x: *mut c_void,          // C: `struct x_display_info *x;`
+  pub w32: *mut c_void,        // C: `struct w32_display_info *w32;`
+  pub ns: *mut c_void,         // C: `struct ns_display_info *ns;`
+  pub pgtk: *mut c_void,       // C: `struct pgtk_display_info *pgtk;`
+  pub haiku: *mut c_void,      // C: `struct haiku_display_info *haiku;`
+  pub android: *mut c_void,    // C: `struct android_display_info *android;`
+}
+
+/* Each terminal device is represented by one of these structures.  */
+// termhooks.h 466-888.  Measured: sizeof 520, alignof 8 — the offsets of all 66 non-union
+// members are asserted (header 0, the four Lisp_Objects 8…32, next_terminal 40, id 48,
+// reference_count 52, type 56, name 64, kboard 72, display_info 80, terminal_coding 88,
+// keyboard_coding 96, rif 104, then the hook table from 112 to 512).
+//
+// Every `struct frame *`, `struct window *` and `struct glyph *` parameter is an *incomplete*
+// pointer in this header (frame.h/window.h are not included by termhooks.h), which is why the
+// port spells those as `*mut c_void`; `struct glyph *` and `struct redisplay_interface *` are
+// complete in C's view here but their mirrors are not written yet (PORTING.md P-66's display
+// chain), so they carry the same degradation and the `/// C:` note until they land.
+#[repr(C)]
+pub struct terminal
+{
+  pub header: vectorlike_header,                   // termhooks.h 478
+
+  /* The terminal's parameter alist (frame parameters), and the list of charsets it can
+     display.  */
+  pub param_alist: Lisp_Object,                    // 481
+  pub charset_list: Lisp_Object,                   // 486
+  /* The Lisp list of selection alists.  */
+  pub Vselection_alist: Lisp_Object,               // 502
+  /* The glyph code table, a char-table.  */
+  pub glyph_code_table: Lisp_Object,               // 507
+
+  /* For use by the display engine: the next terminal in the chain.  */
+  pub next_terminal: *mut terminal,                // 513
+  /* The terminal's id, and how many frames reference it.  */
+  pub id: c_int,                                   // 516
+  pub reference_count: c_int,                      // 519
+  /* What kind of device this is.  */
+  pub r#type: output_method,                       // 522 (C spells it `type`)
+  /* The name of the terminal.  */
+  pub name: *mut c_char,                           // 527
+
+  /* The terminal's keyboard, when it has one of its own.  */
+  pub kboard: *mut c_void,                         /// C: `struct kboard *kboard;` (keyboard.h)
+
+  /* Device-dependent, display-specific data.  */
+  pub display_info: display_info,                  // 542
+
+  /* The coding systems used for terminal output and keyboard input.  */
+  pub terminal_coding: *mut coding_system,         // 549
+  pub keyboard_coding: *mut coding_system,         // 554
+
+  /* The terminal's redisplay interface (dispextern.h).  */
+  pub rif: *mut c_void,                            /// C: `struct redisplay_interface *rif;`
+
+  /* A table of hooks for terminal-specific display actions.  Every one may be NULL.  */
+  pub cursor_to_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int)>,          // 564
+  pub raw_cursor_to_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int)>,      // 565
+  pub clear_to_end_hook: Option<unsafe extern "C" fn (*mut c_void)>,                     // 567
+  pub clear_frame_hook: Option<unsafe extern "C" fn (*mut c_void)>,                      // 568
+  pub clear_end_of_line_hook: Option<unsafe extern "C" fn (*mut c_void, c_int)>,         // 569
+  pub ins_del_lines_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int)>,      // 571
+  pub insert_glyphs_hook: Option<unsafe extern "C" fn (*mut c_void, *mut c_void, c_int)>, // 573
+  pub write_glyphs_hook: Option<unsafe extern "C" fn (*mut c_void, *mut c_void, c_int)>,  // 574
+  pub delete_glyphs_hook: Option<unsafe extern "C" fn (*mut c_void, c_int)>,             // 575
+  pub ring_bell_hook: Option<unsafe extern "C" fn (*mut c_void)>,                        // 577
+  pub toggle_invisible_pointer_hook:
+      Option<unsafe extern "C" fn (*mut c_void, bool)>,                                  // 578
+  pub reset_terminal_modes_hook: Option<unsafe extern "C" fn (*mut terminal)>,           // 580
+  pub set_terminal_modes_hook: Option<unsafe extern "C" fn (*mut terminal)>,             // 581
+  pub update_begin_hook: Option<unsafe extern "C" fn (*mut c_void)>,                     // 583
+  pub update_end_hook: Option<unsafe extern "C" fn (*mut c_void)>,                       // 584
+  pub set_terminal_window_hook: Option<unsafe extern "C" fn (*mut c_void, c_int)>,       // 585
+
+  /* Hook to define a color, and to ask for a frame's background.  */
+  pub defined_color_hook: Option<unsafe extern "C" fn (*mut c_void, *const c_char,
+                                                        *mut Emacs_Color, bool, bool)>,  // 596
+  pub query_frame_background_color: Option<unsafe extern "C" fn (*mut c_void,
+                                                                 *mut Emacs_Color)>,     // 613
+
+  /* Hook to get the position of the mouse.  */
+  pub mouse_position_hook: Option<unsafe extern "C" fn (*mut *mut c_void, c_int,
+                                                        *mut Lisp_Object,
+                                                        *mut scroll_bar_part,
+                                                        *mut Lisp_Object, *mut Lisp_Object,
+                                                        *mut Time)>,                     // 642
+
+  /* Hooks for focusing and raising frames.  */
+  pub get_focus_frame: Option<unsafe extern "C" fn (*mut c_void) -> Lisp_Object>,        // 645
+  pub focus_frame_hook: Option<unsafe extern "C" fn (*mut c_void, bool)>,                // 648
+  pub frame_rehighlight_hook: Option<unsafe extern "C" fn (*mut c_void)>,                // 653
+  pub frame_raise_lower_hook: Option<unsafe extern "C" fn (*mut c_void, bool)>,          // 665
+  pub frame_visible_invisible_hook: Option<unsafe extern "C" fn (*mut c_void, bool)>,    // 669
+  pub fullscreen_hook: Option<unsafe extern "C" fn (*mut c_void)>,                       // 674
+  pub iconify_frame_hook: Option<unsafe extern "C" fn (*mut c_void)>,                    // 677
+
+  /* Hooks to resize and move a frame, and to set its alpha.  */
+  pub set_window_size_hook: Option<unsafe extern "C" fn (*mut c_void, bool, c_int, c_int)>, // 684
+  pub set_window_size_and_position_hook:
+      Option<unsafe extern "C" fn (*mut c_void, c_int, c_int)>,                          // 689
+  pub set_frame_offset_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int)>, // 698
+  pub set_frame_alpha_hook: Option<unsafe extern "C" fn (*mut c_void)>,                  // 701
+
+  /* Hooks to set a new font, the icon, and the frame's name.  */
+  pub set_new_font_hook: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object,
+                                                      c_int) -> Lisp_Object>,            // 705
+  pub set_bitmap_icon_hook: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object) -> bool>, // 708
+  pub implicit_set_name_hook: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object,
+                                                           Lisp_Object)>,                // 713
+
+  /* Hooks to show a menu or a dialog.  */
+  pub menu_show_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int,
+                                                   Lisp_Object,
+                                                   *mut *const c_char) -> Lisp_Object>,  // 717
+  pub popup_dialog_hook: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object,
+                                                      Lisp_Object) -> Lisp_Object>,      // 726
+
+  /* Hooks to change the tab bar's and tool bar's height.  */
+  pub change_tab_bar_height_hook: Option<unsafe extern "C" fn (*mut c_void, c_int)>,     // 729
+  pub change_tool_bar_height_hook: Option<unsafe extern "C" fn (*mut c_void, c_int)>,    // 732
+
+  /* Hooks for scroll bars.  */
+  pub set_vertical_scroll_bar_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int,
+                                                                 c_int)>,                // 763
+  pub set_horizontal_scroll_bar_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int,
+                                                                   c_int)>,              // 773
+  pub set_scroll_bar_default_width_hook: Option<unsafe extern "C" fn (*mut c_void)>,     // 776
+  pub set_scroll_bar_default_height_hook: Option<unsafe extern "C" fn (*mut c_void)>,    // 779
+  pub condemn_scroll_bars_hook: Option<unsafe extern "C" fn (*mut c_void)>,              // 801
+  pub redeem_scroll_bar_hook: Option<unsafe extern "C" fn (*mut c_void)>,                // 805
+  pub judge_scroll_bars_hook: Option<unsafe extern "C" fn (*mut c_void)>,                // 818
+
+  /* Hook to read input from the terminal's device.  */
+  pub read_socket_hook: Option<unsafe extern "C" fn (*mut terminal,
+                                                     *mut input_event) -> c_int>,        // 832
+
+  pub frame_up_to_date_hook: Option<unsafe extern "C" fn (*mut c_void)>,                 // 835
+  pub buffer_flipping_unblocked_hook: Option<unsafe extern "C" fn (*mut c_void)>,        // 840
+  pub get_string_resource_hook: Option<unsafe extern "C" fn (*mut c_void, *const c_char,
+                                                             *const c_char)
+                                                -> *const c_char>,                       // 846
+  pub delete_frame_hook: Option<unsafe extern "C" fn (*mut c_void)>,                     // 859
+  pub delete_terminal_hook: Option<unsafe extern "C" fn (*mut terminal)>,                // 871
+  pub toolkit_position_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int,
+                                                          *mut bool, *mut bool)>,        // 878
+}
+
+// termhooks.h 888-909.
+#[inline(always)]
+pub fn TERMINALP (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_TERMINAL) }
+
+#[inline(always)]
+pub fn XTERMINAL (a: Lisp_Object) -> *mut terminal
+{
+  eassert! (TERMINALP (a));
+  XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, terminal)
+}
+
+/* Most code should use these functions to set Lisp fields in struct
+   terminal.  */
+#[inline(always)]
+pub fn tset_charset_list (t: *mut terminal, val: Lisp_Object)
+{ unsafe { (*t).charset_list = val; } }
+
+#[inline(always)]
+pub fn tset_selection_alist (t: *mut terminal, val: Lisp_Object)
+{ unsafe { (*t).Vselection_alist = val; } }
+
+// termhooks.h 927-928: the two `TERMINAL_*` accessors that need only `struct terminal`
+// (the rest of the `FRAME_*`/`TERMINAL_*` family dereferences `struct frame`).
+#[inline(always)]
+pub fn TERMINAL_TERMINAL_CODING (d: *mut terminal) -> *mut coding_system
+{ unsafe { (*d).terminal_coding } }
+#[inline(always)]
+pub fn TERMINAL_KEYBOARD_CODING (d: *mut terminal) -> *mut coding_system
+{ unsafe { (*d).keyboard_coding } }
+
+/* Chain of all terminal devices currently in use.  */
+unsafe extern "C" { pub static mut terminal_list: *mut terminal; }        // termhooks.h 915
+
+/* The initial terminal device, created by initial_term_init.  */
+unsafe extern "C" { pub static mut initial_terminal: *mut terminal; }     // termhooks.h 971
+
+// C: termhooks.h 917-935's `FRAME_*`/`TERMINAL_*` macros (they all dereference `struct frame`,
+// i.e. they need frame.rs), `TERMINAL_ACTIVE_P` (it dereferences `display_info.tty`, i.e.
+// termchar.h's type), `cursorX`/`cursorY` (termchar.h's `curX`/`curY`) and 940-1000's prototypes
+// — (not mirrored yet; they land with frame.rs/termchar.h and their .c files).

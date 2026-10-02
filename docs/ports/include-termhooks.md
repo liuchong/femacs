@@ -4,10 +4,10 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 4
-- [ ] TERMINALP  (line 889)
-- [ ] XTERMINAL  (line 895)
-- [ ] tset_charset_list  (line 904)
-- [ ] tset_selection_alist  (line 909)
+- [x] TERMINALP  (line 889)
+- [x] XTERMINAL  (line 895)
+- [x] tset_charset_list  (line 904)
+- [x] tset_selection_alist  (line 909)
 
 ## Macros defined — 17
 - [x] EMACS_TERMHOOKS_H  (line 22, body da39a3ee5e6b)
@@ -23,14 +23,14 @@
 - [ ] FRAME_TERMINAL  (line 932, body a119c2cfa155)
 - [ ] FRAME_TERMINAL_CODING  (line 924, body f526927eb355)
 - [ ] TERMINAL_ACTIVE_P  (line 935, body a37a94a45e9f)
-- [ ] TERMINAL_KEYBOARD_CODING  (line 928, body 80dcf7ec3221)
-- [ ] TERMINAL_TERMINAL_CODING  (line 927, body e6fda61a3ed1)
+- [x] TERMINAL_KEYBOARD_CODING  (line 928, body 80dcf7ec3221)
+- [x] TERMINAL_TERMINAL_CODING  (line 927, body e6fda61a3ed1)
 - [ ] cursorX  (line 984, body c86a224c6a7f)
 - [ ] cursorY  (line 985, body d3ec6a6cfaae)
 
 ## Types and their fields — 2
 - [x] input_event: ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH, ENUM_BF (scroll_bar_part) part : 16, unsigned code, unsigned modifiers, Lisp_Object x, Lisp_Object y, Time timestamp, Lisp_Object frame_or_window, Lisp_Object arg, Lisp_Object device
-- [ ] terminal: union vectorlike_header header, Lisp_Object param_alist, Lisp_Object charset_list, Lisp_Object Vselection_alist, Lisp_Object glyph_code_table, struct terminal* next_terminal, int id, int reference_count, enum output_method type, char* name, struct kboard* kboard, struct tty_display_info* tty, struct x_display_info* x, struct w32_display_info* w32, struct ns_display_info* ns, struct pgtk_display_info* pgtk, struct haiku_display_info* haiku, struct android_display_info* android, struct coding_system* terminal_coding, struct coding_system* keyboard_coding, struct redisplay_interface* rif, void (*) cursor_to_hook, void (*) raw_cursor_to_hook, void (*) clear_to_end_hook, void (*) clear_frame_hook, void (*) clear_end_of_line_hook, void (*) ins_del_lines_hook, void (*) insert_glyphs_hook, void (*) write_glyphs_hook, void (*) delete_glyphs_hook, void (*) ring_bell_hook, void (*) toggle_invisible_pointer_hook, void (*) reset_terminal_modes_hook, void (*) set_terminal_modes_hook, void (*) update_begin_hook, void (*) update_end_hook, void (*) set_terminal_window_hook, void (*) query_frame_background_color, Lisp_Object (*) get_focus_frame, void (*) focus_frame_hook, void (*) frame_rehighlight_hook, void (*) frame_raise_lower_hook, void (*) frame_visible_invisible_hook, void (*) fullscreen_hook, void (*) iconify_frame_hook, int width, register int yoff, void (*) set_frame_alpha_hook, bool (*) set_bitmap_icon_hook, Lisp_Object title, void (*) change_tab_bar_height_hook, void (*) change_tool_bar_height_hook, void (*) set_scroll_bar_default_width_hook, void (*) set_scroll_bar_default_height_hook, void (*) condemn_scroll_bars_hook, void (*) redeem_scroll_bar_hook, void (*) judge_scroll_bars_hook, void (*) frame_up_to_date_hook, void (*) buffer_flipping_unblocked_hook, void (*) delete_frame_hook, void (*) delete_terminal_hook, void (*) toolkit_position_hook
+- [x] terminal: union vectorlike_header header, Lisp_Object param_alist, Lisp_Object charset_list, Lisp_Object Vselection_alist, Lisp_Object glyph_code_table, struct terminal* next_terminal, int id, int reference_count, enum output_method type, char* name, struct kboard* kboard, struct tty_display_info* tty, struct x_display_info* x, struct w32_display_info* w32, struct ns_display_info* ns, struct pgtk_display_info* pgtk, struct haiku_display_info* haiku, struct android_display_info* android, struct coding_system* terminal_coding, struct coding_system* keyboard_coding, struct redisplay_interface* rif, void (*) cursor_to_hook, void (*) raw_cursor_to_hook, void (*) clear_to_end_hook, void (*) clear_frame_hook, void (*) clear_end_of_line_hook, void (*) ins_del_lines_hook, void (*) insert_glyphs_hook, void (*) write_glyphs_hook, void (*) delete_glyphs_hook, void (*) ring_bell_hook, void (*) toggle_invisible_pointer_hook, void (*) reset_terminal_modes_hook, void (*) set_terminal_modes_hook, void (*) update_begin_hook, void (*) update_end_hook, void (*) set_terminal_window_hook, void (*) query_frame_background_color, Lisp_Object (*) get_focus_frame, void (*) focus_frame_hook, void (*) frame_rehighlight_hook, void (*) frame_raise_lower_hook, void (*) frame_visible_invisible_hook, void (*) fullscreen_hook, void (*) iconify_frame_hook, int width, register int yoff, void (*) set_frame_alpha_hook, bool (*) set_bitmap_icon_hook, Lisp_Object title, void (*) change_tab_bar_height_hook, void (*) change_tool_bar_height_hook, void (*) set_scroll_bar_default_width_hook, void (*) set_scroll_bar_default_height_hook, void (*) condemn_scroll_bars_hook, void (*) redeem_scroll_bar_hook, void (*) judge_scroll_bars_hook, void (*) frame_up_to_date_hook, void (*) buffer_flipping_unblocked_hook, void (*) delete_frame_hook, void (*) delete_terminal_hook, void (*) toolkit_position_hook
 
 ## File-scope objects — 2
 - [ ] extern struct terminal terminal_list  (line 915)
@@ -60,3 +60,27 @@
   call `curX`/`curY` from `termchar.h`, so they wait for that header.  The `FRAME_*`/`TERMINAL_*`
   macros, `TERMINALP`/`XTERMINAL`, `tset_charset_list`/`tset_selection_alist` and the two
   file-scope objects land with `terminal`.
+
+# ----------------------------------------------------------------------
+## Decisions
+
+- **`struct terminal` is 520/8 and every offset is asserted.**  The hook table is a
+  contiguous run of 51 function pointers from 112 to 512, so a single misplaced entry
+  would move all of them; the baseline pins each one.
+- **Pointee degradations (P-72 rule ③).**  `frame.h`/`window.h`/`termchar.h` and the
+  platform display headers are not included by `termhooks.h`, so C only ever sees those
+  types as incomplete tags behind pointers here: the port spells them `*mut c_void` with a
+  `/// C:` note.  `struct glyph *` and `struct redisplay_interface *` *are* complete in C's
+  view (dispextern.h is included) but their mirrors come later in the display chain, so they
+  carry the same note until then.
+- **A union's inner members are not the container's.**  `display_info` is an anonymous union
+  whose members the scanner reports with the enclosing container and a `nesting` path; the
+  layout generator now keys only one-level members (`display_info`), because C rejects
+  `offsetof (struct terminal, tty)`.
+- **`type` is a Rust keyword**, so the member is `r#type` (the generator's `rust_ident`
+  spells the C key the same way).
+- **Still blocked (12 macros).**  `FRAME_MUST_WRITE_SPACES`, `FRAME_LINE_INS_DEL_OK`,
+  `FRAME_CHAR_INS_DEL_OK`, `FRAME_SCROLL_REGION_OK`, `FRAME_SCROLL_REGION_COST`,
+  `FRAME_MEMORY_BELOW_FRAME`, `FRAME_TERMINAL_CODING`, `FRAME_KEYBOARD_CODING`, `FRAME_RIF`,
+  `FRAME_TERMINAL` dereference `struct frame` (frame.rs); `TERMINAL_ACTIVE_P` dereferences
+  `display_info.tty` (termchar.h); `cursorX`/`cursorY` call `curX`/`curY` from termchar.h.

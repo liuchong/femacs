@@ -1036,6 +1036,12 @@ def struct_fields(text: str) -> list[dict]:
     stack: list[tuple[str, str]] = []
     pending = None
     out: list[dict] = []
+    # A C declaration may span lines (`void (*set_window_size_hook) (struct frame *f,\n int width,
+    # int height);`), and reading one line at a time invented fields out of the *parameters* of
+    # such a member (`width`, `yoff`, `title` appeared as members of `struct terminal`) while the
+    # member itself was lost.  Declarations are therefore joined until their `;` before being
+    # parsed — the same rule the preprocessor uses (P-73).
+    buf = ""
     i = 0
     while i < len(rows):
         raw = rows[i]
@@ -1046,6 +1052,7 @@ def struct_fields(text: str) -> list[dict]:
             continue
         m = STRUCT_OPEN_INLINE.match(stripped)
         if m:
+            buf = ""
             stack.append((m.group("kind"), m.group("name") or f"<anon@{i}>"))
             if stripped.count("{") == stripped.count("}"):
                 stack.pop()
@@ -1060,6 +1067,7 @@ def struct_fields(text: str) -> list[dict]:
                 pending = None
             continue
         if stripped.startswith("}"):
+            buf = ""
             for _ in range(stripped.count("}")):
                 if stack:
                     stack.pop()
@@ -1079,12 +1087,17 @@ def struct_fields(text: str) -> list[dict]:
             pending = None
             continue
         if not stack:
+            buf = ""
             continue
-        for field in _fields_on_line(stripped):
+        buf = f"{buf} {stripped}".strip() if buf else stripped
+        if ";" not in stripped:
+            continue                      # the declaration continues on the next line
+        for field in _fields_on_line(buf):
             outer = next((e for e in stack if not e[1].startswith("<anon")), stack[-1])
             out.append({"container": outer[1], "container_kind": outer[0],
                         "nesting": " > ".join(e[1] for e in stack),
                         "line": i, **field})
+        buf = ""
     return out
 
 

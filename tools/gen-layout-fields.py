@@ -81,6 +81,9 @@ STRUCTS = {
     # keyboard.h's input stream state (200/8, with the `immediate_echo` unit at 185) and its
     # event accessors' type.
     "kboard": "src/keyboard.h",
+    # termhooks.h's terminal record: 520/8, with `display_info` (an 8-byte union) at 80 and the
+    # hook table from 112 to 512.
+    "terminal": "src/termhooks.h",
 }
 
 # C unions the port mirrors as Rust unions.  They get `SZ (union …)`/`AL (union …)` keys and the
@@ -174,8 +177,14 @@ def main() -> int:
         if not body:
             print(f"warning: struct {name} not found in the preprocessed {header}")
         inv = ci.inventory(ref / header)
+        # `container` alone is not enough: the scanner reports a nested aggregate's members with
+        # the enclosing container and a `nesting` path that names the anonymous aggregate
+        # (`terminal > <anon@542>`), and C rejects `offsetof (struct terminal, tty)` — the member
+        # is reached as `display_info.tty`.  The aggregate member itself (`display_info`) has a
+        # one-element nesting path and is keyed.
         fields = [f for f in inv["struct_fields"]
                   if f["container"] == name and not f["bitfield"]
+                  and " > " not in f["nesting"]
                   and direct_field(body, f["name"])]
         lines.append("")
         lines.append(f"  SZ ({kind} {name}); AL ({kind} {name});")
