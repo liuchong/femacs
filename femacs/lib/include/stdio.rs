@@ -13,3 +13,20 @@ unsafe extern "C" {
   /* int fclose (FILE *stream);  */
   pub fn fclose (stream: *mut FILE) -> c_int;
 }
+
+/// The four stdio entries lib/md5-stream.c names (the eof/error predicates, the read and the
+/// write), in a whole-import module: a unit that declares one of them itself (lib/mini-gmp.c
+/// declares `fwrite`) then shadows the glob instead of clashing with it (PORTING.md 0.1-10).
+pub mod stdio_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn feof (stream: *mut FILE) -> c_int;
+    pub fn ferror (stream: *mut FILE) -> c_int;
+    pub fn fread (ptr: *mut core::ffi::c_void, size: usize, n: usize, stream: *mut FILE)
+      -> usize;
+    pub fn fwrite (ptr: *const core::ffi::c_void, size: usize, n: usize, stream: *mut FILE)
+      -> usize;
+  }
+}
+use stdio_decls::*;

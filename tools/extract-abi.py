@@ -970,6 +970,13 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             problems.append("macro " + name + " does not mention "
                             + ", ".join(sorted(missing)) + " (C body: "
                             + re.sub(r"\s+", " ", macro["body"])[:60] + ")")
+        if "*" in allowed:
+            # A note that exempts *every* token of the body (lisp.h's XUNTAG and the other
+            # "the port writes this with Rust spellings" rows) leaves nothing for an
+            # occurrence floor to count: C's body has no counterpart in the port by
+            # construction, so requiring the family count would fail on the port's own
+            # spelling (the function loop already skips these, line ~1240).
+            continue
         problems.extend(alias_count_problems(macro["body"], rust_body, skip_short=False))
     def norm_const (v: str) -> str:
         v = v.strip()

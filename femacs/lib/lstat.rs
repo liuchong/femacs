@@ -25,7 +25,7 @@
    configuration - HAVE_LSTAT is 1 - so its text is kept under the feature that names the
    non-frozen side (P-51).  C 34-50's includes are the mirrors below; <string.h> has no mirror
    yet, so `strlen` is declared here as C's <string.h> declares it.  */
-use std::ffi::{c_char, c_int, c_long, c_short, c_uint};
+use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_void};
 include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/sys_types.in.rs");

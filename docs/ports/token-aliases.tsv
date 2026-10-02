@@ -22,3 +22,9 @@ front_advance	front_advance,itree_front_advance	see the `red` row
 rear_advance	rear_advance,itree_rear_advance	see the `red` row
 consider	consider,consider_charpos,consider_bytepos	marker.c's two `CONSIDER` statement macros (C 100-136, C 277-315) cannot be `macro_rules!` in Rust (a macro cannot name the caller's locals), so each one's statement sequence lives in a helper function (see docs/ports/marker.md); the occurrence check keeps the port calling those helpers as often as C expands the macro (six times per conversion function)
 
+constraint	constraint,set_constraint,set_constraint_	`re_token_t.constraint` is the 10-bit field in `bits`; `constraint_`/`set_constraint_` are the port spellings (regex_internal.c 1395, regexec.c)
+accept_mb	accept_mb,set_accept_mb,set_accept_mb_,state_accept_mb,set_state_accept_mb,set_state_accept_mb_	`re_token_t.accept_mb` (bit 20) and `re_dfastate_t.accept_mb` (bit 5) are packed into `bits`; both accessor pairs are the port spellings
+halt	halt,set_halt,set_halt_	`re_dfastate_t.halt` (bit 4) is packed into `bits` (regex_internal.c create_ci_newstate/create_cd_newstate)
+has_backref	has_backref,set_has_backref,set_has_backref_	`re_dfastate_t.has_backref` (bit 6) is packed into `bits` (regex_internal.c create_ci_newstate)
+has_constraint	has_constraint,set_has_constraint,set_has_constraint_	`re_dfastate_t.has_constraint` (bit 7) is packed into `bits` (regex_internal.c create_cd_newstate)
+context	context,set_context,set_context_	`re_dfastate_t.context` is the 4-bit field in `bits`; `context_`/`set_context_` are the port spellings (regex_internal.c create_cd_newstate/re_acquire_state_context)

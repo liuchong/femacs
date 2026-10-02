@@ -46,6 +46,12 @@ pub const O_DIRECTORY: c_int = 0x100000;
 pub const O_CLOEXEC: c_int = 0x1000000;
 /* gnulib's `#ifndef O_DIRECTORY # define O_DIRECTORY 0x20000000` fallback is dead on this
    target (the system defines it), so 0x100000 above is the system value.  */
+/* O_SEARCH and O_EXEC are the two POSIX 2008 search/execute flags; this target defines both
+   (measured: 1074790400 = 0x40100000 and 1073741824 = 0x40000000), so gnulib's
+   `#ifndef O_SEARCH # define O_SEARCH O_RDONLY` fallback and its `O_EXEC` twin are dead text.
+   O_PATH is *not* defined here, which is what makes lib/lchmod.c's `#ifdef O_PATH` arm dead.  */
+pub const O_SEARCH: c_int = 0x40100000;
+pub const O_EXEC: c_int = 0x40000000;
 pub const O_NOCTTY: c_int = 0x20000;
 
 /* `fcntl`'s commands and the descriptor flags.  */

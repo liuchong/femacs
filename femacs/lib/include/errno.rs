@@ -67,3 +67,7 @@ pub const ELOOP: c_int = 62;
 pub const ENAMETOOLONG: c_int = 63;
 /// <errno.h>: `#define EOVERFLOW 84`.
 pub const EOVERFLOW: c_int = 84;
+
+/// <errno.h>: `#define EOPNOTSUPP 102` (measured; the same code as ENOTSUP on Linux, a
+/// different one here, which is why lib/lchmod.c can name either).
+pub const EOPNOTSUPP: c_int = 102;

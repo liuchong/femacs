@@ -22,10 +22,11 @@
    leaves outside the arm) is the live one; its `strmode` call is the system entry.
    C 21's "filemode.h" is the filemode mirror, C 23's <sys/stat.h> the sys_stat mirror and
    the S_TYPEIS* tests it leaves as `0` on this target are what the port's macro_rules say.  */
-use std::ffi::{c_char, c_int, c_long, c_short, c_uint};
+use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_void};
 include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/sys_types.in.rs");
+include!("include/filemode.rs");   // "filemode.h"
 include!("include/sys_stat.in.rs");
 
 /* C 42-106's dead arm, kept as text (P-51; dead: HAVE_DECL_STRMODE is 1).  */

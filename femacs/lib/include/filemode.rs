@@ -16,6 +16,12 @@ unsafe extern "C" {
 }
 
 /// C: extern void filemodestring (struct stat const *statp, char *str)
-unsafe extern "C" {
-  pub fn filemodestring (statp: *const stat, str_: *mut c_char);
+/* Whole-import module: `femacs/lib/filemode.rs` defines this name (PORTING.md 0.1-10).  */
+pub mod filemode_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn filemodestring (statp: *const stat, str_: *mut c_char);
+  }
 }
+use filemode_decls::*;

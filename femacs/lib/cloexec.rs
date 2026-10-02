@@ -25,6 +25,7 @@ use std::ffi::{c_char, c_int, c_long, c_uint, c_void};
 include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/errno.rs");
+include!("include/cloexec.rs");
 include!("include/fcntl.in.rs");
 include!("include/unistd.in.rs");
 

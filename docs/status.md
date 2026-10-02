@@ -12,7 +12,8 @@
   （gnulib 包装与替换件，外加实现单元 rawmemchr.c 158 / memrchr.c 158 / malloc.c 56 /
   realloc.c 101 / lstat.c 97 / fstatat.c 150 / readlink.c 114 / symlink.c 57 /
   readlinkat.c 123 / cloexec.c 83 / filemode.c 166 / mini-gmp.c 4,699 / md5.c 394 /
-  sha1.c 362 / sha256.c 431 / sha3.c 442 / sha512.c 476）。
+  sha1.c 362 / sha256.c 431 / sha3.c 442 / sha512.c 476 / save-cwd.c 90 /
+  copy-file-range.c 99 / md5-stream.c 134 / lchmod.c 97）。
 - 已竣工镜像：`src/include/` 与 `lib/include/` 共 15 个（font.h、thread.h、comp.h、
   macros.h、category.h、tparam.h、sys_resource.h 及既有若干）。本轮新增 WIP 镜像
   `lib/include/{sys_stat.in,fcntl.in,unistd.in,stat-time}.rs`，并给 `sys_types.in.rs` 补上
@@ -163,3 +164,20 @@
     的"包含式 shim"条款）。
   - **`lib/fsync.c` 不要在冻结配置下动**：它的非 Windows 臂是 `#error`，整个 unit 在
     darwin-arm64 上没有活体文本。
+
+- **3.18 镜像的 `use` 约定暴露的两个真问题（2026-10-03 修）**：
+  ① 镜像按 0.1-9 不能写 `use`，于是它用到的 `c_int`/`c_char`/`c_void` 全靠**包含它的 unit**
+  提供；只要镜像新增一个用到新别名的项，老 unit 就可能编不过（本轮 strftime 的
+  `timezone_t = *mut c_void` 让 `futimens.rs`/`getline.rs` 红了，stdio 镜像新加的 `fread`
+  让 `getline.rs` 红了）。处置：凡**闭包文本里出现某别名而 unit 的 `use std::ffi::{…}` 没写**
+  的，一律补齐（本轮补了 futimens/getline/lstat/gettimeofday/mempcpy）；同时把新加的
+  stdio 项写成 `core::ffi::c_void` 绝对路径，并在 `time-internal.rs` 里也这么做。
+  ② 多个镜像各自开 `pub mod decls` 会撞名（`md5.rs` 与 `stdio.rs` 同在一个 unit 时 E0428），
+  所以每个镜像的整导入模块必须**唯一命名**（`stdio_decls`/`save_cwd_decls`/`filemode_decls`/
+  `cloexec_decls`）。
+- **3.19 常量家族（token-aliases）的两条边界（2026-10-03 修，regex 簇暴露）**：
+  ① 家族成员必须把**端口的拼法**也列进去（regex 侧的 `type` 家族要含 `type_`/`set_type_`，
+  否则 lisp.h 的 `type` 形参在端口写成 `type_` 后计数为 0 而报红）。
+  ② 家族计数**不看**被 `*` 备注全豁免的条目：`macro-body-notes.tsv` 里 `*` 行意味着该宏体
+  在端口没有对应拼法（lisp.h 的 `XUNTAG` 一族），此时"出现次数下限"没有可数的对象，
+  `tools/extract-abi.py` 的宏循环现在与函数循环一致地跳过（否则 grep 不到 `type` 的宏体会红）。

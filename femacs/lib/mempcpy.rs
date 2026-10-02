@@ -14,7 +14,7 @@
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
-use std::ffi::{c_char, c_void};
+use std::ffi::{c_char, c_int, c_void};
 include!("../src/include/config.rs"); include!("include/gnulib_config.rs");
 
 unsafe extern "C" { pub fn memcpy (dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void; }

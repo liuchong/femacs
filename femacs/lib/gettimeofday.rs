@@ -31,7 +31,7 @@
    dead arm uses `time`) and C 84's `#undef gettimeofday` restores the system declaration for the
    call below, which the port spells with the system entry in its own module (the category.rs
    shape for a name that this unit defines).  */
-use std::ffi::{c_int, c_long, c_void};
+use std::ffi::{c_char, c_int, c_long, c_void};
 include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/time.in.rs");

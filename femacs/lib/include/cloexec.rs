@@ -5,7 +5,13 @@
 
 /// C: int set_cloexec_flag (int desc, bool value)
 /// C: int dup_cloexec (int fd)
-unsafe extern "C" {
-  pub fn set_cloexec_flag (desc: c_int, value: bool) -> c_int;
-  pub fn dup_cloexec (fd: c_int) -> c_int;
+/* Whole-import module: `femacs/lib/cloexec.rs` defines both names (PORTING.md 0.1-10).  */
+pub mod cloexec_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn set_cloexec_flag (desc: c_int, value: bool) -> c_int;
+    pub fn dup_cloexec (fd: c_int) -> c_int;
+  }
 }
+use cloexec_decls::*;

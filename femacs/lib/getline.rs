@@ -13,7 +13,7 @@
 
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-use std::ffi::{c_char, c_int};
+use std::ffi::{c_char, c_int, c_void};
 include!("include/gnulib_config.rs");
 include!("../lib/include/stdio.rs");
 unsafe extern "C" {

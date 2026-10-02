@@ -16,7 +16,7 @@
 
 /* written by Eric Blake */
 
-use std::ffi::{c_char, c_double, c_int, c_long};
+use std::ffi::{c_char, c_double, c_int, c_long, c_void};
 include!("../src/include/config.rs"); include!("include/gnulib_config.rs");
 include!("../lib/include/timespec.rs");
 
