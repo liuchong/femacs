@@ -4685,6 +4685,13 @@ src/image.c	global	-	-	static Lisp_Object	0			canvas_map	-	yes	root
 src/image.c	global	-	-	static struct canvas	1			canvas_list	-							
 src/image.c	global	-	-	static struct xpm_cached_color	2			xpm_color_cache	-							
 src/image.c	global	-	-	static const char	0	[][4]		xpm_color_key_strings	-							
+src/image.c	global	-	-	static struct ct_color	2			ct_table	-							
+src/image.c	global	-	-	static int	0			ct_colors_allocated	-							
+src/image.c	global	-	-	static JOCTET	0	[2]		our_memory_buffer	-							
+src/image.c	global	-	-	static gif_memory_source	1			current_gif_memory_src	-							
+src/image.c	global	-	-	static const int	0	[]		interlace_start	-							
+src/image.c	global	-	-	static const int	0	[]		interlace_increment	-							
+src/image.c	global	-	-	static struct animation_cache	1			animation_cache	-							
 src/indent.c	global	-	-	static ptrdiff_t	0			last_known_column	-							
 src/indent.c	global	-	-	ptrdiff_t	0			last_known_column_point	-							
 src/indent.c	global	-	-	static modiff_count	0			last_known_column_modified	-							
@@ -5781,9 +5788,16 @@ lib-src/etags.c	global	-	-	static const char	1	[]		Go_suffixes	-
 lib-src/etags.c	global	-	-	static bool	0			with_mercury_definitions	-							
 lib-src/etags.c	global	-	-	static float	0			mercury_heuristics_ratio	-							
 lib-src/etags.c	global	-	-	static const char	1			objtag	-							
+lib-src/etags.c	global	-	-	static bool	0			is_mercury_type	-							
+lib-src/etags.c	global	-	-	static bool	0			is_mercury_quantifier	-							
+lib-src/etags.c	global	-	-	static bool	0			is_mercury_declaration	-							
 lib-src/hexl.c	global	-	-	static char	1			progname	-							
 lib-src/make-docfile.c	global	-	-	static char	1			progname	-							
 lib-src/make-docfile.c	global	-	-	static bool	0			generate_globals	-							
+lib-src/make-docfile.c	global	-	-	static char	0	[128]		input_buffer	-							
+lib-src/make-docfile.c	global	-	-	static ptrdiff_t	0			num_globals	-							
+lib-src/make-docfile.c	global	-	-	static ptrdiff_t	0			num_globals_allocated	-							
+lib-src/make-docfile.c	global	-	-	static struct global	1			globals	-							
 lib-src/make-fingerprint.c	global	-	-	static char	1			buf	-							
 lib-src/movemail.c	global	-	-	static char	1			delete_lockname	-							
 lib-src/ntlib.c	global	-	-	static HANDLE	0			getppid_parent	-							

@@ -69,6 +69,11 @@ class Lines:
         self.clean = blank_comments(text)
         self.live: list[bool] = dead_branch_map(self.clean)
         self.rows = self.clean.split("\n")
+        # A view with character/string literals blanked too: a brace inside one (`case '{':`,
+        # json.c 1565) is not a brace, and counting it made the span run to EOF and swallowed
+        # every function after it.  blank_literals preserves length and line count, so the
+        # row indices still line up with self.rows.
+        self.scan_rows = blank_literals(self.clean).split("\n")
 
     def __iter__(self):
         for i, line in enumerate(self.rows):
@@ -915,7 +920,7 @@ def function_spans(text: str) -> list[dict]:
             continue
         depth2, end_line = 0, None
         for jj in range(body_line, len(rows)):
-            row = rows[jj]
+            row = lines.scan_rows[jj]
             depth2 += row.count("{") - row.count("}")
             if depth2 <= 0 and jj > body_line:
                 end_line = jj
@@ -934,7 +939,7 @@ def function_spans(text: str) -> list[dict]:
                 break
             p -= 1
         spans.append({"name": m.group("name") or m.group("pname"), "line": i,
-                      "static": prev.startswith("static"),
+                      "static": bool(re.search(r"\bstatic\b", prev)),
                       "return_type": prev, "body_start": body_line + 1,
                       "body_end": end_line + 1})
         i = end_line + 1

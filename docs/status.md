@@ -7,11 +7,12 @@
 ## 1. 当前数字（每次提交后核对）
 
 - 已竣工单元：`src/` 8 个（data.c 4,400 / macros.c 444 / undo.c 490 / category.c 506 /
-  tparam.c 284 / vm-limit.c 220 / itree.c 1,435 / marker.c 874），`lib/` 28 个（gnulib 包装与
-  替换件，外加四个实现单元 rawmemchr.c 158 / memrchr.c 158 / malloc.c 56 / realloc.c 101）。
+  tparam.c 284 / vm-limit.c 220 / itree.c 1,435 / marker.c 874 / json.c 1,851），`lib/` 28 个
+  （gnulib 包装与替换件，外加四个实现单元 rawmemchr.c 158 / memrchr.c 158 / malloc.c 56 /
+  realloc.c 101）。
 - 已竣工镜像：`src/include/` 与 `lib/include/` 共 11 个（font.h、thread.h、comp.h、
   macros.h、category.h、tparam.h、sys_resource.h 及既有若干）。
-- `python3 tools/extract-abi.py --all`：**68 ported / 56 done / 12 wip / 0 failing**；
+- `python3 tools/extract-abi.py --all`：**69 ported / 57 done / 12 wip / 0 failing**；
   done/in-progress 的数字以它为准。
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
@@ -66,6 +67,13 @@
   `xtask dead-arms`，因为 FLIPS 只能翻转 `config.rs` 里的键，而这些 gnulib 宏不在其中（与
   `marker_debug` 同类）。`<errno.h>` 的镜像见 `femacs/lib/include/errno.rs`（`errno` 是
   `(*__error ())` 的访问器、`ENOMEM` = 12，取自冻结目标 clang）。
+- **3.10 抽取器两处修正（2026-10-03，json.c 暴露）**：① `function_spans` 的**花括号计数**此前
+  用只去注释的文本，C 的 `case '{':`（json.c 1565）被当成真的花括号，导致 `json_parse_value`
+  的 span 一路吃到文件尾、其后 8 个函数（含 `syms_of_json`）从函数表里消失，并连带产生
+  "invented exported symbol" 误报；现在计数改用 `blank_literals` 之后的视图（长度/行号不变）。
+  ② `static` 判定原为"上一行以 static 开头"，C 802 的 `NO_INLINE static void` 因此被判成非
+  static；现在用 `\bstatic\b` 在该行任意位置匹配。两处都改了 `docs/baseline` 的 C 侧清单
+  （inventory 14 行、totals、LIFETIMES），已随生成物一起提交。
 - **3.6 下一批候选**：依赖已就绪且体量大的 `lib/mini-gmp.c`(4,699)、`lib/regexec.c`(4,306)
   与 `lib/regex_internal.c`(1,718)、`src/json.c`(1,851，0 个预处理条件)、`src/itree.c`(1,435)、
   `src/callint.c`(933)、`src/marker.c`(874)；小件 `lib/getgroups.c`(121)、`lib/group-member.c`(108)、

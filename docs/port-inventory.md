@@ -15,17 +15,17 @@
 | --- | ---: |
 | files | 590 |
 | lines | 678,320 |
-| functions | 10,012 |
+| functions | 10,315 |
 | defuns | 1,841 |
 | macros | 7,156 |
 | constants | 3,898 |
 | struct_fields | 5,764 |
-| globals | 1,934 |
+| globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 68 |
-| 其中 done / wip | 56 / 12 |
-| 待开工 | 522 |
+| 已有目标文件 | 69 |
+| 其中 done / wip | 57 / 12 |
+| 待开工 | 521 |
 
 ## 2 按目录
 
@@ -33,22 +33,22 @@
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
 | `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 203 |
-| `lib-src/` | 14 | 20,960 | 262 | 0 | 150 | 220 | 78 | 81 | 14 |
+| `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 23 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 216 |
+| `src/` | 250 | 566,784 | 8,676 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 215 |
 
 ## 3 按批次
 
 | 批次 | 范围 | 完成判据 | 文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | todo |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 19 |
-| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 948 | 330 | 717 | 420 | 148 | 25 |
-| **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 905 | 269 | 498 | 289 | 121 | 31 |
-| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,161 | 490 | 1,104 | 1,976 | 432 | 40 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,619 | 368 | 1,834 | 2,175 | 974 | 192 |
+| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 25 |
+| **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,007 | 269 | 498 | 289 | 128 | 30 |
+| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 40 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,716 | 368 | 1,834 | 2,175 | 981 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 203 |
 
@@ -56,11 +56,11 @@
 
 | 参照文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | 批次 | 状态 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
-| `src/xdisp.c` | 39,805 | 329 | 24 | 57 | 7 | 72 | E | todo |
+| `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 7 | 72 | E | todo |
 | `src/xterm.c` | 33,125 | 438 | 0 | 35 | 33 | 103 | F | todo |
 | `src/sfnt.c` | 21,215 | 268 | 0 | 170 | 53 | 8 | E | todo |
 | `src/keyboard.c` | 14,682 | 183 | 38 | 19 | 12 | 83 | E | todo |
-| `src/image.c` | 13,805 | 129 | 12 | 152 | 61 | 5 | D | todo |
+| `src/image.c` | 13,805 | 223 | 12 | 152 | 61 | 12 | D | todo |
 | `src/w32fns.c` | 12,488 | 90 | 60 | 69 | 25 | 55 | F | todo |
 | `src/coding.c` | 12,312 | 96 | 34 | 140 | 0 | 12 | C | todo |
 | `src/w32.c` | 11,362 | 225 | 0 | 29 | 27 | 91 | F | todo |
@@ -69,7 +69,7 @@
 | `src/macuvs.h` | 9,218 | 0 | 0 | 0 | 0 | 0 | F | todo |
 | `src/process.c` | 9,122 | 124 | 63 | 24 | 9 | 20 | D | todo |
 | `src/w32term.c` | 8,414 | 151 | 0 | 11 | 0 | 37 | F | todo |
-| `lib-src/etags.c` | 8,280 | 58 | 0 | 31 | 0 | 9 | F | todo |
+| `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 0 | 12 | F | todo |
 | `src/androidvfs.c` | 7,950 | 181 | 1 | 5 | 81 | 25 | F | todo |
 | `src/frame.c` | 7,907 | 100 | 69 | 0 | 2 | 8 | E | todo |
 | `src/xfaces.c` | 7,843 | 101 | 33 | 34 | 3 | 17 | E | todo |
@@ -95,11 +95,11 @@
 | `exec/test.c` | 105 | 2 | 0 | 0 | 0 | 0 | 1 | F | `femacs/exec/test.rs` | todo |
 | `exec/trace.c` | 2,258 | 24 | 0 | 9 | 5 | 0 | 7 | F | `femacs/exec/trace.rs` | todo |
 | `lib-src/asset-directory-tool.c` | 338 | 5 | 0 | 0 | 0 | 5 | 1 | F | `femacs/lib-src/asset-directory-tool.rs` | todo |
-| `lib-src/ebrowse.c` | 3,926 | 44 | 0 | 37 | 125 | 41 | 41 | F | `femacs/lib-src/ebrowse.rs` | todo |
+| `lib-src/ebrowse.c` | 3,926 | 66 | 0 | 37 | 125 | 41 | 41 | F | `femacs/lib-src/ebrowse.rs` | todo |
 | `lib-src/emacsclient.c` | 2,524 | 50 | 0 | 11 | 4 | 4 | 15 | F | `femacs/lib-src/emacsclient.rs` | todo |
-| `lib-src/etags.c` | 8,280 | 58 | 0 | 31 | 62 | 0 | 9 | F | `femacs/lib-src/etags.rs` | todo |
+| `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 62 | 0 | 12 | F | `femacs/lib-src/etags.rs` | todo |
 | `lib-src/hexl.c` | 221 | 3 | 0 | 0 | 0 | 0 | 1 | F | `femacs/lib-src/hexl.rs` | todo |
-| `lib-src/make-docfile.c` | 1,232 | 14 | 0 | 0 | 10 | 15 | 2 | F | `femacs/lib-src/make-docfile.rs` | todo |
+| `lib-src/make-docfile.c` | 1,232 | 21 | 0 | 0 | 10 | 15 | 6 | F | `femacs/lib-src/make-docfile.rs` | todo |
 | `lib-src/make-fingerprint.c` | 178 | 1 | 0 | 2 | 0 | 0 | 1 | F | `femacs/lib-src/make-fingerprint.rs` | todo |
 | `lib-src/movemail.c` | 871 | 13 | 0 | 7 | 1 | 0 | 1 | F | `femacs/lib-src/movemail.rs` | todo |
 | `lib-src/ntlib.c` | 601 | 24 | 0 | 2 | 0 | 2 | 4 | F | `femacs/lib-src/ntlib.rs` | todo |
@@ -529,7 +529,7 @@
 | `src/haikuterm.c` | 4,898 | 108 | 0 | 3 | 1 | 0 | 6 | F | `femacs/src/haikuterm.rs` | todo |
 | `src/haikuterm.h` | 375 | 0 | 0 | 18 | 1 | 119 | 8 | F | `femacs/src/include/haikuterm.rs` | todo |
 | `src/hbfont.c` | 612 | 9 | 0 | 28 | 0 | 0 | 2 | E | `femacs/src/hbfont.rs` | todo |
-| `src/image.c` | 13,805 | 129 | 12 | 152 | 209 | 61 | 5 | D | `femacs/src/image.rs` | todo |
+| `src/image.c` | 13,805 | 223 | 12 | 152 | 209 | 61 | 12 | D | `femacs/src/image.rs` | todo |
 | `src/indent.c` | 2,592 | 19 | 7 | 2 | 1 | 0 | 5 | C | `femacs/src/indent.rs` | todo |
 | `src/indent.h` | 60 | 0 | 0 | 1 | 0 | 6 | 1 | C | `femacs/src/include/indent.rs` | todo |
 | `src/inotify.c` | 590 | 11 | 5 | 3 | 3 | 0 | 2 | D | `femacs/src/inotify.rs` | todo |
@@ -538,7 +538,7 @@
 | `src/intervals.h` | 314 | 3 | 0 | 29 | 0 | 14 | 0 | C | `femacs/src/include/intervals.rs` | todo |
 | `src/itree.c` | 1,435 | 45 | 0 | 0 | 0 | 6 | 0 | C | `femacs/src/itree.rs` | done |
 | `src/itree.h` | 190 | 1 | 0 | 3 | 4 | 20 | 0 | C | `femacs/src/include/itree.rs` | done |
-| `src/json.c` | 1,851 | 55 | 4 | 3 | 7 | 25 | 0 | D | `femacs/src/json.rs` | todo |
+| `src/json.c` | 1,851 | 63 | 4 | 3 | 7 | 25 | 0 | D | `femacs/src/json.rs` | done |
 | `src/keyboard.c` | 14,682 | 183 | 38 | 19 | 9 | 12 | 83 | E | `femacs/src/keyboard.rs` | todo |
 | `src/keyboard.h` | 535 | 9 | 0 | 18 | 23 | 29 | 26 | E | `femacs/src/include/keyboard.rs` | done |
 | `src/keymap.c` | 3,487 | 37 | 29 | 0 | 0 | 14 | 10 | E | `femacs/src/keymap.rs` | todo |
@@ -582,7 +582,7 @@
 | `src/process.h` | 320 | 6 | 0 | 2 | 4 | 59 | 2 | D | `femacs/src/include/process.rs` | done |
 | `src/profiler.c` | 733 | 24 | 9 | 0 | 3 | 3 | 7 | D | `femacs/src/profiler.rs` | todo |
 | `src/ralloc.c` | 1,214 | 18 | 0 | 7 | 0 | 0 | 12 | B | `femacs/src/ralloc.rs` | todo |
-| `src/regex-emacs.c` | 5,367 | 14 | 0 | 120 | 75 | 12 | 3 | C | `femacs/src/regex-emacs.rs` | todo |
+| `src/regex-emacs.c` | 5,367 | 41 | 0 | 120 | 75 | 12 | 3 | C | `femacs/src/regex-emacs.rs` | todo |
 | `src/regex-emacs.h` | 202 | 0 | 0 | 1 | 20 | 16 | 3 | C | `femacs/src/include/regex-emacs.rs` | todo |
 | `src/region-cache.c` | 781 | 13 | 0 | 5 | 0 | 10 | 0 | C | `femacs/src/region-cache.rs` | todo |
 | `src/region-cache.h` | 112 | 0 | 0 | 1 | 0 | 0 | 0 | C | `femacs/src/include/region-cache.rs` | todo |
@@ -658,7 +658,7 @@
 | `src/widgetprv.h` | 70 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/widgetprv.rs` | todo |
 | `src/window.c` | 9,740 | 112 | 121 | 1 | 5 | 64 | 13 | E | `femacs/src/window.rs` | todo |
 | `src/window.h` | 1,267 | 16 | 0 | 95 | 5 | 102 | 9 | E | `femacs/src/include/window.rs` | wip |
-| `src/xdisp.c` | 39,805 | 329 | 24 | 57 | 36 | 7 | 72 | E | `femacs/src/xdisp.rs` | todo |
+| `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 36 | 7 | 72 | E | `femacs/src/xdisp.rs` | todo |
 | `src/xfaces.c` | 7,843 | 101 | 33 | 34 | 22 | 3 | 17 | E | `femacs/src/xfaces.rs` | todo |
 | `src/xfns.c` | 10,662 | 116 | 53 | 7 | 17 | 13 | 11 | F | `femacs/src/xfns.rs` | todo |
 | `src/xfont.c` | 1,166 | 21 | 0 | 0 | 0 | 4 | 2 | F | `femacs/src/xfont.rs` | todo |
@@ -679,4 +679,4 @@
 
 ---
 
-合计 **590 文件 / 678,320 行 / 10,012 函数 / 1,841 subr / 7,156 宏 / 3,898 常量 / 5,764 结构体字段 / 1,934 全局**。
+合计 **590 文件 / 678,320 行 / 10,315 函数 / 1,841 subr / 7,156 宏 / 3,898 常量 / 5,764 结构体字段 / 1,948 全局**。

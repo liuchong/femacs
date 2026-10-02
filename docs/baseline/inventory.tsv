@@ -102,7 +102,7 @@ src/haikuselect.h	88	0	0	1	3	0	0
 src/haikuterm.c	4898	108	0	3	1	0	6
 src/haikuterm.h	375	0	0	18	1	119	8
 src/hbfont.c	612	9	0	28	0	0	2
-src/image.c	13805	129	12	152	209	61	5
+src/image.c	13805	223	12	152	209	61	12
 src/indent.c	2592	19	7	2	1	0	5
 src/indent.h	60	0	0	1	0	6	1
 src/inotify.c	590	11	5	3	3	0	2
@@ -111,7 +111,7 @@ src/intervals.c	2416	53	0	2	0	0	0
 src/intervals.h	314	3	0	29	0	14	0
 src/itree.c	1435	45	0	0	0	6	0
 src/itree.h	190	1	0	3	4	20	0
-src/json.c	1851	55	4	3	7	25	0
+src/json.c	1851	63	4	3	7	25	0
 src/keyboard.c	14682	183	38	19	9	12	83
 src/keyboard.h	535	9	0	18	23	29	26
 src/keymap.c	3487	37	29	0	0	14	10
@@ -155,7 +155,7 @@ src/process.c	9122	124	63	24	17	9	20
 src/process.h	320	6	0	2	4	59	2
 src/profiler.c	733	24	9	0	3	3	7
 src/ralloc.c	1214	18	0	7	0	0	12
-src/regex-emacs.c	5367	14	0	120	75	12	3
+src/regex-emacs.c	5367	41	0	120	75	12	3
 src/regex-emacs.h	202	0	0	1	20	16	3
 src/region-cache.c	781	13	0	5	0	10	0
 src/region-cache.h	112	0	0	1	0	0	0
@@ -231,7 +231,7 @@ src/widget.h	102	0	0	36	35	0	1
 src/widgetprv.h	70	0	0	1	0	0	0
 src/window.c	9740	112	121	1	5	64	13
 src/window.h	1267	16	0	95	5	102	9
-src/xdisp.c	39805	329	24	57	36	7	72
+src/xdisp.c	39805	406	24	57	36	7	72
 src/xfaces.c	7843	101	33	34	22	3	17
 src/xfns.c	10662	116	53	7	17	13	11
 src/xfont.c	1166	21	0	0	0	4	2
@@ -487,11 +487,11 @@ lib/utimensat.c	222	0	0	6	0	0	0
 lib/verify.h	407	0	0	24	6	1	0
 lib/warn-on-use.h	153	0	0	4	0	0	0
 lib-src/asset-directory-tool.c	338	5	0	0	0	5	1
-lib-src/ebrowse.c	3926	44	0	37	125	41	41
+lib-src/ebrowse.c	3926	66	0	37	125	41	41
 lib-src/emacsclient.c	2524	50	0	11	4	4	15
-lib-src/etags.c	8280	58	0	31	62	0	9
+lib-src/etags.c	8280	126	0	31	62	0	12
 lib-src/hexl.c	221	3	0	0	0	0	1
-lib-src/make-docfile.c	1232	14	0	0	10	15	2
+lib-src/make-docfile.c	1232	21	0	0	10	15	6
 lib-src/make-fingerprint.c	178	1	0	2	0	0	1
 lib-src/movemail.c	871	13	0	7	1	0	1
 lib-src/ntlib.c	601	24	0	2	0	2	4
