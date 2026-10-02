@@ -39,8 +39,8 @@ pub type intmax_t = i64;
 pub type uintmax_t = u64;
 // src/lisp.h 90-102 define these as enum members chosen from the integer widths;
 // on this target EMACS_INT is long long.
-pub const EMACS_INT_WIDTH: usize = 64;
-pub const EMACS_UINT_WIDTH: usize = 64;
+pub const EMACS_INT_WIDTH: usize = LONG_WIDTH as usize;   // lisp.h 92 (the live branch)
+pub const EMACS_UINT_WIDTH: usize = ULONG_WIDTH as usize; // lisp.h 92
 pub const EMACS_INT_MAX: EMACS_INT = EMACS_INT::MAX;
 pub const EMACS_INT_MIN: EMACS_INT = EMACS_INT::MIN;
 
@@ -1022,7 +1022,7 @@ pub fn c_symbol_p (sym: *mut Lisp_Symbol) -> bool {
 
 // --- batch 3: vectors, bool-vectors, char-tables, symbols (src/lisp.h 1740-2400) ---
 pub type bits_word = usize;
-pub const BITS_PER_BITS_WORD: usize = 64;      // SIZE_WIDTH from the configuration
+pub const BITS_PER_BITS_WORD: usize = SIZE_WIDTH as usize;   // lisp.h 137, the live branch
 pub const BITS_WORD_MAX: usize = usize::MAX;
 pub const BOOL_VECTOR_BITS_PER_CHAR: usize = 8;
 // Types the reference gets from <setjmp.h> and keyboard.h; the sizes come from
@@ -2660,25 +2660,33 @@ pub fn safe_free_unbind_to (count: specpdl_ref, sa_count: specpdl_ref, val: Lisp
 // The frozen configuration has neither HAVE_NATIVE_COMP nor HAVE_MODULES, so
 // these live behind the same structural conditions the C uses (PORTING.md 9.2).
 
+// The live pair comes first on purpose: `tools/extract-abi.py` reads the *first*
+// definition of a function it finds, and the port wants its body compared with the body C
+// compiles for this target (PORTING.md P-51's dead text follows).
+#[cfg(not(feature = "native_comp"))]
+#[inline(always)]
+pub fn NATIVE_COMP_FUNCTIONP (a: Lisp_Object) -> bool { let _ = a; false }
+
+#[cfg(not(feature = "native_comp"))]
+#[inline(always)]
+pub fn NATIVE_COMP_FUNCTION_DYNP (a: Lisp_Object) -> bool { let _ = a; false }
+
+// lisp.h 5489-5530: the `#ifdef HAVE_NATIVE_COMP` pair is the *dead* one for this
+// configuration, and the `#else` pair (`return false`) is what C compiles.  The port had the
+// polarity backwards (the gate found it once the frozen configuration decided the branch).
 #[cfg(feature = "native_comp")]
 #[inline(always)]
 pub fn NATIVE_COMP_FUNCTIONP (a: Lisp_Object) -> bool {
-    PSEUDOVECTORP (a, pvec_type::PVEC_NATIVE_COMP_UNIT)
+    SUBRP (a) && unsafe { (*XSUBR (a)).native_comp_u } != 0
 }
 
 #[cfg(feature = "native_comp")]
 #[inline(always)]
-pub fn NATIVE_COMP_FUNCTION_DYNP (f: Lisp_Object) -> bool {
-    SUBRP (f) && unsafe { (*XSUBR (f)).native_comp_u } != 0
+pub fn NATIVE_COMP_FUNCTION_DYNP (a: Lisp_Object) -> bool {
+    NATIVE_COMP_FUNCTIONP (a) && !NILP (unsafe { (*XSUBR (a)).lambda_list })
 }
 
-#[cfg(not(feature = "native_comp"))]
-#[inline(always)]
-pub fn NATIVE_COMP_FUNCTIONP (_a: Lisp_Object) -> bool { false }
-
-#[cfg(not(feature = "native_comp"))]
-#[inline(always)]
-pub fn NATIVE_COMP_FUNCTION_DYNP (_f: Lisp_Object) -> bool { false }
+const _: () = assert! (!cfg! (feature = "native_comp") || HAVE_NATIVE_COMP);
 
 #[cfg(feature = "native_comp")]
 #[inline(always)]
@@ -2731,7 +2739,7 @@ pub const STRING_BYTES_BOUND: isize =
 pub const BOOL_VECTOR_LENGTH_MAX: isize = MOST_POSITIVE_FIXNUM;
 pub const FLOAT_TO_STRING_BUFSIZE: usize = 350;
 pub const WAIT_READING_MAX: i64 = i64::MAX;
-pub const CHILD_SETUP_ERROR_DESC: &str = "Spawning child process";
+pub const CHILD_SETUP_ERROR_DESC: &str = "Doing vfork";   // lisp.h 5208 (`#else` of DOS_NT)
 pub const HAVE_EXT_MENU_BAR: bool = true;
 pub const HAVE_EXT_TOOL_BAR: bool = true;
 // lisp.h 3201 spells the comparison FLT_RADIX, FLT_MANT_DIG, FLT_MIN_EXP, FLT_MAX_EXP;

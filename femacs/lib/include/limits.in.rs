@@ -53,6 +53,11 @@ pub const LONG_MAX: c_long = c_long::MAX;
 // lisp.h 96 reads LONG_WIDTH/ULONG_WIDTH from intprops.h, and bignum.c reads ULONG_WIDTH/
 // INTMAX_WIDTH/UINTMAX_WIDTH from it; the port derives them from the types.
 /* #define TYPE_WIDTH(t) (sizeof (t) * CHAR_BIT), CHAR_BIT == 8.  */
+// limits.in.h 117-120 spells the four machine widths for this target; the port
+// derives each from its type, so the mirror stays true on any width.
+pub const INT_WIDTH: c_int = (8 * std::mem::size_of::<c_int> ()) as c_int;
+pub const UINT_WIDTH: c_int = (8 * std::mem::size_of::<c_uint> ()) as c_int;
+pub const LONG_WIDTH: c_int = (8 * std::mem::size_of::<c_long> ()) as c_int;
 pub const ULONG_WIDTH: c_int = (8 * std::mem::size_of::<c_ulong> ()) as c_int;
 // (`intmax_t`/`uintmax_t` are lisp.rs's aliases for i64/u64; the lib mirrors stand alone.)
 pub const INTMAX_WIDTH: c_int = (8 * std::mem::size_of::<i64> ()) as c_int;

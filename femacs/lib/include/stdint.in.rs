@@ -13,6 +13,12 @@ include!("limits.in.rs");
 pub const PTRDIFF_MIN: isize = isize::MIN;
 pub const PTRDIFF_MAX: isize = isize::MAX;
 
+// stdint.in.h 731 (the TS 18661-1 block): SIZE_WIDTH is the one width macro this header
+// owns; INT_WIDTH/UINT_WIDTH/LONG_WIDTH/ULONG_WIDTH come from <limits.h> (limits.in.h
+// 112-122, already in scope through the include above) and PTRDIFF_WIDTH is at line 730.
+// Measured with `printf ("%d", SIZE_WIDTH)` on the frozen build.
+pub const SIZE_WIDTH: c_int = (8 * std::mem::size_of::<usize> ()) as c_int;
+
 // stdint.in.h 539-550 covers SIZE_MAX the same way; the frozen target's
 // <stdint.h> supplies it, and buffer.h's BUF_BYTES_MAX names it.
 pub const SIZE_MAX: usize = usize::MAX;

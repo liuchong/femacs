@@ -10,6 +10,10 @@
 #include <stdint.h>
 #include <inttypes.h>
 
+/* The four machine widths come from this target's C23 <limits.h>; SIZE_WIDTH does
+   not: the frozen build takes it from gnulib's stdint.in.h 731 (the macro table says
+   `_GL_INTEGER_WIDTH (0, SIZE_MAX)`), so it is covered by the stdint.in.md checklist
+   rather than by this system-header probe.  */
 int
 main (void)
 {
@@ -25,6 +29,10 @@ main (void)
   printf ("DBL_MANT_DIG %d\n", DBL_MANT_DIG);
   printf ("DBL_MIN_EXP %d\n", DBL_MIN_EXP);
   printf ("DBL_DIG %d\n", DBL_DIG);
+  printf ("INT_WIDTH %d\n", (int) INT_WIDTH);
+  printf ("UINT_WIDTH %d\n", (int) UINT_WIDTH);
+  printf ("LONG_WIDTH %d\n", (int) LONG_WIDTH);
+  printf ("ULONG_WIDTH %d\n", (int) ULONG_WIDTH);
   printf ("ULONG_MAX %lu\n", ULONG_MAX);
   printf ("LONG_MIN %ld\n", LONG_MIN);
   printf ("LONG_MAX %ld\n", LONG_MAX);

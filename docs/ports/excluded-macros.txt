@@ -45,3 +45,4 @@ _GL_ATTRIBUTE_CONST	syntax	attribute (gnulib's `__attribute__ ((const))`); no Ru
 _GL_ARG_NONNULL	syntax	attribute (lib/arg-nonnull.h); no Rust counterpart
 _GL_INLINE_HEADER_BEGIN	syntax	spells `extern "C" {` in C++ only; nothing in C, nothing in Rust (PORTING.md 0.1)
 _GL_INLINE_HEADER_END	syntax	same, closing brace
+lisp_h_Qnil	config	P-17: the port spells the Q* macros as functions (`lisp_h_Qnil ()`), which is what every call site needs; the frozen branch's `# define lisp_h_Qnil 0` (lisp.h 374) is that function's body (lisp.h 384-386's `{0}` is the struct-Lisp_Object branch this target does not take)
