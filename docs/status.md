@@ -7,11 +7,11 @@
 ## 1. 当前数字（每次提交后核对）
 
 - 已竣工单元：`src/` 8 个（data.c 4,400 / macros.c 444 / undo.c 490 / category.c 506 /
-  tparam.c 284 / vm-limit.c 220 / itree.c 1,435 / marker.c 874），`lib/` 26 个（gnulib 包装与
-  替换件，外加两个实现单元 rawmemchr.c 158 / memrchr.c 158）。
+  tparam.c 284 / vm-limit.c 220 / itree.c 1,435 / marker.c 874），`lib/` 28 个（gnulib 包装与
+  替换件，外加四个实现单元 rawmemchr.c 158 / memrchr.c 158 / malloc.c 56 / realloc.c 101）。
 - 已竣工镜像：`src/include/` 与 `lib/include/` 共 11 个（font.h、thread.h、comp.h、
   macros.h、category.h、tparam.h、sys_resource.h 及既有若干）。
-- `python3 tools/extract-abi.py --all`：**66 ported / 54 done / 12 wip / 0 failing**；
+- `python3 tools/extract-abi.py --all`：**68 ported / 56 done / 12 wip / 0 failing**；
   done/in-progress 的数字以它为准。
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
@@ -59,6 +59,13 @@
   `Option` 并由使用点的 `if let Some (value) = … { return value; }` 返回；宏名进
   `excluded-macros.txt`，token 进 `token-aliases.tsv` 的 family（带**出现次数**校验，丢掉一次
   调用仍会失败）。同类宏（`CALLN` 之外的早退宏）照此办理。
+- **3.9 gnulib 死臂的保留方式已定案（2026-10-03）**：`lib/*.c` 里的 `#if !HAVE_X` 死臂**照 P-51
+  保留文本**——用命名"非冻结一侧"的 feature 包起来（`no_malloc_0_nonnull`、`no_malloc_ptrdiff`、
+  `no_malloc_posix`、`need_sanitized_realloc`、`no_realloc_0_nonnull`、`no_realloc_posix`），
+  这样 `--check` 能看到死臂 token（含 `ckd_add` family 的出现次数）而台账保留原文；它们不进
+  `xtask dead-arms`，因为 FLIPS 只能翻转 `config.rs` 里的键，而这些 gnulib 宏不在其中（与
+  `marker_debug` 同类）。`<errno.h>` 的镜像见 `femacs/lib/include/errno.rs`（`errno` 是
+  `(*__error ())` 的访问器、`ENOMEM` = 12，取自冻结目标 clang）。
 - **3.6 下一批候选**：依赖已就绪且体量大的 `lib/mini-gmp.c`(4,699)、`lib/regexec.c`(4,306)
   与 `lib/regex_internal.c`(1,718)、`src/json.c`(1,851，0 个预处理条件)、`src/itree.c`(1,435)、
   `src/callint.c`(933)、`src/marker.c`(874)；小件 `lib/getgroups.c`(121)、`lib/group-member.c`(108)、

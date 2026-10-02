@@ -23,16 +23,16 @@
 | globals | 1,934 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 66 |
-| 其中 done / wip | 54 / 12 |
-| 待开工 | 524 |
+| 已有目标文件 | 68 |
+| 其中 done / wip | 56 / 12 |
+| 待开工 | 522 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 205 |
+| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 203 |
 | `lib-src/` | 14 | 20,960 | 262 | 0 | 150 | 220 | 78 | 81 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,161 | 490 | 1,104 | 1,976 | 432 | 40 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,619 | 368 | 1,834 | 2,175 | 974 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 205 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 203 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -217,7 +217,7 @@
 | `lib/libc-config.h` | 209 | 0 | 0 | 16 | 1 | 0 | 0 | L | `femacs/lib/include/libc-config.rs` | todo |
 | `lib/limits.in.h` | 151 | 0 | 0 | 28 | 5 | 0 | 0 | L | `femacs/lib/include/limits.in.rs` | wip |
 | `lib/lstat.c` | 97 | 2 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/lstat.rs` | todo |
-| `lib/malloc.c` | 56 | 1 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/malloc.rs` | todo |
+| `lib/malloc.c` | 56 | 1 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/malloc.rs` | done |
 | `lib/malloc/dynarray-skeleton.c` | 528 | 1 | 0 | 7 | 1 | 7 | 0 | L | `femacs/lib/malloc/dynarray-skeleton.rs` | todo |
 | `lib/malloc/dynarray.h` | 177 | 2 | 0 | 1 | 0 | 5 | 0 | L | `femacs/lib/malloc/include/dynarray.rs` | todo |
 | `lib/malloc/dynarray_at_failure.c` | 40 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_at_failure.rs` | todo |
@@ -264,7 +264,7 @@
 | `lib/readlink.c` | 114 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/readlink.rs` | todo |
 | `lib/readlinkat.c` | 123 | 1 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/readlinkat.rs` | todo |
 | `lib/readutmp.h` | 352 | 0 | 0 | 32 | 8 | 21 | 0 | L | `femacs/lib/include/readutmp.rs` | todo |
-| `lib/realloc.c` | 101 | 1 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/realloc.rs` | todo |
+| `lib/realloc.c` | 101 | 1 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/realloc.rs` | done |
 | `lib/regcomp.c` | 3,814 | 63 | 0 | 19 | 2 | 0 | 2 | L | `femacs/lib/regcomp.rs` | todo |
 | `lib/regex.c` | 82 | 0 | 0 | 14 | 1 | 0 | 1 | L | `femacs/lib/regex.rs` | todo |
 | `lib/regex.h` | 684 | 0 | 0 | 78 | 9 | 4 | 1 | L | `femacs/lib/include/regex.rs` | todo |
