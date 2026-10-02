@@ -145,3 +145,21 @@
   `norm_const` 统一剥掉 `[uUlL]+` 并把字面量归一成十进制值（`1ul` → `1`，`0xffffffffUL` →
   `4294967295`），语义就是比较想表达的东西，同时让那批十六进制 notes 行变成冗余。
   影响：`lib/regex.h` 镜像转 OK（`--all` 的 done 计数 +1），sha*/mini-gmp 的检查不受影响。
+
+- **3.17 下一批（2026-10-03 收尾时的状态）**：
+  - **依赖已就绪、体量最大**：`lib/regex_internal.c`(1,718) / `regcomp.c`(3,814) /
+    `regexec.c`(4,306)。它们的头镜像 `lib/include/regex_internal.rs` 已完整落地并通过
+    `--check`（90 个 macro_rules!/const、三个枚举、regex 内部全部结构体、12 个
+    static-inline 定义），`lib/include/regex.rs` 也已转 OK；**注意**这三个 `.c` 不在
+    `cond-eval-verified.txt` 里，所以抽取器对它们用盲条件：`#ifdef _LIBC` 的 glibc 内部代码
+    （regcomp.c 369 行、regexec.c 3,195 行等）全被判为活，需要按既有政策决定用
+    P-51 cfg 保留文本还是进 notes（这是动手前必须先量的一件事，量法：
+    `python3 tools/extract-abi.py --check <c> <空 rs>` 看缺项）。
+  - **接着做**：`lib/strftime.c`(2,446) + `lib/mktime.c`(582)（time.in.rs/sys_time.rs 已有，
+    缺的声明往镜像补）。
+  - **`at-func.c` 模板**（fchmodat.c/faccessat.c 与已落地的 fstatat.c/readlinkat.c 共用）：
+    现有政策是"死臂写成 cfg 的 macro_rules + 模板体进 macro-body-notes.tsv"；若将来要移植
+    GNU/Linux 目标，需要把它改成 prelude `macro_rules!` 或参数化函数（PORTING.md 10.13②
+    的"包含式 shim"条款）。
+  - **`lib/fsync.c` 不要在冻结配置下动**：它的非 Windows 臂是 `#error`，整个 unit 在
+    darwin-arm64 上没有活体文本。
