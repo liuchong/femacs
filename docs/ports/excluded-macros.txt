@@ -23,10 +23,10 @@ DEFINE_KEY_OPS_AS_MACROS	config	the port always uses the inline-function forms
 DECLARE_GDB_SYM	debugger	debugger symbol trick; no Rust equivalent (P-23)
 DEFINE_GDB_SYMBOL_BEGIN	debugger	debugger symbol trick; no Rust equivalent (P-23)
 DEFINE_GDB_SYMBOL_END	debugger	debugger symbol trick; no Rust equivalent (P-23)
-DOHASH	deferred	loop macro; Rust form pending P-22
+DOHASH	syntax	loop macro: the mirror's `DOHASH!` takes the two loop variables as metavariables and the body as its last argument, so call-site hygiene lets the caller's body see them (lisp.rs); the C macro's token pasting into `dohash_##k##_##v##_kv` has no counterpart - the Rust locals are spelled once
 DOHASH_SAFE	deferred	loop macro; Rust form pending P-22
 DOOBARRAY	deferred	loop macro; Rust form pending P-22
-FOR_EACH_TAIL	deferred	loop macro; Rust form pending P-22
+FOR_EACH_TAIL	syntax	loop macro: the mirror's `FOR_EACH_TAIL!` is the sibling of the existing `FOR_EACH_TAIL_SAFE!` (same stepper, CHECK_QUIT true, cycle arm `circular_list`), with the loop variable and the body as its two arguments (lisp.rs)
 FOR_EACH_TAIL_BASIC	deferred	loop macro; Rust form pending P-22
 FOR_EACH_TAIL_INTERNAL	deferred	loop macro; Rust form pending P-22
 FOR_EACH_TAIL_SAFE	deferred	loop macro; Rust form pending P-22

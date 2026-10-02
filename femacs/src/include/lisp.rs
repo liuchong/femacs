@@ -3883,6 +3883,10 @@ pub mod other_units {
     unsafe extern "C" {
       pub fn record_unwind_protect (function: Option<unsafe extern "C" fn (Lisp_Object)>,
                                     arg: Lisp_Object);
+      /* src/lisp.h 5856-5857: `extern AVOID circular_list (Lisp_Object);` - the cycle
+         handler the FOR_EACH_TAIL macro passes for a list that loops.  */
+      /// C: void circular_list (Lisp_Object)
+      pub fn circular_list (x: Lisp_Object) -> !;
     }
     // src/lisp.h 4952-4956 (the marker.c group).  `struct buffer` is an incomplete type
     // in C here (buffer.h owns the definition) and the port cannot name it in a mirror
@@ -4022,6 +4026,79 @@ macro_rules! FOR_EACH_TAIL_SAFE {
                     if false || (POWER_OF_2 (li.l) && { li.tortoise = $state; false })
                       { }
                   }
+              }
+        }
+    };
+}
+
+/// FOR_EACH_TAIL (lisp.h 5839-5840) is the same `for` loop driven by the same stepper as
+/// FOR_EACH_TAIL_SAFE, with the two differences the C macro names: the cycle arm evaluates
+/// CYCLE, which for this macro is `circular_list (tail)` - it signals, it does not fall out of
+/// the loop - and CHECK_QUIT is true, so the periodic branch calls `maybe_quit ()`.
+///
+/// ```ignore
+/// FOR_EACH_TAIL! (tail, { key = XCAR (tail); … });
+/// ```
+macro_rules! FOR_EACH_TAIL {
+    ($state:ident, $body:block) => {
+        {
+            /* C: `struct for_each_tail_internal li = { tail, 0 };` */
+            let mut $state: Lisp_Object = $state;
+            let mut li: for_each_tail_internal = for_each_tail_internal {
+                tortoise: $state,
+                l: 0,
+            };
+            /* C: `CONSP (tail) || (likely (NILP (tail)), false)` */
+            while CONSP ($state) || { likely (NILP ($state)); false }
+              {
+                $body
+
+                /* Stepper (lisp.h 5909-5912) with CHECK_QUIT true.  */
+                $state = XCDR ($state);
+                if BASE_EQ ($state, li.tortoise)
+                  { circular_list ($state); }
+                else if ! likely (({ li.l += 1; li.l } & (FOR_EACH_TAIL_THRESHOLD - 1)) != 0)
+                  {
+                    maybe_quit ();
+                    if POWER_OF_2 (li.l)
+                      { li.tortoise = $state; }
+                  }
+              }
+        }
+    };
+}
+
+/// DOHASH (lisp.h 5861-5877): walk the key/value pairs of hash table H, binding K and V and
+/// running the body only for entries that are in use.  C's macro pastes its two variables'
+/// names into the loop's locals (`dohash_##k##_##v##_kv`), declares K and V in the `for`
+/// initializer, assigns them in the condition, and attaches the body to the trailing
+/// `if (hash_unused_entry_key_p (k)) ; else`.  Rust's counterpart passes the two names in as
+/// metavariables (so the caller's body sees them through call-site hygiene) and takes the body
+/// as the last argument; the increment keeps C's eassert that the table was not rehashed.
+///
+/// ```ignore
+/// DOHASH! (h, k, v, { if ! first { … } });
+/// ```
+macro_rules! DOHASH {
+    ($h:expr, $k:ident, $v:ident, $body:block) => {
+        {
+            let mut dohash_kv: *mut Lisp_Object = (*($h)).key_and_value;
+            let dohash_end: *mut Lisp_Object =
+                dohash_kv.wrapping_add (2 * HASH_TABLE_SIZE ($h) as usize);
+            let dohash_base: *mut Lisp_Object = dohash_kv;
+            let mut $k: Lisp_Object;
+            let mut $v: Lisp_Object;
+            while dohash_kv < dohash_end
+              {
+                $k = *dohash_kv.offset (0);
+                $v = *dohash_kv.offset (1); /* maybe unused */
+                if ! hash_unused_entry_key_p ($k)
+                  { $body }
+                /* C's increment: the table must not have been rehashed mid-loop.  */
+                eassert! (dohash_base == (*($h)).key_and_value
+                          && dohash_end
+                             == dohash_base.wrapping_add (2 * HASH_TABLE_SIZE ($h) as usize));
+                dohash_kv = dohash_kv.wrapping_add (2);
               }
         }
     };

@@ -640,3 +640,21 @@ for headers (P-24).  The items that took real work, and their evidence:
   the reference prototype, which spikes/lisp-abi-probe.sh type-checks against lisp.h (115
   declarations now).
 
+## Decisions (2026-10-03, when json.c needed them)
+
+- **P-22's two loop macros are decided: `FOR_EACH_TAIL` and `DOHASH`.**  Both are hidden `for`
+  loops whose variables and body come from the call site, which `macro_rules!` can only express
+  by taking them as metavariables, so the mirror's macros take the loop variable(s) and the body
+  as arguments and call-site hygiene makes the caller's body see them:
+  - `FOR_EACH_TAIL! (tail, { … })` is the sibling of the existing `FOR_EACH_TAIL_SAFE!`: same
+    `struct for_each_tail_internal` state and same stepper (lisp.h 5909-5912), with the two
+    differences C's macro names - the cycle arm evaluates `circular_list (tail)` (which signals)
+    instead of clearing the list, and CHECK_QUIT is true, so the periodic branch calls
+    `maybe_quit ()`.  `circular_list` was added to `other_units` (lisp.h 4196).
+  - `DOHASH! (h, k, v, { … })` walks the table's `key_and_value` pairs, skips entries
+    `hash_unused_entry_key_p` rejects, and keeps C's increment `eassert` that the table was not
+    rehashed mid-loop; C's token pasting into `dohash_##k##_##v##_kv` has no counterpart (the
+    Rust locals are spelled once).
+  - docs/ports/excluded-macros.txt carries both rows (kind=syntax, the shape and the reason).
+    First users: src/json.c; `xdisp.c`/`buffer.c`'s uses inherit the shape.
+
