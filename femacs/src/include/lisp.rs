@@ -400,6 +400,25 @@ macro_rules! static_assert {
     };
 }
 
+// C defines PSEUDOVECSIZE at lisp.h 3155, *after* the char-table constants (2231-2247) that
+// are built from it.  Rust's `macro_rules!` is textually scoped (P-57) and those constants
+// are `const` initialisers that the macro has to be expanded in, so the port moves the
+// definition here, next to `static_assert!`; the body is C's, unchanged.
+/// C: offsetof (type, lastlispfield) + word_size < header_size ? 0 : ...
+#[macro_export]
+macro_rules! PSEUDOVECSIZE {
+    ($type:ty, $field:tt) => {{
+        let off = std::mem::offset_of!($type, $field) as isize;
+        if off + word_size < header_size { 0 } else { (off + word_size - header_size) / word_size }
+    }};
+}
+
+#[inline(always)]
+pub fn PVECHEADERSIZE (code: pvec_type, lispsize: isize, restsize: isize) -> isize {
+    PSEUDOVECTOR_FLAG | ((code as isize) << PSEUDOVECTOR_AREA_BITS)
+        | (restsize << PSEUDOVECTOR_SIZE_BITS) | lispsize
+}
+
 // --- gflags (src/lisp.h 620-645) -------------------------------------------
 
 #[repr(C)]
@@ -1351,7 +1370,21 @@ pub fn CHAR_TABLE_EXTRA_SLOTS (ct: *mut Lisp_Char_Table) -> isize {
 /// src/lisp.h 2243: PSEUDOVECSIZE (struct Lisp_Char_Table, contents) - 1 +
 /// (1 << CHARTAB_SIZE_BITS_0); the four preceding slots are defalt, parent,
 /// purpose and ascii after the header.
-pub const CHAR_TABLE_STANDARD_SLOTS: isize = 4 + (1 << CHARTAB_SIZE_BITS_0);
+pub const CHAR_TABLE_STANDARD_SLOTS: isize =
+    PSEUDOVECSIZE! (Lisp_Char_Table, contents) - 1 + (1 << CHARTAB_SIZE_BITS_0);  // lisp.h 2231-2240
+
+// lisp.h 2252-2258: the three sanity checks that bind the constants above to the layout.
+// They were missing from this mirror, which is why `SUB_CHAR_TABLE_OFFSET` could sit at 2
+// while C's is 1 (P-59/P-60): the C compiler proved it, the port did not.  C's `offsetof
+// (struct X, f)` is `std::mem::offset_of! (X, f)` and `sizeof (Lisp_Object)` is
+// `std::mem::size_of::<Lisp_Object> ()`, exactly as lisp.h 3141-3146 spells them.
+static_assert! (std::mem::offset_of! (Lisp_Char_Table, defalt) as isize == header_size);
+static_assert! (std::mem::offset_of! (Lisp_Char_Table, extras) as isize
+                == header_size + CHAR_TABLE_STANDARD_SLOTS
+                   * std::mem::size_of::<Lisp_Object> () as isize);
+static_assert! (std::mem::offset_of! (Lisp_Sub_Char_Table, contents) as isize
+                == header_size + SUB_CHAR_TABLE_OFFSET
+                   * std::mem::size_of::<Lisp_Object> () as isize);
 
 #[inline(always)]
 pub fn SUBRP (a: Lisp_Object) -> bool { PSEUDOVECTORP (a, pvec_type::PVEC_SUBR) }
@@ -2351,7 +2384,7 @@ pub fn knuth_hash (hash: hash_hash_t) -> c_uint {
     h
 }
 
-pub const FIXNUM_BITS: usize = INTTYPEBITS + 1;
+pub const FIXNUM_BITS: usize = VALBITS + 1;   // lisp.h 226: not INTTYPEBITS + 1 (=3)!  See P-59.
 
 // --- sqlite objects (src/lisp.h 3400) --------------------------------------
 
@@ -2506,7 +2539,8 @@ pub fn make_uninit_sub_char_table (depth: c_int) -> Lisp_Object {
 /// src/lisp.h 2245: SUB_CHAR_TABLE_OFFSET = PSEUDOVECSIZE (struct
 /// Lisp_Sub_Char_Table, contents) - 1; the three preceding slots are header,
 /// depth and min_char.
-pub const SUB_CHAR_TABLE_OFFSET: isize = 2;
+pub const SUB_CHAR_TABLE_OFFSET: isize =
+    PSEUDOVECSIZE! (Lisp_Sub_Char_Table, contents) - 1;  // lisp.h 2245-2247 (was 2; C is 1, P-59)
 
 #[inline(always)]
 pub fn LOADHIST_ATTACH (x: Lisp_Object) {
@@ -2693,32 +2727,21 @@ pub fn ROUNDUP (x: isize, y: isize) -> isize {
     if POWER_OF_2 (y) { (y - 1 + x) & !(y - 1) } else { (y - 1 + x) - (y - 1 + x) % y }
 }
 
-#[inline(always)]
-pub const fn word_size () -> isize { std::mem::size_of::<Lisp_Object>() as isize }
+/// lisp.h 3141-3146: `enum { header_size = offsetof (struct Lisp_Vector, contents),
+/// bool_header_size = offsetof (struct Lisp_Bool_Vector, data),
+/// word_size = sizeof (Lisp_Object) };` — three enum *constants*, not functions.  The port
+/// had `word_size`/`header_size` as `const fn`s, which the constant gate could not compare
+/// against C's enum members (C's members are only visible to the strengthened extractor
+/// since P-38's `enum NAME` + newline + `{` form landed).
+pub const header_size: isize = std::mem::offset_of!(Lisp_Vector, contents) as isize;
+pub const bool_header_size: isize = std::mem::offset_of!(Lisp_Bool_Vector, data) as isize;
+pub const word_size: isize = std::mem::size_of::<Lisp_Object>() as isize;
 
-#[inline(always)]
-pub const fn header_size () -> isize { std::mem::size_of::<vectorlike_header>() as isize }
 
 #[inline(always)]
 pub const fn VECSIZE (size: usize) -> isize {
-    (size as isize - header_size () + word_size () - 1) / word_size ()
+    (size as isize - header_size + word_size - 1) / word_size
 }
-
-/// C: offsetof (type, lastlispfield) + word_size < header_size ? 0 : ...
-#[macro_export]
-macro_rules! PSEUDOVECSIZE {
-    ($type:ty, $field:tt) => {{
-        let off = std::mem::offset_of!($type, $field) as isize;
-        if off + word_size () < header_size () { 0 } else { (off + word_size () - header_size ()) / word_size () }
-    }};
-}
-
-#[inline(always)]
-pub fn PVECHEADERSIZE (code: pvec_type, lispsize: isize, restsize: isize) -> isize {
-    PSEUDOVECTOR_FLAG | ((code as isize) << PSEUDOVECTOR_AREA_BITS)
-        | (restsize << PSEUDOVECTOR_SIZE_BITS) | lispsize
-}
-
 
 #[macro_export]
 macro_rules! ALLOCATE_PSEUDOVECTOR {
@@ -2788,7 +2811,7 @@ macro_rules! SAFE_ALLOCA_LISP {
         // C: `if (ckd_mul (&alloca_nbytes, nelt, word_size) || SIZE_MAX < alloca_nbytes)`;
         // the pair from `overflowing_mul` is ckd_mul's wrapped value and overflow flag
         // (P-15, the ckd_mul family in docs/ports/token-aliases.tsv).
-        let (alloca_nbytes, overflow) = nelt_.overflowing_mul (word_size ());
+        let (alloca_nbytes, overflow) = nelt_.overflowing_mul (word_size);
         if overflow || SIZE_MAX < alloca_nbytes as usize {
             unsafe { memory_full_up () }
         } else if alloca_nbytes <= $sa_avail {
@@ -3002,8 +3025,8 @@ macro_rules! list { ($($args:expr),* $(,)?) => {{
 // --- configuration constants that the C spells as macros -------------------
 
 pub const USE_STACK_LISP_OBJECTS: bool = true;
-pub const USE_STACK_CONS: bool = true;
-pub const USE_STACK_STRING: bool = true;
+pub const USE_STACK_CONS: bool = USE_STACK_LISP_OBJECTS;      // lisp.h 5735
+pub const USE_STACK_STRING: bool = USE_STACK_CONS && !defined_GC_CHECK_STRING_BYTES;  // lisp.h 5736
 pub const WRAP_SPECPDL_REF: bool = true;
 pub const DEFINE_NON_NIL_Q_SYMBOL_MACROS: bool = true;
 pub const LISP_WORDS_ARE_POINTERS: bool = true;      // recorded: the port only supports this
@@ -3640,13 +3663,46 @@ use other_units::*;
 // header "done" without them.  They are grouped here instead of at their C line
 // position; docs/ports/lisp.md records that deviation.
 
-pub const CHECK_LISP_OBJECT_TYPE: bool = false;          // lisp.h 597 (P-01: the port rejects the true configuration)
+pub const CHECK_LISP_OBJECT_TYPE: bool = false;
+
+// lisp.h 3206-3216 (`enum Lisp_Closure`) and 3219-3235 (`enum char_bits`): the gate could
+// not read an enum whose `{` sits on the next line, so these fourteen members of lisp.h were
+// never mirrored (P-59).  C's members have type `int`.
+pub const CLOSURE_ARGLIST: c_int = 0;
+pub const CLOSURE_CODE: c_int = 1;
+pub const CLOSURE_CONSTANTS: c_int = 2;
+pub const CLOSURE_STACK_DEPTH: c_int = 3;
+pub const CLOSURE_DOC_STRING: c_int = 4;
+pub const CLOSURE_INTERACTIVE: c_int = 5;
+
+pub const CHAR_ALT: c_int = 0x0400000;
+pub const CHAR_SUPER: c_int = 0x0800000;
+pub const CHAR_HYPER: c_int = 0x1000000;
+pub const CHAR_SHIFT: c_int = 0x2000000;
+pub const CHAR_CTL: c_int = 0x4000000;
+pub const CHAR_META: c_int = 0x8000000;
+pub const CHAR_MODIFIER_MASK: c_int =
+    CHAR_ALT | CHAR_SUPER | CHAR_HYPER | CHAR_SHIFT | CHAR_CTL | CHAR_META;
+pub const CHARACTERBITS: c_int = 22;
+
+// lisp.h 4174-4182: `enum { Cmp_Bit_EQ, Cmp_Bit_LT, Cmp_Bit_GT };` (C gives the three
+// implicit values 0, 1, 2) and `typedef enum { Cmp_EQ = 1 << Cmp_Bit_EQ, … } cmp_bits_t;`.
+pub const Cmp_Bit_EQ: c_int = 0;
+pub const Cmp_Bit_LT: c_int = 1;
+pub const Cmp_Bit_GT: c_int = 2;
+pub const Cmp_EQ: c_int = 1 << Cmp_Bit_EQ;
+pub const Cmp_LT: c_int = 1 << Cmp_Bit_LT;
+pub const Cmp_GT: c_int = 1 << Cmp_Bit_GT;
+pub type cmp_bits_t = c_int;          // lisp.h 597 (P-01: the port rejects the true configuration)
 pub const DEFAULT_HASH_SIZE: c_int = 0;                  // lisp.h 2766
 pub const NSTATICS: c_int = 2048;                        // lisp.h 3921
 pub const NEXT_ALMOST_PRIME_LIMIT: c_int = 11;           // lisp.h 4242
 // lisp.h 4294: the C compilation itself rejects a target whose radix is neither 2 nor
 // 16; the port has no such check unless it mirrors the static_assert (review D's F8).
 static_assert! (FLT_RADIX == 2 || FLT_RADIX == 16);
+// lisp.h 4149: `static_assert (PTRDIFF_MAX <= ULLONG_MAX);` — the fixnum->bignum path in
+// bignum.h relies on it.
+static_assert! ((isize::MAX as u64) <= u64::MAX);
 // lisp.h 4295: `enum { LOG2_FLT_RADIX = FLT_RADIX == 2 ? 1 : 4 }`, with FLT_RADIX from
 // <float.h> (mirrored by lib/include/float.in.rs).
 pub const LOG2_FLT_RADIX: c_int = if FLT_RADIX == 2 { 1 } else { 4 };

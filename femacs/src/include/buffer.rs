@@ -1683,7 +1683,7 @@ macro_rules! FOR_EACH_PER_BUFFER_OBJECT_AT {
         $offset = PER_BUFFER_VAR_OFFSET! (name_);
         while $offset <= PER_BUFFER_VAR_OFFSET! (cursor_in_non_selected_windows_) {
             $body
-            $offset += word_size ();
+            $offset += word_size;
         }
     };
 }

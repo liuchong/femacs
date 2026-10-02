@@ -313,37 +313,94 @@ def enum_constants(text: str) -> dict[str, str]:
     multi-member lines, so this scans the comment-blanked text with brace matching
     instead of assuming one member per line (which silently extracted nothing from
     buffer.h, and left the enum's `}` unread).
+
+    The scanner reads a flattened text, not one line at a time, because Emacs also
+    writes the opening brace on the *next* line:
+
+        enum char_bits
+          {
+            CHAR_ALT = 0x0400000,
+            ...
+            CHARACTERBITS = 22
+          };
+
+    A line-anchored scan (`^enum\s+NAME\s*\{`) misses that form entirely, which hid
+    `enum char_bits` and `enum Lisp_Closure` (14 constants of lisp.h) from the
+    constant gate — the hole `port(keymap.h)`'s `CHARACTERBITS` fell into.  The
+    `\benum\b` search below matches the declaration wherever its `{` sits, and the
+    brace matcher then reads the body across lines.
+
+    Only *file-scope* enums are read: C also declares enums inside functions
+    (doprnt.c 218-225's `pDlen`/`pIlen`/`pMlen`/`maxmlen`), whose members are locals
+    the enclosing function's body-token check already covers.
     """
     out: dict[str, str] = {}
+    lines = [strip_strings(line) for _, line, live in Lines(text) if live]
+    code = "\n".join(lines)
+    # The keyword is followed by an optional tag and then the brace, possibly on the
+    # next line — but *only* that: `enum foo bar (void) {` is a function definition,
+    # and letting the search cross arbitrary text made it swallow the bodies after it.
+    open_re = re.compile(r"\benum\b[ \t\r\n]*(?:[A-Za-z_]\w*)?[ \t\r\n]*\{")
     body: list[str] = []
     inside = False
-    for _, line, live in Lines(text):
-        if not live:
-            continue
-        code = strip_strings(line)
-        while code:
-            if not inside:
-                m = ENUM_OPEN.search(code)
-                if not m:
-                    break
-                code = code[m.end():]
-                inside, body = True, []
-                continue
-            brace = re.search(r"[{}]", code)
-            chunk = code if brace is None else code[:brace.start()]
-            body.append(chunk)
-            if brace is None:
-                code = ""
+    i = 0
+    while i < len(code):
+        if not inside:
+            m = open_re.search(code, i)
+            if not m:
                 break
-            if brace.group() == "{":
-                body.append("{")
-            else:
-                for member in ",".join(body).split(","):
-                    m = re.match(r"\s*([A-Za-z_]\w*)\s*=\s*(.+?)\s*$", member, re.S)
-                    if m:
-                        out[m.group(1)] = " ".join(m.group(2).split())
-                inside, body = False, []
-            code = code[brace.end():]
+            if brace_depth(code, m.start()) != 0:
+                i = m.end()
+                continue      # an enum inside a function or struct body
+            i = m.end()
+            inside, body = True, []
+            continue
+        ch = code[i]
+        if ch == "{":
+            body.append("{")
+        elif ch == "}":
+            for member in split_top_level_commas("".join(body)):
+                m = re.match(r"\s*([A-Za-z_]\w*)\s*=\s*(.+?)\s*$", member, re.S)
+                if m:
+                    out[m.group(1)] = " ".join(m.group(2).split())
+            inside, body = False, []
+        else:
+            body.append(ch)
+        i += 1
+    return out
+
+
+def brace_depth(text: str, pos: int) -> int:
+    """The `{` nesting depth at POS, ignoring literals and preprocessor lines."""
+    depth = 0
+    for line in text[:pos].split("\n"):
+        if line.lstrip().startswith("#"):
+            continue
+        depth += line.count("{") - line.count("}")
+    return depth
+
+
+def split_top_level_commas(body: str) -> list[str]:
+    """BODY's members, split on the commas that are not inside brackets.
+
+    `CHAR_TABLE_STANDARD_SLOTS = (PSEUDOVECSIZE (struct Lisp_Char_Table, contents) - 1 …)`
+    has commas of its own; splitting on every comma truncated the value and, in
+    `NLIMBS_LIMIT = min (min (GMP_NLIMBS_MAX, min (PTRDIFF_MAX, SIZE_MAX) / …) …)`
+    (bignum.c 330), invented a member named `lim` out of `mp_limb_t`'s neighbours.
+    """
+    out, cur, depth = [], "", 0
+    for ch in body:
+        if ch in "([{":
+            depth += 1
+        elif ch in ")]}":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+            continue
+        cur += ch
+    if cur.strip():
+        out.append(cur)
     return out
 
 

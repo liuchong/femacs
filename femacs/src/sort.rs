@@ -636,7 +636,7 @@ unsafe fn merge_getmem (ms: *mut merge_state, need: ptrdiff_t)
          again.  */
       xfree ((*ms).a.keys as *mut c_void);
     }
-  let bytes: ptrdiff_t = (need * word_size ()) << if !(*ms).a.values.is_null () { 1 } else { 0 };
+  let bytes: ptrdiff_t = (need * word_size) << if !(*ms).a.values.is_null () { 1 } else { 0 };
   (*ms).a.keys = xmalloc (bytes as usize) as *mut Lisp_Object;
   (*ms).alloced = need;
   if !(*ms).a.values.is_null ()
@@ -1149,7 +1149,7 @@ pub unsafe extern "C" fn tim_sort (mut predicate: Lisp_Object, mut keyfunc: Lisp
 	  /* Fill with valid Lisp values in case a GC occurs before all
 	     keys have been computed.  */
 	  static_assert! (NIL_IS_ZERO);
-	  keys = xzalloc (length as usize * word_size () as usize) as *mut Lisp_Object;
+	  keys = xzalloc (length as usize * word_size as usize) as *mut Lisp_Object;
 	  allocated_keys = keys;
 	}
 
