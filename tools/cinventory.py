@@ -35,7 +35,7 @@ DEFUN = re.compile(r'^DEFUN\s*\(\s*"(?P<lisp>[^"]+)"\s*,\s*(?P<cname>\w+)\s*,\s*
 ATTRIBUTES = re.compile(r"^[^)]*?attributes\s*:\s*(?P<list>[A-Za-z_ ]*)", re.S)
 DEFINE = re.compile(r"^#\s*define\s+(?P<name>[A-Za-z_]\w*)(?P<args>\([^)]*\))?\s*(?P<body>.*)$")
 STRUCT_OPEN_INLINE = re.compile(r"^(?P<kind>struct|union)\s+(?P<name>[A-Za-z_]\w*)?\s*\{")
-STRUCT_OPEN_NAME = re.compile(r"^(?P<kind>struct|union)\s+(?P<name>[A-Za-z_]\w*)?\s*$")
+STRUCT_OPEN_NAME = re.compile(r"^(?P<kind>struct|union)(?:\s+(?P<name>[A-Za-z_]\w*))?\s*$")
 ENUM_OPEN = re.compile(r"^enum\s+(?P<name>[A-Za-z_]\w*)?\s*\{")
 TYPE_WORDS = {
     "static", "extern", "const", "volatile", "inline", "INLINE", "register",
@@ -1063,6 +1063,19 @@ def struct_fields(text: str) -> list[dict]:
             for _ in range(stripped.count("}")):
                 if stack:
                     stack.pop()
+            # `} spec;` names the aggregate that just closed: it is a field of whatever
+            # contains it, and C lets it be keyed (`offsetof (struct coding_system, spec)`)
+            # even though its own members cannot.  Without this the type had no key for the
+            # member, and — because the closing brace popped the *outer* frame — every field
+            # after the aggregate vanished from the scan (see `coding_system`: `spec` and the
+            # 17 members after it were invisible, so the 616-byte layout was unchecked).
+            tail = re.match(r"^}\s*(?P<name>[A-Za-z_]\w*)\s*(?P<array>(?:\[[^\]]*\])*)\s*;", stripped)
+            if tail and stack:
+                outer = next((e for e in stack if not e[1].startswith("<anon")), stack[-1])
+                out.append({"container": outer[1], "container_kind": outer[0],
+                            "nesting": " > ".join(e[1] for e in stack),
+                            "line": i, "name": tail.group("name"), "array": tail.group("array"),
+                            "pointer_depth": 0, "bitfield": False, "type": "<aggregate>"})
             pending = None
             continue
         if not stack:

@@ -62,6 +62,16 @@ STRUCTS = {
     "bidi_stack": "src/dispextern.h",
     "bidi_string_data": "src/dispextern.h",
     "composition": "src/composite.h",
+    # coding.h's type layer: the three small specs, the two aggregating specs, and the
+    # 616-byte `coding_system` whose flag word is 31 bits of one 4-byte unit at offset 8
+    # (the port stores that unit as `bits: u32`; the measured word is in the mirror).
+    "coding_detection_info": "src/coding.h",
+    "composition_status": "src/coding.h",
+    "iso_2022_spec": "src/coding.h",
+    "emacs_mule_spec": "src/coding.h",
+    "undecided_spec": "src/coding.h",
+    "utf_16_spec": "src/coding.h",
+    "coding_system": "src/coding.h",
 }
 
 
@@ -156,10 +166,14 @@ def main() -> int:
         for f in fields:
             lines.append(f"  OFF (struct {name}, {f['name']});")
             total += 1
+        emitted = {f["name"] for f in fields}
         for member in EXTRA.get(name, []):
+            if member in emitted:
+                continue          # the scanner now reports the aggregate member itself
             lines.append(f"  OFF (struct {name}, {member});")
             total += 1
-        if not fields and name not in EXTRA and name not in BITFIELD_ONLY:
+            emitted.add(member)
+        if not emitted and name not in BITFIELD_ONLY:
             raise SystemExit(
                 f"{name} has no offset key: its members are either all bitfields (then "
                 f"record it in BITFIELD_ONLY with the reason) or nested aggregates that "

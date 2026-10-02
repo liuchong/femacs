@@ -251,3 +251,69 @@
   OFF (struct composition, key);
   OFF (struct composition, font);
   OFF (struct composition, offsets);
+
+  SZ (struct coding_detection_info); AL (struct coding_detection_info);
+  OFF (struct coding_detection_info, checked);
+  OFF (struct coding_detection_info, found);
+  OFF (struct coding_detection_info, rejected);
+
+  SZ (struct composition_status); AL (struct composition_status);
+  OFF (struct composition_status, state);
+  OFF (struct composition_status, method);
+  OFF (struct composition_status, old_form);
+  OFF (struct composition_status, length);
+  OFF (struct composition_status, nchars);
+  OFF (struct composition_status, ncomps);
+
+  SZ (struct iso_2022_spec); AL (struct iso_2022_spec);
+  OFF (struct iso_2022_spec, flags);
+  OFF (struct iso_2022_spec, current_invocation);
+  OFF (struct iso_2022_spec, current_designation);
+  OFF (struct iso_2022_spec, ctext_extended_segment_len);
+  OFF (struct iso_2022_spec, cmp_status);
+
+  SZ (struct emacs_mule_spec); AL (struct emacs_mule_spec);
+  OFF (struct emacs_mule_spec, cmp_status);
+
+  SZ (struct undecided_spec); AL (struct undecided_spec);
+  OFF (struct undecided_spec, inhibit_nbd);
+  OFF (struct undecided_spec, inhibit_ied);
+  OFF (struct undecided_spec, prefer_utf_8);
+
+  SZ (struct utf_16_spec); AL (struct utf_16_spec);
+  OFF (struct utf_16_spec, bom);
+  OFF (struct utf_16_spec, endian);
+  OFF (struct utf_16_spec, surrogate);
+
+  SZ (struct coding_system); AL (struct coding_system);
+  OFF (struct coding_system, id);
+  OFF (struct coding_system, max_charset_id);
+  OFF (struct coding_system, spec);
+  OFF (struct coding_system, safe_charsets);
+  OFF (struct coding_system, head_ascii);
+  OFF (struct coding_system, detected_utf8_bytes);
+  OFF (struct coding_system, detected_utf8_chars);
+  OFF (struct coding_system, produced);
+  OFF (struct coding_system, produced_char);
+  OFF (struct coding_system, consumed);
+  OFF (struct coding_system, consumed_char);
+  OFF (struct coding_system, src_pos);
+  OFF (struct coding_system, src_pos_byte);
+  OFF (struct coding_system, src_chars);
+  OFF (struct coding_system, src_bytes);
+  OFF (struct coding_system, src_object);
+  OFF (struct coding_system, source);
+  OFF (struct coding_system, dst_pos);
+  OFF (struct coding_system, dst_pos_byte);
+  OFF (struct coding_system, dst_bytes);
+  OFF (struct coding_system, dst_object);
+  OFF (struct coding_system, destination);
+  OFF (struct coding_system, charbuf);
+  OFF (struct coding_system, charbuf_size);
+  OFF (struct coding_system, charbuf_used);
+  OFF (struct coding_system, carryover);
+  OFF (struct coding_system, carryover_bytes);
+  OFF (struct coding_system, default_char);
+  OFF (struct coding_system, detector);
+  OFF (struct coding_system, decoder);
+  OFF (struct coding_system, encoder);

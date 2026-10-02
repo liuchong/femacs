@@ -58,7 +58,7 @@
 - [ ] CODING_SYSTEM_SPEC  (line 189, body bac9589ab5b3)
 - [ ] DECODE_FILE  (line 652, body e43de9d18bbe)
 - [ ] DECODE_SYSTEM  (line 663, body 2bce1f98cd6e)
-- [ ] EMACS_CODING_H  (line 27, body da39a3ee5e6b)
+- [x] EMACS_CODING_H  (line 27, body da39a3ee5e6b)
 - [ ] ENCODE_FILE  (line 648, body 302a5815f669)
 - [ ] ENCODE_SYSTEM  (line 656, body 5d515c9a2c96)
 - [ ] ENCODE_UTF_8  (line 669, body d522c93407c1)
@@ -72,13 +72,13 @@
 - [ ] encode_coding_string  (line 743, body 44bccf16851e)
 
 ## Types and their fields — 7
-- [ ] coding_detection_info: int checked, int found, int rejected
-- [ ] coding_system: ptrdiff_t id, unsigned common_flags : 14, unsigned mode : 5, bool_bf src_multibyte : 1, bool_bf dst_multibyte : 1, bool_bf chars_at_source : 1, bool_bf raw_destination : 1, bool_bf annotated : 1, bool_bf insert_before_markers : 1, unsigned eol_seen : 3, ENUM_BF (coding_result_code) result : 3, int max_charset_id, struct iso_2022_spec iso_2022, struct ccl_spec* ccl, struct utf_16_spec utf_16, enum utf_bom_type utf_8_bom, struct emacs_mule_spec emacs_mule, struct undecided_spec undecided
-- [ ] composition_status: enum composition_state state, enum composition_method method, bool old_form, int length, int nchars, int ncomps
-- [ ] emacs_mule_spec: struct composition_status cmp_status
-- [ ] iso_2022_spec: unsigned flags, int current_invocation, int current_designation, int ctext_extended_segment_len, bool_bf single_shifting : 1, bool_bf bol : 1, bool_bf embedded_utf_8 : 1, struct composition_status cmp_status
-- [ ] undecided_spec: int inhibit_nbd, int inhibit_ied, bool prefer_utf_8
-- [ ] utf_16_spec: enum utf_bom_type bom, enum utf_16_endian_type endian, int surrogate
+- [x] coding_detection_info: int checked, int found, int rejected
+- [x] coding_system: ptrdiff_t id, unsigned common_flags : 14, unsigned mode : 5, bool_bf src_multibyte : 1, bool_bf dst_multibyte : 1, bool_bf chars_at_source : 1, bool_bf raw_destination : 1, bool_bf annotated : 1, bool_bf insert_before_markers : 1, unsigned eol_seen : 3, ENUM_BF (coding_result_code) result : 3, int max_charset_id, struct iso_2022_spec iso_2022, struct ccl_spec* ccl, struct utf_16_spec utf_16, enum utf_bom_type utf_8_bom, struct emacs_mule_spec emacs_mule, struct undecided_spec undecided
+- [x] composition_status: enum composition_state state, enum composition_method method, bool old_form, int length, int nchars, int ncomps
+- [x] emacs_mule_spec: struct composition_status cmp_status
+- [x] iso_2022_spec: unsigned flags, int current_invocation, int current_designation, int ctext_extended_segment_len, bool_bf single_shifting : 1, bool_bf bol : 1, bool_bf embedded_utf_8 : 1, struct composition_status cmp_status
+- [x] undecided_spec: int inhibit_nbd, int inhibit_ied, bool prefer_utf_8
+- [x] utf_16_spec: enum utf_bom_type bom, enum utf_16_endian_type endian, int surrogate
 
 ## File-scope objects — 3
 - [ ] extern Lisp_Object Vcoding_system_hash_table  (line 98)
