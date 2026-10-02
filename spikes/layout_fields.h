@@ -161,3 +161,29 @@
   SZ (struct Lisp_Bignum); AL (struct Lisp_Bignum);
   OFF (struct Lisp_Bignum, header);
   OFF (struct Lisp_Bignum, value);
+
+  SZ (struct Lisp_Hash_Table); AL (struct Lisp_Hash_Table);
+  OFF (struct Lisp_Hash_Table, header);
+  OFF (struct Lisp_Hash_Table, index);
+  OFF (struct Lisp_Hash_Table, hash);
+  OFF (struct Lisp_Hash_Table, key_and_value);
+  OFF (struct Lisp_Hash_Table, test);
+  OFF (struct Lisp_Hash_Table, next);
+  OFF (struct Lisp_Hash_Table, count);
+  OFF (struct Lisp_Hash_Table, next_free);
+  OFF (struct Lisp_Hash_Table, table_size);
+  OFF (struct Lisp_Hash_Table, index_bits);
+  OFF (struct Lisp_Hash_Table, next_weak);
+
+  SZ (struct hash_table_test); AL (struct hash_table_test);
+  OFF (struct hash_table_test, hashfn);
+  OFF (struct hash_table_test, cmpfn);
+  OFF (struct hash_table_test, user_hash_function);
+  OFF (struct hash_table_test, user_cmp_function);
+  OFF (struct hash_table_test, name);
+
+  SZ (struct Lisp_Obarray); AL (struct Lisp_Obarray);
+  OFF (struct Lisp_Obarray, header);
+  OFF (struct Lisp_Obarray, buckets);
+  OFF (struct Lisp_Obarray, size_bits);
+  OFF (struct Lisp_Obarray, count);

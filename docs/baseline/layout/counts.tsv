@@ -1,4 +1,4 @@
 key	value
-asserted	211
+asserted	237
 pending	7
-note	2026-10-02: asserted grew 200 -> 211 with the bignum.h mirror (__mpz_struct, mpz_t, mpz, Lisp_Bignum) and one tooling fix: a layout key whose root is a file-scope *object* (`sizeof mpz`) is now asserted from the mirror's own declaration (`static mut mpz: [mpz_t; 5]`), so `[mpz_t; 6]` fails the gate (review B's B1).  pending stays 7 (`handler`/`window`, unmirrored).  This file is a ratchet: `asserted` only grows and `pending` only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).
+note	2026-10-02 round 8: asserted grew 211 -> 237 with lisp.h's Lisp_Hash_Table (13 offsetof + sizeof/alignof), hash_table_test and Lisp_Obarray, added to tools/gen-layout-fields.py's STRUCTS after reviewer A's F1 -- the mis-sized hash_idx_t (88 -> 80) and the port's extra u32 in the struct's tail (80 -> 72, next_weak 72 -> 64, now byte-identical to the C bit pattern) were both invisible because these types had no keys at all.  pending stays 7 (handler/window).  This file is a ratchet: asserted only grows and pending only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).

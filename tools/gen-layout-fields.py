@@ -33,6 +33,17 @@ STRUCTS = {
     "sortvec": "src/buffer.h",
     "ts_linecol": "src/buffer.h",
     "Lisp_Bignum": "src/bignum.h",
+    # lisp.h's symbol-value and hash-table structures: reviewer A's F1 (round 8) found
+    # `hash_idx_t` mis-sized and the mirror's `Lisp_Hash_Table` tail carrying an extra
+    # `u32`, and *nothing* could see either, because these types had no keys here.
+    "Lisp_Hash_Table": "src/lisp.h",
+    "hash_table_test": "src/lisp.h",
+    "Lisp_Obarray": "src/lisp.h",
+    # `Lisp_Fwd` and `Lisp_Buffer_Local_Value` are left out for now: the generator's field
+    # filter takes any name that appears in the struct's body, so the members of a nested
+    # `union`/`struct` (`Lisp_Fwd`'s `intvar`, `boolvar`, …) leak out as `offsetof (struct
+    # Lisp_Fwd, intvar)`, which is not a member of the outer struct and does not compile.
+    # PORTING.md P-65.
 }
 
 

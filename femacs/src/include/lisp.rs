@@ -2182,6 +2182,13 @@ pub struct obarray_iter_t {
     pub symbol: *mut Lisp_Symbol,
 }
 
+// C's bitfields of `struct Lisp_Hash_Table` (lisp.h 2620-2630) have no field names of their
+// own; these are the port's names for the bits inside `bits`, spelled like `itree.rs`'s
+// (PORTING.md 1.3).
+pub const HASH_WEAKNESS_MASK: u8 = 0b111;        // weakness : 3, bits 0-2
+pub const HASH_FROZEN_TEST_MASK: u8 = 0b11 << 3; // frozen_test : 2, bits 3-4
+pub const HASH_MUTABLE_MASK: u8 = 1 << 5;        // mutable : 1, bit 5
+
 #[repr(C, align(8))]
 pub struct Lisp_Hash_Table {
     pub header: vectorlike_header,
@@ -2194,9 +2201,22 @@ pub struct Lisp_Hash_Table {
     pub next_free: hash_idx_t,
     pub table_size: hash_idx_t,
     pub index_bits: u8,
-    pub _pad: [u8; 3],
-    /// weakness:3, frozen_test:2, mutable:1 (ENUM_BF/bool_bf bitfields)
-    pub bits: u32,
+    /// C's three bitfields (`weakness : 3`, `frozen_test : 2`, `mutable : 1`) live in the
+    /// byte right after `index_bits`, which the frozen target's clang packs into the *same*
+    /// 4-byte unit (bytes 60-63): weakness at bits 0-2, frozen_test at 3-4, mutable at 5,
+    /// bytes 62-63 become padding.  Measured, not assumed:
+    ///
+    ///     t.index_bits = 0xAA; t.weakness = 5; t.frozen_test = 2; t.mutable = 1;
+    ///     bytes 56..71: 00 00 00 00 aa 35 00 00 …   -> sizeof 72, index_bits 60,
+    ///                                                  next_weak 64
+    ///
+    /// The port had `_pad: [u8; 3]` plus a `u32` here, which made the struct 80 bytes (and 88
+    /// before `hash_idx_t` was corrected) with `next_weak` at 72 — reviewer A's F1 and this
+    /// fix's probe.  PORTING.md 1.3 wants the storage unit recorded; the offsets around it and
+    /// `sizeof` are asserted, the bit numbering itself is recorded (P-35).
+    pub bits: u8,
+    /// C's tail padding, the rest of that 4-byte unit (bytes 62-63).
+    pub _pad: [u8; 2],
     pub next_weak: *mut Lisp_Hash_Table,
 }
 

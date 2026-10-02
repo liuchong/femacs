@@ -1,6 +1,8 @@
 key	value
 alignof Lisp_Bignum	8
 alignof Lisp_Cons	8
+alignof Lisp_Hash_Table	8
+alignof Lisp_Obarray	8
 alignof Lisp_Object	8
 alignof Lisp_String	8
 alignof Lisp_Subr	8
@@ -9,6 +11,7 @@ alignof Lisp_Vector	8
 alignof __mpz_struct	8
 alignof buffer	8
 alignof buffer_text	8
+alignof hash_table_test	8
 alignof itree_iterator	8
 alignof itree_node	8
 alignof itree_tree	8
@@ -20,9 +23,24 @@ offsetof Lisp_Bignum.value	8
 offsetof Lisp_Cons.u.s.car	0
 offsetof Lisp_Cons.u.s.u.cdr	8
 offsetof Lisp_Cons.u.s.u.chain	8
+offsetof Lisp_Hash_Table.count	48
+offsetof Lisp_Hash_Table.hash	16
+offsetof Lisp_Hash_Table.header	0
+offsetof Lisp_Hash_Table.index	8
+offsetof Lisp_Hash_Table.index_bits	60
+offsetof Lisp_Hash_Table.key_and_value	24
+offsetof Lisp_Hash_Table.next	40
+offsetof Lisp_Hash_Table.next_free	52
+offsetof Lisp_Hash_Table.next_weak	64
+offsetof Lisp_Hash_Table.table_size	56
+offsetof Lisp_Hash_Table.test	32
 offsetof Lisp_Marker.buffer	8
 offsetof Lisp_Marker.bytepos	40
 offsetof Lisp_Marker.charpos	32
+offsetof Lisp_Obarray.buckets	8
+offsetof Lisp_Obarray.count	20
+offsetof Lisp_Obarray.header	0
+offsetof Lisp_Obarray.size_bits	16
 offsetof Lisp_String.u.next	0
 offsetof Lisp_String.u.s.data	24
 offsetof Lisp_String.u.s.intervals	16
@@ -166,6 +184,11 @@ offsetof handler.next	32
 offsetof handler.nextfree	40
 offsetof handler.tag_or_ch	8
 offsetof handler.val	24
+offsetof hash_table_test.cmpfn	8
+offsetof hash_table_test.hashfn	0
+offsetof hash_table_test.name	32
+offsetof hash_table_test.user_cmp_function	24
+offsetof hash_table_test.user_hash_function	16
 offsetof itree_iterator.begin	8
 offsetof itree_iterator.end	16
 offsetof itree_iterator.node	0
@@ -196,7 +219,9 @@ sizeof Aligned_Lisp_Subr	56
 sizeof Lisp_Bignum	24
 sizeof Lisp_Cons	16
 sizeof Lisp_Float	8
+sizeof Lisp_Hash_Table	72
 sizeof Lisp_Marker	48
+sizeof Lisp_Obarray	24
 sizeof Lisp_Object	8
 sizeof Lisp_String	32
 sizeof Lisp_Subr	56
@@ -206,6 +231,7 @@ sizeof __mpz_struct	16
 sizeof buffer	984
 sizeof buffer_text	144
 sizeof handler	288
+sizeof hash_table_test	40
 sizeof itree_iterator	40
 sizeof itree_node	80
 sizeof itree_tree	24
