@@ -3796,6 +3796,17 @@ pub mod other_units {
         // src/lisp.h 5544: `void *xnmalloc (ptrdiff_t, ptrdiff_t)`, not the
         // `size_t, size_t` of `xcalloc` above it.
         pub fn xnmalloc (n: isize, size: isize) -> *mut c_void;
+        // lisp.h 4390, 4781, 5100, 5548: the four cross-unit functions macros.c calls
+        // (`message1` and `run_hook` are xdisp.c's and eval.c's; `command_loop_2` is
+        // keyboard.c's own loop entry, declared here so every unit sees one prototype).
+        pub fn message1 (s: *const c_char);
+        pub fn run_hook (hook: Lisp_Object);
+        pub fn command_loop_2 (arg: Lisp_Object) -> Lisp_Object;
+        // The second parameter's pointee has no spelling in the probe's type table, so
+        // the reference prototype rides along and the probe checks it there (P-55).
+        /// C: void *xpalloc (void *, ptrdiff_t *, ptrdiff_t, ptrdiff_t, ptrdiff_t)
+        pub fn xpalloc (block: *mut c_void, n: *mut ptrdiff_t, incr: ptrdiff_t,
+                        min_size: ptrdiff_t, size: ptrdiff_t) -> *mut c_void;
         pub fn record_unwind_protect_array (array: *mut Lisp_Object, nelts: isize);
         pub fn record_unwind_protect_ptr (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void);
         pub fn record_unwind_protect_ptr_mark (function: Option<unsafe extern "C" fn(*mut c_void)>,
