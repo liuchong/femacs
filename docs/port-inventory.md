@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 69 |
-| 其中 done / wip | 57 / 12 |
-| 待开工 | 521 |
+| 已有目标文件 | 70 |
+| 其中 done / wip | 58 / 12 |
+| 待开工 | 520 |
 
 ## 2 按目录
 
@@ -38,13 +38,13 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 23 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,676 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 215 |
+| `src/` | 250 | 566,784 | 8,676 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 214 |
 
 ## 3 按批次
 
 | 批次 | 范围 | 完成判据 | 文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | todo |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 19 |
+| **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 18 |
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 25 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,007 | 269 | 498 | 289 | 128 | 30 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 40 |
@@ -448,7 +448,7 @@
 | `src/buffer.c` | 6,163 | 116 | 53 | 13 | 1 | 13 | 15 | C | `femacs/src/buffer.rs` | todo |
 | `src/buffer.h` | 1,824 | 112 | 0 | 53 | 9 | 134 | 6 | C | `femacs/src/include/buffer.rs` | done |
 | `src/bytecode.c` | 1,852 | 8 | 2 | 21 | 1 | 5 | 0 | B | `femacs/src/bytecode.rs` | todo |
-| `src/callint.c` | 933 | 6 | 4 | 0 | 0 | 0 | 3 | B | `femacs/src/callint.rs` | todo |
+| `src/callint.c` | 933 | 6 | 4 | 0 | 0 | 0 | 3 | B | `femacs/src/callint.rs` | done |
 | `src/callproc.c` | 2,262 | 21 | 3 | 4 | 6 | 0 | 4 | D | `femacs/src/callproc.rs` | todo |
 | `src/casefiddle.c` | 764 | 17 | 11 | 0 | 6 | 9 | 0 | C | `femacs/src/casefiddle.rs` | todo |
 | `src/casetab.c` | 303 | 7 | 5 | 0 | 0 | 0 | 4 | C | `femacs/src/casetab.rs` | done |
