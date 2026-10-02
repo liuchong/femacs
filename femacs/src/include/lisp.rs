@@ -2488,12 +2488,20 @@ pub fn reduce_emacs_uint_to_hash_hash (x: EMACS_UINT) -> hash_hash_t {
         as hash_hash_t
 }
 
+/// src/lisp.h 2795-2808: `knuth_hash (hash_hash_t hash, unsigned bits)` - "reduce HASH to a
+/// value BITS wide".  json.c's `symset_hash` is the first user, so the mirror now carries C's
+/// signature and body; the earlier one-argument spelling here was C 2801-2805 alone.
 #[inline(always)]
-pub fn knuth_hash (hash: hash_hash_t) -> c_uint {
-    let mut h = hash;
-    let alpha: c_uint = 2_654_435_769; // 2**32/phi
-    h = h.wrapping_mul (alpha);
-    h
+pub fn knuth_hash (hash: hash_hash_t, bits: c_uint) -> ptrdiff_t {
+    /* Knuth multiplicative hashing, tailored for 32-bit indices
+       (avoiding a 64-bit multiply on typical platforms).  */
+    let h: c_uint = hash;
+    let alpha: c_uint = 2_654_435_769;	/* 2**32/phi */
+    /* Multiply with unsigned int, ANDing in case UINT_WIDTH exceeds 32.  */
+    let product: c_uint = h.wrapping_mul (alpha) & 0xffff_ffff;
+    /* Convert to a wider type, so that the shift works when BITS == 0.  */
+    let wide_product: u64 = product as u64;
+    return (wide_product >> (32 - bits)) as ptrdiff_t;
 }
 
 pub const FIXNUM_BITS: usize = VALBITS + 1;   // lisp.h 226: not INTTYPEBITS + 1 (=3)!  See P-59.
@@ -3898,6 +3906,9 @@ pub mod other_units {
       /// C: ptrdiff_t bignum_to_c_string (char *, ptrdiff_t, Lisp_Object, int)
       pub fn bignum_to_c_string (buf: *mut c_char, size: ptrdiff_t, num: Lisp_Object,
                                  base: c_int) -> ptrdiff_t;
+      /* src/lisp.h 4319.  */
+      /// C: void move_gap_both (ptrdiff_t, ptrdiff_t)
+      pub fn move_gap_both (charpos: ptrdiff_t, bytepos: ptrdiff_t);
       /* src/lisp.h 4321.  */
       /// C: void make_gap (ptrdiff_t)
       pub fn make_gap (nbytes: ptrdiff_t);

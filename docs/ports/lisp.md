@@ -658,3 +658,13 @@ for headers (P-24).  The items that took real work, and their evidence:
   - docs/ports/excluded-macros.txt carries both rows (kind=syntax, the shape and the reason).
     First users: src/json.c; `xdisp.c`/`buffer.c`'s uses inherit the shape.
 
+## Decisions (2026-10-03, when json.c was ported)
+
+- **`move_gap_both` declared** (lisp.h 4319): json.c's `json-insert` calls it between
+  `prepare_to_modify_buffer` and `make_gap`; it joins the same `other_units` group as the rest
+  of that batch, with its `/// C:` prototype (the probe now type-checks 131 declarations).
+- **`knuth_hash` completed**: json.c's `symset_hash` is the first user of C 2795-2808's
+  two-argument `knuth_hash (hash_hash_t, unsigned)`, and the mirror's earlier one-argument
+  spelling was C 2801-2805 alone (it dropped the `wide_product >> (32 - bits)` reduction).  The
+  mirror now carries C's signature and body; nothing else called it.
+

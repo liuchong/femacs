@@ -163,4 +163,15 @@ itree_iter_next_in_subtree	case,default,switch	C 1238's `switch (iter->order)` o
 itree_iterator_first_node	break,case,default,switch	C 1356's `switch (iter->order)` becomes a `match`, and C's `break;` statements end their switch arms, which a `match` arm does not need (the tparam1 precedent)
 byte_char_debug_check	0	C 74's live arm is `#define byte_char_debug_check(b, charpos, bytepos) do { } while (0)`: a statement that does nothing.  Rust has no `do { } while (0)` and the port's macro expands to nothing, so the `0` has no counterpart; the macro and the `#[cfg (feature = "marker_debug")]` function of the same name are both in the file
 set_marker_internal	bset_redisplay,buffer_window_count,bvar,cpos,mark,mark_active,ptrdiff_max	C 580-602's `#ifdef HAVE_TEXT_CONVERSION` arm is dead in the frozen configuration and its body needs `bset_redisplay`, which this target's mirror has not got, and C 544-553's wide-int arm is dead too (EMACS_INT_MAX == PTRDIFF_MAX here); both arms are recorded in docs/ports/marker.md and the ledger instead of being written out
+JSON_OUT_STR	sizeof,1	C's macro body is `(json_out_str (jo, str, sizeof (str) - 1))`: the count of a C string literal minus its NUL.  Rust has no `sizeof` of a literal, so the port's macro takes the byte count from the literal itself (`to_bytes ().len ()`), which is what that expression computes; neither token has a counterpart
+json_out_string	attribute_nonstring,break,case,default	C 324's `ATTRIBUTE_NONSTRING` is an attribute spelling with no Rust counterpart, and C 382-398's `switch` over the eight escape characters becomes a `match` with the same arms in the same order (the tparam1 precedent), so `case`, `default` and the `break` that closes each arm have none
+json_parse_array	case,default,switch	C 1366-1383's `switch (parser->conf.array_type)` and C 1399-1418's second one become `match`es with the same arms in the same order; C's `default:` is the `_ =>` arm (the tparam1 precedent)
+json_parse_object	case,default,switch	C 1460-1497's `switch (parser->conf.object_type)` and C 1514-1540's second one become `match`es with the same arms in the same order; C's `default:` is the `_ =>` arm (the tparam1 precedent)
+json_parse_value	break,case,switch	C 1563-1618's `switch (c)` over the opening characters becomes a `match` on the same byte values with the same arms in the same order, and C's `break` (which falls through to the trailing `json_signal_error` call) has no counterpart, because the port's arms that do not return fall out of the `match` to the same call
+json_out_float	double	C 515's `double x = XFLOAT_DATA (f);` is the port's
+`let x: c_double = …`: the C type name has no counterpart of its own, and a `double` family in
+docs/ports/token-aliases.tsv would have to count spellings the ported doprnt.rs and floatfns.rs
+do not use (measured: it failed both files), so this is a per-function note
+json_create_float	double	C 1225's `double value = strtod (…);`, the same class as
+json_out_float's row above
 
