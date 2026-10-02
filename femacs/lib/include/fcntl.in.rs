@@ -30,6 +30,11 @@
 
 include!("sys_types.in.rs");   // <sys/types.h> (mode_t)
 
+/// gnulib's <fcntl.h> defines `PROMOTED_MODE_T` as the type `open`'s mode argument is promoted
+/// to at the call (`int` on this target - docs/baseline/config/darwin-arm64.macros.tsv 1502);
+/// `lib/open.c` reads its variadic mode argument with that type.
+pub type PROMOTED_MODE_T = c_int;
+
 /* The access modes and open-time flags (measured above).  */
 pub const O_RDONLY: c_int = 0;
 pub const O_WRONLY: c_int = 1;
@@ -73,9 +78,17 @@ pub const AT_EACCESS: c_int = 16;
 
 /* C 163-237's `_GL_CXXALIAS_SYS (fcntl, ...)`, `(open, ...)` and `(openat, ...)`: the system
    entries, since no `REPLACE_*` macro is nonzero in the frozen configuration.  */
-unsafe extern "C" {
-  pub fn fcntl (fd: c_int, action: c_int, ...) -> c_int;
-  pub fn open (filename: *const c_char, flags: c_int, ...) -> c_int;
-  pub fn openat (fd: c_int, filename: *const c_char, flags: c_int, ...) -> c_int;
-  pub fn creat (filename: *const c_char, mode: mode_t) -> c_int;
+/* The four entries in a whole-import module: `femacs/lib/cloexec.rs` and
+   `femacs/lib/open.rs` define wrappers of their own, and a definition shadows a glob import
+   instead of colliding with it (PORTING.md 0.1-10).  */
+pub mod fcntl_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn fcntl (fd: c_int, action: c_int, ...) -> c_int;
+    pub fn open (filename: *const c_char, flags: c_int, ...) -> c_int;
+    pub fn openat (fd: c_int, filename: *const c_char, flags: c_int, ...) -> c_int;
+    pub fn creat (filename: *const c_char, mode: mode_t) -> c_int;
+  }
 }
+use fcntl_decls::*;

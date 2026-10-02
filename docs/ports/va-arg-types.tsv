@@ -17,3 +17,4 @@ intmax_t	i64	intmax_t is 64-bit on the frozen target; the port spells the width
 uintmax_t	u64	uintmax_t is 64-bit on the frozen target
 double	c_double
 char *	*mut c_char
+PROMOTED_MODE_T	PROMOTED_MODE_T

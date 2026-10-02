@@ -71,3 +71,6 @@ pub const EOVERFLOW: c_int = 84;
 /// <errno.h>: `#define EOPNOTSUPP 102` (measured; the same code as ENOTSUP on Linux, a
 /// different one here, which is why lib/lchmod.c can name either).
 pub const EOPNOTSUPP: c_int = 102;
+
+/// <errno.h>: `#define EISDIR 21` (measured: `printf ("%d", EISDIR)` -> 21).
+pub const EISDIR: c_int = 21;
