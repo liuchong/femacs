@@ -39,4 +39,3 @@ allocate_native_comp_unit	blocked	needs struct Lisp_Native_Comp_Unit (comp.h)
 ITREE_FOREACH	deferred	loop macro: C declares its iterator at the expansion site and ITREE_FOREACH_NARROW reads it, which Rust macro hygiene forbids; the shape is an open decision (PORTING.md P-33)
 ITREE_FOREACH_NARROW	deferred	same iteration-macro decision (PORTING.md P-33)
 FOR_EACH_LIVE_BUFFER	deferred	loop macro, wraps FOR_EACH_ALIST_VALUE (src/buffer.h 1329); Rust form pending P-22
-FOR_EACH_PER_BUFFER_OBJECT_AT	deferred	loop macro over struct-buffer field offsets (src/buffer.h 1555); Rust form pending P-22

@@ -4,10 +4,11 @@
 // extern "C"` declarations C spells as `extern` (PORTING.md 0.1).  The macros and
 // inline accessors are the same statements in the same order as C's.
 //
-// Two of the reference file's macros are deferred because their Rust form is the
-// open P-22 decision (`FOR_EACH_LIVE_BUFFER`, `FOR_EACH_PER_BUFFER_OBJECT_AT`);
-// they are recorded in docs/ports/excluded-macros.txt and commented in place.
-// docs/ports/include-buffer.md records every lexical deviation this mirror takes.
+// One of the reference file's macros is deferred because its Rust form is the open
+// P-22 decision (`FOR_EACH_LIVE_BUFFER`); it is recorded in
+// docs/ports/excluded-macros.txt and commented in place.  docs/ports/include-buffer.md
+// records every lexical deviation this mirror takes, and what the gates do and do not
+// cover for it (the two adversarial reviews of 2026-10-02 are summarised there).
 
 /* Copyright (C) 1985-1986, 1994, 1995, 1997-2002, 2004-2026 Free Software
    Foundation, Inc.
@@ -32,7 +33,8 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 include!("../../lib/include/sys_types.in.rs");
 include!("../../lib/include/time.in.rs");
 
-// The include guard has no Rust counterpart (PORTING.md 0.1).
+// C's include guard `EMACS_BUFFER_H` has no Rust counterpart; the constant below exists
+// only so the mirror's name set matches the reference header's (PORTING.md 0.1, P-24).
 pub const EMACS_BUFFER_H: bool = true;
 
 // C reaches the current buffer through a thread-local macro
@@ -51,36 +53,49 @@ unsafe extern "C" { pub static mut current_buffer: *mut buffer; }
 pub const BEG: c_int = 1;
 pub const BEG_BYTE: c_int = BEG;
 
+/* Accessing the parameters of the current buffer.  */
+
+/* These constants and macros come in pairs, one for the char position
+   and one for the byte position.  */
+
+// C's object-like macros become `macro_rules!` whose body is C's body, so that the
+// 159 statements in the reference that *write* to `BEGV`/`Z`/`GPT`/`MODIFF`/… and the
+// 11 that take `&MODIFF` stay expressible (`NAME! ()` is a place expression, exactly
+// as C's macro is a place; a `fn` would be neither assignable nor addressable).  The
+// call site is therefore `NAME! ()` where C writes `NAME` — the one spelling
+// deviation this shape costs (PORTING.md P-37).  `PT`/`PT_BYTE` keep C's `+ 0`, which
+// is what makes them not l-values (PORTING.md 0.1-3).
+
 /* Position of beginning of accessible range of buffer.  */
-#[inline(always)]
-pub fn BEGV () -> ptrdiff_t { return unsafe { (*current_buffer).begv }; }
-#[inline(always)]
-pub fn BEGV_BYTE () -> ptrdiff_t { return unsafe { (*current_buffer).begv_byte }; }
+#[macro_export]
+macro_rules! BEGV { () => { (*current_buffer).begv } }
+#[macro_export]
+macro_rules! BEGV_BYTE { () => { (*current_buffer).begv_byte } }
 
 /* Position of point in buffer.  The "+ 0" makes this
    not an l-value, so you can't assign to it.  Use SET_PT instead.  */
-#[inline(always)]
-pub fn PT () -> ptrdiff_t { return unsafe { (*current_buffer).pt + 0 }; }
-#[inline(always)]
-pub fn PT_BYTE () -> ptrdiff_t { return unsafe { (*current_buffer).pt_byte + 0 }; }
+#[macro_export]
+macro_rules! PT { () => { ((*current_buffer).pt + 0) } }
+#[macro_export]
+macro_rules! PT_BYTE { () => { ((*current_buffer).pt_byte + 0) } }
 
 /* Position of gap in buffer.  */
-#[inline(always)]
-pub fn GPT () -> ptrdiff_t { return unsafe { (*(*current_buffer).text).gpt }; }
-#[inline(always)]
-pub fn GPT_BYTE () -> ptrdiff_t { return unsafe { (*(*current_buffer).text).gpt_byte }; }
+#[macro_export]
+macro_rules! GPT { () => { (*(*current_buffer).text).gpt } }
+#[macro_export]
+macro_rules! GPT_BYTE { () => { (*(*current_buffer).text).gpt_byte } }
 
 /* Position of end of accessible range of buffer.  */
-#[inline(always)]
-pub fn ZV () -> ptrdiff_t { return unsafe { (*current_buffer).zv }; }
-#[inline(always)]
-pub fn ZV_BYTE () -> ptrdiff_t { return unsafe { (*current_buffer).zv_byte }; }
+#[macro_export]
+macro_rules! ZV { () => { (*current_buffer).zv } }
+#[macro_export]
+macro_rules! ZV_BYTE { () => { (*current_buffer).zv_byte } }
 
 /* Position of end of buffer.  */
-#[inline(always)]
-pub fn Z () -> ptrdiff_t { return unsafe { (*(*current_buffer).text).z }; }
-#[inline(always)]
-pub fn Z_BYTE () -> ptrdiff_t { return unsafe { (*(*current_buffer).text).z_byte }; }
+#[macro_export]
+macro_rules! Z { () => { (*(*current_buffer).text).z } }
+#[macro_export]
+macro_rules! Z_BYTE { () => { (*(*current_buffer).text).z_byte } }
 
 /* Macros for the addresses of places in the buffer.  */
 
@@ -93,165 +108,120 @@ pub fn Z_BYTE () -> ptrdiff_t { return unsafe { (*(*current_buffer).text).z_byte
    potentially GC.  */
 
 /* Address of beginning of buffer.  */
-#[inline(always)]
-pub fn BEG_ADDR () -> *mut u8 { return unsafe { (*(*current_buffer).text).beg }; }
+#[macro_export]
+macro_rules! BEG_ADDR { () => { (*(*current_buffer).text).beg } }
 
 /* Address of beginning of accessible range of buffer.  */
-#[inline(always)]
-pub fn BEGV_ADDR () -> *mut u8 { return BYTE_POS_ADDR (BEGV_BYTE ()); }
+#[macro_export]
+macro_rules! BEGV_ADDR { () => { BYTE_POS_ADDR (BEGV_BYTE! ()) } }
 
 /* Address of point in buffer.  */
-#[inline(always)]
-pub fn PT_ADDR () -> *mut u8 { return BYTE_POS_ADDR (PT_BYTE ()); }
+#[macro_export]
+macro_rules! PT_ADDR { () => { BYTE_POS_ADDR (PT_BYTE! ()) } }
 
 /* Address of beginning of gap in buffer.  */
-#[inline(always)]
-pub fn GPT_ADDR () -> *mut u8
-{
-  return unsafe { BEG_ADDR ().offset ((*(*current_buffer).text).gpt_byte - BEG_BYTE as isize) };
-}
+#[macro_export]
+macro_rules! GPT_ADDR { () => { BEG_ADDR! ().offset ((*(*current_buffer).text).gpt_byte - BEG_BYTE as isize) } }
 
 /* Address of end of gap in buffer.  */
-#[inline(always)]
-pub fn GAP_END_ADDR () -> *mut u8
-{
-  return unsafe {
-    BEG_ADDR ().offset ((*(*current_buffer).text).gpt_byte + (*(*current_buffer).text).gap_size
-                        - BEG_BYTE as isize)
-  };
-}
+#[macro_export]
+macro_rules! GAP_END_ADDR { () => { BEG_ADDR! ().offset ((*(*current_buffer).text).gpt_byte + (*(*current_buffer).text).gap_size - BEG_BYTE as isize) } }
 
 /* Address of end of accessible range of buffer.  */
-#[inline(always)]
-pub fn ZV_ADDR () -> *mut u8 { return BYTE_POS_ADDR (ZV_BYTE ()); }
+#[macro_export]
+macro_rules! ZV_ADDR { () => { BYTE_POS_ADDR (ZV_BYTE! ()) } }
 
 /* Address of end of buffer.  */
-#[inline(always)]
-pub fn Z_ADDR () -> *mut u8
-{
-  return unsafe {
-    BEG_ADDR ().offset ((*(*current_buffer).text).gap_size + (*(*current_buffer).text).z_byte
-                        - BEG_BYTE as isize)
-  };
-}
+#[macro_export]
+macro_rules! Z_ADDR { () => { BEG_ADDR! ().offset ((*(*current_buffer).text).gap_size + (*(*current_buffer).text).z_byte - BEG_BYTE as isize) } }
 
 /* Size of gap.  */
-#[inline(always)]
-pub fn GAP_SIZE () -> ptrdiff_t { return unsafe { (*(*current_buffer).text).gap_size }; }
+#[macro_export]
+macro_rules! GAP_SIZE { () => { (*(*current_buffer).text).gap_size } }
 
 /* Modification count.  */
-#[inline(always)]
-pub fn MODIFF () -> modiff_count { return unsafe { (*(*current_buffer).text).modiff }; }
+#[macro_export]
+macro_rules! MODIFF { () => { (*(*current_buffer).text).modiff } }
 
 /* Character modification count.  */
-#[inline(always)]
-pub fn CHARS_MODIFF () -> modiff_count { return unsafe { (*(*current_buffer).text).chars_modiff }; }
+#[macro_export]
+macro_rules! CHARS_MODIFF { () => { (*(*current_buffer).text).chars_modiff } }
 
 /* Overlay modification count.  */
-#[inline(always)]
-pub fn OVERLAY_MODIFF () -> modiff_count { return unsafe { (*(*current_buffer).text).overlay_modiff }; }
+#[macro_export]
+macro_rules! OVERLAY_MODIFF { () => { (*(*current_buffer).text).overlay_modiff } }
 
 /* Modification count as of last visit or save.  */
-#[inline(always)]
-pub fn SAVE_MODIFF () -> modiff_count { return unsafe { (*(*current_buffer).text).save_modiff }; }
+#[macro_export]
+macro_rules! SAVE_MODIFF { () => { (*(*current_buffer).text).save_modiff } }
 
 /* Position of gap in buffer.  */
-#[inline(always)]
-pub fn BUF_GPT (buf: *mut buffer) -> ptrdiff_t { return unsafe { (*(*buf).text).gpt }; }
-#[inline(always)]
-pub fn BUF_GPT_BYTE (buf: *mut buffer) -> ptrdiff_t { return unsafe { (*(*buf).text).gpt_byte }; }
+#[macro_export]
+macro_rules! BUF_GPT { ($buf:expr) => { (*(*$buf).text).gpt } }
+#[macro_export]
+macro_rules! BUF_GPT_BYTE { ($buf:expr) => { (*(*$buf).text).gpt_byte } }
 
 /* Position of end of buffer.  */
-#[inline(always)]
-pub fn BUF_Z (buf: *mut buffer) -> ptrdiff_t { return unsafe { (*(*buf).text).z }; }
-#[inline(always)]
-pub fn BUF_Z_BYTE (buf: *mut buffer) -> ptrdiff_t { return unsafe { (*(*buf).text).z_byte }; }
+#[macro_export]
+macro_rules! BUF_Z { ($buf:expr) => { (*(*$buf).text).z } }
+#[macro_export]
+macro_rules! BUF_Z_BYTE { ($buf:expr) => { (*(*$buf).text).z_byte } }
 
 /* Address of beginning of buffer.  */
-#[inline(always)]
-pub fn BUF_BEG_ADDR (buf: *mut buffer) -> *mut u8 { return unsafe { (*(*buf).text).beg }; }
+#[macro_export]
+macro_rules! BUF_BEG_ADDR { ($buf:expr) => { (*(*$buf).text).beg } }
 
 /* Size of gap.  */
-#[inline(always)]
-pub fn BUF_GAP_SIZE (buf: *mut buffer) -> ptrdiff_t { return unsafe { (*(*buf).text).gap_size }; }
+#[macro_export]
+macro_rules! BUF_GAP_SIZE { ($buf:expr) => { (*(*$buf).text).gap_size } }
 
 /* Modification count.  */
-#[inline(always)]
-pub fn BUF_MODIFF (buf: *mut buffer) -> modiff_count { return unsafe { (*(*buf).text).modiff }; }
+#[macro_export]
+macro_rules! BUF_MODIFF { ($buf:expr) => { (*(*$buf).text).modiff } }
 
 /* Character modification count.  */
-#[inline(always)]
-pub fn BUF_CHARS_MODIFF (buf: *mut buffer) -> modiff_count
-{
-  return unsafe { (*(*buf).text).chars_modiff };
-}
+#[macro_export]
+macro_rules! BUF_CHARS_MODIFF { ($buf:expr) => { (*(*$buf).text).chars_modiff } }
 
 /* Modification count as of last visit or save.  */
-#[inline(always)]
-pub fn BUF_SAVE_MODIFF (buf: *mut buffer) -> modiff_count
-{
-  return unsafe { (*(*buf).text).save_modiff };
-}
+#[macro_export]
+macro_rules! BUF_SAVE_MODIFF { ($buf:expr) => { (*(*$buf).text).save_modiff } }
 
 /* Overlay modification count.  */
-#[inline(always)]
-pub fn BUF_OVERLAY_MODIFF (buf: *mut buffer) -> modiff_count
-{
-  return unsafe { (*(*buf).text).overlay_modiff };
-}
+#[macro_export]
+macro_rules! BUF_OVERLAY_MODIFF { ($buf:expr) => { (*(*$buf).text).overlay_modiff } }
 
 /* Modification count as of last auto-save.  */
 /* FIXME: should we move this into ->text->auto_save_modiff?  */
-#[inline(always)]
-pub fn BUF_AUTOSAVE_MODIFF (buf: *mut buffer) -> modiff_count
-{
-  return unsafe { (*buf).auto_save_modified };
-}
+#[macro_export]
+macro_rules! BUF_AUTOSAVE_MODIFF { ($buf:expr) => { (*$buf).auto_save_modified } }
 
 /* Compaction count.  */
-#[inline(always)]
-pub fn BUF_COMPACT (buf: *mut buffer) -> modiff_count { return unsafe { (*(*buf).text).compact }; }
+#[macro_export]
+macro_rules! BUF_COMPACT { ($buf:expr) => { (*(*$buf).text).compact } }
 
 /* Marker chain of buffer.  */
-#[inline(always)]
-pub fn BUF_MARKERS (buf: *mut buffer) -> *mut Lisp_Marker { return unsafe { (*(*buf).text).markers }; }
+#[macro_export]
+macro_rules! BUF_MARKERS { ($buf:expr) => { (*(*$buf).text).markers } }
 
-#[inline(always)]
-pub fn BUF_UNCHANGED_MODIFIED (buf: *mut buffer) -> modiff_count
-{
-  return unsafe { (*(*buf).text).unchanged_modified };
-}
+#[macro_export]
+macro_rules! BUF_UNCHANGED_MODIFIED { ($buf:expr) => { (*(*$buf).text).unchanged_modified } }
 
-#[inline(always)]
-pub fn BUF_OVERLAY_UNCHANGED_MODIFIED (buf: *mut buffer) -> modiff_count
-{
-  return unsafe { (*(*buf).text).overlay_unchanged_modified };
-}
-#[inline(always)]
-pub fn BUF_BEG_UNCHANGED (buf: *mut buffer) -> ptrdiff_t
-{
-  return unsafe { (*(*buf).text).beg_unchanged };
-}
-#[inline(always)]
-pub fn BUF_END_UNCHANGED (buf: *mut buffer) -> ptrdiff_t
-{
-  return unsafe { (*(*buf).text).end_unchanged };
-}
+#[macro_export]
+macro_rules! BUF_OVERLAY_UNCHANGED_MODIFIED { ($buf:expr) => { (*(*$buf).text).overlay_unchanged_modified } }
+#[macro_export]
+macro_rules! BUF_BEG_UNCHANGED { ($buf:expr) => { (*(*$buf).text).beg_unchanged } }
+#[macro_export]
+macro_rules! BUF_END_UNCHANGED { ($buf:expr) => { (*(*$buf).text).end_unchanged } }
 
-#[inline(always)]
-pub fn UNCHANGED_MODIFIED () -> modiff_count
-{
-  return BUF_UNCHANGED_MODIFIED (unsafe { current_buffer });
-}
-#[inline(always)]
-pub fn OVERLAY_UNCHANGED_MODIFIED () -> modiff_count
-{
-  return BUF_OVERLAY_UNCHANGED_MODIFIED (unsafe { current_buffer });
-}
-#[inline(always)]
-pub fn BEG_UNCHANGED () -> ptrdiff_t { return BUF_BEG_UNCHANGED (unsafe { current_buffer }); }
-#[inline(always)]
-pub fn END_UNCHANGED () -> ptrdiff_t { return BUF_END_UNCHANGED (unsafe { current_buffer }); }
+#[macro_export]
+macro_rules! UNCHANGED_MODIFIED { () => { BUF_UNCHANGED_MODIFIED! (current_buffer) } }
+#[macro_export]
+macro_rules! OVERLAY_UNCHANGED_MODIFIED { () => { BUF_OVERLAY_UNCHANGED_MODIFIED! (current_buffer) } }
+#[macro_export]
+macro_rules! BEG_UNCHANGED { () => { BUF_BEG_UNCHANGED! (current_buffer) } }
+#[macro_export]
+macro_rules! END_UNCHANGED { () => { BUF_END_UNCHANGED! (current_buffer) } }
 
 /* Functions to set PT in the current buffer, or another buffer.  */
 
@@ -325,8 +295,8 @@ unsafe extern "C" {
 /* Return the byte at byte position N.
    Do not check that the position is in range.  */
 
-#[inline(always)]
-pub fn FETCH_BYTE (n: ptrdiff_t) -> u8 { return unsafe { *BYTE_POS_ADDR (n) }; }
+#[macro_export]
+macro_rules! FETCH_BYTE { ($n:expr) => { (*BYTE_POS_ADDR ($n)) } }
 
 /* Define the actual buffer data structures.  */
 
@@ -405,10 +375,22 @@ pub struct buffer_text {
     /// very cheap to add a marker to the list and it's also very cheap
     /// to move a marker within a buffer.
     pub markers: *mut Lisp_Marker,
+    /// Usually false.  Temporarily true in decode_coding_gap to
+    /// prevent Fgarbage_collect from shrinking the gap and losing
+    /// not-yet-decoded bytes.
     /// bool_bf inhibit_shrinking : 1;
+    /// True if it needs to be redisplayed.
     /// bool_bf redisplay : 1;
+    /// clang's record layout puts the two bits at 136:0 and 136:1 of this byte.
     pub bits: u8,
 }
+
+/// `buffer_text`'s two `bool_bf` members, in buffer.h's declaration order (clang:
+/// 136:0-136:1, the byte named `bits`).  C reads them through the bitfields; Rust reads
+/// them by mask (PORTING.md 1.3), and `offsetof` cannot name a bitfield, so the numbers
+/// are recorded here and checked by the C-side probe the ledger describes.
+pub const BUFFER_TEXT_INHIBIT_SHRINKING: u8 = 1 << 0;
+pub const BUFFER_TEXT_REDISPLAY: u8 = 1 << 1;
 
 /* Most code should use this macro to access Lisp fields in struct buffer.  */
 
@@ -719,21 +701,23 @@ pub struct buffer {
     pub newline_cache: *mut c_void,        // struct region_cache *
     pub width_run_cache: *mut c_void,        // struct region_cache *
     pub bidi_paragraph_cache: *mut c_void,        // struct region_cache *
-    /// bool_bf prevent_redisplay_optimizations_p : 1;
-    /// bool_bf clip_changed : 1;
-    /// bool_bf inhibit_buffer_hooks : 1;
-    /// bool_bf long_line_optimizations_p : 1;
-    pub bits: u8,
     /// Non-zero means disable redisplay optimizations when rebuilding the glyph
     /// matrices (but not when redrawing).
+    /// bool_bf prevent_redisplay_optimizations_p : 1;
     /// Non-zero whenever the narrowing is changed in this buffer.
+    /// bool_bf clip_changed : 1;
     /// Non-zero for internal or temporary buffers that don't need to
     /// run hooks kill-buffer-hook, kill-buffer-query-functions, and
     /// buffer-list-update-hook.  This is used in coding.c to avoid
     /// slowing down en/decoding when a lot of these hooks are
     /// defined, as well as by with-temp-buffer, for example.
+    /// bool_bf inhibit_buffer_hooks : 1;
     /// Non-zero when the buffer contains long lines and specific
     /// display optimizations must be used.
+    /// bool_bf long_line_optimizations_p : 1;
+    /// clang's record layout puts the four bits at 960:0-960:3 of this byte.
+    pub bits: u8,
+
     /// The interval tree containing this buffer's overlays.
     pub overlays: *mut itree_tree,
     /// Right now only tree-sitter makes use of this, so I don't want
@@ -762,6 +746,15 @@ pub struct buffer {
     /// the struct buffer. So we copy it around in set_buffer_internal.
     pub undo_list_: Lisp_Object,
 }
+/// `struct buffer`'s four `bool_bf` members, in buffer.h's declaration order (clang:
+/// 960:0-960:3, the byte named `bits`).  C reads them through the bitfields; Rust reads
+/// them by mask (PORTING.md 1.3), and `offsetof` cannot name a bitfield, so the numbers
+/// are recorded here and checked by the C-side probe the ledger describes.
+pub const BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P: u8 = 1 << 0;
+pub const BUFFER_CLIP_CHANGED: u8 = 1 << 1;
+pub const BUFFER_INHIBIT_BUFFER_HOOKS: u8 = 1 << 2;
+pub const BUFFER_LONG_LINE_OPTIMIZATIONS_P: u8 = 1 << 3;
+
 #[repr(C, align(8))]
 #[derive(Clone, Copy)]
 pub struct sortvec {
@@ -920,13 +913,17 @@ pub fn bset_text_conversion_style (b: *mut buffer, val: Lisp_Object)
 #[inline(always)]
 pub fn BUFFER_CEILING_OF (bytepos: ptrdiff_t) -> ptrdiff_t
 {
-  return (if bytepos < GPT_BYTE () && GPT () < ZV () { GPT_BYTE () } else { ZV_BYTE () }) - 1;
+  return (unsafe {
+    if bytepos < GPT_BYTE! () && GPT! () < ZV! () { GPT_BYTE! () } else { ZV_BYTE! () }
+  }) - 1;
 }
 
 #[inline(always)]
 pub fn BUFFER_FLOOR_OF (bytepos: ptrdiff_t) -> ptrdiff_t
 {
-  return if BEGV () <= GPT () && GPT_BYTE () <= bytepos { GPT_BYTE () } else { BEGV_BYTE () };
+  return unsafe {
+    if BEGV! () <= GPT! () && GPT_BYTE! () <= bytepos { GPT_BYTE! () } else { BEGV_BYTE! () }
+  };
 }
 
 /* The BUF_BEGV[_BYTE], BUF_ZV[_BYTE], and BUF_PT[_BYTE] functions cannot
@@ -936,7 +933,7 @@ pub fn BUFFER_FLOOR_OF (bytepos: ptrdiff_t) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_BEGV (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == current_buffer } { BEGV () }
+  return if unsafe { buf == current_buffer } { unsafe { BEGV! () } }
     else if NILP (unsafe { BVAR! (buf, begv_marker_) }) { unsafe { (*buf).begv } }
     else { unsafe { marker_position (BVAR! (buf, begv_marker_)) } };
 }
@@ -944,7 +941,7 @@ pub fn BUF_BEGV (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_BEGV_BYTE (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == current_buffer } { BEGV_BYTE () }
+  return if unsafe { buf == current_buffer } { unsafe { BEGV_BYTE! () } }
     else if NILP (unsafe { BVAR! (buf, begv_marker_) }) { unsafe { (*buf).begv_byte } }
     else { unsafe { marker_byte_position (BVAR! (buf, begv_marker_)) } };
 }
@@ -953,7 +950,7 @@ pub fn BUF_BEGV_BYTE (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_PT (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == current_buffer } { PT () }
+  return if unsafe { buf == current_buffer } { unsafe { PT! () } }
     else if NILP (unsafe { BVAR! (buf, pt_marker_) }) { unsafe { (*buf).pt } }
     else { unsafe { marker_position (BVAR! (buf, pt_marker_)) } };
 }
@@ -961,7 +958,7 @@ pub fn BUF_PT (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_PT_BYTE (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == current_buffer } { PT_BYTE () }
+  return if unsafe { buf == current_buffer } { unsafe { PT_BYTE! () } }
     else if NILP (unsafe { BVAR! (buf, pt_marker_) }) { unsafe { (*buf).pt_byte } }
     else { unsafe { marker_byte_position (BVAR! (buf, pt_marker_)) } };
 }
@@ -970,7 +967,7 @@ pub fn BUF_PT_BYTE (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_ZV (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == current_buffer } { ZV () }
+  return if unsafe { buf == current_buffer } { unsafe { ZV! () } }
     else if NILP (unsafe { BVAR! (buf, zv_marker_) }) { unsafe { (*buf).zv } }
     else { unsafe { marker_position (BVAR! (buf, zv_marker_)) } };
 }
@@ -978,7 +975,7 @@ pub fn BUF_ZV (buf: *mut buffer) -> ptrdiff_t
 #[inline(always)]
 pub fn BUF_ZV_BYTE (buf: *mut buffer) -> ptrdiff_t
 {
-  return if unsafe { buf == current_buffer } { ZV_BYTE () }
+  return if unsafe { buf == current_buffer } { unsafe { ZV_BYTE! () } }
     else if NILP (unsafe { BVAR! (buf, zv_marker_) }) { unsafe { (*buf).zv_byte } }
     else { unsafe { marker_byte_position (BVAR! (buf, zv_marker_)) } };
 }
@@ -1032,21 +1029,21 @@ pub fn BUF_GAP_END_ADDR (buf: *mut buffer) -> *mut u8
 #[inline(always)]
 pub fn BUF_COMPUTE_UNCHANGED (buf: *mut buffer, start: ptrdiff_t, end: ptrdiff_t)
 {
-  if BUF_UNCHANGED_MODIFIED (buf) == BUF_MODIFF (buf)
-    && (BUF_OVERLAY_UNCHANGED_MODIFIED (buf) == BUF_OVERLAY_MODIFF (buf))
+  if unsafe { BUF_UNCHANGED_MODIFIED! (buf) == BUF_MODIFF! (buf)
+              && BUF_OVERLAY_UNCHANGED_MODIFIED! (buf) == BUF_OVERLAY_MODIFF! (buf) }
     {
       unsafe {
         (*(*buf).text).beg_unchanged = start - BUF_BEG (buf);
-        (*(*buf).text).end_unchanged = BUF_Z (buf) - (end);
+        (*(*buf).text).end_unchanged = BUF_Z! (buf) - (end);
       }
     }
   else
     {
-      if BUF_Z (buf) - end < BUF_END_UNCHANGED (buf)
+      if unsafe { BUF_Z! (buf) - end < BUF_END_UNCHANGED! (buf) }
         {
-          unsafe { (*(*buf).text).end_unchanged = BUF_Z (buf) - end; }
+          unsafe { (*(*buf).text).end_unchanged = BUF_Z! (buf) - end; }
         }
-      if start - BUF_BEG (buf) < BUF_BEG_UNCHANGED (buf)
+      if unsafe { start - BUF_BEG (buf) < BUF_BEG_UNCHANGED! (buf) }
         {
           unsafe { (*(*buf).text).beg_unchanged = start - BUF_BEG (buf); }
         }
@@ -1119,7 +1116,7 @@ pub fn SET_BUF_PT_BOTH (buf: *mut buffer, charpos: ptrdiff_t, byte: ptrdiff_t)
 pub fn BYTE_POS_ADDR (n: ptrdiff_t) -> *mut u8
 {
   return unsafe {
-    BEG_ADDR ().offset ((if n < GPT_BYTE () { 0 } else { GAP_SIZE () }) + n - BEG_BYTE as isize)
+    BEG_ADDR! ().offset ((if n < GPT_BYTE! () { 0 } else { GAP_SIZE! () }) + n - BEG_BYTE as isize)
   };
 }
 
@@ -1129,7 +1126,7 @@ pub fn BYTE_POS_ADDR (n: ptrdiff_t) -> *mut u8
 pub fn CHAR_POS_ADDR (n: ptrdiff_t) -> *mut u8
 {
   return unsafe {
-    BEG_ADDR ().offset ((if n < GPT () { 0 } else { GAP_SIZE () })
+    BEG_ADDR! ().offset ((if n < GPT! () { 0 } else { GAP_SIZE! () })
                         + buf_charpos_to_bytepos (current_buffer as *mut c_void, n) - BEG_BYTE as isize)
   };
 }
@@ -1155,9 +1152,10 @@ pub fn BYTE_TO_CHAR (bytepos: ptrdiff_t) -> ptrdiff_t
 #[inline(always)]
 pub fn PTR_BYTE_POS (ptr: *const u8) -> ptrdiff_t
 {
-  let byte = unsafe { ptr.offset_from (BEG_ADDR ()) };
-  return byte - (if byte <= GPT_BYTE () - BEG_BYTE as isize { 0 } else { GAP_SIZE () })
-    + BEG_BYTE as isize;
+  let byte = unsafe { ptr.offset_from (BEG_ADDR! ()) };
+  return byte - unsafe {
+    if byte <= GPT_BYTE! () - BEG_BYTE as isize { 0 } else { GAP_SIZE! () }
+  } + BEG_BYTE as isize;
 }
 
 /* Number of Lisp_Objects at the beginning of struct buffer.
@@ -1220,6 +1218,11 @@ pub fn BUFFER_CHECK_INDIRECTION (b: *mut buffer)
 
 // C gates these six on HAVE_TREE_SITTER (buffer.h 1155-1210), which the frozen
 // configuration does not define; the three struct members are gated the same way.
+// The `cfg` follows the port's convention for configuration-dependent code, and this
+// assertion keeps it tied to the frozen configuration: enabling the feature without
+// regenerating the configuration (which is what would add the members' layout keys)
+// fails to compile instead of silently growing unasserted fields (P-08, P-34).
+const _: () = assert! (!cfg! (feature = "tree_sitter") || HAVE_TREE_SITTER);
 #[cfg(feature = "tree_sitter")]
 #[inline(always)]
 pub fn BUF_TS_LINECOL_BEGV (buf: *mut buffer) -> ts_linecol
@@ -1460,7 +1463,7 @@ pub fn FETCH_MULTIBYTE_CHAR (pos: ptrdiff_t) -> c_int
 pub fn BUF_FETCH_MULTIBYTE_CHAR (buf: *mut buffer, pos: ptrdiff_t) -> c_int
 {
   let p = unsafe {
-    BUF_BEG_ADDR (buf).offset ((if pos >= BUF_GPT_BYTE (buf) { BUF_GAP_SIZE (buf) } else { 0 })
+    BUF_BEG_ADDR! (buf).offset ((if pos >= BUF_GPT_BYTE! (buf) { BUF_GAP_SIZE! (buf) } else { 0 })
                                + pos - BEG_BYTE as isize)
   };
   return STRING_CHAR (p as *const u8);
@@ -1475,7 +1478,7 @@ pub fn FETCH_CHAR_AS_MULTIBYTE (pos: ptrdiff_t) -> c_int
 {
   return if !NILP (unsafe { BVAR! (current_buffer, enable_multibyte_characters_) })
     { FETCH_MULTIBYTE_CHAR (pos) }
-    else { UNIBYTE_TO_CHAR (FETCH_BYTE (pos) as c_int) };
+    else { UNIBYTE_TO_CHAR (unsafe { FETCH_BYTE! (pos) } as c_int) };
 }
 
 /* Return character at byte position POS.
@@ -1486,7 +1489,7 @@ pub fn FETCH_CHAR (pos: ptrdiff_t) -> c_int
 {
   return if !NILP (unsafe { BVAR! (current_buffer, enable_multibyte_characters_) })
     { FETCH_MULTIBYTE_CHAR (pos) }
-    else { FETCH_BYTE (pos) as c_int };
+    else { (unsafe { FETCH_BYTE! (pos) }) as c_int };
 }
 
 /* Return the address of character at byte position POS in buffer BUF.
@@ -1521,10 +1524,10 @@ pub fn BUF_CHAR_ADDRESS (buf: *mut buffer, pos: ptrdiff_t) -> *mut u8
 #[inline(always)]
 pub fn BUF_PTR_BYTE_POS (buf: *mut buffer, ptr: *mut u8) -> ptrdiff_t
 {
-  let byte = unsafe { ptr.offset_from (BUF_BEG_ADDR (buf)) };
-  return byte - (if byte <= BUF_GPT_BYTE (buf) - BEG_BYTE as isize { 0 }
-                 else { BUF_GAP_SIZE (buf) })
-    + BEG_BYTE as isize;
+  let byte = unsafe { ptr.offset_from (BUF_BEG_ADDR! (buf)) };
+  return byte - unsafe {
+    if byte <= BUF_GPT_BYTE! (buf) - BEG_BYTE as isize { 0 } else { BUF_GAP_SIZE! (buf) }
+  } + BEG_BYTE as isize;
 }
 
 /* Return the byte at byte position N in buffer BUF.   */
@@ -1670,8 +1673,20 @@ macro_rules! PER_BUFFER_VAR_OFFSET {
    Lisp_Objects in a struct buffer, make sure that this is still correct.  */
 // C: `#define FOR_EACH_PER_BUFFER_OBJECT_AT(offset) for (offset =
 // PER_BUFFER_VAR_OFFSET (name); offset <= PER_BUFFER_VAR_OFFSET
-// (cursor_in_non_selected_windows); offset += word_size)`.  A loop macro; its
-// Rust form is the open P-22 decision, recorded in docs/ports/excluded-macros.txt.
+// (cursor_in_non_selected_windows); offset += word_size)`.  C's body follows the macro
+// at the call site; Rust macro hygiene cannot leave a block to be appended, so the body
+// is the last argument (the shape `DEFUN!` already uses) and the `for` becomes a
+// `while`.  The iteration variable stays a macro argument, as in C (PORTING.md P-37).
+#[macro_export]
+macro_rules! FOR_EACH_PER_BUFFER_OBJECT_AT {
+    ($offset:ident, $body:block) => {
+        $offset = PER_BUFFER_VAR_OFFSET! (name_);
+        while $offset <= PER_BUFFER_VAR_OFFSET! (cursor_in_non_selected_windows_) {
+            $body
+            $offset += word_size ();
+        }
+    };
+}
 
 /* Return the index of buffer-local variable VAR.  Each per-buffer
    variable has an index > 0 associated with it, except when it always
@@ -1923,9 +1938,9 @@ pub fn next_char_len (pos_byte: ptrdiff_t) -> c_int
 pub fn buf_prev_char_len (buf: *mut buffer, pos_byte: ptrdiff_t) -> c_int
 {
   let chp = unsafe {
-    BUF_BEG_ADDR (buf).offset (pos_byte - BEG_BYTE as isize
-                               + (if pos_byte <= BUF_GPT_BYTE (buf) { 0 }
-                                  else { BUF_GAP_SIZE (buf) }))
+    BUF_BEG_ADDR! (buf).offset (pos_byte - BEG_BYTE as isize
+                               + (if pos_byte <= BUF_GPT_BYTE! (buf) { 0 }
+                                  else { BUF_GAP_SIZE! (buf) }))
   };
   return raw_prev_char_len (chp as *const u8);
 }

@@ -356,12 +356,21 @@ macro_rules! assume {
     };
 }
 
+/// C's `eassert (cond)` is `die (#cond, __FILE__, __LINE__)`: the message is the
+/// condition *text* and the file is the unit that expanded it.  `concat!` folds
+/// `stringify!`/`file!` into NUL-terminated static strings, so the port reports the
+/// same message (C reports the `.c`/`.h` name, the port the mirror's path — the one
+/// deviation) and allocates nothing on the failure path.
 macro_rules! eassert {
     ($cond:expr) => {
         #[cfg(enable_checking)]
         {
             if !(unsafe { suppress_checking }) && !($cond) {
-                unsafe { die (c"eassert".as_ptr(), c"lisp.rs".as_ptr(), line!() as c_int) }
+                unsafe {
+                    die (concat! (stringify! ($cond), "\0").as_ptr () as *const c_char,
+                         concat! (file! (), "\0").as_ptr () as *const c_char,
+                         line!() as c_int)
+                }
             }
         }
     };
@@ -374,7 +383,11 @@ macro_rules! eassume {
             if unsafe { suppress_checking } {
                 assume!($cond);
             } else if !($cond) {
-                unsafe { die (c"eassume".as_ptr(), c"lisp.rs".as_ptr(), line!() as c_int) }
+                unsafe {
+                    die (concat! (stringify! ($cond), "\0").as_ptr () as *const c_char,
+                         concat! (file! (), "\0").as_ptr () as *const c_char,
+                         line!() as c_int)
+                }
             }
         }
         #[cfg(not(enable_checking))]
@@ -2889,16 +2902,25 @@ macro_rules! SAFE_ALLOCA_LISP {
     }};
 }
 
+/// C's `sizeof *(buf)` never evaluates `buf`, so it is well-defined for a pointer
+/// that is NULL or not yet assigned (the real `GET_OVERLAYS_AT` call sites pass both).
+/// `size_of_val (&*p)` would dereference it, so the port asks for the pointee type
+/// instead: passing the pointer by value lets inference name `T` without reading the
+/// pointee.  A call site whose pointer C leaves uninitialized must initialize it,
+/// because Rust will not pass an uninitialized binding by value.
+#[inline(always)]
+pub fn pointee_size<T> (p: *mut T) -> usize { let _ = p; std::mem::size_of::<T> () }
+
 #[macro_export]
 macro_rules! SAFE_NALLOCA {
     ($sa_avail:ident, $buf:ident, $multiplier:expr, $nitems:expr) => {{
         let mult = $multiplier as isize;
         let nitems_ = $nitems as isize;
-        if nitems_ <= $sa_avail / (std::mem::size_of_val (&*$buf) as isize) / mult {
-            let nbytes = std::mem::size_of_val (&*$buf) as isize * mult * nitems_;
+        if nitems_ <= $sa_avail / (pointee_size ($buf) as isize) / mult {
+            let nbytes = pointee_size ($buf) as isize * mult * nitems_;
             $buf = AVAIL_ALLOCA! ($sa_avail, nbytes) as *mut _;
         } else {
-            $buf = unsafe { xnmalloc (nitems_ as usize, std::mem::size_of_val (&*$buf) * mult as usize) } as *mut _;
+            $buf = unsafe { xnmalloc (nitems_ as usize, pointee_size ($buf) * mult as usize) } as *mut _;
             unsafe { record_unwind_protect_ptr (Some (xfree_wrapper), $buf as *mut c_void) };
         }
     }};
@@ -3470,6 +3492,6 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn marker_position (marker: Lisp_Object) -> ptrdiff_t;
   pub fn marker_byte_position (marker: Lisp_Object) -> ptrdiff_t;
-  pub fn buf_charpos_to_bytepos (buffer: *mut c_void, charpos: ptrdiff_t) -> ptrdiff_t; // struct buffer *
-  pub fn buf_bytepos_to_charpos (buffer: *mut c_void, bytepos: ptrdiff_t) -> ptrdiff_t; // struct buffer *
+  pub fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdiff_t) -> ptrdiff_t; // struct buffer *b
+  pub fn buf_bytepos_to_charpos (b: *mut c_void, bytepos: ptrdiff_t) -> ptrdiff_t; // struct buffer *b
 }

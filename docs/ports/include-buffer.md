@@ -190,87 +190,148 @@
 
 `emacs/src/buffer.h` @ `fd7afced403`; port `femacs/src/include/buffer.rs`; the gate is
 `python3 tools/extract-abi.py --check emacs/src/buffer.h femacs/src/include/buffer.rs` -> `OK`
-with the two loop macros below recorded in `docs/ports/excluded-macros.txt`.
+(one macro, `FOR_EACH_LIVE_BUFFER`, is recorded in `docs/ports/excluded-macros.txt`).
 
-**Layout is proven, not assumed.**  `sizeof buffer == 984`, `sizeof buffer_text == 144`,
-`sizeof sortvec == 40`, `sizeof ts_linecol == 24`, and the 99 `buffer.*` / 19
-`buffer_text.*` offsets are asserted from the C compiler's numbers (`xtask layout-check`,
-200 assertions).  Two field types needed care and are recorded here:
+### Layout is proven, not assumed
+
+`sizeof buffer == 984`, `sizeof buffer_text == 144`, `sizeof sortvec == 40`,
+`sizeof ts_linecol == 24`, and the 99 `buffer.*` / 17 `buffer_text.*` `offsetof` keys
+(101 and 19 keys with `sizeof`/`alignof`; 200 assertions in total, 7 keys still pending
+a mirror) are asserted from the C compiler's numbers (`xtask layout-check`).  Two field
+types needed care:
 
 - `char local_flags[MAX_PER_BUFFER_VARS]` (a 50-byte array) is
   `[c_char; MAX_PER_BUFFER_VARS as usize]`; C's enum member is an `int`, so the length
   needs the cast, and the C spelling is kept in the name.
 - `struct region_cache *newline_cache`/`width_run_cache`/`bidi_paragraph_cache`: C's
-  `struct region_cache` is incomplete in this header (its definition lives in
-  region-cache.h, which buffer.h does not include), so the port keeps `*mut c_void` with
-  the C spelling in a trailing comment, like `lisp.rs` does for `struct buffer *`
+  `struct region_cache` is incomplete in this header, so the port keeps `*mut c_void`
+  with the C spelling in a trailing comment, like `lisp.rs` does for `struct buffer *`
   (PORTING.md 0.1-2).
-- `bool_bf` members (`buffer_text`'s two, `struct buffer`'s four) are packed into one
-  `bits: u8` each, the width of C's storage unit (`conf_post.h`: `bool_bf` is one byte);
-  `sizeof` and the offsets around them are asserted, but the unit's width itself is
-  recorded, not proven (P-35).
+- The four `bool_bf` members of `struct buffer` and the two of `buffer_text` are packed
+  into one `bits: u8` each (PORTING.md 1.3).  `bool_bf` is one byte on this target
+  (`conf_post.h`), clang's record layout puts them at 960:0-960:3 and 136:0-136:1, and
+  the mirror names them `BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P`, `BUFFER_CLIP_CHANGED`,
+  `BUFFER_INHIBIT_BUFFER_HOOKS`, `BUFFER_LONG_LINE_OPTIMIZATIONS_P`,
+  `BUFFER_TEXT_INHIBIT_SHRINKING`, `BUFFER_TEXT_REDISPLAY`.  `offsetof` may not name a
+  bitfield, so the *bit assignment* is recorded in the constants' doc comments and
+  checked by `spikes/write-probe.sh` (C writes the bitfields, Rust writes the masks, both
+  print the raw bytes 15/3); the storage unit's width itself stays recorded, not proven
+  (P-35).
 - The four tree-sitter members (`ts_parser_list_`, `ts_linecol_begv/point/zv`) are behind
   `#[cfg(feature = "tree_sitter")]`, and the six accessors C gates on `HAVE_TREE_SITTER`
-  with them: the frozen configuration does not define it, and their layout keys are absent
-  from the baseline for the same reason.
+  with them.  A `const _: () = assert! (!cfg! (feature = "tree_sitter") ||
+  HAVE_TREE_SITTER);` ties the feature to the frozen configuration, so enabling it without
+  regenerating the configuration (which is what would add those members' layout keys)
+  fails to compile instead of growing unasserted fields (P-08, P-34).
 - `struct timespec`/`time_t`/`off_t` come from the WIP system mirrors
-  `lib/include/time.in.rs` and `lib/include/sys_types.in.rs`, reached the way C's
-  `<time.h>`/`<sys/types.h>` are (P-26).
+  `lib/include/time.in.rs` and `lib/include/sys_types.in.rs` (P-26).
 - `modiff_count` and `INTERVAL` (`lisp.h` 4140/1423) live in `lisp.rs`; `INTERVAL` is an
   opaque pointer because `struct interval` is incomplete there.
 
-**Constants checked against the C compiler** (two `enum` values and the one
-hand-folded `#define`).  The C side is compiled against the frozen configure output, the
-Rust side against the mirrors with the `lispsym` arena `spikes/inline_probe.rs` uses:
+### Shapes (PORTING.md P-37)
 
-```sh
-clang -std=gnu23 -O1 -I build/emacs-ref/lib -I spikes/shim -I build/emacs-ref/src \
-      -I emacs/src -I emacs/lib /tmp/probe.c -o /tmp/c && /tmp/c
-rustc --edition 2024 -O /tmp/probe.rs -o /tmp/rs && /tmp/rs
-```
+C's macro/function *kind* is kept: a macro in buffer.h becomes a `macro_rules!` of the
+same name, an `INLINE` function becomes an `#[inline(always)]` function.
 
-with `printf ("%td %td %td %zu %td\n", (ptrdiff_t) BUF_BYTES_MAX,
-(ptrdiff_t) BUFFER_LISP_SIZE, (ptrdiff_t) BUFFER_REST_SIZE, sizeof (struct buffer),
-(ptrdiff_t) GAP_BYTES_DFL)` on the C side against
-`BUF_BYTES_MAX, BUFFER_LISP_SIZE, BUFFER_REST_SIZE, size_of::<buffer> (), GAP_BYTES_DFL`
-on the Rust side.  Both print `2305843009213693950 75 47 984 2000`, which is what makes the
-hand-folded `min` of `BUF_BYTES_MAX` and the two `PSEUDOVECSIZE`/`VECSIZE` values evidence
-rather than arithmetic.
-
-**Deviations recorded in this revision**
-
-- `current_buffer` is thread-local state in C (`#define current_buffer
-  (current_thread->m_current_buffer)`, thread.h 147, reached through lisp.h).  thread.rs is
-  not written yet, so the mirror declares the storage
-  (`unsafe extern "C" { static mut current_buffer: *mut buffer; }`) and the accessor
-  replaces it when thread.rs lands — the same interim `lisp.rs` records for the specpdl
-  trio (P-19).
-- `BVAR (buf, field)` and `PER_BUFFER_VAR_OFFSET (VAR)` paste a `_` onto the field name,
-  which `macro_rules!` cannot do (`concat_idents!` is unstable).  The call site therefore
-  spells the member as Rust knows it — the C name plus the `_` C's own macro appends — and
-  the macro only dereferences / takes `offset_of!`.  Macro names and call shapes stay
-  greppable 1:1 with C (P-37).  `PER_BUFFER_VAR_IDX` composes the two unchanged.
+- The 26 object-like value macros (`BEGV`, `BEGV_BYTE`, `PT`, `PT_BYTE`, `GPT`,
+  `GPT_BYTE`, `ZV`, `ZV_BYTE`, `Z`, `Z_BYTE`, `BEG_ADDR`, `BEGV_ADDR`, `PT_ADDR`,
+  `GPT_ADDR`, `GAP_END_ADDR`, `ZV_ADDR`, `Z_ADDR`, `GAP_SIZE`, `MODIFF`, `CHARS_MODIFF`,
+  `OVERLAY_MODIFF`, `SAVE_MODIFF`, `UNCHANGED_MODIFIED`, `OVERLAY_UNCHANGED_MODIFIED`,
+  `BEG_UNCHANGED`, `END_UNCHANGED`) and the 20 argument-taking ones (`BUF_GPT`, …,
+  `FETCH_BYTE`) are macros whose body is C's body.  This matters: the reference *writes*
+  to `BEGV`/`GPT`/`GAP_SIZE`/`Z`/`ZV`/`MODIFF`/`CHARS_MODIFF`/`SAVE_MODIFF`/
+  `BEG_UNCHANGED`/`END_UNCHANGED` in 159 statements, takes `&MODIFF` in 11, and assigns
+  `FETCH_BYTE (pos)` once, and a `fn` is neither assignable nor addressable.  The cost is
+  one spelling deviation: `NAME! ()` where C writes `NAME`.  `PT`/`PT_BYTE` keep C's
+  `+ 0`, which is what makes them not l-values.
+- `BUF_BEG`/`BUF_BEG_BYTE` stay functions (C spells them as `INLINE` functions returning
+  the `BEG` constant), and `BUF_BYTES_MAX` stays a `const` (C's `#define` of a constant
+  expression).
+- `BVAR (buf, field)` / `PER_BUFFER_VAR_OFFSET (VAR)` paste a `_` onto the field name,
+  which `macro_rules!` cannot do (`concat_idents!` is unstable).  The call site spells the
+  member as Rust knows it — the C name plus the `_` C's own macro appends — and the macro
+  only dereferences / takes `offset_of!`; `PER_BUFFER_VAR_IDX` composes the two unchanged.
+- `FOR_EACH_PER_BUFFER_OBJECT_AT` is a numeric `for` loop whose body follows the macro at
+  the C call site; the Rust body is the last argument (the shape `DEFUN!` uses) and the
+  loop is a `while`.  Its iteration variable stays a macro argument.
 - `GET_OVERLAYS_AT` is C's `do { … } while (false)`; it is a block macro and takes the
   enclosing function's `sa_avail` as its first argument, because C's `SAFE_NALLOCA` reads
-  that name out of the expansion context and Rust macro hygiene does not (P-37).
+  that name out of the expansion context and Rust macro hygiene does not.
 - `CHECK_FIXNUM_COERCE_MARKER (x)` is an assignment *expression* in C; the port is a
   statement macro (no C caller uses the value).
-- The macros that are l-values in C (`BEGV`, `PT`, `GPT`, `Z`, …, `BUF_PT`) become
-  `#[inline(always)]` functions, the shape `lisp.rs` already uses for `XLI`/`XIL`; the
-  `PT (…) + 0` spelling that makes C's macro non-assignable is kept in the body.
-- `OVERLAY_REAR_ADVANCE_P` / `OVERLAY_FRONT_ADVANCE_P` read the packed `bits: u8` of
-  `itree_node` by mask (`ITREE_REAR_ADVANCE`/`ITREE_FRONT_ADVANCE`, added to `itree.rs`
-  next to the field) where C names the bitfields (PORTING.md 1.3).
-- `buf_charpos_to_bytepos` and `buf_bytepos_to_charpos` are declared in `lisp.rs` (that is
-  where C's lisp.h declares them), where `struct buffer` is incomplete, so their parameter
-  is `*mut c_void` (0.1-2) and the `buffer.rs` call sites cast; C has the complete type in
-  scope through buffer.h's own includes.
+- `OVERLAY_REAR_ADVANCE_P` / `OVERLAY_FRONT_ADVANCE_P` read itree's packed `bits` by mask
+  (`ITREE_REAR_ADVANCE`/`ITREE_FRONT_ADVANCE`) where C names the bitfields.
+- `current_buffer` is thread-local state in C (`thread.h` 147, reached through lisp.h).
+  thread.rs is not written yet, so the mirror declares the storage
+  (`unsafe extern "C" { static mut current_buffer: *mut buffer; }`) and the accessor
+  replaces it when thread.rs lands — the same interim `lisp.rs` records for specpdl
+  (P-19).  Both differential probes supply the symbol on the C and Rust sides.
+- `buf_charpos_to_bytepos` / `buf_bytepos_to_charpos` are declared in `lisp.rs`, where
+  `struct buffer` is incomplete, so their parameter is `*mut c_void` (0.1-2) and the
+  `buffer.rs` call sites cast.
 - `recenter_overlay_lists`, `fix_overlays_before` and `mmap_set_vars` are `extern` in the
-  reference header but have no definition anywhere in the reference tree
-  (`rg --include=*.c --include=*.h` over `emacs/`); the mirror carries the declarations
-  with neutral parameter names.
-- C's `INLINE_HEADER_BEGIN`/`INLINE_HEADER_END` and the include guard have no counterpart
-  (PORTING.md 0.1).
+  reference header but have no definition anywhere in the reference tree; the mirror
+  carries the declarations with neutral parameter names.
+- The four structs carry `#[repr(C, align(8))]`.  C has no alignment attribute on them
+  and the natural alignment on this target is already 8 (every field is a pointer or
+  `ptrdiff_t`); the explicit `align(8)` is recorded here because a 32-bit target would
+  disagree with C's natural alignment of 4 and no assertion in the baseline would notice.
+- C's include guard has no counterpart: `pub const EMACS_BUFFER_H: bool = true` exists so
+  the mirror's name set matches the reference header's (0.1, P-24).
 - Call-relationship differences (D7): none.  Parameter names in the `extern` blocks come
-  from the definitions (`intervals.c` 1751/1766/1776/1784/1849, `buffer.c` 147/714/992/…,
-  `alloc.c` 3768), because C's prototypes have none.
+  from the definitions (`intervals.c`, `buffer.c`, `alloc.c`), because C's prototypes have
+  none.
+
+### Evidence
+
+- `python3 tools/extract-abi.py --check emacs/src/buffer.h femacs/src/include/buffer.rs`
+  -> `OK`.  What that proves: every C function/macro/type/field/global name is present,
+  the struct field *sets* match, and no body is a stub.  What it does **not** prove (the
+  first adversarial review measured this with a six-mutation matrix): function bodies,
+  macro bodies and constant values are not compared, and `cinventory` extracts no
+  constants from this header at all, because its one-line `enum { … };` forms are not
+  parsed.  Those gaps are recorded as P-38 with the mutation matrix.
+- `xtask layout-check`: 200 assertions over `sizeof`/`alignof`/`offsetof` (non-bitfield
+  fields) plus the compile of every mirror.
+- `spikes/write-probe.sh`: 4 lines identical — the 159 write sites' shapes (assignment to
+  `GPT`/`ZV! …`, `+=`, `&raw mut MODIFF! ()`, `SAVE_MODIFF! () = MODIFF! ()`,
+  `FETCH_BYTE! (1) = 0x41`), plus the six packed `bool_bf` bits through the masks
+  (`bits 15 3`) and itree's three (`itree 7`).
+- `spikes/accessor-probe.sh`: 11 lines identical — `BEGV`…`BUF_COMPACT`, six
+  `BYTE_POS_ADDR`/`PTR_BYTE_POS`/`CHAR_POS_ADDR`/`BUF_PTR_BYTE_POS`/`FETCH_BYTE`/
+  `BUF_FETCH_BYTE`/`CHAR_TO_BYTE` sweeps, the three `BUF_*_ADDR` offsets, and
+  `BUF_COMPUTE_UNCHANGED` in both branches plus the min case.  Negative control: with the
+  first branch's two stores swapped (a semantic error all three gates pass), the probe
+  prints `unch eq 4 1` against C's `1 4`.
+- A C-vs-Rust differential of the constants the review flagged as hand-derived: the C
+  compiler and the mirror both print
+  `2305843009213693950 75 47 984 2000` for `BUF_BYTES_MAX`, `BUFFER_LISP_SIZE`,
+  `BUFFER_REST_SIZE`, `sizeof buffer` and `GAP_BYTES_DFL` (recipe:
+  `clang -std=gnu23 -O1 -I build/emacs-ref/lib -I spikes/shim -I build/emacs-ref/src
+  -I emacs/src -I emacs/lib probe.c` against a `rustc --edition 2024 -O probe.rs` that
+  includes the mirrors with the `lispsym` arena `spikes/inline_probe.rs` uses).  It
+  constrains five values, not the expressions that produce them.
+- Not covered by any evidence yet: the accessors that need a real runtime
+  (`BUF_BEGV`/`BUF_PT`/`BUF_ZV` through markers, `downcase`/`upcase` and the char-table
+  readers, `buffer_intervals`, the overlay accessors, `GET_OVERLAYS_AT`'s allocation
+  path, `CHARACTER_WIDTH`), and the `feature = "tree_sitter"` branch (P-30, P-38).
+
+### Adversarial review of 2026-10-02 and its dispositions
+
+Two reviewers attacked the frozen commit `f583f33` (`docs/reviews/2026-10-02-include-buffer-review.md`
+records their findings and the evidence).  Everything they raised is resolved here or
+recorded as an open item:
+
+| Finding | Disposition |
+| --- | --- |
+| 45 object-like macros as `fn` cannot express C's 159 write sites, 11 `&MODIFF` and `FETCH_BYTE (pos) =` | macros of C's kind, place expressions; `spikes/write-probe.sh`; recorded in P-37 |
+| `--check` does not compare function bodies, macro bodies or constants, and the enum constants of this header are not extracted at all (six-mutation matrix passed) | recorded as P-38 with the mutation matrix; the mirror's evidence section above states what each gate covers |
+| `GET_OVERLAYS_AT` → `SAFE_NALLOCA` evaluated `&*p`, which aborts on the two real call sites' NULL/uninitialized pointers | `pointee_size ($buf)` (lisp.rs); recorded |
+| the six `bool_bf` bits had neither names nor recorded bit numbers | six mask constants with clang's bit numbers; `spikes/write-probe.sh` |
+| two C comments (the `buffer_text` bitfields) had been dropped | restored on those fields |
+| the ledger's `99 / 19` mixed an `offsetof` count with a key count | corrected to 99 / 17 `offsetof` (101 / 19 keys) |
+| `eassert!` dropped the condition text and hardcoded `lisp.rs` | `concat! (stringify! ($cond), "\0")` + `concat! (file! (), "\0")` |
+| `FOR_EACH_PER_BUFFER_OBJECT_AT` was filed under P-22 although it needs no loop-macro decision | written, with the body as its last argument |
+| the `cfg (feature = "tree_sitter")` was not tied to the frozen configuration | `const _` assertion |
+| crate-root `extern` declarations in `lisp.rs` (74, of which ~62 are Emacs C functions) will collide with `E0428` when the defining unit lands | recorded as P-39 with the plan (move them into a `pub mod` + `use …::*`, the P-21/P-28 shadowing shape) |
+| `#[repr(C, align(8))]`, the include-guard constant and the `buf_charpos_to_bytepos` parameter name | recorded / corrected above |
