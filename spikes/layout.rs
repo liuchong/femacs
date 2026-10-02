@@ -53,6 +53,11 @@ pub union Lisp_Subr_function { pub a0: Option<unsafe extern "C" fn() -> Lisp_Obj
 #[repr(C)] #[derive(Clone, Copy)]
 pub union Lisp_Subr_intspec { pub string: *const i8, pub native: Lisp_Object }
 
+// bignum.h's mirror carries the gmp.h subset (P-49); the twin keeps the same shape.
+#[repr(C)] pub struct __mpz_struct { pub _mp_alloc: i32, pub _mp_size: i32, pub _mp_d: *mut u64 }
+pub type mpz_t = [__mpz_struct; 1];
+#[repr(C, align(8))] pub struct Lisp_Bignum { pub header: vectorlike_header, pub value: mpz_t }
+
 fn main() {
     macro_rules! sz { ($t:ty) => { println!("sizeof {:<34} {}", stringify!($t), size_of::<$t>()) } }
     macro_rules! al { ($t:ty) => { println!("alignof {:<33} {}", stringify!($t), align_of::<$t>()) } }
@@ -61,6 +66,15 @@ fn main() {
     macro_rules! off3 { ($t:ty, $a:tt, $b:tt, $c:tt) => { println!("offsetof {:<32} {}", concat!(stringify!($t), ".", stringify!($a), ".", stringify!($b), ".", stringify!($c)), offset_of!($t, $a.$b.$c)) } }
 
     println!("spike layout; system {}; EMACS_INT {} bits", std::env::consts::OS, 8 * size_of::<EMACS_INT>());
+    sz!(__mpz_struct); al!(__mpz_struct);
+    off!(__mpz_struct, _mp_alloc);
+    off!(__mpz_struct, _mp_size);
+    off!(__mpz_struct, _mp_d);
+    sz!(mpz_t);
+    println!("sizeof {:<34} {}", "mpz", size_of::<[mpz_t; 5]>());
+    sz!(Lisp_Bignum); al!(Lisp_Bignum);
+    off!(Lisp_Bignum, header);
+    off!(Lisp_Bignum, value);
     sz!(Lisp_Object); al!(Lisp_Object);
     sz!(vectorlike_header); al!(vectorlike_header);
     sz!(Lisp_String); al!(Lisp_String);
@@ -69,16 +83,12 @@ fn main() {
     sz!(Lisp_Symbol); al!(Lisp_Symbol);
     sz!(Lisp_Subr); al!(Lisp_Subr);
     off!(vectorlike_header, size);
-    off2!(Lisp_Symbol, u, s);
-    off2!(Lisp_Cons, u, s);
-    off2!(Lisp_String, u, s);
     off3!(Lisp_String, u, s, size);
     off3!(Lisp_String, u, s, size_byte);
     off3!(Lisp_String, u, s, intervals);
     off3!(Lisp_String, u, s, data);
     off2!(Lisp_String, u, next);
     off3!(Lisp_Cons, u, s, car);
-    off2!(Lisp_Cons, u, s);
     off!(Lisp_Vector, header);
     off!(Lisp_Vector, contents);
     off3!(Lisp_Symbol, u, s, name);

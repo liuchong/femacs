@@ -34,3 +34,12 @@ pub const fn _GL_COB4 (n: isize) -> usize {
 // character.c's `hexdigit[UCHAR_MAX + 1]` definition is sized by (CHAR_BIT is 8
 // on the frozen target).
 pub const UCHAR_MAX: c_int = 0xFF;
+
+// --- the system <limits.h> this header includes (P-26) ----------------------
+//
+// gnulib's limits.in.h includes the system <limits.h> (its line 26) and its INT_WIDTH
+// line (117) uses INT_MIN/INT_MAX from it; the port reaches them through this mirror.
+// Values measured from the frozen target's clang:
+// `printf ("%d %d", INT_MIN, INT_MAX)` -> `-2147483648 2147483647`.
+pub const INT_MIN: c_int = -2147483648;
+pub const INT_MAX: c_int = 2147483647;

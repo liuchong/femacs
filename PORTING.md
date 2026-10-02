@@ -227,6 +227,20 @@ pub type Lisp_Object = Lisp_Word;
   相同；**不得改成闭包**（会改变布局与调用约定）。
 - `*(T *) p`、union 换成员读、`memcpy` 到别类型 → `ptr::read_unaligned`/`write_unaligned`
   或 union 读，保持未对齐访问语义。
+- **C 的函数指针参数只有一种 ABI，移植后也只有一种**：库函数（libm 等）在 Rust 侧是
+  `unsafe extern "C" fn (…)`，同一参数位置上传的本单元 `static` 助手
+  （`floatfns.c` 的 `ceiling2`/`floor2`/`round2`/`truncate2`/`identity`/`rounddiv_q`）
+  也必须声明成 `unsafe extern "C" fn`，否则类型不同、`rounding_driver` 无法同时接受两者
+  （`port(floatfns.c)` 实测：混用 `unsafe fn` 报 `E0308 expected "C" fn, found "Rust" fn`）。
+
+### 1.5 C 的未初始化局部变量
+
+- C 里"声明后立刻由被调函数写入"的局部量（`double f1, f2;` 配 `frexp` 的 out 参数、
+  `int exponent;`、`EMACS_INT value;` 这类）在 Rust 必须有初值才能取得地址：统一写成
+  零初始化（`let mut value: EMACS_INT = 0;`）并在 ledger 里点名；代价是
+  "value assigned is never read" 一类 warning（`gate-fast` 不看 warning）。
+- `void *p; f (&p);` 同理；`let p: *const T;` 只在**每个分支都赋值**时才合法
+  （`floatfns.c` 的 `rescale_for_division` 就是这种形状）。
 
 ---
 
@@ -595,6 +609,9 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
 | P-46 | `spikes/shim/stdckdint.h` 的 no-op 宏**影子掉**了系统真实实现（本机 `HAVE_STDCKDINT_H=1`），任何按探针命令构建的 C 参照都会静默失去溢出检测（`%99999999999999999999d` 回绕而不是 `error`） | **已定并实现**：shim 只留 `HAVE_*_H` 为 undefined 的头（现仅 `stdbit.h`），且探针一律 `-idirafter spikes/shim` | 评审 A F3；`spikes/shim/README.md` 写明规则与代价 |
 | P-47 | 闸门缺“探针可跑性”这一层：`ec20c48` 让三条探针在仓库根跑裸 `rustc`（解析到 stable）而全部闸门仍然绿 | **已定并实现**：`gate-fast` 增加“探针程序的 Rust 侧编译”；新增 `xtask gate-probes` 跑四个 C 差分脚本，`build/emacs-ref` 缺失时**报错**而不是跳过 | 评审 D F1。实测 `gate-probes`：`inline 6081` / `accessor 11` / `write 4` / `va 6` 行逐字节一致 |
 | P-48 | **残余**：端口**自造**的文件级常量只被“记录的偏离”覆盖——`doprnt.rs` 的 `TBUF_LEN = SIZE_BOUND_EXTRA + 50` 改成 `+ 500` 仍然全绿（`50` 被 `macro-body-notes.tsv` 豁免，而 `TBUF_LEN` 不是 C 名，没有东西能比它） | **已记录（批次 B 之前做）** | 建“自造常量 ↔ C 表达式”表 + token 包含检查（与 P-44/P-45 同型）；批次 B 起这类常量会变多（`floatfns.c` 的 `signbit`/`emacs_rint`、`bignum` 的 `GMP_NUMB_BITS`），落地时一并做；在那之前 ledger 必须逐条点名自造常量（评审 A F6） |
+| P-49 | `<gmp.h>`（= gnulib `lib/gmp.h` → `lib/mini-gmp.h`）没有镜像，而 `bignum.h`、`floatfns.c` 都要 `mpz_t`：`lib/` 属批次 F（`mini-gmp.c` 4,699 行） | **已定（临时位置已记录）** | `bignum.rs` 按参照头的顺序携带用到的子集（类型 + 15 个 `mpz_*`），每条上面引 C 行；批次 F 原样搬进 `femacs/lib/include/mini-gmp.rs`。`mpz_t` 保持 C 的数组 typedef：`pub type mpz_t = [__mpz_struct; 1]`，因此 `sizeof (mpz_t)`=16、`mpz[5]`=80、`Lisp_Bignum`=24、`value` 偏移 8 全部由布局闸门（210 条断言，`spikes/run.sh` 报 `46 shared, 0 mismatch`）钉住；`mpz_t` 形参在 C 里退化为指针，故声明用 `*mut/*const __mpz_struct`，实参写 `…as_mut_ptr ()/…as_ptr ()` |
+| P-50 | `<math.h>`/`<limits.h>` 也没有镜像，`floatfns.c` 需要 22 个 libm 函数、`isnan/isfinite/isinf/signbit` 四个宏、`INT_MIN/INT_MAX`、`HUGE_VAL/FP_ILOGB0`，以及 `DBL_MANT_DIG/DBL_MIN_EXP` | **已定（系统镜像已建）** | 新增 `femacs/lib/include/math.rs`（libm 声明 + 四个宏 + 两个常量），`limits.in.rs` 补 `INT_MIN/INT_MAX`，`float.in.rs` 补 `DBL_MANT_DIG=53/DBL_MIN_EXP=-1021`；常量全部取自冻结目标 clang 实测（命令写在文件里）。`signbit` 取**系统语义**（`is_sign_negative`，含 NaN 的符号位），`floatfns.c` 自己的 `#ifndef signbit` 回到 `feature = "no_signbit"` 的死文本——两者对 NaN 结论相反，取系统语义才是参照二进制的行为 |
+| P-51 | 死分支的**文本**也要在镜像里（P-08 只决定哪支是活的）：`emacs_rint`/`trunc` 的 `#else`、`double_integer_scale` 的 `#ifdef HAIKU`、`signbit` 的 `#ifndef` | **已定** | 死文本用 `feature = "no_rint"`/`"no_trunc"`/`"haiku"`/`"no_signbit"` 包起来（特性名命名**非冻结**的一侧，默认即冻结配置），每条配 `const _: () = assert! (!cfg! (…) || …)` 绑住冻结常量；`--check` 因此能看到死分支的 token，评审也读得到 C 的原文 |
 
 **P-38/P-24 说明（docstring 的值，2026-10-02 第三轮）**：C 的 `doc: /* … */` 注释不是它的值——
 `lib-src/make-docfile.c` 的 `read_c_string_or_comment` 会**丢掉注释首尾空白**，并把 `\X` 读成 X（`\n`/`\t` 等控制字符除外），

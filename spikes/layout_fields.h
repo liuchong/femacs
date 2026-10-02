@@ -157,3 +157,7 @@
   OFF (struct ts_linecol, bytepos);
   OFF (struct ts_linecol, line);
   OFF (struct ts_linecol, col);
+
+  SZ (struct Lisp_Bignum); AL (struct Lisp_Bignum);
+  OFF (struct Lisp_Bignum, header);
+  OFF (struct Lisp_Bignum, value);

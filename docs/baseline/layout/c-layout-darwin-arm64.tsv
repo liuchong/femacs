@@ -1,10 +1,12 @@
 key	value
+alignof Lisp_Bignum	8
 alignof Lisp_Cons	8
 alignof Lisp_Object	8
 alignof Lisp_String	8
 alignof Lisp_Subr	8
 alignof Lisp_Symbol	8
 alignof Lisp_Vector	8
+alignof __mpz_struct	8
 alignof buffer	8
 alignof buffer_text	8
 alignof itree_iterator	8
@@ -13,6 +15,8 @@ alignof itree_tree	8
 alignof sortvec	8
 alignof ts_linecol	8
 alignof vectorlike_header	8
+offsetof Lisp_Bignum.header	0
+offsetof Lisp_Bignum.value	8
 offsetof Lisp_Cons.u.s.car	0
 offsetof Lisp_Cons.u.s.u.cdr	8
 offsetof Lisp_Cons.u.s.u.chain	8
@@ -38,6 +42,9 @@ offsetof Lisp_Symbol.u.s.plist	32
 offsetof Lisp_Symbol.u.s.val	16
 offsetof Lisp_Vector.contents	8
 offsetof Lisp_Vector.header	0
+offsetof __mpz_struct._mp_alloc	0
+offsetof __mpz_struct._mp_d	8
+offsetof __mpz_struct._mp_size	4
 offsetof buffer.abbrev_mode_	312
 offsetof buffer.abbrev_table_	144
 offsetof buffer.auto_fill_function_	192
@@ -186,6 +193,7 @@ offsetof ts_linecol.col	16
 offsetof ts_linecol.line	8
 offsetof vectorlike_header.size	0
 sizeof Aligned_Lisp_Subr	56
+sizeof Lisp_Bignum	24
 sizeof Lisp_Cons	16
 sizeof Lisp_Float	8
 sizeof Lisp_Marker	48
@@ -194,6 +202,7 @@ sizeof Lisp_String	32
 sizeof Lisp_Subr	56
 sizeof Lisp_Symbol	48
 sizeof Lisp_Vector	8
+sizeof __mpz_struct	16
 sizeof buffer	984
 sizeof buffer_text	144
 sizeof handler	288
@@ -201,6 +210,8 @@ sizeof itree_iterator	40
 sizeof itree_node	80
 sizeof itree_tree	24
 sizeof jmp_buf	192
+sizeof mpz	80
+sizeof mpz_t	16
 sizeof sigjmp_buf	196
 sizeof sortvec	40
 sizeof ts_linecol	24

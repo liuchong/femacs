@@ -2,7 +2,7 @@
   "target": "darwin-arm64 (Apple Silicon), configure --without-all --with-x=no --with-ns=no",
   "generated": "2026-10-02",
   "source": "emacs/ @ fd7afced403",
-  "note": "Frozen input for PORTING.md P-08 (config.rs / --cfg). Values are what a minimal macOS configure decided on this host; a full GUI target must be configured separately and frozen the same way.  Extended on 2026-10-02 for doprnt.c's exprintf gate (HAVE_X_WINDOWS, USE_X_TOOLKIT); both are what the same minimal macOS configure reported.",
+  "note": "Frozen input for PORTING.md P-08 (config.rs / --cfg). Values are what a minimal macOS configure decided on this host; a full GUI target must be configured separately and frozen the same way.  Extended on 2026-10-02 for doprnt.c's exprintf gate (HAVE_X_WINDOWS, USE_X_TOOLKIT), then for floatfns.c's math gates (HAVE_LOG2, HAVE_RINT, HAVE_TRUNC, HAIKU).  All of them are what the same minimal macOS configure reported (re-run 2026-10-02, build/emacs-ref/src/config.h: HAVE_LOG2 1068, HAVE_RINT 1327, HAVE_TRUNC 1739; HAIKU is #undef at 330).",
   "macros": {
     "HAVE__SETJMP": "1",
     "HAVE_SIGSETJMP": "1",
@@ -28,6 +28,10 @@
     "HAVE_TREE_SITTER": "undefined",
     "HAVE_JSON": "absent",
     "EMACS_INT_WIDTH": "absent",
-    "USE_X_TOOLKIT": "undefined"
+    "USE_X_TOOLKIT": "undefined",
+    "HAVE_LOG2": "1",
+    "HAVE_RINT": "1",
+    "HAVE_TRUNC": "1",
+    "HAIKU": "undefined"
   }
 }

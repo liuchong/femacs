@@ -59,7 +59,7 @@ character-literal scanner) and the gates that certify them.  Known-open items
 
 Gate runs on this round's checked tree: `gate-fast` green (inventory, `cargo check`, six
 translation-unit builds including `--cfg enable_checking`, seven probe programs compiled,
-`fam`/`shadow`/`macro`, 200 layout assertions, layout-check passed);
+`fam`/`shadow`/`macro`, layout assertions (200 then; 210 after the bignum.h mirror added its 10 keys), layout-check passed);
 `gate-probes` green (`inline-probe: 6081 lines identical`, `accessor-probe: 11`,
 `write-probe: 4`, `va-probe: 6`); `spikes/miri-probe.sh` clean on the pinned toolchain.
 

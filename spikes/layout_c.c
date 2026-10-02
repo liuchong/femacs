@@ -6,6 +6,7 @@
 #include "lisp.h"
 #include "buffer.h"
 #include "window.h"
+#include "bignum.h"
 
 #define SZ(T)      printf("sizeof %-34s %zu\n", #T, sizeof (T))
 #define AL(T)      printf("alignof %-33s %zu\n", #T, _Alignof (T))
@@ -31,6 +32,15 @@ main (void)
   SZ (struct buffer);
   SZ (struct window);
   SZ (jmp_buf); SZ (sigjmp_buf);
+
+  /* bignum.h's own layout and the gmp.h subset its mirror carries (P-49) */
+  SZ (__mpz_struct);           AL (__mpz_struct);
+  OFF (__mpz_struct, _mp_alloc);
+  OFF (__mpz_struct, _mp_size);
+  OFF (__mpz_struct, _mp_d);
+  SZ (mpz_t);
+  SZ (mpz);
+  SZ (struct Lisp_Bignum);     AL (struct Lisp_Bignum);
 
   /* every field of the mirrored structs (generated) */
 #include "layout_fields.h"

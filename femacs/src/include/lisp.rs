@@ -2782,19 +2782,17 @@ macro_rules! SAFE_ALLOCA {
 macro_rules! SAFE_ALLOCA_LISP {
     ($sa_avail:ident, $buf:ident, $nelt:expr) => {{
         let nelt_ = $nelt as isize;
-        let nbytes = nelt_.checked_mul (word_size ());
-        match nbytes {
-            None => unsafe { memory_full_up () },
-            Some (nbytes) => {
-                if nbytes as u64 > usize::MAX as u64 {
-                    unsafe { memory_full_up () }
-                } else if nbytes <= $sa_avail {
-                    $buf = AVAIL_ALLOCA! ($sa_avail, nbytes) as *mut Lisp_Object;
-                } else {
-                    $buf = unsafe { xzalloc (nbytes as usize) } as *mut Lisp_Object;
-                    unsafe { record_unwind_protect_array ($buf, nelt_) };
-                }
-            }
+        // C: `if (ckd_mul (&alloca_nbytes, nelt, word_size) || SIZE_MAX < alloca_nbytes)`;
+        // the pair from `overflowing_mul` is ckd_mul's wrapped value and overflow flag
+        // (P-15, the ckd_mul family in docs/ports/token-aliases.tsv).
+        let (alloca_nbytes, overflow) = nelt_.overflowing_mul (word_size ());
+        if overflow || alloca_nbytes as u64 > usize::MAX as u64 {
+            unsafe { memory_full_up () }
+        } else if alloca_nbytes <= $sa_avail {
+            $buf = AVAIL_ALLOCA! ($sa_avail, alloca_nbytes) as *mut Lisp_Object;
+        } else {
+            $buf = unsafe { xzalloc (alloca_nbytes as usize) } as *mut Lisp_Object;
+            unsafe { record_unwind_protect_array ($buf, nelt_) };
         }
     }};
 }
@@ -2905,8 +2903,12 @@ pub fn max (a: isize, b: isize) -> isize { if a > b { a } else { b } }
 #[inline(always)]
 pub fn min (a: isize, b: isize) -> isize { if a < b { a } else { b } }
 
-#[inline(always)]
-pub fn eabs (x: f64) -> f64 { if x < 0.0 { -x } else { x } }
+/// eabs (x): C's macro (lisp.h 5597), which works for any signed type and — like C —
+/// evaluates its argument twice when it is negative.  The port used to spell it as a
+/// `f64` function, which floatfns.c's integer uses cannot call.
+macro_rules! eabs {
+    ($x:expr) => { if $x < 0 { -$x } else { $x } };
+}
 
 #[inline(always)]
 pub fn emacs_fclose (f: *mut c_void) -> c_int { unsafe { fclose (f as *mut _) } }
@@ -3381,6 +3383,17 @@ macro_rules! CONS_TO_INTEGER { ($cons:expr, $var:expr) => { $var = <_ as ConsToI
 pub mod other_units {
     // the mirror's own types/constants live in the crate root, as lisp.h's do
     use super::*;
+
+    // src/lisp.h 4093, 4210, 4652, 4797, 4835: helpers and subrs whose *definitions*
+    // live in other units (floatfns.c is the first unit that calls them).  The port
+    // declares them here, as lisp.h does, and the defining unit shadows the import
+    // (P-39's shape).  `AVOID` is `-> !`.
+    unsafe extern "C" {
+        pub fn double_to_integer (d: c_double) -> Lisp_Object;            // bignum.c
+        pub fn expt_integer (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;  // data.c
+        pub fn make_float (d: c_double) -> Lisp_Object;                    // alloc.c
+        pub fn overflow_error () -> !;                                     // bignum.c
+    }
 
     // src/lisp.h 3919 (`alloc.c`) and 4689 (`chartab.c`); parameter names from those
     // definitions, C's prototypes have none.

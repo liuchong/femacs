@@ -32,6 +32,7 @@ STRUCTS = {
     "buffer_text": "src/buffer.h",
     "sortvec": "src/buffer.h",
     "ts_linecol": "src/buffer.h",
+    "Lisp_Bignum": "src/bignum.h",
 }
 
 

@@ -3,11 +3,14 @@
 
 pub const ALIGNOF_EMACS_INT: i64 = 8;
 pub const GC_SETJMP_WORKS: bool = true;
+pub const HAIKU: bool = false; // #undef in config.h
 pub const HAVE_C_ALIGNASOF: bool = true;
+pub const HAVE_LOG2: bool = true;
 pub const HAVE_MODULES: bool = false; // #undef in config.h
 pub const HAVE_NATIVE_COMP: bool = false; // #undef in config.h
 pub const HAVE_NS: bool = false; // #undef in config.h
 pub const HAVE_PDUMPER: bool = true;
+pub const HAVE_RINT: bool = true;
 pub const HAVE_SIGSETJMP: bool = true;
 pub const HAVE_STATEMENT_EXPRESSIONS: bool = true;
 pub const HAVE_STDBIT_H: bool = false; // #undef in config.h
@@ -15,6 +18,7 @@ pub const HAVE_STDCKDINT_H: bool = true;
 pub const HAVE_STDCOUNTOF_H: bool = true;
 pub const HAVE_STRUCT_ATTRIBUTE_ALIGNED: bool = true;
 pub const HAVE_TREE_SITTER: bool = false; // #undef in config.h
+pub const HAVE_TRUNC: bool = true;
 pub const HAVE_TYPEOF: bool = true;
 pub const HAVE_X_WINDOWS: bool = false; // #undef in config.h
 pub const HAVE__SETJMP: bool = true;
