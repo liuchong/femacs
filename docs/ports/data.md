@@ -254,3 +254,16 @@
   disagreements with clang, so the gate now reads this file's frozen live text instead of
   being blind to its `#ifdef`s - which is how the `user-ptrp` question above became visible
   at all (review A's P1, review B's F1).
+- **Next segment (planning note).**  `boundp` (data.c 745) calls
+  `swap_in_symval_forwarding` (data.c 1574), whose closure is
+  `do_symval_forwarding` (1337), `store_symval_forwarding` (1470),
+  `check_fwd_predicate` (1417), `kboard_for_bindings` (1314) and the three
+  `wrong_*`/`check_choice` helpers (1365-1469) - so the file is ported in C order in
+  segments, and the segment *after* this one is the forwarding machinery
+  (data.c 1314-1646, ending at `Fsymbol_value`), which leaves 931-1313 (the
+  `defalias` family) as the one hole.  That hole needs `comp.h`: `Fdefalias` (data.c
+  1019) calls `maybe_defer_native_compilation`, which comp.h declares as an `extern`
+  under `HAVE_NATIVE_COMP` and as a **`static inline` no-op** in the `#else` branch
+  (comp.h 82-96) that this configuration compiles - i.e. the call is live but
+  resolves to an empty body, so it needs `comp.rs` (106 lines) rather than a
+  substitute.
