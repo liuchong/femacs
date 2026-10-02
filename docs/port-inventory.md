@@ -23,16 +23,16 @@
 | globals | 1,934 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 41 |
-| 其中 done / wip | 28 / 13 |
-| 待开工 | 549 |
+| 已有目标文件 | 58 |
+| 其中 done / wip | 45 / 13 |
+| 待开工 | 532 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 228 |
+| `lib/` | 237 | 69,423 | 974 | 0 | 2,476 | 685 | 399 | 32 | 211 |
 | `lib-src/` | 14 | 20,960 | 262 | 0 | 150 | 220 | 78 | 81 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,161 | 490 | 1,104 | 1,976 | 432 | 40 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,619 | 368 | 1,834 | 2,175 | 974 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 228 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 974 | 0 | 2,476 | 399 | 32 | 211 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -126,10 +126,10 @@
 | `lib/boot-time-aux.h` | 426 | 11 | 0 | 3 | 0 | 0 | 2 | L | `femacs/lib/include/boot-time-aux.rs` | todo |
 | `lib/boot-time.c` | 306 | 3 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/boot-time.rs` | todo |
 | `lib/boot-time.h` | 49 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/boot-time.rs` | todo |
-| `lib/byteswap.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/byteswap.rs` | todo |
+| `lib/byteswap.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/byteswap.rs` | done |
 | `lib/byteswap.in.h` | 73 | 3 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/include/byteswap.in.rs` | todo |
 | `lib/c++defs.h` | 367 | 0 | 0 | 23 | 0 | 0 | 0 | L | `femacs/lib/include/c++defs.rs` | todo |
-| `lib/c-ctype.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/c-ctype.rs` | todo |
+| `lib/c-ctype.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/c-ctype.rs` | done |
 | `lib/c-ctype.h` | 366 | 15 | 0 | 12 | 1 | 0 | 0 | L | `femacs/lib/include/c-ctype.rs` | todo |
 | `lib/c-strcase.h` | 61 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/c-strcase.rs` | todo |
 | `lib/c-strcasecmp.c` | 51 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/c-strcasecmp.rs` | todo |
@@ -151,11 +151,11 @@
 | `lib/dtotimespec.c` | 53 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/dtotimespec.rs` | todo |
 | `lib/dup2.c` | 205 | 5 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/dup2.rs` | todo |
 | `lib/dynarray.h` | 284 | 0 | 0 | 8 | 0 | 0 | 0 | L | `femacs/lib/include/dynarray.rs` | todo |
-| `lib/endian.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/endian.rs` | todo |
+| `lib/endian.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/endian.rs` | done |
 | `lib/endian.in.h` | 301 | 12 | 0 | 30 | 15 | 0 | 0 | L | `femacs/lib/include/endian.in.rs` | todo |
 | `lib/errno.in.h` | 270 | 0 | 0 | 74 | 73 | 0 | 0 | L | `femacs/lib/include/errno.in.rs` | todo |
 | `lib/euidaccess.c` | 217 | 2 | 0 | 14 | 4 | 0 | 0 | L | `femacs/lib/euidaccess.rs` | todo |
-| `lib/execinfo.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/execinfo.rs` | todo |
+| `lib/execinfo.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/execinfo.rs` | done |
 | `lib/execinfo.in.h` | 69 | 3 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/execinfo.in.rs` | todo |
 | `lib/faccessat.c` | 98 | 2 | 0 | 8 | 0 | 0 | 0 | L | `femacs/lib/faccessat.rs` | todo |
 | `lib/fchmodat.c` | 159 | 2 | 0 | 8 | 1 | 0 | 0 | L | `femacs/lib/fchmodat.rs` | todo |
@@ -209,9 +209,9 @@
 | `lib/intprops-internal.h` | 413 | 0 | 0 | 29 | 3 | 0 | 0 | L | `femacs/lib/include/intprops-internal.rs` | todo |
 | `lib/intprops.h` | 377 | 0 | 0 | 38 | 0 | 0 | 0 | L | `femacs/lib/include/intprops.rs` | todo |
 | `lib/inttypes.in.h` | 1,029 | 0 | 0 | 167 | 113 | 0 | 0 | L | `femacs/lib/include/inttypes.in.rs` | todo |
-| `lib/issymlink.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/issymlink.rs` | todo |
+| `lib/issymlink.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/issymlink.rs` | done |
 | `lib/issymlink.h` | 65 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/issymlink.rs` | todo |
-| `lib/issymlinkat.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/issymlinkat.rs` | todo |
+| `lib/issymlinkat.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/issymlinkat.rs` | done |
 | `lib/issymlinkat.h` | 68 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/issymlinkat.rs` | todo |
 | `lib/lchmod.c` | 97 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/lchmod.rs` | todo |
 | `lib/libc-config.h` | 209 | 0 | 0 | 16 | 1 | 0 | 0 | L | `femacs/lib/include/libc-config.rs` | todo |
@@ -232,7 +232,7 @@
 | `lib/md5-stream.c` | 134 | 1 | 0 | 7 | 2 | 0 | 0 | L | `femacs/lib/md5-stream.rs` | todo |
 | `lib/md5.c` | 394 | 7 | 0 | 16 | 1 | 0 | 0 | L | `femacs/lib/md5.rs` | todo |
 | `lib/md5.h` | 181 | 0 | 0 | 14 | 5 | 7 | 0 | L | `femacs/lib/include/md5.rs` | todo |
-| `lib/memeq.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/memeq.rs` | todo |
+| `lib/memeq.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/memeq.rs` | done |
 | `lib/memmem.c` | 71 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/memmem.rs` | todo |
 | `lib/mempcpy.c` | 33 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/mempcpy.rs` | todo |
 | `lib/memrchr.c` | 158 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/memrchr.rs` | todo |
@@ -288,15 +288,15 @@
 | `lib/sig2str.h` | 32 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/include/sig2str.rs` | todo |
 | `lib/sigdescr_np.c` | 351 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/sigdescr_np.rs` | todo |
 | `lib/signal.in.h` | 536 | 0 | 0 | 26 | 17 | 16 | 0 | L | `femacs/lib/include/signal.in.rs` | todo |
-| `lib/stat-time.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stat-time.rs` | todo |
+| `lib/stat-time.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stat-time.rs` | done |
 | `lib/stat-time.h` | 266 | 10 | 0 | 6 | 1 | 0 | 0 | L | `femacs/lib/include/stat-time.rs` | todo |
 | `lib/stdbit.c` | 23 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdbit.rs` | done |
 | `lib/stdbit.in.h` | 2,229 | 173 | 0 | 90 | 33 | 0 | 0 | L | `femacs/lib/include/stdbit.in.rs` | todo |
-| `lib/stdc_bit_width.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_bit_width.rs` | todo |
-| `lib/stdc_count_ones.c` | 23 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_count_ones.rs` | todo |
-| `lib/stdc_leading_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_leading_zeros.rs` | todo |
-| `lib/stdc_memreverse8u.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_memreverse8u.rs` | todo |
-| `lib/stdc_trailing_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_trailing_zeros.rs` | todo |
+| `lib/stdc_bit_width.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_bit_width.rs` | done |
+| `lib/stdc_count_ones.c` | 23 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_count_ones.rs` | done |
+| `lib/stdc_leading_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_leading_zeros.rs` | done |
+| `lib/stdc_memreverse8u.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_memreverse8u.rs` | done |
+| `lib/stdc_trailing_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_trailing_zeros.rs` | done |
 | `lib/stdckdint.in.h` | 58 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/stdckdint.in.rs` | todo |
 | `lib/stdcountof.in.h` | 124 | 0 | 0 | 4 | 1 | 1 | 0 | L | `femacs/lib/include/stdcountof.in.rs` | todo |
 | `lib/stddef.in.h` | 248 | 0 | 0 | 12 | 2 | 0 | 0 | L | `femacs/lib/include/stddef.in.rs` | todo |
@@ -304,7 +304,7 @@
 | `lib/stdio-consolesafe.c` | 202 | 7 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdio-consolesafe.rs` | todo |
 | `lib/stdio-impl.h` | 308 | 0 | 0 | 31 | 17 | 8 | 0 | L | `femacs/lib/include/stdio-impl.rs` | todo |
 | `lib/stdio.in.h` | 2,224 | 1 | 0 | 84 | 11 | 0 | 0 | L | `femacs/lib/include/stdio.in.rs` | todo |
-| `lib/stdlib.c` | 21 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdlib.rs` | todo |
+| `lib/stdlib.c` | 21 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdlib.rs` | done |
 | `lib/stdlib.in.h` | 1,991 | 2 | 0 | 75 | 15 | 7 | 0 | L | `femacs/lib/include/stdlib.in.rs` | todo |
 | `lib/stpcpy.c` | 49 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stpcpy.rs` | todo |
 | `lib/str-two-way.h` | 455 | 3 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/str-two-way.rs` | todo |
@@ -333,11 +333,11 @@
 | `lib/timegm.c` | 57 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/timegm.rs` | todo |
 | `lib/timespec-add.c` | 54 | 1 | 0 | 0 | 0 | 2 | 0 | L | `femacs/lib/timespec-add.rs` | todo |
 | `lib/timespec-sub.c` | 55 | 1 | 0 | 0 | 0 | 2 | 0 | L | `femacs/lib/timespec-sub.rs` | todo |
-| `lib/timespec.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/timespec.rs` | todo |
+| `lib/timespec.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/timespec.rs` | done |
 | `lib/timespec.h` | 102 | 4 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/timespec.rs` | done |
-| `lib/u64.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/u64.rs` | todo |
+| `lib/u64.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/u64.rs` | done |
 | `lib/u64.h` | 236 | 14 | 0 | 17 | 2 | 0 | 0 | L | `femacs/lib/include/u64.rs` | todo |
-| `lib/unistd.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/unistd.rs` | todo |
+| `lib/unistd.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/unistd.rs` | done |
 | `lib/unistd.in.h` | 2,447 | 2 | 0 | 91 | 10 | 0 | 1 | L | `femacs/lib/include/unistd.in.rs` | todo |
 | `lib/unlocked-io.h` | 148 | 0 | 0 | 32 | 1 | 0 | 0 | L | `femacs/lib/include/unlocked-io.rs` | todo |
 | `lib/utimens.c` | 690 | 5 | 0 | 5 | 1 | 0 | 2 | L | `femacs/lib/utimens.rs` | todo |

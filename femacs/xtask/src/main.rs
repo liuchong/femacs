@@ -1230,10 +1230,15 @@ fn finished_units() -> Result<Vec<String>, String> {
         if stem.starts_with("include-") || stem == "README" {
             continue;
         }
-        let unit = format!("src/{stem}.rs");
-        if !Path::new(&unit).is_file() {
+        // A unit lives under src/ (a C file of the Emacs tree) or lib/ (a gnulib one); the
+        // ledger's stem is the C file's, and the port map is what pairs them.
+        let unit = ["src", "lib"]
+            .iter()
+            .map(|dir| format!("{dir}/{stem}.rs"))
+            .find(|cand| Path::new(cand).is_file());
+        let Some(unit) = unit else {
             continue;                                  // header mirror, not a unit
-        }
+        };
         let checklist = fs::read_to_string(&ledger).map_err(|e| e.to_string())?;
         if checklist.contains("- [ ]") {
             continue;                                  // still being ported
