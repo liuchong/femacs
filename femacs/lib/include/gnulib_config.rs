@@ -19,3 +19,13 @@ macro_rules! _GL_CMP {
         (($n1) > ($n2)) as c_int - (($n1) < ($n2)) as c_int
     };
 }
+
+/// gnulib's `_GL_EXTERN_INLINE` (m4/gnulib-common.m4's AH_VERBATIM; the frozen configuration's
+/// value is the two keywords `extern inline`, docs/baseline/config/darwin-arm64.macros.tsv
+/// 2104).  In the C99 inline model a header carries `_GL_INLINE`-qualified definitions and one
+/// `.c` per header does `#define _GL_<X>_INLINE _GL_EXTERN_INLINE` before including it, so that
+/// the translation unit emits the single external definition (PORTING.md 10.6).  The port's
+/// functions are ordinary Rust items with one definition each, so the qualifier has no
+/// counterpart; the name is a marker because the wrapper `.c` files define their own
+/// `_GL_*_INLINE` in terms of it and that relationship is what the macro ledger compares.
+pub const _GL_EXTERN_INLINE: () = ();

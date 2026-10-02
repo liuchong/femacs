@@ -683,3 +683,12 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
     `sort.rs` 上发现 `XSYMBOL` 少了 `XBARE_SYMBOL` 的 `+ lispsym` 基址（返回的是编码
     偏移而不是指针），`--check`/`build-tu`/`layout-check` 三道闸门全绿却会段错误。
     镜像改动用可运行探针验证；行为级差分见 P-30。
+12. **gnulib 的 `_GL_*_INLINE` 包装 `.c`（`lib/stdbit.c`、`lib/streq.c`、`lib/strnul.c`
+    …）的判据**：这类文件的内容只有 LGPL 头 + `#define _GL_X_INLINE _GL_EXTERN_INLINE`
+    + 两个 include，作用是 C99 inline 模型里"由这一个单元发出外部定义"（冻结配置的
+    `_GL_EXTERN_INLINE` 就是两个字面关键字 `extern inline`，宏表 2104）。端口的函数是
+    各只有一份定义的普通 Rust 项，所以 **端口保留的是宏名和它与 `_GL_EXTERN_INLINE` 的
+    关系**：`lib/include/gnulib_config.rs` 里 `_GL_EXTERN_INLINE` 是 marker 常量，
+    包装文件里 `pub const _GL_X_INLINE: () = _GL_EXTERN_INLINE;`，函数体本身落在对应的
+    `lib/include/<header>.rs` 或 `src/` 镜像里。这类文件**不写 `// femacs:` 文件头**：
+    C 自己只有 20 行左右，漂移闸的 ±5% 容不下额外的头注释——出处写在 `docs/ports/<stem>.md`。
