@@ -36,3 +36,13 @@ pub const PTRDIFF_WIDTH: usize = _GL_INTEGER_WIDTH (PTRDIFF_MIN, PTRDIFF_MAX);
 // The fast integer types the reference names in its own headers (character.h
 // uses int_fast64_t); the frozen target's widths come from the system header.
 pub type int_fast64_t = i64;
+
+// The frozen target's <stdint.h> spells the fixed-width typedefs; a ported unit keeps
+// C's spelling where a body's token check compares it (md5.c's `uint32_t`), the way the
+// lisp.h mirror carries `intptr_t`/`uintmax_t`.
+pub type uint32_t = u32;
+pub type uint64_t = u64;
+
+// <stdint.h>'s per-width maxima; lib/u64.h's native `u64getlo` masks with
+// UINT32_MAX (the lisp.h mirror carries the machine-word ones).
+pub const UINT32_MAX: u32 = u32::MAX;
