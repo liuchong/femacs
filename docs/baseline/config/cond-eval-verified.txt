@@ -7,10 +7,16 @@ lib/timespec.h
 src/bignum.h
 src/buffer.h
 src/character.h
+src/coding.h
 src/composite.h
 src/dispextern.h
 src/font.h
+src/frame.h
 src/itree.h
+src/keyboard.h
 src/keymap.h
 src/lisp.h
+src/process.h
 src/systime.h
+src/termhooks.h
+src/window.h
