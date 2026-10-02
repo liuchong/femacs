@@ -84,6 +84,10 @@ STRUCTS = {
     # termhooks.h's terminal record: 520/8, with `display_info` (an 8-byte union) at 80 and the
     # hook table from 112 to 512.
     "terminal": "src/termhooks.h",
+    # window.h's record (520/8) and its cursor position; the nineteen `bool_bf : 1` members share
+    # the 4-byte unit at 500, so the port keys everything else and stores that unit as `bits`.
+    "window": "src/window.h",
+    "cursor_pos": "src/window.h",
 }
 
 # C unions the port mirrors as Rust unions.  They get `SZ (union …)`/`AL (union …)` keys and the

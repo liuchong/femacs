@@ -4,22 +4,22 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 16
-- [ ] WINDOWP  (line 478)
-- [ ] CHECK_WINDOW  (line 484)
-- [ ] XWINDOW  (line 490)
-- [ ] wset_frame  (line 499)
-- [ ] wset_next  (line 505)
-- [ ] wset_prev  (line 511)
-- [ ] wset_mode_line_help_echo  (line 517)
-- [ ] wset_new_pixel  (line 523)
-- [ ] wset_vertical_scroll_bar  (line 529)
-- [ ] wset_horizontal_scroll_bar  (line 535)
-- [ ] wset_horizontal_scroll_bar_type  (line 541)
-- [ ] wset_cursor_type  (line 547)
-- [ ] wset_prev_buffers  (line 553)
-- [ ] wset_next_buffers  (line 559)
-- [ ] output_cursor_to  (line 1246)
-- [ ] overlay_matches_window  (line 1258)
+- [x] WINDOWP  (line 478)
+- [x] CHECK_WINDOW  (line 484)
+- [x] XWINDOW  (line 490)
+- [x] wset_frame  (line 499)
+- [x] wset_next  (line 505)
+- [x] wset_prev  (line 511)
+- [x] wset_mode_line_help_echo  (line 517)
+- [x] wset_new_pixel  (line 523)
+- [x] wset_vertical_scroll_bar  (line 529)
+- [x] wset_horizontal_scroll_bar  (line 535)
+- [x] wset_horizontal_scroll_bar_type  (line 541)
+- [x] wset_cursor_type  (line 547)
+- [x] wset_prev_buffers  (line 553)
+- [x] wset_next_buffers  (line 559)
+- [x] output_cursor_to  (line 1246)
+- [x] overlay_matches_window  (line 1258)
 
 ## Macros defined — 95
 - [ ] CHECK_LIVE_WINDOW  (line 1202, body 3d59eda9471c)
@@ -119,8 +119,8 @@
 - [ ] WINDOW_XFRAME  (line 620, body a364b8ee7b0b)
 
 ## Types and their fields — 2
-- [ ] cursor_pos: int x, int y, int hpos, int vpos
-- [ ] window: union vectorlike_header header, Lisp_Object frame, Lisp_Object next, Lisp_Object prev, Lisp_Object parent, Lisp_Object normal_lines, Lisp_Object normal_cols, Lisp_Object new_total, Lisp_Object new_normal, Lisp_Object new_pixel, Lisp_Object contents, Lisp_Object prev_buffers, Lisp_Object next_buffers, Lisp_Object old_buffer, Lisp_Object start, Lisp_Object pointm, Lisp_Object old_pointm, Lisp_Object temslot, Lisp_Object vertical_scroll_bar, Lisp_Object vertical_scroll_bar_type, Lisp_Object horizontal_scroll_bar, Lisp_Object horizontal_scroll_bar_type, Lisp_Object display_table, Lisp_Object dedicated, Lisp_Object combination_limit, Lisp_Object window_parameters, Lisp_Object cursor_type, Lisp_Object mode_line_help_echo, struct glyph_matrix* current_matrix, struct glyph_matrix* desired_matrix, EMACS_INT use_time, EMACS_INT sequence_number, int change_stamp, int pixel_left, int pixel_top, int left_col, int top_line, int pixel_width, int pixel_height, int old_pixel_width, int old_pixel_height, int old_body_pixel_width, int old_body_pixel_height, int total_cols, int total_lines, ptrdiff_t hscroll, ptrdiff_t min_hscroll, ptrdiff_t hscroll_whole, modiff_count last_modified, modiff_count last_overlay_modified, ptrdiff_t last_point, ptrdiff_t last_mark, ptrdiff_t base_line_number, ptrdiff_t base_line_pos, ptrdiff_t column_number_displayed, int nrows_scale_factor, int ncols_scale_factor, struct cursor_pos cursor, struct cursor_pos phys_cursor, struct cursor_pos output_cursor, int last_cursor_vpos, int left_fringe_width, int right_fringe_width, int left_margin_cols, int right_margin_cols, int scroll_bar_width, int scroll_bar_height, int mode_line_height, int header_line_height, int tab_line_height, ptrdiff_t window_end_pos, int window_end_vpos, bool_bf mini : 1, bool_bf horizontal : 1, bool_bf update_mode_line : 1, bool_bf last_had_star : 1, bool_bf start_at_line_beg : 1, bool_bf force_start : 1, bool_bf optional_new_start : 1, bool_bf phys_cursor_on_p : 1, bool_bf cursor_off_p : 1, bool_bf last_cursor_off_p : 1, bool_bf must_be_updated_p : 1, bool_bf pseudo_window_p : 1, bool_bf fringes_outside_margins : 1, bool_bf fringes_persistent : 1, bool_bf scroll_bars_persistent : 1, bool_bf window_end_valid : 1, bool_bf redisplay : 1, bool_bf suspend_auto_hscroll : 1, bool_bf preserve_vscroll_p : 1, int vscroll, ptrdiff_t window_end_bytepos
+- [x] cursor_pos: int x, int y, int hpos, int vpos
+- [x] window: union vectorlike_header header, Lisp_Object frame, Lisp_Object next, Lisp_Object prev, Lisp_Object parent, Lisp_Object normal_lines, Lisp_Object normal_cols, Lisp_Object new_total, Lisp_Object new_normal, Lisp_Object new_pixel, Lisp_Object contents, Lisp_Object prev_buffers, Lisp_Object next_buffers, Lisp_Object old_buffer, Lisp_Object start, Lisp_Object pointm, Lisp_Object old_pointm, Lisp_Object temslot, Lisp_Object vertical_scroll_bar, Lisp_Object vertical_scroll_bar_type, Lisp_Object horizontal_scroll_bar, Lisp_Object horizontal_scroll_bar_type, Lisp_Object display_table, Lisp_Object dedicated, Lisp_Object combination_limit, Lisp_Object window_parameters, Lisp_Object cursor_type, Lisp_Object mode_line_help_echo, struct glyph_matrix* current_matrix, struct glyph_matrix* desired_matrix, EMACS_INT use_time, EMACS_INT sequence_number, int change_stamp, int pixel_left, int pixel_top, int left_col, int top_line, int pixel_width, int pixel_height, int old_pixel_width, int old_pixel_height, int old_body_pixel_width, int old_body_pixel_height, int total_cols, int total_lines, ptrdiff_t hscroll, ptrdiff_t min_hscroll, ptrdiff_t hscroll_whole, modiff_count last_modified, modiff_count last_overlay_modified, ptrdiff_t last_point, ptrdiff_t last_mark, ptrdiff_t base_line_number, ptrdiff_t base_line_pos, ptrdiff_t column_number_displayed, int nrows_scale_factor, int ncols_scale_factor, struct cursor_pos cursor, struct cursor_pos phys_cursor, struct cursor_pos output_cursor, int last_cursor_vpos, int left_fringe_width, int right_fringe_width, int left_margin_cols, int right_margin_cols, int scroll_bar_width, int scroll_bar_height, int mode_line_height, int header_line_height, int tab_line_height, ptrdiff_t window_end_pos, int window_end_vpos, bool_bf mini : 1, bool_bf horizontal : 1, bool_bf update_mode_line : 1, bool_bf last_had_star : 1, bool_bf start_at_line_beg : 1, bool_bf force_start : 1, bool_bf optional_new_start : 1, bool_bf phys_cursor_on_p : 1, bool_bf cursor_off_p : 1, bool_bf last_cursor_off_p : 1, bool_bf must_be_updated_p : 1, bool_bf pseudo_window_p : 1, bool_bf fringes_outside_margins : 1, bool_bf fringes_persistent : 1, bool_bf scroll_bars_persistent : 1, bool_bf window_end_valid : 1, bool_bf redisplay : 1, bool_bf suspend_auto_hscroll : 1, bool_bf preserve_vscroll_p : 1, int vscroll, ptrdiff_t window_end_bytepos
 
 ## File-scope objects — 9
 - [ ] extern Lisp_Object selected_window  (line 1100)
@@ -132,3 +132,23 @@
 - [ ] extern int update_mode_lines  (line 1154)
 - [ ] extern int windows_or_buffers_changed  (line 1161)
 - [ ] extern Lisp_Object Vwindow_list  (line 1206)
+
+# ----------------------------------------------------------------------
+## Decisions
+
+- **Two types, 27 of the 122 items.**  This slice is `cursor_pos`, `struct window` and the
+  16 inlines plus the nine file-scope objects; the 94 `WINDOW_*` macros are the next slice.
+- **The nineteen `bool_bf : 1` flags share one 4-byte unit at offset 500.**  Measured with all
+  nineteen set: `ff ff 07 00` (= 0x0007FFFF, nineteen bits).  `bool_bf` is one byte here
+  (conf_post.h), so clang packs the 1-bit members into the unit the way `lisp.h`'s comment
+  describes; the port stores `bits: u32` and names each member's shift.
+- **Two pointer degradations (P-72 rule ③).**  `current_matrix` and `desired_matrix` are
+  `struct glyph_matrix *`; `window.h` includes `dispextern.h`, so C sees the type complete,
+  but the port's matrix segment is still ahead in the display chain — they carry `*mut c_void`
+  with a `/// C:` note until it lands.
+- **Dead members are out.**  `ephemeral_last_point` (`HAVE_TEXT_CONVERSION`) and the
+  `phys_cursor_type`/`phys_cursor_width`/`phys_cursor_ascent`/`phys_cursor_height` block
+  (`HAVE_WINDOW_SYSTEM`) are `#undef` in the frozen configuration, so they are not part of this
+  target's 93 live members (P-73's live-line filter is what keeps them out).
+- **`overlay_matches_window` compares pointers**, so the port uses `std::ptr::eq` on the two
+  `*mut window` values rather than C's `==` on pointers (same comparison, Rust spelling).
