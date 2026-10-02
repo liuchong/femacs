@@ -23,9 +23,9 @@
 | globals | 1,934 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 32 |
-| 其中 done / wip | 20 / 12 |
-| 待开工 | 558 |
+| 已有目标文件 | 33 |
+| 其中 done / wip | 21 / 12 |
+| 待开工 | 557 |
 
 ## 2 按目录
 
@@ -38,14 +38,14 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 23 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 224 |
+| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 223 |
 
 ## 3 按批次
 
 | 批次 | 范围 | 完成判据 | 文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | todo |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 20 |
-| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 948 | 330 | 717 | 420 | 148 | 30 |
+| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 948 | 330 | 717 | 420 | 148 | 29 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 905 | 269 | 498 | 289 | 121 | 31 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,161 | 490 | 1,104 | 1,976 | 432 | 42 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,619 | 368 | 1,834 | 2,175 | 974 | 192 |
@@ -624,7 +624,7 @@
 | `src/tparam.h` | 49 | 0 | 0 | 1 | 0 | 0 | 3 | E | `femacs/src/include/tparam.rs` | todo |
 | `src/treesit.c` | 5,634 | 70 | 58 | 58 | 1 | 6 | 24 | E | `femacs/src/treesit.rs` | todo |
 | `src/treesit.h` | 257 | 9 | 0 | 1 | 0 | 28 | 1 | E | `femacs/src/include/treesit.rs` | todo |
-| `src/undo.c` | 490 | 10 | 1 | 0 | 0 | 0 | 1 | C | `femacs/src/undo.rs` | todo |
+| `src/undo.c` | 490 | 10 | 1 | 0 | 0 | 0 | 1 | C | `femacs/src/undo.rs` | done |
 | `src/vm-limit.c` | 220 | 6 | 0 | 3 | 4 | 0 | 6 | B | `femacs/src/vm-limit.rs` | todo |
 | `src/w16select.c` | 692 | 11 | 3 | 11 | 11 | 0 | 1 | F | `femacs/src/w16select.rs` | todo |
 | `src/w32.c` | 11,362 | 225 | 0 | 29 | 16 | 27 | 91 | F | `femacs/src/w32.rs` | todo |

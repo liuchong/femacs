@@ -340,6 +340,18 @@ pub struct Lisp_Marker {
     pub bytepos: isize,
 }
 
+// lisp.h 313-314: `bool_bf need_adjustment : 1; bool_bf insertion_type : 1;` - the two
+// 1-bit flags C reads as `m->insertion_type`.  The port keeps them in `bits`, LSB first,
+// and reads the second through the accessor below; `docs/ports/token-aliases.tsv` carries
+// the `insertion_type` family so the C body's token still has to be spelled (P-78).
+pub const MARKER_NEED_ADJUSTMENT: u32 = 1 << 0;
+pub const MARKER_INSERTION_TYPE: u32 = 1 << 1;
+
+#[inline(always)]
+pub fn MARKER_INSERTION_TYPE_P (m: *mut Lisp_Marker) -> bool {
+    unsafe { ((*m).bits & MARKER_INSERTION_TYPE) != 0 }
+}
+
 // --- support declarations and accessors (batch 1) ---
 // Sources: src/lisp.h 180-198 (assertions), 620-650 (gflags), 700-760 (tag
 // accessors), 869-880 (tag initialisers), 985-1050 (pseudovector bits).
@@ -3799,6 +3811,14 @@ pub mod other_units {
         // lisp.h 4390, 4781, 5100, 5548: the four cross-unit functions macros.c calls
         // (`message1` and `run_hook` are xdisp.c's and eval.c's; `command_loop_2` is
         // keyboard.c's own loop entry, declared here so every unit sees one prototype).
+        // lisp.h 4654, 4926, 4989: undo.c's three cross-unit calls.  `struct buffer` is
+        // incomplete in lisp.h, so `buffer_visited_file_modtime` carries the reference
+        // prototype and takes the untyped pointer (P-55/P-72).
+        pub fn inhibit_garbage_collection () -> specpdl_ref;
+        pub fn make_buffer_string (start: ptrdiff_t, end: ptrdiff_t, nprops: bool)
+                                   -> Lisp_Object;
+        /// C: Lisp_Object buffer_visited_file_modtime (struct buffer *)
+        pub fn buffer_visited_file_modtime (b: *mut c_void) -> Lisp_Object;
         pub fn message1 (s: *const c_char);
         pub fn run_hook (hook: Lisp_Object);
         pub fn command_loop_2 (arg: Lisp_Object) -> Lisp_Object;

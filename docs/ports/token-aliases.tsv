@@ -16,3 +16,4 @@ sizeof	sizeof,size_of	C's `sizeof` is Rust's `size_of::<T> ()`; the family's occ
 alignof	alignof,align_of	C's `alignof` is Rust's `align_of::<T> ()`, same rule
 
 local_if_set	local_if_set,blv_local_if_set	C's `local_if_set` bitfield (lisp.h 3080) is the mirror's `BLV_LOCAL_IF_SET` flag inside `u.s.bits` (lisp.rs 1971); the occurrence check is what makes `make_blv`'s clear (data.c 2170) and `set_internal`'s read (data.c 1766) survive a deletion, which the note-based exemption could not (review B's D1, P-78 residual 4)
+insertion_type	insertion_type,marker_insertion_type_p	lisp.h 313-314 keeps `insertion_type` as a 1-bit `bool_bf` field of `struct Lisp_Marker`, which the mirror packs into `bits` (lisp.rs 337-348); the family's occurrence check is what keeps undo.c's read of it alive (the same class as `local_if_set`)
