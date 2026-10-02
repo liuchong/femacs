@@ -75,3 +75,9 @@ pub const ULONG_WIDTH: c_int = (8 * std::mem::size_of::<c_ulong> ()) as c_int;
 // (`intmax_t`/`uintmax_t` are lisp.rs's aliases for i64/u64; the lib mirrors stand alone.)
 pub const INTMAX_WIDTH: c_int = (8 * std::mem::size_of::<i64> ()) as c_int;
 pub const UINTMAX_WIDTH: c_int = (8 * std::mem::size_of::<u64> ()) as c_int;
+
+// NOTE: `SSIZE_MAX` is deliberately *not* mirrored here yet.  Three ported units
+// (getdelim.rs, regex_internal.rs and careadlinkat.rs) each need it and each declared it
+// locally before this mirror existed; adding it here made every one of them an E0428
+// duplicate.  Consolidating them onto this mirror is a follow-up that touches those units,
+// not something to do behind their backs (docs/status.md 3.21).
