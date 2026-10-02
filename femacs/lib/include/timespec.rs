@@ -1,0 +1,102 @@
+// femacs: port of lib/timespec.h @ fd7afced403 (GNU Emacs 32.0.50).
+//
+// Header mirror (PORTING.md 0.1): constants and the header's `_GL_TIMESPEC_INLINE`
+// functions, plus the declarations C spells `extern`.  It is a *reference* file
+// (gnulib's timespec module), so `tools/extract-abi.py --check lib/timespec.h
+// femacs/lib/include/timespec.rs` compares it to the C header.
+//
+// It uses `time_t` and `struct timespec`, which in C come from <time.h>; the port gets
+// them from lib/include/time.in.rs (the mirror of gnulib's time.in.h), which the includer
+// must have included first, exactly as C's `#include <time.h>` does.
+//
+// C's `arg-nonnull.h` include is dropped: the only thing timespec.h takes from it is the
+// `_GL_ARG_NONNULL` attribute, which is recorded in docs/ports/excluded-macros.txt
+// (attributes have no Rust counterpart; PORTING.md 0.3).  `_GL_INLINE_HEADER_BEGIN`/`END`,
+// `_GL_INLINE` and `_GL_TIMESPEC_INLINE` are attribute/spelling macros with the same
+// disposition; `_GL_CMP` is a real value macro and lives in gnulib_config.rs.
+
+/* timespec -- System time interface
+
+   Copyright (C) 2000, 2002, 2004-2005, 2007, 2009-2026 Free Software
+   Foundation, Inc.
+
+   This file is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Lesser General Public License as
+   published by the Free Software Foundation, either version 3 of the
+   License, or (at your option) any later version.
+
+   This file is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
+
+include!("gnulib_config.rs");
+
+// The include guard has no Rust counterpart (PORTING.md 0.1).
+pub const TIMESPEC_H: bool = true;
+
+// C's `#if !_GL_CONFIG_H_INCLUDED` / `#error "Please include config.h first."` / `#endif` block:
+// the generated config header sets it (src/config.h 38 of the frozen build), and the
+// port's config.rs — generated from docs/baseline/config/*.json — carries it.
+const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+
+/* Inverse resolution of timespec timestamps (in units per second),
+   and log base 10 of the inverse resolution.  */
+
+pub const TIMESPEC_HZ: c_int = 1000000000;
+pub const LOG10_TIMESPEC_HZ: c_int = 9;
+
+/* Obsolescent names for backward compatibility.
+   They are misnomers, because TIMESPEC_RESOLUTION is not a resolution.  */
+
+pub const TIMESPEC_RESOLUTION: c_int = TIMESPEC_HZ;
+pub const LOG10_TIMESPEC_RESOLUTION: c_int = LOG10_TIMESPEC_HZ;
+
+/* Return a timespec with seconds S and nanoseconds NS.  */
+
+#[inline(always)]
+pub fn make_timespec (s: time_t, ns: c_long) -> timespec
+{
+  timespec { tv_sec: s, tv_nsec: ns }
+}
+
+/* Return negative, zero, positive if A < B, A == B, A > B, respectively.  */
+
+#[inline(always)]
+pub fn timespec_cmp (a: timespec, b: timespec) -> c_int
+{
+  /* C: 2 * _GL_CMP (a.tv_sec, b.tv_sec) + _GL_CMP (a.tv_nsec, b.tv_nsec) — an integer
+     expression, so C's `2 *` is Rust's `2 *`.  */
+  2 * _GL_CMP! (a.tv_sec, b.tv_sec) + _GL_CMP! (a.tv_nsec, b.tv_nsec)
+}
+
+/* Return -1, 0, 1, depending on the sign of A.  A.tv_nsec must be
+   nonnegative.  */
+
+#[inline(always)]
+pub fn timespec_sign (a: timespec) -> c_int
+{
+  _GL_CMP! (a.tv_sec | a.tv_nsec, 0)
+}
+
+/* Return an approximation to A, of type 'double'.  */
+
+#[inline(always)]
+pub fn timespectod (a: timespec) -> c_double
+{
+  a.tv_sec as c_double + a.tv_nsec as c_double / 1e9
+}
+
+unsafe extern "C" {
+  // Parameter names come from the definitions in lib/timespec.c (C's prototypes have none).
+  pub fn timespec_add (a: timespec, b: timespec) -> timespec;
+  pub fn timespec_sub (a: timespec, b: timespec) -> timespec;
+  pub fn dtotimespec (sec: c_double) -> timespec;
+  pub fn gettime_res () -> c_long;
+  pub fn current_timespec () -> timespec;
+  pub fn gettime (ts: *mut timespec);
+  pub fn settime (ts: *const timespec) -> c_int;
+}

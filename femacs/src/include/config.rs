@@ -26,3 +26,4 @@ pub const HAVE__SETJMP: bool = true;
 pub const HAVE___BUILTIN_UNWIND_INIT: bool = true;
 pub const SYSTEM_TYPE: &str = "\\\"darwin\\";
 pub const USE_X_TOOLKIT: bool = false; // #undef in config.h
+pub const _GL_CONFIG_H_INCLUDED: bool = true;

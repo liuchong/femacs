@@ -2,7 +2,7 @@
   "target": "darwin-arm64 (Apple Silicon), configure --without-all --with-x=no --with-ns=no",
   "generated": "2026-10-02",
   "source": "emacs/ @ fd7afced403",
-  "note": "Frozen input for PORTING.md P-08 (config.rs / --cfg). Values are what a minimal macOS configure decided on this host; a full GUI target must be configured separately and frozen the same way.  Extended on 2026-10-02 for doprnt.c's exprintf gate (HAVE_X_WINDOWS, USE_X_TOOLKIT), then for floatfns.c's math gates (HAVE_LOG2, HAVE_RINT, HAVE_TRUNC, HAIKU).  All but HAVE_SIGNBIT are what the same minimal macOS configure reported (re-run 2026-10-02, build/emacs-ref/src/config.h: HAVE_LOG2 1068, HAVE_RINT 1327, HAVE_TRUNC 1739; HAIKU is #undef at 330).  HAVE_SIGNBIT is not a config.h macro: it is the preprocessor fact floatfns.c's `#ifndef signbit` tests, measured with clang (`clang -std=gnu23 -E` on `#ifdef signbit` prints it).",
+  "note": "Frozen input for PORTING.md P-08 (config.rs / --cfg). Values are what a minimal macOS configure decided on this host; a full GUI target must be configured separately and frozen the same way.  Extended on 2026-10-02 for doprnt.c's exprintf gate (HAVE_X_WINDOWS, USE_X_TOOLKIT), then for floatfns.c's math gates (HAVE_LOG2, HAVE_RINT, HAVE_TRUNC, HAIKU).  All but HAVE_SIGNBIT are what the same minimal macOS configure reported (re-run 2026-10-02, build/emacs-ref/src/config.h: HAVE_LOG2 1068, HAVE_RINT 1327, HAVE_TRUNC 1739; HAIKU is #undef at 330).  HAVE_SIGNBIT is not a config.h macro: it is the preprocessor fact floatfns.c's `#ifndef signbit` tests, measured with clang (`clang -std=gnu23 -E` on `#ifdef signbit` prints it).  Extended again for lib/timespec.h's `#if !_GL_CONFIG_H_INCLUDED #error` check (_GL_CONFIG_H_INCLUDED, src/config.h 38 of the frozen build).",
   "macros": {
     "HAVE__SETJMP": "1",
     "HAVE_SIGSETJMP": "1",
@@ -33,6 +33,7 @@
     "HAVE_RINT": "1",
     "HAVE_TRUNC": "1",
     "HAIKU": "undefined",
-    "HAVE_SIGNBIT": "1"
+    "HAVE_SIGNBIT": "1",
+    "_GL_CONFIG_H_INCLUDED": "1"
   }
 }

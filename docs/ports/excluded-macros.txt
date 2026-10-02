@@ -40,3 +40,8 @@ ITREE_FOREACH	deferred	loop macro: C declares its iterator at the expansion site
 ITREE_FOREACH_NARROW	deferred	same iteration-macro decision (PORTING.md P-33)
 FOR_EACH_LIVE_BUFFER	deferred	loop macro, wraps FOR_EACH_ALIST_VALUE (src/buffer.h 1329); Rust form pending P-22
 MINI_GMP_LIMB_TYPE	syntax	type spelling (`unsigned MINI_GMP_LIMB_TYPE mp_limb_t`); the port writes `pub type mp_limb_t = c_ulong;` and records the choice (P-49)
+_GL_TIMESPEC_INLINE	syntax	spells gnulib's `_GL_INLINE` (i.e. `static inline`); the port writes `#[inline(always)] pub fn` (lib/timespec.h 31-33)
+_GL_ATTRIBUTE_CONST	syntax	attribute (gnulib's `__attribute__ ((const))`); no Rust counterpart
+_GL_ARG_NONNULL	syntax	attribute (lib/arg-nonnull.h); no Rust counterpart
+_GL_INLINE_HEADER_BEGIN	syntax	spells `extern "C" {` in C++ only; nothing in C, nothing in Rust (PORTING.md 0.1)
+_GL_INLINE_HEADER_END	syntax	same, closing brace
