@@ -2,6 +2,8 @@
 
 > 本文是执行手册，不是宣传材料。所有数字可由 `python3 tools/gen-port-map.py` 与
 > `python3 tools/extract-abi.py` 复算。可直接粘贴的 goal 见 [goal.md](goal.md)。
+> **总计划见 [port-master-plan.md](port-master-plan.md)**（规模实测、方法论、批次、闸门、风险）；
+> **逐文件数据见 [port-inventory.md](port-inventory.md)**。
 >
 > 基线：`emacs/` 检出 `fd7afced403`（GNU Emacs 32.0.50），git 忽略，只读参照。
 > 对照表：[port-map.md](port-map.md)（生成物，逐文件）。
