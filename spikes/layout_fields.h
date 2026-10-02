@@ -198,3 +198,43 @@
   OFF (struct Lisp_Buffer_Local_Value, valcell);
 
   SZ (struct glyph_slice); AL (struct glyph_slice);
+
+  SZ (struct text_pos); AL (struct text_pos);
+  OFF (struct text_pos, charpos);
+  OFF (struct text_pos, bytepos);
+
+  SZ (struct display_pos); AL (struct display_pos);
+  OFF (struct display_pos, pos);
+  OFF (struct display_pos, overlay_string_index);
+  OFF (struct display_pos, string_pos);
+  OFF (struct display_pos, dpvec_index);
+
+  SZ (struct it_slice); AL (struct it_slice);
+  OFF (struct it_slice, x);
+  OFF (struct it_slice, y);
+  OFF (struct it_slice, width);
+  OFF (struct it_slice, height);
+
+  SZ (struct run); AL (struct run);
+  OFF (struct run, desired_y);
+  OFF (struct run, current_y);
+  OFF (struct run, desired_vpos);
+  OFF (struct run, current_vpos);
+  OFF (struct run, height);
+  OFF (struct run, nrows);
+
+  SZ (struct bidi_saved_info); AL (struct bidi_saved_info);
+  OFF (struct bidi_saved_info, charpos);
+  OFF (struct bidi_saved_info, type);
+  OFF (struct bidi_saved_info, orig_type);
+
+  SZ (struct bidi_stack); AL (struct bidi_stack);
+  OFF (struct bidi_stack, next_for_neutral_pos);
+  OFF (struct bidi_stack, level);
+  OFF (struct bidi_stack, flags);
+
+  SZ (struct bidi_string_data); AL (struct bidi_string_data);
+  OFF (struct bidi_string_data, lstring);
+  OFF (struct bidi_string_data, s);
+  OFF (struct bidi_string_data, schars);
+  OFF (struct bidi_string_data, bufpos);

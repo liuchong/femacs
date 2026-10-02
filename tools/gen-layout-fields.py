@@ -50,6 +50,17 @@ STRUCTS = {
     # the port models it as `bits: u64` and `sizeof`/`alignof` (8/4) are what the gate can
     # assert (PORTING.md 1.3).
     "glyph_slice": "src/dispextern.h",
+    # dispextern.h segment II's platform-free types: the position pairs every display
+    # function passes around, the slice `struct it` embeds, and the bidi state it carries.
+    # `bidi_saved_info` is also the first type whose key names a Rust keyword (`type`), which
+    # `xtask`'s `rust_ident` spells `r#type` in the generated assertion.
+    "text_pos": "src/dispextern.h",
+    "display_pos": "src/dispextern.h",
+    "it_slice": "src/dispextern.h",
+    "run": "src/dispextern.h",
+    "bidi_saved_info": "src/dispextern.h",
+    "bidi_stack": "src/dispextern.h",
+    "bidi_string_data": "src/dispextern.h",
 }
 
 

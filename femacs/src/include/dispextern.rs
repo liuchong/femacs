@@ -264,5 +264,155 @@ pub const TAB_LINE_INACTIVE_FACE_ID: face_id = 20;
 pub const MARGIN_FACE_ID: face_id = 21;
 pub const BASIC_FACE_ID_SENTINEL: face_id = 22;
 
-// C: dispextern.h 100-2000's remaining types and macros, and 2000-4026's `it`/fringe/
-// X-widget machinery — (not mirrored on this target yet; docs/ports/include-dispextern.md).
+// --- batch II: the position pairs, the slice and the bidi state (dispextern.h 275-370,
+//     2080-2160, 2360-2366, 3048-3058) --------------------------------------------------
+// P-66's order: `text_pos`/`display_pos` are the pair every display function passes around,
+// `it_slice` is four Lisp_Objects, `run` is six ints, and the `bidi_*` trio is the state
+// `struct it` carries.  None of them needs a platform type, so they land before the matrix
+// and face structures (which need `struct frame`/`struct window`/`struct font`).
+
+/* Starting with Emacs 20.3, characters from strings and buffers have
+   both a character and a byte position associated with them.  The
+   following structure holds such a pair of positions.  */
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct text_pos
+{
+  /* Character position.  */
+  pub charpos: ptrdiff_t,               // dispextern.h 278
+  /* Corresponding byte position.  */
+  pub bytepos: ptrdiff_t,
+}
+
+// BYTEPOS/CHARPOS/SET_TEXT_POS/INC_TEXT_POS arrive with the functions that use them; like
+// every other place-expression macro they are spelled as functions (P-17).
+
+/* When rendering glyphs, redisplay scans string or buffer text,
+   overlay strings in that text, and does display table or control
+   character translations.  The following structure captures a
+   position taking all this into account.  */
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct display_pos
+{
+  pub pos: text_pos,                    // dispextern.h 354
+  pub overlay_string_index: ptrdiff_t,  // < 0 when `pos' is not in an overlay string
+  pub string_pos: text_pos,
+  pub dpvec_index: c_int,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct it_slice
+{
+  pub x: Lisp_Object,                   // dispextern.h 2362
+  pub y: Lisp_Object,
+  pub width: Lisp_Object,
+  pub height: Lisp_Object,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct run
+{
+  pub desired_y: c_int,                 // dispextern.h 3051
+  pub current_y: c_int,
+  pub desired_vpos: c_int,
+  pub current_vpos: c_int,
+  pub height: c_int,
+  pub nrows: c_int,
+}
+
+// dispextern.h 2080-2108: `typedef enum { … } bidi_type_t;`.  The first seven members are
+// the only ones valid in `struct glyph`'s `bidi_type` field, which reserves three bits.
+pub type bidi_type_t = c_int;
+pub const UNKNOWN_BT: bidi_type_t = 0;
+pub const STRONG_L: bidi_type_t = 1;
+pub const STRONG_R: bidi_type_t = 2;
+pub const WEAK_EN: bidi_type_t = 3;
+pub const WEAK_AN: bidi_type_t = 4;
+pub const WEAK_BN: bidi_type_t = 5;
+pub const NEUTRAL_B: bidi_type_t = 6;
+pub const STRONG_AL: bidi_type_t = 7;
+pub const LRE: bidi_type_t = 8;
+pub const LRO: bidi_type_t = 9;
+pub const RLE: bidi_type_t = 10;
+pub const RLO: bidi_type_t = 11;
+pub const PDF: bidi_type_t = 12;
+pub const LRI: bidi_type_t = 13;
+pub const RLI: bidi_type_t = 14;
+pub const FSI: bidi_type_t = 15;
+pub const PDI: bidi_type_t = 16;
+pub const WEAK_ES: bidi_type_t = 17;
+pub const WEAK_ET: bidi_type_t = 18;
+pub const WEAK_CS: bidi_type_t = 19;
+pub const WEAK_NSM: bidi_type_t = 20;
+pub const NEUTRAL_S: bidi_type_t = 21;
+pub const NEUTRAL_WS: bidi_type_t = 22;
+pub const NEUTRAL_ON: bidi_type_t = 23;
+pub const BIDI_MAXDEPTH: c_int = 125;   // dispextern.h 2076 (UAX#9's max_depth)
+
+// dispextern.h 2115-2119: the paired-bracket type (`bracket-type` property order).
+pub type bidi_bracket_type_t = c_int;
+pub const BIDI_BRACKET_NONE: bidi_bracket_type_t = 1;
+pub const BIDI_BRACKET_OPEN: bidi_bracket_type_t = 2;
+pub const BIDI_BRACKET_CLOSE: bidi_bracket_type_t = 3;
+
+// dispextern.h 2122: the basic directionality.
+pub type bidi_dir_t = c_int;
+pub const NEUTRAL_DIR: bidi_dir_t = 0;
+pub const L2R: bidi_dir_t = 1;
+pub const R2L: bidi_dir_t = 2;
+
+/* Data type for storing information about characters we need to
+   remember.  */
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct bidi_saved_info
+{
+  pub charpos: ptrdiff_t,               // dispextern.h 2127
+  pub r#type: bidi_type_t,              // C spells it `type`; `type` is a Rust keyword
+  pub orig_type: bidi_type_t,
+}
+
+// dispextern.h 2137-2144.  The three 3-bit members share a 2-byte unit at offset 8, and the
+// frozen clang then puts `level` at 10 and `flags` at 11 (measured; the probe is in the
+// commit).  PORTING.md 1.3: the storage unit is what the gate can assert.
+//
+//     s.next_for_neutral_type = 5; s.last_strong_type = 6; s.prev_for_neutral_type = 7;
+//     s.level = 9; s.flags = 0x11;      bytes: 00×8 f5 01 09 11 00 00 00 00
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct bidi_stack
+{
+  pub next_for_neutral_pos: ptrdiff_t,  // dispextern.h 2138
+  pub bits: u16,                        // next_for_neutral_type:3 | last_strong_type:3 | prev_for_neutral_type:3
+  pub level: u8,
+  pub flags: u8,                        // sos, override, isolate_status
+}
+
+// dispextern.h 2147-2160.  `lstring`/`s`/`schars`/`bufpos` are 8 bytes each, and the two
+// `bool_bf : 1` members share a 4-byte unit at offset 32 (`bool_bf` is `unsigned int : 1`
+// in lisp.h 107); sizeof 40, align 8 (measured).
+//
+//     d.lstring = 0x1122334455667788; d.schars = 5; d.bufpos = 6;
+//     d.from_disp_str = 1; d.unibyte = 1;   bytes: 88 77 66 55 44 33 22 11 … 03 00 00 00
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct bidi_string_data
+{
+  pub lstring: Lisp_Object,             // dispextern.h 2148
+  pub s: *const u8,                     // `const unsigned char *`
+  pub schars: ptrdiff_t,
+  pub bufpos: ptrdiff_t,
+  pub bits: u32,                        // from_disp_str:1 | unibyte:1
+}
+
+// C: dispextern.h 472-2600's matrix/face/image structures (`glyph`, `glyph_pool`,
+// `glyph_matrix`, `glyph_row`, `face`, `face_cache`, `image`, `it`) and 2600-4026's fringe,
+// X-widget and cursor machinery — (not mirrored on this target yet; they need
+// `struct frame`/`struct window`/`struct font`, and docs/ports/include-dispextern.md tracks
+// the rest of the file's macros, functions and globals).
