@@ -38,11 +38,11 @@
   `femacs/lib/include/gnulib_config.rs` (PORTING.md 0.1-5, one home per macro) and included here,
   which is where C's expansion site is.
 - `time_t` and `struct timespec` come from `<time.h>` in C, i.e. from `femacs/lib/include/time.in.rs`
-  (the mirror of gnulib's `time.in.h`) in the port; this mirror does not include it itself, the way a
-  `src/` mirror does not include `lisp.rs`: the includer has already done it (C's
-  `#include <timespec.h>` appears after `#include "lisp.h"`).  This keeps the include graph a tree —
-  a lib mirror that two mirrors need must be listed by the translation unit instead
-  (PORTING.md P-61).
+  (the mirror of gnulib's `time.in.h`) in the port, and this mirror includes it itself — C's
+  `#include <time.h>` is right there.  `buffer.rs` reaches the same mirror directly, so a unit
+  including both would include it twice; `xtask`'s include-graph expansion de-duplicates that
+  (PORTING.md 0.1-4/P-61), which is why the mirror keeps its own includes instead of asking every
+  translation unit to list the closure.
 - `settime` and `gettime_res` have no definition anywhere in the reference checkout (they are gnulib
   modules Emacs does not build), so their parameter names in the `extern` block are the port's; the
   five others come from the definitions in `lib/timespec-add.c`, `lib/timespec-sub.c`,

@@ -642,11 +642,16 @@ fn layout_check() -> i32 {
     if let Err(e) = fs::write(&probe, src) {
         return fail(e);
     }
+    let dir = Path::new(BUILD).join("layout_probe_src");
+    let root = match materialize(&probe, &dir) {
+        Ok(p) => p,
+        Err(e) => return fail(e),
+    };
     let bin = Path::new(BUILD).join("layout_probe");
     let status = Command::new("rustc")
-        .args(["--edition", "2024", "-C", "panic=abort", "-o"])
+        .args(["--edition", "2024", "--crate-name", "layout_probe", "-C", "panic=abort", "-o"])
         .arg(&bin)
-        .arg(&probe)
+        .arg(&root)
         .status();
     match status {
         Ok(s) if s.success() => {}
@@ -677,10 +682,16 @@ fn build_tu(rel: Option<&String>) -> i32 {
         return fail(format!("{crate_root} does not exist yet (ports of {rel} not written)"));
     }
     fs::create_dir_all(BUILD).ok();
+    let dir = Path::new(BUILD).join("units").join(&stem);
+    let root = match materialize(Path::new(&crate_root), &dir) {
+        Ok(p) => p,
+        Err(e) => return fail(e),
+    };
     let status = Command::new("rustc")
         .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
+               "--crate-name", &stem,
                "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
-        .arg(&crate_root)
+        .arg(&root)
         .arg("-o").arg(&out)
         .status();
     match status {
@@ -829,18 +840,27 @@ fn dead_arms() -> i32 {
     };
     let mut n = 0;
     for rel in units {
-        // rustc runs with cwd = the copy, so paths must be relative to it (the
-        // object lands next to the source in build/dead-arms/).
+        // The unit goes through the same include-graph expansion as a normal build
+        // (PORTING.md 0.1-4), inside the copy, so the flipped configuration and the
+        // de-duplicated mirrors are what rustc sees.
+        let stem = Path::new(&rel).file_stem().unwrap_or_default().to_string_lossy().to_string();
+        let src = root.join(&rel);
+        let dir = root.join("units").join(&stem);
+        let materialized = match materialize(&src, &dir) {
+            Ok(p) => p,
+            Err(e) => return fail(e),
+        };
         let out = format!("{}.o", rel.replace('/', "_").replace(".rs", ""));
         let mut cmd = Command::new("rustc");
         cmd.args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
+                  "--crate-name", &stem,
                   "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"]);
         for (feature, _, _) in FLIPS {
             if !feature.is_empty() {
                 cmd.arg("--cfg").arg(format!("feature=\"{feature}\""));
             }
         }
-        let status = cmd.current_dir(root).arg(&rel).arg("-o").arg(&out).status();
+        let status = cmd.current_dir(root).arg(&materialized).arg("-o").arg(&out).status();
         match status {
             Ok(s) if s.success() => {
                 println!("dead arms compile: {rel}");
@@ -902,6 +922,149 @@ fn gate_probes() -> i32 {
 
 fn canonical(p: &Path) -> PathBuf {
     p.canonicalize().unwrap_or_else(|_| p.to_path_buf())
+}
+
+/// Every file the `include!("…")` chain of ROOT reaches, each once, **dependencies first**
+/// (post-order).  A mirror's nested `include!` is normally at its top, and the macro it brings
+/// has to be defined before the mirror's own body uses it (0.1-18), so the copy of a file must
+/// come after the copies of what it includes.
+fn include_graph_ordered(root: &Path, seen: &mut Vec<PathBuf>) {
+    let root = canonical(root);
+    if seen.contains(&root) {
+        return;
+    }
+    seen.push(root.clone());
+    let Ok(text) = fs::read_to_string(&root) else { return };
+    let dir = root.parent().unwrap_or(Path::new(".")).to_path_buf();
+    for line in text.lines() {
+        if let Some(name) = include_target(line) {
+            let target = dir.join(name);
+            if target.is_file() {
+                include_graph_ordered(&target, seen);
+            }
+        }
+    }
+    // Dependencies first: move ROOT after everything it included, so a macro it brings
+    // (gnulib_config.rs's `_GL_CMP`) is defined before the file that uses it.
+    if let Some(pos) = seen.iter().position(|p| *p == root) {
+        let file = seen.remove(pos);
+        seen.push(file);
+    }
+}
+
+/// Every file the `include!("…")` chain of ROOT reaches, in discovery order, each once.
+fn include_graph(root: &Path, seen: &mut Vec<PathBuf>) {
+    let root = canonical(root);
+    if seen.contains(&root) {
+        return;
+    }
+    seen.push(root.clone());
+    let Ok(text) = fs::read_to_string(&root) else { return };
+    let dir = root.parent().unwrap_or(Path::new(".")).to_path_buf();
+    let mut rest = text.as_str();
+    while let Some(pos) = rest.find("include!(") {
+        rest = &rest[pos + "include!(".len()..];
+        let Some(end) = rest.find(')') else { break };
+        let quoted = rest[..end].trim();
+        if let Some(name) = quoted.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
+            let inc = dir.join(name);
+            if inc.is_file() {
+                include_graph(&inc, seen);
+            }
+        }
+        rest = &rest[end..];
+    }
+}
+
+/// The `include!("…")` target of a line, if the line is such a call.
+fn include_target(line: &str) -> Option<&str> {
+    let pos = line.find("include!(")?;
+    let rest = &line[pos + "include!(".len()..];
+    let end = rest.find(')')?;
+    rest[..end].trim().strip_prefix('"').and_then(|s| s.strip_suffix('"'))
+}
+
+/// A copy of PATH with its own `include!` lines commented out (same line count, so a
+/// diagnostic still names the line of the real mirror).
+fn neutralize(path: &Path) -> Result<String, String> {
+    let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let mut copy = String::with_capacity(text.len() + 32);
+    for line in text.split_inclusive('\n') {
+        let (body, newline) = match line.strip_suffix('\n') {
+            Some(b) => (b, "\n"),
+            None => (line, ""),
+        };
+        if line.contains("include!(") {
+            copy.push_str(&format!("// [xtask dedupe] {body}{newline}"));
+        } else {
+            copy.push_str(line);
+        }
+    }
+    Ok(copy)
+}
+
+/// Materialize ROOT's include graph under OUT and return the generated crate root.
+///
+/// PORTING.md 0.1-4: the tool expands the graph and de-duplicates it, because `include!` has
+/// no include guard.  A file reached by two paths (`buffer.rs`'s `<time.h>` and `systime.rs`'s
+/// `<timespec.h>` both reach `time.in.rs`) would otherwise define its items twice and rustc
+/// would reject the unit.  Every reachable file is therefore copied once, with its own
+/// `include!` lines commented out, and `_root.rs` is ROOT's own text with each of its
+/// `include!` lines replaced by the copies that line newly contributes — so the root's body
+/// still comes after everything it included, which is what its macros need (0.1-14/0.1-18).
+/// Line numbers inside a copy still point into the real mirror, so diagnostics name a file
+/// and line a reader can look at.
+fn materialize(root: &Path, out: &Path) -> Result<PathBuf, String> {
+    let _ = fs::remove_dir_all(out);
+    fs::create_dir_all(out).map_err(|e| format!("{}: {e}", out.display()))?;
+    let root = canonical(root);
+    let mut order: Vec<PathBuf> = Vec::new();
+    include_graph_ordered(&root, &mut order);
+    // A copy for every file but the root; the copy name is the sanitized absolute path, so
+    // two files with the same basename stay distinct.
+    let mut copies: std::collections::BTreeMap<PathBuf, PathBuf> = std::collections::BTreeMap::new();
+    for path in order.iter().filter(|p| **p != root) {
+        let name = path.to_string_lossy().replace(['/', '\\', ':', '.'], "_");
+        let target = out.join(format!("{name}.rs"));
+        fs::write(&target, neutralize(path)?).map_err(|e| format!("{}: {e}", target.display()))?;
+        copies.insert(path.clone(), canonical(&target));
+    }
+    let text = fs::read_to_string(&root).map_err(|e| format!("{}: {e}", root.display()))?;
+    let dir = root.parent().unwrap_or(Path::new(".")).to_path_buf();
+    let mut emitted: Vec<PathBuf> = vec![root.clone()];
+    let mut lines: Vec<String> = Vec::new();
+    for line in text.split_inclusive('\n') {
+        let (body, newline) = match line.strip_suffix('\n') {
+            Some(b) => (b, "\n"),
+            None => (line, ""),
+        };
+        match include_target(line).map(|name| dir.join(name)) {
+            Some(target) if target.is_file() => {
+                let mut group: Vec<PathBuf> = Vec::new();
+                include_graph_ordered(&target, &mut group);
+                for path in group {
+                    if emitted.contains(&path) {
+                        lines.push(format!("// [xtask dedupe] {} already included{newline}",
+                                           path.display()));
+                        continue;
+                    }
+                    emitted.push(path.clone());
+                    match copies.get(&path) {
+                        Some(copy) => lines.push(format!("include!({:?});{newline}",
+                                                         copy.display().to_string())),
+                        None => lines.push(format!("// [xtask dedupe] {}{newline}",
+                                                   path.display())),
+                    }
+                }
+            }
+            _ => lines.push(format!("{body}{newline}")),
+        }
+    }
+    let root_file = out.join("_root.rs");
+    fs::write(&root_file, lines.concat()).map_err(|e| format!("{}: {e}", root_file.display()))?;
+    // Absolute: the callers that run rustc with a different working directory (dead-arms)
+    // hand it straight to `rustc`.
+    Ok(canonical(&root_file))
 }
 
 /// Every file the `include!("…")` chain of ROOT reaches, resolved the way rustc does
@@ -969,10 +1132,16 @@ fn build_finished_tus() -> Result<(), String> {
     for unit in &units {
         let stem = Path::new(unit).file_stem().unwrap_or_default().to_string_lossy().to_string();
         let out = Path::new(BUILD).join(format!("{stem}.o"));
+        let dir = Path::new(BUILD).join("units").join(&stem);
+        let root = match materialize(Path::new(unit), &dir) {
+            Ok(p) => p,
+            Err(e) => return Err(e),
+        };
         let status = Command::new("rustc")
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
+                   "--crate-name", &stem,
                    "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
-            .arg(unit)
+            .arg(&root)
             .arg("-o")
             .arg(&out)
             .status();
@@ -988,9 +1157,10 @@ fn build_finished_tus() -> Result<(), String> {
         let checked = Path::new(BUILD).join(format!("{stem}.checking.o"));
         let status = Command::new("rustc")
             .args(["--edition", "2024", "--crate-type", "lib", "--emit", "obj",
+                   "--crate-name", &stem,
                    "--cfg", "enable_checking",
                    "-C", "panic=abort", "-C", "codegen-units=1", "-C", "opt-level=0"])
-            .arg(unit)
+            .arg(&root)
             .arg("-o")
             .arg(&checked)
             .status();

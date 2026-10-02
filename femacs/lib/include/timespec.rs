@@ -5,9 +5,11 @@
 // (gnulib's timespec module), so `tools/extract-abi.py --check lib/timespec.h
 // femacs/lib/include/timespec.rs` compares it to the C header.
 //
-// It uses `time_t` and `struct timespec`, which in C come from <time.h>; the port gets
-// them from lib/include/time.in.rs (the mirror of gnulib's time.in.h), which the includer
-// must have included first, exactly as C's `#include <time.h>` does.
+// It includes `lib/include/time.in.rs` for `time_t`/`struct timespec`, mirroring C's
+// `#include <time.h>`; `buffer.rs` reaches the same mirror directly, so a unit that includes
+// both (`data.c` will) hits the same file twice — `xtask`'s include-graph expansion makes
+// that one copy (PORTING.md 0.1-4/P-61), which is what lets a mirror keep its own includes
+// instead of asking every translation unit to list the closure.
 //
 // C's `arg-nonnull.h` include is dropped: the only thing timespec.h takes from it is the
 // `_GL_ARG_NONNULL` attribute, which is recorded in docs/ports/excluded-macros.txt
@@ -33,6 +35,7 @@
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
+include!("time.in.rs");        // #include <time.h> (`time_t`, `struct timespec`)
 include!("gnulib_config.rs");
 
 // The include guard has no Rust counterpart (PORTING.md 0.1).

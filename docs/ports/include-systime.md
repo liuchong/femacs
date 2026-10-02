@@ -35,13 +35,11 @@
 - `INLINE_HEADER_BEGIN`/`INLINE_HEADER_END` have no Rust counterpart (PORTING.md 0.1); they come from
   the generated config header in C, not from this file.
 - The mirror needs `time_t`/`struct timespec`, which in C arrive through `<timespec.h>` →
-  `<time.h>`.  The port gets them from `femacs/lib/include/time.in.rs`, whose single owner is
-  `timespec.rs`'s or the translation unit's include list: `buffer.rs` includes it today, and a TU
-  that includes this mirror without `buffer.rs` must list `time.in.rs` itself.  Verified: a
-  `/tmp` harness that includes config/stdio/lisp/systime but not `time.in.rs` fails with
-  `cannot find type time_t`; adding it compiles.  This is P-61's rule; the dedupe that would
-  let mirrors nest freely (PORTING.md 0.1-4) is the next tooling step, before the next header
-  mirror (termhooks.h and window.h both need dispextern.h, which makes the diamond unavoidable).
+  `<time.h>`; the port gets them because this mirror includes `timespec.rs`, which includes
+  `time.in.rs`.  `buffer.rs` reaches `time.in.rs` directly as well, so a unit that includes both
+  (every `data.c`-shaped unit) hits the same file twice — `xtask`'s include-graph expansion
+  (PORTING.md 0.1-4/P-61) makes that one copy, verified by a negative test: with the expansion
+  short-circuited, `layout-check` fails with `E0428: the name time_t is defined multiple times`.
 - `<timespec.h>` is `femacs/lib/include/timespec.rs` (a *reference* mirror: gnulib's module) and
   `<sys/time.h>` is `femacs/lib/include/sys_time.rs` (a system mirror, P-26/P-50, carrying
   `struct timeval` with the frozen target's layout pinned by `const _` assertions).
