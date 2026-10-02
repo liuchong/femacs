@@ -6,12 +6,12 @@
 
 ## 1. 当前数字（每次提交后核对）
 
-- 已竣工单元：`src/` 7 个（data.c 4,400 / macros.c 444 / undo.c 490 / category.c 506 /
-  tparam.c 284 / vm-limit.c 220 / itree.c 1,435），`lib/` 26 个（gnulib 包装与替换件，外加两个
-  实现单元 rawmemchr.c 158 / memrchr.c 158）。
+- 已竣工单元：`src/` 8 个（data.c 4,400 / macros.c 444 / undo.c 490 / category.c 506 /
+  tparam.c 284 / vm-limit.c 220 / itree.c 1,435 / marker.c 874），`lib/` 26 个（gnulib 包装与
+  替换件，外加两个实现单元 rawmemchr.c 158 / memrchr.c 158）。
 - 已竣工镜像：`src/include/` 与 `lib/include/` 共 11 个（font.h、thread.h、comp.h、
   macros.h、category.h、tparam.h、sys_resource.h 及既有若干）。
-- `python3 tools/extract-abi.py --all`：**65 ported / 53 done / 12 wip / 0 failing**；
+- `python3 tools/extract-abi.py --all`：**66 ported / 54 done / 12 wip / 0 failing**；
   done/in-progress 的数字以它为准。
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
@@ -51,6 +51,14 @@
   `itree_iterator_next` 驱动的循环），`ITREE_FOREACH_NARROW` 直接调用
   `itree_iterator_narrow`。首个使用者是 `src/itree.c`；其余四个（buffer.c、editfns.c、
   textprop.c、xdisp.c）照此办理。`excluded-macros.txt` 两行已从 deferred 改为 syntax。
+- **3.8 带早退/捕获调用者局部变量的语句宏形状已定案（2026-10-03）**：`marker.c` 的两个
+  `CONSIDER`（C 100-136、277-315）实测证明 `macro_rules!` **不能引用调用者的局部变量**
+  （卫生性报 `cannot find value ... not accessible due to macro hygiene`）。定案：该语句序列
+  写成**一个 helper 函数**——急切求值的操作数当值传入，**惰性求值的操作数当 `FnOnce`**（保住
+  C 注释里"BYTEPOS 只在需要时求值"的语义），宏捕获的游标变量走 `&mut`，宏里的 `return` 变成
+  `Option` 并由使用点的 `if let Some (value) = … { return value; }` 返回；宏名进
+  `excluded-macros.txt`，token 进 `token-aliases.tsv` 的 family（带**出现次数**校验，丢掉一次
+  调用仍会失败）。同类宏（`CALLN` 之外的早退宏）照此办理。
 - **3.6 下一批候选**：依赖已就绪且体量大的 `lib/mini-gmp.c`(4,699)、`lib/regexec.c`(4,306)
   与 `lib/regex_internal.c`(1,718)、`src/json.c`(1,851，0 个预处理条件)、`src/itree.c`(1,435)、
   `src/callint.c`(933)、`src/marker.c`(874)；小件 `lib/getgroups.c`(121)、`lib/group-member.c`(108)、

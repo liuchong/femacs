@@ -23,9 +23,9 @@
 | globals | 1,934 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 65 |
-| 其中 done / wip | 53 / 12 |
-| 待开工 | 525 |
+| 已有目标文件 | 66 |
+| 其中 done / wip | 54 / 12 |
+| 待开工 | 524 |
 
 ## 2 按目录
 
@@ -38,14 +38,14 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 23 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 217 |
+| `src/` | 250 | 566,784 | 8,470 | 1,841 | 4,006 | 2,716 | 5,117 | 1,774 | 216 |
 
 ## 3 按批次
 
 | 批次 | 范围 | 完成判据 | 文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | todo |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 19 |
-| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 948 | 330 | 717 | 420 | 148 | 26 |
+| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 948 | 330 | 717 | 420 | 148 | 25 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 905 | 269 | 498 | 289 | 121 | 31 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,161 | 490 | 1,104 | 1,976 | 432 | 40 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,619 | 368 | 1,834 | 2,175 | 974 | 192 |
@@ -551,7 +551,7 @@
 | `src/macros.c` | 444 | 7 | 6 | 0 | 0 | 0 | 2 | B | `femacs/src/macros.rs` | done |
 | `src/macros.h` | 51 | 0 | 0 | 1 | 0 | 0 | 2 | B | `femacs/src/include/macros.rs` | done |
 | `src/macuvs.h` | 9,218 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/src/include/macuvs.rs` | todo |
-| `src/marker.c` | 874 | 18 | 8 | 4 | 2 | 0 | 4 | C | `femacs/src/marker.rs` | todo |
+| `src/marker.c` | 874 | 18 | 8 | 4 | 2 | 0 | 4 | C | `femacs/src/marker.rs` | done |
 | `src/menu.c` | 1,638 | 30 | 3 | 0 | 0 | 3 | 7 | E | `femacs/src/menu.rs` | todo |
 | `src/menu.h` | 72 | 0 | 0 | 1 | 3 | 0 | 0 | E | `femacs/src/include/menu.rs` | todo |
 | `src/minibuf.c` | 2,759 | 24 | 24 | 4 | 2 | 0 | 9 | E | `femacs/src/minibuf.rs` | todo |
