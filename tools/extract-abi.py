@@ -1046,7 +1046,13 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             problems.append(f"DEFUN! {name}: the reference file has no such DEFUN")
         if len(defs) > 1:
             problems.append(f"DEFUN! {name}: defined {len(defs)} times in this file")
+    # A subr the port does not define at all is already one problem ("missing subr"
+    # above); the second report is the same fact twice (review B's D6).
+    undefined = {d["c_name"] for d in c["defuns"]
+                 if not any(x["c_name"] == d["c_name"] for x in r["subrs"])}
     for name in sorted(c_by_name):
+        if name in undefined:
+            continue
         if name not in defs_by_name:
             problems.append(f"DEFUN! {name}: the reference DEFUN has no `DEFUN!` definition")
 

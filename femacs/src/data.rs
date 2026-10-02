@@ -1285,27 +1285,76 @@ unsafe fn swap_in_symval_forwarding (symbol: *mut Lisp_Symbol, blv: *mut Lisp_Bu
         { store_symval_forwarding ((*blv).fwd, blv_value (blv), std::ptr::null_mut ()); }
     }
 }
+/* Find the value of a symbol, returning Qunbound if it's not bound.
+   This is helpful for code which just wants to get a variable's value
+   if it has one, without signaling an error.
 
-// data.c 1832-1840.  C reads and writes the `trapped_write` bitfield; the mirror packs it
-// into `u.s.bits` (lisp.rs 224-225), so both sides go through the mask/shift.
-unsafe extern "C" fn set_symbol_trapped_write (symbol: Lisp_Object, trap: u32)
+   This function is very similar to buffer_local_value, but we have
+   two separate code paths here since find_symbol_value has to be very
+   efficient, while buffer_local_value doesn't have to be.
+
+   Note that it must not be possible to quit within this function.
+   Great care is required for this.  */
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object
 {
-  let sym: *mut Lisp_Symbol = XSYMBOL (symbol);
-  if ((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT
-     == SYMBOL_NOWRITE
-    { xsignal1 (Qtrapping_constant (), symbol); }
-  let bits = (*sym).u.s.bits;
-  (*sym).u.s.bits = (bits & ! SYMBOL_TRAPPED_WRITE_MASK)
-                    | ((trap << SYMBOL_TRAPPED_WRITE_SHIFT) & SYMBOL_TRAPPED_WRITE_MASK);
+  CHECK_SYMBOL (symbol);
+  let mut sym: *mut Lisp_Symbol = XSYMBOL (symbol);
+
+  /* C's `start:` label and its `goto start` become this loop.  */
+  loop
+    {
+      match ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+        {
+        SYMBOL_VARALIAS =>
+          { sym = SYMBOL_ALIAS (sym); continue; }
+        SYMBOL_PLAINVAL =>
+          { return SYMBOL_VAL (sym); }
+        SYMBOL_LOCALIZED =>
+          {
+            let blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value;
+            swap_in_symval_forwarding (sym, blv);
+            return if ! (*blv).fwd.is_null ()
+                     { do_symval_forwarding ((*blv).fwd) }
+                   else
+                     { blv_value (blv) };
+          }
+        SYMBOL_FORWARDED =>
+          { return do_symval_forwarding (SYMBOL_FWD (sym) as *mut Lisp_Fwd); }
+        _ =>
+          { emacs_abort (); }
+        }
+    }
 }
 
-// data.c 1842-1846.
-unsafe extern "C" fn restore_symbol_trapped_write (symbol: Lisp_Object)
-{
-  set_symbol_trapped_write (symbol, SYMBOL_TRAPPED_WRITE);
-}
+DEFUN! ("symbol-value", Fsymbol_value, Ssymbol_value, 1, 1, 0,
+       doc: "Return SYMBOL's value.  Error if that is void.\nNote that if `lexical-binding' is in effect, this returns the\nglobal value outside of any lexical scope.",
+       (symbol: Lisp_Object),
+       {
+  let val: Lisp_Object;
 
-/* Set the value of SYMBOL.  ... */
+  val = find_symbol_value (symbol);
+  if ! BASE_EQ (val, Qunbound ())
+    { return val; }
+
+  xsignal1 (Qvoid_variable (), symbol);
+});
+DEFUN! ("set", Fset, Sset, 2, 2, 0,
+       doc: "Set SYMBOL's value to NEWVAL, and return NEWVAL.",
+       (symbol: Lisp_Object, newval: Lisp_Object),
+       {
+  set_internal (symbol, newval, Qnil (), SET_INTERNAL_SET);
+  return newval;
+});
+/* Store the value NEWVAL into SYMBOL.
+   If buffer-locality is an issue, WHERE specifies which context to use.
+   (nil stands for the current buffer/frame).
+
+   If BINDFLAG is SET_INTERNAL_SET, then if this symbol is supposed to
+   become local in every buffer where it is set, then we make it
+   local.  If BINDFLAG is SET_INTERNAL_BIND or SET_INTERNAL_UNBIND, we
+   don't do that.  */
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn set_internal (symbol: Lisp_Object, newval: Lisp_Object,
@@ -1475,6 +1524,25 @@ pub unsafe extern "C" fn set_internal (symbol: Lisp_Object, newval: Lisp_Object,
     }
 }
 
+// data.c 1833-1840.  C reads and writes the `trapped_write` bitfield; the mirror packs it
+// into `u.s.bits` (lisp.rs 224-225), so both sides go through the mask/shift.
+unsafe extern "C" fn set_symbol_trapped_write (symbol: Lisp_Object, trap: u32)
+{
+  let sym: *mut Lisp_Symbol = XSYMBOL (symbol);
+  if ((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT
+     == SYMBOL_NOWRITE
+    { xsignal1 (Qtrapping_constant (), symbol); }
+  let bits = (*sym).u.s.bits;
+  (*sym).u.s.bits = (bits & ! SYMBOL_TRAPPED_WRITE_MASK)
+                    | ((trap << SYMBOL_TRAPPED_WRITE_SHIFT) & SYMBOL_TRAPPED_WRITE_MASK);
+}
+
+// data.c 1842-1846.
+unsafe extern "C" fn restore_symbol_trapped_write (symbol: Lisp_Object)
+{
+  set_symbol_trapped_write (symbol, SYMBOL_TRAPPED_WRITE);
+}
+
 /* Called after `defvaralias' to make sure all aliases have the same
    trap.  */
 
@@ -1579,23 +1647,18 @@ pub unsafe extern "C" fn notify_variable_watchers (symbol: Lisp_Object,
 
   unbind_to (count, Qnil ());
 }
+/* Access or set a buffer-local symbol's default value.  */
 
-/* Find the value of a symbol, returning Qunbound if it's not bound.
-   This is helpful for code which just wants to get a variable's value
-   if it has one, without signaling an error.
-
-   This function is very similar to buffer_local_value, but we have
-   two separate code paths here since find_symbol_value has to be very
-   efficient, while buffer_local_value doesn't have to be.
-
-   Note that it must not be possible to quit within this function.
-   Great care is required for this.  */
+/* Return the default value of SYMBOL, but don't check for voidness.
+   Return Qunbound if it is void.  */
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object
+pub unsafe extern "C" fn default_value (symbol: Lisp_Object) -> Lisp_Object
 {
+  let mut sym: *mut Lisp_Symbol;
+
   CHECK_SYMBOL (symbol);
-  let mut sym: *mut Lisp_Symbol = XSYMBOL (symbol);
+  sym = XSYMBOL (symbol);
 
   /* C's `start:` label and its `goto start` become this loop.  */
   loop
@@ -1608,30 +1671,215 @@ pub unsafe extern "C" fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object
           { return SYMBOL_VAL (sym); }
         SYMBOL_LOCALIZED =>
           {
+            /* If var is set up for a buffer that lacks a local value for it,
+               the current value is nominally the default value.
+               But the `realvalue' slot may be more up to date, since
+               ordinary setq stores just that slot.  So use that.  */
             let blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value;
-            swap_in_symval_forwarding (sym, blv);
-            return if ! (*blv).fwd.is_null ()
-                     { do_symval_forwarding ((*blv).fwd) }
-                   else
-                     { blv_value (blv) };
+            if ! (*blv).fwd.is_null () && BASE_EQ ((*blv).valcell, (*blv).defcell)
+              { return do_symval_forwarding ((*blv).fwd); }
+            else
+              { return XCDR ((*blv).defcell); }
           }
         SYMBOL_FORWARDED =>
-          { return do_symval_forwarding (SYMBOL_FWD (sym) as *mut Lisp_Fwd); }
+          {
+            let valcontents: lispfwd = SYMBOL_FWD (sym) as *mut Lisp_Fwd;
+
+            /* For a built-in buffer-local variable, get the default value
+               rather than letting do_symval_forwarding get the current value.  */
+            if BUFFER_OBJFWDP (valcontents)
+              {
+                let offset: c_int = XBUFFER_OFFSET (valcontents) as c_int;
+                if PER_BUFFER_IDX (offset as ptrdiff_t) != 0
+                  { return per_buffer_default (offset); }
+              }
+
+            /* For other variables, get the current value.  */
+            return do_symval_forwarding (valcontents);
+          }
         _ =>
           { emacs_abort (); }
         }
     }
 }
 
-DEFUN! ("symbol-value", Fsymbol_value, Ssymbol_value, 1, 1, 0,
-       doc: "Return SYMBOL's value.  Error if that is void.\nNote that if `lexical-binding' is in effect, this returns the\nglobal value outside of any lexical scope.",
+DEFUN! ("default-boundp", Fdefault_boundp, Sdefault_boundp, 1, 1, 0,
+       doc: "Return t if SYMBOL has a non-void default value.\nA variable may have a buffer-local value.  This function says whether\nthe variable has a non-void value outside of the current buffer\ncontext.  Also see `default-value'.",
        (symbol: Lisp_Object),
        {
-  let val: Lisp_Object;
+  let value: Lisp_Object;
 
-  val = find_symbol_value (symbol);
-  if ! BASE_EQ (val, Qunbound ())
-    { return val; }
+  value = default_value (symbol);
+  return if BASE_EQ (value, Qunbound ()) { Qnil () } else { Qt () };
+});
+
+DEFUN! ("default-value", Fdefault_value, Sdefault_value, 1, 1, 0,
+       doc: "Return SYMBOL's default value.\nThis is the value that is seen in buffers that do not have their own values\nfor this variable.  The default value is meaningful for variables with\nlocal bindings in certain buffers.",
+       (symbol: Lisp_Object),
+       {
+  let value: Lisp_Object = default_value (symbol);
+  if ! BASE_EQ (value, Qunbound ())
+    { return value; }
 
   xsignal1 (Qvoid_variable (), symbol);
 });
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn set_default_internal (symbol: Lisp_Object, value: Lisp_Object,
+                                               bindflag: Set_Internal_Bind,
+                                               r#where: *mut KBOARD)
+{
+  CHECK_SYMBOL (symbol);
+  let mut sym: *mut Lisp_Symbol = XSYMBOL (symbol);
+  match ((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT
+    {
+    SYMBOL_NOWRITE =>
+      {
+        if NILP (Fkeywordp (symbol))
+          || ! EQ (value, Fsymbol_value (symbol))
+          { xsignal1 (Qsetting_constant (), symbol); }
+        else
+          /* Allow setting keywords to their own value.  */
+          { return; }
+      }
+
+    SYMBOL_TRAPPED_WRITE =>
+      {
+        /* Don't notify here if we're going to call Fset anyway.  */
+        if ((((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+             != SYMBOL_PLAINVAL)
+            /* Setting due to thread switching doesn't count.  */
+            && bindflag != SET_INTERNAL_THREAD_SWITCH)
+          { notify_variable_watchers (symbol, value, Qset_default (), Qnil ()); }
+      }
+
+    SYMBOL_UNTRAPPED_WRITE => {}
+
+    _ => { emacs_abort (); }
+    }
+
+  /* C's `start:` label and its `goto start` become this loop.  */
+  loop
+    {
+      match ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT
+        {
+        SYMBOL_VARALIAS =>
+          { sym = SYMBOL_ALIAS (sym); continue; }
+        SYMBOL_PLAINVAL =>
+          { set_internal (symbol, value, Qnil (), bindflag); return; }
+        SYMBOL_LOCALIZED =>
+          {
+            let blv = SYMBOL_BLV (sym) as *mut Lisp_Buffer_Local_Value;
+
+            /* Store new value into the DEFAULT-VALUE slot.  */
+            XSETCDR ((*blv).defcell, value);
+
+            /* If the default binding is now loaded, set the REALVALUE slot too.  */
+            if ! (*blv).fwd.is_null () && BASE_EQ ((*blv).defcell, (*blv).valcell)
+              { store_symval_forwarding ((*blv).fwd, value, std::ptr::null_mut ()); }
+            return;
+          }
+        SYMBOL_FORWARDED =>
+          {
+            let valcontents: lispfwd = SYMBOL_FWD (sym) as *mut Lisp_Fwd;
+
+            /* Handle variables like case-fold-search that have special slots
+               in the buffer.
+               Make them work apparently like Lisp_Buffer_Local_Value variables.  */
+            if BUFFER_OBJFWDP (valcontents)
+              {
+                let offset: c_int = XBUFFER_OFFSET (valcontents) as c_int;
+                let idx = PER_BUFFER_IDX (offset as ptrdiff_t);
+
+                set_per_buffer_default (offset, value);
+
+                /* If this variable is not always local in all buffers,
+                   set it in the buffers that don't nominally have a local value.  */
+                if idx > 0
+                  {
+                    /* C's `FOR_EACH_LIVE_BUFFER (tail, buf)` is a two-variable alist
+                       loop macro the mirror does not carry (P-22,
+                       docs/ports/excluded-macros.txt); the port writes the expansion
+                       C's `FOR_EACH_ALIST_VALUE` gives it.  */
+                    let mut list_var: Lisp_Object = Vbuffer_alist;
+                    while CONSP (list_var)
+                      {
+                        let buf = XCDR (XCAR (list_var));
+                        let b = XBUFFER (buf);
+
+                        if ! PER_BUFFER_VALUE_P (b, idx)
+                          { set_per_buffer_value (b, offset, value); }
+
+                        list_var = XCDR (list_var);
+                      }
+                  }
+              }
+            else if KBOARD_OBJFWDP (valcontents)
+              {
+                let base = if ! r#where.is_null () { r#where as *mut c_char }
+                           else { kboard_for_bindings () as *mut c_char };
+                let p = base.offset (XKBOARD_OFFSET (valcontents) as isize);
+                *(p as *mut Lisp_Object) = value;
+              }
+            else
+              { set_internal (symbol, value, Qnil (), bindflag); }
+            return;
+          }
+        _ =>
+          { emacs_abort (); }
+        }
+    }
+}
+
+DEFUN! ("set-default", Fset_default, Sset_default, 2, 2, 0,
+       doc: "Set SYMBOL's default value to VALUE.  SYMBOL and VALUE are evaluated.\nThe default value is seen in buffers that do not have their own values\nfor this variable.",
+       (symbol: Lisp_Object, value: Lisp_Object),
+       {
+  set_default_internal (symbol, value, SET_INTERNAL_SET, std::ptr::null_mut ());
+  return value;
+});
+
+/* Lisp functions for creating and removing buffer-local variables.  */
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union Lisp_Val_Fwd {
+  pub value: Lisp_Object,
+  pub fwd: lispfwd,
+}
+// The union is defined in data.c itself, so no header mirror can name it and
+// `xtask layout-check` (which compiles only `include/*.rs`) can never carry a
+// `c-layout` key for it: the port asserts the same two facts here instead, the
+// `bignum.rs`/`doprnt.rs` precedent.  Both members are one word wide.
+const _: () = assert! (size_of::<Lisp_Val_Fwd> () == 8 && align_of::<Lisp_Val_Fwd> () == 8);
+
+unsafe fn make_blv (sym: *mut Lisp_Symbol, forwarded: bool,
+                    valcontents: Lisp_Val_Fwd) -> *mut Lisp_Buffer_Local_Value
+{
+  let blv = xmalloc (size_of::<Lisp_Buffer_Local_Value> ()) as *mut Lisp_Buffer_Local_Value;
+  let symbol: Lisp_Object;
+  let tem: Lisp_Object;
+
+  XSETSYMBOL! (symbol, sym);
+  tem = Fcons (symbol, if forwarded
+                         { do_symval_forwarding (valcontents.fwd) }
+                       else
+                         { valcontents.value });
+
+  /* Buffer_Local_Values cannot have as realval a buffer-local
+     or keyboard-local forwarding.  */
+  eassert! (! (forwarded && BUFFER_OBJFWDP (valcontents.fwd)));
+  eassert! (! (forwarded && KBOARD_OBJFWDP (valcontents.fwd)));
+  (*blv).fwd = if forwarded { valcontents.fwd } else { std::ptr::null_mut () };
+  set_blv_where (blv, Qnil ());
+  /* C writes the one-bit `local_if_set` field (then `set_blv_found` writes `found`);
+     the mirror packs both into `u.s.bits` (lisp.rs 1970-1971).  The substitute spelling
+     is pinned by the `local_if_set` token family (docs/ports/token-aliases.tsv), whose
+     occurrence check reports this statement's deletion.  */
+  (*blv).bits = (*blv).bits & ! BLV_LOCAL_IF_SET;
+  set_blv_defcell (blv, tem);
+  set_blv_valcell (blv, tem);
+  set_blv_found (blv, false as c_int);
+  __lsan_ignore_object (blv as *const c_void);
+  return blv;
+}

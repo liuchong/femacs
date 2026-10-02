@@ -73,13 +73,13 @@
 - [x] command-modes  (Fcommand_modes, 1/1, doc 1fde4b17ab80, line 1218)
 - [x] indirect-variable  (Findirect_variable, 1/1, doc f3690ca988af, line 1291)
 - [x] symbol-value  (Fsymbol_value, 1/1, doc fb8e10325afe, line 1645)
-- [ ] set  (Fset, 2/2, doc 67b1a9246f28, line 1660)
+- [x] set  (Fset, 2/2, doc 67b1a9246f28, line 1660)
 - [x] add-variable-watcher  (Fadd_variable_watcher, 2/2, doc 6686d609c646, line 1857)
 - [x] remove-variable-watcher  (Fremove_variable_watcher, 2/2, doc dc4012da0625, line 1885)
 - [x] get-variable-watchers  (Fget_variable_watchers, 1/1, doc 7282bb591c7c, line 1904)
-- [ ] default-boundp  (Fdefault_boundp, 1/1, doc 38e91477c206, line 2006)
-- [ ] default-value  (Fdefault_value, 1/1, doc f123fcac4bbc, line 2019)
-- [ ] set-default  (Fset_default, 2/2, doc df2bb74cee8d, line 2130)
+- [x] default-boundp  (Fdefault_boundp, 1/1, doc 38e91477c206, line 2006)
+- [x] default-value  (Fdefault_value, 1/1, doc f123fcac4bbc, line 2019)
+- [x] set-default  (Fset_default, 2/2, doc df2bb74cee8d, line 2130)
 - [ ] make-variable-buffer-local  (Fmake_variable_buffer_local, 1/1, doc 72fb43518d24, line 2178)
 - [ ] make-local-variable  (Fmake_local_variable, 1/1, doc c078681c6a7d, line 2245)
 - [ ] kill-local-variable  (Fkill_local_variable, 1/1, doc 9c6b3b90cf56, line 2350)
@@ -160,9 +160,9 @@
 - [x] restore_symbol_trapped_write  (line 1843, static)
 - [x] harmonize_variable_watchers  (line 1849, static)
 - [x] notify_variable_watchers  (line 1915)
-- [ ] default_value  (line 1962)
-- [ ] set_default_internal  (line 2034)
-- [ ] make_blv  (line 2149, static)
+- [x] default_value  (line 1962)
+- [x] set_default_internal  (line 2034)
+- [x] make_blv  (line 2149, static)
 - [ ] indirect_function  (line 2550)
 - [ ] check_integer_coerce_marker  (line 2688, static)
 - [ ] check_number_coerce_marker  (line 2697, static)
@@ -189,7 +189,7 @@
 - [ ] PUT_ERROR  (line 4120, body c7f6139325fa)
 
 ## Types and their fields — 1
-- [ ] Lisp_Val_Fwd: Lisp_Object value, lispfwd fwd
+- [x] Lisp_Val_Fwd: Lisp_Object value, lispfwd fwd
 
 ## File-scope objects — 0
 
@@ -197,13 +197,15 @@
 
 - **Ported so far.**  data.c 41-165 (the 19 accessors and error helpers), 168-705 (40
   subrs), 716-897 (the twelve symbol accessors and `fset`), 1029-1291 (the subr
-  introspection subrs), 1314-1646 (the forwarding machinery), 1678-1960 (`set_internal`,
-  the watcher machinery and its three subrs) and 1832-1846
-  (`set_symbol_trapped_write`/`restore_symbol_trapped_write`).  `cargo build-tu src/data.c`
-  builds, and `extract-abi.py --check` reports no incorrect item - only the 52 remaining
-  subrs, 26 functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*` plus the five
+  introspection subrs), 1314-1646 (the forwarding machinery), 1660-1676 (`set`, in C's
+  order ahead of its callee), 1678-1960 (`set_internal`, the watcher machinery and its
+  three subrs), 1832-1846 (`set_symbol_trapped_write`/`restore_symbol_trapped_write`)
+  and 1962-2176 (`default_value`, the three `default-*` subrs, `set_default_internal`,
+  `union Lisp_Val_Fwd` and `make_blv`).  `cargo build-tu src/data.c` builds, and
+  `extract-abi.py --check` reports no incorrect item - only the 48 remaining subrs, 23
+  functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*` plus the five
   `bool_vector_*`), the 120 `defsubr` calls and the line-count drift of a partial file
-  (C 4400 vs Rust 1637, 62.8%).
+  (C 4400 vs Rust 1885, 57.2%).
 - **Five subrs wait for two headers.**  `type-of` (data.c 187-200) needs this file's own
   `cl-type-of` (data.c 202-310); `cl-type-of` calls `THREADP`, `MUTEXP`, `CONDVARP`
   (`thread.h` 222-320) and `FONT_SPEC_P`/`FONT_ENTITY_P`/`FONT_OBJECT_P` (`font.h`
@@ -274,10 +276,56 @@
   forward declarations (PORTING.md 0.1-12), so the machinery has to exist before the
   accessors that call it can be part of a compiling translation unit.  716-897 landed next; the only hole left in the first half is
   931-1028 (the `defalias` family), which waits for `comp.rs` (comp.h's `static inline` no-op, PORTING.md P-51's text-preservation rule).
-- **Four lexical notes in `docs/ports/macro-body-notes.tsv`.**  C's `switch`/`case`/
-  `default`, `start:`/`goto start` and `FOR_EACH_LIVE_BUFFER` have no Rust spelling, so
-  those four function names carry an explicit exemption list (the `doprnt` precedent on the
-  same file); every other token of those bodies is still compared.
+- **Twelve lexical notes in `docs/ports/macro-body-notes.tsv` name a data.c body.**  C's
+  `switch`/`case`/`default`, `start:`/`goto start` and `FOR_EACH_LIVE_BUFFER` have no Rust
+  spelling, so those function names carry an explicit exemption list (the `doprnt`
+  precedent on the same file); every other token of those bodies is still compared.  The
+  packed bitfields (`redirect`, `trapped_write`, `local_if_set`) are the one class where an
+  exemption can hide a whole statement, so `local_if_set` left this file for
+  `token-aliases.tsv` (the next bullet).
+
+- **`union Lisp_Val_Fwd` (data.c 2142-2146) is this file's first union.**  C defines it in
+  data.c rather than in a header, so P-72 keeps it in `data.rs` and no header mirror can
+  name it - and `xtask layout-check` compiles only `femacs/src/include/*.rs`, so a
+  `c-layout` key for it is structurally impossible.  The port asserts the same two facts
+  where the type lives (`const _: () = assert! (size_of == 8 && align_of == 8)`, the
+  `bignum.rs`/`doprnt.rs` precedent) and `--check` compares both member names and types.
+- **`local_if_set` is pinned by a token family, not by a note (review B's D1).**
+  `blv->local_if_set = 0` (data.c 2170) contributes only the field name and a `0` literal,
+  and the port spells the field `BLV_LOCAL_IF_SET`; exempting both tokens left the whole
+  statement with no mechanical check at all, so deleting it, inverting it or retargeting it
+  to `BLV_FOUND` passed every gate.  `docs/ports/token-aliases.tsv` now carries the family
+  `local_if_set`/`blv_local_if_set`, whose *occurrence* check requires the port to spell it
+  at least as often as the C body does - the mechanism that closed review D's F2 for
+  `memcpy` - so the deletion is reported.  The exemption is gone from `set_internal`'s row
+  and `make_blv`'s row is deleted.  `redirect`, `trapped_write` and `found` stay exempted
+  per body: a *deleted* read of those is still invisible, and generalising the family to
+  them is recorded in PORTING.md P-78's residuals as the next gate improvement.
+- **C's bitfield store reads the whole storage unit (review A's D3).**  `blv->local_if_set
+  = 0` in C and `(*blv).bits = (*blv).bits & !BLV_LOCAL_IF_SET` in the port both
+  read-modify-write a word `xmalloc` left uninitialized, and `set_blv_found` reads that
+  word too.  The port keeps C's statement order (the clear comes *before* `set_blv_found`,
+  which `blv_found`'s `eassert` depends on) instead of adding an initialization C does not
+  have; the observable state is identical and those two bits are the only ones any code
+  reads.  Behavioural pin: probe P1 (a reused dirty `blv` must still read `local_if_set` =
+  nil), to run in the segment that brings `make-variable-buffer-local` (2210) and
+  `local-variable-if-set-p` (2467).
+- **lisp.h's remaining data.c prototypes are not in the mirror yet (review A's D5).**
+  `set_internal` (lisp.h 4206), `notify_variable_watchers` (4165) and `default_value` (621)
+  are defined here but not declared in `lisp.rs`'s `other_units`.  This unit does not need
+  them - a definition is visible in its own module - and no other unit is ported yet, so the
+  mirror follows the pattern its own comments describe (the block is annotated with the
+  first unit that needs each declaration).  The first unit that calls one of them must add
+  it, with the `/// C:` prototype when a parameter cannot be named (P-72), as
+  `set_default_internal` already does (lisp.rs 3672).
+- **Review B's D7 (`store_symval_forwarding`'s row allows a `case` its C body lacks) does
+  not hold.**  Measured with the gate's own tokenizer: the row's allowance is exactly the C
+  body's token set (`allowed - C = {}`), and `case` is in it - the body is a `switch` over
+  `XFWDTYPE` with six `case` labels (data.c 1472-1540).  No change.
+- **`--check` used to report every unported subr twice (review B's D6).**  The
+  "missing subr" loop and the "`DEFUN!` has no definition" loop are the same fact; the
+  second now skips names the first already reported, so this file's remaining count is a
+  one-to-one list of what is left (48 subrs, not 96 lines).
 - **The EXFUN prototypes are imported, not re-declared.**  C sees every `EXFUN (Ffoo, …)`
   because lisp.h includes the generated globals.h; the mirror keeps them in
   `globals.rs`'s `pub mod subrs`, so `lisp.rs` (which includes globals.rs) now carries

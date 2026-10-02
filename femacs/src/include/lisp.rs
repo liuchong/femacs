@@ -1065,7 +1065,8 @@ pub const CHARTAB_SIZE_BITS_1: usize = 4;
 pub const CHARTAB_SIZE_BITS_2: usize = 5;
 pub const CHARTAB_SIZE_BITS_3: usize = 7;
 
-// Symbol redirect/trapped-write/interned states (src/lisp.h 2000-2040).
+// Symbol redirect/trapped-write/interned states (src/lisp.h 763-784: `enum
+// symbol_interned`, `enum symbol_redirect`, `enum symbol_trapped_write`).
 pub const SYMBOL_PLAINVAL: u32 = 0;
 pub const SYMBOL_VARALIAS: u32 = 1;
 pub const SYMBOL_LOCALIZED: u32 = 2;
