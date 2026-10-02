@@ -239,5 +239,149 @@ unsafe extern "C" { pub static mut update_mode_lines: c_int; }                 /
 unsafe extern "C" { pub static mut windows_or_buffers_changed: c_int; }        // 1161
 unsafe extern "C" { pub static mut Vwindow_list: Lisp_Object; }                // 1206
 
-// C: window.h 102-474 and 567-1244's 95 `WINDOW_*` macros — (not mirrored yet; they land next,
-// in this same file).
+/* True if W is a leaf window.  */
+// window.h 567-1244's accessors.  C writes them as macros over the structure's fields; the port
+// keeps the names and the values, and reads the bitfield members through the unit's shift
+// constants (PORTING.md 1.3 — the note file records the field names that cannot occur).
+#[inline(always)]
+pub fn WINDOW_LEAF_P (w: *mut window) -> bool
+{ BUFFERP (unsafe { (*w).contents }) }
+
+#[inline(always)]
+pub fn WINDOW_INTERNAL_P (w: *mut window) -> bool
+{ WINDOWP (unsafe { (*w).contents }) }
+
+#[inline(always)]
+pub fn WINDOW_HORIZONTAL_COMBINATION_P (w: *mut window) -> bool
+{ WINDOW_INTERNAL_P (w) && window_bit (w, WINDOW_HORIZONTAL_SHIFT) }
+
+#[inline(always)]
+pub fn WINDOW_VERTICAL_COMBINATION_P (w: *mut window) -> bool
+{ WINDOW_INTERNAL_P (w) && !window_bit (w, WINDOW_HORIZONTAL_SHIFT) }
+
+#[inline(always)]
+pub fn WINDOW_PSEUDO_P (w: *mut window) -> bool
+{ window_bit (w, WINDOW_PSEUDO_WINDOW_P_SHIFT) }
+
+#[inline(always)]
+pub fn WINDOW_BUFFER (w: *mut window) -> Lisp_Object
+{ if WINDOW_LEAF_P (w) { unsafe { (*w).contents } } else { lisp_h_Qnil () } }
+
+#[inline(always)]
+pub fn WINDOW_BUFFER_LOCAL_VALUE (w: *mut window, v: Lisp_Object) -> Lisp_Object
+{
+  if BUFFERP (unsafe { (*w).contents })
+    { unsafe { buffer_local_value (v, (*w).contents) } }
+  else { lisp_h_Qnil () }
+}
+
+#[inline(always)]
+pub fn WINDOW_PIXEL_WIDTH (w: *mut window) -> c_int { unsafe { (*w).pixel_width } }
+#[inline(always)]
+pub fn WINDOW_PIXEL_HEIGHT (w: *mut window) -> c_int { unsafe { (*w).pixel_height } }
+#[inline(always)]
+pub fn WINDOW_TOTAL_COLS (w: *mut window) -> c_int { unsafe { (*w).total_cols } }
+#[inline(always)]
+pub fn WINDOW_TOTAL_LINES (w: *mut window) -> c_int { unsafe { (*w).total_lines } }
+
+#[inline(always)]
+pub fn WINDOW_LEFT_EDGE_COL (w: *mut window) -> c_int { unsafe { (*w).left_col } }
+#[inline(always)]
+pub fn WINDOW_RIGHT_EDGE_COL (w: *mut window) -> c_int
+{ WINDOW_LEFT_EDGE_COL (w) + WINDOW_TOTAL_COLS (w) }
+#[inline(always)]
+pub fn WINDOW_TOP_EDGE_LINE (w: *mut window) -> c_int { unsafe { (*w).top_line } }
+#[inline(always)]
+pub fn WINDOW_BOTTOM_EDGE_LINE (w: *mut window) -> c_int
+{ WINDOW_TOP_EDGE_LINE (w) + WINDOW_TOTAL_LINES (w) }
+
+#[inline(always)]
+pub fn WINDOW_LEFT_PIXEL_EDGE (w: *mut window) -> c_int { unsafe { (*w).pixel_left } }
+#[inline(always)]
+pub fn WINDOW_RIGHT_PIXEL_EDGE (w: *mut window) -> c_int
+{ WINDOW_LEFT_PIXEL_EDGE (w) + WINDOW_PIXEL_WIDTH (w) }
+#[inline(always)]
+pub fn WINDOW_TOP_PIXEL_EDGE (w: *mut window) -> c_int { unsafe { (*w).pixel_top } }
+#[inline(always)]
+pub fn WINDOW_BOTTOM_PIXEL_EDGE (w: *mut window) -> c_int
+{ WINDOW_TOP_PIXEL_EDGE (w) + WINDOW_PIXEL_HEIGHT (w) }
+
+#[inline(always)]
+pub fn WINDOW_LEFTMOST_P (w: *mut window) -> bool { WINDOW_LEFT_PIXEL_EDGE (w) == 0 }
+#[inline(always)]
+pub fn WINDOW_TOPMOST_P (w: *mut window) -> bool { WINDOW_TOP_PIXEL_EDGE (w) == 0 }
+
+// window.h 683-697: three bars this target never has (no window system).
+#[inline(always)]
+pub fn WINDOW_MENU_BAR_P (_w: *mut window) -> bool { false }
+#[inline(always)]
+pub fn WINDOW_TAB_BAR_P (_w: *mut window) -> bool { false }
+#[inline(always)]
+pub fn WINDOW_TOOL_BAR_P (_w: *mut window) -> bool { false }
+
+#[inline(always)]
+pub fn WINDOW_LEFT_MARGIN_COLS (w: *mut window) -> c_int { unsafe { (*w).left_margin_cols } }
+#[inline(always)]
+pub fn WINDOW_RIGHT_MARGIN_COLS (w: *mut window) -> c_int { unsafe { (*w).right_margin_cols } }
+#[inline(always)]
+pub fn WINDOW_MARGINS_COLS (w: *mut window) -> c_int
+{ WINDOW_LEFT_MARGIN_COLS (w) + WINDOW_RIGHT_MARGIN_COLS (w) }
+
+#[inline(always)]
+pub fn WINDOW_HAS_FRINGES_OUTSIDE_MARGINS (w: *mut window) -> bool
+{ window_bit (w, WINDOW_FRINGES_OUTSIDE_MARGINS_SHIFT) }
+
+// window.h 1046-1051: this target has no horizontal scroll bars.
+#[inline(always)]
+pub fn WINDOW_HAS_HORIZONTAL_SCROLL_BAR (_w: *mut window) -> bool { false }
+
+#[inline(always)]
+pub fn WINDOW_VALID_P (window_: Lisp_Object) -> bool
+{ WINDOWP (window_) && !NILP (unsafe { (*XWINDOW (window_)).contents }) }
+#[inline(always)]
+pub fn WINDOW_LIVE_P (window_: Lisp_Object) -> bool
+{ WINDOWP (window_) && BUFFERP (unsafe { (*XWINDOW (window_)).contents }) }
+
+/* Most code should use this macro to set Lisp fields in struct window.  */
+// window.h 1282-1300: the mini-window predicates.  `mini` is one of the nineteen packed flags.
+#[inline(always)]
+pub fn MINI_WINDOW_P (w: *mut window) -> bool { window_bit (w, WINDOW_MINI_SHIFT) }
+
+#[inline(always)]
+pub fn MINI_NON_ONLY_WINDOW_P (w: *mut window) -> bool
+{ MINI_WINDOW_P (w) && !NILP (unsafe { (*w).prev }) }
+
+#[inline(always)]
+pub fn MINI_ONLY_WINDOW_P (w: *mut window) -> bool
+{ MINI_WINDOW_P (w) && NILP (unsafe { (*w).prev }) }
+
+// window.h 1305-1312: the minimum sizes (the C macros ignore their argument).
+#[inline(always)]
+pub fn MIN_SAFE_WINDOW_HEIGHT (_w: *mut window) -> c_int { 1 }
+#[inline(always)]
+pub fn MIN_SAFE_WINDOW_WIDTH (_w: *mut window) -> c_int { 2 }
+
+// window.h 1316: `#define USE_HORIZONTAL_SCROLL_BARS false` — object-like, so the port keeps a
+// constant.
+pub const USE_HORIZONTAL_SCROLL_BARS: bool = false;
+
+#[inline(always)]
+pub fn CHECK_VALID_WINDOW (window_: Lisp_Object)
+{ CHECK_TYPE (WINDOW_VALID_P (window_), Qwindow_valid_p (), window_) }
+
+#[inline(always)]
+pub fn CHECK_LIVE_WINDOW (window_: Lisp_Object)
+{ CHECK_TYPE (WINDOW_LIVE_P (window_), Qwindow_live_p (), window_) }
+
+// The packed-flag reader the accessors above share.
+#[inline(always)]
+fn window_bit (w: *mut window, shift: u32) -> bool
+{ (unsafe { (*w).bits }) >> shift & 1 != 0 }
+
+// C: window.h 567-1244's remaining accessors that dereference `struct frame` through
+// `WINDOW_XFRAME` (`WINDOW_FRAME_COLUMN_WIDTH`, `WINDOW_LEFT_EDGE_X`, the fringe/scroll-bar
+// geometry, `WINDOW_RIGHTMOST_P`, `MIN_SAFE_WINDOW_PIXEL_*`, `FRAME_TO_WINDOW_PIXEL_*`, …),
+// `WINDOW_MODE_LINE_HEIGHT`/`_LINES` and the header/tab-line pair (they need dispextern.h's
+// `window_wants_*` and `CURRENT_*_LINE_HEIGHT`), and `WINDOW_VERTICAL_SCROLL_BAR_TYPE` (it needs
+// frame.h's `vertical_scroll_bar_none`/`_left`/`_right`) — (not mirrored yet; they land with
+// frame.rs, termchar.h and the display chain's `window_wants_*` declarations).

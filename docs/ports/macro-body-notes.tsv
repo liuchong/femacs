@@ -86,3 +86,10 @@ SJIS_TO_JIS	false	do-while shape; the port returns C's out-parameter
 SJIS_TO_JIS2	false	do-while shape
 JIS_TO_SJIS	false	do-while shape
 JIS_TO_SJIS2	false	do-while shape
+MINI_WINDOW_P	mini	`mini` is one of window.h's nineteen packed 1-bit flags; the port reads the 4-byte unit `window.bits` and masks it
+WINDOW_HORIZONTAL_COMBINATION_P	horizontal	same packed-flag unit (bit 1)
+WINDOW_VERTICAL_COMBINATION_P	horizontal	same packed-flag unit (bit 1)
+WINDOW_PSEUDO_P	pseudo_window_p	same packed-flag unit (bit 11)
+WINDOW_HAS_FRINGES_OUTSIDE_MARGINS	fringes_outside_margins	same packed-flag unit (bit 12)
+WINDOW_BUFFER	qnil	C passes `Qnil`; the port's nil is the function `lisp_h_Qnil ()` (P-17)
+WINDOW_BUFFER_LOCAL_VALUE	qnil	same (P-17); the call itself is C's `buffer_local_value`
