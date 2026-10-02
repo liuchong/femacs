@@ -1250,6 +1250,14 @@ def main() -> int:
                     help="C macros whose Rust body legitimately omits a named token")
     ap.add_argument("--token-aliases", default="docs/ports/token-aliases.tsv",
                     help="token families that mean the same thing in both languages")
+    ap.add_argument("--cond-macros", default="",
+                    help="the frozen configuration's macro table (tools/gen-cond-macros.py): "
+                         "`#if`/`#ifdef` conditions are then evaluated against it, so a mirror "
+                         "is compared with the text this target compiles (PORTING.md P-08/P-66). "
+                         "OFF by default: the evaluator must first pass "
+                         "`python3 tools/check-cond-eval.py src/lisp.h src/dispextern.h …` "
+                         "with zero disagreements — a gate that answers wrongly is worse than "
+                         "one that answers `unknown`")
     ap.add_argument("--va-arg-types", default="docs/ports/va-arg-types.tsv",
                     help="which object each va_arg/next_arg reads")
     args = ap.parse_args()
@@ -1258,6 +1266,16 @@ def main() -> int:
     notes_path = Path(args.macro_notes)
     macro_notes = read_macro_notes(notes_path) if notes_path.is_file() else {}
     load_token_aliases(Path(args.token_aliases))
+    cond_macros = Path(args.cond_macros)
+    if cond_macros.is_file():
+        table = ci.read_condition_macros(cond_macros)
+        ci.set_condition_macros(table)
+        print(f"conditions: {len(table)} macros from {cond_macros} "
+              f"({sum(1 for v in table.values() if v != 'undef')} defined)", file=sys.stderr)
+    else:
+        print(f"conditions: {cond_macros} is missing — `#if`s other than a literal `#if 0` "
+              "leave both branches live (tools/gen-cond-macros.py regenerates it)",
+              file=sys.stderr)
     load_va_arg_types(Path(args.va_arg_types))
     for warning in TOKEN_ALIAS_WARNINGS:
         print(f"token-aliases: {warning}", file=sys.stderr)

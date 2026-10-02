@@ -116,45 +116,366 @@ def blank_comments(text: str) -> str:
     return "".join(out)
 
 
-def dead_branch_map(text: str) -> list[bool]:
-    """True for lines that are not inside an `#if 0` / `#if false` branch.
+# The frozen configuration's macro table (`docs/baseline/config/*.macros.tsv`, written by
+# tools/gen-cond-macros.py).  When it is loaded, `#if` conditions are evaluated against it, so
+# the inventory sees the text the frozen configuration compiles and not the platform
+# branches (PORTING.md P-08/P-66).  Without it the behaviour is the old one: only literal
+# `#if 0` is dead and every other condition leaves both branches live.
+CONDITION_MACROS: dict[str, str] | None = None
+CONDITION_MACROS_BASE: dict[str, str] | None = None
+CONDITION_EVAL_CACHE: dict[str, bool | None] = {}
 
-    Only literal-false conditions are treated as dead.  Everything else
-    (`#ifdef`, `#if defined`, `#if HAVE_X`) is unknown at extraction time, so both
-    branches stay live; that is why `#else`/`#elif` are not assumed dead.
+
+def set_condition_macros(macros: dict[str, str] | None) -> None:
+    """Install the frozen configuration's macro table (name -> value or `undef`)."""
+    global CONDITION_MACROS, CONDITION_MACROS_BASE, CONDITION_EVAL_CACHE
+    CONDITION_MACROS = macros
+    CONDITION_MACROS_BASE = macros
+    CONDITION_EVAL_CACHE = {}
+
+
+def read_condition_macros(path) -> dict[str, str]:
+    macros: dict[str, str] = {}
+    for line in Path(path).read_text(encoding="utf-8").split("\n"):
+        if not line or line.startswith("#"):
+            continue
+        name, _, value = line.partition("\t")
+        if name:
+            macros[name] = value
+    return macros
+
+
+_COND_TOKENS = re.compile(
+    r"\s*(defined|&&|\|\||==|!=|<=|>=|[-+*/%<>&|^!~()?:]|\d+|[A-Za-z_]\w*)")
+
+
+def _cond_tokens(text: str) -> list[str]:
+    out, rest = [], text
+    while rest.strip():
+        m = _COND_TOKENS.match(rest)
+        if not m:
+            return out + ["?"]          # unparsable tail: the caller sees "unknown"
+        out.append(m.group(1))
+        rest = rest[m.end():]
+    return out
+
+
+# C's "blue paint": a macro that is being expanded is not expanded again, and an identifier
+# that survives expansion in `#if` is 0.  This is what decides `USE_LSB_TAG`:
+# `# define USE_LSB_TAG (VAL_MAX / 2 < INTPTR_MAX)` and `# define VAL_MAX (USE_LSB_TAG ? … )`
+# are mutually recursive, so C computes `0 / 2 < INTPTR_MAX` = true — and `GCALIGNMENT`
+# follows.  Without the rule the evaluator answered "unknown", kept both branches live, and
+# `macros()`'s last-definition-wins picked the wrong `GCALIGNMENT`.
+_COND_EXPANDING: set[str] = set()
+
+
+def _cond_ident(name: str, depth: int = 0) -> int | None:
+    """C's rule: an undefined identifier is 0; a macro's value is itself evaluated."""
+    macros = CONDITION_MACROS or {}
+    if name not in macros or macros[name] == "undef":
+        return 0
+    if name in _COND_EXPANDING:
+        return 0
+    value = macros[name].strip()
+    if value == "":
+        return 1
+    try:
+        return int(value, 0)
+    except ValueError:
+        pass
+    if depth > 8:
+        return None
+    tokens = _cond_tokens(value)
+    if not tokens or "?" in tokens:
+        return None
+    _COND_EXPANDING.add(name)
+    try:
+        result = _cond_parse(tokens, depth + 1)[0]
+    finally:
+        _COND_EXPANDING.discard(name)
+    return result
+
+
+def _cond_parse(tokens: list[str], depth: int = 0) -> tuple[int | None, list[str]]:
+    """The condition grammar's entry point: a conditional expression.
+
+    `?:` is needed because Emacs defines macros that way — `VAL_MAX` is
+    `(USE_LSB_TAG ? - (1 << GCTYPEBITS) : VAL_MAX)` (lisp.h 262), and that mutually recursive
+    pair decides `GCALIGNMENT` (see `_COND_EXPANDING`).  Only the taken branch is evaluated,
+    as in C.
     """
-    live, stack = [], []      # stack of (outer_dead, branch_dead)
+    value, rest = _cond_parse_or(tokens, depth)
+    if rest and rest[0] == "?":
+        if value is None:
+            return None, []
+        # Only the taken side is parsed: `VAL_MAX`'s untaken half is
+        # `- (1 << GCTYPEBITS)` and the evaluator has no shift operator, which would make it
+        # answer "unknown" for a macro C evaluates fine.  The `:` is found by depth so a
+        # nested conditional does not confuse the scan.
+        nesting, colon = 0, None
+        for k, token in enumerate(rest[1:], start=1):
+            if token in ("(", "?"):
+                nesting += 1
+            elif token in (")", ":"):
+                if token == ")" and nesting == 0:
+                    break
+                if token == ":" and nesting == 0:
+                    colon = k
+                    break
+                nesting -= 1
+        if colon is None:
+            return None, []
+        tail = rest[colon + 1:]
+        if value:
+            taken, _ = _cond_parse_or(rest[1:colon], depth)
+            return taken, tail
+        return _cond_parse(tail, depth)
+    return value, rest
+
+
+def _cond_parse_or(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
+    left, rest = _cond_parse_and(tokens, depth)
+    while rest and rest[0] == "||":
+        right, rest2 = _cond_parse_and(rest[1:], depth)
+        if left is True or right is True:
+            left = True
+        elif left is None or right is None:
+            left = None
+        else:
+            left = bool(left) or bool(right)
+        rest = rest2
+    return left, rest
+
+
+def _cond_parse_and(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
+    left, rest = _cond_parse_cmp(tokens, depth)
+    while rest and rest[0] == "&&":
+        right, rest2 = _cond_parse_cmp(rest[1:], depth)
+        if left is False or right is False:
+            left = False
+        elif left is None or right is None:
+            left = None
+        else:
+            left = bool(left) and bool(right)
+        rest = rest2
+    return left, rest
+
+
+def _cond_parse_cmp(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
+    left, rest = _cond_parse_add(tokens, depth)
+    while rest and rest[0] in ("==", "!=", "<", ">", "<=", ">="):
+        op = rest[0]
+        right, rest2 = _cond_parse_add(rest[1:], depth)
+        if left is None or right is None:
+            left = None
+        else:
+            left = bool(eval(f"left {op} right", {"left": left, "right": right}))  # noqa: S307
+        rest = rest2
+    return left, rest
+
+
+def _cond_parse_add(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
+    left, rest = _cond_parse_mul(tokens, depth)
+    while rest and rest[0] in ("+", "-"):
+        op = rest[0]
+        right, rest2 = _cond_parse_mul(rest[1:], depth)
+        if left is None or right is None:
+            left = None
+        else:
+            left = left + right if op == "+" else left - right
+        rest = rest2
+    return left, rest
+
+
+def _cond_parse_mul(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
+    """`/` and `%` matter: `USE_LSB_TAG` is `(VAL_MAX / 2 < INTPTR_MAX)` (lisp.h 256)."""
+    left, rest = _cond_parse_unary(tokens, depth)
+    while rest and rest[0] in ("*", "/", "%"):
+        op = rest[0]
+        right, rest2 = _cond_parse_unary(rest[1:], depth)
+        if left is None or right is None or (op in ("/", "%") and right == 0):
+            left = None
+        elif op == "*":
+            left = left * right
+        elif op == "/":
+            left = int(left / right) if left * right >= 0 else -int(abs(left) / abs(right))
+        else:
+            left = left - right * int(left / right)
+        rest = rest2
+    return left, rest
+
+
+def _cond_parse_unary(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
+    if tokens and tokens[0] == "!":
+        value, rest = _cond_parse_unary(tokens[1:], depth)
+        return (None if value is None else int(not value)), rest
+    return _cond_parse_primary(tokens, depth)
+
+
+def _cond_parse_primary(tokens: list[str], depth: int) -> tuple[int | None, list[str]]:
+    if not tokens:
+        return None, []
+    head, rest = tokens[0], tokens[1:]
+    if head == "(":
+        value, rest2 = _cond_parse(rest, depth)
+        if rest2 and rest2[0] == ")":
+            return value, rest2[1:]
+        return None, []
+    if head == "defined":
+        if rest and rest[0] == "(":
+            if len(rest) >= 3 and rest[2] == ")":
+                return _cond_ident_value(rest[1]), rest[3:]
+            return None, []
+        if rest:
+            return _cond_ident_value(rest[0]), rest[1:]
+        return None, []
+    if head.isdigit():
+        return int(head, 0), rest
+    if head == "?":
+        return None, []
+    return _cond_ident(head, depth), rest
+
+
+def _cond_ident_value(name: str) -> int:
+    macros = CONDITION_MACROS or {}
+    return int(name in macros and macros[name] != "undef")
+
+
+def eval_condition(text: str) -> bool | None:
+    """C's `#if` condition TEXT against the frozen configuration: True, False or None."""
+    if CONDITION_MACROS is None:
+        return None
+    text = re.sub(r"/\*.*?\*/", " ", text)
+    text = text.strip()
+    if text in ("0", "false", "FALSE"):
+        return False
+    if text in ("1", "true", "TRUE"):
+        return True
+    if text in CONDITION_EVAL_CACHE:
+        return CONDITION_EVAL_CACHE[text]
+    tokens = _cond_tokens(text)
+    value: bool | None = None
+    if tokens and "?" not in tokens:
+        result, rest = _cond_parse_or(tokens, 0)
+        if result is not None and not rest:
+            value = bool(result)
+    CONDITION_EVAL_CACHE[text] = value
+    return value
+
+
+def logical_lines(text: str) -> list[tuple[str, int]]:
+    """TEXT's logical lines with the physical lines they span.
+
+    A C directive (and a macro definition) may continue with backslashes; the display
+    headers' `#if`s wrap onto two or three lines, and the whole condition is what has to be
+    evaluated.  Returns `(joined_text, physical_line_count)` per logical line, in order.
+    """
+    out: list[tuple[str, int]] = []
+    current, count = None, 0
     for line in text.split("\n"):
-        s = line.strip()
-        dead = any(outer or branch for outer, branch in stack)
+        count += 1
+        current = line if current is None else current + " " + line.strip()
+        if current.rstrip().endswith("\\"):
+            current = current.rstrip()[:-1]
+            continue
+        out.append((current, count))
+        current, count = None, 0
+    if current is not None:
+        out.append((current, count))
+    return out
+
+
+def dead_branch_map(text: str) -> list[bool]:
+    """True for lines that are not inside a branch the frozen configuration disables.
+
+    Literal-false conditions (`#if 0` / `#if false`) are always dead.  With the frozen
+    configuration's macro table loaded (`set_condition_macros`), the conditions Emacs
+    actually writes are evaluated against it, so `#ifdef HAVE_X_WINDOWS`'s body is dead for
+    the minimal macOS build instead of being demanded of the mirror (P-08/P-66).  A condition
+    the evaluator does not understand (`eval_condition` returns None) leaves both branches
+    live — the conservative behaviour the port had before — and `#elif`/`#else` are only
+    assumed dead once a sibling branch was taken.
+    """
+    live: list[bool] = []
+    # Each entry: [outer_dead, a_branch_was_taken, this_branch_is_live]
+    stack: list[list[bool]] = []
+    # C's own model: a `#define` in this file applies to the conditions after it, so the
+    # table is copied per file and the copy is what the evaluator sees while this file is
+    # parsed (`USE_LSB_TAG` is defined by lisp.h itself, at lisp.h 254/256, and decides
+    # `GCALIGNMENT` 268-281).  The previous table is restored on the way out.
+    base = CONDITION_MACROS_BASE
+    local_macros = dict(base) if base is not None else None
+    if local_macros is not None:
+        set_condition_macros(local_macros)
+    try:
+        return _dead_branch_scan(text, local_macros)
+    finally:
+        if base is not None:
+            set_condition_macros(base)
+
+
+def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bool]:
+    """The `dead_branch_map` state machine, with the working macro table installed."""
+    live: list[bool] = []
+    stack: list[list[bool]] = []
+    for logical, physical in logical_lines(text):
+        outer_dead = any(outer or not branch for outer, _, branch in stack)
+        dead = outer_dead
+        s = logical.strip()
         if s.startswith("#"):
             body = s[1:].strip()
             word = body.split(maxsplit=1)[0] if body else ""
             rest = body[len(word):].strip()
             if word in ("if", "ifdef", "ifndef"):
-                outer = dead
-                branch = word == "if" and rest in ("0", "false")
-                stack.append((outer, branch))
-                dead = outer or branch
+                if word == "ifdef":
+                    cond = eval_condition (f"defined ({rest})")
+                elif word == "ifndef":
+                    cond = eval_condition (f"! defined ({rest})")
+                else:
+                    cond = eval_condition (rest)
+                if cond is None and word == "if" and rest in ("0", "false"):
+                    cond = False
+                branch = cond is not False
+                stack.append([outer_dead, cond is True, branch])
+                dead = outer_dead or not branch
             elif word == "elif":
                 if stack:
-                    outer, _ = stack[-1]
-                    stack[-1] = (outer, False)
-                dead = any(o or b for o, b in stack)
+                    entry = stack[-1]
+                    if entry[1]:
+                        entry[2] = False
+                    else:
+                        cond = eval_condition (rest)
+                        entry[2] = cond is not False
+                        entry[1] = cond is True
+                    dead = entry[0] or not entry[2]
             elif word == "else":
                 if stack:
-                    outer, _ = stack[-1]
-                    stack[-1] = (outer, False)
-                dead = any(o or b for o, b in stack)
+                    entry = stack[-1]
+                    if entry[1]:
+                        entry[2] = False
+                    else:
+                        entry[2] = True
+                        entry[1] = True
+                    dead = entry[0] or not entry[2]
             elif word == "endif":
                 if stack:
                     stack.pop()
-                dead = any(o or b for o, b in stack)
-            else:
-                dead = any(o or b for o, b in stack)
-        live.append(not dead)
-    while len(live) < len(text.split("\n")):
-        live.append(True)
+                dead = any(outer or not branch for outer, _, branch in stack)
+            elif word == "define":
+                # Only a define in a *live* branch applies: lisp.h 254's `# define
+                # USE_LSB_TAG false` sits inside the `#if` at 251 that this configuration
+                # makes false, and recording it gave `GCALIGNMENT` the wrong branch.
+                name = rest.split(maxsplit=1)[0] if rest else ""
+                if not dead and name and local_macros is not None:
+                    local_macros[name] = rest[len(name):].strip()
+                    CONDITION_EVAL_CACHE.clear()
+            elif word == "undef":
+                name = rest.strip()
+                if name and local_macros is not None:
+                    local_macros[name] = "undef"
+                    CONDITION_EVAL_CACHE.clear()
+            # every other directive (`#include`, …) inherits the current state
+        live.extend([not dead] * physical)
     return live
 
 
