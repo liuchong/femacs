@@ -3674,6 +3674,10 @@ pub mod other_units {
         pub fn set_default_internal (symbol: Lisp_Object, newval: Lisp_Object,
                                      bindflag: Set_Internal_Bind,
                                      buf: *mut c_void);
+        // lisp.h 4183: `arithcompare` is data.c's own export (bytecode.c and the
+        // comparison subrs below call it); the definition in data.rs shadows this
+        // declaration, P-39's shape.
+        pub fn arithcompare (num1: Lisp_Object, num2: Lisp_Object) -> cmp_bits_t;
         // lisp.h 4243, 4272, 4276: the list and string helpers data.c calls (fns.c
         // defines them; `string_char_to_byte` is `aref`/`aset`'s).
         pub fn list_length (list: Lisp_Object) -> ptrdiff_t;

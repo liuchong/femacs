@@ -89,12 +89,12 @@
 - [x] indirect-function  (Findirect_function, 1/2, doc 4039ab149d9c, line 2557)
 - [x] aref  (Faref, 2/2, doc 234ce1704f66, line 2568)
 - [x] aset  (Faset, 3/3, doc 46c3c9de50cc, line 2619)
-- [ ] =  (Feqlsign, 1/MANY, doc 25b3b0f7463b, line 2864)
-- [ ] <  (Flss, 1/MANY, doc cb7e7022c510, line 2872)
-- [ ] >  (Fgtr, 1/MANY, doc a1fe723ff1b9, line 2883)
-- [ ] <=  (Fleq, 1/MANY, doc bde064d281ce, line 2894)
-- [ ] >=  (Fgeq, 1/MANY, doc 1702fecd3cf5, line 2905)
-- [ ] /=  (Fneq, 2/2, doc 03ece8056e79, line 2916)
+- [x] =  (Feqlsign, 1/MANY, doc 25b3b0f7463b, line 2864)
+- [x] <  (Flss, 1/MANY, doc cb7e7022c510, line 2872)
+- [x] >  (Fgtr, 1/MANY, doc a1fe723ff1b9, line 2883)
+- [x] <=  (Fleq, 1/MANY, doc bde064d281ce, line 2894)
+- [x] >=  (Fgeq, 1/MANY, doc 1702fecd3cf5, line 2905)
+- [x] /=  (Fneq, 2/2, doc 03ece8056e79, line 2916)
 - [ ] number-to-string  (Fnumber_to_string, 1/1, doc 2bdc2f8fb8f1, line 3067)
 - [ ] string-to-number  (Fstring_to_number, 1/2, doc daf9337fc5f1, line 3092)
 - [ ] +  (Fplus, 0/MANY, doc c061e22d5133, line 3307)
@@ -168,8 +168,8 @@
 - [x] check_number_coerce_marker  (line 2697, static)
 - [x] coerce_marker  (line 2706, static)
 - [x] not_number_or_marker  (line 2712, static)
-- [ ] arithcompare  (line 2718)
-- [ ] arithcompare_driver  (line 2856, static)
+- [x] arithcompare  (line 2718)
+- [x] arithcompare_driver  (line 2856, static)
 - [ ] cons_to_unsigned  (line 2932)
 - [ ] cons_to_signed  (line 2993)
 - [ ] fixnum_to_string  (line 3048)
@@ -204,14 +204,15 @@
   `union Lisp_Val_Fwd` and `make_blv`), 2178-2412 (`make-variable-buffer-local`,
   `make-local-variable`, `kill-local-variable`), 2414-2564 (`local-variable-p`,
   `local-variable-if-set-p`, `variable-binding-locus`, `indirect_function` and
-  `indirect-function`) and 2566-2717 (`aref`, `aset` and the four marker-coercion helpers
-  of the arithmetic section).  The file has 120 `DEFUN`s, of which four are dead in this
-  configuration (`user-ptrp` plus the three `HAVE_NATIVE_COMP` ones): 77 of the 116 live
-  subrs and 42 of the 60 functions are ported.  `cargo build-tu src/data.c` builds, and
-  `extract-abi.py --check` reports no incorrect item - only the 39 remaining subrs, 18
+  `indirect-function`), 2566-2717 (`aref`, `aset` and the four marker-coercion helpers of
+  the arithmetic section) and 2718-2930 (`arithcompare`, `arithcompare_driver` and the six
+  comparison subrs `=`/`<`/`>`/`<=`/`>=`/`/=`).  The file has 120 `DEFUN`s, of which four
+  are dead in this configuration (`user-ptrp` plus the three `HAVE_NATIVE_COMP` ones): 83
+  of the 116 live subrs and 44 of the 60 functions are ported.  `cargo build-tu src/data.c` builds, and
+  `extract-abi.py --check` reports no incorrect item - only the 33 remaining subrs, 16
   functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*` plus the five `bool_vector_*`),
-  the 120 `defsubr` calls and the line-count drift of a partial file (C 4400 vs Rust 2435,
-  44.7%).
+  the 120 `defsubr` calls and the line-count drift of a partial file (C 4400 vs Rust 2662,
+  39.5%).
 
 - **`UNINIT` is `= {0,}` here, and that is a measured fact (this segment's decision).**
   `conf_post.h` 366-371 defines `UNINIT` as `= {0,}` when `GCC_LINT` or `lint` is defined
@@ -388,6 +389,65 @@
   does emit the check (93 -> 94 entries) but `spikes/lisp-abi-probe.sh` needs the heavy-tier
   `build/emacs-ref`, so nothing in `gate-fast`/`layout-check` would catch a wrong signature.
   Recorded rather than fixed: the prototype is lisp.h 4276's, verbatim.
+- **This segment's measured blind spots (reviewer B's round-11 mutants; 25 of 42 stay
+  green).**  Recorded here as the concrete list, since P-38 only names the classes:
+  every comparison *direction* in all nine `arithcompare` combinations (`lt = f1 > f2`,
+  `lt = cmp < 0` <-> `> 0` for either bignum operand, the two tie-break blocks), both
+  `isnan` inversions and the early-out/normal-path swap, the `Cmp_Bit_LT`/`_GT`/`_EQ`
+  swaps in the packed return, `& Cmp_EQ != 0` -> `== 0` in `Fneq`, deleting either
+  `eassume! (sgn != 0)`, `*args.offset (i - 1)` -> `*args.offset (i)` and `i = 1` -> `0`
+  in the driver, `& cmpmask` -> `| cmpmask`, the driver's `return Qt ()` -> `Qnil ()`,
+  the four fast paths' `*args` <-> `*args.offset (1)`, a dropped `&& FIXNUMP`, `<` -> `>`
+  in `Flss`, `<=` -> `<` in `Fleq`, `.offset (1)` -> `.offset (0)` in `Fgtr`,
+  `num1 = coerce_marker (num2)`, and `not_number_or_marker (num1)` -> `(num2)`.  Root
+  causes: comparison operators are not tokens at all (12 of the 25), one-character names
+  are dropped by `skip_short` (`i`), and any token whose C count exceeds one can lose a
+  site unnoticed (`0` x15, `num2` x23, `cmp` x12, `sgn` x8, `xbignum_val` x6 in
+  `arithcompare`).  Two bodies are fully load-bearing - `Feqlsign` and `Fneq` have no
+  token with C count > 1 - and the gate *does* catch every body-level deletion (§3 of the
+  review: a caught control for each of the eight names).  The mask caveat is recorded too:
+  a mask change that keeps all three `Cmp_*` names present while re-OR-ing them is
+  invisible (harmless in these five cases, but the class is real).
+- **The ledger's `## Subrs (DEFUN) - 120` vs the generator's 116 (reviewer B's F3, already
+  recorded in the round-9 bullet above).**  Nothing new this round; B re-measured it and
+  asked for the decision to be explicit, which the round-9 paragraph does: the 120 boxes are
+  deliberate (C's `DEFUN`s), the tool's 116 is the condition-aware count, and a regeneration
+  would drop the four dead lines.
+- **The first `usage:` docstrings in the port (reviewer A's observation).**  `make-docfile`'s
+  `scan_keyword_or_put_char` rewrites a `usage:` keyword's surroundings (two newlines) and
+  substitutes `fn` for the function's own name when it writes `etc/DOC`, so the stored string
+  differs from the `doc: /* … */` comment the port mirrors byte for byte.  The mirror keeps
+  the comment text (PORTING.md 5.1: the literal is the comment, and a ported make-docfile
+  normalises it in phase G), and `tools/extract-abi.py`'s digest does not model that
+  normalisation, so no gate covers it.  These six subrs are the first with a `usage:` line -
+  phase G has to apply the normalisation, and until then this note is the record.
+- **`arithcompare` is the file's first `MANY` subr and its first non-static export since
+  round 8**, so three mirror decisions came with it: `arithcompare` is declared in
+  `lisp.rs`'s `other_units` (lisp.h 4183, the declaration its definition shadows - P-39) so
+  the units that call it in C (`bytecode.c`, …) can call it when they land; the six
+  comparison subrs use the `DEFUN!` macro's `MANY` form (`nargs: isize, args: *mut
+  Lisp_Object`, the parameter list the gate's `param_types` derives from C's
+  `DEFUN_ARGS_MANY`); and the five call sites that pass a `Cmp_*` enumerator to a
+  `cmp_bits_t` parameter spell the conversion C makes implicitly as `as cmp_bits_t` - the
+  enumerators themselves stay `c_int`, because in C an enumerator has type `int` (ISO C
+  6.7.2.2p3; C++ is the language where it gets the enum's type), which is what
+  `lisp.rs`'s own comment beside them has recorded since the mirror was written.  A first
+  version of this segment widened the three constants to `cmp_bits_t` to avoid those casts
+  and justified it as C's typing; reviewer A's F2 corrected both the code and the comment.
+- **The four fast-path subrs exempt one literal.**  C writes `args[0]`/`args[1]`; the mirror
+  spells `args[0]` as `*args` (the `sort.rs` `binarysort,count_run` precedent), so the `0`
+  cannot reappear and `macro-body-notes.tsv` carries one row for all four with that reason.
+  Nothing else in the seven bodies needed an exemption: `arithcompare` is an `if`/`else if`
+  chain, so not even `switch`/`case` came back.
+- **P-79 in this segment.**  The only `unsafe` introduced is pointer work C itself does:
+  the `args[i]` derefs in `arithcompare_driver` and the four fast paths, and the `xbignum_val`
+  + `mpz_*` FFI calls in `arithcompare` (all narrow, single-expression blocks).
+  `isnan` is the mirror's safe macro (`isnan!`), so those two tests are safe; the
+  `arithcompare_driver` is an `unsafe fn`: its body dereferences `args`, and only the caller
+  knows the pointer holds `nargs` valid objects, so it cannot be a sound safe `fn`
+  (reviewer A's F3 - the six callers are `unsafe extern "C" fn`s already, so nothing else
+  changed).  `arithcompare` keeps the `unsafe extern "C" fn` shape every C-visible
+  definition in this file has.
 - **Five subrs wait for two headers.**  `type-of` (data.c 187-200) needs this file's own
   `cl-type-of` (data.c 202-310); `cl-type-of` calls `THREADP`, `MUTEXP`, `CONDVARP`
   (`thread.h` 222-320) and `FONT_SPEC_P`/`FONT_ENTITY_P`/`FONT_OBJECT_P` (`font.h`

@@ -2433,3 +2433,230 @@ fn not_number_or_marker (x: Lisp_Object) -> !
 {
   unsafe { wrong_type_argument (Qnumber_or_marker_p (), x); }
 }
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn arithcompare (mut num1: Lisp_Object, mut num2: Lisp_Object)
+  -> cmp_bits_t
+{
+  num1 = coerce_marker (num1);
+  num2 = coerce_marker (num2);
+
+  let lt: bool;
+  let eq: bool;
+  let gt: bool;
+  if FLOATP (num1)
+    {
+      let f1: c_double = XFLOAT_DATA (num1);
+      if FLOATP (num2)
+        {
+          let f2: c_double = XFLOAT_DATA (num2);
+          lt = f1 < f2;
+          eq = f1 == f2;
+          gt = f1 > f2;
+        }
+      else if FIXNUMP (num2)
+        {
+          /* Compare a float NUM1 to an integer NUM2 by converting the
+             integer I2 (i.e., NUM2) to the double F2 (a conversion that
+             can round on some platforms, if I2 is large enough), and then
+             converting F2 back to the integer I1 (a conversion that is
+             always exact), so that I1 exactly equals ((double) NUM2).  If
+             floating-point comparison reports a tie, NUM1 = F1 = F2 = I1
+             (exactly) so I1 - I2 = NUM1 - NUM2 (exactly), so comparing I1
+             to I2 will break the tie correctly.  */
+          let f2: c_double = XFIXNUM (num2) as c_double;
+          if f1 == f2
+            {
+              let i1: EMACS_INT = f2 as EMACS_INT;
+              let i2: EMACS_INT = XFIXNUM (num2);
+              eq = i1 == i2;
+              lt = i1 < i2;
+              gt = i1 > i2;
+            }
+          else
+            {
+              eq = false;
+              lt = f1 < f2;
+              gt = f1 > f2;
+            }
+        }
+      else if BIGNUMP (num2)
+        {
+          if isnan! (f1)
+            { lt = false; eq = false; gt = false; }
+          else
+            {
+              let cmp = unsafe { mpz_cmp_d (xbignum_val (num2), f1) };
+              eq = cmp == 0;
+              lt = cmp > 0;
+              gt = cmp < 0;
+            }
+        }
+      else
+        { not_number_or_marker (num2); }
+    }
+  else if FIXNUMP (num1)
+    {
+      if FLOATP (num2)
+        {
+          /* Compare an integer NUM1 to a float NUM2.  This is the
+             converse of comparing float to integer (see above).  */
+          let f1: c_double = XFIXNUM (num1) as c_double;
+          let f2: c_double = XFLOAT_DATA (num2);
+          if f1 == f2
+            {
+              let i1: EMACS_INT = XFIXNUM (num1);
+              let i2: EMACS_INT = f1 as EMACS_INT;
+              eq = i1 == i2;
+              lt = i1 < i2;
+              gt = i1 > i2;
+            }
+          else
+            {
+              eq = false;
+              lt = f1 < f2;
+              gt = f1 > f2;
+            }
+        }
+      else if FIXNUMP (num2)
+        {
+          let i1: EMACS_INT = XFIXNUM (num1);
+          let i2: EMACS_INT = XFIXNUM (num2);
+          eq = i1 == i2;
+          lt = i1 < i2;
+          gt = i1 > i2;
+        }
+      else if BIGNUMP (num2)
+        {
+          let sgn = unsafe { mpz_sgn (xbignum_val (num2)) };
+          eassume! (sgn != 0);
+          eq = false;
+          lt = sgn > 0;
+          gt = sgn < 0;
+        }
+      else
+        { not_number_or_marker (num2); }
+    }
+  else if BIGNUMP (num1)
+    {
+      if FLOATP (num2)
+        {
+          let f2: c_double = XFLOAT_DATA (num2);
+          if isnan! (f2)
+            { lt = false; eq = false; gt = false; }
+          else
+            {
+              let cmp = unsafe { mpz_cmp_d (xbignum_val (num1), f2) };
+              eq = cmp == 0;
+              lt = cmp < 0;
+              gt = cmp > 0;
+            }
+        }
+      else if FIXNUMP (num2)
+        {
+          let sgn = unsafe { mpz_sgn (xbignum_val (num1)) };
+          eassume! (sgn != 0);
+          eq = false;
+          lt = sgn < 0;
+          gt = sgn > 0;
+        }
+      else if BIGNUMP (num2)
+        {
+          let cmp = unsafe { mpz_cmp (xbignum_val (num1), xbignum_val (num2)) };
+          eq = cmp == 0;
+          lt = cmp < 0;
+          gt = cmp > 0;
+        }
+      else
+        { not_number_or_marker (num2); }
+    }
+  else
+    { not_number_or_marker (num1); }
+
+  return (lt as cmp_bits_t) << Cmp_Bit_LT | (gt as cmp_bits_t) << Cmp_Bit_GT
+         | (eq as cmp_bits_t) << Cmp_Bit_EQ;
+}
+
+// unsafe: the body dereferences `args`, and only the caller knows it holds `nargs` valid
+// objects (reviewer A's F3; the six callers are `unsafe extern "C" fn`s already).
+unsafe fn arithcompare_driver (nargs: ptrdiff_t, args: *mut Lisp_Object, cmpmask: cmp_bits_t)
+  -> Lisp_Object
+{
+  let mut i: ptrdiff_t = 1;
+  while i < nargs
+    {
+      /* C's `&` binds *looser* than `==`, so C must write `!(x & mask)`; Rust's `&` binds
+         *tighter*, so `x & mask != 0` already means `(x & mask) != 0` and the parentheses
+         below are only defensive (reviewer A's F1).  */
+      if ! ((unsafe { arithcompare (*args.offset (i - 1), *args.offset (i)) } & cmpmask) != 0)
+        { return Qnil (); }
+      i += 1;
+    }
+  return Qt ();
+}
+
+DEFUN! ("=", Feqlsign, Seqlsign, 1, MANY, 0,
+       doc: "Return t if args, all numbers or markers, are equal.\nusage: (= NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
+       (nargs: isize, args: *mut Lisp_Object),
+       {
+  return arithcompare_driver (nargs, args, Cmp_EQ as cmp_bits_t);
+});
+
+DEFUN! ("<", Flss, Slss, 1, MANY, 0,
+       doc: "Return t if each arg (a number or marker), is less than the next arg.\nusage: (< NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
+       (nargs: isize, args: *mut Lisp_Object),
+       {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    {
+      return if XFIXNUM (unsafe { *args }) < XFIXNUM (unsafe { *args.offset (1) })
+                     { Qt () } else { Qnil () };
+    }
+
+  return arithcompare_driver (nargs, args, Cmp_LT as cmp_bits_t);
+});
+
+DEFUN! (">", Fgtr, Sgtr, 1, MANY, 0,
+       doc: "Return t if each arg (a number or marker) is greater than the next arg.\nusage: (> NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
+       (nargs: isize, args: *mut Lisp_Object),
+       {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    {
+      return if XFIXNUM (unsafe { *args }) > XFIXNUM (unsafe { *args.offset (1) })
+                     { Qt () } else { Qnil () };
+    }
+
+  return arithcompare_driver (nargs, args, Cmp_GT as cmp_bits_t);
+});
+
+DEFUN! ("<=", Fleq, Sleq, 1, MANY, 0,
+       doc: "Return t if each arg (a number or marker) is less than or equal to the next.\nusage: (<= NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
+       (nargs: isize, args: *mut Lisp_Object),
+       {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    {
+      return if XFIXNUM (unsafe { *args }) <= XFIXNUM (unsafe { *args.offset (1) })
+                     { Qt () } else { Qnil () };
+    }
+
+  return arithcompare_driver (nargs, args, (Cmp_LT | Cmp_EQ) as cmp_bits_t);
+});
+
+DEFUN! (">=", Fgeq, Sgeq, 1, MANY, 0,
+       doc: "Return t if each arg (a number or marker) is greater than or equal to the next.\nusage: (>= NUMBER-OR-MARKER &rest NUMBERS-OR-MARKERS)",
+       (nargs: isize, args: *mut Lisp_Object),
+       {
+  if nargs == 2 && FIXNUMP (unsafe { *args }) && FIXNUMP (unsafe { *args.offset (1) })
+    {
+      return if XFIXNUM (unsafe { *args }) >= XFIXNUM (unsafe { *args.offset (1) })
+                     { Qt () } else { Qnil () };
+    }
+
+  return arithcompare_driver (nargs, args, (Cmp_GT | Cmp_EQ) as cmp_bits_t);
+});
+
+DEFUN! ("/=", Fneq, Sneq, 2, 2, 0,
+       doc: "Return t if first arg is not equal to second arg.  Both must be numbers or markers.",
+       (num1: Lisp_Object, num2: Lisp_Object),
+       {
+  return if arithcompare (num1, num2) & (Cmp_EQ as cmp_bits_t) != 0 { Qnil () } else { Qt () };
+});
