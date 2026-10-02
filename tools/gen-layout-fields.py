@@ -78,6 +78,15 @@ STRUCTS = {
     # termhooks.h's event record: the unit at offset 0 holds `kind : 16` and `part : 16`, so
     # the keyable members are the seven after it (code … device).
     "input_event": "src/termhooks.h",
+    # keyboard.h's input stream state (200/8, with the `immediate_echo` unit at 185) and its
+    # event accessors' type.
+    "kboard": "src/keyboard.h",
+}
+
+# C unions the port mirrors as Rust unions.  They get `SZ (union …)`/`AL (union …)` keys and the
+# same per-member offsets (C allows `offsetof` on a union's members: they all sit at 0).
+UNIONS = {
+    "buffered_input_event": "src/keyboard.h",
 }
 
 
@@ -112,7 +121,7 @@ def live_bodies(ref: Path, cfg: Path, header: str) -> str:
 
 
 def struct_body(text: str, name: str) -> str:
-    m = re.search(rf"^struct {re.escape(name)}\s*\n?\s*\{{", text, re.M)
+    m = re.search(rf"^(?:struct|union) {re.escape(name)}\s*\n?\s*\{{", text, re.M)
     if not m:
         return ""
     depth, i = 0, text.index("{", m.start())
@@ -159,7 +168,8 @@ def main() -> int:
         "   (bitfields are covered by the neighbouring offsets and by sizeof).  */",
     ]
     total = 0
-    for name, header in STRUCTS.items():
+    for name, header in {**STRUCTS, **UNIONS}.items():
+        kind = "union" if name in UNIONS else "struct"
         body = struct_body(live_bodies(ref, cfg, header), name)
         if not body:
             print(f"warning: struct {name} not found in the preprocessed {header}")
@@ -168,15 +178,15 @@ def main() -> int:
                   if f["container"] == name and not f["bitfield"]
                   and direct_field(body, f["name"])]
         lines.append("")
-        lines.append(f"  SZ (struct {name}); AL (struct {name});")
+        lines.append(f"  SZ ({kind} {name}); AL ({kind} {name});")
         for f in fields:
-            lines.append(f"  OFF (struct {name}, {f['name']});")
+            lines.append(f"  OFF ({kind} {name}, {f['name']});")
             total += 1
         emitted = {f["name"] for f in fields}
         for member in EXTRA.get(name, []):
             if member in emitted:
                 continue          # the scanner now reports the aggregate member itself
-            lines.append(f"  OFF (struct {name}, {member});")
+            lines.append(f"  OFF ({kind} {name}, {member});")
             total += 1
             emitted.add(member)
         if not emitted and name not in BITFIELD_ONLY:

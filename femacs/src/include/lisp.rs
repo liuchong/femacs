@@ -1031,12 +1031,11 @@ pub const BOOL_VECTOR_BITS_PER_CHAR: usize = 8;
 pub type jmp_buf = [u8; 192];
 pub type sigjmp_buf = [u8; 196];
 
-/// `typedef struct kboard KBOARD;` — the definition is in keyboard.h.
-#[repr(C)]
-pub struct kboard {
-    _private: [u8; 0],
-}
-pub type KBOARD = kboard;
+// lisp.h 3570's `typedef struct kboard KBOARD;` is not declared here: the tag's definition
+// lives in keyboard.h, and a mirror may only name a type it declares itself or reaches through
+// one of its own `include!`s (PORTING.md P-72).  `keyboard.rs` declares both the tag and the
+// typedef; a unit that needs `KBOARD` includes that mirror (as C's code needs keyboard.h).
+// The opaque `kboard` stand-in this line replaced was deleted with its real definition (P-70).
 
 pub type intptr_t = isize;
 
@@ -2393,6 +2392,8 @@ pub fn HASH_TABLE_SIZE (h: *mut Lisp_Hash_Table) -> hash_idx_t { unsafe { (*h).t
 unsafe extern "C" { pub fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t; }
 unsafe extern "C" { pub fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
                                       value: Lisp_Object, hash: hash_hash_t) -> ptrdiff_t; }
+// lisp.h 4279: keyboard.h's ENCODE_MENU_STRING calls it.
+unsafe extern "C" { pub fn string_make_unibyte (string: Lisp_Object) -> Lisp_Object; }
 
 #[inline(always)]
 pub fn hash_table_index_size (h: *mut Lisp_Hash_Table) -> isize {
@@ -3665,7 +3666,12 @@ pub mod other_units {
     unsafe extern "C" { pub static mut minibuf_level: EMACS_INT; }
     unsafe extern "C" { pub static mut command_loop_level: EMACS_INT; }
     unsafe extern "C" { pub static mut echo_message_buffer: Lisp_Object; }
-    unsafe extern "C" { pub static mut echo_kboard: *mut kboard; }
+    /// C: `extern struct kboard *echo_kboard;` (lisp.h 5081).  `struct kboard`'s definition is
+    /// keyboard.h's and this mirror cannot name it (a unit that includes lisp.h need not include
+    /// keyboard.h, exactly as in C, where the tag is incomplete here); the pointer is therefore
+    /// the untyped one the port uses for incomplete targets, and `keyboard.rs` says where the
+    /// definition is (PORTING.md P-72).
+    unsafe extern "C" { pub static mut echo_kboard: *mut c_void; }
     unsafe extern "C" { pub static mut input_pending: bool; }
     unsafe extern "C" { pub static mut return_to_command_loop: sigjmp_buf; }
     unsafe extern "C" { pub static mut pending_funcalls: Lisp_Object; }

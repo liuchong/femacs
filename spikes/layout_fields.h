@@ -363,3 +363,33 @@
   OFF (struct input_event, frame_or_window);
   OFF (struct input_event, arg);
   OFF (struct input_event, device);
+
+  SZ (struct kboard); AL (struct kboard);
+  OFF (struct kboard, next_kboard);
+  OFF (struct kboard, Voverriding_terminal_local_map_);
+  OFF (struct kboard, Vlast_command_);
+  OFF (struct kboard, Vreal_last_command_);
+  OFF (struct kboard, Vkeyboard_translate_table_);
+  OFF (struct kboard, Vlast_repeatable_command_);
+  OFF (struct kboard, Vprefix_arg_);
+  OFF (struct kboard, Vlast_prefix_arg_);
+  OFF (struct kboard, kbd_queue_);
+  OFF (struct kboard, defining_kbd_macro_);
+  OFF (struct kboard, kbd_macro_buffer);
+  OFF (struct kboard, kbd_macro_ptr);
+  OFF (struct kboard, kbd_macro_end);
+  OFF (struct kboard, kbd_macro_bufsize);
+  OFF (struct kboard, Vlast_kbd_macro_);
+  OFF (struct kboard, Vsystem_key_alist_);
+  OFF (struct kboard, system_key_syms_);
+  OFF (struct kboard, Vwindow_system_);
+  OFF (struct kboard, Vlocal_function_key_map_);
+  OFF (struct kboard, Vinput_decode_map_);
+  OFF (struct kboard, Vdefault_minibuffer_frame_);
+  OFF (struct kboard, reference_count);
+  OFF (struct kboard, echo_string_);
+  OFF (struct kboard, kbd_queue_has_data);
+  OFF (struct kboard, echo_prompt_);
+
+  SZ (union buffered_input_event); AL (union buffered_input_event);
+  OFF (union buffered_input_event, ie);

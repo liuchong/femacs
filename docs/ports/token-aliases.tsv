@@ -12,3 +12,6 @@ va_arg	va_arg,next_arg	Rust spells C's va_arg macro as VaList::next_arg
 ckd_add	ckd_add,overflowing_add	gnulib's ckd_add stores the wrapped sum and reports overflow; Rust's overflowing_add is that pair (P-15)
 ckd_mul	ckd_mul,overflowing_mul	same pair for ckd_mul
 ckd_sub	ckd_sub,overflowing_sub	same pair for ckd_sub
+sizeof	sizeof,size_of	C's `sizeof` is Rust's `size_of::<T> ()`; the family's occurrence check then requires the port to spell it as often as the C body does
+alignof	alignof,align_of	C's `alignof` is Rust's `align_of::<T> ()`, same rule
+

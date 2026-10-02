@@ -81,6 +81,7 @@ pub const EVENT_KIND_WIDTH: c_int = 16;
 // 0x5678), `code` at 4, `modifiers` at 8, `x` at 16, `y` at 24, `timestamp` at 32,
 // `frame_or_window` at 40, `arg` at 48 and `device` at 56.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct input_event
 {
   pub bits: u32,                       // kind:16 | part:16 (PORTING.md 1.3)

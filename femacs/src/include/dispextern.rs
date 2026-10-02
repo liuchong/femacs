@@ -395,8 +395,8 @@ pub struct bidi_stack
 }
 
 // dispextern.h 2147-2160.  `lstring`/`s`/`schars`/`bufpos` are 8 bytes each, and the two
-// `bool_bf : 1` members share a 4-byte unit at offset 32 (`bool_bf` is `unsigned int : 1`
-// in lisp.h 107); sizeof 40, align 8 (measured).
+// `bool_bf : 1` members share a 4-byte unit at offset 32 (`bool_bf` is a typedef in
+// conf_post.h 58-62: `bool`, one byte, on this target); sizeof 40, align 8 (measured).
 //
 //     d.lstring = 0x1122334455667788; d.schars = 5; d.bufpos = 6;
 //     d.from_disp_str = 1; d.unibyte = 1;   bytes: 88 77 66 55 44 33 22 11 … 03 00 00 00

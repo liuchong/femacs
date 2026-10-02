@@ -11,6 +11,7 @@
 #include "coding.h"
 #include "process.h"
 #include "termhooks.h"
+#include "keyboard.h"
 
 #define SZ(T)      printf("sizeof %-34s %zu\n", #T, sizeof (T))
 #define AL(T)      printf("alignof %-33s %zu\n", #T, _Alignof (T))
