@@ -62,7 +62,6 @@ pub unsafe extern "C" fn rpl_symlink (contents: *const c_char, name: *const c_ch
 
 /* The system does not support symlinks.  */
 #[cfg (feature = "no_symlink")]
-#[unsafe(no_mangle)]
 pub unsafe extern "C" fn symlink (_contents: *const c_char, _name: *const c_char) -> c_int
 {
   *errno () = ENOSYS;

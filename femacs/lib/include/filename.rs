@@ -31,6 +31,8 @@ macro_rules! FILE_SYSTEM_PREFIX_LEN {
     ($filename:expr) => { { let _ = $filename; 0 } };
 }
 /* # define FILE_SYSTEM_DRIVE_PREFIX_CAN_BE_RELATIVE 0  */
+// The live arm's value on this target (the Windows arms that set it to 1 are dead).
+pub const FILE_SYSTEM_DRIVE_PREFIX_CAN_BE_RELATIVE: c_int = 0;
 macro_rules! FILE_SYSTEM_DRIVE_PREFIX_CAN_BE_RELATIVE { () => { 0 }; }
 /* # define IS_ABSOLUTE_FILE_NAME(Filename) ISSLASH ((Filename)[0])  */
 macro_rules! IS_ABSOLUTE_FILE_NAME {

@@ -947,9 +947,16 @@ def function_spans(text: str) -> list[dict]:
         if rest.startswith("{"):
             body_line = j
         elif rest == "" or rest.startswith("__attribute__"):
-            for jj in range(j + 1, min(j + 4, len(rows))):
+            for jj in range(j + 1, min(j + 9, len(rows))):
                 nxt = rows[jj].strip()
                 if not nxt:
+                    continue
+                # A preprocessor line between the declarator and the body has no effect on
+                # it: gnulib writes `# undef nanosleep` there (nanosleep.c 44, so that the
+                # body's `nanosleep (&intermediate, …)` is the *system* call), and stopping
+                # at it lost the file's only live function - the checker then reported the
+                # port's `nanosleep` as an invented exported symbol.
+                if nxt.startswith("#"):
                     continue
                 if nxt.startswith("{"):
                     body_line = jj

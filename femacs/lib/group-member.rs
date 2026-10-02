@@ -113,7 +113,6 @@ unsafe extern "C" {
 }
 
 #[cfg (feature = "test")]
-#[unsafe(no_mangle)]
 pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
 {
   let mut i: c_int = 1;

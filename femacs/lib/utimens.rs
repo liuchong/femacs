@@ -393,6 +393,7 @@ pub unsafe extern "C" fn fdutimens (fd: c_int, file: *const c_char,
    target), so the live body is C 554's `return fdutimens (-1, file, timespec);`.  The
    definition keeps C's name and body but no `#[unsafe(no_mangle)]`: see the file header's
    note on the gate's inventory gap.  */
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn utimens (file: *const c_char, timespec: *const timespec) -> c_int
 {
   return fdutimens (-1, file, timespec);
@@ -403,6 +404,7 @@ pub unsafe extern "C" fn utimens (file: *const c_char, timespec: *const timespec
    symlinks.  Fail with ENOSYS if the platform does not support
    changing symlink timestamps, but FILE was a symlink.  */
 /* C 558-690; `HAVE_LUTIMENS` is undefined, so the live arm is the `#else` (C 575-689).  */
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn lutimens (file: *const c_char, timespec: *const timespec) -> c_int
 {
   let mut adjusted_timespec: [timespec; 2] = [timespec { tv_sec: 0, tv_nsec: 0 },

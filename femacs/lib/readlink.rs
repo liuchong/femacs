@@ -35,7 +35,6 @@ include!("include/errno.rs");
 /* readlink() substitute for systems that don't have a readlink() function,
    such as DJGPP 2.03 and mingw32.  */
 #[cfg (feature = "no_readlink")]
-#[unsafe(no_mangle)]
 pub unsafe extern "C" fn readlink (file: *const c_char, _buf: *mut c_char, _bufsize: usize)
   -> ssize_t
 {

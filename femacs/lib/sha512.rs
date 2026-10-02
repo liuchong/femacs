@@ -46,10 +46,11 @@ pub const GL_OPENSSL_INLINE: () = _GL_EXTERN_INLINE;
 /* C 34-39's `<byteswap.h>` and the `SWAP` pair: the big-endian arm is `(n)` and the live
    little-endian arm is C's `u64bswap (n)` (the u64 mirror's macro over Rust's
    `swap_bytes`).  */
+/* The live arm first (extract-abi reads the first `macro_rules!` of a name): C's
+   `u64bswap (n)`, which the u64 mirror spells `u64bswap!`.  */
+macro_rules! SWAP { ($n:expr) => { u64bswap! ($n) } }
 #[cfg (feature = "words_bigendian")]
 macro_rules! SWAP { ($n:expr) => { $n } }
-#[cfg (not (feature = "words_bigendian"))]
-macro_rules! SWAP { ($n:expr) => { u64bswap! ($n) } }
 
 /* This array contains the bytes used to pad the buffer to the next
    128-byte boundary.  */

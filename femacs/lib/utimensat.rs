@@ -198,6 +198,7 @@ unsafe extern "C" fn local_utimensat (fd: c_int, file: *const c_char, ts: *const
    the *system* entry (the sys_stat mirror's declaration); C 88's `static int
    utimensat_works_really` is the function-scope cache.  The `__linux__`/`__sun`/`__NetBSD__`
    and `__hppa` arms are dead; the `__APPLE__ && __MACH__` arm is live.  */
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rpl_utimensat (fd: c_int, file: *const c_char,
                                         times: *const timespec, flag: c_int) -> c_int
 {

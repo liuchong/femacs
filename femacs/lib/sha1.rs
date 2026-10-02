@@ -48,10 +48,15 @@ pub const GL_OPENSSL_INLINE: () = _GL_EXTERN_INLINE;
    md5.c's: the big-endian arm is `(n)` and the live little-endian arm is C's
    `bswap_32 (n)`, which is what Rust's `swap_bytes` is (the `<byteswap.h>` macro has no
    ported declaration; PORTING.md 2.6 maps `__builtin_bswap*` to `swap_bytes`).  */
+/* The live arm first, so that the ledger's macro-body check reads the arm the frozen
+   configuration compiles (extract-abi takes the first `macro_rules!` of a name); it is C's
+   `bswap_32 (n)`, declared here as md5.rs declares it, because <byteswap.h>'s macro has no
+   mirror yet.  */
+pub fn bswap_32 (n: c_uint) -> c_uint { n.swap_bytes () }
+
+macro_rules! SWAP { ($n:expr) => { bswap_32 ($n) } }
 #[cfg (feature = "words_bigendian")]
 macro_rules! SWAP { ($n:expr) => { $n } }
-#[cfg (not (feature = "words_bigendian"))]
-macro_rules! SWAP { ($n:expr) => { ($n).swap_bytes () } }
 
 /* This array contains the bytes used to pad the buffer to the next
    64-byte boundary.  (RFC 1321, 3.1: Step 1)  */

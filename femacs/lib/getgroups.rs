@@ -80,7 +80,6 @@ unsafe extern "C" {
 }
 
 #[cfg (feature = "have_getgroups")]
-#[unsafe(no_mangle)]
 pub unsafe extern "C" fn rpl_getgroups (mut n: c_int, group: *mut gid_t) -> c_int
 {
   if n < 0

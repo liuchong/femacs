@@ -575,7 +575,6 @@ pub unsafe extern "C" fn esprintf (buf: *mut c_char, format: *const c_char,
 }
 
 #[cfg(feature = "x_windows")]
-#[unsafe(no_mangle)]
 pub unsafe extern "C" fn exprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_t,
                                    nonheapbuf: *mut c_char, bufsize_max: ptrdiff_t,
                                    format: *const c_char, mut ap: ...) -> ptrdiff_t

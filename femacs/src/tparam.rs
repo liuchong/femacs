@@ -370,7 +370,6 @@ unsafe fn tparam1 (string: *const c_char, mut outstring: *mut c_char, len: c_int
 }
 
 #[cfg(feature = "debug")]
-#[unsafe(no_mangle)]
 pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
 {
   let mut buf: [c_char; 50] = [0; 50];
