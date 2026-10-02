@@ -552,6 +552,39 @@ fn check_counts(asserted: usize, pending: usize) -> Result<(), String> {
     Ok(())
 }
 
+/// The *key set* ratchet.  `check_counts` only compares how many keys are asserted, so one
+/// assertion could be traded for another: deleting `offsetof Lisp_Buffer_Local_Value.where`
+/// and `…defcell` while adding `sizeof Emacs_GC` + `alignof Emacs_GC` kept the count at 247,
+/// left the mirror's `where`/`defcell` swapped relative to C, and both gates stayed green
+/// (review B's F4).  The recorded list is the set that was asserted when the baseline was
+/// last accepted; it may only grow.  Removing a key is a reviewed edit to that file.
+fn check_keys(asserted: &[String]) -> Result<(), String> {
+    let path = Path::new(REPO).join("docs/baseline/layout/asserted-keys.txt");
+    let text = fs::read_to_string(&path).map_err(|e| {
+        format!("{}: {e} (the layout key ratchet must exist; PORTING.md P-68 records why)",
+                path.display())
+    })?;
+    let have: std::collections::BTreeSet<&str> = asserted.iter().map(String::as_str).collect();
+    let missing: Vec<&str> = text
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.starts_with('#'))
+        .filter(|l| !have.contains(l))
+        .collect();
+    if !missing.is_empty() {
+        return Err(format!(
+            "layout keys disappeared ({} of them): {}{} — a key that stops being asserted \
+             stops being checked, and swapping one for another keeps the count the same \
+             ({}); update {} only with a reason",
+            missing.len(),
+            missing.iter().take(6).cloned().collect::<Vec<_>>().join(", "),
+            if missing.len() > 6 { ", …" } else { "" },
+            path.display(),
+            path.display()));
+    }
+    Ok(())
+}
+
 fn layout_asserts() -> Result<PathBuf, String> {
     let dir = Path::new(REPO).join("docs/baseline/layout");
     let mut files: Vec<PathBuf> = fs::read_dir(&dir)
@@ -588,6 +621,7 @@ fn layout_asserts() -> Result<PathBuf, String> {
     }
     let mut n = 0;
     let mut pending: Vec<String> = Vec::new();
+    let mut asserted_keys: Vec<String> = Vec::new();
     for line in text.lines().skip(1) {
         let Some((key, value)) = line.split_once('\t') else { continue };
         let mut parts = key.splitn(2, ' ');
@@ -609,6 +643,7 @@ fn layout_asserts() -> Result<PathBuf, String> {
         out.push_str(&format!(
             "const _: () = assert!({expr} == {value}, \"{kind} {rest}\");\n"
         ));
+        asserted_keys.push(key.to_string());
         n += 1;
     }
     fs::create_dir_all(BUILD).ok();
@@ -620,7 +655,11 @@ fn layout_asserts() -> Result<PathBuf, String> {
         let list = Path::new(BUILD).join("layout_pending.txt");
         fs::write(&list, pending.join("\n") + "\n").ok();
     }
+    asserted_keys.sort();
+    let asserted_list = Path::new(BUILD).join("layout_asserted.txt");
+    fs::write(&asserted_list, asserted_keys.join("\n") + "\n").ok();
     check_counts(n, pending.len())?;
+    check_keys(&asserted_keys)?;
     println!("{n} layout assertions from {}", tsv.display());
     if !pending.is_empty() {
         println!("{} keys pending a mirror: {}", pending.len(),
@@ -851,11 +890,19 @@ fn probe_programs() -> Result<(), String> {
 /// not of `gate-fast`, because it is a second compile of every unit.
 fn dead_arms() -> i32 {
     // feature -> (config key, value with the feature on)
-    const FLIPS: [(&str, &str, &str); 5] = [
+    const FLIPS: [(&str, &str, &str); 6] = [
         ("no_rint", "HAVE_RINT", "false"),
         ("no_trunc", "HAVE_TRUNC", "false"),
         ("no_signbit", "HAVE_SIGNBIT", "false"),
         ("haiku", "HAIKU", "true"),
+        // `native_comp` was the one structural arm *nothing* compiled: `cfg!(feature =
+        // "native_comp")` is false in every real build (no `[features]`, and this list did
+        // not name it), so `lisp.rs`'s `#[cfg(feature = "native_comp")]` pair — the
+        // `NATIVE_COMP_FUNCTIONP`/`DYNP` bodies behind `HAVE_NATIVE_COMP` — had never been
+        // through rustc, and the const assertion that claims the feature and the
+        // configuration agree could not fail (review A's F6).  Flipping the configuration
+        // constant *and* the feature together is what makes that claim executable.
+        ("native_comp", "HAVE_NATIVE_COMP", "true"),
         // HAVE_LOG2 is not gated on a feature (the condition keeps the constant), but
         // the other arm is still C text that has to compile.
         ("", "HAVE_LOG2", "false"),

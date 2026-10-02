@@ -30,6 +30,7 @@ offsetof Lisp_Buffer_Local_Value.where	16
 offsetof Lisp_Cons.u.s.car	0
 offsetof Lisp_Cons.u.s.u.cdr	8
 offsetof Lisp_Cons.u.s.u.chain	8
+offsetof Lisp_Fwd.u	8
 offsetof Lisp_Hash_Table.count	48
 offsetof Lisp_Hash_Table.hash	16
 offsetof Lisp_Hash_Table.header	0

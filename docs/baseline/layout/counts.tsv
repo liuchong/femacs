@@ -1,4 +1,4 @@
 key	value
-asserted	247
+asserted	248
 pending	7
-note	2026-10-02 round 10 (second half): asserted 245 -> 247 with glyph_slice (dispextern.h's first type: 8-byte storage unit, 4-byte alignment -- the port stores it as [u32; 2] because #[repr(C, align(4))] cannot lower a u64's alignment and the assert failed with E0080 until it did).  pending stays 7.  This file is a ratchet: asserted only grows and pending only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).
+note	2026-10-02 round 13: asserted 247 -> 248 with `offsetof Lisp_Fwd.u` (the type had *no* offset key, so swapping `type`/`u` or dropping #[repr(C)] stayed green -- review B's F3; the mutation is caught now, error[E0080]).  pending stays 7.  This file is a ratchet: asserted only grows and pending only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).  The asserted key *set* is ratcheted separately by asserted-keys.txt (review B's F4).

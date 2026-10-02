@@ -2716,10 +2716,13 @@ pub fn NATIVE_COMP_FUNCTION_DYNP (a: Lisp_Object) -> bool { let _ = a; false }
 // lisp.h 5489-5530: the `#ifdef HAVE_NATIVE_COMP` pair is the *dead* one for this
 // configuration, and the `#else` pair (`return false`) is what C compiles.  The port had the
 // polarity backwards (the gate found it once the frozen configuration decided the branch).
+// The bodies themselves were never through rustc until `dead-arms` learned to flip
+// `native_comp` (review A's F6), and it found two spelling errors in them: the pointer was
+// compared with `!= 0` instead of C's `!NILP`, and `type_` is `r#type` in the mirror.
 #[cfg(feature = "native_comp")]
 #[inline(always)]
 pub fn NATIVE_COMP_FUNCTIONP (a: Lisp_Object) -> bool {
-    SUBRP (a) && unsafe { (*XSUBR (a)).native_comp_u } != 0
+    SUBRP (a) && !NILP (unsafe { (*XSUBR (a)).native_comp_u })
 }
 
 #[cfg(feature = "native_comp")]
@@ -2733,7 +2736,7 @@ const _: () = assert! (!cfg! (feature = "native_comp") || HAVE_NATIVE_COMP);
 #[cfg(feature = "native_comp")]
 #[inline(always)]
 pub fn SUBR_TYPE (a: Lisp_Object) -> Lisp_Object {
-    unsafe { (*XSUBR (a)).type_ }
+    unsafe { (*XSUBR (a)).r#type }
 }
 
 // allocate_native_comp_unit is not mirrored yet: it allocates a
@@ -3269,6 +3272,18 @@ macro_rules! DEFUN {
                 intspec: Lisp_Subr_intspec { string: intspec_string! ($intspec) },
                 command_modes: lisp_h_Qnil (),
                 doc: 0,
+                // C's initialiser stops at `lisp_h_Qnil`, so under HAVE_NATIVE_COMP the
+                // four fields after `doc` are zero-filled by the aggregate rule (lisp.h
+                // 2201-2206); Rust has to spell them.  Turning this arm's compiler on
+                // (`dead-arms` flips `native_comp`, review A's F6) is what found them.
+                #[cfg(feature = "native_comp")]
+                native_comp_u: lisp_h_Qnil (),
+                #[cfg(feature = "native_comp")]
+                native_c_name: std::ptr::null_mut (),
+                #[cfg(feature = "native_comp")]
+                lambda_list: lisp_h_Qnil (),
+                #[cfg(feature = "native_comp")]
+                r#type: lisp_h_Qnil (),
             },
         };
 

@@ -53,6 +53,21 @@ STRUCTS = {
 }
 
 
+# Members `cinventory` does not report as *direct* fields of the container but which the C
+# compiler can still key.  `struct Lisp_Fwd`'s value union is spelled `u` in C and
+# `offsetof (struct Lisp_Fwd, u)` is legal, while its four inner members (`intvar`, …) are
+# reached as `u.intvar` and are not (P-65).  Without this key the type had *no* offset at
+# all, so swapping `type` and `u` in the mirror — or dropping `#[repr(C)]` — left both the
+# layout gate and `extract-abi --check` green (review B's F3, round 12).
+EXTRA = {"Lisp_Fwd": ["u"]}
+
+# Types whose every member is a bitfield: `offsetof` is illegal for them (clang: "cannot
+# compute offset of bit-field"), so `sizeof`/`alignof` plus the byte-pattern probes are the
+# whole gate for them.  Listed explicitly so a struct that *should* have keys cannot
+# silently join them: the invariant below fails instead (review B's F3).
+BITFIELD_ONLY = {"glyph_slice": "four 16-bit bitfields share one 8-byte unit (P-67)"}
+
+
 def live_bodies(ref: Path, cfg: Path, header: str) -> str:
     """The preprocessed text of HEADER.
 
@@ -129,6 +144,16 @@ def main() -> int:
         for f in fields:
             lines.append(f"  OFF (struct {name}, {f['name']});")
             total += 1
+        for member in EXTRA.get(name, []):
+            lines.append(f"  OFF (struct {name}, {member});")
+            total += 1
+        if not fields and name not in EXTRA and name not in BITFIELD_ONLY:
+            raise SystemExit(
+                f"{name} has no offset key: its members are either all bitfields (then "
+                f"record it in BITFIELD_ONLY with the reason) or nested aggregates that "
+                f"need an entry in EXTRA (their key must name a member C can take "
+                f"`offsetof` of) — a type with zero offset keys is a type whose field "
+                f"order no gate checks (review B's F3)")
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"wrote {out}: {len(STRUCTS)} structs, {total} field offsets")
     return 0

@@ -189,6 +189,7 @@
   OFF (struct Lisp_Obarray, count);
 
   SZ (struct Lisp_Fwd); AL (struct Lisp_Fwd);
+  OFF (struct Lisp_Fwd, u);
 
   SZ (struct Lisp_Buffer_Local_Value); AL (struct Lisp_Buffer_Local_Value);
   OFF (struct Lisp_Buffer_Local_Value, fwd);
