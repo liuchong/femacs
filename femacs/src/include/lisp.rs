@@ -2388,6 +2388,11 @@ pub fn HASH_HASH (h: *mut Lisp_Hash_Table, idx: hash_idx_t) -> hash_hash_t {
 
 #[inline(always)]
 pub fn HASH_TABLE_SIZE (h: *mut Lisp_Hash_Table) -> hash_idx_t { unsafe { (*h).table_size } }
+// lisp.h 4254-4258: the hash-table primitives `coding.h`'s CODING_SYSTEM_ID needs (the rest
+// arrive with the units that define them).
+unsafe extern "C" { pub fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t; }
+unsafe extern "C" { pub fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
+                                      value: Lisp_Object, hash: hash_hash_t) -> ptrdiff_t; }
 
 #[inline(always)]
 pub fn hash_table_index_size (h: *mut Lisp_Hash_Table) -> isize {
