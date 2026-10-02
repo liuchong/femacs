@@ -60,18 +60,18 @@
 - [x] position-symbol  (Fposition_symbol, 2/2, doc 9d0e2dc057aa, line 876)
 - [x] fset  (Ffset, 2/2, doc 7af3608b8fe3, line 897)
 - [ ] defalias  (Fdefalias, 2/3, doc 0ddc4dab1693, line 1002)
-- [ ] setplist  (Fsetplist, 2/2, doc 3f68e5e7c348, line 1029)
-- [ ] subr-arity  (Fsubr_arity, 1/1, doc 540c5ca896e3, line 1038)
-- [ ] subr-name  (Fsubr_name, 1/1, doc 044f0f555e5a, line 1056)
-- [ ] native-comp-function-p  (Fnative_comp_function_p, 1/1, doc 00558423036a, line 1067)
-- [ ] subr-native-lambda-list  (Fsubr_native_lambda_list, 1/1, doc 6124590e68f8, line 1074)
-- [ ] subr-type  (Fsubr_type, 1/1, doc 1a5b0e2f78cc, line 1089)
+- [x] setplist  (Fsetplist, 2/2, doc 3f68e5e7c348, line 1029)
+- [x] subr-arity  (Fsubr_arity, 1/1, doc 540c5ca896e3, line 1038)
+- [x] subr-name  (Fsubr_name, 1/1, doc 044f0f555e5a, line 1056)
+- [x] native-comp-function-p  (Fnative_comp_function_p, 1/1, doc 00558423036a, line 1067)
+- [x] subr-native-lambda-list  (Fsubr_native_lambda_list, 1/1, doc 6124590e68f8, line 1074)
+- [x] subr-type  (Fsubr_type, 1/1, doc 1a5b0e2f78cc, line 1089)
 - [ ] subr-native-comp-unit  (Fsubr_native_comp_unit, 1/1, doc c05c24047732, line 1104)
 - [ ] native-comp-unit-file  (Fnative_comp_unit_file, 1/1, doc 2842f3191124, line 1113)
 - [ ] native-comp-unit-set-file  (Fnative_comp_unit_set_file, 2/2, doc 2842f3191124, line 1122)
-- [ ] interactive-form  (Finteractive_form, 1/1, doc 10258d736327, line 1134)
-- [ ] command-modes  (Fcommand_modes, 1/1, doc 1fde4b17ab80, line 1218)
-- [ ] indirect-variable  (Findirect_variable, 1/1, doc f3690ca988af, line 1291)
+- [x] interactive-form  (Finteractive_form, 1/1, doc 10258d736327, line 1134)
+- [x] command-modes  (Fcommand_modes, 1/1, doc 1fde4b17ab80, line 1218)
+- [x] indirect-variable  (Findirect_variable, 1/1, doc f3690ca988af, line 1291)
 - [x] symbol-value  (Fsymbol_value, 1/1, doc fb8e10325afe, line 1645)
 - [ ] set  (Fset, 2/2, doc 67b1a9246f28, line 1660)
 - [ ] add-variable-watcher  (Fadd_variable_watcher, 2/2, doc 6686d609c646, line 1857)
@@ -156,8 +156,8 @@
 - [x] swap_in_symval_forwarding  (line 1574, static)
 - [x] find_symbol_value  (line 1619)
 - [ ] set_internal  (line 1678)
-- [ ] set_symbol_trapped_write  (line 1834, static)
-- [ ] restore_symbol_trapped_write  (line 1843, static)
+- [x] set_symbol_trapped_write  (line 1834, static)
+- [x] restore_symbol_trapped_write  (line 1843, static)
 - [ ] harmonize_variable_watchers  (line 1849, static)
 - [ ] notify_variable_watchers  (line 1915)
 - [ ] default_value  (line 1962)
@@ -195,16 +195,16 @@
 
 ## Decisions
 
-- **Ported so far.**  data.c 41-165 (the 19 forwarded-variable / buffer-local-value
-  accessors, the error helpers and `slow_eq`), data.c 168-705 (40 of the 120 subrs: the
-  type predicates and list accessors, in C's order), and data.c 1314-1646 (the forwarding
-  machinery: `kboard_for_bindings`, `do_symval_forwarding`, `wrong_choice`, `wrong_range`,
-  `check_choice`, `check_fwd_predicate`, `store_symval_forwarding`,
-  `swap_in_global_binding`, `swap_in_symval_forwarding`, `find_symbol_value`,
-  `Fsymbol_value`).  `cargo build-tu src/data.c` builds, and `extract-abi.py --check`
-  reports no incorrect item - only the 76 remaining subrs, 26 functions, 1 macro
-  (`PUT_ERROR`), 12 constants (7 `A*` plus the five `bool_vector_*`), the 120 `defsubr`
-  calls and the line-count drift that any partial file has (C 4400 vs Rust 898, 79.6%).
+- **Ported so far.**  data.c 41-165 (the 19 accessors and error helpers), 168-705 (40
+  subrs), 716-897 (the twelve symbol accessors and `fset`), 1029-1291 (`setplist`,
+  `subr-arity`, `subr-name`, `native-comp-function-p`, `subr-native-lambda-list`,
+  `subr-type`, `interactive-form`, `command-modes`, `indirect-variable`),
+  1314-1646 (the forwarding machinery) and 1832-1846
+  (`set_symbol_trapped_write`/`restore_symbol_trapped_write`).  `cargo build-tu src/data.c`
+  builds, and `extract-abi.py --check` reports no incorrect item - only the 55 remaining
+  subrs, 29 functions, 1 macro (`PUT_ERROR`), 12 constants (7 `A*` plus the five
+  `bool_vector_*`), the 120 `defsubr` calls and the line-count drift of a partial file
+  (C 4400 vs Rust 1362, 69.0%).
 - **Five subrs wait for two headers.**  `type-of` (data.c 187-200) needs this file's own
   `cl-type-of` (data.c 202-310); `cl-type-of` calls `THREADP`, `MUTEXP`, `CONDVARP`
   (`thread.h` 222-320) and `FONT_SPEC_P`/`FONT_ENTITY_P`/`FONT_OBJECT_P` (`font.h`
@@ -273,9 +273,8 @@
   (1574), whose own closure is `do_symval_forwarding` (1337), `store_symval_forwarding`
   (1470), `check_fwd_predicate` (1417) and `kboard_for_bindings` (1314): Rust has no
   forward declarations (PORTING.md 0.1-12), so the machinery has to exist before the
-  accessors that call it can be part of a compiling translation unit.  716-930 is the next
-  segment; the only hole left after it is 931-1313 (the `defalias` family), which waits for
-  `comp.rs` (comp.h's `static inline` no-op, PORTING.md P-51's text-preservation rule).
+  accessors that call it can be part of a compiling translation unit.  716-897 landed next; the only hole left in the first half is
+  931-1028 (the `defalias` family), which waits for `comp.rs` (comp.h's `static inline` no-op, PORTING.md P-51's text-preservation rule).
 - **Four lexical notes in `docs/ports/macro-body-notes.tsv`.**  C's `switch`/`case`/
   `default`, `start:`/`goto start` and `FOR_EACH_LIVE_BUFFER` have no Rust spelling, so
   those four function names carry an explicit exemption list (the `doprnt` precedent on the
@@ -307,6 +306,39 @@
   gate was probed with a mutation (`Feq`'s `EQ` -> `BASE_EQ`) and the mutation passed
   every check, which led to `cinventory.defun_spans` and the loop that now compares subr
   bodies too: 150 bodies across the ported units, 120 of them here.  The sweep's first
-  result for this file is two exemptions, both syntax-level: `Fboundp`'s
-  `switch`/`goto`/`redirect` and `Fmakunbound`'s `redirect` (the mirror packs that
-  bitfield into `u.s.bits`), recorded in `docs/ports/macro-body-notes.tsv`.
+  results for this file are three syntax-level exemptions - `Fboundp`'s
+  `switch`/`goto`/`redirect`, `Fmakunbound`'s and `Findirect_variable`'s `redirect`, and
+  `set_symbol_trapped_write`'s `trapped_write` (the mirror packs those bitfields into
+  `u.s.bits`) - in `docs/ports/macro-body-notes.tsv`.
+- **Three subrs are dead in this configuration and are not ported.**
+  `subr-native-comp-unit`, `native-comp-unit-file` and `native-comp-unit-set-file`
+  (data.c 1106-1134) are inside `#ifdef HAVE_NATIVE_COMP`, which the frozen table leaves
+  undefined, so the reference builds neither them nor their `defsubr` calls; the same rule
+  `user-ptrp` follows applies, and their three boxes stay unchecked.  `syms_of_data`
+  (data.c 4021) has to treat those three `defsubr` lines as a ledger deviation: P-76
+  records that the tool's defsubr extraction does not consult the condition table yet, so
+  writing them would be reported as missing rather than as dead.
+- **This segment's three dead-text decisions (recorded, not implied by the code).**
+  (a) `subr-native-lambda-list` and `subr-type` keep C's `#ifdef HAVE_NATIVE_COMP` text
+  under `#[cfg(feature = "native_comp")]` (the `floatfns.rs` `no_rint` precedent), and
+  *that text does compile*: a run of `xtask dead-arms` with this ledger presented as
+  complete compiled `src_data.o` under the flipped configuration (the `native_comp` entry
+  in `FLIPS` flips the constant and the feature together; the `const _` assertion in
+  `lisp.rs` is what makes the pair meaningful).  Until the ledger is complete,
+  `finished_units()` skips this unit, so that text is compiled at batch boundaries rather
+  than on every gate run - recorded here as the residual it is.
+  (b) The three `#ifdef HAVE_NATIVE_COMP` DEFUNs are not ported (bullet above).
+  (c) `interactive-form` and `command-modes` drop C's `#ifdef HAVE_MODULES` arms: the
+  frozen text has no such branch, so the `if`/`else if` chain is the same shape without
+  it.  Unlike (b) this is a *choice* (the tokens would not be compared either way,
+  because `c_body_text` drops dead lines) - it is recorded because the port could have
+  kept it under `#[cfg(feature = "modules")]`, and chose not to while that feature has no
+  mirror for the `module_function_*` helpers it would need.
+- **A real defect the reviewers caught in this segment (review B's P1).**
+  `Findirect_variable` must rebind the parameter (`XSETSYMBOL (object, sym)`) and return
+  it; the port first put the mutable binding *inside* the `if`, so the write landed on a
+  shadow and the returned value stayed the parameter - the function's only purpose,
+  following an alias chain, silently did nothing.  The token gate cannot see this class
+  ("every token survives"): it was found by the human reading, and the fix hoists the
+  binding to the function's scope (the `floatfns.rs`/`buffer.rs` precedent).  This is
+  recorded in P-78's residuals as the third blind-spot class.

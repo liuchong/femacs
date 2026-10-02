@@ -2128,18 +2128,18 @@ pub fn set_symbol_next (sym: Lisp_Object, next: *mut Lisp_Symbol) {
     unsafe { (*XSYMBOL (sym)).u.s.next = next }
 }
 
+// lisp.h 4009-4013: C writes the bitfield directly here.  The port used to route this
+// through an invented `set_symbol_trapped_write` helper; C's function of that name is a
+// *static in data.c* (1832-1840) with a `Qtrapping_constant` early exit the helper did
+// not have, and having both in one module would be a duplicate definition once data.c
+// 1832 lands (review A's F1).
 #[inline(always)]
-pub fn set_symbol_trapped_write (sym: Lisp_Object, trapped_write: u32) {
+pub fn make_symbol_constant (sym: Lisp_Object) {
     unsafe {
         (*XSYMBOL (sym)).u.s.bits =
             ((*XSYMBOL (sym)).u.s.bits & !SYMBOL_TRAPPED_WRITE_MASK)
-                | ((trapped_write << SYMBOL_TRAPPED_WRITE_SHIFT) & SYMBOL_TRAPPED_WRITE_MASK)
+                | ((SYMBOL_NOWRITE << SYMBOL_TRAPPED_WRITE_SHIFT) & SYMBOL_TRAPPED_WRITE_MASK)
     }
-}
-
-#[inline(always)]
-pub fn make_symbol_constant (sym: Lisp_Object) {
-    set_symbol_trapped_write (sym, SYMBOL_NOWRITE);
 }
 
 #[inline(always)]

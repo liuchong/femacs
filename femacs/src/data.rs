@@ -724,6 +724,250 @@ DEFUN! ("fset", Ffset, Sfset, 2, 2, 0,
   return definition;
 });
 
+DEFUN! ("setplist", Fsetplist, Ssetplist, 2, 2, 0,
+       doc: "Set SYMBOL's property list to NEWPLIST, and return NEWPLIST.",
+       (symbol: Lisp_Object, newplist: Lisp_Object),
+       {
+  CHECK_SYMBOL (symbol);
+  set_symbol_plist (symbol, newplist);
+  return newplist;
+});
+
+DEFUN! ("subr-arity", Fsubr_arity, Ssubr_arity, 1, 1, 0,
+       doc: "Return minimum and maximum number of args allowed for SUBR.\nSUBR must be a built-in function.\nThe returned value is a pair (MIN . MAX).  MIN is the minimum number\nof args.  MAX is the maximum number or the symbol `many', for a\nfunction with `&rest' args, or `unevalled' for a special form.",
+       (subr: Lisp_Object),
+       {
+  let minargs: c_short;
+  let maxargs: c_short;
+  CHECK_SUBR (subr);
+  minargs = (*XSUBR (subr)).min_args;
+  maxargs = (*XSUBR (subr)).max_args;
+  return Fcons (make_fixnum (minargs as EMACS_INT),
+                if maxargs as isize == MANY { Qmany () }
+                else if maxargs as isize == UNEVALLED { Qunevalled () }
+                else { make_fixnum (maxargs as EMACS_INT) });
+});
+
+DEFUN! ("subr-name", Fsubr_name, Ssubr_name, 1, 1, 0,
+       doc: "Return name of subroutine SUBR.\nSUBR must be a built-in function.",
+       (subr: Lisp_Object),
+       {
+  let name: *const c_char;
+  CHECK_SUBR (subr);
+  name = (*XSUBR (subr)).symbol_name;
+  return build_string (name);
+});
+
+DEFUN! ("native-comp-function-p", Fnative_comp_function_p, Snative_comp_function_p, 1, 1,
+       0,
+       doc: "Return t if the object is native-compiled Lisp function, nil otherwise.",
+       (object: Lisp_Object),
+       {
+  return if NATIVE_COMP_FUNCTIONP (object) { Qt () } else { Qnil () };
+});
+
+DEFUN! ("subr-native-lambda-list", Fsubr_native_lambda_list,
+       Ssubr_native_lambda_list, 1, 1, 0,
+       doc: "Return the lambda list for a native-compiled lisp/d\nfunction or t otherwise.",
+       (subr: Lisp_Object),
+       {
+  CHECK_SUBR (subr);
+
+  // C gates this block on `#ifdef HAVE_NATIVE_COMP`; HAVE_NATIVE_COMP is undefined in the
+  // frozen configuration, so the port keeps the text under the same condition
+  // (PORTING.md P-08/P-51), and `xtask dead-arms` is what compiles it.
+  #[cfg(feature = "native_comp")]
+  {
+    if NATIVE_COMP_FUNCTION_DYNP (subr)
+      { return (*XSUBR (subr)).lambda_list; }
+  }
+  return Qt ();
+});
+
+DEFUN! ("subr-type", Fsubr_type,
+       Ssubr_type, 1, 1, 0,
+       doc: "Return the type of SUBR.",
+       (subr: Lisp_Object),
+       {
+  CHECK_SUBR (subr);
+  #[cfg(feature = "native_comp")]
+  {
+    return SUBR_TYPE (subr);
+  }
+  #[cfg(not(feature = "native_comp"))]
+  {
+    return Qnil ();
+  }
+});
+
+// data.c 1104-1134: `subr-native-comp-unit`, `native-comp-unit-file` and
+// `native-comp-unit-set-file` sit inside `#ifdef HAVE_NATIVE_COMP`, undefined in the
+// frozen configuration, so the reference has no such subrs and the port has none either
+// (the `user-ptrp` rule, docs/ports/data.md Decisions).  Their `defsubr` calls are
+// guarded by the same `#ifdef`, but `tools/extract-abi.py`'s defsubr extraction does not
+// consult the condition table yet (PORTING.md P-76), so `syms_of_data` must record those
+// three lines as a ledger deviation instead of writing calls the frozen build never
+// compiles.
+
+DEFUN! ("interactive-form", Finteractive_form, Sinteractive_form, 1, 1, 0,
+       doc: "Return the interactive form of CMD or nil if none.\nIf CMD is not a command, the return value is nil.\nValue, if non-nil, is a list (interactive SPEC).",
+       (cmd: Lisp_Object),
+       {
+  let mut fun = indirect_function (cmd);
+  let mut genfun: bool = false;
+
+  if NILP (fun)
+    { return Qnil (); }
+
+  /* Use an `interactive-form' property if present, analogous to the
+     function-documentation property.  */
+  fun = cmd;
+  while SYMBOLP (fun)
+    {
+      let tmp = Fget (fun, Qinteractive_form ());
+      if ! NILP (tmp)
+        { return tmp; }
+      else
+        { fun = Fsymbol_function (fun); }
+    }
+
+  if SUBRP (fun)
+    {
+      if NATIVE_COMP_FUNCTIONP (fun) && ! NILP ((*XSUBR (fun)).intspec.native)
+        { return (*XSUBR (fun)).intspec.native; }
+
+      let spec: *const c_char = (*XSUBR (fun)).intspec.string;
+      if ! spec.is_null ()
+        {
+          return list2 (Qinteractive (),
+                        if *spec != b'(' as c_char
+                          { build_string (spec) }
+                        else
+                          { Fcar (Fread_from_string (build_string (spec), Qnil (), Qnil ())) });
+        }
+    }
+  else if CLOSUREP (fun)
+    {
+      if PVSIZE (fun) > CLOSURE_INTERACTIVE as isize
+        {
+          let form = AREF (fun, CLOSURE_INTERACTIVE as isize);
+          /* The vector form is the new form, where the first
+             element is the interactive spec, and the second is the
+             command modes. */
+          return list2 (Qinteractive (), if VECTORP (form) { AREF (form, 0) } else { form });
+        }
+      else if PVSIZE (fun) > CLOSURE_DOC_STRING as isize
+        {
+          let doc = AREF (fun, CLOSURE_DOC_STRING as isize);
+          /* An invalid "docstring" is a sign that we have an OClosure.  */
+          genfun = ! (NILP (doc) || VALID_DOCSTRING_P (doc));
+        }
+    }
+  // C's `#ifdef HAVE_MODULES` arm (`module_function_interactive_form`) is dead in the
+  // frozen configuration and the port does not carry it: the declaration lives in
+  // emacs-module.h, which is not mirrored (the `user-ptrp` rule; see the ledger).
+  else if AUTOLOADP (fun)
+    { return Finteractive_form (Fautoload_do_load (fun, cmd, Qnil ())); }
+  else if CONSP (fun)
+    {
+      let funcar = XCAR (fun);
+      if EQ (funcar, Qlambda ())
+        {
+          let form = Fcdr (XCDR (fun));
+          let spec = Fassq (Qinteractive (), form);
+          if NILP (Fcdr (Fcdr (spec)))
+            { return spec; }
+          else
+            { return list2 (Qinteractive (), Fcar (Fcdr (spec))); }
+        }
+    }
+  if genfun
+      /* Avoid burping during bootstrap.  */
+      && ! NILP (Fsymbol_function (Qoclosure_interactive_form ()))
+    { return calln! (Qoclosure_interactive_form (), fun); }
+  else
+    { return Qnil (); }
+});
+
+DEFUN! ("command-modes", Fcommand_modes, Scommand_modes, 1, 1, 0,
+       doc: "Return the modes COMMAND is defined for.\nIf COMMAND is not a command, the return value is nil.\nThe value, if non-nil, is a list of mode name symbols.",
+       (command: Lisp_Object),
+       {
+  let mut fun = indirect_function (command);
+
+  if NILP (fun)
+    { return Qnil (); }
+
+  /* Use a `command-modes' property if present, analogous to the
+     function-documentation property.  */
+  fun = command;
+  while SYMBOLP (fun)
+    {
+      let modes = Fget (fun, Qcommand_modes ());
+      if ! NILP (modes)
+        { return modes; }
+      else
+        { fun = Fsymbol_function (fun); }
+    }
+
+  if SUBRP (fun)
+    {
+      return (*XSUBR (fun)).command_modes;
+    }
+  else if CLOSUREP (fun)
+    {
+      if PVSIZE (fun) <= CLOSURE_INTERACTIVE as isize
+        { return Qnil (); }
+      let form = AREF (fun, CLOSURE_INTERACTIVE as isize);
+      if VECTORP (form)
+        /* New form -- the second element is the command modes. */
+        { return AREF (form, 1); }
+      else
+        /* Old .elc file -- no command modes. */
+        { return Qnil (); }
+    }
+  // `#ifdef HAVE_MODULES` arm omitted, as in interactive-form above.
+  else if AUTOLOADP (fun)
+    {
+      let modes = Fnth (make_int (3), fun);
+      if CONSP (modes)
+        { return modes; }
+      else
+        { return Qnil (); }
+    }
+  else if CONSP (fun)
+    {
+      let funcar = XCAR (fun);
+      if EQ (funcar, Qlambda ())
+        {
+          let form = Fcdr (XCDR (fun));
+          return Fcdr (Fcdr (Fassq (Qinteractive (), form)));
+        }
+    }
+  return Qnil ();
+});
+
+/* Getting and Setting Values of Symbols */
+
+DEFUN! ("indirect-variable", Findirect_variable, Sindirect_variable, 1, 1, 0,
+       doc: "Return the variable at the end of OBJECT's variable chain.\nIf OBJECT is a symbol, follow its variable indirections (if any), and\nreturn the variable at the end of the chain of aliases.  See Info node\n`(elisp)Variable Aliases'.\n\nIf OBJECT is not a symbol, just return it.",
+       (object: Lisp_Object),
+       {
+  // C rebinds its parameter (`XSETSYMBOL (object, sym)`) and returns it; `DEFUN!`'s
+  // pattern takes plain bindings, so the port takes the same value into a mutable one.
+  // It has to be *this* scope: with the binding inside the `if` the write would land on a
+  // shadow and the return value would stay the parameter (review B's P1).
+  let mut object = object;
+  if SYMBOLP (object)
+    {
+      let mut sym: *mut Lisp_Symbol = XSYMBOL (object);
+      while ((*sym).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT == SYMBOL_VARALIAS
+        { sym = SYMBOL_ALIAS (sym); }
+      XSETSYMBOL! (object, sym);
+    }
+  return object;
+});
+
 /* Return the KBOARD to which bindings currently established and values
    set should apply.  */
 
@@ -1040,6 +1284,25 @@ unsafe fn swap_in_symval_forwarding (symbol: *mut Lisp_Symbol, blv: *mut Lisp_Bu
       if ! (*blv).fwd.is_null ()
         { store_symval_forwarding ((*blv).fwd, blv_value (blv), std::ptr::null_mut ()); }
     }
+}
+
+// data.c 1832-1840.  C reads and writes the `trapped_write` bitfield; the mirror packs it
+// into `u.s.bits` (lisp.rs 224-225), so both sides go through the mask/shift.
+unsafe fn set_symbol_trapped_write (symbol: Lisp_Object, trap: u32)
+{
+  let sym: *mut Lisp_Symbol = XSYMBOL (symbol);
+  if ((*sym).u.s.bits & SYMBOL_TRAPPED_WRITE_MASK) >> SYMBOL_TRAPPED_WRITE_SHIFT
+     == SYMBOL_NOWRITE
+    { xsignal1 (Qtrapping_constant (), symbol); }
+  let bits = (*sym).u.s.bits;
+  (*sym).u.s.bits = (bits & ! SYMBOL_TRAPPED_WRITE_MASK)
+                    | ((trap << SYMBOL_TRAPPED_WRITE_SHIFT) & SYMBOL_TRAPPED_WRITE_MASK);
+}
+
+// data.c 1842-1846.
+unsafe fn restore_symbol_trapped_write (symbol: Lisp_Object)
+{
+  set_symbol_trapped_write (symbol, SYMBOL_TRAPPED_WRITE);
 }
 
 /* Find the value of a symbol, returning Qunbound if it's not bound.

@@ -117,3 +117,5 @@ Fboundp	switch,case,default,goto,start,redirect	C's switch/case/default on `u.s.
 Fmakunbound	redirect	C assigns the `redirect` bitfield directly (data.c 787); the mirror writes the same bits through `SYMBOL_REDIRECT_MASK`/`_SHIFT` (PORTING.md 1.3)
 Fset_case_table	0	C passes the int literal `0` to `bool standard` (casetab.c 101); the mirror's `set_case_table (table: Lisp_Object, standard: bool)` cannot take an int, so the call spells `false` (PORTING.md 5.2).  Residual, recorded in P-78: with `0` exempted a `false`->`true` swap in this body is invisible to the token check
 Fset_standard_case_table	1	casetab.c 110: the same pair, `1` -> `true` (PORTING.md 5.2).  Residual as above: `true`->`false` is invisible here
+Findirect_variable	redirect	C reads `sym->u.s.redirect` in the alias-following loop (data.c 1294); the mirror reads the same bits through SYMBOL_REDIRECT_MASK/_SHIFT (lisp.rs 222-227), PORTING.md 1.3
+set_symbol_trapped_write	trapped_write	C reads and writes `sym->u.s.trapped_write` (data.c 1834-1839); the mirror packs it into `u.s.bits` through SYMBOL_TRAPPED_WRITE_MASK/_SHIFT (lisp.rs 224-225), PORTING.md 1.3

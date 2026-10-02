@@ -895,7 +895,12 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     problems: list[str] = []
 
     c_funcs = {f["name"] for f in c["functions"]}
-    rust_names = set(r["functions"]) | set(r["macros"]) | set(r["statics"]) | set(r["constants"])
+    # Only a *definition* answers for a C function.  The mirrors a unit includes declare
+    # things they do not define (`indirect_function` is data.c's, declared in lisp.rs), and
+    # counting those declarations as definitions hid five functions from this rule and from
+    # the stub check (review A's F2): `r["bodies"]` is exactly the names with a body.
+    rust_names = (set(r["bodies"]) | set(r["macros"]) | set(r["statics"])
+                  | set(r["constants"]))
     for name in sorted(c_funcs - rust_names - set(excluded)):
         problems.append(f"missing function {name}")
 
