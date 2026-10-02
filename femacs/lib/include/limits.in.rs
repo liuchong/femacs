@@ -30,6 +30,10 @@ pub const fn _GL_COB4 (n: isize) -> usize {
         + (((n & 2) != 0) as usize) + (((n & 1) != 0) as usize)
 }
 
+// CHAR_BIT is the system <limits.h>'s byte width; mini-gmp.c multiplies its type sizes
+// by it (GMP_LIMB_BITS, GMP_ULONG_BITS, gmp_umul_ppmm's branch conditions).
+pub const CHAR_BIT: c_int = 8;
+
 // <limits.h> values the reference names in its headers; UCHAR_MAX is what
 // character.c's `hexdigit[UCHAR_MAX + 1]` definition is sized by (CHAR_BIT is 8
 // on the frozen target).
@@ -44,6 +48,12 @@ pub const UCHAR_MAX: c_int = 0xFF;
 // 18446744073709551615`.  ULONG_MAX is bignum.c's `GMP_NLIMBS_MAX`/`NLIMBS_LIMIT`.
 pub const INT_MIN: c_int = -2147483648;
 pub const INT_MAX: c_int = 2147483647;
+// mini-gmp.c's fits/compare family names four more (mpz_fits_sint_p, mpz_fits_uint_p,
+// mpz_fits_sshort_p, mpz_fits_ushort_p).
+pub const UINT_MAX: c_uint = 4294967295;
+pub const SHRT_MAX: c_int = 32767;
+pub const SHRT_MIN: c_int = -32768;
+pub const USHRT_MAX: c_int = 65535;
 pub const ULONG_MAX: c_ulong = c_ulong::MAX;
 pub const LONG_MIN: c_long = c_long::MIN;
 pub const LONG_MAX: c_long = c_long::MAX;
