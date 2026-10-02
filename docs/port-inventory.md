@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 152 |
-| 其中 done / wip | 122 / 30 |
+| 其中 done / wip | 124 / 28 |
 | 待开工 | 438 |
 
 ## 2 按目录
@@ -191,13 +191,13 @@
 | `lib/getloadavg.c` | 897 | 1 | 0 | 19 | 4 | 2 | 7 | L | `femacs/lib/getloadavg.rs` | todo |
 | `lib/getopt-cdefs.in.h` | 74 | 0 | 0 | 5 | 1 | 0 | 0 | L | `femacs/lib/include/getopt-cdefs.in.rs` | todo |
 | `lib/getopt-core.h` | 96 | 0 | 0 | 1 | 1 | 0 | 4 | L | `femacs/lib/include/getopt-core.rs` | done |
-| `lib/getopt-ext.h` | 77 | 0 | 0 | 4 | 4 | 4 | 0 | L | `femacs/lib/include/getopt-ext.rs` | wip |
+| `lib/getopt-ext.h` | 77 | 0 | 0 | 4 | 4 | 4 | 0 | L | `femacs/lib/include/getopt-ext.rs` | done |
 | `lib/getopt-pfx-core.h` | 76 | 0 | 0 | 10 | 1 | 0 | 0 | L | `femacs/lib/include/getopt-pfx-core.rs` | done |
 | `lib/getopt-pfx-ext.h` | 69 | 0 | 0 | 9 | 2 | 0 | 0 | L | `femacs/lib/include/getopt-pfx-ext.rs` | wip |
 | `lib/getopt.c` | 811 | 6 | 0 | 8 | 0 | 0 | 5 | L | `femacs/lib/getopt.rs` | done |
 | `lib/getopt.in.h` | 66 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/getopt.in.rs` | wip |
 | `lib/getopt1.c` | 166 | 5 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/getopt1.rs` | done |
-| `lib/getopt_int.h` | 118 | 0 | 0 | 2 | 4 | 9 | 0 | L | `femacs/lib/include/getopt_int.rs` | wip |
+| `lib/getopt_int.h` | 118 | 0 | 0 | 2 | 4 | 9 | 0 | L | `femacs/lib/include/getopt_int.rs` | done |
 | `lib/getrandom.c` | 193 | 2 | 0 | 10 | 4 | 0 | 2 | L | `femacs/lib/getrandom.rs` | todo |
 | `lib/gettext.h` | 542 | 18 | 0 | 27 | 4 | 0 | 0 | L | `femacs/lib/include/gettext.rs` | wip |
 | `lib/gettime.c` | 51 | 2 | 0 | 0 | 0 | 1 | 0 | L | `femacs/lib/gettime.rs` | todo |

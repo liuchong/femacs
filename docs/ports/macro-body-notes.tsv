@@ -235,3 +235,7 @@ lock_fini	0	regex_internal.h 52's `# define lock_fini(lock) ((void) 0)` is the n
 lock_unlock	0	same as `lock_fini`: `# define lock_unlock(lock) ((void) 0)` is the live arm and the port's body is the unit expression
 DEFINE_SHA3_INIT_CTX	sha3,size,_init_ctx,_digest_size,_block_size	C 205-214's macro concatenates the name (`sha3_##SIZE##_init_ctx`); a Rust macro cannot build an identifier, so the port passes the whole name in and the concatenated pieces have no counterpart (the `sha3` prefix, the `SIZE` argument and the `_init_ctx` suffix)
 DEFINE_SHA3_BUFFER	_buffer,_init_ctx,restrict,sha3,size	C 215-231's macro concatenates `sha3_##SIZE##_buffer` and takes `char const *restrict buffer`; a Rust macro cannot build an identifier and Rust has no `restrict`, so the port passes the whole name in and those pieces are named here (the DEFINE_SHA3_INIT_CTX row's sibling)
+__libc_lock_lock	0	mktime-internal.h 22's `((void) 0)` is the port's `()`, so its one token cannot reappear; neither form evaluates the argument
+__libc_lock_unlock	0	see __libc_lock_lock
+__mktime_internal	goto	PORTING.md 2.2: C's two `goto offset_found` jumps become the labelled block `'offset_found` whose `break 'offset_found` is the same forward jump (the getdelim/realpath_stk precedent)
+main	switch,case,default	lib/getopt1.c's `#ifdef TEST` program: C's `switch (c)` over the character labels becomes the port's `match c`, whose arms carry the labels as `if` guards (PORTING.md 2.2, the doprnt precedent on line 64); the port keeps the dead arm as gated text (P-51)
