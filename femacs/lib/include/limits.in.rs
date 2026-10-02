@@ -47,3 +47,13 @@ pub const INT_MAX: c_int = 2147483647;
 pub const ULONG_MAX: c_ulong = c_ulong::MAX;
 pub const LONG_MIN: c_long = c_long::MIN;
 pub const LONG_MAX: c_long = c_long::MAX;
+
+// --- gnulib intprops.h's width family (P-26) --------------------------------
+//
+// lisp.h 96 reads LONG_WIDTH/ULONG_WIDTH from intprops.h, and bignum.c reads ULONG_WIDTH/
+// INTMAX_WIDTH/UINTMAX_WIDTH from it; the port derives them from the types.
+/* #define TYPE_WIDTH(t) (sizeof (t) * CHAR_BIT), CHAR_BIT == 8.  */
+pub const ULONG_WIDTH: c_int = (8 * std::mem::size_of::<c_ulong> ()) as c_int;
+// (`intmax_t`/`uintmax_t` are lisp.rs's aliases for i64/u64; the lib mirrors stand alone.)
+pub const INTMAX_WIDTH: c_int = (8 * std::mem::size_of::<i64> ()) as c_int;
+pub const UINTMAX_WIDTH: c_int = (8 * std::mem::size_of::<u64> ()) as c_int;

@@ -7,6 +7,8 @@
 #include <math.h>
 #include <limits.h>
 #include <float.h>
+#include <stdint.h>
+#include <inttypes.h>
 
 int
 main (void)
@@ -22,6 +24,13 @@ main (void)
   printf ("DBL_MAX_10_EXP %d\n", DBL_MAX_10_EXP);
   printf ("DBL_MANT_DIG %d\n", DBL_MANT_DIG);
   printf ("DBL_MIN_EXP %d\n", DBL_MIN_EXP);
+  printf ("DBL_DIG %d\n", DBL_DIG);
+  printf ("ULONG_MAX %lu\n", ULONG_MAX);
+  printf ("LONG_MIN %ld\n", LONG_MIN);
+  printf ("LONG_MAX %ld\n", LONG_MAX);
+  printf ("INTMAX_MIN %jd\n", (intmax_t) INTMAX_MIN);
+  printf ("INTMAX_MAX %jd\n", (intmax_t) INTMAX_MAX);
+  printf ("UINTMAX_MAX %ju\n", (uintmax_t) UINTMAX_MAX);
 
   double xs[] = { 0.0, -0.0, 1.5, -1.5, NAN, -NAN, -HUGE_VAL, HUGE_VAL };
   for (size_t i = 0; i < sizeof xs / sizeof *xs; i++)

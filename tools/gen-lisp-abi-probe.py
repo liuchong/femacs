@@ -1,0 +1,197 @@
+#!/usr/bin/env python3
+"""Type-check lisp.rs's `extern "C"` declarations against the reference lisp.h.
+
+`extract-abi.py` compares *names*, so a mirror declaration can carry the wrong type
+forever (round 6's reviewer B found six: `make_string`/`make_unibyte_string`/`intern_1`/
+`intern_c_string_1`/`fast_c_string_match_internal`/`egetenv_internal` all said `usize`
+where lisp.h says `ptrdiff_t`).  This tool reads those declarations back out of lisp.rs,
+reverses the type mapping, and prints
+
+    static RET (*p_NAME) (ARGS) = NAME;
+
+for every declaration it can map, so `clang -Werror=incompatible-pointer-types` against
+`emacs/src/lisp.h` turns any wrong width / const-ness / return type into an error.
+Declarations whose types it cannot map are counted and reported, not silently dropped.
+
+    python3 tools/gen-lisp-abi-probe.py [--mirror femacs/src/include/lisp.rs]
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+# Rust -> C, longest spellings first.
+RULES = [
+    ("*const c_char", "const char *"),
+    ("*mut c_char", "char *"),
+    ("*const c_void", "const void *"),
+    ("*mut c_void", "void *"),
+    ("*const Lisp_Object", "const Lisp_Object *"),
+    ("*mut Lisp_Object", "Lisp_Object *"),
+    ("*mut Lisp_Vector", "struct Lisp_Vector *"),
+    ("*mut Lisp_Symbol", "struct Lisp_Symbol *"),
+    ("*const Lisp_Symbol", "const struct Lisp_Symbol *"),
+    ("Lisp_Object", "Lisp_Object"),
+    ("EMACS_INT", "EMACS_INT"),
+    ("ptrdiff_t", "ptrdiff_t"),
+    ("specpdl_ref", "specpdl_ref"),
+    ("isize", "ptrdiff_t"),
+    ("usize", "size_t"),
+    ("c_double", "double"),
+    ("f64", "double"),
+    ("i64", "intmax_t"),
+    ("u64", "uintmax_t"),
+    ("core::ffi::VaList<'_>", "va_list"),
+    ("...", "..."),
+    ("c_int", "int"),
+    ("c_uint", "unsigned int"),
+    ("c_long", "long"),
+    ("c_ulong", "unsigned long"),
+    ("c_char", "char"),
+    ("bool", "bool"),
+    ("pvec_type", "enum pvec_type"),
+    ("specpdl_ref", "specpdl_ref"),
+]
+
+
+# Declared outside the reference headers this harness includes (lisp.h + config.h):
+# `die` comes from sysstdio.h, which the emacs.c-side includes pull in.  Skips are
+# counted and printed, so an addition here is visible.
+SKIP = {"die"}
+
+
+def to_c(rust_type: str) -> str | None:
+    t = " ".join(rust_type.split()).strip()
+    if t in ("()", "!"):
+        return "void"
+    for pat, rep in RULES:
+        t = t.replace(pat, rep)
+    if re.search(r"[A-Za-z_]\w*\s*\*|\bnever\b|Option", t) and t not in ("void",):
+        # anything still carrying an unmapped Rust type name
+        if re.search(r"\b(Lisp_\w+|EMACS_\w+|c_\w+|usize|isize|bool|Option)\b", t):
+            return None
+    return t.strip()
+
+
+
+
+def split_top_level(args: str) -> list:
+    """Split a parameter list on commas that are not inside parentheses."""
+    out, depth, cur = [], 0, ""
+    for ch in args:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur)
+            cur = ""
+            continue
+        cur += ch
+    if cur.strip():
+        out.append(cur)
+    return out
+
+
+def extern_blocks(text: str) -> list:
+    """The text of every `unsafe extern "C" { … }` block in TEXT."""
+    out = []
+    for m in re.finditer(r"unsafe extern \"C\"\s*\{", text):
+        depth, i = 0, m.end() - 1
+        while i < len(text):
+            if text[i] == "{":
+                depth += 1
+            elif text[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            i += 1
+        out.append(text[m.end():i])
+    return out
+
+
+def logical_lines(block: str) -> list:
+    """BLOCK's declarations, with C-like continuations joined."""
+    out, cur = [], ""
+    for line in block.split("\n"):
+        if "//" in line:
+            line = line[:line.index("//")]
+        cur = (cur + " " + line.strip()) if cur else line.strip()
+        if cur.endswith(";"):
+            out.append(" ".join(cur.split()))
+            cur = ""
+    return out
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--mirror", default="femacs/src/include/lisp.rs")
+    ap.add_argument("--baseline", default="docs/ports/lisp-decl-abi-baseline.txt",
+                    help="declarations whose type is known to differ from lisp.h's; "
+                         "listed with a reason, so a *new* deviation still fails")
+    args = ap.parse_args()
+    text = Path(args.mirror).read_text(encoding="utf-8")
+
+    baselined = set()
+    base_path = Path(args.baseline)
+    if base_path.is_file():
+        for line in base_path.read_text(encoding="utf-8").splitlines():
+            line = line.split("#")[0].strip()
+            if line:
+                baselined.add(line)
+    baselined_used: list[str] = []
+
+    print("/* Generated by tools/gen-lisp-abi-probe.py from femacs/src/include/lisp.rs;")
+    print("   do not edit.  Each line's type must equal the reference lisp.h's.  */")
+    print("#include <config.h>")
+    print("#include \"lisp.h\"")
+    print()
+    checked: list[str] = []
+    skipped: list[str] = []
+    for block in extern_blocks(text):
+        for decl in logical_lines(block):
+            m = re.match(r"pub fn (\w+)\s*\((.*)\)\s*(?:->\s*([^;]+?))?;\s*$", decl)
+            if not m:
+                continue
+            name, args, ret = m.group(1), m.group(2).strip(), (m.group(3) or "()").strip()
+            if name in SKIP:
+                skipped.append(name)
+                continue
+            if name in baselined:
+                baselined_used.append(name)
+                continue
+            ret_c = to_c(ret)
+            params = []
+            if args:
+                for arg in split_top_level(args):
+                    ty = arg.split(":", 1)[1] if ":" in arg else arg
+                    mapped = to_c(ty)
+                    if mapped is None:
+                        params = None
+                        break
+                    params.append(mapped)
+            if ret_c is None or params is None or not params and args:
+                skipped.append(name)
+                continue
+            print(f"static {ret_c} (*p_{name}) ({', '.join(params) or 'void'}) = {name};")
+            checked.append(name)
+    print()
+    print("int main (void)")
+    print("{")
+    for name in checked:
+        print(f"  (void) p_{name};")
+    print("  return 0;")
+    print("}")
+    print(f"/* {len(checked)} declarations type-checked, {len(skipped)} unmapped, "
+          f"{len(baselined_used)} baselined */", file=sys.stderr)
+    if len(checked) < 40:
+        print(f"error: only {len(checked)} declarations mapped (floor 40)", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

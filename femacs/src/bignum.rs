@@ -1,8 +1,7 @@
 // femacs: port of src/bignum.c @ fd7afced403 (GNU Emacs 32.0.50).
-// One-to-one port (PORTING.md).  `<gmp.h>`/`<math.h>` come from lib/include/mini-gmp.rs
-// and math.rs (P-49/P-50); `strtod` and intprops.h's widths are declared below (P-26);
-// `mpz_t` values are passed as `…as_mut_ptr ()`/`…as_ptr ()` (P-49) and `mpz[5]`'s
-// definition here shadows mini-gmp.rs's module declaration (P-21/P-39).
+// One-to-one port (PORTING.md).  The system mirrors come from lib/include/ (P-26/P-49/
+// P-50); `mpz_t` values pass as `…as_mut_ptr ()`/`…as_ptr ()` (P-49), and `mpz[5]`'s
+// definition here shadows `include/bignum.rs`'s `bignum_externs` one (P-21/P-39).
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
@@ -32,13 +31,9 @@ include!("include/lisp.rs");
 include!("../lib/include/mini-gmp.rs");
 include!("include/bignum.rs");
 include!("../lib/include/math.rs");
+include!("../lib/include/stdlib.rs");
+include!("../lib/include/stdcountof.rs");
 
-unsafe extern "C" { pub fn strtod (nptr: *const c_char, endptr: *mut *mut c_char) -> c_double; }
-pub const ULONG_WIDTH: c_int = (8 * std::mem::size_of::<c_ulong> ()) as c_int;
-pub const INTMAX_WIDTH: c_int = (8 * std::mem::size_of::<intmax_t> ()) as c_int;
-pub const UINTMAX_WIDTH: c_int = (8 * std::mem::size_of::<uintmax_t> ()) as c_int;
-/* <stdcountof.h>: `#define countof(a) (sizeof (a) / sizeof *(a))`.  */
-macro_rules! countof { ($a:expr) => { std::mem::size_of_val (&$a) / std::mem::size_of_val (&$a[0]) }; }
 
 /* mpz global temporaries.  Making them global saves the trouble of
    properly using mpz_init and mpz_clear on temporaries even when
@@ -114,7 +109,7 @@ unsafe fn make_bignum_bits (bits: usize) -> Lisp_Object
      integer-width as if it were at least twice the machine integer width,
      so that timefns.c can safely use bignums for double-precision
      timestamps.  */
-  if integer_width < bits as EMACS_INT && 2 * max (INTMAX_WIDTH as isize, UINTMAX_WIDTH as isize) < bits as isize
+  if (integer_width as usize) < bits && 2 * max (INTMAX_WIDTH as isize, UINTMAX_WIDTH as isize) < bits as isize
     { overflow_error (); }
 
   let b: *mut Lisp_Bignum = ALLOCATE_PLAIN_PSEUDOVECTOR! (Lisp_Bignum, pvec_type::PVEC_BIGNUM);
@@ -262,8 +257,7 @@ pub unsafe extern "C" fn mpz_to_intmax (z: *const __mpz_struct, pi: *mut intmax_
 
   if bits < INTMAX_WIDTH as ptrdiff_t
     {
-      let mut v: intmax_t = 0;
-      let mut i: c_int = 0; let mut shift: c_int = 0;
+      let mut v: intmax_t = 0; let mut i: c_int = 0; let mut shift: c_int = 0;
 
       loop
 	{
@@ -304,8 +298,7 @@ pub unsafe extern "C" fn mpz_to_uintmax (z: *const __mpz_struct, pi: *mut uintma
   if (UINTMAX_WIDTH as ptrdiff_t) < bits
     { return false; }
 
-  let mut v: uintmax_t = 0;
-  let mut i: c_int = 0; let mut shift: c_int = 0;
+  let mut v: uintmax_t = 0; let mut i: c_int = 0; let mut shift: c_int = 0;
 
   loop
     {
@@ -341,6 +334,7 @@ pub unsafe extern "C" fn bignum_to_uintmax (x: Lisp_Object) -> uintmax_t
 /* GMP tests for this value and aborts (!) if it is exceeded.
    This is as of GMP 6.1.2 (2016); perhaps future versions will differ.  */
 const fn min_const (a: isize, b: isize) -> isize { if a < b { a } else { b } }
+const fn min_const_u (a: usize, b: usize) -> usize { if a < b { a } else { b } }
 
 pub const GMP_NLIMBS_MAX: c_int =
   min_const (INT_MAX as isize, (ULONG_MAX / GMP_NUMB_BITS as c_ulong) as isize) as c_int;
@@ -354,9 +348,15 @@ pub const NLIMBS_LIMIT: c_int =
   /* libgmp needs to store limb counts.  */
   min_const (min_const (GMP_NLIMBS_MAX as isize,
 	    /* Size calculations need to work.  */
-	    min_const (PTRDIFF_MAX, SIZE_MAX as isize) / std::mem::size_of::<mp_limb_t> () as isize),
+	    (min_const_u (PTRDIFF_MAX as usize, SIZE_MAX)
+	     / std::mem::size_of::<mp_limb_t> ()) as isize),
        /* Emacs puts bit counts into fixnums.  */
        (MOST_POSITIVE_FIXNUM / GMP_NUMB_BITS as EMACS_INT) as isize) as c_int;
+
+// C's inner `min (PTRDIFF_MAX, SIZE_MAX)` is evaluated in size_t, so the port does that
+// level in `usize` (the signed form collapses the bound to 0 — review B's B-1, a P0).
+const _: () = assert! (GMP_NLIMBS_MAX == 2147483647);
+const _: () = assert! (NLIMBS_LIMIT == 2147483647);
 
 /* Like mpz_size, but tell the compiler the result is a nonnegative int.  */
 

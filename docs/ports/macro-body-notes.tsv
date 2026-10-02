@@ -70,4 +70,4 @@ bignum_integer	mpz_t	C's cast `(mpz_t const *) tmp` has no Rust counterpart: the
 rescale_for_division	mpz_t	C declares `mpz_t const *pn`; a `mpz_t`-shaped declaration decays to `*const __mpz_struct` in the port (P-49), which is the type the emacs_mpz_* calls take
 SAFE_ALLOCA_LISP	false	the port's `{{ … }}` block is C's `do { … } while (false)` (PORTING.md 2.1); C's `ckd_mul` is the ckd_mul family of token-aliases.tsv, so review B's B2 guard-deletion is visible again
 get_random_bignum	mpz_t	C's `mpz_t const *lim = bignum_val (limit)` decays to `*const __mpz_struct` in the port (P-49)
-GMP_NLIMBS_MAX,NLIMBS_LIMIT	min	C's file-scope enums are `min (…)` over mixed integer types; the port needs a *const*-evaluable min and writes `min_const (…)` (docs/ports/bignum.md), so the token differs by design
+GMP_NLIMBS_MAX,NLIMBS_LIMIT	min	C's file-scope enums are `min (…)` over mixed integer types; the port writes `min_const`/`min_const_u` because a Rust `const` needs a const-evaluable min, and the *inner* level must be done in `usize` (C's usual arithmetic conversion to size_t).  The two values are pinned by `const _` assertions in bignum.rs (review B's B-1)

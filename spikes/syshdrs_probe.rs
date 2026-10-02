@@ -4,7 +4,7 @@
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code, unused_macros)]
 use core::ffi::{c_double, c_int, c_long, c_ulong};
 
-include!("../femacs/lib/include/limits.in.rs");
+include!("../femacs/lib/include/stdint.in.rs");
 include!("../femacs/lib/include/float.in.rs");
 include!("../femacs/lib/include/math.rs");
 
@@ -20,6 +20,13 @@ fn main () {
   println! ("DBL_MAX_10_EXP {}", DBL_MAX_10_EXP);
   println! ("DBL_MANT_DIG {}", DBL_MANT_DIG);
   println! ("DBL_MIN_EXP {}", DBL_MIN_EXP);
+  println! ("DBL_DIG {}", DBL_DIG);
+  println! ("ULONG_MAX {}", ULONG_MAX);
+  println! ("LONG_MIN {}", LONG_MIN);
+  println! ("LONG_MAX {}", LONG_MAX);
+  println! ("INTMAX_MIN {}", INTMAX_MIN);
+  println! ("INTMAX_MAX {}", INTMAX_MAX);
+  println! ("UINTMAX_MAX {}", UINTMAX_MAX);
 
   let xs: [c_double; 8] = [0.0, -0.0, 1.5, -1.5, c_double::NAN, -c_double::NAN,
                            -HUGE_VAL, HUGE_VAL];

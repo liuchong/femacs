@@ -2514,12 +2514,12 @@ pub fn LOADHIST_ATTACH (x: Lisp_Object) {
 
 #[inline(always)]
 pub fn intern (str_: *const c_char) -> Lisp_Object {
-    unsafe { intern_1 (str_, strlen (str_)) }
+    unsafe { intern_1 (str_, strlen (str_) as ptrdiff_t) }
 }
 
 #[inline(always)]
 pub fn intern_c_string (str_: *const c_char) -> Lisp_Object {
-    unsafe { intern_c_string_1 (str_, strlen (str_)) }
+    unsafe { intern_c_string_1 (str_, strlen (str_) as ptrdiff_t) }
 }
 
 #[inline(always)]
@@ -2547,13 +2547,13 @@ pub fn fast_string_match_ignore_case (regexp: Lisp_Object, string: Lisp_Object) 
 
 #[inline(always)]
 pub fn fast_c_string_match (regexp: Lisp_Object, string: *const c_char, len: usize) -> isize {
-    unsafe { fast_c_string_match_internal (regexp, string, len, Qnil ()) }
+    unsafe { fast_c_string_match_internal (regexp, string, len as ptrdiff_t, Qnil ()) }
 }
 
 #[inline(always)]
 pub fn fast_c_string_match_ignore_case (regexp: Lisp_Object, string: *const c_char,
                                         len: usize) -> isize {
-    unsafe { fast_c_string_match_internal (regexp, string, len, Vascii_canon_table) }
+    unsafe { fast_c_string_match_internal (regexp, string, len as ptrdiff_t, Vascii_canon_table) }
 }
 
 #[inline(always)]
@@ -2574,7 +2574,7 @@ pub fn __lsan_ignore_object (_p: *const c_void) {}
 
 #[inline(always)]
 pub fn egetenv (var: *const c_char) -> *mut c_char {
-    unsafe { egetenv_internal (var, strlen (var)) }
+    unsafe { egetenv_internal (var, strlen (var) as ptrdiff_t) }
 }
 
 #[inline(always)]
@@ -3472,17 +3472,17 @@ pub mod other_units {
         pub fn flush_stack_call_func1 (func: Option<unsafe extern "C" fn(*mut c_void)>, arg: *mut c_void);
     }
     unsafe extern "C" {
-        // lisp.h 4544/4548 spell the length `ptrdiff_t`, not size_t.
+        // lisp.h 4541/4544 spell the length `ptrdiff_t`, not size_t.
         pub fn make_unibyte_string (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
         pub fn make_string (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
         pub fn allocate_vector (size: isize) -> *mut Lisp_Vector;
-        pub fn intern_1 (s: *const c_char, len: usize) -> Lisp_Object;
-        pub fn intern_c_string_1 (s: *const c_char, len: usize) -> Lisp_Object;
+        pub fn intern_1 (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
+        pub fn intern_c_string_1 (s: *const c_char, len: ptrdiff_t) -> Lisp_Object;
         pub fn xsignal0 (error_symbol: Lisp_Object) -> !;
         pub fn fast_string_match_internal (regexp: Lisp_Object, string: Lisp_Object,
                                            table: Lisp_Object) -> isize;
         pub fn fast_c_string_match_internal (regexp: Lisp_Object, string: *const c_char,
-                                             len: usize, table: Lisp_Object) -> isize;
+                                             len: ptrdiff_t, table: Lisp_Object) -> isize;
         pub fn check_obarray_slow (obarray: Lisp_Object) -> Lisp_Object;
         pub fn grow_specpdl_allocation ();
         pub fn unbind_to (count: specpdl_ref, value: Lisp_Object) -> Lisp_Object;
@@ -3492,7 +3492,7 @@ pub mod other_units {
         pub fn xmalloc (size: usize) -> *mut c_void;                     // src/lisp.h 5535
         pub fn indirect_function (object: Lisp_Object) -> Lisp_Object;   // src/lisp.h 4167 (data.c)
         pub fn calln (fn_: Lisp_Object) -> Lisp_Object;
-        pub fn egetenv_internal (var: *const c_char, len: usize) -> *mut c_char;
+        pub fn egetenv_internal (var: *const c_char, len: ptrdiff_t) -> *mut c_char;
         pub static mut pending_signals: bool;
         pub static mut Vascii_canon_table: Lisp_Object;
         pub static mut consing_until_gc: EMACS_INT;

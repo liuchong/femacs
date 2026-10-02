@@ -20,9 +20,9 @@ pub const SIZE_MAX: usize = usize::MAX;
 // stdint.in.h 539-550 also spells INTMAX_MIN/INTMAX_MAX/UINTMAX_MAX for the wide
 // typedefs; bignum.c's `mpz_to_intmax`/`mpz_to_uintmax`/`mpz_set_*_slow` read them, and
 // the port derives them from the same `intmax_t`/`uintmax_t` aliases lisp.rs declares.
-pub const INTMAX_MIN: intmax_t = intmax_t::MIN;
-pub const INTMAX_MAX: intmax_t = intmax_t::MAX;
-pub const UINTMAX_MAX: uintmax_t = uintmax_t::MAX;
+pub const INTMAX_MIN: i64 = i64::MIN;
+pub const INTMAX_MAX: i64 = i64::MAX;
+pub const UINTMAX_MAX: u64 = u64::MAX;
 
 // stdint.in.h 727
 pub const PTRDIFF_WIDTH: usize = _GL_INTEGER_WIDTH (PTRDIFF_MIN, PTRDIFF_MAX);

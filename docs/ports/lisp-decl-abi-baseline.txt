@@ -1,0 +1,18 @@
+# Declarations in femacs/src/include/lisp.rs whose type does not (yet) match the
+# reference lisp.h, found by spikes/lisp-abi-probe.sh.  One name per line with the reason
+# on the same line after a #; the probe skips them and fails on any *new* deviation.
+allocate_pseudovector	# /tmp/one.c:3:17: error: incompatible function pointer types initializing 'void *(*)(ptrdiff_t, ptrdiff_t, ptrdiff_t, enum pvec_type)' (aka 'void *(*)(
+buf_bytepos_to_charpos	# /tmp/one.c:3:20: error: incompatible function pointer types initializing 'ptrdiff_t (*)(void *, ptrdiff_t)' (aka 'long (*)(void *, long)') with an exp
+buf_charpos_to_bytepos	# /tmp/one.c:3:20: error: incompatible function pointer types initializing 'ptrdiff_t (*)(void *, ptrdiff_t)' (aka 'long (*)(void *, long)') with an exp
+calln	# /tmp/one.c:3:47: error: use of undeclared identifier 'calln'; did you mean 'call0'?
+defsubr	# /tmp/one.c:3:28: error: a type specifier is required for all declarations
+defvar_bool	# /tmp/one.c:3:38: error: a type specifier is required for all declarations
+defvar_int	# /tmp/one.c:3:37: error: a type specifier is required for all declarations
+defvar_kboard	# /tmp/one.c:3:40: error: a type specifier is required for all declarations
+defvar_lisp	# /tmp/one.c:3:38: error: a type specifier is required for all declarations
+defvar_lisp_nopro	# /tmp/one.c:3:44: error: a type specifier is required for all declarations
+fclose	# /tmp/one.c:3:14: error: incompatible function pointer types initializing 'int (*)(void *)' with an expression of type 'int (FILE *)' (aka 'int (struct
+listn	# /tmp/one.c:3:22: error: incompatible function pointer types initializing 'Lisp_Object (*)(ptrdiff_t, ...)' (aka 'struct Lisp_X *(*)(long, ...)') with 
+sa_stack_alloc	# /tmp/one.c:3:46: error: use of undeclared identifier 'sa_stack_alloc'; did you mean 'p_sa_stack_alloc'?
+vectorlike_nbytes	# /tmp/one.c:3:49: error: a type specifier is required for all declarations
+xnmalloc	# /tmp/one.c:3:17: error: incompatible function pointer types initializing 'void *(*)(size_t, size_t)' (aka 'void *(*)(unsigned long, unsigned long)') w

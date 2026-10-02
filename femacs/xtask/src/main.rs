@@ -876,7 +876,8 @@ fn gate_probes() -> i32 {
     }
     for probe in ["spikes/inline-probe.sh", "spikes/accessor-probe.sh",
                   "spikes/write-probe.sh", "spikes/va-probe.sh",
-                  "spikes/syshdrs-probe.sh", "spikes/gmp-abi-probe.sh"] {
+                  "spikes/syshdrs-probe.sh", "spikes/gmp-abi-probe.sh",
+                  "spikes/lisp-abi-probe.sh"] {
         println!("== {probe} ==");
         let status = Command::new("bash").arg(probe).current_dir(REPO).status();
         match status {
