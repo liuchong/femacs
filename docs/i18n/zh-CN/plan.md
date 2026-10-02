@@ -6,11 +6,14 @@
 同名、同标识符、同结构、同语义的 Rust 源文件，Emacs Lisp 树原样复制。
 
 - **基线**：`emacs/` 检出 `fd7afced403`（GNU Emacs 32.0.50），被 git 忽略且只读。
-- **执行手册**：[port-plan.md](../../port-plan.md)——完整规格：12 个"完全一致"维度、预备
-  阶段、单文件循环、并行编排、闸门与完成定义。
+- **总计划**：[port-master-plan.md](../../port-master-plan.md)——规模实测、方法论借鉴、12 个
+  "完全一致"维度、批次、闸门与风险。
+- **执行手册**：[port-plan.md](../../port-plan.md)——单文件循环、并行编排、预备阶段的细则。
 - **可直接粘贴的 goal**：[goal.md](../../goal.md)。
-- **逐文件对照表**：[port-map.md](../../port-map.md)，由 `tools/gen-port-map.py` 生成，
-  是数据，禁止手改。
+- **逐文件数据**：[port-inventory.md](../../port-inventory.md)——590 行，含行数、函数、subr、
+  宏、常量、结构体字段、全局、批次与状态，由 `tools/gen-port-inventory.py` 生成；
+  [port-map.md](../../port-map.md)——全树映射，由 `tools/gen-port-map.py` 生成。两者都是数据，
+  禁止手改。
 
 文档语言约定：本文件与[英文原文](../../plan.md)遵循仓库既有约定（英文为源，
 `docs/i18n/<locale>/` 为译文）。`port-plan.md` 与 `goal.md` 是给执行者和 Agent 用的作业
@@ -26,7 +29,7 @@
 | C++ 保持现代写法（`src/haiku_*.cc`） | 4 | 8,085 |
 | 汇编原样保留（`exec/loader-*.s`） | 6 | 1,774 |
 | 原样复制（Emacs Lisp、测试、数据、手册、ChangeLog） | 4,656 | 4,606,879 |
-| 由 Cargo 与 `xtask` 取代的构建脚手架 | 317 | 62,496 |
+| 由 Cargo 与 `xtask` 取代的构建脚手架 | 324 | 63,375 |
 
 ## 原则
 
