@@ -238,3 +238,16 @@
   OFF (struct bidi_string_data, s);
   OFF (struct bidi_string_data, schars);
   OFF (struct bidi_string_data, bufpos);
+
+  SZ (struct composition); AL (struct composition);
+  OFF (struct composition, glyph_len);
+  OFF (struct composition, pixel_width);
+  OFF (struct composition, ascent);
+  OFF (struct composition, descent);
+  OFF (struct composition, lbearing);
+  OFF (struct composition, rbearing);
+  OFF (struct composition, width);
+  OFF (struct composition, method);
+  OFF (struct composition, key);
+  OFF (struct composition, font);
+  OFF (struct composition, offsets);

@@ -7,7 +7,9 @@ lib/timespec.h
 src/bignum.h
 src/buffer.h
 src/character.h
+src/composite.h
 src/dispextern.h
+src/font.h
 src/itree.h
 src/keymap.h
 src/lisp.h

@@ -20,6 +20,7 @@ alignof bidi_stack
 alignof bidi_string_data
 alignof buffer
 alignof buffer_text
+alignof composition
 alignof display_pos
 alignof glyph_slice
 alignof hash_table_test
@@ -208,6 +209,17 @@ offsetof buffer_text.save_modiff
 offsetof buffer_text.unchanged_modified
 offsetof buffer_text.z
 offsetof buffer_text.z_byte
+offsetof composition.ascent
+offsetof composition.descent
+offsetof composition.font
+offsetof composition.glyph_len
+offsetof composition.key
+offsetof composition.lbearing
+offsetof composition.method
+offsetof composition.offsets
+offsetof composition.pixel_width
+offsetof composition.rbearing
+offsetof composition.width
 offsetof display_pos.dpvec_index
 offsetof display_pos.overlay_string_index
 offsetof display_pos.pos
@@ -275,6 +287,7 @@ sizeof bidi_stack
 sizeof bidi_string_data
 sizeof buffer
 sizeof buffer_text
+sizeof composition
 sizeof display_pos
 sizeof glyph_slice
 sizeof hash_table_test

@@ -1,4 +1,4 @@
 key	value
-asserted	288
+asserted	301
 pending	7
-note	2026-10-02 round 13: asserted 248 -> 288 with dispextern.h's segment II (text_pos, display_pos, it_slice, run, bidi_saved_info, bidi_stack, bidi_string_data -- 40 keys, all measured against the frozen C compiler; bidi_stack's three 3-bit members and bidi_string_data's two bool_bf:1 share storage units the port models as u16/u32).  pending stays 7.  This file is a ratchet: asserted only grows and pending only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).  The asserted key *set* is ratcheted separately by asserted-keys.txt (review B's F4).
+note	2026-10-02 round 13: asserted 288 -> 301 with src/composite.h's `struct composition` (13 keys; the layout is measured -- glyph_len 0, the five shorts 4/6/8/10/12, two bytes of padding, width 16, method 20, key 24, font 32, offsets 40, sizeof 48 align 8).  pending stays 7.  This file is a ratchet: asserted only grows and pending only shrinks, and it must exist and parse (a missing or malformed file is a hard failure, review B's B5).  The asserted key *set* is ratcheted separately by asserted-keys.txt (review B's F4).

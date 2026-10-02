@@ -61,6 +61,7 @@ STRUCTS = {
     "bidi_saved_info": "src/dispextern.h",
     "bidi_stack": "src/dispextern.h",
     "bidi_string_data": "src/dispextern.h",
+    "composition": "src/composite.h",
 }
 
 
