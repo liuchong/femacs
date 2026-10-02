@@ -21,6 +21,8 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_usho
 // src/lisp.h 32 includes <inttypes.h>, which includes <stdint.h>; the port keeps
 // the same chain (lib/inttypes.in.rs will include this file once it exists).
 include!("../../lib/include/stdint.in.rs");
+// lisp.h 31 includes <float.h>; gnulib has no wrapper, so the mirror is a system mirror.
+include!("../../lib/include/float.in.rs");
 
 // --- integers --------------------------------------------------------------
 // src/lisp.h: EMACS_INT is one word; the frozen configuration says 64 bits
@@ -2668,7 +2670,8 @@ pub const WAIT_READING_MAX: i64 = i64::MAX;
 pub const CHILD_SETUP_ERROR_DESC: &str = "Spawning child process";
 pub const HAVE_EXT_MENU_BAR: bool = true;
 pub const HAVE_EXT_TOOL_BAR: bool = true;
-pub const IEEE_FLOATING_POINT: bool = true;   // FLT_RADIX 2, FLT_MANT_DIG 24
+pub const IEEE_FLOATING_POINT: bool =
+    FLT_RADIX == 2 && FLT_MANT_DIG == 24 && FLT_MAX_EXP == 128 && FLT_MIN_EXP == -125;
 pub const pI: &str = "l";
 pub const pD: &str = "t";
 pub const PRIdHASH_IDX: &str = "d";           // PRIdLEAST32 on this target
@@ -3377,6 +3380,13 @@ pub mod other_units {
 
     // src/lisp.h 3919 (`alloc.c`) and 4689 (`chartab.c`); parameter names from those
     // definitions, C's prototypes have none.
+    // src/lisp.h 4835-4836: AVOID is `-> !` (PORTING.md 5.2); `error` is C-variadic, so
+    // the declaration is variadic too (the port's first variadic *call*).
+    unsafe extern "C" {
+        pub fn error (format: *const c_char, ...) -> !;
+        pub fn verror (format: *const c_char, ap: core::ffi::VaList<'_>) -> !;
+    }
+
     unsafe extern "C" {
         pub fn staticpro (var: *const Lisp_Object);
         pub fn map_char_table (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object, Lisp_Object)>,
@@ -3579,11 +3589,8 @@ pub const CHECK_LISP_OBJECT_TYPE: bool = false;          // lisp.h 597 (P-01: th
 pub const DEFAULT_HASH_SIZE: c_int = 0;                  // lisp.h 2766
 pub const NSTATICS: c_int = 2048;                        // lisp.h 3921
 pub const NEXT_ALMOST_PRIME_LIMIT: c_int = 11;           // lisp.h 4242
-// lisp.h 31 includes <float.h>; the frozen target's header has FLT_RADIX == 2, which is
-// what the C static_assert at lisp.h 4294 and `enum { LOG2_FLT_RADIX = FLT_RADIX == 2 ?
-// 1 : 4 }` at 4295 resolve to.  The port has no mirror for a system-only header yet
-// (P-26 covers gnulib's wrappers), so the value is recorded here.
-pub const FLT_RADIX: c_int = 2;
+// lisp.h 4295: `enum { LOG2_FLT_RADIX = FLT_RADIX == 2 ? 1 : 4 }`, with FLT_RADIX from
+// <float.h> (mirrored by lib/include/float.in.rs) and the static_assert at 4294.
 pub const LOG2_FLT_RADIX: c_int = if FLT_RADIX == 2 { 1 } else { 4 };
 pub const S2N_IGNORE_TRAILING: c_int = 1;                // lisp.h 4746
 pub const defined_GC_CHECK_STRING_BYTES: bool = false;   // lisp.h 5743 (C spells the value through `defined (…)`; the frozen configuration leaves it undefined)

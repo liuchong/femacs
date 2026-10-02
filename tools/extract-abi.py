@@ -208,6 +208,38 @@ def note_tokens(notes: list[tuple[str, set[str]]], name: str) -> set[str]:
     return allowed
 
 
+def strip_char_literals(text: str) -> str:
+    """Blank Rust character literals — but only when the closing quote is close by.
+
+    `'(\\.|[^'\\])*'` pairs an apostrophe with some *later* literal's apostrophe in a body
+    that uses many of them (`b'%'`, `b'.'`, `'d'`, …) and swallows everything in between:
+    that hid 7 KB of `doprnt`'s body from the token check.  A char literal is at most a few
+    source characters (`'\\u{10FFFF}'` is the longest), and a lifetime never closes, so a
+    bounded scan is exact enough.
+    """
+    out, i, n = [], 0, len(text)
+    while i < n:
+        ch = text[i]
+        if ch == "'":
+            j, steps = i + 1, 0
+            while j < n and steps < 12:
+                if text[j] == "\\":
+                    j += 2
+                    steps += 1
+                    continue
+                if text[j] == "'" or text[j] == "\n":
+                    break
+                j += 1
+                steps += 1
+            if j < n and text[j] == "'" and j > i + 1:
+                out.append("''")
+                i = j + 1
+                continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
 def body_tokens(text: str, *, numbers: bool = True, skip_short: bool = False) -> set[str]:
     """Identifiers (and numbers) of a C macro body or a Rust body, normalised.
 
@@ -217,7 +249,7 @@ def body_tokens(text: str, *, numbers: bool = True, skip_short: bool = False) ->
     underscore is stripped from both sides.
     """
     text = re.sub(r'"(?:[^"\\]|\\.)*"', '""', text)
-    text = re.sub(r"'(?:[^'\\]|\\.)*'", "''", text)
+    text = strip_char_literals(text)
     # preprocessor lines inside a body (`#ifdef`, `#endif`, `# define`) are not code
     text = "\n".join(l for l in text.split("\n") if not l.lstrip().startswith("#"))
     toks = re.findall(r"[A-Za-z_]\w*|\d+", text)

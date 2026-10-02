@@ -58,3 +58,9 @@ merge_lo,merge_hi	gallop_left,gallop_right,goto,inorder	sort.rs records the port
 NATIVE_COMP_FUNCTIONP	native_comp_u,nilp,subrp,xsubr	the port gates NATIVE_COMP_* on the frozen configuration (P-08)
 NATIVE_COMP_FUNCTION_DYNP	lambda_list,native_comp_functionp,nilp	same gate
 safe_free	array,func,specpdl_unwind_array,unwind_array	the port's safe_free walks the specpdl unwind record with its own field spelling
+esprintf	type_maximum,0,va_end,va_list,va_start	P-04 (docs/spikes/2026-10-02-variadics.md): the `...` parameter is the list, so va_list/va_start/va_end disappear; TYPE_MAXIMUM (ptrdiff_t) is isize::MAX and C's `0` format_end is std::ptr::null ()
+exprintf	va_end,va_list,va_start	P-04: see esprintf
+evxprintf	0,va_copy,va_end,va_list	P-04: va_copy is clone () and va_end is the list's drop; C's `0` format_end is std::ptr::null ()
+doprnt	switch,case,default,goto,doit,doit1,signed_pd_modifier,eassume,va_arg,memcpy,mempcpy,max,50	PORTING.md 2.2/P-04: C's labels and switch syntax become a tail flag and a `match`; va_arg is next_arg; memcpy/mempcpy are the Rust copies; max is an if/else; the tembuf size lives in the port's TBUF_LEN const
+doprnt_non_null_end	memcpy	the port uses std::ptr::copy_nonoverlapping (the lisp.md idiom row)
+parse_format_integer	ckd_add,ckd_mul	P-15: gnulib/ckd_* become overflowing_mul/overflowing_add (the wrapped value plus the overflow flag)
