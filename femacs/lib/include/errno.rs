@@ -100,4 +100,6 @@ pub const EPIPE: c_int = 32;
 pub const EDOM: c_int = 33;
 /// <errno.h>: `#define ECHILD 10`.
 pub const ECHILD: c_int = 10;
+/// <errno.h>: `#define EXDEV 18` (measured; `src/fileio.c`'s rename path is the one caller).
+pub const EXDEV: c_int = 18;
 
