@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import csv
 import importlib.util
+import re
 import sys
 from pathlib import Path
 
@@ -149,16 +150,42 @@ def batch_of(rel: Path) -> tuple[str, str]:
     return "?", "未分类"
 
 
-def ledger_state(stem: str, is_header: bool, target: Path) -> str:
+LEDGER_HEAD = re.compile(r"^#\s+(emacs/[A-Za-z0-9._/+-]+\.(?:c|h|cc|m|el))\b")
+
+
+def ledger_names(rel: Path) -> list[str]:
+    """The ledger file names for a reference file, best first.
+
+    The same rule `tools/extract-abi.py` resolves a ledger with (duplicated here
+    because the two tools must agree and neither imports the other): `<stem>.md` for a
+    unit, `include-<stem>.md` first for a header, and - for the stems that are not
+    unique, `nt/inc/sys/acl.h` versus `lib/acl.h` - a third name carrying the reference
+    path's own directories (status 3.102).
+    """
+    names = ([f"include-{rel.stem}.md", f"{rel.stem}.md"] if rel.suffix == ".h"
+             else [f"{rel.stem}.md"])
+    names.append("include-" + "-".join(rel.with_suffix("").parts) + ".md")
+    return names
+
+
+def ledger_state(rel: Path, target: Path) -> str:
     if not target.exists():
         return "todo"
-    names = ([f"include-{stem}.md", f"{stem}.md"] if is_header else [f"{stem}.md"])
-    for name in names:
+    want = "emacs/" + rel.as_posix()
+    first: str | None = None
+    for name in ledger_names(rel):
         cand = ROOT / "docs" / "ports" / name
-        if cand.is_file():
-            text = cand.read_text(encoding="utf-8", errors="replace")
-            return "wip" if "- [ ]" in text else "done"
-    return "wip"
+        if not cand.is_file():
+            continue
+        text = cand.read_text(encoding="utf-8", errors="replace")
+        state = "wip" if "- [ ]" in text else "done"
+        if first is None:
+            first = state
+        m = LEDGER_HEAD.match(text.split("\n", 1)[0])
+        if m and m.group(1) != want:
+            continue        # that ledger belongs to a different reference file
+        return state
+    return first if first is not None else "wip"
 
 
 def main() -> int:
@@ -193,7 +220,7 @@ def main() -> int:
             "macros": int(r["macros"]), "constants": int(r["constants"]),
             "fields": int(r["struct_fields"]), "globals": int(r["globals"]),
             "batch": batch, "note": note, "target": target,
-            "state": ledger_state(rel.stem, rel.suffix == ".h", ROOT / target),
+            "state": ledger_state(rel, ROOT / target),
         })
 
     KEYS = ("lines", "functions", "subrs", "macros", "constants", "fields",

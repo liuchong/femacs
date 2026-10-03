@@ -1542,3 +1542,25 @@
   **教训**：probe 类门失败时先看它自己能不能跑（生成器/解析器），再怀疑被检查的对象——这三个缺陷都在门身上，
   门红着就没人知道那 182 条声明是好是坏。**仍未过**：`gate-probes` 的 dead-arms 段在 `lib/boot-time.rs` 上红
   （非冻结臂要 `get_haiku_boot_time`，E0425），记在 3.103 的收尾清单里。
+- **3.103 批次 F 的 8 个 `nt/inc/sys` 镜像入树 + 台账名消歧 + 批次 F 镜像的第一个编译器（2026-10-04 第 99 轮第四批）**：
+  ① **台账名规则**：`nt/inc/sys/acl.h` 与 `lib/acl.h` 的 stem 都是 `acl`，而 `docs/ports/include-acl.md`
+  已被后者占用——`tools/extract-abi.py` 与 `tools/gen-port-inventory.py` 现在把候选名扩成三个
+  （`include-<stem>.md`、`<stem>.md`、`include-<参照相对路径用 - 连起来>.md`），并且**只认注行点名本文件的
+  台账**（全树 445 个台账里只有 3 个注行不是 `emacs/<file>` 形式，判据因此可靠）；候选全都无主时仍回落到
+  第一个存在的（`src/indent.h` 一直读的是 `indent.md`，这条旧宽松保持不动），于是 `nt/inc/sys/acl.h` 的
+  台账是 **`docs/ports/include-nt-inc-sys-acl.md`**；
+  ② **8 个镜像**（`param`/`time`/`file`/`ioctl`/`acl`/`mman`/`resource`/`wait`）各自 `extract-abi.py --check`
+  = `OK`，台账勾满（`resource.h` 的 `RLIMIT_*` 自引用 `#define` 另记 `macro-body-notes.tsv` 三行）；
+  ③ **`spikes/f_inc_probe.rs`：批次 F 镜像的第一个编译器**。`xtask layout-check` 只编 `src/include` 与
+  `lib/include` 的镜像，`nt/inc/**` 的镜像此前**只有文本门**，于是三个真缺陷一直没人看见：`acl.rs` 把
+  `<sys/types.h>` 的 include 写成 `sys_types.rs.in`（真名 `sys_types.in.rs`，**这份镜像根本编不过**）、
+  `time.rs` 去 include 冻结目标的 `<sys/time.h>` 镜像（MinGW 的同名头与它冲突：`ITIMER_PROF` 1 vs 2，
+  两边都定义 `itimerval`/`setitimer`，E0428 四次且值也是错的）、`acl.rs` 向 `<sys/types.h>` 镜像要
+  `ssize_t`（那份镜像没有它，端口从 `<unistd.h>` 镜像取）。三条都已就地修好并写进各自台账；探针已注册进
+  `xtask probe_programs()`，所以 `gate-fast` 也会编它。
+  实测：`xtask probe ../spikes/f_inc_probe.rs …` 加材质化后的 `rustc` = exit 0（8 个镜像全部通过类型检查）；
+  8 个 `--check` 全 `OK`；`check-declarations` = `8 declaration sites (0 forbidden, 8 allowed literals),
+  0 failures`（扫描面 3.100 起已含 `femacs/nt`）；`gen-port-inventory.py` 复算 **590 files, done=414,
+  wip=32, todo=144**。
+  **仍未过（下一轮）**：`gate-probes` 的 dead-arms 段在 `lib/boot-time.rs` 上红——非冻结臂调
+  `get_haiku_boot_time`，本单元没有它的定义（E0425）；要么把 Haiku 臂补齐，要么按 P-51 把该臂的依赖记账。

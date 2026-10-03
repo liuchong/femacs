@@ -940,6 +940,55 @@ def read_exclusions(path: Path) -> dict[str, str]:
     return out
 
 
+LEDGER_HEAD = re.compile(r"^#\s+(emacs/[A-Za-z0-9._/+-]+\.(?:c|h|cc|m|el))\b")
+
+
+def ledger_names(c: Path, reference: Path) -> list[str]:
+    """The ledger file names for a C source, best first.
+
+    A unit's ledger is `<stem>.md`; a header's is `include-<stem>.md`, with the unit
+    form as the second candidate (resolving by stem alone once made `character.c`
+    report "in progress" because the *header* ledger had an unchecked box - review B,
+    F3).  A stem is not unique across the tree, though: `nt/inc/sys/acl.h` and
+    `lib/acl.h` are both `acl`, and the plain name belongs to whichever file wrote it
+    first.  The third candidate therefore carries the reference path's own directories
+    (`include-nt-inc-sys-acl.md`), and `ledger_for` accepts a candidate only when the
+    ledger's first line names this file - which settles the ambiguity without
+    rewriting a ledger that is already in use (status 3.102).
+    """
+    stem = c.stem
+    names = ([f"include-{stem}.md", f"{stem}.md"] if c.suffix == ".h"
+             else [f"{stem}.md"])
+    names.append("include-" + "-".join(c.relative_to(reference).with_suffix("").parts)
+                 + ".md")
+    return names
+
+
+def ledger_for(c: Path, reference: Path, checklists: Path) -> Path | None:
+    """The ledger of `c`, or None.  Ownership decides (see `ledger_names`).
+
+    A candidate whose first line names a *different* reference file is passed over,
+    and the first existing candidate is kept as a fallback: a header that has no
+    ledger of its own has always read its unit's (`src/indent.h` reads `indent.md`),
+    and that looseness is older than this rule - what changed is only that a
+    collision `ledger_names` can name (`nt/inc/sys/acl.h`) now gets its own file.
+    """
+    want = "emacs/" + c.relative_to(reference).as_posix()
+    first: Path | None = None
+    for name in ledger_names(c, reference):
+        cand = checklists / name
+        if not cand.is_file():
+            continue
+        if first is None:
+            first = cand
+        head = cand.read_text(encoding="utf-8", errors="replace").split("\n", 1)[0]
+        m = LEDGER_HEAD.match(head)
+        if m and m.group(1) != want:
+            continue        # that ledger belongs to a different reference file
+        return cand
+    return first
+
+
 def c_live_lines(c_path: Path, total: int) -> int:
     """The reference file's lines the frozen configuration actually compiles.
 
@@ -1707,18 +1756,7 @@ def main() -> int:
             # A file that is still being ported keeps its generated checklist with
             # unchecked boxes; the gate only fails when the checklist says the
             # file is finished (or when there is no checklist at all).
-            stem = c.stem
-            # A header's ledger is `include-<stem>.md` and a unit's is `<stem>.md`;
-            # resolving by stem alone let `character.c` report "in progress" because
-            # the *header* ledger had an unchecked box (review B, F3).
-            names = ([f"include-{stem}.md", f"{stem}.md"] if c.suffix == ".h"
-                     else [f"{stem}.md"])
-            checklist = None
-            for name in names:
-                cand = Path(args.checklists) / name
-                if cand.is_file():
-                    checklist = cand
-                    break
+            checklist = ledger_for(c, reference, Path(args.checklists))
             if checklist is not None and "- [ ]" in checklist.read_text(encoding="utf-8"):
                 in_progress += 1
                 print(f"WIP  {c.relative_to(reference)} -> {rs} "

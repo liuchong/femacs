@@ -1139,9 +1139,14 @@ configuration (see PORTING.md 2.1's setup steps)");
 /// not evidence, so this is part of the fast gate now; the C-differential half is
 /// `gate-probes`.
 fn probe_programs() -> Result<(), String> {
-    const PROBES: [&str; 7] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
+    // `f_inc_probe.rs` is the newest and the only one without a C side: it compiles the batch-F
+    // header mirrors of `femacs/nt/inc/`, which no configuration reaches - `layout-check` covers
+    // the `src/include` and `lib/include` mirrors only, and two real defects lived in that gap
+    // until the probe existed (docs/status.md 3.102).
+    const PROBES: [&str; 8] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
                                "../spikes/write_probe.rs", "../spikes/va_probe.rs",
-                               "../spikes/layout.rs", "../spikes/jump.rs", "../spikes/scan.rs"];
+                               "../spikes/layout.rs", "../spikes/jump.rs", "../spikes/scan.rs",
+                               "../spikes/f_inc_probe.rs"];
     fs::create_dir_all("../build/probes").ok();
     for probe in PROBES {
         if !Path::new(probe).is_file() {

@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 446 |
-| 其中 done / wip | 410 / 36 |
+| 其中 done / wip | 414 / 32 |
 | 待开工 | 144 |
 
 ## 2 按目录
@@ -381,16 +381,16 @@
 | `nt/inc/stdalign.h` | 20 | 0 | 0 | 5 | 0 | 0 | 0 | F | `femacs/nt/inc/include/stdalign.rs` | todo |
 | `nt/inc/stdbool.h` | 16 | 0 | 0 | 5 | 2 | 0 | 0 | F | `femacs/nt/inc/include/stdbool.rs` | todo |
 | `nt/inc/stdint.h` | 72 | 0 | 0 | 21 | 4 | 0 | 0 | F | `femacs/nt/inc/include/stdint.rs` | todo |
-| `nt/inc/sys/acl.h` | 25 | 0 | 0 | 4 | 3 | 0 | 0 | F | `femacs/nt/inc/sys/include/acl.rs` | wip |
+| `nt/inc/sys/acl.h` | 25 | 0 | 0 | 4 | 3 | 0 | 0 | F | `femacs/nt/inc/sys/include/acl.rs` | done |
 | `nt/inc/sys/file.h` | 12 | 0 | 0 | 5 | 5 | 0 | 0 | F | `femacs/nt/inc/sys/include/file.rs` | done |
 | `nt/inc/sys/ioctl.h` | 6 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/sys/include/ioctl.rs` | done |
-| `nt/inc/sys/mman.h` | 31 | 0 | 0 | 9 | 6 | 0 | 0 | F | `femacs/nt/inc/sys/include/mman.rs` | wip |
+| `nt/inc/sys/mman.h` | 31 | 0 | 0 | 9 | 6 | 0 | 0 | F | `femacs/nt/inc/sys/include/mman.rs` | done |
 | `nt/inc/sys/param.h` | 11 | 0 | 0 | 2 | 1 | 0 | 0 | F | `femacs/nt/inc/sys/include/param.rs` | done |
-| `nt/inc/sys/resource.h` | 51 | 0 | 0 | 5 | 3 | 2 | 0 | F | `femacs/nt/inc/sys/include/resource.rs` | wip |
+| `nt/inc/sys/resource.h` | 51 | 0 | 0 | 5 | 3 | 2 | 0 | F | `femacs/nt/inc/sys/include/resource.rs` | done |
 | `nt/inc/sys/socket.h` | 287 | 0 | 0 | 66 | 5 | 0 | 1 | F | `femacs/nt/inc/sys/include/socket.rs` | todo |
 | `nt/inc/sys/stat.h` | 175 | 0 | 0 | 50 | 13 | 38 | 1 | F | `femacs/nt/inc/sys/include/stat.rs` | todo |
 | `nt/inc/sys/time.h` | 21 | 0 | 0 | 3 | 2 | 2 | 0 | F | `femacs/nt/inc/sys/include/time.rs` | done |
-| `nt/inc/sys/wait.h` | 33 | 0 | 0 | 6 | 5 | 0 | 0 | F | `femacs/nt/inc/sys/include/wait.rs` | wip |
+| `nt/inc/sys/wait.h` | 33 | 0 | 0 | 6 | 5 | 0 | 0 | F | `femacs/nt/inc/sys/include/wait.rs` | done |
 | `nt/inc/unistd.h` | 41 | 0 | 0 | 8 | 6 | 0 | 0 | F | `femacs/nt/inc/include/unistd.rs` | todo |
 | `nt/runemacs.c` | 270 | 3 | 0 | 1 | 0 | 0 | 0 | F | `femacs/nt/runemacs.rs` | done |
 | `oldXMenu/Activate.c` | 642 | 3 | 0 | 0 | 0 | 0 | 4 | F | `femacs/oldXMenu/Activate.rs` | done |
