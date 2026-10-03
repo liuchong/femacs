@@ -61,6 +61,32 @@ include!("include/globals.rs");
 include!("include/dispextern.rs");	// bitch_at_user, backward-prefix-chars' caller
 include!("include/regex-emacs.rs");	// re_wctype_parse, re_iswctype
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530) and `struct emacs_globals globals` is defined once, in alloc.c; the port's
+// `include/globals.rs` mirrors the names as declarations, so the unit that owns one defines it
+// here (status 3.29, the callint.rs shape).
+
+#[unsafe(no_mangle)]
+pub static mut Vcomment_use_syntax_ppss: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut parse_sexp_ignore_comments: bool = false;
+#[unsafe(no_mangle)]
+pub static mut parse_sexp_lookup_properties: bool = false;
+#[unsafe(no_mangle)]
+pub static mut syntax_propertize__done: EMACS_INT = 0;
+#[unsafe(no_mangle)]
+pub static mut words_include_escapes: bool = false;
+#[unsafe(no_mangle)]
+pub static mut multibyte_syntax_as_symbol: bool = false;
+#[unsafe(no_mangle)]
+pub static mut open_paren_in_column_0_is_defun_start: bool = false;
+#[unsafe(no_mangle)]
+pub static mut Vfind_word_boundary_function_table: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut comment_end_can_be_escaped: bool = false;
+#[unsafe(no_mangle)]
+pub static mut Vforward_comment_function: Lisp_Object = lisp_h_Qnil ();
+
 /* C's `<intprops.h>` TYPE_MINIMUM/TYPE_MAXIMUM; the lib/ ports write them as unit-local
    macros over the type's own limits (lib/dtotimespec.rs 30, the mktime.rs precedent).  */
 macro_rules! TYPE_MINIMUM { ($t:ty) => { <$t>::MIN }; }

@@ -41,6 +41,14 @@ include!("../lib/include/errno.rs");	// C 20: <errno.h>
 include!("../lib/include/stdio.rs");	// C 21: <stdio.h>
 include!("include/lisp.rs");
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530) and `struct emacs_globals globals` is defined once, in alloc.c; the port's
+// `include/globals.rs` mirrors the names as declarations, so the unit that owns one defines it
+// here (status 3.29, the callint.rs shape).
+
+#[unsafe(no_mangle)]
+pub static mut Vlibgnutls_version: Lisp_Object = lisp_h_Qnil ();
+
 // C 24-28's `process.h`, `gnutls.h`, `coding.h`, `buffer.h` and `pdumper.h` are not pulled
 // in: the names the live text could take from them (the `Lisp_Process` accessors,
 // `struct Lisp_GnuTLS_*`, the coding-system calls, `BVAR` and the four `PDUMPER_*` hooks) all

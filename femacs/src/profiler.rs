@@ -59,6 +59,16 @@ include!("include/syssignal.rs");	// C 22 (and through it <signal.h>: SIGPROF, S
 include!("include/systime.rs");		// C 23 (make_timespec, make_timeval, setitimer)
 include!("include/pdumper.rs");		// C 24
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530) and `struct emacs_globals globals` is defined once, in alloc.c; the port's
+// `include/globals.rs` mirrors the names as declarations, so the unit that owns one defines it
+// here (status 3.29, the callint.rs shape).
+
+#[unsafe(no_mangle)]
+pub static mut profiler_max_stack_depth: EMACS_INT = 0;
+#[unsafe(no_mangle)]
+pub static mut profiler_log_size: EMACS_INT = 0;
+
 // C 374's `TYPE_MAXIMUM (time_t)` comes from gnulib's <intprops.h>; the lib/ ports write
 // it as a unit-local macro (docs/ports/token-aliases.tsv's TYPE_MAXIMUM row, the
 // syntax.rs shape), placed here because `include!` order is textual.
