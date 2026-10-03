@@ -51,6 +51,8 @@ unsafe extern "C" {
   pub fn fchown (fd: c_int, owner: uid_t, group: gid_t) -> c_int;
   pub fn lchown (file: *const c_char, owner: uid_t, group: gid_t) -> c_int;
   pub fn isatty (fd: c_int) -> c_int;
+  /* unsigned int alarm (unsigned int);  (src/atimer.c's two live calls)  */
+  pub fn alarm (seconds: c_uint) -> c_uint;
   pub fn sleep (seconds: c_uint) -> c_uint;
   pub fn usleep (useconds: c_uint) -> c_int;
   pub fn sysconf (name: c_int) -> c_long;

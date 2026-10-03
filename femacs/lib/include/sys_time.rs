@@ -45,6 +45,36 @@ pub struct timeval
   pub tv_usec: suseconds_t,
 }
 
+/* struct itimerval
+   {
+     struct timeval it_interval;
+     struct timeval it_value;
+   };  */
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct itimerval
+{
+  pub it_interval: timeval,
+  pub it_value: timeval,
+}
+
+const _: () = assert! (std::mem::size_of::<itimerval> () == 32);
+const _: () = assert! (std::mem::offset_of! (itimerval, it_interval) == 0);
+const _: () = assert! (std::mem::offset_of! (itimerval, it_value) == 16);
+
+/* <sys/time.h>'s `setitimer` and the three `ITIMER_*` selectors (measured: `sizeof
+   (struct itimerval)` is 32, `ITIMER_REAL` 0, `ITIMER_VIRTUAL` 1, `ITIMER_PROF` 2, the
+   values `docs/baseline/config/darwin-arm64.macros.tsv` carries as well).  */
+pub const ITIMER_REAL: c_int = 0;
+pub const ITIMER_VIRTUAL: c_int = 1;
+pub const ITIMER_PROF: c_int = 2;
+
+unsafe extern "C" {
+  /* int setitimer (int, const struct itimerval *, struct itimerval *);  */
+  pub fn setitimer (which: c_int, new_value: *const itimerval,
+                    old_value: *mut itimerval) -> c_int;
+}
+
 const _: () = assert! (std::mem::size_of::<timeval> () == 16);
 const _: () = assert! (std::mem::offset_of! (timeval, tv_sec) == 0);
 const _: () = assert! (std::mem::offset_of! (timeval, tv_usec) == 8);

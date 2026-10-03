@@ -61,6 +61,46 @@ pub const SIG_UNBLOCK: c_int = 2;
 /// <signal.h>: `#define SIG_SETMASK 3`.
 pub const SIG_SETMASK: c_int = 3;
 
+/* `struct sigaction` and its handler union (signal.h 73-77's `union __sigaction_u`, whose
+   second member is `void (*) (int, siginfo_t *, void *)`; `siginfo_t` is not a type this
+   target otherwise names, so its pointer is carried as `*mut c_void`, P-72 rule 3).
+   The layout is the frozen target's, measured with the frozen configuration:
+
+       $ printf '#include <stddef.h>\n#include <signal.h>\n#include <stdio.h>\nint main (void)\n{ printf ("%%zu %%zu %%zu %%zu\\n", sizeof (struct sigaction),\n    offsetof (struct sigaction, sa_mask), offsetof (struct sigaction, sa_flags),\n    sizeof (((struct sigaction *) 0)->__sigaction_u)); return 0; }\n' > /tmp/sa.c
+       $ clang -std=gnu23 -o /tmp/sa /tmp/sa.c && /tmp/sa
+       16 8 12 8
+
+   i.e. the handler union is 8 bytes at 0, `sa_mask` is the 4-byte `sigset_t` at 8 and
+   `sa_flags` is an `int` at 12.  */
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union __sigaction_u
+{
+  pub __sa_handler: Option<unsafe extern "C" fn (c_int)>,
+  /// C: `void (*__sa_sigaction) (int, siginfo_t *, void *);`
+  pub __sa_sigaction: Option<unsafe extern "C" fn (c_int, *mut c_void, *mut c_void)>,
+}
+
+/* struct sigaction
+   {
+     union __sigaction_u __sigaction_u;
+     sigset_t sa_mask;
+     int sa_flags;
+   };  */
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sigaction
+{
+  pub __sigaction_u: __sigaction_u,
+  pub sa_mask: sigset_t,
+  pub sa_flags: c_int,
+}
+
+const _: () = assert! (std::mem::size_of::<sigaction> () == 16);
+const _: () = assert! (std::mem::offset_of! (sigaction, sa_mask) == 8);
+const _: () = assert! (std::mem::offset_of! (sigaction, sa_flags) == 12);
+const _: () = assert! (std::mem::size_of::<__sigaction_u> () == 8);
+
 /* The `sigset_t` operations, in a uniquely-named module + glob import (the stdio.rs shape):
    a unit that defines one of them itself (none does yet, but lib/pthread_sigmask.c wraps
    `pthread_sigmask`) then shadows the glob instead of clashing with it (PORTING.md 0.1-10).
@@ -69,17 +109,48 @@ pub const SIG_SETMASK: c_int = 3;
 pub mod signal_decls {
   use super::*;
 
+  /* `sigemptyset` and `sigaddset` are *macros* on this target, not entries: the frozen
+     atimer.o imports `_pthread_sigmask`/`_sigaction`/`_raise` but has no `_sigemptyset`,
+     and <signal.h> 125-129 defines them as `(*(set) = 0, 0)` / `(*(set) |= __sigbits
+     (signo), 0)`.  The mirror therefore carries each macro's body as an inline function
+     instead of a declaration: the call site keeps C's spelling and the port emits no
+     entry the reference has not got.  `__sigbits` is the header's own
+     `__header_always_inline` helper (signal.h 118-124).  */
+  /// C: `#define __sigbits(signo) (1U << ((signo) - 1))`, 0 for an out-of-range signal
+  #[inline(always)]
+  pub unsafe fn __sigbits (signo: c_int) -> c_uint
+  {
+    if signo == 0 || signo > NSIG
+      { 0 }
+    else
+      { 1u32 << (signo - 1) }
+  }
+
+  /// C: `#define sigemptyset(set) (*(set) = 0, 0)`
+  #[inline(always)]
+  pub unsafe fn sigemptyset (set: *mut sigset_t) -> c_int
+  {
+    *set = sigset_t { __val: 0 };
+    0
+  }
+
+  /// C: `#define sigaddset(set, signo) (*(set) |= __sigbits (signo), 0)`
+  #[inline(always)]
+  pub unsafe fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int
+  {
+    (*set).__val |= __sigbits (signo);
+    0
+  }
+
   unsafe extern "C" {
-    /* int sigemptyset (sigset_t *);  */
-    pub fn sigemptyset (set: *mut sigset_t) -> c_int;
-    /* int sigaddset (sigset_t *, int);  */
-    pub fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int;
     /* int sigprocmask (int, const sigset_t *, sigset_t *);  */
     pub fn sigprocmask (how: c_int, set: *const sigset_t, oset: *mut sigset_t) -> c_int;
     /* int pthread_sigmask (int, const sigset_t *, sigset_t *);  */
     pub fn pthread_sigmask (how: c_int, set: *const sigset_t, oset: *mut sigset_t) -> c_int;
     /* int raise (int);  -- syssignal.h 80's `emacs_raise` is `raise (sig)` on this target.  */
     pub fn raise (sig: c_int) -> c_int;
+    /* int sigaction (int, const struct sigaction *, struct sigaction *);  */
+    pub fn sigaction (signum: c_int, act: *const sigaction, oact: *mut sigaction) -> c_int;
   }
 }
 use signal_decls::*;

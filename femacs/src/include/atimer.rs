@@ -58,17 +58,26 @@ pub struct atimer
 
 /* Function prototypes.  */
 
-unsafe extern "C" {
-  pub fn start_atimer (type_: atimer_type, expiration: timespec,
-                       fn_: atimer_callback, client_data: *mut c_void) -> *mut atimer;
-  pub fn cancel_atimer (timer: *mut atimer);
-  pub fn do_pending_atimers ();
-  pub fn init_atimer ();
-  pub fn turn_on_atimers (on: bool);
-  pub fn stop_other_atimers (timer: *mut atimer);
-  pub fn run_all_atimers ();
-  // atimer.h 81-83's `#ifdef HAVE_TIMERFD` (dead here, P-51):
-  //   void timerfd_callback (int, void *);
-  #[cfg (feature = "timerfd")]
-  pub fn timerfd_callback (fd: c_int, arg: *mut c_void);
+// The seven prototypes atimer.h 74-83 declares are what `src/atimer.c` *defines*, and Rust
+// cannot declare and define one name in one module: they live in a module the unit
+// glob-imports, so the definition in the unit shadows the import — C's prototype-plus-
+// definition pair (PORTING.md P-17/P-39, the `lisp.rs`/`signal.rs` shape).
+pub mod atimer_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn start_atimer (type_: atimer_type, expiration: timespec,
+                         fn_: atimer_callback, client_data: *mut c_void) -> *mut atimer;
+    pub fn cancel_atimer (timer: *mut atimer);
+    pub fn do_pending_atimers ();
+    pub fn init_atimer ();
+    pub fn turn_on_atimers (on: bool);
+    pub fn stop_other_atimers (timer: *mut atimer);
+    pub fn run_all_atimers ();
+    // atimer.h 81-83's `#ifdef HAVE_TIMERFD` (dead here, P-51):
+    //   void timerfd_callback (int, void *);
+    #[cfg (feature = "timerfd")]
+    pub fn timerfd_callback (fd: c_int, arg: *mut c_void);
+  }
 }
+use atimer_decls::*;

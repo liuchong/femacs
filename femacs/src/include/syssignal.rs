@@ -53,11 +53,11 @@ unsafe extern "C" { pub static mut empty_mask: sigset_t; }                  // s
 // the port spells it `Option<unsafe extern "C" fn (…)>` (P-27).
 pub type signal_handler_t = Option<unsafe extern "C" fn (sig: c_int)>;
 
-/// C: `struct sigaction` — a *system* type this target's `<signal.h>` provides, used by
-/// `emacs_sigaction_init` only through a pointer, and not carried by any mirror yet; PORTING
-/// P-70's stand-in, with the real layout to arrive with the mirror that needs it.
-pub struct sigaction;
-
+// `struct sigaction` is a *system* type this target's `<signal.h>` provides.  It was P-70's
+// stand-in until a unit needed its size; `emacs_sigaction_init` writes one and `sigaction`
+// reads it, so the real record (with the frozen target's measured layout) now lives in the
+// header that declares it — `femacs/lib/include/signal.rs`, next to `sigset_t` and
+// `pthread_sigmask` — and the stand-in is gone in the same commit (P-70).
 unsafe extern "C" {
   pub fn emacs_sigaction_init (act: *mut sigaction, handler: signal_handler_t);  // 61
   pub fn safe_strsignal (sig: c_int) -> *const c_char;                           // 62

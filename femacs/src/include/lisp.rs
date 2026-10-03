@@ -3577,15 +3577,29 @@ pub mod other_units {
         /// C: Lisp_Object concat2 (Lisp_Object, Lisp_Object)
         pub fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object;
         /* src/lisp.h 4330.  */
+        /* src/lisp.h 4338-4339 and 4919: the three emitters syntax.c's
+           `internal-describe-syntax-value` calls.  */
+        /// C: void insert_char (int)
+        pub fn insert_char (c: c_int);
+        /// C: void insert_string (const char *)
+        pub fn insert_string (str_: *const c_char);
+        /// C: void insert1 (Lisp_Object)
+        pub fn insert1 (object: Lisp_Object);
         /// C: void insert_and_inherit (const char *, ptrdiff_t)
         pub fn insert_and_inherit (str_: *const c_char, nbytes: ptrdiff_t);
         /* src/lisp.h 4345.  */
+        /// C: void insert (const char *, ptrdiff_t)
+        pub fn insert (str_: *const c_char, nbytes: ptrdiff_t);
         /// C: void del_range (ptrdiff_t, ptrdiff_t)
         pub fn del_range (from: ptrdiff_t, to: ptrdiff_t);
         /* src/lisp.h 4363: the six parameters of the replacement.  */
         /// C: void replace_range (ptrdiff_t, ptrdiff_t, Lisp_Object, bool, bool, bool)
         pub fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new_: Lisp_Object,
                               prepare: bool, inherit: bool, markers: bool);
+        /* src/lisp.h 5037.  */
+        /// C: void scan_newline (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool)
+        pub fn scan_newline (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
+                             to_byte: ptrdiff_t, count: ptrdiff_t, allow_quit: bool);
         /* src/lisp.h 5039.  */
         /// C: ptrdiff_t scan_newline_from_point (ptrdiff_t, ptrdiff_t *, ptrdiff_t *)
         pub fn scan_newline_from_point (count: ptrdiff_t, pos: *mut ptrdiff_t,
