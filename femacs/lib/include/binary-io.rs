@@ -11,8 +11,10 @@ include!("stdio.rs");          // <stdio.h> (the MSVC7 ordering note; FILE is no
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const _BINARY_H: bool = true;
 
-// C 32-34's `#ifndef BINARY_IO_INLINE / # define BINARY_IO_INLINE _GL_INLINE`.
-pub const BINARY_IO_INLINE: () = _GL_INLINE;
+// C 32-34's `#ifndef BINARY_IO_INLINE / # define BINARY_IO_INLINE _GL_INLINE` is not carried
+// here: lib/binary-io.c defines the name to `_GL_EXTERN_INLINE` *before* including this header,
+// so that arm is dead in the carrier unit and the name is the unit's constant (the byteswap.in.h
+// precedent, docs/ports/excluded-macros.txt).
 
 /* C 41-46's `# if defined __EMX__ || defined __DJGPP__ || defined __CYGWIN__ … # else # define
    _gl_set_fd_mode _setmode # undef fileno # define fileno _fileno … # endif` arm, kept as text
