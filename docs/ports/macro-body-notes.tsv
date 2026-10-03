@@ -445,3 +445,12 @@ graft_intervals_into_buffer	1	C 1605's `buffer_intervals (buffer)->up_obj == 1` 
 textget	1	C 1708 passes the int literal `1` to `lookup_char_property`'s `bool textprop` parameter, which the port spells `true` (the Fset_case_table bool-literal class)
 get_property_and_range	0,1	C 2159's `return 0` and C 2171's `return 1` are the port's `false`/`true` bool returns (the getenv_internal class)
 compare_string_intervals	1	C 2303's `return 1` is the port's `true` bool return (the getenv_internal class)
+load_charset_map	charset_max_char,charset_min_char,uninit	C 239-240's `Lisp_Object vec UNINIT;`/`table UNINIT;` become `= Qnil ()` (PORTING.md 1.5, P-45) and C 402-403's `CHARSET_MIN_CHAR (charset) = ...`/`CHARSET_MAX_CHAR (charset) = ...` are lvalue uses of charset.h's accessor macros, which the port writes `(*charset).min_char = ...`/`(*charset).max_char = ...`
+char_charset	0,1	C 1963/1966's `bool maybe_null = 0;`/`maybe_null = 1;` are the port's `false`/`true` (a `bool` has no integer literal spelling in Rust)
+syms_of_charset	doc	the four DEFVAR_* invocations take C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no counterpart; the docstrings themselves are still compared by the constants rule (the syms_of_data precedent)
+CHARSET_FAST_MAP_SET	false	charset.h 508-514's `do { ... } while (false)` has no Rust counterpart: the port writes the if/else as a block expression (PORTING.md 2.2, the PDUMPER_RESET/`do...while` class), so the loop's condition token has no match
+CHECK_CHARSET	false	see CHARSET_FAST_MAP_SET
+CHECK_CHARSET_GET_ID	false	see CHARSET_FAST_MAP_SET
+CHECK_CHARSET_GET_ATTR	false	see CHARSET_FAST_MAP_SET
+CHECK_CHARSET_GET_CHARSET	false	see CHARSET_FAST_MAP_SET
+ENCODE_CHAR	verify_expr	charset.h 24's <verify.h> `verify_expr` is the compile-time assertion wrapper (no mirror, PORTING.md P-26); the port keeps the two `sizeof`s it compares (`std::mem::size_of::<c_int> () <= std::mem::size_of::<c_int> ()`, the `sizeof` family) and records the wrapper's name here
