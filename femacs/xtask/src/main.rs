@@ -1072,10 +1072,11 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a C file-scope object has no symbol in the port's object"),
         Err(e) => return fail(e),
     }
-    // The three classes of declaration 0.1-19 keeps out of the tree - the copied
-    // ownership block, the product name in a comment, and the removed
-    // `@ <rev> (<product> x.y.z)` parenthetical - are prose, and prose comes back:
-    // every unit ported after `fd9cf89` copies its C file's comments, and
+    // The four classes of declaration 0.1-19 keeps out of the tree - the copied
+    // ownership block, the product name in a comment, the removed
+    // `@ <rev> (<product> x.y.z)` parenthetical, and the comment that recites any of
+    // the three instead of carrying one (status 3.100) - are prose, and prose comes
+    // back: every unit ported after `fd9cf89` copies its C file's comments, and
     // `src/emacs.c`'s own literals are the worked example of the class that *stays*.
     // This gate reads the tree the way the rule does (comments and string literals
     // separated, `'a` lifetimes versus `'a'` chars) and compares with

@@ -44,6 +44,12 @@ Deviations, all recorded rather than hidden:
    `<binary-io.h>` are the mirrors; `binary-io.rs` brings `<fcntl.h>`'s `O_BINARY`/`O_TEXT` with
    it, which is what `set_binary_mode (fileno (stdout), O_BINARY)` needs.
 
+7. **C 1-23's opening block is not ported** (PORTING.md 0.1-19; the same rule deleted that block
+   from 268 files at 3.58).  The block is also where C 8's one-sentence provenance note lives,
+   and nothing in `hexl.rs` quotes it: the unit's first line is the `// femacs: port of …`
+   declaration, and the fact is recorded here.  (3.100 removed the four-line note that had
+   recited it in the unit; the file went from 332 to 328 lines.)
+
 Evidence: `cargo run -q -p xtask -- build-tu lib-src/hexl.c` ->
 `built lib-src/hexl.rs -> ../build/femacs/hexl.o`; `python3 tools/extract-abi.py --check
 emacs/lib-src/hexl.c femacs/lib-src/hexl.rs` -> `OK` (4/4 boxes, the `prixmax` row in place);

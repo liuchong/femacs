@@ -6,10 +6,6 @@
 // (batch F), built by the frozen configuration (it is in the reference `lib-src/Makefile`'s
 // `UTILITIES` list) and linked against the port's gnulib mirrors and libSystem only.
 //
-// C's own head comment says "This file is not considered part of GNU Emacs." - carried here
-// because it is the file's text, not a claim the port makes about itself (PORTING.md 0.1-19
-// keeps only the product-name declarations out).
-//
 // Two C names have no mirror and are handled at the use site (P-26/P-72 (3)):
 //  * `<inttypes.h>`'s `PRIxMAX` (C 163): the frozen target's `<inttypes.h>` defines it as `"jx"`
 //    (measured with clang: `printf ("%s\n", PRIxMAX)` prints `jx`, so `uintmax_t` is the 64-bit

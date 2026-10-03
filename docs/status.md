@@ -1469,3 +1469,27 @@
   后段 +11.9%），默认 5% 容差对剩余 10,089 行 C 不够——**裁决按成品实测补 tolerance 行**（等收口时测，
   现在不加 provisional 行）；② `lib-src/hexl.c` 与 `lib-src/movemail.c` 的 verified 清单状态：
   movemail 已在清单里（本轮复核 5,734 conditions / 0 disagreements），hexl 是 0 条件文件，无需登记。
+- **3.100 复述规则合上机器门，扫描面扩到批次 F（2026-10-04 第 99 轮）**：3.90 清掉 11 处复述之后，
+  **规则本身没有门**，两轮内就回来了：3.98 落的 `lib-src/hexl.rs` 头注释里有一段四行辩解
+  （"C's own head comment … carried here because it is the file's text, not a claim the port makes
+  about itself"），而 `check-declarations.py` 的 `SCAN_DIRS` 只有 `femacs/src`、`femacs/lib`、
+  `femacs/xtask`——**`lib-src` 根本不在扫描面里**，所以没有任何门看得见它；同一批的
+  `lib/stdbit.rs` 第 1 行也还写着 "C's LGPL header"。本轮做三件事：
+  ① **扫描面**：`SCAN_DIRS` 扩到**全部已端口树**（`src`、`lib`、`lib-src`、`exec`、`lwlib`、
+  `oldXMenu`、`nt`、`msdos`、`xtask`），批次 F 的每个程序/库从此与核心单元同一把尺；
+  ② **第四类 `recital`**：注释里谈论许可/版权/产品名即报（`licence|license|licensing|copyright|
+  copyleft`、裸词 `LGPL`/`GPL`、`product name`、`产品名|许可|版权`），大小写敏感并带标识符护栏——
+  `emacs_copyright`/`emacs-copyright`/`` `COPYRIGHT` ``/`canonicalize-lgpl.rs` 是**移植的名字**、
+  `GPLv3` 是版本号，三者都不许触发（否则这条规则只会被它自己的 allowlist 埋掉）；`RECITAL_TREES`
+  把 `femacs/xtask` 排除在这第四类之外（它是门自己的源码，用散文讲这几类）；
+  ③ **清场**：`hexl.rs` 删掉那四行（C 8 的出处句只在台账记账），`stdbit.rs` 第 1 行去掉
+  "C's LGPL header"。
+  验证：`--selftest` **22 cases, 0 failures**（新增 6 例：许可复述、中文复述、无产品名的复述、
+  移植标识符、连字符标识符、`canonicalize-lgpl.rs`）；扩面+新类在清场前报
+  `11 declaration sites (3 forbidden, 8 allowed literals), 3 failures`（**3 条全是真缺陷**），
+  清场后 `8 declaration sites (0 forbidden, 8 allowed literals), 0 failures`；`hexl.rs` 332 → **328 行**、
+  `stdbit.rs` 8 行不变，两文件 `build-tu` = `built`、`extract-abi.py --check` = `OK`、
+  `rustc --cfg enable_checking` = exit 0；`check-mirror-dupes` 仍 `1 duplicate declaration(s),
+  1 ratchet row(s), 0 failure(s)`、`check-verbatim` 仍 `6 trees, 4607 files, 0 failures`。
+  **未动**：`docs/ports/*.tsv` 与各台账里同样意思的中性措辞（那是决定记录，不是代码），以及本文件与
+  `PORTING.md` 自身的政策叙述。规则补进 `PORTING.md` 0.1-19。

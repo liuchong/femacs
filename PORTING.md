@@ -108,6 +108,11 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     （那同样是一句关于本仓库的许可声明），决定只记录在本文档与 `docs/status.md`；2026-10-04 的
     `docs/status.md` 3.90 把已落的 11 处复述清掉（`buffer.rs`/`xfaces.rs`/`dispnew.rs`/`emacs.rs` 与 7 个
     `lib/` 单元/镜像）。
+    这条规则现在有第二半，且是机器门：**复述本身也是被扫的对象**——`tools/check-declarations.py` 的
+    第四类 `recital` 报注释里谈论许可/版权/产品名的句子（带标识符护栏：`emacs_copyright`、`` `COPYRIGHT` ``、
+    `canonicalize-lgpl.rs` 这类**移植的名字**不算），扫描面从 `src`/`lib`/`xtask` 扩到**全部已端口树**
+    （批次 F 的 `lib-src`/`exec`/`lwlib`/`oldXMenu`/`nt` 与核心同尺）；`femacs/xtask` 是门自己的源码、
+    用散文讲这几类，对它只关 `recital` 这一类（status 3.100）。
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
