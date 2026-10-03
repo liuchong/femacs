@@ -64,10 +64,6 @@ include!("include/coding.rs");                 // C 48
 /// the concatenated literals below and keeps the name here.
 const PRIdMAX: &str = "jd";
 
-/// <errno.h>: `#define EDOM 33` (docs/baseline/config/darwin-arm64.macros.tsv 811); the
-/// errno mirror does not carry it and `NEGATIVE_ERRNO` below measures it.
-const EDOM: c_int = 33;
-
 /* The names C gets from lisp.h 5303-5334 and from the system headers above, declared at the
    use site (the terminal.rs shape).  `emacs_fstatat`'s third parameter is lisp.h's `void *`.  */
 unsafe extern "C" {

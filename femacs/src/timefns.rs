@@ -97,7 +97,6 @@ const PRIdMAX: &str = "jd";
 
 /// <errno.h>: `#define EDOM 33` on the frozen target; `errno.rs` carries the other four
 /// the file names.
-const EDOM: c_int = 33;
 
 /// <time.h>: the frozen target's `CLOCK_MONOTONIC` (6, measured with clang).
 const CLOCK_MONOTONIC: c_int = 6;
@@ -2055,7 +2054,6 @@ pub unsafe extern "C" fn emacs_setenv_TZ (tzstring: *const c_char) -> c_int
 	*tzval = b't' as c_char;
 	*tzval.add (tzeqlen as usize) = 0;
       }
-
 
     /* C 2051-2065: the frozen build takes `#ifndef WINDOWSNT` (`new_tzvalbuf`); the
        `#else` arm (`true`) is carried.  */
