@@ -24,6 +24,15 @@ include!("../../lib/include/float.in.rs");
 // src/lisp.h 32 includes <inttypes.h>, which includes <stdint.h>; the port keeps
 // the same chain (lib/inttypes.in.rs will include this file once it exists).
 include!("../../lib/include/stdint.in.rs");
+// src/lisp.h 34 includes <stdio.h>, which is how C's `FILE` reaches every translation unit
+// through this header.  The port used to leave it to each unit, and that was wrong for the
+// mirrors: `regex-emacs.h` 199's checking-only `print_compiled_pattern (FILE *dest, …)` is
+// declared downstream of lisp.h in C but had no `FILE` in a unit that includes lisp.h and
+// regex-emacs.h without stdio - `src/atimer.rs` compiled under the default configuration and
+// failed under `--cfg enable_checking`, which is the only mode that activates that declaration
+// (docs/status.md 3.70).  `xtask materialize` dedupes by file path, so a unit that also
+// includes stdio.rs directly still gets exactly one copy.
+include!("../../lib/include/stdio.rs");
 
 // --- integers --------------------------------------------------------------
 // src/lisp.h: EMACS_INT is one word; the frozen configuration says 64 bits

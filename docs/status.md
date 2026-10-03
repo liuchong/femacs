@@ -972,3 +972,27 @@
   实测：六个调用点单元全部重建 `built`；六个单元的 `--check` 全部 `OK`；`lisp.h` 镜像 `--check` 仍
   `OK`；全树没有第二处 `fn safe_funcall`（否则会重复定义）。
 
+- **3.70 第 96 轮：`lisp.rs` 缺 `<stdio.h>`——一个只有隔离跑整树门才暴露的真缺陷（2026-10-04）**：
+  本轮改用**在 `git worktree`（detached，HEAD）里跑 `gate-fast`**来独立验证"已提交状态"，把在飞通道写进
+  工作树的 WIP 文件排除在外（否则 `--all`/`gate-fast` 会把没有台账的半成品单元报成 failing——本轮
+  `src/process.c` 刚开工时就是这样）。隔离跑立刻暴露一个真缺陷：`src/atimer.rs` 在 `--cfg enable_checking`
+  下**编译失败**（`cannot find type FILE`），而默认配置下它是绿的——因为出错的是
+  `regex-emacs.h` 199 的 `extern void print_compiled_pattern (FILE *dest, …)`，它只在 `ENABLE_CHECKING`
+  下活，而 C 的 `regex-emacs.h` 只 include `<stddef.h>` 与 `lisp.h`：**`FILE` 是从 `lisp.h` 第 34 行的
+  `#include <stdio.h>` 来的**，所以 C 的每个翻译单元都能看见它。
+  ① 端口的 `lisp.rs` **没有**镜像那一行，反而让每个"需要 `FILE`"的单元自己 include
+  `lib/include/stdio.rs`（emacs.rs 131、search.rs 62、syntax.rs 32 —— syntax.rs 的注释甚至写着
+  "lisp.h 34: FILE"）。于是 `atimer.rs` 这种"include 了 lisp.rs 与 regex-emacs.rs、但不需要 FILE"的单元
+  在检查模式下没有 `FILE`，而**默认构建永远看不到**（那条声明被 cfg 掉）。
+  ② 修法是补齐 C 的形状：`lisp.rs` 在自己的 include 链里加上
+  `include!("../../lib/include/stdio.rs");`（注释写明 C 的 lisp.h 34 与它为什么必须在这里）。
+  `xtask materialize` 按**文件路径**去重，所以自己已经 include stdio 的单元仍然只有一份副本 ✓（实测：
+  search/syntax/emacs/eval/thread 五个消费者全部重建 `built`；`--check emacs/src/lisp.h` 仍 OK；
+  `atimer` 的 `--cfg enable_checking` 编译 **0 error**）。
+  ③ **方法记下来**：共享工作树里同时在飞多条通道时，整树门的红灯既可能来自在飞文件，也可能来自已提交
+  状态——**用 `git worktree` 在 HEAD 上隔离跑一次**就能分清这两件事。这一次正是隔离跑才把一个被噪声盖住的
+  真缺陷（P-57 那一类：只有检查模式才编译的声明）挖出来。
+  ④ 过程里我自己的一个失误也记下来：第一版补丁只写了注释、**漏了 `include!` 那一行**，靠"检查材质化
+  目录里有没有 stdio 副本"这个**效果检查**才发现；二次补丁加完 include 后不仅查了行是否在文件里，也重跑
+  了那个失败的编译模式。**机械改写的验证要落在效果上，不能只看补丁文本。**
+
