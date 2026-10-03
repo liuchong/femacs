@@ -996,3 +996,14 @@
   目录里有没有 stdio 副本"这个**效果检查**才发现；二次补丁加完 include 后不仅查了行是否在文件里，也重跑
   了那个失败的编译模式。**机械改写的验证要落在效果上，不能只看补丁文本。**
 
+- **3.71 第 96 轮：`modiff_incr` 丢掉返回值（镜像缺陷，buffer 通道发现并修好）（2026-10-04）**：
+  C 的 `modiff_incr`（lisp.h 4142-4154）把计数器加完**返回加之前的值**（`return a0;`）；端口的
+  `lisp.rs` 写成了 `-> ()`，只更新 `*a` 不返回值。这是**门看不见的**那一类：token 比对里 `return` 属于
+  被折叠的词，正文其余 token 完全一致，所以 `--check` 一直绿；buffer 通道在移植
+  `Frestore_buffer_modified_p` 时发现，并**没有**顺手把它绕过去写坏，而是照 C 写成"先读 `MODIFF`"
+  的等价形状，同时把缺陷报回镜像 owner。
+  修法：`modiff_incr` 返回 `i64`（`a0`），与 C 一致；实测 `--check emacs/src/lisp.h` 仍 `OK`，
+  五个消费者（insdel/textprop/editfns/intervals/buffer）重建全部 `built`（把返回值当语句丢弃的调用点
+  在 Rust 里天然合法，所以不必改调用点）。buffer 通道那处"先读 MODIFF"的等价写法保留——它与 C 的
+  语义相同，且属于在飞文件，不在本轮改动内。
+

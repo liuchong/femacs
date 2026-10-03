@@ -2097,14 +2097,19 @@ pub fn integer_to_uintmax (num: Lisp_Object, n: *mut u64) -> bool {
     }
 }
 
+// C: lisp.h 4142-4154 returns the value the counter had *before* the increment
+// (`return a0;`); the port used to drop it, which is invisible to every gate except by
+// reading - `src/buffer.c`'s lane found it and worked around it by reading `MODIFF` first
+// (docs/status.md 3.71).
 #[inline(always)]
-pub fn modiff_incr (a: *mut i64, len: isize) {
+pub fn modiff_incr (a: *mut i64, len: isize) -> i64 {
     let a0 = unsafe { *a };
     // Increase more for a large modification, logarithmically.
     let incr: i64 = if len == 0 { 1 } else { elogb (len as u64) as i64 + 1 };
     let (v, overflow) = a0.overflowing_add (incr);
     eassert! (!overflow && v >> 30 >> 30 == 0);
     unsafe { *a = v };
+    a0
 }
 
 #[inline(always)]
