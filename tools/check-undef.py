@@ -74,17 +74,28 @@ def platform_symbols(sdk_lib: str) -> set[str]:
     return set(re.findall(r"_[A-Za-z_][A-Za-z_0-9]*", text))
 
 
-def measure() -> tuple[set[str], set[str], int, int]:
+def measure() -> tuple[set[str], set[str], int, int, dict[str, set[str]]]:
+    """Return (orphans, known, #our objects, #reference inputs, referrers).
+
+    `referrers` maps each orphan to the objects that reference it, which is what makes the
+    ratchet's delta reviewable: a new orphan whose referrer is the unit that just landed is a
+    dependency on a unit that is still unported, while a new orphan whose referrer has been
+    built for weeks is a defect in that unit.
+    """
     ours = sorted(glob.glob(os.path.join(REPO, OURS, "**", "*.o"), recursive=True))
     refs = sorted(glob.glob(os.path.join(REPO, REF, "**", "*.o"), recursive=True))
     refs += sorted(glob.glob(os.path.join(REPO, REF, "**", "*.a"), recursive=True))
     if not ours:
         sys.exit(f"{OURS}/ has no objects: build the units first (`xtask gate-fast`).")
     defined, undefined = set(), set()
+    referrers: dict[str, set[str]] = {}
     for path in ours:
         d, u = nm(path)
         defined |= d
         undefined |= u
+        base = os.path.basename(path)
+        for name in u:
+            referrers.setdefault(name, set()).add(base)
     ref_defined, ref_undefined = set(), set()
     for path in refs:
         d, u = nm(path)
@@ -95,7 +106,7 @@ def measure() -> tuple[set[str], set[str], int, int]:
     if not plat:
         sys.exit("libSystem.B.tbd is unreadable: the platform half of the universe is unknown.")
     known = defined | ref_defined | ref_undefined | plat
-    return undefined - known, known, len(ours), len(refs)
+    return undefined - known, known, len(ours), len(refs), referrers
 
 
 def read_pending(path: Path) -> list[str]:
@@ -114,7 +125,7 @@ def main() -> int:
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
-    orphans, known, n_our, n_ref = measure()
+    orphans, known, n_our, n_ref, referrers = measure()
     path = REPO / args.pending
     if args.write_pending:
         header = ("# Undefined references no configuration of this program can satisfy, yet.\n"
@@ -141,9 +152,13 @@ def main() -> int:
     if new:
         print(f"check-undef: {len(new)} NEW undefined reference(s) that nothing can satisfy:")
         for name in new[:40]:
-            print(f"  - {name}")
+            who = ", ".join(sorted(referrers.get(name, ())))
+            print(f"  - {name:38s} referenced by {who}")
         if len(new) > 40:
             print(f"  … {len(new) - 40} more")
+        print("  A new entry is either a dependency on a unit that is not ported yet (then run\n"
+              "  `--write-pending` after reading the list) or a defect in the referring unit\n"
+              "  (a misspelling, an invented helper, a missing #[link_name]).")
         return 1
     print(f"check-undef: {n_our} unit object(s), {n_ref} reference object(s)/archive(s): "
           f"{len(orphans)} pending, 0 new")
