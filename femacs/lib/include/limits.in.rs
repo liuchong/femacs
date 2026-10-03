@@ -39,6 +39,11 @@ pub const CHAR_BIT: c_int = 8;
 // on the frozen target).
 pub const UCHAR_MAX: c_int = 0xFF;
 
+// `MB_LEN_MAX` is the system <limits.h>'s widest multibyte character (regcomp.c 774's
+// `(SBC_MAX - ch) / 8` neighbour, `re_compile_fastmap_iter`); measured with the frozen
+// target's compiler (`printf ("%d", MB_LEN_MAX)`): 6 on darwin-arm64.
+pub const MB_LEN_MAX: c_int = 6;
+
 // --- the system <limits.h> this header includes (P-26) ----------------------
 //
 // gnulib's limits.in.h includes the system <limits.h> (its line 26) and its INT_WIDTH

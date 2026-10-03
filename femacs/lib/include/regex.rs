@@ -52,10 +52,16 @@ pub const RE_CARET_ANCHORS_HERE: reg_syntax_t = RE_ICASE << 1;
 pub const RE_CONTEXT_INVALID_DUP: reg_syntax_t = RE_CARET_ANCHORS_HERE << 1;
 pub const RE_NO_SUB: reg_syntax_t = RE_CONTEXT_INVALID_DUP << 1;
 
-/* regex.h 210 */
-unsafe extern "C" {
-  /// C: `extern reg_syntax_t re_syntax_options;`
-  pub static mut re_syntax_options: reg_syntax_t;
+/* regex.h 210.  The declaration is C's `extern`, and the *definition* is the unit's
+   (`regcomp.rs` 131: `reg_syntax_t re_syntax_options;`); Rust forbids an `extern` static and
+   a defined static of the same name in one scope, so the declaration lives in a module and
+   the defining unit shadows it (PORTING.md 0.1-10, the tempname.rs shape).  */
+pub mod regex_decls {
+  use super::*;
+  unsafe extern "C" {
+    /// C: `extern reg_syntax_t re_syntax_options;`
+    pub static mut re_syntax_options: reg_syntax_t;
+  }
 }
 
 /* regex.h 217-283: the standard syntax combinations, written with C's own operands --

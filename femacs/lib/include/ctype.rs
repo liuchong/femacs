@@ -21,6 +21,16 @@ unsafe extern "C" {
   pub fn islower (c: c_int) -> c_int;
   /* int isspace (int c);  */
   pub fn isspace (c: c_int) -> c_int;
+  /* int iscntrl (int c);  */
+  pub fn iscntrl (c: c_int) -> c_int;
+  /* int isgraph (int c);  */
+  pub fn isgraph (c: c_int) -> c_int;
+  /* int isprint (int c);  */
+  pub fn isprint (c: c_int) -> c_int;
+  /* int ispunct (int c);  */
+  pub fn ispunct (c: c_int) -> c_int;
+  /* int isxdigit (int c);  */
+  pub fn isxdigit (c: c_int) -> c_int;
   /* int isupper (int c);  */
   pub fn isupper (c: c_int) -> c_int;
   /* int toupper (int c);  */

@@ -177,9 +177,11 @@ pub const NEXT_ENDBUF_CONSTRAINT: c_int = 0x0080;
 pub const WORD_DELIM_CONSTRAINT: c_int = 0x0100;
 pub const NOT_WORD_DELIM_CONSTRAINT: c_int = 0x0200;
 
-/* regex_internal.h 230-243 */
+/* regex_internal.h 230-243.  C compares this enum with `==` like any other integer
+   (`regcomp.c`'s `peek_token`/`parse_expression`); Rust needs the derive, which changes no
+   layout.  */
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum re_context_type {
   INSIDE_WORD = (PREV_WORD_CONSTRAINT | NEXT_WORD_CONSTRAINT) as isize,
   WORD_FIRST = (PREV_NOTWORD_CONSTRAINT | NEXT_WORD_CONSTRAINT) as isize,
@@ -623,9 +625,10 @@ macro_rules! re_node_set_free {
     ($set:expr) => { re_free! ((*$set).elems) };
 }
 
-/* regex_internal.h 688-698 */
+/* regex_internal.h 688-698.  C compares the element kind with `==` (`regcomp.c`'s
+   `build_range_exp`, `parse_bracket_exp`); Rust needs the derive, which changes no layout.  */
 #[repr(C)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum bracket_elem_type {
   SB_CHAR = 0,
   MB_CHAR = 1,

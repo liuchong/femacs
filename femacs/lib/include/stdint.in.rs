@@ -72,3 +72,11 @@ pub const UINT_LEAST64_MAX: u64 = u64::MAX;
 // `#ifdef UINT64_MAX` (endian.in.h 149, 192, 235, 278): the system header defines it, so
 // the three 64-bit host/big/little wrappers are live.
 pub const UINT64_MAX: u64 = u64::MAX;
+
+// stdint.in.h 481-521's `int_fast32_t`/`uint_fast32_t`: regcomp.c's bracket parser takes
+// its `nrules` and `table_size` in these two (`build_range_exp`, `parse_bracket_exp`), and
+// regex_internal.h 674-690 declares the same pair for the regex cluster.  Measured with
+// the frozen target's compiler: both are 4 bytes (arm64 darwin widens only the 64-bit
+// fast types).
+pub type int_fast32_t = i32;
+pub type uint_fast32_t = u32;

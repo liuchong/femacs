@@ -45,6 +45,71 @@ unsafe extern "C" {
   pub fn ___mb_cur_max () -> c_int;
 }
 
+/* C: <stdint.h>'s `TYPE_SIGNED (t)` (gnulib intprops.h 43), the one C condition in
+   `parse_dup_op` that asks whether `Idx` is signed.  Measured on the frozen target:
+   `Idx` is `ssize_t`, so the condition is true (the same spelling `mktime.rs` uses).  */
+macro_rules! TYPE_SIGNED {
+    ($t:ty) => { <$t>::MIN < 0 };
+}
+
+/* C's two token-type enums are in scope at every use site in this file (`regcomp.c` reads
+   `OP_*` and the bracket kinds); the mirror declares them, and these two glob imports are
+   the port's spelling of that scope (PORTING.md 0.1-10).  */
+use re_token_type_t::*;
+use bracket_elem_type::*;
+use re_context_type::*;
+
+/* The functions below are `static` in the *aggregate* translation unit C builds for the
+   regex cluster (`lib/regex.c` includes regex_internal.c, regcomp.c and regexec.c into one
+   TU, so each file's `static` forward declarations cover the others' definitions).  The
+   port keeps one file per unit, so the definitions in `femacs/lib/regex_internal.rs` (and,
+   for `re_acquire_state_context`, `femacs/lib/regexec.rs`) are named here the way C's
+   prototype block names them: `docs/ports/regcomp.md` records the shape.  */
+unsafe extern "C" {
+  /* static reg_errcode_t re_string_construct (re_string_t *pstr, const char *str,
+                                               Idx len, RE_TRANSLATE_TYPE trans,
+                                               bool icase, const re_dfa_t *dfa);  */
+  pub fn re_string_construct (pstr: *mut re_string_t, str_: *const c_char, len: Idx,
+                              trans: RE_TRANSLATE_TYPE, icase: bool,
+                              dfa: *const re_dfa_t) -> reg_errcode_t;
+  /* static void re_string_destruct (re_string_t *pstr);  */
+  pub fn re_string_destruct (pstr: *mut re_string_t);
+  /* static unsigned char re_string_peek_byte_case (const re_string_t *pstr, Idx idx);  */
+  pub fn re_string_peek_byte_case (pstr: *const re_string_t, idx: Idx) -> u8;
+  /* static unsigned char re_string_fetch_byte_case (re_string_t *pstr);  */
+  pub fn re_string_fetch_byte_case (pstr: *mut re_string_t) -> u8;
+  /* static Idx re_dfa_add_node (re_dfa_t *dfa, re_token_t token);  */
+  pub fn re_dfa_add_node (dfa: *mut re_dfa_t, token: re_token_t) -> Idx;
+  /* static bool re_node_set_insert (re_node_set *set, Idx elem);  */
+  pub fn re_node_set_insert (set: *mut re_node_set, elem: Idx) -> bool;
+  /* static bool re_node_set_insert_last (re_node_set *set, Idx elem);  */
+  pub fn re_node_set_insert_last (set: *mut re_node_set, elem: Idx) -> bool;
+  /* static reg_errcode_t re_node_set_init_1 (re_node_set *set, Idx elem);  */
+  pub fn re_node_set_init_1 (set: *mut re_node_set, elem: Idx) -> reg_errcode_t;
+  /* static reg_errcode_t re_node_set_init_copy (re_node_set *dest,
+                                                 const re_node_set *src);  */
+  pub fn re_node_set_init_copy (dest: *mut re_node_set, src: *const re_node_set)
+    -> reg_errcode_t;
+  /* static reg_errcode_t re_node_set_merge (re_node_set *dest, const re_node_set *src);  */
+  pub fn re_node_set_merge (dest: *mut re_node_set, src: *const re_node_set)
+    -> reg_errcode_t;
+  /* static void free_state (re_dfastate_t *state);  (lib/regex_internal.c 1579)  */
+  pub fn free_state (state: *mut re_dfastate_t);
+  /* static reg_errcode_t re_node_set_alloc (re_node_set *set, Idx size);  */
+  pub fn re_node_set_alloc (set: *mut re_node_set, size: Idx) -> reg_errcode_t;
+  /* static reg_errcode_t re_node_set_init_2 (re_node_set *set, Idx elem1, Idx elem2);  */
+  pub fn re_node_set_init_2 (set: *mut re_node_set, elem1: Idx, elem2: Idx) -> reg_errcode_t;
+  /* static Idx re_node_set_contains (const re_node_set *set, Idx elem);  */
+  pub fn re_node_set_contains (set: *const re_node_set, elem: Idx) -> Idx;
+  /* static re_dfastate_t *re_acquire_state_context (reg_errcode_t *err,
+                                                     const re_dfa_t *dfa,
+                                                     const re_node_set *nodes,
+                                                     unsigned int context);  */
+  pub fn re_acquire_state_context (err: *mut reg_errcode_t, dfa: *const re_dfa_t,
+                                   nodes: *const re_node_set, context: c_uint)
+    -> *mut re_dfastate_t;
+}
+
 /* C: <stdlib.h>'s `MB_CUR_MAX` macro.  */
 macro_rules! MB_CUR_MAX {
     () => { ___mb_cur_max () };
@@ -103,7 +168,10 @@ pub const __re_error_msgid_idx: [usize; 17] =
    compiles PATTERN (of length LENGTH) and puts the result in BUFP.
    Returns 0 if the pattern was valid, otherwise an error string.  */
 
-#[unsafe(no_mangle)]
+/* C: the generated <regex.h> renames this definition (`# define re_compile_pattern rpl_re_compile_pattern`),
+   and the frozen build's lib/regex.o exports the renamed symbol; the port keeps C's source
+   name and emits that symbol (PORTING.md 10.13, the __mktime64/rpl_mktime precedent).  */
+#[unsafe(export_name = "rpl_re_compile_pattern")]
 pub unsafe extern "C" fn re_compile_pattern (pattern: *const c_char, length: usize,
                                              bufp: *mut re_pattern_buffer) -> *const c_char
 {
@@ -127,12 +195,17 @@ pub unsafe extern "C" fn re_compile_pattern (pattern: *const c_char, length: usi
 weak_alias! (__re_compile_pattern, re_compile_pattern);
 
 /* Set by 're_set_syntax' to the current regexp syntax to recognize.  */
-#[unsafe(no_mangle)]
+/* C: the generated <regex.h> renames this object too; the frozen build's lib/regex.o
+   carries `_rpl_re_syntax_options` (PORTING.md 10.13).  */
+#[unsafe(export_name = "rpl_re_syntax_options")]
 pub static mut re_syntax_options: reg_syntax_t = 0;
 
 /* Specify the precise syntax of regexps for compilation.  */
 
-#[unsafe(no_mangle)]
+/* C: the generated <regex.h> renames this definition (`# define re_set_syntax rpl_re_set_syntax`),
+   and the frozen build's lib/regex.o exports the renamed symbol; the port keeps C's source
+   name and emits that symbol (PORTING.md 10.13, the __mktime64/rpl_mktime precedent).  */
+#[unsafe(export_name = "rpl_re_set_syntax")]
 pub unsafe extern "C" fn re_set_syntax (syntax: reg_syntax_t) -> reg_syntax_t
 {
   let ret: reg_syntax_t = re_syntax_options;
@@ -142,7 +215,10 @@ pub unsafe extern "C" fn re_set_syntax (syntax: reg_syntax_t) -> reg_syntax_t
 }
 weak_alias! (__re_set_syntax, re_set_syntax);
 
-#[unsafe(no_mangle)]
+/* C: the generated <regex.h> renames this definition (`# define re_compile_fastmap rpl_re_compile_fastmap`),
+   and the frozen build's lib/regex.o exports the renamed symbol; the port keeps C's source
+   name and emits that symbol (PORTING.md 10.13, the __mktime64/rpl_mktime precedent).  */
+#[unsafe(export_name = "rpl_re_compile_fastmap")]
 pub unsafe extern "C" fn re_compile_fastmap (bufp: *mut re_pattern_buffer) -> c_int
 {
   let dfa: *mut re_dfa_t = (*bufp).buffer as *mut re_dfa_t;
@@ -180,7 +256,7 @@ unsafe fn re_set_fastmap_icase (fastmap: *mut c_char, wc: wchar_t, mbs: *mut mbs
   let mut i: c_int = 0;
   while i < nfolded
     {
-      let mut buf: [c_char; MB_LEN_MAX] = [0; MB_LEN_MAX];
+      let mut buf: [c_char; MB_LEN_MAX as usize] = [0; MB_LEN_MAX as usize];
       if __wcrtomb! (buf.as_mut_ptr (), folded[i as usize], mbs) != 1usize.wrapping_neg ()
 	{ re_set_fastmap (fastmap, buf[0] as u8); }
       i += 1;
@@ -206,7 +282,7 @@ unsafe fn re_compile_fastmap_iter (bufp: *mut regex_t, init_state: *const re_dfa
 	  re_set_fastmap (fastmap, (*(*dfa).nodes.add (node as usize)).opr.c);
 	  if (*bufp).syntax & RE_ICASE != 0
 	    {
-	      let mut buf: [u8; MB_LEN_MAX] = [0; MB_LEN_MAX];
+	      let mut buf: [u8; MB_LEN_MAX as usize] = [0; MB_LEN_MAX as usize];
 	      let mut p: *mut u8;
 	      let mut wc: wchar_t = 0;
 	      let mut state: mbstate_t = mbstate_t { count: 0, value: [0; 4] };
@@ -280,7 +356,7 @@ unsafe fn re_compile_fastmap_iter (bufp: *mut regex_t, init_state: *const re_dfa
 	      i = 0;
 	      while i < (*cset).nmbchars
 		{
-		  let mut buf: [c_char; MB_LEN_MAX] = [0; MB_LEN_MAX];
+		  let mut buf: [c_char; MB_LEN_MAX as usize] = [0; MB_LEN_MAX as usize];
 		  let mut state: mbstate_t = mbstate_t { count: 0, value: [0; 4] };
 		  memset (&mut state as *mut mbstate_t as *mut c_void, 0, std::mem::size_of::<mbstate_t> ());
 		  if __wcrtomb! (buf.as_mut_ptr (), *(*cset).mbchars.add (i as usize), &mut state)
@@ -308,39 +384,16 @@ unsafe fn re_compile_fastmap_iter (bufp: *mut regex_t, init_state: *const re_dfa
 /* Size of the names for collating symbol/equivalence_class/character_class.  */
 pub const BRACKET_NAME_BUF_SIZE: c_int = 32;
 
-/* C: inside `build_charclass` --
-     #define BUILD_CHARCLASS_LOOP(ctype_func) do { … } while (0)
-   `macro_rules!` cannot name the caller's locals (`trans`/`i`/`sbcset`), so the port takes
-   them as parameters and the call sites pass them (PORTING.md 2.1; the CONSIDER precedent
-   in docs/ports/token-aliases.tsv).  */
-macro_rules! BUILD_CHARCLASS_LOOP {
-    ($ctype_func:expr, $trans:expr, $i:expr, $sbcset:expr) => {{
-        if __glibc_unlikely (!($trans).is_null ())
-          {
-            $i = 0;
-            while $i < SBC_MAX
-              {
-                if $ctype_func ($i) != 0
-                  { bitset_set ($sbcset, *($trans).add ($i as usize) as Idx); }
-                $i += 1;
-              }
-          }
-        else
-          {
-            $i = 0;
-            while $i < SBC_MAX
-              {
-                if $ctype_func ($i) != 0
-                  { bitset_set ($sbcset, $i as Idx); }
-                $i += 1;
-              }
-          }
-    }};
-}
+/* C's `BUILD_CHARCLASS_LOOP` (regcomp.c 3519) is defined inside the function that uses it
+   (`build_charclass`), at C's position: see the port there.  C: `#define BRACKET_NAME_BUF_SIZE
+   32` is the constant above.  */
 
 /* Entry point for POSIX code.  */
 
-#[unsafe(no_mangle)]
+/* C: the generated <regex.h> renames this definition (`# define regcomp rpl_regcomp`),
+   and the frozen build's lib/regex.o exports the renamed symbol; the port keeps C's source
+   name and emits that symbol (PORTING.md 10.13, the __mktime64/rpl_mktime precedent).  */
+#[unsafe(export_name = "rpl_regcomp")]
 pub unsafe extern "C" fn regcomp (preg: *mut regex_t, pattern: *const c_char, cflags: c_int)
                                    -> c_int
 {
@@ -399,7 +452,10 @@ weak_alias! (__regcomp, regcomp);
 /* Returns a message corresponding to an error code, ERRCODE, returned
    from either regcomp or regexec.   We don't use PREG here.  */
 
-#[unsafe(no_mangle)]
+/* C: the generated <regex.h> renames this definition (`# define regerror rpl_regerror`),
+   and the frozen build's lib/regex.o exports the renamed symbol; the port keeps C's source
+   name and emits that symbol (PORTING.md 10.13, the __mktime64/rpl_mktime precedent).  */
+#[unsafe(export_name = "rpl_regerror")]
 pub unsafe extern "C" fn regerror (errcode: c_int, preg: *const regex_t, errbuf: *mut c_char,
                                    errbuf_size: usize) -> usize
 {
@@ -501,7 +557,10 @@ unsafe fn free_dfa_content (dfa: *mut re_dfa_t)
 
 /* Free dynamically allocated space used by PREG.  */
 
-#[unsafe(no_mangle)]
+/* C: the generated <regex.h> renames this definition (`# define regfree rpl_regfree`),
+   and the frozen build's lib/regex.o exports the renamed symbol; the port keeps C's source
+   name and emits that symbol (PORTING.md 10.13, the __mktime64/rpl_mktime precedent).  */
+#[unsafe(export_name = "rpl_regfree")]
 pub unsafe extern "C" fn regfree (preg: *mut regex_t)
 {
   let dfa: *mut re_dfa_t = (*preg).buffer as *mut re_dfa_t;
@@ -680,10 +739,10 @@ unsafe fn init_dfa (dfa: *mut re_dfa_t, pat_len: usize) -> reg_errcode_t
   (*dfa).mb_cur_max = MB_CUR_MAX! () as c_int;
   // C: `#ifdef _LIBC` (regcomp.c 857-895) -- dead in the frozen configuration.
   codeset_name = nl_langinfo (CODESET);
-  if (codeset_name[0] as u8 == b'U' || codeset_name[0] as u8 == b'u')
-      && (codeset_name[1] as u8 == b'T' || codeset_name[1] as u8 == b't')
-      && (codeset_name[2] as u8 == b'F' || codeset_name[2] as u8 == b'f')
-      && strcmp (codeset_name.add ((3 + (codeset_name[3] as u8 == b'-') as usize) as usize),
+  if (*codeset_name.add (0) as u8 == b'U' || *codeset_name.add (0) as u8 == b'u')
+      && (*codeset_name.add (1) as u8 == b'T' || *codeset_name.add (1) as u8 == b't')
+      && (*codeset_name.add (2) as u8 == b'F' || *codeset_name.add (2) as u8 == b'f')
+      && strcmp (codeset_name.add ((3 + (*codeset_name.add (3) as u8 == b'-') as usize) as usize),
 		 b"8\0" as *const u8 as *const c_char) == 0
     { set_is_utf8_ (dfa, 1); }
 
@@ -770,7 +829,7 @@ unsafe fn init_word_char (dfa: *mut re_dfa_t)
 	  if __glibc_likely (is_utf8_ (dfa) != 0)
 	    {
 	      memset ((*dfa).word_char.as_mut_ptr ().add (i as usize) as *mut c_void, 0,
-		      ((SBC_MAX - ch) / 8) as usize);
+		      ((SBC_MAX - ch as Idx) / 8) as usize);
 	      return;
 	    }
 	}
@@ -954,10 +1013,11 @@ unsafe fn optimize_utf8 (dfa: *mut re_dfa_t)
       else if r#type == SIMPLE_BRACKET as c_uint
 	{
 	  /* Just double check.  */
-	  let mut rshift: c_int = (if ASCII_CHARS % BITSET_WORD_BITS == 0
-				   { 0 } else { BITSET_WORD_BITS - ASCII_CHARS % BITSET_WORD_BITS })
+	  let mut rshift: c_int = (if (ASCII_CHARS as Idx) % BITSET_WORD_BITS == 0
+				   { 0 } else { BITSET_WORD_BITS
+						- (ASCII_CHARS as Idx) % BITSET_WORD_BITS })
 				   as c_int;
-	  i = (ASCII_CHARS / BITSET_WORD_BITS) as c_int;
+	  i = ((ASCII_CHARS as Idx) / BITSET_WORD_BITS) as c_int;
 	  while i < BITSET_WORDS as c_int
 	    {
 	      if (*(*dfa).nodes.add (node as usize)).opr.sbcset.add (i as usize).read () >> rshift != 0
@@ -1023,7 +1083,7 @@ unsafe fn analyze (preg: *mut regex_t) -> reg_errcode_t
 	  *(*dfa).subexp_map.add (i as usize) = i;
 	  i += 1;
 	}
-      preorder ((*dfa).str_tree, optimize_subexps, dfa);
+      preorder ((*dfa).str_tree, optimize_subexps, dfa as *mut c_void);
       i = 0;
       while i < (*preg).re_nsub as Idx
 	{
@@ -1038,14 +1098,14 @@ unsafe fn analyze (preg: *mut regex_t) -> reg_errcode_t
 	}
     }
 
-  ret = postorder ((*dfa).str_tree, lower_subexps, preg);
+  ret = postorder ((*dfa).str_tree, lower_subexps, preg as *mut c_void);
   if __glibc_unlikely (ret != REG_NOERROR)
     { return ret; }
-  ret = postorder ((*dfa).str_tree, calc_first, dfa);
+  ret = postorder ((*dfa).str_tree, calc_first, dfa as *mut c_void);
   if __glibc_unlikely (ret != REG_NOERROR)
     { return ret; }
-  preorder ((*dfa).str_tree, calc_next, dfa);
-  ret = preorder ((*dfa).str_tree, link_nfa_nodes, dfa);
+  preorder ((*dfa).str_tree, calc_next, dfa as *mut c_void);
+  ret = preorder ((*dfa).str_tree, link_nfa_nodes, dfa as *mut c_void);
   if __glibc_unlikely (ret != REG_NOERROR)
     { return ret; }
   ret = calc_eclosure (dfa);
@@ -1124,7 +1184,7 @@ unsafe fn preorder (root: *mut bin_tree_t, f: unsafe fn (*mut c_void, *mut bin_t
       else
 	{
 	  let mut prev: *mut bin_tree_t = null_mut ();
-	  while (*node).right == prev || (*node).right.is_null ()
+	  while (*node).right as *const bin_tree_t == prev || (*node).right.is_null ()
 	    {
 	      prev = node;
 	      node = (*node).parent;
@@ -1250,7 +1310,7 @@ unsafe fn calc_first (extra: *mut c_void, node: *mut bin_tree_t) -> reg_errcode_
 	{ return REG_ESPACE; }
       if type_ (&mut (*node).token) == ANCHOR as c_uint
 	{ set_constraint_ ((*dfa).nodes.add ((*node).node_idx as usize),
-			   (*(*node).token).opr.ctx_type as c_uint); }
+			   (*node).token.opr.ctx_type as c_uint); }
     }
   return REG_NOERROR;
 }
@@ -1655,7 +1715,7 @@ unsafe fn calc_eclosure_iter (new_set: *mut re_node_set, dfa: *mut re_dfa_t, nod
 
 unsafe fn fetch_token (result: *mut re_token_t, input: *mut re_string_t, syntax: reg_syntax_t)
 {
-  re_string_skip_bytes! (input, peek_token (result, input, syntax));
+  re_string_skip_bytes! (input, peek_token (result, input, syntax) as Idx);
 }
 
 /* Peek a token from INPUT, and return the length of the token.
@@ -1666,7 +1726,7 @@ unsafe fn peek_token (token: *mut re_token_t, input: *mut re_string_t, syntax: r
 {
   let c: u8;
 
-  if re_string_eoi! (input) != 0
+  if re_string_eoi! (input)
     {
       set_type_ (token, END_OF_RE as c_uint);
       return 0;
@@ -1678,7 +1738,7 @@ unsafe fn peek_token (token: *mut re_token_t, input: *mut re_string_t, syntax: r
   set_word_char_ (token, 0);
   set_mb_partial_ (token, 0);
   if (*input).mb_cur_max > 1
-      && re_string_first_byte! (input, re_string_cur_idx! (input)) == 0
+      && !re_string_first_byte! (input, re_string_cur_idx! (input))
     {
       set_type_ (token, CHARACTER as c_uint);
       set_mb_partial_ (token, 1);
@@ -1925,7 +1985,7 @@ unsafe fn peek_token_bracket (token: *mut re_token_t, input: *mut re_string_t,
                               syntax: reg_syntax_t) -> c_int
 {
   let c: u8;
-  if re_string_eoi! (input) != 0
+  if re_string_eoi! (input)
     {
       set_type_ (token, END_OF_RE as c_uint);
       return 0;
@@ -1934,7 +1994,7 @@ unsafe fn peek_token_bracket (token: *mut re_token_t, input: *mut re_string_t,
   (*token).opr.c = c;
 
   if (*input).mb_cur_max > 1
-      && re_string_first_byte! (input, re_string_cur_idx! (input)) == 0
+      && !re_string_first_byte! (input, re_string_cur_idx! (input))
     {
       set_type_ (token, CHARACTER as c_uint);
       return 1;
@@ -2049,7 +2109,7 @@ unsafe fn fetch_number (input: *mut re_string_t, token: *mut re_token_t,
 	    else if num == -1
 	    { (c - b'0') as Idx }
 	    else
-	    { MIN! (RE_DUP_MAX + 1, num * 10 + (c - b'0') as Idx) };
+	    { MIN! ((RE_DUP_MAX as Idx) + 1, num * 10 + (c - b'0') as Idx) };
     }
   return num;
 }
@@ -2173,7 +2233,7 @@ unsafe fn duplicate_tree (root: *const bin_tree_t, dfa: *mut re_dfa_t) -> *mut b
       else
 	{
 	  let mut prev: *const bin_tree_t = null_mut ();
-	  while (*node).right == prev || (*node).right.is_null ()
+	  while (*node).right as *const bin_tree_t == prev || (*node).right.is_null ()
 	    {
 	      prev = node;
 	      node = (*node).parent;
@@ -2317,4 +2377,1176 @@ unsafe fn parse_branch (regexp: *mut re_string_t, preg: *mut regex_t, token: *mu
 unsafe fn parse_byte (b: u8, dfa: *const re_dfa_t) -> wint_t
 {
   return if (*dfa).mb_cur_max > 1 { __btowc! (b as c_int) as wint_t } else { b as wint_t };
+}
+
+/* This function build the following tree, from regular expression a*:
+	 *
+	 |
+	 a  */
+
+unsafe fn parse_expression (regexp: *mut re_string_t, preg: *mut regex_t,
+                            token: *mut re_token_t, syntax: reg_syntax_t, nest: Idx,
+                            err: *mut reg_errcode_t) -> *mut bin_tree_t
+{
+  let dfa: *mut re_dfa_t = (*preg).buffer as *mut re_dfa_t;
+  let mut tree: *mut bin_tree_t;
+  let r#type: c_uint = type_ (token);
+  if r#type == CHARACTER as c_uint
+    {
+      tree = create_token_tree (dfa, null_mut (), null_mut (), token);
+      if __glibc_unlikely (tree.is_null ())
+	{
+	  *err = REG_ESPACE;
+	  return null_mut ();
+	}
+      if (*dfa).mb_cur_max > 1
+	{
+	  while !re_string_eoi! (regexp)
+		 && !re_string_first_byte! (regexp, re_string_cur_idx! (regexp))
+	    {
+	      let mbc_remain: *mut bin_tree_t;
+	      fetch_token (token, regexp, syntax);
+	      mbc_remain = create_token_tree (dfa, null_mut (), null_mut (), token);
+	      tree = create_tree (dfa, tree, mbc_remain, CONCAT);
+	      if __glibc_unlikely (mbc_remain.is_null () || tree.is_null ())
+		{
+		  *err = REG_ESPACE;
+		  return null_mut ();
+		}
+	    }
+	}
+    }
+
+  else if r#type == OP_OPEN_SUBEXP as c_uint
+    {
+      tree = parse_sub_exp (regexp, preg, token, syntax, nest + 1, err);
+      if __glibc_unlikely (*err != REG_NOERROR && tree.is_null ())
+	{ return null_mut (); }
+    }
+
+  else if r#type == OP_OPEN_BRACKET as c_uint
+    {
+      tree = parse_bracket_exp (regexp, dfa, token, syntax, err);
+      if __glibc_unlikely (*err != REG_NOERROR && tree.is_null ())
+	{ return null_mut (); }
+    }
+
+  else if r#type == OP_BACK_REF as c_uint
+    {
+      if !__glibc_likely ((*dfa).completed_bkref_map
+			  & ((1 as bitset_word_t) << (*token).opr.idx) != 0)
+	{
+	  *err = REG_ESUBREG;
+	  return null_mut ();
+	}
+      (*dfa).used_bkref_map |= (1 as bitset_word_t) << (*token).opr.idx;
+      tree = create_token_tree (dfa, null_mut (), null_mut (), token);
+      if __glibc_unlikely (tree.is_null ())
+	{
+	  *err = REG_ESPACE;
+	  return null_mut ();
+	}
+      (*dfa).nbackref += 1;
+      set_has_mb_node_ (dfa, 1);
+    }
+
+  else if r#type == OP_OPEN_DUP_NUM as c_uint || r#type == OP_DUP_ASTERISK as c_uint
+       || r#type == OP_DUP_PLUS as c_uint || r#type == OP_DUP_QUESTION as c_uint
+    {
+      if r#type == OP_OPEN_DUP_NUM as c_uint && syntax & RE_CONTEXT_INVALID_DUP != 0
+	{
+	  *err = REG_BADRPT;
+	  return null_mut ();
+	}
+      if syntax & RE_CONTEXT_INVALID_OPS != 0
+	{
+	  *err = REG_BADRPT;
+	  return null_mut ();
+	}
+      else if syntax & RE_CONTEXT_INDEP_OPS != 0
+	{
+	  fetch_token (token, regexp, syntax);
+	  return parse_expression (regexp, preg, token, syntax, nest, err);
+	}
+      /* We treat it as a normal character.  */
+      set_type_ (token, CHARACTER as c_uint);
+      /* mb_partial and word_char bits should be initialized already
+	 by peek_token.  */
+      tree = create_token_tree (dfa, null_mut (), null_mut (), token);
+      if __glibc_unlikely (tree.is_null ())
+	{
+	  *err = REG_ESPACE;
+	  return null_mut ();
+	}
+    }
+
+  else if r#type == OP_CLOSE_SUBEXP as c_uint || r#type == OP_CLOSE_DUP_NUM as c_uint
+    {
+      if r#type == OP_CLOSE_SUBEXP as c_uint
+	  && syntax & RE_UNMATCHED_RIGHT_PAREN_ORD == 0
+	{
+	  *err = REG_ERPAREN;
+	  return null_mut ();
+	}
+      /* We treat it as a normal character.  */
+      set_type_ (token, CHARACTER as c_uint);
+      tree = create_token_tree (dfa, null_mut (), null_mut (), token);
+      if __glibc_unlikely (tree.is_null ())
+	{
+	  *err = REG_ESPACE;
+	  return null_mut ();
+	}
+    }
+
+  else if r#type == ANCHOR as c_uint
+    {
+      if ((*token).opr.ctx_type as c_uint
+	   & (WORD_DELIM as c_uint | NOT_WORD_DELIM as c_uint
+	      | WORD_FIRST as c_uint | WORD_LAST as c_uint) != 0)
+	  && word_ops_used_ (dfa) == 0
+	{ init_word_char (dfa); }
+      if (*token).opr.ctx_type == re_context_type::WORD_DELIM
+	  || (*token).opr.ctx_type == re_context_type::NOT_WORD_DELIM
+	{
+	  let mut tree_first: *mut bin_tree_t;
+	  let tree_last: *mut bin_tree_t;
+	  if (*token).opr.ctx_type == re_context_type::WORD_DELIM
+	    {
+	      (*token).opr.ctx_type = re_context_type::WORD_FIRST;
+	      tree_first = create_token_tree (dfa, null_mut (), null_mut (), token);
+	      (*token).opr.ctx_type = re_context_type::WORD_LAST;
+	    }
+	  else
+	    {
+	      (*token).opr.ctx_type = re_context_type::INSIDE_WORD;
+	      tree_first = create_token_tree (dfa, null_mut (), null_mut (), token);
+	      (*token).opr.ctx_type = re_context_type::INSIDE_NOTWORD;
+	    }
+	  tree_last = create_token_tree (dfa, null_mut (), null_mut (), token);
+	  tree = create_tree (dfa, tree_first, tree_last, OP_ALT as c_int);
+	  if __glibc_unlikely (tree_first.is_null () || tree_last.is_null ()
+				|| tree.is_null ())
+	    {
+	      *err = REG_ESPACE;
+	      return null_mut ();
+	    }
+	}
+      else
+	{
+	  tree = create_token_tree (dfa, null_mut (), null_mut (), token);
+	  if __glibc_unlikely (tree.is_null ())
+	    {
+	      *err = REG_ESPACE;
+	      return null_mut ();
+	    }
+	}
+      /* We must return here, since ANCHORs can't be followed
+	 by repetition operators.  */
+      fetch_token (token, regexp, syntax);
+      return tree;
+    }
+
+  else if r#type == OP_PERIOD as c_uint
+    {
+      tree = create_token_tree (dfa, null_mut (), null_mut (), token);
+      if __glibc_unlikely (tree.is_null ())
+	{
+	  *err = REG_ESPACE;
+	  return null_mut ();
+	}
+      if (*dfa).mb_cur_max > 1
+	{ set_has_mb_node_ (dfa, 1); }
+    }
+
+  else if r#type == OP_WORD as c_uint || r#type == OP_NOTWORD as c_uint
+    {
+      tree = build_charclass_op (dfa, (*regexp).trans,
+				 b"alnum\0" as *const u8 as *const c_char,
+				 b"_\0" as *const u8 as *const c_char,
+				 r#type == OP_NOTWORD as c_uint, err);
+      if __glibc_unlikely (*err != REG_NOERROR && tree.is_null ())
+	{ return null_mut (); }
+    }
+
+  else if r#type == OP_SPACE as c_uint || r#type == OP_NOTSPACE as c_uint
+    {
+      tree = build_charclass_op (dfa, (*regexp).trans,
+				 b"space\0" as *const u8 as *const c_char,
+				 b"\0" as *const u8 as *const c_char,
+				 r#type == OP_NOTSPACE as c_uint, err);
+      if __glibc_unlikely (*err != REG_NOERROR && tree.is_null ())
+	{ return null_mut (); }
+    }
+
+  else if r#type == OP_ALT as c_uint || r#type == END_OF_RE as c_uint
+    {
+      return null_mut ();
+    }
+
+  else if r#type == BACK_SLASH as c_uint
+    {
+      *err = REG_EESCAPE;
+      return null_mut ();
+    }
+
+  else
+    {
+      /* Must not happen?  */
+      DEBUG_ASSERT! (false);
+      return null_mut ();
+    }
+  fetch_token (token, regexp, syntax);
+
+  while type_ (token) == OP_DUP_ASTERISK as c_uint || type_ (token) == OP_DUP_PLUS as c_uint
+	 || type_ (token) == OP_DUP_QUESTION as c_uint || type_ (token) == OP_OPEN_DUP_NUM as c_uint
+    {
+      let dup_tree: *mut bin_tree_t = parse_dup_op (tree, regexp, dfa, token,
+					   syntax, err);
+      if __glibc_unlikely (*err != REG_NOERROR && dup_tree.is_null ())
+	{
+	  if !tree.is_null ()
+	    { let _ = postorder (tree, free_tree, null_mut ()); }
+	  return null_mut ();
+	}
+      tree = dup_tree;
+      /* In BRE consecutive duplications are not allowed.  */
+      if (syntax & RE_CONTEXT_INVALID_DUP) != 0
+	  && (type_ (token) == OP_DUP_ASTERISK as c_uint
+	      || type_ (token) == OP_OPEN_DUP_NUM as c_uint)
+	{
+	  if !tree.is_null ()
+	    { let _ = postorder (tree, free_tree, null_mut ()); }
+	  *err = REG_BADRPT;
+	  return null_mut ();
+	}
+    }
+
+  return tree;
+}
+
+/* This function build the following tree, from regular expression
+   (<reg_exp>):
+	 SUBEXP
+	    |
+	<reg_exp>  */
+
+unsafe fn parse_sub_exp (regexp: *mut re_string_t, preg: *mut regex_t,
+                         token: *mut re_token_t, syntax: reg_syntax_t, nest: Idx,
+                         err: *mut reg_errcode_t) -> *mut bin_tree_t
+{
+  let dfa: *mut re_dfa_t = (*preg).buffer as *mut re_dfa_t;
+  let mut tree: *mut bin_tree_t;
+  let cur_nsub: usize;
+  cur_nsub = (*preg).re_nsub;
+  (*preg).re_nsub += 1;
+
+  fetch_token (token, regexp, syntax | RE_CARET_ANCHORS_HERE);
+
+  /* The subexpression may be a null string.  */
+  if type_ (token) == OP_CLOSE_SUBEXP as c_uint
+    { tree = null_mut (); }
+  else
+    {
+      tree = parse_reg_exp (regexp, preg, token, syntax, nest, err);
+      if __glibc_unlikely (*err == REG_NOERROR
+			    && type_ (token) != OP_CLOSE_SUBEXP as c_uint)
+	{
+	  if !tree.is_null ()
+	    { let _ = postorder (tree, free_tree, null_mut ()); }
+	  *err = REG_EPAREN;
+	}
+      if __glibc_unlikely (*err != REG_NOERROR)
+	{ return null_mut (); }
+    }
+
+  if cur_nsub <= (b'9' - b'1') as usize
+    { (*dfa).completed_bkref_map |= (1 as bitset_word_t) << cur_nsub; }
+
+  tree = create_tree (dfa, tree, null_mut (), SUBEXP as c_int);
+  if __glibc_unlikely (tree.is_null ())
+    {
+      *err = REG_ESPACE;
+      return null_mut ();
+    }
+  (*tree).token.opr.idx = cur_nsub as Idx;
+  return tree;
+}
+
+/* This function parse repetition operators like "*", "+", "{1,3}" etc.  */
+
+unsafe fn parse_dup_op (elem: *mut bin_tree_t, regexp: *mut re_string_t, dfa: *mut re_dfa_t,
+			token: *mut re_token_t, syntax: reg_syntax_t, err: *mut reg_errcode_t)
+			-> *mut bin_tree_t
+{
+  /* C assigns to its ELEM parameter (`elem = duplicate_tree (…)`), so the binding is
+     mutable here (PORTING.md 1.5).  */
+  let mut elem: *mut bin_tree_t = elem;
+  let mut tree: *mut bin_tree_t = null_mut ();
+  let mut old_tree: *mut bin_tree_t = null_mut ();
+  let mut i: Idx;
+  let mut start: Idx;
+  let mut end: Idx;
+  let start_idx: Idx = re_string_cur_idx! (regexp);
+  let start_token: re_token_t = *token;
+
+  'parse_dup_op_espace: {
+  if type_ (token) == OP_OPEN_DUP_NUM as c_uint
+    {
+      end = 0;
+      start = fetch_number (regexp, token, syntax);
+      if start == -1
+	{
+	  if type_ (token) == CHARACTER as c_uint && (*token).opr.c == b','
+	    { start = 0; } /* We treat "{,m}" as "{0,m}".  */
+	  else
+	    {
+	      *err = REG_BADBR; /* <re>{} is invalid.  */
+	      return null_mut ();
+	    }
+	}
+      if __glibc_likely (start != -2)
+	{
+	  /* We treat "{n}" as "{n,n}".  */
+	  end = if type_ (token) == OP_CLOSE_DUP_NUM as c_uint
+		{ start }
+		else if type_ (token) == CHARACTER as c_uint && (*token).opr.c == b','
+		{ fetch_number (regexp, token, syntax) }
+		else { -2 };
+	}
+      if __glibc_unlikely (start == -2 || end == -2)
+	{
+	  /* Invalid sequence.  */
+	  if __glibc_unlikely (! (syntax & RE_INVALID_INTERVAL_ORD != 0))
+	    {
+	      if type_ (token) == END_OF_RE as c_uint
+		{ *err = REG_EBRACE; }
+	      else
+		{ *err = REG_BADBR; }
+
+	      return null_mut ();
+	    }
+
+	  /* If the syntax bit is set, rollback.  */
+	  re_string_set_index! (regexp, start_idx);
+	  *token = start_token;
+	  set_type_ (token, CHARACTER as c_uint);
+	  /* mb_partial and word_char bits should be already initialized by
+	     peek_token.  */
+	  return elem;
+	}
+
+      if __glibc_unlikely ((end != -1 && start > end)
+			   || type_ (token) != OP_CLOSE_DUP_NUM as c_uint)
+	{
+	  /* First number greater than second.  */
+	  *err = REG_BADBR;
+	  return null_mut ();
+	}
+
+      if __glibc_unlikely ((RE_DUP_MAX as Idx) < (if end == -1 { start } else { end }))
+	{
+	  *err = REG_ESIZE;
+	  return null_mut ();
+	}
+    }
+  else
+    {
+      start = if type_ (token) == OP_DUP_PLUS as c_uint { 1 } else { 0 };
+      end = if type_ (token) == OP_DUP_QUESTION as c_uint { 1 } else { -1 };
+    }
+
+  fetch_token (token, regexp, syntax);
+
+  if __glibc_unlikely (elem.is_null ())
+    { return null_mut (); }
+  if __glibc_unlikely (start == 0 && end == 0)
+    {
+      let _ = postorder (elem, free_tree, null_mut ());
+      return null_mut ();
+    }
+
+  /* Extract "<re>{n,m}" to "<re><re>...<re><re>{0,<m-n>}".  */
+  if __glibc_unlikely (start > 0)
+    {
+      tree = elem;
+      i = 2;
+      while i <= start
+	{
+	  elem = duplicate_tree (elem, dfa);
+	  tree = create_tree (dfa, tree, elem, CONCAT as c_int);
+	  if __glibc_unlikely (elem.is_null () || tree.is_null ())
+	    { break 'parse_dup_op_espace; }
+	  i += 1;
+	}
+
+      if start == end
+	{ return tree; }
+
+      /* Duplicate ELEM before it is marked optional.  */
+      elem = duplicate_tree (elem, dfa);
+      if __glibc_unlikely (elem.is_null ())
+	{ break 'parse_dup_op_espace; }
+      old_tree = tree;
+    }
+  else
+    { old_tree = null_mut (); }
+
+  if type_ (&mut (*elem).token) == SUBEXP as c_uint
+    {
+      let subidx: usize = (*elem).token.opr.idx as usize;
+      let _ = postorder (elem, mark_opt_subexp, subidx as *mut c_void);
+    }
+
+  tree = create_tree (dfa, elem, null_mut (),
+		      if end == -1 { OP_DUP_ASTERISK as c_int } else { OP_ALT as c_int });
+  if __glibc_unlikely (tree.is_null ())
+    { break 'parse_dup_op_espace; }
+
+  /* This loop is actually executed only when end != -1,
+     to rewrite <re>{0,n} as (<re>(<re>...<re>?)?)?...  We have
+     already created the start+1-th copy.  */
+  if TYPE_SIGNED! (Idx) || end != -1
+    {
+      i = start + 2;
+      while i <= end
+	{
+	  elem = duplicate_tree (elem, dfa);
+	  tree = create_tree (dfa, tree, elem, CONCAT as c_int);
+	  if __glibc_unlikely (elem.is_null () || tree.is_null ())
+	    { break 'parse_dup_op_espace; }
+
+	  tree = create_tree (dfa, tree, null_mut (), OP_ALT as c_int);
+	  if __glibc_unlikely (tree.is_null ())
+	    { break 'parse_dup_op_espace; }
+	  i += 1;
+	}
+    }
+
+  if !old_tree.is_null ()
+    { tree = create_tree (dfa, old_tree, tree, CONCAT as c_int); }
+
+  return tree;
+  }
+
+  /* C: `parse_dup_op_espace:` (PORTING.md 2.2): the five `goto`s above are the
+     `break 'parse_dup_op_espace`s, so the tail is only reachable through them.  */
+  *err = REG_ESPACE;
+  return null_mut ();
+}
+
+/* Size of the names for collating symbol/equivalence_class/character_class.
+   I'm not sure, but maybe enough.  */
+/* C: `#define BRACKET_NAME_BUF_SIZE 32` — the constant is emitted next to the other
+   file-scope names (regcomp.rs 309).  */
+
+/* C: `#ifndef _LIBC` (regcomp.c 2653) — live in the frozen configuration.  */
+
+/* Convert the byte B to the corresponding wide character.  In a
+   unibyte locale, treat B as itself.  In a multibyte locale, return
+   WEOF if B is an encoding error.  */
+/* C: `static wint_t parse_byte (…)` — emitted with the other helpers (regcomp.rs 2317).  */
+
+/* Local function for parse_bracket_exp used in _LIBC environment.
+   Build the range expression which starts from START_ELEM, and ends
+   at END_ELEM.  The result are written to MBCSET and SBCSET.
+   RANGE_ALLOC is the allocated size of mbcset->range_starts, and
+   mbcset->range_ends, is a pointer argument since we may
+   update it.  */
+
+unsafe fn build_range_exp (sbcset: re_bitset_ptr_t, mbcset: *mut re_charset_t,
+			   range_alloc: *mut Idx,
+			   start_elem: *mut bracket_elem_t, end_elem: *mut bracket_elem_t,
+			   dfa: *mut re_dfa_t, syntax: reg_syntax_t, nrules: uint_fast32_t,
+			   collseqmb: *const u8, collseqwc: *const c_char,
+			   table_size: int_fast32_t, symb_table: *const c_void,
+			   extra: *const u8) -> reg_errcode_t
+{
+  /* Equivalence Classes and Character Classes can't be a range start/end.  */
+  if __glibc_unlikely ((*start_elem).type_ == EQUIV_CLASS
+		       || (*start_elem).type_ == CHAR_CLASS
+		       || (*end_elem).type_ == EQUIV_CLASS
+		       || (*end_elem).type_ == CHAR_CLASS)
+    { return REG_ERANGE; }
+
+  /* We can handle no multi character collating elements without libc
+     support.  */
+  if __glibc_unlikely (((*start_elem).type_ == COLL_SYM
+			&& strlen ((*start_elem).opr.name as *const c_char) > 1)
+		       || ((*end_elem).type_ == COLL_SYM
+			   && strlen ((*end_elem).opr.name as *const c_char) > 1))
+    { return REG_ECOLLATE; }
+
+  let start_ch: c_uint;
+  let end_ch: c_uint;
+  let start_wc: wint_t;
+  let end_wc: wint_t;
+
+  start_ch = if (*start_elem).type_ == SB_CHAR { (*start_elem).opr.ch as c_uint }
+	     else if (*start_elem).type_ == COLL_SYM
+	     { *(*start_elem).opr.name as c_uint }
+	     else { 0 };
+  end_ch = if (*end_elem).type_ == SB_CHAR { (*end_elem).opr.ch as c_uint }
+	   else if (*end_elem).type_ == COLL_SYM { *(*end_elem).opr.name as c_uint }
+	   else { 0 };
+  start_wc = if (*start_elem).type_ == SB_CHAR || (*start_elem).type_ == COLL_SYM
+	     { parse_byte (start_ch as u8, dfa) } else { (*start_elem).opr.wch as wint_t };
+  end_wc = if (*end_elem).type_ == SB_CHAR || (*end_elem).type_ == COLL_SYM
+	   { parse_byte (end_ch as u8, dfa) } else { (*end_elem).opr.wch as wint_t };
+
+  if start_wc == WEOF || end_wc == WEOF
+    { return REG_ECOLLATE; }
+  else if __glibc_unlikely (syntax & RE_NO_EMPTY_RANGES != 0 && start_wc > end_wc)
+    { return REG_ERANGE; }
+
+  /* Got valid collation sequence values, add them as a new entry.
+     However, for !_LIBC we have no collation elements: if the
+     character set is single byte, the single byte character set
+     that we build below suffices.  parse_bracket_exp passes
+     no MBCSET if dfa->mb_cur_max == 1.  */
+  if (*dfa).mb_cur_max > 1
+    {
+      /* Check the space of the arrays.  */
+      if __glibc_unlikely (*range_alloc == (*mbcset).nranges)
+	{
+	  /* There is not enough space, need realloc.  */
+	  let new_array_start: *mut wchar_t;
+	  let new_array_end: *mut wchar_t;
+	  let new_nranges: Idx;
+
+	  /* +1 in case of mbcset->nranges is 0.  */
+	  new_nranges = 2 * (*mbcset).nranges + 1;
+	  /* Use realloc since mbcset->range_starts and mbcset->range_ends
+	     are NULL if *range_alloc == 0.  */
+	  new_array_start = re_realloc! ((*mbcset).range_starts, wchar_t, new_nranges);
+	  new_array_end = re_realloc! ((*mbcset).range_ends, wchar_t, new_nranges);
+
+	  if __glibc_unlikely (new_array_start.is_null () || new_array_end.is_null ())
+	    {
+	      re_free! (new_array_start);
+	      re_free! (new_array_end);
+	      return REG_ESPACE;
+	    }
+
+	  (*mbcset).range_starts = new_array_start;
+	  (*mbcset).range_ends = new_array_end;
+	  *range_alloc = new_nranges;
+	}
+
+      *(*mbcset).range_starts.add ((*mbcset).nranges as usize) = start_wc as wchar_t;
+      *(*mbcset).range_ends.add ((*mbcset).nranges as usize) = end_wc as wchar_t;
+      (*mbcset).nranges += 1;
+    }
+
+  /* Build the table for single byte characters.  */
+  let mut wc: wchar_t = 0;
+  while wc < SBC_MAX as wchar_t
+    {
+      if start_wc as wchar_t <= wc && wc <= end_wc as wchar_t
+	{ bitset_set (sbcset, wc as Idx); }
+      wc += 1;
+    }
+
+  return REG_NOERROR;
+}
+/* C: `#endif /* not _LIBC */` (regcomp.c 2762).  */
+
+/* C: `#ifndef _LIBC` (regcomp.c 2764) — live in the frozen configuration.  */
+
+/* Helper function for parse_bracket_exp only used in case of NOT _LIBC.
+   Build the collating element which is represented by NAME.
+   The result are written to MBCSET and SBCSET.
+   COLL_SYM_ALLOC is the allocated size of mbcset->coll_sym, is a
+   pointer argument since we may update it.  */
+
+unsafe fn build_collating_symbol (sbcset: re_bitset_ptr_t, mbcset: *mut re_charset_t,
+				  coll_sym_alloc: *mut Idx, name: *const u8,
+				  nrules: uint_fast32_t, table_size: int_fast32_t,
+				  symb_table: *const c_void,
+				  extra: *const u8) -> reg_errcode_t
+{
+  let name_len: usize = strlen (name as *const c_char);
+  if __glibc_unlikely (name_len != 1)
+    { return REG_ECOLLATE; }
+  else
+    {
+      bitset_set (sbcset, *name.add (0) as Idx);
+      return REG_NOERROR;
+    }
+}
+/* C: `#endif /* not _LIBC */` (regcomp.c 2786).  */
+
+/* C: `#ifdef _LIBC` (regcomp.c 2788-3041) — dead in the frozen configuration: the six
+   glibc collation helpers (`seek_collating_symbol_entry`, `lookup_collation_sequence_value`,
+   `build_range_exp`, `parse_byte`'s `_LIBC` twin, `build_collating_symbol`) and the
+   `_NL_CURRENT` sources they read do not exist on this target.  */
+
+/* This function parse bracket expression like "[abc]", "[a-c]",
+   "[[.a-a.]]" etc.  */
+
+unsafe fn parse_bracket_exp (regexp: *mut re_string_t, dfa: *mut re_dfa_t,
+			     token: *mut re_token_t, syntax: reg_syntax_t,
+			     err: *mut reg_errcode_t) -> *mut bin_tree_t
+{
+  let collseqmb: *const u8 = null_mut ();
+  let collseqwc: *const c_char = null_mut ();
+  let mut nrules: uint_fast32_t = 0;
+  let mut table_size: int_fast32_t = 0;
+  let symb_table: *const c_void = null_mut ();
+  let extra: *const u8 = null_mut ();
+
+  let mut br_token: re_token_t = re_token_t { opr: re_token_opr_t { c: 0 }, bits: 0 };
+  /* C leaves these three uninitialized on entry (`re_bitset_ptr_t sbcset;`): the port
+     gives them the null initializer the allocation below overwrites (PORTING.md 1.5).  */
+  let mut sbcset: re_bitset_ptr_t = null_mut ();
+  let mut mbcset: *mut re_charset_t = null_mut ();
+  let mut coll_sym_alloc: Idx = 0;
+  let mut range_alloc: Idx = 0;
+  let mut mbchar_alloc: Idx = 0;
+  let mut equiv_class_alloc: Idx = 0;
+  let mut char_class_alloc: Idx = 0;
+  let mut non_match: bool = false;
+  let mut work_tree: *mut bin_tree_t = null_mut ();
+  let mut token_len: c_int;
+  let mut first_round: bool = true;
+
+  /* C: `#ifdef _LIBC … #endif` (regcomp.c 3066-3080) — dead in the frozen configuration:
+     `collseqmb`/`collseqwc`/`nrules`/`table_size`/`symb_table`/`extra` keep the NULL/0
+     initializers above, exactly as the `#else` arm of that target's C leaves them.  */
+
+  /* C's two labels (`parse_bracket_exp_espace` and `parse_bracket_exp_free_return`) are
+     the labelled loop and block below: PORTING.md 2.2's `goto` shape (the espace tail
+     falls into the free_return tail, and the gotos jump into either).  */
+  'parse_bracket_exp_free_return: loop
+    {
+      'parse_bracket_exp_espace: {
+  sbcset = calloc (1, std::mem::size_of::<bitset_t> ()) as re_bitset_ptr_t;
+  mbcset = calloc (1, std::mem::size_of::<re_charset_t> ()) as *mut re_charset_t;
+  if __glibc_unlikely (sbcset.is_null () || mbcset.is_null ())
+    {
+      re_free! (sbcset);
+      re_free! (mbcset);
+      *err = REG_ESPACE;
+      return null_mut ();
+    }
+
+  token_len = peek_token_bracket (token, regexp, syntax);
+  if __glibc_unlikely (type_ (token) == END_OF_RE as c_uint)
+    {
+      *err = REG_BADPAT;
+      break 'parse_bracket_exp_free_return;
+    }
+  if type_ (token) == OP_NON_MATCH_LIST as c_uint
+    {
+      set_non_match_ (mbcset, 1);
+      non_match = true;
+      if syntax & RE_HAT_LISTS_NOT_NEWLINE != 0
+	{ bitset_set (sbcset, b'\n' as Idx); }
+      re_string_skip_bytes! (regexp, token_len as Idx); /* Skip a token.  */
+      token_len = peek_token_bracket (token, regexp, syntax);
+      if __glibc_unlikely (type_ (token) == END_OF_RE as c_uint)
+	{
+	  *err = REG_BADPAT;
+	  break 'parse_bracket_exp_free_return;
+	}
+    }
+
+  /* We treat the first ']' as a normal character.  */
+  if type_ (token) == OP_CLOSE_BRACKET as c_uint
+    { set_type_ (token, CHARACTER as c_uint); }
+
+  loop
+    {
+      let mut start_elem: bracket_elem_t =
+	bracket_elem_t { type_: COLL_SYM, opr: bracket_elem_opr_t { ch: 0 } };
+      let mut end_elem: bracket_elem_t =
+	bracket_elem_t { type_: COLL_SYM, opr: bracket_elem_opr_t { ch: 0 } };
+      let mut start_name_buf: [u8; BRACKET_NAME_BUF_SIZE as usize] =
+	[0; BRACKET_NAME_BUF_SIZE as usize];
+      let mut end_name_buf: [u8; BRACKET_NAME_BUF_SIZE as usize] =
+	[0; BRACKET_NAME_BUF_SIZE as usize];
+      let mut ret: reg_errcode_t;
+      let mut token_len2: c_int = 0;
+      let mut is_range_exp: bool = false;
+      let mut token2: re_token_t = re_token_t { opr: re_token_opr_t { c: 0 }, bits: 0 };
+
+      (*&mut start_elem).opr.name = start_name_buf.as_mut_ptr ();
+      (*&mut start_elem).type_ = COLL_SYM;
+      ret = parse_bracket_element (&mut start_elem, regexp, token, token_len, dfa,
+				   syntax, first_round);
+      if __glibc_unlikely (ret != REG_NOERROR)
+	{
+	  *err = ret;
+	  break 'parse_bracket_exp_free_return;
+	}
+      first_round = false;
+
+      /* Get information about the next token.  We need it in any case.  */
+      token_len = peek_token_bracket (token, regexp, syntax);
+
+      /* Do not check for ranges if we know they are not allowed.  */
+      if start_elem.type_ != CHAR_CLASS && start_elem.type_ != EQUIV_CLASS
+	{
+	  if __glibc_unlikely (type_ (token) == END_OF_RE as c_uint)
+	    {
+	      *err = REG_EBRACK;
+	      break 'parse_bracket_exp_free_return;
+	    }
+	  if type_ (token) == OP_CHARSET_RANGE as c_uint
+	    {
+	      re_string_skip_bytes! (regexp, token_len as Idx); /* Skip '-'.  */
+	      token_len2 = peek_token_bracket (&mut token2, regexp, syntax);
+	      if __glibc_unlikely (type_ (&mut token2) == END_OF_RE as c_uint)
+		{
+		  *err = REG_EBRACK;
+		  break 'parse_bracket_exp_free_return;
+		}
+	      if type_ (&mut token2) == OP_CLOSE_BRACKET as c_uint
+		{
+		  /* We treat the last '-' as a normal character.  */
+		  re_string_skip_bytes! (regexp, -token_len as Idx);
+		  set_type_ (token, CHARACTER as c_uint);
+		}
+	      else
+		{ is_range_exp = true; }
+	    }
+	}
+
+      if is_range_exp == true
+	{
+	  (*&mut end_elem).opr.name = end_name_buf.as_mut_ptr ();
+	  (*&mut end_elem).type_ = COLL_SYM;
+	  ret = parse_bracket_element (&mut end_elem, regexp, &mut token2, token_len2,
+				       dfa, syntax, true);
+	  if __glibc_unlikely (ret != REG_NOERROR)
+	    {
+	      *err = ret;
+	      break 'parse_bracket_exp_free_return;
+	    }
+
+	  token_len = peek_token_bracket (token, regexp, syntax);
+
+	  *err = build_range_exp (sbcset, mbcset, &mut range_alloc,
+				  &mut start_elem, &mut end_elem,
+				  dfa, syntax, nrules, collseqmb, collseqwc,
+				  table_size, symb_table, extra);
+	  if __glibc_unlikely (*err != REG_NOERROR)
+	    { break 'parse_bracket_exp_free_return; }
+	}
+      else
+	{
+	  if start_elem.type_ == SB_CHAR
+	    { bitset_set (sbcset, start_elem.opr.ch as Idx); }
+	  else if start_elem.type_ == MB_CHAR
+	    {
+	      /* Check whether the array has enough space.  */
+	      if __glibc_unlikely (mbchar_alloc == (*mbcset).nmbchars)
+		{
+		  let new_mbchars: *mut wchar_t;
+		  /* Not enough, realloc it.  */
+		  /* +1 in case of mbcset->nmbchars is 0.  */
+		  mbchar_alloc = 2 * (*mbcset).nmbchars + 1;
+		  /* Use realloc since array is NULL if *alloc == 0.  */
+		  new_mbchars = re_realloc! ((*mbcset).mbchars, wchar_t, mbchar_alloc);
+		  if __glibc_unlikely (new_mbchars.is_null ())
+		    { break 'parse_bracket_exp_espace; }
+		  (*mbcset).mbchars = new_mbchars;
+		}
+	      *(*mbcset).mbchars.add ((*mbcset).nmbchars as usize) = start_elem.opr.wch;
+	      (*mbcset).nmbchars += 1;
+	    }
+	  else if start_elem.type_ == EQUIV_CLASS
+	    {
+	      *err = build_equiv_class (sbcset, mbcset, &mut equiv_class_alloc,
+					start_elem.opr.name);
+	      if __glibc_unlikely (*err != REG_NOERROR)
+		{ break 'parse_bracket_exp_free_return; }
+	    }
+	  else if start_elem.type_ == COLL_SYM
+	    {
+	      *err = build_collating_symbol (sbcset, mbcset, &mut coll_sym_alloc,
+					     start_elem.opr.name,
+					     nrules, table_size, symb_table, extra);
+	      if __glibc_unlikely (*err != REG_NOERROR)
+		{ break 'parse_bracket_exp_free_return; }
+	    }
+	  else if start_elem.type_ == CHAR_CLASS
+	    {
+	      *err = build_charclass ((*regexp).trans, sbcset, mbcset, &mut char_class_alloc,
+				      start_elem.opr.name as *const c_char, syntax);
+	      if __glibc_unlikely (*err != REG_NOERROR)
+		{ break 'parse_bracket_exp_free_return; }
+	    }
+	  else
+	    { DEBUG_ASSERT! (false); }
+	}
+      if __glibc_unlikely (type_ (token) == END_OF_RE as c_uint)
+	{
+	  *err = REG_EBRACK;
+	  break 'parse_bracket_exp_free_return;
+	}
+      if type_ (token) == OP_CLOSE_BRACKET as c_uint
+	{ break; }
+    }
+
+  re_string_skip_bytes! (regexp, token_len as Idx); /* Skip a token.  */
+
+  /* If it is non-matching list.  */
+  if non_match
+    { bitset_not (sbcset); }
+
+  /* Ensure only single byte characters are set.  */
+  if (*dfa).mb_cur_max > 1
+    { bitset_mask (sbcset, (*dfa).sb_char); }
+
+  if (*mbcset).nmbchars != 0 || (*mbcset).ncoll_syms != 0 || (*mbcset).nequiv_classes != 0
+      || (*mbcset).nranges != 0
+      || (*dfa).mb_cur_max > 1
+	 && ((*mbcset).nchar_classes != 0 || non_match_ (mbcset) != 0)
+    {
+      let mut mbc_tree: *mut bin_tree_t;
+      let mut sbc_idx: c_int;
+      /* Build a tree for complex bracket.  */
+      set_has_mb_node_ (dfa, 1);
+      set_type_ (&mut br_token, COMPLEX_BRACKET as c_uint);
+      br_token.opr.mbcset = mbcset;
+      mbc_tree = create_token_tree (dfa, null_mut (), null_mut (), &br_token);
+      if __glibc_unlikely (mbc_tree.is_null ())
+	{ break 'parse_bracket_exp_espace; }
+      sbc_idx = 0;
+      while sbc_idx < BITSET_WORDS as c_int
+	{
+	  if *sbcset.add (sbc_idx as usize) != 0
+	    { break; }
+	  sbc_idx += 1;
+	}
+      /* If there are no bits set in sbcset, there is no point
+	 of having both SIMPLE_BRACKET and COMPLEX_BRACKET.  */
+      if sbc_idx < BITSET_WORDS as c_int
+	{
+	  /* Build a tree for simple bracket.  */
+	  set_type_ (&mut br_token, SIMPLE_BRACKET as c_uint);
+	  br_token.opr.sbcset = sbcset;
+	  work_tree = create_token_tree (dfa, null_mut (), null_mut (), &br_token);
+	  if __glibc_unlikely (work_tree.is_null ())
+	    { break 'parse_bracket_exp_espace; }
+
+	  /* Then join them by ALT node.  */
+	  work_tree = create_tree (dfa, work_tree, mbc_tree, OP_ALT as c_int);
+	  if __glibc_unlikely (work_tree.is_null ())
+	    { break 'parse_bracket_exp_espace; }
+	}
+      else
+	{
+	  re_free! (sbcset);
+	  work_tree = mbc_tree;
+	}
+    }
+  else
+    {
+      free_charset (mbcset);
+      mbcset = null_mut ();
+      /* Build a tree for simple bracket.  */
+      set_type_ (&mut br_token, SIMPLE_BRACKET as c_uint);
+      br_token.opr.sbcset = sbcset;
+      work_tree = create_token_tree (dfa, null_mut (), null_mut (), &br_token);
+      if __glibc_unlikely (work_tree.is_null ())
+	{ break 'parse_bracket_exp_espace; }
+    }
+  return work_tree;
+      }
+
+      /* C: `parse_bracket_exp_espace:` — `*err = REG_ESPACE;` and then the fall-through
+	 into the free_return tail below (PORTING.md 2.2).  */
+      *err = REG_ESPACE;
+      break;
+    }
+
+  /* C: `parse_bracket_exp_free_return:`.  */
+  re_free! (sbcset);
+  if __glibc_likely (!mbcset.is_null ())
+    { free_charset (mbcset); }
+  return null_mut ();
+}
+
+/* Parse an element in the bracket expression.  */
+
+unsafe fn parse_bracket_element (elem: *mut bracket_elem_t, regexp: *mut re_string_t,
+				 token: *mut re_token_t, token_len: c_int, dfa: *mut re_dfa_t,
+				 syntax: reg_syntax_t, accept_hyphen: bool) -> reg_errcode_t
+{
+  let mut cur_char_size: c_int;
+  cur_char_size = re_string_char_size_at (regexp, re_string_cur_idx! (regexp));
+  if cur_char_size > 1
+    {
+      (*elem).type_ = MB_CHAR;
+      (*elem).opr.wch = re_string_wchar_at (regexp, re_string_cur_idx! (regexp)) as wchar_t;
+      re_string_skip_bytes! (regexp, cur_char_size as Idx);
+      return REG_NOERROR;
+    }
+  re_string_skip_bytes! (regexp, token_len as Idx); /* Skip a token.  */
+  if type_ (token) == OP_OPEN_COLL_ELEM as c_uint
+      || type_ (token) == OP_OPEN_CHAR_CLASS as c_uint
+      || type_ (token) == OP_OPEN_EQUIV_CLASS as c_uint
+    { return parse_bracket_symbol (elem, regexp, token); }
+  if __glibc_unlikely (type_ (token) == OP_CHARSET_RANGE as c_uint) && !accept_hyphen
+    {
+      /* A '-' must only appear as anything but a range indicator before
+	 the closing bracket.  Everything else is an error.  */
+      let mut token2: re_token_t = re_token_t { opr: re_token_opr_t { c: 0 }, bits: 0 };
+      let _ = peek_token_bracket (&mut token2, regexp, syntax);
+      if type_ (&mut token2) != OP_CLOSE_BRACKET as c_uint
+	/* The actual error value is not standardized since this whole
+	   case is undefined.  But ERANGE makes good sense.  */
+	{ return REG_ERANGE; }
+    }
+  (*elem).type_ = SB_CHAR;
+  (*elem).opr.ch = (*token).opr.c;
+  return REG_NOERROR;
+}
+
+/* Parse a bracket symbol in the bracket expression.  Bracket symbols are
+   such as [:<character_class>:], [.<collating_element>.], and
+   [=<equivalent_class>=].  */
+
+unsafe fn parse_bracket_symbol (elem: *mut bracket_elem_t, regexp: *mut re_string_t,
+				token: *mut re_token_t) -> reg_errcode_t
+{
+  let mut ch: u8;
+  let delim: u8 = (*token).opr.c;
+  let mut i: c_int = 0;
+  if re_string_eoi! (regexp)
+    { return REG_EBRACK; }
+  loop
+    {
+      if i >= BRACKET_NAME_BUF_SIZE
+	{ return REG_EBRACK; }
+      if type_ (token) == OP_OPEN_CHAR_CLASS as c_uint
+	{ ch = re_string_fetch_byte_case (regexp); }
+      else
+	{ ch = re_string_fetch_byte! (regexp); }
+      if re_string_eoi! (regexp)
+	{ return REG_EBRACK; }
+      if ch == delim && re_string_peek_byte! (regexp, 0) == b']'
+	{ break; }
+      *(*elem).opr.name.add (i as usize) = ch;
+      i += 1;
+    }
+  re_string_skip_bytes! (regexp, 1);
+  *(*elem).opr.name.add (i as usize) = b'\0';
+  /* C's `switch (token->type)` with its three `case`s and `default:` is the if/else-if
+     chain below (PORTING.md 2.2).  */
+  if type_ (token) == OP_OPEN_COLL_ELEM as c_uint
+    { (*elem).type_ = COLL_SYM; }
+  else if type_ (token) == OP_OPEN_EQUIV_CLASS as c_uint
+    { (*elem).type_ = EQUIV_CLASS; }
+  else if type_ (token) == OP_OPEN_CHAR_CLASS as c_uint
+    { (*elem).type_ = CHAR_CLASS; }
+  return REG_NOERROR;
+}
+
+  /* Helper function for parse_bracket_exp.
+     Build the equivalence class which is represented by NAME.
+     The result are written to MBCSET and SBCSET.
+     EQUIV_CLASS_ALLOC is the allocated size of mbcset->equiv_classes,
+     is a pointer argument since we may update it.  */
+
+unsafe fn build_equiv_class (sbcset: re_bitset_ptr_t, mbcset: *mut re_charset_t,
+			     equiv_class_alloc: *mut Idx,
+			     name: *const u8) -> reg_errcode_t
+{
+  /* C: `#ifdef _LIBC … #endif` (regcomp.c 3412-3473) — dead in the frozen configuration:
+     this target has no `_NL_COLLATE_*` tables, so the class collapses to the single-byte
+     test below.  */
+  {
+    if __glibc_unlikely (strlen (name as *const c_char) != 1)
+      { return REG_ECOLLATE; }
+    bitset_set (sbcset, *name as Idx);
+  }
+  return REG_NOERROR;
+}
+
+  /* Helper function for parse_bracket_exp.
+     Build the character class which is represented by NAME.
+     The result are written to MBCSET and SBCSET.
+     CHAR_CLASS_ALLOC is the allocated size of mbcset->char_classes,
+     is a pointer argument since we may update it.  */
+
+unsafe fn build_charclass (trans: RE_TRANSLATE_TYPE, sbcset: re_bitset_ptr_t,
+			   mbcset: *mut re_charset_t, char_class_alloc: *mut Idx,
+			   class_name: *const c_char, syntax: reg_syntax_t) -> reg_errcode_t
+{
+  let mut i: c_int;
+  let mut name: *const c_char = class_name;
+
+  /* In case of REG_ICASE "upper" and "lower" match the both of
+     upper and lower cases.  */
+  if syntax & RE_ICASE != 0
+      && (strcmp (name, b"upper\0" as *const u8 as *const c_char) == 0
+	  || strcmp (name, b"lower\0" as *const u8 as *const c_char) == 0)
+    { name = b"alpha\0" as *const u8 as *const c_char; }
+
+  /* Check the space of the arrays.  */
+  if __glibc_unlikely (*char_class_alloc == (*mbcset).nchar_classes)
+    {
+      /* Not enough, realloc it.  */
+      /* +1 in case of mbcset->nchar_classes is 0.  */
+      let new_char_class_alloc: Idx = 2 * (*mbcset).nchar_classes + 1;
+      /* Use realloc since array is NULL if *alloc == 0.  */
+      let new_char_classes: *mut wctype_t =
+	re_realloc! ((*mbcset).char_classes, wctype_t, new_char_class_alloc);
+      if __glibc_unlikely (new_char_classes.is_null ())
+	{ return REG_ESPACE; }
+      (*mbcset).char_classes = new_char_classes;
+      *char_class_alloc = new_char_class_alloc;
+    }
+  *(*mbcset).char_classes.add ((*mbcset).nchar_classes as usize) = __wctype! (name);
+  (*mbcset).nchar_classes += 1;
+
+/* C's `#define BUILD_CHARCLASS_LOOP(ctype_func) do { … } while (0)` (regcomp.c 3519).
+   `macro_rules!` cannot name the caller's locals (`trans`/`i`/`sbcset`), so the port takes
+   them as parameters and the call sites below pass them (PORTING.md 2.1; the CONSIDER
+   precedent in docs/ports/token-aliases.tsv).  The `do { … } while (0)` wrapper is the
+   block below, and the two `for` loops are `while` loops with an explicit step.  */
+macro_rules! BUILD_CHARCLASS_LOOP {
+    ($ctype_func:expr, $trans:expr, $i:expr, $sbcset:expr) => {{
+        if __glibc_unlikely (!($trans).is_null ())
+          {
+            $i = 0;
+            while $i < SBC_MAX as c_int
+              {
+                if $ctype_func ($i) != 0
+                  { bitset_set ($sbcset, *($trans).add ($i as usize) as Idx); }
+                $i += 1;
+              }
+          }
+        else
+          {
+            $i = 0;
+            while $i < SBC_MAX as c_int
+              {
+                if $ctype_func ($i) != 0
+                  { bitset_set ($sbcset, $i as Idx); }
+                $i += 1;
+              }
+          }
+    }};
+}
+
+  if strcmp (name, b"alnum\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (isalnum, trans, i, sbcset); }
+  else if strcmp (name, b"cntrl\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (iscntrl, trans, i, sbcset); }
+  else if strcmp (name, b"lower\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (islower, trans, i, sbcset); }
+  else if strcmp (name, b"space\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (isspace, trans, i, sbcset); }
+  else if strcmp (name, b"alpha\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (isalpha, trans, i, sbcset); }
+  else if strcmp (name, b"digit\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (isdigit, trans, i, sbcset); }
+  else if strcmp (name, b"print\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (isprint, trans, i, sbcset); }
+  else if strcmp (name, b"upper\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (isupper, trans, i, sbcset); }
+  else if strcmp (name, b"blank\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (isblank, trans, i, sbcset); }
+  else if strcmp (name, b"graph\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (isgraph, trans, i, sbcset); }
+  else if strcmp (name, b"punct\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (ispunct, trans, i, sbcset); }
+  else if strcmp (name, b"xdigit\0" as *const u8 as *const c_char) == 0
+    { BUILD_CHARCLASS_LOOP! (isxdigit, trans, i, sbcset); }
+  else
+    { return REG_ECTYPE; }
+
+  return REG_NOERROR;
+}
+
+unsafe fn build_charclass_op (dfa: *mut re_dfa_t, trans: RE_TRANSLATE_TYPE,
+			      class_name: *const c_char, mut extra: *const c_char,
+			      non_match: bool,
+			      err: *mut reg_errcode_t) -> *mut bin_tree_t
+{
+  let mut sbcset: re_bitset_ptr_t;
+  let mut mbcset: *mut re_charset_t;
+  let mut alloc: Idx = 0;
+  let mut ret: reg_errcode_t;
+  let mut tree: *mut bin_tree_t;
+
+  sbcset = calloc (1, std::mem::size_of::<bitset_t> ()) as re_bitset_ptr_t;
+  if __glibc_unlikely (sbcset.is_null ())
+    {
+      *err = REG_ESPACE;
+      return null_mut ();
+    }
+  mbcset = calloc (1, std::mem::size_of::<re_charset_t> ()) as *mut re_charset_t;
+  if __glibc_unlikely (mbcset.is_null ())
+    {
+      re_free! (sbcset);
+      *err = REG_ESPACE;
+      return null_mut ();
+    }
+  set_non_match_ (mbcset, non_match as c_uint);
+
+  /* We don't care the syntax in this case.  */
+  ret = build_charclass (trans, sbcset, mbcset, &mut alloc, class_name, 0);
+
+  if __glibc_unlikely (ret != REG_NOERROR)
+    {
+      re_free! (sbcset);
+      free_charset (mbcset);
+      *err = ret;
+      return null_mut ();
+    }
+  /* \w match '_' also.  */
+  while *extra as u8 != 0
+    {
+      bitset_set (sbcset, *extra as Idx);
+      extra = extra.add (1);
+    }
+
+  /* If it is non-matching list.  */
+  if non_match
+    { bitset_not (sbcset); }
+
+  /* Ensure only single byte characters are set.  */
+  if (*dfa).mb_cur_max > 1
+    { bitset_mask (sbcset, (*dfa).sb_char); }
+
+  'build_word_op_espace: {
+  /* Build a tree for simple bracket.  */
+  let mut br_token: re_token_t = re_token_t { opr: re_token_opr_t { c: 0 }, bits: 0 };
+  set_type_ (&mut br_token, SIMPLE_BRACKET as c_uint);
+  br_token.opr.sbcset = sbcset;
+  tree = create_token_tree (dfa, null_mut (), null_mut (), &br_token);
+  if __glibc_unlikely (tree.is_null ())
+    { break 'build_word_op_espace; }
+
+  if (*dfa).mb_cur_max > 1
+    {
+      let mut mbc_tree: *mut bin_tree_t;
+      /* Build a tree for complex bracket.  */
+      set_type_ (&mut br_token, COMPLEX_BRACKET as c_uint);
+      br_token.opr.mbcset = mbcset;
+      set_has_mb_node_ (dfa, 1);
+      mbc_tree = create_token_tree (dfa, null_mut (), null_mut (), &br_token);
+      if __glibc_unlikely (mbc_tree.is_null ())
+	{ break 'build_word_op_espace; }
+      /* Then join them by ALT node.  */
+      tree = create_tree (dfa, tree, mbc_tree, OP_ALT as c_int);
+      if __glibc_likely (!mbc_tree.is_null ())
+	{ return tree; }
+    }
+  else
+    {
+      free_charset (mbcset);
+      return tree;
+    }
+  }
+
+  /* C: `build_word_op_espace:` (PORTING.md 2.2).  */
+  re_free! (sbcset);
+  free_charset (mbcset);
+  *err = REG_ESPACE;
+  return null_mut ();
 }
