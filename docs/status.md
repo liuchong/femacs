@@ -557,3 +557,34 @@
   注释已删除）截掉该逻辑行未闭合的注释；**独立复验**：`src/menu.c` 变为
   `21 conditions, 0 unknown, 0 disagreements [VERIFIED]`，全表重跑 429 个文件
   `5696 conditions, 4 unknown, 0 disagreements`（零回归）。这是"门答错"这一类的最新一例。
+
+- **3.46 `src/thread.c` 落地 + `thread.h` 镜像收口（2026-10-03 第 83 轮）**：`THREADS_ENABLED` 虽
+  是 undef，但 thread.c **不是整文件死文本**——十几个小 `#if` 把它切成若干死臂，活文本 1,255/1,314
+  （21 个 subr 全部注册但因 C 937-941 的活体 `error ("Concurrency is not supported…")` + `if (0)`
+  守卫而**不生效**，与 C 一致）。端口 1,319 行，容差行用 `live` 基准。镜像 320 行收口（含
+  `#[repr(C, align(4))]` 包住的 `sys_jmp_buf`：C 是 `int[48]`/align 4，lisp.rs 的 `jmp_buf` 是
+  `[u8;192]`/align 1，而 `thread_state` 内嵌它）；`struct handler` 在镜像里声明后，布局基线里
+  `handler` 的 6 个 pending 键变成 asserted（**785→791 asserted / 6→0 pending**）。
+- **3.47 全树 `gate-fast` 真跑一次抓出四件事（2026-10-03 第 83 轮，均已修并提交）**：
+  ① `lib/allocator.rs`、`lib/sigdescr_np.rs` **根本编译不过**（它们的 `use std::ffi::{…}` 早于共享
+  镜像后来加进的 `strtoul`/`c_uint`/`c_void`）；② `lib/canonicalize-lgpl.rs` 自己定义了 `F_OK` 又
+  include 了定义它的 `unistd.in.rs`（E0428）；③ `src/chartab.rs` 在 `eassert!` 里**先用了后定义**的
+  `CHARSET_ATTR_ID!`——这一条只有 `--cfg enable_checking` 才看得见（断言平时是死文本），是 P-57 的
+  又一例；④ 13 个 `DEFVAR_*` 变量没有在**自己的单元**里定义（见 §3.29），上一轮已修。
+  结论写进文档：**单文件三道门看不见"整棵树才有的"缺陷**（缺 import、重复定义、宏顺序、
+  DEFVAR 归属），所以 `gate-fast` 不能长期省。
+- **3.48 `materialize` 改为按 C 的文本顺序展开（2026-10-03 第 83 轮，`456bbd6`）**：旧实现"依赖
+  先行拍平"会把每个镜像排在**包含它的文件之前**；而 C 里 `thread.h` 是**在 lisp.h 内部**被
+  include 的（lisp.h 2289），所以它看得见 lisp.h 181-196 定义的 `eassert` 与 750-752 的 `XUNTAG`。
+  拍平逼着 thread 镜像写偏离 C 的形状。现在按"首次到达它的那条 `include!` 的位置"就地展开
+  （再次到达即成去重注释，等价于 include guard），既保住 1:1，也正是单元里那些宏一直需要的行为。
+  **连带修的探针**：`spikes/` 下 7 个 `.rs` 探针与 8 个 shell 探针各自手写 `include!` 列表、没有
+  include guard，镜像图长大到 `time.in.rs` 同时能被 `lisp.rs`（经 thread.rs→sys_select.rs）与
+  `buffer.rs` 到达，于是 E0428；现在它们与单元走**同一套 materialize**（新增
+  `xtask probe <rs> <out> [<extra rustc args>…]` 取代 shell 里裸调 `rustc`）。
+  这一轮的收口证据是**整条 `gate-fast` 跑到底**：`condition evaluator` →
+  `inventory: no differences` → `checked 338 ported files: 312 done, 26 in progress, 0 failing` →
+  `globals: every DEFVAR_* variable has a definition` → 七个 `probe …: the Rust side compiles` →
+  `symbols: every built unit matches its reference` → `fam-probe: 4 lines ok` /
+  `shadow-probe: shadow-probe true 0 true` / `macro-probe: every expansion compiles` →
+  `layout-check passed`。
