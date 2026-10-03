@@ -13,7 +13,6 @@ _Vdefault_process_coding_system
 _Vdisplay_line_numbers
 _Vdisplay_pixels_per_inch
 _Vfeatures
-_Vglyph_table
 _Vglyphless_char_display
 _Vhelp_form
 _Vinhibit_redisplay
@@ -30,7 +29,6 @@ _Vreal_this_command
 _Vsaved_region_selection
 _Vselect_active_regions
 _Vselect_safe_coding_system_function
-_Vstandard_display_table
 _Vthis_command
 _Vthis_original_command
 _Vthrow_on_input
@@ -63,7 +61,7 @@ ___gl_dynarray_resize
 ___morecore
 _attempt_orderly_shutdown_on_fatal_signal
 _attempt_stack_overflow_recovery
-_baud_rate
+_automatic_hscrolling
 _bidi_inhibit_bpa
 _build_upper_buffer
 _build_wcs_buffer
@@ -80,7 +78,6 @@ _fputc_unlocked
 _free_state
 _fwrite_unlocked
 _inherit_process_coding_system
-_inverse_video
 _last_command_event
 _last_nonmenu_event
 _max_redisplay_ticks
@@ -89,7 +86,6 @@ _meta_prefix_char
 _mode_line_in_non_selected_windows
 _multiple_terminals_merge_keyboards
 _nlist
-_no_redraw_on_reenter
 _num_nonmacro_input_events
 _re_acquire_state
 _re_acquire_state_context
@@ -125,4 +121,3 @@ _suppress_checking
 _syms_of_xwidget
 _track_mouse
 _use_dialog_box
-_visible_bell
