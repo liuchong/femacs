@@ -22,7 +22,7 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **238 个单元**（`femacs/src/*.rs` 116 +
+- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **240 个单元**（`femacs/src/*.rs` 118 +
   `femacs/lib/*.rs` 122）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
   **权威口径 `python3 tools/extract-abi.py --all` 本轮真跑过**（第 84 轮，约 4 分钟）：
   `checked 338 ported files: 312 done, 26 in progress, 0 failing`——"in progress" 全是 WIP 镜像
@@ -34,8 +34,9 @@
   `checked 338 ported files: 312 done, 26 in progress, 0 failing`、
   `globals: every DEFVAR_* variable has a definition`、
   `symbols: every built unit matches its reference`、七个探针程序、三个探针脚本、
-  `layout-check passed`（791 断言 / 0 pending）。此后新增 `src/thread.c`、`src/chartab.c`
-  与 §3.47 的四处修复；下一批在飞的是 `src/bytecode.c` 与 `src/timefns.c`。
+  `layout-check passed`（791 断言 / 0 pending）。此后又落了 `src/thread.c`、`src/chartab.c`、`src/bytecode.c`、`src/timefns.c`
+  与 §3.47 的四处修复、`regex-emacs.h` 镜像的收口；下一批候选是 `src/callproc.c`（活 1,977）、
+  `src/insdel.c`（2,280）、`src/composite.c`（2,312）。
 - **照抄树（Verbatim）已全部落地（2026-10-03 第 79 轮）**：`emacs/{lisp,test,etc,doc,leim,admin}`
   → `femacs/<同名>`，**逐字节照抄**，共 **4,607 文件 / 约 4.6M 行**（lisp 1,627 / test 1,555 /
   etc 887 / doc 257 / leim 28 / admin 253），六个目录各一次签名提交并推送。判定不再是行文说明
@@ -600,3 +601,23 @@
   **抄下更多 C 文本是更 1:1，不是更少**；`line-drift-tolerance.tsv` 用默认 `total` 基准。
   这条不改变其他文件：能进 `cond-eval-verified.txt` 的文件仍按 P-08 只记死区。
   另注：`timefns.c` 的行数口径以 `count("\n")` = **2144** 为准（编辑器报 2145）。
+
+- **3.50 第 85 轮：`src/bytecode.c` 与 `src/timefns.c`（2026-10-03）**：两件都是大盘，
+  且各自验证了一条既有政策。
+  ① **`timefns.c` 是 §3.49 新政策的第一个实践者**：`#if FIXNUM_OVERFLOW_P (…)`（function-like
+  宏）与 `TRILLION <= ULONG_MAX` 求值器答 `unknown`，该文件不在 `cond-eval-verified.txt`；
+  按定案**抄下两支**（活支普通文本、clang 判死支放 `#[cfg (feature = "no_fixnum_timespec_hz")]`
+  等），因此台账可满足、`--check` 得 `OK`，行数门用 `total` 基准（+1.3%）。它同时把
+  `include/systime.rs` 的十条声明移进 `systime_decls` + glob 导入（timefns 是其中七条的定义
+  单元，crate 根声明+定义会 E0428）。
+  ② **`bytecode.c` 是 P-03 的第一个完整案例**：冻结配置**确实定义** `BYTE_CODE_THREADED`
+  （`__GNUC__` 4、非 `__STRICT_ANSI__`），C 的活解释器是 computed-goto 那支；Rust 没有 `&&label`，
+  P-03 定 `BYTE_CODE_THREADED` 是**结构性条件**，故端口抄**switch 形状的那支**，并把
+  `CASE`/`NEXT`/`FIRST`/`CASE_DEFAULT`/`CASE_ABORT` 保留为同名 `macro_rules!`（C 的调用形状）。
+  这是**语义选择**，台账写明：switch 支送去 `default` 的 opcode，在 threaded 支里走
+  `insn_default`（即 `CASE_ABORT` 错误支），而 `BYTE_CODE_SAFE` 正是用来抓这个差异的。
+  168 个 opcode 名与值与 166 条臂顺序已机械化比对，`struct bc_frame` 偏移用 clang 实测并钉六条断言，
+  单元在 `--cfg enable_checking` 下也编译（P-57）。
+  ③ 顺带修一个镜像缺口：`lisp.rs` 的 `record_in_backtrace` 丢掉了 C 的返回值
+  （lisp.h 3759 `INLINE specpdl_ref record_in_backtrace (…)`），bytecode 单元因此写了偏离并用
+  `SPECPDL_INDEX ()` 补；现在镜像 `return count;`，bytecode.rs 按 C 795-796 的原点取值。
