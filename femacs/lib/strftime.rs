@@ -32,13 +32,16 @@
    `intprops.h`'s `INT_STRLEN_BOUND`, which has no generic mirror (the md5
    `INT_BUFSIZE_BOUND` decision).
 
-   `my_strftime` is C 896-916's rename: in this configuration `#define my_strftime
-   strftime`, so the unit's definition *is* the symbol `strftime` (emitted through
-   `#[unsafe(export_name)]`, the mempcpy/`__memrchr` precedent, PORTING.md 10.13)
-   while C's `#define nl_get_alt_digit _nl_get_alt_digit` has no live user.  */
-#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
-         unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
-         static_mut_refs, unsafe_op_in_unsafe_fn)]
+   `my_strftime` is C 896-916's rename.  That paragraph selects the entry point's *name*
+   and symbol: `lib/nstrftime.c` is an including shim whose `#define my_strftime
+   nstrftime` makes the same text define the symbol `nstrftime`, so the shared body below
+   is a `macro_rules!` (PORTING.md 10.13②) parameterized on the entry's name and symbol,
+   and the shim is its only instantiation (femacs/lib/nstrftime.rs — the C's own
+   `#ifdef my_strftime` arm, in which `tz`/`ns` are the entry's parameters).  This file
+   therefore has **no** crate-level `#![allow (…)]`: an inner attribute inside an included
+   file is E0753, and the shim carries the allow list for the unit that compiles the body
+   (see docs/ports/strftime.md).  C's `#define nl_get_alt_digit _nl_get_alt_digit` has no
+   live user.  */
 
 use std::ffi::{c_char, c_int, c_long, c_uchar, c_uint, c_ulong, c_void};
 include!("../src/include/config.rs");
@@ -53,7 +56,35 @@ include!("include/time.in.rs");
 include!("include/time-internal.rs");
 include!("include/strftime.rs");
 
-/* C 20 / 26 / 50: the three `#ifndef`/`#if defined __ANDROID__` defaults.  */
+/* C 914-915's `# define tz 1` and `# define ns 0` are the *other* arm of C 908-916: the
+   standalone reading, in which the two names are constants.  The frozen build compiles the
+   shim, whose arm makes them `__strftime_internal`'s parameters (the macro below takes them
+   as parameters and the shim passes its own), so these two constants are this file's record
+   of the arm the port does not instantiate.  They sit in a module of their own because a
+   Rust item cannot share its scope with a parameter of the same name (E0530: "function
+   parameters cannot shadow constants"), and the shim's arm has parameters of exactly these
+   two names.  */
+mod standalone
+{
+  use super::*;
+
+  pub const tz: c_int = 1;
+  pub const ns: c_int = 0;
+}
+
+/* C 20-2446's body, as the `macro_rules!` PORTING.md 10.13② requires.  C writes it once and
+   includes it twice — `strftime.c` on its own (`#define my_strftime strftime`) and
+   `nstrftime.c`'s shim (`#define my_strftime nstrftime` + `#include "strftime.c"`) — and
+   Rust has no textual preprocessor, so the two bindings are this macro's two arguments.
+   The frozen build compiles the shim (`lib/Makefile` builds `nstrftime.o`; there is no
+   `strftime.o` in `build/emacs-ref/lib`), which is also the only form that compiles at all
+   (C's standalone text is rewritten by its own `#define tz 1` — docs/ports/strftime.md), so
+   **this file does not instantiate the macro**: the shim's `include!` would splice an
+   instantiation here into the shim's crate as well and define the body (and its symbol)
+   twice.  `$name` is C's identifier and `$export` the symbol the including unit emits.  */
+macro_rules! strftime_body {
+  ($name:ident, $export:literal) => {
+    /* C 20 / 26 / 50: the three `#ifndef`/`#if defined __ANDROID__` defaults.  */
 pub const FPRINTFTIME: c_int = 0;
 pub const USE_C_LOCALE: c_int = 0;
 pub const HAVE_ONLY_C_LOCALE: c_int = 0;
@@ -389,14 +420,14 @@ unsafe fn get_tm_zone (tz: timezone_t, ubuf: *mut c_char, ubufsize: c_int, modif
 }
 
 /* C 1126-1203.  */
-#[unsafe(export_name = "strftime")]
-pub unsafe extern "C" fn my_strftime (s: *mut c_char, maxsize: usize, format: *const c_char,
-                                      tp: *const tm) -> retval_t
+#[unsafe(export_name = $export)]
+pub unsafe extern "C" fn $name (s: *mut c_char, maxsize: usize, format: *const c_char,
+                                tp: *const tm, tz: timezone_t, ns: c_int) -> retval_t
 {
   /* C 1143-1196's `#if !USE_C_LOCALE` arms are dead (this is a plain `strftime`).  */
   let mut tzset_called: bool = false;
   return __strftime_internal (s, maxsize, format, tp, false, ZERO_PAD, -1,
-                              &raw mut tzset_called);
+                              &raw mut tzset_called, tz, ns);
   /* C 1203's `libc_hidden_def (my_strftime)` is a glibc attribute the gnulib build
      defines to nothing.  */
 }
@@ -480,7 +511,8 @@ macro_rules! DO_NUMBER_SPACEPAD {
 /* C 1209-2446.  */
 unsafe fn __strftime_internal (s: *mut CHAR_T, mut maxsize: usize, format: *const CHAR_T,
                                tp: *const tm, upcase: bool, yr_spec: pad_style,
-                               mut width: sbyte_count_t, tzset_called: *mut bool) -> retval_t
+                               mut width: sbyte_count_t, tzset_called: *mut bool,
+                               tz: timezone_t, ns: c_int) -> retval_t
 {
   /* C 1220-1222's `_LIBC`/`USE_IN_EXTENDED_LOCALE_MODEL` arm (and its `saved_errno`)
      is dead.  */
@@ -533,9 +565,10 @@ unsafe fn __strftime_internal (s: *mut CHAR_T, mut maxsize: usize, format: *cons
 
       let mut stage: u8 = stage::none;
 
-      /* C 914-915.  */
-      const tz: c_int = 1;
-      const ns: c_int = 0;
+      /* C 914-915's `#define tz 1` / `#define ns 0` belong to the standalone reading of
+         this text; the frozen build compiles the shim, whose `#ifdef my_strftime` arm makes
+         `tz`/`ns` `__strftime_internal`'s parameters (C 896-899), and the shim passes them
+         on.  The two names are used below exactly where C uses them.  */
 
       /* C 1284-1407: the `DO_MULTIBYTE` arms are dead (`MULTIBYTE_IS_FORMAT_SAFE`
          is 1), so this is C's `#else` arm.  */
@@ -863,7 +896,7 @@ unsafe fn __strftime_internal (s: *mut CHAR_T, mut maxsize: usize, format: *cons
         {
           let mut ltm: tm = *tp;
           ltm.tm_yday = -1;
-          let mut t: time_t = mktime_z (tz as timezone_t, &raw mut ltm);
+          let mut t: time_t = mktime_z (tz, &raw mut ltm);
           if ltm.tm_yday < 0
             {
               *errno () = EOVERFLOW;
@@ -1025,7 +1058,7 @@ unsafe fn __strftime_internal (s: *mut CHAR_T, mut maxsize: usize, format: *cons
              live `get_tm_zone` arm.  */
           let mut zonebuf: [c_char; 128] = [0; 128]; /* Enough for any time zone abbreviation.  */
           let zone: *const c_char =
-            get_tm_zone (tz as timezone_t, zonebuf.as_mut_ptr (), 128, modifier, tp);
+            get_tm_zone (tz, zonebuf.as_mut_ptr (), 128, modifier, tp);
           cpy! (p, i, maxsize, pad, width, to_lowcase, to_uppcase, STRLEN! (zone), zone);
         }
       else if format_char as u8 == b':' as u8
@@ -1078,7 +1111,7 @@ unsafe fn __strftime_internal (s: *mut CHAR_T, mut maxsize: usize, format: *cons
               if diff == 0
                 {
                   let mut zonebuf: [c_char; 128] = [0; 128]; /* Enough for any time zone abbreviation.  */
-                  negative_number = *get_tm_zone (tz as timezone_t, zonebuf.as_mut_ptr (),
+                  negative_number = *get_tm_zone (tz, zonebuf.as_mut_ptr (),
                                                   128, 0, tp) == b'-' as c_char;
                 }
               let hour_diff: c_int = diff / 60 / 60;
@@ -1137,7 +1170,7 @@ unsafe fn __strftime_internal (s: *mut CHAR_T, mut maxsize: usize, format: *cons
       if stage == stage::underlying_strftime
         {
           let mut ubuf: [c_char; 1024] = [0; 1024]; /* enough for any single format in practice */
-          let len: usize = underlying_strftime (tz as timezone_t, ubuf.as_mut_ptr (), 1024,
+          let len: usize = underlying_strftime (tz, ubuf.as_mut_ptr (), 1024,
                                                 modifier as c_char, format_char as c_char, tp);
           if len != 0
             {
@@ -1160,12 +1193,12 @@ unsafe fn __strftime_internal (s: *mut CHAR_T, mut maxsize: usize, format: *cons
 
           let len: retval_t =
             __strftime_internal (std::ptr::null_mut (), (usize::MAX), subfmt, tp,
-                                 to_uppcase, subpad, subwidth, tzset_called);
+                                 to_uppcase, subpad, subwidth, tzset_called, tz, ns);
           if FAILURE < 0 && len < 0
             { return FAILURE; } /* errno is set here */
           add! (p, i, maxsize, pad, width, len as byte_count_t,
                 __strftime_internal (p, maxsize.wrapping_sub (i as usize), subfmt, tp,
-                                     to_uppcase, subpad, subwidth, tzset_called));
+                                     to_uppcase, subpad, subwidth, tzset_called, tz, ns));
         }
       if stage == stage::do_tz_offset
         {
@@ -1306,4 +1339,6 @@ unsafe fn __strftime_internal (s: *mut CHAR_T, mut maxsize: usize, format: *cons
     { *p = L_C! (b'\0'); }
 
   return i;
+}
+  };
 }

@@ -97,25 +97,19 @@ because a reviewer still has to be able to see that C's arm was considered (the 
 `gettimeofday.c` Windows-arm precedent is the opposite case: there the arm is compiled-in
 text under a feature).
 
-### `my_strftime` names the symbol `strftime`
+### `my_strftime`'s name and symbol (round 42; **superseded by "Round 52" below**)
 
-C 908-916 is `#define my_strftime strftime` when the file is compiled on its own, so the
-definition's symbol is `strftime`; the port keeps C's identifier as the Rust function name
-and emits the C symbol with `#[unsafe(export_name = "strftime")]` (PORTING.md 10.13①, the
-`mempcpy`/`__memrchr` precedent).
-
-Two consequences are recorded for the reviewer:
+Round 42 read this file as a standalone unit and recorded that `my_strftime` emits the
+symbol `strftime`; round 52 replaced that with the parameterized body the shim needs.  The
+two facts the port still rests on are kept here:
 
 * The frozen strip of the *file* cannot be compiled as C at all: `#define tz 1` (C 914)
   rewrites `underlying_strftime`'s `timezone_t tz` parameter to `1`
   (`clang -fsyntax-only -DHAVE_CONFIG_H -I build/emacs-ref/lib … emacs/lib/strftime.c`
   reports ``expected parameter declarator``).  The arm that makes `tz`/`ns` parameters is
-  `nstrftime.c`'s `#define my_strftime nstrftime`; the port therefore reads C the way the
-  live configuration writes it (the `#else` arm) and declares `tz`/`ns` as the file-scope
-  constants C's macro defines, inside `__strftime_internal` where C's macro applies.
-* Consequently this unit exports `strftime`, which the real Emacs build never links
-  (`lib/Makefile` builds `nstrftime.o`).  `nstrftime.c` is a separate unit and is ported
-  next; the shared body is factored there, not here (PORTING.md 10.13②).
+  `nstrftime.c`'s `#define my_strftime nstrftime`.
+* The real Emacs build never links a `strftime.o`: `lib/Makefile` builds `nstrftime.o`, and
+  `build/emacs-ref/lib` has no `strftime.o` (its `nstrftime.o` defines `_nstrftime` only).
 
 ### Structural deviations
 
@@ -181,3 +175,44 @@ Two consequences are recorded for the reviewer:
   `docs/ports/line-drift-tolerance.tsv`, and the token exemptions are the ten
   `strftime.c` rows appended to `docs/ports/macro-body-notes.tsv`.
 * No differential probe was run (the round's workflow stops at `build-tu`/`--check`).
+
+### Round 52: the shared body is a macro, and the shim is its only instantiation
+
+`lib/nstrftime.c` is an including shim (`#define my_strftime nstrftime` + `#include
+"strftime.c"`), so PORTING.md 10.13② applies: the body is written once, as
+
+    macro_rules! strftime_body { ($name:ident, $export:literal) => { … } }
+
+and C's `#ifdef my_strftime` bindings become the macro's two arguments.  Decisions and
+consequences:
+
+* **This file does not instantiate the macro.**  The shim reaches it through
+  `include!("strftime.rs")`, which splices this file's whole text into the shim's crate, so
+  an instantiation here would define the body (and its symbol) a *second* time in that
+  crate: E0428 for every function, and a `strftime` definition in an object the reference
+  has only as `nstrftime`.  `build-tu lib/strftime.c` therefore compiles the macro and its
+  includes and nothing else — which is what the frozen build compiles of this file
+  (nothing: `lib/Makefile` builds `nstrftime.o` only, and C's standalone text does not even
+  compile) — and 0 errors is still what the gate sees.
+* The entry point lives inside the macro as `fn $name` with
+  `#[unsafe(export_name = $export)]`: at the shim's instantiation the Rust identifier is
+  C's `my_strftime` and the symbol is `nstrftime` (the mempcpy precedent, PORTING.md
+  10.13①).  The token gate cannot see a `fn $name` as a definition, so the entry's body is
+  not text-matched here; `my_strftime`'s counterpart is C 908-916's rename macro, which is
+  still in the file.
+* `tz`/`ns` are `__strftime_internal`'s **parameters** now, not the constants round 42
+  wrote: the frozen build compiles the shim's arm, in which C 896-899's `extra_args_spec`
+  makes them parameters of every function in the body and C 914-915's `#define`s belong to
+  the *other* arm.  Those two `#define`s are recorded as `mod standalone`'s
+  `pub const tz`/`pub const ns` — a module, because a Rust parameter cannot shadow a
+  constant of the same name (E0530) while the body's parameters are named `tz`/`ns`.  The
+  calls that used those constants (`underlying_strftime`, `get_tm_zone`, `mktime_z`, `%N`)
+  now pass the parameters, which is C's own text in this arm.
+* This file has **no crate-level `#![allow (…)]`**: an inner attribute inside an included
+  file is E0753, so the shim carries the allow list for the unit that compiles the body
+  (docs/ports/nstrftime.md).  This unit's own build instantiates nothing, so it emits the
+  mirrors' warnings and the port's conventions' absence here is recorded rather than
+  hidden.
+* `docs/ports/nstrftime.md` carries the shim's ledger, the order note (C's two lines are
+  swapped so the shim's rename shadows the body's) and the `nm` comparison of the two
+  objects.

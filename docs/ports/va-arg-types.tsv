@@ -18,3 +18,4 @@ uintmax_t	u64	uintmax_t is 64-bit on the frozen target
 double	c_double
 char *	*mut c_char
 PROMOTED_MODE_T	PROMOTED_MODE_T
+void *	*mut c_void	lib/fcntl.c's pointer-argument arm reads `va_arg (arg, void *)`; Rust's pointer to c_void

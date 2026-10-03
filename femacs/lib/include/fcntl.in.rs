@@ -97,3 +97,62 @@ pub mod fcntl_decls {
   }
 }
 use fcntl_decls::*;
+
+/* lib/fcntl.c's `fcntl` stack of `#ifdef F_*` cases (C 262-415) keeps whichever of these the
+   frozen target's <fcntl.h> defines; measured, not guessed:
+
+       $ cat > /tmp/fprobe.c <<'EOF'
+       #include <fcntl.h>
+       #include <stdio.h>
+       int main (void) {
+         printf ("F_BARRIERFSYNC=%d F_CHKCLEAN=%d F_FLUSH_DATA=%d F_FREEZE_FS=%d F_FULLFSYNC=%d\n",
+                 (int) F_BARRIERFSYNC, (int) F_CHKCLEAN, (int) F_FLUSH_DATA, (int) F_FREEZE_FS, (int) F_FULLFSYNC);
+         printf ("F_GETFD=%d F_GETFL=%d F_GETLEASE=%d F_GETNOSIGPIPE=%d F_GETOWN=%d F_GETPROTECTIONCLASS=%d F_GETPROTECTIONLEVEL=%d F_THAW_FS=%d\n",
+                 (int) F_GETFD, (int) F_GETFL, (int) F_GETLEASE, (int) F_GETNOSIGPIPE, (int) F_GETOWN,
+                 (int) F_GETPROTECTIONCLASS, (int) F_GETPROTECTIONLEVEL, (int) F_THAW_FS);
+         printf ("F_DUPFD=%d F_DUPFD_CLOEXEC=%d F_DUPFD_CLOFORK=%d F_GLOBAL_NOCACHE=%d F_NOCACHE=%d F_NODIRECT=%d F_RDAHEAD=%d F_SETBACKINGSTORE=%d\n",
+                 (int) F_DUPFD, (int) F_DUPFD_CLOEXEC, (int) F_DUPFD_CLOFORK, (int) F_GLOBAL_NOCACHE,
+                 (int) F_NOCACHE, (int) F_NODIRECT, (int) F_RDAHEAD, (int) F_SETBACKINGSTORE);
+         printf ("F_SETFD=%d F_SETFL=%d F_SETLEASE=%d F_SETNOSIGPIPE=%d F_SETOWN=%d F_SETPROTECTIONCLASS=%d F_SINGLE_WRITER=%d\n",
+                 (int) F_SETFD, (int) F_SETFL, (int) F_SETLEASE, (int) F_SETNOSIGPIPE, (int) F_SETOWN,
+                 (int) F_SETPROTECTIONCLASS, (int) F_SINGLE_WRITER);
+         printf ("FD_CLOEXEC=%d\n", (int) FD_CLOEXEC);
+         return 0; }
+       EOF
+       $ clang -o /tmp/fprobe /tmp/fprobe.c && /tmp/fprobe
+       F_BARRIERFSYNC=85 F_CHKCLEAN=41 F_FLUSH_DATA=40 F_FREEZE_FS=53 F_FULLFSYNC=51
+       F_GETFD=1 F_GETFL=3 F_GETLEASE=107 F_GETNOSIGPIPE=74 F_GETOWN=5 F_GETPROTECTIONCLASS=63 F_GETPROTECTIONLEVEL=77 F_THAW_FS=54
+       F_DUPFD=0 F_DUPFD_CLOEXEC=67 F_DUPFD_CLOFORK=115 F_GLOBAL_NOCACHE=55 F_NOCACHE=48 F_NODIRECT=62 F_RDAHEAD=45 F_SETBACKINGSTORE=70
+       F_SETFD=2 F_SETFL=4 F_SETLEASE=106 F_SETNOSIGPIPE=73 F_SETOWN=6 F_SETPROTECTIONCLASS=64 F_SINGLE_WRITER=76
+       FD_CLOEXEC=1
+
+   The names lib/fcntl.c also names but this target does *not* define (so their `case` labels
+   are dead text there): F_ADD_SEALS, F_BADFD, F_CHECK_OPENEVT, F_CLOSEM, F_DUP2FD,
+   F_DUP2FD_CLOEXEC, F_DUP2FD_CLOFORK, F_GETCONFINED, F_GETDEFAULTPROTLEVEL, F_GETPIPE_SZ,
+   F_GETXFL, F_GET_SEALS, F_GETSIG, F_MAKECOMPRESSED, F_MAXFD, F_MOVEDATAEXTENTS, F_NOTIFY,
+   F_RECYCLE, F_SETCONFINED, F_SETFIFOENH, F_SETPIPE_SZ, F_SETSIG (all checked in the same
+   probe: the compiler rejects each name, and the frozen table lists none of them).  */
+
+/* The macOS-specific commands (the F_* group above), measured.  */
+pub const F_BARRIERFSYNC: c_int = 85;
+pub const F_CHKCLEAN: c_int = 41;
+pub const F_FLUSH_DATA: c_int = 40;
+pub const F_FREEZE_FS: c_int = 53;
+pub const F_FULLFSYNC: c_int = 51;
+pub const F_GETLEASE: c_int = 107;
+pub const F_GETNOSIGPIPE: c_int = 74;
+pub const F_GETOWN: c_int = 5;
+pub const F_GETPROTECTIONCLASS: c_int = 63;
+pub const F_GETPROTECTIONLEVEL: c_int = 77;
+pub const F_THAW_FS: c_int = 54;
+pub const F_DUPFD_CLOFORK: c_int = 115;
+pub const F_GLOBAL_NOCACHE: c_int = 55;
+pub const F_NOCACHE: c_int = 48;
+pub const F_NODIRECT: c_int = 62;
+pub const F_RDAHEAD: c_int = 45;
+pub const F_SETBACKINGSTORE: c_int = 70;
+pub const F_SETLEASE: c_int = 106;
+pub const F_SETNOSIGPIPE: c_int = 73;
+pub const F_SETOWN: c_int = 6;
+pub const F_SETPROTECTIONCLASS: c_int = 64;
+pub const F_SINGLE_WRITER: c_int = 76;
