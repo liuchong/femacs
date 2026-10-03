@@ -212,12 +212,16 @@ pub mod regex_emacs_decls {
     /// C: regex-emacs.h 128-131: `extern const char *re_compile_pattern (const char
     /// *pattern, ptrdiff_t length, bool posix_backtracking, const char
     /// *whitespace_regexp, struct re_pattern_buffer *buffer);`
+    // C: src/config.h 3642-3663 renames this identifier to `rpl_re_compile_pattern`, which is the symbol the reference object exports.
+    #[link_name = "rpl_re_compile_pattern"]
     pub fn re_compile_pattern (pattern: *const c_char, length: ptrdiff_t,
 			       posix_backtracking: bool, whitespace_regexp: *const c_char,
 			       buffer: *mut re_pattern_buffer) -> *const c_char;
     /// C: regex-emacs.h 139-142: `extern ptrdiff_t re_search (struct re_pattern_buffer
     /// *buffer, const char *string, ptrdiff_t length, ptrdiff_t start, ptrdiff_t range,
     /// struct re_registers *regs);`
+    // C: src/config.h 3642-3663 renames this identifier to `rpl_re_search`, which is the symbol the reference object exports.
+    #[link_name = "rpl_re_search"]
     pub fn re_search (buffer: *mut re_pattern_buffer, string: *const c_char,
 		      length: ptrdiff_t, start: ptrdiff_t, range: ptrdiff_t,
 		      regs: *mut re_registers) -> ptrdiff_t;
@@ -225,6 +229,8 @@ pub mod regex_emacs_decls {
     /// *buffer, const char *string1, ptrdiff_t length1, const char *string2,
     /// ptrdiff_t length2, ptrdiff_t start, ptrdiff_t range, struct re_registers *regs,
     /// ptrdiff_t stop);`
+    // C: src/config.h 3642-3663 renames this identifier to `rpl_re_search_2`, which is the symbol the reference object exports.
+    #[link_name = "rpl_re_search_2"]
     pub fn re_search_2 (buffer: *mut re_pattern_buffer, string1: *const c_char,
 			length1: ptrdiff_t, string2: *const c_char, length2: ptrdiff_t,
 			start: ptrdiff_t, range: ptrdiff_t, regs: *mut re_registers,
@@ -232,12 +238,16 @@ pub mod regex_emacs_decls {
     /// C: regex-emacs.h 157-161: `extern ptrdiff_t re_match_2 (struct re_pattern_buffer
     /// *buffer, const char *string1, ptrdiff_t length1, const char *string2,
     /// ptrdiff_t length2, ptrdiff_t start, struct re_registers *regs, ptrdiff_t stop);`
+    // C: src/config.h 3642-3663 renames this identifier to `rpl_re_match_2`, which is the symbol the reference object exports.
+    #[link_name = "rpl_re_match_2"]
     pub fn re_match_2 (buffer: *mut re_pattern_buffer, string1: *const c_char,
 		       length1: ptrdiff_t, string2: *const c_char, length2: ptrdiff_t,
 		       start: ptrdiff_t, regs: *mut re_registers, stop: ptrdiff_t) -> ptrdiff_t;
     /// C: regex-emacs.h 176-179: `extern void re_set_registers (struct re_pattern_buffer
     /// *buffer, struct re_registers *regs, ptrdiff_t num_regs, ptrdiff_t *starts,
     /// ptrdiff_t *ends);`
+    // C: src/config.h 3642-3663 renames this identifier to `rpl_re_set_registers`, which is the symbol the reference object exports.
+    #[link_name = "rpl_re_set_registers"]
     pub fn re_set_registers (buffer: *mut re_pattern_buffer, regs: *mut re_registers,
 			     num_regs: ptrdiff_t, starts: *mut ptrdiff_t,
 			     ends: *mut ptrdiff_t);

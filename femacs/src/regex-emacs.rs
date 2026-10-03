@@ -3571,7 +3571,10 @@ unsafe fn re_compile_fastmap (bufp: *mut re_pattern_buffer)
    PATTERN_BUFFER will allocate its own register data, without
    freeing the old data.  */
 
-#[unsafe(no_mangle)]
+/// C's `src/config.h` 3642-3663 renames `re_set_registers` to `rpl_re_set_registers` (gnulib's
+/// replacement scheme), so the reference object exports `_rpl_re_set_registers` and this
+/// definition must carry C's own symbol name (the `emacs_fclose` shape, status 3.68).
+#[unsafe(export_name = "rpl_re_set_registers")]
 pub unsafe extern "C" fn re_set_registers (bufp: *mut re_pattern_buffer,
 					   regs: *mut re_registers,
 					   num_regs: ptrdiff_t,
@@ -3599,7 +3602,10 @@ pub unsafe extern "C" fn re_set_registers (bufp: *mut re_pattern_buffer,
 /* Like re_search_2, below, but only one string is specified, and
    doesn't let you say where to stop matching.  */
 
-#[unsafe(no_mangle)]
+/// C's `src/config.h` 3642-3663 renames `re_search` to `rpl_re_search` (gnulib's
+/// replacement scheme), so the reference object exports `_rpl_re_search` and this
+/// definition must carry C's own symbol name (the `emacs_fclose` shape, status 3.68).
+#[unsafe(export_name = "rpl_re_search")]
 pub unsafe extern "C" fn re_search (bufp: *mut re_pattern_buffer, string: *const c_char,
 				    size: ptrdiff_t, startpos: ptrdiff_t,
 				    range: ptrdiff_t, regs: *mut re_registers) -> ptrdiff_t
@@ -3632,7 +3638,10 @@ pub unsafe extern "C" fn re_search (bufp: *mut re_pattern_buffer, string: *const
    found, -1 if no match, or -2 if error (such as failure
    stack overflow).  */
 
-#[unsafe(no_mangle)]
+/// C's `src/config.h` 3642-3663 renames `re_search_2` to `rpl_re_search_2` (gnulib's
+/// replacement scheme), so the reference object exports `_rpl_re_search_2` and this
+/// definition must carry C's own symbol name (the `emacs_fclose` shape, status 3.68).
+#[unsafe(export_name = "rpl_re_search_2")]
 pub unsafe extern "C" fn re_search_2 (bufp: *mut re_pattern_buffer, str1: *const c_char,
 				      size1: ptrdiff_t, str2: *const c_char,
 				      size2: ptrdiff_t,
@@ -4318,7 +4327,10 @@ unsafe fn mutually_exclusive_p (bufp: *mut re_pattern_buffer, p1: *const re_char
    failure stack overflowing).  Otherwise, we return the length of the
    matched substring.  */
 
-#[unsafe(no_mangle)]
+/// C's `src/config.h` 3642-3663 renames `re_match_2` to `rpl_re_match_2` (gnulib's
+/// replacement scheme), so the reference object exports `_rpl_re_match_2` and this
+/// definition must carry C's own symbol name (the `emacs_fclose` shape, status 3.68).
+#[unsafe(export_name = "rpl_re_match_2")]
 pub unsafe extern "C" fn re_match_2 (bufp: *mut re_pattern_buffer,
 				     string1: *const c_char, size1: ptrdiff_t,
 				     string2: *const c_char, size2: ptrdiff_t,
@@ -6168,7 +6180,10 @@ unsafe fn bcmp_translate (s1: *const re_char, s2: *const re_char, len: ptrdiff_t
 
    We call regex_compile to do the actual compilation.  */
 
-#[unsafe(no_mangle)]
+/// C's `src/config.h` 3642-3663 renames `re_compile_pattern` to `rpl_re_compile_pattern` (gnulib's
+/// replacement scheme), so the reference object exports `_rpl_re_compile_pattern` and this
+/// definition must carry C's own symbol name (the `emacs_fclose` shape, status 3.68).
+#[unsafe(export_name = "rpl_re_compile_pattern")]
 pub unsafe extern "C" fn re_compile_pattern (pattern: *const c_char, length: ptrdiff_t,
 					     posix_backtracking: bool,
 					     whitespace_regexp: *const c_char,

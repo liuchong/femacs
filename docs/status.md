@@ -937,3 +937,22 @@
   "先 static 声明"和"预处理决定链接"两类被判错，而错误的判定会**要求**错误的一比一（端口被迫发出
   C 没有的符号）。
 
+- **3.68 第 96 轮：gnulib 的 `rpl_` 改名与一次"差点丢文件"的教训（2026-10-04）**：3.67 让 src 侧符号门
+  变成真的之后，给 20 个已端口 src 单元补了参照目标文件（`build/emacs-ref/src/*.o` 从 7 个增到 27 个），
+  第一次比对就报出 `src/regex-emacs` 的**符号名不一致**：冻结的 `src/config.h` 3642-3663 把 11 个
+  `re_*` 标识符 `#define` 成 `rpl_re_*`（gnulib 的替换件方案），所以 C 的目标文件导出的是
+  `_rpl_re_search` 等，而端口导出的还是 `_re_search`——**这是真缺陷**（本项目自己的 `lib/` 侧早就用
+  改名后的拼法，例如 `regcomp.o` 的 `_rpl_re_syntax_options`）。修法与 3.57 的 `emacs_fclose` 同一形状：
+  5 个**定义**写 `#[unsafe(export_name = "rpl_…")]`（`re_compile_pattern`/`re_search`/`re_search_2`/
+  `re_match_2`/`re_set_registers`），镜像里 5 条**声明**写 `#[link_name = "rpl_…"]`；调用方（search.rs、
+  syntax.rs 等）继续用 Rust 名，无需改动。实测：`nm -g build/femacs/regex-emacs.o` 与参照目标文件
+  导出**同名同型**的 5 个符号；三个消费者重建 built；单元与镜像的 `--check` 都 OK；
+  `check-symbols.py --dir src` 现在只剩在飞的 `src/lread` 一项。
+  **代价与教训（写下来）**：我第一次改镜像的脚本在**循环里对"重新读回的文件"反复写**，
+  一次写入把 `femacs/src/include/regex-emacs.rs` 从 255 行截成 216 行——那是**未提交**的他人成果
+  （regex-emacs 通道刚完成、尚未合入）。恢复路径是本项目自己的机制：`xtask materialize` 会把每个
+  `include!` 的文件**复制**进 `build/femacs/units/<unit>/`，其中两份 255 行的副本正是完成版；
+  `cp` 回来后 `--check emacs/src/regex-emacs.h` **OK** 即为"恢复的是正确内容"的证据，随后改为
+  **一次性行级改写 + 前后行数断言**（255→255、+10 行后 266）。两条纪律：**机械改写必须断言前后规模**；
+  **materialize 的副本是免费备份**（任何镜像被写坏时的第一恢复源）。
+
