@@ -19,3 +19,4 @@ double	c_double
 char *	*mut c_char
 PROMOTED_MODE_T	PROMOTED_MODE_T
 void *	*mut c_void	lib/fcntl.c's pointer-argument arm reads `va_arg (arg, void *)`; Rust's pointer to c_void
+Lisp_Object	Lisp_Object	src/alloc.c's cons_listn reads `va_arg (ap, Lisp_Object)`, whose port spelling is the same name
