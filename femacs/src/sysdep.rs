@@ -54,7 +54,7 @@
    are dead for the frozen build and carry no `#include` the port needs.  */
 
 include!("include/config.rs");                 // C 20: `#include <config.h>`
-include!("../lib/include/stdio.rs");           // C 23: `#include "sysstdio.h"` -> <stdio.h>
+include!("include/sysstdio.rs");                // C 23: `#include "sysstdio.h"`
 include!("../lib/include/limits.in.rs");       // C 28: `#include <limits.h>`
 include!("../lib/include/stdcountof.rs");      // lisp.h 30's <stdcountof.h>: `countof`
 include!("../lib/include/stdlib.rs");          // C 29: `#include <stdlib.h>`

@@ -348,7 +348,10 @@ definitions of the name and the port has three `#[cfg]`-gated ones (the same cal
 `lib/include/termios.rs` with it.  This unit therefore:
 
 - added C 106/C 107's includes (`include!("include/systty.rs")`, `include!("include/syswait.rs")`)
-  at their place in the include list;
+  at their place in the include list, and pointed C 23 (`#include "sysstdio.h"`) at
+  `include/sysstdio.rs` instead of flattening it to the `<stdio.h>` mirror - the unit
+  *defines* `errputc`/`errwrite`/`close_output_streams`, and the mirror's `sysstdio_decls`
+  glob import is what those definitions shadow (P-21);
 - **deleted** its local `<termios.h>` layer (`tcflag_t`/`speed_t`/`cc_t`/`NCCS`/`struct termios`
   plus eight `const _` assertions), its local `struct emacs_tty` and its local `CDISABLE` - all
   three were exact duplicates of what the mirrors now own (PORTING.md 0.1-3: one definition
