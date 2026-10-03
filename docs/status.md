@@ -893,3 +893,13 @@
   写了断言，而 keymap.c 恰好是一条条件都没有的那一种——正是本轮 `extract-abi`/`check-cond-eval`
   反复强调的"门的结论要来自测量"在文档层的同一课。
 
+- **3.66 第 96 轮：`lisp.rs` 的 `maybe_disable_address_randomization` 签名偏离修掉（2026-10-03）**：
+  emacs 通道记的最后一条镜像偏离——`lisp.h` 5274-5280 的活支是
+  `INLINE int maybe_disable_address_randomization (int argc, char **argv) { return argc; }`
+  （`HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` 在冻结配置里是 `undef`，所以 `sysdep.c` 里那个双参数**定义**
+  是死文本，`sysdep.rs` 按 §3.49 照抄在 cfg 里），而 `lisp.rs` 只留了它读的那个参数，于是 `emacs.rs`
+  的调用点写成单参数。现在镜像保留 C 自己的两参数（第二个参数 C 也不用），调用点写回
+  `maybe_disable_address_randomization (argc, argv)`，与 C 的形状一致。
+  实测：`emacs.rs` `build-tu` built、`--check` OK；另一消费者 `sysdep.rs` rebuild built；
+  `spikes/` 里没有调用点（不必改探针）。
+

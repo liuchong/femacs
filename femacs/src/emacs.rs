@@ -82,8 +82,8 @@
 // `<stdio.h>`, `<signal.h>`, …).  Two of them need more than a prototype:
 // `emacs_wd` is *defined* here (C 262) although lisp.h 5131 declares it, and
 // `maybe_disable_address_randomization`'s mirror takes one parameter where C's live
-// `lisp.h` INLINE takes two (the port's INLINE dropped the unused `argv`, PORTING.md
-// 0.1-9's shape); the call site therefore passes one argument and the ledger records it.
+// `lisp.h` INLINE takes two (its second parameter was dropped here once; the mirror now keeps
+// C's own signature - docs/status.md 3.66).
 //
 // **`DEFVAR_*` storage (status 3.29).**  C's `V*` objects live in `struct emacs_globals`,
 // which `alloc.c` defines; this file owns the twenty-one `DEFVAR_*` calls of `syms_of_emacs`,
@@ -1530,11 +1530,7 @@ pub unsafe extern "C" fn main (mut argc: c_int, argv: *mut *mut c_char) -> c_int
       initial_emacs_executable = load_pdump (argc, argv, dump_file);
     }
 
-  /* C passes `argv` as the second argument; the port's mirror implements lisp.h 5276-5280's
-     INLINE with the one parameter it reads (PORTING.md 0.1-9's "the port drops what C does
-     not use" shape), so the call spells one argument -- a mirror deviation recorded in
-     docs/ports/emacs.md.  */
-  argc = maybe_disable_address_randomization (argc);
+  argc = maybe_disable_address_randomization (argc, argv);
 
   init_standard_fds ();
   atexit (Some (close_output_streams));

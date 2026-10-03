@@ -165,10 +165,12 @@
   of the three) need `syms_of_treesit`, `syms_of_xwidget`, `syms_of_gnutls`.  `#include`s
   with no mirror whose names this file does *not* use (`<sys/file.h>`, `getpagesize.h`,
   `sysselect.h`, `xwidget.h`) are recorded here instead of being declared.
-- **One mirror *signature* deviation, visible only at the call site.**  lisp.h 5274-5280's
-  live arm is `INLINE int maybe_disable_address_randomization (int argc, char **argv)`, and
-  lisp.rs implements it with the one parameter it reads (`argc`); C's call in `main`
-  therefore becomes a one-argument call in the port, and this row is the record.
+- **The one mirror *signature* deviation this unit had; FIXED (docs/status.md 3.66).**  lisp.h
+  5274-5280's live arm is `INLINE int maybe_disable_address_randomization (int argc, char
+  **argv)`, and lisp.rs used to implement it with the one parameter it reads (`argc`), so C's
+  call in `main` became a one-argument call in the port.  The mirror now keeps C's own
+  two-parameter signature (the second is unused in C too) and the port's `main` writes
+  `maybe_disable_address_randomization (argc, argv)` exactly where C does.
 - **Spelling deviations (each recorded in one place).**
   * `switch (result)` in `dump_error_to_string` selects among `pdumper.h`'s enumeration
     constants; Rust cannot use a cast (`PDUMPER_LOAD_SUCCESS as c_int`) as a match pattern,

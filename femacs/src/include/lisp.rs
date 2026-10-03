@@ -2709,8 +2709,16 @@ pub fn fast_c_string_match_ignore_case (regexp: Lisp_Object, string: *const c_ch
     unsafe { fast_c_string_match_internal (regexp, string, len as ptrdiff_t, Vascii_canon_table) }
 }
 
+/// C: lisp.h 5276-5280 (the live arm; `HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` is `undef` in the
+/// frozen configuration, so `sysdep.c`'s two-argument definition is dead text there):
+/// `INLINE int maybe_disable_address_randomization (int argc, char **argv) { return argc; }`.
+/// The second parameter is C's own and unused, exactly as in C - the port dropped it once and
+/// the call site had to spell one argument (docs/status.md 3.66).
 #[inline(always)]
-pub fn maybe_disable_address_randomization (argc: c_int) -> c_int { argc }
+pub fn maybe_disable_address_randomization (argc: c_int, argv: *mut *mut c_char) -> c_int {
+    let _ = argv;
+    argc
+}
 
 #[inline(always)]
 pub fn lispstpcpy (dest: *mut c_char, string: Lisp_Object) -> *mut c_char {
