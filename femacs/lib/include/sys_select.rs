@@ -79,3 +79,36 @@ pub unsafe fn __darwin_check_fd_set (fd: c_int, p: *const c_void) -> c_int
 {
   return __darwin_check_fd_set_overflow (fd, p, 1);
 }
+
+/// <sys/select.h>'s `#define FD_SET(n, p) __DARWIN_FD_SET (n, p)` → `__darwin_fd_set ((n), (p))`,
+/// the header's `__header_always_inline` definition: the same `__darwin_check_fd_set` guard as
+/// `FD_ISSET`, then `fds_bits[fd / __DARWIN_NFDBITS] |= 1 << (fd % __DARWIN_NFDBITS)`.
+#[inline(always)]
+pub unsafe fn FD_SET (fd: c_int, p: *mut fd_set)
+{
+  if __darwin_check_fd_set (fd, p as *const c_void) != 0
+    {
+      (*p).fds_bits [(fd as u64 / __DARWIN_NFDBITS as u64) as usize]
+        |= 1i32.wrapping_shl ((fd as u64 % __DARWIN_NFDBITS as u64) as u32);
+    }
+}
+
+/// `__darwin_fd_clr`: the same guard, then
+/// `fds_bits[fd / __DARWIN_NFDBITS] &= ~(1 << (fd % __DARWIN_NFDBITS))`.
+#[inline(always)]
+pub unsafe fn FD_CLR (fd: c_int, p: *mut fd_set)
+{
+  if __darwin_check_fd_set (fd, p as *const c_void) != 0
+    {
+      (*p).fds_bits [(fd as u64 / __DARWIN_NFDBITS as u64) as usize]
+        &= !1i32.wrapping_shl ((fd as u64 % __DARWIN_NFDBITS as u64) as u32);
+    }
+}
+
+/// <sys/select.h>'s `#define FD_ZERO(p) __DARWIN_FD_ZERO (p)` →
+/// `__builtin_bzero (p, sizeof (*(p)))`: all 128 bytes of the `fd_set` become 0.
+#[inline(always)]
+pub unsafe fn FD_ZERO (p: *mut fd_set)
+{
+  std::ptr::write_bytes (p, 0, 1);
+}
