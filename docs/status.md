@@ -22,23 +22,20 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 78 轮，机械统计）**：磁盘上 **233 个单元**（`femacs/src/*.rs` 114 +
+- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **235 个单元**（`femacs/src/*.rs` 116 +
   `femacs/lib/*.rs` 119）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
-  **单元台账全部勾满**：`docs/ports/*.md` 里凡不是 `include-*.md` 的（即每个已竣工单元）未勾项为 **0**；
-  `syntax`、`profiler`、`regexec`、`systhread`、`sqlite`、`comp`、`treesit`、`gnutls`、
-  `filelock`（911 行）、`dired`（1,162 行）、`menu`（1,209 行）、`binary-io`、`regex`、`dtoastr`、
-  `boot-time`（378 行）与 `ftoastr`（147 行）都已收口（`built` + `--check` OK + 0 未勾）；
-  本轮新增两个镜像 `pdumper`/`fingerprint`，以及 `filelock.c` 需要的 `boot-time`（`lib/include/boot-time.rs`）。
-  **部分镜像（WIP）**：34 份 `include-*.md` 仍有未勾项，合计 **1,019** 行，最大的几份是
-  `stdint.in`(135)、`unistd.in`(94)、`dispextern`(90)、`sys_stat.in`(74)、`window`(65)——
-  它们只承载已竣工单元读到的声明，其余留待需要它们的单元，各自的 Decisions 里写明是 WIP。
-  §3.31 那一类已清零：`emacs/src/*.c` = 152 = 冻结构建编译 75 + 排除 77，77 个排除项全部有端口
-  （真实单元 3 个 + 空单元 74 个，逐文件 `build-tu` built 且 `--check` OK）。
-  **权威口径仍是 `python3 tools/extract-abi.py --all`**（它逐个文件做 token/函数/常量比对）；
-  它一次要遍历全树与宏表，本轮为守资源纪律没有跑，下一次跑出来时以它为准（上一轮它是
-  234 目标 / 205 done / 27 wip / 0 failing，此后又落了 regcomp、terminal、atimer、§3.31 整批、
-  syntax、profiler、regexec，以及新增的 `pdumper`/`fingerprint`/`boot-time` 三个镜像）。
-
+  **权威口径 `python3 tools/extract-abi.py --all` 本轮真跑过**（第 84 轮，约 4 分钟）：
+  `checked 338 ported files: 312 done, 26 in progress, 0 failing`——"in progress" 全是 WIP 镜像
+  （`include-dispextern`/`window`/`frame`/`font`/`thread`/`regex-emacs` 等，各自的台账写明 WIP）。
+  单元台账仍全部勾满（`docs/ports/*.md` 里非 `include-*.md` 的未勾项为 0），`lib/` 的 122 个
+  `.c` 文件与冻结构建要的 78 个 lib 对象都已端口，符号棘轮剩 1 项（`lib/regex` 的聚合形状，
+  台账写明关闭条件）。
+  **整树门 `gate-fast` 本轮也真跑到底并全绿**（第 83 轮）：`inventory: no differences`、
+  `checked 338 ported files: 312 done, 26 in progress, 0 failing`、
+  `globals: every DEFVAR_* variable has a definition`、
+  `symbols: every built unit matches its reference`、七个探针程序、三个探针脚本、
+  `layout-check passed`（791 断言 / 0 pending）。此后新增 `src/thread.c`、`src/chartab.c`
+  与 §3.47 的四处修复；下一批在飞的是 `src/bytecode.c` 与 `src/timefns.c`。
 - **照抄树（Verbatim）已全部落地（2026-10-03 第 79 轮）**：`emacs/{lisp,test,etc,doc,leim,admin}`
   → `femacs/<同名>`，**逐字节照抄**，共 **4,607 文件 / 约 4.6M 行**（lisp 1,627 / test 1,555 /
   etc 887 / doc 257 / leim 28 / admin 253），六个目录各一次签名提交并推送。判定不再是行文说明
