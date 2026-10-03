@@ -588,3 +588,18 @@
   `symbols: every built unit matches its reference` → `fam-probe: 4 lines ok` /
   `shadow-probe: shadow-probe true 0 true` / `macro-probe: every expansion compiles` →
   `layout-check passed`。
+
+- **3.49 求值器判不了的 src/ 文件：照 P-51 抄下两支，而不是记台账（2026-10-03 第 84 轮定案，
+  `src/timefns.c` 为案例）**：`timefns.c` 的 `#if` 里用了 **function-like 宏**
+  `FIXNUM_OVERFLOW_P (…)`（lisp.h 1178）与 `TRILLION <= ULONG_MAX`（`ULONG_MAX` 在表里是
+  `(__LONG_MAX__ *2UL+1UL)`，求值器解不了），另有 `#ifdef NEED_ZTRILLION_INIT` 与 clang 不一致。
+  该文件不在 `cond-eval-verified.txt`，于是 `blind_conditions` 丢表、**两支都留活**，生成的台账
+  同时要求 `timespec_hz`/`trillion`/`ztrillion` 的 `#if` 与 `#else` 两半、以及 clang 判死的
+  `syms_of_timefns_for_pdumper`——照 P-08"只记台账"永远拿不到 `--check` OK，照台账抄又违反 src/
+  的死臂政策。**定案：这类文件按 P-51 抄下两支**——冻结构建真正编译的那支是普通文本，clang 判死的
+  那支放进 `#[cfg (feature = "…")]`（feature 按 C 的条件命名，如 `no_faster_timefns`；
+  它们不进 `xtask dead-arms`，因为是编译器/平台谓词而非 config.rs 键，§3.9 同例）。
+  先例已在树里：`lib/boot-time.rs` 正是这个理由抄下 utmp/sysctl 两支，`lib/binary-io.rs` 同。
+  **抄下更多 C 文本是更 1:1，不是更少**；`line-drift-tolerance.tsv` 用默认 `total` 基准。
+  这条不改变其他文件：能进 `cond-eval-verified.txt` 的文件仍按 P-08 只记死区。
+  另注：`timefns.c` 的行数口径以 `count("\n")` = **2144** 为准（编辑器报 2145）。
