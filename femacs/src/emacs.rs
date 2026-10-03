@@ -317,7 +317,7 @@ unsafe extern "C" {
   fn syms_of_treesit ();
   /// C: xwidget.h 33: `void syms_of_xwidget (void);`
   fn syms_of_xwidget ();
-  /// C: gnutls.h 118: `extern void syms_of_gnutls (void);`
+  /// C: gnutls.h 98: `extern void syms_of_gnutls (void);`
   fn syms_of_gnutls ();
 
   /* --- libc (the mirrors' own groups: <stdio.h>, <stdlib.h>, <unistd.h>, <string.h>,
