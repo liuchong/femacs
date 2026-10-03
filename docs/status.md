@@ -311,7 +311,9 @@
   Lisp_Object = lisp_h_Qnil ();`）——已按此形状的有 `src/casetab.rs`（四个）与
   `src/character.rs`（`Vchar_unify_table`），第 55 轮补上 `src/cmds.rs` 的
   `Vpost_self_insert_hook`；
-  ② **尚未补的 20 个**（用 `DEFVAR_*` 调用点减去定义点机械求得）：
+  ② **第 55 轮已补齐 34 个**（`tools/check-globals.py` 从"调用点减去定义点"机械求得，8 个单元：
+  callint 6、character 8、doc 5、undo 5、data 3、macros 3、casefiddle 2、category 2），
+  补齐后该工具报 **0**；`xtask gate-fast` 新增 "globals gate" 一步，回归立刻红。原先列出的 20 个是：
   `character.rs`（Vauto_fill_chars/Vchar_width_table/Vambiguous_width_chars/Vprintable_chars/
   Vtranslation_table_vector/Vchar_script_table/Vunicode_category_table）、`doc.rs`
   （Vdoc_file_name/Vbuild_files）、`callint.rs`（Vcommand_history/Vcommand_debug_status/
@@ -319,11 +321,12 @@
   `macros.rs`（Vexecuting_kbd_macro/Vkbd_macro_termination_hook/Vlast_kbd_macro_）、
   `data.rs`（Vmost_positive_fixnum/Vmost_negative_fixnum）、`category.rs`
   （Vword_separating_categories）；
-  ③ **为什么闸门看不见**：`extract-abi.py` 的 "File-scope objects" 只扫 C 文件里**自己写的**
-  对象定义，`DEFVAR_LISP` 的存储它看不到——`src/cmds.c` 的清单因此报
-  "File-scope objects — 0"，而该文件在 C 里确实定义了一个对象。缺的门是**符号级**检查
-  （每个 `DEFVAR_*` 调用点都要有同名定义），计划加 `tools/check-globals.py` 并挂进
-  `xtask gate-fast`；
+  ③ **为什么原来闸门看不见**：`extract-abi.py` 的 "File-scope objects" 只扫 C 文件里
+  **自己写的**对象定义，`DEFVAR_LISP` 的存储它看不到——`src/cmds.c` 的清单因此报
+  "File-scope objects — 0"，而该文件在 C 里确实定义了一个对象。**已补的符号级门**：
+  `tools/check-globals.py`（每个 `DEFVAR_LISP|LISP_NOPRO|BOOL|INT` 调用点的第二个参数都必须是
+  纯标识符，且同单元里要有带初始值的 `static mut` 定义；`DEFVAR_KBOARD` 是 `struct kboard` 的
+  字段偏移，不在其列），并已挂进 `xtask gate-fast`；
   ④ 长期口径（等 `alloc.c` 落地时定）：把 `struct emacs_globals` 镜像进 `globals.h` 的镜像、
   由 `alloc.rs` 定义唯一的 `globals` 对象，`V*` 变成**字段访问**（C 的存储模型）。在此之前
   按 ① 的形状办，偏离记在各单元 ledger 的 Decisions 里。

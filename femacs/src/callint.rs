@@ -52,6 +52,23 @@ include!("include/termhooks.rs");
 include!("include/keyboard.rs");
 include!("include/window.rs");
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
+// port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
+// defines it here (status §3.29, the casetab.rs shape).
+#[unsafe(no_mangle)]
+pub static mut Vcurrent_prefix_arg: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vcommand_history: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vcommand_debug_status: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vmark_even_if_inactive: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vmouse_leave_buffer_hook: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut inhibit_mouse_event_check: bool = false;
+
 
 /* C's `switch (*tem)` is a `match` on the character; the arms below name the letters the way
    C's `case 'a':` spells them.  */

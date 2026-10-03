@@ -54,6 +54,15 @@ include!("include/process.rs");
 include!("include/frame.rs");
 include!("include/keymap.rs");
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
+// port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
+// defines it here (status §3.29, the casetab.rs shape).
+#[unsafe(no_mangle)]
+pub static mut Vword_combining_categories: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vword_separating_categories: Lisp_Object = lisp_h_Qnil ();
+
 /* This setter is used only in this file, so it can be private.  */
 unsafe fn bset_category_table (b: *mut buffer, val: Lisp_Object)
 {

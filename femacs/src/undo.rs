@@ -50,6 +50,21 @@ include!("include/process.rs");
 include!("include/frame.rs");
 include!("include/keymap.rs");
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
+// port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
+// defines it here (status §3.29, the casetab.rs shape).
+#[unsafe(no_mangle)]
+pub static mut undo_limit: EMACS_INT = 0;
+#[unsafe(no_mangle)]
+pub static mut undo_strong_limit: EMACS_INT = 0;
+#[unsafe(no_mangle)]
+pub static mut Vundo_outer_limit: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vundo_outer_limit_function: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut undo_inhibit_record_point: bool = false;
+
 /* The first time a command records something for undo.
    it also allocates the undo-boundary object
    which will be added to the list at the end of the command.

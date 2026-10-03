@@ -60,6 +60,17 @@ include!("include/process.rs");
 include!("include/frame.rs");
 include!("include/keymap.rs");
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
+// port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
+// defines it here (status §3.29, the casetab.rs shape).
+#[unsafe(no_mangle)]
+pub static mut Vmost_positive_fixnum: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vmost_negative_fixnum: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut symbols_with_pos_enabled: bool = false;
+
 // data.c 41-78: the forwarded-variable accessors.
 #[inline(always)]
 fn BOOLFWDP (a: lispfwd) -> bool { XFWDTYPE (a) == Lisp_Fwd_Bool }

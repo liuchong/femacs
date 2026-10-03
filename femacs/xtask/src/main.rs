@@ -840,6 +840,20 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("inventory differences (nothing is ported yet, so any entry is a bug)"),
         Err(e) => return fail(e),
     }
+    // `DEFVAR_*`'s storage is not a C object definition, so the inventory gate above cannot
+    // see it: a unit that owns a variable (C's `globals.f_<vname>`) may reference it through
+    // `globals.rs`'s declaration and never define it, and only the eventual link would
+    // notice.  The names are checked mechanically (status §3.29).
+    println!("== globals gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-globals.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("globals: every DEFVAR_* variable has a definition"),
+        Ok(_) => return fail("a DEFVAR_* variable has no definition in its own unit"),
+        Err(e) => return fail(e),
+    }
     println!("== workspace check ==");
     match Command::new("cargo")
         .env("CARGO_TARGET_DIR", "../build/cargo")

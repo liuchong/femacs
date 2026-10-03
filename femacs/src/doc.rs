@@ -65,6 +65,21 @@ include!("include/disptab.rs");
 include!("include/buildobj.rs");
 include!("include/keymap.rs");
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
+// port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
+// defines it here (status §3.29, the casetab.rs shape).
+#[unsafe(no_mangle)]
+pub static mut Vdoc_file_name: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vbuild_files: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vtext_quoting_style: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut documentation_dynamic_reload: bool = false;
+#[unsafe(no_mangle)]
+pub static mut text_quoting_flag: bool = false;
+
 // C 42-49: `doc_fd`/`doc_fd_p`/`doc_open`/`doc_read_quit`/`doc_lseek` for the frozen target
 // (HAVE_ANDROID is undefined, so C's first arm is the live one).  The five are object-like or
 // function-like macros over the file descriptor, exactly as C writes them; the port keeps the

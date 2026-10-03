@@ -52,6 +52,17 @@ include!("include/process.rs");
 include!("include/frame.rs");
 include!("include/keymap.rs");
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
+// port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
+// defines it here (status §3.29, the casetab.rs shape).
+#[unsafe(no_mangle)]
+pub static mut Vkbd_macro_termination_hook: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vexecuting_kbd_macro: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut executing_kbd_macro_index: EMACS_INT = 0;
+
 /* Number of successful iterations so far
    for innermost keyboard macro.
    This is not bound at each level,

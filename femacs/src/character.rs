@@ -70,6 +70,27 @@ include!("include/dispextern.rs");
 include!("include/composite.rs");
 include!("include/disptab.rs");
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
+// port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
+// defines it here (status §3.29, the casetab.rs shape).
+#[unsafe(no_mangle)]
+pub static mut Vtranslation_table_vector: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vauto_fill_chars: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vchar_width_table: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vambiguous_width_chars: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vprintable_chars: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vchar_script_table: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vscript_representative_chars: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut Vunicode_category_table: Lisp_Object = lisp_h_Qnil ();
+
 // C spells unicode_category_t's members unqualified (they are an `enum`); Rust names an
 // enum's variants through the enum, so the port imports them (character.rs mirror 549-582).
 use unicode_category_t::*;

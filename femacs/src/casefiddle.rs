@@ -52,6 +52,15 @@ include!("include/syntax.rs");
 include!("include/composite.rs");
 include!("include/keymap.rs");
 
+// The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
+// (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
+// port's `include/globals.rs` mirrors the names as declarations, so the unit that owns one
+// defines it here (status §3.29, the casetab.rs shape).
+#[unsafe(no_mangle)]
+pub static mut Vregion_extract_function: Lisp_Object = lisp_h_Qnil ();
+#[unsafe(no_mangle)]
+pub static mut case_symbols_as_words: bool = false;
+
 // casefiddle.c 30: `enum case_action {CASE_UP, CASE_DOWN, CASE_CAPITALIZE,
 // CASE_CAPITALIZE_UP};` (PORTING.md 1.3).
 pub type case_action = c_int;
