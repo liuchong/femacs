@@ -6,8 +6,11 @@
 // `FILE` and `fclose` where C gets them, so this mirror carries them and every unit
 // includes it in lisp.h's own include order (config.rs -> stdio.rs -> lisp.rs).
 
-/// <stdio.h>'s opaque `FILE`; the reference only ever passes `FILE *` (P-26).
-pub enum FILE {}
+/* <stdio.h>'s `FILE`.  It is Darwin's `struct __sFILE`, whose fields three gnulib units read
+   through lib/stdio-impl.h's `fp_` (lib/fpending.c, lib/fseterr.c, lib/close-stream.c), so
+   the mirror carries the measured layout in lib/include/stdio-impl.rs and names it `FILE`
+   here - every unit keeps writing `*mut FILE` as C does.  */
+include!("stdio-impl.rs");
 
 unsafe extern "C" {
   /* int fclose (FILE *stream);  */

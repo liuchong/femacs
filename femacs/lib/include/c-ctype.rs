@@ -85,3 +85,18 @@ pub unsafe fn c_tolower (c: c_int) -> c_int
 
 /* The include guard has no Rust counterpart (PORTING.md 0.1).  */
 pub const C_CTYPE_H: bool = true;
+
+/* C_CTYPE_INLINE bool c_isspace (int c)  */
+#[inline(always)]
+pub unsafe fn c_isspace (c: c_int) -> bool
+{
+  /* C 302-303's `case ' ': case '\t': case '\n': case '\v': case '\f': case '\r':` — the
+     header spells these six characters out rather than through a `_C_CTYPE_*` macro, so the
+     port does too.  */
+  match c
+    {
+    ' ' as c_int | '\t' as c_int | '\n' as c_int | '\v' as c_int
+      | '\f' as c_int | '\r' as c_int => { return true; }
+    _ => { return false; }
+    }
+}

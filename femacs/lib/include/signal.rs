@@ -40,3 +40,44 @@ pub const SIGXFSZ: c_int = 25;
 /// `<signal.h>`'s `NSIG` is `__DARWIN_NSIG` on this target (measured: 32); sig2str.h's
 /// `SIGNUM_BOUND` is `NSIG - 1`.
 pub const NSIG: c_int = 32;
+
+/* The three entries lib/pthread_sigmask.c and lib/pselect.c reach through <signal.h>.
+   `sigset_t` is Darwin's `struct __darwin_sigset_t { __uint32_t __val; }`; the measurement
+   (`printf ("%zu %d %d %d", sizeof (sigset_t), SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK)`)
+   prints `4 1 2 3`.  */
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct sigset_t
+{
+  pub __val: u32,
+}
+
+const _: () = assert! (std::mem::size_of::<sigset_t> () == 4);
+
+/// <signal.h>: `#define SIG_BLOCK 1`.
+pub const SIG_BLOCK: c_int = 1;
+/// <signal.h>: `#define SIG_UNBLOCK 2`.
+pub const SIG_UNBLOCK: c_int = 2;
+/// <signal.h>: `#define SIG_SETMASK 3`.
+pub const SIG_SETMASK: c_int = 3;
+
+/* The `sigset_t` operations, in a uniquely-named module + glob import (the stdio.rs shape):
+   a unit that defines one of them itself (none does yet, but lib/pthread_sigmask.c wraps
+   `pthread_sigmask`) then shadows the glob instead of clashing with it (PORTING.md 0.1-10).
+   C declares `pthread_sigmask` only when the platform has not got it; on this target it is
+   the system entry, so the declaration is present for the units that wrap it.  */
+pub mod signal_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /* int sigemptyset (sigset_t *);  */
+    pub fn sigemptyset (set: *mut sigset_t) -> c_int;
+    /* int sigaddset (sigset_t *, int);  */
+    pub fn sigaddset (set: *mut sigset_t, signo: c_int) -> c_int;
+    /* int sigprocmask (int, const sigset_t *, sigset_t *);  */
+    pub fn sigprocmask (how: c_int, set: *const sigset_t, oset: *mut sigset_t) -> c_int;
+    /* int pthread_sigmask (int, const sigset_t *, sigset_t *);  */
+    pub fn pthread_sigmask (how: c_int, set: *const sigset_t, oset: *mut sigset_t) -> c_int;
+  }
+}
+use signal_decls::*;

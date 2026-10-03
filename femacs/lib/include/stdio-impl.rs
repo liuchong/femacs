@@ -30,7 +30,7 @@
 pub struct __sbuf
 {
   pub _base: *mut u8,
-  pub _size: c_int,
+  pub _size: core::ffi::c_int,
 }
 
 /// The frozen target's `FILE`, i.e. Darwin's `struct __sFILE`.  The declaration is cut off
@@ -43,10 +43,13 @@ pub struct __sbuf
 pub struct __sFILE
 {
   pub _p: *mut u8,
-  pub _r: c_int,
-  pub _w: c_int,
-  pub _flags: c_short,
-  pub _file: c_short,
+  /* Absolute paths, not the including unit's bare aliases: this mirror adds a type the
+     closure of older units does not import (PORTING.md 0.1-9/3.18①, the stdio.rs
+     `core::ffi::c_void` precedent).  */
+  pub _r: core::ffi::c_int,
+  pub _w: core::ffi::c_int,
+  pub _flags: core::ffi::c_short,
+  pub _file: core::ffi::c_short,
   pub _bf: __sbuf,
   pub _rest: [u8; 112],
 }

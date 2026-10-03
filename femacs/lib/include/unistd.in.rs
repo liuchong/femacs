@@ -60,3 +60,9 @@ unsafe extern "C" {
 pub const SEEK_SET: c_int = 0;
 pub const SEEK_CUR: c_int = 1;
 pub const SEEK_END: c_int = 2;
+
+/* <unistd.h>: the two `sysconf` names lib/nproc.c's live branches test.  Values measured
+   from the frozen target (`docs/baseline/config/darwin-arm64.macros.tsv` has
+   `_SC_NPROCESSORS_CONF 57` and `_SC_NPROCESSORS_ONLN 58`).  */
+pub const _SC_NPROCESSORS_CONF: c_int = 57;
+pub const _SC_NPROCESSORS_ONLN: c_int = 58;

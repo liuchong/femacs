@@ -19,3 +19,12 @@ unsafe extern "C" {
   /* void free (void *ptr);  */
   pub fn free (ptr: *mut c_void);
 }
+
+/* The two entries lib/nproc.c needs, added to this mirror (`getenv` for the OMP variables,
+   `strtoul` for `parse_omp_threads`).  */
+unsafe extern "C" {
+  /* char *getenv (const char *name);  */
+  pub fn getenv (name: *const c_char) -> *mut c_char;
+  /* unsigned long int strtoul (const char *nptr, char **endptr, int base);  */
+  pub fn strtoul (nptr: *const c_char, endptr: *mut *mut c_char, base: c_int) -> c_ulong;
+}

@@ -694,13 +694,23 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
                 # Only a define in a *live* branch applies: lisp.h 254's `# define
                 # USE_LSB_TAG false` sits inside the `#if` at 251 that this configuration
                 # makes false, and recording it gave `GCALIGNMENT` the wrong branch.
-                name = rest.split(maxsplit=1)[0] if rest else ""
+                # The stored name is the identifier alone, not `NAME (params)`: C's
+                # `defined (NAME)` is true for a function-like macro too, and getloadavg.c
+                # 190's `# define LDAV_CVT(n) …` has to answer 267's `#ifndef LDAV_CVT`.
+                match = re.match (r"[A-Za-z_][A-Za-z0-9_]*", rest)
+                name = match.group (0) if match else ""
                 if not dead and name and local_macros is not None:
                     local_macros[name] = rest[len(name):].strip()
                     CONDITION_EVAL_CACHE.clear()
             elif word == "undef":
+                # Same rule as `#define` above, and the C preprocessor's: the `#undef` in a
+                # branch the configuration disabled never runs.  getloadavg.c 104-110 sits
+                # in `#ifdef NeXT`/`#if defined __gnu_hurd__ || defined NeXT` (both false)
+                # and does `#undef BSD`/`#undef FSCALE`; applying them un-defended the
+                # file's own <sys/param.h> macros and made 20 conditions disagree with clang
+                # (the whole nlist chain read as dead).
                 name = rest.strip()
-                if name and local_macros is not None:
+                if not dead and name and local_macros is not None:
                     local_macros[name] = "undef"
                     CONDITION_EVAL_CACHE.clear()
             # every other directive (`#include`, …) inherits the current state
