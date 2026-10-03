@@ -6,6 +6,10 @@
 # declares them in the mirror as `#[inline(always)]` functions, which emit no symbol at all.
 # Closing one means giving the unit the `#[unsafe(no_mangle)]` definitions its C file emits.
 #
+# `lib/mini-gmp-gnulib` is not here: the C build yields only mini-gmp-gnulib.o
+# (it includes mini-gmp.c), and the port puts those definitions in mini-gmp.rs, which
+# `check-symbols.py`'s ALIASES table follows.
+#
 # The list is a ratchet: `tools/check-symbols.py --pending docs/baseline/symbol-pending.txt`
 # fails on an entry that has become clean, so it can only shrink (status §3.30).
 lib/byteswap
@@ -13,7 +17,6 @@ lib/c-ctype
 lib/endian
 lib/fingerprint
 lib/memeq
-lib/mini-gmp-gnulib
 lib/openat-die
 lib/stdc_bit_width
 lib/stdc_count_ones

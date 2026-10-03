@@ -29,6 +29,13 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 RUST_NOISE = re.compile(r'^(__R|_R|_ZN)')
 
+# gnulib's `mini-gmp-gnulib.c` is `#include "mini-gmp.c"` compiled under gnulib's allocator
+# bindings, so the C build yields *one* object (`mini-gmp-gnulib.o`) and never `mini-gmp.o`.
+# The port keeps the definitions in `mini-gmp.rs` (the includee) and the includer is the
+# §3.25 empty unit, so the comparison has to follow the same edge: the port half of
+# `lib/mini-gmp-gnulib` is `build/femacs/mini-gmp.o`.
+ALIASES = {"lib/mini-gmp-gnulib": "lib/mini-gmp"}
+
 
 def syms(path: str) -> tuple[set[str], set[str]]:
     out = subprocess.run(["nm", "-g", path], capture_output=True, text=True).stdout
@@ -64,7 +71,8 @@ def main() -> int:
     compared = 0
     for rs in sorted(glob.glob(f"{ROOT}/femacs/{a.dir}/*.rs")):
         stem = os.path.basename(rs)[:-3]
-        mine = f"{ROOT}/build/femacs/{stem}.o"
+        mine_stem = ALIASES.get(f"{a.dir}/{stem}", f"{a.dir}/{stem}").split("/")[1]
+        mine = f"{ROOT}/build/femacs/{mine_stem}.o"
         ref = f"{ROOT}/build/emacs-ref/{a.dir}/{stem}.o"
         if not (os.path.exists(mine) and os.path.exists(ref)):
             continue
