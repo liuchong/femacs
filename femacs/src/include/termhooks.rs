@@ -345,6 +345,18 @@ unsafe extern "C" { pub static mut terminal_list: *mut terminal; }        // ter
 
 /* The initial terminal device, created by initial_term_init.  */
 unsafe extern "C" { pub static mut initial_terminal: *mut terminal; }     // termhooks.h 971
+// termhooks.h 920-921: both read the `tty_display_info` that `FRAME_TTY` (termchar.h 230) hands
+// back, so they stay macros — `FRAME_TTY` is one, and a `fn` cannot call it (PORTING.md P-33).
+// `scroll_region_ok` is the `bool_bf` in `tty_display_info.bits_caps` (the TTY_* masks), which
+// is why that one token is exempted in docs/ports/macro-body-notes.tsv (the FRAME_GARBAGED_P
+// precedent); `scroll_region_cost` is a plain field.
+macro_rules! FRAME_SCROLL_REGION_OK {
+  ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_SCROLL_REGION_OK) != 0 };
+}
+macro_rules! FRAME_SCROLL_REGION_COST {
+  ($f:expr) => { unsafe { (*FRAME_TTY! ($f)).scroll_region_cost } };
+}
+
 
 // C: termhooks.h 917-935's `FRAME_*`/`TERMINAL_*` macros (they all dereference `struct frame`,
 // i.e. they need frame.rs), `TERMINAL_ACTIVE_P` (it dereferences `display_info.tty`, i.e.

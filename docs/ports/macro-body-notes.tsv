@@ -275,3 +275,4 @@ Fbackward_char	0	cmds.c 88: the same pair, `0` -> `false` (PORTING.md 5.2)
 syms_of_cmds	doc	the DEFVAR_LISP invocation takes C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no counterpart; the docstring itself is still compared by the constants rule (the syms_of_data precedent)
 SET_CHAR_GLYPH	false	dispextern.h 694-704: C's body is `do { … } while (false)`; Rust has no do-while, so the port runs the block once and never mentions `false` (the CHECK_CODING_SYSTEM precedent)
 SET_GLYPH_FROM_CHAR_GLYPH	false	dispextern.h 712-724: the same do-while shape
+FRAME_SCROLL_REGION_OK	scroll_region_ok	termchar.h packs that `bool_bf : 1` into `tty_display_info.bits_caps` (the TTY_* masks), the way frame.h's flags are packed into frame.bits1

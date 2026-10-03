@@ -3593,6 +3593,10 @@ pub mod other_units {
         /* src/lisp.h 5110.  */
         /// C: ptrdiff_t current_column (void)
         pub fn current_column () -> ptrdiff_t;
+        /* src/lisp.h 5546: `extern void *xnrealloc (void *, ptrdiff_t, ptrdiff_t)`.  */
+        /// C: void *xnrealloc (void *, ptrdiff_t, ptrdiff_t)
+        pub fn xnrealloc (block: *mut c_void, nitems: ptrdiff_t, item_size: ptrdiff_t)
+          -> *mut c_void;
     }
 
     // src/lisp.h 619, 5298, 5541: bignum.c's three remaining callees.
