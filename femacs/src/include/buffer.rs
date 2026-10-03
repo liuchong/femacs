@@ -280,9 +280,6 @@ pub const GAP_BYTES_MIN: c_int = 20;
 
 /* For those very rare cases where you may have a "random" pointer into
    the middle of a multibyte char, this moves to the next boundary.  */
-unsafe extern "C" {
-  pub fn advance_to_char_boundary (byte_pos: ptrdiff_t) -> ptrdiff_t;
-}
 
 /* Return the byte at byte position N.
    Do not check that the position is in range.  */
@@ -1263,7 +1260,6 @@ pub fn SET_BUF_TS_LINECOL_ZV (buf: *mut buffer, linecol: ts_linecol)
    Setting the default value also goes through the alist of buffers
    and stores into each buffer that does not say it has a local value.  */
 
-unsafe extern "C" { pub static mut buffer_defaults: buffer; }
 
 /* This structure marks which slots in a buffer have corresponding
    default values in buffer_defaults.
@@ -1278,13 +1274,11 @@ unsafe extern "C" { pub static mut buffer_defaults: buffer; }
    be a Lisp-level local variable for the slot, it has no default value,
    and the corresponding slot in buffer_defaults is not used.  */
 
-unsafe extern "C" { pub static mut buffer_local_flags: buffer; }
 
 /* For each buffer slot, this points to the Lisp symbol name
    for that slot in the current buffer.  It is 0 for slots
    that don't have such names.  */
 
-unsafe extern "C" { pub static mut buffer_local_symbols: buffer; }
 
 /* verify_interval_modification saves insertion hooks here
    to be run later by report_interval_modification.  */
@@ -1300,21 +1294,19 @@ pub mod textprop_objs {
 }
 use textprop_objs::*;
 
-unsafe extern "C" {
-  pub fn fix_position (pos: Lisp_Object) -> EMACS_INT;
-}
+// ---------------------------------------------------------------------------
+// Declarations C writes in `buffer.h` for names *this repository's* `src/buffer.rs`
+// defines are collected here in a module + glob import, exactly as the
+// `buffer_point_decls` block does above and PORTING.md 0.1-10/P-21 prescribes: an
+// explicit item shadows a glob import, where a same-named `unsafe extern "C"` item at
+// this scope would be `E0428` against the definition.  The declarations whose
+// definitions live in other units (intervals.c's `recenter_overlay_lists`, textprop.c's
+// `fix_overlays_before`, alloc.c's `mmap_set_vars`, insdel.c's `build_overlay`,
+// intervals.c's `set_point` family) keep their own blocks below/above.
+pub mod buffer_decls {
+  use super::*;
 
-// C is an assignment expression, `((x) = make_fixnum (fix_position (x)))`; a Rust
-// macro cannot be an l-value, so this is a statement macro (C never uses the value).
-#[macro_export]
-macro_rules! CHECK_FIXNUM_COERCE_MARKER {
-    ($x:ident) => { $x = make_fixnum (unsafe { fix_position ($x) }); };
-    // C's `CHECK_FIXNUM_COERCE_MARKER (*begin)` (textprop.c 136-137 passes a pointer's
-    // pointee): the same assignment with a deref place expression on the left.
-    ($x:expr) => { $x = make_fixnum (unsafe { fix_position ($x) }); };
-}
-
-unsafe extern "C" {
+  unsafe extern "C" {
   // Parameter names come from the definitions in buffer.c (C's prototypes have
   // none): 992, 1089, 1857, 3161, 3170, 3334, 3469, 2492, 2327, 2343, 2399,
   // 1361, 2206, 2439, 2447, and alloc.c 3768.
@@ -1328,7 +1320,6 @@ unsafe extern "C" {
   // opaque and spells the type in the comment (PORTING.md 0.1-2).
   pub fn sort_overlays (overlay_vec: *mut Lisp_Object, noverlays: ptrdiff_t,
                         w: *mut c_void) -> ptrdiff_t; // struct window *
-  pub fn recenter_overlay_lists (buf: *mut buffer, pos: ptrdiff_t);
   pub fn overlay_strings (pos: ptrdiff_t, w: *mut c_void, // struct window *
                           pstr: *mut *mut u8) -> ptrdiff_t;
   pub fn validate_region (b: *mut Lisp_Object, e: *mut Lisp_Object);
@@ -1337,10 +1328,40 @@ unsafe extern "C" {
   pub fn set_buffer_temp (b: *mut buffer);
   pub fn buffer_local_value (variable: Lisp_Object, buffer: Lisp_Object) -> Lisp_Object;
   pub fn record_buffer (buffer: Lisp_Object);
-  pub fn fix_overlays_before (bp: *mut buffer, prev: ptrdiff_t, pos: ptrdiff_t);
-  pub fn mmap_set_vars (on: bool);
   pub fn restore_buffer (buffer_or_name: Lisp_Object);
   pub fn set_buffer_if_live (buffer: Lisp_Object);
+  pub fn fix_position (pos: Lisp_Object) -> EMACS_INT;
+  pub fn advance_to_char_boundary (byte_pos: ptrdiff_t) -> ptrdiff_t;
+  pub fn valid_per_buffer_idx (idx: c_int) -> bool;
+  pub fn compare_overlays (v1: *const c_void, v2: *const c_void) -> c_int;
+  pub fn make_sortvec_item (item: *mut sortvec, overlay: Lisp_Object);
+  }
+
+  unsafe extern "C" {
+  pub static mut buffer_defaults: buffer;
+  pub static mut buffer_local_flags: buffer;
+  pub static mut buffer_local_symbols: buffer;
+  pub static mut Vbuffer_alist: Lisp_Object;
+  }
+}
+use buffer_decls::*;
+
+
+
+// C is an assignment expression, `((x) = make_fixnum (fix_position (x)))`; a Rust
+// macro cannot be an l-value, so this is a statement macro (C never uses the value).
+#[macro_export]
+macro_rules! CHECK_FIXNUM_COERCE_MARKER {
+    ($x:ident) => { $x = make_fixnum (unsafe { fix_position ($x) }); };
+    // C's `CHECK_FIXNUM_COERCE_MARKER (*begin)` (textprop.c 136-137 passes a pointer's
+    // pointee): the same assignment with a deref place expression on the left.
+    ($x:expr) => { $x = make_fixnum (unsafe { fix_position ($x) }); };
+}
+
+unsafe extern "C" {
+  pub fn recenter_overlay_lists (buf: *mut buffer, pos: ptrdiff_t);
+  pub fn fix_overlays_before (bp: *mut buffer, prev: ptrdiff_t, pos: ptrdiff_t);
+  pub fn mmap_set_vars (on: bool);
   pub fn build_overlay (front_advance: bool, rear_advance: bool,
                         plist: Lisp_Object) -> Lisp_Object;
 }
@@ -1409,7 +1430,6 @@ macro_rules! GET_OVERLAYS_AT {
   }};
 }
 
-unsafe extern "C" { pub static mut Vbuffer_alist: Lisp_Object; }
 
 /* FOR_EACH_LIVE_BUFFER (LIST_VAR, BUF_VAR) followed by a statement is
    a `for' loop which iterates over the buffers from Vbuffer_alist.  */
@@ -1703,9 +1723,6 @@ macro_rules! PER_BUFFER_VAR_IDX {
     ($var:ident) => { PER_BUFFER_IDX (PER_BUFFER_VAR_OFFSET! ($var)) };
 }
 
-unsafe extern "C" {
-  pub fn valid_per_buffer_idx (idx: c_int) -> bool;
-}
 
 /* Value is true if the variable with index IDX has a local value
    in buffer B.  */
@@ -1981,7 +1998,3 @@ pub fn dec_both (charpos: *mut ptrdiff_t, bytepos: *mut ptrdiff_t)
 
 // INLINE_HEADER_END has no Rust counterpart (PORTING.md 0.1).
 
-unsafe extern "C" {
-  pub fn compare_overlays (v1: *const c_void, v2: *const c_void) -> c_int;
-  pub fn make_sortvec_item (item: *mut sortvec, overlay: Lisp_Object);
-}

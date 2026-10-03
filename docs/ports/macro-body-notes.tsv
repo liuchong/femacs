@@ -719,3 +719,41 @@ syms_of_lread	doc	C's `DEFVAR_*` write the docstring as a `doc:` comment; the po
 Fload	fopen_binary,fopen_text,time_t,uninit	`"r" FOPEN_TEXT`/`"r" FOPEN_BINARY` are the frozen `""`/`"b"` and Rust has no literal concatenation (PORTING.md 2.1); `(time_t) 0` is the zeroed `epoch_timespec`; `UNINIT` is `= {0,}` (conf_post.h 369), so `stream`/`fd_index` are zero-initialised and the macro name cannot reappear.
 Funintern	goto	C's `goto removed` is the port's `break` out of the bucket-walk loop (the `removed:` label is where the fall-out lands, PORTING.md 2.2).
 make_process	pridmax,int_strlen_bound	PORTING.md 5.1: C's `"<%"PRIdMax">"` format macro and its `INT_STRLEN_BOUND (i)` array bound are spelled as the literal `<%jd>` and a fixed `[c_char; 32]` buffer
+swapfield	type,0	C's body is `do { type tmp##field = other_buffer->field; other_buffer->field = current_buffer->field; current_buffer->field = tmp##field; } while (0)`; `macro_rules!` cannot paste `tmp##field`, so the port's macro takes the pasted names as parameters and its body has no `type` to spell; `0` is the `while (0)` sentinel, which the port's block body has no counterpart for (PORTING.md P-37, docs/ports/buffer.md)
+swapfield_	type,0	the `BVAR`/`bset_##field` form of the row above (`bset_` is a prefix the port passes in as an argument); same `type`/`0` reason (docs/ports/buffer.md)
+Fbuffer_swap_text	0,type,bool_bf,buffer_text,region_cache,for_each_live_buffer	the body's `swapfield (own_text, struct buffer_text)`/`swapfield (long_line_optimizations_p, bool_bf)`/`swapfield (…, struct region_cache *)` call sites pass the field names the port's macros need instead of C's type arguments, `bool_bf`/the `long_line_optimizations_p` swap are the mirror's `BUFFER_LONG_LINE_OPTIMIZATIONS_P` bit (PORTING.md 1.3), and `FOR_EACH_LIVE_BUFFER` is the P-22 loop macro (docs/ports/excluded-macros.txt)
+copy_overlays	ascending,itree_foreach	itree.h 166-176's `ITREE_FOREACH (node, from->overlays, PTRDIFF_MIN, PTRDIFF_MAX, ASCENDING)` is expanded at its use site (P-33, status 3.7), so neither the macro's name nor the bare order token can reappear
+clone_per_buffer_values	1	C's `buffer_lisp_local_variables (from, 1)` passes the integer `1` where the port's second argument is `true` (the `0`/`1` vs `false`/`true` spelling, PORTING.md 1.1)
+delete_all_overlays	itree_foreach,post_order	`ITREE_FOREACH (node, b->overlays, PTRDIFF_MIN, PTRDIFF_MAX, POST_ORDER)` expanded at its use site (P-33)
+set_overlays_multibyte	ascending,itree_foreach	`ITREE_FOREACH (node, tree, PTRDIFF_MIN, PTRDIFF_MAX, ASCENDING)` expanded at its use site (P-33)
+buffer_local_value	case,default,goto,switch	C's `switch (sym->u.s.redirect)` and its `goto start`/`start:` label become a `match` and the `'start` loop (PORTING.md 2.2), as data.c's `store_symval_forwarding` does
+other_buffer_safely	for_each_live_buffer	P-22: `FOR_EACH_LIVE_BUFFER` has no Rust counterpart, so the port writes the `FOR_EACH_ALIST_VALUE` loop with C's `tail`/`buf` names (the unlock_all_files row)
+swap_buffer_overlays	ascending,itree_foreach	`ITREE_FOREACH (node, buffer->overlays, PTRDIFF_MIN, PTRDIFF_MAX, ASCENDING)` (twice) expanded at the use site (P-33)
+overlays_in	ascending,itree_foreach	`ITREE_FOREACH (node, current_buffer->overlays, beg, search_end, ASCENDING)` expanded at its use site (P-33)
+next_overlay_change	ascending,itree_foreach,itree_foreach_narrow	the `ITREE_FOREACH`/`ITREE_FOREACH_NARROW` pair is expanded at its use site (P-33)
+previous_overlay_change	descending,itree_foreach,itree_foreach_narrow	the `ITREE_FOREACH`/`ITREE_FOREACH_NARROW` pair is expanded at its use site (P-33)
+mouse_face_overlay_overlaps	ascending,itree_foreach	`ITREE_FOREACH (node, current_buffer->overlays, start, min (end, ZV) + 1, ASCENDING)` expanded at its use site (P-33)
+disable_line_numbers_overlay_at_eob	ascending,itree_foreach	`ITREE_FOREACH (node, current_buffer->overlays, ZV, ZV, ASCENDING)` expanded at its use site (P-33)
+overlay_touches_p	descending,itree_foreach	`ITREE_FOREACH (node, current_buffer->overlays, pos - 1, pos + 1, DESCENDING)` expanded at its use site (P-33)
+overlay_strings	descending,itree_foreach	`ITREE_FOREACH (node, current_buffer->overlays, pos - 1, pos + 1, DESCENDING)` expanded at its use site (P-33)
+adjust_overlays_for_insert	for_each_live_buffer	P-22 loop macro expanded by hand (the unlock_all_files row)
+adjust_overlays_for_delete_in_buffer	ascending,itree_foreach	`ITREE_FOREACH (node, buf->overlays, pos, pos, ASCENDING)` expanded at its use site (P-33)
+adjust_overlays_for_delete	for_each_live_buffer	P-22 loop macro expanded by hand (the unlock_all_files row)
+report_overlay_modification	ascending,itree_foreach,overlay_buffer	`ITREE_FOREACH (node, current_buffer->overlays, begin_arg - …, end_arg + …, ASCENDING)` expanded at its use site (P-33), and `OVERLAY_BUFFER (x)` is compared against `current_buffer` instead of an integer-truth test
+defvar_per_buffer	true	C's `sym->u.s.declared_special = true` is the mirror's `SYMBOL_DECLARED_SPECIAL_BIT` in `u.s.bits` (PORTING.md 1.3)
+Fget_file_buffer	continue,for_each_live_buffer	P-22 loop macro expanded by hand; C's `continue` is written as the enclosing `if`'s condition (the increment runs after the body on every path)
+Fget_truename_buffer	continue,for_each_live_buffer	the row above
+Ffind_buffer	for_each_live_buffer	P-22 loop macro expanded by hand (the unlock_all_files row)
+Fget_buffer_create	false	C's `b->text->inhibit_shrinking = false` is the mirror's `BUFFER_TEXT_INHIBIT_SHRINKING` bit (PORTING.md 1.3)
+Fforce_mode_line_update	true	C's `current_buffer->prevent_redisplay_optimizations_p = true` is the mirror's `BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P` bit (PORTING.md 1.3)
+Fother_buffer	for_each_live_buffer	P-22 loop macro expanded by hand (the unlock_all_files row)
+Fkill_buffer	for_each_live_buffer	P-22 loop macro expanded by hand (the unlock_all_files row)
+Fset_buffer_multibyte	for_each_live_buffer	P-22 loop macro expanded by hand (the unlock_all_files row)
+Fmove_overlay	uninit	C's `ptrdiff_t o_beg UNINIT, o_end UNINIT;` has no Rust counterpart: the port initialises them (PORTING.md 1.5)
+Fdelete_overlay	1	C's `b->prevent_redisplay_optimizations_p = 1` is the mirror's `BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P` bit; the integer `1` is the bit write (PORTING.md 1.3)
+Foverlays_in	1	C passes the integer `1` for `extend` where the port writes `true` (PORTING.md 1.1)
+Foverlay_lists	descending,itree_foreach	`ITREE_FOREACH (node, current_buffer->overlays, BEG, Z, DESCENDING)` expanded at its use site (P-33)
+Foverlay_get	0	C's `lookup_char_property (…, prop, 0)` passes the integer `0` where the port writes `false` (PORTING.md 1.1)
+Foverlay_put	goto	C's `goto found`/`found:` becomes the `'found` labelled loop (PORTING.md 2.2)
+connect_network_socket	sa6	PORTING.md 5.1/1.5: C's `static_assert (sizeof (sa1.sin_port) == sizeof (sa6.sin6_port))` compares two field widths; a Rust `const` item cannot name the function's locals, so the port compares `size_of::<u16> ()` on both sides and `sa6` keeps only its (zeroed) declaration
+Fmake_network_process	MAYBE_UNUSED,UNINIT	PORTING.md 5.1: C's `MAYBE_UNUSED`/`UNINIT` are attribute macros with no Rust spelling (`UNINIT` is empty, `MAYBE_UNUSED` is `ATTRIBUTE_UNUSED`); the port declares `portstringlen`/`portstring` with ordinary zero/`null` initializers (PORTING.md 1.5)
