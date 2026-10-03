@@ -601,6 +601,15 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
     for m in R_DEFUN.finditer(flat):
         tail = flat[m.end():m.end() + 4000]
         sm = R_DOC_STRING.search(tail) or R_DOC_COMMENT.search(tail)
+        if sm is None:
+            # The window above is a *lookahead*, not a limit: a docstring literal longer
+            # than it cannot close inside it, and the subr was then reported as
+            # "no docstring found on the Rust side" although its digest was right
+            # (`src/process.c`'s `Fmake_network_process` doc is 8 KB; found by the
+            # process worker, 2026-10-04).  Re-scan with a window that fits the longest
+            # docstring in the tree before giving up.
+            tail = flat[m.end():m.end() + 400000]
+            sm = R_DOC_STRING.search(tail) or R_DOC_COMMENT.search(tail)
         # C's docstring is a comment; the port's is a Rust string literal, so the
         # literal's escapes are decoded before the digest (PORTING.md 5.1).
         doc = None

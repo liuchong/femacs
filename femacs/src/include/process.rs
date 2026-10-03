@@ -138,10 +138,19 @@ pub fn pset_childp (p: *mut Lisp_Process, val: Lisp_Object) { unsafe { (*p).chil
 #[inline(always)]
 pub fn pset_status (p: *mut Lisp_Process, val: Lisp_Object) { unsafe { (*p).status = val; } }
 
-/* True means don't run process sentinels.  This is used when exiting.  */
-unsafe extern "C" { pub static mut inhibit_sentinels: bool; }              // process.h 265
-/* True means that Glib clobbers Emacs SIGCHLD handler.  */
-unsafe extern "C" { pub static mut glib_installs_sigchld_handler: bool; }  // process.h 267
+/* process.h 263-268: the two objects C's `src/process.c` defines (C 161 and C 7674).  They
+   sit in `pub mod process_objs` + glob import so the unit's definitions shadow the
+   declarations where a same-named declaration at this scope would be `E0428` (PORTING.md
+   0.1-10/P-21, the `composite_objs`/`charset_objs` shape).  */
+pub mod process_objs {
+  use super::*;
+
+  /* True means don't run process sentinels.  This is used when exiting.  */
+  unsafe extern "C" { pub static mut inhibit_sentinels: bool; }              // process.h 265
+  /* True means that Glib clobbers Emacs SIGCHLD handler.  */
+  unsafe extern "C" { pub static mut glib_installs_sigchld_handler: bool; }  // process.h 267
+}
+use process_objs::*;
 
 /* Exit statuses for GNU programs that exec other programs.  */
 // process.h 270-275.
