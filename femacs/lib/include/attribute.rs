@@ -26,6 +26,15 @@ macro_rules! __attribute_warn_unused_result__ {
     () => {};
 }
 
+/* attribute.h 187: `#define NODISCARD _GL_ATTRIBUTE_NODISCARD`, which lib/cdefs.h spells
+   `__attribute__ ((__warn_unused_result__))`; systhread.h 152-155 puts the token in front of
+   three declarations, and the port keeps the token as a no-op at the same sites (the
+   `__attribute_warn_unused_result__` row above; the three `NODISCARD` sites themselves are
+   recorded in docs/ports/include-systhread.md).  */
+macro_rules! NODISCARD {
+    () => {};
+}
+
 /* libc-config.h 139/144 undefine and re-define these for the non-glibc build; the frozen
    target's definition is the empty one, so the port's no-op matches.  */
 macro_rules! attribute_compat_text_section {
