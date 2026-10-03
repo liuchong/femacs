@@ -22,10 +22,10 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **241 个单元**（`femacs/src/*.rs` 119 +
+- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **242 个单元**（`femacs/src/*.rs` 120 +
   `femacs/lib/*.rs` 122）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
   **权威口径 `python3 tools/extract-abi.py --all` 本轮真跑过**（第 84 轮，约 4 分钟）：
-  `checked 338 ported files: 312 done, 26 in progress, 0 failing`——"in progress" 全是 WIP 镜像
+  `checked 342 ported files: 317 done, 25 in progress, 0 failing`（第 87 轮复跑）——"in progress" 全是 WIP 镜像
   （`include-dispextern`/`window`/`frame`/`font`/`thread`/`regex-emacs` 等，各自的台账写明 WIP）。
   单元台账仍全部勾满（`docs/ports/*.md` 里非 `include-*.md` 的未勾项为 0），`lib/` 的 122 个
   `.c` 文件与冻结构建要的 78 个 lib 对象都已端口，符号棘轮剩 1 项（`lib/regex` 的聚合形状，
@@ -635,3 +635,13 @@
   `docs/ports/callproc.md` 的 Integrator note。
   ③ 顺带记录一条待办：`coding_system` 的**结构体赋值**在端口用 `std::ptr::read` 顶（该镜像没有
   `Copy`），台账写明镜像缺口留给 `coding.c` 自己落位，不要在这一轮改别人的镜像。
+
+- **3.52 第 87 轮：`src/insdel.c` 与两条待补的镜像缺口（2026-10-03）**：insdel 是**已验证**文件
+  （`24 conditions, 0 unknown, 0 disagreements`），故按 P-08 记死区而非抄两支（`HAVE_TREE_SITTER`
+  的十二处、`MARKER_DEBUG`、`USE_MMAP_FOR_BUFFERS`/`REL_ALLOC`/`DOUG_LEA_MALLOC`、八处
+  `BYTE_COMBINING_DEBUG`），容差行用 `live` 基准（2,280 活行、9.0%）。它的两个位域写
+  （`suspend_auto_hscroll`、`inhibit_shrinking`）经镜像掩码，并新增两个 token-alias family
+  （带出现次数校验）；C 2260-2282 那五个**捕获调用者局部量**的语句宏按 3.8 落成同名 `unsafe fn`。
+  **两条 integrator 待办**（worker 报回、未越界改别人的镜像，单元在使用点声明）：
+  `bset_redisplay`（window.h 1169）与 `record_first_change`（lisp.h 5253）应补进各自镜像。
+  权威口径复跑：`checked 342 ported files: 317 done, 25 in progress, 0 failing`。
