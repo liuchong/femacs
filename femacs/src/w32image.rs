@@ -1,4 +1,4 @@
-// femacs: port of src/w32image.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/w32image.c @ fd7afced403 .
 /* Implementation of MS-Windows native image API via the GDI+ library.
 
 Copyright (C) 2020-2026 Free Software Foundation, Inc.

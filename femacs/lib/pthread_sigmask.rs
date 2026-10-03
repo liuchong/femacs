@@ -17,7 +17,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-// femacs: port of lib/pthread_sigmask.c @ fd7afced403 (GNU Emacs 32.0.50).  The file has no
+// femacs: port of lib/pthread_sigmask.c @ fd7afced403 .  The file has no
 // live text in the frozen configuration — `HAVE_PTHREAD_SIGMASK` is 1 and none of
 // `PTHREAD_SIGMASK_INEFFECTIVE`/`PTHREAD_SIGMASK_NOT_IN_LIBC`/`PTHREAD_SIGMASK_FAILS_WITH_ERRNO`
 // is defined, so gnulib does not compile it (there is no `build/emacs-ref/lib/pthread_sigmask.o`)

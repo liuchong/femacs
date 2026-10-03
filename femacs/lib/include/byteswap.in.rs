@@ -1,4 +1,4 @@
-// femacs: port of lib/byteswap.in.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/byteswap.in.h @ fd7afced403 (gnulib).
 //
 // gnulib template; the frozen target's generated header is build/emacs-ref/lib/byteswap.h,
 // and its substitutions are `_GL_BYTESWAP_H` for the guard and nothing else.  C's

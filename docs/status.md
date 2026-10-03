@@ -456,3 +456,12 @@
   整表重跑 0 disagreement，其余 428 个文件无回归。
   **同类风险**：任何"由源码头文件而非 config.h 决定"的 `#ifdef` 都会重演这一幕（`src/*.h` 里再出现
   时照此加一行，不要临时在 unit 里迁就门）。
+
+- **3.36 版本声明去产品名（2026-10-03 用户指令，当天全树落地）**：所有单元/镜像首行的
+  `@ fd7afced403 (GNU Emacs 32.0.50)` 括注一律去掉，只留修订号（**231 个文件**一次性机械改写；
+  连同 `PORTING.md`/`docs/plan.md`/`docs/port-plan.md`/`docs/port-master-plan.md`/`docs/goal.md`/
+  `docs/i18n/zh-CN/plan.md` 的基线行）。规则写进 `PORTING.md` 0.1-19，后续新文件照此。
+  **不在改写范围**：参照文件自己的版权/许可声明和首行标题注释（例如 `/* Cursor motion
+  subroutines for GNU Emacs.  */`）——那是被复制文本的一部分，GPL 要求保留；
+  也不动 `docs/baseline/config/darwin-arm64.macros.tsv` 的 `PACKAGE_STRING "GNU Emacs 32.0.50"`
+  （它是 clang 实测的冻结值，改了就与参照不符）。

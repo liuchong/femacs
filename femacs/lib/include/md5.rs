@@ -17,7 +17,7 @@
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
-// femacs: port of lib/md5.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/md5.h @ fd7afced403 (gnulib).
 //
 // Header mirror (PORTING.md 0.1): the struct, the constants, the `__md5_*` name
 // aliases and the declarations C spells `extern`.  `tools/extract-abi.py --check

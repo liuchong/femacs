@@ -1,4 +1,4 @@
-// femacs: port of src/pgtkfns.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/pgtkfns.c @ fd7afced403 .
 /* Functions for the pure Gtk+-3.
 
 Copyright (C) 1989, 1992-1994, 2005-2006, 2008-2020, 2022-2026 Free

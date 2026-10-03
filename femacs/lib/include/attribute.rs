@@ -1,4 +1,4 @@
-// femacs: WIP mirror of lib/attribute.h @ fd7afced403 (GNU Emacs 32.0.50; PORTING.md P-26).
+// femacs: WIP mirror of lib/attribute.h @ fd7afced403 (PORTING.md P-26).
 //
 // The regex cluster is the first port that includes <attribute.h>; this mirror carries
 // only the macros it names, and the rest of the header is tracked in

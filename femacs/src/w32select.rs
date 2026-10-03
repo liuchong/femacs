@@ -1,4 +1,4 @@
-// femacs: port of src/w32select.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/w32select.c @ fd7afced403 .
 /* Selection processing for Emacs on the Microsoft Windows API.
 
 Copyright (C) 1993-1994, 2001-2026 Free Software Foundation, Inc.

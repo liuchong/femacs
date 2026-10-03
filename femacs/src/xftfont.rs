@@ -1,4 +1,4 @@
-// femacs: port of src/xftfont.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/xftfont.c @ fd7afced403 .
 /* xftfont.c -- XFT font driver.
    Copyright (C) 2006-2026 Free Software Foundation, Inc.
    Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011

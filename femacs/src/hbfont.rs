@@ -1,4 +1,4 @@
-// femacs: port of src/hbfont.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/hbfont.c @ fd7afced403 .
 /* hbfont.c -- Platform-independent support for HarfBuzz font driver.
    Copyright (C) 2019-2026 Free Software Foundation, Inc.
 

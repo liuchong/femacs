@@ -1,4 +1,4 @@
-// femacs: port of src/systime.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/systime.h @ fd7afced403 .
 //
 // Header mirror (PORTING.md 0.1): types, constants, the header's two `INLINE` functions and
 // the declarations C spells `extern`.  C includes "lisp.h" (the includer's job, 0.1-14) and

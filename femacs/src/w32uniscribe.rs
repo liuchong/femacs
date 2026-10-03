@@ -1,4 +1,4 @@
-// femacs: port of src/w32uniscribe.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/w32uniscribe.c @ fd7afced403 .
 /* Font backend for the Microsoft W32 Uniscribe API.
    Windows-specific parts of the HarfBuzz font backend.
    Copyright (C) 2008-2026 Free Software Foundation, Inc.

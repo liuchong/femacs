@@ -1,4 +1,4 @@
-// femacs: port of src/font.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/font.h @ fd7afced403 .
 //
 // WIP mirror (P-66): data.c's `cl-type-of` reaches font.h through
 // keyboard.h -> coding.h -> composite.h -> font.h (keyboard.h 23, coding.h 284,

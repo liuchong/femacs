@@ -1,6 +1,6 @@
 # PORTING.md — femacs 的 C → Rust 映射指南（v2）
 
-适用基线：`emacs/` 检出 `fd7afced403`（GNU Emacs 32.0.50）。
+适用基线：`emacs/` 检出 `fd7afced403`。
 本文是逐文件移植时的裁决依据。v2 依据 2026-10-02 两名对抗评审的结论重写：
 `docs/reviews/2026-10-02-adversarial-review.md` 记录了每条缺陷、证据与处置，
 `docs/reviews/2026-10-02-artifacts.sha256` 是评审时的工件哈希。
@@ -87,6 +87,14 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
    `docs/baseline/layout/c-layout-*.tsv`（C 编译器输出的冻结基线），生成 `const _: () =
    assert!(size_of/offset_of …);`；镜像里没有声明过的类型记为 pending，数量随移植递减，
    但不允许把 pending 当成通过。
+19. **版本声明只写参照的修订号，不写产品名**（2026-10-03 定案）：每个单元/镜像的首行是
+    `// femacs: port of <路径> @ <修订号>.`（镜像写 `mirror of`），**不写** `(GNU Emacs x.y.z)`
+    这一类产品名+版本的括注。理由：一个"移植自某产品"的版本声明会让人以为本仓库就是那个产品，
+    有法律风险；修订号（`fd7afced403`）足够定位参照，`docs/baseline` 的冻结基线里也已经有
+    全部可复算的版本信息（例如 `darwin-arm64.macros.tsv` 的 `PACKAGE_STRING`，那是实测值，
+    必须原样保留）。**注意**：参照文件自己的版权/许可声明与文件首行的标题注释是**被复制文本**
+    的一部分（GPL 要求保留），不在此列，照抄。
+
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
     因此不能调用排在它后面的宏——`call0` 按 lisp.h 3462-3471 的顺序挪到了 `calln!`

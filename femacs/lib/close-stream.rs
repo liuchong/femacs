@@ -18,7 +18,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
-// femacs: port of lib/close-stream.c @ fd7afced403 (GNU Emacs 32.0.50).  Blind file:
+// femacs: port of lib/close-stream.c @ fd7afced403 .  Blind file:
 // `USE_UNLOCKED_IO` expands to `GNULIB_STDIO_SINGLE_THREAD`, which is 1 (macros.tsv 1160),
 // so C 26-28's `#include "unlocked-io.h"` is live.  That header renames the unlocked stdio
 // entries to the locked ones, and on this target `ferror` is `<stdio.h>`'s `__sferror`

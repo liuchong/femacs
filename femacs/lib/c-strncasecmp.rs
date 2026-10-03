@@ -13,7 +13,7 @@
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-// femacs: port of lib/c-strncasecmp.c @ fd7afced403 (GNU Emacs 32.0.50).  The same shape as
+// femacs: port of lib/c-strncasecmp.c @ fd7afced403 .  The same shape as
 // femacs/lib/c-strcasecmp.rs: blind file, `UCHAR_MAX <= INT_MAX` live, C's `else` arm
 // carried so the checker sees `_GL_CMP`, and C 40's `--n` written as the wrapping step C
 // performs.

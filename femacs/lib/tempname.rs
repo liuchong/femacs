@@ -1,4 +1,4 @@
-// femacs: port of lib/tempname.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/tempname.c @ fd7afced403 .
 //
 // NOTE: lib/tempname.c is **not** in `docs/baseline/config/cond-eval-verified.txt`, so the
 // gate reads *both* arms of every `#if` as live text (tools/cinventory.py's blind

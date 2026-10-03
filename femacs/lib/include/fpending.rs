@@ -1,4 +1,4 @@
-// femacs: port of lib/fpending.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: port of lib/fpending.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The header is the config assertion, two includes and one declaration guarded by
 // `#if !HAVE_DECL___FPENDING` (undefined on this target: macros.tsv 1288), so the

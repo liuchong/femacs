@@ -17,7 +17,7 @@
 
 /* Written by Paul Eggert.  */
 
-// femacs: port of lib/time-internal.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/time-internal.h @ fd7afced403 (gnulib).
 //
 // Header mirror (PORTING.md 0.1): gnulib's time-zone rule and the two entry points the
 // time_rz module exports, plus the `local_tz` cookie.  `timezone_t` (and `struct tm`,

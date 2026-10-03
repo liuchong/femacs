@@ -17,7 +17,7 @@
 
    Written by Paul Eggert, Andreas Grünbacher, and Bruno Haible.  */
 
-// femacs: port of lib/acl-internal.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/acl-internal.h @ fd7afced403 (gnulib).
 //
 // Liveness: `tools/check-cond-eval.py lib/acl-internal.h` reports 36 conditions with **1
 // disagreement** (C 63's `#ifndef ACL_INTERNAL_INLINE`: clang sees the macro already defined,

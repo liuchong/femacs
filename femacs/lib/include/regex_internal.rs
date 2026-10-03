@@ -1,4 +1,4 @@
-// femacs: mirror of lib/regex_internal.h @ fd7afced403 (GNU Emacs 32.0.50; PORTING.md 0.1-2).
+// femacs: mirror of lib/regex_internal.h @ fd7afced403 (PORTING.md 0.1-2).
 //
 // Declarations only: types, constants, `macro_rules!` and the inline helpers the
 // reference spells `static inline` (they carry no C symbol, so the mirror may define

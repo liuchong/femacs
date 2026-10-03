@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
-// femacs: port of lib/strftime.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/strftime.h @ fd7afced403 (gnulib).
 //
 // Header mirror (PORTING.md 0.1).  The header declares no macro and no type, only the two
 // entry points over `timezone_t` (the time.h mirror) and `struct tm` (also the time.h

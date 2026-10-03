@@ -1,4 +1,4 @@
-// femacs: mirror of lib/binary-io.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/binary-io.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // `O_BINARY` is 0 on this target (gnulib's <fcntl.h> fallback), so the header's
 // `#if O_BINARY` arm is dead and the live text is the two `_GL_INLINE` functions it gives

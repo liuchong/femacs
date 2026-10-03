@@ -17,7 +17,7 @@
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-// femacs: port of lib/stpcpy.c @ fd7afced403 (GNU Emacs 32.0.50).  C 30-32's
+// femacs: port of lib/stpcpy.c @ fd7afced403 .  C 30-32's
 // `#ifndef weak_alias / # define __stpcpy stpcpy / #endif` is the live arm (this target
 // has no weak_alias), so the definition C writes as `__stpcpy` leaves the preprocessor as
 // `stpcpy`: the port keeps C's source name on the item and emits the real symbol with

@@ -1,4 +1,4 @@
-// femacs: port of lib/getopt.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/getopt.c @ fd7afced403 .
 //
 // lib/getopt.c is in `docs/baseline/config/cond-eval-verified.txt`, so the gate evaluates its
 // five conditions against the frozen configuration and compares only the live text.  Live:

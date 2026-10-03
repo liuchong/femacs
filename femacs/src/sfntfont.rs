@@ -1,4 +1,4 @@
-// femacs: port of src/sfntfont.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/sfntfont.c @ fd7afced403 .
 /* sfnt format font driver for GNU Emacs.
 
 Copyright (C) 2023-2026 Free Software Foundation, Inc.

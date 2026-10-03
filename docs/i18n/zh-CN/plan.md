@@ -5,7 +5,7 @@
 [femacs](../../../README.md) 是对 GNU Emacs 的一比一复刻：参照树里的每一个 C 源文件都变成
 同名、同标识符、同结构、同语义的 Rust 源文件，Emacs Lisp 树原样复制。
 
-- **基线**：`emacs/` 检出 `fd7afced403`（GNU Emacs 32.0.50），被 git 忽略且只读。
+- **基线**：`emacs/` 检出 `fd7afced403`，被 git 忽略且只读。
 - **总计划**：[port-master-plan.md](../../port-master-plan.md)——规模实测、方法论借鉴、12 个
   "完全一致"维度、批次、闸门与风险。
 - **执行手册**：[port-plan.md](../../port-plan.md)——单文件循环、并行编排、预备阶段的细则。

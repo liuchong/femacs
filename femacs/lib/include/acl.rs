@@ -1,4 +1,4 @@
-// femacs: mirror of lib/acl.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/acl.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The header is two flag constants, `struct aclinfo` (whose union holds either an errno or a
 // 152-byte char array) and the declarations of the ACL entry points.  HAVE_LINUX_XATTR_H is

@@ -5,7 +5,7 @@ of the reference tree becomes a Rust source with the same file name, the same
 identifiers, the same structures and the same semantics, and the Emacs Lisp
 tree is copied unchanged.
 
-- **Baseline**: the `emacs/` checkout at `fd7afced403` (GNU Emacs 32.0.50),
+- **Baseline**: the `emacs/` checkout at `fd7afced403` ,
   git-ignored and read-only.
 - **Master plan**: [port-master-plan.md](port-master-plan.md) — the measured
   scale, the methodology borrowed from comparable rewrites, the twelve

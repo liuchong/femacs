@@ -1,4 +1,4 @@
-// femacs: port of lib/stdint.in.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/stdint.in.h @ fd7afced403 .
 //
 // WIP mirror: it carries only the width section (stdint.in.h 683-733) that the
 // ported units need so far; the rest of the header is tracked in

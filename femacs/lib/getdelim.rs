@@ -1,4 +1,4 @@
-// femacs: port of lib/getdelim.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/getdelim.c @ fd7afced403 .
 //
 // The file is one function plus one dead-arm helper.  C 28-42's three arms select the
 // locking behaviour: `USE_UNLOCKED_IO`'s `GNULIB_STDIO_SINGLE_THREAD` is not defined, and

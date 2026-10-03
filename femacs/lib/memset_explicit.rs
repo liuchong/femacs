@@ -17,7 +17,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-// femacs: port of lib/memset_explicit.c @ fd7afced403 (GNU Emacs 32.0.50).  Blind file.
+// femacs: port of lib/memset_explicit.c @ fd7afced403 .  Blind file.
 // The frozen configuration gives the `HAVE_MEMSET_S` arm (macros.tsv 1432 is 1, with
 // HAVE_EXPLICIT_MEMSET undefined and HAVE_MEMSET_S_SUPPORTS_ZERO 1), so C 16's
 // `(void) memset_s (s, len, c, len);` and C 17's `return s;` are the live text; the other

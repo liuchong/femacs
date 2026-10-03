@@ -1,4 +1,4 @@
-// femacs: port of lib/filevercmp.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/filevercmp.c @ fd7afced403 .
 //
 // One unconditional body: the file has no `#if` arms at all, and every helper is `static`
 // (so none of them carries `#[unsafe(no_mangle)]`).  C 20's <config.h> is the config mirror,

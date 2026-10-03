@@ -17,7 +17,7 @@
 
 /* Written by Paul Eggert.  */
 
-// femacs: port of lib/u64.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/u64.h @ fd7afced403 (gnulib).
 //
 // Header mirror (PORTING.md 0.1).  C 44's `#if defined UINT64_MAX && INT_MAX <
 // UINT64_MAX` arm is the live one on the frozen target (uint64_t exists), so `u64` is

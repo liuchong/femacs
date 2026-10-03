@@ -1,4 +1,4 @@
-// femacs: port of src/commands.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/commands.h @ fd7afced403 .
 //
 // WIP mirror (P-66): commands.h is 30 lines and has no conditional at all, so this is the
 // whole header.  `#include "lisp.h"` (commands.h 24) has no counterpart here: a `src/`

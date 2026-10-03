@@ -15,7 +15,7 @@
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-// femacs: port of lib/str-two-way.h @ fd7afced403 (GNU Emacs 32.0.50).  Header mirror
+// femacs: port of lib/str-two-way.h @ fd7afced403 .  Header mirror
 // (PORTING.md 0.1): the C text is the Three-Way (Chrochemore-Perrin) byte-substring search
 // that lib/memmem.c injects into its own translation unit, and its three functions are
 // `static`, so each including unit gets its own copy — the port's `#[inline(always)] pub fn`

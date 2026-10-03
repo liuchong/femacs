@@ -1,4 +1,4 @@
-// femacs: port of src/composite.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/composite.h @ fd7afced403 .
 //
 // WIP mirror (PORTING.md P-66): it carries the frozen configuration's live type and
 // constants.  `composition.h` has no platform branch of its own (its 28 conditions resolve

@@ -1,4 +1,4 @@
-// femacs: port of src/w32console.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/w32console.c @ fd7afced403 .
 /* Terminal hooks for GNU Emacs on the Microsoft Windows API.
    Copyright (C) 1992, 1999, 2001-2026 Free Software Foundation, Inc.
 

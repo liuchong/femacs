@@ -1,4 +1,4 @@
-// femacs: mirror of lib/filemode.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/filemode.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The reference header declares `strmode` only when the system has not got it
 // (`#if !HAVE_DECL_STRMODE`), and HAVE_DECL_STRMODE is 1 on this target: the live declaration

@@ -14,7 +14,7 @@
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-// femacs: port of lib/time_r.c @ fd7afced403 (GNU Emacs 32.0.50).  The file has no
+// femacs: port of lib/time_r.c @ fd7afced403 .  The file has no
 // preprocessing conditions, and both definitions are exported symbols.  The unit defines
 // `gmtime_r`/`localtime_r`, which <time.h>'s mirror declares: those declarations live in the
 // mirror's `pub mod time_decls` + glob import, so the definitions here shadow the glob

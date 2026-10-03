@@ -1,4 +1,4 @@
-// femacs: port of src/xfns.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/xfns.c @ fd7afced403 .
 /* Functions for the X Window System.
 
 Copyright (C) 1989, 1992-2026 Free Software Foundation, Inc.

@@ -1,4 +1,4 @@
-// femacs: port of lib/mini-gmp.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/mini-gmp.c @ fd7afced403 .
 //
 // One-to-one port (PORTING.md): same names, same statement order, same control flow, same
 // data structures, comments kept.  This is gnulib's bundled mini-gmp, so `<gmp.h>` resolves

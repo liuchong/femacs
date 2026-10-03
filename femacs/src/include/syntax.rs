@@ -1,4 +1,4 @@
-// femacs: port of src/syntax.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/syntax.h @ fd7afced403 .
 //
 // WIP mirror (P-66): syntax.h is 215 lines and the single conditional in it is the
 // include guard's `#ifndef`, so nothing here is missing because of the frozen

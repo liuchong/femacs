@@ -18,7 +18,7 @@
 
    Written by Paul Eggert.  */
 
-// femacs: port of lib/flexmember.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: port of lib/flexmember.h @ fd7afced403 (gnulib); PORTING.md 0.1.
 //
 // `tools/check-cond-eval.py lib/flexmember.h` is VERIFIED (2 conditions), so this mirror is
 // the frozen configuration's live text: C 36's `#if !defined __STDC_VERSION__ || … ||

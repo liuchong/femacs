@@ -1,4 +1,4 @@
-// femacs: port of lib/min-eloop-threshold.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/min-eloop-threshold.h @ fd7afced403 .
 //
 // One constant: the minimum number of symbolic links a path resolution must be able to
 // traverse before ELOOP is diagnosed (canonicalize-lgpl.c's loop counter compares against

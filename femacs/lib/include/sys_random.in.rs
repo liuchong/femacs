@@ -1,4 +1,4 @@
-// femacs: WIP mirror of lib/sys_random.in.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md P-26.
+// femacs: WIP mirror of lib/sys_random.in.h @ fd7afced403 ; PORTING.md P-26.
 //
 // The reference is a gnulib template (`@PRAGMA_SYSTEM_HEADER@`, `@GUARD_PREFIX@`,
 // `@HAVE_SYS_RANDOM_H@`, `@INCLUDE_NEXT@`), so `tools/check-cond-eval.py` cannot decide its

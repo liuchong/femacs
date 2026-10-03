@@ -1,4 +1,4 @@
-// femacs: mirror of lib/careadlinkat.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/careadlinkat.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The header is `struct allocator`'s forward declaration, one prototype and the
 // `AT_FDCWD` fallback; the definition is `femacs/lib/careadlinkat.rs`, so the prototype sits

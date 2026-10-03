@@ -1,4 +1,4 @@
-// femacs: port of src/character.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/character.c @ fd7afced403 .
 //
 // One-to-one port: same statements in the same order, same names (PORTING.md).  The ten
 // subrs use `DEFUN!` (PORTING.md 5.1); the two `MANY` subrs take C's `(n, args)` pair.

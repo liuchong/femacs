@@ -1,4 +1,4 @@
-// femacs: port of src/xml.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/xml.c @ fd7afced403 .
 //
 // One-to-one port (PORTING.md): same statements, same names.  The file is dominated by
 // `#ifdef HAVE_LIBXML2` (C 24-317's parser, the two `libxml-parse-*-region` subrs and their

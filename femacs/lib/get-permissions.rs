@@ -17,7 +17,7 @@
 
    Written by Paul Eggert, Andreas Grünbacher, and Bruno Haible.  */
 
-// femacs: port of lib/get-permissions.c @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/get-permissions.c @ fd7afced403 (gnulib).
 //
 // The frozen configuration resolves all 10 of this file's conditions
 // (`tools/check-cond-eval.py lib/get-permissions.c`: 0 unknown, 0 disagreements), and

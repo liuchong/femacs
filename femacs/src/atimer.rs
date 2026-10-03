@@ -1,4 +1,4 @@
-// femacs: port of src/atimer.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/atimer.c @ fd7afced403 .
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names (function,
 // struct, struct field, macro, local), same control flow, same error model.  The seven

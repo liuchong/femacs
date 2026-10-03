@@ -1,4 +1,4 @@
-// femacs: port of lib/getloadavg.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/getloadavg.c @ fd7afced403 .
 //
 // `lib/getloadavg.c` is in `docs/baseline/config/cond-eval-verified.txt` (82 conditions, 0
 // disagreements with clang — adding it needed two fixes in `tools/cinventory.py`, which are

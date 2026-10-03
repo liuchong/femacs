@@ -1,4 +1,4 @@
-// femacs: port of lib/euidaccess.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/euidaccess.c @ fd7afced403 .
 //
 // NOTE: lib/euidaccess.c is **not** in `docs/baseline/config/cond-eval-verified.txt`, so the
 // gate reads *both* arms of every `#if` as live text (P-66) and the checklist carries the

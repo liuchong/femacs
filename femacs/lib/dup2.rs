@@ -1,4 +1,4 @@
-// femacs: port of lib/dup2.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/dup2.c @ fd7afced403 .
 //
 // `rpl_dup2` is the live function; the two arms above it are the non-frozen sides:
 // C 30-98's `#if defined _WIN32 && ! defined __CYGWIN__` arm (the mingw32/Wine workaround)

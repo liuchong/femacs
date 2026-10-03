@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
-// femacs: port of lib/sha256.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/sha256.h @ fd7afced403 (gnulib).
 //
 // Header mirror (PORTING.md 0.1): the struct, the constants and the declarations.
 // C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error …` is the generated config header's

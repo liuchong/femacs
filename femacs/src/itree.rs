@@ -1,4 +1,4 @@
-// femacs: port of src/itree.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/itree.c @ fd7afced403 .
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names.  itree.c has
 // one `#if` block, C 486-494's `#ifdef ITREE_TESTING` arm; ITREE_TESTING is not in the

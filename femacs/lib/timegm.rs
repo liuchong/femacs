@@ -20,7 +20,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-// femacs: port of lib/timegm.c @ fd7afced403 (GNU Emacs 32.0.50).  `_LIBC` is undefined,
+// femacs: port of lib/timegm.c @ fd7afced403 .  `_LIBC` is undefined,
 // so C 20-22's `<libc-config.h>` include is live and C 36-57's `#if defined _LIBC &&
 // __TIMESIZE != 64` arm (the 32-bit `timegm` wrapper) is dead.  mktime-internal.h renames
 // the definition twice on this target: `__timegm64` -> `timegm` (mktime-internal.h 53) and

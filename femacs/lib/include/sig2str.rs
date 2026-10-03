@@ -1,4 +1,4 @@
-// femacs: mirror of lib/sig2str.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/sig2str.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The reference header is the license, the include guard and one constant: the upper bound on
 // signal numbers, chosen from the system's own macros.  This target defines NSIG (through

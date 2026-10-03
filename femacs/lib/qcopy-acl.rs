@@ -17,7 +17,7 @@
 
    Written by Paul Eggert, Andreas Grünbacher, and Bruno Haible.  */
 
-// femacs: port of lib/qcopy-acl.c @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/qcopy-acl.c @ fd7afced403 (gnulib).
 //
 // The frozen configuration resolves all 6 of this file's conditions
 // (`tools/check-cond-eval.py lib/qcopy-acl.c`: 0 unknown, 0 disagreements), and USE_XATTR is

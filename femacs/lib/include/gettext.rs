@@ -1,4 +1,4 @@
-// femacs: WIP mirror of lib/gettext.h @ fd7afced403 (GNU Emacs 32.0.50; PORTING.md P-26).
+// femacs: WIP mirror of lib/gettext.h @ fd7afced403 (PORTING.md P-26).
 //
 // The regex cluster only names `gettext_noop` (regcomp.c's `__re_error_msgid` table);
 // the rest of the header is tracked in docs/ports/include-gettext.md.  `gettext_noop`

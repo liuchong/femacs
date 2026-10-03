@@ -1,4 +1,4 @@
-// femacs: port of src/doprnt.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/doprnt.c @ fd7afced403 .
 //
 // One-to-one port: same statements in the same order, same names (PORTING.md).  The
 // C-variadic shapes follow docs/spikes/2026-10-02-variadics.md (P-04): a `...` parameter

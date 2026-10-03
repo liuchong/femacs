@@ -1,4 +1,4 @@
-// femacs: port of lib/timespec.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/timespec.h @ fd7afced403 .
 //
 // Header mirror (PORTING.md 0.1): constants and the header's `_GL_TIMESPEC_INLINE`
 // functions, plus the declarations C spells `extern`.  It is a *reference* file

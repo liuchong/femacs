@@ -1,4 +1,4 @@
-// femacs: mirror of src/dynlib.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of src/dynlib.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The header is one typedef, one function-pointer typedef, the prototypes and the
 // `ATTRIBUTE_MAY_ALIAS` spellings (attributes have no counterpart, PORTING.md 0.3).  C 20's

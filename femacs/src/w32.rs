@@ -1,4 +1,4 @@
-// femacs: port of src/w32.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/w32.c @ fd7afced403 .
 /* Utility and Unix shadow routines for GNU Emacs on the Microsoft Windows API.
 
 Copyright (C) 1994-1995, 2000-2026 Free Software Foundation, Inc.

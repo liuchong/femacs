@@ -1,4 +1,4 @@
-// femacs: port of src/gtkutil.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/gtkutil.c @ fd7afced403 .
 /* Functions for creating and updating GTK widgets.
 
 Copyright (C) 2003-2026 Free Software Foundation, Inc.

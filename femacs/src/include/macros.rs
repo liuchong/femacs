@@ -1,4 +1,4 @@
-// femacs: port of src/macros.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/macros.h @ fd7afced403 .
 //
 // macros.h is 47 lines and this mirror is complete: two file-scope objects and four
 // prototypes.  Its `#include "lisp.h"` (macros.h 24) has no counterpart here, because a

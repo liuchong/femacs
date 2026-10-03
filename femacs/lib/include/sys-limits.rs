@@ -1,4 +1,4 @@
-// femacs: mirror of lib/sys-limits.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/sys-limits.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The whole header is `enum { SYS_BUFSIZE_MAX = INT_MAX >> 20 << 20 };`, C's
 // MAX_RW_COUNT approximation: `(INT_MAX >> 20) << 20` is 2047 << 20 = 2146435072.

@@ -1,4 +1,4 @@
-// femacs: port of src/termcap.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/termcap.c @ fd7afced403 .
 /* Work-alike for termcap, plus extra features.
    Copyright (C) 1985-1986, 1993-1995, 2000-2008, 2011, 2013-2026 Free
    Software Foundation, Inc.

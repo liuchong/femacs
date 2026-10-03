@@ -1,4 +1,4 @@
-// femacs: port of src/termhooks.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/termhooks.h @ fd7afced403 .
 
 // WIP mirror (PORTING.md P-66): `struct input_event` and the two enumerations it carries,
 // which is the slice `keyboard.h` needs (its `union buffered_input_event` embeds the event

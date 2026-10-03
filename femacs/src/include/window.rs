@@ -1,4 +1,4 @@
-// femacs: port of src/window.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/window.h @ fd7afced403 .
 //
 // WIP mirror (PORTING.md P-66): the two types.  `window.h` includes `dispextern.h` (line 23), so
 // C sees `struct glyph_matrix` complete here — the port cannot yet, because the display chain's

@@ -1,4 +1,4 @@
-// femacs: mirror of lib/save-cwd.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/save-cwd.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The reference header is `struct saved_cwd` and three prototypes; the definitions live in
 // `femacs/lib/save-cwd.rs` (Emacs's trimmed variant of the gnulib module, which drops the

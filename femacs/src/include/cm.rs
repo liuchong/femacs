@@ -1,4 +1,4 @@
-// femacs: port of src/cm.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/cm.h @ fd7afced403 .
 //
 // cm.h has no `#include` of its own (C 19-21 are the guard), so this mirror names no other
 // mirror: `struct tty_display_info` occurs only in pointer positions and in prototypes, and

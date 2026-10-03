@@ -1,4 +1,4 @@
-// femacs: port of src/widget.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/widget.c @ fd7afced403 .
 /* The emacs frame widget.
    Copyright (C) 1992-1993, 2000-2026 Free Software Foundation, Inc.
 

@@ -1,4 +1,4 @@
-// femacs: port of lib/idx.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of lib/idx.h @ fd7afced403 .
 //
 // The header is a typedef guarded by `__PTRDIFF_TYPE__` plus one macro; the frozen
 // target's clang defines the former as `long int`, so the port spells `idx_t` as the

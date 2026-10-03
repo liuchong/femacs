@@ -1,4 +1,4 @@
-// femacs: port of src/atimer.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/atimer.h @ fd7afced403 .
 //
 // Header mirror (PORTING.md 0.1): the two type definitions, the three enum members and the
 // seven prototypes; the one conditional is `#ifdef HAVE_TIMERFD` (C 81-83), which the frozen

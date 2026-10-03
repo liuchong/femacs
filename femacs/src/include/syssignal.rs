@@ -1,4 +1,4 @@
-// femacs: port of src/syssignal.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/syssignal.h @ fd7afced403 .
 //
 // Header mirror (PORTING.md 0.1): C's declarations, the three typedefs/objects and the four
 // feature macros, whose arms the frozen configuration decides

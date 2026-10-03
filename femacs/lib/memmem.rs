@@ -18,7 +18,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-// femacs: port of lib/memmem.c @ fd7afced403 (GNU Emacs 32.0.50).  `_LIBC` is undefined, so
+// femacs: port of lib/memmem.c @ fd7afced403 .  `_LIBC` is undefined, so
 // C 20-22's `<config.h>` include is live; the file is in cond-eval-verified.txt, so its
 // conditions are the frozen configuration's.  C 27-29's three lines are the port's own shape:
 // `RETURN_TYPE` and `AVAILABLE` are `macro_rules!` *before* the `include!` of the header

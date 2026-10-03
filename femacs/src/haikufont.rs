@@ -1,4 +1,4 @@
-// femacs: port of src/haikufont.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/haikufont.c @ fd7afced403 .
 /* Font support for Haiku windowing
 
 Copyright (C) 2021-2026 Free Software Foundation, Inc.

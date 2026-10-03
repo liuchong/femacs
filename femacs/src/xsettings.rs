@@ -1,4 +1,4 @@
-// femacs: port of src/xsettings.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/xsettings.c @ fd7afced403 .
 /* Functions for handling font and other changes dynamically.
 
 Copyright (C) 2009-2026 Free Software Foundation, Inc.

@@ -1,4 +1,4 @@
-// femacs: port of src/w32notify.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/w32notify.c @ fd7afced403 .
 /* Filesystem notifications support for GNU Emacs on the Microsoft Windows API.
 
 Copyright (C) 2012-2026 Free Software Foundation, Inc.

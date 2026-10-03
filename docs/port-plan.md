@@ -5,7 +5,7 @@
 > **总计划见 [port-master-plan.md](port-master-plan.md)**（规模实测、方法论、批次、闸门、风险）；
 > **逐文件数据见 [port-inventory.md](port-inventory.md)**。
 >
-> 基线：`emacs/` 检出 `fd7afced403`（GNU Emacs 32.0.50），git 忽略，只读参照。
+> 基线：`emacs/` 检出 `fd7afced403`，git 忽略，只读参照。
 > 对照表：[port-map.md](port-map.md)（生成物，逐文件）。
 
 ---

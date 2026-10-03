@@ -1,4 +1,4 @@
-// femacs: port of src/w32cygwinx.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/w32cygwinx.c @ fd7afced403 .
 /* Common functions for the Microsoft Windows and Cygwin builds.
 
 Copyright (C) 2018-2026 Free Software Foundation, Inc.

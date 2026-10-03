@@ -1,4 +1,4 @@
-// femacs: port of src/emacsgtkfixed.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/emacsgtkfixed.c @ fd7afced403 .
 /* A Gtk Widget that inherits GtkFixed, but can be shrunk.
 This file is only use when compiling with Gtk+ 3.
 

@@ -1,4 +1,4 @@
-// femacs: mirror of lib/cloexec.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/cloexec.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The reference header is two prototypes and the comments that go with them; the definitions
 // live in `femacs/lib/cloexec.rs`.  C's `#include "cloexec.h"` in that unit is this mirror.

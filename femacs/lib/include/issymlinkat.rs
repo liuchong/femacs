@@ -1,4 +1,4 @@
-// femacs: mirror of lib/issymlinkat.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/issymlinkat.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The header's one function is `_GL_ISSYMLINKAT_INLINE`-qualified (PORTING.md 10.6/10.12), so
 // it is an ordinary Rust item here and the `.c` wrapper `femacs/lib/issymlinkat.rs` keeps the

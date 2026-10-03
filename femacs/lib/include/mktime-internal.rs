@@ -17,7 +17,7 @@
    License along with the GNU C Library; if not, see
    <https://www.gnu.org/licenses/>.  */
 
-// femacs: port of lib/mktime-internal.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/mktime-internal.h @ fd7afced403 (gnulib).
 //
 // Header mirror (PORTING.md 0.1).  `tools/check-cond-eval.py lib/mktime-internal.h`
 // reports 4 disagreements (the two `@…@` conditions it cannot decide), so this file is

@@ -1,4 +1,4 @@
-// femacs: port of src/fringe.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/fringe.c @ fd7afced403 .
 /* Fringe handling (split from xdisp.c).
    Copyright (C) 1985-1988, 1993-1995, 1997-2026 Free Software
    Foundation, Inc.

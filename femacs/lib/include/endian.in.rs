@@ -1,4 +1,4 @@
-// femacs: port of lib/endian.in.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/endian.in.h @ fd7afced403 (gnulib).
 //
 // gnulib template; the frozen target's generated header is build/emacs-ref/lib/endian.h,
 // whose substitutions are `_GL_ENDIAN_H` (guard), `HAVE_ENDIAN_H` = 0,

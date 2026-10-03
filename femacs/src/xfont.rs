@@ -1,4 +1,4 @@
-// femacs: port of src/xfont.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/xfont.c @ fd7afced403 .
 /* xfont.c -- X core font driver.
    Copyright (C) 2006-2026 Free Software Foundation, Inc.
    Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011

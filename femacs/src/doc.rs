@@ -1,4 +1,4 @@
-// femacs: port of src/doc.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/doc.c @ fd7afced403 .
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names (function,
 // macro, global, statement), same control flow.  The six subrs use `DEFUN!` (PORTING.md 5.1).

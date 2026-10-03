@@ -1,4 +1,4 @@
-// femacs: port of src/sort.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/sort.c @ fd7afced403 .
 //
 // One-to-one port: same statements in the same order, same names, same comments
 // (PORTING.md).  Raw pointers keep C's arithmetic and aliasing; the forward

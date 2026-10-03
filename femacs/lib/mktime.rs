@@ -30,7 +30,7 @@
    NEED_MKTIME_INTERNAL        mktime-internal        mktime_internal
  */
 
-// femacs: port of lib/mktime.c @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/mktime.c @ fd7afced403 (gnulib).
 //
 // The frozen configuration resolves all 16 of this file's conditions
 // (`tools/check-cond-eval.py lib/mktime.c`: 0 unknown, 0 disagreements), so only the live

@@ -1,4 +1,4 @@
-// femacs: mirror of lib/regex.h @ fd7afced403 (GNU Emacs 32.0.50; PORTING.md 0.1-2).
+// femacs: mirror of lib/regex.h @ fd7afced403 (PORTING.md 0.1-2).
 //
 // Declarations only.  `_GNU_SOURCE` is 1 in the frozen configuration, so `__USE_GNU` is
 // 1 and C takes the `__REPB_PREFIX(name) name` arm; `_REGEX_LARGE_OFFSETS` is 1, so

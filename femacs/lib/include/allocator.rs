@@ -1,4 +1,4 @@
-// femacs: mirror of lib/allocator.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/allocator.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // `struct allocator` is four function pointers (the C marks none of them with GCC's `malloc`
 // attribute, which is why the port keeps plain `Option<unsafe extern "C" fn …>` fields) and one

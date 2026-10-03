@@ -1,4 +1,4 @@
-// femacs: port of src/w32proc.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/w32proc.c @ fd7afced403 .
 /* Process support for GNU Emacs on the Microsoft Windows API.
 
 Copyright (C) 1992, 1995, 1999-2026 Free Software Foundation, Inc.

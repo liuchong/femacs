@@ -1,4 +1,4 @@
-// femacs: port of src/xwidget.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/xwidget.c @ fd7afced403 .
 /* Support for embedding graphical components in a buffer.
 
 Copyright (C) 2011-2026 Free Software Foundation, Inc.

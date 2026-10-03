@@ -18,7 +18,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-// femacs: port of lib/timespec-sub.c @ fd7afced403 (GNU Emacs 32.0.50).  The same shape as
+// femacs: port of lib/timespec-sub.c @ fd7afced403 .  The same shape as
 // femacs/lib/timespec-add.rs with `ckd_sub`/`overflowing_sub` and C's `borrow`; the
 // reference object confirms the name (`nm -g build/emacs-ref/lib/timespec-sub.o` is empty
 // because the file is not in the frozen build's object list, but C's non-`static`

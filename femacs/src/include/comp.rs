@@ -1,4 +1,4 @@
-// femacs: port of src/comp.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/comp.h @ fd7afced403 .
 //
 // WIP mirror (P-66): `lisp.h` 2168 includes comp.h unconditionally, and the frozen
 // configuration takes comp.h's `#else /* #ifdef HAVE_NATIVE_COMP */` branch, where the

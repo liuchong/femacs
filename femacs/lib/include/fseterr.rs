@@ -1,4 +1,4 @@
-// femacs: port of lib/fseterr.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: port of lib/fseterr.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // `HAVE___FSETERR` is undefined on this target (macros.tsv 1696), so C 36-45's `#else` arm is
 // live: `extern void fseterr (FILE *fp);`.  The `#if HAVE___FSETERR` arm (the musl `stdio_ext.h`

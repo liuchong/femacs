@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
 
-// femacs: port of lib/sha512.h @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/sha512.h @ fd7afced403 (gnulib).
 //
 // Header mirror (PORTING.md 0.1): the struct, the constants and the declarations.
 // `u64` is `lib/u64.h`'s typedef, so this mirror includes the u64 mirror, which is

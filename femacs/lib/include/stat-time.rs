@@ -1,4 +1,4 @@
-// femacs: mirror of lib/stat-time.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: mirror of lib/stat-time.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // The header's functions are `_GL_STAT_TIME_INLINE`-qualified definitions (the C99 inline
 // model; PORTING.md 10.6/10.12), so they are ordinary Rust items here and the `.c` wrapper

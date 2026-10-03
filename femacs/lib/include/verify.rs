@@ -1,4 +1,4 @@
-// femacs: WIP mirror of lib/verify.h @ fd7afced403 (GNU Emacs 32.0.50; PORTING.md P-26/P-11).
+// femacs: WIP mirror of lib/verify.h @ fd7afced403 (PORTING.md P-26/P-11).
 //
 // The regex cluster uses `assume` (through regex_internal.h 40-44's DEBUG_ASSERT) and one
 // `verify`.  The remaining arms of verify.h are tracked in docs/ports/include-verify.md.

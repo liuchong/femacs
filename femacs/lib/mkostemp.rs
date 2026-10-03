@@ -14,7 +14,7 @@
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-// femacs: port of lib/mkostemp.c @ fd7afced403 (GNU Emacs 32.0.50).  Blind file (not in
+// femacs: port of lib/mkostemp.c @ fd7afced403 .  Blind file (not in
 // cond-eval-verified.txt): C 18-20's `#if !_LIBC` include of <config.h> is live, C 24-30's
 // `#if !_LIBC` block is live (so `__gen_tempname` is `gen_tempname` and `__GT_FILE` is
 // `GT_FILE`), and C 34-36's `#ifndef __GT_FILE` arm is dead but carried.

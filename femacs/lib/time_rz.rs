@@ -22,7 +22,7 @@
    library with a working timezone_t type, so that this module is not
    needed.  */
 
-// femacs: port of lib/time_rz.c @ fd7afced403 (gnulib; GNU Emacs 32.0.50).
+// femacs: port of lib/time_rz.c @ fd7afced403 (gnulib).
 //
 // The frozen configuration resolves all 6 of this file's conditions
 // (`tools/check-cond-eval.py lib/time_rz.c`: 0 unknown, 0 disagreements), so only the live

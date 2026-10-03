@@ -9,7 +9,7 @@
 > [../PORTING.md](../PORTING.md)（C 惯用法 → Rust 写法对照表）、
 > [../LIFETIMES.tsv](../LIFETIMES.tsv)（生命周期决策表）。
 >
-> 参照检出：`emacs/`（GNU Emacs 32.0.50，`fd7afced403`），**git 忽略、只读**。
+> 参照检出：`emacs/`（`fd7afced403`），**git 忽略、只读**。
 > 本文件的数字全部可复算；复算命令见 §12。生成物**永不手改**。
 
 ---

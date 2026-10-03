@@ -1,4 +1,4 @@
-// femacs: port of src/xrdb.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/xrdb.c @ fd7afced403 .
 /* Deal with the X Resource Manager.
    Copyright (C) 1990, 1993-1994, 2000-2026 Free Software Foundation,
    Inc.

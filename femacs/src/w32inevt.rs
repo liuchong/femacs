@@ -1,4 +1,4 @@
-// femacs: port of src/w32inevt.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/w32inevt.c @ fd7afced403 .
 /* Input event support for Emacs on the Microsoft Windows API.
    Copyright (C) 1992-1993, 1995, 2001-2026 Free Software Foundation,
    Inc.

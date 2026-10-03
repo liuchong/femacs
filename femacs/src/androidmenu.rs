@@ -1,4 +1,4 @@
-// femacs: port of src/androidmenu.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/androidmenu.c @ fd7afced403 .
 /* Communication module for Android terminals.
 
 Copyright (C) 2023-2026 Free Software Foundation, Inc.

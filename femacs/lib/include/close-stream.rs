@@ -1,4 +1,4 @@
-// femacs: port of lib/close-stream.h @ fd7afced403 (GNU Emacs 32.0.50); PORTING.md 0.1.
+// femacs: port of lib/close-stream.h @ fd7afced403 ; PORTING.md 0.1.
 //
 // Three lines of text: the `<stdio.h>` include, the `extern "C"` guard and the one
 // prototype.  The declaration lives in `pub mod close_stream_decls` + glob import, because

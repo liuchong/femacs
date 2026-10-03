@@ -1,4 +1,4 @@
-// femacs: port of src/haikuselect.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/haikuselect.c @ fd7afced403 .
 /* Haiku window system selection support.
    Copyright (C) 2021-2026 Free Software Foundation, Inc.
 

@@ -1,4 +1,4 @@
-// femacs: port of src/w32term.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/w32term.c @ fd7afced403 .
 /* Implementation of GUI terminal on the Microsoft Windows API.
 
 Copyright (C) 1989, 1993-2026 Free Software Foundation, Inc.

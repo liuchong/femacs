@@ -18,7 +18,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-// femacs: port of lib/free.c @ fd7afced403 (GNU Emacs 32.0.50).  Blind file.  C 28's
+// femacs: port of lib/free.c @ fd7afced403 .  Blind file.  C 28's
 // `#if !HAVE_FREE_POSIX` is live (the frozen configuration leaves HAVE_FREE_POSIX undefined,
 // macros.tsv 1312), and inside it the `#else` arm of C 30 is the one this target compiles:
 // `__GNUC__` is defined but so is `__clang__`, so C 31-47's LTO workaround is dead.  The

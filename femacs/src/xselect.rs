@@ -1,4 +1,4 @@
-// femacs: port of src/xselect.c @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/xselect.c @ fd7afced403 .
 /* X Selection processing for Emacs.
    Copyright (C) 1993-1997, 2000-2026 Free Software Foundation, Inc.
 

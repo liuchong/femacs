@@ -1,4 +1,4 @@
-// femacs: port of src/lisp.h @ fd7afced403 (GNU Emacs 32.0.50).
+// femacs: port of src/lisp.h @ fd7afced403 .
 //
 // This is the header mirror: declarations only (PORTING.md 0.1).  Definitions of
 // functions live in exactly one translation unit each; this file declares types,
