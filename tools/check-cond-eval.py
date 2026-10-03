@@ -97,7 +97,7 @@ def main() -> int:
         text = Path("emacs", header).read_text(encoding="utf-8", errors="replace")
         lines = text.split("\n")
         ci.set_condition_macros(dict(table))
-        live = ci.dead_branch_map(text)               # fills ci.CONDITION_LOG
+        live = ci.dead_branch_map(text, header)       # fills ci.CONDITION_LOG
         unknown = disagreements = total = 0
         for line_index, kind, expr, got in ci.CONDITION_LOG:
             # `CONDITION_LOG` keeps the reference line's own text, so a trailing block comment
