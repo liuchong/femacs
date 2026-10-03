@@ -62,16 +62,20 @@ An extra compile with `--cfg enable_checking` (the repo's step 6) also succeeds
 (`rustc --edition 2024 --crate-type=lib --emit=obj -C panic=abort -C codegen-units=1
 -C opt-level=0 --cfg enable_checking …/_root.rs`), as P-57's class of defect requires.
 
-### The condition table: this file is *not* verified, and one `#if` disagrees with clang
+### The condition table: this file is *not* verified, and its one disagreement is gone
 
-`python3 tools/check-cond-eval.py --show-unknown src/callproc.c` reports
-`75 conditions, 0 unknown, 1 disagreements [NOT VERIFIED]`:
+When this lane wrote the section below, `python3 tools/check-cond-eval.py --show-unknown
+src/callproc.c` reported `75 conditions, 0 unknown, 1 disagreements [NOT VERIFIED]`:
 
     DISAGREE src/callproc.c:1561 `ifdef TIOCSCTTY` — clang True, evaluator False
 
 `TIOCSCTTY` comes from `<sys/ioctl.h>` (through systty.h's `<termios.h>`), **not** from
-`config.h`, so the frozen macro table cannot see it — docs/status.md 3.35's class
-(`source-header-macros.tsv`), and the integrator owns that table.  Consequences, in order of
+`config.h`, so the frozen macro table could not see it — docs/status.md 3.35's class
+(`source-header-macros.tsv`).  The integrator added that row, and the file now reports
+`75 conditions, 0 unknown, 0 disagreements [VERIFIED]`.  It is nevertheless **still not** added
+to `cond-eval-verified.txt`, for the reason the next paragraph gives: this port carries both arms
+of every `#if` (status 3.49), and a verified file's checker demands only the live one (status
+3.51) - the two are mutually exclusive.  Consequences, in order of
 importance:
 
 1. Because the file is *not* in `cond-eval-verified.txt`, `tools/extract-abi.py`'s
