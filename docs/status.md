@@ -375,12 +375,17 @@
   平台代码。
   ② **判据不能是 `.o`**：`build/emacs-ref/src/*.o` 一个都没有（参照构建只完成到 `lib/` 的对象），
   所以"有对象才算本目标"这条不可用；权威是 Makefile 的那三个变量与 `$(obj)` 的拼装。
-  ③ **计划（下一轮实现）**：给 `tools/extract-abi.py` 加一个"本目标不构建"的集合（从
-  `build/emacs-ref/src/Makefile` 读出 `obj` 的实际展开，`WINDOW_SYSTEM_OBJ`/`HAIKU_OBJ`/`MSDOS_OBJ`
-  为空即排除上述文件），对这些文件**不要求实现**：按 §3.25 的形状落成**空单元 + 说明**（点名
-  Makefile 变量与行号），ledger 的条目改成 "deferred to the platform target"（**可见，不静默**），
-  并在 `docs/port-map.md` 的目标列里标注"本目标不构建"。影响面：batch F 的 192 个文件绝大多数属这一类，
-  这是把 batch F 从"必须实现 Windows/X11/Haiku 代码"降回"可核对的名义端口"的关键一步。
+  ③ **已实现（同日）**：判据落成 `docs/baseline/frozen-build-sources.txt`——用
+  `(cd build/emacs-ref/src && make -n) | grep -oE 'emacs/src/[a-zA-Z0-9_-]+\.c' | sort -u`
+  生成（dry run，5 秒，不编译）：**152 个 `src/*.c` 里冻结构建只编 75 个，其余 77 个是平台后端**。
+  `tools/extract-abi.py` 现在对"在 `src/` 里但不在该清单里、且端口是**空形状**（全文没有 `fn`）"的文件
+  不再要求实现：ledger 打印一行可见的
+  "This file is not compiled by the frozen configuration … N declaration(s) are deferred"，
+  条目数为 0。**豁免只给空形状**：`vm-limit.rs`/`tparam.rs` 这类在该规则之前就已完整移植的文件
+  仍走全量比对（实测 `--check` 仍 OK、15 条条目仍在），所以这条改动不会削弱既有验证。
+  已落地的头 6 个：`w32reg`(165)、`w32cygwinx`(134)、`cygw32`(139)、`xrdb`(513)、`widget`(515)、
+  `gfilenotify`(338)——每个都是"C 自己的 license 头 + 点名排除依据的说明"的空单元（30-36 行），
+  `build-tu` 全 built、`--check` 全 OK、ledger 0 条目。剩余 71 个同族文件照此批量落地。
   ④ 注意 `src/xml.c` **两类都沾**：它有真的 `#ifdef HAVE_LIBXML2`（按 ① 之外的既有判据办，已落地：
   活文本只有 `libxml-available-p` 的 `#else` 臂与 `syms_of_xml`），但文件本身也不在 X11/Windows 源列表里。
 

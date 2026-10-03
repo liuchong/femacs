@@ -910,10 +910,64 @@ def line_drift_tolerance(rs_path: Path, default: float = 0.05) -> float:
     return default
 
 
+
+def _load_frozen_build_sources() -> set[str] | None:
+    """The `src/*.c` paths the frozen configuration compiles (docs/status.md 3.31).
+
+    `build/emacs-ref/src/Makefile`'s platform object variables are empty for this target, so the
+    platform backends (`w32*`, `cygwin*`, `haiku*`, `pgtk*`, `xrdb`, `widget`, `gfilenotify`,
+    …) are never compiled here — their functions are live text to the preprocessor but nothing
+    in this configuration builds them, and their headers are not on the target.  The list is
+    generated from `make -n` (its header records the command), and this function is what turns
+    those files into "the port is an empty unit plus a note" instead of demanding Windows/X11
+    code.  `lib/` is not in the list: every lib object the frozen build wants was built.
+    """
+    path = Path(__file__).resolve().parent.parent / "docs" / "baseline" / "frozen-build-sources.txt"
+    if not path.is_file():
+        return None
+    return {line.strip() for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.startswith("#")}
+
+
+FROZEN_BUILD_SOURCES = _load_frozen_build_sources()
+
+
+def not_built_on_target(c_path) -> bool:
+    """True for an `src/` file the frozen build's source lists exclude (status 3.31)."""
+    if FROZEN_BUILD_SOURCES is None:
+        return False
+    parts = Path(c_path).parts
+    key = "/".join(parts[-2:]) if len(parts) >= 2 else str(c_path)
+    return key.startswith("src/") and key not in FROZEN_BUILD_SOURCES
+
+
+def clear_unbuilt_inventory(inv: dict) -> int:
+    """Blank an inventory for a file the frozen build does not compile; return the item count.
+
+    The line count stays (the ledger header keeps it); `not_built_on_target` is what tells the
+    drift check to stay out of the way, since an empty port is naturally shorter than the C.
+    """
+    total = 0
+    for key in ("functions", "defuns", "macros", "constants", "globals", "types", "subrs"):
+        if key in inv and isinstance(inv[key], (list, dict)):
+            total += len(inv[key])
+            inv[key] = {} if isinstance(inv[key], dict) else []
+    inv["not_built_on_target"] = total
+    return total
+
+
 def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             excluded: dict[str, str] | None = None,
             macro_notes: dict[str, set[str]] | None = None) -> list[str]:
     c = ci.inventory(c_path)
+    # status 3.31: nothing in this configuration compiles such a file, so a unit that ports it
+    # as the empty shape (no `fn` at all — the note-and-license file) is complete as it stands.
+    # A unit that *did* port the text (vm-limit.rs, tparam.rs, … were ported before this rule)
+    # keeps the full comparison: the exemption is for the empty shape, not for the file.
+    if not_built_on_target(c_path) and not re.search(r"\bfn\s+\w+",
+                                                     rs_path.read_text(encoding="utf-8",
+                                                                       errors="replace")):
+        clear_unbuilt_inventory(c)
     r = rust_inventory(rs_path)
     excluded = excluded or {}
     macro_notes = macro_notes or {}
@@ -1145,6 +1199,8 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     r_defsubr = set(re.findall(r"defsubr\s*\(\s*&\s*(?:raw\s+(?:const|mut)\s+)?(S\w+)\s*\)",
                                r.get("flat_own", "")))
     for name in sorted(c_defsubr - r_defsubr):
+        if c.get("not_built_on_target"):
+            break                     # status 3.31: nothing here is compiled on this target
         problems.append(f"missing defsubr (&raw const {name})")
     for name in sorted(r_defsubr - c_defsubr):
         problems.append(f"unexpected defsubr (&{name}): the reference file does not register it")
@@ -1366,7 +1422,8 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
                             f"does not define a non-static function of that name "
                             f"(invented exported symbol)")
 
-    if strict_lines and not is_header_like and c["lines"] and r["lines"]:
+    if (strict_lines and not is_header_like and not c.get("not_built_on_target")
+            and c["lines"] and r["lines"]):
         drift = abs(r["lines"] - c["lines"]) / max(c["lines"], 1)
         if drift > line_drift_tolerance(rs_path):
             problems.append(f"line count drifted {drift:.1%}: C {c['lines']} vs Rust {r['lines']}")
@@ -1531,10 +1588,20 @@ def main() -> int:
         print("error: pass one C file, or use --all", file=sys.stderr)
         return 2
     inv = ci.inventory(Path(args.paths[0]))
+    if not_built_on_target(args.paths[0]):
+        rs = Path(args.root) / "src" / (Path(args.paths[0]).stem + ".rs")
+        if not rs.is_file() or not re.search(r"\bfn\s+\w+",
+                                            rs.read_text(encoding="utf-8", errors="replace")):
+            clear_unbuilt_inventory(inv)
     if args.json:
         print(json.dumps(inv, indent=2, ensure_ascii=False))
         return 0
     print(f"# {inv['path']} ({inv['lines']} lines)\n")
+    if inv.get("not_built_on_target"):
+        print(f"> **This file is not compiled by the frozen configuration** "
+              f"(docs/baseline/frozen-build-sources.txt, docs/status.md 3.31): {inv['not_built_on_target']} "
+              f"declaration(s) are deferred to the platform target, and the port is an empty unit "
+              f"plus the note that names the gate.  Nothing in this file is required here.\n")
     print(BAR)
     print(f"## Subrs (DEFUN) — {len(inv['defuns'])}")
     for d in inv["defuns"]:
