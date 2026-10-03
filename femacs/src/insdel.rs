@@ -108,8 +108,6 @@ unsafe extern "C" {
                                   arg1: Lisp_Object, arg2: Lisp_Object, arg3: Lisp_Object);
   /// C: lisp.h 5261: `extern void report_interval_modification (Lisp_Object, Lisp_Object);`
   fn report_interval_modification (start: Lisp_Object, end: Lisp_Object);
-  /// C: lisp.h 5253: `extern void record_first_change (void);`
-  fn record_first_change ();
   /// C: window.h 1169: `extern void bset_redisplay (struct buffer *b);`
   fn bset_redisplay (b: *mut buffer);
 }

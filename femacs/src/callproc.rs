@@ -158,8 +158,6 @@ unsafe extern "C" {
   ///    (lisp.h 4349, insdel.c)
   fn del_range_2 (from: ptrdiff_t, to: ptrdiff_t, from_byte: ptrdiff_t,
                   to_byte: ptrdiff_t, prepare: bool) -> Lisp_Object;
-  /// C: void del_range (ptrdiff_t, ptrdiff_t)   (lisp.h 4345, insdel.c)
-  fn del_range (from: ptrdiff_t, to: ptrdiff_t);
   /// C: void redisplay_preserve_echo_area (int)   (dispextern.h 3589)
   fn redisplay_preserve_echo_area (from_where: c_int);
   /// C: void record_unwind_protect_nothing's and close_file_unwind's shapes are in lisp.rs.

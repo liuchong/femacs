@@ -1190,27 +1190,12 @@ unsafe extern "C" {
 				arg: *mut c_void);
   /// C: lisp.h 4296: `extern void record_unwind_save_match_data (void);` (search.c).
   fn record_unwind_save_match_data ();
-  /// C: eval.c: `void signal_error (const char *, Lisp_Object);`
-  fn signal_error (s: *const c_char, arg: Lisp_Object) -> !;
-  /// C: lisp.h 5495: `extern int find_symbol_value (Lisp_Object);` (data.c).
-  fn find_symbol_value (symbol: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 5581: `extern void emacs_open (...)`?  No: sysdep.c's
-  /// `extern int emacs_open (const char *, int, int);`
-  fn emacs_open (file: *const c_char, oflags: c_int, mode: c_int) -> c_int;
-  /// C: filelock.c's `close_file_unwind (int)` (lisp.h 4291's prototype list).
-  fn close_file_unwind (fd: c_int);
   /// C: comp.c: `extern Lisp_Object Fmodule_load (...)`?  It is a DEFUN; globals.rs's subrs
   /// module declares it (P-29's superset).
   /// C: lisp.h 5434: `extern void record_unwind_protect_excursion (void);`
   /// C: keyboard.c's `noninteractive` (globals.rs).
-  /// C: comp.c: `extern void Fnative_elisp_load (Lisp_Object, Lisp_Object);`
-  fn Fnative_elisp_load (lisp_comp_unit: Lisp_Object, comp_unit: Lisp_Object);
-  /// C: process.c: `void report_file_error (const char *, Lisp_Object);`
-  fn report_file_error (string: *const c_char, data: Lisp_Object) -> !;
   /// C: sysdep.c: `extern int sys_fstat (int, struct stat *);`
   fn sys_fstat (fd: c_int, st: *mut stat) -> c_int;
-  /// C: sysdep.c: `extern ssize_t emacs_read_quit (int, void *, ptrdiff_t);`
-  fn emacs_read_quit (fd: c_int, buf: *mut c_void, n: ptrdiff_t) -> isize;
   /// C: lisp.h 4923-4925: `extern Lisp_Object save_restriction_save (void);` /
   /// `extern void save_restriction_restore (Lisp_Object);` (insdel.c).
   fn save_restriction_save () -> Lisp_Object;

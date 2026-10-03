@@ -29,7 +29,6 @@ include!("include/tparam.rs");
 unsafe extern "C" {
   // <string.h> on the frozen target (HAVE_STPCPY is 1, so this is the system stpcpy).
   pub fn stpcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char;
-  pub fn strlen (s: *const c_char) -> size_t;
   pub fn memcpy (dest: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
   // <stdlib.h>: the port's stdlib mirror carries the allocator entry points the
   // ported files call; atoi is only used by the dead DEBUG main below.

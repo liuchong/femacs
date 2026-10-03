@@ -206,8 +206,6 @@ unsafe extern "C" {
   fn tcgetpgrp (fd: c_int) -> c_int;
   fn ioctl (fd: c_int, request: c_ulong, ...) -> c_int;
   fn strcasecmp (a: *const c_char, b: *const c_char) -> c_int;
-  fn xstrdup (s: *const c_char) -> *mut c_char;
-  fn xzalloc (size: usize) -> *mut c_void;
   fn row_hash_p (row: *mut glyph_row) -> c_uint;
   fn initialize_w32_display (t: *mut terminal, width: *mut c_int, height: *mut c_int);
   fn initialize_msdos_display (t: *mut terminal);

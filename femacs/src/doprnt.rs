@@ -58,7 +58,6 @@ use core::ffi::VaList;
 unsafe extern "C" {
   // <stdio.h>/<string.h> on the frozen target (HAVE_MEMCPY... the config has no
   // HAVE_MEMPCPY, so gnulib's `mempcpy` is `rpl_mempcpy`, which is what C calls here).
-  pub fn sprintf (buf: *mut c_char, format: *const c_char, ...) -> c_int;
   pub fn strnlen (s: *const c_char, maxlen: size_t) -> size_t;
   pub fn strncmp (a: *const c_char, b: *const c_char, n: size_t) -> c_int;
   pub fn rpl_mempcpy (dst: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;

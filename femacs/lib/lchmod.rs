@@ -22,12 +22,9 @@ include!("include/errno.rs");
 include!("include/issymlink.rs");
 include!("include/issymlinkat.rs");
 
-/* C 26's <stdio.h> entry the dead O_PATH arm uses on its /proc path: `sprintf` is declared
-   here rather than in the stdio mirror, because src/doprnt.c declares it in its own module and
-   a mirror-level declaration would be a second definition in that unit (E0428).  */
-unsafe extern "C" {
-  pub fn sprintf (s: *mut c_char, format: *const c_char, ...) -> c_int;
-}
+/* C 26's <stdio.h> entry the dead O_PATH arm uses on its /proc path, `sprintf`, is the stdio
+   mirror's (`stdio_decls`; PORTING.md 0.1-2/P-26): the copy that stood here was a second
+   spelling of a declaration the include graph already carries (status 3.76).  */
 
 /* Work like chmod, except when FILE is a symbolic link.
    In that case, on systems where permissions on symbolic links are unsupported
