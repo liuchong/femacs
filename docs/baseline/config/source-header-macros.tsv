@@ -121,4 +121,12 @@ net/if_dl.h	LLADDR
 # disagreements, and C 5938-5949's eight `defsubr`s become live text the port transcribes
 # (status 3.76) instead of a recorded deviation.
 font.h	FONT_DEBUG
+# src/lisp.h's USE_LSB_TAG (2026-10-04, the alloc lane's finding).  lisp.h 250-257 computes it
+# (`#if (ALIGNOF_EMACS_INT < IDEAL_GCALIGNMENT && ...)` -> `false`, else
+# `(VAL_MAX / 2 < INTPTR_MAX)`); config.h does not define it, so the frozen table could not
+# decide it and `check-cond-eval.py src/alloc.c` reported `4 disagreements`, all of them
+# `! USE_LSB_TAG` answered True by the evaluator and False by clang.  Measured the same way
+# gen-cond-macros.py measures every row (the probe includes config.h first): the `#else` branch
+# is the live one, so the value is that expression.
+lisp.h	USE_LSB_TAG
 

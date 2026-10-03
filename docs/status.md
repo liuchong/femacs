@@ -1201,3 +1201,17 @@
   `check-declarations`/`check-mirror-dupes` 不变。**注意 `errno.rs` 的常量是顶层 `pub const`**
   （不像 `<stdio.h>` 的函数那样有模块 + glob 兜底）：所以"往镜像加码"与"删掉单元的副本"**必须在同一个
   提交里**，否则先加的那一步就是 `E0428`。`EXDEV`（18）随 fileio 单元一起搬。
+
+- **3.81 第 98 轮：`USE_LSB_TAG` 进源码头文件行表——alloc.c 的 4 处分歧归零（2026-10-04）**：
+  alloc lane 报回 `check-cond-eval.py src/alloc.c` = `138 conditions, 4 disagreements`，四条都是
+  `#if ! USE_LSB_TAG`（求值器答 True、clang 答 False）。`USE_LSB_TAG` **不在** `config.h` 里：
+  `lisp.h` 250-257 自己算（`#if (ALIGNOF_EMACS_INT < IDEAL_GCALIGNMENT && !HAVE_C_ALIGNASOF &&
+  !defined alignas && !defined HAVE_STRUCT_ATTRIBUTE_ALIGNED)` → `false`，`#else` →
+  `(VAL_MAX / 2 < INTPTR_MAX)`），正是 §3.35/§3.76 那一类"由源码头文件决定、config.h 说不出"的宏。
+  按同一机制补一行 `lisp.h<TAB>USE_LSB_TAG` 并用与 `gen-cond-macros.py` 相同的 clang 调用实测
+  （探针**必须**先 `#include <config.h>` 再 `#include "lisp.h"`——我第一次只包含 lisp.h，量到的是
+  `false`，而以 config.h 打头时活支是 `#else` 的表达式）。结果：`src/alloc.c: 138 conditions,
+  0 unknown, 0 disagreements [VERIFIED]`，整表 `--verified` 仍 **5717 conditions, 4 unknown,
+  0 disagreements**（432 个文件，exit 0）。
+  **alloc.c 依旧不进 `cond-eval-verified.txt`**：它照 P-51 两支都抄，而 verified 文件的检查器只要求
+  活支（§3.49/§3.51 的既有定案）；这一行改变的是**求值器的答案**，不是端口的写法。
