@@ -25,6 +25,8 @@ EXFUN	*	the prototypes come from the generated subrs module (PORTING.md 0.1-10)
 DEFINE_LISP_SYMBOL	*	P-23: the port has no debugger-symbol trick; the symbols come from globals.rs
 LISPSYM_INITIALLY,TAG_PTR_INITIALLY	*	the port's builtin symbols come from the generated globals.rs (P-17)
 PSEUDOVECSIZE,VECSIZE	*	the port spells these with offset_of!/size_of (lisp.md)
+PDUMPER_RESET	0	C's `do { … } while (0)` has no Rust counterpart: the port writes the if/else directly, so the loop's `0` is the one token without a match (PORTING.md 2.2, the DO_NOTHING/`do…while` class)
+PDUMPER_RESET_LV	0	see PDUMPER_RESET
 CONS_TO_INTEGER,INT_TO_INTEGER	*	the port dispatches on the target type through a trait (lisp.md)
 CALLMANY,CALLN,calln,safe_calln,list	*	the port's arity macros use Rust's array/metavariable forms (lisp.md)
 USE_LSB_TAG,VALMASK,LISP_WORD_TAG,GCALIGNMENT,IEEE_FLOATING_POINT,LISP_WORDS_ARE_POINTERS	*	configuration predicates fixed by the frozen config (P-02)

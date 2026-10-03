@@ -44,6 +44,11 @@ pub type uint16_t = u16;
 pub type uint32_t = u32;
 pub type uint64_t = u64;
 
+// stdint.in.h 324 spells the pointer-width typedefs alongside the fixed-width ones; the
+// lisp.h mirror carries `intptr_t` where C's lisp.h 1113 uses it, and this one is here
+// because pdumper.h's `struct pdumper_loaded_dump` names it (pdumper.h 154-158).
+pub type uintptr_t = usize;
+
 // <stdint.h>'s per-width maxima; lib/u64.h's native `u64getlo` masks with
 // UINT32_MAX (the lisp.h mirror carries the machine-word ones).
 pub const UINT32_MAX: u32 = u32::MAX;

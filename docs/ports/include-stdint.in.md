@@ -141,7 +141,7 @@
 - [ ] uint_least64_t  (line 252, body 1423d427c67f)
 - [ ] uint_least8_t  (line 243, body 124420692e28)
 - [ ] uintmax_t  (line 360, body a8a2dee879ec)
-- [ ] uintptr_t  (line 324, body 66b7e83b068d)
+- [x] uintptr_t  (line 324, body 66b7e83b068d)
 
 ## Types and their fields — 0
 
