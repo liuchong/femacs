@@ -1,0 +1,3 @@
+// femacs: port of exec/trace.c @ fd7afced403.
+
+/* femacs: emacs/exec/trace.c (@ 2272 lines) is not compiled by the frozen configuration: the exec loader belongs to the unexec dump path (this build is HAVE_PDUMPER=1) and no makefile rule in the reference build reaches exec/ at all.  The authority is `docs/baseline/frozen-build-sources.txt` (its batch-F section records how each directory's built sources are derived) and the policy is docs/status.md 3.31: the port is an empty unit with this note.  `docs/ports/trace.md` records the deferred declarations so a future configuration knows where to start.  */
