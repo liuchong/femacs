@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 178 |
-| 其中 done / wip | 148 / 30 |
-| 待开工 | 412 |
+| 已有目标文件 | 184 |
+| 其中 done / wip | 155 / 29 |
+| 待开工 | 406 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 107 |
+| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 101 |
 | `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,741 | 368 | 1,834 | 2,175 | 981 | 187 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 107 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 101 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -159,7 +159,7 @@
 | `lib/execinfo.in.h` | 69 | 3 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/execinfo.in.rs` | todo |
 | `lib/faccessat.c` | 98 | 2 | 0 | 8 | 0 | 0 | 0 | L | `femacs/lib/faccessat.rs` | done |
 | `lib/fchmodat.c` | 159 | 2 | 0 | 8 | 1 | 0 | 0 | L | `femacs/lib/fchmodat.rs` | done |
-| `lib/fcntl.c` | 663 | 6 | 0 | 4 | 2 | 0 | 0 | L | `femacs/lib/fcntl.rs` | todo |
+| `lib/fcntl.c` | 663 | 6 | 0 | 4 | 2 | 0 | 0 | L | `femacs/lib/fcntl.rs` | done |
 | `lib/fcntl.in.h` | 504 | 0 | 0 | 48 | 38 | 6 | 0 | L | `femacs/lib/include/fcntl.in.rs` | wip |
 | `lib/fdopendir.c` | 238 | 5 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/fdopendir.rs` | done |
 | `lib/file-has-acl.c` | 986 | 16 | 0 | 8 | 8 | 0 | 0 | L | `femacs/lib/file-has-acl.rs` | todo |
@@ -168,7 +168,7 @@
 | `lib/filename.h` | 115 | 0 | 0 | 11 | 1 | 0 | 0 | L | `femacs/lib/include/filename.rs` | done |
 | `lib/filevercmp.c` | 188 | 5 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/filevercmp.rs` | done |
 | `lib/filevercmp.h` | 93 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/filevercmp.rs` | done |
-| `lib/fingerprint.c` | 66 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/fingerprint.rs` | todo |
+| `lib/fingerprint.c` | 66 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/fingerprint.rs` | done |
 | `lib/fingerprint.h` | 28 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/fingerprint.rs` | todo |
 | `lib/flexmember.h` | 77 | 0 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/include/flexmember.rs` | done |
 | `lib/fpending.c` | 63 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/fpending.rs` | todo |
@@ -179,7 +179,7 @@
 | `lib/fstatat.c` | 150 | 4 | 0 | 10 | 2 | 0 | 0 | L | `femacs/lib/fstatat.rs` | done |
 | `lib/fsusage.c` | 226 | 2 | 0 | 4 | 1 | 0 | 0 | L | `femacs/lib/fsusage.rs` | done |
 | `lib/fsusage.h` | 49 | 0 | 0 | 1 | 0 | 7 | 0 | L | `femacs/lib/include/fsusage.rs` | done |
-| `lib/fsync.c` | 86 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/fsync.rs` | todo |
+| `lib/fsync.c` | 86 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/fsync.rs` | done |
 | `lib/ftoastr.c` | 152 | 2 | 0 | 10 | 1 | 0 | 0 | L | `femacs/lib/ftoastr.rs` | todo |
 | `lib/ftoastr.h` | 162 | 0 | 0 | 17 | 0 | 0 | 0 | L | `femacs/lib/include/ftoastr.rs` | todo |
 | `lib/futimens.c` | 37 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/futimens.rs` | done |
@@ -239,7 +239,7 @@
 | `lib/memset_explicit.c` | 54 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/memset_explicit.rs` | todo |
 | `lib/min-eloop-threshold.h` | 42 | 0 | 0 | 2 | 2 | 0 | 0 | L | `femacs/lib/include/min-eloop-threshold.rs` | done |
 | `lib/min-max.h` | 6 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/min-max.rs` | todo |
-| `lib/mini-gmp-gnulib.c` | 52 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/mini-gmp-gnulib.rs` | todo |
+| `lib/mini-gmp-gnulib.c` | 52 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/mini-gmp-gnulib.rs` | done |
 | `lib/mini-gmp.c` | 4,699 | 205 | 0 | 39 | 5 | 6 | 1 | L | `femacs/lib/mini-gmp.rs` | done |
 | `lib/mini-gmp.h` | 314 | 0 | 0 | 6 | 0 | 0 | 1 | L | `femacs/lib/include/mini-gmp.rs` | done |
 | `lib/minmax.h` | 65 | 0 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/include/minmax.rs` | wip |
@@ -249,9 +249,9 @@
 | `lib/nanosleep.c` | 191 | 3 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/nanosleep.rs` | done |
 | `lib/nproc.c` | 582 | 7 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/nproc.rs` | todo |
 | `lib/nproc.h` | 46 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/nproc.rs` | todo |
-| `lib/nstrftime.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/nstrftime.rs` | todo |
+| `lib/nstrftime.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/nstrftime.rs` | done |
 | `lib/open.c` | 240 | 3 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/open.rs` | done |
-| `lib/openat-die.c` | 7 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/openat-die.rs` | todo |
+| `lib/openat-die.c` | 7 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/openat-die.rs` | done |
 | `lib/openat-priv.h` | 74 | 0 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/include/openat-priv.rs` | todo |
 | `lib/openat-proc.c` | 154 | 1 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/openat-proc.rs` | todo |
 | `lib/openat.h` | 137 | 6 | 0 | 6 | 0 | 0 | 0 | L | `femacs/lib/include/openat.rs` | todo |
@@ -563,7 +563,7 @@
 | `src/module-env-30.h` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-30.rs` | todo |
 | `src/module-env-31.h` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-31.rs` | todo |
 | `src/module-env-32.h` | 12 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-32.rs` | todo |
-| `src/msdos.c` | 4,350 | 92 | 5 | 33 | 22 | 12 | 38 | F | `femacs/src/msdos.rs` | wip |
+| `src/msdos.c` | 4,350 | 92 | 5 | 33 | 22 | 12 | 38 | F | `femacs/src/msdos.rs` | done |
 | `src/msdos.h` | 156 | 0 | 0 | 21 | 7 | 0 | 3 | F | `femacs/src/include/msdos.rs` | todo |
 | `src/nsgui.h` | 137 | 0 | 0 | 35 | 19 | 0 | 0 | F | `femacs/src/include/nsgui.rs` | todo |
 | `src/nsterm.h` | 1,395 | 0 | 0 | 140 | 21 | 102 | 8 | F | `femacs/src/include/nsterm.rs` | todo |
