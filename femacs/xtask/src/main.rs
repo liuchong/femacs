@@ -868,6 +868,22 @@ configuration (see PORTING.md 2.1's setup steps)");
     if let Err(e) = build_finished_tus() {
         return fail(e);
     }
+    // A unit's C-visible symbol table is the one thing the textual gates cannot see: gnulib's
+    // `#define foo rpl_foo` headers decide whether the *definition* of a replacement is named
+    // `foo` or `rpl_foo` (and a file's own `# undef` decides which side its body's calls
+    // reach), and a "header-bodied" unit exports the header's functions while the port's
+    // mirror may inline them silently.  `docs/baseline/symbol-pending.txt` is the ratchet of
+    // units still open (status §3.30).
+    println!("== symbol gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-symbols.py", "--pending", "docs/baseline/symbol-pending.txt"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("symbols: every built unit matches its reference"),
+        Ok(_) => return fail("a unit's symbol table differs from its reference object"),
+        Err(e) => return fail(e),
+    }
     println!("== probe programs ==");
     if let Err(e) = probe_programs() {
         return fail(e);

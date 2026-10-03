@@ -68,7 +68,12 @@ unsafe extern "C" {
 /* C 39's live arm (HAVE_BUG_BIG_NANOSLEEP is 1).  */
 /* int nanosleep (const struct timespec *requested_delay,
                   struct timespec *remaining_delay)  */
-#[unsafe(no_mangle)]
+/* The generated <time.h> gives `#define nanosleep rpl_nanosleep` when the replacement exists,
+   and C 41's `# undef nanosleep` (between the declarator and the body) undoes it: the
+   *definition* is `rpl_nanosleep`, while the body's `nanosleep (...)` calls are the system
+   entry.  The port emits the renamed symbol and keeps C's source name on the item (PORTING.md
+   10.13①, the pthread_sigmask.rs shape); the system calls below go through `time_decls`.  */
+#[unsafe(export_name = "rpl_nanosleep")]
 pub unsafe extern "C" fn nanosleep (requested_delay: *const timespec,
                                    remaining_delay: *mut timespec) -> c_int
 {
@@ -118,7 +123,7 @@ pub unsafe extern "C" fn nanosleep (requested_delay: *const timespec,
     while (limit < seconds)
       {
         intermediate.tv_sec = limit;
-        let result: c_int = nanosleep (&intermediate as *const timespec, remaining_delay);
+        let result: c_int = time_decls::nanosleep (&intermediate as *const timespec, remaining_delay);
         seconds -= limit;
         if (result != 0)
           {
@@ -129,6 +134,6 @@ pub unsafe extern "C" fn nanosleep (requested_delay: *const timespec,
         intermediate.tv_nsec = 0;
       }
     intermediate.tv_sec = seconds;
-    return nanosleep (&intermediate as *const timespec, remaining_delay);
+    return time_decls::nanosleep (&intermediate as *const timespec, remaining_delay);
   }
 }

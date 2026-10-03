@@ -521,7 +521,7 @@ unsafe extern "C" fn realpath_stk (name: *const c_char, resolved: *mut c_char,
    that cannot be resolved.  If the name can be resolved, RESOLVED
    holds the same value as the value returned.  */
 
-#[unsafe(export_name = "realpath")]
+#[unsafe(export_name = "rpl_realpath")]
 pub unsafe extern "C" fn __realpath (name: *const c_char, resolved: *mut c_char)
   -> *mut c_char
 {

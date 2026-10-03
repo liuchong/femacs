@@ -34,7 +34,7 @@ include!("include/errno.rs");
 /* C 39-166's `int pipe2 (int fd[2], int flags)`.  C's three `goto fail` jumps become
    `break 'fail` out of the labelled block that wraps the live body (PORTING.md 2.2); the
    forward jump lands on the same cleanup C writes at its `fail:` label.  */
-#[unsafe(no_mangle)]
+#[unsafe(export_name = "rpl_pipe2")]
 pub unsafe extern "C" fn pipe2 (fd: *mut c_int, flags: c_int) -> c_int
 {
   /* Mingw _pipe() corrupts fd on failure; also, if we succeed at

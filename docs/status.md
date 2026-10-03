@@ -331,3 +331,35 @@
   由 `alloc.rs` 定义唯一的 `globals` 对象，`V*` 变成**字段访问**（C 的存储模型）。在此之前
   按 ① 的形状办，偏离记在各单元 ledger 的 Decisions 里。
 
+- **3.29 `#undef` 的死分支判定 + `#define` 的函数式名字（2026-10-03 第 56 轮，工具修正；
+  `getloadavg.c` 因此进入核验表）**：`tools/cinventory.py` 两处修正——
+  ①`#undef` 原来**不检查死分支**（`#define` 检查），于是 `lib/getloadavg.c` 104-110 躺在
+  `#ifdef NeXT` / `#if defined __gnu_hurd__ || defined NeXT`（皆假）里的
+  `#undef BSD`/`#undef FSCALE` 被执行，把该文件自己 `<sys/param.h>` 的两个宏抹掉，
+  整个 nlist 链被判死：82 条条件里 **20 条与 clang 分歧**；
+  ②函数式 `#define NAME (参数)` 记录的名字是 `NAME (参数)`，`defined (NAME)` 因此恒假，
+  `LDAV_CVT`（C 190）永远不满足 C 267 的 `#ifndef LDAV_CVT`（最后一处分歧）。两处修好后
+  `check-cond-eval.py lib/getloadavg.c` = **82 条件 / 0 分歧**，`lib/getloadavg.c` 已加入
+  `cond-eval-verified.txt`（现 **428** 文件）；把整张表重跑一遍（**5,601 条条件 / 0 分歧**）
+  确认无回归。**对后续的影响**：凡是「死分支里有 `#undef`」的文件，之前可能把活文本判死
+  （端口少写、门也看不见），现在会按 clang 的真值要求活文本；`--all` 未见新增 failing。
+
+- **3.30 符号表门：替换件的 `rpl_` 改名方向 + "头文件载体"单元（2026-10-03 第 55 轮定案并落地工具）**：
+  ① **改名方向的权威是参照对象**：gnulib 的生成头在 `REPLACE_*` 为真时做 `#define foo rpl_foo`，
+  而 `.c` 有时在声明符与函数体之间 `# undef foo`（`nanosleep.c 41`、`pipe2.c 49`）、有时不写
+  （`mempcpy.c`）；因此**定义落在改名的哪一侧，只看端口源码是判不出来的**。本轮的实测：端口写错
+  了 5 个——`nanosleep`（无限自递归 + 导出 `_nanosleep`，应为 `_rpl_nanosleep` + 调用系统入口）、
+  `pipe2`/`futimens`（漏改名）、`mempcpy`/`canonicalize-lgpl`（多改了：参照导出 `_mempcpy`/
+  `_rpl_realpath`）。已全部按参照对象的 `nm -g` 改对（`export_name` ↔ `no_mangle`，并给
+  `time.in.rs` 补上系统 `nanosleep` 的模块限定声明——`pthread_sigmask.rs` 的既有形状）。
+  ② **新门 `tools/check-symbols.py`**：逐个单元比对 `build/femacs/<stem>.o` 与
+  `build/emacs-ref/lib/<stem>.o` 的 `nm -g` 导出集（过滤 Rust 自己的 monomorphization 噪声
+  `__R*`/`_ZN*`）；`--pending docs/baseline/symbol-pending.txt` 是**棘轮**（清单里的单元变干净了
+  也算失败，只许收缩），并已挂进 `xtask gate-fast`。
+  ③ **未收口的 18 个是同一类："头文件载体"单元**：`byteswap`、`c-ctype`、`endian`、`fingerprint`、
+  `issymlink`、`memeq`、`mini-gmp-gnulib`、`openat-die`、`stat-time`、`stdc_*`（5 个）、`streq`、
+  `strnul`、`timespec`、`u64`——它们的 `.c` 只是给头的 extern-inline 函数一个落点，参照对象因此
+  导出 `T _c_isalpha`/`T _stat_time_normalize`/整片 `_mpz_*`（`mini-gmp-gnulib` 约 200 个），而端口
+  把定义放在镜像里当 `#[inline(always)]`，一个符号都不发。收口方式：让这些单元自己发
+  `#[unsafe(no_mangle)]` 定义。清单已冻结成棘轮，下一轮从这里接着做。
+

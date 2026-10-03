@@ -109,8 +109,14 @@ pub mod time_decls {
   unsafe extern "C" {
     /* time_t rpl_mktime (struct tm *);  */
     pub fn rpl_mktime (tp: *mut tm) -> time_t;
-    /* time_t rpl_timegm (struct tm *);  */
-    pub fn rpl_timegm (tp: *mut tm) -> time_t;
+    /* int nanosleep (const struct timespec *, struct timespec *);
+       This is the *system* entry, not gnulib's replacement: nanosleep.c's `# undef
+       nanosleep` (C 41, between the declarator and the body) is what makes its own definition
+       `rpl_nanosleep` and its body's calls the system ones.  The port reaches it through this
+       module, because the unit's own definition shadows the glob (PORTING.md 0.1-10, the
+       pthread_sigmask.rs precedent).  */
+    pub fn nanosleep (requested_delay: *const timespec, remaining_delay: *mut timespec)
+      -> c_int;
   }
 }
 use time_decls::*;

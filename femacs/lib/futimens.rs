@@ -28,7 +28,7 @@ unsafe extern "C" { pub fn fdutimens (fd: c_int, file: *const c_char, times: *co
    Fail with ENOSYS on systems without futimes (or equivalent).
    If TIMESPEC is null, set the timestamps to the current time.
    Return 0 on success, -1 (setting errno) on failure.  */
-#[unsafe(no_mangle)]
+#[unsafe(export_name = "rpl_futimens")]
 pub unsafe extern "C" fn futimens (fd: c_int, times: *const timespec) -> c_int
 {
   /* fdutimens also works around bugs in native futimens, when running
