@@ -39,6 +39,9 @@ pub const ENOMEM: c_int = 12;
 
 /// <errno.h>: `#define EPERM 1`.
 pub const EPERM: c_int = 1;
+/// <errno.h>: `#define EBUSY 16` (measured; docs/baseline/config/darwin-arm64.macros.tsv 802).
+pub const EBUSY: c_int = 16;
+
 /// <errno.h>: `#define ENOENT 2`.
 pub const ENOENT: c_int = 2;
 /// <errno.h>: `#define EINTR 4`.

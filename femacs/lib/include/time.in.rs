@@ -66,41 +66,51 @@ const _: () = assert! (std::mem::offset_of! (tm, tm_zone) == 48);
 /// dereferenced (time-internal.h 51-54).
 pub type timezone_t = *mut c_void;
 
-unsafe extern "C" {
-  /* struct tm *gmtime (time_t const *);  */
-  pub fn gmtime (t: *const time_t) -> *mut tm;
-  /* struct tm *localtime (time_t const *);  */
-  pub fn localtime (t: *const time_t) -> *mut tm;
-  /* struct tm *gmtime_r (time_t const *restrict, struct tm *restrict);  */
-  pub fn gmtime_r (t: *const time_t, tp: *mut tm) -> *mut tm;
-  /* struct tm *localtime_r (time_t const *restrict, struct tm *restrict);  */
-  pub fn localtime_r (t: *const time_t, tp: *mut tm) -> *mut tm;
-  /* time_t mktime (struct tm *);  */
-  pub fn mktime (tp: *mut tm) -> time_t;
-  /* time_t timegm (struct tm *);  (HAVE_TIMEGM is 1 for this target)  */
-  pub fn timegm (tp: *mut tm) -> time_t;
-  /* void tzset (void);  */
-  pub fn tzset ();
-  /* size_t strftime (char *restrict, size_t, char const *restrict, struct tm const *restrict);  */
-  pub fn strftime (s: *mut c_char, maxsize: usize, format: *const c_char, tp: *const tm)
-    -> usize;
-  /* time.h 1088-1120: the two entries the time_rz module adds (`REPLACE_LOCALTIME_RZ`
-     and `REPLACE_MKTIME_Z` are undefined, so these are the sys spellings).  */
-  pub fn localtime_rz (tz: timezone_t, t: *const time_t, tp: *mut tm) -> *mut tm;
-  pub fn mktime_z (tz: timezone_t, tp: *mut tm) -> time_t;
-  /* extern char *tzname[2];  */
-  pub static mut tzname: [*mut c_char; 2];
-}
+/* The declarations live in a uniquely-named module with a glob import: lib/time_r.c
+   *defines* `gmtime_r`/`localtime_r`, and a definition at the unit's crate root would
+   collide with a crate-root declaration (E0428, PORTING.md 0.1-10; the utimens.rs/
+   stdio.rs shape).  `time_decls`, not `decls`: two mirrors in one unit must not share
+   the module name (docs/status.md 3.18).  */
+pub mod time_decls {
+  use super::*;
 
-/* time.h 841-842 / 1144-1145 (the frozen build's *generated* replacement header): gnulib's
-   REPLACE_MKTIME/REPLACE_TIMEGM arms rename the two entries this port replaces --
-   `mktime` becomes `rpl_mktime` and `timegm` becomes `rpl_timegm` -- and the reference
-   objects call those symbols (`nm -g build/emacs-ref/lib/time_rz.o` lists `U _rpl_mktime`
-   and `U _rpl_timegm`, and nstrftime.o lists `U _mktime_z`).  Appended as a second block
-   rather than merged into the one above so the change stays a pure addition.  */
-unsafe extern "C" {
-  /* time_t rpl_mktime (struct tm *);  */
-  pub fn rpl_mktime (tp: *mut tm) -> time_t;
-  /* time_t rpl_timegm (struct tm *);  */
-  pub fn rpl_timegm (tp: *mut tm) -> time_t;
+  unsafe extern "C" {
+    /* struct tm *gmtime (time_t const *);  */
+    pub fn gmtime (t: *const time_t) -> *mut tm;
+    /* struct tm *localtime (time_t const *);  */
+    pub fn localtime (t: *const time_t) -> *mut tm;
+    /* struct tm *gmtime_r (time_t const *restrict, struct tm *restrict);  */
+    pub fn gmtime_r (t: *const time_t, tp: *mut tm) -> *mut tm;
+    /* struct tm *localtime_r (time_t const *restrict, struct tm *restrict);  */
+    pub fn localtime_r (t: *const time_t, tp: *mut tm) -> *mut tm;
+    /* time_t mktime (struct tm *);  */
+    pub fn mktime (tp: *mut tm) -> time_t;
+    /* time_t timegm (struct tm *);  (HAVE_TIMEGM is 1 for this target)  */
+    pub fn timegm (tp: *mut tm) -> time_t;
+    /* void tzset (void);  */
+    pub fn tzset ();
+    /* size_t strftime (char *restrict, size_t, char const *restrict, struct tm const *restrict);  */
+    pub fn strftime (s: *mut c_char, maxsize: usize, format: *const c_char, tp: *const tm)
+      -> usize;
+    /* time.h 1088-1120: the two entries the time_rz module adds (`REPLACE_LOCALTIME_RZ`
+       and `REPLACE_MKTIME_Z` are undefined, so these are the sys spellings).  */
+    pub fn localtime_rz (tz: timezone_t, t: *const time_t, tp: *mut tm) -> *mut tm;
+    pub fn mktime_z (tz: timezone_t, tp: *mut tm) -> time_t;
+    /* extern char *tzname[2];  */
+    pub static mut tzname: [*mut c_char; 2];
+  }
+
+  /* time.h 841-842 / 1144-1145 (the frozen build's *generated* replacement header): gnulib's
+     REPLACE_MKTIME/REPLACE_TIMEGM arms rename the two entries this port replaces --
+     `mktime` becomes `rpl_mktime` and `timegm` becomes `rpl_timegm` -- and the reference
+     objects call those symbols (`nm -g build/emacs-ref/lib/time_rz.o` lists `U _rpl_mktime`
+     and `U _rpl_timegm`, and nstrftime.o lists `U _mktime_z`).  Appended as a second block
+     rather than merged into the one above so the change stays a pure addition.  */
+  unsafe extern "C" {
+    /* time_t rpl_mktime (struct tm *);  */
+    pub fn rpl_mktime (tp: *mut tm) -> time_t;
+    /* time_t rpl_timegm (struct tm *);  */
+    pub fn rpl_timegm (tp: *mut tm) -> time_t;
+  }
 }
+use time_decls::*;

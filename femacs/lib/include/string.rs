@@ -39,6 +39,11 @@ unsafe extern "C" {
   pub fn strspn (s: *const c_char, accept: *const c_char) -> usize;
   /* char *strrchr (const char *s, int c);  */
   pub fn strrchr (s: *const c_char, c: c_int) -> *mut c_char;
+  /* errno_t memset_s (void *s, rsize_t smax, int c, rsize_t n); — the frozen target's
+     C11 Annex K entry, which lib/memset_explicit.c calls on the `HAVE_MEMSET_S` arm
+     (`errno_t` is `int` and `rsize_t` is `size_t` there, measured with clang:
+     `printf ("%zu %zu", sizeof (errno_t), sizeof (rsize_t))` -> `4 8`).  */
+  pub fn memset_s (s: *mut c_void, smax: usize, c: c_int, n: usize) -> c_int;
   /* void *memchr (const void *s, int c, size_t n);  */
   pub fn memchr (s: *const c_void, c: c_int, n: usize) -> *mut c_void;
 }

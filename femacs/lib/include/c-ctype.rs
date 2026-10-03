@@ -61,5 +61,27 @@ pub unsafe fn c_isdigit (c: c_int) -> bool
     }
 }
 
+/* C_CTYPE_INLINE bool c_isupper (int c)  */
+#[inline(always)]
+pub unsafe fn c_isupper (c: c_int) -> bool
+{
+  match c as u8
+    {
+    _C_CTYPE_UPPER! () => { return true; }
+    _ => { return false; }
+    }
+}
+
+/* C_CTYPE_INLINE int c_tolower (int c)  */
+#[inline(always)]
+pub unsafe fn c_tolower (c: c_int) -> c_int
+{
+  match c as u8
+    {
+    _C_CTYPE_UPPER! () => { return c - b'A' as c_int + b'a' as c_int; }
+    _ => { return c; }
+    }
+}
+
 /* The include guard has no Rust counterpart (PORTING.md 0.1).  */
 pub const C_CTYPE_H: bool = true;
