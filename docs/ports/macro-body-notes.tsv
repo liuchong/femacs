@@ -897,3 +897,65 @@ process_mark_stack	case,cdr_count,default,goto,mark_object_loop_halt,switch	C's 
 garbage_collect,sweep_buffers	for_each_live_buffer	FOR_EACH_LIVE_BUFFER is the open P-22 loop macro (docs/ports/excluded-macros.txt); the port expands FOR_EACH_ALIST_VALUE by hand, the buffer.rs unlock_all_files shape
 which_symbols	goto,out	C's `goto out` and its `out:` label become a `break` out of the port's two loops (PORTING.md 2.2/0.1-12)
 syms_of_alloc	10,2,__glibc,__glibc_minor,smalloc_info,smalloc_trim	the GNU_LINUX/__GLIBC__ `defsubr (&Smalloc_info)` and the HAVE_MALLOC_TRIM `defsubr (&Smalloc_trim)` arms are dead and are *not* transcribed (the defsubr rule is evaluated with the frozen table), so the condition's tokens are recorded here
+WORDS_PER_DOUBLE	double	the port spells C's `double` as `f64` (PORTING.md 1.1); the four sizeofs keep the sizeof/size_of family count
+string_make_unibyte	0,1	C's two flags are the int literals 1 and 0; the mirror's copy_text takes bools, so the port spells them true/false (the buffer.rs call sites pass boolean expressions)
+Fnthcdr	for_each_tail_safe	the body reads the macro's own `li` iterator state, which macro_rules hygiene cannot expose to call-site tokens; the unit writes C's expansion out (lisp.h 5873-5876/5909-5912) exactly as the mirror spells it (docs/ports/fns.md, Decisions)
+merge	1	C 2517's `while (1)` is the port's `loop` (the itree_propagate_limit/gap_left class)
+merge_c	1	C 2563's `while (1)` is the port's `loop`, same class as merge
+internal_equal_1	break,case,default,fallthrough,for_each_tail_basic,for_each_tail_step_cyclep,goto,switch	PORTING.md 2.2 and docs/ports/excluded-macros.txt (the three FOR_EACH_TAIL_* loop macros are `deferred`): C's `switch (XTYPE (o1))` becomes a `match` on the same arms in the same order, its `goto tail_recurse` is the `'tail_recurse` loop's `continue`, its `break` is the end of the match, and its `FALLTHROUGH` from the five-case PVEC group into `PVEC_NORMAL_VECTOR` is that arm group's own `if` around the mask (one copy of the shared body); the two loop macros' bodies read their own `li` iterator state, which the port's macros cannot expose (macro hygiene), so C's expansion (lisp.h 5873-5876/5909-5912) is written out as the mirror spells it
+internal_equal_cycle	for_each_tail_basic,for_each_tail_step_cyclep	same expansion as internal_equal_1 (the body reads the macro's own `li` iterator state)
+Fassoc	continue	C 2033's `continue` jumps to C's `for` increment, which is the port macro's own stepper; a Rust `continue` would skip that stepper and loop forever, so the port inverts the test into an if/else whose else arm is the rest of the body (the same statement sequence, at the same place)
+fixnum_float_cmp	double	the port spells C's `double` as `f64` (PORTING.md 1.1)
+value_cmp	case,default,double,goto,switch	PORTING.md 2.2: `switch (XTYPE (a))` and its inner `switch (ta)` become `match` arms in the same order, each `goto tail_recurse` is that loop's `continue`, `goto type_mismatch` is a `break` out of a labelled block whose tail is the `xsignal2` call, and C's `double` is the port's `f64` (the tparam1/back_comment class)
+Fnconc	uninit	C 3413's `Lisp_Object tail UNINIT;` is the port's zero-initialised local (PORTING.md 1.5), which cannot spell the macro
+Fmapconcat	concat,goto	PORTING.md 2.2: C's `concat: ;` label and the two `goto concat` (the identity fast paths) are the port's `jumped_to_concat` flag selecting the same two regions (the back_comment `jumped_to_*` shape)
+Fmapc	0	C's `mapcar1 (leni, 0, fn, seq)` passes a null `Lisp_Object *`; the port writes `std::ptr::null_mut ()`, so the C literal has no counterpart (the port may add tokens)
+Fload_average	double	the port spells C's `double` as `f64` (PORTING.md 1.1)
+# --- src/dispnew.c (docs/ports/dispnew.md has the full record) --------------------------
+# The `0`/`1` rows are the casetab.rs class: C passes the int literals to `bool`
+# parameters and returns them from `bool` functions, and a Rust `bool` has no
+# integer-literal spelling (PORTING.md 5.2).  Residual, as the Fset_case_table row
+# records: with the literal exempted a `false`->`true` swap in that body is invisible
+# to the token check.
+clear_current_matrices	0	C 825 passes `0` as `clear_window_matrices`'s `bool desired_p`; the port writes `false`
+clear_desired_matrices	1	C 865 passes `1` for the same parameter; the port writes `true`
+clear_window_matrices	0	C 896-903's `w = NILP (w->next) ? 0 : XWINDOW (w->next);` is the port's `core::ptr::null_mut ()` (the SELECTED_FRAME null-pointer class)
+row_equal_p	0	C's `return 0;`/`return 1;` from a `bool` function are the port's `false`/`true`
+realloc_glyph_pool	0	C 1385's `pool->glyphs == 0` is the port's `is_null ()`
+showing_window_margins_p	1	C's `return 1;`/`return 0;` from a `bool` function are the port's `true`/`false`
+adjust_frame_glyphs_for_frame_redisplay	1	C 2064 passes `1` for `allocate_matrices_for_frame_redisplay`'s `bool dim_only_p`; the port writes `true`
+adjust_frame_glyphs_for_window_redisplay	1	C 2176 declares `w->pseudo_window_p = 1`, which the port writes through `window_bits!` (P-80), so the literal itself has no counterpart
+free_window_matrices	0	C 2427's `w = NILP (w->next) ? 0 : XWINDOW (w->next);` is the port's `core::ptr::null_mut ()`
+build_frame_matrix_from_window_tree	0	same null-pointer conditional (C 2549)
+frame_row_to_window	0	same null-pointer conditional (C 2985)
+redraw_frame	0	C 3246's `f->garbaged = false` is the port's `garbaged! (f, false)` (P-80), and 3254's `0` is `mark_window_display_accurate`'s bool argument
+make_glyph_space	0	C 3611's `glyph->padding_p = 0` is the port's `glyph_bits! (padding_p, …, false)` (P-80)
+box_default	break,case,switch,uninit	C's `switch (box)` with twelve case labels becomes a `match` (PORTING.md 2.2); `UNINIT` is lisp.h's empty macro, which the port drops and records
+update_window_tree	0	C 4263's `w = NILP (w->next) ? 0 : XWINDOW (w->next);` is the port's `core::ptr::null_mut ()`
+update_window	goto	C 4501's `goto set_cursor` becomes `break 'set_cursor` out of the labelled block that carries the statements the label skips (PORTING.md 2.2, the bytecode.rs shape)
+update_window_line	1	C 5151's `w->must_be_updated_p = …` is a `bool`; the `1` here is C's `on_p` write through the flag, which the port spells `true` (P-80)
+set_window_update_flags	0	C 5177's `w = NILP (w->next) ? 0 : XWINDOW (w->next);` is the port's `core::ptr::null_mut ()`
+scrolling_window	static_assert	C 5410's `static_assert (NEXT_ALMOST_PRIME_LIMIT == 11)` is the port's `const _: () = assert! (…)`
+scrolling	static_assert	C 5807's two `static_assert`s are the port's `const _: () = assert! (…)`
+write_row	goto	C 6027/6220's `goto just_erase` becomes `break 'just_erase` out of the labelled block that carries the statements the label skips (PORTING.md 2.2)
+syms_of_display	doc	C's `DEFVAR_*` invocations write `doc: /* … */`; the port's macros take the docstring as their third argument, so the `doc` keyword itself has no counterpart (the PORTING.md 5.1 docstring contract is checked by `--check`'s digest)
+Fopen_termscript	0	C's `tty->termscript = 0;` is the port's `core::ptr::null_mut ()`
+Fframe_or_buffer_changed_p	for_each_frame,for_each_live_buffer,goto	C's `FOR_EACH_FRAME`/`FOR_EACH_LIVE_BUFFER` are P-22 loop macros with no mirrored counterpart, so both loops are written out at their use sites (the ITREE_FOREACH shape, status 3.7); the four `goto changed`s become `break 'changed` out of the labelled block that carries C's `changed:` epilogue
+check_window_matrix_pointers	0	C 3123's `w = NILP (w->next) ? 0 : XWINDOW (w->next);` is the port's `core::ptr::null_mut ()`
+syms_of_display	sdump_redisplay_history	C 7487-7489's `defsubr (&Sdump_redisplay_history);` sits in `#ifdef GLYPH_DEBUG`; `tools/extract-abi.py` decides `defsubr` liveness with the frozen macro table (deliberately not under `blind_conditions`), which reads GLYPH_DEBUG as undefined, so the call is *not* transcribed and the symbol name is the one token without a counterpart.  The record (`Sdump_redisplay_history`) exists as text in this file; recorded as a deviation in docs/ports/dispnew.md
+restore_mutability	true	C's `h->mutable = true` is the port's `bits |= HASH_MUTABLE_MASK` (the `mutable` token family carries the member's name); the boolean literal has no counterpart (PORTING.md 1.3/P-80)
+make_hash_table	true	C's `h->mutable = true` is the port's `bits |= HASH_MUTABLE_MASK`, the same row as restore_mutability
+copy_hash_table	true	C's `h2->mutable = true` is the port's `bits |= HASH_MUTABLE_MASK`, the same row as restore_mutability
+hash_table_user_defined_call	false	C's two `h->mutable = false` are the port's `bits &= !HASH_MUTABLE_MASK`, the same row as restore_mutability
+base64_decode_1	true	C's `multibyte = true`/`false` arguments reach the port as the `multibyte`/`ignore_invalid` parameters and `multibyte_bit`'s shift; the literal has no counterpart
+hash_table_test_from_std	case,switch	PORTING.md 2.2: C's `switch (test)` over the three `Test_*` members becomes a `match` with the same arms in the same order
+keep_entry_p	case,switch	PORTING.md 2.2: C's `switch (weakness)` over the five `Weak_*` members becomes a `match` with the same arms in the same order
+hash_char_array	uint16_t,uint32_t	C's `uint32_t`/`uint16_t` (from <stdint.h>) are the port's `u32`/`u16` (PORTING.md 1.1)
+Fbase64_decode_region	1	C's `del_range_both (..., 1)` last argument is the `prepare` bool the mirror types `bool`, so the port writes `true`
+sxhash_bignum	mpz_t	C's `mpz_t const *n = xbignum_val (bignum);` is the port's `*const __mpz_struct` (bignum.rs's `mpz_t` spelling, P-49)
+sxhash_obj	case,default,switch	PORTING.md 2.2: C's `switch (XTYPE (obj))` becomes a `match` with the same arms in the same order (and its `default: emacs_abort ()` is the `_` arm)
+hash_table_weakness_symbol	case,switch	PORTING.md 2.2: C's `switch (weak)` over the five `Weak_*` members becomes a `match` with the same arms in the same order
+hexbuf_digest	attribute_nonstring	C's `static char const hexdigit[16] ATTRIBUTE_NONSTRING = "0123456789abcdef";` uses lib/attribute.h's attribute, which docs/ports/excluded-macros.txt records as syntax-only; the port writes the same 16 bytes as a `[c_char; 16]` literal
+syms_of_fns	doc	C's `DEFVAR_LISP ("…", V…, doc: /* … */)` takes the docstring through the `doc:` label; the mirror's macro parameter is `$doc`, so the label has no counterpart (the syms_of_callint/syms_of_data row) while the docstrings themselves are still compared by the constants rule
+Fmaphash	dohash_safe	docs/ports/excluded-macros.txt: `DOHASH_SAFE` is `deferred` (no Rust form), and C's own comment says the loop must tolerate a FUNCTION that alters the table, so the port writes C's `for`/`if`/`else` out (lisp.h 2756-2760) instead of the mirror's `DOHASH!`
+Fbuffer_line_statistics	double	the port spells C's `double` as `f64` (PORTING.md 1.1)
