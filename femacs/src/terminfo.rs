@@ -24,12 +24,14 @@ include!("include/tparam.rs");
    that set them.  But don't do that if terminfo defines them, as that
    could cause link errors when using -fno-common.  */
 
-#[unsafe(no_mangle)]
-pub static mut UP: *mut c_char = std::ptr::null_mut ();
-#[unsafe(no_mangle)]
-pub static mut BC: *mut c_char = std::ptr::null_mut ();
-#[unsafe(no_mangle)]
-pub static mut PC: c_char = 0;
+/* C 29-31's `#ifndef TERMINFO_DEFINES_BC` arm is **dead** in the frozen configuration:
+   `build/emacs-ref/src/config.h` 2358 has `#define TERMINFO_DEFINES_BC 1` (the table in
+   docs/baseline/config/darwin-arm64.macros.tsv 3740 agrees, and `check-cond-eval.py
+   src/terminfo.c` reports `1 conditions, 0 unknown, 0 disagreements`), so `UP`, `BC` and `PC`
+   come from the terminfo library and this file defines none of them - the reference object
+   proves it, exporting only `_tparam` where the port used to export `_UP`/`_BC`/`_PC`
+   (docs/status.md 3.72).  `cm.rs`'s `UP = 0; BC = 0;` assigns to the library's objects exactly
+   as C's `cm.c` does.  */
 
 /* Interface to curses/terminfo library.
    Turns out that all of the terminfo-level routines look

@@ -1140,7 +1140,10 @@ pub unsafe extern "C" fn blankp (c: c_int) -> bool
 }
 
 /* hexdigit[C] is one greater than C's numeric value if C is a
-   hexadecimal digit, zero otherwise.  */
+   hexadecimal digit, zero otherwise.  C's object exports `_hexdigit` (it is not `static`), so
+   the port's array needs C's symbol name - the reference object comparison found it as a
+   mangled Rust name (docs/status.md 3.72).  */
+#[unsafe(no_mangle)]
 pub static hexdigit: [c_char; 256] =
   {
     let mut t = [0 as c_char; 256];

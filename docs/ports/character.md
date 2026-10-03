@@ -113,3 +113,13 @@
   column for that row changes with the next `tools/gen-baseline.py` run (the column is not
   read by codegen).
 - Call-relationship differences (D7): none.
+
+## Integrator note (2026-10-04, status 3.72)
+
+`hexdigit` is a **non-`static`** file-scope object in C (`signed char const hexdigit[UCHAR_MAX +
+1]`), so C's object exports `_hexdigit`; the port's array was emitted as a mangled Rust symbol
+(`__RNvCs52…_9character8hexdigit`) because it lacked `#[unsafe(no_mangle)]` - the
+`re_match_object` class of status 3.60, found by comparing the port's export table against
+`build/emacs-ref/src/character.o`.  Fixed; `nm -g build/femacs/character.o` now shows
+`S _hexdigit`.
+

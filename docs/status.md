@@ -1007,3 +1007,23 @@
   在 Rust 里天然合法，所以不必改调用点）。buffer 通道那处"先读 MODIFF"的等价写法保留——它与 C 的
   语义相同，且属于在飞文件，不在本轮改动内。
 
+- **3.72 第 97 轮：参照对象从 29 个扩到 63 个，又抓到两个真缺陷（2026-10-04）**：把"给已端口 src 单元
+  构建参照目标文件"这件事从 29 个做到 **63 个**（`build/emacs-ref/src/*.o`），`check-symbols.py --dir src`
+  于是真的比了 **63 个单元**，又报出两处（都属 3.67 那一类——只有目标文件能判的符号问题）：
+  ① **`character.c` 的 `hexdigit` 少了 `#[unsafe(no_mangle)]`**：C 里它是非 `static` 的文件级对象
+  （`signed char const hexdigit[UCHAR_MAX + 1]`），C 的目标文件导出 `_hexdigit`，而端口发出的是被 mangle
+  的 `__RNvCs52…_9character8hexdigit`——与 3.60 的 `re_match_object` 同一类。修好后
+  `nm -g build/femacs/character.o` 是 `S _hexdigit`。
+  ② **`terminfo.c` 多定义了三个对象**：端口的 `terminfo.rs` 定义了 `UP`/`BC`/`PC`，而 C 的目标文件
+  **一个都不导出**——因为 `#ifndef TERMINFO_DEFINES_BC`（C 29-31）在冻结配置里是**死臂**：
+  `build/emacs-ref/src/config.h` **2358 行**就是 `#define TERMINFO_DEFINES_BC 1`（冻结宏表 3740 行同样
+  是 `1`，`check-cond-eval.py src/terminfo.c` → `1 conditions, 0 unknown, 0 disagreements`），这三个
+  对象由 terminfo 库提供。端口的老注释写的是"该臂是活文本"，与 config.h 相反——**它是照着"表里没有
+  这个宏"的旧印象写的，而不是照着 config.h**。按 P-08（该文件在已验证清单里）改成"记录不抄"：三个
+  定义删除，死臂写在台账里；`cm.rs` 的 `UP = 0; BC = 0;` 与 C 的 `cm.c` 一样，赋值给库里的对象。
+  ③ 实测：`check-symbols.py --dir src` → **63 units compared, 1 mismatched**，唯一不符的是**在飞的**
+  `src/process`（WIP）；`terminfo.o` 现在导出 `_BC/_UP/_PC` **0 个**；两个单元的 `--check` 都 OK；
+  `cm.rs` 重建 built。**结论**：这一轮之前 src 侧的符号门在多数单元上是空转的；把参照对象逐个建起来
+  之后，它连着抓出 `rpl_re_*`（3.68）、`hexdigit` 与 terminfo 三个对象（3.72）——**文本门看不见的东西，
+  目标文件看得见**。
+

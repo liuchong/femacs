@@ -30,3 +30,16 @@
 - **The line-count drift (C 55 vs the port's 76, 38.2%) is declared** in
   docs/ports/line-drift-tolerance.tsv with this file's reason.
 - **Call-relationship differences (D7)**: none beyond `tparm`/`xstrdup` above.
+
+## Integrator note (2026-10-04, status 3.72)
+
+`UP`, `BC` and `PC` are **not** defined by this unit.  The `#ifndef TERMINFO_DEFINES_BC` arm at
+C 29-31 is dead in the frozen configuration: `build/emacs-ref/src/config.h` 2358 has
+`#define TERMINFO_DEFINES_BC 1` (the frozen table agrees,
+`docs/baseline/config/darwin-arm64.macros.tsv` 3740, and `check-cond-eval.py src/terminfo.c`
+reports `1 conditions, 0 unknown, 0 disagreements`).  Those objects come from the terminfo
+library.  The reference object is the measurement: it exports only `_tparam`, while the port
+exported `_UP`/`_BC`/`_PC` - three symbols C's object has not got.  The definitions are gone and
+the dead arm is recorded here (P-08, this file is on the verified list); `cm.rs`'s
+`UP = 0; BC = 0;` assigns to the library's objects exactly as C's `cm.c` does.
+
