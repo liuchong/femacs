@@ -1,4 +1,4 @@
-// femacs: port of src/floatfns.c @ fd7afced403 .
+// femacs: port of src/floatfns.c @ fd7afced403.
 //
 // One-to-one port: same statements in the same order, same names (PORTING.md).  The
 // reference's `#if`s are the frozen configuration's branches (P-08): HAVE_LOG2/

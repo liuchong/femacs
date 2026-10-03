@@ -1,4 +1,4 @@
-// femacs: port of src/termchar.h @ fd7afced403 .
+// femacs: port of src/termchar.h @ fd7afced403.
 //
 // WIP mirror (PORTING.md P-66): the declarations of the frozen configuration's live text.
 // `termchar.h` includes `dispextern.h` (C 23) and is written for a translation unit that has

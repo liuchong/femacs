@@ -1,4 +1,4 @@
-// femacs: port of src/tparam.h @ fd7afced403 .
+// femacs: port of src/tparam.h @ fd7afced403.
 //
 // tparam.h is 55 lines and this mirror is complete.  Its `#include <stdlib.h>` and
 // `<attribute.h>` (lines 24-26) have no counterpart here: the unit includes the mirrors it

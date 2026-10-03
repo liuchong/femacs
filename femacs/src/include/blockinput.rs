@@ -1,4 +1,4 @@
-// femacs: port of src/blockinput.h @ fd7afced403 .
+// femacs: port of src/blockinput.h @ fd7afced403.
 //
 // Header mirror (PORTING.md 0.1): only declarations, constants and inline functions.  The
 // two `INLINE` bodies (`block_input` and `input_blocked_p`) are `#[inline(always)]` fns, the

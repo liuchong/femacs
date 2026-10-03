@@ -1,4 +1,4 @@
-// femacs: port of src/region-cache.c @ fd7afced403 .
+// femacs: port of src/region-cache.c @ fd7afced403.
 //
 // One-to-one port (PORTING.md): same statements, same order, same names; the five macros of
 // C 98-123 are `macro_rules!`/`const`s, and `#ifdef ENABLE_CHECKING` (C 754-781) is kept as

@@ -1,4 +1,4 @@
-// femacs: port of src/haiku_io.c @ fd7afced403 .
+// femacs: port of src/haiku_io.c @ fd7afced403.
 /* Haiku window system support.
    Copyright (C) 2021-2026 Free Software Foundation, Inc.
 

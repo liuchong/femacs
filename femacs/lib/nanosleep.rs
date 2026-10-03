@@ -1,4 +1,4 @@
-// femacs: port of lib/nanosleep.c @ fd7afced403 .
+// femacs: port of lib/nanosleep.c @ fd7afced403.
 //
 // Three arms define one function.  The frozen configuration *does* set
 // `HAVE_BUG_BIG_NANOSLEEP` (the reference build's config.h records it), so C 39-80's arm is

@@ -1,4 +1,4 @@
-// femacs: port of src/callint.c @ fd7afced403 .
+// femacs: port of src/callint.c @ fd7afced403.
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names.  The four subrs
 // use `DEFUN!` (PORTING.md 5.1); `interactive` is the one UNEVALLED subr here.

@@ -1,4 +1,4 @@
-// femacs: port of lib/utimens.h @ fd7afced403 .
+// femacs: port of lib/utimens.h @ fd7afced403.
 //
 // Plain prototypes plus the `GNULIB_FDUTIMENSAT` section.  `HAVE_UTIMENS`/`HAVE_LUTIMENS`
 // are both undefined in the frozen configuration, so C 36-38/41-43's `# define utimens

@@ -1,4 +1,4 @@
-// femacs: port of src/bignum.h @ fd7afced403 .
+// femacs: port of src/bignum.h @ fd7afced403.
 //
 // Header mirror: types, constants, macros, inline functions and the `unsafe extern "C"`
 // declarations C spells as `extern` (PORTING.md 0.1).  The inline bodies are C's

@@ -1,4 +1,4 @@
-// femacs: port of lib/fcntl.c @ fd7afced403 .
+// femacs: port of lib/fcntl.c @ fd7afced403.
 //
 // lib/fcntl.c is in `docs/baseline/config/cond-eval-verified.txt`, so the gate evaluates its
 // 66 conditions against the frozen configuration and compares only the live text.  The live

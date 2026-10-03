@@ -1,4 +1,4 @@
-// femacs: port of src/ralloc.c @ fd7afced403 .
+// femacs: port of src/ralloc.c @ fd7afced403.
 /* Block-relocating memory allocator.
    Copyright (C) 1993, 1995, 2000-2026 Free Software Foundation, Inc.
 

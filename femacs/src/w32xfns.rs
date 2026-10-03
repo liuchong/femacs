@@ -1,4 +1,4 @@
-// femacs: port of src/w32xfns.c @ fd7afced403 .
+// femacs: port of src/w32xfns.c @ fd7afced403.
 /* Functions taken directly from X sources for use with the Microsoft Windows API.
    Copyright (C) 1989, 1992-1995, 1999, 2001-2026 Free Software
    Foundation, Inc.

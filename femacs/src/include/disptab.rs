@@ -1,4 +1,4 @@
-// femacs: WIP mirror of src/disptab.h @ fd7afced403 .
+// femacs: WIP mirror of src/disptab.h @ fd7afced403.
 //
 // WIP mirror (PORTING.md P-66): `character.c` is the first unit on this target that reads
 // the display table, so this file carries the parts of the header that do not depend on the

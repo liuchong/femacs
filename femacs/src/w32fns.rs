@@ -1,4 +1,4 @@
-// femacs: port of src/w32fns.c @ fd7afced403 .
+// femacs: port of src/w32fns.c @ fd7afced403.
 /* Graphical user interface functions for the Microsoft Windows API.
 
 Copyright (C) 1989, 1992-2026 Free Software Foundation, Inc.

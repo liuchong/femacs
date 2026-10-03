@@ -1,4 +1,4 @@
-// femacs: port of lib/utimensat.c @ fd7afced403 .
+// femacs: port of lib/utimensat.c @ fd7afced403.
 //
 // `lib/utimensat.c` is in `docs/baseline/config/cond-eval-verified.txt`.  Its `#if
 // HAVE_NEARLY_WORKING_UTIMENSAT` arm is DEAD (the macro is undefined in the frozen

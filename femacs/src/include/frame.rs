@@ -1,4 +1,4 @@
-// femacs: port of src/frame.h @ fd7afced403 .
+// femacs: port of src/frame.h @ fd7afced403.
 //
 // WIP mirror (PORTING.md P-66): the `frame` structure and its flag units.  `frame.h` includes
 // `dispextern.h` and `termhooks.h` (so C sees `struct face_cache`, `struct glyph_matrix`,

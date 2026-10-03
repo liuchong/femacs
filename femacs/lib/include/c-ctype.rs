@@ -1,4 +1,4 @@
-// femacs: port of lib/c-ctype.h @ fd7afced403 .
+// femacs: port of lib/c-ctype.h @ fd7afced403.
 //
 // The frozen target takes the `C_CTYPE_ASCII` arm (C 49-74's big `(' ' == 32) && …`
 // test), so the case lists below are the ASCII ones, and `lib/c-ctype.c` is only the

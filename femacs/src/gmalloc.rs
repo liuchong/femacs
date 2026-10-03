@@ -1,4 +1,4 @@
-// femacs: port of src/gmalloc.c @ fd7afced403 .
+// femacs: port of src/gmalloc.c @ fd7afced403.
 /* Declarations for `malloc' and friends.
    Copyright (C) 1990-1993, 1995-1996, 1999, 2002-2007, 2013-2026 Free
    Software Foundation, Inc.

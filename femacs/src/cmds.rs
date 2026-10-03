@@ -1,4 +1,4 @@
-// femacs: port of src/cmds.c @ fd7afced403 .
+// femacs: port of src/cmds.c @ fd7afced403.
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names (function,
 // subr, global, statement), same control flow.  The seven subrs use `DEFUN!` (PORTING.md

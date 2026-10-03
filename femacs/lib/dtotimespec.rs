@@ -18,7 +18,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-// femacs: port of lib/dtotimespec.c @ fd7afced403 .  `time_t` is
+// femacs: port of lib/dtotimespec.c @ fd7afced403.  `time_t` is
 // `i64`, so `<intprops.h>`'s `TYPE_MINIMUM`/`TYPE_MAXIMUM` reduce to the type's own limits
 // (the nanosleep.rs/mktime.rs precedent, P-26); `make_timespec`/`TIMESPEC_HZ` come from the
 // timespec.h mirror, whose declarations are in `pub mod timespec_decls` + glob import, so

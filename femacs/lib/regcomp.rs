@@ -1,4 +1,4 @@
-// femacs: port of lib/regcomp.c @ fd7afced403 .
+// femacs: port of lib/regcomp.c @ fd7afced403.
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names.  The file
 // is in `docs/baseline/config/cond-eval-verified.txt`, so the gate reads it with the frozen

@@ -1,4 +1,4 @@
-// femacs: port of src/itree.h @ fd7afced403 .
+// femacs: port of src/itree.h @ fd7afced403.
 //
 // Header mirror: types, constants and accessors only, plus the `unsafe extern "C"`
 // declarations C spells as `extern` (PORTING.md 0.1).  Those declarations sit in

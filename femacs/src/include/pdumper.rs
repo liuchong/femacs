@@ -1,4 +1,4 @@
-// femacs: port of src/pdumper.h @ fd7afced403 .
+// femacs: port of src/pdumper.h @ fd7afced403.
 //
 // Header mirror (PORTING.md 0.1): the `EMACS_PDUMPER_H` guard, the `PDUMPER_*` macros, the
 // two records, the `pdumper_hook` typedef, the load-result enum and the inline predicates.

@@ -17,7 +17,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
-// femacs: port of lib/fseterr.c @ fd7afced403 .  Blind file: the same
+// femacs: port of lib/fseterr.c @ fd7afced403.  Blind file: the same
 // `__sferror` arm as lib/fpending.c is the live one here, i.e. C 22-24's
 // `fp_->_flags |= __SERR;` with `fp_` = `fp` (stdio-impl.h 198) and `__SERR` = 64
 // (`<stdio.h>`'s `#define __SERR 0x0040`, measured; the mirror carries it).  C's other ten

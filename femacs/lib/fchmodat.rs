@@ -1,4 +1,4 @@
-// femacs: port of lib/fchmodat.c @ fd7afced403 .
+// femacs: port of lib/fchmodat.c @ fd7afced403.
 //
 // `lib/fchmodat.c` is in `docs/baseline/config/cond-eval-verified.txt`.  `HAVE_FCHMODAT` is
 // 1, so C 30-33's `orig_fchmodat` and C 64-153's `fchmodat` are the live text and C 155-159's

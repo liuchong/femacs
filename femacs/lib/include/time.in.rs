@@ -1,4 +1,4 @@
-// femacs: port of lib/time.in.h @ fd7afced403 .
+// femacs: port of lib/time.in.h @ fd7afced403.
 //
 // WIP mirror: only the types buffer.h names by value or reference
 // (`struct timespec`, `time_t`); the rest of the header is tracked in

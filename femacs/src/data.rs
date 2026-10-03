@@ -1,4 +1,4 @@
-// femacs: port of src/data.c @ fd7afced403 .
+// femacs: port of src/data.c @ fd7afced403.
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names.  The 120 subrs
 // use `DEFUN!` (PORTING.md 5.1).

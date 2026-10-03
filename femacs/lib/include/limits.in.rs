@@ -1,4 +1,4 @@
-// femacs: port of lib/limits.in.h @ fd7afced403 .
+// femacs: port of lib/limits.in.h @ fd7afced403.
 //
 // WIP mirror: it carries only the integer-width section (limits.in.h 73-87) that
 // the ported units need so far; the rest of the header is tracked in

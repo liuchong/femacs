@@ -1,4 +1,4 @@
-// femacs: port of src/undo.c @ fd7afced403 .
+// femacs: port of src/undo.c @ fd7afced403.
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names.  The one
 // subr uses `DEFUN!` (PORTING.md 5.1).

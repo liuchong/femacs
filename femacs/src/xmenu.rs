@@ -1,4 +1,4 @@
-// femacs: port of src/xmenu.c @ fd7afced403 .
+// femacs: port of src/xmenu.c @ fd7afced403.
 /* X Communication module for terminals which understand the X protocol.
 
 Copyright (C) 1986, 1988, 1993-1994, 1996, 1999-2026 Free Software

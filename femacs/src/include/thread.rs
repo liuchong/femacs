@@ -1,4 +1,4 @@
-// femacs: port of src/thread.h @ fd7afced403 .
+// femacs: port of src/thread.h @ fd7afced403.
 //
 // WIP mirror (P-66): `lisp.h` 2289 includes thread.h unconditionally, and data.c's
 // `cl-type-of`, `threadp`, `mutexp` and `condition-variable-p` need the three predicates

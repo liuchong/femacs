@@ -1,4 +1,4 @@
-// femacs: port of src/pgtkim.c @ fd7afced403 .
+// femacs: port of src/pgtkim.c @ fd7afced403.
 /* Pure Gtk+-3 communication module.
 
 Copyright (C) 1989, 1993-1994, 2005-2006, 2008-2026 Free Software

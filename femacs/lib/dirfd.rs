@@ -14,7 +14,7 @@
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-// femacs: port of lib/dirfd.c @ fd7afced403 .  The file is blind
+// femacs: port of lib/dirfd.c @ fd7afced403.  The file is blind
 // (not in docs/baseline/config/cond-eval-verified.txt), so both arms of C 32's
 // `#if GNULIB_defined_DIR` are carried; the frozen arm is C 38-42's, because the
 // configuration does not define GNULIB_defined_DIR (macros.tsv has no row for it).

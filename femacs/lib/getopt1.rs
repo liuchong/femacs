@@ -1,4 +1,4 @@
-// femacs: port of lib/getopt1.c @ fd7afced403 .
+// femacs: port of lib/getopt1.c @ fd7afced403.
 //
 // NOTE (docs/ports/getopt1.md): lib/getopt1.c is **not** in
 // `docs/baseline/config/cond-eval-verified.txt` - `tools/check-cond-eval.py` finds one

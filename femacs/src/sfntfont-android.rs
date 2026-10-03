@@ -1,4 +1,4 @@
-// femacs: port of src/sfntfont-android.c @ fd7afced403 .
+// femacs: port of src/sfntfont-android.c @ fd7afced403.
 /* sfnt format font driver for Android.
 
 Copyright (C) 2023-2026 Free Software Foundation, Inc.

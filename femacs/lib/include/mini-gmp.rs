@@ -1,4 +1,4 @@
-// femacs: port of lib/mini-gmp.h @ fd7afced403 .
+// femacs: port of lib/mini-gmp.h @ fd7afced403.
 //
 // Header mirror: the typedefs, the four macros and every `extern` declaration of the
 // reference header, in its order (PORTING.md 0.1).  It is what `<gmp.h>` resolves to on

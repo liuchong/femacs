@@ -1,4 +1,4 @@
-// femacs: port of src/emacs-module.c @ fd7afced403 .
+// femacs: port of src/emacs-module.c @ fd7afced403.
 /* emacs-module.c - Module loading and runtime implementation
 
 Copyright (C) 2015-2026 Free Software Foundation, Inc.

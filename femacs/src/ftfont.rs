@@ -1,4 +1,4 @@
-// femacs: port of src/ftfont.c @ fd7afced403 .
+// femacs: port of src/ftfont.c @ fd7afced403.
 /* ftfont.c -- FreeType font driver.
    Copyright (C) 2006-2026 Free Software Foundation, Inc.
    Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011

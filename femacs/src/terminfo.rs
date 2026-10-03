@@ -1,4 +1,4 @@
-// femacs: port of src/terminfo.c @ fd7afced403 .
+// femacs: port of src/terminfo.c @ fd7afced403.
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names.
 //

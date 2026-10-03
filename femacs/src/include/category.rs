@@ -1,4 +1,4 @@
-// femacs: port of src/category.h @ fd7afced403 .
+// femacs: port of src/category.h @ fd7afced403.
 //
 // WIP mirror (P-66): category.h is 124 lines with a single conditional (its include guard's
 // `#ifndef`), so what is missing below is missing because the code that uses it has not

@@ -1,4 +1,4 @@
-// femacs: port of src/inotify.c @ fd7afced403 .
+// femacs: port of src/inotify.c @ fd7afced403.
 /* Inotify support for Emacs
 
 Copyright (C) 2012-2026 Free Software Foundation, Inc.

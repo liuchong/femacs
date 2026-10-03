@@ -18,7 +18,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
-// femacs: port of lib/fpending.c @ fd7afced403 .  Blind file: the frozen
+// femacs: port of lib/fpending.c @ fd7afced403.  Blind file: the frozen
 // configuration defines `__sferror` (macros.tsv 7030) and neither `_IO_EOF_SEEN` nor
 // `_IO_ftrylockfile` nor `__GNU_LIBRARY__`, so C 42-44's BSD arm is the live one and
 // `stdio-impl.h` 198 gives `fp_` as plain `fp`.  C's other eight arms need other platforms'

@@ -1,4 +1,4 @@
-// femacs: port of src/gfilenotify.c @ fd7afced403 .
+// femacs: port of src/gfilenotify.c @ fd7afced403.
 /* Filesystem notifications support with glib API.
    Copyright (C) 2013-2026 Free Software Foundation, Inc.
 

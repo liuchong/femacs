@@ -20,7 +20,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-// femacs: port of lib/pselect.c @ fd7afced403 .  The file is in
+// femacs: port of lib/pselect.c @ fd7afced403.  The file is in
 // cond-eval-verified.txt and `HAVE_PSELECT` is 1 (macros.tsv 1469), so C 36-85's
 // `#if !HAVE_PSELECT` arm (the `pselect` emulation built from `select` and
 // `pthread_sigmask`) is dead and C 87-115's `#else` arm is the live text; the dead arm needs

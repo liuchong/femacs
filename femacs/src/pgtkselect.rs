@@ -1,4 +1,4 @@
-// femacs: port of src/pgtkselect.c @ fd7afced403 .
+// femacs: port of src/pgtkselect.c @ fd7afced403.
 /* Gtk selection processing for emacs.
    Copyright (C) 1993-1994, 2005-2006, 2008-2026 Free Software
    Foundation, Inc.

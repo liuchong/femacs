@@ -1,4 +1,4 @@
-// femacs: port of src/pgtkterm.c @ fd7afced403 .
+// femacs: port of src/pgtkterm.c @ fd7afced403.
 /* Communication module for window systems using GTK.
 
 Copyright (C) 1989, 1993-1994, 2005-2006, 2008-2026 Free Software

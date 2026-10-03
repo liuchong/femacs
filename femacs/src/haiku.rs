@@ -1,4 +1,4 @@
-// femacs: port of src/haiku.c @ fd7afced403 .
+// femacs: port of src/haiku.c @ fd7afced403.
 /* Haiku subroutines that are general to the Haiku operating system.
    Copyright (C) 2021-2026 Free Software Foundation, Inc.
 

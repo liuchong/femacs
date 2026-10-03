@@ -1,4 +1,4 @@
-// femacs: port of src/process.h @ fd7afced403 .
+// femacs: port of src/process.h @ fd7afced403.
 //
 // WIP mirror (PORTING.md P-66): the type and the five inlines the frozen configuration's
 // live text carries.  `process.h` includes `lisp.h` and `coding.h`-adjacent headers by way of

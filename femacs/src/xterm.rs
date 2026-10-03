@@ -1,4 +1,4 @@
-// femacs: port of src/xterm.c @ fd7afced403 .
+// femacs: port of src/xterm.c @ fd7afced403.
 /* X Communication module for terminals which understand the X protocol.
 
 Copyright (C) 1989, 1993-2026 Free Software Foundation, Inc.

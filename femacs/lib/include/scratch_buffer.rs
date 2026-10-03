@@ -1,4 +1,4 @@
-// femacs: port of lib/scratch_buffer.h @ fd7afced403 .
+// femacs: port of lib/scratch_buffer.h @ fd7afced403.
 //
 // The reference header is the wrapper the units include: its C 62-102 text is gated on
 // `#if 0` (the port's own declarations of the three allocation entries are dead text in

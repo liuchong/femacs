@@ -1,4 +1,4 @@
-// femacs: port of src/keymap.h @ fd7afced403 .
+// femacs: port of src/keymap.h @ fd7afced403.
 //
 // Header mirror (PORTING.md 0.1): types, constants, macros and the declarations C spells
 // `extern`.  Nothing is defined here, so any unit may include it.  It needs `lisp.h` only,

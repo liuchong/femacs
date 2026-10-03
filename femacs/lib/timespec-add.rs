@@ -18,7 +18,7 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
-// femacs: port of lib/timespec-add.c @ fd7afced403 .  `ckd_add` is
+// femacs: port of lib/timespec-add.c @ fd7afced403.  `ckd_add` is
 // today's C23 spelling of the overflowing pair: the port writes the wrapped sum and the
 // overflow flag out (PORTING.md 2.6/P-15, the families in docs/ports/token-aliases.tsv;
 // mktime.rs is the precedent).  `TYPE_MINIMUM`/`TYPE_MAXIMUM` are unit-local macros over

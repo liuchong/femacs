@@ -1,4 +1,4 @@
-// femacs: port of lib/filevercmp.h @ fd7afced403 .
+// femacs: port of lib/filevercmp.h @ fd7afced403.
 //
 // Two prototypes.  C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error …` is the generated config
 // header's marker (the md5.rs shape); `_GL_ATTRIBUTE_PURE` is a syntax-only attribute

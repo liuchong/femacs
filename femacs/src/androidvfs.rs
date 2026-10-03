@@ -1,4 +1,4 @@
-// femacs: port of src/androidvfs.c @ fd7afced403 .
+// femacs: port of src/androidvfs.c @ fd7afced403.
 /* Android virtual file-system support for GNU Emacs.
 
 Copyright (C) 2023-2026 Free Software Foundation, Inc.

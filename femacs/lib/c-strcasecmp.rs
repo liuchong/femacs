@@ -13,7 +13,7 @@
 
    You should have received a copy of the GNU Lesser General Public License
    along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-// femacs: port of lib/c-strcasecmp.c @ fd7afced403 .  The file is
+// femacs: port of lib/c-strcasecmp.c @ fd7afced403.  The file is
 // blind; its only conditions are the two `#if`s of <limits.h> (C 22) and c-ctype.h (C 24),
 // which contribute no body text.  `UCHAR_MAX <= INT_MAX` is live on this target (both are
 // in lib/include/limits.in.rs), and C's `else` arm is carried as text so the checker sees

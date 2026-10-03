@@ -1,4 +1,4 @@
-// femacs: port of lib/utimens.c @ fd7afced403 .
+// femacs: port of lib/utimens.c @ fd7afced403.
 //
 // lib/utimens.c is in `docs/baseline/config/cond-eval-verified.txt`, so the gate evaluates
 // its `#if`s against the frozen configuration and compares only the live text.  The live

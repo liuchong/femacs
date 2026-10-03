@@ -1,4 +1,4 @@
-// femacs: port of src/kqueue.c @ fd7afced403 .
+// femacs: port of src/kqueue.c @ fd7afced403.
 /* Filesystem notifications support with kqueue API.
 
 Copyright (C) 2015-2026 Free Software Foundation, Inc.

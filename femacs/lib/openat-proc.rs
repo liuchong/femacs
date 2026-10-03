@@ -1,4 +1,4 @@
-// femacs: port of lib/openat-proc.c @ fd7afced403 .
+// femacs: port of lib/openat-proc.c @ fd7afced403.
 //
 // NOTE: lib/openat-proc.c is **not** in `docs/baseline/config/cond-eval-verified.txt`, so the
 // gate reads *both* arms of every `#if` as live text (P-66).  The frozen build does compile the

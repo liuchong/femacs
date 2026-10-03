@@ -1,4 +1,4 @@
-// femacs: port of lib/fingerprint.h @ fd7afced403 .
+// femacs: port of lib/fingerprint.h @ fd7afced403.
 //
 // Header mirror (PORTING.md 0.1): the include guard and the one object the build
 // generates from every source file.  There is no `fingerprint.c` to port - the

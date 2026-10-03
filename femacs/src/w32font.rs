@@ -1,4 +1,4 @@
-// femacs: port of src/w32font.c @ fd7afced403 .
+// femacs: port of src/w32font.c @ fd7afced403.
 /* Font backend for the Microsoft Windows API.
    Copyright (C) 2007-2026 Free Software Foundation, Inc.
 

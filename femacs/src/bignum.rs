@@ -1,4 +1,4 @@
-// femacs: port of src/bignum.c @ fd7afced403 .
+// femacs: port of src/bignum.c @ fd7afced403.
 // One-to-one port (PORTING.md).  The system mirrors come from lib/include/ (P-26/P-49/
 // P-50); `mpz_t` values pass as `…as_mut_ptr ()`/`…as_ptr ()` (P-49), and `mpz[5]`'s
 // definition here shadows `include/bignum.rs`'s `bignum_externs` one (P-21/P-39).

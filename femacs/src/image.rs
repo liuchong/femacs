@@ -1,4 +1,4 @@
-// femacs: port of src/image.c @ fd7afced403 .
+// femacs: port of src/image.c @ fd7afced403.
 /* Functions for image support on window system.
 
 Copyright (C) 1989-2026 Free Software Foundation, Inc.

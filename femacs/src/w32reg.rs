@@ -1,4 +1,4 @@
-// femacs: port of src/w32reg.c @ fd7afced403 .
+// femacs: port of src/w32reg.c @ fd7afced403.
 /* Emulate the X Resource Manager through the registry.
 
 Copyright (C) 1990, 1993-1994, 2001-2026 Free Software Foundation, Inc.

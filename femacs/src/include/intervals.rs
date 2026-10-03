@@ -1,4 +1,4 @@
-// femacs: port of src/intervals.h @ fd7afced403 .
+// femacs: port of src/intervals.h @ fd7afced403.
 //
 // Header mirror: the type, the macros, the inline setters and the `unsafe extern "C"`
 // declarations C spells as `extern` (PORTING.md 0.1).  The macros are the same statements

@@ -1,4 +1,4 @@
-// femacs: port of src/fontset.c @ fd7afced403 .
+// femacs: port of src/fontset.c @ fd7afced403.
 /* Fontset handler.
 
 Copyright (C) 2001-2026 Free Software Foundation, Inc.

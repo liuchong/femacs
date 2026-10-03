@@ -1,4 +1,4 @@
-// femacs: port of src/ftcrfont.c @ fd7afced403 .
+// femacs: port of src/ftcrfont.c @ fd7afced403.
 /* ftcrfont.c -- FreeType font driver on cairo.
    Copyright (C) 2015-2026 Free Software Foundation, Inc.
 

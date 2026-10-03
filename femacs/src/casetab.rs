@@ -1,4 +1,4 @@
-// femacs: port of src/casetab.c @ fd7afced403 .
+// femacs: port of src/casetab.c @ fd7afced403.
 //
 // One-to-one port: same statements in the same order, same names (PORTING.md).  The five
 // subrs use `DEFUN!` (C's `DEFUN`, PORTING.md 5.1); a flexible array member is reached

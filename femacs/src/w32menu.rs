@@ -1,4 +1,4 @@
-// femacs: port of src/w32menu.c @ fd7afced403 .
+// femacs: port of src/w32menu.c @ fd7afced403.
 /* Menu support for GNU Emacs on the Microsoft Windows API.
    Copyright (C) 1986, 1988, 1993-1994, 1996, 1998-1999, 2001-2026 Free
    Software Foundation, Inc.

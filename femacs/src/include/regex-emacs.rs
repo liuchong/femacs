@@ -1,4 +1,4 @@
-// femacs: port of src/regex-emacs.h @ fd7afced403 .
+// femacs: port of src/regex-emacs.h @ fd7afced403.
 //
 // Partial header mirror: only the character-class API that src/syntax.c reads, because
 // regex-emacs.h's main body describes `struct re_pattern_buffer`/`struct re_registers` and the

@@ -1,4 +1,4 @@
-// femacs: port of src/character.h @ fd7afced403 .
+// femacs: port of src/character.h @ fd7afced403.
 //
 // Header mirror: constants, inline functions and `unsafe extern "C"` declarations
 // (PORTING.md 0.1).  The inline functions keep C's bodies; `eassert`/`eassume` and

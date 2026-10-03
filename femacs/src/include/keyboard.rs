@@ -1,4 +1,4 @@
-// femacs: port of src/keyboard.h @ fd7afced403 .
+// femacs: port of src/keyboard.h @ fd7afced403.
 //
 // WIP mirror (PORTING.md P-66): the two types, the `kset_*` setters and the event accessors
 // the frozen configuration's live text carries.  `tools/check-cond-eval.py` reports zero

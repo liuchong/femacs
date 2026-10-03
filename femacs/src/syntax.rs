@@ -1,4 +1,4 @@
-// femacs: port of src/syntax.c @ fd7afced403 .
+// femacs: port of src/syntax.c @ fd7afced403.
 //
 // One-to-one port (PORTING.md): same statements in the same order, same names (function,
 // struct, struct field, macro, local), same control flow, same error model.  The non-`static`

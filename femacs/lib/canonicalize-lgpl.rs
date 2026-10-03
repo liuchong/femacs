@@ -1,4 +1,4 @@
-// femacs: port of lib/canonicalize-lgpl.c @ fd7afced403 .
+// femacs: port of lib/canonicalize-lgpl.c @ fd7afced403.
 //
 // The frozen configuration leaves FUNC_REALPATH_WORKS undefined, so C 96-449's
 // `#if defined _LIBC || !FUNC_REALPATH_WORKS` arm is the *live* text (that is why gnulib's

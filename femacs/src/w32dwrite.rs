@@ -1,4 +1,4 @@
-// femacs: port of src/w32dwrite.c @ fd7afced403 .
+// femacs: port of src/w32dwrite.c @ fd7afced403.
 /* Support for using DirectWrite on MS-Windows to draw text.  This
    allows for color fonts.
    Copyright (C) 2024-2026 Free Software Foundation, Inc.

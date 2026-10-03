@@ -1,4 +1,4 @@
-// femacs: port of src/cygw32.c @ fd7afced403 .
+// femacs: port of src/cygw32.c @ fd7afced403.
 /* Cygwin support routines.
    Copyright (C) 2011-2026 Free Software Foundation, Inc.
 

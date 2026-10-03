@@ -1,4 +1,4 @@
-// femacs: port of src/coding.h @ fd7afced403 .
+// femacs: port of src/coding.h @ fd7afced403.
 //
 // WIP mirror (PORTING.md P-66): the type layer.  `coding.h` includes `lisp.h` (line 29) and
 // `composite.h` (line 284), so `MAX_COMPOSITION_COMPONENTS` comes from composite.rs; the two

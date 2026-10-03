@@ -1,4 +1,4 @@
-// femacs: port of src/pgtkmenu.c @ fd7afced403 .
+// femacs: port of src/pgtkmenu.c @ fd7afced403.
 /* Pure GTK3 menu and toolbar module.
    Copyright (C) 2019-2026 Free Software Foundation, Inc.
 

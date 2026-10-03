@@ -1,4 +1,4 @@
-// femacs: port of src/dispextern.h @ fd7afced403 .
+// femacs: port of src/dispextern.h @ fd7afced403.
 //
 // WIP mirror (PORTING.md P-66): it carries the *frozen configuration's* live text as it is
 // needed, which is the platform-independent part of the display interface — the scalars,
