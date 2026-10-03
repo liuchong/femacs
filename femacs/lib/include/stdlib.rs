@@ -21,7 +21,11 @@ unsafe extern "C" {
 }
 
 /* The two entries lib/nproc.c needs, added to this mirror (`getenv` for the OMP variables,
-   `strtoul` for `parse_omp_threads`).  */
+   `strtoul` for `parse_omp_threads`).  The declaration lives here and nowhere else: a unit
+   that includes this mirror must not also declare these names - that is a second
+   declaration of one name in one compilation unit (E0428), which is what lib/getopt.rs's
+   own `getenv` was (removed when this entry landed, PORTING.md 0.1-3's single home for the
+   system-header declarations, the sys_stat.in.rs `chmod` precedent).  */
 unsafe extern "C" {
   /* char *getenv (const char *name);  */
   pub fn getenv (name: *const c_char) -> *mut c_char;

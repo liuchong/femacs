@@ -92,11 +92,13 @@ pub unsafe fn c_isspace (c: c_int) -> bool
 {
   /* C 302-303's `case ' ': case '\t': case '\n': case '\v': case '\f': case '\r':` — the
      header spells these six characters out rather than through a `_C_CTYPE_*` macro, so the
-     port does too.  */
-  match c
+     port does too.  A `match` cannot take them: Rust has no `\v`/`\f` escapes (the port
+     writes `\x0b`/`\x0c`) and a char literal in a pattern is a `char`, not the `int` C
+     compares, so C's switch is an `if` chain of the same six comparisons.  */
+  if c == ' ' as c_int || c == '\t' as c_int || c == '\n' as c_int
+      || c == '\x0b' as c_int || c == '\x0c' as c_int || c == '\r' as c_int
     {
-    ' ' as c_int | '\t' as c_int | '\n' as c_int | '\v' as c_int
-      | '\f' as c_int | '\r' as c_int => { return true; }
-    _ => { return false; }
+      return true;
     }
+  return false;
 }
