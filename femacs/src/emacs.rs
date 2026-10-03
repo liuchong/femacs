@@ -435,9 +435,9 @@ const emacs_bugreport: &CStr = PACKAGE_BUGREPORT;
 
 /// C 163-167: `extern char const RCS_Id[];` and the definition
 /// `char const EXTERNALLY_VISIBLE RCS_Id[] = "$Id" ": <PACKAGE_NAME> " PACKAGE_VERSION " ("
-/// EMACS_CONFIGURATION " " EMACS_CONFIG_FEATURES ") $";` -- the quote elides the product
-/// name C's `PACKAGE_NAME` spells out, because 0.1-19 keeps the product name out of every
-/// comment (the literal below still carries it once, as C's does; status 3.73).
+/// EMACS_CONFIGURATION " " EMACS_CONFIG_FEATURES ") $";` -- the quote leaves the name
+/// `PACKAGE_NAME` spells out as a placeholder (the literal below carries it once, as C's
+/// does; status 3.73).
 /// `EXTERNALLY_VISIBLE` is `__attribute__ ((externally_visible))`, one of
 /// `docs/ports/excluded-macros.txt`'s syntax rows; the object is what `ident (1)` reads out
 /// of the program, so the port keeps it as a named object rather than folding the string

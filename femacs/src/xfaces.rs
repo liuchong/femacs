@@ -71,8 +71,7 @@ include!("include/commands.rs");          // lisp.h: commands.h (`noninteractive
 include!("include/syssignal.rs");         // blockinput.h/window.h: syssignal.h
 include!("include/pdumper.rs");           // lisp.h/frame.h: pdumper.h (`dumped_with_pdumper_p`)
 
-/* C 20-217: the file's explanatory comment (`Faces.`).  C's version/copyright declaration
-   above it is not carried (PORTING.md 0.1-19, docs/status.md 3.58).  */
+/* C 20-217: the file's explanatory comment (`Faces.`).  */
 
 /* Faces.
 

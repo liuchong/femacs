@@ -1,7 +1,7 @@
 // femacs: mirror of lib/nproc.h @ fd7afced403 (PORTING.md P-26).
 //
 // The header is one enum (C 26-32) and one prototype (C 36).  It has no include guard (the
-// file starts with the license comment and the `#ifdef __cplusplus` pair, which PORTING.md
+// file starts with a comment block and the `#ifdef __cplusplus` pair, which PORTING.md
 // 0.1 drops), so there is no guard marker constant here.  C's `unsigned long int` is the
 // port's `c_ulong`.
 //

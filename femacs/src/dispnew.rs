@@ -20,8 +20,7 @@
 //
 // **Deleted C text** (PORTING.md 10.10): the forward declarations of C 74-104 are not needed
 // in Rust and are not carried; the `#if 0` debugging aid of C 107-119 and the other `#if 0`
-// regions are dead in C itself and are recorded only; C's version/copyright block is not
-// carried (PORTING.md 0.1-19, status 3.58).
+// regions are dead in C itself and are recorded only.
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_assignments,

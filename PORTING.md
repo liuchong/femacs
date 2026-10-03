@@ -104,6 +104,10 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     都必须在 `docs/baseline/declarations-allowlist.tsv` 里逐条列出并写明理由；前三类**一行都不该有**
     （有就是缺陷），例外只对字面量开放。`/// C …` 的引文照此：`src/emacs.rs` 的 `RCS_Id` 注释把 C
     写的产品名换成 `<PACKAGE_NAME>` 占位并注明原因，引文其余部分不动（status 3.73）。
+    这条规则同样管住**代码里的复述**：单元/镜像的注释不再写"参照的许可/版权/版本块已删除/未抄"这类句子
+    （那同样是一句关于本仓库的许可声明），决定只记录在本文档与 `docs/status.md`；2026-10-04 的
+    `docs/status.md` 3.90 把已落的 11 处复述清掉（`buffer.rs`/`xfaces.rs`/`dispnew.rs`/`emacs.rs` 与 7 个
+    `lib/` 单元/镜像）。
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体

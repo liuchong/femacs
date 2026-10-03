@@ -9,7 +9,7 @@ include!("include/timespec.rs");
 /* lib/timespec.c: the qualifier this translation unit uses (PORTING.md 10.12).  */
 pub const _GL_TIMESPEC_INLINE: () = _GL_EXTERN_INLINE;
 
-/* lib/timespec.c is a gnulib `_GL_*_INLINE` wrapper: its C text is the license, the
+/* lib/timespec.c is a gnulib `_GL_*_INLINE` wrapper: its C text carries no code — only the
    `#define <qualifier> _GL_EXTERN_INLINE` line and the includes, i.e. the C99 inline model's
    "this translation unit emits the external definition" file.  The body lives in the header
    (mirrored as `lib/include/timespec.rs`) and C's object exports the symbol below; Rust's

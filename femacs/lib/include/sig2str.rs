@@ -1,6 +1,6 @@
 // femacs: mirror of lib/sig2str.h @ fd7afced403 ; PORTING.md 0.1.
 //
-// The reference header is the license, the include guard and one constant: the upper bound on
+// The reference header holds the include guard and one constant: the upper bound on
 // signal numbers, chosen from the system's own macros.  This target defines NSIG (through
 // __DARWIN_NSIG, 32) and neither _sys_nsig nor _SIG_MAXSIG, so C's third arm is the live one
 // and the port keeps `NSIG - 1`; the other arms are recorded in the notes.

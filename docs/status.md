@@ -1317,3 +1317,21 @@
   `check-mirror-dupes` 报 0 duplicates**——工具从加常量类那天起就看得见这些常量，只是镜像原先不在该单元的
   include 图里；这次收敛等于把 §3.83 的判据用在真身上。台账里"镜像不能共存、只能 include sha1"的叙述与
   `CODESET` 的旧值都改成终态。
+
+- **3.90 第 98 轮：代码里不再复述"参照的许可/版本声明"（2026-10-04 用户指令）**：
+  用户指令：版本声明不写产品名之后，"把之前的代码中的这种声明也去掉"。3.36/3.58 已经把**声明本体**处理干净
+  （版本行只留修订号、268 个复制的声明块不抄，`check-declarations.py` 现在 0 forbidden），但**我们自己的注释在
+  复述那件事**：`buffer.rs` 的 "the reference's own license block is deleted at its head"、`xfaces.rs`/`dispnew.rs`
+  的 "C's version/copyright declaration … is not carried"、`emacs.rs` 的 `RCS_Id` 注释里 "keeps the product name out
+  of every comment"、5 个 gnulib 包装单元的 "its C text is the license"、`lib/include/nproc.rs` 的 "starts with the
+  license comment"、`lib/include/sig2str.rs` 的 "The reference header is the license"。复述本身仍是一句关于**本仓库**
+  的许可声明，与 0.1-19 要躲的正是同一类风险，所以一律删除或改成中性表述：
+  ① 删：`buffer.rs` 两行 + 一个空注释行、`dispnew.rs` 末句、`xfaces.rs` 尾括注；
+  ② 改：5 个 `lib/` 包装 → "its C text carries no code — only …"、`nproc.rs` → "a comment block"、`sig2str.rs` →
+  "holds the include guard and one constant"、`emacs.rs` → "leaves the name `PACKAGE_NAME` spells out as a placeholder"。
+  验证：11 个文件 `build-tu` 全部 `built`（src 4 个 + lib 5 个 + `layout-check` 探针覆盖 2 个镜像，探针
+  `layout probe ok`）；`extract-abi.py --check` 9 个单元全 `OK`；`check-declarations.py` 仍
+  `8 declaration sites (0 forbidden, 8 allowed literals), 0 failures`；`check-mirror-dupes.py` 仍是既有那 1 行棘轮、
+  0 failure；`check-verbatim.py` `6 trees, 4607 files, 0 failures`。规则补进 `PORTING.md` 0.1-19 末尾。
+  **未动**：`docs/ports/line-drift-tolerance.tsv` 里 10 行用中性措辞说明同一件事（台账口径/漂移理由，不是代码），
+  以及 `docs/status.md`/`PORTING.md` 自身的政策叙述——这些是决定的记录，删掉就没法复算。

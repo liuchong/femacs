@@ -8,9 +8,6 @@
 // list, `Fget_buffer_create`, the overlays' buffer side, and the `DEFVAR_PER_BUFFER` slots
 // `syms_of_buffer` registers.
 //
-// The reference's own license block is deleted at its head (docs/status.md 3.58) and this
-// line replaces it.
-//
 // `src/buffer.c` *is* in `docs/baseline/config/cond-eval-verified.txt`
 // (`python3 tools/check-cond-eval.py src/buffer.c` = `28 conditions, 0 unknown,
 // 0 disagreements [VERIFIED]`), so per P-08 the arms the frozen configuration does not
