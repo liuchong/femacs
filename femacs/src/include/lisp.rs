@@ -3569,6 +3569,32 @@ pub mod other_units {
     // the mirror's own types/constants live in the crate root, as lisp.h's do
     use super::*;
 
+    // src/lisp.h 4268, 4330, 4345, 4363, 5039, 5110: cmds.c's callees — the definitions live in
+    // editfns.c (concat2, replace_range), insdel.c (del_range, insert_and_inherit), search.c
+    // (scan_newline_from_point) and indent.c (current_column); lisp.h declares them here.
+    unsafe extern "C" {
+        /* src/lisp.h 4268.  */
+        /// C: Lisp_Object concat2 (Lisp_Object, Lisp_Object)
+        pub fn concat2 (s1: Lisp_Object, s2: Lisp_Object) -> Lisp_Object;
+        /* src/lisp.h 4330.  */
+        /// C: void insert_and_inherit (const char *, ptrdiff_t)
+        pub fn insert_and_inherit (str_: *const c_char, nbytes: ptrdiff_t);
+        /* src/lisp.h 4345.  */
+        /// C: void del_range (ptrdiff_t, ptrdiff_t)
+        pub fn del_range (from: ptrdiff_t, to: ptrdiff_t);
+        /* src/lisp.h 4363: the six parameters of the replacement.  */
+        /// C: void replace_range (ptrdiff_t, ptrdiff_t, Lisp_Object, bool, bool, bool)
+        pub fn replace_range (from: ptrdiff_t, to: ptrdiff_t, new_: Lisp_Object,
+                              prepare: bool, inherit: bool, markers: bool);
+        /* src/lisp.h 5039.  */
+        /// C: ptrdiff_t scan_newline_from_point (ptrdiff_t, ptrdiff_t *, ptrdiff_t *)
+        pub fn scan_newline_from_point (count: ptrdiff_t, pos: *mut ptrdiff_t,
+                                        pos_byte: *mut ptrdiff_t) -> ptrdiff_t;
+        /* src/lisp.h 5110.  */
+        /// C: ptrdiff_t current_column (void)
+        pub fn current_column () -> ptrdiff_t;
+    }
+
     // src/lisp.h 619, 5298, 5541: bignum.c's three remaining callees.
     unsafe extern "C" {
         pub fn args_out_of_range_3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> !;

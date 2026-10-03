@@ -302,3 +302,29 @@
   **常量没有 notes 机制**，所以修工具前这类差异只能靠手工登记。修法：按 C 规则解析 `0` 前缀的
   八进制/十六进制字面量后再比较，并加回归用例。
 
+- **3.29 `DEFVAR_*` 的存储体：单元的 `V*` 对象必须由该单元定义（2026-10-03 第 55 轮发现，闸门看不见）**：
+  C 里 `Vfoo` 不是独立对象，而是**一个 `globals` 结构体的字段**：`lisp.h` 3495-3500 的
+  `DEFVAR_LISP` 取 `&globals.f_##vname`，`struct emacs_globals globals;` 定义在 `src/alloc.c:278`。
+  端口的现形状是 `include/globals.rs` 的 `pub mod variables` 里
+  `unsafe extern "C" { pub static mut Vfoo: Lisp_Object; }`（**只有声明**），因此：
+  ① **谁在 C 里拥有它，谁就要在端口里定义它**（`#[unsafe(no_mangle)] pub static mut Vfoo:
+  Lisp_Object = lisp_h_Qnil ();`）——已按此形状的有 `src/casetab.rs`（四个）与
+  `src/character.rs`（`Vchar_unify_table`），第 55 轮补上 `src/cmds.rs` 的
+  `Vpost_self_insert_hook`；
+  ② **尚未补的 20 个**（用 `DEFVAR_*` 调用点减去定义点机械求得）：
+  `character.rs`（Vauto_fill_chars/Vchar_width_table/Vambiguous_width_chars/Vprintable_chars/
+  Vtranslation_table_vector/Vchar_script_table/Vunicode_category_table）、`doc.rs`
+  （Vdoc_file_name/Vbuild_files）、`callint.rs`（Vcommand_history/Vcommand_debug_status/
+  Vcurrent_prefix_arg/Vlast_prefix_arg/Vmark_even_if_inactive/Vmouse_leave_buffer_hook）、
+  `macros.rs`（Vexecuting_kbd_macro/Vkbd_macro_termination_hook/Vlast_kbd_macro_）、
+  `data.rs`（Vmost_positive_fixnum/Vmost_negative_fixnum）、`category.rs`
+  （Vword_separating_categories）；
+  ③ **为什么闸门看不见**：`extract-abi.py` 的 "File-scope objects" 只扫 C 文件里**自己写的**
+  对象定义，`DEFVAR_LISP` 的存储它看不到——`src/cmds.c` 的清单因此报
+  "File-scope objects — 0"，而该文件在 C 里确实定义了一个对象。缺的门是**符号级**检查
+  （每个 `DEFVAR_*` 调用点都要有同名定义），计划加 `tools/check-globals.py` 并挂进
+  `xtask gate-fast`；
+  ④ 长期口径（等 `alloc.c` 落地时定）：把 `struct emacs_globals` 镜像进 `globals.h` 的镜像、
+  由 `alloc.rs` 定义唯一的 `globals` 对象，`V*` 变成**字段访问**（C 的存储模型）。在此之前
+  按 ① 的形状办，偏离记在各单元 ledger 的 Decisions 里。
+

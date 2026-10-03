@@ -576,6 +576,9 @@ unsafe extern "C" { pub static mut frame_default_tab_bar_height: c_int; }    // 
 unsafe extern "C" { pub static mut frame_default_tool_bar_height: c_int; }   // 1465
 unsafe extern "C" { pub static mut Vframe_list: Lisp_Object; }               // 1521
 
+// frame.h 1506: cmds.c's self-insert path hides the mouse pointer through this one.
+unsafe extern "C" { pub fn frame_make_pointer_invisible (f: *mut frame); }             // 1506
+
 /* Most code should use these functions to set Lisp fields in struct frame.  */
 // frame.h 753-895: the frame's Lisp-Object setters, one assignment each (C's `fset_*`).
 #[inline(always)]
