@@ -7,11 +7,15 @@
 // item order is irrelevant for Rust items, but the *macros* below are expanded at their use
 // site, exactly as C expands them.
 //
-// Degradations this file carries (PORTING.md P-72 rule ③): `struct emacs_tty` (sysdep.h) and
-// `struct cm` (cm.h) have no mirror yet, and both fields are used only as pointers, so they
-// keep the untyped pointer with a `/// C: …` line; the use sites cast.  `display_info.tty` is
-// termhooks.rs's `*mut c_void` for the same reason (termhooks.h 533-542), so `FRAME_TTY`
-// casts it back.
+// Degradations this file carries (PORTING.md P-72 rule ③): `struct emacs_tty` (sysdep.h) has
+// no mirror yet, and its field is used only as a pointer, so it keeps the untyped pointer
+// with a `/// C: …` line and the use sites cast.  `display_info.tty` is termhooks.rs's
+// `*mut c_void` for the same reason (termhooks.h 533-542), so `FRAME_TTY` casts it back.
+//
+// `struct cm` *is* mirrored now (`include/cm.rs`), and this file is where it gets its home:
+// termchar.h names `struct cm *Wcm` (C 86), so P-70's stand-in is replaced by the real type
+// and the mirror that defines it is included here, in C's declaration order (termchar.h's own
+// `#include` list does not name cm.h; C's units do, and cm.h in turn needs nothing).
 //
 // `bool_bf` is `bool` here (conf_post.h 59-61 takes that arm), one byte wide, so each run of
 // consecutive `bool_bf : 1` members is one byte in the layout; the port keeps a `bits_*`
@@ -26,6 +30,9 @@ include!("../../lib/include/stdio.rs");   // termchar.h 22: `#include <stdio.h>`
 include!("dispextern.rs");                // termchar.h 23: `#include "dispextern.h"`
 include!("termhooks.rs");                 // `struct terminal` for the `terminal` member
 include!("frame.rs");                     // `FRAME_TTY` reads `frame`'s `output_method`
+// termchar.h 86's `struct cm *Wcm` — the type cm.h defines, so its mirror comes in here and
+// every unit that carries termchar.rs carries cm.h too (C's tty units all do).
+include!("cm.rs");
 
 /* Each termcap frame points to its own struct tty_output object in the
    output_data.tty field.  The tty_output structure contains the
@@ -82,7 +89,7 @@ pub struct tty_display_info
                                       structure.  This is sometimes handy. */
 
   /* Info on cursor positioning.  */
-  pub Wcm: *mut c_void,            /// C: `struct cm *Wcm` (cm.h; P-72 ③)
+  pub Wcm: *mut cm,
 
   /* Redisplay. */
 

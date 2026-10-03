@@ -3,6 +3,45 @@
    struct, so the C compiler freezes the layout the mirrors must reproduce
    (bitfields are covered by the neighbouring offsets and by sizeof).  */
 
+  SZ (struct parmcap); AL (struct parmcap);
+  OFF (struct parmcap, mincost);
+  OFF (struct parmcap, maxcost);
+
+  SZ (struct cm); AL (struct cm);
+  OFF (struct cm, cm_curY);
+  OFF (struct cm, cm_curX);
+  OFF (struct cm, cm_up);
+  OFF (struct cm, cm_down);
+  OFF (struct cm, cm_left);
+  OFF (struct cm, cm_right);
+  OFF (struct cm, cm_home);
+  OFF (struct cm, cm_cr);
+  OFF (struct cm, cm_ll);
+  OFF (struct cm, cm_tab);
+  OFF (struct cm, cm_backtab);
+  OFF (struct cm, cm_abs);
+  OFF (struct cm, cm_habs);
+  OFF (struct cm, cm_vabs);
+  OFF (struct cm, cm_multiup);
+  OFF (struct cm, cm_multidown);
+  OFF (struct cm, cm_multileft);
+  OFF (struct cm, cm_multiright);
+  OFF (struct cm, cm_cols);
+  OFF (struct cm, cm_rows);
+  OFF (struct cm, cm_tabwidth);
+  OFF (struct cm, cc_up);
+  OFF (struct cm, cc_down);
+  OFF (struct cm, cc_left);
+  OFF (struct cm, cc_right);
+  OFF (struct cm, cc_home);
+  OFF (struct cm, cc_cr);
+  OFF (struct cm, cc_ll);
+  OFF (struct cm, cc_tab);
+  OFF (struct cm, cc_backtab);
+  OFF (struct cm, cc_abs);
+  OFF (struct cm, cc_habs);
+  OFF (struct cm, cc_vabs);
+
   SZ (struct itree_node); AL (struct itree_node);
   OFF (struct itree_node, parent);
   OFF (struct itree_node, left);

@@ -25,6 +25,13 @@ spec.loader.exec_module(ci)
 
 # The structs the port mirrors so far; each entry is the header that defines it.
 STRUCTS = {
+    # cm.h's cursor-motion record and the parameterized-capability pair: the type
+    # termchar.h's `struct cm *Wcm` names, so the display units can read a terminal's
+    # capability strings and costs.  Five `bool_bf : 1` members sit at 148 as one byte
+    # (the port stores it as `bits: u8`), which is why the keys below either side of it
+    # are what proves the byte's position (PORTING.md P-80).
+    "parmcap": "src/cm.h",
+    "cm": "src/cm.h",
     "itree_node": "src/itree.h",
     "itree_tree": "src/itree.h",
     "itree_iterator": "src/itree.h",
