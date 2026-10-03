@@ -34,6 +34,14 @@
   而消失），重取后单跑该门是 `534 unit object(s), 123 pending, 0 new`；门的其余步骤（符号门 src
   **0 mismatched / 0 pending**——已提交状态 67 个单元、主树含在飞的 `dispnew.rs` 为 69 个；连接门 0 缺失、
   declaration gate 0、mirror-dupes gate 0、`layout-check` passed）也已逐条跑过。**总进度**：590 个参照 `.c/.h` 里已端口 268 个单元 + 131 个镜像。
+- **进度（2026-10-04 第 99 轮）**：`src/coding.rs` 收口入树后**已提交单元 323 个**（`femacs/src/*.rs` 150
+  + `femacs/lib/*.rs` 122 + `femacs/lib-src/*.rs` 7 + `femacs/exec/*.rs` 5 + `femacs/lwlib/*.rs` 6 +
+  `femacs/oldXMenu/*.rs` 29 + `femacs/nt/*.rs` 4）、**已提交镜像 144 个**（`femacs/src/include/*.rs` 49 +
+  `femacs/lib/include/*.rs` 94 + `femacs/lib-src/include/*.rs` 1）。`docs/port-inventory.md` 本轮复算：
+  **590 files, done=410, wip=36, todo=144**（该文件的状态列按工作树取，所以里面也含**未提交**的在飞项：
+  `keyboard.rs`/`xdisp.rs` 与 `femacs/nt/inc/sys/` 的 8 个镜像）。**在飞（未提交）**：
+  `femacs/src/keyboard.rs`、`femacs/src/xdisp.rs`、`femacs/nt/inc/`（16 个 `nt/inc` 镜像的前 8 个已写好、
+  台账名冲突待裁决，见 3.100 之后的待办）。
 - **照抄树（Verbatim）已全部落地（2026-10-03 第 79 轮）**：`emacs/{lisp,test,etc,doc,leim,admin}`
   → `femacs/<同名>`，**逐字节照抄**，共 **4,607 文件 / 约 4.6M 行**（lisp 1,627 / test 1,555 /
   etc 887 / doc 257 / leim 28 / admin 253），六个目录各一次签名提交并推送。判定不再是行文说明
@@ -1493,3 +1501,25 @@
   1 ratchet row(s), 0 failure(s)`、`check-verbatim` 仍 `6 trees, 4607 files, 0 failures`。
   **未动**：`docs/ports/*.tsv` 与各台账里同样意思的中性措辞（那是决定记录，不是代码），以及本文件与
   `PORTING.md` 自身的政策叙述。规则补进 `PORTING.md` 0.1-19。
+- **3.101 `src/coding.c` 收口入树（2026-10-04 第 99 轮第二批）**：coding lane 交回**完整**单元
+  **`femacs/src/coding.rs`（13,435 行 / C 12,312 行；`--check` 的 `missing` 86 → 0、`does not mention` 0、
+  无 problem 行）**，台账 `docs/ports/coding.md`（593 行，`- [ ]` 54 → 0）同提交。
+  集成侧**在本次提交的工作树上重跑**的复核（不是复述 lane 的数字）：`build-tu src/coding.c` = `built`、
+  `extract-abi.py --check` = `OK`、`check-globals` = `274 units, 0 DEFVAR_* variables without a definition in
+  their own unit`、`rustc --cfg enable_checking` = exit 0（9 warnings，全是既有的 function-pointer 比较家族）、
+  `check-mirror-dupes` = `1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)`、
+  `check-symbols --dir src` = `73 units compared, 1 mismatched`（唯一的 mismatched 是**在飞**的
+  `src/keyboard`；coding 的行已从报告里消失 = `missing=[] invented=[]`）、`check-verbatim` =
+  `6 trees, 4607 files, 0 failures`。DEFVAR 载体 367 → **387**（+20 是本单元 `syms_of_coding` 的注册项，
+  属 status 3.60 已记录的偏离）；行数门按成品实测追加 `coding 0.10`（实测 9.1%，supersede 之前的
+  provisional 0.63 行）。**本单元的三条已知偏离**（台账已记）：① 5 个 `*_def` 模块——`decode_coding_object`
+  等在 `coding.h` 镜像是 crate-root 声明，定义因此放进 glob 导入模块；② 29 个 DEFVAR 载体的存储写在
+  文件头、`syms_of_coding` 只注册（C 的顺序偏离，沿用第一窗口先例）；③ `detect_coding_charset` 的两处
+  `sizeof ("…") - 1` 写成 `size_of_val`（sizeof family 的数字门要求）。**未决（交给下一轮）**：
+  `docs/baseline/undef-pending.txt` 里被本单元满足的 stale 行（`_Vcoding_system_for_read`/`_write`、
+  `_Vdefault_process_coding_system`、`_Vlast_coding_system_used`、`_Vlocale_coding_system`、
+  `_Vselect_safe_coding_system_function`、`_Vtranslation_table_for_input` 等）需在**已提交态**的隔离
+  worktree 里用 `check-undef.py --write-pending` 重取（棘轮不在工作树上取，见第 7 条纪律）；两个镜像缺陷
+  （`src/include/charset.rs` 的 `CHAR_CHARSET_P` 一处 `E0308`、`coding.h` 镜像的 5 个 crate-root 声明）
+  仍开，只报告未修。**没有运行证据**：本单元尚未被链接进可运行的 Emacs，`--check`/`build-tu`/
+  `check-symbols` 只证明文本、对象与符号表一致。
