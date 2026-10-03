@@ -22,7 +22,7 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **245 个单元**（`femacs/src/*.rs` 123 +
+- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **246 个单元**（`femacs/src/*.rs` 124 +
   `femacs/lib/*.rs` 122）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
   **权威口径 `python3 tools/extract-abi.py --all` 本轮真跑过**（第 84 轮，约 4 分钟）：
   `checked 342 ported files: 317 done, 25 in progress, 0 failing`（第 87 轮复跑）——"in progress" 全是 WIP 镜像
@@ -692,3 +692,16 @@
   `buffer_point_decls` + glob 导入**（本单元定义它们；28 个受影响的单元仍全部 `built`）。
   该 worker 自己跑过整树 `gate-fast`：`346 ported files: 323 done, 23 in progress, 0 failing`、
   490 个单元编译通过、符号门与布局门全绿。
+
+- **3.57 第 92 轮：`src/charset.c` 与此前**完全没有镜像**的 `charset.h`（2026-10-03，`3972225`）**：
+  2,464 行 C → 2,791 行 Rust（`total` 基准 13.3%）。**`charset.h` 原先一个镜像都没有**——三个已端口
+  单元（chartab.rs、ccl.rs…）只能在使用点声明它的名字；本轮一次性把它做完整（三个 enum、
+  `struct charset`/`charset_table`、63 个宏、两个 INLINE、19 个对象、7 条原型），本单元定义的
+  五条原型与 19 个对象进 `charset_decls`/`charset_objs` + glob 导入。六个 `bool_bf : 1` 合成
+  `bits: u8` 配 `charset_bits!` 与六个出现次数家族；20 条 `const _` 钉住 clang 实测布局
+  （sizeof 320/align 8、`bits`@80、`code_offset`@316）。唯一结构性偏离已记台账且不影响偏移：
+  `struct charset_map_entries` 的首成员是**匿名结构体数组**，Rust 必须有名字，故元素命名
+  `charset_map_entry` 并加三个零尺寸标记（`entry`@0、`next`@0xC0000、sizeof 0xC0008 全断言）。
+  两个"门看不见"的发现：`emacs_fclose` 在 lisp.h 里 `#define` 成 `fclose`，故使用点声明带
+  `#[link_name = "fclose"]`（靠读 `nm -u` 发现，**没有任何门会看未定义引用**）；`lisp.rs` 仍缺
+  `larger_vector`/`make_specified_string`（留给拥有者）。批边界 `gate-fast` 复跑全绿。
