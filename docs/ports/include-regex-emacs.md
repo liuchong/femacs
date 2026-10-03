@@ -60,3 +60,15 @@ frozen target reports `sizeof` 64 / alignment 8 with `buffer`@0, `allocated`@8, 
 **Line-count relation:** C 202 lines → 255 Rust lines; the mirror is not in
 `docs/ports/line-drift-tolerance.tsv` because the whole header lands at once here and the
 declaration-per-line shape is the recorded deviation (the `ccl.rs`/`thread.rs` precedent).
+
+## Integrator note (2026-10-04, status 3.68)
+
+The five engine entry points this header declares (`re_compile_pattern`, `re_search`,
+`re_search_2`, `re_match_2`, `re_set_registers`) carry `#[link_name = "rpl_..."]`: the frozen
+`src/config.h` 3642-3663 renames those identifiers (gnulib's replacement scheme), so C's object
+exports `_rpl_re_search` and friends, and a plain declaration here would make every caller link
+against a name the reference has not got.  The matching definitions in `femacs/src/regex-emacs.rs`
+carry `#[unsafe(export_name = "rpl_...")]` - the shape status 3.57 established for `emacs_fclose`.
+Verified by comparing `nm -g` of the port's object with `build/emacs-ref/src/regex-emacs.o`: the
+same five names, the same types.  Callers are unchanged; they use the Rust name.
+
