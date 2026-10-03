@@ -449,10 +449,12 @@ pub mod composite_decls {
 					 string: Lisp_Object, include_static: bool);
     /// C: `extern bool composition_reseat_it (struct composition_it *, ptrdiff_t,
     /// ptrdiff_t, ptrdiff_t, struct window *, signed char, struct face *, Lisp_Object);`
-    /// — `struct composition_it`/`struct face` are not mirrored (PORTING.md P-66), so both
-    /// are the ABI-equal `*mut c_void`.
+    /// — `struct composition_it`, `struct window` and `struct face` are not reached from this
+    /// mirror (PORTING.md P-66/P-72: a mirror may only name a type it declares itself or pulls
+    /// in, and casefiddle.c includes composite.h without window.h), so all three are the
+    /// ABI-equal `*mut c_void`.
     pub fn composition_reseat_it (cmp_it: *mut c_void, charpos: ptrdiff_t,
-				  bytepos: ptrdiff_t, endpos: ptrdiff_t, w: *mut window,
+				  bytepos: ptrdiff_t, endpos: ptrdiff_t, w: *mut c_void,
 				  bidi_level: c_char, face: *mut c_void,
 				  string: Lisp_Object) -> bool;
     /// C: `extern int composition_update_it (struct composition_it *, ptrdiff_t,
