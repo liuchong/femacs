@@ -80,6 +80,10 @@ TYPE_WORDS = {
     "char", "float", "double", "void", "bool", "size_t", "ptrdiff_t", "bool_bf",
     "Lisp_Object", "EMACS_INT", "EMACS_UINT", "Lisp_Word", "specpdl_ref",
 }
+# A declarator that is nothing but the function's name, at column 0, with its parameter
+# list on the next line (src/eval.c 2465's `load_with_autoload_queue`).
+BARE_NAME = re.compile(r"^[A-Za-z_]\w*$")
+
 STATEMENT_WORDS = {
     "if", "else", "for", "while", "do", "switch", "case", "default", "return",
     "goto", "break", "continue", "sizeof", "typedef", "static_assert", "defined",
@@ -1019,9 +1023,32 @@ def function_spans(text: str) -> list[dict]:
             hit = typed_def_name(line)
             typed = True
             if hit is None or hit[0] in STATEMENT_WORDS:
-                i += 1
-                continue
-            name, k = hit
+                # A definition whose *name* has a line of its own, with the parameter list on
+                # the next one: src/eval.c 2464-2467 writes
+                #     Lisp_Object
+                #     load_with_autoload_queue
+                #       (Lisp_Object file, …)
+                #     {
+                # (Emacs's layout for a long name).  Neither CFUNC nor `typed_def_name` keys
+                # it: the name line has no `(`, and the parameter line starts with one.  The
+                # scanner treats the name as the declarator and lets the walk below consume
+                # the parameter list, which is also what makes the `{`-on-the-next-line rule
+                # just after apply.  Measured over every `*.c` of the reference tree:
+                # src/eval.c is the only file that gains a name this way.
+                if not BARE_NAME.match(line.strip()) or line.strip() in STATEMENT_WORDS:
+                    i += 1
+                    continue
+                jj = i
+                while jj < len(rows):
+                    if lines.live[jj] and rows[jj].strip() and not rows[jj].strip().startswith("#"):
+                        break
+                    jj += 1
+                if jj >= len(rows) or not rows[jj].lstrip().startswith("("):
+                    i += 1
+                    continue
+                name, k = line.strip(), len(line)
+            else:
+                name, k = hit
         j = i - 1
         # walk the parameter list to its matching close paren
         depth = 0
@@ -1046,9 +1073,18 @@ def function_spans(text: str) -> list[dict]:
         body_line = None
         if rest.startswith("{"):
             body_line = j
-        elif typed:
-            pass          # a typed declarator is a definition only when `{` shares its line
         elif rest == "" or rest.startswith("__attribute__"):
+            # A declarator whose parameter list ends its line takes the body from the next
+            # live, non-blank, non-preprocessor line - whether or not the declaration
+            # specifiers share that line.  `Lisp_Object backtrace_top_function (void)` (eval.c
+            # 4415) is the typed case that used to be dropped here ("a typed declarator is a
+            # definition only when `{` shares its line"), and losing it meant the file's
+            # `#[unsafe(no_mangle)]` on the definition read as an invented exported symbol
+            # while nothing checked the body.  Measured over every `*.c` of the reference tree
+            # (test/ excluded): the verdict gains a name for eval.c, buffer.c, fns.c,
+            # keyboard.c, minibuf.c, window.c, w32fns.c and oldXMenu/XLookAssoc.c, and every
+            # one of them is either not ported, not built on this target, or already carries
+            # that function.
             for jj in range(j + 1, min(j + 9, len(rows))):
                 # A line the frozen configuration does not compile is not part of the
                 # declarator: src/emacs.c's `main` is written as
