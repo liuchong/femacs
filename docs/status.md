@@ -242,3 +242,14 @@
   任何 unit 里的本地同名声明都会立刻变成 E0428。已修的三处：`canonicalize-lgpl.rs` 的
   `strcpy`、`getopt.rs` 的 `strncmp`、`getdelim.rs` 的 `EOF`。规则：**系统条目归镜像，单元
   只保留镜像没有的**（0.1-3 单一定义点）。
+
+- **3.25 "整文件死" 的移植政策（2026-10-03，本轮定案并落地 9 个文件）**：冻结配置把整批
+  `src/` 文件关掉（`HAVE_ZLIB`/`HAVE_GLIB`/`HAVE_LCMS2`/`HAVE_SOUND`/`HAVE_DBUS`/`HAVE_X_SM`/
+  `MSDOS` 全 undef），这些文件的**整个函数体**都在 `#ifdef <特性>` 之内，C 侧除两个 include 外
+  什么都不编译。政策：这种文件移植为**空单元**——保留 C 自己的 license 头 + 一段 `// femacs:`
+  说明（点名 gate 宏、config 行号、开启时需要哪些未具备的头文件），不携带死文本；对应 P-51
+  "臂体需要本目标没有的头"那一条，只是粒度提到整文件。**已落地 9 个**：`xgselect.c`(296)、
+  `decompress.c`(349)、`lcms.c`(604)、`sound.c`(1,554)、`dbusbind.c`(2,190)、`xsmfns.c`(581)、
+  `w16select.c`(692)、`dosfns.c`(798)、`msdos.c`(4,350)——合计 11,414 行 C，在冻结配置下零产出，
+  每个都有 0.99 的行数容差行（原因写明）。注意 `msdos.c` 含非 UTF-8 字节，读参照时按
+  `errors="replace"` 处理，避免污染对照文档。

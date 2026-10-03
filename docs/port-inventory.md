@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 169 |
-| 其中 done / wip | 140 / 29 |
-| 待开工 | 421 |
+| 已有目标文件 | 178 |
+| 其中 done / wip | 148 / 30 |
+| 待开工 | 412 |
 
 ## 2 按目录
 
@@ -38,7 +38,7 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,686 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 211 |
+| `src/` | 250 | 566,784 | 8,686 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 202 |
 
 ## 3 按批次
 
@@ -46,9 +46,9 @@
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 18 |
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 25 |
-| **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,008 | 269 | 498 | 289 | 128 | 28 |
+| **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,008 | 269 | 498 | 289 | 128 | 24 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,741 | 368 | 1,834 | 2,175 | 981 | 192 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,741 | 368 | 1,834 | 2,175 | 981 | 187 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 107 |
 
@@ -475,15 +475,15 @@
 | `src/cygw32.c` | 139 | 5 | 2 | 0 | 0 | 0 | 0 | F | `femacs/src/cygw32.rs` | todo |
 | `src/cygw32.h` | 40 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/cygw32.rs` | todo |
 | `src/data.c` | 4,400 | 60 | 120 | 1 | 12 | 2 | 0 | B | `femacs/src/data.rs` | done |
-| `src/dbusbind.c` | 2,190 | 24 | 6 | 19 | 1 | 0 | 3 | D | `femacs/src/dbusbind.rs` | todo |
-| `src/decompress.c` | 349 | 6 | 2 | 4 | 1 | 5 | 3 | D | `femacs/src/decompress.rs` | todo |
+| `src/dbusbind.c` | 2,190 | 24 | 6 | 19 | 1 | 0 | 3 | D | `femacs/src/dbusbind.rs` | done |
+| `src/decompress.c` | 349 | 6 | 2 | 4 | 1 | 5 | 3 | D | `femacs/src/decompress.rs` | done |
 | `src/dired.c` | 1,213 | 14 | 8 | 3 | 3 | 0 | 0 | D | `femacs/src/dired.rs` | todo |
 | `src/dispextern.h` | 4,025 | 9 | 0 | 130 | 219 | 551 | 16 | E | `femacs/src/include/dispextern.rs` | wip |
 | `src/dispnew.c` | 7,584 | 150 | 13 | 4 | 1 | 13 | 20 | E | `femacs/src/dispnew.rs` | todo |
 | `src/disptab.h` | 117 | 0 | 0 | 20 | 14 | 0 | 0 | B | `femacs/src/include/disptab.rs` | todo |
 | `src/doc.c` | 746 | 6 | 6 | 6 | 0 | 0 | 2 | B | `femacs/src/doc.rs` | todo |
 | `src/doprnt.c` | 607 | 6 | 0 | 0 | 1 | 0 | 0 | B | `femacs/src/doprnt.rs` | done |
-| `src/dosfns.c` | 798 | 12 | 10 | 2 | 0 | 0 | 1 | F | `femacs/src/dosfns.rs` | todo |
+| `src/dosfns.c` | 798 | 12 | 10 | 2 | 0 | 0 | 1 | F | `femacs/src/dosfns.rs` | done |
 | `src/dosfns.h` | 35 | 0 | 0 | 1 | 1 | 0 | 0 | F | `femacs/src/include/dosfns.rs` | todo |
 | `src/dynlib.c` | 340 | 14 | 0 | 3 | 2 | 0 | 2 | D | `femacs/src/dynlib.rs` | done |
 | `src/dynlib.h` | 41 | 0 | 0 | 1 | 0 | 0 | 0 | D | `femacs/src/include/dynlib.rs` | done |
@@ -544,7 +544,7 @@
 | `src/keymap.c` | 3,487 | 37 | 29 | 0 | 0 | 14 | 10 | E | `femacs/src/keymap.rs` | todo |
 | `src/keymap.h` | 51 | 0 | 0 | 3 | 0 | 0 | 1 | E | `femacs/src/include/keymap.rs` | done |
 | `src/kqueue.c` | 550 | 6 | 3 | 0 | 0 | 0 | 2 | D | `femacs/src/kqueue.rs` | todo |
-| `src/lcms.c` | 604 | 14 | 8 | 13 | 0 | 0 | 2 | D | `femacs/src/lcms.rs` | todo |
+| `src/lcms.c` | 604 | 14 | 8 | 13 | 0 | 0 | 2 | D | `femacs/src/lcms.rs` | done |
 | `src/lisp.h` | 5,924 | 275 | 0 | 201 | 170 | 205 | 56 | B | `femacs/src/include/lisp.rs` | done |
 | `src/lread.c` | 5,901 | 105 | 17 | 20 | 18 | 24 | 12 | B | `femacs/src/lread.rs` | todo |
 | `src/macfont.h` | 88 | 0 | 0 | 3 | 8 | 6 | 0 | F | `femacs/src/include/macfont.rs` | todo |
@@ -563,7 +563,7 @@
 | `src/module-env-30.h` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-30.rs` | todo |
 | `src/module-env-31.h` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-31.rs` | todo |
 | `src/module-env-32.h` | 12 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-32.rs` | todo |
-| `src/msdos.c` | 4,350 | 92 | 5 | 33 | 22 | 12 | 38 | F | `femacs/src/msdos.rs` | todo |
+| `src/msdos.c` | 4,350 | 92 | 5 | 33 | 22 | 12 | 38 | F | `femacs/src/msdos.rs` | wip |
 | `src/msdos.h` | 156 | 0 | 0 | 21 | 7 | 0 | 3 | F | `femacs/src/include/msdos.rs` | todo |
 | `src/nsgui.h` | 137 | 0 | 0 | 35 | 19 | 0 | 0 | F | `femacs/src/include/nsgui.rs` | todo |
 | `src/nsterm.h` | 1,395 | 0 | 0 | 140 | 21 | 102 | 8 | F | `femacs/src/include/nsterm.rs` | todo |
@@ -594,7 +594,7 @@
 | `src/sfntfont.c` | 4,222 | 60 | 0 | 0 | 2 | 92 | 13 | E | `femacs/src/sfntfont.rs` | todo |
 | `src/sfntfont.h` | 78 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/sfntfont.rs` | todo |
 | `src/sort.c` | 1,178 | 30 | 0 | 3 | 2 | 7 | 0 | B | `femacs/src/sort.rs` | done |
-| `src/sound.c` | 1,554 | 30 | 2 | 4 | 18 | 44 | 2 | D | `femacs/src/sound.rs` | todo |
+| `src/sound.c` | 1,554 | 30 | 2 | 4 | 18 | 44 | 2 | D | `femacs/src/sound.rs` | done |
 | `src/sqlite.c` | 933 | 12 | 17 | 29 | 1 | 0 | 1 | D | `femacs/src/sqlite.rs` | todo |
 | `src/syntax.c` | 3,851 | 40 | 21 | 5 | 3 | 13 | 7 | C | `femacs/src/syntax.rs` | todo |
 | `src/syntax.h` | 215 | 11 | 0 | 2 | 17 | 12 | 1 | C | `femacs/src/include/syntax.rs` | todo |
@@ -626,7 +626,7 @@
 | `src/treesit.h` | 257 | 9 | 0 | 1 | 0 | 28 | 1 | E | `femacs/src/include/treesit.rs` | todo |
 | `src/undo.c` | 490 | 10 | 1 | 0 | 0 | 0 | 1 | C | `femacs/src/undo.rs` | done |
 | `src/vm-limit.c` | 220 | 6 | 0 | 3 | 4 | 0 | 6 | B | `femacs/src/vm-limit.rs` | done |
-| `src/w16select.c` | 692 | 11 | 3 | 11 | 11 | 0 | 1 | F | `femacs/src/w16select.rs` | todo |
+| `src/w16select.c` | 692 | 11 | 3 | 11 | 11 | 0 | 1 | F | `femacs/src/w16select.rs` | done |
 | `src/w32.c` | 11,362 | 225 | 0 | 29 | 16 | 27 | 91 | F | `femacs/src/w32.rs` | todo |
 | `src/w32.h` | 273 | 0 | 0 | 23 | 21 | 0 | 4 | F | `femacs/src/include/w32.rs` | todo |
 | `src/w32common.h` | 103 | 1 | 0 | 12 | 2 | 0 | 7 | F | `femacs/src/include/w32common.rs` | todo |
@@ -663,7 +663,7 @@
 | `src/xfns.c` | 10,662 | 116 | 53 | 7 | 17 | 13 | 11 | F | `femacs/src/xfns.rs` | todo |
 | `src/xfont.c` | 1,166 | 21 | 0 | 0 | 0 | 4 | 2 | F | `femacs/src/xfont.rs` | todo |
 | `src/xftfont.c` | 832 | 22 | 0 | 1 | 1 | 4 | 2 | F | `femacs/src/xftfont.rs` | todo |
-| `src/xgselect.c` | 296 | 5 | 0 | 0 | 0 | 0 | 3 | F | `femacs/src/xgselect.rs` | todo |
+| `src/xgselect.c` | 296 | 5 | 0 | 0 | 0 | 0 | 3 | F | `femacs/src/xgselect.rs` | done |
 | `src/xgselect.h` | 35 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/xgselect.rs` | todo |
 | `src/xmenu.c` | 2,932 | 45 | 3 | 0 | 0 | 5 | 6 | F | `femacs/src/xmenu.rs` | todo |
 | `src/xml.c` | 358 | 8 | 3 | 6 | 0 | 0 | 0 | D | `femacs/src/xml.rs` | todo |
@@ -671,7 +671,7 @@
 | `src/xselect.c` | 3,541 | 61 | 9 | 8 | 2 | 30 | 9 | F | `femacs/src/xselect.rs` | todo |
 | `src/xsettings.c` | 1,421 | 28 | 3 | 19 | 26 | 9 | 7 | F | `femacs/src/xsettings.rs` | todo |
 | `src/xsettings.h` | 51 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/xsettings.rs` | todo |
-| `src/xsmfns.c` | 581 | 16 | 1 | 5 | 4 | 0 | 7 | F | `femacs/src/xsmfns.rs` | todo |
+| `src/xsmfns.c` | 581 | 16 | 1 | 5 | 4 | 0 | 7 | F | `femacs/src/xsmfns.rs` | done |
 | `src/xterm.c` | 33,125 | 438 | 0 | 35 | 62 | 33 | 103 | F | `femacs/src/xterm.rs` | todo |
 | `src/xterm.h` | 2,045 | 3 | 0 | 99 | 12 | 323 | 14 | F | `femacs/src/include/xterm.rs` | todo |
 | `src/xwidget.c` | 4,304 | 75 | 36 | 4 | 3 | 5 | 6 | F | `femacs/src/xwidget.rs` | todo |
