@@ -12,5 +12,3 @@
 #
 # The list is a ratchet: `tools/check-symbols.py --pending docs/baseline/symbol-pending.txt`
 # fails on an entry that has become clean, so it can only shrink (status §3.30).
-lib/fingerprint
-lib/openat-die
