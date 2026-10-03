@@ -42,6 +42,12 @@ pub mod stdio_decls {
     /* The entries the debug/dump paths print with.  Thirteen units declared `fprintf`
        themselves before this landed (status 3.79); the module + glob import is what lets any
        of them keep a copy without an `E0428` (0.1-10), and their copies are gone now.  */
+    /// C: <stdio.h>: `int getchar (void);`
+    pub fn getchar () -> c_int;
+    /// C: <stdio.h>: `int putchar (int c);`
+    pub fn putchar (c: c_int) -> c_int;
+    /// C: <stdio.h>: `int puts (const char *s);`
+    pub fn puts (s: *const c_char) -> c_int;
     /// C: <stdio.h>: `int printf (const char *format, ...);`  (`src/emacs.c` declared
     /// this itself until the mirror was completed; lib-src/make-fingerprint.c is the second
     /// unit that prints without a stream).

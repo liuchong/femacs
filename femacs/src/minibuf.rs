@@ -73,14 +73,8 @@ include!("include/pdumper.rs");                // C 35: `#include "pdumper.h"`
 /* The names C gets from headers whose mirrors do not carry them yet (the terminal.rs /
    insdel.rs shape), each with C's own prototype in a `/// C:` line.  */
 
-/* <stdio.h>: the stdio mirror carries `fwrite`, `fputs`/`fputc`, `sprintf` and `EOF`, but
-   not the four functions below.  */
-unsafe extern "C" {
-  /// C: `int getchar (void);`
-  pub fn getchar () -> c_int;
-  /// C: `int putchar (int c);`
-  pub fn putchar (c: c_int) -> c_int;
-}
+/* <stdio.h>: `getchar` and `putchar` now come from the `stdio.rs` mirror (2026-10-04); this
+   unit's use-site copies are gone, and the mirror is the single declaration point.  */
 
 /// <unistd.h>: `#define STDIN_FILENO 0` (measured; the callproc.rs shape).
 const STDIN_FILENO: c_int = 0;

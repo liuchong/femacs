@@ -343,8 +343,8 @@ unsafe extern "C" {
   fn unrequest_sigio ();
   /// C: keyboard.h 517: `extern void ring_bell (struct frame *);`
   fn ring_bell (f: *mut frame);
-  /// C: <stdio.h> 3xx: `int putchar (int);`
-  fn putchar (c: c_int) -> c_int;
+  // `putchar` now comes from the `stdio.rs` mirror (2026-10-04), which is its single
+  // declaration point; the use-site copy this block carried is gone.
   /// C: lisp.h 5181-5182: `extern int wait_reading_process_output (intmax_t, int, int, bool,
   /// Lisp_Object, struct Lisp_Process *, int);`
   fn wait_reading_process_output (timeout: i64, nsecs: c_int, read_kbd: c_int,
