@@ -191,3 +191,19 @@ expansions (`BVAR!`, `FETCH_BYTE!`, `TRANSLATE!`, `SAFE_*`, `list!`, `CALLN!`,
 accessors are the packed fields C reads, and the `*mut region_cache` use-site spelling
 changes a parameter's declared type, not the call graph.  The `re_*`/`region_cache` calls
 are the same five + five the C text makes.
+
+- **The `regex-emacs.h` engine half is the mirror's now (2026-10-03, step (a)-(c) of the
+  regex-emacs lane).**  This unit carried its own copy of `struct re_pattern_buffer` (with its
+  ten `const _` layout assertions), the `RE_PATTERN_*` masks, `REGS_UNALLOCATED`/
+  `REGS_REALLOCATE`/`REGS_FIXED`, the twelve bit accessors, the five `re_*` prototypes and
+  `print_compiled_pattern`, because `docs/ports/include-regex-emacs.md` stopped at the
+  character-class API.  `femacs/src/include/regex-emacs.rs` carries all of them now (the
+  `thread.md` precedent: a mirror lands in the same commit as its definition unit), and those
+  copies are deleted here - 133 lines out, 9 comment lines in - or this unit would be an
+  `E0428` (the mirror is `include!`d at search.rs 77).  `build-tu src/search.c` prints
+  `built src/search.rs` and `--cfg enable_checking`'s second pass prints
+  `built src/search.rs (--cfg enable_checking)`, and
+  `tools/extract-abi.py --check emacs/src/search.c femacs/src/search.rs` still prints `OK`.
+  `re_match_object` stays defined here (C's search.c 75 owns it; regex-emacs.c does not
+  define it), and `REGS_*` went with the rest because the mirror's note records that C
+  defines them in `regex-emacs.c` 862, not in the header.

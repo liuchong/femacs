@@ -583,3 +583,93 @@ bidi_resolve_explicit	case,default,fallthrough,goto,switch	C's two `switch`es (o
 bidi_find_bracket_pairs	case,default,goto,switch	C's `switch (INT_PROMOTE (bidi_it->type))` becomes a `match`, and the two `goto give_up`s become `break 'give_up` out of the labelled block that carries C's `give_up:` epilogue (PORTING.md 2.2, the intervals.rs `'check_done` shape)
 bidi_resolve_brackets	break,case,default,switch	C's `switch (INT_PROMOTE (prev_type_for_neutral))` becomes a `match` whose `_` arm is C's `default:` (N0d) and whose arms need no `break` (PORTING.md 2.2)
 bidi_resolve_neutral	case,default,switch	C's `switch (INT_PROMOTE (type))` after the forward scan becomes a `match` with C's two conversion arms and an `emacs_abort ()` `_` arm (PORTING.md 2.2)
+CHECK_INFINITE_LOOP	false	C's `do { ... } while (false)` epilogue has no Rust counterpart (the BUF_PUSH row class; regex-emacs ledger)
+GET_CHAR_AFTER	false	see CHECK_INFINITE_LOOP
+GET_CHAR_BEFORE_2	false	see CHECK_INFINITE_LOOP
+INIT_FAIL_STACK	false	see CHECK_INFINITE_LOOP
+POP_FAILURE_REG_OR_COUNT	false,pridptr	see CHECK_INFINITE_LOOP, plus C's `%"PRIdPTR"` format-string concatenation, which has no Rust token (the port writes `%td` in the same format string; the literal itself is stripped on both sides)
+PREFETCH	fail,goto	C's body has `goto fail`; the port sets the `goto_fail` flag the whole matcher uses in the label's place (PORTING.md 2.2, the ccl.rs/bytecode.rs shape)
+PUSH_FAILURE_POINT	false	see CHECK_INFINITE_LOOP
+PUSH_FAILURE_REG	false,pridptr	see POP_FAILURE_REG_OR_COUNT
+PUSH_NUMBER	false	see CHECK_INFINITE_LOOP
+at_begline_loc_p	switch,case,default,break	C's switch over the previous character becomes the port's `match` (PORTING.md 2.2, the doprnt precedent)
+skip_one_char	switch,case,default,break	see at_begline_loc_p
+analyze_first_fastmap	switch,case,default,fallthrough,abort	the switch becomes a `match`, C's `FALLTHROUGH;` from charset_not into charset is the port's shared arm, and the checking-only `abort ()` is lisp.h's `emacs_abort ()` (the re_iswctype row class)
+analyze_first_null	switch,case,default,abort	see at_begline_loc_p and re_iswctype
+mutually_exclusive_one	switch,case,default,abort	the switch on `*p2` and its inner switch on `*data->p1` become `match`es; the checking-only `abort ()` is `emacs_abort ()`
+forall_firstchar_1	switch,case,default,goto,abort,do_twoway_jump,do_jump	C's switch becomes a `match`; `goto do_twoway_jump`/`goto do_jump` become the `stage` flag evaluated where those labels are; the checking-only `abort ()` is `emacs_abort ()` (PORTING.md 2.2)
+re_search_2	goto	C has two `goto advance` sites; the port keeps the destination as the `'advance` labelled block, so only the keyword itself has no counterpart (the get_keymap row class)
+unwind_re_match	0	C's `b->text->inhibit_shrinking = 0;` is the port's mask clear (`&= ! BUFFER_TEXT_INHIBIT_SHRINKING`), the token-aliases family the insdel lane added
+re_match_2_internal	switch,case,default,fail,goto,abort,fallthrough,endof_re_match,restore_best_regs,succeed_label,on_failure,unconditional_jump,continue_failure_jump,uninit,regex_use_safe_alloca	C's two switches become `match`es and its seven labels become the flags the port evaluates where the labels are (`goto fail` -> `goto_fail`, the post-loop `goto restore_best_regs` -> `do_restore`); `UNINIT` is the port's `null_mut ()` initialiser (the keymap UNINIT row class) and `REGEX_USE_SAFE_ALLOCA`'s declaration is hoisted above the failure-stack macros that capture `sa_avail` (PORTING.md 2.2/P-57), so neither name reappears.  Both arms of every `#if` are carried (docs/status.md 3.49)
+find_field	0	editfns.c 363-366: `bool at_field_start = 0;` and `at_field_end = 0` are the port's `false` (PORTING.md 1.5); the same residual as the casetab row - a `false`->`true` swap in these two initialisers is invisible to the token check
+save_restriction_save_1	1	editfns.c 3086: `XMARKER (end)->insertion_type = 1;` is the marker's packed bit, `bits |= MARKER_INSERTION_TYPE` (the `insertion_type` family in token-aliases.tsv carries the name; the value is the mask, so the literal `1` cannot reappear - the same residual as `find_field`'s `0`)
+save_restriction_restore_1	1,clip_changed	editfns.c 3141/3162: `buf->clip_changed = 1;` is `(*buf).bits |= BUFFER_CLIP_CHANGED` (buffer.rs 746; the `clip_changed` family in token-aliases.tsv carries the name), so the literal `1` and the field token cannot reappear; the same residual as `find_field`'s `0`
+styled_format	bignum_arg,bool_bf,case,goto,max,preformatted_fixnum_arg,switch,uninit	editfns.c 3441-4358: C's `switch (*format)` over the six flag characters and the five `goto`s/labels (`retry`, `copy_char`, `bignum_arg`, `preformatted_fixnum_arg`, `return_val`) become the port's if/else chain, its `'retry`/`'return_val` loops and the `copy_char`/`force_bignum`/`preformatted` flags (PORTING.md 2.2); `bool_bf intervals : 1` is the port's `bool` (a one-byte allocation unit on this target, the conf_post.h value the buffer.rs note records); `ldarg UNINIT` is the port's zeroed `c_longdouble` (PORTING.md 1.5); and C's `char convspec[sizeof "%FF.*d" + max (sizeof "L" - 1, pMlen)]` is the same fold written out because `max` is not const on this toolchain (the BUF_BYTES_MAX row's reason).  Residual: with `switch`/`case` exempted, a *deleted* flag arm inside that switch is invisible to the token check; the port's if/else chain is compared arm-by-arm in docs/ports/editfns.md
+syms_of_editfns	doc	editfns.c 4832-4886: C's `DEFVAR_LISP (name, var, doc: /* ... */)` spells the docstring with the `doc:` keyword; the port's `DEFVAR_LISP!` takes the literal directly (PORTING.md 5.3), so the keyword cannot reappear.  The docstring *value* is still compared by the subr/defvar digest
+Fregion_beginning	1	editfns.c 253: C passes the int literal `1` to `region_limit`'s `bool beginningp`; the port's call spells `true` (PORTING.md 5.2).  Residual: with the literal exempted a `true`->`false` swap here is invisible to the token check (the two subrs' bodies differ only in that argument)
+Fregion_end	0	editfns.c 260: the same pair, `0` -> `false`.  Residual as above
+Fget_pos_property	ascending,itree_foreach	itree.h 166-176's `ITREE_FOREACH (node, b->overlays, posn - 1, posn + 1, ASCENDING)` is expanded at its use site (P-33, status 3.7): C declares the iterator there and drives it with `for (...; ((n = itree_iterator_next (itree_iter_)));)`, and `ITREE_##order` pastes the macro's `ASCENDING` argument into the enum name, so neither the macro's name nor the bare order token can reappear (the get_char_property_and_overlay row)
+Ffield_string	1	editfns.c 478: C passes `1` to `make_buffer_string`'s `bool props`; the port spells `true` (the Fset_case_table row's residual)
+Finsert	0	editfns.c 1356: C passes `0` to `general_insert_function`'s `bool inherit`; the port spells `false` (the Fset_case_table row's residual)
+Finsert_and_inherit	1	editfns.c 1379: the same call with `1` -> `true`.  Residual as above
+Finsert_before_markers	0	editfns.c 1399: the same call with `0` -> `false` and `insert_from_string_before_markers`.  Residual as above
+Finsert_and_inherit_before_markers	1	editfns.c 1424: the same call with `1` -> `true`.  Residual as above
+Fbuffer_substring	1	editfns.c 1434: C passes `1` to `make_buffer_string`'s `bool props`; the port spells `true`.  Residual as above
+Fbuffer_substring_no_properties	0	editfns.c 1445: the same call with `0` -> `false`.  Residual as above
+Fbuffer_string	1	editfns.c 1471: C passes `1` to `make_buffer_string_both`'s `bool props`; the port spells `true`.  Residual as above
+Finsert_buffer_substring	0	editfns.c 1499: C passes `0` to `insert_from_buffer`'s `bool inherit`; the port spells `false`.  Residual as above
+Freplace_region_contents	alloca	editfns.c 2074: C's bare `alloca (bytes_needed)` is the port's stack pool, `sa_stack_alloc` (PORTING.md P-05's decision, the AVAIL_ALLOCA row and the eval.rs shape); the macro name cannot reappear
+Fsubst_char_in_region	goto	editfns.c 2318/2388: C's `goto restart` becomes `continue 'restart` (a label has no Rust site, PORTING.md 2.2); the `restart` token itself stays, and `goto` cannot reappear
+Ftranslate_region_internal	uninit	editfns.c 2504: `bool string_multibyte UNINIT;` is the port's zeroed `false` (UNINIT is `= {0,}` in the frozen configuration, conf_post.h 369; PORTING.md 1.5), so the macro's name cannot reappear (the Fmake_variable_buffer_local row)
+Fdelete_and_extract_region	1	editfns.c 2693: the two `bool` arguments of `del_range_1` are C's `1, 1`; the port spells `true, true` (the Fset_case_table row's residual)
+Fwiden	1,clip_changed	editfns.c 2917/2930: `current_buffer->clip_changed = 1;` is `(*current_buffer).bits |= BUFFER_CLIP_CHANGED` (buffer.rs 746; the `clip_changed` family in token-aliases.tsv carries the name), so the literal `1` cannot reappear; the same residual as `find_field`'s `0`
+Fnarrow_to_region	1,clip_changed	editfns.c 2987: the same bit write as `Fwiden`'s, with the same residual
+call_debugger	0	C assigns `debug_on_next_call = 0` and `redisplaying_p = 0`; both are `bool` in the mirror, so the port spells `false` (the Fset_case_table bool-literal class of docs/ports/macro-body-notes.tsv)
+do_debug_on_call	0	the same `debug_on_next_call = 0` assignment (the bool spelling, PORTING.md 1.1)
+default_toplevel_binding	switch,case,default,break	C switch/case/default on `pdl->kind` becomes the comparison chain the mirror forces (its `SPECPDL_*` constants are `u32`, the union field is `u8`, and a `match` pattern cannot carry a cast; PORTING.md 1.3/2.2)
+local_toplevel_binding	switch,case,default,break	the same kind-switch chain as default_toplevel_binding (PORTING.md 2.2)
+lexbound_p	switch,case,default,break	the same kind-switch chain as default_toplevel_binding (PORTING.md 2.2)
+internal_lisp_condition_case	alloca	C 1630 uses bare `alloca`, not one of the SAFE_ALLOCA wrappers; the port allocates from the same stack pool through `sa_stack_alloc` (PORTING.md P-05 decision, docs/status.md 3.2)
+signal_or_quit	case,default,switch	C switch/case/default on `h->type` becomes the `if`/`else if` arm chain the mirror constants need, with C continue spelled as the loop-increment-then-continue step (PORTING.md 2.2)
+wants_debugger	0,1	C returns 0/1 from a `bool` function; the port writes `false`/`true` (the bool-literal class)
+skip_debugger	1	C `first_string = 1` is the port `true` (the bool-literal class)
+maybe_call_debugger	0,1	C returns 0/1 from a `bool` function; the port writes `false`/`true` (the bool-literal class)
+error	va_list,va_start	C `va_list ap; va_start (ap, m); verror (m, ap);` is the port C-variadic parameter and its `core::ffi::VaList` (PORTING.md P-04)
+eval_sub	case,default,goto,switch	C switch/case/default on `max_args` and the `goto retry` label become the match arms and the `continue `retry`` loop step (PORTING.md 2.2)
+funcall_general	goto	C `goto retry` is the port `continue `retry`` (PORTING.md 2.2)
+funcall_subr	case,countof,switch	C switch/case on `maxargs` becomes the match arms, and `countof (argbuf)` is the array length the mirror cannot name through the macro (PORTING.md 2.1)
+let_shadows_buffer_binding_p	0,redirect	C returns 0/1 and reads `sym->u.s.redirect`, the bitfield the mirror packs into `u.s.bits` (lisp.rs 221-223)
+do_specbind	break,case,default,fallthrough,redirect,switch,trapped_write	C switch/case/default on `redirect` becomes the match arms (PORTING.md 1.3/2.2), `break` is every arm exit, the SYMBOL_FORWARDED arm reaching SYMBOL_LOCALIZED is the shared body C spells `FALLTHROUGH`, and `trapped_write` is the packed bit the mirror reads through SYMBOL_TRAPPED_WRITE_MASK/_SHIFT
+specbind	case,default,goto,redirect,switch	C switch/case/default on `redirect` plus the `start:` label become the match arms inside a loop (PORTING.md 1.3/2.2)
+record_unwind_protect_ptr	null	C `specpdl_ptr->unwind_ptr.mark = NULL` is the port `None` (the mirror field is `Option<fn>`)
+record_unwind_protect_module	null	the same `mark = NULL` assignment (the marker Option)
+set_unwind_protect_ptr	null	the same `mark = NULL` assignment (the marker Option)
+do_one_unbind	break,case,fallthrough,redirect,specpdl_module_environment,switch,trapped_write	C switch/case/break arms become the `if`/`else if` chain (PORTING.md 1.3/2.2), SPECPDL_LET reaching SPECPDL_LET_DEFAULT is the shared body C spells `FALLTHROUGH`, and `redirect`/`trapped_write` are the packed bits the mirror reads through its masks; the module kinds sit in the P-51 `#[cfg (feature = "modules")]` arm
+specpdl_unrewind	break,case,default,fallthrough,redirect,switch	C switch/case/default arms become the `if`/`else if` chain, SPECPDL_LET reaching SPECPDL_LET_DEFAULT is the shared body C spells `FALLTHROUGH`, and `redirect` is the packed bit (PORTING.md 1.3/2.2)
+mark_specpdl	break,case,default,fallthrough,specpdl_module_runtime,switch	C switch/case/default arms become the `if`/`else if` chain, SPECPDL_LET_DEFAULT/LET_LOCAL reaching SPECPDL_LET is the shared body C spells `FALLTHROUGH`, and the two SPECPDL_MODULE_* kinds sit in the P-51 `#[cfg (feature = "modules")]` arm (PORTING.md 1.3/2.2)
+syms_of_eval	0,1,doc	C assignments of 0/1 to `bool` variables are the port `false`/`true`, and the `doc:` label is a parameter of the mirror `DEFVAR_*!` macros
+Fdefvaralias	case,declared_special,default,redirect,switch,trapped_write,true	C switch/case/default on `redirect` becomes the match arms (PORTING.md 1.3/2.2) and the three bitfields are the packed bits the mirror reads and writes through its masks, with `declared_special = true` spelled by SYMBOL_DECLARED_SPECIAL_BIT
+Finternal_delete_indirect_variable	redirect	the `redirect` bitfield is the mirror packed bit (lisp.rs 221-223)
+Finternal__define_uninitialized_variable	declared_special,true	the `declared_special` bitfield is the mirror packed bit, and `= true` is SYMBOL_DECLARED_SPECIAL_BIT (lisp.rs 226)
+Fdefvar	declared_special	the `declared_special` bitfield is the mirror packed bit (lisp.rs 226)
+Fmake_var_non_special	declared_special,false	the `declared_special` bitfield is the mirror packed bit, cleared with `& ! SYMBOL_DECLARED_SPECIAL_BIT` (lisp.rs 226)
+FletX	declared_special	the `declared_special` bitfield is the mirror packed bit (lisp.rs 226)
+Flet	declared_special	the `declared_special` bitfield is the mirror packed bit (lisp.rs 226)
+Fmacroexpand	1	C 1294 `while (1)` is the port `loop`
+Ffunc_arity	goto	C `goto retry` is the port `continue `retry`` (PORTING.md 2.2)
+Fspecial_variable_p	declared_special	the `declared_special` bitfield is the mirror packed bit (lisp.rs 226)
+Fbacktrace__locals	break,case,default,switch	C switch/case/default over the let-kind arms becomes the comparison chain (PORTING.md 1.3/2.2)
+GDB_FUNCPTR	externally_visible	the GDB_FUNCPTR objects make the backtrace_* readers visible to GDB; C spells that with EXTERNALLY_VISIBLE, which has no Rust counterpart beyond the `#[unsafe(no_mangle)] pub` the port writes (PORTING.md 8)
+dump_trace	va_list,va_start,va_end	C 146-149's `va_list args; va_start (args, fmt); vfprintf (stderr, fmt, args); va_end (args);` is the port's `...` parameter bound once as `VaList` (PORTING.md P-04: the `...` *is* the VaList, so `va_start`/`va_end` have no site); the `vfprintf` call and its three arguments are still compared
+dump_reloc_dump_to_dump_lv	switch,case,default,break	C 1455-1472's `switch (type)` over the five Lisp_Type cases becomes a `match` with the same arm bodies (PORTING.md 2.2); the `emacs_abort` default arm is the `_` arm
+dump_reloc_dump_to_emacs_lv	switch,case,default,break	the same shape as dump_reloc_dump_to_dump_lv (C 1513-1532)
+dump_field_lv_or_rawptr	switch,case,default,break	C 1825-1841's `switch (*ptr_raw_type)` is a `match` on the same five types with the same `make_lisp_symbol`/`make_lisp_ptr` bodies
+dump_field_fwd	case,switch	C 2292-2326's `switch (XFWDTYPE (*in_field))` is a `match` whose four arms are C's four bodies
+dump_pre_dump_symbol	switch,case,default,break	C 2381-2396's `switch (symbol->u.s.redirect)` is a `match` on SYMBOL_LOCALIZED with C's `default: break`
+dump_symbol	switch,case,default,break,dump_field_copy	C 2408-2495 has two `switch (symbol->u.s.redirect)` dispatches (a `match` each), and its four `DUMP_FIELD_COPY` calls on the `redirect`/`trapped_write`/`interned`/`declared_special` bitfields are the port's mask copies (PORTING.md 1.3; the four families are in token-aliases.tsv)
+dump_blv	dump_field_copy	C 2326-2327's two `DUMP_FIELD_COPY` calls copy the `local_if_set`/`found` bits, which the port writes as mask copies (the two families carry them)
+dump_object	switch,case,default,break	C 3145-3172's `switch (XTYPE (object))` is a `match` with C's six arms; the `Lisp_Int0`/`Lisp_Int1` arm keeps C's assertion and `abort`
+dump_vectorlike	switch,case,default,fallthrough	C 3008-3090's `switch (ptype)` is a `match` (PORTING.md 2.2): the `PVEC_FONT` arm's `FALLTHROUGH` into the `PVEC_NORMAL_VECTOR` group is that arm's first statement, and the `break` arms select the labelled block that ends at the `error_unsupported_dump_object` tail
+dump_drain_cold_data	switch,case,default,break	C 3513-3545's `switch (op)` is a `match` over the same `COLD_OP_*` arms, with the `COLD_OP_NATIVE_SUBR` arm behind its `#[cfg]`
+read_ptr_raw_and_lv	switch,case,default,break	C 3554-3570's `switch (type)` is a `match` on the same Lisp_Type cases
+dump_anonymous_allocate_w32	switch,case,default,break	C 4452-4487's `switch (protection)` is a `match` over the three `DUMP_MEMORY_ACCESS_*` arms with C's `emacs_abort` default (the arm is dead on this target: `VM_SUPPORTED == VM_POSIX`)

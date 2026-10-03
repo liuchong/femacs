@@ -81,3 +81,4 @@ sys/ioctl.h	TIOCSWINSZ
 sys/ioctl.h	TIOCEXCL
 sys/ioctl.h	FIONBIO
 syssignal.h	FORWARD_SIGNAL_TO_MAIN_THREAD
+lisp.h	IEEE_FLOATING_POINT

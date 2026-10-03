@@ -81,89 +81,11 @@ include!("include/regex-emacs.rs");            // C 37: `#include "regex-emacs.h
 macro_rules! TYPE_MAXIMUM { ($t:ty) => { <$t>::MAX }; }
 macro_rules! TYPE_MINIMUM { ($t:ty) => { <$t>::MIN }; }
 
-/* The `regex-emacs.h` engine half: the mirror stops at the character-class API
-   (docs/ports/include-regex-emacs.md), so the record and the five entries this unit calls
-   are declared here with C's prototype above each (PORTING.md 0.1-2/P-72).  */
-/// C: regex-emacs.h 67-114: `struct re_pattern_buffer { unsigned char *buffer; ptrdiff_t
-/// allocated; ptrdiff_t used; int charset_unibyte; char *fastmap; Lisp_Object translate;
-/// ptrdiff_t re_nsub; bool_bf can_be_null : 1; unsigned regs_allocated : 2; bool_bf
-/// fastmap_accurate : 1; bool_bf used_syntax : 1; bool_bf multibyte : 1; bool_bf
-/// target_multibyte : 1; };`
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct re_pattern_buffer
-{
-  pub buffer: *mut u8,
-  pub allocated: ptrdiff_t,
-  pub used: ptrdiff_t,
-  pub charset_unibyte: c_int,
-  pub fastmap: *mut c_char,
-  pub translate: Lisp_Object,
-  pub re_nsub: ptrdiff_t,
-  // C 95-113: the two `bool_bf` runs and `unsigned regs_allocated : 2` share one storage
-  // unit.  The port packs them as `bits: u8` with one mask per C member (PORTING.md 1.3,
-  // P-80); `regs_allocated` is two bits wide and keeps C's REGS_UNALLOCATED/… values.
-  pub bits: u8,
-}
-/// C: regex-emacs.h 95-113's bit members, in C's declaration order.
-pub const RE_PATTERN_CAN_BE_NULL: u8 = 1 << 0;
-pub const RE_PATTERN_REGS_ALLOCATED: u8 = 3 << 1;
-pub const RE_PATTERN_REGS_ALLOCATED_SHIFT: u8 = 1;
-pub const RE_PATTERN_FASTMAP_ACCURATE: u8 = 1 << 3;
-pub const RE_PATTERN_USED_SYNTAX: u8 = 1 << 4;
-pub const RE_PATTERN_MULTIBYTE: u8 = 1 << 5;
-pub const RE_PATTERN_TARGET_MULTIBYTE: u8 = 1 << 6;
-// regex-emacs.h 91-94's three REGS_* values (the 2-bit `regs_allocated` field).
-pub const REGS_UNALLOCATED: u8 = 0;
-pub const REGS_REALLOCATE: u8 = 1;
-pub const REGS_FIXED: u8 = 2;
-/// Measured with clang against the frozen target: `sizeof` 64, `_Alignof` 8, `buffer`@0,
-/// `allocated`@8, `used`@16, `charset_unibyte`@24, `fastmap`@32, `translate`@40,
-/// `re_nsub`@48 (the bit run is the byte at 56).
-const _: () = assert! (std::mem::size_of::<re_pattern_buffer> () == 64);
-const _: () = assert! (std::mem::align_of::<re_pattern_buffer> () == 8);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, buffer) == 0);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, allocated) == 8);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, used) == 16);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, charset_unibyte) == 24);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, fastmap) == 32);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, translate) == 40);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, re_nsub) == 48);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, bits) == 56);
-
-unsafe extern "C" {
-  /// C: regex-emacs.h 124-127: `extern const char *re_compile_pattern (const char *pattern,
-  /// ptrdiff_t length, bool posix_backtracking, const char *whitespace_regexp,
-  /// struct re_pattern_buffer *buffer);`
-  fn re_compile_pattern (pattern: *const c_char, length: ptrdiff_t,
-			 posix_backtracking: bool, whitespace_regexp: *const c_char,
-			 buffer: *mut re_pattern_buffer) -> *const c_char;
-  /// C: regex-emacs.h 136-139: `extern ptrdiff_t re_search (struct re_pattern_buffer
-  /// *buffer, const char *string, ptrdiff_t length, ptrdiff_t start, ptrdiff_t range,
-  /// struct re_registers *regs);`
-  fn re_search (buffer: *mut re_pattern_buffer, string: *const c_char, length: ptrdiff_t,
-		start: ptrdiff_t, range: ptrdiff_t, regs: *mut re_registers) -> ptrdiff_t;
-  /// C: regex-emacs.h 143-148: `extern ptrdiff_t re_search_2 (struct re_pattern_buffer
-  /// *buffer, const char *string1, ptrdiff_t length1, const char *string2,
-  /// ptrdiff_t length2, ptrdiff_t start, ptrdiff_t range, struct re_registers *regs,
-  /// ptrdiff_t stop);`
-  fn re_search_2 (buffer: *mut re_pattern_buffer, string1: *const c_char,
-		  length1: ptrdiff_t, string2: *const c_char, length2: ptrdiff_t,
-		  start: ptrdiff_t, range: ptrdiff_t, regs: *mut re_registers,
-		  stop: ptrdiff_t) -> ptrdiff_t;
-  /// C: regex-emacs.h 152-156: `extern ptrdiff_t re_match_2 (struct re_pattern_buffer
-  /// *buffer, const char *string1, ptrdiff_t length1, const char *string2,
-  /// ptrdiff_t length2, ptrdiff_t start, struct re_registers *regs, ptrdiff_t stop);`
-  fn re_match_2 (buffer: *mut re_pattern_buffer, string1: *const c_char, length1: ptrdiff_t,
-		 string2: *const c_char, length2: ptrdiff_t, start: ptrdiff_t,
-		 regs: *mut re_registers, stop: ptrdiff_t) -> ptrdiff_t;
-  /// C: regex-emacs.h 166-169: `extern void re_set_registers (struct re_pattern_buffer
-  /// *buffer, struct re_registers *regs, ptrdiff_t num_regs, ptrdiff_t *starts,
-  /// ptrdiff_t *ends);`
-  fn re_set_registers (buffer: *mut re_pattern_buffer, regs: *mut re_registers,
-		       num_regs: ptrdiff_t, starts: *mut ptrdiff_t, ends: *mut ptrdiff_t);
-}
-
+/* The `regex-emacs.h` engine half (`struct re_pattern_buffer`, its six bit accessors, the
+   five `re_*` entries and the checking-only `print_compiled_pattern`) is the mirror's now:
+   `femacs/src/include/regex-emacs.rs` carries them with C's prototypes, and this unit names
+   them through that header exactly as C does (PORTING.md 0.1-10; the two copies that stood
+   here went away in the same commit as the mirror, or this unit would be an `E0428`).  */
 /* `region-cache.h` has no mirror: the five entries `find_newline`, `newline_cache_on_off`
    and `Fnewline_cache_check` call are declared here with C's prototype above each.  The
    record itself is reached only through a pointer, so the port names C's type at the use
@@ -210,11 +132,6 @@ unsafe extern "C" {
 		from_multibyte: bool, to_multibyte: bool) -> ptrdiff_t;
   /// C: <stdio.h>: `FILE *open_memstream (char **, size_t *);` (the checking arm only).
   fn open_memstream (bufloc: *mut *mut c_char, sizeloc: *mut usize) -> *mut FILE;
-  /// C: regex-emacs.h 204-206: `extern void print_compiled_pattern (FILE *dest,
-  /// struct re_pattern_buffer *bufp);` (under `ENABLE_CHECKING`; both of C 3394-3412's
-  /// checking arms call it).
-  #[cfg (enable_checking)]
-  fn print_compiled_pattern (dest: *mut FILE, bufp: *mut re_pattern_buffer);
   /// C: <stdio.h>: `extern FILE *stderr;` (Darwin's libc spells the symbol `__stderrp`).
   #[cfg (all (enable_checking, feature = "no_have_open_memstream"))]
   #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
@@ -293,51 +210,10 @@ static mut searchbuf_head: *mut regexp_cache = std::ptr::null_mut ();   // C 64
 #[unsafe(no_mangle)]
 pub static mut re_match_object: Lisp_Object = std::ptr::null_mut ();    // C 75
 
-/* The bit members of `struct re_pattern_buffer` this unit reads or writes, one accessor per
-   C member with C's own member name and the port's trailing-underscore convention
-   (PORTING.md 1.3/P-80, the lib/include/regex.rs shape).  docs/ports/token-aliases.tsv
-   carries the `multibyte`, `used_syntax` and `target_multibyte` families, so each C read and
-   write is occurrence-checked.  */
-#[inline(always)]
-pub unsafe fn can_be_null_ (bufp: *const re_pattern_buffer) -> bool
-{ (*bufp).bits & RE_PATTERN_CAN_BE_NULL != 0 }
-#[inline(always)]
-pub unsafe fn set_can_be_null_ (bufp: *mut re_pattern_buffer, value: bool)
-{ (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_CAN_BE_NULL } else { (*bufp).bits & ! RE_PATTERN_CAN_BE_NULL }; }
-#[inline(always)]
-pub unsafe fn regs_allocated_ (bufp: *const re_pattern_buffer) -> u8
-{ ((*bufp).bits & RE_PATTERN_REGS_ALLOCATED) >> RE_PATTERN_REGS_ALLOCATED_SHIFT }
-#[inline(always)]
-pub unsafe fn set_regs_allocated_ (bufp: *mut re_pattern_buffer, value: u8)
-{
-  (*bufp).bits = ((*bufp).bits & ! RE_PATTERN_REGS_ALLOCATED)
-    | ((value << RE_PATTERN_REGS_ALLOCATED_SHIFT) & RE_PATTERN_REGS_ALLOCATED);
-}
-#[inline(always)]
-pub unsafe fn fastmap_accurate_ (bufp: *const re_pattern_buffer) -> bool
-{ (*bufp).bits & RE_PATTERN_FASTMAP_ACCURATE != 0 }
-#[inline(always)]
-pub unsafe fn set_fastmap_accurate_ (bufp: *mut re_pattern_buffer, value: bool)
-{ (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_FASTMAP_ACCURATE } else { (*bufp).bits & ! RE_PATTERN_FASTMAP_ACCURATE }; }
-#[inline(always)]
-pub unsafe fn used_syntax_ (bufp: *const re_pattern_buffer) -> bool
-{ (*bufp).bits & RE_PATTERN_USED_SYNTAX != 0 }
-#[inline(always)]
-pub unsafe fn set_used_syntax_ (bufp: *mut re_pattern_buffer, value: bool)
-{ (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_USED_SYNTAX } else { (*bufp).bits & ! RE_PATTERN_USED_SYNTAX }; }
-#[inline(always)]
-pub unsafe fn multibyte_ (bufp: *const re_pattern_buffer) -> bool
-{ (*bufp).bits & RE_PATTERN_MULTIBYTE != 0 }
-#[inline(always)]
-pub unsafe fn set_multibyte_ (bufp: *mut re_pattern_buffer, value: bool)
-{ (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_MULTIBYTE } else { (*bufp).bits & ! RE_PATTERN_MULTIBYTE }; }
-#[inline(always)]
-pub unsafe fn target_multibyte_ (bufp: *const re_pattern_buffer) -> bool
-{ (*bufp).bits & RE_PATTERN_TARGET_MULTIBYTE != 0 }
-#[inline(always)]
-pub unsafe fn set_target_multibyte_ (bufp: *mut re_pattern_buffer, value: bool)
-{ (*bufp).bits = if value { (*bufp).bits | RE_PATTERN_TARGET_MULTIBYTE } else { (*bufp).bits & ! RE_PATTERN_TARGET_MULTIBYTE }; }
-
+/* The bit members of `struct re_pattern_buffer` this unit reads or writes are the mirror's
+   accessors now: `femacs/src/include/regex-emacs.rs` carries `can_be_null_`/`regs_allocated_`/
+   `fastmap_accurate_`/`used_syntax_`/`multibyte_`/`target_multibyte_` with the `RE_PATTERN_*`
+   masks, exactly as the copy that stood here did (PORTING.md 1.3/P-80, 0.1-10).  */
 /* Prevent ralloc.c from relocating the current buffer while searching it.  */
 #[cfg (feature = "rel_alloc")]
 unsafe extern "C" {
