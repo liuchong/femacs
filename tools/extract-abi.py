@@ -954,9 +954,16 @@ def clear_unbuilt_inventory(inv: dict) -> int:
 
     The line count stays (the ledger header keeps it); `not_built_on_target` is what tells the
     drift check to stay out of the way, since an empty port is naturally shorter than the C.
+
+    `struct_fields` is cleared too: the ledger's "Types and their fields" section is printed from
+    it, so leaving it behind made a not-built ledger say "nothing is required here" and then list
+    the deferred struct fields (several under the anonymous containers `inventory` names
+    `<anon@N>` — noise, not documentation).  The count moves into the header's "deferred"
+    sentence instead, which is what the ledger is for.
     """
     total = 0
-    for key in ("functions", "defuns", "macros", "constants", "globals", "types", "subrs"):
+    for key in ("functions", "defuns", "macros", "constants", "globals", "types", "subrs",
+                "struct_fields"):
         if key in inv and isinstance(inv[key], (list, dict)):
             total += len(inv[key])
             inv[key] = {} if isinstance(inv[key], dict) else []
