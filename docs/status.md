@@ -1078,3 +1078,21 @@
   ⑤ 闸门实测：镜像 `--check` **OK**；五个单元 `build-tu` 全部 **built**、`--check` 全部 **OK**；
   `check-globals` 0 缺定义；`check-undef` 512 单元/120 pending/**0 new**；`check-linkage` 0 缺失；
   `layout-check` **passed**（791 条断言，新镜像进了探针 crate）。镜像计数 **130 → 131**（`src/include/` 41 → 42）。
+
+- **3.75 第 98 轮：镜像补齐后的去重，与一份"重复声明"审计（2026-10-04）**：`region-cache.h` 的镜像落地
+  （3.74）把"单元自己声明、镜像其实也声明"这种现象暴露出来——它不止 region-cache 一处。
+  ① 本轮先修可确证的一处：`src/editfns.rs` 的 `text_property_stickiness` 副本。它的 `intervals.h` 镜像
+  （`include/intervals.rs` 的 `intervals_decls`，C 307-308）**已经**带着这条声明，而 editfns.rs 也
+  `include!` 了该镜像，所以那份 use-site 副本是纯冗余（glob 导入被本地项遮蔽，一直没报错）；删掉它，
+  `build-tu` 仍 `built`、`--check` 仍 `OK`。
+  ② 顺手做了一份**全树审计**（不是门，方法写下来给下一轮做棘轮用）：把每个单元 `unsafe extern "C" { … }`
+  里"只有声明、没有函数体"的名字抽出来，与 131 个镜像里同样形态的名字求交——**66 个单元**存在"镜像已有、
+  单元又声明了一遍"的名字，例如 `tparam.rs` 的 `memcpy`/`strlen`（`string.rs`/`lisp.rs` 镜像有）、
+  `process.rs` 的 `sprintf`/`list3`/`xfree`、`lib/readlinkat.rs` 的 `strlen`/`fstatat`。
+  **注意这份名单要逐条判**：只有当该镜像是**这个单元的包含图之内**时才是冗余（P-26 的"同一构造一种写法"），
+  不在包含图里的声明是合法的 P-72③ use-site 声明。门里已经能看见这一类的**一半**症状：
+  `gate-fast` 的 unit 编译会报 `clashing_extern_declarations` 警告（`gate-wt3.txt` 里就有），
+  那是"同一个名字两种签名"，与"同一签名重复一遍"是同一根因的两面。
+  下一轮的做法建议：新增 `tools/check-mirror-dupes.py`（只报"镜像在该单元 include 图之内"的命中），
+  用 `docs/baseline/mirror-dupes.tsv` 做棘轮把 66 条挂上去，然后按单元逐个删副本——
+  每条删除都只需 `build-tu <unit>` + `--check <unit>` 两步验证。

@@ -170,16 +170,11 @@ unsafe extern "C" {
                                    shortage: *mut ptrdiff_t) -> ptrdiff_t;
 }
 
-/// `intervals.h` 307 declares `text_property_stickiness` and its definition is textprop.c's
-/// (`femacs/src/textprop.rs`); the mirror does not carry it, so it is declared here with C's
-/// prototype (PORTING.md P-72 rule 3).  `get_char_property_and_overlay` *is* in the
-/// `intervals.rs` mirror and is not repeated.
-unsafe extern "C" {
-  /// C: intervals.h 307-308: `extern int text_property_stickiness (Lisp_Object prop,
-  /// Lisp_Object pos, Lisp_Object buffer);`
-  pub fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_Object,
-                                   buffer: Lisp_Object) -> c_int;
-}
+/* `intervals.h` 307's `text_property_stickiness` (defined in textprop.c, `femacs/src/textprop.rs`)
+   and `get_char_property_and_overlay` are both in the `intervals.rs` mirror's `intervals_decls`
+   now, so this unit names them through that header exactly as C does and the copy that stood
+   here went away with the mirror entry (PORTING.md 0.1-2/0.1-10; two same-named declarations in
+   one unit are an `E0428`).  */
 
 /// insdel.c's six insertion entries and its two signaling helpers: lisp.h 4320-4342 and
 /// 4938 declare them and the mirror carries none of them, so each is declared here with
