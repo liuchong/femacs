@@ -1421,15 +1421,6 @@ macro_rules! ASAN_UNPOISON_INTERVAL {
 
 /* Return a new interval.  */
 
-/* C's `INTERVAL make_interval (void)` is declared by `include/intervals.rs` *at crate root*
-   (`/// C: intervals.h 241`), and the port may not edit that mirror (this lane's brief), so
-   the definition lives in a module that is glob-imported: the crate-root declaration shadows
-   the import for name resolution while the definition still emits `_make_interval`
-   (PORTING.md 0.1-10/P-21, the term.rs `term_defs` shape).  Reported as a mirror gap.  */
-pub mod alloc_defs
-{
-  use super::*;
-
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn make_interval () -> INTERVAL
 {
@@ -1465,8 +1456,6 @@ pub unsafe extern "C" fn make_interval () -> INTERVAL
   return val;
 }
 
-}
-use alloc_defs::*;
 
 
 /* Mark Lisp objects in interval I.  */
@@ -4077,13 +4066,6 @@ pub unsafe extern "C" fn build_symbol_with_pos (symbol: Lisp_Object, position: L
 
 /* Return a new (deleted) overlay with PLIST.  */
 
-/* C's `build_overlay` is declared by `include/buffer.rs` *at crate root* (the mirror's
-   "Declared in alloc.c" block), so the definition joins `make_interval` in the
-   glob-imported module below (PORTING.md 0.1-10/P-21; reported as a mirror gap).  */
-pub mod alloc_defs_overlay
-{
-  use super::*;
-
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn build_overlay (front_advance: bool, rear_advance: bool,
 					plist: Lisp_Object) -> Lisp_Object
@@ -4099,8 +4081,6 @@ pub unsafe extern "C" fn build_overlay (front_advance: bool, rear_advance: bool,
   return overlay;
 }
 
-}
-use alloc_defs_overlay::*;
 
 DEFUN! ("make-marker", Fmake_marker, Smake_marker, 0, 0, 0,
        doc: "Return a newly allocated marker which does not point at any place.",

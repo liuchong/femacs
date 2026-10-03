@@ -1358,13 +1358,24 @@ macro_rules! CHECK_FIXNUM_COERCE_MARKER {
     ($x:expr) => { $x = make_fixnum (unsafe { fix_position ($x) }); };
 }
 
-unsafe extern "C" {
-  pub fn recenter_overlay_lists (buf: *mut buffer, pos: ptrdiff_t);
-  pub fn fix_overlays_before (bp: *mut buffer, prev: ptrdiff_t, pos: ptrdiff_t);
-  pub fn mmap_set_vars (on: bool);
-  pub fn build_overlay (front_advance: bool, rear_advance: bool,
-                        plist: Lisp_Object) -> Lisp_Object;
+/* The four prototypes of that block whose definitions live in *other* units - intervals.c's
+   `recenter_overlay_lists`, textprop.c's `fix_overlays_before`, and alloc.c's `mmap_set_vars`
+   and `build_overlay` (the old comment here said insdel.c for the last one; alloc.c 3768
+   defines it) - in a module + glob import, so each definition shadows its declaration instead
+   of colliding with it (PORTING.md 0.1-10/P-21).  They sat at crate root until status 3.82,
+   which forced `femacs/src/alloc.rs` to wrap those two definitions in modules of their own.  */
+pub mod buffer_other_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn recenter_overlay_lists (buf: *mut buffer, pos: ptrdiff_t);
+    pub fn fix_overlays_before (bp: *mut buffer, prev: ptrdiff_t, pos: ptrdiff_t);
+    pub fn mmap_set_vars (on: bool);
+    pub fn build_overlay (front_advance: bool, rear_advance: bool,
+                          plist: Lisp_Object) -> Lisp_Object;
+  }
 }
+use buffer_other_decls::*;
 
 /* Return B as a struct buffer pointer, defaulting to the current buffer.  */
 

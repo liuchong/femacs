@@ -1215,3 +1215,21 @@
   0 disagreements**（432 个文件，exit 0）。
   **alloc.c 依旧不进 `cond-eval-verified.txt`**：它照 P-51 两支都抄，而 verified 文件的检查器只要求
   活支（§3.49/§3.51 的既有定案）；这一行改变的是**求值器的答案**，不是端口的写法。
+
+- **3.82 第 98 轮：两个"由别的单元定义"的原型从 crate 根搬进模块——alloc.rs 的两个包装模块消失（2026-10-04）**：
+  alloc lane 报回它的两个定义（`make_interval`、`build_overlay`）**被迫**放进 `alloc_defs`/
+  `alloc_defs_overlay` 模块再 glob 导入，原因是 `include/intervals.rs` 与 `include/buffer.rs` 把这两条
+  原型（连同同一块里的 `recenter_overlay_lists`/`fix_overlays_before`/`mmap_set_vars`）放在**crate 根**，
+  而同名定义在 crate 根就是 `E0428`。这违反了镜像的既有形状：凡是"由别的单元定义"的原型都该在
+  `*_decls` 模块 + glob 里（0.1-10/P-21 的遮蔽机制），`intervals.rs` 自己的注释就是这么写的，只是这一条
+  漏在外面。本轮把 `make_interval` 挪进 `intervals_decls`，把 buffer.h 那一块的四条挪进新的
+  `buffer_other_decls`，删掉 alloc.rs 的两个包装模块（定义回到 crate 根），并**顺手纠正一处镜像注释的
+  属主错误**：`build_overlay` 是 `alloc.c` 3768 定义的，旧注释写成 insdel.c。
+  ① 重建与验证：alloc 的 `build-tu`/`--check` OK，六个镜像消费者（buffer/insdel/search/textprop/editfns/
+  callproc）`build-tu` 全 built、`--check` 全 OK；`check-symbols --dir src` 仍 **68/0/0**、
+  `check-globals` 270/0、`check-declarations` 0、`check-mirror-dupes` 仍只有棘轮那一行。
+  ② **一处两门相反的定案**：`refill_memory_reserve` 在 C 里是 `static`（C 392 的前置声明），对象级的
+  `check-symbols` 因此判端口的 `#[unsafe(no_mangle)] pub` 是 **invented**；而文本门看不见那条前置声明
+  （blind 文件下 `static_prior` 规则被关掉，§3.67），反过来要求必须有 `#[unsafe(no_mangle)]`。按 lread 的
+  `oblookup_considering_shorthand` 先例，把名字记进 `docs/ports/excluded-macros.txt` 的 `linkage` 类并写明
+  两边的实测证据，文本门据此让开——**"两门相反时以对象级为准 + 记豁免"** 是这类构造的定式。

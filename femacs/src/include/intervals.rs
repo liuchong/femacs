@@ -347,11 +347,6 @@ macro_rules! TEXT_PROP_MEANS_INVISIBLE {
 		     else { unsafe { invisible_prop ($prop, unsafe { BVAR! (current_buffer, invisibility_spec_) }) } }) };
 }
 
-/* Declared in alloc.c.  */
-unsafe extern "C" {
-  /// C: intervals.h 241: `extern INTERVAL make_interval (void) ATTRIBUTE_RETURNS_NONNULL;`
-  pub fn make_interval () -> INTERVAL;
-}
 
 // Every `extern` prototype of intervals.h's "Declared in intervals.c" block, in C's own
 // order.  The unit defines 24 of them and one glob import per mirror is what keeps the
@@ -363,6 +358,16 @@ unsafe extern "C" {
 // (and src/textprop.c's definition shadows it, 0.1-10).
 pub mod intervals_decls {
   use super::*;
+
+  /* intervals.h 241's `make_interval` is defined in *alloc.c*, not in intervals.c, which is
+     why it stood at crate root in a block of its own - and why `femacs/src/alloc.rs` had to
+     wrap its definition in a module instead of shadowing the declaration (status 3.82).  It
+     belongs with its siblings here: the glob import is what lets the owner's definition win
+     (PORTING.md 0.1-10/P-21).  */
+  unsafe extern "C" {
+    /// C: intervals.h 241: `extern INTERVAL make_interval (void) ATTRIBUTE_RETURNS_NONNULL;`
+    pub fn make_interval () -> INTERVAL;
+  }
 
 
   unsafe extern "C" {
