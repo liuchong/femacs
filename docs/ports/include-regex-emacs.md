@@ -10,12 +10,12 @@
 
 ## Types and their fields — 2
 - [ ] re_pattern_buffer: unsigned char* buffer, ptrdiff_t allocated, ptrdiff_t used, int charset_unibyte, char* fastmap, Lisp_Object translate, ptrdiff_t re_nsub, bool_bf can_be_null : 1, unsigned regs_allocated : 2, bool_bf fastmap_accurate : 1, bool_bf used_syntax : 1, bool_bf multibyte : 1, bool_bf target_multibyte : 1
-- [ ] re_registers: ptrdiff_t num_regs, ptrdiff_t* start, ptrdiff_t* end
+- [x] re_registers: ptrdiff_t num_regs, ptrdiff_t* start, ptrdiff_t* end
 
 ## File-scope objects — 3
-- [ ] extern Lisp_Object re_match_object  (line 50)
-- [ ] extern ptrdiff_t emacs_re_max_failures  (line 53)
-- [ ] extern ptrdiff_t emacs_re_safe_alloca  (line 56)
+- [x] extern Lisp_Object re_match_object  (line 50)
+- [x] extern ptrdiff_t emacs_re_max_failures  (line 53)
+- [x] extern ptrdiff_t emacs_re_safe_alloca  (line 56)
 
 ## Decisions
 
@@ -27,7 +27,7 @@ two of them, and `free_search_regs` reads their three fields.  The guard body
 (`re_match_object`, `emacs_re_max_failures`, `emacs_re_safe_alloca`, now in
 `regex_emacs_decls` + glob import) landed with `src/thread.c`, so `--check` is OK; what
 remains WIP is `re_pattern_buffer` and the `re_*` API, which belong with `src/regex-emacs.c`'s
-own port (2 unchecked rows below, not a gate failure).
+own port (the one unchecked row below is `re_pattern_buffer`, not a gate failure).
 
 The mirror's `include!` list is empty by design, as it was before this change: it is included by
 the units that need it, after `lisp.rs` (and now by `thread.rs`'s own mirror, exactly as C's
