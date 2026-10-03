@@ -336,9 +336,13 @@ macro_rules! INTERVAL_EXPRESSLY_WRITABLE_P {
    this is 1 if the character should be treated as invisible,
    and 2 if it is invisible but with an ellipsis.  */
 
+// The first arm used to read `(prop)`, a *literal* token matcher: only a call site that
+// spelled the token `prop` could match it, and every other caller (`indent.c`'s
+// `TEXT_PROP_MEANS_INVISIBLE (prop)`, `TEXT_PROP_MEANS_INVISIBLE (propval)`) fell through
+// with "cannot find value `prop`" — Rust's `macro_rules!` has no C-style implicit
+// parameter.  The arm is deleted; the metavariable arm below is the macro (status §3.56's
+// integrator-edit class, recorded in docs/ports/indent.md).
 macro_rules! TEXT_PROP_MEANS_INVISIBLE {
-  (prop) => { (if EQ (unsafe { BVAR! (current_buffer, invisibility_spec_) }, Qt ()) { (! NILP (prop)) as c_int }
-	      else { unsafe { invisible_prop (prop, unsafe { BVAR! (current_buffer, invisibility_spec_) }) } }) };
   ($prop:expr) => { (if EQ (unsafe { BVAR! (current_buffer, invisibility_spec_) }, Qt ()) { (! NILP ($prop)) as c_int }
 		     else { unsafe { invisible_prop ($prop, unsafe { BVAR! (current_buffer, invisibility_spec_) }) } }) };
 }

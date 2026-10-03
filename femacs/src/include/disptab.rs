@@ -108,8 +108,16 @@ pub fn DISP_CHAR_VECTOR (dp: *mut Lisp_Char_Table, c: c_int) -> Lisp_Object
 unsafe extern "C" { pub fn window_display_table (w: *mut window)
                                                  -> *mut Lisp_Char_Table; }         // disptab.h 67
 
-/* Defined in indent.c.  */
-unsafe extern "C" { pub fn buffer_display_table () -> *mut Lisp_Char_Table; }      // disptab.h 70
+/* Defined in indent.c.  `buffer_display_table` is that unit's own definition, so the
+   prototype sits in a module + glob import: a same-named declaration at this scope would be
+   `E0428` in the crate that defines it (PORTING.md 0.1-10/P-70; the change lands with the
+   definition, the `buffer_point_decls` shape).  */
+pub mod disptab_decls {
+  use super::*;
+
+  unsafe extern "C" { pub fn buffer_display_table () -> *mut Lisp_Char_Table; }   // disptab.h 70
+}
+use disptab_decls::*;
 
 // C: disptab.h 72-116's GLYPH_TABLE_LENGTH/GLYPH_TABLE_BASE, GLYPH_SIMPLE_P/GLYPH_ALIAS_P/
 // GLYPH_FOLLOW_ALIASES, GLYPH_LENGTH/GLYPH_STRING, SPACEGLYPH, NULL_GLYPH and
