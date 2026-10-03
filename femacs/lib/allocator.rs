@@ -22,7 +22,7 @@
    tree (`femacs/lib/include/allocator.rs`), so the definition lands here.  C's `NULL` for
    `die` is Rust's `None`, and the three functions are the system entries of the stdlib mirror,
    which is what the C's `#define _GL_USE_STDLIB_ALLOC 1` selects.  */
-use std::ffi::{c_char, c_double, c_int, c_long, c_void};
+use std::ffi::{c_char, c_double, c_int, c_long, c_ulong, c_void};
 include!("include/gnulib_config.rs");
 include!("include/stdlib.rs");
 include!("include/allocator.rs");

@@ -215,6 +215,14 @@ unsafe extern "C" {
                                   -> Lisp_Object;
 }
 
+// charset.h 282-296 and 313-340: the accessor macros `CHARSET_ATTR_ID`,
+// `CHARSET_ATTR_ENCODER`, `CHARSET_ATTRIBUTES` and `CHARSET_ENCODER`, each with C's body.
+macro_rules! CHARSET_ATTR_ID { ($attrs:expr) => { AREF ($attrs, charset_id as isize) }; }
+macro_rules! CHARSET_ATTR_ENCODER { ($attrs:expr) => { AREF ($attrs, charset_encoder as isize) }; }
+macro_rules! CHARSET_ATTRIBUTES { ($charset:expr) => { charset_attributes_getter ($charset) }; }
+macro_rules! CHARSET_ENCODER {
+  ($charset:expr) => { CHARSET_ATTR_ENCODER! (CHARSET_ATTRIBUTES! ($charset)) }; }
+
 /// charset.h 306-313: `INLINE Lisp_Object charset_attributes_getter (struct charset *)`.
 /// It is a header inline, so C gives every translation unit its own copy; the port defines
 /// it here until the mirror exists.
@@ -225,14 +233,6 @@ unsafe fn charset_attributes_getter (charset: *mut charset) -> Lisp_Object
   eassert! (XFIXNUM (CHARSET_ATTR_ID! (attrs)) == (*charset).id as isize);
   return attrs;
 }
-
-// charset.h 282-296 and 313-340: the accessor macros `CHARSET_ATTR_ID`,
-// `CHARSET_ATTR_ENCODER`, `CHARSET_ATTRIBUTES` and `CHARSET_ENCODER`, each with C's body.
-macro_rules! CHARSET_ATTR_ID { ($attrs:expr) => { AREF ($attrs, charset_id as isize) }; }
-macro_rules! CHARSET_ATTR_ENCODER { ($attrs:expr) => { AREF ($attrs, charset_encoder as isize) }; }
-macro_rules! CHARSET_ATTRIBUTES { ($charset:expr) => { charset_attributes_getter ($charset) }; }
-macro_rules! CHARSET_ENCODER {
-  ($charset:expr) => { CHARSET_ATTR_ENCODER! (CHARSET_ATTRIBUTES! ($charset)) }; }
 
 /// C: charset.h 449-480 (`ENCODE_CHAR`), the macro the live `map_sub_char_table_for_charset`
 /// expands.  C wraps the whole expression in `verify_expr (sizeof (c) <= sizeof (int), …)`,

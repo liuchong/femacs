@@ -150,11 +150,12 @@ macro_rules! INT_ADD_OVERFLOW {
     ($a:expr, $b:expr) => { ($a).overflowing_add ($b).1 };
 }
 
-pub const F_OK: c_int = 0;
+// `F_OK` is `<unistd.h>`'s, so it comes from the `unistd.in.rs` mirror above rather than
+// being defined here again (the two definitions were an E0428 once that mirror carried it).
 pub const _PC_PATH_MAX: c_int = 4;
 
 /* C: `<fcntl.h>`'s `access` modes and `<unistd.h>`'s `R_OK`/… are not needed beyond
-   `F_OK` above; `AT_FDCWD`/`AT_EACCESS` come from the fcntl mirror.  */
+   `F_OK`; `AT_FDCWD`/`AT_EACCESS` come from the fcntl mirror.  */
 
 /* C 96's live arm.  */
 

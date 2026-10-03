@@ -23,7 +23,7 @@
    arms for the ones it does not define were read out of C's text - the
    docs/ports/macro-body-notes.tsv row lists them.  C's `switch (sig)` becomes a `match`, so
    `switch`/`case` have no counterpart either.  */
-use std::ffi::{c_char, c_int};
+use std::ffi::{c_char, c_int, c_uint, c_void};
 include!("include/gnulib_config.rs");
 include!("include/signal.rs");
 
