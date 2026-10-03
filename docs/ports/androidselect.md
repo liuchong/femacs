@@ -1,6 +1,6 @@
 # emacs/src/androidselect.c (1220 lines)
 
-> **This file is not compiled by the frozen configuration** (docs/baseline/frozen-build-sources.txt, docs/status.md 3.31): 26 declaration(s) are deferred to the platform target, and the port is an empty unit plus the note that names the gate.  Nothing in this file is required here.
+> **This file is not compiled by the frozen configuration** (docs/baseline/frozen-build-sources.txt, docs/status.md 3.31): 44 declaration(s) are deferred to the platform target, and the port is an empty unit plus the note that names the gate.  Nothing in this file is required here.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -9,10 +9,7 @@
 
 ## Macros defined — 0
 
-## Types and their fields — 3
-- [x] android_asset_file_descriptor: jclass class, jmethodID close, jmethodID get_length, jmethodID get_start_offset, jmethodID get_file_descriptor, jmethodID get_parcel_file_descriptor, jmethodID get_fd
-- [x] android_emacs_clipboard: jclass class, jmethodID set_clipboard, jmethodID owns_clipboard, jmethodID clipboard_exists, jmethodID get_clipboard, jmethodID make_clipboard, jmethodID get_clipboard_targets, jmethodID get_clipboard_data
-- [x] android_emacs_desktop_notification: jclass class, jmethodID init, jmethodID display
+## Types and their fields — 0
 
 ## File-scope objects — 0
 
@@ -23,5 +20,5 @@
   (`WINDOW_SYSTEM_OBJ=`, `HAIKU_OBJ = `, `MSDOS_OBJ =`, `CYGWIN_OBJ=`) are all empty, so the file
   is not in the build's source list at all, and its text needs headers this target has not got.
   The port is therefore the empty unit `femacs/src/androidselect.rs` — C's own license header plus the
-  note that names the exclusion and points here — and the declarations above are **deferred to
-  the platform target** rather than dropped (docs/status.md §3.31).
+  note that names the exclusion and points here — and the declarations listed above are
+  **deferred to the platform target** rather than dropped (docs/status.md §3.31).

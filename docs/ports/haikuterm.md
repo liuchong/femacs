@@ -20,5 +20,5 @@
   (`WINDOW_SYSTEM_OBJ=`, `HAIKU_OBJ = `, `MSDOS_OBJ =`, `CYGWIN_OBJ=`) are all empty, so the file
   is not in the build's source list at all, and its text needs headers this target has not got.
   The port is therefore the empty unit `femacs/src/haikuterm.rs` — C's own license header plus the
-  note that names the exclusion and points here — and the declarations above are **deferred to
-  the platform target** rather than dropped (docs/status.md §3.31).
+  note that names the exclusion and points here — and the declarations listed above are
+  **deferred to the platform target** rather than dropped (docs/status.md §3.31).
