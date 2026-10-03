@@ -1,6 +1,6 @@
 # emacs/src/xselect.c (3541 lines)
 
-> **This file is not compiled by the frozen configuration** (docs/baseline/frozen-build-sources.txt, docs/status.md 3.31): 89 declaration(s) are deferred to the platform target, and the port is an empty unit plus the note that names the gate.  Nothing in this file is required here.
+> **This file is not compiled by the frozen configuration** (docs/baseline/frozen-build-sources.txt, docs/status.md 3.31): 119 declaration(s) are deferred to the platform target, and the port is an empty unit plus the note that names the gate.  Nothing in this file is required here.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -9,11 +9,7 @@
 
 ## Macros defined — 0
 
-## Types and their fields — 4
-- [x] prop_location: int identifier, Display* display, Window window, Atom property, int desired_state, bool arrived, struct prop_location* next
-- [x] selection_data: unsigned char* data, Lisp_Object string, ptrdiff_t size, int format, Atom type, Atom property, struct selection_data* next
-- [x] transfer: Window requestor, ptrdiff_t offset, ptrdiff_t items_per_request, struct x_display_info* dpyinfo, struct selection_data data, struct transfer* next, struct transfer* last, struct atimer* timeout, unsigned int serial, int flags
-- [x] x_selection_request: struct x_selection_request* last, struct x_display_info* dpyinfo, struct selection_input_event* request, struct selection_data* converted_selections, unsigned int serial, bool converted
+## Types and their fields — 0
 
 ## File-scope objects — 0
 
@@ -24,5 +20,5 @@
   (`WINDOW_SYSTEM_OBJ=`, `HAIKU_OBJ = `, `MSDOS_OBJ =`, `CYGWIN_OBJ=`) are all empty, so the file
   is not in the build's source list at all, and its text needs headers this target has not got.
   The port is therefore the empty unit `femacs/src/xselect.rs` — C's own license header plus the
-  note that names the exclusion and points here — and the declarations above are **deferred to
-  the platform target** rather than dropped (docs/status.md §3.31).
+  note that names the exclusion and points here — and the declarations listed above are
+  **deferred to the platform target** rather than dropped (docs/status.md §3.31).
