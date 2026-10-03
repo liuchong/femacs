@@ -496,13 +496,6 @@ macro_rules! CHARSET_RANGE_TABLE_END {
    mirror carries `fputs`; `fprintf`/`putc`/`stderr` have no mirror, so they are declared at
    their use site (PORTING.md 0.1-2/P-72, the bytecode.rs/region-cache.rs shape).  */
 unsafe extern "C" {
-  /// C: <stdio.h>: `int fprintf (FILE *stream, const char *format, ...);`
-  fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
-  /// C: <stdio.h>: `int putc (int c, FILE *stream);`
-  fn putc (c: c_int, stream: *mut FILE) -> c_int;
-  /// C: <stdio.h>: `extern FILE *stderr;` (Darwin's libc spells the symbol `__stderrp`).
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  static mut stderr: *mut FILE;
 }
 
 /* Use standard I/O for debugging.  */
@@ -2785,7 +2778,6 @@ unsafe fn regex_compile (mut pattern: *const re_char, size: ptrdiff_t,
 	}
     } /* while p != pend */
 
-
   /* Through the pattern now.  */
 
   FIXUP_ALT_JUMP! ();
@@ -2817,7 +2809,6 @@ unsafe fn regex_compile (mut pattern: *const re_char, size: ptrdiff_t,
 
 } /* regex_compile */
 
-
 /* Subroutines for 'regex_compile'.  */
 
 /* Store OP at LOC followed by two-byte integer parameter ARG.  */
@@ -2828,7 +2819,6 @@ unsafe fn store_op1 (op: re_opcode_t, loc: *mut u8, arg: c_int)
   STORE_NUMBER (loc.offset (1), arg);
 }
 
-
 /* Like 'store_op1', but for two two-byte parameters ARG1 and ARG2.  */
 
 unsafe fn store_op2 (op: re_opcode_t, loc: *mut u8, arg1: c_int, arg2: c_int)
@@ -2837,7 +2827,6 @@ unsafe fn store_op2 (op: re_opcode_t, loc: *mut u8, arg1: c_int, arg2: c_int)
   STORE_NUMBER (loc.offset (1), arg1);
   STORE_NUMBER (loc.offset (3), arg2);
 }
-
 
 /* Copy the bytes from LOC to END to open up three bytes of space at LOC
    for OP followed by two-byte integer parameter ARG.  */
@@ -2857,7 +2846,6 @@ unsafe fn insert_op1 (op: re_opcode_t, loc: *mut u8, arg: c_int, end: *mut u8)
   store_op1 (op, loc, arg);
 }
 
-
 /* Like 'insert_op1', but for two two-byte parameters ARG1 and ARG2.  */
 
 unsafe fn insert_op2 (op: re_opcode_t, loc: *mut u8, arg1: c_int, arg2: c_int,
@@ -2875,7 +2863,6 @@ unsafe fn insert_op2 (op: re_opcode_t, loc: *mut u8, arg1: c_int, arg2: c_int,
 
   store_op2 (op, loc, arg1, arg2);
 }
-
 
 /* P points to just after a ^ in PATTERN.  Return true if that ^ comes
    after an alternative or a begin-subexpression.  Assume there is at
@@ -2912,7 +2899,6 @@ unsafe fn at_begline_loc_p (pattern: *const re_char, mut p: *const re_char) -> b
   (p.offset_from (prev) & 1) != 0
 }
 
-
 /* The dual of at_begline_loc_p.  This one is for $.  Assume there is
    at least one character after the $, i.e., 'P < PEND'.  */
 
@@ -2922,7 +2908,6 @@ unsafe fn at_endline_loc_p (p: *const re_char, pend: *const re_char) -> bool
   *p == '\\' as re_char && p.offset (1) < pend
     && (*p.offset (1) == ')' as re_char || *p.offset (1) == '|' as re_char)
 }
-
 
 /* Returns true if REGNUM is in one of COMPILE_STACK's elements and
    false if it's not.  */
@@ -2941,7 +2926,6 @@ unsafe fn group_in_compile_stack (compile_stack: compile_stack_type, regnum: reg
 
   false
 }
-
 
 /* Iterate through all the char-matching operations directly reachable from P.
    This is the inner loop of `forall_firstchar`, which see.
@@ -3526,7 +3510,6 @@ unsafe fn analyze_first (bufp: *mut re_pattern_buffer,
   !safe
 }
 
-
 /* Compute a fastmap for the compiled pattern in BUFP.
    A fastmap records which of the (1 << BYTEWIDTH) possible
    characters can start a string that matches the pattern.  This fastmap
@@ -3595,7 +3578,6 @@ pub unsafe extern "C" fn re_set_registers (bufp: *mut re_pattern_buffer,
       (*regs).end = std::ptr::null_mut ();
     }
 }
-
 
 /* Searching routines.  */
 
@@ -3891,7 +3873,6 @@ pub unsafe extern "C" fn re_search_2 (bufp: *mut re_pattern_buffer, str1: *const
   -1
 } /* re_search_2 */
 
-
 /* Declarations and macros for re_match_2.  */
 
 // C 3643-3644: `static bool bcmp_translate (re_char *, re_char *, ptrdiff_t, Lisp_Object,
@@ -3972,7 +3953,6 @@ unsafe fn skip_one_char (mut p: *const re_char) -> *const re_char
     }
   p
 }
-
 
 /* Test if C matches charset op.  *PP points to the charset or charset_not
    opcode.  When the function finishes, *PP will be advanced past that opcode.
@@ -4311,7 +4291,6 @@ unsafe fn mutually_exclusive_p (bufp: *mut re_pattern_buffer, p1: *const re_char
   forall_firstchar (bufp, p2, (*bufp).buffer.offset ((*bufp).used),
 		    mutually_exclusive_one, &raw mut data as *mut c_void)
 }
-
 
 /* Matching routines.  */
 
@@ -4959,7 +4938,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
   DEBUG_PRINT_DOUBLE_STRING! (d, string1, size1, string2, size2);
   DEBUG_PRINT! (c"\"\n".as_ptr ());
 
-
   /* This loops over pattern commands.  It exits by returning from the
      function if the match is complete, or it drops through if the match
      fails at this starting point in the input data.  */
@@ -5013,7 +4991,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	}
     };
   }
-
 
       if p == pend
 	{
@@ -5191,7 +5168,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	    }
 	}
 
-
 	/* Match any character except newline.  */
 	anychar => 'cmd: {
 	  let mut buf_charlen: c_int = 0;
@@ -5211,7 +5187,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	  d = d.offset (buf_charlen as isize);
 	  nchars += 1;
 	}
-
 
 	charset |
 	charset_not => 'cmd: {
@@ -5265,7 +5240,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	  nchars += 1;
 	}
 
-
 	/* The beginning of a group is represented by start_memory.
 	   The argument is the register number.  The text
 	   matched within the group is recorded (in the internal
@@ -5284,7 +5258,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	  /* Move past the register number and inner group count.  */
 	  p = p.offset (1);
 	}
-
 
 	/* The stop_memory opcode represents the end of a group.  Its
 	   argument is the same as start_memory's: the register number.  */
@@ -5314,7 +5287,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	  /* Move past the register number and the inner group count.  */
 	  p = p.offset (1);
 	}
-
 
 	/* \<digit> has been turned into a 'duplicate' command which is
 	   followed by the numeric value of <digit> as the register number.  */
@@ -5392,7 +5364,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	    }
 	}
 
-
 	/* begline matches the empty string at the beginning of the string,
 	   and after newlines.  */
 	begline => 'cmd: {
@@ -5408,7 +5379,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	    }
 	}
 
-
 	/* endline is the dual of begline.  */
 	endline => 'cmd: {
 	  DEBUG_PRINT! (c"EXECUTING endline.\n".as_ptr ());
@@ -5421,7 +5391,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	    }
 	}
 
-
 	/* Match at the very beginning of the data.  */
 	begbuf => 'cmd: {
 	  DEBUG_PRINT! (c"EXECUTING begbuf.\n".as_ptr ());
@@ -5429,14 +5398,12 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	    { goto_fail = true; break 'cmd; }
 	}
 
-
 	/* Match at the very end of the data.  */
 	endbuf => 'cmd: {
 	  DEBUG_PRINT! (c"EXECUTING endbuf.\n".as_ptr ());
 	  if !AT_STRINGS_END! (d)
 	    { goto_fail = true; break 'cmd; }
 	}
-
 
 	/* on_failure_keep_string_jump is used to optimize '.*\n'.  It
 	   pushes NULL as the value for the string on the stack.  Then
@@ -5542,7 +5509,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 	jump => {
 	  goto_unconditional_jump = true;
 	}
-
 
 	/* Have to succeed matching what follows at least n times.
 	   After that, handle like 'on_failure_jump_loop'.  */
@@ -5922,7 +5888,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
       if !goto_fail
 	{ continue 'matcher; }  /* Successfully executed one pattern command; keep going.  */
 
-
     /* We goto here if a matching operation fails.
        C's `fail:` label is the `goto_fail` flag (PORTING.md 2.2).  */
       maybe_quit ();
@@ -6112,7 +6077,6 @@ unsafe fn re_match_2_internal (bufp: *mut re_pattern_buffer,
 
   retval
 } /* re_match_2_internal */
-
 
 /* Subroutine definitions for re_match_2.  */
 

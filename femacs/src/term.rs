@@ -219,12 +219,6 @@ pub const O_IGNORE_CTTY: c_int = 0;
 
 /* <stdio.h>'s three streams, with the Darwin spellings cm.rs uses for stdout.  */
 unsafe extern "C" {
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  pub static mut stderr: *mut FILE;
-  #[cfg_attr (target_os = "macos", link_name = "__stdinp")]
-  pub static mut stdin: *mut FILE;
-  #[cfg_attr (target_os = "macos", link_name = "__stdoutp")]
-  pub static mut stdout: *mut FILE;
 }
 
 /* C 88-103: `enum no_color_bit`, the bits of `TN_no_color_video`.  */
@@ -415,12 +409,7 @@ unsafe extern "C" { fn dupstring (ptr: *mut *mut c_char, string: *const c_char);
 /* <stdio.h> 350-420: the six stdio entries this unit calls that the stdio mirror does not
    carry (`fwrite`/`fputs`/`sprintf` are there).  */
 unsafe extern "C" {
-  fn fflush (stream: *mut FILE) -> c_int;
-  fn clearerr (stream: *mut FILE);
-  fn putc (c: c_int, stream: *mut FILE) -> c_int;
-  fn fileno (stream: *mut FILE) -> c_int;
 }
-
 
 /* disptab.h 72-122: the glyph-table family.  The disptab mirror stops before it (its own
    note says these "land with the display batch"), so they are spelled here with C's bodies;
@@ -1682,7 +1671,6 @@ pub unsafe extern "C" fn calculate_costs (frame: *mut frame)
 
       std::ptr::write_bytes (char_ins_del_vector, 0,
 			     std::mem::size_of::<c_int> () + 2 * std::mem::size_of::<c_int> () * max_frame_cols as usize);
-
 
       if ! f.is_null () && (*tty).TS_ins_line.is_null () && (*tty).TS_del_line.is_null ()
         { do_line_insertion_deletion_costs (frame,
@@ -3379,7 +3367,6 @@ unsafe fn tty_frame_at (x: c_int, y: c_int, cx: *mut c_int, cy: *mut c_int) -> L
 		}
 	    }
 
-
 	  if (fx <= x && x <= fx + (*f).pixel_width)
 	      && (fy <= y && y <= fy + (*f).pixel_height)
 	    {
@@ -4614,7 +4601,6 @@ pub unsafe extern "C" fn tty_menu_show (f: *mut frame, x: c_int, y: c_int, menuf
   return SAFE_FREE_UNBIND_TO! (sa_count, specpdl_count, entry);
 }
 
-
 /***********************************************************************
 			    Initialization
  ***********************************************************************/
@@ -4806,7 +4792,6 @@ pub unsafe extern "C" fn init_tty (mut name: *const c_char, terminal_type: *cons
 
   encode_terminal_src_size = 0;
   encode_terminal_dst_size = 0;
-
 
   set_tty_hooks (terminal);
 
@@ -5234,7 +5219,6 @@ unsafe extern "C" fn vfatal (str_: *const c_char, mut args: ...)
   exit (1);
 }
 
-
 /* Auxiliary error-handling function for init_tty.
    Delete TERMINAL, then call error or fatal with str1 or str2,
    respectively, according to whether MUST_SUCCEED is true.  */
@@ -5495,7 +5479,6 @@ pub unsafe extern "C" fn syms_of_term ()
   DEFVAR_LISP! (c"suspend-tty-functions", Vsuspend_tty_functions,
     "Functions run after suspending a tty.\nThe functions are run with one argument, the terminal object to be suspended.\nSee `suspend-tty'.");
   Vsuspend_tty_functions = Qnil ();
-
 
   DEFVAR_LISP! (c"resume-tty-functions", Vresume_tty_functions,
     "Functions run after resuming a tty.\nThe functions are run with one argument, the terminal object that was revived.\nSee `resume-tty'.");

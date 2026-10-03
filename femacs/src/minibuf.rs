@@ -45,7 +45,6 @@
          unused_parens, unused_mut, unused_labels, unused_comparisons,
          overflowing_literals)]
 
-
 include!("include/config.rs");                 // C 21: `#include <config.h>`
 include!("../lib/include/errno.rs");        // C 22: `#include <errno.h>`
 include!("../lib/include/binary-io.rs");    // C 24: `#include <binary-io.h>`
@@ -70,25 +69,16 @@ include!("include/pdumper.rs");                // C 35: `#include "pdumper.h"`
    `#ifdef HAVE_NTGUI #include "w32term.h" #endif` is dead in the frozen configuration and
    is recorded in docs/ports/minibuf.md (P-08).  */
 
-
 /* The names C gets from headers whose mirrors do not carry them yet (the terminal.rs /
    insdel.rs shape), each with C's own prototype in a `/// C:` line.  */
 
 /* <stdio.h>: the stdio mirror carries `fwrite`, `fputs`/`fputc`, `sprintf` and `EOF`, but
    not the four functions below.  */
 unsafe extern "C" {
-  /// C: `int fflush (FILE *stream);`
-  pub fn fflush (stream: *mut FILE) -> c_int;
   /// C: `int getchar (void);`
   pub fn getchar () -> c_int;
   /// C: `int putchar (int c);`
   pub fn putchar (c: c_int) -> c_int;
-  /// C: `int putc (int c, FILE *stream);`
-  pub fn putc (c: c_int, stream: *mut FILE) -> c_int;
-  /// C: `extern FILE *stdout;` — an object-like macro on this target, so the
-  /// declaration names the symbol it stands for (the cm.rs shape, PORTING.md P-37).
-  #[cfg_attr (target_os = "macos", link_name = "__stdoutp")]
-  pub static mut stdout: *mut FILE;
 }
 
 /// <unistd.h>: `#define STDIN_FILENO 0` (measured; the callproc.rs shape).
@@ -179,7 +169,6 @@ macro_rules! DOOBARRAY {
   };
 }
 
-
 /* List of buffers for use as minibuffers.
    The first element of the list is used for the outermost minibuffer
    invocation, the next element is used for a recursive minibuffer
@@ -224,7 +213,6 @@ static mut minibuf_prompt_width: ptrdiff_t = 0;
    `set_minibuffer_mode`, `live_minibuffer_p`) and C 260-262's three are dropped: Rust's
    items are order-independent and a declaration plus the definition is E0428
    (PORTING.md 0.1-12).  */
-
 
 /* Return TRUE when a frame switch causes a minibuffer on the old
    frame to move onto the new one. */
@@ -387,9 +375,7 @@ DEFUN! ("set-minibuffer-window", Fset_minibuffer_window,
   return window;
 });
 
-
 /* Actual minibuffer invocation.  */
-
 
 /* Read a Lisp object from VAL and return it.  If VAL is an empty
    string, and DEFALT is a string, read from DEFALT instead of VAL.  */
@@ -432,7 +418,6 @@ unsafe fn string_to_object (val: Lisp_Object, defalt: Lisp_Object) -> Lisp_Objec
   val = Fcar (expr_and_pos);
   return val;
 }
-
 
 /* Like read_minibuf but reading from stdin.  This function is called
    from read_minibuf to do the job if noninteractive.  */
@@ -685,7 +670,6 @@ DEFUN! ("minibuffer-contents-no-properties", Fminibuffer_contents_no_properties,
   return make_buffer_string (prompt_end, ZV! (), false);
 });
 
-
 /* C: frame.h 1913-1920: `INLINE void flush_frame (struct frame *f)` — the frame.h mirror
    does not carry it, nor `FRAME_RIF`; C's body is written here with C's own text.  */
 #[inline(always)]
@@ -731,7 +715,6 @@ unsafe extern "C" {
    stops before the macro block (PORTING.md P-66), so the port keeps C's macro name, as
    indent.rs/menu.rs do.  */
 macro_rules! WINDOW_FRAME { ($w:expr) => { (*($w)).frame }; }
-
 
 /* Read from the minibuffer using keymap MAP and initial contents INITIAL,
    putting point minus BACKUP_N bytes from the end of INITIAL,
@@ -909,7 +892,6 @@ unsafe fn read_minibuf (map: Lisp_Object, initial: Lisp_Object, prompt: Lisp_Obj
 	(Some (restore_focus_frame),
 	 Fcons (selected_frame, (*XFRAME (selected_frame)).focus_frame));
     }
-
 
   /* If the minibuffer is on an iconified or invisible frame,
      make it visible now.  */
@@ -1503,7 +1485,6 @@ unsafe extern "C" fn minibuffer_unwind ()
 	}
     }
 }
-
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn barf_if_interaction_inhibited ()
@@ -2248,7 +2229,6 @@ DEFUN! ("assoc-string", Fassoc_string, Sassoc_string, 2, 3, 0,
   return Qnil ();
 });
 
-
 DEFUN! ("minibuffer-depth", Fminibuffer_depth, Sminibuffer_depth, 0, 0, 0,
        doc: "Return current depth of activations of minibuffer, a nonnegative integer.",
        (),
@@ -2262,7 +2242,6 @@ DEFUN! ("minibuffer-prompt", Fminibuffer_prompt, Sminibuffer_prompt, 0, 0, 0,
        {
   return Fcopy_sequence (minibuf_prompt);
 });
-
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn set_initial_minibuffer_mode ()
@@ -2296,7 +2275,6 @@ unsafe extern "C" fn init_minibuf_once_for_pdumper ()
   minibuf_save_list = Qnil ();
   last_minibuf_string = Qnil ();
 }
-
 
 /* C 2355-2357's `#define FLEX_MAX_STR_SIZE 512`, `#define FLEX_MAX_PAT_SIZE 128` and
    `#define FLEX_MAX_MATRIX_SIZE FLEX_MAX_PAT_SIZE * FLEX_MAX_STR_SIZE` sit between the
@@ -2537,7 +2515,6 @@ DEFUN! ("completion--flex-cost-gotoh", Fcompletion__flex_cost_gotoh,
   return Fcons (make_fixnum (best_cost as EMACS_INT), matches);
 });
 
-
 /* The `DEFVAR_*` variables this unit owns.  C's storage for them is `struct emacs_globals`
    (lisp.h's `DEFVAR_LISP` reads `&globals.f_<vname>`), and the unit that owns a variable
    defines it (status §3.29, the casetab.rs/cmds.rs shape); `include/globals.rs`'s
@@ -2595,7 +2572,6 @@ pub static mut Vread_hide_char: Lisp_Object = lisp_h_Qnil ();                /* 
 pub static mut inhibit_interaction: bool = false;                            /* DEFVAR_BOOL */
 #[unsafe(no_mangle)]
 pub static mut read_minibuffer_restore_windows: bool = false;                /* DEFVAR_BOOL */
-
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_minibuf ()

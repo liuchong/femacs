@@ -483,8 +483,6 @@ unsafe extern "C" {
   pub fn free_glyphs (f: *mut frame);
   /// C: window.h 1129: `extern void delete_all_child_windows (Lisp_Object);`
   pub fn delete_all_child_windows (window: Lisp_Object);
-  /// C: <stdio.h>: `int fileno (FILE *stream);`
-  pub fn fileno (stream: *mut FILE) -> c_int;
   /// C: lisp.h 4275: `extern Lisp_Object delq_no_quit (Lisp_Object, Lisp_Object);`
   pub fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
   /// C: font.h 897: `extern void free_font_driver_list (struct frame *f);`
@@ -635,7 +633,6 @@ pub unsafe extern "C" fn get_frame_param (frame: *mut frame, prop: Lisp_Object)
   return Fcdr (Fassq (prop, (*frame).param_alist));
 }
 
-
 /* Return true if 'frame-inhibit-implied-resize' is non-nil or
    fullscreen state of frame F would be affected by a vertical
    (horizontal if HORIZONTAL is true) resize.  PARAMETER is the symbol
@@ -712,7 +709,6 @@ unsafe fn set_menu_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Ob
     }
 }
 
-
 /** Set tab bar lines for a TTY frame.  */
 unsafe fn set_tab_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp_Object)
 {
@@ -767,7 +763,6 @@ DEFUN! ("frame-live-p", Fframe_live_p, Sframe_live_p, 1, 1, 0,
 });
 
 /*                         Frame id.                             */
-
 
 DEFUN! ("frame-id", Fframe_id, Sframe_id, 0, 1, 0,
        doc: "Return FRAME's id.\nIf FRAME is nil, use the selected frame.\nReturn nil if the id has not been set.  ",
@@ -838,7 +833,6 @@ pub unsafe extern "C" fn frame_set_id_from_params (f: *mut frame, params: Lisp_O
     }
   return frame_set_id (f, id);
 }
-
 
 DEFUN! ("window-system", Fwindow_system, Swindow_system, 0, 1, 0,
        doc: "The name of the window system that FRAME is displaying through.\nThe value is a symbol:\n nil for a termcap frame (a character-only terminal),\n `x' for an Emacs frame that is really an X window,\n `w32' for an Emacs frame that is a window on MS-Windows display,\n `ns' for an Emacs frame on a GNUstep or Macintosh Cocoa display,\n `pc' for a direct-write MS-DOS frame.\n `pgtk' for an Emacs frame using pure GTK facilities.\n `haiku' for an Emacs frame running in Haiku.\n `android' for an Emacs frame running in Android.\n\nFRAME defaults to the currently selected frame.\n\nUse of this function as a predicate is deprecated.  Instead,\nuse `display-graphic-p' or any of the other `display-*-p'\npredicates which report frame's specific UI-related capabilities.  ",
@@ -976,7 +970,6 @@ unsafe fn frame_windows_min_size (frame: Lisp_Object, horizontal: Lisp_Object,
   return retval;
 }
 
-
 /**
  * keep_ratio:
  *
@@ -1009,7 +1002,6 @@ unsafe fn keep_ratio (f: *mut frame, p: *mut frame, old_width: c_int, old_height
 	    new_width: c_int, new_height: c_int)
 {
   let keep_ratio: Lisp_Object = get_frame_param (f, Qkeep_ratio ());
-
 
   if !NILP (keep_ratio)
     {
@@ -1137,7 +1129,6 @@ unsafe fn frame_size_history_adjust (f: *mut frame, inhibit: c_int, parameter: L
     }
 }
 
-
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_size_history_plain (f: *mut frame, parameter: Lisp_Object)
 {
@@ -1154,7 +1145,6 @@ pub unsafe extern "C" fn frame_size_history_plain (f: *mut frame, parameter: Lis
 		    XCDR (frame_size_history)));
     }
 }
-
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_size_history_extra (f: *mut frame, parameter: Lisp_Object,
@@ -1178,7 +1168,6 @@ pub unsafe extern "C" fn frame_size_history_extra (f: *mut frame, parameter: Lis
 		    XCDR (frame_size_history)));
     }
 }
-
 
 /**
  * adjust_frame_size:
@@ -1769,7 +1758,6 @@ pub unsafe extern "C" fn make_minibuffer_frame () -> *mut frame
 		     else { Fcar (Vminibuffer_list) }, false, false);
   return f;
 }
-
 
 /* Construct a frame that refers to a terminal.  */
 
@@ -2537,7 +2525,6 @@ pub unsafe extern "C" fn root_frame (f: *mut frame) -> *mut frame
   return f;
 }
 
-
 DEFUN! ("frame-root-frame", Fframe_root_frame, Sframe_root_frame,
        0, 1, 0,
        doc: "Return root frame of specified FRAME.\nFRAME must be a live frame and defaults to the selected one.  The root\nframe of FRAME is the frame obtained by following the chain of parent\nframes starting with FRAME until a frame is reached that has no parent.\nIf FRAME has no parent, its root frame is FRAME.  ",
@@ -2551,7 +2538,6 @@ DEFUN! ("frame-root-frame", Fframe_root_frame, Sframe_root_frame,
 
   return root;
 });
-
 
 /* Return CANDIDATE if it can be used as 'other-than-FRAME' frame on the
    same tty (for tty frames) or among frames which uses FRAME's keyboard.
@@ -2679,7 +2665,6 @@ unsafe fn prev_frame (frame: Lisp_Object, minibuf: Lisp_Object) -> Lisp_Object
        PREV is the last suitable frame in the list, return it.  */
     { return prev; }
 }
-
 
 DEFUN! ("next-frame", Fnext_frame, Snext_frame, 0, 2, 0,
        doc: "Return the next frame in the frame list after FRAME.\nOnly frames on the same terminal as FRAME are included in the list\nof candidate frames.  FRAME defaults to the selected frame.\n\nIf MINIFRAME is nil (the default), include all frames except\nminibuffer-only frames.\n\nIf MINIFRAME is a window, include only its own frame and any frame now\nusing that window as the minibuffer.\n\nIf MINIFRAME is `visible', include only visible frames.\n\nIf MINIFRAME is 0, include only visible and iconified frames.\n\nIf MINIFRAME is any other value, include all frames.\n\nReturn FRAME if no suitable next frame is found.  ",
@@ -3175,7 +3160,6 @@ pub unsafe extern "C" fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -
 	{ not_single_kboard_state (kb); }
     }
 
-
   /* If we've deleted this keyboard's default_minibuffer_frame, try to
      find another one.  Prefer minibuffer-only frames, but also notice
      frames with other windows.  */
@@ -3296,7 +3280,6 @@ DEFUN! ("delete-frame", Fdelete_frame, Sdelete_frame, 0, 2, "",
        {
   return delete_frame (frame, if !NILP (force) { Qt () } else { Qnil () });
 });
-
 
 /**
  * frame_internal_border_part:
@@ -3704,7 +3687,6 @@ DEFUN! ("visible-frame-list", Fvisible_frame_list, Svisible_frame_list,
   return value;
 });
 
-
 DEFUN! ("raise-frame", Fraise_frame, Sraise_frame, 0, 1, "",
        doc: "Bring FRAME to the front, so it occludes any frames it overlaps.\nIf FRAME is invisible or iconified, make it visible.\nIf you don't specify a frame, the selected frame is used.  ",
        (frame: Lisp_Object),
@@ -3741,7 +3723,6 @@ DEFUN! ("lower-frame", Flower_frame, Slower_frame, 0, 1, "",
   return Qnil ();
 });
 
-
 DEFUN! ("redirect-frame-focus", Fredirect_frame_focus, Sredirect_frame_focus,
        1, 2, 0,
        doc: "Arrange for keystrokes typed at FRAME to be sent to FOCUS-FRAME.\nIn other words, switch-frame events caused by events in FRAME will\nrequest a switch to FOCUS-FRAME, and `last-event-frame' will be\nFOCUS-FRAME after reading an event typed at FRAME.\n\nIf FOCUS-FRAME is nil, any existing redirection is canceled, and the\nframe again receives its own keystrokes.\n\nFocus redirection is useful for temporarily redirecting keystrokes to\na surrogate minibuffer frame when a frame doesn't have its own\nminibuffer window.\n\nA frame's focus redirection can be changed by `select-frame'.  If frame\nFOO is selected, and then a different frame BAR is selected, any\nframes redirecting their focus to FOO are shifted to redirect their\nfocus to BAR.  This allows focus redirection to work properly when the\nuser switches from one frame to another using `select-window'.\n\nThis means that a frame whose focus is redirected to itself is treated\ndifferently from a frame whose focus is redirected to nil; the former\nis affected by `select-frame', while the latter is not.\n\nThe redirection lasts until `redirect-frame-focus' is called to change it.  ",
@@ -3765,7 +3746,6 @@ DEFUN! ("redirect-frame-focus", Fredirect_frame_focus, Sredirect_frame_focus,
 
   return Qnil ();
 });
-
 
 DEFUN! ("frame-focus", Fframe_focus, Sframe_focus, 0, 1, 0,
        doc: "Return the frame to which FRAME's keystrokes are currently being sent.\nIf FRAME is omitted or nil, the selected frame is used.\nReturn nil if FRAME's focus is not redirected.\nSee `redirect-frame-focus'.  ",
@@ -3792,7 +3772,6 @@ DEFUN! ("frame-after-make-frame",
   after_make_frame! (f, !NILP (made));
   return made;
 });
-
 
 /* Discard BUFFER from the buffer-list and buried-buffer-list of each frame.  */
 
@@ -4190,7 +4169,6 @@ DEFUN! ("frame-parameters", Fframe_parameters, Sframe_parameters, 0, 1, 0,
   return alist;
 });
 
-
 DEFUN! ("frame-parameter", Fframe_parameter, Sframe_parameter, 2, 2, 0,
        doc: "Return FRAME's value for parameter PARAMETER.\nIf FRAME is nil, describe the currently selected frame.  ",
        (frame: Lisp_Object, parameter: Lisp_Object),
@@ -4339,7 +4317,6 @@ DEFUN! ("frame-char-height", Fframe_char_height, Sframe_char_height,
   /* C 4352-4358's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead (P-08).  */
     return make_fixnum (1);
 });
-
 
 DEFUN! ("frame-char-width", Fframe_char_width, Sframe_char_width,
        0, 1, 0,
@@ -4841,7 +4818,6 @@ DEFUN! ("frame--set-was-invisible", Fframe__set_was_invisible,
 
 /* C 7055-7112 and 7120-7187's `#ifdef HAVE_WINDOW_SYSTEM` blocks (the X pointer and
    `Display_Info` machinery) are dead (P-08).  */
-
 
 /***********************************************************************
 				Initialization

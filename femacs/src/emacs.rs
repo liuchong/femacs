@@ -324,21 +324,6 @@ unsafe extern "C" {
          <locale.h>, <signal.h>) ---------------------------------------------------- */
   /// C: <stdio.h>: `int printf (const char *, ...);`
   fn printf (format: *const c_char, ...) -> c_int;
-  /// C: <stdio.h>: `int fprintf (FILE *, const char *, ...);`
-  fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
-  /// C: <stdio.h>: `int fflush (FILE *);`
-  fn fflush (stream: *mut FILE) -> c_int;
-  /// C: <stdio.h>: `void clearerr (FILE *);`
-  fn clearerr (stream: *mut FILE);
-  /// C: <stdio.h>: `extern FILE *stdin;` (Darwin's libc spells the symbols `__stdinp` …).
-  #[cfg_attr (target_os = "macos", link_name = "__stdinp")]
-  static mut stdin: *mut FILE;
-  /// C: <stdio.h>: `extern FILE *stdout;`
-  #[cfg_attr (target_os = "macos", link_name = "__stdoutp")]
-  static mut stdout: *mut FILE;
-  /// C: <stdio.h>: `extern FILE *stderr;`
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  static mut stderr: *mut FILE;
   /// C: <stdlib.h>: `_Noreturn void exit (int);`
   fn exit (status: c_int) -> !;
   /// C: <stdlib.h>: `int atexit (void (*) (void));`

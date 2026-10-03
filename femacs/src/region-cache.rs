@@ -17,7 +17,6 @@ include!("include/itree.rs");
 include!("include/buffer.rs");
 include!("include/region-cache.rs");           // C 27: `#include "region-cache.h"`
 
-
 /* Data structures.  */
 
 /* The region cache.
@@ -30,7 +29,6 @@ include!("include/region-cache.rs");           // C 27: `#include "region-cache.
    maintain in the presence of many insertions and deletions.  If the
    overhead of maintaining the cache is too high, the speedups it
    offers will be worthless.
-
 
    We represent the region cache as a sorted array of struct
    boundary's, each of which contains a buffer position and a value;
@@ -120,7 +118,6 @@ macro_rules! SET_BOUNDARY_VALUE {
   };
 }
 
-
 /* How many elements to add to the gap when we resize the buffer.  */
 const NEW_CACHE_GAP: ptrdiff_t = (40);
 
@@ -129,8 +126,6 @@ const NEW_CACHE_GAP: ptrdiff_t = (40);
    revalidate_region_cache before doing the new invalidation, to
    preserve that information, instead of throwing it away.  */
 const PRESERVE_THRESHOLD: ptrdiff_t = (500);
-
-
 
 /* Interface: Allocating, initializing, and disposing of region caches.  */
 
@@ -202,9 +197,7 @@ unsafe fn find_cache_boundary (c: *mut region_cache, pos: ptrdiff_t) -> ptrdiff_
   return low;
 }
 
-
 /* Moving the cache gap around, inserting, and deleting.  */
-
 
 /* Move the gap of cache C to index POS, and make sure it has space
    for at least MIN_SIZE boundaries.  */
@@ -284,7 +277,6 @@ unsafe fn move_cache_gap (c: *mut region_cache, pos: ptrdiff_t, mut min_size: pt
   (*c).gap_len  = gap_len;
 }
 
-
 /* Insert a new boundary in cache C; it will have cache index I,
    and have the specified POS and VALUE.  */
 unsafe fn insert_cache_boundary (c: *mut region_cache, i: ptrdiff_t, pos: ptrdiff_t,
@@ -312,7 +304,6 @@ unsafe fn insert_cache_boundary (c: *mut region_cache, i: ptrdiff_t, pos: ptrdif
   (*c).gap_len -= 1;
   (*c).cache_len += 1;
 }
-
 
 /* Delete the i'th entry from cache C if START <= i < END.  */
 
@@ -357,7 +348,6 @@ unsafe fn delete_cache_boundaries (c: *mut region_cache,
 
   (*c).cache_len -= len;
 }
-
 
 /* Set the value for a region.  */
 
@@ -448,7 +438,6 @@ unsafe fn set_cache_region (c: *mut region_cache,
   }
 }
 
-
 /* Interface: Invalidating the cache.  Private: Re-validating the cache.  */
 
 /* Indicate that a section of BUF has changed, to invalidate CACHE.
@@ -479,7 +468,6 @@ pub unsafe extern "C" fn invalidate_region_cache (buf: *mut buffer, c: *mut regi
       || ((BUF_BEG (buf) + head) - (BUF_Z! (buf) - (*c).end_unchanged)
 	  > PRESERVE_THRESHOLD))
     { revalidate_region_cache (buf, c); }
-
 
   if head < (*c).beg_unchanged
     { (*c).beg_unchanged = head; }
@@ -513,7 +501,6 @@ pub unsafe extern "C" fn invalidate_region_cache (buf: *mut buffer, c: *mut regi
      revalidate_region_cache before we try to consult the cache the
      next time.  */
 }
-
 
 /* Clean out any cache entries applying to the modified region, and
    make the positions of the remaining entries accurate again.
@@ -766,11 +753,6 @@ pub unsafe extern "C" fn region_cache_backward (buf: *mut buffer, c: *mut region
    checking cfg (P-51).  C's `%"pD"d` (lisp.h 150: `pD` is `"t"`) is written as `%td`.  */
 #[cfg(enable_checking)]
 unsafe extern "C" {
-  /* int fprintf (FILE *stream, const char *format, ...);  */
-  pub fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
-  /* extern FILE *stderr;  */
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  pub static mut stderr: *mut FILE;
 }
 
 /* Debugging: pretty-print a cache to the standard error output.  */

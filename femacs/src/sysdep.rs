@@ -503,11 +503,6 @@ unsafe extern "C" {
 /// `<stdio.h>`: the entries `"sysstdio.h"` and this unit reach but `stdio.rs` does not carry
 /// (`stdio.rs` has `fclose`/`feof`/`ferror`/`fread`/`fwrite`/`fputs`/`fputc`/`sprintf`/`EOF`).
 unsafe extern "C" {
-  /* extern FILE *stdin, *stdout, *stderr;  */
-  pub static mut stdout: *mut FILE;
-  pub static mut stderr: *mut FILE;
-  /* int fflush (FILE *);  */
-  pub fn fflush (stream: *mut FILE) -> c_int;
   /* int fflush_unlocked (FILE *);  */
   pub fn fflush_unlocked (stream: *mut FILE) -> c_int;
   /* int fputc_unlocked (int, FILE *);  */
@@ -519,12 +514,6 @@ unsafe extern "C" {
   pub fn setvbuf (stream: *mut FILE, buf: *mut c_char, mode: c_int, size: usize) -> c_int;
   /* FILE *fdopen (int, const char *);  */
   pub fn fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
-  /* int fileno (FILE *);  */
-  pub fn fileno (stream: *mut FILE) -> c_int;
-  /* int getc (FILE *);  */
-  pub fn getc (stream: *mut FILE) -> c_int;
-  /* int putc (int, FILE *);  */
-  pub fn putc (c: c_int, stream: *mut FILE) -> c_int;
   /* int fscanf (FILE *, const char *, ...);  */
   pub fn fscanf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
   /* int sscanf (const char *, const char *, ...);  */
@@ -707,7 +696,6 @@ unsafe extern "C" {
   /* int wcscoll (const wchar_t *, const wchar_t *);  */
   pub fn wcscoll (a: *const wchar_t, b: *const wchar_t) -> c_int;
 }
-
 
 /// cm.h 163's `emacs_tputs` assigns `current_tty`, which `src/cm.c` owns: the mirror keeps
 /// the object in `cm_globals` because `cm.rs` defines it at its own crate root (the P-21
@@ -892,8 +880,6 @@ pub const EXIT_FAILURE: c_int = 1;
 /// (`stdio.rs` carries neither).
 unsafe extern "C" {
   pub fn perror (s: *const c_char);
-  /* int fprintf (FILE *, const char *, ...);  */
-  pub fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
   /* int printf (const char *, ...);  */
   pub fn printf (format: *const c_char, ...) -> c_int;
 }
@@ -1055,7 +1041,6 @@ pub struct save_signal {
 const _: () = assert! (std::mem::size_of::<save_signal> () == 24);
 const _: () = assert! (std::mem::offset_of! (save_signal, code) == 0);
 const _: () = assert! (std::mem::offset_of! (save_signal, action) == 8);
-
 
 /// `<signal.h>`: `#define SIGPOLL SIGIO` on the systems that have the name (this target
 /// leaves it undefined, measured), so C 681/1705/2112's `USABLE_SIGPOLL` arms are dead and

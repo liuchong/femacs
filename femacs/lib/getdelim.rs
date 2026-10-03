@@ -37,8 +37,6 @@ include!("include/errno.rs");
 
 /* The three entries this unit needs beyond the mirrors (the md5.rs shape).  */
 unsafe extern "C" {
-  /* int getc (FILE *stream);  */
-  pub fn getc (stream: *mut FILE) -> c_int;
 }
 /* <stdio.h>'s `#define EOF (-1)`.  */
 /* <sys/types.h>'s `ssize_t` (the sys_types mirror in this build spells it

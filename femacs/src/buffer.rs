@@ -145,12 +145,8 @@ unsafe extern "C" {
   fn memory_full (size: usize) -> !;
   /// C: lisp.h 5162: `extern char *emacs_strerror (int);`
   fn emacs_strerror (error_num: c_int) -> *mut c_char;
-  /// C: stdio.h: `extern int fprintf (FILE *, const char *, ...);`
-  fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
   /// C: minibuf.c 2132 (prototype in lisp.h 5178): `extern Lisp_Object get_minibuffer (int);`
   fn get_minibuffer (depth: c_int) -> Lisp_Object;
-  /// C: stdio.h's `extern FILE *stderr;`
-  static mut stderr: *mut FILE;
   /// C: emacs.c 237: `extern char *emacs_wd;`
   static mut emacs_wd: *mut c_char;
   /// C: lisp.h 4624: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
@@ -840,7 +836,6 @@ unsafe fn clone_per_buffer_values (from: *mut buffer, to: *mut buffer)
   bset_local_var_alist (to, buffer_lisp_local_variables (from, true));
 }
 
-
 /* If buffer B has markers to record PT, BEGV and ZV when it is not
    current, update these markers.  */
 
@@ -859,7 +854,6 @@ unsafe fn record_buffer_markers (b: *mut buffer)
       set_marker_both (BVAR! (b, zv_marker_), buffer, (*b).zv, (*b).zv_byte);
     }
 }
-
 
 /* If buffer B has markers to record PT, BEGV and ZV when it is not
    current, fetch these values into B->begv etc.  */
@@ -1417,7 +1411,6 @@ DEFUN! ("generate-new-buffer-name", Fgenerate_new_buffer_name,
     }
 });
 
-
 DEFUN! ("buffer-name", Fbuffer_name, Sbuffer_name, 0, 1, 0,
        doc: "Return the name of BUFFER, as a string.\nBUFFER defaults to the current buffer.\nReturn nil if BUFFER has been killed.",
        (buffer: Lisp_Object),
@@ -1461,7 +1454,6 @@ DEFUN! ("buffer-local-value", Fbuffer_local_value,
 
   return result;
 });
-
 
 /* Like Fbuffer_local_value, but return Qunbound if the variable is
    locally unbound.  */
@@ -1567,7 +1559,6 @@ unsafe fn buffer_lisp_local_variables (buf: *mut buffer, clone: bool) -> Lisp_Ob
   return result;
 }
 
-
 /* If the variable at position index OFFSET in buffer BUF has a
    buffer-local value, return (name . value).  If SYM is non-nil,
    it replaces name.  */
@@ -1614,7 +1605,6 @@ DEFUN! ("buffer-local-variables", Fbuffer_local_variables,
 
   return result;
 });
-
 
 DEFUN! ("buffer-modified-p", Fbuffer_modified_p, Sbuffer_modified_p,
        0, 1, 0,
@@ -1762,7 +1752,6 @@ DEFUN! ("buffer-chars-modified-tick", Fbuffer_chars_modified_tick,
        {
   return modiff_to_integer (BUF_CHARS_MODIFF! (decode_buffer (buffer)));
 });
-
 
 DEFUN! ("rename-buffer", Frename_buffer, Srename_buffer, 1, 2,
        "(list (read-string \"Rename buffer (to new name): \" \
@@ -1914,7 +1903,6 @@ pub unsafe extern "C" fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Objec
     }
   return buf;
 }
-
 
 DEFUN! ("buffer-enable-undo", Fbuffer_enable_undo, Sbuffer_enable_undo,
        0, 1, "",
@@ -2269,7 +2257,6 @@ DEFUN! ("kill-buffer", Fkill_buffer, Skill_buffer, 0, 1, "bKill buffer: ",
   return Qt ();
 });
 
-
 /* Move association for BUFFER to the front of buffer (a)lists.  Since
    we do this each time BUFFER is selected visibly, the more recently
    selected buffers are always closer to the front of those lists.  This
@@ -2309,7 +2296,6 @@ pub unsafe extern "C" fn record_buffer (buffer: Lisp_Object)
 
   run_buffer_list_update_hook (XBUFFER (buffer));
 }
-
 
 /* Move BUFFER to the end of the buffer (a)lists.  Do nothing if the
    buffer is killed.  For the selected frame's buffer list this moves
@@ -2529,7 +2515,6 @@ pub unsafe extern "C" fn set_buffer_if_live (buffer: Lisp_Object)
     { set_buffer_internal (XBUFFER (buffer)); }
 }
 
-
 DEFUN! ("barf-if-buffer-read-only", Fbarf_if_buffer_read_only,
 				   Sbarf_if_buffer_read_only, 0, 1, 0,
        doc: "Signal a `buffer-read-only' error if the current buffer is read-only.\nIf the text under POSITION (which defaults to point) has the\n`inhibit-read-only' text property set, the error will not be raised.",
@@ -2547,7 +2532,6 @@ DEFUN! ("barf-if-buffer-read-only", Fbarf_if_buffer_read_only,
     { xsignal1 (Qbuffer_read_only (), Fcurrent_buffer ()); }
   return Qnil ();
 });
-
 
 DEFUN! ("erase-buffer", Ferase_buffer, Serase_buffer, 0, 0, "*",
        doc: "Delete the entire contents of the current buffer.\nAny narrowing restriction in effect (see `narrow-to-region') is removed,\nso the buffer is truly empty after this.",
@@ -2912,7 +2896,6 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
       GPT! () = GPT_BYTE! ();
       TEMP_SET_PT_BOTH (PT_BYTE! (), PT_BYTE! ());
 
-
       tail = BUF_MARKERS! (current_buffer);
       while ! tail.is_null ()
 	{
@@ -3156,7 +3139,6 @@ DEFUN! ("set-buffer-multibyte", Fset_buffer_multibyte, Sset_buffer_multibyte,
   return flag;
 });
 
-
 DEFUN! ("kill-all-local-variables", Fkill_all_local_variables,
        Skill_all_local_variables, 0, 1, 0,
        doc: "Switch to Fundamental mode by killing current buffer's local variables.\nMost local variable bindings are eliminated so that the default values\nbecome effective once more.  Also, the syntax table is set from\n`standard-syntax-table', the local keymap is set to nil,\nand the abbrev table from `fundamental-mode-abbrev-table'.\nThis function also forces redisplay of the mode line.\n\nEvery function to select a new major mode starts by\ncalling this function.\n\nAs a special exception, local variables whose names have a non-nil\n`permanent-local' property are not eliminated by this function.  If\nthe optional KILL-PERMANENT argument is non-nil, clear out these local\nvariables, too.\n\nIf KILL-PERMANENT is the symbol `permanent-local', kill local variables\nand ignore variable watchers.  If KILL-PERMANENT is the symbol `reset',\nignore variable watchers and reset the buffer as if newly created.  Use\nthese with caution.  For example, `reset' sets buffer variables such as\n`default-directory' to nil and may result in unexpected behavior.\n\nThe first thing this function does is run\nthe normal hook `change-major-mode-hook'.",
@@ -3186,7 +3168,6 @@ DEFUN! ("kill-all-local-variables", Fkill_all_local_variables,
 
   return Qnil ();
 });
-
 
 /* Find all the overlays in the current buffer that overlap the range
    [BEG, END).
@@ -3417,7 +3398,6 @@ pub unsafe extern "C" fn disable_line_numbers_overlay_at_eob () -> bool
   return false;
 }
 
-
 /* Fast function to just test if we're at an overlay boundary.
 
    Returns true if some overlay starts or ends (or both) at POS,
@@ -3447,7 +3427,6 @@ pub unsafe extern "C" fn overlay_touches_p (pos: ptrdiff_t) -> bool
     }
   return false;
 }
-
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn compare_overlays (v1: *const c_void, v2: *const c_void) -> c_int
@@ -3780,7 +3759,6 @@ pub unsafe extern "C" fn overlay_strings (pos: ptrdiff_t, w: *mut c_void,
   return 0;
 }
 
-
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn adjust_overlays_for_insert (pos: ptrdiff_t, length: ptrdiff_t,
 						    before_markers: bool)
@@ -3869,7 +3847,6 @@ pub unsafe extern "C" fn adjust_overlays_for_delete (pos: ptrdiff_t, length: ptr
 	}
     }
 }
-
 
 DEFUN! ("overlayp", Foverlayp, Soverlayp, 1, 1, 0,
        doc: "Return t if OBJECT is an overlay.",
@@ -4133,7 +4110,6 @@ DEFUN! ("overlay-properties", Foverlay_properties, Soverlay_properties, 1, 1, 0,
   return Fcopy_sequence (OVERLAY_PLIST (overlay));
 });
 
-
 DEFUN! ("overlays-at", Foverlays_at, Soverlays_at, 1, 2, 0,
        doc: "Return a list of the overlays that contain the character at POS.\nIf SORTED is non-nil, then sort them by decreasing priority.\n\nZero-length (a.k.a. \"empty\") overlays that start and stop at POS are not\nincluded in the return value.  Use `overlays-in' if empty overlays are of\ninterest.\n\nThis function can return overlays outside of the current narrowing of\nthe buffer if POS is outside of the narrowing.",
        (pos: Lisp_Object, sorted: Lisp_Object),
@@ -4236,7 +4212,6 @@ DEFUN! ("previous-overlay-change", Fprevious_overlay_change,
 
   return make_fixnum (previous_overlay_change (XFIXNUM (pos)));
 });
-
 
 /* These functions are for debugging overlays.  */
 
@@ -4498,7 +4473,6 @@ unsafe fn call_overlay_mod_hooks (list: Lisp_Object, overlay: Lisp_Object, after
 // mmap_init/mmap_alloc/mmap_free/mmap_realloc/mmap_set_vars/mmap_reset_vars allocator.
 // Recorded in docs/ports/buffer.md, not transcribed (P-08).
 
-
 /***********************************************************************
 			    Buffer-text Allocation
  ***********************************************************************/
@@ -4563,7 +4537,6 @@ pub unsafe extern "C" fn enlarge_buffer_text (b: *mut buffer, delta: ptrdiff_t)
   unblock_input ();
 }
 
-
 /* Free buffer B's text buffer.  */
 
 unsafe fn free_buffer_text (b: *mut buffer)
@@ -4580,7 +4553,6 @@ unsafe fn free_buffer_text (b: *mut buffer)
   BUF_BEG_ADDR! (b) = std::ptr::null_mut ();
   unblock_input ();
 }
-
 
 /***********************************************************************
 			    Initialization

@@ -122,24 +122,10 @@ unsafe extern "C" {
   /// C: font.h 780: `extern Lisp_Object font_style_symbolic (Lisp_Object,
   /// enum font_property_index, bool);`
   fn font_style_symbolic (font: Lisp_Object, prop: c_int, for_face: bool) -> Lisp_Object;
-  /// C: <stdio.h>: `int fflush (FILE *);`
-  fn fflush (stream: *mut FILE) -> c_int;
-  /// C: <stdio.h>: `int fprintf (FILE *, const char *, ...);`
-  fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
   /// C: lib/ftoastr.h 54: `int dtoastr (char *buf, size_t bufsize, int flags, int width,
   /// double x);`
   fn dtoastr (buf: *mut c_char, bufsize: usize, flags: c_int, width: c_int, x: c_double)
     -> c_int;
-  /// C: <stdio.h> 266: `#define putc(x, fp) putc_unlocked (x, fp)` on the frozen target
-  /// (the reference object imports `_putc_unlocked`; docs/status.md 3.57).
-  #[link_name = "putc_unlocked"]
-  fn putc (c: c_int, stream: *mut FILE) -> c_int;
-  /// C: <stdio.h>: `extern FILE *stdout;` — Darwin's libc spells the object `__stdoutp`.
-  #[cfg_attr (target_os = "macos", link_name = "__stdoutp")]
-  static mut stdout: *mut FILE;
-  /// C: <stdio.h>: `extern FILE *stderr;` — Darwin's libc spells the object `__stderrp`.
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  static mut stderr: *mut FILE;
 }
 
 /// C: <unistd.h>: `#define STDERR_FILENO 2` (the callproc.rs measurement, same target).
@@ -319,7 +305,6 @@ static mut print_number_index: ptrdiff_t = 0;
    port spells as the `#[unsafe(no_mangle)] pub` that makes the object visible at all.  */
 #[unsafe(no_mangle)]
 pub static mut print_output_debug_flag: bool = true;
-
 
 /* Low level output routines for characters and strings.  */
 
@@ -866,7 +851,6 @@ unsafe fn write_string (data: *const c_char, printcharfun: Lisp_Object)
   print_finish (&raw mut pc);
 }
 
-
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn temp_output_buffer_setup (bufname: *const c_char)
 {
@@ -1178,7 +1162,6 @@ DEFUN! ("redirect-debugging-output", Fredirect_debugging_output, Sredirect_debug
   return Qnil ();
 });
 
-
 /* This is the interface for debugging printing.  */
 
 #[unsafe(no_mangle)]
@@ -1215,7 +1198,6 @@ pub unsafe extern "C" fn debug_format (fmt: *const c_char, arg: Lisp_Object) -> 
 {
   return SSDATA (CALLN! (Fformat, build_string (fmt), arg));
 }
-
 
 /* Erase the Vprin1_to_string_buffer, potentially switching to it.  */
 unsafe extern "C" fn erase_prin1_to_string_buffer ()
@@ -1356,7 +1338,6 @@ pub unsafe extern "C" fn print_error_message (mut data: Lisp_Object, stream: Lis
   }
 }
 
-
 /*
  * The buffer should be at least as large as the max string size of the
  * largest float, printed in the biggest notation.  This is undoubtedly
@@ -1491,7 +1472,6 @@ pub unsafe extern "C" fn float_to_string (buf: *mut c_char, data: c_double) -> c
 
   return len;
 }
-
 
 unsafe fn print (obj: Lisp_Object, printcharfun: Lisp_Object, escapeflag: bool)
 {
@@ -3175,7 +3155,6 @@ unsafe fn print_object (mut obj: Lisp_Object, printcharfun: Lisp_Object, escapef
   }
   eassert! (print_depth == base_depth);
 }
-
 
 /* Print a description of INTERVAL using PRINTCHARFUN.
    This is part of printing a string that has text properties.  */

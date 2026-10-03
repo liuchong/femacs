@@ -92,8 +92,6 @@ unsafe extern "C" {
   fn fclose_unwind (arg: *mut c_void);
   /// C: lisp.h 5320: `extern FILE *emacs_fdopen (int, const char *)`
   fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
-  /// C: <stdio.h>: `int getc (FILE *);`
-  fn getc (stream: *mut FILE) -> c_int;
   /// C: lisp.h 4378: `extern void add_to_log (char const *, ...);`
   fn add_to_log (format: *const c_char, ...);
   /// C: lisp.h 4692: `extern void map_char_table_for_charset (void (*c_function) (Lisp_Object,
@@ -123,11 +121,6 @@ unsafe extern "C" {
   fn clear_unwind_protect (count: specpdl_ref);
   /// C: <stdlib.h>: `void exit (int);`
   fn exit (status: c_int) -> !;
-  /// C: <stdio.h>: `int fprintf (FILE *stream, const char *format, ...);`
-  fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
-  /// C: <stdio.h>: `extern FILE *stderr;` (Darwin's libc spells the symbol `__stderrp`).
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  static mut stderr: *mut FILE;
   /// C: <string.h>: `char *strerror (int);`
   fn strerror (errnum: c_int) -> *mut c_char;
   /// C: <stdlib.h>: `void qsort (void *, size_t, size_t, int (*) (const void *, const void *));`
@@ -267,7 +260,6 @@ macro_rules! CODE_POINT_TO_INDEX {
   };
 }
 
-
 /* Return the code-point for the character index IDX in CHARSET.
    IDX should be an unsigned int variable in a valid range (which is
    always in nonnegative int range too).  IDX contains garbage afterwards.  */
@@ -386,7 +378,6 @@ macro_rules! GET_TEMP_CHARSET_WORK_DECODER {
   ($code:expr) => { (*temp_charset_work).table.decoder[($code) as usize] };
 }
 
-
 /* Set to 1 to warn that a charset map is loaded and thus a buffer
    text and a string data may be relocated.  */
 #[unsafe(no_mangle)]
@@ -420,7 +411,6 @@ pub struct charset_map_entries
 const _: () = assert! (std::mem::offset_of! (charset_map_entries, entry) == 0);
 const _: () = assert! (std::mem::offset_of! (charset_map_entries, next) == 0xC0000);
 const _: () = assert! (std::mem::size_of::<charset_map_entries> () == 0xC0008);
-
 
 /* Load the mapping information of CHARSET from ENTRIES for
    initializing (CONTROL_FLAG == 0), decoding (CONTROL_FLAG == 1), and
@@ -656,7 +646,6 @@ unsafe fn load_charset_map (charset: *mut charset, mut entries: *mut charset_map
     }
 }
 
-
 /* Read a hexadecimal number (preceded by "0x") from the file FP while
    paying attention to comment character '#'.  LOOKAHEAD is the
    lookahead byte if it is nonnegative.  Store into *TERMINATOR the
@@ -710,7 +699,6 @@ unsafe fn read_hex (fp: *mut FILE, lookahead: c_int, terminator: *mut c_int,
   *overflow |= v;
   return n;
 }
-
 
 /* Return a mapping vector for CHARSET loaded from MAPFILE.
    Each line of MAPFILE has this form
@@ -878,7 +866,6 @@ unsafe fn load_charset_map_from_vector (charset: *mut charset, vec: Lisp_Object,
   unbind_to (count, Qnil ());
 }
 
-
 /* Load a mapping table for CHARSET.  CONTROL-FLAG tells what kind of
    map it is (see the comment of load_charset_map for the detail).  */
 
@@ -906,14 +893,12 @@ unsafe fn load_charset (charset: *mut charset, control_flag: c_int)
     { load_charset_map_from_vector (charset, map, control_flag); }
 }
 
-
 DEFUN! ("charsetp", Fcharsetp, Scharsetp, 1, 1, 0,
        doc: "Return non-nil if and only if OBJECT is a charset.",
        (object: Lisp_Object),
        {
 	 return if CHARSETP! (object) { Qt () } else { Qnil () };
        });
-
 
 unsafe fn map_charset_for_dump (c_function: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
 				function: Lisp_Object, arg: Lisp_Object,
@@ -1088,7 +1073,6 @@ DEFUN! ("map-charset-chars", Fmap_charset_chars, Smap_charset_chars, 2, 5, 0,
 	 map_charset_chars (None, function, arg, cs, from, to);
 	 return Qnil ();
        });
-
 
 /* Define a charset according to the arguments.  The Nth argument is
    the Nth attribute of the charset (the last attribute `charset-id'
@@ -1505,7 +1489,6 @@ DEFUN! ("define-charset-internal", Fdefine_charset_internal,
 	 return Qnil ();
        });
 
-
 /* Same as Fdefine_charset_internal but arguments are more convenient
    to call from C (typically in syms_of_charset).  This can define a
    charset of `offset' method only.  Return the ID of the new
@@ -1568,7 +1551,6 @@ unsafe fn define_charset_internal (name: Lisp_Object,
   return XFIXNUM (CHARSET_SYMBOL_ID! (name)) as c_int;
 }
 
-
 DEFUN! ("define-charset-alias", Fdefine_charset_alias,
        Sdefine_charset_alias, 2, 2, 0,
        doc: "Define ALIAS as an alias for charset CHARSET.",
@@ -1582,7 +1564,6 @@ DEFUN! ("define-charset-alias", Fdefine_charset_alias,
 	 return Qnil ();
        });
 
-
 DEFUN! ("charset-plist", Fcharset_plist, Scharset_plist, 1, 1, 0,
        doc: "Return the property list of CHARSET.",
        (charset: Lisp_Object),
@@ -1592,7 +1573,6 @@ DEFUN! ("charset-plist", Fcharset_plist, Scharset_plist, 1, 1, 0,
 	 CHECK_CHARSET_GET_ATTR! (charset, attrs);
 	 return CHARSET_ATTR_PLIST! (attrs);
        });
-
 
 DEFUN! ("set-charset-plist", Fset_charset_plist, Sset_charset_plist, 2, 2, 0,
        doc: "Set CHARSET's property list to PLIST.",
@@ -1604,7 +1584,6 @@ DEFUN! ("set-charset-plist", Fset_charset_plist, Sset_charset_plist, 2, 2, 0,
 	 ASET (attrs, charset_plist as isize, plist);
 	 return plist;
        });
-
 
 DEFUN! ("unify-charset", Funify_charset, Sunify_charset, 1, 3, 0,
        doc: "Unify characters of CHARSET with Unicode.\nThis means reading the relevant file and installing the table defined\nby CHARSET's `:unify-map' property.\n\nOptional second arg UNIFY-MAP is a file name string or a vector.  It has\nthe same meaning as the `:unify-map' attribute in the function\n`define-charset' (which see).\n\nOptional third argument DEUNIFY, if non-nil, means to de-unify CHARSET.  ",
@@ -1697,7 +1676,6 @@ DEFUN! ("get-unused-iso-final-char", Fget_unused_iso_final_char,
 	 return Qnil ();
        });
 
-
 DEFUN! ("declare-equiv-charset", Fdeclare_equiv_charset, Sdeclare_equiv_charset,
        4, 4, 0,
        doc: "Declare an equivalent charset for ISO-2022 decoding.\n\nOn decoding by an ISO-2022 base coding system, when a charset\nspecified by DIMENSION, CHARS, and FINAL-CHAR is designated, behave as\nif CHARSET is designated instead.  ",
@@ -1711,7 +1689,6 @@ DEFUN! ("declare-equiv-charset", Fdeclare_equiv_charset, Sdeclare_equiv_charset,
 	 ISO_CHARSET_TABLE! (XFIXNUM (dimension), chars_flag as c_int, XFIXNAT (final_char) as c_int) = id;
 	 return Qnil ();
        });
-
 
 /* Return information about charsets in the text at PTR of NBYTES
    bytes, which are NCHARS characters.  The value is:
@@ -1745,7 +1722,6 @@ pub unsafe extern "C" fn string_xstring_p (string: Lisp_Object) -> c_int
     }
   return 1;
 }
-
 
 /* Find charsets in the string at PTR of NCHARS and NBYTES.
 
@@ -1879,8 +1855,6 @@ DEFUN! ("find-charset-string", Ffind_charset_string, Sfind_charset_string,
 	 return val;
        });
 
-
-
 /* Return a unified character code for C (>= 0x110000).  VAL is a
    value of Vchar_unify_table for C; i.e. it is nil, an integer, or a
    charset symbol.  */
@@ -1913,7 +1887,6 @@ unsafe fn maybe_unify_char (c: c_int, val: Lisp_Object) -> c_int
     }
   return c;
 }
-
 
 /* Return a character corresponding to the code-point CODE of
    CHARSET.  */
@@ -2115,7 +2088,6 @@ pub unsafe extern "C" fn encode_char (charset_: *mut charset, c: c_int) -> c_uin
   return code;
 }
 
-
 DEFUN! ("decode-char", Fdecode_char, Sdecode_char, 2, 2, 0,
        doc: "Decode the pair of CHARSET and CODE-POINT into a character.\nReturn nil if CODE-POINT is not valid in CHARSET.\n\nCODE-POINT may be a cons (HIGHER-16-BIT-VALUE . LOWER-16-BIT-VALUE),\nalthough this usage is obsolescent.  ",
        (charset: Lisp_Object, code_point: Lisp_Object),
@@ -2131,7 +2103,6 @@ DEFUN! ("decode-char", Fdecode_char, Sdecode_char, 2, 2, 0,
 	 c = DECODE_CHAR! (charsetp, code);
 	 return if c >= 0 { make_fixnum (c as EMACS_INT) } else { Qnil () };
        });
-
 
 DEFUN! ("encode-char", Fencode_char, Sencode_char, 2, 2, 0,
        doc: "Encode the character CH into a code-point of CHARSET.\nReturn the encoded code-point as an integer,\nor nil if CHARSET doesn't support CH.  ",
@@ -2158,7 +2129,6 @@ DEFUN! ("encode-char", Fencode_char, Sencode_char, 2, 2, 0,
 	    up represented as bignums if EMACS_INT is 32 bits.  */
 	 return INT_TO_INTEGER (code as EMACS_INT);
        });
-
 
 DEFUN! ("make-char", Fmake_char, Smake_char, 1, 5, 0,
        doc: "\nReturn a character of CHARSET whose position codes are CODEn.\n\nCODE1 through CODE4 are optional, but if you don't supply sufficient\nposition codes, it is assumed that the minimum code in each dimension\nis specified.  ",
@@ -2235,7 +2205,6 @@ DEFUN! ("make-char", Fmake_char, Smake_char, 1, 5, 0,
 	 return make_fixnum (c as EMACS_INT);
        });
 
-
 /* Return the first charset in CHARSET_LIST that contains C.
    CHARSET_LIST is a list of charset IDs.  If it is nil, use
    Vcharset_ordered_list.  */
@@ -2274,7 +2243,6 @@ pub unsafe extern "C" fn char_charset (c: c_int, charset_list_: Lisp_Object,
 	 else { CHARSET_FROM_ID! (charset_eight_bit) };
 }
 
-
 DEFUN! ("split-char", Fsplit_char, Ssplit_char, 1, 1, 0,
        doc: "Return list of charset and one to four position-codes of CH.\nThe charset is decided by the current priority order of charsets.\nA position-code is a byte value of each dimension of the code-point of\nCH in the charset.  ",
        (ch: Lisp_Object),
@@ -2303,7 +2271,6 @@ DEFUN! ("split-char", Fsplit_char, Ssplit_char, 1, 1, 0,
 	   }
 	 return Fcons (CHARSET_NAME! (charset), val);
        });
-
 
 DEFUN! ("char-charset", Fchar_charset, Schar_charset, 1, 2, 0,
        doc: "Return the charset of highest priority that contains CH.\nASCII characters are an exception: for them, this function always\nreturns `ascii'.\nIf optional 2nd arg RESTRICTION is non-nil, it is a list of charsets\nfrom which to find the charset.  It may also be a coding system.  In\nthat case, find the charset in those supported by that coding system.  ",
@@ -2339,7 +2306,6 @@ DEFUN! ("char-charset", Fchar_charset, Schar_charset, 1, 2, 0,
 	   }
 	 return CHARSET_NAME! (charset);
        });
-
 
 DEFUN! ("charset-after", Fcharset_after, Scharset_after, 0, 1, 0,
        doc: "\nReturn charset of a character in the current buffer at position POS.\nIf POS is nil, it defaults to the current point.\nIf POS is out of range, the value is nil.  ",
@@ -2587,8 +2553,6 @@ DEFUN! ("sort-charsets", Fsort_charsets, Ssort_charsets, 1, 1, 0,
 	 return charsets;
        });
 
-
-
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn init_charset ()
 {
@@ -2610,7 +2574,6 @@ pub unsafe extern "C" fn init_charset ()
 
   Vcharset_map_path = list1 (tempdir);
 }
-
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn init_charset_once ()

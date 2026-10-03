@@ -1174,3 +1174,21 @@
   - `docs/ports/line-drift-tolerance.tsv` 是**追加式日志**，同一 stem 可以有多行：工具原来取**第一条**
     匹配（旧行永远生效，与 lane 们"新行覆盖旧行"的预期相反），本轮改成**取最后一条**；用 `buffer`
     （0.20 临时行 → 0.16 终态行）与 `process`（0.10 临时行 → 0.05 终态行）两处验证 `--check` 仍 OK。
+
+- **3.79 第 98 轮：`<stdio.h>` 的九个名字收敛进镜像——19 个单元各自抄了一两年（2026-10-04）**：
+  P-26 的"同一构造一种写法"在 stdio 上一直是灰的：`fprintf` 被 **13 个**单元各自声明、`putc` 9 个、
+  `fflush` 6 个、`fileno` 4 个、`clearerr` 3 个、`getc` 4 个，`stdout`/`stdin`/`stderr` 三个流对象
+  被 **24 个**单元各自声明（每处都带 Darwin 的 `__stderrp`/`__stdinp`/`__stdoutp` link_name）。
+  ① 镜像补齐：六个函数进 `include/stdio.rs` 的 `stdio_decls`（模块 + glob，0.1-10 的遮蔽机制让
+  任何单元保留自己的副本也不会 `E0428`），三个流对象进新的 `stdio_objs` 模块（同样带 link_name）。
+  ② 19 个单元（`getdelim`/`getopt`/`mini-gmp`/`bidi`/`buffer`/`bytecode`/`charset`/`cm`/`emacs`/
+  `frame`/`lread`/`minibuf`/`pdumper`/`print`/`regex-emacs`/`region-cache`/`search`/`sysdep`/`term`）
+  删掉各自的副本，全部 `build-tu` + `--check` **OK**；`enable_checking` 抽查 emacs/bidi/term 三个
+  单元 exit 0；`check-globals` 269/0、`check-linkage` 0 缺失、`check-declarations` 0、
+  `check-mirror-dupes` 仍只有棘轮那一行。在飞的 fileio/alloc/dispnew/fns 四条 lane 的副本会在它们
+  收口时被同一个门点出来（我给它们的清单里就有这一步）。
+  ③ **顺手抓到一处真缺陷**：`src/lread.rs` 把 `clearerr` 声明成 `-> c_int`，而 C 与镜像都是 `void`
+  ——这正是"同一个名字两种签名"的 `clashing_extern_declarations` 类；它的副本随本轮删除，声明归镜像。
+  ④ 过程中的一个教训（写下来备查）：用"注释后紧跟的下一行像不像条目"来清理悬挂 `///` 时，
+  `macro_rules!` 一类不以关键字开头的条目会被误判——第一版脚本就这样删掉了 16 条**合法**文档注释，
+  随后按 `HEAD` 复原、只重跑定向移除才干净。**清理脚本的判据要保守，且必须逐文件编译验证。**

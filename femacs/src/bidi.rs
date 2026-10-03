@@ -253,13 +253,6 @@ unsafe extern "C" {
 /* <stdio.h>: `putc` and `fprintf` for `bidi_dump_cached_states`, and `stderr` under its
    Darwin link name (the cm.rs/bytecode.rs/region-cache.rs shape).  */
 unsafe extern "C" {
-  /* int fprintf (FILE *stream, const char *format, ...);  */
-  pub fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
-  /* int putc (int c, FILE *stream);  */
-  pub fn putc (c: c_int, stream: *mut FILE) -> c_int;
-  /* extern FILE *stderr;  */
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  pub static mut stderr: *mut FILE;
 }
 
 /* <intprops.h>'s `INT_PROMOTE (e)` is `(+ (e))` (intprops.h 55): C uses it to promote an
@@ -288,7 +281,6 @@ pub const EXPLICIT_FORMATTING: bidi_category_t = 4;
 
 static mut paragraph_start_re: Lisp_Object = std::ptr::null_mut ();
 static mut paragraph_separate_re: Lisp_Object = std::ptr::null_mut ();
-
 
 /***********************************************************************
 				Utilities
@@ -541,7 +533,6 @@ unsafe fn bidi_copy_it (to: *mut bidi_it, from: *mut bidi_it)
 	  + std::mem::size_of_val (&(*from).level_stack[0])
 	  + (*from).stack_idx as usize * std::mem::size_of_val (&(*from).level_stack[0]));
 }
-
 
 /***********************************************************************
 			Caching the bidi iterator states
@@ -918,7 +909,6 @@ unsafe fn bidi_peek_at_next_level (bidi_it: *mut bidi_it) -> c_int
 	 .resolved_level as c_int;
 }
 
-
 /***********************************************************************
 	     Pushing and popping the bidi iterator state
  ***********************************************************************/
@@ -1122,7 +1112,6 @@ pub unsafe extern "C" fn bidi_unshelve_cache (databuf: *mut c_void, just_free: b
     }
 }
 
-
 /***********************************************************************
 				Initialization
  ***********************************************************************/
@@ -1232,7 +1221,6 @@ unsafe fn bidi_line_init (bidi_it: *mut bidi_it)
 
   bidi_cache_reset ();
 }
-
 
 /***********************************************************************
 			Fetching characters
@@ -1487,7 +1475,6 @@ unsafe fn bidi_fetch_char_skip_isolates (charpos: ptrdiff_t, bytepos: ptrdiff_t,
   *ch_len += bytepos - orig_bytepos;
   return ch;
 }
-
 
 /***********************************************************************
 			Determining paragraph direction
@@ -1888,7 +1875,6 @@ pub unsafe extern "C" fn bidi_paragraph_init (dir: bidi_dir_t, bidi_it: *mut bid
   if max_redisplay_ticks > 0 && nexamined > 0
     { update_redisplay_ticks ((nexamined / 50) as c_int, (*bidi_it).w); }
 }
-
 
 /***********************************************************************
 		 Resolving explicit and implicit levels.

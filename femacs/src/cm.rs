@@ -54,11 +54,6 @@ include!("include/tparam.rs");           // cm.c 28: tparam.h (tputs, tgoto, UP,
    here, which is where the C translation unit gets them (the getopt.rs shape, PORTING.md
    0.1-3).  `fputs`/`FILE` come from the stdio mirror above.  */
 unsafe extern "C" {
-  /* int putc (int c, FILE *stream);  */
-  pub fn putc (c: c_int, stream: *mut FILE) -> c_int;
-  /* extern FILE *stdout;  */
-  #[cfg_attr (target_os = "macos", link_name = "__stdoutp")]
-  pub static mut stdout: *mut FILE;
 }
 
 /* cm.c 30: `#define BIG 9999` - "Good on 32-bit hosts."  */
@@ -178,7 +173,6 @@ pub unsafe extern "C" fn cmcheckmagic (tty: *mut tty_display_info)
       curY! (tty) += 1;
     }
 }
-
 
 /*
  * (Re)Initialize the cost factors, given the output speed of the terminal

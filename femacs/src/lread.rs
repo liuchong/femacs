@@ -1147,14 +1147,10 @@ unsafe extern "C" {
   /// *not* `getc` (measured: `getc`/`__srget`/`getc` on a buffered stream returns `A` then
   /// garbage), so the port calls the libc entry point the macro stands for - the
   /// `emacs_fclose` (`lisp.h` -> `fclose`) and print.rs `putc` class.  The reference object
-  /// therefore references `___srget` and this one `_getc` (docs/ports/lread.md's D7).
-  fn getc (stream: *mut FILE) -> c_int;
   /// C: <stdio.h>: `int fseek (FILE *, long, int);`
   fn fseek (stream: *mut FILE, off: c_long, whence: c_int) -> c_int;
   /// C: <stdio.h>: `off_t ftello (FILE *);` (`HAVE_FSEEKO` is 1 in the frozen table).
   fn ftello (stream: *mut FILE) -> off_t;
-  /// C: <stdio.h>: `void clearerr (FILE *);`
-  fn clearerr (stream: *mut FILE) -> c_int;
   /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);` (eval.c).
   fn record_unwind_protect_excursion ();
   /// C: lisp.h 5243: `extern ptrdiff_t count_lines (ptrdiff_t, ptrdiff_t);` (indent.c).
@@ -1245,11 +1241,6 @@ unsafe extern "C" {
   fn emacs_strerror (error_number: c_int) -> *const c_char;
   /// C: emacs.c: `extern void message_dolog (const char *, ptrdiff_t, bool, bool);`
   fn message_dolog (m: *const c_char, nbytes: ptrdiff_t, nlflag: bool, multibyte: bool);
-  /// C: <stdio.h>: `extern FILE *stderr;` (Darwin's libc spells the symbol `__stderrp`).
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  static mut stderr: *mut FILE;
-  /// C: <stdio.h>: `int fprintf (FILE *, const char *, ...);`
-  fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
   /// C: alloc.c: `extern void mark_object (Lisp_Object);`
   fn mark_object (obj: Lisp_Object);
   /// C: lisp.h 5xxx: `extern Lisp_Object eval_sub (Lisp_Object);` (eval.c).
@@ -1272,7 +1263,6 @@ unsafe fn FUNCTIONP (a: Lisp_Object) -> bool
 {
   if SYMBOLP (a) { !NILP (Fsymbol_function (a)) } else { SUBRP (a) || NATIVE_COMP_FUNCTIONP (a) }
 }
-
 
 DEFUN! ("load", Fload, Sload, 1, 5, 0,
        doc: "Execute a file of Lisp code named FILE.\nFirst try FILE with `.elc' appended, then try with `.el', then try\nwith a system-dependent suffix of dynamic modules (see `load-suffixes'),\nthen try FILE unmodified (the exact suffixes in the exact order are\ndetermined by `load-suffixes').  Environment variable references in\nFILE are replaced with their values by calling `substitute-in-file-name'.\nThis function searches the directories in `load-path'.\n\nIf optional second arg NOERROR is non-nil,\nreport no error if FILE doesn't exist.\nPrint messages at start and end of loading unless\noptional third arg NOMESSAGE is non-nil (but `force-load-messages'\noverrides that).\nIf optional fourth arg NOSUFFIX is non-nil, don't try adding\nsuffixes to the specified name FILE.\nIf optional fifth arg MUST-SUFFIX is non-nil, insist on\nthe suffix `.elc' or `.el' or the module suffix; don't accept just\nFILE unless it ends in one of those suffixes or includes a directory name.\n\nIf NOSUFFIX is nil, then if a file could not be found, try looking for\na different representation of the file by adding non-empty suffixes to\nits name, before trying another file.  Emacs uses this feature to find\ncompressed versions of files when Auto Compression mode is enabled.\nIf NOSUFFIX is non-nil, disable this feature.\n\nThe suffixes that this function tries out, when NOSUFFIX is nil, are\ngiven by the return value of `get-load-suffixes' and the values listed\nin `load-file-rep-suffixes'.  If MUST-SUFFIX is non-nil, only the\nreturn value of `get-load-suffixes' is used, i.e. the file name is\nrequired to have a non-empty suffix.\n\nWhen searching suffixes, this function normally stops at the first\none that exists.  If the option `load-prefer-newer' is non-nil,\nhowever, it tries all suffixes, and uses whichever file is the newest.\n\nLoading a file records its definitions, and its `provide' and\n`require' calls, in an element of `load-history' whose\ncar is the file name loaded.  See `load-history'.\n\nWhile the file is in the process of being loaded, the variable\n`load-in-progress' is non-nil and the variable `load-file-name'\nis bound to the file's name.\n\nReturn t if the file exists and loads successfully.",
@@ -5587,7 +5577,6 @@ DEFUN! ("internal--obarray-buckets",
 	 Fnreverse (ret)
        });
 
-
 /* C's `static char const *const defsym_name[] = { … }` is generated into the reference's
    `globals.h` (build/emacs-ref/src/globals.h 5799; the frozen build's array has 1561
    entries, and the port's own symbol set is the 2118-symbol superset - P-29, the same set
@@ -6590,7 +6579,6 @@ pub static mut load_prefer_newer: bool = false;
 
 #[unsafe(no_mangle)]
 pub static mut load_no_native: bool = false;
-
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_lread ()

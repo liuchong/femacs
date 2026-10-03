@@ -118,10 +118,6 @@ unsafe extern "C" {
 		from_multibyte: bool, to_multibyte: bool) -> ptrdiff_t;
   /// C: <stdio.h>: `FILE *open_memstream (char **, size_t *);` (the checking arm only).
   fn open_memstream (bufloc: *mut *mut c_char, sizeloc: *mut usize) -> *mut FILE;
-  /// C: <stdio.h>: `extern FILE *stderr;` (Darwin's libc spells the symbol `__stderrp`).
-  #[cfg (all (enable_checking, feature = "no_have_open_memstream"))]
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  static mut stderr: *mut FILE;
 }
 
 /* If the regexp is non-nil, then the buffer contains the compiled form
@@ -415,7 +411,6 @@ unsafe fn compile_pattern (pattern: Lisp_Object, regp: *mut re_registers,   // C
   return cp;
 }
 
-
 unsafe fn looking_at_1 (string: Lisp_Object, posix: bool, modify_data: bool)   // C 261-350
   -> Lisp_Object
 {
@@ -518,7 +513,6 @@ DEFUN! ("posix-looking-at", Fposix_looking_at, Sposix_looking_at, 1, 2, 0,  // C
        {
 	 return looking_at_1 (regexp, true, NILP (inhibit_modify));
        });
-
 
 unsafe fn string_match_1 (regexp: Lisp_Object, string: Lisp_Object,   // C 369-440
 			  start: Lisp_Object, posix: bool, modify_data: bool)
@@ -744,7 +738,6 @@ pub unsafe extern "C" fn fast_looking_at (regexp: Lisp_Object, pos: ptrdiff_t,  
   return len;
 }
 
-
 /* The newline cache: remembering which sections of text have no newlines.  */
 
 /* If the user has requested the long scans caching, make sure it's on.
@@ -796,7 +789,6 @@ unsafe fn newline_cache_on_off (buf: *mut buffer) -> *mut region_cache   // C 60
       return (*base_buf).newline_cache;
     }
 }
-
 
 /* Search for COUNT newlines between START/START_BYTE and END/END_BYTE.
 
@@ -1213,7 +1205,6 @@ pub unsafe extern "C" fn find_before_next_newline (from: ptrdiff_t, to: ptrdiff_
     }
   return pos;
 }
-
 
 /* Subroutines of Lisp buffer search functions. */
 
@@ -1751,7 +1742,6 @@ pub unsafe extern "C" fn search_buffer (string: Lisp_Object, pos: ptrdiff_t,   /
 
   return pos;
 }
-
 
 /* Do a simple string search N times for the string PAT,
    whose length is LEN/LEN_BYTE,
@@ -2465,7 +2455,6 @@ unsafe fn set_search_regs (beg_byte: ptrdiff_t, nbytes: ptrdiff_t)   // C 2178-2
   XSETBUFFER! (last_thing_searched! (), current_buffer);
 }
 
-
 DEFUN! ("search-backward", Fsearch_backward, Ssearch_backward, 1, 4,      // C 2206-2216
        "MSearch backward: ",
        doc: "Search backward from point for STRING.\nThis function is almost identical to `search-forward', except that\nby default it searches backward instead of forward, and the sign of\nCOUNT also indicates exactly the opposite searching direction.\nSee `search-forward' for details.",
@@ -2513,7 +2502,6 @@ DEFUN! ("posix-search-forward", Fposix_search_forward, Sposix_search_forward, 1,
        {
 	 return search_command (regexp, bound, noerror, count, 1, true, true);
        });
-
 
 /* C 2344-2767: `enum { nochange, all_caps, cap_initial }` is a function-local enum in C; the
    port keeps its three members as an enum so the names C's body uses stay in the text.  */
@@ -2925,7 +2913,6 @@ DEFUN! ("replace-match", Freplace_match, Sreplace_match, 1, 5, 0,        // C 23
 
 	 return Qnil ();
        });
-
 
 unsafe fn match_limit (num: Lisp_Object, beginningp: bool) -> Lisp_Object   // C 2769-2784
 {
@@ -3604,7 +3591,6 @@ DEFUN! ("re--describe-compiled", Fre__describe_compiled, Sre__describe_compiled,
 	     }
 	   }
        });
-
 
 /* The two `DEFVAR_LISP` variables this C file owns: C's storage is `globals.f_<vname>`
    (lisp.h 3495-3530) and `struct emacs_globals globals` is defined once, in alloc.c; the

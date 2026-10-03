@@ -119,13 +119,8 @@ pub mod pdumper_use_site_decls {
 
     /* int fprintf (FILE *, const char *, ...); int vfprintf (FILE *, const char *, va_list);
        int snprintf (char *, size_t, const char *, ...); int putc (int, FILE *);  */
-    pub fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
     pub fn vfprintf (stream: *mut FILE, format: *const c_char, ap: VaList<'_>) -> c_int;
     pub fn snprintf (s: *mut c_char, n: size_t, format: *const c_char, ...) -> c_int;
-    pub fn putc (c: c_int, stream: *mut FILE) -> c_int;
-    /* extern FILE *stderr;  */
-    #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-    pub static mut stderr: *mut FILE;
 
     /* void abort (void);  */
     pub fn abort () -> !;
@@ -242,7 +237,6 @@ pub fn S_ISREG (m: mode_t) -> bool { (m & S_IFMT) == S_IFREG }
 
 /// `<sys/param.h>`: `#define MAXPATHLEN PATH_MAX` (measured: 1024 on the frozen target).
 pub const MAXPATHLEN: c_int = 1024;
-
 
 /* C 71's `#ifdef HAVE_PDUMPER` is live (`HAVE_PDUMPER` is 1 in the frozen configuration,
    docs/baseline/config/darwin-arm64.macros.tsv); its empty `#else` arm carries no text.
@@ -903,7 +897,6 @@ pub struct link_weight
 static WEIGHT_NONE: link_weight = link_weight { value: 0 };
 static WEIGHT_NORMAL: link_weight = link_weight { value: 1000 };
 static WEIGHT_STRONG: link_weight = link_weight { value: 1200 };
-
 
 /* Dump file creation */
 
@@ -4976,7 +4969,6 @@ pub unsafe extern "C" fn pdumper_remember_lv_ptr_raw_impl (ptr: *mut c_void, typ
 {
   pdumper_remember_user_data_1 (ptr, -(type_ as c_int));
 }
-
 
 /* Dump runtime */
 #[repr(C)]

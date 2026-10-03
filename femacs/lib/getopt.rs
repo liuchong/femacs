@@ -45,11 +45,6 @@ include!("include/getopt_int.rs");
    functions, and `abort`.  (`getenv` moved to include/stdlib.rs, which this unit includes:
    one home for a system-header declaration, PORTING.md 0.1-3.)  */
 unsafe extern "C" {
-  /* int fprintf (FILE *stream, const char *format, ...);  */
-  pub fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
-  /* extern FILE *stderr;  */
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  pub static mut stderr: *mut FILE;
   /* void flockfile (FILE *stream);  void funlockfile (FILE *stream);  */
   pub fn flockfile (stream: *mut FILE);
   pub fn funlockfile (stream: *mut FILE);

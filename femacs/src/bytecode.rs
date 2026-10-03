@@ -113,11 +113,6 @@ unsafe extern "C" {
                        bindflag: Set_Internal_Bind);
   /// C: lisp.h 4921: `extern void record_unwind_protect_excursion (void);`
   pub fn record_unwind_protect_excursion ();
-  /// C: stdio.h: `int fprintf (FILE *stream, const char *format, ...);` and
-  /// `extern FILE *stderr;` (the region-cache.rs shape).
-  pub fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  pub static mut stderr: *mut FILE;
 }
 
 /* Define BYTE_CODE_SAFE true to enable some minor sanity checking,
@@ -343,7 +338,6 @@ BYTE_CODES! ();
    value.  The name's real meaning is the macro above; nothing in this unit reads this
    record.  */
 pub const BYTE_CODES: ptrdiff_t = 0;
-
 
 DEFUN! ("byte-code", Fbyte_code, Sbyte_code, 3, 3, 0,
        doc: "Function used internally in byte-compiled code.\nThe first argument, BYTESTR, is a string of byte code;\nthe second, VECTOR, a vector of constants;\nthe third, MAXDEPTH, the maximum stack depth used in this function.\nIf the third argument is incorrect, Emacs may crash.",

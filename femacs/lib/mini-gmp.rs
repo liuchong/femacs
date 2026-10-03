@@ -76,14 +76,10 @@ unsafe extern "C" {
 
 /* <stdio.h>'s output side (the mirror carries FILE and fclose).  */
 unsafe extern "C" {
-  /* int fprintf (FILE *stream, const char *format, ...);  */
-  pub fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
   /* size_t fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream);  */
   pub fn fwrite (ptr: *const c_void, size: usize, nmemb: usize, stream: *mut FILE) -> usize;
   /* extern FILE *stderr;  — darwin spells the object `__stderrp` (stdio.h's `stderr`
      is a macro over it), so the port keeps C's name and binds the platform symbol.  */
-  #[cfg_attr (target_os = "macos", link_name = "__stderrp")]
-  pub static mut stderr: *mut FILE;
 }
 
 /* Macros */
@@ -2250,7 +2246,6 @@ pub unsafe extern "C" fn mpz_swap (u: *mut __mpz_struct, v: *mut __mpz_struct)
 }
 
 /* MPZ addition and subtraction */
-
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn mpz_add_ui (r: *mut __mpz_struct, a: *const __mpz_struct,
