@@ -350,6 +350,32 @@ def strip_char_literals(text: str) -> str:
     return "".join(out)
 
 
+# Integer literals are compared by *value*.  C's octal constant has no legal Rust
+# spelling (`0200` is not a Rust literal), so a port writes `0o200`, and a spelling
+# comparison reported every such constant as "missing" (and made the `memcpy` family's
+# argument check demand C's `0200`).  The scanner also keeps `0x80` in one piece: it
+# used to tokenise as `0` + `x80`, which made `0x80` and `128` compare unequal.
+INT_LITERAL = re.compile(
+    r"0[xX][0-9a-fA-F][0-9a-fA-F_]*|0[bB][01][01_]*|0[oO][0-7][0-7_]*|0[0-7]+|[0-9]+")
+
+
+def norm_int_literal(tok: str) -> str:
+    """A C/C++/Rust integer literal's decimal value, as the token to compare."""
+    body = tok.replace("_", "")
+    try:
+        if body[:2] in ("0x", "0X"):
+            return str(int(body[2:], 16))
+        if body[:2] in ("0b", "0B"):
+            return str(int(body[2:], 2))
+        if body[:2] in ("0o", "0O"):
+            return str(int(body[2:], 8))
+        if len(body) > 1 and body[0] == "0":
+            return str(int(body, 8))         # C's octal, by its value
+        return str(int(body))
+    except ValueError:
+        return tok
+
+
 def body_token_seq(text: str, *, numbers: bool = True, skip_short: bool = False) -> list:
     """Identifiers (and numbers) of a C macro body or a Rust body, normalised.
 
@@ -370,12 +396,12 @@ def body_token_seq(text: str, *, numbers: bool = True, skip_short: bool = False)
     text = "\n".join(l for l in text.split("\n")
                      if not l.lstrip().startswith("#") or l.lstrip().startswith("#["))
     text = re.sub(r"#\s*\[[^\]]*\]", "", text)
-    toks = re.findall(r"[A-Za-z_]\w*|\d+", text)
+    toks = re.findall(r"[A-Za-z_]\w*|" + INT_LITERAL.pattern, text)
     out = []
     for tok in toks:
-        if tok.isdigit():
+        if tok[0].isdigit():
             if numbers:
-                out.append(tok)
+                out.append(norm_int_literal(tok))
             continue
         low = tok.lower().removeprefix("r#")
         if low in MACRO_TOKEN_SKIP or low.strip("_") == "":
@@ -419,9 +445,9 @@ def family_call_numbers(text: str, spellings: set) -> Counter:
         # type-size idiom the port expresses with the element type, so `[0]` must not
         # count as "the call passes a 0".
         inside = re.sub(r"\[[^\[\]]*\]", "[]", text[m.end():i])
-        for token in re.findall(r"[A-Za-z_]\w*|\d+", inside):
-            if token.isdigit():
-                out[token] += 1
+        for token in re.findall(r"[A-Za-z_]\w*|" + INT_LITERAL.pattern, inside):
+            if token[0].isdigit():
+                out[norm_int_literal(token)] += 1
     return out
 
 
@@ -816,6 +842,18 @@ def block_body(text: str, open_index: int) -> str:
                 if text[i] == '"':
                     break
                 i += 1
+        elif ch == "'":
+            # Character literals hold the very braces being counted: the port writes
+            # C's `'{' as c_int` / `'}' as c_int` directly, and the closing quote of
+            # the second one ended the body early -- `syntax.rs`'s `init_syntax_once`
+            # compared as a truncated body, so every token after it (the
+            # `char_table_set_range` call, `MAX_CHAR`, `0x80`) was invisible to the
+            # containment check.  A Rust lifetime (`&'a str`) has no closing quote
+            # after one character, so the lookahead leaves those untouched.
+            m = re.match(r"'(?:\\.|[^\\'])'", text[i:])
+            if m:
+                i += m.end ()
+                continue
         elif ch == "{":
             depth += 1
         elif ch == "}":
