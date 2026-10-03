@@ -519,3 +519,16 @@
   `docs/baseline/frozen-build-sources.txt` 里还没有端口、且**活行数最小**的文件排出来
   （`cinventory.dead_branch_map` 逐文件算活行），这把"整文件死文本"的 5 件一次挑了出来；
   剩下的 46 件里活行数最少的是 dired(1,067)/menu(1,079)/thread(1,255)。
+
+- **3.42 `lib/` 的冻结对象只剩 1 件（2026-10-03 第 81 轮）**：冻结构建要的 lib 对象共 **78** 个
+  （`build/emacs-ref/lib/*.o`），本轮把最后 4 件里的 3 件落地：`lib/binary-io.c`（P-81 载体：
+  C 17 把 `BINARY_IO_INLINE` 定义成 `_GL_EXTERN_INLINE`，头里两个体就是这个对象的对外定义；
+  `nm -g` 与参照对象逐符号一致；C 21-38 的 `__DJGPP__`/`__EMX__` 区由求值器判死，**这回答了
+  §3.5 的悬案**——不需要 DJGPP 代码）、`lib/regex.c`（**聚合 TU**：C 57-59 include 了
+  regex_internal/regcomp/regexec，参照只有一个 `regex.o`；端口按 0.1 的"一个 .c 一个 .rs"保留
+  三个兄弟单元，本对象的符号表**按构造为空**，因此进 `symbol-pending.txt` 并写明理由）、
+  `lib/dtoastr.c`（`ftoastr.c` 模板的 `LENGTH 2` 实例化，**待共享体 `femacs/lib/ftoastr.rs`**，
+  同样进棘轮并写明）。剩 `lib/boot-time.c`(306) 在飞。
+  **棘轮口径**：`python3 tools/check-symbols.py --pending docs/baseline/symbol-pending.txt`
+  现为 `63 units compared, 0 mismatched, 2 still pending`——棘轮只能缩小，两个待项各有一个
+  明确的关闭条件（落 `ftoastr`；或决定把三个对象链成一个）。
