@@ -27,6 +27,13 @@ pub mod stdio_decls {
       -> usize;
     pub fn fwrite (ptr: *const core::ffi::c_void, size: usize, n: usize, stream: *mut FILE)
       -> usize;
+    /* The two writes lib/stdio-consolesafe.c uses instead of fwrite (msvcrt's fwrite is the
+       bug that file works around).  */
+    pub fn fputs (s: *const c_char, stream: *mut FILE) -> c_int;
+    pub fn fputc (c: c_int, stream: *mut FILE) -> c_int;
   }
 }
 use stdio_decls::*;
+
+/// <stdio.h>: `#define EOF (-1)` (the same value lib/getdelim.c declares in-unit).
+pub const EOF: c_int = -1;

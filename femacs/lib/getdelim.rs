@@ -41,7 +41,6 @@ unsafe extern "C" {
   pub fn getc (stream: *mut FILE) -> c_int;
 }
 /* <stdio.h>'s `#define EOF (-1)`.  */
-pub const EOF: c_int = -1;
 /* <sys/types.h>'s `ssize_t` (the sys_types mirror in this build spells it
    through its own block, so the port repeats the alias the C header gives).  */
 pub type ssize_t = isize;
