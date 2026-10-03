@@ -56,6 +56,31 @@ def defvar_carriers(dir_name: str, stem: str) -> set[str]:
                                                                  errors="replace"))}
 
 
+# The P-17 class (PORTING.md P-17): C makes every Lisp symbol a *compile-time constant* through
+# `globals.h`'s `DEFINE_LISP_SYMBOL`, so the reference object exports ~2,100 `_Q*` common
+# symbols; Rust cannot fold a symbol-table address into a constant, so the port spells each as
+# an inline function (`Qnil ()`) and its object exports none.  The `DEFINE_GDB_SYMBOL_BEGIN`
+# constants (`_ARRAY_MARK_FLAG`, `_VALMASK`, …) are the same story.  Both sets are *counted*
+# rather than failed on - the alternative would be 2,100 permanent "missing" symbols for any
+# unit that mentions a Lisp symbol (docs/status.md 3.67).
+def p17_symbols() -> set[str]:
+    out: set[str] = set()
+    symbols = ROOT / "docs/baseline/globals/symbols.tsv"
+    if symbols.is_file():
+        for line in symbols.read_text(encoding="utf-8").splitlines():
+            parts = line.split("\t")
+            if len(parts) >= 2 and parts[1].startswith("Q"):
+                out.add("_" + parts[1])
+    for header in sorted(glob.glob(f"{ROOT}/emacs/src/*.h")) + sorted(glob.glob(f"{ROOT}/emacs/lib/*.h")):
+        try:
+            text = Path(header).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        out |= {"_" + name for name in
+                re.findall(r"DEFINE_GDB_SYMBOL_BEGIN\s*\([^,]+,\s*(\w+)", text)}
+    return out
+
+
 def syms(path: str) -> tuple[set[str], set[str]]:
     out = subprocess.run(["nm", "-g", path], capture_output=True, text=True).stdout
     exported, imported = set(), set()
@@ -85,10 +110,13 @@ def main() -> int:
     if a.pending and a.pending.is_file():
         pending = {l.split("#")[0].strip() for l in a.pending.read_text(encoding="utf-8").splitlines()}
         pending.discard("")
+    global P17
+    P17 = p17_symbols()
     bad = []
     stale = []
     compared = 0
     carriers = 0
+    folded = 0
     for rs in sorted(glob.glob(f"{ROOT}/femacs/{a.dir}/*.rs")):
         stem = os.path.basename(rs)[:-3]
         mine_stem = ALIASES.get(f"{a.dir}/{stem}", f"{a.dir}/{stem}").split("/")[1]
@@ -100,9 +128,11 @@ def main() -> int:
         me, _ = syms(mine)
         re_, _ = syms(ref)
         allowed = defvar_carriers(a.dir, stem) & me
-        missing = sorted(re_ - me)
+        p17 = P17 & re_
+        missing = sorted(re_ - me - p17)
         invented = sorted(me - re_ - allowed)
         carriers += len(allowed)
+        folded += len(p17)
         key = f"{a.dir}/{stem}"
         if missing or invented:
             if key in pending:
@@ -118,7 +148,9 @@ def main() -> int:
         print(f"check-symbols: {compared} units compared, {len(bad)} mismatched, "
               f"{len(pending)} still pending"
               + (f"; {carriers} DEFVAR carrier symbol(s) are the port's documented "
-                 f"deviation from C's single `globals` object (status 3.60)" if carriers else ""))
+                 f"deviation from C's single `globals` object (status 3.60)" if carriers else "")
+              + (f"; {folded} Lisp-symbol/constant symbol(s) are folded into Rust constants "
+                 f"(PORTING.md P-17, status 3.67)" if folded else ""))
     return 1 if bad or stale else 0
 
 

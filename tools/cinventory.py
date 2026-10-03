@@ -193,6 +193,13 @@ def set_condition_macros(macros: dict[str, str] | None) -> None:
 # standing between a wrong branch verdict and the gate, so it has to be exact.
 CONDITION_MACROS_PATHS: tuple | None = None
 
+# True while `_BlindConditions` has dropped the macro table for an unverified file.  A scanner
+# that wants to trust the liveness map (only one does: the `static`-declaration rule in
+# `function_spans`) has to ask, because in blind mode a dead branch looks live and a prototype
+# inside `#if _LIBC` would make a definition look internal that the reference object exports
+# (docs/status.md 3.67, lib/tempname.c).
+BLINDED: bool = False
+
 
 def set_condition_paths(paths, reference=None) -> None:
     """Restrict the macro table to these reference paths (None = every file)."""
@@ -227,24 +234,28 @@ class _BlindConditions:
         self.path = None if path is None else os.path.abspath(str(path))
         self.saved = None
         self.saved_base = None
+        self.saved_blinded = False
         self.blind = False
 
     def __enter__(self):
-        global CONDITION_MACROS, CONDITION_MACROS_BASE
+        global CONDITION_MACROS, CONDITION_MACROS_BASE, BLINDED
         if CONDITION_MACROS_PATHS is None or self.path is None:
             return self
         root, entries = CONDITION_MACROS_PATHS
         if root is not None and self.path in entries:
             return self
         self.saved, self.saved_base = CONDITION_MACROS, CONDITION_MACROS_BASE
+        self.saved_blinded = BLINDED
         CONDITION_MACROS = CONDITION_MACROS_BASE = None
+        BLINDED = True
         self.blind = True
         return self
 
     def __exit__(self, *_exc) -> bool:
-        global CONDITION_MACROS, CONDITION_MACROS_BASE
+        global CONDITION_MACROS, CONDITION_MACROS_BASE, BLINDED
         if self.blind:
             CONDITION_MACROS, CONDITION_MACROS_BASE = self.saved, self.saved_base
+            BLINDED = self.saved_blinded
         return False
 
 
@@ -974,6 +985,22 @@ def function_spans(text: str) -> list[dict]:
     """
     lines = Lines(text)
     rows = lines.rows
+    # C 6.2.2p4: a prior `static` declaration gives the later definition internal linkage, which
+    # is how emacs.c's `static void syms_of_emacs (void);` (268) governs its definition (3477) - a
+    # definition written without the keyword.  Without this the flag said "extern", and the
+    # checker demanded a `#[unsafe(no_mangle)]` the reference object does not have (status 3.67).
+    # Only *live* lines count: lib/tempname.c declares `static int try_tempname_len (…);` at 123
+    # inside an arm the frozen configuration does not compile, and its definition is the object's
+    # exported `_try_tempname_len` (measured) - reading the raw text made that a false internal.
+    # ... and only where the map is trustworthy: with the table dropped (an unverified file)
+    # every line looks live, so a prototype in a dead arm would wrongly make a definition
+    # internal - `lib/tempname.c`'s `#if _LIBC` prototype against its exported
+    # `_try_tempname_len` (docs/status.md 3.67).  The specifier window below carries the rest.
+    static_prior: set[str] = set()
+    if not BLINDED:
+        live_text = "\n".join(line for _, line, live in lines if live)
+        static_prior = set(
+            re.findall(r"\bstatic\b[^;(){}]*?\b(\w+)\s*\([^;{}]*?\)\s*;", live_text))
     spans: list[dict] = []
     i = 1
     while i <= len(rows):
@@ -1072,24 +1099,59 @@ def function_spans(text: str) -> list[dict]:
         # The typed form carries its own specifiers on the declarator line, so that line is
         # what says whether the definition is `static`.
         prev = line if typed else ""
+        # The specifiers are a *window*, not the single previous line: sysdep.c writes
+        #     static
+        #     #endif
+        #     int
+        #     renameat_noreplace (int srcfd, …)
+        # so the keyword sits three lines above the declarator, and stopping at `int` lost it -
+        # the port then gave an internal function an external name, where the reference object
+        # exports none (status 3.67).  Walk over blank-free specifier lines (a preprocessor
+        # directive, an attribute, a bare type or qualifier) and take `static` from any of them.
+        # An attribute on its own line was already handled here (regex_internal.c 40-46's
+        # `static reg_errcode_t __attribute_warn_unused_result__ name (…)`).
+        # The window starts with the declarator's own line: a one-line definition carries its
+        # specifiers there (`static void set_random_seed (…) { … }`), which the walk above the
+        # declarator would never see.
+        spec_lines: list[str] = [line]
+        prev = line if typed else ""
+        saw_directive = False
         p = i - 2
-        while p >= 0:
+        while p >= 0 and len(spec_lines) < 7:
             cand = rows[p].strip()
             if not cand:
+                break
+            if cand.startswith("#"):
+                saw_directive = True
                 p -= 1
                 continue
-            # An attribute on its own line is not the declaration: C splits
-            # `static reg_errcode_t __attribute_warn_unused_result__ name (…)`
-            # across three lines (regex_internal.c 40-46), and stopping on the
-            # attribute line lost the `static` (the P-77 lookback class).  Keep
-            # walking to the line that carries the declaration specifiers.
             if re.match(r"^(?:__)?(?:attribute|_GL_ATTRIBUTE)|^ATTRIBUTE_", cand):
                 p -= 1
                 continue
-            prev = cand
-            break
+            if not prev:
+                prev = cand
+            spec_lines.append(cand)
+            if "(" in cand or ")" in cand or ";" in cand or "{" in cand or "," in cand:
+                break
+            p -= 1
+        spec = " ".join(spec_lines)
+        is_static = bool(re.search(r"\bstatic\b", spec)) or name in static_prior
+        # When the *preprocessor* decides the linkage, the text cannot: lib/tempname.c writes
+        #     #ifdef _LIBC
+        #     static
+        #     #endif
+        #     int
+        #     try_tempname_len (…)
+        # and `_LIBC` is undefined here, so the definition is external and the reference object
+        # exports `_try_tempname_len` - while the same shape in sysdep.c (`#ifndef HAVE_ANDROID`,
+        # live) really is internal.  Neither reading is safe from the source alone, so the span
+        # says the linkage is *conditional* and the checker leaves it to the object-level gates
+        # (`tools/check-symbols.py`/`check-linkage.py`), which compare against the frozen object
+        # (docs/status.md 3.67).
+        conditional = is_static and (saw_directive or name in static_prior)
         spans.append({"name": name, "line": i,
-                      "static": bool(re.search(r"\bstatic\b", prev)),
+                      "static": is_static,
+                      "conditional_static": conditional,
                       "return_type": prev, "body_start": body_line + 1,
                       "body_end": end_line + 1})
         # `max`: a typed definition's body sits on the declarator's own line, so its

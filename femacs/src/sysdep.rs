@@ -3360,25 +3360,22 @@ pub const RAND_BITS_15: c_int = 15;
 /// (`HAVE_RANDOM` is defined).
 pub type random_seed = c_uint;
 /// C 2205: `static void set_random_seed (random_seed arg) { srandom (arg); }` — the live arm
-/// (`HAVE_RANDOM` is defined).  The ledger's three rows for this name carry no `static`
-/// marker (the extractor reads the `typedef` line before the declarator), so the port gives
-/// the definition an external name, as the ledger asks.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_random_seed (arg: random_seed) { srandom (arg); }
+/// (`HAVE_RANDOM` is defined).  C's `static` is real even though the inventory's row lost the
+/// marker (the scanner read the `typedef` line before the declarator); the reference object
+/// exports no `_set_random_seed`, so the port keeps C's internal linkage (docs/status.md 3.67).
+pub unsafe fn set_random_seed (arg: random_seed) { srandom (arg); }
 
 /// C 2206-2208: the `HAVE_LRAND48` arm (`typedef long int random_seed; srand48 (arg)`).
 #[cfg (feature = "no_have_random")]
 pub type random_seed_lrand48 = c_long;
 #[cfg (feature = "no_have_random")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_random_seed (arg: random_seed_lrand48) { srand48 (arg); }
+pub unsafe fn set_random_seed (arg: random_seed_lrand48) { srand48 (arg); }
 
 /// C 2209-2212: the `#else` arm (`typedef unsigned int random_seed; srand (arg)`).
 #[cfg (feature = "no_have_random_no_lrand48")]
 pub type random_seed_rand = c_uint;
 #[cfg (feature = "no_have_random_no_lrand48")]
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn set_random_seed (arg: random_seed_rand) { srand (arg); }
+pub unsafe fn set_random_seed (arg: random_seed_rand) { srand (arg); }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn seed_random (seed: *mut c_void, seed_size: ptrdiff_t) {
@@ -3563,13 +3560,12 @@ pub unsafe extern "C" fn emacs_backtrace (backtrace_limit: c_int) {
    This is like renameat except that it fails if DST already exists,
    or if this operation is not supported atomically.  Return 0 if
    successful, -1 (setting errno) otherwise.  */
-// C 2376-2378: `#ifndef HAVE_ANDROID` (which would make the definition `static`) is live, so
-// C's `static` keyword applies; the ledger's row has no `static` marker because the
-// extractor reads the `#endif` line before the declarator (docs/ports/sysdep.md records the
-// deviation).
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int,
-                                             dst: *const c_char) -> c_int {
+// C 2376-2378: the `#ifndef HAVE_ANDROID` arm is live, so C's `static` keyword applies; the
+// inventory's row lost the marker (the scanner read the `#endif` line before the declarator)
+// and the port had given the definition an external name - the reference object exports no
+// `_renameat_noreplace` (docs/status.md 3.67).
+pub unsafe fn renameat_noreplace (srcfd: c_int, src: *const c_char, dstfd: c_int,
+                                  dst: *const c_char) -> c_int {
   /* C 2382-2396: `#if HAVE_RENAMEAT2 && defined RENAME_NOREPLACE` and the `SYS_renameat2`
      arm are dead; `#elif defined RENAME_EXCL` is live (RENAME_EXCL is 0x00000004).  */
   {

@@ -1500,6 +1500,12 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         name = f["name"]
         if is_header_like or f.get("static") or name in excluded or name in subr_names:
             continue
+        if f.get("conditional_static"):
+            # The linkage is decided by the preprocessor (`#ifdef _LIBC / static / #endif`), so
+            # the source text cannot say whether C exports a symbol: the object can, and
+            # tools/check-symbols.py compares it wherever a reference object exists
+            # (docs/status.md 3.67).
+            continue
         if re.search(r"\bINLINE\b[^;{]{0,200}\b" + re.escape(name) + r"\s*\(", c_source):
             continue          # C's INLINE: internal linkage, no symbol to keep
         if not re.search(r"\bfn\s+" + re.escape(name) + r"\b", own_text):
@@ -1513,6 +1519,12 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     # reference has not got (and, worse, links to whatever it finds).
     if not is_header_like:
         c_exported = {f["name"] for f in c["functions"] if not f.get("static")}
+        # Functions whose linkage the preprocessor decides are exempt from this direction:
+        # `#ifdef _LIBC / static / #endif` in lib/tempname.c makes an internal definition
+        # external in this configuration (the reference object exports `_try_tempname_len`),
+        # and the source text cannot tell the two cases apart.  The object-level gates can, and
+        # they are the authority for that class (docs/status.md 3.67).
+        unknown_linkage = {f["name"] for f in c["functions"] if f.get("conditional_static")}
         # gnulib's `<stem>.c` wrappers set the header's inline qualifier to
         # `_GL_EXTERN_INLINE` (`_GL_U64_INLINE`, and c-ctype.c's bare `C_CTYPE_INLINE`) —
         # the C99 inline model's "this translation unit emits the
@@ -1536,7 +1548,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
                             r"_GL_\w+_INLINE\b[^;{}\n]*?\b(\w+)\s*\(",
                             cand.read_text(encoding="utf-8", errors="replace")))
                         break
-        for name in sorted(no_mangle_names - c_exported):
+        for name in sorted(no_mangle_names - c_exported - unknown_linkage):
             problems.append(f"fn {name} carries #[unsafe(no_mangle)] but the reference "
                             f"does not define a non-static function of that name "
                             f"(invented exported symbol)")

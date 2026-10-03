@@ -903,3 +903,34 @@
   实测：`emacs.rs` `build-tu` built、`--check` OK；另一消费者 `sysdep.rs` rebuild built；
   `spikes/` 里没有调用点（不必改探针）。
 
+- **3.67 第 96 轮：src 侧符号门从"空转"变成真的，并当场抓到 4 个真缺陷（2026-10-03/04）**：
+  3.61 留下的那句话——"src 侧符号门对没有参照目标文件的单元是**空转**的"——本轮把它变成真的：
+  `make -C build/emacs-ref/src <stem>.o` 逐个构建参照目标文件（`minibuf`/`print`/`search`/`emacs`/
+  `sysdep`/`keymap` 六个），`check-symbols.py --dir src` 于是第一次真的比符号表，**当场报出 4 个真缺陷**：
+  `emacs.rs` 的 `syms_of_emacs`、`sysdep.rs` 的 `set_random_seed`（三个 cfg 臂）与 `renameat_noreplace`
+  ——C 里这四个都是**内部链接**（`static`），端口却给了它们**外部名字**；参照目标文件是权威证据
+  （`nm -g build/emacs-ref/src/*.o` 四个名字一个都没有）。四个都已改成 C 的链接形状。
+  ① **根因在扫描器，不在端口**：`tools/cinventory.py` 判定 `static` 只看**声明符上一行**，于是两种真实
+  形状全丢：`#ifdef _LIBC / static / #endif / int / try_tempname_len (…)`（sysdep.c 的
+  `#ifndef HAVE_ANDROID` 同形）与"先 `static` 声明、后无关键字定义"（emacs.c 268 的
+  `static void syms_of_emacs (void);` 管着 3477 的定义，C 6.2.2p4）。修法三段：
+  (a) **说明符窗口**：从**声明符那一行本身**起向上走（单行定义 `static void f (…) { … }` 的
+  `static` 就在这一行），跨过属性行、说明符行与预处理行；
+  (b) **名字规则只在可信处生效**：新增 `BLINDED` 标志，条件表被丢掉的未验证文件不再套用"先 static
+  声明"规则——`lib/tempname.c` 的 `#if _LIBC` 原型是**死**的（它的定义在 C 里是外部符号，参照目标文件
+  导出 `_try_tempname_len`），而盲区里它看着是活的；
+  (c) **预处理决定链接时，文本一律不下结论**：窗口里跨过 `#` 行（或命中名字规则）就标记
+  `conditional_static`，`extract-abi` 的**两个方向**都让开——这一类交给目标文件级的两道门
+  （`check-symbols.py` / `check-linkage.py`）。**实测**：全部 634 个参照文件里 `static` 判定变化的
+  只有 **12 个函数**，逐个用参照目标文件核对过方向（emacs/sysdep 的 3 个在 C 里是内部，tempname 的
+  2 个在 C 里是外部——正是"文本判不了、对象判得了"的那一类）。
+  ② **P-17 类计入而非报错**：C 通过 `globals.h` 把每个 Lisp 符号做成**编译期常量**，参照目标文件因此
+  导出 **约 2,100 个 `_Q*`**；Rust 无法把符号表地址折进常量，端口把它们写成内联函数（`Qnil ()`），
+  一个都不导出。`check-symbols.py` 现在从 `docs/baseline/globals/symbols.tsv` 与
+  `DEFINE_GDB_SYMBOL_BEGIN` 推出这一类并**计数报告**（与 3.60 的 DEFVAR 载体同一机制）。
+  **实测**：`--dir src` → `6 units compared, 0 mismatched`（72 个 DEFVAR 载体 + **1,567** 个 P-17 折叠
+  符号被计数）；`--dir lib` 仍是 `78 units compared, 0 mismatched`。
+  ③ **原则写明白**：**文本能判的用文本，文本判不了的用目标文件**。这一轮之前只有前半句，于是
+  "先 static 声明"和"预处理决定链接"两类被判错，而错误的判定会**要求**错误的一比一（端口被迫发出
+  C 没有的符号）。
+

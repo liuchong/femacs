@@ -2855,8 +2855,11 @@ DEFUN! ("daemon-initialized", Fdaemon_initialized, Sdaemon_initialized, 0, 0, 0,
    C 3476-3653.  `syms_of_emacs`: the file's symbols, its five subrs and its twenty-one
    `DEFVAR_*` registrations (whose storage is the block near the top, status 3.29).
    -------------------------------------------------------------------------------------- */
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn syms_of_emacs ()
+/// C emacs.c 268 declares it `static void syms_of_emacs (void);`, so C's object exports no
+/// symbol for it - the reference object confirms it (`nm -g build/emacs-ref/src/emacs.o` lists
+/// none).  The inventory's row carried no `static` marker (the scanner reads the line before
+/// the declarator), which is why the port had exported it (docs/status.md 3.67).
+pub unsafe fn syms_of_emacs ()
 {
   DEFSYM! (Qfile_name_handler_alist, "file-name-handler-alist");
   DEFSYM! (Qrisky_local_variable, "risky-local-variable");
