@@ -41,6 +41,14 @@ pub const SIGXFSZ: c_int = 25;
 /// `SIGNUM_BOUND` is `NSIG - 1`.
 pub const NSIG: c_int = 32;
 
+/// `<signal.h>`: `#define SIG_IGN ((void (*)(int)) 1)` - the integer one cast to the
+/// handler type (`SIG_DFL` is the integer 0).  The port keeps the integer, because the
+/// handler type it would be cast to (`signal_handler_t`) is declared by the src-side
+/// syssignal.h mirror, which this mirror cannot name (P-72); the one call the port makes
+/// is `signal (SIGPROF, SIG_IGN)` in profiler.c 500.  `sig_t` is Darwin's name for that
+/// handler type (`typedef void (*sig_t) (int);`).
+pub const SIG_IGN: usize = 1;
+
 /* The three entries lib/pthread_sigmask.c and lib/pselect.c reach through <signal.h>.
    `sigset_t` is Darwin's `struct __darwin_sigset_t { __uint32_t __val; }`; the measurement
    (`printf ("%zu %d %d %d", sizeof (sigset_t), SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK)`)
@@ -151,6 +159,10 @@ pub mod signal_decls {
     pub fn raise (sig: c_int) -> c_int;
     /* int sigaction (int, const struct sigaction *, struct sigaction *);  */
     pub fn sigaction (signum: c_int, act: *const sigaction, oact: *mut sigaction) -> c_int;
+    /* void (*signal (int, void (*) (int))) (int);  -- Darwin spells the handler
+       `sig_t`; the port passes the handler word through as `usize` so that `SIG_IGN`
+       (the integer 1) reaches it unchanged, the only call profiler.c makes.  */
+    pub fn signal (signum: c_int, handler: usize) -> usize;
   }
 }
 use signal_decls::*;

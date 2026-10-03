@@ -1,0 +1,17 @@
+# Macros Emacs' *own source headers* define, which config.h alone cannot decide, and which
+# the frozen `#if` evaluator therefore had to be told about (tools/gen-cond-macros.py merges
+# them into docs/baseline/config/darwin-arm64.macros.tsv).
+#
+# One `<header>\t<macro>` per row.  The generator measures the value with the same clang
+# invocation it uses for the config.h dump (`#include <config.h>` then `#include "<header>"`
+# on the frozen include paths), so a row cannot go stale silently: a header that stops
+# defining the macro is reported, and a wrong value shows up as a disagreement in
+# tools/check-cond-eval.py before the file joins the verified list (PORTING.md P-66).
+#
+# syssignal.h 53-54: `#if defined SIGPROF && !defined PROFILING && (defined HAVE_SETITIMER
+# || defined HAVE_ITIMERSPEC)` -> `# define PROFILER_CPU_SUPPORT`.  Both SIGPROF (27) and
+# HAVE_SETITIMER (1) are in the config.h table, PROFILING is not, so the macro is defined and
+# profiler.c's whole CPU-profiler region (C 343-524, C 699-712) is live text - without this
+# row the evaluator called it dead and the gate rejected the port's `defsubr`s as
+# "unexpected".
+syssignal.h	PROFILER_CPU_SUPPORT

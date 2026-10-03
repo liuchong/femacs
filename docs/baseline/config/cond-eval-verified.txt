@@ -352,6 +352,7 @@ src/pgtkselect.c
 src/pgtkterm.c
 src/pgtkterm.h
 src/process.h
+src/profiler.c
 src/ralloc.c
 src/region-cache.c
 src/scroll.c

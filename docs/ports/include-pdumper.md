@@ -85,5 +85,5 @@
 ## Decisions (2026-10-03, when the mirror was written for profiler.c)
 
 - Written to unblock `profiler.c` (which includes pdumper.h at C 24) and `filelock.c`
-  (C 43 `syms_of_filelock`'s `pdumper_*` use).  It has not been included by a ported unit yet;
-  the first unit that does will exercise the `INLINE` bodies against their C counterparts.
+  (C 43 `syms_of_filelock`'s `pdumper_*` use).  `profiler.c` is the first ported unit to include
+  it, and its `build-tu` is what compiles the `INLINE` bodies and the `pdumper_decls` block.

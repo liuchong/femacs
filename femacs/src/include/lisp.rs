@@ -3780,6 +3780,10 @@ pub mod other_units {
         pub fn funcall_subr (subr: *mut Lisp_Subr, numargs: ptrdiff_t,
                              arg_vector: *mut Lisp_Object) -> Lisp_Object;
         pub fn let_shadows_buffer_binding_p (symbol: *mut Lisp_Symbol) -> bool;
+        // lisp.h 4857-4863: eval.c's exports that profiler.c's `record_backtrace` and
+        // `add_sample` call (`get_backtrace` is `Lisp_Object *array, ptrdiff_t size`).
+        pub fn get_backtrace (array: *mut Lisp_Object, size: ptrdiff_t);
+        pub fn backtrace_top_function () -> Lisp_Object;
         // lisp.h 4208-4209: data.c's `set_internal` calls this (it is data.c's too); the
         // fourth parameter is `KBOARD *`, unnameable from this mirror (P-72 item 4).
         /// C: void set_default_internal (Lisp_Object, Lisp_Object, enum Set_Internal_Bind, KBOARD *)
@@ -3877,6 +3881,8 @@ pub mod other_units {
         // src/lisp.h 5544: `void *xnmalloc (ptrdiff_t, ptrdiff_t)`, not the
         // `size_t, size_t` of `xcalloc` above it.
         pub fn xnmalloc (n: isize, size: isize) -> *mut c_void;
+        // src/lisp.h 5539: `void *xcalloc (size_t, size_t)` (profiler.c's `make_log`).
+        pub fn xcalloc (n: usize, size: usize) -> *mut c_void;
         // lisp.h 4390, 4781, 5100, 5548: the four cross-unit functions macros.c calls
         // (`message1` and `run_hook` are xdisp.c's and eval.c's; `command_loop_2` is
         // keyboard.c's own loop entry, declared here so every unit sees one prototype).

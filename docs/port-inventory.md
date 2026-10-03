@@ -23,22 +23,22 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 313 |
-| 其中 done / wip | 277 / 36 |
-| 待开工 | 277 |
+| 已有目标文件 | 317 |
+| 其中 done / wip | 282 / 35 |
+| 待开工 | 273 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 61 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 59 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 113 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 111 |
 
 ## 3 按批次
 
@@ -46,11 +46,11 @@
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 9 |
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 18 |
-| **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 18 |
+| **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 17 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 24 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 136 |
-| **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 11 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 61 |
+| **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 10 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 59 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -169,7 +169,7 @@
 | `lib/filevercmp.c` | 188 | 5 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/filevercmp.rs` | done |
 | `lib/filevercmp.h` | 93 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/filevercmp.rs` | done |
 | `lib/fingerprint.c` | 66 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/fingerprint.rs` | done |
-| `lib/fingerprint.h` | 28 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/fingerprint.rs` | todo |
+| `lib/fingerprint.h` | 28 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/fingerprint.rs` | done |
 | `lib/flexmember.h` | 77 | 0 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/include/flexmember.rs` | done |
 | `lib/fpending.c` | 63 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/fpending.rs` | done |
 | `lib/fpending.h` | 45 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/fpending.rs` | done |
@@ -270,7 +270,7 @@
 | `lib/regex.h` | 684 | 0 | 0 | 78 | 9 | 4 | 1 | L | `femacs/lib/include/regex.rs` | done |
 | `lib/regex_internal.c` | 1,718 | 34 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/regex_internal.rs` | done |
 | `lib/regex_internal.h` | 850 | 12 | 0 | 90 | 66 | 102 | 0 | L | `femacs/lib/include/regex_internal.rs` | done |
-| `lib/regexec.c` | 4,306 | 64 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/regexec.rs` | todo |
+| `lib/regexec.c` | 4,306 | 64 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/regexec.rs` | wip |
 | `lib/root-uid.h` | 30 | 0 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/include/root-uid.rs` | todo |
 | `lib/save-cwd.c` | 90 | 3 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/save-cwd.rs` | done |
 | `lib/save-cwd.h` | 44 | 0 | 0 | 1 | 1 | 2 | 0 | L | `femacs/lib/include/save-cwd.rs` | done |
@@ -439,7 +439,7 @@
 | `src/androidterm.c` | 7,117 | 132 | 0 | 1 | 4 | 40 | 7 | F | `femacs/src/androidterm.rs` | done |
 | `src/androidterm.h` | 496 | 0 | 0 | 19 | 3 | 103 | 4 | F | `femacs/src/include/androidterm.rs` | todo |
 | `src/androidvfs.c` | 7,950 | 181 | 1 | 5 | 10 | 81 | 25 | F | `femacs/src/androidvfs.rs` | done |
-| `src/atimer.c` | 625 | 17 | 1 | 1 | 2 | 2 | 6 | B | `femacs/src/atimer.rs` | wip |
+| `src/atimer.c` | 625 | 17 | 1 | 1 | 2 | 2 | 6 | B | `femacs/src/atimer.rs` | done |
 | `src/atimer.h` | 84 | 0 | 0 | 1 | 3 | 6 | 0 | B | `femacs/src/include/atimer.rs` | done |
 | `src/bidi.c` | 3,727 | 53 | 0 | 12 | 14 | 0 | 13 | C | `femacs/src/bidi.rs` | todo |
 | `src/bignum.c` | 603 | 33 | 0 | 0 | 2 | 0 | 1 | B | `femacs/src/bignum.rs` | done |
@@ -569,7 +569,7 @@
 | `src/nsterm.h` | 1,395 | 0 | 0 | 140 | 21 | 102 | 8 | F | `femacs/src/include/nsterm.rs` | todo |
 | `src/nsxwidget.h` | 82 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/nsxwidget.rs` | todo |
 | `src/pdumper.c` | 5,920 | 202 | 4 | 16 | 56 | 92 | 11 | G | `femacs/src/pdumper.rs` | todo |
-| `src/pdumper.h` | 281 | 12 | 0 | 5 | 9 | 2 | 1 | G | `femacs/src/include/pdumper.rs` | todo |
+| `src/pdumper.h` | 281 | 12 | 0 | 5 | 9 | 2 | 1 | G | `femacs/src/include/pdumper.rs` | done |
 | `src/pgtkfns.c` | 3,906 | 63 | 39 | 6 | 4 | 0 | 9 | F | `femacs/src/pgtkfns.rs` | done |
 | `src/pgtkgui.h` | 121 | 0 | 0 | 38 | 19 | 0 | 0 | F | `femacs/src/include/pgtkgui.rs` | todo |
 | `src/pgtkim.c` | 311 | 15 | 1 | 0 | 0 | 0 | 0 | F | `femacs/src/pgtkim.rs` | done |
@@ -580,7 +580,7 @@
 | `src/print.c` | 3,069 | 47 | 11 | 3 | 7 | 44 | 12 | B | `femacs/src/print.rs` | todo |
 | `src/process.c` | 9,122 | 125 | 63 | 24 | 17 | 9 | 20 | D | `femacs/src/process.rs` | todo |
 | `src/process.h` | 320 | 6 | 0 | 2 | 4 | 59 | 2 | D | `femacs/src/include/process.rs` | done |
-| `src/profiler.c` | 733 | 24 | 9 | 0 | 3 | 3 | 7 | D | `femacs/src/profiler.rs` | todo |
+| `src/profiler.c` | 733 | 24 | 9 | 0 | 3 | 3 | 7 | D | `femacs/src/profiler.rs` | done |
 | `src/ralloc.c` | 1,214 | 18 | 0 | 7 | 0 | 0 | 12 | B | `femacs/src/ralloc.rs` | done |
 | `src/regex-emacs.c` | 5,367 | 41 | 0 | 120 | 75 | 12 | 3 | C | `femacs/src/regex-emacs.rs` | todo |
 | `src/regex-emacs.h` | 202 | 0 | 0 | 1 | 20 | 16 | 3 | C | `femacs/src/include/regex-emacs.rs` | wip |
@@ -596,7 +596,7 @@
 | `src/sort.c` | 1,178 | 30 | 0 | 3 | 2 | 7 | 0 | B | `femacs/src/sort.rs` | done |
 | `src/sound.c` | 1,554 | 30 | 2 | 4 | 18 | 44 | 2 | D | `femacs/src/sound.rs` | done |
 | `src/sqlite.c` | 933 | 12 | 17 | 29 | 1 | 0 | 1 | D | `femacs/src/sqlite.rs` | todo |
-| `src/syntax.c` | 3,851 | 40 | 21 | 5 | 3 | 13 | 7 | C | `femacs/src/syntax.rs` | wip |
+| `src/syntax.c` | 3,851 | 40 | 21 | 5 | 3 | 13 | 7 | C | `femacs/src/syntax.rs` | done |
 | `src/syntax.h` | 215 | 11 | 0 | 2 | 17 | 12 | 1 | C | `femacs/src/include/syntax.rs` | done |
 | `src/sysdep.c` | 4,766 | 135 | 1 | 23 | 8 | 4 | 11 | D | `femacs/src/sysdep.rs` | todo |
 | `src/sysselect.h` | 98 | 3 | 0 | 8 | 2 | 0 | 0 | D | `femacs/src/include/sysselect.rs` | todo |

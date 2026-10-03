@@ -22,13 +22,19 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 76 轮，ledger 口径的代理计数）**：磁盘上 **218 个单元**（`femacs/src/*.rs` + `femacs/lib/*.rs`）
-  与 **121 个镜像**；逐文件 ledger 里 **218 份已勾满、1 份在飞**（`syntax` —— Aquinas 正在补 C 2,660-3,851）。
+- **进度（2026-10-03 第 77 轮，机械统计）**：磁盘上 **220 个单元**（`femacs/src/*.rs` 106 +
+  `femacs/lib/*.rs` 114）与 **123 个镜像**（`src/include/` 36 + `lib/include/` 87）。
+  **单元台账全部勾满**：`docs/ports/*.md` 里凡不是 `include-*.md` 的（即每个已竣工单元）未勾项为 **0**；
+  在飞的 `syntax`（4,229 行）与 `profiler`（701 行）本轮都已收口（`built` + `--check` OK + 0 未勾）。
+  **部分镜像（WIP）**：34 份 `include-*.md` 仍有未勾项，合计 **1,019** 行，最大的几份是
+  `stdint.in`(135)、`unistd.in`(94)、`dispextern`(90)、`sys_stat.in`(74)、`window`(65)——
+  它们只承载已竣工单元读到的声明，其余留待需要它们的单元，各自的 Decisions 里写明是 WIP。
   §3.31 那一类已清零：`emacs/src/*.c` = 152 = 冻结构建编译 75 + 排除 77，77 个排除项全部有端口
   （真实单元 3 个 + 空单元 74 个，逐文件 `build-tu` built 且 `--check` OK）。
-  **权威口径仍是 `python3 tools/extract-abi.py --all`**（它逐个文件做 token/函数/常量比对）；它一次要
-  遍历全树与宏表，本轮为守资源纪律没有跑，下一次跑出来时以它为准（上一轮它是 234 目标 / 205 done /
-  27 wip / 0 failing，此后又落了 regcomp、terminal、atimer 与 §3.31 整批）。
+  **权威口径仍是 `python3 tools/extract-abi.py --all`**（它逐个文件做 token/函数/常量比对）；
+  它一次要遍历全树与宏表，本轮为守资源纪律没有跑，下一次跑出来时以它为准（上一轮它是
+  234 目标 / 205 done / 27 wip / 0 failing，此后又落了 regcomp、terminal、atimer、§3.31 整批、
+  syntax、profiler，以及本轮新增的两个镜像 `pdumper`/`fingerprint`）。
 
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
@@ -427,8 +433,26 @@
   于是端口按 C 语义写的 `0o400`/`0o200` 被报成"缺常量"。现在 `0x`/`0b`/前导 `0`（八进制）/十进制四种
   进制都按 C 的值归一（`0200`→128、`0400`→256、`0b101`→5、`017`→15），后缀 `u`/`l` 照旧折叠。
   实测：`src/syntax.c` 的差异从 55 条降到 **53 条**，而已通过的单文件（`terminal`/`cmds`/`regcomp`）仍 OK。
-  ② **待修**：`body_token_seq` 的**函数体 token 比对**用的是另一套词法（`[A-Za-z_]\w*|\d+`），
-  所以 C 的 `0400`（一个 token）与端口的 `0o400`（被切成 `0`、`o400` 两个）仍然对不上——`skip_chars`
-  那一行报 "does not mention 0200, 0400" 就是这个原因。修法：把数字 token 在切分时按 C 词法识别
-  （`0x…`/`0b…`/前导 `0` 为八进制）并归一到十进制，再参与比对。这是**报告**缺陷，不是移植缺陷。
+  ② **已修（2026-10-03 第 77 轮，`243df0d`）**：`body_token_seq`/`family_call_numbers` 原来按**拼法**
+  比较整数字面量，C 的 `0400`（一个 token）与端口的 `0o400`（被切成 `0`、`o400` 两个）因此对不上
+  （`syntax.c` 的 `skip_chars` 报 "does not mention 0200, 0400" 就是这个原因）。现在两处都用同一份
+  `INT_LITERAL` 正则切分并按**值**归一（`0x`/`0b`/`0o`/前导 `0` 八进制/十进制），顺带修掉 `0x80`
+  被切成 `0`+`x80` 导致与 `128` 比较不等的问题。回归：11 个此前 OK 的单元仍 OK，`syntax.c` 从 55 条
+  差异降到 0。
 
+- **3.35 源码头文件定义的宏：`source-header-macros.tsv`（2026-10-03 第 77 轮定案并落地）**：
+  `PROFILER_CPU_SUPPORT` 由 **src/syssignal.h 53-54** 定义（`#if defined SIGPROF && !defined PROFILING
+  && (defined HAVE_SETITIMER || defined HAVE_ITIMERSPEC)`），**config.h 里没有它**，所以冻结宏表不认识它。
+  后果不是"门报错"而是"门答错"：求值器把 `src/profiler.c` 的 C 343-524（整个 CPU profiler 区）判成死文本，
+  于是端口照 C 写的四个 `defsubr (&raw mut Sprofiler_cpu_*)` 被报成
+  "unexpected defsubr (...): the reference file does not register it"——而这一类**没有任何豁免机制**，
+  只能把表修对。定案：
+  ① 新增 `docs/baseline/config/source-header-macros.tsv`，一行一个 `<header>\t<macro>`，首行
+  `syssignal.h\tPROFILER_CPU_SUPPORT`，文件头写明"为什么 config.h 决定不了、真实构建确实定义了它"；
+  ② `tools/gen-cond-macros.py` 用 clang（与 config.h dump 同一套 `-I`）**实测**每行的值再合并进表——
+  行过期会打印 warning 记成 `undef`，值错了会在 `check-cond-eval.py` 里表现为 disagreement，
+  不会静默冻结一个错分支（P-66 的同一条原则）；③ 表因此只多一行（7223 宏 / 6782 defined）；
+  ④ `src/profiler.c` 加进 `cond-eval-verified.txt`（429 个文件），它的 13 个条件全部与 clang 一致，
+  整表重跑 0 disagreement，其余 428 个文件无回归。
+  **同类风险**：任何"由源码头文件而非 config.h 决定"的 `#ifdef` 都会重演这一幕（`src/*.h` 里再出现
+  时照此加一行，不要临时在 unit 里迁就门）。
