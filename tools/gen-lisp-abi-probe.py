@@ -188,6 +188,16 @@ def to_c(rust_type: str, tags: dict, typedefs: set) -> str | None:
         return f"{tags[t]} {t}"
     for pat, rep in RULES:
         t = t.replace(pat, rep)
+    # A pointer RULES left in Rust's spelling: `*mut ptrdiff_t` -> `ptrdiff_t *`.  Only the
+    # pointers to the two primitive C names and to the tags had rules, so `validate_subarray`'s
+    # `*mut ptrdiff_t` went into the harness verbatim and clang rejected the whole file
+    # (status 3.102).
+    ptr = re.fullmatch(r"\*(mut|const)\s+(.+)", t, re.S)
+    if ptr:
+        inner = to_c(ptr.group(2), tags, typedefs)
+        if inner is None:
+            return None
+        return f"{'const ' if ptr.group(1) == 'const' else ''}{inner} *"
     # Leftovers.  A Rust-only type name, or a C tag spelled without its keyword, would
     # silently compile as *something else* in C (`Lisp_Vector *` is not
     # `struct Lisp_Vector *`), so the declaration is reported unmapped rather than
@@ -314,7 +324,12 @@ def main() -> int:
                     print(f"error: {name}: unparsable `/// C:` annotation "
                           f"{annotation!r} (it must name {name})", file=sys.stderr)
                     return 1
-                ann_args = split_top_level(am.group(3))
+                # C spells the empty parameter list `(void)`: it is zero parameters,
+                # not one named `void` (`ptrdiff_t current_column (void)` in lisp.h 5110
+                # is the declaration that showed it - the probe reported "1 parameters in
+                # the `/// C:` prototype, 0 in the Rust declaration" and refused to run).
+                ann_params = am.group(3).strip()
+                ann_args = [] if ann_params == "void" else split_top_level(ann_params)
                 rust_args = [a.split(":", 1)[1] if ":" in a else a
                              for a in split_top_level(args)] if args else []
                 rust_mapped = [to_c(a, tags, typedefs) for a in rust_args]

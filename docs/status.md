@@ -1523,3 +1523,22 @@
   （`src/include/charset.rs` 的 `CHAR_CHARSET_P` 一处 `E0308`、`coding.h` 镜像的 5 个 crate-root 声明）
   仍开，只报告未修。**没有运行证据**：本单元尚未被链接进可运行的 Emacs，`--check`/`build-tu`/
   `check-symbols` 只证明文本、对象与符号表一致。
+- **3.102 `lisp-abi-probe` 又能跑了：182 条声明通过 C 类型检查（2026-10-04 第 99 轮第三批）**：
+  `xtask gate-probes` 在本轮之前是**红的**——`spikes/lisp-abi-probe.sh` 连 harness 都生成不出来
+  （`error: current_column: 1 parameters in the \`/// C:\` prototype, 0 in the Rust declaration`），
+  也就是说 `gate-probes`（因而 `gate-full`）在修掉它之前根本走不到 C 差分那一步。三处修复各自都是真 bug：
+  ① **`(void)` 是零个参数**：生成器把 `ptrdiff_t current_column (void)`（lisp.h 5110）参数表里的 `void`
+  当成一个参数，与 Rust 侧 0 个不符；`tools/gen-lisp-abi-probe.py` 现在把参数表恰好是 `void` 的情形
+  当空表；
+  ② **函数的 `/// C:` 必须写裸原型**：`record_first_change`（lisp.rs 4182）把它写成散文（``lisp.h 5254:
+  `extern void record_first_change (void);` …``），生成器按文档要求拒绝解析——改成裸原型，散文移到前面的
+  `/* … */` 注（同文件 4185 行的既有写法）；
+  ③ **`to_c` 漏了指针**：只有指向两个 C 基本名与 tag 的指针有规则，`validate_subarray` 的 `*mut ptrdiff_t`
+  于是原样进了 harness（clang 报 "a type specifier is required"）；现在 RULES 之后统一把
+  `*mut T`/`*const T` 映射成 `T *`。
+  修完实测：**`lisp-abi-probe: 182 declarations type-check against lisp.h`（0 unmapped, 0 baselined，
+  只有 `die` 与 `sa_stack_alloc` 两条既有的 skipped）**；`extract-abi.py --check emacs/src/lisp.h
+  femacs/src/include/lisp.rs` 仍 `OK`，`check-declarations` 仍 0 failures。
+  **教训**：probe 类门失败时先看它自己能不能跑（生成器/解析器），再怀疑被检查的对象——这三个缺陷都在门身上，
+  门红着就没人知道那 182 条声明是好是坏。**仍未过**：`gate-probes` 的 dead-arms 段在 `lib/boot-time.rs` 上红
+  （非冻结臂要 `get_haiku_boot_time`，E0425），记在 3.103 的收尾清单里。
