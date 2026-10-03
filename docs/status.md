@@ -758,3 +758,45 @@
   ③ 接线：`xtask gate-fast` 在 **symbol gate 之后**加一段 `== undefined-reference gate ==`（必须在
   单元构建之后才有目标文件可比）。CI 的快档不接它——那档只 `cargo check`，不产出 `.o`；这条门属于
   `gate-fast` 这一档。
+
+- **3.60 第 94–95 轮：五个单元并行、`DEFVAR` 载体符号的定案、两个"门看不见"的缺陷（2026-10-03）**：
+  本轮同时开五条实现通道（`src/minibuf.c`、`src/print.c`、`src/emacs.c`、`src/sysdep.c`、
+  `src/search.c`，后期加 `src/keymap.c`），落地三件：**minibuf 2,759→2,779 行**、
+  **print 3,069→3,297 行**、**search 3,514→3,846 行**（合计 9,342 行 C → 9,922 行 Rust，各自
+  `--check` OK、台账 0 未勾、`--cfg enable_checking` exit 0）。单元数 **248 → 251**。
+  ① **`DEFVAR_*` 载体符号定案（`build/emacs-ref/src/print.o` 逼出来的）**：C 把 `DEFVAR_*` 的存储
+  放进唯一的 `globals` 对象（`globals.f_<name>`，lisp.h 3495-3530），所以参照目标文件导出 `globals`
+  而**没有** `_Vprint_level` 这类符号；print 通道据此把 18 个载体写成私有 `static mut`。
+  **这是错的**：`include/globals.rs` 把名字镜像成 `unsafe extern "C"` 里的**外部声明**，而
+  `keyboard.c`（未端口）读 `Vprint_level`——载体私有化会让 `_Vprint_level` 在链接期无处可寻
+  （这正是 3.59 那道门要防的类，只是当下没有对象引用它，门看不见）。定案：**§3.29 不变**
+  （载体 `#[unsafe(no_mangle)] pub static mut`，由本单元定义），并把这条**系统性符号偏离**装进
+  `tools/check-symbols.py`：它从参照源码解析本单元的 `DEFVAR_LISP/BOOL/INT/LISP_NOPRO` 名字，
+  把对应的 `_*` 从 invented 里扣除并**计数报告**。实测 `--dir src` →
+  `1 units compared, 0 mismatched; 18 DEFVAR carrier symbol(s) are the port's documented deviation`；
+  `--dir lib` 仍是 `78 units compared, 0 mismatched`。
+  **顺带打开一扇窗**：此前 src 单元一个参照目标文件都没有，`--dir src` 的比较是**空的**；现在
+  `make -C build/emacs-ref/src <stem>.o` 能逐个把 src 的符号门变成真的（print 是第一个）。
+  ② **`cinventory.py` 的真缺陷（emacs.c 通道发现，已修）**：`function_spans` 的前瞻碰到"声明符与
+  `{` 之间夹着一条死 `#if` 行"就停（emacs.c 的 `main` 正是这个形状），于是 `main` 根本不是该文件的
+  函数——端口的 `#[unsafe(no_mangle)]` 定义被报成"发明的导出符号"，正文也没有 token 检查。
+  修好后**独立复算**：8 个 PORTED_DIRS 的 **590 个参照文件**用新旧两个模块各做一次完整清单，
+  **只有 `emacs/src/emacs.c` 变化**（`('main', 1317)` 出现）。
+  ③ **两个"门看不见"的缺陷已记录、待修**：(a) `tools/extract-abi.py` 的**字符串扫描先于字符字面量
+  剥离**——`'"'` 这个字符字面量会开启一个"字符串"，Rust 侧因此吞掉 `print_bool_vector` 里其后全部
+  `printchar` token 并让函数体越过 `}`，C 侧则把字符串内容（`data`、`table`、`04`）漏进 token 集合
+  （print 通道发现，行内记为 work-around 而非改门）；(b) **非 static 文件级对象的连接检查缺失**——
+  `re_match_object` 少了 `#[unsafe(no_mangle)]`，单元发出的是 `__RNv…_6search15re_match_object` 而不是
+  `_re_match_object`，三道文本门全绿（对象规则只看名字）。search 通道手工发现并修好
+  （`nm -g` 复核 `S _re_match_object`）；**待办**：把"每个非 static 文件级对象必须发出同名 C 符号"
+  加进 3.59 那道门。
+  ④ **镜像缺口台账（由本轮三条通道汇总）**：`regex-emacs.h` 镜像仍缺 `struct re_pattern_buffer`、
+  `re_*` API 与 `print_compiled_pattern`（search 在使用点自带一份，**镜像补齐时必须同一提交删除**，
+  否则 E0428）、`region-cache.h` 完全没有镜像、`lisp.rs` 缺 `make_specified_string`/`substring_both`/
+  `copy_text`、`window.rs` 缺 `set_window_buffer`/`resize_mini_window`/`restore_window_configuration`/
+  `WINDOW_FRAME`/位设置器、`keyboard.rs` 缺四个 keyboard 入口、`<string.h>` 缺 `memrchr`、
+  `<limits.h>` 缺宽度族、`systty.h`/`<ieee754.h>` 无镜像（后者是 gnulib 模板，P-26）。
+  ⑤ 批边界实测：`extract-abi.py --all` → **357 个端口文件 / 332 done / 25 WIP / 0 failing**；
+  `tools/check-undef.py` 棘轮重写为 **558 pending / 0 new**（新单元带来的未定义名全部是未端口单元
+  拥有的依赖，附引用者）；`gen-port-map.py`、`gen-port-inventory.py` 已重跑（done 324 / wip 33 /
+  todo 233）。`gate-fast` 待本批最后一个单元落地后跑（五条通道同时在写，整树重编译没有意义）。

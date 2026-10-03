@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 351 |
-| 其中 done / wip | 320 / 31 |
-| 待开工 | 239 |
+| 已有目标文件 | 357 |
+| 其中 done / wip | 324 / 33 |
+| 待开工 | 233 |
 
 ## 2 按目录
 
@@ -38,16 +38,16 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 86 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 80 |
 
 ## 3 按批次
 
 | 批次 | 范围 | 完成判据 | 文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | todo |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 8 |
-| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 7 |
-| **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 8 |
-| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 20 |
+| **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 7 |
+| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 6 |
+| **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 6 |
+| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 18 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 136 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 10 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 50 |
@@ -491,7 +491,7 @@
 | `src/emacs-icon.h` | 353 | 0 | 0 | 2 | 2 | 0 | 0 | E | `femacs/src/include/emacs-icon.rs` | todo |
 | `src/emacs-module.c` | 1,798 | 80 | 1 | 6 | 1 | 22 | 4 | G | `femacs/src/emacs-module.rs` | done |
 | `src/emacs-module.in.h` | 246 | 0 | 0 | 6 | 0 | 3 | 0 | G | `femacs/src/include/emacs-module.in.rs` | todo |
-| `src/emacs.c` | 3,653 | 24 | 5 | 4 | 1 | 4 | 28 | D | `femacs/src/emacs.rs` | todo |
+| `src/emacs.c` | 3,653 | 24 | 5 | 4 | 1 | 4 | 28 | D | `femacs/src/emacs.rs` | done |
 | `src/emacsgtkfixed.c` | 210 | 8 | 0 | 0 | 0 | 1 | 0 | F | `femacs/src/emacsgtkfixed.rs` | done |
 | `src/emacsgtkfixed.h` | 60 | 0 | 0 | 3 | 0 | 3 | 0 | F | `femacs/src/include/emacsgtkfixed.rs` | todo |
 | `src/eval.c` | 4,680 | 109 | 54 | 2 | 0 | 2 | 4 | B | `femacs/src/eval.rs` | todo |
@@ -541,7 +541,7 @@
 | `src/json.c` | 1,851 | 63 | 4 | 3 | 7 | 25 | 0 | D | `femacs/src/json.rs` | done |
 | `src/keyboard.c` | 14,682 | 183 | 38 | 19 | 9 | 12 | 83 | E | `femacs/src/keyboard.rs` | todo |
 | `src/keyboard.h` | 535 | 9 | 0 | 18 | 23 | 29 | 26 | E | `femacs/src/include/keyboard.rs` | done |
-| `src/keymap.c` | 3,487 | 37 | 29 | 0 | 0 | 14 | 10 | E | `femacs/src/keymap.rs` | todo |
+| `src/keymap.c` | 3,487 | 37 | 29 | 0 | 0 | 14 | 10 | E | `femacs/src/keymap.rs` | wip |
 | `src/keymap.h` | 51 | 0 | 0 | 3 | 0 | 0 | 1 | E | `femacs/src/include/keymap.rs` | done |
 | `src/kqueue.c` | 550 | 6 | 3 | 0 | 0 | 0 | 2 | D | `femacs/src/kqueue.rs` | done |
 | `src/lcms.c` | 604 | 14 | 8 | 13 | 0 | 0 | 2 | D | `femacs/src/lcms.rs` | done |
@@ -554,7 +554,7 @@
 | `src/marker.c` | 874 | 18 | 8 | 4 | 2 | 0 | 4 | C | `femacs/src/marker.rs` | done |
 | `src/menu.c` | 1,638 | 30 | 3 | 0 | 0 | 3 | 7 | E | `femacs/src/menu.rs` | done |
 | `src/menu.h` | 72 | 0 | 0 | 1 | 3 | 0 | 0 | E | `femacs/src/include/menu.rs` | done |
-| `src/minibuf.c` | 2,759 | 24 | 24 | 4 | 2 | 0 | 9 | E | `femacs/src/minibuf.rs` | todo |
+| `src/minibuf.c` | 2,759 | 24 | 24 | 4 | 2 | 0 | 9 | E | `femacs/src/minibuf.rs` | done |
 | `src/module-env-25.h` | 131 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-25.rs` | todo |
 | `src/module-env-26.h` | 3 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-26.rs` | todo |
 | `src/module-env-27.h` | 18 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-27.rs` | todo |
@@ -577,7 +577,7 @@
 | `src/pgtkselect.c` | 1,975 | 34 | 8 | 1 | 0 | 21 | 7 | F | `femacs/src/pgtkselect.rs` | done |
 | `src/pgtkterm.c` | 7,780 | 199 | 0 | 16 | 9 | 6 | 14 | F | `femacs/src/pgtkterm.rs` | done |
 | `src/pgtkterm.h` | 681 | 1 | 0 | 46 | 3 | 169 | 1 | F | `femacs/src/include/pgtkterm.rs` | todo |
-| `src/print.c` | 3,069 | 47 | 11 | 3 | 7 | 44 | 12 | B | `femacs/src/print.rs` | todo |
+| `src/print.c` | 3,069 | 47 | 11 | 3 | 7 | 44 | 12 | B | `femacs/src/print.rs` | done |
 | `src/process.c` | 9,122 | 125 | 63 | 24 | 17 | 9 | 20 | D | `femacs/src/process.rs` | todo |
 | `src/process.h` | 320 | 6 | 0 | 2 | 4 | 59 | 2 | D | `femacs/src/include/process.rs` | done |
 | `src/profiler.c` | 733 | 24 | 9 | 0 | 3 | 3 | 7 | D | `femacs/src/profiler.rs` | done |
@@ -587,7 +587,7 @@
 | `src/region-cache.c` | 781 | 13 | 0 | 5 | 0 | 10 | 0 | C | `femacs/src/region-cache.rs` | done |
 | `src/region-cache.h` | 112 | 0 | 0 | 1 | 0 | 0 | 0 | C | `femacs/src/include/region-cache.rs` | todo |
 | `src/scroll.c` | 993 | 9 | 0 | 1 | 0 | 6 | 0 | E | `femacs/src/scroll.rs` | done |
-| `src/search.c` | 3,514 | 36 | 19 | 2 | 1 | 8 | 4 | C | `femacs/src/search.rs` | todo |
+| `src/search.c` | 3,514 | 36 | 19 | 2 | 1 | 8 | 4 | C | `femacs/src/search.rs` | done |
 | `src/sfnt.c` | 21,215 | 268 | 0 | 170 | 8 | 53 | 8 | E | `femacs/src/sfnt.rs` | done |
 | `src/sfnt.h` | 2,151 | 0 | 0 | 8 | 108 | 436 | 0 | E | `femacs/src/include/sfnt.rs` | todo |
 | `src/sfntfont-android.c` | 821 | 14 | 1 | 2 | 0 | 2 | 3 | F | `femacs/src/sfntfont-android.rs` | done |
@@ -598,7 +598,7 @@
 | `src/sqlite.c` | 933 | 12 | 17 | 29 | 1 | 0 | 1 | D | `femacs/src/sqlite.rs` | done |
 | `src/syntax.c` | 3,851 | 40 | 21 | 5 | 3 | 13 | 7 | C | `femacs/src/syntax.rs` | done |
 | `src/syntax.h` | 215 | 11 | 0 | 2 | 17 | 12 | 1 | C | `femacs/src/include/syntax.rs` | done |
-| `src/sysdep.c` | 4,766 | 135 | 1 | 23 | 8 | 4 | 11 | D | `femacs/src/sysdep.rs` | todo |
+| `src/sysdep.c` | 4,766 | 135 | 1 | 23 | 8 | 4 | 11 | D | `femacs/src/sysdep.rs` | wip |
 | `src/sysselect.h` | 98 | 3 | 0 | 8 | 2 | 0 | 0 | D | `femacs/src/include/sysselect.rs` | todo |
 | `src/syssignal.h` | 88 | 0 | 0 | 10 | 1 | 0 | 1 | D | `femacs/src/include/syssignal.rs` | done |
 | `src/sysstdio.h` | 47 | 0 | 0 | 4 | 2 | 0 | 0 | B | `femacs/src/include/sysstdio.rs` | todo |
