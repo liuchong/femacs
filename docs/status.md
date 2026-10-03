@@ -22,7 +22,7 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **243 个单元**（`femacs/src/*.rs` 121 +
+- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **244 个单元**（`femacs/src/*.rs` 122 +
   `femacs/lib/*.rs` 122）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
   **权威口径 `python3 tools/extract-abi.py --all` 本轮真跑过**（第 84 轮，约 4 分钟）：
   `checked 342 ported files: 317 done, 25 in progress, 0 failing`（第 87 轮复跑）——"in progress" 全是 WIP 镜像
@@ -669,3 +669,14 @@
   三个探针脚本（`fam-probe: 4 lines ok` / `shadow-probe: shadow-probe true 0 true` /
   `macro-probe: every expansion compiles`）、`layout-check passed`；库存口径
   `checked 343 ported files: 319 done, 24 in progress, 0 failing`。
+
+- **3.55 第 90 轮：`src/ccl.c` 落地（2026-10-03，`cebf9a4`）**：2,394 行 C → **3,217 行 Rust**
+  （`ccl` 容差行 **`total` 基准 0.36**：解释器分发本身要花行数）。该文件**不在**已验证清单，
+  故按 §3.49 抄两支（`CCl_DEBUG` 的回溯机器包在 `#[cfg (feature = "ccl_debug")]`、`#if 0` 只记台账）。
+  `ccl_driver` 的五个 label 收成一个 `ccl_goto` 枚举 + 单个 `'ccl_repeat: loop`；九个语句宏与
+  `GET_CCL_RANGE`/`GET_CCL_CODE` 按 P-57 定义在函数内部（所捕获局部量之后）；两个 `bool_bf : 1`
+  合成 `bits: u8` 并配 token-alias 家族；三个结构的布局 clang 实测 + `const _` 钉死。
+  **`ccl.h` 镜像同提交落地**，并执行 P-70 的"一个类型只能有一个镜像"：删掉 `coding.rs` 里的
+  `struct ccl_spec` 替身、把该字段降为 `*mut c_void` + `/// C:` 注（4 行，PORTING.md 与该镜像
+  自己的注释都要求；两份 ccl 台账都记了）。**报回三条镜像缺口**（未越界改）：`charset.h` 无镜像、
+  `lisp.rs` 缺 `larger_vector`/`make_specified_string`、`<intprops.h>` 无镜像（P-26）。
