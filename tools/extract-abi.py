@@ -933,10 +933,18 @@ FROZEN_BUILD_SOURCES = _load_frozen_build_sources()
 
 
 def not_built_on_target(c_path) -> bool:
-    """True for an `src/` file the frozen build's source lists exclude (status 3.31)."""
+    """True for an `src/*.c` translation unit the frozen build's source lists exclude (§3.31).
+
+    Only `.c` files: the baseline lists the translation units `make -n` compiles, and a header
+    (`blockinput.h`) is never in it — treating headers as "not built" made every mirror compare
+    trivially clean, which is exactly the kind of silent hole the rule was meant to close.
+    """
     if FROZEN_BUILD_SOURCES is None:
         return False
-    parts = Path(c_path).parts
+    path = Path(c_path)
+    if path.suffix != ".c":
+        return False
+    parts = path.parts
     key = "/".join(parts[-2:]) if len(parts) >= 2 else str(c_path)
     return key.startswith("src/") and key not in FROZEN_BUILD_SOURCES
 
