@@ -3146,11 +3146,29 @@ macro_rules! calln { ($($args:expr),* $(,)?) => { CALLN! (Ffuncall, $($args),*) 
 pub fn call0 (fn_: Lisp_Object) -> Lisp_Object { calln! (fn_) }
 
 
+/// C: lisp.h 4844: `extern Lisp_Object safe_funcall (ptrdiff_t, Lisp_Object*);` - the
+/// error-catching callee `safe_calln` reaches.  It sits in a module with a glob import because
+/// `eval.c`'s port *defines* it, and a same-scope declaration would be E0428 against that
+/// definition (PORTING.md 0.1-10/P-21, the `keymap_decls` shape).  It has to be declared here
+/// rather than at each call site: a `macro_rules!` body resolves a bare path at its *definition*
+/// site (mixed-site hygiene), so `safe_calln` below can only name what this file can see.
+pub mod lisp_safe_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn safe_funcall (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object;
+  }
+}
+use lisp_safe_decls::*;
+
+/// C: lisp.h 4845-4847: `#define safe_calln(...) CALLMANY (safe_funcall, ((Lisp_Object [])
+/// {__VA_ARGS__}))`.  The port used to expand this to `calln!` (`Ffuncall`) *plus* a
+/// `maybe_quit ()` C does not make, which lost the error catch and the `inhibit-redisplay`
+/// handling at all six call sites (docs/status.md 3.69, found by `src/eval.c`'s lane).
 #[macro_export]
 macro_rules! safe_calln { ($($args:expr),* $(,)?) => {{
-    let res = calln! ($($args),*);
-    maybe_quit ();
-    res
+    let arr: [Lisp_Object; 0 $(+ { let _ = stringify!($args); 1 })*] = [$($args),*];
+    CALLMANY! (safe_funcall, arr)
 }} }
 
 #[macro_export]

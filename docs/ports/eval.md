@@ -346,7 +346,7 @@
   precedent).
 
 - **Mirror defects this unit found (integrator owns the file).**
-  1. **`safe_calln!` is wrong** (`femacs/src/include/lisp.rs` 3149-3154): C's
+  1. **`safe_calln!` was wrong; FIXED by the integrator (status 3.69)** - `femacs/src/include/lisp.rs`: C's
      `safe_calln` is `CALLMANY (safe_funcall, ((Lisp_Object []) {__VA_ARGS__}))`
      (lisp.h 4845-4847) — a call to the error-catching `safe_funcall` you find at
      `emacs/src/eval.c:3230`.  The mirror expands to `calln!` (`CALLN! (Ffuncall, …)`)
@@ -388,7 +388,9 @@ different are the mirror expansions at the same points — `eval_sub`/`Ffuncall`
 `calln`/`apply1`, `SAFE_ALLOCA`/`SAFE_FREE`/`SAFE_FREE_UNBIND_TO`, `XSETSYMBOL`,
 `SET_SYMBOL_VAL`, `XSETSUBR`, `FOR_EACH_TAIL` — plus the `*mut c_void`/`*mut KBOARD`
 spellings P-72 rule 3 forces on `set_default_internal`'s fourth parameter and the
-`get_act_rec`/`set_act_rec` pair (above).  `safe_eval`'s expansion of `safe_calln` calls
+`get_act_rec`/`set_act_rec` pair (above).  `safe_eval`'s expansion of `safe_calln` *used to* call the mirror's wrong form; the mirror now expands to `CALLMANY! (safe_funcall, arr)` - C's own body - and `safe_funcall` is declared in the mirror through `lisp_safe_decls` + glob import (this unit defines it).
+
+  The integrator's fix, in full (status 3.69): 
 `safe_funcall`, which is C's own callee.  Verified by diffing the call-name multiset of every
 C body against its Rust counterpart; the only differences are C's `memcpy`/`memclear` sizes
 written as multiplies (`word_size`), C's `countof (argbuf)` spelled `8`, and the

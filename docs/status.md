@@ -956,3 +956,19 @@
   **一次性行级改写 + 前后行数断言**（255→255、+10 行后 266）。两条纪律：**机械改写必须断言前后规模**；
   **materialize 的副本是免费备份**（任何镜像被写坏时的第一恢复源）。
 
+- **3.69 第 96 轮：`safe_calln!` 的镜像缺陷（行为级，6 个调用点）——由 eval 通道发现并修好（2026-10-04）**：
+  C 的 `safe_calln` 是 `CALLMANY (safe_funcall, ((Lisp_Object []) {__VA_ARGS__}))`（lisp.h 4845-4847），
+  即"走 `safe_funcall`（会捕获错误、处理 `inhibit-redisplay`）"；而 `lisp.rs` 的 `safe_calln!`
+  展开成 **`calln!`（`Ffuncall`）再加一个 C 根本没有的 `maybe_quit ()`**——**六个调用点**
+  （composite/keymap/print/syntax/terminal/eval）因此丢掉了错误捕获与 inhibit-redisplay 处理。
+  这不是符号问题而是**行为**问题，所以它没有触发任何静态门（宏展开后调用的是另一个函数，两次调用
+  的形式参数都合法）。eval 通道没有将就它，而是在 `safe_eval` 里照 C 展开、并把缺陷报回镜像 owner。
+  修法：镜像正文改成 C 的形状 `CALLMANY! (safe_funcall, arr)`（`arr` 用 `CALLN!` 同款
+  `stringify!` 计数，参数只求值一次，与 C 的复合字面量一致），并**新增 `lisp_safe_decls` 模块 +
+  glob 导入**声明 `safe_funcall`（C 在 lisp.h 4844 声明它，`eval.rs` 定义它；同作用域声明会 E0428，
+  故按 `keymap_decls` 形状放进模块）。这里有一个 Rust 细节值得记：**`macro_rules!` 正文里的裸路径在
+  *定义处* 解析**（mixed-site hygiene），所以宏要能命名 `safe_funcall`，declaration 就必须在
+  `lisp.rs` 里，而不是在六个调用点各写一遍。
+  实测：六个调用点单元全部重建 `built`；六个单元的 `--check` 全部 `OK`；`lisp.h` 镜像 `--check` 仍
+  `OK`；全树没有第二处 `fn safe_funcall`（否则会重复定义）。
+
