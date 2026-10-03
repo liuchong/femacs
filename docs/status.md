@@ -7,9 +7,9 @@
 ## 1. 当前数字（每次提交后核对）
 
 - 已竣工单元与镜像：**权威清单在 `docs/port-inventory.md`（590 个参照 `.c/.h` 的状态列）与
-  `python3 tools/extract-abi.py --all` 的输出**，本节只记总数。截至 `a0caa61`：**已提交单元 270 个**
-  （`femacs/src/*.rs` 148 + `femacs/lib/*.rs` 122）、**已提交镜像 142 个**（`femacs/src/include/*.rs` 49 +
-  `femacs/lib/include/*.rs` 93）；未提交的在飞单元见下面「第三批」一条（`window.rs`/`coding.rs`/`keyboard.rs`）。
+  `python3 tools/extract-abi.py --all` 的输出**，本节只记总数。截至 `a0caa61`：**已提交单元 271 个**
+  （`femacs/src/*.rs` 148 + `femacs/lib/*.rs` 122 + `femacs/lib-src/*.rs` 1）、**已提交镜像 143 个**
+  （`femacs/src/include/*.rs` 49 + `femacs/lib/include/*.rs` 94）；未提交的在飞单元见下面「第三批」一条（`window.rs`/`coding.rs`/`keyboard.rs`）。
   镜像这一批（2026-10-04，第三批后续）：`src/include/` 的 `getpagesize.rs`（整文件死）、`sysstdio.rs`
   （27 个单元 include 它）、`sysselect.rs`、`syswait.rs`、`gnutls.rs`、`systty.rs`，以及系统镜像
   `lib/include/termios.rs`（新）与 `lib/include/sys_select.rs` 补的三个访问器；每条各自 `--check` OK、
@@ -1397,3 +1397,17 @@
   对尚未打开的目录直接跳过。**今天行为中性**：那五个目录里还没有 `.rs`，所以门的读数不动；实测
   `build-tu src/emacs.c` 仍 `built`，`build-tu lib-src/make-fingerprint.c` 用下一条提交的新单元
   走通了这条路（批次 F 的第一个目录由此打开）。
+
+- **3.95 批次 F 开张：第一个 `lib-src/` 单元（2026-10-04 第 98 轮第四批）**：`3.94` 让 `xtask` 认全八个目录之后，
+  **`lib-src/make-fingerprint.c`（178 行，`main` + 一个 `static char *buf`）** 是第一个落地的非 `src/`/`lib/` 单元：
+  `build-tu lib-src/make-fingerprint.c` → `built lib-src/make-fingerprint.rs -> ../build/femacs/make-fingerprint.o`，
+  `extract-abi --check` = OK，`--cfg enable_checking` = exit 0。它是**活文件**（冻结构建 `make -n` 会编它，
+  参照目录里有二进制），台账 `docs/ports/make-fingerprint.md` 记了 4 条偏离：C 51-61 的 WINDOWSNT 臂与
+  C 45-47 的 `#ifndef SSIZE_MAX` 是死文本；`"r" FOPEN_BINARY`（拼接不能点名常量）与 `TYPE_MAXIMUM (off_t)`
+  两条 token 走 `macro-body-notes.tsv`（**行必须按函数名 `main` 建键**，按文件名建键工具不认——本轮踩过）；
+  `SEEK_SET`/`fseeko`/`ptrdiff_t` 是 P-72③ 的用点声明。行数门加 `make-fingerprint 0.45`（实测 178 vs 251）。
+  **顺带把三处镜像补全并收敛**（同一批，因为它们与新单元互相触发）：`stdio.rs` 补 `printf`/`perror`、
+  `stdlib.rs` 补 `EXIT_SUCCESS`/`EXIT_FAILURE` → `src/emacs.rs`、`src/sysdep.rs`、`lib/group-member.rs` 删掉各自的副本
+  （`check-mirror-dupes` 从 7 failures 回到 0）；`string.rs` 补 `memmem`；`lib/include/min-max.rs` 新建。
+  **教训**：往共享镜像里加常量前先查它是否已属于另一个镜像或已被多个单元本地定义——`fseeko`/`SEEK_*` 就是
+  这样被回退成用点声明的（`SEEK_*` 归 `unistd.in.rs`，`fseeko` 放镜像会让不含 `off_t` 的消费者编不过）。

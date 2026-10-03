@@ -1043,3 +1043,4 @@ command_loop_1	goto	PORTING.md 2.2: C's `goto finalize` is the labelled block `'
 read_event_from_main_queue	goto	PORTING.md 2.2: C's backward `goto start` is the labelled loop `'start`'s `continue`
 read_decoded_event_from_main_queue	true	C 2442's `while (true)` is the port's `loop`
 bind_polling_period	double	C 2141's `double new` is the port's `f64`
+main	fopen_binary,type_maximum	C 113's `"r" FOPEN_BINARY` is a concatenation that cannot name the `FOPEN_BINARY` constant the sysstdio.h mirror carries (empty on this target, so the port writes the literals `c"r"` / `c"r+"`), and C 118's `TYPE_MAXIMUM (off_t)` is `off_t::MAX` (`<intprops.h>` has no mirror; P-26).  Both are recorded in docs/ports/make-fingerprint.md.
