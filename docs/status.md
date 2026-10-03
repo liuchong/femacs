@@ -22,7 +22,7 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **244 个单元**（`femacs/src/*.rs` 122 +
+- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **245 个单元**（`femacs/src/*.rs` 123 +
   `femacs/lib/*.rs` 122）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
   **权威口径 `python3 tools/extract-abi.py --all` 本轮真跑过**（第 84 轮，约 4 分钟）：
   `checked 342 ported files: 317 done, 25 in progress, 0 failing`（第 87 轮复跑）——"in progress" 全是 WIP 镜像
@@ -680,3 +680,15 @@
   `struct ccl_spec` 替身、把该字段降为 `*mut c_void` + `/// C:` 注（4 行，PORTING.md 与该镜像
   自己的注释都要求；两份 ccl 台账都记了）。**报回三条镜像缺口**（未越界改）：`charset.h` 无镜像、
   `lisp.rs` 缺 `larger_vector`/`make_specified_string`、`<intprops.h>` 无镜像（P-26）。
+
+- **3.56 第 91 轮：`src/intervals.c` + `intervals.h` 镜像收口（2026-10-03，`f3406a9`）**：
+  2,416 行 C（活 2,410）→ 2,567 行 Rust（`live` 基准 6.5%）；该文件在已验证清单里，唯一的
+  `#if 0`（C 1643-1648）按 P-08 记台账。**同一提交做完 `intervals.h` 镜像**（24 条原型进
+  `intervals_decls` + glob 导入；六个 `bool_bf` 合成 `bits: u8` 配 `interval_bits!` 与五个新的
+  出现次数家族；布局 clang 实测 sizeof 56 / `bits`@40 / `plist`@48）。顺带修掉三个镜像缺陷：
+  `LEAF_INTERVAL_P`/`BOTH_KIDS_P` 改回 C 自己的字段比较，`TEXT_PROP_MEANS_INVISIBLE` 改为 `c_int`
+  （它两臂原为 `bool`/`c_int`，而 C 拿它与 `2` 比较），`INTERVAL_PARENT_OR_NULL`/`RESET_INTERVAL`
+  补上 setter 需要的 cast。**`buffer.rs` 的六条 `buffer.h` 取点声明按 P-70 同提交迁进
+  `buffer_point_decls` + glob 导入**（本单元定义它们；28 个受影响的单元仍全部 `built`）。
+  该 worker 自己跑过整树 `gate-fast`：`346 ported files: 323 done, 23 in progress, 0 failing`、
+  490 个单元编译通过、符号门与布局门全绿。

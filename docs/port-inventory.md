@@ -23,34 +23,34 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 333 |
-| 其中 done / wip | 299 / 34 |
-| 待开工 | 257 |
+| 已有目标文件 | 346 |
+| 其中 done / wip | 315 / 31 |
+| 待开工 | 244 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 53 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 50 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 101 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 91 |
 
 ## 3 按批次
 
 | 批次 | 范围 | 完成判据 | 文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | todo |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 9 |
-| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 18 |
-| **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 11 |
+| **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 8 |
+| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 12 |
+| **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 8 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 20 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 136 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 10 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 53 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 50 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -119,7 +119,7 @@
 | `lib/allocator.h` | 68 | 0 | 0 | 1 | 0 | 4 | 0 | L | `femacs/lib/include/allocator.rs` | wip |
 | `lib/arg-nonnull.h` | 26 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/arg-nonnull.rs` | todo |
 | `lib/assert.in.h` | 27 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/assert.in.rs` | todo |
-| `lib/at-func.c` | 142 | 1 | 0 | 5 | 1 | 0 | 0 | L | `femacs/lib/at-func.rs` | todo |
+| `lib/at-func.c` | 142 | 1 | 0 | 5 | 1 | 0 | 0 | L | `femacs/lib/at-func.rs` | done |
 | `lib/attribute.h` | 364 | 0 | 0 | 32 | 0 | 0 | 0 | L | `femacs/lib/include/attribute.rs` | wip |
 | `lib/binary-io.c` | 38 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/binary-io.rs` | done |
 | `lib/binary-io.h` | 89 | 2 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/include/binary-io.rs` | done |
@@ -315,8 +315,8 @@
 | `lib/strnlen.c` | 34 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/strnlen.rs` | done |
 | `lib/strnul.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/strnul.rs` | done |
 | `lib/strtoimax.c` | 70 | 1 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/strtoimax.rs` | done |
-| `lib/strtol.c` | 410 | 1 | 0 | 22 | 1 | 0 | 0 | L | `femacs/lib/strtol.rs` | todo |
-| `lib/strtoll.c` | 33 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/strtoll.rs` | todo |
+| `lib/strtol.c` | 410 | 1 | 0 | 22 | 1 | 0 | 0 | L | `femacs/lib/strtol.rs` | done |
+| `lib/strtoll.c` | 33 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/strtoll.rs` | done |
 | `lib/symlink.c` | 57 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/symlink.rs` | done |
 | `lib/sys-limits.h` | 38 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/include/sys-limits.rs` | done |
 | `lib/sys_random.in.h` | 105 | 0 | 0 | 4 | 2 | 0 | 0 | L | `femacs/lib/include/sys_random.in.rs` | done |
@@ -447,20 +447,20 @@
 | `src/blockinput.h` | 72 | 2 | 0 | 1 | 0 | 0 | 0 | B | `femacs/src/include/blockinput.rs` | done |
 | `src/buffer.c` | 6,163 | 116 | 53 | 13 | 1 | 13 | 15 | C | `femacs/src/buffer.rs` | todo |
 | `src/buffer.h` | 1,824 | 112 | 0 | 53 | 9 | 134 | 6 | C | `femacs/src/include/buffer.rs` | done |
-| `src/bytecode.c` | 1,852 | 8 | 2 | 21 | 1 | 5 | 0 | B | `femacs/src/bytecode.rs` | todo |
+| `src/bytecode.c` | 1,852 | 8 | 2 | 21 | 1 | 5 | 0 | B | `femacs/src/bytecode.rs` | done |
 | `src/callint.c` | 933 | 6 | 4 | 0 | 0 | 0 | 3 | B | `femacs/src/callint.rs` | done |
-| `src/callproc.c` | 2,262 | 21 | 3 | 4 | 6 | 0 | 4 | D | `femacs/src/callproc.rs` | todo |
+| `src/callproc.c` | 2,262 | 21 | 3 | 4 | 6 | 0 | 4 | D | `femacs/src/callproc.rs` | done |
 | `src/casefiddle.c` | 764 | 17 | 11 | 0 | 6 | 9 | 0 | C | `femacs/src/casefiddle.rs` | done |
 | `src/casetab.c` | 303 | 7 | 5 | 0 | 0 | 0 | 4 | C | `femacs/src/casetab.rs` | done |
 | `src/category.c` | 506 | 10 | 13 | 0 | 0 | 0 | 0 | C | `femacs/src/category.rs` | done |
 | `src/category.h` | 124 | 2 | 0 | 12 | 0 | 0 | 0 | C | `femacs/src/include/category.rs` | done |
-| `src/ccl.c` | 2,394 | 7 | 5 | 91 | 68 | 3 | 7 | C | `femacs/src/ccl.rs` | todo |
-| `src/ccl.h` | 88 | 0 | 0 | 8 | 5 | 14 | 0 | C | `femacs/src/include/ccl.rs` | todo |
+| `src/ccl.c` | 2,394 | 7 | 5 | 91 | 68 | 3 | 7 | C | `femacs/src/ccl.rs` | done |
+| `src/ccl.h` | 88 | 0 | 0 | 8 | 5 | 14 | 0 | C | `femacs/src/include/ccl.rs` | done |
 | `src/character.c` | 1,167 | 23 | 10 | 0 | 0 | 0 | 1 | C | `femacs/src/character.rs` | done |
 | `src/character.h` | 615 | 34 | 0 | 3 | 59 | 0 | 1 | C | `femacs/src/include/character.rs` | done |
 | `src/charset.c` | 2,464 | 20 | 23 | 7 | 1 | 10 | 21 | C | `femacs/src/charset.rs` | todo |
 | `src/charset.h` | 567 | 2 | 0 | 63 | 40 | 26 | 19 | C | `femacs/src/include/charset.rs` | todo |
-| `src/chartab.c` | 1,391 | 31 | 13 | 4 | 0 | 0 | 2 | C | `femacs/src/chartab.rs` | todo |
+| `src/chartab.c` | 1,391 | 31 | 13 | 4 | 0 | 0 | 2 | C | `femacs/src/chartab.rs` | done |
 | `src/cm.c` | 467 | 8 | 0 | 7 | 5 | 0 | 1 | E | `femacs/src/cm.rs` | done |
 | `src/cm.h` | 173 | 0 | 0 | 45 | 0 | 40 | 2 | E | `femacs/src/include/cm.rs` | done |
 | `src/cmds.c` | 538 | 3 | 7 | 0 | 0 | 0 | 0 | B | `femacs/src/cmds.rs` | done |
@@ -469,8 +469,8 @@
 | `src/commands.h` | 30 | 0 | 0 | 3 | 0 | 0 | 0 | B | `femacs/src/include/commands.rs` | done |
 | `src/comp.c` | 5,857 | 140 | 15 | 91 | 17 | 3 | 4 | E | `femacs/src/comp.rs` | done |
 | `src/comp.h` | 106 | 3 | 0 | 1 | 0 | 11 | 0 | E | `femacs/src/include/comp.rs` | wip |
-| `src/composite.c` | 2,322 | 26 | 6 | 3 | 1 | 3 | 7 | C | `femacs/src/composite.rs` | todo |
-| `src/composite.h` | 362 | 5 | 0 | 53 | 20 | 11 | 2 | C | `femacs/src/include/composite.rs` | wip |
+| `src/composite.c` | 2,322 | 26 | 6 | 3 | 1 | 3 | 7 | C | `femacs/src/composite.rs` | done |
+| `src/composite.h` | 362 | 5 | 0 | 53 | 20 | 11 | 2 | C | `femacs/src/include/composite.rs` | done |
 | `src/conf_post.h` | 445 | 0 | 0 | 66 | 5 | 0 | 0 | B | `femacs/src/include/conf_post.rs` | todo |
 | `src/cygw32.c` | 139 | 5 | 2 | 0 | 0 | 0 | 0 | F | `femacs/src/cygw32.rs` | done |
 | `src/cygw32.h` | 40 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/cygw32.rs` | todo |
@@ -533,9 +533,9 @@
 | `src/indent.c` | 2,592 | 19 | 7 | 2 | 1 | 0 | 5 | C | `femacs/src/indent.rs` | todo |
 | `src/indent.h` | 60 | 0 | 0 | 1 | 0 | 6 | 1 | C | `femacs/src/include/indent.rs` | todo |
 | `src/inotify.c` | 590 | 11 | 5 | 3 | 3 | 0 | 2 | D | `femacs/src/inotify.rs` | done |
-| `src/insdel.c` | 2,592 | 55 | 1 | 6 | 0 | 4 | 2 | C | `femacs/src/insdel.rs` | todo |
-| `src/intervals.c` | 2,416 | 53 | 0 | 2 | 0 | 0 | 0 | C | `femacs/src/intervals.rs` | todo |
-| `src/intervals.h` | 314 | 3 | 0 | 29 | 0 | 14 | 0 | C | `femacs/src/include/intervals.rs` | wip |
+| `src/insdel.c` | 2,592 | 55 | 1 | 6 | 0 | 4 | 2 | C | `femacs/src/insdel.rs` | done |
+| `src/intervals.c` | 2,416 | 53 | 0 | 2 | 0 | 0 | 0 | C | `femacs/src/intervals.rs` | done |
+| `src/intervals.h` | 314 | 3 | 0 | 29 | 0 | 14 | 0 | C | `femacs/src/include/intervals.rs` | done |
 | `src/itree.c` | 1,435 | 45 | 0 | 0 | 0 | 6 | 0 | C | `femacs/src/itree.rs` | done |
 | `src/itree.h` | 190 | 1 | 0 | 3 | 4 | 20 | 0 | C | `femacs/src/include/itree.rs` | done |
 | `src/json.c` | 1,851 | 63 | 4 | 3 | 7 | 25 | 0 | D | `femacs/src/json.rs` | done |
@@ -617,9 +617,9 @@
 | `src/textconv.c` | 2,640 | 46 | 1 | 1 | 2 | 2 | 3 | E | `femacs/src/textconv.rs` | done |
 | `src/textconv.h` | 163 | 0 | 0 | 1 | 13 | 12 | 0 | E | `femacs/src/include/textconv.rs` | todo |
 | `src/textprop.c` | 2,477 | 26 | 20 | 2 | 5 | 0 | 2 | C | `femacs/src/textprop.rs` | todo |
-| `src/thread.c` | 1,314 | 41 | 21 | 2 | 0 | 14 | 4 | D | `femacs/src/thread.rs` | todo |
-| `src/thread.h` | 348 | 9 | 0 | 18 | 0 | 43 | 2 | D | `femacs/src/include/thread.rs` | wip |
-| `src/timefns.c` | 2,144 | 48 | 14 | 8 | 10 | 9 | 5 | D | `femacs/src/timefns.rs` | todo |
+| `src/thread.c` | 1,314 | 41 | 21 | 2 | 0 | 14 | 4 | D | `femacs/src/thread.rs` | done |
+| `src/thread.h` | 348 | 9 | 0 | 18 | 0 | 43 | 2 | D | `femacs/src/include/thread.rs` | done |
+| `src/timefns.c` | 2,144 | 48 | 14 | 8 | 10 | 9 | 5 | D | `femacs/src/timefns.rs` | done |
 | `src/tparam.c` | 284 | 4 | 0 | 0 | 0 | 0 | 3 | E | `femacs/src/tparam.rs` | done |
 | `src/tparam.h` | 49 | 0 | 0 | 1 | 0 | 0 | 3 | E | `femacs/src/include/tparam.rs` | done |
 | `src/treesit.c` | 5,634 | 70 | 58 | 58 | 1 | 6 | 24 | E | `femacs/src/treesit.rs` | done |
