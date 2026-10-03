@@ -957,33 +957,33 @@ pub unsafe extern "C" fn syms_of_callint ()
   DEFSYM! (Qenable_recursive_minibuffers, "enable-recursive-minibuffers");
   DEFSYM! (Qmouse_leave_buffer_hook, "mouse-leave-buffer-hook");
 
-  DEFVAR_KBOARD! ("prefix-arg", Vprefix_arg,
+  DEFVAR_KBOARD! (c"prefix-arg", Vprefix_arg,
 		  "The value of the prefix argument for the next editing command.\nIt may be a number, or the symbol `-' for just a minus sign as arg,\nor a list whose car is a number for just one or more C-u's\nor nil if no argument has been specified.\n\nYou cannot examine this variable to find the argument for this command\nsince it has been set to nil by the time you can look.\nInstead, you should use the variable `current-prefix-arg', although\nnormally commands can get this prefix argument with (interactive \"P\").  ");
 
-  DEFVAR_KBOARD! ("last-prefix-arg", Vlast_prefix_arg,
+  DEFVAR_KBOARD! (c"last-prefix-arg", Vlast_prefix_arg,
 		  "The value of the prefix argument for the previous editing command.\nSee `prefix-arg' for the meaning of the value.  ");
 
-  DEFVAR_LISP! ("current-prefix-arg", Vcurrent_prefix_arg,
+  DEFVAR_LISP! (c"current-prefix-arg", Vcurrent_prefix_arg,
 		"The value of the prefix argument for this editing command.\nIt may be a number, or the symbol `-' for just a minus sign as arg,\nor a list whose car is a number for just one or more C-u's\nor nil if no argument has been specified.\nThis is what `(interactive \"P\")' returns.  ");
   Vcurrent_prefix_arg = Qnil ();
 
-  DEFVAR_LISP! ("command-history", Vcommand_history,
+  DEFVAR_LISP! (c"command-history", Vcommand_history,
 		"List of recent commands that read arguments from terminal.\nEach command is represented as a form to evaluate.\n\nMaximum length of the history list is determined by the value\nof `history-length', which see.  ");
   Vcommand_history = Qnil ();
 
-  DEFVAR_LISP! ("command-debug-status", Vcommand_debug_status,
+  DEFVAR_LISP! (c"command-debug-status", Vcommand_debug_status,
 		"Debugging status of current interactive command.\nBound each time `call-interactively' is called;\nmay be set by the debugger as a reminder for itself.  ");
   Vcommand_debug_status = Qnil ();
 
-  DEFVAR_LISP! ("mark-even-if-inactive", Vmark_even_if_inactive,
+  DEFVAR_LISP! (c"mark-even-if-inactive", Vmark_even_if_inactive,
 		"Non-nil means you can use the mark even when inactive.\nThis option makes a difference in Transient Mark mode.\nWhen the option is non-nil, deactivation of the mark\nturns off region highlighting, but commands that use the mark\nbehave as if the mark were still active.  ");
   Vmark_even_if_inactive = Qt ();
 
-  DEFVAR_LISP! ("mouse-leave-buffer-hook", Vmouse_leave_buffer_hook,
+  DEFVAR_LISP! (c"mouse-leave-buffer-hook", Vmouse_leave_buffer_hook,
 		"Hook run when the user mouse-clicks in a window.\nIt can be run both before and after switching windows, or even when\nnot actually switching windows.\n\nIts purpose is to give temporary modes such as Isearch mode\na way to turn themselves off when a mouse command switches windows.  ");
   Vmouse_leave_buffer_hook = Qnil ();
 
-  DEFVAR_BOOL! ("inhibit-mouse-event-check", inhibit_mouse_event_check,
+  DEFVAR_BOOL! (c"inhibit-mouse-event-check", inhibit_mouse_event_check,
     "Whether the interactive spec \"e\" requires a mouse gesture event.\nIf non-nil, `(interactive \"e\")' doesn't signal an error when the command\nwas invoked by an input event that is not a mouse gesture: a click, a drag,\netc.  To create the event data when the input was some other event,\nuse `event-start', `event-end', and `event-click-count'.  ");
   inhibit_mouse_event_check = false;
 
