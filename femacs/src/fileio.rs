@@ -28,6 +28,9 @@ include!("../lib/include/limits.in.rs");       // C 22: `#include <limits.h>`
 include!("../lib/include/fcntl.in.rs");        // C 23: `#include <fcntl.h>`
 include!("../lib/include/stdio.rs");           // C 24: `sysstdio.h` 24's `#include <stdio.h>`
 include!("../lib/include/sys_types.in.rs");    // C 25: `#include <sys/types.h>`
+include!("../lib/include/pwd.rs");           // C: `#include <pwd.h>`
+include!("../lib/include/grp.rs");           // C: `#include <grp.h>`
+include!("../lib/include/sys_utsname.rs");   // C: `#include <sys/utsname.h>`
 include!("../lib/include/sys_stat.in.rs");     // C 26: `#include <sys/stat.h>`
 include!("../lib/include/unistd.in.rs");       // C 27: `#include <unistd.h>`
 include!("../lib/include/errno.rs");           // C 40: `#include <errno.h>`
@@ -68,38 +71,7 @@ include!("include/commands.rs");               // C 122: `#include "commands.h"`
    C 68-71 (`HAVE_LINUX_FS_H`), C 73-87 (`WINDOWSNT`/`MSDOS`), C 89-105 (`DOS_NT`),
    C 118-120 (`HPUX`): dead `#include`s, recorded in `docs/ports/fileio.md`.  */
 
-/// C 34-36: `#ifdef HAVE_PWD_H` / `#include <pwd.h>` (HAVE_PWD_H is 1).  `<pwd.h>` has no
-/// mirror, so `struct passwd` and the lookups C calls are declared here at the use site,
-/// with the record's layout measured on the frozen target and pinned by `const _`
-/// (PORTING.md 0.1-2/P-72 rule 3; the same record editfns.rs and sysdep.rs declare).
-/// `<pwd.h>`'s `struct passwd`, measured: `sizeof` 72, `pw_name`@0, `pw_uid`@16,
-/// `pw_dir`@48, `pw_shell`@56, `pw_expire`@64.
-#[repr(C)]
-pub struct passwd {
-  pub pw_name: *mut c_char,
-  pub pw_passwd: *mut c_char,
-  pub pw_uid: uid_t,
-  pub pw_gid: gid_t,
-  pub pw_change: time_t,
-  pub pw_class: *mut c_char,
-  pub pw_gecos: *mut c_char,
-  pub pw_dir: *mut c_char,
-  pub pw_shell: *mut c_char,
-  pub pw_expire: time_t,
-}
-
-const _: () = assert! (std::mem::size_of::<passwd> () == 72);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_name) == 0);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_uid) == 16);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_dir) == 48);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_shell) == 56);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_expire) == 64);
-
 unsafe extern "C" {
-  /// C: `<pwd.h>`: `struct passwd *getpwuid (uid_t);`
-  pub fn getpwuid (uid: uid_t) -> *mut passwd;
-  /// C: `<pwd.h>`: `struct passwd *getpwnam (const char *);`
-  pub fn getpwnam (name: *const c_char) -> *mut passwd;
   /// C: `lisp.h` 5310: `extern char *emacs_strerror (int);`
   pub fn emacs_strerror (error_number: c_int) -> *mut c_char;
   /// C: `lisp.h` 5305: `extern int sys_fstat (int, struct stat *);`
@@ -695,7 +667,6 @@ DEFUN! ("make-temp-file-internal", Fmake_temp_file_internal,
     }
   return val;
 });
-
 
 DEFUN! ("make-temp-name", Fmake_temp_name, Smake_temp_name, 1, 1, 0,
        doc: "Generate temporary file name (string) starting with PREFIX (a string).\n\nThis function tries to choose a name that has no existing file.\nFor this to work, PREFIX should be an absolute file name, and PREFIX\nand the returned string should both be non-magic.\n\nThere is a race condition between calling `make-temp-name' and\nlater creating the file, which opens all kinds of security holes.\nFor that reason, you should normally use `make-temp-file' instead.",
@@ -2676,7 +2647,6 @@ DEFUN! ("default-file-modes", Fdefault_file_modes, Sdefault_file_modes, 0, 0, 0,
   return value;
 });
 
-
 DEFUN! ("set-file-times", Fset_file_times, Sset_file_times, 1, 3, 0,
        doc: "Set times of file FILENAME to TIMESTAMP.\nIf optional FLAG is `nofollow', do not follow FILENAME if it is a\nsymbolic link.  Set both access and modification times.  Return t on\nsuccess, else nil.  Use the current time if TIMESTAMP is nil.\nTIMESTAMP is in the format of `current-time'.",
        (filename: Lisp_Object, timestamp: Lisp_Object, flag: Lisp_Object),
@@ -2878,7 +2848,6 @@ unsafe extern "C" fn read_non_regular (state: Lisp_Object) -> Lisp_Object
 		      (*data).s.bufsize) as intmax_t;
   return make_int (if nbytes < 0 { - (*errno ()) as intmax_t } else { nbytes });
 }
-
 
 /* Condition-case handler used when reading from non-regular files
    in insert-file-contents.  */
@@ -5602,7 +5571,6 @@ DEFUN! ("recent-auto-save-p", Frecent_auto_save_p, Srecent_auto_save_p,
    (`check-undef.py` reported exactly that while this unit carried one - the `emacs_fclose`
    shape, status 3.68).  */
 
-
 DEFUN! ("next-read-file-uses-dialog-p", Fnext_read_file_uses_dialog_p,
        Snext_read_file_uses_dialog_p, 0, 0, 0,
        doc: "Return t if a call to `read-file-name' will use a dialog.\nThe return value is only relevant for a call to `read-file-name' that happens\nbefore any other event (mouse or keypress) is handled.",
@@ -5612,7 +5580,6 @@ DEFUN! ("next-read-file-uses-dialog-p", Fnext_read_file_uses_dialog_p,
      defined HAVE_NTGUI || defined HAVE_HAIKU)` (all undefined): recorded.  */
   return Qnil ();
 });
-
 
 unsafe fn file_for_stream (stream: Lisp_Object) -> *mut FILE
 {
@@ -5651,7 +5618,6 @@ DEFUN! ("file--close-stream", Ffile__close_stream,
   fclose (fp);
   return Qnil ();
 });
-
 
 /* C 6655: `#ifndef DOS_NT` (undefined, so the text is live).  */
 

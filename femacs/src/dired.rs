@@ -49,6 +49,9 @@
 
 include!("include/config.rs");                 // C 21
 include!("../lib/include/sys_types.in.rs");    // <sys/stat.h> (C 23) pulls it
+include!("../lib/include/pwd.rs");           // C: `#include <pwd.h>`
+include!("../lib/include/grp.rs");           // C: `#include <grp.h>`
+include!("../lib/include/sys_utsname.rs");   // C: `#include <sys/utsname.h>`
 include!("../lib/include/sys_stat.in.rs");     // C 23: <sys/stat.h>
 include!("../lib/include/dirent.rs");          // C 34: <dirent.h>
 include!("../lib/include/filemode.rs");        // C 35: <filemode.h>
@@ -93,34 +96,6 @@ pub const DT_UNKNOWN: c_int = 0;
 pub const DT_DIR: c_int = 4;
 pub const DT_LNK: c_int = 10;
 
-/// C: `<pwd.h>`'s `struct passwd` (`pw_uid@16`, measured with clang; only `pw_name` and
-/// `pw_uid` are read here).
-#[repr(C)]
-pub struct passwd
-{
-  pub pw_name: *mut c_char,
-  pub pw_passwd: *mut c_char,
-  pub pw_uid: uid_t,
-  pub pw_gid: gid_t,
-  pub pw_change: i64,
-  pub pw_class: *mut c_char,
-  pub pw_gecos: *mut c_char,
-  pub pw_dir: *mut c_char,
-  pub pw_shell: *mut c_char,
-  pub pw_expire: i64,
-  pub pw_fields: c_int,
-}
-
-/// C: `<grp.h>`'s `struct group` (only `gr_name` is read here).
-#[repr(C)]
-pub struct group
-{
-  pub gr_name: *mut c_char,
-  pub gr_passwd: *mut c_char,
-  pub gr_gid: gid_t,
-  pub gr_mem: *mut *mut c_char,
-}
-
 /// C: `<config.h>` 120: `#define DIRECTORY_SEP '/'` (config.h splices the `s/` header's
 /// value; measured in build/emacs-ref/src/config.h).
 pub const DIRECTORY_SEP: u8 = b'/';
@@ -135,14 +110,8 @@ macro_rules! IS_ANY_SEP { ($c:expr) => { IS_DIRECTORY_SEP! ($c) }; }
    carry yet, declared at the use site (the terminal.rs/filelock.rs shape).  `getpwuid`'s and
    `getgrgid`'s parameters are the frozen target's `uid_t`/`gid_t`.  */
 unsafe extern "C" {
-  /// C: `<pwd.h>`: `struct passwd *getpwuid (uid_t)`
-  pub fn getpwuid (uid: uid_t) -> *mut passwd;
-  /// C: `<pwd.h>`: `struct passwd *getpwent (void)`
-  pub fn getpwent () -> *mut passwd;
   /// C: `<pwd.h>`: `void endpwent (void)`
   pub fn endpwent ();
-  /// C: `<grp.h>`: `struct group *getgrgid (gid_t)`
-  pub fn getgrgid (gid: gid_t) -> *mut group;
   /// C: `<grp.h>`: `struct group *getgrent (void)`
   pub fn getgrent () -> *mut group;
   /// C: `<grp.h>`: `void endgrent (void)`

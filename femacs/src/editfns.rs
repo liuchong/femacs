@@ -49,6 +49,9 @@ include!("../lib/include/stdlib.rs");          // C 48: `#include <stdlib.h>`
 include!("include/composite.rs");              // C 50: `#include "composite.h"`
 include!("include/intervals.rs");              // C 51: `#include "intervals.h"`
 include!("include/systime.rs");                // C 52: `#include "systime.h"`
+include!("../lib/include/pwd.rs");           // C: `#include <pwd.h>`
+include!("../lib/include/grp.rs");           // C: `#include <grp.h>`
+include!("../lib/include/sys_utsname.rs");   // C: `#include <sys/utsname.h>`
 include!("include/character.rs");              // C 53: `#include "character.h"`
 include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"`
 include!("include/buffer.rs");                 // C 54: `#include "buffer.h"`
@@ -74,78 +77,6 @@ macro_rules! USER_FULL_NAME { ($pw:expr) => { (*$pw).pw_gecos }; }
    expansion); the port names the enum's variants `ITREE_*` (itree.rs 99-105) and imports
    them here the way `ITREE_FOREACH`'s expansion sites do (the textprop.rs shape).  */
 use itree_order::*;
-
-/* `<pwd.h>` and `<grp.h>` have no mirror (`femacs/lib/include/` carries neither); the two
-   records and their lookups are declared here with C's own text above them (PORTING.md
-   P-72 rule 3), measured against the frozen target - the same records sysdep.rs declares
-   for its own use.  */
-/// `<pwd.h>`'s `struct passwd`, measured: `sizeof` 72, `pw_name`@0, `pw_uid`@16,
-/// `pw_dir`@48, `pw_shell`@56, `pw_expire`@64.
-#[repr(C)]
-pub struct passwd {
-  pub pw_name: *mut c_char,
-  pub pw_passwd: *mut c_char,
-  pub pw_uid: uid_t,
-  pub pw_gid: gid_t,
-  pub pw_change: time_t,
-  pub pw_class: *mut c_char,
-  pub pw_gecos: *mut c_char,
-  pub pw_dir: *mut c_char,
-  pub pw_shell: *mut c_char,
-  pub pw_expire: time_t,
-}
-
-const _: () = assert! (std::mem::size_of::<passwd> () == 72);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_name) == 0);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_uid) == 16);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_dir) == 48);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_shell) == 56);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_expire) == 64);
-
-/// `<grp.h>`'s `struct group`, measured: `sizeof` 32, `gr_name`@0, `gr_gid`@16,
-/// `gr_mem`@24.
-#[repr(C)]
-pub struct group {
-  pub gr_name: *mut c_char,
-  pub gr_passwd: *mut c_char,
-  pub gr_gid: gid_t,
-  pub gr_mem: *mut *mut c_char,
-}
-
-const _: () = assert! (std::mem::size_of::<group> () == 32);
-const _: () = assert! (std::mem::offset_of! (group, gr_name) == 0);
-const _: () = assert! (std::mem::offset_of! (group, gr_gid) == 16);
-const _: () = assert! (std::mem::offset_of! (group, gr_mem) == 24);
-
-/// `<sys/utsname.h>`'s `struct utsname`, measured: `sizeof` 1280, `sysname`@0,
-/// `nodename`@256, `release`@512, `version`@768, `machine`@1024 (the same record
-/// sysdep.rs declares).
-#[repr(C)]
-pub struct utsname {
-  pub sysname: [c_char; 256],
-  pub nodename: [c_char; 256],
-  pub release: [c_char; 256],
-  pub version: [c_char; 256],
-  pub machine: [c_char; 256],
-}
-
-const _: () = assert! (std::mem::size_of::<utsname> () == 1280);
-const _: () = assert! (std::mem::offset_of! (utsname, nodename) == 256);
-const _: () = assert! (std::mem::offset_of! (utsname, release) == 512);
-
-/// `<pwd.h>`/`<grp.h>`: the two lookups C calls (`getpwuid`, `getgrgid`).
-unsafe extern "C" {
-  /// C: `<pwd.h>`: `struct passwd *getpwuid (uid_t);`
-  pub fn getpwuid (uid: uid_t) -> *mut passwd;
-  /// C: `<grp.h>`: `struct group *getgrgid (gid_t);`
-  pub fn getgrgid (gid: gid_t) -> *mut group;
-}
-
-/// `<sys/utsname.h>`: C 137's `uname (&uts)`.
-unsafe extern "C" {
-  /// C: `<sys/utsname.h>`: `int uname (struct utsname *);`
-  pub fn uname (name: *mut utsname) -> c_int;
-}
 
 /// `sysdep.c`, `eval.c` and `search.c` define these; lisp.h declares them (the last two
 /// are declared *inside* lisp.h's block for search.c, which the mirror does not carry).
@@ -298,8 +229,6 @@ unsafe extern "C" {
 
 /// `<pwd.h>`: C 1239's `getpwnam`.
 unsafe extern "C" {
-  /// C: `<pwd.h>`: `struct passwd *getpwnam (const char *);`
-  pub fn getpwnam (name: *const c_char) -> *mut passwd;
 }
 
 /* ==========================================================================================

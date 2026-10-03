@@ -1256,3 +1256,18 @@
   `check-symbols --dir src` **70/0/0**、`check-declarations` 0、`check-mirror-dupes` 仍只有棘轮一行。
   **注意**：`check-symbols` 在 lane 正在重建对象的瞬间可能读到半新半旧的一轮（本轮出现过一次
   "1 mismatched"、重跑即 0）——判读这类门要避开在飞 lane 的构建窗口。
+
+- **3.85 第 98 轮：三个系统头镜像落地——`passwd`/`group`/`utsname` 各从 3–4 份副本收成一份（2026-10-04）**：
+  `<pwd.h>`/`<grp.h>`/`<sys/utsname.h>` 一直没有镜像，于是 `dired.rs`/`editfns.rs`/`fileio.rs`/`sysdep.rs`
+  各自把 `struct passwd`（clang 实测 72/`pw_name`@0/`pw_uid`@16/`pw_dir`@48/`pw_shell`@56/`pw_expire`@64）、
+  和其中三个单元各自把 `struct group`（32）与 `struct utsname`（1280）连 `const _` 断言一起抄了一遍。
+  ① 新增 `lib/include/pwd.rs`（`passwd` + `getpwuid`/`getpwnam`/`getpwent`）、`grp.rs`（`group` + `getgrgid`）、
+  `sys_utsname.rs`（`utsname` + `uname`），布局与断言随定义一起搬，四个单元的副本删除、按 C 的顺序
+  `include!`（`time_t`/`uid_t`/`gid_t` 由包含单元提供，所以插在 `systime.rs` 之后）。
+  ② 验证：四个单元全部 `build-tu` built、`--check` OK；`check-globals` 272/0、`check-declarations` 0、
+  `check-mirror-dupes` 仍只有棘轮一行、`check-linkage` 0 缺失。
+  ③ 过程教训（写下来备查）：**按"注释往回吞"的通用清理脚本很危险**——第一版把类型上面的 `/* … */`
+  块的收尾 `*/` 一起吞掉，`editfns.rs` 立刻报 `unterminated block comment`（`/*` 与 `*/` 计数 289/288 是
+  最快的自检）；改成"按内容定位的整段删除"就干净了。另外 `sysdep.rs` 用的是**单行** extern 块
+  （`unsafe extern "C" { pub fn uname (…) -> c_int; }`），行首锚定的匹配器抓不到它，靠编译期的 `E0428`
+  才发现，已单独删掉。

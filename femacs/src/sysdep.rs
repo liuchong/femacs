@@ -79,6 +79,9 @@ include!("../lib/include/fcntl.in.rs");        // C 101: `#include <fcntl.h>`
 include!("../lib/include/signal.rs");          // C 104: `#include "syssignal.h"` -> <signal.h>
 include!("include/syssignal.rs");              // C 104: `#include "syssignal.h"`
 include!("include/systime.rs");                // C 105: `#include "systime.h"`
+include!("../lib/include/pwd.rs");           // C: `#include <pwd.h>`
+include!("../lib/include/grp.rs");           // C: `#include <grp.h>`
+include!("../lib/include/sys_utsname.rs");   // C: `#include <sys/utsname.h>`
 include!("../lib/include/string.rs");          // lisp.h's <string.h>: memcpy, strchr, …
 include!("../lib/include/wchar.rs");           // C 4566: `#include <wchar.h>`
 include!("../lib/include/wctype.rs");          // C 4567: `#include <wctype.h>`
@@ -163,63 +166,6 @@ pub struct winsize {
 const _: () = assert! (std::mem::size_of::<winsize> () == 8);
 const _: () = assert! (std::mem::offset_of! (winsize, ws_row) == 0);
 const _: () = assert! (std::mem::offset_of! (winsize, ws_col) == 2);
-
-/* struct passwd { char *pw_name; char *pw_passwd; uid_t pw_uid; gid_t pw_gid;
-                  time_t pw_change; char *pw_class; char *pw_gecos; char *pw_dir;
-                  char *pw_shell; time_t pw_expire; };  */
-/// `<pwd.h>`'s `struct passwd`, measured: `sizeof` 72, `pw_name`@0, `pw_uid`@16,
-/// `pw_shell`@56, `pw_expire`@64.
-#[repr(C)]
-pub struct passwd {
-  pub pw_name: *mut c_char,
-  pub pw_passwd: *mut c_char,
-  pub pw_uid: uid_t,
-  pub pw_gid: gid_t,
-  pub pw_change: time_t,
-  pub pw_class: *mut c_char,
-  pub pw_gecos: *mut c_char,
-  pub pw_dir: *mut c_char,
-  pub pw_shell: *mut c_char,
-  pub pw_expire: time_t,
-}
-
-const _: () = assert! (std::mem::size_of::<passwd> () == 72);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_name) == 0);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_uid) == 16);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_shell) == 56);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_expire) == 64);
-
-/* struct group { char *gr_name; char *gr_passwd; gid_t gr_gid; char **gr_mem; };  */
-/// `<grp.h>`'s `struct group`, measured: `sizeof` 32, `gr_name`@0, `gr_gid`@16,
-/// `gr_mem`@24.
-#[repr(C)]
-pub struct group {
-  pub gr_name: *mut c_char,
-  pub gr_passwd: *mut c_char,
-  pub gr_gid: gid_t,
-  pub gr_mem: *mut *mut c_char,
-}
-
-const _: () = assert! (std::mem::size_of::<group> () == 32);
-const _: () = assert! (std::mem::offset_of! (group, gr_name) == 0);
-const _: () = assert! (std::mem::offset_of! (group, gr_gid) == 16);
-
-/* struct utsname { char sysname[256]; char nodename[256]; char release[256];
-                   char version[256]; char machine[256]; };  */
-/// `<sys/utsname.h>`'s `struct utsname`, measured: `sizeof` 1280, `nodename`@256.  C 1619's
-/// arm is dead for the frozen build (`HAVE_GETHOSTNAME` is 1) and is carried (P-51), so the
-/// record is too.
-#[repr(C)]
-pub struct utsname {
-  pub sysname: [c_char; 256],
-  pub nodename: [c_char; 256],
-  pub release: [c_char; 256],
-  pub version: [c_char; 256],
-  pub machine: [c_char; 256],
-}
-
-const _: () = assert! (std::mem::size_of::<utsname> () == 1280);
-const _: () = assert! (std::mem::offset_of! (utsname, nodename) == 256);
 
 /* struct rusage { struct timeval ru_utime, ru_stime; long ru_maxrss; long ru_ixrss;
                   long ru_idrss; long ru_isrss; long ru_minflt; long ru_majflt;
@@ -607,12 +553,9 @@ pub const PIPE_BUF: usize = 512;
 
 /// `<pwd.h>`/`<grp.h>`: the two lookups C 3590/3600 calls.
 unsafe extern "C" {
-  pub fn getpwuid (uid: uid_t) -> *mut passwd;
-  pub fn getgrgid (gid: gid_t) -> *mut group;
 }
 
 /// `<sys/utsname.h>`: C 1620's dead `HAVE_GETHOSTNAME` arm.
-unsafe extern "C" { pub fn uname (name: *mut utsname) -> c_int; }
 
 /// `<stdlib.h>`/`<unistd.h>`: the two memory-entropy and the clock entries this unit calls.
 unsafe extern "C" {
