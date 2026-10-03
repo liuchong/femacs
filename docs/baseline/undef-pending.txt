@@ -3,7 +3,6 @@
 # 3.59).  One symbol per line, `nm` spelling.  An entry disappears when the
 # unit that owns the definition lands; a NEW symbol here is a defect (a
 # misspelling, an invented helper, a missing #[link_name]).
-_Fsubstring_no_properties
 _VFORK
 _Vcoding_system_for_read
 _Vcoding_system_for_write
@@ -12,7 +11,6 @@ _Vdeactivate_mark
 _Vdefault_process_coding_system
 _Vdisplay_line_numbers
 _Vdisplay_pixels_per_inch
-_Vfeatures
 _Vglyphless_char_display
 _Vhelp_form
 _Vinhibit_redisplay
@@ -70,8 +68,6 @@ _coding_system_require_warning
 _composition_break_at_point
 _current_buffer
 _cursorX
-_decode_coding_gap
-_detect_coding_system
 _die
 _fflush_unlocked
 _fputc_unlocked
@@ -79,9 +75,9 @@ _free_state
 _fwrite_unlocked
 _inherit_process_coding_system
 _last_command_event
+_last_input_event
 _last_nonmenu_event
 _max_redisplay_ticks
-_merge
 _meta_prefix_char
 _mode_line_in_non_selected_windows
 _multiple_terminals_merge_keyboards
@@ -116,8 +112,6 @@ _sa_stack_alloc
 _specpdl
 _specpdl_end
 _specpdl_ptr
-_string_ascii_p
 _suppress_checking
 _syms_of_xwidget
 _track_mouse
-_use_dialog_box
