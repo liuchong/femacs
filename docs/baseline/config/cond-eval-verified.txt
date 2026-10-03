@@ -329,6 +329,7 @@ src/lisp.h
 src/macros.c
 src/macros.h
 src/macuvs.h
+src/menu.c
 src/menu.h
 src/minibuf.c
 src/module-env-25.h

@@ -683,6 +683,16 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
             body = s[1:].strip()
             word = body.split(maxsplit=1)[0] if body else ""
             rest = body[len(word):].strip()
+            # C removes a comment in translation phase 3, before a directive is read, so a
+            # comment this *logical line* leaves open ends what the directive says: the rest
+            # of the comment sits on the following physical lines, which `logical_lines`
+            # does not join into this one.  `src/menu.c` 1420's
+            # `#ifdef HAVE_NTGUI /* W32 specific because ... */` is the tree's example: with
+            # the comment text kept, the tokenizer met its `/` and the condition answered
+            # `unknown`, so the branch stayed live although clang compiles it dead - the one
+            # disagreement that kept that file out of cond-eval-verified.txt.  The log keeps
+            # the unblanked `rest`, because that is the reference line's own text.
+            cond_text = re.sub(r"/\*.*$", "", rest).rstrip()
             if word in ("if", "ifdef", "ifndef"):
                 if outer_dead:
                     # A condition inside a branch the configuration already disabled has no
@@ -692,11 +702,11 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
                     # with clang and kept it off the verified list (P-66).
                     cond = False
                 elif word == "ifdef":
-                    cond = eval_condition (f"defined ({rest})")
+                    cond = eval_condition (f"defined ({cond_text})")
                 elif word == "ifndef":
-                    cond = eval_condition (f"! defined ({rest})")
+                    cond = eval_condition (f"! defined ({cond_text})")
                 else:
-                    cond = eval_condition (rest)
+                    cond = eval_condition (cond_text)
                 if cond is None and word == "if" and rest in ("0", "false"):
                     cond = False
                 CONDITION_LOG.append((line_index, word, rest, cond))
@@ -709,7 +719,7 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
                     if entry[1]:
                         entry[2] = False
                     else:
-                        cond = eval_condition (rest)
+                        cond = eval_condition (cond_text)
                         CONDITION_LOG.append((line_index, word, rest, cond))
                         entry[2] = cond is not False
                         entry[1] = cond is True
