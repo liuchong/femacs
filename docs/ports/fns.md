@@ -325,16 +325,15 @@ the header has no mirror and there is nothing to declare at a use site.
   moved into `pub mod lisp_hash_decls` + glob import, so the definitions are back at their C
   position (crate root) and the wrapper module is gone.  While it stood, the names and symbols
   were unchanged and every internal call went through the unit's own `_hash_*` symbol.
-- **The seven `pub mod decls` lib mirrors cannot be included together**: `filevercmp.rs`, `md5.rs`,
-  `sha1.rs`, `sha256.rs`, `sha512.rs`, `sha3.rs` and `utimens.rs` all declare their extern block
-  in a module named `decls`, and `xtask`'s materializer flattens a wrapping `mod`, so any two of
-  them in one unit is an `E0428`.  This file needs six of the seven (the first unit that does).
-  Until the mirrors get per-header module names, the port includes **sha1.rs only** (its
-  `sha1_ctx` is needed by `buffer-hash`) and declares the rest at their use sites with C's own
-  prototypes: `filenvercmp`, `md5_buffer`, `sha224_buffer`, `sha256_buffer`, `sha384_buffer`,
-  `sha512_buffer`, `sha3_{224,256,384,512}_buffer`, plus the ten `*_DIGEST_SIZE` constants (the
-  headers' own `bits / 8`) and `<langinfo.h>`'s `DAY_1..DAY_7`/`MON_1..MON_12` (clang-measured,
-  P-72 rule 3).
+- ~~**The seven `pub mod decls` lib mirrors cannot be included together**~~ **Resolved in
+  status 3.88/3.89**: the seven modules are named per file now (`md5_decls` and friends), so this
+  lane's six mirrors are in the include list here and their names come from them -
+  `filenvercmp`, `md5_buffer`, `sha224_buffer`, `sha256_buffer`, `sha384_buffer`, `sha512_buffer`,
+  `sha3_{224,256,384,512}_buffer`, the ten `*_DIGEST_SIZE` constants and `<langinfo.h>`'s
+  `DAY_1..DAY_7`/`MON_1..MON_12` all moved from use-site copies into the mirrors, and
+  `tools/check-mirror-dupes.py` now reports zero duplicates for this unit (it saw the constants
+  all along; the include graph is what changed).  The copy of `CODESET`'s note below is what the
+  lane found while doing it.
 - **`hash_table_test.cmpfn` is `Lisp_Object` in the mirror** (the C field is a function pointer;
   same size, and C itself tests it as a pointer): the three `hashtest_*` definitions store
   `cmpfn_eql as … as *const () as Lisp_Object` (a const-evaluable cast) and the two lookup loops
@@ -344,8 +343,9 @@ the header has no mirror and there is nothing to declare at a use site.
   `LISPSYM_INITIALLY` (a plain `fn`): the port spells the same value as
   `(iQ* * size_of::<Lisp_Symbol> ()) as EMACS_UINT + Lisp_Type::Lisp_Symbol as EMACS_UINT` cast to
   `Lisp_Object` (the thread.rs/`main_thread` precedent for a C constant initialiser).
-- **`lib/include/langinfo.rs`'s `CODESET` is 14, the frozen target's `<langinfo.h>` defines it as
-  0** (`clang -E -dM`, and `docs/baseline/config/darwin-arm64.macros.tsv` agrees).  `Flocale_info`
+- **`lib/include/langinfo.rs`'s `CODESET` was 14; the frozen target's `<langinfo.h>` defines it
+  as 0** (`clang -E -dM`, and `docs/baseline/config/darwin-arm64.macros.tsv` agrees).  **Fixed in
+  the mirror with the `DAY_*`/`MON_*` items (status 3.86).**  `Flocale_info`
   must use the name the C body uses (the token rule and the mirror's root declaration leave no
   alternative), so the `codeset` arm passes the wrong item until the mirror is corrected; reported
   here rather than worked around.

@@ -148,24 +148,6 @@ unsafe extern "C" {
   /// `mark_objects`).
   fn survives_gc_p (obj: Lisp_Object) -> bool;
   fn mark_object (obj: Lisp_Object);
-  /// C: <filevercmp.h> 24-25: `int filenvercmp (char const *a, ptrdiff_t alen,
-  /// char const *b, ptrdiff_t blen);` (lib/filevercmp.c defines it; its mirror's `decls`
-  /// cannot be included here — see the digest-header note below).
-  fn filenvercmp (a: *const c_char, alen: ptrdiff_t, b: *const c_char,
-                  blen: ptrdiff_t) -> c_int;
-  /// `md5.h` 115: `void *md5_buffer (const char *buffer, size_t len, void *resblock);`
-  fn md5_buffer (buffer: *const c_char, len: usize, resblock: *mut c_void) -> *mut c_void;
-  /// `sha256.h` 73-75.
-  fn sha224_buffer (buffer: *const c_char, len: usize, resblock: *mut c_void) -> *mut c_void;
-  fn sha256_buffer (buffer: *const c_char, len: usize, resblock: *mut c_void) -> *mut c_void;
-  /// `sha512.h` 73-75.
-  fn sha384_buffer (buffer: *const c_char, len: usize, resblock: *mut c_void) -> *mut c_void;
-  fn sha512_buffer (buffer: *const c_char, len: usize, resblock: *mut c_void) -> *mut c_void;
-  /// `sha3.h` 95-101.
-  fn sha3_224_buffer (buffer: *const c_char, len: usize, resblock: *mut c_void) -> *mut c_void;
-  fn sha3_256_buffer (buffer: *const c_char, len: usize, resblock: *mut c_void) -> *mut c_void;
-  fn sha3_384_buffer (buffer: *const c_char, len: usize, resblock: *mut c_void) -> *mut c_void;
-  fn sha3_512_buffer (buffer: *const c_char, len: usize, resblock: *mut c_void) -> *mut c_void;
   /// C: lisp.h 4289-4290: `extern void tim_sort (Lisp_Object, Lisp_Object, Lisp_Object *,
   /// const ptrdiff_t, bool);` — sort.c defines it (the mirror is missing the line).
   fn tim_sort (predicate: Lisp_Object, keyfunc: Lisp_Object, s: *mut Lisp_Object,
@@ -190,18 +172,6 @@ unsafe extern "C" {
   fn str_collate (s1: Lisp_Object, s2: Lisp_Object, locale: Lisp_Object,
                   ignore_case: Lisp_Object) -> c_int;
 }
-
-/* The five digest headers' `*_DIGEST_SIZE` constants (each header's own `bits / 8`), which the
-   unit needs because the mirrors cannot be included together (see the digest-header note).  */
-pub const MD5_DIGEST_SIZE: c_int = 16;
-pub const SHA224_DIGEST_SIZE: c_int = 224 / 8;
-pub const SHA256_DIGEST_SIZE: c_int = 256 / 8;
-pub const SHA384_DIGEST_SIZE: c_int = 384 / 8;
-pub const SHA512_DIGEST_SIZE: c_int = 512 / 8;
-pub const SHA3_224_DIGEST_SIZE: c_int = 224 / 8;
-pub const SHA3_256_DIGEST_SIZE: c_int = 256 / 8;
-pub const SHA3_384_DIGEST_SIZE: c_int = 384 / 8;
-pub const SHA3_512_DIGEST_SIZE: c_int = 512 / 8;
 
 
 /* C 44: `enum equal_kind { EQUAL_NO_QUIT, EQUAL_PLAIN, EQUAL_INCLUDING_PROPERTIES };` */
@@ -6438,7 +6408,12 @@ DEFUN! ("internal--hash-table-index-size",
    `sha256_buffer`, `sha384_buffer`, `sha512_buffer` and the four `sha3_*_buffer` entries (each
    `void *f (const char *, size_t, void *)`), plus the ten `*_DIGEST_SIZE` constants, whose
    values are the headers' own `bits / 8` expressions.  */
-include!("../lib/include/sha1.rs");       // C 6137: `#include "sha1.h"`
+include!("../lib/include/sha1.rs");
+include!("../lib/include/md5.rs");            // C 1466: `#include <md5.h>`
+include!("../lib/include/sha256.rs");         // C 1469: `#include <sha256.h>`
+include!("../lib/include/sha512.rs");         // C 1470: `#include <sha512.h>`
+include!("../lib/include/sha3.rs");           // C 1474: `#include <sha3.h>`
+include!("../lib/include/filevercmp.rs");     // C 96: `#include <filevercmp.h>`       // C 6137: `#include "sha1.h"`
 
 /* Store into HEXBUF an unterminated hexadecimal character string
    representing DIGEST, which is binary data of size DIGEST_SIZE bytes.

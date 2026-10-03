@@ -1308,3 +1308,12 @@
   十个 `*_DIGEST_SIZE`）。这正是 §3.83 给 mirror-dupes 门加常量类的同一根因，只是**镜像不在该单元的
   include 图里**，所以门还看不见；要收掉它得"给 fns.rs 加这些 include + 同时删掉它自己的十个副本"，
   记在这里作为下一步（同类还牵扯若干 `*_buffer` 函数声明）。
+
+- **3.89 第 98 轮：fns 的六个摘要镜像进 include 列表，十四个用点声明收进镜像（2026-10-04）**：
+  接 §3.88：模块改名之后，`fns.rs` 把 `md5.rs`/`sha256.rs`/`sha512.rs`/`sha3.rs`/`filevercmp.rs`
+  连同原有的 `sha1.rs` 一起 include，删掉它自带的 `filenvercmp`、`md5_buffer`、`sha224/256/384/512_buffer`、
+  `sha3_{224,256,384,512}_buffer` 十四个用点声明与九个 `*_DIGEST_SIZE` 常量（`SHA1_DIGEST_SIZE` 本来就在
+  镜像里、它没抄）。验证：`build-tu` built、`--check` OK、`check-globals` 272/0，而且**新覆盖的
+  `check-mirror-dupes` 报 0 duplicates**——工具从加常量类那天起就看得见这些常量，只是镜像原先不在该单元的
+  include 图里；这次收敛等于把 §3.83 的判据用在真身上。台账里"镜像不能共存、只能 include sha1"的叙述与
+  `CODESET` 的旧值都改成终态。
