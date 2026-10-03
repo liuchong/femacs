@@ -162,6 +162,7 @@ include!("include/dispextern.rs");             // C 111: `#include "dispextern.h
 include!("include/regex-emacs.rs");            // C 112: `#include "regex-emacs.h"`
 include!("include/syntax.rs");                 // C 113: `#include "syntax.h"`
 include!("include/systime.rs");                // C 115: `#include "systime.h"`
+include!("include/gnutls.rs");                 // C 118: `#include "gnutls.h"`
 include!("../lib/include/fingerprint.rs");     // C 152: `#include "fingerprint.h"`
 include!("include/pdumper.rs");                // C 151: `#include "pdumper.h"`
 include!("include/comp.rs");                   // C 156: `#include "comp.h"`
@@ -315,8 +316,6 @@ unsafe extern "C" {
   fn syms_of_treesit ();
   /// C: xwidget.h 33: `void syms_of_xwidget (void);`
   fn syms_of_xwidget ();
-  /// C: gnutls.h 98: `extern void syms_of_gnutls (void);`
-  fn syms_of_gnutls ();
 
   /* --- libc (the mirrors' own groups: <stdio.h>, <stdlib.h>, <unistd.h>, <string.h>,
          <locale.h>, <signal.h>) ---------------------------------------------------- */
