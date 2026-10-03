@@ -31,6 +31,8 @@ unsafe extern "C" {
   pub fn strcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char;
   /* char *strchr (const char *s, int c);  */
   pub fn strchr (s: *const c_char, c: c_int) -> *mut c_char;
+  /* size_t strspn (const char *s, const char *accept);  */
+  pub fn strspn (s: *const c_char, accept: *const c_char) -> usize;
   /* char *strrchr (const char *s, int c);  */
   pub fn strrchr (s: *const c_char, c: c_int) -> *mut c_char;
   /* void *memchr (const void *s, int c, size_t n);  */

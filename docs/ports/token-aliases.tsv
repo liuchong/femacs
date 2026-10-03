@@ -45,3 +45,5 @@ opt_subexp	set_opt_subexp,set_opt_subexp_	`re_token_t.opt_subexp` (bit 19) is pa
 duplicated	duplicated,set_duplicated,set_duplicated_	`re_token_t.duplicated` (bit 18) is packed into `bits`; the port write spelling (regcomp.c duplicate_node)
 word_char	word_char,set_word_char,set_word_char_	`re_token_t.word_char` (bit 22) is packed into `bits`; the port write spelling (regcomp.c peek_token)
 free	free,rpl_free	gnulib's generated <stdlib.h> renames `free` under REPLACE_FREE (the frozen build's objects call `_rpl_free`), so the port's `rpl_free` call is C's `free`
+not_bol	not_bol,set_not_bol,set_not_bol_	`re_pattern_buffer.not_bol` (bit 5) is packed into `bits`; the port write spelling (regcomp.c re_compile_internal)
+not_eol	not_eol,set_not_eol,set_not_eol_	`re_pattern_buffer.not_eol` (bit 6) is packed into `bits`; the port write spelling (regcomp.c re_compile_internal)

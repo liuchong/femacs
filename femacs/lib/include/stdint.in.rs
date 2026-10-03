@@ -46,3 +46,10 @@ pub type uint64_t = u64;
 // <stdint.h>'s per-width maxima; lib/u64.h's native `u64getlo` masks with
 // UINT32_MAX (the lisp.h mirror carries the machine-word ones).
 pub const UINT32_MAX: u32 = u32::MAX;
+
+// The fast integer types temname.c names: `typedef uint_fast64_t random_value;` and
+// `#define RANDOM_VALUE_MAX UINT_FAST64_MAX` (lib/tempname.c 64-65); the frozen target's
+// widths come from the system header (uint_fast64_t is a 64-bit unsigned type, measured:
+// `printf ("%zu", sizeof (uint_fast64_t))` -> 8).
+pub type uint_fast64_t = u64;
+pub const UINT_FAST64_MAX: u64 = u64::MAX;
