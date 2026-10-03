@@ -1087,6 +1087,22 @@ configuration (see PORTING.md 2.1's setup steps)");
         }
         Err(e) => return fail(e),
     }
+    // A unit that repeats a declaration a mirror *in its own include graph* already carries
+    // compiles, passes every text gate, and becomes `clashing_extern_declarations` the moment
+    // the two spellings disagree - the warning gate-fast's unit builds already print.  The
+    // ratchet holds the rows that are deliberate (status 3.76/3.77).
+    println!("== mirror-dupes gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-mirror-dupes.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("mirror duplicates: none beyond the ratchet"),
+        Ok(_) => {
+            return fail("a unit repeats a declaration a mirror in its include graph carries")
+        }
+        Err(e) => return fail(e),
+    }
     println!("== probe programs ==");
     if let Err(e) = probe_programs() {
         return fail(e);

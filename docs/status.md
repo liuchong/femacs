@@ -1101,3 +1101,47 @@
   下一轮的做法建议：新增 `tools/check-mirror-dupes.py`（只报"镜像在该单元 include 图之内"的命中），
   用 `docs/baseline/mirror-dupes.tsv` 做棘轮把 66 条挂上去，然后按单元逐个删副本——
   每条删除都只需 `build-tu <unit>` + `--check <unit>` 两步验证。
+
+- **3.76 第 98 轮：求值器补上"文件自身默认"这一课——`FONT_DEBUG` 一行换来 8 个 subr 可达（2026-10-04）**：
+  font lane 报回一个**单点可修**的偏离：`src/font.h` 997-999 是 `#ifndef FONT_DEBUG` / `#define FONT_DEBUG`，
+  所以该宏由**源码头文件**决定、`config.h` 说不出它，`check-cond-eval.py src/font.c` 报 `2 disagreements`
+  （C 5240/5938 两条 `#ifdef FONT_DEBUG`，clang 判活）。按 §3.35 的机制补一行
+  `font.h<TAB>FONT_DEBUG`（用与 `gen-cond-macros.py` 相同的 clang 调用实测）之后：
+  `src/font.c: 45 conditions, 0 unknown, 0 disagreements [VERIFIED]`。
+  ① **语义回报**：`tools/extract-abi.py` 的 `c_defsubr_live` 是**故意**不走 `blind_conditions` 的，
+  表一旦知道 `FONT_DEBUG`，它就要求 C 5938-5949 的**八条 `defsubr`**（`open-font`、`close-font`、
+  `query-font`、`font-get-glyphs`、`font-has-char-p`、`font-match-p`、`font-at`、`frame-font-cache`）——
+  照抄进 `syms_of_font` 后这 8 个 Lisp 函数**重新可达**（此前只能记台账：抄了会被判 "unexpected defsubr"，
+  不抄则 Lisp 里根本没有它们）。font.c 本身仍**不进** `cond-eval-verified.txt`：它照 P-51 两支都抄，
+  而 verified 文件的检查器只要求活支（§3.51 的 callproc 注）。
+  ② **这一行反而暴露了求值器的模型缺口**：源码头文件行的值是该头文件**自身 define 的净效果**，
+  于是 `font.h:997` 的 `#ifndef FONT_DEBUG` 被答成 False，而 clang 答 True（那条 define 在 6 行之后）。
+  `tools/cinventory.py` 因此加了**第二遍扫描**：只对"该文件自己拥有 `source-header-macros.tsv` 行"的宏，
+  在扫到 `#ifndef X` 时先把 X 置为 undef，让守卫答出 clang 的答案、再由文件自己的 `#define` 供值。
+  两个坑都实测过：① 规则一开始过宽（任何 `#ifndef`）→ lisp.h 立刻 45 处分歧，收窄到"本文件拥有的行"才干净；
+  ② 第二遍**必须从表的新副本开始**——第一遍已经把文件自己的 define 写进了那张表，沿用会让半个头文件的
+  守卫全部提前生效（实测 font.h 从 1 处分歧变 4 处）。终态：`src/font.h` 1→**0**、`src/font.c` 0、
+  `--verified docs/baseline/config/cond-eval-verified.txt` → **5717 conditions, 4 unknown, 0 disagreements**
+  （432 个文件，exit 0）。
+  ③ 同一天 process lane 也踩了同一根柱子的另一面：它加的 `sys/ioctl.h<TAB>TIOCNOTTY` 是**全局**行，
+  但该宏的可得性是**逐文件**的——`src/term.c` 含 `<termios.h>` 而不含 `<sys/ioctl.h>`，
+  于是 `term.c:4443` 反被判活，`--verified` 直接失败；lane 自己把那行撤了（process.c 照旧是 blind 文件，
+  不需要它）。**教训**：源码头文件行只对"真正由该文件定义"的宏成立，别拿它去表达"某个 TU 里看得到"。
+
+- **3.77 第 98 轮：重复声明变成一道门，16 处副本清掉（2026-10-04）**：§3.75 的那份审计（66 个单元里
+  "镜像已经声明过、单元又声明一遍"）本轮落成门：`tools/check-mirror-dupes.py`。
+  ① **它按"在不在作用域里"判**：从单元出发展开 `include!` 图，镜像侧的声明只有两种算数——
+  镜像顶层的（`include!` 是文本展开，直接落在包含它的 crate 根）或镜像 glob 导入的模块里的
+  （`use mod::*;`）；单元自己模块内的声明是另一个作用域，不算重复；带函数体的是**定义**不是副本
+  （定义遮蔽 glob 导入正是 0.1-10 要的形态）。6 条 `--selftest` 用例把这几条边界钉住（含"同层文本重复"
+  与"模块局部不算"），并做过负向验证：往一棵真树里注入一条副本，门立刻失败。
+  ② **16 处副本删除**（每处都 `build-tu` + `--check` 双验）：`lib/lchmod.rs` 的 `sprintf`、
+  `callproc.rs` 的 `del_range`、`doprnt.rs` 的 `sprintf`、`insdel.rs` 的 `record_first_change`、
+  `tparam.rs` 的 `strlen`、`term.rs` 的 `xstrdup`/`xzalloc`、`lread.rs` 的七条、`font.rs` 的两条
+  （`composition_gstring_p`/`composition_gstring_adjust_zero_width`）。其中两条**不只是副本**：
+  `lread.rs` 把 `emacs_read_quit` 写成 `-> isize`（C 与镜像都是 `ptrdiff_t`，同一类型的两种拼法），
+  而 `Fnative_elisp_load` 干脆**没有返回类型**——`globals.rs` 里由生成器写的 `EXFUN` 原型才是对的
+  （`Lisp_Object`；调用点本来就丢弃返回值）。
+  ③ 棘轮 `docs/baseline/mirror-dupes.tsv` 现在只剩**一行**：`insdel.rs` 的 `bset_redisplay`
+  （镜像把参数拼成 `*mut c_void`，调用点传 `*mut buffer`；要合流得让 `window.rs` include `buffer.rs`，
+  那是镜像属主的决定）——行里写着理由，不是隐藏。门已接进 `gate-fast`（`== mirror-dupes gate ==`）。
