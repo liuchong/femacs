@@ -320,12 +320,11 @@ the header has no mirror and there is nothing to declare at a use site.
 
 ### Deviations forced by mirrors (reported, not fixed here)
 
-- **`hash_find`, `hash_put` and `string_make_unibyte` are defined inside
-  `pub mod fns_root_shadowed`** instead of at their C position: `include/lisp.rs` declares those
-  three at the **crate root** (its raw lines 2440-2444), so a same-scope definition is `E0428`
-  and PORTING.md P-21's shadowing shape needs the mirror's lines in a `pub mod` (the
-  keymap.rs/frame.rs device).  Names and symbols are unchanged; the module is a mirror-gap
-  workaround, not a rename.
+- ~~**`hash_find`, `hash_put` and `string_make_unibyte` are defined inside
+  `pub mod fns_root_shadowed`**~~ **Resolved in status 3.87**: the mirror's three declarations
+  moved into `pub mod lisp_hash_decls` + glob import, so the definitions are back at their C
+  position (crate root) and the wrapper module is gone.  While it stood, the names and symbols
+  were unchanged and every internal call went through the unit's own `_hash_*` symbol.
 - **The seven `pub mod decls` lib mirrors cannot be included together**: `filevercmp.rs`, `md5.rs`,
   `sha1.rs`, `sha256.rs`, `sha512.rs`, `sha3.rs` and `utimens.rs` all declare their extern block
   in a module named `decls`, and `xtask`'s materializer flattens a wrapping `mod`, so any two of
