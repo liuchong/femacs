@@ -122,7 +122,8 @@ unsafe extern "C" {
   fn make_specified_string (chars: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
 			    multibyte: bool) -> Lisp_Object;
   /// C: lisp.h 4527: `extern Lisp_Object substring_both (Lisp_Object, ptrdiff_t, ptrdiff_t,
-  /// ptrdiff_t, ptrdiff_t);` (editfns.c's definition; the mirror does not carry it).
+  /// ptrdiff_t, ptrdiff_t);` (fns.c's definition, not editfns.c's - the integrator corrected
+  /// this note on `port(src/editfns.c)`'s report; the mirror does not carry it).
   fn substring_both (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t,
 		     to: ptrdiff_t, to_byte: ptrdiff_t) -> Lisp_Object;
   /// C: lisp.h 4010-4012: `extern ptrdiff_t copy_text (const unsigned char *from_addr,
