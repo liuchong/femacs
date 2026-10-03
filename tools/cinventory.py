@@ -765,7 +765,12 @@ def doc_comment_value(comment: str) -> str:
             continue
         out.append(ch)
         i += 1
-    return "".join(out).strip(" \t").rstrip()
+    # `strip(" \t")` left a leading newline in place, so a `doc: /*` whose text starts on
+    # the next line kept it: normalised to a leading space on this side but stripped on the
+    # Rust side (`extract-abi.digest`), the two digests could never agree (character.c's
+    # `Fstring` is the first `doc: /*\n…` subr in a ported file).  make-docfile drops the
+    # comment's leading whitespace, which is what `.strip ()` does.
+    return "".join(out).strip()
 
 
 def blank_literals(text: str) -> str:

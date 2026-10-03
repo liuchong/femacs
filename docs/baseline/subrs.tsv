@@ -169,7 +169,7 @@ src/character.c	Funibyte_char_to_multibyte	unibyte-char-to-multibyte	1	1	0		64df
 src/character.c	Fmultibyte_char_to_unibyte	multibyte-char-to-unibyte	1	1	0		ddb13c87d43c
 src/character.c	Fchar_width	char-width	1	1	0		88b52e6bd194
 src/character.c	Fstring_width	string-width	1	3	0		536768fcd28e
-src/character.c	Fstring	string	0	MANY	0		8f3e6569675d
+src/character.c	Fstring	string	0	MANY	0		bd9a55b6e360
 src/character.c	Funibyte_string	unibyte-string	0	MANY	0		8af29d1ebbca
 src/character.c	Fchar_resolve_modifiers	char-resolve-modifiers	1	1	0		2c0eabd42f7f
 src/character.c	Fget_byte	get-byte	0	2	0		beade79d86ca
@@ -180,7 +180,7 @@ src/charset.c	Fdefine_charset_alias	define-charset-alias	2	2	0		37a77a00f254
 src/charset.c	Fcharset_plist	charset-plist	1	1	0		511fced6848a
 src/charset.c	Fset_charset_plist	set-charset-plist	2	2	0		5656ad81baaf
 src/charset.c	Funify_charset	unify-charset	1	3	0		1e801c21b93e
-src/charset.c	Fget_unused_iso_final_char	get-unused-iso-final-char	2	2	0		9337fbb3a4af
+src/charset.c	Fget_unused_iso_final_char	get-unused-iso-final-char	2	2	0		ec869e4ba7d0
 src/charset.c	Fdeclare_equiv_charset	declare-equiv-charset	4	4	0		b5b08a69646e
 src/charset.c	Ffind_charset_region	find-charset-region	2	3	0		35f262aa3a91
 src/charset.c	Ffind_charset_string	find-charset-string	1	2	0		21ab9e6b2c14
@@ -189,15 +189,15 @@ src/charset.c	Fencode_char	encode-char	2	2	0		d913f93f163c
 src/charset.c	Fmake_char	make-char	1	5	0		34581bc70a56
 src/charset.c	Fsplit_char	split-char	1	1	0		a9da8161eac3
 src/charset.c	Fchar_charset	char-charset	1	2	0		58493dbc4ebd
-src/charset.c	Fcharset_after	charset-after	0	1	0		34b2595d0bb9
-src/charset.c	Fiso_charset	iso-charset	3	3	0		874b381d17dc
-src/charset.c	Fclear_charset_maps	clear-charset-maps	0	0	0		3e651be780f3
+src/charset.c	Fcharset_after	charset-after	0	1	0		b1445c24343e
+src/charset.c	Fiso_charset	iso-charset	3	3	0		c24e7b4abb4b
+src/charset.c	Fclear_charset_maps	clear-charset-maps	0	0	0		903018ae3471
 src/charset.c	Fcharset_priority_list	charset-priority-list	0	1	0		d4674c30efac
 src/charset.c	Fset_charset_priority	set-charset-priority	1	MANY	0		3ac6ad140695
 src/charset.c	Fcharset_id_internal	charset-id-internal	0	1	0		e613ccefa4a2
 src/charset.c	Fsort_charsets	sort-charsets	1	1	0		d33d82b8badb
 src/chartab.c	Fmake_char_table	make-char-table	1	2	0		4f6ce4501f87
-src/chartab.c	Fchar_table_subtype	char-table-subtype	1	1	0		b2d37c03edcf
+src/chartab.c	Fchar_table_subtype	char-table-subtype	1	1	0		a3570d98b5b8
 src/chartab.c	Fchar_table_parent	char-table-parent	1	1	0		ec18a3dbbb90
 src/chartab.c	Fset_char_table_parent	set-char-table-parent	2	2	0		b2f66da24a80
 src/chartab.c	Fchar_table_extra_slot	char-table-extra-slot	2	2	0		ba6952226506
@@ -790,7 +790,7 @@ src/font.c	Ffont_at	font-at	1	3	0		7a94a72d9a67
 src/font.c	Fframe_font_cache	frame-font-cache	0	1	0		b5adaf653cce
 src/font.c	Ffont_info	font-info	1	2	0		bb3a24ac8a83
 src/fontset.c	Fquery_fontset	query-fontset	1	2	0		e59ecb73a82f
-src/fontset.c	Fset_fontset_font	set-fontset-font	3	5	0		96c3de0dc9ad
+src/fontset.c	Fset_fontset_font	set-fontset-font	3	5	0		3ac6443d2892
 src/fontset.c	Fnew_fontset	new-fontset	2	2	0		2f976cc20b6f
 src/fontset.c	Ffontset_info	fontset-info	1	2	0		d02713d5c41f
 src/fontset.c	Ffontset_font	fontset-font	2	3	0		d9e856bc8494
@@ -1302,7 +1302,7 @@ src/syntax.c	Fskip_chars_forward	skip-chars-forward	1	2	0		2323ebabe4ef
 src/syntax.c	Fskip_chars_backward	skip-chars-backward	1	2	0		7b4dc48de405
 src/syntax.c	Fskip_syntax_forward	skip-syntax-forward	1	2	0		0c459083d7ce
 src/syntax.c	Fskip_syntax_backward	skip-syntax-backward	1	2	0		6ab49b64a64c
-src/syntax.c	Fforward_comment	forward-comment	1	1	0		4339b41022ad
+src/syntax.c	Fforward_comment	forward-comment	1	1	0		79e8e7d5490c
 src/syntax.c	Fscan_lists	scan-lists	3	3	0		660afc9dca98
 src/syntax.c	Fscan_sexps	scan-sexps	2	2	0		33b6b3032f9c
 src/syntax.c	Fbackward_prefix_chars	backward-prefix-chars	0	0	0		e14e2d5a2384
