@@ -1455,3 +1455,17 @@
   `<binary-io.h>` 带 `O_BINARY`）。为它补全 `stdio.rs`（`getchar`/`putchar`/`puts`）并让 `src/minibuf.rs`、
   `src/dispnew.rs` 退位；行数门加 `hexl 0.55`（实测 C 221 vs 331+1）。**剩一个 `check-mirror-dupes` 失败
   属在飞的 `keyboard.rs`**（`getchar`），已通知该 lane 收敛。
+
+- **3.99 第三个真 `lib-src` 单元（movemail）+ 两处集成裁决（2026-10-04 第 98 轮第八批）**：
+  **`lib-src/movemail.c`** 落地——只移植**活文本**（`check-cond-eval` 实测 `37 conditions, 0 disagreements
+  [VERIFIED]`，所以 POP 半区、lock-file 机制、maillock、platform 分支全部按 P-08 记账），
+  `build-tu` = `built`、`--check` = OK（8/8 + 2 条 notes 行）、`--cfg enable_checking` = exit 0、
+  行数门用 **`live` 基准**（C 871 行里约三分之一是死文本）。**token 门这一轮抓到了真 bug**：我漏抄了
+  `main` 两处 `fatal (…, strerror (errno), …)` 里的 `strerror`（写成了把 errno 强转成指针 ✗，能编过），
+  门报 `function main does not mention strerror` 才发现——这正是它存在的理由。
+  同时把 `strerror` 补进 `lib/include/string.rs` 并让 `callproc.rs`/`charset.rs`/`emacs.rs`/`sysdep.rs`
+  四份用点声明退位（`check-mirror-dupes` 保持棘轮一行）。
+  **两条裁决**：① keyboard lane 报的"行数预算"问题：它实测本单元端口密度是每行 C ≈1.1 行 Rust（前段 +4.0%、
+  后段 +11.9%），默认 5% 容差对剩余 10,089 行 C 不够——**裁决按成品实测补 tolerance 行**（等收口时测，
+  现在不加 provisional 行）；② `lib-src/hexl.c` 与 `lib-src/movemail.c` 的 verified 清单状态：
+  movemail 已在清单里（本轮复核 5,734 conditions / 0 disagreements），hexl 是 0 条件文件，无需登记。
