@@ -22,8 +22,8 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **235 个单元**（`femacs/src/*.rs` 116 +
-  `femacs/lib/*.rs` 119）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
+- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **238 个单元**（`femacs/src/*.rs` 116 +
+  `femacs/lib/*.rs` 122）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
   **权威口径 `python3 tools/extract-abi.py --all` 本轮真跑过**（第 84 轮，约 4 分钟）：
   `checked 338 ported files: 312 done, 26 in progress, 0 failing`——"in progress" 全是 WIP 镜像
   （`include-dispextern`/`window`/`frame`/`font`/`thread`/`regex-emacs` 等，各自的台账写明 WIP）。
