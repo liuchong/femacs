@@ -22,7 +22,7 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **242 个单元**（`femacs/src/*.rs` 120 +
+- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **243 个单元**（`femacs/src/*.rs` 121 +
   `femacs/lib/*.rs` 122）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
   **权威口径 `python3 tools/extract-abi.py --all` 本轮真跑过**（第 84 轮，约 4 分钟）：
   `checked 342 ported files: 317 done, 25 in progress, 0 failing`（第 87 轮复跑）——"in progress" 全是 WIP 镜像
@@ -645,3 +645,15 @@
   **两条 integrator 待办**（worker 报回、未越界改别人的镜像，单元在使用点声明）：
   `bset_redisplay`（window.h 1169）与 `record_first_change`（lisp.h 5253）应补进各自镜像。
   权威口径复跑：`checked 342 ported files: 317 done, 25 in progress, 0 failing`。
+
+- **3.53 第 88 轮：`src/composite.c` 与两处镜像补全（2026-10-03）**：composite 是**已验证**文件
+  （`1 conditions, 0 unknown, 0 disagreements`），唯一的 `#ifdef HAVE_WINDOW_SYSTEM`（C 959-970）
+  按 P-08 记台账不抄写，容差行 `live` 基准（2.98%）。同一提交把 **`composite.h` 镜像做完**
+  （121 → 469 行：访问器、`LGLYPH_IX_*`、五个 INLINE、十二条原型；本单元定义的九条原型与两个对象
+  移进 `composite_decls`/`composite_objs` + glob 导入）。它的台账列出 14 条使用点声明与五条记录
+  （`font`/`font_driver` 的 clang 实测偏移 176/96、`font_metrics`、`composition_it`、部分 `it`）
+  留给各自的拥有者。
+  **integrator 侧另补两处镜像缺口**（`ccf0686`）：`lisp.rs` 加 `record_first_change`（lisp.h 5254），
+  `window.rs` 加 `wset_redisplay`/`fset_redisplay`/`bset_redisplay`（window.h 1167-1169，放进
+  `window_redisplay_decls` + glob 导入）与 `enum window_body_unit`（1217-1222）。window.h 镜像仍是
+  WIP（下一个未覆盖项为 `MARGIN_IN_PIXELS`），但三个常量与渲染入口已不再缺失。
