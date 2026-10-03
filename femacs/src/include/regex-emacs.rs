@@ -11,7 +11,7 @@
 // (C 182-192).  `RECC_NUM_CLASSES` repeats a discriminant, which a Rust enum cannot spell, so the
 // port keeps the type as an integer with one constant per C name; the values are C's, in order.
 
-pub const EMACS_REGEX_H: bool = true;
+pub const EMACS_REGEX_H: c_int = 1;
 
 /* This is the structure we store register match data in.
    Declare this before including lisp.h, since lisp.h (via thread.h)
@@ -65,3 +65,18 @@ unsafe extern "C" {
 
 // C 198-206 (`#if ENABLE_CHECKING`'s print_compiled_pattern) and the rest of the header
 // (re_pattern_buffer, the re_* API) are not mirrored yet.
+
+// regex-emacs.h 50-56: the three file-scope objects the engine's callers set and read.  They
+// are declared in a module + glob import because `src/regex-emacs.c`'s port will define them
+// (PORTING.md 0.1-10, the tempname.rs shape).
+pub mod regex_emacs_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub static mut re_match_object: Lisp_Object;        // regex-emacs.h 50
+    pub static mut emacs_re_max_failures: ptrdiff_t;    // regex-emacs.h 53
+    pub static mut emacs_re_safe_alloca: ptrdiff_t;     // regex-emacs.h 56
+  }
+}
+use regex_emacs_decls::*;
+
