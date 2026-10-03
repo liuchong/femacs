@@ -26,8 +26,13 @@
 // is `bool` on this configuration, conf_post.h 61).  The mirror stores that byte as
 // `bits: u8` with the `INTERVAL_*_BIT` masks (PORTING.md P-80, the cm.rs `bits_*` shape).
 //
-// The file is a partial mirror of the header: docs/ports/include-intervals.md lists what is
-// still unchecked, and the gates' limits are recorded in its Decisions section.
+// The mirror is complete as of the commit that lands `femacs/src/intervals.rs` (the
+// composite.rs/ccl.rs precedent): the type, the 29 macros, the three INLINE setters, the
+// `intervals_decls` block above and the three remaining extern groups.  Its ledger is
+// docs/ports/include-intervals.md, whose Decisions section records what each shape costs and
+// the three token rows the gate cannot express (the `do { … } while (false)` spelling of
+// COPY_INTERVAL_CACHE/MERGE_INTERVAL_CACHE, the `1` of `i->up_obj = 1`, and the `0` of the
+// three null tests, all in docs/ports/macro-body-notes.tsv).
 
 include!("lisp.rs");
 include!("buffer.rs");
@@ -60,6 +65,7 @@ pub struct interval
 /// C: intervals.h 39-43: the anonymous `union { struct interval *interval;
 /// Lisp_Object obj; } up` (PORTING.md P-67: an anonymous union is named `<union>_<member>`).
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union interval_up
 {
   pub interval: *mut interval,
@@ -145,7 +151,8 @@ macro_rules! AM_RIGHT_CHILD {
 
 /* True if this interval has no children.  */
 macro_rules! LEAF_INTERVAL_P {
-  ($i:expr) => { (NULL_LEFT_CHILD! ($i) && NULL_RIGHT_CHILD! ($i)) };
+  ($i:expr) => { (unsafe { (*(($i) as *mut interval)).left } == std::ptr::null_mut ()
+		  && unsafe { (*(($i) as *mut interval)).right } == std::ptr::null_mut ()) };
 }
 
 /* True if this interval has no parent and is therefore the root.  */
@@ -158,7 +165,8 @@ macro_rules! ONLY_INTERVAL_P {
 
 /* True if this interval has both left and right children.  */
 macro_rules! BOTH_KIDS_P {
-  ($i:expr) => { (! NULL_LEFT_CHILD! ($i) && ! NULL_RIGHT_CHILD! ($i)) };
+  ($i:expr) => { (unsafe { (*(($i) as *mut interval)).left } != std::ptr::null_mut ()
+		  && unsafe { (*(($i) as *mut interval)).right } != std::ptr::null_mut ()) };
 }
 
 /* The total size of all text represented by the nonnull interval I
@@ -252,7 +260,7 @@ pub fn set_interval_plist (i: INTERVAL, plist: Lisp_Object)
    for walking up to the root in a "for" loop; use this to get the
    "next" value, and test the result to see if it's NULL.  */
 macro_rules! INTERVAL_PARENT_OR_NULL {
-  ($i:expr) => { (if INTERVAL_HAS_PARENT! ($i) { INTERVAL_PARENT! ($i) }
+  ($i:expr) => { (if INTERVAL_HAS_PARENT! ($i) { INTERVAL_PARENT! ($i) as INTERVAL }
 		  else { std::ptr::null_mut () }) };
 }
 
@@ -263,12 +271,12 @@ macro_rules! RESET_INTERVAL {
     unsafe { (*(($i) as *mut interval)).position = 0; }
     unsafe { (*(($i) as *mut interval)).left = std::ptr::null_mut (); }
     unsafe { (*(($i) as *mut interval)).right = std::ptr::null_mut (); }
-    set_interval_parent ($i, std::ptr::null_mut ());
+    set_interval_parent ($i as INTERVAL, std::ptr::null_mut ());
     interval_bits! (write_protect, $i, false);
     interval_bits! (visible, $i, false);
     interval_bits! (front_sticky, $i, false);
     interval_bits! (rear_sticky, $i, false);
-    set_interval_plist ($i, Qnil ());
+    set_interval_plist ($i as INTERVAL, Qnil ());
   } };
 }
 
@@ -324,9 +332,9 @@ macro_rules! INTERVAL_EXPRESSLY_WRITABLE_P {
    and 2 if it is invisible but with an ellipsis.  */
 
 macro_rules! TEXT_PROP_MEANS_INVISIBLE {
-  (prop) => { (if EQ (unsafe { BVAR! (current_buffer, invisibility_spec_) }, Qt ()) { ! NILP (prop) }
+  (prop) => { (if EQ (unsafe { BVAR! (current_buffer, invisibility_spec_) }, Qt ()) { (! NILP (prop)) as c_int }
 	      else { unsafe { invisible_prop (prop, unsafe { BVAR! (current_buffer, invisibility_spec_) }) } }) };
-  ($prop:expr) => { (if EQ (unsafe { BVAR! (current_buffer, invisibility_spec_) }, Qt ()) { ! NILP ($prop) }
+  ($prop:expr) => { (if EQ (unsafe { BVAR! (current_buffer, invisibility_spec_) }, Qt ()) { (! NILP ($prop)) as c_int }
 		     else { unsafe { invisible_prop ($prop, unsafe { BVAR! (current_buffer, invisibility_spec_) }) } }) };
 }
 
@@ -336,83 +344,95 @@ unsafe extern "C" {
   pub fn make_interval () -> INTERVAL;
 }
 
-/* Declared in intervals.c.  */
-unsafe extern "C" {
-  /// C: intervals.h 245: `extern INTERVAL create_root_interval (Lisp_Object);`
-  pub fn create_root_interval (object: Lisp_Object) -> INTERVAL;
-  /// C: intervals.h 246: `extern void copy_properties (INTERVAL, INTERVAL);`
-  pub fn copy_properties (source: INTERVAL, target: INTERVAL);
-  /// C: intervals.h 247: `extern bool intervals_equal (INTERVAL, INTERVAL);`
-  pub fn intervals_equal (i0: INTERVAL, i1: INTERVAL) -> bool;
-  /// C: intervals.h 248-250: `extern void traverse_intervals (INTERVAL, ptrdiff_t,
-  /// void (*) (INTERVAL, void *), void *);`
-  pub fn traverse_intervals (tree: INTERVAL, position: ptrdiff_t,
-			     function: Option<unsafe extern "C" fn (INTERVAL, *mut c_void)>,
-			     arg: *mut c_void);
-  /// C: intervals.h 251-252: `extern void traverse_intervals_noorder (INTERVAL,
-  /// void (*) (INTERVAL, void *), void *);`
-  pub fn traverse_intervals_noorder (tree: INTERVAL,
-				     function: Option<unsafe extern "C" fn (INTERVAL, *mut c_void)>,
-				     arg: *mut c_void);
-  /// C: intervals.h 253-254: `extern INTERVAL split_interval_right (INTERVAL, ptrdiff_t)
-  /// ATTRIBUTE_RETURNS_NONNULL;`
-  pub fn split_interval_right (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL;
-  /// C: intervals.h 255: `extern INTERVAL split_interval_left (INTERVAL, ptrdiff_t)
-  /// ATTRIBUTE_RETURNS_NONNULL;`
-  pub fn split_interval_left (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL;
-  /// C: intervals.h 256: `extern INTERVAL find_interval (INTERVAL, ptrdiff_t);`
-  pub fn find_interval (tree: INTERVAL, position: ptrdiff_t) -> INTERVAL;
-  /// C: intervals.h 263: `extern INTERVAL next_interval (INTERVAL);`
-  pub fn next_interval (interval: INTERVAL) -> INTERVAL;
-  /// C: intervals.h 264: `extern INTERVAL previous_interval (INTERVAL);`
-  pub fn previous_interval (interval: INTERVAL) -> INTERVAL;
-  /// C: intervals.h 265: `extern INTERVAL merge_interval_left (INTERVAL);`
-  pub fn merge_interval_left (interval: INTERVAL) -> INTERVAL;
-  /// C: intervals.h 266: `extern void offset_intervals (struct buffer *, ptrdiff_t, ptrdiff_t);`
-  pub fn offset_intervals (buffer: *mut buffer, start: ptrdiff_t, length: ptrdiff_t);
-  /// C: intervals.h 267-268: `extern void graft_intervals_into_buffer (INTERVAL, ptrdiff_t,
-  /// ptrdiff_t, struct buffer *, bool);`
-  pub fn graft_intervals_into_buffer (source: INTERVAL, position: ptrdiff_t,
-				      length: ptrdiff_t, buffer: *mut buffer, inherit: bool);
-  /// C: intervals.h 269-270: `extern void verify_interval_modification (struct buffer *,
-  /// ptrdiff_t, ptrdiff_t);`
-  pub fn verify_interval_modification (buffer: *mut buffer, start: ptrdiff_t, end: ptrdiff_t);
-  /// C: intervals.h 271: `extern INTERVAL balance_intervals (INTERVAL);`
-  pub fn balance_intervals (tree: INTERVAL) -> INTERVAL;
-  /// C: intervals.h 272-273: `extern void copy_intervals_to_string (Lisp_Object,
-  /// struct buffer *, ptrdiff_t, ptrdiff_t);`
-  pub fn copy_intervals_to_string (string: Lisp_Object, buffer: *mut buffer,
-				   position: ptrdiff_t, length: ptrdiff_t);
-  /// C: intervals.h 274: `extern INTERVAL copy_intervals (INTERVAL, ptrdiff_t, ptrdiff_t);`
-  pub fn copy_intervals (tree: INTERVAL, start: ptrdiff_t, length: ptrdiff_t) -> INTERVAL;
-  /// C: intervals.h 275: `extern bool compare_string_intervals (Lisp_Object, Lisp_Object);`
-  pub fn compare_string_intervals (s1: Lisp_Object, s2: Lisp_Object) -> bool;
-  /// C: intervals.h 276: `extern Lisp_Object textget (Lisp_Object, Lisp_Object);`
-  pub fn textget (prop: Lisp_Object, object: Lisp_Object) -> Lisp_Object;
-  /// C: intervals.h 277: `extern Lisp_Object lookup_char_property (Lisp_Object, Lisp_Object,
-  /// bool);`
-  pub fn lookup_char_property (plist: Lisp_Object, prop: Lisp_Object, textprop: bool) -> Lisp_Object;
-  /// C: intervals.h 278: `extern void move_if_not_intangible (ptrdiff_t);`
-  pub fn move_if_not_intangible (position: ptrdiff_t);
-  /// C: intervals.h 279-280: `extern bool get_property_and_range (ptrdiff_t, Lisp_Object,
-  /// Lisp_Object *, ptrdiff_t *, ptrdiff_t *, Lisp_Object);`
-  pub fn get_property_and_range (pos: ptrdiff_t, prop: Lisp_Object, val: *mut Lisp_Object,
-				 start: *mut ptrdiff_t, end: *mut ptrdiff_t,
-				 object: Lisp_Object) -> bool;
-  /// C: intervals.h 281: `extern Lisp_Object get_local_map (ptrdiff_t, struct buffer *,
-  /// Lisp_Object);`
-  pub fn get_local_map (pos: ptrdiff_t, buffer: *mut buffer, prop: Lisp_Object) -> Lisp_Object;
-  /// C: intervals.h 282: `extern INTERVAL update_interval (INTERVAL, ptrdiff_t);`
-  pub fn update_interval (interval: INTERVAL, pos: ptrdiff_t) -> INTERVAL;
-  /// C: intervals.h 283: `extern void set_intervals_multibyte (bool);`
-  pub fn set_intervals_multibyte (multibyte: bool);
-  /// C: intervals.h 284-285: `extern INTERVAL validate_interval_range (Lisp_Object,
-  /// Lisp_Object *, Lisp_Object *, bool);`
-  pub fn validate_interval_range (object: Lisp_Object, begin: *mut Lisp_Object,
-				  end: *mut Lisp_Object, force: bool) -> INTERVAL;
-  /// C: intervals.h 286: `extern INTERVAL interval_of (ptrdiff_t, Lisp_Object);`
-  pub fn interval_of (pos: ptrdiff_t, object: Lisp_Object) -> INTERVAL;
+// Every `extern` prototype of intervals.h's "Declared in intervals.c" block, in C's own
+// order.  The unit defines 24 of them and one glob import per mirror is what keeps the
+// definition from being an `E0428` against its own declaration (PORTING.md 0.1-10/P-21, the
+// composite.rs/tempname.rs shape); the other three of the block (`verify_interval_modification`,
+// `validate_interval_range`, `interval_of`) are defined in textprop.c and are declared here
+// because no mirror carries textprop.h yet.  They stay in this module so the block keeps C's
+// declaration order; the glob import makes them visible to the units that call them today.  */
+pub mod intervals_decls {
+  use super::*;
+
+
+  unsafe extern "C" {
+    /// C: intervals.h 245: `extern INTERVAL create_root_interval (Lisp_Object);`
+    pub fn create_root_interval (object: Lisp_Object) -> INTERVAL;
+    /// C: intervals.h 246: `extern void copy_properties (INTERVAL, INTERVAL);`
+    pub fn copy_properties (source: INTERVAL, target: INTERVAL);
+    /// C: intervals.h 247: `extern bool intervals_equal (INTERVAL, INTERVAL);`
+    pub fn intervals_equal (i0: INTERVAL, i1: INTERVAL) -> bool;
+    /// C: intervals.h 248-250: `extern void traverse_intervals (INTERVAL, ptrdiff_t,
+    /// void (*) (INTERVAL, void *), void *);`
+    pub fn traverse_intervals (tree: INTERVAL, position: ptrdiff_t,
+  			     function: Option<unsafe extern "C" fn (INTERVAL, *mut c_void)>,
+  			     arg: *mut c_void);
+    /// C: intervals.h 251-252: `extern void traverse_intervals_noorder (INTERVAL,
+    /// void (*) (INTERVAL, void *), void *);`
+    pub fn traverse_intervals_noorder (tree: INTERVAL,
+  				     function: Option<unsafe extern "C" fn (INTERVAL, *mut c_void)>,
+  				     arg: *mut c_void);
+    /// C: intervals.h 253-254: `extern INTERVAL split_interval_right (INTERVAL, ptrdiff_t)
+    /// ATTRIBUTE_RETURNS_NONNULL;`
+    pub fn split_interval_right (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL;
+    /// C: intervals.h 255: `extern INTERVAL split_interval_left (INTERVAL, ptrdiff_t)
+    /// ATTRIBUTE_RETURNS_NONNULL;`
+    pub fn split_interval_left (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL;
+    /// C: intervals.h 256: `extern INTERVAL find_interval (INTERVAL, ptrdiff_t);`
+    pub fn find_interval (tree: INTERVAL, position: ptrdiff_t) -> INTERVAL;
+    /// C: intervals.h 263: `extern INTERVAL next_interval (INTERVAL);`
+    pub fn next_interval (interval: INTERVAL) -> INTERVAL;
+    /// C: intervals.h 264: `extern INTERVAL previous_interval (INTERVAL);`
+    pub fn previous_interval (interval: INTERVAL) -> INTERVAL;
+    /// C: intervals.h 265: `extern INTERVAL merge_interval_left (INTERVAL);`
+    pub fn merge_interval_left (interval: INTERVAL) -> INTERVAL;
+    /// C: intervals.h 266: `extern void offset_intervals (struct buffer *, ptrdiff_t, ptrdiff_t);`
+    pub fn offset_intervals (buffer: *mut buffer, start: ptrdiff_t, length: ptrdiff_t);
+    /// C: intervals.h 267-268: `extern void graft_intervals_into_buffer (INTERVAL, ptrdiff_t,
+    /// ptrdiff_t, struct buffer *, bool);`
+    pub fn graft_intervals_into_buffer (source: INTERVAL, position: ptrdiff_t,
+  				      length: ptrdiff_t, buffer: *mut buffer, inherit: bool);
+    /// C: intervals.h 269-270: `extern void verify_interval_modification (struct buffer *,
+    /// ptrdiff_t, ptrdiff_t);`
+    pub fn verify_interval_modification (buffer: *mut buffer, start: ptrdiff_t, end: ptrdiff_t);
+    /// C: intervals.h 271: `extern INTERVAL balance_intervals (INTERVAL);`
+    pub fn balance_intervals (tree: INTERVAL) -> INTERVAL;
+    /// C: intervals.h 272-273: `extern void copy_intervals_to_string (Lisp_Object,
+    /// struct buffer *, ptrdiff_t, ptrdiff_t);`
+    pub fn copy_intervals_to_string (string: Lisp_Object, buffer: *mut buffer,
+  				   position: ptrdiff_t, length: ptrdiff_t);
+    /// C: intervals.h 274: `extern INTERVAL copy_intervals (INTERVAL, ptrdiff_t, ptrdiff_t);`
+    pub fn copy_intervals (tree: INTERVAL, start: ptrdiff_t, length: ptrdiff_t) -> INTERVAL;
+    /// C: intervals.h 275: `extern bool compare_string_intervals (Lisp_Object, Lisp_Object);`
+    pub fn compare_string_intervals (s1: Lisp_Object, s2: Lisp_Object) -> bool;
+    /// C: intervals.h 276: `extern Lisp_Object textget (Lisp_Object, Lisp_Object);`
+    pub fn textget (prop: Lisp_Object, object: Lisp_Object) -> Lisp_Object;
+    /// C: intervals.h 277: `extern Lisp_Object lookup_char_property (Lisp_Object, Lisp_Object,
+    /// bool);`
+    pub fn lookup_char_property (plist: Lisp_Object, prop: Lisp_Object, textprop: bool) -> Lisp_Object;
+    /// C: intervals.h 278: `extern void move_if_not_intangible (ptrdiff_t);`
+    pub fn move_if_not_intangible (position: ptrdiff_t);
+    /// C: intervals.h 279-280: `extern bool get_property_and_range (ptrdiff_t, Lisp_Object,
+    /// Lisp_Object *, ptrdiff_t *, ptrdiff_t *, Lisp_Object);`
+    pub fn get_property_and_range (pos: ptrdiff_t, prop: Lisp_Object, val: *mut Lisp_Object,
+  				 start: *mut ptrdiff_t, end: *mut ptrdiff_t,
+  				 object: Lisp_Object) -> bool;
+    /// C: intervals.h 281: `extern Lisp_Object get_local_map (ptrdiff_t, struct buffer *,
+    /// Lisp_Object);`
+    pub fn get_local_map (pos: ptrdiff_t, buffer: *mut buffer, prop: Lisp_Object) -> Lisp_Object;
+    /// C: intervals.h 282: `extern INTERVAL update_interval (INTERVAL, ptrdiff_t);`
+    pub fn update_interval (interval: INTERVAL, pos: ptrdiff_t) -> INTERVAL;
+    /// C: intervals.h 283: `extern void set_intervals_multibyte (bool);`
+    pub fn set_intervals_multibyte (multibyte: bool);
+    /// C: intervals.h 284-285: `extern INTERVAL validate_interval_range (Lisp_Object,
+    /// Lisp_Object *, Lisp_Object *, bool);`
+    pub fn validate_interval_range (object: Lisp_Object, begin: *mut Lisp_Object,
+  				  end: *mut Lisp_Object, force: bool) -> INTERVAL;
+    /// C: intervals.h 286: `extern INTERVAL interval_of (ptrdiff_t, Lisp_Object);`
+    pub fn interval_of (pos: ptrdiff_t, object: Lisp_Object) -> INTERVAL;
+  }
 }
+use intervals_decls::*;
 
 /* Defined in xdisp.c.  */
 unsafe extern "C" {

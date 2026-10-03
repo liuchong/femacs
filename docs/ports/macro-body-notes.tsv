@@ -430,3 +430,18 @@ CCL_CALL_FOR_MAP_INSTRUCTION	goto	C's `goto ccl_repeat` is the port's `continue 
 CCL_READ_CHAR	goto	C's `goto ccl_repeat` is the port's `continue 'ccl_repeat`; its `ccl->last_block` read is the mirror's `bits` byte (the `last_block` family of docs/ports/token-aliases.tsv)
 syms_of_ccl	doc	the two DEFVAR_LISP invocations take C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no counterpart; the docstrings themselves are still compared by the constants rule (the syms_of_data precedent)
 CHECK_CCL_PROGRAM	false	C's `do { … } while (false)` has no Rust counterpart: the port's block is the guard, so the loop's `false` is the one token without a match (its home is `femacs/src/include/ccl.rs`)
+COPY_INTERVAL_CACHE	false	C's `do { … } while (false)` has no Rust counterpart: the port's macro is a block, so the loop's `false` is the one token without a match (the CHECK_CCL_PROGRAM class; its home is `femacs/src/include/intervals.rs`)
+MERGE_INTERVAL_CACHE	false	see COPY_INTERVAL_CACHE
+set_interval_object	1	C's `i->up_obj = 1` is the mirror's bit write `interval_bits! (up_obj, i, true)` (PORTING.md 1.3/P-80; its home is `femacs/src/include/intervals.rs`)
+INTERVAL_HAS_PARENT	0	C compares `(i)->up.interval` with the literal 0; the port writes `!= std::ptr::null_mut ()`, which is the same test (the FRAME_LIVE_P class; its home is `femacs/src/include/intervals.rs`)
+INTERVAL_PARENT	0	see INTERVAL_HAS_PARENT: C's `(i) != 0` is the port's `!(…)is_null ()`
+INTERVAL_PARENT_OR_NULL	0	see INTERVAL_HAS_PARENT: C's `: 0` is the port's `std::ptr::null_mut ()`
+balance_an_interval	1	C 383's `while (1)` is the port's `while true`, which cannot spell the constant condition (the gap_left/itree_propagate_limit class)
+find_interval	1	C 622's `while (1)` is the port's `loop` (the loop is the function's tail and every exit is a `return` inside it), same class as balance_an_interval
+update_interval	1	C 744's `while (1)` is the port's `loop`, same class as find_interval
+adjust_intervals_for_insertion	1,continue,goto	C 830's `eobp = 1` writes a `bool` the port spells `true` and C 935's `if (1)` is the port's `if true` (the Fset_case_table bool-literal class); the two `goto check_done` are the `'check_done` labelled block's `break` and the loop's two `continue`s are `break 'tail_step` (PORTING.md 2.2, the ccl.rs/bytecode.rs shape), so neither keyword can reappear
+merge_properties_sticky	0,continue	C 1073/1075's `use_left = 0`/`use_right = 0` write bools the port spells `false` (the Fset_case_table bool-literal class); the two loops' `continue`s are `break 'right_step`/`break 'left_step` (PORTING.md 2.2)
+graft_intervals_into_buffer	1	C 1605's `buffer_intervals (buffer)->up_obj == 1` is the mirror's bit read `interval_bits! (up_obj, …) == true` (PORTING.md 1.3/P-80)
+textget	1	C 1708 passes the int literal `1` to `lookup_char_property`'s `bool textprop` parameter, which the port spells `true` (the Fset_case_table bool-literal class)
+get_property_and_range	0,1	C 2159's `return 0` and C 2171's `return 1` are the port's `false`/`true` bool returns (the getenv_internal class)
+compare_string_intervals	1	C 2303's `return 1` is the port's `true` bool return (the getenv_internal class)

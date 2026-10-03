@@ -225,16 +225,26 @@ macro_rules! END_UNCHANGED { () => { BUF_END_UNCHANGED! (current_buffer) } }
 
 /* Functions to set PT in the current buffer, or another buffer.  */
 
-unsafe extern "C" {
-  // Parameter names come from the definitions (C's prototypes have none):
-  // intervals.c 1766/1776/1849/1751 and buffer.c 4647.
+// These are buffer.h's own prototypes for functions *other* units define (intervals.c
+// 1751/1766/1776/1784/1849's `temp_set_point_both`/`temp_set_point`/`set_point`/
+// `set_point_from_marker`/`set_point_both`; buffer.c 4647's `enlarge_buffer_text`), so they
+// live in a module + glob import: an explicit item shadows a glob import, where a same-named
+// declaration at this scope would be `E0428` against the definition (PORTING.md 0.1-10/P-21,
+// the composite.rs/`intervals_decls` shape).  This is what `femacs/src/intervals.rs` needs to
+// define them; the block's own comment said the parameter names come from those definitions.
+pub mod buffer_point_decls {
+  use super::*;
+
+  unsafe extern "C" {
   pub fn set_point (charpos: ptrdiff_t);
   pub fn temp_set_point (buffer: *mut buffer, charpos: ptrdiff_t);
   pub fn set_point_both (charpos: ptrdiff_t, bytepos: ptrdiff_t);
   pub fn temp_set_point_both (buffer: *mut buffer, charpos: ptrdiff_t, bytepos: ptrdiff_t);
   pub fn set_point_from_marker (marker: Lisp_Object);
   pub fn enlarge_buffer_text (b: *mut buffer, delta: ptrdiff_t);
+  }
 }
+use buffer_point_decls::*;
 
 #[inline(always)]
 pub fn SET_PT (position: ptrdiff_t)
