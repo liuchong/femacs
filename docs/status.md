@@ -22,10 +22,14 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- `python3 tools/extract-abi.py --all`（2026-10-03 第 55 轮实测，**权威口径**）：
-  **164 done / 24 wip / 0 failing**（188 个已有目标；`docs/port-inventory.md` 的 159/29 是
-  同一批文件的另一套口径——它按 `docs/ports/*.md` 的方框判定，`--all` 按 token/函数/常量比对
-  判定，两个数字都随在飞工作变化）。待开工 402。
+- **进度（2026-10-03 第 76 轮，ledger 口径的代理计数）**：磁盘上 **218 个单元**（`femacs/src/*.rs` + `femacs/lib/*.rs`）
+  与 **121 个镜像**；逐文件 ledger 里 **218 份已勾满、1 份在飞**（`syntax` —— Aquinas 正在补 C 2,660-3,851）。
+  §3.31 那一类已清零：`emacs/src/*.c` = 152 = 冻结构建编译 75 + 排除 77，77 个排除项全部有端口
+  （真实单元 3 个 + 空单元 74 个，逐文件 `build-tu` built 且 `--check` OK）。
+  **权威口径仍是 `python3 tools/extract-abi.py --all`**（它逐个文件做 token/函数/常量比对）；它一次要
+  遍历全树与宏表，本轮为守资源纪律没有跑，下一次跑出来时以它为准（上一轮它是 234 目标 / 205 done /
+  27 wip / 0 failing，此后又落了 regcomp、terminal、atimer 与 §3.31 整批）。
+
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
   （`gen-port-map`/`gen-baseline`/`gen-lifetimes` 后 `git diff --exit-code`）。
