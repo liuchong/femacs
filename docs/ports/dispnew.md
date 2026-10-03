@@ -292,12 +292,13 @@ femacs/src/dispnew.rs` prints `OK`.
     `will_dump_p`, `x_display_ok`, `fatal`, `exit`, `putchar`, `IMAGE_OPT_FROM_ID`,
     `bidi_shelve_cache`/`bidi_unshelve_cache`/`start_display`/`move_it_to`/
     `move_it_in_display_line`, `automatic_hscrolling`.
-  * Two mirror defects are **shadowed** by corrected copies of C's text (Rust's textual
-    `macro_rules!` scoping makes the later definition win from that point on):
-    `SET_CHAR_GLYPH`/`SET_CHAR_GLYPH_FROM_GLYPH` (the mirror writes a `c_int` into the `c_uint`
-    union member `glyph_u::ch`, which is `E0308`) and `MATRIX_ROW_VPOS` (the mirror
-    dereferences the row pointer before the difference, which is `E0599`).  Both are reported
-    to the mirror owners here.
+  * Two mirror defects were **shadowed** by corrected copies of C's text while this unit was
+    ported (Rust's textual `macro_rules!` scoping makes the later definition win from that
+    point on): `SET_CHAR_GLYPH`/`SET_CHAR_GLYPH_FROM_GLYPH` (the mirror wrote a `c_int` into the
+    `c_uint` union member `glyph_u::ch`, `E0308`) and `MATRIX_ROW_VPOS` (it dereferenced the
+    row pointer before the difference, `E0599`).  **Both mirrors are fixed now and the two
+    shadowing copies are gone** (status 3.84): the first spells C's implicit conversion
+    (`($code) as c_uint`) and the second is a pointer difference, as C's is.
 
 - **`DEFVAR_*` carriers this file owns** are defined at the crate root with
   `#[unsafe(no_mangle)]` (the term.rs/casetab.rs shape, status 3.29): `baud_rate`,
@@ -347,9 +348,8 @@ part of the frozen baseline the repository ships.
 
 1. `docs/baseline/undef-pending.txt`: add `_automatic_hscrolling` (and re-take the ratchet —
    the gate reports 17 stale entries this round, mostly fileio's and this unit's `_Vglyph_table`).
-2. `dispextern.rs`: fix `SET_CHAR_GLYPH`/`SET_CHAR_GLYPH_FROM_GLYPH` (the `c_uint` write) and
-   `MATRIX_ROW_VPOS` (the pointer difference); when they are fixed, the shadowing copies at the
-   top of `dispnew.rs` must be deleted in the same commit.
+2. ~~`dispextern.rs`: fix `SET_CHAR_GLYPH`/`SET_CHAR_GLYPH_FROM_GLYPH` and `MATRIX_ROW_VPOS`,
+   deleting this unit's shadowing copies in the same commit.~~ **Done in status 3.84.**
 3. `window.rs`: the missing accessors this lane declares (`WINDOW_RIGHTMOST_P`,
    `WINDOW_FRAME`/`WINDOW_XFRAME`, the `window_wants_*` entries, the `WINDOW_*_LINE_HEIGHT`
    family, `WINDOW_FRAME_COLUMN_WIDTH`, the `window_bits!` dispatcher, `window_box`,

@@ -230,14 +230,6 @@ DEFUN! ("dump-redisplay-history", Fdump_redisplay_history,
 /* Names the mirrors this unit includes do not declare, declared here at their use site
    (PORTING.md P-72 rule 3; the C prototype is quoted per name).  */
 
-/// dispextern.rs's `MATRIX_ROW_VPOS` (dispextern.h 1204-1206) subtracts `(*($row))` from
-/// the matrix's row vector, i.e. dereferences the row pointer before the difference, which
-/// cannot compile (`offset_from` is not a method of `glyph_row`).  C's body is
-/// `((ROW) - (MATRIX)->rows)`, the pointer difference; the corrected text shadows the
-/// mirror's copy from here on (the `SET_CHAR_GLYPH` shape) and the ledger records the gap.
-macro_rules! MATRIX_ROW_VPOS {
-  ($row:expr, $matrix:expr) => { ($row).offset_from ((*($matrix)).rows) };
-}
 
 /* frame.h 1387-1388: `#define CHECK_FRAME(x) CHECK_TYPE (FRAMEP (x), Qframep, x)`.  The
    mirror does not carry it (`frame.rs` defines the same macro for its own unit, which this
@@ -264,25 +256,6 @@ macro_rules! SET_GLYPH_FROM_GLYPH_CODE {
   } };
 }
 
-/// dispextern.rs's `SET_CHAR_GLYPH` (dispextern.h 694-704) writes
-/// `($glyph).u.ch = ($code)` with `$code` a `c_int` while `glyph_u::ch` is a `c_uint`, so
-/// `SET_CHAR_GLYPH_FROM_GLYPH` (dispextern.h 706-710) does not compile as it stands (E0308).
-/// C's own text is repeated here with that one conversion explicit; Rust's textual
-/// `macro_rules!` scoping shadows the mirror's copy from this point on, so every call site
-/// keeps C's spelling.  Recorded as a mirror gap in the ledger.
-macro_rules! SET_CHAR_GLYPH {
-  ($frame:expr, $glyph:expr, $code:expr, $face_id:expr, $padding_p:expr) =>
-    { {
-        ($glyph).u.ch = ($code) as c_uint;
-        glyph_bits! (face_id, $glyph, ($face_id));
-        ($glyph).frame = ($frame);
-        glyph_bits! (padding_p, $glyph, ($padding_p));
-      } };
-}
-macro_rules! SET_CHAR_GLYPH_FROM_GLYPH {
-  ($frame:expr, $glyph:expr, $from:expr) =>
-    { SET_CHAR_GLYPH! ($frame, $glyph, GLYPH_CHAR ($from) as c_uint, GLYPH_FACE ($from), false) };
-}
 
 unsafe extern "C" {
   /// C: dispextern.h 1155: `unsigned row_hash (struct glyph_row *row);` (term.c defines it)

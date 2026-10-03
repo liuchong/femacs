@@ -140,7 +140,10 @@ macro_rules! SET_GLYPH {
 macro_rules! SET_CHAR_GLYPH {
   ($frame:expr, $glyph:expr, $code:expr, $face_id:expr, $padding_p:expr) =>
     { {
-        ($glyph).u.ch = ($code);
+        // C's `(GLYPH).u.ch = (CODE);` assigns an `int` to the `unsigned ch` member, i.e. the
+        // implicit modulo conversion (a `-1` code becomes `UINT_MAX`); Rust needs it spelled
+        // out, or `SET_CHAR_GLYPH_FROM_GLYPH` does not compile (E0308, status 3.84).
+        ($glyph).u.ch = ($code) as c_uint;
         glyph_bits! (face_id, $glyph, ($face_id));
         ($glyph).frame = ($frame);
         glyph_bits! (padding_p, $glyph, ($padding_p));
@@ -1047,7 +1050,9 @@ macro_rules! MATRIX_ROW_END_BYTEPOS { ($row:expr) => { (*($row)).maxpos.bytepos 
 
 /* Return the vertical position of ROW in MATRIX.  */
 macro_rules! MATRIX_ROW_VPOS {
-  ($row:expr, $matrix:expr) => { (*($row)).offset_from ((*($matrix)).rows) };
+  // C's `((ROW) - (MATRIX)->rows)` is a *pointer* difference; the mirror subtracted the
+  // pointees (`(*($row)).offset_from (…)`), which is not the same expression (status 3.84).
+  ($row:expr, $matrix:expr) => { ($row).offset_from ((*($matrix)).rows) };
 }
 
 /* Return the last glyph row + 1 in MATRIX on window W reserved for text.  If W has a mode

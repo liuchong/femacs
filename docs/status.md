@@ -1241,3 +1241,18 @@
   ② 同一天第二处"两门相反"：`refill_memory_reserve`（§3.82）——对象级把它判成 invented、文本门反过来
   要求 `#[unsafe(no_mangle)]`，定式是**以对象级为准 + 在 `docs/ports/excluded-macros.txt` 记 `linkage`
   免责行**。
+
+- **3.84 第 98 轮：两处镜像宏缺陷修好，dispnew 的两个影子宏删除（2026-10-04）**：dispnew lane 在用点
+  用"照 C 原文 + 一处显式转换"的影子宏盖住了两处镜像缺陷（Rust 的 `macro_rules!` 是文本作用域，后定义的
+  从该点起生效），并在台账里点名让集成者在修镜像的**同一个提交**里删掉它们。本轮照做：
+  ① `dispextern.rs` 的 `SET_CHAR_GLYPH`（C `(GLYPH).u.ch = (CODE);` 是把 `int` 赋给 `unsigned` 成员，
+  即隐式取模转换；镜像原来直写 `($code)`，于是 `SET_CHAR_GLYPH_FROM_GLYPH` 编不过 E0308）改成
+  `($code) as c_uint` 并写明理由；`MATRIX_ROW_VPOS`（C `((ROW) - (MATRIX)->rows)` 是**指针相减**，镜像
+  写成 `(*($row)).offset_from (…)`，先解引用再相减，是另一个表达式）改成 `($row).offset_from (…)`。
+  ② `dispnew.rs` 顶部的两个影子宏连同注释一起删除，台账里那段"是影子宏盖住"的叙述与 integrator to-do
+  一并改成终态（Done in status 3.84）。
+  ③ 验证：dispnew 重建 `built`、`--check` OK；另外七个 `dispextern.rs` 消费者（frame/xfaces/font/term/
+  bidi/indent/composite）全部重建通过；frame/xfaces/term/font 的 `--check` 也都 OK；
+  `check-symbols --dir src` **70/0/0**、`check-declarations` 0、`check-mirror-dupes` 仍只有棘轮一行。
+  **注意**：`check-symbols` 在 lane 正在重建对象的瞬间可能读到半新半旧的一轮（本轮出现过一次
+  "1 mismatched"、重跑即 0）——判读这类门要避开在飞 lane 的构建窗口。
