@@ -227,3 +227,18 @@
   - 镜像补齐：`filename.rs` 的 `FILE_SYSTEM_DRIVE_PREFIX_CAN_BE_RELATIVE`、`errno.rs` 的
     `EISDIR`、`fcntl.in.rs` 的 `PROMOTED_MODE_T`；`_Restrict_`/`lock_fini`/`lock_unlock`/
     `DEFINE_SHA3_*` 四个无法拼写的构造进 `macro-body-notes.tsv`。
+
+- **3.23 ACL 族的落法（2026-10-03）**：`USE_ACL` 在冻结配置里是 **0**、`HAVE_SYS_ACL_H` 也是
+  undef，所以 `acl-internal.h` 的 `#if USE_ACL` 平台臂整片判死，ACL 六个 unit 的活体都不大：
+  `acl_entries.c` 只剩"计数骨架"（`acl_get_entry` 两个循环判死），`qcopy-acl.c`/
+  `get-permissions.c`/`set-permissions.c`/`file-has-acl.c`/`acl-internal.c` 的活体分别是
+  "无 ACL 支持"的 `#else` 分支。已落地：实测的 `sys_acl` 镜像（四个句柄类型 `void *`、四个
+  标量类型 32 位、常量族、函数声明）与 `acl` 镜像（`struct aclinfo` 184 字节/union@28、
+  两个 flag 常量、声明、三个 xattr 宏的 `#else` 形态）。**`acl-internal.h` 的镜像暂缓**：
+  它 42 个宏里绝大多数是判死的平台臂，真正的第一个重消费者是 `qcopy-acl.c`/
+  `get-permissions.c`（需要 `struct permission_context`），镜像随它们一起落。
+- **3.24 新增镜像条目时的固定检查（2026-10-03，连续三轮踩到）**：往**共享镜像**里补一个系统
+  条目（`strcpy`/`strncmp`/`EOF`/`sprintf`/`ssize_t` 这类）时，必须先在整树 grep 同名声明：
+  任何 unit 里的本地同名声明都会立刻变成 E0428。已修的三处：`canonicalize-lgpl.rs` 的
+  `strcpy`、`getopt.rs` 的 `strncmp`、`getdelim.rs` 的 `EOF`。规则：**系统条目归镜像，单元
+  只保留镜像没有的**（0.1-3 单一定义点）。
