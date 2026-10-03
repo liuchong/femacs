@@ -29,6 +29,10 @@ unsafe extern "C" {
   pub fn strncmp (s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
   /* char *strcpy (char *dest, const char *src);  */
   pub fn strcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char;
+  /* char *stpcpy (char *dest, const char *src); — the frozen configuration has
+     HAVE_STPCPY=1 (docs/baseline/config/darwin-arm64.macros.tsv 609), so the system function is
+     the one doc.c's `stpcpy (name, sibling_etc)` calls (lib/stpcpy.c is not compiled).  */
+  pub fn stpcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char;
   /* char *strchr (const char *s, int c);  */
   pub fn strchr (s: *const c_char, c: c_int) -> *mut c_char;
   /* size_t strspn (const char *s, const char *accept);  */

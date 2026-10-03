@@ -130,6 +130,30 @@ pub fn GLYPH_FACE (glyph: GLYPH) -> c_int { glyph.face_id }
 
 /* The following are valid only if GLYPH_CODE_P (gc).  */
 
+// dispextern.h 2052-2062: the predicate character.c's char_width reads a display vector's
+// element through.  `FACE_ID_BITS` (562) and `MAX_FACE_ID` (1986) are the two values it
+// needs; the rest of the face/glyph block they live in is still unmirrored (the boundary
+// comment at the end of this file lists it).
+pub const FACE_ID_BITS: c_int = 20;                                        // dispextern.h 562
+pub const MAX_FACE_ID: EMACS_INT = ((1 << FACE_ID_BITS) - 1) as EMACS_INT; // dispextern.h 1986
+
+#[inline(always)]
+pub fn GLYPH_CODE_P (gc: Lisp_Object) -> bool
+{
+  return if CONSP (gc)
+    {
+      CHARACTERP (XCAR (gc)) && RANGED_FIXNUMP (0, XCDR (gc), MAX_FACE_ID)
+    }
+    else
+    {
+      RANGED_FIXNUMP (0, gc,
+		      if MAX_FACE_ID < EMACS_INT_MAX >> CHARACTERBITS
+			{ (MAX_FACE_ID << CHARACTERBITS) | MAX_CHAR as EMACS_INT }
+			else
+			{ EMACS_INT_MAX })
+    };
+}
+
 #[inline(always)]
 pub fn GLYPH_CODE_CHAR (gc: Lisp_Object) -> c_int
 {
@@ -410,6 +434,66 @@ pub struct bidi_string_data
   pub bufpos: ptrdiff_t,
   pub bits: u32,                        // from_disp_str:1 | unibyte:1
 }
+
+/* Check that glyph pointers stored in glyph rows of MATRIX are okay.
+   This aborts if any pointer is found twice.  */
+
+// dispextern.h 862-870: the block is inside `#ifdef GLYPH_DEBUG`, and GLYPH_DEBUG is `undef`
+// in the frozen configuration (docs/baseline/config/darwin-arm64.macros.tsv), so C compiles
+// the `#else` arm: `((void) 0)`.  `CHECK_MATRIX` therefore does not evaluate its argument,
+// and neither does the port's live arm (the `aclinfo_free` family's shape in
+// lib/include/acl.rs).  The dead arm keeps C's text (PORTING.md P-51) and types its pointee
+// as `c_void` until `struct glyph_matrix`'s mirror lands (P-72 rule ③).
+#[cfg(feature = "glyph_debug")]
+unsafe extern "C" { pub fn check_matrix_pointer_lossage (matrix: *mut c_void); }  // C: `struct glyph_matrix *`
+// dispextern.h 869.
+macro_rules! CHECK_MATRIX { ($matrix:expr) => { { let _ = ($matrix); 0 } }; }
+
+/***********************************************************************
+			    Mouse Highlight
+ ***********************************************************************/
+
+/* Structure to hold mouse highlight data.  */
+
+// dispextern.h 2998-3024 (an anonymous `typedef struct`).  `mouse_face_mouse_frame` is a
+// `struct frame *` in C; frame.h is not in this mirror's include list (callint.c, json.c and
+// marker.c include `dispextern.h` without `frame.h`, which is exactly the P-72 hazard), so the
+// pointer keeps the untyped form its use sites cast.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Mouse_HLInfo
+{
+  /* These variables describe the range of text currently shown in its
+     mouse-face, together with the window they apply to.  As long as
+     the mouse stays within this range, we need not redraw anything on
+     its account.  Rows and columns are glyph matrix positions in
+     MOUSE_FACE_WINDOW.  */
+  pub mouse_face_beg_row: c_int,
+  pub mouse_face_beg_col: c_int,
+  pub mouse_face_beg_x: c_int,
+  pub mouse_face_end_row: c_int,
+  pub mouse_face_end_col: c_int,
+  pub mouse_face_end_x: c_int,
+  pub mouse_face_window: Lisp_Object,
+  pub mouse_face_face_id: c_int,
+  pub mouse_face_overlay: Lisp_Object,
+
+  /* FRAME and X, Y position of mouse when last checked for
+     highlighting.  X and Y can be negative or out of range for the frame.  */
+  pub mouse_face_mouse_frame: *mut c_void,   /// C: `struct frame *mouse_face_mouse_frame;`
+  pub mouse_face_mouse_x: c_int,
+  pub mouse_face_mouse_y: c_int,
+
+  // dispextern.h 3019-3023: three consecutive `bool_bf : 1` members, i.e. one byte.
+  pub bits: u8,
+}
+
+pub const MOUSE_FACE_PAST_END: u8 = 1 << 0;   // dispextern.h 3019
+pub const MOUSE_FACE_DEFER: u8 = 1 << 1;      // dispextern.h 3022
+pub const MOUSE_FACE_HIDDEN: u8 = 1 << 2;     // dispextern.h 3023
+
+// dispextern.h 3966: `enum { SCROLL_INFINITY = 1000000 };`
+pub const SCROLL_INFINITY: c_int = 1000000;
 
 // C: dispextern.h 472-2600's matrix/face/image structures (`glyph`, `glyph_pool`,
 // `glyph_matrix`, `glyph_row`, `face`, `face_cache`, `image`, `it`) and 2600-4026's fringe,

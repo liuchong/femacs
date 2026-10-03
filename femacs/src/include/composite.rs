@@ -73,5 +73,40 @@ unsafe extern "C" { pub static mut n_compositions: ptrdiff_t; }                 
 unsafe extern "C" { pub fn update_compositions (from: ptrdiff_t, to: ptrdiff_t,
                                                 check_mask: c_int); }                 // composite.h 198
 
-// C: composite.h 53-130's COMPOSITION_*/LGLYPH_* accessor macros and 194-198's five
-// prototypes — (not mirrored yet; they land with composite.c, batch C).
+// composite.h 194-196: the two of 194-198's five prototypes character.c calls (the other
+// three land with composite.c, batch C).  Parameter names come from the definitions in
+// composite.c; C's prototypes have none.
+unsafe extern "C" {
+  pub fn get_composition_id (charpos: ptrdiff_t, bytepos: ptrdiff_t, len: ptrdiff_t,
+                             prop: Lisp_Object, string: Lisp_Object) -> ptrdiff_t;
+  pub fn find_composition (pos: ptrdiff_t, limit: ptrdiff_t, start: *mut ptrdiff_t,
+                           end: *mut ptrdiff_t, prop: *mut Lisp_Object,
+                           string: Lisp_Object) -> bool;
+}
+
+/* LGSTRING_GLYPH_LEN is the maximum number of LGLYPHs that the
+   LGSTRING can hold.  This is NOT the actual number of valid LGLYPHs;
+   to find the latter, walk the glyphs returned by LGSTRING_GLYPH
+   until the first one that is nil.  */
+// composite.h 272-273: the two LGSTRING accessors character.c reads (the LGSTRING_*/
+// LGLYPH_* families of 264-334 land with composite.c, batch C).
+#[inline(always)]
+pub fn LGSTRING_GLYPH_LEN (lgs: Lisp_Object) -> isize { return ASIZE (lgs) - 2; }
+#[inline(always)]
+pub fn LGSTRING_GLYPH (lgs: Lisp_Object, idx: isize) -> Lisp_Object
+{ return AREF (lgs, idx + 2); }
+
+// composite.h 338, 342: character.c's two remaining callees.  `composition_gstring_width`'s
+// fourth argument is `struct font_metrics *` (font.h, not mirrored on this target yet —
+// PORTING.md P-66), so it stays the opaque pointer the only caller here passes as NULL.
+unsafe extern "C" {
+  pub fn composition_gstring_width (lgs: Lisp_Object, from: ptrdiff_t, to: ptrdiff_t,
+                                    metrics: *mut c_void) -> c_int;
+  pub fn find_automatic_composition (pos: ptrdiff_t, limit: ptrdiff_t, backlim: ptrdiff_t,
+                                     start: *mut ptrdiff_t, end: *mut ptrdiff_t,
+                                     prop: *mut Lisp_Object, string: Lisp_Object) -> bool;
+}
+
+// C: composite.h 53-130's COMPOSITION_* accessors, 211-334's LGSTRING_*/LGLYPH_* accessors
+// and inline functions (they need `aref_addr`, `hash_lookup` and `font_metrics`, none of
+// which this target has yet) — (not mirrored yet; they land with composite.c, batch C).

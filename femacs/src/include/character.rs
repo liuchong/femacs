@@ -80,9 +80,17 @@ pub const OBJECT_REPLACEMENT_CHARACTER: c_int = 0xFFFC;
 pub const TAG_SPACE: c_int = 0xE0020;
 pub const CANCEL_TAG: c_int = 0xE007F;
 
-unsafe extern "C" {
-  pub fn char_string (c: c_uint, p: *mut u8) -> c_int;
+// character.h 88's `char_string` prototype sits at the top of the header, apart from the
+// block the rest of character.c's definitions share; it lives in `pub mod char_string_decl`
+// + glob import for the same reason (character.c defines it, PORTING.md 0.1-10).
+pub mod char_string_decl {
+  use super::*;
+
+    unsafe extern "C" {
+    pub fn char_string (c: c_uint, p: *mut u8) -> c_int;
+    }
 }
+use char_string_decl::*;
 
 /* UTF-8 encodings.  Use \x escapes, so they are portable to pre-C11
    compilers and can be concatenated with ordinary string literals.  */
@@ -581,37 +589,46 @@ pub enum unicode_category_t
     UNICODE_CATEGORY_Cn
   }
 
-unsafe extern "C" {
-  // Parameter names come from the definitions in character.c (C's prototypes
-  // often have none).
-  pub fn char_resolve_modifier_mask (c: EMACS_INT) -> EMACS_INT;
-  pub fn translate_char (table: Lisp_Object, c: c_int) -> c_int;
-  pub fn count_size_as_multibyte (str: *const u8, len: ptrdiff_t) -> ptrdiff_t;
-  pub fn str_as_multibyte (str: *mut u8, len: ptrdiff_t, nbytes: ptrdiff_t,
-			   nchars: *mut ptrdiff_t) -> ptrdiff_t;
-  pub fn str_to_multibyte (dst: *mut u8, src: *const u8, nchars: ptrdiff_t) -> ptrdiff_t;
-  pub fn str_as_unibyte (str: *mut u8, bytes: ptrdiff_t) -> ptrdiff_t;
-  pub fn strwidth (str: *const c_char, len: ptrdiff_t) -> ptrdiff_t;
-  pub fn c_string_width (str: *const u8, len: ptrdiff_t, precision: c_int,
-			 nchars: *mut ptrdiff_t, nbytes: *mut ptrdiff_t) -> ptrdiff_t;
-  pub fn lisp_string_width (string: Lisp_Object, from: ptrdiff_t, to: ptrdiff_t,
-			    precision: ptrdiff_t, nchars: *mut ptrdiff_t,
-			    nbytes: *mut ptrdiff_t, auto_comp: bool) -> ptrdiff_t;
+// The prototypes and the two extern objects below live in `pub mod character_decls` + glob
+// import (the tempname.rs shape): character.c *defines* every one of them, and an explicit
+// item shadows a glob import where a same-named declaration at this scope would be `E0428`
+// (PORTING.md 0.1-10, P-39).
+pub mod character_decls {
+  use super::*;
 
-  pub static mut Vchar_unify_table: Lisp_Object;
-  pub fn string_escape_byte8 (string: Lisp_Object) -> Lisp_Object;
+    unsafe extern "C" {
+    // Parameter names come from the definitions in character.c (C's prototypes
+    // often have none).
+    pub fn char_resolve_modifier_mask (c: EMACS_INT) -> EMACS_INT;
+    pub fn translate_char (table: Lisp_Object, c: c_int) -> c_int;
+    pub fn count_size_as_multibyte (str: *const u8, len: ptrdiff_t) -> ptrdiff_t;
+    pub fn str_as_multibyte (str: *mut u8, len: ptrdiff_t, nbytes: ptrdiff_t,
+  			   nchars: *mut ptrdiff_t) -> ptrdiff_t;
+    pub fn str_to_multibyte (dst: *mut u8, src: *const u8, nchars: ptrdiff_t) -> ptrdiff_t;
+    pub fn str_as_unibyte (str: *mut u8, bytes: ptrdiff_t) -> ptrdiff_t;
+    pub fn strwidth (str: *const c_char, len: ptrdiff_t) -> ptrdiff_t;
+    pub fn c_string_width (str: *const u8, len: ptrdiff_t, precision: c_int,
+  			 nchars: *mut ptrdiff_t, nbytes: *mut ptrdiff_t) -> ptrdiff_t;
+    pub fn lisp_string_width (string: Lisp_Object, from: ptrdiff_t, to: ptrdiff_t,
+  			    precision: ptrdiff_t, nchars: *mut ptrdiff_t,
+  			    nbytes: *mut ptrdiff_t, auto_comp: bool) -> ptrdiff_t;
 
-  pub fn alphabeticp (c: c_int) -> bool;
-  pub fn alphanumericp (c: c_int) -> bool;
-  pub fn graphicp (c: c_int) -> bool;
-  pub fn printablep (c: c_int) -> bool;
-  pub fn blankp (c: c_int) -> bool;
-  pub fn graphic_base_p (c: c_int) -> bool;
+    pub static mut Vchar_unify_table: Lisp_Object;
+    pub fn string_escape_byte8 (string: Lisp_Object) -> Lisp_Object;
 
-  /// C declares `extern signed char const hexdigit[];` (an incomplete array);
-  /// the size is the definition's `hexdigit[UCHAR_MAX + 1]` in character.c.
-  pub static hexdigit: [c_char; 256];
+    pub fn alphabeticp (c: c_int) -> bool;
+    pub fn alphanumericp (c: c_int) -> bool;
+    pub fn graphicp (c: c_int) -> bool;
+    pub fn printablep (c: c_int) -> bool;
+    pub fn blankp (c: c_int) -> bool;
+    pub fn graphic_base_p (c: c_int) -> bool;
+
+    /// C declares `extern signed char const hexdigit[];` (an incomplete array);
+    /// the size is the definition's `hexdigit[UCHAR_MAX + 1]` in character.c.
+    pub static hexdigit: [c_char; 256];
+    }
 }
+use character_decls::*;
 
 /* Look up the element in char table OBJ at index CH, and return it as
    an integer.  If the element is not a character, return CH itself.  */

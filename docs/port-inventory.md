@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 188 |
-| 其中 done / wip | 159 / 29 |
-| 待开工 | 402 |
+| 已有目标文件 | 196 |
+| 其中 done / wip | 164 / 32 |
+| 待开工 | 394 |
 
 ## 2 按目录
 
@@ -38,16 +38,16 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,686 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 202 |
+| `src/` | 250 | 566,784 | 8,686 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 194 |
 
 ## 3 按批次
 
 | 批次 | 范围 | 完成判据 | 文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | todo |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 18 |
-| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 25 |
+| **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 15 |
+| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 21 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,008 | 269 | 498 | 289 | 128 | 24 |
-| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
+| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 38 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,741 | 368 | 1,834 | 2,175 | 981 | 187 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 97 |
@@ -450,13 +450,13 @@
 | `src/bytecode.c` | 1,852 | 8 | 2 | 21 | 1 | 5 | 0 | B | `femacs/src/bytecode.rs` | todo |
 | `src/callint.c` | 933 | 6 | 4 | 0 | 0 | 0 | 3 | B | `femacs/src/callint.rs` | done |
 | `src/callproc.c` | 2,262 | 21 | 3 | 4 | 6 | 0 | 4 | D | `femacs/src/callproc.rs` | todo |
-| `src/casefiddle.c` | 764 | 17 | 11 | 0 | 6 | 9 | 0 | C | `femacs/src/casefiddle.rs` | todo |
+| `src/casefiddle.c` | 764 | 17 | 11 | 0 | 6 | 9 | 0 | C | `femacs/src/casefiddle.rs` | done |
 | `src/casetab.c` | 303 | 7 | 5 | 0 | 0 | 0 | 4 | C | `femacs/src/casetab.rs` | done |
 | `src/category.c` | 506 | 10 | 13 | 0 | 0 | 0 | 0 | C | `femacs/src/category.rs` | done |
 | `src/category.h` | 124 | 2 | 0 | 12 | 0 | 0 | 0 | C | `femacs/src/include/category.rs` | done |
 | `src/ccl.c` | 2,394 | 7 | 5 | 91 | 68 | 3 | 7 | C | `femacs/src/ccl.rs` | todo |
 | `src/ccl.h` | 88 | 0 | 0 | 8 | 5 | 14 | 0 | C | `femacs/src/include/ccl.rs` | todo |
-| `src/character.c` | 1,167 | 23 | 10 | 0 | 0 | 0 | 1 | C | `femacs/src/character.rs` | todo |
+| `src/character.c` | 1,167 | 23 | 10 | 0 | 0 | 0 | 1 | C | `femacs/src/character.rs` | wip |
 | `src/character.h` | 615 | 34 | 0 | 3 | 59 | 0 | 1 | C | `femacs/src/include/character.rs` | done |
 | `src/charset.c` | 2,464 | 20 | 23 | 7 | 1 | 10 | 21 | C | `femacs/src/charset.rs` | todo |
 | `src/charset.h` | 567 | 2 | 0 | 63 | 40 | 26 | 19 | C | `femacs/src/include/charset.rs` | todo |
@@ -466,7 +466,7 @@
 | `src/cmds.c` | 538 | 3 | 7 | 0 | 0 | 0 | 0 | B | `femacs/src/cmds.rs` | todo |
 | `src/coding.c` | 12,312 | 96 | 34 | 140 | 72 | 0 | 12 | C | `femacs/src/coding.rs` | todo |
 | `src/coding.h` | 790 | 2 | 0 | 63 | 80 | 72 | 3 | C | `femacs/src/include/coding.rs` | done |
-| `src/commands.h` | 30 | 0 | 0 | 3 | 0 | 0 | 0 | B | `femacs/src/include/commands.rs` | todo |
+| `src/commands.h` | 30 | 0 | 0 | 3 | 0 | 0 | 0 | B | `femacs/src/include/commands.rs` | done |
 | `src/comp.c` | 5,857 | 140 | 15 | 91 | 17 | 3 | 4 | E | `femacs/src/comp.rs` | todo |
 | `src/comp.h` | 106 | 3 | 0 | 1 | 0 | 11 | 0 | E | `femacs/src/include/comp.rs` | wip |
 | `src/composite.c` | 2,322 | 26 | 6 | 3 | 1 | 3 | 7 | C | `femacs/src/composite.rs` | todo |
@@ -480,8 +480,8 @@
 | `src/dired.c` | 1,213 | 14 | 8 | 3 | 3 | 0 | 0 | D | `femacs/src/dired.rs` | todo |
 | `src/dispextern.h` | 4,025 | 9 | 0 | 130 | 219 | 551 | 16 | E | `femacs/src/include/dispextern.rs` | wip |
 | `src/dispnew.c` | 7,584 | 150 | 13 | 4 | 1 | 13 | 20 | E | `femacs/src/dispnew.rs` | todo |
-| `src/disptab.h` | 117 | 0 | 0 | 20 | 14 | 0 | 0 | B | `femacs/src/include/disptab.rs` | todo |
-| `src/doc.c` | 746 | 6 | 6 | 6 | 0 | 0 | 2 | B | `femacs/src/doc.rs` | todo |
+| `src/disptab.h` | 117 | 0 | 0 | 20 | 14 | 0 | 0 | B | `femacs/src/include/disptab.rs` | wip |
+| `src/doc.c` | 746 | 6 | 6 | 6 | 0 | 0 | 2 | B | `femacs/src/doc.rs` | wip |
 | `src/doprnt.c` | 607 | 6 | 0 | 0 | 1 | 0 | 0 | B | `femacs/src/doprnt.rs` | done |
 | `src/dosfns.c` | 798 | 12 | 10 | 2 | 0 | 0 | 1 | F | `femacs/src/dosfns.rs` | done |
 | `src/dosfns.h` | 35 | 0 | 0 | 1 | 1 | 0 | 0 | F | `femacs/src/include/dosfns.rs` | todo |
@@ -584,7 +584,7 @@
 | `src/ralloc.c` | 1,214 | 18 | 0 | 7 | 0 | 0 | 12 | B | `femacs/src/ralloc.rs` | todo |
 | `src/regex-emacs.c` | 5,367 | 41 | 0 | 120 | 75 | 12 | 3 | C | `femacs/src/regex-emacs.rs` | todo |
 | `src/regex-emacs.h` | 202 | 0 | 0 | 1 | 20 | 16 | 3 | C | `femacs/src/include/regex-emacs.rs` | todo |
-| `src/region-cache.c` | 781 | 13 | 0 | 5 | 0 | 10 | 0 | C | `femacs/src/region-cache.rs` | todo |
+| `src/region-cache.c` | 781 | 13 | 0 | 5 | 0 | 10 | 0 | C | `femacs/src/region-cache.rs` | done |
 | `src/region-cache.h` | 112 | 0 | 0 | 1 | 0 | 0 | 0 | C | `femacs/src/include/region-cache.rs` | todo |
 | `src/scroll.c` | 993 | 9 | 0 | 1 | 0 | 6 | 0 | E | `femacs/src/scroll.rs` | todo |
 | `src/search.c` | 3,514 | 36 | 19 | 2 | 1 | 8 | 4 | C | `femacs/src/search.rs` | todo |
@@ -597,7 +597,7 @@
 | `src/sound.c` | 1,554 | 30 | 2 | 4 | 18 | 44 | 2 | D | `femacs/src/sound.rs` | done |
 | `src/sqlite.c` | 933 | 12 | 17 | 29 | 1 | 0 | 1 | D | `femacs/src/sqlite.rs` | todo |
 | `src/syntax.c` | 3,851 | 40 | 21 | 5 | 3 | 13 | 7 | C | `femacs/src/syntax.rs` | todo |
-| `src/syntax.h` | 215 | 11 | 0 | 2 | 17 | 12 | 1 | C | `femacs/src/include/syntax.rs` | todo |
+| `src/syntax.h` | 215 | 11 | 0 | 2 | 17 | 12 | 1 | C | `femacs/src/include/syntax.rs` | done |
 | `src/sysdep.c` | 4,766 | 132 | 1 | 23 | 8 | 4 | 11 | D | `femacs/src/sysdep.rs` | todo |
 | `src/sysselect.h` | 98 | 3 | 0 | 8 | 2 | 0 | 0 | D | `femacs/src/include/sysselect.rs` | todo |
 | `src/syssignal.h` | 88 | 0 | 0 | 10 | 1 | 0 | 1 | D | `femacs/src/include/syssignal.rs` | todo |
@@ -609,7 +609,7 @@
 | `src/syswait.h` | 62 | 0 | 0 | 9 | 1 | 0 | 0 | D | `femacs/src/include/syswait.rs` | todo |
 | `src/term.c` | 5,479 | 94 | 20 | 15 | 22 | 9 | 21 | E | `femacs/src/term.rs` | todo |
 | `src/termcap.c` | 640 | 12 | 0 | 2 | 2 | 5 | 3 | E | `femacs/src/termcap.rs` | todo |
-| `src/termchar.h` | 257 | 0 | 0 | 3 | 1 | 93 | 1 | E | `femacs/src/include/termchar.rs` | todo |
+| `src/termchar.h` | 257 | 0 | 0 | 3 | 1 | 93 | 1 | E | `femacs/src/include/termchar.rs` | done |
 | `src/termhooks.h` | 993 | 4 | 0 | 18 | 88 | 86 | 3 | E | `femacs/src/include/termhooks.rs` | wip |
 | `src/terminal.c` | 725 | 29 | 9 | 0 | 0 | 0 | 3 | E | `femacs/src/terminal.rs` | todo |
 | `src/terminfo.c` | 55 | 1 | 0 | 0 | 0 | 0 | 3 | E | `femacs/src/terminfo.rs` | done |

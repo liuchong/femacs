@@ -3576,6 +3576,23 @@ pub mod other_units {
         pub fn xrealloc (block: *mut c_void, size: usize) -> *mut c_void;
     }
 
+    // src/lisp.h 619, 4261, 4540, 4563-4564: character.c's callees.  `validate_subarray`
+    // lives in editfns.c, `args_out_of_range` in eval.c's keymap helpers, and the three
+    // allocation entries in alloc.c; `AVOID` is `-> !` (PORTING.md 5.2).
+    unsafe extern "C" {
+        pub fn args_out_of_range (a: Lisp_Object, b: Lisp_Object) -> !;
+        pub fn validate_subarray (array: Lisp_Object, from: Lisp_Object, to: Lisp_Object,
+                                  size: ptrdiff_t, ifrom: *mut ptrdiff_t,
+                                  ito: *mut ptrdiff_t);
+        /* src/lisp.h 608; bignum.c 480 defines it (bignum.rs already carries the
+           definition, this unit only calls it).  */
+        pub fn check_integer_range (x: Lisp_Object, lo: intmax_t, hi: intmax_t) -> intmax_t;
+        pub fn string_overflow () -> !;
+        pub fn make_uninit_string (length: EMACS_INT) -> Lisp_Object;
+        pub fn make_uninit_multibyte_string (nchars: EMACS_INT, nbytes: EMACS_INT)
+          -> Lisp_Object;
+    }
+
     // src/lisp.h 4093, 4210, 4652, 4797, 4835: helpers and subrs whose *definitions*
     // live in other units (floatfns.c is the first unit that calls them).  The port
     // declares them here, as lisp.h does, and the defining unit shadows the import
@@ -4013,6 +4030,72 @@ pub mod other_units {
                                        match_: Lisp_Object, nosort: Lisp_Object,
                                        attr: bool, id: Lisp_Object, regexp: Lisp_Object)
         -> Lisp_Object;
+    }
+
+    // src/lisp.h 4227, 4277, 4352, 4364, 4540, 4565, 4696, 4733, 4741, 4823, 4976, 4981 (the
+    // casefiddle.c / doc.c group).  `struct buffer` is an incomplete type in lisp.h here
+    // too, but none of these takes one.
+    unsafe extern "C" {
+      /* src/lisp.h 4227: doc.c's get_doc_string counts the characters of a DOC-file
+         chunk with it.  */
+      /// C: ptrdiff_t multibyte_chars_in_text (const unsigned char *, ptrdiff_t)
+      pub fn multibyte_chars_in_text (str_: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t;
+      /* src/lisp.h 4277: syntax.h 161's RE_SYNTAX_TABLE_BYTE_TO_CHAR.  */
+      /// C: ptrdiff_t string_byte_to_char (Lisp_Object, ptrdiff_t)
+      pub fn string_byte_to_char (string: Lisp_Object, bytepos: ptrdiff_t) -> ptrdiff_t;
+      /* src/lisp.h 4352.  */
+      /// C: void modify_text (ptrdiff_t, ptrdiff_t)
+      pub fn modify_text (start: ptrdiff_t, end: ptrdiff_t);
+      /* src/lisp.h 4364: the eight parameters of the replacement.  */
+      /// C: void replace_range_2 (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, const char *, ptrdiff_t, ptrdiff_t, bool)
+      pub fn replace_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t,
+                              to_byte: ptrdiff_t, str_: *const c_char,
+                              inschars: ptrdiff_t, insbytes: ptrdiff_t,
+                              markers: bool);
+      /* src/lisp.h 4540's `string_overflow` is declared above, in the character.c group
+         (one definition point per name — PORTING.md 0.1-3).  */
+      /* src/lisp.h 4565.  */
+      /// C: Lisp_Object make_string_from_bytes (const char *, ptrdiff_t, ptrdiff_t)
+      pub fn make_string_from_bytes (contents: *const c_char, nchars: ptrdiff_t,
+                                     nbytes: ptrdiff_t) -> Lisp_Object;
+      /* src/lisp.h 4696.  */
+      /// C: Lisp_Object uniprop_table (Lisp_Object)
+      pub fn uniprop_table (prop: Lisp_Object) -> Lisp_Object;
+      /* src/lisp.h 4733.  */
+      /// C: Lisp_Object oblookup (Lisp_Object, const char *, ptrdiff_t, ptrdiff_t)
+      pub fn oblookup (obarray: Lisp_Object, str_: *const c_char, size: ptrdiff_t,
+                       size_byte: ptrdiff_t) -> Lisp_Object;
+      /* src/lisp.h 4741.  */
+      /// C: Lisp_Object save_match_data_load (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)
+      pub fn save_match_data_load (file: Lisp_Object, noerror: Lisp_Object,
+                                   nomessage: Lisp_Object, nosuffix: Lisp_Object,
+                                   must_suffix: Lisp_Object) -> Lisp_Object;
+      /* src/lisp.h 4823: doc.c's get_doc_string/`Snarf-documentation` guard the DOC
+         file descriptor with it.  */
+      /// C: void record_unwind_protect_int (void (*) (int), int)
+      pub fn record_unwind_protect_int (function: Option<unsafe extern "C" fn (c_int)>,
+                                        arg: c_int);
+      /* src/lisp.h 5251-5252: casefiddle.c's two undo records.  undo.c defines both
+         (`#[unsafe(no_mangle)]`), which shadows this declaration the way a DEFUN
+         definition shadows its prototype (PORTING.md 0.1-10).  */
+      /// C: void record_insert (ptrdiff_t, ptrdiff_t)
+      pub fn record_insert (from: ptrdiff_t, nbytes: ptrdiff_t);
+      /// C: void record_delete (ptrdiff_t, Lisp_Object, bool)
+      pub fn record_delete (from: ptrdiff_t, del: Lisp_Object, record_markers: bool);
+      /* src/lisp.h 4269: doc.c's three-piece "Cannot open doc string file" message.  */
+      /// C: Lisp_Object concat3 (Lisp_Object, Lisp_Object, Lisp_Object)
+      pub fn concat3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> Lisp_Object;
+      /* src/lisp.h 5332-5333: the interrupted-read pair; doc.c uses the `_quit` one.  */
+      /// C: ptrdiff_t emacs_read (int, void *, ptrdiff_t)
+      pub fn emacs_read (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
+      /// C: ptrdiff_t emacs_read_quit (int, void *, ptrdiff_t)
+      pub fn emacs_read_quit (fd: c_int, buf: *mut c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
+      /* src/lisp.h 4976.  */
+      /// C: void close_file_unwind (int)
+      pub fn close_file_unwind (fd: c_int);
+      /* src/lisp.h 4981.  */
+      /// C: void report_file_errno (const char *, Lisp_Object, int)
+      pub fn report_file_errno (string: *const c_char, err: Lisp_Object, errnum: c_int) -> !;
     }
 }
 use other_units::*;

@@ -554,6 +554,13 @@ pub fn SET_FRAME_ICONIFIED (f: *mut frame, i: c_int)
 // unit 1, and the flags are single bits of either unit (PORTING.md 1.3; the note file records
 // that C's field names cannot occur in the Rust bodies).
 #[inline(always)]
+/// C: `(f)->output_method`.  frame.h 1069's family reads the field through a macro; the port
+/// reads it through `frame_output_method`, and this alias keeps the C token `output_method`
+/// available to the macro bodies that spell it (termchar.h 231's `FRAME_TTY`).  The function
+/// and the field's type share a name because they live in different namespaces.
+#[inline(always)]
+pub fn output_method (f: *mut frame) -> output_method { frame_output_method (f) }
+
 fn frame_output_method (f: *mut frame) -> output_method
 { ((unsafe { (*f).bits1 }) >> FRAME_OUTPUT_METHOD_SHIFT & FRAME_OUTPUT_METHOD_MASK) as output_method }
 

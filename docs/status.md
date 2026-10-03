@@ -14,13 +14,18 @@
   readlinkat.c 123 / cloexec.c 83 / filemode.c 166 / mini-gmp.c 4,699 / md5.c 394 /
   sha1.c 362 / sha256.c 431 / sha3.c 442 / sha512.c 476 / save-cwd.c 90 /
   copy-file-range.c 99 / md5-stream.c 134 / lchmod.c 97）。
-- 已竣工镜像：`src/include/` 与 `lib/include/` 共 15 个（font.h、thread.h、comp.h、
-  macros.h、category.h、tparam.h、sys_resource.h 及既有若干）。本轮新增 WIP 镜像
-  `lib/include/{sys_stat.in,fcntl.in,unistd.in,stat-time}.rs`，并给 `sys_types.in.rs` 补上
-  `struct stat` 需要的六个 Darwin 宽度别名（mode_t/nlink_t/blksize_t/blkcnt_t/ino_t/dev_t）与
-  `uid_t`。
-- `python3 tools/extract-abi.py --all`：**72 done / 21 wip / 0 failing**（93 个已有目标；
-  数字随在飞工作变化，以它为准）。
+- 镜像（`src/include/` 与 `lib/include/`）：`font.h`、`thread.h`、`comp.h`、`macros.h`、
+  `category.h`、`tparam.h`、`sys_resource.h`、`lisp.h`、`frame.h`、`window.h`、`termhooks.h`、
+  `dispextern.h`、`buffer.h`、`keyboard.h`、`coding.h`、`composite.h`、`itree.h`、`globals.h`
+  等，以及 `lib/include/` 的 `sys_stat.in`、`fcntl.in`、`unistd.in`、`stat-time`、
+  `sys_types.in`（含 `struct stat` 需要的六个 Darwin 宽度别名与 `uid_t`）。第 55 轮新增
+  **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
+  `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
+  `pub fn output_method`。
+- `python3 tools/extract-abi.py --all`（2026-10-03 第 55 轮实测，**权威口径**）：
+  **164 done / 24 wip / 0 failing**（188 个已有目标；`docs/port-inventory.md` 的 159/29 是
+  同一批文件的另一套口径——它按 `docs/ports/*.md` 的方框判定，`--all` 按 token/函数/常量比对
+  判定，两个数字都随在飞工作变化）。待开工 402。
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
   （`gen-port-map`/`gen-baseline`/`gen-lifetimes` 后 `git diff --exit-code`）。
@@ -265,3 +270,22 @@
   （参照在这个配置下不定义 `trunc` 符号）。这与上一轮 `filemode.c` 的 `strmode` 是**同一类**：
   **凡是被配置判死的臂，其定义一律不发符号**，即使 `dead-arms` 翻转构建会编译它（那种构建只
   验证"能编译"，不要求导出）。同类处置已写进 `docs/ports/*.md` 的 Decisions。
+
+- **3.27 `termchar.h` 镜像已落地，显示链的下一块是 `glyph`/`glyph_pool`/`glyph_matrix`/`glyph_row`（2026-10-03 第 55 轮）**：
+  ①`src/include/termchar.rs` 是 termchar.h 的完整镜像（`--check OK`）：`tty_output`、
+  `TERMCAP_BUFFER_SIZE`、`tty_display_info`（三段 `bool_bf` 连续位域各用一个 `bits_*` 字节 +
+  `TTY_*` mask，与 `itree_node.bits`/`frame.bits1` 同形）、`tty_list`、`FRAME_TTY`/`CURTTY`
+  两个宏（`macro_rules!`，在使用点展开）、`tty_handle_tab_bar_click`/`tty_setup_colors`。
+  ②**`scroll.c` 不是"只依赖现有镜像"的文件**：它读 `current_matrix->nrows`、`MATRIX_*` 一族与
+  `FRAME_SCROLL_REGION_OK/COST`（termhooks.h 920-921，正文里指向 `FRAME_TTY`），因此它的前置是
+  `dispextern.h` 的**显示核心结构**：`glyph`、`glyph_pool`、`glyph_matrix`、`glyph_row`
+  （dispextern.h 472-1160）+ `enum glyph_type`/`enum glyph_row_area`（431/881）+ 1163-1340 的
+  `MATRIX_*` 宏。这些是 batch E（显示与终端，50 文件 / 172,942 行）的共同前置，**优先于**
+  `scroll.c` 本身落地；`frame.rs`/`window.rs` 现在把它们退化成 `*mut c_void`（P-72 规则③），
+  落地时把 `glyph`/`glyph_pool`/`glyph_matrix`/`glyph_row`/`Mouse_HLInfo` 加进
+  `tools/gen-layout-fields.py` 的 `STRUCTS`，由布局探针按真 C 编译器的 `offsetof`/`sizeof` 断言。
+  ③`FRAME_TTY` 里的 `(f)->terminal->display_info.tty` 在 termhooks.rs 是 `*mut c_void`
+  （termhooks.h 533-542 的 union 指向未镜像类型），宏里**显式转回** `*mut tty_display_info`，
+  这是 P-55 退化而不是新指针类型。④同日发现并修掉一处并行冲突的实证：两个 worker 同时往
+  `lisp.rs` 的 `other_units` 加同名 `string_overflow` → E0428，整个 TU 编译失败；**往共享镜像
+  加声明前必须先 grep 同名**（已写进 worker 指令）。

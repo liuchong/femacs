@@ -31,6 +31,10 @@ pub mod stdio_decls {
        bug that file works around).  */
     pub fn fputs (s: *const c_char, stream: *mut FILE) -> c_int;
     pub fn fputc (c: c_int, stream: *mut FILE) -> c_int;
+    /* int sprintf (char *s, const char *format, ...); - src/character.c is the first unit
+       that formats into a caller-supplied buffer (`string_escape_byte8`'s "\\%03o"); the
+       declaration is C-variadic, like lisp.rs's `error` (PORTING.md P-04).  */
+    pub fn sprintf (s: *mut c_char, format: *const c_char, ...) -> c_int;
   }
 }
 use stdio_decls::*;
