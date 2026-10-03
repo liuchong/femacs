@@ -14,7 +14,7 @@ mkdir -p "$OUT"
 clang -std=gnu23 -O1 -I "$CFG/lib" -idirafter spikes/shim -I "$CFG/src" -I emacs/src -I emacs/lib \
       spikes/inline_probe.c -o "$OUT/c" 2> "$OUT/c.err" \
   || { echo "C build failed:"; cat "$OUT/c.err"; exit 1; }
-(cd femacs && rustc --edition 2024 -O ../spikes/inline_probe.rs -o ../"$OUT"/rs) 2> "$OUT/rs.err" \
+(cd femacs && cargo run -q -p xtask -- probe ../spikes/inline_probe.rs ../"$OUT"/rs) 2> "$OUT/rs.err" \
   || { echo "Rust build failed:"; cat "$OUT/rs.err"; exit 1; }
 "$OUT/c" > "$OUT/c.txt" || exit 1
 "$OUT/rs" > "$OUT/rs.txt" || exit 1

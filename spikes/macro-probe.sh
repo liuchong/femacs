@@ -4,8 +4,8 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build
-if (cd femacs && rustc --edition 2024 --crate-type lib --emit metadata \
-        ../spikes/macro_probe.rs -o ../build/macro-probe.rmeta 2> ../build/macro-probe.err); then
+if (cd femacs && cargo run -q -p xtask -- probe \
+        ../spikes/macro_probe.rs ../build/macro-probe.rmeta 2> ../build/macro-probe.err); then
   echo "macro-probe: every expansion compiles"
 else
   echo "macro-probe: FAILED"

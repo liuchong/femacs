@@ -3,7 +3,7 @@
 # when a unit can define what lisp.h declares.
 set -uo pipefail
 cd "$(dirname "$0")/.."
-(cd femacs && rustc --edition 2024 -O ../spikes/shadow_probe.rs -o ../build/shadow-probe \
+(cd femacs && cargo run -q -p xtask -- probe ../spikes/shadow_probe.rs ../build/shadow-probe \
         2> ../build/shadow-probe.err) || { echo "shadow-probe: FAILED"; cat build/shadow-probe.err; exit 1; }
 build/shadow-probe > build/shadow-probe.txt
 echo "shadow-probe: $(cat build/shadow-probe.txt)"

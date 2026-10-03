@@ -28,6 +28,7 @@ fn main() {
         },
         "layout-check" => layout_check(),
         "build-tu" => build_tu(args.get(1)),
+        "probe" => probe_build(&args[1..]),
         "gate-fast" => gate_fast(),
         "gate-probes" => gate_probes(),
         "dead-arms" => dead_arms(),
@@ -759,6 +760,39 @@ fn crate_name (stem: &str) -> String {
 
 // --- translation units -----------------------------------------------------
 
+/// `xtask probe <rs-file> <out> [<extra rustc args>…]`: build one spike probe.
+///
+/// The shell probes under `spikes/` reach their mirrors through their own `include!` lists,
+/// which have no include guard, so a file reached by two paths (`lisp.rs` ->
+/// `thread.rs` -> `sys_select.rs` -> `time.in.rs` and `buffer.rs` -> `time.in.rs`) was
+/// defined twice and `rustc` stopped with E0428.  They are materialized exactly as a unit is
+/// (PORTING.md 0.1-4), and the extras after the output path are passed to `rustc` unchanged
+/// (`macro-probe.sh` needs `--crate-type lib --emit metadata`).
+fn probe_build(args: &[String]) -> i32 {
+    let (Some(src), Some(out)) = (args.first(), args.get(1)) else {
+        return fail("probe needs <rs-file> <out> [<extra rustc args>…]");
+    };
+    let src = Path::new(src);
+    let stem = src.file_stem().unwrap_or_default().to_string_lossy().to_string();
+    let dir = Path::new("../build/probes").join(&stem);
+    let root = match materialize(src, &dir) {
+        Ok(root) => root,
+        Err(e) => return fail(format!("probe {}: {e}", src.display())),
+    };
+    let status = Command::new("rustc")
+        .args(["--edition", "2024", "-O"])
+        .arg(&root)
+        .arg("-o")
+        .arg(out)
+        .args(&args[2..])
+        .status();
+    match status {
+        Ok(s) if s.success() => 0,
+        Ok(s) => fail(format!("rustc failed for {} (exit status: {s})", src.display())),
+        Err(e) => fail(format!("probe {}: {e}", src.display())),
+    }
+}
+
 fn build_tu(rel: Option<&String>) -> i32 {
     let Some(rel) = rel else { return fail("build-tu needs a reference C file, e.g. src/doprnt.c") };
     let stem = Path::new(rel).file_stem().unwrap_or_default().to_string_lossy().to_string();
@@ -921,9 +955,19 @@ fn probe_programs() -> Result<(), String> {
         }
         let stem = Path::new(probe).file_stem().unwrap().to_string_lossy().to_string();
         let out = format!("../build/probes/{stem}.rmeta");
+        // The probe reaches its mirrors through its own `include!` list, so it needs the same
+        // de-duplication the units get: the graph now has a file reached by two paths
+        // (`lisp.rs` -> `thread.rs` -> `sys_select.rs` -> `time.in.rs` and `buffer.rs` ->
+        // `time.in.rs`), and `include!` has no include guard (PORTING.md 0.1-4).  Materialize
+        // it exactly as a unit is materialized, then compile that root.
+        let root = match materialize(Path::new(probe),
+                                     Path::new("../build/probes").join(&stem).as_path()) {
+            Ok(root) => root,
+            Err(e) => return Err(format!("probe {probe}: {e}")),
+        };
         let status = Command::new("rustc")
             .args(["--edition", "2024", "--crate-type", "bin", "--emit", "metadata"])
-            .arg(probe).arg("-o").arg(&out)
+            .arg(&root).arg("-o").arg(&out)
             .status();
         match status {
             Ok(s) if s.success() => println!("probe {stem}: the Rust side compiles"),
@@ -1086,57 +1130,6 @@ fn canonical(p: &Path) -> PathBuf {
     p.canonicalize().unwrap_or_else(|_| p.to_path_buf())
 }
 
-/// Every file the `include!("…")` chain of ROOT reaches, each once, **dependencies first**
-/// (post-order).  A mirror's nested `include!` is normally at its top, and the macro it brings
-/// has to be defined before the mirror's own body uses it (0.1-18), so the copy of a file must
-/// come after the copies of what it includes.
-fn include_graph_ordered(root: &Path, seen: &mut Vec<PathBuf>) {
-    let root = canonical(root);
-    if seen.contains(&root) {
-        return;
-    }
-    seen.push(root.clone());
-    let Ok(text) = fs::read_to_string(&root) else { return };
-    let dir = root.parent().unwrap_or(Path::new(".")).to_path_buf();
-    for line in text.lines() {
-        if let Some(name) = include_target(line) {
-            let target = dir.join(name);
-            if target.is_file() {
-                include_graph_ordered(&target, seen);
-            }
-        }
-    }
-    // Dependencies first: move ROOT after everything it included, so a macro it brings
-    // (gnulib_config.rs's `_GL_CMP`) is defined before the file that uses it.
-    if let Some(pos) = seen.iter().position(|p| *p == root) {
-        let file = seen.remove(pos);
-        seen.push(file);
-    }
-}
-
-/// Every file the `include!("…")` chain of ROOT reaches, in discovery order, each once.
-fn include_graph(root: &Path, seen: &mut Vec<PathBuf>) {
-    let root = canonical(root);
-    if seen.contains(&root) {
-        return;
-    }
-    seen.push(root.clone());
-    let Ok(text) = fs::read_to_string(&root) else { return };
-    let dir = root.parent().unwrap_or(Path::new(".")).to_path_buf();
-    let mut rest = text.as_str();
-    while let Some(pos) = rest.find("include!(") {
-        rest = &rest[pos + "include!(".len()..];
-        let Some(end) = rest.find(')') else { break };
-        let quoted = rest[..end].trim();
-        if let Some(name) = quoted.strip_prefix('"').and_then(|s| s.strip_suffix('"')) {
-            let inc = dir.join(name);
-            if inc.is_file() {
-                include_graph(&inc, seen);
-            }
-        }
-        rest = &rest[end..];
-    }
-}
 
 /// The `include!("…")` target of a line, if the line is such a call.
 fn include_target(line: &str) -> Option<&str> {
@@ -1146,87 +1139,97 @@ fn include_target(line: &str) -> Option<&str> {
     rest[..end].trim().strip_prefix('"').and_then(|s| s.strip_suffix('"'))
 }
 
-/// A copy of PATH with its own `include!` lines commented out (same line count, so a
-/// diagnostic still names the line of the real mirror).
-fn neutralize(path: &Path) -> Result<String, String> {
-    let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
-    let mut copy = String::with_capacity(text.len() + 32);
-    for line in text.split_inclusive('\n') {
-        let (body, newline) = match line.strip_suffix('\n') {
-            Some(b) => (b, "\n"),
-            None => (line, ""),
-        };
-        if line.contains("include!(") {
-            copy.push_str(&format!("// [xtask dedupe] {body}{newline}"));
-        } else {
-            copy.push_str(line);
-        }
-    }
-    Ok(copy)
-}
-
 /// Materialize ROOT's include graph under OUT and return the generated crate root.
 ///
-/// PORTING.md 0.1-4: the tool expands the graph and de-duplicates it, because `include!` has
-/// no include guard.  A file reached by two paths (`buffer.rs`'s `<time.h>` and `systime.rs`'s
+/// PORTING.md 0.1-4: the tool expands the graph and de-duplicates it, because `include!` has no
+/// include guard.  A file reached by two paths (`buffer.rs`'s `<time.h>` and `systime.rs`'s
 /// `<timespec.h>` both reach `time.in.rs`) would otherwise define its items twice and rustc
-/// would reject the unit.  Every reachable file is therefore copied once, with its own
-/// `include!` lines commented out, and `_root.rs` is ROOT's own text with each of its
-/// `include!` lines replaced by the copies that line newly contributes — so the root's body
-/// still comes after everything it included, which is what its macros need (0.1-14/0.1-18).
-/// Line numbers inside a copy still point into the real mirror, so diagnostics name a file
-/// and line a reader can look at.
+/// would reject the unit.  Every reachable file is therefore written out once, at the position
+/// of the `include!` that first reaches it in C's textual order - so a mirror included by
+/// `lisp.h`'s mirror is expanded *inside* it and sees the macros `lisp.h` defines above its
+/// `#include` line (`eassert!`/`XUNTAG!`), which is what C does and what the old
+/// "dependencies first" flattening could not express (see docs/ports/include-thread.md's
+/// "Changes outside the unit").  A later reach of an already-expanded file becomes a
+/// dedupe comment, i.e. the include guard.  Line numbers inside a copy still point into the
+/// real mirror, so diagnostics name a file and line a reader can look at.
 fn materialize(root: &Path, out: &Path) -> Result<PathBuf, String> {
     let _ = fs::remove_dir_all(out);
     fs::create_dir_all(out).map_err(|e| format!("{}: {e}", out.display()))?;
+    // Absolute from here on: a copy names another copy with `include!`, which resolves
+    // relative to the file holding the call.
+    let out = canonical(out);
     let root = canonical(root);
-    let mut order: Vec<PathBuf> = Vec::new();
-    include_graph_ordered(&root, &mut order);
-    // A copy for every file but the root; the copy name is the sanitized absolute path, so
-    // two files with the same basename stay distinct.
-    let mut copies: std::collections::BTreeMap<PathBuf, PathBuf> = std::collections::BTreeMap::new();
-    for path in order.iter().filter(|p| **p != root) {
-        let name = path.to_string_lossy().replace(['/', '\\', ':', '.'], "_");
-        let target = out.join(format!("{name}.rs"));
-        fs::write(&target, neutralize(path)?).map_err(|e| format!("{}: {e}", target.display()))?;
-        copies.insert(path.clone(), canonical(&target));
-    }
-    let text = fs::read_to_string(&root).map_err(|e| format!("{}: {e}", root.display()))?;
-    let dir = root.parent().unwrap_or(Path::new(".")).to_path_buf();
-    let mut emitted: Vec<PathBuf> = vec![root.clone()];
-    let mut lines: Vec<String> = Vec::new();
-    for line in text.split_inclusive('\n') {
-        let (body, newline) = match line.strip_suffix('\n') {
-            Some(b) => (b, "\n"),
-            None => (line, ""),
-        };
-        match include_target(line).map(|name| dir.join(name)) {
-            Some(target) if target.is_file() => {
-                let mut group: Vec<PathBuf> = Vec::new();
-                include_graph_ordered(&target, &mut group);
-                for path in group {
-                    if emitted.contains(&path) {
-                        lines.push(format!("// [xtask dedupe] {} already included{newline}",
-                                           path.display()));
-                        continue;
-                    }
-                    emitted.push(path.clone());
-                    match copies.get(&path) {
-                        Some(copy) => lines.push(format!("include!({:?});{newline}",
-                                                         copy.display().to_string())),
-                        None => lines.push(format!("// [xtask dedupe] {}{newline}",
-                                                   path.display())),
-                    }
-                }
-            }
-            _ => lines.push(format!("{body}{newline}")),
-        }
-    }
+    let mut expand = Expand { out: out.clone(), root: root.clone(), seen: vec![root.clone()] };
+    let text = expand.render(&root)?;
     let root_file = out.join("_root.rs");
-    fs::write(&root_file, lines.concat()).map_err(|e| format!("{}: {e}", root_file.display()))?;
+    fs::write(&root_file, text).map_err(|e| format!("{}: {e}", root_file.display()))?;
     // Absolute: the callers that run rustc with a different working directory (dead-arms)
     // hand it straight to `rustc`.
     Ok(canonical(&root_file))
+}
+
+/// The in-place expansion state: the file the walk started from (whose text is the crate
+/// root) and the files already expanded, in the order the preprocessor would see them.
+struct Expand {
+    out: PathBuf,
+    root: PathBuf,
+    seen: Vec<PathBuf>,
+}
+
+impl Expand {
+    /// The copy that carries PATH's own text.  Derived from the absolute path alone, so a
+    /// file may name a copy that is written later in the walk.
+    fn copy_path(&self, path: &Path) -> PathBuf {
+        let name = path.to_string_lossy().replace(['/', '\\', ':', '.'], "_");
+        self.out.join(format!("{name}.rs"))
+    }
+
+    /// PATH's text with every `include!` line resolved the way C's `#include` would be: the
+    /// first file the walk reaches at that point is expanded recursively, later reaches are
+    /// include-guard no-ops.  ROOT's text is returned (it becomes `_root.rs`); every other
+    /// file is written to its copy first.
+    fn render(&mut self, path: &Path) -> Result<String, String> {
+        let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
+        let dir = path.parent().unwrap_or(Path::new(".")).to_path_buf();
+        let mut out = String::with_capacity(text.len() + 64);
+        for line in text.split_inclusive('\n') {
+            let (body, newline) = match line.strip_suffix('\n') {
+                Some(b) => (b, "\n"),
+                None => (line, ""),
+            };
+            match include_target(line).map(|name| canonical(&dir.join(name))) {
+                Some(target) if target.is_file() => {
+                    if self.seen.contains(&target) {
+                        out.push_str(&format!("// [xtask dedupe] {} already included{newline}",
+                                              target.display()));
+                    } else {
+                        self.seen.push(target.clone());
+                        let copy = self.copy_path(&target);
+                        let body_text = self.render(&target)?;
+                        fs::write(&copy, body_text)
+                            .map_err(|e| format!("{}: {e}", copy.display()))?;
+                        out.push_str(&format!("include!({:?});{newline}",
+                                              copy.display().to_string()));
+                    }
+                }
+                // An `include!` whose target does not exist relative to the file that writes it:
+                // C's mirrors reach `../src/include/config.rs` from a directory where that path
+                // does not resolve, and the file it names is included by the *unit* instead.  In
+                // a copy the line must be commented out, because the copy lives elsewhere and
+                // the relative path would point at a file in the build tree (the old
+                // `neutralize` step did this for every copy); the *root*'s own lines are kept
+                // verbatim, so a typo in a unit still fails the compile with rustc's message.
+                _ => {
+                    if path != self.root && include_target(line).is_some() {
+                        out.push_str(&format!("// [xtask dedupe] {body}{newline}"));
+                    } else {
+                        out.push_str(&format!("{body}{newline}"));
+                    }
+                }
+            }
+        }
+        Ok(out)
+    }
 }
 
 /// Every file the `include!("…")` chain of ROOT reaches, resolved the way rustc does

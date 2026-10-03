@@ -9,7 +9,7 @@ OUT=build/va-probe
 mkdir -p "$OUT"
 clang -std=gnu23 -O1 spikes/va_probe.c -o "$OUT/c" 2> "$OUT/c.err" \
   || { echo "C build failed:"; cat "$OUT/c.err"; exit 1; }
-(cd femacs && rustc --edition 2024 -O ../spikes/va_probe.rs -o ../build/va-probe/rs) 2> "$OUT/rs.err" \
+(cd femacs && cargo run -q -p xtask -- probe ../spikes/va_probe.rs ../build/va-probe/rs) 2> "$OUT/rs.err" \
   || { echo "Rust build failed:"; cat "$OUT/rs.err"; exit 1; }
 "$OUT/c" > "$OUT/c.txt" || exit 1
 "$OUT/rs" > "$OUT/rs.txt" || exit 1

@@ -4,7 +4,7 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 mkdir -p build
-(cd femacs && rustc --edition 2024 -O ../spikes/fam_probe.rs -o ../build/fam-probe \
+(cd femacs && cargo run -q -p xtask -- probe ../spikes/fam_probe.rs ../build/fam-probe \
         2> ../build/fam-probe.err) || { echo "fam-probe: FAILED to build"; cat build/fam-probe.err; exit 1; }
 if build/fam-probe > build/fam-probe.txt 2>&1; then
   echo "fam-probe: $(wc -l < build/fam-probe.txt | tr -d ' ') lines ok"
