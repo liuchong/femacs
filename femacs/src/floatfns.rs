@@ -539,8 +539,10 @@ const _: () = assert! (!cfg! (feature = "no_rint") || !HAVE_RINT);
 // C: `#ifndef HAVE_TRUNC double trunc (double d) { return (d < 0 ? ceil : floor) (d); }
 // #endif` — HAVE_TRUNC is 1 in the frozen configuration, so the <math.h> function is
 // the live one and `feature = "no_trunc"` selects this definition instead.
+/* No `#[unsafe(no_mangle)]` here: the frozen configuration decides `#ifndef HAVE_TRUNC` false,
+   so the reference defines no `trunc` symbol and the port's dead text must not invent one
+   (docs/status.md 3.26 records the class - filemode.c's `strmode` was the first).  */
 #[cfg(feature = "no_trunc")]
-#[unsafe(no_mangle)]
 pub unsafe extern "C" fn trunc (d: c_double) -> c_double
 {
   return if d < 0.0 { ceil (d) } else { floor (d) };

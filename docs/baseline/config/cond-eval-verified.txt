@@ -33,7 +33,6 @@ lib/arg-nonnull.h
 lib/at-func.c
 lib/attribute.h
 lib/binary-io.c
-lib/boot-time-aux.h
 lib/byteswap.c
 lib/c++defs.h
 lib/c-ctype.c
@@ -51,6 +50,7 @@ lib/dtoastr.c
 lib/dtotimespec.c
 lib/dup2.c
 lib/endian.c
+lib/euidaccess.c
 lib/execinfo.c
 lib/faccessat.c
 lib/fchmodat.c
@@ -65,8 +65,10 @@ lib/filevercmp.h
 lib/fingerprint.c
 lib/fingerprint.h
 lib/flexmember.h
+lib/fpending.c
 lib/fpending.h
 lib/free.c
+lib/fseterr.c
 lib/fseterr.h
 lib/fstatat.c
 lib/fsusage.c
@@ -103,9 +105,11 @@ lib/memmem.c
 lib/mempcpy.c
 lib/memrchr.c
 lib/memset_explicit.c
+lib/minmax.h
 lib/mkostemp.c
 lib/mktime.c
 lib/nanosleep.c
+lib/nproc.c
 lib/nproc.h
 lib/nstrftime.c
 lib/open.c
@@ -122,7 +126,6 @@ lib/regcomp.c
 lib/regex.c
 lib/regex.h
 lib/regex_internal.c
-lib/regex_internal.h
 lib/regexec.c
 lib/save-cwd.c
 lib/scratch_buffer.h
@@ -146,7 +149,6 @@ lib/stdc_leading_zeros.c
 lib/stdc_memreverse8u.c
 lib/stdc_trailing_zeros.c
 lib/stdio-consolesafe.c
-lib/stdio-impl.h
 lib/stdlib.c
 lib/stpcpy.c
 lib/streq.c
@@ -275,7 +277,11 @@ src/dynlib.h
 src/editfns.c
 src/emacs-icon.h
 src/emacs-module.c
+src/emacs.c
 src/emacsgtkfixed.h
+src/fileio.c
+src/filelock.c
+src/floatfns.c
 src/font.h
 src/fontset.c
 src/fontset.h
@@ -316,6 +322,7 @@ src/json.c
 src/keyboard.h
 src/keymap.c
 src/keymap.h
+src/kqueue.c
 src/lcms.c
 src/lisp.h
 src/macros.c
@@ -395,7 +402,6 @@ src/w32heap.h
 src/w32image.c
 src/w32inevt.c
 src/w32inevt.h
-src/w32menu.c
 src/w32notify.c
 src/w32proc.c
 src/w32reg.c

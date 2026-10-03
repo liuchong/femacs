@@ -253,3 +253,15 @@
   `w16select.c`(692)、`dosfns.c`(798)、`msdos.c`(4,350)——合计 11,414 行 C，在冻结配置下零产出，
   每个都有 0.99 的行数容差行（原因写明）。注意 `msdos.c` 含非 UTF-8 字节，读参照时按
   `errors="replace"` 处理，避免污染对照文档。
+
+- **3.26 条件宏表扩到 7,222 条 + "死臂不得发符号"这一类（2026-10-03）**：
+  ① `tools/gen-cond-macros.py` 的探针原先只 include 十几组头，导致 `TMP_MAX`/`HW_NCPU`/
+  `__getopt_argv_const_is_empty` 这类**系统头宏**在表里缺席；本轮把探针扩到 22 组头
+  （stdio/locale/langinfo/wchar/wctype/iconv/pwd/grp/dirent/utime/math/pthread/sys_param/
+  sys_mount/sys_sysctl/sys_select/sys_wait/sys_socket/netinet_in/sched 等），表由 4,956 条
+  涨到 **7,222 条**，全树核验数由 **421 → 427**（`cond-eval-verified.txt` 已换新）。
+  ② 表变准后 `src/floatfns.c` 当场被打红：`HAVE_TRUNC` 现在是"已定义 ⇒ `#ifndef HAVE_TRUNC`
+  死"，于是端口里 `#[cfg(feature = "no_trunc")]` 的 `trunc` **不该带 `#[unsafe(no_mangle)]`**
+  （参照在这个配置下不定义 `trunc` 符号）。这与上一轮 `filemode.c` 的 `strmode` 是**同一类**：
+  **凡是被配置判死的臂，其定义一律不发符号**，即使 `dead-arms` 翻转构建会编译它（那种构建只
+  验证"能编译"，不要求导出）。同类处置已写进 `docs/ports/*.md` 的 Decisions。

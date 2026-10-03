@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 184 |
-| 其中 done / wip | 155 / 29 |
-| 待开工 | 406 |
+| 已有目标文件 | 188 |
+| 其中 done / wip | 159 / 29 |
+| 待开工 | 402 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 101 |
+| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 97 |
 | `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,741 | 368 | 1,834 | 2,175 | 981 | 187 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 101 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 97 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -111,7 +111,7 @@
 | `lib/_Noreturn.h` | 43 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/_Noreturn.rs` | todo |
 | `lib/acl-errno-valid.c` | 52 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/acl-errno-valid.rs` | todo |
 | `lib/acl-internal.c` | 523 | 11 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/acl-internal.rs` | todo |
-| `lib/acl-internal.h` | 284 | 0 | 0 | 40 | 27 | 13 | 0 | L | `femacs/lib/include/acl-internal.rs` | todo |
+| `lib/acl-internal.h` | 284 | 0 | 0 | 40 | 27 | 13 | 0 | L | `femacs/lib/include/acl-internal.rs` | done |
 | `lib/acl.h` | 118 | 0 | 0 | 4 | 1 | 7 | 0 | L | `femacs/lib/include/acl.rs` | wip |
 | `lib/acl_entries.c` | 68 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/acl_entries.rs` | done |
 | `lib/alloca.in.h` | 72 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/alloca.in.rs` | todo |
@@ -259,7 +259,7 @@
 | `lib/pipe2.c` | 166 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pipe2.rs` | done |
 | `lib/pselect.c` | 115 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pselect.rs` | todo |
 | `lib/pthread_sigmask.c` | 84 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pthread_sigmask.rs` | todo |
-| `lib/qcopy-acl.c` | 125 | 2 | 0 | 3 | 3 | 0 | 0 | L | `femacs/lib/qcopy-acl.rs` | todo |
+| `lib/qcopy-acl.c` | 125 | 2 | 0 | 3 | 3 | 0 | 0 | L | `femacs/lib/qcopy-acl.rs` | done |
 | `lib/rawmemchr.c` | 158 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/rawmemchr.rs` | done |
 | `lib/readlink.c` | 114 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/readlink.rs` | done |
 | `lib/readlinkat.c` | 123 | 1 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/readlinkat.rs` | done |
@@ -324,8 +324,8 @@
 | `lib/sys_stat.in.h` | 995 | 2 | 0 | 71 | 10 | 14 | 0 | L | `femacs/lib/include/sys_stat.in.rs` | wip |
 | `lib/sys_time.in.h` | 235 | 0 | 0 | 22 | 1 | 2 | 0 | L | `femacs/lib/include/sys_time.in.rs` | todo |
 | `lib/sys_types.in.h` | 138 | 0 | 0 | 12 | 6 | 0 | 0 | L | `femacs/lib/include/sys_types.in.rs` | wip |
-| `lib/tempname.c` | 284 | 9 | 0 | 16 | 5 | 0 | 0 | L | `femacs/lib/tempname.rs` | todo |
-| `lib/tempname.h` | 72 | 0 | 0 | 4 | 3 | 0 | 0 | L | `femacs/lib/include/tempname.rs` | todo |
+| `lib/tempname.c` | 284 | 9 | 0 | 16 | 5 | 0 | 0 | L | `femacs/lib/tempname.rs` | done |
+| `lib/tempname.h` | 72 | 0 | 0 | 4 | 3 | 0 | 0 | L | `femacs/lib/include/tempname.rs` | done |
 | `lib/time-internal.h` | 54 | 0 | 0 | 1 | 0 | 3 | 0 | L | `femacs/lib/include/time-internal.rs` | done |
 | `lib/time.in.h` | 646 | 0 | 0 | 26 | 6 | 2 | 0 | L | `femacs/lib/include/time.in.rs` | wip |
 | `lib/time_r.c` | 49 | 3 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/time_r.rs` | todo |

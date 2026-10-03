@@ -41,7 +41,19 @@ def read_macros(config: Path, include_dirs: list[str]) -> dict[str, str]:
         "#include <float.h>\n#include <string.h>\n#include <stdlib.h>\n"
         "#include <sys/types.h>\n#include <sys/time.h>\n#include <sys/stat.h>\n"
         "#include <unistd.h>\n#include <signal.h>\n#include <setjmp.h>\n"
-        "#include <time.h>\n#include <fcntl.h>\n")
+        "#include <time.h>\n#include <fcntl.h>\n"
+        # The headers whose macros decide branches the port has hit so far: stdio's TMP_MAX,
+        # locale/langinfo's CODESET, sysctl's HW_NCPU, the pwd/grp and dirent families, the
+        # wchar/iconv pair, and the POSIX process/select headers.  Adding a header here can only
+        # make the table know more; a file joins the verified list only when every one of its
+        # conditions agrees with clang, so a wrong value shows up as a *disagreement* rather
+        # than as a silently wrong branch (P-66).
+        "#include <stdio.h>\n#include <errno.h>\n#include <locale.h>\n#include <langinfo.h>\n"
+        "#include <wchar.h>\n#include <wctype.h>\n#include <iconv.h>\n#include <pwd.h>\n"
+        "#include <grp.h>\n#include <dirent.h>\n#include <utime.h>\n#include <math.h>\n"
+        "#include <pthread.h>\n#include <sys/param.h>\n#include <sys/mount.h>\n"
+        "#include <sys/sysctl.h>\n#include <sys/select.h>\n#include <sys/wait.h>\n"
+        "#include <sys/socket.h>\n#include <netinet/in.h>\n#include <sched.h>\n")
     cmd = ["clang", "-dM", "-E", "-std=gnu23", *include_dirs, str(probe)]
     out = subprocess.run(cmd, capture_output=True, text=True).stdout
     macros: dict[str, str] = {}
