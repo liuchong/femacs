@@ -4133,6 +4133,9 @@ pub mod other_units {
       pub fn record_insert (from: ptrdiff_t, nbytes: ptrdiff_t);
       /// C: void record_delete (ptrdiff_t, Lisp_Object, bool)
       pub fn record_delete (from: ptrdiff_t, del: Lisp_Object, record_markers: bool);
+      /// C: lisp.h 5254: `extern void record_first_change (void);` (undo.c defines it; the
+      /// name is declared at the use site by the units that had not opened this block yet).
+      pub fn record_first_change ();
       /* src/lisp.h 4269: doc.c's three-piece "Cannot open doc string file" message.  */
       /// C: Lisp_Object concat3 (Lisp_Object, Lisp_Object, Lisp_Object)
       pub fn concat3 (a: Lisp_Object, b: Lisp_Object, c: Lisp_Object) -> Lisp_Object;

@@ -174,3 +174,15 @@
   family dereference `WINDOW_XFRAME`, i.e. `struct frame`; `WINDOW_MODE_LINE_HEIGHT`/`_LINES` and
   the header/tab-line pair need dispextern.h's `window_wants_*` and `CURRENT_*_LINE_HEIGHT`;
   `WINDOW_VERTICAL_SCROLL_BAR_TYPE` needs frame.h's `vertical_scroll_bar_none`/`_left`/`_right`.
+
+## Integrator addition (2026-10-03, with src/insdel.c)
+
+`window.h` 1167-1169's three redisplay entry points (`wset_redisplay`, `fset_redisplay`,
+`bset_redisplay`) and 1217-1222's `enum window_body_unit` are mirrored now, in a
+`window_redisplay_decls` module + glob import and a `#[repr(C)]` enum with C's implicit values.
+`src/insdel.c` needed `bset_redisplay` and had declared it at its use site; the mirror is the
+right owner, and the unit's own declaration still shadows the import (PORTING.md 0.1-10), which
+`build-tu src/insdel.c` proves.  The mirror's `--check` still reports the next uncovered item
+(`MARGIN_IN_PIXELS`), i.e. this header stays WIP with the same shape as before - the remaining
+list is the tail this file documents.
+

@@ -385,3 +385,31 @@ fn window_bit (w: *mut window, shift: u32) -> bool
 // `window_wants_*` and `CURRENT_*_LINE_HEIGHT`), and `WINDOW_VERTICAL_SCROLL_BAR_TYPE` (it needs
 // frame.h's `vertical_scroll_bar_none`/`_left`/`_right`) — (not mirrored yet; they land with
 // frame.rs, termchar.h and the display chain's `window_wants_*` declarations).
+
+// window.h 1167-1169's redisplay entry points (`wset_redisplay`/`fset_redisplay`/
+// `bset_redisplay`); xdisp.c defines them.  Declared in a module + glob import because a unit
+// that defines one would otherwise collide with the crate-root declaration (PORTING.md 0.1-10).
+pub mod window_redisplay_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: void wset_redisplay (struct window *w)
+    pub fn wset_redisplay (w: *mut window);
+    /// C: void fset_redisplay (struct frame *f)
+    pub fn fset_redisplay (f: *mut c_void);
+    /// C: void bset_redisplay (struct buffer *b)
+    pub fn bset_redisplay (b: *mut c_void);
+  }
+}
+use window_redisplay_decls::*;
+
+/// window.h 1217-1222: `enum window_body_unit`, the unit `window_body_width` and
+/// `window_body_height` measure in.
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum window_body_unit
+  {
+    WINDOW_BODY_IN_CANONICAL_CHARS = 0,
+    WINDOW_BODY_IN_PIXELS,
+    WINDOW_BODY_IN_REMAPPED_CHARS,
+  }
