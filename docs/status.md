@@ -30,8 +30,8 @@
   未定义引用门报 **8 NEW**（全是未端口单元的依赖：coding.c/fns.c/xdisp.c/dispnew.c/keyboard.c），
   于是**按已提交状态重取了棘轮**（`123 pending`，11 条 stale 因 fileio/alloc 定义了自己的 `DEFVAR_*` 载体
   而消失），重取后单跑该门是 `534 unit object(s), 123 pending, 0 new`；门的其余步骤（符号门 src
-  **68/0/0**、连接门 0 缺失、declaration gate 0、mirror-dupes gate 0、三探针、`layout-check` passed）也已
-  逐条跑过。**总进度**：590 个参照 `.c/.h` 里已端口 268 个单元 + 131 个镜像。
+  **0 mismatched / 0 pending**——已提交状态 67 个单元、主树含在飞的 `dispnew.rs` 为 69 个；连接门 0 缺失、
+  declaration gate 0、mirror-dupes gate 0、`layout-check` passed）也已逐条跑过。**总进度**：590 个参照 `.c/.h` 里已端口 268 个单元 + 131 个镜像。
 - **照抄树（Verbatim）已全部落地（2026-10-03 第 79 轮）**：`emacs/{lisp,test,etc,doc,leim,admin}`
   → `femacs/<同名>`，**逐字节照抄**，共 **4,607 文件 / 约 4.6M 行**（lisp 1,627 / test 1,555 /
   etc 887 / doc 257 / leim 28 / admin 253），六个目录各一次签名提交并推送。判定不再是行文说明
