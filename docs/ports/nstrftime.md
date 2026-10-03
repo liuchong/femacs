@@ -47,7 +47,7 @@ swapped.
 
 C's own file is 19 lines and the ±5% drift rule cannot absorb a provenance header
 (PORTING.md 10.12's wrapper-file rule, the `strftime-body`/`streq.c` precedent); the
-provenance is here instead.  The file's 22 lines are C's 16-line license, the crate-level
+provenance is here instead.  The file's 22 lines are C's 16-line opening comment, the crate-level
 `#![allow (…)]` block the port's units carry (3 lines), C 19's include, C 18's rename and the
 instantiation.  `docs/ports/line-drift-tolerance.tsv` records `nstrftime 0.20` for the
 15.8% drift that costs.

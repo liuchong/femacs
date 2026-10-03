@@ -41,6 +41,6 @@ femacs/lib/dtoastr.rs` -> `OK`, and the symbol ratchet (the unit no longer needs
   is the `!GNULIB_SNPRINTF` fallback the frozen build takes.
 
 - **The inventory** is the one macro; the line-count row (`dtoastr 1.30`, `total` basis) still
-  covers a 19-line file whose port is almost wholly fixed costs - the copied GPL notice, the
-  provenance note and the `#![allow (…)]` block the including unit must carry (an inner
+  covers a 19-line file whose port is almost wholly fixed costs -
+  the provenance note and the `#![allow (…)]` block the including unit must carry (an inner
   attribute in the included `ftoastr.rs` would be E0753).

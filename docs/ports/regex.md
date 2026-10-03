@@ -40,5 +40,5 @@ femacs/lib/regex.rs` -> `OK`, and the symbol ratchet
   `regex_internal.h` includes belong to the three sibling units.  C 75-82's `#if _LIBC`
   `re_max_failures` block is dead too.
 - **Line-count basis.**  The `regex` row in `docs/ports/line-drift-tolerance.tsv` uses `total`
-  with 0.50 (C 82 vs the port's 45): 45 of C's lines are the LGPL notice and the dead/linked
+  with 0.50 (C 82 vs the port's 45): 45 of C's lines are its opening notice block and the dead/linked
   regions, and this file's inventory is complete at two macros.

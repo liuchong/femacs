@@ -14,8 +14,8 @@
 
 ## Decisions
 
-`emacs/lib/sig2str.h` @ `fd7afced403`; port `femacs/lib/include/sig2str.rs`.  The reference header is the
-license, the guard and one constant: C 24-35 chooses `SIGNUM_BOUND` from `_sys_nsig`,
+`emacs/lib/sig2str.h` @ `fd7afced403`; port `femacs/lib/include/sig2str.rs`.  The reference header holds the
+guard and one constant: C 24-35 chooses `SIGNUM_BOUND` from `_sys_nsig`,
 `_SIG_MAXSIG`, `NSIG` or the literal 64.  This target defines `NSIG` (through `__DARWIN_NSIG`,
 32) and neither of the first two, so the `NSIG - 1` arm is the live one (measured) and the port
 keeps it; the NSIG value itself joins the signal mirror.
