@@ -657,3 +657,15 @@
   `window.rs` 加 `wset_redisplay`/`fset_redisplay`/`bset_redisplay`（window.h 1167-1169，放进
   `window_redisplay_decls` + glob 导入）与 `enum window_body_unit`（1217-1222）。window.h 镜像仍是
   WIP（下一个未覆盖项为 `MARGIN_IN_PIXELS`），但三个常量与渲染入口已不再缺失。
+
+- **3.54 第 89 轮：整树门又抓到一个镜像回归（2026-10-03，`0ad0c42`）**：`composite.h` 镜像里
+  `composition_reseat_it` 的第四参写成了 `*mut window`，而镜像**只允许命名自己声明或自己
+  `include!` 链能到达的类型**（P-66/P-72）——`casefiddle.c` 包含 composite.h 却不含 window.h，
+  于是 `gate-fast` 的编译步报 `rustc failed for src/casefiddle.rs: cannot find type 'window'`。
+  同一行上两个邻居（`struct composition_it`、`struct face`）本来就是 `*mut c_void`，`window` 归队
+  并写明理由。**这类缺陷单文件门看不见**（worker 只验证了自己那几个消费者：character/insdel 恰好
+  都含 window.h），再次印证 §3.47 的结论。
+  修后整条 `gate-fast` 复跑全绿：`symbols: every built unit matches its reference`、七个探针程序、
+  三个探针脚本（`fam-probe: 4 lines ok` / `shadow-probe: shadow-probe true 0 true` /
+  `macro-probe: every expansion compiles`）、`layout-check passed`；库存口径
+  `checked 343 ported files: 319 done, 24 in progress, 0 failing`。
