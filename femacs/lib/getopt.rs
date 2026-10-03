@@ -60,7 +60,8 @@ include!("include/getopt_int.rs");
    above; the entries the live text needs that those mirrors do not carry yet are declared
    here (the fstatat.rs/mini-gmp.rs shape): `fprintf` and the `stderr` object (darwin spells
    the platform symbol `__stderrp`), the two stdio lock entries C 48-50 leaves as real
-   functions, and `abort`/`getenv`.  */
+   functions, and `abort`.  (`getenv` moved to include/stdlib.rs, which this unit includes:
+   one home for a system-header declaration, PORTING.md 0.1-3.)  */
 unsafe extern "C" {
   /* int fprintf (FILE *stream, const char *format, ...);  */
   pub fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
@@ -72,8 +73,6 @@ unsafe extern "C" {
   pub fn funlockfile (stream: *mut FILE);
   /* void abort (void);  */
   pub fn abort () -> !;
-  /* char *getenv (const char *name);  */
-  pub fn getenv (name: *const c_char) -> *mut c_char;
 }
 
 /* C 40-60's `#ifdef _LIBC` arm is dead: `_LIBC` is undefined in the frozen configuration.

@@ -35,6 +35,6 @@ mod strnul_unit {
   #[unsafe(export_name = "_gl_strnul")]
   pub unsafe extern "C" fn _gl_strnul (string: *const c_char) -> *const c_char
   {
-    return _gl_strnul (string);
+    return super::_gl_strnul (string);
   }
 }

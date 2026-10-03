@@ -55,7 +55,8 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 
-use std::ffi::{c_char, c_double, c_int, c_long, c_void};
+use std::ffi::{c_char, c_double, c_int, c_long, c_schar, c_short, c_uchar, c_uint, c_ulong,
+                c_ulonglong, c_ushort, c_void};
 include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/errno.rs");
@@ -95,6 +96,8 @@ macro_rules! setenv_TZ { ($tz:expr) => { emacs_setenv_TZ ($tz) }; }
    `# define timegm rpl_timegm`, the two replacements this port defines in mktime.rs and
    timegm.rs.  */
 macro_rules! mktime { ($tp:expr) => { rpl_mktime ($tp) }; }
+use time_decls::rpl_timegm;
+
 macro_rules! timegm { ($tp:expr) => { rpl_timegm ($tp) }; }
 
 /* C 76-77 and 79-82's two `enum` constants.  `DEFAULT_MXFAST` is C's
@@ -188,7 +191,7 @@ mod tz_impl
       {
         zone_copy = abbrs (tz);
 
-        while ! streq! (zone_copy, zone)
+        while ! streq (zone_copy, zone)
           {
             if ! (*zone_copy != 0
                   || (zone_copy == abbrs (tz) && (*tz).tz_is_set != 0))
@@ -261,7 +264,7 @@ mod tz_impl
   {
     let env_tz: *mut c_char = getenv_TZ! ();
     if if ! env_tz.is_null ()
-         { (*tz).tz_is_set != 0 && streq! (abbrs (tz), env_tz) }
+         { (*tz).tz_is_set != 0 && streq (abbrs (tz), env_tz) }
        else
          { ! ((*tz).tz_is_set != 0) }
       { return local_tz! (); }

@@ -40,6 +40,7 @@ pub type int_fast64_t = i64;
 // The frozen target's <stdint.h> spells the fixed-width typedefs; a ported unit keeps
 // C's spelling where a body's token check compares it (md5.c's `uint32_t`), the way the
 // lisp.h mirror carries `intptr_t`/`uintmax_t`.
+pub type uint16_t = u16;
 pub type uint32_t = u32;
 pub type uint64_t = u64;
 
@@ -53,3 +54,21 @@ pub const UINT32_MAX: u32 = u32::MAX;
 // `printf ("%zu", sizeof (uint_fast64_t))` -> 8).
 pub type uint_fast64_t = u64;
 pub const UINT_FAST64_MAX: u64 = u64::MAX;
+
+// The least-width integer types, which stdbit.in.h's memreverse section names: ISO C
+// defines `stdc_memreverse8u*` with `uintN_t` and gnulib generalises them to
+// `uint_leastN_t`, which the system header maps to the same types on this target
+// (`clang -dM`: __UINT_LEAST8_TYPE__ is `unsigned char`, __UINT_LEAST16_TYPE__
+// `unsigned short`, __UINT_LEAST32_TYPE__ `unsigned int`, __UINT_LEAST64_TYPE__
+// `long long unsigned int`).
+pub type uint_least8_t = u8;
+pub type uint_least16_t = u16;
+pub type uint_least32_t = u32;
+pub type uint_least64_t = u64;
+
+// The `#ifdef UINT_LEAST64_MAX` that guards byteswap.in.h's bswap_64: the system header
+// defines it, so the third wrapper function is live (lib/include/byteswap.in.rs).
+pub const UINT_LEAST64_MAX: u64 = u64::MAX;
+// `#ifdef UINT64_MAX` (endian.in.h 149, 192, 235, 278): the system header defines it, so
+// the three 64-bit host/big/little wrappers are live.
+pub const UINT64_MAX: u64 = u64::MAX;

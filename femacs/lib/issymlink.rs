@@ -35,6 +35,6 @@ mod issymlink_unit {
   #[unsafe(export_name = "issymlink")]
   pub unsafe extern "C" fn issymlink (filename: *const c_char) -> c_int
   {
-    return issymlink (filename);
+    return super::issymlink (filename);
   }
 }

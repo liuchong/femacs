@@ -36,24 +36,24 @@ mod timespec_unit {
   #[unsafe(export_name = "make_timespec")]
   pub unsafe extern "C" fn make_timespec (s: time_t, ns: c_long) -> timespec
   {
-    return make_timespec (s, ns);
+    return super::make_timespec (s, ns);
   }
 
   #[unsafe(export_name = "timespec_cmp")]
   pub unsafe extern "C" fn timespec_cmp (a: timespec, b: timespec) -> c_int
   {
-    return timespec_cmp (a, b);
+    return super::timespec_cmp (a, b);
   }
 
   #[unsafe(export_name = "timespec_sign")]
   pub unsafe extern "C" fn timespec_sign (a: timespec) -> c_int
   {
-    return timespec_sign (a);
+    return super::timespec_sign (a);
   }
 
   #[unsafe(export_name = "timespectod")]
   pub unsafe extern "C" fn timespectod (a: timespec) -> c_double
   {
-    return timespectod (a);
+    return super::timespectod (a);
   }
 }

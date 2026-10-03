@@ -149,7 +149,7 @@ unsafe fn str2signum (signame: *const c_char) -> c_int
       let mut i: c_int = 0;
       while i < countof! (numname_table) as c_int
         {
-          if streq! (numname_table[i as usize].name.as_ptr (), signame)
+          if streq (numname_table[i as usize].name.as_ptr (), signame)
             { return numname_table[i as usize].num; }
           i += 1;
         }

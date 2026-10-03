@@ -71,12 +71,8 @@ macro_rules! __set_errno {
 /* C 45-47's `#if defined EACCES && !defined EACCESS / # define EACCESS EACCES`.  */
 pub const EACCESS: c_int = EACCES;
 
-/* C 49-54's `#ifndef F_OK` fallback: this target's <unistd.h> defines all four (the same
-   values), and the port keeps the names and values.  */
-pub const F_OK: c_int = 0;
-pub const X_OK: c_int = 1;
-pub const W_OK: c_int = 2;
-pub const R_OK: c_int = 4;
+/* C 49-54's `#ifndef F_OK` fallback: this target's <unistd.h> defines all four, so the
+   unistd mirror carries them (the names and values the file uses are the header's).  */
 
 /* C 57-69's `#ifdef _LIBC` rename block is the non-frozen side (`_LIBC` is undefined), and the
    blind reading still wants its seven macros: the port keeps them as `macro_rules!` twins that

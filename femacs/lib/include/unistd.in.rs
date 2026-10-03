@@ -57,6 +57,11 @@ unsafe extern "C" {
   pub fn getpagesize () -> c_int;
 
 }
+/* <unistd.h>'s `access` mode flags (measured: F_OK 0, X_OK 1, W_OK 2, R_OK 4).  */
+pub const F_OK: c_int = 0;
+pub const X_OK: c_int = 1;
+pub const W_OK: c_int = 2;
+pub const R_OK: c_int = 4;
 pub const SEEK_SET: c_int = 0;
 pub const SEEK_CUR: c_int = 1;
 pub const SEEK_END: c_int = 2;

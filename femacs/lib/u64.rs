@@ -37,6 +37,6 @@ mod u64_unit {
   #[unsafe(export_name = "u64rol")]
   pub unsafe extern "C" fn u64rol (x: u64, n: c_int) -> u64
   {
-    return u64rol (x, n);
+    return super::u64rol (x, n);
   }
 }

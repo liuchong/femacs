@@ -17,6 +17,7 @@ use std::ffi::{c_char, c_int, c_long, c_schar, c_short, c_uchar, c_uint, c_ulong
                 c_ulonglong, c_ushort, c_void};
 
 include!("include/gnulib_config.rs");
+include!("include/stdint.in.rs");
 include!("include/stdbit.rs");
 include!("include/limits.in.rs");
 /* lib/stdc_count_ones.c's dead `#if 1500 <= _MSC_VER` block declares this object.  */
@@ -35,30 +36,30 @@ mod stdc_count_ones_unit {
   #[unsafe(export_name = "stdc_count_ones_ui")]
   pub unsafe extern "C" fn stdc_count_ones_ui (n: c_uint) -> c_uint
   {
-    return stdc_count_ones_ui (n);
+    return super::stdc_count_ones_ui (n);
   }
 
   #[unsafe(export_name = "stdc_count_ones_uc")]
   pub unsafe extern "C" fn stdc_count_ones_uc (n: c_uchar) -> c_uint
   {
-    return stdc_count_ones_uc (n);
+    return super::stdc_count_ones_uc (n);
   }
 
   #[unsafe(export_name = "stdc_count_ones_us")]
   pub unsafe extern "C" fn stdc_count_ones_us (n: c_ushort) -> c_uint
   {
-    return stdc_count_ones_us (n);
+    return super::stdc_count_ones_us (n);
   }
 
   #[unsafe(export_name = "stdc_count_ones_ul")]
   pub unsafe extern "C" fn stdc_count_ones_ul (n: c_ulong) -> c_uint
   {
-    return stdc_count_ones_ul (n);
+    return super::stdc_count_ones_ul (n);
   }
 
   #[unsafe(export_name = "stdc_count_ones_ull")]
   pub unsafe extern "C" fn stdc_count_ones_ull (n: c_ulonglong) -> c_uint
   {
-    return stdc_count_ones_ull (n);
+    return super::stdc_count_ones_ull (n);
   }
 }

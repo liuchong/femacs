@@ -109,6 +109,9 @@ pub mod time_decls {
   unsafe extern "C" {
     /* time_t rpl_mktime (struct tm *);  */
     pub fn rpl_mktime (tp: *mut tm) -> time_t;
+    /* time_t rpl_timegm (struct tm *);  -- the REPLACE_TIMEGM arm's name; the reference
+       object calls it (`U _rpl_timegm`), and time_rz.rs's `timegm!` macro expands to it.  */
+    pub fn rpl_timegm (tp: *mut tm) -> time_t;
     /* int nanosleep (const struct timespec *, struct timespec *);
        This is the *system* entry, not gnulib's replacement: nanosleep.c's `# undef
        nanosleep` (C 41, between the declarator and the body) is what makes its own definition

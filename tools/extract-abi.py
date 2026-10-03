@@ -1339,11 +1339,12 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     if not is_header_like:
         c_exported = {f["name"] for f in c["functions"] if not f.get("static")}
         # gnulib's `<stem>.c` wrappers set the header's inline qualifier to
-        # `_GL_EXTERN_INLINE` — the C99 inline model's "this translation unit emits the
+        # `_GL_EXTERN_INLINE` (`_GL_U64_INLINE`, and c-ctype.c's bare `C_CTYPE_INLINE`) —
+        # the C99 inline model's "this translation unit emits the
         # external definitions" file (u64.c 18, memeq.c 17, …).  Their own text defines no
         # function, yet the object exports the *header*'s, so the header's non-static
         # functions belong to this unit's exported set (PORTING.md P-81).
-        if re.search(r"#\s*define\s+_GL_\w+_INLINE\s+_GL_EXTERN_INLINE\b", c_source):
+        if re.search(r"#\s*define\s+\w*_INLINE\s+_GL_EXTERN_INLINE\b", c_source):
             for inc in re.findall(r'#\s*include\s+[<"]([^>"]+)[>"]', c_source):
                 candidates = [c_path.parent / inc]
                 if inc.endswith(".h"):
