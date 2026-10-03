@@ -1009,3 +1009,37 @@ encode_invocation_designation	case,default,dst_multibyte,switch	C's `switch`/`ca
 encode_designation_at_bol	dst_multibyte,maybe_unused	coding_system packs `dst_multibyte` into the `bits` word (femacs/src/include/coding.rs 234-252, PORTING.md 1.3); the port reads it through coding_bits_get/set, so the field name cannot reappear; conf_post.h's `MAYBE_UNUSED` is a no-op the port drops.
 encode_coding_iso_2022	case,default,dst_multibyte,mode,switch	C's `switch`/`case`/`default` (and the `break` of its arms) are the port's `match` arms, `_` arm and arm endings (PORTING.md 2.2); coding_system packs `dst_multibyte` into the `bits` word (femacs/src/include/coding.rs 234-252, PORTING.md 1.3); the port reads it through coding_bits_get/set, so the field name cannot reappear; coding_system packs `mode` into the `bits` word (femacs/src/include/coding.rs 234-252, PORTING.md 1.3); the port reads it through coding_bits_get/set, so the field name cannot reappear.
 CDISABLE	_posix_vdisable	the C body is the system macro _POSIX_VDISABLE; the frozen target defines it as ((unsigned char)'\377') = 255 (macros.tsv), so the port writes the measured value (docs/ports/include-systty.md)
+ALLOC_CONVERSION_WORK_AREA	0	C's `do { … } while (0)` has no Rust form: the body runs once, so the `0` cannot reappear (the CODING_GET_INFO row's class).  The macro is defined in each using function because `SAFE_ALLOCA` reads the caller's `sa_avail` (PORTING.md P-57).
+LOOKUP_TRANSLATION_TABLE	0	same `do { … } while (0)` class; the macro assigns the caller's `c`, so it is defined where that local is (PORTING.md P-57).
+MAX_LOOKUP_MAX	min	C's `min` is not a `const fn` and `sizeof (int)` is 4 on the frozen target, so the fold is written out in the same operand order (the MAX_BPA_STACK row's class); `INT_MAX` and `MAX_ALLOCA` stay in the compared set.
+decode_coding_utf_16	src_multibyte	coding_system packs `src_multibyte` into the `bits` word (femacs/src/include/coding.rs 234-252, PORTING.md 1.3); the port reads it through `src_multibyte_p`, so the field name cannot reappear.
+encode_coding_utf_16	dst_multibyte	coding_system packs `dst_multibyte` into the `bits` word (femacs/src/include/coding.rs 234-252, PORTING.md 1.3); the port reads it through `dst_multibyte_p`, so the field name cannot reappear.
+detect_coding_sjis	maybe_unused,mode,src_multibyte	conf_post.h's `MAYBE_UNUSED` is a no-op the port drops; coding_system packs `mode` and `src_multibyte` into the `bits` word (femacs/src/include/coding.rs 234-252, PORTING.md 1.3); the port reads them through coding_bits_get/`src_multibyte_p`, so the field names cannot reappear.
+detect_coding_big5	maybe_unused,mode,src_multibyte	the detect_coding_sjis row's class.
+decode_coding_sjis	goto,src_multibyte	C's `goto <label>` is the port's `break '<label>` into the labelled block of PORTING.md 2.2; the labels' names are kept; coding_system packs `src_multibyte` into the `bits` word (same class as detect_coding_sjis).
+decode_coding_big5	goto,src_multibyte	the decode_coding_sjis row's class.
+encode_coding_sjis	dst_multibyte,mode	the decode_coding_sjis row's bitfield class (both members read through the helpers).
+encode_coding_big5	dst_multibyte,mode	the same class.
+detect_coding_ccl	maybe_unused,src_multibyte	the detect_coding_sjis row's class.
+decode_coding_ccl	case,default,mode,src_multibyte,switch,true	C's `switch`/`case`/`default` (and the `break` of its arms) are the port's `match` arms, `_` arm and arm endings (PORTING.md 2.2); `mode`/`src_multibyte` are the packed `bits` members (same class); `ccl->last_block = true` is the mirror's `bits` byte (`CCL_PROGRAM_LAST_BLOCK`, the `last_block` family of docs/ports/token-aliases.tsv), so the literal `true` cannot reappear.
+encode_coding_ccl	case,default,dst_multibyte,mode,switch,true	the decode_coding_ccl row's class (`dst_multibyte` for `src_multibyte`).
+decode_coding_raw_text	chars_at_source	coding_system packs `chars_at_source` into the `bits` word (same class); the port writes it through coding_bits_set.
+encode_coding_raw_text	dst_multibyte,src_multibyte	the packed `bits` members (same class).
+detect_coding_charset	goto,maybe_unused,src_multibyte	C's `goto too_short` is the port's `break 'too_short` into the labelled block of PORTING.md 2.2 (the label's name is kept); `MAYBE_UNUSED` is dropped; `src_multibyte` is a packed member.
+decode_coding_charset	goto,src_multibyte,uninit	C's `goto invalid_code` is the port's `break 'invalid_code` (PORTING.md 2.2); `src_multibyte` is a packed member; conf_post.h's `UNINIT` is `= {0,}` in the frozen configuration, so the port zero-inits `charset` (PORTING.md 1.5).
+encode_coding_charset	dst_multibyte,mode	the packed `bits` members (same class).
+setup_coding_system	common_flags,insert_before_markers,mode,null,raw_destination	coding_system packs `common_flags`, `mode`, `insert_before_markers` and `raw_destination` into the `bits` word (femacs/src/include/coding.rs 234-252, PORTING.md 1.3) and the port writes them through `common_flags_set`/`coding_mode_set`/coding_bits_set, so the field names cannot reappear; C's `NULL` is the port's `None` for the three function-pointer members.
+detect_coding	eol_seen,mode	coding_system packs `eol_seen` and `mode` into the `bits` word (same class); the port uses `eol_seen_of`/`coding_eol_seen_set` and coding_bits_set.
+decode_eol	dst_multibyte	coding_system packs `dst_multibyte` into the `bits` word (same class).
+produce_chars	chars_at_source,dst_multibyte,insert_before_markers,maybe_unused,src_multibyte	the packed `bits` members (same class) plus `MAYBE_UNUSED`, which is a no-op the port drops.
+produce_annotation	break,case,default,switch	C's `switch`/`case`/`default` (and the `break` of its arms) are the port's `match` arms, `_` arm and arm endings (PORTING.md 2.2).
+decode_coding	annotated,chars_at_source,mode,result,src_multibyte	the packed `bits` members (same class): `annotated`/`chars_at_source` are written through coding_bits_set, `mode` through coding_mode_clear/coding_bits_set, `result` through `record_conversion_result` and read back with coding_bits_get.
+consume_chars	alloca,chars_at_source,common_flags,mode,src_multibyte	the same packed-member class; C's `lookup_buf = alloca (sizeof (int) * max_lookup)` has no Rust counterpart (the port has no `alloca`, PORTING.md 3.2/P-05 is open), so the port takes the C-bounded `MAX_LOOKUP_MAX` ints from its own frame.
+encode_coding	dst_multibyte,insert_before_markers,mode	the packed `bits` members (same class).
+decode_coding_gap	dst_multibyte,eol_seen,insert_before_markers,mode,src_multibyte	the packed `bits` members (same class).
+STOP_POLLING	0	PORTING.md 2.2: C's `do { … } while (0)` macro body is the port's block; the `0` of the condition has no counterpart token
+RESUME_POLLING	0	PORTING.md 2.2: same as STOP_POLLING
+command_loop_1	goto	PORTING.md 2.2: C's `goto finalize` is the labelled block `'finalize`, whose `break 'finalize` is the same forward jump
+read_event_from_main_queue	goto	PORTING.md 2.2: C's backward `goto start` is the labelled loop `'start`'s `continue`
+read_decoded_event_from_main_queue	true	C 2442's `while (true)` is the port's `loop`
+bind_polling_period	double	C 2141's `double new` is the port's `f64`
