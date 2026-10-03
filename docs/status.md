@@ -1343,3 +1343,18 @@
   0 failure；`check-verbatim.py` `6 trees, 4607 files, 0 failures`。规则补进 `PORTING.md` 0.1-19 末尾。
   **未动**：`docs/ports/line-drift-tolerance.tsv` 里 10 行用中性措辞说明同一件事（台账口径/漂移理由，不是代码），
   以及 `docs/status.md`/`PORTING.md` 自身的政策叙述——这些是决定的记录，删掉就没法复算。
+
+- **3.91 镜像的三条书写纪律（2026-10-04 第 98 轮第三批，`src/include/sysstdio.rs` 暴露）**：
+  写 `src/sysstdio.h`（47 行，27 个单元 include 它）的镜像时，`xtask layout-check` 连拦三次，
+  三条都由工具实测钉下，写在这里供后续镜像照做：
+  ① 镜像里的 **`*_decls` 模块必须自带 `use super::*;`**：`c_int`/`c_void`/`ptrdiff_t` 是**包含它的
+  单元**给的（lisp.rs 的 crate 根 `use std::ffi::{…}` 与 `pub type ptrdiff_t`），模块内的名字不自动
+  可见——首版漏了这行，探针报 `E0425: cannot find type c_int`（`atimer_decls` 是现成样板）。
+  ② 字符串字面量宏在镜像里是 **`const`**（提取器按常量比），而且写成 **`&core::ffi::CStr`** 全限定
+  形——镜像不能自己 `use std::ffi::CStr`，那会和单元的 prelude 撞 `E0252`（`character.rs`/`config.rs`/
+  `buildobj.rs` 先例）；需要 `concat!` 里当字面量的用途（`src/xfaces.rs` 572）保留就地 `macro_rules!`，
+  作为用点偏离记录。
+  ③ 探针里 **lisp.rs 的“排第一”是死代码**：lisp.rs 被别的镜像嵌套 include，去重后它不在顶层列表里，
+  于是那段 `mirrors.insert(0, lisp)` 找不到它。**本轮实测它没有造成失败**（顶层第一个 reach lisp.rs 的
+  镜像恰好排在前面），所以**没有改 xtask**——`/tmp` 试验里把那个 reach 者提前也不改变结果；这条只作
+  观察记录，等真出现顺序失败再修工具（不许为假想问题改闸门）。
