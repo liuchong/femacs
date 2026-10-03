@@ -86,3 +86,4 @@ _C_CTYPE_LOWER_N	syntax	c-ctype.h 130-139's family (`case 'a' + (N)` … `case '
 BYTE_CODE_THREADED	config	P-03: the threaded interpreter's dispatcher (`goto *targets[op = FETCH]`) has no Rust counterpart, so the port transcribes C's switch-shaped arm; `src/bytecode.rs` records the decision and docs/ports/bytecode.md the dead text
 BC_REG_TOP	syntax	C 461-463's `register Lisp_Object *top asm ("rbx")` register spelling; empty on this target (the frozen clang arm), so the port has no register to name (docs/ports/bytecode.md)
 BC_REG_PC	syntax	C 461-463's `register unsigned char const *pc asm ("r12")` register spelling; empty on this target, same row as BC_REG_TOP
+CHILD_SETUP_TYPE	syntax	C 138-142's `#ifdef DOS_NT` pair spells the child's return type (`_Noreturn void` on the frozen target, `int` on DOS_NT); the port writes `-> !` (the AVOID row's shape), and both arms are recorded in docs/ports/callproc.md

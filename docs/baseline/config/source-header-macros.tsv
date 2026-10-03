@@ -15,3 +15,4 @@
 # row the evaluator called it dead and the gate rejected the port's `defsubr`s as
 # "unexpected".
 syssignal.h	PROFILER_CPU_SUPPORT
+sys/ioctl.h	TIOCSCTTY
