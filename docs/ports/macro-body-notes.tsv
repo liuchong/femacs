@@ -550,3 +550,36 @@ Fuse_local_map	1	`get_keymap (keymap, 1, 1)` takes two C booleans, the port writ
 Fcurrent_minor_mode_maps	0	`current_minor_maps (0, &maps)` passes NULL, and the port writes `std::ptr::null_mut ()`
 Fdescribe_buffer_bindings	kvar	C reads KVAR four times; the port writes the four `kboard` fields directly (the Fcurrent_active_maps row)
 Fdescribe_vector	0	the three boolean arguments of `describe_vector (vector, Qnil, describer, describe_vector_princ, 0, Qnil, Qnil, 0, 0)` are the port `false`s
+BUFFER_SYNTAX	0	the port's syntax_property takes a C boolean, which Rust spells false (the Flooking_at row class); C 51's `syntax_property (c, 0)` is the explicit buffer-local lookup, whose 0 has no integer spelling in Rust
+BUF_PUSH	false	C's `do { ... } while (false)` epilogue has no Rust counterpart (PORTING.md 2.2, the PDUMPER_RESET row class)
+BUF_PUSH_2	false	see BUF_PUSH
+EXTEND_BUFFER	false	see BUF_PUSH
+EXTEND_RANGE_TABLE	0,false	the `do { ... } while (false)` epilogue, plus C's `(work_area).table == 0` is the port's `is_null ()` (PRE-EXISTING pointer-null row class)
+EXTRACT_CHARACTER	false	see BUF_PUSH
+FIXUP_ALT_JUMP	false	see BUF_PUSH
+FREE_RANGE_TABLE_WORK_AREA	false	see BUF_PUSH
+FREE_STACK_RETURN	false	see BUF_PUSH
+GET_INTERVAL_COUNT	false	see BUF_PUSH
+PATFETCH	false	see BUF_PUSH
+SETUP_ASCII_RANGE	false	see BUF_PUSH
+SETUP_MULTIBYTE_RANGE	false	see BUF_PUSH
+SETUP_UNIBYTE_RANGE	false	see BUF_PUSH
+SET_RANGE_TABLE_WORK_AREA	false	see BUF_PUSH
+STORE_CHARACTER_AND_INCR	false	see BUF_PUSH
+STORE_NUMBER_AND_INCR	false	see BUF_PUSH
+print_partial_compiled_pattern	switch,case,default	C's switch over the opcode with one case per arm becomes the port's `match` (PORTING.md 2.2, the doprnt precedent)
+re_wctype_parse	switch,case,break	C's switch on `it - beg` and its per-arm `break`s become a `match` (PORTING.md 2.2)
+re_iswctype	switch,case,default,abort	C's switch becomes a `match` and its `abort ()` is lisp.h's `emacs_abort ()`, which is what the port calls (the bidi.rs row)
+re_wctype_to_bit	switch,case,default,abort	see re_iswctype
+regex_compile	switch,case,default,fallthrough,goto,normal_char,unfetch_interval	C's two switches become `match`es; `goto normal_char` (six sites) and `goto unfetch_interval` become the two flags the port tests where C's labels are, and the `FALLTHROUGH;` between the '0' and digit arms is the shared arm (PORTING.md 2.2, the ccl.rs/bytecode.rs shape)
+MAX_BPA_STACK	max	C 2549-2550 is `max (1, (...))`; C's `max` is the ternary `((a) > (b) ? (a) : (b))` and Rust's `max` is not a `const fn`, so the fold is written out in the same operand order (the BUF_BYTES_MAX row's class)
+bidi_get_type	switch,case,default	C's `switch (INT_PROMOTE (default_type))` with one `case` per directionality-control type and a `default:` that applies OVERRIDE becomes the port's `match`, whose first arm is the same `|`-joined case set and whose `_` arm is C's `default:` (PORTING.md 2.2, the print_partial_compiled_pattern precedent)
+bidi_get_category	switch,case,default	C's `switch (type)` over the 24 bidi types becomes a `match` whose arms group the same cases and whose `_` arm is C's `default: emacs_abort ()` (PORTING.md 2.2)
+bidi_initialize	1	C 1143's `bidi_initialized = 1` is the port's `true` (a Rust `bool` has no integer-literal spelling; the charset.rs/indent.rs class)
+bidi_fetch_char	goto	C 1356's `goto normal_char` is the `normal_char` flag the port tests where C's label sits, so the label name survives and only the `goto` keyword does not (PORTING.md 2.2, the regex.rs `regex_compile` row)
+bidi_paragraph_cache_on_off	0	C 1545's `cache_buffer->bidi_paragraph_cache = 0` is the port's `std::ptr::null_mut ()`, as are the two `return NULL`s (the SELECTED_FRAME null-pointer class)
+bidi_find_paragraph_start	region_cache	C 1580's `struct region_cache *bpc` is the ABI-equal `*mut c_void` because region-cache.h has no mirror (PORTING.md 0.1-2/P-72 rule 3, the indent.rs `compute_motion` row)
+bidi_resolve_explicit	case,default,fallthrough,goto,switch	C's two `switch`es (on `prev_type` and on `type`) become two `match`es; `FALLTHROUGH` from `case FSI:` into `case RLI:` and `goto fsi_as_lri` into `case LRI:` are the `'fsi_as_lri` dispatch loop's `continue`, which runs C's two textual copies of the shared RLI/LRI body (PORTING.md 2.2, the ccl.rs `ccl_repeat` shape)
+bidi_find_bracket_pairs	case,default,goto,switch	C's `switch (INT_PROMOTE (bidi_it->type))` becomes a `match`, and the two `goto give_up`s become `break 'give_up` out of the labelled block that carries C's `give_up:` epilogue (PORTING.md 2.2, the intervals.rs `'check_done` shape)
+bidi_resolve_brackets	break,case,default,switch	C's `switch (INT_PROMOTE (prev_type_for_neutral))` becomes a `match` whose `_` arm is C's `default:` (N0d) and whose arms need no `break` (PORTING.md 2.2)
+bidi_resolve_neutral	case,default,switch	C's `switch (INT_PROMOTE (type))` after the forward scan becomes a `match` with C's two conversion arms and an `emacs_abort ()` `_` arm (PORTING.md 2.2)
