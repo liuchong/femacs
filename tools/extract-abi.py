@@ -386,8 +386,16 @@ def body_token_seq(text: str, *, numbers: bool = True, skip_short: bool = False)
     folded to their canonical spelling, so the same sequence feeds the set checks and
     the occurrence checks.
     """
-    text = re.sub(r'"(?:[^"\\]|\\.)*"', '""', text)
+    # Character literals first: a `'"'` (or C's `'"'`) contains a quote that the string
+    # scanner would take for the start of a string literal, so everything up to the next real
+    # string was blanked - on the C side and the Rust side alike.  Measured on a body holding
+    # `b'"'` followed by any string: `if`, the callee and both arguments disappeared from the
+    # token sequence, which is a gate that reports "the reference does not mention ..." for
+    # text it can no longer see (docs/ports/print.md found it through `print_bool_vector`).
+    # `strip_char_literals` is bounded (twelve characters, no newline), so it cannot swallow a
+    # lifetime or a comment's apostrophe.
     text = strip_char_literals(text)
+    text = re.sub(r'"(?:[^"\\]|\\.)*"', '""', text)
     # C's preprocessor lines inside a body (`#ifdef`, `#endif`, `# define`) are not code,
     # and the whole line goes.  A Rust `#[cfg (...)]` is not a line-based directive
     # though: the port writes it on the same line as the statements it gates (P-51's dead

@@ -822,3 +822,25 @@
   （紧跟未定义引用闸门之后）。同一轮还把 `check-symbols.py --dir src` 接进 `gate-fast`——此前它只跑
   `--dir lib`，而 src 侧现在**不再空转**（print.o 是第一个 src 参照对象，`--dir src` 报
   `1 units compared, 0 mismatched` + 18 个 DEFVAR 载体计数）。
+
+- **3.62 第 96 轮：字符字面量/字符串的扫描顺序——一个"门把自己蒙住"的缺陷（2026-10-03）**：
+  print 通道在台账里记下的那条（`docs/ports/print.md`：`print_bool_vector` 里其后的 `printchar`
+  token 全被吞掉，C 侧则把字符串内容 `data`/`table`/`04` 漏进 token 集合）本轮查实并修掉。
+  根因在 `tools/extract-abi.py` 的 `body_token_seq`：**先**用正则把字符串字面量抹成 `""`，**后**才
+  剥字符字面量；于是 `'"'`（Rust `b'"'`、C `'"'`）里的那个引号被当成字符串的开引号，一直到**下一个
+  真正的字符串**之间的全部文本被抹掉——C 侧和 Rust 侧**同时**被抹，所以 token 比对看不见差异，门报绿。
+  ① **最小复现**（修前）：`let c = b'"'; if foo (bar) { baz ("q"); }` 的 token 序列是
+  `['let','c','b','q']`——`foo`/`bar`/`baz` 全没了；C 侧 `if (c == '"') { foo (always, present, "q"); }`
+  的 `always`/`present` 同样消失。
+  ② **修法**：把两步对调（先剥字符字面量）。`strip_char_literals` 是**有界**的（最多 12 个字符、
+  不跨行），所以不会吞掉 lifetime（`'a`、`'static`）或注释里的撇号——修后四条用例逐条复核：目标 token
+  回来了、字符串内容仍然被抹、lifetime 仍然完好。
+  ③ **门因此变严了，而且立刻抓到东西**：`--check` 对全树重跑后，`src/print.c` 与 `src/json.c` 从绿翻红，
+  差异正是被那个畸形扫描藏住的两处——`print_object` 少了 `default,pridmax`（C 的 `default:` 与
+  `. #%" PRIdMAX ")`，端口写 `_ =>` 与拼接常量 `"jd"`），`json_out_string` 少了 `switch`（C 的
+  `switch (c)` 与端口的 `match`）。两条都属**已记录偏离**类，故 `docs/ports/macro-body-notes.tsv` 的
+  对应两行按机制**加长 token 列表**并写明这是扫描顺序修复后新可见的 token（**不是**放宽门，是让门
+  能看见）。
+  ④ 全树复核：`extract-abi.py --all` → **357 个端口文件 / 333 done / 24 WIP / 0 failing**。
+  这条记录的意义是：一个"吞 token"的扫描缺陷既能让门误报，也能让门**漏报真差异**；修好后是后者被
+  消灭，不是前者被引入。
