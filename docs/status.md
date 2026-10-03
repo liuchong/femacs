@@ -1025,3 +1025,32 @@
   之后，它连着抓出 `rpl_re_*`（3.68）、`hexdigit` 与 terminfo 三个对象（3.72）——**文本门看不见的东西，
   目标文件看得见**。
 
+- **3.73 第 97 轮：产品名只剩在字面量里——一条规则变成一道门（2026-10-04）**：两条用户指令
+  （2026-10-03）已经把"声明"从树里清过两遍：`2ee1d1d`/`4810bb0` 把 231 个单元/镜像首行的
+  `@ <修订号> (<产品名> x.y.z)` 括注删到只剩修订号，`fd9cf89` 又删掉 268 个文件开头整块照抄的
+  版本/版权/许可声明（-4,932 行）。两者都靠一次性机械改写完成，**没有任何门**——而这之后落的每一个
+  单元都要照抄它那份 C 的注释（`0.3` 的"注释逐字保留"），于是**复发的路是敞开的**：
+  `src/emacs.c`（`79a41a7`，比 `fd9cf89` 晚 1 小时 22 分）就把产品名的版本/版权声明带回了
+  `src/emacs.rs`。本轮的交付是把这条规则做成门，并把残留清到零：
+  ① `tools/check-declarations.py`：把 393 个 `.rs`（`femacs/src` 180 + `femacs/lib` 211 +
+  `femacs/xtask` 1，193,877 行）按"注释/字面量"分开扫（可嵌套 `/* */`、`r#"…"#`、`c"…"`、
+  生命周期 `'a` 与字符字面量 `'a'` 逐一分清，否则规则要么漏掉整块声明、要么在每个 docstring 上误报），
+  分成四类：`decl`（复制的所有权/许可块，268 块的形状）、`version`（版本行里带产品名的括注）、
+  `title`（注释里其余的产品名，含 `/// C …` 引文）、`literal`（字符串字面量里的产品名）。
+  ② **实测残留只剩 8 处，全是 `literal`**：`src/callproc.rs` 三条 `DEFVAR_LISP` docstring
+  （C 2120/2124/2135）与 `src/emacs.rs` 五处（`PACKAGE_NAME`、`COPYRIGHT`、`RCS_Id`、
+  版本横幅 printf、`Vemacs_bugreport` 的 docstring）——都是 C 自己的字面量，docstring 门逐字对拍，
+  改了就与参照不符。它们逐条写进 `docs/baseline/declarations-allowlist.tsv`（含理由），
+  是**计数偏离**不是隐藏。
+  ③ **唯一一条注释里的产品名**是 `src/emacs.rs` 的 `/// C 163-167:` 引文（它引用 C 的 `RCS_Id`
+  定义），按 0.1-19 改成 `<PACKAGE_NAME>` 占位并就地注明原因，引文其余部分逐字不动；台账
+  `docs/ports/emacs.md` 记了这条偏离。改完重扫：`decl`/`version`/`title` **各 0 处**。
+  ④ 门的两条自证：`--selftest` 13 例（复制块报 `decl`+`title`、`c"…"` 里的版权行按位置算 `literal`、
+  `'a` 生命周期不误报、`r#"…"#`、嵌套块注释、`@ <rev> (gnulib)`/`(PORTING.md 0.1-2)` 这类**出处注**
+  不误报为 `version`——第一版正则正是被这两行打回重写的，`@ … (` 太宽）；以及负向探针：
+  拿一个合成根 `--root`（四类各一条）跑，**4 sites / 4 forbidden / exit 1**，而真实树
+  `8 declaration sites (0 forbidden, 8 allowed literals), 0 failures`，耗时 1.3 s。
+  ⑤ 已接进 `gate-fast`（`== declaration gate ==`，紧接连接门之后）。仍**不在**范围内的是两处实测值：
+  `docs/baseline/config/darwin-arm64.macros.tsv` 的 `PACKAGE_STRING`，以及六棵逐字节照抄树
+  （`lisp`/`test`/`etc`/`doc`/`leim`/`admin`）里参照自己的版权头——前者是 clang 实测的冻结值，
+  后者是"原样复制"本身（`tools/check-verbatim.py` 要求逐字节相等）。

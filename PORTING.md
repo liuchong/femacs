@@ -97,7 +97,13 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     放在本仓库里就是一句关于本仓库的错声明，删掉比改写安全。267 个已落地单元/镜像的该块已一并删除，
     其中首行原本就是该块的文件补上了上面那条首行声明（267+1 个文件，-4,932 行；`docs/status.md`
     3.58）。**字符串字面量/docstring 里的产品名是移植语义**，照抄不动（`src/callproc.c` 三条
-    `DEFVAR_LISP` 的 docstring 就是例子），门也要求它们与参照逐字一致。
+    `DEFVAR_LISP` 的 docstring 就是例子），门也要求它们与参照逐字一致。这条规则有机器门：
+    `python3 tools/check-declarations.py`（`gate-fast` 的 declaration gate，status 3.73）把
+    四类都扫出来——`decl`（复制的所有权/许可块）、`version`（版本行里带产品名的括注）、
+    `title`（注释里的产品名，含 `/// C …` 引文）、`literal`（字符串字面量里的产品名）——四类
+    都必须在 `docs/baseline/declarations-allowlist.tsv` 里逐条列出并写明理由；前三类**一行都不该有**
+    （有就是缺陷），例外只对字面量开放。`/// C …` 的引文照此：`src/emacs.rs` 的 `RCS_Id` 注释把 C
+    写的产品名换成 `<PACKAGE_NAME>` 占位并注明原因，引文其余部分不动（status 3.73）。
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体

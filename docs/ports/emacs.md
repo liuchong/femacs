@@ -245,3 +245,11 @@ names that differ are the six the two entries above record (`memcpy`/`mempcpy` a
 call the reference does not make: the other Rust-only identifiers in the bodies are the
 `as_ptr`/`offset`/`is_null`/`null_mut`/`zeroed`/`copy_nonoverlapping` spellings of C's pointer,
 `NULL`, `sizeof` and `memcpy` operations.
+
+- **`RCS_Id` 的引文省掉了产品名（0.1-19/3.73）。** C 163-167 的定义把产品名与 `PACKAGE_VERSION`
+  拼进 `RCS_Id`，端口把这条引文照抄进 `/// C 163-167:` 注释时，产品名就第二次出现在**注释**里——
+  而 0.1-19 要的是产品名只出现在字符串字面量里（那是移植语义，docstring 门逐字对拍）。因此注释里
+  那一处写成 `<PACKAGE_NAME>` 并注明原因，引文其余部分（`"$Id" ": "`、`PACKAGE_VERSION`、
+  `EMACS_CONFIGURATION`、`) $";`、`EXTERNALLY_VISIBLE` 的解释）逐字不动；下面 `pub static RCS_Id`
+  的字面量照 C 一个字节不改，它是 `docs/baseline/declarations-allowlist.tsv` 里记着理由的
+  `literal` 行之一（`tools/check-declarations.py`）。

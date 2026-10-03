@@ -1064,6 +1064,29 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a C file-scope object has no symbol in the port's object"),
         Err(e) => return fail(e),
     }
+    // The three classes of declaration 0.1-19 keeps out of the tree - the copied
+    // ownership block, the product name in a comment, and the removed
+    // `@ <rev> (<product> x.y.z)` parenthetical - are prose, and prose comes back:
+    // every unit ported after `fd9cf89` copies its C file's comments, and
+    // `src/emacs.c`'s own literals are the worked example of the class that *stays*.
+    // This gate reads the tree the way the rule does (comments and string literals
+    // separated, `'a` lifetimes versus `'a'` chars) and compares with
+    // `docs/baseline/declarations-allowlist.tsv`, so the literals that must stay are
+    // counted with a reason rather than being invisible to every other gate (3.73).
+    println!("== declaration gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-declarations.py"])
+        .status()
+    {
+        Ok(s) if s.success() => {
+            println!("declarations: no product-name declaration in the port")
+        }
+        Ok(_) => {
+            return fail("a ported file carries a product-name declaration (PORTING.md 0.1-19)")
+        }
+        Err(e) => return fail(e),
+    }
     println!("== probe programs ==");
     if let Err(e) = probe_programs() {
         return fail(e);

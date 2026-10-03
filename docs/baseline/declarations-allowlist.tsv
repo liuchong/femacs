@@ -1,0 +1,17 @@
+# Product-name occurrences inside ported string literals, one per line
+# (docs/status.md 3.73).  PORTING.md 0.1-19 forbids the product name in a
+# comment, a version line or a copied declaration block (`tools/check-declarations.py`
+# fails on those outright); a *literal* is ported semantics - C's own string -
+# and the docstring gate compares it with the reference, so it is counted here,
+# with the reason the literal cannot be changed.  Columns:
+# <path>\t<class>\t<count>\t<line>\t<reason>.  A count that no longer matches,
+# a row nothing matches, and a finding with no row are all failures.
+path	class	count	line	reason
+femacs/src/callproc.rs	literal	1	"Directory containing the DOC file that comes with GNU Emacs.\nThis is usually the same as `data-directory'.");	C's own docstring (callproc.c 2124, doc-directory); same docstring gate
+femacs/src/callproc.rs	literal	1	"Directory of machine-independent files that come with GNU Emacs.\nThese are files intended for Emacs to use while it runs.");	C's own docstring (callproc.c 2120, data-directory); the docstring gate compares it with the reference word for word
+femacs/src/callproc.rs	literal	1	"Directory of score files for games which come with GNU Emacs.\nIf this variable is nil, then Emacs is unable to use a shared directory.");	C's own docstring (callproc.c 2135, shared-game-score-directory); same docstring gate
+femacs/src/emacs.rs	literal	1	"Address of mailing list for GNU Emacs bugs. ");	C's own docstring (emacs.c 3614, Vemacs_bugreport); same docstring gate
+femacs/src/emacs.rs	literal	1	const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";	the frozen configuration's COPYRIGHT (config.h): C prints it in the version banner
+femacs/src/emacs.rs	literal	1	const PACKAGE_NAME: &CStr = c"GNU Emacs";	the frozen configuration's PACKAGE_NAME (measured as PACKAGE_STRING in docs/baseline/config/darwin-arm64.macros.tsv): the banner prints it, and the port must agree with the build it is measured against
+femacs/src/emacs.rs	literal	1	printf (c"%s\n%s comes with ABSOLUTELY NO WARRANTY.\nYou may redistribute copies of %s\nunder the terms of the GNU General Public License.\nFor more information about these matters, see the file named COPYING.\n".as_ptr (),	C's own banner literal (emacs.c 2275-2279); it names the licence the reference is distributed under
+femacs/src/emacs.rs	literal	1	pub static RCS_Id: &CStr = c"$Id: GNU Emacs 32.0.50 (aarch64-apple-darwin25.6.0 PDUMPER) $";	C's own literal (emacs.c 163-167), the object ident(1) reads out of the executable; the comment above it elides the name instead of repeating it (status 3.73)
