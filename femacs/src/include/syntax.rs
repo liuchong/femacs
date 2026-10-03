@@ -37,13 +37,6 @@ pub const EMACS_SYNTAX_H: bool = true;
 
 // INLINE_HEADER_BEGIN has no Rust counterpart (PORTING.md 0.1).
 
-unsafe extern "C" {
-  /// C: void update_syntax_table (ptrdiff_t, EMACS_INT, Lisp_Object)
-  pub fn update_syntax_table (charpos: ptrdiff_t, count: EMACS_INT, init: Lisp_Object);
-  /// C: void update_syntax_table_forward (ptrdiff_t, Lisp_Object)
-  pub fn update_syntax_table_forward (charpos: ptrdiff_t, init: Lisp_Object);
-}
-
 /* The standard syntax table is stored where it will automatically
    be used in all new buffers.  */
 // C: `#define Vstandard_syntax_table BVAR (&buffer_defaults, syntax_table)`.  The call
@@ -110,7 +103,50 @@ pub struct gl_state_s
 }
 
 /* syntax.h 90: `extern struct gl_state_s gl_state;`.  */
-unsafe extern "C" { pub static mut gl_state: gl_state_s; }
+/// `src/syntax.c` 205 defines this object, so the declaration lives in a module and the
+/// defining unit shadows it through the glob import (PORTING.md P-39/P-21).
+pub mod syntax_h_own_definitions {
+  use super::*;
+  unsafe extern "C" {
+    pub static mut gl_state: gl_state_s;
+    /// C: void update_syntax_table (ptrdiff_t, EMACS_INT, Lisp_Object)
+    pub fn update_syntax_table (charpos: ptrdiff_t, count: EMACS_INT, init: Lisp_Object);
+    /// C: void update_syntax_table_forward (ptrdiff_t, Lisp_Object)
+    pub fn update_syntax_table_forward (charpos: ptrdiff_t, init: Lisp_Object);
+    /// C: bool syntax_prefix_flag_p (c_int)
+    pub fn syntax_prefix_flag_p (c: c_int) -> bool;
+    /// C: ptrdiff_t scan_words (ptrdiff_t, EMACS_INT)
+    pub fn scan_words (from: ptrdiff_t, count: EMACS_INT) -> ptrdiff_t;
+    /// C: void RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (Lisp_Object, ptrdiff_t)
+    pub fn RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (object: Lisp_Object, pos: ptrdiff_t);
+    /// C: `extern unsigned char const syntax_spec_code[0400];` (syntax.h 101).
+    pub static syntax_spec_code: [u8; 256];
+  }
+
+  #[inline(always)]
+  pub fn SYNTAX_ENTRY (c: c_int) -> Lisp_Object
+  {
+    return syntax_property_entry (c, false);
+  }
+
+  #[inline(always)]
+  pub fn SYNTAX_WITH_FLAGS (c: c_int) -> c_int
+  {
+    return syntax_property_with_flags (c, false);
+  }
+
+  #[inline(always)]
+  pub fn SYNTAX (c: c_int) -> syntaxcode
+  {
+    return syntax_property (c, false);
+  }
+}
+// `src/syntax.c` owns every name in that module - `gl_state`, `syntax_spec_code`,
+// `syntax_prefix_flag_p`, `scan_words`, `update_syntax_table`, `update_syntax_table_forward`,
+// `RE_SETUP_SYNTAX_TABLE_FOR_OBJECT`, and the three macros it redefines with
+// `via_property = 1` - so they live in one module and are pulled in with a glob import: the
+// owning unit's own definitions shadow the declarations (PORTING.md P-39/P-21).
+use syntax_h_own_definitions::*;
 
 /* Fetch the information from the entry for character C
    in the current buffer's syntax table,
@@ -126,12 +162,6 @@ pub fn syntax_property_entry (c: c_int, via_property: bool) -> Lisp_Object
 	else { CHAR_TABLE_REF (unsafe { gl_state.current_syntax_table }, c as isize) }; }
   return CHAR_TABLE_REF (unsafe { BVAR! (current_buffer, syntax_table_) }, c as isize);
 }
-#[inline(always)]
-pub fn SYNTAX_ENTRY (c: c_int) -> Lisp_Object
-{
-  return syntax_property_entry (c, false);
-}
-
 /* Extract the information from the entry for character C
    in the current syntax table.  */
 
@@ -142,31 +172,13 @@ pub fn syntax_property_with_flags (c: c_int, via_property: bool) -> c_int
   return if CONSP (ent) { XFIXNUM (XCAR (ent)) as c_int } else { Swhitespace };
 }
 #[inline(always)]
-pub fn SYNTAX_WITH_FLAGS (c: c_int) -> c_int
-{
-  return syntax_property_with_flags (c, false);
-}
-
-#[inline(always)]
 pub fn syntax_property (c: c_int, via_property: bool) -> syntaxcode
 {
   return syntax_property_with_flags (c, via_property) & 0xff;
 }
-#[inline(always)]
-pub fn SYNTAX (c: c_int) -> syntaxcode
-{
-  return syntax_property (c, false);
-}
-
-
-/* Whether the syntax of the character C has the prefix flag set.  */
-unsafe extern "C" { pub fn syntax_prefix_flag_p (c: c_int) -> bool; }
-
 /* This array, indexed by a character less than 256, contains the
    syntax code which that character signifies (as an unsigned char).
    For example, syntax_spec_code['w'] == Sword.  */
-
-unsafe extern "C" { pub static syntax_spec_code: [u8; 256]; }
 
 /* Convert the regexp's BYTEOFFSET into a character position,
    for the object recorded in gl_state with RE_SETUP_SYNTAX_TABLE_FOR_OBJECT.
@@ -227,13 +239,6 @@ pub fn SETUP_BUFFER_SYNTAX_TABLE ()
   unsafe { gl_state.use_global = false; }
   unsafe { gl_state.e_property_truncated = false; }
   unsafe { gl_state.current_syntax_table = BVAR! (current_buffer, syntax_table_) };
-}
-
-unsafe extern "C" {
-  /// C: ptrdiff_t scan_words (ptrdiff_t, EMACS_INT)
-  pub fn scan_words (from: ptrdiff_t, count: EMACS_INT) -> ptrdiff_t;
-  /// C: void RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (Lisp_Object, ptrdiff_t)
-  pub fn RE_SETUP_SYNTAX_TABLE_FOR_OBJECT (object: Lisp_Object, pos: ptrdiff_t);
 }
 
 // INLINE_HEADER_END has no Rust counterpart (PORTING.md 0.1).

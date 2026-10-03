@@ -299,3 +299,27 @@ syms_of_terminal	doc	the two DEFVAR_LISP invocations take C's docstring position
 Fterminal_live_p	switch,case,default	C's switch/case/default over the `enum output_method` constants becomes the port's `match` arms plus `_ => emacs_abort ()` (PORTING.md 2.2, the syms_of_data/do_symval_forwarding precedent)
 start_atimer	switch,case,break	PORTING.md 2.2: C's `switch (type)` with its three `case`/`break` arms becomes a `match` (atimer.c 140-157); the arms keep the three ATIMER_* names, and the `_ => { }` arm is C's missing `default:`
 handle_alarm_signal	1	atimer.c 415's `pending_signals = 1` writes lisp.h 3879's `bool volatile pending_signals`, which the port declares `bool`, so the assignment spells `true` (the Fset_case_table bool-literal class; residual as there: with `1` exempted a `true`->`false` swap in this one-statement body is invisible to the token check)
+INC_FROM	0	PORTING.md 2.2: C's `do { … } while (0)` is the port's single block, an idiom with no `0` of its own; the eight statements it runs are all compared
+SYNTAX	1	the mirror's `syntax_property` takes the `via_property` flag as a `bool`, so C's `#define SYNTAX(c) syntax_property (c, 1)` (syntax.c 30) spells `true` (PORTING.md 1.3, the Fset_case_table bool-literal class)
+SYNTAX_ENTRY	1	see SYNTAX: syntax.c 31's redefinition of syntax.h's macro, whose flag is a `bool` in the mirror
+SYNTAX_WITH_FLAGS	1	see SYNTAX: syntax.c 32's redefinition of syntax.h's macro, whose flag is a `bool` in the mirror
+char_quoted	0	`quoted` is a `bool`, so C's `bool quoted = 0` is `false`, and the body has no other `0` (PORTING.md 1.3)
+find_defun_start	goto	C's two `goto found` become a labelled block's `break`, so neither the keyword nor a label name survives (PORTING.md 2.2; the port's comment names the destinations)
+back_comment	case,default,done,fallthrough,goto,lossage,switch	C's `switch (code)` and its `case`/`default`/`break` arms become `match` arms, its `FALLTHROUGH` pairs are merged arms, and the `done`/`lossage` gotos become the `jumped_to_*` flags (each noted at its arm).  PORTING.md 2.2
+scan_words	true	C's two `while (true)` scans are the port's `while true` loops; a `true`->`false` mutation would make the scan loop dead, which build-tu's unreachability lints surface rather than this token check
+skip_chars	goto,uninit	C's four `goto …_ok` become labelled loop blocks (PORTING.md 2.2), and `UNINIT` is lisp.h's marker for a deliberately uninitialised local, which a Rust `let mut` has no counterpart for (PORTING.md 1.3)
+skip_syntaxes	goto	C's two `goto done` become the labelled block's `break` (PORTING.md 2.2)
+forw_comment	forw_incomment,goto	C's `goto forw_incomment` is the port's `first_pass_at_label` entry-stage flag, so neither the label nor the keyword survives (PORTING.md 2.2; the flag's own comment records the shape)
+scan_lists	default,fallthrough,switch	C's `switch (code)` becomes `match` arms, its `FALLTHROUGH` pairs are merged arms (noted at each), and its `close1`/`done`/`done2`/`lose` labels become the shared tail after the match and the labelled blocks around the two scans.  PORTING.md 2.2
+scan_sexps_forward	case,default,switch	C's `switch (code)` and the six labels the prologue can enter it at become the port's entry-stage arms (`STAGE_*`) plus the shared `done:` tail; `case`/`default`/`switch` themselves have no counterpart.  PORTING.md 2.2
+syms_of_syntax	0,doc,list	`words_include_escapes` is a `bool`, so C's `= 0` is `false` (PORTING.md 1.3); the `DEFVAR_*!` macros take the docstring positionally, so C's `doc:` label has no token (the syms_of_data/syms_of_terminal precedent); and C's two-argument `list (…)` is the mirror's `list2 (…)` (lisp.md)
+Fset_syntax_table	1	C's `SET_PER_BUFFER_VALUE_P (current_buffer, idx, 1)` writes a `bool` parameter, so the port passes `true` (PORTING.md 1.3; the Fset_case_table bool-literal class)
+Fstring_to_syntax	break,case,switch	C's `switch (c)` with its `case`/`break` arms becomes a `match` (PORTING.md 2.2)
+Finternal_describe_syntax_value	break,case,default,switch	C's `switch (code)` with its `case`/`default`/`break` arms becomes `match` arms plus `_` (PORTING.md 2.2)
+Fskip_chars_forward	1	C's fourth argument is the `forwardp` flag, a `bool` in the mirror, so the port passes `true` (PORTING.md 1.3)
+Fskip_chars_backward	0	see Fskip_chars_forward: the port passes `false`
+Fskip_syntax_forward	1	see Fskip_chars_forward: the port passes `true`
+Fskip_syntax_backward	0	see Fskip_chars_forward: the port passes `false`
+Fforward_comment	goto,leave	C's `goto leave` becomes the labelled block's `break` (PORTING.md 2.2)
+Fscan_lists	0	C passes `0` for `sexpflag`; the port's parameter is a `bool`, so the call spells `false` (PORTING.md 1.3)
+Fscan_sexps	1	C passes `1` for `sexpflag`; the port's parameter is a `bool`, so the call spells `true` (PORTING.md 1.3)
