@@ -12,10 +12,6 @@
 #
 # The list is a ratchet: `tools/check-symbols.py --pending docs/baseline/symbol-pending.txt`
 # fails on an entry that has become clean, so it can only shrink (status §3.30).
-# lib/dtoastr pends on the shared template body: C 19's `#include "ftoastr.c"` instantiates
-# `dtoastr`, and the port has not landed `femacs/lib/ftoastr.rs` yet.  The instantiation is
-# recorded in docs/ports/dtoastr.md, and the symbol arrives with that file.
-lib/dtoastr
 # lib/regex is the *aggregate* translation unit: C 57-59 include regex_internal.c, regcomp.c
 # and regexec.c, so the reference `regex.o` exports all three files' symbols.  The port keeps
 # them in the three sibling objects (femacs/lib/{regex_internal,regcomp,regexec}.o carry the

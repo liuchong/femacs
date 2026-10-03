@@ -12,23 +12,35 @@
 
 ## File-scope objects — 0
 
+
+# ----------------------------------------------------------------------
 ## Decisions
 
-`emacs/lib/dtoastr.c` @ `fd7afced403`; port `femacs/lib/dtoastr.rs`; the gates are
+`emacs/lib/dtoastr.c` @ `fd7afced403`; port `femacs/lib/dtoastr.rs` (42 lines); the gates are
 `build-tu lib/dtoastr.c` -> `built`, `python3 tools/extract-abi.py --check emacs/lib/dtoastr.c
-femacs/lib/dtoastr.rs` -> `OK`, and the symbol ratchet (this unit is listed as pending).
+femacs/lib/dtoastr.rs` -> `OK`, and the symbol ratchet (the unit no longer needs its
+`docs/baseline/symbol-pending.txt` entry).
 
 - **The file is an inclusion shim** (PORTING.md 10.13②): C 18-19 are `#define LENGTH 2` and
-  `#include "ftoastr.c"`, so its text is the instantiation of gnulib's `ftoastr.c` template for
-  `double`.  The port's own text is C 18's `LENGTH` (the template's width selector) plus the
-  provenance note.
-- **The instantiation is pending on the shared body.**  `femacs/lib/ftoastr.rs` does not exist
-  yet: `ftoastr.c` is the template `dtoastr.c` (`LENGTH 2`), `ldtoastr.c` (`LENGTH 3`, not
-  compiled on this target) and `nstrftime.c` share, and 10.13② asks for the shared body to land
-  first (as a prelude `macro_rules!` or a parameterised unit) and the instantiations to follow.
-  The reference object exports `dtoastr`, so the unit is listed in
-  `docs/baseline/symbol-pending.txt` with that reason rather than given an invented body here -
-  the same "record the dependency, do not fake the definition" rule the ledger applies to dead
-  arms.
-- **The inventory** is the one macro; the line-count row (`dtoastr 1.30`, `total` basis) exists
-  because a 19-line file cannot absorb the fixed costs of a port's header.
+  `#include "ftoastr.c"`, so its text is the `LENGTH == 2` instantiation of gnulib's
+  `ftoastr.c` template for `double`.  The port's own text is C 18's `LENGTH` plus the
+  instantiation.
+
+- **The instantiation is landed** on the shared body `femacs/lib/ftoastr.rs`, which is
+  `macro_rules! ftoastr_body` (PORTING.md 10.13②'s "prelude `macro_rules!` or parameterised
+  unit", the `strftime.rs`/`nstrftime.rs` shape).  This shim is that macro's only
+  instantiation: `include!("ftoastr.rs")` brings the prelude, and `ftoastr_body! (2, dtoastr,
+  "dtoastr", c_double, c_double, DBL_DIG, DBL_MIN, _GL_DBL_PREC_BOUND, strtod)` is C 52-58's
+  arm - `$length` 2, C's identifier `dtoastr`, the symbol `dtoastr`, and the double/FLOAT
+  bindings.  `docs/ports/ftoastr.md` records the arm mapping and the standalone-arm record the
+  prelude keeps for its own `--check`.
+
+- **The symbol is emitted.**  `nm -g build/femacs/dtoastr.o` shows `T _dtoastr` (plus Rust
+  monomorphization weaks, which `check-symbols.py` filters), matching
+  `build/emacs-ref/lib/dtoastr.o`'s `T _dtoastr`; both import `_sprintf` and `_strtod`, which
+  is the `!GNULIB_SNPRINTF` fallback the frozen build takes.
+
+- **The inventory** is the one macro; the line-count row (`dtoastr 1.30`, `total` basis) still
+  covers a 19-line file whose port is almost wholly fixed costs - the copied GPL notice, the
+  provenance note and the `#![allow (…)]` block the including unit must carry (an inner
+  attribute in the included `ftoastr.rs` would be E0753).
