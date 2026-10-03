@@ -33,7 +33,15 @@ pub type map_keymap_function_t = Option<unsafe extern "C" fn (key: Lisp_Object,
                                                              args: Lisp_Object,
                                                              data: *mut c_void)>;
 
-unsafe extern "C" {
+// Every object and function in this block is **defined by keymap.c itself** (its nine
+// non-`static` functions plus `current_global_map`), so they live in a module + glob
+// import: an explicit item shadows a glob import, where a same-named declaration at this
+// scope would be `E0428` against the definition (PORTING.md 0.1-10/P-21, the
+// composite.rs/`intervals_decls` shape).  `femacs/src/keymap.rs` is what needs them.
+pub mod keymap_decls {
+  use super::*;
+
+  unsafe extern "C" {
   pub static mut current_global_map: Lisp_Object;
 
   // Parameter names come from the definitions in keymap.c (keymap.h names no parameter
@@ -52,5 +60,7 @@ unsafe extern "C" {
                      data: *mut c_void, autoload: bool);
   pub fn map_keymap_canonical (map: Lisp_Object, fun: map_keymap_function_t,
                                args: Lisp_Object, data: *mut c_void);
+  }
 }
+use keymap_decls::*;
 
