@@ -247,10 +247,9 @@
   (docs/ports/callproc.md's Integrator note is the precedent, status 3.51 ②).
 - **Use-site declarations and mirror gaps.**  The headers this file includes that the port has
   **no mirror** for are declared at their use site with C's own prototype in a `/// C:` line:
-  `<execinfo.h>`, `"sysstdio.h"`'s `errputc`/`errwrite`/`close_output_streams` (defined here),
-  `<pwd.h>`/`<grp.h>` (with `struct passwd`/`struct group`), `<sys/utsname.h>`, `<sys/param.h>`,
-  `<sys/file.h>`, `"sysselect.h"`, `"systty.h"` (`struct emacs_tty`, `CDISABLE`),
-  `"syswait.h"` (`WNOHANG`), `"termopts.h"` (`interrupt_input`, `interrupts_deferred`),
+  `<execinfo.h>`, `<pwd.h>`/`<grp.h>` (with `struct passwd`/`struct group`), `<sys/utsname.h>`,
+  `<sys/param.h>`, `<sys/file.h>`, `"syswait.h"`'s `WNOHANG` (a *system* macro the mirror does
+  not carry), `"termopts.h"` (`interrupt_input`, `interrupts_deferred`),
   `<sys/resource.h>`'s `struct rusage`/`getrusage`, `<libproc.h>`, `<mach/mach_time.h>`,
   `<pthread.h>`'s `pthread_self`/`pthread_equal`/`pthread_kill`, `<termios.h>`/`<sys/ioctl.h>`
   (the 60 constants), `<wchar.h>`'s `wcscoll`, and `"cm.h"`'s `current_tty` (imported from the
@@ -284,8 +283,7 @@
   mirror's `emacs_fclose!` macro (charset.c's finding, status 3.57); the one definition of the
   name here is the *carried* Android arm, which is never compiled.
 - **Layout.**  Every record this unit declares carries clang-measured `const _` assertions for
-  `sizeof` and every field the code reaches: `termios` (72, `c_cc`@32, `c_ispeed`@56), `emacs_tty`
-  (72), `winsize` (8), `passwd` (72, `pw_uid`@16, `pw_shell`@56, `pw_expire`@64), `group` (32),
+  `sizeof` and every field the code reaches: `winsize` (8), `passwd` (72, `pw_uid`@16, `pw_shell`@56, `pw_expire`@64), `group` (32),
   `utsname` (1280, `nodename`@256), `rusage` (144, `ru_minflt`@64), `siginfo_t`
   (`si_addr`@24), `stack_t` (24), `save_signal` (24, `action`@8), `speed_struct` (16),
   `proc_taskinfo` (96, `pti_threadnum`@84), `rusage_info_current` (464, `ri_pageins`@48),
@@ -341,3 +339,27 @@ carried arms' calls (`android_*`, the w32 `GetConsoleMode` family, `renameat2`/`
 here.  The one place a *function* moved is the three `set_random_seed` arms: C has three
 definitions of the name and the port has three `#[cfg]`-gated ones (the same callee set:
 `srandom`, `srand48`, `srand`).
+
+## 2026-10-04: the systty/syswait/termios mirrors landed and this unit converged on them
+
+`"sysstdio.h"`, `"sysselect.h"`, `"systty.h"` and `"syswait.h"` now have mirrors
+(`femacs/src/include/sysstdio.rs`, `lib/include/sys_select.rs`, `src/include/systty.rs`,
+`src/include/syswait.rs`), and `systty.rs` brings the new system mirror
+`lib/include/termios.rs` with it.  This unit therefore:
+
+- added C 106/C 107's includes (`include!("include/systty.rs")`, `include!("include/syswait.rs")`)
+  at their place in the include list;
+- **deleted** its local `<termios.h>` layer (`tcflag_t`/`speed_t`/`cc_t`/`NCCS`/`struct termios`
+  plus eight `const _` assertions), its local `struct emacs_tty` and its local `CDISABLE` - all
+  three were exact duplicates of what the mirrors now own (PORTING.md 0.1-3: one definition
+  point per type), and the mirror carries the same clang-measured assertions;
+- kept every other use-site declaration of the list above, since those headers still have no
+  mirror;
+- took one explicit cast where C converts implicitly: `memcmp (…, NCCS)` became
+  `memcmp (…, NCCS as usize)`, because the mirror keeps C's `int`-typed `NCCS`
+  (`limits.in.rs`'s `CHAR_BIT: c_int` precedent) while `memcmp`'s third parameter is `size_t`.
+
+Evidence: `build-tu src/sysdep.c` -> `built`; `extract-abi.py --check emacs/src/sysdep.c
+femacs/src/sysdep.rs` -> `OK`; `rustc --cfg enable_checking` on the materialized unit -> exit 0;
+`check-globals` 273 units / 0 missing; `check-mirror-dupes` 0 failures (the two mirrors removed
+duplicates rather than adding any); `check-declarations` 0.

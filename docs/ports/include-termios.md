@@ -19,7 +19,13 @@ request numbers are **not** here yet, because three units carry measured copies 
 | `femacs/src/process.rs` | `struct termios` (measured, real fields) | 7390-7430 |
 | `femacs/src/minibuf.rs` | `struct termios` as an opaque `[u8; 72]` stand-in | 87-95 |
 
-**Convergence (deliberately not done in this commit):** each of the three should drop its copy
+**Convergence (2026-10-04, first two done):** `femacs/src/sysdep.rs` and `femacs/src/minibuf.rs`
+dropped their copies in the two commits that follow this mirror (`sysdep.rs`'s `tcflag_t`/
+`speed_t`/`cc_t`/`NCCS`/`struct termios` block and its local `emacs_tty`/`CDISABLE`;
+`minibuf.rs`'s opaque stand-in, its `emacs_tty` and its three use-site declarations), each
+with `build-tu` + `--check` + `--cfg enable_checking` green.  `femacs/src/process.rs` is still
+in flight in a lane, so its copy stays until that lane settles.  The rule for each of the
+remaining ones is unchanged:
 and `include!` this mirror - `minibuf.rs`'s opaque stand-in is the one that is *wrong* in kind
 (it cannot be read field by field), the other two are exact duplicates.  `process.rs` was in
 flight in a lane when this mirror landed, and `check-mirror-dupes.py` compares the include

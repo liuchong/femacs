@@ -48,7 +48,7 @@ pub struct termios
   pub c_oflag: tcflag_t,   /* 8 */
   pub c_cflag: tcflag_t,   /* 16 */
   pub c_lflag: tcflag_t,   /* 24 */
-  pub c_cc: [cc_t; 20],    /* 32 */
+  pub c_cc: [cc_t; NCCS as usize], /* 32 */
   pub c_ispeed: speed_t,   /* 56 */
   pub c_ospeed: speed_t,   /* 64 */
 }

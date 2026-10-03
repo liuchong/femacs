@@ -79,6 +79,8 @@ include!("../lib/include/fcntl.in.rs");        // C 101: `#include <fcntl.h>`
 include!("../lib/include/signal.rs");          // C 104: `#include "syssignal.h"` -> <signal.h>
 include!("include/syssignal.rs");              // C 104: `#include "syssignal.h"`
 include!("include/systime.rs");                // C 105: `#include "systime.h"`
+include!("include/systty.rs");                 // C 106: `#include "systty.h"`
+include!("include/syswait.rs");                // C 107: `#include "syswait.h"`
 include!("../lib/include/pwd.rs");           // C: `#include <pwd.h>`
 include!("../lib/include/grp.rs");           // C: `#include <grp.h>`
 include!("../lib/include/sys_utsname.rs");   // C: `#include <sys/utsname.h>`
@@ -109,43 +111,12 @@ unsafe extern "C" {
                 putc: Option<unsafe extern "C" fn (c_int) -> c_int>) -> c_int;
 }
 
-/// `<termios.h>`: `typedef unsigned long tcflag_t;` (measured: `sizeof` 8).
-pub type tcflag_t = c_ulong;
-/// `<termios.h>`: `typedef unsigned long speed_t;` (measured: `sizeof` 8).
-pub type speed_t = c_ulong;
-/// `<termios.h>`: `typedef unsigned char cc_t;`.
-pub type cc_t = c_uchar;
-/// `<termios.h>`: `#define NCCS 20` (measured).
-pub const NCCS: usize = 20;
-
-/* struct termios
-   {
-     tcflag_t c_iflag; tcflag_t c_oflag; tcflag_t c_cflag; tcflag_t c_lflag;
-     cc_t c_cc[NCCS]; speed_t c_ispeed; speed_t c_ospeed;
-   };  */
-/// `<termios.h>`'s `struct termios`, measured with the frozen configuration: `sizeof` 72,
-/// `c_iflag`@0, `c_oflag`@8, `c_cflag`@16, `c_lflag`@24, `c_cc`@32, `c_ispeed`@56,
-/// `c_ospeed`@64.  `systty.h`'s `struct emacs_tty` holds exactly this record as `main`.
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct termios {
-  pub c_iflag: tcflag_t,
-  pub c_oflag: tcflag_t,
-  pub c_cflag: tcflag_t,
-  pub c_lflag: tcflag_t,
-  pub c_cc: [cc_t; NCCS],
-  pub c_ispeed: speed_t,
-  pub c_ospeed: speed_t,
-}
-
-const _: () = assert! (std::mem::size_of::<termios> () == 72);
-const _: () = assert! (std::mem::offset_of! (termios, c_iflag) == 0);
-const _: () = assert! (std::mem::offset_of! (termios, c_oflag) == 8);
-const _: () = assert! (std::mem::offset_of! (termios, c_cflag) == 16);
-const _: () = assert! (std::mem::offset_of! (termios, c_lflag) == 24);
-const _: () = assert! (std::mem::offset_of! (termios, c_cc) == 32);
-const _: () = assert! (std::mem::offset_of! (termios, c_ispeed) == 56);
-const _: () = assert! (std::mem::offset_of! (termios, c_ospeed) == 64);
+/* `<termios.h>`, through C 106's `#include "systty.h"`: the four typedefs, `NCCS` and
+   `struct termios` now come from `../lib/include/termios.rs` (the port's system mirror,
+   measured with the frozen clang and pinned by its own `const _` assertions).  The local
+   measured copy this unit carried until 2026-10-04 was an exact duplicate and was removed
+   in the commit that added the mirror - `docs/ports/include-termios.md` records why the
+   convergence had to wait for the lanes, and `docs/ports/sysdep.md` records it here.  */
 
 /* struct winsize
    {
@@ -201,17 +172,8 @@ const _: () = assert! (std::mem::offset_of! (rusage, ru_maxrss) == 32);
 const _: () = assert! (std::mem::offset_of! (rusage, ru_minflt) == 64);
 const _: () = assert! (std::mem::offset_of! (rusage, ru_majflt) == 72);
 
-/* systty.h 66-75: `struct emacs_tty { struct termios main; };`  */
-/// `"systty.h"`'s `struct emacs_tty` (no mirror; the header is C 106's `#include "systty.h"`),
-/// measured: `sizeof` 72, `main`@0.
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct emacs_tty {
-  pub main: termios,
-}
-
-const _: () = assert! (std::mem::size_of::<emacs_tty> () == 72);
-const _: () = assert! (std::mem::offset_of! (emacs_tty, main) == 0);
+/* systty.h 66-75: `struct emacs_tty { struct termios main; };` now comes from
+   `include/systty.rs` (C 106), with the mirror's measured size assertion.  */
 
 /* signal.h: `struct __siginfo { int si_signo; int si_errno; int si_code; pid_t si_pid;
    uid_t si_uid; int si_status; void *si_addr; union __sigval si_value; long si_band; };`  */
@@ -619,9 +581,8 @@ unsafe extern "C" {
 /// `<pthread.h>`, measured: Darwin's `pthread_t` is a pointer to `struct _opaque_pthread_t`.
 pub type pthread_t = *mut c_void;
 
-/// `"systty.h"`: `#define CDISABLE _POSIX_VDISABLE`, and the frozen target's
-/// `_POSIX_VDISABLE` is 255 (measured).
-pub const CDISABLE: cc_t = 255;
+/* `"systty.h"`: `#define CDISABLE _POSIX_VDISABLE` (255 on this target) now comes from
+   `include/systty.rs` (C 106).  */
 
 /// `<locale.h>`: the two categories C 4633/4646 passes to `emacs_setlocale`.
 pub const LC_COLLATE: c_int = 2;
@@ -2064,7 +2025,7 @@ pub unsafe extern "C" fn emacs_set_tty (fd: c_int, settings: *mut emacs_tty, flu
 	      && new.c_lflag == (*settings).main.c_lflag
 	      && memcmp (&new.c_cc as *const cc_t as *const c_void,
 			 &(*settings).main.c_cc as *const cc_t as *const c_void,
-			 NCCS) == 0
+			 NCCS as usize) == 0
 	      { break; }
 	    else
 	      { i += 1; continue; }
