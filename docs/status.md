@@ -507,6 +507,12 @@
   `#[cfg (feature = …)]` 文本，端口比 C 的"活文本"长得多，全局改基准会让 **119 个文件**当场不通过；
   现在 `live` 只对 5 个文件（comp/treesit/gnutls/systhread/sqlite）生效，其余照旧。
   顺带把 systhread/sqlite 两行从 0.80/0.90 收紧到 0.30，容差表头写清两种基准的判据。
+- **3.41 选点用 `tools/live-rank.py`（2026-10-03 第 80 轮落地）**：把
+  `docs/baseline/frozen-build-sources.txt` 里还没有端口的文件按**活行数**排序（`cinventory`
+  的分支求值器逐文件判定），`--ported` 则按 `|活行数 - 端口行数| / 活行数` 排，用来一眼看出
+  "端口比该有的活文本短得多的文件"（掉内容的头号嫌疑）。当前 `--top 12` 的头两件
+  `src/dired.c`(活 1,067) 与 `src/menu.c`(活 1,079) 就是本轮派给两个 worker 的目标，
+  40 件未端口文件里活行数最大的是 xdisp/alloc 那一档；每轮开工先跑它，不要再靠目录列表猜。
 - **3.40 第 80 轮批量落地（2026-10-03）**：本轮新增 5 个单元——`src/systhread.c`、`src/sqlite.c`、
   `src/comp.c`、`src/treesit.c`、`src/gnutls.c`（合计 **14,174 行 C → 约 470 行 Rust**，全部
   `built` + `--check` OK + 台账 0 未勾），加一个镜像 `src/include/systhread.rs`。选点方法是把
