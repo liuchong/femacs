@@ -319,8 +319,6 @@ unsafe extern "C" {
 
   /* --- libc (the mirrors' own groups: <stdio.h>, <stdlib.h>, <unistd.h>, <string.h>,
          <locale.h>, <signal.h>) ---------------------------------------------------- */
-  /// C: <stdio.h>: `int printf (const char *, ...);`
-  fn printf (format: *const c_char, ...) -> c_int;
   /// C: <stdlib.h>: `_Noreturn void exit (int);`
   fn exit (status: c_int) -> !;
   /// C: <stdlib.h>: `int atexit (void (*) (void));`
@@ -393,10 +391,6 @@ const LC_ALL: c_int = 0;
 const LC_NUMERIC: c_int = 4;
 const LC_TIME: c_int = 5;
 const LC_MESSAGES: c_int = 6;
-/// C: `<stdlib.h>`'s `EXIT_SUCCESS`/`EXIT_FAILURE` (0/1); the port's `<stdlib.h>` mirror
-/// has no such pair yet.
-const EXIT_SUCCESS: c_int = 0;
-const EXIT_FAILURE: c_int = 1;
 /// C: `<sys/resource.h>`'s `RLIMIT_STACK` (measured: 3); the sys_resource.rs mirror
 /// carries RLIMIT_AS/DATA/NOFILE only.
 const RLIMIT_STACK: c_int = 3;

@@ -5,6 +5,10 @@
 // (bignum.c's `mpz_get_d_rounded`); the allocator family lives in lisp.rs, where lisp.h
 // declares it.
 
+/* `<stdlib.h>`'s `#define EXIT_SUCCESS 0` / `EXIT_FAILURE 1` (measured with clang).  */
+pub const EXIT_SUCCESS: c_int = 0;
+pub const EXIT_FAILURE: c_int = 1;
+
 unsafe extern "C" {
   /* long int strtol (const char *nptr, char **endptr, int base);  */
   pub fn strtol (nptr: *const c_char, endptr: *mut *mut c_char, base: c_int) -> c_long;

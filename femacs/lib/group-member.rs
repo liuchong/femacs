@@ -91,7 +91,8 @@ pub unsafe extern "C" fn group_member (gid: gid_t) -> c_int
 #[cfg (feature = "test")]
 unsafe extern "C" {
   pub fn atoi (s: *const c_char) -> c_int;
-  pub fn printf (format: *const c_char, ...) -> c_int;
+  // `printf` is no longer declared here: the `stdio.rs` mirror carries it (2026-10-04), and a
+  // declaration plus the mirror's would be `E0428` when this arm is compiled.
   pub fn exit (status: c_int) -> !;
 }
 

@@ -33,3 +33,8 @@
 - **The line-count drift (C 108 vs the port's 128, 18.5%) is declared** in
   docs/ports/line-drift-tolerance.tsv with this file's reason.
 - **Call-relationship differences (D7)**: none beyond the three libc entries above.
+
+## 2026-10-04: the gated `printf` declaration goes
+
+The `#[cfg (feature = "test")]` arm's `printf` declaration is deleted - the `stdio.rs` mirror
+now carries it unconditionally, and the two would be `E0428` when the arm is compiled.

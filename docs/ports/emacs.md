@@ -263,3 +263,11 @@ the name comes from the mirror's `sysstdio_decls` glob import, and src/sysdep.c'
 (ported) is what the atexit call reaches.  Evidence: `build-tu src/emacs.c` -> `built`;
 `extract-abi --check emacs/src/emacs.c femacs/src/emacs.rs` -> `OK`; `rustc --cfg
 enable_checking` exit 0; `check-mirror-dupes` 0 failures.
+
+## 2026-10-04: printf and the exit codes come from the mirrors
+
+The `stdio.rs` mirror now carries `printf` and `perror`, and `stdlib.rs` carries
+`EXIT_SUCCESS`/`EXIT_FAILURE` (both were completed while porting lib-src/make-fingerprint.c),
+so this unit's use-site declaration of `printf` and its two local `EXIT_*` constants are gone:
+the names come from the mirrors, `check-mirror-dupes.py` went from 7 failures to 0, and
+`build-tu src/emacs.c` is `built`.

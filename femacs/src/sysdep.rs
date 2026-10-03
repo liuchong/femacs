@@ -767,19 +767,10 @@ unsafe extern "C" { pub fn rename (old: *const c_char, new: *const c_char) -> c_
 /// configuration is not an ASan build, so C 2970's ternary takes its `close_stream` arm).
 pub const ADDRESS_SANITIZER: bool = false;
 
-/// `<stdlib.h>`: `void exit (int);` and `#define EXIT_FAILURE 1` (the frozen macro table;
-/// no mirror carries them) — `force_open` is the only caller.
+/// `<stdlib.h>`: `void exit (int);` — `force_open` is the only caller.  `EXIT_FAILURE` itself
+/// now comes from the `stdlib.rs` mirror (which carried only `malloc` when this unit was
+/// written), and `perror`/`printf` from the `stdio.rs` mirror the same way (2026-10-04).
 unsafe extern "C" { pub fn exit (status: c_int) -> !; }
-/// `<stdlib.h>`: `#define EXIT_FAILURE 1` (measured; the frozen macro table).
-pub const EXIT_FAILURE: c_int = 1;
-
-/// `<stdio.h>`: `void perror (const char *);` and `int fprintf (FILE *, const char *, …);`
-/// (`stdio.rs` carries neither).
-unsafe extern "C" {
-  pub fn perror (s: *const c_char);
-  /* int printf (const char *, ...);  */
-  pub fn printf (format: *const c_char, ...) -> c_int;
-}
 
 /* ==========================================================================================
    `<termios.h>`, `<sys/ioctl.h>`, `<sys/param.h>` and `<signal.h>`: the names this unit

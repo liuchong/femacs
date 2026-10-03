@@ -372,3 +372,9 @@ Evidence: `build-tu src/sysdep.c` -> `built`; `extract-abi.py --check emacs/src/
 femacs/src/sysdep.rs` -> `OK`; `rustc --cfg enable_checking` on the materialized unit -> exit 0;
 `check-globals` 273 units / 0 missing; `check-mirror-dupes` 0 failures (the two mirrors removed
 duplicates rather than adding any); `check-declarations` 0.
+
+## 2026-10-04: perror/printf/EXIT_FAILURE come from the mirrors
+
+Same convergence as `emacs.md`: the `stdio.rs` and `stdlib.rs` mirrors now carry those three
+names, so the unit's own `EXIT_FAILURE` constant and its `perror`/`printf` declarations are
+deleted.  The remaining use-site block keeps `exit`, which no mirror declares yet.

@@ -42,6 +42,14 @@ pub mod stdio_decls {
     /* The entries the debug/dump paths print with.  Thirteen units declared `fprintf`
        themselves before this landed (status 3.79); the module + glob import is what lets any
        of them keep a copy without an `E0428` (0.1-10), and their copies are gone now.  */
+    /// C: <stdio.h>: `int printf (const char *format, ...);`  (`src/emacs.c` declared
+    /// this itself until the mirror was completed; lib-src/make-fingerprint.c is the second
+    /// unit that prints without a stream).
+    pub fn printf (format: *const c_char, ...) -> c_int;
+    /// C: <stdio.h>: `FILE *fopen (const char *restrict, const char *restrict);`
+    pub fn fopen (path: *const c_char, mode: *const c_char) -> *mut FILE;
+    /// C: <stdio.h>: `void perror (const char *);`
+    pub fn perror (s: *const c_char);
     /// C: <stdio.h>: `int fprintf (FILE *stream, const char *format, ...);`
     pub fn fprintf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
     /// C: <stdio.h>: `int putc (int c, FILE *stream);`
