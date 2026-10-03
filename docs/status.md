@@ -22,10 +22,11 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 77 轮，机械统计）**：磁盘上 **220 个单元**（`femacs/src/*.rs` 106 +
-  `femacs/lib/*.rs` 114）与 **123 个镜像**（`src/include/` 36 + `lib/include/` 87）。
+- **进度（2026-10-03 第 78 轮，机械统计）**：磁盘上 **221 个单元**（`femacs/src/*.rs` 106 +
+  `femacs/lib/*.rs` 115）与 **124 个镜像**（`src/include/` 36 + `lib/include/` 88）。
   **单元台账全部勾满**：`docs/ports/*.md` 里凡不是 `include-*.md` 的（即每个已竣工单元）未勾项为 **0**；
-  在飞的 `syntax`（4,229 行）与 `profiler`（701 行）本轮都已收口（`built` + `--check` OK + 0 未勾）。
+  `syntax`（4,229 行）、`profiler`（701 行）与 `regexec`（4,644 行）都已收口（`built` + `--check` OK + 0 未勾）；
+  本轮新增两个镜像 `pdumper`/`fingerprint`，以及 `filelock.c` 需要的 `boot-time`（`lib/include/boot-time.rs`）。
   **部分镜像（WIP）**：34 份 `include-*.md` 仍有未勾项，合计 **1,019** 行，最大的几份是
   `stdint.in`(135)、`unistd.in`(94)、`dispextern`(90)、`sys_stat.in`(74)、`window`(65)——
   它们只承载已竣工单元读到的声明，其余留待需要它们的单元，各自的 Decisions 里写明是 WIP。
@@ -34,7 +35,7 @@
   **权威口径仍是 `python3 tools/extract-abi.py --all`**（它逐个文件做 token/函数/常量比对）；
   它一次要遍历全树与宏表，本轮为守资源纪律没有跑，下一次跑出来时以它为准（上一轮它是
   234 目标 / 205 done / 27 wip / 0 failing，此后又落了 regcomp、terminal、atimer、§3.31 整批、
-  syntax、profiler，以及本轮新增的两个镜像 `pdumper`/`fingerprint`）。
+  syntax、profiler、regexec，以及新增的 `pdumper`/`fingerprint`/`boot-time` 三个镜像）。
 
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
