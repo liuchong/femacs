@@ -43,3 +43,14 @@
 
 - None.  The mirror declares exactly the eight functions, one global object and one typedef
   keymap.h declares, in keymap.h's order; `syms_of_keymap` keeps its position.
+
+## Integrator note (2026-10-03, with `port(src/keymap.c)`)
+
+The nine functions and one object this header declares are **defined by `femacs/src/keymap.rs`
+itself** (they are `keymap.c`'s non-`static` definitions), so a declaration at the same scope
+was a hard `E0428` against the definition.  They moved into `pub mod keymap_decls` + `use
+keymap_decls::*;` (PORTING.md 0.1-10/P-21, the `intervals_decls` shape): no name was added,
+renamed or dropped, and all eleven consumers of this mirror were rebuilt
+(`casefiddle`, `category`, `cmds`, `data`, `doc`, `emacs`, `intervals`, `macros`, `menu`,
+`minibuf`, `undo` - each printed `built`).
+

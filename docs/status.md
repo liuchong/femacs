@@ -878,3 +878,18 @@
   另取三个消费者（`indent.rs`、`minibuf.rs`、`lib/timespec.rs`）重建，全部 built。
   **教训写在这里**：一个"生成的镜像"出问题时，先问生成器读的是不是它声称的那个文件——这次是
   "读错文件"和"不反转义"两层叠在一起，只看 `config.rs` 的错值永远查不到第二层。
+
+- **3.65 更正：`44fa275`（keymap）的提交信息有三处与实测不符（2026-10-03）**：该提交的信息是集成者
+  写的，其中三处说法**没有对照台账**，与 keymap 通道的实测报告冲突——① 它说 `src/keymap.c` 有
+  `HAIKU`/`WINDOWSNT`/`HAVE_X_WINDOWS` 死臂：**该文件一条预处理器条件都没有**
+  （`check-cond-eval.py src/keymap.c` → `0 conditions, 0 unknown, 0 disagreements [VERIFIED]`，
+  P-08 无事可记，§3.49 不适用）；② 它写"36 个函数、9 个文件级对象"，台账实测是 **37 个函数、
+  10 个对象**（79 行清单全勾，`docs/ports/keymap.md`）；③ 它只列了 5 个镜像消费者，实际重建的是
+  **11 个**（`casefiddle`/`category`/`cmds`/`data`/`doc`/`emacs`/`intervals`/`macros`/`menu`/
+  `minibuf`/`undo`）。历史提交不改写（禁止 force-push），以台账与 `docs/ports/include-keymap.md`
+  的 Integrator note 为准。
+  **纪律（写进来以示后）**：提交信息里的**每一个数字**和**每一条 dead arm 的断言**，都必须能指出
+  当轮命令输出或台账里的出处；指不出就不写。这次是集成者按"这类文件通常有平台死臂"的**先验**
+  写了断言，而 keymap.c 恰好是一条条件都没有的那一种——正是本轮 `extract-abi`/`check-cond-eval`
+  反复强调的"门的结论要来自测量"在文档层的同一课。
+
