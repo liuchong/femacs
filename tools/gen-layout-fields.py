@@ -50,6 +50,16 @@ STRUCTS = {
     # the port models it as `bits: u64` and `sizeof`/`alignof` (8/4) are what the gate can
     # assert (PORTING.md 1.3).
     "glyph_slice": "src/dispextern.h",
+    # dispextern.h's display core: the glyph record (which the row below is a vector of),
+    # the pool its memory comes from, the matrix that owns the rows, and the row itself — the
+    # types `scroll.c`/`window.c`/`dispnew.c` read.  `glyph`'s bitfield run at 32-39 is the
+    # first mirrored unit that mixes three declared types (`unsigned : 3`, seven `bool_bf : 1`,
+    # `unsigned : 7`, `: 3`, `: 20`, `: 3`); the same is true of `glyph_row`'s fringe run, so
+    # the measured unit boundaries are what the mirror stores and the probe asserts around.
+    "glyph": "src/dispextern.h",
+    "glyph_pool": "src/dispextern.h",
+    "glyph_matrix": "src/dispextern.h",
+    "glyph_row": "src/dispextern.h",
     # dispextern.h segment II's platform-free types: the position pairs every display
     # function passes around, the slice `struct it` embeds, and the bidi state it carries.
     # `bidi_saved_info` is also the first type whose key names a Rust keyword (`type`), which

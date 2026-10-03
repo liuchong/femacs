@@ -108,6 +108,13 @@ pub const ON_HORIZONTAL_SCROLL_BAR: window_part = 11;
 pub const ON_RIGHT_DIVIDER: window_part = 12;
 pub const ON_BOTTOM_DIVIDER: window_part = 13;
 
+// dispextern.h 247-250: the two widths of the row's fringe members, carried here with the
+// section that uses them.
+/* Number of bits allocated to store fringe bitmap numbers.  */
+pub const FRINGE_ID_BITS: c_int = 16;                   // dispextern.h 247
+/* Number of bits allocated to store fringe bitmap heights.  */
+pub const FRINGE_HEIGHT_BITS: c_int = 8;                // dispextern.h 250
+
 /* The glyph datatype, used to represent characters on the display.
    It consists of a char code and a face id.  */
 // C: `typedef struct { int ch; int face_id; } GLYPH;` (dispextern.h 383-385) — an anonymous
@@ -128,6 +135,61 @@ pub fn GLYPH_CHAR (glyph: GLYPH) -> c_int { glyph.ch }
 #[inline(always)]
 pub fn GLYPH_FACE (glyph: GLYPH) -> c_int { glyph.face_id }
 
+/* Set a glyph's character code and face ID.  */
+// dispextern.h 393-397.  C's three macros assign the two `GLYPH` members; the port keeps
+// them as `macro_rules!` so a ported body keeps C's text (`SET_GLYPH (g, ch, face)`) and
+// evaluates each argument once, in C's order (the place expression is an lvalue in C too).
+macro_rules! SET_GLYPH_CHAR {
+  ($glyph:expr, $char:expr) => { ($glyph).ch = ($char) };
+}
+macro_rules! SET_GLYPH_FACE {
+  ($glyph:expr, $face:expr) => { ($glyph).face_id = ($face) };
+}
+macro_rules! SET_GLYPH {
+  ($glyph:expr, $char:expr, $face:expr) =>
+    { { ($glyph).ch = ($char); ($glyph).face_id = ($face); } };
+}
+
+/* Fill a character glyph GLYPH.  CODE, FACE_ID, PADDING_P correspond
+   to the bits defined for the typedef `GLYPH' in lisp.h.  */
+
+// dispextern.h 694-704: C's body is a `do { … } while (false)` block; Rust has no do-while, so
+// the port keeps the block and drops the `false` token (docs/ports/macro-body-notes.tsv, the
+// CHECK_CODING_SYSTEM shape).  `padding_p` and `face_id` are the `glyph_bits!` members.
+macro_rules! SET_CHAR_GLYPH {
+  ($frame:expr, $glyph:expr, $code:expr, $face_id:expr, $padding_p:expr) =>
+    { {
+        ($glyph).u.ch = ($code);
+        glyph_bits! (face_id, $glyph, ($face_id));
+        ($glyph).frame = ($frame);
+        glyph_bits! (padding_p, $glyph, ($padding_p));
+      } };
+}
+
+/* Fill a character type glyph GLYPH from a glyph typedef FROM as
+   defined in lisp.h.  */
+
+// dispextern.h 706-710.
+macro_rules! SET_CHAR_GLYPH_FROM_GLYPH {
+  ($frame:expr, $glyph:expr, $from:expr) =>
+    { SET_CHAR_GLYPH! ($frame, $glyph, GLYPH_CHAR ($from), GLYPH_FACE ($from), false) };
+}
+
+/* Construct a glyph code from a character glyph GLYPH.  If the
+   character is multibyte, return -1 as we can't use glyph table for a
+   multibyte character.  */
+
+// dispextern.h 712-724: the same do-while shape as `SET_CHAR_GLYPH` above.
+macro_rules! SET_GLYPH_FROM_CHAR_GLYPH {
+  ($g:expr, $glyph:expr) =>
+    { {
+        if ($glyph).u.ch < 256
+          { SET_GLYPH! ($g, ($glyph).u.ch, glyph_bits! (face_id, $glyph)); }
+        else
+          { SET_GLYPH! ($g, -1, 0); }
+      } };
+}
+
 /* The following are valid only if GLYPH_CODE_P (gc).  */
 
 // dispextern.h 2052-2062: the predicate character.c's char_width reads a display vector's
@@ -136,6 +198,18 @@ pub fn GLYPH_FACE (glyph: GLYPH) -> c_int { glyph.face_id }
 // comment at the end of this file lists it).
 pub const FACE_ID_BITS: c_int = 20;                                        // dispextern.h 562
 pub const MAX_FACE_ID: EMACS_INT = ((1 << FACE_ID_BITS) - 1) as EMACS_INT; // dispextern.h 1986
+
+
+/* Return true if G contains a valid character code.  */
+// dispextern.h 2041-2046.  `CHAR_VALID_P` is character.h's (character.rs); C's `GLYPH`
+// is passed by value, as C's INLINE function takes it.
+#[inline(always)]
+pub fn GLYPH_CHAR_VALID_P (g: GLYPH) -> bool
+{
+  // C's `int` argument converts implicitly to character.h's `intmax_t` parameter; Rust
+  // spells the widening out (the last sentence of the mirror's `glyph_bits!` note).
+  CHAR_VALID_P (GLYPH_CHAR (g) as intmax_t)
+}
 
 #[inline(always)]
 pub fn GLYPH_CODE_P (gc: Lisp_Object) -> bool
@@ -203,8 +277,930 @@ pub struct glyph_slice
 // x : 16 and y : 16 share `bits[0]` (bytes 0-3), width : 16 and height : 16 share `bits[1]`.
 pub const GLYPH_SLICE_X_MASK: u32 = 0xffff;             // bits 0-15 of bits[0]
 pub const GLYPH_SLICE_Y_SHIFT: u32 = 16;                // bits 16-31 of bits[0]
+pub const GLYPH_SLICE_Y_MASK: u32 = 0xffff;             // the 16 bits at GLYPH_SLICE_Y_SHIFT
 pub const GLYPH_SLICE_WIDTH_MASK: u32 = 0xffff;         // bits 0-15 of bits[1]
 pub const GLYPH_SLICE_HEIGHT_SHIFT: u32 = 16;           // bits 16-31 of bits[1]
+pub const GLYPH_SLICE_HEIGHT_MASK: u32 = 0xffff;        // the 16 bits at GLYPH_SLICE_HEIGHT_SHIFT
+
+/* Glyphs.
+
+   Be extra careful when changing this structure!  Esp. make sure that
+   functions producing glyphs, like append_glyph, fill ALL of the
+   glyph structure, and that GLYPH_EQUAL_P compares all
+   display-relevant members of glyphs (not to imply that these are the
+   only things to check when you add a member).  */
+
+// dispextern.h 472-639.  Measured with the frozen configuration's clang (`-Xclang
+// -fdump-record-layouts`; the probe is in the commit): `charpos`/`object`/`frame` at 0/8/16,
+// the four shorts at 24-30, the bitfields at 32-39, the `slice` union at 40 (8 bytes,
+// align 4) and the `u` union at 48 (4 bytes, align 4); sizeof 56, alignof 8.
+//
+// C packs those bitfields into two 4-byte units: the unit at 32 takes `type : 3`, the seven
+// `bool_bf : 1` members, `resolved_level : 7` and `bidi_type : 3`; the unit at 36 takes
+// `face_id : 20` (FACE_ID_BITS, 562) and `font_type : 3` in bits 4-6.  The port stores both
+// units as one `bits: u64` (PORTING.md 1.3 — a bitfield has no Rust field) and names every
+// member through `glyph_bits!` below, so `g->padding_p` is `glyph_bits! (padding_p, g)`.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glyph
+{
+  pub charpos: ptrdiff_t,               // dispextern.h 488
+  pub object: Lisp_Object,              // 495
+  pub frame: *mut c_void,               /// C: `struct frame *frame;` (dispextern.h 500)
+  pub pixel_width: c_short,             // 503
+  pub ascent: c_short,                  // 506
+  pub descent: c_short,
+  pub voffset: c_short,                 // 510
+  pub bits: u64,                        // 514-572 (the two measured 4-byte units)
+  pub slice: glyph_slice_union,         // 587
+  pub u: glyph_u,                       // 638
+}
+
+// dispextern.h 575-587: `union { struct glyph_slice img; struct { int from, to; } cmp;
+// struct { short upper_xoff, upper_yoff; short lower_xoff, lower_yoff; } glyphless; } slice;`
+// — an anonymous union whose member is `slice`.  Its natural port name `glyph_slice` is
+// already the C type above, so the port names it `glyph_slice_union` and records the
+// deviation (P-67); the two anonymous members are named `<union>_<member>`.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union glyph_slice_union
+{
+  /* Metrics of a partial glyph of an image (type == IMAGE_GLYPH).  */
+  pub img: glyph_slice,                 // dispextern.h 578
+  /* Start and end indices of glyphs of a grapheme cluster of a composition.  */
+  pub cmp: glyph_slice_cmp,             // 581
+  /* Pixel offsets for upper and lower part of the acronym.  */
+  pub glyphless: glyph_slice_glyphless, // 583
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glyph_slice_cmp
+{
+  pub from: c_int,                      // dispextern.h 581
+  pub to: c_int,
+}
+
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glyph_slice_glyphless
+{
+  pub upper_xoff: c_short,              // dispextern.h 584
+  pub upper_yoff: c_short,
+  pub lower_xoff: c_short,
+  pub lower_yoff: c_short,
+}
+
+// dispextern.h 590-638: `union { unsigned ch; struct { bool_bf automatic : 1;
+// unsigned id : 31; } cmp; int img_id; [uint32_t xwidget;] struct { unsigned height : 16;
+// unsigned ascent : 16; } stretch; struct { unsigned method : 2; bool_bf for_no_font : 1;
+// unsigned len : 4; unsigned ch : 25; } glyphless; unsigned val; } u;` — anonymous, named
+// after the member (P-67).
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub union glyph_u
+{
+  /* Character code for character glyphs (type == CHAR_GLYPH).  */
+  pub ch: c_uint,                       // dispextern.h 593
+  /* Sub-structures for type == COMPOSITE_GLYPH.  */
+  pub cmp: glyph_u_cmp,                 // 596-602
+  /* Image ID for image glyphs (type == IMAGE_GLYPH).  */
+  pub img_id: c_int,                    // 605
+  /* Xwidget ID (dispextern.h 607-610's `#ifdef HAVE_XWIDGETS`; dead on this target).  */
+  #[cfg (feature = "xwidgets")]
+  pub xwidget: u32,                     // 609
+  /* Sub-structure for type == STRETCH_GLYPH.  */
+  pub stretch: glyph_u_stretch,         // 613-620
+  /* Sub-stretch for type == GLYPHLESS_GLYPH.  */
+  pub glyphless: glyph_u_glyphless,     // 624-634
+  /* Used to compare all bit-fields above in one step.  */
+  pub val: c_uint,                      // 637
+}
+
+// dispextern.h 596-602: `bool_bf automatic : 1` (measured 48:0-0) and `unsigned id : 31`
+// (48:1-31) share the union's first 4-byte unit, so the pair is one `u32`.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glyph_u_cmp
+{
+  pub bits: u32,                        // automatic:1 | id:31
+}
+pub const GLYPH_U_CMP_AUTOMATIC: u32 = 1 << 0;
+pub const GLYPH_U_CMP_ID_SHIFT: u32 = 1;
+
+// dispextern.h 613-620: `unsigned height : 16` (measured 48:0-15) and `unsigned ascent : 16`
+// (50:0-15) are two 2-byte units, i.e. exactly two `u16` members (the union's alignment
+// comes from `ch`/`img_id`/`val`, so the two-byte members are laid out the same way).
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glyph_u_stretch
+{
+  /* The height of the glyph.  */
+  pub height: u16,                      // dispextern.h 616
+  /* The ascent of the glyph.  */
+  pub ascent: u16,                      // 619
+}
+
+// dispextern.h 624-634: one 4-byte unit holding `method : 2` (bits 0-1), `for_no_font : 1`
+// (bit 2), `len : 4` (bits 3-6) and `ch : 25` (bits 7-31) — measured.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glyph_u_glyphless
+{
+  pub bits: u32,                        // method:2 | for_no_font:1 | len:4 | ch:25
+}
+pub const GLYPH_U_GLYPHLESS_METHOD_SHIFT: u32 = 0;
+pub const GLYPH_U_GLYPHLESS_FOR_NO_FONT: u32 = 1 << 2;
+pub const GLYPH_U_GLYPHLESS_LEN_SHIFT: u32 = 3;
+pub const GLYPH_U_GLYPHLESS_CH_SHIFT: u32 = 7;
+
+// The position of every member of `glyph::bits`, in the C compiler's own words (bytes
+// 32-39 = two 4-byte units):
+//
+//     type 32:0-2, multibyte_p 32:3, left_box_line_p 32:4, right_box_line_p 32:5,
+//     overlaps_vertically_p 32:6, padding_p 32:7, glyph_not_available_p 33:0,
+//     avoid_cursor_p 33:1, resolved_level 33:2-34:0, bidi_type 34:1-34:3,
+//     face_id 36:0-19, font_type 38:4-38:6
+//
+// and the probe's byte pattern with each of them set to a value it can be told apart by
+// (`type` 5, `multibyte_p`/`left_box_line_p`/`overlaps_vertically_p`/`padding_p`/
+// `avoid_cursor_p` 1, `resolved_level` 0x7f, `bidi_type` 5, `face_id` 0xabcde,
+// `font_type` 3):
+//
+//     bytes 32-39 = dd fe 0b 00 de bc 3a 00
+pub const GLYPH_TYPE_SHIFT: u32 = 0;                    // 32:0-2  (`unsigned type : 3`)
+pub const GLYPH_TYPE_WIDTH: u32 = 3;
+pub const GLYPH_MULTIBYTE_P: u64 = 1 << 3;              // 32:3 (`bool_bf multibyte_p : 1`)
+pub const GLYPH_LEFT_BOX_LINE_P: u64 = 1 << 4;          // 32:4
+pub const GLYPH_RIGHT_BOX_LINE_P: u64 = 1 << 5;         // 32:5
+pub const GLYPH_OVERLAPS_VERTICALLY_P: u64 = 1 << 6;    // 32:6
+pub const GLYPH_PADDING_P: u64 = 1 << 7;                // 32:7
+pub const GLYPH_GLYPH_NOT_AVAILABLE_P: u64 = 1 << 8;    // 33:0
+pub const GLYPH_AVOID_CURSOR_P: u64 = 1 << 9;           // 33:1
+pub const GLYPH_RESOLVED_LEVEL_SHIFT: u32 = 10;         // 33:2-34:0 (`: 7`)
+pub const GLYPH_RESOLVED_LEVEL_WIDTH: u32 = 7;
+pub const GLYPH_BIDI_TYPE_SHIFT: u32 = 17;              // 34:1-34:3 (`: 3`)
+pub const GLYPH_BIDI_TYPE_WIDTH: u32 = 3;
+pub const GLYPH_FACE_ID_SHIFT: u32 = 32;                // 36:0-19 (`: FACE_ID_BITS`)
+pub const GLYPH_FACE_ID_WIDTH: u32 = 20;
+pub const GLYPH_FONT_TYPE_SHIFT: u32 = 52;              // 38:4-38:6 (`: 3`)
+pub const GLYPH_FONT_TYPE_WIDTH: u32 = 3;
+
+/// Read one numeric member of `glyph::bits` — C's `(GLYPH).MEMBER` (the value is zero-
+/// extended, as an unsigned C bitfield of that width is).
+#[inline(always)]
+pub fn glyph_bits_get (g: *const glyph, shift: u32, width: u32) -> c_int
+{
+  unsafe { (((*g).bits >> shift) & glyph_bits_mask (width)) as c_int }
+}
+
+/// Assign one numeric member of `glyph::bits` — C's `(GLYPH).MEMBER = VALUE`: only the
+/// member's bits change, and VALUE is evaluated once (it is taken by value here, where C
+/// converts it to the bitfield's width).
+#[inline(always)]
+pub fn glyph_bits_set (g: *mut glyph, shift: u32, width: u32, value: c_int)
+{
+  unsafe {
+    let mask = glyph_bits_mask (width) << shift;
+    (*g).bits = ((*g).bits & !mask) | ((((value as u64) & glyph_bits_mask (width)) << shift) & mask);
+  }
+}
+
+/// The `width`-bit mask of a `glyph::bits` member.
+#[inline(always)]
+pub fn glyph_bits_mask (width: u32) -> u64
+{
+  if width >= 64 { u64::MAX } else { (1u64 << width) - 1 }
+}
+
+/// Read one `bool_bf : 1` member of `glyph::bits` — C's `(GLYPH).MEMBER`.
+#[inline(always)]
+pub fn glyph_bool_p (g: *const glyph, mask: u64) -> bool
+{
+  unsafe { ((*g).bits & mask) != 0 }
+}
+
+/// Assign one `bool_bf : 1` member of `glyph::bits` — C's `(GLYPH).MEMBER = VALUE` (C's
+/// `bool` conversion: a nonzero VALUE is true).
+#[inline(always)]
+pub fn glyph_bool_set (g: *mut glyph, mask: u64, value: bool)
+{
+  unsafe {
+    let bits = &mut (*g).bits;
+    *bits = if value { *bits | mask } else { *bits & !mask };
+  }
+}
+
+/// C's bit members of `glyph` as a read/write pair, because Rust has no bitfields
+/// (PORTING.md 1.3): `g->type` is `glyph_bits! (type, g)`, `g->type = v` is
+/// `glyph_bits! (type, g, v)`.  The second argument is a *place* of type `glyph` — C's
+/// `(GLYPH)` — so the read form works on any expression of that type, exactly as C's does.
+macro_rules! glyph_bits {
+  (type, $g:expr) => { glyph_bits_get (&($g), GLYPH_TYPE_SHIFT, GLYPH_TYPE_WIDTH) };
+  (type, $g:expr, $value:expr) =>
+    { glyph_bits_set (&mut ($g), GLYPH_TYPE_SHIFT, GLYPH_TYPE_WIDTH, $value) };
+  (multibyte_p, $g:expr) => { glyph_bool_p (&($g), GLYPH_MULTIBYTE_P) };
+  (multibyte_p, $g:expr, $value:expr) => { glyph_bool_set (&mut ($g), GLYPH_MULTIBYTE_P, $value) };
+  (left_box_line_p, $g:expr) => { glyph_bool_p (&($g), GLYPH_LEFT_BOX_LINE_P) };
+  (left_box_line_p, $g:expr, $value:expr) =>
+    { glyph_bool_set (&mut ($g), GLYPH_LEFT_BOX_LINE_P, $value) };
+  (right_box_line_p, $g:expr) => { glyph_bool_p (&($g), GLYPH_RIGHT_BOX_LINE_P) };
+  (right_box_line_p, $g:expr, $value:expr) =>
+    { glyph_bool_set (&mut ($g), GLYPH_RIGHT_BOX_LINE_P, $value) };
+  (overlaps_vertically_p, $g:expr) => { glyph_bool_p (&($g), GLYPH_OVERLAPS_VERTICALLY_P) };
+  (overlaps_vertically_p, $g:expr, $value:expr) =>
+    { glyph_bool_set (&mut ($g), GLYPH_OVERLAPS_VERTICALLY_P, $value) };
+  (padding_p, $g:expr) => { glyph_bool_p (&($g), GLYPH_PADDING_P) };
+  (padding_p, $g:expr, $value:expr) => { glyph_bool_set (&mut ($g), GLYPH_PADDING_P, $value) };
+  (glyph_not_available_p, $g:expr) => { glyph_bool_p (&($g), GLYPH_GLYPH_NOT_AVAILABLE_P) };
+  (glyph_not_available_p, $g:expr, $value:expr) =>
+    { glyph_bool_set (&mut ($g), GLYPH_GLYPH_NOT_AVAILABLE_P, $value) };
+  (avoid_cursor_p, $g:expr) => { glyph_bool_p (&($g), GLYPH_AVOID_CURSOR_P) };
+  (avoid_cursor_p, $g:expr, $value:expr) =>
+    { glyph_bool_set (&mut ($g), GLYPH_AVOID_CURSOR_P, $value) };
+  (resolved_level, $g:expr) =>
+    { glyph_bits_get (&($g), GLYPH_RESOLVED_LEVEL_SHIFT, GLYPH_RESOLVED_LEVEL_WIDTH) };
+  (resolved_level, $g:expr, $value:expr) =>
+    { glyph_bits_set (&mut ($g), GLYPH_RESOLVED_LEVEL_SHIFT, GLYPH_RESOLVED_LEVEL_WIDTH, $value) };
+  (bidi_type, $g:expr) => { glyph_bits_get (&($g), GLYPH_BIDI_TYPE_SHIFT, GLYPH_BIDI_TYPE_WIDTH) };
+  (bidi_type, $g:expr, $value:expr) =>
+    { glyph_bits_set (&mut ($g), GLYPH_BIDI_TYPE_SHIFT, GLYPH_BIDI_TYPE_WIDTH, $value) };
+  (face_id, $g:expr) => { glyph_bits_get (&($g), GLYPH_FACE_ID_SHIFT, GLYPH_FACE_ID_WIDTH) };
+  (face_id, $g:expr, $value:expr) =>
+    { glyph_bits_set (&mut ($g), GLYPH_FACE_ID_SHIFT, GLYPH_FACE_ID_WIDTH, $value) };
+  (font_type, $g:expr) => { glyph_bits_get (&($g), GLYPH_FONT_TYPE_SHIFT, GLYPH_FONT_TYPE_WIDTH) };
+  (font_type, $g:expr, $value:expr) =>
+    { glyph_bits_set (&mut ($g), GLYPH_FONT_TYPE_SHIFT, GLYPH_FONT_TYPE_WIDTH, $value) };
+}
+
+/// C's `img.x`/`img.y`/`img.width`/`img.height` of `glyph_slice` (four `unsigned : 16`
+/// members measured into `bits [0]`/`bits [1]`), as a read-only accessor: Rust has no
+/// bitfields, so the member's name is the macro's first argument (PORTING.md 1.3).
+macro_rules! glyph_slice_bits {
+  (x, $slice:expr) => { ($slice).bits [0] & GLYPH_SLICE_X_MASK };
+  (y, $slice:expr) => { (($slice).bits [0] >> GLYPH_SLICE_Y_SHIFT) & GLYPH_SLICE_Y_MASK };
+  (width, $slice:expr) => { ($slice).bits [1] & GLYPH_SLICE_WIDTH_MASK };
+  (height, $slice:expr) =>
+    { (($slice).bits [1] >> GLYPH_SLICE_HEIGHT_SHIFT) & GLYPH_SLICE_HEIGHT_MASK };
+}
+
+/* Are glyph slices of glyphs *X and *Y equal?  It assumes that both
+   glyphs have the same type.
+
+   Note: for composition glyphs, we don't have to compare slice.cmp.to
+   because they should be the same if and only if slice.cmp.from are
+   the same.  */
+
+// dispextern.h 648-661.  X and Y are `struct glyph *` (C's `(X)` dereferences them); the
+// union members (`slice.img`, `slice.cmp`, `u` below) are read through Rust's `unsafe`
+// union access, exactly as C reads them.
+macro_rules! GLYPH_SLICE_EQUAL_P {
+  ($x:expr, $y:expr) => {
+    unsafe {
+      if glyph_bits! (type, *($x)) == IMAGE_GLYPH {
+        glyph_slice_bits! (x, (*($x)).slice.img) == glyph_slice_bits! (x, (*($y)).slice.img)
+          && glyph_slice_bits! (y, (*($x)).slice.img) == glyph_slice_bits! (y, (*($y)).slice.img)
+          && glyph_slice_bits! (width, (*($x)).slice.img)
+             == glyph_slice_bits! (width, (*($y)).slice.img)
+          && glyph_slice_bits! (height, (*($x)).slice.img)
+             == glyph_slice_bits! (height, (*($y)).slice.img)
+      } else {
+        glyph_bits! (type, *($x)) != COMPOSITE_GLYPH
+          || (*($x)).slice.cmp.from == (*($y)).slice.cmp.from
+      }
+    }
+  };
+}
+
+/* Are glyphs *X and *Y displayed equal?  */
+
+macro_rules! GLYPH_EQUAL_P {
+  ($x:expr, $y:expr) => {
+    unsafe {
+      glyph_bits! (type, *($x)) == glyph_bits! (type, *($y))
+        && (*($x)).u.val == (*($y)).u.val
+        && GLYPH_SLICE_EQUAL_P! ($x, $y)
+        && glyph_bits! (face_id, *($x)) == glyph_bits! (face_id, *($y))
+        && (*($x)).frame == (*($y)).frame
+        && glyph_bits! (padding_p, *($x)) == glyph_bits! (padding_p, *($y))
+        && glyph_bits! (left_box_line_p, *($x)) == glyph_bits! (left_box_line_p, *($y))
+        && glyph_bits! (right_box_line_p, *($x)) == glyph_bits! (right_box_line_p, *($y))
+        && (*($x)).voffset == (*($y)).voffset
+        && (*($x)).pixel_width == (*($y)).pixel_width
+    }
+  };
+}
+
+/* Are character codes, faces, padding_ps of glyphs *X and *Y equal?  */
+
+macro_rules! GLYPH_CHAR_AND_FACE_EQUAL_P {
+  ($x:expr, $y:expr) => {
+    unsafe {
+      (*($x)).u.ch == (*($y)).u.ch
+        && glyph_bits! (face_id, *($x)) == glyph_bits! (face_id, *($y))
+        && (*($x)).frame == (*($y)).frame
+        && glyph_bits! (padding_p, *($x)) == glyph_bits! (padding_p, *($y))
+    }
+  };
+}
+
+// dispextern.h 697-724 (`SET_CHAR_GLYPH`, `SET_CHAR_GLYPH_FROM_GLYPH` and
+// `SET_GLYPH_FROM_CHAR_GLYPH`) — not mirrored on this target yet: each C body ends in
+// `while (false)`, the construct the port records in `docs/ports/macro-body-notes.tsv`
+// (the `CHECK_CODING_SYSTEM`/`SAFE_ALLOCA_LISP` shape, PORTING.md 2.1).  They land with
+// that ledger row, together with their first display user (dispnew.c's glyph filling).
+
+macro_rules! GLYPH_INVALID_P { ($glyph:expr) => { GLYPH_CHAR ($glyph) < 0 }; }   // dispextern.h 727
+
+/* Is GLYPH a padding glyph?  */
+
+macro_rules! CHAR_GLYPH_PADDING_P {
+  ($glyph:expr) => { glyph_bits! (padding_p, $glyph) };                          // dispextern.h 729
+}
+
+/* Default value of the glyph font_type field.  */
+pub const FONT_TYPE_UNKNOWN: c_int = 0;                 // dispextern.h 644
+
+/* Glyph Pool.
+
+   Glyph memory for frame-based redisplay is allocated from the heap
+   in one vector kept in a glyph pool structure which is stored with
+   the frame.  The size of the vector is made large enough to cover
+   all windows on the frame.  */
+
+// dispextern.h 751-761.  Measured: sizeof 24, alignof 8 — `glyphs` 0, `nglyphs` 8,
+// `nrows` 16, `ncolumns` 20.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glyph_pool
+{
+  /* Vector of glyphs allocated from the heap.  */
+  pub glyphs: *mut glyph,               // dispextern.h 754
+  /* Allocated size of `glyphs'.  */
+  pub nglyphs: ptrdiff_t,               // 757
+  /* Number of rows and columns in a matrix.  */
+  pub nrows: c_int,                     // 760
+  pub ncolumns: c_int,
+}
+
+/* Glyph Matrix.
+
+   Three kinds of glyph matrices exist: frame glyph matrices (used only in the update phase
+   of terminal redisplay), window matrices that are sub-matrices of a frame matrix (sharing
+   a glyph pool), and free-standing window matrices that manage their own glyph storage
+   (window-based redisplay).  */
+
+// dispextern.h 795-859.  Measured: sizeof 104, alignof 8 — `pool` 0, `rows` 8,
+// `rows_allocated` 16, `nrows` 24, `matrix_x`/`matrix_y` 28/32, `matrix_w`/`matrix_h`
+// 36/40, `window_pixel_left`/`window_pixel_top` 44/48, `window_height`/`window_width`
+// 52/56, `window_vscroll` 60, `left_margin_glyphs`/`right_margin_glyphs` 64/68, the three
+// `bool_bf : 1` members in byte 72 (`bits`), `buffer` 80, `begv`/`zv` 88/96.
+//
+// `#ifdef GLYPH_DEBUG`'s `char method[512]` (847-850) is dead on this target; it stays
+// behind the feature (P-51), which is what keeps `buffer` at 80 and sizeof at 104.
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glyph_matrix
+{
+  /* The pool from which glyph memory is allocated, if any.  Null for frame matrices and
+     for window matrices managing their own storage.  */
+  pub pool: *mut glyph_pool,            // dispextern.h 800
+  /* Vector of glyph row structures.  The row at nrows - 1 is reserved for the mode line.  */
+  pub rows: *mut glyph_row,             // 804
+  /* Number of elements allocated for the vector rows above.  */
+  pub rows_allocated: ptrdiff_t,        // 807
+  /* The number of rows used by the window if all lines were displayed with the smallest
+     possible character height.  */
+  pub nrows: c_int,                     // 811
+  /* Origin within the frame matrix if this is a window matrix on a frame having a frame
+     matrix.  Both values are zero for window-based redisplay.  */
+  pub matrix_x: c_int,                  // 816
+  pub matrix_y: c_int,
+  /* Width and height of the matrix in columns and rows.  */
+  pub matrix_w: c_int,                  // 819
+  pub matrix_h: c_int,
+  /* For a window matrix of window W: W's pixel_left/pixel_top, and W's width and height
+     as returned by window_box, plus the value of W->vscroll when the matrix was last
+     adjusted.  Only set for window-based redisplay.  */
+  pub window_pixel_left: c_int,         // 827
+  pub window_pixel_top: c_int,
+  pub window_height: c_int,             // 828
+  pub window_width: c_int,
+  pub window_vscroll: c_int,            // 829
+  /* Number of glyphs reserved for left and right marginal areas when the matrix was last
+     adjusted.  */
+  pub left_margin_glyphs: c_int,        // 833
+  pub right_margin_glyphs: c_int,
+  /* no_scrolling_p:1 | tab_line_p:1 | header_line_p:1 — three `bool_bf : 1` members, all
+     in the byte at offset 72 (measured).  The port stores the byte and names the members
+     through `glyph_matrix_bits!` (PORTING.md 1.3).  */
+  pub bits: u8,                         // 838-845
+  #[cfg (feature = "glyph_debug")]
+  /* A string identifying the method used to display the matrix.  */
+  pub method: [c_char; 512],            // 848-849
+  /* The buffer this matrix displays.  Set in mark_window_display_accurate_1.  */
+  pub buffer: *mut c_void,              /// C: `struct buffer *buffer;` (dispextern.h 854)
+  /* Values of BEGV and ZV as of last redisplay.  Set in mark_window_display_accurate_1.  */
+  pub begv: ptrdiff_t,                  // 858
+  pub zv: ptrdiff_t,
+}
+
+// dispextern.h 838-845, measured 72:0-72:2 (one byte).
+pub const GLYPH_MATRIX_NO_SCROLLING_P: u8 = 1 << 0;     // dispextern.h 838
+pub const GLYPH_MATRIX_TAB_LINE_P: u8 = 1 << 1;         // 841
+pub const GLYPH_MATRIX_HEADER_LINE_P: u8 = 1 << 2;      // 845
+
+/// Read one `bool_bf : 1` member of `glyph_matrix::bits` — C's `(MATRIX)->MEMBER`.
+#[inline(always)]
+pub fn glyph_matrix_bool_p (matrix: *const glyph_matrix, mask: u8) -> bool
+{
+  unsafe { ((*matrix).bits & mask) != 0 }
+}
+
+/// Assign one `bool_bf : 1` member of `glyph_matrix::bits` — C's `(MATRIX)->MEMBER = VALUE`.
+#[inline(always)]
+pub fn glyph_matrix_bool_set (matrix: *mut glyph_matrix, mask: u8, value: bool)
+{
+  unsafe {
+    let bits = &mut (*matrix).bits;
+    *bits = if value { *bits | mask } else { *bits & !mask };
+  }
+}
+
+/// C's bit members of `glyph_matrix` as a read/write pair (PORTING.md 1.3): `m->tab_line_p`
+/// is `glyph_matrix_bits! (tab_line_p, m)`, `m->tab_line_p = v` is
+/// `glyph_matrix_bits! (tab_line_p, m, v)`.  The second argument is C's `(MATRIX)`.
+macro_rules! glyph_matrix_bits {
+  (no_scrolling_p, $matrix:expr) => { glyph_matrix_bool_p ($matrix, GLYPH_MATRIX_NO_SCROLLING_P) };
+  (no_scrolling_p, $matrix:expr, $value:expr) =>
+    { glyph_matrix_bool_set ($matrix, GLYPH_MATRIX_NO_SCROLLING_P, $value) };
+  (tab_line_p, $matrix:expr) => { glyph_matrix_bool_p ($matrix, GLYPH_MATRIX_TAB_LINE_P) };
+  (tab_line_p, $matrix:expr, $value:expr) =>
+    { glyph_matrix_bool_set ($matrix, GLYPH_MATRIX_TAB_LINE_P, $value) };
+  (header_line_p, $matrix:expr) => { glyph_matrix_bool_p ($matrix, GLYPH_MATRIX_HEADER_LINE_P) };
+  (header_line_p, $matrix:expr, $value:expr) =>
+    { glyph_matrix_bool_set ($matrix, GLYPH_MATRIX_HEADER_LINE_P, $value) };
+}
+
+/* Rows of glyphs in a windows or frame glyph matrix.
+
+   Each row is partitioned into three areas (left margin, text, right margin); the start
+   and end of each area is recorded in `glyphs` and `used`, whose last element is the end
+   of the whole row.  Rows in frame matrices reference glyph memory allocated in a frame
+   glyph pool; rows in window matrices that have no frame matrix point to glyphs allocated
+   from the heap.  The layout of the first four members is important — see
+   clear_glyph_row and copy_row_except_pointers.  */
+
+// dispextern.h 918-1154.  Measured: sizeof 256, alignof 8 — `glyphs` 0 (`short*[4]`),
+// `used` 32 (`short[4]`), `hash` 40, `x`/`y` 44/48, `pixel_width` 52, `ascent`/`height`
+// 56/60, `phys_ascent`/`phys_height` 64/68, `visible_height` 72, `extra_line_spacing` 76,
+// `extra_line_spacing_above` 80, `start` 88, `end` 136, `minpos` 184, `maxpos` 200,
+// `overlay_arrow_bitmap` 216, the fringe members in 220-248 (`bits`/`right_fringe_offset`/
+// `bools`) and `continuation_lines_width` 252.
+//
+// The fringe members are C's bitfields, measured one by one (bytes of the row):
+//
+//   220:0-15   left_user_fringe_bitmap : 16        245:0    fringe_bitmap_periodic_p : 1
+//   222:0-15   right_user_fringe_bitmap : 16       245:1    redraw_fringe_bitmaps_p : 1
+//   224:0-15   left_fringe_bitmap : 16             245:2    enabled_p : 1
+//   226:0-15   right_fringe_bitmap : 16            245:3    truncated_on_left_p : 1
+//   228:0-19   left_user_fringe_face_id : 20       245:4    truncated_on_right_p : 1
+//   232:0-19   right_user_fringe_face_id : 20      245:5    continued_p : 1
+//   236:0-19   left_fringe_face_id : 20            245:6    displays_text_p : 1
+//   240:0-19   right_fringe_face_id : 20           245:7    ends_at_zv_p : 1
+//   242:4-11   left_fringe_offset : 8 (signed)     246:0-7  fill_line_p … ends_in_middle_of_char_p
+//   244:0-7    right_fringe_offset : 8 (signed)    247:0-7  starts_in_middle_of_char_p … indicate_bob_p
+//   245:0-248:4                        (the 29    248:0-4  indicate_top_line_p … stipple_p
+//                                       `bool_bf : 1` members)
+//
+// so the port stores bytes 220-243 as `bits: [u32; 6]` (the six 4-byte allocation units, in
+// order), byte 244 as a plain `right_fringe_offset: i8` (an 8-bit signed bitfield is an
+// `i8`) and the 29-member run at 245-248 as `bools: [u8; 4]`; `glyph_row_bits!` names every
+// member.  `#ifdef HAVE_WINDOW_SYSTEM`'s `clip` (1149-1153) is dead on this target and
+// stays behind the feature (P-51).
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glyph_row
+{
+  /* Pointers to beginnings of areas.  The end of an area A is found at A + 1 in the
+     vector; the last element is the end of the whole row.  */
+  pub glyphs: [*mut glyph; 4],          // dispextern.h 934 (`1 + LAST_AREA`)
+  /* Number of glyphs actually filled in areas.  */
+  pub used: [c_short; 4],               // 938 (`1 + LAST_AREA`, sized for offset maths)
+  /* Hash code, available as soon as the row is constructed (display_line).  */
+  pub hash: c_uint,                     // 942
+  /* Window-relative x and y of the row's top-left corner; a negative y means abs(y)
+     pixels are invisible at the top, a negative x the same for the first text glyph.  */
+  pub x: c_int,                         // 950
+  pub y: c_int,
+  /* Width of the row in pixels, without the face extension at the end of the row and
+     without the tty truncation/continuation glyphs.  */
+  pub pixel_width: c_int,               // 955
+  /* Logical ascent and height of this line (zero/one on terminal frames).  */
+  pub ascent: c_int,                    // 959
+  pub height: c_int,
+  /* Physical ascent and height: extra over `ascent`/`height` means the row overlaps the
+     row above/below it.  */
+  pub phys_ascent: c_int,               // 964
+  pub phys_height: c_int,
+  /* Portion of the row that is visible (1 on tty frames, < 0 if completely invisible).  */
+  pub visible_height: c_int,            // 969
+  /* Extra line spacing added after this row.  */
+  pub extra_line_spacing: c_int,        // 973
+  /* Part of extra_line_spacing that goes above the line.  */
+  pub extra_line_spacing_above: c_int,  // 976
+  /* First and last text position of this row (see the header's own commentary on the
+     bidi cases); `start`/`end` are the positions the display started/ended at, and
+     `minpos`/`maxpos` the smallest and largest positions that contributed glyphs.  */
+  pub start: display_pos,               // 984
+  pub end: display_pos,                 // 993
+  pub minpos: text_pos,                 // 1001
+  pub maxpos: text_pos,
+  /* Non-zero means the overlay arrow bitmap is on this line (-1 = the default bitmap,
+     otherwise the fringe bitmap number).  */
+  pub overlay_arrow_bitmap: c_int,      // 1006
+  /* The fringe bit members measured above, in their allocation units: `bits [0]` is
+     bytes 220-223, `bits [1]` 224-227, `bits [2]` 228-231, `bits [3]` 232-235,
+     `bits [4]` 236-239 and `bits [5]` 240-243 (`right_fringe_face_id` plus the signed
+     `left_fringe_offset` in bits 20-27).  */
+  pub bits: [u32; 6],                   // 1009-1037
+  /* 244:0-7, `signed right_fringe_offset : FRINGE_HEIGHT_BITS` — an eight-bit signed
+     bitfield, i.e. an `i8`.  */
+  pub right_fringe_offset: i8,          // 1037
+  /* The run of 29 `bool_bf : 1` members at 245:0-248:4, one byte per four bytes'
+     worth of members (`bools [0]` is byte 245, `bools [3]` byte 248).  */
+  pub bools: [u8; 4],                   // 1040-1145
+  #[cfg (feature = "window_system")]
+  /* Non-NULL means the current clipping area, temporarily set while exposing a region
+     (coordinates are frame-relative).  */
+  pub clip: *const Emacs_Rectangle,     // 1152
+  /* Continuation lines width at the start of the row.  */
+  pub continuation_lines_width: c_int,  // 1147
+}
+
+/// Read one member of `glyph_row::bits` (a 4-byte allocation unit at bytes 220-243) —
+/// C's `(ROW)->MEMBER`; a signed member (the two fringe offsets) is sign-extended.
+#[inline(always)]
+pub fn glyph_row_bits_get (row: *const glyph_row, unit: usize, shift: u32, width: u32,
+                           signed_p: bool) -> c_int
+{
+  let raw = unsafe { ((*row).bits [unit] >> shift) & glyph_row_bits_mask (width) };
+  if signed_p { ((raw as i32) << (32 - width)) >> (32 - width) } else { raw as i32 }
+}
+
+/// Assign one member of `glyph_row::bits` — C's `(ROW)->MEMBER = VALUE`: only the member's
+/// bits change, and VALUE is evaluated once.
+#[inline(always)]
+pub fn glyph_row_bits_set (row: *mut glyph_row, unit: usize, shift: u32, width: u32,
+                           value: c_int)
+{
+  let mask = glyph_row_bits_mask (width) << shift;
+  unsafe {
+    let bits = &mut (*row).bits [unit];
+    *bits = (*bits & !mask) | ((((value as u32) & glyph_row_bits_mask (width)) << shift) & mask);
+  }
+}
+
+/// The `width`-bit mask of a `glyph_row::bits` member.
+#[inline(always)]
+pub fn glyph_row_bits_mask (width: u32) -> u32
+{
+  if width >= 32 { u32::MAX } else { (1u32 << width) - 1 }
+}
+
+/// Read one of `glyph_row`'s 29 `bool_bf : 1` members — C's `(ROW)->MEMBER`, stored in
+/// `bools [BYTE]` bit `SHIFT`.
+#[inline(always)]
+pub fn glyph_row_bool_p (row: *const glyph_row, byte: usize, shift: u32) -> bool
+{
+  unsafe { ((*row).bools [byte] >> shift) & 1 != 0 }
+}
+
+/// Assign one of `glyph_row`'s 29 `bool_bf : 1` members — C's `(ROW)->MEMBER = VALUE`,
+/// which evaluates VALUE once.
+#[inline(always)]
+pub fn glyph_row_bool_set (row: *mut glyph_row, byte: usize, shift: u32, value: bool)
+{
+  unsafe {
+    let b = &mut (*row).bools [byte];
+    *b = if value { *b | (1 << shift) } else { *b & !(1 << shift) };
+  }
+}
+
+/// C's bit members of `glyph_row` as a read/write pair, because Rust has no bitfields
+/// (PORTING.md 1.3): `row->enabled_p` is `glyph_row_bits! (enabled_p, row)`, and
+/// `row->enabled_p = v` is `glyph_row_bits! (enabled_p, row, v)`.  The second argument is
+/// C's `(ROW)` (a `*mut glyph_row`); every arm carries the member's measured position —
+/// `bools [BYTE]` bit `SHIFT`, or `bits [UNIT]` bits `SHIFT..SHIFT+WIDTH`.  The two fringe
+/// offsets are signed, everything else unsigned (the C declarations at 1009-1145).
+macro_rules! glyph_row_bits {
+  // bits [0], bytes 220-223: the two 16-bit fringe bitmap numbers.
+  (left_user_fringe_bitmap, $row:expr) => { glyph_row_bits_get ($row, 0, 0, 16, false) };
+  (left_user_fringe_bitmap, $row:expr, $value:expr) =>
+    { glyph_row_bits_set ($row, 0, 0, 16, $value) };
+  (right_user_fringe_bitmap, $row:expr) => { glyph_row_bits_get ($row, 0, 16, 16, false) };
+  (right_user_fringe_bitmap, $row:expr, $value:expr) =>
+    { glyph_row_bits_set ($row, 0, 16, 16, $value) };
+  // bits [1], bytes 224-227.
+  (left_fringe_bitmap, $row:expr) => { glyph_row_bits_get ($row, 1, 0, 16, false) };
+  (left_fringe_bitmap, $row:expr, $value:expr) =>
+    { glyph_row_bits_set ($row, 1, 0, 16, $value) };
+  (right_fringe_bitmap, $row:expr) => { glyph_row_bits_get ($row, 1, 16, 16, false) };
+  (right_fringe_bitmap, $row:expr, $value:expr) =>
+    { glyph_row_bits_set ($row, 1, 16, 16, $value) };
+  // bits [2]..[5], bytes 228-243: one 20-bit face id per unit, and unit 5's signed
+  // eight-bit left_fringe_offset in bits 20-27.
+  (left_user_fringe_face_id, $row:expr) => { glyph_row_bits_get ($row, 2, 0, 20, false) };
+  (left_user_fringe_face_id, $row:expr, $value:expr) =>
+    { glyph_row_bits_set ($row, 2, 0, 20, $value) };
+  (right_user_fringe_face_id, $row:expr) => { glyph_row_bits_get ($row, 3, 0, 20, false) };
+  (right_user_fringe_face_id, $row:expr, $value:expr) =>
+    { glyph_row_bits_set ($row, 3, 0, 20, $value) };
+  (left_fringe_face_id, $row:expr) => { glyph_row_bits_get ($row, 4, 0, 20, false) };
+  (left_fringe_face_id, $row:expr, $value:expr) =>
+    { glyph_row_bits_set ($row, 4, 0, 20, $value) };
+  (right_fringe_face_id, $row:expr) => { glyph_row_bits_get ($row, 5, 0, 20, false) };
+  (right_fringe_face_id, $row:expr, $value:expr) =>
+    { glyph_row_bits_set ($row, 5, 0, 20, $value) };
+  (left_fringe_offset, $row:expr) => { glyph_row_bits_get ($row, 5, 20, 8, true) };
+  (left_fringe_offset, $row:expr, $value:expr) =>
+    { glyph_row_bits_set ($row, 5, 20, 8, $value) };
+  // bools [0], byte 245.
+  (fringe_bitmap_periodic_p, $row:expr) => { glyph_row_bool_p ($row, 0, 0) };
+  (fringe_bitmap_periodic_p, $row:expr, $value:expr) =>
+    { glyph_row_bool_set ($row, 0, 0, $value) };
+  (redraw_fringe_bitmaps_p, $row:expr) => { glyph_row_bool_p ($row, 0, 1) };
+  (redraw_fringe_bitmaps_p, $row:expr, $value:expr) =>
+    { glyph_row_bool_set ($row, 0, 1, $value) };
+  (enabled_p, $row:expr) => { glyph_row_bool_p ($row, 0, 2) };
+  (enabled_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 0, 2, $value) };
+  (truncated_on_left_p, $row:expr) => { glyph_row_bool_p ($row, 0, 3) };
+  (truncated_on_left_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 0, 3, $value) };
+  (truncated_on_right_p, $row:expr) => { glyph_row_bool_p ($row, 0, 4) };
+  (truncated_on_right_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 0, 4, $value) };
+  (continued_p, $row:expr) => { glyph_row_bool_p ($row, 0, 5) };
+  (continued_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 0, 5, $value) };
+  (displays_text_p, $row:expr) => { glyph_row_bool_p ($row, 0, 6) };
+  (displays_text_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 0, 6, $value) };
+  (ends_at_zv_p, $row:expr) => { glyph_row_bool_p ($row, 0, 7) };
+  (ends_at_zv_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 0, 7, $value) };
+  // bools [1], byte 246.
+  (fill_line_p, $row:expr) => { glyph_row_bool_p ($row, 1, 0) };
+  (fill_line_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 1, 0, $value) };
+  (indicate_empty_line_p, $row:expr) => { glyph_row_bool_p ($row, 1, 1) };
+  (indicate_empty_line_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 1, 1, $value) };
+  (contains_overlapping_glyphs_p, $row:expr) => { glyph_row_bool_p ($row, 1, 2) };
+  (contains_overlapping_glyphs_p, $row:expr, $value:expr) =>
+    { glyph_row_bool_set ($row, 1, 2, $value) };
+  (full_width_p, $row:expr) => { glyph_row_bool_p ($row, 1, 3) };
+  (full_width_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 1, 3, $value) };
+  (mode_line_p, $row:expr) => { glyph_row_bool_p ($row, 1, 4) };
+  (mode_line_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 1, 4, $value) };
+  (tab_line_p, $row:expr) => { glyph_row_bool_p ($row, 1, 5) };
+  (tab_line_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 1, 5, $value) };
+  (overlapped_p, $row:expr) => { glyph_row_bool_p ($row, 1, 6) };
+  (overlapped_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 1, 6, $value) };
+  (ends_in_middle_of_char_p, $row:expr) => { glyph_row_bool_p ($row, 1, 7) };
+  (ends_in_middle_of_char_p, $row:expr, $value:expr) =>
+    { glyph_row_bool_set ($row, 1, 7, $value) };
+  // bools [2], byte 247.
+  (starts_in_middle_of_char_p, $row:expr) => { glyph_row_bool_p ($row, 2, 0) };
+  (starts_in_middle_of_char_p, $row:expr, $value:expr) =>
+    { glyph_row_bool_set ($row, 2, 0, $value) };
+  (overlapping_p, $row:expr) => { glyph_row_bool_p ($row, 2, 1) };
+  (overlapping_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 2, 1, $value) };
+  (mouse_face_p, $row:expr) => { glyph_row_bool_p ($row, 2, 2) };
+  (mouse_face_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 2, 2, $value) };
+  (ends_in_newline_from_string_p, $row:expr) => { glyph_row_bool_p ($row, 2, 3) };
+  (ends_in_newline_from_string_p, $row:expr, $value:expr) =>
+    { glyph_row_bool_set ($row, 2, 3, $value) };
+  (exact_window_width_line_p, $row:expr) => { glyph_row_bool_p ($row, 2, 4) };
+  (exact_window_width_line_p, $row:expr, $value:expr) =>
+    { glyph_row_bool_set ($row, 2, 4, $value) };
+  (cursor_in_fringe_p, $row:expr) => { glyph_row_bool_p ($row, 2, 5) };
+  (cursor_in_fringe_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 2, 5, $value) };
+  (ends_in_ellipsis_p, $row:expr) => { glyph_row_bool_p ($row, 2, 6) };
+  (ends_in_ellipsis_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 2, 6, $value) };
+  (indicate_bob_p, $row:expr) => { glyph_row_bool_p ($row, 2, 7) };
+  (indicate_bob_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 2, 7, $value) };
+  // bools [3], byte 248.
+  (indicate_top_line_p, $row:expr) => { glyph_row_bool_p ($row, 3, 0) };
+  (indicate_top_line_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 3, 0, $value) };
+  (indicate_eob_p, $row:expr) => { glyph_row_bool_p ($row, 3, 1) };
+  (indicate_eob_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 3, 1, $value) };
+  (indicate_bottom_line_p, $row:expr) => { glyph_row_bool_p ($row, 3, 2) };
+  (indicate_bottom_line_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 3, 2, $value) };
+  (reversed_p, $row:expr) => { glyph_row_bool_p ($row, 3, 3) };
+  (reversed_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 3, 3, $value) };
+  (stipple_p, $row:expr) => { glyph_row_bool_p ($row, 3, 4) };
+  (stipple_p, $row:expr, $value:expr) => { glyph_row_bool_set ($row, 3, 4, $value) };
+}
+
+/* Get a pointer to row number ROW in matrix MATRIX.  If GLYPH_DEBUG is defined, the
+   function matrix_row checks that we don't try to access rows that are out of bounds.  */
+
+// dispextern.h 1163-1170: GLYPH_DEBUG is undef on this target, so C compiles the pointer
+// sum (the dead `matrix_row` arm's text is named in the ledger, not repeated here — the
+// `CHECK_MATRIX` shape above).  `rows + ROW` is Rust's `add`; ROW is a C int index.
+macro_rules! MATRIX_ROW {
+  ($matrix:expr, $row:expr) => { (*($matrix)).rows.add (($row) as usize) };
+}
+
+/* Return a pointer to the row reserved for the mode line in MATRIX.  Row
+   MATRIX->nrows - 1 is always reserved for the mode line.  */
+macro_rules! MATRIX_MODE_LINE_ROW {
+  ($matrix:expr) => { (*($matrix)).rows.offset ((*($matrix)).nrows as isize - 1) };
+}
+
+/* Return a pointer to the row reserved for the tab line in MATRIX.  This is always the
+   first row in MATRIX because that's the only way that works in frame-based redisplay.  */
+macro_rules! MATRIX_TAB_LINE_ROW {
+  ($matrix:expr) => { (*($matrix)).rows };
+}
+
+/* Return a pointer to the row reserved for the header line in MATRIX.  This is always the
+   second row in MATRIX because that's the only way that works in frame-based redisplay.  */
+macro_rules! MATRIX_HEADER_LINE_ROW {
+  ($matrix:expr) => { {
+    let matrix = $matrix;
+    if glyph_matrix_bits! (tab_line_p, matrix) { (*matrix).rows.add (1) } else { (*matrix).rows }
+  } };
+}
+
+/* Return a pointer to first row in MATRIX used for text display.  */
+macro_rules! MATRIX_FIRST_TEXT_ROW {
+  ($matrix:expr) => { {
+    let matrix = $matrix;
+    let rows = (*matrix).rows;
+    if glyph_row_bits! (mode_line_p, rows) {
+      if glyph_row_bits! (mode_line_p, rows.add (1)) { rows.add (2) } else { rows.add (1) }
+    } else {
+      rows
+    }
+  } };
+}
+
+/* Return a pointer to the first glyph in the text area of a row.  MATRIX is the glyph
+   matrix accessed, and ROW is the row index in MATRIX.  */
+macro_rules! MATRIX_ROW_GLYPH_START {
+  ($matrix:expr, $row:expr) => { (*MATRIX_ROW! ($matrix, $row)).glyphs [TEXT_AREA as usize] };
+}
+
+/* Return the number of used glyphs in the text area of a row.  */
+macro_rules! MATRIX_ROW_USED {
+  ($matrix:expr, $row:expr) => { (*MATRIX_ROW! ($matrix, $row)).used [TEXT_AREA as usize] };
+}
+
+/* Return the character/ byte position at which the display of ROW starts.  BIDI Note: this
+   is the smallest character/byte position among characters in ROW, i.e. the first
+   logical-order character displayed by ROW, which is not necessarily the smallest
+   horizontal position.  */
+macro_rules! MATRIX_ROW_START_CHARPOS { ($row:expr) => { (*($row)).minpos.charpos }; }
+macro_rules! MATRIX_ROW_START_BYTEPOS { ($row:expr) => { (*($row)).minpos.bytepos }; }
+
+/* Return the character/ byte position at which ROW ends.  BIDI Note: this is the largest
+   character/byte position among characters in ROW, i.e. the last logical-order character
+   displayed by ROW, which is not necessarily the largest horizontal position.  */
+macro_rules! MATRIX_ROW_END_CHARPOS { ($row:expr) => { (*($row)).maxpos.charpos }; }
+macro_rules! MATRIX_ROW_END_BYTEPOS { ($row:expr) => { (*($row)).maxpos.bytepos }; }
+
+/* Return the vertical position of ROW in MATRIX.  */
+macro_rules! MATRIX_ROW_VPOS {
+  ($row:expr, $matrix:expr) => { (*($row)).offset_from ((*($matrix)).rows) };
+}
+
+/* Return the last glyph row + 1 in MATRIX on window W reserved for text.  If W has a mode
+   line, the last row in the matrix is reserved for it.  */
+// `window_wants_mode_line` is declared by window.h and defined by window.c; the mirror
+// keeps C's call (P-72 rule ③'s hazard: this macro expands only in units that include
+// window.rs, exactly as C's does only in units that include window.h).
+macro_rules! MATRIX_BOTTOM_TEXT_ROW {
+  ($matrix:expr, $w:expr) => { {
+    let matrix = $matrix;
+    (*matrix).rows.offset ((*matrix).nrows as isize
+                           - if unsafe { window_wants_mode_line ($w) } { 1 } else { 0 })
+  } };
+}
+
+/* Non-zero if the face of the last glyph in ROW's text area has to be drawn to the end of
+   the text area.  */
+macro_rules! MATRIX_ROW_EXTENDS_FACE_P { ($row:expr) => { glyph_row_bits! (fill_line_p, $row) }; }
+
+/* Set and query the enabled_p flag of glyph row ROW in MATRIX.  */
+macro_rules! SET_MATRIX_ROW_ENABLED_P {
+  ($matrix:expr, $row:expr, $value:expr) =>
+    { glyph_row_bits! (enabled_p, MATRIX_ROW! ($matrix, $row), $value) };
+}
+macro_rules! MATRIX_ROW_ENABLED_P {
+  ($matrix:expr, $row:expr) => { glyph_row_bits! (enabled_p, MATRIX_ROW! ($matrix, $row)) };
+}
+
+/* Non-zero if ROW displays text.  Value is non-zero if the row is blank but displays a
+   line end.  */
+macro_rules! MATRIX_ROW_DISPLAYS_TEXT_P {
+  ($row:expr) => { glyph_row_bits! (displays_text_p, $row) };
+}
+
+/* Helper macros */
+
+macro_rules! MR_PARTIALLY_VISIBLE {
+  ($row:expr) => { (*($row)).height != (*($row)).visible_height };
+}
+
+// `WINDOW_TAB_LINE_HEIGHT`/`WINDOW_HEADER_LINE_HEIGHT`/`WINDOW_BOX_HEIGHT_NO_MODE_LINE`
+// are window.h's macros; the mirror keeps C's text, and the expansion resolves in the units
+// that include window.rs (P-72 rule ③), exactly as it does in C's units that include
+// window.h.  `MR_PARTIALLY_VISIBLE_AT_TOP`'s C body names the tab- and header-line heights,
+// `MR_PARTIALLY_VISIBLE_AT_BOTTOM`'s the box height without the mode line.
+macro_rules! MR_PARTIALLY_VISIBLE_AT_TOP {
+  ($w:expr, $row:expr) =>
+    { (*($row)).y < WINDOW_TAB_LINE_HEIGHT! ($w) + WINDOW_HEADER_LINE_HEIGHT! ($w) };
+}
+
+macro_rules! MR_PARTIALLY_VISIBLE_AT_BOTTOM {
+  ($w:expr, $row:expr) => {
+    (*($row)).y + (*($row)).height - (*($row)).extra_line_spacing
+      > WINDOW_BOX_HEIGHT_NO_MODE_LINE! ($w)
+  };
+}
+
+/* Non-zero if ROW is not completely visible in window W.  */
+macro_rules! MATRIX_ROW_PARTIALLY_VISIBLE_P {
+  ($w:expr, $row:expr) => {
+    MR_PARTIALLY_VISIBLE! ($row)
+      && (MR_PARTIALLY_VISIBLE_AT_TOP! ($w, $row) || MR_PARTIALLY_VISIBLE_AT_BOTTOM! ($w, $row))
+  };
+}
+
+/* Non-zero if ROW is partially visible at the top of window W.  */
+macro_rules! MATRIX_ROW_PARTIALLY_VISIBLE_AT_TOP_P {
+  ($w:expr, $row:expr) =>
+    { MR_PARTIALLY_VISIBLE! ($row) && MR_PARTIALLY_VISIBLE_AT_TOP! ($w, $row) };
+}
+
+/* Non-zero if ROW is partially visible at the bottom of window W.  */
+macro_rules! MATRIX_ROW_PARTIALLY_VISIBLE_AT_BOTTOM_P {
+  ($w:expr, $row:expr) =>
+    { MR_PARTIALLY_VISIBLE! ($row) && MR_PARTIALLY_VISIBLE_AT_BOTTOM! ($w, $row) };
+}
+
+/* Return the bottom Y + 1 of ROW.   */
+macro_rules! MATRIX_ROW_BOTTOM_Y { ($row:expr) => { (*($row)).y + (*($row)).height }; }
+
+/* Is ROW the last visible one in the display described by the iterator structure pointed
+   to by IT?.  */
+macro_rules! MATRIX_ROW_LAST_VISIBLE_P {
+  ($row:expr, $it:expr) => { MATRIX_ROW_BOTTOM_Y! ($row) >= (*($it)).last_visible_y };
+}
+
+/* Non-zero if ROW displays a continuation line.  */
+macro_rules! MATRIX_ROW_CONTINUATION_LINE_P {
+  ($row:expr) => { (*($row)).continuation_lines_width > 0 };
+}
+
+/* Non-zero if ROW ends in the middle of a character.  This is the case for continued lines
+   showing only part of a display table entry or a control char, or an overlay string.  */
+macro_rules! MATRIX_ROW_ENDS_IN_MIDDLE_OF_CHAR_P {
+  ($row:expr) => {
+    (*($row)).end.dpvec_index > 0
+      || (*($row)).end.overlay_string_index >= 0
+      || glyph_row_bits! (ends_in_middle_of_char_p, $row)
+  };
+}
+
+/* Non-zero if ROW ends in the middle of an overlay string.  */
+macro_rules! MATRIX_ROW_ENDS_IN_OVERLAY_STRING_P {
+  ($row:expr) => { (*($row)).end.overlay_string_index >= 0 };
+}
+
+/* Non-zero if ROW starts in the middle of a character.  See above.  */
+macro_rules! MATRIX_ROW_STARTS_IN_MIDDLE_OF_CHAR_P {
+  ($row:expr) => {
+    (*($row)).start.dpvec_index > 0
+      || glyph_row_bits! (starts_in_middle_of_char_p, $row)
+      || ((*($row)).start.overlay_string_index >= 0
+          && (*($row)).start.string_pos.charpos > 0)
+  };
+}
+
+/* True means ROW overlaps its predecessor.  */
+macro_rules! MATRIX_ROW_OVERLAPS_PRED_P {
+  ($row:expr) => { (*($row)).phys_ascent > (*($row)).ascent };
+}
+
+/* True means ROW overlaps its successor.  */
+macro_rules! MATRIX_ROW_OVERLAPS_SUCC_P {
+  ($row:expr) => {
+    (*($row)).phys_height - (*($row)).phys_ascent > (*($row)).height - (*($row)).ascent
+  };
+}
+
+/* A glyph for a space.  */
+unsafe extern "C" { pub static mut space_glyph: glyph; }     // dispextern.h 1338
+
+/* Display a warning message.  Used by cmds.c's self-insert-command path (dispextern.h
+   3900; the definition is in keyboard.c's mirror).  */
+unsafe extern "C" { pub fn bitch_at_user (); }          // dispextern.h 3900
 
 /* Enumeration of the areas in a glyph row.  */
 pub type glyph_row_area = c_int;
@@ -442,10 +1438,10 @@ pub struct bidi_string_data
 // in the frozen configuration (docs/baseline/config/darwin-arm64.macros.tsv), so C compiles
 // the `#else` arm: `((void) 0)`.  `CHECK_MATRIX` therefore does not evaluate its argument,
 // and neither does the port's live arm (the `aclinfo_free` family's shape in
-// lib/include/acl.rs).  The dead arm keeps C's text (PORTING.md P-51) and types its pointee
-// as `c_void` until `struct glyph_matrix`'s mirror lands (P-72 rule ③).
+// lib/include/acl.rs); the dead arm's function keeps C's prototype now that
+// `struct glyph_matrix` is declared above (it is the same header's type).
 #[cfg(feature = "glyph_debug")]
-unsafe extern "C" { pub fn check_matrix_pointer_lossage (matrix: *mut c_void); }  // C: `struct glyph_matrix *`
+unsafe extern "C" { pub fn check_matrix_pointer_lossage (matrix: *mut glyph_matrix); }  // dispextern.h 864
 // dispextern.h 869.
 macro_rules! CHECK_MATRIX { ($matrix:expr) => { { let _ = ($matrix); 0 } }; }
 

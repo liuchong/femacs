@@ -273,3 +273,5 @@ parse_expression	switch,case,default,break,fallthrough	PORTING.md 2.2: the three
 Fforward_char	1	cmds.c 75: C passes the int literal `1` to `bool forward`; the mirror's `move_point (n: Lisp_Object, forward: bool)` cannot take an int, so the call spells `true` (PORTING.md 5.2, the Fset_case_table precedent)
 Fbackward_char	0	cmds.c 88: the same pair, `0` -> `false` (PORTING.md 5.2)
 syms_of_cmds	doc	the DEFVAR_LISP invocation takes C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no counterpart; the docstring itself is still compared by the constants rule (the syms_of_data precedent)
+SET_CHAR_GLYPH	false	dispextern.h 694-704: C's body is `do { … } while (false)`; Rust has no do-while, so the port runs the block once and never mentions `false` (the CHECK_CODING_SYSTEM precedent)
+SET_GLYPH_FROM_CHAR_GLYPH	false	dispextern.h 712-724: the same do-while shape

@@ -199,6 +199,64 @@
 
   SZ (struct glyph_slice); AL (struct glyph_slice);
 
+  SZ (struct glyph); AL (struct glyph);
+  OFF (struct glyph, charpos);
+  OFF (struct glyph, object);
+  OFF (struct glyph, frame);
+  OFF (struct glyph, pixel_width);
+  OFF (struct glyph, ascent);
+  OFF (struct glyph, descent);
+  OFF (struct glyph, voffset);
+  OFF (struct glyph, slice);
+  OFF (struct glyph, u);
+
+  SZ (struct glyph_pool); AL (struct glyph_pool);
+  OFF (struct glyph_pool, glyphs);
+  OFF (struct glyph_pool, nglyphs);
+  OFF (struct glyph_pool, nrows);
+  OFF (struct glyph_pool, ncolumns);
+
+  SZ (struct glyph_matrix); AL (struct glyph_matrix);
+  OFF (struct glyph_matrix, pool);
+  OFF (struct glyph_matrix, rows);
+  OFF (struct glyph_matrix, rows_allocated);
+  OFF (struct glyph_matrix, nrows);
+  OFF (struct glyph_matrix, matrix_x);
+  OFF (struct glyph_matrix, matrix_y);
+  OFF (struct glyph_matrix, matrix_w);
+  OFF (struct glyph_matrix, matrix_h);
+  OFF (struct glyph_matrix, window_pixel_left);
+  OFF (struct glyph_matrix, window_pixel_top);
+  OFF (struct glyph_matrix, window_height);
+  OFF (struct glyph_matrix, window_width);
+  OFF (struct glyph_matrix, window_vscroll);
+  OFF (struct glyph_matrix, left_margin_glyphs);
+  OFF (struct glyph_matrix, right_margin_glyphs);
+  OFF (struct glyph_matrix, buffer);
+  OFF (struct glyph_matrix, begv);
+  OFF (struct glyph_matrix, zv);
+
+  SZ (struct glyph_row); AL (struct glyph_row);
+  OFF (struct glyph_row, glyphs);
+  OFF (struct glyph_row, used);
+  OFF (struct glyph_row, hash);
+  OFF (struct glyph_row, x);
+  OFF (struct glyph_row, y);
+  OFF (struct glyph_row, pixel_width);
+  OFF (struct glyph_row, ascent);
+  OFF (struct glyph_row, height);
+  OFF (struct glyph_row, phys_ascent);
+  OFF (struct glyph_row, phys_height);
+  OFF (struct glyph_row, visible_height);
+  OFF (struct glyph_row, extra_line_spacing);
+  OFF (struct glyph_row, extra_line_spacing_above);
+  OFF (struct glyph_row, start);
+  OFF (struct glyph_row, end);
+  OFF (struct glyph_row, minpos);
+  OFF (struct glyph_row, maxpos);
+  OFF (struct glyph_row, overlay_arrow_bitmap);
+  OFF (struct glyph_row, continuation_lines_width);
+
   SZ (struct text_pos); AL (struct text_pos);
   OFF (struct text_pos, charpos);
   OFF (struct text_pos, bytepos);
