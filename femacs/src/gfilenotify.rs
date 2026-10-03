@@ -18,7 +18,7 @@ You should have received a copy of the GNU General Public License
 along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
 
 
-/* femacs: emacs/src/gfilenotify.c (@ 338 lines) is not compiled by the frozen configuration.
+/* femacs: emacs/src/gfilenotify.c (@ 336 lines) is not compiled by the frozen configuration.
 
    `build/emacs-ref/src/Makefile`'s platform object variables are empty for this target
    (`WINDOW_SYSTEM_OBJ=`, `HAIKU_OBJ = `, `MSDOS_OBJ =`, `CYGWIN_OBJ=`), so the file is not in
