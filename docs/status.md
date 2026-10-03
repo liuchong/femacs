@@ -1271,3 +1271,13 @@
   最快的自检）；改成"按内容定位的整段删除"就干净了。另外 `sysdep.rs` 用的是**单行** extern 块
   （`unsafe extern "C" { pub fn uname (…) -> c_int; }`），行首锚定的匹配器抓不到它，靠编译期的 `E0428`
   才发现，已单独删掉。
+
+- **3.86 第 98 轮：`langinfo.rs` 的 `CODESET` 是错的（14 是 glibc 的值）——fns lane 用冻结预处理器抓到（2026-10-04）**：
+  fns lane 在写 `Flocale_info` 时把镜像与冻结目标对拍：`clang -E -dM -include langinfo.h` 给出
+  **`CODESET 0`**（`DAY_1 7` … `DAY_7 13`、`MON_1 21` … `MON_12 32`），而 `lib/include/langinfo.rs` 写的是
+  **14**（镜像注释自己就写着 "glibc's `_NL_CTYPE_CODESET_NAME` = 14"——值是抄 glibc 的，不是这台机器的）。
+  这不是"两条写法"而是**数值错误**：`Flocale_info` 的 `codeset` 支会拿错 item 去问 `nl_langinfo`。
+  ① 修正 `CODESET` 为实测的 **0**，并把 `DAY_*`/`MON_*` 十九条按实测值补进镜像（19 条 + `CODESET` 都在同一份
+  `const` 顶层作用域，所以**改镜像与删单元副本必须同一个提交**，§3.80 的教训）。
+  ② `fns.rs` 顶部那 19 条就地声明删除，改用镜像（唯一消费者就是它；`build-tu` + `--check` 都过）。
+  **教训**：系统头镜像里的每个数值都该有"这台机器实测"的出处；注释里出现别的 libc 的宏名就是警报。
