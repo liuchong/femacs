@@ -37,6 +37,12 @@
   234 目标 / 205 done / 27 wip / 0 failing，此后又落了 regcomp、terminal、atimer、§3.31 整批、
   syntax、profiler、regexec，以及新增的 `pdumper`/`fingerprint`/`boot-time` 三个镜像）。
 
+- **照抄树（Verbatim）已全部落地（2026-10-03 第 79 轮）**：`emacs/{lisp,test,etc,doc,leim,admin}`
+  → `femacs/<同名>`，**逐字节照抄**，共 **4,607 文件 / 约 4.6M 行**（lisp 1,627 / test 1,555 /
+  etc 887 / doc 257 / leim 28 / admin 253），六个目录各一次签名提交并推送。判定不再是行文说明
+  而是机器门：**`python3 tools/check-verbatim.py`**（文件清单 + 逐块 sha256 流式比对，越界即非 0），
+  当前输出 `6 trees, 4607 files, 0 failures`。`test/` 与 `lisp/` 一个字节都没动（硬约束 5）。
+
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
   （`gen-port-map`/`gen-baseline`/`gen-lifetimes` 后 `git diff --exit-code`）。
@@ -466,3 +472,14 @@
   subroutines for GNU Emacs.  */`）——那是被复制文本的一部分，GPL 要求保留；
   也不动 `docs/baseline/config/darwin-arm64.macros.tsv` 的 `PACKAGE_STRING "GNU Emacs 32.0.50"`
   （它是 clang 实测的冻结值，改了就与参照不符）。
+
+- **3.37 照抄树落地与机器门（2026-10-03 第 79 轮）**：目标里 `lisp/`、`test/`、`etc/`、`doc/`、
+  `leim/`、`admin/` 是"原样复制，一个字都不许改"，`docs/port-map.md` 把它们标成 `Verbatim`
+  （目标 `femacs/<top>/**`），但此前仓库里**一个都没落**（`git ls-files` 在这六个前缀下为 0）。
+  本轮用 `cp -R -p` 复制并逐个 `diff -r` 核对（6 个目录全部 0 行差异），然后补上**可复算的机器门**
+  `tools/check-verbatim.py`：按 `docs/port-map.md` 的 `VERBATIM_DIRS` 比文件清单（缺文件与改文件
+  同等算失败）再流式比内容（1 MiB 块 sha256，4.6M 行不进内存），非 0 退出。以后任何一轮改动
+  `femacs/lisp` 或 `femacs/test` 都会被它当场抓住——这正是硬约束 5（不许改测试）此前缺的那道闸。
+  注意 `docs/baseline` 的 `Verbatim 58 entries` 里还有 49 个**根目录文件**（`INSTALL`、`CONTRIBUTE`
+  等）尚未复制，它们不在本轮六棵树内，等根目录入库策略定了再一起处理（`port-plan.md` 只把它们
+  记为 "repository root"，没有 gate）。

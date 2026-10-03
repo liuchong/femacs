@@ -273,4 +273,5 @@ python3 tools/extract-abi.py --all
 # 参考树完整性（不允许被改动）
 git -C emacs status --short          # 必须为空
 diff -r emacs/lisp femacs/lisp       # 必须无差异（原样复制校验）
+python3 tools/check-verbatim.py      # 同一件事的机器门：六棵照抄树，清单 + 内容
 ```
