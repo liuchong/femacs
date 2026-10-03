@@ -1023,6 +1023,24 @@ def function_spans(text: str) -> list[dict]:
             pass          # a typed declarator is a definition only when `{` shares its line
         elif rest == "" or rest.startswith("__attribute__"):
             for jj in range(j + 1, min(j + 9, len(rows))):
+                # A line the frozen configuration does not compile is not part of the
+                # declarator: src/emacs.c's `main` is written as
+                #   #if !defined HAVE_ANDROID || defined ANDROID_STUBIFY
+                #   int
+                #   main (int argc, char **argv)
+                #   #else
+                #   int
+                #   android_emacs_init (int argc, char **argv, char *dump_file)
+                #   #endif
+                #   {
+                # and the dead arm's `int` between the live declarator and the body used to
+                # stop this lookahead, so the file's entry point was not a function of the
+                # file at all: `#[unsafe(no_mangle)]` on its definition was reported as an
+                # invented exported symbol, and nothing checked the body.  Measured over
+                # every `*.c` of the reference tree (test/ excluded): the verdict changes
+                # for emacs.c only.
+                if not lines.live[jj]:
+                    continue
                 nxt = rows[jj].strip()
                 if not nxt:
                     continue
