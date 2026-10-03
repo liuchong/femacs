@@ -18,6 +18,7 @@ everything else must agree.
 from __future__ import annotations
 
 import argparse
+import re
 import glob
 import os
 import re
@@ -35,6 +36,24 @@ RUST_NOISE = re.compile(r'^(__R|_R|_ZN)')
 # §3.25 empty unit, so the comparison has to follow the same edge: the port half of
 # `lib/mini-gmp-gnulib` is `build/femacs/mini-gmp.o`.
 ALIASES = {"lib/mini-gmp-gnulib": "lib/mini-gmp"}
+
+# The port's one systematic symbol deviation from C (docs/status.md 3.29 and 3.60): C keeps a
+# `DEFVAR_*` variable's storage inside the single `globals` object (`globals.f_<name>`,
+# lisp.h 3495-3530), so the reference object exports no symbol for it, while the port gives
+# each variable its own object - which is what makes `include/globals.rs`'s *external*
+# declarations linkable, e.g. `keyboard.c` reading `Vprint_level`.  The extra symbols are
+# counted and reported rather than failed on, so a reference object for a unit that owns
+# variables still yields a real comparison of everything else.
+DEFVAR = re.compile(r"DEFVAR_(?:LISP|BOOL|INT|LISP_NOPRO)\s*\(\s*\"[^\"]*\"\s*,\s*(\w+)")
+
+
+def defvar_carriers(dir_name: str, stem: str) -> set[str]:
+    """The `_V*`/`_print_*` symbols this unit's C file is expected to add over C's."""
+    path = Path(ROOT) / "emacs" / dir_name / f"{stem}.c"
+    if not path.is_file():
+        return set()
+    return {"_" + name for name in DEFVAR.findall(path.read_text(encoding="utf-8",
+                                                                 errors="replace"))}
 
 
 def syms(path: str) -> tuple[set[str], set[str]]:
@@ -69,6 +88,7 @@ def main() -> int:
     bad = []
     stale = []
     compared = 0
+    carriers = 0
     for rs in sorted(glob.glob(f"{ROOT}/femacs/{a.dir}/*.rs")):
         stem = os.path.basename(rs)[:-3]
         mine_stem = ALIASES.get(f"{a.dir}/{stem}", f"{a.dir}/{stem}").split("/")[1]
@@ -79,8 +99,10 @@ def main() -> int:
         compared += 1
         me, _ = syms(mine)
         re_, _ = syms(ref)
+        allowed = defvar_carriers(a.dir, stem) & me
         missing = sorted(re_ - me)
-        invented = sorted(me - re_)
+        invented = sorted(me - re_ - allowed)
+        carriers += len(allowed)
         key = f"{a.dir}/{stem}"
         if missing or invented:
             if key in pending:
@@ -94,7 +116,9 @@ def main() -> int:
         print(f"{key}: listed in {a.pending} but its symbols now match — remove the entry")
     if not a.quiet:
         print(f"check-symbols: {compared} units compared, {len(bad)} mismatched, "
-              f"{len(pending)} still pending")
+              f"{len(pending)} still pending"
+              + (f"; {carriers} DEFVAR carrier symbol(s) are the port's documented "
+                 f"deviation from C's single `globals` object (status 3.60)" if carriers else ""))
     return 1 if bad or stale else 0
 
 
