@@ -1037,6 +1037,13 @@ def _load_frozen_build_sources() -> set[str] | None:
 FROZEN_BUILD_SOURCES = _load_frozen_build_sources()
 
 
+# The directories a ported unit can live in, the same set `xtask` walks (docs/port-map.md pairs
+# every reference file with a target path).  `not_built_on_target` and the empty-unit note used
+# to look at `src/` alone, which is why a lib-src or nt file could never be recognised as one the
+# frozen configuration excludes (2026-10-04, the batch-F opening).
+UNIT_DIRS = ("src", "lib", "lib-src", "lwlib", "oldXMenu", "exec", "nt", "msdos")
+
+
 def not_built_on_target(c_path) -> bool:
     """True for an `src/*.c` translation unit the frozen build's source lists exclude (§3.31).
 
@@ -1051,7 +1058,7 @@ def not_built_on_target(c_path) -> bool:
         return False
     parts = path.parts
     key = "/".join(parts[-2:]) if len(parts) >= 2 else str(c_path)
-    return key.startswith("src/") and key not in FROZEN_BUILD_SOURCES
+    return key.split("/")[0] in UNIT_DIRS and key not in FROZEN_BUILD_SOURCES
 
 
 def clear_unbuilt_inventory(inv: dict) -> int:
@@ -1743,7 +1750,10 @@ def main() -> int:
         return 2
     inv = ci.inventory(Path(args.paths[0]))
     if not_built_on_target(args.paths[0]):
-        rs = Path(args.root) / "src" / (Path(args.paths[0]).stem + ".rs")
+        stem = Path(args.paths[0]).stem
+        rs = next((Path(args.root) / d / f"{stem}.rs" for d in UNIT_DIRS
+                   if (Path(args.root) / d / f"{stem}.rs").is_file()),
+                  Path(args.root) / "src" / f"{stem}.rs")
         if not rs.is_file() or not re.search(r"\bfn\s+\w+",
                                             rs.read_text(encoding="utf-8", errors="replace")):
             clear_unbuilt_inventory(inv)

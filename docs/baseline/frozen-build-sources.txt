@@ -79,3 +79,28 @@ src/window.c
 src/xdisp.c
 src/xfaces.c
 src/xml.c
+# --- 2026-10-04: the other directories the port has opened (batch F) -------------------------
+# `make -n` in build/emacs-ref/src covers src/ only.  The other directories are derived from the
+# same reference build's own makefiles, one line per translation unit that the configuration
+# compiles (the same authority as above: what the build system's lists select for this target):
+#
+#   lib-src/:  `grep -E '^(INSTALLABLES|UTILITIES|DONT_INSTALL)' build/emacs-ref/lib-src/Makefile`
+#              gives the program lists - INSTALLABLES (etags emacsclient ebrowse), UTILITIES
+#              (hexl, movemail, and update-game-score only `$(and $(use_gamedir), ...)`), and
+#              DONT_INSTALL (make-docfile make-fingerprint).  pop.c is linked into movemail.
+#              Everything else in lib-src/ is excluded: update-game-score.c needs use_gamedir,
+#              asset-directory-tool.c needs Android, seccomp-filter.c needs --with-seccomp, and
+#              ntlib.c / digest-doc.c / sorted-doc.c / profile.c / test-distrib.c appear in no
+#              list at all - so their ledgers must not demand an implementation (policy 3.31).
+#   exec/:     nothing - the reference build has no exec/ directory and no rule reaches it (the
+#              exec loader belongs to the unexec path, and this build is HAVE_PDUMPER=1).
+#   lwlib/ oldXMenu/: the X11 widget libraries; this target has no window system.
+#   nt/ msdos/: the Windows and MS-DOS ports; this target is darwin.
+lib-src/ebrowse.c
+lib-src/emacsclient.c
+lib-src/etags.c
+lib-src/hexl.c
+lib-src/make-docfile.c
+lib-src/make-fingerprint.c
+lib-src/movemail.c
+lib-src/pop.c

@@ -1411,3 +1411,18 @@
   （`check-mirror-dupes` 从 7 failures 回到 0）；`string.rs` 补 `memmem`；`lib/include/min-max.rs` 新建。
   **教训**：往共享镜像里加常量前先查它是否已属于另一个镜像或已被多个单元本地定义——`fseeko`/`SEEK_*` 就是
   这样被回退成用点声明的（`SEEK_*` 归 `unistd.in.rs`，`fseeko` 放镜像会让不含 `off_t` 的消费者编不过）。
+
+- **3.96 批次 F 的"未编译文件"基线（2026-10-04 第 98 轮第五批）**：`docs/baseline/frozen-build-sources.txt`
+  过去只有 `src/`（由 `make -n` 生成），于是 `lib-src/`、`lwlib/`、`oldXMenu/`、`exec/`、`nt/`、`msdos/`
+  的文件**永远得不到 3.31 的"未编译 → 空单元 + 说明"处置**。本轮：①给基线补一段批次 F 派生段落——
+  `lib-src/` 按参照 `lib-src/Makefile` 的 `INSTALLABLES`/`UTILITIES`/`DONT_INSTALL` 三个变量判定
+  （编 8 个：ebrowse/emacsclient/etags/hexl/make-docfile/make-fingerprint/movemail/pop），`exec/` 无任何规则
+  （参照目录里根本没有 `exec/`，HAVE_PDUMPER=1），`lwlib`/`oldXMenu` 是 X11 部件库、`nt`/`msdos` 是平台移植；
+  ②`tools/extract-abi.py` 里两处 `src/` 硬编码（`not_built_on_target` 的成员判定、清清单时的单元路径查找）
+  换成与 `xtask` 同一份 `UNIT_DIRS`——**这是让 3.31 对非 `src/` 目录真正生效的唯一开关**（改前实测：
+  `lib-src/update-game-score.c` 的输出仍是 24 条待办，改后才变成"Nothing in this file is required here"）。
+  ③按新基线落 **4 个 lib-src 空单元**：`update-game-score.c`(506)、`seccomp-filter.c`(409)、`ntlib.c`(601)、
+  `asset-directory-tool.c`(338)，每个 `--check` = OK、`build-tu` = built，台账用 `extract-abi` 生成并写明
+  "deferred declarations"（`docs/ports/{update-game-score,seccomp-filter,ntlib,asset-directory-tool}.md`）。
+  **下一步可复用**：`lwlib/`(15)、`oldXMenu/`(33)、`exec/`(8)、`nt/`(31)、`msdos/`(2) 共 89 个 `.c` 现在都满足 3.31，
+  可以按同样方式一次性落空单元（域内 `lib-src` 只剩 `.h` 两个需要真镜像）。
