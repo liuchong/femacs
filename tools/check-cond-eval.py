@@ -100,6 +100,14 @@ def main() -> int:
         live = ci.dead_branch_map(text)               # fills ci.CONDITION_LOG
         unknown = disagreements = total = 0
         for line_index, kind, expr, got in ci.CONDITION_LOG:
+            # `CONDITION_LOG` keeps the reference line's own text, so a trailing block comment
+            # is still in `expr`.  C removes comments in translation phase 3, *before* a
+            # directive is read, so the condition clang must be asked about is the comment-free
+            # one: `#ifdef INLCR /* ... */` made the probe ill-formed (`unterminated /* comment`
+            # and then `missing ')' after 'defined'`), and clang answered "dead" for a branch
+            # the frozen build compiles - two false disagreements in src/sysdep.c, found by that
+            # lane and fixed here (status 3.63).
+            expr = re.sub(r"/\*.*$", "", expr).rstrip()
             prefix = "\n".join(lines[:line_index])
             tag = f"{Path(header).stem}_{line_index}"
             want = clang_verdict(header, prefix, expr, kind, include_dirs, tag)

@@ -844,3 +844,16 @@
   ④ 全树复核：`extract-abi.py --all` → **357 个端口文件 / 333 done / 24 WIP / 0 failing**。
   这条记录的意义是：一个"吞 token"的扫描缺陷既能让门误报，也能让门**漏报真差异**；修好后是后者被
   消灭，不是前者被引入。
+
+- **3.63 第 96 轮：条件文本里的尾随注释——clang 探针被自己写坏（2026-10-03）**：sysdep 通道报的
+  那 2 个 `check-cond-eval` disagreement（C 1135 `#ifdef INLCR /* … */`、C 1279
+  `#ifndef HAIKU /* … */`）根因查明并修掉。`tools/cinventory.py` 的 `CONDITION_LOG` 按设计保存
+  **参照行自己的文本**（注释还在），而 `tools/check-cond-eval.py` 拿它直接拼 clang 探针——C 在
+  **翻译阶段 3** 就去掉注释（早于读指令），于是探针里那句 `#ifdef INLCR /* …` 是**语法坏的**
+  （`unterminated /* comment`，随后 `missing ')' after 'defined'`），clang 于是对一条冻结构建**会**
+  编译的分支回答"dead"，被记成 disagreement。修法：探针侧在建探针前把 `/* …` 去掉（求值器侧本来就
+  已经这么做了，只有探针漏了）。实测 `src/sysdep.c` 从 **2 个 disagreement 变为 `283 conditions,
+  0 unknown, 0 disagreements`**；全表 `--verified` 复跑 **5717 conditions, 4 unknown,
+  0 disagreements**（无回归）。注意：**不**因此把 `sysdep.c` 写进已验证清单——它按 §3.49 抄两支，
+  而 §3.51 明确"已验证清单"与"抄两支"互斥（`--write-verified` 会因为 0 disagreement 把它收进去，
+  所以这一步不能顺手跑）。
