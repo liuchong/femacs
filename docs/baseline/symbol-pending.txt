@@ -12,17 +12,12 @@ lib/byteswap
 lib/c-ctype
 lib/endian
 lib/fingerprint
-lib/issymlink
 lib/memeq
 lib/mini-gmp-gnulib
 lib/openat-die
-lib/stat-time
 lib/stdc_bit_width
 lib/stdc_count_ones
 lib/stdc_leading_zeros
 lib/stdc_memreverse8u
 lib/stdc_trailing_zeros
 lib/streq
-lib/strnul
-lib/timespec
-lib/u64

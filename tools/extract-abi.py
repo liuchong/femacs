@@ -1338,6 +1338,28 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     # reference has not got (and, worse, links to whatever it finds).
     if not is_header_like:
         c_exported = {f["name"] for f in c["functions"] if not f.get("static")}
+        # gnulib's `<stem>.c` wrappers set the header's inline qualifier to
+        # `_GL_EXTERN_INLINE` — the C99 inline model's "this translation unit emits the
+        # external definitions" file (u64.c 18, memeq.c 17, …).  Their own text defines no
+        # function, yet the object exports the *header*'s, so the header's non-static
+        # functions belong to this unit's exported set (PORTING.md P-81).
+        if re.search(r"#\s*define\s+_GL_\w+_INLINE\s+_GL_EXTERN_INLINE\b", c_source):
+            for inc in re.findall(r'#\s*include\s+[<"]([^>"]+)[>"]', c_source):
+                candidates = [c_path.parent / inc]
+                if inc.endswith(".h"):
+                    candidates.append(c_path.parent / (inc[:-2] + ".in.h"))
+                for cand in candidates:
+                    if cand.is_file():
+                        c_exported |= {f["name"] for f in ci.inventory(cand)["functions"]
+                                       if not f.get("static")}
+                        # A header's `_GL_*_INLINE` definitions whose declarator carries
+                        # attributes after the parameter list (`string.in.h` 1264-1265's
+                        # `_gl_strnul`) are a shape the field scanner does not key, so the
+                        # qualifier's own line is read for the name as well.
+                        c_exported |= set(re.findall(
+                            r"_GL_\w+_INLINE\b[^;{}\n]*?\b(\w+)\s*\(",
+                            cand.read_text(encoding="utf-8", errors="replace")))
+                        break
         for name in sorted(no_mangle_names - c_exported):
             problems.append(f"fn {name} carries #[unsafe(no_mangle)] but the reference "
                             f"does not define a non-static function of that name "
