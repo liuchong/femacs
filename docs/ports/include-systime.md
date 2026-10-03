@@ -50,3 +50,12 @@
 ### Call-relationship differences (D7)
 
 - None.  Two functions, one constant, ten declarations, same order.
+- **The ten declarations moved into a module (2026-10-03, `src/timefns.c`'s port).**  They
+  were crate-root `unsafe extern "C"` items, which collide with the *definitions* `timefns.rs`
+  is the single home of (seven of the ten; `keyboard.c` defines `set_waiting_for_input`):
+  a definition at a unit's crate root next to a crate-root declaration is `E0428` (measured
+  while porting `timefns.c`).  They now live in `pub mod systime_decls { use super::*; … }`
+  with `use systime_decls::*;`, the shape `time.in.rs`'s `time_decls` and `bignum_externs`
+  use (PORTING.md 0.1-10/P-21), so definitions shadow the glob import.  `atimer.rs` and
+  `profiler.rs` (the two callers) are unchanged: the names stay in scope.  No `/// C:` line
+  changed; `spikes/lisp-abi-probe.sh` still finds the same ten prototypes.

@@ -365,3 +365,14 @@ map_sub_char_table	1	`bool different_value = 1;` initializes a bool from C's int
 release_select_lock	0	thread.c 35-39's `HAVE_GLIB` arm is dead, so C's live definition is the `#else` no-op `do { } while (0)`; the port's macro has an empty body and `do`/`while` are already in MACRO_TOKEN_SKIP (docs/ports/thread.md)
 syms_of_threads	0,doc	C 1264-1266's `#ifndef THREADS_ENABLED if (0) #endif` makes the twenty-one `defsubr`s unregistered on this target, and the port keeps C's `if (0)` as `if false` (the dup2_nothrow row's class); the three `DEFVAR_LISP`/`DEFSYM` invocations take C's docstring positionally (`$doc`), so C's `doc:` label has no counterpart (the syms_of_data precedent)
 NEAR_STACK_TOP	0,__builtin_frame_address	thread.h 45-49's live arm is `((void) (addr), __builtin_frame_address (0))` (`HAVE___BUILTIN_FRAME_ADDRESS` is 1, macro table 1693); PORTING.md 4.3 renders the builtin with the frame-pointer register (`asm!`), so neither the builtin's name nor its literal argument is spelled (docs/ports/include-thread.md)
+tzlookup	uninit	C's `Lisp_Object abbr UNINIT;` (timefns.c 277) is conf_post.h's zero marker (`= {0,}` in the frozen configuration; the data.c `Fmake_variable_buffer_local` row), so the port writes `let mut abbr: Lisp_Object = lisp_h_Qnil ();` and the macro name cannot reappear.
+Fdecode_time	uninit	the same `struct ticks_hz th UNINIT;` (timefns.c 1543, the tzlookup row).
+time_error	switch,case,default	C's `switch (err)` (timefns.c 364) falls through ENOMEM/EOVERFLOW into `default`; every arm is `noreturn`, and the port spells the chain as a `match` with `_` (PORTING.md 2.2, the doprnt/data.c precedent).
+decode_ticks_hz	switch,case,default	C's `switch (cform)` (timefns.c 592) becomes the port's `match` arms (PORTING.md 2.2).
+ticks_hz_list4	mpz_t	C's `mpz_t const *zticks` (timefns.c 666) decays to `*const __mpz_struct` in the port (P-49, the rescale_for_division row).
+ticks_hz_hz_ticks	mpz_t	the same `mpz_t const *zticks` (timefns.c 788; P-49).
+time_cmp	mpz_t	C's `mpz_t const *za`/`*zb` (timefns.c 1270-1271) decay to `*const __mpz_struct` (P-49).
+emacs_getenv_TZ	0	C's `: 0` (timefns.c 1998) is a null `char *`; the port writes `std::ptr::null_mut ()` (the NULL family of token-aliases.tsv covers `null`/`null_mut`/`is_null` but not the integer spelling).
+syms_of_timefns	doc	the DEFVAR_BOOL invocation takes C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no Rust counterpart (the syms_of_filelock row).
+Fformat_time_string	1	C 1500 passes the int literal `1` to the mirror's `nocopy: bool` parameter, so the port spells `true` (the casetab `Fset_standard_case_table` precedent).
+Fcurrent_time_string	pridmax	C 1877 concatenates `PRIdMAX` ("jd" on the frozen target) into the sprintf format; the port's format literal is `%jd` (the lock_file_1 row).

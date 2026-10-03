@@ -83,18 +83,28 @@ pub fn timespec_valid_p (t: timespec) -> bool
    (HI << LO_TIME_BITS) + LO + US / 1e6 + PS / 1e12.  */
 pub const LO_TIME_BITS: c_int = 16;
 
-unsafe extern "C" {
-  // Parameter names come from the definitions (C's prototypes have none): `keyboard.c`'s
-  // `set_waiting_for_input` and `timefns.c`'s seven.
-  pub fn set_waiting_for_input (time_to_clear: *mut timespec);      // keyboard.c
-  pub fn make_timeval (t: timespec) -> timeval;                     // timefns.c
-  pub fn monotonic_coarse_timespec () -> timespec;                  // timefns.c
-  pub fn make_lisp_time (t: timespec) -> Lisp_Object;               // timefns.c
-  pub fn timespec_to_lisp (t: timespec) -> Lisp_Object;             // timefns.c
-  pub fn list4_to_timespec (high: Lisp_Object, low: Lisp_Object,
-                            usec: Lisp_Object, psec: Lisp_Object) -> timespec;  // timefns.c
-  pub fn lisp_time_argument (specified_time: Lisp_Object) -> timespec;          // timefns.c
-  pub fn float_time (specified_time: Lisp_Object) -> c_double;                  // timefns.c
-  pub fn init_timefns ();                                                       // timefns.c
-  pub fn syms_of_timefns ();                                                    // timefns.c
+/* The declarations live in a uniquely-named module with a glob import: `timefns.c`
+   *defines* the seven functions systime.h declares for it (and `keyboard.c` defines the
+   eighth), and a definition at the unit's crate root would collide with a crate-root
+   declaration (E0428, PORTING.md 0.1-10; the same shape time.in.rs's `time_decls` uses).
+   `systime_decls`, not `decls`: two mirrors in one unit must not share the module name
+   (docs/status.md 3.18).  Parameter names come from the definitions (C's prototypes have
+   none): `keyboard.c`'s `set_waiting_for_input` and `timefns.c`'s seven.  */
+pub mod systime_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn set_waiting_for_input (time_to_clear: *mut timespec);      // keyboard.c
+    pub fn make_timeval (t: timespec) -> timeval;                     // timefns.c
+    pub fn monotonic_coarse_timespec () -> timespec;                  // timefns.c
+    pub fn make_lisp_time (t: timespec) -> Lisp_Object;               // timefns.c
+    pub fn timespec_to_lisp (t: timespec) -> Lisp_Object;             // timefns.c
+    pub fn list4_to_timespec (high: Lisp_Object, low: Lisp_Object,
+                              usec: Lisp_Object, psec: Lisp_Object) -> timespec;  // timefns.c
+    pub fn lisp_time_argument (specified_time: Lisp_Object) -> timespec;          // timefns.c
+    pub fn float_time (specified_time: Lisp_Object) -> c_double;                  // timefns.c
+    pub fn init_timefns ();                                                       // timefns.c
+    pub fn syms_of_timefns ();                                                    // timefns.c
+  }
 }
+use systime_decls::*;
