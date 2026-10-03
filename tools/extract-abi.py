@@ -923,29 +923,70 @@ def read_exclusions(path: Path) -> dict[str, str]:
     return out
 
 
-def line_drift_tolerance(rs_path: Path, default: float = 0.05) -> float:
-    """The line-count tolerance for a ported file (docs/ports/line-drift-tolerance.tsv).
+def c_live_lines(c_path: Path, total: int) -> int:
+    """The reference file's lines the frozen configuration actually compiles.
 
-    The 5% the rule allows every file is meant to catch text that was *left out*; a form
-    Rust cannot spell in the same number of physical lines legitimately costs more, and the
-    ledger names those forms per file (tparam.c's shared-statement chain, itree.c's bitfield
-    masks and `match` arms).  The per-function token check is unaffected by this table.
+    Only used for the files whose tolerance row says `live` (see `line_drift_basis`): the
+    drift check's default baseline is the file's *total* line count, because a gnulib port
+    keeps its dead arms as `#[cfg (feature = ...)]` text (P-51) and those files are longer
+    than C's live text by design.  A file that instead *records* its dead region in the
+    ledger (comp.c, treesit.c, gnutls.c, systhread.c, sqlite.c) has no such text, so the
+    total-line baseline would force a ~0.99 tolerance that silences the check; for those the
+    row asks for the live baseline and the signal stays meaningful.
+
+    The branch verdicts come from the same evaluator the declarations use, under
+    `blind_conditions`, which drops the macro table for a file outside cond-eval-verified.txt
+    (an unverified file therefore keeps both branches live).  `#if 0` is dead everywhere, as
+    it is for the inventory.
+    """
+    try:
+        text = c_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return total
+    with ci.blind_conditions(c_path):
+        live = ci.dead_branch_map(text)
+    if len(live) != text.count("\n") + 1:
+        return total
+    n = sum(1 for flag in live if flag)
+    return n or total
+
+
+def line_drift_rule(rs_path: Path, default: float = 0.05) -> tuple[float, str]:
+    """The line-count tolerance and baseline for a ported file.
+
+    docs/ports/line-drift-tolerance.tsv's rows come from two situations, and the fourth column
+    says which one the row is:
+
+      * the port carries *more* text than C - a form Rust cannot spell in the same number of
+        physical lines (tparam.c's shared-statement chain, itree.c's bitfield masks and
+        `match` arms), or a P-51 `#[cfg (feature = ...)]` dead arm kept as text (the gnulib
+        files).  The baseline is the reference file's **total** line count, which is the
+        default.
+      * the port carries *less* text - the file's dead region is recorded in its ledger instead
+        of transcribed (comp.c, treesit.c, gnutls.c, systhread.c, sqlite.c).  Those rows say
+        `live`, and the baseline is the C text this configuration compiles (`c_live_lines`),
+        so the check keeps pointing at the text the port is supposed to have instead of
+        demanding a ~0.99 tolerance that would silence it.
+
+    The per-function token check is unaffected by either.
     """
     table = HERE.parent / "docs" / "ports" / "line-drift-tolerance.tsv"
     try:
         text = table.read_text(encoding="utf-8")
     except OSError:
-        return default
+        return default, "total"
     for line in text.splitlines():
         if not line or line.startswith("#"):
             continue
         parts = line.split("\t")
         if len(parts) >= 2 and parts[0] == rs_path.stem:
             try:
-                return max(default, float(parts[1]))
+                tolerance = max(default, float(parts[1]))
             except ValueError:
-                return default
-    return default
+                return default, "total"
+            basis = parts[3].strip() if len(parts) >= 4 else "total"
+            return tolerance, (basis if basis in ("total", "live") else "total")
+    return default, "total"
 
 
 
@@ -1488,9 +1529,14 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
 
     if (strict_lines and not is_header_like and not c.get("not_built_on_target")
             and c["lines"] and r["lines"]):
-        drift = abs(r["lines"] - c["lines"]) / max(c["lines"], 1)
-        if drift > line_drift_tolerance(rs_path):
-            problems.append(f"line count drifted {drift:.1%}: C {c['lines']} vs Rust {r['lines']}")
+        # The baseline is the C text this configuration compiles, not the file's total: a
+        # disabled arm is not text the port is supposed to carry (see live_c_lines).
+        tolerance, basis = line_drift_rule(rs_path)
+        base = c_live_lines(c_path, c["lines"]) if basis == "live" else c["lines"]
+        drift = abs(r["lines"] - base) / max(base, 1)
+        if drift > tolerance:
+            shown = f"C {base} live (of {c['lines']})" if basis == "live" else f"C {base}"
+            problems.append(f"line count drifted {drift:.1%}: {shown} vs Rust {r['lines']}")
     return problems
 
 

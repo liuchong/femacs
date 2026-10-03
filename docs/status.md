@@ -22,10 +22,11 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 78 轮，机械统计）**：磁盘上 **220 个单元**（`femacs/src/*.rs` 106 +
-  `femacs/lib/*.rs` 114）与 **124 个镜像**（`src/include/` 36 + `lib/include/` 88）。
+- **进度（2026-10-03 第 78 轮，机械统计）**：磁盘上 **226 个单元**（`femacs/src/*.rs` 112 +
+  `femacs/lib/*.rs` 114）与 **125 个镜像**（`src/include/` 37 + `lib/include/` 88）。
   **单元台账全部勾满**：`docs/ports/*.md` 里凡不是 `include-*.md` 的（即每个已竣工单元）未勾项为 **0**；
-  `syntax`（4,229 行）、`profiler`（701 行）与 `regexec`（4,644 行）都已收口（`built` + `--check` OK + 0 未勾）；
+  `syntax`（4,229 行）、`profiler`（701 行）、`regexec`（4,644 行）、`systhread`（125 行）、`sqlite`（95 行）、
+  `comp`（59 行）、`treesit`（69 行）与 `gnutls`（122 行）都已收口（`built` + `--check` OK + 0 未勾）；
   本轮新增两个镜像 `pdumper`/`fingerprint`，以及 `filelock.c` 需要的 `boot-time`（`lib/include/boot-time.rs`）。
   **部分镜像（WIP）**：34 份 `include-*.md` 仍有未勾项，合计 **1,019** 行，最大的几份是
   `stdint.in`(135)、`unistd.in`(94)、`dispextern`(90)、`sys_stat.in`(74)、`window`(65)——
@@ -483,3 +484,32 @@
   注意 `docs/baseline` 的 `Verbatim 58 entries` 里还有 49 个**根目录文件**（`INSTALL`、`CONTRIBUTE`
   等）尚未复制，它们不在本轮六棵树内，等根目录入库策略定了再一起处理（`port-plan.md` 只把它们
   记为 "repository root"，没有 gate）。
+
+- **3.38 `DEFVAR_*!` 的名称参数必须写 `c"…"`（2026-10-03 第 80 轮发现并修）**：
+  `DEFVAR_LISP!`/`DEFVAR_INT!`/`DEFVAR_BOOL!`/`DEFVAR_KBOARD!` 的宏体是
+  `defvar_lisp (&raw const O_FWD, $lname.as_ptr () as *const c_char)`——即把 `$lname` 的
+  **字节指针**交给 C。传 `"name"`（`&str`）时 `as_ptr()` 指向的字符串**没有 NUL 结尾**，
+  `defvar_lisp` 会越界读到栈上的下一个 0；传 `c"name"` 才是 C 的 NUL 结尾字面量。
+  实测 **16 处**写成了 `"…"`（`callint.rs` 8 处、`character.rs` 8 处，都是早期轮次落的），
+  已全部改成 `c"…"`；两个文件重建 `built`、`--check` 仍 OK。**这类缺陷三道静态门都看不见**
+  （token 比对把字符串字面量折叠掉，只有运行期才会读错名字），所以记在这里当检查项：
+  今后凡是 `DEFVAR_*!`/`DEFSYM!` 之外的 C 字符串字面量参数，一律 `c"…"`。
+
+- **3.39 行数门新增 `live` 基准（2026-10-03 第 80 轮，工具改动）**：`src/comp.c`(5,857)、
+  `src/treesit.c`(5,634)、`src/gnutls.c`(3,196) 三件**整文件基本是死文本**（HAVE_NATIVE_COMP /
+  HAVE_TREE_SITTER / HAVE_GNUTLS 皆 undef，活的分别只有 45 / 53 / 124 行），照 P-08 只记台账
+  不抄死区。可它们的行数门拿**全文件行数**当分母，于是忠实的 59 行端口报 99% 漂移，只能填一个
+  0.99 的容差——那等于把这道门关掉。定案：`docs/ports/line-drift-tolerance.tsv` 增加**第四列
+  `basis`**（`total` 默认 / `live`），`live` 行的分母由 `tools/extract-abi.py` 的
+  `c_live_lines()` 用**与声明比对同一套分支求值器**算出的"本配置真正编译的行数"给出；只有明确
+  不再抄死区的文件才写 `live`。**没有**改成全局 live 基准是有实测理由的：P-51 那批 gnulib 文件
+  （readlink/getgroups/dup2/filemode/acl-internal…）**故意**把死臂保留成
+  `#[cfg (feature = …)]` 文本，端口比 C 的"活文本"长得多，全局改基准会让 **119 个文件**当场不通过；
+  现在 `live` 只对 5 个文件（comp/treesit/gnutls/systhread/sqlite）生效，其余照旧。
+  顺带把 systhread/sqlite 两行从 0.80/0.90 收紧到 0.30，容差表头写清两种基准的判据。
+- **3.40 第 80 轮批量落地（2026-10-03）**：本轮新增 5 个单元——`src/systhread.c`、`src/sqlite.c`、
+  `src/comp.c`、`src/treesit.c`、`src/gnutls.c`（合计 **14,174 行 C → 约 470 行 Rust**，全部
+  `built` + `--check` OK + 台账 0 未勾），加一个镜像 `src/include/systhread.rs`。选点方法是把
+  `docs/baseline/frozen-build-sources.txt` 里还没有端口、且**活行数最小**的文件排出来
+  （`cinventory.dead_branch_map` 逐文件算活行），这把"整文件死文本"的 5 件一次挑了出来；
+  剩下的 46 件里活行数最少的是 dired(1,067)/menu(1,079)/thread(1,255)。
