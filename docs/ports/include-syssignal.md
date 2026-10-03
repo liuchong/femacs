@@ -32,11 +32,16 @@
   `#ifndef emacs_raise` is live and the port keeps C's spelling — the call site reads
   `emacs_raise! (sig)`.  Its body needs `raise`, which the `<signal.h>` mirror now declares
   (`femacs/lib/include/signal.rs`, right after `pthread_sigmask`).
-- **`struct sigaction` is P-70's stand-in**: it is a system type this target's `<signal.h>`
-  provides, `emacs_sigaction_init` uses it only through a pointer, and no mirror carries its
-  layout yet — so the mirror declares an empty stand-in with the `/// C:` line.
+- **`struct sigaction` is the measured system record, not a stand-in** (it was P-70's
+  2-line stand-in until `src/atimer.c` needed it): the type belongs to `<signal.h>`, so the
+  record lives in `femacs/lib/include/signal.rs` beside `sigset_t`, with the frozen target's
+  measured layout (`sizeof 16`, `sa_mask` at 8, `sa_flags` at 12, handler union 8 bytes at 0)
+  pinned by `const _` assertions; this mirror only names it.  P-70 requires the stand-in to go
+  in the same commit that lands the real record (two declarations of one name in a TU are
+  E0428), which is what happened.
 - **`signal_handler_t` is `Option<unsafe extern "C" fn (c_int)>`** (P-27): C's function
   pointers are nullable and `emacs_sigaction_init`'s callers pass null.
-- **Compile evidence**: no unit includes this mirror yet (`profiler.c`/`filelock.c` are next),
-  so it was compiled inside a `config.rs` + `lisp.rs` + mirror probe with
-  `rustc --edition 2024 --crate-type lib --emit metadata` — RC=0.
+- **Compile evidence**: this mirror was first compiled inside a `config.rs` + `lisp.rs` +
+  mirror probe with `rustc --edition 2024 --crate-type lib --emit metadata` — RC=0.  It is now
+  included by `src/atimer.rs`, which `xtask build-tu` compiles as a whole translation unit
+  (the ledger for that unit records the result).

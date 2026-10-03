@@ -25,6 +25,13 @@
 - **`#ifdef HAVE_TIMERFD`** (C 81-83) is dead on this target (docs/baseline/config's table
   records `HAVE_TIMERFD` as `undef`), so `timerfd_callback` keeps its text behind
   `#[cfg (feature = "timerfd")]` (P-51) and a build that enables it gets the declaration.
-- **Compile evidence**: the mirror has no unit of its own yet (`atimer.c` is next), so it was
-  compiled inside a two-file probe (`config.rs` + `lisp.rs` + this mirror) with
-  `rustc --edition 2024 --crate-type lib --emit metadata` — RC=0.
+- **The seven prototypes live in `pub mod atimer_decls` + `use atimer_decls::*;`** and not at
+  file scope: `src/atimer.c` *defines* all seven, and Rust refuses a declaration and a
+  definition of one name in one module — the module-plus-glob is C's prototype/definition pair
+  (PORTING.md P-17/P-39, the `lisp.rs`/`signal.rs` shape), so the unit's definitions shadow the
+  import.  This is what made `build-tu src/atimer.c` compile; at file scope the same unit failed
+  with seven `E0428`s.
+- **Compile evidence**: the mirror was first compiled inside a two-file probe (`config.rs` +
+  `lisp.rs` + this mirror) with `rustc --edition 2024 --crate-type lib --emit metadata` — RC=0.
+  It is now included by `src/atimer.rs` (`xtask build-tu src/atimer.c` → `built`, 0 errors), and
+  `extract-abi.py --check emacs/src/atimer.h femacs/src/include/atimer.rs` is OK.
