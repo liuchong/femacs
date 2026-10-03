@@ -1,21 +1,4 @@
-/* group-member.c -- determine whether group id is in calling user's group list
-
-   Copyright (C) 1994, 1997-1998, 2003, 2005-2006, 2009-2026 Free Software
-   Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
+// femacs: port of lib/group-member.c @ fd7afced403.
 /* emacs/lib/group-member.c: C 24's `<stdckdint.h>` is the `ckd_mul` alias family (P-15), C 25's
    `<stdio.h>` and C 26's `<sys/types.h>` are the mirrors below, and C 27's `<stdlib.h>` supplies
    `malloc`/`free` (declared in this unit).  C 31's `enum { GROUPBUF_SIZE = 100 }` is a constant

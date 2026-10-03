@@ -9,24 +9,6 @@
 // dispextern.h's `GLYPH_*` accessors, which are not mirrored on this target yet; their
 // boundary is marked below and they land with the display batch.
 
-/* Things for GLYPHS and glyph tables.
-   Copyright (C) 1993, 2001-2026 Free Software Foundation, Inc.
-
-This file is part of GNU Emacs.
-
-GNU Emacs is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-GNU Emacs is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
-
 // C's `#include "lisp.h"` (disptab.h 23) is the including unit's `include!("include/lisp.rs")`.
 
 // C 20-21's include guard has no Rust counterpart (PORTING.md 0.1).

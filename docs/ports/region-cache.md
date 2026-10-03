@@ -80,7 +80,7 @@
   C-name gate would read the attribute as an invented exported symbol.  `fprintf`/`stderr` are
   declared next to the arm (the `getopt.rs`/`mini-gmp.rs` shape), and C's `%"pD"d` string
   concatenation (`lisp.h` 150: `pD` is `"t"`) is written as the concatenated `%td`.
-- **Line count.**  781 C lines vs 818 Rust (4.7%, inside the rule's 5%): the cost is the two
+- **Line count.**  781 C lines vs 798 Rust (2.2%, inside the rule's 5%): the cost is the two
   `#[repr(C)]`s and the six `#[unsafe(no_mangle)]` lines C does not carry, the one-field-per-line
   struct split (3), the `let` splits C writes as one declaration (2), the `while` conversions
   (8) and the checking arm's `extern` block (6); `#include "region-cache.h"`'s missing mirror

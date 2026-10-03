@@ -237,7 +237,7 @@ decision replaces the stop-and-report of the previous round.
 
 `docs/ports/line-drift-tolerance.tsv`'s `timefns` row declares the default **`total`**
 basis at 0.05: the dead text is carried, not recorded, so C's whole line count is the
-baseline and the port's +1.3% is the fixed costs (the `// femacs:` note, the `#![allow]`
+baseline and the port's +0.4% is the fixed costs (the `// femacs:` note, the `#![allow]`
 block, the include block, the use-site declarations, the `#[cfg]` attributes and the
 comments naming each carried arm) less what the fourteen `DEFUN!` docstrings save by
 collapsing C's comment lines into literals.

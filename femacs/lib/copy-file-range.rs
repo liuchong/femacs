@@ -1,20 +1,4 @@
-/* Copy a range of data from one file to another.
-
-   Copyright (C) 2022-2026 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
+// femacs: port of lib/copy-file-range.c @ fd7afced403.
 /* emacs/lib/copy-file-range.c (@ 99 lines): the frozen configuration leaves
    HAVE_COPY_FILE_RANGE undefined, so C 19-40's Linux-only prelude (the `__linux__` guard, the
    <linux/version.h>/<sys/utsname.h> includes and the two CHECK_LINUX_KERNEL_VERSION arms) and

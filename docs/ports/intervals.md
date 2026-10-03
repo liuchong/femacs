@@ -142,7 +142,7 @@
   (PORTING.md 1.5): `new`/`i`/`temp`/`B`/`c`/`successor`/`predecessor`/`migrate`/`this`/
   `parent`/`prev`/`to`/`from`/`toprev`/`fromprev` as `std::ptr::null_mut ()`, the `Lisp_Object`
   locals as `Qnil ()`, the `bool`s as `false`, the `ptrdiff_t`s as `0`.
-- **Line count**: the port is 2567 lines against C's 2416 (live 2410), which
+- **Line count**: the port is 2548 lines against C's 2416 (live 2410), which
   `docs/ports/line-drift-tolerance.tsv` declares with the `live` basis and the reason; the
   per-function token comparison is the real guard and it is OK.
 

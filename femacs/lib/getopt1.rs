@@ -18,24 +18,6 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 
-/* getopt_long and getopt_long_only entry points for GNU getopt.
-   Copyright (C) 1987-2026 Free Software Foundation, Inc.
-   This file is part of the GNU C Library and is also part of gnulib.
-   Patches to this file should be submitted to both projects.
-
-   The GNU C Library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Lesser General Public
-   License as published by the Free Software Foundation; either
-   version 2.1 of the License, or (at your option) any later version.
-
-   The GNU C Library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-   Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with the GNU C Library; if not, see <https://www.gnu.org/licenses/>.  */
-
 use std::ffi::{c_char, c_int};
 
 include!("../src/include/config.rs");

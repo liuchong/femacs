@@ -50,25 +50,6 @@
          unused_parens, unused_mut, unused_labels, unused_comparisons,
          overflowing_literals)]
 
-/* Indentation functions.
-   Copyright (C) 1985-1988, 1993-1995, 1998, 2000-2026 Free Software
-   Foundation, Inc.
-
-This file is part of GNU Emacs.
-
-GNU Emacs is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or (at
-your option) any later version.
-
-GNU Emacs is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
-
 include!("include/config.rs");                 // C 20: `#include <config.h>`
 include!("include/lisp.rs");                   // C 22: `#include "lisp.h"`
 include!("include/character.rs");              // C 23: `#include "character.h"`

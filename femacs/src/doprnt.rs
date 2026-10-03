@@ -9,26 +9,6 @@
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
          unsafe_op_in_unsafe_fn)]
 
-/* Output like sprintf to a buffer of specified size.    -*- coding: utf-8 -*-
-   Also takes args differently: pass one pointer to the end
-   of the format string in addition to the format string itself.
-   Copyright (C) 1985, 2001-2026 Free Software Foundation, Inc.
-
-This file is part of GNU Emacs.
-
-GNU Emacs is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or (at
-your option) any later version.
-
-GNU Emacs is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
-
 /* If you think about replacing this with some similar standard C function of
    the printf family (such as vsnprintf), please note that this function
    supports the following Emacs-specific features:

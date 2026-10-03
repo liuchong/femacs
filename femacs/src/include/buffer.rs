@@ -10,24 +10,6 @@
 // records every lexical deviation this mirror takes, and what the gates do and do not
 // cover for it (the two adversarial reviews of 2026-10-02 are summarised there).
 
-/* Copyright (C) 1985-1986, 1994, 1995, 1997-2002, 2004-2026 Free Software
-   Foundation, Inc.
-
-This file is part of GNU Emacs.
-
-GNU Emacs is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or (at
-your option) any later version.
-
-GNU Emacs is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
-
 // src/buffer.h 23-24 include <sys/types.h> and <time.h>; the port reaches the two
 // system mirrors the same way (both are WIP partial mirrors, PORTING.md P-26).
 include!("../../lib/include/sys_types.in.rs");

@@ -12,26 +12,6 @@
 // functions below therefore use `CHAR_TABLE_REF` (lisp.rs), `BVAR!` (buffer.rs) and
 // `BEGV_BYTE`/`BYTE_TO_CHAR`/`BUF_BEGV_BYTE` (buffer.rs) from the including unit.
 
-/* Declarations having to do with GNU Emacs syntax tables.
-
-Copyright (C) 1985, 1993-1994, 1997-1998, 2001-2026 Free Software
-Foundation, Inc.
-
-This file is part of GNU Emacs.
-
-GNU Emacs is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-GNU Emacs is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
-
 // syntax.h 22: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_SYNTAX_H: bool = true;
 

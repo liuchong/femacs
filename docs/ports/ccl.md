@@ -272,7 +272,7 @@ evaluator, is the declaration checker's authority.
     `<composite.h>`), `keyboard.rs` needed `termhooks.rs` (`keyboard.h` 24) and `lisp.rs`'s
     bignum chain needed `mini-gmp.rs`/`bignum.rs`; the unit's `include!` list carries the C
     includes plus those transitive mirrors, each with the C line that reaches it.
-16. **Line count**: the port is 3217 lines against C's 2394 (34.4%), which
+16. **Line count**: the port is 3192 lines against C's 2394 (33.3%), which
     `docs/ports/line-drift-tolerance.tsv` declares with the **`total`** basis (the carried arms
     keep the file's whole text) and the reason; the per-function token comparison is the real
     guard and it is `OK`.

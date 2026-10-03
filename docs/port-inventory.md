@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 346 |
-| 其中 done / wip | 315 / 31 |
-| 待开工 | 244 |
+| 已有目标文件 | 351 |
+| 其中 done / wip | 320 / 31 |
+| 待开工 | 239 |
 
 ## 2 按目录
 
@@ -38,14 +38,14 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 31 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 33 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 91 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 86 |
 
 ## 3 按批次
 
 | 批次 | 范围 | 完成判据 | 文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | todo |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 8 |
-| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 12 |
+| **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 7 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 8 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 20 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 136 |
@@ -458,8 +458,8 @@
 | `src/ccl.h` | 88 | 0 | 0 | 8 | 5 | 14 | 0 | C | `femacs/src/include/ccl.rs` | done |
 | `src/character.c` | 1,167 | 23 | 10 | 0 | 0 | 0 | 1 | C | `femacs/src/character.rs` | done |
 | `src/character.h` | 615 | 34 | 0 | 3 | 59 | 0 | 1 | C | `femacs/src/include/character.rs` | done |
-| `src/charset.c` | 2,464 | 20 | 23 | 7 | 1 | 10 | 21 | C | `femacs/src/charset.rs` | todo |
-| `src/charset.h` | 567 | 2 | 0 | 63 | 40 | 26 | 19 | C | `femacs/src/include/charset.rs` | todo |
+| `src/charset.c` | 2,464 | 20 | 23 | 7 | 1 | 10 | 21 | C | `femacs/src/charset.rs` | done |
+| `src/charset.h` | 567 | 2 | 0 | 63 | 40 | 26 | 19 | C | `femacs/src/include/charset.rs` | done |
 | `src/chartab.c` | 1,391 | 31 | 13 | 4 | 0 | 0 | 2 | C | `femacs/src/chartab.rs` | done |
 | `src/cm.c` | 467 | 8 | 0 | 7 | 5 | 0 | 1 | E | `femacs/src/cm.rs` | done |
 | `src/cm.h` | 173 | 0 | 0 | 45 | 0 | 40 | 2 | E | `femacs/src/include/cm.rs` | done |
@@ -530,8 +530,8 @@
 | `src/haikuterm.h` | 375 | 0 | 0 | 18 | 1 | 119 | 8 | F | `femacs/src/include/haikuterm.rs` | todo |
 | `src/hbfont.c` | 612 | 9 | 0 | 28 | 0 | 0 | 2 | E | `femacs/src/hbfont.rs` | done |
 | `src/image.c` | 13,805 | 223 | 12 | 152 | 209 | 61 | 12 | D | `femacs/src/image.rs` | done |
-| `src/indent.c` | 2,592 | 19 | 7 | 2 | 1 | 0 | 5 | C | `femacs/src/indent.rs` | todo |
-| `src/indent.h` | 60 | 0 | 0 | 1 | 0 | 6 | 1 | C | `femacs/src/include/indent.rs` | todo |
+| `src/indent.c` | 2,592 | 19 | 7 | 2 | 1 | 0 | 5 | C | `femacs/src/indent.rs` | done |
+| `src/indent.h` | 60 | 0 | 0 | 1 | 0 | 6 | 1 | C | `femacs/src/include/indent.rs` | done |
 | `src/inotify.c` | 590 | 11 | 5 | 3 | 3 | 0 | 2 | D | `femacs/src/inotify.rs` | done |
 | `src/insdel.c` | 2,592 | 55 | 1 | 6 | 0 | 4 | 2 | C | `femacs/src/insdel.rs` | done |
 | `src/intervals.c` | 2,416 | 53 | 0 | 2 | 0 | 0 | 0 | C | `femacs/src/intervals.rs` | done |
@@ -616,7 +616,7 @@
 | `src/termopts.h` | 29 | 0 | 0 | 1 | 0 | 0 | 2 | E | `femacs/src/include/termopts.rs` | todo |
 | `src/textconv.c` | 2,640 | 46 | 1 | 1 | 2 | 2 | 3 | E | `femacs/src/textconv.rs` | done |
 | `src/textconv.h` | 163 | 0 | 0 | 1 | 13 | 12 | 0 | E | `femacs/src/include/textconv.rs` | todo |
-| `src/textprop.c` | 2,477 | 26 | 20 | 2 | 5 | 0 | 2 | C | `femacs/src/textprop.rs` | todo |
+| `src/textprop.c` | 2,477 | 26 | 20 | 2 | 5 | 0 | 2 | C | `femacs/src/textprop.rs` | done |
 | `src/thread.c` | 1,314 | 41 | 21 | 2 | 0 | 14 | 4 | D | `femacs/src/thread.rs` | done |
 | `src/thread.h` | 348 | 9 | 0 | 18 | 0 | 43 | 2 | D | `femacs/src/include/thread.rs` | done |
 | `src/timefns.c` | 2,144 | 48 | 14 | 8 | 10 | 9 | 5 | D | `femacs/src/timefns.rs` | done |

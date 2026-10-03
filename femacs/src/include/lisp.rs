@@ -4,11 +4,6 @@
 // functions live in exactly one translation unit each; this file declares types,
 // constants and accessors exactly as src/lisp.h does.
 //
-// Copyright (C) 1985-2026 Free Software Foundation, Inc.
-//
-// This file is part of GNU Emacs, and femacs is distributed under the same
-// license: the GNU General Public License, version 3 or later.  See LICENSE.
-//
 // The layout of every type here is asserted against the frozen C layout in
 // docs/baseline/layout/ by `xtask layout-check`; those numbers come from the C
 // compiler, never from this file.

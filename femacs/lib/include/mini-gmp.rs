@@ -18,37 +18,6 @@
 // parameter names, so the port names them positionally (`a`, `b`, …); the ABI is checked
 // by spikes/gmp-abi-probe.sh, which generates a C harness from this very file.
 
-/* mini-gmp, a minimalistic implementation of a GNU GMP subset.
-
-Copyright 2011-2015, 2017, 2019-2021, 2024, 2026 Free Software
-Foundation, Inc.
-
-This file is part of the GNU MP Library.
-
-The GNU MP Library is free software; you can redistribute it and/or modify
-it under the terms of either:
-
-  * the GNU Lesser General Public License as published by the Free
-    Software Foundation; either version 3 of the License, or (at your
-    option) any later version.
-
-or
-
-  * the GNU General Public License as published by the Free Software
-    Foundation; either version 2 of the License, or (at your option) any
-    later version.
-
-or both in parallel, as here.
-
-The GNU MP Library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-for more details.
-
-You should have received copies of the GNU General Public License and the
-GNU Lesser General Public License along with the GNU MP Library.  If not,
-see https://www.gnu.org/licenses/.  */
-
 // C: `#ifndef __MINI_GMP_H__` / `#define __MINI_GMP_H__` / `/* For size_t */
 // #include <stddef.h> */` — the include guard has no Rust counterpart (PORTING.md 0.1)
 // and `size_t` is the prelude's `usize` (as in the other mirrors).

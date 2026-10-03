@@ -21,5 +21,5 @@
 - **No local type aliases and no blank padding.**  `FILE` comes from
   lib/include/stdio.rs and the two sizes are the port's `usize`/`isize` (C's
   `size_t`/`ssize_t`), which is what keeps this file inside the drift rule - the C file is 27
-  lines and its own license is 17 of them, so there is no room for a `// femacs:` header or
-  for local scaffolding.  The provenance is this ledger (PORTING.md 10.12's rule).
+  lines, and a port that carried a `// femacs:` header on top of its few statements
+  would drift past the rule, so the port keeps no local scaffolding.  The provenance is this ledger (PORTING.md 10.12's rule).

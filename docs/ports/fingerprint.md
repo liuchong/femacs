@@ -20,7 +20,7 @@
   replicated as an empty unit); the tolerance row records the line relation.
 
 - **PORTING.md P-81**: this is one of gnulib's extern-inline carriers - its C text is
-  the license, `#define <qualifier> _GL_EXTERN_INLINE` and its includes, with the bodies
+  the `#define <qualifier> _GL_EXTERN_INLINE` line and its includes, with the bodies
   in the header - so the reference object exports the *header's* functions and the unit
   re-exports them under C's own names (`#[unsafe(export_name = "…")]` inside
   `mod <stem>_unit`, each calling `super::…` so the module's own item cannot shadow the

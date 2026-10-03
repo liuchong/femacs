@@ -1,20 +1,4 @@
-/* Set BUFFER (of size LENGTH) to random bytes under the control of FLAGS.
-
-   Copyright (C) 2022-2026 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
+// femacs: port of lib/getrandom.c @ fd7afced403.
 /* emacs/lib/getrandom.c (@ 193 lines) is on the verified list: this is not a native Windows
    target and HAVE_GETRANDOM is undefined, so C 30-95's `_WIN32` setup, C 122-176's Windows arm
    and C 177-178's `#elif HAVE_GETRANDOM` arm are dead by measurement, and the live text is

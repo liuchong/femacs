@@ -1055,12 +1055,18 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             macro_notes: dict[str, set[str]] | None = None) -> list[str]:
     c = ci.inventory(c_path)
     # status 3.31: nothing in this configuration compiles such a file, so a unit that ports it
-    # as the empty shape (no `fn` at all — the note-and-license file) is complete as it stands.
+    # as the empty shape (no `fn` at all — the note file) is complete as it stands.
     # A unit that *did* port the text (vm-limit.rs, tparam.rs, … were ported before this rule)
     # keeps the full comparison: the exemption is for the empty shape, not for the file.
-    if not_built_on_target(c_path) and not re.search(r"\bfn\s+\w+",
-                                                     rs_path.read_text(encoding="utf-8",
-                                                                       errors="replace")):
+    #
+    # The drift check below reads this same predicate instead of
+    # `not_built_on_target`'s item count: a file whose *whole* body is dead
+    # (dbusbind.c's `#ifdef HAVE_DBUS`, msdos.c's `#ifdef MSDOS`) clears zero
+    # items, and a count of 0 is falsy — the exception then stopped applying and
+    # an empty port was reported as ~99% line drift (status 3.58).
+    empty_unbuilt = not_built_on_target(c_path) and not re.search(
+        r"\bfn\s+\w+", rs_path.read_text(encoding="utf-8", errors="replace"))
+    if empty_unbuilt:
         clear_unbuilt_inventory(c)
     r = rust_inventory(rs_path)
     excluded = excluded or {}
@@ -1527,7 +1533,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
                             f"does not define a non-static function of that name "
                             f"(invented exported symbol)")
 
-    if (strict_lines and not is_header_like and not c.get("not_built_on_target")
+    if (strict_lines and not is_header_like and not empty_unbuilt
             and c["lines"] and r["lines"]):
         # The baseline is the C text this configuration compiles, not the file's total: a
         # disabled arm is not text the port is supposed to carry (see live_c_lines).

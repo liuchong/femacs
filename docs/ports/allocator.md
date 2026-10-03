@@ -19,6 +19,6 @@
 - C's `struct allocator const stdlib_allocator = { malloc, realloc, free, NULL };` is one
   `#[unsafe(no_mangle)] pub static` with the three system entries of the stdlib mirror and
   `die: None` for C's `NULL`.
-- The C file is 22 lines and the port is 40 (the `// femacs:` note, the license header, two
+- The C file is 22 lines and the port is 40 (the `// femacs:` note, two
   `include!` lines and the export attribute); the tolerance row records it.
 - No call-relationship differences (D7).

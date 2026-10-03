@@ -19,39 +19,6 @@
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
          static_mut_refs, unsafe_op_in_unsafe_fn)]
 
-/* mini-gmp, a minimalistic implementation of a GNU GMP subset.
-
-   Contributed to the GNU project by Niels Möller
-   Additional functionalities and improvements by Marco Bodrato.
-
-Copyright 1991-1997, 1999-2026 Free Software Foundation, Inc.
-
-This file is part of the GNU MP Library.
-
-The GNU MP Library is free software; you can redistribute it and/or modify
-it under the terms of either:
-
-  * the GNU Lesser General Public License as published by the Free
-    Software Foundation; either version 3 of the License, or (at your
-    option) any later version.
-
-or
-
-  * the GNU General Public License as published by the Free
-    Software Foundation; either version 2 of the License, or (at your
-    option) any later version.
-
-or both in parallel, as here.
-
-The GNU MP Library is distributed in the hope that it will be useful, but
-WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
-or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
-for more details.
-
-You should have received copies of the GNU General Public License and the
-GNU Lesser General Public License along with the GNU MP Library.  If not,
-see https://www.gnu.org/licenses/.  */
-
 /* NOTE: All functions in this file which are not declared in
    mini-gmp.h are internal, and are not intended to be compatible
    with GMP or with future versions of mini-gmp. */

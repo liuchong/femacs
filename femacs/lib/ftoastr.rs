@@ -13,23 +13,6 @@
 // an inner attribute inside an included file is E0753, so the unit that compiles it
 // (`femacs/lib/dtoastr.rs`) carries the list.
 
-/* floating point to accurate string
-
-   Copyright (C) 2010-2026 Free Software Foundation, Inc.
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
 include!("../src/include/config.rs");
 include!("include/float.in.rs");

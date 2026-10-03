@@ -1,25 +1,4 @@
 // femacs: port of src/gmalloc.c @ fd7afced403.
-/* Declarations for `malloc' and friends.
-   Copyright (C) 1990-1993, 1995-1996, 1999, 2002-2007, 2013-2026 Free
-   Software Foundation, Inc.
-		  Written May 1989 by Mike Haertel.
-
-This library is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the
-License, or (at your option) any later version.
-
-This library is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-General Public License for more details.
-
-You should have received a copy of the GNU General Public
-License along with this library.  If not, see <https://www.gnu.org/licenses/>.
-
-   The author may be reached (Email) at the address mike@ai.mit.edu,
-   or (US mail) as Mike Haertel c/o Free Software Foundation.  */
-
 
 /* femacs: emacs/src/gmalloc.c (@ 1908 lines) is not compiled by the frozen configuration.
 

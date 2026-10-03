@@ -1,26 +1,4 @@
-/* memrchr -- find the last occurrence of a byte in a memory block
-
-   Copyright (C) 1991, 1993, 1996-1997, 1999-2000, 2003-2026 Free Software
-   Foundation, Inc.
-
-   Based on strlen implementation by Torbjorn Granlund (tege@sics.se),
-   with help from Dan Sahlin (dan@sics.se) and
-   commentary by Jim Blandy (jimb@ai.mit.edu);
-   adaptation to memchr suggested by Dick Karpinski (dick@cca.ucsf.edu),
-   and implemented by Roland McGrath (roland@ai.mit.edu).
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation, either version 3 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
+// femacs: port of lib/memrchr.c @ fd7afced403.
 /* emacs/lib/memrchr.c: C's `#if defined _LIBC` / `#else` pair (C 25-30) is decided by the
    frozen configuration: _LIBC is not defined, so the live arm is `#include <config.h>` /
    `#define reg_char char`, whose two effects are the config mirror below and the `reg_char`

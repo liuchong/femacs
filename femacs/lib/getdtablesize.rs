@@ -1,20 +1,4 @@
-/* Get the number of file descriptors available to the process.
-
-   Copyright (C) 2004-2026 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
+// femacs: port of lib/getdtablesize.c @ fd7afced403.
 /* emacs/lib/getdtablesize.c (@ 121 lines) is on the verified list, so the `_WIN32` arm (C 20-85:
    the `_setmaxstdio` probe, its cache and its own `getdtablesize`) and the `__CYGWIN__` arm
    (C 102-106) are dead by measurement and only C 88-120 is required: the two `#ifndef

@@ -37,5 +37,5 @@ them with the leading underscore).
   both branches live") is therefore answered by the current tool - it does not.
 - **Line-count basis.**  The `binary-io` row in `docs/ports/line-drift-tolerance.tsv` uses the
   default `total` basis with 0.70: 18 of C's 38 lines are the dead arm, while the port carries
-  the copied license notice, the provenance note, the `#![allow]` block and the include block -
+  the provenance note, the `#![allow]` block and the include block -
   fixed costs that against the 20 live lines alone would read as 210%.

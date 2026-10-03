@@ -1,29 +1,10 @@
 // femacs: port of src/xterm.c @ fd7afced403.
-/* X Communication module for terminals which understand the X protocol.
-
-Copyright (C) 1989, 1993-2026 Free Software Foundation, Inc.
-
-This file is part of GNU Emacs.
-
-GNU Emacs is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or (at
-your option) any later version.
-
-GNU Emacs is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
-
 /* New display code by Gerd Moellmann <gerd@gnu.org>.  */
 /* Xt features made by Fred Pierresteguy.  */
 
-/* X window system support for GNU Emacs
+/* X window system support
 
-   This file is part of the X window system support for GNU Emacs.  It
+   This file is part of the X window system support.  It
    contains subroutines comprising the redisplay interface, setting up
    scroll bars and widgets, and handling input.
 

@@ -191,9 +191,9 @@ spelling as `calln!` (`CALLN!` for `Fvconcat`).
 
 `docs/ports/line-drift-tolerance.tsv`'s `chartab` row declares the `live` basis with a 0.25
 tolerance: C's 1,387 live lines (of 1391; the 4 lines of the `#if 0` arm above are recorded,
-not carried) against the port's 1,704 (+22.9%).  206 of the port's lines are the use-site
+not carried) against the port's 1,684 (+21.4%).  206 of the port's lines are the use-site
 `charset.h` block of deviation 2; the rest is the unit's fixed costs (the `// femacs:` note,
-the copied license, the `#![allow]` block, the include block) less what the thirteen
+the `#![allow]` block, the include block) less what the thirteen
 docstrings save by collapsing C's comment lines into literals.
 
 ### Call-relationship differences (D7)

@@ -1,20 +1,5 @@
 /* The code is taken from glibc/manual/llio.texi  */
 
-/* Copyright (C) 2004-2026 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
 /* emacs/lib/cloexec.c: F_SETFD is defined by the frozen target's <fcntl.h>, so C 39-62's
    `#ifdef F_SETFD` arm - the `fcntl (desc, F_GETFD, 0)` dance - is the live text and C 64-79's
    `#else` arm (the dup2 punt for platforms whose <fcntl.h> has no F_SETFD) is dead; the dead

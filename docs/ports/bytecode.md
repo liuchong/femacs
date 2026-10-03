@@ -236,10 +236,10 @@ file's own `#define`.  `src/bytecode.c` is in `cond-eval-verified.txt` and
 
 `docs/ports/line-drift-tolerance.tsv`'s `bytecode` row declares the `live` basis with a 0.10
 tolerance: the 80 dead lines are recorded here rather than carried, so the denominator is
-1773, and the port's 1931 (+8.9%) is the dispatcher's shape (P-03) — an arm per case with its
+1773, and the port's 1912 (+7.8%) is the dispatcher's shape (P-03) — an arm per case with its
 `{ … }` and `NEXT! ();`, the eight tails at the loop head, `*top = x` for every `TOP = x`,
 `goto = L;` for every `goto L` — plus the unit's fixed costs (the `// femacs:` note, the
-license, the `#![allow]` block, the include list, the fourteen use-site declarations, the nine
+`#![allow]` block, the include list, the fourteen use-site declarations, the nine
 label constants and the six `bc_frame` assertions).
 
 ### Changes outside the unit (for integrator review)

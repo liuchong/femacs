@@ -230,6 +230,6 @@ one and no `source-header-macros.tsv` row was needed (see the `_D_EXACT_NAMLEN` 
 
 `docs/ports/line-drift-tolerance.tsv`'s `dired` row declares the `live` basis with a 0.10
 tolerance: C's 147 dead lines here are recorded rather than carried, so the denominator is the
-1067 live lines, and the port's 1162 (+8.9%) is the unit's fixed costs plus the declarations
+1067 live lines, and the port's 1143 (+7.1%) is the unit's fixed costs plus the declarations
 the mirrors do not carry, less the 107 doc-comment lines that the eight `DEFUN!` docstrings
 and the `DEFVAR_LISP!` docstring collapse into literals.

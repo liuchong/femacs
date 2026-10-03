@@ -18,7 +18,7 @@
   process control, screen, keyboard, subprocesses - is dead text and nothing is demanded of the
   port.
 - Policy (docs/status.md 3.25): a file whose *whole* body is inside a disabled `#if` is ported as
-  an empty unit with the license header and a note naming the gate, the config line and the
+  an empty unit with the `// femacs:` note naming the gate, the config line and the
   headers the body would need; the reference text is not carried.
 - `emacs/src/msdos.c` is not valid UTF-8 (it has DOS-era bytes); the reference is read with
   `errors="replace"` so nothing is corrupted here.

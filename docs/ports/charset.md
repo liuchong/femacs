@@ -145,7 +145,7 @@
   declared-then-assigned local of `define_charset_internal`, `load_charset_map*`,
   `find-charsets-in-text`'s callers and `sort-charsets` starts at 0/`Qnil ()`.
   `struct charset charset = {0}` (0.1-13) is the seventeen-field zero value.
-- **Line count:** C 2464 vs the port's 2791 (13.3%), declared in
+- **Line count:** C 2464 vs the port's 2763 (12.1%), declared in
   `docs/ports/line-drift-tolerance.tsv` with the `total` basis (the port carries more text
   than C, and no dead arm is carried); the per-function token comparison is the real guard
   and it is OK.

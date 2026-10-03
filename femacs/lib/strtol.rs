@@ -24,27 +24,6 @@
 // `femacs/lib/strtoll.rs` - the unit that compiles the body - carries the list, so this
 // file's own `build-tu` compiles with warnings, not errors.
 
-/* Convert string representation of a number into an integer value.
-
-   Copyright (C) 1991-1992, 1994-1999, 2003, 2005-2007, 2009-2026 Free Software
-   Foundation, Inc.
-
-   NOTE: The canonical source of this file is maintained with the GNU C
-   Library.  Bugs can be reported to bug-glibc@gnu.org.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation, either version 3 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
 use std::ffi::{c_char, c_int, c_long, c_longlong, c_uchar, c_uint, c_ulong, c_ulonglong};
 include!("../src/include/config.rs");
 include!("include/limits.in.rs");

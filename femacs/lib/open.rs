@@ -1,21 +1,4 @@
-/* Work around a bug in opening a file with O_CREAT and a trailing slash, and
-   the lack of O_DIRECTORY on some platforms.
-
-   Copyright (C) 2006-2026 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
+// femacs: port of lib/open.c @ fd7afced403.
 /* emacs/lib/open.c (@ 240 lines) is on the verified list, so only its live text is required.
    The frozen configuration has HAVE_WORKING_O_DIRECTORY undefined, OPEN_TRAILING_SLASH_BUG
    false and REPLACE_OPEN_DIRECTORY false, so C 52-63's three `#ifndef` fallbacks are live (the

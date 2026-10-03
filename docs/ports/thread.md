@@ -236,7 +236,7 @@ Every `#if` in this file is decided by `docs/baseline/config/darwin-arm64.macros
 
 `docs/ports/line-drift-tolerance.tsv`'s `thread` row declares the `live` basis with a 0.10
 tolerance: the 60 dead lines are recorded rather than carried, so the denominator is the 1255
-live lines, and the port's 1319 (+5.1%) is the unit's fixed costs (the file header, the allow
+live lines, and the port's 1301 (+3.7%) is the unit's fixed costs (the file header, the allow
 list, the eleven use-site declarations, the comments that name each dead region) less the 71 physical
 doc-comment lines that the twenty-one `DEFUN!` docstrings and the one `DEFVAR_LISP!` docstring
 collapse into single-line literals.

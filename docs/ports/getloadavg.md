@@ -91,7 +91,7 @@ checklist items ticked; `build-tu lib/getloadavg.c` -> `built lib/getloadavg.rs 
 - **The comments C's preprocessor carries are summarised, not copied**: C 23-84's 60-line
   "Compile-time symbols that this file uses" block and the per-arm prose (including C 733's
   "A faithful emulation is going to have to be saved for a rainy day.") are folded into the
-  file's `// femacs:` note; the license header is verbatim.
+  file's `// femacs:` note.
 - Not verified: `gate-fast`/`gate-probes` and any behavioural test (the unit is not compiled
   by the reference build on this target, so there is no `getloadavg.o` to compare symbols
   with, and `/dev/kmem` does not exist on modern Darwin — the live arm's runtime behaviour is

@@ -19,6 +19,6 @@
   generated from `make -n` in `build/emacs-ref/src`): this target's platform object variables
   (`WINDOW_SYSTEM_OBJ=`, `HAIKU_OBJ = `, `MSDOS_OBJ =`, `CYGWIN_OBJ=`) are all empty, so the file
   is not in the build's source list at all, and its text needs headers this target has not got.
-  The port is therefore the empty unit `femacs/src/haikumenu.rs` — C's own license header plus the
+  The port is therefore the empty unit `femacs/src/haikumenu.rs` — the
   note that names the exclusion and points here — and the declarations listed above are
   **deferred to the platform target** rather than dropped (docs/status.md §3.31).

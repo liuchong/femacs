@@ -705,3 +705,34 @@
   两个"门看不见"的发现：`emacs_fclose` 在 lisp.h 里 `#define` 成 `fclose`，故使用点声明带
   `#[link_name = "fclose"]`（靠读 `nm -u` 发现，**没有任何门会看未定义引用**）；`lisp.rs` 仍缺
   `larger_vector`/`make_specified_string`（留给拥有者）。批边界 `gate-fast` 复跑全绿。
+
+- **3.58 参照开头的版本/版权/许可声明整块删除（2026-10-03 用户指令，同日全树落地）**：
+  3.36 只去掉了自己那行版本声明里的产品名括注，并明确"参照文件自己的版权/许可声明与首行标题注释
+  照抄"；本轮用户指令把这条反过来：**那一整块也不要**——它正文就是一句"本文件是某产品的一部分"，
+  写在本仓库里就是一句关于本仓库的错声明，法律风险正在它身上（`PORTING.md` 0.1-19 已改写）。
+  实测：`femacs/src` 与 `femacs/lib` 下 268 个 `.rs` 里 267 个带这种 `/* … */` 块（每个文件恰一块），
+  加上 `src/include/lisp.rs` 用 `//` 写的那段，一次机械删除（行首定位，块内含
+  "Free Software Foundation"/"part of …"/"General Public License" 任一即认），**-4,932 行**。
+  ① **111 个文件的首行原本就是该块**（101 个 lib + 10 个 src），删完就没有任何出处声明了，故按
+  0.1-19 补 `// femacs: port of <参照路径> @ fd7afced403.`（补 73 行——其中 17 个文件的出处声明本在
+  下面几行，补的那行是重复的，已回退）；现在每个端口文件的出处声明**恰好一条**。全树 378 个
+  `.rs` 里只有 10 个没有这条声明：3 个是生成物（`src/include/` 的 `buildobj.rs`、`config.rs`、
+  `globals.rs`，生成器写自己的头），7 个是手工写的系统/gnulib 镜像（`lib/cloexec.rs`、
+  `lib/openat-die.rs`、`lib/include/` 的 `a_out.rs`、`errno.rs`、`gnulib_config.rs`、`signal.rs`、
+  `stdio-impl.rs`）——它们本来就没有这个块，不在本轮范围。
+  ② **产品名在代码里的残留只剩三处**，都是 `src/callproc.rs` 的 `DEFVAR_LISP` **docstring 字面量**
+  （`data-directory` 等三条）——那是移植语义，P-38 的门要求它与参照逐字一致，不能动；注释里的产品名
+  只剩 `src/xterm.rs`/`src/xmenu.rs` 两处描述性标题，三行改写掉（"for <产品名>" 删除）。
+  ③ **行数门被这一刀打穿**：`line-drift-tolerance.tsv` 默认以**总行数**为基准，删掉 18–30 行让 44 个
+  文件越线（最短的 gnulib 包装件 C 19–33 行，端口只剩 note + 声明，漂移 55%–90%；`realloc`/`sha3`/
+  `profiler`/`category` 这类大文件只有 5.6%–29.7%）。44 行全部按"实测漂移 + 0.01"重写/新增
+  （25 行改写、19 行新增），理由列写明是这一刀，基准不变；16 个 `live` 基准的行**无**越线。
+  ④ **顺手补掉一个 3.31 留下的门缺陷**（本轮的 `--all` 抓出来的）：`compare` 的豁免原来读
+  `not_built_on_target` 的**计数**，而"整文件都是死文本"的单元（`dbusbind.c` 的 `#ifdef HAVE_DBUS`、
+  `msdos.c` 的 `#ifdef MSDOS`）清出来是 **0 项**，0 是假值——豁免于是失效，空端口被报成 99.5% 漂移。
+  现在漂移检查读的是与清账同一条件 `empty_unbuilt = not_built_on_target (c) and 端口无 fn`。
+  实测 `src/dbusbind.c`/`msdos.c`/`dosfns.c`/`xsmfns.c` 从 FAIL 回到 OK。**`--all` 复跑：0 failing**
+  （351 个端口文件 = 328 done / 23 WIP / 0 FAIL）。
+  ⑤ 生成物同步：`docs/port-map.md`（270 行目标行数变化，CI 的新鲜度门会查）、`docs/port-inventory.md`。
+  版本/版权信息的**唯一**落点从此是 `docs/baseline` 的冻结基线（`PACKAGE_STRING` 等实测值）与
+  0.1-19 本身。

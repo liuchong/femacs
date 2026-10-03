@@ -1,20 +1,4 @@
-/* Create a pipe with flags set atomically.
-
-   Copyright (C) 2011-2026 Free Software Foundation, Inc.
-
-   This file is free software: you can redistribute it and/or modify
-   it under the terms of the GNU Lesser General Public License as
-   published by the Free Software Foundation; either version 2.1 of the
-   License, or (at your option) any later version.
-
-   This file is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU Lesser General Public License for more details.
-
-   You should have received a copy of the GNU Lesser General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
-
+// femacs: port of lib/pipe2.c @ fd7afced403.
 /* emacs/lib/pipe2.c (@ 166 lines) is on the verified list: HAVE_PIPE2 is undefined and
    GNULIB_defined_O_NONBLOCK is undefined on this target, so C 44-61's `#if HAVE_PIPE2` arm,
    C 66-103's `_WIN32` arm and the `nonblocking.h` include are dead by measurement, and the live
