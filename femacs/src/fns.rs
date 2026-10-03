@@ -1509,15 +1509,6 @@ pub unsafe extern "C" fn string_to_multibyte (string: Lisp_Object) -> Lisp_Objec
 }
 
 
-/* `lisp.rs` declares `string_make_unibyte`, `hash_find` and `hash_put` at the *crate root*
-   (its raw 2440-2444), so a same-scope definition here is `E0428`; PORTING.md P-21's
-   shadowing shape needs those three lines in a `pub mod` of the mirror, which is a mirror
-   change (reported in docs/ports/fns.md).  Until then this unit keeps the C names and the C
-   symbols but defines them in this module (the frame.rs `frame_globals` shape, P-21 from the
-   other side).  */
-pub mod fns_root_shadowed {
-  use super::*;
-
 /* Convert STRING to a single-byte string.  */
 
 /* C 1343-1362: `string_make_unibyte`.  */
@@ -1541,9 +1532,7 @@ pub unsafe extern "C" fn string_make_unibyte (string: Lisp_Object) -> Lisp_Objec
   ret = make_unibyte_string (buf as *mut c_char, nchars);
   SAFE_FREE! (sa_count);
 
-  return ret;
-}
-}
+  return ret;}
 
 DEFUN! ("string-make-multibyte", Fstring_make_multibyte, Sstring_make_multibyte,
        1, 1, 0,

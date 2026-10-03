@@ -1281,3 +1281,15 @@
   `const` 顶层作用域，所以**改镜像与删单元副本必须同一个提交**，§3.80 的教训）。
   ② `fns.rs` 顶部那 19 条就地声明删除，改用镜像（唯一消费者就是它；`build-tu` + `--check` 都过）。
   **教训**：系统头镜像里的每个数值都该有"这台机器实测"的出处；注释里出现别的 libc 的宏名就是警报。
+
+- **3.87 第 98 轮：`lisp.rs` 的三条 crate 根声明进模块——fns 的 `fns_root_shadowed` 消失（2026-10-04）**：
+  fns lane 报回：`lisp.rs` 把 `hash_find`/`hash_put`/`string_make_unibyte` 三条（lisp.h 4254-4279，各写成一个
+  单行 `unsafe extern "C" { … }`）放在**crate 根**，而 `src/fns.c` 正是这三条的定义方——同作用域定义就是
+  `E0428`，于是它把三个定义塞进 `pub mod fns_root_shadowed`（P-21 从另一侧的用法），代价是单元内部的调用
+  变成走**外部符号**再回到自己的定义（能链上，但不是 C 的"直接调本地定义"）。
+  ① 修镜像：三条声明进 `pub mod lisp_hash_decls` + glob 导入（P-21 的遮蔽形状，与 `intervals_decls`/
+  `buffer_point_*` 同类），镜像注释写明"这是 fns.c 的定义方，声明必须可被遮蔽"。
+  ② `fns.rs` 的包装模块删除，三个定义回到 crate 根（调用恢复成直接调本地定义）。
+  ③ 验证：fns 重建 `built`、`--check` OK；另外四个 `lisp.rs` 重消费者（eval/alloc/dispnew/print）全部重建通过；
+  `check-globals` 272/0、`check-mirror-dupes` 仍只有棘轮一行（这三条是**定义**不是副本，工具按定义/声明区分，
+  所以不会误报）。

@@ -2436,12 +2436,23 @@ pub fn HASH_HASH (h: *mut Lisp_Hash_Table, idx: hash_idx_t) -> hash_hash_t {
 #[inline(always)]
 pub fn HASH_TABLE_SIZE (h: *mut Lisp_Hash_Table) -> hash_idx_t { unsafe { (*h).table_size } }
 // lisp.h 4254-4258: the hash-table primitives `coding.h`'s CODING_SYSTEM_ID needs (the rest
-// arrive with the units that define them).
-unsafe extern "C" { pub fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t; }
-unsafe extern "C" { pub fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
-                                      value: Lisp_Object, hash: hash_hash_t) -> ptrdiff_t; }
-// lisp.h 4279: keyboard.h's ENCODE_MENU_STRING calls it.
-unsafe extern "C" { pub fn string_make_unibyte (string: Lisp_Object) -> Lisp_Object; }
+// arrive with the units that define them), plus lisp.h 4279's `string_make_unibyte`, which
+// keyboard.h's ENCODE_MENU_STRING calls.
+//
+// They sit in a whole-import module because `src/fns.c` - the unit that *defines* all three -
+// could not put its definitions at its crate root while these stood there: a same-named item at
+// this scope is an `E0428`, so the unit wrapped them in a module of its own instead.  With the
+// declarations here the definitions shadow the glob and are back where C has them (PORTING.md
+// 0.1-10/P-21; the `buffer_point_*`/`intervals_decls` shape, status 3.87).
+pub mod lisp_hash_decls {
+  use super::*;
+
+  unsafe extern "C" { pub fn hash_find (h: *mut Lisp_Hash_Table, key: Lisp_Object) -> ptrdiff_t; }
+  unsafe extern "C" { pub fn hash_put (h: *mut Lisp_Hash_Table, key: Lisp_Object,
+                                        value: Lisp_Object, hash: hash_hash_t) -> ptrdiff_t; }
+  unsafe extern "C" { pub fn string_make_unibyte (string: Lisp_Object) -> Lisp_Object; }
+}
+use lisp_hash_decls::*;
 
 #[inline(always)]
 pub fn hash_table_index_size (h: *mut Lisp_Hash_Table) -> isize {
