@@ -501,6 +501,11 @@ offsetof glyph_row.used
 offsetof glyph_row.visible_height
 offsetof glyph_row.x
 offsetof glyph_row.y
+offsetof handler.jmp
+offsetof handler.next
+offsetof handler.nextfree
+offsetof handler.tag_or_ch
+offsetof handler.val
 offsetof hash_table_test.cmpfn
 offsetof hash_table_test.hashfn
 offsetof hash_table_test.name
@@ -766,6 +771,7 @@ sizeof glyph_matrix
 sizeof glyph_pool
 sizeof glyph_row
 sizeof glyph_slice
+sizeof handler
 sizeof hash_table_test
 sizeof input_event
 sizeof iso_2022_spec
