@@ -757,3 +757,93 @@ Foverlay_get	0	C's `lookup_char_property (…, prop, 0)` passes the integer `0` 
 Foverlay_put	goto	C's `goto found`/`found:` becomes the `'found` labelled loop (PORTING.md 2.2)
 connect_network_socket	sa6	PORTING.md 5.1/1.5: C's `static_assert (sizeof (sa1.sin_port) == sizeof (sa6.sin6_port))` compares two field widths; a Rust `const` item cannot name the function's locals, so the port compares `size_of::<u16> ()` on both sides and `sa6` keeps only its (zeroed) declaration
 Fmake_network_process	MAYBE_UNUSED,UNINIT	PORTING.md 5.1: C's `MAYBE_UNUSED`/`UNINIT` are attribute macros with no Rust spelling (`UNINIT` is empty, `MAYBE_UNUSED` is `ATTRIBUTE_UNUSED`); the port declares `portstringlen`/`portstring` with ordinary zero/`null` initializers (PORTING.md 1.5)
+FRAME_MUST_WRITE_SPACES	must_write_spaces	termchar.h packs that `bool_bf : 1` into `tty_display_info.bits_caps` (the TTY_* masks), the way frame.h's flags are packed into frame.bits1
+FRAME_LINE_INS_DEL_OK	line_ins_del_ok	see FRAME_MUST_WRITE_SPACES
+FRAME_CHAR_INS_DEL_OK	char_ins_del_ok	see FRAME_MUST_WRITE_SPACES
+FRAME_MEMORY_BELOW_FRAME	memory_below_frame	see FRAME_MUST_WRITE_SPACES
+handle_child_signal	TYPE_MINIMUM,TYPE_MAXIMUM	PORTING.md 5.1: C's `TYPE_MINIMUM (pid_t)`/`TYPE_MAXIMUM (pid_t)` are type-generic macros with no Rust counterpart; the port spells the measured `i32::MIN`/`i32::MAX` as `PID_T_MIN`/`PID_T_MAX` (and `MOST_NEGATIVE_FIXNUM`/`MOST_POSITIVE_FIXNUM` keep their names from lisp.rs)
+OUTPUT_IF	0	C's `do { … } while (0)` has no Rust counterpart: the port writes the if directly, so the loop's `0` is the one token without a match (PORTING.md 2.2, the DO_NOTHING class)
+OUTPUT1_IF	0	see OUTPUT_IF
+encode_terminal_code	uninit	C's `UNINIT` (conf_post.h) marks a value assigned before use; the port writes the explicit zero initializer (PORTING.md 1.5)
+tty_menu_activate	uninit	see encode_terminal_code
+tty_menu_activate	case,switch,default	C's switch/`case`/`default` are the port's `match` (PORTING.md 2.2)
+tty_setup_colors	case,switch,default,break	see tty_menu_activate
+tty_draw_row_with_mouse_face	case,switch,break	see tty_menu_activate
+tty_display_dimension	case,switch,default,break	see tty_menu_activate; the ten `output_*` labels it enumerates are carried by the shared `emacs_abort` arm
+tty_menu_show	case,switch,goto,tty_menu_end	C's switch/`goto done` are the port's `match` and an early `return` at each exit (PORTING.md 2.2)
+produce_glyphs	done,goto	C's `goto done` forward jump to the shared tail is a `break` out of one labelled block, so the label names (`done`, `goto`) have no Rust token (PORTING.md 2.2)
+calculate_costs	frame_cost_baud_rate	C's `FRAME_COST_BAUD_RATE (frame) = baud_rate` writes frame.h's field; the frame mirror's accessor is a reader, so the port assigns `(f)->cost_calculation_baud_rate` directly (P-80's placeholder class)
+term_get_fkeys_1	cap1,cap2,sym	C's `CONDITIONAL_REASSIGN` is `#define`d *inside* the function body, so its parameters appear in the reference text; the port defines the same macro body before the function (P-57) and its parameters do not occur at the call sites
+tty_menu_create	tty_menu_create	C's body is `xzalloc (sizeof *tty_menu_create ())` — the type name comes from the call itself; the port writes `size_of::<tty_menu>()`, the same size
+tty_capable_p	1	the C body's `TTY_CAPABLE_P_TRY` expands `MAY_USE_WITH_COLORS_P`, whose dead else-arm is `1`; the port's macro is the same text and the arm is `1 != 0`
+clear_tty_hooks	0	C assigns `0` to each hook; the port writes `None` (a `*mut c_void` field would take `0 as *mut c_void`, a function-pointer field cannot)
+maybe_fatal	va_list,va_start	C's `va_list ap; va_start (ap, str2);` is the port's C-variadic `mut args: ...`, passed on as the same list (eval.rs's `error` shape)
+fatal	va_list,va_start	see maybe_fatal
+init_tty	27,7	C's `"\033[4:%p1%dm"` and `"\07"` are the escape spellings; tools/extract-abi.py's string scanner leaves those escapes visible and the octal rule (docs/status.md 3.28②) reads `033` as 27 and `07` as 7, while Rust has only `\x1b`/`\x07`
+syms_of_term	0,1,doc	C's `DEFVAR_BOOL` bodies assign `0`/`1` and the invocation carries a `doc:` label; the port's `DEFVAR_*!` take the doc positionally and assigns `false`/`true`
+add_process_read_fd	null	PORTING.md 5.1: the callback table is `Option<fn>`, so C's `NULL` comparison is `.is_none ()`
+add_non_blocking_write_fd	null	see add_process_read_fd
+conv_sockaddr_to_lisp	case,switch,break,default	PORTING.md 2.2: C's `switch (sa->sa_family)` is the port's `match`, whose arms need no `case`/`break`/`default`
+conv_sockaddr_to_lisp	declare_pointer_alias	PORTING.md 5.1: `DECLARE_POINTER_ALIAS (n, T, a)` is the port's `let n: *mut T = a as *mut T;`
+conv_sockaddr_to_lisp	uint16_t	PORTING.md 1.1: `uint16_t` is the port's `u16`
+conv_lisp_to_sockaddr	declare_pointer_alias,uint16_t	see conv_sockaddr_to_lisp
+set_socket_option	case,switch,default	see conv_sockaddr_to_lisp (C's `switch (sopt->opttype)`)
+connect_network_socket	declare_pointer_alias	PORTING.md 5.1: `DECLARE_POINTER_ALIAS (psa1, struct sockaddr, &sa1)` is the port's `let psa1: *mut sockaddr = &raw mut sa1 as *mut sockaddr;`
+connect_network_socket	goto,retry_connect	PORTING.md 2.2: C's `retry_connect:` label and `goto retry_connect` live in the `WINDOWSNT` arm (dead here) and are the port's `#[cfg]`-gated labelled block
+connect_network_socket	socket	the file's own `#define socket(…)` renames C's `socket` to `process_socket` (the preprocessor decides the name), so the port's call is `process_socket`
+connect_network_socket	uninit	PORTING.md 1.5: C's `ptrdiff_t addrlen UNINIT;` (an empty macro) is the port's zero-initialised `addrlen`
+network_interface_list	declare_pointer_alias,uint32_t	see conv_sockaddr_to_lisp
+network_interface_info	declare_pointer_alias	see conv_sockaddr_to_lisp
+network_interface_info	socket	see connect_network_socket (the file's own `#define socket`)
+network_interface_info	have_getifaddrs,have_struct_ifreq_ifr_addr,have_struct_ifreq_ifr_netmask	PORTING.md 5.1: these are tokens of C's `#if` condition text, which has no Rust counterpart (`HAVE_GETIFADDRS` is a config.h entry the port reads through `#[cfg]`/direct code)
+server_accept_connection	case,switch,break,default	see conv_sockaddr_to_lisp (C's `switch (saddr.sa.sa_family)`)
+server_accept_connection	declare_pointer_alias,uint16_t	see conv_sockaddr_to_lisp
+server_accept_connection	accept4	the file's own `#define accept4(…)` renames C's `accept4` to `process_accept4`, so the port's call is `process_accept4`
+wait_reading_process_output	type_maximum,time_t	PORTING.md 5.1: `TYPE_MAXIMUM (time_t)` is the generic-scalar macro; the port uses `TYPE_MAXIMUM_TIME_T` (i64::MAX, measured)
+read_process_output	ssize_t	PORTING.md 1.1: `ssize_t` is the port's `ptrdiff_t` (libc's `read` returns isize on this target)
+read_and_insert_process_output	1	PORTING.md 5.1: C passes the integer `1` for `insert_1_both`'s `bool` argument; the port passes `true`
+read_and_dispose_of_process_output	1	PORTING.md 5.1: C's `running_asynch_code = 1;` is the port's `= true`
+write_queue_push	ssdata	PORTING.md 5.1: C's `SSDATA` is the port's `SDATA` (character.rs spells the accessor without the repeated S)
+write_queue_pop	ssdata,0,1	see write_queue_push; C's `return 0;`/`return 1;` are the port's `false`/`true`
+send_process	ssdata	see write_queue_push
+send_process	fwrite,flags,ioctl,tiocflush,eagain	PORTING.md 5.1: these live in the `BROKEN_PTY_READ_AFTER_EAGAIN` arm (dead here); the port carries it as `#[cfg (feature = "broken_pty_read_after_eagain")]` text and the tokens appear there
+process_send_signal	case,switch,break	see conv_sockaddr_to_lisp (C's `switch (signo)`)
+process_send_signal	ioctl,tiocsigsend	the `TIOCSIGSEND` arm is carried text under `tiocsigsend`; the tokens appear there
+exec_sentinel	1	see read_and_dispose_of_process_output
+kill_buffer_processes	1	PORTING.md 5.1: C passes `1` for `process_send_signal`'s `bool nomsg`; the port passes `true`
+hold_keyboard_input	1	PORTING.md 5.1: C's `kbd_is_on_hold = 1;` is the port's `= true`
+unhold_keyboard_input	0	see hold_keyboard_input
+catch_child_signal	sa_handler	PORTING.md 1.4/P-27: C's `sigaction.sa_handler` is the `__sigaction_u.__sa_handler` union member in the port
+syms_of_process	doc,key,val	PORTING.md 5.1: the `doc:` marker of a C `DEFVAR_*` call is the macro's third argument in the port, and C's `#define ADD_SUBFEATURE(key, val)` line (whose parameters are `key`/`val`) is the port's `macro_rules!` outside the function
+syms_of_process	0	PORTING.md 5.1: C's `process_prioritize_lower_fds = 0;` is the port's `= false` (the carrier is a `bool`)
+Fdelete_process	continue	PORTING.md 2.2: C's `while (gai_suspend (…) != 0) continue;` is the port's `{ continue; }` inside `#[cfg (feature = "have_getaddrinfo_a")]`
+Fmake_network_process	goto,flexible_array_member	PORTING.md 2.2/5.1: `goto open_socket` is the port's labelled block, and `FLEXIBLE_ARRAY_MEMBER` is the `[c_char; 0]` tail of the carried `struct req`
+Fnetwork_interface_info	siocgifaddr,siocgifflags,siocgifhwaddr,windowsnt	see network_interface_info (tokens of C's `#if` condition text)
+Finternal_default_interrupt_process	0	PORTING.md 5.1: C passes `0` for `process_send_signal`'s `bool nomsg`; the port passes `false`
+Fkill_process	0	see Finternal_default_interrupt_process
+Fquit_process	0	see Finternal_default_interrupt_process
+Fnetwork_interface_list	qnil	the `#else return Qnil;` arm is carried under `no_getifaddrs`; the port spells it `Qnil ()`
+allocate_pty	sprintf	the `#else` arms of `PTY_NAME_SPRINTF`/`PTY_TTY_NAME_SPRINTF` are carried under their `no_*` features; the port keeps the tokens there
+make_frame	uninit	PORTING.md 1.5: C declares `struct window *rw, *mw UNINIT;` and the port initializes the UNINIT binding (`let mut mw: *mut window = std::ptr::null_mut ()`), because Rust has no uninitialized local; `UNINIT` is a declaration annotation with no token of its own in the C body
+make_frame_without_minibuffer	kvar	keyboard.h 38's `KVAR` is a token-pasting macro (`((kboard)->field ## _)`) that Rust cannot spell; docs/ports/excluded-macros.txt records it and the port writes the pasted field (`(*kb).Vdefault_minibuffer_frame_`) at each use site (the Fstart_kbd_macro row)
+frame_next_F_name	goto,pridmax	C's `goto next_name` jumps from inside the FOR_EACH_FRAME body back to the label before the `sprintf`; the port keeps one copy of the loop body in a labelled `loop { … continue 'next_name; … }` (PORTING.md 2.2), so `goto` cannot reappear.  C's `"F%"PRIdMAX` is the `intmax_t` conversion macro, which has no Rust counterpart, and the port writes the same format string `c"F%jd"` (the print.rs PRIdMAX row)
+do_switch_frame	1	C passes `1` to `resize_mini_window`'s `bool` parameter (C 1983); a Rust `bool` has no integer literal spelling, so the port writes `true` (the syms_of_indent row's class)
+delete_frame	kvar,uninit	C's `Lisp_Object frames, frame1 UNINIT;` is the port's zero-initialized binding (PORTING.md 1.5, the make_frame row), and C's `KVAR (kb, Vdefault_minibuffer_frame)` is keyboard.h 38's token-pasting macro, which the port writes as `(*kb).Vdefault_minibuffer_frame_` (docs/ports/excluded-macros.txt; the Fmake_frame_without_minibuffer row)
+syms_of_frame	doc	C's `DEFVAR_LISP (…, doc: /* … */)`, `DEFVAR_BOOL (…, doc: /* … */)` and `DEFVAR_KBOARD (…, doc: /* … */)` invocations take the docstring positionally in the port's `DEFVAR_*!` macros (PORTING.md 5.3), so C's `doc:` label has no counterpart; the docstring values are still compared by the constants rule (the syms_of_editfns precedent)
+Fframep	case,default,switch	C 302-323's `switch (XFRAME (object)->output_method)` is a `match` on the same output_method constants, with the arms in C's order and C's `default:` (the `emacs_abort ()`) as `_ =>` (the Fcall_interactively row)
+INTERN_FIELD	0	C 1121's `font_intern_prop (f[N], f[(N) + 1] - 1 - f[N], 0)`: the port's INTERN_FIELD takes the array and the index (a `macro_rules!` cannot name the caller's local `f`, status 3.8) and passes `false` for the third argument, so C's `0` has no counterpart token (the macro's own `f`/`1` are kept)
+PROP_SAVE	1,strlen	C 1825-1826's `PROP_SAVE (VAR, STR)` reads `strlen (STR)` and passes `1` as the force_symbol argument; the port's PROP_SAVE asks a `&CStr` for its byte length (`count_bytes`) and passes `true` (the property is not a number, so the interning is symbolic either way)
+font_style_to_value	switch,case,default,break	C's `switch (prop)` on the style index becomes a `match` whose arms are blocks and whose `default:` is `_ =>` (PORTING.md 2.2); `match` arms need no `break`
+font_registry_charsets	goto,invalid_entry	C's forward `goto invalid_entry` (C 520/561/566) becomes a labelled block whose `break 'block` lands on the label's statements (PORTING.md 2.2)
+font_prop_validate_spacing	0	C 647's `char spacing = SDATA (SYMBOL_NAME (val))[0];` indexes; the port dereferences the pointer, so the index `0` has no counterpart token
+font_dynamic_unparse_xlfd	pridmax	`<inttypes.h>`'s `PRIdMAX` is `"jd"` on the frozen target and C concatenates it into the `sprintf` format; Rust cannot concatenate a `const` into a literal, so the format is written out and the name kept in the unit-local `const PRIdMAX` (the timefns.rs `Fcurrent_time_string` row)
+font_unparse_xlfd	alloca,pridmax	C's `alloca (alloc)` is the port's `sa_stack_alloc` (PORTING.md P-05, the marker.rs/buffer.rs shape) and `PRIdMAX` is the concatenated `%jd` literal (the font_dynamic_unparse_xlfd row)
+font_parse_fcname	str,strlen,var	C 1822-1826 define `PROP_MATCH`/`PROP_SAVE` *inside* this function's body, so their parameter names (`STR`, `VAR`) and `strlen` are tokens of the C body; the port's counterparts take the same values as arguments and are defined next to the function (each has its own row here, and `--check` compares them too)
+font_parse_name	0	C's `name[0] == '-'` indexes the array; the port dereferences `*name`, so the `0` has no counterpart
+font_check_otf_features	0,1	C's `for (negative = 0; …) { negative = 1; … }` are the port's `false`/`true`; the gate compares tokens, not values
+font_check_otf	0,1	C's `return 0`/`return 1` are the port's `false`/`true`
+register_font_driver	0	C's `list->on = 0` and `list->next = NULL` are the port's `false`/`null_mut ()`, and the `#ifdef HAVE_WINDOW_SYSTEM` arm's `f && …` is carried
+build_style_table	continue	C's `for (j = 0; entry[i].names[j]; j++) continue;` counts the trailing NULLs; the port's `while !…is_null () { j += 1; }` has no `continue`
+syms_of_font	1,doc,sclose_font,sfont_at,sfont_face_attributes,sfont_get_glyphs,sfont_has_char_p,sfont_info,sfont_match_p,sframe_font_cache,sopen_font,squery_font	the C body's `#ifdef FONT_DEBUG` block registers eight subrs and its `#ifdef HAVE_WINDOW_SYSTEM` block two more; the port defines those subrs but cannot transcribe the registrations (tools/extract-abi.py decides defsubr liveness with the frozen macro table, which reports FONT_DEBUG undefined), and docs/ports/font.md records them for the integrator; `doc:` is C's DEFVAR keyword, which the port's DEFVAR_* macros take as a plain argument, and the `1` is `inhibit_compacting_font_caches = 1;` under the carried `#ifdef WINDOWSNT` (the frozen arm writes `false`)
+Ffont_xlfd_name	goto,done	C's forward `goto done` (and the `done:` label) becomes the port's labelled block (PORTING.md 2.2)
+Ffont_shape_gstring	goto,shaper_error	C's forward `goto shaper_error` (and the `shaper_error:` label) becomes the port's labelled block (PORTING.md 2.2)

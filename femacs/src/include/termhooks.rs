@@ -355,7 +355,7 @@ macro_rules! FRAME_SCROLL_REGION_OK {
   ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_SCROLL_REGION_OK) != 0 };
 }
 macro_rules! FRAME_SCROLL_REGION_COST {
-  ($f:expr) => { unsafe { (*FRAME_TTY! ($f)).scroll_region_cost } };
+  ($f:expr) => { (*FRAME_TTY! ($f)).scroll_region_cost };
 }
 
 // termhooks.h 932/935: `FRAME_TERMINAL` and `TERMINAL_ACTIVE_P`.  Both dereference a type
@@ -375,9 +375,47 @@ macro_rules! TERMINAL_ACTIVE_P {
 }
 
 
-// C: the rest of termhooks.h 917-935's `FRAME_*`/`TERMINAL_*` macros (`FRAME_MUST_WRITE_SPACES`,
-// `FRAME_LINE_INS_DEL_OK`, `FRAME_CHAR_INS_DEL_OK`, `FRAME_MEMORY_BELOW_FRAME`,
-// `FRAME_TERMINAL_CODING`, `FRAME_KEYBOARD_CODING`, `FRAME_RIF`), `cursorX`/`cursorY`
-// (termchar.h's `curX`/`curY`) and 940-1000's prototypes — (not mirrored yet; they land with
-// frame.rs/termchar.h and their .c files).  `FRAME_SCROLL_REGION_OK`/`_COST`, `FRAME_TERMINAL`
-// and `TERMINAL_ACTIVE_P` are above.
+// termhooks.h 917-922: `FRAME_MUST_WRITE_SPACES`, `FRAME_LINE_INS_DEL_OK`,
+// `FRAME_CHAR_INS_DEL_OK` and `FRAME_MEMORY_BELOW_FRAME`.  Each dereferences the
+// `tty_display_info` `FRAME_TTY` (termchar.h 230) hands back, whose four `bool_bf : 1`
+// members live in the one-byte `bits_caps` (termchar.rs's TTY_* masks), so they stay macros
+// expanded at their use site — a `fn` here would be E0412 for every unit that includes
+// termhooks.rs without termchar.rs (the FRAME_SCROLL_REGION_OK shape above).  That member
+// token is what docs/ports/macro-body-notes.tsv exempts, as it does for `scroll_region_ok`.
+macro_rules! FRAME_MUST_WRITE_SPACES {
+  ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_MUST_WRITE_SPACES) != 0 };
+}
+macro_rules! FRAME_LINE_INS_DEL_OK {
+  ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_LINE_INS_DEL_OK) != 0 };
+}
+macro_rules! FRAME_CHAR_INS_DEL_OK {
+  ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_CHAR_INS_DEL_OK) != 0 };
+}
+macro_rules! FRAME_MEMORY_BELOW_FRAME {
+  ($f:expr) => { (unsafe { (*FRAME_TTY! ($f)).bits_caps } & TTY_MEMORY_BELOW_FRAME) != 0 };
+}
+
+// termhooks.h 924-925/930: `FRAME_TERMINAL_CODING`, `FRAME_KEYBOARD_CODING` and `FRAME_RIF`.
+// Their parameter is `struct frame *`, which this header never names (frame.h is not in its
+// include chain), so they stay macros that resolve at the use site — a `fn` here would be
+// E0412 for every unit that includes termhooks.rs without frame.rs (the §3.54 rule that
+// caught this very row; `FRAME_SCROLL_REGION_OK` above is the same shape).
+macro_rules! FRAME_TERMINAL_CODING {
+  ($f:expr) => { (*(*$f).terminal).terminal_coding };
+}
+macro_rules! FRAME_KEYBOARD_CODING {
+  ($f:expr) => { (*(*$f).terminal).keyboard_coding };
+}
+macro_rules! FRAME_RIF { ($f:expr) => { (*(*$f).terminal).rif }; }
+
+// termhooks.h 983-985: `cursorX`/`cursorY` are `curX`/`curY` on this target (the WINDOWSNT
+// arm is dead), and both of those are cm.h macros, so these two stay macros and resolve at
+// their use site exactly as C's do.
+macro_rules! cursorX { ($t:expr) => { curX! ($t) }; }
+macro_rules! cursorY { ($t:expr) => { curY! ($t) }; }
+
+// C: termhooks.h 940-1000's prototypes (`decode_live_terminal`, `decode_tty_terminal`,
+// `get_named_terminal`, `create_terminal`, `delete_terminal`, `delete_terminal_internal`,
+// `terminal_glyph_code`, `encode_terminal_code`, `tty_hide_cursor`, `tty_show_cursor`) and
+// the `#ifdef HAVE_WINDOW_SYSTEM`/`#ifdef HAVE_GPM`/`#ifdef WINDOWSNT` arms are not mirrored
+// yet; each is declared at its use site (term.rs).

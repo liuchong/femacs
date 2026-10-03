@@ -165,7 +165,7 @@ macro_rules! SET_GLYPH_FROM_CHAR_GLYPH {
   ($g:expr, $glyph:expr) =>
     { {
         if ($glyph).u.ch < 256
-          { SET_GLYPH! ($g, ($glyph).u.ch, glyph_bits! (face_id, $glyph)); }
+          { SET_GLYPH! ($g, ($glyph).u.ch as c_int, glyph_bits! (face_id, $glyph)); }
         else
           { SET_GLYPH! ($g, -1, 0); }
       } };
