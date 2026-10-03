@@ -476,3 +476,21 @@ See the final report accompanying this ledger, which quotes every gate's last li
   their own unit; `python3 tools/check-mirror-dupes.py` = 1 duplicate (the ratcheted
   `insdel.rs` one), 0 failures; `python3 tools/check-verbatim.py` = 6 trees, 4,607 files,
   0 failures.
+
+## 2026-10-04 (integrator): src/window.c joins cond-eval-verified.txt, and the rows shrink
+
+The lane's report was right: `src/window.c` was missing from
+`docs/baseline/config/cond-eval-verified.txt` (only `window.h` was listed) even though
+`tools/check-cond-eval.py src/window.c` reports `17 conditions, 0 unknown, 0 disagreements
+[VERIFIED]`.  The integrator added the line (the whole list re-checks: 5,734 conditions, 4
+unknown to the evaluator, 0 disagreements), so the extractor now decides those `#if`s and stops
+demanding the dead-arm text.  Consequences, each measured with `extract-abi.py --check`:
+
+- the long row for `replace_window`/`make_window`/`candidate_window_p`/
+  `run_window_change_functions`/`window_from_coordinates` is deleted (its 22 tokens were the
+  HAVE_WINDOW_SYSTEM arms the ledger records);
+- the `set_window_scroll_bars` row is deleted (`USE_HORIZONTAL_SCROLL_BARS` is an object-like
+  `false` in the frozen table, so the `#else` single statement is the live text);
+- the `Frecenter` row keeps only `uninit` (the two `minimize_*` tokens were the same cause).
+
+`extract-abi.py --check emacs/src/window.c femacs/src/window.rs` is still `OK` after the prune.

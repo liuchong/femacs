@@ -415,6 +415,7 @@ src/w32xfns.c
 src/widget.c
 src/widget.h
 src/widgetprv.h
+src/window.c
 src/window.h
 src/xdisp.c
 src/xfaces.c

@@ -1428,3 +1428,13 @@
   "deferred declarations"（`docs/ports/{update-game-score,seccomp-filter,ntlib,asset-directory-tool}.md`）。
   **下一步可复用**：`lwlib/`(15)、`oldXMenu/`(33)、`exec/`(8)、`nt/`(31)、`msdos/`(2) 共 89 个 `.c` 现在都满足 3.31，
   可以按同样方式一次性落空单元（域内 `lib-src` 只剩 `.h` 两个需要真镜像）。
+
+- **3.97 `src/window.c` 收口 + 进 verified 清单（2026-10-04 第 98 轮第六批）**：window lane 交回**完整**单元
+  （C 1–9740 全覆盖、`femacs/src/window.rs` 9,588 行、台账 251/251、行数漂移 −1.6%、`build-tu` built、
+  `rustc --cfg enable_checking` exit 0、`check-symbols` 里 window 既不 missing 也不 invented），提交 `d08a521`。
+  它同时纠正了文件头的一个假前提：**`src/window.c` 不在 `cond-eval-verified.txt` 里**（只有 `window.h`），
+  尽管 `tools/check-cond-eval.py src/window.c` 实测 `17 conditions, 0 unknown, 0 disagreements [VERIFIED]`——
+  于是整树 25 条 token 差异里 22 条的根因是**基线漏了一行**，不是端口错。集成者本轮补上那一行（全表复检
+  `5,734 conditions, 4 unknown, 0 disagreements`），并**按实测裁剪 notes**：删掉两行（`replace_window…`
+  的 22 token 行、`set_window_scroll_bars` 行）、把 `Frecenter` 行缩到只剩 `uninit`，`--check` 仍 OK。
+  **教训**：死文本差异要先问"提取器凭什么要这些 token"，再决定是补文本还是补基线——两者的成本差两个数量级。
