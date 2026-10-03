@@ -128,7 +128,8 @@ pub const DOUBLE_SLASH_IS_DISTINCT_ROOT: bool = false;
    spelling is not needed for anything the frozen arm compiles).  */
 pub const GCC_LINT: c_int = 1;
 
-/* The five declarations this unit needs beyond the mirrors (the md5.rs shape).  */
+/* The four declarations this unit needs beyond the mirrors (the md5.rs shape; `strcpy`
+   moved into the string mirror, which now carries it).  */
 unsafe extern "C" {
   /* void *mempcpy (void *dest, const void *src, size_t n);  (lib/mempcpy.c defines the
      symbol in this build; gnulib's <string.h> declares it as a system function, so no
@@ -136,8 +137,6 @@ unsafe extern "C" {
   pub fn mempcpy (dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void;
   /* char *strdup (const char *s);  */
   pub fn strdup (s: *const c_char) -> *mut c_char;
-  /* char *strcpy (char *dest, const char *src);  */
-  pub fn strcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char;
   /* long pathconf (const char *path, int name);  */
   pub fn pathconf (path: *const c_char, name: c_int) -> c_long;
 }

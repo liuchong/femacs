@@ -15,6 +15,7 @@ pub const SIGHUP: c_int = 1;
 pub const SIGILL: c_int = 4;
 pub const SIGINFO: c_int = 29;
 pub const SIGINT: c_int = 2;
+pub const SIGIOT: c_int = 6;	// = SIGABRT on this target (measured)
 pub const SIGIO: c_int = 23;
 pub const SIGKILL: c_int = 9;
 pub const SIGPIPE: c_int = 13;
@@ -35,3 +36,7 @@ pub const SIGVTALRM: c_int = 26;
 pub const SIGWINCH: c_int = 28;
 pub const SIGXCPU: c_int = 24;
 pub const SIGXFSZ: c_int = 25;
+
+/// `<signal.h>`'s `NSIG` is `__DARWIN_NSIG` on this target (measured: 32); sig2str.h's
+/// `SIGNUM_BOUND` is `NSIG - 1`.
+pub const NSIG: c_int = 32;

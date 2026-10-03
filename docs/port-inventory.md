@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 157 |
-| 其中 done / wip | 129 / 28 |
-| 待开工 | 433 |
+| 已有目标文件 | 163 |
+| 其中 done / wip | 135 / 28 |
+| 待开工 | 427 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 8 |
-| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 117 |
+| `lib/` | 237 | 69,423 | 986 | 0 | 2,476 | 685 | 399 | 32 | 111 |
 | `lib-src/` | 14 | 20,960 | 359 | 0 | 150 | 220 | 78 | 88 | 14 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 15 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,238 | 490 | 1,104 | 1,976 | 432 | 39 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,741 | 368 | 1,834 | 2,175 | 981 | 192 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 12 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 117 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 986 | 0 | 2,476 | 399 | 32 | 111 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -170,15 +170,15 @@
 | `lib/filevercmp.h` | 93 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/filevercmp.rs` | done |
 | `lib/fingerprint.c` | 66 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/fingerprint.rs` | todo |
 | `lib/fingerprint.h` | 28 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/fingerprint.rs` | todo |
-| `lib/flexmember.h` | 77 | 0 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/include/flexmember.rs` | todo |
+| `lib/flexmember.h` | 77 | 0 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/include/flexmember.rs` | done |
 | `lib/fpending.c` | 63 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/fpending.rs` | todo |
 | `lib/fpending.h` | 45 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/fpending.rs` | todo |
 | `lib/free.c` | 53 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/free.rs` | todo |
 | `lib/fseterr.c` | 80 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/fseterr.rs` | todo |
 | `lib/fseterr.h` | 55 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/fseterr.rs` | todo |
 | `lib/fstatat.c` | 150 | 4 | 0 | 10 | 2 | 0 | 0 | L | `femacs/lib/fstatat.rs` | done |
-| `lib/fsusage.c` | 226 | 2 | 0 | 4 | 1 | 0 | 0 | L | `femacs/lib/fsusage.rs` | todo |
-| `lib/fsusage.h` | 49 | 0 | 0 | 1 | 0 | 7 | 0 | L | `femacs/lib/include/fsusage.rs` | todo |
+| `lib/fsusage.c` | 226 | 2 | 0 | 4 | 1 | 0 | 0 | L | `femacs/lib/fsusage.rs` | done |
+| `lib/fsusage.h` | 49 | 0 | 0 | 1 | 0 | 7 | 0 | L | `femacs/lib/include/fsusage.rs` | done |
 | `lib/fsync.c` | 86 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/fsync.rs` | todo |
 | `lib/ftoastr.c` | 152 | 2 | 0 | 10 | 1 | 0 | 0 | L | `femacs/lib/ftoastr.rs` | todo |
 | `lib/ftoastr.h` | 162 | 0 | 0 | 17 | 0 | 0 | 0 | L | `femacs/lib/include/ftoastr.rs` | todo |
@@ -284,8 +284,8 @@
 | `lib/sha3.h` | 132 | 0 | 0 | 1 | 1 | 6 | 0 | L | `femacs/lib/include/sha3.rs` | done |
 | `lib/sha512.c` | 476 | 12 | 0 | 12 | 0 | 0 | 0 | L | `femacs/lib/sha512.rs` | done |
 | `lib/sha512.h` | 145 | 0 | 0 | 3 | 3 | 4 | 0 | L | `femacs/lib/include/sha512.rs` | done |
-| `lib/sig2str.c` | 364 | 3 | 0 | 4 | 1 | 0 | 0 | L | `femacs/lib/sig2str.rs` | todo |
-| `lib/sig2str.h` | 32 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/include/sig2str.rs` | todo |
+| `lib/sig2str.c` | 364 | 3 | 0 | 4 | 1 | 0 | 0 | L | `femacs/lib/sig2str.rs` | done |
+| `lib/sig2str.h` | 32 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/include/sig2str.rs` | done |
 | `lib/sigdescr_np.c` | 351 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/sigdescr_np.rs` | done |
 | `lib/signal.in.h` | 536 | 0 | 0 | 26 | 17 | 16 | 0 | L | `femacs/lib/include/signal.in.rs` | todo |
 | `lib/stat-time.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stat-time.rs` | done |
@@ -329,7 +329,7 @@
 | `lib/time-internal.h` | 54 | 0 | 0 | 1 | 0 | 3 | 0 | L | `femacs/lib/include/time-internal.rs` | done |
 | `lib/time.in.h` | 646 | 0 | 0 | 26 | 6 | 2 | 0 | L | `femacs/lib/include/time.in.rs` | wip |
 | `lib/time_r.c` | 49 | 3 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/time_r.rs` | todo |
-| `lib/time_rz.c` | 322 | 14 | 0 | 0 | 2 | 0 | 0 | L | `femacs/lib/time_rz.rs` | todo |
+| `lib/time_rz.c` | 322 | 14 | 0 | 0 | 2 | 0 | 0 | L | `femacs/lib/time_rz.rs` | done |
 | `lib/timegm.c` | 57 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/timegm.rs` | todo |
 | `lib/timespec-add.c` | 54 | 1 | 0 | 0 | 0 | 2 | 0 | L | `femacs/lib/timespec-add.rs` | todo |
 | `lib/timespec-sub.c` | 55 | 1 | 0 | 0 | 0 | 2 | 0 | L | `femacs/lib/timespec-sub.rs` | todo |

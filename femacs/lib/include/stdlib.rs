@@ -6,6 +6,8 @@
 // declares it.
 
 unsafe extern "C" {
+  /* long int strtol (const char *nptr, char **endptr, int base);  */
+  pub fn strtol (nptr: *const c_char, endptr: *mut *mut c_char, base: c_int) -> c_long;
   /* double strtod (const char *nptr, char **endptr);  */
   pub fn strtod (nptr: *const c_char, endptr: *mut *mut c_char) -> c_double;
   /* void *malloc (size_t size);  */

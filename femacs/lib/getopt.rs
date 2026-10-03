@@ -74,8 +74,6 @@ unsafe extern "C" {
   pub fn abort () -> !;
   /* char *getenv (const char *name);  */
   pub fn getenv (name: *const c_char) -> *mut c_char;
-  /* int strncmp (const char *s1, const char *s2, size_t n);  */
-  pub fn strncmp (s1: *const c_char, s2: *const c_char, n: usize) -> c_int;
 }
 
 /* C 40-60's `#ifdef _LIBC` arm is dead: `_LIBC` is undefined in the frozen configuration.
