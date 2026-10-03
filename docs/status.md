@@ -1358,3 +1358,15 @@
   于是那段 `mirrors.insert(0, lisp)` 找不到它。**本轮实测它没有造成失败**（顶层第一个 reach lisp.rs 的
   镜像恰好排在前面），所以**没有改 xtask**——`/tmp` 试验里把那个 reach 者提前也不改变结果；这条只作
   观察记录，等真出现顺序失败再修工具（不许为假想问题改闸门）。
+
+- **3.92 C 的 UB 域里，Rust 用 panic 代替（2026-10-04 第 98 轮第三批，`sysselect.h` 的差分探针发现）**：
+  `src/include/sysselect.rs` 与 `lib/include/sys_select.rs` 的三个新访问器（`FD_SET`/`FD_CLR`/`FD_ZERO`）
+  用一条确定性序列做了 C↔Rust 差分：两边 dump 与最终 128 字节 `fd_set` 完全相同
+  （`sha256 0c832346…`）。**同一支探针顺手测出**：Darwin 的
+  `__darwin_check_fd_set_overflow`（`sys/_types/_fd_def.h` 58-79）**不按 `FD_SETSIZE` 设界**——
+  实测 `check(1023)=1 check(1024)=1 check(1100)=1`，于是 C 的 `FD_ISSET (1024, &f)` 会读
+  `fds_bits[32]`（32 元素数组的下一格，**未定义行为**，栈上恰好读到 0）；Rust 镜像的切片带边界检查，
+  同样输入**panic**。定案：这是语言层面的必然偏离，**记录不掩盖**——树内调用点全在范围内
+  （`sysselect.h` 的三个包装函数用 `eassume` 写明契约），真跑测试套件时若出现越界 fd 会以 panic 暴露，
+  而不是静默读脏数据。判据与探针配方写在 `docs/ports/include-sysselect.md` 与
+  `docs/ports/include-sys_select.md`。
