@@ -1072,3 +1072,4 @@ Fset_terminal_coding_system_internal	common_flags,dst_multibyte,mode,src_multiby
 Fset_safe_terminal_coding_system_internal	common_flags,dst_multibyte,src_multibyte	the packed `bits` members (same class).
 Fset_keyboard_coding_system_internal	common_flags	the packed `common_flags` member (same class).
 get_char_bytes	2,6	C's function-local `static unsigned char bytes[2][6]` lives in the port's private `get_char_bytes_caches` module (the crate root cannot carry the name: E0530), so the array's dimensions are outside the function body.
+main	prixmax	C 163's `printf ("%08"PRIxMAX": ", address)` uses `<inttypes.h>`'s `PRIxMAX`, which the frozen target defines as `"jx"` (measured with clang); the port writes the measured format as one literal, so the macro name cannot reappear (docs/ports/hexl.md)

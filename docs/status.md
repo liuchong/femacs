@@ -1447,3 +1447,11 @@
   `layout-check passed`。这一轮它是**带完整日志**跑的（`/tmp/gate-fcbf0bc.txt`，82,382 行），所以读数可复算。
   它之后落地的有：window 收口、`src/window.c` 进 verified 清单、44 个未编译空单元、第一个 lib-src 单元——
   这些都已由各自的逐文件门与 `--check` 覆盖；**下一次整树门会对新的 HEAD 重跑**。
+
+- **3.98 第二个真 `lib-src` 单元 + stdio 镜像补全（2026-10-04 第 98 轮第七批）**：
+  **`lib-src/hexl.c`（221 行）** 落地——`build-tu lib-src/hexl.c` = `built`、`--check` = OK、`--cfg enable_checking`
+  = exit 0、台账 4/4；台账记了 6 条偏离（`PRIxMAX` 实测 `"jx"` 走 notes 行、`uintmax_t` 由单元提供、
+  `<unlocked-io.h>` 无镜像按用点处理、`exit` 用点声明、`i` 零初始化与 `c + 0u` 的显式无符号提升、
+  `<binary-io.h>` 带 `O_BINARY`）。为它补全 `stdio.rs`（`getchar`/`putchar`/`puts`）并让 `src/minibuf.rs`、
+  `src/dispnew.rs` 退位；行数门加 `hexl 0.55`（实测 C 221 vs 331+1）。**剩一个 `check-mirror-dupes` 失败
+  属在飞的 `keyboard.rs`**（`getchar`），已通知该 lane 收敛。
