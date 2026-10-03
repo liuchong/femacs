@@ -363,3 +363,24 @@
   把定义放在镜像里当 `#[inline(always)]`，一个符号都不发。收口方式：让这些单元自己发
   `#[unsafe(no_mangle)]` 定义。清单已冻结成棘轮，下一轮从这里接着做。
 
+- **3.31 "构建系统判死"的平台文件（2026-10-03 第 58 轮发现，政策与工具待落）**：
+  ① **现象**：`src/w32reg.c`(165)、`w32xfns.c`(447)、`w32cygwinx.c`(134)、`cygw32.c`(139)、
+  `xrdb.c`(513)、`widget.c`(514)、`pgtkim.c`(311)、`emacsgtkfixed.c`(210)、`haikuimage.c`(116)、
+  `haiku_io.c`(217)、`haiku.c`(286)、`gfilenotify.c`(336) 这些文件**没有顶层 `#if` 守卫**
+  （§3.25 处理的是有守卫的那批），它们不在本目标的构建里靠的是**构建系统的源列表**：
+  `build/emacs-ref/src/Makefile` 的 `WINDOW_SYSTEM_OBJ=`（304 行，空）、`HAIKU_OBJ = `（378 行，空）、
+  `MSDOS_OBJ =`（307 行，空）。而 `tools/extract-abi.py` 只按**预处理条件**判定死活，于是把这些文件里的
+  函数/子例程当成活文本——实测 `w32reg.c` 的 ledger 要求 5 项（Windows 注册表）、`xrdb.c` 13 项（X11
+  resource 数据库）、`haikuimage.c` 3 项、`gfilenotify.c` 8 项。照做就要实现本目标既没有头也没有库的
+  平台代码。
+  ② **判据不能是 `.o`**：`build/emacs-ref/src/*.o` 一个都没有（参照构建只完成到 `lib/` 的对象），
+  所以"有对象才算本目标"这条不可用；权威是 Makefile 的那三个变量与 `$(obj)` 的拼装。
+  ③ **计划（下一轮实现）**：给 `tools/extract-abi.py` 加一个"本目标不构建"的集合（从
+  `build/emacs-ref/src/Makefile` 读出 `obj` 的实际展开，`WINDOW_SYSTEM_OBJ`/`HAIKU_OBJ`/`MSDOS_OBJ`
+  为空即排除上述文件），对这些文件**不要求实现**：按 §3.25 的形状落成**空单元 + 说明**（点名
+  Makefile 变量与行号），ledger 的条目改成 "deferred to the platform target"（**可见，不静默**），
+  并在 `docs/port-map.md` 的目标列里标注"本目标不构建"。影响面：batch F 的 192 个文件绝大多数属这一类，
+  这是把 batch F 从"必须实现 Windows/X11/Haiku 代码"降回"可核对的名义端口"的关键一步。
+  ④ 注意 `src/xml.c` **两类都沾**：它有真的 `#ifdef HAVE_LIBXML2`（按 ① 之外的既有判据办，已落地：
+  活文本只有 `libxml-available-p` 的 `#else` 臂与 `syms_of_xml`），但文件本身也不在 X11/Windows 源列表里。
+
