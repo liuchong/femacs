@@ -22,7 +22,7 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **240 个单元**（`femacs/src/*.rs` 118 +
+- **进度（2026-10-03 第 84 轮，两个口径都实测）**：磁盘上 **241 个单元**（`femacs/src/*.rs` 119 +
   `femacs/lib/*.rs` 122）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
   **权威口径 `python3 tools/extract-abi.py --all` 本轮真跑过**（第 84 轮，约 4 分钟）：
   `checked 338 ported files: 312 done, 26 in progress, 0 failing`——"in progress" 全是 WIP 镜像
@@ -621,3 +621,17 @@
   ③ 顺带修一个镜像缺口：`lisp.rs` 的 `record_in_backtrace` 丢掉了 C 的返回值
   （lisp.h 3759 `INLINE specpdl_ref record_in_backtrace (…)`），bytecode 单元因此写了偏离并用
   `SPECPDL_INDEX ()` 补；现在镜像 `return count;`，bytecode.rs 按 C 795-796 的原点取值。
+
+- **3.51 `TIOCSCTTY` 与"已验证清单 vs 抄下两支"的相互作用（2026-10-03 第 86 轮，`df23855`）**：
+  ① `src/callproc.c` 的 `#ifdef TIOCSCTTY` 是 §3.35 那一类缺口——`TIOCSCTTY` 来自
+  `<sys/ioctl.h>` 而不是 `config.h`，冻结表看不见它，求值器答 False 而 clang 答 True。
+  已修：`source-header-macros.tsv` 加 `sys/ioctl.h\tTIOCSCTTY` 行，`gen-cond-macros.py` 用 clang
+  实测（`_IO('t', 97)`），表因此多一行；`check-cond-eval.py src/callproc.c` 变为
+  `75 conditions, 0 unknown, 0 disagreements [VERIFIED]`，全表重跑 `5792 conditions, 4 unknown,
+  0 disagreements`（零回归）。
+  ② **但 `src/callproc.c` 故意不进 `cond-eval-verified.txt`**：进了清单的文件，检查器只要求**活支**，
+  于是 `USABLE_POSIX_SPAWN` 的 `#define … 1` 会去和端口的 `bool = true` 拼法较劲；而该端口按 §3.49
+  **两支都抄**，不进清单反而比对更严（两支都要），也正是端口满足的那一种。这条相互作用写进
+  `docs/ports/callproc.md` 的 Integrator note。
+  ③ 顺带记录一条待办：`coding_system` 的**结构体赋值**在端口用 `std::ptr::read` 顶（该镜像没有
+  `Copy`），台账写明镜像缺口留给 `coding.c` 自己落位，不要在这一轮改别人的镜像。
