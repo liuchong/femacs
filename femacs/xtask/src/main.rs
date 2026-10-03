@@ -934,6 +934,37 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a unit references a symbol no built object or library provides"),
         Err(e) => return fail(e),
     }
+    // check-symbols.py above compares export tables for the units whose reference object
+    // exists - all of them in `lib/`.  The same comparison for `src/` units runs here too,
+    // and it is not vacuous any more: `build/emacs-ref/src/<stem>.o` can be built one unit at
+    // a time (`make -C build/emacs-ref/src <stem>.o`), which is how the DEFVAR-carrier rule of
+    // status 3.60 was found.
+    println!("== symbol gate (src) ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-symbols.py", "--dir", "src", "--pending",
+               "docs/baseline/symbol-pending.txt"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("symbols (src): every built unit matches its reference"),
+        Ok(_) => return fail("a src unit's symbol table differs from its reference object"),
+        Err(e) => return fail(e),
+    }
+    // The other direction of the same question: a C file-scope object that C does *not* mark
+    // static must be a symbol in the port's object.  `re_match_object` was written without
+    // `#[unsafe(no_mangle)]`, so the unit emitted a mangled name where C emits
+    // `_re_match_object` - and no gate saw it, because the text rule compares names and only
+    // units with a reference object had their table compared (status 3.61).
+    println!("== linkage gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-linkage.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("linkage: every non-static C object is exported"),
+        Ok(_) => return fail("a C file-scope object has no symbol in the port's object"),
+        Err(e) => return fail(e),
+    }
     println!("== probe programs ==");
     if let Err(e) = probe_programs() {
         return fail(e);

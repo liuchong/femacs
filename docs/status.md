@@ -800,3 +800,25 @@
   `tools/check-undef.py` 棘轮重写为 **558 pending / 0 new**（新单元带来的未定义名全部是未端口单元
   拥有的依赖，附引用者）；`gen-port-map.py`、`gen-port-inventory.py` 已重跑（done 324 / wip 33 /
   todo 233）。`gate-fast` 待本批最后一个单元落地后跑（五条通道同时在写，整树重编译没有意义）。
+
+- **3.61 第 95 轮：连接闸门（`tools/check-linkage.py`）与 `src` 侧符号闸门接线（2026-10-03）**：
+  3.60 记下的第二个洞——"非 static 文件级对象忘了 `#[unsafe(no_mangle)]` 没有任何门能看见"——
+  本轮补上。新工具 `tools/check-linkage.py` 只查一个方向：**`cinventory` 在 C 源里找到、且 C
+  没有标 `static` 的每个文件级对象，都必须在端口目标文件里是一个导出符号**（另一个方向由
+  `check-symbols.py` 负责）。
+  ① **三个过滤器都是实测出来的，不是猜的**（工具的第一版报了 43 个单元 / 189 个"缺符号"，全是噪声）：
+  (a) **`extern` 声明不是定义**——`menu.c` 的 `extern AppendMenuW_Proc unicode_append_menu;`、
+  `emacs.c` 的 `extern unsigned char etext asm ("etext");`、`callproc.c` 的 `environ` 都属于这一类；
+  (b) **死臂不定义任何东西**——`emacs.c` 的 `Vlibrary_cache`(WINDOWSNT)、`display_arg`
+  (HAVE_X_WINDOWS/HAVE_PGTK/HAVE_NS 全未定义)、`w32_daemon_event`、`treesit` 的常量，用冻结条件求值器
+  逐行判定（文件在已验证清单里时）；(c) **冻结构建不编译的 `src/*.c` 不在链接里**——`tparam.c` 在 C 里
+  `char *BC; char *UP;` 是暂定定义，但该文件**不在** `frozen-build-sources.txt`，冻结构建的这两个对象
+  来自 `terminfo.c`，端口也确实定义在 `terminfo.rs`。
+  ② **两处放宽/分桶**：配置期改名（`#define optarg rpl_optarg` 在生成的 config 里，源扫描看不见）
+  会让 `_rpl_re_syntax_options` 被误报成缺 `re_syntax_options`，故**后缀匹配即算存在**（名字够长，
+  不会掩盖真缺失）；文件不在 `cond-eval-verified.txt` 时条件未知，这类发现进"需人工判定"桶而**不**失败
+  （`ccl.c` 的两个对象在 `#ifdef CCL_DEBUG` 里，台账已记）。
+  ③ 实测：**20 个单元的冻结对象全部导出齐备，0 缺失**，1 个待判定（ccl，已知死臂）；`gate-fast` 已接线
+  （紧跟未定义引用闸门之后）。同一轮还把 `check-symbols.py --dir src` 接进 `gate-fast`——此前它只跑
+  `--dir lib`，而 src 侧现在**不再空转**（print.o 是第一个 src 参照对象，`--dir src` 报
+  `1 units compared, 0 mismatched` + 18 个 DEFVAR 载体计数）。
