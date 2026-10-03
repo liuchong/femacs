@@ -847,3 +847,13 @@ build_style_table	continue	C's `for (j = 0; entry[i].names[j]; j++) continue;` c
 syms_of_font	1,doc,sclose_font,sfont_at,sfont_face_attributes,sfont_get_glyphs,sfont_has_char_p,sfont_info,sfont_match_p,sframe_font_cache,sopen_font,squery_font	the C body's `#ifdef FONT_DEBUG` block registers eight subrs and its `#ifdef HAVE_WINDOW_SYSTEM` block two more; the port defines those subrs but cannot transcribe the registrations (tools/extract-abi.py decides defsubr liveness with the frozen macro table, which reports FONT_DEBUG undefined), and docs/ports/font.md records them for the integrator; `doc:` is C's DEFVAR keyword, which the port's DEFVAR_* macros take as a plain argument, and the `1` is `inhibit_compacting_font_caches = 1;` under the carried `#ifdef WINDOWSNT` (the frozen arm writes `false`)
 Ffont_xlfd_name	goto,done	C's forward `goto done` (and the `done:` label) becomes the port's labelled block (PORTING.md 2.2)
 Ffont_shape_gstring	goto,shaper_error	C's forward `goto shaper_error` (and the `shaper_error:` label) becomes the port's labelled block (PORTING.md 2.2)
+PARSE_RGB_LIST_FIELD	field	C's statement macro's only parameter names the struct member it assigns (`color->field`); Rust has no token pasting, so the port spells the three members as three arms and keeps `rgb_list`, `color` and every operator (docs/ports/xfaces.md)
+parse_rgb_list	field	the token is C's parameter name inside the nested `#define` above the calls; the macro is the row above (PORTING.md 2.1/status 3.8)
+resolve_face_name	true	C's `while (true)` is the port's `loop` (PORTING.md 2.2)
+load_color2	switch,case,default,break	C's `switch (target_index)` over LFACE_*_INDEX becomes a `match` whose `default:` is the `_` arm and whose arms need no `break` (PORTING.md 2.2; the notes file's data.c rows)
+face_attr_equal_p	switch,case,default	C's `switch (XTYPE (v1))` becomes a `match` on the Rust enum (`Lisp_Type::Lisp_String`, `Lisp_Int0 | Lisp_Int1 | Lisp_Symbol`, `_`)
+lookup_basic_face	switch,case,default,break	C's `switch (face_id)` over the basic face ids becomes the port's `match` (one arm per face_id constant, `_ => emacs_abort ()`)
+map_tty_color	switch,case,default,break	C's `switch (idx)` becomes a `match` and its `default:` the `LFACE_BACKGROUND_INDEX | _` arm
+evaluate_face_filter	goto,err	C's `goto err` out of the inner block becomes a labelled block whose `break 'err_block` lands on the same three statements (PORTING.md 2.2)
+filter_face_ref	goto,err	same shape as evaluate_face_filter
+syms_of_xfaces	doc	C's `DEFVAR_*` write `doc:` as a macro argument; the port's DEFVAR_*! takes only the literal, so the keyword cannot reappear

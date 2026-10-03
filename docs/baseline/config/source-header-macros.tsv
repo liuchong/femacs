@@ -82,3 +82,43 @@ sys/ioctl.h	TIOCEXCL
 sys/ioctl.h	FIONBIO
 syssignal.h	FORWARD_SIGNAL_TO_MAIN_THREAD
 lisp.h	IEEE_FLOATING_POINT
+# src/process.c's socket/interface conditions (2026-10-04, the process worker).
+# The file is `<sys/socket.h>`/`<net/if.h>`/`<sys/ioctl.h>`/`<netinet/tcp.h>`/`<net/if_dl.h>`
+# text, so config.h alone cannot decide it: `check-cond-eval.py src/process.c` reported 29
+# disagreements before these rows.  Each row was measured by including exactly that header
+# after config.h and asking clang whether the macro is then defined (the same invocation
+# tools/gen-cond-macros.py uses).  src/process.c is nevertheless NOT added to
+# cond-eval-verified.txt: it carries both arms of every `#if` (status 3.49), and a verified
+# file's checker demands only the live one (docs/status.md 3.51's callproc.c note).
+sys/ioctl.h	TIOCGPGRP
+netinet/tcp.h	TCP_NODELAY
+sys/ioctl.h	SIOCGIFADDR
+sys/ioctl.h	SIOCGIFFLAGS
+sys/ioctl.h	SIOCGIFNETMASK
+sys/ioctl.h	SIOCGIFBRDADDR
+net/if.h	IFF_UP
+net/if.h	IFF_BROADCAST
+net/if.h	IFF_DEBUG
+net/if.h	IFF_LOOPBACK
+net/if.h	IFF_POINTOPOINT
+net/if.h	IFF_RUNNING
+net/if.h	IFF_NOARP
+net/if.h	IFF_PROMISC
+net/if.h	IFF_NOTRAILERS
+net/if.h	IFF_ALLMULTI
+net/if.h	IFF_MULTICAST
+net/if.h	IFF_OACTIVE
+net/if.h	IFF_SIMPLEX
+net/if.h	IFF_LINK0
+net/if.h	IFF_LINK1
+net/if.h	IFF_LINK2
+net/if_dl.h	LLADDR
+# src/font.c's FONT_DEBUG (2026-10-04, the font lane).  `src/font.h` 997-998 defines it
+# (`#ifndef FONT_DEBUG` / `#define FONT_DEBUG`), so it comes from the source header and not
+# from config.h: the frozen table cannot decide it and `check-cond-eval.py src/font.c`
+# reported `2 disagreements` (both `#ifdef FONT_DEBUG`, C 5240/5938).  Clang measured with the
+# same invocation gen-cond-macros.py uses: defined.  With the row in the table the file is 0
+# disagreements, and C 5938-5949's eight `defsubr`s become live text the port transcribes
+# (status 3.76) instead of a recorded deviation.
+font.h	FONT_DEBUG
+

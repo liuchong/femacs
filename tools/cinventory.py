@@ -171,6 +171,12 @@ def blank_comments(text: str) -> str:
 # `(line_index, kind, expression, verdict)` for the conditions of the last
 # `dead_branch_map` call — read by tools/check-cond-eval.py.
 CONDITION_LOG: list = []
+
+# Names this file defines through its own `#ifndef NAME` default, in the order the scan met
+# them.  `dead_branch_map` uses them for a second pass (status 3.76): the frozen table's value
+# for such a name *is* that define's net effect (why the source-header row exists), so applying
+# it from line 0 made the guard itself answer false where clang answers true.
+DEFAULT_DEFINES: list = []
 CONDITION_MACROS: dict[str, str] | None = None
 CONDITION_MACROS_BASE: dict[str, str] | None = None
 CONDITION_EVAL_CACHE: dict[str, bool | None] = {}
@@ -648,7 +654,34 @@ def logical_lines(text: str) -> list[tuple[str, int]]:
     return out
 
 
-def dead_branch_map(text: str) -> list[bool]:
+def source_header_macros() -> dict[str, set[str]]:
+    """`{header name: macros that header defines itself}`, from the measured row list.
+
+    `docs/baseline/config/source-header-macros.tsv` exists for macros a *source header* brings
+    in where config.h cannot decide them (PORTING.md P-66's status 3.35 rule).  For the header
+    that owns such a row, the macro's table value is the *net* effect of that header's own
+    define - so a condition the header writes *before* it (`font.h` 997's `#ifndef FONT_DEBUG`)
+    must be answered as "not yet defined" (status 3.76).
+    """
+    global _SOURCE_HEADER_MACROS
+    if _SOURCE_HEADER_MACROS is None:
+        rows: dict[str, set[str]] = {}
+        path = (Path(__file__).resolve().parent.parent
+                / "docs/baseline/config/source-header-macros.tsv")
+        if path.is_file():
+            for raw in path.read_text(encoding="utf-8").splitlines():
+                if not raw.strip() or raw.startswith("#") or "\t" not in raw:
+                    continue
+                header, macro = raw.split("\t", 1)
+                rows.setdefault(header.strip(), set()).add(macro.strip())
+        _SOURCE_HEADER_MACROS = rows
+    return _SOURCE_HEADER_MACROS
+
+
+_SOURCE_HEADER_MACROS: dict[str, set[str]] | None = None
+
+
+def dead_branch_map(text: str, path: str | None = None) -> list[bool]:
     """True for lines that are not inside a branch the frozen configuration disables.
 
     Literal-false conditions (`#if 0` / `#if false`) are always dead.  With the frozen
@@ -670,14 +703,34 @@ def dead_branch_map(text: str) -> list[bool]:
     local_macros = dict(base) if base is not None else None
     if local_macros is not None:
         set_condition_macros(local_macros)
+    own = set()
+    if path:
+        own = source_header_macros().get(Path(path).name, set())
     try:
-        return _dead_branch_scan(text, local_macros)
+        live = _dead_branch_scan(text, local_macros, own)
+        # Second pass, only when this file defines - through its own `#ifndef NAME` default - a
+        # name the frozen table also carries: start that name out undefined, so the guard
+        # answers what clang answers, and the file's own `#define` supplies the value from
+        # there on.
+        deferred = [name for name in DEFAULT_DEFINES
+                    if base is not None and base.get(name, "undef") != "undef"]
+        if deferred:
+            # A *fresh* copy: the first scan has already written the file's own defines into
+            # `local_macros`, and starting pass two from those would apply every one of them
+            # from line 0 (which un-defined half the header's guards).
+            local_macros = dict(base)
+            for name in deferred:
+                local_macros[name] = "undef"
+            set_condition_macros(local_macros)
+            live = _dead_branch_scan(text, local_macros, own)
+        return live
     finally:
         if base is not None:
             set_condition_macros(base)
 
 
-def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bool]:
+def _dead_branch_scan(text: str, local_macros: dict[str, str] | None,
+                      own: set[str] | None = None) -> list[bool]:
     """The `dead_branch_map` state machine, with the working macro table installed.
 
     Every condition it meets is recorded in `CONDITION_LOG` as
@@ -685,13 +738,14 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
     *with the file-local macro state of that line*, which is what
     `tools/check-cond-eval.py` compares against the C preprocessor (PORTING.md P-66).
     """
-    global CONDITION_LOG
+    global CONDITION_LOG, DEFAULT_DEFINES
     CONDITION_LOG = []
+    DEFAULT_DEFINES = []
     live: list[bool] = []
     stack: list[list[bool]] = []
     line_index = 0
     for logical, physical in logical_lines(text):
-        outer_dead = any(outer or not branch for outer, _, branch in stack)
+        outer_dead = any(frame[0] or not frame[2] for frame in stack)
         dead = outer_dead
         s = logical.strip()
         if s.startswith("#"):
@@ -727,6 +781,12 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
                 CONDITION_LOG.append((line_index, word, rest, cond))
                 branch = cond is not False
                 stack.append([outer_dead, cond is True, branch])
+                # A `#ifndef X` guard on a macro *this very header* is on the row list for
+                # is the second pass's candidate: the table's value for X is that header's
+                # own define's net effect, so it must not apply before this guard (font.h
+                # 997-999's FONT_DEBUG; status 3.76).
+                if word == "ifndef" and own and cond_text.strip() in own:
+                    DEFAULT_DEFINES.append(cond_text.strip())
                 dead = outer_dead or not branch
             elif word == "elif":
                 if stack:
@@ -751,7 +811,7 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
             elif word == "endif":
                 if stack:
                     stack.pop()
-                dead = any(outer or not branch for outer, _, branch in stack)
+                dead = any(frame[0] or not frame[2] for frame in stack)
             elif word == "define":
                 # Only a define in a *live* branch applies: lisp.h 254's `# define
                 # USE_LSB_TAG false` sits inside the `#if` at 251 that this configuration
@@ -764,6 +824,7 @@ def _dead_branch_scan(text: str, local_macros: dict[str, str] | None) -> list[bo
                 if not dead and name and local_macros is not None:
                     local_macros[name] = rest[len(name):].strip()
                     CONDITION_EVAL_CACHE.clear()
+
             elif word == "undef":
                 # Same rule as `#define` above, and the C preprocessor's: the `#undef` in a
                 # branch the configuration disabled never runs.  getloadavg.c 104-110 sits
