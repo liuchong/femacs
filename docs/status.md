@@ -7,9 +7,11 @@
 ## 1. 当前数字（每次提交后核对）
 
 - 已竣工单元与镜像：**权威清单在 `docs/port-inventory.md`（590 个参照 `.c/.h` 的状态列）与
-  `python3 tools/extract-abi.py --all` 的输出**，本节只记总数。截至 `a0caa61`：**已提交单元 271 个**
-  （`femacs/src/*.rs` 148 + `femacs/lib/*.rs` 122 + `femacs/lib-src/*.rs` 1）、**已提交镜像 143 个**
-  （`femacs/src/include/*.rs` 49 + `femacs/lib/include/*.rs` 94）；未提交的在飞单元见下面「第三批」一条（`window.rs`/`coding.rs`/`keyboard.rs`）。
+  `python3 tools/extract-abi.py --all` 的输出**，本节只记总数。截至 `a0caa61`：**已提交单元 319 个**
+  （`femacs/src/*.rs` 148 + `femacs/lib/*.rs` 122 + `femacs/lib-src/*.rs` 5 + `femacs/exec/*.rs` 5 +
+  `femacs/lwlib/*.rs` 6 + `femacs/oldXMenu/*.rs` 29 + `femacs/nt/*.rs` 4）、**已提交镜像 143 个**
+  （`femacs/src/include/*.rs` 49 + `femacs/lib/include/*.rs` 94）；其中 48 个是本轮按 3.96 落的**未编译空单元**。
+  `docs/port-inventory.md` 复算：**590 files, done=402, wip=32, todo=156**（本轮 3.96 之前是 done=344/todo=216）。；未提交的在飞单元见下面「第三批」一条（`window.rs`/`coding.rs`/`keyboard.rs`）。
   镜像这一批（2026-10-04，第三批后续）：`src/include/` 的 `getpagesize.rs`（整文件死）、`sysstdio.rs`
   （27 个单元 include 它）、`sysselect.rs`、`syswait.rs`、`gnutls.rs`、`systty.rs`，以及系统镜像
   `lib/include/termios.rs`（新）与 `lib/include/sys_select.rs` 补的三个访问器；每条各自 `--check` OK、
