@@ -11,10 +11,11 @@ pub const EMACS_CODING_H: bool = true;
 
 /* `struct ccl_spec` is defined in ccl.h 69-71, which coding.h does not include: C names it
    only as a pointer inside `coding_system.spec`, and an undeclared tag is an incomplete type
-   there.  Rust has no incomplete types, so the port declares the stand-in here and deletes it
-   when ccl.rs lands (PORTING.md P-70; recorded in the ledger's deviations).  Only the pointer
-   is ever used, so the stand-in's own size never enters a layout.  */
-pub struct ccl_spec;
+   there.  Rust has no incomplete types, so this mirror carried a zero-sized stand-in until
+   `femacs/src/include/ccl.rs` landed with ccl.c; PORTING.md P-70 puts the deletion in that
+   same commit, and P-72 (3) makes the pointer `*mut c_void` here, since a mirror may only
+   name a type it declares itself or pulls in.  Only the pointer is ever used, so its type
+   never enters a layout.  */
 
 // coding.h 252-259: `enum coding_result_code`.
 pub type coding_result_code = c_int;
@@ -109,7 +110,10 @@ pub struct utf_16_spec
 pub union coding_system_spec
 {
   pub iso_2022: iso_2022_spec,                         // coding.h 446
-  pub ccl: *mut ccl_spec,                              // 447 (`struct ccl_spec *`)
+  /// C: `struct ccl_spec *ccl;` (coding.h 447) — `struct ccl_spec`'s definition lives in
+  /// `femacs/src/include/ccl.rs` (P-70); this mirror may not name it (P-72 (1)), so the
+  /// pointer is the ABI-equal `*mut c_void` (P-72 (3)).
+  pub ccl: *mut c_void,                                // 447 (`struct ccl_spec *`)
   pub utf_16: utf_16_spec,                             // 448
   pub utf_8_bom: utf_bom_type,                         // 449
   pub emacs_mule: emacs_mule_spec,                     // 450

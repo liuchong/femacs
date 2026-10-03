@@ -419,3 +419,14 @@ composition_update_it	uninit	C 1468's `int c UNINIT;` - `UNINIT` is conf_post.h'
 find_automatic_composition	goto	C 1758's `goto search_forward` (case (2)) is the port's `search_forward` flag, which skips the same rewind block (PORTING.md 2.2)
 syms_of_composite	doc	the five `DEFVAR_LISP!` invocations take C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no counterpart (the syms_of_data/syms_of_insdel precedent)
 Fcomposition_get_gstring	common_flags	C 1928-1931 reads `TERMINAL_TERMINAL_CODING (terminal)->common_flags`: the mirror packs coding_system's `common_flags` into the `bits` word (coding.rs 218-247), so the field name moves there (the callproc.c `call_process` row's class)
+ccl_driver	case,default,fallthrough,goto,switch	C's `switch (code & 0x1F)` becomes a `match` with C's arms in C's order, its `default` is the `_` arm, the two labels *inside* it are an entry stage after the `match`, and every `goto` is the `ccl_goto` value the `'ccl_repeat` loop leaves with (PORTING.md 2.2, the bytecode.rs/tparam.rs shape), so `switch`/`case`/`default`/`goto`/`fallthrough` cannot reappear; the label names themselves (`ccl_repeat`, `ccl_set_expr`, `ccl_expr_self`, `ccl_error_handler`, `ccl_finish`) survive as the enum's variants
+PUSH_MAPPING_STACK	0	C's `do { … } while (0)` has no Rust counterpart: the port's block expression is the body (PORTING.md 2.1, the PDUMPER_RESET class)
+POP_MAPPING_STACK	0	see PUSH_MAPPING_STACK
+GET_CCL_RANGE	0	see PUSH_MAPPING_STACK; the body is the port's block and `CCL_INVALID_CMD` keeps its own jump
+CCL_WRITE_CHAR	0	see PUSH_MAPPING_STACK; `CCL_INVALID_CMD`/`CCL_SUSPEND` keep their own jumps, so the loop's `0` is the only token without a match
+CCL_SUCCESS	0,goto	the `do { … } while (0)` (see PUSH_MAPPING_STACK) and C's `goto ccl_finish`, which is the port's `break 'ccl_repeat ccl_goto::ccl_finish` (PORTING.md 2.2)
+CCL_SUSPEND	0,goto	see CCL_SUCCESS
+CCL_CALL_FOR_MAP_INSTRUCTION	goto	C's `goto ccl_repeat` is the port's `continue 'ccl_repeat`; the macro is defined inside the loop whose label it names, so the label is in scope at its definition site
+CCL_READ_CHAR	goto	C's `goto ccl_repeat` is the port's `continue 'ccl_repeat`; its `ccl->last_block` read is the mirror's `bits` byte (the `last_block` family of docs/ports/token-aliases.tsv)
+syms_of_ccl	doc	the two DEFVAR_LISP invocations take C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no counterpart; the docstrings themselves are still compared by the constants rule (the syms_of_data precedent)
+CHECK_CCL_PROGRAM	false	C's `do { … } while (false)` has no Rust counterpart: the port's block is the guard, so the loop's `false` is the one token without a match (its home is `femacs/src/include/ccl.rs`)
