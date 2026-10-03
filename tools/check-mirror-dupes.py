@@ -38,6 +38,13 @@ INCLUDE = re.compile(r'include!\(\s*"([^"]+)"\s*\)')
 MODULE = re.compile(r"^\s*(?:pub\s+)?mod\s+([A-Za-z_]\w*)\s*\{")
 GLOB_USE = re.compile(r"^\s*use\s+([A-Za-z_]\w*)\s*::\s*\*;")
 FN_DECL = re.compile(r"^(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn\s+([A-Za-z_]\w*)\s*\(")
+# Constants and statics are the other half of the same question, and nothing else looks for
+# them: a `const NAME` a unit keeps while a mirrored header declares it is an `E0428` the
+# moment the mirror lands (status 3.80's sweep missed `EDOM` in two units, and the whole-tree
+# build was what caught it; status 3.83 teaches this tool to see it first).
+# The name must start with a letter: `const _: () = assert!(…)` is the layout-assertion
+# shape every unit repeats on purpose, and it is not a declaration of anything.
+ITEM_DECL = re.compile(r"^(?:pub\s+)?(?:static\s+mut\s+|const\s+)([A-Za-z]\w*)\s*[:=]")
 
 
 def declarations_in(text: str, scope: str, out: dict[str, list[str]]) -> None:
@@ -54,7 +61,7 @@ EXTERN_OPEN = re.compile(r'(?:pub\s+)?unsafe\s+extern\s+"C"\s*\{')
 MODULE_OPEN = re.compile(r"(?:^|\s)(?:pub\s+)?mod\s+([A-Za-z_]\w*)\s*\{")
 
 
-def scan(path: Path) -> dict[str, list[str]]:
+def scan(path: Path) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
     """`{scope: [declared names]}` for one file, `scope` being "" (top level) or a module name.
 
     Only bodyless declarations inside `unsafe extern "C"` blocks are collected: a `fn` with a
@@ -63,13 +70,23 @@ def scan(path: Path) -> dict[str, list[str]]:
     is cut at the opener rather than assumed to be a lone `{` (the same for `mod`, whose body
     may also start on the opening line).
     """
-    out: dict[str, list[str]] = {}
+    fns: dict[str, list[str]] = {}
+    consts: dict[str, list[str]] = {}
+    out = fns                      # `declarations_in` appends here
     text = path.read_text(encoding="utf-8", errors="replace")
     stack: list[tuple[str, int]] = []             # (module name, brace depth at entry)
     extern_depth: int | None = None
     depth = 0
+    prev_item_line = ""
     for raw in text.split("\n"):
         line = raw.rstrip()
+        # An item behind `#[cfg (…)]`/`#[cfg_attr (…)]` is a carried arm of the *other*
+        # configuration, not an item of the frozen one: `lib/include/acl-internal.rs`'s
+        # `#[cfg (feature = "no_fchmod")] pub const HAVE_FCHMOD` is the worked example (the
+        # `dead-arms` pass is what exercises those arms, and it compiles the whole tree).
+        gated = prev_item_line.startswith("#[cfg (") or prev_item_line.startswith("#[cfg_attr (")
+        if line.strip() and not line.strip().startswith("//"):
+            prev_item_line = line.strip()
         m = MODULE_OPEN.search(line)
         if m:
             stack.append((m.group(1), depth))
@@ -80,26 +97,43 @@ def scan(path: Path) -> dict[str, list[str]]:
             if m_open:
                 extern_depth = depth + line[:m_open.start()].count("{") - line[:m_open.start()].count("}")
                 cut = m_open.end()
-        if extern_depth is not None:
+        if extern_depth is not None and not gated:
             declarations_in(line[cut:], scope, out)
+        else:
+            # A `const`/`static` item at this level: the mirror's copy is textually in
+            # scope, so a unit keeping its own is the same duplicate (status 3.83).
+            m_item = None if gated else ITEM_DECL.match(line.strip())
+            if m_item and line.rstrip().endswith(";"):
+                consts.setdefault(scope, []).append(m_item.group(1))
         depth += line.count("{") - line.count("}")
         while stack and depth <= stack[-1][1]:
             stack.pop()
         if extern_depth is not None and depth <= extern_depth:
             extern_depth = None
-    return out
+    return fns, consts
 
 
-def visible_declarations(mirror: Path) -> set[str]:
-    """Names an `include!` of `mirror` puts into the including unit's scope."""
-    scanned = scan(mirror)
-    names = set(scanned.get("", []))
+def visible_declarations(mirror: Path) -> tuple[set[str], set[str]]:
+    """What an `include!` of `mirror` puts into the including unit's scope.
+
+    Two sets, because the two kinds collide differently.  A *function* declaration in a module
+    the mirror glob-imports is shadowed by a unit's own item - legal, and still a copy PORTING.md
+    P-26 asks to drop - so functions count from the top level and from every glob-imported
+    module.  A *constant* in a glob-imported module is a different case: shadowing it is the
+    documented shape for a carrier unit (`lib/acl-internal.rs` defines `ACL_INTERNAL_INLINE`,
+    `lib/set-permissions.rs` its own `HAVE_FCHMOD` - both legal, both still compile), while a
+    *top-level* constant in the mirror is textually in the unit's scope and a second one there is
+    an `E0428` (that is what status 3.80's `EDOM` sweep walked into).  So only top-level
+    constants count.
+    """
+    fns, consts = scan(mirror)
+    fn_names = set(fns.get("", []))
     text = mirror.read_text(encoding="utf-8", errors="replace")
     for line in text.split("\n"):
         m = GLOB_USE.match(line)
         if m:
-            names.update(scanned.get(m.group(1), []))
-    return names
+            fn_names.update(fns.get(m.group(1), []))
+    return fn_names, set(consts.get("", []))
 
 
 def include_graph(unit: Path, seen: set[Path] | None = None) -> set[Path]:
@@ -125,13 +159,16 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
     for d in UNIT_DIRS:
         for unit in sorted((root / d).glob("*.rs")):
             graph = include_graph(unit.resolve())
-            declared = set(scan(unit).get("", []))
-            if not declared:
+            unit_fns, unit_consts = scan(unit)
+            declared_fns = set(unit_fns.get("", []))
+            declared_consts = set(unit_consts.get("", []))
+            if not declared_fns and not declared_consts:
                 continue
             for target in sorted(graph):
                 if target not in visible:
                     continue
-                shared = declared & visible[target]
+                mirror_fns, mirror_consts = visible[target]
+                shared = (declared_fns & mirror_fns) | (declared_consts & mirror_consts)
                 for name in sorted(shared):
                     out.append((unit.relative_to(root).as_posix(),
                                 mirrors[target].relative_to(root).as_posix(), name))
@@ -158,6 +195,16 @@ SELFTEST = (
     ("a module the mirror does not glob-import does not count",
      'include!("include/m.rs");\nunsafe extern "C" { fn foo (); }',
      'pub mod decls { unsafe extern "C" { pub fn foo (); } }', 0),
+    # The constant class status 3.83 added: a top-level constant in the mirror is textually
+    # in the unit's scope, so a second one is an E0428 (this is how `EDOM` bit); a module
+    # constant and a cfg-gated one are not.
+    ("top-level const counts", 'include!("include/m.rs");\npub const EDOM: c_int = 33;',
+     "pub const EDOM: c_int = 33;", 1),
+    ("module const does not count", 'include!("include/m.rs");\npub const EDOM: c_int = 33;',
+     "pub mod d { pub const EDOM: c_int = 33; }\nuse d::*;", 0),
+    ("cfg-gated mirror const does not count",
+     'include!("include/m.rs");\npub const EDOM: c_int = 33;',
+     '#[cfg (feature = "x")]\npub const EDOM: c_int = 33;', 0),
 )
 
 

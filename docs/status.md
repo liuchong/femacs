@@ -1233,3 +1233,22 @@
   （blind 文件下 `static_prior` 规则被关掉，§3.67），反过来要求必须有 `#[unsafe(no_mangle)]`。按 lread 的
   `oblookup_considering_shorthand` 先例，把名字记进 `docs/ports/excluded-macros.txt` 的 `linkage` 类并写明
   两边的实测证据，文本门据此让开——**"两门相反时以对象级为准 + 记豁免"** 是这类构造的定式。
+
+- **3.83 第 98 轮：`check-mirror-dupes` 补上常量类——以及"两门相反以对象级为准"的第二例（2026-10-04）**：
+  §3.80 的 errno 收敛漏了 `EDOM`（`filelock.rs`/`timefns.rs` 也各自声明了它），是**整树门**在
+  `src/filelock.rs` 上以 `error[E0428]: the name \`EDOM\` is defined multiple times` 抓出来的——
+  原因是做扫描时用的名字表是**第一次测量**的那张（`EAGAIN`…`EIO`），不是**要加入**的那张（含 `EDOM`/
+  `ECHILD`）。两处副本已删（`11be128`）；**教训**：往镜像加名字的扫描必须用同一张名字表，而**常量这一类
+  当时没有任何门**（`check-mirror-dupes.py` 只扫 `fn` 声明），所以只能靠整树编译兜住。
+  ① 本轮把工具补成两类都扫，并且**两类的判据不同**（实测定案）：镜像里 glob 导入模块中的常量被单元自己的
+  常量遮蔽是**合法**且是既定的载体形态（`lib/acl-internal.rs` 定义 `ACL_INTERNAL_INLINE`、
+  `lib/set-permissions.rs` 自定义 `HAVE_FCHMOD`，两者都照常编译），只有**顶层**常量才会与单元的同名常量
+  在同一个作用域里撞成 `E0428`（`errno.rs` 的码就是顶层，这正是 `EDOM` 咬人的原因）；另外 `#[cfg (…)]`/
+  `#[cfg_attr (…)]` 门控的条目属于**另一个配置**的携带臂（`acl-internal.rs` 的
+  `#[cfg (feature = "no_fchmod")] pub const HAVE_FCHMOD` 就是），不参与判定；`const _: () = assert!(…)`
+  这种布局断言按匿名处理，不算同名。9 条 `--selftest` 用例把这三条边界钉住（含 3 条常量专例）。
+  实测：已提交树上 **只剩棘轮里那一行**（`insdel`/`bset_redisplay`），也就是说新覆盖的常量类当前是干净的，
+  而它**本来就能抓住 `EDOM`**。
+  ② 同一天第二处"两门相反"：`refill_memory_reserve`（§3.82）——对象级把它判成 invented、文本门反过来
+  要求 `#[unsafe(no_mangle)]`，定式是**以对象级为准 + 在 `docs/ports/excluded-macros.txt` 记 `linkage`
+  免责行**。
