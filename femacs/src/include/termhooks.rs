@@ -239,7 +239,8 @@ pub struct terminal
 
   /* Hook to define a color, and to ask for a frame's background.  */
   pub defined_color_hook: Option<unsafe extern "C" fn (*mut c_void, *const c_char,
-                                                        *mut Emacs_Color, bool, bool)>,  // 596
+                                                        *mut Emacs_Color, bool, bool)
+                                                       -> bool>,                         // 596
   pub query_frame_background_color: Option<unsafe extern "C" fn (*mut c_void,
                                                                  *mut Emacs_Color)>,     // 613
 
@@ -357,8 +358,26 @@ macro_rules! FRAME_SCROLL_REGION_COST {
   ($f:expr) => { unsafe { (*FRAME_TTY! ($f)).scroll_region_cost } };
 }
 
+// termhooks.h 932/935: `FRAME_TERMINAL` and `TERMINAL_ACTIVE_P`.  Both dereference a type
+// this header cannot name (`struct frame`, `struct tty_display_info`), so they keep the macro
+// shape — the name resolves at the use site, where those mirrors are in scope (a `fn` here
+// would be E0412 for every unit that includes termhooks.rs without frame.rs, e.g.
+// src/callint.rs).  `TERMINAL_ACTIVE_P`'s `(d)->display_info.tty->input` reads the union
+// member the mirror spells `*mut c_void` (P-72 rule ③) and casts it once.
+macro_rules! FRAME_TERMINAL {
+  ($f:expr) => { unsafe { (*$f).terminal } };
+}
+macro_rules! TERMINAL_ACTIVE_P {
+  ($d:expr) => {
+    unsafe { (*$d).r#type != output_termcap && (*$d).r#type != output_msdos_raw
+	     || ! (*((*$d).display_info.tty as *mut tty_display_info)).input.is_null () }
+  };
+}
 
-// C: termhooks.h 917-935's `FRAME_*`/`TERMINAL_*` macros (they all dereference `struct frame`,
-// i.e. they need frame.rs), `TERMINAL_ACTIVE_P` (it dereferences `display_info.tty`, i.e.
-// termchar.h's type), `cursorX`/`cursorY` (termchar.h's `curX`/`curY`) and 940-1000's prototypes
-// — (not mirrored yet; they land with frame.rs/termchar.h and their .c files).
+
+// C: the rest of termhooks.h 917-935's `FRAME_*`/`TERMINAL_*` macros (`FRAME_MUST_WRITE_SPACES`,
+// `FRAME_LINE_INS_DEL_OK`, `FRAME_CHAR_INS_DEL_OK`, `FRAME_MEMORY_BELOW_FRAME`,
+// `FRAME_TERMINAL_CODING`, `FRAME_KEYBOARD_CODING`, `FRAME_RIF`), `cursorX`/`cursorY`
+// (termchar.h's `curX`/`curY`) and 940-1000's prototypes — (not mirrored yet; they land with
+// frame.rs/termchar.h and their .c files).  `FRAME_SCROLL_REGION_OK`/`_COST`, `FRAME_TERMINAL`
+// and `TERMINAL_ACTIVE_P` are above.

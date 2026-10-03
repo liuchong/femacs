@@ -203,6 +203,34 @@ macro_rules! XSETFRAME {
     ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_FRAME) };
 }
 
+/* FOR_EACH_FRAME (LIST_VAR, FRAME_VAR) followed by a statement is a
+   `for' loop which iterates over the elements of Vframe_list.  The
+   loop will set FRAME_VAR, a Lisp_Object, to each frame in
+   Vframe_list in succession and execute the statement.  LIST_VAR
+   should be a Lisp_Object too; it is used to iterate through the
+   Vframe_list.  Note that this macro walks over child frames and
+   the tooltip frame as well.
+
+   This macro is a holdover from a time when multiple frames weren't always
+   supported.  An alternate definition of the macro would expand to
+   something which executes the statement once.  */
+// C 1404-1407: `#define FOR_EACH_FRAME(list_var, frame_var) for ((list_var) = Vframe_list;
+// (CONSP (list_var) && (frame_var = XCAR (list_var), true)); list_var = XCDR (list_var))`.
+// C's body follows the macro at the call site; Rust macro hygiene cannot leave a block to be
+// appended, so the body is the last argument (the `FOR_EACH_PER_BUFFER_OBJECT_AT` and
+// `DEFUN!` shape) and the `for` becomes a `while` whose increment sits at the body's end —
+// the increment still runs after the body, exactly as C's does.  The token deviation (`for`)
+// is recorded in docs/ports/macro-body-notes.tsv.
+macro_rules! FOR_EACH_FRAME {
+    ($list_var:ident, $frame_var:ident, $body:block) => {
+        $list_var = unsafe { Vframe_list };
+        while CONSP ($list_var) && { $frame_var = XCAR ($list_var); true } {
+            $body
+            $list_var = XCDR ($list_var);
+        }
+    };
+}
+
 // frame.h 1459-1462: `SELECTED_FRAME`.  C's `emacs_abort ()` arm yields a null frame pointer.
 #[inline(always)]
 pub fn SELECTED_FRAME () -> *mut frame
