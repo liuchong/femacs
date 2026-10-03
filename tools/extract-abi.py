@@ -1057,10 +1057,21 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         # `RE_BACKSLASH_ESCAPE_IN_LISTS`).  Normalising to the decimal value is what
         # the comparison means, and it subsumes the notes rows that exempted the
         # hex spelling one by one.
-        m = re.fullmatch (r"(-?)(0[xX][0-9a-fA-F]+|[0-9]+)[uUlL]*", v)
+        m = re.fullmatch (r"(-?)(0[xX][0-9a-fA-F]+|0[bB][01]+|[0-9]+)[uUlL]*", v)
         if m:
             sign, digits = m.group (1), m.group (2)
-            base = 16 if digits[:2].lower () == "0x" else 10
+            # C's octal form is a leading 0 with no `x`/`b` (`0200` is 128, and
+            # syntax.c's `skip_chars` writes `0400`/`0200`): reading it as decimal made
+            # the port's correct `0o400`/`0o200` look like a missing constant.  Binary is
+            # C23's `0b` (or `0B`), hex the usual pair.
+            if digits[:2].lower () == "0x":
+                base, digits = 16, digits[2:]
+            elif digits[:2].lower () == "0b":
+                base, digits = 2, digits[2:]
+            elif len (digits) > 1 and digits[0] == "0":
+                base = 8
+            else:
+                base = 10
             try:
                 return sign + str (int (digits, base))
             except ValueError:
