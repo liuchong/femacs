@@ -1439,7 +1439,8 @@
   的 22 token 行、`set_window_scroll_bars` 行）、把 `Frecenter` 行缩到只剩 `uninit`，`--check` 仍 OK。
   **教训**：死文本差异要先问"提取器凭什么要这些 token"，再决定是补文本还是补基线——两者的成本差两个数量级。
 
-- **整树门（`fcbf0bc`，`EXIT=0`，2026-10-04 第 98 轮第六批）**：`inventory: no differences`、`cargo check: ok`、
+- **整树门（`fcbf0bc`，`EXIT=0`，2026-10-04 第 98 轮第六批）**：`checked 381 ported files: 358 done, 23 in progress,
+  0 failing`、`inventory: no differences`、`cargo check: ok`、
   符号门 lib `78 units compared, 0 mismatched, 1 still pending` 与 src `69 units compared, 0 mismatched, 1 still pending`、
   未定义引用门 `538 unit object(s) … 111 pending, 0 new`（另 `1 ratchet entry stale (now satisfied): _record_auto_save`）、
   连接门 `0 with 0 missing symbol(s)`、declaration gate `8 sites (0 forbidden, 8 allowed literals), 0 failures`、
