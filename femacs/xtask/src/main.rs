@@ -13,6 +13,14 @@ use std::process::{exit, Command};
 const REPO: &str = "..";
 const BUILD: &str = "../build/femacs";
 
+/// The directories a ported unit can live in.  `docs/port-map.md` pairs every reference file
+/// with a target path, and the C tree's non-`src/` directories keep their own names (PORTING.md
+/// 0.1: `lib/`, `lib-src/`, `lwlib/`, `oldXMenu/`, `exec/`, `nt/`, `msdos/`), so the unit
+/// lookup and the whole-tree walks have to cover all of them - before this list existed,
+/// `build-tu lib-src/etags.c` could not even find its own file.  Order matters only for the
+/// `.rs` lookup: the first directory holding the stem wins, and no stem exists twice.
+const UNIT_DIRS: &[&str] = &["src", "lib", "lib-src", "lwlib", "oldXMenu", "exec", "nt", "msdos"];
+
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let cmd = args.first().map(String::as_str).unwrap_or("help");
@@ -899,16 +907,16 @@ fn build_tu(rel: Option<&String>) -> i32 {
     let (crate_root, out) = if rel.ends_with(".h") {
         // The header mirror lives next to its unit's directory too: lib/regex.h is
         // femacs/lib/include/regex.rs, not src/include/regex.rs.
-        let unit = ["src", "lib"]
+        let unit = UNIT_DIRS
             .iter()
             .map(|dir| format!("{dir}/include/{stem}.rs"))
             .find(|cand| Path::new(cand).is_file())
             .unwrap_or_else(|| format!("src/include/{stem}.rs"));
         (unit, Path::new(BUILD).join(format!("include_{stem}.o")))
     } else {
-        // A unit lives under src/ (a C file of the Emacs tree) or lib/ (a gnulib one);
-        // `finished_units` looks the same pair up, so `build-tu lib/getline.c` works too.
-        let unit = ["src", "lib"]
+        // A unit lives in one of UNIT_DIRS; `finished_units` looks the same list up, so
+        // `build-tu lib/getline.c` and `build-tu lib-src/etags.c` both work.
+        let unit = UNIT_DIRS
             .iter()
             .map(|dir| format!("{dir}/{stem}.rs"))
             .find(|cand| Path::new(cand).is_file())
@@ -1192,7 +1200,10 @@ fn dead_arms() -> i32 {
     ];
     let root = Path::new("../build/dead-arms");
     let _ = fs::remove_dir_all(root);
-    for dir in ["src", "lib"] {
+    for dir in UNIT_DIRS {
+        if !Path::new(dir).is_dir() {
+            continue; // a directory the port has not opened yet
+        }
         if let Err(e) = copy_tree(Path::new(dir), &root.join(dir)) {
             return fail(format!("copying {dir}: {e}"));
         }
@@ -1462,9 +1473,9 @@ fn finished_units() -> Result<Vec<String>, String> {
         if stem.starts_with("include-") || stem == "README" {
             continue;
         }
-        // A unit lives under src/ (a C file of the Emacs tree) or lib/ (a gnulib one); the
-        // ledger's stem is the C file's, and the port map is what pairs them.
-        let unit = ["src", "lib"]
+        // A unit lives in one of UNIT_DIRS; the ledger's stem is the C file's, and the port
+        // map is what pairs them.
+        let unit = UNIT_DIRS
             .iter()
             .map(|dir| format!("{dir}/{stem}.rs"))
             .find(|cand| Path::new(cand).is_file());

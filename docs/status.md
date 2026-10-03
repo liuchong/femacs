@@ -1389,3 +1389,11 @@
   证据：两个单元 `build-tu` = built、`extract-abi --check` = OK、`rustc --cfg enable_checking` = exit 0、
   `check-globals` 273 单元 / 0 缺定义、`check-declarations` 0。剩余一份在 `femacs/src/process.rs` 7390-7430
   （那条 lane 在飞），收敛方案与理由写在 `docs/ports/include-termios.md`。
+
+- **3.94 `xtask` 认得全部单元目录（2026-10-04 第 98 轮第四批）**：`build-tu`、整树 walks 与 ledger→单元
+  的映射此前把目录硬编码成 `["src", "lib"]`，于是**批次 F 的五个目录（`lib-src/`、`lwlib/`、`oldXMenu/`、
+  `exec/`、`nt/`、`msdos/`）连自己的文件都找不到**——`build-tu lib-src/etags.c` 会去 `src/etags.rs`
+  找。现在五处共用一条 `UNIT_DIRS`（八目录，镜像目录按 `<dir>/include/<stem>.rs` 推），`dead-arms`
+  对尚未打开的目录直接跳过。**今天行为中性**：那五个目录里还没有 `.rs`，所以门的读数不动；实测
+  `build-tu src/emacs.c` 仍 `built`，`build-tu lib-src/make-fingerprint.c` 用下一条提交的新单元
+  走通了这条路（批次 F 的第一个目录由此打开）。
