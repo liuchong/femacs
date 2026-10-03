@@ -70,7 +70,7 @@ include!("include/category.rs");               // character.h 27: `#include "cat
 include!("include/dispextern.rs");             // window.h 23: `#include "dispextern.h"`
 include!("include/composite.rs");              // keyboard.h 28: `#include "composite.h"`
 include!("include/coding.rs");                 // termhooks.h 26: `#include "coding.h"`
-include!("../lib/include/sys_select.rs");      // C 38: `#include "sysselect.h"` -> <sys/select.h>
+include!("include/sysselect.rs");                // C 38: `#include "sysselect.h"`
 include!("include/blockinput.rs");             // C 39: `#include "blockinput.h"`
 include!("../lib/include/sys_types.in.rs");    // C 87: `#include <sys/types.h>`
 include!("../lib/include/sys_stat.in.rs");     // C 88: `#include <sys/stat.h>`

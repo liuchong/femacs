@@ -356,6 +356,12 @@ definitions of the name and the port has three `#[cfg]`-gated ones (the same cal
   plus eight `const _` assertions), its local `struct emacs_tty` and its local `CDISABLE` - all
   three were exact duplicates of what the mirrors now own (PORTING.md 0.1-3: one definition
   point per type), and the mirror carries the same clang-measured assertions;
+- pointed C 38 (`#include "sysselect.h"`) at `include/sysselect.rs` as well (it brings the
+  system mirror, so the unit still gets `fd_set`/`FD_SETSIZE`); the checked `fd_*` wrappers and
+  the re-pointed `FD_*` macros arrive with it, exactly as in C.  `femacs/src/include/thread.rs`
+  (thread.h's own `#include "sysselect.h"`) still includes the system mirror directly - that
+  mirror is shared with units that include `<sys/select.h>` themselves (`lib/pselect.rs`), so
+  the switch there belongs to a separate, wider convergence;
 - kept every other use-site declaration of the list above, since those headers still have no
   mirror;
 - took one explicit cast where C converts implicitly: `memcmp (…, NCCS)` became
