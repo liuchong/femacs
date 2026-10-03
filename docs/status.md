@@ -6,14 +6,10 @@
 
 ## 1. 当前数字（每次提交后核对）
 
-- 已竣工单元：`src/` 11 个（data.c 4,400 / macros.c 444 / undo.c 490 / category.c 506 /
-  tparam.c 284 / vm-limit.c 220 / itree.c 1,435 / marker.c 874 / json.c 1,851 /
-  callint.c 933 / terminfo.c 55），`lib/` 37 个
-  （gnulib 包装与替换件，外加实现单元 rawmemchr.c 158 / memrchr.c 158 / malloc.c 56 /
-  realloc.c 101 / lstat.c 97 / fstatat.c 150 / readlink.c 114 / symlink.c 57 /
-  readlinkat.c 123 / cloexec.c 83 / filemode.c 166 / mini-gmp.c 4,699 / md5.c 394 /
-  sha1.c 362 / sha256.c 431 / sha3.c 442 / sha512.c 476 / save-cwd.c 90 /
-  copy-file-range.c 99 / md5-stream.c 134 / lchmod.c 97）。
+- 已竣工单元与镜像：**权威清单在 `docs/port-inventory.md`（590 个参照 `.c/.h` 的状态列）与
+  `python3 tools/extract-abi.py --all` 的输出**，本节只记总数。截至 `ab943c4`：**已提交单元 270 个**
+  （`femacs/src/*.rs` 148 + `femacs/lib/*.rs` 122）、**已提交镜像 135 个**（`femacs/src/include/*.rs` 43 +
+  `femacs/lib/include/*.rs` 92）；未提交的在飞单元见下面「第三批」一条（`window.rs`/`coding.rs`/`keyboard.rs`）。
 - 镜像（`src/include/` 与 `lib/include/`）：`font.h`、`thread.h`、`comp.h`、`macros.h`、
   `category.h`、`tparam.h`、`sys_resource.h`、`lisp.h`、`frame.h`、`window.h`、`termhooks.h`、
   `dispextern.h`、`buffer.h`、`keyboard.h`、`coding.h`、`composite.h`、`itree.h`、`globals.h`
@@ -38,6 +34,18 @@
   而是机器门：**`python3 tools/check-verbatim.py`**（文件清单 + 逐块 sha256 流式比对，越界即非 0），
   当前输出 `6 trees, 4607 files, 0 failures`。`test/` 与 `lisp/` 一个字节都没动（硬约束 5）。
 
+- **进度（2026-10-04 第 98 轮第三批）**：`ab943c4` 时**已提交单元 270 个 / 镜像 135 个**。本轮三批之后
+  入树的有：`src/fns.rs`（7,307 行）、`src/dispnew.rs`（8,542 行）、`src/emacs.rs` 与四个 `lib/` 单元的注释
+  清理（`ff55b60`，3.90）、**`src/include/macuvs.rs`（9,238 行，唯一的 73,655 字节 IVD 表，`const` 而非
+  `pub static`，与 clang 逐字节比对通过）**，以及台账里同类的复述清理（`ab943c4`）。
+  **整树门（`af01731`，`EXIT=0`）**：`checked 374 ported files: 351 done, 23 in progress, 0 failing`、
+  `inventory: no differences`、`cargo check: ok`、符号门 lib `78 units compared, 0 mismatched, 1 still pending`
+  与 src `69 units compared, 0 mismatched, 1 still pending`、未定义引用门 `538 unit object(s) … 112 pending, 0 new`、
+  连接门 `0 with 0 missing symbol(s)`、`8 declaration sites (0 forbidden, 8 allowed literals), 0 failures`、
+  `layout-check passed`。**对 `ab943c4` 的整树门正在跑**（`/tmp/gate-ab943c4.txt`，worktree `/tmp/fv8`）。
+  **在飞（未提交）**：`window.rs` 192,720 B（C 1–4905 / 9,740，尚不能编译，Peirce 接着做）、
+  `coding.rs` 141,582 B（C 1–4,576 / 12,312，能 `built`，`--check` 还剩 142 条 missing，Noether 接着做）、
+  `keyboard.rs` 7,357 B（14,682 行，Hume 刚开工）。这三个单元收口前**不提交**——它们的台账还有未勾项、`--check` 未满，提交等于把未完成的清单当成品。
 - 每次提交的验收证据（缺一不可）：`build-tu`、`gate-fast`、`gate-probes`、
   `extract-abi.py --check`、手工 `rustc --cfg enable_checking`、`--all`、新鲜度链
   （`gen-port-map`/`gen-baseline`/`gen-lifetimes` 后 `git diff --exit-code`）。
