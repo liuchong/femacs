@@ -91,3 +91,16 @@ unsafe extern "C" {
   /* extern char *tzname[2];  */
   pub static mut tzname: [*mut c_char; 2];
 }
+
+/* time.h 841-842 / 1144-1145 (the frozen build's *generated* replacement header): gnulib's
+   REPLACE_MKTIME/REPLACE_TIMEGM arms rename the two entries this port replaces --
+   `mktime` becomes `rpl_mktime` and `timegm` becomes `rpl_timegm` -- and the reference
+   objects call those symbols (`nm -g build/emacs-ref/lib/time_rz.o` lists `U _rpl_mktime`
+   and `U _rpl_timegm`, and nstrftime.o lists `U _mktime_z`).  Appended as a second block
+   rather than merged into the one above so the change stays a pure addition.  */
+unsafe extern "C" {
+  /* time_t rpl_mktime (struct tm *);  */
+  pub fn rpl_mktime (tp: *mut tm) -> time_t;
+  /* time_t rpl_timegm (struct tm *);  */
+  pub fn rpl_timegm (tp: *mut tm) -> time_t;
+}
