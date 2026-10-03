@@ -22,24 +22,22 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-04 第 96 轮，两个口径都实测）**：磁盘上 **259 个单元**（`femacs/src/*.rs` 137 +
-  `femacs/lib/*.rs` 122）与 **130 个镜像**（`src/include/` 41 + `lib/include/` 89）。
-  **权威口径 `python3 tools/extract-abi.py --all` 本轮真跑过**：
-  `checked 362 ported files: 335 done, 25 in progress, 2 failing`——两个 failing 是**正在写的两条通道**：
-  `src/pdumper.c` 的单元文件已 6,708 行但台账还没生成（没有清单即"未完成"）、`src/regex-emacs.c`
-  的台账被勾满而最后一次正文比对仍有差异（通道仍在收尾）。两者都是**未提交的在飞文件**，不是已提交
-  状态的失败；上一次对**已提交**状态的全树复跑是 `357 ported / 333 done / 24 WIP / 0 failing`。
-  本轮的落地单元：`src/minibuf.c`、`src/print.c`、`src/search.c`、`src/emacs.c`、`src/sysdep.c`、
-  `src/keymap.c`、`src/bidi.c`（各带自己的台账与 §3.58–§3.67 的记录）。
-  **整树门 `gate-fast` 上一次跑到底并全绿是在 248 个单元时**（第 95 轮，含 `layout-check` 791 断言 /
-  0 pending）；此后落了 7 个单元与 §3.59–§3.67 的工具/镜像修复，**下一批落地后立即复跑**（在飞通道
-  写同一棵树时重编译会产生假失败，故按批边界执行）。
-  未端口且冻结构建会编译的 `src/*.c` 还有 **14 个**（`tools/live-rank.py` 按活行数排序：`src/font.c`
-  4,662 / `src/term.c` 5,021 / `src/frame.c` 5,243 / `src/xfaces.c` 5,489 / `src/buffer.c` 5,721 /
-  `src/fileio.c` 6,066 / `src/dispnew.c` 6,549 / `src/alloc.c` 6,731 / `src/fns.c` 6,917 /
-  `src/process.c` 8,013 / `src/window.c` 9,600 / `src/coding.c` 11,992 / `src/keyboard.c` 13,086 /
-  `src/xdisp.c` 29,836），在读的五条通道分别是 `src/editfns.c`、`src/eval.c`、`src/pdumper.c`、
-  `src/regex-emacs.c`、`src/lread.c`。
+- **进度（2026-10-04 第 97 轮，两个口径都实测）**：磁盘上 **262 个单元**（`femacs/src/*.rs` 140 +
+  `femacs/lib/*.rs` 122）与 **130 个镜像**（`src/include/` 41 + `lib/include/` 89）；其中
+  `src/buffer.rs`（5,274 行）与 `src/process.rs`（2,809 行）是两条在飞通道的 WIP（台账未勾满，按
+  "in progress" 计，不参与已完成单元的门）。**权威口径 `extract-abi.py --all` 本轮真跑过**：
+  `checked 365 ported files: 340 done, 25 in progress, 0 failing`。
+  **已提交状态**的整树门在隔离 worktree（HEAD）里逐步跑过并**全绿**：条件求值器一致、inventory
+  no differences、globals 0 缺定义、`cargo check` ok、**520 个单元两种配置全部 built**、符号门 lib
+  78/0 与 **src 63/0**、未定义引用门 173 pending/0 new、连接门 0 缺失、`layout-check` passed、
+  三个 spike 脚本 ok（第 96 轮末，`e92c633`；其后 3.72 的两处修复已另行验证）。
+  **src 侧符号门的覆盖已到顶**：冻结构建会编译的、已端口的 src 单元**全部**都建了参照目标文件
+  （`build/emacs-ref/src/*.o` 63 个），因此 `check-symbols.py --dir src` 比的是 63 个单元而不是空转——
+  它已抓到 `rpl_re_*`（3.68）、`hexdigit`、`terminfo` 三个对象（3.72）。
+  未端口且冻结构建会编译的 `src/*.c` 还有 **13 个**（`src/font.c` 4,662 / `src/term.c` 5,021 /
+  `src/frame.c` 5,243 / `src/xfaces.c` 5,489 / `src/fileio.c` 6,066 / `src/dispnew.c` 6,549 /
+  `src/alloc.c` 6,731 / `src/fns.c` 6,917 / `src/window.c` 9,600 / `src/coding.c` 11,992 /
+  `src/keyboard.c` 13,086 / `src/xdisp.c` 29,836，加在飞的 `src/buffer.c`、`src/process.c`）。
 - **照抄树（Verbatim）已全部落地（2026-10-03 第 79 轮）**：`emacs/{lisp,test,etc,doc,leim,admin}`
   → `femacs/<同名>`，**逐字节照抄**，共 **4,607 文件 / 约 4.6M 行**（lisp 1,627 / test 1,555 /
   etc 887 / doc 257 / leim 28 / admin 253），六个目录各一次签名提交并推送。判定不再是行文说明

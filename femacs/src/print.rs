@@ -7,7 +7,11 @@
 //
 // **Carried arms (docs/status.md 3.49, PORTING.md P-51).**  `src/print.c` is *not* in
 // `docs/baseline/config/cond-eval-verified.txt`: `python3 tools/check-cond-eval.py
-// src/print.c` reports `14 conditions, 0 unknown, 2 disagreements [NOT VERIFIED]`, the two
+// src/print.c` now stands at `14 conditions, 0 unknown, 0 disagreements [VERIFIED]` - it stopped
+// disagreeing when the `lisp.h\tIEEE_FLOATING_POINT` row landed (status 3.70).  It is still *not*
+// added to `cond-eval-verified.txt`, because a verified file's checker demands only the live arm
+// while this port carries both (status 3.51), so the evaluator stays blind here on purpose.  When
+// this lane wrote the text below the count was `2 disagreements [NOT VERIFIED]`, the two
 // being `#if IEEE_FLOATING_POINT` (C 42, C 1200) — a *source-header* macro (`lisp.h
 // 3201-3202` computes it from `<float.h>`, so the frozen table cannot see it; clang says
 // true).  `tools/extract-abi.py`'s blind evaluator therefore keeps both arms of every `#if`

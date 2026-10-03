@@ -109,7 +109,7 @@
   `unsafe extern "C" fn` with C's own signature (PORTING.md 1.4).
 - **Dead arms carried, not recorded (§3.49/P-51).**  `src/print.c` is *not* in
   `docs/baseline/config/cond-eval-verified.txt`: `python3 tools/check-cond-eval.py
-  src/print.c` reports `14 conditions, 0 unknown, 2 disagreements [NOT VERIFIED]`, both of
+  src/print.c` reports `14 conditions, 0 unknown, 0 disagreements [VERIFIED]` since the `lisp.h\tIEEE_FLOATING_POINT` row landed (status 3.70); it is still *not* added to `cond-eval-verified.txt`, because a verified file's checker demands only the live arm and this port carries both (status 3.51), so the evaluator stays blind here on purpose.  When this lane wrote the text below the count was `2 disagreements [NOT VERIFIED]`, both of
   them `#if IEEE_FLOATING_POINT` (C 42, C 1200) — `lisp.h` 3201-3202 computes that macro from
   `<float.h>`, so the frozen table cannot see it while clang says true.  The extractor's
   blind evaluator therefore keeps *both* arms live and the port carries the arms the frozen
