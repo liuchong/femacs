@@ -330,7 +330,6 @@ unsafe extern "C" {
   /// C: <string.h>: `size_t strcspn (const char *, const char *);`
   fn strcspn (str_: *const c_char, reject: *const c_char) -> usize;
   /// C: <string.h>: `char *strerror (int);`
-  fn strerror (errnum: c_int) -> *mut c_char;
   /// C: <unistd.h>: `pid_t fork (void);`
   fn fork () -> pid_t;
   /// C: <unistd.h>: `pid_t setsid (void);`

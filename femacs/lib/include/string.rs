@@ -53,6 +53,9 @@ unsafe extern "C" {
   /* size_t strspn (const char *s, const char *accept);  */
   pub fn strspn (s: *const c_char, accept: *const c_char) -> usize;
   /* char *strrchr (const char *s, int c);  */
+  /* char *strerror (int errnum); - <string.h>'s entry, which the four units below declared at
+     their use sites until this mirror carried it (2026-10-04).  */
+  pub fn strerror (errnum: c_int) -> *mut c_char;
   pub fn strrchr (s: *const c_char, c: c_int) -> *mut c_char;
   /* errno_t memset_s (void *s, rsize_t smax, int c, rsize_t n); — the frozen target's
      C11 Annex K entry, which lib/memset_explicit.c calls on the `HAVE_MEMSET_S` arm

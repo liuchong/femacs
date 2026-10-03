@@ -170,7 +170,6 @@ unsafe extern "C" {
   /// C: int mkostemp (char *, int)   -- <stdlib.h>
   fn mkostemp (template: *mut c_char, flags: c_int) -> c_int;
   /// C: char *strerror (int)   -- <string.h>
-  fn strerror (errnum: c_int) -> *mut c_char;
   /// C: char *strcat (char *, const char *)   -- <string.h>
   fn strcat (dest: *mut c_char, src: *const c_char) -> *mut c_char;
   /// C: char *strsignal (int)   -- <string.h>; HAVE_STRSIGNAL is 1 on this target, so

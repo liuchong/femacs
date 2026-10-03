@@ -122,7 +122,6 @@ unsafe extern "C" {
   /// C: <stdlib.h>: `void exit (int);`
   fn exit (status: c_int) -> !;
   /// C: <string.h>: `char *strerror (int);`
-  fn strerror (errnum: c_int) -> *mut c_char;
   /// C: <stdlib.h>: `void qsort (void *, size_t, size_t, int (*) (const void *, const void *));`
   fn qsort (base: *mut c_void, nmemb: usize, size: usize,
 	    compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);

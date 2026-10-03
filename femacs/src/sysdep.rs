@@ -429,7 +429,6 @@ unsafe extern "C" {
   /* int snprintf (char *, size_t, const char *, ...);  */
   pub fn snprintf (s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
   /* char *strerror (int);  */
-  pub fn strerror (errnum: c_int) -> *mut c_char;
 }
 
 /// C 81-83's `#ifndef STDERR_FILENO` / `# define STDERR_FILENO fileno (GetStdHandle
