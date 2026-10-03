@@ -47,7 +47,7 @@ pub struct sha256_ctx
 
 /* C 73-117: the twelve functions sha256.c defines, and C 130's sha256_stream, which
    sha256-stream.c defines.  */
-pub mod decls {
+pub mod sha256_decls {
   use super::*;
 
   unsafe extern "C" {
@@ -79,4 +79,4 @@ pub mod decls {
     pub fn sha256_stream (stream: *mut FILE, resblock: *mut c_void) -> c_int;
   }
 }
-use decls::*;
+use sha256_decls::*;

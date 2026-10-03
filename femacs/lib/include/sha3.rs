@@ -45,7 +45,7 @@ pub struct sha3_ctx
 }
 
 /* C 65-125: the declarations.  */
-pub mod decls {
+pub mod sha3_decls {
   use super::*;
 
   unsafe extern "C" {
@@ -87,4 +87,4 @@ pub mod decls {
     pub fn sha3_512_stream (stream: *mut FILE, resblock: *mut c_void) -> c_int;
   }
 }
-use decls::*;
+use sha3_decls::*;

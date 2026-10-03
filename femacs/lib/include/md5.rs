@@ -92,7 +92,7 @@ pub struct md5_ctx
    defining unit's own `fn` shadows the declaration (PORTING.md 0.1-10, the
    lisp.rs `other_units` shape) - the include of this mirror by md5.rs would otherwise
    be an E0428 "defined multiple times".  */
-pub mod decls {
+pub mod md5_decls {
   use super::*;
 
   unsafe extern "C" {
@@ -118,4 +118,4 @@ pub mod decls {
     pub fn md5_stream (stream: *mut FILE, resblock: *mut c_void) -> c_int;
   }
 }
-use decls::*;
+use md5_decls::*;

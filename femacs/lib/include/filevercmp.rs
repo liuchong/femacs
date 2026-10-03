@@ -11,7 +11,7 @@
 /* C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
 const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
-pub mod decls {
+pub mod filevercmp_decls {
   use super::*;
 
   unsafe extern "C" {
@@ -23,7 +23,7 @@ pub mod decls {
       -> c_int;
   }
 }
-use decls::*;
+use filevercmp_decls::*;
 
 /* The include guard has no Rust counterpart (PORTING.md 0.1).  */
 pub const FILEVERCMP_H: bool = true;

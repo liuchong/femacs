@@ -53,7 +53,7 @@ pub struct sha1_ctx
 
 /* C 90-112: the six functions sha1.c defines, and C 122's sha1_stream, which
    sha1-stream.c defines.  */
-pub mod decls {
+pub mod sha1_decls {
   use super::*;
 
   unsafe extern "C" {
@@ -79,4 +79,4 @@ pub mod decls {
     pub fn sha1_stream (stream: *mut FILE, resblock: *mut c_void) -> c_int;
   }
 }
-use decls::*;
+use sha1_decls::*;

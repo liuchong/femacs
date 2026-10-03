@@ -1293,3 +1293,18 @@
   ③ 验证：fns 重建 `built`、`--check` OK；另外四个 `lisp.rs` 重消费者（eval/alloc/dispnew/print）全部重建通过；
   `check-globals` 272/0、`check-mirror-dupes` 仍只有棘轮一行（这三条是**定义**不是副本，工具按定义/声明区分，
   所以不会误报）。
+
+- **3.88 第 98 轮：七个 lib 镜像的 `decls` 模块改名——以及探针揭示的下一类冲突（2026-10-04）**：
+  fns lane 报回：`lib/include/{filevercmp,md5,sha1,sha256,sha512,sha3,utimens}.rs` 都把 extern 块放进一个
+  **叫 `decls` 的模块**，而 `xtask` 的 materializer 会把这一层 `mod` 拍平，于是**同一单元 include 两个**
+  就是 `E0428`（它需要其中六个）。本轮按文件名改名：`<stem>_decls`（`filevercmp_decls`、`md5_decls`、
+  `sha1_decls`、`sha256_decls`、`sha3_decls`、`sha512_decls`、`utimens_decls`），七处 `use decls::*;`
+  同步改；十个消费者（`lib/filevercmp`/`md5`/`md5-stream`/`sha1`/`sha256`/`sha3`/`sha512`/`utimens`/
+  `utimensat` + `src/fns`）全部重建通过。
+  ① **负向探针**（在 `fns.rs` 里临时多加 `md5.rs`/`sha256.rs` 两个 include 再 `build-tu`，随后立刻按备份
+  还原、确认文件回到原状）：`E0428` **不再**来自模块名，而是
+  `the name MD5_DIGEST_SIZE is defined multiple times` / `SHA224_DIGEST_SIZE` / `SHA256_DIGEST_SIZE`
+  ——即**镜像顶层的常量**与 `fns.rs` 自己的同名副本撞车（它当初因为这些镜像不能共存而在使用点声明了
+  十个 `*_DIGEST_SIZE`）。这正是 §3.83 给 mirror-dupes 门加常量类的同一根因，只是**镜像不在该单元的
+  include 图里**，所以门还看不见；要收掉它得"给 fns.rs 加这些 include + 同时删掉它自己的十个副本"，
+  记在这里作为下一步（同类还牵扯若干 `*_buffer` 函数声明）。

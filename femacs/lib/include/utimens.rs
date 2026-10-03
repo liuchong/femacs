@@ -17,7 +17,7 @@ include!("gnulib_config.rs");  // _GL_CONFIG_H_INCLUDED
 /* C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
 const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
-pub mod decls {
+pub mod utimens_decls {
   use super::*;
 
   unsafe extern "C" {
@@ -32,7 +32,7 @@ pub mod decls {
                         times: *const timespec, atflag: c_int) -> c_int;
   }
 }
-use decls::*;
+use utimens_decls::*;
 
 /* #if HAVE_UTIMENS
    # define utimens rpl_utimens

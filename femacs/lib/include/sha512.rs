@@ -44,7 +44,7 @@ pub struct sha512_ctx
 
 /* C 73-127: the twelve functions sha512.c defines, and C 140's sha512_stream, which
    sha512-stream.c defines.  */
-pub mod decls {
+pub mod sha512_decls {
   use super::*;
 
   unsafe extern "C" {
@@ -76,4 +76,4 @@ pub mod decls {
     pub fn sha512_stream (stream: *mut FILE, resblock: *mut c_void) -> c_int;
   }
 }
-use decls::*;
+use sha512_decls::*;
