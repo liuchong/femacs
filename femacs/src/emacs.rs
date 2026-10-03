@@ -128,7 +128,7 @@ include!("../lib/include/stdcountof.rs");      // lisp.h 28: `<stdcountof.h>` (`
 include!("../lib/include/mini-gmp.rs");        // bignum.h's `#include <gmp.h>`
 include!("../lib/include/stdint.in.rs");       // <stdint.h>: intptr_t (lisp.h 148)
 include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>`
-include!("../lib/include/stdio.rs");           // C 35: `#include "sysstdio.h"` (its <stdio.h>)
+include!("include/sysstdio.rs");                // C 35: `#include "sysstdio.h"`
 include!("../lib/include/signal.rs");          // syssignal.h 22: `#include <signal.h>`
 include!("../lib/include/wchar.rs");           // C 135: `#include <wchar.h>`
 include!("../lib/include/sys_time.rs");        // C 139: `#include <sys/time.h>`
@@ -308,8 +308,6 @@ unsafe extern "C" {
   fn syms_of_window ();
   /// C: keyboard.h 494: `extern void stuff_buffered_input (Lisp_Object);`
   fn stuff_buffered_input (stuff: Lisp_Object);
-  /// C: sysstdio.h 33: `extern void close_output_streams (void);`
-  fn close_output_streams ();
 
   /* --- headers with no mirror at all (P-72's incomplete-type rule does not apply: these
          are plain functions the units own) ------------------------------------------ */

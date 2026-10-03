@@ -253,3 +253,13 @@ call the reference does not make: the other Rust-only identifiers in the bodies 
   `EMACS_CONFIGURATION`、`) $";`、`EXTERNALLY_VISIBLE` 的解释）逐字不动；下面 `pub static RCS_Id`
   的字面量照 C 一个字节不改，它是 `docs/baseline/declarations-allowlist.tsv` 里记着理由的
   `literal` 行之一（`tools/check-declarations.py`）。
+
+## 2026-10-04: the sysstdio.rs item above is done
+
+`femacs/src/include/sysstdio.rs` landed, and this unit now includes it where C does (C 35's
+`#include "sysstdio.h"`, replacing the flattening to `../lib/include/stdio.rs`), so the
+use-site declaration of `close_output_streams` (with its `/// C: sysstdio.h 33:` line) is gone:
+the name comes from the mirror's `sysstdio_decls` glob import, and src/sysdep.c's definition
+(ported) is what the atexit call reaches.  Evidence: `build-tu src/emacs.c` -> `built`;
+`extract-abi --check emacs/src/emacs.c femacs/src/emacs.rs` -> `OK`; `rustc --cfg
+enable_checking` exit 0; `check-mirror-dupes` 0 failures.
