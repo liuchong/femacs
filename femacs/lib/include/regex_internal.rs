@@ -38,19 +38,21 @@ macro_rules! DEBUG_ASSERT {
    `GNULIB_LOCK`/`GNULIB_PTHREAD` and no `GNULIB_REGEX_SINGLE_THREAD`, so C takes the last
    arm: `lock_define` is empty and the others are no-ops that keep `dfa` "used".  */
 macro_rules! lock_define {
-    ($name:expr) => {};
+    ($($name:tt)*) => {};
 }
 macro_rules! lock_init {
-    ($lock:expr) => { 0 };
+    ($($lock:tt)*) => { 0 };
 }
 macro_rules! lock_fini {
-    ($lock:expr) => { () };
+    ($($lock:tt)*) => { () };
 }
+// C's generic arm is `((void) dfa)`: the argument is discarded (the `dfa` token
+// is the only thing it contributes), so the port takes raw tokens and ignores them.
 macro_rules! lock_lock {
-    ($lock:expr) => {{ let dfa = $lock; let _ = dfa; }};
+    ($($lock:tt)*) => {{ let dfa = 0; let _ = dfa; }};
 }
 macro_rules! lock_unlock {
-    ($lock:expr) => { () };
+    ($($lock:tt)*) => { () };
 }
 
 /* regex_internal.h 70-72: the `isblank` fallback is dead (HAVE_ISBLANK is 1).  */
@@ -193,6 +195,7 @@ pub enum re_context_type {
 
 /* regex_internal.h 245-250 */
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct re_node_set {
   pub alloc: Idx,
   pub nelem: Idx,
@@ -857,6 +860,26 @@ pub const TOKEN_MB_PARTIAL_SHIFT: u32 = 21;
 #[inline(always)]
 pub unsafe fn mb_partial_ (token: *const re_token_t) -> c_uint { bits_get ((*token).bits, TOKEN_MB_PARTIAL_SHIFT, 1) }
 #[inline(always)]
+pub unsafe fn set_mb_partial_ (token: *mut re_token_t, value: c_uint) { (*token).bits = bits_set ((*token).bits, TOKEN_MB_PARTIAL_SHIFT, 1, value); }
+/// C: `re_token_t.word_char : 1` (bit 22).
+pub const TOKEN_WORD_CHAR_SHIFT: u32 = 22;
+#[inline(always)]
+pub unsafe fn word_char_ (token: *const re_token_t) -> c_uint { bits_get ((*token).bits, TOKEN_WORD_CHAR_SHIFT, 1) }
+#[inline(always)]
+pub unsafe fn set_word_char_ (token: *mut re_token_t, value: c_uint) { (*token).bits = bits_set ((*token).bits, TOKEN_WORD_CHAR_SHIFT, 1, value); }
+/// C: `re_token_t.duplicated : 1` (bit 18).
+pub const TOKEN_DUPLICATED_SHIFT: u32 = 18;
+#[inline(always)]
+pub unsafe fn duplicated_ (token: *const re_token_t) -> c_uint { bits_get ((*token).bits, TOKEN_DUPLICATED_SHIFT, 1) }
+#[inline(always)]
+pub unsafe fn set_duplicated_ (token: *mut re_token_t, value: c_uint) { (*token).bits = bits_set ((*token).bits, TOKEN_DUPLICATED_SHIFT, 1, value); }
+/// C: `re_token_t.opt_subexp : 1` (bit 19).
+pub const TOKEN_OPT_SUBEXP_SHIFT: u32 = 19;
+#[inline(always)]
+pub unsafe fn opt_subexp_ (token: *const re_token_t) -> c_uint { bits_get ((*token).bits, TOKEN_OPT_SUBEXP_SHIFT, 1) }
+#[inline(always)]
+pub unsafe fn set_opt_subexp_ (token: *mut re_token_t, value: c_uint) { (*token).bits = bits_set ((*token).bits, TOKEN_OPT_SUBEXP_SHIFT, 1, value); }
+#[inline(always)]
 pub unsafe fn set_accept_mb_ (token: *mut re_token_t, value: c_uint) { (*token).bits = bits_set ((*token).bits, TOKEN_ACCEPT_MB_SHIFT, TOKEN_ACCEPT_MB_MASK, value); }
 
 #[inline(always)]
@@ -886,3 +909,17 @@ pub unsafe fn is_utf8_ (dfa: *const re_dfa_t) -> c_uint { bits_get ((*dfa).bits,
 pub unsafe fn map_notascii_ (dfa: *const re_dfa_t) -> c_uint { bits_get ((*dfa).bits, DFA_MAP_NOTASCII_SHIFT, DFA_MAP_NOTASCII_MASK) }
 #[inline(always)]
 pub unsafe fn word_ops_used_ (dfa: *const re_dfa_t) -> c_uint { bits_get ((*dfa).bits, DFA_WORD_OPS_USED_SHIFT, DFA_WORD_OPS_USED_MASK) }
+#[inline(always)]
+pub unsafe fn set_is_utf8_ (dfa: *mut re_dfa_t, value: c_uint) { (*dfa).bits = bits_set ((*dfa).bits, DFA_IS_UTF8_SHIFT, DFA_IS_UTF8_MASK, value); }
+#[inline(always)]
+pub unsafe fn set_map_notascii_ (dfa: *mut re_dfa_t, value: c_uint) { (*dfa).bits = bits_set ((*dfa).bits, DFA_MAP_NOTASCII_SHIFT, DFA_MAP_NOTASCII_MASK, value); }
+#[inline(always)]
+pub unsafe fn set_word_ops_used_ (dfa: *mut re_dfa_t, value: c_uint) { (*dfa).bits = bits_set ((*dfa).bits, DFA_WORD_OPS_USED_SHIFT, DFA_WORD_OPS_USED_MASK, value); }
+#[inline(always)]
+pub unsafe fn has_plural_match_ (dfa: *const re_dfa_t) -> c_uint { bits_get ((*dfa).bits, 0, 1) }
+#[inline(always)]
+pub unsafe fn set_has_plural_match_ (dfa: *mut re_dfa_t, value: c_uint) { (*dfa).bits = bits_set ((*dfa).bits, 0, 1, value); }
+#[inline(always)]
+pub unsafe fn has_mb_node_ (dfa: *const re_dfa_t) -> c_uint { bits_get ((*dfa).bits, 1, 1) }
+#[inline(always)]
+pub unsafe fn set_has_mb_node_ (dfa: *mut re_dfa_t, value: c_uint) { (*dfa).bits = bits_set ((*dfa).bits, 1, 1, value); }

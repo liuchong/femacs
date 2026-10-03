@@ -36,4 +36,6 @@ unsafe extern "C" {
   pub fn wcrtomb (s: *mut std::ffi::c_char, wc: wchar_t, ps: *mut mbstate_t) -> usize;
   /* int mbsinit (const mbstate_t *ps);  */
   pub fn mbsinit (ps: *const mbstate_t) -> c_int;
+  /* wint_t btowc (int c);  */
+  pub fn btowc (c: c_int) -> wint_t;
 }
