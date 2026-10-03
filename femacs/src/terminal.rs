@@ -96,16 +96,17 @@ pub mod terminal_globals {
   #[unsafe(no_mangle)]
   pub static mut terminal_list: *mut terminal = std::ptr::null_mut ();
 
-  /* The first unallocated terminal id.  */
-  // C: `static int next_terminal_id;` — internal linkage, so no `#[unsafe(no_mangle)]`;
-  // `pub` is only what the glob import below needs to see it.
-  pub static mut next_terminal_id: c_int = 0;
-
   /* The initial terminal device, created by initial_term_init.  */
   #[unsafe(no_mangle)]
   pub static mut initial_terminal: *mut terminal = std::ptr::null_mut ();
 }
 use terminal_globals::*;
+
+/* The first unallocated terminal id.  */
+// C 39: `static int next_terminal_id;` — C's `static` is internal linkage, so the port
+// keeps it a plain unexported `static mut` (PORTING.md 0.2); unlike the two objects
+// above, nothing declares it in a mirror, so it needs no module.
+static mut next_terminal_id: c_int = 0;
 
 // The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
 // (lisp.h 3495-3530), and `struct emacs_globals globals` is defined once, in alloc.c; the
