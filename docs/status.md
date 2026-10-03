@@ -7,8 +7,8 @@
 ## 1. 当前数字（每次提交后核对）
 
 - 已竣工单元与镜像：**权威清单在 `docs/port-inventory.md`（590 个参照 `.c/.h` 的状态列）与
-  `python3 tools/extract-abi.py --all` 的输出**，本节只记总数。截至 `a0caa61`：**已提交单元 319 个**
-  （`femacs/src/*.rs` 148 + `femacs/lib/*.rs` 122 + `femacs/lib-src/*.rs` 5 + `femacs/exec/*.rs` 5 +
+  `python3 tools/extract-abi.py --all` 的输出**，本节只记总数。截至 `a0caa61`：**已提交单元 320 个**
+  （`femacs/src/*.rs` 149 + `femacs/lib/*.rs` 122 + `femacs/lib-src/*.rs` 5 + `femacs/exec/*.rs` 5 +
   `femacs/lwlib/*.rs` 6 + `femacs/oldXMenu/*.rs` 29 + `femacs/nt/*.rs` 4）、**已提交镜像 143 个**
   （`femacs/src/include/*.rs` 49 + `femacs/lib/include/*.rs` 94）；其中 48 个是本轮按 3.96 落的**未编译空单元**。
   `docs/port-inventory.md` 复算：**590 files, done=402, wip=32, todo=156**（本轮 3.96 之前是 done=344/todo=216）。；未提交的在飞单元见下面「第三批」一条（`window.rs`/`coding.rs`/`keyboard.rs`）。
@@ -1438,3 +1438,11 @@
   `5,734 conditions, 4 unknown, 0 disagreements`），并**按实测裁剪 notes**：删掉两行（`replace_window…`
   的 22 token 行、`set_window_scroll_bars` 行）、把 `Frecenter` 行缩到只剩 `uninit`，`--check` 仍 OK。
   **教训**：死文本差异要先问"提取器凭什么要这些 token"，再决定是补文本还是补基线——两者的成本差两个数量级。
+
+- **整树门（`fcbf0bc`，`EXIT=0`，2026-10-04 第 98 轮第六批）**：`inventory: no differences`、`cargo check: ok`、
+  符号门 lib `78 units compared, 0 mismatched, 1 still pending` 与 src `69 units compared, 0 mismatched, 1 still pending`、
+  未定义引用门 `538 unit object(s) … 111 pending, 0 new`（另 `1 ratchet entry stale (now satisfied): _record_auto_save`）、
+  连接门 `0 with 0 missing symbol(s)`、declaration gate `8 sites (0 forbidden, 8 allowed literals), 0 failures`、
+  `layout-check passed`。这一轮它是**带完整日志**跑的（`/tmp/gate-fcbf0bc.txt`，82,382 行），所以读数可复算。
+  它之后落地的有：window 收口、`src/window.c` 进 verified 清单、44 个未编译空单元、第一个 lib-src 单元——
+  这些都已由各自的逐文件门与 `--check` 覆盖；**下一次整树门会对新的 HEAD 重跑**。
