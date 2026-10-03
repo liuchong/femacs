@@ -389,3 +389,18 @@
   ④ 注意 `src/xml.c` **两类都沾**：它有真的 `#ifdef HAVE_LIBXML2`（按 ① 之外的既有判据办，已落地：
   活文本只有 `libxml-available-p` 的 `#else` 臂与 `syms_of_xml`），但文件本身也不在 X11/Windows 源列表里。
 
+- **3.32 `profiler.c` 与 `filelock.c` 的前置镜像（2026-10-03 第 66 轮记录，尚未落）**：
+  已构建但未移植的最小一批里，先要补的镜像：
+  ① `src/syssignal.h`（88 行）→ 缺 `femacs/src/include/syssignal.rs`：7 个信号的 block/unblock 原型
+  （`init_signals`/`block_child_signal`/`unblock_child_signal`/`block_interrupt_signal`/
+  `restore_signal_mask`/`block_tty_out_signal`/`unblock_tty_out_signal`）、`empty_mask`、
+  `signal_handler_t`（`typedef void (*)(int)` → `Option<unsafe extern "C" fn (c_int)>`，P-27）、
+  `emacs_sigaction_init`/`safe_strsignal`/`deliver_process_signal`，以及 `NSIG_MINIMUM`/`SA_SIGINFO`/
+  `emacs_raise`/`strsignal` 这几个宏。`HAVE_PTHREAD` 在本目标是 1
+  （`docs/baseline/config/darwin-arm64.macros.tsv` 1471 行），所以 `FORWARD_SIGNAL_TO_MAIN_THREAD` 是活文本。
+  **注意**：`struct sigaction` 在本目标没有镜像（`femacs/lib/include/signal.rs` 只有 `sigset_t`/`NSIG`），
+  而 `emacs_sigaction_init` 只把它当指针用，所以按 P-70/P-72③ 落一个不完整替身 + `/// C:` 注明即可。
+  ② `src/pdumper.h`（281 行）→ 缺 `femacs/src/include/pdumper.rs`：`pdumper.c` 的公开 API
+  （`pdumper_load`/`pdumper_dump`/`dump_fingerprint` 一族 + 几个结构体）。
+  补完这两个，`profiler.c`(733) 与 `filelock.c`(840) 即可开工（两者都不在 §3.31 的排除集里，是**真需要实现**的单元）。
+
