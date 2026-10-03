@@ -3,7 +3,9 @@
 # 3.59).  One symbol per line, `nm` spelling.  An entry disappears when the
 # unit that owns the definition lands; a NEW symbol here is a defect (a
 # misspelling, an invented helper, a missing #[link_name]).
+_Fhash_table_count
 _Fselected_frame
+_PC
 _VFORK
 _Vauto_save_list_file_name
 _Vcoding_system_for_read
@@ -70,7 +72,6 @@ _attempt_orderly_shutdown_on_fatal_signal
 _attempt_stack_overflow_recovery
 _baud_rate
 _bidi_inhibit_bpa
-_bind_
 _build_upper_buffer
 _build_wcs_buffer
 _build_wcs_upper_buffer
@@ -78,7 +79,6 @@ _change_frame_size
 _child_xy
 _coding_charset_list
 _composition_break_at_point
-_connect_
 _current_buffer
 _cursorX
 _decode_tty_frame
@@ -95,7 +95,7 @@ _frames_in_reverse_z_order
 _free_state
 _fset_redisplay
 _fwrite_unlocked
-_insert_1_both_
+_inherit_process_coding_system
 _integer_width
 _inverse_video
 _kbd_buffer_events_waiting
