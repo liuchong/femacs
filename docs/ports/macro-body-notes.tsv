@@ -266,3 +266,6 @@ Fsnarf_documentation	true	C's `while (true)` is the port's `loop` (PORTING.md 2.
 Fdocumentation	goto	PORTING.md 2.2: C's `goto retry` (doc.c 350) becomes the port's `'retry: loop` with `continue 'retry`; a label has no Rust site
 Fdocumentation_property	goto	same shape as Fdocumentation (doc.c 434)
 syms_of_doc	doc	The same class as the syms_of_data row: the four DEFVAR_* invocations take C's docstring positionally (the mirror's parameter is `$doc`), so C's `doc:` label has no counterpart; the docstring text itself is still compared by the constants rule
+c_isupper	switch,case,default	The same class as c_isalpha: C's `switch (c)` over the `_C_CTYPE_UPPER` case list becomes the port's `match` with that macro's range pattern and the `_ =>` arm for `default:`
+c_tolower	switch,case,default	The same class as c_isupper, plus C's `'A'`/`'a'` arithmetic: the port writes the two character literals as `b'A' as c_int`/`b'a' as c_int` and the checker's string scanner drops the literals on both sides
+acl_errno_valid	case,default,switch	PORTING.md 2.2: C's `switch (errnum)` with its `case …: return false;` labels and `default: return true;` becomes the port's `match` with the nine codes as pattern arms and `_ =>` for `default:` (the c_isalpha class)
