@@ -2582,7 +2582,8 @@ pub fn grow_specpdl () {
 }
 
 #[inline(always)]
-pub fn record_in_backtrace (function: Lisp_Object, args: *mut Lisp_Object, nargs: isize) {
+pub fn record_in_backtrace (function: Lisp_Object, args: *mut Lisp_Object, nargs: isize)
+  -> specpdl_ref {
     let count = SPECPDL_INDEX ();
     eassert! (nargs >= UNEVALLED);
     unsafe {
@@ -2593,7 +2594,7 @@ pub fn record_in_backtrace (function: Lisp_Object, args: *mut Lisp_Object, nargs
         (*specpdl_ptr).bt.nargs = nargs;
         grow_specpdl ();
     }
-    let _ = count;
+    return count;
 }
 
 pub const MANY: isize = -2;
