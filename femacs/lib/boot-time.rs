@@ -1,0 +1,378 @@
+// femacs: port of lib/boot-time.c @ fd7afced403.
+//
+// The frozen darwin-arm64 configuration (docs/baseline/config/darwin-arm64.macros.tsv) has
+// HAVE_UTMPX_H 1, HAVE_UTMP_H 1, HAVE_STRUCT_UTMPX_UT_NAME undef, HAVE_STRUCT_UTMPX_UT_TYPE 1,
+// HAVE_UTMPXNAME 1, HAVE_DECL_ENDUTENT 0, HAVE_SYS_SYSCTL_H 1, HAVE_SYS_PARAM_H 1,
+// HAVE_SYSCTL 1, CTL_KERN 1, KERN_BOOTTIME 21 and HAVE_OS_H undef, and the compiler defines
+// none of __linux__, __ANDROID__, __minix, __OpenBSD__, __HAIKU__, __CYGWIN__ or _WIN32.  So
+// C 81's `#if defined __linux__ || HAVE_UTMPX_H || HAVE_UTMP_H || defined __CYGWIN__ ||
+// defined _WIN32` is live, C 92's `#if defined UTMP_NAME_FUNCTION` arm is the live half of the
+// utmp scan (C 178's `#else` fopen arm is dead), C 88's `ut_type` arm is live (C 214's `#else`
+// is dead), C 230's sysctl fallback is live, and the other platform arms are dead.
+//
+// Every dead arm of this file is kept as text under the feature that names the non-frozen
+// side (PORTING.md P-51, the status 3.9 policy for lib/*.c), so `--check` still sees the
+// tokens of C's text and the ledger keeps the original: `linux_or_android` (C 31-34's two
+// includes, recorded rather than carried: no mirror exists for <sys/sysinfo.h>, and <time.h>
+// comes in through "boot-time.h"), `utmp_ut_name` (C 70's `((UT)->ut_name)` arm of UT_USER),
+// `win32` (C 47-51's WIN32_LEAN_AND_MEAN and its two includes, recorded), `linux_no_android`
+// (C 103/124/138/207/216), `android` (C 158), `minix` (C 129/166), `no_utmp_name_function`
+// (C 178-205), `no_utmp_x_ut_type` (C 214-228), `openbsd` (C 223), `haiku` (C 239), `os_h`
+// (C 246), `cygwin_win32` (C 253) with `no_cygwin` (C 258) and `utmp_h` (C 117-119's
+// `ut_name`/`ut_time` half).  These features are never set: `xtask dead-arms` can only flip the
+// keys config.rs carries and these are compiler/platform predicates (the status 3.9 note).
+//
+// "readutmp.h" (C 54), "unlocked-io.h" (C 58) and "boot-time-aux.h" (C 61) have no mirror yet,
+// so their names are declared at the use site (the fstatat.rs/lstat.rs in-unit declaration
+// shape): the utmp entries and UTMP_FILE below, and boot-time-aux.h's one live function.  All
+// three headers are included by this file alone (measured: `grep -l` over emacs/lib and
+// emacs/src), so their live text belongs to this translation unit exactly as C compiles it.
+
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
+         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
+         unsafe_op_in_unsafe_fn)]
+
+/* Determine the time when the machine last booted.
+   Copyright (C) 2023-2026 Free Software Foundation, Inc.
+
+   This file is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published
+   by the Free Software Foundation, either version 3 of the License,
+   or (at your option) any later version.
+
+   This file is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
+
+/* Written by Bruno Haible <bruno@clisp.org>.  */
+
+use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_void};
+
+include!("../src/include/config.rs");   // C 19: `#include <config.h>`
+include!("include/gnulib_config.rs");
+include!("include/stdio.rs");           // C 26: `#include <stdio.h>` (FILE, fread, fclose)
+include!("include/string.rs");          // C 27: `#include <string.h>` (memeq, strlen)
+include!("include/sys_types.in.rs");    // C 28: `#include <sys/types.h>` (pid_t)
+include!("include/time.in.rs");         // C 33/55: `<time.h>` (struct timespec)
+include!("include/sys_time.rs");        // C 50/55: `<sys/time.h>` (struct timeval)
+include!("include/utmpx.rs");           // C 54: `#include "readutmp.h"` -> `<utmpx.h>`
+include!("include/sys_sysctl.rs");      // C 40: `#include <sys/sysctl.h>` (sysctl)
+include!("include/boot-time.rs");       // C 22: `#include "boot-time.h"`
+
+/* C 24's `<stdcountof.h>`, C 25's `<stddef.h>`, C 29's `<sys/stat.h>`, C 53's `idx.h` and
+   C 55's `stat-time.h` are includes whose names this configuration's live text does not name
+   (`countof`, `idx_t` and `get_stat_mtime` are used by boot-time-aux.h's dead arms only), so
+   no mirror is included for them; C 36-39's `<sys/param.h>` and C 58's `unlocked-io.h` have no
+   mirror and contribute no live name (`fopen` is not renamed on this target: the frozen
+   `HAVE_DECL_FOPEN_UNLOCKED` is 0, so unlocked-io.h's `#define fopen_unlocked fopen` arm is the
+   one taken and the calls below stay plain `fopen`), the filelock.md `<pwd.h>` note.  C 43-45's
+   `<OS.h>` and C 47-51's `<windows.h>`/`<sys/time.h>` are on dead arms and have no mirror
+   either.  */
+
+/* C 63-64: "The following macros describe the 'struct UTMP_STRUCT_NAME', *not* 'struct
+   gl_utmp'."  C 65's `#undef UT_USER` has no Rust counterpart: the mirror's UT_USER is not
+   included here, this unit defines it.  */
+
+/* C 53's `#include "idx.h"` and C 55's `stat-time.h` are not the only headers the dead arms
+   would need; the names their live arms took from readutmp.h are these (frozen arm of
+   readutmp.h 170-178, measured with clang -dM -E on the frozen configuration):
+   UTMP_STRUCT_NAME utmpx, SET_UTMP_ENT setutxent, GET_UTMP_ENT getutxent,
+   END_UTMP_ENT endutxent, UTMP_NAME_FUNCTION utmpxname and UTMP_FILE "/var/run/utmpx"
+   (readutmp.h 235-246 renames it to UTMPX_FILE = _PATH_UTMPX).  */
+pub type UTMP_STRUCT_NAME = utmpx;
+pub const UTMP_FILE: &[u8; 15] = b"/var/run/utmpx\0";
+macro_rules! UTMP_NAME_FUNCTION { ($file:expr) => { utmpxname ($file) } }
+macro_rules! SET_UTMP_ENT { () => { setutxent () } }
+macro_rules! GET_UTMP_ENT { () => { getutxent () } }
+macro_rules! END_UTMP_ENT { () => { endutxent () } }
+
+/* C 68-73: the accessor macro for the member named ut_user or ut_name.  The frozen
+   configuration leaves HAVE_STRUCT_UTMPX_UT_NAME undefined, so C 72's `ut_user` arm is live
+   and C 70's `ut_name` arm is kept as text (P-51; dead).  */
+#[cfg (feature = "utmp_ut_name")]
+macro_rules! UT_USER { ($ut:expr) => { (*$ut).ut_name } }
+#[cfg (not (feature = "utmp_ut_name"))]
+macro_rules! UT_USER { ($ut:expr) => { (*$ut).ut_user } }
+
+/* C 47-51's `#if defined _WIN32 && ! defined __CYGWIN__` arm, kept as text (P-51; dead).  Its
+   two includes are recorded (no mirror for `<windows.h>`; `<sys/time.h>` is already in
+   scope); the marker macro is the arm's whole live content, and the file's Windows code is
+   the `cygwin_win32` arm of `get_boot_time_uncached` below.  */
+#[cfg (feature = "win32")]
+macro_rules! WIN32_LEAN_AND_MEAN { () => {}; }
+
+/* C 75-79's `#if !HAVE_UTMPX_H && HAVE_UTMP_H && defined UTMP_NAME_FUNCTION` arm is dead
+   (HAVE_UTMPX_H is 1), so its `void endutent (void);` declaration is not transcribed.  */
+
+/* C 61's `#include "boot-time-aux.h"`: the one arm of that header this configuration compiles
+   (boot-time-aux.h 230-256, the same sysctl gate as C 230-232 below).  The header's static
+   function is part of this translation unit, so it is defined here; its other arms
+   (Linux/Android/OpenBSD/Haiku/Windows) are dead and are recorded in docs/ports/boot-time.md.
+   `CTL_KERN`/`KERN_BOOTTIME` are the frozen target's <sys/sysctl.h> values (the macro table
+   and the clang probe in docs/ports/boot-time.md); include/sys_sysctl.rs carries only the two
+   rows lib/nproc.c names.  */
+pub const CTL_KERN: c_int = 1;
+pub const KERN_BOOTTIME: c_int = 21;
+
+/* C boot-time-aux.h 240-241: `static int get_bsd_boot_time_final_fallback (struct timespec
+   *p_boot_time)`.  */
+unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
+{
+  /* The following approach is only usable as a fallback, because it produces
+     wrong values after the date has been bumped in the running system, which
+     happens frequently if the system is running in a virtual machine and this
+     VM has been put into "saved" or "sleep" state and then resumed.  */
+  static mut request: [c_int; 2] = [CTL_KERN, KERN_BOOTTIME];
+  let mut result: timeval = timeval { tv_sec: 0, tv_usec: 0 };
+  let mut result_len: usize = std::mem::size_of_val (&result);
+
+  if sysctl ((*std::ptr::addr_of_mut! (request)).as_mut_ptr (), 2,
+             &mut result as *mut timeval as *mut c_void, &mut result_len,
+             std::ptr::null_mut (), 0) >= 0
+    {
+      (*p_boot_time).tv_sec = result.tv_sec;
+      (*p_boot_time).tv_nsec = (result.tv_usec * 1000) as c_long;
+      return 0;
+    }
+  return -1;
+}
+
+/* C 81's `#if ...` is live (HAVE_UTMPX_H is 1), so C 83-296 is transcribed; C 298-306's
+   `#else` arm (`get_boot_time` returning -1) is dead and is recorded in
+   docs/ports/boot-time.md instead of being carried (P-08).  */
+
+/* C 83-84: `static int get_boot_time_uncached (struct timespec *p_boot_time)`.  */
+unsafe fn get_boot_time_uncached (p_boot_time: *mut timespec) -> c_int
+{
+  let mut found_boot_time: timespec = timespec { tv_sec: 0, tv_nsec: 0 };   /* C 86: `= {0}` */
+
+  /* C 88's `#if (HAVE_UTMPX_H ? HAVE_STRUCT_UTMPX_UT_TYPE : HAVE_STRUCT_UTMP_UT_TYPE)` is
+     live; C 214-228's `#else` arm is kept as text below.  */
+
+  /* Try to find the boot time in the /var/run/utmp file.  */
+
+  /* C 92's `#if defined UTMP_NAME_FUNCTION ... #else` (C 178) closes at C 205.  */
+  #[cfg (not (feature = "no_utmp_name_function"))]
+  {
+    /* Ignore the return value for now.
+       Solaris' utmpname returns 1 upon success -- which is contrary
+       to what the GNU libc version does.  In addition, older GNU libc
+       versions are actually void.   */
+    static utmp_file: [u8; 15] = *UTMP_FILE;
+    UTMP_NAME_FUNCTION! (utmp_file.as_ptr () as *const c_char);
+
+    SET_UTMP_ENT! ();
+
+    #[cfg (any (feature = "linux_no_android", feature = "minix"))]
+    /* Timestamp of the "runlevel" entry, if any.  */
+    let mut runlevel_ts: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
+
+    /* C 108: `void const *entry;` - C leaves it uninitialized and the loop condition is the
+       first write (PORTING.md 1.5).  */
+    let mut entry: *const c_void = std::ptr::null ();
+
+    while { entry = GET_UTMP_ENT! () as *const c_void; !entry.is_null () }
+      {
+        let ut: *const UTMP_STRUCT_NAME = entry as *const UTMP_STRUCT_NAME;
+
+        /* C 115-119's `#if (HAVE_UTMPX_H ? 1 : HAVE_STRUCT_UTMP_UT_TV)`: the utmpx arm is
+           live, the utmp arm is kept as text (P-51; dead).  */
+        #[cfg (not (feature = "utmp_h"))]
+        let ts: timespec =
+          timespec { tv_sec: (*ut).ut_tv.tv_sec,
+                     tv_nsec: ((*ut).ut_tv.tv_usec * 1000) as c_long };
+        #[cfg (feature = "utmp_h")]
+        let ts: timespec = timespec { tv_sec: (*ut).ut_time, tv_nsec: 0 };
+
+        if (*ut).ut_type == BOOT_TIME
+          { found_boot_time = ts; }
+
+        #[cfg (feature = "linux_no_android")]
+        if memeq (UT_USER! (ut).as_ptr () as *const c_void,
+                  c"runlevel".as_ptr () as *const c_void,
+                  strlen (c"runlevel".as_ptr ()) + 1)
+            && memeq ((*ut).ut_line.as_ptr () as *const c_void,
+                      c"~".as_ptr () as *const c_void, strlen (c"~".as_ptr ()) + 1)
+          { runlevel_ts = ts; }
+        #[cfg (feature = "minix")]
+        if UT_USER! (ut)[0] == 0
+            && memeq ((*ut).ut_line.as_ptr () as *const c_void,
+                      c"run-level ".as_ptr () as *const c_void,
+                      strlen (c"run-level ".as_ptr ()))
+          { runlevel_ts = ts; }
+      }
+
+    END_UTMP_ENT! ();
+
+    /* On Raspbian, which runs on hardware without a real-time clock, during boot,
+         1. the clock gets set to 1970-01-01 00:00:00,
+         2. an entry gets written into /var/run/utmp, with ut_type = BOOT_TIME,
+            ut_user = "reboot", ut_line = "~", time = 1970-01-01 00:00:05 or so,
+         3. the clock gets set to a correct value through NTP,
+         4. an entry gets written into /var/run/utmp, with
+            ut_user = "runlevel", ut_line = "~", time = correct value.
+       In this case, get the time from the "runlevel" entry.  */
+
+    /* Workaround for Raspbian:  */
+    #[cfg (feature = "linux_no_android")]
+    if found_boot_time.tv_sec <= 60 && runlevel_ts.tv_sec != 0
+      { found_boot_time = runlevel_ts; }
+    #[cfg (feature = "linux_no_android")]
+    if found_boot_time.tv_sec == 0
+      {
+        /* Workaround for Alpine Linux:  */
+        get_linux_boot_time_fallback (&mut found_boot_time);
+      }
+
+    #[cfg (feature = "android")]
+    if found_boot_time.tv_sec == 0
+      {
+        /* Workaround for Android:  */
+        get_android_boot_time (&mut found_boot_time);
+      }
+
+    /* On Minix, during boot,
+         1. an entry gets written into /var/run/utmp, with ut_type = BOOT_TIME,
+            ut_user = "", ut_line = "system boot", time = 1970-01-01 00:00:00,
+         2. an entry gets written into /var/run/utmp, with
+            ut_user = "", ut_line = "run-level m", time = correct value.
+       In this case, copy the time from the "run-level m" entry to the
+       "system boot" entry.  */
+    #[cfg (feature = "minix")]
+    if found_boot_time.tv_sec <= 60 && runlevel_ts.tv_sec != 0
+      { found_boot_time = runlevel_ts; }
+  }
+
+  /* C 178's `#else` arm (the HP-UX, Haiku half of that branch), kept as text (P-51; dead:
+     UTMP_NAME_FUNCTION is defined on this target).  Its `FILE`/`fread`/`fclose` come from
+     include/stdio.rs; `fopen` is not in that mirror yet, so this arm names it the way the
+     binary-io.rs dead arm names `_setmode` - the arm is not compiled.  */
+  #[cfg (feature = "no_utmp_name_function")]
+  {
+    let mut f: *mut FILE = fopen (UTMP_FILE.as_ptr () as *const c_char, c"re".as_ptr ());
+
+    if !f.is_null ()
+      {
+        loop
+          {
+            let mut ut: UTMP_STRUCT_NAME = std::mem::zeroed ();
+
+            if fread (&mut ut as *mut UTMP_STRUCT_NAME as *mut c_void,
+                      std::mem::size_of::<UTMP_STRUCT_NAME> (), 1, f) == 0
+              { break; }
+
+            #[cfg (not (feature = "utmp_h"))]
+            let ts: timespec = timespec { tv_sec: ut.ut_tv.tv_sec,
+                                          tv_nsec: (ut.ut_tv.tv_usec * 1000) as c_long };
+            #[cfg (feature = "utmp_h")]
+            let ts: timespec = timespec { tv_sec: ut.ut_time, tv_nsec: 0 };
+
+            if ut.ut_type == BOOT_TIME
+              { found_boot_time = ts; }
+          }
+
+        fclose (f);
+      }
+  }
+
+  #[cfg (feature = "linux_no_android")]
+  if found_boot_time.tv_sec == 0
+    {
+      get_linux_boot_time_final_fallback (&mut found_boot_time);
+    }
+
+  /* C 214's `#else` arm (Adélie Linux, old FreeBSD, OpenBSD, native Windows), kept as text
+     (P-51; dead: HAVE_STRUCT_UTMPX_UT_TYPE is 1).  */
+  #[cfg (feature = "no_utmp_x_ut_type")]
+  {
+    #[cfg (feature = "linux_no_android")]
+    {
+      /* Workaround for Adélie Linux:  */
+      get_linux_boot_time_fallback (&mut found_boot_time);
+      if found_boot_time.tv_sec == 0
+        { get_linux_boot_time_final_fallback (&mut found_boot_time); }
+    }
+
+    #[cfg (feature = "openbsd")]
+    {
+      /* Workaround for OpenBSD:  */
+      get_openbsd_boot_time (&mut found_boot_time);
+    }
+  }
+
+  /* C 230-232's `#if HAVE_SYS_SYSCTL_H && HAVE_SYSCTL && defined CTL_KERN && defined
+     KERN_BOOTTIME && !defined __minix` is live (PORTING.md 7.2's constant condition); the
+     three names its continuation lines spell are recorded in
+     docs/ports/macro-body-notes.tsv, because the port's gate is a cfg the tokeniser cannot
+     see.  */
+  if found_boot_time.tv_sec == 0
+    {
+      get_bsd_boot_time_final_fallback (&mut found_boot_time);
+    }
+
+  #[cfg (feature = "haiku")]
+  if found_boot_time.tv_sec == 0
+    {
+      get_haiku_boot_time (&mut found_boot_time);
+    }
+
+  #[cfg (feature = "os_h")]
+  if found_boot_time.tv_sec == 0
+    {
+      get_haiku_boot_time_final_fallback (&mut found_boot_time);
+    }
+
+  #[cfg (feature = "cygwin_win32")]
+  if found_boot_time.tv_sec == 0
+    {
+      /* Workaround for Windows:  */
+      get_windows_boot_time (&mut found_boot_time);
+      #[cfg (feature = "no_cygwin")]
+      if found_boot_time.tv_sec == 0
+        { get_windows_boot_time_fallback (&mut found_boot_time); }
+    }
+
+  if found_boot_time.tv_sec != 0
+    {
+      *p_boot_time = found_boot_time;
+      return 0;
+    }
+  else
+    { return -1; }
+}
+
+/* C 274-275: `int get_boot_time (struct timespec *p_boot_time)`.  */
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_boot_time (p_boot_time: *mut timespec) -> c_int
+{
+  /* Cache the result from get_boot_time_uncached.  */
+  /* C 278-279's `int volatile`/`struct timespec volatile` qualifiers have no Rust counterpart
+     on a `static`; the reads and writes keep C's order (docs/ports/boot-time.md).  */
+  static mut cached_result: c_int = -1;
+  static mut cached_boot_time: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
+
+  if cached_result < 0
+    {
+      let mut boot_time: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
+      let result: c_int = get_boot_time_uncached (&mut boot_time);
+      cached_boot_time = boot_time;
+      cached_result = result;
+    }
+
+  if cached_result == 0
+    {
+      *p_boot_time = cached_boot_time;
+      return 0;
+    }
+  else
+    { return -1; }
+}
+
+/* C 298-306's `#else` arm - `int get_boot_time (struct timespec *p_boot_time) { return -1; }`
+   - is dead (C 81's `#if` is true on this target) and is recorded in docs/ports/boot-time.md,
+   not carried: a second `#[unsafe(no_mangle)]` definition of the same name would be the only
+   other Rust spelling.  */
