@@ -112,11 +112,12 @@
     `window_body_width` (1223 — the mirror carries `enum window_body_unit` but not the two
     functions), `wset_buffer` (1231), `selected_window` (1100), and the `WINDOW_FRAME`
     macro (543), written as `macro_rules! WINDOW_FRAME`.
-  * `region-cache.h`: **no mirror at all**, so its four prototypes (`new_region_cache` 68,
-    `free_region_cache` 71, `know_region_cache` 76, `region_cache_forward` 105) are declared
-    here with `struct region_cache *` spelled `*mut c_void` (0.1-2/P-72 rule 3, the
-    insdel.rs `invalidate_region_cache` shape) and `width_run_cache_on_off`'s return type
-    is the same ABI-equal pointer.
+  * `region-cache.h`: its mirror is `include/region-cache.rs` now (status 3.74, C 33 in the
+    include list above), so its four prototypes (`new_region_cache` 68, `free_region_cache` 71,
+    `know_region_cache` 76, `region_cache_forward` 105) come from there with `struct
+    region_cache *` spelled `*mut c_void` (0.1-2/P-72 rule 3) and `width_run_cache_on_off`'s
+    return type is the same ABI-equal pointer; the declarations that stood here went away with
+    the mirror.
   * `<limits.h>`: `SHRT_WIDTH` (limits.in.h 115) is not in the limits mirror (P-26); it is
     derived there the way that mirror derives its own widths.
   * `dispextern.h`: the mirror stops at its batch-II prefix, and `indent.c` is the first

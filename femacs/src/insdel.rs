@@ -62,14 +62,15 @@ include!("include/character.rs");              // C 27: `#include "character.h"`
 include!("include/itree.rs");                 // buffer.h 35: `#include "itree.h"`
 include!("include/buffer.rs");                 // C 28: `#include "buffer.h"`
 include!("include/window.rs");                 // C 29: `#include "window.h"`
+include!("include/region-cache.rs");            // C 30: `#include "region-cache.h"`
 include!("include/pdumper.rs");                // C 31: `#include "pdumper.h"`
 include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>` (memcpy, memmove, memset, strlen)
 
-/* C 23's `<intprops.h>` contributes no name this unit uses, and C 30's `"region-cache.h"`
-   contributes one prototype (`invalidate_region_cache`) whose `struct region_cache *` is
-   spelled `*mut c_void` (PORTING.md 0.1-2/P-72 rule 3): both are recorded in the ledger and
-   the prototype is declared below.  C 34-35's `"treesit.h"` is dead (HAVE_TREE_SITTER is
-   undefined).  */
+/* C 23's `<intprops.h>` contributes no name this unit uses.  C 30's `"region-cache.h"` is the
+   mirror's now (`include/region-cache.rs`, included above): its one prototype this unit calls
+   (`invalidate_region_cache`) and `struct region_cache`'s ABI-equal alias come from there, and
+   the declaration that stood below went away with the mirror (PORTING.md 0.1-2/0.1-10).
+   C 34-35's `"treesit.h"` is dead (HAVE_TREE_SITTER is undefined).  */
 
 /* The names C gets from headers whose mirrors do not carry them yet (the terminal.rs shape),
    each with C's own prototype in a `/// C:` line.  */
@@ -111,10 +112,6 @@ unsafe extern "C" {
   fn record_first_change ();
   /// C: window.h 1169: `extern void bset_redisplay (struct buffer *b);`
   fn bset_redisplay (b: *mut buffer);
-  /// C: region-cache.h 88-90: `extern void invalidate_region_cache (struct buffer *BUF,
-  /// struct region_cache *CACHE, ptrdiff_t HEAD, ptrdiff_t TAIL);`
-  fn invalidate_region_cache (buf: *mut buffer, cache: *mut c_void, head: ptrdiff_t,
-                              tail: ptrdiff_t);
 }
 
 // The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`

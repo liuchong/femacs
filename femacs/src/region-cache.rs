@@ -15,6 +15,7 @@ include!("include/lisp.rs");
 include!("include/character.rs");
 include!("include/itree.rs");
 include!("include/buffer.rs");
+include!("include/region-cache.rs");           // C 27: `#include "region-cache.h"`
 
 
 /* Data structures.  */

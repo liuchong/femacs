@@ -36,14 +36,17 @@
 `python3 tools/extract-abi.py --check emacs/src/region-cache.c femacs/src/region-cache.rs`
 -> `OK` (6 exported functions, 5 macros, 2 structs, 0 subrs, 0 file-scope objects).
 
-- **Includes (C 22-27).**  The port mirrors `config.h`, `<stdio.h>`, `lisp.h` and `buffer.h`;
-  C 27's `#include "region-cache.h"` has **no mirror yet**, because the header's six
-  prototypes are exactly this unit's own definitions (a C prototype/definition pair has no
-  Rust counterpart, PORTING.md 0.1-12), the header defines no type of its own beyond the
-  incomplete `struct region_cache` (C 69-95, which this unit defines), and no other *ported*
-  unit calls into it yet.  The first consumer (`insdel.c`/`search.c`/`indent.c`, whose C text
-  spells the pointer as `buffer.h`'s `*mut c_void` field `newline_cache`) lands the mirror in
-  the P-55 shape (`/// C: <prototype>` over a `*mut c_void` parameter).
+- **Includes (C 22-27).**  The port mirrors `config.h`, `<stdio.h>`, `lisp.h`, `character.h`,
+  `itree.h` and `buffer.h`; C 27's `#include "region-cache.h"` is `include/region-cache.rs`
+  since status 3.74.  The header's six prototypes are this unit's own definitions (a C
+  prototype/definition pair has no Rust counterpart, PORTING.md 0.1-12) and the header's
+  `struct region_cache` is incomplete (C 69-95, defined here), so the mirror carries the six
+  declarations in the P-55 shape (`*mut c_void` for the cache - what `buffer.h`'s mirror already
+  spells for the three cache fields - and `*mut buffer` for the buffer, each with its `/// C:`
+  prototype).  This unit includes the mirror exactly as C includes the header: its definitions
+  shadow the mirror's declarations (0.1-10).  The three consumers - `bidi.rs` (C 247),
+  `insdel.rs` (C 30) and `search.rs` (C 32) - moved their own copies over in the same change
+  (`docs/ports/include-region-cache.md`).
 - **C 125's forward declaration** (`static void revalidate_region_cache (...)`) is dropped:
   Rust items are order-free, so the declaration has no counterpart and the definition stays at
   C's position (PORTING.md 0.1-12).

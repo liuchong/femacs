@@ -66,12 +66,13 @@ include!("include/window.rs");                 // C 29: `#include "window.h"`
 include!("include/frame.rs");                  // C 28: `#include "frame.h"`
 include!("include/disptab.rs");                // C 30: `#include "disptab.h"`
 include!("include/intervals.rs");              // C 31: `#include "intervals.h"`
+include!("include/region-cache.rs");           // C 33: `#include "region-cache.h"`
 include!("../lib/include/limits.in.rs");       // lisp.h's <limits.h>: SHRT_WIDTH's header
 include!("../lib/include/string.rs");          // lisp.h 30's <string.h>: memset, memchr
 
-/* C 33's `"region-cache.h"` has no mirror (PORTING.md P-26/P-66): its four prototypes are
-   declared below with C's own text, and `struct region_cache *` is the ABI-equal
-   `*mut c_void` (0.1-2/P-72 rule 3, the insdel.rs `invalidate_region_cache` shape).  */
+/* C 33's `"region-cache.h"` is the mirror's now (`include/region-cache.rs`, status 3.74): its
+   four prototypes come from there with C's own text, `struct region_cache *` spelled `*mut
+   c_void` (0.1-2/P-72 rule 3), and the declarations that stood below went away with it.  */
 
 /* The names C gets from headers whose mirrors do not carry them yet (the terminal.rs
    shape), each with C's own prototype in a `/// C:` line.  */
@@ -108,18 +109,6 @@ unsafe extern "C" {
   fn window_body_width (w: *mut window, unit: window_body_unit) -> c_int;
   /// C: window.h 1231: `extern void wset_buffer (struct window *, Lisp_Object);`
   fn wset_buffer (w: *mut window, buf: Lisp_Object);
-  /// C: region-cache.h 68: `struct region_cache *new_region_cache (void);`
-  fn new_region_cache () -> *mut c_void;
-  /// C: region-cache.h 71: `void free_region_cache (struct region_cache *);`
-  fn free_region_cache (c: *mut c_void);
-  /// C: region-cache.h 76-78: `extern void know_region_cache (struct buffer *BUF,
-  /// struct region_cache *CACHE, ptrdiff_t START, ptrdiff_t END);`
-  fn know_region_cache (buf: *mut buffer, c: *mut c_void, start: ptrdiff_t,
-                        end: ptrdiff_t);
-  /// C: region-cache.h 105-107: `extern int region_cache_forward (struct buffer *buf,
-  /// struct region_cache *c, ptrdiff_t pos, ptrdiff_t *next);`
-  fn region_cache_forward (buf: *mut buffer, c: *mut c_void, pos: ptrdiff_t,
-                           next: *mut ptrdiff_t) -> c_int;
   /// C: dispextern.h 3556: `extern void *bidi_shelve_cache (void);`
   fn bidi_shelve_cache () -> *mut c_void;
   /// C: dispextern.h 3557: `extern void bidi_unshelve_cache (void *, bool);`

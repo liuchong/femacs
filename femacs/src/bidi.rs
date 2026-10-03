@@ -25,10 +25,10 @@
 // `IT_STACK_SIZE` (2384), `update_redisplay_ticks` (3721),
 // `compute_display_string_pos` (3621) and `compute_display_string_end` (3624) are
 // declared below; `lisp.h`'s `find_newline_no_quit` (5040) and `fast_looking_at` (5031)
-// are not in its mirror either; `region-cache.h` has no mirror at all (its four
-// prototypes are declared with `struct region_cache *` spelled `*mut c_void`, the
-// indent.rs/insdel.rs shape); `<intprops.h>`'s `INT_PROMOTE` (P-26) and `<stdio.h>`'s
-// `fprintf`/`putc`/`stderr` (the bytecode.rs/cm.rs shape) likewise.
+// are not in its mirror either; `region-cache.h`'s four prototypes come from its own mirror
+// now (`include/region-cache.rs`, which landed with this change - the identical declarations
+// that stood below would be an `E0428`); `<intprops.h>`'s `INT_PROMOTE` (P-26) and
+// `<stdio.h>`'s `fprintf`/`putc`/`stderr` (the bytecode.rs/cm.rs shape) likewise.
 //
 // `struct bidi_it` is a *complete* record here rather than a partial one: this unit is
 // the bidi iterator's owner, every member is read or written, and the whole layout is
@@ -65,6 +65,7 @@ include!("include/character.rs");              // C 244: `#include "character.h"
 include!("include/itree.rs");                   // buffer.h 28: `#include "itree.h"`
 include!("include/buffer.rs");                 // C 245: `#include "buffer.h"`
 include!("include/dispextern.rs");             // C 246: `#include "dispextern.h"`
+include!("include/region-cache.rs");           // C 247: `#include "region-cache.h"`
 
 /* The names C's headers give this unit that no mirror carries yet (PORTING.md
    0.1-2/P-72, the ccl.rs/composite.rs shape).  Nothing here is this unit's own
@@ -245,22 +246,9 @@ unsafe extern "C" {
 			       bytepos: *mut ptrdiff_t) -> ptrdiff_t;
 }
 
-/* `region-cache.h` has no mirror (PORTING.md P-26/P-66); `struct region_cache *` is the
-   ABI-equal `*mut c_void` (0.1-2/P-72 rule 3, the indent.rs shape).  */
-unsafe extern "C" {
-  /// C: region-cache.h 68: `struct region_cache *new_region_cache (void);`
-  pub fn new_region_cache () -> *mut c_void;
-  /// C: region-cache.h 71: `void free_region_cache (struct region_cache *);`
-  pub fn free_region_cache (c: *mut c_void);
-  /// C: region-cache.h 76-78: `extern void know_region_cache (struct buffer *BUF,
-  /// struct region_cache *CACHE, ptrdiff_t START, ptrdiff_t END);`
-  pub fn know_region_cache (buf: *mut buffer, c: *mut c_void, start: ptrdiff_t,
-			    end: ptrdiff_t);
-  /// C: region-cache.h 105-107: `extern int region_cache_backward (struct buffer *buf,
-  /// struct region_cache *c, ptrdiff_t pos, ptrdiff_t *next);`
-  pub fn region_cache_backward (buf: *mut buffer, c: *mut c_void, pos: ptrdiff_t,
-				next: *mut ptrdiff_t) -> c_int;
-}
+/* `region-cache.h`'s four prototypes are the mirror's now: `include/region-cache.rs`
+   carries them with C's prototypes, and this unit names them through that header exactly as
+   C does (PORTING.md 0.1-2/0.1-10).  */
 
 /* <stdio.h>: `putc` and `fprintf` for `bidi_dump_cached_states`, and `stderr` under its
    Darwin link name (the cm.rs/bytecode.rs/region-cache.rs shape).  */

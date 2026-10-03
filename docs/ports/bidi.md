@@ -158,11 +158,12 @@
     `bidi_it` in the same commit, P-70) when the display batch lands; nothing else in this
     unit's include graph reaches them.
   * `lisp.h`: `find_newline_no_quit` (5040) and `fast_looking_at` (5031).
-  * `region-cache.h`: **no mirror at all**, so its four prototypes (`new_region_cache` 68,
-    `free_region_cache` 71, `know_region_cache` 76, `region_cache_backward` 105) are
-    declared here with `struct region_cache *` spelled `*mut c_void` (0.1-2/P-72 rule 3,
-    the indent.rs/insdel.rs shape) — that is why `bidi_find_paragraph_start`'s token row
-    lists `region_cache`.
+  * `region-cache.h`: its mirror is `include/region-cache.rs` now (status 3.74, C 247 in the
+    include list above), and its four prototypes (`new_region_cache` 68, `free_region_cache` 71,
+    `know_region_cache` 76, `region_cache_backward` 105) are declared there with `struct
+    region_cache *` spelled `*mut c_void` (0.1-2/P-72 rule 3); the declarations that stood here
+    went away with the mirror, which is why `bidi_find_paragraph_start`'s token row still lists
+    `region_cache`.
   * `<intprops.h>`: `INT_PROMOTE (e)` = `(+ (e))` (intprops.h 55) as a `macro_rules!`
     (P-26, the ccl.rs `INT_DIVIDE_OVERFLOW` shape); C uses it six times to keep
     `-Wswitch-enum` quiet.

@@ -127,7 +127,8 @@ keeping it as `#[cfg (feature = …)]` text (the `bytecode.c`/`thread.c` treatme
 
 Three further C constructs have no Rust counterpart and are recorded as deviations below:
 C 41-44's and C 59's forward declarations (which C needs only because C is
-order-sensitive) and the two includes whose headers have no mirror (C 23's `<intprops.h>` and C 30's `"region-cache.h"`).
+order-sensitive) and one include whose header has no mirror (C 23's `<intprops.h>`; C 30's
+`"region-cache.h"` has been `include/region-cache.rs` since status 3.74).
 
 ### The five statement/expression macros: helper functions, not `macro_rules!`
 
@@ -235,7 +236,8 @@ Declared at the use site with C's own prototype in a `/// C:` line (the terminal
 `report_overlay_modification` (lisp.h 4942-4943), `report_interval_modification`
 (lisp.h 5261), `record_first_change` (lisp.h 5253 — defined in `undo.rs` with the same
 name, but no mirror declares it), `bset_redisplay` (window.h 1169) and
-`invalidate_region_cache` (region-cache.h 88-90).  `struct region_cache` has no mirror, so
+`invalidate_region_cache` (region-cache.h 88-90, whose declaration is the mirror's now,
+status 3.74).  `struct region_cache` stays opaque to every consumer, so
 its three pointers in `invalidate_buffer_caches` are `*mut c_void` (P-72 rule 3) exactly as
 `buffer.rs` already spells the three cache members.  Anything the mirrors do carry
 (`BUF_MARKERS`, `GPT_ADDR`, …) is used as the mirror spells it, and the `F*` subrs come

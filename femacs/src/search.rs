@@ -37,12 +37,12 @@
 // `config.rs` carries and these are the preprocessor predicates of this file
 // (docs/status.md 3.9), so the compiled build is exactly what clang compiles.
 //
-// **Use-site declarations** (there is no mirror for `regex-emacs.h`'s engine half and none
-// for `region-cache.h`, so this unit declares what it needs with C's own prototype above it,
-// PORTING.md 0.1-2/P-72, the indent.rs/ccl.rs shape): `struct re_pattern_buffer` and the six
-// `re_*` engine entries; the five `region_cache` entries; `memrchr`; `substring_both`;
-// `make_specified_string`; `open_memstream`/`stderr` (checking arm only).  The mirror gaps
-// are reported in docs/ports/search.md.
+// **Use-site declarations** (this unit declares what it needs with C's own prototype above
+// it, PORTING.md 0.1-2/P-72, the indent.rs/ccl.rs shape): `memrchr`; `substring_both`;
+// `make_specified_string`; `open_memstream`/`stderr` (checking arm only).  The two header
+// families that used to stand here - `regex-emacs.h`'s engine half and `region-cache.h`'s five
+// entries - are their mirrors' now (`include/regex-emacs.rs`, `include/region-cache.rs`);
+// the mirror gaps that remain are reported in docs/ports/search.md.
 //
 // `struct regexp_cache` is declared here (C declares it in the .c), which is why
 // `tools/gen-layout-fields.py`'s `STRUCTS` list does not name it; its layout and
@@ -70,7 +70,8 @@ include!("include/itree.rs");                  // buffer.h 27: `#include "itree.
 include!("include/buffer.rs");                 // C 29: `#include "buffer.h"`
 include!("include/syntax.rs");                 // C 30: `#include "syntax.h"`
 include!("include/charset.rs");                // C 31: `#include "charset.h"`
-include!("include/blockinput.rs");             // C 32: `#include "blockinput.h"`
+include!("include/region-cache.rs");           // C 32: `#include "region-cache.h"`
+include!("include/blockinput.rs");             // C 33: `#include "blockinput.h"`
 include!("include/intervals.rs");              // C 33: `#include "intervals.h"`
 include!("include/pdumper.rs");                // C 34: `#include "pdumper.h"`
 include!("include/composite.rs");              // C 35: `#include "composite.h"`
@@ -86,32 +87,16 @@ macro_rules! TYPE_MINIMUM { ($t:ty) => { <$t>::MIN }; }
    `femacs/src/include/regex-emacs.rs` carries them with C's prototypes, and this unit names
    them through that header exactly as C does (PORTING.md 0.1-10; the two copies that stood
    here went away in the same commit as the mirror, or this unit would be an `E0428`).  */
-/* `region-cache.h` has no mirror: the five entries `find_newline`, `newline_cache_on_off`
-   and `Fnewline_cache_check` call are declared here with C's prototype above each.  The
-   record itself is reached only through a pointer, so the port names C's type at the use
-   site as the ABI-equal `c_void` (PORTING.md 0.1-2/P-72 rule 3, the indent.rs shape), which
-   keeps `struct region_cache *` in those bodies' text; the definitions are
-   `src/region-cache.c`'s port (`femacs/src/region-cache.rs`).  */
 /// C: region-cache.h 59-60: `struct buffer;` / `struct region_cache` (region-cache.c defines it).
 pub type region_cache = c_void;
-unsafe extern "C" {
-  /// C: region-cache.h 68: `struct region_cache *new_region_cache (void);`
-  fn new_region_cache () -> *mut c_void;
-  /// C: region-cache.h 71: `void free_region_cache (struct region_cache *);`
-  fn free_region_cache (c: *mut c_void);
-  /// C: region-cache.h 76-78: `extern void know_region_cache (struct buffer *BUF,
-  /// struct region_cache *CACHE, ptrdiff_t START, ptrdiff_t END);`
-  fn know_region_cache (buf: *mut buffer, c: *mut c_void, start: ptrdiff_t,
-			end: ptrdiff_t);
-  /// C: region-cache.h 105-107: `extern int region_cache_forward (struct buffer *buf,
-  /// struct region_cache *c, ptrdiff_t pos, ptrdiff_t *next);`
-  fn region_cache_forward (buf: *mut buffer, c: *mut c_void, pos: ptrdiff_t,
-			   next: *mut ptrdiff_t) -> c_int;
-  /// C: region-cache.h 110-111: `extern int region_cache_backward (struct buffer *buf,
-  /// struct region_cache *c, ptrdiff_t pos, ptrdiff_t *next);`
-  fn region_cache_backward (buf: *mut buffer, c: *mut c_void, pos: ptrdiff_t,
-			    next: *mut ptrdiff_t) -> c_int;
-}
+/* `region-cache.h`'s five entries (`new_region_cache`, `free_region_cache`,
+   `know_region_cache`, `region_cache_forward`, `region_cache_backward`) and C's `struct
+   region_cache` - the record is reached only through a pointer, so the mirror names it with
+   the ABI-equal `c_void` alias (PORTING.md 0.1-2/P-72 rule 3) - are the mirror's now:
+   `include/region-cache.rs` carries them with C's prototypes.  The declarations and the alias
+   that stood here went away in the same change as the mirror, or this unit would be an
+   `E0428`; nothing in the bodies had to move, because the alias keeps `struct region_cache *`
+   in their text.  */
 
 unsafe extern "C" {
   /// C: <string.h>: `void *memrchr (const void *, int, size_t);` (gnulib's replacement;

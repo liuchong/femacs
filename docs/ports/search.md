@@ -126,11 +126,11 @@
   (C 67-114 of that header), its six bit-member accessors and the five `re_*` entries
   (`re_compile_pattern`, `re_search`, `re_search_2`, `re_match_2`, `re_set_registers`) with
   C's prototype above each (PORTING.md 0.1-2/P-72, the indent.rs/ccl.rs shape).
-  `region-cache.h` has no mirror at all, so the five `region_cache` entries are declared the
-  same way with `struct region_cache *` spelled as the ABI-equal `*mut region_cache` behind
-  a use-site `pub type region_cache = c_void;` (which keeps C's type name in `find_newline`
-  and `newline_cache_on_off`, P-55/P-72 rule 3; the definitions are
-  `femacs/src/region-cache.rs`).  `memrchr`, `substring_both`, `make_specified_string`,
+  `region-cache.h`'s five `region_cache` entries are its mirror's now
+  (`docs/ports/include-region-cache.md`, status 3.74), which spells `struct region_cache *` as
+  the ABI-equal `*mut c_void`; this unit keeps its use-site `pub type region_cache = c_void;`
+  because six of its local declarations name C's type (P-55/P-72 rule 3; the definitions are
+  `femacs/src/region-cache.rs`), and the declarations that stood here went away with the mirror.  `memrchr`, `substring_both`, `make_specified_string`,
   `copy_text` and `open_memstream`/`stderr`/`print_compiled_pattern` are the same shape:
   each is a lisp.h/`<string.h>`/<stdio.h> declaration this unit needs and no mirror carries.
   None of these edits touches a shared mirror, so no other consumer needed rebuilding.

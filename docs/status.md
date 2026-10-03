@@ -23,7 +23,7 @@
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
 - **进度（2026-10-04 第 97 轮，两个口径都实测）**：磁盘上 **262 个单元**（`femacs/src/*.rs` 140 +
-  `femacs/lib/*.rs` 122）与 **130 个镜像**（`src/include/` 41 + `lib/include/` 89）；其中
+  `femacs/lib/*.rs` 122）与 **131 个镜像**（`src/include/` 42 + `lib/include/` 89）；其中
   `src/buffer.rs`（5,274 行）与 `src/process.rs`（2,809 行）是两条在飞通道的 WIP（台账未勾满，按
   "in progress" 计，不参与已完成单元的门）。**权威口径 `extract-abi.py --all` 本轮真跑过**：
   `checked 365 ported files: 340 done, 25 in progress, 0 failing`。
@@ -1054,3 +1054,27 @@
   `docs/baseline/config/darwin-arm64.macros.tsv` 的 `PACKAGE_STRING`，以及六棵逐字节照抄树
   （`lisp`/`test`/`etc`/`doc`/`leim`/`admin`）里参照自己的版权头——前者是 clang 实测的冻结值，
   后者是"原样复制"本身（`tools/check-verbatim.py` 要求逐字节相等）。
+
+- **3.74 第 98 轮：`region-cache.h` 的镜像落地——P-26 的"第二个 includer 就该建镜像"终于在第五个 includer 上兑现（2026-10-04）**：
+  这棵树里**五处**写着同一句话"`region-cache.h` has no mirror"（`bidi.rs`/`insdel.rs`/`search.rs`/`indent.rs`
+  各自的 use-site 声明区，加上 `region-cache.rs` 自己的 include 说明），每个单元都把那六条原型抄了一遍、
+  `struct region_cache *` 各按 `*mut c_void` 拼一次——正是 P-26 说的"同一构造不允许两种写法"的灰色地带。
+  ① 新增 `femacs/src/include/region-cache.rs`（70 行）：`EMACS_REGION_CACHE_H` 宏 + `region_cache_decls`
+  模块里的六条声明 + glob import（0.1-10），`--check` 与参照头一致。
+  ② **两种指针分别按各自规则拼**：`struct region_cache` 在头里是**不完整类型**（记录是 `region-cache.c` 的），
+  按 0.1-2/P-72③ 拼成 `*mut c_void`——与 `include/buffer.rs` 里 `newline_cache`/`width_run_cache`/
+  `bidi_paragraph_cache` 三个字段早就用的拼法一致；`struct buffer *BUF` 则**保持真类型**：C 59 只是
+  前置声明，`include/buffer.rs` owns 那条记录，镜像 `include!("buffer.rs")` 后就能写 `*mut buffer`
+  （`intervals.rs` 的 `offset_intervals` 先例），也顺带让 layout 探针的顺序无关（0.1-4 的包含图保证
+  buffer.rs 排在本文件之前）。
+  ③ **一次真实的试错，值得记下来**：第一版让镜像自己带 `pub type region_cache = c_void;` 并让定义单元
+  `region-cache.rs` 也 include 它 → `build-tu src/region-cache.c` 立刻 **E0428**（`include!` 是**文本展开**，
+  镜像里的别名与单元自己的 `pub struct region_cache` 同层同名；0.1-10 的"定义遮蔽整体导入"只对
+  **glob import** 成立，对文本展开的同层重名不成立）。定案：镜像只用 `*mut c_void`，别名留在
+  `search.rs`（它的六处局部声明要写 C 的类型名，P-72③ 允许），定义单元 include 镜像后它的定义遮蔽镜像
+  的**声明**（这些在模块里 + glob import，合法）。
+  ④ 五个单元改成 include 镜像、删掉各自副本：`bidi.rs`(C 247)、`insdel.rs`(C 30)、`search.rs`(C 32)、
+  `indent.rs`(C 33)、`region-cache.rs`(C 27)，净 -31 行；五份台账里"no mirror"的陈述一并改成终态。
+  ⑤ 闸门实测：镜像 `--check` **OK**；五个单元 `build-tu` 全部 **built**、`--check` 全部 **OK**；
+  `check-globals` 0 缺定义；`check-undef` 512 单元/120 pending/**0 new**；`check-linkage` 0 缺失；
+  `layout-check` **passed**（791 条断言，新镜像进了探针 crate）。镜像计数 **130 → 131**（`src/include/` 41 → 42）。
