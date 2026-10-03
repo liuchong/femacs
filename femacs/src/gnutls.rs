@@ -22,6 +22,7 @@ include!("include/config.rs");
 include!("../lib/include/errno.rs");	// C 20: <errno.h>
 include!("../lib/include/stdio.rs");	// C 21: <stdio.h>
 include!("include/lisp.rs");
+include!("include/gnutls.rs");	// C 25: `#include "gnutls.h"`
 
 // The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
 // (lisp.h 3495-3530) and `struct emacs_globals globals` is defined once, in alloc.c; the port's
@@ -31,10 +32,12 @@ include!("include/lisp.rs");
 #[unsafe(no_mangle)]
 pub static mut Vlibgnutls_version: Lisp_Object = lisp_h_Qnil ();
 
-// C 24-28's `process.h`, `gnutls.h`, `coding.h`, `buffer.h` and `pdumper.h` are not pulled
-// in: the names the live text could take from them (the `Lisp_Process` accessors,
-// `struct Lisp_GnuTLS_*`, the coding-system calls, `BVAR` and the four `PDUMPER_*` hooks) all
-// sit inside the dead region (the atimer.rs precedent; docs/ports/gnutls.md).
+// C 24-28's `process.h`, `coding.h`, `buffer.h` and `pdumper.h` are not pulled in: the names
+// the live text could take from them (the `Lisp_Process` accessors, `struct Lisp_GnuTLS_*`,
+// the coding-system calls, `BVAR` and the four `PDUMPER_*` hooks) all sit inside the dead
+// region (the atimer.rs precedent; docs/ports/gnutls.md).  C 25's own header *is* included now
+// that `include/gnutls.rs` exists - the unit defines `syms_of_gnutls`, and the mirror's
+// `gnutls_decls` glob import is what that definition shadows (P-21).
 
 DEFUN! ("gnutls-available-p", Fgnutls_available_p, Sgnutls_available_p, 0, 0, 0,
        doc: "Return list of capabilities if GnuTLS is available in this instance of Emacs.\n\n...if supported         : then...\nGnuTLS 3 or higher      : the list will contain `gnutls3'.\nGnuTLS MACs             : the list will contain `macs'.\nGnuTLS digests          : the list will contain `digests'.\nGnuTLS symmetric ciphers: the list will contain `ciphers'.\nGnuTLS AEAD ciphers     : the list will contain `AEAD-ciphers'.\n%DUMBFW                 : the list will contain `ClientHello\\ Padding'.\nAny GnuTLS extension with ID up to 100\n                        : the list will contain its name.  ",
