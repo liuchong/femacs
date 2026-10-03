@@ -404,3 +404,17 @@
   （`pdumper_load`/`pdumper_dump`/`dump_fingerprint` 一族 + 几个结构体）。
   补完这两个，`profiler.c`(733) 与 `filelock.c`(840) 即可开工（两者都不在 §3.31 的排除集里，是**真需要实现**的单元）。
 
+- **3.33 §3.31 空单元的两个实测坑（2026-10-03 第 67 轮，从 62 个文件的批量落地中总结）**：
+  ① **"license 块"要停在第一个非注释行，而不是第一个 `#include`**：`src/w32.c`/`w32notify.c`/`w32proc.c`
+  在第一个 `#include` **之前**有一行真代码（`#define DEFER_MS_W32_H` 一族），按"复制到第一个 `#include` 为止"
+  的写法会把它当注释文本抄进 `.rs`，rustc 直接报 `expected one of '!' or '['`（这 3 个文件初次 `build-tu` 真失败过）。
+  正确口径：从文件开头复制到**第一个既非空行也非注释的行**为止。已提交的 3 个单元现在都不含 `#define`
+  （`grep -c '^#define'` 为 0，且 `build-tu` 通过），6 个样板按新口径重生成后**逐字节不变**。
+  ② **`clear_unbuilt_inventory` 曾漏 `struct_fields`**：ledger 的 "Types and their fields" 一节就是用它的，
+  于是 62 份里有 35 份一边写"Nothing in this file is required here"、一边列出顺延的结构体字段
+  （`w32.c` 那 8 个还是 `<anon@185>` 这类垃圾容器名）。已修（`b706b46`）并重生成全部受影响台账
+  （`83eb42e`/`3748fca`/`b17e87e`）；全批顺延声明合计 **5,199** 条（`w32.c` 一个文件 388 条）。
+  ③ **这一类已清零**：`emacs/src/*.c` = 152 = 冻结构建编译 **75** + 排除 **77**；77 个排除项全部有端口
+  （真实单元 3 个：`dynlib`/`tparam`/`vm-limit`；空单元 74 个），62/62 逐文件 `build-tu` built 且
+  `extract-abi.py --check` OK。
+
