@@ -1374,3 +1374,18 @@
   （`sysselect.h` 的三个包装函数用 `eassume` 写明契约），真跑测试套件时若出现越界 fd 会以 panic 暴露，
   而不是静默读脏数据。判据与探针配方写在 `docs/ports/include-sysselect.md` 与
   `docs/ports/include-sys_select.md`。
+
+- **3.93 镜像落地后的收敛：本地测量副本必须退位（2026-10-04 第 98 轮第四批）**：
+  本批新增的 `src/include/{systty,sysstdio,sysselect,syswait}.rs` 与系统镜像 `lib/include/termios.rs`
+  落地后，**同一批**把两个单元的本地副本收掉——`femacs/src/sysdep.rs` 删掉 `<termios.h>` 四 typedef +
+  `NCCS` + `struct termios`（8 条 `const _` 断言）、本地 `struct emacs_tty` 与本地 `CDISABLE`；
+  `femacs/src/minibuf.rs` 删掉它的**不可逐字段读**的 `struct termios { _storage: [u8; 72] }` 假体、
+  `emacs_tty` 与三条用点声明。规则：0.1-3 的"每个类型一个定义点"——镜像一落地，本地"测量副本"就是重复定义，
+  必须在同一批退位（`check-mirror-dupes.py` 现在 0 failure，说明这一批只减不增）。
+  **两条实现上的定式**：① 系统常量的类型照 C 的类型走（`limits.in.rs` 的 `CHAR_BIT: c_int` 先例），
+  于是镜像的 `NCCS: c_int` 让 `memcmp (…, NCCS)` 需要 C 的隐式转换显式化 → 写 `NCCS as usize`
+  （P-15 家族的"显式 `as`"偏离）；② 镜像里的数组长度也带上 C 的 token（`c_cc: [cc_t; NCCS as usize]`，
+  不要写死 20）。
+  证据：两个单元 `build-tu` = built、`extract-abi --check` = OK、`rustc --cfg enable_checking` = exit 0、
+  `check-globals` 273 单元 / 0 缺定义、`check-declarations` 0。剩余一份在 `femacs/src/process.rs` 7390-7430
+  （那条 lane 在飞），收敛方案与理由写在 `docs/ports/include-termios.md`。

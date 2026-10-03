@@ -163,12 +163,12 @@ pre-existing mirror warnings (`include/lisp.rs` 3836's unused doc comment and
     P-55/P-72 rule ③ prescribe.
   * `<stdio.h>`: `fflush`, `getchar`, `putchar`, `putc` and `stdout` (an object-like macro
     on this target: `#[cfg_attr (target_os = "macos", link_name = "__stdoutp")]`, the cm.rs
-    shape).  `<unistd.h>`: `STDIN_FILENO` (a measured constant).  `systty.h` **has no
-    mirror at all**: `struct emacs_tty` (75-85) is declared with `<termios.h>`'s member,
-    both measured by clang (`sizeof` 72, `alignof` 8, `main`@0) and pinned by `const _`
-    assertions, plus `emacs_get_tty` (87), `emacs_set_tty` (88), `suppress_echo_on_tty`
-    (89).  C holds the struct *by value* here, which is why this one gap is a real record
-    rather than a `*mut c_void` degradation.
+    shape).  `<unistd.h>`: `STDIN_FILENO` (a measured constant).  `systty.h` **has a mirror
+    since 2026-10-04** (`femacs/src/include/systty.rs`, which brings the system mirror
+    `lib/include/termios.rs`): this unit now gets `struct emacs_tty` (75-85), the real
+    `struct termios` inside it, `CDISABLE` and the three tty declarations (87-89) from there,
+    and the opaque `struct termios { _storage: [u8; 72] }` stand-in this unit carried until
+    then - a record that could not be read field by field - is gone.
   * `fd_set`-style includes are not needed; the four extra mirrors this unit includes
     (`itree.rs`, `systime.rs`, `dispextern.rs`, `coding.rs`, `composite.rs`, `termhooks.rs`)
     are the ones `buffer.rs`, `keyboard.rs` and `frame.rs` reach through their own C

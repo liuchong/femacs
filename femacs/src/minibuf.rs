@@ -62,6 +62,7 @@ include!("include/termhooks.rs");              // frame.h 22: `#include "termhoo
 include!("include/window.rs");                 // C 31: `#include "window.h"`
 include!("include/frame.rs");                  // C 30: `#include "frame.h"`
 include!("include/keymap.rs");                 // C 32: `#include "keymap.h"`
+include!("include/systty.rs");               // C 34: `#include "systty.h"`
 include!("include/pdumper.rs");                // C 35: `#include "pdumper.h"`
 
 /* C 34's `#include "systty.h"` has no mirror (PORTING.md P-26/P-66): the record it defines
@@ -84,34 +85,12 @@ unsafe extern "C" {
 /// <unistd.h>: `#define STDIN_FILENO 0` (measured; the callproc.rs shape).
 const STDIN_FILENO: c_int = 0;
 
-/// C: systty.h 75-85: `struct emacs_tty { struct termios main; };` — `<termios.h>` and
-/// systty.h have no mirror.  C holds one *by value* here (`struct emacs_tty etty;`) and
-/// hands its address to `emacs_get_tty`/`emacs_set_tty`, which fill it; no member is read
-/// in this unit.  The record is therefore the real one, measured by clang against the
-/// frozen target (`sizeof (struct emacs_tty)` 72, `alignof` 8, `main` at 0) and pinned by
-/// the assertions below (the P-72 rule ③ note is in docs/ports/minibuf.md).
-#[repr(C, align (8))]
-pub struct termios { _storage: [u8; 72] }
-
-#[repr(C)]
-pub struct emacs_tty { pub main: termios }
-
-const _: () = {
-  assert! (std::mem::size_of::<termios> () == 72);
-  assert! (std::mem::align_of::<termios> () == 8);
-  assert! (std::mem::size_of::<emacs_tty> () == 72);
-  assert! (std::mem::align_of::<emacs_tty> () == 8);
-  assert! (std::mem::offset_of! (emacs_tty, main) == 0);
-};
-
-unsafe extern "C" {
-  /// C: systty.h 87: `extern int emacs_get_tty (int, struct emacs_tty *) EXTERNALLY_VISIBLE;`
-  pub fn emacs_get_tty (fd: c_int, tty: *mut emacs_tty) -> c_int;
-  /// C: systty.h 88: `extern int emacs_set_tty (int, struct emacs_tty *, bool) EXTERNALLY_VISIBLE;`
-  pub fn emacs_set_tty (fd: c_int, tty: *mut emacs_tty, flushp: bool) -> c_int;
-  /// C: systty.h 89: `extern void suppress_echo_on_tty (int);`
-  pub fn suppress_echo_on_tty (fd: c_int);
-}
+/* C 34's `#include "systty.h"`: `struct emacs_tty` (and the real `struct termios` inside
+   it), `CDISABLE` and the three tty declarations now come from `include/systty.rs`, which
+   brings `../lib/include/termios.rs` with it.  Until 2026-10-04 this unit carried an opaque
+   `struct termios { _storage: [u8; 72] }` stand-in (it could not be read field by field) plus
+   its own `emacs_tty` and three use-site declarations; all three are gone - the mirror is the
+   single definition point (PORTING.md 0.1-3, P-21/P-72 (3)).  */
 
 unsafe extern "C" {
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);`
