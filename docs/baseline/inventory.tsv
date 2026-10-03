@@ -51,7 +51,7 @@ src/data.c	4400	60	120	1	12	2	0
 src/dbusbind.c	2190	24	6	19	1	0	3
 src/decompress.c	349	6	2	4	1	5	3
 src/dired.c	1213	14	8	3	3	0	0
-src/dispextern.h	4025	9	0	130	219	551	16
+src/dispextern.h	4025	11	0	130	219	551	16
 src/dispnew.c	7584	150	13	4	1	13	20
 src/disptab.h	117	0	0	20	14	0	0
 src/doc.c	746	6	6	6	0	0	2
@@ -136,7 +136,7 @@ src/module-env-29.h	0	0	0	0	0	0	0
 src/module-env-30.h	0	0	0	0	0	0	0
 src/module-env-31.h	0	0	0	0	0	0	0
 src/module-env-32.h	12	0	0	0	0	0	0
-src/msdos.c	4350	92	5	33	22	12	38
+src/msdos.c	4350	96	5	33	22	12	38
 src/msdos.h	156	0	0	21	7	0	3
 src/nsgui.h	137	0	0	35	19	0	0
 src/nsterm.h	1395	0	0	140	21	102	8
@@ -151,7 +151,7 @@ src/pgtkselect.c	1975	34	8	1	0	21	7
 src/pgtkterm.c	7780	199	0	16	9	6	14
 src/pgtkterm.h	681	1	0	46	3	169	1
 src/print.c	3069	47	11	3	7	44	12
-src/process.c	9122	124	63	24	17	9	20
+src/process.c	9122	125	63	24	17	9	20
 src/process.h	320	6	0	2	4	59	2
 src/profiler.c	733	24	9	0	3	3	7
 src/ralloc.c	1214	18	0	7	0	0	12
@@ -171,7 +171,7 @@ src/sound.c	1554	30	2	4	18	44	2
 src/sqlite.c	933	12	17	29	1	0	1
 src/syntax.c	3851	40	21	5	3	13	7
 src/syntax.h	215	11	0	2	17	12	1
-src/sysdep.c	4766	132	1	23	8	4	11
+src/sysdep.c	4766	135	1	23	8	4	11
 src/sysselect.h	98	3	0	8	2	0	0
 src/syssignal.h	88	0	0	10	1	0	1
 src/sysstdio.h	47	0	0	4	2	0	0
@@ -248,7 +248,7 @@ src/xsmfns.c	581	16	1	5	4	0	7
 src/xterm.c	33125	438	0	35	62	33	103
 src/xterm.h	2045	3	0	99	12	323	14
 src/xwidget.c	4304	75	36	4	3	5	6
-src/xwidget.h	243	0	0	11	2	53	0
+src/xwidget.h	243	6	0	11	2	53	0
 lib/_Noreturn.h	43	0	0	1	0	0	0
 lib/acl-errno-valid.c	52	1	0	0	0	0	0
 lib/acl-internal.c	523	11	0	2	0	0	0
@@ -318,7 +318,7 @@ lib/free.c	53	1	0	0	0	0	0
 lib/fseterr.c	80	1	0	0	0	0	0
 lib/fseterr.h	55	0	0	2	0	0	0
 lib/fstatat.c	150	4	0	10	2	0	0
-lib/fsusage.c	226	2	0	4	1	0	0
+lib/fsusage.c	226	3	0	4	1	0	0
 lib/fsusage.h	49	0	0	1	0	7	0
 lib/fsync.c	86	1	0	1	0	0	0
 lib/ftoastr.c	152	2	0	10	1	0	0
@@ -392,7 +392,7 @@ lib/nproc.c	582	7	0	2	1	0	0
 lib/nproc.h	46	0	0	0	0	0	0
 lib/nstrftime.c	19	0	0	1	0	0	0
 lib/open.c	240	3	0	4	0	0	0
-lib/openat-die.c	7	0	0	0	0	0	0
+lib/openat-die.c	7	2	0	0	0	0	0
 lib/openat-priv.h	74	0	0	5	0	0	0
 lib/openat-proc.c	154	1	0	1	1	0	0
 lib/openat.h	137	6	0	6	0	0	0
@@ -488,7 +488,7 @@ lib/verify.h	407	0	0	24	6	1	0
 lib/warn-on-use.h	153	0	0	4	0	0	0
 lib-src/asset-directory-tool.c	338	5	0	0	0	5	1
 lib-src/ebrowse.c	3926	66	0	37	125	41	41
-lib-src/emacsclient.c	2524	50	0	11	4	4	15
+lib-src/emacsclient.c	2524	52	0	11	4	4	15
 lib-src/etags.c	8280	126	0	31	62	0	12
 lib-src/hexl.c	221	3	0	0	0	0	1
 lib-src/make-docfile.c	1232	21	0	0	10	15	6

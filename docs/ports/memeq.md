@@ -1,4 +1,4 @@
-# emacs/lib/memeq.c (19 lines)
+# emacs/lib/memeq.c  →  femacs/lib/memeq.rs (19 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -21,3 +21,15 @@
   relationship to `_GL_EXTERN_INLINE` (the marker in lib/include/gnulib_config.rs).
 - **No `// femacs:` header**: C's own file is 20-23 lines, and the drift rule's +/-5% leaves
   no room for one; this ledger is where the provenance is recorded.
+
+- **PORTING.md P-81**: this is one of gnulib's extern-inline carriers - its C text is
+  the license, `#define <qualifier> _GL_EXTERN_INLINE` and its includes, with the bodies
+  in the header - so the reference object exports the *header's* functions and the unit
+  re-exports them under C's own names (`#[unsafe(export_name = "…")]` inside
+  `mod <stem>_unit`, each calling `super::…` so the module's own item cannot shadow the
+  mirror's and recurse).  tools/check-symbols.py compares the result with the reference
+  object symbol by symbol; this entry was on docs/baseline/symbol-pending.txt until it
+  matched.
+  The body lives in the <string.h> mirror (`lib/include/string.rs`), which now defines
+  `memeq` from string.in.h 424-440 (`return !memcmp (…)`, written `== 0` because Rust's
+  `!` on a `c_int` is bitwise).

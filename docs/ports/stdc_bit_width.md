@@ -1,4 +1,4 @@
-# emacs/lib/stdc_bit_width.c (19 lines)
+# emacs/lib/stdc_bit_width.c  →  femacs/lib/stdc_bit_width.rs (19 lines)
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -21,3 +21,14 @@
   relationship to `_GL_EXTERN_INLINE` (the marker in lib/include/gnulib_config.rs).
 - **No `// femacs:` header**: C's own file is 20-23 lines, and the drift rule's +/-5% leaves
   no room for one; this ledger is where the provenance is recorded.
+
+- **PORTING.md P-81**: this is one of gnulib's extern-inline carriers - its C text is
+  the license, `#define <qualifier> _GL_EXTERN_INLINE` and its includes, with the bodies
+  in the header - so the reference object exports the *header's* functions and the unit
+  re-exports them under C's own names (`#[unsafe(export_name = "…")]` inside
+  `mod <stem>_unit`, each calling `super::…` so the module's own item cannot shadow the
+  mirror's and recurse).  tools/check-symbols.py compares the result with the reference
+  object symbol by symbol; this entry was on docs/baseline/symbol-pending.txt until it
+  matched.
+  The mirror gained the five `stdc_bit_width_*` wrappers (stdbit.in.h 1119-1147)
+  and the generic `stdc_bit_width` dispatch macro (1151-1156).

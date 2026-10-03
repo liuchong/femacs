@@ -29,6 +29,43 @@ import os
 from pathlib import Path
 
 CFUNC = re.compile(r"^(?:\((?P<pname>[A-Za-z_]\w*)\)|(?P<name>[A-Za-z_]\w*))\s*\(")
+
+
+# A definition whose declaration specifiers share the line with the name:
+# `void openat_save_fail (int errnum) { abort (); }` (gnulib's one-line form, openat-die.c
+# 7-8) and the header form `INLINE int GLYPH_CHAR (GLYPH glyph) { return glyph.ch; }`
+# (dispextern.h 388).  CFUNC keys on the name being the line's *first* token, so it saw
+# neither, and a file whose only definitions are written this way looked like a file with no
+# definitions at all - which then made the port's own definitions read as invented exported
+# symbols.  This is a scanner rather than a regex on purpose: the equivalent
+# `^(?:spec[\s\*]+)+(?P<name>\w*)\s*\(` backtracks exponentially on a line of many
+# identifiers, and this runs on every line of every ported file.
+_TYPED_TOKEN = re.compile(r"[ \t]*(?:\*|(?P<word>[A-Za-z_]\w*))")
+
+
+def typed_def_name(line: str):
+    """`(name, index of the opening paren)` for a same-line definition, else None.
+
+    The shape is one or more declaration specifiers (identifiers, `struct TAG`, `*`), then
+    the name, then `(`.  At least two tokens are required: a line that opens with the name
+    itself is CFUNC's (Emacs's K&R style).  The caller requires the body's `{` to share this
+    physical line, so this never re-reads a declarator the multi-line rules already own.
+    """
+    pos = tokens = 0
+    while True:
+        m = _TYPED_TOKEN.match(line, pos)
+        if m is None:
+            return None
+        pos, tokens = m.end(), tokens + 1
+        q = pos
+        while q < len(line) and line[q] in " \t":
+            q += 1
+        if q < len(line) and line[q] == "(":
+            return (m.group("word"), q) if tokens >= 2 and m.group("word") else None
+        if pos >= len(line) or line[pos] not in " \t" or tokens > 12:
+            return None
+
+
 DEFUN = re.compile(r'^DEFUN\s*\(\s*"(?P<lisp>[^"]+)"\s*,\s*(?P<cname>\w+)\s*,\s*'
                    r'(?P<sname>\w+)\s*,\s*(?P<min>[^,]+?)\s*,\s*(?P<max>[^,]+?)\s*,\s*'
                    r'(?P<n>[^,]+?)\s*,\s*doc\s*:\s*/\*(?P<doc>.*?)\*/', re.S | re.M)
@@ -935,11 +972,22 @@ def function_spans(text: str) -> list[dict]:
             i += 1
             continue
         m = CFUNC.match(line)
-        if not m or (m.group("name") or m.group("pname")) in STATEMENT_WORDS:
-            i += 1
-            continue
+        typed = False
+        if m is not None and (m.group("name") or m.group("pname")) not in STATEMENT_WORDS:
+            gd = m.groupdict()
+            name = m.group("name") if gd.get("name") is not None else m.group("pname")
+            k = m.end() - 1
+        else:
+            # The one-line form: declaration specifiers, name and `(` share the line.
+            hit = typed_def_name(line)
+            typed = True
+            if hit is None or hit[0] in STATEMENT_WORDS:
+                i += 1
+                continue
+            name, k = hit
+        j = i - 1
         # walk the parameter list to its matching close paren
-        depth, j, k = 0, i - 1, m.end() - 1
+        depth = 0
         while j < len(rows):
             row = rows[j]
             while k < len(row):
@@ -961,6 +1009,8 @@ def function_spans(text: str) -> list[dict]:
         body_line = None
         if rest.startswith("{"):
             body_line = j
+        elif typed:
+            pass          # a typed declarator is a definition only when `{` shares its line
         elif rest == "" or rest.startswith("__attribute__"):
             for jj in range(j + 1, min(j + 9, len(rows))):
                 nxt = rows[jj].strip()
@@ -991,7 +1041,9 @@ def function_spans(text: str) -> list[dict]:
                 break
         if end_line is None:
             end_line = len(rows)
-        prev = ""
+        # The typed form carries its own specifiers on the declarator line, so that line is
+        # what says whether the definition is `static`.
+        prev = line if typed else ""
         p = i - 2
         while p >= 0:
             cand = rows[p].strip()
@@ -1008,11 +1060,14 @@ def function_spans(text: str) -> list[dict]:
                 continue
             prev = cand
             break
-        spans.append({"name": m.group("name") or m.group("pname"), "line": i,
+        spans.append({"name": name, "line": i,
                       "static": bool(re.search(r"\bstatic\b", prev)),
                       "return_type": prev, "body_start": body_line + 1,
                       "body_end": end_line + 1})
-        i = end_line + 1
+        # `max`: a typed definition's body sits on the declarator's own line, so its
+        # `end_line` is `i - 1` and `end_line + 1` would not advance (the scanner looped
+        # forever on openat-die.c until this was written as a max).
+        i = max (end_line + 1, i + 1)
     return spans
 
 
