@@ -992,6 +992,13 @@ def line_drift_rule(rs_path: Path, default: float = 0.05) -> tuple[float, str]:
         text = table.read_text(encoding="utf-8")
     except OSError:
         return default, "total"
+    # The table is an append-only log (`printf … >>`, the general rule for docs/ports/*.tsv),
+    # so a stem can have several rows and the *newest* one governs: a row written when a unit
+    # was half-ported ("the tolerance is derived from the finished prefix's density and must be
+    # re-derived when the remainder lands") is superseded by the row a later round appends,
+    # not by deleting the first (that is what the `process` rows of 2026-10-04 assume).  The
+    # reading used to stop at the first match, which silently gave the older row the last word.
+    found: tuple[float, str] | None = None
     for line in text.splitlines():
         if not line or line.startswith("#"):
             continue
@@ -1002,7 +1009,9 @@ def line_drift_rule(rs_path: Path, default: float = 0.05) -> tuple[float, str]:
             except ValueError:
                 return default, "total"
             basis = parts[3].strip() if len(parts) >= 4 else "total"
-            return tolerance, (basis if basis in ("total", "live") else "total")
+            found = (tolerance, basis if basis in ("total", "live") else "total")
+    if found is not None:
+        return found
     return default, "total"
 
 

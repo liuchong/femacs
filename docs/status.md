@@ -1145,3 +1145,32 @@
   ③ 棘轮 `docs/baseline/mirror-dupes.tsv` 现在只剩**一行**：`insdel.rs` 的 `bset_redisplay`
   （镜像把参数拼成 `*mut c_void`，调用点传 `*mut buffer`；要合流得让 `window.rs` include `buffer.rs`，
   那是镜像属主的决定）——行里写着理由，不是隐藏。门已接进 `gate-fast`（`== mirror-dupes gate ==`）。
+
+- **3.78 第 98 轮：process.c 收口时，只有对象级与预处理级证据才看得见的四处缺陷（2026-10-04）**：
+  这一轮的教训集中在一句话上——**文本门看不见符号级的错**。四条都已修：
+  ① **`TIOCNOTTY` 是活文本**（`src/process.c` C 71 含 `<sys/ioctl.h>`，`#ifdef TIOCNOTTY`
+  C 2171-2181 因此编译）：此前被当死臂 carry，现在按活文本落地并补上实测常量 `536900721`。
+  顺带把"给它加 `source-header-macros.tsv` 行"的做法**否掉**：行是全局的，而该宏的可得性是逐文件的
+  ——`src/term.c`（在 verified 名单里）从不 include `<sys/ioctl.h>`，加了行它的 `#ifdef TIOCNOTTY`
+  立刻与 clang 相反、`--verified` 失败（与 §3.76③ 同一条教训的另一面）。
+  ② **`inherit_process_coding_system` 的属主是 `src/coding.c`**：port 在 process.rs 里定义它，
+  `check-symbols.py --dir src`（该单元已有参照对象）判它 **invented**（C 的存储是 coding.c 的
+  `DEFVAR_BOOL`，落在单一 `globals` 对象里）。删掉后 `67 units compared, 0 mismatched, 0 pending`；
+  代价是它变成一条 pending 未定义引用（`callproc.o` 一直都在引用它，只是被这份"错主的定义"掩盖）——
+  已由 §3.76 的棘轮重取吸收（`126 pending, 0 new`）。
+  ③ **三条拼写缺陷**（集成者修）：`bind_`/`connect_`/`insert_1_both_` 各多一个下划线。C 调的是
+  `bind`/`connect`（`<sys/socket.h>`）与 `insert_1_both`（lisp.h 4331，insdel.c 定义），**参照
+  `process.o` 里根本没有那三个符号**，所以端口引用了三个永远无人提供的名字；改名（含调用点）后
+  `check-undef` 是 `516 unit object(s), 124 pending, 0 new`。`--check` 也跟着更准（C 的 token 才对得上）。
+  ④ **一个镜像归属错误**：`add_read_fd`/`delete_read_fd` 是 **process.h 298-305** 的，不是 keyboard.h
+  （§3.5 与 `keyboard.rs` 的表头都写成了 keyboard.h）。本轮把该处的**五条** fd 入口
+  （`add_read_fd`/`add_non_keyboard_read_fd`/`delete_read_fd`/`add_write_fd`/`delete_write_fd`）移进
+  `include/process.rs` 的 `process_fd_decls`（模块 + glob，P-21 形状），`keyboard.rs` 只留 keyboard.h 498
+  的 `kbd_buffer_store_event`；五个消费者重建通过。
+  ⑤ **两条工具/约定定案**：
+  - `tools/cinventory.py` 的 `dead_branch_map` 返回的是**逐物理行**的布尔表，而 `logical_lines` 是
+    **逐逻辑行**的；把两者 `zip` 起来做"活文本视图"会**静默错位**（xfaces lane 的视图尾部错了 13 行，
+    它在自查时发现）。任何新的"活区判定"脚本都要盯这一点。
+  - `docs/ports/line-drift-tolerance.tsv` 是**追加式日志**，同一 stem 可以有多行：工具原来取**第一条**
+    匹配（旧行永远生效，与 lane 们"新行覆盖旧行"的预期相反），本轮改成**取最后一条**；用 `buffer`
+    （0.20 临时行 → 0.16 终态行）与 `process`（0.10 临时行 → 0.05 终态行）两处验证 `--check` 仍 OK。

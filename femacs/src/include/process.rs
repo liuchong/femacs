@@ -158,5 +158,38 @@ pub const EXIT_CANCELED: c_int = 125;      // internal error prior to exec attem
 pub const EXIT_CANNOT_INVOKE: c_int = 126; // program located, but not usable
 pub const EXIT_ENOENT: c_int = 127;        // could not find program to exec
 
-// C: process.h 277-320's prototypes and the `fd_callback` typedef — (not mirrored yet; they
-// land with process.c/sysdep.c, batch D).
+/* process.h 298-305's five read/write-descriptor entries.  C declares them *here*, not in
+   keyboard.h (status 3.5 recorded them under keyboard.h, and the mirror carried them there
+   until status 3.78).  They sit in `pub mod process_fd_decls` + glob import for the same
+   reason `process_objs` does (PORTING.md 0.1-10/P-21): `src/process.c` *defines* both of the
+   ones it uses, and an explicit item shadows a glob import where a same-named declaration at
+   this scope would be `E0428`.
+
+   `fd_callback` (process.h 296) is the *unit's* `pub type` (its definition needs the nullable
+   form, PORTING.md 1.4), so the mirror does not repeat it - a second `type` item in the same
+   scope would be the one thing 0.1-10's shadowing rule does not cover (it is textual, not a
+   glob).  */
+pub mod process_fd_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: process.h 298: `extern void add_read_fd (int fd, fd_callback func, void *data);`
+    pub fn add_read_fd (fd: c_int, func: Option<unsafe extern "C" fn (c_int, *mut c_void)>,
+                        data: *mut c_void);
+    /// C: process.h 299: `extern void add_non_keyboard_read_fd (int fd, fd_callback func, void *data);`
+    pub fn add_non_keyboard_read_fd (fd: c_int,
+                                     func: Option<unsafe extern "C" fn (c_int, *mut c_void)>,
+                                     data: *mut c_void);
+    /// C: process.h 300: `extern void delete_read_fd (int fd);`
+    pub fn delete_read_fd (fd: c_int);
+    /// C: process.h 301: `extern void add_write_fd (int fd, fd_callback func, void *data);`
+    pub fn add_write_fd (fd: c_int, func: Option<unsafe extern "C" fn (c_int, *mut c_void)>,
+                         data: *mut c_void);
+    /// C: process.h 302: `extern void delete_write_fd (int fd);`
+    pub fn delete_write_fd (fd: c_int);
+  }
+}
+use process_fd_decls::*;
+
+// C: process.h 307-320's remaining prototypes and the `fd_callback` typedef — (not mirrored
+// yet; they land with process.c/sysdep.c, batch D).
