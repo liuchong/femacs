@@ -78,6 +78,8 @@ pub mod signal_decls {
     pub fn sigprocmask (how: c_int, set: *const sigset_t, oset: *mut sigset_t) -> c_int;
     /* int pthread_sigmask (int, const sigset_t *, sigset_t *);  */
     pub fn pthread_sigmask (how: c_int, set: *const sigset_t, oset: *mut sigset_t) -> c_int;
+    /* int raise (int);  -- syssignal.h 80's `emacs_raise` is `raise (sig)` on this target.  */
+    pub fn raise (sig: c_int) -> c_int;
   }
 }
 use signal_decls::*;
