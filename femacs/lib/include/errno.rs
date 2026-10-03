@@ -77,3 +77,27 @@ pub const EOPNOTSUPP: c_int = 102;
 
 /// <errno.h>: `#define EISDIR 21` (measured: `printf ("%d", EISDIR)` -> 21).
 pub const EISDIR: c_int = 21;
+
+/* The socket/file codes `src/process.c`, `src/dired.c`, `src/sysdep.c` and `lib/dup2.c` each
+   declared for themselves until status 3.80; measured with `clang -E -dM -include errno.h`
+   (the same measurement ENOMEM's comment above records).  C spells `EWOULDBLOCK` as
+   `#define EWOULDBLOCK EAGAIN`, so the port keeps both names and the same value.  */
+/// <errno.h>: `#define EAGAIN 35`.
+pub const EAGAIN: c_int = 35;
+/// <errno.h>: `#define EWOULDBLOCK EAGAIN`.
+pub const EWOULDBLOCK: c_int = 35;
+/// <errno.h>: `#define EMFILE 24`.
+pub const EMFILE: c_int = 24;
+/// <errno.h>: `#define EINPROGRESS 36`.
+pub const EINPROGRESS: c_int = 36;
+/// <errno.h>: `#define EISCONN 56`.
+pub const EISCONN: c_int = 56;
+/// <errno.h>: `#define EMSGSIZE 40`.
+pub const EMSGSIZE: c_int = 40;
+/// <errno.h>: `#define EPIPE 32`.
+pub const EPIPE: c_int = 32;
+/// <errno.h>: `#define EDOM 33`.
+pub const EDOM: c_int = 33;
+/// <errno.h>: `#define ECHILD 10`.
+pub const ECHILD: c_int = 10;
+

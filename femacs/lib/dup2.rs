@@ -35,7 +35,6 @@ include!("include/errno.rs");
 /* <errno.h>'s `EMFILE` (the one code the live path names that the errno mirror has not
    got; measured the same way as that mirror's values: `printf` of `int x = EMFILE;` on the
    frozen target's clang expands to `int x = 24;`).  */
-pub const EMFILE: c_int = 24;
 
 /* C 30-98's `#if defined _WIN32 && ! defined __CYGWIN__` arm (dead on this target).  */
 

@@ -814,13 +814,6 @@ const DIRECTORY_SEP: c_char = b'/' as c_char;
 macro_rules! IS_DIRECTORY_SEP { ($c:expr) => { $c == DIRECTORY_SEP }; }
 macro_rules! IS_DEVICE_SEP { ($c:expr) => { false }; }
 
-/// `<errno.h>`: the codes `errno.rs` does not carry and this unit reaches.
-pub const EDOM: c_int = 33;
-pub const EINPROGRESS: c_int = 36;
-pub const EPIPE: c_int = 32;
-pub const EAGAIN: c_int = 35;
-pub const ECHILD: c_int = 10;
-
 /// `<string.h>`: the three entries `string.rs` does not carry and this unit reaches.
 unsafe extern "C" {
   /* char *strdup (const char *);  */

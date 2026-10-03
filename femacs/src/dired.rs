@@ -121,10 +121,6 @@ pub struct group
   pub gr_mem: *mut *mut c_char,
 }
 
-/// C: `<errno.h>`'s `#define EAGAIN 35` on the frozen target (the errno mirror carries the
-/// other codes this file uses; measured with clang against the frozen target's `<errno.h>`).
-pub const EAGAIN: c_int = 35;
-
 /// C: `<config.h>` 120: `#define DIRECTORY_SEP '/'` (config.h splices the `s/` header's
 /// value; measured in build/emacs-ref/src/config.h).
 pub const DIRECTORY_SEP: u8 = b'/';
@@ -414,7 +410,6 @@ pub unsafe extern "C" fn directory_files_internal (directory: Lisp_Object, full:
   return list;
 }
 
-
 DEFUN! ("directory-files", Fdirectory_files, Sdirectory_files, 1, 5, 0,
        doc: "Return a list of names of files in DIRECTORY.\nThere are four optional arguments:\nIf FULL is non-nil, return absolute file names.  Otherwise return names\n that are relative to the specified directory.\nIf MATCH is non-nil, mention only file names whose non-directory part\n matches the regexp MATCH.\nIf NOSORT is non-nil, the list is not sorted--its order is unpredictable.\n Otherwise, the list returned is sorted with `string-lessp'.\n NOSORT is useful if you plan to sort the result yourself.\nIf COUNT is non-nil and a natural number, the function will return\n COUNT number of file names (if so many are present).",
        (directory: Lisp_Object, full: Lisp_Object, r#match: Lisp_Object,
@@ -458,7 +453,6 @@ DEFUN! ("directory-files-and-attributes", Fdirectory_files_and_attributes,
   return directory_files_internal (directory, full, r#match, nosort,
 				   true, id_format, count);
 });
-
 
 DEFUN! ("file-name-completion", Ffile_name_completion, Sfile_name_completion,
        2, 3, 0,
@@ -925,7 +919,6 @@ unsafe fn file_name_completion_dirp (fd: c_int, dp: *mut dirent, len: ptrdiff_t)
   return dirp;
 }
 
-
 unsafe fn stat_uname (st: *mut stat) -> *mut c_char
 {
   /* C 926-927's `#ifdef WINDOWSNT` arm (`return st->st_uname;`) is dead on this target.  */
@@ -1074,7 +1067,6 @@ DEFUN! ("file-attributes-lessp", Ffile_attributes_lessp,
        {
   return Fstring_lessp (Fcar (f1), Fcar (f2));
 });
-
 
 DEFUN! ("system-users", Fsystem_users, Ssystem_users, 0, 0, 0,
        doc: "Return a list of user names currently registered in the system.\nIf we don't know how to determine that on this platform, just\nreturn a list with one element, taken from `user-real-login-name'.",

@@ -726,12 +726,6 @@ pub unsafe fn add_write_fd (fd: c_int, func: fd_callback, data: *mut c_void)
 
 /* <errno.h>'s names the errno.rs mirror does not carry, measured with the frozen
    configuration (`clang` on the port's probe):  */
-/// C: `#define EAGAIN 35` (<errno.h>)
-pub const EAGAIN: c_int = 35;
-/// C: `#define EWOULDBLOCK 35` (<errno.h>)
-pub const EWOULDBLOCK: c_int = 35;
-/// C: `#define EMFILE 24` (<errno.h>)
-pub const EMFILE: c_int = 24;
 
 /* The real <sys/socket.h> `socket` is reached through a module so the unit's `socket`
    macro (C 219's `#define`) cannot capture it.  */
@@ -2725,7 +2719,6 @@ unsafe extern "C" {
   fn complement_process_encoding_system (coding: Lisp_Object) -> Lisp_Object;
 }
 
-
 DEFUN! ("make-pipe-process", Fmake_pipe_process, Smake_pipe_process, 0, MANY, 0,
        doc: "Create and return a bidirectional pipe process.\n\nIn Emacs, pipes are represented by process objects, so input and\noutput work as for subprocesses, and `delete-process' closes a pipe.\nHowever, a pipe process has no process id, it cannot be signaled,\nand the status codes are different from normal processes.\n\nArguments are specified as keyword/argument pairs.  The following\narguments are defined:\n\n:name NAME -- NAME is the name of the process.  It is modified if necessary to make it unique.\n\n:buffer BUFFER -- BUFFER is the buffer (or buffer-name) to associate\nwith the process.  Process output goes at the end of that buffer,\nunless you specify a filter function to handle the output.  If BUFFER\nis not given, the value of NAME is used.  BUFFER may be also nil, meaning\nthat this process is not associated with any buffer.\n\n:coding CODING -- If CODING is a symbol, it specifies the coding\nsystem used for both reading and writing for this process.  If CODING\nis a cons (DECODING . ENCODING), DECODING is used for reading, and\nENCODING is used for writing.\n\n:noquery BOOL -- When exiting Emacs, query the user if BOOL is nil and\nthe process is running.  If BOOL is not given, query before exiting.\n\n:stop BOOL -- Start process in the `stopped' state if BOOL non-nil.\nIn the stopped state, a pipe process does not accept incoming data,\nbut you can send outgoing data.  The stopped state is cleared by\n`continue-process' and set by `stop-process'.\n\n:filter FILTER -- Install FILTER as the process filter.\n\n:sentinel SENTINEL -- Install SENTINEL as the process sentinel.\n\nusage:  (make-pipe-process &rest ARGS)",
        (nargs: isize, args: *mut Lisp_Object),
@@ -4037,10 +4030,6 @@ pub const SOCK_SEQPACKET: c_int = 5;
 pub const SOCK_DGRAM: c_int = 2;
 /// C: `#define SO_ERROR 4103` (`<sys/socket.h>`)
 pub const SO_ERROR: c_int = 4103;
-/// C: `#define EINPROGRESS 36` (<errno.h>)
-pub const EINPROGRESS: c_int = 36;
-/// C: `#define EISCONN 56` (<errno.h>)
-pub const EISCONN: c_int = 56;
 
 /* C 3812-4326: `Fmake_network_process`.  C's four forward `goto open_socket` jumps are the
    port's labelled block `'open_socket` (PORTING.md 2.2): `break 'open_socket` leaves it where
@@ -5101,7 +5090,6 @@ DEFUN! ("accept-process-output", Faccept_process_output, Saccept_process_output,
 
 /* C 4998: `static EMACS_INT connect_counter = 0;`  */
 static mut connect_counter: EMACS_INT = 0;
-
 
 /* C 5001-5204: `server_accept_connection`.  */
 unsafe fn server_accept_connection (server: Lisp_Object, channel: c_int)
@@ -7220,11 +7208,6 @@ unsafe extern "C" {
   fn raw_text_coding_system (coding: Lisp_Object) -> Lisp_Object;
 }
 
-/// C: `#define EMSGSIZE 40` (<errno.h>)
-pub const EMSGSIZE: c_int = 40;
-/// C: `#define EPIPE 32` (<errno.h>)
-pub const EPIPE: c_int = 32;
-
 /* Return the foreground process group for the tty/pty that the process P uses.  */
 /* C 7023-7044: `emacs_get_tty_pgrp`.  */
 unsafe fn emacs_get_tty_pgrp (p: *mut Lisp_Process) -> pid_t
@@ -8904,7 +8887,6 @@ pub unsafe fn syms_of_process ()
   DEFSYM! (Qlist_system_processes, c"list-system-processes");
   DEFSYM! (Qprocess_attributes, c"process-attributes");
 
-
   DEFSYM! (Qprocessp, c"processp");
   DEFSYM! (Qrun, c"run");
   DEFSYM! (Qstop, c"stop");
@@ -8969,7 +8951,6 @@ pub unsafe fn syms_of_process ()
 
   staticpro (&raw mut Vprocess_alist);
   staticpro (&raw mut deleted_pid_list);
-
 
   DEFSYM! (QCname, c":name");
   DEFSYM! (QCtype, c":type");
@@ -9144,7 +9125,6 @@ pub unsafe fn syms_of_process ()
    Fprovide (intern_c_string (c"make-network-process".as_ptr ()), subfeatures);
  }
 
-
   defsubr (&raw mut Sget_buffer_process);
   defsubr (&raw mut Sprocess_inherit_coding_system_flag);
   defsubr (&raw mut Slist_system_processes);
@@ -9169,4 +9149,3 @@ pub static mut Vsignal_process_functions: Lisp_Object = lisp_h_Qnil ();
 pub static mut read_process_output_max: EMACS_INT = 0;
 #[unsafe(no_mangle)]
 pub static mut process_prioritize_lower_fds: bool = false;
-

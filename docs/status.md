@@ -1192,3 +1192,12 @@
   ④ 过程中的一个教训（写下来备查）：用"注释后紧跟的下一行像不像条目"来清理悬挂 `///` 时，
   `macro_rules!` 一类不以关键字开头的条目会被误判——第一版脚本就这样删掉了 16 条**合法**文档注释，
   随后按 `HEAD` 复原、只重跑定向移除才干净。**清理脚本的判据要保守，且必须逐文件编译验证。**
+
+- **3.80 第 98 轮：errno 码同样收进镜像（2026-10-04）**：与 3.79 同一条纪律的另一半——`EAGAIN`/
+  `EWOULDBLOCK`/`EMFILE`/`EINPROGRESS`/`EISCONN`/`EMSGSIZE`/`EPIPE`/`EDOM`/`ECHILD` 九个码分别被
+  `src/process.c`（7 个）、`src/sysdep.c`（5 个）、`src/dired.c`（1 个）、`lib/dup2.c`（1 个）
+  就地声明。值用 `clang -E -dM -include errno.h` 实测（`EWOULDBLOCK` 在 C 里就是 `#define EWOULDBLOCK
+  EAGAIN`，端口两个名字同值）；四个单元的副本删除，各自 `build-tu` + `--check` OK，
+  `check-declarations`/`check-mirror-dupes` 不变。**注意 `errno.rs` 的常量是顶层 `pub const`**
+  （不像 `<stdio.h>` 的函数那样有模块 + glob 兜底）：所以"往镜像加码"与"删掉单元的副本"**必须在同一个
+  提交里**，否则先加的那一步就是 `E0428`。`EXDEV`（18）随 fileio 单元一起搬。
