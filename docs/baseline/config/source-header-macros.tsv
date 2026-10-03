@@ -16,3 +16,68 @@
 # "unexpected".
 syssignal.h	PROFILER_CPU_SUPPORT
 sys/ioctl.h	TIOCSCTTY
+# src/sysdep.c's terminal/ioctl/signal conditions (2026-10-03, the sysdep worker).
+# The file is `<termios.h>`/`<sys/ioctl.h>`/`<syssignal.h>` text, so config.h alone cannot
+# decide it: `check-cond-eval.py src/sysdep.c` reported 63 disagreements before these rows
+# and 2 after (both are tools/cinventory.py's trailing-comment defect, reported in
+# docs/ports/sysdep.md - the evaluator is right in both, clang's probe is ill-formed).
+# sysdep.c is nevertheless NOT added to cond-eval-verified.txt: it carries both arms of
+# every `#if` (status 3.49) and a verified file's checker demands only the live one
+# (docs/ports/callproc.md's Integrator note is the precedent).
+termios.h	NLDLY
+termios.h	FFDLY
+termios.h	ISTRIP
+termios.h	IEXTEN
+termios.h	IXANY
+termios.h	IXON
+termios.h	IXOFF
+termios.h	INLCR
+termios.h	CS7
+termios.h	CS8
+termios.h	CSIZE
+termios.h	CLOCAL
+termios.h	CREAD
+termios.h	TABDLY
+termios.h	PARENB
+termios.h	PARODD
+termios.h	IGNPAR
+termios.h	INPCK
+termios.h	CSTOPB
+termios.h	CRTSCTS
+termios.h	TCOON
+termios.h	VSUSP
+termios.h	VDSUSP
+termios.h	VLNEXT
+termios.h	VREPRINT
+termios.h	VWERASE
+termios.h	VDISCARD
+termios.h	VSTART
+termios.h	VSTOP
+termios.h	B0
+termios.h	B50
+termios.h	B75
+termios.h	B110
+termios.h	B134
+termios.h	B150
+termios.h	B200
+termios.h	B300
+termios.h	B600
+termios.h	B1200
+termios.h	B1800
+termios.h	B2400
+termios.h	B4800
+termios.h	B9600
+termios.h	B19200
+termios.h	B38400
+termios.h	B57600
+termios.h	B76800
+termios.h	B115200
+termios.h	B230400
+sys/ioctl.h	TIOCSTI
+sys/ioctl.h	TIOCSTART
+sys/ioctl.h	TIOCGWINSZ
+sys/ioctl.h	TIOCGSIZE
+sys/ioctl.h	TIOCSWINSZ
+sys/ioctl.h	TIOCEXCL
+sys/ioctl.h	FIONBIO
+syssignal.h	FORWARD_SIGNAL_TO_MAIN_THREAD

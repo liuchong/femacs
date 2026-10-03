@@ -20,15 +20,36 @@ include!("../../lib/include/signal.rs");      // syssignal.h 21: `#include <sign
 // syssignal.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_SYSSIGNAL_H: bool = true;
 
-unsafe extern "C" {
-  pub fn init_signals ();                                                   // syssignal.h 24
-  pub fn block_child_signal (set: *mut sigset_t);                           // 25
-  pub fn unblock_child_signal (set: *const sigset_t);                       // 26
-  pub fn block_interrupt_signal (set: *mut sigset_t);                       // 27
-  pub fn restore_signal_mask (set: *const sigset_t);                        // 28
-  pub fn block_tty_out_signal (set: *mut sigset_t);                         // 29
-  pub fn unblock_tty_out_signal (set: *const sigset_t);                     // 30
+/* syssignal.h 24-30 and 61-86's prototypes, in a uniquely-named module + glob import: the
+   mirror declares what `sysdep.c` *defines*, and a definition at the crate root would be
+   E0428 with a declaration there (`emacs_sigaction_init`, `safe_strsignal`,
+   `deliver_process_signal` and the six signal-mask entries).  The definition shadows the
+   glob import, which is exactly C's "prototype + definition" (PORTING.md 0.1-10, the
+   indent.rs `indent_decls` shape).  */
+pub mod syssignal_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn init_signals ();                                                 // syssignal.h 24
+    pub fn block_child_signal (set: *mut sigset_t);                         // 25
+    pub fn unblock_child_signal (set: *const sigset_t);                     // 26
+    pub fn block_interrupt_signal (set: *mut sigset_t);                     // 27
+    pub fn restore_signal_mask (set: *const sigset_t);                      // 28
+    pub fn block_tty_out_signal (set: *mut sigset_t);                       // 29
+    pub fn unblock_tty_out_signal (set: *const sigset_t);                   // 30
+  }
+
+  unsafe extern "C" {
+    pub static mut empty_mask: sigset_t;                                           // 54
+  }
+
+  unsafe extern "C" {
+    pub fn emacs_sigaction_init (act: *mut sigaction, handler: signal_handler_t);  // 61
+    pub fn safe_strsignal (sig: c_int) -> *const c_char;                           // 62
+    pub fn deliver_process_signal (sig: c_int, handler: signal_handler_t);         // 86
+  }
 }
+use syssignal_decls::*;
 
 /* If defined, asynchronous signals delivered to a non-main thread are
    forwarded to the main thread.  */
@@ -46,7 +67,9 @@ pub const FORWARD_SIGNAL_TO_MAIN_THREAD: bool = true;
 // so the macro is defined here.
 pub const PROFILER_CPU_SUPPORT: bool = true;
 
-unsafe extern "C" { pub static mut empty_mask: sigset_t; }                  // syssignal.h 54
+// syssignal.h 54's `extern sigset_t empty_mask;`: `sysdep.c` defines it, so the
+// declaration lives in the module below with the prototypes (PORTING.md 0.1-10).
+
 
 /* typedef void (*signal_handler_t) (int);  */
 // The pointer is nullable in C (handlers installed by `emacs_sigaction_init` may be null), so
@@ -58,12 +81,6 @@ pub type signal_handler_t = Option<unsafe extern "C" fn (sig: c_int)>;
 // reads it, so the real record (with the frozen target's measured layout) now lives in the
 // header that declares it — `femacs/lib/include/signal.rs`, next to `sigset_t` and
 // `pthread_sigmask` — and the stand-in is gone in the same commit (P-70).
-unsafe extern "C" {
-  pub fn emacs_sigaction_init (act: *mut sigaction, handler: signal_handler_t);  // 61
-  pub fn safe_strsignal (sig: c_int) -> *const c_char;                           // 62
-  pub fn deliver_process_signal (sig: c_int, handler: signal_handler_t);         // 86
-}
-
 // syssignal.h 64-67's `#if NSIG < NSIG_MINIMUM` is false here (NSIG_MINIMUM is undefined and
 // an undefined identifier is 0 in a `#if`), so `NSIG` keeps `<signal.h>`'s 32.
 // syssignal.h 69-71's `#ifndef SA_SIGINFO` is dead (SA_SIGINFO is 0x0040 in the table).
