@@ -698,3 +698,24 @@ pdumper_set_emacs_execdir	bindir,strcmp	C 5585-5597's `#if HAVE_NS && !NS_SELF_C
 pdumper_load	countof,goto	C 5652-5836's two `countof (sections)` uses are the `NUMBER_DUMP_SECTIONS` length and its nine `goto out` jumps are the port's `break 'out` of the single cleanup block (PORTING.md 2.2: the cleanup statements keep their order and `err` its value)
 syms_of_pdumper	2,doc	C 5883-5919's `char hexbuf[2 * sizeof fingerprint]` supplies the `2` (the port's array length is the constant 64) and its `DEFVAR_LISP (…, doc: /* … */)` label has no counterpart because the mirror's macro takes the docstring positionally (the syms_of_data row's class)
 safe_eval	safe_calln	C 3247 is `safe_calln (Qeval, sexp, Qt)`, i.e. `CALLMANY (safe_funcall, …)` (lisp.h 4846-4847); the port spells that expansion out because the mirror `safe_calln!` expands to `calln!` plus a `maybe_quit ()` C does not make — a defect reported to the integrator in docs/ports/eval.md
+ADDPARAM	do,name,q,qc,while	the macro pastes its parameter into `Q ## name`/`QC ## name`, which a Rust macro cannot build: the port passes the two accessors and one rule per name, so the parameter token and the paste's `Q`/`QC` and its `do { ... } while (0)` have no counterpart (the marker.rs CONSIDER precedent).
+file_get_char	goto,retry,ssize_t	C 129-152 is the Android arm: its `retry:`/`goto retry` is a loop and `ssize_t rc` is `isize` in the port (PORTING.md 2.2).
+readbyte_from_file	goto,retry,ssize_t	the same Android arm class as file_get_char (C 591-617).
+build_load_history	0,1	C 's `bool foundit = 0` and the macro's 0/1 literals are the port's `false`/`true` (the set_internal row).
+readevalloop	goto	C's `goto read_next` is the port's `'read_next` loop label (PORTING.md 2.2).
+read_char_escape	case,default,fallthrough,goto,switch	C's switch and its three labels (`again`, `mod_key`, `unicode_hex`) are the port's sentinel dispatch (MOD_KEY/UNICODE_HEX), so C's keywords and the FALLTHROUGH marker have no Rust text.
+invalid_radix_integer	int_bufsize_bound	C sizes the buffer with `INT_BUFSIZE_BOUND (radix)`; the port writes the measured 36 bytes (clang) because the bound is not a Rust constant.
+read_string_literal	break,case,default,switch	the inner escape switch is a `match` (PORTING.md 2.2).
+hash_table_from_plist	name	C's `#define ADDPARAM (name)` is text inside this body; the port's macro has one rule per name and stands at file scope (a nested macro_rules would end the body extraction), so the parameter name is the one token with no counterpart.
+mark_lread	break,case,switch	the switch over e->type is a `match`; C's `break` is the arm end (PORTING.md 2.2).
+read0	case,default,fallthrough,goto,read_symbol,switch	C's dispatch switch and the `read_obj`/`read_symbol` labels become the port's `'read_obj` loop, the byte-value match and the `symbol_path` flag (PORTING.md 2.2).
+substitute_object_recurse	case,default,switch	the switch over `XTYPE (subtree)` is a `match` with a `_` arm for C's default (PORTING.md 2.2).
+string_to_number	int_add_overflow,int_multiply_overflow	gnulib's INT_ADD_OVERFLOW/INT_MULTIPLY_OVERFLOW are the port's `overflowing_add`/`overflowing_mul` (P-15, the ckd_* family of token-aliases.tsv).
+oblookup	1	C's `while (1)` is the port's `loop` (the Fread_from_minibuffer row's class).
+load_path_default	0	C's third `decode_env_path` argument is the `empty` flag: `0` in C, `false` in the port (the bool class of these rows).
+init_lread	1	`decode_env_path`'s `empty` argument is C's `1` and the port's `true` (the bool class of these rows).
+dir_warning	0	`message_dolog`'s `nlflag` argument is C's `0` and the port's `false` (the bool class of these rows).
+syms_of_lread	doc	C's `DEFVAR_*` write the docstring as a `doc:` comment; the port's `DEFVAR_*!` take it positionally, so the label has no counterpart (the syms_of_print row).
+Fload	fopen_binary,fopen_text,time_t,uninit	`"r" FOPEN_TEXT`/`"r" FOPEN_BINARY` are the frozen `""`/`"b"` and Rust has no literal concatenation (PORTING.md 2.1); `(time_t) 0` is the zeroed `epoch_timespec`; `UNINIT` is `= {0,}` (conf_post.h 369), so `stream`/`fd_index` are zero-initialised and the macro name cannot reappear.
+Funintern	goto	C's `goto removed` is the port's `break` out of the bucket-walk loop (the `removed:` label is where the fall-out lands, PORTING.md 2.2).
+make_process	pridmax,int_strlen_bound	PORTING.md 5.1: C's `"<%"PRIdMax">"` format macro and its `INT_STRLEN_BOUND (i)` array bound are spelled as the literal `<%jd>` and a fixed `[c_char; 32]` buffer
