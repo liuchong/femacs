@@ -22,11 +22,12 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 78 轮，机械统计）**：磁盘上 **226 个单元**（`femacs/src/*.rs` 112 +
-  `femacs/lib/*.rs` 114）与 **125 个镜像**（`src/include/` 37 + `lib/include/` 88）。
+- **进度（2026-10-03 第 78 轮，机械统计）**：磁盘上 **233 个单元**（`femacs/src/*.rs` 114 +
+  `femacs/lib/*.rs` 119）与 **127 个镜像**（`src/include/` 38 + `lib/include/` 89）。
   **单元台账全部勾满**：`docs/ports/*.md` 里凡不是 `include-*.md` 的（即每个已竣工单元）未勾项为 **0**；
-  `syntax`（4,229 行）、`profiler`（701 行）、`regexec`（4,644 行）、`systhread`（125 行）、`sqlite`（95 行）、
-  `comp`（59 行）、`treesit`（69 行）与 `gnutls`（122 行）都已收口（`built` + `--check` OK + 0 未勾）；
+  `syntax`、`profiler`、`regexec`、`systhread`、`sqlite`、`comp`、`treesit`、`gnutls`、
+  `filelock`（911 行）、`dired`（1,162 行）、`menu`（1,209 行）、`binary-io`、`regex`、`dtoastr`、
+  `boot-time`（378 行）与 `ftoastr`（147 行）都已收口（`built` + `--check` OK + 0 未勾）；
   本轮新增两个镜像 `pdumper`/`fingerprint`，以及 `filelock.c` 需要的 `boot-time`（`lib/include/boot-time.rs`）。
   **部分镜像（WIP）**：34 份 `include-*.md` 仍有未勾项，合计 **1,019** 行，最大的几份是
   `stdint.in`(135)、`unistd.in`(94)、`dispextern`(90)、`sys_stat.in`(74)、`window`(65)——
@@ -532,3 +533,27 @@
   **棘轮口径**：`python3 tools/check-symbols.py --pending docs/baseline/symbol-pending.txt`
   现为 `63 units compared, 0 mismatched, 2 still pending`——棘轮只能缩小，两个待项各有一个
   明确的关闭条件（落 `ftoastr`；或决定把三个对象链成一个）。
+
+- **3.43 `lib/` 的冻结对象全部落地（2026-10-03 第 82 轮收口）**：冻结构建要的 **78** 个 lib 对象
+  现在**全部有端口**（`lib/boot-time.c` 是最后一件，378 行 + 新系统镜像 `lib/include/utmpx.rs`
+  93 行，`struct utmpx` 实测 size 640 与九个字段偏移，九条 `const _` 钉住）。本轮 lib 侧共落
+  7 件：`binary-io`、`regex`、`dtoastr`、`boot-time`、`ftoastr`，加先前已在飞的两件。
+  **符号棘轮已缩到 1 项**：`python3 tools/check-symbols.py --pending docs/baseline/symbol-pending.txt`
+  → `64 units compared, 0 mismatched, 1 still pending`，唯一剩项 `lib/regex` 是聚合 TU 的构造性
+  结果（台账写明：三个兄弟对象合起来就是参照 `regex.o` 的符号集）。
+  `lib/ftoastr.c` 按 10.13② 的**方案一**落地：`femacs/lib/ftoastr.rs` 用
+  `macro_rules! ftoastr_body { ($length, $name, $export, $float, $promoted, $dig, $min, $prec_bound, $strtof) }`
+  携带整份活体、自身不实例化，`dtoastr.rs` 是唯一实例（`LENGTH 2` 那支），于是
+  `nm -g build/femacs/dtoastr.o` 与参照一样定义 `_dtoastr`，棘轮里的 `lib/dtoastr` 条目随之删除。
+- **3.44 本轮 src 侧新落 2 件（2026-10-03）**：`src/dired.c`（活 1,067 / 全 1,213 → 1,162 行）与
+  `src/menu.c`（活 1,072 / 全 1,638 → 1,209 行）。两件的死区都按 P-08 记台账不抄写；
+  menu 的落地顺带暴露并修掉了求值器的一个真缺陷（见 §3.45）。
+  未端口的冻结构建 src 文件从 40 降到 **38**（最便宜的下一批：thread 1,255 / chartab 1,387 /
+  bytecode 1,773；`tools/live-rank.py` 每轮开工先跑）。
+- **3.45 求值器漏掉预处理行尾注释（2026-10-03 第 82 轮修，`c03b048`）**：`#ifdef HAVE_NTGUI
+  /* W32 specific because … */` 这种**行尾块注释**没有在求值前去掉，tokenizer 撞上 `/` 就答
+  `unknown`，分支于是保守留活（而 clang 判死）——`src/menu.c` 正是因此一直进不了
+  `cond-eval-verified.txt`，`--check` 会要求整份窗口系统代码。修法按 C 的翻译阶段 3（指令读到前
+  注释已删除）截掉该逻辑行未闭合的注释；**独立复验**：`src/menu.c` 变为
+  `21 conditions, 0 unknown, 0 disagreements [VERIFIED]`，全表重跑 429 个文件
+  `5696 conditions, 4 unknown, 0 disagreements`（零回归）。这是"门答错"这一类的最新一例。
