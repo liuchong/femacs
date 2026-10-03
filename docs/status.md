@@ -736,3 +736,25 @@
   ⑤ 生成物同步：`docs/port-map.md`（270 行目标行数变化，CI 的新鲜度门会查）、`docs/port-inventory.md`。
   版本/版权信息的**唯一**落点从此是 `docs/baseline` 的冻结基线（`PACKAGE_STRING` 等实测值）与
   0.1-19 本身。
+
+- **3.59 第 94 轮：未定义引用闸门（2026-10-03）**：3.57 记下的那个洞——**没有任何门看未定义引用**——
+  本轮补上。此前四道门各看一半：`extract-abi.py` 比**文本**、`layout-check` 比**布局**、
+  `check-symbols.py` 比单元的**导出**符号表、`check-globals.py` 比单元**拥有**的声明；而单元
+  **引用**了哪些符号没人看，错名字要到加载阶梯的链接阶段才暴露——而链接阶段目前一道门都没有。
+  `emacs_fclose` 就是标本：`lisp.h` 把它 `#define` 成 `fclose`，C 的目标文件引用 `_fclose`，
+  而一个写成 `_emacs_fclose` 的端口**文本忠实、导出符号全对、根本链不上**。
+  新工具 `tools/check-undef.py`，量法是差分而不是手写 libc 白名单：
+  **论域** = ① 已构建单元定义的全部符号（`build/femacs/**/*.o`，两种配置都在）∪ ② 冻结参照目标文件
+  **定义或引用**的全部符号（`build/emacs-ref/**/*.o` + `lib/libgnu.a`；参照对象引用而 SDK 不导出的
+  名字，例如 termcap 的 `_nc_*`，由参照构建本身证明可解析）∪ ③ SDK `usr/lib/libSystem.B.tbd` 导出的
+  名字（**宽读**：`.tbd` 里的 re-export 也收，误收只会放宽论域）。三者都不含的 `nm -u` 条目就是
+  **孤儿**：本程序的任何配置都无法满足的名字。
+  ① 未端口单元拥有的 subr 在移植期间本来就会是未定义的（落地时 **526 个孤儿，几乎全是 `_F*`**），
+  所以 `docs/baseline/undef-pending.txt` 是**棘轮**（与 `symbol-pending.txt` 同一件仪器，
+  `--write-pending` 重写）：工具只对**新增**的孤儿报错（拼错、发明的 helper、漏写的 `#[link_name]`），
+  并把**已经满足**的棘轮条目报成 stale，让它随移植缩小。
+  ② 反向验证（不是"跑绿了"）：往 `build/femacs/` 里放一个引用 `emacs_fclose` 的 clang 目标文件，
+  闸门**恰好**报一条 `_emacs_fclose` 并以 1 退出；删掉探针后回到 `526 pending, 0 new`。
+  ③ 接线：`xtask gate-fast` 在 **symbol gate 之后**加一段 `== undefined-reference gate ==`（必须在
+  单元构建之后才有目标文件可比）。CI 的快档不接它——那档只 `cargo check`，不产出 `.o`；这条门属于
+  `gate-fast` 这一档。

@@ -918,6 +918,22 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a unit's symbol table differs from its reference object"),
         Err(e) => return fail(e),
     }
+    // The gate above compares the symbols a unit *exports*; nothing compared the symbols a
+    // unit *references*, and a wrong name there stays invisible until the link stage of the
+    // loading ladder (`emacs_fclose`, status 3.57, is the worked example: textually faithful,
+    // right exports, cannot link).  This one measures every `nm -u` entry against the frozen
+    // reference objects and the SDK's libSystem export list, with
+    // `docs/baseline/undef-pending.txt` as the ratchet.
+    println!("== undefined-reference gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-undef.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("undefined references: nothing new is unresolved"),
+        Ok(_) => return fail("a unit references a symbol no built object or library provides"),
+        Err(e) => return fail(e),
+    }
     println!("== probe programs ==");
     if let Err(e) = probe_programs() {
         return fail(e);
