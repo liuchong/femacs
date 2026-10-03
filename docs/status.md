@@ -22,8 +22,8 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-03 第 78 轮，机械统计）**：磁盘上 **221 个单元**（`femacs/src/*.rs` 106 +
-  `femacs/lib/*.rs` 115）与 **124 个镜像**（`src/include/` 36 + `lib/include/` 88）。
+- **进度（2026-10-03 第 78 轮，机械统计）**：磁盘上 **220 个单元**（`femacs/src/*.rs` 106 +
+  `femacs/lib/*.rs` 114）与 **124 个镜像**（`src/include/` 36 + `lib/include/` 88）。
   **单元台账全部勾满**：`docs/ports/*.md` 里凡不是 `include-*.md` 的（即每个已竣工单元）未勾项为 **0**；
   `syntax`（4,229 行）、`profiler`（701 行）与 `regexec`（4,644 行）都已收口（`built` + `--check` OK + 0 未勾）；
   本轮新增两个镜像 `pdumper`/`fingerprint`，以及 `filelock.c` 需要的 `boot-time`（`lib/include/boot-time.rs`）。
