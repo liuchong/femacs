@@ -352,3 +352,5 @@ syms_of_dired	doc	the DEFVAR_LISP invocation takes C's docstring positionally (t
 Ffile_name_completion	0	C's ALL_FLAG argument is the literal `0` (the C parameter is `bool all_flag`), which the port spells `false`; the body's other `0`s stay in the compared set
 Ffile_name_all_completions	1	C's ALL_FLAG argument is the literal `1` (the C parameter is `bool all_flag`), which the port spells `true`
 read_dirent	true	C's `while (true)` becomes Rust's diverging `loop`: a `while` loop's type is `()`, and this one is the function's tail (its only exit is the `return dp;` inside), so it would no longer be the function's value; the loop's statements and their order are C's
+have_boxes	0	C's `return 0;` in a `bool` function is the port's `return false;` (the syms_of_casefiddle row's class), and C's window-system arm above it is dead in the frozen configuration, so the live body is that one return
+syms_of_menu	doc	the two DEFVAR_LISP invocations take C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no counterpart; the docstrings themselves are still compared by the constants rule (the syms_of_data precedent)

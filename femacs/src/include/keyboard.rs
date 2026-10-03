@@ -234,11 +234,21 @@ unsafe extern "C" { pub static mut this_command_keys: Lisp_Object; }            
 unsafe extern "C" { pub static mut this_command_key_count: ptrdiff_t; }                  // 279
 unsafe extern "C" { pub static mut internal_last_event_frame: Lisp_Object; }             // 286
 unsafe extern "C" { pub static mut item_properties: Lisp_Object; }                       // 292
-unsafe extern "C" { pub static mut menu_items: Lisp_Object; }                            // 344
-unsafe extern "C" { pub static mut menu_items_inuse: bool; }                             // 348
-unsafe extern "C" { pub static mut menu_items_allocated: c_int; }                         // 351
-unsafe extern "C" { pub static mut menu_items_used: c_int; }                              // 354
-unsafe extern "C" { pub static mut menu_items_n_panes: c_int; }                           // 358
+// keyboard.h 344-358's five menu objects are `src/menu.c`'s own definitions (its ledger's
+// file-scope objects), so they sit in `pub mod keyboard_objs` + glob import: the owning
+// unit's `#[unsafe(no_mangle)] pub static mut` shadows the glob (PORTING.md 0.1-10/P-21,
+// the globals.rs `variables` shape) instead of colliding with it (E0428).
+pub mod keyboard_objs {
+  use super::*;
+  unsafe extern "C" {
+    pub static mut menu_items: Lisp_Object;                            // 344
+    pub static mut menu_items_inuse: bool;                             // 348
+    pub static mut menu_items_allocated: c_int;                        // 351
+    pub static mut menu_items_used: c_int;                             // 354
+    pub static mut menu_items_n_panes: c_int;                          // 358
+  }
+}
+use keyboard_objs::*;
 unsafe extern "C" { pub static mut input_available_clear_time: *mut timespec; }           // 453
 unsafe extern "C" { pub static mut kbd_buffer: [buffered_input_event; KBD_BUFFER_SIZE as usize]; }  // 455
 unsafe extern "C" { pub static mut kbd_fetch_ptr: *mut buffered_input_event; }            // 456
