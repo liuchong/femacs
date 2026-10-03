@@ -22,27 +22,27 @@
   **`src/include/termchar.rs`（termchar.h 257 行，`--check` OK）**，并给 `dispextern.rs` 补
   `Mouse_HLInfo`/`SCROLL_INFINITY`/`CHECK_MATRIX`、给 `frame.rs` 补 C 同名读法
   `pub fn output_method`。
-- **进度（2026-10-04 第 98 轮）**：磁盘上 **265 个单元**（`femacs/src/*.rs` 143 +
+- **进度（2026-10-04 第 98 轮末）**：磁盘上 **268 个单元**（`femacs/src/*.rs` 146 +
   `femacs/lib/*.rs` 122）与 **131 个镜像**（`src/include/` 42 + `lib/include/` 89）；其中
-  `src/font.rs`、`src/frame.rs`、`src/process.rs` 是在飞通道的 WIP（台账未勾满，按 "in progress" 计，
-  不参与已完成单元的门）。已提交进树的：**`src/term.rs` 5,606 行（11b559a）**、
-  `src/region-cache.rs`、`src/regex-emacs.rs`、`src/lread.rs`、`src/editfns.rs`、`src/buffer.rs` 等。
-  **已提交状态**的整树门在隔离 worktree（`/tmp/femacs-verify`，HEAD）里跑过并**全绿**
-  （`5687f75`，`EXIT=0`；这一次也第一次跑到了新加的 declaration gate）：
-  条件求值器一致、inventory no differences、globals **261 单元 / 0 缺定义**、`cargo check` ok、
-  **522 个单元两种配置全部 built**、符号门 lib **78/0（1 pending）**、未定义引用门 522 单元 /
-  **121 pending / 0 new**、连接门 0 缺失、**declaration gate 8 处全是字面量 / 0 forbidden**、
-  `layout-check` passed（791 断言）、三个 spike 脚本 ok。其后三个提交另行验证：
-  `87ee5ab`（产品名门）、`5687f75`（region-cache.h 镜像）、`38bd728`（editfns 去重）、
-  `11b559a`（term 单元）——term 的 `--check`/`build-tu`/`enable_checking` 全过，它的参照目标文件
-  `build/emacs-ref/src/term.o` 也已建好，于是 `check-symbols.py --dir src` 现在是
-  **63 单元 / 0 mismatched / 0 pending**（term 的导出表与 C 一致）。
-  未定义引用棘轮按已提交状态重取：**159 pending**（term 的 termcap/terminfo 入口不在冻结的
-  `libSystem.B.tbd` 里，见它的台账）。
-  未端口且冻结构建会编译的 `src/*.c` 还有 **12 个**（`src/font.c` 4,662 / `src/frame.c` 5,243 /
-  `src/xfaces.c` 5,489 / `src/fileio.c` 6,066 / `src/dispnew.c` 6,549 / `src/alloc.c` 6,731 /
-  `src/fns.c` 6,917 / `src/window.c` 9,600 / `src/coding.c` 11,992 / `src/keyboard.c` 13,086 /
-  `src/xdisp.c` 29,836，加在飞的 `src/font.c`、`src/frame.c`、`src/process.c`）。
+  `src/fileio.rs`、`src/alloc.rs` 是两条**在飞**通道的 WIP（台账未勾满，按 "in progress" 计，
+  不参与已完成单元的门）。本轮入树的新单元：**`src/term.rs`（11b559a，5,606 行）**、
+  **`src/font.rs`（8d002a4，6,936 行）**、**`src/frame.rs`（50b2600，5,302 行）**、
+  **`src/xfaces.rs`（5362a1e，5,545 行）**、**`src/process.rs`（0e7be84，9,172 行）**。
+  **已提交状态**的整树门在隔离 worktree 里跑过并**全绿**（`80fa542`，`EXIT=0`；这是第一次跑到
+  两个新门——declaration gate 与 mirror-dupes gate）：条件求值器一致、`inventory: no differences`、
+  globals **264 单元 / 0 缺定义**、`cargo check: ok`、**528 个单元两种配置全部 built**、
+  符号门 lib **78/0（1 pending）**、符号门 src **65/0（1 pending；280 个 DEFVAR 载体 + 1567 个
+  Lisp 符号常量是已记账偏离）**、未定义引用门 528 单元 / **126 pending / 0 new**、连接门 0 缺失、
+  **declaration gate 0 forbidden**、**mirror-dupes gate 只剩棘轮里那一行**、
+  `layout-check passed`（791 断言）、三个 spike 脚本 ok。
+  其后三个提交另行验证：`5362a1e`（xfaces）、`0e7be84`（process）、`b0eb571`（process.h 的
+  fd 入口搬家 + 行数门取最后一行）。**src 侧符号门现在是 67/0/0**：term/font/frame/xfaces/process
+  的参照目标文件都已建好（`make -C build/emacs-ref/src <stem>.o`），逐单元 `--check`/`build-tu`/
+  `enable_checking` 全过。未定义引用棘轮按已提交状态重取为 **126 pending**；主树（含在飞对象）读数
+  `124 pending / 0 new`。
+  未端口且冻结构建会编译的 `src/*.c` 还有 **8 个**（`src/dispnew.c` 6,549 / `src/fns.c` 6,917 /
+  `src/window.c` 9,600 / `src/coding.c` 11,992 / `src/keyboard.c` 13,086 / `src/xdisp.c` 29,836，
+  加在飞的 `src/fileio.c` 6,066 与 `src/alloc.c` 6,731）。
 - **照抄树（Verbatim）已全部落地（2026-10-03 第 79 轮）**：`emacs/{lisp,test,etc,doc,leim,admin}`
   → `femacs/<同名>`，**逐字节照抄**，共 **4,607 文件 / 约 4.6M 行**（lisp 1,627 / test 1,555 /
   etc 887 / doc 257 / leim 28 / admin 253），六个目录各一次签名提交并推送。判定不再是行文说明
