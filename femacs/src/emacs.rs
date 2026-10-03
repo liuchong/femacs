@@ -384,11 +384,12 @@ const EMACS_CONFIGURATION: &CStr = c"aarch64-apple-darwin25.6.0";
 const EMACS_CONFIG_FEATURES: &CStr = c"PDUMPER";
 const EMACS_CONFIG_OPTIONS: &CStr =
   c"--without-all --with-x=no --with-ns=no 'CPPFLAGS=-I/opt/homebrew/opt/icu4c/include -I/opt/homebrew/opt/ruby/include -I/opt/homebrew/opt/llvm/include -I/opt/homebrew/opt/qt/include -I/opt/homebrew/opt/openblas/include -I/opt/homebrew/opt/ruby/include -I/opt/homebrew/opt/sqlite/include -I/opt/homebrew/opt/ncurses/include -I/opt/homebrew/opt/curl/include -I/opt/homebrew/opt/mysql-client/include -I/opt/homebrew/opt/libxml2/include -I/opt/homebrew/opt/imagemagick@6/include -I/opt/homebrew/opt/readline/include -I/opt/homebrew/opt/gettext/include -I/opt/homebrew/opt/gflags/include -I/opt/homebrew/opt/openssl/include -I/opt/homebrew/opt/binutils/include ' 'LDFLAGS=-L/opt/homebrew/opt/icu4c/lib -L/opt/homebrew/opt/ruby/lib -L/opt/homebrew/opt/llvm/lib -L/opt/homebrew/opt/qt/lib -L/opt/homebrew/opt/openblas/lib -L/opt/homebrew/opt/ruby/lib -L/opt/homebrew/opt/sqlite/lib -L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/curl/lib -L/opt/homebrew/opt/mysql-client/lib -L/opt/homebrew/opt/libxml2/lib -L/opt/homebrew/opt/imagemagick@6/lib -L/opt/homebrew/opt/readline/lib -L/opt/homebrew/opt/gettext/lib -L/opt/homebrew/opt/gflags/lib -L/opt/homebrew/opt/openssl/lib -L/opt/homebrew/opt/binutils/lib '";
-/* C's `config.h` `#define SYSTEM_TYPE "darwin"`: `config.rs` carries the *macro body* (a Rust
-   `&str` whose value still has the C quotes: `\"darwin\"`), which is not the C string value
-   `intern_c_string` needs.  The port therefore spells the value at the use site and
-   `docs/ports/macro-body-notes.tsv` records that `syms_of_emacs`'s body cannot mention the
-   name (the mirror owner's fix is to decode the body).  */
+/* C's `config.h` `#define SYSTEM_TYPE "darwin"` is read by `syms_of_emacs` as a C string
+   (`intern_c_string (SYSTEM_TYPE)`), so `config.rs` carries the decoded value as a `&CStr`
+   and the use site spells C's expression with `.as_ptr ()` - the shape every other config.h
+   string in this file uses.  It used to carry the macro *body* (a `&str` whose value still
+   had the C quotes), which forced the use site to spell `c"darwin"` and left the name
+   unmentioned in the body (docs/status.md 3.64).  */
 /// C: `<epaths.h>` 58 (the frozen build's generated header): `#define PATH_EXEC
 /// "/usr/local/libexec/emacs/32.0.50/aarch64-apple-darwin25.6.0"`.
 const PATH_EXEC: &CStr = c"/usr/local/libexec/emacs/32.0.50/aarch64-apple-darwin25.6.0";
@@ -2883,7 +2884,7 @@ pub unsafe extern "C" fn syms_of_emacs ()
 
   DEFVAR_LISP! (c"system-type", Vsystem_type,
 	       "The value is a symbol indicating the type of operating system you are using.\nSpecial values:\n  `gnu'          compiled for a GNU Hurd system.\n  `gnu/linux'    compiled for a GNU/Linux system.\n  `gnu/kfreebsd' compiled for a GNU system with a FreeBSD kernel.\n  `darwin'       compiled for Darwin (GNU-Darwin, macOS, ...).\n  `ms-dos'       compiled as an MS-DOS application.\n  `windows-nt'   compiled as a native W32 application.\n  `cygwin'       compiled using the Cygwin library.\n  `haiku'        compiled for a Haiku system.\n  `android'      compiled for Android.\nAnything else (in Emacs 26, the possibilities are: aix, berkeley-unix,\nhpux, usg-unix-v) indicates some sort of Unix system.  ");
-  Vsystem_type = intern_c_string (c"darwin".as_ptr ());
+  Vsystem_type = intern_c_string (SYSTEM_TYPE.as_ptr ());
   /* See configure.ac for the possible SYSTEM_TYPEs.  */
 
   DEFVAR_LISP! (c"system-configuration", Vsystem_configuration,

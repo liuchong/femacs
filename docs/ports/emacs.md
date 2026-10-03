@@ -119,13 +119,15 @@
   compiles that is *not* a configuration macro at all is `#ifdef LC_MESSAGES` (C 3235-3237,
   3244-3247, 3576-3579): it is a **system** macro (`<locale.h>` defines it as 6), so the port
   keeps the text live and declares the constant at the use site — it is not a `#[cfg]`.
-- **The one tool/mirror defect no gate sees: `config.rs`'s `SYSTEM_TYPE`.**  `config.h`'s
-  `#define SYSTEM_TYPE "darwin"` reaches `config.rs` as the macro **body**, i.e.
-  `pub const SYSTEM_TYPE: &str = "\\\"darwin\\";`, whose value still carries C's quotes; that
-  is not the C string value `intern_c_string` needs (and its type is `&str`, not a pointer).
-  The port writes C's value at the use site and records the missing token in
-  `docs/ports/macro-body-notes.tsv` (the `syms_of_emacs` row); the mirror owner's fix is to
-  decode the body in `xtask gen-config` the way `extract-abi.py` decodes a C string literal.
+- **`config.rs`'s `SYSTEM_TYPE` was a mirror defect; FIXED (docs/status.md 3.64).**  `config.h`'s
+  `#define SYSTEM_TYPE "darwin"` used to reach `config.rs` as the macro **body**
+  (`pub const SYSTEM_TYPE: &str = "\\\\\"darwin\\\\";`, whose value still carried C's quotes and
+  whose type was not a pointer), so the unit wrote `c"darwin"` at the use site and recorded the
+  missing name in the `syms_of_emacs` notes row.  The generator now decodes the C string body
+  (`read_config` unescapes JSON strings, `c_string_value`/`c_literal` produce a `&CStr`), the
+  constant is `pub const SYSTEM_TYPE: &core::ffi::CStr = c"darwin";`, and the unit writes
+  `intern_c_string (SYSTEM_TYPE.as_ptr ())` exactly where C writes `intern_c_string
+  (SYSTEM_TYPE)` - the notes row lost its `SYSTEM_TYPE` allowance in the same change.
 - **Use-site declarations (the mirror-owner list).**  Names no mirror in this unit's include
   chain carries are declared in the unit's own `unsafe extern "C"` block, each with C's
   prototype in a `/// C:` line (PORTING.md 0.1-2/P-55).  By owner: **lisp.rs** needs

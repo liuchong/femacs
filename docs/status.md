@@ -857,3 +857,24 @@
   0 disagreements**（无回归）。注意：**不**因此把 `sysdep.c` 写进已验证清单——它按 §3.49 抄两支，
   而 §3.51 明确"已验证清单"与"抄两支"互斥（`--write-verified` 会因为 0 disagreement 把它收进去，
   所以这一步不能顺手跑）。
+
+- **3.64 第 96 轮：`config.rs` 的 `SYSTEM_TYPE` 与它背后的生成器缺陷（2026-10-03）**：emacs 通道记下
+  的那个镜像缺陷（`config.rs` 存的是 config.h 宏**体**而不是 C 字符串值，于是使用点只能写
+  `c"darwin"`，并把 `SYSTEM_TYPE` 记进 `macro-body-notes` 当豁免）本轮修掉，连带挖出**两个更深的
+  生成器缺陷**：
+  ① **`xtask gen-config` 选错了输入**：它按名字排序取 `docs/baseline/config/` 的**第一个**文件，
+  而 `cond-eval-verified.txt` 排在 `darwin-arm64.json` 前面——我第一次重跑就把 `config.rs` 从 29 行
+  写成 3 行（26 个常量全丢；因为它是生成物，这个错误离被提交只差一条命令）。现在按 `.json` **过滤**，
+  找不到就报错。
+  ② **`read_config` 是行式 JSON 读器，从不反转义**：`"SYSTEM_TYPE": "\"darwin\""` 交给程序的
+  值是 `\"darwin\``（JSON 转义原样保留），所以取值端连"它是不是 C 字符串字面量"都判断不出来。
+  现在引号值经 `json_unescape` 解码，其余条目行为不变（布尔/数字/`undefined` 那些字符串解出来还是
+  原样）。
+  ③ 修好之后：`gen-config` 把 C 字符串字面量解码成 **`&CStr`**（`pub const SYSTEM_TYPE:
+  &core::ffi::CStr = c"darwin";`），与 `emacs.rs` 里 `PATH_EXEC` 等 config.h 字符串同形；`emacs.rs`
+  的使用点改回 C 的表达式 `intern_c_string (SYSTEM_TYPE.as_ptr ())`（C 写
+  `intern_c_string (SYSTEM_TYPE)`），`macro-body-notes.tsv` 的 `syms_of_emacs` 行**退回**只允许
+  `0,doc`。实测：`config.rs` 相对 HEAD 只有 1 行差异；`emacs.rs` `build-tu` built、`--check` OK；
+  另取三个消费者（`indent.rs`、`minibuf.rs`、`lib/timespec.rs`）重建，全部 built。
+  **教训写在这里**：一个"生成的镜像"出问题时，先问生成器读的是不是它声称的那个文件——这次是
+  "读错文件"和"不反转义"两层叠在一起，只看 `config.rs` 的错值永远查不到第二层。

@@ -76,7 +76,19 @@ fn read_config(path: &Path) -> BTreeMap<String, String> {
         if in_macros {
             if let Some((k, v)) = t.split_once(':') {
                 let k = k.trim().trim_matches('"').to_string();
-                let v = v.trim().trim_end_matches(',').trim().trim_matches('"').to_string();
+                // A quoted value is a JSON *string*: its escapes have to come off, or the
+                // reader hands the rest of the program the JSON-escaped text instead of the
+                // macro body.  `SYSTEM_TYPE` is the entry where it showed: the file's body is
+                // `"darwin"`, this reader used to deliver `\"darwin\`, and the generated
+                // constant was a `&str` holding `"darwin"` *with* its C quotes - not the value
+                // `intern_c_string` needs (docs/status.md 3.64).
+                let raw = v.trim().trim_end_matches(',');
+                let v = if raw.starts_with('"') && raw.ends_with('"') && raw.len() >= 2 {
+                    json_unescape(&raw[1..raw.len() - 1])
+                        .unwrap_or_else(|| raw.trim_matches('"').to_string())
+                } else {
+                    raw.trim().to_string()
+                };
                 out.insert(k, v);
             }
         }
@@ -89,9 +101,16 @@ fn gen_config() -> i32 {
     let mut entries: Vec<PathBuf> = fs::read_dir(&dir)
         .map(|d| d.filter_map(Result::ok).map(|e| e.path()).collect())
         .unwrap_or_default();
+    // The frozen configuration is the *`.json`* in that directory.  Without the filter this
+    // took the first name alphabetically, and `docs/baseline/config/cond-eval-verified.txt`
+    // sorts before `darwin-arm64.json` - so a regeneration wrote a three-line `config.rs`
+    // and silently dropped every constant (caught while adding the `SYSTEM_TYPE` decoding
+    // below, docs/status.md 3.64; the file is generated, so the mistake was one command away
+    // from being committed).
+    entries.retain(|p| p.extension().is_some_and(|e| e == "json"));
     entries.sort();
     let Some(target) = entries.into_iter().next() else {
-        return fail(format!("no frozen configuration in {}", dir.display()));
+        return fail(format!("no *.json frozen configuration in {}", dir.display()));
     };
     let macros = read_config(&target);
     // No inner attributes: this file is textually included by every translation
@@ -109,6 +128,16 @@ fn gen_config() -> i32 {
             other => {
                 if let Ok(n) = other.parse::<i64>() {
                     format!("pub const {k}: i64 = {n};\n")
+                } else if let Some(value) = c_string_value(other) {
+                    // A `#define NAME "text"` in config.h is a *C string*, and the C code that
+                    // reads it passes it to a `char *`/`const char *` parameter
+                    // (`intern_c_string (SYSTEM_TYPE)` in emacs.c 3514).  Emitting the macro
+                    // *body* as a Rust `&str` (`"\"darwin\""`, whose value still carries the C
+                    // quotes) was the mirror defect print's neighbour found in docs/status.md
+                    // 3.64; the constant is a `&CStr` of the decoded value instead, the shape
+                    // emacs.rs already uses for its other config.h strings (`PATH_EXEC`).
+                    format!("pub const {k}: &core::ffi::CStr = c{}; // C string literal\n",
+                            c_literal(&value))
                 } else {
                     format!("pub const {k}: &str = {};\n", rust_str(other))
                 }
@@ -123,6 +152,76 @@ fn gen_config() -> i32 {
     }
     println!("wrote {} from {}", out.display(), target.display());
     0
+}
+
+/// A JSON string's escapes, decoded.  `None` for a form this reader does not spell (then the
+/// caller keeps the text as written rather than guessing).
+fn json_unescape(s: &str) -> Option<String> {
+    let mut out = String::new();
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            out.push(c);
+            continue;
+        }
+        match chars.next()? {
+            '"' => out.push('"'),
+            '\\' => out.push('\\'),
+            '/' => out.push('/'),
+            'n' => out.push('\n'),
+            't' => out.push('\t'),
+            'r' => out.push('\r'),
+            'b' => out.push('\u{8}'),
+            'f' => out.push('\u{c}'),
+            _ => return None,
+        }
+    }
+    Some(out)
+}
+
+/// The value of a C string literal written as its `#define` body, or None when the text is not
+/// one (or uses an escape this generator does not spell - then the body is kept verbatim rather
+/// than guessed at).
+fn c_string_value(body: &str) -> Option<String> {
+    let inner = body.strip_prefix('"')?.strip_suffix('"')?;
+    let mut out = String::new();
+    let mut chars = inner.chars();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            out.push(c);
+            continue;
+        }
+        match chars.next()? {
+            'n' => out.push('\n'),
+            't' => out.push('\t'),
+            'r' => out.push('\r'),
+            '\\' => out.push('\\'),
+            '"' => out.push('"'),
+            '\'' => out.push('\''),
+            '0' => out.push('\0'),
+            _ => return None,
+        }
+    }
+    Some(out)
+}
+
+/// A Rust `c"..."` literal for a value that has no NUL in it (the C string's terminator is the
+/// literal's own), escaping what the literal grammar needs.
+fn c_literal(value: &str) -> String {
+    let mut out = String::from("\"");
+    for c in value.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\t' => out.push_str("\\t"),
+            '\r' => out.push_str("\\r"),
+            c if (c as u32) < 0x20 || c as u32 == 0x7f => out.push_str(&format!("\\x{:02x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
 }
 
 fn rust_str(s: &str) -> String {
