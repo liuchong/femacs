@@ -90,3 +90,13 @@
 - **`#if false` at intervals.h 227-234** (`FRONT_STICKY_P`/`END_NONSTICKY_P`/
   `FRONT_NONSTICKY_P`) is literal-false text, not a configuration arm, so P-51's feature gate
   does not apply and the three macros are not mirrored (the cm.rs/font.rs precedent).
+- **The `Defined in textprop.c` block moved into a module + glob import** when
+  `femacs/src/textprop.rs` landed (the P-70 same-commit rule, PORTING.md 0.1-10/P-21): all
+  nine prototypes of intervals.h 291-310 are defined by that unit, and a same-named
+  `unsafe extern "C"` item at the mirror's root would be one `E0428` against the definition
+  (the composite.rs `composite_decls`/charset.rs `charset_decls` shape).  They now live in
+  `pub mod textprop_decls` + `use textprop_decls::*;`, and the three prototypes of the
+  "Declared in intervals.c" block that textprop.c also defines
+  (`verify_interval_modification`, `validate_interval_range`, `interval_of`) keep the same
+  treatment inside `intervals_decls`.  No consumer changed: `src/intervals.c` and
+  `src/insdel.c` still build, and their `--check`s are still OK.

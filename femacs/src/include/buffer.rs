@@ -1306,8 +1306,17 @@ unsafe extern "C" { pub static mut buffer_local_symbols: buffer; }
 
 /* verify_interval_modification saves insertion hooks here
    to be run later by report_interval_modification.  */
-unsafe extern "C" { pub static mut interval_insert_behind_hooks: Lisp_Object; }
-unsafe extern "C" { pub static mut interval_insert_in_front_hooks: Lisp_Object; }
+// In a module + glob import, because src/textprop.c defines both objects and a same-named
+// `unsafe extern "C"` item at this scope would be `E0428` against that definition
+// (PORTING.md 0.1-10/P-21, the charset.rs `charset_objs` shape); the unit's own
+// `#[unsafe(no_mangle)] pub static mut` shadows the glob.  docs/ports/textprop.md records it.
+pub mod textprop_objs {
+  use super::*;
+
+  unsafe extern "C" { pub static mut interval_insert_behind_hooks: Lisp_Object; }
+  unsafe extern "C" { pub static mut interval_insert_in_front_hooks: Lisp_Object; }
+}
+use textprop_objs::*;
 
 unsafe extern "C" {
   pub fn fix_position (pos: Lisp_Object) -> EMACS_INT;
@@ -1318,6 +1327,9 @@ unsafe extern "C" {
 #[macro_export]
 macro_rules! CHECK_FIXNUM_COERCE_MARKER {
     ($x:ident) => { $x = make_fixnum (unsafe { fix_position ($x) }); };
+    // C's `CHECK_FIXNUM_COERCE_MARKER (*begin)` (textprop.c 136-137 passes a pointer's
+    // pointee): the same assignment with a deref place expression on the left.
+    ($x:expr) => { $x = make_fixnum (unsafe { fix_position ($x) }); };
 }
 
 unsafe extern "C" {

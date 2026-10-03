@@ -168,3 +168,9 @@ C's own macros expanding at the same points, and `error`'s one variadic call kee
 `%td`/`ptrdiff_t` argument).  The two spellings that are not calls: C's `(*function) (…)` is
 `.unwrap () (…)` (above), and `TEXT_PROP_MEANS_INVISIBLE`'s `int` value is tested with
 `!= 0` at its one use site.
+
+- **Follow-up (2026-10-03, `src/textprop.c`)**: the mirror's "Defined in textprop.c" block
+  moved into `pub mod textprop_decls` + glob import when `femacs/src/textprop.rs` landed, the
+  P-70 same-commit rule (the ledger's own `buffer_point_decls` row is the same shape); detail
+  in `docs/ports/include-intervals.md` and `docs/ports/textprop.md`.  No `.c` side of this
+  unit changed, and its `build-tu`/`--check` were re-run and are still clean.

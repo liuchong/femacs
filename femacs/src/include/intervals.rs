@@ -4,6 +4,11 @@
 // declarations C spells as `extern` (PORTING.md 0.1).  The macros are the same statements
 // in the same order as C's.
 //
+// Every `extern` prototype of intervals.h's "Defined in textprop.c" block lives in
+// `pub mod textprop_decls` + glob import, because `femacs/src/textprop.rs` defines all nine
+// of those names (PORTING.md 0.1-10/P-21); the three prototypes of the "Declared in
+// intervals.c" block that textprop.c also defines are in `intervals_decls`, the same way.
+//
 // Why it exists now: src/syntax.c is the first unit that reads interval fields
 // (`i->position`, `i->plist`) and C's interval arithmetic (`LENGTH (i)`,
 // `INTERVAL_LAST_POS (i)`), so the header that defines them has to have a home before that
@@ -350,7 +355,8 @@ unsafe extern "C" {
 // composite.rs/tempname.rs shape); the other three of the block (`verify_interval_modification`,
 // `validate_interval_range`, `interval_of`) are defined in textprop.c and are declared here
 // because no mirror carries textprop.h yet.  They stay in this module so the block keeps C's
-// declaration order; the glob import makes them visible to the units that call them today.  */
+// declaration order; the glob import makes them visible to the units that call them today
+// (and src/textprop.c's definition shadows it, 0.1-10).
 pub mod intervals_decls {
   use super::*;
 
@@ -440,39 +446,49 @@ unsafe extern "C" {
   pub fn invisible_prop (prop: Lisp_Object, lookup_vector: Lisp_Object) -> c_int;
 }
 
-/* Defined in textprop.c.  */
-unsafe extern "C" {
-  /// C: intervals.h 292-294: `extern Lisp_Object copy_text_properties (Lisp_Object,
-  /// Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
-  pub fn copy_text_properties (start: Lisp_Object, end: Lisp_Object, src: Lisp_Object,
-			       pos: Lisp_Object, dest: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
-  /// C: intervals.h 295-297: `extern Lisp_Object set_text_properties (Lisp_Object,
-  /// Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
-  pub fn set_text_properties (start: Lisp_Object, end: Lisp_Object, properties: Lisp_Object,
-			      object: Lisp_Object, coherent_change: Lisp_Object) -> Lisp_Object;
-  /// C: intervals.h 298-299: `extern void set_text_properties_1 (Lisp_Object, Lisp_Object,
-  /// Lisp_Object, Lisp_Object, INTERVAL);`
-  pub fn set_text_properties_1 (start: Lisp_Object, end: Lisp_Object, properties: Lisp_Object,
-				object: Lisp_Object, i: INTERVAL);
-  /// C: intervals.h 301-302: `Lisp_Object text_property_list (Lisp_Object, Lisp_Object,
-  /// Lisp_Object, Lisp_Object);`
-  pub fn text_property_list (object: Lisp_Object, start: Lisp_Object, end: Lisp_Object,
-			     prop: Lisp_Object) -> Lisp_Object;
-  /// C: intervals.h 303: `void add_text_properties_from_list (Lisp_Object, Lisp_Object,
-  /// Lisp_Object);`
-  pub fn add_text_properties_from_list (object: Lisp_Object, list: Lisp_Object, prop: Lisp_Object);
-  /// C: intervals.h 304: `Lisp_Object extend_property_ranges (Lisp_Object, Lisp_Object,
-  /// Lisp_Object);`
-  pub fn extend_property_ranges (list: Lisp_Object, old: Lisp_Object, new: Lisp_Object) -> Lisp_Object;
-  /// C: intervals.h 305-306: `Lisp_Object get_char_property_and_overlay (Lisp_Object,
-  /// Lisp_Object, Lisp_Object, Lisp_Object *);`
-  pub fn get_char_property_and_overlay (position: Lisp_Object, prop: Lisp_Object,
-					object: Lisp_Object, overlay: *mut Lisp_Object) -> Lisp_Object;
-  /// C: intervals.h 307-308: `extern int text_property_stickiness (Lisp_Object prop,
-  /// Lisp_Object pos, Lisp_Object buffer);`
-  pub fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_Object, buffer: Lisp_Object) -> c_int;
-  /// C: intervals.h 310: `extern void syms_of_textprop (void);`
-  pub fn syms_of_textprop ();
+// The `Defined in textprop.c` block is in a module + glob import: src/textprop.c defines
+// every one of these names, and a same-named `unsafe extern "C"` item at this scope would
+// be `E0428` against the definition (PORTING.md 0.1-10/P-21, the buffer.rs
+// `buffer_point_decls`/charset.rs `charset_decls` shape).  docs/ports/intervals.md and
+// docs/ports/textprop.md record the move.
+pub mod textprop_decls {
+  use super::*;
+
+  /* Defined in textprop.c.  */
+  unsafe extern "C" {
+    /// C: intervals.h 292-294: `extern Lisp_Object copy_text_properties (Lisp_Object,
+    /// Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
+    pub fn copy_text_properties (start: Lisp_Object, end: Lisp_Object, src: Lisp_Object,
+  			       pos: Lisp_Object, dest: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+    /// C: intervals.h 295-297: `extern Lisp_Object set_text_properties (Lisp_Object,
+    /// Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object);`
+    pub fn set_text_properties (start: Lisp_Object, end: Lisp_Object, properties: Lisp_Object,
+  			      object: Lisp_Object, coherent_change: Lisp_Object) -> Lisp_Object;
+    /// C: intervals.h 298-299: `extern void set_text_properties_1 (Lisp_Object, Lisp_Object,
+    /// Lisp_Object, Lisp_Object, INTERVAL);`
+    pub fn set_text_properties_1 (start: Lisp_Object, end: Lisp_Object, properties: Lisp_Object,
+  				object: Lisp_Object, i: INTERVAL);
+    /// C: intervals.h 301-302: `Lisp_Object text_property_list (Lisp_Object, Lisp_Object,
+    /// Lisp_Object, Lisp_Object);`
+    pub fn text_property_list (object: Lisp_Object, start: Lisp_Object, end: Lisp_Object,
+  			     prop: Lisp_Object) -> Lisp_Object;
+    /// C: intervals.h 303: `void add_text_properties_from_list (Lisp_Object, Lisp_Object,
+    /// Lisp_Object);`
+    pub fn add_text_properties_from_list (object: Lisp_Object, list: Lisp_Object, prop: Lisp_Object);
+    /// C: intervals.h 304: `Lisp_Object extend_property_ranges (Lisp_Object, Lisp_Object,
+    /// Lisp_Object);`
+    pub fn extend_property_ranges (list: Lisp_Object, old: Lisp_Object, new: Lisp_Object) -> Lisp_Object;
+    /// C: intervals.h 305-306: `Lisp_Object get_char_property_and_overlay (Lisp_Object,
+    /// Lisp_Object, Lisp_Object, Lisp_Object *);`
+    pub fn get_char_property_and_overlay (position: Lisp_Object, prop: Lisp_Object,
+  					object: Lisp_Object, overlay: *mut Lisp_Object) -> Lisp_Object;
+    /// C: intervals.h 307-308: `extern int text_property_stickiness (Lisp_Object prop,
+    /// Lisp_Object pos, Lisp_Object buffer);`
+    pub fn text_property_stickiness (prop: Lisp_Object, pos: Lisp_Object, buffer: Lisp_Object) -> c_int;
+    /// C: intervals.h 310: `extern void syms_of_textprop (void);`
+    pub fn syms_of_textprop ();
+  }
 }
+use textprop_decls::*;
 
 // INLINE_HEADER_END has no Rust counterpart (PORTING.md 0.1).

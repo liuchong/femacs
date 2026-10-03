@@ -335,3 +335,16 @@ recorded as an open item:
 | the `cfg (feature = "tree_sitter")` was not tied to the frozen configuration | `const _` assertion |
 | crate-root `extern` declarations in `lisp.rs` (74, of which ~62 are Emacs C functions) will collide with `E0428` when the defining unit lands | recorded as P-39 with the plan (move them into a `pub mod` + `use …::*`, the P-21/P-28 shadowing shape) |
 | `#[repr(C, align(8))]`, the include-guard constant and the `buf_charpos_to_bytepos` parameter name | recorded / corrected above |
+- **Two edits when `femacs/src/textprop.rs` landed** (the P-70 same-commit rule,
+  PORTING.md 0.1-10/P-21), both recorded in `docs/ports/textprop.md`:
+  1. buffer.h 1246-1247's two objects (`interval_insert_behind_hooks`,
+     `interval_insert_in_front_hooks`) are defined by textprop.c, so they moved from the
+     mirror's root into `pub mod textprop_objs` + `use textprop_objs::*;` — a same-named
+     `unsafe extern "C"` item at the root plus the unit's `#[unsafe(no_mangle)] pub static
+     mut` is one `E0428` (the charset.rs `charset_objs` shape).  `src/insdel.c` is the other
+     consumer and still builds (its `--check` is still OK).
+  2. `CHECK_FIXNUM_COERCE_MARKER` gained a second arm for C's deref form: textprop.c 136-137
+     call it as `CHECK_FIXNUM_COERCE_MARKER (*begin)` on a pointer's pointee, which the
+     `$x:ident` arm cannot spell.  The `$x:expr` arm expands to C's own assignment
+     (`$x = make_fixnum (unsafe { fix_position ($x) })`), so the macro's name still appears
+     in the port's text for the token check.
