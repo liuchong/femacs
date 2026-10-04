@@ -3142,3 +3142,24 @@
   红不是它引起的——但这次提交时门是红的，**已如实记下**，等该 lane 收口后我会重跑一次确认转绿。
   ③ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；`check-declarations` 13/0；引证门
   **43 drift / 4 range / 284 external / 13 allowed / 0 stale**（Boole 继续清扫）。
+
+- **3.179 xdisp 再推 810 行（C 8437-9246），并抓出一处"老注释里的偏移写错"（2026-10-04）**：
+  ① **xdisp lane（C 8437-9246，810 行）**：两个**大函数**——`get_next_display_element`（C 8437，441 行，含 3 处后向
+  `goto get_next`、2 处 `goto done`、4 处前向 `goto display_control`）与 `set_iterator_to_next`（C 8896，351 行，
+  六臂 `switch` + 共享 `consider_string_end:` 标号）。`xdisp.rs` 9,368 → **10,214 行**，`missing function` 195 → **193**，
+  SCAFFOLD 实测 21 → 19。基础设施：`struct it` 命名 **`ctl_chars[16]`（clang 实测 offset 160）**、`struct bidi_it` 命名
+  `type`（C 的成员名是 Rust 关键字 ⇒ `r#type`，`alloc.rs` 先例）、`struct composition_it` 命名三个成员、两条 bits 读臂；
+  C 的 `#ifdef HAVE_WINDOW_SYSTEM` 臂 C 8687-8736 在本目标死，照例只记录。
+  **它的证据纪律这轮又升了一级**：二次构建（在当前磁盘状态上）之外，还把当时依赖镜像的四个 md5 记进台账，
+  便于日后复现。
+  ② **一处自我纠错（老注释里的偏移写错）**：台账第三轮 deviation 写 "`ctl_chars[16]` stay a pad"，本轮命名它时
+  clang 实测 **160**，而当年那段注释说 **156**（156..160 是 `saved_face_id` 后的对齐洞）。这是
+  3.153/3.156/3.157/3.169 之后**同一类"老注释写错"**的又一次，处置正确（以实测改正注释 + 加断言）。
+  **规矩重申（已写进简报）**：凡写下的数字，都应当有一条能重跑的实测命令撑着。
+  ③ 两条共享行由我写入 `docs/ports/macro-body-notes.tsv`（`get_next_display_element	done,goto`、
+  `set_iterator_to_next	switch,case,default,goto`），复测该文件 `does not mention` 行**归零**。
+  ④ **`layout-check` 仍红，原因不是这些单元**：`lib/include/stdbit.in.rs`（Harvey 正在收口）半写，
+  当前错误是单条 `error: expected item after doc comment`（3.178 那次是 `c_schar` 未定义）。**规矩已立**（3.178：
+  镜像必须始终可编译），这轮它正在改；我会在它收口后重跑确认转绿。**在红期间的提交要如实标注**（本轮无提交涉及该门）。
+  ⑤ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；`check-declarations` 13/0；引证门
+  **40 drift / 4 range / 284 external / 13 allowed / 0 stale**（持续下降：78 → 59 → 43 → 40）。
