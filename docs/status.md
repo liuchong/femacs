@@ -5274,3 +5274,11 @@
   读数：`build-tu src/font.c` → **built**；**镜像侧 C 拼法的宏体现在 0 条**。
   ③ **因此 3.326 ③ 的措辞要收紧一档**：那 40 条"体不同"**不能一概说成"单元那份可疑"**——错了也可能是**镜像**（`font.rs` 这 4 条就是），逐条判据必须"以参照 C 为准 + 看哪份是可展开的 Rust"。lane 的清理指令已按这条细化（先修镜像、再删单元那份）。
   ④ **棘轮现在读 67 dup / 111 行 / 44 failure**——那 44 条**不是回归**，是 **Hypatia 正在按 3.326 ⑥ 删 `xdisp.rs` 那 44 处**（它的在飞写作集），行数对得上；等它这一轮入库后我重跑 `--write-ratchet` 让棘轮与树一致（**现在不重写**：会把半成品状态写进基线）。
+- **3.329 abi shim 第⑬批 27 条入库（台账 206/206），并收下它的"门对门"审计报告（Turing 交付，2026-10-05）**：
+  ① **入的两件**：`femacs/src/abi_shim.rs` **+385 / −0**（真条目 **179 → 206**）、`docs/ports/abi_shim.md` **+373 / −79**（台账 **206 / 206、0 未勾**）。27 条里 **21 条无门**（8 个光标枚举器 `DEFAULT_CURSOR`/`NO_CURSOR`/`FILLED_BOX_CURSOR`/`HOLLOW_BOX_CURSOR`/`BAR_CURSOR`/`HBAR_CURSOR`… + 4 个 `*_FACE_ID` + `WINDOW_XFRAME` + `FRAME_CURSOR_WIDTH`/`FRAME_FOREGROUND_PIXEL` + 5 个 `glyph_*`/`glyph_row_*` + 2 个 `window_phys_cursor_*`），**6 条带 `have_window_system` 门**（`window_set_phys_cursor_type`/`window_phys_cursor_width`/`window_set_phys_cursor_width`/`get_phys_cursor_geometry`/`draw_phys_cursor_glyph`/`draw_fringe_bitmap`）。
+  ② **入库前我自己复检（四项）**：`build-tu src/abi_shim.c` → **exit 0、0 条 `^error`**；台账 **206 勾 / 0 未勾**；我自己的 `nm -g build/femacs/abi_shim.o` 抽验——`BAR_CURSOR`/`WINDOW_XFRAME`/`glyph_row_used`/`window_phys_cursor_hpos` **四个都在**，而 `get_phys_cursor_geometry`/`draw_fringe_bitmap` **两个都不在**（正是"该带门"的证据）；
+  `check-declarations` 13/0/0、`check-carried` 11/11/0、`check-globals` 284 units / 0、`check-target-names` 628 .rs / 591 targets / 0。
+  ③ **审计（同一份报告里的另一件，已收）**：它的脚本把每个带门条目的门与**它所引用标识符在镜像里的最近 `#[cfg]`** 逐个比（同一家族多臂时判据是"条目的门蕴含至少一份"），产出逐条表；结论是**本批 6 条带门与 73 条既有的门没有一处与镜像冲突**（脚本用法与核心逻辑写在报告里，**没进 `tools/`**，符合写作集）。
+  ④ **两处必须记住的限度**（lane 在三处点名，我照抄）：⑴ **`draw_fringe_bitmap` 的体一条语句都没承载、`draw_phys_cursor_glyph` 只到 `draw_glyphs` 调用前**——本批交付的是**符号 + 台账行**，不是行为等价；补全要等 `fringe.c`/`xdisp.c` 对应单元（`STANDARD_BITMAP_HEIGHT`/`get_logical_cursor_bitmap`/`draw_fringe_bitmap_1`/`draw_glyphs`）。
+  ⑵ `get_phys_cursor_geometry` 的体完整，但 `x_stretch_cursor_p` 的**存储**今天没有任何单元定义（镜像只有 `extern` 声明）⇒ 冻结构建不受影响（`nm -u` 不变），而 `have_window_system` 构建会多一条未定义引用；要可链接需 xdisp 单元落地那个 `DEFVAR_BOOL`。
+  ⑤ **共享表两项交给棘轮**（下一轮）：`swift-import-pending.txt` **删 21 行**（本批无门的那 21 个名字，工具已读成 `STALE (satisfied)`）、**6 行的类别改为 `rust-side-gated`**（工具自己会改，理由写成"核心确实导出了，但只在 `have_window_system` 之后；本仓任何配置都不编那条臂 ⇒ 活已做完，这行是记录"）。

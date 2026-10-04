@@ -1395,6 +1395,84 @@ pub mod c_abi_of_mirror_named_items
   /// one thing this entry cannot reach by name; the number is C's text and the row records it.
   #[unsafe(no_mangle)]
   pub static mut max_used_fringe_bitmap: c_int = 25;
+
+  /* -------------------------------------------------------------------------------------------
+     Batch 13, group 1: the two frame macros and the ten enumerators this slice compares against.
+     All twelve are Rust items the mirrors already spell (`pub fn FRAME_CURSOR_WIDTH` /
+     `FRAME_FOREGROUND_PIXEL`, `include/frame.rs` 691/696, and the `pub const`s of
+     `include/dispextern.rs` 88-93 and 1731-1734), so the C-ABI spelling stands in this module
+     (status 3.264 item 2: a crate-root definition of the same name is `E0428`).
+     ------------------------------------------------------------------------------------------- */
+
+  /// C: `#define FRAME_CURSOR_WIDTH(f) ((f)->cursor_width)` (src/frame.h 1372) - C's read is the
+  /// cursor comparison of `ns_draw_window_cursor` (src/nsterm.m 3294-3426); the mirror's item is
+  /// `include/frame.rs` 691.  Swift `nsterm.swift` 4029 (`(UnsafeMutableRawPointer?) -> Int32`).
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn FRAME_CURSOR_WIDTH (f: *mut c_void) -> c_int
+  { super::FRAME_CURSOR_WIDTH (f.cast::<frame> ()) }
+
+  /// C: `#define FRAME_FOREGROUND_PIXEL(f) ((f)->foreground_pixel)` (src/frame.h 1375) - the
+  /// mirror's item is `include/frame.rs` 696 (`c_ulong`, which is the lane's `-> UInt`).
+  /// Swift `nsterm.swift` 4030.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn FRAME_FOREGROUND_PIXEL (f: *mut c_void) -> c_ulong
+  { super::FRAME_FOREGROUND_PIXEL (f.cast::<frame> ()) }
+
+  /// C: `DEFAULT_CURSOR,` (src/dispextern.h 216-225's `enum text_cursor_kinds`, the file's own
+  /// count: `DEFAULT_CURSOR = -2`) - the port's enumerator is `include/dispextern.rs` 88.
+  /// Swift `nsterm.swift` 4039 (`func DEFAULT_CURSOR() -> Int32`).
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn DEFAULT_CURSOR () -> c_int { super::DEFAULT_CURSOR as c_int }
+
+  /// C: `NO_CURSOR,` (src/dispextern.h 216-225) = -1; the port's `include/dispextern.rs` 89.
+  /// Swift `nsterm.swift` 4040.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn NO_CURSOR () -> c_int { super::NO_CURSOR as c_int }
+
+  /// C: `FILLED_BOX_CURSOR,` (src/dispextern.h 216-225) = 0; `include/dispextern.rs` 90.
+  /// Swift `nsterm.swift` 4041.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn FILLED_BOX_CURSOR () -> c_int { super::FILLED_BOX_CURSOR as c_int }
+
+  /// C: `HOLLOW_BOX_CURSOR,` (src/dispextern.h 216-225) = 1; `include/dispextern.rs` 91.
+  /// Swift `nsterm.swift` 4042.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn HOLLOW_BOX_CURSOR () -> c_int { super::HOLLOW_BOX_CURSOR as c_int }
+
+  /// C: `BAR_CURSOR,` (src/dispextern.h 216-225) = 2; `include/dispextern.rs` 92.
+  /// Swift `nsterm.swift` 4043.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn BAR_CURSOR () -> c_int { super::BAR_CURSOR as c_int }
+
+  /// C: `HBAR_CURSOR,` (src/dispextern.h 216-225) = 3; `include/dispextern.rs` 93.
+  /// Swift `nsterm.swift` 4044.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn HBAR_CURSOR () -> c_int { super::HBAR_CURSOR as c_int }
+
+  /// C: `VERTICAL_BORDER_FACE_ID,` (src/dispextern.h 1973, in the face-id enum 1962-1976) - C's
+  /// reads are src/nsterm.m 3441/3459-3463; the port's enumerator is `include/dispextern.rs`
+  /// 1731 (value 12).  Swift `nsterm.swift` 4045.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn VERTICAL_BORDER_FACE_ID () -> c_int
+  { super::VERTICAL_BORDER_FACE_ID as c_int }
+
+  /// C: `WINDOW_DIVIDER_FACE_ID,` (src/dispextern.h 1974), value 13
+  /// (`include/dispextern.rs` 1732).  Swift `nsterm.swift` 4046.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn WINDOW_DIVIDER_FACE_ID () -> c_int
+  { super::WINDOW_DIVIDER_FACE_ID as c_int }
+
+  /// C: `WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID,` (src/dispextern.h 1975), value 14
+  /// (`include/dispextern.rs` 1733).  Swift `nsterm.swift` 4047.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID () -> c_int
+  { super::WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID as c_int }
+
+  /// C: `WINDOW_DIVIDER_LAST_PIXEL_FACE_ID,` (src/dispextern.h 1976), value 15
+  /// (`include/dispextern.rs` 1734).  Swift `nsterm.swift` 4049.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn WINDOW_DIVIDER_LAST_PIXEL_FACE_ID () -> c_int
+  { super::WINDOW_DIVIDER_LAST_PIXEL_FACE_ID as c_int }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -2157,4 +2235,311 @@ pub unsafe extern "C" fn gui_define_fringe_bitmap (f: *mut c_void, n: c_int)
 {
   let rif: *mut c_void = unsafe { FRAME_RIF! (f.cast::<frame> ()) };
   if rif.is_null () || n >= unsafe { max_used_fringe_bitmap } { return; }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 13, group 2: `struct window`'s cursor members, `struct glyph_row`'s and `struct glyph`'s
+   members this slice reads - and, of those, **which ones are gated**: window.h's
+   `#ifdef HAVE_WINDOW_SYSTEM` block is 341-352 and holds exactly `phys_cursor_type` (344) and
+   `phys_cursor_width` (347), so three of the five names the handoff grouped together carry
+   `have_window_system`; the other two do **not**, and the C lines say why: `phys_cursor_on_p` is
+   a `bool_bf … : 1` of the window's flag word (window.h 422, outside the block), and
+   `phys_cursor` itself is `struct cursor_pos` at window.h 332, *before* the `#ifdef` opens.  The
+   mirror agrees on both (`include/window.rs` 115 carries `phys_cursor` ungated; the flag's bit is
+   the same unit and shift in all four arms - `docs/baseline/window-bits.tsv` line 14 - and
+   `WINDOW_PHYS_CURSOR_ON_P_SHIFT` is `include/window.rs` 161), so those two are exported
+   ungated - gating them would hide names C has in the frozen configuration, the error mode this
+   file's own gate audit warns about (`## Gate audit`).
+   --------------------------------------------------------------------------------------------- */
+
+/// C: `#define WINDOW_XFRAME(W) XFRAME (WINDOW_FRAME (W))` (src/window.h 620) - the macro C 3305
+/// and 3435/3458 read; the mirror keeps it as `macro_rules! WINDOW_XFRAME`
+/// (`include/window.rs` 420, over `XFRAME` 346 and `WINDOW_FRAME!` 419).  The lane declares the
+/// result untyped (`UnsafeMutableRawPointer?`), so the body casts.
+/// Swift `nsterm.swift` 3993.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn WINDOW_XFRAME (w: *mut c_void) -> *mut c_void
+{
+  unsafe { WINDOW_XFRAME! (w.cast::<window> ()) as *mut c_void }
+}
+
+/// C: `enum text_cursor_kinds phys_cursor_type;` (src/window.h 344, inside the
+/// `#ifdef HAVE_WINDOW_SYSTEM` block 341-352) - C's write is `w->phys_cursor_type =
+/// HOLLOW_BOX_CURSOR;` and friends in `ns_draw_window_cursor` (src/nsterm.m 3319).  The mirror's
+/// field carries the same feature (`include/window.rs` 121).
+/// Swift `nsterm.swift` 4001 (`(UnsafeMutableRawPointer?, Int32)`).
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_phys_cursor_type (w: *mut c_void, v: c_int)
+{
+  unsafe { (*w.cast::<window> ()).phys_cursor_type = v; }
+}
+
+/// C: `bool_bf phys_cursor_on_p : 1;` (src/window.h 422, **outside** the window-system block) -
+/// C's write is `w->phys_cursor_on_p = on_p;` (src/nsterm.m 3319, and the same member is saved
+/// and restored around `draw_glyphs`).  The mirror's flag word is ungated and its bit is
+/// `WINDOW_PHYS_CURSOR_ON_P_SHIFT` (`include/window.rs` 161), the same unit and shift in every
+/// arm; the body writes the bit with the mirror's shift, the batch-7 `frame_set_no_accept_focus`
+/// shape (the `window_bits!` setter lives in the unit `src/window.rs`, which this file cannot
+/// reach).
+/// Swift `nsterm.swift` 4003 (`(UnsafeMutableRawPointer?, Bool)`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_phys_cursor_on_p (w: *mut c_void, v: bool)
+{
+  unsafe {
+    let bits = &mut (*w.cast::<window> ()).bits;
+    *bits = (*bits & ! (1u32 << WINDOW_PHYS_CURSOR_ON_P_SHIFT))
+            | ((v as u32) << WINDOW_PHYS_CURSOR_ON_P_SHIFT);
+  }
+}
+
+/// C: `int phys_cursor_width;` (src/window.h 347, inside the window-system block 341-352) - C's
+/// reads are src/nsterm.m 3351/3358/3373 and its writes 3324/3352.  The mirror's field carries
+/// the gate (`include/window.rs` 123).
+/// Swift `nsterm.swift` 4005 (`(UnsafeMutableRawPointer?) -> Int32`).
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_phys_cursor_width (w: *mut c_void) -> c_int
+{
+  unsafe { (*w.cast::<window> ()).phys_cursor_width }
+}
+
+/// C: `int phys_cursor_width;` (src/window.h 347) - C's writes are src/nsterm.m 3324 (`w->
+/// phys_cursor_width = 0;`) and 3352.  Same gate as the reader above.
+/// Swift `nsterm.swift` 4007 (`(…, Int32)`).
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_phys_cursor_width (w: *mut c_void, v: c_int)
+{
+  unsafe { (*w.cast::<window> ()).phys_cursor_width = v; }
+}
+
+/// C: `struct cursor_pos phys_cursor;` (src/window.h 332) over `struct cursor_pos { int x, y;
+/// … int hpos, vpos; }` (window.h 91-99, `hpos` at 97) - C's read is
+/// `int hpos = w->phys_cursor.hpos;` (src/nsterm.m 3333), the nested read the lane names after
+/// the `window_phys_cursor_x`/`_y` entries `nsfns.swift` already imports.  `phys_cursor` sits
+/// **before** window.h's `#ifdef` (341), so the member is ungated in every arm and the mirror
+/// carries it ungated (`include/window.rs` 115).
+/// Swift `nsterm.swift` 4009 (`(UnsafeMutableRawPointer?) -> Int32`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_phys_cursor_hpos (w: *mut c_void) -> c_int
+{
+  unsafe { (*w.cast::<window> ()).phys_cursor.hpos }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 13, group 3: `struct glyph_row`'s and `struct glyph`'s members.  Both records are
+   ungated (dispextern.h 918-… and 472-…; the mirror's `include/dispextern.rs` 771/295), and the
+   two bitfields go through the mirror's own accessors (`glyph_row_bits!` 886, `glyph_bits!`
+   511), so no gate is needed - the batch-11 shape.
+   --------------------------------------------------------------------------------------------- */
+
+/// C: `bool_bf exact_window_width_line_p : 1;` (src/dispextern.h 1115) - C's read is
+/// src/nsterm.m 3332.  Body: `glyph_row_bits! (exact_window_width_line_p, …)`
+/// (`include/dispextern.rs` 1010).
+/// Swift `nsterm.swift` 4015 (`(UnsafeMutableRawPointer?) -> Bool`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_row_exact_window_width_line_p (row: *mut c_void) -> bool
+{
+  unsafe { glyph_row_bits! (exact_window_width_line_p, row.cast::<glyph_row> ()) }
+}
+
+/// C: `short used[1 + LAST_AREA];` (src/dispextern.h 938) - C's read is
+/// `row->used[TEXT_AREA]` (src/nsterm.m 3333), whose subscript is the entry's second argument
+/// (the `frame_alpha` index shape).  The mirror's field is `used: [c_short; 4]`
+/// (`include/dispextern.rs` 822), sized `1 + LAST_AREA` exactly as C's declaration is.
+/// Swift `nsterm.swift` 4017 (`(UnsafeMutableRawPointer?, Int32) -> Int16`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_row_used (row: *mut c_void, area: c_int) -> c_short
+{
+  unsafe { (*row.cast::<glyph_row> ()).used [area as usize] }
+}
+
+/// C: `bool_bf cursor_in_fringe_p : 1;` (src/dispextern.h 1118) - C's write is
+/// `row->cursor_in_fringe_p = 0;` (src/nsterm.m 3335).  Body:
+/// `glyph_row_bits! (cursor_in_fringe_p, …, v)` (`include/dispextern.rs` 1013).
+/// Swift `nsterm.swift` 4019 (`(…, Bool)`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_row_set_cursor_in_fringe_p (row: *mut c_void, v: bool)
+{
+  unsafe { glyph_row_bits! (cursor_in_fringe_p, row.cast::<glyph_row> (), v) }
+}
+
+/// C: `int ascent, height;` (src/dispextern.h 959) - C's reads are src/nsterm.m 3364-3365.
+/// Swift `nsterm.swift` 4021 (`-> Int32`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_row_height (row: *mut c_void) -> c_int
+{
+  unsafe { (*row.cast::<glyph_row> ()).height }
+}
+
+/// C: `unsigned resolved_level : 7;` (src/dispextern.h 553, one of `struct glyph`'s bitfields) -
+/// C's read is src/nsterm.m 3357.  Body: `glyph_bits! (resolved_level, …)`
+/// (`include/dispextern.rs` 554-555, over `GLYPH_RESOLVED_LEVEL_SHIFT` 10 / width 7 at 473-474).
+/// Swift `nsterm.swift` 4024 (`(UnsafeMutableRawPointer?) -> Int32`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_resolved_level (g: *mut c_void) -> c_int
+{
+  unsafe { glyph_bits! (resolved_level, *g.cast::<glyph> ()) }
+}
+
+/// C: `short pixel_width;` (src/dispextern.h 503) - C's read is src/nsterm.m 3358.  The member
+/// is a `short` and the lane declares `-> Int16`, so the mirror's `c_short` is returned as is.
+/// Swift `nsterm.swift` 4025 (`(UnsafeMutableRawPointer?) -> Int16`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_pixel_width (g: *mut c_void) -> c_short
+{
+  unsafe { (*g.cast::<glyph> ()).pixel_width }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 13, group 4: the three cursor/fringe functions no built configuration has a symbol for
+   (all measured).  Two are `#ifdef HAVE_WINDOW_SYSTEM` blocks of src/xdisp.c and carry that
+   gate; the third belongs to `fringe.c`, the file `femacs/src/fringe.rs` records as compiled by
+   no configuration (status 3.31).  Their rows are the "gated debt" class (3.255 item 3), and the
+   bodies say what is carried and what is not.
+   --------------------------------------------------------------------------------------------- */
+
+/* C: `void window_text_bottom_y (…)` is a **ported** function (defined `femacs/src/xdisp.rs`
+   2852, `T _window_text_bottom_y` among the built objects), but its declaration lives in the unit
+   `src/window.rs` 952 - not in any mirror - so this file declares the symbol it calls, the
+   `xzalloc` shape above; the declaration carries `have_window_system` because only the body
+   below uses it.  (Plain comments, not `///`: rustdoc warns that it generates no documentation
+   for an `extern` block - measured in the flip arm.)  */
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" { fn window_text_bottom_y (w: *mut window) -> c_int; }
+
+/// C: `void get_phys_cursor_geometry (struct window *w, struct glyph_row *row, struct glyph
+/// *glyph, int *xp, int *yp, int *heightp)` (src/xdisp.c 2707-2771, inside the
+/// `#ifdef HAVE_WINDOW_SYSTEM` opened at xdisp.c 2488) - C's call is
+/// `get_phys_cursor_geometry (w, glyph_row, phys_cursor_glyph, &fx, &fy, &h);`
+/// (`nsterm.swift` 4120).  **The body is carried whole**: every identifier resolves - the mirrors'
+/// `XFRAME`/`WINDOW_FRAME!`/`glyph`/`glyph_row`/`frame`/`window` macros and members,
+/// `glyph_bits!`/`glyph_row_bits!`, `min`/`max` (`include/lisp.rs` 3114/3117, over `isize`, hence
+/// the casts), `FRAME_COLUMN_WIDTH`/`FRAME_LINE_HEIGHT`, `WINDOW_TAB_LINE_HEIGHT!`/
+/// `WINDOW_HEADER_LINE_HEIGHT!`/`WINDOW_TEXT_TO_FRAME_PIXEL_X!`/`WINDOW_TO_FRAME_PIXEL_Y!`, the
+/// extern `window_text_bottom_y` above, and the mirror's **gated** `phys_cursor_width`
+/// (`include/window.rs` 123) - which the body both reads and writes, which is why the export
+/// carries `have_window_system` rather than being ungated.  The one identifier that is *declared*
+/// here but **defined by no unit yet** is `x_stretch_cursor_p` (the mirror's extern,
+/// `include/globals.rs` 7200; xdisp.c's `DEFVAR_BOOL`, so its storage is the xdisp unit's): in a
+/// `have_window_system` build this object would carry that one undefined reference, and today no
+/// configuration compiles that arm at all (`## Evidence`).
+/// Swift `nsterm.swift` 4060-4063.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn get_phys_cursor_geometry (w: *mut c_void, row: *mut c_void,
+                                                  glyph: *mut c_void, xp: *mut c_int,
+                                                  yp: *mut c_int, heightp: *mut c_int)
+{
+  unsafe {
+    let f = XFRAME (WINDOW_FRAME! (w.cast::<window> ()));
+    let w = w.cast::<window> ();
+    let row = row.cast::<glyph_row> ();
+    let glyph = glyph.cast::<glyph> ();
+
+    /* C: wd = glyph->pixel_width; x = w->phys_cursor.x; if (x < 0) { wd += x; x = 0; }  */
+    let mut wd: c_int = (*glyph).pixel_width as c_int;
+    let mut x: c_int = (*w).phys_cursor.x;
+    if x < 0
+      { wd += x; x = 0; }
+
+    /* C: if (glyph->type == STRETCH_GLYPH && !x_stretch_cursor_p) wd = min
+       (FRAME_COLUMN_WIDTH (f), wd);  */
+    if glyph_bits! (type, *glyph) == STRETCH_GLYPH && ! x_stretch_cursor_p
+      { wd = min (FRAME_COLUMN_WIDTH (f) as isize, wd as isize) as c_int; }
+
+    /* C: w->phys_cursor_width = wd;  */
+    (*w).phys_cursor_width = wd;
+
+    /* C: y = w->phys_cursor.y; ascent = row->ascent; if (!row->ends_at_zv_p && row->ascent <
+       glyph->ascent) { y -= glyph->ascent - row->ascent; ascent = glyph->ascent; }  */
+    let mut y: c_int = (*w).phys_cursor.y;
+    let mut ascent: c_int = (*row).ascent;
+    if ! glyph_row_bits! (ends_at_zv_p, row) && (*row).ascent < (*glyph).ascent as c_int
+      {
+        y -= (*glyph).ascent as c_int - (*row).ascent;
+        ascent = (*glyph).ascent as c_int;
+      }
+
+    /* C: h0 = min (FRAME_LINE_HEIGHT (f), row->visible_height);
+          h = max (h0, ascent + glyph->descent); h = min (h, row->height);
+          h0 = min (h0, ascent + glyph->descent);  */
+    let mut h0: c_int = min (FRAME_LINE_HEIGHT (f) as isize, (*row).visible_height as isize) as c_int;
+    let mut h: c_int = max (h0 as isize, (ascent + (*glyph).descent as c_int) as isize) as c_int;
+    h = min (h as isize, (*row).height as isize) as c_int;
+    h0 = min (h0 as isize, (ascent + (*glyph).descent as c_int) as isize) as c_int;
+
+    /* C: y0 = WINDOW_TAB_LINE_HEIGHT (w) + WINDOW_HEADER_LINE_HEIGHT (w); if (y < y0) { h =
+       max (h - (y0 - y) + 1, h0); y = y0 - 1; } else { y0 = window_text_bottom_y (w) - h0;
+       if (y > y0) { h += y - y0; y = y0; } }  */
+    let mut y0: c_int = WINDOW_TAB_LINE_HEIGHT! (w) + WINDOW_HEADER_LINE_HEIGHT! (w);
+    if y < y0
+      {
+        h = max ((h - (y0 - y) + 1) as isize, h0 as isize) as c_int;
+        y = y0 - 1;
+      }
+    else
+      {
+        y0 = window_text_bottom_y (w) - h0;
+        if y > y0
+          { h += y - y0; y = y0; }
+      }
+
+    /* C: *xp = WINDOW_TEXT_TO_FRAME_PIXEL_X (w, x); *yp = WINDOW_TO_FRAME_PIXEL_Y (w, y);
+       *heightp = h;  */
+    *xp = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, x);
+    *yp = WINDOW_TO_FRAME_PIXEL_Y! (w, y);
+    *heightp = h;
+  }
+}
+
+/// C: `void draw_phys_cursor_glyph (struct window *w, struct glyph_row *row, enum
+/// draw_glyphs_face hl)` (src/xdisp.c 35099-35145, inside the `#ifdef HAVE_WINDOW_SYSTEM`
+/// opened at xdisp.c 35086) - the gate is that `#ifdef`, and the body is **carried only up to
+/// its first call**: C's guard (the `hpos` bounds test over `w->phys_cursor.hpos` and
+/// `row->used[TEXT_AREA]`) and its clamp are here, and the statement after them is
+/// `x1 = draw_glyphs (w, w->phys_cursor.x, row, TEXT_AREA, hpos, hpos + 1, hl, 0);` -
+/// `draw_glyphs` is src/xdisp.c's own function (35158) and has no mirror, no unit and no
+/// declaration in this tree, so there is nothing to call; everything after it
+/// (`w->phys_cursor_on_p = on_p;`, the `x1`-dependent `w->phys_cursor_width` writes, the
+/// `MATRIX_ROW_*`/`gui_fix_overlapping_area` tail) stands on that call.  The entry's purpose
+/// today is the symbol the Swift seam imports; the rest lands with the xdisp unit (`## Decisions`).
+/// Swift `nsterm.swift` 4065-4066.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_phys_cursor_glyph (w: *mut c_void, row: *mut c_void, draw: c_int)
+{
+  let _ = draw;
+  unsafe {
+    let w = w.cast::<window> ();
+    let row = row.cast::<glyph_row> ();
+    /* C: if ((row->reversed_p ? (w->phys_cursor.hpos >= 0)
+                               : (w->phys_cursor.hpos < row->used[TEXT_AREA]))) { … }  */
+    let in_bounds = if glyph_row_bits! (reversed_p, row) { (*w).phys_cursor.hpos >= 0 }
+                    else { (*w).phys_cursor.hpos < (*row).used [TEXT_AREA as usize] as c_int };
+    if ! in_bounds { return; }
+    /* *** C's body continues with `draw_glyphs` - see the comment above this function. *** */
+  }
+}
+
+/// C: `void draw_fringe_bitmap (struct window *w, struct glyph_row *row, int left_p)` (defined
+/// src/fringe.c 838-905) - the fringe name the frozen configuration owes exactly as it owes
+/// `gui_define_fringe_bitmap` (batch 12): `fringe.c` is in no configuration's source list
+/// (`build/emacs-ref/src/Makefile` 303/478, `WINDOW_SYSTEM_OBJ` empty; `docs/baseline/
+/// frozen-build-sources.txt`), and the port's unit is the empty `femacs/src/fringe.rs`
+/// (status 3.31).  So the export carries the gate of the configuration that owns the file, and
+/// **no statement of C's body is carried**: its first statement switches on
+/// `w->phys_cursor_type` and then calls `STANDARD_BITMAP_HEIGHT (hollow_rectangle_bits)`
+/// (fringe.c 849, over that file's own `standard_bitmaps` table), `get_logical_cursor_bitmap`
+/// (fringe.c's own function) and `draw_fringe_bitmap_1` (idem) with `struct
+/// draw_fringe_bitmap_params` - pieces no mirror and no unit carries.  The entry's purpose today
+/// is the symbol the Swift seam imports (its call site is `nsterm.swift` 4115).
+/// Swift `nsterm.swift` 4068-4069.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap (w: *mut c_void, row: *mut c_void, left_p: c_int)
+{
+  let _ = (w, row, left_p);
+  /* C's body (src/fringe.c 840-905) is not carried - see the comment above.  */
 }
