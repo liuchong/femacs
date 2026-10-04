@@ -101,8 +101,6 @@ _redisplay_adhoc_scroll_in_resize_mini_windows
 _redisplay_internal
 _redisplay_skip_fontification_on_input
 _reset_mouse_highlight
-_restore_frame_selected_window
-_restore_selected_window
 _scroll_margin
 _should_produce_line_number
 _specpdl

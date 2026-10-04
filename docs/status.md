@@ -4438,3 +4438,7 @@
   （复跑读数：7 条全部 `- :0`；`build-tu lib/c-ctype.c` built、`build-tu src/frame.c` built、`layout-check passed`）。
   ④ 下一段（该 lane 自己排的序）：先 `lib/stdlib.in.h` 的 `random_data`（**先看生成头 `build/emacs-ref/lib/stdlib.h` 定活臂**，
   P-66/3.207 的 `sys_time.in.h` 先例），再 w32 → w32gui → emacsgtkfixed → widgetprv（含一个匿名成员，按 P-72 ③ 命名）。
+
+- **3.240 补记（同轮）**：`check-undef` 报两条棘轮行已满足（`_restore_frame_selected_window`、`_restore_selected_window`——`xdisp` 第 17/18 轮把它们落成了定义），
+  按"行不再匹配即删"的规则从 `docs/baseline/undef-pending.txt` 删掉（110 行 → **108 行**）：复跑 `check-undef` →
+  **`108 pending, 0 new`，且不再打印任何 stale 行**。（工具把"仍对应孤儿的行"计作 pending、把"已满足的行"单列 stale，所以 110→108 时 pending 仍是 108 ✅ 两个读数一起读才对。）
