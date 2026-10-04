@@ -2389,3 +2389,18 @@
   `lib-src/Makefile.in` 450 行只在 Haiku 上构建它（`be-resources`）——所以它属于 Haiku 的 C++ 那一组。
   删掉那个 set、把 `be_resources` 加进 `CPP_STEMS`，重生成后它的目标是
   **`femacs/platform/haiku/be_resources.cc`**，C++ 表由 4 条变 **5 条 / 8,264 行**。
+
+- **3.148 `check-target-names` 接纳"别的工具链的系统头"镜像，并定下 `android-asset.h` 的做法（2026-10-04）**：
+  ① mirror lane B 在收口时把 `android-asset.h` 停下来问（它自身 0 个 `#if`，9 个 JNI 函数按"无条件文本必须携带"
+  要逐声明写；但它只被 `androidvfs.c` 的 `#else /* __ANDROID_API__ < 9 */` 包含，而 `__ANDROID_API__` 在冻结表里
+  根本不存在）。**裁决：走方案 A（它是 590 里的一行，`--check` 必须能给 OK，所以镜像要真写）**，前提与做法：
+  - 先落一份 `femacs/src/include/jni.rs`——**别的工具链的系统头镜像**（NDK 的 `<jni.h>`，本机
+    `~/Library/Android/sdk/ndk/*/…/sysroot/usr/include/jni.h` 可实测），首行按新形式自我声明；
+    `JNINativeInterface` 的函数表偏移用 `offsetof` 逐项实测并配 `const _: () = assert!(…)`。
+  - 该镜像**不在 590 之内**（参照树里没有 `jni.h`），属于 P-26/P-49/P-70 的"系统头替身"家族，因此它不需要
+    map 行；但 `check-target-names` 的 R1 会要求它**自我声明**，所以本轮把该门的 `DECLARED` 增一条
+    「`// femacs: mirror of the <谁的> <头>`（任意 possessor）」，并补 selftest 用例（**9 cases / 0 failures**；
+    全树 550 `.rs` / 593 targets / 0 finding）。`jni.h` 只是**第一个**这类镜像，Haiku SDK 的 `<kernel/OS.h>`
+    （mirror lane A 已在 `haiku_support.rs` 里就地声明了几个类型）是同类——将来若也要独立镜像，照这条走。
+  ② `android-asset.rs` 之后可以与 `jni.rs` 同批（或随后）落地：2 个 struct、1 个 `static const char *`
+  目录树、2 条原型、9 个函数体（含 `AASSET_MODE_*` 匿名枚举）与那两个 `excluded-macros` 之外的排他项。
