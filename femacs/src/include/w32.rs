@@ -16,7 +16,7 @@
 // `docs/ports/include-assert.in.md` precedent, status 3.157).  `CYGWIN` and `HAVE_GNUTLS` are
 // `undef` in `docs/baseline/config/darwin-arm64.macros.tsv`, so C 23-25 is an exclusion this
 // target does not take (ported below as the compile-time assertion that expresses it) and
-// C 270-276 is dead text under `#[cfg (feature = "gnutls")]` (PORTING.md P-51).
+// C 270-276 is dead text under `#[cfg (feature = "have_gnutls")]` (PORTING.md P-51).
 //
 // Nothing on this target compiles the header: its readers are all Windows units (`src/w32.c`,
 // `src/w32proc.c`, `src/w32fns.c`, …), and `WINDOWSNT`/`HAVE_NTGUI` are `undef`, so no unit
@@ -475,7 +475,7 @@ unsafe extern "C" {
 /// C:                                   void* buf, size_t sz);
 /// C: extern ssize_t emacs_gnutls_push (gnutls_transport_ptr_t p,
 /// C:                                   const void* buf, size_t sz);
-#[cfg (feature = "gnutls")]
+#[cfg (feature = "have_gnutls")]
 unsafe extern "C" {
   pub fn emacs_gnutls_pull (p: gnutls_transport_ptr_t, buf: *mut c_void, sz: usize) -> c_long;
   pub fn emacs_gnutls_push (p: gnutls_transport_ptr_t, buf: *const c_void, sz: usize) -> c_long;

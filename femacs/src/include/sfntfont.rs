@@ -3,7 +3,7 @@
 // NOTE (integrator 3.170, re-measured by this lane): `glyph_string` is `*mut c_void` at the two
 // sites below, and the measurement says that is the *standing* spelling for this target rather than
 // a temporary one.  The record **is** mirrored - `include/dispextern.rs` 1362-1507 - but it is
-// declared there `#[cfg (feature = "window_system")]`, which is right: dispextern.h 1358 declares it
+// declared there `#[cfg (feature = "have_window_system")]`, which is right: dispextern.h 1358 declares it
 // inside `#ifdef HAVE_WINDOW_SYSTEM` and the frozen configuration has no window system, so the name
 // exists in no crate this target builds.  Naming it un-gated is what reddens `xtask layout-check`'s
 // single crate (the two `E0425`s the integrator's note recorded); the alternative - gating
@@ -36,7 +36,7 @@
 // here, and each is recorded where it belongs: `struct font_metrics` and `struct font_driver` are
 // `font.h`'s, and `include/font.rs` only *mentions* `font_driver` (its 129 says the record has not
 // landed); `struct glyph_string` **is** `dispextern.rs`'s, but that mirror carries it under
-// `#[cfg (feature = "window_system")]` (dispextern.h 1358's `#ifdef HAVE_WINDOW_SYSTEM`), so on
+// `#[cfg (feature = "have_window_system")]` (dispextern.h 1358's `#ifdef HAVE_WINDOW_SYSTEM`), so on
 // this configuration the name does not exist - measured when `xtask layout-check` compiled this
 // mirror (`error[E0425]: cannot find type glyph_string in this scope`, twice: C 41's `sfntfont_draw`
 // and C 49-51's typedef).  All five pointers therefore keep C's pointer depth with an untyped

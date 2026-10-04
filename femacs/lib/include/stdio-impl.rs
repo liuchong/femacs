@@ -126,9 +126,9 @@ macro_rules! HASUB { ($fp:expr) => { (fp_ub! ($fp)._base != core::ptr::null_mut 
 pub const _IO_UNBUFFERED: core::ffi::c_int = 0x2;
 #[cfg (feature = "glibc_io_eof_seen")]
 pub const _IO_IN_BACKUP: core::ffi::c_int = 0x100;
-#[cfg (feature = "haiku")]
+#[cfg (feature = "have_haiku")]
 pub const _IO_EOF_SEEN: core::ffi::c_int = 0x10;
-#[cfg (feature = "haiku")]
+#[cfg (feature = "have_haiku")]
 pub const _IO_LINE_BUF: core::ffi::c_int = 0x200;
 
 /* C 107-110: the DragonFly arm's field renames (`# define _p pub._p`, …) - the field names of

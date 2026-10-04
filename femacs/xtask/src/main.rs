@@ -1515,15 +1515,15 @@ fn dead_arms() -> i32 {
         ("no_rint", "HAVE_RINT", "false"),
         ("no_trunc", "HAVE_TRUNC", "false"),
         ("no_signbit", "HAVE_SIGNBIT", "false"),
-        ("haiku", "HAIKU", "true"),
-        // `native_comp` was the one structural arm *nothing* compiled: `cfg!(feature =
-        // "native_comp")` is false in every real build (no `[features]`, and this list did
-        // not name it), so `lisp.rs`'s `#[cfg(feature = "native_comp")]` pair — the
+        ("have_haiku", "HAIKU", "true"),
+        // `have_native_comp` was the one structural arm *nothing* compiled: `cfg!(feature =
+        // "have_native_comp")` is false in every real build (the `[features]` table in this
+        // manifest leaves every feature off, and this list did not name it until F6), so `lisp.rs`'s `#[cfg(feature = "have_native_comp")]` pair — the
         // `NATIVE_COMP_FUNCTIONP`/`DYNP` bodies behind `HAVE_NATIVE_COMP` — had never been
         // through rustc, and the const assertion that claims the feature and the
         // configuration agree could not fail (review A's F6).  Flipping the configuration
         // constant *and* the feature together is what makes that claim executable.
-        ("native_comp", "HAVE_NATIVE_COMP", "true"),
+        ("have_native_comp", "HAVE_NATIVE_COMP", "true"),
         // HAVE_LOG2 is not gated on a feature (the condition keeps the constant), but
         // the other arm is still C text that has to compile.
         ("", "HAVE_LOG2", "false"),

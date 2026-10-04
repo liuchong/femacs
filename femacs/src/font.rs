@@ -428,13 +428,13 @@ pub fn CHECK_FONT_GET_OBJECT (x: Lisp_Object) -> *mut font
 #[inline(always)]
 pub fn font_data_structures_may_be_ill_formed () -> bool
 {
-  #[cfg(feature = "cairo")]
+  #[cfg(feature = "use_cairo")]
   {
     /* Although this works around Bug#20890, it is probably not the
        right thing to do.  */
     return unsafe { gc_in_progress };
   }
-  #[cfg(not (feature = "cairo"))]
+  #[cfg(not (feature = "use_cairo"))]
   {
     return false;
   }
@@ -6863,9 +6863,9 @@ pub unsafe extern "C" fn syms_of_font ()
       #[cfg(feature = "have_x_windows")]
       {
 	syms_of_xfont ();
-	#[cfg(feature = "cairo")]
+	#[cfg(feature = "use_cairo")]
 	{ syms_of_ftcrfont (); }
-	#[cfg(not (feature = "cairo"))]
+	#[cfg(not (feature = "use_cairo"))]
 	{
 	  #[cfg(feature = "xft")]
 	  { syms_of_xftfont (); }
@@ -6873,7 +6873,7 @@ pub unsafe extern "C" fn syms_of_font ()
       }
       #[cfg(not (feature = "have_x_windows"))]
       {
-	#[cfg(feature = "cairo")]
+	#[cfg(feature = "use_cairo")]
 	{ syms_of_ftcrfont (); }
       }
     }

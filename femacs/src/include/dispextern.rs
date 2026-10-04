@@ -163,7 +163,8 @@ macro_rules! SET_CHAR_GLYPH_FROM_GLYPH {
    character is multibyte, return -1 as we can't use glyph table for a
    multibyte character.  */
 
-// dispextern.h 712-724: the same do-while shape as `SET_CHAR_GLYPH` above.
+// dispextern.h 715-723: `SET_GLYPH_FROM_CHAR_GLYPH`, the same do-while shape as
+// `SET_CHAR_GLYPH` above.
 macro_rules! SET_GLYPH_FROM_CHAR_GLYPH {
   ($g:expr, $glyph:expr) =>
     { {
@@ -351,7 +352,7 @@ pub union glyph_u
   /* Image ID for image glyphs (type == IMAGE_GLYPH).  */
   pub img_id: c_int,                    // 605
   /* Xwidget ID (dispextern.h 607-610's `#ifdef HAVE_XWIDGETS`; dead on this target).  */
-  #[cfg (feature = "xwidgets")]
+  #[cfg (feature = "have_xwidgets")]
   pub xwidget: u32,                     // 609
   /* Sub-structure for type == STRETCH_GLYPH.  */
   pub stretch: glyph_u_stretch,         // 613-620
@@ -814,7 +815,7 @@ pub struct glyph_row
   /* The run of 29 `bool_bf : 1` members at 245:0-248:4, one byte per four bytes'
      worth of members (`bools [0]` is byte 245, `bools [3]` byte 248).  */
   pub bools: [u8; 4],                   // 1040-1145
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   /* Non-NULL means the current clipping area, temporarily set while exposing a region
      (coordinates are frame-relative).  */
   pub clip: *const Emacs_Rectangle,     // 1152
@@ -1342,7 +1343,7 @@ pub const DRAW_IMAGE_SUNKEN: draw_glyphs_face = 5;
    Swift lane's two signatures (`nsfont_draw` 1151, `ns_dump_glyphstring` 1711) are the
    immediate consumer.  Per P-51 the text of an arm the frozen build does not compile is
    carried under a `feature` that names the *non*-frozen side, which is what
-   `#[cfg (feature = "window_system")]` does (nothing in this tree enables it, so what the
+   `#[cfg (feature = "have_window_system")]` does (nothing in this tree enables it, so what the
    compiler sees is exactly what clang sees).
 
    Field types follow P-55/P-72.  `frame`, `window`, `font` and `composition` have owner
@@ -1360,7 +1361,7 @@ pub const DRAW_IMAGE_SUNKEN: draw_glyphs_face = 5;
    measure it with, so a `const _` here would be an invented number.  What *is* measured is the
    bitfield run in isolation (the `GLYPH_STRING_*` note below); everything else about the
    record's layout is unmeasured and is recorded as such in docs/ports/include-dispextern.md.  */
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct glyph_string
@@ -1449,20 +1450,20 @@ pub struct glyph_string
   /* The GC to use for drawing this glyph string (C 1464-1475).  A window-system build picks
      exactly one arm, so each is carried under the feature this tree's units use for that C
      macro.  */
-  #[cfg (feature = "x_windows")]
+  #[cfg (feature = "have_x_windows")]
   pub gc: *mut c_void,                         /// C: `GC gc;` (dispextern.h 1465)
   // C 1465's `GC` is X11's `struct _XGC *` and has no mirror; the only `GC` this tree declares
   // is msdos.h's `typedef int GC` (msdos.rs 217), a *different* type with the same name, so
   // the pointer stays untyped rather than silently picking that one up (P-55/P-72).
-  #[cfg (feature = "android")]
+  #[cfg (feature = "have_android")]
   pub gc: *mut c_void,                         /// C: `struct android_gc *gc;` (dispextern.h 1467)
   // C 1466-1467: `struct android_gc` (androidgui.h 148) is not in androidgui.rs yet
   // (that mirror declares `android_gc_function`/`android_gc_values`/`android_gcontext`).
-  #[cfg (feature = "ntgui")]
+  #[cfg (feature = "have_ntgui")]
   pub gc: *mut Emacs_GC,                       // C 1470: `Emacs_GC *gc;`
-  #[cfg (feature = "ntgui")]
+  #[cfg (feature = "have_ntgui")]
   pub hdc: *mut c_void,                        /// C: `HDC hdc;` (dispextern.h 1471)
-  #[cfg (feature = "pgtk")]
+  #[cfg (feature = "have_pgtk")]
   pub xgcv: Emacs_GC,                          // C 1474: `Emacs_GC xgcv;`
 
   /* A pointer to the first glyph in the string.  This glyph
@@ -1514,13 +1515,13 @@ pub struct glyph_string
    carries `OVERLAPS_PRED`/`OVERLAPS_SUCC` as *live* copies of its own, because the frozen
    configuration has no such macro - the window-system freeze retires them (the `struct font`
    use-site precedent, status 3.158), and docs/ports/include-dispextern.md records the pair.  */
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const OVERLAPS_PRED: c_uint = 1 << 0;                        // C 1445
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const OVERLAPS_SUCC: c_uint = 1 << 1;                        // C 1446
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const OVERLAPS_BOTH: c_uint = OVERLAPS_PRED | OVERLAPS_SUCC;  // C 1447
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const OVERLAPS_ERASED_CURSOR: c_uint = 1 << 2;               // C 1448
 
 /* `glyph_string::bits`, the six members of C 1431-1461, in the order the C declarations put
@@ -1531,24 +1532,24 @@ pub const OVERLAPS_ERASED_CURSOR: c_uint = 1 << 2;               // C 1448
    for the first member and the first plus `for_overlaps`), i.e. one byte of members inside a
    four-byte unit.  That is the run's own answer, not the record's layout: the record's
    `bits` offset and every other offset are unmeasured on this target and asserted nowhere.  */
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const GLYPH_STRING_EXTENDS_TO_END_OF_LINE_P: u32 = 1 << 0;   // C 1431
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const GLYPH_STRING_BACKGROUND_FILLED_P: u32 = 1 << 1;        // C 1434
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const GLYPH_STRING_FONT_NOT_FOUND_P: u32 = 1 << 2;           // C 1439
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const GLYPH_STRING_STIPPLED_P: u32 = 1 << 3;                 // C 1443
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const GLYPH_STRING_FOR_OVERLAPS_SHIFT: u32 = 4;              // C 1456
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const GLYPH_STRING_FOR_OVERLAPS_WIDTH: u32 = 3;
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub const GLYPH_STRING_PADDING_P: u32 = 1 << 7;                  // C 1461
 
 /// Read one numeric member of `glyph_string::bits` — C's `(S).for_overlaps` (zero-extended,
 /// as an unsigned C bitfield of that width is).
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 #[inline(always)]
 pub fn glyph_string_bits_get (g: *const glyph_string, shift: u32, width: u32) -> c_int
 {
@@ -1557,7 +1558,7 @@ pub fn glyph_string_bits_get (g: *const glyph_string, shift: u32, width: u32) ->
 
 /// Assign one numeric member of `glyph_string::bits` — C's `(S).for_overlaps = VALUE`: only the
 /// member's bits change.
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 #[inline(always)]
 pub fn glyph_string_bits_set (g: *mut glyph_string, shift: u32, width: u32, value: c_int)
 {
@@ -1568,7 +1569,7 @@ pub fn glyph_string_bits_set (g: *mut glyph_string, shift: u32, width: u32, valu
 }
 
 /// The `width`-bit mask of a `glyph_string::bits` member.
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 #[inline(always)]
 pub fn glyph_string_bits_mask (width: u32) -> u32
 {
@@ -1576,7 +1577,7 @@ pub fn glyph_string_bits_mask (width: u32) -> u32
 }
 
 /// Read one `bool_bf : 1` member of `glyph_string::bits` — C's `(S).MEMBER`.
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 #[inline(always)]
 pub fn glyph_string_bool_p (g: *const glyph_string, mask: u32) -> bool
 {
@@ -1584,7 +1585,7 @@ pub fn glyph_string_bool_p (g: *const glyph_string, mask: u32) -> bool
 }
 
 /// Assign one `bool_bf : 1` member of `glyph_string::bits` — C's `(S).MEMBER = VALUE`.
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 #[inline(always)]
 pub fn glyph_string_bool_set (g: *mut glyph_string, mask: u32, value: bool)
 {
@@ -1598,7 +1599,7 @@ pub fn glyph_string_bool_set (g: *mut glyph_string, mask: u32, value: bool)
 /// (PORTING.md 1.3): `s->padding_p` is `glyph_string_bits! (padding_p, s)`, and
 /// `s->padding_p = v` is `glyph_string_bits! (padding_p, s, v)`.  The second argument is C's
 /// `(S)`; every arm carries the member's position (`glyph_string::bits`, one `u32`).
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 macro_rules! glyph_string_bits {
   (extends_to_end_of_line_p, $s:expr) =>
     { glyph_string_bool_p (&($s), GLYPH_STRING_EXTENDS_TO_END_OF_LINE_P) };
@@ -1843,7 +1844,7 @@ pub struct bidi_string_data
 /* Check that glyph pointers stored in glyph rows of MATRIX are okay.
    This aborts if any pointer is found twice.  */
 
-// dispextern.h 862-870: the block is inside `#ifdef GLYPH_DEBUG`, and GLYPH_DEBUG is `undef`
+// dispextern.h 862-870: the block is inside `#ifdef GLYPH_DEBUG`, and GLYPH_DEBUG is undef
 // in the frozen configuration (docs/baseline/config/darwin-arm64.macros.tsv), so C compiles
 // the `#else` arm: `((void) 0)`.  `CHECK_MATRIX` therefore does not evaluate its argument,
 // and neither does the port's live arm (the `aclinfo_free` family's shape in

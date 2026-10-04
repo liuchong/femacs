@@ -76,7 +76,7 @@ pub mod atimer_decls {
     pub fn run_all_atimers ();
     // atimer.h 81-83's `#ifdef HAVE_TIMERFD` (dead here, P-51):
     //   void timerfd_callback (int, void *);
-    #[cfg (feature = "timerfd")]
+    #[cfg (feature = "have_timerfd")]
     pub fn timerfd_callback (fd: c_int, arg: *mut c_void);
   }
 }

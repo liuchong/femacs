@@ -602,7 +602,7 @@ pub struct buffer {
     /// A cons means put car spacing above and cdr spacing below the line.
     pub extra_line_spacing_: Lisp_Object,
     /// A list of tree-sitter parsers for this buffer.
-    #[cfg(feature = "tree_sitter")]
+    #[cfg(feature = "have_tree_sitter")]
     pub ts_parser_list_: Lisp_Object,
     /// What type of text conversion the input method should apply to
     /// this buffer.
@@ -722,11 +722,11 @@ pub struct buffer {
     /// time the bytepos is only near the actual position).  All caches are
     /// initialized to empty, meaning no linecol tracking for this
     /// buffer.
-    #[cfg(feature = "tree_sitter")]
+    #[cfg(feature = "have_tree_sitter")]
     pub ts_linecol_begv: ts_linecol,
-    #[cfg(feature = "tree_sitter")]
+    #[cfg(feature = "have_tree_sitter")]
     pub ts_linecol_point: ts_linecol,
-    #[cfg(feature = "tree_sitter")]
+    #[cfg(feature = "have_tree_sitter")]
     pub ts_linecol_zv: ts_linecol,
     /// Changes in the buffer are recorded here for undo, and t means
     /// don't record anything.  This information belongs to the base
@@ -1211,42 +1211,42 @@ pub fn BUFFER_CHECK_INDIRECTION (b: *mut buffer)
 // assertion keeps it tied to the frozen configuration: enabling the feature without
 // regenerating the configuration (which is what would add the members' layout keys)
 // fails to compile instead of silently growing unasserted fields (P-08, P-34).
-const _: () = assert! (!cfg! (feature = "tree_sitter") || HAVE_TREE_SITTER);
-#[cfg(feature = "tree_sitter")]
+const _: () = assert! (!cfg! (feature = "have_tree_sitter") || HAVE_TREE_SITTER);
+#[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn BUF_TS_LINECOL_BEGV (buf: *mut buffer) -> ts_linecol
 {
   return unsafe { (*buf).ts_linecol_begv };
 }
-#[cfg(feature = "tree_sitter")]
+#[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn BUF_TS_LINECOL_POINT (buf: *mut buffer) -> ts_linecol
 {
   return unsafe { (*buf).ts_linecol_point };
 }
 
-#[cfg(feature = "tree_sitter")]
+#[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn BUF_TS_LINECOL_ZV (buf: *mut buffer) -> ts_linecol
 {
   return unsafe { (*buf).ts_linecol_zv };
 }
 
-#[cfg(feature = "tree_sitter")]
+#[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn SET_BUF_TS_LINECOL_BEGV (buf: *mut buffer, linecol: ts_linecol)
 {
   unsafe { (*buf).ts_linecol_begv = linecol; }
 }
 
-#[cfg(feature = "tree_sitter")]
+#[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn SET_BUF_TS_LINECOL_POINT (buf: *mut buffer, linecol: ts_linecol)
 {
   unsafe { (*buf).ts_linecol_point = linecol; }
 }
 
-#[cfg(feature = "tree_sitter")]
+#[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn SET_BUF_TS_LINECOL_ZV (buf: *mut buffer, linecol: ts_linecol)
 {

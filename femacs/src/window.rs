@@ -8532,7 +8532,7 @@ DEFUN! ("window-cursor-info", Fwindow_cursor_info, Swindow_cursor_info,
      text needs no `const _` binding: the port's `include/config.rs` has no
      `HAVE_WINDOW_SYSTEM` (config.h leaves it undefined), and `xtask dead-arms`' feature list
      does not name `window_system`, so this block is never compiled.  */
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
   let phys_cursor_glyph: *mut glyph = get_phys_cursor_glyph (w);

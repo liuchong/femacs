@@ -555,9 +555,9 @@ unsafe fn casify_region (flag: case_action, mut b: Lisp_Object, mut e: Lisp_Obje
   // (P-51); this assertion keeps the `cfg` tied to the frozen configuration, so enabling the
   // feature without regenerating `config.rs` fails to compile instead of compiling text that
   // the C side never had (the buffer.rs precedent, P-08/P-34).
-  const _: () = assert! (!cfg! (feature = "tree_sitter") || HAVE_TREE_SITTER);
+  const _: () = assert! (!cfg! (feature = "have_tree_sitter") || HAVE_TREE_SITTER);
 
-  #[cfg (feature = "tree_sitter")]
+  #[cfg (feature = "have_tree_sitter")]
   {
     // C's `#ifdef HAVE_TREE_SITTER` arm (casefiddle.c 543-552): gated text (P-51) that the
     // frozen configuration never compiles.  The two entries it calls live in treesit.h's
@@ -599,7 +599,7 @@ unsafe fn casify_region (flag: case_action, mut b: Lisp_Object, mut e: Lisp_Obje
       signal_after_change (start, end - start - added, end - start);
       update_compositions (start, end, CHECK_ALL);
     }
-  #[cfg (feature = "tree_sitter")]
+  #[cfg (feature = "have_tree_sitter")]
   {
     // C's second `#ifdef HAVE_TREE_SITTER` arm (casefiddle.c 572-579).
     unsafe extern "C" {

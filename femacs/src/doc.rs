@@ -77,7 +77,7 @@ macro_rules! doc_lseek { ($($args:tt)*) => { lseek ($($args)*) }; }
 //   doc_fd  struct android_fd_or_asset / doc_fd_p(fd) ((fd).asset != (void *) -1) /
 //   doc_open android_open_asset / doc_read_quit android_asset_read_quit /
 //   doc_lseek android_asset_lseek / USE_ANDROID_ASSETS
-#[cfg (feature = "android_assets")]
+#[cfg (feature = "use_android_assets")]
 mod android_assets {
   pub type doc_fd = *mut c_void;
   macro_rules! doc_fd_p { ($fd:expr) => { ($fd).asset != (-1 as *mut c_void) }; }
@@ -94,7 +94,7 @@ static sibling_etc: [u8; 8] = *b"../etc/\0";
 
 // C 78-90's `#ifdef USE_ANDROID_ASSETS` arm: dead in the frozen configuration, kept as gated
 // text (P-51).
-#[cfg (feature = "android_assets")]
+#[cfg (feature = "use_android_assets")]
 unsafe fn close_file_unwind_android_fd (ptr: *mut c_void)
 {
   let fd: *mut android_assets::android_fd_or_asset = ptr as *mut android_assets::android_fd_or_asset;
@@ -194,7 +194,7 @@ pub unsafe extern "C" fn get_doc_string (filepos: Lisp_Object, unibyte: bool) ->
   // C 148-153's `#ifndef USE_ANDROID_ASSETS` arm is the live one; the `#else` arm is gated
   // text (P-51), as above.
   record_unwind_protect_int (Some (close_file_unwind), fd);
-  #[cfg (feature = "android_assets")]
+  #[cfg (feature = "use_android_assets")]
   { record_unwind_protect_ptr (Some (close_file_unwind_android_fd), &raw mut fd as *mut c_void); }
 
   /* Seek only to beginning of disk block.  */
@@ -411,7 +411,7 @@ DEFUN! ("internal-subr-documentation", Fsubr_documentation, Ssubr_documentation,
   // C 387-393: the `#ifdef HAVE_NATIVE_COMP` arm.  HAVE_NATIVE_COMP is false in the frozen
   // configuration, so the arm is kept as gated text (P-51); `native_function_doc` is comp.h
   // 78's declaration, which no mirror carries, so it is declared here (the vm-limit precedent).
-  #[cfg (feature = "native_comp")]
+  #[cfg (feature = "have_native_comp")]
   {
     unsafe extern "C" {
       /// C: Lisp_Object native_function_doc (Lisp_Object)
@@ -421,8 +421,8 @@ DEFUN! ("internal-subr-documentation", Fsubr_documentation, Ssubr_documentation,
       { return native_function_doc (function); }
   }
   // C 394-397: the `#ifdef HAVE_MODULES` arm, dead for the same reason and never compiled
-  // (`modules` is not one of xtask dead-arms' FLIPS).
-  #[cfg (feature = "modules")]
+  // (`have_modules` is not one of xtask dead-arms' FLIPS).
+  #[cfg (feature = "have_modules")]
   {
     unsafe extern "C" {
       /// C: bool MODULE_FUNCTIONP (Lisp_Object)  (module-env / emacs-module.h)
@@ -588,7 +588,7 @@ DEFUN! ("Snarf-documentation", Fsnarf_documentation, Ssnarf_documentation,
     }
   // C 553-558's `#ifndef USE_ANDROID_ASSETS` arm is the live one; the `#else` is gated (P-51).
   record_unwind_protect_int (Some (close_file_unwind), fd);
-  #[cfg (feature = "android_assets")]
+  #[cfg (feature = "use_android_assets")]
   { record_unwind_protect_ptr (Some (close_file_unwind_android_fd), &raw mut fd as *mut c_void); }
   Vdoc_file_name = filename;
   let mut filled: c_int = 0;

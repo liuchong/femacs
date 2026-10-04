@@ -553,7 +553,7 @@ pub unsafe extern "C" fn esprintf (buf: *mut c_char, format: *const c_char,
   return nbytes;
 }
 
-#[cfg(feature = "x_windows")]
+#[cfg(feature = "have_x_windows")]
 pub unsafe extern "C" fn exprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_t,
                                    nonheapbuf: *mut c_char, bufsize_max: ptrdiff_t,
                                    format: *const c_char, mut ap: ...) -> ptrdiff_t
@@ -565,7 +565,7 @@ pub unsafe extern "C" fn exprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_
 // C gates `exprintf` on `HAVE_X_WINDOWS && USE_X_TOOLKIT` (doprnt.c 561); the frozen
 // configuration has neither, so the port gates the function on a feature and keeps the
 // two constants from drifting (P-08), the shape buffer.rs uses for tree-sitter.
-const _: () = assert! (!cfg! (feature = "x_windows") || (HAVE_X_WINDOWS && USE_X_TOOLKIT));
+const _: () = assert! (!cfg! (feature = "have_x_windows") || (HAVE_X_WINDOWS && USE_X_TOOLKIT));
 
 /* Act like exprintf, except take a va_list.  */
 #[unsafe(no_mangle)]

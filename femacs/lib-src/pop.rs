@@ -23,7 +23,7 @@
    an empty unit, and 3.49 keeps a file that the condition evaluator can decide (this one is in
    docs/baseline/config/cond-eval-verified.txt) on the P-08 basis: the dead region is recorded,
    not carried, because an arm this configuration does not compile is an invented item - the D3
-   class `src/data.rs` records for the `#[cfg (feature = "modules")]` arm it reverted.  The port
+   class `src/data.rs` records for the `#[cfg (feature = "have_modules")]` arm it reverted.  The port
    therefore has the same zero definitions the reference compiles here, and the gating macro is
    recorded so a future configuration that enables it knows which `#if` to re-read.  The
    `<pop.h>` mirror's declarations are not reached from this unit either, since C's

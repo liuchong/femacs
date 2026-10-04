@@ -18,14 +18,14 @@ include!("../../lib/include/timespec.rs");      // #include <timespec.h>
 // 0, P-08); the other two branches keep C's text under their features (P-51), and X11's
 // `Time` — which the port has no mirror for — is `unsigned long` on every supported X
 // target, which is what the branch has to produce.
-#[cfg(feature = "x_windows")]
+#[cfg(feature = "have_x_windows")]
 pub type Time = c_ulong;                     // from <X11/X.h>: typedef unsigned long Time
-#[cfg(all(feature = "haiku", not(feature = "x_windows")))]
+#[cfg(all(feature = "have_haiku", not(feature = "have_x_windows")))]
 pub type Time = i64;                         // typedef int64 Time
-#[cfg(not(any(feature = "x_windows", feature = "haiku")))]
+#[cfg(not(any(feature = "have_x_windows", feature = "have_haiku")))]
 pub type Time = c_ulong;                     // typedef unsigned long Time
-const _: () = assert! (!cfg! (feature = "x_windows") || HAVE_X_WINDOWS);
-const _: () = assert! (!cfg! (feature = "haiku") || HAIKU);
+const _: () = assert! (!cfg! (feature = "have_x_windows") || HAVE_X_WINDOWS);
+const _: () = assert! (!cfg! (feature = "have_haiku") || HAIKU);
 
 /* On some configurations (hpux8.0, X11R4), sys/time.h and X11/Xos.h
    disagree about the name of the guard symbol.  */

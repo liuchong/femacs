@@ -23,7 +23,7 @@
 // clock and timer half, which the port's mirrors do not carry yet), `_WIN32_WINNT` - and
 // nothing compiles the arms that name them, so they are named at the use site without
 // declarations, the `fopen`/`_setmode` precedent (`lib/boot-time.rs`'s note, PORTING.md
-// P-51).  What the `haiku` arm needs *is* declared, because `xtask dead-arms` compiles that
+// P-51).  What the `have_haiku` arm needs *is* declared, because `xtask dead-arms` compiles that
 // one: `struct stat`, `stat` and `get_stat_mtime`, included below.
 //
 // C 16's `Written by Bruno Haible` comment and C 1-15's opening block are the file's own
@@ -63,7 +63,7 @@ unsafe fn get_linux_uptime (p_uptime: *mut timespec) -> c_int
     { return 0; }
 
   /* C 36: `# if !defined __ANDROID__` - /proc/uptime has no read permission on Android.  */
-  #[cfg (not (feature = "android"))]
+  #[cfg (not (feature = "have_android"))]
   {
     let mut fp: *mut FILE = fopen (c"/proc/uptime".as_ptr (), c"re".as_ptr ());
     if !fp.is_null ()
@@ -214,7 +214,7 @@ unsafe fn get_linux_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_i
 /* C 176-180: "On Android, there is no /var, and normal processes don't have access to system
    files.  Therefore use the kernel's uptime counter, although it produces wrong values after
    the date has been bumped in the running system."  */
-#[cfg (feature = "android")]
+#[cfg (feature = "have_android")]
 unsafe fn get_android_boot_time (p_boot_time: *mut timespec) -> c_int
 {
   let mut uptime: timespec = timespec { tv_sec: 0, tv_nsec: 0 };
@@ -287,7 +287,7 @@ unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
 }
 
 /* C 258-282: `#if defined __HAIKU__` - dead on this target, carried; `xtask dead-arms` is
-   what compiles it (feature `haiku`), which is why the names it needs are declared above.  */
+   what compiles it (feature `have_haiku`), which is why the names it needs are declared above.  */
 
 /* C 265-272: "On Haiku, /etc/utmp does not exist.  During boot, 1. the current time is
    restored, but possibly with a wrong time zone, that is, with an offset of a few hours,
@@ -295,7 +295,7 @@ unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
    particular the network device, 4. the correct date and time is set, 5. some more device
    nodes get created.  The boot time can be retrieved by looking at a directory created
    during phase 5, such as /dev/input."  */
-#[cfg (feature = "haiku")]
+#[cfg (feature = "have_haiku")]
 unsafe fn get_haiku_boot_time (p_boot_time: *mut timespec) -> c_int
 {
   let boot_touched_file: *const c_char = b"/dev/input\0".as_ptr () as *const c_char;

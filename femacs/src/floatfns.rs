@@ -3,7 +3,7 @@
 // One-to-one port: same statements in the same order, same names (PORTING.md).  The
 // reference's `#if`s are the frozen configuration's branches (P-08): HAVE_LOG2/
 // HAVE_RINT/HAVE_TRUNC are 1/1/1 and HAIKU is undefined (docs/baseline/config/*.json),
-// so the arms gated on `feature = "have_rint"`/`"have_trunc"`/`"haiku"` below are the
+// so the arms gated on `feature = "no_rint"`/`"no_trunc"`/`"have_haiku"` below are the
 // ones C leaves out.  `<math.h>`/`<limits.h>` come from the system mirrors
 // lib/include/math.rs and limits.in.rs (P-26); `mpz_t` values are passed as
 // `…as_mut_ptr ()`/`…as_ptr ()` because the port's `mpz_t` is C's array-of-one typedef
@@ -339,7 +339,7 @@ pub unsafe extern "C" fn double_integer_scale (d: c_double) -> c_int
   let exponent = ilogb (d);
   // C gates this block on `#ifdef HAIKU`; HAIKU is undefined in the frozen
   // configuration, so the port keeps the text under the same condition (P-08).
-  #[cfg(feature = "haiku")]
+  #[cfg(feature = "have_haiku")]
   {
     /* On Haiku, the values returned by ilogb are nonsensical when
        confronted with tiny numbers, inf, or NaN, which breaks the trick
@@ -362,7 +362,7 @@ pub unsafe extern "C" fn double_integer_scale (d: c_double) -> c_int
 	  + if isnan! (d) { 2 } else { (exponent == INT_MAX) as c_int } };
 }
 
-const _: () = assert! (!cfg! (feature = "haiku") || HAIKU);
+const _: () = assert! (!cfg! (feature = "have_haiku") || HAIKU);
 
 /* Convert the Lisp number N to an integer and return a pointer to the
    converted integer, represented as an mpz_t *.  Use *T as a

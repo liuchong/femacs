@@ -187,7 +187,7 @@ unsafe fn get_boot_time_uncached (p_boot_time: *mut timespec) -> c_int
         get_linux_boot_time_fallback (&mut found_boot_time);
       }
 
-    #[cfg (feature = "android")]
+    #[cfg (feature = "have_android")]
     if found_boot_time.tv_sec == 0
       {
         /* Workaround for Android:  */
@@ -273,7 +273,7 @@ unsafe fn get_boot_time_uncached (p_boot_time: *mut timespec) -> c_int
       get_bsd_boot_time_final_fallback (&mut found_boot_time);
     }
 
-  #[cfg (feature = "haiku")]
+  #[cfg (feature = "have_haiku")]
   if found_boot_time.tv_sec == 0
     {
       get_haiku_boot_time (&mut found_boot_time);

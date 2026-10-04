@@ -235,8 +235,8 @@ missing counts as pending and the ratchet only shrinks pending).
   type `struct glyph_slice` keeps that name, which is why the union member `slice` carries the
   `_union` suffix (P-67).
 - Dead `#ifdef` members stay behind their features, as elsewhere in the mirror (P-51):
-  `glyph_u.xwidget` (`feature = "xwidgets"`), `glyph_matrix.method` (`feature = "glyph_debug"`)
-  and `glyph_row.clip` (`feature = "window_system"`); none of them is part of the frozen
+  `glyph_u.xwidget` (`feature = "have_xwidgets"`), `glyph_matrix.method` (`feature = "glyph_debug"`)
+  and `glyph_row.clip` (`feature = "have_window_system"`); none of them is part of the frozen
   layout the assertions lock.
 - `glyph.frame` and `glyph_matrix.buffer` degrade to `*mut c_void` (P-72 rule ③: this mirror
   includes neither frame.rs nor buffer.rs) with the `/// C:` note carrying C's prototype.
@@ -290,7 +290,7 @@ missing counts as pending and the ratchet only shrinks pending).
   reports 0 disagreements with clang for this file), so the frozen build never compiled it and
   `--check`'s container list does not contain it either (it is not one of the seven types the
   extractor defers for this file).  The mirror carries the record under
-  `#[cfg (feature = "window_system")]` - P-51's rule, the feature naming the *non*-frozen side -
+  `#[cfg (feature = "have_window_system")]` - P-51's rule, the feature naming the *non*-frozen side -
   so the compiled build is exactly what clang compiles.
 - **Who needs it (why it landed now).**  The window-system backends need the record *and its
   fields*, not only its name: `src/nsfont.m`'s GNUstep port reads `s->char2b[i]` (nsfont.m
@@ -356,7 +356,7 @@ missing counts as pending and the ratchet only shrinks pending).
 - **Two more use-site copies this record's landing creates a claim on** (reported, not edited -
   they live in other lanes' files): `femacs/src/font.rs` 739 declares
   `pub struct glyph_string;` as an opaque placeholder for `font.h` 693's
-  `font_driver.draw` (that field is already `#[cfg (feature = "window_system")]`, font.rs 283),
+  `font_driver.draw` (that field is already `#[cfg (feature = "have_window_system")]`, font.rs 283),
   so a window-system build now needs that placeholder retired; and `include/nsgui.rs`,
   `include/haikuterm.rs` (489-494) and `include/nsxwidget.rs` (23-78) degrade
   `struct glyph_string *` to `*mut c_void` with the note that the record "has no mirror yet" -

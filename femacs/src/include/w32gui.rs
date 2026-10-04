@@ -17,7 +17,7 @@
 // mirrors spell them, and one of them carries a `cfg`.**  Every handle here is `void *` at the ABI
 // (`HBITMAP`, `HWND`, `HDC`, `HCURSOR`, `HINSTANCE`), so the four typedefs and C 57's object are
 // `*mut c_void` - the `haikugui.rs`/`androidgui.rs` reading of their own handle typedefs.
-// **`Emacs_Cursor` is behind `#[cfg (feature = "window_system")]`**: `dispextern.h` 175 declares
+// **`Emacs_Cursor` is behind `#[cfg (feature = "have_window_system")]`**: `dispextern.h` 175 declares
 // the same name on the other side of `#ifndef HAVE_WINDOW_SYSTEM` (`dispextern.rs` 62 carries
 // that arm), so a crate that includes both mirrors sees two items and reports `E0428` - measured
 // when `xtask layout-check` compiles every mirror in one crate.  C's own guards keep the two
@@ -60,7 +60,7 @@ pub type Display = *mut c_void;
 /// feature (see the file note above); without it the single-crate layout probe reports two
 /// `Emacs_Cursor` items.
 /// C: typedef HCURSOR Emacs_Cursor;
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 pub type Emacs_Cursor = *mut c_void;
 
 /// C 36: `#define WINDOW_HANDLE_UINTPTR(h) ((uintptr_t) (h))` - C's cast is the port's `as usize`
