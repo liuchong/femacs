@@ -820,6 +820,9 @@ unsafe extern "C" {
   /// ptrdiff_t, ptrdiff_t);` (dispnew.c).
   pub fn increment_matrix_positions (matrix: *mut glyph_matrix, start: c_int, end: c_int,
                                      delta: ptrdiff_t, delta_bytes: ptrdiff_t);
+  /// C: dispextern.h 3911: `void rotate_matrix (struct glyph_matrix *, int, int, int);`
+  /// (dispnew.c defines it).
+  pub fn rotate_matrix (matrix: *mut glyph_matrix, first: c_int, last: c_int, by: c_int);
   /// C: lisp.h 4806: `extern Lisp_Object internal_condition_case_1 (Lisp_Object (*)
   /// (Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));` (eval.c).
   pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
@@ -19878,7 +19881,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 		{ alt_pt = XFIXNAT (invprop_end) as ptrdiff_t; }
 	      else
 		{ alt_pt = ZV! (); }
-	      r = row_containing_pos (w as *mut c_void, alt_pt,
+	      r = row_containing_pos (w, alt_pt,
 				      (*((*w).desired_matrix as *mut glyph_matrix)).rows,
 				      core::ptr::null_mut (), 0);
 	    }
@@ -20445,7 +20448,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	else { (*w).current_matrix as *mut glyph_matrix };
       /* First, try locating the proper glyph row for PT.  */
       let mut row: *mut glyph_row =
-	row_containing_pos (w as *mut c_void, PT! (), (*matrix).rows, core::ptr::null_mut (), 0);
+	row_containing_pos (w, PT! (), (*matrix).rows, core::ptr::null_mut (), 0);
 
       /* Sometimes point is at the beginning of invisible text that is
 	 before the 1st character displayed in the row.  In that case,
@@ -20470,7 +20473,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 		{ alt_pos = XFIXNAT (invis_end) as ptrdiff_t; }
 	      else
 		{ alt_pos = ZV! (); }
-	      row = row_containing_pos (w as *mut c_void, alt_pos, (*matrix).rows,
+	      row = row_containing_pos (w, alt_pos, (*matrix).rows,
 					core::ptr::null_mut (), 0);
 	    }
 	}
@@ -20824,6 +20827,793 @@ pub unsafe extern "C" fn try_window (window: Lisp_Object, pos: text_pos, flags: 
   return 1;
 }
 
+
+
+
+/************************************************************************
+    Window redisplay reusing current matrix when buffer has not changed
+ ************************************************************************/
+
+/* Try redisplay of window W showing an unchanged buffer with a
+   different window start than the last time it was displayed by
+   reusing its current matrix.  Value is true if successful.
+   W->start is the new window start.  */
+
+unsafe fn
+try_window_reusing_current_matrix (w: *mut window) -> bool
+{
+  let f: *mut frame = XFRAME ((*w).frame);
+
+  /* If this is a window on a tty root frame displaying a child frame,
+     the current matrix of W may contain glyphs of that child frame,
+     so this method is not safe to use.  */
+  if is_tty_root_frame_with_visible_child (f)
+    { return false; }
+
+  let mut bottom_row: *mut glyph_row = core::ptr::null_mut ();
+  let mut it: it = core::mem::zeroed ();
+  let mut run: run = core::mem::zeroed ();
+  let mut start: text_pos = core::mem::zeroed ();
+  let mut new_start: text_pos = core::mem::zeroed ();
+  let mut nrows_scrolled: c_int = 0;
+  let mut i: c_int = 0;
+  let mut last_text_row: *mut glyph_row = core::ptr::null_mut ();
+  let mut last_reused_text_row: *mut glyph_row = core::ptr::null_mut ();
+  let mut start_row: *mut glyph_row = core::ptr::null_mut ();
+  let mut start_vpos: c_int = 0;
+  let mut min_y: c_int = 0;
+  let mut max_y: c_int = 0;
+
+/* C 21813-21816's `#ifdef GLYPH_DEBUG` block (`if (inhibit_try_window_reusing)
+   return false;`) is dead on this target (`GLYPH_DEBUG` is undef in
+   docs/baseline/config/darwin-arm64.macros.tsv); recorded, not transcribed (P-08).  */
+
+  if /* This function doesn't handle terminal frames.  */
+      !FRAME_WINDOW_P (f)
+      /* Don't try to reuse the display if windows have been split
+	 or such.  */
+      || windows_or_buffers_changed != 0
+      || frame_bits! (cursor_type_changed, f)
+      /* This function cannot handle buffers where the overlay arrow
+	 is shown on the fringes, because if the arrow position
+	 changes, we cannot just reuse the current matrix.  */
+      || overlay_arrow_in_current_buffer_p ()
+    { return false; }
+
+  /* Can't do this if showing trailing whitespace.  */
+  if !NILP (Vshow_trailing_whitespace)
+    { return false; }
+
+  /* If top-line visibility has changed, give up.  */
+  if !glyph_matrix_bits! (header_line_p, (*w).current_matrix as *mut glyph_matrix)
+      && (window_wants_tab_line (w)
+	  != glyph_row_bits! (mode_line_p, MATRIX_TAB_LINE_ROW! ((*w).current_matrix as *mut glyph_matrix)))
+    { return false; }
+
+  /* If top-line visibility has changed, give up.  */
+  if window_wants_header_line (w)
+      != glyph_row_bits! (mode_line_p, MATRIX_HEADER_LINE_ROW! ((*w).current_matrix as *mut glyph_matrix))
+    { return false; }
+
+  /* Give up if old or new display is scrolled vertically.  We could
+     make this function handle this, but right now it doesn't.  */
+  start_row = MATRIX_FIRST_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix);
+  if (*w).vscroll != 0 || MATRIX_ROW_PARTIALLY_VISIBLE_P! (w, start_row)
+    { return false; }
+
+  /* Clear the desired matrix for the display below.  */
+  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+
+  /* Give up if line numbers are being displayed, because reusing the
+     current matrix might use the wrong width for line-number
+     display.  */
+  if !NILP (Vdisplay_line_numbers)
+    { return false; }
+
+  /* Can't scroll the display of w32 GUI frames when position of point
+     is indicated by the system caret, because scrolling the display
+     will then "copy" the pixels used by the caret.  */
+/* C 21863-21866's `#ifdef HAVE_NTGUI` block (`if (w32_use_visible_system_caret)
+   return false;`) is dead on this target (`HAVE_NTGUI` is undef in
+   docs/baseline/config/darwin-arm64.macros.tsv); recorded, not transcribed (P-08).  */
+
+  /* The variable new_start now holds the new window start.  The old
+     start `start' can be determined from the current matrix.  */
+  SET_TEXT_POS_FROM_MARKER! (new_start, (*w).start);
+  start = (*start_row).minpos;
+  start_vpos = MATRIX_ROW_VPOS! (start_row, (*w).current_matrix as *mut glyph_matrix) as c_int;
+
+  if CHARPOS! (new_start) <= CHARPOS! (start)
+    {
+      /* Don't use this method if the display starts with an ellipsis
+	 displayed for invisible text.  It's not easy to handle that case
+	 below, and it's certainly not worth the effort since this is
+	 not a frequent case.  */
+      if in_ellipses_for_invisible_text_p (&raw mut (*start_row).start, w)
+	{ return false; }
+
+/* C 21883's live `IF_DEBUG (debug_method_add (w, "twu1"));` expands to C's `((void) 0)`
+   on this target (`GLYPH_DEBUG` is undef), so its argument is never evaluated: recorded,
+   not transcribed (P-08).  */
+
+      /* Display up to a row that can be reused.  The variable
+	 last_text_row is set to the last row displayed that displays
+	 text.  Note that it.vpos == 0 if or if not there is a
+         header-line; it's not the same as the MATRIX_ROW_VPOS!  */
+      start_display (&raw mut it, w, new_start);
+      (*w).cursor.vpos = -1;
+      /* C's chain `last_text_row = last_reused_text_row = NULL`.  */
+      last_text_row = core::ptr::null_mut ();
+      last_reused_text_row = core::ptr::null_mut ();
+
+      while it.current_y < it.last_visible_y && !frame_bits! (fonts_changed, f)
+	{
+	  /* If we have reached into the characters in the START row,
+	     that means the line boundaries have changed.  So we
+	     can't start copying with the row START.  Maybe it will
+	     work to start copying with the following row.  */
+	  while IT_CHARPOS! (it) > CHARPOS! (start)
+	    {
+	      /* Advance to the next row as the "start".  */
+	      start_row = start_row.offset (1);
+	      start = (*start_row).minpos;
+	      /* If there are no more rows to try, or just one, give up.  */
+	      if start_row == MATRIX_MODE_LINE_ROW! ((*w).current_matrix as *mut glyph_matrix).offset (-1)
+		  || (*w).vscroll != 0 || MATRIX_ROW_PARTIALLY_VISIBLE_P! (w, start_row)
+		  || CHARPOS! (start) == ZV! ()
+		{
+		  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+		  return false;
+		}
+
+	      start_vpos = MATRIX_ROW_VPOS! (start_row, (*w).current_matrix as *mut glyph_matrix) as c_int;
+	    }
+	  /* If we have reached alignment, we can copy the rest of the
+	     rows.  */
+	  if IT_CHARPOS! (it) == CHARPOS! (start)
+	      /* Don't accept "alignment" inside a display vector,
+		 since start_row could have started in the middle of
+		 that same display vector (thus their character
+		 positions match), and we have no way of telling if
+		 that is the case.  */
+	      && it.current.dpvec_index < 0
+	    { break; }
+
+	  glyph_row_bits! (reversed_p, it.glyph_row, false);
+	  if display_line (&raw mut it, -1) != 0
+	    { last_text_row = it.glyph_row.offset (-1); }
+
+	}
+
+      /* A value of current_y < last_visible_y means that we stopped
+	 at the previous window start, which in turn means that we
+	 have at least one reusable row.  */
+      if it.current_y < it.last_visible_y
+	{
+	  let mut row: *mut glyph_row = core::ptr::null_mut ();
+
+	  /* IT.vpos always starts from 0; it counts text lines.  */
+	  nrows_scrolled = it.vpos - (start_row.offset_from (MATRIX_FIRST_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix)) as c_int);
+
+	  /* Find PT if not already found in the lines displayed.  */
+	  if (*w).cursor.vpos < 0
+	    {
+	      let dy: c_int = it.current_y - (*start_row).y;
+
+	      row = MATRIX_FIRST_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix);
+	      row = row_containing_pos (w, PT! (), row, core::ptr::null_mut (), dy);
+	      if !row.is_null ()
+		{ set_cursor_from_row (w, row, (*w).current_matrix as *mut glyph_matrix, 0, 0,
+				     dy, nrows_scrolled); }
+	      else
+		{
+		  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+		  return false;
+		}
+	    }
+
+	  /* Scroll the display.  Do it before the current matrix is
+	     changed.  The problem here is that update has not yet
+	     run, i.e. part of the current matrix is not up to date.
+	     scroll_run_hook will clear the cursor, and use the
+	     current matrix to get the height of the row the cursor is
+	     in.  */
+	  run.current_y = (*start_row).y;
+	  run.desired_y = it.current_y;
+	  run.height = it.last_visible_y - it.current_y;
+
+	  if run.height > 0 && run.current_y != run.desired_y
+	    {
+/* C 21971-21978's `HAVE_WINDOW_SYSTEM` arm (`update_begin (f); gui_update_window_begin
+   (w); FRAME_RIF (f)->clear_window_mouse_face (w); FRAME_RIF (f)->scroll_run_hook (w,
+   &run); gui_update_window_end (w, false, false); update_end (f);`) is dead on this target
+   (`HAVE_WINDOW_SYSTEM` is undef in docs/baseline/config/darwin-arm64.macros.tsv);
+   recorded, not transcribed (P-08).  */
+	    }
+
+	  /* Shift current matrix down by nrows_scrolled lines.  */
+	  bottom_row = MATRIX_BOTTOM_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix, w);
+	  rotate_matrix ((*w).current_matrix as *mut glyph_matrix,
+			 start_vpos,
+			 MATRIX_ROW_VPOS! (bottom_row, (*w).current_matrix as *mut glyph_matrix) as c_int,
+			 nrows_scrolled);
+
+	  /* Disable lines that must be updated.  */
+	  i = 0;
+	  while i < nrows_scrolled
+	    {
+	    glyph_row_bits! (enabled_p, start_row.offset (i as isize), false);
+	    i += 1;
+	    }
+
+	  /* Re-compute Y positions.  */
+	  min_y = WINDOW_TAB_LINE_HEIGHT! (w) + WINDOW_HEADER_LINE_HEIGHT! (w);
+	  max_y = it.last_visible_y;
+	  row = start_row.offset (nrows_scrolled as isize);
+	  while row < bottom_row
+	    {
+	      (*row).y = it.current_y;
+	      (*row).visible_height = (*row).height;
+
+	      if (*row).y < min_y
+		{ (*row).visible_height -= min_y - (*row).y; }
+	      if (*row).y + (*row).height > max_y
+		{ (*row).visible_height -= (*row).y + (*row).height - max_y; }
+	      if glyph_row_bits! (fringe_bitmap_periodic_p, row)
+		{ glyph_row_bits! (redraw_fringe_bitmaps_p, row, true); }
+
+	      it.current_y += (*row).height;
+
+	      if MATRIX_ROW_DISPLAYS_TEXT_P! (row)
+		{ last_reused_text_row = row; }
+	      if MATRIX_ROW_BOTTOM_Y! (row) >= it.last_visible_y
+		{ break; }
+	      row = row.offset (1);
+	    }
+
+	  /* Disable lines in the current matrix which are now
+	     below the window.  */
+	  /* C's `for (++row; row < bottom_row; ++row)`.  */
+	  row = row.offset (1);
+	  while row < bottom_row
+	    {
+	    /* C's chain `row->enabled_p = row->mode_line_p = row->tab_line_p = false`.  */
+	    glyph_row_bits! (enabled_p, row, false);
+	    glyph_row_bits! (mode_line_p, row, false);
+	    glyph_row_bits! (tab_line_p, row, false);
+	    row = row.offset (1);
+	    }
+	}
+
+      /* Update window_end_pos etc.; last_reused_text_row is the last
+	 reused row from the current matrix containing text, if any.
+	 The value of last_text_row is the last displayed line
+	 containing text.  */
+      if !last_reused_text_row.is_null ()
+	{ adjust_window_ends (w, last_reused_text_row, true); }
+      else if !last_text_row.is_null ()
+	{ adjust_window_ends (w, last_text_row, false); }
+      else
+	{
+	  /* This window must be completely empty.  */
+	  (*w).window_end_bytepos = Z_BYTE! () - ZV_BYTE! ();
+	  (*w).window_end_pos = Z! () - ZV! ();
+	  (*w).window_end_vpos = 0;
+	}
+      window_bits! (w, window_end_valid, false);
+
+      /* Update hint: don't try scrolling again in update_window.  */
+      glyph_matrix_bits! (no_scrolling_p, (*w).desired_matrix as *mut glyph_matrix, true);
+
+/* C 22043-22045's `#ifdef GLYPH_DEBUG` block (`debug_method_add (w,
+   "try_window_reusing_current_matrix 1")`) is dead on this target (`GLYPH_DEBUG` is undef
+   in docs/baseline/config/darwin-arm64.macros.tsv); recorded, not transcribed (P-08).  */
+      return true;
+    }
+  else if CHARPOS! (new_start) > CHARPOS! (start)
+    {
+      let mut pt_row: *mut glyph_row = core::ptr::null_mut ();
+      let mut row: *mut glyph_row = core::ptr::null_mut ();
+      let mut first_reusable_row: *mut glyph_row = core::ptr::null_mut ();
+      let mut first_row_to_display: *mut glyph_row = core::ptr::null_mut ();
+      let mut dy: c_int = 0;
+      let yb: c_int = window_text_bottom_y (w);
+
+      /* Find the row starting at new_start, if there is one.  Don't
+	 reuse a partially visible line at the end.  */
+      first_reusable_row = start_row;
+      while glyph_row_bits! (enabled_p, first_reusable_row)
+	     && MATRIX_ROW_BOTTOM_Y! (first_reusable_row) < yb
+	     && (MATRIX_ROW_START_CHARPOS! (first_reusable_row)
+		 < CHARPOS! (new_start))
+	{ first_reusable_row = first_reusable_row.offset (1); }
+
+      /* Give up if there is no row to reuse.  */
+      if MATRIX_ROW_BOTTOM_Y! (first_reusable_row) >= yb
+	  || !glyph_row_bits! (enabled_p, first_reusable_row)
+	  || (MATRIX_ROW_START_CHARPOS! (first_reusable_row)
+	      != CHARPOS! (new_start))
+	{ return false; }
+
+      /* We can reuse fully visible rows beginning with
+         first_reusable_row to the end of the window.  Set
+         first_row_to_display to the first row that cannot be reused.
+         Set pt_row to the row containing point, if there is any.  */
+      pt_row = core::ptr::null_mut ();
+      first_row_to_display = first_reusable_row;
+      while MATRIX_ROW_BOTTOM_Y! (first_row_to_display) < yb
+	{
+	  if PT! () >= MATRIX_ROW_START_CHARPOS! (first_row_to_display)
+	      && (PT! () < MATRIX_ROW_END_CHARPOS! (first_row_to_display)
+		  || (PT! () == MATRIX_ROW_END_CHARPOS! (first_row_to_display)
+		      && glyph_row_bits! (ends_at_zv_p, first_row_to_display)
+		      && pt_row.is_null ()))
+	    { pt_row = first_row_to_display; }
+	  first_row_to_display = first_row_to_display.offset (1);
+	}
+
+      if (*first_row_to_display).y >= yb
+	{ return false; }
+
+      /* Start displaying at the start of first_row_to_display.  */
+      init_to_row_start (&raw mut it, w, first_row_to_display);
+
+      nrows_scrolled = (MATRIX_ROW_VPOS! (first_reusable_row, (*w).current_matrix as *mut glyph_matrix)
+			- start_vpos as isize) as c_int;
+      it.vpos = (MATRIX_ROW_VPOS! (first_row_to_display, (*w).current_matrix as *mut glyph_matrix)
+		 - nrows_scrolled as isize) as c_int;
+      it.current_y = ((*first_row_to_display).y - (*first_reusable_row).y
+		      + WINDOW_TAB_LINE_HEIGHT! (w) + WINDOW_HEADER_LINE_HEIGHT! (w));
+
+      /* Display lines beginning with first_row_to_display in the
+         desired matrix.  Set last_text_row to the last row displayed
+         that displays text.  */
+      it.glyph_row = MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix, it.vpos);
+      if pt_row.is_null ()
+	{ (*w).cursor.vpos = -1; }
+      last_text_row = core::ptr::null_mut ();
+      while it.current_y < it.last_visible_y && !frame_bits! (fonts_changed, f)
+        {
+	if display_line (&raw mut it, (*w).cursor.vpos) != 0
+	  { last_text_row = it.glyph_row.offset (-1); }
+        }
+
+      /* If point is in a reused row, adjust y and vpos of the cursor
+	 position.  */
+      if !pt_row.is_null ()
+	{
+	  (*w).cursor.vpos -= nrows_scrolled;
+	  (*w).cursor.y -= (*first_reusable_row).y - (*start_row).y;
+	}
+
+      /* Give up if point isn't in a row displayed or reused.  (This
+	 also handles the case where w->cursor.vpos < nrows_scrolled
+	 after the calls to display_line, which can happen with scroll
+	 margins.  See bug#1295.)  */
+      if (*w).cursor.vpos < 0
+	{
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  return false;
+	}
+
+      /* Scroll the display.  */
+      run.current_y = (*first_reusable_row).y;
+      run.desired_y = WINDOW_TAB_LINE_HEIGHT! (w) + WINDOW_HEADER_LINE_HEIGHT! (w);
+      run.height = it.last_visible_y - run.current_y;
+      dy = run.current_y - run.desired_y;
+
+      if run.height != 0
+	{
+/* C 22139-22146's `HAVE_WINDOW_SYSTEM` arm (the same six `update_begin`/`gui_*`/
+   `FRAME_RIF` calls as C 21971-21978) is dead on this target (`HAVE_WINDOW_SYSTEM` is undef
+   in docs/baseline/config/darwin-arm64.macros.tsv); recorded, not transcribed (P-08).  */
+	}
+
+      /* Adjust Y positions of reused rows.  */
+      bottom_row = MATRIX_BOTTOM_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix, w);
+      min_y = WINDOW_TAB_LINE_HEIGHT! (w) + WINDOW_HEADER_LINE_HEIGHT! (w);
+      max_y = it.last_visible_y;
+      row = first_reusable_row;
+      while row < first_row_to_display
+	{
+	  (*row).y -= dy;
+	  (*row).visible_height = (*row).height;
+	  if (*row).y < min_y
+	    { (*row).visible_height -= min_y - (*row).y; }
+	  if (*row).y + (*row).height > max_y
+	    { (*row).visible_height -= (*row).y + (*row).height - max_y; }
+	  if glyph_row_bits! (fringe_bitmap_periodic_p, row)
+	    { glyph_row_bits! (redraw_fringe_bitmaps_p, row, true); }
+	  row = row.offset (1);
+	}
+
+      /* Scroll the current matrix.  */
+      eassert! (nrows_scrolled > 0);
+      rotate_matrix ((*w).current_matrix as *mut glyph_matrix,
+		     start_vpos,
+		     MATRIX_ROW_VPOS! (bottom_row, (*w).current_matrix as *mut glyph_matrix) as c_int,
+		     -nrows_scrolled);
+
+      /* Disable rows not reused.  */
+      row = row.offset (-(nrows_scrolled as isize));
+      while row < bottom_row
+        {
+	glyph_row_bits! (enabled_p, row, false);
+        row = row.offset (1);
+        }
+
+      /* Point may have moved to a different line, so we cannot assume that
+	 the previous cursor position is valid; locate the correct row.  */
+      if !pt_row.is_null ()
+	{
+	  row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, (*w).cursor.vpos);
+	  while row < bottom_row
+	       && PT! () >= MATRIX_ROW_END_CHARPOS! (row)
+		 && !glyph_row_bits! (ends_at_zv_p, row)
+	    {
+	      (*w).cursor.vpos += 1;
+	      (*w).cursor.y = (*row).y;
+	      row = row.offset (1);
+	    }
+	  if row < bottom_row
+	    {
+	      /* Can't simply scan the row for point with
+		 bidi-reordered glyph rows.  Let set_cursor_from_row
+		 figure out where to put the cursor, and if it fails,
+		 give up.  */
+	      if !NILP (BVAR! (XBUFFER ((*w).contents), bidi_display_reordering_))
+		{
+		  if !set_cursor_from_row (w, row, (*w).current_matrix as *mut glyph_matrix, 0, 0, 0, 0)
+		    {
+		      clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+		      return false;
+		    }
+		}
+	      else
+		{
+		  let mut glyph: *mut glyph = (*row).glyphs[TEXT_AREA as usize].offset ((*w).cursor.hpos as isize);
+		  let end: *mut glyph = (*row).glyphs[TEXT_AREA as usize].offset ((*row).used[TEXT_AREA as usize] as isize);
+
+		  glyph = (*row).glyphs[TEXT_AREA as usize];
+		  while glyph < end
+			 && (!BUFFERP ((*glyph).object)
+			     || (*glyph).charpos < PT! ())
+		    {
+		      (*w).cursor.hpos += 1;
+		      (*w).cursor.x += (*glyph).pixel_width as c_int;
+		    glyph = glyph.offset (1);
+		    }
+		}
+	    }
+	}
+
+      /* Adjust window end.  A null value of last_text_row means that
+	 the window end is in reused rows which in turn means that
+	 only its vpos can have changed.  */
+      if !last_text_row.is_null ()
+	{ adjust_window_ends (w, last_text_row, false); }
+      else
+	{ (*w).window_end_vpos -= nrows_scrolled; }
+
+      window_bits! (w, window_end_valid, false);
+      glyph_matrix_bits! (no_scrolling_p, (*w).desired_matrix as *mut glyph_matrix, true);
+
+/* C 22232-22234's `#ifdef GLYPH_DEBUG` block (`debug_method_add (w,
+   "try_window_reusing_current_matrix 2")`) is dead on this target (`GLYPH_DEBUG` is undef
+   in docs/baseline/config/darwin-arm64.macros.tsv); recorded, not transcribed (P-08).  */
+      return true;
+    }
+
+  return false;
+}
+
+
+
+/************************************************************************
+   Window redisplay reusing current matrix when buffer has changed
+ ************************************************************************/
+
+/* C 22247-22253's three forward declarations (`find_last_unchanged_at_beg_row`,
+   `find_first_unchanged_at_end_row`, `find_last_row_displaying_text`) are dropped
+   (PORTING.md 0.1-12): Rust items are order-independent, and their definitions follow.  */
+
+/* Return the last row in MATRIX displaying text.  If row START is
+   non-null, start searching with that row.  IT gives the dimensions
+   of the display.  Value is null if matrix is empty; otherwise it is
+   a pointer to the row found.  */
+
+unsafe fn
+find_last_row_displaying_text (matrix: *mut glyph_matrix, it: *mut it,
+			       start: *mut glyph_row) -> *mut glyph_row
+{
+  let mut row: *mut glyph_row = core::ptr::null_mut ();
+  let mut row_found: *mut glyph_row = core::ptr::null_mut ();
+
+  /* Set row_found to the last row in IT->w's current matrix
+     displaying text.  The loop looks funny but think of partially
+     visible lines.  */
+  row_found = core::ptr::null_mut ();
+  row = if !start.is_null () { start } else { MATRIX_FIRST_TEXT_ROW! (matrix) };
+  while MATRIX_ROW_DISPLAYS_TEXT_P! (row)
+    {
+      eassert! (glyph_row_bits! (enabled_p, row));
+      row_found = row;
+      if MATRIX_ROW_BOTTOM_Y! (row) >= (*it).last_visible_y
+	{ break; }
+      row = row.offset (1);
+    }
+
+  return row_found;
+}
+
+
+/* Return the last row in the current matrix of W that is not affected
+   by changes at the start of current_buffer that occurred since W's
+   current matrix was built.  Value is null if no such row exists.
+
+   BEG_UNCHANGED is the number of characters unchanged at the start of
+   current_buffer.  BEG + BEG_UNCHANGED is the buffer position of the
+   first changed character in current_buffer.  Characters at positions <
+   BEG + BEG_UNCHANGED are at the same buffer positions as they were
+   when the current matrix was built.  */
+
+unsafe fn
+find_last_unchanged_at_beg_row (w: *mut window) -> *mut glyph_row
+{
+  let first_changed_pos: ptrdiff_t = BEG as ptrdiff_t + BEG_UNCHANGED! ();
+  let mut row: *mut glyph_row = core::ptr::null_mut ();
+  let mut row_found: *mut glyph_row = core::ptr::null_mut ();
+  let yb: c_int = window_text_bottom_y (w);
+
+  /* Find the last row displaying unchanged text.  */
+  row = MATRIX_FIRST_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix);
+       while MATRIX_ROW_DISPLAYS_TEXT_P! (row)
+	 && MATRIX_ROW_START_CHARPOS! (row) < first_changed_pos
+    {
+      if /* If row ends before first_changed_pos, it is unchanged,
+	     except in some case.  */
+	  MATRIX_ROW_END_CHARPOS! (row) <= first_changed_pos
+	  /* When row ends in ZV and we write at ZV it is not
+             unchanged.  */
+	  && !glyph_row_bits! (ends_at_zv_p, row)
+	  /* When first_changed_pos is the end of a continued line,
+	     row is not unchanged because it may be no longer
+	     continued.  */
+	  && !(MATRIX_ROW_END_CHARPOS! (row) == first_changed_pos
+	       && (glyph_row_bits! (continued_p, row)
+		   || glyph_row_bits! (exact_window_width_line_p, row)))
+	  /* If ROW->end is beyond ZV, then ROW->end is outdated and
+	     needs to be recomputed, so don't consider this row as
+	     unchanged.  This happens when the last line was
+	     bidi-reordered and was killed immediately before this
+	     redisplay cycle.  In that case, ROW->end stores the
+	     buffer position of the first visual-order character of
+	     the killed text, which is now beyond ZV.  */
+	  && CHARPOS! ((*row).end.pos) <= ZV! ()
+	{ row_found = row; }
+
+      /* Stop if last visible row.  */
+      if MATRIX_ROW_BOTTOM_Y! (row) >= yb
+	{ break; }
+      row = row.offset (1);
+    }
+
+  return row_found;
+}
+
+
+/* Find the first glyph row in the current matrix of W that is not
+   affected by changes at the end of current_buffer since the
+   time W's current matrix was built.
+
+   Return in *DELTA the number of chars by which buffer positions in
+   unchanged text at the end of current_buffer must be adjusted.
+
+   Return in *DELTA_BYTES the corresponding number of bytes.
+
+   Value is null if no such row exists, i.e. all rows are affected by
+   changes.  */
+
+unsafe fn
+find_first_unchanged_at_end_row (w: *mut window,
+				 delta: *mut ptrdiff_t, delta_bytes: *mut ptrdiff_t) -> *mut glyph_row
+{
+  let mut row: *mut glyph_row = core::ptr::null_mut ();
+  let mut row_found: *mut glyph_row = core::ptr::null_mut ();
+
+  /* C's chain `*delta = *delta_bytes = 0`.  */
+  *delta = 0;
+  *delta_bytes = 0;
+
+  /* Display must not have been paused, otherwise the current matrix
+     is not up to date.  */
+  eassert! (window_bits! (w, window_end_valid));
+
+  /* A value of window_end_pos >= END_UNCHANGED means that the window
+     end is in the range of changed text.  If so, there is no
+     unchanged row at the end of W's current matrix.  */
+  if (*w).window_end_pos >= END_UNCHANGED! ()
+    { return core::ptr::null_mut (); }
+
+  /* Set row to the last row in W's current matrix displaying text.  */
+  row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, (*w).window_end_vpos);
+
+  /* If matrix is entirely empty, no unchanged row exists.  */
+  if MATRIX_ROW_DISPLAYS_TEXT_P! (row)
+    {
+      /* The value of row is the last glyph row in the matrix having a
+	 meaningful buffer position in it.  The end position of row
+	 corresponds to window_end_pos.  This allows us to translate
+	 buffer positions in the current matrix to current buffer
+	 positions for characters not in changed text.  */
+      let Z_old: ptrdiff_t =
+	MATRIX_ROW_END_CHARPOS! (row) + (*w).window_end_pos;
+      let Z_BYTE_old: ptrdiff_t =
+	MATRIX_ROW_END_BYTEPOS! (row) + (*w).window_end_bytepos;
+      let mut last_unchanged_pos: ptrdiff_t = 0;
+      let mut last_unchanged_pos_old: ptrdiff_t = 0;
+      let first_text_row: *mut glyph_row
+	= MATRIX_FIRST_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix);
+
+      *delta = Z! () - Z_old;
+      *delta_bytes = Z_BYTE! () - Z_BYTE_old;
+
+      /* Set last_unchanged_pos to the buffer position of the last
+	 character in the buffer that has not been changed.  Z is the
+	 index + 1 of the last character in current_buffer, i.e. by
+	 subtracting END_UNCHANGED we get the index of the last
+	 unchanged character, and we have to add BEG to get its buffer
+	 position.  */
+      last_unchanged_pos = Z! () - END_UNCHANGED! () + BEG as ptrdiff_t;
+      last_unchanged_pos_old = last_unchanged_pos - *delta;
+
+      /* Search backward from ROW for a row displaying a line that
+	 starts at a minimum position >= last_unchanged_pos_old.  */
+      while row > first_text_row
+	{
+	  /* This used to abort, but it can happen.
+	     It is ok to just stop the search instead here.  KFS.  */
+	  if !glyph_row_bits! (enabled_p, row) || !MATRIX_ROW_DISPLAYS_TEXT_P! (row)
+	    { break; }
+
+	  if MATRIX_ROW_START_CHARPOS! (row) >= last_unchanged_pos_old
+	    { row_found = row; }
+	  row = row.offset (-1);
+	}
+    }
+
+  eassert! (!row_found.is_null () || MATRIX_ROW_DISPLAYS_TEXT_P! (row_found));
+
+  return row_found;
+}
+
+
+/* Make sure that glyph rows in the current matrix of window W
+   reference the same glyph memory as corresponding rows in the
+   frame's frame matrix.  This function is called after scrolling W's
+   current matrix on a terminal frame in try_window_id and
+   try_window_reusing_current_matrix.  */
+
+unsafe fn
+sync_frame_with_window_matrix_rows (w: *mut window)
+{
+  let f: *mut frame = XFRAME ((*w).frame);
+  let mut window_row: *mut glyph_row = core::ptr::null_mut ();
+  let mut window_row_end: *mut glyph_row = core::ptr::null_mut ();
+  let mut frame_row: *mut glyph_row = core::ptr::null_mut ();
+
+  /* Preconditions: W must be a leaf window and full-width.  Its frame
+     must have a frame matrix.  */
+  eassert! (BUFFERP ((*w).contents));
+  eassert! (WINDOW_FULL_WIDTH_P! (w));
+  eassert! (!FRAME_WINDOW_P (f));
+
+  /* If W is a full-width window, glyph pointers in W's current matrix
+     have, by definition, to be the same as glyph pointers in the
+     corresponding frame matrix.  Note that frame matrices have no
+     marginal areas (see build_frame_matrix).  */
+  window_row = (*((*w).current_matrix as *mut glyph_matrix)).rows;
+  window_row_end = window_row.offset ((*((*w).current_matrix as *mut glyph_matrix)).nrows as isize);
+  frame_row = (*((*f).current_matrix as *mut glyph_matrix)).rows.offset (WINDOW_TOP_EDGE_LINE (w) as isize);
+  while window_row < window_row_end
+    {
+      let start: *mut glyph = (*window_row).glyphs[LEFT_MARGIN_AREA as usize];
+      let end: *mut glyph = (*window_row).glyphs[LAST_AREA as usize];
+
+      (*frame_row).glyphs[LEFT_MARGIN_AREA as usize] = start;
+      (*frame_row).glyphs[TEXT_AREA as usize] = start;
+      (*frame_row).glyphs[RIGHT_MARGIN_AREA as usize] = end;
+      (*frame_row).glyphs[LAST_AREA as usize] = end;
+
+      /* Disable frame rows whose corresponding window rows have
+	 been disabled in try_window_id.  */
+      if !glyph_row_bits! (enabled_p, window_row)
+	{ glyph_row_bits! (enabled_p, frame_row, false); }
+
+      window_row = window_row.offset (1);
+      frame_row = frame_row.offset (1);
+    }
+}
+
+
+/* Find the glyph row in window W containing CHARPOS.  Consider all
+   rows between START and END (not inclusive).  END null means search
+   all rows to the end of the display area of W.  Value is the row
+   containing CHARPOS or null.  */
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn
+row_containing_pos (w: *mut window, charpos: ptrdiff_t,
+		    start: *mut glyph_row, end: *mut glyph_row, dy: c_int) -> *mut glyph_row
+{
+  let mut row: *mut glyph_row = start;
+  let mut best_row: *mut glyph_row = core::ptr::null_mut ();
+  let mut mindif: ptrdiff_t = BUF_ZV (XBUFFER ((*w).contents)) + 1;
+  let mut last_y: c_int = 0;
+
+  /* If we happen to start on a header-line or a tab-line, skip that.  */
+  if glyph_row_bits! (tab_line_p, row)
+    { row = row.offset (1); }
+  if glyph_row_bits! (mode_line_p, row)
+    { row = row.offset (1); }
+
+  if (!end.is_null () && row >= end) || !glyph_row_bits! (enabled_p, row)
+    { return core::ptr::null_mut (); }
+
+  last_y = window_text_bottom_y (w) - dy;
+
+  loop
+    {
+      /* Give up if we have gone too far.  */
+      if (!end.is_null () && row >= end) || !glyph_row_bits! (enabled_p, row)
+	{ return core::ptr::null_mut (); }
+      /* This formerly returned if they were equal.
+	 I think that both quantities are of a "last plus one" type;
+	 if so, when they are equal, the row is within the screen. -- rms.  */
+      if MATRIX_ROW_BOTTOM_Y! (row) > last_y
+	{ return core::ptr::null_mut (); }
+
+      /* If it is in this row, return this row.  */
+      if !(MATRIX_ROW_END_CHARPOS! (row) < charpos
+	     || (MATRIX_ROW_END_CHARPOS! (row) == charpos
+		 /* The end position of a row equals the start
+		    position of the next row.  If CHARPOS is there, we
+		    would rather consider it displayed in the next
+		    line, except when this line ends in ZV.  */
+		 && !row_for_charpos_p (row, charpos)))
+	  && charpos >= MATRIX_ROW_START_CHARPOS! (row)
+	{
+	  let mut g: *mut glyph = core::ptr::null_mut ();
+
+	  if NILP (BVAR! (XBUFFER ((*w).contents), bidi_display_reordering_))
+	      || (best_row.is_null () && !glyph_row_bits! (continued_p, row))
+	    { return row; }
+	  /* In bidi-reordered rows, there could be several rows whose
+	     edges surround CHARPOS, all of these rows belonging to
+	     the same continued line.  We need to find the row which
+	     fits CHARPOS the best.  */
+	  g = (*row).glyphs[TEXT_AREA as usize];
+	  while g < (*row).glyphs[TEXT_AREA as usize].offset ((*row).used[TEXT_AREA as usize] as isize)
+	    {
+	      if !STRINGP ((*g).object)
+		{
+		  if (*g).charpos > 0 && eabs! ((*g).charpos - charpos) < mindif
+		    {
+		      mindif = eabs! ((*g).charpos - charpos);
+		      best_row = row;
+		      /* Exact match always wins.  */
+		      if mindif == 0
+			{ return best_row; }
+		    }
+		}
+	      g = g.offset (1);
+	    }
+	}
+      else if !best_row.is_null () && !glyph_row_bits! (continued_p, row)
+	{ return best_row; }
+      row = row.offset (1);
+    }
+}
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */
 /* ==================================================================== */
@@ -20865,9 +21655,6 @@ unsafe extern "C" {
   fn maybe_produce_line_number (it: *mut it);
   /// C: xdisp.c 1166: `static bool should_produce_line_number (struct it *);`
   fn should_produce_line_number (it: *mut it) -> bool;
-  /// C: xdisp.c 1163: `static bool try_window_reusing_current_matrix (struct window *);`
-  /// (defined later in this unit, at C 21793).
-  fn try_window_reusing_current_matrix (w: *mut window) -> bool;
   /// C: xdisp.c 1164: `static int try_window_id (struct window *);` (defined at C 22588).
   fn try_window_id (w: *mut window) -> c_int;
   /// C: xdisp.c 1168: `static int display_mode_lines (struct window *);` (defined at
@@ -20876,6 +21663,9 @@ unsafe extern "C" {
   /// C: xdisp.c 1175: `static void display_menu_bar (struct window *);` (defined at
   /// C 27761).
   fn display_menu_bar (w: *mut window);
+  /// C: xdisp.c 1129: `static bool row_for_charpos_p (struct glyph_row *, ptrdiff_t);`
+  /// (called by `row_containing_pos`; its definition lands later in this unit, at C 24975).
+  fn row_for_charpos_p (row: *mut glyph_row, charpos: ptrdiff_t) -> bool;
   /// C: xdisp.c 1130/25062: `static bool cursor_row_p (struct glyph_row *);` (defined
   /// later in this unit).
   fn cursor_row_p (row: *mut glyph_row) -> bool;

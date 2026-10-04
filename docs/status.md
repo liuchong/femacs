@@ -6365,3 +6365,31 @@
      —— 与 3.382 的 17 行同一个根因（判据只看活行子集），已开工单（3.384）。⑵ `windowsnt` 臂：本机无 mingw，
      `text-only`。⑶ `have_native_comp` 子臂只到"裸 `--cfg` 会被 P-51 的配置常量断言挡住"，要 `xtask dead-arms` 那一档。
      ⑷ 两件的外部头布局读数**没有**进 `xtask layout-check` 基线（段在单元内），故无机器断言防漂移。
+
+- **3.384 xdisp 第二十七轮：C 21780-22542 六个定义（含 `try_window_reusing_current_matrix`）（2026-10-05）**：
+  ① **区间**：`try_window_reusing_current_matrix`（C 21787-22239，`static`，两个大臂：`new_start <= start` 与
+     `new_start > start`）、`find_last_row_displaying_text`（22261-22281）、`find_last_unchanged_at_beg_row`
+     （22295-22336）、`find_first_unchanged_at_end_row`（22352-22418）、`sync_frame_with_window_matrix_rows`
+     （22428-22463）与 `row_containing_pos`（22472-22542，**非** `static` ⇒ `#[unsafe(no_mangle)]`）。
+     **本轮只有 763 C 行**（低于简报的 1,000-1,500，lane 在台账里点名）：C 22542 之后到 C 23821 之间没有整函数边界，
+     下一个活定义 `try_window_id` 单独 1,234 行（C 22588-23821），是下一轮。
+  ② **行数**：`femacs/src/xdisp.rs` 20,897 → **21,687（+796/-6）**；`docs/ports/xdisp.md` 2,661 → **2,819**；
+     勾选 `Functions 225/302`，合计 **321/415**；`femacs/src/include/*.rs` **零改动**。
+  ③ **读数**：`build-tu src/xdisp.c` → **built / exit 0**，`xdisp.o` **2,136,144 字节**
+     （md5 `33a0ec8a3e358bd9a3ec78206ed781fb`），警告集与历轮逐字相同（6 条，本轮新增 0）；
+     `extract-abi --check` 的 `- ` 行数 **105 → 101**（退休 6 条 `missing function`、新增 2 条 `does not mention`），
+     **集成者补完 `docs/ports/macro-body-notes.tsv` 的两行后复读 = 99**；
+     `check-citations` 675/0 drift/0 stale、`check-declarations` 13/0/0、`check-carried` 11/11/0、
+     `check-ledger-ticks` 235/0。
+  ④ **超出本轮的两条实测发现（都已记进台账，且都已处置/另行开工单）**：
+     ⑴ **`docs/ports/xdisp.md` 的 to-do 63 是一条真的类型错误**：`femacs/src/xdisp.rs:18899` 的
+     `(*(*w).current_matrix).nrows` 藏在 `eassert!` 的空臂里，冻结构建永远不检查它，而 `--cfg enable_checking`
+     立刻报 `E0609: no field nrows on type std::ffi::c_void` ⇒ **`enable_checking` 这条构建腿现在谁都过不去**；
+     同一类（`eassert (…->member)` 里解引用 `*mut c_void`）要按单元审计，已按这条派工（3.385）。
+     ⑵ **本轮的四个 `static` 只过类型检查、没有机器码**：`find_last_row_displaying_text` /
+     `find_last_unchanged_at_beg_row` / `find_first_unchanged_at_end_row` / `sync_frame_with_window_matrix_rows`
+     在本对象里没有符号，因为它们唯一的 C 调用者 `try_window_id` 还没落 —— 这是本轮唯一的"文本 vs 机器"缺口。
+  ⑤ **未声称**：`--check` 的 6 条退休与 2 条新增都只是 token 层读数；三个死臂（`GLYPH_DEBUG` ×3、`HAVE_NTGUI`、
+     `HAVE_WINDOW_SYSTEM` ×2）只有 pointer comment 与逐条 C 行号，**没有翻臂编译**（这些宏在冻结表里本来就是 undef，
+     没有可编的真臂）；`row_containing_pos` 的签名（`*mut window` 遮蔽镜像的 `*mut c_void`）与三个旧调用点的
+     `as *mut c_void` 移除记在 deviation 198。
