@@ -5390,3 +5390,31 @@
   ④ **未声称**：`include/dispextern.rs` 的 `Emacs_Rectangle` 两臂、`src/xterm.rs` 的新片、`src/xrdb.rs`
      的整文件（工作树 +540 行）与 `include/window.rs` 的 29 条原型**都还在飞**，本轮**没有**入库——代码片
      要先过 `build-tu` + `extract-abi --check` 才进 HEAD，这是 3.338④ 的口径，本轮不改。
+
+- **3.342 Kotlin 第 35/40 件：`EmacsActivity` 与 `EmacsOpenActivity` 入库，P-83 添八条实测规则（2026-10-05）**：
+  ① **两件形态**：`java/org/gnu/emacs/EmacsActivity.java` 710 行 → `EmacsActivity.kt` **601 行**；
+     `EmacsOpenActivity.java` 754 行 → `EmacsOpenActivity.kt` **671 行**；首行都是
+     `// femacs: port of java/… @ fd7afced403.`（不带参照的许可块），进度 **35/40**，剩 5 件：
+     `EmacsDesktopNotification`(344)、`EmacsWindowManager`(458)、`EmacsView`(989)、`EmacsWindow`(2031)、`EmacsService`(2201)。
+  ② **我自己复跑的读数（不引用 lane 的）**：`spikes/kotlin-compile-probe.sh femacs/platform/android/kotlin/*.kt`
+     **exit 0**、**0 error**、**13 warning**，13 条与 3.335 记下的基线**逐条同形**（`EmacsDocumentsProvider` 2、
+     `EmacsFillPolygon` 2、`EmacsSdk8Clipboard` 3、其余 6 个各 1）；两个新文件**零诊断**。
+     `spikes/kotlin-target-order.py --check` 在本轮报 FAIL（`kotlin-order.tsv` 过期），重生成后
+     **`wrote docs/baseline/kotlin-order.tsv: 40 target(s), 35 ported`**、`--check` 通过（棘轮前进的是"已端口数"）。
+  ③ **按名字找的东西逐个对过（lane 用组合编译后的 `javap` 验的）**：`EmacsActivity` 无 JNI 名字义务，但它的成员名是
+     **跨目标义务**——`EmacsDialog.kt` 读 `focusedActivities`/`lastFocusedActivity`、`EmacsOpenActivity.kt` 与
+     `EmacsPreferencesActivity.kt` 读 `EXTRA_STARTUP_ARGUMENTS`、`EmacsWindow.java` 静态调 `invalidateFocus (n)`、
+     已入库的 `EmacsMultitaskActivity : EmacsActivity()` 做 `final override onCreate/getAttachmentToken`
+     ⇒ `getAttachmentToken` 必须**非 final**，`javap` 实测 `public long getAttachmentToken();` 正合；
+     `EmacsOpenActivity` 的名字义务在 manifest（`android:name="org.gnu.emacs.EmacsOpenActivity"`）与
+     `EmacsDialog.java:313-314` 读的静态字段 `currentActivity`（`javap` 实测 `public static … currentActivity;`）。
+  ④ **P-83 添八条实测规则（本轮真踩的，写进 `PORTING.md`）**：⑬ 赋值不是表达式（`while ((rc = read(…)) != -1)`
+     这类 5 处要拆成"读取提前一行 + break"）；⑭ 续行以 `=` 开头又踩 5 处；⑮ android.jar 的 stub 带可空注解而
+     Java 源码看不出来（`Uri.getPath()` 是 `String?`、`getInsetsController()` 是 `WindowInsetsController?`、
+     `getParcelableExtra(String, Class)` 是 `T?`）⇒ 在参照**第一个解引用处**保留一次 `!!`；⑯ `Long`/`Int` 不能混
+     不限于 `==`/`!=`，位运算也不行；⑰ `as` 在 `!is` 判过之后多余（编译器报 `no cast needed`）；⑱ 同名遮蔽
+     （`var isFocused: Boolean = isFocused`）既安全又最贴参照；⑲ `new String (names, "UTF-8")` 要写
+     `String (names, Charsets.UTF_8)`；⑳ Java 的对象 `==` 要写 `===`（否则是 `equals`）。
+  ⑤ **留给下一轮的**：`EmacsDesktopNotification`(344) 卡在 **`R.id`**（探针的生成缺口，属
+     `spikes/android-r-from-res.py` 一侧），lane 已把可复算原文写在报告里，我随后按它补生成器；`EmacsService`(2201)
+     是最大的剩件。**未声称**：Kotlin 目标只有**编译级**验收（探针 exit 0 + 基线 warning），没有 JVM/设备上的运行验证。
