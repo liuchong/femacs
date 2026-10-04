@@ -23,7 +23,9 @@ libraries (`lib-src`, `exec`, `lwlib`, `oldXMenu`, `nt`) and its non-C platform 
 source, scanned for the first three classes and exempt from the fourth.  What is read is
 decided by *suffix*, not by tree (`SRC_SUFFIXES`): the platform trees are Swift/Kotlin/C++
 today, and a tree named in `SCAN_DIRS` whose files the walk does not match is a tree the
-gate only *claims* to read.  3.250 found `femacs/platform` in exactly that state - seven
+gate only *claims* to read.  The one kind whose comments are not C's is the Kept assembly
+(`femacs/exec/loader-*.s`, `docs/port-map.md`); `.s` is in `SRC_SUFFIXES` and its dialect
+leaders are `LINE_COMMENTS`/`HASH_LINE_START` below (status 3.295).  3.250 found `femacs/platform` in exactly that state - seven
 `.swift` files, a `*.rs` glob that matched none of them, while those same files transcribe
 the comments of `src/*.m`, whose first twenty lines are the product-name prose this gate
 exists to keep out:
@@ -91,7 +93,7 @@ SCAN_DIRS = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/exec", "femac
 # copied file of the reference would arrive as if one is ever dropped into a scanned tree
 # (a verbatim tree is not scanned at all: `tools/check-verbatim.py` owns those).
 SRC_SUFFIXES = (".rs", ".swift", ".kt", ".kts", ".java", ".cpp", ".cc", ".cxx", ".m", ".mm",
-                ".h", ".hpp", ".c")
+                ".h", ".hpp", ".c", ".s", ".S")
 # The recital rule binds the ported units and mirrors; `femacs/xtask` explains the rule in
 # its own comments and is outside it (a licence remark about this repository belongs in
 # docs/status.md and the ledger, never in a ported unit).
@@ -114,6 +116,21 @@ DECL_PROSE = (
     "Copyright (C)",
 )
 PRODUCT = ("GNU Emacs", "gnu emacs")
+
+# The Kept assembly files are the one kind in a scanned tree whose comments are not C's,
+# and the *suffix* is all the walk has (the target is not in the path: `loader-x86.s` and
+# `loader-aarch64.s` share one).  Two leaders, each measured on this tree's six files
+# (status 3.295):
+#   * `@` is the ARM dialects' comment character *anywhere* - `loader-armeabi.s` writes 188
+#     lines of it and the other five files carry no `@` at all;
+#   * `#` is a comment *only at the start of a line*, because in the ARM/AArch64 dialects it
+#     is also the immediate prefix (`mov x1, #0`, `cmp r12, #4` - 56 and 82 lines) while the
+#     x86/MIPS dialects write their comments with it and have **0** mid-line occurrences
+#     (`loader-{x86,x86_64,mips64el,mipsel}.s`).  A `#`-anywhere model would move every ARM
+#     immediate's operand into the comment half, and a column-zero-only model would miss an
+#     indented `#` comment; both are testable, and both are in `--selftest`.
+LINE_COMMENTS = {".s": ("@",), ".S": ("@",)}
+HASH_LINE_START = (".s", ".S")
 # `// femacs: port of src/buffer.c @ fd7afced403 (GNU Emacs 32.0.50).` - the form
 # 0.1-19 removed.  The rule keeps the revision and drops the parenthetical.
 # The removed form: the revision followed by a parenthetical that names the
@@ -140,8 +157,8 @@ RECITAL = re.compile(
     r"|(?<![-\w.`])(?:L?GPL)(?!\S)|产品名|许可|版权")
 
 
-def scan(text: str) -> tuple[list[str], list[str]]:
-    """Split Rust source into per-line code and per-line comment text.
+def scan(text: str, suffix: str = "") -> tuple[list[str], list[str]]:
+    """Split source into per-line code and per-line comment text.
 
     One entry per physical line in both lists - the whole point of the split is
     that the gate can say *which* line of *which* file carries the product name.
@@ -153,6 +170,8 @@ def scan(text: str) -> tuple[list[str], list[str]]:
     comment: list[str] = []
     code_line: list[str] = []
     comment_line: list[str] = []
+    extra_leaders = LINE_COMMENTS.get(suffix, ())
+    hash_at_line_start = suffix in HASH_LINE_START
     i, n = 0, len(text)
     state = "code"          # code | line | block | string | char | raw
     raw_hashes = 0
@@ -175,6 +194,14 @@ def scan(text: str) -> tuple[list[str], list[str]]:
             if ch == "/" and text[i + 1:i + 2] == "*":
                 state, block_depth = "block", 1
                 i += 2
+                continue
+            if extra_leaders and ch in extra_leaders:
+                state = "line"
+                i += 1
+                continue
+            if hash_at_line_start and ch == "#" and not "".join(code_line).strip():
+                state = "line"
+                i += 1
                 continue
             if ch == "r" or (ch == "b" and text[i + 1:i + 2] == "r"):
                 j = i + 1 if ch == "r" else i + 2
@@ -306,7 +333,7 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
     out: list[tuple[str, str, str]] = []
     for rel, path in scanned_files(root):
         text = path.read_text(encoding="utf-8", errors="replace")
-        code, comment = scan(text)
+        code, comment = scan(text, path.suffix)
         raw_lines = text.split("\n")
         for line_no in range(max(len(code), len(comment))):
             c = comment[line_no] if line_no < len(comment) else ""
@@ -416,6 +443,28 @@ SELFTEST = (
 )
 
 
+# The Kept assembly files (`femacs/exec/loader-*.s`, status 3.295): a copied block in the
+# x86/MIPS dialect and in the ARM one.  These are scanned with `suffix=".s"`, because that
+# is what decides the leaders - the same text without it is code, not a comment (which is
+# exactly the finding the two cases would report).
+SELFTEST_ASM = (
+    ("copied block in an assembly comment",
+     "# This file is part of GNU Emacs.\n# GNU Emacs is free software: you can redistribute it.",
+     ["decl", "title"]),
+    ("ARM comment character carries the block",
+     "@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.", ["decl"]),
+)
+
+
+# The assembly dialect is a *splitting* rule, not a class, so it is checked on the split
+# (`scan`) rather than through the classes: `#` at the start of a line is a comment, a
+# mid-line `#` is an operand of the ARM/AArch64 immediate syntax and stays code (3.295).
+SELFTEST_ASM_SPLIT = (
+    ("#", "\tmov\tx0, #1\t\t// x0 = 1", "\tmov\tx0, #1", " x0 = 1"),
+    ("#", "\t# for GNU Emacs", "", " for GNU Emacs"),
+)
+
+
 SELFTEST_DOC = (
     # The doc shape: Markdown has no literals, so a quoted C string is prose here.
     ("ledger quotes the copied block",
@@ -452,12 +501,24 @@ def selftest() -> int:
         ok = got == sorted(want)
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
         bad += 0 if ok else 1
-    print(f"{len(SELFTEST) + len(SELFTEST_DOC)} cases, {bad} failures")
+    for name, source, want in SELFTEST_ASM:
+        got = sorted({k for _, k, _ in findings_text(source, ".s")})
+        ok = got == sorted(want)
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
+        bad += 0 if ok else 1
+    for leader, source, want_code, want_comment in SELFTEST_ASM_SPLIT:
+        code, comment = scan(source + "\n", ".s")
+        ok = code[0].strip() == want_code.strip() and comment[0] == want_comment
+        print(f"{'ok  ' if ok else 'FAIL'} assembly `{leader}` split: "
+              f"code={code[0]!r} comment={comment[0]!r}")
+        bad += 0 if ok else 1
+    total = len(SELFTEST) + len(SELFTEST_DOC) + len(SELFTEST_ASM) + len(SELFTEST_ASM_SPLIT)
+    print(f"{total} cases, {bad} failures")
     return 1 if bad else 0
 
 
-def findings_text(text: str) -> list[tuple[str, str, str]]:
-    code, comment = scan(text)
+def findings_text(text: str, suffix: str = "") -> list[tuple[str, str, str]]:
+    code, comment = scan(text, suffix)
     raw_lines = text.split("\n")
     out = []
     for line_no in range(max(len(code), len(comment))):

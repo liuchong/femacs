@@ -4959,3 +4959,36 @@
   ② **镜像覆盖率整树归零**：`spikes/mirror-struct-coverage.py` 由 3.282 的 **114 条缺口** → **0 条**（282 个结构体、846 个臂尝试、241 个臂"读不了"=该配置不定义该类型或平台头不在）。另外两条口径由 lane 写进台账：端口在 `x_display_info`/`x_output` 上的 `have_x_windows` 门是**按类型可得性收窄**（C 那两个结构无门），以及该工具的 x11 臂**不带扩展宏**（`HAVE_XFIXES`/`HAVE_XSYNC`/`HAVE_XRANDR`/`HAVE_X_I18N`/`HAVE_XINPUT2`）⇒ 这些门下的字段不在读数里（记为工具待办）。
   ③ **棘轮**（3m14s，脚本内 `--strict` 已过 ⇒ 棘轮文件是 HEAD 一致的）：`swift-units.tsv` **-10 行**（正是 nsterm 13 片列的 10 条）且 `check-swift-units` 读 **0 new / 0 stale / 7 landed**；`swift-import-pending.txt` 621 → **636** 行（nsterm 交来的 16 条）；`link-pending` 373、`link-exec-pending` 83。**工作树当前的 FAIL/NEW 是四条 lane 在飞造成的**（`check-link` 的 `_Vmake_cursor_line_fully_visible` 属 xdisp 第 23 轮、`check-swift-imports` 的 26 条同理），HEAD 侧一致。
   ④ **一条留给下一轮的核对**：对账脚本把"改动过的镜像 → 包含它的单元"是靠 `grep -l "include/<mirror>"` 找的；若某镜像**被另一个镜像 include**（`include!` 链），它的单元不会被找到、对象可能带在飞状态。本轮脚本的 `--strict` 是绿的，所以这次没有咬到，但值得专门验一次（记在案）。
+- **3.295 产品名声明这条长期指令的复算，抓到一个真洞：`Kept` 的六个汇编文件对每一道门都不可见（2026-10-05）**：
+  ① **指令的读法不变**（3.226/3.250）：`版本声明不要再说是gnu emacs了` 与 38 秒之后的 `把之前的代码中的这种声明也去掉` 是**同一条指令的前后两半**，
+  不只对新写的文件生效、**已写进树的代码**也要清；三段处置（231 个首行版本括注压到修订号、268 个版权/许可块不抄、标题注释与"复述许可块"进 `title`/`recital`）一处没退。
+  本轮在 HEAD `ef5b099` 的工作树上复算，逐类按**后缀**扫全仓。
+  ② **复算的读数**：`check-declarations.py` → `13 declaration sites (0 forbidden, 13 allowed literals), 0 failures`、`read 652 files (623 .rs 22 .kt 7 .swift)`——
+  **但门自己打印的下一行就是洞**：`walked past 7 file(s) of an unscanned kind: femacs/exec/loader-{aarch64,armeabi,mips64el,mipsel,x86,x86_64}.s, femacs/xtask/Cargo.toml`。
+  六个 `.s` 是 `docs/port-map.md` 的 **`Kept`** 类（3.284 逐字节复制、`cmp` 验过），每个文件的**头 16 行就是参照的许可块**
+  （`Copyright (C) 2023-2026 Free Software Foundation, Inc.`、`This file is part of GNU Emacs.`、`GNU Emacs is free software`、`along with GNU Emacs.`），
+  而 `.s` 不在 `SRC_SUFFIXES` 里 ⇒ **36 行声明对每一道门都不可见**。这是 3.250 那个洞的**第二个实例**：那次是 `femacs/platform` 的 7 个 `.swift` 只按"名字"被扫，
+  这次是 `femacs/exec` 的 6 个 `.s`——同一类失败模式（门声称读了、其实一个文件都没读），同一种抓法（门打印它走了过去什么）。
+  ③ **门的覆盖按后缀扩到汇编，且有正面证据**：`SRC_SUFFIXES` 加 `.s`/`.S`，并按**方言**建模行注释——`@` **任意位置**是注释（ARM；`loader-armeabi.s` 实测 188 行），
+  `#` **只在行首**是注释（ARM/AArch64 的 `#` 同时是立即数前缀：aarch64 56 行、armeabi 82 行；而 x86/MIPS 的 `#` 注释**行中 0** 行，所以"只在行首"既不漏也不误）。
+  `--selftest` **22 → 37 例 / 0 失败**，新增 5 例：3 例是汇编形状（`#` 方言的许可块、`@` 方言的许可块、两块的 `decl`+`title` 读数），
+  2 例是**切分规则本身**（`\tmov\tx0, #1\t\t// x0 = 1` 里 `#` 之后仍是代码、缩进后的 `#` 是注释——这两例在"`#` 任意位置都是注释"和"只认行首 `#`"下会分别失败）。
+  加上后缀之后门第一次读这六个文件，**当场报 54 处 `decl`/`title`**（每文件 9 处：**7 `decl` + 2 `title`**，六个文件都一样）——这就是"覆盖不是空跑"的证据。
+  ④ **清理**：六个文件的 16 行注释块换成一行出处行 `<该文件自己的注释符> femacs: kept from exec/loader-X.s @ fd7afced403.`
+  （`//` aarch64、`@` armeabi、`#` 其余四个；块后面那个空行保留为正文第一行），`git diff --stat` = **6 insertions(+), 96 deletions(-)**。
+  **语义不变的证据是对象级的**：`clang -target {aarch64,armv7,i386}-linux-gnu -c` 对参照与端口各编一次，得到
+  `loader-aarch64` `28eb92a2e452a7d5…`、`loader-armeabi` `0704694397973891…`、`loader-x86` `579eb745e079ba4c…`，**三个对象逐字节相同**；
+  正文本身六对逐字节相同（`diff <(tail -n +17 emacs/…s) <(tail -n +2 femacs/…s)`）；`loader-mips64el`/`loader-mipsel` 本机 clang **没有 MIPS 后端**
+  （`error: unknown target triple`）⇒ 这两个的证据是文本的（被删的 16 行全是该文件自己注释符开头的注释行）。
+  ⑤ **3.284 ③ 命名的那道门做出来了：`tools/check-kept.py` + `docs/baseline/kept-files.tsv`**。行集由 `docs/port-map.md` 的 `Kept` 节决定；
+  每行钉三件事——参照整文件 sha256、被替换行数（`removed_lines`，由行数差**导出**而非手写）、首行（并按 `PATH_RULE` 要求它点名参照路径与修订号），
+  之外还要求**正文逐字节**。读数 `6 kept file(s), 6 baseline row(s), 0 failure(s)`；`--selftest` **3 例 / 0 失败**（干净文件 0、正文翻一个 bit 报 1、删掉首行报 **2**——
+  首行与正文两个读数是独立的）。绑定是双向的：地图说 `Kept` 而基线没有行、基线有行而地图不说 `Kept`，都算失败；`--write` 会拒绝记录不是出处行的首行。
+  ⑥ **残下的 13 处与边界不变**（3.226 ④⑤ / 3.250 ⑤）：13 处仍是允许清单上的 C 字面量（横幅要打印、docstring 门要逐个比对，改它就与参照分叉）；
+  六棵逐字节树按用户指令原样（`check-verbatim` 钉着），运行时那行产品名由 `femacs/lisp/version.el:111` 的 `format` 拼出、该文件与参照 `cmp` 相同。
+  我们自己写的散文仍可"**提到**"参照（基线行、决定记录），但任何文件都不许"**声明自己是该产品**"。**新口径**：`Kept` 类也在这条规则之内——
+  它现在有 `PORTING.md` 的 **P-84** 与两道门（声明门按后缀读 `.s`、`check-kept` 钉正文）。
+  ⑦ **顺手量到的生成物读数（本轮不改，已命名）**：`Kept` 行在地图里的"目标行数"列仍是 `-`（地图在 3.284 复制之前生成），
+  而 `gen-port-map.py` 现在会数出来（214/249/343/342/282/254）；在 HEAD 工作树上重生成，`docs/port-map.md` 与提交版差 **56 行**（diff 输出 170 行），
+  其中 50 行是 1:1 Rust 侧的目标行数（`src/comp.rs` 38→48、`lib/stdlib.in.rs` 274→300 这类，且这两个文件在工作树里是**干净的**）⇒
+  地图在 HEAD 上**确实是陈的**，值得一次"在 HEAD 里重生成生成物"的专门提交（协议 §1 的新鲜度链那一步）。
