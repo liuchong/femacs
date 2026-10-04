@@ -30,6 +30,9 @@ target=${TMPDIR:-/tmp}/femacs-reconcile-target
 
 cd "$root"
 rm -rf "$wt"
+# A previous run that was killed can leave the *registration* behind (the directory is gone), and
+# `worktree add` then refuses; prune first so the script is re-runnable.
+git worktree prune
 git worktree add --detach --quiet "$wt" HEAD
 
 # The reference checkout and the frozen build are git-ignored, so a worktree has neither.
@@ -42,8 +45,16 @@ mkdir -p "$wt/build/femacs"
 cp "$root"/build/femacs/*.o "$wt/build/femacs/"
 rm -f "$wt"/build/femacs/*.checking.o
 
-# ...and the ones it has: rebuilt from the worktree's own (HEAD) sources.
-stems=$(git status --porcelain -- femacs/src | awk '{print $NF}' | sed 's|^femacs/||' | sed 's|\.rs$|.c|')
+# ...and the ones it has: rebuilt from the worktree's own (HEAD) sources.  A changed *unit* is a
+# stem of its own; a changed *mirror* (`src/include/*.rs`) is not a translation unit at all
+# (building it directly is 446 errors), so the units that include it are the stems instead - a
+# mirror reaches its objects only through them (measured 3.279: an in-flight `src/include/xterm.rs`
+# made the old rule try to build the mirror itself).
+units=$(git status --porcelain -- femacs/src ':!femacs/src/include' | awk '{print $NF}')
+mirrors=$(git status --porcelain -- femacs/src/include | awk '{print $NF}' | sed 's|^femacs/src/include/||')
+stems=$(for u in $units; do echo "$u" | sed 's|^femacs/||' | sed 's|\.rs$|.c|'; done; \
+        for m in $mirrors; do grep -l "include/$m" femacs/src/*.rs 2>/dev/null \
+          | sed 's|^femacs/||' | sed 's|\.rs$|.c|'; done | sort -u | tr '\n' ' ')
 if [ -n "$stems" ]; then
   echo "rebuilding at HEAD: $stems"
   for stem in $stems; do

@@ -23,11 +23,11 @@ DRAW_CURSOR	the reference's own C text declares or defines it (a header macro/IN
 ENCODE_FILE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ENCODE_MENU_STRING	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 EVENT_INIT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-EmacsFileDelegate_new	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 EmacsImage_allocInitFromFile	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 EmacsTooltip_frame	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 EmacsTooltip_hide	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 EmacsTooltip_isActive	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+EmacsTooltip_moveTo	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 EmacsTooltip_new	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 EmacsTooltip_setBackgroundColor	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 EmacsTooltip_setForegroundColor	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
@@ -136,6 +136,7 @@ LGSTRING_GLYPH	the reference's own C text declares or defines it (a header macro
 LGSTRING_GLYPH_LEN	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 LGSTRING_HEADER	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 LGSTRING_SET_GLYPH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Lisp_Fwd_Bool	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 Lisp_Fwd_Obj	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 MAX_UNICODE_CHAR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 MENU_ITEMS_ITEM_DEFINITION	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -209,6 +210,7 @@ Qchild_frame_border_width	the reference objects define or reference it (`nm` ove
 Qcolor	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 Qcondensed	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 Qcount	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qcritical	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 Qcursor_color	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
 Qcursor_type	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
 Qdebug_on_next_call	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -243,6 +245,7 @@ Qicon_left	the reference objects define or reference it (`nm` over build/emacs-r
 Qicon_name	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
 Qicon_top	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
 Qicon_type	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qinformational	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 Qinhibit_double_buffering	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
 Qinhibit_modification_hooks	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
 Qinhibit_point_motion_hooks	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
@@ -338,6 +341,7 @@ RES_TYPE_NUMBER	the reference's own C text declares or defines it (a header macr
 RES_TYPE_STRING	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 RES_TYPE_SYMBOL	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 SBYTES	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+SCHARS	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 SDATA	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 SELECTED_FRAME	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 SET_FRAME_GARBAGED	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -348,6 +352,7 @@ SSDATA	the reference's own C text declares or defines it (a header macro/INLINE/
 STRING_MULTIBYTE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 SYMBOL_NAME	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 TERMINALP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TEXT_AREA	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 TOOL_BAR_IMAGE_ENABLED_SELECTED	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 TOOL_BAR_ITEM_CAPTION	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 TOOL_BAR_ITEM_ENABLED_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -363,9 +368,7 @@ VECSIZE	the reference's own C text declares or defines it (a header macro/INLINE
 VECTORP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 Vframe_alpha_lower_limit	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 Vmenu_updating_frame	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-Vns_icon_type_alist	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 Votf_script_alist	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-Vx_max_tooltip_size	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 Vx_resource_name	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 WINDOWP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 WINDOW_TO_FRAME_PIXEL_Y	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -566,7 +569,6 @@ ns_right_alternate_modifier	the reference's own C text declares or defines it (a
 ns_right_command_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_right_control_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_term_init	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-ns_use_proxy_icon	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_use_srgb_colorspace	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_use_thin_smoothing	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_xlfd_to_fontname	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -588,6 +590,7 @@ set_frame_cursor_types	the reference objects define or reference it (`nm` over b
 set_hash_value_slot	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 shift_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 showFontPanel	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+string_char_advance	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 svcsMenu	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 terminal_increment_reference_count	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 terminal_kboard	no universe explains the name itself; `kboard` is an identifier of the reference's own C text (emacs/src/frame.h), which is the shape of a member accessor - if this is the importing Swift unit's C-ABI spelling of that construct, the core owes the same-name entry (docs/status.md 3.255 A) or the unit expands it ((B)); otherwise it is a name to fix
@@ -601,6 +604,8 @@ update_submenu_strings	the reference's own C text declares or defines it (a head
 valid_image_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 waiting_for_input	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 window_desired_matrix	no universe explains the name itself; `desired_matrix` is an identifier of the reference's own C text (emacs/src/dispextern.h), which is the shape of a member accessor - if this is the importing Swift unit's C-ABI spelling of that construct, the core owes the same-name entry (docs/status.md 3.255 A) or the unit expands it ((B)); otherwise it is a name to fix
+window_phys_cursor_x	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+window_phys_cursor_y	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 window_pixel_height	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 window_pixel_width	no universe explains the name itself; `pixel_width` is an identifier of the reference's own C text (emacs/src/composite.h), which is the shape of a member accessor - if this is the importing Swift unit's C-ABI spelling of that construct, the core owes the same-name entry (docs/status.md 3.255 A) or the unit expands it ((B)); otherwise it is a name to fix
 window_set_left_col	no universe explains the name itself; `left_col` is an identifier of the reference's own C text (emacs/src/window.h), which is the shape of a member accessor - if this is the importing Swift unit's C-ABI spelling of that construct, the core owes the same-name entry (docs/status.md 3.255 A) or the unit expands it ((B)); otherwise it is a name to fix

@@ -96,6 +96,7 @@ _cos	the reference references it too (or an SDK .tbd exports it): provided at li
 _count_lines	the reference defines it and no unit of this port does - the definition is owed
 _current_buffer	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _cursor_row_fully_visible_p	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
+_cursor_row_p	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _devname	the reference references it too (or an SDK .tbd exports it): provided at link time
 _display_line	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _display_mode_line	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
@@ -282,7 +283,6 @@ _row_hash	the reference defines it and no unit of this port does - the definitio
 _scalbn	the reference references it too (or an SDK .tbd exports it): provided at link time
 _scroll_margin	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _sendto	the reference references it too (or an SDK .tbd exports it): provided at link time
-_set_cursor_from_row	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _setitimer	the reference references it too (or an SDK .tbd exports it): provided at link time
 _setlocale	the reference references it too (or an SDK .tbd exports it): provided at link time
 _setpgid	the reference references it too (or an SDK .tbd exports it): provided at link time
