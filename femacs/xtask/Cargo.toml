@@ -95,6 +95,8 @@ have_android                               = []  # HAVE_ANDROID
 android_api_le_11                          = []  # the derived condition `__ANDROID_API__ <= 11` (androidselect.c 432/447)
 android_api_le_30                          = []  # the derived condition `__ANDROID_API__ <= 30` (androidselect.c 478)
 no_value                                   = []  # the derived condition `!defined HAVE_X_WINDOWS && defined (NoValue)` (frame.c 6538; `NoValue` is the non-X `*gui.h` constant)
+mingw_w64                                  = []  # MINGW_W64 (w32fns.c 38 `#if !defined MINGW_W64 && !defined CYGWIN`, 63 `# ifndef MINGW_W64`)
+win32_windows_ge_0410                      = []  # the derived condition `_WIN32_WINDOWS >= 0x0410` (w32fns.c 167)
 have_android_mmap                          = []  # see femacs/src/sysdep.rs:2850
 have_copy_file_range                       = []  # HAVE_COPY_FILE_RANGE
 have_decl_strmode                          = []  # HAVE_DECL_STRMODE

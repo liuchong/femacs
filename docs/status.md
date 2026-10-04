@@ -6637,3 +6637,44 @@
      故不声称该臂编译过；`include/frame.rs` 的自述已写明 GUI 配置会在第一个 accessor 处编不过（翻臂会报错而不是静默错位）。
      另一条本轮实测：同一源两次编译的 `.o` 逐字节相同，但源码快照变化时 md5 会动（`1509205b…` → `93043164…`）
      而大小与 `nm` 不变 ⇒ **形状读数是大小＋`nm`，md5 只钉源码快照**。
+
+- **3.395 最大的死文件开工：`w32fns.c` 第一片 C 1-884（12,488 行里的第一刀）（2026-10-05）**：
+  ① **边界**：900 落在 `add_system_logical_colors_to_map`（C 887-932）**未完成的调用表达式**里（C 897-900），
+     最近的整函数边界是 C 884（`w32_color_map_lookup` 的 `}`），下一个是 C 932 ⇒ 取 C 884。
+     落点：`w32_window_to_frame`、`w32_real_positions`、`w32_fullscreen_rect`、`DEFUN w32-define-rgb-color`、
+     `colormap_t` + `w32_color_map[240]`、`w32_default_color_map`、`w32_color_map_lookup` 等
+     **6 个函数定义、29 个 `#define`、53 个文件级对象**（机械对账，全部在端口里）。
+  ② **行数**：`femacs/src/w32fns.rs` **13 → 1,561 行**；`docs/ports/w32fns.md` **24 → 339 行**
+     （63 行 `## C line ranges` 覆盖 C 1-12,488，末行 `885-12488` 明记"本片之外"以便机器门通过）。
+     **本文件已退出 `<10%` 棘轮**（阈值 1,248，端口 1,561）——与派单时的预期相反，据实记。
+  ③ **读数**：`build-tu src/w32fns.c` → **built / exit 0 / 336 字节空对象**（冻结配置一行不编）；
+     `check-dead-file-coverage` **8 ledger(s) bound / 0 failure**；`check-port-lines` 报本件 **stale**（退出棘轮）；
+     `check-citations` 675/0 drift/0 stale、`check-declarations` 13/0/0、`check-carried` 11/11/0；
+     **`check-cond-eval src/w32fns.c` → `117 conditions, 3 unknown, 3 disagreements [NOT VERIFIED]`**
+     （C 167/8286/8300）⇒ **这个文件不在 `cond-eval-verified.txt` 里**，于是 `--check` 的清单是**整份文件**、
+     不是活行子集（详见 ⑤）。
+  ④ **`text-only`（点名缺的工具链）**：本机无 `x86_64-w64-mingw32-gcc`/`i686-w64-mingw32-gcc`、无 Homebrew
+     `mingw-w64`、全盘无 `windows.h`。仍做了两档**文本级**附加读数并**都做了对照**：⑴ 翻臂
+     （`--cfg have_ntgui,windowsnt,win32_windows_ge_0410`）**exit 1 / 161 error、本单元正文 0 条**，
+     并用**变异实测**证明这是空读数（注入类型错误后输出逐字不变）；⑵ 臂触达预检（`/tmp` 复制物化图 +
+     补镜像缺口 + 46 条桩）**本单元正文 0 错**、只剩 1 个镜像缺陷，且**正对照**（注入错误立刻报出）
+     证明它真的在类型检查本单元正文。
+  ⑤ **集成者这一轮的动作（我能证的）**：⑴ `femacs/xtask/Cargo.toml` 补两个单元已在用、表里却没有的 feature：
+     `mingw_w64`（C 依据 `w32fns.c` 38/63）与 `win32_windows_ge_0410`（C 167 的 `_WIN32_WINDOWS >= 0x0410`）；
+     ⑵ `docs/ports/macro-body-notes.tsv` 补**两行**——`w32_fullscreen_rect`（C 517 的 `switch (fsmode)` 四臂
+     落成 `match`，`switch/case/default/break` 四个 token 无对应物）与 `SYSTEM_COLOR_PREFIX_LEN`
+     （C 127 的 `sizeof (SYSTEM_COLOR_PREFIX) - 1` 落成 `.len ()`，`1` 与 `sizeof` 都无对应物，值同为 6）；
+     补完后 `--check` 的 `does not mention` 行全部消失，读数 = **256 行、全是本片之外余段的 `missing *`**
+     （与 xdisp 的 WIP 读数同类）。⑶ **刻意不加** `line-drift-tolerance.tsv` 行：xdisp 同为 WIP 也没有行，
+     而半成品的"87.5% 漂移"是**进度标记**、不是结构膨胀；这一行应在文件落完时按最终密度推导（记在这里，
+     不留给下一个人猜）。
+  ⑥ **仍未解决（点名，交给下一轮）**：⑴ 五处镜像缺陷（`FRAME_DISPLAY_INFO` 宏体 `(void)($f)` 非 Rust、
+     `w32_kbdhook_active` 把宏写成 `pub const`、`FRAME_W32_P` 缺 `#ifdef HAVE_NTGUI` 对臂、`enum fullscreen_type`
+     不在 `frame.rs`、`dispextern.rs` 缺 `check_x_display_info` 原型）；⑵ **10 条声明↔定义冲突（E0428）**
+     （`w32_fullscreen_rect`/`w32_window_to_frame`/`w32_real_positions`/`menubar_in_use`/`hinst`/`syspage_mask`/
+     `w32_*_version`/`w32_build_number`/`os_subtype`）要把镜像声明搬进 `*_decls`/`*_objs` 模块（window.rs 先例）；
+     ⑶ `SYSTEM_INFO`/`OSVERSIONINFO` 两个 C 记录**无头文件可测**（按 `w32common.rs` 先例 defer）；
+     ⑷ 结构性的：**w32fns.c 不在 cond-eval-verified**（3 个 unknown），因此在那之前 `--check` 永远要求整份文件
+     ——要不要把这三个条件办进验证表，是下一步的一个独立决定。
+  ⑦ **未声称**：`text-only` —— 没有编译过任何 Windows 目标、**没有任何 `<windows.h>` 的尺寸/偏移测量**
+     （`RECT`/`MSG`/`TITLEBARINFO` 等布局 **UNVERIFIED**，断言属 owed）、无链接无运行、预检的 46 条桩是 `/tmp` 脚手架。
