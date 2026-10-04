@@ -2251,3 +2251,20 @@
   ④ lane 在 `haikugui` 台账里记下的处置值得留档：`XCharStruct` 一类的名字与 `dispextern.rs` 的别名冲突时，
   选择"照参照逐声明携带 + 在台账写明"，而不是发明 `pub mod` 包装（`macro_rules!` 是文本作用域，包装会把宏名
   藏起来，比冲突更糟）。
+
+- **3.142 `src/emacs-icon.h` 镜像落地：死的一半（XPM）记账、活的一半（XBM）逐字节携带（2026-10-04）**：
+  ① **唯一条件可判且为假**：`HAVE_XPM`/`HAVE_X_WINDOWS`/`USE_GTK` 在冻结表里全 `undef`（1708/1720/3861），
+  `check-cond-eval.py src/emacs-icon.h` 报 `1 conditions, 0 unknown, 0 disagreements`，所以 C 27-318
+  （`gnu_xpm_bits` 的 XPM 数组连 255 色表）是死文本，记账不转写（P-08）。参照自己在 C 19-20 的注释就是这段
+  守卫的来由：GTK 端口用 gdk 画图标，所以"能编出 XPM 支持"并不是它的前提。
+  ② **活的是守卫之下那一半**：C 321-322 的两个尺寸宏（body 都是 `50`，哈希同 `e1822db470e6`）与
+  `gnu_xbm_bits`。C 把它写成 `static unsigned char[]`——内部链接、每个包含者一份——所以端口保持同一拼法、
+  长度按 C 自己的初始化列表量成 **348**，并且**不加 `#[no_mangle]`**：编译证明里的 `nm -g` 打出的是
+  mangled 名字（`D __RNvCs…gnu_xbm_bits`），正是 C 文件级 `static` 的样子。
+  ③ **这个头没有 include guard**（C 从开头注释直接进第一个 `#if`）——照参照"没有"，不发明一个。
+  ④ **没有能编译的消费者**：它唯一的包含者是 `src/xterm.c`（X11 后端，在本目标是空壳单元，status 3.31），
+  所以编译证据用独立 crate 的 `rustc --edition 2024 --crate-type=lib --emit=obj`（exit 0）。
+  ⑤ 证据：`--check emacs/src/emacs-icon.h femacs/src/include/emacs-icon.rs` → **OK**；
+  `check-declarations` 13 sites (0 forbidden) / 0、`check-mirror-dupes` 1 duplicate / 1 ratchet / 0 failure、
+  `check-globals` 283 units / 0、`check-verbatim` 6 trees/4607 files/0、**`check-target-names` 545 `.rs` / 593
+  targets / 0 finding**；清单复算 **510 = 496 done / 14 wip，待开工 80**。
