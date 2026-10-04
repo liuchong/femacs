@@ -4950,3 +4950,6 @@
   ② **P-83 又添一条 ⑪（实测）**：**JNI 按名字找的 `static` 方法必须 `@JvmStatic`**——Kotlin 的 companion 成员在 JVM 上住在 `X$Companion` 上，而 `androidselect.c` 110-112 是在 `EmacsClipboard` 类上找 `makeClipboard`（`()Lorg/gnu/emacs/EmacsClipboard;`）⇒ 不加就找不到。
   ③ **探针升级（这批的关键使能）**：不再要求"依赖先落库才能编"——`spikes/kotlin-compile-probe.sh` 现在把**参照自己的 `java/**`（去掉已被 Kotlin 覆盖的那些名字）**一起交给编译器，作为未落库依赖的替身（就是端口将来要复现的那套接口）⇒ **每个 Kotlin 文件一落地就能真编译**。它证明的是被移植文件的语法与类型对参照接口成立；"与端口自己后续文件的接口一致性"仍由 `docs/baseline/kotlin-order.tsv` 的簇闭包在落库时核（这条限制已写进探针注释）。
   ④ 读数：**40 目标 / 18 已落 / 22 待做**，十八个文件全部编译通过（只剩 `EmacsDocumentsProvider` 那两条参照自身不判空的 warning）。
+
+- **3.292 Kotlin 又三件（`EmacsLauncherPreferencesActivity` 31、`EmacsMultitaskActivity` 57、`EmacsThread` 70）——21/40（2026-10-05）**：三件都编译通过。`EmacsThread` 里保留了参照的 `System.arraycopy` 与 `Arrays.toString`（日志文本是运行期对拍会看的东西，P-83 ①）；`EmacsMultitaskActivity` 的两个覆盖在参照里是 `final` ⇒ 端口写 `final override`——**P-83 新增 ⑫**（Kotlin 覆盖成员默认 open，不写 `final` 就与参照的封闭性不符）。
+  读数：**40 目标 / 21 已落 / 19 待做**（剩 12,600 余 Java 行，集中在 UI/服务那几个大件）；二十一个文件全部由探针编译通过。
