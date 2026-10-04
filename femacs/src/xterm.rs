@@ -161,7 +161,7 @@
    from a frame created by Emacs into actual colors which are output
    onto the physical display.
 
-   When the visual class is TrueColor, the colormap will be indexed
+   When the visual class is trueColor, the colormap will be indexed
    based on the red, green, and blue (RGB) components of the pixel
    values, and the colormap will be statically allocated so as to
    contain linear ramps for each component.  As such, most of the
@@ -203,7 +203,7 @@
    and xfns.c for more details.
 
    The driving logic behind color allocation is in
-   `x_alloc_nearest_color_1', while the optimization for TrueColor
+   `x_alloc_nearest_color_1', while the optimization for trueColor
    visuals is in `x_make_truecolor_pixel'.  Also see `x_query_colors`,
    which is used to determine the color values for given pixel
    values.
@@ -649,6 +649,7 @@ include!("../lib/include/math.rs");               // C 627: `#include <math.h>`
 include!("../lib/include/signal.rs");             // C 628: `#include <signal.h>`
 include!("include/lisp.rs");                      // C 630: `#include "lisp.h"`
 include!("../lib/include/string.rs");                 // lisp.h 30: `#include <string.h>` (memcmp)
+include!("../lib/include/limits.in.rs");                 // lisp.h 33: `#include <limits.h>` (LONG_MAX)
 include!("include/blockinput.rs");                // C 631: `#include "blockinput.h"`
 include!("../lib/include/stdio.rs");              // C 632: `#include "sysstdio.h"`
 include!("include/xterm.rs");                     // C 636: `#include "xterm.h"`
@@ -1207,14 +1208,19 @@ pub struct xm_top_level_leave_message
 #[cfg (feature = "have_x_windows")]
 macro_rules! XM_DRAG_SIDE_EFFECT {
   ($op:expr, $site:expr, $ops:expr, $act:expr) =>
-    { (($op) | (($site) << 4) | (($ops) << 8) | (($act) << 12)) };
+    { (($op) as c_int | (($site) as c_int) << 4 | (($ops) as c_int) << 8
+       | (($act) as c_int) << 12) };
 }
 #[cfg (feature = "have_x_windows")]
-macro_rules! XM_DRAG_SIDE_EFFECT_OPERATION { ($effect:expr) => { (($effect) & 0xf) }; }
+macro_rules! XM_DRAG_SIDE_EFFECT_OPERATION { ($effect:expr) => { (($effect) as c_int & 0xf) }; }
 #[cfg (feature = "have_x_windows")]
-macro_rules! XM_DRAG_SIDE_EFFECT_SITE_STATUS { ($effect:expr) => { ((($effect) & 0xf0) >> 4) }; }
+macro_rules! XM_DRAG_SIDE_EFFECT_SITE_STATUS {
+  ($effect:expr) => { ((($effect) as c_int & 0xf0) >> 4) };
+}
 #[cfg (feature = "have_x_windows")]
-macro_rules! XM_DRAG_SIDE_EFFECT_DROP_ACTION { ($effect:expr) => { ((($effect) & 0xf000) >> 12) }; }
+macro_rules! XM_DRAG_SIDE_EFFECT_DROP_ACTION {
+  ($effect:expr) => { ((($effect) as c_int & 0xf000) >> 12) };
+}
 
 /* C 1697-1704: the Motif drag operations.  */
 #[cfg (feature = "have_x_windows")]
@@ -1246,14 +1252,14 @@ pub enum xm_drag_action
 
 #[cfg (feature = "have_x_windows")]
 macro_rules! XM_DRAG_REASON {
-  ($originator:expr, $code:expr) => { (($code) | (($originator) << 7)) };
+  ($originator:expr, $code:expr) => { (($code) as c_int | (($originator) as c_int) << 7) };
 }
 #[cfg (feature = "have_x_windows")]
 macro_rules! XM_DRAG_REASON_ORIGINATOR {
-  ($reason:expr) => { if (($reason) & 0x80) != 0 { 1 } else { 0 } };
+  ($reason:expr) => { if (($reason) as c_int & 0x80) != 0 { 1 } else { 0 } };
 }
 #[cfg (feature = "have_x_windows")]
-macro_rules! XM_DRAG_REASON_CODE { ($reason:expr) => { (($reason) & 0x7f) }; }
+macro_rules! XM_DRAG_REASON_CODE { ($reason:expr) => { (($reason) as c_int & 0x7f) }; }
 
 /* C 1720-1732: which end of the protocol sent a message.  */
 #[cfg (feature = "have_x_windows")]
@@ -1603,6 +1609,8 @@ unsafe fn xm_write_targets_table (dpy: *mut c_void, wdesc: Window,
 				  header: *mut xm_targets_table_header,
 				  recs: *mut *mut xm_targets_table_rec)
 {
+  use crate::x11_constants::{PropModeAppend, PropModeReplace};
+
   let mut header_buffer: *mut u8;
   let mut ptr: *mut u8;
   let mut rec_buffer: *mut u8;
@@ -1662,6 +1670,8 @@ unsafe fn xm_write_drag_initiator_info (dpy: *mut c_void, wdesc: Window,
 					prop_name: Atom, type_name: Atom,
 					info: *mut xm_drag_initiator_info)
 {
+  use crate::x11_constants::PropModeReplace;
+
   let mut buf: *mut u8;
 
   USE_SAFE_ALLOCA! (sa_avail, sa_count);
@@ -1712,6 +1722,8 @@ unsafe extern "C" fn xm_drag_window_io_error_handler (dpy: *mut c_void) -> !
 #[cfg (feature = "have_x_windows")]
 unsafe fn x_special_window_exists_p (dpyinfo: *mut x_display_info, window: Window) -> bool
 {
+  use crate::x11_constants::StructureNotifyMask;
+
   let mut rc: bool;
 
   x_catch_errors ((*dpyinfo).display);
@@ -1728,6 +1740,10 @@ unsafe fn x_special_window_exists_p (dpyinfo: *mut x_display_info, window: Windo
 #[cfg (feature = "have_x_windows")]
 unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
 {
+  use crate::x11_constants::{CopyFromParent, CWOverrideRedirect, DestroyAll, InputOnly,
+                             NoEventMask, None, PropModeReplace, RetainPermanent, Success,
+                             XA_WINDOW};
+
   let mut actual_type: Atom;
   let mut rc: c_int;
   let mut actual_format: c_int;
@@ -1743,10 +1759,10 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
   /* This is volatile because GCC mistakenly warns about them being clobbered by longjmp.  */
   let mut error: bool;
 
-  drag_window = None;
+  drag_window = None as Window;
   rc = (XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,
 			    (*dpyinfo).Xatom_MOTIF_DRAG_WINDOW,
-			    0, 1, False, XA_WINDOW, &raw mut actual_type,
+			    0, 1, false, XA_WINDOW, &raw mut actual_type,
 			    &raw mut actual_format, &raw mut nitems, &raw mut bytes_remaining,
 			    &raw mut tmp_data) == Success) as c_int;
 
@@ -1761,13 +1777,13 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
       rc = x_special_window_exists_p (dpyinfo, drag_window) as c_int;
 
       if rc == 0
-	{ drag_window = None; }
+	{ drag_window = None as Window; }
     }
 
   if !tmp_data.is_null ()
     { XFree (tmp_data); }
 
-  if drag_window == None
+  if drag_window == None as Window
     {
       block_input ();
       old_io_handler = XSetIOErrorHandler (Some (xm_drag_window_io_error_handler));
@@ -1777,7 +1793,7 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
 	  XSetIOErrorHandler (old_io_handler);
 	  unblock_input ();
 
-	  return None;
+	  return None as Window;
 	}
 
       unrequest_sigio ();
@@ -1789,7 +1805,7 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
 	  XSetIOErrorHandler (old_io_handler);
 	  unblock_input ();
 
-	  return None;
+	  return None as Window;
 	}
 
       error = false;
@@ -1798,20 +1814,20 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
       XSetCloseDownMode (temp_display, RetainPermanent);
       old_handler = XSetErrorHandler (Some (xm_drag_window_error_handler));
 
-      attrs.override_redirect = True;
+      attrs.override_redirect = true;
       drag_window = XCreateWindow (temp_display, DefaultRootWindow (temp_display),
 				   -1, -1, 1, 1, 0, CopyFromParent, InputOnly,
 				   CopyFromParent, CWOverrideRedirect, &raw mut attrs);
 
       /* Handle all errors now.  */
-      XSync (temp_display, False);
+      XSync (temp_display, false);
 
       /* Some part of the drag window creation process failed, so punt.  Release all
 	 resources too.  */
       if error
 	{
 	  XSetCloseDownMode (temp_display, DestroyAll);
-	  drag_window = None;
+	  drag_window = None as Window;
 	}
 
       xm_drag_window_error = std::ptr::null_mut ();
@@ -1828,10 +1844,10 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
       /* Make sure the drag window created is actually valid for the current display, and
 	 the XOpenDisplay above did not accidentally connect to some other display.  */
       if !x_special_window_exists_p (dpyinfo, drag_window)
-	{ drag_window = None; }
+	{ drag_window = None as Window; }
       unblock_input ();
 
-      if drag_window != None
+      if drag_window != None as Window
 	{
 	  XGrabServer ((*dpyinfo).display);
 
@@ -1840,7 +1856,7 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
 
 	  rc = (XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,
 				    (*dpyinfo).Xatom_MOTIF_DRAG_WINDOW,
-				    0, 1, False, XA_WINDOW, &raw mut actual_type,
+				    0, 1, false, XA_WINDOW, &raw mut actual_type,
 				    &raw mut actual_format, &raw mut nitems,
 				    &raw mut bytes_remaining,
 				    &raw mut tmp_data) == Success) as c_int;
@@ -1865,7 +1881,7 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
 	    { XFree (tmp_data); }
 
 	  if x_had_errors_p ((*dpyinfo).display) != 0
-	    { drag_window = None; }
+	    { drag_window = None as Window; }
 	  x_uncatch_errors ();
 
 	  XUngrabServer ((*dpyinfo).display);
@@ -1879,7 +1895,9 @@ unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
 #[cfg (feature = "have_x_windows")]
 unsafe fn xm_get_drag_window (dpyinfo: *mut x_display_info) -> Window
 {
-  if (*dpyinfo).motif_drag_window != None
+  use crate::x11_constants::None;
+
+  if (*dpyinfo).motif_drag_window != None as Window
     { return (*dpyinfo).motif_drag_window; }
 
   (*dpyinfo).motif_drag_window = xm_get_drag_window_1 (dpyinfo);
@@ -1900,4 +1918,927 @@ unsafe extern "C" {
   pub fn sigsetjmp (env: *mut sigjmp_buf, savemask: c_int) -> c_int;
   /// C: <setjmp.h>: `void siglongjmp (sigjmp_buf, int);`
   pub fn siglongjmp (env: *mut sigjmp_buf, val: c_int);
+}
+
+/* ---- Slice 4: C 2175-2612 - the targets-table setup, the drag atom, and the three Motif
+   message senders.  X11's macros come from the mirror's `x11_constants` module, imported per
+   function (a top-level name would shadow `Option::None`); the prose above records why.  */
+
+/* C 2175-2391: make the drag window's targets table hold TARGETS.  C's `goto
+   retry_drag_window` (2192/2224) is the port's labelled `loop` (PORTING.md 2.2; `editfns.rs`'s
+   `'retry` is the shape), and C 2316-2319's four `ckd_*` calls keep their short circuit: the
+   first is eager and the rest sit in block expressions after `||`, so a store that C would
+   never reach does not happen here either (`ccl.rs` 2913 records the same shape).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_setup_dnd_targets (dpyinfo: *mut x_display_info,
+				targets: *mut Atom, ntargets: c_int) -> c_int
+{
+  use crate::x11_constants::{None, Success};
+
+  let mut drag_window: Window;
+  let mut targets_sorted: *mut Atom;
+  let mut actual_type: Atom;
+  let mut tmp_data: *mut u8 = std::ptr::null_mut ();
+  let mut nitems: c_ulong;
+  let mut bytes_remaining: c_ulong;
+  let mut rc: c_int;
+  let mut actual_format: c_int;
+  let mut idx: c_int;
+  let mut had_errors: bool;
+  let mut header: xm_targets_table_header;
+  /* C 2186: `xm_targets_table_rec **recs UNINIT;` - the zero `UNINIT` stands for in the frozen
+     configuration (conf_post.h 369's `= {0,}`; the `cons_to_unsigned` note row).  */
+  let mut recs: *mut *mut xm_targets_table_rec = std::ptr::null_mut ();
+  let mut byteorder: xm_byte_order;
+  let mut data: *mut u8;
+  let mut total_bytes: ptrdiff_t;
+  let mut total_items: ptrdiff_t;
+  let mut i: ptrdiff_t;
+  let mut size: u32;
+  let mut target_count: u32;
+
+  'retry_drag_window: loop
+    {
+      drag_window = xm_get_drag_window (dpyinfo);
+
+      if drag_window == None as Window || ntargets > 64
+	{ return -1; }
+
+      targets_sorted = xmalloc (std::mem::size_of::<Atom> () * ntargets as usize) as *mut Atom;
+      std::ptr::copy_nonoverlapping (targets as *const Atom, targets_sorted,
+				     ntargets as usize);
+      qsort (targets_sorted as *mut c_void, ntargets as usize,
+	     std::mem::size_of::<Atom> (), Some (x_atoms_compare));
+
+      XGrabServer ((*dpyinfo).display);
+
+      x_catch_errors ((*dpyinfo).display);
+      rc = (XGetWindowProperty ((*dpyinfo).display, drag_window,
+				(*dpyinfo).Xatom_MOTIF_DRAG_TARGETS,
+				0, LONG_MAX, false,
+				(*dpyinfo).Xatom_MOTIF_DRAG_TARGETS,
+				&raw mut actual_type, &raw mut actual_format,
+				&raw mut nitems, &raw mut bytes_remaining,
+				&raw mut tmp_data) == Success) as c_int;
+      had_errors = x_had_errors_p ((*dpyinfo).display) != 0;
+      x_uncatch_errors_after_check ();
+
+      /* The drag window is probably invalid, so remove our record of it.  */
+      if had_errors
+	{
+	  (*dpyinfo).motif_drag_window = None as Window;
+	  XUngrabServer ((*dpyinfo).display);
+
+	  continue 'retry_drag_window;
+	}
+
+      if rc != 0 && !tmp_data.is_null () && bytes_remaining == 0
+	  && actual_type == (*dpyinfo).Xatom_MOTIF_DRAG_TARGETS
+	  && actual_format == 8
+	{
+	  data = tmp_data;
+	  if xm_read_targets_table_header (tmp_data, nitems as ptrdiff_t, &raw mut header,
+					   &raw mut byteorder) == 8
+	    {
+	      data = data.offset (8);
+	      nitems -= 8;
+	      total_bytes = 0;
+	      total_items = 0;
+
+	      /* The extra rec is used to store a new target list if a preexisting one doesn't
+		 already exist.  */
+	      recs = xmalloc ((header.target_list_count as usize + 1)
+			      * std::mem::size_of::<*mut xm_targets_table_rec> ())
+		       as *mut *mut xm_targets_table_rec;
+
+	      while total_items < header.target_list_count as ptrdiff_t
+		{
+		  *recs.offset (total_items)
+		    = xm_read_targets_table_rec (data.offset (total_bytes),
+						 nitems as ptrdiff_t, byteorder);
+
+		  if (*recs.offset (total_items)).is_null ()
+		    { break; }
+
+		  total_bytes += 2 + (*(*recs.offset (total_items))).n_targets as ptrdiff_t * 4;
+		  nitems -= 2 + (*(*recs.offset (total_items))).n_targets as c_ulong * 4;
+		  total_items += 1;
+		}
+
+	      if header.target_list_count as ptrdiff_t != total_items
+		  || header.total_data_size as ptrdiff_t != 8 + total_bytes
+		{
+		  for i in 0..total_items
+		    {
+		      if !(*recs.offset (i)).is_null ()
+			{ xfree (*recs.offset (i) as *mut c_void); }
+		      else
+			{ break; }
+		    }
+
+		  xfree (recs as *mut c_void);
+
+		  rc = 0;
+		}
+	    }
+	  else
+	    { rc = 0; }
+	}
+      else
+	{ rc = 0; }
+
+      if !tmp_data.is_null ()
+	{ XFree (tmp_data); }
+
+      /* Now rc means whether or not the target lists weren't updated and shouldn't be written
+	 to the drag window.  */
+
+      if rc == 0
+	{
+	  header.byte_order = XM_BYTE_ORDER_CUR_FIRST as u8;
+	  header.protocol = XM_DRAG_PROTOCOL_VERSION as u8;
+	  header.target_list_count = 1;
+	  header.total_data_size = (8 + 2 + ntargets * 4) as u32;
+
+	  recs = xmalloc (std::mem::size_of::<*mut xm_targets_table_rec> ())
+		   as *mut *mut xm_targets_table_rec;
+	  *recs = xmalloc (FLEXSIZEOF! (xm_targets_table_rec, targets,
+					ntargets as usize * 4))
+		    as *mut xm_targets_table_rec;
+
+	  (*(*recs)).n_targets = ntargets as u16;
+
+	  for i in 0..ntargets as ptrdiff_t
+	    {
+	      FAM_ELEM! ((*(*recs)).targets, i)
+		= *targets_sorted.offset (i) as u32;
+	    }
+
+	  idx = 0;
+	}
+      else
+	{
+	  idx = xm_find_targets_table_idx (&raw mut header, recs, targets_sorted, ntargets);
+
+	  if idx == -1
+	    {
+	      target_count = header.target_list_count as u32;
+	      rc = 0;
+
+	      let (add_value, add_overflow) = header.target_list_count.overflowing_add (1);
+	      header.target_list_count = add_value;
+	      if add_overflow
+		  || { let (mul_value, mul_overflow) = (ntargets as u32).overflowing_mul (4);
+		       size = mul_value; mul_overflow }
+		  || { let (add_value, add_overflow)
+			 = header.total_data_size.overflowing_add (size);
+		       header.total_data_size = add_value; add_overflow }
+		  || { let (add_value, add_overflow)
+			 = header.total_data_size.overflowing_add (2);
+		       header.total_data_size = add_value; add_overflow }
+		{
+		  /* Overflow, remove every entry from the targets table and add one for our
+		     current targets list.  This confuses real Motif but not GTK 2.x, and there
+		     is no other choice.  */
+
+		  for i in 0..target_count as ptrdiff_t
+		    { xfree (*recs.offset (i) as *mut c_void); }
+
+		  xfree (recs as *mut c_void);
+
+		  header.byte_order = XM_BYTE_ORDER_CUR_FIRST as u8;
+		  header.protocol = XM_DRAG_PROTOCOL_VERSION as u8;
+		  header.target_list_count = 1;
+		  header.total_data_size = (8 + 2 + ntargets * 4) as u32;
+
+		  recs = xmalloc (std::mem::size_of::<*mut xm_targets_table_rec> ())
+			   as *mut *mut xm_targets_table_rec;
+		  *recs = xmalloc (FLEXSIZEOF! (xm_targets_table_rec, targets,
+						ntargets as usize * 4))
+			    as *mut xm_targets_table_rec;
+
+		  (*(*recs)).n_targets = ntargets as u16;
+
+		  for i in 0..ntargets as ptrdiff_t
+		    {
+		      FAM_ELEM! ((*(*recs)).targets, i)
+			= *targets_sorted.offset (i) as u32;
+		    }
+
+		  idx = 0;
+		}
+	      else
+		{
+		  *recs.offset (header.target_list_count as isize - 1)
+		    = xmalloc (FLEXSIZEOF! (xm_targets_table_rec, targets,
+					    ntargets as usize * 4))
+			as *mut xm_targets_table_rec;
+		  (*(*recs.offset (header.target_list_count as isize - 1))).n_targets
+		    = ntargets as u16;
+
+		  for i in 0..ntargets as ptrdiff_t
+		    {
+		      FAM_ELEM! ((*(*recs
+				     .offset (header.target_list_count as isize - 1))).targets,
+				 i) = *targets_sorted.offset (i) as u32;
+		    }
+
+		  idx = header.target_list_count as c_int - 1;
+		}
+	    }
+	}
+
+      if rc == 0
+	{
+	  /* Some implementations of Motif DND set the protocol version of just the targets
+	     table to 1 without actually changing the data format.  To avoid confusing Motif
+	     when that happens, set it back to 0.  There will probably be no more updates to
+	     the protocol either.  */
+	  header.protocol = XM_DRAG_PROTOCOL_VERSION as u8;
+
+	  x_catch_errors ((*dpyinfo).display);
+	  xm_write_targets_table ((*dpyinfo).display, drag_window,
+				  (*dpyinfo).Xatom_MOTIF_DRAG_TARGETS,
+				  &raw mut header, recs);
+	  /* Presumably we got a BadAlloc upon writing the targets table.  */
+	  if x_had_errors_p ((*dpyinfo).display) != 0
+	    { idx = -1; }
+	  x_uncatch_errors_after_check ();
+	}
+
+      XUngrabServer ((*dpyinfo).display);
+
+      for i in 0..header.target_list_count as ptrdiff_t
+	{ xfree (*recs.offset (i) as *mut c_void); }
+
+      xfree (recs as *mut c_void);
+      xfree (targets_sorted as *mut c_void);
+
+      return idx;
+    }
+}
+
+/* C 2402-2509: allocate the atom used for the Motif selection.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_get_drag_atom_1 (dpyinfo: *mut x_display_info,
+			      source_frame: *mut frame) -> Atom
+{
+  use crate::x11_constants::{None, PropModeAppend, PropModeReplace, Success, XA_ATOM};
+
+  let mut actual_type: Atom;
+  let mut atoms: *mut Atom;
+  let mut atom: Atom;
+  let mut nitems: c_ulong;
+  let mut bytes_remaining: c_ulong;
+  let mut tmp_data: *mut u8;
+  let mut rc: c_int;
+  let mut actual_format: c_int;
+  let mut i: c_ulong;
+  let mut buffer: *mut c_char;
+  let mut owner: Window;
+
+  /* Make sure this operation is done atomically.  */
+  XGrabServer ((*dpyinfo).display);
+
+  rc = XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,
+			   (*dpyinfo).Xatom_EMACS_DRAG_ATOM,
+			   0, LONG_MAX, false, XA_ATOM, &raw mut actual_type,
+			   &raw mut actual_format, &raw mut nitems, &raw mut bytes_remaining,
+			   &raw mut tmp_data);
+  atom = None as Atom;
+  /* GCC thinks i is used uninitialized, but it's always initialized if `atoms' exists at that
+     particular spot.  */
+  i = 0;
+
+  if rc == Success
+      && actual_format == 32 && nitems != 0
+      && actual_type == XA_ATOM
+    {
+      atoms = tmp_data as *mut Atom;
+
+      x_catch_errors ((*dpyinfo).display);
+
+      while i < nitems
+	{
+	  owner = XGetSelectionOwner ((*dpyinfo).display, *atoms.offset (i as isize));
+
+	  if x_had_errors_p ((*dpyinfo).display) == 0
+	      && (owner == None as Window
+		  /* If we already own this selection (even if another frame owns it), use it.
+		     There is no way of knowing when ownership was asserted, so it still has to
+		     be owned again.  */
+		  || !x_window_to_frame (dpyinfo, owner as c_int).is_null ())
+	    {
+	      atom = *atoms.offset (i as isize);
+
+	      break;
+	    }
+
+	  i += 1;
+	}
+
+      x_uncatch_errors ();
+    }
+
+  if !tmp_data.is_null ()
+    { XFree (tmp_data); }
+
+  buffer = (*dpyinfo).motif_drag_atom_name.as_mut_ptr ();
+
+  if atom != None as Atom
+    {
+      sprintf (buffer, c"_EMACS_ATOM_%lu".as_ptr (), i + 1);
+      XSetSelectionOwner ((*dpyinfo).display, atom,
+			  FRAME_X_WINDOW! (source_frame),
+			  (*dpyinfo).last_user_time);
+
+      /* The selection's last-change time is newer than our last_user_time, so create a new
+	 selection instead.  */
+      if XGetSelectionOwner ((*dpyinfo).display, atom) != FRAME_X_WINDOW! (source_frame)
+	{ atom = None as Atom; }
+    }
+
+  while atom == None as Atom
+    {
+      sprintf (buffer, c"_EMACS_ATOM_%lu".as_ptr (), nitems + 1);
+      atom = XInternAtom ((*dpyinfo).display, buffer, false);
+
+      XSetSelectionOwner ((*dpyinfo).display, atom,
+			  FRAME_X_WINDOW! (source_frame),
+			  (*dpyinfo).last_user_time);
+
+      XChangeProperty ((*dpyinfo).display, (*dpyinfo).root_window,
+		       (*dpyinfo).Xatom_EMACS_DRAG_ATOM, XA_ATOM, 32,
+		       if rc != Success
+			   || (actual_format != 32
+			       || actual_type != XA_ATOM)
+			 { PropModeReplace } else { PropModeAppend },
+		       &raw mut atom as *mut u8, 1);
+
+      actual_format = 32;
+      actual_type = XA_ATOM;
+      rc = Success;
+      nitems += 1;
+
+      /* The selection's last-change time is newer than our last_user_time, so create a new
+	 selection (again).  */
+      if XGetSelectionOwner ((*dpyinfo).display, atom) != FRAME_X_WINDOW! (source_frame)
+	{ atom = None as Atom; }
+    }
+
+  (*dpyinfo).motif_drag_atom_time = (*dpyinfo).last_user_time;
+  (*dpyinfo).motif_drag_atom_owner = source_frame;
+
+  XUngrabServer ((*dpyinfo).display);
+  return atom;
+}
+
+/* C 2511-2523.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_get_drag_atom (dpyinfo: *mut x_display_info) -> Atom
+{
+  use crate::x11_constants::None;
+
+  let mut atom: Atom;
+
+  if (*dpyinfo).motif_drag_atom != None as Atom
+    { atom = (*dpyinfo).motif_drag_atom; }
+  else
+    { atom = xm_get_drag_atom_1 (dpyinfo, x_dnd_frame); }
+
+  (*dpyinfo).motif_drag_atom = atom;
+  return atom;
+}
+
+/* C 2525-2560.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_setup_drag_info (dpyinfo: *mut x_display_info, source_frame: *mut frame)
+{
+  use crate::x11_constants::None;
+
+  let mut atom: Atom;
+  let mut drag_initiator_info: xm_drag_initiator_info;
+  let mut idx: c_int;
+
+  atom = xm_get_drag_atom (dpyinfo);
+
+  if atom == None as Atom
+    { return; }
+
+  XSETCAR (x_dnd_selection_alias_cell,
+	   x_atom_to_symbol (dpyinfo, atom));
+  XSETCDR (x_dnd_selection_alias_cell, QXdndSelection ());
+
+  idx = xm_setup_dnd_targets (dpyinfo, x_dnd_targets, x_dnd_n_targets);
+
+  if idx != -1
+    {
+      drag_initiator_info.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;
+      drag_initiator_info.protocol = XM_DRAG_PROTOCOL_VERSION as u8;
+      drag_initiator_info.table_index = idx as u16;
+      drag_initiator_info.selection = atom as u32;
+
+      xm_write_drag_initiator_info ((*dpyinfo).display,
+				    FRAME_X_WINDOW! (source_frame), atom,
+				    (*dpyinfo).Xatom_MOTIF_DRAG_INITIATOR_INFO,
+				    &raw mut drag_initiator_info);
+
+      x_dnd_motif_setup_p = true;
+      x_dnd_motif_atom = atom;
+    }
+}
+
+/* C 2562-2585.  The `XEvent` field writes are C's own `*(uint16_t *) &b[2]` puns; the port
+   keeps the cast (`uint16_t` is the notes row's token) and takes the address through
+   `addr_of_mut!`, because `msg` is a Rust value here.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_send_drop_message (dpyinfo: *mut x_display_info, source: Window,
+				target: Window, dmsg: *mut xm_drop_start_message)
+{
+  use crate::x11_constants::{ClientMessage, NoEventMask};
+
+  let mut msg: XEvent = std::mem::zeroed ();
+
+  msg.xclient.r#type = ClientMessage;
+  msg.xclient.message_type = (*dpyinfo).Xatom_MOTIF_DRAG_AND_DROP_MESSAGE;
+  msg.xclient.format = 8;
+  msg.xclient.window = target;
+  msg.xclient.data.b[0] = (*dmsg).reason;
+  msg.xclient.data.b[1] = (*dmsg).byte_order;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[2]) as *mut u16) = (*dmsg).side_effects;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[4]) as *mut u32) = (*dmsg).timestamp;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[8]) as *mut u16) = (*dmsg).x;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[10]) as *mut u16) = (*dmsg).y;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[12]) as *mut u32) = (*dmsg).index_atom;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[16]) as *mut u32) = (*dmsg).source_window;
+
+  x_ignore_errors_for_next_request (dpyinfo, 0);
+  XSendEvent ((*dpyinfo).display, target, false, NoEventMask, &raw mut msg);
+  x_stop_ignoring_errors (dpyinfo);
+}
+
+/* C 2587-2612.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_send_top_level_enter_message (dpyinfo: *mut x_display_info, source: Window,
+					   target: Window,
+					   dmsg: *mut xm_top_level_enter_message)
+{
+  use crate::x11_constants::{ClientMessage, NoEventMask};
+
+  let mut msg: XEvent = std::mem::zeroed ();
+
+  msg.xclient.r#type = ClientMessage;
+  msg.xclient.message_type = (*dpyinfo).Xatom_MOTIF_DRAG_AND_DROP_MESSAGE;
+  msg.xclient.format = 8;
+  msg.xclient.window = target;
+  msg.xclient.data.b[0] = (*dmsg).reason;
+  msg.xclient.data.b[1] = (*dmsg).byteorder;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[2]) as *mut u16) = (*dmsg).zero;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[4]) as *mut u32) = (*dmsg).timestamp;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[8]) as *mut u32) = (*dmsg).source_window;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[12]) as *mut u32) = (*dmsg).index_atom;
+  msg.xclient.data.b[16] = 0;
+  msg.xclient.data.b[17] = 0;
+  msg.xclient.data.b[18] = 0;
+  msg.xclient.data.b[19] = 0;
+
+  x_ignore_errors_for_next_request (dpyinfo, 0);
+  XSendEvent ((*dpyinfo).display, target, false, NoEventMask, &raw mut msg);
+  x_stop_ignoring_errors (dpyinfo);
+}
+
+/* ---- Slice 5: C 2614-3012 - the Motif message senders and readers, and the drag-and-drop
+   toplevel teardown.  Same conventions as slice 4: X11 macros from the mirror's
+   `x11_constants` module (imported per function), C's `False`/`True` as Rust's literals, and
+   the message puns kept with C's own casts (`uint16_t`/`uint32_t` - the notes rows).  */
+
+/* C 2614-2643.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_send_drag_motion_message (dpyinfo: *mut x_display_info, source: Window,
+				       target: Window, dmsg: *mut xm_drag_motion_message)
+{
+  use crate::x11_constants::{ClientMessage, NoEventMask};
+
+  let mut msg: XEvent = std::mem::zeroed ();
+
+  msg.xclient.r#type = ClientMessage;
+  msg.xclient.message_type = (*dpyinfo).Xatom_MOTIF_DRAG_AND_DROP_MESSAGE;
+  msg.xclient.format = 8;
+  msg.xclient.window = target;
+  msg.xclient.data.b[0] = (*dmsg).reason;
+  msg.xclient.data.b[1] = (*dmsg).byteorder;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[2]) as *mut u16) = (*dmsg).side_effects;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[4]) as *mut u32) = (*dmsg).timestamp;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[8]) as *mut u16) = (*dmsg).x;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[10]) as *mut u16) = (*dmsg).y;
+  msg.xclient.data.b[12] = 0;
+  msg.xclient.data.b[13] = 0;
+  msg.xclient.data.b[14] = 0;
+  msg.xclient.data.b[15] = 0;
+  msg.xclient.data.b[16] = 0;
+  msg.xclient.data.b[17] = 0;
+  msg.xclient.data.b[18] = 0;
+  msg.xclient.data.b[19] = 0;
+
+  x_ignore_errors_for_next_request (dpyinfo, 0);
+  XSendEvent ((*dpyinfo).display, target, false, NoEventMask, &raw mut msg);
+  x_stop_ignoring_errors (dpyinfo);
+}
+
+/* C 2645-2702: Motif's TOP_LEVEL_LEAVE has bitrotted, so C first sends a drag-motion message
+   with impossible coordinates to clear any active drop site.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_send_top_level_leave_message (dpyinfo: *mut x_display_info, source: Window,
+					   target: Window,
+					   dmsg: *mut xm_top_level_leave_message)
+{
+  use crate::x11_constants::{ClientMessage, NoEventMask};
+
+  let mut msg: XEvent = std::mem::zeroed ();
+  let mut mmsg: xm_drag_motion_message;
+
+  /* Motif support for TOP_LEVEL_LEAVE has bitrotted, since these days it assumes every client
+     supports the preregister protocol style, but we only support drop-only and dynamic.
+     (Interestingly enough LessTif works fine.)  Sending an event with impossible coordinates
+     serves to get rid of any active drop site that might still be around in the target drag
+     context.  */
+
+  if x_dnd_fix_motif_leave
+    {
+      mmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR
+				     as c_int,
+				     xm_drag_reason::XM_DRAG_REASON_DRAG_MOTION as c_int) as u8;
+      mmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;
+      mmsg.side_effects = XM_DRAG_SIDE_EFFECT! (xm_side_effect_from_action (dpyinfo,
+									    x_dnd_wanted_action),
+						xm_drop_site_status::XM_DROP_SITE_NONE as c_int,
+						x_dnd_motif_operations as c_int,
+						xm_drag_action::XM_DROP_ACTION_DROP_CANCEL
+						as c_int) as u16;
+      mmsg.timestamp = (*dmsg).timestamp;
+
+      /* Use X_SHRT_MAX instead of the max value of uint16_t since that will be interpreted as
+	 a plausible position by Motif, and as such breaks if the drop target is beneath that
+	 position.  */
+      mmsg.x = X_SHRT_MAX as u16;
+      mmsg.y = X_SHRT_MAX as u16;
+
+      xm_send_drag_motion_message (dpyinfo, source, target, &raw mut mmsg);
+    }
+
+  msg.xclient.r#type = ClientMessage;
+  msg.xclient.message_type = (*dpyinfo).Xatom_MOTIF_DRAG_AND_DROP_MESSAGE;
+  msg.xclient.format = 8;
+  msg.xclient.window = target;
+  msg.xclient.data.b[0] = (*dmsg).reason;
+  msg.xclient.data.b[1] = (*dmsg).byteorder;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[2]) as *mut u16) = (*dmsg).zero;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[4]) as *mut u32) = (*dmsg).timestamp;
+  *(core::ptr::addr_of_mut! (msg.xclient.data.b[8]) as *mut u32) = (*dmsg).source_window;
+  msg.xclient.data.b[12] = 0;
+  msg.xclient.data.b[13] = 0;
+  msg.xclient.data.b[14] = 0;
+  msg.xclient.data.b[15] = 0;
+  msg.xclient.data.b[16] = 0;
+  msg.xclient.data.b[17] = 0;
+  msg.xclient.data.b[18] = 0;
+  msg.xclient.data.b[19] = 0;
+
+  x_ignore_errors_for_next_request (dpyinfo, 0);
+  XSendEvent ((*dpyinfo).display, target, false, NoEventMask, &raw mut msg);
+  x_stop_ignoring_errors (dpyinfo);
+}
+
+/* C 2704-2733.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_read_drop_start_reply (msg: *const XEvent,
+				    reply: *mut xm_drop_start_reply) -> c_int
+{
+  let mut data: *const u8;
+
+  data = core::ptr::addr_of! ((*msg).xclient.data.b[0]);
+
+  if XM_DRAG_REASON_ORIGINATOR! (*data.offset (0))
+      != xm_drag_originator::XM_DRAG_ORIGINATOR_RECEIVER as c_int
+      || XM_DRAG_REASON_CODE! (*data.offset (0))
+	 != xm_drag_reason::XM_DRAG_REASON_DROP_START as c_int
+    { return 1; }
+
+  (*reply).reason = *data;
+  data = data.add (1);
+  (*reply).byte_order = *data;
+  data = data.add (1);
+  (*reply).side_effects = *(data as *const u16);
+  (*reply).better_x = *(data.add (2) as *const u16);
+  (*reply).better_y = *(data.add (4) as *const u16);
+
+  if (*reply).byte_order as xm_byte_order != XM_BYTE_ORDER_CUR_FIRST
+    {
+      SWAPCARD16! ((*reply).side_effects);
+      SWAPCARD16! ((*reply).better_x);
+      SWAPCARD16! ((*reply).better_y);
+    }
+
+  (*reply).byte_order = XM_BYTE_ORDER_CUR_FIRST as u8;
+
+  return 0;
+}
+
+/* C 2735-2771.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_read_drop_start_message (msg: *const XEvent,
+				      dmsg: *mut xm_drop_start_message) -> c_int
+{
+  let mut data: *const u8;
+
+  data = core::ptr::addr_of! ((*msg).xclient.data.b[0]);
+
+  if XM_DRAG_REASON_ORIGINATOR! (*data.offset (0))
+      != xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int
+      || XM_DRAG_REASON_CODE! (*data.offset (0))
+	 != xm_drag_reason::XM_DRAG_REASON_DROP_START as c_int
+    { return 1; }
+
+  (*dmsg).reason = *data;
+  data = data.add (1);
+  (*dmsg).byte_order = *data;
+  data = data.add (1);
+  (*dmsg).side_effects = *(data as *const u16);
+  (*dmsg).timestamp = *(data.add (2) as *const u32);
+  (*dmsg).x = *(data.add (6) as *const u16);
+  (*dmsg).y = *(data.add (8) as *const u16);
+  (*dmsg).index_atom = *(data.add (10) as *const u32);
+  (*dmsg).source_window = *(data.add (14) as *const u32);
+
+  if (*dmsg).byte_order as xm_byte_order != XM_BYTE_ORDER_CUR_FIRST
+    {
+      SWAPCARD16! ((*dmsg).side_effects);
+      SWAPCARD32! ((*dmsg).timestamp);
+      SWAPCARD16! ((*dmsg).x);
+      SWAPCARD16! ((*dmsg).y);
+      SWAPCARD32! ((*dmsg).index_atom);
+      SWAPCARD32! ((*dmsg).source_window);
+    }
+
+  (*dmsg).byte_order = XM_BYTE_ORDER_CUR_FIRST as u8;
+
+  return 0;
+}
+
+/* C 2773-2827.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_read_drag_receiver_info (dpyinfo: *mut x_display_info,
+				      wdesc: Window, rec: *mut xm_drag_receiver_info) -> c_int
+{
+  use crate::x11_constants::Success;
+
+  let mut actual_type: Atom;
+  let mut rc: c_int;
+  let mut actual_format: c_int;
+  let mut nitems: c_ulong;
+  let mut bytes_remaining: c_ulong;
+  let mut tmp_data: *mut u8 = std::ptr::null_mut ();
+  let mut data: *mut u8;
+
+  x_catch_errors ((*dpyinfo).display);
+  rc = (XGetWindowProperty ((*dpyinfo).display, wdesc,
+			    (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO,
+			    0, 4, false,
+			    (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO,
+			    &raw mut actual_type, &raw mut actual_format, &raw mut nitems,
+			    &raw mut bytes_remaining,
+			    &raw mut tmp_data) == Success) as c_int;
+
+  if x_had_errors_p ((*dpyinfo).display) != 0
+      || actual_format != 8 || nitems < 16 || tmp_data.is_null ()
+      || actual_type != (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO
+    { rc = 0; }
+  x_uncatch_errors_after_check ();
+
+  if rc != 0
+    {
+      data = tmp_data;
+
+      if *data.add (1) as c_int > XM_DRAG_PROTOCOL_VERSION
+	{ return 1; }
+
+      (*rec).byteorder = *data;
+      (*rec).protocol = *data.add (1);
+      (*rec).protocol_style = *data.add (2);
+      (*rec).unspecified0 = *data.add (3);
+      (*rec).unspecified1 = *((&raw const *data.add (4)) as *const u32);
+      (*rec).unspecified2 = *((&raw const *data.add (8)) as *const u32);
+      (*rec).unspecified3 = *((&raw const *data.add (12)) as *const u32);
+
+      if (*rec).byteorder as xm_byte_order != XM_BYTE_ORDER_CUR_FIRST
+	{
+	  SWAPCARD32! ((*rec).unspecified1);
+	  SWAPCARD32! ((*rec).unspecified2);
+	  SWAPCARD32! ((*rec).unspecified3);
+	}
+
+      (*rec).byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;
+    }
+
+  if !tmp_data.is_null ()
+    { XFree (tmp_data); }
+
+  return (rc == 0) as c_int;
+}
+
+/* C 2829-2861.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_read_drag_motion_message (msg: *const XEvent,
+				       dmsg: *mut xm_drag_motion_message) -> c_int
+{
+  let mut data: *const u8;
+
+  data = core::ptr::addr_of! ((*msg).xclient.data.b[0]);
+
+  if XM_DRAG_REASON_CODE! (*data.offset (0))
+      != xm_drag_reason::XM_DRAG_REASON_DRAG_MOTION as c_int
+      || XM_DRAG_REASON_ORIGINATOR! (*data.offset (0))
+	 != xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int
+    { return 1; }
+
+  (*dmsg).reason = *data;
+  data = data.add (1);
+  (*dmsg).byteorder = *data;
+  data = data.add (1);
+  (*dmsg).side_effects = *(data as *const u16);
+  (*dmsg).timestamp = *(data.add (2) as *const u32);
+  (*dmsg).x = *(data.add (6) as *const u16);
+  (*dmsg).y = *(data.add (8) as *const u16);
+
+  if (*dmsg).byteorder as xm_byte_order != XM_BYTE_ORDER_CUR_FIRST
+    {
+      SWAPCARD16! ((*dmsg).side_effects);
+      SWAPCARD32! ((*dmsg).timestamp);
+      SWAPCARD16! ((*dmsg).x);
+      SWAPCARD16! ((*dmsg).y);
+    }
+
+  (*dmsg).byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;
+
+  return 0;
+}
+
+/* C 2863-2894.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_read_drag_motion_reply (msg: *const XEvent,
+				     reply: *mut xm_drag_motion_reply) -> c_int
+{
+  let mut data: *const u8;
+
+  data = core::ptr::addr_of! ((*msg).xclient.data.b[0]);
+
+  if XM_DRAG_REASON_CODE! (*data.offset (0))
+      != xm_drag_reason::XM_DRAG_REASON_DRAG_MOTION as c_int
+      || XM_DRAG_REASON_ORIGINATOR! (*data.offset (0))
+	 != xm_drag_originator::XM_DRAG_ORIGINATOR_RECEIVER as c_int
+    { return 1; }
+
+  (*reply).reason = *data;
+  data = data.add (1);
+  (*reply).byte_order = *data;
+  data = data.add (1);
+  (*reply).side_effects = *(data as *const u16);
+  (*reply).timestamp = *(data.add (2) as *const u32);
+  (*reply).better_x = *(data.add (6) as *const u16);
+  (*reply).better_y = *(data.add (8) as *const u16);
+
+  if (*reply).byte_order as xm_byte_order != XM_BYTE_ORDER_CUR_FIRST
+    {
+      SWAPCARD16! ((*reply).side_effects);
+      SWAPCARD32! ((*reply).timestamp);
+      SWAPCARD16! ((*reply).better_x);
+      SWAPCARD16! ((*reply).better_y);
+    }
+
+  (*reply).byte_order = XM_BYTE_ORDER_CUR_FIRST as u8;
+
+  return 0;
+}
+
+/* C 2896-2913.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_send_xm_leave_for_drop (dpyinfo: *mut x_display_info,
+					f: *mut frame, wdesc: Window,
+					timestamp: Time)
+{
+  let mut lmsg: xm_top_level_leave_message;
+
+  lmsg.reason = XM_DRAG_REASON! (xm_drag_originator::XM_DRAG_ORIGINATOR_INITIATOR as c_int,
+				 xm_drag_reason::XM_DRAG_REASON_TOP_LEVEL_LEAVE as c_int) as u8;
+  lmsg.byteorder = XM_BYTE_ORDER_CUR_FIRST as u8;
+  lmsg.zero = 0;
+  lmsg.timestamp = timestamp as u32;
+  lmsg.source_window = FRAME_X_WINDOW! (f) as u32;
+
+  if x_dnd_motif_setup_p
+    {
+      xm_send_top_level_leave_message (dpyinfo, FRAME_X_WINDOW! (f) as Window,
+				       wdesc, &raw mut lmsg);
+    }
+}
+
+/* C 2915-3010: tear the toplevel list down, restoring each window's event mask first if the
+   display is still alive.  C's `UNINIT` locals are the port's zero initialisers (Decision 12's
+   note), and C's `record_unwind_protect_ptr (xfree, ...)` is the mirror's `xfree_wrapper`, the
+   same choice `lisp.rs` 3033 makes.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_free_toplevels (display_alive: bool)
+{
+  use crate::x11_constants::None;
+
+  let mut last: *mut x_client_list_window;
+  let mut tem: *mut x_client_list_window = x_dnd_toplevels;
+  let mut n_windows: ptrdiff_t;
+  let mut i: ptrdiff_t;
+  let mut buffer_size: ptrdiff_t;
+  let mut destroy_windows: *mut Window = std::ptr::null_mut ();
+  let mut prev_masks: *mut c_ulong = std::ptr::null_mut ();
+  let mut count: specpdl_ref;
+  let mut dpy: *mut c_void = std::ptr::null_mut ();
+
+  if x_dnd_toplevels.is_null ()
+    /* Probably called inside an IO error handler.  */
+    { return; }
+
+  if display_alive
+    {
+      buffer_size = 1024;
+      destroy_windows = xmalloc (std::mem::size_of::<Window> () * buffer_size as usize)
+			  as *mut Window;
+      prev_masks = xmalloc (std::mem::size_of::<c_ulong> () * buffer_size as usize)
+		     as *mut c_ulong;
+      n_windows = 0;
+    }
+
+  block_input ();
+  while !tem.is_null ()
+    {
+      last = tem;
+      tem = (*tem).next;
+
+      if display_alive
+	{
+	  n_windows += 1;
+	  if n_windows >= buffer_size
+	    {
+	      buffer_size += 1024;
+	      destroy_windows = xrealloc (destroy_windows as *mut c_void,
+					  std::mem::size_of::<Window> () * buffer_size as usize)
+				  as *mut Window;
+	      prev_masks = xrealloc (prev_masks as *mut c_void,
+				     std::mem::size_of::<c_ulong> () * buffer_size as usize)
+			     as *mut c_ulong;
+	    }
+
+	  dpy = (*last).dpy;
+	  *prev_masks.offset (n_windows - 1) = (*last).previous_event_mask as c_ulong;
+	  *destroy_windows.offset (n_windows - 1) = (*last).window;
+	}
+
+      #[cfg (feature = "have_xshape")]
+      {
+	if (*last).n_input_rects != -1
+	  { xfree ((*last).input_rects); }
+	if (*last).n_bounding_rects != -1
+	  { xfree ((*last).bounding_rects); }
+      }
+
+      xfree (last as *mut c_void);
+    }
+
+  x_dnd_toplevels = std::ptr::null_mut ();
+
+  if !display_alive
+    {
+      unblock_input ();
+      return;
+    }
+
+  count = SPECPDL_INDEX ();
+  record_unwind_protect_ptr (Some (xfree_wrapper), destroy_windows as *mut c_void);
+  record_unwind_protect_ptr (Some (xfree_wrapper), prev_masks as *mut c_void);
+
+  if display_alive && n_windows != 0
+    {
+      let dpyinfo: *mut x_display_info = x_dpyinfo (dpy);
+
+      x_ignore_errors_for_next_request (dpyinfo, 0);
+
+      for i in 0..n_windows
+	{
+	  XSelectInput (dpy, *destroy_windows.offset (i), *prev_masks.offset (i));
+	  #[cfg (feature = "have_xshape")]
+	  { XShapeSelectInput (dpy, *destroy_windows.offset (i), None); }
+	}
+
+      x_stop_ignoring_errors (dpyinfo);
+    }
+
+  unbind_to (count, Qnil ());
+  unblock_input ();
 }

@@ -5061,3 +5061,14 @@
   ③ **lane 自己写明、我照抄进台账的边界**（不许当成"已验证"）：这 15 个成员**在本 target 的任何树内门里都不存在**（frozen 不定义；`have_window_system` 一打开，整树按 P-82 在第一个受门存取器处编不过），所以证据只有覆盖率读数 + lane 的"剪段探针"（把镜像里这段原文剪出、给 6 个被引用记录打桩，`rustup run nightly-2026-10-01 rustc --cfg 'feature="have_window_system"' …` exit 0，并带 `size_of::<redisplay_interface>() == 224` 通过）；
   **它们没有布局读数**（全是 8 字节函数指针，带门臂没有可测的探针臂），**函数签名也没有与任何真实调用点对过**（本 target 没有 window-system 单元）。这三条与 3.262 ⑥ 的"承载文本、编译未验证"同一形状，等一个窗口系统 target 才能翻牌。
   ④ 读数：改动面 3 个文件（+42 行镜像、+34 行台账、台账基线 87 行）；`layout-check`/`build-tu` 各一次；无 cargo 之外的产物（lane 的 `/tmp/imgcov`、`/tmp/femacs-target-img3` 它自己已删）。
+- **3.303 xterm 第 4+5 片入库：2,403 → 2,844 行（Ohm 交付，2026-10-05）**：
+  ① **入的两件**：`femacs/src/xterm.rs` **+964 / −23**（2,403 → **2,844 行**，含 lane 的片 4 与片 5 两轮）、`docs/ports/xterm.md` 965 → **1,023 行**（**306 个未勾框**＝这条战线剩下的清单）。
+  ② **入库前我自己复检**：`build-tu src/xterm.c` → **built**；`extract-abi --check emacs/src/xterm.c femacs/src/xterm.rs` → **313 条 `- `**（`missing function XTcondemn_scroll_bars`/`XTflash` …）加 **`line count drifted 91.4%: C 33,125 vs Rust 2,844`**——
+  这是**中段单元的既有状态**（3.249 片 1 之后是 443 条；台账的未勾框数就是它的进度），不是本片的缺陷；镜像覆盖率仍是 **0 gap**（3.302 ② 的同一读数；x11 臂的 `x_display_info` 与 `x_output` 两条缺口正是这条战线的镜像工作，已归零）。
+  ③ **下一片 lane 自己命名**：C 3,013 `x_dnd_compute_toplevels`（含 `#ifndef USE_XCB` 与 `HAVE_XCB_SHAPE`/`HAVE_XCB_SHAPE_INPUT_RECTS` 两臂），之后是 3,060+ 的 XDND 路径。
+  ④ **它提的那个待裁决已判**（见 3.304）：`uint*_t` 一族进 `MACRO_TOKEN_SKIP`，于是本单元里那 12 处"每处写一行"的登记一起消失（313 → **301**）。lane 未 commit/add/push、未动 `docs/baseline/**`，它的 `/tmp` 缓存已自己删。
+- **3.304 共享门的一次定向放宽：C 的定宽整数名进 `MACRO_TOKEN_SKIP`（2026-10-05）**：
+  ① **它是什么**：`tools/extract-abi.py` 的宏体比对把两侧 token 去掉一批"两种语言拼法不同的类型名"（`int`/`unsigned`/`size_t`/`u8`/`i64`/`ptrdiff_t`/`c_uint` …）后再比多重集；**C 的定宽拼法**（`int8_t`…`uint64_t`）此前不在表里，于是 xterm lane 遇到一处就得写一行登记（3.303 ④）。
+  ② **判据**：这与表里已有的条目是**同一类**（`uint32_t` 与 `u32` 指同一个类型，一侧已跳过、另一侧没跳过只是不对称）；而且跳过更多**类型** token 只会**减少**差异、不可能新增差异——比对的目的（3.243 的 F2：删掉的操作不许被笔记放过）针对的是**操作名**，不是类型名。
+  ③ **实测**：`extract-abi --check` 的 `- ` 条数 `src/xterm.c` **313 → 301**（正是那 12 处）；对照三个已知干净单元不变——`src/casetab.c` **0**、`src/doprnt.c` **0**、`src/sort.c` **0**（放宽后仍 0 ⇒ 无回归）。
+  ④ **口径**：这是一次**定向**放宽（C 的 8 个定宽整数名，成组写在宏体豁免表里并附理由），不是给宏体比对开新口子；`docs/ports/macro-body-notes.tsv`（逐处笔记）与 `token-aliases.tsv`（身份别名）仍是各自的既定家。

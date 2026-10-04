@@ -45,15 +45,15 @@
 - [x] xm_setup_drag_info  (line 2526, static)
 - [x] xm_send_drop_message  (line 2563, static)
 - [x] xm_send_top_level_enter_message  (line 2588, static)
-- [ ] xm_send_drag_motion_message  (line 2615, static)
-- [ ] xm_send_top_level_leave_message  (line 2646, static)
-- [ ] xm_read_drop_start_reply  (line 2705, static)
-- [ ] xm_read_drop_start_message  (line 2736, static)
-- [ ] xm_read_drag_receiver_info  (line 2774, static)
-- [ ] xm_read_drag_motion_message  (line 2830, static)
-- [ ] xm_read_drag_motion_reply  (line 2864, static)
-- [ ] x_dnd_send_xm_leave_for_drop  (line 2897, static)
-- [ ] x_dnd_free_toplevels  (line 2921, static)
+- [x] xm_send_drag_motion_message  (line 2615, static)
+- [x] xm_send_top_level_leave_message  (line 2646, static)
+- [x] xm_read_drop_start_reply  (line 2705, static)
+- [x] xm_read_drop_start_message  (line 2736, static)
+- [x] xm_read_drag_receiver_info  (line 2774, static)
+- [x] xm_read_drag_motion_message  (line 2830, static)
+- [x] xm_read_drag_motion_reply  (line 2864, static)
+- [x] x_dnd_send_xm_leave_for_drop  (line 2897, static)
+- [x] x_dnd_free_toplevels  (line 2921, static)
 - [ ] x_dnd_compute_toplevels  (line 3013, static)
 - [ ] x_dnd_io_error_handler  (line 3617, static)
 - [ ] x_dnd_get_target_window_1  (line 3721, static)
@@ -781,6 +781,42 @@ line, which un-gated `x_output` and made `layout-check` fail with `cannot find t
 struct's closing brace.  `layout-check passed` again.
 
 
+### 14. Slice 5 (C 2614-3012): the Motif senders and readers, and the toplevel teardown
+
+Nine functions - `xm_send_drag_motion_message`, `xm_send_top_level_leave_message`,
+`xm_read_drop_start_reply`, `xm_read_drop_start_message`, `xm_read_drag_receiver_info`,
+`xm_read_drag_motion_message`, `xm_read_drag_motion_reply`, `x_dnd_send_xm_leave_for_drop` and
+`x_dnd_free_toplevels` - all ticked.  C's `x_dnd_compute_toplevels` (C 3013, with its
+`USE_XCB`/`HAVE_XCB_SHAPE` arms) opens the **next** slice.
+
+Three shapes worth recording:
+
+* **The `XM_DRAG_*` macros are int-typed now, and that is a correction to slice 2's text.**  C's
+  macros do their arithmetic in `int` (the arguments promote out of the `uint8_t`/`uint16_t`
+  fields), and slice 2's spelling kept the arguments' own widths, so the X11 probe reported
+  `no implementation for u8 | i32` and `mismatched types` at C 2661-2667 / 2903-2904 and in the
+  four readers' comparisons.  Each macro now casts its operands to `c_int` inside the body
+  (`(($op) as c_int | (($site) as c_int) << 4 | ...)`), which is what C's promotions do, and the
+  call sites narrow at the store (`... as u16`).  The token sets are unchanged - `c_int` is in
+  the gate's skip list.
+* **The message readers keep C's own puns**: `data = (const uint8_t *) &msg->xclient.data.b[0]`
+  becomes `core::ptr::addr_of! ((*msg).xclient.data.b[0])`, `*(data++)` becomes a read plus
+  `data = data.add (1)`, and `*(uint16_t *) (data + 2)` stays a cast-deref
+  (`*(data.add (2) as *const u16)`).  `data[0]` keeps its subscript (`*data.offset (0)`) so the
+  `0` stays in the compared token set, and `msg.xclient.type` is `r#type` (Decision 12's note).
+* **`x_dnd_free_toplevels`**: C's `UNINIT` locals are `std::ptr::null_mut ()` initialisers
+  (Decision 12), `record_unwind_protect_ptr (xfree, ...)` uses the mirror's `xfree_wrapper` (the
+  choice `lisp.rs` 3033 makes), the `#ifdef HAVE_XSHAPE` frees and `XShapeSelectInput` are gated
+  `have_xshape` (P-51), and `x_dpyinfo`/`x_dnd_fix_motif_leave` are this file's own later items,
+  so they are called bare.
+
+**The `does not mention` rows are now 17** (the `- ` list's 296-312): sixteen bodies whose C
+signature or bodies spell `uint8_t`/`uint16_t`/`uint32_t` (the port writes `u8`/`u16`/`u32`),
+`alloca` (the stack pool), `goto`/`uninit` (`xm_setup_dnd_targets`) and `display`
+(`x_dnd_free_toplevels`, whose `Display *dpy` is the port's opaque `*mut c_void` + `/// C:` line,
+P-72 rule 3).  Four `macro-body-notes.tsv` rows cover them; the request is in this round's report.
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -963,3 +999,25 @@ missing `PropModeReplace`.
 `tools/check-link.py` reports `1 failure(s), 1 stale`: the failure is `_cursor_row_p` and the
 stale row is `_set_cursor_from_row`, both xdisp's (`femacs/src/xdisp.rs` is modified in this
 working tree) - nothing xterm's, and `docs/baseline/link-pending.txt` was not touched here.
+
+Slice 5 (C 2614-3012):
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+313
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+  296-312: seventeen "does not mention" rows; the nine "missing function" lines for this slice
+            are gone (grep for them: 0)
+$ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xterm.c
+built src/xterm.rs -> ../build/femacs/xterm.o
+$ ... layout-check
+layout probe ok
+layout-check passed (see build/femacs/layout_asserts.rs)
+```
+
+The X11-arm probe after slice 5: **two errors in the unit's own text**, both the recorded
+`buffered_input_event.sie` (Decision 5); every other in-unit error is a `cannot find <name>` for
+an X11 name or a function this file defines later, and the mirror side carries 219 of the same
+class.  The probe is what caught this round's real defects: fifteen enum/width errors from the
+`XM_DRAG_*` macros (fixed by making them int-typed, above) and, before that, the same class of
+"inert text that would not compile when flipped" that `build-tu` cannot see.
