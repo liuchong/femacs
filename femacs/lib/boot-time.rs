@@ -22,9 +22,13 @@
 // `ut_name`/`ut_time` half).  These features are never set: `xtask dead-arms` can only flip the
 // keys config.rs carries and these are compiler/platform predicates (the status 3.9 note).
 //
-// "readutmp.h" (C 54) and "unlocked-io.h" (C 58) have no mirror yet, so their names are
-// declared at the use site (the fstatat.rs/lstat.rs in-unit declaration shape): the utmp
-// entries and UTMP_FILE below.  "boot-time-aux.h" (C 61) **became a mirror** in status 3.104
+// "readutmp.h" (C 54) became a mirror in status 3.198, so the utmp entries and UTMP_FILE now
+// come from `include/readutmp.rs`; the one name that stays here is the *type* spelling
+// `UTMP_STRUCT_NAME` (the mirror explains why: C spells it as a macro used in a type position,
+// and the port's type alias and the mirror's macro do not collide).  "unlocked-io.h" (C 58)
+// also has a mirror now, but contributes no live name (measured: the frozen
+// `HAVE_DECL_FOPEN_UNLOCKED` is 0, so its `#define fopen_unlocked fopen` arm is the one taken
+// and the calls below stay plain `fopen`).  "boot-time-aux.h" (C 61) **became a mirror** in status 3.104
 // (`femacs/lib/include/boot-time-aux.rs`), so the one arm of it this configuration compiles -
 // its sysctl fallback - and the dead platform arms beside it are included rather than
 // transcribed here; all three headers are included by this file alone (measured: `grep -l`
@@ -46,6 +50,7 @@ include!("include/sys_types.in.rs");    // C 28: `#include <sys/types.h>` (pid_t
 include!("include/time.in.rs");         // C 33/55: `<time.h>` (struct timespec)
 include!("include/sys_time.rs");        // C 50/55: `<sys/time.h>` (struct timeval)
 include!("include/utmpx.rs");           // C 54: `#include "readutmp.h"` -> `<utmpx.h>`
+include!("include/readutmp.rs");        // C 54: `#include "readutmp.h"` (the mirror; status 3.198)
 include!("include/sys_sysctl.rs");      // C 40: `#include <sys/sysctl.h>` (sysctl)
 include!("include/boot-time.rs");       // C 22: `#include "boot-time.h"`
 include!("include/boot-time-aux.rs");   // C 61: `#include "boot-time-aux.h"`
@@ -69,13 +74,10 @@ include!("include/boot-time-aux.rs");   // C 61: `#include "boot-time-aux.h"`
    readutmp.h 170-178, measured with clang -dM -E on the frozen configuration):
    UTMP_STRUCT_NAME utmpx, SET_UTMP_ENT setutxent, GET_UTMP_ENT getutxent,
    END_UTMP_ENT endutxent, UTMP_NAME_FUNCTION utmpxname and UTMP_FILE "/var/run/utmpx"
-   (readutmp.h 235-246 renames it to UTMPX_FILE = _PATH_UTMPX).  */
+   (readutmp.h 235-246 renames it to UTMPX_FILE = _PATH_UTMPX).  C spells the struct name as a
+   macro used in a *type* position, which no Rust macro can be, so the port keeps this one type
+   alias; the other five names come from the mirror.  */
 pub type UTMP_STRUCT_NAME = utmpx;
-pub const UTMP_FILE: &[u8; 15] = b"/var/run/utmpx\0";
-macro_rules! UTMP_NAME_FUNCTION { ($file:expr) => { utmpxname ($file) } }
-macro_rules! SET_UTMP_ENT { () => { setutxent () } }
-macro_rules! GET_UTMP_ENT { () => { getutxent () } }
-macro_rules! END_UTMP_ENT { () => { endutxent () } }
 
 /* C 68-73: the accessor macro for the member named ut_user or ut_name.  The frozen
    configuration leaves HAVE_STRUCT_UTMPX_UT_NAME undefined, so C 72's `ut_user` arm is live
