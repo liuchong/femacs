@@ -196,16 +196,16 @@
 - [x] mode_line_update_needed  (line 13866, static)
 - [x] window_frozen_p  (line 13877, static)
 - [x] format_mode_line_unwind_data  (line 13943, static)
-- [ ] unwind_format_mode_line  (line 13997, static)
-- [ ] store_mode_line_noprop_char  (line 14070, static)
-- [ ] store_mode_line_noprop  (line 14097, static)
-- [ ] needs_no_redisplay  (line 14242, static)
-- [ ] prepare_menu_bars  (line 14259, static)
-- [ ] update_menu_bar  (line 14421, static)
-- [ ] restore_selected_window  (line 14521, static)
-- [ ] restore_frame_selected_window  (line 14563, static)
-- [ ] update_tab_bar  (line 14584, static)
-- [ ] display_tab_bar  (line 14693, static)
+- [x] unwind_format_mode_line  (line 13997, static)
+- [x] store_mode_line_noprop_char  (line 14070, static)
+- [x] store_mode_line_noprop  (line 14097, static)
+- [x] needs_no_redisplay  (line 14242, static)
+- [x] prepare_menu_bars  (line 14259, static)
+- [x] update_menu_bar  (line 14421, static)
+- [x] restore_selected_window  (line 14521, static)
+- [x] restore_frame_selected_window  (line 14563, static)
+- [x] update_tab_bar  (line 14584, static)
+- [x] display_tab_bar  (line 14693, static)
 - [ ] tty_get_tab_bar_item  (line 15586, static)
 - [ ] tty_handle_tab_bar_click  (line 15616)
 - [ ] hscroll_window_tree  (line 16625, static)
@@ -346,7 +346,7 @@
 - [ ] OK_PIXELS  (line 30481, body 1d72993912be)
 - [ ] RECORD_MAX_MIN_POS  (line 26024, body 9ee0416c4092)
 - [x] RECORD_OVERLAY_STRING  (line 7121, body 16715b981720)
-- [ ] REDISPLAY_SOME_P  (line 14235, body c6fb49f84210)
+- [x] REDISPLAY_SOME_P  (line 14235, body c6fb49f84210)
 - [x] RESTORE_IT  (line 848, body 4985d364c618)
 - [ ] RESUME_POLLING  (line 17343, body 2a5d0cb2a6a4)
 - [ ] ROW_GLYPH_NEWLINE_P  (line 27196, body 9d6d5b96f828)
@@ -432,39 +432,42 @@
 ### Progress (this lane is incremental)
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds C
-13256-13994** — the echo-area resize/display path and the front of the mode-line machinery:
-`resize_echo_area_exactly`, `resize_mini_window_1` and `resize_mini_window` (the mini-window
-height computation with `init_iterator`/`move_it_to`/`clip_to_bounds` and the
-`grow_mini_window`/`shrink_mini_window` calls), the message-stack family (`current_message`,
-`current_message_1`, `push_message`, `restore_message`, `pop_message_unwind`,
-`check_message_stack`, `clear_message_stack`, `truncate_echo_area`, `truncate_message_1`),
-`set_message`/`set_message_1`/`clear_message` (the `FUNCTIONP` hooks through `dsafe_call1`/
-`dsafe_calln`), `clear_garbaged_frames`, `echo_area_display`, `window_buffer_changed`,
-`mode_line_update_needed`, `window_frozen_p`, the mode-line file-scope objects with
-`MODE_LINE_NOPROP_LEN` and the `mode_line_target` enumerators, and
-`format_mode_line_unwind_data` — so the covered range is now **C 468-13994** (the earlier
-rounds' C 468-4323, and the C 4326-4641 / C 4667-4980 / C 4983-5647 / C 5650-5896 /
-C 5897-6762 / C 6763-7562 / C 7573-8430 / C 8437-9246 / C 9258-10060 / C 10063-10877 /
-C 10879-11645 / C 11647-12525 / C 12526-13255 rounds; the whole `HAVE_WINDOW_SYSTEM` block
-C 2488-3062 is dead on this target, as is C 8687-8736's), plus the `TEMPORARY SCAFFOLD`
-declarations the ledger needs to name.  C 13997's `unwind_format_mode_line` is the next live
-definition and is not in yet.  Ticked in the ledger above: 169 of the 302 function boxes (the
-three live subrs `set-buffer-redisplay`, `line-pixel-height` and `get-display-property` keep
-their boxes unticked as before), the 3 subr boxes the thirteenth round landed, one macro box
-and nine file-scope-object boxes — 258 of the 415 boxes; the remaining 157 are untouched.
-**Four scaffold entries are burned** (`resize_mini_window`, `clear_message`, `set_message`,
-`echo_area_display`) and **one is added** (`redisplay_internal`, C 1149) — **measured**: the
-block goes from fifteen `fn` entries to twelve.  `include/dispextern.rs` still has no
-`struct it` at this round's start (md5 `0935d7958ad472a2f41240d7d625c404`, unchanged), so the
-unit keeps its own measured copy.  Eleven new use-site externs are declared
-(`frame_redisplay_p`, `is_tty_frame`, `window_outdated`, `call_debugger`,
-`clear_current_matrices`, `redraw_frame`, `update_single_window`, `combine_updates_for_frame`,
-`grow_mini_window`, `shrink_mini_window`, `insert_from_string`), the unit's
-`redisplay_interface` copy gains `flush_display` (clang measures **72**, sizeof 104) plus its
-`INLINE` `flush_frame`, `SET_MARKER_FROM_TEXT_POS` is spelled here, and the unit's `frame_bits!`
-gains `resized_p`/`garbaged`.  **This round owes no new
-`docs/ports/macro-body-notes.tsv` row** — the six the integrator holds (items 23, 27, 28
-and 32) are unchanged, and `--check` still reports six `does not mention` lines for this unit.
+13995-14783** — the mode-line unwind/title machinery and the menu/tab-bar updates:
+`unwind_format_mode_line` (the 12-element vector restore with its window/frame/buffer order),
+`store_mode_line_noprop_char`/`store_mode_line_noprop` (the `xpalloc`-grown title buffer and
+the `c_string_width` copy), `needs_no_redisplay` with the `REDISPLAY_SOME_P` macro,
+`prepare_menu_bars`, `update_menu_bar` (the live `#else` arms of `HAVE_EXT_MENU_BAR`),
+`restore_selected_window`/`restore_frame_selected_window` (the two `record_unwind_protect`
+callbacks), and `update_tab_bar`/`display_tab_bar` — so the covered range is now
+**C 468-14783** (the earlier rounds' C 468-4323, and the C 4326-4641 / C 4667-4980 /
+C 4983-5647 / C 5650-5896 / C 5897-6762 / C 6763-7562 / C 7573-8430 / C 8437-9246 /
+C 9258-10060 / C 10063-10877 / C 10879-11645 / C 11647-12525 / C 12526-13255 / C 13256-13994
+rounds; the whole `HAVE_WINDOW_SYSTEM` block C 2488-3062 is dead on this target, as are
+C 8687-8736's, this round's `gui_consider_frame_title` C 14124-14227 and the three
+`HAVE_WINDOW_SYSTEM`/`HAVE_EXT_MENU_BAR` arms inside `prepare_menu_bars`/`update_menu_bar`,
+plus `display_tab_bar`'s `HAVE_NTGUI`/`USE_X_TOOLKIT`/`USE_GTK`/`HAVE_NS`/`HAVE_X_WINDOWS`
+chain), plus the `TEMPORARY SCAFFOLD` declarations the ledger needs to name.  **C 14785's
+`#ifdef HAVE_WINDOW_SYSTEM` block** (everything from there through the window-system tab-bar
+code, including `build_desired_tab_bar_string` and `display_tab_bar_line`) **is one more dead
+arm**, so the measured next live definition is **C 15586 `tty_get_tab_bar_item`** (this
+paragraph's earlier draft said C 14787 `display_tab_bar_line`, which the tool's live-only
+missing list disproves — the same "read the number off the tool" rule as deviation 112).  Ticked in the ledger above: 179
+of the 302 function boxes (the three live subrs `set-buffer-redisplay`, `line-pixel-height` and
+`get-display-property` keep their boxes unticked as before), the 3 subr boxes the thirteenth
+round landed, 2 macro boxes and 9 file-scope-object boxes — **269 of the 415 boxes**; the
+remaining 146 are untouched.  **Two scaffold entries are burned**
+(`restore_selected_window`, `restore_frame_selected_window`) and **three are added**
+(`compute_line_metrics` C 1183, `display_mode_element` C 1170-1171, `display_string`
+C 1180-1182 — all this unit's own later definitions) — **measured**: the block goes from
+twelve `fn` entries to thirteen.  `include/dispextern.rs` still has no `struct it` at this
+round's start (md5 `0935d7958ad472a2f41240d7d625c404`, unchanged), so the unit keeps its own
+measured copy.  Seven new use-site externs are declared (`clear_glyph_row`, `menu_bar_items`,
+`tab_bar_items`, `record_unwind_save_match_data`, `root_frame`, `safe_run_hooks`,
+`window_list`), the `TAB_BAR_ITEM_*` enumerators are spelled as constants (positional values
+0-6), the unit gains an l-value `FRAME_SELECTED_WINDOW!` (the `FRAME_WINDOW_CHANGE`
+precedent) and a `text.redisplay` read arm in `buffer_text_bits!`.  **This round owes one
+`docs/ports/macro-body-notes.tsv` row** — `restore_selected_window` / `uninit` (C 14541's
+`Lisp_Object frame UNINIT;`).
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -701,13 +704,28 @@ C 5773).
   `window_buffer_changed`, `mode_line_update_needed`, `window_frozen_p`, the mode-line
   file-scope objects and enumeration, `MODE_LINE_NOPROP_LEN`, and
   `format_mode_line_unwind_data` (the 12-element save vector with `FRAME_TTY`'s top frame).
+* C 13995-14783 — `unwind_format_mode_line` (`AREF`-restore of the mode-line save vector, the
+  `WINDOW_LIVE_P` window/frame/top-frame reselection and the `set_point_from_marker` point
+  restore), `store_mode_line_noprop_char` (the `mode_line_noprop_ptr ==
+  mode_line_noprop_buf_end` `xpalloc` growth) with `store_mode_line_noprop` (the
+  `strlen`/`c_string_width` copy and the `nbytes--` post-decrement loop),
+  `REDISPLAY_SOME_P` with `needs_no_redisplay` (the four `bool_bf` reads),
+  `prepare_menu_bars` (the `Vpre_redisplay_function` call through `dsafe_calln`, the
+  `window_list` filtering and the per-frame `update_menu_bar`/`update_tab_bar` walk),
+  `update_menu_bar` (the live `FRAME_MENU_BAR_LINES` ternary, the `Qinhibit_menubar_update`
+  binding, the two `safe_run_hooks` calls, `menu_bar_items` and the
+  `w->update_mode_line` store), `restore_selected_window`/`restore_frame_selected_window`,
+  `update_tab_bar` (the `FRAME_TAB_BAR_LINES` test, the `selected_frame`/`selected_window`
+  swap under `record_unwind_protect`, and `tab_bar_items`/`Fequal_including_properties`), and
+  `display_tab_bar` (the TTY `init_iterator` into the frame matrix rows, the row-clearing loop
+  through `glyph_row_bits!`, and the `display_string`/`compute_line_metrics` tail).
 
 ### The transcription that is in place
 
-The ledger above is the checklist.  169 of the C file's 302 functions (plus 3 of its 13
+The ledger above is the checklist.  179 of the C file's 302 functions (plus 3 of its 13
 subrs — the three the frozen configuration keeps live and this round's three) are defined, in
 C's order, with C's names, C's statements and
-C's comments; `src/xdisp.rs` is 15,185 lines.  Every function that C declares `static` is a
+C's comments; `src/xdisp.rs` is 15,825 lines.  Every function that C declares `static` is a
 plain `unsafe fn` here (and `unsafe extern "C" fn` where it is variadic or its address is
 handed out — `redisplay_trace`, `move_trace`, `dsafe_eval_handler`,
 `funcall_with_backtraces`, `handle_display_prop` (whose address is `it_props[]`'s handler
@@ -1574,6 +1592,38 @@ them).
      definition is the NULL fallback, so its use needs an explicit `as *mut c_void` for
      `.is_null ()`); `garbage_collection_inhibited` is an `intptr_t`, so C's `!` is `== 0`.
 
+### Deviations, continued (the round's fifteenth pass: titles, menus and tab bars)
+
+121. **`restore_selected_window`'s `Lisp_Object frame UNINIT` is `Qnil ()`.**  The frozen
+     config's `UNINIT` is `= {0,}`; Rust has no partially-initialised locals (PORTING.md 1.5,
+     deviation 1's rule).  This is the round's one `macro-body-notes.tsv` request (item 36).
+122. **`FRAME_SELECTED_WINDOW` is used as an *l-value* in two of this round's functions** (C
+     14529, 14572) while the mirror carries only the read-only accessor of that name: the port
+     defines a same-named `macro_rules!` for the store, the `FRAME_WINDOW_CHANGE` precedent a
+     few lines above it in this file (macros and functions live in different namespaces, so
+     both spellings coexist).  That keeps C's own token in the body instead of a
+     `macro-body-notes.tsv` row.
+123. **`display_tab_bar`'s `#if` chain is almost entirely dead.**  C 14701-14735 tries
+     `HAVE_NTGUI`, `USE_X_TOOLKIT || USE_GTK`, `HAVE_NS` and `HAVE_X_WINDOWS` before the plain
+     TTY `else`; on this target only that trailing body is live, so the port transcribes it
+     (with the dead chain recorded at the site).  The same applies to
+     `gui_consider_frame_title` (C 14124-14227, entirely inside `HAVE_WINDOW_SYSTEM`, with its
+     `record_unwind_protect (unwind_format_mode_line, …)` call) and to the three
+     `update_tool_bar`/`gui_consider_frame_title` arms inside `prepare_menu_bars`, and to
+     `#ifdef HAVE_EXT_MENU_BAR`'s two arms in `update_menu_bar` (whose live `#else` tests
+     `FRAME_MENU_BAR_LINES` and stores `w->update_mode_line`).
+124. **`FOR_EACH_FRAME!`'s body cannot `continue`.**  The mirror's macro appends
+     `$list_var = XCDR ($list_var);` after the body, so a Rust `continue` would skip it and
+     spin: the two C `continue`s in `prepare_menu_bars` are `tail = XCDR (tail); continue;`.
+125. **`rf = root_frame (sf)` inside an argument** (C 14335/14385) cannot be an assignment in
+     Rust, so the port uses the statement-block form `FRAME_MENU_BAR_LINES ({ rf = root_frame
+     (sf); rf })`; `strlen` returns `usize` (cast to `ptrdiff_t`), `display_string`'s
+     `field_width`/`multibyte` take `SCHARS`/`STRING_MULTIBYTE` with C's conversions, and
+     `w->enabled_p`-style row flags go through the mirror's `glyph_row_bits!`.
+126. **`buffer_text_bits!` gained the `text.redisplay` read arm** (the write arm was already
+     there from the eleventh round; C's `buffer->text->redisplay` is read in
+     `needs_no_redisplay` and `prepare_menu_bars`).
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -1749,37 +1799,47 @@ them).
     new `flush_display` member (offset 72) is recorded here for whoever mirrors the record.
 35. `docs/ports/macro-body-notes.tsv`: **this round owes none** — the six rows items 23/27/28/32
     hold are unchanged, and `--check`'s `does not mention` count stayed at six.
+36. `docs/ports/macro-body-notes.tsv`: **this round owes one row** —
+    `restore_selected_window` / `uninit` / `xdisp.c 14541: C's `Lisp_Object frame UNINIT;`
+    (`UNINIT` is `= {0,}` in the frozen configuration) has no Rust counterpart, so the port
+    initialises it to `Qnil ()` (PORTING.md 1.5)`.  With the integrator's six rows already in
+    the table, this is the only `does not mention` line `--check` reports for this unit.
+37. `include/dispextern.rs` / `include/lisp.rs` / `include/frame.rs` / `include/window.rs`:
+    this round's seven use-site externs (`clear_glyph_row`, `menu_bar_items`, `tab_bar_items`,
+    `record_unwind_save_match_data`, `root_frame`, `safe_run_hooks`, `window_list`) belong in
+    the mirrors next to their siblings; `TAB_BAR_ITEM_CAPTION`/`TAB_BAR_ITEM_NSLOTS` (and the
+    four enumerators before them) are spelled in this unit because the mirror does not carry
+    `enum tab_bar_item_idx`.
 
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  The
-figures below were taken at the 15,185-line revision (through `format_mode_line_unwind_data`,
-C 13994):
+figures below were taken at the 15,825-line revision (through `display_tab_bar`, C 14783):
 
 * `build-tu src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, taken **in place at
   the current workspace state**, after a four-step fix-up loop (the compiler caught, in order:
-  a `<` parsed as generics in `truncate_message_1`, the missing `resized_p` arm,
-  `MINI_WINDOW_P`-as-a-macro and the missing `SET_MARKER_FROM_TEXT_POS`, and finally the
-  eleven externs plus `FRAME_OUTPUT_DATA!`/`start_at_line_beg`/`flush_frame`/
-  `bidi_display_reordering_`/`BUF_MODIFF!`/`update_frame`).  This revision's `xdisp.rs` md5 is
-  `e1720f910252f4569f3dfe3166d63e95` (15,185 lines) and the mirrors it was built against are
-  `include/dispextern.rs 0935d795…`, `include/lisp.rs d8a14342…`,
-  `include/window.rs d163253b…` and `lib/include/stdbit.in.rs` (another lane's, mutable).  The
-  build prints 6 warnings: 4 pre-existing mirror ones and 2 `while_true` from this unit's two
-  `'scan: while true` loops;
+  `buffer_text->redisplay`/`FRAME_PARENT_FRAME`-as-truthiness and the missing
+  `menu_bar_items`/`tab_bar_items`; the `glyph_matrix` deref precedence and the
+  `it`-by-value spellings in `display_tab_bar`; the missing `buffer_text_bits!` read arm;
+  `strlen`'s `usize`, the `rf = …` argument, and `display_string`'s conversions).  This
+  revision's `xdisp.rs` md5 is `5046ba8d6a04af5a25c8d04c8474180f` (15,825 lines) and the
+  mirrors it was built against are `include/dispextern.rs 0935d795…`,
+  `include/lisp.rs d8a14342…`, `include/window.rs d163253b…` and
+  `lib/include/stdbit.in.rs` (another lane's, mutable).  The build prints 6 warnings: 4
+  pre-existing mirror ones and 2 `while_true` from this unit's two `'scan: while true` loops;
 * `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its
-  last two lines are `- line count drifted 61.9%: C 39805 vs Rust 15185` and
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count goes 215 lines to 178 and
-  `missing function` 144 to 123 (this round's twenty-one definitions, exactly), the nine
-  mode-line file-scope objects and the `MODE_LINE_*` constants go with them, and the
-  `does not mention` count stays at 6.  Every remaining `missing …` line names a definition
-  after C 13994 (the earliest is C 13997 `unwind_format_mode_line`) and there is still no
-  `stub or empty body` line for this unit;
+  last two lines are `- line count drifted 60.3%: C 39805 vs Rust 15825` and
+  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count goes 178 lines to 162 and
+  `missing function` 144 to 113 (this round's ten definitions, plus the macro and the two
+  constants the round spelled); after the integrator's six rows landed the `does not mention`
+  count fell from six to **one** (this round's `uninit` row, item 36).  Every remaining
+  `missing …` line names a definition after C 14783 (the earliest is C 14787
+  `display_tab_bar_line`) and there is still no `stub or empty body` line for this unit;
 * `python3 tools/check-cond-eval.py src/xdisp.c` = `196 conditions, 0 unknown to the evaluator,
-  0 disagreements` (this round's range carries no `#if` except the two dead
-  `HAVE_WINDOW_SYSTEM` blocks recorded in the code, C 13726-13730 and C 13769-13775);
-* `python3 tools/check-citations.py` = `620 file(s) scanned, 12 drift, 3 range, 284 external,
-  36 allowed, 0 stale` — `femacs/src/xdisp.rs` still has **no** finding;
+  0 disagreements` (this round's dead arms: C 14124-14227, 14286-14317, 14370-14372,
+  14396-14398, 14431-14435, 14481-14499, 14588-14594, 14701-14735 — all recorded at the site);
+* `python3 tools/check-citations.py` = `628 file(s) scanned, 9 drift, 1 range, 284 external,
+  38 allowed, 0 stale` — `femacs/src/xdisp.rs` still has **no** finding;
 * `python3 tools/check-mirror-dupes.py` = `1 duplicate declaration(s), 1 ratchet row(s), 0
   failure(s)`; the surviving row is the `insdel.rs`/`window.rs` `bset_redisplay` one, not this
   unit's;
@@ -1788,7 +1848,8 @@ C 13994):
 * `python3 tools/check-verbatim.py` = `6 trees, 4607 files, 0 failures`;
 * `python3 tools/check-globals.py` = `283 units, 0 DEFVAR_* variables without a definition in
   their own unit` (the unit count moves as the other lanes add units; this run's value);
-* `python3 tools/check-target-names.py` = `621 .rs files, 593 map targets, 0 finding(s)`
+* `python3 tools/check-target-names.py` = `626 .rs files, 591 map targets, 0 finding(s)`
+  (the counts move with the other lanes).
   (the file count moves with the other lanes).
 
 Note: the `--check` header line now says `424 files` in

@@ -4308,3 +4308,34 @@
   也就是说 `frame.h`、`font.h`、`dispextern.h` 三个曾经 WIP 的头镜像现在 `--check` 全 `OK`，其余 586 个文件也全部 0 differences。
   其余门：`check-declarations` 13/0、`check-undef` **108 pending / 0 new**、`check-citations` 9 drift/1 range/38 allowed/0 stale、
   `check-swift-units` 0 new/0 stale/7 units、`check-mirror-dupes` 1/1/0。
+
+- **3.236 `xdisp` 第 17 轮入库（15,825 行，前沿 C 15586），并把"还剩多少"第一次量成一张可复算的清单（2026-10-04）**：
+  ① **实产**：`femacs/src/xdisp.rs` 15,185 → **15,825 行**，函数 169 → **179/302**、宏 26 → 27、合计 258 → **269/415**；
+  `build-tu src/xdisp.rs` 末行 `built`；`--check emacs/src/xdisp.c femacs/src/xdisp.rs` 从 176/178 → **159 条 `- `**
+  （`missing function` 123 → 113，正好 10 个；**`does not mention` = 0**）。**前沿：C 15586 `tty_get_tab_bar_item`**
+  （lane 自证：C 14785-15566 那整片 `HAVE_WINDOW_SYSTEM` tab-bar 文本是死臂，只记录不转写）。本轮记死臂的段落：
+  `gui_consider_frame_title` C 14124-14227、`prepare_menu_bars` 的三段、`update_menu_bar` 的 `HAVE_EXT_MENU_BAR` 臂
+  （活臂是它的 `#else`）、`update_tab_bar` C 14588-14594、`display_tab_bar` 的 `HAVE_NTGUI`/toolkit/`HAVE_NS`/X 链
+  （活的是末尾 TTY `else`）。SCAFFOLD 烧 2 加 3 → 13 条；新增 7 个 use-site extern（Integrator 37）。
+  ② **一条共享行已录**（lane 报、我写）：`restore_selected_window` / `uninit` / `xdisp.c 14541` 的 `Lisp_Object frame UNINIT;`
+  （冻结配置里 `UNINIT` = `= {0,}`）在端口初始化为 `Qnil ()`（PORTING.md 1.5）。**值得记的对照**：她这一轮自己也消掉了一条
+  自造的 token 行（`restore_frame_selected_window does not mention frame_selected_window`——靠给 `FRAME_SELECTED_WINDOW!` 补
+  l-value 臂复现 C 的 token），**没有**往共享表塞一行；这正是"先让端口更忠实、再记账"的正确顺序。
+  ③ **剩下的工作量第一次被量出来（可复算）**：把 `docs/port-inventory.md` 的映射与工作树的真实行数对齐，
+  **97 个单元的目标文件不到 C 的一半，欠账合计 ≈ 305,000 行 C**。其中**冻结构建**（`docs/baseline/frozen-build-sources.txt`，
+  83 个源文件，即最终 Lisp 测试会真正跑到的那些）里还欠：`xdisp.c` 23,980、`comp.c` 5,819、`treesit.c` 5,586、
+  `gnutls.c` 3,081、`frame.c` 2,644、`xfaces.c` 2,329、`lib-src/pop.c` 1,673、`sound.c` 1,527、`fileio.c` 1,137、
+  `buffer.c` 924、`sqlite.c` 857、`emacs.c` 708、`lcms.c` 592、`menu.c` 524、`window.c` 506、`movemail.c` 498、
+  `systhread.c` 447、`decompress.c` 337、`xml.c` 268。**这个算术是上界**：有几个文件是"按设计就这么薄"
+  （例：`decompress.c` 的整个函数体在 `HAVE_ZLIB` 里，冻结配置未定义 ⇒ 端口就是空单元，台账里已记），
+  所以真正的缺口要逐文件读条件才能定。非冻结构建的平台后端是剩下的主体：`xterm.c` 33,125、`w32*.c` 合计 ≈ 34,000、
+  `sfnt.c` 21,215、`image.c` 13,805、`android*.c` ≈ 29,000、`pgtk*.c` ≈ 11,700、`gtkutil.c` 6,753 —— 这些不在冻结构建里，
+  但仍属"一比一复刻"的范围内（平台部分按用户指令用新技术重写）。
+  ④ **lane 分派（按上面这张表）**：xdisp 第 18 轮（C 15586+）→ 原 lane；`src/comp.c` → font lane（它做完 `font.h` 收口了）；
+  dispextern 的 5 个记录 → 原 lane（之后转 `src/xfaces.c`）；nsterm C 641+ → 平台 lane；**`src/treesit.c` 排在新 lane 的第一位**
+  ——本轮 spawn 撞到 agent 线程上限（6），下一轮有槽就开。另：`swift-import-pending.txt` 那 70 条待裁定已由一条 lane 逐条取证
+  （**65 条属"核心必须以该名字导出"**，每条给了 Rust 侧的字段/宏位置与 C 行号；其余是别的 Swift 单元提供/平台符号），
+  我下一轮把它们写进棘轮的 reason 列（表只许集成者写）。
+  ⑤ 读数（本轮末）：`check-declarations` 13/0、`check-undef` 108 pending/0 new、`check-citations` 9 drift/1 range/38 allowed/0 stale、
+  `check-swift-units` 0 new/0 stale/7 units、`check-mirror-dupes` 1/1/0、`layout-check passed`、
+  `extract-abi --all` 589 done / 1 in progress（`src/xdisp.c`）/ 0 failing。

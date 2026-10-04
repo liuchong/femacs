@@ -1243,3 +1243,4 @@ SET_GLYPH_FROM_GLYPH_CODE	false	dispextern.h 414-420: C's `do { … } while (fal
 DEC_TEXT_POS	false	dispextern.h 286-290: C's `do { --(POS).charpos; if (MULTIBYTE_P) …; } while (false)` statement macro; the port writes the block the loop encloses (the FD_SET/FD_CLR class), so the loop's own `false` has no match
 INC_TEXT_POS	false	dispextern.h 291-295: same shape as DEC_TEXT_POS (`do { ++(POS).charpos; … } while (false)`)
 PRODUCE_GLYPHS	false	dispextern.h 648-700: same shape (`do { … } while (false)` around the glyph-row setup)
+restore_selected_window	uninit	xdisp.c 14541: C's `Lisp_Object frame UNINIT;` (in this configuration `UNINIT` is `= {0,}`) has no Rust spelling; the port initialises it to `Qnil ()` (PORTING.md 1.5)

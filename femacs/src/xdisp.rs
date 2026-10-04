@@ -1043,6 +1043,20 @@ unsafe extern "C" {
   /// ptrdiff_t, ptrdiff_t, bool);` (insdel.c defines it).
   pub fn insert_from_string (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t,
 			     nchars: ptrdiff_t, nbytes: ptrdiff_t, inherit: bool);
+  /// C: dispextern.h 3914: `void clear_glyph_row (struct glyph_row *);` (dispnew.c).
+  pub fn clear_glyph_row (row: *mut glyph_row);
+  /// C: search.c's `void record_unwind_save_match_data (void);` (lisp.h 4852).
+  pub fn record_unwind_save_match_data ();
+  /// C: frame.h 1385: `struct frame *root_frame (struct frame *);` (frame.c defines it).
+  pub fn root_frame (f: *mut frame) -> *mut frame;
+  /// C: lisp.h 4326: `extern void safe_run_hooks (Lisp_Object hook);` (keyboard.c defines it).
+  pub fn safe_run_hooks (hook: Lisp_Object);
+  /// C: window.h 1187: `extern Lisp_Object window_list (void);` (window.c defines it).
+  pub fn window_list () -> Lisp_Object;
+  /// C: lisp.h 4850: `extern Lisp_Object menu_bar_items (Lisp_Object);` (keyboard.c defines it).
+  pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
+  /// C: lisp.h 4851: `extern Lisp_Object tab_bar_items (Lisp_Object, int *);` (keyboard.c).
+  pub fn tab_bar_items (tab_bar_items: Lisp_Object, ntab_bar_items: *mut c_int) -> Lisp_Object;
 }
 /* `set_buffer_internal_1` is C's prototype at buffer.h 1261, which C's xdisp.c
    reaches through its own `#include "buffer.h"` (C 485); `include/buffer.rs` already
@@ -2425,6 +2439,7 @@ macro_rules! buffer_bits {
    (`redisplay`, `BUFFER_TEXT_REDISPLAY` = 1 << 1, `include/buffer.rs`); the arm keeps C's own
    member path as its first argument so the statement's tokens stay C's.  */
 macro_rules! buffer_text_bits {
+  (text.redisplay, $b:expr) => { (*(*$b).text).bits & BUFFER_TEXT_REDISPLAY != 0 };
   (text.redisplay, $b:expr, $v:expr) => {{
     if $v { (*(*$b).text).bits |= BUFFER_TEXT_REDISPLAY; }
     else { (*(*$b).text).bits &= ! BUFFER_TEXT_REDISPLAY; } }};
@@ -2483,6 +2498,14 @@ macro_rules! set_frame_flag2 {
 macro_rules! FRAME_WINDOW_CHANGE {
     ($f:expr) => { (*$f).bits1 >> FRAME_WINDOW_CHANGE_SHIFT & 1 != 0 };
     ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_WINDOW_CHANGE_SHIFT, $v) };
+}
+
+/* frame.h 1387: `#define FRAME_SELECTED_WINDOW(f) ((f)->selected_window)`.  C stores through
+   it in `restore_selected_window` (C 14529) and `restore_frame_selected_window` (C 14572);
+   the mirror carries the read-only accessor of the same name, so the store goes through this
+   macro (the `FRAME_WINDOW_CHANGE` shape above, PORTING.md P-72 rule 3).  */
+macro_rules! FRAME_SELECTED_WINDOW {
+  ($f:expr) => { (*$f).selected_window };
 }
 
 /* Functions to mark elements as needing redisplay.  (C 861)  */
@@ -15049,6 +15072,16 @@ macro_rules! MODE_LINE_NOPROP_LEN {
 /* C 13916-13921's anonymous `enum { MODE_LINE_DISPLAY = 0, MODE_LINE_TITLE,
    MODE_LINE_NOPROP, MODE_LINE_STRING } mode_line_target;` -- the port spells the enumerators
    as constants and the variable as the static below.  */
+/* C: dispextern.h 3407-3431's `enum tab_bar_item_idx`; the frozen build's `TAB_BAR_ITEM_*`
+   slots are positional (measured: CAPTION is the fourth enumerator, NSLOTS the seventh).  */
+pub const TAB_BAR_ITEM_KEY: c_int = 0;
+pub const TAB_BAR_ITEM_ENABLED_P: c_int = 1;
+pub const TAB_BAR_ITEM_SELECTED_P: c_int = 2;
+pub const TAB_BAR_ITEM_CAPTION: c_int = 3;
+pub const TAB_BAR_ITEM_BINDING: c_int = 4;
+pub const TAB_BAR_ITEM_HELP: c_int = 5;
+pub const TAB_BAR_ITEM_NSLOTS: c_int = 6;
+
 pub const MODE_LINE_DISPLAY: c_int = 0;
 pub const MODE_LINE_TITLE: c_int = 1;
 pub const MODE_LINE_NOPROP: c_int = 2;
@@ -15127,6 +15160,607 @@ unsafe fn format_mode_line_unwind_data (target_frame: *mut frame,
 
   return vector;
 }
+unsafe extern "C" fn unwind_format_mode_line (vector: Lisp_Object)
+{
+  let old_window: Lisp_Object = AREF (vector, 7);
+  let target_frame_window: Lisp_Object = AREF (vector, 8);
+  let old_top_frame: Lisp_Object = AREF (vector, 9);
+
+  mode_line_target = XFIXNUM (AREF (vector, 0)) as c_int;
+  mode_line_noprop_ptr = mode_line_noprop_buf.offset (XFIXNUM (AREF (vector, 1)) as isize);
+  mode_line_string_list = AREF (vector, 2);
+  if ! EQ (AREF (vector, 3), Qt ())
+    { mode_line_proptrans_alist = AREF (vector, 3); }
+  mode_line_string_face = AREF (vector, 4);
+  mode_line_string_face_prop = AREF (vector, 5);
+
+  /* Select window before buffer, since it may change the buffer.  */
+  if WINDOW_LIVE_P (old_window)
+    {
+      /* If the operation that we are unwinding had selected a window
+	 on a different frame, reset its frame-selected-window.  For a
+	 text terminal, reset its top-frame if necessary.  */
+      if WINDOW_LIVE_P (target_frame_window)
+	{
+	  let frame: Lisp_Object
+	    = WINDOW_FRAME! (XWINDOW (target_frame_window));
+
+	  if !EQ (frame, WINDOW_FRAME! (XWINDOW (old_window)))
+	    { Fselect_window (target_frame_window, Qt ()); }
+
+	  if !NILP (old_top_frame) && !EQ (old_top_frame, frame)
+	      /* This could've been destroyed during the formatting,
+		 possibly because the terminal was deleted.  */
+	      && FRAME_LIVE_P (XFRAME (old_top_frame))
+	    { Fselect_frame (old_top_frame, Qt ()); }
+	}
+
+      Fselect_window (old_window, Qt ());
+
+      /* Restore point of target_frame_window's buffer (Bug#32777).
+	 But do this only after old_window has been reselected to
+	 avoid that the window point of target_frame_window moves.  */
+      if WINDOW_LIVE_P (target_frame_window)
+	{
+	  let buffer: Lisp_Object = AREF (vector, 10);
+
+	  if BUFFER_LIVE_P (XBUFFER (buffer))
+	    {
+	      let cb: *mut buffer = current_buffer;
+
+	      current_buffer = XBUFFER (buffer);
+	      set_point_from_marker (AREF (vector, 11));
+	      ASET (vector, 11, Qnil ());
+	      current_buffer = cb;
+	    }
+	}
+    }
+
+  if !NILP (AREF (vector, 6))
+    {
+      set_buffer_internal_1 (XBUFFER (AREF (vector, 6)));
+      ASET (vector, 6, Qnil ());
+    }
+
+  Vmode_line_unwind_vector = vector;
+
+  if dont_resize_frames > 0
+    { dont_resize_frames -= 1; }
+}
+
+/* Store a single character C for the frame title in mode_line_noprop_buf.
+   Re-allocate mode_line_noprop_buf if necessary.  */
+
+unsafe fn store_mode_line_noprop_char (c: c_char)
+{
+  /* If output position has reached the end of the allocated buffer,
+     increase the buffer's size.  */
+  if mode_line_noprop_ptr == mode_line_noprop_buf_end
+    {
+      let len: ptrdiff_t = MODE_LINE_NOPROP_LEN! (0);
+      let mut size: ptrdiff_t = len;
+      mode_line_noprop_buf =
+	xpalloc (mode_line_noprop_buf as *mut c_void, &raw mut size, 1,
+		 STRING_BYTES_BOUND, 1) as *mut c_char;
+      mode_line_noprop_buf_end = mode_line_noprop_buf.offset (size as isize);
+      mode_line_noprop_ptr = mode_line_noprop_buf.offset (len as isize);
+    }
+
+  *mode_line_noprop_ptr = c;
+  mode_line_noprop_ptr = mode_line_noprop_ptr.offset (1);
+}
+
+/* Store part of a frame title in mode_line_noprop_buf, beginning at
+   mode_line_noprop_ptr.  STRING is the string to store.  Do not copy
+   characters that yield more columns than PRECISION; PRECISION <= 0
+   means copy the whole string.  Pad with spaces until FIELD_WIDTH
+   number of characters have been copied; FIELD_WIDTH <= 0 means don't
+   pad.  Called from display_mode_element when it is used to build a
+   frame title.  */
+
+unsafe fn store_mode_line_noprop (string: *const c_char, field_width: c_int,
+				  precision: c_int) -> c_int
+{
+  let mut str_: *const u8 = string as *const u8;
+  let mut n: c_int = 0;
+  let mut dummy: ptrdiff_t = 0;
+  let mut nbytes: ptrdiff_t;
+
+  /* Copy at most PRECISION chars from STR.  */
+  nbytes = strlen (string) as ptrdiff_t;
+  n += c_string_width (str_, nbytes, precision, &raw mut dummy, &raw mut nbytes) as c_int;
+  /* C's `while (nbytes--)`: the post-decrement runs on every test including the one that
+     ends the loop (deviation 86's rule).  */
+  loop
+    {
+      let old: ptrdiff_t = nbytes;
+      nbytes -= 1;
+      if old == 0 { break; }
+      store_mode_line_noprop_char (*str_ as c_char);
+      str_ = str_.offset (1);
+    }
+
+  /* Fill up with spaces until FIELD_WIDTH reached.  */
+  while field_width > 0
+	&& n < field_width
+    {
+      store_mode_line_noprop_char (' ' as c_char);
+      n += 1;
+    }
+
+  return n;
+}
+
+/* C 14235-14239: `#define REDISPLAY_SOME_P() ((windows_or_buffers_changed == 0 ||
+   windows_or_buffers_changed == REDISPLAY_SOME) && (update_mode_lines == 0 ||
+   update_mode_lines == REDISPLAY_SOME))`.  */
+macro_rules! REDISPLAY_SOME_P {
+  () => {
+    ((windows_or_buffers_changed == 0
+      || windows_or_buffers_changed == REDISPLAY_SOME)
+     && (update_mode_lines == 0
+	 || update_mode_lines == REDISPLAY_SOME))
+  };
+}
+
+unsafe fn needs_no_redisplay (w: *mut window) -> bool
+{
+  let buffer: *mut buffer = XBUFFER ((*w).contents);
+  let f: *mut frame = XFRAME ((*w).frame);
+  return (REDISPLAY_SOME_P! ()
+	  && !window_bits! (w, redisplay)
+	  && !window_bits! (w, update_mode_line)
+	  && !frame_bits! (face_change, f)
+	  && !frame_bits! (redisplay, f)
+	  && !buffer_text_bits! (text.redisplay, buffer)
+	  && window_point (w) == (*w).last_point);
+}
+
+
+/* Prepare for redisplay by updating menu-bar item lists when
+   appropriate.  This can call eval.  */
+
+unsafe fn prepare_menu_bars ()
+{
+  let all_windows: bool = windows_or_buffers_changed != 0 || update_mode_lines != 0;
+  let some_windows: bool = REDISPLAY_SOME_P! ();
+
+  if FUNCTIONP (Vpre_redisplay_function)
+    {
+      let mut windows: Lisp_Object = if all_windows { Qt () } else { Qnil () };
+      if all_windows && some_windows
+	{
+	  let mut ws: Lisp_Object = window_list ();
+	  windows = Qnil ();
+	  while CONSP (ws)
+	    {
+	      let this: Lisp_Object = XCAR (ws);
+	      let w: *mut window = XWINDOW (this);
+	      /* Cf. conditions for redisplaying a window at the
+		 beginning of redisplay_window.  */
+	      if !needs_no_redisplay (w)
+		{ windows = Fcons (this, windows); }
+	      ws = XCDR (ws);
+	    }
+	}
+      dsafe_calln! (true, Vpre_redisplay_function, windows);
+    }
+
+  /* Update all frame titles based on their buffer names, etc.  We do
+     this before the menu bars so that the buffer-menu will show the
+     up-to-date frame titles.  */
+  /* C 14286-14317's `#ifdef HAVE_WINDOW_SYSTEM` block (the frame-title walk that calls
+     `gui_consider_frame_title`) is dead, as is the whole `gui_consider_frame_title`
+     definition at C 14124-14227.  */
+
+  /* Update the menu bar item lists, if appropriate.  This has to be
+     done before any actual redisplay or generation of display lines.  */
+
+  if all_windows
+    {
+      let mut tail: Lisp_Object = Qnil ();
+      let mut frame: Lisp_Object = Qnil ();
+      let count: specpdl_ref = SPECPDL_INDEX ();
+      /* True means that update_menu_bar has run its hooks
+	 so any further calls to update_menu_bar shouldn't do so again.  */
+      let mut menu_bar_hooks_run: bool = false;
+      let mut sw: *mut window = XWINDOW (selected_window);
+      let mut sf: *mut frame = WINDOW_XFRAME! (sw);
+      let mut rf: *mut frame = core::ptr::null_mut ();
+
+      if !FRAME_PARENT_FRAME (sf).is_null () && !FRAME_WINDOW_P (sf)
+	  && FRAME_MENU_BAR_LINES (sf) == 0
+	  && FRAME_MENU_BAR_LINES ({ rf = root_frame (sf); rf }) != 0
+	  && NILP (Fdefault_value (Qtty_menu_open_use_tmm ()))
+	/* If the selected window's frame is a tty child frame without
+	   menu bar, that frame's root frame has a menu bar and
+	   'tty-menu-open-use-tmm' is nil, update the menu bar of the
+	   root frame from the selected window.  */
+	{ sf = rf; }
+      else
+	{
+	  sf = core::ptr::null_mut ();
+	  sw = core::ptr::null_mut ();
+	}
+
+      record_unwind_save_match_data ();
+
+      FOR_EACH_FRAME! (tail, frame, {
+	  let f: *mut frame = XFRAME (frame);
+	  let w: *mut window
+	    = if sf == f { sw } else { XWINDOW (FRAME_SELECTED_WINDOW (f)) };
+
+	  /* Ignore tooltip frame.  */
+	  if FRAME_TOOLTIP_P (f)
+	    { tail = XCDR (tail); continue; }
+
+	  if some_windows
+	      && !frame_bits! (redisplay, f)
+	      && !window_bits! (w, redisplay)
+	      && !buffer_text_bits! (text.redisplay, XBUFFER ((*w).contents))
+	    { tail = XCDR (tail); continue; }
+
+	  menu_bar_hooks_run
+	    = update_menu_bar (f, false, menu_bar_hooks_run, w);
+
+	  update_tab_bar (f, false);
+	  /* C 14370-14372's `#ifdef HAVE_WINDOW_SYSTEM` block (`update_tool_bar (f, false)`)
+	     is dead.  */
+	});
+
+      unbind_to (count, Qnil ());
+    }
+  else
+    {
+      let sw: *mut window = XWINDOW (selected_window);
+      let mut sf: *mut frame = WINDOW_XFRAME! (sw);
+      let mut rf: *mut frame = core::ptr::null_mut ();
+
+      if !FRAME_PARENT_FRAME (sf).is_null () && !FRAME_WINDOW_P (sf)
+	  && FRAME_MENU_BAR_LINES (sf) == 0
+	  && FRAME_MENU_BAR_LINES ({ rf = root_frame (sf); rf }) != 0
+	  && NILP (Fdefault_value (Qtty_menu_open_use_tmm ()))
+	/* If the selected window's frame is a tty child frame without
+	   menu bar, that frame's root frame has a menu bar and
+	   'tty-menu-open-use-tmm' is nil, update the menu bar of the
+	   root frame from the selected window.  */
+	{ sf = rf; }
+
+      update_menu_bar (sf, true, false, sw);
+
+      update_tab_bar (sf, true);
+      /* C 14396-14398's `#ifdef HAVE_WINDOW_SYSTEM` block (`update_tool_bar (sf, true)`)
+	 is dead.  */
+    }
+}
+
+/* Update the menu bar item list for frame F.  This has to be done
+   before we start to fill in any display lines, because it can call
+   eval.
+
+   If SAVE_MATCH_DATA, we must save and restore it here.
+
+   If HOOKS_RUN, a previous call to update_menu_bar
+   already ran the menu bar hooks for this redisplay, so there
+   is no need to run them again.  The return value is the
+   updated value of this flag, to pass to the next call.
+
+   W, if set, denotes the window that should be considered as selected.
+   For a tty child frame using F as surrogate menu bar frame, this
+   specifies the child frame's selected window and its buffer shall be
+   used for updating the menu bar of the root frame instead of the
+   buffer of the root frame's selected window.  */
+
+unsafe fn update_menu_bar (f: *mut frame, save_match_data: bool, mut hooks_run: bool,
+			   w: *mut window) -> bool
+{
+  /* If called recursively during a menu update, do nothing.  This can
+     happen when, for instance, an activate-menubar-hook causes a
+     redisplay.  */
+  if inhibit_menubar_update
+    { return hooks_run; }
+
+  /* C 14431-14435's `#ifdef HAVE_EXT_MENU_BAR` arm is dead (the manifest has no such macro),
+     so C's ternary compiles as the `#else`: both arms test `FRAME_MENU_BAR_LINES`.  */
+  if if FRAME_WINDOW_P (f)
+     { FRAME_MENU_BAR_LINES (f) > 0 }
+     else { FRAME_MENU_BAR_LINES (f) > 0 }
+    {
+      /* If the user has switched buffers or windows, we need to
+	 recompute to reflect the new bindings.  But we'll
+	 recompute when update_mode_lines is set too; that means
+	 that people can use force-mode-line-update to request
+	 that the menu bar be recomputed.  The adverse effect on
+	 the rest of the redisplay algorithm is about the same as
+	 windows_or_buffers_changed anyway.  */
+      if windows_or_buffers_changed != 0
+	  /* This used to test w->update_mode_line, but we believe
+	     there is no need to recompute the menu in that case.  */
+	  || update_mode_lines != 0
+	  || window_buffer_changed (w)
+	{
+	  let prev: *mut buffer = current_buffer;
+	  let count: specpdl_ref = SPECPDL_INDEX ();
+
+	  specbind (Qinhibit_menubar_update (), Qt ());
+
+	  set_buffer_internal_1 (XBUFFER ((*w).contents));
+	  if save_match_data
+	    { record_unwind_save_match_data (); }
+	  if NILP (Voverriding_local_map_menu_flag)
+	    {
+	      specbind (Qoverriding_terminal_local_map (), Qnil ());
+	      specbind (Qoverriding_local_map (), Qnil ());
+	    }
+
+	  if !hooks_run
+	    {
+	      /* Run the Lucid hook.  */
+	      safe_run_hooks (Qactivate_menubar_hook ());
+
+	      /* If it has changed current-menubar from previous value,
+		 really recompute the menu-bar from the value.  */
+	      safe_run_hooks (Qmenu_bar_update_hook ());
+
+	      hooks_run = true;
+	    }
+
+	  XSETFRAME! (Vmenu_updating_frame, f);
+	  fset_menu_bar_items (f, menu_bar_items (FRAME_MENU_BAR_ITEMS (f)));
+
+	  /* Redisplay the menu bar in case we changed it.  */
+	  /* C 14481-14499's `#ifdef HAVE_EXT_MENU_BAR` block is dead; the live arm is its
+	     `#else`: the menu bar is an ordinary screen line on this target.  */
+	  window_bits! (w, update_mode_line, true);
+
+	  unbind_to (count, Qnil ());
+	  set_buffer_internal_1 (prev);
+	}
+    }
+
+  return hooks_run;
+}
+
+
+/* Restore WINDOW as the selected window and its frame as the selected
+   frame.  If WINDOW is dead but the selected frame is live, make the
+   latter's selected window the selected window.  If both, WINDOW and
+   the selected frame, are dead, assign selected frame and window from
+   some arbitrary live frame.  Abort if no such frame can be found.  */
+unsafe extern "C" fn restore_selected_window (window: Lisp_Object)
+{
+  if WINDOW_LIVE_P (window)
+    /* If WINDOW is live, make it the selected window and its frame's
+       selected window and set the selected frame to its frame.  */
+    {
+      selected_window = window;
+      selected_frame = (*XWINDOW (window)).frame;
+      /* C's `FRAME_SELECTED_WINDOW (f)` is `(f)->selected_window`, an l-value here; the
+	 port spells the store out (the `FRAME_WINDOW_CHANGE` note's shape).  */
+      FRAME_SELECTED_WINDOW! (XFRAME (selected_frame)) = window;
+    }
+  else if FRAMEP (selected_frame) && FRAME_LIVE_P (XFRAME (selected_frame))
+    /* If WINDOW is dead but the selected frame is still live, make the
+       latter's selected window the selected one.  */
+    { selected_window = FRAME_SELECTED_WINDOW (XFRAME (selected_frame)); }
+  else
+    /* If WINDOW and the selected frame are dead, choose some live,
+       non-child and non-tooltip frame as the new selected frame and
+       make its selected window the selected window.  */
+    {
+      let mut tail: Lisp_Object = Qnil ();
+      /* C's `Lisp_Object frame UNINIT` (PORTING.md 1.5, deviation 1's rule).  */
+      let mut frame: Lisp_Object = Qnil ();
+
+      FOR_EACH_FRAME! (tail, frame, {
+	  let f: *mut frame = XFRAME (frame);
+
+	  if FRAME_PARENT_FRAME (f).is_null () && !FRAME_TOOLTIP_P (f)
+	    {
+	      selected_frame = frame;
+	      selected_window = FRAME_SELECTED_WINDOW (f);
+
+	      return;
+	    }
+	});
+
+      /* Abort if we cannot find a live frame.  */
+      emacs_abort ();
+    }
+}
+
+/* Restore WINDOW, if live, as its frame's selected window.  */
+unsafe extern "C" fn restore_frame_selected_window (window: Lisp_Object)
+{
+  if WINDOW_LIVE_P (window)
+    /* If WINDOW is live, make it its frame's selected window.  If that
+       frame is the selected frame, make WINDOW the selected window as
+       well.  */
+    {
+      let frame: Lisp_Object = (*XWINDOW (window)).frame;
+
+      FRAME_SELECTED_WINDOW! (XFRAME (frame)) = window;
+      if EQ (frame, selected_frame)
+	{ selected_window = window; }
+    }
+}
+
+/* Update the tab-bar item list for frame F.  This has to be done
+   before we start to fill in any display lines.  Called from
+   prepare_menu_bars.  If SAVE_MATCH_DATA, we must save
+   and restore it here.  */
+
+unsafe fn update_tab_bar (f: *mut frame, save_match_data: bool)
+{
+  let mut do_update: bool = false;
+
+  /* C 14588-14594's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead, so the live test is its `else`
+     (the tty tab-bar line count).  */
+  if FRAME_TAB_BAR_LINES (f) > 0
+    { do_update = true; }
+
+  if do_update
+    {
+      let window: Lisp_Object;
+      let w: *mut window;
+
+      window = FRAME_SELECTED_WINDOW (f);
+      w = XWINDOW (window);
+
+      /* If the user has switched buffers or windows, we need to
+	 recompute to reflect the new bindings.  But we'll
+	 recompute when update_mode_lines is set too; that means
+	 that people can use force-mode-line-update to request
+	 that the menu bar be recomputed.  The adverse effect on
+	 the rest of the redisplay algorithm is about the same as
+	 windows_or_buffers_changed anyway.  */
+      if windows_or_buffers_changed != 0
+	  || window_bits! (w, update_mode_line)
+	  || update_mode_lines != 0
+	  || window_buffer_changed (w)
+	{
+	  let prev: *mut buffer = current_buffer;
+	  let count: specpdl_ref = SPECPDL_INDEX ();
+	  let new_tab_bar: Lisp_Object;
+	  let mut new_n_tab_bar: c_int = 0;
+
+	  /* Set current_buffer to the buffer of the selected
+	     window of the frame, so that we get the right local
+	     keymaps.  */
+	  set_buffer_internal_1 (XBUFFER ((*w).contents));
+
+	  /* Save match data, if we must.  */
+	  if save_match_data
+	    { record_unwind_save_match_data (); }
+
+	  /* Make sure that we don't accidentally use bogus keymaps.  */
+	  if NILP (Voverriding_local_map_menu_flag)
+	    {
+	      specbind (Qoverriding_terminal_local_map (), Qnil ());
+	      specbind (Qoverriding_local_map (), Qnil ());
+	    }
+
+	  /* We must temporarily set the selected frame to this frame
+	     before calling tab_bar_items, because the calculation of
+	     the tab-bar keymap uses the selected frame (see
+	     `tab-bar-make-keymap' in tab-bar.el).  */
+	  eassert! (EQ (selected_window,
+			/* Since we only explicitly preserve selected_frame,
+			   check that selected_window would be redundant.  */
+			(*XFRAME (selected_frame)).selected_window));
+
+	  let frame: Lisp_Object;
+	  record_unwind_protect (Some (restore_selected_window), selected_window);
+	  XSETFRAME! (frame, f);
+	  selected_frame = frame;
+	  selected_window = FRAME_SELECTED_WINDOW (f);
+
+	  /* Build desired tab-bar items from keymaps.  */
+	  new_tab_bar
+	    = tab_bar_items (Fcopy_sequence ((*f).tab_bar_items),
+			     &raw mut new_n_tab_bar);
+
+	  /* Redisplay the tab-bar if we changed it.  */
+	  if new_n_tab_bar != (*f).n_tab_bar_items
+	      /* Some features modify the appearance of the tab bar by
+		 manipulating the text properties.  */
+	      || NILP (Fequal_including_properties (new_tab_bar,
+						    (*f).tab_bar_items))
+	    {
+	      /* Redisplay that happens asynchronously due to an expose event
+		 may access f->tab_bar_items.  Make sure we update both
+		 variables within BLOCK_INPUT so no such event interrupts.  */
+	      block_input ();
+	      fset_tab_bar_items (f, new_tab_bar);
+	      (*f).n_tab_bar_items = new_n_tab_bar;
+	      window_bits! (w, update_mode_line, true);
+	      unblock_input ();
+	    }
+
+	  unbind_to (count, Qnil ());
+	  set_buffer_internal_1 (prev);
+	}
+    }
+}
+
+/* Redisplay the tab bar in the frame for window W.
+
+   The tab bar of X frames that don't have X toolkit support is
+   displayed in a special window W->frame->tab_bar_window.
+
+   The tab bar of terminal frames is treated specially as far as
+   glyph matrices are concerned.  Tab bar lines are not part of
+   windows, so the update is done directly on the frame matrix rows
+   for the tab bar.  */
+
+unsafe fn display_tab_bar (w: *mut window)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
+  let mut it: it = core::mem::zeroed ();
+  let items: Lisp_Object;
+  let mut i: c_int;
+
+  /* Don't do all this for graphical frames.  */
+  /* C 14701-14735's `#ifdef HAVE_NTGUI`, `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)`,
+     `#ifdef HAVE_NS` and `#elif defined (HAVE_X_WINDOWS)` arms are all dead on this target;
+     what follows is C's trailing `else` body (the TTY case).  */
+
+  /* This is a TTY frame, i.e. character hpos/vpos are used as
+     pixel x/y.  */
+  init_iterator (&raw mut it, w, -1, -1,
+		 (*((*f).desired_matrix as *mut glyph_matrix)).rows
+		 .offset ((if FRAME_MENU_BAR_LINES (f) > 0 { 1 } else { 0 }) as isize),
+		 TAB_BAR_FACE_ID);
+  it.first_visible_x = 0;
+  it.last_visible_x = FRAME_COLS (f);
+
+  /* FIXME: This should be controlled by a user option.  See the
+     comments in redisplay_tool_bar and display_mode_line about
+     this.  */
+  it.paragraph_embedding = L2R;
+
+  /* Clear all rows of the tab bar.  */
+  i = 0;
+  while i < FRAME_TAB_BAR_LINES (f)
+    {
+      let row: *mut glyph_row = it.glyph_row.offset (i as isize);
+      clear_glyph_row (row);
+      glyph_row_bits! (enabled_p, row, true);
+      glyph_row_bits! (full_width_p, row, true);
+      glyph_row_bits! (reversed_p, row, false);
+      i += 1;
+    }
+
+  /* Display all items of the tab bar.  */
+  items = (*it.f).tab_bar_items;
+  let mut j: c_int = 0;
+  i = 0;
+  while i < (*it.f).n_tab_bar_items
+    {
+      let string: Lisp_Object = AREF (items, (j + TAB_BAR_ITEM_CAPTION) as isize);
+
+      /* Stop at nil string.  */
+      if NILP (string)
+	{ break; }
+
+      if it.current_x < it.last_visible_x
+	{
+	  display_string (core::ptr::null (), string, Qnil (), 0, 0, &raw mut it,
+			  SCHARS (string) as c_int, 0, 0, STRING_MULTIBYTE (string) as c_int);
+	}
+      i += 1;
+      j += TAB_BAR_ITEM_NSLOTS;
+    }
+
+  /* Fill out the line with spaces.  */
+  if it.current_x < it.last_visible_x
+    {
+      display_string (c"".as_ptr (), Qnil (), Qnil (), 0, 0, &raw mut it, -1, 0, 0, -1);
+    }
+
+  /* Compute the total height of the lines.  */
+  compute_line_metrics (&raw mut it);
+}
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */
 /* ==================================================================== */
@@ -15176,10 +15810,16 @@ unsafe extern "C" {
   fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
   /// C: xdisp.c 1149: `static void redisplay_internal (void);` (defined later in this unit).
   fn redisplay_internal ();
-  /// C: xdisp.c 514: `static void restore_selected_window (Lisp_Object);` (its address goes
-  /// to `record_unwind_protect`; defined later in this unit, C 14521).
-  fn restore_selected_window (window: Lisp_Object);
-  /// C: xdisp.c 515: `static void restore_frame_selected_window (Lisp_Object);` (same, and
-  /// defined at C 14563).
-  fn restore_frame_selected_window (window: Lisp_Object);
+  /// C: xdisp.c 1183: `static void compute_line_metrics (struct it *);` (defined later).
+  fn compute_line_metrics (it: *mut it);
+  /// C: xdisp.c 1170-1171: `static int display_mode_element (struct it *, int, int, int,
+  /// Lisp_Object, Lisp_Object, bool);` (defined later in this unit).
+  fn display_mode_element (it: *mut it, depth: c_int, field_width: c_int, precision: c_int,
+			   elt: Lisp_Object, props: Lisp_Object, risky: bool) -> c_int;
+  /// C: xdisp.c 1180-1182: `static int display_string (const char *, Lisp_Object,
+  /// Lisp_Object, ptrdiff_t, ptrdiff_t, struct it *, int, int, int, int);` (defined later).
+  fn display_string (string: *const c_char, lisp_string: Lisp_Object, face_string: Lisp_Object,
+		     face_string_pos: ptrdiff_t, start: ptrdiff_t, it: *mut it,
+		     field_width: c_int, precision: c_int, max_x: c_int,
+		     multibyte: c_int) -> c_int;
 }
