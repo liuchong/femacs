@@ -4,15 +4,20 @@
 # no longer matches as `stale`, and a missing C definition with no row as `new`).
 # Columns: <swift target>, <C definition>, <C source>, <reason>.
 swift	missing_c_definition	c_source	reason
-
 femacs/platform/macos/macfont.swift	mac_ctfont_get_glyph_for_cid	src/macfont.m	in the arm this target does not take (`USE_CT_GLYPH_INFO` is undefined, so macfont.m 3993-4066 is dead text); permanent
 femacs/platform/macos/macfont.swift	mac_font_copy_default_descriptors_for_language	src/macfont.m
 femacs/platform/macos/macfont.swift	mac_font_copy_default_name_for_charset_and_languages	src/macfont.m
 femacs/platform/macos/nsfns.swift	all_nonzero_ascii	src/nsfns.m
+femacs/platform/macos/nsfns.swift	compute_tip_xy	src/nsfns.m
 femacs/platform/macos/nsfns.swift	count_utf8_chars	src/nsfns.m
+femacs/platform/macos/nsfns.swift	frame_geometry	src/nsfns.m
 femacs/platform/macos/nsfns.swift	interpret_services_menu	src/nsfns.m	in the arm this target does not take (`NS_IMPL_COCOA` is defined, so src/nsfns.m 200-258 is `#ifndef NS_IMPL_COCOA` text); permanent
+femacs/platform/macos/nsfns.swift	ns_create_tip_frame	src/nsfns.m
+femacs/platform/macos/nsfns.swift	ns_make_monitor_attribute_list	src/nsfns.m
 femacs/platform/macos/nsfns.swift	ns_move_tooltip_to_mouse_location	src/nsfns.m
 femacs/platform/macos/nsfns.swift	syms_of_nsfns	src/nsfns.m
+femacs/platform/macos/nsfns.swift	unwind_create_tip_frame	src/nsfns.m
+femacs/platform/macos/nsfns.swift	x_hide_tip	src/nsfns.m
 femacs/platform/macos/nsfont.swift	ns_dump_glyphstring	src/nsfont.m
 femacs/platform/macos/nsfont.swift	nsfont_draw	src/nsfont.m
 femacs/platform/macos/nsterm.swift	cancel_ns_deferred_UAZoomChangeFocus_timer	src/nsterm.m
@@ -113,4 +118,3 @@ femacs/platform/macos/nsterm.swift	nswindow_orderedIndex_sort	src/nsterm.m
 femacs/platform/macos/nsterm.swift	right_mod	src/nsterm.m
 femacs/platform/macos/nsterm.swift	runAlertPanel	src/nsterm.m
 femacs/platform/macos/nsterm.swift	syms_of_nsterm	src/nsterm.m
-

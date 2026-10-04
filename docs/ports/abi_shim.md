@@ -171,3 +171,12 @@ file gives.
 - **`check-symbols.py` / `check-undef.py`**: `86 units compared, 1 mismatched` (the mismatch is
   `lib/regex`, another lane) - the shim is not compared, having no reference object; `696 unit
   object(s) …, 0 new` for the undefined-symbol gate.
+
+- **Ruling (3.255, integrator): `frame_set_double_buffered` is exported under the same gate the
+  member lives under.**  `#[cfg (feature = "ns_impl_cocoa")]` on the export, and the ratchet row
+  stays with the reason "only a Cocoa build can clear this row" - the `macfont`/`nsfont` permanent
+  dead-arm shape.  Exporting it ungated would invent a host for a member the frozen record does not
+  have (P-08); deferring it to the NS round would push an already-measured row into the future.
+  The general ruling for macro-name entries in this file is in `docs/status.md` 3.255 (B first:
+  expand in Swift when the body is expressible there; A only when the expansion needs core-internal
+  facts, which is when this shim exports the same-name C-ABI entry).

@@ -8,6 +8,11 @@
 # ratchet in the working tree therefore bakes the lanes' half-finished state into a file every
 # later gate compares against, and the reading that counts is the one at HEAD.
 #
+# The same is true of the two *Swift* ratchets: `swift-units.tsv` is a reading of the tracked Swift
+# text against the reference's `.m` files, and `swift-import-pending.txt` reads the Swift units'
+# imports against the core's export tables - which come from the same objects as the link
+# ratchets.  All four are regenerated here.
+#
 # So: a throwaway worktree at HEAD, the two trees the build needs symlinked in (the read-only
 # reference `emacs/` and the frozen build `build/emacs-ref/` are not tracked), the current objects
 # copied over, and *only* the units the working tree has in flight rebuilt from HEAD's own sources.
@@ -53,10 +58,14 @@ python3 tools/check-link.py --write-pending
 python3 tools/check-link.py --strict
 python3 tools/check-link.py --executable --write-pending
 python3 tools/check-link.py --executable --strict
+python3 tools/check-swift-units.py --write-manifest
+python3 tools/check-swift-imports.py --write-pending
 
 cd "$root"
-cp "$wt/docs/baseline/link-pending.txt" docs/baseline/link-pending.txt
-cp "$wt/docs/baseline/link-exec-pending.txt" docs/baseline/link-exec-pending.txt
+for f in link-pending.txt link-exec-pending.txt swift-units.tsv swift-import-pending.txt; do
+  cp "$wt/docs/baseline/$f" "docs/baseline/$f"
+done
 git worktree remove --force "$wt"
 rm -rf "$target"
-echo "reconciled: docs/baseline/link-pending.txt, docs/baseline/link-exec-pending.txt"
+echo "reconciled: docs/baseline/{link-pending,link-exec-pending}.txt," \
+     "docs/baseline/{swift-units.tsv,swift-import-pending.txt}"

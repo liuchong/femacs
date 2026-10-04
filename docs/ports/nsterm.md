@@ -1216,3 +1216,14 @@ definition lands at its own C line.
 * `clang -o /tmp/s188/crt /tmp/s188/crt.c -framework Foundation && /tmp/s188/crt` -> the two
   autorelease-pool runtime symbols exist (`0x18a833dc8 0x18a83403c`), which is the measurement
   behind the `outerpool` decision.
+
+- **Ruling (3.255, integrator) on this file's macro-name entries.**  Two halves, and the criterion
+  is whether the macro's body can be spelled in Swift: **(B) first** - a body that is a pure AppKit
+  expression, arithmetic, or a member read of a record whose layout this file already declares must
+  be *expanded at the use site* (this round's `FRAME_NS_TITLEBAR_HEIGHT`/`FRAME_TOOLBAR_HEIGHT` are
+  the worked example), because importing a macro name puts a symbol in the frozen record that C
+  does not have (P-08).  **(A) only when the expansion needs core-internal facts** - the
+  `Lisp_Object` predicates/accessors, `globals.h` entries, enumerators, cross-record INLINEs: there
+  the core exports a same-name C-ABI entry from `femacs/src/abi_shim.rs` and the ratchet row stays
+  until it does.  The audit recorded above (24 macro names, 0 symbols in `build/emacs-ref/**/*.o`)
+  is what puts this file's remaining macro entries in class A.
