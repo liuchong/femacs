@@ -2297,3 +2297,27 @@
   `rg "c++defs\.h"` 的输出列了四个"包含者"，而那个模式不是合法正则；用
   `grep -F` 复测的真相是**没有任何源文件包含它**（只有 `gnulib.mk.in` 3180/3182 的构建机制），
   台账已按实测重写（并把"为什么当时的输出不可当证据"写进去）。
+
+- **3.144 第一条非 C lane 的第一个单元入库：`src/nsimage.m` → `femacs/platform/macos/nsimage.swift`，并定下 Swift↔Rust 的 ABI 规矩（2026-10-04）**：
+  ① **单元**：`emacs/src/nsimage.m`（658 行）→ `femacs/platform/macos/nsimage.swift`（753 行），台账
+  `docs/ports/nsimage.md`（393 行，34 个勾选框全勾）。**集成者独立复验**（不采信 lane 报告）：
+  `swiftc -parse-as-library -c -o /tmp/nsimage-check.o` → **exit 0**（只有 warning：`EmacsImage` 非 final
+  在 Swift 6 语言模式下不满足 `Sendable`）；`nm -g` 数出 **15 个 `T _ns_*`**，与 lane 的"15/15 可见"一致。
+  ② **ABI 规矩（本条是给剩下 8 个 Swift 文件定的）**：Swift 侧**只经 C ABI 与 Rust 复刻对接**，
+  不引入任何 C 头、不写 shim、不复写解释器内部——
+  - 参照里有真实符号的（`valid_image_p`(image.c 1395)、`image_find_image_file`、`add_to_log`(xdisp.c)、
+    `plist_get`(fns.c)、`Fcons`(alloc.c)、`make_float`）按 C 原型声明直接用；
+  - **参照里没有符号的构造（宏 / `INLINE` / `globals.h` 的字段）不在 Swift 里复写，而由 core 侧按 C 构造的
+    名字导出 C-ABI 入口**：`EQ`、`STRINGP`、`FIXNUMP`、`XFIXNAT`、`XCDR`、`SSDATA`、`SBYTES`、`make_fixnum`
+    与 12 个 `Q*`（索引取 `docs/baseline/globals/symbols.tsv`）等约 20 个；这也让 Swift 侧的调用形态与
+    Rust 镜像已有的 `pub fn Qfoo ()`（P-17）一致。
+  - ③ **编译模型**：**单文件 `swiftc -c` 作为每文件门**（今天唯一能逐文件跑的编译证据）；将来 9 个文件
+    作为一个 Swift 模块编译时，共享的 ABI 声明必须抽成单一来源（PORTING.md 0.1-5）——记为**开口项**，
+    到链接阶段前定，不在本单元内发明。
+  ④ **对读发现（原样保留，写进台账）**：`getPixelAtX:Y:` 的 `colorAtX:y:` 分支在 `int` 里拼 ARGB 后按
+  `unsigned long` 返回会符号扩展；`allocInitFromFile:` 在 `[image isValid]` 之前就置 `bmRep = nil`；
+  `setFrame:` 的 `index < 0` 对无符号恒假；`stippleMask` 的 `CGImageRetain` 不平账。四条都是参照自身的形状，
+  按"一比一"不动。
+  ⑤ **一条待更正的映射**：`docs/port-map.md` 把 `lib-src/be_resources.cc`（Haiku 构建用的资源工具）映成
+  `femacs/platform/macos/be_resources.swift`，这是生成器"按 `*.cc` 归到平台新技术"的归类结果，落该文件前
+  先改 `tools/gen-port-map.py` 的规则（或加显式例外）。
