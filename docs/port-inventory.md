@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 565 |
-| 其中 done / wip | 545 / 20 |
+| 其中 done / wip | 546 / 19 |
 | 待开工 | 25 |
 
 ## 2 按目录
@@ -291,7 +291,7 @@
 | `lib/stat-time.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stat-time.rs` | done |
 | `lib/stat-time.h` | 266 | 10 | 0 | 6 | 1 | 0 | 0 | L | `femacs/lib/include/stat-time.rs` | done |
 | `lib/stdbit.c` | 23 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdbit.rs` | done |
-| `lib/stdbit.in.h` | 2,229 | 173 | 0 | 90 | 33 | 0 | 0 | L | `femacs/lib/include/stdbit.in.rs` | wip |
+| `lib/stdbit.in.h` | 2,229 | 173 | 0 | 90 | 33 | 0 | 0 | L | `femacs/lib/include/stdbit.in.rs` | done |
 | `lib/stdc_bit_width.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_bit_width.rs` | done |
 | `lib/stdc_count_ones.c` | 23 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_count_ones.rs` | done |
 | `lib/stdc_leading_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_leading_zeros.rs` | done |
