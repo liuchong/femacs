@@ -382,6 +382,7 @@ Vmenu_updating_frame	the reference's own C text declares or defines it (a header
 Votf_script_alist	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 Vx_resource_name	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 WINDOWP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+WINDOW_FRAME	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 WINDOW_TO_FRAME_PIXEL_Y	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 XBUFFER	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 XCHAR_TABLE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -416,8 +417,23 @@ current_buffer_begv	nothing in the reference objects, the SDK or the reference's
 current_buffer_begv_byte	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 digest_single_submenu	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 down_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+draw_fringe_bitmap_params_bx	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_by	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_cursor_p	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_dh	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_face	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_h	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_nx	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_ny	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_overlay_p	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_wd	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_which	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_x	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+draw_fringe_bitmap_params_y	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
 dumped_with_pdumper_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 emacs_view_frame	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)
+face_background	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+face_foreground	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 face_set_background	the core does export it, but only behind `feature = "dispextern_face_records"`: no configuration this repository builds turns that arm on, so only a build with dispextern_face_records can clear this row (docs/status.md 3.262/3.264) - the work is done, the row is a record
 fast_c_string_match_ignore_case	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 fast_string_match	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -471,6 +487,7 @@ glyph_string_set_right_overhang	nothing in the reference objects, the SDK or the
 glyph_type	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 gui_clear_cursor	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 gui_default_parameter	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_define_fringe_bitmap	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 gui_display_get_arg	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 gui_figure_window_size	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 gui_set_alpha	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -514,6 +531,7 @@ make_mint_ptr	the reference's own C text declares or defines it (a header macro/
 make_monitor_attribute_list	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 make_nil_vector	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 make_widget_value	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+max_used_fringe_bitmap	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 maybe_quit	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 mint_ptrp	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 mouse_highlight_mouse_face_mouse_frame	nothing in the reference objects, the SDK or the reference's C and Rust text explains it: a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)

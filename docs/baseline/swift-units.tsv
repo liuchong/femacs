@@ -20,17 +20,14 @@ femacs/platform/macos/nsterm.swift	ns_create_font_panel_buttons	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_create_terminal	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_default	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_default_font_parameter	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_define_fringe_bitmap	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_delete_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_delete_terminal	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_destroy_fringe_bitmap	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_display_pixel_height	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_display_pixel_width	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_displays_reconfigured	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_box	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_composite_glyph_string_foreground	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_dash	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_draw_fringe_bitmap	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_glyph_string	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_glyph_string_foreground	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_glyphless_glyph_string_foreground	src/nsterm.m
