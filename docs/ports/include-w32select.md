@@ -45,6 +45,12 @@
   1 macro (the guard), 0 types, 0 file-scope objects.
 - `rg -n "syms_of_w32select|globals_of_w32select|term_w32select" femacs/src` -> only this mirror,
   so there is no use-site copy to retire (unlike the 3.143/3.153 cases).
+- **The mirror does have a compiler now** (status 3.159): `spikes/win_inc_probe.rs` supplies the
+  names a Windows translation unit takes from the system and `include!`s this mirror together with
+  `include/w32inevt.rs`, the other orphan of the same cause; it runs in `xtask`'s
+  `probe_programs` gate.  Until then this file's own reading held: no unit includes this mirror
+  (`rg -n 'include/w32select' femacs` -> no hits), so the declarations were measured by
+  `--check` alone.
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
   failures; `check-mirror-dupes` 0 failures; `check-globals` 283 units / 0; `check-verbatim` 6 trees
   / 4607 files / 0; `check-target-names` 0 findings.

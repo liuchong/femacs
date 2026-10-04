@@ -1208,10 +1208,13 @@ fn probe_programs() -> Result<(), String> {
     // collide by construction), so this is the only place their assertions and declarations are
     // compiled.  Same shape as `f_inc_probe.rs`: the probe names its mirrors and the graph's
     // de-duplication does the rest.
-    const PROBES: [&str; 11] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
+    // `win_inc_probe.rs` is the same shape again, for the two `src/include` mirrors whose unit is
+    // an empty shape (`src/w32inevt.h`, `src/w32select.h`): no configuration compiles a `src/w32*`
+    // unit on this target, so those mirrors had no consumer at all until this probe (status 3.159).
+    const PROBES: [&str; 12] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
                                 "../spikes/write_probe.rs", "../spikes/va_probe.rs",
                                 "../spikes/layout.rs", "../spikes/jump.rs", "../spikes/scan.rs",
-                                "../spikes/f_inc_probe.rs",
+                                "../spikes/f_inc_probe.rs", "../spikes/win_inc_probe.rs",
                                 "../spikes/haiku_inc_probe.rs", "../spikes/android_inc_probe.rs",
                                 "../spikes/android_asset_probe.rs"];
     fs::create_dir_all("../build/probes").ok();
