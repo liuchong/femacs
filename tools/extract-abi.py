@@ -932,6 +932,56 @@ def strip_comments(text: str) -> str:
     return "".join(out)
 
 
+# `strip_comments` decides what the static checks *see*, so it needs its own cases: the ebrowse
+# lane's differential (status 3.126) found that it tested `"` before the character literal, and a
+# `'"'` literal then swallowed everything up to the next `"` - turning a following comment into
+# code and, worse, pouring bogus tokens into the Rust side, which made the "does not mention" rule
+# under-report for four finished units (status 3.127).  Each case below is a property of the
+# scanner, compared with whitespace folded away; the first two are the ones that bug failed.
+SELFTEST = (
+    ("char literal then comment",
+     "let c = '\"' ; // let fake = 1;\nlet d = 2;",
+     "let c = '\"' ; \nlet d = 2;"),
+    ("escaped quote char literal then comment",
+     "let c = '\\'' ; // let fake = 1;\nlet d = 2;",
+     "let c = '\\'' ; \nlet d = 2;"),
+    ("lifetime is not a literal",
+     "fn f<'a>(x: &'a str) -> &'a str { x } // c\nlet d = 1;",
+     "fn f<'a>(x: &'a str) -> &'a str { x } \nlet d = 1;"),
+    ("raw string keeps its slashes",
+     "let s = r#\"// not a comment\"#;\nlet d = 1;",
+     "let s = r#\"// not a comment\"#;\nlet d = 1;"),
+    ("byte string keeps its slashes",
+     "let b = b\"// no\";\nlet d = 1;",
+     "let b = b\"// no\";\nlet d = 1;"),
+    ("nested block comment",
+     "a /* b /* c */ d */ e",
+     "a  e"),
+    ("string holding an open comment",
+     "let s = \"/*\";\nlet d = 1; // gone",
+     "let s = \"/*\";\nlet d = 1; "),
+    ("block comment hides a definition",
+     "/* fn hidden () {} */\nfn seen () {}",
+     " \nfn seen () {}"),
+    ("char literal holding a slash, string with an escaped quote",
+     "let s = '/'; let t = \"\\\"\"; // gone\nlet d = 1;",
+     "let s = '/'; let t = \"\\\"\"; \nlet d = 1;"),
+)
+
+
+def selftest() -> int:
+    bad = 0
+    for name, source, want in SELFTEST:
+        got = re.sub(r"\s+", " ", strip_comments(source)).strip()
+        expected = re.sub(r"\s+", " ", want).strip()
+        ok = got == expected
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got!r}"
+              + ("" if ok else f" (want {expected!r})"))
+        bad += 0 if ok else 1
+    print(f"{len(SELFTEST)} cases, {bad} failures")
+    return 1 if bad else 0
+
+
 def normalise(text: str) -> str:
     """The code with comments and layout taken out: whitespace runs collapse to
     one space *outside* string literals, whose own bytes are data and are kept."""
@@ -1810,6 +1860,8 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("paths", nargs="*")
     ap.add_argument("--check", action="store_true")
+    ap.add_argument("--selftest", action="store_true",
+                    help="run the scanner's own cases (strip_comments)")
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--reference", default="emacs")
     ap.add_argument("--root", default="femacs")
@@ -1875,6 +1927,8 @@ def main() -> int:
         print(f"conditions: {cond_macros} is missing — `#if`s other than a literal `#if 0` "
               "leave both branches live (tools/gen-cond-macros.py regenerates it)",
               file=sys.stderr)
+    if args.selftest:
+        return selftest()
     load_va_arg_types(Path(args.va_arg_types))
     for warning in TOKEN_ALIAS_WARNINGS:
         print(f"token-aliases: {warning}", file=sys.stderr)
