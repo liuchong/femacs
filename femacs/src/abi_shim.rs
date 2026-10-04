@@ -155,35 +155,40 @@ pub unsafe extern "C" fn frame_set_internal_border_width (f: *mut c_void, v: c_i
   unsafe { (*f.cast::<frame> ()).internal_border_width = v; }
 }
 
-/// C: int menu_bar_lines;   (frame.h 635; the reader is `FRAME_MENU_BAR_LINES`, frame.h 1113)
+/// C: `int menu_bar_lines;` (frame.h 635, `menu_bar_lines`); the reader is
+/// `FRAME_MENU_BAR_LINES` (frame.h 1086)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_menu_bar_lines (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).menu_bar_lines = v; }
 }
 
-/// C: int tab_bar_lines;   (frame.h 558; the reader is `FRAME_TAB_BAR_LINES`, frame.h 1126)
+/// C: `int tab_bar_lines;` (frame.h 558, `tab_bar_lines`); the reader is
+/// `FRAME_TAB_BAR_LINES` (frame.h 1090)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_tab_bar_lines (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).tab_bar_lines = v; }
 }
 
-/// C: int tab_bar_height;   (frame.h 561; the reader is `FRAME_TAB_BAR_HEIGHT`, frame.h 1127)
+/// C: `int tab_bar_height;` (frame.h 561, `tab_bar_height`); the reader is
+/// `FRAME_TAB_BAR_HEIGHT` (frame.h 1091)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_tab_bar_height (f: *mut c_void, v: c_int)
 {
   unsafe { (*f.cast::<frame> ()).tab_bar_height = v; }
 }
 
-/// C: unsigned long background_pixel;   (frame.h 732; the reader is `FRAME_BACKGROUND_PIXEL`)
+/// C: `unsigned long background_pixel;` (frame.h 732, `background_pixel`); the reader is
+/// `FRAME_BACKGROUND_PIXEL` (frame.h 1376)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_background_pixel (f: *mut c_void, v: c_ulong)
 {
   unsafe { (*f.cast::<frame> ()).background_pixel = v; }
 }
 
-/// C: unsigned long foreground_pixel;   (frame.h 733; the reader is `FRAME_FOREGROUND_PIXEL`)
+/// C: `unsigned long foreground_pixel;` (frame.h 733, `foreground_pixel`); the reader is
+/// `FRAME_FOREGROUND_PIXEL` (frame.h 1375)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_foreground_pixel (f: *mut c_void, v: c_ulong)
 {
@@ -214,7 +219,8 @@ pub unsafe extern "C" fn frame_set_explicit_name (f: *mut c_void, v: bool)
   }
 }
 
-/// C: bool_bf wants_modeline : 1;   (frame.h 402; the reader is `FRAME_WANTS_MODELINE_P`, 1183)
+/// C: `bool_bf wants_modeline : 1;` (frame.h 402, `wants_modeline`); the reader is
+/// `FRAME_WANTS_MODELINE_P` (frame.h 1183)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn frame_set_wants_modeline (f: *mut c_void, v: bool)
 {
@@ -1048,7 +1054,7 @@ pub unsafe extern "C" fn ns_output_set_zooming (f: *mut c_void, v: c_int)
    two carry no gate: the record is live in the frozen configuration.
    --------------------------------------------------------------------------------------------- */
 
-/// C: `int x, y;` (dispextern.h 950, inside `struct glyph_row` 918-...) - C reads the y member as
+/// C: `int x, y;` (dispextern.h 950, `y`; inside `struct glyph_row` 918) - C reads the y member as
 /// `row->y` (nsterm.m 818, in `static NSRect ns_row_rect (struct window *w, struct glyph_row
 /// *row, enum glyph_row_area area)` 807-824).
 /// Swift `nsterm.swift` 834 (`(UnsafeMutableRawPointer?) -> Int32`), used at `nsterm.swift` 980.
@@ -1058,8 +1064,8 @@ pub unsafe extern "C" fn glyph_row_y (row: *mut c_void) -> c_int
   unsafe { (*row.cast::<glyph_row> ()).y }
 }
 
-/// C: `int visible_height;` (dispextern.h 969, inside `struct glyph_row` 918-...) - C reads it as
-/// `row->visible_height` (nsterm.m 821, the same `ns_row_rect`).
+/// C: `int visible_height;` (dispextern.h 969, `visible_height`; inside `struct glyph_row` 918) - C reads it
+/// as `row->visible_height`; the same `ns_row_rect` (nsterm.m 808, its read at 821).
 /// Swift `nsterm.swift` 835-836 (`(UnsafeMutableRawPointer?) -> Int32`), used at
 /// `nsterm.swift` 983.
 #[unsafe(no_mangle)]
@@ -1097,7 +1103,7 @@ pub unsafe extern "C" fn set_waiting_for_input_flag (v: bool)
    `frame_set_double_buffered` shape again (`## Decisions`).
    --------------------------------------------------------------------------------------------- */
 
-/// C: `unsigned long background;` (dispextern.h 1819, inside `struct face` 1787-1937) - C's
+/// C: `unsigned long background;` (dispextern.h 1819, `background`; inside `struct face` 1787) - C's
 /// write is `face->background = [[col colorWithAlphaComponent: alpha] unsignedLong];`
 /// (nsfns.m 328-329, whose right-hand side reads `NS_FACE_BACKGROUND (face)` at 327).
 /// Swift `nsfns.swift` 475-476 (`func face_set_background(_ face: UnsafeMutableRawPointer?,
@@ -1116,7 +1122,7 @@ pub unsafe extern "C" fn face_set_background (face: *mut c_void, v: c_ulong)
    gives (missing hosts) or is not the core's (the `Q*` family, `setAppearance`).
    --------------------------------------------------------------------------------------------- */
 
-/// C: `#define FRAME_NO_ACCEPT_FOCUS(f) ((f)->no_accept_focus)` (frame.h 1249) - the `bool_bf`
+/// C: `#define FRAME_NO_ACCEPT_FOCUS(f) ((f)->no_accept_focus)` (frame.h 1249, `FRAME_NO_ACCEPT_FOCUS`) - the `bool_bf`
 /// member at frame.h 411, written at src/nsterm.m 2074 (`FRAME_NO_ACCEPT_FOCUS (f) = !NILP
 /// (new_value);`).  The write uses the mirror's own shift constant
 /// (`FRAME_NO_ACCEPT_FOCUS_SHIFT` 26, `include/frame.rs` 170) - the same bit `femacs/src/frame.rs`
@@ -1222,7 +1228,7 @@ pub mod c_abi_of_mirror_named_items
      `super::`.
      ------------------------------------------------------------------------------------------- */
 
-  /// C: `#define Qnil builtin_lisp_symbol (0)` (build/emacs-ref/src/globals.h 7363; `iQnil` 0
+  /// C: `#define Qnil builtin_lisp_symbol (0)` (build/emacs-ref/src/globals.h 7363, `Qnil`; `iQnil` 0
   /// at 1242) - the port's symbol is `include/globals.rs` 10's `pub fn Qnil`, i.e. P-17's call
   /// shape.  The Swift import is `nsfns.swift` 323 (`func Qnil() -> Lisp_Object`), the head of
   /// the seven units that spell it this way (`nsterm.swift` 157, `nsmenu.swift` 367,
@@ -1349,7 +1355,7 @@ pub mod c_abi_of_mirror_named_items
      (status 3.264 item 2's shape; a crate-root definition of the same name is `E0428`).
      ------------------------------------------------------------------------------------------- */
 
-  /// C: `CHAR_GLYPH,` (src/dispextern.h 434, the first member of `enum glyph_type` 431-452) -
+  /// C: `CHAR_GLYPH` (src/dispextern.h 434, `CHAR_GLYPH`; first member of `enum glyph_type` 431-452) -
   /// the port's enumerator is `include/dispextern.rs` 240.  The Swift import is
   /// `nsterm.swift` 3578 (`func CHAR_GLYPH() -> Int32`), the lane's function-shaped spelling of
   /// a C enumerator; its use is `s->first_glyph->type == CHAR_GLYPH` (nsterm.m 3054, 3059).
@@ -1608,7 +1614,7 @@ pub unsafe extern "C" fn frame_set_config_scroll_bar_lines (f: *mut c_void, v: c
 /* ---------------------------------------------------------------------------------------------
    Batch 10, group 2: `struct window`'s non-bitfield members, all of them written or read by
    `ns_show_tip`'s window-sizing block (src/nsfns.m 3442-3501) and by the two cursor helpers
-   (src/nsfns.m 4024-4025).  `struct window` in window.h has no gate over the members used here
+   (src/nsfns.m 4024-4025, `phys_cursor`).  The record in window.h has no gate over the members used here
    (the file's only `#if` in 60-340 is 290-303, `HAVE_TEXT_CONVERSION`), and the mirror carries
    them ungated (`include/window.rs` 75-115; the `have_window_system` gate starts at 120, on
    `phys_cursor_type`).  The writers are plain field writes - no mirror item is reached, the
@@ -1725,7 +1731,7 @@ pub unsafe extern "C" fn window_pixel_height (w: *mut c_void) -> c_int
 
 /// C: `struct cursor_pos phys_cursor;` (window.h 332) over `struct cursor_pos { int x, y; … }`
 /// (window.h 91-97, `x` at 94) - C's read is `int x = text_area_x + window->phys_cursor.x;`
-/// (src/nsfns.m 4024).  The lane declares the result `Int` (`macfont`-width, 64 bit) while the
+/// (src/nsfns.m 4024, `phys_cursor`).  The lane declares the result 64-bit (`Int` on Darwin) while the
 /// member is `int`, so the declaration wins and the widening is explicit - `c_long` is Darwin's
 /// 64-bit `long`, the same width as Swift's `Int` (the `ns_output_window_desc` `as c_ulong`
 /// precedent of batch 6).
@@ -1911,7 +1917,7 @@ pub unsafe extern "C" fn glyph_type (g: *mut c_void) -> c_int
   unsafe { glyph_bits! (type, *g.cast::<glyph> ()) }
 }
 
-/// C: `bool_bf mode_line_p : 1;` (src/dispextern.h 1086, one of `glyph_row`'s 29 `bool_bf : 1`
+/// C: `mode_line_p` (src/dispextern.h 1086, `mode_line_p`; one of `glyph_row`'s 29 `bool_bf : 1`
 /// members) - C's read is `!desired_row->mode_line_p` (src/nsterm.m 2977).  The body is the
 /// mirror's own accessor (`glyph_row_bits! (mode_line_p, …)`, `include/dispextern.rs` 947-948,
 /// i.e. `bools [1]` bit 4).
@@ -2058,8 +2064,8 @@ pub unsafe extern "C" fn face_foreground (face: *mut c_void) -> c_ulong
 }
 
 /// C: `unsigned long background;` (src/dispextern.h 1819) - C's reads are the bare member
-/// (`face->background`, src/nsterm.m 3254, 3281), beside the macro entry `NS_FACE_BACKGROUND`
-/// whose write is nsfns.m 328-329 (batch 6's `face_set_background`); the mirror's field is
+/// (`face->background`; the bare member at src/nsterm.m 3254 (`background`) and 3281), beside the
+/// macro `NS_FACE_BACKGROUND` (nsterm.m 2811), whose write is nsfns.m 328-329 (batch 6's `face_set_background`); the mirror's field is
 /// `include/dispextern.rs` 2005.
 /// Swift `nsterm.swift` 3752 (`-> UInt`).
 #[cfg (feature = "dispextern_face_records")]
@@ -2207,7 +2213,7 @@ pub unsafe extern "C" fn draw_fringe_bitmap_params_overlay_p (p: *mut c_void) ->
 
 /// C: `void gui_define_fringe_bitmap (struct frame *f, int n)` (defined src/fringe.c 1853,
 /// declared src/dispextern.h 3711) - C's call is `gui_define_fringe_bitmap (f, p->which);`
-/// (src/nsterm.m 3263, inside `ns_draw_fringe_bitmap`), which is why the Swift lane imports it
+/// (src/nsterm.m 3206's `ns_draw_fringe_bitmap`, called at 3263), which is why the Swift lane imports it
 /// (`nsterm.swift` 3794).
 ///
 /// **The gate is the configuration that owns the file.**  `src/fringe.c` is not compiled by the
@@ -2373,7 +2379,7 @@ pub unsafe extern "C" fn glyph_row_height (row: *mut c_void) -> c_int
   unsafe { (*row.cast::<glyph_row> ()).height }
 }
 
-/// C: `unsigned resolved_level : 7;` (src/dispextern.h 553, one of `struct glyph`'s bitfields) -
+/// C: `unsigned resolved_level : 7;` (src/dispextern.h 553, `resolved_level`; one of `struct glyph`'s bitfields) -
 /// C's read is src/nsterm.m 3357.  Body: `glyph_bits! (resolved_level, …)`
 /// (`include/dispextern.rs` 554-555, over `GLYPH_RESOLVED_LEVEL_SHIFT` 10 / width 7 at 473-474).
 /// Swift `nsterm.swift` 4024 (`(UnsafeMutableRawPointer?) -> Int32`).
@@ -2531,7 +2537,8 @@ pub unsafe extern "C" fn draw_phys_cursor_glyph (w: *mut c_void, row: *mut c_voi
 /// (status 3.31).  So the export carries the gate of the configuration that owns the file, and
 /// **no statement of C's body is carried**: its first statement switches on
 /// `w->phys_cursor_type` and then calls `STANDARD_BITMAP_HEIGHT (hollow_rectangle_bits)`
-/// (fringe.c 849, over that file's own `standard_bitmaps` table), `get_logical_cursor_bitmap`
+/// (fringe.c 849's `STANDARD_BITMAP_HEIGHT`, over that file's own `standard_bitmaps` table at
+/// 460), `get_logical_cursor_bitmap`
 /// (fringe.c's own function) and `draw_fringe_bitmap_1` (idem) with `struct
 /// draw_fringe_bitmap_params` - pieces no mirror and no unit carries.  The entry's purpose today
 /// is the symbol the Swift seam imports (its call site is `nsterm.swift` 4115).

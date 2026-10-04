@@ -26,6 +26,24 @@ re-run to confirm it (see `- **The gate audit (this file's 73 gated entries, no 
   `build-tu` was re-run after the audit (no gate changed) and the object is unchanged: 129 `T`
   plus the one `D`, and none of the 73 guarded names in the frozen object.
 
+- **The twenty citation drifts this file had are fixed (the round after batch 13)**:
+  `python3 tools/check-citations.py` reported `44 drift` tree-wide with **20 in
+  `femacs/src/abi_shim.rs`**; all twenty now cite the reference line the quoted text actually
+  lives on, and the tool's own reading is `17 drift, 1 range, 344 external, 33 allowed, 0 stale`
+  with **no `abi_shim` finding left** (the remaining drift is `femacs/platform/macos/*.swift`,
+  another lane's).  Three of the twenty were genuinely stale *numbers* - `FRAME_MENU_BAR_LINES`
+  1113 -> frame.h 1086, `FRAME_TAB_BAR_LINES` 1126 -> 1090, `FRAME_TAB_BAR_HEIGHT` 1127 -> 1091 -
+  and the other seventeen were a *pairing* problem the tool's rule makes visible: it pairs the
+  first `path line` on a citation line with the first code-looking backticked snippet after it and
+  asks whether that snippet occurs within that line's window, so a citation whose number names one
+  construct while the first snippet names another reports drift even though both halves are
+  individually right (e.g. `frame.h 635` followed by `FRAME_MENU_BAR_LINES`, or `dispextern.h 969`
+  followed by `struct glyph_row`).  Those had the snippet moved to the half that owns the number
+  (`(frame.h 635, `menu_bar_lines`)`, `(dispextern.h 969, `visible_height`; inside
+  `struct glyph_row` 918)`), and every number written is the one measured in the reference header.
+  Comments only: the object is unchanged (`nm -g`: 150 `T` plus batch 12's one `D`; `nm -u`: the
+  same 18).
+
 ## Evidence`).
 
 ## Exports - 206 (all `#[unsafe(no_mangle)] pub unsafe extern "C" fn` but one `pub static mut` - batch 12's `max_used_fringe_bitmap` storage -, `frame` received as `*mut c_void` by the lanes' habit; the ABI is the Swift declaration's)

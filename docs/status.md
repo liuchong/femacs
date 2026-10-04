@@ -5374,3 +5374,19 @@
      `docs/acceptance.md` 逐字记录参照的输出，故仍含产品名——两者是**测量/日志**；六棵逐字节树按用户指令原样
      （`check-verbatim` 钉着）；裸 `Emacs` 在注释散文里的 ~54 行"标题式"用词按 3.269③ 不动（那是 C 的解释性
      散文、不主张身份）；本轮改的都是本仓库自己的句子，未触碰任何在飞 lane 的文件。
+
+- **3.341 abi_shim 的二十条引文漂移入库：代码半边逐行相同，"只动注释"是本轮验出来的而不是声称的（2026-10-05）**：
+  ① **入的两件**：`femacs/src/abi_shim.rs`（-49/+49 行，二十条引文改准）与它的台账 `docs/ports/abi_shim.md`
+     （+18 行，记这二十条的三类成因：三条是**真过期的数字**——`FRAME_MENU_BAR_LINES` 1113→frame.h 1086、
+     `FRAME_TAB_BAR_LINES` 1126→1090、`FRAME_TAB_BAR_HEIGHT` 1127→1091；十七条是**配对问题**——引文的编号
+     与编号后第一个代码样子的小片段各说一个构造，修法是把片段挪到拥有那个编号的一半）。
+  ② **"comments only" 的判据不是类型而是实测**：用门自己的扫描器（`tools/check-declarations.py` 的 `scan`）
+     把 HEAD 版与工作树版各切成"代码半边"，取非空行逐行比较——**1215 行 == 1215 行，逐行相同** ⇒ 对象不变，
+     因此这一件**不需要重新编译**（台账里 `nm -g` 150 `T` + 1 `D`、`nm -u` 18 条的读数与这条互相印证）。
+  ③ **引文门读数**：工作树 `check-citations` → `670 file(s) scanned, 0 drift, 0 range, 349 external,
+     33 allowed, 0 stale`（3.339 时的 28 drift 里，二十条属于本件、八条属于 `platform/macos/nsterm.swift`
+     那件仍在飞的文件）。HEAD 口径本轮**未复跑**（`emacs/` 参照树不在新 worktree 里，HEAD 读数要在集成者的
+     工作树上按 3.339 的方法量），按对账推导入库后 HEAD 应读 **8 drift / 0 stale**，下轮复跑确认。
+  ④ **未声称**：`include/dispextern.rs` 的 `Emacs_Rectangle` 两臂、`src/xterm.rs` 的新片、`src/xrdb.rs`
+     的整文件（工作树 +540 行）与 `include/window.rs` 的 29 条原型**都还在飞**，本轮**没有**入库——代码片
+     要先过 `build-tu` + `extract-abi --check` 才进 HEAD，这是 3.338④ 的口径，本轮不改。
