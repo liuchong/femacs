@@ -26,17 +26,17 @@ order	target	references	ported
 22	femacs/platform/android/kotlin/EmacsLauncherPreferencesActivity.kt	EmacsPreferencesActivity	yes
 23	femacs/platform/android/kotlin/EmacsMultitaskActivity.kt	EmacsActivity,EmacsWindowManager	yes
 24	femacs/platform/android/kotlin/EmacsNative.kt	EmacsService	
-25	femacs/platform/android/kotlin/EmacsNoninteractive.kt	EmacsApplication,EmacsNative,EmacsService	
+25	femacs/platform/android/kotlin/EmacsNoninteractive.kt	EmacsApplication,EmacsNative,EmacsService	yes
 26	femacs/platform/android/kotlin/EmacsOpenActivity.kt	EmacsActivity,EmacsNative,EmacsService	
 27	femacs/platform/android/kotlin/EmacsPixmap.kt	EmacsDrawable,EmacsGC,EmacsHandleObject	yes
-28	femacs/platform/android/kotlin/EmacsPreferencesActivity.kt	EmacsActivity,EmacsApplication,EmacsNative,EmacsThread	
+28	femacs/platform/android/kotlin/EmacsPreferencesActivity.kt	EmacsActivity,EmacsApplication,EmacsNative,EmacsThread	yes
 29	femacs/platform/android/kotlin/EmacsSafThread.kt	EmacsHolder,EmacsNative	
 30	femacs/platform/android/kotlin/EmacsSdk11Clipboard.kt	EmacsClipboard,EmacsService	yes
 31	femacs/platform/android/kotlin/EmacsSdk23FontDriver.kt	EmacsSdk7FontDriver	yes
 32	femacs/platform/android/kotlin/EmacsSdk7FontDriver.kt	EmacsDrawable,EmacsFontDriver,EmacsGC,EmacsService	yes
 33	femacs/platform/android/kotlin/EmacsSdk8Clipboard.kt	EmacsClipboard,EmacsService	yes
 34	femacs/platform/android/kotlin/EmacsService.kt	EmacsActivity,EmacsApplication,EmacsDirectoryEntry,EmacsDrawLine,EmacsDrawPoint,EmacsDrawRectangle,EmacsDrawable,EmacsFillPolygon,EmacsFillRectangle,EmacsGC,EmacsNative,EmacsNoninteractive,EmacsSafThread,EmacsThread,EmacsView,EmacsWindow,EmacsWindowManager	
-35	femacs/platform/android/kotlin/EmacsSurfaceView.kt	EmacsNative,EmacsService,EmacsView	
+35	femacs/platform/android/kotlin/EmacsSurfaceView.kt	EmacsNative,EmacsService,EmacsView	yes
 36	femacs/platform/android/kotlin/EmacsThread.kt	EmacsApplication,EmacsNative,EmacsService	yes
 37	femacs/platform/android/kotlin/EmacsTileObject.kt	EmacsGC	yes
 38	femacs/platform/android/kotlin/EmacsView.kt	EmacsActivity,EmacsContextMenu,EmacsGC,EmacsInputConnection,EmacsNative,EmacsService,EmacsSurfaceView,EmacsWindow,EmacsWindowManager	

@@ -5151,3 +5151,11 @@
   ④ **由此命名一条新任务（给 X11/xterm lane，与 3.270 ④ 的 `None`/`Success` 同一份 Xlib 镜像）**：`Emacs_Rectangle` 的臂分裂（`have_x_windows` → `XRectangle` = 4 shorts），受影响的不止这条记录（`androidgui.rs` 的 `NativeRectangle = Emacs_Rectangle`、以及任何 X11 侧记录）。
   ⑤ **入库前我自己复检**：`extract-abi --check emacs/src/frame.h femacs/src/include/frame.rs` → **OK**；`build-tu src/frame.c` → **built**（冻结臂不含这条记录，读数不变）；
   带门臂用剪段探针编过：记录原文 + 六个 `assert!`（sizeof 48、align 8、偏移 0/16/32/36/40；对应**非 X** 的 `Emacs_Rectangle`），`rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib -C panic=abort --cfg 'feature="have_window_system"'` → **exit 0（0 error）**。
+- **3.313 Kotlin 又三件（`EmacsSurfaceView`/`EmacsPreferencesActivity`/`EmacsNoninteractive`）→ 28/40；P-83 按实测补三条（Mill 交付，2026-10-05）**：
+  ① **入的四件**：三个 `.kt`（参照 Java 223/182/227 行 → 端口 **192/151/202**）+ 重生成的 `docs/baseline/kotlin-order.tsv`（**40 target(s), 28 ported, 12 to go**）。
+  ② **入库前我自己复检**（不引用 lane 读数）：`spikes/kotlin-compile-probe.sh femacs/platform/android/kotlin/*.kt`（**全目录 28 个一起**）→ **exit 0、0 error、13 warning**（13 条全是既有文件的，本批三件 0 条）；
+  **按名字找的消费者我自己逐条查过**：`emacs/java/AndroidManifest.xml.in:294` 的 `android:name=".EmacsPreferencesActivity"`（按名字启动的入口）⇒ 端口类名与 `open class` 都对（`EmacsLauncherPreferencesActivity : EmacsPreferencesActivity()` 要能继承）；
+  `emacs/src/android-emacs.c:28/82` 的 `org.gnu.emacs.EmacsNoninteractive`（`app_process` 命令行）⇒ 类名对；参照自己在 `EmacsNoninteractive.java:215` **反射查 `"main1"`** ⇒ 端口把 `main1` 保成 companion 上的 `@JvmStatic @Throws(Exception::class) fun main1 (args: Array<String>, context: Context)`（外层类上是真 static，P-83 ④+⑪）；
+  `EmacsSurfaceView` 在 `emacs/src/*.c` 与 manifest 里 **0 命中** ⇒ 它**没有 JNI 名字义务**（只在 Java/Kotlin 层被 `EmacsView` 用）。
+  ③ **P-83 按实测补三条**（PORTING.md 已改）：④ 增 `@Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")`（两个诊断名，只写前者仍报 4 条 warning）、Java 的续行 `=` 不是 Kotlin 语法（7 处）、局部变量重赋 ⇒ `var`；⑥ 增 **每批收口必须跑全目录探针**（per-file 探针拿参照 **Java** 当替身，看不到"端口自己的子类被 `final` 挡住"——实测 `EmacsLauncherPreferencesActivity` 那条 `this type is final`，只有全 `.kt` 一起编才暴露）。
+  ④ **顺带的下一件预量（`EmacsNative`）**：`grep` 对过参照 `EmacsNative.java` 的 **69 个 `public static native`** 与 `emacs/src/` 的 **69 条 `NATIVE_NAME (...)`**，**集合完全相同**；`javap -p -s` 实测 companion 成员在外层类上生成**真 static native**（`()Ljava/lang/String;` 等）⇒ 那 69 个都能按 `@JvmStatic external fun` 落，一次编译探针即可验。
