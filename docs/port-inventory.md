@@ -23,22 +23,22 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 560 |
-| 其中 done / wip | 540 / 20 |
-| 待开工 | 30 |
+| 已有目标文件 | 562 |
+| 其中 done / wip | 541 / 21 |
+| 待开工 | 28 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 19 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 18 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 11 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 10 |
 
 ## 3 按批次
 
@@ -48,9 +48,9 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 3 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 7 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 6 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 0 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 19 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 18 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -291,7 +291,7 @@
 | `lib/stat-time.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stat-time.rs` | done |
 | `lib/stat-time.h` | 266 | 10 | 0 | 6 | 1 | 0 | 0 | L | `femacs/lib/include/stat-time.rs` | done |
 | `lib/stdbit.c` | 23 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdbit.rs` | done |
-| `lib/stdbit.in.h` | 2,229 | 173 | 0 | 90 | 33 | 0 | 0 | L | `femacs/lib/include/stdbit.in.rs` | todo |
+| `lib/stdbit.in.h` | 2,229 | 173 | 0 | 90 | 33 | 0 | 0 | L | `femacs/lib/include/stdbit.in.rs` | wip |
 | `lib/stdc_bit_width.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_bit_width.rs` | done |
 | `lib/stdc_count_ones.c` | 23 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_count_ones.rs` | done |
 | `lib/stdc_leading_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_leading_zeros.rs` | done |
@@ -635,7 +635,7 @@
 | `src/w32dwrite.c` | 1,399 | 23 | 2 | 7 | 30 | 4 | 10 | F | `femacs/src/w32dwrite.rs` | done |
 | `src/w32fns.c` | 12,488 | 90 | 60 | 69 | 45 | 25 | 55 | F | `femacs/src/w32fns.rs` | done |
 | `src/w32font.c` | 3,079 | 47 | 1 | 18 | 7 | 6 | 4 | F | `femacs/src/w32font.rs` | done |
-| `src/w32font.h` | 120 | 0 | 0 | 11 | 7 | 18 | 0 | F | `femacs/src/include/w32font.rs` | todo |
+| `src/w32font.h` | 120 | 0 | 0 | 11 | 7 | 18 | 0 | F | `femacs/src/include/w32font.rs` | done |
 | `src/w32gdiplus.h` | 145 | 0 | 0 | 27 | 0 | 0 | 28 | F | `femacs/src/include/w32gdiplus.rs` | todo |
 | `src/w32gui.h` | 115 | 0 | 0 | 39 | 19 | 0 | 1 | F | `femacs/src/include/w32gui.rs` | wip |
 | `src/w32heap.c` | 554 | 17 | 0 | 2 | 1 | 0 | 4 | F | `femacs/src/w32heap.rs` | done |
