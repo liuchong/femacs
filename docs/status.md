@@ -4339,3 +4339,33 @@
   ⑤ 读数（本轮末）：`check-declarations` 13/0、`check-undef` 108 pending/0 new、`check-citations` 9 drift/1 range/38 allowed/0 stale、
   `check-swift-units` 0 new/0 stale/7 units、`check-mirror-dupes` 1/1/0、`layout-check passed`、
   `extract-abi --all` 589 done / 1 in progress（`src/xdisp.c`）/ 0 failing。
+
+- **3.237 "还剩多少"的口径更正：台账框数才是真实进度（13519 勾 / 604 未勾），`comp.c` 这类"C 行数大"的单元是按设计收口的空形状（2026-10-04）**：
+  ① **上一轮那张"C 行数欠账表"是上界，不是欠账**（我在 3.236 ③ 里写了这个保留，这一轮把它量实）。font lane 把 `src/comp.c`
+  量穿：`python3 tools/check-cond-eval.py src/comp.c` → **60 conditions / 0 unknown / 0 disagreements [VERIFIED]**；
+  `HAVE_NATIVE_COMP` 在冻结配置里是 **undef**（`docs/baseline/config/darwin-arm64.macros.tsv` 1473）⇒ C 25-5578 的整段
+  （`comp` 记录与访问器、Limple 操作码/枚举、GIMPLE→Limple 遍、编译器接口）与 `syms_of_comp` 内的同宏区段全是**死文本**，
+  按 P-08 / 3.31（空形状）/ 3.12（暂缓）记录不转写；活的只有 C 21-23 的两个 include、`Fnative_comp_available_p`
+  与一个 `defsubr`，`comp.rs` 的 38 行已覆盖。**判据**：`--check emacs/src/comp.c femacs/src/comp.rs` = **OK**、
+  `build-tu src/comp.c` = built、`docs/ports/comp.md` 的框已勾。**裁决（写在这里免得再摇摆）**：维持现状，
+  **不把整片死区当文本承载**（那是政策变更，会与 P-08/3.31 冲突）。
+  ② **同一类事实在冻结配置里是普遍现象**（我逐条量了宏表）：`HAVE_GNUTLS`/`HAVE_SOUND`/`HAVE_SQLITE3`/`HAVE_LCMS2`/
+  `HAVE_LIBXML2`/`HAVE_ZLIB`/`HAVE_TREE_SITTER`/`HAVE_MODULES`/`HAVE_RSVG`/`HAVE_IMAGEMAGICK`/`HAVE_PNG`/`HAVE_JPEG`/`HAVE_GIF`/
+  `HAVE_TIFF`/`HAVE_WEBP`/`HAVE_NATIVE_COMP`/`HAVE_X11`/`HAVE_X_WINDOWS` **全是 undef**，而 `HAVE_PDUMPER` = 1。
+  ⇒ `treesit.c`/`gnutls.c`/`sound.c`/`sqlite.c`/`lcms.c`/`xml.c`/`decompress.c`/`comp.c` 这些"行数很大"的文件在本 target 上
+  的活文本都极少；上一条状态里把它们按 C 行数排进欠账表是**误读**，本条目更正。
+  ③ **真实进度口径：全树台账的框数**（每个单元的 `docs/ports/*.md` 逐条列 C 的 subr/函数/宏/类型/对象）。
+  本轮实测：**已勾 13519 / 未勾 604**；未勾的分布（前 13 条，占 604 的 99%）：`nsterm` **345**、`xdisp` **143**、`nsfns` **80**、
+  `include-c-ctype` **19**、`include-frame` 3、`include-widgetprv` 3、`macfont` 3、`include-emacsgtkfixed` 2、`nsfont` 2、
+  `include-dispextern` 1、`include-stdlib.in` 1、`include-w32` 1、`include-w32gui` 1。
+  对照：`extract-abi --all` → **589 done / 1 in progress（`src/xdisp.c`，157 differences）/ 0 failing**；全树
+  **没有任何 stub 标记**（`rg -c 'todo!\(\)|unimplemented!\(\)|unreachable!\(\)' femacs/{src,lib,platform}` **零命中**）。
+  ⇒ 声明/文本层面的复刻已经到"只剩 xdisp 一个文件有条目"，剩下的是**逐条转写的尾巴**（604 项）与**运行期的两件大事**。
+  ④ **到"能跑起来"为止还差什么（写清路线，供后续排期）**：**(a)** 604 条台账项（nsterm/xdisp/nsfns 占 94%），
+  **(b)** **链接期的 C-ABI shim**：`tools/check-swift-imports.py` 量出 Swift 的 539 条导入里 **427 条核心还没有导出**
+  （其中一条 lane 已逐条裁定：70 条待分类里 **65 条属"核心必须以该名字导出"**），
+  **(c)** 加载阶梯（`docs/port-plan.md` §7.1 的 L0–L5）与最终 Lisp 测试套件 —— 这三件做完才算终局。
+  ⑤ **lane 分派（按③的框数）**：`nsterm` 第 4 轮（C 641+）→ 原 lane；`xdisp` 第 18 轮（C 15586+）→ 原 lane；
+  `lib/include/c-ctype`(19) + `stdlib.in`(1) + 五条小镜像尾巴（frame 3 / widgetprv 3 / emacsgtkfixed 2 / w32 1 / w32gui 1）
+  → font lane（它刚把 `comp.c` 量穿）；`include-dispextern` 最后 1 条 → 原 lane；**`nsfns` 的 80 条暂时无人**
+  ——它原 lane 已被关闭，而 agent 线程上限（6）挡住了 resume/spawn，等有槽我再把它接上（或由我本人在集成间隙推）。
