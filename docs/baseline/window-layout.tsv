@@ -1,338 +1,452 @@
 # struct window from window.h (c), read by
 # `spikes/gated-layout-probe.py struct window window.h c`:
-# the frozen build's generated config.h, plus the gated macros configure would
-# emit, on the command line.  Columns: arm\tmember\tbyte-offset-or-byte:bits.
-# `parse=no` marks an arm this machine cannot read, with the reason in the run.
-arm	member	offset-or-bits
-frozen	sizeof struct window	520
-frozen	align struct window	8
-frozen	union vectorlike_header header	0
-frozen	ptrdiff_t size	0
-frozen	Lisp_Object frame	8
-frozen	Lisp_Object next	16
-frozen	Lisp_Object prev	24
-frozen	Lisp_Object parent	32
-frozen	Lisp_Object normal_lines	40
-frozen	Lisp_Object normal_cols	48
-frozen	Lisp_Object new_total	56
-frozen	Lisp_Object new_normal	64
-frozen	Lisp_Object new_pixel	72
-frozen	Lisp_Object contents	80
-frozen	Lisp_Object prev_buffers	88
-frozen	Lisp_Object next_buffers	96
-frozen	Lisp_Object old_buffer	104
-frozen	Lisp_Object start	112
-frozen	Lisp_Object pointm	120
-frozen	Lisp_Object old_pointm	128
-frozen	Lisp_Object temslot	136
-frozen	Lisp_Object vertical_scroll_bar	144
-frozen	Lisp_Object vertical_scroll_bar_type	152
-frozen	Lisp_Object horizontal_scroll_bar	160
-frozen	Lisp_Object horizontal_scroll_bar_type	168
-frozen	Lisp_Object display_table	176
-frozen	Lisp_Object dedicated	184
-frozen	Lisp_Object combination_limit	192
-frozen	Lisp_Object window_parameters	200
-frozen	Lisp_Object cursor_type	208
-frozen	Lisp_Object mode_line_help_echo	216
-frozen	struct glyph_matrix * current_matrix	224
-frozen	struct glyph_matrix * desired_matrix	232
-frozen	EMACS_INT use_time	240
-frozen	EMACS_INT sequence_number	248
-frozen	int change_stamp	256
-frozen	int pixel_left	260
-frozen	int pixel_top	264
-frozen	int left_col	268
-frozen	int top_line	272
-frozen	int pixel_width	276
-frozen	int pixel_height	280
-frozen	int old_pixel_width	284
-frozen	int old_pixel_height	288
-frozen	int old_body_pixel_width	292
-frozen	int old_body_pixel_height	296
-frozen	int total_cols	300
-frozen	int total_lines	304
-frozen	ptrdiff_t hscroll	312
-frozen	ptrdiff_t min_hscroll	320
-frozen	ptrdiff_t hscroll_whole	328
-frozen	modiff_count last_modified	336
-frozen	modiff_count last_overlay_modified	344
-frozen	ptrdiff_t last_point	352
-frozen	ptrdiff_t last_mark	360
-frozen	ptrdiff_t base_line_number	368
-frozen	ptrdiff_t base_line_pos	376
-frozen	ptrdiff_t column_number_displayed	384
-frozen	int nrows_scale_factor	392
-frozen	int ncols_scale_factor	396
-frozen	struct cursor_pos cursor	400
-frozen	int x	400
-frozen	int y	404
-frozen	int hpos	408
-frozen	int vpos	412
-frozen	struct cursor_pos phys_cursor	416
-frozen	int x	416
-frozen	int y	420
-frozen	int hpos	424
-frozen	int vpos	428
-frozen	struct cursor_pos output_cursor	432
-frozen	int x	432
-frozen	int y	436
-frozen	int hpos	440
-frozen	int vpos	444
-frozen	int last_cursor_vpos	448
-frozen	int left_fringe_width	452
-frozen	int right_fringe_width	456
-frozen	int left_margin_cols	460
-frozen	int right_margin_cols	464
-frozen	int scroll_bar_width	468
-frozen	int scroll_bar_height	472
-frozen	int mode_line_height	476
-frozen	int header_line_height	480
-frozen	int tab_line_height	484
-frozen	ptrdiff_t window_end_pos	488
-frozen	int window_end_vpos	496
-frozen	bool_bf mini	500:0-0
-frozen	bool_bf horizontal	500:1-1
-frozen	bool_bf update_mode_line	500:2-2
-frozen	bool_bf last_had_star	500:3-3
-frozen	bool_bf start_at_line_beg	500:4-4
-frozen	bool_bf force_start	500:5-5
-frozen	bool_bf optional_new_start	500:6-6
-frozen	bool_bf phys_cursor_on_p	500:7-7
-frozen	bool_bf cursor_off_p	501:0-0
-frozen	bool_bf last_cursor_off_p	501:1-1
-frozen	bool_bf must_be_updated_p	501:2-2
-frozen	bool_bf pseudo_window_p	501:3-3
-frozen	bool_bf fringes_outside_margins	501:4-4
-frozen	bool_bf fringes_persistent	501:5-5
-frozen	bool_bf scroll_bars_persistent	501:6-6
-frozen	bool_bf window_end_valid	501:7-7
-frozen	bool_bf redisplay	502:0-0
-frozen	bool_bf suspend_auto_hscroll	502:1-1
-frozen	bool_bf preserve_vscroll_p	502:2-2
-frozen	int vscroll	504
-frozen	ptrdiff_t window_end_bytepos	512
-x11	sizeof struct window	536
-x11	align struct window	8
-x11	union vectorlike_header header	0
-x11	ptrdiff_t size	0
-x11	Lisp_Object frame	8
-x11	Lisp_Object next	16
-x11	Lisp_Object prev	24
-x11	Lisp_Object parent	32
-x11	Lisp_Object normal_lines	40
-x11	Lisp_Object normal_cols	48
-x11	Lisp_Object new_total	56
-x11	Lisp_Object new_normal	64
-x11	Lisp_Object new_pixel	72
-x11	Lisp_Object contents	80
-x11	Lisp_Object prev_buffers	88
-x11	Lisp_Object next_buffers	96
-x11	Lisp_Object old_buffer	104
-x11	Lisp_Object start	112
-x11	Lisp_Object pointm	120
-x11	Lisp_Object old_pointm	128
-x11	Lisp_Object temslot	136
-x11	Lisp_Object vertical_scroll_bar	144
-x11	Lisp_Object vertical_scroll_bar_type	152
-x11	Lisp_Object horizontal_scroll_bar	160
-x11	Lisp_Object horizontal_scroll_bar_type	168
-x11	Lisp_Object display_table	176
-x11	Lisp_Object dedicated	184
-x11	Lisp_Object combination_limit	192
-x11	Lisp_Object window_parameters	200
-x11	Lisp_Object cursor_type	208
-x11	Lisp_Object mode_line_help_echo	216
-x11	struct glyph_matrix * current_matrix	224
-x11	struct glyph_matrix * desired_matrix	232
-x11	EMACS_INT use_time	240
-x11	EMACS_INT sequence_number	248
-x11	int change_stamp	256
-x11	int pixel_left	260
-x11	int pixel_top	264
-x11	int left_col	268
-x11	int top_line	272
-x11	int pixel_width	276
-x11	int pixel_height	280
-x11	int old_pixel_width	284
-x11	int old_pixel_height	288
-x11	int old_body_pixel_width	292
-x11	int old_body_pixel_height	296
-x11	int total_cols	300
-x11	int total_lines	304
-x11	ptrdiff_t hscroll	312
-x11	ptrdiff_t min_hscroll	320
-x11	ptrdiff_t hscroll_whole	328
-x11	modiff_count last_modified	336
-x11	modiff_count last_overlay_modified	344
-x11	ptrdiff_t last_point	352
-x11	ptrdiff_t last_mark	360
-x11	ptrdiff_t base_line_number	368
-x11	ptrdiff_t base_line_pos	376
-x11	ptrdiff_t column_number_displayed	384
-x11	int nrows_scale_factor	392
-x11	int ncols_scale_factor	396
-x11	struct cursor_pos cursor	400
-x11	int x	400
-x11	int y	404
-x11	int hpos	408
-x11	int vpos	412
-x11	struct cursor_pos phys_cursor	416
-x11	int x	416
-x11	int y	420
-x11	int hpos	424
-x11	int vpos	428
-x11	struct cursor_pos output_cursor	432
-x11	int x	432
-x11	int y	436
-x11	int hpos	440
-x11	int vpos	444
-x11	int last_cursor_vpos	448
-x11	enum text_cursor_kinds phys_cursor_type	452
-x11	int phys_cursor_width	456
-x11	int phys_cursor_ascent	460
-x11	int phys_cursor_height	464
-x11	int left_fringe_width	468
-x11	int right_fringe_width	472
-x11	int left_margin_cols	476
-x11	int right_margin_cols	480
-x11	int scroll_bar_width	484
-x11	int scroll_bar_height	488
-x11	int mode_line_height	492
-x11	int header_line_height	496
-x11	int tab_line_height	500
-x11	ptrdiff_t window_end_pos	504
-x11	int window_end_vpos	512
-x11	bool_bf mini	516:0-0
-x11	bool_bf horizontal	516:1-1
-x11	bool_bf update_mode_line	516:2-2
-x11	bool_bf last_had_star	516:3-3
-x11	bool_bf start_at_line_beg	516:4-4
-x11	bool_bf force_start	516:5-5
-x11	bool_bf optional_new_start	516:6-6
-x11	bool_bf phys_cursor_on_p	516:7-7
-x11	bool_bf cursor_off_p	517:0-0
-x11	bool_bf last_cursor_off_p	517:1-1
-x11	bool_bf must_be_updated_p	517:2-2
-x11	bool_bf pseudo_window_p	517:3-3
-x11	bool_bf fringes_outside_margins	517:4-4
-x11	bool_bf fringes_persistent	517:5-5
-x11	bool_bf scroll_bars_persistent	517:6-6
-x11	bool_bf window_end_valid	517:7-7
-x11	bool_bf redisplay	518:0-0
-x11	bool_bf suspend_auto_hscroll	518:1-1
-x11	bool_bf preserve_vscroll_p	518:2-2
-x11	int vscroll	520
-x11	ptrdiff_t window_end_bytepos	528
-ns_cocoa	sizeof struct window	536
-ns_cocoa	align struct window	8
-ns_cocoa	union vectorlike_header header	0
-ns_cocoa	ptrdiff_t size	0
-ns_cocoa	Lisp_Object frame	8
-ns_cocoa	Lisp_Object next	16
-ns_cocoa	Lisp_Object prev	24
-ns_cocoa	Lisp_Object parent	32
-ns_cocoa	Lisp_Object normal_lines	40
-ns_cocoa	Lisp_Object normal_cols	48
-ns_cocoa	Lisp_Object new_total	56
-ns_cocoa	Lisp_Object new_normal	64
-ns_cocoa	Lisp_Object new_pixel	72
-ns_cocoa	Lisp_Object contents	80
-ns_cocoa	Lisp_Object prev_buffers	88
-ns_cocoa	Lisp_Object next_buffers	96
-ns_cocoa	Lisp_Object old_buffer	104
-ns_cocoa	Lisp_Object start	112
-ns_cocoa	Lisp_Object pointm	120
-ns_cocoa	Lisp_Object old_pointm	128
-ns_cocoa	Lisp_Object temslot	136
-ns_cocoa	Lisp_Object vertical_scroll_bar	144
-ns_cocoa	Lisp_Object vertical_scroll_bar_type	152
-ns_cocoa	Lisp_Object horizontal_scroll_bar	160
-ns_cocoa	Lisp_Object horizontal_scroll_bar_type	168
-ns_cocoa	Lisp_Object display_table	176
-ns_cocoa	Lisp_Object dedicated	184
-ns_cocoa	Lisp_Object combination_limit	192
-ns_cocoa	Lisp_Object window_parameters	200
-ns_cocoa	Lisp_Object cursor_type	208
-ns_cocoa	Lisp_Object mode_line_help_echo	216
-ns_cocoa	struct glyph_matrix * current_matrix	224
-ns_cocoa	struct glyph_matrix * desired_matrix	232
-ns_cocoa	EMACS_INT use_time	240
-ns_cocoa	EMACS_INT sequence_number	248
-ns_cocoa	int change_stamp	256
-ns_cocoa	int pixel_left	260
-ns_cocoa	int pixel_top	264
-ns_cocoa	int left_col	268
-ns_cocoa	int top_line	272
-ns_cocoa	int pixel_width	276
-ns_cocoa	int pixel_height	280
-ns_cocoa	int old_pixel_width	284
-ns_cocoa	int old_pixel_height	288
-ns_cocoa	int old_body_pixel_width	292
-ns_cocoa	int old_body_pixel_height	296
-ns_cocoa	int total_cols	300
-ns_cocoa	int total_lines	304
-ns_cocoa	ptrdiff_t hscroll	312
-ns_cocoa	ptrdiff_t min_hscroll	320
-ns_cocoa	ptrdiff_t hscroll_whole	328
-ns_cocoa	modiff_count last_modified	336
-ns_cocoa	modiff_count last_overlay_modified	344
-ns_cocoa	ptrdiff_t last_point	352
-ns_cocoa	ptrdiff_t last_mark	360
-ns_cocoa	ptrdiff_t base_line_number	368
-ns_cocoa	ptrdiff_t base_line_pos	376
-ns_cocoa	ptrdiff_t column_number_displayed	384
-ns_cocoa	int nrows_scale_factor	392
-ns_cocoa	int ncols_scale_factor	396
-ns_cocoa	struct cursor_pos cursor	400
-ns_cocoa	int x	400
-ns_cocoa	int y	404
-ns_cocoa	int hpos	408
-ns_cocoa	int vpos	412
-ns_cocoa	struct cursor_pos phys_cursor	416
-ns_cocoa	int x	416
-ns_cocoa	int y	420
-ns_cocoa	int hpos	424
-ns_cocoa	int vpos	428
-ns_cocoa	struct cursor_pos output_cursor	432
-ns_cocoa	int x	432
-ns_cocoa	int y	436
-ns_cocoa	int hpos	440
-ns_cocoa	int vpos	444
-ns_cocoa	int last_cursor_vpos	448
-ns_cocoa	enum text_cursor_kinds phys_cursor_type	452
-ns_cocoa	int phys_cursor_width	456
-ns_cocoa	int phys_cursor_ascent	460
-ns_cocoa	int phys_cursor_height	464
-ns_cocoa	int left_fringe_width	468
-ns_cocoa	int right_fringe_width	472
-ns_cocoa	int left_margin_cols	476
-ns_cocoa	int right_margin_cols	480
-ns_cocoa	int scroll_bar_width	484
-ns_cocoa	int scroll_bar_height	488
-ns_cocoa	int mode_line_height	492
-ns_cocoa	int header_line_height	496
-ns_cocoa	int tab_line_height	500
-ns_cocoa	ptrdiff_t window_end_pos	504
-ns_cocoa	int window_end_vpos	512
-ns_cocoa	bool_bf mini	516:0-0
-ns_cocoa	bool_bf horizontal	516:1-1
-ns_cocoa	bool_bf update_mode_line	516:2-2
-ns_cocoa	bool_bf last_had_star	516:3-3
-ns_cocoa	bool_bf start_at_line_beg	516:4-4
-ns_cocoa	bool_bf force_start	516:5-5
-ns_cocoa	bool_bf optional_new_start	516:6-6
-ns_cocoa	bool_bf phys_cursor_on_p	516:7-7
-ns_cocoa	bool_bf cursor_off_p	517:0-0
-ns_cocoa	bool_bf last_cursor_off_p	517:1-1
-ns_cocoa	bool_bf must_be_updated_p	517:2-2
-ns_cocoa	bool_bf pseudo_window_p	517:3-3
-ns_cocoa	bool_bf fringes_outside_margins	517:4-4
-ns_cocoa	bool_bf fringes_persistent	517:5-5
-ns_cocoa	bool_bf scroll_bars_persistent	517:6-6
-ns_cocoa	bool_bf window_end_valid	517:7-7
-ns_cocoa	bool_bf redisplay	518:0-0
-ns_cocoa	bool_bf suspend_auto_hscroll	518:1-1
-ns_cocoa	bool_bf preserve_vscroll_p	518:2-2
-ns_cocoa	int vscroll	520
-ns_cocoa	ptrdiff_t window_end_bytepos	528
+# the frozen build's generated config.h plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tdepth\toffset-or-bits.
+# DEPTH is the member's nesting depth: 0 = this record's own member, >0 = a
+# record nested inside it (the row is that record's, not this one's); `-` = not a
+# member.  `parse=no` = an arm this machine cannot read, with the reason in the run.
+arm	member	depth	offset-or-bits
+frozen	sizeof struct window	-	520
+frozen	align struct window	-	8
+frozen	union vectorlike_header header	0	0
+frozen	ptrdiff_t size	1	0
+frozen	Lisp_Object frame	0	8
+frozen	Lisp_Object next	0	16
+frozen	Lisp_Object prev	0	24
+frozen	Lisp_Object parent	0	32
+frozen	Lisp_Object normal_lines	0	40
+frozen	Lisp_Object normal_cols	0	48
+frozen	Lisp_Object new_total	0	56
+frozen	Lisp_Object new_normal	0	64
+frozen	Lisp_Object new_pixel	0	72
+frozen	Lisp_Object contents	0	80
+frozen	Lisp_Object prev_buffers	0	88
+frozen	Lisp_Object next_buffers	0	96
+frozen	Lisp_Object old_buffer	0	104
+frozen	Lisp_Object start	0	112
+frozen	Lisp_Object pointm	0	120
+frozen	Lisp_Object old_pointm	0	128
+frozen	Lisp_Object temslot	0	136
+frozen	Lisp_Object vertical_scroll_bar	0	144
+frozen	Lisp_Object vertical_scroll_bar_type	0	152
+frozen	Lisp_Object horizontal_scroll_bar	0	160
+frozen	Lisp_Object horizontal_scroll_bar_type	0	168
+frozen	Lisp_Object display_table	0	176
+frozen	Lisp_Object dedicated	0	184
+frozen	Lisp_Object combination_limit	0	192
+frozen	Lisp_Object window_parameters	0	200
+frozen	Lisp_Object cursor_type	0	208
+frozen	Lisp_Object mode_line_help_echo	0	216
+frozen	struct glyph_matrix * current_matrix	0	224
+frozen	struct glyph_matrix * desired_matrix	0	232
+frozen	EMACS_INT use_time	0	240
+frozen	EMACS_INT sequence_number	0	248
+frozen	int change_stamp	0	256
+frozen	int pixel_left	0	260
+frozen	int pixel_top	0	264
+frozen	int left_col	0	268
+frozen	int top_line	0	272
+frozen	int pixel_width	0	276
+frozen	int pixel_height	0	280
+frozen	int old_pixel_width	0	284
+frozen	int old_pixel_height	0	288
+frozen	int old_body_pixel_width	0	292
+frozen	int old_body_pixel_height	0	296
+frozen	int total_cols	0	300
+frozen	int total_lines	0	304
+frozen	ptrdiff_t hscroll	0	312
+frozen	ptrdiff_t min_hscroll	0	320
+frozen	ptrdiff_t hscroll_whole	0	328
+frozen	modiff_count last_modified	0	336
+frozen	modiff_count last_overlay_modified	0	344
+frozen	ptrdiff_t last_point	0	352
+frozen	ptrdiff_t last_mark	0	360
+frozen	ptrdiff_t base_line_number	0	368
+frozen	ptrdiff_t base_line_pos	0	376
+frozen	ptrdiff_t column_number_displayed	0	384
+frozen	int nrows_scale_factor	0	392
+frozen	int ncols_scale_factor	0	396
+frozen	struct cursor_pos cursor	0	400
+frozen	int x	1	400
+frozen	int y	1	404
+frozen	int hpos	1	408
+frozen	int vpos	1	412
+frozen	struct cursor_pos phys_cursor	0	416
+frozen	int x	1	416
+frozen	int y	1	420
+frozen	int hpos	1	424
+frozen	int vpos	1	428
+frozen	struct cursor_pos output_cursor	0	432
+frozen	int x	1	432
+frozen	int y	1	436
+frozen	int hpos	1	440
+frozen	int vpos	1	444
+frozen	int last_cursor_vpos	0	448
+frozen	int left_fringe_width	0	452
+frozen	int right_fringe_width	0	456
+frozen	int left_margin_cols	0	460
+frozen	int right_margin_cols	0	464
+frozen	int scroll_bar_width	0	468
+frozen	int scroll_bar_height	0	472
+frozen	int mode_line_height	0	476
+frozen	int header_line_height	0	480
+frozen	int tab_line_height	0	484
+frozen	ptrdiff_t window_end_pos	0	488
+frozen	int window_end_vpos	0	496
+frozen	bool_bf mini	0	500:0-0
+frozen	bool_bf horizontal	0	500:1-1
+frozen	bool_bf update_mode_line	0	500:2-2
+frozen	bool_bf last_had_star	0	500:3-3
+frozen	bool_bf start_at_line_beg	0	500:4-4
+frozen	bool_bf force_start	0	500:5-5
+frozen	bool_bf optional_new_start	0	500:6-6
+frozen	bool_bf phys_cursor_on_p	0	500:7-7
+frozen	bool_bf cursor_off_p	0	501:0-0
+frozen	bool_bf last_cursor_off_p	0	501:1-1
+frozen	bool_bf must_be_updated_p	0	501:2-2
+frozen	bool_bf pseudo_window_p	0	501:3-3
+frozen	bool_bf fringes_outside_margins	0	501:4-4
+frozen	bool_bf fringes_persistent	0	501:5-5
+frozen	bool_bf scroll_bars_persistent	0	501:6-6
+frozen	bool_bf window_end_valid	0	501:7-7
+frozen	bool_bf redisplay	0	502:0-0
+frozen	bool_bf suspend_auto_hscroll	0	502:1-1
+frozen	bool_bf preserve_vscroll_p	0	502:2-2
+frozen	int vscroll	0	504
+frozen	ptrdiff_t window_end_bytepos	0	512
+x11	sizeof struct window	-	536
+x11	align struct window	-	8
+x11	union vectorlike_header header	0	0
+x11	ptrdiff_t size	1	0
+x11	Lisp_Object frame	0	8
+x11	Lisp_Object next	0	16
+x11	Lisp_Object prev	0	24
+x11	Lisp_Object parent	0	32
+x11	Lisp_Object normal_lines	0	40
+x11	Lisp_Object normal_cols	0	48
+x11	Lisp_Object new_total	0	56
+x11	Lisp_Object new_normal	0	64
+x11	Lisp_Object new_pixel	0	72
+x11	Lisp_Object contents	0	80
+x11	Lisp_Object prev_buffers	0	88
+x11	Lisp_Object next_buffers	0	96
+x11	Lisp_Object old_buffer	0	104
+x11	Lisp_Object start	0	112
+x11	Lisp_Object pointm	0	120
+x11	Lisp_Object old_pointm	0	128
+x11	Lisp_Object temslot	0	136
+x11	Lisp_Object vertical_scroll_bar	0	144
+x11	Lisp_Object vertical_scroll_bar_type	0	152
+x11	Lisp_Object horizontal_scroll_bar	0	160
+x11	Lisp_Object horizontal_scroll_bar_type	0	168
+x11	Lisp_Object display_table	0	176
+x11	Lisp_Object dedicated	0	184
+x11	Lisp_Object combination_limit	0	192
+x11	Lisp_Object window_parameters	0	200
+x11	Lisp_Object cursor_type	0	208
+x11	Lisp_Object mode_line_help_echo	0	216
+x11	struct glyph_matrix * current_matrix	0	224
+x11	struct glyph_matrix * desired_matrix	0	232
+x11	EMACS_INT use_time	0	240
+x11	EMACS_INT sequence_number	0	248
+x11	int change_stamp	0	256
+x11	int pixel_left	0	260
+x11	int pixel_top	0	264
+x11	int left_col	0	268
+x11	int top_line	0	272
+x11	int pixel_width	0	276
+x11	int pixel_height	0	280
+x11	int old_pixel_width	0	284
+x11	int old_pixel_height	0	288
+x11	int old_body_pixel_width	0	292
+x11	int old_body_pixel_height	0	296
+x11	int total_cols	0	300
+x11	int total_lines	0	304
+x11	ptrdiff_t hscroll	0	312
+x11	ptrdiff_t min_hscroll	0	320
+x11	ptrdiff_t hscroll_whole	0	328
+x11	modiff_count last_modified	0	336
+x11	modiff_count last_overlay_modified	0	344
+x11	ptrdiff_t last_point	0	352
+x11	ptrdiff_t last_mark	0	360
+x11	ptrdiff_t base_line_number	0	368
+x11	ptrdiff_t base_line_pos	0	376
+x11	ptrdiff_t column_number_displayed	0	384
+x11	int nrows_scale_factor	0	392
+x11	int ncols_scale_factor	0	396
+x11	struct cursor_pos cursor	0	400
+x11	int x	1	400
+x11	int y	1	404
+x11	int hpos	1	408
+x11	int vpos	1	412
+x11	struct cursor_pos phys_cursor	0	416
+x11	int x	1	416
+x11	int y	1	420
+x11	int hpos	1	424
+x11	int vpos	1	428
+x11	struct cursor_pos output_cursor	0	432
+x11	int x	1	432
+x11	int y	1	436
+x11	int hpos	1	440
+x11	int vpos	1	444
+x11	int last_cursor_vpos	0	448
+x11	enum text_cursor_kinds phys_cursor_type	0	452
+x11	int phys_cursor_width	0	456
+x11	int phys_cursor_ascent	0	460
+x11	int phys_cursor_height	0	464
+x11	int left_fringe_width	0	468
+x11	int right_fringe_width	0	472
+x11	int left_margin_cols	0	476
+x11	int right_margin_cols	0	480
+x11	int scroll_bar_width	0	484
+x11	int scroll_bar_height	0	488
+x11	int mode_line_height	0	492
+x11	int header_line_height	0	496
+x11	int tab_line_height	0	500
+x11	ptrdiff_t window_end_pos	0	504
+x11	int window_end_vpos	0	512
+x11	bool_bf mini	0	516:0-0
+x11	bool_bf horizontal	0	516:1-1
+x11	bool_bf update_mode_line	0	516:2-2
+x11	bool_bf last_had_star	0	516:3-3
+x11	bool_bf start_at_line_beg	0	516:4-4
+x11	bool_bf force_start	0	516:5-5
+x11	bool_bf optional_new_start	0	516:6-6
+x11	bool_bf phys_cursor_on_p	0	516:7-7
+x11	bool_bf cursor_off_p	0	517:0-0
+x11	bool_bf last_cursor_off_p	0	517:1-1
+x11	bool_bf must_be_updated_p	0	517:2-2
+x11	bool_bf pseudo_window_p	0	517:3-3
+x11	bool_bf fringes_outside_margins	0	517:4-4
+x11	bool_bf fringes_persistent	0	517:5-5
+x11	bool_bf scroll_bars_persistent	0	517:6-6
+x11	bool_bf window_end_valid	0	517:7-7
+x11	bool_bf redisplay	0	518:0-0
+x11	bool_bf suspend_auto_hscroll	0	518:1-1
+x11	bool_bf preserve_vscroll_p	0	518:2-2
+x11	int vscroll	0	520
+x11	ptrdiff_t window_end_bytepos	0	528
+ns_cocoa	sizeof struct window	-	536
+ns_cocoa	align struct window	-	8
+ns_cocoa	union vectorlike_header header	0	0
+ns_cocoa	ptrdiff_t size	1	0
+ns_cocoa	Lisp_Object frame	0	8
+ns_cocoa	Lisp_Object next	0	16
+ns_cocoa	Lisp_Object prev	0	24
+ns_cocoa	Lisp_Object parent	0	32
+ns_cocoa	Lisp_Object normal_lines	0	40
+ns_cocoa	Lisp_Object normal_cols	0	48
+ns_cocoa	Lisp_Object new_total	0	56
+ns_cocoa	Lisp_Object new_normal	0	64
+ns_cocoa	Lisp_Object new_pixel	0	72
+ns_cocoa	Lisp_Object contents	0	80
+ns_cocoa	Lisp_Object prev_buffers	0	88
+ns_cocoa	Lisp_Object next_buffers	0	96
+ns_cocoa	Lisp_Object old_buffer	0	104
+ns_cocoa	Lisp_Object start	0	112
+ns_cocoa	Lisp_Object pointm	0	120
+ns_cocoa	Lisp_Object old_pointm	0	128
+ns_cocoa	Lisp_Object temslot	0	136
+ns_cocoa	Lisp_Object vertical_scroll_bar	0	144
+ns_cocoa	Lisp_Object vertical_scroll_bar_type	0	152
+ns_cocoa	Lisp_Object horizontal_scroll_bar	0	160
+ns_cocoa	Lisp_Object horizontal_scroll_bar_type	0	168
+ns_cocoa	Lisp_Object display_table	0	176
+ns_cocoa	Lisp_Object dedicated	0	184
+ns_cocoa	Lisp_Object combination_limit	0	192
+ns_cocoa	Lisp_Object window_parameters	0	200
+ns_cocoa	Lisp_Object cursor_type	0	208
+ns_cocoa	Lisp_Object mode_line_help_echo	0	216
+ns_cocoa	struct glyph_matrix * current_matrix	0	224
+ns_cocoa	struct glyph_matrix * desired_matrix	0	232
+ns_cocoa	EMACS_INT use_time	0	240
+ns_cocoa	EMACS_INT sequence_number	0	248
+ns_cocoa	int change_stamp	0	256
+ns_cocoa	int pixel_left	0	260
+ns_cocoa	int pixel_top	0	264
+ns_cocoa	int left_col	0	268
+ns_cocoa	int top_line	0	272
+ns_cocoa	int pixel_width	0	276
+ns_cocoa	int pixel_height	0	280
+ns_cocoa	int old_pixel_width	0	284
+ns_cocoa	int old_pixel_height	0	288
+ns_cocoa	int old_body_pixel_width	0	292
+ns_cocoa	int old_body_pixel_height	0	296
+ns_cocoa	int total_cols	0	300
+ns_cocoa	int total_lines	0	304
+ns_cocoa	ptrdiff_t hscroll	0	312
+ns_cocoa	ptrdiff_t min_hscroll	0	320
+ns_cocoa	ptrdiff_t hscroll_whole	0	328
+ns_cocoa	modiff_count last_modified	0	336
+ns_cocoa	modiff_count last_overlay_modified	0	344
+ns_cocoa	ptrdiff_t last_point	0	352
+ns_cocoa	ptrdiff_t last_mark	0	360
+ns_cocoa	ptrdiff_t base_line_number	0	368
+ns_cocoa	ptrdiff_t base_line_pos	0	376
+ns_cocoa	ptrdiff_t column_number_displayed	0	384
+ns_cocoa	int nrows_scale_factor	0	392
+ns_cocoa	int ncols_scale_factor	0	396
+ns_cocoa	struct cursor_pos cursor	0	400
+ns_cocoa	int x	1	400
+ns_cocoa	int y	1	404
+ns_cocoa	int hpos	1	408
+ns_cocoa	int vpos	1	412
+ns_cocoa	struct cursor_pos phys_cursor	0	416
+ns_cocoa	int x	1	416
+ns_cocoa	int y	1	420
+ns_cocoa	int hpos	1	424
+ns_cocoa	int vpos	1	428
+ns_cocoa	struct cursor_pos output_cursor	0	432
+ns_cocoa	int x	1	432
+ns_cocoa	int y	1	436
+ns_cocoa	int hpos	1	440
+ns_cocoa	int vpos	1	444
+ns_cocoa	int last_cursor_vpos	0	448
+ns_cocoa	enum text_cursor_kinds phys_cursor_type	0	452
+ns_cocoa	int phys_cursor_width	0	456
+ns_cocoa	int phys_cursor_ascent	0	460
+ns_cocoa	int phys_cursor_height	0	464
+ns_cocoa	int left_fringe_width	0	468
+ns_cocoa	int right_fringe_width	0	472
+ns_cocoa	int left_margin_cols	0	476
+ns_cocoa	int right_margin_cols	0	480
+ns_cocoa	int scroll_bar_width	0	484
+ns_cocoa	int scroll_bar_height	0	488
+ns_cocoa	int mode_line_height	0	492
+ns_cocoa	int header_line_height	0	496
+ns_cocoa	int tab_line_height	0	500
+ns_cocoa	ptrdiff_t window_end_pos	0	504
+ns_cocoa	int window_end_vpos	0	512
+ns_cocoa	bool_bf mini	0	516:0-0
+ns_cocoa	bool_bf horizontal	0	516:1-1
+ns_cocoa	bool_bf update_mode_line	0	516:2-2
+ns_cocoa	bool_bf last_had_star	0	516:3-3
+ns_cocoa	bool_bf start_at_line_beg	0	516:4-4
+ns_cocoa	bool_bf force_start	0	516:5-5
+ns_cocoa	bool_bf optional_new_start	0	516:6-6
+ns_cocoa	bool_bf phys_cursor_on_p	0	516:7-7
+ns_cocoa	bool_bf cursor_off_p	0	517:0-0
+ns_cocoa	bool_bf last_cursor_off_p	0	517:1-1
+ns_cocoa	bool_bf must_be_updated_p	0	517:2-2
+ns_cocoa	bool_bf pseudo_window_p	0	517:3-3
+ns_cocoa	bool_bf fringes_outside_margins	0	517:4-4
+ns_cocoa	bool_bf fringes_persistent	0	517:5-5
+ns_cocoa	bool_bf scroll_bars_persistent	0	517:6-6
+ns_cocoa	bool_bf window_end_valid	0	517:7-7
+ns_cocoa	bool_bf redisplay	0	518:0-0
+ns_cocoa	bool_bf suspend_auto_hscroll	0	518:1-1
+ns_cocoa	bool_bf preserve_vscroll_p	0	518:2-2
+ns_cocoa	int vscroll	0	520
+ns_cocoa	ptrdiff_t window_end_bytepos	0	528
+x11_ext	sizeof struct window	-	536
+x11_ext	align struct window	-	8
+x11_ext	union vectorlike_header header	0	0
+x11_ext	ptrdiff_t size	1	0
+x11_ext	Lisp_Object frame	0	8
+x11_ext	Lisp_Object next	0	16
+x11_ext	Lisp_Object prev	0	24
+x11_ext	Lisp_Object parent	0	32
+x11_ext	Lisp_Object normal_lines	0	40
+x11_ext	Lisp_Object normal_cols	0	48
+x11_ext	Lisp_Object new_total	0	56
+x11_ext	Lisp_Object new_normal	0	64
+x11_ext	Lisp_Object new_pixel	0	72
+x11_ext	Lisp_Object contents	0	80
+x11_ext	Lisp_Object prev_buffers	0	88
+x11_ext	Lisp_Object next_buffers	0	96
+x11_ext	Lisp_Object old_buffer	0	104
+x11_ext	Lisp_Object start	0	112
+x11_ext	Lisp_Object pointm	0	120
+x11_ext	Lisp_Object old_pointm	0	128
+x11_ext	Lisp_Object temslot	0	136
+x11_ext	Lisp_Object vertical_scroll_bar	0	144
+x11_ext	Lisp_Object vertical_scroll_bar_type	0	152
+x11_ext	Lisp_Object horizontal_scroll_bar	0	160
+x11_ext	Lisp_Object horizontal_scroll_bar_type	0	168
+x11_ext	Lisp_Object display_table	0	176
+x11_ext	Lisp_Object dedicated	0	184
+x11_ext	Lisp_Object combination_limit	0	192
+x11_ext	Lisp_Object window_parameters	0	200
+x11_ext	Lisp_Object cursor_type	0	208
+x11_ext	Lisp_Object mode_line_help_echo	0	216
+x11_ext	struct glyph_matrix * current_matrix	0	224
+x11_ext	struct glyph_matrix * desired_matrix	0	232
+x11_ext	EMACS_INT use_time	0	240
+x11_ext	EMACS_INT sequence_number	0	248
+x11_ext	int change_stamp	0	256
+x11_ext	int pixel_left	0	260
+x11_ext	int pixel_top	0	264
+x11_ext	int left_col	0	268
+x11_ext	int top_line	0	272
+x11_ext	int pixel_width	0	276
+x11_ext	int pixel_height	0	280
+x11_ext	int old_pixel_width	0	284
+x11_ext	int old_pixel_height	0	288
+x11_ext	int old_body_pixel_width	0	292
+x11_ext	int old_body_pixel_height	0	296
+x11_ext	int total_cols	0	300
+x11_ext	int total_lines	0	304
+x11_ext	ptrdiff_t hscroll	0	312
+x11_ext	ptrdiff_t min_hscroll	0	320
+x11_ext	ptrdiff_t hscroll_whole	0	328
+x11_ext	modiff_count last_modified	0	336
+x11_ext	modiff_count last_overlay_modified	0	344
+x11_ext	ptrdiff_t last_point	0	352
+x11_ext	ptrdiff_t last_mark	0	360
+x11_ext	ptrdiff_t base_line_number	0	368
+x11_ext	ptrdiff_t base_line_pos	0	376
+x11_ext	ptrdiff_t column_number_displayed	0	384
+x11_ext	int nrows_scale_factor	0	392
+x11_ext	int ncols_scale_factor	0	396
+x11_ext	struct cursor_pos cursor	0	400
+x11_ext	int x	1	400
+x11_ext	int y	1	404
+x11_ext	int hpos	1	408
+x11_ext	int vpos	1	412
+x11_ext	struct cursor_pos phys_cursor	0	416
+x11_ext	int x	1	416
+x11_ext	int y	1	420
+x11_ext	int hpos	1	424
+x11_ext	int vpos	1	428
+x11_ext	struct cursor_pos output_cursor	0	432
+x11_ext	int x	1	432
+x11_ext	int y	1	436
+x11_ext	int hpos	1	440
+x11_ext	int vpos	1	444
+x11_ext	int last_cursor_vpos	0	448
+x11_ext	enum text_cursor_kinds phys_cursor_type	0	452
+x11_ext	int phys_cursor_width	0	456
+x11_ext	int phys_cursor_ascent	0	460
+x11_ext	int phys_cursor_height	0	464
+x11_ext	int left_fringe_width	0	468
+x11_ext	int right_fringe_width	0	472
+x11_ext	int left_margin_cols	0	476
+x11_ext	int right_margin_cols	0	480
+x11_ext	int scroll_bar_width	0	484
+x11_ext	int scroll_bar_height	0	488
+x11_ext	int mode_line_height	0	492
+x11_ext	int header_line_height	0	496
+x11_ext	int tab_line_height	0	500
+x11_ext	ptrdiff_t window_end_pos	0	504
+x11_ext	int window_end_vpos	0	512
+x11_ext	bool_bf mini	0	516:0-0
+x11_ext	bool_bf horizontal	0	516:1-1
+x11_ext	bool_bf update_mode_line	0	516:2-2
+x11_ext	bool_bf last_had_star	0	516:3-3
+x11_ext	bool_bf start_at_line_beg	0	516:4-4
+x11_ext	bool_bf force_start	0	516:5-5
+x11_ext	bool_bf optional_new_start	0	516:6-6
+x11_ext	bool_bf phys_cursor_on_p	0	516:7-7
+x11_ext	bool_bf cursor_off_p	0	517:0-0
+x11_ext	bool_bf last_cursor_off_p	0	517:1-1
+x11_ext	bool_bf must_be_updated_p	0	517:2-2
+x11_ext	bool_bf pseudo_window_p	0	517:3-3
+x11_ext	bool_bf fringes_outside_margins	0	517:4-4
+x11_ext	bool_bf fringes_persistent	0	517:5-5
+x11_ext	bool_bf scroll_bars_persistent	0	517:6-6
+x11_ext	bool_bf window_end_valid	0	517:7-7
+x11_ext	bool_bf redisplay	0	518:0-0
+x11_ext	bool_bf suspend_auto_hscroll	0	518:1-1
+x11_ext	bool_bf preserve_vscroll_p	0	518:2-2
+x11_ext	int vscroll	0	520
+x11_ext	ptrdiff_t window_end_bytepos	0	528

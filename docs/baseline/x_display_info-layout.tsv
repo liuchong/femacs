@@ -1,495 +1,497 @@
 # struct x_display_info from xterm.h (c), read by
 # `spikes/gated-layout-probe.py struct x_display_info xterm.h c`:
-# the frozen build's generated config.h, plus the gated macros configure would
-# emit, on the command line.  Columns: arm\tmember\tbyte-offset-or-byte:bits.
-# `parse=no` marks an arm this machine cannot read, with the reason in the run.
-arm	member	offset-or-bits
-frozen	parse	no
-x11	sizeof struct x_display_info	4776
-x11	align struct x_display_info	8
-x11	struct x_display_info * next	0
-x11	struct terminal * terminal	8
-x11	Display * display	16
-x11	int connection	24
-x11	Lisp_Object name_list_element	32
-x11	int reference_count	40
-x11	_Bool untrusted	44
-x11	Screen * screen	48
-x11	double resx	56
-x11	double resy	64
-x11	Visual * visual	72
-x11	XVisualInfo visual_info	80
-x11	Visual * visual	80
-x11	VisualID visualid	88
-x11	int screen	96
-x11	int depth	100
-x11	int class	104
-x11	unsigned long red_mask	112
-x11	unsigned long green_mask	120
-x11	unsigned long blue_mask	128
-x11	int colormap_size	136
-x11	int bits_per_rgb	140
-x11	Colormap cmap	144
-x11	int n_planes	152
-x11	int grabbed	156
-x11	ptrdiff_t icon_bitmap_id	160
-x11	Window root_window	168
-x11	Window client_leader_window	176
-x11	Cursor vertical_scroll_bar_cursor	184
-x11	Cursor horizontal_scroll_bar_cursor	192
-x11	Cursor invisible_cursor	200
-x11	XrmDatabase rdb	208
-x11	int smallest_char_width	216
-x11	int smallest_font_height	220
-x11	GC scratch_cursor_gc	224
-x11	Mouse_HLInfo mouse_highlight	232
-x11	int mouse_face_beg_row	232
-x11	int mouse_face_beg_col	236
-x11	int mouse_face_beg_x	240
-x11	int mouse_face_end_row	244
-x11	int mouse_face_end_col	248
-x11	int mouse_face_end_x	252
-x11	Lisp_Object mouse_face_window	256
-x11	int mouse_face_face_id	264
-x11	Lisp_Object mouse_face_overlay	272
-x11	struct frame * mouse_face_mouse_frame	280
-x11	int mouse_face_mouse_x	288
-x11	int mouse_face_mouse_y	292
-x11	bool_bf mouse_face_past_end	296:0-0
-x11	bool_bf mouse_face_defer	296:1-1
-x11	bool_bf mouse_face_hidden	296:2-2
-x11	unsigned int x_id	304
-x11	char * x_id_name	312
-x11	int n_fonts	320
-x11	struct x_bitmap_record * bitmaps	328
-x11	ptrdiff_t bitmaps_size	336
-x11	ptrdiff_t bitmaps_last	344
-x11	unsigned int meta_mod_mask	352
-x11	unsigned int shift_lock_mask	356
-x11	unsigned int alt_mod_mask	360
-x11	unsigned int super_mod_mask	364
-x11	unsigned int hyper_mod_mask	368
-x11	Atom Xatom_wm_protocols	376
-x11	Atom Xatom_wm_take_focus	384
-x11	Atom Xatom_wm_save_yourself	392
-x11	Atom Xatom_wm_delete_window	400
-x11	Atom Xatom_wm_change_state	408
-x11	Atom Xatom_wm_state	416
-x11	Atom Xatom_wm_configure_denied	424
-x11	Atom Xatom_wm_window_moved	432
-x11	Atom Xatom_wm_client_leader	440
-x11	Atom Xatom_wm_transient_for	448
-x11	Atom Xatom_editres	456
-x11	Atom Xatom_CLIPBOARD	464
-x11	Atom Xatom_TIMESTAMP	472
-x11	Atom Xatom_TEXT	480
-x11	Atom Xatom_DELETE	488
-x11	Atom Xatom_COMPOUND_TEXT	496
-x11	Atom Xatom_UTF8_STRING	504
-x11	Atom Xatom_MULTIPLE	512
-x11	Atom Xatom_INCR	520
-x11	Atom Xatom_EMACS_TMP	528
-x11	Atom Xatom_TARGETS	536
-x11	Atom Xatom_NULL	544
-x11	Atom Xatom_ATOM	552
-x11	Atom Xatom_ATOM_PAIR	560
-x11	Atom Xatom_CLIPBOARD_MANAGER	568
-x11	Atom Xatom_EMACS_SERVER_TIME_PROP	576
-x11	Atom Xatom_PIXEL_SIZE	584
-x11	Atom Xatom_AVERAGE_WIDTH	592
-x11	Atom Xatom_MULE_BASELINE_OFFSET	600
-x11	Atom Xatom_MULE_RELATIVE_COMPOSE	608
-x11	Atom Xatom_MULE_DEFAULT_ASCENT	616
-x11	Atom Xatom_DONE	624
-x11	Atom Xatom_PAGE	632
-x11	Atom Xatom_Scrollbar	640
-x11	Atom Xatom_Horizontal_Scrollbar	648
-x11	Atom Xatom_XEMBED	656
-x11	Atom Xatom_XEMBED_INFO	664
-x11	Atom Xatom_NET_WM_CM_Sn	672
-x11	Atom Xatom_MOTIF_WM_HINTS	680
-x11	Atom Xatom_MOTIF_DRAG_WINDOW	688
-x11	Atom Xatom_MOTIF_DRAG_TARGETS	696
-x11	Atom Xatom_MOTIF_DRAG_AND_DROP_MESSAGE	704
-x11	Atom Xatom_MOTIF_DRAG_INITIATOR_INFO	712
-x11	Atom Xatom_MOTIF_DRAG_RECEIVER_INFO	720
-x11	Atom Xatom_EMACS_DRAG_ATOM	728
-x11	Atom Xatom_XmTRANSFER_SUCCESS	736
-x11	Atom Xatom_XmTRANSFER_FAILURE	744
-x11	Atom Xatom_DndProtocol	752
-x11	Atom Xatom_DND_PROTOCOL	760
-x11	Atom Xatom_text_plain_charset_utf_8	768
-x11	Atom Xatom_LENGTH	776
-x11	Atom Xatom_FILE_NAME	784
-x11	Atom Xatom_CHARACTER_POSITION	792
-x11	Atom Xatom_LINE_NUMBER	800
-x11	Atom Xatom_COLUMN_NUMBER	808
-x11	Atom Xatom_OWNER_OS	816
-x11	Atom Xatom_HOST_NAME	824
-x11	Atom Xatom_USER	832
-x11	Atom Xatom_CLASS	840
-x11	Atom Xatom_NAME	848
-x11	Atom Xatom_SAVE_TARGETS	856
-x11	struct frame * x_focus_frame	864
-x11	struct frame * x_focus_event_frame	872
-x11	struct frame * highlight_frame	880
-x11	struct frame * x_pending_autoraise_frame	888
-x11	struct frame * last_mouse_frame	896
-x11	struct frame * last_mouse_glyph_frame	904
-x11	struct frame * last_mouse_motion_frame	912
-x11	struct scroll_bar * last_mouse_scroll_bar	920
-x11	Time last_user_time	928
-x11	int last_mouse_motion_x	936
-x11	int last_mouse_motion_y	940
-x11	XRectangle last_mouse_glyph	944
-x11	short x	944
-x11	short y	946
-x11	unsigned short width	948
-x11	unsigned short height	950
-x11	Time last_mouse_movement_time	952
-x11	_Bool last_mouse_movement_time_send_event	960
-x11	Pixmap gray	968
-x11	struct color_name_cache_entry ** color_names	976
-x11	ptrdiff_t * color_names_length	984
-x11	int color_names_size	992
-x11	XColor * color_cells	1000
-x11	int ncolor_cells	1008
-x11	int red_bits	1012
-x11	int blue_bits	1016
-x11	int green_bits	1020
-x11	int alpha_bits	1024
-x11	int red_offset	1028
-x11	int blue_offset	1032
-x11	int green_offset	1036
-x11	int alpha_offset	1040
-x11	unsigned long alpha_mask	1048
-x11	enum (unnamed enum at /Users/liu/projects/src/github.com/liuchong/femacs/emacs/src/xterm.h:740:3) wm_type	1056
-x11	Atom * x_dnd_atoms	1064
-x11	ptrdiff_t x_dnd_atoms_size	1072
-x11	ptrdiff_t x_dnd_atoms_length	1080
-x11	Atom motif_drag_atom	1088
-x11	char[33] motif_drag_atom_name	1096
-x11	Time motif_drag_atom_time	1136
-x11	struct frame * motif_drag_atom_owner	1144
-x11	Window motif_drag_window	1152
-x11	Atom Xatom_net_supported	1160
-x11	Atom Xatom_net_supporting_wm_check	1168
-x11	Atom * net_supported_atoms	1176
-x11	int nr_net_supported_atoms	1184
-x11	Window net_supported_window	1192
-x11	Atom Xatom_net_window_type	1200
-x11	Atom Xatom_net_window_type_tooltip	1208
-x11	Atom Xatom_net_active_window	1216
-x11	Atom Xatom_net_wm_state	1224
-x11	Atom Xatom_net_wm_state_fullscreen	1232
-x11	Atom Xatom_net_wm_state_maximized_horz	1240
-x11	Atom Xatom_net_wm_state_maximized_vert	1248
-x11	Atom Xatom_net_wm_state_sticky	1256
-x11	Atom Xatom_net_wm_state_above	1264
-x11	Atom Xatom_net_wm_state_below	1272
-x11	Atom Xatom_net_wm_state_hidden	1280
-x11	Atom Xatom_net_wm_state_skip_taskbar	1288
-x11	Atom Xatom_net_wm_state_shaded	1296
-x11	Atom Xatom_net_frame_extents	1304
-x11	Atom Xatom_net_current_desktop	1312
-x11	Atom Xatom_net_workarea	1320
-x11	Atom Xatom_net_wm_opaque_region	1328
-x11	Atom Xatom_net_wm_ping	1336
-x11	Atom Xatom_net_wm_sync_request	1344
-x11	Atom Xatom_net_wm_sync_request_counter	1352
-x11	Atom Xatom_net_wm_sync_fences	1360
-x11	Atom Xatom_net_wm_frame_drawn	1368
-x11	Atom Xatom_net_wm_frame_timings	1376
-x11	Atom Xatom_net_wm_user_time	1384
-x11	Atom Xatom_net_wm_user_time_window	1392
-x11	Atom Xatom_net_client_list_stacking	1400
-x11	Atom Xatom_net_wm_pid	1408
-x11	Atom Xatom_net_wm_bypass_compositor	1416
-x11	Atom Xatom_xsettings_sel	1424
-x11	Atom Xatom_xsettings_prop	1432
-x11	Atom Xatom_xsettings_mgr	1440
-x11	Window xsettings_window	1448
-x11	Atom Xatom_net_wm_name	1456
-x11	Atom Xatom_net_wm_icon_name	1464
-x11	Atom Xatom_net_wm_window_opacity	1472
-x11	Atom Xatom_SM_CLIENT_ID	1480
-x11	Atom Xatom_XdndAware	1488
-x11	Atom Xatom_XdndSelection	1496
-x11	Atom Xatom_XdndTypeList	1504
-x11	Atom Xatom_XdndActionCopy	1512
-x11	Atom Xatom_XdndActionMove	1520
-x11	Atom Xatom_XdndActionLink	1528
-x11	Atom Xatom_XdndActionAsk	1536
-x11	Atom Xatom_XdndActionPrivate	1544
-x11	Atom Xatom_XdndActionList	1552
-x11	Atom Xatom_XdndActionDescription	1560
-x11	Atom Xatom_XdndProxy	1568
-x11	Atom Xatom_XdndEnter	1576
-x11	Atom Xatom_XdndPosition	1584
-x11	Atom Xatom_XdndStatus	1592
-x11	Atom Xatom_XdndLeave	1600
-x11	Atom Xatom_XdndDrop	1608
-x11	Atom Xatom_XdndFinished	1616
-x11	Atom Xatom_XdndDirectSave0	1624
-x11	Atom Xatom_XdndActionDirectSave	1632
-x11	Atom Xatom_text_plain	1640
-x11	XModifierKeymap * modmap	1648
-x11	int screen_width	1656
-x11	int screen_height	1660
-x11	int screen_mm_width	1664
-x11	int screen_mm_height	1668
-x11	struct x_failable_request[128] failable_requests	1672
-x11	struct x_failable_request * next_failable_request	4744
-x11	Time pending_dnd_time	4752
-x11	KeySym quit_keysym	4760
-x11	Time quit_keysym_time	4768
-ns_cocoa	parse	no
-x11_ext	sizeof struct x_display_info	4856
-x11_ext	align struct x_display_info	8
-x11_ext	struct x_display_info * next	0
-x11_ext	struct terminal * terminal	8
-x11_ext	Display * display	16
-x11_ext	int connection	24
-x11_ext	Lisp_Object name_list_element	32
-x11_ext	int reference_count	40
-x11_ext	_Bool untrusted	44
-x11_ext	Screen * screen	48
-x11_ext	double resx	56
-x11_ext	double resy	64
-x11_ext	Visual * visual	72
-x11_ext	XVisualInfo visual_info	80
-x11_ext	Visual * visual	80
-x11_ext	VisualID visualid	88
-x11_ext	int screen	96
-x11_ext	int depth	100
-x11_ext	int class	104
-x11_ext	unsigned long red_mask	112
-x11_ext	unsigned long green_mask	120
-x11_ext	unsigned long blue_mask	128
-x11_ext	int colormap_size	136
-x11_ext	int bits_per_rgb	140
-x11_ext	Colormap cmap	144
-x11_ext	int n_planes	152
-x11_ext	int grabbed	156
-x11_ext	ptrdiff_t icon_bitmap_id	160
-x11_ext	Window root_window	168
-x11_ext	Window client_leader_window	176
-x11_ext	Cursor vertical_scroll_bar_cursor	184
-x11_ext	Cursor horizontal_scroll_bar_cursor	192
-x11_ext	Cursor invisible_cursor	200
-x11_ext	XrmDatabase rdb	208
-x11_ext	int smallest_char_width	216
-x11_ext	int smallest_font_height	220
-x11_ext	GC scratch_cursor_gc	224
-x11_ext	Mouse_HLInfo mouse_highlight	232
-x11_ext	int mouse_face_beg_row	232
-x11_ext	int mouse_face_beg_col	236
-x11_ext	int mouse_face_beg_x	240
-x11_ext	int mouse_face_end_row	244
-x11_ext	int mouse_face_end_col	248
-x11_ext	int mouse_face_end_x	252
-x11_ext	Lisp_Object mouse_face_window	256
-x11_ext	int mouse_face_face_id	264
-x11_ext	Lisp_Object mouse_face_overlay	272
-x11_ext	struct frame * mouse_face_mouse_frame	280
-x11_ext	int mouse_face_mouse_x	288
-x11_ext	int mouse_face_mouse_y	292
-x11_ext	bool_bf mouse_face_past_end	296:0-0
-x11_ext	bool_bf mouse_face_defer	296:1-1
-x11_ext	bool_bf mouse_face_hidden	296:2-2
-x11_ext	unsigned int x_id	304
-x11_ext	char * x_id_name	312
-x11_ext	int n_fonts	320
-x11_ext	struct x_bitmap_record * bitmaps	328
-x11_ext	ptrdiff_t bitmaps_size	336
-x11_ext	ptrdiff_t bitmaps_last	344
-x11_ext	unsigned int meta_mod_mask	352
-x11_ext	unsigned int shift_lock_mask	356
-x11_ext	unsigned int alt_mod_mask	360
-x11_ext	unsigned int super_mod_mask	364
-x11_ext	unsigned int hyper_mod_mask	368
-x11_ext	Atom Xatom_wm_protocols	376
-x11_ext	Atom Xatom_wm_take_focus	384
-x11_ext	Atom Xatom_wm_save_yourself	392
-x11_ext	Atom Xatom_wm_delete_window	400
-x11_ext	Atom Xatom_wm_change_state	408
-x11_ext	Atom Xatom_wm_state	416
-x11_ext	Atom Xatom_wm_configure_denied	424
-x11_ext	Atom Xatom_wm_window_moved	432
-x11_ext	Atom Xatom_wm_client_leader	440
-x11_ext	Atom Xatom_wm_transient_for	448
-x11_ext	Atom Xatom_editres	456
-x11_ext	Atom Xatom_CLIPBOARD	464
-x11_ext	Atom Xatom_TIMESTAMP	472
-x11_ext	Atom Xatom_TEXT	480
-x11_ext	Atom Xatom_DELETE	488
-x11_ext	Atom Xatom_COMPOUND_TEXT	496
-x11_ext	Atom Xatom_UTF8_STRING	504
-x11_ext	Atom Xatom_MULTIPLE	512
-x11_ext	Atom Xatom_INCR	520
-x11_ext	Atom Xatom_EMACS_TMP	528
-x11_ext	Atom Xatom_TARGETS	536
-x11_ext	Atom Xatom_NULL	544
-x11_ext	Atom Xatom_ATOM	552
-x11_ext	Atom Xatom_ATOM_PAIR	560
-x11_ext	Atom Xatom_CLIPBOARD_MANAGER	568
-x11_ext	Atom Xatom_EMACS_SERVER_TIME_PROP	576
-x11_ext	Atom Xatom_PIXEL_SIZE	584
-x11_ext	Atom Xatom_AVERAGE_WIDTH	592
-x11_ext	Atom Xatom_MULE_BASELINE_OFFSET	600
-x11_ext	Atom Xatom_MULE_RELATIVE_COMPOSE	608
-x11_ext	Atom Xatom_MULE_DEFAULT_ASCENT	616
-x11_ext	Atom Xatom_DONE	624
-x11_ext	Atom Xatom_PAGE	632
-x11_ext	Atom Xatom_Scrollbar	640
-x11_ext	Atom Xatom_Horizontal_Scrollbar	648
-x11_ext	Atom Xatom_XEMBED	656
-x11_ext	Atom Xatom_XEMBED_INFO	664
-x11_ext	Atom Xatom_NET_WM_CM_Sn	672
-x11_ext	Atom Xatom_MOTIF_WM_HINTS	680
-x11_ext	Atom Xatom_MOTIF_DRAG_WINDOW	688
-x11_ext	Atom Xatom_MOTIF_DRAG_TARGETS	696
-x11_ext	Atom Xatom_MOTIF_DRAG_AND_DROP_MESSAGE	704
-x11_ext	Atom Xatom_MOTIF_DRAG_INITIATOR_INFO	712
-x11_ext	Atom Xatom_MOTIF_DRAG_RECEIVER_INFO	720
-x11_ext	Atom Xatom_EMACS_DRAG_ATOM	728
-x11_ext	Atom Xatom_XmTRANSFER_SUCCESS	736
-x11_ext	Atom Xatom_XmTRANSFER_FAILURE	744
-x11_ext	Atom Xatom_DndProtocol	752
-x11_ext	Atom Xatom_DND_PROTOCOL	760
-x11_ext	Atom Xatom_text_plain_charset_utf_8	768
-x11_ext	Atom Xatom_LENGTH	776
-x11_ext	Atom Xatom_FILE_NAME	784
-x11_ext	Atom Xatom_CHARACTER_POSITION	792
-x11_ext	Atom Xatom_LINE_NUMBER	800
-x11_ext	Atom Xatom_COLUMN_NUMBER	808
-x11_ext	Atom Xatom_OWNER_OS	816
-x11_ext	Atom Xatom_HOST_NAME	824
-x11_ext	Atom Xatom_USER	832
-x11_ext	Atom Xatom_CLASS	840
-x11_ext	Atom Xatom_NAME	848
-x11_ext	Atom Xatom_SAVE_TARGETS	856
-x11_ext	struct frame * x_focus_frame	864
-x11_ext	struct frame * x_focus_event_frame	872
-x11_ext	struct frame * highlight_frame	880
-x11_ext	struct frame * x_pending_autoraise_frame	888
-x11_ext	struct frame * last_mouse_frame	896
-x11_ext	struct frame * last_mouse_glyph_frame	904
-x11_ext	struct frame * last_mouse_motion_frame	912
-x11_ext	struct scroll_bar * last_mouse_scroll_bar	920
-x11_ext	Time last_user_time	928
-x11_ext	int last_mouse_motion_x	936
-x11_ext	int last_mouse_motion_y	940
-x11_ext	XRectangle last_mouse_glyph	944
-x11_ext	short x	944
-x11_ext	short y	946
-x11_ext	unsigned short width	948
-x11_ext	unsigned short height	950
-x11_ext	Time last_mouse_movement_time	952
-x11_ext	_Bool last_mouse_movement_time_send_event	960
-x11_ext	Pixmap gray	968
-x11_ext	XIM xim	976
-x11_ext	XIMStyles * xim_styles	984
-x11_ext	struct xim_inst_t * xim_callback_data	992
-x11_ext	XIMStyle preferred_xim_style	1000
-x11_ext	Lisp_Object xim_coding	1008
-x11_ext	_Bool use_xim	1016
-x11_ext	struct color_name_cache_entry ** color_names	1024
-x11_ext	ptrdiff_t * color_names_length	1032
-x11_ext	int color_names_size	1040
-x11_ext	XColor * color_cells	1048
-x11_ext	int ncolor_cells	1056
-x11_ext	int red_bits	1060
-x11_ext	int blue_bits	1064
-x11_ext	int green_bits	1068
-x11_ext	int alpha_bits	1072
-x11_ext	int red_offset	1076
-x11_ext	int blue_offset	1080
-x11_ext	int green_offset	1084
-x11_ext	int alpha_offset	1088
-x11_ext	unsigned long alpha_mask	1096
-x11_ext	enum (unnamed enum at /Users/liu/projects/src/github.com/liuchong/femacs/emacs/src/xterm.h:740:3) wm_type	1104
-x11_ext	Atom * x_dnd_atoms	1112
-x11_ext	ptrdiff_t x_dnd_atoms_size	1120
-x11_ext	ptrdiff_t x_dnd_atoms_length	1128
-x11_ext	Atom motif_drag_atom	1136
-x11_ext	char[33] motif_drag_atom_name	1144
-x11_ext	Time motif_drag_atom_time	1184
-x11_ext	struct frame * motif_drag_atom_owner	1192
-x11_ext	Window motif_drag_window	1200
-x11_ext	Atom Xatom_net_supported	1208
-x11_ext	Atom Xatom_net_supporting_wm_check	1216
-x11_ext	Atom * net_supported_atoms	1224
-x11_ext	int nr_net_supported_atoms	1232
-x11_ext	Window net_supported_window	1240
-x11_ext	Atom Xatom_net_window_type	1248
-x11_ext	Atom Xatom_net_window_type_tooltip	1256
-x11_ext	Atom Xatom_net_active_window	1264
-x11_ext	Atom Xatom_net_wm_state	1272
-x11_ext	Atom Xatom_net_wm_state_fullscreen	1280
-x11_ext	Atom Xatom_net_wm_state_maximized_horz	1288
-x11_ext	Atom Xatom_net_wm_state_maximized_vert	1296
-x11_ext	Atom Xatom_net_wm_state_sticky	1304
-x11_ext	Atom Xatom_net_wm_state_above	1312
-x11_ext	Atom Xatom_net_wm_state_below	1320
-x11_ext	Atom Xatom_net_wm_state_hidden	1328
-x11_ext	Atom Xatom_net_wm_state_skip_taskbar	1336
-x11_ext	Atom Xatom_net_wm_state_shaded	1344
-x11_ext	Atom Xatom_net_frame_extents	1352
-x11_ext	Atom Xatom_net_current_desktop	1360
-x11_ext	Atom Xatom_net_workarea	1368
-x11_ext	Atom Xatom_net_wm_opaque_region	1376
-x11_ext	Atom Xatom_net_wm_ping	1384
-x11_ext	Atom Xatom_net_wm_sync_request	1392
-x11_ext	Atom Xatom_net_wm_sync_request_counter	1400
-x11_ext	Atom Xatom_net_wm_sync_fences	1408
-x11_ext	Atom Xatom_net_wm_frame_drawn	1416
-x11_ext	Atom Xatom_net_wm_frame_timings	1424
-x11_ext	Atom Xatom_net_wm_user_time	1432
-x11_ext	Atom Xatom_net_wm_user_time_window	1440
-x11_ext	Atom Xatom_net_client_list_stacking	1448
-x11_ext	Atom Xatom_net_wm_pid	1456
-x11_ext	Atom Xatom_net_wm_bypass_compositor	1464
-x11_ext	Atom Xatom_xsettings_sel	1472
-x11_ext	Atom Xatom_xsettings_prop	1480
-x11_ext	Atom Xatom_xsettings_mgr	1488
-x11_ext	Window xsettings_window	1496
-x11_ext	Atom Xatom_net_wm_name	1504
-x11_ext	Atom Xatom_net_wm_icon_name	1512
-x11_ext	Atom Xatom_net_wm_window_opacity	1520
-x11_ext	Atom Xatom_SM_CLIENT_ID	1528
-x11_ext	Atom Xatom_XdndAware	1536
-x11_ext	Atom Xatom_XdndSelection	1544
-x11_ext	Atom Xatom_XdndTypeList	1552
-x11_ext	Atom Xatom_XdndActionCopy	1560
-x11_ext	Atom Xatom_XdndActionMove	1568
-x11_ext	Atom Xatom_XdndActionLink	1576
-x11_ext	Atom Xatom_XdndActionAsk	1584
-x11_ext	Atom Xatom_XdndActionPrivate	1592
-x11_ext	Atom Xatom_XdndActionList	1600
-x11_ext	Atom Xatom_XdndActionDescription	1608
-x11_ext	Atom Xatom_XdndProxy	1616
-x11_ext	Atom Xatom_XdndEnter	1624
-x11_ext	Atom Xatom_XdndPosition	1632
-x11_ext	Atom Xatom_XdndStatus	1640
-x11_ext	Atom Xatom_XdndLeave	1648
-x11_ext	Atom Xatom_XdndDrop	1656
-x11_ext	Atom Xatom_XdndFinished	1664
-x11_ext	Atom Xatom_XdndDirectSave0	1672
-x11_ext	Atom Xatom_XdndActionDirectSave	1680
-x11_ext	Atom Xatom_text_plain	1688
-x11_ext	XModifierKeymap * modmap	1696
-x11_ext	_Bool xsync_supported_p	1704
-x11_ext	int xsync_major	1708
-x11_ext	int xsync_minor	1712
-x11_ext	int screen_width	1716
-x11_ext	int screen_height	1720
-x11_ext	int screen_mm_width	1724
-x11_ext	int screen_mm_height	1728
-x11_ext	struct x_failable_request[128] failable_requests	1736
-x11_ext	struct x_failable_request * next_failable_request	4808
-x11_ext	Time pending_dnd_time	4816
-x11_ext	_Bool server_time_monotonic_p	4824
-x11_ext	int_fast64_t server_time_offset	4832
-x11_ext	KeySym quit_keysym	4840
-x11_ext	Time quit_keysym_time	4848
+# the frozen build's generated config.h plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tdepth\toffset-or-bits.
+# DEPTH is the member's nesting depth: 0 = this record's own member, >0 = a
+# record nested inside it (the row is that record's, not this one's); `-` = not a
+# member.  `parse=no` = an arm this machine cannot read, with the reason in the run.
+arm	member	depth	offset-or-bits
+frozen	parse	-	no
+x11	sizeof struct x_display_info	-	4776
+x11	align struct x_display_info	-	8
+x11	struct x_display_info * next	0	0
+x11	struct terminal * terminal	0	8
+x11	Display * display	0	16
+x11	int connection	0	24
+x11	Lisp_Object name_list_element	0	32
+x11	int reference_count	0	40
+x11	_Bool untrusted	0	44
+x11	Screen * screen	0	48
+x11	double resx	0	56
+x11	double resy	0	64
+x11	Visual * visual	0	72
+x11	XVisualInfo visual_info	0	80
+x11	Visual * visual	1	80
+x11	VisualID visualid	1	88
+x11	int screen	1	96
+x11	int depth	1	100
+x11	int class	1	104
+x11	unsigned long red_mask	1	112
+x11	unsigned long green_mask	1	120
+x11	unsigned long blue_mask	1	128
+x11	int colormap_size	1	136
+x11	int bits_per_rgb	1	140
+x11	Colormap cmap	0	144
+x11	int n_planes	0	152
+x11	int grabbed	0	156
+x11	ptrdiff_t icon_bitmap_id	0	160
+x11	Window root_window	0	168
+x11	Window client_leader_window	0	176
+x11	Cursor vertical_scroll_bar_cursor	0	184
+x11	Cursor horizontal_scroll_bar_cursor	0	192
+x11	Cursor invisible_cursor	0	200
+x11	XrmDatabase rdb	0	208
+x11	int smallest_char_width	0	216
+x11	int smallest_font_height	0	220
+x11	GC scratch_cursor_gc	0	224
+x11	Mouse_HLInfo mouse_highlight	0	232
+x11	int mouse_face_beg_row	1	232
+x11	int mouse_face_beg_col	1	236
+x11	int mouse_face_beg_x	1	240
+x11	int mouse_face_end_row	1	244
+x11	int mouse_face_end_col	1	248
+x11	int mouse_face_end_x	1	252
+x11	Lisp_Object mouse_face_window	1	256
+x11	int mouse_face_face_id	1	264
+x11	Lisp_Object mouse_face_overlay	1	272
+x11	struct frame * mouse_face_mouse_frame	1	280
+x11	int mouse_face_mouse_x	1	288
+x11	int mouse_face_mouse_y	1	292
+x11	bool_bf mouse_face_past_end	1	296:0-0
+x11	bool_bf mouse_face_defer	1	296:1-1
+x11	bool_bf mouse_face_hidden	1	296:2-2
+x11	unsigned int x_id	0	304
+x11	char * x_id_name	0	312
+x11	int n_fonts	0	320
+x11	struct x_bitmap_record * bitmaps	0	328
+x11	ptrdiff_t bitmaps_size	0	336
+x11	ptrdiff_t bitmaps_last	0	344
+x11	unsigned int meta_mod_mask	0	352
+x11	unsigned int shift_lock_mask	0	356
+x11	unsigned int alt_mod_mask	0	360
+x11	unsigned int super_mod_mask	0	364
+x11	unsigned int hyper_mod_mask	0	368
+x11	Atom Xatom_wm_protocols	0	376
+x11	Atom Xatom_wm_take_focus	0	384
+x11	Atom Xatom_wm_save_yourself	0	392
+x11	Atom Xatom_wm_delete_window	0	400
+x11	Atom Xatom_wm_change_state	0	408
+x11	Atom Xatom_wm_state	0	416
+x11	Atom Xatom_wm_configure_denied	0	424
+x11	Atom Xatom_wm_window_moved	0	432
+x11	Atom Xatom_wm_client_leader	0	440
+x11	Atom Xatom_wm_transient_for	0	448
+x11	Atom Xatom_editres	0	456
+x11	Atom Xatom_CLIPBOARD	0	464
+x11	Atom Xatom_TIMESTAMP	0	472
+x11	Atom Xatom_TEXT	0	480
+x11	Atom Xatom_DELETE	0	488
+x11	Atom Xatom_COMPOUND_TEXT	0	496
+x11	Atom Xatom_UTF8_STRING	0	504
+x11	Atom Xatom_MULTIPLE	0	512
+x11	Atom Xatom_INCR	0	520
+x11	Atom Xatom_EMACS_TMP	0	528
+x11	Atom Xatom_TARGETS	0	536
+x11	Atom Xatom_NULL	0	544
+x11	Atom Xatom_ATOM	0	552
+x11	Atom Xatom_ATOM_PAIR	0	560
+x11	Atom Xatom_CLIPBOARD_MANAGER	0	568
+x11	Atom Xatom_EMACS_SERVER_TIME_PROP	0	576
+x11	Atom Xatom_PIXEL_SIZE	0	584
+x11	Atom Xatom_AVERAGE_WIDTH	0	592
+x11	Atom Xatom_MULE_BASELINE_OFFSET	0	600
+x11	Atom Xatom_MULE_RELATIVE_COMPOSE	0	608
+x11	Atom Xatom_MULE_DEFAULT_ASCENT	0	616
+x11	Atom Xatom_DONE	0	624
+x11	Atom Xatom_PAGE	0	632
+x11	Atom Xatom_Scrollbar	0	640
+x11	Atom Xatom_Horizontal_Scrollbar	0	648
+x11	Atom Xatom_XEMBED	0	656
+x11	Atom Xatom_XEMBED_INFO	0	664
+x11	Atom Xatom_NET_WM_CM_Sn	0	672
+x11	Atom Xatom_MOTIF_WM_HINTS	0	680
+x11	Atom Xatom_MOTIF_DRAG_WINDOW	0	688
+x11	Atom Xatom_MOTIF_DRAG_TARGETS	0	696
+x11	Atom Xatom_MOTIF_DRAG_AND_DROP_MESSAGE	0	704
+x11	Atom Xatom_MOTIF_DRAG_INITIATOR_INFO	0	712
+x11	Atom Xatom_MOTIF_DRAG_RECEIVER_INFO	0	720
+x11	Atom Xatom_EMACS_DRAG_ATOM	0	728
+x11	Atom Xatom_XmTRANSFER_SUCCESS	0	736
+x11	Atom Xatom_XmTRANSFER_FAILURE	0	744
+x11	Atom Xatom_DndProtocol	0	752
+x11	Atom Xatom_DND_PROTOCOL	0	760
+x11	Atom Xatom_text_plain_charset_utf_8	0	768
+x11	Atom Xatom_LENGTH	0	776
+x11	Atom Xatom_FILE_NAME	0	784
+x11	Atom Xatom_CHARACTER_POSITION	0	792
+x11	Atom Xatom_LINE_NUMBER	0	800
+x11	Atom Xatom_COLUMN_NUMBER	0	808
+x11	Atom Xatom_OWNER_OS	0	816
+x11	Atom Xatom_HOST_NAME	0	824
+x11	Atom Xatom_USER	0	832
+x11	Atom Xatom_CLASS	0	840
+x11	Atom Xatom_NAME	0	848
+x11	Atom Xatom_SAVE_TARGETS	0	856
+x11	struct frame * x_focus_frame	0	864
+x11	struct frame * x_focus_event_frame	0	872
+x11	struct frame * highlight_frame	0	880
+x11	struct frame * x_pending_autoraise_frame	0	888
+x11	struct frame * last_mouse_frame	0	896
+x11	struct frame * last_mouse_glyph_frame	0	904
+x11	struct frame * last_mouse_motion_frame	0	912
+x11	struct scroll_bar * last_mouse_scroll_bar	0	920
+x11	Time last_user_time	0	928
+x11	int last_mouse_motion_x	0	936
+x11	int last_mouse_motion_y	0	940
+x11	XRectangle last_mouse_glyph	0	944
+x11	short x	1	944
+x11	short y	1	946
+x11	unsigned short width	1	948
+x11	unsigned short height	1	950
+x11	Time last_mouse_movement_time	0	952
+x11	_Bool last_mouse_movement_time_send_event	0	960
+x11	Pixmap gray	0	968
+x11	struct color_name_cache_entry ** color_names	0	976
+x11	ptrdiff_t * color_names_length	0	984
+x11	int color_names_size	0	992
+x11	XColor * color_cells	0	1000
+x11	int ncolor_cells	0	1008
+x11	int red_bits	0	1012
+x11	int blue_bits	0	1016
+x11	int green_bits	0	1020
+x11	int alpha_bits	0	1024
+x11	int red_offset	0	1028
+x11	int blue_offset	0	1032
+x11	int green_offset	0	1036
+x11	int alpha_offset	0	1040
+x11	unsigned long alpha_mask	0	1048
+x11	enum (unnamed enum at /Users/liu/projects/src/github.com/liuchong/femacs/emacs/src/xterm.h:740:3) wm_type	0	1056
+x11	Atom * x_dnd_atoms	0	1064
+x11	ptrdiff_t x_dnd_atoms_size	0	1072
+x11	ptrdiff_t x_dnd_atoms_length	0	1080
+x11	Atom motif_drag_atom	0	1088
+x11	char[33] motif_drag_atom_name	0	1096
+x11	Time motif_drag_atom_time	0	1136
+x11	struct frame * motif_drag_atom_owner	0	1144
+x11	Window motif_drag_window	0	1152
+x11	Atom Xatom_net_supported	0	1160
+x11	Atom Xatom_net_supporting_wm_check	0	1168
+x11	Atom * net_supported_atoms	0	1176
+x11	int nr_net_supported_atoms	0	1184
+x11	Window net_supported_window	0	1192
+x11	Atom Xatom_net_window_type	0	1200
+x11	Atom Xatom_net_window_type_tooltip	0	1208
+x11	Atom Xatom_net_active_window	0	1216
+x11	Atom Xatom_net_wm_state	0	1224
+x11	Atom Xatom_net_wm_state_fullscreen	0	1232
+x11	Atom Xatom_net_wm_state_maximized_horz	0	1240
+x11	Atom Xatom_net_wm_state_maximized_vert	0	1248
+x11	Atom Xatom_net_wm_state_sticky	0	1256
+x11	Atom Xatom_net_wm_state_above	0	1264
+x11	Atom Xatom_net_wm_state_below	0	1272
+x11	Atom Xatom_net_wm_state_hidden	0	1280
+x11	Atom Xatom_net_wm_state_skip_taskbar	0	1288
+x11	Atom Xatom_net_wm_state_shaded	0	1296
+x11	Atom Xatom_net_frame_extents	0	1304
+x11	Atom Xatom_net_current_desktop	0	1312
+x11	Atom Xatom_net_workarea	0	1320
+x11	Atom Xatom_net_wm_opaque_region	0	1328
+x11	Atom Xatom_net_wm_ping	0	1336
+x11	Atom Xatom_net_wm_sync_request	0	1344
+x11	Atom Xatom_net_wm_sync_request_counter	0	1352
+x11	Atom Xatom_net_wm_sync_fences	0	1360
+x11	Atom Xatom_net_wm_frame_drawn	0	1368
+x11	Atom Xatom_net_wm_frame_timings	0	1376
+x11	Atom Xatom_net_wm_user_time	0	1384
+x11	Atom Xatom_net_wm_user_time_window	0	1392
+x11	Atom Xatom_net_client_list_stacking	0	1400
+x11	Atom Xatom_net_wm_pid	0	1408
+x11	Atom Xatom_net_wm_bypass_compositor	0	1416
+x11	Atom Xatom_xsettings_sel	0	1424
+x11	Atom Xatom_xsettings_prop	0	1432
+x11	Atom Xatom_xsettings_mgr	0	1440
+x11	Window xsettings_window	0	1448
+x11	Atom Xatom_net_wm_name	0	1456
+x11	Atom Xatom_net_wm_icon_name	0	1464
+x11	Atom Xatom_net_wm_window_opacity	0	1472
+x11	Atom Xatom_SM_CLIENT_ID	0	1480
+x11	Atom Xatom_XdndAware	0	1488
+x11	Atom Xatom_XdndSelection	0	1496
+x11	Atom Xatom_XdndTypeList	0	1504
+x11	Atom Xatom_XdndActionCopy	0	1512
+x11	Atom Xatom_XdndActionMove	0	1520
+x11	Atom Xatom_XdndActionLink	0	1528
+x11	Atom Xatom_XdndActionAsk	0	1536
+x11	Atom Xatom_XdndActionPrivate	0	1544
+x11	Atom Xatom_XdndActionList	0	1552
+x11	Atom Xatom_XdndActionDescription	0	1560
+x11	Atom Xatom_XdndProxy	0	1568
+x11	Atom Xatom_XdndEnter	0	1576
+x11	Atom Xatom_XdndPosition	0	1584
+x11	Atom Xatom_XdndStatus	0	1592
+x11	Atom Xatom_XdndLeave	0	1600
+x11	Atom Xatom_XdndDrop	0	1608
+x11	Atom Xatom_XdndFinished	0	1616
+x11	Atom Xatom_XdndDirectSave0	0	1624
+x11	Atom Xatom_XdndActionDirectSave	0	1632
+x11	Atom Xatom_text_plain	0	1640
+x11	XModifierKeymap * modmap	0	1648
+x11	int screen_width	0	1656
+x11	int screen_height	0	1660
+x11	int screen_mm_width	0	1664
+x11	int screen_mm_height	0	1668
+x11	struct x_failable_request[128] failable_requests	0	1672
+x11	struct x_failable_request * next_failable_request	0	4744
+x11	Time pending_dnd_time	0	4752
+x11	KeySym quit_keysym	0	4760
+x11	Time quit_keysym_time	0	4768
+ns_cocoa	parse	-	no
+x11_ext	sizeof struct x_display_info	-	4856
+x11_ext	align struct x_display_info	-	8
+x11_ext	struct x_display_info * next	0	0
+x11_ext	struct terminal * terminal	0	8
+x11_ext	Display * display	0	16
+x11_ext	int connection	0	24
+x11_ext	Lisp_Object name_list_element	0	32
+x11_ext	int reference_count	0	40
+x11_ext	_Bool untrusted	0	44
+x11_ext	Screen * screen	0	48
+x11_ext	double resx	0	56
+x11_ext	double resy	0	64
+x11_ext	Visual * visual	0	72
+x11_ext	XVisualInfo visual_info	0	80
+x11_ext	Visual * visual	1	80
+x11_ext	VisualID visualid	1	88
+x11_ext	int screen	1	96
+x11_ext	int depth	1	100
+x11_ext	int class	1	104
+x11_ext	unsigned long red_mask	1	112
+x11_ext	unsigned long green_mask	1	120
+x11_ext	unsigned long blue_mask	1	128
+x11_ext	int colormap_size	1	136
+x11_ext	int bits_per_rgb	1	140
+x11_ext	Colormap cmap	0	144
+x11_ext	int n_planes	0	152
+x11_ext	int grabbed	0	156
+x11_ext	ptrdiff_t icon_bitmap_id	0	160
+x11_ext	Window root_window	0	168
+x11_ext	Window client_leader_window	0	176
+x11_ext	Cursor vertical_scroll_bar_cursor	0	184
+x11_ext	Cursor horizontal_scroll_bar_cursor	0	192
+x11_ext	Cursor invisible_cursor	0	200
+x11_ext	XrmDatabase rdb	0	208
+x11_ext	int smallest_char_width	0	216
+x11_ext	int smallest_font_height	0	220
+x11_ext	GC scratch_cursor_gc	0	224
+x11_ext	Mouse_HLInfo mouse_highlight	0	232
+x11_ext	int mouse_face_beg_row	1	232
+x11_ext	int mouse_face_beg_col	1	236
+x11_ext	int mouse_face_beg_x	1	240
+x11_ext	int mouse_face_end_row	1	244
+x11_ext	int mouse_face_end_col	1	248
+x11_ext	int mouse_face_end_x	1	252
+x11_ext	Lisp_Object mouse_face_window	1	256
+x11_ext	int mouse_face_face_id	1	264
+x11_ext	Lisp_Object mouse_face_overlay	1	272
+x11_ext	struct frame * mouse_face_mouse_frame	1	280
+x11_ext	int mouse_face_mouse_x	1	288
+x11_ext	int mouse_face_mouse_y	1	292
+x11_ext	bool_bf mouse_face_past_end	1	296:0-0
+x11_ext	bool_bf mouse_face_defer	1	296:1-1
+x11_ext	bool_bf mouse_face_hidden	1	296:2-2
+x11_ext	unsigned int x_id	0	304
+x11_ext	char * x_id_name	0	312
+x11_ext	int n_fonts	0	320
+x11_ext	struct x_bitmap_record * bitmaps	0	328
+x11_ext	ptrdiff_t bitmaps_size	0	336
+x11_ext	ptrdiff_t bitmaps_last	0	344
+x11_ext	unsigned int meta_mod_mask	0	352
+x11_ext	unsigned int shift_lock_mask	0	356
+x11_ext	unsigned int alt_mod_mask	0	360
+x11_ext	unsigned int super_mod_mask	0	364
+x11_ext	unsigned int hyper_mod_mask	0	368
+x11_ext	Atom Xatom_wm_protocols	0	376
+x11_ext	Atom Xatom_wm_take_focus	0	384
+x11_ext	Atom Xatom_wm_save_yourself	0	392
+x11_ext	Atom Xatom_wm_delete_window	0	400
+x11_ext	Atom Xatom_wm_change_state	0	408
+x11_ext	Atom Xatom_wm_state	0	416
+x11_ext	Atom Xatom_wm_configure_denied	0	424
+x11_ext	Atom Xatom_wm_window_moved	0	432
+x11_ext	Atom Xatom_wm_client_leader	0	440
+x11_ext	Atom Xatom_wm_transient_for	0	448
+x11_ext	Atom Xatom_editres	0	456
+x11_ext	Atom Xatom_CLIPBOARD	0	464
+x11_ext	Atom Xatom_TIMESTAMP	0	472
+x11_ext	Atom Xatom_TEXT	0	480
+x11_ext	Atom Xatom_DELETE	0	488
+x11_ext	Atom Xatom_COMPOUND_TEXT	0	496
+x11_ext	Atom Xatom_UTF8_STRING	0	504
+x11_ext	Atom Xatom_MULTIPLE	0	512
+x11_ext	Atom Xatom_INCR	0	520
+x11_ext	Atom Xatom_EMACS_TMP	0	528
+x11_ext	Atom Xatom_TARGETS	0	536
+x11_ext	Atom Xatom_NULL	0	544
+x11_ext	Atom Xatom_ATOM	0	552
+x11_ext	Atom Xatom_ATOM_PAIR	0	560
+x11_ext	Atom Xatom_CLIPBOARD_MANAGER	0	568
+x11_ext	Atom Xatom_EMACS_SERVER_TIME_PROP	0	576
+x11_ext	Atom Xatom_PIXEL_SIZE	0	584
+x11_ext	Atom Xatom_AVERAGE_WIDTH	0	592
+x11_ext	Atom Xatom_MULE_BASELINE_OFFSET	0	600
+x11_ext	Atom Xatom_MULE_RELATIVE_COMPOSE	0	608
+x11_ext	Atom Xatom_MULE_DEFAULT_ASCENT	0	616
+x11_ext	Atom Xatom_DONE	0	624
+x11_ext	Atom Xatom_PAGE	0	632
+x11_ext	Atom Xatom_Scrollbar	0	640
+x11_ext	Atom Xatom_Horizontal_Scrollbar	0	648
+x11_ext	Atom Xatom_XEMBED	0	656
+x11_ext	Atom Xatom_XEMBED_INFO	0	664
+x11_ext	Atom Xatom_NET_WM_CM_Sn	0	672
+x11_ext	Atom Xatom_MOTIF_WM_HINTS	0	680
+x11_ext	Atom Xatom_MOTIF_DRAG_WINDOW	0	688
+x11_ext	Atom Xatom_MOTIF_DRAG_TARGETS	0	696
+x11_ext	Atom Xatom_MOTIF_DRAG_AND_DROP_MESSAGE	0	704
+x11_ext	Atom Xatom_MOTIF_DRAG_INITIATOR_INFO	0	712
+x11_ext	Atom Xatom_MOTIF_DRAG_RECEIVER_INFO	0	720
+x11_ext	Atom Xatom_EMACS_DRAG_ATOM	0	728
+x11_ext	Atom Xatom_XmTRANSFER_SUCCESS	0	736
+x11_ext	Atom Xatom_XmTRANSFER_FAILURE	0	744
+x11_ext	Atom Xatom_DndProtocol	0	752
+x11_ext	Atom Xatom_DND_PROTOCOL	0	760
+x11_ext	Atom Xatom_text_plain_charset_utf_8	0	768
+x11_ext	Atom Xatom_LENGTH	0	776
+x11_ext	Atom Xatom_FILE_NAME	0	784
+x11_ext	Atom Xatom_CHARACTER_POSITION	0	792
+x11_ext	Atom Xatom_LINE_NUMBER	0	800
+x11_ext	Atom Xatom_COLUMN_NUMBER	0	808
+x11_ext	Atom Xatom_OWNER_OS	0	816
+x11_ext	Atom Xatom_HOST_NAME	0	824
+x11_ext	Atom Xatom_USER	0	832
+x11_ext	Atom Xatom_CLASS	0	840
+x11_ext	Atom Xatom_NAME	0	848
+x11_ext	Atom Xatom_SAVE_TARGETS	0	856
+x11_ext	struct frame * x_focus_frame	0	864
+x11_ext	struct frame * x_focus_event_frame	0	872
+x11_ext	struct frame * highlight_frame	0	880
+x11_ext	struct frame * x_pending_autoraise_frame	0	888
+x11_ext	struct frame * last_mouse_frame	0	896
+x11_ext	struct frame * last_mouse_glyph_frame	0	904
+x11_ext	struct frame * last_mouse_motion_frame	0	912
+x11_ext	struct scroll_bar * last_mouse_scroll_bar	0	920
+x11_ext	Time last_user_time	0	928
+x11_ext	int last_mouse_motion_x	0	936
+x11_ext	int last_mouse_motion_y	0	940
+x11_ext	XRectangle last_mouse_glyph	0	944
+x11_ext	short x	1	944
+x11_ext	short y	1	946
+x11_ext	unsigned short width	1	948
+x11_ext	unsigned short height	1	950
+x11_ext	Time last_mouse_movement_time	0	952
+x11_ext	_Bool last_mouse_movement_time_send_event	0	960
+x11_ext	Pixmap gray	0	968
+x11_ext	XIM xim	0	976
+x11_ext	XIMStyles * xim_styles	0	984
+x11_ext	struct xim_inst_t * xim_callback_data	0	992
+x11_ext	XIMStyle preferred_xim_style	0	1000
+x11_ext	Lisp_Object xim_coding	0	1008
+x11_ext	_Bool use_xim	0	1016
+x11_ext	struct color_name_cache_entry ** color_names	0	1024
+x11_ext	ptrdiff_t * color_names_length	0	1032
+x11_ext	int color_names_size	0	1040
+x11_ext	XColor * color_cells	0	1048
+x11_ext	int ncolor_cells	0	1056
+x11_ext	int red_bits	0	1060
+x11_ext	int blue_bits	0	1064
+x11_ext	int green_bits	0	1068
+x11_ext	int alpha_bits	0	1072
+x11_ext	int red_offset	0	1076
+x11_ext	int blue_offset	0	1080
+x11_ext	int green_offset	0	1084
+x11_ext	int alpha_offset	0	1088
+x11_ext	unsigned long alpha_mask	0	1096
+x11_ext	enum (unnamed enum at /Users/liu/projects/src/github.com/liuchong/femacs/emacs/src/xterm.h:740:3) wm_type	0	1104
+x11_ext	Atom * x_dnd_atoms	0	1112
+x11_ext	ptrdiff_t x_dnd_atoms_size	0	1120
+x11_ext	ptrdiff_t x_dnd_atoms_length	0	1128
+x11_ext	Atom motif_drag_atom	0	1136
+x11_ext	char[33] motif_drag_atom_name	0	1144
+x11_ext	Time motif_drag_atom_time	0	1184
+x11_ext	struct frame * motif_drag_atom_owner	0	1192
+x11_ext	Window motif_drag_window	0	1200
+x11_ext	Atom Xatom_net_supported	0	1208
+x11_ext	Atom Xatom_net_supporting_wm_check	0	1216
+x11_ext	Atom * net_supported_atoms	0	1224
+x11_ext	int nr_net_supported_atoms	0	1232
+x11_ext	Window net_supported_window	0	1240
+x11_ext	Atom Xatom_net_window_type	0	1248
+x11_ext	Atom Xatom_net_window_type_tooltip	0	1256
+x11_ext	Atom Xatom_net_active_window	0	1264
+x11_ext	Atom Xatom_net_wm_state	0	1272
+x11_ext	Atom Xatom_net_wm_state_fullscreen	0	1280
+x11_ext	Atom Xatom_net_wm_state_maximized_horz	0	1288
+x11_ext	Atom Xatom_net_wm_state_maximized_vert	0	1296
+x11_ext	Atom Xatom_net_wm_state_sticky	0	1304
+x11_ext	Atom Xatom_net_wm_state_above	0	1312
+x11_ext	Atom Xatom_net_wm_state_below	0	1320
+x11_ext	Atom Xatom_net_wm_state_hidden	0	1328
+x11_ext	Atom Xatom_net_wm_state_skip_taskbar	0	1336
+x11_ext	Atom Xatom_net_wm_state_shaded	0	1344
+x11_ext	Atom Xatom_net_frame_extents	0	1352
+x11_ext	Atom Xatom_net_current_desktop	0	1360
+x11_ext	Atom Xatom_net_workarea	0	1368
+x11_ext	Atom Xatom_net_wm_opaque_region	0	1376
+x11_ext	Atom Xatom_net_wm_ping	0	1384
+x11_ext	Atom Xatom_net_wm_sync_request	0	1392
+x11_ext	Atom Xatom_net_wm_sync_request_counter	0	1400
+x11_ext	Atom Xatom_net_wm_sync_fences	0	1408
+x11_ext	Atom Xatom_net_wm_frame_drawn	0	1416
+x11_ext	Atom Xatom_net_wm_frame_timings	0	1424
+x11_ext	Atom Xatom_net_wm_user_time	0	1432
+x11_ext	Atom Xatom_net_wm_user_time_window	0	1440
+x11_ext	Atom Xatom_net_client_list_stacking	0	1448
+x11_ext	Atom Xatom_net_wm_pid	0	1456
+x11_ext	Atom Xatom_net_wm_bypass_compositor	0	1464
+x11_ext	Atom Xatom_xsettings_sel	0	1472
+x11_ext	Atom Xatom_xsettings_prop	0	1480
+x11_ext	Atom Xatom_xsettings_mgr	0	1488
+x11_ext	Window xsettings_window	0	1496
+x11_ext	Atom Xatom_net_wm_name	0	1504
+x11_ext	Atom Xatom_net_wm_icon_name	0	1512
+x11_ext	Atom Xatom_net_wm_window_opacity	0	1520
+x11_ext	Atom Xatom_SM_CLIENT_ID	0	1528
+x11_ext	Atom Xatom_XdndAware	0	1536
+x11_ext	Atom Xatom_XdndSelection	0	1544
+x11_ext	Atom Xatom_XdndTypeList	0	1552
+x11_ext	Atom Xatom_XdndActionCopy	0	1560
+x11_ext	Atom Xatom_XdndActionMove	0	1568
+x11_ext	Atom Xatom_XdndActionLink	0	1576
+x11_ext	Atom Xatom_XdndActionAsk	0	1584
+x11_ext	Atom Xatom_XdndActionPrivate	0	1592
+x11_ext	Atom Xatom_XdndActionList	0	1600
+x11_ext	Atom Xatom_XdndActionDescription	0	1608
+x11_ext	Atom Xatom_XdndProxy	0	1616
+x11_ext	Atom Xatom_XdndEnter	0	1624
+x11_ext	Atom Xatom_XdndPosition	0	1632
+x11_ext	Atom Xatom_XdndStatus	0	1640
+x11_ext	Atom Xatom_XdndLeave	0	1648
+x11_ext	Atom Xatom_XdndDrop	0	1656
+x11_ext	Atom Xatom_XdndFinished	0	1664
+x11_ext	Atom Xatom_XdndDirectSave0	0	1672
+x11_ext	Atom Xatom_XdndActionDirectSave	0	1680
+x11_ext	Atom Xatom_text_plain	0	1688
+x11_ext	XModifierKeymap * modmap	0	1696
+x11_ext	_Bool xsync_supported_p	0	1704
+x11_ext	int xsync_major	0	1708
+x11_ext	int xsync_minor	0	1712
+x11_ext	int screen_width	0	1716
+x11_ext	int screen_height	0	1720
+x11_ext	int screen_mm_width	0	1724
+x11_ext	int screen_mm_height	0	1728
+x11_ext	struct x_failable_request[128] failable_requests	0	1736
+x11_ext	struct x_failable_request * next_failable_request	0	4808
+x11_ext	Time pending_dnd_time	0	4816
+x11_ext	_Bool server_time_monotonic_p	0	4824
+x11_ext	int_fast64_t server_time_offset	0	4832
+x11_ext	KeySym quit_keysym	0	4840
+x11_ext	Time quit_keysym_time	0	4848

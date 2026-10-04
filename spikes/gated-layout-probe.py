@@ -125,17 +125,26 @@ def run_clang(type_name: str, header: str, lang: str, defs: tuple[str, ...]) -> 
     return (m.group(0) if m else ""), "\n".join(errors)
 
 
-def rows(type_name: str, arm: str, block: str) -> list[tuple[str, str, str]]:
-    """`(arm, key, value)` for sizeof/align and every member line of one arm's dump."""
-    out: list[tuple[str, str, str]] = []
+def rows(type_name: str, arm: str, block: str) -> list[tuple[str, str, str, str]]:
+    """`(arm, key, depth, value)` for sizeof/align and every member line of one arm's dump.
+
+    `depth` is the member's nesting level in the same dump (`indent_depth`), and it is what tells
+    a member of THIS record from a member of a record nested inside it: clang prints both at the
+    same byte offset, e.g. `struct x_display_info`'s `XVisualInfo visual_info` at 80 followed by
+    the nested `Visual * visual` and `VisualID visualid`, also at 80.  Without the column the
+    table cannot say which record a row belongs to.  `-` marks a row that is not a member at all
+    (the two `sizeof`/`align` rows, and `parse=no`).
+    """
+    out: list[tuple[str, str, str, str]] = []
     m = re.search(r"\[sizeof=(\d+), align=(\d+)\]", block)
     if m:
-        out += [(arm, f"sizeof {type_name}", m.group(1)),
-                (arm, f"align {type_name}", m.group(2))]
+        out += [(arm, f"sizeof {type_name}", "-", m.group(1)),
+                (arm, f"align {type_name}", "-", m.group(2))]
+    depths = indent_depth(block, type_name)
     for line in block.splitlines():
-        mm = re.match(r"^\s*([\d:+-]+)\s*\|\s+(\S.*?)\s*$", line)
-        if mm and mm.group(2) != type_name:
-            out.append((arm, mm.group(2), mm.group(1)))
+        mm = re.match(r"^\s*([\d:+-]+)\s*\|(\s*)(\S.*?)\s*$", line)
+        if mm and mm.group(3) != type_name:
+            out.append((arm, mm.group(3), str(depths.get(len(mm.group(2)), 0)), mm.group(1)))
     return out
 
 
@@ -227,7 +236,7 @@ def main() -> int:
             bit_table += bit_rows(args.type_name, arm, block)
             any_ok = True
         else:
-            table += [(arm, "parse", "no")]
+            table += [(arm, "parse", "-", "no")]
             print(f"unavailable: {len(errors.splitlines())} error(s)")
             for line in errors.splitlines()[:4]:
                 print(f"  {line.strip()}")
@@ -252,11 +261,13 @@ def main() -> int:
             return 1
         lines = [f"# {args.type_name} from {args.header} ({args.lang}), read by",
                  f"# `spikes/gated-layout-probe.py {args.type_name} {args.header} {args.lang}`:",
-                 "# the frozen build's generated config.h, plus the gated macros configure would",
-                 "# emit, on the command line.  Columns: arm\\tmember\\tbyte-offset-or-byte:bits.",
-                 "# `parse=no` marks an arm this machine cannot read, with the reason in the run.",
-                 "arm\tmember\toffset-or-bits"]
-        lines += [f"{a}\t{m}\t{v}" for a, m, v in table]
+                 "# the frozen build's generated config.h plus the gated macros configure would",
+                 "# emit, on the command line.  Columns: arm\\tmember\\tdepth\\toffset-or-bits.",
+                 "# DEPTH is the member's nesting depth: 0 = this record's own member, >0 = a",
+                 "# record nested inside it (the row is that record's, not this one's); `-` = not a",
+                 "# member.  `parse=no` = an arm this machine cannot read, with the reason in the run.",
+                 "arm\tmember\tdepth\toffset-or-bits"]
+        lines += [f"{a}\t{m}\t{d}\t{v}" for a, m, d, v in table]
         Path(args.write).write_text("\n".join(lines) + "\n", encoding="utf-8")
         print(f"wrote {args.write}: {len(table)} row(s)")
     return 0 if any_ok else 1

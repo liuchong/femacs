@@ -1,58 +1,62 @@
 # struct ns_display_info from nsterm.h (objc), read by
 # `spikes/gated-layout-probe.py struct ns_display_info nsterm.h objc`:
-# the frozen build's generated config.h, plus the gated macros configure would
-# emit, on the command line.  Columns: arm\tmember\tbyte-offset-or-byte:bits.
-# `parse=no` marks an arm this machine cannot read, with the reason in the run.
-arm	member	offset-or-bits
-frozen	parse	no
-ns_cocoa	sizeof struct ns_display_info	280
-ns_cocoa	align struct ns_display_info	8
-ns_cocoa	struct ns_display_info * next	0
-ns_cocoa	struct terminal * terminal	8
-ns_cocoa	Lisp_Object name_list_element	16
-ns_cocoa	int n_fonts	24
-ns_cocoa	int smallest_char_width	28
-ns_cocoa	int smallest_font_height	32
-ns_cocoa	struct ns_bitmap_record * bitmaps	40
-ns_cocoa	ptrdiff_t bitmaps_size	48
-ns_cocoa	ptrdiff_t bitmaps_last	56
-ns_cocoa	double resx	64
-ns_cocoa	double resy	72
-ns_cocoa	int grabbed	80
-ns_cocoa	int n_planes	84
-ns_cocoa	int color_p	88
-ns_cocoa	Window root_window	92
-ns_cocoa	Lisp_Object rdb	96
-ns_cocoa	Emacs_Cursor vertical_scroll_bar_cursor	104
-ns_cocoa	Emacs_Cursor horizontal_scroll_bar_cursor	112
-ns_cocoa	Mouse_HLInfo mouse_highlight	120
-ns_cocoa	int mouse_face_beg_row	120
-ns_cocoa	int mouse_face_beg_col	124
-ns_cocoa	int mouse_face_beg_x	128
-ns_cocoa	int mouse_face_end_row	132
-ns_cocoa	int mouse_face_end_col	136
-ns_cocoa	int mouse_face_end_x	140
-ns_cocoa	Lisp_Object mouse_face_window	144
-ns_cocoa	int mouse_face_face_id	152
-ns_cocoa	Lisp_Object mouse_face_overlay	160
-ns_cocoa	struct frame * mouse_face_mouse_frame	168
-ns_cocoa	int mouse_face_mouse_x	176
-ns_cocoa	int mouse_face_mouse_y	180
-ns_cocoa	bool_bf mouse_face_past_end	184:0-0
-ns_cocoa	bool_bf mouse_face_defer	184:1-1
-ns_cocoa	bool_bf mouse_face_hidden	184:2-2
-ns_cocoa	struct frame * highlight_frame	192
-ns_cocoa	struct frame * ns_focus_frame	200
-ns_cocoa	struct frame * last_mouse_frame	208
-ns_cocoa	struct frame * last_mouse_motion_frame	216
-ns_cocoa	int last_mouse_motion_x	224
-ns_cocoa	int last_mouse_motion_y	228
-ns_cocoa	struct CGRect last_mouse_glyph	232
-ns_cocoa	struct CGPoint origin	232
-ns_cocoa	CGFloat x	232
-ns_cocoa	CGFloat y	240
-ns_cocoa	struct CGSize size	248
-ns_cocoa	CGFloat width	248
-ns_cocoa	CGFloat height	256
-ns_cocoa	Time last_mouse_movement_time	264
-ns_cocoa	EmacsScroller * last_mouse_scroll_bar	272
+# the frozen build's generated config.h plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tdepth\toffset-or-bits.
+# DEPTH is the member's nesting depth: 0 = this record's own member, >0 = a
+# record nested inside it (the row is that record's, not this one's); `-` = not a
+# member.  `parse=no` = an arm this machine cannot read, with the reason in the run.
+arm	member	depth	offset-or-bits
+frozen	parse	-	no
+x11	parse	-	no
+ns_cocoa	sizeof struct ns_display_info	-	280
+ns_cocoa	align struct ns_display_info	-	8
+ns_cocoa	struct ns_display_info * next	0	0
+ns_cocoa	struct terminal * terminal	0	8
+ns_cocoa	Lisp_Object name_list_element	0	16
+ns_cocoa	int n_fonts	0	24
+ns_cocoa	int smallest_char_width	0	28
+ns_cocoa	int smallest_font_height	0	32
+ns_cocoa	struct ns_bitmap_record * bitmaps	0	40
+ns_cocoa	ptrdiff_t bitmaps_size	0	48
+ns_cocoa	ptrdiff_t bitmaps_last	0	56
+ns_cocoa	double resx	0	64
+ns_cocoa	double resy	0	72
+ns_cocoa	int grabbed	0	80
+ns_cocoa	int n_planes	0	84
+ns_cocoa	int color_p	0	88
+ns_cocoa	Window root_window	0	92
+ns_cocoa	Lisp_Object rdb	0	96
+ns_cocoa	Emacs_Cursor vertical_scroll_bar_cursor	0	104
+ns_cocoa	Emacs_Cursor horizontal_scroll_bar_cursor	0	112
+ns_cocoa	Mouse_HLInfo mouse_highlight	0	120
+ns_cocoa	int mouse_face_beg_row	1	120
+ns_cocoa	int mouse_face_beg_col	1	124
+ns_cocoa	int mouse_face_beg_x	1	128
+ns_cocoa	int mouse_face_end_row	1	132
+ns_cocoa	int mouse_face_end_col	1	136
+ns_cocoa	int mouse_face_end_x	1	140
+ns_cocoa	Lisp_Object mouse_face_window	1	144
+ns_cocoa	int mouse_face_face_id	1	152
+ns_cocoa	Lisp_Object mouse_face_overlay	1	160
+ns_cocoa	struct frame * mouse_face_mouse_frame	1	168
+ns_cocoa	int mouse_face_mouse_x	1	176
+ns_cocoa	int mouse_face_mouse_y	1	180
+ns_cocoa	bool_bf mouse_face_past_end	1	184:0-0
+ns_cocoa	bool_bf mouse_face_defer	1	184:1-1
+ns_cocoa	bool_bf mouse_face_hidden	1	184:2-2
+ns_cocoa	struct frame * highlight_frame	0	192
+ns_cocoa	struct frame * ns_focus_frame	0	200
+ns_cocoa	struct frame * last_mouse_frame	0	208
+ns_cocoa	struct frame * last_mouse_motion_frame	0	216
+ns_cocoa	int last_mouse_motion_x	0	224
+ns_cocoa	int last_mouse_motion_y	0	228
+ns_cocoa	struct CGRect last_mouse_glyph	0	232
+ns_cocoa	struct CGPoint origin	1	232
+ns_cocoa	CGFloat x	2	232
+ns_cocoa	CGFloat y	2	240
+ns_cocoa	struct CGSize size	1	248
+ns_cocoa	CGFloat width	2	248
+ns_cocoa	CGFloat height	2	256
+ns_cocoa	Time last_mouse_movement_time	0	264
+ns_cocoa	EmacsScroller * last_mouse_scroll_bar	0	272
+x11_ext	parse	-	no
