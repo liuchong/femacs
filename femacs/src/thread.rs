@@ -93,7 +93,7 @@ unsafe extern "C" {
   pub fn free_bc_thread (bc: *mut bc_thread_state);
   /// C: process.h 313: `extern void update_processes_for_thread_death (Lisp_Object);`
   pub fn update_processes_for_thread_death (thread: Lisp_Object);
-  /// C: lisp.h 4420: `extern void mark_object (Lisp_Object);`
+  /// C: lisp.h 4436: `extern void mark_object (Lisp_Object);`
   pub fn mark_object (obj: Lisp_Object);
 }
 

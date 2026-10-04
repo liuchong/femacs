@@ -113,7 +113,7 @@ unsafe extern "C" {
   fn bidi_shelve_cache () -> *mut c_void;
   /// C: dispextern.h 3557: `extern void bidi_unshelve_cache (void *, bool);`
   fn bidi_unshelve_cache (data: *mut c_void, really_free: bool);
-  /// C: dispextern.h 3582: `int move_it_to (struct it *, ptrdiff_t, int, int, int, int);`
+  /// C: dispextern.h 3583: `int move_it_to (struct it *, ptrdiff_t, int, int, int, int);`
   fn move_it_to (it: *mut it, to_charpos: ptrdiff_t, to_x: c_int, to_y: c_int,
                  to_vpos: c_int, op: c_int) -> c_int;
   /// C: dispextern.h 3597: `void start_display (struct it *, struct window *, struct

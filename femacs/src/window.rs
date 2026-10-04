@@ -169,16 +169,16 @@ macro_rules! select_mini_window_flag {
 /* Definitions in other units whose headers' mirrors do not carry the prototype
    (PORTING.md 0.1-2/P-72 rule 3); each keeps C's own prototype in a `/// C:` line.  */
 unsafe extern "C" {
-  /// C: frame.h 1379: `struct frame *decode_live_frame (Lisp_Object);`
+  /// C: frame.h 1476: `struct frame *decode_live_frame (Lisp_Object);`
   pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
-  /// C: frame.h 1380: `struct frame *decode_any_frame (Lisp_Object);`
+  /// C: frame.h 1477: `struct frame *decode_any_frame (Lisp_Object);`
   pub fn decode_any_frame (frame: Lisp_Object) -> *mut frame;
-  /// C: lisp.h 4917: `extern void redisplay_other_windows (void);` (xdisp.c defines it).
+  /// C: window.h 1180: `extern void redisplay_other_windows (void);` (xdisp.c defines it).
   pub fn redisplay_other_windows ();
 }
 
 unsafe extern "C" {
-  /// C: dispextern.h 3843: `int estimate_mode_line_height (struct frame *, enum face_id);`
+  /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);`
   /// (xdisp.c defines it; the mirror does not carry it).
   pub fn estimate_mode_line_height (f: *mut frame, face_id: face_id) -> c_int;
 }
@@ -209,22 +209,22 @@ macro_rules! face_change {
 }
 
 unsafe extern "C" {
-  /// C: lisp.h 4360: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);` (fns.c defines it).
+  /// C: lisp.h 4271: `extern Lisp_Object nconc2 (Lisp_Object, Lisp_Object);` (fns.c defines it).
   pub fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
-  /// C: frame.h 1381: `extern struct frame *root_frame (struct frame *);` (frame.c defines it).
+  /// C: frame.h 1508: `extern struct frame *root_frame (struct frame *f);` (frame.c defines it).
   pub fn root_frame (f: *mut frame) -> *mut frame;
-  /// C: lisp.h 5420: `extern void safe_run_hooks (Lisp_Object);` (keyboard.c defines it).
+  /// C: lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);` (keyboard.c defines it).
   pub fn safe_run_hooks (hook: Lisp_Object);
-  /// C: lisp.h 5290: `extern bool is_minibuffer (EMACS_INT, Lisp_Object);` (minibuf.c).
+  /// C: lisp.h 5055: `extern bool is_minibuffer (EMACS_INT, Lisp_Object);` (minibuf.c).
   pub fn is_minibuffer (depth: EMACS_INT, window: Lisp_Object) -> bool;
-  /// C: minibuf.c 1631: `int this_minibuffer_depth (Lisp_Object);`.
+  /// C: lisp.h 5056: `extern EMACS_INT this_minibuffer_depth (Lisp_Object);`.
   pub fn this_minibuffer_depth (buffer: Lisp_Object) -> c_int;
-  /// C: dispextern.h 3898: `extern void mark_window_display_accurate (Lisp_Object, bool);`
+  /// C: dispextern.h 3588: `void mark_window_display_accurate (Lisp_Object, bool);`
   /// (dispnew.c).
   pub fn mark_window_display_accurate (window: Lisp_Object, accurate_p: bool);
-  /// C: xterm.c 30501: `void reset_mouse_highlight (Mouse_HLInfo *);`.
+  /// C: dispextern.h 3026: `void reset_mouse_highlight (Mouse_HLInfo *);`.
   pub fn reset_mouse_highlight (hlinfo: *mut Mouse_HLInfo);
-  /// C: dispnew.c 2409: `void free_window_matrices (struct window *);`.
+  /// C: dispextern.h 3903: `void free_window_matrices (struct window *);`.
   pub fn free_window_matrices (w: *mut window);
   /// C: indent.h 39-40: `struct position *vmotion (ptrdiff_t from, ptrdiff_t from_byte,
   /// EMACS_INT vtarget, struct window *);` (indent.c defines it).  `struct window` is a real
@@ -238,9 +238,9 @@ unsafe extern "C" {
 
 
 unsafe extern "C" {
-  /// C: lisp.h 5613: `extern void record_unwind_protect_void (void (*) (void));` (eval.c).
+  /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (eval.c).
   pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: lisp.h 4946: `extern Lisp_Object other_buffer_safely (Lisp_Object);` (buffer.c).
+  /// C: lisp.h 4945: `extern Lisp_Object other_buffer_safely (Lisp_Object);` (buffer.c).
   pub fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 5340: `extern Lisp_Object run_hook_with_args_2 (Lisp_Object, Lisp_Object,
   /// Lisp_Object);` (eval.c).
@@ -948,7 +948,7 @@ unsafe extern "C" {
   pub fn pos_visible_p (w: *mut window, charpos: ptrdiff_t, x: *mut c_int, y: *mut c_int,
                         rtop: *mut c_int, rbot: *mut c_int, rowh: *mut c_int, vpos: *mut c_int)
     -> bool;
-  /// C: dispextern.h 3572: `int window_text_bottom_y (struct window *);` (xdisp.c).
+  /// C: dispextern.h 3577: `int window_text_bottom_y (struct window *);` (xdisp.c).
   pub fn window_text_bottom_y (w: *mut window) -> c_int;
   /// C: window.h 1176: `extern void wset_update_mode_line (struct window *w);` (xdisp.c; the
   /// mirror's `window_redisplay_decls` carries only the three `*set_redisplay` entries).

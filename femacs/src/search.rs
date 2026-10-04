@@ -199,7 +199,7 @@ pub static mut re_match_object: Lisp_Object = std::ptr::null_mut ();    // C 75
 /* Prevent ralloc.c from relocating the current buffer while searching it.  */
 #[cfg (feature = "rel_alloc")]
 unsafe extern "C" {
-  /// C: lisp.h 4183: `extern void r_alloc_inhibit_buffer_relocation (int);`
+  /// C: lisp.h 4681: `extern void r_alloc_inhibit_buffer_relocation (int);`
   fn r_alloc_inhibit_buffer_relocation (inhibit: c_int);
 }
 

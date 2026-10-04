@@ -82,17 +82,17 @@ unsafe extern "C" {
   /// Lisp_Object, Lisp_Object);`
   fn notify_variable_watchers (symbol: Lisp_Object, newval: Lisp_Object,
                                operation: Lisp_Object, r#where: Lisp_Object);
-  /// C: lisp.h 4517: `extern EMACS_INT get_random (void);`
+  /// C: lisp.h 5297: `extern EMACS_INT get_random (void);`
   fn get_random () -> EMACS_INT;
   /// C: window.h 1175: `extern void bset_update_mode_line (struct buffer *b);` (defined in
   /// xdisp.c)
   fn bset_update_mode_line (b: *mut buffer);
-  /// C: frame.h 1216: `extern struct frame *decode_live_frame (Lisp_Object);` (defined in
+  /// C: frame.h 1476: `extern struct frame *decode_live_frame (Lisp_Object);` (defined in
   /// frame.c)
   fn decode_live_frame (frame: Lisp_Object) -> *mut c_void; // struct frame *
-  /// C: lisp.h 4559: `extern void truncate_undo_list (struct buffer *);`
+  /// C: lisp.h 5250: `extern void truncate_undo_list (struct buffer *);`
   fn truncate_undo_list (b: *mut buffer);
-  /// C: lisp.h 5268: `extern void make_gap_1 (struct buffer *, ptrdiff_t);`
+  /// C: lisp.h 4322: `extern void make_gap_1 (struct buffer *, ptrdiff_t);`
   fn make_gap_1 (b: *mut buffer, delta: ptrdiff_t);
   /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);`
   fn record_unwind_protect_excursion ();
@@ -117,7 +117,7 @@ unsafe extern "C" {
   fn free_region_cache (cache: *mut c_void); // struct region_cache *
   /// C: lisp.h 4931: `extern void labeled_restrictions_remove_in_current_buffer (void);`
   fn labeled_restrictions_remove_in_current_buffer ();
-  /// C: lisp.h 5170: `extern ptrdiff_t chars_in_text (const unsigned char *, ptrdiff_t);`
+  /// C: lisp.h 4226: `extern ptrdiff_t chars_in_text (const unsigned char *, ptrdiff_t);`
   fn chars_in_text (ptr: *const u8, nbytes: ptrdiff_t) -> ptrdiff_t;
   /// C: lisp.h 5278: `extern void insert_1_both (const char *, ptrdiff_t, ptrdiff_t, bool,
   /// bool, bool);`
@@ -127,7 +127,7 @@ unsafe extern "C" {
   /// bool);`
   fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t,
                   prepare: bool);
-  /// C: lisp.h 5222: `extern void setup_process_coding_systems (Lisp_Object);`
+  /// C: lisp.h 5202: `extern void setup_process_coding_systems (Lisp_Object);`
   fn setup_process_coding_systems (process: Lisp_Object);
   /// C: <stdlib.h> 489: `extern void qsort (void *__base, size_t __nmemb, size_t __size,
   /// __compar_fn_t __compar) __nonnull ((1, 4));` (the port's stdlib.rs mirror does not
@@ -138,13 +138,13 @@ unsafe extern "C" {
   /// ptrdiff_t, bool, bool);`
   fn copy_text (from: *const u8, to: *mut u8, nbytes: ptrdiff_t, from_multibyte: bool,
                 to_multibyte: bool) -> ptrdiff_t;
-  /// C: lisp.h 4425: `extern AVOID memory_full (size_t);`
+  /// C: lisp.h 4432: `extern AVOID memory_full (size_t);`
   fn memory_full (size: usize) -> !;
-  /// C: lisp.h 5162: `extern char *emacs_strerror (int);`
+  /// C: lisp.h 5144: `extern char *emacs_strerror (int) ATTRIBUTE_RETURNS_NONNULL;`
   fn emacs_strerror (error_num: c_int) -> *mut c_char;
-  /// C: minibuf.c 2132 (prototype in lisp.h 5178): `extern Lisp_Object get_minibuffer (int);`
+  /// C: lisp.h 5058: `extern Lisp_Object get_minibuffer (EMACS_INT);`
   fn get_minibuffer (depth: c_int) -> Lisp_Object;
-  /// C: lisp.h 4624: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
+  /// C: lisp.h 4245: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
   fn larger_vector (vec: Lisp_Object, elt_size: ptrdiff_t, new_size: ptrdiff_t) -> Lisp_Object;
 }
 

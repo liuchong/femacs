@@ -4241,3 +4241,21 @@
   ④ 读数（本轮末）：`check-swift-units` 0 new / 0 stale / 7 units；`check-declarations` 13/0；`check-verbatim` 6 trees/4607 files/0；
   `check-citations` 9 drift / 1 range（macfont 在飞文本，已转给该 lane）/ 38 allowed / 0 stale；`layout-check passed`；
   `extract-abi --all` 587 done / 3 in progress / 0 failing。
+
+- **3.233 引文正文的批量纠错：23 个文件、212 处 `/// C:` 行号按参照改正，并留下可复跑的审计脚本（2026-10-04）**：
+  ① **问题**（3.227 量化）：`femacs/src` 下 618 条单行带引文引证里 215 条在所指行上找不到引文，`tools/check-citations.py`
+  只校验"类型名类"引证，**引文正文从来没有任何门在读**——而引证是这套复刻的可追溯性本体。
+  ② **本轮实产**（Feynman lane）：新增 `tools/check-citation-text.py`（可复跑审计：按 `emacs/<file>`→`emacs/src/`→
+  `emacs/lib/`→`emacs/lib-src/` 解析、空白折叠、引文为参照行子串即命中；单行与区间引证分开统计；占位行号 `4xxx` 不参与匹配），
+  并**逐条改正 23 个文件里的 212 处引证**——全部行内替换，`git diff --numstat` 合计 **+212 / −212**（逐文件增删相等，
+  所以 `citations-allowlist.tsv` 的 key 一个都没移动）。读数：可动范围 `checked 265 → 467 / mismatched 226 → 24`；
+  全量 `femacs/src`+`femacs/lib` `checked 417 → 619 / mismatched 235 → 33`（余额见④）。
+  ③ **编译证据**：19 个受影响 `.c` TU 全部 `built`（lane 报告逐条贴了末行）；`check-citations` 对照会话开始
+  **drift 10 → 9、stale 1 → 0、range 0 → 1**（range 那条是 `macfont.swift:11287` 引 `macfont.m 4248-4260` 越界，属平台 lane 在飞文本，已转给该 lane）。
+  ④ **未动清单（有理由，不是遗漏）**：18 条**跨行原型/跨行定义**（行号已指向声明首行，正文是整段拼接；要彻底对齐得改写成区间引证，
+  而区间引证不在本轮范围）；7 条**正文在参照树里不存在**（生成头 `globals.h`/`stdcountof.in.h`、`#ifdef HAVE_NATIVE_COMP` 里的同名声明、
+  只以宏存在的 `waiting_for_input`）；1 条正文大小写不符（`enum Set_Internal_Bind`，与相邻行不一致，留备查）。
+  **这 33 条 mismatched 是复核队列，不是补丁清单**。
+  ⑤ 附带发现（已有解释，不是回归）：`build-tu src/{lisp,thread,indent,intervals}.h` 四个**头镜像** TU 报 `E0425`
+  （`HAVE_PDUMPER`/`HAVE_NATIVE_COMP`）；HEAD 版本同样引用这两个名字 ⇒ 镜像本来不是独立 TU（与 handoff §五 的
+  "`lib/include/*` 种子不从 unit 拿标量"同类），不由本轮引入。

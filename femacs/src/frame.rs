@@ -344,7 +344,7 @@ macro_rules! mini {
 /* lisp.h 3966: `extern struct hash_table_test hashtest_eq;` — the mirror carries
    `hashtest_eql`/`hashtest_equal` but not this one (P-72 rule 3).  */
 unsafe extern "C" {
-  /// C: lisp.h 3966: `extern struct hash_table_test hashtest_eq;` (fns.c defines it).
+  /// C: lisp.h 4260: `extern struct hash_table_test const hashtest_eq, hashtest_eql, hashtest_equal;` (fns.c defines it).
   pub static mut hashtest_eq: hash_table_test;
 }
 

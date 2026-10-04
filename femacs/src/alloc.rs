@@ -3469,9 +3469,9 @@ macro_rules! FRAME_FACE_CACHE {
 }
 
 unsafe extern "C" {
-  /// C: emacs.c 818: `extern int emacs_pipe (int fd[2]);`
+  /// C: lisp.h 5313: `extern int emacs_pipe (int[2]);`
   fn emacs_pipe (fd: *mut c_int) -> c_int;
-  /// C: sysdep.c 2619: `extern ptrdiff_t emacs_write (int, void const *, ptrdiff_t);`
+  /// C: lisp.h 5334: `extern ptrdiff_t emacs_write (int, void const *, ptrdiff_t);`
   fn emacs_write (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
   /// C: lisp.h 5638: `extern void record_unwind_protect_intmax (void (*) (intmax_t),
   /// intmax_t);`
@@ -6271,29 +6271,29 @@ unsafe fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
 }
 
 unsafe extern "C" {
-  /// C: lisp.h 5619: `extern void record_unwind_protect_void (void (*) (void));`
+  /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
   fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
-  /// C: xdisp.c 11238: `extern bool push_message (void);`
+  /// C: lisp.h 4383: `extern bool push_message (void);`
   fn push_message () -> bool;
-  /// C: xdisp.c 11255: `extern void pop_message_unwind (void);`
+  /// C: lisp.h 4384: `extern void pop_message_unwind (void);`
   fn pop_message_unwind ();
-  /// C: xdisp.c 11276: `extern void restore_message (void);`
+  /// C: lisp.h 4386: `extern void restore_message (void);`
   fn restore_message ();
-  /// C: regex-emacs.c 901: `extern void shrink_regexp_cache (void);`
+  /// C: lisp.h 4994: `extern void shrink_regexp_cache (void);`
   fn shrink_regexp_cache ();
-  /// C: lread.c 4581: `extern void mark_lread (void);`
+  /// C: lisp.h 4754: `extern void mark_lread (void);`
   fn mark_lread ();
-  /// C: keyboard.c 11894: `extern void mark_kboards (void);`
+  /// C: keyboard.h 522: `extern void mark_kboards (void);`
   fn mark_kboards ();
-  /// C: thread.c 229: `extern void mark_threads (void);`
+  /// C: lisp.h 4915: `extern void mark_threads (void);`
   fn mark_threads ();
-  /// C: thread.c 233: `extern void unmark_main_thread (void);`
+  /// C: lisp.h 4916: `extern void unmark_main_thread (void);`
   fn unmark_main_thread ();
-  /// C: profiler.c 60: `extern void mark_profiler (void);`
+  /// C: lisp.h 5470: `extern void mark_profiler (void);`
   fn mark_profiler ();
-  /// C: fns.c 723: `extern void mark_fns (void);`
+  /// C: lisp.h 4285: `extern void mark_fns (void);`
   fn mark_fns ();
-  /// C: eval.c 1778: `extern void safe_run_hooks (Lisp_Object);`
+  /// C: lisp.h 5097: `extern void safe_run_hooks (Lisp_Object);`
   fn safe_run_hooks (hook: Lisp_Object);
 }
 

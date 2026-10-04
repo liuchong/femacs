@@ -99,13 +99,13 @@ use std::ffi::CStr;                            // the `-1.0e+INF` literal in flo
 unsafe extern "C" {
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);`
   fn FUNCTIONP (object: Lisp_Object) -> bool;
-  /// C: lisp.h 4378: `extern void message_dolog (const char *, ptrdiff_t, int, bool);`
+  /// C: lisp.h 4396: `extern void message_dolog (const char *, ptrdiff_t, bool, bool);`
   fn message_dolog (m: *const c_char, len: ptrdiff_t, nlflag: c_int, multibyte: bool);
-  /// C: lisp.h 4348: `extern void message3 (Lisp_Object);`
+  /// C: lisp.h 4392: `extern void message3 (Lisp_Object);`
   fn message3 (m: Lisp_Object);
-  /// C: keyboard.h 476: `extern void setup_echo_area_for_printing (bool);`
+  /// C: lisp.h 4382: `extern void setup_echo_area_for_printing (bool);`
   fn setup_echo_area_for_printing (multibyte_p: bool);
-  /// C: keyboard.h 477: `extern void reset_message_log_need_newline (void);`
+  /// C: lisp.h 4399: `extern void reset_message_log_need_newline (void);`
   fn reset_message_log_need_newline ();
   /// C: lisp.h 4331-4332: `extern void insert_1_both (const char *, ptrdiff_t, ptrdiff_t,
   /// bool, bool, bool);`

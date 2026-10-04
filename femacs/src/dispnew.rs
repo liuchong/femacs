@@ -254,11 +254,11 @@ macro_rules! SET_GLYPH_FROM_GLYPH_CODE {
 
 
 unsafe extern "C" {
-  /// C: dispextern.h 1155: `unsigned row_hash (struct glyph_row *row);` (term.c defines it)
+  /// C: dispextern.h 3717: `extern unsigned row_hash (struct glyph_row *);` (term.c defines it)
   fn row_hash (row: *mut glyph_row) -> c_uint;
   /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);`
   fn estimate_mode_line_height (f: *mut frame, face_id: face_id) -> c_int;
-  /// C: dispextern.h 3822: `int lookup_basic_face (struct frame *, struct frame *, int);`
+  /// C: dispextern.h 3813: `int lookup_basic_face (struct window *, struct frame *, int);`
   /// (xfaces.c defines it; xfaces.rs is not in this unit's include list.)
   fn lookup_basic_face (f: *mut frame, frame_: *mut frame, face_id: c_int) -> c_int;
   /// C: dispextern.h 3831: `int merge_faces (struct window *, Lisp_Object, int, int);`
@@ -277,9 +277,9 @@ unsafe extern "C" {
   fn frame_redisplay_p (f: *mut frame) -> bool;
   /// C: dispextern.h 3588: `void mark_window_display_accurate (Lisp_Object, bool);`
   fn mark_window_display_accurate (window: Lisp_Object, flag: bool);
-  /// C: keyboard.h 383: `extern void note_mouse_highlight (struct frame *f, int x, int y);`
+  /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
   fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
-  /// C: window.h 1105: `extern struct window *decode_any_window (Lisp_Object);`
+  /// C: window.h 1211: `extern struct window *decode_any_window (Lisp_Object);`
   fn decode_any_window (window: Lisp_Object) -> *mut window;
   /// C: keyboard.h 513-514: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object,
   /// Lisp_Object, ptrdiff_t);`
@@ -294,7 +294,7 @@ unsafe extern "C" {
   static mut help_echo_object: Lisp_Object;
   static mut previous_help_echo_string: Lisp_Object;
   static mut help_echo_pos: ptrdiff_t;
-  /// C: frame.h 1485: `extern struct frame *root_frame (struct frame *f);`
+  /// C: frame.h 1508: `extern struct frame *root_frame (struct frame *f);`
   fn root_frame (f: *mut frame) -> *mut frame;
   /// C: lisp.h 4244: `extern EMACS_INT next_almost_prime (EMACS_INT) ATTRIBUTE_CONST;`
   fn next_almost_prime (n: EMACS_INT) -> EMACS_INT;
@@ -311,7 +311,7 @@ unsafe extern "C" {
   fn frame_size_history_extra (f: *mut frame, parameter: Lisp_Object, width: c_int,
                                height: c_int, new_width: c_int, new_height: c_int,
                                new_native_width: c_int, new_native_height: c_int);
-  /// C: lisp.h 5389: `extern void fatal (const char *msgid, ...);`
+  /// C: lisp.h 5371: `extern AVOID fatal (const char *msgid, ...) ATTRIBUTE_FORMAT_PRINTF (1, 2);`
   fn fatal (msgid: *const c_char, ...);
   /// C: <stdlib.h> 3xx: `void exit (int);`
   fn exit (status: c_int) -> !;
@@ -324,7 +324,7 @@ unsafe extern "C" {
   fn create_tty_output (f: *mut frame);
   /// C: sysdep.c: `extern void init_foreground_group (void);`
   fn init_foreground_group ();
-  /// C: lisp.h 5287: `extern FILE *emacs_fopen (char const *, char const *);`
+  /// C: lisp.h 5322: `extern FILE *emacs_fopen (char const *, char const *);`
   fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE;
   /// C: termhooks.h 961: `extern struct terminal *decode_live_terminal (Lisp_Object);`
   fn decode_live_terminal (terminal: Lisp_Object) -> *mut terminal;
@@ -332,7 +332,7 @@ unsafe extern "C" {
   /// (void);`
   fn request_sigio ();
   fn unrequest_sigio ();
-  /// C: keyboard.h 517: `extern void ring_bell (struct frame *);`
+  /// C: dispextern.h 3933: `extern void ring_bell (struct frame *);`
   fn ring_bell (f: *mut frame);
   // `putchar` now comes from the `stdio.rs` mirror (2026-10-04), which is its single
   // declaration point; the use-site copy this block carried is gone.
@@ -374,22 +374,22 @@ unsafe extern "C" {
                   free_at_end_vpos: c_int);
   /// C: dispextern.h 3937: `extern void cursor_to (struct frame *, int, int);`
   fn cursor_to (f: *mut frame, vpos: c_int, hpos: c_int);
-  /// C: window.h 1230: `int window_text_bottom_y (struct window *);`
+  /// C: dispextern.h 3577: `int window_text_bottom_y (struct window *);`
   fn window_text_bottom_y (w: *mut window) -> c_int;
   /// C: termhooks.h 988-989: `void tty_hide_cursor (struct tty_display_info *tty);`
   /// `void tty_show_cursor (struct tty_display_info *tty);`
   fn tty_hide_cursor (tty: *mut tty_display_info);
   fn tty_show_cursor (tty: *mut tty_display_info);
 
-  /// C: frame.h 1486: `extern bool frame_ancestor_p (struct frame *, struct frame *);`
+  /// C: frame.h 1911: `extern bool frame_ancestor_p (struct frame *af, struct frame *df);`
   fn frame_ancestor_p (a: *mut frame, b: *mut frame) -> bool;
   /// C: dispextern.h 3574-3575: `void window_box (struct window *, enum glyph_row_area,
   /// int *, int *, int *, int *);`
   fn window_box (w: *mut window, area: glyph_row_area, x: *mut c_int, y: *mut c_int,
                  width: *mut c_int, height: *mut c_int);
-  /// C: dispextern.h 3569: `int window_box_width (struct window *, enum glyph_row_area);`
+  /// C: dispextern.h 3578: `int window_box_width (struct window *, enum glyph_row_area);`
   fn window_box_width (w: *mut window, area: glyph_row_area) -> c_int;
-  /// C: dispextern.h 3570: `int window_box_height (struct window *);`
+  /// C: dispextern.h 3576: `int window_box_height (struct window *);`
   fn window_box_height (w: *mut window) -> c_int;
 }
 
@@ -6934,7 +6934,7 @@ unsafe extern "C" {
   /// `extern void bidi_unshelve_cache (void *, bool);`
   fn bidi_shelve_cache () -> *mut c_void;
   fn bidi_unshelve_cache (databuf: *mut c_void, really_free_p: bool);
-  /// C: dispextern.h 3598: `void start_display (struct it *, struct window *, struct text_pos);`
+  /// C: dispextern.h 3597: `void start_display (struct it *, struct window *, struct text_pos);`
   fn start_display (it: *mut it, w: *mut window, pos: text_pos);
   /// C: dispextern.h 3602-3604: `void move_it_in_display_line (struct it *, ptrdiff_t, int,
   /// enum move_operation_enum);`
@@ -6942,8 +6942,8 @@ unsafe extern "C" {
   /// C: dispextern.h 3615-3616: `void move_it_to (struct it *, ptrdiff_t, int, int, int, int);`
   fn move_it_to (it: *mut it, to_charpos: ptrdiff_t, to_x: c_int, to_y: c_int,
                  to_vpos: c_int, op: c_int);
-  /// C: dispextern.h 3594: `void *bidi_shelve_cache (void);` — see above.
-  /// C: dispextern.h 3272: `struct image *IMAGE_OPT_FROM_ID (struct frame *, int);`
+  /// C: dispextern.h 3556: `void *bidi_shelve_cache (void);` — see above.
+  /// C: frame.h 1677: `struct image *IMAGE_OPT_FROM_ID (struct frame *, int);`
   fn IMAGE_OPT_FROM_ID (f: *mut frame, id: c_int) -> *mut c_void;
 }
 

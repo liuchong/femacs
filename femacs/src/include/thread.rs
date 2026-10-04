@@ -312,7 +312,7 @@ pub mod thread_decls {
     pub fn thread_select (func: Option<select_func>, max_fds: c_int,    // 341
                           rfds: *mut fd_set, wfds: *mut fd_set, efds: *mut fd_set,
                           timeout: *mut timespec, sigmask: *mut sigset_t) -> c_int;
-    /// C: thread.h 343: `bool thread_check_current_buffer (struct buffer *);` - the
+    /// C: thread.h 342: `bool thread_check_current_buffer (struct buffer *);` - the
     /// parameter is the untyped pointer (P-55); the use sites cast.
     pub fn thread_check_current_buffer (buffer: *mut c_void) -> bool;
     pub fn thread_all_before_buffer_killed (buffer: Lisp_Object);       // 345

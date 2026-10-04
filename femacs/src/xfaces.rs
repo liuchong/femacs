@@ -501,7 +501,7 @@ pub const FACE_TTY_DEFAULT_BG_COLOR: c_ulong = -3i64 as c_ulong;
 /* C 1932-1949 (dispextern.h): the three tty "default colour" sentinels are above; the
    declarations below are the headers' own prototypes the mirrors stop short of.  */
 unsafe extern "C" {
-  /// C: frame.h 1501: `struct frame *decode_live_frame (Lisp_Object);` (frame.c).
+  /// C: frame.h 1476: `struct frame *decode_live_frame (Lisp_Object);` (frame.c).
   fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
   /// C: lisp.h 2xxx: `bool FUNCTIONP (Lisp_Object)` is an INLINE in lisp.h that no mirror
   /// carries; the port declares the same predicate here.
@@ -549,9 +549,9 @@ unsafe extern "C" {
 			  noerror: bool) -> c_int;
   /// C: font.h 288-291: `void font_clear_prop (Lisp_Object attrs[], enum font_property_index prop);`
   fn font_clear_prop (attrs: *mut Lisp_Object, prop: font_property_index);
-  /// C: font.h 839: `Lisp_Object copy_font_spec (Lisp_Object font);`
+  /// C: font.h 839: `extern Lisp_Object copy_font_spec (Lisp_Object);`
   fn copy_font_spec (font: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 840: `Lisp_Object merge_font_spec (Lisp_Object from, Lisp_Object to);`
+  /// C: font.h 840: `extern Lisp_Object merge_font_spec (Lisp_Object, Lisp_Object);`
   fn merge_font_spec (from: Lisp_Object, to: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 5322-5323: `extern FILE *emacs_fopen (char const *, char const *);`
   fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE;
@@ -2166,7 +2166,7 @@ macro_rules! AUTO_FRAME_ARG {
   };
 }
 
-/// C: frame.h 1430: `extern void store_in_alist (Lisp_Object *, Lisp_Object, Lisp_Object);`
+/// C: lisp.h 5118: `extern void store_in_alist (Lisp_Object *, Lisp_Object, Lisp_Object);`
 unsafe extern "C" {
   fn store_in_alist (alist: *mut Lisp_Object, prop: Lisp_Object, val: Lisp_Object);
 }
@@ -4326,7 +4326,7 @@ macro_rules! SET_FRAME_GARBAGED {
   }};
 }
 
-/// C: lisp.h 5526: `Lisp_Object assoc_no_quit (Lisp_Object, Lisp_Object);` (fns.c).
+/// C: lisp.h 4274: `Lisp_Object assoc_no_quit (Lisp_Object, Lisp_Object);` (fns.c).
 unsafe extern "C" {
   fn assoc_no_quit (key: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
 }

@@ -423,11 +423,11 @@ unsafe extern "C" {
   fn message3_nolog (m: Lisp_Object);
   /// C: lisp.h 4401: `extern void truncate_echo_area (ptrdiff_t);`
   fn truncate_echo_area (n: ptrdiff_t);
-  /// C: lisp.h 5131: `extern _Noreturn void quit (void);`
+  /// C: lisp.h 4786: `extern _Noreturn void quit (void);`
   fn quit () -> !;
   /// C: eval.c (lisp.h 5387's `extern bool signal_quit_p (Lisp_Object);`)
   fn signal_quit_p (x: Lisp_Object) -> bool;
-  /// C: lisp.h 4399: `extern void clear_message (bool, bool);`
+  /// C: lisp.h 4388: `extern void clear_message (bool, bool);`
   fn clear_message (current_echo_area: bool, last_displayed_p: bool);
   /// C: xdisp.c (lisp.h 4400's `extern void message_log_maybe_newline (void);`)
   fn message_log_maybe_newline ();
@@ -465,7 +465,7 @@ unsafe extern "C" {
                                 start: ptrdiff_t, end: ptrdiff_t) -> bool;
   /// C: dispextern.h 3593: `ptrdiff_t get_large_narrowing_begv (ptrdiff_t);`
   fn get_large_narrowing_begv (pos: ptrdiff_t) -> ptrdiff_t;
-  /// C: dispextern.h 3593: `ptrdiff_t get_large_narrowing_zv (ptrdiff_t);`
+  /// C: dispextern.h 3594: `ptrdiff_t get_large_narrowing_zv (ptrdiff_t);`
   fn get_large_narrowing_zv (pos: ptrdiff_t) -> ptrdiff_t;
   /// C: process.h 261: `extern void wait_reading_process_output (intmax_t, int, int, bool,
   ///   Lisp_Object, struct Lisp_Process *, int);`
@@ -566,7 +566,7 @@ unsafe extern "C" {
   fn nconc2 (a: Lisp_Object, b: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);`
   fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
-  /// C: lisp.h 5619: `extern void record_unwind_protect_void (void (*) (void));`
+  /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));`
   fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
   /// C: lisp.h 4929: `extern void labeled_narrow_to_region (Lisp_Object, Lisp_Object, Lisp_Object);`
   fn labeled_narrow_to_region (start: Lisp_Object, end: Lisp_Object, label: Lisp_Object);
@@ -595,7 +595,7 @@ unsafe extern "C" {
                                     object: Lisp_Object, overlay: *mut Lisp_Object) -> Lisp_Object;
   /// C: dispextern.h 4012: `bool is_tty_frame (struct frame *f);` (dispnew.c 3490 defines it)
   fn is_tty_frame (f: *mut frame) -> bool;
-  /// C: lisp.h 4712: `extern void message3_frame (Lisp_Object, Lisp_Object);`
+  /// C: lisp.h 4394: `extern void message3_frame (Lisp_Object, struct frame *);`
   fn message3_frame (m: Lisp_Object, frame: *mut frame);
   /// C: coding.c (coding.h 786's `extern bool raw_text_coding_system_p (struct coding_system *);`)
   fn raw_text_coding_system_p (coding: *mut coding_system) -> bool;
@@ -703,11 +703,11 @@ unsafe extern "C" { pub static mut help_echo_showing_p: bool; }
 /// C: xdisp.c (dispextern.h 3565's `extern bool composition_break_at_point;`)
 unsafe extern "C" { pub static mut composition_break_at_point: bool; }
 
-/// C: dispextern.h 3604: `extern void redisplay (void);`
+/// C: lisp.h 4402: `extern void redisplay (void);`
 unsafe extern "C" { fn redisplay (); }
 /// C: dispnew.c's `bool redisplaying_p;` (dispextern.h 3508's `extern bool redisplaying_p;`)
 unsafe extern "C" { pub static mut redisplaying_p: bool; }
-/// C: lisp.h 5139's `extern bool noninteractive;` is lisp.rs's; this is keyboard.c's own
+/// C: lisp.h 5148's `extern bool noninteractive;` is lisp.rs's; this is keyboard.c's own
 /// `multiple_terminals_merge_keyboards` (lisp.h 5124) and the two kbd-macro counters.
 unsafe extern "C" {
   pub static mut executing_kbd_macro: Lisp_Object;

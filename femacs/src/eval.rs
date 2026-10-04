@@ -70,7 +70,7 @@ unsafe extern "C" {
   pub static mut redisplaying_p: bool;
   /// C: dispextern.h 3609: `extern unsigned int redisplay_counter;`
   pub static mut redisplay_counter: c_uint;
-  /// C: lisp.h 4808: `extern void set_internal (Lisp_Object, Lisp_Object, Lisp_Object, enum Set_Internal_Bind);`
+  /// C: lisp.h 4206: `extern void set_internal (Lisp_Object, Lisp_Object, Lisp_Object, enum Set_Internal_Bind);`
   pub fn set_internal (symbol: Lisp_Object, newval: Lisp_Object, r#let: Lisp_Object,
                        bindflag: Set_Internal_Bind);
   /// C: lisp.h 4436: `extern void mark_object (Lisp_Object);`
@@ -81,7 +81,7 @@ unsafe extern "C" {
   pub fn save_excursion_save (p: *mut specbinding);
   /// C: lisp.h 4923: `extern void save_excursion_restore (Lisp_Object, Lisp_Object);`
   pub fn save_excursion_restore (marker: Lisp_Object, buffer: Lisp_Object);
-  /// C: lisp.h 5229: `extern Lisp_Object get_byte_code_arity (Lisp_Object);`
+  /// C: lisp.h 5228: `extern Lisp_Object get_byte_code_arity (Lisp_Object);`
   pub fn get_byte_code_arity (args_template: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4432: `extern AVOID memory_full (size_t);`
   pub fn memory_full (size: usize) -> !;
@@ -92,21 +92,21 @@ unsafe extern "C" {
                          args: *mut Lisp_Object) -> Lisp_Object;
   /// C: stdlib.h: `void abort (void) __attribute__ ((__noreturn__));`
   pub fn abort () -> !;
-  /// C: xdisp.c 1071: `Lisp_Object message3 (Lisp_Object m);`
+  /// C: lisp.h 4392: `extern void message3 (Lisp_Object);`
   pub fn message3 (m: Lisp_Object) -> Lisp_Object;
   /// C: keyboard.h 487: `extern void set_poll_suppress_count (int);`
   pub fn set_poll_suppress_count (count: c_int);
   /// C: emacs.c: `void fatal (const char *, ...) ATTRIBUTE_NORETURN;` (lisp.h's EXFUN group)
   pub fn fatal (format: *const c_char, ...) -> !;
-  /// C: keyboard.c 11524: `void process_pending_signals (void);`
+  /// C: lisp.h 3880: `void process_pending_signals (void);`
   pub fn process_pending_signals ();
-  /// C: doprnt.c 573: `ptrdiff_t evxprintf (char **, ptrdiff_t *, char *, ptrdiff_t, const char *, va_list);`
+  /// C: lisp.h 4722: `ptrdiff_t evxprintf (char **, ptrdiff_t *, char *, ptrdiff_t, const char *, va_list);`
   pub fn evxprintf (buf: *mut *mut c_char, bufsize: *mut ptrdiff_t, nonheapbuf: *mut c_char,
                     bufsize_max: ptrdiff_t, format: *const c_char, ap: core::ffi::VaList<'_>)
     -> ptrdiff_t;
-  /// C: alloc.c 7290: `void malloc_probe (size_t);`
+  /// C: lisp.h 5468: `void malloc_probe (size_t);`
   pub fn malloc_probe (size: usize);
-  /// C: data.c 1858: `void notify_variable_watchers (Lisp_Object symbol, Lisp_Object newval, Lisp_Object operation, Lisp_Object where);`
+  /// C: lisp.h 4165: `void notify_variable_watchers (Lisp_Object symbol, Lisp_Object newval, Lisp_Object operation, Lisp_Object where);`
   pub fn notify_variable_watchers (symbol: Lisp_Object, newval: Lisp_Object,
                                    operation: Lisp_Object, r#where: Lisp_Object);
 }
@@ -1440,7 +1440,7 @@ unsafe fn unwind_to_catch (catch: *mut handler, r#type: nonlocal_exit,
   #[cfg (feature = "have_x_windows")]
   {
     unsafe extern "C" {
-      /// C: xterm.h 1472: `extern void x_unwind_errors_to (int);`
+      /// C: xterm.h 1763: `extern void x_unwind_errors_to (int);`
       pub fn x_unwind_errors_to (depth: c_int);
     }
     x_unwind_errors_to ((*catch).x_error_handler_depth);
@@ -1851,7 +1851,7 @@ pub unsafe extern "C" fn push_handler_nosignal (tag_ch_val: Lisp_Object,
   #[cfg (feature = "have_x_windows")]
   {
     unsafe extern "C" {
-      /// C: xterm.h 1442: `extern int x_error_message_count;`
+      /// C: xterm.h 2019: `extern int x_error_message_count;`
       pub static mut x_error_message_count: c_int;
     }
     (*c).x_error_handler_depth = x_error_message_count;
@@ -3171,7 +3171,7 @@ unsafe fn funcall_lambda (fun: Lisp_Object, nargs: ptrdiff_t, arg_vector: *mut L
       #[cfg (feature = "have_modules")]
       {
         unsafe extern "C" {
-          /// C: lisp.h 4896: `Lisp_Object funcall_module (Lisp_Object, ptrdiff_t, Lisp_Object *);`
+          /// C: lisp.h 4895: `Lisp_Object funcall_module (Lisp_Object, ptrdiff_t, Lisp_Object *);`
           pub fn funcall_module (function: Lisp_Object, nargs: ptrdiff_t,
                                  arg_vector: *mut Lisp_Object) -> Lisp_Object;
         }
@@ -3311,7 +3311,7 @@ DEFUN! ("func-arity", Ffunc_arity, Sfunc_arity, 1, 1, 0,
       #[cfg (feature = "have_modules")]
       {
         unsafe extern "C" {
-          /// C: lisp.h 4895: `Lisp_Object module_function_arity (const struct Lisp_Module_Function *);`
+          /// C: lisp.h 4896: `Lisp_Object module_function_arity (const struct Lisp_Module_Function *);`
           pub fn module_function_arity (function: *const c_void) -> Lisp_Object;
         }
         if MODULE_FUNCTIONP (function)
@@ -3741,9 +3741,9 @@ unsafe fn do_one_unbind (this_binding: *mut specbinding, unwinding: bool,
       #[cfg (feature = "have_modules")]
       {
 	unsafe extern "C" {
-	  /// C: lisp.h 4904: `void finalize_runtime_unwind (void *);`
+	  /// C: lisp.h 4908: `void finalize_runtime_unwind (void *);`
 	  pub fn finalize_runtime_unwind (ptr: *mut c_void);
-	  /// C: lisp.h 4905: `void finalize_environment_unwind (void *);`
+	  /// C: lisp.h 4909: `void finalize_environment_unwind (void *);`
 	  pub fn finalize_environment_unwind (ptr: *mut c_void);
 	}
 	if kind == SPECPDL_MODULE_RUNTIME as u8
@@ -4237,7 +4237,7 @@ pub unsafe extern "C" fn mark_specpdl (first: *mut specbinding, ptr: *mut specbi
 	  #[cfg (feature = "have_modules")]
 	  {
 	    unsafe extern "C" {
-	      /// C: lisp.h 4906: `void mark_module_environment (void *);`
+	      /// C: lisp.h 4907: `void mark_module_environment (void *);`
 	      pub fn mark_module_environment (ptr: *mut c_void);
 	    }
 	    if kind == SPECPDL_MODULE_ENVIRONMENT as u8
@@ -4568,7 +4568,7 @@ DEFUN! ("commandp", Fcommandp, Scommandp, 1, 2, 0,
       #[cfg (feature = "have_modules")]
       {
         unsafe extern "C" {
-          /// C: emacs-module.c 432: `Lisp_Object module_function_interactive_form (const struct Lisp_Module_Function *);`
+          /// C: lisp.h 4899: `Lisp_Object module_function_interactive_form (const struct Lisp_Module_Function *);`
           pub fn module_function_interactive_form (f: *const c_void) -> Lisp_Object;
         }
         /* Module functions are interactive if their `interactive_form'

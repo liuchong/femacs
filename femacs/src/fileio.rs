@@ -1266,7 +1266,7 @@ unsafe extern "C" {
   pub fn string_ascii_p (string: Lisp_Object) -> bool;
   /// C: lisp.h 4267: `extern Lisp_Object do_yes_or_no_p (Lisp_Object);`
   pub fn do_yes_or_no_p (arg: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 5304: `extern int emacs_fstatat (int, char const *, void *, int);`
+  /// C: lisp.h 5303: `extern int emacs_fstatat (int, char const *, void *, int);`
   pub fn emacs_fstatat (dirfd: c_int, file: *const c_char, buf: *mut c_void, flag: c_int)
     -> c_int;
   /// C: lisp.h 5131: `extern char const *emacs_wd;` - emacs.c defines it, and `lisp.rs` does
@@ -1901,20 +1901,20 @@ DEFUN! ("file-name-case-insensitive-p", Ffile_name_case_insensitive_p,
 unsafe extern "C" fn memory_full_wrapper (size: usize) { memory_full (size) }
 
 unsafe extern "C" {
-  /// C: lisp.h 5327: `extern int emacs_renameat_noreplace (int, const char *, int, const char *);`
+  /// C: lisp.h 5328: `extern int emacs_renameat_noreplace (int, const char *, int, const char *);`
   pub fn emacs_renameat_noreplace (fd1: c_int, from: *const c_char, fd2: c_int,
 				   to: *const c_char) -> c_int;
-  /// C: lisp.h 5329: `extern int emacs_rename (const char *, const char *);`
+  /// C: lisp.h 5330: `extern int emacs_rename (const char *, const char *);`
   pub fn emacs_rename (from: *const c_char, to: *const c_char) -> c_int;
-  /// C: lisp.h 5324: `extern int emacs_symlink (const char *, const char *);`
+  /// C: lisp.h 5325: `extern int emacs_symlink (const char *, const char *);`
   pub fn emacs_symlink (target: *const c_char, linkname: *const c_char) -> c_int;
   /// C: lisp.h 5326: `extern int emacs_rmdir (const char *);`
   pub fn emacs_rmdir (file: *const c_char) -> c_int;
-  /// C: lisp.h 5325: `extern int emacs_mkdir (const char *, mode_t);`
+  /// C: lisp.h 5327: `extern int emacs_mkdir (const char *, mode_t);`
   pub fn emacs_mkdir (file: *const c_char, mode: mode_t) -> c_int;
-  /// C: lisp.h 5323: `extern int emacs_unlink (const char *);`
+  /// C: lisp.h 5324: `extern int emacs_unlink (const char *);`
   pub fn emacs_unlink (file: *const c_char) -> c_int;
-  /// C: lisp.h 5331: `extern ptrdiff_t emacs_write_quit (int, void const *, ptrdiff_t);`
+  /// C: lisp.h 5336: `extern ptrdiff_t emacs_write_quit (int, void const *, ptrdiff_t);`
   pub fn emacs_write_quit (fd: c_int, buf: *const c_void, nbyte: ptrdiff_t) -> ptrdiff_t;
   /// C: `<unistd.h>`: `ssize_t copy_file_range (int, off_t *, int, off_t *, size_t, unsigned int);`
   pub fn copy_file_range (infd: c_int, off_in: *mut off_t, outfd: c_int, off_out: *mut off_t,
@@ -2390,7 +2390,7 @@ unsafe extern "C" {
   pub fn adjust_overlays_for_delete (from: ptrdiff_t, to: ptrdiff_t);
   /// C: `<unistd.h>`: `extern void sync (void);`
   pub fn sync ();
-  /// C: lisp.h 5329: `extern int emacs_fchmodat (int, const char *, mode_t, int);`
+  /// C: lisp.h 5331: `extern int emacs_fchmodat (int, const char *, mode_t, int);`
   pub fn emacs_fchmodat (dirfd: c_int, file: *const c_char, mode: mode_t, flag: c_int)
     -> c_int;
 }
@@ -2976,10 +2976,10 @@ unsafe fn xlseek (fd: emacs_fd, pos: off_t, whence: c_int, filename: Lisp_Object
 pub const _PC_CASE_SENSITIVE: c_int = 11;
 
 unsafe extern "C" {
-  /// C: lisp.h 4836: `extern AVOID buffer_overflow (void);` - insdel.rs defines it, so the
+  /// C: lisp.h 4320: `extern AVOID buffer_overflow (void);` - insdel.rs defines it, so the
   /// declaration copies that definition's signature (no `-> !`).
   pub fn buffer_overflow ();
-  /// C: lisp.h 4833: `extern Lisp_Object quit (void);` - eval.rs defines it.
+  /// C: lisp.h 4786: `extern Lisp_Object quit (void);` - eval.rs defines it.
   pub fn quit () -> Lisp_Object;
   /// C: coding.h 684: `extern Lisp_Object code_conversion_save (bool, bool);`
   pub fn code_conversion_save (buffer: bool, multibyte: bool) -> Lisp_Object;
@@ -4466,7 +4466,7 @@ unsafe extern "C" {
   pub fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
   /// C: editfns.c's own definition (lisp.h 4939's `labeled_restrictions_*` family).
   pub fn labeled_restrictions_remove_in_current_buffer ();
-  /// C: lisp.h 5124: `extern AVOID memory_full (size_t);` - eval.rs defines it as `-> !`,
+  /// C: lisp.h 4432: `extern AVOID memory_full (size_t);` - eval.rs defines it as `-> !`,
   /// so this declaration copies that definition (no return type difference).
   pub fn memory_full (size: usize) -> !;
 }
@@ -5940,7 +5940,7 @@ pub unsafe extern "C" fn syms_of_fileio ()
 }
 
 unsafe extern "C" {
-  /// C: lisp.h 4630: `extern Lisp_Object merge (Lisp_Object, Lisp_Object, Lisp_Object);`
+  /// C: lisp.h 4265: `extern Lisp_Object merge (Lisp_Object, Lisp_Object, Lisp_Object);`
   pub fn merge (org_l1: Lisp_Object, l2: Lisp_Object, pred: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` - eval.rs
   /// defines it and `lisp.rs` carries no declaration.

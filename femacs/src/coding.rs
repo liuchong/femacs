@@ -70,7 +70,7 @@ include!("include/pdumper.rs");             // C 303: `#include "pdumper.h"`
    not carry them.  Each keeps C's own prototype in a `/// C:` line.  */
 
 unsafe extern "C" {
-  /// C: lisp.h 5268: `extern void make_gap_1 (struct buffer *, ptrdiff_t);`
+  /// C: lisp.h 4322: `extern void make_gap_1 (struct buffer *, ptrdiff_t);`
   fn make_gap_1 (b: *mut buffer, delta: ptrdiff_t);
   /// C: <string.h> `extern void *memset (void *, int, size_t);`
   fn memset (s: *mut c_void, c: c_int, n: size_t) -> *mut c_void;

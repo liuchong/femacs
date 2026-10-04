@@ -88,9 +88,9 @@ unsafe extern "C" {
   /// C: lisp.h 5297: `extern EMACS_INT get_random (void);` (sysdep.c defines it;
   /// `lisp.rs` mirrors 5298's `get_random_ulong` but not this line).
   fn get_random () -> EMACS_INT;
-  /// C: lisp.h 5298: `extern void seed_random (void *, ptrdiff_t);`
+  /// C: lisp.h 5299: `extern void seed_random (void *, ptrdiff_t);`
   fn seed_random (seed: *mut c_void, seed_size: ptrdiff_t);
-  /// C: lisp.h 5299: `extern void init_random (void);`
+  /// C: lisp.h 5300: `extern void init_random (void);`
   fn init_random ();
   /// C: lisp.h 5143: `void synchronize_system_time_locale (void);` — emacs.c defines it (the
   /// mirror is missing the line).
@@ -113,7 +113,7 @@ unsafe extern "C" {
   /// Lisp_Object must_suffix);` — lread.c defines it (the mirror is missing the line).
   fn load_with_autoload_queue (file: Lisp_Object, noerror: Lisp_Object, nomessage: Lisp_Object,
                                nosuffix: Lisp_Object, must_suffix: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4547: `extern void redisplay_preserve_echo_area (int);` (xdisp.c defines it;
+  /// C: dispextern.h 3589: `void redisplay_preserve_echo_area (int);` (xdisp.c defines it;
   /// the mirror is missing the line).
   fn redisplay_preserve_echo_area (from_where: c_int);
   /// C: lisp.h 4539: `extern Lisp_Object bool_vector_fill (Lisp_Object, Lisp_Object);` —
@@ -125,7 +125,7 @@ unsafe extern "C" {
   /// C: lisp.h 4403: `extern ptrdiff_t count_lines (ptrdiff_t start_byte, ptrdiff_t
   /// end_byte);` (indent.c defines it; the mirror is missing the line).
   fn count_lines (start_byte: ptrdiff_t, end_byte: ptrdiff_t) -> ptrdiff_t;
-  /// C: buffer.h 1795: `extern void nsberror (Lisp_Object);` (buffer.c defines it; the mirror
+  /// C: lisp.h 4938: `extern AVOID nsberror (Lisp_Object);` (buffer.c defines it; the mirror
   /// is missing the line).
   fn nsberror (spec: Lisp_Object) -> !;
   /// C: lisp.h 4685-4686: `extern Lisp_Object code_convert_string (Lisp_Object, Lisp_Object,

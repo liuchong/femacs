@@ -365,17 +365,17 @@ pub mod intervals_decls {
      belongs with its siblings here: the glob import is what lets the owner's definition win
      (PORTING.md 0.1-10/P-21).  */
   unsafe extern "C" {
-    /// C: intervals.h 241: `extern INTERVAL make_interval (void) ATTRIBUTE_RETURNS_NONNULL;`
+    /// C: intervals.h 247: `extern INTERVAL make_interval (void) ATTRIBUTE_RETURNS_NONNULL;`
     pub fn make_interval () -> INTERVAL;
   }
 
 
   unsafe extern "C" {
-    /// C: intervals.h 245: `extern INTERVAL create_root_interval (Lisp_Object);`
+    /// C: intervals.h 251: `extern INTERVAL create_root_interval (Lisp_Object);`
     pub fn create_root_interval (object: Lisp_Object) -> INTERVAL;
-    /// C: intervals.h 246: `extern void copy_properties (INTERVAL, INTERVAL);`
+    /// C: intervals.h 252: `extern void copy_properties (INTERVAL, INTERVAL);`
     pub fn copy_properties (source: INTERVAL, target: INTERVAL);
-    /// C: intervals.h 247: `extern bool intervals_equal (INTERVAL, INTERVAL);`
+    /// C: intervals.h 253: `extern bool intervals_equal (INTERVAL, INTERVAL);`
     pub fn intervals_equal (i0: INTERVAL, i1: INTERVAL) -> bool;
     /// C: intervals.h 248-250: `extern void traverse_intervals (INTERVAL, ptrdiff_t,
     /// void (*) (INTERVAL, void *), void *);`
@@ -393,7 +393,7 @@ pub mod intervals_decls {
     /// C: intervals.h 255: `extern INTERVAL split_interval_left (INTERVAL, ptrdiff_t)
     /// ATTRIBUTE_RETURNS_NONNULL;`
     pub fn split_interval_left (interval: INTERVAL, offset: ptrdiff_t) -> INTERVAL;
-    /// C: intervals.h 256: `extern INTERVAL find_interval (INTERVAL, ptrdiff_t);`
+    /// C: intervals.h 262: `extern INTERVAL find_interval (INTERVAL, ptrdiff_t);`
     pub fn find_interval (tree: INTERVAL, position: ptrdiff_t) -> INTERVAL;
     /// C: intervals.h 263: `extern INTERVAL next_interval (INTERVAL);`
     pub fn next_interval (interval: INTERVAL) -> INTERVAL;

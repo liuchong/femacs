@@ -149,7 +149,7 @@ unsafe extern "C" {
 /// insdel.c's two change recorders: lisp.h 4324 and 4330-4331 declare them and the mirror
 /// carries neither.
 unsafe extern "C" {
-  /// C: lisp.h 4324: `extern void record_change (ptrdiff_t, ptrdiff_t);`
+  /// C: lisp.h 5254: `extern void record_change (ptrdiff_t, ptrdiff_t);`
   pub fn record_change (from: ptrdiff_t, to: ptrdiff_t);
   /// C: lisp.h 4330-4331: `extern Lisp_Object del_range_1 (ptrdiff_t, ptrdiff_t, bool, bool);`
   pub fn del_range_1 (from: ptrdiff_t, to: ptrdiff_t, prepare: bool, retain_markers: bool)

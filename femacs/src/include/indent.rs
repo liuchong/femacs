@@ -89,7 +89,7 @@ pub mod indent_objs {
   use super::*;
 
   unsafe extern "C" {
-    /// C: indent.h 45: `extern ptrdiff_t last_known_column_point;`
+    /// C: indent.h 46: `extern ptrdiff_t last_known_column_point;`
     pub static mut last_known_column_point: ptrdiff_t;
   }
 }

@@ -102,16 +102,16 @@ unsafe extern "C" {
   pub fn push_handler (tag: Lisp_Object, type_: handlertype) -> *mut handler;
   /// C: lisp.h 4443: `extern void mark_memory (void const *start, void const *end);`
   pub fn mark_memory (start: *const c_void, end: *const c_void);
-  /// C: lisp.h 4420: `extern void mark_object (Lisp_Object);`
+  /// C: lisp.h 4436: `extern void mark_object (Lisp_Object);`
   pub fn mark_object (obj: Lisp_Object);
   /// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);`
   pub fn FUNCTIONP (o: Lisp_Object) -> bool;
-  /// C: lisp.h 4785: `extern Lisp_Object eval_sub (Lisp_Object);`
+  /// C: lisp.h 4801: `extern Lisp_Object eval_sub (Lisp_Object form);`
   pub fn eval_sub (form: Lisp_Object) -> Lisp_Object;
-  /// C: lisp.h 4808: `extern void set_internal (Lisp_Object, Lisp_Object, Lisp_Object, enum set_internal_bind);`
+  /// C: lisp.h 4206: `extern void set_internal (Lisp_Object, Lisp_Object, Lisp_Object, enum set_internal_bind);`
   pub fn set_internal (symbol: Lisp_Object, newval: Lisp_Object, r#let: Lisp_Object,
                        bindflag: Set_Internal_Bind);
-  /// C: lisp.h 4921: `extern void record_unwind_protect_excursion (void);`
+  /// C: lisp.h 4826: `extern void record_unwind_protect_excursion (void);`
   pub fn record_unwind_protect_excursion ();
 }
 

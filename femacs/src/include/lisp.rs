@@ -3198,7 +3198,7 @@ macro_rules! calln { ($($args:expr),* $(,)?) => { CALLN! (Ffuncall, $($args),*) 
 pub fn call0 (fn_: Lisp_Object) -> Lisp_Object { calln! (fn_) }
 
 
-/// C: lisp.h 4844: `extern Lisp_Object safe_funcall (ptrdiff_t, Lisp_Object*);` - the
+/// C: lisp.h 4845: `extern Lisp_Object safe_funcall (ptrdiff_t, Lisp_Object*);` - the
 /// error-catching callee `safe_calln` reaches.  It sits in a module with a glob import because
 /// `eval.c`'s port *defines* it, and a same-scope declaration would be E0428 against that
 /// definition (PORTING.md 0.1-10/P-21, the `keymap_decls` shape).  It has to be declared here
