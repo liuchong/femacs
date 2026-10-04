@@ -3522,3 +3522,35 @@
   ⑤ 读数：`gen-port-inventory` **590 files、done=560、wip=17、todo=13** 门全绿
   （`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-target-names`
   612/593/0、`layout-check` 87 of 98 镜像编译 + 11 平台独占跳过）。
+
+- **3.195 四个 `src/*.h` 平台头落地（`pgtkgui` / `textconv` / `w32gdiplus` / `xwidget`），并记下两条工具级发现（2026-10-04）**：
+  ① **实产**（`9e15167`，签名 `verified=true`，已推 `origin/master`）：四个镜像 + 四个台账，`--check` **4×OK**；
+  我按 lane 的报告写了 `macro-body-notes.tsv` **7 行**（`xwidget.h` 233-239 的单行 INLINE 定义——抽取器的 span 是整行，
+  于是 body 检查向 Rust 函数体索要函数自己的名字，与 `dispextern.rs` 113 的 `GLYPH_CHAR` 同类）并把
+  `have_xinput2`/`have_xinput2_4` 登记进 `[features]`（3.187 的表）。
+  ② **判据的亮点**：`pgtkgui.h` **自身没有任何 `#if`**——`#ifdef HAVE_PGTK` 在它的*包含者*里（`dispextern.h` 151-157、
+  `pgtkterm.h` 29），先包含 dispextern.h 再包含它会得到 typedef 重定义（`struct _GdkCursor *` vs `void *`）与
+  `NativeRectangle` 宏重定义，所以 GTK 半边挂 `have_pgtk`、冻结可见的记录（`XCharStruct` 20/4、`XRectangle` 16/4、
+  `XChar2b` 2/2、`Color`、`XrmDatabase`）带实测断言；`textconv.h` 的 `HAVE_ANDROID` 块是 14 条各自带 cfg 的声明
+  （就是我 3.192 修的形状）；`w32gdiplus.h` **整份没有 include guard**（C 1 就是 `#ifdef WINDOWSNT`）⇒ 全挂
+  `windowsnt`、照 C 写 Windows 名字、**不写布局断言**（本 target 没有 `<windows.h>` 可量）；`xwidget.h` 两个记录挂
+  `have_xwidgets`，`__OBJC__` 半边只记录不镜像。
+  ③ **它们的编译证据是 `layout-check` 而不是 `build-tu`**：头镜像当 crate root 编时看不到 `c_int`/`HAVE_PDUMPER`
+  （前者在 `lisp.rs` 的 `use std::ffi::…` 里、后者在单位的 `config.rs` 里），已入库的 `widget.h`/`w32font.h`/
+  `w32gui.h`/`nsxwidget.h`/`charset.h` 同样失败——这是那条命令的边界，不是这批文件的缺陷。
+  ④ **两条工具级发现**（都来自这条 lane，都不是它自己的文件）：**`layout-excluded-mirrors.txt` 的续行被当成文件名**
+  （`dispextern.rs` 因此被静默排除，见 3.196）；`xdisp.rs:1112` 用 `unreachable! ()` 表达 C 的"不可能到达"
+  ——检查器的 STUB_RE 会把它当桩，建议该 lane 改成 `emacs_abort ()`（`include/frame.rs` 240 的形状）。
+  ⑤ 读数：`gen-port-inventory` **590 files、done=560、wip=18、todo=12**；门全绿。
+
+- **3.196 修掉 `layout-check` 的静默跳过：一个真的镜像被一个假名字顶掉（2026-10-04）**：
+  ① **现象**（`2aad9aa`，签名 `verified=true`，已推 `origin/master`）：3.195 的 lane 发现跳过列表里出现
+  **`dispextern.rs`**，而排除文件**并没有**这一行。根因：排除文件允许"理由"续行（续行以空白开头），
+  而解析器对**每一行**都取"第一个空白分隔 token"——续行里的首个词于是变成了排除项：实测多出 `mirs`、`shadowed`、
+  `compile`、`live`、`` `error[E0428]: ` ``，以及 **`dispextern.rs`**（它在 `nsgui.rs` 的*理由正文*里被点名）。
+  **后果**：`dispextern.rs` 的布局断言**当轮根本没跑**——它是全树断言最多的镜像之一。
+  ② **修法**（两条件缺一不可）：排除项必须是**从第 1 列开始**的行，且首个 token **以 `.rs` 结尾**；续行因此归属上一行
+  （正是文件头写的规则）。修后实测：`layout-check: 89 of 99 mirror(s) compiled, 10 platform-exclusive skipped`
+  （修前 88/99、11 skipped）且 **passed** ⇒ `dispextern.rs` 的断言现在真的在跑并且成立。
+  ③ **教训**（与 3.153/3.185 同源）：**"把散文当数据"** 这类解析错误会让门**安静地少测一块**；凡是"台账/清单 → 代码"
+  的解析，都要对**形状**做约束（列位、后缀、类型），并在输出里**打印被排除/被跳过的集合**（这次正是那条打印救了它）。
