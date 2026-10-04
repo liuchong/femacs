@@ -2947,3 +2947,27 @@
   ⑤ 读数：`xdisp.rs` 8,393 行，`missing function` 208 条**全部**在结束边界 C 7562 之后（最早 C 7573
   `back_to_previous_line_start`）；五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、
   `check-verbatim` 4607/0、`check-target-names` 589 `.rs`/0）。
+
+- **3.170 `src/macfont.h` 进镜像（CoreFoundation 半边挂 macOS SDK 门）、一次排序冲突的中途处置（2026-10-04）**：
+  ① **交付**（`c8e52b3`）：`src/macfont.h`（88 行）→ `femacs/src/include/macfont.rs` + 台账。该头是 **Cocoa 字体后端**的
+  （`configure.ac` 2762 选 `macfont.o`，与 3.161 的 GNUstep `nsfont.m` 是同一处二选一），本目标上从头到尾不编译
+  （`HAVE_NS` 未定义、`src/macfont.c` 不在冻结构建源表、它点名的类型全部来自 CoreFoundation/CoreGraphics，本树无镜像）。
+  **形状是这轮的决定**：CoreFoundation 那半边**用 `#[cfg (feature = "macos_sdk")]` 承载**（P-51 的"非冻结侧"形态，
+  没有任何构建会打开它），并且**照 C 写 C 的名字**——`struct mac_glyph_layout` 的成员类型（`CFRange`/`CFIndex`/
+  `CGFloat`/`CGGlyph`）、三段 Core Text 枚举的成员与它们的 Core Text 取值、``CGContextSetFontSmoothingStyle`` 的
+  `CGContextRef`；理由是"在 macOS 目标上这些名字由 SDK 提供"，在这里一个字节都不编译（`layout-check` 看不到那段），
+  而写替身反而是把平台语义抹掉。**不写布局断言**（本目标没有编译器能量它，理由写进台账）。
+  冻结可见的那半边：三个文本宏写成**永不展开的 `macro_rules!`**（`CFSTR` 是 CoreFoundation 的、别名目标是 Core Text 的；
+  宏体不展开就不解析，`include-w32common.rs` 的 `ROUND_UP` 读法），`weak_import` 的
+  `CGContextSetFontSmoothingStyle` **记为偏差**（Rust 无此拼法，macOS 目标用 `dlsym` 解析）。
+  C 里**两臂各定义一次**的 `kCTFontTraitColorGlyphs` 由我写入 `macro-body-notes.tsv`（含"抽取器眼中的 C 值是两臂拼接"
+  这条实测理由）。`--check` **OK**；`check-cond-eval` 4 conditions/0 不一致；`layout-check` **passed**。
+  ② **一次排序冲突的中途处置**：Harvey 的 `src/include/sfntfont.rs`（在飞）有两处 `*mut glyph_string`，它
+  `include!` 了 `dispextern.rs` 想拿那条记录，而**那条记录还没有 owner 镜像**（Hilbert 在补）⇒ `layout-check` 红了两条
+  `E0425`。我把两处**临时降级成 `*mut c_void`** 并在文件头加 NOTE（写明是 dispextern.h 1362-1507 的 windowed 记录、
+  等 `include/dispextern.rs` 落地就改回具名），`layout-check` 恢复 **passed**；并已通知 Harvey：以它自己的版本为准，
+  但 `glyph_string` 落地后要把两处改回具名并同步台账。**这类"两个 lane 的依赖先后"是并发工作的常见摩擦，处置原则是：
+  降级用有据可查的 P-55/P-72③ 形态、NOTE 写清恢复条件、不许把降级当最终形状。**
+  ③ 读数：`gen-port-inventory` 590 files、**done=540、wip=20、todo=30**；五门绿（`check-declarations` 13/0、
+  `check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 596 `.rs`/0）；
+  `layout-check` passed；`check-swift-units` 0 new / 0 stale（macfont 的 39 条缺口已在 manifest 里当棘轮）。
