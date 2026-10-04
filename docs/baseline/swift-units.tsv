@@ -4,13 +4,10 @@
 # no longer matches as `stale`, and a missing C definition with no row as `new`).
 # Columns: <swift target>, <C definition>, <C source>, <reason>.
 swift	missing_c_definition	c_source	reason
+
 femacs/platform/macos/macfont.swift	mac_ctfont_get_glyph_for_cid	src/macfont.m	in the arm this target does not take (`USE_CT_GLYPH_INFO` is undefined, so macfont.m 3993-4066 is dead text); permanent
 femacs/platform/macos/macfont.swift	mac_font_copy_default_descriptors_for_language	src/macfont.m
 femacs/platform/macos/macfont.swift	mac_font_copy_default_name_for_charset_and_languages	src/macfont.m
-femacs/platform/macos/macfont.swift	mac_register_font_driver	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_get_nsctfont	src/macfont.m
-femacs/platform/macos/macfont.swift	syms_of_macfont	src/macfont.m
-femacs/platform/macos/macfont.swift	syms_of_macfont_for_pdumper	src/macfont.m
 femacs/platform/macos/nsfns.swift	all_nonzero_ascii	src/nsfns.m
 femacs/platform/macos/nsfns.swift	check_x_display_info	src/nsfns.m
 femacs/platform/macos/nsfns.swift	compute_tip_xy	src/nsfns.m

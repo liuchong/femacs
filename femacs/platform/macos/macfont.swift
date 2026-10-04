@@ -565,6 +565,20 @@ fileprivate var macfont_cache_dictionary: CFMutableDictionary? = nil
 func xrealloc(_ p: UnsafeMutableRawPointer?, _ size: Int) -> UnsafeMutableRawPointer?
 /// C: `AVOID memory_full_up (void)` (src/lisp.h 4433) - it does not return.
 @_silgen_name("memory_full_up") func memory_full_up() -> Never
+/// C: `void register_font_driver (struct font_driver const *, struct frame *)` (src/font.h 896,
+/// defined src/font.c) - the closure round's two ends (`mac_register_font_driver` and the
+/// pdumper hook) hand it the record.
+@_silgen_name("register_font_driver")
+func register_font_driver(_ driver: UnsafePointer<font_driver>?, _ f: UnsafeMutableRawPointer?)
+/// C: `void staticpro (Lisp_Object const *)` (src/lisp.h 3919) - `syms_of_macfont` protects
+/// `macfont_family_cache` with it (the shape nsselect.swift's `Vselection_alist` uses).
+@_silgen_name("staticpro") func staticpro(_ varaddress: UnsafePointer<Lisp_Object>?)
+/// C: `INLINE void pdumper_do_now_and_after_load (pdumper_hook)` (src/pdumper.h 92-99), the
+/// `pdumper_hook` being `void (*) (void)` (85) - the core's entry.
+@_silgen_name("pdumper_do_now_and_after_load")
+func pdumper_do_now_and_after_load(_ hook: (@convention(c) () -> Void)?)
+/// C: `INLINE bool dumped_with_pdumper_p (void)` (src/lisp.h 679-681).
+@_silgen_name("dumped_with_pdumper_p") func dumped_with_pdumper_p() -> Bool
 /// C: `Lisp_Object make_uninit_string (EMACS_INT)` (src/lisp.h 4563).
 @_silgen_name("make_uninit_string") func make_uninit_string(_ len: Int) -> Lisp_Object
 /// C: `Lisp_Object make_unibyte_string (const char *, ptrdiff_t)` (src/lisp.h 4544).
@@ -11067,3 +11081,233 @@ fileprivate let mac_uvs_table_adobe_japan1_bytes: [UInt8] = [
   0x89, 0x4f, 0x09,
   ]
 // gen-uvs-swift: end
+
+// ==========================================================================
+// Segment 4 (closure): the driver record, its export, and `syms_of_macfont`.
+// ==========================================================================
+
+/// C: `#define eassert(cond) ((void) (false && (cond)))` (src/lisp.h 181) - the argument must
+/// compile and is never evaluated (the arm the frozen build takes; the same fileprivate helper
+/// `nsimage.swift`/`nsmenu.swift`/`nsselect.swift` carry).
+@inline(__always)
+func eassert(_ cond: @autoclosure () -> Bool) {
+  _ = false && cond()
+}
+
+/// C: `void *macfont_get_nsctfont (struct font *font)` (src/macfont.m 4206-4213; declared
+/// src/macfont.h 83) - C hands back the `CTFontRef` the record holds as a borrowed `void *`
+/// (no ownership change), so the port passes it unretained.  The parameter is C's
+/// `struct font *`: `@_cdecl` cannot name a pointer to a Swift struct in a file that imports
+/// AppKit (the constraint the driver record's comment measures), so the entry takes the
+/// untyped pointer and the body reinterprets it once, exactly as the record's slots do.
+@_cdecl("macfont_get_nsctfont")
+func macfont_get_nsctfont(_ font: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer? {
+  let macfont_info = font!.assumingMemoryBound(to: macfont_info.self)
+  let macfont = macfont_info.pointee.macfont
+
+  return macfont == nil ? nil : UnsafeMutableRawPointer(Unmanaged.passUnretained(macfont!)
+    .toOpaque())
+}
+/// C: `struct font_driver` (src/font.h 589-821), the record `macfont_driver` is an instance
+/// of - the same windowed mirror `nsfont.swift` carries (one spelling once the nine files are
+/// one module, PORTING.md 0.1-5).  The core mirrors the frozen form (`femacs/src/font.rs` 266:
+/// `sizeof` 208, `draw`/`get_bitmap`/`free_bitmap` behind its `window_system` feature); this
+/// lane carries the **windowed** one because this file's target is the NS build - the sibling
+/// file measured it (`sizeof` 232, `type`@0, `case_sensitive`@8, `get_cache`@16, `list`@24,
+/// `match`@32, `list_family`@40, `free_entity`@48, `open_font`@56, `close_font`@64,
+/// `prepare_face`@72, `done_face`@80, `has_char`@88, `encode_char`@96, `text_extents`@104,
+/// `draw`@112, `get_bitmap`@120, `free_bitmap`@128, `anchor_point`@136, `otf_capability`@144,
+/// `otf_drive`@152, `start_for_frame`@160, `end_for_frame`@168, `shape`@176, `check`@184,
+/// `get_variation_glyphs`@192, `filter_properties`@200, `cached_font_ok`@208,
+/// `combining_capability`@216, `drop_xrender_surfaces`@224), and `HAVE_HARFBUZZ`'s
+/// `begin_hb_font`/`end_hb_font` (font.h 813-819) are absent, as on the frozen target.
+/// **Every pointer parameter of a slot is spelled `UnsafeMutableRawPointer?` even where this
+/// file does mirror the record**: in a file that imports AppKit (Objective-C interop), a
+/// `@convention(c)` function type requires Objective-C-representable parameter types, and a
+/// pointer to a Swift struct is not one - `@convention(c) (UnsafeMutablePointer<font>?) ->
+/// Void` is rejected outright (the measurement `nsfont.md` records).  The C prototype stays in
+/// each slot's comment, and the initialiser below reinterprets the pointer for the five entry
+/// points this file assigns (a pointer is a pointer; no behaviour sits in between).
+struct font_driver {
+  /// C: `Lisp_Object type;` (font.h 592) - `LISPSYM_INITIALLY (Qns)` in the initialiser.
+  var type: Lisp_Object
+  var case_sensitive: Bool
+  /// C: `Lisp_Object (*get_cache) (struct frame *f);` (font.h 600).
+  var get_cache: (@convention(c) (UnsafeMutableRawPointer?) -> Lisp_Object)?
+  /// C: `Lisp_Object (*list) (struct frame *, Lisp_Object);` (font.h 623).
+  var list: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object) -> Lisp_Object)?
+  /// C: `Lisp_Object (*match) (struct frame *, Lisp_Object);` (font.h 632).
+  var match: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object) -> Lisp_Object)?
+  /// C: `Lisp_Object (*list_family) (struct frame *);` (font.h 637).
+  var list_family: (@convention(c) (UnsafeMutableRawPointer?) -> Lisp_Object)?
+  /// C: `void (*free_entity) (Lisp_Object);` (font.h 641).
+  var free_entity: (@convention(c) (Lisp_Object) -> Void)?
+  /// C: `Lisp_Object (*open_font) (struct frame *, Lisp_Object, int);` (font.h 645-646).
+  var open_font: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object, Int32) -> Lisp_Object)?
+  /// C: `void (*close_font) (struct font *);` (font.h 649).
+  var close_font: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+  /// C: `void (*prepare_face) (struct frame *, struct face *);` (font.h 653) - `struct face`
+  /// has an owner mirror (`femacs/src/font.rs` 464) that is the *non-windowed* layout, so the
+  /// slot keeps the untyped pointer (the windowed form is what the deferred `nsfont_draw`
+  /// needs).
+  var prepare_face: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void)?
+  /// C: `void (*done_face) (struct frame *, struct face *);` (font.h 657).
+  var done_face: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Void)?
+  /// C: `int (*has_char) (Lisp_Object, int);` (font.h 663).
+  var has_char: (@convention(c) (Lisp_Object, Int32) -> Int32)?
+  /// C: `unsigned (*encode_char) (struct font *, int);` (font.h 667).
+  var encode_char: (@convention(c) (UnsafeMutableRawPointer?, Int32) -> UInt32)?
+  /// C: `void (*text_extents) (struct font *, const unsigned *, int, struct font_metrics *);`
+  /// (font.h 672-673).
+  var text_extents: (@convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt32>?, Int32,
+                                     UnsafeMutableRawPointer?) -> Void)?
+  /// C: `int (*draw) (struct glyph_string *, int, int, int, int, bool);` (font.h 683-684) -
+  /// `struct glyph_string` has no owner mirror (see `## Deferred`), so its slot keeps the
+  /// untyped form.
+  var draw: (@convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32, Int32, Bool) -> Int32)?
+  /// C: `int (*get_bitmap) (struct font *, unsigned, struct font_bitmap *, int);` (font.h
+  /// 690-691).
+  var get_bitmap: (@convention(c) (UnsafeMutableRawPointer?, UInt32,
+                                   UnsafeMutableRawPointer?, Int32) -> Int32)?
+  /// C: `void (*free_bitmap) (struct font *, struct font_bitmap *);` (font.h 696).
+  var free_bitmap: (@convention(c) (UnsafeMutableRawPointer?,
+                                     UnsafeMutableRawPointer?) -> Void)?
+  /// C: `int (*anchor_point) (struct font *, unsigned, int, int *, int *);` (font.h 704-705).
+  var anchor_point: (@convention(c) (UnsafeMutableRawPointer?, UInt32, Int32,
+                                     UnsafeMutablePointer<Int32>?,
+                                     UnsafeMutablePointer<Int32>?) -> Int32)?
+  /// C: `Lisp_Object (*otf_capability) (struct font *);` (font.h 713).
+  var otf_capability: (@convention(c) (UnsafeMutableRawPointer?) -> Lisp_Object)?
+  /// C: `int (*otf_drive) (struct font *, Lisp_Object, Lisp_Object, int, int, Lisp_Object,
+  /// int, bool);` (font.h 734-735).
+  var otf_drive: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object, Lisp_Object, Int32,
+                                  Int32, Lisp_Object, Int32, Bool) -> Int32)?
+  /// C: `int (*start_for_frame) (struct frame *);` (font.h 742).
+  var start_for_frame: (@convention(c) (UnsafeMutableRawPointer?) -> Int32)?
+  /// C: `int (*end_for_frame) (struct frame *);` (font.h 747).
+  var end_for_frame: (@convention(c) (UnsafeMutableRawPointer?) -> Int32)?
+  /// C: `Lisp_Object (*shape) (Lisp_Object, Lisp_Object);` (font.h 765).
+  var shape: (@convention(c) (Lisp_Object, Lisp_Object) -> Lisp_Object)?
+  /// C: `int (*check) (struct frame *, struct font *);` (font.h 771).
+  var check: (@convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?) -> Int32)?
+  /// C: `int (*get_variation_glyphs) (struct font *, int, unsigned *);` (font.h 778-779).
+  var get_variation_glyphs: (@convention(c) (UnsafeMutableRawPointer?, Int32,
+                                              UnsafeMutablePointer<UInt32>?) -> Int32)?
+  /// C: `void (*filter_properties) (Lisp_Object, Lisp_Object);` (font.h 787).
+  var filter_properties: (@convention(c) (Lisp_Object, Lisp_Object) -> Void)?
+  /// C: `bool (*cached_font_ok) (struct frame *, Lisp_Object, Lisp_Object);` (font.h 792-793).
+  var cached_font_ok: (@convention(c) (UnsafeMutableRawPointer?, Lisp_Object,
+                                       Lisp_Object) -> Bool)?
+  /// C: `Lisp_Object (*combining_capability) (struct font *);` (font.h 799).
+  var combining_capability: (@convention(c) (UnsafeMutableRawPointer?) -> Lisp_Object)?
+  /// C: `void (*drop_xrender_surfaces) (struct frame *);` (font.h 805).
+  var drop_xrender_surfaces: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?
+}
+/// C: `static struct font_driver macfont_driver = { … };` (src/macfont.m 1765-1791).  Swift
+/// cannot emit a C data symbol (`@_cdecl` refuses `var`), so the record lives in a Swift global
+/// at a process-stable address - C's `static` storage, which is never freed either - and the
+/// **export** of the `macfont_driver` name is the getter at the end of this block.  The
+/// initialiser keeps C's order; the members C leaves unmentioned are zero, so `nil` is C's
+/// value for them (`case_sensitive` and the nine capability slots included).  Five slots hold
+/// Swift functions whose pointer parameters `@convention(c)` cannot name (`close_font`,
+/// `encode_char`, `text_extents`, `draw`, `get_variation_glyphs`), so those five are the
+/// one-time reinterpretations the record's comment describes.
+fileprivate let macfont_driver: UnsafeMutablePointer<font_driver> = {
+  let p = UnsafeMutablePointer<font_driver>.allocate(capacity: 1)
+
+  p.initialize(to: font_driver(
+    type: Qmac_ct(),
+    case_sensitive: false,
+    get_cache: macfont_get_cache,
+    list: macfont_list,
+    match: macfont_match,
+    list_family: macfont_list_family,
+    free_entity: macfont_free_entity,
+    open_font: macfont_open,
+    // C: `&macfont_close`; the value only reinterprets the pointer parameter `@convention(c)`
+    // cannot name (see the record's comment).
+    close_font: { f in macfont_close(f?.assumingMemoryBound(to: font.self)) },
+    prepare_face: nil,
+    done_face: nil,
+    has_char: macfont_has_char,
+    encode_char: { f, c in macfont_encode_char(f?.assumingMemoryBound(to: font.self), c) },
+    text_extents: { f, code, n, metrics in
+      macfont_text_extents(f?.assumingMemoryBound(to: font.self), code, n,
+                           metrics?.assumingMemoryBound(to: font_metrics.self))
+    },
+    draw: { s, from, to, x, y, with_background in
+      macfont_draw(s?.assumingMemoryBound(to: glyph_string.self), from, to, x, y,
+                   with_background)
+    },
+    get_bitmap: nil,
+    free_bitmap: nil,
+    anchor_point: nil,
+    otf_capability: nil,
+    otf_drive: nil,
+    start_for_frame: nil,
+    end_for_frame: nil,
+    shape: macfont_shape,
+    check: nil,
+    get_variation_glyphs: { f, c, variations in
+      macfont_variation_glyphs(f?.assumingMemoryBound(to: font.self), c, variations)
+    },
+    filter_properties: macfont_filter_properties,
+    cached_font_ok: nil,
+    combining_capability: nil,
+    drop_xrender_surfaces: nil))
+
+  return p
+}()
+/// C: `void mac_register_font_driver (struct frame *f)` (src/macfont.m 4215-4219; declared
+/// src/macfont.h 82).  C's `&macfont_driver` is a call to this file's getter entry - the one
+/// spelling for that expression `macfont_open` (2701) already uses, kept uniform after the
+/// record landed (the Rust side writes its own `&macfont_driver` the same way).
+@_cdecl("mac_register_font_driver")
+func mac_register_font_driver(_ f: UnsafeMutableRawPointer?) {
+  let driver = macfont_driver_address()!.assumingMemoryBound(to: font_driver.self)
+
+  register_font_driver(UnsafePointer(driver), f)
+}
+
+/// C: `void syms_of_macfont (void)` (src/macfont.m 4225-4246; declared src/font.h 986).
+@_cdecl("syms_of_macfont")
+func syms_of_macfont() {
+  /* C: `DEFSYM (Qmac_ct, "mac-ct")` (4228), `DEFSYM (QCdestination, ":destination")` (4236) and
+     `DEFSYM (QCminspace, ":minspace")` (4239).  `#define DEFSYM(sym, name) /* empty */`
+     (src/lisp.h 2394) is only a marker for make-docfile, so the three call sites carry no
+     statement; the symbols come from the generated globals, and this file's own three are the
+     ones the core has to export (the ledger's `## ABI` (2)c).  */
+
+  macfont_family_cache = Qnil()
+  staticpro(&macfont_family_cache)
+
+  pdumper_do_now_and_after_load(syms_of_macfont_for_pdumper)
+}
+
+/// C: `syms_of_macfont_for_pdumper` (src/macfont.m 4248-4260), the hook `syms_of_macfont`
+/// hands to `pdumper_do_now_and_after_load`; C's `eassert (NILP (macfont_family_cache))` is the
+/// disabled-arm helper above (the else branch of `dumped_with_pdumper_p ()`).
+fileprivate func syms_of_macfont_for_pdumper() {
+  if dumped_with_pdumper_p() {
+    macfont_family_cache = Qnil()
+  } else {
+    eassert(NILP(macfont_family_cache))
+  }
+
+  macfont_driver.pointee.type = Qmac_ct()
+  let driver = macfont_driver_address()!.assumingMemoryBound(to: font_driver.self)
+  register_font_driver(UnsafePointer(driver), nil)
+}
+
+/// The C data symbol `macfont_driver` (src/macfont.m 1765) as a **getter**: a `static` data
+/// symbol Swift cannot emit, so - the route rc 3.166/3.220 (decision 2) adopted, the one
+/// `nsfont.swift`'s `nsfont_driver` entry already takes - the export is a function of the
+/// variable's **own C name** returning its address.  The Rust side writes C's
+/// `register_font_driver (&macfont_driver, f)` and src/nsfns.m's two `&macfont_driver` sites as
+/// calls to this entry, and this file's own two sites do the same.  The address is the process
+/// -stable one the record is allocated at, and nothing frees it, exactly as C's `static`
+/// storage is never freed.
+@_cdecl("macfont_driver")
+func macfont_driver_getter() -> UnsafeMutableRawPointer? {
+  UnsafeMutableRawPointer(macfont_driver)
+}
