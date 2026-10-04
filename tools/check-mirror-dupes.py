@@ -51,14 +51,76 @@ ITEM_DECL = re.compile(r"^(?:pub\s+)?(?:static\s+mut\s+|const\s+)([A-Za-z]\w*)\s
 # nothing and silently answers calls that C answers with the function.  `BUF_BEGV! (buf)` read
 # the raw field while the mirror's `BUF_BEGV (buf)` honours current_buffer and begv_marker, and
 # no declaration gate could see it, because neither side was a redeclaration of the other.
+ATTRIBUTE = re.compile(r"#\[.*?\]", re.S)
 MACRO_DECL = re.compile(r"^\s*macro_rules!\s*([A-Za-z_]\w*)")
 
 
+def code_only(text: str) -> str:
+    """`text` with comments and string literals removed.
+
+    The block text handed to `declarations_in` carries C prototypes in comments
+    (`/* struct tm *localtime (time_t const *);  */`), and a `;` inside one of those comments
+    splits a declaration away from its own `fn` (measured: it dropped `localtime`, `mktime`,
+    `timegm`, `tzset` and `strftime` from include/time.in.rs when the collection became
+    block-wise, status 3.362).  Strings are dropped for the same reason (`link_name = "…"`).
+    """
+    out: list[str] = []
+    i, n, depth = 0, len(text), 0
+    while i < n:
+        if depth == 0 and text.startswith("//", i):
+            j = text.find("\n", i)
+            i = n if j < 0 else j
+            continue
+        if text.startswith("/*", i):
+            depth += 1
+            i += 2
+            continue
+        if depth and text.startswith("*/", i):
+            depth -= 1
+            i += 2
+            continue
+        if depth:
+            i += 1
+            continue
+        ch = text[i]
+        if ch == '"':
+            i += 1
+            while i < n and text[i] != '"':
+                i += 2 if text[i] == "\\" else 1
+            i += 1
+            continue
+        if ch == "'":
+            # A *lifetime* is a `'` followed by an identifier, and treating it as a char
+            # literal would eat everything up to the next `'` (measured: it swallowed a whole
+            # extern block's declarations).  Only a quoted single character is skipped.
+            if i + 2 < n and text[i + 2] == "'":
+                i += 3
+            elif i + 3 < n and text[i + 1] == "\\" and text[i + 3] == "'":
+                i += 4
+            else:
+                out.append(ch)
+                i += 1
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
 def declarations_in(text: str, scope: str, out: dict[str, list[str]]) -> None:
-    """Collect the bodyless `fn` declarations in one run of extern-block text."""
-    for segment in text.split(";")[:-1]:          # only segments a `;` terminated
+    """Collect the bodyless `fn` declarations in one extern block's text.
+
+    The argument is the *whole* block, not one line: a signature may be wrapped, and
+    `pub fn row_containing_pos (w: *mut window, charpos: ptrdiff_t,` carries no `;` while its
+    continuation does not start with `fn`, so a per-line split cannot see it (status 3.362
+    measured exactly that on the addition 3.357 made to include/dispextern.rs).
+    """
+    for segment in code_only(text).split(";")[:-1]:   # only segments a `;` terminated
         if "}" in segment:
             continue                              # the block closed before this segment
+        # An attribute line belongs to the item under it (`#[link_name = "fclose"]` before the
+        # declaration it renames, charsets.rs's `emacs_fclose`), and with the block-wise text it
+        # sits at the head of the same segment.
+        segment = ATTRIBUTE.sub("", segment)
         m = FN_DECL.match(segment.strip())
         if m:
             out.setdefault(scope, []).append(m.group(1))
@@ -84,6 +146,8 @@ def scan(path: Path) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
     text = path.read_text(encoding="utf-8", errors="replace")
     stack: list[tuple[str, int]] = []             # (module name, brace depth at entry)
     extern_depth: int | None = None
+    extern_buf: list[str] = []                    # the current extern block's text
+    extern_scope = ""
     depth = 0
     prev_item_line = ""
     for raw in text.split("\n"):
@@ -105,8 +169,9 @@ def scan(path: Path) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
             if m_open:
                 extern_depth = depth + line[:m_open.start()].count("{") - line[:m_open.start()].count("}")
                 cut = m_open.end()
+                extern_buf, extern_scope = [], scope
         if extern_depth is not None and not gated:
-            declarations_in(line[cut:], scope, out)
+            extern_buf.append(line[cut:])
         else:
             # A `const`/`static` item at this level: the mirror's copy is textually in
             # scope, so a unit keeping its own is the same duplicate (status 3.83).
@@ -120,7 +185,9 @@ def scan(path: Path) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
         while stack and depth <= stack[-1][1]:
             stack.pop()
         if extern_depth is not None and depth <= extern_depth:
+            declarations_in("\n".join(extern_buf), extern_scope, out)
             extern_depth = None
+            extern_buf = []
     return fns, consts, macros
 
 
@@ -242,6 +309,18 @@ SELFTEST = (
     ("cfg-gated mirror const does not count",
      'include!("include/m.rs");\npub const EDOM: c_int = 33;',
      '#[cfg (feature = "x")]\npub const EDOM: c_int = 33;', 0),
+    # The two shapes status 3.362 taught it: a signature wrapped over lines carries no `;` on
+    # the first one and its continuation does not begin with `fn`, and an attribute line sits at
+    # the head of the segment the declaration is in.
+    ("a wrapped declaration counts",
+     'include!("include/m.rs");\nunsafe extern "C" { fn foo (\n  x: c_int); }',
+     'unsafe extern "C" { pub fn foo (\n  x: c_int); }', 1),
+    ("an attribute does not hide the declaration",
+     'include!("include/m.rs");\nunsafe extern "C" {\n  #[link_name = "bar"]\n  fn foo ();\n}',
+     'unsafe extern "C" { pub fn foo (); }', 1),
+    ("a comment carrying a semicolon does not split a declaration off",
+     'include!("include/m.rs");\nunsafe extern "C" {\n  /* int foo (int);  */\n  fn foo (x: c_int);\n}',
+     'unsafe extern "C" { pub fn foo (x: c_int); }', 1),
 )
 
 

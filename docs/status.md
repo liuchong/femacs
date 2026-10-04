@@ -5848,3 +5848,29 @@
      以及**这一大类的第一件** `src/androidmenu.c`(860 行，全 `have_android` 门、有 NDK 可翻臂编译)——它是 P-86 的模板件。
   ④ **未声称**：P-86 只是**规则**，这一类的 246,438 行**一行都还没落**；`588 done` 的口径不变；Haiku/Windows/GTK/PGTK
      那部分在拿到对应工具链之前只能 `text-only`，我不会把它写成"已验证"。
+
+- **3.362 重名门的一个真盲区：**换行写的声明**它看不见——修掉，并把 3.357 那条解释改正（2026-10-05）**：
+  ① **先改正 3.357⑤ 的说法**：那条写的是"镜像里 crate-root 的 `extern "C"` 声明与单元声明重复时门不绑"。**实测推翻了它**：
+     `visible_declarations` **本来就会**数镜像顶层与 glob 模块里的声明（`blank_row` 一行写法当时就在集合里）。真正的原因是两条：
+     ⑴ 我第一版写的是 `extern "C" {`（**没有 `unsafe`**）——门的 `EXTERN_OPEN` 只认 `unsafe extern "C" {`（而 build 也正因为这条直接报
+     `extern blocks must be unsafe`）；⑵ **真盲区是"换行写的签名"**：`pub fn row_containing_pos (w: *mut window, charpos: ptrdiff_t,`
+     这一行没有 `;`，续行又不以 `fn` 开头，而收集器是**逐行** `split(";")` 的 ⇒ 这类声明（以及 `#[link_name = "…"]` 这种
+     **属性行在前**的声明，如 charset.rs 的 `emacs_fclose`）它对两侧都看不见。
+  ② **修法**：收集器改成**按整个 `extern` 块**取文本（不再逐行），并且对块文本先做
+     `code_only()`——去 `//`、去可嵌套的 `/* */`、去字符串字面量、**把 `'a` 当生命周期而不是字符字面量**（第一版把生命周期当
+     字符字面量会吞掉整块）、再逐段去掉 `#[…]` 属性；然后 `split(";")` 匹配 `fn NAME (`。**为什么要去注释**：镜像里的 C 原型注释
+     `/* struct tm *localtime (time_t const *);  */` **自带分号**，块内直接 split 会把声明与它自己的 `fn` 劈开——实测一次丢掉
+     `localtime`/`mktime`/`timegm`/`tzset`/`strftime` 五条覆盖，所以这条不是可选的。
+  ③ **判据（新旧对拍，不是感觉）**：把 HEAD 版与新版的 `findings()` 各自跑一遍取集合：**旧 18 条 ⊆ 新 27 条**，
+     "丢 0 条、增 9 条"；`--selftest` 从 9 例加到 **12 例**（新增：换行声明要算、属性行不遮蔽声明、注释里的分号不许把声明劈开），
+     12 例 0 失败。门现在读 **`27 duplicate declaration(s), 27 ratchet row(s), 0 failure(s)`**。
+  ④ **新出现的 9 条都是真债**（P-26 要删的单元副本，此前对门不可见），已按工具自己的机制写进棘轮并**逐条给出可执行的处置**：
+     `mini-gmp.rs fwrite`、`keyboard.rs get_property_and_range`、`lread.rs record_unwind_protect_int`、
+     `marker.rs build_marker`、`window.rs vmotion` 这 **5 条两侧拼法不同**（删副本要把调用点强转，理由里带着两份签名的原文）；
+     `doprnt.rs xpalloc`、`font.rs composition_gstring_put_cache`、`keyboard.rs get_char_property_and_overlay`、
+     `lread.rs record_unwind_protect_ptr` 这 **4 条拼法相同**（删副本 + `build-tu` + `--check` 即可）。**本轮只登记不删**
+     （每条删除都要一次 `build-tu`，按"不要频繁编译"留作下一件的工单）。
+  ⑤ **一个值得记的规律（本会话第三次）**：`gate 说绿 / build 说红` 这一对已经教了三件事——3.326 的宏命名空间、
+     3.357 的 `E0428`、本条的门盲区。**结论不是"门不可靠"，而是"门的读数要按它自己的口径读"**：这次的绿是"它看得见的那部分没有重复"，
+     而它看不见"换行写的一行声明"。
+  ⑥ **未声称**：9 条重复**仍在**（棘轮行是债的记录，不是清偿）；`E0428` 那一类**能编译所以不阻塞**，但 P-26 的一构造一拼法仍未达成。
