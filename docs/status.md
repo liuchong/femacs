@@ -3893,3 +3893,26 @@
   `@PLACEHOLDER@` 与 guard 条件，且**根因可测**：模板文本里还带 `@` 时 clang 根本判不了探针
   （`error: missing ')' after 'defined'`），所以那一件的判据是**生成头**而不是对拍；修正前的第十条是
   C 25 的 `#if __GNUC__ >= 3`，正是 3.202 修掉的那一行。两份都是 intprops lane 交回的更正，集成者重测后入库（`2c22229`）。
+
+- **3.214 `lib/cdefs.h` 落地：转录交给一个入库的工具，活臂按实测决定（2026-10-04）**：
+  ① **形状**：900 行里 125 个 `#define`、**83 个名字带不止一支**（每个编译器一族），文本本身没有判断可抄，
+  所以转录是机械的、可重跑的：新增 `tools/gen-cdefs-mirror.py`（`--reference emacs/lib/cdefs.h --dM <clang -dM 输出>`），
+  规则写进它的 docstring 也抄进镜像头部：续行合并、块注释丢弃、C 的参数名改成 Rust 元变量、`...` → `$($va:tt)*`、
+  `__VA_ARGS__` → `$($va)*`、**C 的整数后缀剥掉**（Rust 没有 `1ULL`）、**`##` 写成两个带空格的 `#`**
+  （Rust 既禁 multi-hash token，也禁"标识符紧跟 `#`"——实测 `__nldbl_##name` 报
+  `error: prefix \`__nldbl_\` is unknown`），**clang 活的那一支不带 `#[cfg]`**、其余每支挂
+  `#[cfg (feature = "<按它自己的条件生成的 slug>")]` 并把条件原文写在条目上方（Rust 会解析被 cfg 掉的宏臂，
+  所以整头都在文件里、每个名字只编一支——P-51 的形状）。
+  ② **活臂是实测的**：本 target 没有 `<features.h>`（实测 `fatal error: 'features.h' file not found`），
+  cdefs.h 的到达路径是 `lib/libc-config.h` C 181 的 `#include <cdefs.h>`，所以探针是带 config.h 与
+  libc-config.h 的 `clang -dM -E`（exit 0，1467 条 `#define`），每一支与"它之下存活的那个定义"对拍。
+  `check-cond-eval.py lib/cdefs.h` 给 `85 conditions, 9 unknown, 30 disagreements [NOT VERIFIED]`——
+  不一致全是 `__has_attribute`/`__has_builtin`/`__GNUC_PREREQ` 这一族（配置表不建模的编译器能力），
+  所以臂是**带**而不是**判**出来的。
+  ③ **门**：`--check` → **OK**（122 宏 + 常量 `_SYS_CDEFS_H`/`__LDBL_COMPAT`；80 个名字多支、门只要求在场，
+  另外 42 个单定义的 body 逐 token 比）。唯一需要的一条 body note 是 `__fortify_clang_bos_static_lt_impl` 的 `ull`
+  （C 的 `-1ULL`，已进 `docs/ports/macro-body-notes.tsv`）。**编译证据最强的一件**：`build-tu lib/cdefs.h` →
+  `built lib/include/cdefs.rs`（镜像自成一编译单元；它目前没有消费者——`rg -l cdefs emacs/` 只有
+  `lib/libc-config.h`，其 Rust 侧自己声明要用的名字）。门：`check-mirror-dupes` 1/1/0、`check-declarations` 13/0。
+  ④ 读数：`gen-port-inventory` **590 files、done=578、wip=10、todo=2**（由 577/10/3 推进一格；
+  只剩 `lib/stdcountof.in.h`(124) 与 `src/xterm.h`(2,045)，后者在 Poincare lane 手里）。
