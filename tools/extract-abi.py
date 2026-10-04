@@ -160,6 +160,11 @@ MACRO_TOKEN_SKIP = {
 # all (C needs them for declarations and casts, Rust often infers), so they are skipped on
 # both sides of a body comparison.  Procedure names, field names and literals still count.
 MACRO_TOKEN_SKIP |= {
+    # C's fixed-width integer names are the same class as the Rust spellings already listed
+    # below (`u8`/`i64`/...): the two languages name one type differently, so a body that omits
+    # the declaration keeps matching (status 3.304; requested by the xterm lane, which was
+    # writing a bookkeeping line at each site instead).
+    "int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t",
     "lisp_object", "emacs_int", "emacs_uint", "lispsym_count", "ptrdiff_t", "size_t",
     "intmax_t", "uintmax_t", "intptr_t", "uintptr_t", "bits_word", "modiff_count",
     "specpdl_ref", "c_int", "c_uint", "c_char", "usize", "isize", "i64", "u64", "i32",
