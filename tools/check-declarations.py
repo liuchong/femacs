@@ -39,6 +39,13 @@ source, scanned for the first three classes and exempt from the fourth:
            wherever it is written, so it belongs in docs/status.md and the
            file's ledger, never in the ported unit (status 3.90, 3.100).
 
+`docs/ports/*.md` - the per-unit ledgers - are scanned too, for the `decl`,
+`version` and `title` classes (`recital` never: a ledger is the *sanctioned* home
+for a licence remark, status 3.90/3.100).  A ledger quotes C, so it is exactly
+where the reference's opening block or its version parenthetical can come back
+without a ported unit ever carrying it; 3.100 found `lib-src/hexl.rs` doing that
+in a tree no gate read, and a ledger is that tree's successor.
+
 Every site, of every class, must be named in
 `docs/baseline/declarations-allowlist.tsv` with a reason, the way
 `symbol-pending.txt` counts a deviation instead of hiding it; the four classes
@@ -73,6 +80,12 @@ SCAN_DIRS = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/exec", "femac
 # its own comments and is outside it (a licence remark about this repository belongs in
 # docs/status.md and the ledger, never in a ported unit).
 RECITAL_TREES = SCAN_DIRS[:-1]
+# The ledgers of our own (see the module docstring).  Markdown has no literals, so only the
+# three prose classes can be re-introduced there, and a quoted C string that carries the
+# product name is prose in this tree, not ported semantics - the ported unit is where the
+# literal lives and where it is allowlisted.
+DOC_DIRS = ("docs/ports",)
+DOC_CLASSES = ("decl", "version", "title")
 ALLOWLIST = REPO / "docs/baseline/declarations-allowlist.tsv"
 
 # The prose every copied declaration block contains, and that no port file may
@@ -260,6 +273,14 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
                 klass = classify(k, c, recital=not rel.startswith("femacs/xtask/"))
                 if klass:
                     out.append((rel, klass, snippet))
+    for base in DOC_DIRS:
+        for path in sorted((root / base).rglob("*.md")):
+            rel = path.relative_to(root).as_posix()
+            text = path.read_text(encoding="utf-8", errors="replace")
+            for raw_line in text.split("\n"):
+                klass = classify("", raw_line, recital=False)
+                if klass in DOC_CLASSES:
+                    out.append((rel, klass, " ".join(raw_line.split())[:240]))
     return out
 
 
@@ -336,6 +357,30 @@ SELFTEST = (
 )
 
 
+SELFTEST_DOC = (
+    # The doc shape: Markdown has no literals, so a quoted C string is prose here.
+    ("ledger quotes the copied block",
+     "> This file is part of GNU Emacs.\n> Copyright (C) 2026 Free Software Foundation, Inc.",
+     ["decl", "title"]),
+    ("ledger quotes the removed version line",
+     "`// femacs: port of src/x.c @ fd7afced403 (GNU Emacs 32.0.50).`", ["version"]),
+    ("ledger quotes a C docstring", "- doc-directory: `Directory containing the DOC file that comes with GNU Emacs.`",
+     ["title"]),
+    ("ledger provenance note", "`// femacs: port of lib/x.c @ fd7afced403 (gnulib).`", []),
+    ("ledger licence remark stays a ledger's own", "| licence | the reference block is not carried |", []),
+    ("ledger names the reference's revision", "the checkout at `fd7afced403`", []),
+)
+
+
+def findings_markdown(text: str) -> list[tuple[str, str, str]]:
+    out = []
+    for raw_line in text.split("\n"):
+        klass = classify("", raw_line, recital=False)
+        if klass in DOC_CLASSES:
+            out.append(("<md>", klass, " ".join(raw_line.split())[:240]))
+    return out
+
+
 def selftest() -> int:
     bad = 0
     for name, source, want in SELFTEST:
@@ -343,7 +388,12 @@ def selftest() -> int:
         ok = got == sorted(want)
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
         bad += 0 if ok else 1
-    print(f"{len(SELFTEST)} cases, {bad} failures")
+    for name, source, want in SELFTEST_DOC:
+        got = sorted({k for _, k, _ in findings_markdown(source)})
+        ok = got == sorted(want)
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
+        bad += 0 if ok else 1
+    print(f"{len(SELFTEST) + len(SELFTEST_DOC)} cases, {bad} failures")
     return 1 if bad else 0
 
 

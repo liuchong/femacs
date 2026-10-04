@@ -4004,3 +4004,58 @@
   ④ **`nsmenu` 入库（Swift）**：`nsmenu.swift`（90,744 字节）+ `docs/ports/nsmenu.md`；台账记着决定它形态的事实——**`src/nsmenu.m` 不在冻结配置的编译清单里**（`docs/baseline/frozen-build-sources.txt`），所以端口是"承载该 target 的文本"而不是提供可编译单元。`swiftc -parse-as-library -c` exit 0；`check-swift-units` 对它 0 行（该门报的 **140 条 new 全在 `nsterm.swift`**，即 nsterm lane 的在飞剩余量）。
   ⑤ **`font.h` 的裁决与实测数字**：lane 发现"6 个类型被延期"（正是 ③ 的机制），并把探针卡在 flags 上；我把探针跑通并把数字交给它（`clang -std=gnu23 -O0 -I build/emacs-ref/lib -idirafter spikes/shim -I build/emacs-ref/src -I emacs/src -I emacs/lib`，探针 `/tmp/font_records_probe.c`）：`font_spec` **112**/align 8（header@0、props@8，`FONT_SPEC_MAX` 13）、`font_entity` **120**/8（props@8，`FONT_ENTITY_MAX` 14）、`font_metrics` **10**/2（lbearing@0、rbearing@2、width@4、ascent@6、descent@8）、`font_bitmap` **40**/8（bpp@0、rows@4、width@8、pitch@12、buffer@16、left@24、top@28、advance@32）、`font_driver_list` **24**/8（on@0、driver@8、next@16）、`font_driver` **208**/8（type@0、get_cache@16、list@24、match@32、close_font@64、text_extents@104、otf_capability@120、shape@152、check@160、cached_font_ok@184、combining_capability@192；它的 `draw`/`get_bitmap`/`free_bitmap` 在 `#ifdef HAVE_WINDOW_SYSTEM` 里、本 target 不存在）。**裁决**：按"记录先落（带实测断言）、函数后落、最后一次性勾框"推进，`font_driver` 单独一段。`font_driver` 的 208/`close_font`@64 与树里 `alloc.rs` 的局部探针一致，可互证。
   ⑥ 读数：`--check dispextern.h` 104 行、`--check font.h` 16 行（台账 39/55）；`build-tu src/{font,bidi}.c` built；`layout-check passed`；`check-mirror-dupes` 1/1/0；`dead-arms` **337 units 全绿**（3.223）；`extract-abi --all` 586 done / 4 in progress / 0 failing。
+
+- **3.226 产品名声明这条长期指令的当轮复算，门的覆盖推到台账；`gate-fast` 第三次重跑的唯一红行（undef）按棘轮结清（2026-10-04）**：
+  ① **指令的读法不变**：当轮两句话（`版本声明不要再说是gnu emacs了，我们这样说可能会有法律风险` + 38 秒后的
+  `把之前的代码中的这种声明也去掉`）是**同一条指令的前后两半**（3.134/3.186 的读法）：不只对新写的文件生效，
+  **已写进树的代码**也要清。三段处置一处没退：`2ee1d1d`/`4810bb0` 把 231 个首行的版本括注压到只留修订号、
+  `fd9cf89` 不携带 268 个版权/许可块、标题注释与"复述许可块"的句子进 `title`/`recital` 两类。
+  ② **当轮实测**（HEAD `2fd724e` 的工作树，含 3.186 之后落的单元与在飞文件：`src/xdisp.rs` 与
+  `platform/macos/{nsfns,nsfont,nsterm,macfont,nsmenu}.swift`）：`python3 tools/check-declarations.py` →
+  **`13 declaration sites (0 forbidden, 13 allowed literals), 0 failures`**；定向扫
+  （`part of GNU|is free software|Free Software Foundation|Copyright \(C\)|under the terms of the GNU|GNU Emacs [0-9]|@ <rev> \(`）
+  在十棵被移植树上**只命中 13 处**，逐处都在 `docs/baseline/declarations-allowlist.tsv` 上
+  （`src/emacs.rs` 5、`src/callproc.rs` 3、`lib-src/etags.rs` 3、`lib-src/ebrowse.rs` 2）——**3.186 之后落的单元零命中**；
+  `docs/ports/*.md` 的 **600 份台账零命中**；catch-all 扫 `*.toml`/`*.sh`/`*.json`/`Makefile`（扣掉六棵逐字树与参照）
+  **零命中**（只剩 `gnu_linux`/`gnulib_*` 这类 cfg 名，是标识符不是声明）。
+  ③ **门的覆盖推到台账（本轮新绑）**：`docs/ports/*.md` 进 `tools/check-declarations.py` 的扫描面，判
+  **`decl`/`version`/`title` 三类**，**不判 `recital`**——台账正是 3.90/3.100 指定的"许可注解的家"。理由是台账最像
+  3.100 的 `lib-src/hexl.rs`：它按定义引 C 的原文，能把参照的开场块或去名前的版本行带回来，而任何被移植单元都不携带它。
+  **覆盖不是空跑**：临时放 `docs/ports/__probe.md`（三段各一行）→ 门报
+  `16 declaration sites (3 forbidden, 13 allowed literals), 3 failures`（`decl x1`/`title x1`/`version x1`），
+  删掉后回到 `13 sites / 0 failures`；`--selftest` **22 → 28 例**（新增 6 例走 Markdown 形状：引声明块 `decl+title`、
+  引去名前的版本行 `version`、引 C 的 docstring `title`、`(gnulib)` 出处记不算、台账自己的许可注解不算、只写修订号不算）。
+  ④ **边界规则（写在这里，后续口径照此）**：**我们自己写的散文可以"提到"参照**（`docs/*.md` 的基线行、
+  "femacs 一比一复刻参照检出 `fd7afced403`"、根 `README.md` 的许可句——它们说明我们在移植什么，是 3.90/3.100 允许的
+  决定记录），**但任何文件都不许"声明自己是该产品"**——四个类就是这条边界在被移植树上的判据。边界外只剩四处，
+  各有"为什么必须在这儿"的理由：门自己的模式表（`tools/check-declarations.py`）、允许清单的行（它们就是记账）、
+  `docs/baseline` 的**实测值**（`PACKAGE_STRING`/`COPYRIGHT` 是 clang 冻结值，改了与参照不符）、
+  `docs/status.md` 与 `docs/reviews` 的决策叙述。
+  ⑤ **残下的 13 处为什么不动——本轮拿到新的实测理由**：运行时那行 `GNU Emacs 32.0.50 (build …)` 是**逐字树**里的
+  `femacs/lisp/version.el:111` 拼出来的（`(format "GNU Emacs %s (build %s, %s%s%s%s)%s" …)`），逐字树按用户指令
+  一个字不改、`check-verbatim` 钉着它 ⇒ **改 C 侧那几条字面量不会让程序少说一次产品名**，只会同时破坏 1:1 与 docstring 门
+  （其中 4 条是 `callproc.c`/`emacs.c` 自己的字符串，门要与参照逐字比对）。所以这 13 条继续以"被移植语义 + 逐条理由"
+  留在允许清单上；**要不要在产品身份层面改口径是全面验收期的判决**（用户长期指令：前期复刻期间与 C 尽量一致，
+  全面验收时再根据需要判断是否调整）。
+  ⑥ **`gate-fast` 第三次重跑：唯一的红行是 undef，按棘轮结清**（原输出 `/tmp/gf3.log`，5.7 MB）：**674 个 translation
+  unit 编译完成**、inventory 与 globals 两段过、`check-symbols: 86 units compared, 0 mismatched, 1 still pending`；
+  红在 `check-undef`——`8 ratchet entries are stale (now satisfied)` + `12 NEW undefined reference(s)`，12 条**全部
+  `referenced by xdisp.o`**。读清单后处置：**8 条 satisfied 是已落地的欠账**（`_valid_font_driver` 随 3.225 的 font 镜像
+  定义，`_die`/`_suppress_checking`/`_in_display_vector_p`/`_partial_line_height`/`___gl_dynarray_resize`/
+  `_Vlast_prefix_arg`/`_Vprefix_arg` 随各自单元落地）；**12 条 NEW 全是 xdisp 自己的后段定义**（实测行号：
+  `redisplay_internal` 17351、`try_window` 21684、`restore_selected_window` 14521、`restore_frame_selected_window` 14563、
+  `Vmessages_buffer_name` 38602、`inhibit_message` 38430、`Vmax_mini_window_height` 39042、`Vresize_mini_windows` 39050、
+  `message_truncate_lines` 39113、`Vdebug_on_message` 39406、`Vset_message_function` 39410、
+  `redisplay_adhoc_scroll_in_resize_mini_windows` 39497）——即 lane 的**未到达区间**，不是拼写或发明名字。处置 =
+  **让棘轮记账，而不是把它静音**：`cp` 备份 → `python3 tools/check-undef.py --write-pending` → `diff` 恰好
+  **8 删 / 12 增**（111 → 115 行，别无其他）→ 复跑 **`check-undef: 695 unit object(s), 161 reference object(s)/archive(s):
+  110 pending, 0 new`（exit 0）**。**附条件**：这 12 条在 xdisp 落进 C 13995+ 与 `syms_of_xdisp` 之后会变 stale，
+  那时必须从棘轮上删掉。
+  ⑦ **一条门的事实（免得再误记）**：`gate-fast` 的段落是 inventory / globals / 编译（两种配置）/ 符号 / undef，
+  **不含 `layout-check`**；`layout-check` 本轮单独跑过 → **`layout-check passed`**
+  （`CARGO_TARGET_DIR=/tmp/femacs-lc-226`，用完即删）。
+  ⑧ **两条 lane 交付本轮收下，下轮入库存档**：nsterm lane 第 1 轮（`nsterm.swift` 404 行 + `docs/ports/nsterm.md` 739 行，
+  它的发现入册：**`swiftc -parse` 不能当 Swift lane 的编译证据**——同一份文本 `-parse` 无输出、`-c` 报 12 个 error，
+  `-c` 才是闸门）；nsfns lane（`nsfns.swift` + `docs/ports/nsfns.md` 383 行 + 21 条 `swift-units.tsv` 行，
+  manifest 由 lane 按 writer 的形状写入并 diff 验证）。入库时要补的是 `nsterm.swift` 那 **140 条 manifest 行**
+  （`--write-manifest` 会同时加它自己那 140 条与 nsfns 的 21 条，只取 nsterm 的部分）。
