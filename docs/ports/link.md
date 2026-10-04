@@ -231,3 +231,58 @@ class it found - a name that is referenced, defined by C, and defined nowhere he
 at every lower level (`build-tu` stops at one object, `check-undef.py` reads one unit's own
 undefined list, `check-linkage.py` asks the opposite direction).  The ratchet is regenerated for
 the two fixes: **383 rows, 0 failures**.
+
+## Reading four (2026-10-04): the executable level, and the runtime seam is closed
+
+```sh
+python3 tools/check-link.py --executable              # link the program, compare the ratchet
+python3 tools/check-link.py --executable --write-pending
+```
+
+`--executable` links the program instead of merging objects: the partial link's 163 objects plus
+two things no unit owns, both taken from the authority rather than written down here.
+
+* **The Rust runtime seam.**  A unit is compiled `--crate-type lib --emit obj`, so no unit carries
+  a `#[panic_handler]`, and the program's link owes `__rust_begin_unwind` and
+  `_rust_eh_personality`.  The mode materializes a four-line `#![no_std]` crate at
+  `build/femacs/rust-runtime-root.rs`, compiles it with the pinned toolchain (the subprocess runs
+  from `femacs/`, so `rust-toolchain.toml` decides which `rustc`), and links the result with
+  `libcore`/`compiler_builtins` from that toolchain's `target-libdir`.  This is the driver question
+  reading three left open, and it is now answered and measured: the two names are gone.
+* **C's own library line.**  `make -n temacs` in `build/emacs-ref/src` prints C's recipe, and the
+  mode reads its `-L`/`-l`/`-framework` flags - in the frozen configuration `LIBXMENU`,
+  `LIBX_BASE`, `PGTK_LIBS`, `LIBS_GNUSTEP`, `LIBS_SYSTEM` and `EMACSRES` are empty, so the set is
+  the sixteen Homebrew `-L` directories and `-lncurses`.
+
+**Reading four: 71 undefined names** in `docs/baseline/link-exec-pending.txt` (`port-owed` 10,
+`unknown` 61), 0 failures against that ratchet.  The classes are reading three's, minus the two
+runtime names:
+
+* `src/xdisp.c`'s remainder - its live `DEFVAR_*`s and its `static`s - which lands with that unit;
+* `_current_buffer`, `_specpdl`, `_specpdl_ptr`, `_specpdl_end`, the recorded interim deviation
+  whose landing point is `thread.rs`;
+* `_syms_of_xwidget`, the unported unit.
+
+So an `emacs` executable is *one unit deep* rather than missing infrastructure: the link driver,
+the runtime seam and C's library line are all in place and measured, and what is left is port
+text.
+
+Two caveats, both measured rather than assumed:
+
+* both ratchets are taken on the tree as it stands, and this worktree has lane objects in flight.
+  A *clean* build at HEAD can therefore show a name this ratchet lacks (the row is then added) or
+  a row it no longer needs (the row is deleted) - the reconciliation is the ordinary ratchet
+  churn, and the place to do it is a `git worktree` at HEAD, which is also where `gate-fast` is
+  run.
+* `--executable` is deliberately **not** wired into `gate-fast` yet: the partial link's ratchet is
+  (see above), and the executable level should first be measured on a clean HEAD build so its
+  rows are not per-turn churn.
+
+**The stale-row policy (same round).**  A ratchet row that no longer holds is the ratchet
+*shrinking*, and a lane's object in flight does exactly that: `src/xdisp.rs` landing ten more of
+its own definitions made ten rows informational within the hour (measured: 373 undefined against
+the 383-row ratchet, 11 rows that no longer hold, 1 new name from the same lane's in-flight
+slice).  So `check-link.py` fails on a **new** name in either mode, and reports stale rows as
+information unless `--strict` is passed - and `--strict` is what a clean worktree at HEAD is
+reconciled with, where the file has to be exact.  `gate-fast` uses the default, so a shrinking
+ratchet cannot make the fast gate red while five lanes are rebuilding objects.

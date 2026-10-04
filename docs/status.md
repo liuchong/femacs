@@ -4718,3 +4718,16 @@
   验证：`build-tu src/comp.c` built；`--check comp.c` OK；`nm -g build/femacs/comp.o` 出现 `_Vcomp_eln_to_el_h`；`check-globals` 仍 284 units/0 problems；`check-symbols` 仍 86/1（既有的 `lib/regex`）；**可执行链接 84 → 83，该名字消失**。
   ② **链接那一级升格为门**：`tools/check-link.py` 挂进 `xtask gate-fast`（在符号门与 linkage 门之后），理由是它找到的那一类——"被引用、C 有定义、本端口无人定义"——在每一级下层门里都不可见（`build-tu` 停在一个对象、`check-undef.py` 只读单元自己的未定义表、`check-linkage.py` 问的是相反方向）。
   棘轮按两处修正重生成：**383 rows / 0 failures**；`cargo build -p xtask` exit 0。`docs/ports/link.md` 里 3.251 那段"结构性缺口/一次决定"的说法已就地更正（新增 "Reading three, corrected" 一节，指明被更正的两句与理由）。
+
+- **3.253 可执行那一级落地：Rust 运行时缝合上、C 自己的库行由 makefile 读出、余量只剩 71 个名字（2026-10-04）**：
+  ① **`tools/check-link.py` 加了 `--executable`**：它不合并对象，而是**真的链接出程序**——部分链接那 163 个对象，加两样没有任何单元拥有的东西，两样都从"权威处"取而不是写死在工具里：
+  第一是 **Rust 运行时缝**（单元是 `--crate-type lib --emit obj` 编的，所以没有单元持有 `#[panic_handler]`，链接欠 `__rust_begin_unwind` 与 `_rust_eh_personality`）；工具把一段四行 `#![no_std]` crate 落到 `build/femacs/rust-runtime-root.rs`，
+  **在 `femacs/` 下**调 `rustc`（这样 `rust-toolchain.toml` 决定用哪个 rustc，P-04 的钉子），再带上该 toolchain `target-libdir` 的 `libcore`/`compiler_builtins`。
+  第二是 **C 自己的库行**：`make -n temacs`（在 `build/emacs-ref/src`）打印 C 的配方，工具读它的 `-L`/`-l`/`-framework`——冻结配置里 `LIBXMENU`/`LIBX_BASE`/`PGTK_LIBS`/`LIBS_GNUSTEP`/`LIBS_SYSTEM`/`EMACSRES` 全空，所以集合就是十六个 Homebrew `-L` 目录加 `-lncurses`。
+  ② **读数（reading four）**：`--executable` → **71 个未定义**（`port-owed` 10 / `unknown` 61），棘轮 `docs/baseline/link-exec-pending.txt` **71 行 / 0 failures**；两类就是 3.251/3.252 那两类减去两个运行时名字：`src/xdisp.c` 的余量（活的 `DEFVAR_*` 与它的 `static`，随该单元落地）、
+  `current_buffer`/`specpdl*`（已记录的临时偏离，落点 `thread.rs`）、`_syms_of_xwidget`（未复刻单元）。**即"一个 emacs 可执行文件"是差一个单元的距离，而不是差基础设施**——链接驱动器、运行时缝、C 的库行都就位并量过了。
+  ③ **两条口径（都实测过）**：两队棘轮都在**含在飞单元对象**的工作树上取的，所以净 HEAD 构建可能出现"棘轮缺的新名字"（补行）或"不再需要的旧行"（删行）——这就是棘轮常规churn，落点应是 HEAD 的 `git worktree`（也是跑 `gate-fast` 的地方）；
+  `--executable` **暂不挂进 `gate-fast`**（部分链接那一级已挂，见 3.252），理由是它应当先在净 HEAD 构建上量一次，免得棘轮变成每轮churn。`check-link.py` 的两处工具 bug 也是本轮实测改掉的：C 库行的续行要**先拼接再取 token**（`replace("\\\n", " ")`），以及运行时 rlibs 当初漏进命令行（`libs` 变量名被复用的笔误）。
+  ④ **棘轮口径（同轮实测后定）**：棘轮行"不再成立"= 棘轮在**收缩**，而在飞单元的对象恰好造成这种收缩——`src/xdisp.rs` 在一小时内又落了十个定义，
+  于是当轮读数是 `373 undefined / 383 行棘轮 / 1 failure / 11 stale`（那一个 failure 是同一 lane 在飞切片里的新引用 `_redisplay_window`）。因此 `check-link.py` 两种模式都**只对"新名字"失败**，
+  stale 行只在 `--strict` 下算失败；`--strict` 是**净 HEAD worktree** 里对账用的模式（那里文件必须精确），`gate-fast` 用默认模式，于是五条 lane 不停重建对象时快速门不会红。

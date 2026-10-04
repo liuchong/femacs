@@ -1,0 +1,10 @@
+# Names an *executable* link of the whole program leaves undefined, with the class
+# that explains them.  Written by `python3 tools/check-link.py --executable
+# --write-pending` (docs/status.md 3.253, docs/ports/link.md reading four).  The
+# list is the program's own debt - the partial link's ratchet
+# (`link-pending.txt`) is the rung below it.  One `<name>	<reason>` per line.
+#
+# A moment in time: taken with lane objects in flight, so a clean worktree at HEAD
+# reconciles it (`--executable --strict`; `--write-pending` when only the stale
+# rows differ).  A *new* name fails in either mode; stale rows are informational
+# unless `--strict`.
