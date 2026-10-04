@@ -1901,9 +1901,100 @@ pub const MOUSE_FACE_HIDDEN: u8 = 1 << 2;     // dispextern.h 3023
 // dispextern.h 3966: `enum { SCROLL_INFINITY = 1000000 };`
 pub const SCROLL_INFINITY: c_int = 1000000;
 
-// C: dispextern.h 472-2600's matrix/face/image structures (`glyph`, `glyph_pool`,
-// `glyph_matrix`, `glyph_row`, `face`, `face_cache`, `image`, `it`) and 2600-4026's fringe,
-// X-widget and cursor machinery — (not mirrored on this target yet; they need
-// `struct frame`/`struct window` (`struct font` is in `include/font.rs` now), and
-// docs/ports/include-dispextern.md tracks
-// the rest of the file's macros, functions and globals).
+/* ---- C 1787-2009: the realized face and its cache ------------------------------------------
+   The two records `struct frame` and its accessors need (`FRAME_FACE_CACHE`, `FACE_FROM_ID`,
+   `FACE_FROM_ID_OR_NULL` in `include/frame.rs`), landed here because dispextern.h is where C
+   defines them.  The layout is the one the units measured for the frozen configuration and
+   every offset below is asserted; `HAVE_WINDOW_SYSTEM` is undef, so `gc`/`stipple`
+   (C 1800-1815) and `HAVE_NS`/`HAVE_XFT`/`HAVE_FREETYPE`'s `extra` are absent from this
+   target's layout, exactly as the C compiler lays it out.
+
+   Several units carry a copy of these two records from the time this mirror did not
+   (`src/xfaces.rs` 279-345, `src/window.rs` 878-915, `src/alloc.rs`, `src/xdisp.rs`,
+   `src/font.rs`); retiring those copies is the integrator's step (the `stdbit.in.rs` rule),
+   and the copy here is field-for-field the one `xfaces.rs` asserts.  */
+
+/// C 1787-1937: `struct face`.  Measured with the frozen clang: `sizeof` 280, align 8,
+/// `lface`@0, `id`@160, `foreground`@168, `background`@176, `underline_color`@184,
+/// `overline_color`@192, `strike_through_color`@200, `box_color`@208, `font`@216,
+/// `fontset`@224, `box_vertical_line_width`@228, `box_horizontal_line_width`@232,
+/// `underline_pixels_above_descent_line`@236, the 21 `bool_bf`/`ENUM_BF` bits C declares at
+/// 1893-1935 in one 4-byte storage unit at 240, `hash`@248, `next`@256, `prev`@264,
+/// `ascii_face`@272.
+#[repr(C)]
+pub struct face
+{
+  pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
+  pub id: c_int,
+  pub foreground: c_ulong,
+  pub background: c_ulong,
+  pub underline_color: c_ulong,
+  pub overline_color: c_ulong,
+  pub strike_through_color: c_ulong,
+  pub box_color: c_ulong,
+  /* P-72 rule ③: `struct font` is font.rs's type and this mirror cannot reach it (C's
+     dispextern.h only knows the incomplete tag), so the member is the untyped pointer; a unit
+     that includes `include/font.rs` casts it (`src/xfaces.rs` 294 spells it `*mut font`).  */
+  pub font: *mut c_void,   /// C: `struct font *font;` (dispextern.h 1845)
+  pub fontset: c_int,
+  pub box_vertical_line_width: c_int,
+  pub box_horizontal_line_width: c_int,
+  pub underline_pixels_above_descent_line: c_int,
+  /* C 1893-1935: `ENUM_BF (face_box_type) box : 2; ENUM_BF (face_underline_type)
+     underline : 3;` and the seventeen 1-bit `bool_bf` members in one storage unit.  The port
+     stores C's bit-field bytes and names every member through the masks below (PORTING.md
+     1.3/P-80).  */
+  pub bits: u32,
+  pub hash: uintptr_t,
+  pub next: *mut face,
+  pub prev: *mut face,
+  pub ascii_face: *mut face,
+}
+
+const _: () = assert! (std::mem::size_of::<face> () == 280);
+const _: () = assert! (std::mem::align_of::<face> () == 8);
+const _: () = assert! (std::mem::offset_of! (face, id) == 160);
+const _: () = assert! (std::mem::offset_of! (face, foreground) == 168);
+const _: () = assert! (std::mem::offset_of! (face, background) == 176);
+const _: () = assert! (std::mem::offset_of! (face, underline_color) == 184);
+const _: () = assert! (std::mem::offset_of! (face, overline_color) == 192);
+const _: () = assert! (std::mem::offset_of! (face, strike_through_color) == 200);
+const _: () = assert! (std::mem::offset_of! (face, box_color) == 208);
+const _: () = assert! (std::mem::offset_of! (face, font) == 216);
+const _: () = assert! (std::mem::offset_of! (face, fontset) == 224);
+const _: () = assert! (std::mem::offset_of! (face, bits) == 240);
+const _: () = assert! (std::mem::offset_of! (face, hash) == 248);
+const _: () = assert! (std::mem::offset_of! (face, next) == 256);
+const _: () = assert! (std::mem::offset_of! (face, ascii_face) == 272);
+
+/// C 1991-2009: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0, `f`@8,
+/// `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf menu_face_changed_p : 1` in
+/// the int unit at 36 (carried as a byte, the P-80 convention - `src/window.rs` 907 spells
+/// the same member `bool`, one byte wide either way).
+#[repr(C)]
+pub struct face_cache
+{
+  pub buckets: *mut *mut face,
+  /* P-72 rule ③: `struct frame` is frame.rs's type and a unit that includes this mirror need
+     not include that one (measured: `build-tu src/bidi.c` and `src/lread.c` answered "cannot
+     find type frame" while this member was `*mut frame`), so the member is the untyped
+     pointer - the same pointer, which is what C's incomplete `struct frame *` is.  */
+  pub f: *mut c_void,   /// C: `struct frame *f;` (dispextern.h 1997)
+  pub faces_by_id: *mut *mut face,
+  pub size: ptrdiff_t,
+  pub used: c_int,
+  pub menu_face_changed_p: u8,
+}
+const _: () = assert! (std::mem::size_of::<face_cache> () == 40);
+const _: () = assert! (std::mem::offset_of! (face_cache, buckets) == 0);
+const _: () = assert! (std::mem::offset_of! (face_cache, f) == 8);
+const _: () = assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+const _: () = assert! (std::mem::offset_of! (face_cache, size) == 24);
+const _: () = assert! (std::mem::offset_of! (face_cache, used) == 32);
+const _: () = assert! (std::mem::offset_of! (face_cache, menu_face_changed_p) == 36);
+
+// C: dispextern.h 472-2600's remaining structures (`image`, `image_cache`, `it`) and
+// 2600-4026's fringe, X-widget and cursor machinery — not mirrored on this target yet; they
+// need `struct frame`/`struct window` (`struct font` is in `include/font.rs` now), and
+// docs/ports/include-dispextern.md tracks the rest of the file's macros, functions and
+// globals.

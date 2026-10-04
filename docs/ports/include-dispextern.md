@@ -132,8 +132,8 @@
 - [ ] composition_it: ptrdiff_t stop_pos, ptrdiff_t id, int ch, EMACS_INT rule_idx, ptrdiff_t lookback, int nglyphs, bool reversed_p, struct it* parent_it, ptrdiff_t charpos, int nchars, int nbytes, int from, int to, int width
 - [x] display_pos: struct text_pos pos, ptrdiff_t overlay_string_index, struct text_pos string_pos, int dpvec_index
 - [ ] draw_fringe_bitmap_params: int which, unsigned short* bits, int wd, int h, int dh, int x, int y, int bx, int nx, int by, int ny, bool_bf cursor_p : 1, bool_bf overlay_p : 1, struct face* face
-- [ ] face: Lisp_Object lface, int id, unsigned long foreground, unsigned long background, unsigned long underline_color, unsigned long overline_color, unsigned long strike_through_color, unsigned long box_color, struct font* font, int fontset, int box_vertical_line_width, int box_horizontal_line_width, int underline_pixels_above_descent_line, ENUM_BF (face_box_type) box : 2, ENUM_BF (face_underline_type) underline : 3, bool_bf use_box_color_for_shadows_p : 1, bool_bf overline_p : 1, bool_bf strike_through_p : 1, bool_bf foreground_defaulted_p : 1, bool_bf background_defaulted_p : 1, bool_bf underline_defaulted_p : 1, bool_bf overline_color_defaulted_p : 1, bool_bf strike_through_color_defaulted_p : 1, bool_bf box_color_defaulted_p : 1, bool_bf underline_at_descent_line_p : 1, bool_bf tty_bold_p : 1, bool_bf tty_italic_p : 1, bool_bf tty_reverse_p : 1, bool_bf tty_strike_through_p : 1, bool_bf tty_overline_p : 1, bool_bf colors_copied_bitwise_p : 1, bool_bf overstrike : 1, uintptr_t hash, struct face* next, struct face* prev, struct face* ascii_face
-- [ ] face_cache: struct face** buckets, struct frame* f, struct face** faces_by_id, ptrdiff_t size, int used, bool_bf menu_face_changed_p : 1
+- [x] face: Lisp_Object lface, int id, unsigned long foreground, unsigned long background, unsigned long underline_color, unsigned long overline_color, unsigned long strike_through_color, unsigned long box_color, struct font* font, int fontset, int box_vertical_line_width, int box_horizontal_line_width, int underline_pixels_above_descent_line, ENUM_BF (face_box_type) box : 2, ENUM_BF (face_underline_type) underline : 3, bool_bf use_box_color_for_shadows_p : 1, bool_bf overline_p : 1, bool_bf strike_through_p : 1, bool_bf foreground_defaulted_p : 1, bool_bf background_defaulted_p : 1, bool_bf underline_defaulted_p : 1, bool_bf overline_color_defaulted_p : 1, bool_bf strike_through_color_defaulted_p : 1, bool_bf box_color_defaulted_p : 1, bool_bf underline_at_descent_line_p : 1, bool_bf tty_bold_p : 1, bool_bf tty_italic_p : 1, bool_bf tty_reverse_p : 1, bool_bf tty_strike_through_p : 1, bool_bf tty_overline_p : 1, bool_bf colors_copied_bitwise_p : 1, bool_bf overstrike : 1, uintptr_t hash, struct face* next, struct face* prev, struct face* ascii_face
+- [x] face_cache: struct face** buckets, struct frame* f, struct face** faces_by_id, ptrdiff_t size, int used, bool_bf menu_face_changed_p : 1
 - [x] glyph: ptrdiff_t charpos, Lisp_Object object, struct frame* frame, short pixel_width, short ascent, short descent, short voffset, unsigned type : 3, bool_bf multibyte_p : 1, bool_bf left_box_line_p : 1, bool_bf right_box_line_p : 1, bool_bf overlaps_vertically_p : 1, bool_bf padding_p : 1, bool_bf glyph_not_available_p : 1, bool_bf avoid_cursor_p : 1, unsigned resolved_level : 7, unsigned bidi_type : 3, unsigned face_id : FACE_ID_BITS, unsigned font_type : 3, struct glyph_slice img, short upper_xoff, short upper_yoff, short lower_xoff, short lower_yoff, <aggregate> glyphless, <aggregate> slice, unsigned ch, bool_bf automatic : 1, unsigned id : 31, <aggregate> cmp, int img_id, unsigned height : 16, unsigned ascent : 16, <aggregate> stretch, unsigned method : 2, bool_bf for_no_font : 1, unsigned len : 4, unsigned ch : 25, <aggregate> glyphless, unsigned val, <aggregate> u
 - [x] glyph_matrix: struct glyph_pool* pool, struct glyph_row* rows, ptrdiff_t rows_allocated, int nrows, int matrix_x, int matrix_y, int matrix_w, int matrix_h, int window_pixel_left, int window_pixel_top, int window_height, int window_width, int window_vscroll, int left_margin_glyphs, int right_margin_glyphs, bool_bf no_scrolling_p : 1, bool_bf tab_line_p : 1, bool_bf header_line_p : 1, struct buffer* buffer, ptrdiff_t begv, ptrdiff_t zv
 - [x] glyph_pool: struct glyph* glyphs, ptrdiff_t nglyphs, int nrows, int ncolumns
@@ -404,3 +404,69 @@ missing counts as pending and the ratchet only shrinks pending).
   deleted now that `docs/ports/excluded-macros.txt` 152 carries the row; `--check
   emacs/src/sfnt.h femacs/src/include/sfnt.rs` prints `OK` and `(1 C macros have a recorded Rust
   counterpart: PROTOTYPE)`.
+
+## Decisions (the two records `frame.h` was waiting for)
+
+- **Landed: `struct face` (C 1787-1937) and `struct face_cache` (C 1991-2009)**, in C's order,
+  `#[repr(C)]`, each with the measured layout asserted inline.  `face`: `sizeof` 280, align 8,
+  `lface`@0, `id`@160, `foreground`@168, `background`@176, `underline_color`@184,
+  `overline_color`@192, `strike_through_color`@200, `box_color`@208, `font`@216, `fontset`@224,
+  `box_vertical_line_width`@228, `box_horizontal_line_width`@232,
+  `underline_pixels_above_descent_line`@236, the `box : 2`/`underline : 3` + seventeen `bool_bf`
+  bits C packs into the four-byte unit at 240 (stored as C's bytes and named through the masks,
+  PORTING.md 1.3/P-80), `hash`@248, `next`@256, `prev`@264, `ascii_face`@272.
+  `face_cache`: `sizeof` 40, `buckets`@0, `f`@8, `faces_by_id`@16, `size`@24, `used`@32,
+  `menu_face_changed_p`@36 (a `bool_bf : 1` carried as the byte it occupies).
+  The numbers are the frozen clang's and are the ones `src/xfaces.rs` 279-345 already asserts,
+  so the copy that lands here is field-for-field the copy that unit verified.
+- **Two members are the untyped pointer (P-72 rule ③), measured, not preferred**:
+  `face.font` and `face_cache.f`.  C's dispextern.h knows both tags only as incomplete ones, and
+  a unit that includes this mirror need not include `include/font.rs` or `include/frame.rs`:
+  with `font: *mut font` `build-tu src/term.c` answered *"cannot find type `font`"*, and with
+  `f: *mut frame` `build-tu src/bidi.c` and `src/lread.c` answered *"cannot find type `frame`"*.
+  `src/xfaces.rs` 294 spells `*mut font` and `src/window.rs` 899 `*mut font` too, so the units
+  that retire their copies cast the two members; that cast is part of the retirement, not of this
+  mirror.
+- **Seven units still carry a local copy of the two records** - the shape of the time when this
+  mirror had neither - and their `build-tu` is **red with exactly the two `E0428`s** until their
+  copies retire (the integrator's step, 3.181/3.211's rule).  File and line, both records:
+  `src/alloc.rs` `face` 3442 / `face_cache` 3453; `src/dispnew.rs` 3610 / 3618;
+  `src/font.rs` 456 / 519; `src/term.rs` 323 / 308; `src/window.rs` 895 / 906;
+  `src/xdisp.rs` 1062 / 1108; `src/xfaces.rs` 288 / 337.  Every other unit that includes this
+  mirror builds (measured: `src/character.c`, `src/bidi.c`, `src/lread.c`, `src/bytecode.c`,
+  `src/syntax.c`, `src/marker.c`, `src/frame.c`, `src/keyboard.c`).
+- **What is still open: the same 142 `- ` lines**, now classified (the two records were in the
+  gate's *deferred* set, so closing them moved no line, only the deferral list):
+  5 `missing function`, 43 `missing macro`, 76 `missing constant`, 17 `missing file-scope object`,
+  and 2 body-token lines (`GLYPH_CHAR` does not mention `glyph_char`, `GLYPH_FACE` does not
+  mention `glyph_face`).  The remaining deferred types are five: `bidi_it`, `composition_it`,
+  `draw_fringe_bitmap_params`, `it`, `redisplay_interface`.  Each of those is its own slice.
+
+## Evidence (the two records)
+
+- **The judge's reading**: `python3 tools/check-cond-eval.py src/dispextern.h` ->
+  `src/dispextern.h: 71 conditions, 0 unknown, 0 disagreements [VERIFIED]`, so the extractor
+  resolves the arms against the frozen table and every item it lists is *live* text.
+- **`--check`**: `python3 tools/extract-abi.py --check emacs/src/dispextern.h
+  femacs/src/include/dispextern.rs` -> `FAIL`, **142** `- ` lines, unchanged by this slice, and
+  `grep -c '^- '` before and after the two records is the same `142` with *no* line added or
+  removed (`diff` of the two sorted lists is empty); the deferral line on stderr went from seven
+  names to five (`bidi_it composition_it draw_fringe_bitmap_params it redisplay_interface`).
+  The ledger's unchecked boxes went from 78 to 76 (the two type boxes).
+- **Layout assertions**: the two records carry 15 + 6 `const _: () = assert! (…)` lines (the
+  offsets above plus both sizes); they are the copy `src/xfaces.rs` 279-345 carries, whose
+  numbers came from the frozen clang (`sizeof`/`offsetof` probe, recorded in
+  docs/ports/include-frame.md's third slice for the same records).
+- **`layout-check`**: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-dx cargo run -q -p xtask --
+  layout-check` -> the run **immediately after landing the two records** printed
+  `layout probe ok` / `layout-check passed` (that is this mirror's compile evidence for them);
+  at the end of the round the same command is **red, and every diagnostic is in another lane's
+  in-flight `femacs/src/include/xterm.rs`** (`expected identifier, found keyword `use`` at 272,
+  `expected `mut` or `const` keyword in raw pointer type` at 1263-1265) - no diagnostic names
+  `dispextern.rs`, and I did not touch that file (the `ftfont.rs` precedent of status 3.181).
+- **The units' `build-tu` after the last edit**: `src/character.c` -> `built src/character.rs ->
+  ../build/femacs/character.o`; `src/bidi.c` -> `built src/bidi.rs -> …/bidi.o`; `src/lread.c` ->
+  `built src/lread.rs -> …/lread.o`; `src/bytecode.c`, `src/syntax.c`, `src/marker.c`,
+  `src/frame.c` (`built src/frame.rs -> …/frame.o`) and `src/keyboard.c` (`built
+  src/keyboard.rs -> …/keyboard.o`) all the same; and the seven units of the bullet above answer
+  `error[E0428]: the name `face` is defined multiple times` and the same for `face_cache`.
