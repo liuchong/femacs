@@ -13,8 +13,15 @@
 // `Emacs_Pixmap`, `Emacs_Window`, `Emacs_Cursor`, `Drawable` and `GContext` are declared by
 // `haikugui.h` too, and `Emacs_Cursor`/`Emacs_Rectangle` are `dispextern.rs`'s
 // `#ifndef HAVE_WINDOW_SYSTEM` arm.  C separates the twins with platform `#if`s; the mirrors meet
-// in one crate when `xtask layout-check` compiles them, and the collision is recorded in
-// docs/ports/include-androidgui.md rather than papered over with a `cfg`.
+// in one crate when `xtask layout-check` compiles them (both are platform-exclusive there) and
+// again in an Android unit's `include!` graph, which reaches `androidgui.rs` and `dispextern.rs`
+// through `androidterm.rs` 41/44.  **`Emacs_Cursor`'s `E0428` is resolved on the other mirror**:
+// C turns `dispextern.h` 175 off whenever a window system is on (`HAVE_ANDROID` implies
+// `HAVE_WINDOW_SYSTEM`), so `dispextern.rs`'s arm carries `all (not have_window_system,
+// not have_android)` and this file's alias stays exactly as C declares it (androidgui.h 42).
+// The 2026-10-04 ruling recorded below was "no `cfg` *here*", and this file still has none;
+// what changed is that the twin now carries C's own condition.  docs/ports/include-androidgui.md
+// records the reading.
 
 include!("../../lib/include/stdint.in.rs");     // C 22: `#include <stdint.h>`
 include!("../../lib/include/wchar.rs");         // `wchar_t` (C 812's `android_wc_lookup_string`)

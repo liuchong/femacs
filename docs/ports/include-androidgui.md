@@ -160,3 +160,33 @@
   --emit=metadata` -> exit 0; and on the materialised root,
   `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type=lib --emit=metadata -o
   /tmp/android_inc_probe.rmeta build/probes/android_inc_probe/_root.rs` -> exit 0.
+
+# ----------------------------------------------------------------------
+## Decision and Evidence (the `Emacs_Cursor` twin, 2026-10-05)
+
+- The 2026-10-04 ruling recorded above ("no `cfg`, no `pub mod` wrapper, `layout-check`'s
+  single-crate model left alone") was about **this file and `layout-check`**, and it still
+  holds: this mirror has no `cfg` and the platform probe is still where these names are
+  compiled.  What it did not settle is the *other* requirement - an Android **unit's** include
+  graph, which P-86 ③ makes the arm-flip compile, reaches `androidgui.rs` (through
+  `androidterm.rs` 41) *and* `dispextern.rs` (through 44), so the two `Emacs_Cursor` items meet
+  there and rustc stops with `E0428` before it reads a line of the unit.
+- C's own resolution is that only one of the two is ever live: `androidgui.h` 42 is the
+  window-system side, and `dispextern.h` 174-176's `typedef void *Emacs_Cursor` is under
+  `#ifndef HAVE_WINDOW_SYSTEM` - and `HAVE_ANDROID` implies `HAVE_WINDOW_SYSTEM`.  So the gate
+  went on **that** arm (`docs/ports/include-dispextern.md` carries the decision and the
+  readings), and this file's alias is left exactly as C declares it, which is also why the
+  X-compat block here is still all-or-nothing.
+
+## Evidence (the twin)
+
+- `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj -C panic=abort
+  --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"' -o /tmp/am.o
+  build/femacs/units/androidmenu/_root.rs` -> before: exit 1, 11 `^error` lines (the `E0428`
+  pair at `androidgui.rs` 53 / `dispextern.rs` 82 among them); after: **exit 0, 0 `^error`
+  lines**, `/tmp/am.o` 89,808 bytes.
+- `python3 tools/extract-abi.py --check emacs/src/androidgui.h
+  femacs/src/include/androidgui.rs` -> `OK emacs/src/androidgui.h ->
+  femacs/src/include/androidgui.rs`.
+- `python3 tools/check-citations.py` -> `0 drift`, `0 stale` (this file's comment block changed
+  length, but no allowlist row keys it).

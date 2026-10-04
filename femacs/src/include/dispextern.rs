@@ -78,8 +78,8 @@ pub struct Emacs_GC
 pub const GCForeground: c_int = 0x01;
 pub const GCBackground: c_int = 0x02;
 
-// dispextern.h 175: `typedef void *Emacs_Cursor;` (outside the X branch).
-pub type Emacs_Cursor = *mut c_void;
+#[cfg (all (not (feature = "have_window_system"), not (feature = "have_android")))]
+pub type Emacs_Cursor = *mut c_void;  // dispextern.h 174-176 `#ifndef HAVE_WINDOW_SYSTEM` / `typedef void *Emacs_Cursor;` (docs/ports/include-dispextern.md)
 
 /* Text cursor types.  */
 // C's members have type `int`; the port keeps the enum as a type alias plus constants, which

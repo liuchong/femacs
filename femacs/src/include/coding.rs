@@ -6,9 +6,9 @@
 // (batch C).  `tools/check-cond-eval.py` reports zero disagreements for this header, so the
 // ledger's branch set is the frozen configuration's.
 
-// coding.h 27: the include guard has no Rust counterpart (PORTING.md 0.1).
+// coding.h 27: the include guard has no Rust counterpart (PORTING.md 0.1).  C 284's include follows (P-72 rule ④, docs/ports/include-coding.md).
 pub const EMACS_CODING_H: bool = true;
-
+include!("composite.rs");                     // C 284: `#include "composite.h"`
 /* `struct ccl_spec` is defined in ccl.h 69-71, which coding.h does not include: C names it
    only as a pointer inside `coding_system.spec`, and an undeclared tag is an incomplete type
    there.  Rust has no incomplete types, so this mirror carried a zero-sized stand-in until

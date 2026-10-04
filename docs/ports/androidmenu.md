@@ -221,3 +221,20 @@ row(s), 0 new, 1 stale`, the stale row being `src/androidmenu.c: no longer under
    `docs/ports/include-androidterm.md` already asks for - until then an Android configuration
    cannot compile any translation unit, which makes every `have_android` flip vacuous (Evidence
    ②a).
+
+### The Android blocker this file's first arm read hit (resolved, 3.377)
+
+3.370 recorded that the arm-flip compile aborted before it could see this unit's body: ten errors,
+all of them in mirrors - `Emacs_Cursor` defined twice (dispextern.rs against androidgui.rs) plus
+`window`, `WINDOWP`, `XWINDOW`, `coding_system` and `buffer` missing from the mirrors their C
+includes bring in - so "0 errors in this unit" was an empty reading (proved then by mutation).
+
+The mirror round fixed them (each change and its C citation is in docs/ports/include-*.md), and the
+readings are now: the frozen build still produces the 336-byte empty object, and
+`xtask probe src/androidmenu.rs /tmp/am.o --crate-type lib --emit obj -C panic=abort
+--cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'` exits 0 with a 20,360-byte
+object - the unit's own Android body compiles for the first time.
+
+Still owed: androidterm.h's three `bool_bf` macros cannot expand until macro-body-notes carries
+their rows and P-80's mask shapes land; and nothing here runs - the frozen configuration compiles
+none of this file, so this is a compile reading and not behaviour.

@@ -1084,3 +1084,48 @@ with `include-treesit.md` recording it.
   citation to line **567**, so `check-citations` now reports the same finding twice - a `drift` at
   `:567` and a `stale` allowlist row at `:544`.  Retargeting the row's line number (544 -> 567)
   is a one-field edit in a shared table, so it is reported rather than made here.
+
+# ----------------------------------------------------------------------
+## Decision and Evidence (`Emacs_Cursor` vs `androidgui.h` 42, 2026-10-05)
+
+- **The arm that is dead under a window system carries C's own condition.**  C declares the name
+  twice on this header's side: `typedef Cursor Emacs_Cursor;` at 39 under `HAVE_X_WINDOWS`
+  (27-98), and `typedef void *Emacs_Cursor;` at 175 under `#ifndef HAVE_WINDOW_SYSTEM`
+  (174-176).  `androidgui.h` 42 (`typedef android_handle android_cursor, Emacs_Cursor;`)
+  declares it on the window-system side of the same `#if` pair, and `androidterm.h` 23/26
+  includes both headers, so an Android unit's graph holds both mirrors and rustc reports
+  `E0428: the name Emacs_Cursor is defined multiple times` (this mirror's 82 vs
+  `androidgui.rs` 53) - the whole of 3.370's blocker for the arm-flip compile.  The arm at 175
+  is the one C turns off, so the gate is here:
+  `#[cfg (all (not (feature = "have_window_system"), not (feature = "have_android")))]`.
+  The `have_android` term is not redundant: `HAVE_ANDROID` implies `HAVE_WINDOW_SYSTEM` in C,
+  and the arm-flip compile sets only `have_android`, so without it the frozen arm would stay
+  live next to `androidgui.rs`'s alias and the collision would survive the "fix".
+- **The declaration keeps the two lines it had** (one comment line, one item, the C text as the
+  item's trailing comment), so every citation-bearing line below it stays put -
+  `docs/baseline/citations-allowlist.tsv` keys `dispextern.rs:587` by line, and the 3.283
+  precedent (that file's own last Evidence bullet) shows what an insertion above such a row
+  costs: a shared-table retarget for the integrator.  Nothing here needs one.
+- **`struct redisplay_interface.define_frame_cursor` (3542, C 3150)** is under
+  `have_window_system` and takes the name from the platform GUI mirror there, exactly as C does
+  (dispextern.h 164 includes `androidgui.h` for that arm); no configuration in
+  `docs/baseline/config/` enables the feature, and the Android side of the pair is what the
+  arm-flip below compiles.
+
+## Evidence (`Emacs_Cursor`)
+
+- **Before** - `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj
+  -C panic=abort --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'
+  -o /tmp/am.o build/femacs/units/androidmenu/_root.rs` -> exit 1, **11 `^error` lines** (10
+  errors + `aborting due to 10 previous errors`), the `E0428` at this mirror's 82 plus 9 more,
+  all in included mirror copies, none in the unit's own text.
+- **After** - the same command -> **exit 0, 0 `^error` lines**, `/tmp/am.o` **89,808 bytes**
+  (the unit's code is compiled, where the frozen object below is 336 bytes of nothing).
+- **Frozen** - `cd femacs && CARGO_TARGET_DIR=/tmp/andfix cargo run -q -p xtask -- build-tu
+  src/androidmenu.c` -> `built src/androidmenu.rs -> ../build/femacs/androidmenu.o`, 336 bytes;
+  that compile *is* the no-`have_android` combination, and it is unchanged.
+- `python3 tools/extract-abi.py --check emacs/src/dispextern.h
+  femacs/src/include/dispextern.rs` -> `OK emacs/src/dispextern.h ->
+  femacs/src/include/dispextern.rs`.
+- `python3 tools/check-citations.py` -> `675 file(s) scanned, 0 drift, 0 range, 351 external,
+  33 allowed, 0 stale`.

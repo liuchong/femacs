@@ -113,3 +113,31 @@
 - **Not yet done: none.**  `python3 tools/extract-abi.py --check emacs/src/coding.h
   femacs/src/include/coding.rs` reports `OK` for every function, macro, type, extern and global
   of the frozen configuration.
+
+# ----------------------------------------------------------------------
+## Decision and Evidence (`composite.rs`, the include C has at 284, 2026-10-05)
+
+- `coding.h` 284 includes `composite.h`, and the type layer below takes two names from it:
+  composite.h 50's `MAX_COMPOSITION_COMPONENTS` (it sizes `composition_status.carryover`,
+  306-310) and `composition_method` (which types that record's `method`).  This mirror names
+  both, so it needs the include for any unit whose own list does not supply `composite.rs` -
+  and `src/androidmenu.c` is such a unit (it reaches this mirror through `keyboard.h` 23 once
+  the fix recorded in `docs/ports/include-keyboard.md` lands).
+- **The line sits on the header block's blank line** (between the guard constant and the
+  `ccl_spec` note), not in a block of its own: `docs/baseline/citations-allowlist.tsv` keys four
+  rows of this file by line (170, 215, 222, 311), so an insertion above them would move the
+  findings they allow and hand the integrator a shared-table retarget (the 3.283 precedent in
+  `docs/ports/include-dispextern.md`).  The file keeps C's count of lines, and C's order is
+  kept too - `composite.h` before the record that reads it.
+
+## Evidence (`composite.rs`)
+
+- `python3 tools/extract-abi.py --check emacs/src/coding.h femacs/src/include/coding.rs` -> `OK
+  emacs/src/coding.h -> femacs/src/include/coding.rs` (the include adds no item the comparison
+  can see).
+- `python3 tools/check-citations.py` -> `675 file(s) scanned, 0 drift, 0 range, 351 external,
+  33 allowed, 0 stale` (the placement is what keeps the four rows above matching).
+- `build-tu src/coding.c` -> `built src/coding.rs -> ../build/femacs/coding.o` (unchanged: that
+  unit includes `composite.rs` at 64, before `coding.rs` at 65, so this line is deduped there).
+- The unit the include exists for: `--cfg 'feature="have_android"'` arm-flip of
+  `build/femacs/units/androidmenu/_root.rs` -> exit 0, 0 `^error` lines (89,808-byte object).

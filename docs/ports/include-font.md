@@ -192,3 +192,35 @@
   `font_metrics`, `font_bitmap`, `font_driver`, `font_driver_list` - are all in the mirror now),
   and the five units that include this header build (`src/font.c`, `src/keyboard.c`,
   `src/alloc.c`, `src/xfaces.c`, `src/dispnew.c`).
+
+# ----------------------------------------------------------------------
+## Decision and Evidence (`struct font_entity`'s size assertion, 2026-10-05)
+
+- **The size assertion was frozen-only while the member it guards is not.**  font.h 264-268 adds
+  `bool is_android` under `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY`, which this
+  mirror has carried as `#[cfg (feature = "have_android")] pub is_android: bool` since the type
+  landed; the `const _` below it kept asserting the frozen measurement (120) in *every*
+  configuration.  The arm-flip compile is the first compile that turns the feature on, and it
+  stopped there: `error[E0080]: evaluation panicked: assertion failed:
+  std::mem::size_of::<font_entity>() == 120`.
+- The other three assertions (align 8, `header` 0, `props` 8) hold in both arms - the member is
+  appended - so only the size assertion carries `#[cfg (not (feature = "have_android"))]`.  The
+  Android arm is **not** asserted: there is no Android configuration in this tree to measure it
+  with, and an unmeasured number is not written (the `glyph_string` / `MonitorInfo` rule,
+  P-51/P-82).  Recorded here rather than silently: the arm-flip compile is the only measurement
+  this arm has.
+
+## Evidence (`font_entity`)
+
+- `rustc --cfg 'feature="have_android"'` on
+  `build/femacs/units/androidmenu/_root.rs` -> before the gate: `E0080` (above), the only
+  remaining error after the name-resolution blockers were fixed; after: **exit 0, 0 `^error`
+  lines**.
+- `python3 tools/extract-abi.py --check emacs/src/font.h femacs/src/include/font.rs` -> `OK
+  emacs/src/font.h -> femacs/src/include/font.rs`.
+- `python3 tools/check-citations.py` -> `0 drift`, `0 stale` (the allowlist row at
+  `femacs/src/include/font.rs:5` is above the insertion and did not move).
+- Frozen: this `const _` is still active in the frozen configuration (the gate is
+  `not have_android`); 30 units in `femacs/src/` include this mirror, and the frozen units
+  re-read for this change (`src/keyboard.c` among them) are in that set - `build-tu` ->
+  `built …`.

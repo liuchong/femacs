@@ -588,3 +588,33 @@ Evidence: `extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs`
 gated arm was compiled as a cut-out probe - the record above plus `assert!`s on the six numbers,
 `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib -C panic=abort
 --cfg 'feature="have_window_system"'`, exit 0 (0 errors).
+
+# ----------------------------------------------------------------------
+## Decision and Evidence (the header's own two includes, 2026-10-05)
+
+- **`frame.rs` carries C's `#include`s (frame.h 22-23), which it had been leaving to the
+  unit.**  This mirror's text names both: `struct terminal` in the `frame` record's `terminal`
+  member (221) and the `FRAME_KBOARD` (406) / `FRAME_LIVE_P` (414) accessors that deref it, and
+  `struct window` in `WINDOW_FRAME` (939) and the `WINDOWP`/`XWINDOW` calls of
+  `FRAME_HAS_MINIBUF_P` (477-478, 473).  Every frozen unit happens to include `termhooks.rs`
+  and `window.rs` itself (checked: no unit in `femacs/src/` includes this mirror without both),
+  so the omission had never shown - but `src/androidmenu.c` reaches this mirror through
+  `androidterm.h` 24 and includes neither header, which is how `E0425: cannot find type
+  window` and `cannot find function WINDOWP/XWINDOW` appeared.  rustc reported them at 939:30,
+  469:3 and 470:41 - the numbering before the two include lines above, i.e. these items at 949,
+  477 and 478 after them.
+- The two lines are C's own order (termhooks.h then window.h) and they are **no-ops for every
+  frozen unit** (the `include!` graph dedupes a file reached twice, so those units compile the
+  same tokens they compiled before).
+
+## Evidence (the two includes)
+
+- `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj -C panic=abort
+  --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"' -o /tmp/am.o
+  build/femacs/units/androidmenu/_root.rs` -> before: the three `E0425`s above; after: **exit 0,
+  0 `^error` lines**.
+- Frozen units that include this mirror: `build-tu src/coding.c`, `src/window.c`,
+  `src/keyboard.c` -> `built …` (all three, unchanged).
+- `python3 tools/extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs` -> `OK
+  emacs/src/frame.h -> femacs/src/include/frame.rs`.
+- `python3 tools/check-citations.py` -> `0 drift`, `0 stale`.

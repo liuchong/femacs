@@ -348,3 +348,29 @@ recorded as an open item:
      `$x:ident` arm cannot spell.  The `$x:expr` arm expands to C's own assignment
      (`$x = make_fixnum (unsafe { fix_position ($x) })`), so the macro's name still appears
      in the port's text for the token check.
+
+# ----------------------------------------------------------------------
+## Decision and Evidence (`itree.rs`, the include C has at 28, 2026-10-05)
+
+- `buffer.h` 28 includes `itree.h`, and this mirror names `itree_node`/`itree_tree` in the
+  overlay accessors: `(*ov).interval as *mut itree_node` beside C's
+  `itree_node_end (ov->buffer->overlays, ov->interval)` (buffer.h 1488) in
+  `overlay_start`/`overlay_end`, and again in the `OVERLAY_*` inlines C writes with
+  `XOVERLAY (ov)->interval` (1529-1537).  `character.rs` and `lisp.rs`, the other two includes
+  on 26-28, are foundation mirrors every unit puts first (xtask's include graph forces them);
+  `itree.rs` is not, so this mirror carries that one include (P-72 rule ④).
+- Measured no-op for the frozen units: all **59** units in `femacs/src/` that include this
+  mirror also include `itree.rs` (scan: `grep -l 'include!("include/buffer.rs")' femacs/src/*.rs`
+  -> 59 files, and the same loop with `itree.rs` leaves none out).  `src/androidmenu.c` is the
+  one that reaches this mirror through `keyboard.h` (see `docs/ports/include-keyboard.md`).
+
+## Evidence (`itree.rs`)
+
+- `python3 tools/extract-abi.py --check emacs/src/buffer.h femacs/src/include/buffer.rs` -> `OK
+  emacs/src/buffer.h -> femacs/src/include/buffer.rs` (112 functions, 53 macros, 4 types and 6
+  file-scope objects, unchanged).
+- `python3 tools/check-citations.py` -> `0 drift`, `0 stale` (this file has no allowlist row; the
+  comment names buffer.h 1488 and 1529-1537, which `tools/check-citation-text.py` does not
+  report).
+- `build-tu src/keyboard.c` -> `built …` (the frozen unit whose graph carries both this mirror
+  and `keyboard.rs`).

@@ -1,10 +1,11 @@
 // femacs: port of src/frame.h @ fd7afced403.
 //
 // WIP mirror (PORTING.md P-66): the `frame` structure and its flag units.  `frame.h` includes
-// `dispextern.h` and `termhooks.h` (so C sees `struct face_cache`, `struct glyph_matrix`,
-// `struct glyph_pool` and `struct terminal` complete here); of those, only `terminal` has a
-// mirror so far, so the three display ones carry the P-72 rule ③ degradation until the display
-// chain reaches them.  The 139 `FRAME_*` macros, 37 inlines and 7 file-scope objects come next.
+// `termhooks.h` and `window.h` (22-23; `dispextern.h` arrives through termhooks.h 27), so C sees
+// `struct face_cache`, `struct glyph_matrix`, `struct glyph_pool` and `struct terminal` complete
+// here; of those, only `terminal` has a mirror so far, so the three display ones carry the P-72
+// rule ③ degradation until the display chain reaches them.  The 139 `FRAME_*` macros, 37 inlines
+// and 7 file-scope objects come next.
 //
 // `tools/check-cond-eval.py` reports zero disagreements for this header, so the branch set is
 // the frozen configuration's (`HAVE_WINDOW_SYSTEM`, `HAVE_NEXTSTEP`, the `USE_*` toolkits and
@@ -12,6 +13,16 @@
 
 // frame.h 21: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_FRAME_H: bool = true;
+
+// frame.h 22-23: the header's own `#include`s.  C reaches both here, and the text below
+// names them (`struct terminal` in the record's `terminal` member and the `FRAME_KBOARD`/
+// `FRAME_LIVE_P` accessors that deref it, `struct window` in `WINDOW_FRAME` and the
+// `WINDOWP`/`XWINDOW` calls of `FRAME_HAS_MINIBUF_P`): the mirror carries them so a unit
+// whose own include list does not supply
+// them still resolves the names (P-72 rule ④; `src/androidmenu.c` is that unit - it includes
+// `androidterm.h`, which includes `frame.h`, and no `window.h`/`termhooks.h` of its own).
+include!("termhooks.rs");                     // C 22: `#include "termhooks.h"`
+include!("window.rs");                        // C 23: `#include "window.h"`
 
 /* Device-dependent, frame-local auxiliary data used for displaying
    the contents.  */
@@ -933,8 +944,8 @@ macro_rules! FRAME_IMAGE_CACHE { ($f:expr) => { unsafe { (*$f).image_cache } }; 
 /* frame.h 929: `#define WINDOW_FRAME(w) ((w)->frame)`.  The name is a *function* here, not a
    macro: `window.rs` 406 already owns the macro spelling (its units call `WINDOW_FRAME! (w)`),
    and a second `macro_rules!` of one name is `E0659`-ambiguous at those call sites - measured
-   with `build-tu src/frame.c` before this change.  Every unit that includes this mirror includes
-   `window.rs` too (font/term/cm/ccl/scroll/keymap, measured), so the type resolves.  */
+   with `build-tu src/frame.c` before this change.  The pointee resolves through this mirror's own
+   `window.rs` include now (C 23, the note at the top), not through the including unit.  */
 #[inline(always)]
 pub fn WINDOW_FRAME (w: *mut window) -> Lisp_Object { unsafe { (*w).frame } }
 

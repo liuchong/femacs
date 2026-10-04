@@ -6142,3 +6142,34 @@
   ④ **未声称**：这条扫描只覆盖**冻结配置要编的 83 个单元**；“整身在假条件下的” 95 个文件（P-86 类）不在它的范围内
      （它们的 `build-tu` 是空对象，判据是 P-86 ③ 的翻臂），`use_xcb`/`have_xshape`/`have_xcomposite` 这些臂也不在冻结读数里；
      83/83 只说明“冻结这一档能编”，不说明语义、链接或运行。
+
+- **3.377 Android 前置阻塞解掉：P-86 那一类第一次拿到真编译证据（`xtask probe` arm-flip exit 0）（2026-10-05）**：
+  ① **Planck 的 8 处镜像改动（每条带 C 依据）**：`Emacs_Cursor` 的门加在 **dispextern 一侧**
+     （`dispextern.h` 174-176 那条在 `HAVE_ANDROID` 下是死的，活的是 `androidgui.h` 42 的
+     `typedef android_handle android_cursor, Emacs_Cursor;`）；`frame.rs` 补 C 的两条 include（`frame.h` 22-23 的
+     `termhooks.h`/`window.h`）；`keyboard.rs` 补 `coding.rs`/`termhooks.rs`（`keyboard.h` 23/24）**外加** `buffer.rs`
+     （P-72 规则 ④，C 的列表不含但单元要那个类型）；`coding.rs` 补 `composite.rs`（`coding.h` 284）；
+     `buffer.rs` 补 `itree.rs`（`buffer.h` 28）；`font.rs` 的 `size_of::<font_entity>() == 120` 断言按
+     `font.h` 264-268 加 `not(have_android)`；`androidterm.rs` 的 6 个读成员宏按 P-72 规则 ③ 写 `as *mut android_output`
+     （`androidterm.h` 294-295/314-322）；`androidgui.rs` 只改注释。
+  ② **我独立复跑的读数（不引用 lane 的）**：8 个镜像的 `extract-abi --check` **8/8 OK**；
+     冻结档 `build-tu src/androidmenu.c` → **built，对象仍 336 字节＝空对象**（没回退）；
+     **`xtask probe src/androidmenu.rs … --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'`
+     → exit 0 / 12 warnings / 对象 20,360 字节**（他的运行是 89,808 字节，差别只在没有 `-O`）——
+     也就是说**这个单元的 Android 臂正文第一次真的编进去了**；对照 3.370：同一条命令当时 abort 于 10 个错误（全在镜像里）
+     的**空读数**。
+  ③ **P-87 第一次被用在"促使它诞生的那个改动"上**：`tools/check-all-units.sh` 读 **`83 unit(s), 0 failure(s)`**
+     （工作树里同时有 Planck 的这批镜像与 Lagrange 的在飞 X11 镜像）。同刻 `check-mirror-dupes` **18/18/0**、
+     `check-citations` **675 files / 0 drift / 0 stale**、`check-declarations` 未变。
+  ④ **棘轮复算（3.374 之后）**：`git diff --stat docs/baseline` **为空**——xterm 片 7 的引用全在 `have_x_windows` 门后，
+     不产生冻结符号，所以两本 link 仍是 383/93；Swift 那对等 Carson 的在飞切片入库。**这是一次有理由的 no-op**。
+  ⑤ **如实记的预算超支**：Planck 报他用 **翻臂 6 发 + build-tu 7 发**（配额是 4+4），超出的部分是迭代——
+     每修完一批、解析中止才露出下一类错误（`E0080`、`E0609`），"读数必须来自最终文本"又要重生成重编。**照录不掩饰**；
+     这也再次说明 P-86 ⑦ 的"解析中止会藏住后面的错误"是真的。
+  ⑥ **仍未解决（工作单，写进台账）**：`androidterm.h` 的 **3 个 `bool_bf` 宏仍不可展开**
+     （要 3 行 `macro-body-notes.tsv` + P-80 的 mask 形状）；`have_window_system` 若被打开而同 crate 里没有平台 GUI 镜像，
+     `Emacs_Cursor` 就没有声明（本树没有配置开它）；**Haiku/NS/PGTK/W32 的 `Emacs_Cursor` 对偶还没加门**；
+     几处既有 warning（`frame.rs` 786-791、`lisp.rs` 3934、`lib/include/stdbit.in.rs` 644）；
+     `ANDROID_DELETE_LOCAL_REF` 与 `excluded-macros.txt` 尚未对齐。
+  ⑦ **未声称**：这是**编译**级证据（`--emit obj`，类型检查 + 代码生成），没有链接、没有 ABI/行为差分、没有设备/模拟器/JNI/菜单显示；
+     冻结配置下这文件**一行都没编进去**（336 字节空对象）；`check-*` 是逐个门单独跑的，不是整条 `gate-full`。

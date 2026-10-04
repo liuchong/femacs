@@ -295,6 +295,16 @@ pub struct font_entity
   #[cfg (feature = "have_android")]
   pub is_android: bool,
 }
+// The `is_android` member above is C's `HAVE_ANDROID && !ANDROID_STUBIFY` arm, so the frozen
+// measurement does not describe the arm it is carried for: `120` is this target's size and the
+// feature appends C's byte.  There is no Android configuration in this tree to measure the
+// other arm with, and an unmeasured number is not asserted (the `glyph_string`/`MonitorInfo`
+// rule, P-51/P-82).  The **arm-flip compile is the measurement**: with `--cfg
+// 'feature="have_android"'` the unconditional assertion is `E0080 evaluation panicked:
+// assertion failed: std::mem::size_of::<font_entity>() == 120`, which is what puts the gate
+// here.  The three offsets and the alignment hold in both arms - the member is appended - so
+// only the size assertion carries it.
+#[cfg (not (feature = "have_android"))]
 const _: () = assert! (std::mem::size_of::<font_entity> () == 120);
 const _: () = assert! (std::mem::align_of::<font_entity> () == 8);
 const _: () = assert! (std::mem::offset_of! (font_entity, header) == 0);

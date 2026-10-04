@@ -120,3 +120,46 @@
   parameter is `*mut c_void` for the same reason the buffer pointers are (the mirror cannot
   name `struct frame`).
 
+
+# ----------------------------------------------------------------------
+## Decision and Evidence (the header's includes, and `struct buffer`, 2026-10-05)
+
+- **C's two includes are carried here (keyboard.h 23-24).**  `keyboard.h` includes `coding.h`
+  and `termhooks.h`, and a translation unit that includes it therefore sees `struct
+  coding_system` *complete* - which is the only reason `termhooks.h` 549/554 (and the accessors
+  at 927-928) may name the tag.  `termhooks.rs` carries those pointers as `*mut coding_system`,
+  so in a unit that has `keyboard.rs` but not `coding.rs` rustc reported `E0425: cannot find
+  type coding_system` four times (termhooks.rs 215/216/354/357 - that mirror is unchanged, so
+  those are current).  `src/androidmenu.c` is that
+  unit, and it reaches `keyboard.h` at C 26 - so the names it must be able to resolve are
+  exactly C's, and the two lines bring them.
+- **`struct buffer` needs one header more than C's own list goes.**  keyboard.h 267/269 declare
+  `extern struct buffer *buffer_before_last_command_or_undo;` and `extern struct buffer
+  *prev_buffer;`, and C's `keyboard.h` does **not** include `buffer.h`: in C the tag stays
+  incomplete and legal behind the pointers.  Rust has no incomplete types, and this declaration
+  cannot take the P-72 rule ③ degradation (`*mut c_void`) the incomplete-tag class usually
+  takes: the two objects are declared at the crate root, `src/keyboard.rs` 1810 assigns
+  `buffer_before_last_command_or_undo = current_buffer;` and `src/undo.rs` 97/302 compares and
+  assigns the same object against `current_buffer` (`*mut buffer`), and a crate-root item
+  shadows the unit's glob-imported definition - so degrading it breaks two frozen units
+  (`E0308`).  The mirror therefore includes the owner, `buffer.rs` (P-72 rule ④'s "the unit
+  that needs the complete type adds the mirror"), one header further than C's own list.
+- **The three lines are measured no-ops for every frozen unit.**  All 31 units in `femacs/src/`
+  that include this mirror also include `coding.rs`, `termhooks.rs` and `buffer.rs` - except
+  `src/androidmenu.c`, which is the one the change is for.  (Scan: `grep -l
+  'include!("include/keyboard.rs")' femacs/src/*.rs` -> 31 files; each of the three owners
+  checked the same way.)
+
+## Evidence (the three includes)
+
+- `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj -C panic=abort
+  --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"' -o /tmp/am.o
+  build/femacs/units/androidmenu/_root.rs` -> before: the four `coding_system` `E0425`s plus
+  `E0425: cannot find type buffer` twice (reported at this mirror's 231/232, i.e. 248/249 after
+  the five include lines above); after: **exit 0, 0 `^error` lines**.
+- `build-tu src/keyboard.c` -> `built src/keyboard.rs -> ../build/femacs/keyboard.o`;
+  `build-tu src/coding.c` and `src/window.c` -> `built …` (the three frozen units that carry
+  this mirror's neighbours).
+- `python3 tools/extract-abi.py --check emacs/src/keyboard.h femacs/src/include/keyboard.rs`
+  -> `OK emacs/src/keyboard.h -> femacs/src/include/keyboard.rs`.
+- `python3 tools/check-citations.py` -> `0 drift`, `0 stale`.

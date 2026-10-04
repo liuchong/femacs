@@ -14,6 +14,23 @@
 // keyboard.h 21: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_KEYBOARD_H: bool = true;
 
+// keyboard.h 23-24: the header's own `#include`s.  C reaches `coding.h` here, which is how a
+// translation unit that includes `keyboard.h` sees `struct coding_system` complete - and
+// `termhooks.h` 549/554/927-928 names that tag only as an incomplete one, so the port's
+// `termhooks.rs` (`*mut coding_system`) resolves it through this mirror (P-72 rule ④).
+include!("coding.rs");                        // C 23: `#include "coding.h"`
+include!("termhooks.rs");                     // C 24: `#include "termhooks.h"`
+// keyboard.h 267-269 declare `struct buffer *buffer_before_last_command_or_undo` and
+// `struct buffer *prev_buffer`; C's `keyboard.h` does **not** include `buffer.h`, so the two
+// tags are incomplete there and only legal behind pointers.  Rust has no incomplete types, and
+// the declaration cannot degrade to `*mut c_void` (the declarations are at the crate root and
+// `src/keyboard.rs` 1810 / `src/undo.rs` 97/302 assign and compare them against
+// `current_buffer`), so the mirror carries the owner's include (P-72 rule ④ - the same shape
+// as the two above, one header further than C's own list goes).  Measured no-op for every
+// frozen unit: 31 units in `femacs/src/` include this mirror, and the other 30 all include
+// `buffer.rs` already (only `src/androidmenu.c` does not).
+include!("buffer.rs");                        // C keyboard.h 267/269's `struct buffer`
+
 // keyboard.h 380-383.
 pub const KBD_BUFFER_SIZE: c_int = 4096;
 

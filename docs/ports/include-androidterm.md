@@ -147,3 +147,41 @@
   src/androidterm.c` -> `built src/androidterm.rs -> ../build/femacs/androidterm.o` (the unit is the
   note-only placeholder; the mirror itself is not in that translation unit's include graph, see the
   last Decision).
+
+# ----------------------------------------------------------------------
+## Decision and Evidence (the field-reading macros cast the degraded pointer, 2026-10-05)
+
+- **`frame.h` 661 declares `struct android_output *android`, and this header owns both the
+  macro and the record.**  C's `FRAME_ANDROID_WINDOW(f)` is `((f)->output_data.android->window)`
+  (androidterm.h 294-295), which is legal in C because the pointer's pointee is completed here
+  (169-175).  The port's `frame.rs` carries that member as the P-72 rule ③ `*mut c_void`
+  (frame.h does not include this header), so the macro body has to write the cast P-72 rule 3
+  gives the use site - and here the use site *is* the body, exactly the shape `haikuterm.rs`
+  389-433 records for `output_data.haiku`.
+- **Measured, not guessed.**  `src/androidmenu.c` 622 is
+  `android_resolve_handle (FRAME_ANDROID_WINDOW (f))`, the first expansion any compile has ever
+  made of this macro; without the cast rustc stops with `E0609: no field window on type c_void`
+  (and with the wrong pointee, `E0609: no field window on type android_display_info` - the two
+  readings pin the type to `android_output`, whose members are this mirror's 245/252/255/259/297).
+  The same cast went into the four siblings that read members the same way (`FRAME_FONT`,
+  `FRAME_FONTSET`, `FRAME_BASELINE_OFFSET`, `FRAME_DISPLAY_INFO`) so the next Android unit does
+  not meet the same stop.  **The three `bool_bf` bodies stay as they are** -
+  `FRAME_ANDROID_NEED_BUFFER_FLIP` / `FRAME_ANDROID_COMPLETE_P` / `FRAME_ANDROID_DRAWABLE` read
+  members this mirror folds into `android_output.bits`, which is the class the note above
+  records as needing `docs/ports/macro-body-notes.tsv` rows that are not the implementer's to
+  write.
+- The C tokens stay in every body (`output_data`, `android`, the member name), so the body gate
+  still reads them; the cast is added around them.
+
+## Evidence (the macro bodies)
+
+- `python3 tools/extract-abi.py --check emacs/src/androidterm.h
+  femacs/src/include/androidterm.rs` -> `OK emacs/src/androidterm.h ->
+  femacs/src/include/androidterm.rs` (19 macros, 5 types, 4 file-scope objects - the bodies'
+  token sets are unchanged, which is what that gate compares).
+- `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj -C panic=abort
+  --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"' -o /tmp/am.o
+  build/femacs/units/androidmenu/_root.rs` -> before: `E0609` at this mirror's 416; after:
+  **exit 0, 0 `^error` lines**, 89,808-byte object.
+- `python3 tools/check-citations.py` -> `0 drift`, `0 stale` (this file's findings are
+  `androidterm.rs:19`'s, above the insertion).

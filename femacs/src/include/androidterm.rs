@@ -412,11 +412,20 @@ macro_rules! FRAME_OUTPUT_DATA {
 
 /* Return the Android window used for displaying data in frame F.  */
 // androidterm.h 294 and 295: `((f)->output_data.android->window)` twice under two names.
+// `frame.rs` carries the `output_data.android` member as the P-72 rule 3 `*mut c_void`
+// (frame.h 661's `struct android_output *android` is an incomplete tag there, since frame.h
+// does not include this header), and this header owns both the macro and the record, so the
+// body writes the cast P-72 rule 3 puts at the use site - exactly the `haikuterm.rs` 389-433
+// shape for `output_data.haiku`, and cast to the pointee frame.h names.  The
+// C tokens stay in the body (the cast is added around them), so the body gate still reads
+// them.  Measured: this is the body the unit expands at `src/androidmenu.c` 622
+// (`android_resolve_handle (FRAME_ANDROID_WINDOW (f))`), and without the cast rustc stops
+// with `E0609: no field window on type c_void` (rustc's words, unbackticked inside).
 macro_rules! FRAME_ANDROID_WINDOW {
-  ($f:expr) => { ((*(*$f).output_data.android).window) };
+  ($f:expr) => { ((*( (*$f).output_data.android as *mut android_output )).window) };
 }
 macro_rules! FRAME_NATIVE_WINDOW {
-  ($f:expr) => { ((*(*$f).output_data.android).window) };
+  ($f:expr) => { ((*( (*$f).output_data.android as *mut android_output )).window) };
 }
 
 /* Return the need-buffer-flip flag for frame F.  */
@@ -453,24 +462,28 @@ macro_rules! FRAME_ANDROID_COMPLETE_P {
   ($f:expr) => { ((*(*$f).output_data.android).complete) };
 }
 
-// androidterm.h 314-315.
+// androidterm.h 314-315.  Same P-72 rule 3 cast as FRAME_ANDROID_WINDOW above (the members are
+// `android_output`'s in this mirror: `font` 252, `fontset` 259, `baseline_offset` 255).  These
+// three, and FRAME_DISPLAY_INFO below, are expanded by no unit today: the cast is what keeps
+// the next Android unit from meeting the `E0609` the window pair met.
 macro_rules! FRAME_FONT {
-  ($f:expr) => { ((*(*$f).output_data.android).font) };
+  ($f:expr) => { ((*( (*$f).output_data.android as *mut android_output )).font) };
 }
 macro_rules! FRAME_FONTSET {
-  ($f:expr) => { ((*(*$f).output_data.android).fontset) };
+  ($f:expr) => { ((*( (*$f).output_data.android as *mut android_output )).fontset) };
 }
 
 // androidterm.h 317-318.
 macro_rules! FRAME_BASELINE_OFFSET {
-  ($f:expr) => { ((*(*$f).output_data.android).baseline_offset) };
+  ($f:expr) => { ((*( (*$f).output_data.android as *mut android_output )).baseline_offset) };
 }
 
 /* This gives the android_display_info structure for the display F is
    on.  */
-// androidterm.h 322.
+// androidterm.h 322.  Same cast; the member is `android_output.display_info` (this mirror's 297), which
+// points at the `android_display_info` record (86).
 macro_rules! FRAME_DISPLAY_INFO {
-  ($f:expr) => { ((*(*$f).output_data.android).display_info) };
+  ($f:expr) => { ((*( (*$f).output_data.android as *mut android_output )).display_info) };
 }
 
 /* Some things for X compatibility.  */
