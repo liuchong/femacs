@@ -2064,3 +2064,14 @@
   `src/fileio.c`、`src/pdumper.c`、`src/alloc.c`）；`check-mirror-dupes` `1 ratchet row / 0 failure`、
   `check-declarations` `13 sites (0 forbidden, 13 allowed literals) / 0 failures`、`check-verbatim` 0、
   `check-globals` `283 units / 0`；`port-inventory` 复算 **590 files, done=488, wip=14, todo=88**。
+
+- **3.133 共享表被 lane 的"还原快照"铲掉两行：`excluded-macros.txt` 的 unistd 两行补回（2026-10-04 第 100 轮第十六批）**：
+  3.131 里我（集成者）往 `docs/ports/excluded-macros.txt` 追加了 unistd 的两条 `*_INLINE` 行，随后 stdint lane 在
+  收尾时按"共享文件属于集成者"的规则把自己动过的版本**还原成它开工前的快照**（sha256 与它开工时一致），于是这两行
+  **被静默铲掉**——`--check emacs/lib/unistd.in.h` 重新报 `missing macro _GL_UNISTD_INLINE` /
+  `_GL_GETPAGESIZE_INLINE`，而 unistd 台账的框已全勾，`--all` 因此从 `0 failing` 变成 **`1 failing`**
+  （d43c5b3 的提交态里就是缺这两行）。本轮把两行按原文补回并复测 `OK`；`--all` 回到 0 failing。
+  **教训（写进这里，供后续 lane 照做）**：① 共享 tsv（`excluded-macros.txt`/`macro-body-notes.tsv`/
+  `line-drift-tolerance.tsv`/`*pending*.txt`）**只许追加**，任何"还原成我的快照"的动作都会把别人并发写入的行一起铲掉；
+  ② 集成者在每个 lane 交回后要**重跑一次受影响文件的 `--check`**（而不是只看 lane 报告里的读数）——本次就是靠
+  `--all` 的 FAIL 才发现的。
