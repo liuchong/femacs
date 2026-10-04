@@ -4,7 +4,7 @@
 order	target	references	ported
 1	femacs/platform/android/kotlin/EmacsDialogButtonLayout.kt		yes
 2	femacs/platform/android/kotlin/EmacsDirectoryEntry.kt		yes
-3	femacs/platform/android/kotlin/EmacsDocumentsProvider.kt		
+3	femacs/platform/android/kotlin/EmacsDocumentsProvider.kt		yes
 4	femacs/platform/android/kotlin/EmacsHandleObject.kt		yes
 5	femacs/platform/android/kotlin/EmacsHolder.kt		yes
 6	femacs/platform/android/kotlin/EmacsActivity.kt	EmacsContextMenu,EmacsDesktopNotification,EmacsMultitaskActivity,EmacsNative,EmacsService,EmacsView,EmacsWindow,EmacsWindowManager	

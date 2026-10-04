@@ -38,5 +38,9 @@ fi
 out=$(mktemp -d)
 trap 'rm -rf "$out"' EXIT
 kotlin_stdlib="$gradle_lib/kotlin-stdlib-2.4.0.jar"
+# `R` is aapt's product and every target that names a resource needs it; it is generated from the
+# reference's own `res/` tree (see spikes/android-r-from-res.py) so the names come from the
+# reference rather than from a hand-written stub.
+"$root/spikes/android-r-from-res.py" > "$out/R.kt"
 "java" -cp "$gradle_lib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
-  -no-stdlib -classpath "$kotlin_stdlib:$android_jar" -d "$out" "$@"
+  -no-stdlib -classpath "$kotlin_stdlib:$android_jar" -d "$out/classes" "$out/R.kt" "$@"
