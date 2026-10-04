@@ -217,11 +217,17 @@ macro_rules! FONT_SET_STYLE {
   ($font:expr, $prop:expr, $val:expr) => { ASET ($font, $prop, make_fixnum (font_style_to_value ($prop, $val, true))) };
 }
 
-/* C 244-246: the metrics accessors.  */
-macro_rules! FONT_HEIGHT { ($f:expr) => { (($f)->height) }; }
-macro_rules! FONT_BASE { ($f:expr) => { (($f)->ascent) }; }
-macro_rules! FONT_DESCENT { ($f:expr) => { (($f)->descent) }; }
-macro_rules! FONT_WIDTH { ($f:expr) => { (($f)->max_width) }; }
+/* C 244-246: the metrics accessors (`#define FONT_HEIGHT(f) ((f)->height)` and friends).
+   The bodies were carried in C's own spelling - `(($f)->height)` - which no Rust expansion can
+   produce; they never failed a build because each unit that uses them defines its own macro of
+   the same name later in its file, and Rust's macro shadowing made the unit's copy win
+   (status 3.326's duplicate sweep found the copies and 3.328 the reason).  They are ported here
+   as `(*$f).<member>`, which is what those unit-side copies write (femacs/src/font.rs 170-173),
+   so those four copies can now be dropped.  */
+macro_rules! FONT_HEIGHT { ($f:expr) => { (*$f).height }; }
+macro_rules! FONT_BASE { ($f:expr) => { (*$f).ascent }; }
+macro_rules! FONT_DESCENT { ($f:expr) => { (*$f).descent }; }
+macro_rules! FONT_WIDTH { ($f:expr) => { (*$f).max_width }; }
 
 /* C 273: the "encoding not decided yet" marker, and C 583-585's two code limits.  */
 pub const FONT_ENCODING_NOT_DECIDED: c_int = 255;
