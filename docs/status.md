@@ -3044,3 +3044,24 @@
   ⑤ 读数：五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、
   `check-target-names` 596 `.rs`/0）；`check-citations` 80 drift / 15 range / 282 external / 13 allowed / 0 stale（Boole 在攻）；
   `layout-check` passed；`check-swift-units` 0/0。
+
+- **3.174 xdisp 再推 858 行（C 7573-8430），引证门的 range 类被压到 4 条（2026-10-04）**：
+  ① **xdisp lane（C 7573-8430，858 行）**：13 个函数（`back_to_previous_line_start` … `forget_escape_and_glyphless_faces`）+ 2 个宏
+  （`GET_NEXT_DISPLAY_ELEMENT` C 8286、`CHAR_COMPOSED_P` C 8297）+ 6 个 `static mut` 文件作用域对象；
+  `xdisp.rs` 8,393 → **9,368 行**，`--check` problem 行 **294 → 271**；SCAFFOLD 实测 17 → 21（烧 3 加 7——
+  为 `get_next_element[]` 取地址而加 7 个 `next_element_from_*`，它们按 C 顺序到达时再落地）。
+  基础设施：`struct it` 命名 `glyphless_method` + 新位（`it_bits!` 新臂）；`struct bidi_it` 命名 `disp_pos`/`disp_prop`
+  （clang 实测 + `offset_of!` 断言）；4 条新 extern（`find_newline_no_quit`/`indented_beyond_p`/`merge_faces`/`window_point`）。
+  **并发纪律做得好**：它在**其他 lane 改动之后的当前磁盘状态**上二次构建取证据（`built` + md5 `ef8d6827…` 与落盘一致），
+  并披露只读未碰别人的文件。
+  ② **三条共享行由我写入** `docs/ports/macro-body-notes.tsv`（`strings_with_newlines	descending,itree_foreach`：
+  `ITREE_FOREACH` 使用点展开；`back_to_previous_visible_line_start	goto`：两处前向 `goto replaced` ⇒ 命名循环/内块
+  + `break 'replaced`；`lookup_glyphless_char_display	goto`：`retry:` 后向跳 ⇒ `'retry: loop` + `continue 'retry`），
+  复测该文件 `does not mention` 行**归零**。
+  ③ **引证门推进**：Boole 先攻 range 类，**15 → 4 条**；当前读数 **80 drift / 4 range / 282 external / 13 allowed / 0 stale**。
+  剩下 4 条 range 里有在飞文件的（`keyboard.rs`、`xdisp.rs`、`nsimage.swift`），tracked 的照改。
+  ④ 两条 lane 重新排活：**Hypatia** 从 **C 8437 `get_next_display_element`** 起；**Harvey** 接最大的一件 gnulib 模板
+  **`lib/stdbit.in.h`（2,229 行）**（判据先查生成头 `build/emacs-ref/lib/stdbit.h`，不在则走 `errno.in`/`execinfo.in` 那一档），
+  有余力再接 `lib/string.in.h`(1,852) 或 `lib/stdlib.in.h`(1,991)。
+  ⑤ 读数：五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、
+  `check-target-names` 596 `.rs`/0）；`layout-check` passed；`check-swift-units` 0/0。
