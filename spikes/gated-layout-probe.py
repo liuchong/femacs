@@ -35,6 +35,15 @@ Nothing is written into `emacs/`: the probe translation unit lives in a temporar
 directory and the reference tree is read through `-I` only.  An arm that does not parse
 is recorded as `parse=no` (with its errors printed) rather than silently dropped, and the
 frozen arm failing is an error - the baseline of every comparison is that arm.
+
+**How to read `parse=no`** (3.318, after the xterm.h tables): for a header that includes
+another target's header unconditionally, an arm can fail for a reason that has nothing to do
+with the *type* - `xterm.h`'s line 23 is `#include <X11/Xlib.h>`, and `-I <X11>` is given only
+to an arm whose defines contain `HAVE_X_WINDOWS`, so the `frozen` and `ns_cocoa` arms both
+report `fatal error: 'X11/Xlib.h' file not found` and a `parse=no` row.  That is *not*
+"this configuration has no `struct x_display_info`": the NS configuration has one, in
+`nsterm.h`, and `femacs/src/include/nsterm.rs` mirrors it.  The reason is in the run's own
+`unavailable: N error(s)` block; the TSV keeps `parse=no` as its machine-readable half.
 """
 
 from __future__ import annotations

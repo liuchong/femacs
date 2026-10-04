@@ -5191,3 +5191,14 @@
   ③ **lane 的翻牌读数（照抄，我未重跑）**：`dispextern_face_records` 翻牌 → `xtask probe … --cfg 'feature="dispextern_face_records"'` **exit 0、15/15 条带门符号进对象**；
   `have_window_system` 翻牌 → **exit 1、48 条 error，但没有一条点名本批**（与批⑪同一次读数：那堵墙是 `frame.rs` 的带门存取器缺平台类型，不是本文件的问题）。
   ④ **下一步**：棘轮重生成应把这 18 个名字**从待办里去掉**（`swift-import-pending` 650 → 632）——见 3.318。
+- **3.318 X11 两个记录的臂表入库（4 张 TSV），并更正 3.309 一处读数口径（Boyle 交付，2026-10-05）**：
+  ① **入的四张**（都是新文件，生成命令写在各自表头）：`docs/baseline/x_display_info-layout.tsv` **495 行**（4 臂：`sizeof` **4776/8**（x11）与 **4856/8**（x11_ext）；frozen/ns_cocoa 各一行 `parse=no`）、
+  `docs/baseline/x_output-layout.tsv` **181 行**（**448/8** vs **560/8**）、`docs/baseline/x_display_info-bits.tsv` **12 行**、`docs/baseline/x_output-bits.tsv` **23 行**。我自己的读法复核：行数、两份表头里的生成命令、`frozen`/`ns_cocoa` 的 `parse=no` 行位置（7 与 246/82）都对得上。
+  ② **一条更正（我 3.309 的话说窄了）**：x11 与 x11_ext 在 `x_display_info` 上的差集是 **11 个顶层名**，不是 9——**第三道门** `defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME` 另外贡献了 `server_time_monotonic_p`/`server_time_offset`（本臂同时满足它：macros.tsv 1248 的 `HAVE_CLOCK_GETTIME 1`、3861 的 `USE_GTK undef`）。
+  所以 3.309 里"5 条缺口＝XSYNC 成员"的账要这么读：那 5 条是 **XSYNC 的 3 个 + 第三道门的 2 个**（`xsync_supported_p`/`xsync_major`/`xsync_minor`/`server_time_monotonic_p`/`server_time_offset`），与 xterm lane 已经补进镜像的 5 个名字**逐个吻合**。
+  ③ **一处计数口径分歧（记下来，避免下次误引）**：3.302/3.309 我引的"x11 181 / x11_ext 190"是**我自己的名字正则**在臂输出上的计数；Boyle 的表用**clang dump 的缩进规则**（深度 0 = 顶层）给出 **207 / 218 顶层 + 29 嵌套**。两者相差 26，**表是权威口径**（它可复算、且是发布物）；教训与 3.182/3.196/3.198/3.202 同族：**引数字要连口径一起引**。
+  ④ **三条对镜像作者要紧的读数**（lane 写进表头/报告，我照抄）：⑴ **共享成员在带门臂里会整体平移**（`x_display_info` 207 个共享名里 113 个偏移不变、85 个 +48、4 个 +60、3 个 +64、2 个 +80；`x_output` 59 个里 43 不变、6 个 +88、4 个 +116）⇒ **手推偏移会错，必须读臂表**；
+  ⑵ **位成员不跨臂移动**（`x_output` 的 6 个旧位成员两臂都是 unit 1 / shift 0-5，x11_ext 新增 5 个在 unit 19 / shift 0-4；`x_display_info` 的 3 个两臂都是 unit 1 / shift 0-2）；
+  ⑶ **一个读法陷阱**：`x_display_info-bits.tsv` 的那 3 行其实是**嵌套 `Mouse_HLInfo` 的位串**（296:0-2），谁照它给 `x_display_info` 本体造位镜像都会错——**命名一条改进**（本轮不做，因为会改已发布位表的列形状）：让 `--bits` 把**嵌套深度**一起记下来。
+  ⑤ **集成者的裁决（Boyle 问的那条）**：`parse=no` 的语义**不改表格式**——两张表的表头本来就写着"marks an arm this machine cannot read, with the reason in the run"，而探针把原因打在 `unavailable: N error(s)` 块里（本处是 `fatal error: 'X11/Xlib.h' file not found`，因为 `-I <X11>` 只给定义了 `HAVE_X_WINDOWS` 的臂）。
+  我把这条读法写进了 `spikes/gated-layout-probe.py` 的 docstring：**`ns_cocoa` 的 `parse=no` 绝不能被读成"NS 没有 `x_display_info`"**——NS 的那个记录在 `nsterm.h`、镜像在 `femacs/src/include/nsterm.rs`，两者是**同名不同源**的两个类型。

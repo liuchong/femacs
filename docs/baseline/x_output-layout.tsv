@@ -1,0 +1,181 @@
+# struct x_output from xterm.h (c), read by
+# `spikes/gated-layout-probe.py struct x_output xterm.h c`:
+# the frozen build's generated config.h, plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tbyte-offset-or-byte:bits.
+# `parse=no` marks an arm this machine cannot read, with the reason in the run.
+arm	member	offset-or-bits
+frozen	parse	no
+x11	sizeof struct x_output	448
+x11	align struct x_output	8
+x11	int toolbar_top_height	0
+x11	int toolbar_bottom_height	4
+x11	int toolbar_left_width	8
+x11	int toolbar_right_width	12
+x11	Pixmap border_tile	16
+x11	GC normal_gc	24
+x11	GC reverse_gc	32
+x11	GC cursor_gc	40
+x11	Window window_desc	48
+x11	Drawable draw_desc	56
+x11	Window icon_desc	64
+x11	Window parent_desc	72
+x11	Window user_time_window	80
+x11	ptrdiff_t icon_bitmap	88
+x11	struct font * font	96
+x11	int baseline_offset	104
+x11	int fontset	108
+x11	unsigned long cursor_pixel	112
+x11	unsigned long border_pixel	120
+x11	unsigned long mouse_pixel	128
+x11	unsigned long cursor_foreground_pixel	136
+x11	unsigned long scroll_bar_foreground_pixel	144
+x11	unsigned long scroll_bar_background_pixel	152
+x11	Cursor text_cursor	160
+x11	Cursor nontext_cursor	168
+x11	Cursor modeline_cursor	176
+x11	Cursor hand_cursor	184
+x11	Cursor hourglass_cursor	192
+x11	Cursor horizontal_drag_cursor	200
+x11	Cursor vertical_drag_cursor	208
+x11	Cursor current_cursor	216
+x11	Cursor left_edge_cursor	224
+x11	Cursor top_left_corner_cursor	232
+x11	Cursor top_edge_cursor	240
+x11	Cursor top_right_corner_cursor	248
+x11	Cursor right_edge_cursor	256
+x11	Cursor bottom_right_corner_cursor	264
+x11	Cursor bottom_edge_cursor	272
+x11	Cursor bottom_left_corner_cursor	280
+x11	Window hourglass_window	288
+x11	XWMHints wm_hints	296
+x11	long flags	296
+x11	int input	304
+x11	int initial_state	308
+x11	Pixmap icon_pixmap	312
+x11	Window icon_window	320
+x11	int icon_x	328
+x11	int icon_y	332
+x11	Pixmap icon_mask	336
+x11	XID window_group	344
+x11	struct x_display_info * display_info	352
+x11	XEvent * saved_menu_event	360
+x11	bool_bf hourglass_p	368:0-0
+x11	bool_bf explicit_parent	368:1-1
+x11	bool_bf asked_for_visible	368:2-2
+x11	bool_bf has_been_visible	368:3-3
+x11	bool_bf wait_for_wm	368:4-4
+x11	bool_bf alpha_identical_p	368:5-5
+x11	struct relief black_relief	376
+x11	GC gc	376
+x11	unsigned long pixel	384
+x11	struct relief white_relief	392
+x11	GC gc	392
+x11	unsigned long pixel	400
+x11	unsigned long relief_background	408
+x11	int focus_state	416
+x11	int move_offset_top	420
+x11	int move_offset_left	424
+x11	_Bool window_offset_certain_p	428
+x11	int root_x	432
+x11	int root_y	436
+x11	int visibility_state	440
+ns_cocoa	parse	no
+x11_ext	sizeof struct x_output	560
+x11_ext	align struct x_output	8
+x11_ext	int toolbar_top_height	0
+x11_ext	int toolbar_bottom_height	4
+x11_ext	int toolbar_left_width	8
+x11_ext	int toolbar_right_width	12
+x11_ext	Pixmap border_tile	16
+x11_ext	GC normal_gc	24
+x11_ext	GC reverse_gc	32
+x11_ext	GC cursor_gc	40
+x11_ext	Window window_desc	48
+x11_ext	Drawable draw_desc	56
+x11_ext	Window icon_desc	64
+x11_ext	Window parent_desc	72
+x11_ext	Window user_time_window	80
+x11_ext	ptrdiff_t icon_bitmap	88
+x11_ext	struct font * font	96
+x11_ext	int baseline_offset	104
+x11_ext	int fontset	108
+x11_ext	unsigned long cursor_pixel	112
+x11_ext	unsigned long border_pixel	120
+x11_ext	unsigned long mouse_pixel	128
+x11_ext	unsigned long cursor_foreground_pixel	136
+x11_ext	unsigned long scroll_bar_foreground_pixel	144
+x11_ext	unsigned long scroll_bar_background_pixel	152
+x11_ext	Cursor text_cursor	160
+x11_ext	Cursor nontext_cursor	168
+x11_ext	Cursor modeline_cursor	176
+x11_ext	Cursor hand_cursor	184
+x11_ext	Cursor hourglass_cursor	192
+x11_ext	Cursor horizontal_drag_cursor	200
+x11_ext	Cursor vertical_drag_cursor	208
+x11_ext	Cursor current_cursor	216
+x11_ext	Cursor left_edge_cursor	224
+x11_ext	Cursor top_left_corner_cursor	232
+x11_ext	Cursor top_edge_cursor	240
+x11_ext	Cursor top_right_corner_cursor	248
+x11_ext	Cursor right_edge_cursor	256
+x11_ext	Cursor bottom_right_corner_cursor	264
+x11_ext	Cursor bottom_edge_cursor	272
+x11_ext	Cursor bottom_left_corner_cursor	280
+x11_ext	Window hourglass_window	288
+x11_ext	XWMHints wm_hints	296
+x11_ext	long flags	296
+x11_ext	int input	304
+x11_ext	int initial_state	308
+x11_ext	Pixmap icon_pixmap	312
+x11_ext	Window icon_window	320
+x11_ext	int icon_x	328
+x11_ext	int icon_y	332
+x11_ext	Pixmap icon_mask	336
+x11_ext	XID window_group	344
+x11_ext	struct x_display_info * display_info	352
+x11_ext	XEvent * saved_menu_event	360
+x11_ext	bool_bf hourglass_p	368:0-0
+x11_ext	bool_bf explicit_parent	368:1-1
+x11_ext	bool_bf asked_for_visible	368:2-2
+x11_ext	bool_bf has_been_visible	368:3-3
+x11_ext	bool_bf wait_for_wm	368:4-4
+x11_ext	bool_bf alpha_identical_p	368:5-5
+x11_ext	XIC xic	376
+x11_ext	XIMStyle xic_style	384
+x11_ext	XFontSet xic_xfs	392
+x11_ext	XSyncCounter basic_frame_counter	400
+x11_ext	XSyncCounter extended_frame_counter	408
+x11_ext	struct _XSyncValue pending_basic_counter_value	416
+x11_ext	int hi	416
+x11_ext	unsigned int lo	420
+x11_ext	struct _XSyncValue current_extended_counter_value	424
+x11_ext	int hi	424
+x11_ext	unsigned int lo	428
+x11_ext	struct _XSyncValue resize_counter_value	432
+x11_ext	int hi	432
+x11_ext	unsigned int lo	436
+x11_ext	bool_bf sync_end_pending_p	440:0-0
+x11_ext	bool_bf ext_sync_end_pending_p	440:1-1
+x11_ext	bool_bf waiting_for_frame_p	440:2-2
+x11_ext	bool_bf draw_just_hung_p	440:3-3
+x11_ext	bool_bf use_vsync_p	440:4-4
+x11_ext	uint_fast64_t last_frame_time	448
+x11_ext	uint_fast64_t temp_frame_time	456
+x11_ext	struct relief black_relief	464
+x11_ext	GC gc	464
+x11_ext	unsigned long pixel	472
+x11_ext	struct relief white_relief	480
+x11_ext	GC gc	480
+x11_ext	unsigned long pixel	488
+x11_ext	unsigned long relief_background	496
+x11_ext	int focus_state	504
+x11_ext	int move_offset_top	508
+x11_ext	int move_offset_left	512
+x11_ext	ptrdiff_t preedit_size	520
+x11_ext	char * preedit_chars	528
+x11_ext	_Bool preedit_active	536
+x11_ext	int preedit_caret	540
+x11_ext	_Bool window_offset_certain_p	544
+x11_ext	int root_x	548
+x11_ext	int root_y	552
+x11_ext	int visibility_state	556
