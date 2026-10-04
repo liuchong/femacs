@@ -2927,3 +2927,23 @@
   Boole（引证复核队列，162 drift + 22 range）、Hilbert（`struct glyph_string` + 删空壳 `PROTOTYPE` 宏）、
   Mill（`macfont.m` 4,257 行）。Harvey 已排下一批（`pathmax.h`/`dirent-private.h`/`execinfo.in.h`/
   `widgetprv.h`/`sfntfont.h` 五个小件，余力接 `stdbit.in.h`）。
+
+- **3.169 xdisp 再推 800 行（C 6763-7562），六条共享行补入（2026-10-04）**：
+  ① **xdisp lane（C 6763-7562，800 行）**：13 个函数（`string_buffer_position_lim` … `pop_it`）+ 1 个类型
+  （`overlay_entry`，C 6905-6911，`#[repr(C)]` + clang 实测 size 32/offset 断言）+ 1 个宏
+  （`RECORD_OVERLAY_STRING`，C 7121 的函数内 `#define/#undef` 对 ⇒ P-37 的函数作用域 `macro_rules!`）。
+  `xdisp.rs` 7,430 → **8,393 行**，`--check` problem 行 **305 → 294**，SCAFFOLD 烧 9 条。
+  基础设施也按实测补齐：`struct it` 新增位 `overlay_strings_at_end_processed_p` 与三组读写臂；
+  `struct iterator_stack_entry` **整块按实测布局重写**（21 条断言）+ 3 个具名 record 类型 + 1 个 `#[repr(C)] union`（P-67）；
+  `struct composition_it` 命名 `ch`/`nglyphs`；新 extern 3 条（`bidi_push_it`/`bidi_pop_it`/`qsort`，均带 `/// C:` 原型）。
+  ② **它的边界复核是四路对照**（自写的注释/字符串感知花括号配对工具 + `--check` 最早 missing 行 + 台账方框 + 镜像现状），
+  四路一致才接手——这套做法我确认为该 lane 的标准，并已写进下一轮简报。
+  ③ **一处自我纠错**：Progress 段原写"scaffold 剩 15 条"，实测（数块内 `fn` 行）是 **17 条**，它把差异写明并指出
+  "旧叙述数字没数过块"——这是 3.153/3.156/3.157 同类"老记录写反"的又一次实例，记在案（**叙述性数字必须能被机器复核**）。
+  ④ **六条共享行由我写入** `docs/ports/macro-body-notes.tsv`：keyboard 的 `set_waiting_for_input	0` 与
+  `clear_waiting_for_input	0`（3.167 那轮报的），xdisp 的 `RECORD_OVERLAY_STRING	false`、
+  `load_overlay_strings	descending,itree_foreach`（`ITREE_FOREACH` 使用点展开 + `ITREE_##order` 拼接）、
+  `push_it`/`pop_it	`switch,case,default,break``（`switch`→`match`）。复测：两个文件的 `does not mention` 行**都归零**。
+  ⑤ 读数：`xdisp.rs` 8,393 行，`missing function` 208 条**全部**在结束边界 C 7562 之后（最早 C 7573
+  `back_to_previous_line_start`）；五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、
+  `check-verbatim` 4607/0、`check-target-names` 589 `.rs`/0）。
