@@ -187,8 +187,8 @@ pub struct it
   pub f: *mut frame,
 }
 
-// C: font.h 585: `#define FONT_INVALID_CODE 0xFFFFFFFF`.
-pub const FONT_INVALID_CODE: c_uint = 0xFFFFFFFF;
+/* font.h 585's `FONT_INVALID_CODE` is the font mirror's now - this unit reaches it through
+   the font header's position in composite.h (28), which is in this file's include list. */
 
 /* Table of pointers to the structure `composition' indexed by
    COMPOSITION-ID.  This structure is for storing information about
