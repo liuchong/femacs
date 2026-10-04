@@ -5988,3 +5988,13 @@
      ⇒ 无运行、无像素/视觉证据；`eabs`/`truncatingIfNeeded:` 那一类"照录但从未执行"的语义仍未验证。
   ⑤ **未声称**：`image_ascent` 的**函数体没有移植**（只有声明）；`struct image`/`glyph_slice`/`face` 的布局仍是核心的事实；
      Swift 侧一律编译级。
+
+- **3.369 四棘轮在 `72f935a` 复算：Swift 那对按预期动（−2 / +26），两本 link **不动**（2026-10-05）**：
+  ① **顺序**：3.368（nsterm 第 19 片）先入库，`tools/reconcile-link-ratchets.sh` 随后在 HEAD 复算，两本 link 的 `--strict` 都过。
+  ② **读数**：`check-swift-units` **0 new / 0 stale**（`swift-units.tsv` **−2 行**，正是第 19 片刚落地的
+     `ns_draw_image_relief`/`ns_dumpglyphs_image`）；`swift-import-pending` **720 → 746（+26）**，即该片登记的
+     13 `reference-source` + 13 `unclassified` 名字；两本 link **与本轮之前逐字节相同**（`383/383/0`、`93/93/0`）——
+     因为这一片是 **Swift**，不产生 Rust 对象。这条与 3.360 的"link 长 10 行"是同一口径的两面：
+     **棘轮的增减只反映它自己那类对象**。
+  ③ **未声称**：`--strict` 只说明四本表与 HEAD 的对象/文本精确相等；`swift-import-pending` 的 +26 是**欠账登记**
+     （那 26 个名字仍没有提供者，lane 的 `nm -u` 读数是 762 个 undefined）。

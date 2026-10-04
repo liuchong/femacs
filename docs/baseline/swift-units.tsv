@@ -29,9 +29,7 @@ femacs/platform/macos/nsterm.swift	ns_draw_composite_glyph_string_foreground	src
 femacs/platform/macos/nsterm.swift	ns_draw_glyph_string	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_glyph_string_foreground	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_glyphless_glyph_string_foreground	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_draw_image_relief	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_stretch_glyph_string	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_dumpglyphs_image	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_flush_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_free_pixmap	src/nsterm.m
