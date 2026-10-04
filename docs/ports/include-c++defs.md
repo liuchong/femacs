@@ -31,15 +31,12 @@
   (`grep -rn -F 'c++defs.h' emacs --include='*.h' --include='*.in.h' --include='*.c'`) matches only
   `emacs/lib/gnulib.mk.in` 3180 and 3182 - the build machinery's `CXXDEFS_H` variable and its
   `EXTRA_DIST` - and a search under `build/emacs-ref/lib/` matches only `gnulib.mk`; no source file
-  and no generated header names it.  (An earlier draft of this paragraph listed `lib/verify.h`,
+  and no generated header names it.  An earlier draft of this paragraph listed `lib/verify.h`,
   `lib/stdint.in.h`, `lib/getopt.in.h` and `lib/getopt-cdefs.in.h` as includers: that came from a
   grep whose pattern was `c++defs\.h`, which is not a valid regex, so its output was never
-  evidence.  The paragraph is rewritten from the fixed-string search.)  The macro machinery still
-  has use sites on this side, and those are recorded where they are used: `fcntl.in.rs` 274-276
-  (`creat`, `open`, `openat`), `time.in.rs` 156, `unistd.in.rs` 24 and `sys_stat.in.rs` 43 and 175.
-  Nothing includes this mirror because the header it mirrors is a snippet the generated headers
-  consume under the gnulib build; the omission is named here so it is auditable.
-
+  evidence.  Nothing includes this mirror because the header it mirrors is a snippet the generated
+  headers consume under the gnulib build, and the resolution of its macros is already recorded at
+  the use sites above; the omission is named here so it is auditable.
 ## Evidence
 
 - `python3 tools/extract-abi.py --check emacs/lib/c++defs.h femacs/lib/include/c++defs.rs`
