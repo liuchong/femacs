@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 565 |
-| 其中 done / wip | 543 / 22 |
+| 其中 done / wip | 545 / 20 |
 | 待开工 | 25 |
 
 ## 2 按目录
@@ -59,7 +59,7 @@
 | `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 7 | 72 | E | wip |
 | `src/xterm.c` | 33,125 | 438 | 0 | 35 | 33 | 103 | F | done |
 | `src/sfnt.c` | 21,215 | 268 | 0 | 170 | 53 | 8 | E | done |
-| `src/keyboard.c` | 14,682 | 183 | 38 | 19 | 12 | 83 | E | wip |
+| `src/keyboard.c` | 14,682 | 183 | 38 | 19 | 12 | 83 | E | done |
 | `src/image.c` | 13,805 | 223 | 12 | 152 | 61 | 12 | D | done |
 | `src/w32fns.c` | 12,488 | 90 | 60 | 69 | 25 | 55 | F | done |
 | `src/coding.c` | 12,312 | 96 | 34 | 140 | 0 | 12 | C | done |
@@ -311,7 +311,7 @@
 | `lib/streq.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/streq.rs` | done |
 | `lib/strftime.c` | 2,446 | 11 | 0 | 81 | 21 | 0 | 0 | L | `femacs/lib/strftime.rs` | done |
 | `lib/strftime.h` | 104 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/strftime.rs` | done |
-| `lib/string.in.h` | 1,852 | 2 | 0 | 45 | 4 | 0 | 0 | L | `femacs/lib/include/string.in.rs` | wip |
+| `lib/string.in.h` | 1,852 | 2 | 0 | 45 | 4 | 0 | 0 | L | `femacs/lib/include/string.in.rs` | done |
 | `lib/strnlen.c` | 34 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/strnlen.rs` | done |
 | `lib/strnul.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/strnul.rs` | done |
 | `lib/strtoimax.c` | 70 | 1 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/strtoimax.rs` | done |
@@ -539,7 +539,7 @@
 | `src/itree.c` | 1,435 | 45 | 0 | 0 | 0 | 6 | 0 | C | `femacs/src/itree.rs` | done |
 | `src/itree.h` | 190 | 1 | 0 | 3 | 4 | 20 | 0 | C | `femacs/src/include/itree.rs` | done |
 | `src/json.c` | 1,851 | 63 | 4 | 3 | 7 | 25 | 0 | D | `femacs/src/json.rs` | done |
-| `src/keyboard.c` | 14,682 | 183 | 38 | 19 | 9 | 12 | 83 | E | `femacs/src/keyboard.rs` | wip |
+| `src/keyboard.c` | 14,682 | 183 | 38 | 19 | 9 | 12 | 83 | E | `femacs/src/keyboard.rs` | done |
 | `src/keyboard.h` | 535 | 9 | 0 | 18 | 23 | 29 | 26 | E | `femacs/src/include/keyboard.rs` | done |
 | `src/keymap.c` | 3,487 | 37 | 29 | 0 | 0 | 14 | 10 | E | `femacs/src/keymap.rs` | done |
 | `src/keymap.h` | 51 | 0 | 0 | 3 | 0 | 0 | 1 | E | `femacs/src/include/keymap.rs` | done |

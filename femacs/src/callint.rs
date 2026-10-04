@@ -938,10 +938,13 @@ pub unsafe extern "C" fn syms_of_callint ()
   DEFSYM! (Qenable_recursive_minibuffers, "enable-recursive-minibuffers");
   DEFSYM! (Qmouse_leave_buffer_hook, "mouse-leave-buffer-hook");
 
-  DEFVAR_KBOARD! (c"prefix-arg", Vprefix_arg,
+  /* C's `DEFVAR_KBOARD (lname, vname, doc)` stores `offsetof (KBOARD, vname##_)` (lisp.h
+     3525-3530), not the variable the name spells; the port's macro takes that offset as
+     its second argument, so both sites here pass the field, not the global (status 3.188).  */
+  DEFVAR_KBOARD! (c"prefix-arg", std::mem::offset_of! (kboard, Vprefix_arg_),
 		  "The value of the prefix argument for the next editing command.\nIt may be a number, or the symbol `-' for just a minus sign as arg,\nor a list whose car is a number for just one or more C-u's\nor nil if no argument has been specified.\n\nYou cannot examine this variable to find the argument for this command\nsince it has been set to nil by the time you can look.\nInstead, you should use the variable `current-prefix-arg', although\nnormally commands can get this prefix argument with (interactive \"P\").  ");
 
-  DEFVAR_KBOARD! (c"last-prefix-arg", Vlast_prefix_arg,
+  DEFVAR_KBOARD! (c"last-prefix-arg", std::mem::offset_of! (kboard, Vlast_prefix_arg_),
 		  "The value of the prefix argument for the previous editing command.\nSee `prefix-arg' for the meaning of the value.  ");
 
   DEFVAR_LISP! (c"current-prefix-arg", Vcurrent_prefix_arg,

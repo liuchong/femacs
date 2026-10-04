@@ -1211,3 +1211,5 @@ _gl_stdbit_clzll	__builtin_clzll	stdbit.in.h 236-248 (the `ll` variant): the sam
 _gl_stdbit_ctz	__builtin_ctz	stdbit.in.h 419-431: the same compiler-builtin class for trailing zeros, spelled `u32::trailing_zeros ()`
 _gl_stdbit_ctzl	__builtin_ctzl	stdbit.in.h 419-431 (the `l` variant): spelled `u64::trailing_zeros ()`
 _gl_stdbit_ctzll	__builtin_ctzll	stdbit.in.h 419-431 (the `ll` variant): spelled `u128::trailing_zeros ()`
+syms_of_keyboard	doc	keyboard.c 13413-14514: the 87 `DEFVAR_*` invocations take C's docstring positionally (the mirror's macro parameter is `$doc`), so C's `doc:` label has no counterpart; the docstrings themselves are carried verbatim as the macro's third argument (the `syms_of_data` precedent)
+is_ignored_event	case,default	keyboard.c 13360-13409: C's `switch (event->kind)` becomes the port's `match` on the same arms in the same order (PORTING.md 2.2) — the label `'switch` and its `break 'switch` keep `switch`/`break`, so `case` and `default` are the only tokens left
