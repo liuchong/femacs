@@ -538,3 +538,19 @@ unit 2), so a window-system configuration needs the unit as data as well as the 
 means either a `(unit, shift)` constant pair per arm (the derived table is written) or a reader that
 dispatches on a unit constant.  Both are model changes for a later pass, and both are measurable
 now.
+
+## Four more macros C gates, and the same treatment (status 3.274)
+
+`FRAME_EXTERNAL_MENU_BAR` and `FRAME_EXTERNAL_TOOL_BAR` (frame.h 1078-1098), the vertical-scroll-bar
+family (1215-1230) and `FRAME_HAS_HORIZONTAL_SCROLL_BARS` (1276-1280) are the same shape as the nine
+above: C spells a member read in one arm and a constant in the other, and the port carried the
+constant ungated.  They are gated now with the arm whose body they are - `not (have_ext_menu_bar)`,
+`not (have_ext_tool_bar)`, `not (have_window_system)`, `not (use_horizontal_scroll_bars)` (a new
+feature row: the frozen `config.h` leaves `USE_HORIZONTAL_SCROLL_BARS` undefined) - so a
+window-system configuration fails to compile at them instead of answering with the frozen constant.
+Their `#if` bodies read the flag numbering in `docs/baseline/frame-bits.tsv`, which is the same next
+step.
+
+Evidence: `build-tu src/frame.c` and `src/term.c` exit 0, `xtask layout-check` passed,
+`check-declarations` 13 sites / 0 forbidden, `check-globals` 284 units / 0, `check-mirror-dupes`
+0 failures.

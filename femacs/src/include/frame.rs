@@ -492,6 +492,7 @@ pub fn FRAME_COLS (f: *mut frame) -> c_int { unsafe { (*f).text_cols } }
 pub fn FRAME_LINES (f: *mut frame) -> c_int { unsafe { (*f).text_lines } }
 
 // frame.h 950-1010: the menu-bar, tab-bar and tool-bar margins.
+#[cfg (not (feature = "have_ext_menu_bar"))]
 #[inline(always)]
 pub fn FRAME_EXTERNAL_MENU_BAR (f: *mut frame) -> bool { let _ = f; false }
 #[inline(always)]
@@ -502,6 +503,7 @@ pub fn FRAME_MENU_BAR_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).menu_bar_h
 pub fn FRAME_TAB_BAR_LINES (f: *mut frame) -> c_int { unsafe { (*f).tab_bar_lines } }
 #[inline(always)]
 pub fn FRAME_TAB_BAR_HEIGHT (f: *mut frame) -> c_int { unsafe { (*f).tab_bar_height } }
+#[cfg (not (feature = "have_ext_tool_bar"))]
 #[inline(always)]
 pub fn FRAME_EXTERNAL_TOOL_BAR (f: *mut frame) -> bool { let _ = f; false }
 #[inline(always)]
@@ -598,16 +600,25 @@ pub fn FRAME_CONDEMNED_SCROLL_BARS (f: *mut frame) -> Lisp_Object
 #[inline(always)]
 pub fn FRAME_MENU_BAR_ITEMS (f: *mut frame) -> Lisp_Object { unsafe { (*f).menu_bar_items } }
 
-// frame.h 1150-1220: the scroll bars this target does not have.
+// frame.h 1078-1098 and 1215-1230: four macros whose C `#if` arm reads a member and whose
+// `#else` arm is what the port spells.  Like frame.h 1240-1271's family, they are gated with the
+// arm whose body they are: the window-system body needs the flag numbering measured in
+// `docs/baseline/frame-bits.tsv`, and a window-system configuration fails to compile here until
+// that numbering is written rather than answering with the frozen arm's constant.
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_VERTICAL_SCROLL_BAR_TYPE (f: *mut frame) -> vertical_scroll_bar_type
 { let _ = f; vertical_scroll_bar_none }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_HAS_VERTICAL_SCROLL_BARS (f: *mut frame) -> c_int { let _ = f; 0 }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT (f: *mut frame) -> c_int { let _ = f; 0 }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f: *mut frame) -> c_int { let _ = f; 0 }
+#[cfg (not (feature = "use_horizontal_scroll_bars"))]
 #[inline(always)]
 pub fn FRAME_HAS_HORIZONTAL_SCROLL_BARS (f: *mut frame) -> c_int { let _ = f; 0 }
 #[cfg (not (feature = "have_window_system"))]
