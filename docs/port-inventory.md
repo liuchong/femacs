@@ -23,22 +23,22 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 542 |
-| 其中 done / wip | 521 / 21 |
-| 待开工 | 48 |
+| 已有目标文件 | 544 |
+| 其中 done / wip | 526 / 18 |
+| 待开工 | 46 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 24 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 23 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 24 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 23 |
 
 ## 3 按批次
 
@@ -48,9 +48,9 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 5 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 9 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 8 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 24 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 23 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -108,7 +108,7 @@
 | `lib-src/pop.h` | 75 | 0 | 0 | 5 | 2 | 7 | 2 | F | `femacs/lib-src/include/pop.rs` | done |
 | `lib-src/seccomp-filter.c` | 409 | 5 | 0 | 5 | 2 | 0 | 1 | F | `femacs/lib-src/seccomp-filter.rs` | done |
 | `lib-src/update-game-score.c` | 506 | 16 | 0 | 4 | 2 | 2 | 0 | F | `femacs/lib-src/update-game-score.rs` | done |
-| `lib/_Noreturn.h` | 43 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/_Noreturn.rs` | wip |
+| `lib/_Noreturn.h` | 43 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/_Noreturn.rs` | done |
 | `lib/acl-errno-valid.c` | 52 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/acl-errno-valid.rs` | done |
 | `lib/acl-internal.c` | 523 | 11 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/acl-internal.rs` | done |
 | `lib/acl-internal.h` | 284 | 0 | 0 | 40 | 27 | 13 | 0 | L | `femacs/lib/include/acl-internal.rs` | done |
@@ -131,7 +131,7 @@
 | `lib/c++defs.h` | 367 | 0 | 0 | 23 | 0 | 0 | 0 | L | `femacs/lib/include/c++defs.rs` | done |
 | `lib/c-ctype.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/c-ctype.rs` | done |
 | `lib/c-ctype.h` | 366 | 15 | 0 | 12 | 1 | 0 | 0 | L | `femacs/lib/include/c-ctype.rs` | wip |
-| `lib/c-strcase.h` | 61 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/c-strcase.rs` | wip |
+| `lib/c-strcase.h` | 61 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/c-strcase.rs` | done |
 | `lib/c-strcasecmp.c` | 51 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/c-strcasecmp.rs` | done |
 | `lib/c-strncasecmp.c` | 51 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/c-strncasecmp.rs` | done |
 | `lib/canonicalize-lgpl.c` | 474 | 8 | 0 | 13 | 1 | 3 | 0 | L | `femacs/lib/canonicalize-lgpl.rs` | done |
@@ -205,10 +205,10 @@
 | `lib/group-member.c` | 108 | 4 | 0 | 0 | 1 | 2 | 0 | L | `femacs/lib/group-member.rs` | done |
 | `lib/idx.h` | 152 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/idx.rs` | done |
 | `lib/ieee754.in.h` | 215 | 0 | 0 | 8 | 4 | 86 | 0 | L | `femacs/lib/include/ieee754.in.rs` | todo |
-| `lib/ignore-value.h` | 51 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/ignore-value.rs` | wip |
+| `lib/ignore-value.h` | 51 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/ignore-value.rs` | done |
 | `lib/intprops-internal.h` | 413 | 0 | 0 | 29 | 3 | 0 | 0 | L | `femacs/lib/include/intprops-internal.rs` | todo |
 | `lib/intprops.h` | 377 | 0 | 0 | 38 | 0 | 0 | 0 | L | `femacs/lib/include/intprops.rs` | todo |
-| `lib/inttypes.in.h` | 1,029 | 0 | 0 | 167 | 113 | 0 | 0 | L | `femacs/lib/include/inttypes.in.rs` | todo |
+| `lib/inttypes.in.h` | 1,029 | 0 | 0 | 167 | 113 | 0 | 0 | L | `femacs/lib/include/inttypes.in.rs` | done |
 | `lib/issymlink.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/issymlink.rs` | done |
 | `lib/issymlink.h` | 65 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/issymlink.rs` | done |
 | `lib/issymlinkat.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/issymlinkat.rs` | done |
@@ -297,7 +297,7 @@
 | `lib/stdc_leading_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_leading_zeros.rs` | done |
 | `lib/stdc_memreverse8u.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_memreverse8u.rs` | done |
 | `lib/stdc_trailing_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_trailing_zeros.rs` | done |
-| `lib/stdckdint.in.h` | 58 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/stdckdint.in.rs` | wip |
+| `lib/stdckdint.in.h` | 58 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/stdckdint.in.rs` | done |
 | `lib/stdcountof.in.h` | 124 | 0 | 0 | 4 | 1 | 1 | 0 | L | `femacs/lib/include/stdcountof.in.rs` | todo |
 | `lib/stddef.in.h` | 248 | 0 | 0 | 12 | 2 | 0 | 0 | L | `femacs/lib/include/stddef.in.rs` | todo |
 | `lib/stdint.in.h` | 740 | 0 | 0 | 136 | 9 | 0 | 0 | L | `femacs/lib/include/stdint.in.rs` | done |
@@ -493,7 +493,7 @@
 | `src/emacs-module.in.h` | 246 | 0 | 0 | 6 | 0 | 3 | 0 | G | `femacs/src/include/emacs-module.in.rs` | todo |
 | `src/emacs.c` | 3,653 | 24 | 5 | 4 | 1 | 4 | 28 | D | `femacs/src/emacs.rs` | done |
 | `src/emacsgtkfixed.c` | 210 | 8 | 0 | 0 | 0 | 1 | 0 | F | `femacs/src/emacsgtkfixed.rs` | done |
-| `src/emacsgtkfixed.h` | 60 | 0 | 0 | 3 | 0 | 3 | 0 | F | `femacs/src/include/emacsgtkfixed.rs` | todo |
+| `src/emacsgtkfixed.h` | 60 | 0 | 0 | 3 | 0 | 3 | 0 | F | `femacs/src/include/emacsgtkfixed.rs` | wip |
 | `src/eval.c` | 4,680 | 109 | 54 | 2 | 0 | 2 | 4 | B | `femacs/src/eval.rs` | done |
 | `src/fileio.c` | 7,085 | 61 | 55 | 10 | 3 | 7 | 8 | D | `femacs/src/fileio.rs` | done |
 | `src/filelock.c` | 840 | 16 | 5 | 2 | 5 | 0 | 0 | D | `femacs/src/filelock.rs` | done |
