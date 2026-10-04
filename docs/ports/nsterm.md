@@ -59,16 +59,16 @@
 - [x] ns_unfocus  (line 1282, static) — landed; `NSGraphicsContext` restore + C's `gsaved` flag
 - [x] ns_ring_bell  (line 1436, static) — landed; `visible_bell` and `SELECTED_FRAME()` are entries, `NSBeep ()` is Swift's `NSSound.beep ()`, and `[[EmacsBell alloc] init]` is `EmacsBell (frame: .zero)`
 - [x] hide_bell  (line 1471, static) — **dead**: the guard at C 1471 is `#if !defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED < 101400`, and this lane's target both defines `NS_IMPL_COCOA` and has a minimum of 260000; its one call site (C 9388) is inside the same guard. Recorded, not transcribed
-- [ ] ns_get_focus_frame  (line 1493, static)
-- [ ] ns_focus_frame  (line 1510, static)
-- [ ] ns_raise_frame  (line 1528, static)
-- [ ] ns_lower_frame  (line 1550, static)
-- [ ] ns_frame_raise_lower  (line 1566, static)
-- [ ] ns_frame_rehighlight  (line 1582, static)
-- [ ] ns_make_frame_visible  (line 1624)
-- [ ] ns_make_frame_invisible  (line 1678)
-- [ ] ns_make_frame_visible_invisible  (line 1693, static)
-- [ ] ns_iconify_frame  (line 1705)
+- [x] ns_get_focus_frame  (line 1493, static) — landed as `fileprivate func` (C's `static Lisp_Object`); the display-info member is the entry `ns_display_info_ns_focus_frame`
+- [x] ns_focus_frame  (line 1510, static) — landed as `fileprivate func`; `[NSApp activateIgnoringOtherApps:YES]` is Swift's `NSApp.activate(ignoringOtherApps: true)`
+- [x] ns_raise_frame  (line 1528, static) — landed; `f->no_accept_focus` is the member entry `frame_no_accept_focus`
+- [x] ns_lower_frame  (line 1550, static) — landed
+- [x] ns_frame_raise_lower  (line 1566, static) — landed; `NSTRACE` is empty
+- [x] ns_frame_rehighlight  (line 1582, static) — landed; `ns_set_frame_alpha` is a **deferred entry** (this unit's own function, defined at C 2366; C forward-declares it at C 1622)
+- [x] ns_make_frame_visible  (line 1624) — landed as `@_cdecl("ns_make_frame_visible")` (src/nsterm.h 1226); four deferred entries (`fsIsNative`, `isFullscreen`, `handleFS`, `setParentChildRelationships`) and `ns_set_offset` (defined at C 1854)
+- [x] ns_make_frame_invisible  (line 1678) — landed as `@_cdecl("ns_make_frame_invisible")` (src/nsterm.h 1227)
+- [x] ns_make_frame_visible_invisible  (line 1693, static) — landed
+- [x] ns_iconify_frame  (line 1705) — landed as `@_cdecl("ns_iconify_frame")` (src/nsterm.h 1228)
 - [ ] ns_free_frame_resources  (line 1744)
 - [ ] ns_destroy_window  (line 1784, static)
 - [ ] compute_offset  (line 1816, static)
@@ -528,10 +528,12 @@ macros (C 773-807), `ns_row_rect` (C 808-827), `ns_frame_scale_factor` (C 828-89
 the generator misses) and `ns_unfocus` (C 1282-1310), the visible bell's narrative (C 1313-1330),
 **the file's first class** `EmacsBell` (C 1333-1430, its `@interface` and all four methods),
 `bell_view` (C 1433) and `ns_ring_bell` (C 1436-1469); `hide_bell` (C 1471-1491) is dead in this
-build and is recorded.  The covered range is now **C 60-1492**, and the next live definition is
-C 1493's `ns_get_focus_frame`.
+build and is recorded.  **Round 7 lands C 1493-1743** - the focus hooks (C 1493-1525), the raise/lower pair and their
+dispatcher (C 1527-1578), `ns_frame_rehighlight` (C 1582-1620) and the visibility hooks
+(C 1624-1742, three of them `@_cdecl` exports) - so the covered range is now **C 60-1743**.  The
+next live definition is C 1744's `ns_free_frame_resources`.
 
-Ticked above: **35 of the 145 function boxes** (the generator's 142 plus the three it misses -
+Ticked above: **45 of the 145 function boxes** (the generator's 142 plus the three it misses -
 round 5's two and round 6's `ns_focus`) (the twenty-one landed - through round 4's eight -
 and the three dead `nstrace_*`), **16 of the 23 macro boxes** (the eight masks,
 `NO_APPDEFINED_DATA` and the five `EV_*` accessors, plus `DOCK_IGNORE_LIMIT` and the two
@@ -540,8 +542,9 @@ and the three dead `nstrace_*`), **16 of the 23 macro boxes** (the eight masks,
 constants and round 6's `bell_view`), **1 of the 1 type box** (`EmacsMargins`,
 C 650) and **2 of the 8 Objective-C classes** (`NSColor (EmacsColor)` with its four methods, and
 **`EmacsBell`** - the file's first *class*, with its `@interface` declaration and all four
-methods).  The other 110 function boxes, 7 macro boxes, 6 class boxes and 185 method boxes are
-later slices.
+methods).  The other 100 function boxes, 7 macro boxes, 6 class boxes and 185 method boxes are
+later slices; round 7 adds five rows to the `## ABI` (4) table - three class methods and, for the
+first time, two of this unit's own *functions*.
 
 **The slice's text had been landed before this round but measured with `swiftc -parse`, which
 resolves no names.** This lane's compile gate is `swiftc -parse-as-library -c` (the form
@@ -912,7 +915,31 @@ MAC_OS_X_VERSION_MIN_REQUIRED < 101400`, and this lane's target defines `NS_IMPL
 minimum of 260000; its single call site (C 9388) sits inside the same guard.  The box is ticked
 with that reason rather than transcribed (P-08).
 
+### Round 7: the entries table grows, and the ruling reaches functions
+
+**Every frame/display-info member this block touches is a member entry**, named per
+`docs/ports/nsmenu.swift` 311-328 (and the `ns_display_info_set_*` family `nsfns.swift` already
+uses): `ns_display_info_ns_focus_frame`, `ns_display_info_highlight_frame`,
+`ns_display_info_set_highlight_frame`, and the frame members `frame_no_accept_focus`,
+`frame_want_fullscreen`, `frame_left_pos`/`frame_top_pos` (the last two under the names
+`nsmenu.swift` already uses).  Macros and INLINEs keep their own names as entries
+(`FRAME_DISPLAY_INFO`, `FRAME_FOCUS_FRAME`, `fset_focus_frame`, `FRAME_LIVE_P`, `FRAME_VISIBLE_P`,
+`SET_FRAME_VISIBLE`, `SET_FRAME_ICONIFIED`, `FRAME_NO_FOCUS_ON_MAP`, `FULLSCREEN_NONE`, `FRAMEP`,
+`XSETFRAME`, `check_window_system`, `gui_update_cursor`).
+
+**The ruling's shape now covers functions too.**  `ns_set_offset` (called at C 1691, defined at
+C 1854) and `ns_set_frame_alpha` (called at C 1616/1619, defined at C 2366) are this unit's own
+functions whose call sites precede their definitions - and C **itself** forward-declares the
+latter at C 1622.  They take the entry/definition split (`ns_set_offset_entry` /
+`@_cdecl("ns_set_offset")` at C 1854), and `nsfns.swift` 600 already imports `ns_set_offset` with
+that signature, so the two units agree.
+
+**Three new exports.**  `ns_make_frame_visible`, `ns_make_frame_invisible` and `ns_iconify_frame`
+(src/nsterm.h 1226-1228) are the frame hooks the redisplay interface calls, so they keep C's names
+under `@_cdecl`.
+
 ## ABI
+
 
 ### (1) C symbols this file defines and exports (`@_cdecl`)
 
@@ -996,6 +1023,20 @@ Each row's definition is `@_cdecl("<selector>")` with the receiver first, landin
 class; the acceptance is that `nm -u` no longer lists the entry's name.  Round 5 adds the first
 row; the other four are the cross-unit contract the same table records, and the round's report
 repeats them until they land.
+
+### (4) Deferred entries (continued)
+
+| entry name (`@_silgen_name`, Swift name) | first call site | waits for | state |
+| --- | --- | --- | --- |
+| `fsIsNative` (`fsIsNative_entry`) | src/nsterm.m 1655 (`ns_make_frame_visible`) | `EmacsView -fsIsNative`, C 8952 | **deferred** |
+| `handleFS` (`handleFS_entry`) | src/nsterm.m 1663 | `EmacsView -handleFS`, C 9126 | **deferred** |
+| `setParentChildRelationships` (`setParentChildRelationships_entry`) | src/nsterm.m 1687 | `EmacsWindow -setParentChildRelationships`, C 9934 | **deferred** |
+| `ns_set_offset` (`ns_set_offset_entry`) | src/nsterm.m 1691 | this unit's own `ns_set_offset`, C 1854 (the signature `nsfns.swift` 600 already imports) | **deferred (function)** |
+| `ns_set_frame_alpha` (`ns_set_frame_alpha_entry`) | src/nsterm.m 1616 | this unit's own `ns_set_frame_alpha`, C 2366; C forward-declares it at C 1622 | **deferred (function)** |
+
+The last two rows are the ruling's shape applied to **functions**: C itself forward-declares them
+(the reference's own acknowledgement of the forward use), so the call site takes an entry and the
+definition lands at its own C line.
 
 ### (3) What other units must supply
 

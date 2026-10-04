@@ -9,10 +9,6 @@ ASIZE	the reference's own C text declares or defines it (a header macro/INLINE/e
 BASE_EQ	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 CDR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 CDR_SAFE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-CGContextSetFontSmoothingStyle	provided by the platform SDK (a .tbd exports it), not by the core
-CGDataProviderCreateWithData	provided by the platform SDK (a .tbd exports it), not by the core
-CGImageCreateCopy	provided by the platform SDK (a .tbd exports it), not by the core
-CGImageMaskCreate	provided by the platform SDK (a .tbd exports it), not by the core
 CHARACTERP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 CHECK_FIXNUM	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 CHECK_FONT_GET_OBJECT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -444,9 +440,7 @@ ns_display_info_set_horizontal_scroll_bar_cursor	imported by a Swift unit and pr
 ns_display_info_set_vertical_scroll_bar_cursor	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
 ns_free_frame_resources	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_function_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-ns_iconify_frame	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
 ns_lisp_to_color	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-ns_make_frame_visible	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
 ns_output_background_color	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 ns_output_cursor_color	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 ns_output_display_info	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
@@ -502,8 +496,6 @@ ns_set_z_group	the reference's own C text declares or defines it (a header macro
 ns_use_proxy_icon	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_use_srgb_colorspace	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_use_thin_smoothing	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-objc_autoreleasePoolPop	provided by the platform SDK (a .tbd exports it), not by the core
-objc_autoreleasePoolPush	provided by the platform SDK (a .tbd exports it), not by the core
 output_ns	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 pD	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 pdumper_do_now_and_after_load	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -530,7 +522,6 @@ unsignedLong	the reference's own C text declares or defines it (a header macro/I
 up_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 update_submenu_strings	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 valid_image_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-visible_bell	member/data entry imported by nsterm.swift; the core must export one C-ABI entry per directly-read or directly-written record member (docs/ports/nsmenu.swift 311-328)
 waiting_for_input	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 window_contents	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 window_current_matrix	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
@@ -538,3 +529,44 @@ window_system_available	the reference's own C text declares or defines it (a hea
 word_size	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 xmint_pointer	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 xvector_contents	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CHECK_FRAME	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+FRAME_CONFIG_SCROLL_BAR_COLS	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+FRAME_CONFIG_SCROLL_BAR_HEIGHT	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+FRAME_CONFIG_SCROLL_BAR_LINES	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+FRAME_CONFIG_SCROLL_BAR_WIDTH	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+FRAME_FOCUS_FRAME	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+FRAME_NO_FOCUS_ON_MAP	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+NSAPP_DATA2_RUNASSCRIPT	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+NS_SCROLL_BAR_WIDTH_DEFAULT	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+Qactivate	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+Qbuffered	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+Qdelete_directory	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qdelete_file	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qdirect_color	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+Qgray_scale	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+Qpseudo_color	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+Qquit	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qstatic_gray	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+Qtrue_color	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+SET_FRAME_ICONIFIED	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+SET_FRAME_VISIBLE	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+frame_no_accept_focus	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
+frame_set_config_scroll_bar_cols	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
+frame_set_config_scroll_bar_height	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
+frame_set_config_scroll_bar_lines	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
+frame_set_config_scroll_bar_width	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
+frame_want_fullscreen	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
+fsIsNative	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+fset_focus_frame	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+handleFS	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+list3i	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+ns_color_list_write_or_log	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
+ns_display_info_highlight_frame	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
+ns_display_info_ns_focus_frame	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
+ns_display_info_set_highlight_frame	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
+ns_display_pixel_height	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+ns_display_pixel_width	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+ns_set_frame_alpha	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+ns_term_init	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+ns_xlfd_to_fontname	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
+setParentChildRelationships	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it

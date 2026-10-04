@@ -8,7 +8,7 @@
 > **Cocoa/AppKit build** the file's arms describe, and the unit is
 > `femacs/platform/macos/nsfns.swift`.  Line numbers are the raw reference lines.
 >
-> **State: second batch (C 40-1884).** The file is 4348 lines and the largest remaining Swift
+> **State: third batch (C 40-2610).** The file is 4348 lines and the largest remaining Swift
 > unit after src/nsterm.m, so it is landing in batches the way `macfont.swift` did.  Batch 1
 > carried C 40-1190 (the file-scope objects, the internal utilities, every frame-parameter setter
 > the file defines, the AppKit version/icon helpers, the `ns_frame_parm_handlers` table and the
@@ -16,9 +16,13 @@
 > file's biggest function)**, the four frame-operation `DEFUN`s that follow it
 > (`ns-frame-list-z-order`, `ns-frame-restack`, `x-select-font`, `ns-popup-color-panel`),
 > `ns_window_is_ancestor`, the file-dialog record and `ns_run_file_dialog`, and
-> `ns-read-file-name` (C 1762-1884).  The remaining 19 C functions and 46 `DEFUN`s are the next
-> batch and are named in `docs/baseline/swift-units.tsv` (19 rows; the `DEFUN`s are not tracked
-> by that gate).
+> `ns-read-file-name` (C 1762-1884).  Batch 3 carries C 1886-2610: the defaults/resources
+> `DEFUN`s, the `x-server-*`/`x-display-*` group, the application-level `DEFUN`s
+> (`ns-hide-others` … `ns-list-services`/`ns-perform-service`), AppleScript, the two
+> `ns_set_scroll_bar_default_*` functions, `ns_get_string_resource` and
+> `system-move-file-to-trash` - 23 `DEFUN`s and 8 functions.  The remaining 11 C functions and
+> 23 `DEFUN`s are the next batch and are named in `docs/baseline/swift-units.tsv` (11 rows; the
+> `DEFUN`s are not tracked by that gate).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 52
@@ -28,29 +32,29 @@
 - [x] x-select-font  (Fx_select_font, 0/2, doc ad00028ff8bf, line 1688) - `@_cdecl` + `Sx_select_font`
 - [x] ns-popup-color-panel  (Fns_popup_color_panel, 0/1, doc 0c21686be8bc, line 1705) - `@_cdecl` + `Sns_popup_color_panel`
 - [x] ns-read-file-name  (Fns_read_file_name, 1/5, doc e98e737bd5ec, line 1758) - `@_cdecl` + `Sns_read_file_name`
-- [ ] ns-get-resource  (Fns_get_resource, 2/2, doc 9304e7bd5dcc, line 1897)
-- [ ] ns-set-resource  (Fns_set_resource, 3/3, doc 12f0cd058463, line 1917)
-- [ ] x-server-max-request-size  (Fx_server_max_request_size, 0/1, doc f3e009aa43c7, line 1944)
-- [ ] x-server-vendor  (Fx_server_vendor, 0/1, doc f3e009aa43c7, line 1957)
-- [ ] x-server-version  (Fx_server_version, 0/1, doc f3e009aa43c7, line 1970)
-- [ ] x-display-screens  (Fx_display_screens, 0/1, doc f3e009aa43c7, line 1985)
-- [ ] x-display-mm-height  (Fx_display_mm_height, 0/1, doc f3e009aa43c7, line 1994)
-- [ ] x-display-mm-width  (Fx_display_mm_width, 0/1, doc f3e009aa43c7, line 2015)
-- [ ] x-display-backing-store  (Fx_display_backing_store, 0/1, doc f3e009aa43c7, line 2036)
-- [ ] x-display-visual-class  (Fx_display_visual_class, 0/1, doc f3e009aa43c7, line 2060)
-- [ ] x-display-save-under  (Fx_display_save_under, 0/1, doc f3e009aa43c7, line 2087)
-- [ ] x-open-connection  (Fx_open_connection, 1/3, doc f3e009aa43c7, line 2111)
-- [ ] x-close-connection  (Fx_close_connection, 1/1, doc f3e009aa43c7, line 2136)
-- [ ] x-display-list  (Fx_display_list, 0/0, doc f3e009aa43c7, line 2147)
-- [ ] ns-hide-others  (Fns_hide_others, 0/0, doc e0c4b6a8dba0, line 2161)
-- [ ] ns-hide-emacs  (Fns_hide_emacs, 1/1, doc 7a15fe88b5a3, line 2171)
-- [ ] ns-emacs-info-panel  (Fns_emacs_info_panel, 0/0, doc 9037ec6f5a75, line 2204)
-- [ ] ns-font-name  (Fns_font_name, 1/1, doc cf7fb802cc5d, line 2215)
-- [ ] ns-list-colors  (Fns_list_colors, 0/1, doc 04694a2cc15f, line 2291)
-- [ ] ns-list-services  (Fns_list_services, 0/0, doc 50081da2e47c, line 2331)
-- [ ] ns-perform-service  (Fns_perform_service, 2/2, doc 1c52a8aeaf8f, line 2356)
-- [ ] ns-do-applescript  (Fns_do_applescript, 1/1, doc 20491d02fe35, line 2454)
-- [ ] system-move-file-to-trash  (Fsystem_move_file_to_trash, 1/1, doc 4e8f353b9231, line 2574)
+- [x] ns-get-resource  (Fns_get_resource, 2/2, doc 9304e7bd5dcc, line 1897)
+- [x] ns-set-resource  (Fns_set_resource, 3/3, doc 12f0cd058463, line 1917)
+- [x] x-server-max-request-size  (Fx_server_max_request_size, 0/1, doc f3e009aa43c7, line 1944)
+- [x] x-server-vendor  (Fx_server_vendor, 0/1, doc f3e009aa43c7, line 1957)
+- [x] x-server-version  (Fx_server_version, 0/1, doc f3e009aa43c7, line 1970)
+- [x] x-display-screens  (Fx_display_screens, 0/1, doc f3e009aa43c7, line 1985)
+- [x] x-display-mm-height  (Fx_display_mm_height, 0/1, doc f3e009aa43c7, line 1994)
+- [x] x-display-mm-width  (Fx_display_mm_width, 0/1, doc f3e009aa43c7, line 2015)
+- [x] x-display-backing-store  (Fx_display_backing_store, 0/1, doc f3e009aa43c7, line 2036)
+- [x] x-display-visual-class  (Fx_display_visual_class, 0/1, doc f3e009aa43c7, line 2060)
+- [x] x-display-save-under  (Fx_display_save_under, 0/1, doc f3e009aa43c7, line 2087)
+- [x] x-open-connection  (Fx_open_connection, 1/3, doc f3e009aa43c7, line 2111)
+- [x] x-close-connection  (Fx_close_connection, 1/1, doc f3e009aa43c7, line 2136)
+- [x] x-display-list  (Fx_display_list, 0/0, doc f3e009aa43c7, line 2147)
+- [x] ns-hide-others  (Fns_hide_others, 0/0, doc e0c4b6a8dba0, line 2161)
+- [x] ns-hide-emacs  (Fns_hide_emacs, 1/1, doc 7a15fe88b5a3, line 2171)
+- [x] ns-emacs-info-panel  (Fns_emacs_info_panel, 0/0, doc 9037ec6f5a75, line 2204)
+- [x] ns-font-name  (Fns_font_name, 1/1, doc cf7fb802cc5d, line 2215)
+- [x] ns-list-colors  (Fns_list_colors, 0/1, doc 04694a2cc15f, line 2291)
+- [x] ns-list-services  (Fns_list_services, 0/0, doc 50081da2e47c, line 2331)
+- [x] ns-perform-service  (Fns_perform_service, 2/2, doc 1c52a8aeaf8f, line 2356)
+- [x] ns-do-applescript  (Fns_do_applescript, 1/1, doc 20491d02fe35, line 2454)
+- [x] system-move-file-to-trash  (Fsystem_move_file_to_trash, 1/1, doc 4e8f353b9231, line 2574)
 - [ ] xw-color-defined-p  (Fxw_color_defined_p, 1/2, doc f3e009aa43c7, line 2612)
 - [ ] xw-color-values  (Fxw_color_values, 1/2, doc f3e009aa43c7, line 2622)
 - [ ] xw-display-color-p  (Fxw_display_color_p, 0/1, doc f3e009aa43c7, line 2647)
@@ -114,14 +118,14 @@
 - [x] get_geometry_from_preferences  (line 1156, static)
 - [x] ns_window_is_ancestor  (line 1615, static)
 - [x] ns_run_file_dialog  (line 1726, non-static - `@_cdecl`)
-- [ ] ns_get_defaults_value  (line 1886) - next batch (manifest row)
-- [ ] ns_init_colors  (line 2237) - next batch (manifest row)
-- [ ] ns_do_applescript  (line 2392, static) - next batch (manifest row)
-- [ ] ns_run_ascript  (line 2447) - next batch (manifest row)
-- [ ] check_x_display_info  (line 2520) - next batch (manifest row)
-- [ ] ns_set_scroll_bar_default_width  (line 2527) - next batch (manifest row)
-- [ ] ns_set_scroll_bar_default_height  (line 2536) - next batch (manifest row)
-- [ ] ns_get_string_resource  (line 2546) - next batch (manifest row)
+- [x] ns_get_defaults_value  (line 1886, non-static - `@_cdecl`)
+- [x] ns_init_colors  (line 2237, non-static - `@_cdecl`; never defined in emacs.c)
+- [x] ns_do_applescript  (line 2392, static)
+- [x] ns_run_ascript  (line 2447, non-static - `@_cdecl`)
+- [x] check_x_display_info  (line 2520, non-static - `@_cdecl`)
+- [x] ns_set_scroll_bar_default_width  (line 2527, non-static - `@_cdecl`)
+- [x] ns_set_scroll_bar_default_height  (line 2536, non-static - `@_cdecl`)
+- [x] ns_get_string_resource  (line 2546, non-static - `@_cdecl`)
 - [ ] ns_make_monitor_attribute_list  (line 2700, static) - next batch (manifest row)
 - [ ] compute_tip_xy  (line 2870, static) - next batch (manifest row)
 - [ ] unwind_create_tip_frame  (line 2942, static) - next batch (manifest row)
@@ -141,14 +145,14 @@
       `nsselect.swift` import, so this file is where their definitions live.
 
 ## Macros defined — 4
-- [ ] IOMasterPort  (line 54, body 08ecf8189f84) - `#define IOMasterPort IOMainPort` under
+- [x] IOMasterPort  (line 54, body 08ecf8189f84) - `#define IOMasterPort IOMainPort` under
       `MAC_OS_X_VERSION_MAX_ALLOWED >= 120000` + `MIN_REQUIRED >= 120000`; on this SDK the
       `IOGraphicsLib.h` port call is `IOMainPort`, so the alias is dead text (recorded)
 - [x] MODAL_OK_RESPONSE  (line 1755, body a4b3cc6adce4) - the `MAC_OS_X_VERSION_MAX_ALLOWED
       > 1090` arm is `NSModalResponseOK`, which the port spells
       `NSApplication.ModalResponse.OK` at its one use site
-- [ ] Str  (line 982, body f1d202006571) and
-- [ ] Xstr  (line 983, body 36e288827bc0) - the token-pasting pair the GNUstep arm of
+- [x] Str  (line 982, body f1d202006571) and
+- [x] Xstr  (line 983, body 36e288827bc0) - the token-pasting pair the GNUstep arm of
       `ns_appkit_version_str` uses; dead text on this target (recorded)
 
 ## Types and their fields — 1
@@ -270,6 +274,51 @@ bookkeeping -> the leftover-parms alist loop -> the cascade/center block -> `unb
 - `[EmacsFileDelegate new]` (C 1774) is `EmacsFileDelegate_new ()`: the class itself is
   C 4048-4065, i.e. the next batch (see (3)).
 
+**Batch 3: the defaults/resources, x-server/x-display, application and AppleScript groups
+(C 1886-2610).**  23 `DEFUN`s and 8 functions, all in the nsselect shape (function
+`@_cdecl("F…")` + a `fileprivate var S…` record).
+
+- **Two `const char *`-returning functions** (`ns_get_defaults_value` C 1885, `ns_get_string_resource`
+  C 2546) are exported with `@_cdecl`; Swift 6.4 refuses an `UnsafePointer<T>?` *result*
+  ("its result type cannot be represented in Objective-C", measured with a scratch compile), so
+  the port spells the result as the mutable pointer - the same C ABI.  `check_x_display_info`
+  (C 2520) additionally cannot return `UnsafeMutablePointer<ns_display_info>?` under `@_cdecl`
+  (the pointee is a Swift type), so it returns the opaque pointer its C prototype is.
+- **`ns_get_defaults_value`'s pointer lifetime.**  C returns `[[NSString stringWithFormat: …]
+  UTF8String]`, a pointer into an autoreleased object its callers use immediately.  A Swift
+  bridged temporary would be released at the end of the call, so the port keeps the last string
+  in a one-slot cache and returns the same kind of pointer.  `%@` on an `id` asks for its
+  `description`, which is `String (describing:)`.
+- **`ns_init_colors`'s `@try`/`@catch (NSException *)`** (C 2290-2310) cannot be reproduced in
+  Swift (no NSException catching), so the guarded `[cl writeToURL:nil error:nil]` is the C-ABI
+  entry `ns_color_list_write_or_log (cl)` - it returns C's `false` on failure and logs, exactly
+  the two paths C has.  Where its definition lives is the ledger's (3).
+- **`NSBestDepth`** is not vendable from Swift's AppKit interface (`AppKit.apinotes` 3857
+  annotates it), so the port binds the C symbol with `@_silgen_name` - it is a *system* function,
+  not the core's.
+- **The AppleScript constants** (`kAENullEvent`, `typeUTF8Text`, `typeUnicodeText`, `typeCString`,
+  `typeUTF16ExternalRepresentation`) come from the SDK's Carbon umbrella, so the file now has
+  `import Carbon` next to `Foundation`/`AppKit` (src/nsfns.m 30-47's include set).
+- **`struct input_event ev`** (C 2482) is a scratch record whose only use is its *address* being
+  handed to src/nsterm.m's `ns_init_events`/`ns_finish_events`; the port allocates
+  `sizeof (struct input_event)` = **64 bytes**, measured in the Evidence, and frees it where C's
+  scope ends.
+- **Dead arms recorded, not carried**: the `MAC_OS_X_VERSION_MIN_REQUIRED < 101300` cases in
+  `x-display-backing-store`/`x-display-save-under` (`NSBackingStoreRetained`/`Nonretained`), the
+  `GNUSTEP_GUI_VERSION`-guarded `activate-front` arm of `ns-hide-emacs`, the `#else` arm of
+  `ns-list-services` (which would call the manifest-rowed `interpret_services_menu`), the
+  `#else` arms of `x-display-mm-height`/`-width` (`25.4 / dpyinfo->resx`) and of
+  `x-server-vendor` (GNU), and `ns_init_colors`'s `MAC_OS_X_VERSION_MIN_REQUIRED < 101100`
+  `writeToFile:` fallback.
+- **`calln`** (`#define calln(…) CALLN (Ffuncall, __VA_ARGS__)`, src/lisp.h 3462) is the
+  variadic-argument array docs/ports/nsselect.swift already spells this way.
+- **`Fns_list_colors`**: C's two enumerators (`[NSColorList availableColorLists]`,
+  `[[clist allKeys] reverseObjectEnumerator]`) are Swift arrays, and `NSColorList.name` is
+  optional in Swift, so C's `[[clist name] length]` is read through `cl.name ?? ""`.
+- **`system-move-file-to-trash`**: C's `respondsToSelector:` guard plus
+  `trashItemAtURL:resultingItemURL:error:` is `fm.responds(to:)` plus
+  `try? fm.trashItem(at:resultingItemURL:)`.
+
 ## ABI
 
 ### (1) C symbols this batch defines and exports (`@_cdecl`)
@@ -297,7 +346,16 @@ the object now exports **thirteen** C names (Evidence):
 | `Fns_read_file_name` | `Lisp_Object (Lisp_Object ×5)` (1/5) | `(Lisp_Object ×5) -> Lisp_Object` |
 
 The seven `S…` records of the new `DEFUN`s are `fileprivate` here, as C's `DEFUN` makes them
-file-static.  The other non-static name in
+file-static.  Batch 3 adds **thirty** more: the 23 `DEFUN`s of C 1897-2608 (`Fns_get_resource`,
+`Fns_set_resource`, `Fx_server_max_request_size`, `Fx_server_vendor`, `Fx_server_version`,
+`Fx_display_screens`, `Fx_display_mm_height`, `Fx_display_mm_width`, `Fx_display_backing_store`,
+`Fx_display_visual_class`, `Fx_display_save_under`, `Fx_open_connection`, `Fx_close_connection`,
+`Fx_display_list`, `Fns_hide_others`, `Fns_hide_emacs`, `Fns_emacs_info_panel`,
+`Fns_font_name`, `Fns_list_colors`, `Fns_list_services`, `Fns_perform_service`,
+`Fns_do_applescript`, `Fsystem_move_file_to_trash`) plus the 7 non-static functions of the same
+range (`ns_get_defaults_value`, `ns_init_colors`, `ns_run_ascript`, `check_x_display_info`,
+`ns_set_scroll_bar_default_width`, `ns_set_scroll_bar_default_height`, `ns_get_string_resource`).
+The object now exports **43** C names (Evidence).  The other non-static name in
 this range, `ns_frame_parm_handlers` (C 1063), is a **data** symbol: carried as a Swift array,
 flagged in (3).  The 52 `DEFUN`s' `F…` names and their `S…` records arrive with the next batch.
 
@@ -421,7 +479,11 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
    `is_emacs_view` (src/nsterm.m's `EmacsView`/`EmacsWindow`), `ns_make_frame_visible` /
    `ns_iconify_frame` / `ns_set_offset` (src/nsterm.m 1126-1228) and `ns_clear_frame` - all of
    them are the ported nsterm/macfont side's to define.
-7. `tools/extract-abi.py` has no `.m -> .swift` pair, so `--check` cannot compare this unit.
+7. Batch 3's `ns_color_list_write_or_log (NSColorList *)` - the port's spelling for the one
+   `@try`/`@catch`-protected call (C 2290-2310), because Swift cannot catch an `NSException`.
+   It needs a definition on the port's C-ABI side (a tiny C/ObjC shim is the natural home, like
+   the `ns_frame_parm_handlers` table of item 1).
+8. `tools/extract-abi.py` has no `.m -> .swift` pair, so `--check` cannot compare this unit.
 
 ## Evidence
 
@@ -485,3 +547,25 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
   wrong snippet) -> one citation per line.
 - `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
   literals), 0 failures` (none of them this unit).
+
+### Batch 3 evidence
+
+- `swiftc -parse-as-library -c -o /tmp/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0,
+  0 errors, 0 warnings**.
+- `nm -g /tmp/nsfns.o | grep ' T _'` minus Swift's own `__swift*` symbols -> **43** exported C
+  names (batch 1's 6 + batch 2's 7 + this batch's 30).
+- `python3 tools/check-swift-units.py` ->
+  `femacs/platform/macos/nsfns.swift: 56 C definition(s), 11 unported, 11 row(s); 393 C symbol
+  import(s)`; last line `0 new, 3 stale, 7 Swift unit(s) landed` (the 3 `stale` rows are
+  `nsterm.swift`'s, another lane's).  Eight rows left the manifest - the eight C definitions
+  this batch landed - and the `diff` vs the backup is **8 removed / 0 added / 0 other files**.
+- `python3 tools/check-cond-eval.py src/nsfns.m` -> `64 conditions, 0 unknown, 0 disagreements
+  [VERIFIED]` (unchanged: every arm this batch took was already decided).
+- `python3 tools/check-citations.py` -> **zero rows name `femacs/platform/macos/nsfns.swift`**.
+- `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures`; `check-verbatim.py` -> `6 trees, 4607 files, 0 failures`;
+  `check-mirror-dupes.py` -> `1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)`.
+- Two measurements this batch needed: `sizeof (struct input_event)` = **64** (align 8), from a
+  `clang` probe that includes `<config.h>` and `"termhooks.h"`; and the `@_cdecl` result-type
+  rule, from a scratch `swiftc -parse-as-library -c` with `UnsafePointer<CChar>?` (refused),
+  `UnsafeMutablePointer<CChar>?` (accepted) and `UnsafeMutableRawPointer?` (accepted) results.

@@ -15,6 +15,9 @@
 
 import Foundation
 import AppKit
+// C 36-47: the Cocoa build's `IOKit/graphics/IOGraphicsLib.h` and the AppleScript constants
+// (`kAENullEvent`, `typeUTF8Text`, …) come from the SDK's Carbon umbrella (src/nsfns.m 30-47).
+import Carbon
 
 // ==========================================================================
 // Lane ABI: C types.
@@ -144,6 +147,7 @@ func fast_string_match(_ regexp: Lisp_Object, _ string: Lisp_Object) -> Int32
 func assq_no_quit(_ key: Lisp_Object, _ list: Lisp_Object) -> Lisp_Object
 /// C: `Lisp_Object Fcons (Lisp_Object, Lisp_Object)` / `Fcar` / `Fcdr` (subrs, globals.h).
 @_silgen_name("Fcons") func Fcons(_ car: Lisp_Object, _ cdr: Lisp_Object) -> Lisp_Object
+@_silgen_name("list1") func list1(_ a: Lisp_Object) -> Lisp_Object
 @_silgen_name("Fcar") func Fcar(_ list: Lisp_Object) -> Lisp_Object
 @_silgen_name("Fcdr") func Fcdr(_ list: Lisp_Object) -> Lisp_Object
 /// C: `Lisp_Object Freverse (Lisp_Object)` (subr, globals.h).
@@ -319,6 +323,16 @@ func ns_output_display_info(_ f: UnsafeMutableRawPointer?) -> UnsafeMutablePoint
 @_silgen_name("Qnil") func Qnil() -> Lisp_Object
 @_silgen_name("Qt") func Qt() -> Lisp_Object
 @_silgen_name("Qtop") func Qtop() -> Lisp_Object
+@_silgen_name("Qbuffered") func Qbuffered() -> Lisp_Object
+@_silgen_name("Qstatic_gray") func Qstatic_gray() -> Lisp_Object
+@_silgen_name("Qgray_scale") func Qgray_scale() -> Lisp_Object
+@_silgen_name("Qpseudo_color") func Qpseudo_color() -> Lisp_Object
+@_silgen_name("Qtrue_color") func Qtrue_color() -> Lisp_Object
+@_silgen_name("Qdirect_color") func Qdirect_color() -> Lisp_Object
+@_silgen_name("Qactivate") func Qactivate() -> Lisp_Object
+@_silgen_name("Qquit") func Qquit() -> Lisp_Object
+@_silgen_name("Qdelete_file") func Qdelete_file() -> Lisp_Object
+@_silgen_name("Qdelete_directory") func Qdelete_directory() -> Lisp_Object
 @_silgen_name("Qfullscreen") func Qfullscreen() -> Lisp_Object
 @_silgen_name("Qfullwidth") func Qfullwidth() -> Lisp_Object
 @_silgen_name("Qicon_type") func Qicon_type() -> Lisp_Object
@@ -571,6 +585,7 @@ func frame_set_ns_transparent_titlebar(_ f: UnsafeMutableRawPointer?, _ v: Bool)
 /// C: `enum` member of `enum ns_app_delegate_data_2` (src/nsterm.h 779):
 /// `NSAPP_DATA2_RUNFILEDIALOG`.
 @_silgen_name("NSAPP_DATA2_RUNFILEDIALOG") func NSAPP_DATA2_RUNFILEDIALOG() -> Int
+@_silgen_name("NSAPP_DATA2_RUNASSCRIPT") func NSAPP_DATA2_RUNASSCRIPT() -> Int
 /// C: `#define KVAR(kboard, field) ((kboard)->field ## _)` (src/keyboard.h 38) and
 /// `INLINE void kset_default_minibuffer_frame (struct kboard *, Lisp_Object)`
 /// (src/keyboard.h 188).
@@ -702,7 +717,102 @@ func EmacsView_initFrameFromEmacs(_ f: UnsafeMutableRawPointer?) -> AnyObject?
 @_silgen_name("frame_set_display_info")
 func frame_set_display_info(_ f: UnsafeMutableRawPointer?, _ dpyinfo: UnsafeMutablePointer<ns_display_info>?)
 
-/// More `Q…` symbols (generated globals.h, PORTING.md P-17; called as `Qfoo ()`).
+/// ==========================================================================
+// Lane ABI (batch 3): the constructs C 1886-2610 reads.
+// ==========================================================================
+
+/// C: `INLINE Lisp_Object list3i (intmax_t a, intmax_t b, intmax_t c)` (src/lisp.h 4526).
+@_silgen_name("list3i")
+func list3i(_ a: Int, _ b: Int, _ c: Int) -> Lisp_Object
+/// C: `extern int ns_display_pixel_height (struct ns_display_info *)` /
+/// `ns_display_pixel_width` (src/nsterm.h 1220-1221) - src/nsterm.m's.
+@_silgen_name("ns_display_pixel_height")
+func ns_display_pixel_height(_ dpyinfo: UnsafeMutablePointer<ns_display_info>?) -> Int32
+@_silgen_name("ns_display_pixel_width")
+func ns_display_pixel_width(_ dpyinfo: UnsafeMutablePointer<ns_display_info>?) -> Int32
+/// C: `extern const char *ns_xlfd_to_fontname (const char *)` (src/nsterm.h 1129).
+@_silgen_name("ns_xlfd_to_fontname")
+func ns_xlfd_to_fontname(_ xlfd: UnsafePointer<CChar>) -> UnsafePointer<CChar>
+/// C: `void nxatoms_of_nsselect (void)` (src/nsterm.h 1138, src/nsselect.m's) and
+/// `struct ns_display_info *ns_term_init (Lisp_Object)` (src/nsterm.h 1108, src/nsterm.m's).
+@_silgen_name("nxatoms_of_nsselect") func nxatoms_of_nsselect()
+@_silgen_name("ns_term_init")
+func ns_term_init(_ display_name: Lisp_Object) -> UnsafeMutablePointer<ns_display_info>?
+/// C: `AVOID fatal (const char *, ...)` (src/lisp.h 4840); AVOID is _Noreturn (src/lisp.h 153).
+@_silgen_name("fatal") func fatal(_ format: UnsafePointer<CChar>, _ args: CVarArg...) -> Never
+/// C: `AVOID Fsignal (Lisp_Object, Lisp_Object)` (src/lisp.h 4786's declaration, globals.h's
+/// `EXFUN`) and `AVOID report_file_error (const char *, Lisp_Object)` (src/lisp.h 4982).
+@_silgen_name("Fsignal") func Fsignal(_ symbol: Lisp_Object, _ data: Lisp_Object) -> Never
+@_silgen_name("report_file_error")
+func report_file_error(_ str: UnsafePointer<CChar>, _ data: Lisp_Object) -> Never
+/// C: `extern int c_strncasecmp (const char *, const char *, size_t)` (lib/c-strcase.h 52).
+@_silgen_name("c_strncasecmp")
+func c_strncasecmp(_ s1: UnsafePointer<CChar>?, _ s2: UnsafePointer<CChar>?, _ n: Int) -> Int32
+/// C: `Lisp_Object Fexpand_file_name (Lisp_Object, Lisp_Object)` /
+/// `Fdirectory_file_name` / `Fsymbol_value` / `Ffind_file_name_handler` /
+/// `Ffile_symlink_p` / `Fx_load_color_file` (subrs, globals.h) and
+/// `Lisp_Object intern (const char *)` (src/lisp.h 4757).
+@_silgen_name("Fexpand_file_name")
+func Fexpand_file_name(_ name: Lisp_Object, _ default_directory: Lisp_Object) -> Lisp_Object
+@_silgen_name("Fdirectory_file_name") func Fdirectory_file_name(_ dir: Lisp_Object) -> Lisp_Object
+@_silgen_name("Fsymbol_value") func Fsymbol_value(_ symbol: Lisp_Object) -> Lisp_Object
+@_silgen_name("Ffind_file_name_handler")
+func Ffind_file_name_handler(_ filename: Lisp_Object, _ operation: Lisp_Object) -> Lisp_Object
+@_silgen_name("Ffile_symlink_p") func Ffile_symlink_p(_ file: Lisp_Object) -> Lisp_Object
+@_silgen_name("Fx_load_color_file") func Fx_load_color_file(_ file: Lisp_Object) -> Lisp_Object
+@_silgen_name("intern") func intern(_ str: UnsafePointer<CChar>) -> Lisp_Object
+/// C: `Lisp_Object Ffuncall (ptrdiff_t, Lisp_Object *)` (globals.h 4824) - the target of
+/// `#define calln(…) CALLN (Ffuncall, __VA_ARGS__)` (src/lisp.h 3462); the port spells `calln`
+/// as the variadic-argument array, exactly as docs/ports/nsselect.swift does.
+@_silgen_name("Ffuncall")
+func Ffuncall(_ nargs: Int, _ args: UnsafeMutablePointer<Lisp_Object>) -> Lisp_Object
+/// C: `void ns_string_to_pasteboard (id pb, Lisp_Object str)` /
+/// `Lisp_Object ns_string_from_pasteboard (id pb)` (src/nsterm.h 1133-1134, src/nsselect.m's).
+@_silgen_name("ns_string_to_pasteboard")
+func ns_string_to_pasteboard(_ pb: AnyObject?, _ str: Lisp_Object)
+@_silgen_name("ns_string_from_pasteboard")
+func ns_string_from_pasteboard(_ pb: AnyObject?) -> Lisp_Object
+/// C: `void ns_init_events (struct input_event *)` and `void ns_finish_events (void)`
+/// (src/nsterm.m 353, 362) - src/nsterm.m's event-loop bracketing helpers.
+@_silgen_name("ns_init_events") func ns_init_events(_ ev: UnsafeMutableRawPointer?)
+@_silgen_name("ns_finish_events") func ns_finish_events()
+/// C: `NSBestDepth (NSColorSpaceName, NSInteger, NSInteger, BOOL, BOOL *)` (the SDK's
+/// NSGraphics.h 164).  Swift's AppKit interface does not vend it (AppKit.apinotes 3857), so the
+/// port binds the C symbol directly - it is a system function, not the core's.
+@_silgen_name("NSBestDepth")
+func NSBestDepth(_ colorSpace: NSColorSpaceName, _ bps: Int, _ bpp: Int, _ planar: Bool,
+                 _ exactMatch: UnsafeMutablePointer<ObjCBool>?) -> NSWindow.Depth
+/// C: `#define FRAME_CONFIG_SCROLL_BAR_WIDTH(f)` / `_HEIGHT` / `_COLS` / `_LINES` (src/frame.h
+/// 1286-1301) - read *and* written by the two `ns_set_scroll_bar_default_*` functions.
+@_silgen_name("FRAME_CONFIG_SCROLL_BAR_WIDTH")
+func FRAME_CONFIG_SCROLL_BAR_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_config_scroll_bar_width")
+func frame_set_config_scroll_bar_width(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_CONFIG_SCROLL_BAR_COLS")
+func FRAME_CONFIG_SCROLL_BAR_COLS(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_config_scroll_bar_cols")
+func frame_set_config_scroll_bar_cols(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_CONFIG_SCROLL_BAR_HEIGHT")
+func FRAME_CONFIG_SCROLL_BAR_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_config_scroll_bar_height")
+func frame_set_config_scroll_bar_height(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_CONFIG_SCROLL_BAR_LINES")
+func FRAME_CONFIG_SCROLL_BAR_LINES(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_config_scroll_bar_lines")
+func frame_set_config_scroll_bar_lines(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+/// C: `#define CHECK_FRAME(x)` (src/frame.h 1387).
+@_silgen_name("CHECK_FRAME") func CHECK_FRAME(_ x: Lisp_Object)
+/// C: `extern bool inhibit_x_resources` (`DEFVAR_BOOL ("inhibit-x-resources", …)`,
+/// src/emacs.c 3596).
+@_silgen_name("inhibit_x_resources") var inhibit_x_resources: Bool
+/// The port's spelling for the one call C protects with `@try/@catch` (src/nsfns.m 2290-2310):
+/// Swift cannot catch an `NSException`, so the guarded `[cl writeToURL:error:]` is a C-ABI
+/// entry (the ledger's `## ABI` (3)).  It returns C's `false` on failure and logs like the
+/// `@catch` clause does.
+@_silgen_name("ns_color_list_write_or_log")
+func ns_color_list_write_or_log(_ cl: NSColorList?) -> Bool
+
+// More `Q…` symbols (generated globals.h, PORTING.md P-17; called as `Qfoo ()`).
 @_silgen_name("Qterminal") func Qterminal() -> Lisp_Object
 @_silgen_name("Qname") func Qname() -> Lisp_Object
 @_silgen_name("Qparent_id") func Qparent_id() -> Lisp_Object
@@ -2392,3 +2502,694 @@ fileprivate let lname_ns_read_file_name: StaticString = "ns-read-file-name"
 fileprivate var Sns_read_file_name: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_read_file_name, 1, 5,
                     unsafeBitCast(Fns_read_file_name, to: UnsafeMutableRawPointer.self))
+
+// ==========================================================================
+// C 1886-2610: the defaults/resources group, the x-server-*/x-display-* DEFUNs, the
+// application-level DEFUNs, AppleScript, the scroll-bar defaults and the trash handler.
+// ==========================================================================
+
+/// C: `#define calln(…) CALLN (Ffuncall, __VA_ARGS__)` (src/lisp.h 3462), the
+/// `CALLN`-array convention docs/ports/nsselect.swift already spells this way.
+@inline(__always)
+fileprivate func calln(_ args: [Lisp_Object]) -> Lisp_Object {
+  var a = args
+  return a.withUnsafeMutableBufferPointer { buf in
+    Ffuncall(buf.count, buf.baseAddress!)
+  }
+}
+
+/// C 1893 returns a pointer into an autoreleased `NSString`; C's callers use it before the pool
+/// drains.  A Swift bridged temporary would be released at the end of this call, so the port
+/// keeps the last string alive (a one-slot cache) and returns the same kind of pointer.
+fileprivate var ns_defaults_last_string: NSString? = nil
+
+/// C 1885-1895 (non-static - `@_cdecl`: src/nsterm.h 1196 declares it for the other units).
+/// C 1885-1895: `const char *ns_get_defaults_value (const char *key)`.  `@_cdecl` refuses an
+/// `UnsafePointer<T>?` result in Swift 6.4 (measured: "its result type cannot be represented in
+/// Objective-C"), so the port spells the result as the mutable pointer - the same C ABI.
+@_cdecl("ns_get_defaults_value")
+func ns_get_defaults_value(_ key: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>? {
+  let obj = UserDefaults.standard.object(forKey: String(cString: key))
+
+  if obj == nil { return nil }
+
+  /* C 1893: `[[NSString stringWithFormat: @"%@", obj] UTF8String]` - `%@` on an `id` asks for
+     its `description`, which `String (describing:)` is.  */
+  ns_defaults_last_string = String(describing: obj!) as NSString
+  return UnsafeMutablePointer(mutating: ns_defaults_last_string!.utf8String)
+}
+
+/// C 1897-1915: `DEFUN ("ns-get-resource", …)`.
+@_cdecl("Fns_get_resource")
+func Fns_get_resource(_ ownerIn: Lisp_Object, _ name: Lisp_Object) -> Lisp_Object {
+  var owner = ownerIn
+  var value: UnsafeMutablePointer<CChar>?
+
+  check_window_system(nil)
+  if NILP(owner) {
+    owner = lispString(ns_app_name!)
+  }
+  CHECK_STRING(name)
+
+  value = ns_get_defaults_value(SSDATA(name))
+
+  if value != nil {
+    return build_string(value!)
+  }
+  return Qnil()
+}
+fileprivate let lname_ns_get_resource: StaticString = "ns-get-resource"
+fileprivate var Sns_get_resource: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_get_resource, 2, 2,
+                    unsafeBitCast(Fns_get_resource, to: UnsafeMutableRawPointer.self))
+
+/// C 1917-1942: `DEFUN ("ns-set-resource", …)`.
+@_cdecl("Fns_set_resource")
+func Fns_set_resource(_ ownerIn: Lisp_Object, _ name: Lisp_Object,
+                      _ value: Lisp_Object) -> Lisp_Object {
+  var owner = ownerIn
+
+  check_window_system(nil)
+  if NILP(owner) {
+    owner = lispString(ns_app_name!)
+  }
+  CHECK_STRING(name)
+  if NILP(value) {
+    UserDefaults.standard.removeObject(forKey: stringWithLispString(name)! as String)
+  } else {
+    CHECK_STRING(value)
+    UserDefaults.standard.set(stringWithLispString(value)! as String,
+                              forKey: stringWithLispString(name)! as String)
+  }
+
+  return Qnil()
+}
+fileprivate let lname_ns_set_resource: StaticString = "ns-set-resource"
+fileprivate var Sns_set_resource: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_set_resource, 3, 3,
+                    unsafeBitCast(Fns_set_resource, to: UnsafeMutableRawPointer.self))
+
+/// C 1944-1955: `DEFUN ("x-server-max-request-size", …)` - no real equivalent under Nextstep.
+@_cdecl("Fx_server_max_request_size")
+func Fx_server_max_request_size(_ terminal: Lisp_Object) -> Lisp_Object {
+  _ = check_ns_display_info(terminal)
+  return Qnil()
+}
+fileprivate let lname_x_server_max_request_size: StaticString = "x-server-max-request-size"
+fileprivate var Sx_server_max_request_size: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_server_max_request_size, 0, 1,
+                    unsafeBitCast(Fx_server_max_request_size, to: UnsafeMutableRawPointer.self))
+
+/// C 1957-1968: `DEFUN ("x-server-vendor", …)` - the `NS_IMPL_GNUSTEP` arm returns "GNU".
+@_cdecl("Fx_server_vendor")
+func Fx_server_vendor(_ terminal: Lisp_Object) -> Lisp_Object {
+  _ = check_ns_display_info(terminal)
+  return build_string("Apple")
+}
+fileprivate let lname_x_server_vendor: StaticString = "x-server-vendor"
+fileprivate var Sx_server_vendor: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_server_vendor, 0, 1,
+                    unsafeBitCast(Fx_server_vendor, to: UnsafeMutableRawPointer.self))
+
+/// C 1970-1983: `DEFUN ("x-server-version", …)`.
+@_cdecl("Fx_server_version")
+func Fx_server_version(_ terminal: Lisp_Object) -> Lisp_Object {
+  _ = check_ns_display_info(terminal)
+  /* NOTE: it is unclear what would best correspond with "protocol";
+           we return 10.3, meaning Panther, since this is roughly the
+           level that GNUstep's APIs correspond to.  The last number
+           is where we distinguish between the Apple and GNUstep
+           implementations ("distributor-specific release number") and
+           give int'ized versions of major.minor.  */
+  return list3i(10, 3, Int(ns_appkit_version_int()))
+}
+fileprivate let lname_x_server_version: StaticString = "x-server-version"
+fileprivate var Sx_server_version: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_server_version, 0, 1,
+                    unsafeBitCast(Fx_server_version, to: UnsafeMutableRawPointer.self))
+
+/// C 1985-1992: `DEFUN ("x-display-screens", …)`.
+@_cdecl("Fx_display_screens")
+func Fx_display_screens(_ terminal: Lisp_Object) -> Lisp_Object {
+  _ = check_ns_display_info(terminal)
+  return make_fixnum(1)
+}
+fileprivate let lname_x_display_screens: StaticString = "x-display-screens"
+fileprivate var Sx_display_screens: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_screens, 0, 1,
+                    unsafeBitCast(Fx_display_screens, to: UnsafeMutableRawPointer.self))
+
+/// C 1994-2013: `DEFUN ("x-display-mm-height", …)` - the `NS_IMPL_COCOA` arm measures the main
+/// display; the `#else` arm is `25.4 / dpyinfo->resx`.
+@_cdecl("Fx_display_mm_height")
+func Fx_display_mm_height(_ terminal: Lisp_Object) -> Lisp_Object {
+  var px_to_mm: Double
+  let dpyinfo = check_ns_display_info(terminal)
+
+  let did = CGMainDisplayID()
+  let size_mm = CGDisplayScreenSize(did)
+  let bounds = CGDisplayBounds(did)
+
+  px_to_mm = size_mm.height / bounds.size.height
+
+  return make_fixnum(Int(Double(ns_display_pixel_height(dpyinfo)) * px_to_mm))
+}
+fileprivate let lname_x_display_mm_height: StaticString = "x-display-mm-height"
+fileprivate var Sx_display_mm_height: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_mm_height, 0, 1,
+                    unsafeBitCast(Fx_display_mm_height, to: UnsafeMutableRawPointer.self))
+
+/// C 2015-2034: `DEFUN ("x-display-mm-width", …)`.
+@_cdecl("Fx_display_mm_width")
+func Fx_display_mm_width(_ terminal: Lisp_Object) -> Lisp_Object {
+  var px_to_mm: Double
+  let dpyinfo = check_ns_display_info(terminal)
+
+  let did = CGMainDisplayID()
+  let size_mm = CGDisplayScreenSize(did)
+  let bounds = CGDisplayBounds(did)
+
+  px_to_mm = size_mm.width / bounds.size.width
+
+  return make_fixnum(Int(Double(ns_display_pixel_width(dpyinfo)) * px_to_mm))
+}
+fileprivate let lname_x_display_mm_width: StaticString = "x-display-mm-width"
+fileprivate var Sx_display_mm_width: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_mm_width, 0, 1,
+                    unsafeBitCast(Fx_display_mm_width, to: UnsafeMutableRawPointer.self))
+
+/// C 2036-2058: `DEFUN ("x-display-backing-store", …)`.  The `NSBackingStoreRetained` /
+/// `Nonretained` arms are the `defined (NS_IMPL_GNUSTEP) || MAC_OS_X_VERSION_MIN_REQUIRED <
+/// 101300` arm - dead text on this target, recorded.
+@_cdecl("Fx_display_backing_store")
+func Fx_display_backing_store(_ terminal: Lisp_Object) -> Lisp_Object {
+  _ = check_ns_display_info(terminal)
+  /* Note that the xfns.c version has different return values.  */
+  switch (ns_get_window(terminal) as? NSWindow)?.backingType ?? .buffered {
+  case .buffered:
+    return Qbuffered()
+  default:
+    error("Strange value for backingType parameter of frame")
+  }
+}
+fileprivate let lname_x_display_backing_store: StaticString = "x-display-backing-store"
+fileprivate var Sx_display_backing_store: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_backing_store, 0, 1,
+                    unsafeBitCast(Fx_display_backing_store, to: UnsafeMutableRawPointer.self))
+
+/// C 2060-2085: `DEFUN ("x-display-visual-class", …)`.
+@_cdecl("Fx_display_visual_class")
+func Fx_display_visual_class(_ terminal: Lisp_Object) -> Lisp_Object {
+  var depth: NSWindow.Depth
+
+  _ = check_ns_display_info(terminal)
+  depth = NSScreen.screens[0].depth
+
+  if depth == NSBestDepth(NSColorSpaceName.calibratedWhite, 2, 2, true, nil) {
+    return Qstatic_gray()
+  } else if depth == NSBestDepth(NSColorSpaceName.calibratedWhite, 8, 8, true, nil) {
+    return Qgray_scale()
+  } else if depth == NSBestDepth(NSColorSpaceName.calibratedRGB, 8, 8, true, nil) {
+    return Qpseudo_color()
+  } else if depth == NSBestDepth(NSColorSpaceName.calibratedRGB, 4, 12, false, nil) {
+    return Qtrue_color()
+  } else if depth == NSBestDepth(NSColorSpaceName.calibratedRGB, 8, 24, false, nil) {
+    return Qdirect_color()
+  } else {
+    /* Color management as far as we do it is really handled by
+       Nextstep itself anyway.  */
+    return Qdirect_color()
+  }
+}
+fileprivate let lname_x_display_visual_class: StaticString = "x-display-visual-class"
+fileprivate var Sx_display_visual_class: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_visual_class, 0, 1,
+                    unsafeBitCast(Fx_display_visual_class, to: UnsafeMutableRawPointer.self))
+
+/// C 2087-2109: `DEFUN ("x-display-save-under", …)`.
+@_cdecl("Fx_display_save_under")
+func Fx_display_save_under(_ terminal: Lisp_Object) -> Lisp_Object {
+  _ = check_ns_display_info(terminal)
+  switch (ns_get_window(terminal) as? NSWindow)?.backingType ?? .buffered {
+  case .buffered:
+    return Qt()
+  default:
+    error("Strange value for backingType parameter of frame")
+  }
+}
+fileprivate let lname_x_display_save_under: StaticString = "x-display-save-under"
+fileprivate var Sx_display_save_under: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_save_under, 0, 1,
+                    unsafeBitCast(Fx_display_save_under, to: UnsafeMutableRawPointer.self))
+
+/// C 2111-2134: `DEFUN ("x-open-connection", …)`.
+@_cdecl("Fx_open_connection")
+func Fx_open_connection(_ display: Lisp_Object, _ resource_string: Lisp_Object,
+                        _ must_succeed: Lisp_Object) -> Lisp_Object {
+  var dpyinfo: UnsafeMutablePointer<ns_display_info>?
+
+  CHECK_STRING(display)
+
+  nxatoms_of_nsselect()
+  dpyinfo = ns_term_init(display)
+  if dpyinfo == nil {
+    if !NILP(must_succeed) {
+      fatal("Display on %s not responding.\n", SDATA(display))
+    } else {
+      error("Display on %s not responding.\n", SDATA(display))
+    }
+  }
+
+  return Qnil()
+}
+fileprivate let lname_x_open_connection: StaticString = "x-open-connection"
+fileprivate var Sx_open_connection: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_open_connection, 1, 3,
+                    unsafeBitCast(Fx_open_connection, to: UnsafeMutableRawPointer.self))
+
+/// C 2136-2145: `DEFUN ("x-close-connection", …)`.
+@_cdecl("Fx_close_connection")
+func Fx_close_connection(_ terminal: Lisp_Object) -> Lisp_Object {
+  _ = check_ns_display_info(terminal)
+  NSApp.terminate(NSApp)
+  return Qnil()
+}
+fileprivate let lname_x_close_connection: StaticString = "x-close-connection"
+fileprivate var Sx_close_connection: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_close_connection, 1, 1,
+                    unsafeBitCast(Fx_close_connection, to: UnsafeMutableRawPointer.self))
+
+/// C 2147-2159: `DEFUN ("x-display-list", …)`.
+@_cdecl("Fx_display_list")
+func Fx_display_list() -> Lisp_Object {
+  var result: Lisp_Object = Qnil()
+  var ndi = x_display_list
+
+  while ndi != nil {
+    result = Fcons(XCAR(ndi!.pointee.name_list_element), result)
+    ndi = ndi!.pointee.next
+  }
+
+  return result
+}
+fileprivate let lname_x_display_list: StaticString = "x-display-list"
+fileprivate var Sx_display_list: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_list, 0, 0,
+                    unsafeBitCast(Fx_display_list, to: UnsafeMutableRawPointer.self))
+
+/// C 2161-2169: `DEFUN ("ns-hide-others", …)`.
+@_cdecl("Fns_hide_others")
+func Fns_hide_others() -> Lisp_Object {
+  check_window_system(nil)
+  NSApp.hideOtherApplications(NSApp)
+  return Qnil()
+}
+fileprivate let lname_ns_hide_others: StaticString = "ns-hide-others"
+fileprivate var Sns_hide_others: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_hide_others, 0, 0,
+                    unsafeBitCast(Fns_hide_others, to: UnsafeMutableRawPointer.self))
+
+/// C 2171-2202: `DEFUN ("ns-hide-emacs", …)`.  The `activate-front` arm is the
+/// `GNUSTEP_GUI_MAJOR_VERSION`-guarded one, dead text on this target (recorded).
+@_cdecl("Fns_hide_emacs")
+func Fns_hide_emacs(_ on: Lisp_Object) -> Lisp_Object {
+  check_window_system(nil)
+  if EQ(on, Qactivate()) {
+    NSApp.unhide(NSApp)
+    NSApp.activate(ignoringOtherApps: true)
+  } else if NILP(on) {
+    NSApp.unhide(NSApp)
+  } else {
+    NSApp.hide(NSApp)
+  }
+  return Qnil()
+}
+fileprivate let lname_ns_hide_emacs: StaticString = "ns-hide-emacs"
+fileprivate var Sns_hide_emacs: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_hide_emacs, 1, 1,
+                    unsafeBitCast(Fns_hide_emacs, to: UnsafeMutableRawPointer.self))
+
+/// C 2204-2213: `DEFUN ("ns-emacs-info-panel", …)`.
+@_cdecl("Fns_emacs_info_panel")
+func Fns_emacs_info_panel() -> Lisp_Object {
+  check_window_system(nil)
+  NSApp.orderFrontStandardAboutPanel(nil)
+  return Qnil()
+}
+fileprivate let lname_ns_emacs_info_panel: StaticString = "ns-emacs-info-panel"
+fileprivate var Sns_emacs_info_panel: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_emacs_info_panel, 0, 0,
+                    unsafeBitCast(Fns_emacs_info_panel, to: UnsafeMutableRawPointer.self))
+
+/// C 2215-2235: `DEFUN ("ns-font-name", …)`.
+@_cdecl("Fns_font_name")
+func Fns_font_name(_ name: Lisp_Object) -> Lisp_Object {
+  var nm: UnsafeMutablePointer<CChar>
+  CHECK_STRING(name)
+  nm = SSDATA(name)
+
+  if nm[0] != UInt8(ascii: "-") {
+    return name
+  }
+  if strstr(nm, "fontset") != nil && strstr(nm, "fontset-startup") == nil {
+    return name
+  }
+
+  return build_string(ns_xlfd_to_fontname(SSDATA(name)))
+}
+fileprivate let lname_ns_font_name: StaticString = "ns-font-name"
+fileprivate var Sns_font_name: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_font_name, 1, 1,
+                    unsafeBitCast(Fns_font_name, to: UnsafeMutableRawPointer.self))
+
+/// C 2237-2289 (non-static).  Called in emacs.c to support early calls to `ns_lisp_to_color`
+/// or `Fns_list_colors`.
+@_cdecl("ns_init_colors")
+func ns_init_colors() {
+  /* C 2240: `NSTRACE ("ns_init_colors");` */
+
+  var cl = NSColorList(named: "Emacs")
+
+  /* There are 752 colors defined in rgb.txt.  */
+  if cl == nil || (cl!.allKeys.count) < 752 {
+    var color_file: Lisp_Object
+    var color_map: Lisp_Object
+    var color: Lisp_Object
+    var name: Lisp_Object
+    var c: UInt
+
+    color_file = Fexpand_file_name(build_string("rgb.txt"),
+                                   Fsymbol_value(intern("data-directory")))
+
+    color_map = Fx_load_color_file(color_file)
+    if NILP(color_map) {
+      fatal("Could not read %s.\n", SDATA(color_file))
+    }
+
+    cl = NSColorList(name: "Emacs")
+    while CONSP(color_map) {
+      color = XCAR(color_map)
+      name = XCAR(color)
+      c = UInt(XFIXNUM(XCDR(color)))
+      c |= 0xFF000000
+      cl!.setColor(NSColor_colorWithUnsignedLong(c),
+                   forKey: stringWithLispString(name)! as String)
+      color_map = XCDR(color_map)
+    }
+    /* C 2290-2310: C wraps `[cl writeToURL:nil error:nil]` in `@try`/`@catch (NSException *)`
+       and logs a `fprintf (stderr, …)`/`NSLog` line on failure.  Swift cannot catch an
+       `NSException`, so the guarded write is the C-ABI entry `ns_color_list_write_or_log`
+       (see the ledger's `## ABI` (3)); it returns `false` on failure, like C's `== false`.  */
+    if !ns_color_list_write_or_log(cl) {
+      FileHandle.standardError.write(Data("ns_init_colors: could not write Emacs.clr\n".utf8))
+    }
+  }
+}
+
+/// C 2291-2329: `DEFUN ("ns-list-colors", …)`.
+@_cdecl("Fns_list_colors")
+func Fns_list_colors(_ frame: Lisp_Object) -> Lisp_Object {
+  var list: Lisp_Object = Qnil()
+
+  if !NILP(frame) {
+    CHECK_FRAME(frame)
+    if !FRAME_NS_P(XFRAME(frame)) {
+      error("non-Nextstep frame used in `ns-list-colors'")
+    }
+  }
+
+  block_input()
+  /* This can be called during dumping, so we need to set up a
+     temporary autorelease pool.  */
+  autoreleasepool {
+    /* C 2316-2322: `[[NSColorList availableColorLists] objectEnumerator]` and
+       `[[clist allKeys] reverseObjectEnumerator]` - Swift vends both as arrays.  */
+    for cl in NSColorList.availableColorLists {
+      /* C 2316-2319: `[[clist name] length]` / `[[clist name] rangeOfString: @"PANTONE"]` -
+         `NSColorList.name` is optional in Swift.  */
+      let cname = cl.name ?? ""
+      if cname.count < 7 || (cname as NSString).range(of: "PANTONE").location == 0 {
+        for cname in cl.allKeys.reversed() {
+          list = Fcons(lispString(cname as NSString), list)
+        }
+      }
+    }
+  }
+  unblock_input()
+
+  return list
+}
+fileprivate let lname_ns_list_colors: StaticString = "ns-list-colors"
+fileprivate var Sns_list_colors: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_list_colors, 0, 1,
+                    unsafeBitCast(Fns_list_colors, to: UnsafeMutableRawPointer.self))
+
+/// C 2331-2354: `DEFUN ("ns-list-services", …)`.  The `NS_IMPL_COCOA` arm is
+/// `/* You can't get services like this in 10.6+.  */ return Qnil;` - the `#else` arm is the
+/// GNUstep one, which calls the manifest-rowed `interpret_services_menu`.
+@_cdecl("Fns_list_services")
+func Fns_list_services() -> Lisp_Object {
+  return Qnil()
+}
+fileprivate let lname_ns_list_services: StaticString = "ns-list-services"
+fileprivate var Sns_list_services: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_list_services, 0, 0,
+                    unsafeBitCast(Fns_list_services, to: UnsafeMutableRawPointer.self))
+
+/// C 2356-2374: `DEFUN ("ns-perform-service", …)`.
+@_cdecl("Fns_perform_service")
+func Fns_perform_service(_ service: Lisp_Object, _ send: Lisp_Object) -> Lisp_Object {
+  var pb: AnyObject?
+  var svcName: NSString?
+
+  CHECK_STRING(service)
+  check_window_system(nil)
+
+  svcName = stringWithLispString(service)
+
+  pb = NSPasteboard.withUniqueName()
+  ns_string_to_pasteboard(pb, send)
+
+  if !NSPerformService(svcName! as String, pb as? NSPasteboard) {
+    _ = Fsignal(Qquit(), list1(build_string("service not available")))
+  }
+
+  if ((pb as? NSPasteboard)?.types?.count ?? 0) == 0 {
+    return build_string("")
+  }
+  return ns_string_from_pasteboard(pb)
+}
+fileprivate let lname_ns_perform_service: StaticString = "ns-perform-service"
+fileprivate var Sns_perform_service: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_perform_service, 2, 2,
+                    unsafeBitCast(Fns_perform_service, to: UnsafeMutableRawPointer.self))
+
+// C 2378-2445 (the `NS_IMPL_COCOA` arm): compile and execute SCRIPT and return the error status
+// as function value - 0 on success (with `*result` set), 1 otherwise.
+func ns_do_applescript(_ script: Lisp_Object,
+                       _ result: UnsafeMutablePointer<Lisp_Object>) -> Int32 {
+  var desc: NSAppleEventDescriptor?
+  var errorDict: NSDictionary?
+  var returnDescriptor: NSAppleEventDescriptor? = nil
+
+  let scriptObject = NSAppleScript(source: stringWithLispString(script)! as String)
+
+  returnDescriptor = scriptObject?.executeAndReturnError(&errorDict)
+  result.pointee = Qnil()
+
+  if returnDescriptor != nil {
+    // successful execution
+    if kAENullEvent != returnDescriptor!.descriptorType {
+      result.pointee = Qt()
+      // script returned an AppleScript result
+      if (typeUnicodeText == returnDescriptor!.descriptorType)
+          || (typeUTF16ExternalRepresentation == returnDescriptor!.descriptorType)
+          || (typeUTF8Text == returnDescriptor!.descriptorType)
+          || (typeCString == returnDescriptor!.descriptorType) {
+        desc = returnDescriptor!.coerce(toDescriptorType: typeUTF8Text)
+        if desc != nil {
+          result.pointee = lispString(desc!.stringValue! as NSString)
+        }
+      } else {
+        /* use typeUTF16ExternalRepresentation? */
+        // coerce the result to the appropriate ObjC type
+        desc = returnDescriptor!.coerce(toDescriptorType: typeUTF8Text)
+        if desc != nil {
+          result.pointee = make_fixnum(Int(desc!.int32Value))
+        }
+      }
+    }
+  } else {
+    // no script result, return error
+    return 1
+  }
+  return 0
+}
+
+/// C 2447-2452 (non-static - src/nsterm.m's event loop calls it): helper called from sendEvent
+/// to run AppleScript from within the main event loop.
+@_cdecl("ns_run_ascript")
+func ns_run_ascript() {
+  if !NILP(as_script) {
+    as_status = ns_do_applescript(as_script, as_result!)
+  }
+  as_script = Qnil()
+}
+
+/// C 2454-2518: `DEFUN ("ns-do-applescript", …)`.
+@_cdecl("Fns_do_applescript")
+func Fns_do_applescript(_ script: Lisp_Object) -> Lisp_Object {
+  var result: Lisp_Object = Qnil()
+  var status: Int32
+
+  CHECK_STRING(script)
+  check_window_system(nil)
+
+  block_input()
+
+  as_script = script
+  as_result = withUnsafeMutablePointer(to: &result) { $0 }
+
+  /* Executing AppleScript requires the event loop to run, otherwise
+     errors aren't returned and executeAndReturnError hangs forever.
+     Post an event that runs AppleScript and then start the event
+     loop.  The event loop is exited when the script is done.  */
+  let nxev = NSEvent.otherEvent(with: .applicationDefined,
+                                location: NSPoint(x: 0, y: 0),
+                                modifierFlags: [],
+                                timestamp: 0,
+                                windowNumber: NSApp.mainWindow?.windowNumber ?? 0,
+                                context: nil,
+                                subtype: 0,
+                                data1: 0,
+                                data2: NSAPP_DATA2_RUNASSCRIPT())
+
+  NSApp.postEvent(nxev!, atStart: false)
+
+  /* If there are other events, the event loop may exit.  Keep running
+     until the script has been handled.  */
+  /* C 2482: `struct input_event ev;` - the scratch record `ns_init_events` fills; the record is
+     src/termhooks.h's (64 bytes, measured in the ledger's Evidence), and only its address
+     crosses the boundary.  */
+  let ev = UnsafeMutableRawPointer.allocate(byteCount: 64, alignment: 8)
+  ns_init_events(ev)
+  while !NILP(as_script) {
+    NSApp.run()
+  }
+  ns_finish_events()
+
+  status = as_status
+  as_status = 0
+  as_result = nil
+  ev.deallocate()
+  unblock_input()
+  if status == 0 {
+    return result
+  } else if !STRINGP(result) {
+    error("AppleScript error %d", status)
+  } else {
+    error("%s", SSDATA(result))
+  }
+}
+fileprivate let lname_ns_do_applescript: StaticString = "ns-do-applescript"
+fileprivate var Sns_do_applescript: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_do_applescript, 1, 1,
+                    unsafeBitCast(Fns_do_applescript, to: UnsafeMutableRawPointer.self))
+
+/// C 2520-2524 (non-static): `struct ns_display_info *check_x_display_info (Lisp_Object)`,
+/// called from frame.c.  `@_cdecl` refuses a pointer to a *Swift* type, so the result is the
+/// opaque pointer C's prototype is (`struct ns_display_info` is incomplete outside this file).
+@_cdecl("check_x_display_info")
+func check_x_display_info(_ frame: Lisp_Object) -> UnsafeMutableRawPointer? {
+  return UnsafeMutableRawPointer(check_ns_display_info(frame))
+}
+
+/// C 2527-2534 (non-static).
+@_cdecl("ns_set_scroll_bar_default_width")
+func ns_set_scroll_bar_default_width(_ f: UnsafeMutableRawPointer?) {
+  let wid = FRAME_COLUMN_WIDTH(f)
+  frame_set_config_scroll_bar_width(f, NS_scroll_bar_width_default())
+  frame_set_config_scroll_bar_cols(f, (FRAME_CONFIG_SCROLL_BAR_WIDTH(f) + wid - 1) / wid)
+}
+
+/// C 2536-2543 (non-static).
+@_cdecl("ns_set_scroll_bar_default_height")
+func ns_set_scroll_bar_default_height(_ f: UnsafeMutableRawPointer?) {
+  let height = FRAME_LINE_HEIGHT(f)
+  frame_set_config_scroll_bar_height(f, NS_scroll_bar_width_default())
+  frame_set_config_scroll_bar_lines(f,
+                                    (FRAME_CONFIG_SCROLL_BAR_HEIGHT(f) + height - 1) / height)
+}
+
+/// C: `#define NS_SCROLL_BAR_WIDTH_DEFAULT [EmacsScroller scrollerWidth]` (src/nsterm.h 1275).
+@_silgen_name("NS_SCROLL_BAR_WIDTH_DEFAULT") func NS_scroll_bar_width_default() -> Int32
+
+/// C 2546-2563 (non-static): terms implement this instead of `x-get-resource` directly.
+@_cdecl("ns_get_string_resource")
+func ns_get_string_resource(_ rdb: UnsafeMutableRawPointer?, _ name: UnsafePointer<CChar>,
+                            _ class_: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>? {
+  /* remove appname prefix; TODO: allow for !="Emacs" */
+  var res: UnsafeMutablePointer<CChar>?
+  let toCheck = class_.advanced(by: strncmp(class_, "Emacs.", 6) == 0 ? 6 : 0)
+
+  check_window_system(nil)
+
+  if inhibit_x_resources {
+    /* --quick was passed, so this is a no-op.  */
+    return nil
+  }
+
+  res = ns_get_defaults_value(toCheck)
+  /* C 2560-2562: `!res ? NULL : !c_strncasecmp (res, "YES", 3) ? "true" :
+     !c_strncasecmp (res, "NO", 2) ? "false" : res` - the two literals C returns live in static
+     storage, so the port keeps one of each.  */
+  if res == nil { return nil }
+  if c_strncasecmp(res, "YES", 3) == 0 { return c_true_string }
+  if c_strncasecmp(res, "NO", 2) == 0 { return c_false_string }
+  return res
+}
+
+/// C 2560-2561's `"true"`/`"false"` literals, kept in static storage so the returned pointer
+/// stays valid (the `empty_c_string` shape of docs/ports/nsmenu.swift).
+fileprivate let c_true_string: UnsafeMutablePointer<CChar> = strdup("true")!
+fileprivate let c_false_string: UnsafeMutablePointer<CChar> = strdup("false")!
+
+/// C 2574-2608: `DEFUN ("system-move-file-to-trash", …)` (the `NS_IMPL_COCOA` +
+/// `MAC_OS_X_VERSION_MAX_ALLOWED >= 1080` arm).
+@_cdecl("Fsystem_move_file_to_trash")
+func Fsystem_move_file_to_trash(_ filenameIn: Lisp_Object) -> Lisp_Object {
+  var filename = filenameIn
+  var handler: Lisp_Object
+  var operation: Lisp_Object
+
+  operation = Qdelete_file()
+  if !NILP(Ffile_directory_p(filename)) && NILP(Ffile_symlink_p(filename)) {
+    operation = Qdelete_directory()
+    filename = Fdirectory_file_name(filename)
+  }
+
+  /* Must have fully qualified file names for moving files to Trash. */
+  filename = Fexpand_file_name(filename, Qnil())
+
+  handler = Ffind_file_name_handler(filename, operation)
+  if !NILP(handler) {
+    return calln([handler, operation, filename])
+  } else {
+    let fm = FileManager.default
+    var result = false
+    let fileURL = URL(fileURLWithPath: stringWithLispString(filename)! as String,
+                      isDirectory: !NILP(Ffile_directory_p(filename)))
+    if fm.responds(to: #selector(FileManager.trashItem(at:resultingItemURL:))) {
+      result = (try? fm.trashItem(at: fileURL, resultingItemURL: nil)) != nil
+    }
+
+    if !result {
+      report_file_error("Removing old name", list1(filename))
+    }
+  }
+  return Qnil()
+}
+fileprivate let lname_system_move_file_to_trash: StaticString = "system-move-file-to-trash"
+fileprivate var Ssystem_move_file_to_trash: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_system_move_file_to_trash, 1, 1,
+                    unsafeBitCast(Fsystem_move_file_to_trash, to: UnsafeMutableRawPointer.self))

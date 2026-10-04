@@ -27,8 +27,13 @@
 // `ns_focus` (C 1236-1273) and `ns_unfocus` (C 1282-1310), the visible bell's narrative
 // (C 1313-1330), the file's **first class** `EmacsBell` (C 1333-1430, its `@interface` and all
 // four methods), `bell_view` (C 1433) and `ns_ring_bell` (C 1436-1469); `hide_bell` (C 1471-1491)
-// is dead in this build (guard at 1471) and is recorded, not transcribed.  The next live
-// definition is C 1493's `ns_get_focus_frame`.
+// is dead in this build (guard at 1471) and is recorded, not transcribed.  **Round 7 lands
+// C 1493-1743**: the focus hooks (`ns_get_focus_frame` C 1493-1508, `ns_focus_frame` C 1510-1525),
+// the raise/lower pair and their dispatcher (C 1527-1578), `ns_frame_rehighlight` (C 1582-1620),
+// and the visibility hooks `ns_make_frame_visible` (C 1624-1676, exported),
+// `ns_make_frame_invisible` (C 1678-1691, exported), `ns_make_frame_visible_invisible`
+// (C 1693-1702) and `ns_iconify_frame` (C 1705-1742, exported).  The next live definition is
+// C 1744's `ns_free_frame_resources`.
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -1536,3 +1541,264 @@ fileprivate func ns_ring_bell(_ f: UnsafeMutableRawPointer?) {
 // target both defines `NS_IMPL_COCOA` and has a minimum of 260000.  Its one call site (C 9388,
 // inside the same guard) is dead with it, and the ledger's box for the function is ticked with
 // that reason rather than transcribed.
+
+// ==========================================================================
+// C 1493-1743: the focus/raise/lower hooks and the frame-visibility hooks.
+// ==========================================================================
+
+/// C: `struct ns_display_info *FRAME_DISPLAY_INFO (struct frame *f)` (src/nsterm.h 1032's macro) -
+/// the display-info accessor, reached as an entry like the other frame macros; the members it
+/// leads to are entries of their own (`<record>_<member>`, the naming
+/// `docs/ports/nsmenu.swift` 311-328 sets and `nsfns.swift`'s
+/// `ns_display_info_set_horizontal_scroll_bar_cursor` already uses).
+@_silgen_name("FRAME_DISPLAY_INFO")
+func FRAME_DISPLAY_INFO(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: the `struct ns_display_info` members this block reads or writes.
+@_silgen_name("ns_display_info_ns_focus_frame")
+func ns_display_info_ns_focus_frame(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("ns_display_info_highlight_frame")
+func ns_display_info_highlight_frame(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("ns_display_info_set_highlight_frame")
+func ns_display_info_set_highlight_frame(_ f: UnsafeMutableRawPointer?,
+                                         _ v: UnsafeMutableRawPointer?)
+/// C: `INLINE bool FRAMEP (Lisp_Object)` (src/lisp.h) and the frame-writing macro
+/// `XSETFRAME (Lisp_Object, struct frame *)` (src/frame.h) - the shapes
+/// `docs/ports/nsfns.swift` 182 and `docs/ports/nsselect.swift` 181 use.
+@_silgen_name("FRAMEP") func FRAMEP(_ x: Lisp_Object) -> Bool
+@_silgen_name("XSETFRAME")
+func XSETFRAME(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: UnsafeMutableRawPointer?)
+/// C: `Lisp_Object FRAME_FOCUS_FRAME (struct frame *f)` (src/frame.h) and its setter
+/// `INLINE void fset_focus_frame (struct frame *f, Lisp_Object val)` - the family
+/// `docs/ports/nsmenu.swift` 307 already reaches (`fset_menu_bar_items`).
+@_silgen_name("FRAME_FOCUS_FRAME")
+func FRAME_FOCUS_FRAME(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("fset_focus_frame")
+func fset_focus_frame(_ f: UnsafeMutableRawPointer?, _ v: Lisp_Object)
+/// C: `INLINE bool FRAME_LIVE_P (struct frame *)` / `FRAME_VISIBLE_P` (src/frame.h, nsterm.h) and
+/// the two `SET_FRAME_*` setters.
+@_silgen_name("FRAME_LIVE_P") func FRAME_LIVE_P(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("FRAME_VISIBLE_P") func FRAME_VISIBLE_P(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("SET_FRAME_VISIBLE")
+func SET_FRAME_VISIBLE(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("SET_FRAME_ICONIFIED")
+func SET_FRAME_ICONIFIED(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+/// C: `bool FRAME_NO_FOCUS_ON_MAP (struct frame *)` (src/frame.h) and the enumerator
+/// `FULLSCREEN_NONE` (src/nsterm.h; the entry `docs/ports/nsfns.swift` 513 uses).
+@_silgen_name("FRAME_NO_FOCUS_ON_MAP")
+func FRAME_NO_FOCUS_ON_MAP(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("FULLSCREEN_NONE") func FULLSCREEN_NONE() -> Int32
+/// C: the `struct frame` members this block reads directly and that no C macro names
+/// (`f->no_accept_focus`, `f->want_fullscreen`, `f->left_pos`, `f->top_pos`) - one entry per
+/// member, the rule `docs/ports/nsmenu.swift` 311-328 states; `frame_left_pos`/`frame_top_pos`
+/// are the names that file already uses.
+@_silgen_name("frame_no_accept_focus")
+func frame_no_accept_focus(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("frame_want_fullscreen")
+func frame_want_fullscreen(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_left_pos") func frame_left_pos(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_top_pos") func frame_top_pos(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: `void check_window_system (struct frame *)` (src/frame.h 1504) and
+/// `void gui_update_cursor (struct frame *f, bool on_p)` (src/dispextern.h 3691).
+@_silgen_name("check_window_system") func check_window_system(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("gui_update_cursor")
+func gui_update_cursor(_ f: UnsafeMutableRawPointer?, _ on_p: Bool)
+
+// **Deferred entries** (`## ABI` (4)): call sites that precede the definition, which is written
+// at its own C line under the selector's/function's own Swift name with `@_cdecl`.  The first
+// four wait for `EmacsView`/`EmacsWindow` (C 7039/9756); the last two are this unit's own
+// *functions*, whose C forward declarations (`ns_set_frame_alpha` at C 1622) are the reference's
+// own acknowledgement of the same forward use.
+@_silgen_name("fsIsNative") func fsIsNative_entry(_ view: NSView?) -> Bool
+@_silgen_name("handleFS") func handleFS_entry(_ view: NSView?)
+@_silgen_name("setParentChildRelationships") func setParentChildRelationships_entry(_ window: NSWindow?)
+@_silgen_name("ns_set_offset")
+func ns_set_offset_entry(_ f: UnsafeMutableRawPointer?, _ xoff: Int32, _ yoff: Int32,
+                         _ type: Int32)
+@_silgen_name("ns_set_frame_alpha") func ns_set_frame_alpha_entry(_ f: UnsafeMutableRawPointer?)
+
+/// C 1493-1508: `static Lisp_Object ns_get_focus_frame (struct frame *f)` - "External (hook)".
+fileprivate func ns_get_focus_frame(_ f: UnsafeMutableRawPointer?) -> Lisp_Object {
+  var lisp_focus: Lisp_Object = Qnil()
+
+  let focus = ns_display_info_ns_focus_frame(f)
+
+  if focus == nil {
+    return Qnil()
+  }
+
+  XSETFRAME(&lisp_focus, focus)
+  return lisp_focus
+}
+
+/// C 1510-1525: `static void ns_focus_frame (struct frame *f, bool noactivate)` - "External
+/// (hook)".
+fileprivate func ns_focus_frame(_ f: UnsafeMutableRawPointer?, _ noactivate: Bool) {
+  if ns_display_info_ns_focus_frame(f) != f {
+    let view = FRAME_NS_VIEW(f)
+    block_input()
+    NSApp.activate(ignoringOtherApps: true)
+    view?.window?.makeKeyAndOrderFront(view)
+    unblock_input()
+  }
+}
+
+/// C 1527-1546: `static void ns_raise_frame (struct frame *f, BOOL make_key)` - "Bring window to
+/// foreground and if make_key is YES, give it focus."
+fileprivate func ns_raise_frame(_ f: UnsafeMutableRawPointer?, _ make_key: Bool) {
+  check_window_system(f)
+  let view = FRAME_NS_VIEW(f)
+  block_input()
+  if FRAME_VISIBLE_P(f) {
+    if make_key && !frame_no_accept_focus(f) {
+      view?.window?.makeKeyAndOrderFront(NSApp)
+    } else {
+      view?.window?.orderFront(NSApp)
+    }
+  }
+  unblock_input()
+}
+
+/// C 1549-1563: `static void ns_lower_frame (struct frame *f)` - "Send window to back".
+fileprivate func ns_lower_frame(_ f: UnsafeMutableRawPointer?) {
+  check_window_system(f)
+  let view = FRAME_NS_VIEW(f)
+  block_input()
+  view?.window?.orderBack(NSApp)
+  unblock_input()
+}
+
+/// C 1566-1578: `static void ns_frame_raise_lower (struct frame *f, bool raise)` - "External
+/// (hook)".  `NSTRACE` is empty.
+fileprivate func ns_frame_raise_lower(_ f: UnsafeMutableRawPointer?, _ raise: Bool) {
+  if raise {
+    ns_raise_frame(f, true)
+  } else {
+    ns_lower_frame(f)
+  }
+}
+
+/// C 1582-1620: `static void ns_frame_rehighlight (struct frame *frame)` - "External (hook):
+/// called on things like window switching within frame".  `ns_set_frame_alpha` is this unit's own
+/// function defined at C 8550, hence the deferred entry (C forward-declares it at C 1622).
+fileprivate func ns_frame_rehighlight(_ frame: UnsafeMutableRawPointer?) {
+  let old_highlight = ns_display_info_highlight_frame(frame)
+
+  if ns_display_info_ns_focus_frame(frame) != nil {
+    let focus = ns_display_info_ns_focus_frame(frame)
+    ns_display_info_set_highlight_frame(frame,
+      FRAMEP(FRAME_FOCUS_FRAME(focus)) ? XFRAME(FRAME_FOCUS_FRAME(focus)) : focus)
+    if !FRAME_LIVE_P(ns_display_info_highlight_frame(frame)) {
+      fset_focus_frame(focus, Qnil())
+      ns_display_info_set_highlight_frame(frame, focus)
+    }
+  } else {
+    ns_display_info_set_highlight_frame(frame, nil)
+  }
+
+  if ns_display_info_highlight_frame(frame) != nil
+       && ns_display_info_highlight_frame(frame) != old_highlight {
+    if old_highlight != nil {
+      gui_update_cursor(old_highlight, true)
+      ns_set_frame_alpha_entry(old_highlight)
+    }
+    if ns_display_info_highlight_frame(frame) != nil {
+      gui_update_cursor(ns_display_info_highlight_frame(frame), true)
+      ns_set_frame_alpha_entry(ns_display_info_highlight_frame(frame))
+    }
+  }
+}
+
+/// C 1624-1676: `void ns_make_frame_visible (struct frame *f)` - "External: Show the window
+/// (X11 semantics)".  Declared src/nsterm.h 1226.
+///
+/// The calls into this unit's own later classes (`fsIsNative`, `isFullscreen`, `handleFS`,
+/// `setParentChildRelationships`) are deferred entries, and so is `ns_set_offset` (defined at
+/// C 1854).
+@_cdecl("ns_make_frame_visible")
+func ns_make_frame_visible(_ f: UnsafeMutableRawPointer?) {
+  /* XXX: at some points in past this was not needed, as the only place that
+     called this (frame.c:Fraise_frame ()) also called raise_lower;
+     if this ends up the case again, comment this out again.  */
+  if !FRAME_VISIBLE_P(f) {
+    let view = FRAME_NS_VIEW(f)
+    let window = view?.window
+
+    SET_FRAME_VISIBLE(f, true)
+    ns_raise_frame(f, !FRAME_NO_FOCUS_ON_MAP(f))
+
+    /* Making a new frame from a fullscreen frame will make the new frame
+       fullscreen also.  So skip handleFS as this will print an error.  */
+    if fsIsNative_entry(view) && isFullscreen_entry(view) {
+      return
+    }
+
+    if frame_want_fullscreen(f) != FULLSCREEN_NONE() {
+      block_input()
+      handleFS_entry(view)
+      unblock_input()
+    }
+
+    /* A child window cannot remain attached while hidden.  ... (C's own note on
+       `-orderOut:` and the parent->child relationship is kept with the call.)  */
+    if window?.parent == nil && FRAME_PARENT_FRAME(f) != nil {
+      block_input()
+      setParentChildRelationships_entry(window)
+      unblock_input()
+
+      /* If the parent frame moved while the child frame was
+         invisible, the child frame's position won't have been
+         updated.  Make sure it's in the right place now.  */
+      ns_set_offset_entry(f, frame_left_pos(f), frame_top_pos(f), 0)
+    }
+  }
+}
+
+/// C 1678-1691: `void ns_make_frame_invisible (struct frame *f)` - "Hide the window (X11
+/// semantics)".  Declared src/nsterm.h 1227.
+@_cdecl("ns_make_frame_invisible")
+func ns_make_frame_invisible(_ f: UnsafeMutableRawPointer?) {
+  check_window_system(f)
+  let view = FRAME_NS_VIEW(f)
+  view?.window?.orderOut(NSApp)
+  SET_FRAME_VISIBLE(f, false)
+  SET_FRAME_ICONIFIED(f, 0)
+}
+
+/// C 1693-1702: `static void ns_make_frame_visible_invisible (struct frame *f, bool visible)` -
+/// "External (hook)".
+fileprivate func ns_make_frame_visible_invisible(_ f: UnsafeMutableRawPointer?, _ visible: Bool) {
+  if visible {
+    ns_make_frame_visible(f)
+  } else {
+    ns_make_frame_invisible(f)
+  }
+}
+
+/// C 1705-1742: `void ns_iconify_frame (struct frame *f)` - "External (hook): Iconify window".
+/// Declared src/nsterm.h 1228.
+@_cdecl("ns_iconify_frame")
+func ns_iconify_frame(_ f: UnsafeMutableRawPointer?) {
+  check_window_system(f)
+  let view = FRAME_NS_VIEW(f)
+
+  if ns_display_info_highlight_frame(f) == f {
+    ns_display_info_set_highlight_frame(f, nil)
+  }
+
+  if (view?.window?.windowNumber ?? 0) <= 0 {
+    /* The window is still deferred.  Make it very small, bring it
+       on screen and order it out.  */
+    let s = NSRect(x: 100, y: 100, width: 0, height: 0)
+    let t = view?.window?.frame ?? .zero
+    view?.window?.setFrame(s, display: false)
+    view?.window?.orderBack(NSApp)
+    view?.window?.orderOut(NSApp)
+    view?.window?.setFrame(t, display: false)
+  }
+
+  /* Processing input while Emacs is being minimized can cause a
+     crash, so block it for the duration.  */
+  block_input()
+  view?.window?.miniaturize(NSApp)
+  unblock_input()
+}

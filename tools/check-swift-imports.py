@@ -98,7 +98,8 @@ def core_exports() -> set[str]:
 
 
 SDK_FRAMEWORKS = ("AppKit", "Foundation", "CoreGraphics", "CoreText", "CoreFoundation",
-                  "QuartzCore", "CoreImage", "UniformTypeIdentifiers", "CoreServices")
+                  "QuartzCore", "CoreImage", "UniformTypeIdentifiers", "CoreServices",
+                  "Carbon", "ApplicationServices")
 SDK_LIBS = ("libSystem.B", "libobjc.A")
 REF_OBJECT_GLOBS = ("build/emacs-ref/**/*.o",)
 # The C side of the reference: a name that appears anywhere here is the reference's own construct
@@ -212,8 +213,11 @@ def scan(verbose: bool = True) -> tuple[dict[str, set[str]], set[str], dict[str,
     imp = imports()
     sx = swift_exports()
     core = core_exports()
+    # A name an SDK framework's .tbd exports is provided at link time like libc is, so it is not a
+    # finding: the ratchet is the list of C-ABI entries *the core* still owes (status 3.247).
     missing = {n: fs for n, fs in imp.items()
-               if n not in sx and n not in core and f"_{n}" not in core}
+               if n not in sx and n not in core and f"_{n}" not in core
+               and classify(n) != "system"}
     if verbose:
         for name in sorted(missing):
             print(f"unprovided\t{classify(name)}\t{name}\t{', '.join(sorted(missing[name]))}")

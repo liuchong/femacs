@@ -4582,3 +4582,28 @@
   ④ **因此链接这一级的真实状态**：**对象集自闭合**；剩下的是**一个决定**（`V…`/`specpdl`/`current_buffer` 这些偏离要不要还是给 C-ABI 载体）、
   `xdisp` 的余量、以及真正的链接驱动那次带 `-lSystem` 与各 framework 的 `cc` 调用。读数、方法与两条教训（`_main` 前缀误伤 `thread.o`、
   `.checking.o` 必须排除）都在 `docs/ports/link.md`；棘轮 369 行、门绿。
+
+- **3.247 两条平台 lane 入库（`nsterm` r7 → 1,804 行；`nsfns` b3 → 3,195 行），导入门把"平台提供的名字"与"核心欠的名字"分开（2026-10-04）**：
+  ① **`nsterm` 第 7 轮**：1,538 → **1,804 行**（C 1493-1743）：焦点钩（`ns_get_focus_frame`/`ns_focus_frame`）、raise/lower 对与派发、
+  `ns_frame_rehighlight`、可见性钩（`ns_make_frame_visible`/`ns_make_frame_invisible`/`ns_make_frame_visible_invisible`/`ns_iconify_frame`，
+  其中三个是 `@_cdecl` 导出）；台账 1,189 行（113 勾 / 114 未勾）；`swiftc -c` **exit 0 / 8 warnings**（仍是 C 自己的 `lockFocus`/`unlockFocus` 那批）。
+  **裁决形状第一次扩展到"函数"**：`ns_set_offset`（调用 C 1691 / 定义 C 1854）与 `ns_set_frame_alpha`（调用 C 1616 / 定义 C 2366）是本单元自己的函数、
+  调用点早于定义点，而 **C 自己在 C 1622 就写了前向声明**——参考侧对同一情形的证据；故同样 entry/定义分离，定义处 `@_cdecl("<C 名>")`，
+  台账 (4) 表两行标 `deferred (function)`。成员条目按既有命名族（`ns_display_info[_set]_<member>`、`frame_<member>`），宏/INLINE 照 C 自己的名字。
+  另外 `check-citations` 抓了他一条 drift（`EmacsView` 与 `src/nsterm.h 1226` 写在同一行）⇒ 已改。
+  ② **`nsfns` 批③**：2,394 → **3,195 行**（+801），台账 571 行（未勾 37）；`swiftc -c` **exit 0 / 0 warning**；
+  新增 11 个函数 + 23 个 DEFUN。形态决定（都实测）：两个返回 `const char *` 的函数**不能**把 `@_cdecl` 的返回类型写成 `UnsafePointer<T>?`
+  （Swift 6.4 报 "its result type cannot be represented in Objective-C"）⇒ 用 mutable 指针拼法；`ns_get_defaults_value` 返回的是
+  autoreleased NSString 内部的指针，Swift 桥接临时量一返回就释放 ⇒ 端口用**单槽缓存**保住最后一条字符串；`ns_init_colors` 的
+  `@try/@catch (NSException *)` Swift 抓不住 ⇒ 那次被保护的 `writeToURL:` 走端口命名入口 `ns_color_list_write_or_log (cl)`
+  （失败返回 C 的 `false` 并照 `@catch` 打日志）；`NSBestDepth` 用 `@_silgen_name` 直接绑 SDK 符号；AppleScript 常量来自 Carbon 伞头 ⇒ 文件新增
+  `import Carbon`；`struct input_event ev` 只有地址跨进 nsterm.m 的两个钩子 ⇒ 按实测 `sizeof` 分配 64 字节堆缓冲；
+  死臂（`MIN_REQUIRED < 101300` 的 backing-store 两支、`ns-hide-emacs` 的 GNUSTEP 臂、`ns-list-services` 的 `#else`、颜色回退等）记而不载；
+  他还删掉了一条自己多建的 `EmacsScroller_scrollerWidth` 入口（避免白占棘轮一行）。
+  ③ **导入门的口径改了（本轮）**：`tools/check-swift-imports.py` 现在把**SDK framework 的 `.tbd` 导出的名字当作平台提供**（不再算 finding）——
+  棘轮因此**恰好等于"核心还欠的 C-ABI 条目"**。连带：6 条 system 行退出棘轮（4 个 CoreGraphics + 2 个 objc），41 条新名字按类进表；
+  **"瞬时提供者"的处理**：那 10 条 `frame_*` 曾因 Harvey **未提交**的 shim 对象而显示 stale ⇒ 我删掉 `build/femacs/abi_shim.o`，
+  让棘轮反映**已提交的树**（他下一次 `build-tu` 会重建，届时随 shim 入库一并删行）。这条与 3.241 记的口径同源：**判据要在已落库的状态上取**。
+  ④ 读数（本轮末）：`check-swift-units` **0 new / 0 stale / 7 units**；`check-swift-imports` **724 imports / 5557 core exports /
+  567 unprovided / 567 ratchet rows / 0 failures**；全树台账 **13678 勾 / 885 未勾**——未勾的跳升是**新的 `docs/ports/xterm.md`**（413 个框，
+  那是新战线的完整工作清单，不是回归）；其余仍是 `nsterm` 299、`xdisp` 130、`nsfns` 37、`macfont` 3（永久死臂）、`nsfont` 2。
