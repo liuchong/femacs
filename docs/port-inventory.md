@@ -23,22 +23,22 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 554 |
-| 其中 done / wip | 536 / 18 |
-| 待开工 | 36 |
+| 已有目标文件 | 560 |
+| 其中 done / wip | 540 / 20 |
+| 待开工 | 30 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 22 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 19 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 14 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 11 |
 
 ## 3 按批次
 
@@ -47,10 +47,10 @@
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 1 |
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
-| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 5 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 8 |
+| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 3 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 7 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 0 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 22 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 19 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -144,7 +144,7 @@
 | `lib/close-stream.h` | 30 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/close-stream.rs` | done |
 | `lib/copy-file-range.c` | 99 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/copy-file-range.rs` | done |
 | `lib/diffseq.h` | 578 | 2 | 0 | 5 | 1 | 10 | 0 | L | `femacs/lib/include/diffseq.rs` | done |
-| `lib/dirent-private.h` | 67 | 0 | 0 | 4 | 1 | 7 | 0 | L | `femacs/lib/include/dirent-private.rs` | todo |
+| `lib/dirent-private.h` | 67 | 0 | 0 | 4 | 1 | 7 | 0 | L | `femacs/lib/include/dirent-private.rs` | done |
 | `lib/dirent.in.h` | 427 | 0 | 0 | 29 | 14 | 2 | 0 | L | `femacs/lib/include/dirent.in.rs` | done |
 | `lib/dirfd.c` | 44 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/dirfd.rs` | done |
 | `lib/dtoastr.c` | 19 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/dtoastr.rs` | done |
@@ -156,7 +156,7 @@
 | `lib/errno.in.h` | 270 | 0 | 0 | 74 | 73 | 0 | 0 | L | `femacs/lib/include/errno.in.rs` | done |
 | `lib/euidaccess.c` | 217 | 2 | 0 | 14 | 4 | 0 | 0 | L | `femacs/lib/euidaccess.rs` | done |
 | `lib/execinfo.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/execinfo.rs` | done |
-| `lib/execinfo.in.h` | 69 | 3 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/execinfo.in.rs` | todo |
+| `lib/execinfo.in.h` | 69 | 3 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/execinfo.in.rs` | wip |
 | `lib/faccessat.c` | 98 | 2 | 0 | 8 | 0 | 0 | 0 | L | `femacs/lib/faccessat.rs` | done |
 | `lib/fchmodat.c` | 159 | 2 | 0 | 8 | 1 | 0 | 0 | L | `femacs/lib/fchmodat.rs` | done |
 | `lib/fcntl.c` | 663 | 6 | 0 | 4 | 2 | 0 | 0 | L | `femacs/lib/fcntl.rs` | done |
@@ -255,7 +255,7 @@
 | `lib/openat-priv.h` | 74 | 0 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/include/openat-priv.rs` | done |
 | `lib/openat-proc.c` | 154 | 1 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/openat-proc.rs` | done |
 | `lib/openat.h` | 137 | 6 | 0 | 6 | 0 | 0 | 0 | L | `femacs/lib/include/openat.rs` | todo |
-| `lib/pathmax.h` | 88 | 0 | 0 | 3 | 2 | 0 | 0 | L | `femacs/lib/include/pathmax.rs` | todo |
+| `lib/pathmax.h` | 88 | 0 | 0 | 3 | 2 | 0 | 0 | L | `femacs/lib/include/pathmax.rs` | done |
 | `lib/pipe2.c` | 166 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pipe2.rs` | done |
 | `lib/pselect.c` | 115 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pselect.rs` | done |
 | `lib/pthread_sigmask.c` | 84 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/pthread_sigmask.rs` | done |
@@ -547,7 +547,7 @@
 | `src/lcms.c` | 604 | 14 | 8 | 13 | 0 | 0 | 2 | D | `femacs/src/lcms.rs` | done |
 | `src/lisp.h` | 5,924 | 275 | 0 | 201 | 170 | 205 | 56 | B | `femacs/src/include/lisp.rs` | done |
 | `src/lread.c` | 5,901 | 105 | 17 | 20 | 18 | 24 | 12 | B | `femacs/src/lread.rs` | done |
-| `src/macfont.h` | 88 | 0 | 0 | 3 | 8 | 6 | 0 | F | `femacs/src/include/macfont.rs` | todo |
+| `src/macfont.h` | 88 | 0 | 0 | 3 | 8 | 6 | 0 | F | `femacs/src/include/macfont.rs` | done |
 | `src/macros.c` | 444 | 7 | 6 | 0 | 0 | 0 | 2 | B | `femacs/src/macros.rs` | done |
 | `src/macros.h` | 51 | 0 | 0 | 1 | 0 | 0 | 2 | B | `femacs/src/include/macros.rs` | done |
 | `src/macuvs.h` | 9,218 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/src/include/macuvs.rs` | done |
@@ -592,7 +592,7 @@
 | `src/sfnt.h` | 2,151 | 0 | 0 | 8 | 108 | 436 | 0 | E | `femacs/src/include/sfnt.rs` | done |
 | `src/sfntfont-android.c` | 821 | 14 | 1 | 2 | 0 | 2 | 3 | F | `femacs/src/sfntfont-android.rs` | done |
 | `src/sfntfont.c` | 4,222 | 60 | 0 | 0 | 2 | 92 | 13 | E | `femacs/src/sfntfont.rs` | done |
-| `src/sfntfont.h` | 78 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/sfntfont.rs` | todo |
+| `src/sfntfont.h` | 78 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/sfntfont.rs` | done |
 | `src/sort.c` | 1,178 | 30 | 0 | 3 | 2 | 7 | 0 | B | `femacs/src/sort.rs` | done |
 | `src/sound.c` | 1,554 | 30 | 2 | 4 | 18 | 44 | 2 | D | `femacs/src/sound.rs` | done |
 | `src/sqlite.c` | 933 | 12 | 17 | 29 | 1 | 0 | 1 | D | `femacs/src/sqlite.rs` | done |
@@ -655,7 +655,7 @@
 | `src/w32xfns.c` | 447 | 12 | 0 | 3 | 3 | 0 | 8 | F | `femacs/src/w32xfns.rs` | done |
 | `src/widget.c` | 514 | 20 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/widget.rs` | done |
 | `src/widget.h` | 102 | 0 | 0 | 36 | 35 | 0 | 1 | E | `femacs/src/include/widget.rs` | todo |
-| `src/widgetprv.h` | 70 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/widgetprv.rs` | todo |
+| `src/widgetprv.h` | 70 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/widgetprv.rs` | wip |
 | `src/window.c` | 9,740 | 112 | 121 | 1 | 5 | 64 | 13 | E | `femacs/src/window.rs` | done |
 | `src/window.h` | 1,267 | 16 | 0 | 95 | 5 | 102 | 9 | E | `femacs/src/include/window.rs` | done |
 | `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 36 | 7 | 72 | E | `femacs/src/xdisp.rs` | wip |
