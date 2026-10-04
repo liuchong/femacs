@@ -5665,3 +5665,32 @@
      **入库后这两条读数会自然归位**（届时重跑一次，棘轮缩小）。
   ④ **未声称**：`link-probe.py` 那条"真链接余量"口径本轮**没跑**（3.337 记的是 74），所以"距离第一次真链接更近"
      这句话本轮不说；`--strict` 的绿只说明"棘轮与 HEAD 的对象精确相等"，不说明链接能过。
+
+- **3.354 Kotlin 第 39/40 件里的第 38 件：`EmacsView` 入库；同时在飞的那一件把它拖红了（2026-10-05）**：
+  ① **交付形态**：`EmacsView.java` 989 行 → **`EmacsView.kt` 907 行**，首行
+     `// femacs: port of java/org/gnu/emacs/EmacsView.java @ fd7afced403.`；39 个成员（21 字段 + 1 构造 + 17 方法）
+     逐个对位、顺序保持；行数差＝参照 18 行许可头（P-83 ① 不抄）+ 一处 Java 未用 import + 注释压缩。
+  ② **我自己的收口读数（不引用 lane 的）**：把**在飞的** `EmacsWindow.kt` 排除后（39 个 `.kt`）全目录探针
+     **exit 0 / 0 error / 16 warning**，其中**没有一条指向 `EmacsView.kt`**（`grep -c` = 0），16 条与基线逐条同源、
+     **零新增**。**不排除时全目录是红的**：20 error 里 19 条来自那条在飞文件（18 条在 `EmacsWindow.kt` 内，另 1 条是
+     它诱发的 `EmacsActivity.kt:533` —— `wmName = window!!.wmName` 报 `actual type is 'String?', but 'String' was
+     expected`，即在飞版本把 `wmName` 落成了可空）。已把两条硬约束发回该 lane：**`wmName` 必须非空**、
+     **`getWindowToken` 要按参照的实际接收者核**（并附上 `EmacsView.kt`／`EmacsWindowManager.kt` 按名字调用的成员清单）。
+  ③ **名字义务（lane 先 grep 后落笔，我抽查了形状）**：`EmacsView` **没有任何 JNI 义务**
+     （`grep -rn "EmacsView" emacs/src/android*.c` = **0**；`android.c` 那两处 `FIND_METHOD` 分别属于 `EmacsDrawable` 与
+     `EmacsWindow`）；但 Java/Kotlin 侧按**字段名**读它（`EmacsWindow.java:398` 的 `view.mustReportLayout`、
+     `EmacsService.java:939/987` 的 `view.imManager`/`view.icGeneration`、`EmacsInputConnection.java:99`、
+     `EmacsActivity.java:278`）⇒ `window`/`imManager`/`icGeneration`/`mustReportLayout`/`icSerial` 落 `@JvmField`、
+     `getICMode`/`setICMode` 保持 `fun`；它自己按名读 `EmacsWindowManager.{MANAGER,consumers,WindowConsumer}`（3.352 的
+     `@JvmField` 那一族）在收口里解析成功。
+  ④ **P-83 添七条（㉖-㉜，都带判据）**：Java static 经实例调用要改成类名限定；Kotlin 不继承 Java 的嵌套类/常量（`MeasureSpec`/
+     `GONE` 要限定或 import）；`Canvas.clipRect` 是⑮ 的**非空极性**；Kotlin 没有 `|=`；`var` 属性不被智能转换也适用于
+     **跨类字段读**；⑱ 的"同名局部承接"也适用于 `override` 形参被重赋；`@Synchronized` 与 `override` 共用、裸
+     `synchronized` 块对应 `synchronized (this) {}`。
+  ⑤ **`kotlin-order.tsv` 本轮故意不重生成**（记账）：那个生成器按**磁盘上是否存在**数 `ported`，而工作树里有一条
+     **在飞、编译不过**的 `EmacsWindow.kt` ⇒ 现在重生成会把 `ported` 写成 39，**而 HEAD 里只有 38**——正是 3.349/3.350
+     刚立起来要防的那类"记录声称的、树里没有"。所以 `spikes/kotlin-target-order.py --check` 现在报 out of date 是**已知且已解释**
+     的状态，等那一件入库后一次重生成（届时 `EmacsView`/`EmacsWindow` 两行一起翻）。
+  ⑥ **未声称**：仍是**编译级**验收（探针 exit 0 + warning 16 条）；没有 `javap`/JVM 描述符导出、没有 Gradle/设备、
+     `R` 的 id 值仍是 0；`EmacsView` 依赖的 `EmacsWindow`(39)/`EmacsService`(40) 两个类的接口一致**不成立**（收口时它们是
+     参照 Java 替身）——这条 lane 已把自己需要的成员清单留给下一轮。
