@@ -3970,3 +3970,11 @@
   ③ **裁决：镜像那份挂 `dispextern_face_records`（== `dead-arms`/`gate-probes` 会翻的那支），unit 的带类型副本保持活的**（`9f07de1`）。理由是量出来的：unit 的副本是**带类型**的（`*mut face_cache`/`*mut font`/`*mut frame`），退休它们（3.181 的 `stdbit.in.rs` 动作）在小单元上也要改 3 处（实测 `alloc.rs` 删掉两条记录后剩 1 条 E0308 + 2 条 `no field header on type c_void`），总量约 40-60 处，而且要碰**两条 lane 的在飞文件**（`xdisp.rs`、`font.rs`）并把它们的类型化访问器降级成 cast。裁定取"保留 C 文本在场、不动任何人的活代码"这一支：镜像那份成为翻转门编的那一支（feature 行写进 `femacs/xtask/Cargo.toml` 的字母序表，带原因），**备选方案、代价与理由都记进镜像注释与 `docs/ports/include-dispextern.md`**，留给后续轮次主动决定。
   ④ **证据**：`build-tu src/{dispnew,term,window,xfaces,alloc}.c` **五件全 built**（改前全红）；`--check dispextern.h` **仍是 142 行**（不变）；`layout-check passed`。
   ⑤ **顺带发现的既有红（不是本轮引入）**：`xtask dead-arms` 在 `src/alloc.rs` 上报 `cannot find function mark_haiku_display`——Haiku 侧的死臂调了一个只有 `haikuterm.rs` 定义的名字，这就是 3.2/3.9 记的那类 FLIPS 缺口（死臂也要能编）。
+
+- **3.221 `dead-arms` 的两个单元修好；一个容差行按实测更新；一条前一段里的错读数更正（2026-10-04）**：
+  ① **`xtask dead-arms` 是"把死臂也编一遍"的门**，本轮我把它从"红在第一个单元"推到了只剩 lane 在飞的那一件。修的四处全是**真编译才看得见**的缺陷（真实构建永远不会走到这些臂）：
+  - `src/alloc.rs`：`have_haiku` 臂调用 `mark_haiku_display ()` 却没有声明（C 从 haikuterm.h 323 拿到原型），`have_native_comp` 臂把带类型的 `*mut Lisp_Native_Comp_Unit` 传给 `unload_comp_unit`，而 `include/comp.rs` 的声明是**未类型化**指针（P-72 ③，那份镜像自己的注释）⇒ 现在在臂里声明 haiku 名（`dynlib_handle_ptr` 形状）并在那个把类型带回作用域的调用点转换指针。
+  - `src/keyboard.rs`：三处死臂把 C 的 `event->kind` 位域**当成 Rust 字段**写（`(*event).kind == SELECTION_CLEAR_EVENT as u16`）——端口把 C 的 `kind : 16`/`part : 16` 放在一个 `bits` 单元里（PORTING.md 1.3），活臂用的是 `input_event_bits! (kind, …)`；三处都改成它，两处 `have_haiku` 调用按同样办法声明 `haiku_handle_selection_clear`（haikuterm.h 370）。
+  - 证据：两件 `--check` **OK**（修法保住 C 的 token：`kind`/`ie`/`SELECTION_CLEAR_EVENT` 都在）、`build-tu src/alloc.c` 与 `src/keyboard.c` **built**；`dead-arms` 现在越过这两件、报在 `src/font.rs`（font lane 在飞的那一件）。
+  ② **容差行按实测更新（`alloc` 0.08 → 0.10）**：`docs/ports/line-drift-tolerance.tsv` 的 `alloc` 行原本记 C 7639 vs 8169（6.9%），我那两个臂的修法把它推到 **8258 行（8.1%）**，于是 `--check` 只剩那一条漂移行 ⇒ 按 3.220 的规则（实测 + 0.01）改写该行并把新数字与原因写进去。
+  ③ **更正（我自己的错读数）**：`3a819d0` 的提交信息里写了 `--check emacs/src/alloc.c …` → OK，**那是错的**：当时它报的正是上面那条 8.1% 漂移行（我的编辑把它推过了 0.08 的容差）。修完容差行之后这两件才是真的 OK（本轮实测）。这条按项目惯例留在这里更正，不重写历史。
