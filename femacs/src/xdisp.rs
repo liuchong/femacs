@@ -680,6 +680,21 @@ unsafe extern "C" {
   /// C: lisp.h 4929: `extern void labeled_narrow_to_region (Lisp_Object, Lisp_Object,
   /// Lisp_Object);` (editfns.c defines it; the lisp.h mirror does not carry it).
   pub fn labeled_narrow_to_region (begv: Lisp_Object, zv: Lisp_Object, label: Lisp_Object);
+  /// C: lisp.h 4924-4925: `extern Lisp_Object save_restriction_save (void);` and
+  /// `extern void save_restriction_restore (Lisp_Object);` (editfns.c defines both; the
+  /// lisp.h mirror does not carry them).
+  pub fn save_restriction_save () -> Lisp_Object;
+  pub fn save_restriction_restore (buf: Lisp_Object);
+  /// C: lisp.h 4931: `extern void labeled_restrictions_remove_in_current_buffer (void);`
+  /// (editfns.c; the mirror gap `labeled_narrow_to_region` above shares).
+  pub fn labeled_restrictions_remove_in_current_buffer ();
+  /// C: lisp.h 4937: `extern bool disable_line_numbers_overlay_at_eob (void);` (buffer.c
+  /// defines it; the mirror's "Defined in buffer.c" block stops at
+  /// `mouse_face_overlay_overlaps`).
+  pub fn disable_line_numbers_overlay_at_eob () -> bool;
+  /// C: <string.h>: `char *strcat (char *, const char *);` (`lib/include/string.rs` keeps
+  /// only the functions the earlier units reached).
+  pub fn strcat (dest: *mut c_char, src: *const c_char) -> *mut c_char;
   /// C: dispextern.h 3824-3825: `int face_at_buffer_position (struct window *, ptrdiff_t,
   /// ptrdiff_t *, ptrdiff_t, bool, int, enum lface_attribute_index);` (xfaces.c defines it).
   pub fn face_at_buffer_position (w: *mut window, pos: ptrdiff_t, endptr: *mut ptrdiff_t,
@@ -1591,8 +1606,9 @@ pub struct it
   pub wrap_prefix_width: c_int,         // offset 2528
   /// Accumulated width of continuation lines.  (C 2866)
   pub continuation_lines_width: c_int,  // offset 2532
-  /// C 2868-2870: `eol_pos` (a `struct text_pos`, 16 bytes at 2536).
-  pub _pad_f: [u8; 16],
+  /// C 2868-2870: `eol_pos` (a `struct text_pos`, 16 bytes at 2536).  `find_row_edges`
+  /// reads it (C 25387-25388), so the round names the member instead of the pad.
+  pub eol_pos: text_pos,                // offset 2536
   /// Current y-position.  (C 2876)
   pub current_y: c_int,                 // offset 2552
   /// Vertical matrix position of first text line in window.  (C 2879)
@@ -1695,6 +1711,7 @@ const _: () = assert! (core::mem::offset_of! (it, max_phys_descent) == 2520);
 const _: () = assert! (core::mem::offset_of! (it, current_x) == 2524);
 const _: () = assert! (core::mem::offset_of! (it, wrap_prefix_width) == 2528);
 const _: () = assert! (core::mem::offset_of! (it, continuation_lines_width) == 2532);
+const _: () = assert! (core::mem::offset_of! (it, eol_pos) == 2536);
 const _: () = assert! (core::mem::offset_of! (it, current_y) == 2552);
 const _: () = assert! (core::mem::offset_of! (it, first_vpos) == 2556);
 const _: () = assert! (core::mem::offset_of! (it, vpos) == 2560);
@@ -23503,6 +23520,854 @@ cursor_row_p (row: *mut glyph_row) -> bool
   row_for_charpos_p (row, PT! ())
 }
 
+/* Push the property PROP so that it will be rendered at the current
+   position in IT.  FROM_BUFFER non-zero means the property was found on
+   buffer text, even though IT is set to iterate a string.
+   Return true if PROP was successfully pushed, false otherwise.
+   Called from handle_line_prefix to handle the `line-prefix' and
+   `wrap-prefix' properties.  (C 25077-25173)  */
+
+unsafe fn
+push_prefix_prop (it: *mut it, prop: Lisp_Object, from_buffer: c_int) -> bool
+{
+  let mut pos: text_pos =
+    if STRINGP ((*it).string) { (*it).current.string_pos } else { (*it).current.pos };
+  let phony_display_string: bool =
+    from_buffer != 0 && STRINGP ((*it).string)
+    && it_bits! (string_from_display_prop_p, it);
+
+  eassert! ((*it).method == GET_FROM_BUFFER
+	    || (*it).method == GET_FROM_DISPLAY_VECTOR
+	    || (*it).method == GET_FROM_STRING
+	    || (*it).method == GET_FROM_IMAGE);
+
+  /* We want the string to inherit the paragraph direction of the parent
+     object, so we need to calculate that if not yet done.  */
+  let eob: ptrdiff_t = if STRINGP ((*it).string) { SCHARS ((*it).string) } else { ZV! () };
+  if bidi_it_bits! (first_elt, &raw mut (*it).bidi_it) && (*it).bidi_it.charpos < eob
+    { bidi_paragraph_init ((*it).paragraph_embedding, &raw mut (*it).bidi_it, true); }
+
+  /* We need to save the current buffer/string position, so it will be
+     restored by pop_it, because iterate_out_of_display_property
+     depends on that being set correctly, but some situations leave
+     it->position not yet set when this function is called.  */
+  push_it (it, &raw mut pos);
+
+  /* Reset this flag, since it is not relevant (comes from a display
+     string that follows iterator position).  If we don't do that, any
+     display properties on the prefix string will be ignored.  The call
+     to pop_it when we are done with the prefix will restore the flag.  */
+  if phony_display_string
+    { it_bits! (string_from_display_prop_p, it, false); }
+
+  if STRINGP (prop)
+    {
+      if SCHARS (prop) == 0
+	{
+	  pop_it (it);
+	  return false;
+	}
+
+      (*it).string = prop;
+      it_bits! (string_from_prefix_prop_p, it, true);
+      it_bits! (multibyte_p, it, STRING_MULTIBYTE ((*it).string));
+      (*it).current.overlay_string_index = -1;
+      /* C's chain `IT_STRING_CHARPOS (*it) = IT_STRING_BYTEPOS (*it) = 0;`: the inner
+	 store runs first, so both members end up with its value.  */
+      IT_STRING_BYTEPOS! (*it) = 0;
+      IT_STRING_CHARPOS! (*it) = IT_STRING_BYTEPOS! (*it);
+      (*it).string_nchars = SCHARS ((*it).string);
+      (*it).end_charpos = (*it).string_nchars;
+      (*it).method = GET_FROM_STRING;
+      (*it).stop_charpos = 0;
+      (*it).prev_stop = 0;
+      (*it).base_level_stop = 0;
+      (*it).cmp_it.id = -1;
+
+      /* Force paragraph direction to be that of the parent
+	 buffer/string.  */
+      if it_bits! (bidi_p, it) && (*it).bidi_it.paragraph_dir == R2L
+	{ (*it).paragraph_embedding = (*it).bidi_it.paragraph_dir; }
+      else
+	{ (*it).paragraph_embedding = L2R; }
+
+      /* Set up the bidi iterator for this display string.  */
+      if it_bits! (bidi_p, it)
+	{
+	  (*it).bidi_it.string.lstring = (*it).string;
+	  (*it).bidi_it.string.s = core::ptr::null ();
+	  (*it).bidi_it.string.schars = (*it).end_charpos;
+	  (*it).bidi_it.string.bufpos = IT_CHARPOS! (*it);
+	  bidi_string_bits! (from_disp_str, &raw mut (*it).bidi_it.string,
+			     it_bits! (string_from_display_prop_p, it));
+	  bidi_string_bits! (unibyte, &raw mut (*it).bidi_it.string,
+			     !it_bits! (multibyte_p, it));
+	  (*it).bidi_it.w = (*it).w;
+	  bidi_init_it (0, 0, FRAME_WINDOW_P ((*it).f), &raw mut (*it).bidi_it);
+	}
+    }
+  else if CONSP (prop) && EQ (XCAR (prop), Qspace ())
+    {
+      (*it).method = GET_FROM_STRETCH;
+      (*it).object = prop;
+      it_bits! (string_from_prefix_prop_p, it, true);
+    }
+  /* C 25154-25162: the `#ifdef HAVE_WINDOW_SYSTEM` arm -- `IMAGEP (prop)` setting
+     `it->what = IT_IMAGE;`, `it->image_id = lookup_image (it->f, prop, it->face_id);`,
+     `it->method = GET_FROM_IMAGE;` and `it->string_from_prefix_prop_p = true;` -- is recorded
+     in `docs/ports/xdisp.md`, not transcribed: the frozen configuration has no window system
+     (P-08).  */
+  else
+    {
+      pop_it (it);		/* bogus prefix property, give up */
+      return false;
+    }
+
+  true
+}
+
+/* Return the character-property PROP at the current position in IT.  (C 25175-25194)  */
+
+unsafe fn
+get_it_property (it: *mut it, prop: Lisp_Object) -> Lisp_Object
+{
+  let mut object: Lisp_Object = (*it).object;
+  let position: Lisp_Object;
+
+  if STRINGP (object)
+    { position = make_fixnum (IT_STRING_CHARPOS! (*it)); }
+  else if BUFFERP (object)
+    {
+      position = make_fixnum (IT_CHARPOS! (*it));
+      object = (*it).window;
+    }
+  else
+    { return Qnil (); }
+
+  Fget_char_property (position, prop, object)
+}
+
+/* Return the line-prefix/wrap-prefix property, checking both the
+   current IT->OBJECT and the underlying buffer text.  (C 25196-25215)  */
+
+unsafe fn
+get_line_prefix_it_property (it: *mut it, prop: Lisp_Object,
+			     from_buffer: *mut c_int) -> Lisp_Object
+{
+  let prefix: Lisp_Object = get_it_property (it, prop);
+
+  *from_buffer = BUFFERP ((*it).object) as c_int;
+
+  /* If we are looking at a display or overlay string, check also the
+     underlying buffer text.  */
+  if NILP (prefix) && (*it).sp > 0 && STRINGP ((*it).object)
+    {
+      *from_buffer = true as c_int;
+      return Fget_char_property (make_fixnum (IT_CHARPOS! (*it)), prop,
+				 (*(*it).w).contents);
+    }
+  prefix
+}
+
+/* See if there's a line- or wrap-prefix, and if so, push it on IT.  (C 25217-25256)  */
+
+unsafe fn
+handle_line_prefix (it: *mut it)
+{
+  let mut prefix: Lisp_Object;
+  let mut wrap_prop: bool = false;
+  /* C leaves `from_buffer` to `get_line_prefix_it_property`; Rust cannot prove the call has
+     written it (the `bytepos` rule in `maybe_produce_line_number`).  */
+  let mut from_buffer: c_int = 0;
+
+  if (*it).continuation_lines_width > 0
+    {
+      prefix = get_line_prefix_it_property (it, Qwrap_prefix (), &raw mut from_buffer);
+      if NILP (prefix)
+	{ prefix = Vwrap_prefix; }
+      wrap_prop = true;
+    }
+  else
+    {
+      prefix = get_line_prefix_it_property (it, Qline_prefix (), &raw mut from_buffer);
+      if NILP (prefix)
+	{ prefix = Vline_prefix; }
+    }
+  if !NILP (prefix) && push_prefix_prop (it, prefix, from_buffer)
+    {
+      /* If the prefix is wider than the window, and we try to wrap
+	 it, it would acquire its own wrap prefix, and so on till the
+	 iterator stack overflows.  So, don't wrap the prefix.  */
+      (*it).line_wrap = TRUNCATE;
+      it_bits! (avoid_cursor_p, it, true);
+      /* Interpreting :align-to relative to the beginning of the logical
+	 line effectively renders this feature unusable, so we make an
+	 exception for this use of :align-to.  */
+      if wrap_prop && CONSP (prefix) && EQ (XCAR (prefix), Qspace ())
+	{ it_bits! (align_visually_p, it, true); }
+    }
+}
+
+/* Remove N glyphs at the start of a reversed IT->glyph_row.  Called
+   only for R2L lines from display_line and display_string, when they
+   decide that too many glyphs were produced by PRODUCE_GLYPHS, and
+   the line/string needs to be continued on the next glyph row.  (C 25258-25276)  */
+
+unsafe fn
+unproduce_glyphs (it: *mut it, mut n: c_int)
+{
+  eassert! (!(*it).glyph_row.is_null ());
+  eassert! (glyph_row_bits! (reversed_p, (*it).glyph_row));
+  eassert! ((*it).area == TEXT_AREA);
+  eassert! (n <= (*(*it).glyph_row).used[TEXT_AREA as usize] as c_int);
+
+  if n > (*(*it).glyph_row).used[TEXT_AREA as usize] as c_int
+    { n = (*(*it).glyph_row).used[TEXT_AREA as usize] as c_int; }
+  let mut glyph: *mut glyph =
+    (*(*it).glyph_row).glyphs[TEXT_AREA as usize].offset (n as isize);
+  let end: *mut glyph =
+    (*(*it).glyph_row).glyphs[TEXT_AREA as usize]
+      .offset ((*(*it).glyph_row).used[TEXT_AREA as usize] as isize);
+  while glyph < end
+    {
+      *glyph.offset (-(n as isize)) = *glyph;
+      glyph = glyph.offset (1);
+    }
+}
+
+/* Find the positions in a bidi-reordered ROW to serve as ROW->minpos
+   and ROW->maxpos.  (C 25278-25429)  */
+
+unsafe fn
+find_row_edges (it: *mut it, row: *mut glyph_row,
+		min_pos: ptrdiff_t, min_bpos: ptrdiff_t,
+		mut max_pos: ptrdiff_t, mut max_bpos: ptrdiff_t)
+{
+  /* FIXME: Revisit this when glyph ``spilling'' in continuation
+     lines' rows is implemented for bidi-reordered rows.  */
+
+  /* ROW->minpos is the value of min_pos, the minimal buffer position
+     we have in ROW, or ROW->start.pos if that is smaller.  */
+  if min_pos <= ZV! () && min_pos < (*row).start.pos.charpos
+    { SET_TEXT_POS! ((*row).minpos, min_pos, min_bpos); }
+  else
+    /* We didn't find buffer positions smaller than ROW->start, or
+       didn't find _any_ valid buffer positions in any of the glyphs,
+       so we must trust the iterator's computed positions.  */
+    { (*row).minpos = (*row).start.pos; }
+  if max_pos <= 0
+    {
+      max_pos = CHARPOS! ((*it).current.pos);
+      max_bpos = BYTEPOS! ((*it).current.pos);
+    }
+
+  /* Here are the various use-cases for ending the row, and the
+     corresponding values for ROW->maxpos:
+
+     Line ends in a newline from buffer       eol_pos + 1
+     Line is continued from buffer            max_pos + 1
+     Line is truncated on right               it->current.pos
+     Line ends in a newline from string       max_pos + 1(*)
+      (*) + 1 only when line ends in a forward scan
+     Line is continued from string            max_pos
+     Line is continued from display vector    max_pos
+     Line is entirely from a string           min_pos == max_pos
+     Line is entirely from a display vector   min_pos == max_pos
+     Line that ends at ZV                     ZV
+
+     If you discover other use-cases, please add them here as
+     appropriate.  */
+  if glyph_row_bits! (ends_at_zv_p, row)
+    { (*row).maxpos = (*it).current.pos; }
+  else if (*row).used[TEXT_AREA as usize] != 0
+    {
+      let mut seen_this_string: bool = false;
+      let r1: *mut glyph_row = row.offset (-1);
+
+      /* Did we see the same display string on the previous row?  */
+      if STRINGP ((*it).object)
+	  /* this is not the first row */
+	  && row > (*((*(*it).w).desired_matrix as *mut glyph_matrix)).rows
+	  /* previous row is not the header line or tab-line */
+	  && !glyph_row_bits! (mode_line_p, r1)
+	  /* previous row also ends in a newline from a string */
+	  && glyph_row_bits! (ends_in_newline_from_string_p, r1)
+	{
+	  let mut start: *mut glyph;
+	  let mut end: *mut glyph;
+
+	  /* Search for the last glyph of the previous row that came
+	     from buffer or string.  Depending on whether the row is
+	     L2R or R2L, we need to process it front to back or the
+	     other way round.  */
+	  if !glyph_row_bits! (reversed_p, r1)
+	    {
+	      start = (*r1).glyphs[TEXT_AREA as usize];
+	      end = start.offset ((*r1).used[TEXT_AREA as usize] as isize);
+	      /* Glyphs inserted by redisplay have nil as their object.  */
+	      while end > start
+		     && NILP ((*end.offset (-1)).object)
+		     && (*end.offset (-1)).charpos <= 0
+		{ end = end.offset (-1); }
+	      if end > start
+		{
+		  if EQ ((*end.offset (-1)).object, (*it).object)
+		    { seen_this_string = true; }
+		}
+	      else
+		/* If all the glyphs of the previous row were inserted
+		   by redisplay, it means the previous row was
+		   produced from a single newline, which is only
+		   possible if that newline came from the same string
+		   as the one which produced this ROW.  */
+		{ seen_this_string = true; }
+	    }
+	  else
+	    {
+	      end = (*r1).glyphs[TEXT_AREA as usize].offset (-1);
+	      start = end.offset ((*r1).used[TEXT_AREA as usize] as isize);
+	      while end < start
+		     && NILP ((*end.offset (1)).object)
+		     && (*end.offset (1)).charpos <= 0
+		{ end = end.offset (1); }
+	      if end < start
+		{
+		  if EQ ((*end.offset (1)).object, (*it).object)
+		    { seen_this_string = true; }
+		}
+	      else
+		{ seen_this_string = true; }
+	    }
+	}
+      /* Take note of each display string that covers a newline only
+	 once, the first time we see it.  This is for when a display
+	 string includes more than one newline in it.  */
+      if glyph_row_bits! (ends_in_newline_from_string_p, row) && !seen_this_string
+	{
+	  /* If we were scanning the buffer forward when we displayed
+	     the string, we want to account for at least one buffer
+	     position that belongs to this row (position covered by
+	     the display string), so that cursor positioning will
+	     consider this row as a candidate when point is at the end
+	     of the visual line represented by this row.  This is not
+	     required when scanning back, because max_pos will already
+	     have a much larger value.  */
+	  if CHARPOS! ((*row).end.pos) > max_pos
+	    { inc_both (&raw mut max_pos, &raw mut max_bpos); }
+	  SET_TEXT_POS! ((*row).maxpos, max_pos, max_bpos);
+	}
+      else if CHARPOS! ((*it).eol_pos) > 0
+	{ SET_TEXT_POS! ((*row).maxpos,
+			 CHARPOS! ((*it).eol_pos) + 1, BYTEPOS! ((*it).eol_pos) + 1); }
+      else if glyph_row_bits! (continued_p, row)
+	{
+	  /* If max_pos is different from IT's current position, it
+	     means IT->method does not belong to the display element
+	     at max_pos.  However, it also means that the display
+	     element at max_pos was displayed in its entirety on this
+	     line, which is equivalent to saying that the next line
+	     starts at the next buffer position.  */
+	  if IT_CHARPOS! (*it) == max_pos && (*it).method != GET_FROM_BUFFER
+	    { SET_TEXT_POS! ((*row).maxpos, max_pos, max_bpos); }
+	  else
+	    {
+	      inc_both (&raw mut max_pos, &raw mut max_bpos);
+	      SET_TEXT_POS! ((*row).maxpos, max_pos, max_bpos);
+	    }
+	}
+      else if glyph_row_bits! (truncated_on_right_p, row)
+	/* display_line already called reseat_at_next_visible_line_start,
+	   which puts the iterator at the beginning of the next line, in
+	   the logical order. */
+	{ (*row).maxpos = (*it).current.pos; }
+      else if max_pos == min_pos && (*it).method != GET_FROM_BUFFER
+	/* A line that is entirely from a string/image/stretch...  */
+	{ (*row).maxpos = (*row).minpos; }
+      else
+	{ emacs_abort (); }
+    }
+  else
+    { (*row).maxpos = (*it).current.pos; }
+}
+
+/* Like display_count_lines, but capable of counting outside of the
+   current narrowed region.  (C 25431-25448)  */
+
+unsafe fn
+display_count_lines_logically (start_byte: ptrdiff_t, limit_byte: ptrdiff_t,
+			       count: ptrdiff_t,
+			       byte_pos_ptr: *mut ptrdiff_t) -> ptrdiff_t
+{
+  if !display_line_numbers_widen || (BEGV! () == BEG as ptrdiff_t && ZV! () == Z! ())
+    { return display_count_lines (start_byte, limit_byte, count, byte_pos_ptr); }
+
+  let val: ptrdiff_t;
+  let pdl_count: specpdl_ref = SPECPDL_INDEX ();
+  record_unwind_protect (Some (save_restriction_restore), save_restriction_save ());
+  labeled_restrictions_remove_in_current_buffer ();
+  Fwiden ();
+  val = display_count_lines (start_byte, limit_byte, count, byte_pos_ptr);
+  unbind_to (pdl_count, Qnil ());
+  val
+}
+
+/* Count the number of screen lines in window IT->w between character
+   position IT_CHARPOS(*IT) and the line showing that window's point.  (C 25450-25497)  */
+
+unsafe fn
+display_count_lines_visually (it: *mut it) -> ptrdiff_t
+{
+  let mut tem_it: it = unsafe { core::mem::zeroed () };
+  let to: ptrdiff_t;
+  /* C assigns `from` with `SET_TEXT_POS`, which writes both members; Rust cannot see the
+     macro's writes as an initialisation, so the port zero-initialises it (deviation 1's
+     rule).  */
+  let mut from: text_pos = unsafe { core::mem::zeroed () };
+
+  /* If we already calculated a relative line number, use that.  This
+     trick relies on the fact that visual lines (a.k.a. "glyph rows")
+     are laid out sequentially, one by one, for each sequence of calls
+     to display_line or other similar function that follows a call to
+     init_iterator.  */
+  if (*it).lnum_bytepos > 0
+    { return (*it).lnum + 1; }
+  else
+    {
+      let count: specpdl_ref = SPECPDL_INDEX ();
+
+      if IT_CHARPOS! (*it) <= PT! ()
+	{
+	  from = (*it).current.pos;
+	  to = PT! ();
+	}
+      else
+	{
+	  SET_TEXT_POS! (from, PT! (), PT_BYTE! ());
+	  to = IT_CHARPOS! (*it);
+	}
+      /* Need to disable visual mode temporarily, since otherwise the
+	 call to move_it_to below and inside start_display will cause
+	 infinite recursion.  */
+      specbind (Qdisplay_line_numbers (), Qrelative ());
+      start_display (&raw mut tem_it, (*it).w, from);
+      /* Some redisplay optimizations could invoke us very far from
+	 PT, which will make the caller painfully slow.  There should
+	 be no need to go too far beyond the window's bottom, as any
+	 such optimization will fail to show point anyway.  */
+      move_it_to (&raw mut tem_it, to, -1,
+		  tem_it.last_visible_y
+		  + (SCROLL_LIMIT + 10) * FRAME_LINE_HEIGHT (tem_it.f),
+		  -1, MOVE_TO_POS | MOVE_TO_Y);
+      unbind_to (count, Qnil ());
+      if IT_CHARPOS! (*it) <= PT! () { -(tem_it.vpos as ptrdiff_t) }
+	else { tem_it.vpos as ptrdiff_t }
+    }
+}
+
+/* Produce the line-number glyphs for the current glyph_row.  If
+   IT->glyph_row is non-NULL, populate the row with the produced
+   glyphs.  (C 25499-25798)  */
+
+unsafe fn
+maybe_produce_line_number (it: *mut it)
+{
+  let mut last_line: ptrdiff_t = (*it).lnum;
+  /* C leaves `bytepos` to `display_count_lines_logically`; Rust cannot prove the call has
+     written it, so the port zero-initialises it (PORTING.md 1.5, deviation 1's rule).  */
+  let mut bytepos: ptrdiff_t = 0;
+  let mut start_from: ptrdiff_t;
+  let this_line: ptrdiff_t;
+  let mut first_time: bool = false;
+  let beg_byte: ptrdiff_t;
+  let z_byte: ptrdiff_t;
+  let line_numbers_wide: bool;
+  let itdata: *mut c_void = bidi_shelve_cache ();
+
+  if display_line_numbers_offset != 0
+      && !display_line_numbers_widen
+      && !EQ (Vdisplay_line_numbers, Qvisual ())
+      && !EQ (Vdisplay_line_numbers, Qrelative ())
+    { line_numbers_wide = true; }
+  else
+    { line_numbers_wide = display_line_numbers_widen; }
+
+  beg_byte = if line_numbers_wide { BEG_BYTE as ptrdiff_t } else { BEGV_BYTE! () };
+  z_byte = if line_numbers_wide { Z_BYTE! () } else { ZV_BYTE! () };
+
+  if EQ (Vdisplay_line_numbers, Qvisual ())
+    { this_line = display_count_lines_visually (it); }
+  else
+    {
+      if last_line == 0
+	{
+	  /* If possible, reuse data cached by line-number-mode.  */
+	  /* NOTE: We use `base_line_number` without checking
+	     BASE_LINE_NUMBER_VALID_P because we assume that `redisplay_window`
+	     has already flushed this cache for us when needed.
+	     NOTE2: Checking BASE_LINE_NUMBER_VALID_P here would be
+	     overly pessimistic because it might say that the cache
+	     was invalid before entering `redisplay_window` yet the
+	     value has just been refreshed.  */
+	  if (*((*it).w)).base_line_number > 0
+	      && (*((*it).w)).base_line_pos > 0
+	      && (*((*it).w)).base_line_pos <= IT_CHARPOS! (*it)
+	      /* line-number-mode always displays narrowed line
+		 numbers, so we cannot use its data if the user wants
+		 line numbers that disregard narrowing, or if the
+		 buffer's narrowing has just changed.  */
+	      && !(line_numbers_wide
+		   && (BEG_BYTE as ptrdiff_t != BEGV_BYTE! () || Z_BYTE! () != ZV_BYTE! ()))
+	      && !buffer_bits! (clip_changed, current_buffer)
+	    {
+	      start_from = CHAR_TO_BYTE ((*((*it).w)).base_line_pos);
+	      last_line = (*((*it).w)).base_line_number - 1;
+	    }
+	  else
+	    { start_from = beg_byte; }
+	  if (*it).lnum_bytepos == 0
+	    { first_time = true; }
+	}
+      else
+	{ start_from = (*it).lnum_bytepos; }
+
+      /* Paranoia: what if someone changes the narrowing since the
+	 last time display_line was called?  Shouldn't really happen,
+	 but who knows what some crazy Lisp invoked by :eval could do?  */
+      if !(beg_byte <= start_from && start_from <= z_byte)
+	{
+	  last_line = 0;
+	  start_from = beg_byte;
+	}
+
+      this_line =
+	last_line + display_count_lines_logically (start_from,
+						   IT_BYTEPOS! (*it),
+						   IT_CHARPOS! (*it), &raw mut bytepos);
+      eassert! (this_line > 0 || (this_line == 0 && start_from == beg_byte));
+      eassert! (bytepos == IT_BYTEPOS! (*it));
+    }
+
+  /* Record the line number information.  */
+  if this_line != last_line || (*it).lnum_bytepos == 0
+    {
+      (*it).lnum = this_line;
+      (*it).lnum_bytepos = IT_BYTEPOS! (*it);
+    }
+
+  /* Produce the glyphs for the line number.  */
+  let mut tem_it: it = unsafe { core::mem::zeroed () };
+  let beyond_zv: bool = IT_BYTEPOS! (*it) >= ZV_BYTE! ();
+  let mut lnum_offset: ptrdiff_t = -1; /* to produce 1-based line numbers */
+  let lnum_face_id: c_int = merge_faces ((*it).w, Qline_number (), 0, DEFAULT_FACE_ID);
+  let current_lnum_face_id: c_int
+    = merge_faces ((*it).w, Qline_number_current_line (), 0, DEFAULT_FACE_ID);
+  /* From here onwards, we must prevent freeing realized faces, because
+     we are using the above 2 face IDs for the glyphs we produce.  */
+  let save_free_realized_faces: bool = inhibit_free_realized_faces;
+  inhibit_free_realized_faces = true;
+  /* Compute point's line number if needed.  */
+  if (EQ (Vdisplay_line_numbers, Qrelative ())
+       || EQ (Vdisplay_line_numbers, Qvisual ())
+       || lnum_face_id != current_lnum_face_id)
+      && (*it).pt_lnum == 0
+    {
+      /* C leaves `ignored` to `display_count_lines_logically`; Rust cannot prove the call has
+	 written it, so the port zero-initialises it (deviation 1's rule).  */
+      let mut ignored: ptrdiff_t = 0;
+      if PT_BYTE! () > (*it).lnum_bytepos && !EQ (Vdisplay_line_numbers, Qvisual ())
+	{ (*it).pt_lnum =
+	  this_line + display_count_lines_logically ((*it).lnum_bytepos, PT_BYTE! (),
+						     PT! (), &raw mut ignored); }
+      else
+	{ (*it).pt_lnum = display_count_lines_logically (beg_byte, PT_BYTE! (), PT! (),
+							 &raw mut ignored); }
+    }
+  /* Compute the required width if needed.  */
+  if (*it).lnum_width == 0
+    {
+      if FIXNATP (Vdisplay_line_numbers_width)
+	{
+	  let lnum_width: EMACS_INT = XFIXNAT (Vdisplay_line_numbers_width);
+	  /* Limit the width to show at least 1 text character.  */
+	  let lnum_width_limit: c_int
+	    = ((*it).last_visible_x - (*it).first_visible_x)
+	      / FRAME_COLUMN_WIDTH ((*it).f)
+	      - 5	/* leave space for a few characters */
+	      - 2;	/* two spaces around the number */
+	  (*it).lnum_width
+	    = clip_to_bounds (1, lnum_width, lnum_width_limit as isize) as c_int;
+	}
+
+      /* Max line number to be displayed cannot be more than the one
+	 corresponding to the last row of the desired matrix.  */
+      let mut max_lnum: ptrdiff_t;
+
+      if NILP (Vdisplay_line_numbers_current_absolute)
+	  && (EQ (Vdisplay_line_numbers, Qrelative ())
+	      || EQ (Vdisplay_line_numbers, Qvisual ()))
+	/* We subtract one more because the current line is always
+	   zero in this mode.  */
+	{ max_lnum = (*((*(*it).w).desired_matrix as *mut glyph_matrix)).nrows as ptrdiff_t - 2; }
+      else if EQ (Vdisplay_line_numbers, Qvisual ())
+	{ max_lnum = (*it).pt_lnum
+		     + (*((*(*it).w).desired_matrix as *mut glyph_matrix)).nrows as ptrdiff_t - 1; }
+      else
+	{ max_lnum = this_line
+		     + (*((*(*it).w).desired_matrix as *mut glyph_matrix)).nrows as ptrdiff_t
+		     - 1 - (*it).vpos as ptrdiff_t; }
+      max_lnum = max (1, max_lnum);
+      /* C: `it->lnum_width = max (it->lnum_width, log10 (max_lnum) + 1);` -- the port
+	 spells the int/double `max` as an `isize` fold (the `eabs`/`clip_to_bounds`
+	 family, PORTING.md 1.5).  */
+      (*it).lnum_width = max ((*it).lnum_width as isize,
+			      (log10 (max_lnum as c_double) + 1.0) as isize) as c_int;
+      eassert! ((*it).lnum_width > 0);
+    }
+  /* Extra +2 for the two blanks we add before and after the number.  */
+  /* C: `char *lnum_buf = alloca (max (it->lnum_width, INT_STRLEN_BOUND (ptrdiff_t))
+     + 2 + 1);` -- gnulib's `INT_STRLEN_BOUND (ptrdiff_t)` measures 20 on the frozen target
+     (deviation 229), and the port's `alloca` is the `SAFE_ALLOCA` family (PORTING.md P-05),
+     which is why the two tokens are owed to `docs/ports/macro-body-notes.tsv`.  */
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  let lnum_buf: *mut c_char =
+    SAFE_ALLOCA! (sa_avail, max ((*it).lnum_width as isize, 20) + 2 + 1) as *mut c_char;
+  if EQ (Vdisplay_line_numbers, Qrelative ())
+    { lnum_offset = (*it).pt_lnum; }
+  else if EQ (Vdisplay_line_numbers, Qvisual ())
+    { lnum_offset = 0; }
+  else if display_line_numbers_offset != 0
+    { lnum_offset -= display_line_numbers_offset; }
+
+  /* Under 'relative', display the absolute line number for the
+     current line, unless the user requests otherwise.  */
+  let mut lnum_to_display: ptrdiff_t = eabs! (this_line - lnum_offset);
+  if (EQ (Vdisplay_line_numbers, Qrelative ())
+       || EQ (Vdisplay_line_numbers, Qvisual ()))
+      && lnum_to_display == 0
+      && !NILP (Vdisplay_line_numbers_current_absolute)
+    { lnum_to_display = (*it).pt_lnum + 1; }
+  /* In L2R rows we need to append the blank separator, in R2L
+     rows we need to prepend it.  But this function is usually
+     called when no display elements were produced from the
+     following line, so the paragraph direction might be unknown.
+     Therefore we cheat and add 2 blanks, one on either side.  */
+  pint2str (lnum_buf, (*it).lnum_width + 1, lnum_to_display);
+  strcat (lnum_buf, c" ".as_ptr ());
+
+  /* Setup for producing the glyphs.  */
+  init_iterator (&raw mut tem_it, (*it).w, -1, -1, &raw mut scratch_glyph_row,
+		 /* FIXME: Use specialized face.  */
+		 DEFAULT_FACE_ID);
+  glyph_row_bits! (reversed_p, &raw mut scratch_glyph_row, false);
+  scratch_glyph_row.used[TEXT_AREA as usize] = 0;
+  SET_TEXT_POS! (tem_it.position, 0, 0);
+  it_bits! (avoid_cursor_p, &raw mut tem_it, true);
+  it_bits! (bidi_p, &raw mut tem_it, true);
+  tem_it.bidi_it.r#type = WEAK_EN;
+  /* According to UAX#9, EN goes up 2 levels in L2R paragraph and
+     1 level in R2L paragraphs.  Emulate that, assuming we are in
+     an L2R paragraph.  */
+  tem_it.bidi_it.resolved_level = 2;
+
+  /* We must leave space for 2 glyphs for continuation and truncation,
+     and at least one glyph for buffer text.  */
+  let width_limit: c_int =
+    tem_it.last_visible_x - tem_it.first_visible_x
+    - 3 * FRAME_COLUMN_WIDTH ((*it).f);
+
+  tem_it.face_id = lnum_face_id;
+  /* Avoid displaying any face other than line-number on
+     empty lines beyond EOB.  */
+  if lnum_face_id != current_lnum_face_id
+      && (if EQ (Vdisplay_line_numbers, Qvisual ())
+	  { this_line == 0 }
+	  else
+	  { this_line == (*it).pt_lnum })
+      && (*it).what != IT_EOB
+    { tem_it.face_id = current_lnum_face_id; }
+  else if !beyond_zv
+    {
+      if display_line_numbers_major_tick > 0
+	  && (lnum_to_display % display_line_numbers_major_tick == 0)
+	{ tem_it.face_id = merge_faces ((*it).w, Qline_number_major_tick (), 0,
+					DEFAULT_FACE_ID); }
+      else if display_line_numbers_minor_tick > 0
+	       && (lnum_to_display % display_line_numbers_minor_tick == 0)
+	{ tem_it.face_id = merge_faces ((*it).w, Qline_number_minor_tick (), 0,
+					DEFAULT_FACE_ID); }
+    }
+
+  /* Produce glyphs for the line number in a scratch glyph_row.  */
+  let mut p: *const c_char = lnum_buf;
+  while *p != 0
+    {
+      /* For continuation lines and lines after ZV, instead of a line
+	 number, produce a blank prefix of the same width.  */
+      if beyond_zv
+	  /* Don't display the same line number more than once.  */
+	  || (!EQ (Vdisplay_line_numbers, Qvisual ())
+	      && ((*it).continuation_lines_width > 0
+		  || (this_line == last_line && !first_time)))
+	{ tem_it.char_to_display = ' ' as c_int; tem_it.c = tem_it.char_to_display; }
+      else
+	{ tem_it.char_to_display = *p as c_int; tem_it.c = tem_it.char_to_display; }
+      tem_it.len = 1;
+      /* Make sure these glyphs will have a "position" of -1.  */
+      SET_TEXT_POS! (tem_it.position, -1, -1);
+      PRODUCE_GLYPHS! (&raw mut tem_it);
+
+      /* Stop producing glyphs, and refrain from producing the line
+	 number, if we don't have enough space on this line.  */
+      if tem_it.current_x >= width_limit
+	{
+	  (*it).lnum_width = 0;
+	  (*it).lnum_pixel_width = 0;
+	  bidi_unshelve_cache (itdata, false);
+	  inhibit_free_realized_faces = save_free_realized_faces;
+	  /* PORTING.md P-05: C's `alloca` bytes go with the frame, so the C early `return`
+	     releases them; the port's pool needs the `SAFE_FREE` that the normal exit runs
+	     below (deviation 229).  */
+	  SAFE_FREE! (sa_count);
+	  return;
+	}
+      p = p.offset (1);
+    }
+
+  inhibit_free_realized_faces = save_free_realized_faces;
+
+  /* Record the width in pixels we need for the line number display.  */
+  (*it).lnum_pixel_width = tem_it.current_x;
+  /* Copy the produced glyphs into IT's glyph_row.  */
+  let mut g: *mut glyph = scratch_glyph_row.glyphs[TEXT_AREA as usize];
+  let e: *mut glyph = g.offset (scratch_glyph_row.used[TEXT_AREA as usize] as isize);
+  let mut p: *mut glyph = if !(*it).glyph_row.is_null ()
+    { (*(*it).glyph_row).glyphs[TEXT_AREA as usize] } else { core::ptr::null_mut () };
+  let u: *mut c_short = if !(*it).glyph_row.is_null ()
+    { &raw mut (*(*it).glyph_row).used[TEXT_AREA as usize] } else { core::ptr::null_mut () };
+
+  eassert! ((*it).glyph_row.is_null ()
+	    || (*(*it).glyph_row).used[TEXT_AREA as usize] == 0);
+
+  while g < e
+    {
+      (*it).current_x += (*g).pixel_width as c_int;
+      /* The following is important when this function is called
+	 from move_it_in_display_line_to: HPOS is incremented only
+	 when we are in the visible portion of the glyph row.  */
+      if (*it).current_x > (*it).first_visible_x
+	{ (*it).hpos += 1; }
+      if !p.is_null ()
+	{
+	  *p = *g;
+	  p = p.offset (1);
+	  *u = (*u as c_int + 1) as c_short;
+	}
+      g = g.offset (1);
+    }
+
+  /* Update IT's metrics due to glyphs produced for line numbers.
+     Don't do that for rows beyond ZV, to avoid displaying a cursor of
+     different dimensions there.  */
+  if !beyond_zv
+    {
+      if !(*it).glyph_row.is_null ()
+	{
+	  let row: *mut glyph_row = (*it).glyph_row;
+
+	  (*it).max_ascent = max ((*row).ascent as isize, tem_it.max_ascent as isize) as c_int;
+	  (*it).max_descent = max ((*row).height as isize - (*row).ascent as isize,
+				   tem_it.max_descent as isize) as c_int;
+	  (*it).max_phys_ascent = max ((*row).phys_ascent as isize,
+				       tem_it.max_phys_ascent as isize) as c_int;
+	  (*it).max_phys_descent = max ((*row).phys_height as isize
+					- (*row).phys_ascent as isize,
+					tem_it.max_phys_descent as isize) as c_int;
+	}
+      else
+	{
+	  (*it).max_ascent = max ((*it).max_ascent as isize,
+				  tem_it.max_ascent as isize) as c_int;
+	  (*it).max_descent = max ((*it).max_descent as isize,
+				   tem_it.max_descent as isize) as c_int;
+	  (*it).max_phys_ascent = max ((*it).max_phys_ascent as isize,
+				       tem_it.max_phys_ascent as isize) as c_int;
+	  (*it).max_phys_descent = max ((*it).max_phys_descent as isize,
+					tem_it.max_phys_descent as isize) as c_int;
+	}
+    }
+
+  it_bits! (line_number_produced_p, it, true);
+
+  bidi_unshelve_cache (itdata, false);
+  SAFE_FREE! (sa_count);
+}
+
+/* Return true if this glyph row needs a line number to be produced
+   for it.  (C 25800-25833)  */
+
+unsafe fn
+should_produce_line_number (it: *mut it) -> bool
+{
+  if NILP (Vdisplay_line_numbers)
+    { return false; }
+
+  /* Don't display line numbers in minibuffer windows.  */
+  if MINI_WINDOW_P ((*it).w)
+    { return false; }
+
+  /* C 25809-25813: the `#ifdef HAVE_WINDOW_SYSTEM` arm -- `FRAME_TOOLTIP_P (XFRAME
+     (WINDOW_FRAME (it->w)))` -- is recorded in `docs/ports/xdisp.md`, not transcribed: the
+     frozen configuration has no window system (P-08).  */
+
+  /* If the character at current position has a non-nil special
+     property, disable line numbers for this row.  This is for
+     packages such as company-mode, which need this for their tricky
+     layout, where line numbers get in the way.  */
+  let val: Lisp_Object = Fget_char_property (make_fixnum (IT_CHARPOS! (*it)),
+					     Qdisplay_line_numbers_disable (),
+					     (*it).window);
+  /* For ZV, we need to also look in empty overlays at that point,
+     because get-char-property always returns nil for ZV, except if
+     the property is in 'default-text-properties'.  */
+  if NILP (val) && IT_CHARPOS! (*it) >= ZV! ()
+    { return !disable_line_numbers_overlay_at_eob (); }
+  if NILP (val) { true } else { false }
+}
+
+/* Return true if ROW has no glyphs except those inserted by the
+   display engine.  This is needed for indicate-empty-lines and
+   similar features when the glyph row starts with glyphs which didn't
+   come from buffer or string.  (C 25835-25863)  */
+
+unsafe fn
+row_text_area_empty (row: *mut glyph_row) -> bool
+{
+  if !glyph_row_bits! (reversed_p, row)
+    {
+      let mut g: *mut glyph = (*row).glyphs[TEXT_AREA as usize];
+      while g < (*row).glyphs[TEXT_AREA as usize]
+		.offset ((*row).used[TEXT_AREA as usize] as isize)
+	{
+	  if !NILP ((*g).object) || (*g).charpos > 0
+	    { return false; }
+	  g = g.offset (1);
+	}
+    }
+  else
+    {
+      let mut g: *mut glyph = (*row).glyphs[TEXT_AREA as usize]
+			     .offset ((*row).used[TEXT_AREA as usize] as isize - 1);
+      while g > (*row).glyphs[TEXT_AREA as usize]
+	{
+	  if !NILP ((*g.offset (-1)).object) || (*g.offset (-1)).charpos > 0
+	    { return false; }
+	  g = g.offset (-1);
+	}
+    }
+
+  true
+}
+
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */
 /* ==================================================================== */
@@ -23537,13 +24402,6 @@ unsafe extern "C" {
   /// C: xdisp.c 1170: `static int display_mode_line (struct window *, enum face_id,
   /// Lisp_Object);`
   fn display_mode_line (w: *mut window, face_id: face_id, format: Lisp_Object) -> c_int;
-  /// C: xdisp.c 1132: `static void handle_line_prefix (struct it *);` (called by
-  /// `move_it_in_display_line_to`; its definition lands later in this unit).
-  fn handle_line_prefix (it: *mut it);
-  /// C: xdisp.c 1165: `static void maybe_produce_line_number (struct it *);`
-  fn maybe_produce_line_number (it: *mut it);
-  /// C: xdisp.c 1166: `static bool should_produce_line_number (struct it *);`
-  fn should_produce_line_number (it: *mut it) -> bool;
   /// C: dispextern.h 3689: `extern void gui_clear_window_mouse_face (struct window *);`
   /// (defined later in this unit, at C 37705).
   fn gui_clear_window_mouse_face (w: *mut window);
@@ -23553,6 +24411,14 @@ unsafe extern "C" {
   /// C: xdisp.c 1175: `static void display_menu_bar (struct window *);` (defined at
   /// C 27761).
   fn display_menu_bar (w: *mut window);
+  /// C: xdisp.c 1178: `static void pint2str (register char *, register int, register
+  /// ptrdiff_t);` (defined later in this unit, at C 29193; C's is `static`).
+  fn pint2str (buf: *mut c_char, width: c_int, d: ptrdiff_t);
+  /// C: lisp.h 4404-4407: `extern ptrdiff_t display_count_lines (ptrdiff_t start_byte,
+  /// ptrdiff_t limit_byte, ptrdiff_t count, ptrdiff_t *byte_pos_ptr);` (defined later in
+  /// this unit, at C 29914; C's is non-`static`).
+  fn display_count_lines (start_byte: ptrdiff_t, limit_byte: ptrdiff_t, count: ptrdiff_t,
+			  byte_pos_ptr: *mut ptrdiff_t) -> ptrdiff_t;
   /// C: dispextern.h 3595: `int display_line (struct it *, int);` (xdisp.c defines it at
   /// C 25865).
   fn display_line (it: *mut it, cursor_vpos: c_int) -> c_int;

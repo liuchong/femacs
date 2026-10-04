@@ -6879,3 +6879,29 @@
      与 3.389 给"整身死"文件加整文件集合的做法同族）；在那之前**不动** `cond-eval-verified.txt`，
      也不把"表陈旧"写成"求值器错了"。
   ④ **未声称**：① 的读数只覆盖列出的五个文件；② 不给"这 14 个文件何时能 OK"的时间表。
+
+- **3.405 xdisp 第三十轮：C 25077-25863 十一个定义（2026-10-05）**：
+  ① **区间与清单**：`push_prefix_prop`（25077）、`get_it_property`（25175）、`get_line_prefix_it_property`（25196）、
+     `handle_line_prefix`（25217）、`unproduce_glyphs`（25258）、`find_row_edges`（25278）、
+     `display_count_lines_logically`（25431）、`display_count_lines_visually`（25450）、
+     `maybe_produce_line_number`（25499，本轮最大）、`should_produce_line_number`（25800）、`row_text_area_empty`（25835）——
+     全部 `static`。**下一个活定义 = C 25865 `display_line`（C 25865-26935，1,072 行 = 下一轮整轮）**。
+     本轮 **787 个 C 行**（低于 1,000-1,400 的目标，理由见台账 ①：这一组的自然边界就是 25863，
+     再往上要么整吞 `display_line`、要么把它切成半截 stub，两者都不许）。
+  ② **行数**：`femacs/src/xdisp.rs` 23,569 → **24,435（净 +866）**；台账 3,100 → **3,220**；
+     勾选 `Functions 248/302`、合计 **344/415**；脚手架 13 → 12。
+  ③ **读数**：`build-tu src/xdisp.c` → built / exit 0，对象 **2,358,272 字节**（上轮 2,281,096），警告同样六条未增；
+     **`--check` 的 `^- ` 87 → 78**（退 11 条 `missing function`，新增 2 条：一条 `does not mention` 由集成者补
+     `macro-body-notes` 后复读 **77**，另一条是脚手架声明的 `no_mangle` 暂态行）；
+     `--cfg enable_checking` 探针 **exit 0 / 0 error**（对象 2,930,272 字节，本轮 10 处 `eassert!` 只由它读过）；
+     `nm` 新增 8 个 `t` 符号；`check-citations` 675/0 drift/0 stale、`check-declarations` 13/0/0、
+     `check-carried` 11/11/0、`check-dead-file-coverage` 13/0（上一轮 androidterm 的两条 failure 已消失）。
+  ④ **集成者这一轮的动作**：补 `docs/ports/macro-body-notes.tsv` 一行 `maybe_produce_line_number`（`alloca`/`int_strlen_bound`，
+     C 依据 **C 25642** 的 `char *lnum_buf = alloca (max (it->lnum_width, INT_STRLEN_BOUND (ptrdiff_t)) + 2 + 1)`——
+     我实读核过行号；端口用 SAFE_ALLOCA 族、`INT_STRLEN_BOUND (ptrdiff_t)` 在冻结目标量得 20）。
+  ⑤ **未解决（点名）**：⑴ `display_count_lines` 的 `no_mangle` 暂态行（C 29914 落定即消）；⑵ text-vs-machine 缺口——
+     `find_row_edges`/`unproduce_glyphs`/`row_text_area_empty` 目前**无机器符号**（调用者 `display_line` 还没进来）；
+     ⑶ 5 个 use-site extern（`save_restriction_save`/`_restore`、`labeled_restrictions_remove_in_current_buffer`、
+     `disable_line_numbers_overlay_at_eob`、`strcat`）与 `struct it.eol_pos`（本轮把 `_pad_f` 转正）该进镜像。
+  ⑥ **未声称**：不声称 `src/xdisp.c` 可编译/链接（`--check` 仍 FAIL、行数漂移 38.6%、77 条未闭合）；
+     token 包含检查通过 ≠ 语义等价；`xtask layout-check` 本轮未跑（如实记未跑，不当作通过）。
