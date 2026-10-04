@@ -524,7 +524,7 @@ open class EmacsActivity : Activity(),
 
   @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
   fun updateWmName() {
-    val wmName: String
+    val wmName: String?
     val description: TaskDescription
 
     if (window == null || window!!.wmName == null)

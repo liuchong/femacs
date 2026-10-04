@@ -39,6 +39,6 @@ order	target	references	ported
 35	femacs/platform/android/kotlin/EmacsSurfaceView.kt	EmacsNative,EmacsService,EmacsView	yes
 36	femacs/platform/android/kotlin/EmacsThread.kt	EmacsApplication,EmacsNative,EmacsService	yes
 37	femacs/platform/android/kotlin/EmacsTileObject.kt	EmacsGC	yes
-38	femacs/platform/android/kotlin/EmacsView.kt	EmacsActivity,EmacsContextMenu,EmacsGC,EmacsInputConnection,EmacsNative,EmacsService,EmacsSurfaceView,EmacsWindow,EmacsWindowManager	
-39	femacs/platform/android/kotlin/EmacsWindow.kt	EmacsActivity,EmacsCursor,EmacsDrawable,EmacsGC,EmacsHandleObject,EmacsNative,EmacsService,EmacsView,EmacsWindowManager	
+38	femacs/platform/android/kotlin/EmacsView.kt	EmacsActivity,EmacsContextMenu,EmacsGC,EmacsInputConnection,EmacsNative,EmacsService,EmacsSurfaceView,EmacsWindow,EmacsWindowManager	yes
+39	femacs/platform/android/kotlin/EmacsWindow.kt	EmacsActivity,EmacsCursor,EmacsDrawable,EmacsGC,EmacsHandleObject,EmacsNative,EmacsService,EmacsView,EmacsWindowManager	yes
 40	femacs/platform/android/kotlin/EmacsWindowManager.kt	EmacsActivity,EmacsMultitaskActivity,EmacsNative,EmacsService,EmacsWindow	yes

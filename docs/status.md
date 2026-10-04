@@ -5762,3 +5762,32 @@
      抓住它的是 **build**（E0428）。这是本会话第二次"编译抓到、重名门没抓到"（第一次是 3.326 的宏命名空间）。
   ⑥ **未声称**：xdisp 仍是 **WIP**（台账有 101 个未勾项），单元**不能链接**（脚手块 18 条、`--check` 里仍有 74 条
      `missing function`）；`redisplay_window` 的行为**没有任何运行期/差分验证**；`docs/port-plan.md` §8 的八条一条未点亮。
+
+- **3.358 Kotlin 第 39/40 件：`EmacsWindow` 入库（1,654 行），并把 `wmName` 改回参照的可空形状（2026-10-05）**：
+  ① **交付形态**：`EmacsWindow.java` **2,031 行** → `EmacsWindow.kt` **1,654 行**，首行
+     `// femacs: port of java/org/gnu/emacs/EmacsWindow.java @ fd7afced403.`；11 个 `@JvmField` 字段 + 1 个
+     `@JvmStatic`（`eventModifiers`）+ **48 个 `fun`/`override fun`**（含 17 处 `@Synchronized`、1 处 `@Throws`、
+     3 处 `@Suppress("DEPRECATION","OVERRIDE_DEPRECATION")`），无 `TODO`/空体/吞错。进度 **39/40**，只剩
+     `EmacsService`(2,201)。`docs/baseline/kotlin-order.tsv` 重生成 → **`40 target(s), 39 ported, 1 to go`**，`--check` 通过。
+  ② **我改的一处（保真优先，覆盖 lane 的取值决策）**：lane 为满足"`EmacsActivity.kt` 把 `window!!.wmName` 读进**非空**
+     局部"这一约束，把字段落成 `@JvmField var wmName: String = "Emacs"`；但参照 `EmacsWindow.java:184` 是
+     `public String wmName;`（**默认 null**，回退到 `"Emacs"` 发生在 `EmacsActivity.updateWmName` 里）——给字段一个
+     `"Emacs"` 初值是**发明 C 没有的行为**，而且让参照自己的 `== null` 判空变成 always-`false`。**正解是两边都按参照的可空性**：
+     字段 `String? = null` + `EmacsActivity` 的局部 `val wmName: String?`（Java 的 `String` 本就可空）。改完全目录探针
+     **warning 17 → 16**（第 17 条 always-`false` 消失、回到基线），`EmacsWindow.kt` 自身 0 诊断。
+  ③ **lane 的按名字核对（我抽查了形状）**：JNI 契约逐条同名同描述符保留（`android.c` 1959-1988/3195-3202 的构造
+     `(Lorg/gnu/emacs/EmacsWindow;IIIIZ)V` 与 `swapBuffers`/`toggleOnScreenKeyboard`/`setFullscreen`/`mapWindow`/
+     `resizeWindow`/`damageRect`/`setWmName(String)` 等）；`EmacsWindowManager.kt` 按名字读它的成员经 grep 逐行核对
+     （**实测 9 类 25 处**：`attachmentToken` 9、`previouslyAttached` 4、`preserve` 3、`getAttachedConsumer` 2、
+     `onActivityDetached` 2、`handle` 2、`getGeometry`/`noticeIconified`/`noticeDeiconified` 各 1）——
+     **这里更正我派活时写错的数字**：任务书里写的"15 类成员共 29 处"与文件不符，lane 用 grep 原文纠正，正确值是 9/25；
+     另外 `onKeyMultiple` 是 `EmacsView` 自己的 override、不在 `EmacsWindow`（我派活时的第二处笔误），
+     `getWindowToken` 的接收者是内容 View（参照 508 行 `ctx.findViewById(android.R.id.content).getWindowToken()`），
+     两条都按参照核过。
+  ④ **P-83 添六条（㉝-㊳）**：属性/形参同名的三个作用域赢家不同；局部 `var` 刚赋非空即用会被 smart-cast；`StringBuilder.length`
+     是属性；`View.findViewById` 需要类型实参；`MutableList.listIterator()` 返回 `MutableListIterator`；**已落库的兄弟目标会改变
+     "参照 Java 方法"的可空性，调用点要按已落库签名补 `!!`**（`Canvas?` 那一条），以及"探针会连带编别人在飞的文件、
+     收口报告要注明依据的 revision"这条工作流提醒。
+  ⑤ **未声称**：仍是**编译级**验收（exit 0 / 0 error / 16 warning）；没有 `javap`/字节码、没有 Gradle/设备、`R` 的 id 值仍是 0；
+     `EmacsService` 未落，其 `SERVICE` 的可空性账（3.352 记的 16 处直解引用）仍挂着；参照自身 `reconfigure` 里
+     `emacsAbort()` 的位置看着像上游缺陷，lane 按 1:1 **照录不表态**——我也照这个口径保留。
