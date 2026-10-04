@@ -5180,3 +5180,14 @@
   ③ **"开单元"在工具里是被支持的，量到两处机制**：`tools/extract-abi.py` 1352-1366 的豁免判据是**空单元形状**（`not re.search(r"\bfn\s+\w+", rs)`）——"A unit that *did* port the text … keeps the full comparison: the exemption is for the empty shape, not for the file" ⇒ 一旦 `xrdb.rs` 里有真 `fn`，`--check` 就按 15 项**全比对**（xterm lane 的 `--check` 313 条 `- ` 就是这么来的）。**因此半开的单元会污染 `--all`**——这是"要么开、要么不开"的原因，也是本轮**没有**动手开它的理由（把半个单元留在树上比保持空单元更坏）。
   ④ **前置条件逐条核过**：⑴ `alloca` —— P-05 的机制**已经选定**（裸 `alloca` 走栈池 `sa_stack_alloc (n)`，既有写法见 status 3358-3359 的实例，`SAFE_ALLOCA` 族走 `AVAIL_ALLOCA!` + specpdl），所以 P-05 末句"选定前不得批量移植含 alloca 的文件"**不阻塞**这一个文件；⑵ X11 头 **全在**本机：`X11/{Xlib.h,Xatom.h,X.h,Xutil.h,Xresource.h}`（实测 `ls` 通过）；⑶ 名字拼法已有先例：`XrmDatabase` 在 `femacs/src/include/{xterm.rs:370,pgtkgui.rs:122}`（`pub type XrmDatabase = *mut c_void`）已落，`xfree`/`xmalloc`/`xpalloc`/`xstrdup` 在 `include/lisp.rs` 的 `extern "C"` 里有声明；⑷ 单元的臂形状照 `xterm.rs`：整身 `#[cfg (feature = "have_x_windows")]` + 内层条件按小写 feature 名。
   ⑤ **交接**：这件归下一个空出来的 lane（或集成者在管线安静的回合自己开）；开的时候按 xterm 的流程走（先 `cinventory` 出清单 → 抄文本 → `build-tu` → `--check` 的 `- ` 条数与最早 missing 逐条自证 → 台账勾选 → 我入库）。
+- **3.317 abi shim 第⑫批 18 个导出入库（nsterm 第 15 轮要的那 18 个名字），台账 179/179（Turing 交付，2026-10-05）**：
+  ① **入的两件**：`femacs/src/abi_shim.rs` **+537 / −0**（真条目 **161 → 179**，台账勾选框 **179 / 179、0 未勾**）、`docs/ports/abi_shim.md` **+316 / −40**。本批 18 条的分布：
+  **模块 `c_abi_of_mirror_named_items` 2 条**——`WINDOW_FRAME`（名字已被镜像拼成**函数**（`include/frame.rs` 939），crate 根再定义是 `E0428` ⇒ 模块 + `super::`；与第 13 片的成员条目 `window_frame` **并存**，PORTING.md 0.2 的"逐名不合并"）、
+  `max_used_fringe_bitmap`（镜像是 **`extern` 声明**（dispextern.rs 2510），本批给**定义** `pub static mut … : c_int = 25`——25 来自 `fringe.c` 460-489 的 `countof (standard_bitmaps)`，注释里写明出处）；
+  **带门 15 条 `dispextern_face_records`**：13 个 `draw_fringe_bitmap_params_*` 成员（含两个 `bool_bf` 位域：`cursor_p` = 字节 52 位 0、`overlay_p` 位 1，实测）+ `face_foreground`/`face_background`（`struct face` 的 `unsigned long` bare 成员读，dispextern.h 1816/1819）；
+  **带门 1 条 `have_window_system`**：`gui_define_fringe_bitmap`（`fringe.c` 1853 定义，冻结配置不编译该文件 ⇒ 带门欠账）。
+  ② **入库前我自己复检**：`build-tu src/abi_shim.c` → **exit 0、0 条 `^error`**（末行 `built src/abi_shim.rs -> ../build/femacs/abi_shim.o`）；台账 **179 勾 / 0 未勾**；
+  我自己的 `nm -g build/femacs/abi_shim.o` 读数：**`T _WINDOW_FRAME`**、**`D _max_used_fringe_bitmap`**（数据符号）在冻结对象里，而 **`_face_foreground`/`_face_background` 不在**（正是"带门才对"的证据——它们只在翻牌下出现）；`check-declarations` 13/0/0、`check-carried` 11/11/0、`check-mirror-dupes` 1 dup/1 棘轮行/0。
+  ③ **lane 的翻牌读数（照抄，我未重跑）**：`dispextern_face_records` 翻牌 → `xtask probe … --cfg 'feature="dispextern_face_records"'` **exit 0、15/15 条带门符号进对象**；
+  `have_window_system` 翻牌 → **exit 1、48 条 error，但没有一条点名本批**（与批⑪同一次读数：那堵墙是 `frame.rs` 的带门存取器缺平台类型，不是本文件的问题）。
+  ④ **下一步**：棘轮重生成应把这 18 个名字**从待办里去掉**（`swift-import-pending` 650 → 632）——见 3.318。

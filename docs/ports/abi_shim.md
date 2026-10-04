@@ -13,17 +13,20 @@ a port (`^// femacs: generated mirror of the frozen build's`), which is why the 
 `femacs/src/` yet appears in no row of `docs/port-inventory.md` or `docs/port-map.md`; both were
 re-run to confirm it (see `## Evidence`).
 
-## Exports - 139 (all `#[unsafe(no_mangle)] pub unsafe extern "C" fn`, `frame` received as `*mut c_void` by the lanes' habit; the ABI is the Swift declaration's)
+## Exports - 179 (all `#[unsafe(no_mangle)] pub unsafe extern "C" fn` but one `pub static mut` - batch 12's `max_used_fringe_bitmap` storage -, `frame` received as `*mut c_void` by the lanes' habit; the ABI is the Swift declaration's)
 
-One hundred and thirty-nine: ninety-two are in the frozen object (`nm -g build/femacs/abi_shim.o`,
-116 `T` symbols including the unit's own Rust-internal ones) and the other forty-seven appear when
-the configuration that owns their member is built - the four batch-5 arm-only writers, the
-forty-two `struct ns_output` accessors of batch 6 and batch 6's `face_set_background` (see
-`## Decisions`).  Twenty-one of the hundred and thirty-nine (the four `z_group_*` enumerators,
-the two `Lisp_Object` accessors of batch 7, batch 8's fourteen mirror-named entries and batch
-10's `set_hash_value_slot`) stand in a module, `c_abi_of_mirror_named_items`, because the mirrors
-already spell those names in Rust; the module is why the crate root can hold both (measured,
-`## Evidence`).
+One hundred and seventy-nine: one hundred and six are in the frozen object (`nm -g
+build/femacs/abi_shim.o`, 129 `T` symbols including the unit's own Rust-internal ones, plus the
+one `D` batch 12 defines) and the other seventy-three appear when the configuration that owns
+their member is built - the four batch-5 arm-only writers, the forty-two `struct ns_output`
+accessors of batch 6, batch 6's `face_set_background`, batch 11's ten `struct glyph_string`
+accessors and batch 12's sixteen (`dispextern_face_records`'s fifteen and the one fringe
+export) - see `## Decisions`.  Twenty-five of the hundred and seventy-nine (the four
+`z_group_*` enumerators, the two `Lisp_Object` accessors of batch 7, batch 8's fourteen
+mirror-named entries, batch 10's `set_hash_value_slot`, batch 11's two `enum glyph_type`
+enumerators and batch 12's `WINDOW_FRAME` and `max_used_fringe_bitmap` storage) stand in a
+module, `c_abi_of_mirror_named_items`, because the mirrors already spell those names in Rust;
+the module is why the crate root can hold both (measured, `## Evidence`).
 
 | name | Swift import | providing Rust item | C text (line) |
 | --- | --- | --- | --- |
@@ -139,33 +142,73 @@ already spell those names in Rust; the module is why the crate root can hold bot
 | `FIXNUMP` | `nsfns.swift` 190, `nsterm.swift` 2230, `nsselect.swift` 154, `nsimage.swift` 119, `nsfont.swift` 482, `macfont.swift` 655 (`(Lisp_Object) -> Bool`) | `abi_shim.rs` 1311 **`mirror-named`** | `# define FIXNUMP(x) lisp_h_FIXNUMP (x)` lisp.h 449 (over 395, `INLINE bool (FIXNUMP)` 1263-1266) |
 | `XCAR` | `nsfns.swift` 195, `nsterm.swift` 1143, `nsselect.swift` 158, `nsfont.swift` 486, `macfont.swift` 784 (`(Lisp_Object) -> Lisp_Object`) | `abi_shim.rs` 1319 **`mirror-named`** | `# define XCAR(c) lisp_h_XCAR (c)` lisp.h 455 (over 405, `INLINE Lisp_Object (XCAR)` 1492-1497) |
 | `XCDR` | `nsfns.swift` 196, `nsterm.swift` 1144, `nsselect.swift` 159, `nsimage.swift` 121, `nsfont.swift` 488, `macfont.swift` 785 (`(Lisp_Object) -> Lisp_Object`) | `abi_shim.rs` 1326 **`mirror-named`** | `# define XCDR(c) lisp_h_XCDR (c)` lisp.h 456 (over 406, `INLINE Lisp_Object (XCDR)` 1499-1503) |
-| `XSETFRAME` | `nsfns.swift` 711, `nsmenu.swift` 272, `nsselect.swift` 181, `nsterm.swift` 1594 (`(UnsafeMutablePointer<Lisp_Object>, UnsafeMutableRawPointer?)`) | `abi_shim.rs` 1361 (crate root: the mirror spells this one as a macro) | `#define XSETFRAME(a, b) XSETPSEUDOVECTOR (a, b, PVEC_FRAME)` frame.h 926 |
-| `frame_set_total_cols` | `nsfns.swift` 868-869 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1382 | `int total_cols, total_lines;` frame.h 596; `FRAME_TOTAL_COLS (tip_f) = w->total_cols;` nsfns.m 3462 |
-| `frame_set_pixel_width` | `nsfns.swift` 871-872 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1391 | `int pixel_width, pixel_height;` frame.h 598; `FRAME_PIXEL_WIDTH (f) = new_native_width;` frame.c 1098 |
-| `frame_set_pixel_height` | `nsfns.swift` 874-875 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1400 | `int pixel_width, pixel_height;` frame.h 598; `FRAME_PIXEL_HEIGHT (f) = new_native_height;` frame.c 1099 |
-| `frame_border_width` | `nsfns.swift` 908 (`(UnsafeMutableRawPointer?) -> Int32`) | `abi_shim.rs` 1411 | `int border_width;` frame.h 613; `int border = fullscreen ? 0 : f->border_width;` nsfns.m 3560 |
-| `frame_size_hint_flags` | `nsterm.swift` 1884-1885 (`-> Int32`) | `abi_shim.rs` 1420 | `int size_hint_flags;` frame.h 610; `if (f->size_hint_flags & XNegative)` nsterm.m 1827 |
-| `frame_set_size_hint_flags` | `nsterm.swift` 1886-1887 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1429 | `f->size_hint_flags`'s read-modify-write clearing the two negative flags (nsterm.m 1871, 1955; the flags are `XNegative`/`YNegative`, nsterm.swift 1888-1889) |
-| `frame_set_config_scroll_bar_width` | `nsfns.swift` 1155-1156 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1439 | `int config_scroll_bar_width;` frame.h 693; `FRAME_CONFIG_SCROLL_BAR_WIDTH (f) = …` nsfns.m 2530 (macro 1286) |
-| `frame_set_config_scroll_bar_cols` | `nsfns.swift` 1159-1160 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1449 | `int config_scroll_bar_cols;` frame.h 694; `FRAME_CONFIG_SCROLL_BAR_COLS (f) = …` nsfns.m 2531 (macro 1296) |
-| `frame_set_config_scroll_bar_height` | `nsfns.swift` 1163-1164 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1459 | `int config_scroll_bar_height;` frame.h 701; `FRAME_CONFIG_SCROLL_BAR_HEIGHT (f) = …` nsfns.m 2539 (macro 1291) |
-| `frame_set_config_scroll_bar_lines` | `nsfns.swift` 1167-1168 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1469 | `int config_scroll_bar_lines;` frame.h 702; `FRAME_CONFIG_SCROLL_BAR_LINES (f) = …` nsfns.m 2540 (macro 1301) |
-| `window_set_left_col` | `nsfns.swift` 917-918 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1488 | `int left_col;` window.h 248; `w->left_col = 0;` nsfns.m 3442 |
-| `window_set_top_line` | `nsfns.swift` 919-920 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1496 | `int top_line;` window.h 249; `w->top_line = 0;` nsfns.m 3443 |
-| `window_set_pixel_left` | `nsfns.swift` 921-922 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1504 | `int pixel_left;` window.h 243; `w->pixel_left = 0;` nsfns.m 3444 |
-| `window_set_pixel_top` | `nsfns.swift` 923-924 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1512 | `int pixel_top;` window.h 244; `w->pixel_top = 0;` nsfns.m 3445 |
-| `window_set_total_cols` | `nsfns.swift` 926-927 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1521 | `int total_cols;` window.h 264; `w->total_cols = XFIXNAT (XCAR (Vx_max_tooltip_size));` nsfns.m 3451, `= 80;` 3456 |
-| `window_set_total_lines` | `nsfns.swift` 929-930 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1530 | `int total_lines;` window.h 265; `w->total_lines = XFIXNAT (XCDR (Vx_max_tooltip_size));` nsfns.m 3452, `= 40;` 3457 |
-| `window_set_pixel_width` | `nsfns.swift` 932-933 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1539 | `int pixel_width;` window.h 252; `w->pixel_width = w->total_cols * FRAME_COLUMN_WIDTH (tip_f);` nsfns.m 3460 |
-| `window_set_pixel_height` | `nsfns.swift` 935-936 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1548 | `int pixel_height;` window.h 253; `w->pixel_height = w->total_lines * FRAME_LINE_HEIGHT (tip_f);` nsfns.m 3461 |
-| `window_total_cols` | `nsfns.swift` 925 (`(UnsafeMutableRawPointer?) -> Int32`) | `abi_shim.rs` 1558 | `int total_cols;` window.h 264; read nsfns.m 3460, 3462 |
-| `window_total_lines` | `nsfns.swift` 928 (`-> Int32`) | `abi_shim.rs` 1567 | `int total_lines;` window.h 265; read nsfns.m 3461 |
-| `window_pixel_width` | `nsfns.swift` 931 (`-> Int32`; no call site yet) | `abi_shim.rs` 1578 | `int pixel_width;` window.h 252 |
-| `window_pixel_height` | `nsfns.swift` 934 (`-> Int32`) | `abi_shim.rs` 1587 | `int pixel_height;` window.h 253; `make_fixnum (w->pixel_height)` nsfns.m 3501 |
-| `window_phys_cursor_x` | `nsfns.swift` 770 (`(UnsafeMutableRawPointer?) -> Int`) | `abi_shim.rs` 1600 | `struct cursor_pos phys_cursor;` window.h 332, `int x, y;` 94; `int x = text_area_x + window->phys_cursor.x;` nsfns.m 4024 |
-| `window_phys_cursor_y` | `nsfns.swift` 771 (`-> Int`) | `abi_shim.rs` 1609 | `struct cursor_pos phys_cursor;` window.h 332, `int x, y;` 95; `int y = text_area_y + window->phys_cursor.y;` nsfns.m 4025 |
-| `window_desired_matrix` | `nsfns.swift` 937-938 (`-> UnsafeMutableRawPointer?`) | `abi_shim.rs` 1620 | `struct glyph_matrix *desired_matrix;` window.h 225; `clear_glyph_matrix (w->desired_matrix);` nsfns.m 3476 |
+| `XSETFRAME` | `nsfns.swift` 711, `nsmenu.swift` 272, `nsselect.swift` 181, `nsterm.swift` 1594 (`(UnsafeMutablePointer<Lisp_Object>, UnsafeMutableRawPointer?)`) | `abi_shim.rs` 1417 (crate root: the mirror spells this one as a macro) | `#define XSETFRAME(a, b) XSETPSEUDOVECTOR (a, b, PVEC_FRAME)` frame.h 926 |
+| `frame_set_total_cols` | `nsfns.swift` 868-869 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1438 | `int total_cols, total_lines;` frame.h 596; `FRAME_TOTAL_COLS (tip_f) = w->total_cols;` nsfns.m 3462 |
+| `frame_set_pixel_width` | `nsfns.swift` 871-872 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1447 | `int pixel_width, pixel_height;` frame.h 598; `FRAME_PIXEL_WIDTH (f) = new_native_width;` frame.c 1098 |
+| `frame_set_pixel_height` | `nsfns.swift` 874-875 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1456 | `int pixel_width, pixel_height;` frame.h 598; `FRAME_PIXEL_HEIGHT (f) = new_native_height;` frame.c 1099 |
+| `frame_border_width` | `nsfns.swift` 908 (`(UnsafeMutableRawPointer?) -> Int32`) | `abi_shim.rs` 1467 | `int border_width;` frame.h 613; `int border = fullscreen ? 0 : f->border_width;` nsfns.m 3560 |
+| `frame_size_hint_flags` | `nsterm.swift` 1884-1885 (`-> Int32`) | `abi_shim.rs` 1476 | `int size_hint_flags;` frame.h 610; `if (f->size_hint_flags & XNegative)` nsterm.m 1827 |
+| `frame_set_size_hint_flags` | `nsterm.swift` 1886-1887 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1485 | `f->size_hint_flags`'s read-modify-write clearing the two negative flags (nsterm.m 1871, 1955; the flags are `XNegative`/`YNegative`, nsterm.swift 1888-1889) |
+| `frame_set_config_scroll_bar_width` | `nsfns.swift` 1155-1156 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1495 | `int config_scroll_bar_width;` frame.h 693; `FRAME_CONFIG_SCROLL_BAR_WIDTH (f) = …` nsfns.m 2530 (macro 1286) |
+| `frame_set_config_scroll_bar_cols` | `nsfns.swift` 1159-1160 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1505 | `int config_scroll_bar_cols;` frame.h 694; `FRAME_CONFIG_SCROLL_BAR_COLS (f) = …` nsfns.m 2531 (macro 1296) |
+| `frame_set_config_scroll_bar_height` | `nsfns.swift` 1163-1164 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1515 | `int config_scroll_bar_height;` frame.h 701; `FRAME_CONFIG_SCROLL_BAR_HEIGHT (f) = …` nsfns.m 2539 (macro 1291) |
+| `frame_set_config_scroll_bar_lines` | `nsfns.swift` 1167-1168 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1525 | `int config_scroll_bar_lines;` frame.h 702; `FRAME_CONFIG_SCROLL_BAR_LINES (f) = …` nsfns.m 2540 (macro 1301) |
+| `window_set_left_col` | `nsfns.swift` 917-918 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1544 | `int left_col;` window.h 248; `w->left_col = 0;` nsfns.m 3442 |
+| `window_set_top_line` | `nsfns.swift` 919-920 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1552 | `int top_line;` window.h 249; `w->top_line = 0;` nsfns.m 3443 |
+| `window_set_pixel_left` | `nsfns.swift` 921-922 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1560 | `int pixel_left;` window.h 243; `w->pixel_left = 0;` nsfns.m 3444 |
+| `window_set_pixel_top` | `nsfns.swift` 923-924 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1568 | `int pixel_top;` window.h 244; `w->pixel_top = 0;` nsfns.m 3445 |
+| `window_set_total_cols` | `nsfns.swift` 926-927 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1577 | `int total_cols;` window.h 264; `w->total_cols = XFIXNAT (XCAR (Vx_max_tooltip_size));` nsfns.m 3451, `= 80;` 3456 |
+| `window_set_total_lines` | `nsfns.swift` 929-930 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1586 | `int total_lines;` window.h 265; `w->total_lines = XFIXNAT (XCDR (Vx_max_tooltip_size));` nsfns.m 3452, `= 40;` 3457 |
+| `window_set_pixel_width` | `nsfns.swift` 932-933 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1595 | `int pixel_width;` window.h 252; `w->pixel_width = w->total_cols * FRAME_COLUMN_WIDTH (tip_f);` nsfns.m 3460 |
+| `window_set_pixel_height` | `nsfns.swift` 935-936 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1604 | `int pixel_height;` window.h 253; `w->pixel_height = w->total_lines * FRAME_LINE_HEIGHT (tip_f);` nsfns.m 3461 |
+| `window_total_cols` | `nsfns.swift` 925 (`(UnsafeMutableRawPointer?) -> Int32`) | `abi_shim.rs` 1614 | `int total_cols;` window.h 264; read nsfns.m 3460, 3462 |
+| `window_total_lines` | `nsfns.swift` 928 (`-> Int32`) | `abi_shim.rs` 1623 | `int total_lines;` window.h 265; read nsfns.m 3461 |
+| `window_pixel_width` | `nsfns.swift` 931 (`-> Int32`; no call site yet) | `abi_shim.rs` 1634 | `int pixel_width;` window.h 252 |
+| `window_pixel_height` | `nsfns.swift` 934 (`-> Int32`) | `abi_shim.rs` 1643 | `int pixel_height;` window.h 253; `make_fixnum (w->pixel_height)` nsfns.m 3501 |
+| `window_phys_cursor_x` | `nsfns.swift` 770 (`(UnsafeMutableRawPointer?) -> Int`) | `abi_shim.rs` 1656 | `struct cursor_pos phys_cursor;` window.h 332, `int x, y;` 94; `int x = text_area_x + window->phys_cursor.x;` nsfns.m 4024 |
+| `window_phys_cursor_y` | `nsfns.swift` 771 (`-> Int`) | `abi_shim.rs` 1665 | `struct cursor_pos phys_cursor;` window.h 332, `int x, y;` 95; `int y = text_area_y + window->phys_cursor.y;` nsfns.m 4025 |
+| `window_desired_matrix` | `nsfns.swift` 937-938 (`-> UnsafeMutableRawPointer?`) | `abi_shim.rs` 1676 | `struct glyph_matrix *desired_matrix;` window.h 225; `clear_glyph_matrix (w->desired_matrix);` nsfns.m 3476 |
 | `set_hash_value_slot` | `macfont.swift` 834-835 (`(UnsafeMutableRawPointer?, Int, Lisp_Object)`) | `abi_shim.rs` 1338 **`mirror-named`** | `INLINE void set_hash_value_slot (struct Lisp_Hash_Table *, ptrdiff_t, Lisp_Object)` lisp.h 3982-3985 |
+| `glyph_string_set_left_overhang` | `nsterm.swift` 3556-3557 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 1707 **`have_window_system`** | `int left_overhang;` dispextern.h 1384; `s->left_overhang = …` nsterm.m 3071, 3077 |
+| `glyph_string_set_right_overhang` | `nsterm.swift` 3558-3559 (`(…, Int32)`) | `abi_shim.rs` 1719 **`have_window_system`** | `int right_overhang;` dispextern.h 1389; `s->right_overhang = …` nsterm.m 3070-3071, 3076 |
+| `glyph_string_char2b` | `nsterm.swift` 3560-3561 (`(UnsafeMutableRawPointer?) -> UnsafePointer<UInt32>?`) | `abi_shim.rs` 1731 **`have_window_system`** | `unsigned *char2b;` dispextern.h 1407; read nsterm.m 3062 |
+| `glyph_string_nchars` | `nsterm.swift` 3562 (`-> Int32`) | `abi_shim.rs` 1742 **`have_window_system`** | `int nchars;` dispextern.h 1408; read nsterm.m 3062 |
+| `glyph_string_font` | `nsterm.swift` 3563-3564 (`-> UnsafeMutableRawPointer?`) | `abi_shim.rs` 1754 **`have_window_system`** | `struct font *font;` dispextern.h 1417; read nsterm.m 3062 |
+| `glyph_string_cmp` | `nsterm.swift` 3565-3566 (`-> UnsafeMutableRawPointer?`) | `abi_shim.rs` 1765 **`have_window_system`** | `struct composition *cmp;` dispextern.h 1421; read nsterm.m 3053, 3076 |
+| `glyph_string_cmp_id` | `nsterm.swift` 3567-3568 (`-> Int`) | `abi_shim.rs` 1777 **`have_window_system`** | `ptrdiff_t cmp_id;` dispextern.h 1424; read nsterm.m 3068 |
+| `glyph_string_cmp_from` | `nsterm.swift` 3569-3570 (`-> Int32`) | `abi_shim.rs` 1788 **`have_window_system`** | `int cmp_from, cmp_to;` dispextern.h 1427; read nsterm.m 3069 |
+| `glyph_string_cmp_to` | `nsterm.swift` 3571 (`-> Int32`) | `abi_shim.rs` 1797 **`have_window_system`** | `int cmp_from, cmp_to;` dispextern.h 1428; read nsterm.m 3069 |
+| `glyph_string_first_glyph` | `nsterm.swift` 3572-3573 (`-> UnsafeMutableRawPointer?`) | `abi_shim.rs` 1809 **`have_window_system`** | `struct glyph *first_glyph;` dispextern.h 1480; read nsterm.m 3054/3055/3059 |
+| `glyph_type` | `nsterm.swift` 3577 (`(UnsafeMutableRawPointer?) -> Int32`) | `abi_shim.rs` 1831 | `unsigned type : 3;` dispextern.h 514; read nsterm.m 3054/3055/3059 |
+| `CHAR_GLYPH` | `nsterm.swift` 3578 (`() -> Int32`) | `abi_shim.rs` 1357 **`mirror-named`** | `CHAR_GLYPH,` dispextern.h 434 (`enum glyph_type` 431-452) = 0 |
+| `COMPOSITE_GLYPH` | `nsterm.swift` 3579 (`() -> Int32`) | `abi_shim.rs` 1363 **`mirror-named`** | `COMPOSITE_GLYPH,` dispextern.h 437 = 1 |
+| `glyph_row_mode_line_p` | `nsterm.swift` 3539-3540 (`(UnsafeMutableRawPointer?) -> Bool`) | `abi_shim.rs` 1842 | `bool_bf mode_line_p : 1;` dispextern.h 1086; read nsterm.m 2977 |
+| `glyph_row_full_width_p` | `nsterm.swift` 3541-3542 (`-> Bool`) | `abi_shim.rs` 1852 | `bool_bf full_width_p : 1;` dispextern.h 1083; read nsterm.m 2983 |
+| `glyph_row_set_redraw_fringe_bitmaps_p` | `nsterm.swift` 3543-3544 (`(…, Bool)`) | `abi_shim.rs` 1863 | `bool_bf redraw_fringe_bitmaps_p : 1;` dispextern.h 1043; write nsterm.m 2978 |
+| `window_pseudo_window_p` | `nsterm.swift` 3532-3533 (`(UnsafeMutableRawPointer?) -> Bool`) | `abi_shim.rs` 1879 | `bool_bf pseudo_window_p : 1;` window.h 438 (bit 11 of the offset-500 unit); read nsterm.m 2977 |
+| `composition_pixel_width` | `nsterm.swift` 3582-3583 (`-> Int32`) | `abi_shim.rs` 1898 | `short pixel_width, ascent, descent;` composite.h 153; read nsterm.m 3076 |
+| `composition_lbearing` | `nsterm.swift` 3584-3585 (`-> Int32`) | `abi_shim.rs` 1908 | `short lbearing, rbearing;` composite.h 155; read nsterm.m 3077 |
+| `composition_rbearing` | `nsterm.swift` 3586-3587 (`-> Int32`) | `abi_shim.rs` 1917 | `short lbearing, rbearing;` composite.h 155; read nsterm.m 3076 |
+| `font_driver` | `nsterm.swift` 3596 (`(UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?`) | `abi_shim.rs` 1931 | `struct font_driver const *driver;` font.h 400; read nsterm.m 3062 |
+| `font_driver_text_extents` | `nsterm.swift` 3597-3598 (`-> font_text_extents_fn?`) | `abi_shim.rs` 1946 | `void (*text_extents) (…)` font.h 672-674 (offset 104); call nsterm.m 3062 |
+| `WINDOW_FRAME` | `nsterm.swift` 3747 (`(UnsafeMutableRawPointer?) -> Lisp_Object`) | `abi_shim.rs` 1381 **`mirror-named`** | `#define WINDOW_FRAME(w) ((w)->frame)` frame.h 929; read nsterm.m 3228 |
+| `face_foreground` | `nsterm.swift` 3751 (`(UnsafeMutableRawPointer?) -> UInt`) | `abi_shim.rs` 1977 **`dispextern_face_records`** | `unsigned long foreground;` dispextern.h 1816; bare read nsterm.m 3279 |
+| `face_background` | `nsterm.swift` 3752 (`-> UInt`) | `abi_shim.rs` 1989 **`dispextern_face_records`** | `unsigned long background;` dispextern.h 1819; bare read nsterm.m 3254/3281 |
+| `gui_define_fringe_bitmap` | `nsterm.swift` 3794 (`(UnsafeMutableRawPointer?, Int32)`) | `abi_shim.rs` 2156 **`have_window_system`** | `void gui_define_fringe_bitmap (struct frame *, int)` fringe.c 1853 (declared dispextern.h 3711); call nsterm.m 3263 |
+| `max_used_fringe_bitmap` | `nsterm.swift` 3796 (`var max_used_fringe_bitmap: Int32`) | `abi_shim.rs` 1397 **`mirror-named`** (the definition; `D`) | `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` fringe.c 497 (read nsterm.m 3261) |
+| `draw_fringe_bitmap_params_face` | `nsterm.swift` 3757-3758 (`-> UnsafeMutableRawPointer?`) | `abi_shim.rs` 2001 **`dispextern_face_records`** | `struct face *face;` dispextern.h 2232; read nsterm.m 3229 |
+| `draw_fringe_bitmap_params_which` | `nsterm.swift` 3759-3760 (`-> Int32`) | `abi_shim.rs` 2011 **`dispextern_face_records`** | `int which;` dispextern.h 2225; read nsterm.m 3235/3258/3261 |
+| `draw_fringe_bitmap_params_wd` | `nsterm.swift` 3761-3762 (`-> Int32`) | `abi_shim.rs` 2021 **`dispextern_face_records`** | `int wd, h, dh;` dispextern.h 2227; read nsterm.m 3235/3238 |
+| `draw_fringe_bitmap_params_h` | `nsterm.swift` 3763-3764 (`-> Int32`) | `abi_shim.rs` 2030 **`dispextern_face_records`** | `int wd, h, dh;` dispextern.h 2227; read nsterm.m 3235/3238 |
+| `draw_fringe_bitmap_params_dh` | `nsterm.swift` 3765-3766 (`-> Int32`) | `abi_shim.rs` 2039 **`dispextern_face_records`** | `int wd, h, dh;` dispextern.h 2227; read nsterm.m 3235 |
+| `draw_fringe_bitmap_params_x` | `nsterm.swift` 3767-3768 (`-> Int32`) | `abi_shim.rs` 2049 **`dispextern_face_records`** | `int x, y;` dispextern.h 2228; read nsterm.m 3238 |
+| `draw_fringe_bitmap_params_y` | `nsterm.swift` 3769-3770 (`-> Int32`) | `abi_shim.rs` 2058 **`dispextern_face_records`** | `int x, y;` dispextern.h 2228; read nsterm.m 3238 |
+| `draw_fringe_bitmap_params_bx` | `nsterm.swift` 3771-3772 (`-> Int32`) | `abi_shim.rs` 2068 **`dispextern_face_records`** | `int bx, nx, by, ny;` dispextern.h 2229; read nsterm.m 3240-3241 |
+| `draw_fringe_bitmap_params_by` | `nsterm.swift` 3773-3774 (`-> Int32`) | `abi_shim.rs` 2077 **`dispextern_face_records`** | `int bx, nx, by, ny;` dispextern.h 2229; read nsterm.m 3240-3241 |
+| `draw_fringe_bitmap_params_nx` | `nsterm.swift` 3775-3776 (`-> Int32`) | `abi_shim.rs` 2086 **`dispextern_face_records`** | `int bx, nx, by, ny;` dispextern.h 2229; read nsterm.m 3240-3241 |
+| `draw_fringe_bitmap_params_ny` | `nsterm.swift` 3777-3778 (`-> Int32`) | `abi_shim.rs` 2095 **`dispextern_face_records`** | `int bx, nx, by, ny;` dispextern.h 2229; read nsterm.m 3240-3241 |
+| `draw_fringe_bitmap_params_cursor_p` | `nsterm.swift` 3779-3780 (`-> Bool`) | `abi_shim.rs` 2109 **`dispextern_face_records`** | `bool_bf cursor_p : 1;` dispextern.h 2230 (byte 52 bit 0); read nsterm.m 3235/3278 |
+| `draw_fringe_bitmap_params_overlay_p` | `nsterm.swift` 3781-3782 (`-> Bool`) | `abi_shim.rs` 2119 **`dispextern_face_records`** | `bool_bf overlay_p : 1;` dispextern.h 2231 (byte 52 bit 1); read nsterm.m 3235/3250/3280 |
 
 **`ns_output_*` / `ns_output_set_*` (batch 6) and the batch-7 additions**: the `have_ns` mark is the gate of `struct ns_output` (nsterm.h 935-1022, mirrored gated in `include/nsterm.rs` 419-489); `dispextern_face_records` is the gate `include/dispextern.rs` 1941 puts on `struct face`; `mirror-named` means the name is also a Rust item in a mirror, so the C-ABI spelling stands in `c_abi_of_mirror_named_items` (see `## Decisions`).  Batch 8's fifteen are the family read below (`Q*` and the accessors); fourteen carry `mirror-named`, and `XSETFRAME` is the one entry of the family whose mirror spelling is a `macro_rules!` rather than an item, so its name is free at the crate root - the split is the criterion, not an accident (`## Decisions`).
 
@@ -308,13 +351,54 @@ already spell those names in Rust; the module is why the crate root can hold bot
 - [x] `window_phys_cursor_y`
 - [x] `window_desired_matrix`
 - [x] `set_hash_value_slot`
+- [x] `glyph_string_set_left_overhang`
+- [x] `glyph_string_set_right_overhang`
+- [x] `glyph_string_char2b`
+- [x] `glyph_string_nchars`
+- [x] `glyph_string_font`
+- [x] `glyph_string_cmp`
+- [x] `glyph_string_cmp_id`
+- [x] `glyph_string_cmp_from`
+- [x] `glyph_string_cmp_to`
+- [x] `glyph_string_first_glyph`
+- [x] `glyph_type`
+- [x] `CHAR_GLYPH`
+- [x] `COMPOSITE_GLYPH`
+- [x] `glyph_row_mode_line_p`
+- [x] `glyph_row_full_width_p`
+- [x] `glyph_row_set_redraw_fringe_bitmaps_p`
+- [x] `window_pseudo_window_p`
+- [x] `composition_pixel_width`
+- [x] `composition_lbearing`
+- [x] `composition_rbearing`
+- [x] `font_driver`
+- [x] `font_driver_text_extents`
+- [x] `WINDOW_FRAME`
+- [x] `face_foreground`
+- [x] `face_background`
+- [x] `gui_define_fringe_bitmap`
+- [x] `max_used_fringe_bitmap`
+- [x] `draw_fringe_bitmap_params_face`
+- [x] `draw_fringe_bitmap_params_which`
+- [x] `draw_fringe_bitmap_params_wd`
+- [x] `draw_fringe_bitmap_params_h`
+- [x] `draw_fringe_bitmap_params_dh`
+- [x] `draw_fringe_bitmap_params_x`
+- [x] `draw_fringe_bitmap_params_y`
+- [x] `draw_fringe_bitmap_params_bx`
+- [x] `draw_fringe_bitmap_params_by`
+- [x] `draw_fringe_bitmap_params_nx`
+- [x] `draw_fringe_bitmap_params_ny`
+- [x] `draw_fringe_bitmap_params_cursor_p`
+- [x] `draw_fringe_bitmap_params_overlay_p`
 
 **No unchecked box appears below on purpose**: a ledger that still carries one is skipped by
 `xtask`'s `finished_units()`, so the shim would never be built by `gate-fast`/`dead-arms` and the
 exports it already provides would read as missing.  The live tracking of what is left is the
-ratchet (`docs/baseline/swift-import-pending.txt`, 621 rows at this batch; batch 10's
-twenty-six rows are among them and go at the integrator's next `--write-pending`) plus the
-rulings doc.
+ratchet (`docs/baseline/swift-import-pending.txt`, 655 rows at this batch; batch 12's
+eighteen rows are among them - two go at the integrator's next `--write-pending` and sixteen
+change class, from the ruling buckets to the `rust-side-gated` record, as batch 11's ten do in
+the same regeneration) plus the rulings doc.
 Of the ruling's 65 class-1 names, **62 stand in this file now** (`c_abi_of_mirror_named_items`
 included) and 3 do not, each for a measured reason: `image_load_failed_p` and `image_pixmap` name
 members of `struct image`, which `include/dispextern.rs` 1360 says is not mirrored yet (a
@@ -558,7 +642,13 @@ that are *not* landed are listed in `## Decisions` with their measurements.
   A name only has to move into the module when the mirror has bound it as a value/item.  Batch 10's twenty-six rows are the two records' non-bitfield members the nsfns/nsterm units
 write or read (`struct frame`'s ten, `struct window`'s fifteen) plus `set_hash_value_slot`; only
 the last one is `mirror-named`, because the other twenty-five are plain field accesses the
-mirrors carry as *fields*, not as items (`## Decisions`).
+mirrors carry as *fields*, not as items (`## Decisions`).  Batch 11's twenty-two are the `glyph_string`/`glyph`/`glyph_row`/
+`window`/`composition`/`font` members nsterm's fourteenth round reaches: twelve in the frozen
+object, ten behind `have_window_system` (the record's own gate) and two `mirror-named`
+(`## Decisions`).  Batch 12's eighteen are `WINDOW_FRAME`'s macro spelling, the two
+`struct face` members, the thirteen `struct draw_fringe_bitmap_params` members, the fringe
+function and the one data symbol: two in the frozen object and sixteen behind a gate
+(`## Decisions`).
 
 - **Batch 10 lands the two records' non-bitfield member accessors the NS Swift units import: 26
   exports, all of which clear their ratchet row.**  Two of the twenty-eight names the integrator
@@ -596,7 +686,193 @@ mirrors carry as *fields*, not as items (`## Decisions`).
   2262, C's `ptrdiff_t` folded to i32), so the body casts `idx as hash_idx_t`.  Every other entry
   is a straight `c_int` field against the lane's `Int32`.
 
+- **Batch 11 lands nsterm's fourteenth slice: 22 exports, 12 of which clear their ratchet row and
+  10 of which carry the record's own gate.**  The two halves are the arm question, measured in
+  the C source first: `struct glyph_string` (src/dispextern.h 1358-1509, `#ifdef
+  HAVE_WINDOW_SYSTEM`) does **not exist** in the frozen configuration, and the mirror carries the
+  record under the same feature (`include/dispextern.rs` 1369) - so its ten accesses are exported
+  behind `#[cfg (feature = "have_window_system")]`, the batch-5 `have_ns` shape and status 3.255's
+  ruling (an ungated export would name a record the frozen arm does not have, P-08).  Everything
+  else this batch touches is ungated in both the header and the mirror: `struct glyph`'s `type`
+  bitfield (dispextern.h 514) and `enum glyph_type` (431-452) on a record the frozen arm has,
+  `struct glyph_row`'s three flags (1043/1083/1086, the record ungated since batch 6),
+  `struct window`'s `pseudo_window_p` (window.h 438), `struct composition`'s three shorts
+  (composite.h 153/155) and `struct font`'s `driver` with `struct font_driver`'s `text_extents`
+  slot (font.h 400 and 672-674; the `#ifdef HAVE_WINDOW_SYSTEM` at font.h 676 opens *after*
+  `text_extents`).
+- **The ten gated bodies are carried, not compiled - and the wall that stops them is
+  pre-existing, in another lane's record.**  The `have_window_system` probe (`## Evidence`) exits
+  1 with **48 errors, none of them in this batch**: 40 `E0425` in `include/frame.rs`'s
+  window-system arm - sixteen `FRAME_*_SHIFT` names the mirror carries in the frozen layout only
+  (`FRAME_NO_SPLIT_SHIFT`, `FRAME_WANTS_MODELINE_SHIFT`, `FRAME_ICONIFIED_SHIFT`,
+  `FRAME_UNDECORATED_SHIFT`, `FRAME_TAB_BAR_RESIZED_SHIFT`, `FRAME_OUTPUT_METHOD_SHIFT`,
+  `FRAME_EXPLICIT_NAME_SHIFT`, … - each named again in the unit's own `_root.rs` 204-362/1131,
+  the batch-1/2/5/7 `frame_*` bitfield entries) plus the three
+  `FRAME_HAS_VERTICAL_SCROLL_BARS*` helpers, of which rustc says "found an item that was
+  configured out" - and 8 `E0080` layout-assert failures inside `include/font.rs`
+  (`size_of::<font>`, `offset_of!(font, driver) == 176`, `size_of::<font_driver>`,
+  `offset_of!(font_driver, otf_capability) == 120` …).  That is status 3.264 item 6 (i)'s wall seen from this side: the frame mirror carries the
+  frozen shift list only, so no configuration this tree builds compiles the `have_window_system`
+  arm; the ten rows therefore stay, re-classified from the ruling bucket to the `rust-side-gated`
+  record ("the work is done; only a HAVE_WINDOW_SYSTEM build can clear this row").  Named for the
+  frame lane, not for this one.
+- **Three names of the handoff are *not* this batch's, each measured.**  `windows_or_buffers_changed`
+  (`S` in `build/femacs/*.o`), `composition_gstring_from_id` and `composition_gstring_width`
+  (both `T`, `femacs/src/composite.rs`) are already provided by the core, so nothing was added for
+  them; the Swift lane's own comment says the same (`nsterm.swift` 3600-3603).
+- **Two shapes of this batch are new spellings of rules already in this file.**  The two
+  `enum glyph_type` enumerators are Rust `pub const`s at the mirror's crate root
+  (`include/dispextern.rs` 240-241), so their C-ABI spelling stands in
+  `c_abi_of_mirror_named_items` (status 3.264 item 2).  `window_pseudo_window_p` is a *bitfield*
+  read that goes through the mirror's own packed-flag reader and bit
+  (`window_bit` + `WINDOW_PSEUDO_WINDOW_P_SHIFT`, `include/window.rs` 392/165) rather than the
+  `window_bits!` macro, because that macro lives in the unit `src/window.rs` 88-93 and is not
+  reachable from this unit (measured: `cannot find macro \`window_bits\``) - the batch-7
+  `FRAME_NO_ACCEPT_FOCUS_SHIFT` shape with the reader named explicitly.  `font_driver_text_extents`
+  returns the mirror's own slot type (`include/font.rs` 511), which is ABI-identical to the lane's
+  `font_text_extents_fn`; and where a declaration is wider than the member the body converts
+  (`composition_*`'s `short` -> `c_int`, `glyph_string_cmp_id`'s `ptrdiff_t` -> `Int`).
+
+- **Batch 12 lands nsterm's fifteenth slice: 18 exports, 2 of which clear their ratchet row and
+  16 of which carry a gate.**  The split is the arm question, measured in the C source first.
+  Ungated: `WINDOW_FRAME` (frame.h 929, the macro's own name beside round 13's `window_frame`
+  member entry - two spellings by PORTING.md 0.2's names-verbatim rule) and
+  `max_used_fringe_bitmap` (fringe.c 497) - **a data symbol, not a function**: the Swift lane
+  imports it as a `var` (`nsterm.swift` 3796), the mirror only *declares* it
+  (`include/dispextern.rs` 2510, C 3710's `extern int`), so this batch is the *definition* the
+  seam needs, in the module because the name is taken (measured: `D _max_used_fringe_bitmap`,
+  value 25 = C's `countof (standard_bitmaps)` over fringe.c 460-489).  Gated: fifteen members of
+  `struct face` (1787-1937) and `struct draw_fringe_bitmap_params` (2223-2233), both ungated in
+  C but carried by the mirror behind `dispextern_face_records` (status 3.220's arm for the
+  records every unit declares its own copy of), plus `gui_define_fringe_bitmap` behind
+  `have_window_system`.
+- **The mirror's two copies of those records live at different paths, and the bodies say so.**
+  `struct face` is a crate-root item (`include/dispextern.rs` 1985), while the five records of C
+  2159-3200 sit inside the mirror's `pub mod dispextern_unit_names` (2542-3684, "because a unit
+  that includes this mirror declares each of them too") - so the thirteen
+  `draw_fringe_bitmap_params` bodies name the type as
+  `dispextern_unit_names::draw_fringe_bitmap_params`.  Measured, and it is the one real defect
+  this round caught: with the unqualified name the flip arm answers thirteen `E0425`s
+  ("cannot find type `draw_fringe_bitmap_params` in this scope"), one per body, and the same
+  probe is **exit 0 with all fifteen `T` names** once the path is spelled - see `## Evidence`.
+- **`gui_define_fringe_bitmap` is a gated debt whose body stops at C's second guard, and that
+  boundary is written down rather than hidden.**  C's definition is src/fringe.c 1853, a file the
+  frozen configuration does not compile at all (Makefile's `WINDOW_SYSTEM_OBJ` empty,
+  `build/emacs-ref/src/Makefile` 303/478 and `docs/baseline/frozen-build-sources.txt`; the port's
+  unit is the empty `femacs/src/fringe.rs`, status 3.31), so the name is owed to a
+  `HAVE_WINDOW_SYSTEM` build - status 3.255 item 3's class, the shape batch 5's `have_ns`
+  exports took.  C's tail (`fb = fringe_bitmaps[n]; if (fb) rif->define_fringe_bitmap (n,
+  fb->bits, fb->height, fb->width);`) needs `fringe_bitmaps` (fringe.c 496's file-scope `static
+  struct fringe_bitmap **`) and `struct fringe_bitmap` (declared in fringe.c itself) - neither is
+  in any mirror - and the slot read needs `struct redisplay_interface`
+  (`dispextern_unit_names` 3509, gate `dispextern_face_records`).  The export therefore carries
+  C's guard sequence and no call: **its purpose today is the symbol the Swift seam imports**, and
+  the two statements land with the unit.  The row stays a record; this is the batch's one
+  knowingly incomplete body.
+- **Two bitfield members of `draw_fringe_bitmap_params` are read by measurement, not by a mirror
+  accessor.**  The mirror stores C's two-bit run as `flags` (a `u8` at offset 52,
+  `include/dispextern.rs` 2802) and names no accessor for it, so the bits were taken with the
+  port's own probe: `spikes/gated-layout-probe.py 'struct draw_fringe_bitmap_params'
+  dispextern.h c --bits` answers `52:0-0 bool_bf cursor_p` and `52:1-1 bool_bf overlay_p` in the
+  frozen arm (and in the x11/ns_cocoa arms too), which is what the two bodies test.
+
 ## Evidence
+- **Batch 12 (18 entries: 2 in the frozen object, 16 behind a gate)**: `cd femacs &&
+  CARGO_TARGET_DIR=/tmp/femacs-abi12 cargo run -q -p xtask -- build-tu src/abi_shim.c` ->
+  `built src/abi_shim.rs -> ../build/femacs/abi_shim.o` (exit status **0**, no `error:` line).
+  `nm -g build/femacs/abi_shim.o` answers the two, verbatim: `0000000000000300 T _WINDOW_FRAME`
+  and `0000000000004ee8 D _max_used_fringe_bitmap` - note the second is **`D`**, not `T`: it is
+  storage, and the tool's provider set counts it (its row is one of the two `STALE (satisfied)`
+  lines below).  The object now holds **106** C-ABI names out of **129** `T` symbols plus that
+  one `D` (104 / 128 before this batch), and answers none of the sixteen gated ones.
+- **The fifteen `dispextern_face_records` entries are compiled, measured**:
+  `xtask probe src/abi_shim.rs /tmp/abi_shim.face12.o --crate-type lib --emit obj --cfg
+  'feature="dispextern_face_records"' -C panic=abort -C codegen-units=1 -C opt-level=0` ->
+  **exit 0, zero errors**, and `nm -g` on that object answers all fifteen `T` names
+  (`_face_foreground`, `_face_background` and the thirteen `_draw_fringe_bitmap_params_*`).
+  The counterfactual that found this batch's defect is in `## Decisions`: with the type spelled
+  without its module path the same probe answers thirteen `E0425`s at `_root.rs` 1998-2116.
+- **The one `have_window_system` entry, and its wall**: the same probe with
+  `--cfg 'feature="have_window_system"'` -> **exit 1, 48 errors** - byte-for-byte the reading
+  batch 11 recorded for the ten `glyph_string_*` bodies (forty `E0425`s in `include/frame.rs`'s
+  window-system arm plus the eight `E0080` layout asserts in `include/font.rs`) - and **no error
+  names `gui_define_fringe_bitmap`** (`grep -c` = 0).  So its body is carried, not compiled: the
+  wall is the frame mirror's window-system arm, not this batch.
+- **The two bit positions, measured with the port's own probe**: `python3
+  spikes/gated-layout-probe.py 'struct draw_fringe_bitmap_params' dispextern.h c --bits` ->
+  `52:0-0 | bool_bf cursor_p` and `52:1-1 | bool_bf overlay_p` (frozen arm; the x11 and ns_cocoa
+  arms agree), over `sizeof=64, align=8` - the numbers the two bodies' masks use.
+- **`check-swift-imports.py`**: two `STALE (satisfied)` lines for this batch - `WINDOW_FRAME` and
+  `max_used_fringe_bitmap` - and no other new row of this shim's (the other twelve lines in the
+  run are batch 11's, whose rows the integrator's `--write-pending` has not dropped yet in this
+  worktree).  The sixteen gated names move to the `rust-side-gated` class, whose count reads
+  **70** in this run (57 at batch 11's reading; the window also carries other lanes' churn).
+  Tail: `949 import(s) in 7 Swift file(s), 5705 core export(s), 636 unprovided, 650 ratchet
+  row(s), 14 failure(s)`.
+- **The object's own undefined list did not change**: `nm -u build/femacs/abi_shim.o` is the same
+  18 entries as at batches 10 and 11, so `tools/check-undef.py` reports **0** new references out
+  of `abi_shim.o` (its 14 `NEW` rows are xdisp.o's, its 3 stale rows that lane's).
+- **The other four gates, re-run in this tree**: `check-globals` -> `284 units, 0 DEFVAR_*
+  variables without a definition in their own unit`; `check-mirror-dupes` -> `1 duplicate
+  declaration(s), 1 ratchet row(s), 0 failure(s)` (the `extern` declaration in the mirror and
+  this batch's definition do not collide); `check-declarations` -> `13 declaration sites
+  (0 forbidden, 13 allowed literals), 0 failures`; `check-target-names` -> `628 .rs files, 591
+  map targets, 0 finding(s)` (the file count moved with another lane's new `include/xlib.rs`, not
+  with this batch).
+- **Batch 11 (22 entries: 12 in the frozen object, 10 behind `have_window_system`)**: `cd femacs
+  && CARGO_TARGET_DIR=/tmp/femacs-abi11 cargo run -q -p xtask -- build-tu src/abi_shim.c` ->
+  `built src/abi_shim.rs -> ../build/femacs/abi_shim.o` (exit status **0**, no `error:` line).
+  `nm -g build/femacs/abi_shim.o` answers the twelve as `T`, verbatim: `T _font_driver` 0x1a38,
+  `T _font_driver_text_extents` 0x1aa4, `T _glyph_type` 0x3188, `T _CHAR_GLYPH` 0x0000,
+  `T _COMPOSITE_GLYPH` 0x0008, `T _window_pseudo_window_p` 0x37dc, `T _glyph_row_mode_line_p`
+  0x2fc8, `T _glyph_row_full_width_p` 0x2f54, `T _glyph_row_set_redraw_fringe_bitmaps_p` 0x303c,
+  `T _composition_pixel_width` 0x1960, `T _composition_lbearing` 0x18f4,
+  `T _composition_rbearing` 0x19cc - and **none** of the ten `_glyph_string_*` names (the gate,
+  as expected).  The object now holds **104** C-ABI names out of **128** `T` symbols (92 / 116
+  before this batch).
+- **The ten behind the gate, and the wall in front of them**:
+  `xtask probe src/abi_shim.rs /tmp/abi_shim.winsys.o --crate-type lib --emit obj --cfg
+  'feature="have_window_system"' -C panic=abort -C codegen-units=1 -C opt-level=0` -> **exit 1**,
+  `48` errors: `34 + 6` `E0425` (the sixteen `FRAME_*_SHIFT` names - seven of them three times,
+  three twice, six once: `FRAME_WANTS_MODELINE_SHIFT`, `FRAME_UNDECORATED_SHIFT`,
+  `FRAME_TAB_BAR_RESIZED_SHIFT`, `FRAME_OUTPUT_METHOD_SHIFT`, `FRAME_NO_SPLIT_SHIFT`,
+  `FRAME_ICONIFIED_SHIFT`, `FRAME_EXPLICIT_NAME_SHIFT`, `FRAME_WAS_INVISIBLE_SHIFT`,
+  `FRAME_NO_ACCEPT_FOCUS_SHIFT`, `FRAME_CAN_SET_WINDOW_SIZE_SHIFT`, `FRAME_WINDOW_CHANGE_SHIFT`,
+  `FRAME_WINDOW_STATE_CHANGE_SHIFT`, `FRAME_VISIBLE_SHIFT`, `FRAME_TAB_BAR_REDISPLAYED_SHIFT`,
+  `FRAME_GARBAGED_SHIFT`, `FRAME_FROZEN_WINDOW_STARTS_SHIFT`, `FRAME_NO_SPECIAL_GLYPHS_SHIFT` -
+  plus `FRAME_HAS_VERTICAL_SCROLL_BARS{,_ON_LEFT,_ON_RIGHT}`, where rustc's note is "found an
+  item that was configured out") and `8` `E0080` (`include/font.rs`'s layout asserts:
+  `size_of::<font>`, `offset_of!(font, driver) == 176`, `size_of::<font_driver>`,
+  `offset_of!(font_driver, otf_capability) == 120` …).  Every
+  error's location is either `_root.rs`'s pre-batch-11 region (204-1131, this batch's entries
+  start at 1357 in the module and 1673 at the crate root) or a mirror; **no error names a
+  batch-11 entry**.  So the ten bodies are carried and not compiled - the 3.262 shape - and the
+  wall is the frame mirror's window-system arm, which status 3.264 item 6 (i) already assigned to
+  the frame lane.
+- **`check-swift-imports.py`**: twelve `STALE (satisfied)` lines, exactly this batch's ungated
+  twelve (`CHAR_GLYPH`, `COMPOSITE_GLYPH`, `composition_lbearing`, `composition_pixel_width`,
+  `composition_rbearing`, `font_driver`, `font_driver_text_extents`, `glyph_row_full_width_p`,
+  `glyph_row_mode_line_p`, `glyph_row_set_redraw_fringe_bitmaps_p`, `glyph_type`,
+  `window_pseudo_window_p`) and no other row of this shim's; the ten gated names moved out of the
+  ruling bucket - the tail's class counts go from `rust-side-gated=47` to `rust-side-gated=**57**`
+  (the tool reads the `#[cfg (feature = "have_window_system")]` above each declaration), which is
+  the batch's own signal on the row side.  Tail: `949 import(s) in 7 Swift file(s), 5699 core
+  export(s), 638 unprovided, 632 ratchet row(s), 30 failure(s)` (the failures are other lanes'
+  in-flight Swift).
+- **The object's own undefined list did not change**: `nm -u build/femacs/abi_shim.o` is the same
+  18 entries as at batch 10 (the eight non-runtime names `_setjmp`, `_cons_to_signed`,
+  `_cons_to_unsigned`, `_current_thread`, `_slow_eq`, `_symbols_with_pos_enabled`,
+  `_wrong_type_argument`, `_xfree` plus the ten Rust-runtime panic symbols), so
+  `tools/check-undef.py` reports **0** new references out of `abi_shim.o` (its 14 `NEW` rows are
+  xdisp.o's, its 3 stale rows that lane's).
+- **The three names the handoff excluded are provided, measured**: `nm -g build/femacs/*.o`
+  answers `S _windows_or_buffers_changed` and `T _composition_gstring_from_id` /
+  `T _composition_gstring_width`, so no row was added for them.
+- **The other four gates, re-run in this tree**: `check-globals` -> `284 units, 0 DEFVAR_*
+  variables without a definition in their own unit`; `check-mirror-dupes` -> `1 duplicate
+  declaration(s), 1 ratchet row(s), 0 failure(s)`; `check-declarations` -> `13 declaration sites
+  (0 forbidden, 13 allowed literals), 0 failures`; `check-target-names` -> `627 .rs files, 591 map
+  targets, 0 finding(s)`.
 - **Batch 10 (26 entries, 26 ratchet rows cleared)**: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-abi10
   cargo run -q -p xtask -- build-tu src/abi_shim.c` -> `built src/abi_shim.rs ->
   ../build/femacs/abi_shim.o` (exit status **0**, no `error:`; 2789 warnings, the tree's own).

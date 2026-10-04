@@ -1339,6 +1339,62 @@ pub mod c_abi_of_mirror_named_items
   {
     super::set_hash_value_slot (h.cast::<Lisp_Hash_Table> (), idx as hash_idx_t, val)
   }
+
+  /* -------------------------------------------------------------------------------------------
+     Batch 11, group 2: `enum glyph_type`'s two enumerators this slice compares glyph types
+     against (src/dispextern.h 431-452, `CHAR_GLYPH` 434 = 0 and `COMPOSITE_GLYPH` 437 = 1; C's
+     reads are nsterm.m 3054/3055/3059).  Both names are already Rust items in the mirror
+     (`pub const CHAR_GLYPH: glyph_type = 0`, `include/dispextern.rs` 240), so the C-ABI
+     spelling stands here and each body reads `super::`, the value having one source of truth
+     (status 3.264 item 2's shape; a crate-root definition of the same name is `E0428`).
+     ------------------------------------------------------------------------------------------- */
+
+  /// C: `CHAR_GLYPH,` (src/dispextern.h 434, the first member of `enum glyph_type` 431-452) -
+  /// the port's enumerator is `include/dispextern.rs` 240.  The Swift import is
+  /// `nsterm.swift` 3578 (`func CHAR_GLYPH() -> Int32`), the lane's function-shaped spelling of
+  /// a C enumerator; its use is `s->first_glyph->type == CHAR_GLYPH` (nsterm.m 3054, 3059).
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn CHAR_GLYPH () -> c_int { super::CHAR_GLYPH as c_int }
+
+  /// C: `COMPOSITE_GLYPH,` (src/dispextern.h 437), value 1 (`include/dispextern.rs` 241); C's
+  /// use is `s->first_glyph->type == COMPOSITE_GLYPH` (nsterm.m 3055).  Swift `nsterm.swift`
+  /// 3579.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn COMPOSITE_GLYPH () -> c_int { super::COMPOSITE_GLYPH as c_int }
+
+  /* -------------------------------------------------------------------------------------------
+     Batch 12, group 1: the two names of this batch the mirrors already spell in Rust.  Both are
+     in `nsterm`'s fifteenth slice (`nsterm.swift` 3747 and 3796), and both are A class: the
+     macro `WINDOW_FRAME (w)` is a `struct window` member read, and `max_used_fringe_bitmap` is
+     a data symbol the Swift seam imports as a `var` while no unit defines the storage yet
+     (`femacs/src/fringe.rs` is the empty unit status 3.31 records).
+     ------------------------------------------------------------------------------------------- */
+
+  /// C: `#define WINDOW_FRAME(w) ((w)->frame)` (src/frame.h 929) - the macro's own name, which
+  /// the lane imports as a function (`nsterm.swift` 3747) although round 13's `window_frame`
+  /// entry already carries the bare member read: the two spellings coexist by PORTING.md 0.2's
+  /// names-verbatim rule, the same way `NS_FACE_BACKGROUND` and `face_background` do.  C's read
+  /// is `XFRAME (WINDOW_FRAME (w))` (src/nsterm.m 3228, 3435, 3458).  The mirror already carries
+  /// the name as a function (`include/frame.rs` 939, whose note records that the *macro*
+  /// spelling stays in `window.rs`), so the C-ABI spelling stands here and the body calls it.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn WINDOW_FRAME (w: *mut c_void) -> Lisp_Object
+  { super::WINDOW_FRAME (w.cast::<window> ()) }
+
+  /// C: `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` (src/fringe.c 497; C's own
+  /// declaration is `extern int max_used_fringe_bitmap;`, src/dispextern.h 3710) - a *data*
+  /// symbol, imported by the Swift lane as a `var` (`nsterm.swift` 3796) and read at
+  /// src/nsterm.m 3261 (`p->which < max_used_fringe_bitmap`).  The mirror already declares the
+  /// name (`include/dispextern.rs` 2510, in the `unsafe extern "C"` block that carries C 3617-
+  /// 3710's three globals), so the C-ABI spelling stands here - and this entry is the
+  /// definition the seam needs, the mirror's block being a declaration only.
+  /// The initial value is C's own: `#define MAX_STANDARD_FRINGE_BITMAPS countof
+  /// (standard_bitmaps)` (src/fringe.c 491) over the twenty-five-entry table at fringe.c
+  /// 460-489 (counted there: `NO_FRINGE_BITMAP`'s `{ NULL, 0, 0, 0, 0, 0 }` plus twenty-four
+  /// bitmaps).  C's `standard_bitmaps` is that unported unit's own table, so the count is the
+  /// one thing this entry cannot reach by name; the number is C's text and the row records it.
+  #[unsafe(no_mangle)]
+  pub static mut max_used_fringe_bitmap: c_int = 25;
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -1620,4 +1676,485 @@ pub unsafe extern "C" fn window_phys_cursor_y (w: *mut c_void) -> c_long
 pub unsafe extern "C" fn window_desired_matrix (w: *mut c_void) -> *mut c_void
 {
   unsafe { (*w.cast::<window> ()).desired_matrix }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 11, group 1: `struct glyph_string`'s ten members - the slice nsterm's fourteenth round
+   reads and the two overhangs it writes (src/dispextern.h 1384-1480, C's uses nsterm.m
+   3053-3077).  The record is **gated**: C opens `#ifdef HAVE_WINDOW_SYSTEM` at 1358 and closes
+   it at 1509 (the `gc` member's three platform arms sit inside it, 1464-1475), and the mirror
+   carries `pub struct glyph_string` under the same feature (`include/dispextern.rs` 1369, whose
+   own note records that the record is not layout-asserted at all: this target has no
+   window-system configuration to measure it with).  So these ten exports carry
+   `#[cfg (feature = "have_window_system")]` - the batch-5 `have_ns` shape and status 3.255's
+   ruling: an ungated export would name a record the frozen arm does not have (P-08), and the
+   work is done even though no configuration this tree builds turns the arm on, so the ratchet
+   rows stay as the `rust-side-gated` record (`## Evidence` measures both halves: the frozen
+   object answers none of the ten, the `have_window_system` probe answers all ten).
+   Only the `_set_` half of the two overhangs is declared: the lane's own note says their reads
+   belong to a later slice, and an entry the Swift unit declares but never calls is dropped from
+   the object (that lane's measurement, `docs/ports/nsterm.md`'s `## ABI`).
+   --------------------------------------------------------------------------------------------- */
+
+/// C: `int left_overhang;` (src/dispextern.h 1384, "Number of pixels this string overwrites in
+/// front of its x-origin") - C's writes are `s->left_overhang = metrics.lbearing < 0 ?
+/// - metrics.lbearing : 0;` (src/nsterm.m 3071) and `s->left_overhang = - s->cmp->lbearing;`
+/// (3077).
+/// Swift `nsterm.swift` 3556-3557 (`(UnsafeMutableRawPointer?, Int32)`), used at
+/// `nsterm.swift` 4549/4553.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_string_set_left_overhang (s: *mut c_void, v: c_int)
+{
+  unsafe { (*s.cast::<glyph_string> ()).left_overhang = v; }
+}
+
+/// C: `int right_overhang;` (src/dispextern.h 1389) - C's writes are
+/// `s->right_overhang = (metrics.rbearing > metrics.width ? metrics.rbearing - metrics.width
+/// : 0);` (src/nsterm.m 3070-3071) and `s->right_overhang = s->cmp->rbearing -
+/// s->cmp->pixel_width;` (3076).
+/// Swift `nsterm.swift` 3558-3559, used at `nsterm.swift` 4548/4552.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_string_set_right_overhang (s: *mut c_void, v: c_int)
+{
+  unsafe { (*s.cast::<glyph_string> ()).right_overhang = v; }
+}
+
+/// C: `unsigned *char2b;` (src/dispextern.h 1407) - C's read is the `text_extents` call's
+/// argument `s->char2b` (src/nsterm.m 3062).  The member is `unsigned *` while the lane
+/// declares `UnsafePointer<UInt32>?` (a *const* view), so the declaration wins and the body
+/// casts the mirror's `*mut c_uint` (`include/dispextern.rs` 1407) to `*const c_uint`.
+/// Swift `nsterm.swift` 3560-3561.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_string_char2b (s: *mut c_void) -> *const c_uint
+{
+  unsafe { (*s.cast::<glyph_string> ()).char2b }
+}
+
+/// C: `int nchars;` (src/dispextern.h 1408, "Characters to be drawn, and number of characters.
+/// Note that NCHARS can be zero if this is a composition glyph string") - C's read is
+/// `text_extents (font, s->char2b, s->nchars, &metrics)` (src/nsterm.m 3062).
+/// Swift `nsterm.swift` 3562.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_string_nchars (s: *mut c_void) -> c_int
+{
+  unsafe { (*s.cast::<glyph_string> ()).nchars }
+}
+
+/// C: `struct font *font;` (src/dispextern.h 1417) - C's read is `struct font *font = s->font;`
+/// (src/nsterm.m 3062).  The mirror types the member (`*mut font`, `include/dispextern.rs`
+/// 1417); the lane declares `UnsafeMutableRawPointer?`, so the body degrades it with a cast -
+/// the reverse of the batch-6 `ns_output_display_info` decision, the declaration winning.
+/// Swift `nsterm.swift` 3563-3564.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_string_font (s: *mut c_void) -> *mut c_void
+{
+  unsafe { (*s.cast::<glyph_string> ()).font as *mut c_void }
+}
+
+/// C: `struct composition *cmp;` (src/dispextern.h 1421, "Non-null means this string describes
+/// (part of) a static composition") - C's reads are `if (s->cmp == NULL …)` (src/nsterm.m 3053)
+/// and `else if (s->cmp)` (3076).
+/// Swift `nsterm.swift` 3565-3566.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_string_cmp (s: *mut c_void) -> *mut c_void
+{
+  unsafe { (*s.cast::<glyph_string> ()).cmp as *mut c_void }
+}
+
+/// C: `ptrdiff_t cmp_id;` (src/dispextern.h 1424) - C's read is
+/// `composition_gstring_from_id (s->cmp_id)` (src/nsterm.m 3068), a call
+/// `femacs/src/composite.rs` already provides.  The member is `ptrdiff_t`
+/// (`include/lisp.rs` 50, `isize`), which is the width the lane's `-> Int` asks for.
+/// Swift `nsterm.swift` 3567-3568.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_string_cmp_id (s: *mut c_void) -> ptrdiff_t
+{
+  unsafe { (*s.cast::<glyph_string> ()).cmp_id }
+}
+
+/// C: `int cmp_from, cmp_to;` (src/dispextern.h 1427, "Start and end glyph indices in a
+/// glyph-string") - C's read is `composition_gstring_width (gstring, s->cmp_from, s->cmp_to,
+/// &metrics)` (src/nsterm.m 3069).
+/// Swift `nsterm.swift` 3569-3570.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_string_cmp_from (s: *mut c_void) -> c_int
+{
+  unsafe { (*s.cast::<glyph_string> ()).cmp_from }
+}
+
+/// C: `int cmp_from, cmp_to;` (src/dispextern.h 1428) - the same call, `src/nsterm.m` 3069.
+/// Swift `nsterm.swift` 3571.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_string_cmp_to (s: *mut c_void) -> c_int
+{
+  unsafe { (*s.cast::<glyph_string> ()).cmp_to }
+}
+
+/// C: `struct glyph *first_glyph;` (src/dispextern.h 1480) - C's reads are
+/// `s->first_glyph->type == CHAR_GLYPH` (src/nsterm.m 3054, 3059) and
+/// `== COMPOSITE_GLYPH` (3055).  The mirror types it (`*mut glyph`,
+/// `include/dispextern.rs` 1477); the lane declares `UnsafeMutableRawPointer?`.
+/// Swift `nsterm.swift` 3572-3573.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_string_first_glyph (s: *mut c_void) -> *mut c_void
+{
+  unsafe { (*s.cast::<glyph_string> ()).first_glyph as *mut c_void }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 11, group 3: `struct glyph`'s `type` bitfield and the three `struct glyph_row` flags
+   this slice reads and writes.  Both records are ungated in C (dispextern.h 472-... and
+   918-...) and in the mirror (`include/dispextern.rs` 295 and 771-773; the gated member beside
+   `glyph_row`'s run is `clip`, cfg at 823).  Rust has no bitfields, so both mirrors carry the
+   allocation units and name every member (`glyph_bits!`, `include/dispextern.rs` 511;
+   `glyph_row_bits!`, 886): each body goes through the mirror's own accessor, so the bit
+   numbering has one source of truth (the batch-7 `FRAME_NO_ACCEPT_FOCUS_SHIFT` shape).
+   --------------------------------------------------------------------------------------------- */
+
+/// C: `unsigned type : 3;` (src/dispextern.h 514, "Which kind of glyph this is - character,
+/// image etc.  Value should be an enumerator of type enum glyph_type") - C's reads are
+/// `s->first_glyph->type == CHAR_GLYPH` (src/nsterm.m 3054, 3059) and `== COMPOSITE_GLYPH`
+/// (3055).  The body is the mirror's own bit accessor (`glyph_bits! (type, …)`,
+/// `include/dispextern.rs` 511-514, over `GLYPH_TYPE_SHIFT` 0 and width 3 at 421-422).
+/// Swift `nsterm.swift` 3577 (`(UnsafeMutableRawPointer?) -> Int32`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_type (g: *mut c_void) -> c_int
+{
+  unsafe { glyph_bits! (type, *g.cast::<glyph> ()) }
+}
+
+/// C: `bool_bf mode_line_p : 1;` (src/dispextern.h 1086, one of `glyph_row`'s 29 `bool_bf : 1`
+/// members) - C's read is `!desired_row->mode_line_p` (src/nsterm.m 2977).  The body is the
+/// mirror's own accessor (`glyph_row_bits! (mode_line_p, …)`, `include/dispextern.rs` 947-948,
+/// i.e. `bools [1]` bit 4).
+/// Swift `nsterm.swift` 3539-3540 (`(UnsafeMutableRawPointer?) -> Bool`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_row_mode_line_p (row: *mut c_void) -> bool
+{
+  unsafe { glyph_row_bits! (mode_line_p, row.cast::<glyph_row> ()) }
+}
+
+/// C: `bool_bf full_width_p : 1;` (src/dispextern.h 1083) - C's read is
+/// `desired_row->full_width_p` (src/nsterm.m 2983).  Body: `glyph_row_bits! (full_width_p, …)`
+/// (`include/dispextern.rs` 945-946, `bools [1]` bit 3).
+/// Swift `nsterm.swift` 3541-3542.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_row_full_width_p (row: *mut c_void) -> bool
+{
+  unsafe { glyph_row_bits! (full_width_p, row.cast::<glyph_row> ()) }
+}
+
+/// C: `bool_bf redraw_fringe_bitmaps_p : 1;` (src/dispextern.h 1043) - C's **write** is
+/// `desired_row->redraw_fringe_bitmaps_p = 1;` (src/nsterm.m 2978).  Body:
+/// `glyph_row_bits! (redraw_fringe_bitmaps_p, …, v)` (`include/dispextern.rs` 922-924,
+/// `bools [0]` bit 1) - the mirror's setter evaluates the value once, C's own shape.
+/// Swift `nsterm.swift` 3543-3544 (`(UnsafeMutableRawPointer?, Bool)`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn glyph_row_set_redraw_fringe_bitmaps_p (row: *mut c_void, v: bool)
+{
+  unsafe { glyph_row_bits! (redraw_fringe_bitmaps_p, row.cast::<glyph_row> (), v) }
+}
+
+/// C: `bool_bf pseudo_window_p : 1;` (src/window.h 438, "Flag indicating that this window is
+/// not a real one") - C's read is `!w->pseudo_window_p` (src/nsterm.m 2977); the member is bit
+/// 11 of `struct window`'s nineteen-flag unit at offset 500 (`docs/baseline/window-bits.tsv`
+/// line 18, the same unit and bit in all three arms).  The body is the mirror's own packed-flag
+/// reader plus that bit (`window_bit`, `include/window.rs` 392, over the mirror's
+/// `WINDOW_PSEUDO_WINDOW_P_SHIFT` 165) - the batch-7 `FRAME_NO_ACCEPT_FOCUS_SHIFT` shape.  The
+/// writer-side macro `window_bits!` is *not* reachable from this unit: it lives in the unit
+/// `src/window.rs` 88-93, not in the mirror, which is why the body names the reader and the
+/// shift directly (measured: the macro is `cannot find macro` here, `## Evidence`).
+/// Swift `nsterm.swift` 3532-3533 (`(UnsafeMutableRawPointer?) -> Bool`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_pseudo_window_p (w: *mut c_void) -> bool
+{
+  unsafe { window_bit (w.cast::<window> (), WINDOW_PSEUDO_WINDOW_P_SHIFT) }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 11, group 4: `struct composition`'s three `short` metrics (composite.h 148-155) and the
+   two hops of C's `font->driver->text_extents (…)` call (font.h 400 and 672-674).  All five
+   members are ungated in C (the `#ifdef HAVE_WINDOW_SYSTEM` at font.h 676 comes *after*
+   `text_extents`, and `driver` follows the one that closes at 397) and in the mirror
+   (`include/composite.rs` 50, `include/font.rs` 134 and 511).
+   --------------------------------------------------------------------------------------------- */
+
+/// C: `short pixel_width, ascent, descent;` (src/composite.h 153) - C's read is
+/// `s->cmp->rbearing - s->cmp->pixel_width` (src/nsterm.m 3076).  The member is a `short` while
+/// the lane declares `-> Int32`, so the declaration wins and the body widens with `as c_int`
+/// (the batch-6 `ns_output_window_desc` rule).
+/// Swift `nsterm.swift` 3582-3583 (`(UnsafeMutableRawPointer?) -> Int32`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn composition_pixel_width (cmp: *mut c_void) -> c_int
+{
+  unsafe { (*cmp.cast::<composition> ()).pixel_width as c_int }
+}
+
+/// C: `short lbearing, rbearing;` (src/composite.h 155) - C's read is
+/// `s->left_overhang = - s->cmp->lbearing;` (src/nsterm.m 3077, and the `metrics.lbearing < 0`
+/// test at 3071 is the other branch).
+/// Swift `nsterm.swift` 3584-3585.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn composition_lbearing (cmp: *mut c_void) -> c_int
+{
+  unsafe { (*cmp.cast::<composition> ()).lbearing as c_int }
+}
+
+/// C: `short lbearing, rbearing;` (src/composite.h 155) - C's read is
+/// `s->right_overhang = s->cmp->rbearing - s->cmp->pixel_width;` (src/nsterm.m 3076).
+/// Swift `nsterm.swift` 3586-3587.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn composition_rbearing (cmp: *mut c_void) -> c_int
+{
+  unsafe { (*cmp.cast::<composition> ()).rbearing as c_int }
+}
+
+/// C: `struct font_driver const *driver;` (src/font.h 400, the first member after the
+/// `#endif /* HAVE_WINDOW_SYSTEM */` at 397) - C's read is the first hop of
+/// `font->driver->text_extents (font, s->char2b, s->nchars, &metrics);` (src/nsterm.m 3062; the
+/// local `struct font *font = s->font;` is `glyph_string_font` above).  The mirror keeps the
+/// pointee untyped (`*const c_void`, `include/font.rs` 134, P-55/P-72 rule 3: `struct
+/// font_driver` had not landed in this mirror when that field was written), so the body casts
+/// to the lane's `UnsafeMutableRawPointer?`.
+/// Swift `nsterm.swift` 3596 (`(UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn font_driver (font: *mut c_void) -> *mut c_void
+{
+  unsafe { (*font.cast::<font> ()).driver as *mut c_void }
+}
+
+/// C: `void (*text_extents) (struct font *font, const unsigned *code, int nglyphs, struct
+/// font_metrics *metrics);` (src/font.h 672-674) - the second hop of src/nsterm.m 3062's call,
+/// at offset 104 of `struct font_driver` (measured: `include/font.rs` 564's
+/// `offset_of! (font_driver, text_extents)`, the 208-byte layout the probe recorded).  The
+/// return type is the mirror's own slot type (`include/font.rs` 511-512,
+/// `Option<unsafe extern "C" fn (*mut font, *const c_uint, c_int, *mut font_metrics)>`), which
+/// is ABI-identical to the lane's `font_text_extents_fn` (`nsterm.swift` 3595) - four pointers
+/// and an `Int32` in, `void` out; naming the mirror's type keeps one spelling of the slot.
+/// Swift `nsterm.swift` 3597-3598 (`(UnsafeMutableRawPointer?) -> font_text_extents_fn?`).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn font_driver_text_extents (driver: *mut c_void)
+  -> Option<unsafe extern "C" fn (*mut font, *const c_uint, c_int, *mut font_metrics)>
+{
+  unsafe { (*driver.cast::<font_driver> ()).text_extents }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 12, group 2: the fifteen members of `struct face` and `struct draw_fringe_bitmap_params`
+   this slice reads (src/nsterm.m 3229-3281), and the one fringe name the frozen configuration
+   owes.  The two records are ungated in C (dispextern.h 1787-1937 and 2223-2233) but the mirror
+   carries them behind `#[cfg (feature = "dispextern_face_records")]` - status 3.220's arm for
+   the records the ported units keep typed copies of (`include/dispextern.rs` 1983 on
+   `struct face`, 2784 on `struct draw_fringe_bitmap_params`, whose note also records that its
+   layout was measured with an `offsetof` probe) - so these fifteen carry that gate, the batch-6
+   `face_set_background` shape: the work is done, and only a `dispextern_face_records` build can
+   clear those rows.  The two records sit at different places in the mirror and the bodies say
+   so: `struct face` is a crate-root item (1985), while the five records of C 2159-3200 live
+   inside the mirror's `pub mod dispextern_unit_names` (2542-3684, declared because every unit
+   that includes the mirror declares its own copy of each), so the thirteen
+   `draw_fringe_bitmap_params` bodies name the type by that path - measured: the unqualified
+   name is `E0425` in the flip arm (`## Evidence`).
+   --------------------------------------------------------------------------------------------- */
+
+/// C: `unsigned long foreground;` (src/dispextern.h 1816, "Pixel value of foreground color for X
+/// frames.  Color index for tty frames") - C's reads are the bare member (`face->foreground`,
+/// src/nsterm.m 3279, 3445, 3464), which is why this entry and the macro entry
+/// `NS_FACE_FOREGROUND` coexist: each spelling gets its own name (the lane's note, and
+/// PORTING.md 0.2).  The mirror types the member (`c_ulong`, `include/dispextern.rs` 2004).
+/// Swift `nsterm.swift` 3751 (`(UnsafeMutableRawPointer?) -> UInt`).
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn face_foreground (face: *mut c_void) -> c_ulong
+{
+  unsafe { (*face.cast::<face> ()).foreground }
+}
+
+/// C: `unsigned long background;` (src/dispextern.h 1819) - C's reads are the bare member
+/// (`face->background`, src/nsterm.m 3254, 3281), beside the macro entry `NS_FACE_BACKGROUND`
+/// whose write is nsfns.m 328-329 (batch 6's `face_set_background`); the mirror's field is
+/// `include/dispextern.rs` 2005.
+/// Swift `nsterm.swift` 3752 (`-> UInt`).
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn face_background (face: *mut c_void) -> c_ulong
+{
+  unsafe { (*face.cast::<face> ()).background }
+}
+
+/// C: `struct face *face;` (src/dispextern.h 2232, the last member of `struct
+/// draw_fringe_bitmap_params` 2223-2233) - C's read is `struct face *face = p->face;`
+/// (src/nsterm.m 3229).  The mirror types it (`*mut face`, `include/dispextern.rs` 2802); the
+/// lane declares `UnsafeMutableRawPointer?`, so the body degrades it with a cast.
+/// Swift `nsterm.swift` 3757-3758.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_face (p: *mut c_void) -> *mut c_void
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).face as *mut c_void }
+}
+
+/// C: `int which;  /* enum fringe_bitmap_type */` (src/dispextern.h 2225) - C's reads are
+/// `p->which` (src/nsterm.m 3235, 3258, 3261, 3263).
+/// Swift `nsterm.swift` 3759-3760 (`(UnsafeMutableRawPointer?) -> Int32`).
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_which (p: *mut c_void) -> c_int
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).which }
+}
+
+/// C: `int wd, h, dh;` (src/dispextern.h 2227) - C's reads are `p->wd, p->h, p->dh`
+/// (src/nsterm.m 3235) and `p->wd, p->h` (3238).
+/// Swift `nsterm.swift` 3761-3762.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_wd (p: *mut c_void) -> c_int
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).wd }
+}
+
+/// C: `int wd, h, dh;` (src/dispextern.h 2227), read at src/nsterm.m 3235/3238.
+/// Swift `nsterm.swift` 3763-3764.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_h (p: *mut c_void) -> c_int
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).h }
+}
+
+/// C: `int wd, h, dh;` (src/dispextern.h 2227), read at src/nsterm.m 3235.
+/// Swift `nsterm.swift` 3765-3766.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_dh (p: *mut c_void) -> c_int
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).dh }
+}
+
+/// C: `int x, y;` (src/dispextern.h 2228) - C's read is `NSMakeRect (p->x, p->y, p->wd, p->h)`
+/// (src/nsterm.m 3238).
+/// Swift `nsterm.swift` 3767-3768.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_x (p: *mut c_void) -> c_int
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).x }
+}
+
+/// C: `int x, y;` (src/dispextern.h 2228), read at src/nsterm.m 3238.
+/// Swift `nsterm.swift` 3769-3770.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_y (p: *mut c_void) -> c_int
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).y }
+}
+
+/// C: `int bx, nx, by, ny;` (src/dispextern.h 2229) - C's reads are `p->bx`, `p->by`, `p->nx`,
+/// `p->ny` (src/nsterm.m 3240-3241).
+/// Swift `nsterm.swift` 3771-3772.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_bx (p: *mut c_void) -> c_int
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).bx }
+}
+
+/// C: `int bx, nx, by, ny;` (src/dispextern.h 2229), read at src/nsterm.m 3240-3241.
+/// Swift `nsterm.swift` 3773-3774.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_by (p: *mut c_void) -> c_int
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).by }
+}
+
+/// C: `int bx, nx, by, ny;` (src/dispextern.h 2229), read at src/nsterm.m 3240-3241.
+/// Swift `nsterm.swift` 3775-3776.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_nx (p: *mut c_void) -> c_int
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).nx }
+}
+
+/// C: `int bx, nx, by, ny;` (src/dispextern.h 2229), read at src/nsterm.m 3240-3241.
+/// Swift `nsterm.swift` 3777-3778.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_ny (p: *mut c_void) -> c_int
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).ny }
+}
+
+/// C: `bool_bf cursor_p : 1;` (src/dispextern.h 2230) - C's reads are `p->cursor_p`
+/// (src/nsterm.m 3235, 3278).  Rust has no bitfields: the mirror stores C's two-bit run as
+/// `flags` (`include/dispextern.rs` 2802, a `u8` at offset 52) and names no accessor for it, so
+/// the bit is this batch's own measurement - `spikes/gated-layout-probe.py 'struct
+/// draw_fringe_bitmap_params' dispextern.h c --bits` answers `52:0-0 bool_bf cursor_p` and
+/// `52:1-1 bool_bf overlay_p` in the frozen arm (`## Evidence`).
+/// Swift `nsterm.swift` 3779-3780 (`(UnsafeMutableRawPointer?) -> Bool`).
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_cursor_p (p: *mut c_void) -> bool
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).flags & (1 << 0) != 0 }
+}
+
+/// C: `bool_bf overlay_p : 1;` (src/dispextern.h 2231) - C's reads are `p->overlay_p`
+/// (src/nsterm.m 3235, 3250, 3280); the measured bit is byte 52 bit 1 (the entry above).
+/// Swift `nsterm.swift` 3781-3782.
+#[cfg (feature = "dispextern_face_records")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn draw_fringe_bitmap_params_overlay_p (p: *mut c_void) -> bool
+{
+  unsafe { (*p.cast::<dispextern_unit_names::draw_fringe_bitmap_params> ()).flags & (1 << 1) != 0 }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 12, group 3: the one name of the batch whose owner the frozen configuration does not
+   compile at all - a gated debt, not a missing name (status 3.255 item 3's class, the shape the
+   batch-5 `have_ns` exports and batch 11's ten took).
+   --------------------------------------------------------------------------------------------- */
+
+/// C: `void gui_define_fringe_bitmap (struct frame *f, int n)` (defined src/fringe.c 1853,
+/// declared src/dispextern.h 3711) - C's call is `gui_define_fringe_bitmap (f, p->which);`
+/// (src/nsterm.m 3263, inside `ns_draw_fringe_bitmap`), which is why the Swift lane imports it
+/// (`nsterm.swift` 3794).
+///
+/// **The gate is the configuration that owns the file.**  `src/fringe.c` is not compiled by the
+/// frozen configuration at all - the Makefile's `WINDOW_SYSTEM_OBJ` is empty
+/// (`build/emacs-ref/src/Makefile` 303/478, the authority being
+/// `docs/baseline/frozen-build-sources.txt`), no `fringe.o` exists in `build/emacs-ref/src`, and
+/// the port's unit is the empty `femacs/src/fringe.rs` (status 3.31) - so the name is owed to a
+/// `HAVE_WINDOW_SYSTEM` build, and an ungated export would claim a symbol the frozen
+/// configuration has no definition for (P-08).
+///
+/// **The body stops at C's second guard, and that boundary is named rather than hidden.**  C's
+/// remaining statements are `struct fringe_bitmap *fb = fringe_bitmaps[n];` and
+/// `if (fb) rif->define_fringe_bitmap (n, fb->bits, fb->height, fb->width);`, whose two pieces
+/// have no home in this tree yet: `fringe_bitmaps` is src/fringe.c 496's file-scope `static
+/// struct fringe_bitmap **fringe_bitmaps;` and `struct fringe_bitmap` is declared in fringe.c
+/// itself - both belong to that unported unit (they are not in any mirror, nor in
+/// `include/dispextern.rs`), and the slot read `rif->define_fringe_bitmap` needs
+/// `struct redisplay_interface`, which the mirror carries behind `dispextern_face_records`
+/// (`include/dispextern.rs` 3506-3509).  So this export's purpose today is the **symbol** the
+/// Swift seam imports; the two statements land with the unit, and the row stays as the recorded
+/// debt (`## Decisions`).
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_define_fringe_bitmap (f: *mut c_void, n: c_int)
+{
+  let rif: *mut c_void = unsafe { FRAME_RIF! (f.cast::<frame> ()) };
+  if rif.is_null () || n >= unsafe { max_used_fringe_bitmap } { return; }
 }
