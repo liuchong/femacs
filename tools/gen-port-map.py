@@ -34,9 +34,7 @@ SWIFT_STEMS = {"nsfns", "nsfont", "nsimage", "nsmenu", "nsselect", "nsterm",
                "nsxwidget", "macfont"}
 # C++ files that speak the Haiku API -> modern C++
 CPP_STEMS = {"haiku_draw_support", "haiku_font_support", "haiku_select",
-             "haiku_support"}
-# C++ file of the macOS bundle -> Swift
-SWIFT_EXTRA_STEMS = {"be_resources"}
+             "haiku_support", "be_resources"}
 
 C_SOURCE_DIRS = ("src", "lib", "lib-src", "lwlib", "oldXMenu", "exec", "nt",
                  "msdos")
@@ -94,8 +92,11 @@ def target_for(rel: Path) -> tuple[str, str]:
     if suffix == ".m":
         return "Swift", f"femacs/platform/macos/{stem}.swift"
     if suffix == ".cc":
-        if stem in SWIFT_EXTRA_STEMS:
-            return "Swift", f"femacs/platform/macos/{stem}.swift"
+        # `lib-src/be_resources.cc` used to be sent to the macOS Swift tree on the reading that
+        # it is "the macOS bundle's" C++ file; its own first line says "Haiku window system
+        # support", it includes <SupportDefs.h>/<AppFileInfo.h>, and lib-src/Makefile.in builds
+        # it only for Haiku (`be-resources`).  It belongs with the other Haiku C++ files
+        # (status 3.147).
         return ("C++", f"femacs/platform/haiku/{stem}.cc") if stem in CPP_STEMS \
             else ("C++", f"femacs/platform/{top}/{stem}.cc")
     if suffix == ".java":

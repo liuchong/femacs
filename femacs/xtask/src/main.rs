@@ -794,6 +794,34 @@ fn layout_check() -> i32 {
         .map(|d| d.filter_map(Result::ok).map(|e| e.path()).collect())
         .unwrap_or_default();
     mirrors.retain(|p| p.extension().map(|x| x == "rs").unwrap_or(false));
+
+    // Platform-exclusive mirrors are skipped here and compiled by their own platform probes: the
+    // frozen target never compiles their headers, and their X-compatibility names collide with
+    // each other and with dispextern.rs by construction (status 3.147 - 36 E0428s across
+    // androidgui.rs/haikugui.rs/androidterm.rs).  The list is data
+    // (docs/baseline/layout-excluded-mirrors.txt), one file name per line, and the skip count is
+    // printed so nothing is excluded silently (P-66).  It has to happen *before* the include-graph
+    // dedupe below: `character.rs` is included only by androidterm.rs and haikuterm.rs, so
+    // dropping those two first is what keeps `character.rs` in the probe (its `MAX_CHAR` is what
+    // `dispextern.rs` names).
+    let excluded: Vec<String> = fs::read_to_string("../docs/baseline/layout-excluded-mirrors.txt")
+        .unwrap_or_default()
+        .lines()
+        .map(|l| l.split('#').next().unwrap_or("").trim())
+        .filter(|l| !l.is_empty())
+        .map(|l| l.split_whitespace().next().unwrap_or("").to_string())
+        .collect();
+    let total = mirrors.len();
+    let skipped: Vec<String> = mirrors.iter()
+        .filter(|p| p.file_name().map(|n| excluded.iter().any(|e| e == &n.to_string_lossy()))
+                    .unwrap_or(false))
+        .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().to_string()))
+        .collect();
+    let skipped = { let mut v = skipped; v.sort(); v };
+    mirrors.retain(|p| !p.file_name()
+        .map(|n| excluded.iter().any(|e| e == &n.to_string_lossy())).unwrap_or(false));
+    println!("layout-check: {} of {} mirror(s) compiled, {} platform-exclusive skipped ({})",
+             total - skipped.len(), total, skipped.len(), skipped.join(", "));
     // PORTING.md 0.1-4: expand the include! graph and dedupe by file, so a mirror that
     // (like lib/inttypes.in.rs will) includes another mirror is not listed twice.
     let mut included: std::collections::BTreeSet<PathBuf> = std::collections::BTreeSet::new();
@@ -801,26 +829,31 @@ fn layout_check() -> i32 {
         collect_includes(p, &mut included);
     }
     mirrors.retain(|p| !included.contains(&canonical(p)));
-    // lisp.rs first: it defines the macros (eassert, eassume, CHECK_*) the other
-    // mirrors expand textually, exactly as C's headers get them from lisp.h.
-    if let Some(i) = mirrors.iter().position(|p| p.file_name().map(|n| n == "lisp.rs").unwrap_or(false)) {
-        let lisp = mirrors.remove(i);
-        mirrors.insert(0, lisp);
-    }
-    // A lib mirror that carries macros another mirror expands must come first: the probe
-    // compiles them in one crate, and `macro_rules!` are order-sensitive.  bignum.rs uses
-    // `mpz_odd_p!` from mini-gmp.rs, exactly as bignum.h uses <gmp.h>.
-    // `lib/include`, not `../lib/include`: the port's lib mirrors live inside femacs/
+    // The foundation mirrors, in C's header order, ahead of everything else.  Two reasons:
+    // `macro_rules!` are textually scoped, so the mirror that defines `eassert!`/`eassume!`
+    // (lisp.rs) has to be expanded before any mirror that uses them; and the mirrors C reaches
+    // through the translation unit rather than through their own `#include` (PORTING.md 0.1-9 -
+    // lisp.rs is the documented case, and character.h/systime.h/stdio.h are the same in
+    // practice) name definitions that live in these files.  `Expand.seen` dedupes a file included
+    // twice, so forcing them to the front cannot duplicate items; being first is what counts even
+    // when the list-dedupe above already dropped them, because only the *first* occurrence's
+    // position matters (status 3.147: character.rs was reachable only through
+    // androidterm.rs/haikuterm.rs - both platform-excluded now - and lisp.rs was dropped by the
+    // dedupe, so `dispextern.rs`'s `MAX_CHAR` and `character.rs`'s own `eassert!` were unresolved).
+    // `lib/include` rather than `../lib/include`: the port's lib mirrors live inside femacs/
     // (the same mistake P-53 records for the type scan).
-    let gmp = PathBuf::from("lib/include/mini-gmp.rs");
-    if gmp.is_file() {
-        mirrors.insert(1.min(mirrors.len()), gmp);
-    }
-    // <stdio.h> comes before lisp.h in C (lisp.h 38 includes it), and lisp.rs uses `FILE`
-    // in the `emacs_fclose` macro's port, so the mirror has to be present too.
-    let stdio = PathBuf::from("lib/include/stdio.rs");
-    if stdio.is_file() {
-        mirrors.insert(0, stdio);
+    let mut foundation: Vec<PathBuf> = vec![PathBuf::from("lib/include/stdio.rs"),
+                                            PathBuf::from("lib/include/mini-gmp.rs"),
+                                            PathBuf::from("src/include/lisp.rs"),
+                                            PathBuf::from("src/include/character.rs"),
+                                            PathBuf::from("src/include/systime.rs")];
+    foundation.retain(|p| p.is_file());
+    foundation.reverse();
+    for f in foundation {
+        if let Some(i) = mirrors.iter().position(|p| canonical(p) == canonical(&f)) {
+            mirrors.remove(i);
+        }
+        mirrors.insert(0, f);
     }
     mirrors.push(asserts);
     for path in mirrors {

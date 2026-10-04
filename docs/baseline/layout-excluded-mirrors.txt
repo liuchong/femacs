@@ -1,0 +1,26 @@
+# Header mirrors the frozen target never compiles, excluded from `xtask layout-check`'s
+# single-crate probe.
+#
+# The probe includes every mirror under `femacs/src/include/` into one crate to run the
+# `#[repr(C)]` layout assertions.  That works for the headers the frozen (darwin-arm64, no
+# window system) configuration reaches, and cannot work for the platform-exclusive ones:
+# Android, Haiku, pgtk and MSYS headers define the X-compatibility names
+# (`XCharStruct`, `Emacs_Pixmap`, `Emacs_Window`, `Drawable`, `Emacs_Cursor`, the `*Gravity`
+# and `*Value` constants) independently of each other and of `dispextern.h`, so compiling them
+# together is a name collision by construction - measured as 36 `E0428`s in
+# androidgui.rs/haikugui.rs/androidterm.rs (status 3.147).
+#
+# What replaces the assertions here: each platform's mirrors are compiled by that platform's own
+# probe crate (the `femacs/nt/inc` and `spikes/*_probe.rs` precedent), so the assertions still
+# run - just not in a crate that pretends every platform exists at once.  `layout-check` prints
+# how many mirrors it skipped, so the exclusion is visible rather than silent (P-66's rule).
+#
+# One `<file name under femacs/src/include/>` per line; `#` starts a comment.
+androidgui.rs	ANDROID_STUBIFY and HAVE_ANDROID are undefined: androidgui.h is dead on this target
+android.rs	HAVE_ANDROID is undefined: android.h is dead on this target
+androidterm.rs	HAVE_ANDROID is undefined: androidterm.h is dead on this target
+haikugui.rs	HAVE_HAIKU is undefined: haikugui.h is dead on this target
+haiku_support.rs	HAVE_HAIKU is undefined: haiku_support.h is dead on this target
+haikuterm.rs	HAVE_HAIKU is undefined: haikuterm.h is dead on this target
+pgtkterm.rs	HAVE_PGTK is undefined: pgtkterm.h is dead on this target
+gtkutil.rs	USE_GTK is undefined: gtkutil.h is dead on this target

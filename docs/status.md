@@ -2365,3 +2365,27 @@
   ④ 证据：`cinventory --selftest` **6 cases / 0 failures**；六个单元 `--check` OK；`--all` 0 failing；
   `check-declarations` 13 sites (0 forbidden)/0；`check-mirror-dupes` 0 failure；`check-target-names` 549 `.rs`/
   593 targets/0 finding。
+
+- **3.147 `layout-check` 恢复绿灯，`be_resources.cc` 的归类改正（2026-10-04）**：
+  ① **`layout-check` 之前是红的**（把整个 `src/include` 编进一个 crate）：平台互斥镜像的 X 兼容名互相撞
+  （`androidgui.rs` 34 条 + `haikugui.rs`/`androidterm.rs` 各 1 条 = **36 条 `E0428`**），而且这个撞墙**掩护了
+  另外两类错误**：`dispextern.rs` 的 `MAX_CHAR`、`termhooks.rs` 的 `Time`、`buffer.rs` 的 `STRING_CHAR` 未解析
+  （E0425），以及 `character.rs` 自己的 `eassert!`/`eassume!` 未定义（宏是**文本作用域**，而 `lisp.rs` 被列表去重
+  掉、`character.rs` 只被两条已排除的平台镜像 include）。
+  ② **两处修法**（都在 `femacs/xtask/src/main.rs`）：**(a) 平台互斥镜像按数据文件排除**——
+  新增 `docs/baseline/layout-excluded-mirrors.txt`（一行一个文件名 + 理由：冻结目标根本不编译这些头），
+  `layout-check` 读它、**打印跳过数量与名单**（`51 of 59 mirror(s) compiled, 8 platform-exclusive skipped
+  (android.rs, androidgui.rs, androidterm.rs, gtkutil.rs, haiku_support.rs, haikugui.rs, haikuterm.rs,
+  pgtkterm.rs)`），每个平台的布局断言由该平台自己的探针 crate 负责（lane A 本轮补；见 3.145 ④）。
+  **排除必须发生在"包含图去重"之前**——`character.rs` 只被 `androidterm.rs`/`haikuterm.rs` include，先排掉那两条
+  才能让它留在探针里。**(b) 基础镜像按 C 头顺序置顶**：`stdio.rs` → `mini-gmp.rs` → `lisp.rs` → `character.rs`
+  → `systime.rs`，理由是"宏文本作用域"与"PORTING.md 0.1-9 交给 TU 的名字"；`Expand.seen` 会对重复 include 去重，
+  所以置顶不会产生重复项，而**只有首次展开的位置算数**。
+  ③ **实测**：`cargo run -p xtask -- layout-check` → **exit 0、0 行 error、`layout-check passed`**，并打印上面那行
+  可见的跳过清单；顺带 `build-tu lib/getdelim.c` 仍 **built**、`layout-asserts` exit 0（公共路径未被改坏）。
+  ④ **`be_resources.cc` 归类改正**：`tools/gen-port-map.py` 原先有一个 `SWIFT_EXTRA_STEMS = {"be_resources"}`
+  （注释写"C++ file of the macOS bundle"），把 **`lib-src/be_resources.cc` 映成 macOS 的 `be_resources.swift`**。
+  该文件第一行自述 "Haiku window system support"、include 的是 `<SupportDefs.h>`/`<AppFileInfo.h>`，
+  `lib-src/Makefile.in` 450 行只在 Haiku 上构建它（`be-resources`）——所以它属于 Haiku 的 C++ 那一组。
+  删掉那个 set、把 `be_resources` 加进 `CPP_STEMS`，重生成后它的目标是
+  **`femacs/platform/haiku/be_resources.cc`**，C++ 表由 4 条变 **5 条 / 8,264 行**。
