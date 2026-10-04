@@ -5047,6 +5047,7 @@
   ④ **声明门的覆盖第三次扩张**（3.250 的 `.swift`、3.295 的 `.s` 之后）：`check-declarations.py` 现在读 **666 文件（623 .rs + 25 .kt + 7 .swift + 6 .s + 5 .cc）**，`femacs/platform` 的 **`.cc` 半边第一次进扫描面**，读数仍是 **13 sites / 0 forbidden / 0 failures**（新落地的 5 件零命中：块已去）。
   ⑤ **P-84 ④ 的工具名/基线名更新**到 `check-carried`/`carried-files.tsv`；**P-85 立规**（C++ 目标的路径、载文、名字不许变、SDK 头是"另一个目标的工具链头"、编译证据只能来自 Haiku target）。实测记录：本机 `clang++ -std=c++23` 可用（纯 C++ 片段 exit 0），但 `-fsyntax-only` 到这五个文件立刻 `fatal error: 'View.h' file not found`（exit 1）——所以 P-85 ④ 把"编译"记成 Haiku target 的事，而不是发明 SDK stub 头。
   ⑥ **清理**：本轮临时脚本与临时 inventory 读数（`/tmp/land-cpp.py`、`/tmp/patch-porting.py`、`/tmp/inv-now.md` 等）已删；没有跑 cargo/rustc。
+  **⑦ 一条就地更正（3.301）**：`6674342` 里 `git mv` 只把**改名**入了索引，两个文件的新**内容**（新门 + 新基线）当时还在工作树里没 `git add` ⇒ 那个提交上的 `tools/check-carried.py` 仍指向已改名的旧基线（该 HEAD 上这个门跑不起来）。内容已随 `3.301` 补齐并复核（下面那条）；教训与 3.298 ⑤ 同族：**`git mv` 之后必须再 `git add` 内容**，改名与内容是两个动作。
 - **3.300 地图在落地之后重生成：9 个"目标行数"格子（5 个 C++ + 4 个 Kotlin）（2026-10-05）**：
   ① **方法同 3.296**：一次性 worktree 在 `6674342` 上（`git worktree add --detach` + 软链未跟踪的参照 `emacs/`），在那里跑 `tools/gen-port-map.py`，拷回；`docs/port-inventory.md` **零行变化**（它迭代的是 590 个 C 文件，`C++`/`Kotlin` 目标不在它的行里——跟踪它们的是地图的 `C++` 节与 `docs/baseline/carried-files.tsv`）。
   ② **读数**：地图 **9 行变、0 个增/删 hunk** —— `C++` 五行的目标行数从 `-` 变成 **163/520/1,193/647/5,661**（= 8,264 − 5×16 + 5），
