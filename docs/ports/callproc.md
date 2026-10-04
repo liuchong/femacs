@@ -261,3 +261,14 @@ which would then make `USABLE_POSIX_SPAWN`'s `#define ... 1` differ from the por
 list keeps the stricter, both-arms comparison, which is what this file's port actually
 satisfies.
 
+
+## 2026-10-04: `VFORK` is `conf_post.h`'s macro, not a symbol (3.251)
+
+C 1534's `VFORK ()` is `conf_post.h` 280-291's macro; `DARWIN_OS` is defined, so the live body is
+`vfork ()`, and the reference's own object says so (`nm -u build/emacs-ref/src/callproc.o` names
+`_vfork`).  This unit used to declare `fn VFORK () -> pid_t` instead, which is a symbol no C object
+references and no library defines - the first real link refused it.  Now: the call site is
+`VFORK! ()` from `include/conf_post.rs`, `<unistd.h>`'s `vfork` is declared next to the file's
+`fork` (the same shape `sysdep.rs` uses), and the invented declaration is gone.  Evidence:
+`build-tu src/callproc.c` built, `--check` OK, name absent from the link's undefined list
+(`docs/ports/link.md`, reading three).

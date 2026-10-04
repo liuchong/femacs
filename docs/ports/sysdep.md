@@ -378,3 +378,15 @@ duplicates rather than adding any); `check-declarations` 0.
 Same convergence as `emacs.md`: the `stdio.rs` and `stdlib.rs` mirrors now carry those three
 names, so the unit's own `EXIT_FAILURE` constant and its `perror`/`printf` declarations are
 deleted.  The remaining use-site block keeps `exit`, which no mirror declares yet.
+
+## 2026-10-04: the real link found three invented `<stdio.h>` entries (3.251)
+
+`src/sysdep.c` 2914-2943 calls `fflush_unlocked`, `fputc_unlocked` and `fwrite_unlocked`, and this
+unit used to answer that with three `extern` declarations of its own.  They are not entries of
+`<stdio.h>`: they are `lib/unlocked-io.h`'s macros for this target, mapping onto `fflush`, `fputc`
+and `fwrite` (the measured live arm is in `lib/include/unlocked-io.rs`, and
+`nm -u build/emacs-ref/src/sysdep.o` names `_fflush`/`_fputc`/`_fwrite`, not the `_unlocked`
+names).  `src/sysstdio.h` 29's `#include <unlocked-io.h>` is now carried by the
+`include/sysstdio.rs` mirror, the four call sites invoke those macros, and the three declarations
+are deleted.  Evidence: `build-tu src/sysdep.c` built, `--check` OK, and the executable link's
+undefined list drops by those three names (`docs/ports/link.md`, reading three).

@@ -412,13 +412,14 @@ unsafe extern "C" {
 /// `<stdio.h>`: the entries `"sysstdio.h"` and this unit reach but `stdio.rs` does not carry
 /// (`stdio.rs` has `fclose`/`feof`/`ferror`/`fread`/`fwrite`/`fputs`/`fputc`/`sprintf`/`EOF`).
 unsafe extern "C" {
-  /* int fflush_unlocked (FILE *);  */
-  pub fn fflush_unlocked (stream: *mut FILE) -> c_int;
-  /* int fputc_unlocked (int, FILE *);  */
-  pub fn fputc_unlocked (c: c_int, stream: *mut FILE) -> c_int;
-  /* size_t fwrite_unlocked (const void *, size_t, size_t, FILE *);  */
-  pub fn fwrite_unlocked (ptr: *const c_void, size: usize, n: usize, stream: *mut FILE)
-    -> usize;
+  /* C 2914-2943's `fflush_unlocked`/`fputc_unlocked`/`fwrite_unlocked` are not entries of
+     `<stdio.h>`: they are `lib/unlocked-io.h`'s macros for this target, whose live arm maps
+     each of them onto the ordinary entry (`lib/include/unlocked-io.rs`, measured).  The call
+     sites below invoke those macros.  The three declarations that used to stand here were this
+     unit's own invention - no C object references such a symbol (`nm -u
+     build/emacs-ref/src/sysdep.o` names `_fflush`, `_fputc`, `_fwrite`), and the real link
+     refused them: `_fflush_unlocked` is in no library of this target (docs/ports/link.md's
+     reading three).  */
   /* int setvbuf (FILE *, char *, int, size_t);  */
   pub fn setvbuf (stream: *mut FILE, buf: *mut c_char, mode: c_int, size: usize) -> c_int;
   /* FILE *fdopen (int, const char *);  */
@@ -4084,7 +4085,7 @@ unsafe fn errstream () -> *mut FILE {
   let err: *mut FILE = buferr;
   if err.is_null ()
     { return stderr; }
-  fflush_unlocked (stderr);
+  fflush_unlocked! (stderr);
   return err;
 }
 
@@ -4099,7 +4100,7 @@ unsafe fn errstream () -> *mut FILE {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn errputc (c: c_int) {
-  fputc_unlocked (c, errstream ());
+  fputc_unlocked! (c, errstream ());
 
   /* C 2932-2937: `#ifdef WINDOWSNT` is dead; carried.  */
   #[cfg (feature = "windowsnt")]
@@ -4107,13 +4108,13 @@ pub unsafe extern "C" fn errputc (c: c_int) {
     /* Flush stderr after outputting a newline since stderr is fully
        buffered when redirected to a pipe, contrary to POSIX.  */
     if c == b'\n' as c_int
-      { fflush_unlocked (stderr); }
+      { fflush_unlocked! (stderr); }
   }
 }
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn errwrite (buf: *const c_void, nbuf: ptrdiff_t) {
-  fwrite_unlocked (buf, 1, nbuf as usize, errstream ());
+  fwrite_unlocked! (buf, 1, nbuf as usize, errstream ());
 }
 
 /* Close standard output and standard error, reporting any write

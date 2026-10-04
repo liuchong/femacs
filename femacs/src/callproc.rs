@@ -57,6 +57,7 @@
          unsafe_op_in_unsafe_fn, unused_parens, unreachable_code, unused_assignments)]
 
 include!("include/config.rs");                 // C 22: `#include <config.h>`
+include!("include/conf_post.rs");               // C 22's AH_BOTTOM `#include <conf_post.h>`: `VFORK ()`
 include!("../lib/include/errno.rs");           // C 23: `#include <errno.h>`
 include!("../lib/include/stdlib.rs");          // C 24: `#include <stdlib.h>`
 include!("../lib/include/sys_types.in.rs");    // C 25: `#include <sys/types.h>`
@@ -183,9 +184,11 @@ unsafe extern "C" {
   fn ioctl (fd: c_int, request: c_ulong, ...) -> c_int;
   /// C: pid_t fork (void)   -- <unistd.h>
   fn fork () -> pid_t;
-  /// C: pid_t VFORK (void)   -- process.h 40's `#define VFORK vfork` (the DARWIN_OS arm of
-  /// C 1527-1536 uses it; `vfork` itself is declared there on this target).
-  fn VFORK () -> pid_t;
+  /// C: pid_t vfork (void)   -- <unistd.h>.  C's `VFORK ()` is `conf_post.h` 280-291's macro and
+  /// this target takes the `DARWIN_OS` arm, whose body is `vfork ()`; the reference's own
+  /// `callproc.o` therefore references `_vfork` (measured), and the macro in
+  /// `include/conf_post.rs` is what the call site below invokes.
+  fn vfork () -> pid_t;
   /// C: void _exit (int) _Noreturn   -- <unistd.h>
   fn _exit (status: c_int) -> !;
 }
@@ -1714,7 +1717,7 @@ pub unsafe extern "C" fn emacs_spawn (mut newpid: *mut pid_t, mut std_in: c_int,
 	if pty_in || pty_out
 	  { pid = fork (); }
 	else
-	  { pid = VFORK (); }
+	  { pid = VFORK! (); }
       }
       #[cfg (feature = "no_darwin_os")]
       { pid = vfork (); }

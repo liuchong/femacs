@@ -4680,3 +4680,25 @@
   改 C 侧那几条字面量既**减不掉**程序里出现的产品名，又会同时破坏 1:1 与 docstring 门。产品身份层面要不要改口径，是**全面验收期**的判决（用户长期指令：前期复刻期间与 C 尽量一致）。
   ⑥ 读数：门 `13 / 0 / 0`、`read 630 files (623 .rs 7 .swift)`、`--selftest 33 例 0 失败`；`check-verbatim` 6/4607/0；
   改动面 `tools/check-declarations.py` 一个文件（`SCAN_DIRS` 的走法改成按 `SRC_SUFFIXES` 取文件、每次打印覆盖读数、5 条跨语言自测例），**允许清单零改动**。
+
+- **3.251 第一次真链接：C 自己的库行、四类"被发明出来的外部符号"，与 84 个剩余（2026-10-04）**：
+  ① **配方取自 C 自己**：`build/emacs-ref/src/Makefile` 的 `temacs` 规则，`make -n temacs` 展开到第 457 行——
+  `gcc -std=gnu23 -o temacs.tmp <ALLOBJS> ../lib/libgnu.a -lncurses`，之后 `make-fingerprint` 与 `codesign -s - -f`。
+  冻结配置里 `LIBXMENU`/`LIBX_BASE`/`PGTK_LIBS`/`LIBS_GNUSTEP`/`LIBS_SYSTEM`/`EMACSRES` **全空** ⇒ 整个程序的外部库只有 **`-lncurses`**。
+  ② **读数（163 个对象，与 `check-link.py` 同一集合）**：`cc -o /tmp/femacs-link <objs>` + 隐式 `-lSystem` ⇒ **118 undefined**；加 C 自己的 `-lncurses`
+  ⇒ **106**；再加 Rust 运行时的 `libcore`/`libpanic_abort`/`libcompiler_builtins`（nightly-2026-10-01 的 `target-libdir`）⇒ **88**；
+  修掉下面两条 ⇒ **84**。这一级之所以要有，是因为此前每个门都停在对象或文本上（`build-tu` 一个对象、`layout-check` 探针、`check-undef` 每单元的未定义表、
+  `check-swift-imports` 只管 Swift 侧）。
+  ③ **链接级门抓到的四类"发明的符号"（文本门在结构上看不见）**：`_fflush_unlocked`/`_fputc_unlocked`/`_fwrite_unlocked` —— `src/sysdep.c` 2914-2943 写的是这三个名字，
+  但本 target 上它们是 `lib/unlocked-io.h` 的宏（映射到 `fflush`/`fputc`/`fwrite`；镜像 `lib/include/unlocked-io.rs` 早有实测活侧臂），
+  而本 target 的 `<stdio.h>` 一个都不声明（实测：把 `<stdio.h>` 包进去再调用它们**编译不过**；`nm -u build/emacs-ref/src/sysdep.o` 报的是 `_fflush`/`_fputc`/`_fwrite`）；
+  `sysdep.rs` 当年把宏写成了 `extern` 声明，于是**文本与 C 逐字相同**、没有文本门能看出差别。修法：`include/sysstdio.rs` 补上 C 29 的 `#include <unlocked-io.h>`
+  （batch L 的镜像已存在，此前 mirror 注释还写着"尚无镜像"），四个调用点改用镜像的宏，删掉三条声明。
+  ④ 第二个：`_VFORK` —— `src/callproc.c` 1534 的 `VFORK ()` 是 `conf_post.h` 280-291 的宏，`DARWIN_OS` 活侧体是 `vfork ()`（`nm -u build/emacs-ref/src/callproc.o` 报 `_vfork`），
+  而 `callproc.rs` 把它声明成了函数 `VFORK`。修法：调用点 `VFORK! ()`（`include/conf_post.rs` 的宏）+ `<unistd.h>` 自己的 `vfork` 声明（照 `sysdep.rs` 的既成形状），删掉发明的声明。
+  验证：`build-tu src/{sysdep,callproc}.c` 均 built、`extract-abi --check` 两单元均 OK、`check-declarations` 仍 13/0/0、`check-mirror-dupes` 仍 1 dup/1 棘轮/0 failure，链接的未定义表少了这四个名字。
+  ⑤ **剩下 84 的构成**：约 62 是 `src/xdisp.c` 的余量（正在复刻，`docs/ports/xdisp.md`）；**其中多数被分类器记成 `unknown` 而不是 `port-owed`，原因是一条要修的测量**——
+  `build/emacs-ref/src/xdisp.o` **从未建过**，参照定义集合里根本没有 xdisp；19 个 `V…` 载体 + `_current_buffer`/`_specpdl`/`_specpdl_ptr`/`_specpdl_end` + `_syms_of_xwidget`
+  是已记录的偏离与未复刻单元（决定，不是新发现）；最后 2 个 `__RNvCs8kYXCe6bXIp_7___rustc17rust_begin_unwind` 与 `_rust_eh_personality` 是**驱动者的账**：
+  `--emit obj` 的单元 crate 没有 `#[panic_handler]`，最终二进制由谁来驱动（rustc 当驱动器，或一个持有 panic handler 的根 crate）是这一级留下的最后一个问题——
+  它也是 `xdisp` 之外，`emacs` 可执行文件出现前的最后一步。读数与命令都写进 `docs/ports/link.md` 的 reading three。

@@ -46,3 +46,12 @@ frozen `<limits.h>` defines PIPE_BUF (512, macros.tsv).
 Evidence: `extract-abi.py --check emacs/src/sysstdio.h femacs/src/include/sysstdio.rs` -> `OK`;
 `xtask layout-check` passes with this file present (it is the probe's first `src/include` mirror
 that declares externs, so the probe compiles the module path too).
+
+## 2026-10-04: C 29's `#include <unlocked-io.h>` is carried (3.251)
+
+The mirror's header used to say the `unlocked-io.h` mirror did not exist yet and that units
+recorded those renames at their own use sites.  Batch L landed `lib/include/unlocked-io.rs`, so
+the include is now the mirror's own line (C 29) - which is what makes the `*_unlocked` names
+visible to every unit that includes `sysstdio.h`, exactly as in C.  Evidence: `build-tu` of the
+two units that call them (`src/sysdep.c`, `src/callproc.c`) both built; `check-mirror-dupes.py`
+still 1 duplicate declaration / 1 ratchet row / 0 failures.

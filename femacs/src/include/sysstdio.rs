@@ -9,9 +9,10 @@
 // The three declarations are declarations only - C defines `errputc`, `errwrite` and
 // `close_output_streams` in src/sysdep.c, which is ported (`femacs/src/sysdep.rs` 4147, 4161,
 // 4168), so the unit that owns them stays the single definition point (PORTING.md 0.1-3).
-// C's `<unlocked-io.h>` (C 29) has no mirror yet (batch L); the renames it performs on stdio
-// calls are recorded at the use site by the units that need them (docs/ports/dispnew.md 374,
-// docs/ports/bidi.md 269), and this file does not invent them.
+// C 29's `#include <unlocked-io.h>` is `lib/include/unlocked-io.rs` (batch L landed the
+// mirror): C's renames of the stdio entries live there as macros, both arms and the measured
+// criterion for the live one included, so a unit that spells one of those names invokes the
+// macro at its own use site rather than inventing a declaration for it.
 //
 // C 22: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_SYSSTDIO_H: bool = true;
@@ -20,6 +21,7 @@ include!("../../lib/include/stdio.rs");        // C 24: `#include <stdio.h>`
 include!("../../lib/include/fcntl.in.rs");     // C 25: `#include <fcntl.h>` (`O_BINARY`)
 include!("../../lib/include/limits.in.rs");    // C 26: `#include <limits.h>` (`PIPE_BUF`)
 include!("../../lib/include/attribute.rs");    // C 28: `#include <attribute.h>`
+include!("../../lib/include/unlocked-io.rs");   // C 29: `#include <unlocked-io.h>`
 
 // C 27's `#include <stdarg.h>` has no mirror: Rust spells a C variadic list as `VaList`
 // (the `sysdep.rs`/`print.rs` precedent), so nothing is included here for it.

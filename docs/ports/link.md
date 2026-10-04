@@ -109,3 +109,60 @@ to resolve the two caveats above, and its second is to intersect its list with
 `docs/baseline/swift-import-pending.txt` (533 names the Swift units import): the intersection is
 the set of C-ABI entries a runnable macOS build needs *first*, and `femacs/src/abi_shim.rs` is
 where they land.
+
+## Reading three (2026-10-04): the first real link, and the four names only it could see
+
+C's own recipe is the `temacs` rule of `build/emacs-ref/src/Makefile`; `make -n temacs` in
+`build/emacs-ref/src` prints it (line 457 of the expansion):
+
+    gcc -std=gnu23 -o temacs.tmp <ALLOBJS> ../lib/libgnu.a -lncurses
+    ../lib-src/make-fingerprint temacs.tmp
+    codesign -s - -f temacs.tmp && mv temacs.tmp temacs
+
+`LIBXMENU`, `LIBX_BASE`, `PGTK_LIBS`, `LIBS_GNUSTEP`, `LIBS_SYSTEM` and `EMACSRES` are empty in the
+frozen configuration, so the program's whole external library set is **`-lncurses`**.
+
+The port's equivalent, object for object (the same 163 objects `tools/check-link.py` links):
+
+    cc -o /tmp/femacs-link $(cat /tmp/link_objs.txt) -L/opt/homebrew/opt/ncurses/lib -lncurses \
+       $NL/libcore-*.rlib $NL/libpanic_abort-*.rlib $NL/libcompiler_builtins-*.rlib   # $NL = rustc nightly-2026-10-01 --print target-libdir
+
+| what the command line has | undefined |
+| --- | ---: |
+| `cc` + the implicit `-lSystem` | 118 |
+| + C's own `-lncurses` | 106 |
+| + the Rust runtime's three rlibs | 88 |
+| + the two fixes below | **84** |
+
+**What the rung caught - four names every text gate was blind to.** They were *invented* by the
+port, not ported, and each is a call C's own object does not make:
+
+* `_fflush_unlocked`, `_fputc_unlocked`, `_fwrite_unlocked`: `src/sysdep.c` 2914-2943 spells those
+  names, but on this target they are `lib/unlocked-io.h`'s macros mapping onto `fflush`, `fputc`
+  and `fwrite` (the mirror `lib/include/unlocked-io.rs` carries the measured live arm), and this
+  target's `<stdio.h>` declares none of them - measured: a probe that includes `<stdio.h>` and
+  calls them does not compile, and `nm -u build/emacs-ref/src/sysdep.o` names `_fflush`, `_fputc`,
+  `_fwrite`.  `sysdep.rs` had turned each macro into an `extern` declaration, so its text matched
+  C's text and no text gate could see the difference.  Fixed: the call sites invoke the mirror's
+  macros and the three declarations are gone.
+* `_VFORK`: `src/callproc.c` 1534 spells `VFORK ()`, `conf_post.h` 280-291's macro, whose
+  `DARWIN_OS` arm is `vfork ()` - `nm -u build/emacs-ref/src/callproc.o` names `_vfork`.
+  `callproc.rs` had declared a *function* `VFORK` instead.  Fixed: `VFORK! ()`, plus `<unistd.h>`'s
+  own `vfork` declaration next to the file's `fork`.
+
+**What is left (84).** 82 are names of units that are still being ported, plus the decisions
+already recorded, plus 2 that are the driver's:
+
+* `src/xdisp.c`'s remainder - about 62 - is the live work (`docs/ports/xdisp.md`).  The classifier
+  calls most of them `unknown` rather than `port-owed` for a measurement reason worth fixing
+  first: **`build/emacs-ref/src/xdisp.o` was never built**, so the reference-definition set the
+  classifier compares against has no `xdisp` in it.
+* the 19 `V...` carriers (referenced by `alloc.o`, `keyboard.o`, `bidi.o`, ...), `_current_buffer`,
+  `_specpdl`, `_specpdl_ptr`, `_specpdl_end` and `_syms_of_xwidget` are the port's documented
+  deviations (`check-symbols.py` counts 467 `V...` as folded into Rust statics) and the unported
+  `src/xwidget.c`; they are a decision, not a discovery.
+* `__RNvCs8kYXCe6bXIp_7___rustc17rust_begin_unwind` and `_rust_eh_personality` are the Rust
+  runtime's own seam: a `--emit obj` unit crate carries no `#[panic_handler]`, so whoever *drives*
+  the final link owes them (rustc as the driver, or one small root crate that owns the handler).
+  That is the driver question this rung leaves open, and it is the last non-`xdisp` step before an
+  `emacs` executable exists.
