@@ -808,12 +808,20 @@ fn layout_check() -> i32 {
     // dedupe below: `character.rs` is included only by androidterm.rs and haikuterm.rs, so
     // dropping those two first is what keeps `character.rs` in the probe (its `MAX_CHAR` is what
     // `dispextern.rs` names).
+    // A reason may wrap onto continuation lines that start with whitespace, and one of those
+    // lines' first word happens to be `dispextern.rs` (it is *named* in `nsgui.rs`'s reason) -
+    // taking every line's first token excluded a mirror that is not on the list and silently
+    // stopped its assertions from running (measured: the skip list grew by `mirs`, `shadowed`,
+    // `compile`, `live`, `` `error[E0428]: ` `` and `dispextern.rs`).  An entry is a line that
+    // starts in column 1 and whose first token is a mirror name, so both filters are required.
     let excluded: Vec<String> = fs::read_to_string("../docs/baseline/layout-excluded-mirrors.txt")
         .unwrap_or_default()
         .lines()
+        .filter(|l| !l.starts_with(char::is_whitespace))
         .map(|l| l.split('#').next().unwrap_or("").trim())
         .filter(|l| !l.is_empty())
         .map(|l| l.split_whitespace().next().unwrap_or("").to_string())
+        .filter(|l| l.ends_with(".rs"))
         .collect();
     let total = mirrors.len();
     let skipped: Vec<String> = mirrors.iter()
