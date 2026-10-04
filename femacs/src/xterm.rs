@@ -648,6 +648,7 @@ include!("../lib/include/stdlib.rs");             // C 626: `#include <stdlib.h>
 include!("../lib/include/math.rs");               // C 627: `#include <math.h>`
 include!("../lib/include/signal.rs");             // C 628: `#include <signal.h>`
 include!("include/lisp.rs");                      // C 630: `#include "lisp.h"`
+include!("../lib/include/string.rs");                 // lisp.h 30: `#include <string.h>` (memcmp)
 include!("include/blockinput.rs");                // C 631: `#include "blockinput.h"`
 include!("../lib/include/stdio.rs");              // C 632: `#include "sysstdio.h"`
 include!("include/xterm.rs");                     // C 636: `#include "xterm.h"`
@@ -815,9 +816,503 @@ pub mod xterm_globals {
 
   /* C 970-974: the chain of unprocessed selection requests.  */
   pub static mut pending_selection_requests: *mut x_selection_request_event = std::ptr::null_mut ();
+
+  /* ---- C 1214-1548: the drag-and-drop state; slice 2. ----------------------------------
+     `volatile` (C 1548) has no Rust equivalent and stays an ordinary static - the
+     `keyboard.rs` note for `interrupt_input_blocked` (PORTING.md 1.1).  The three Xlib
+     *pointer* typedefs (`Display`, `XErrorEvent`, `XtAppContext`) are opaque here with the C
+     prototype on a `/// C:` line (P-72 rule 3); every other X11 name (`Window`, `Atom`,
+     `XRectangle`, `XEvent`, `XWindowAttributes`) keeps C's spelling, which is what this
+     file's own header mirror does with `*mut XEvent` and `XRectangle` (its 457, 605).  */
+
+  /* C 1217-1231: the four flags the event loop reads.  The first four are declared by
+     `include/xterm.rs` at the crate root, which is why the objects live in this module.  */
+  #[unsafe(no_mangle)]
+  pub static mut x_dnd_in_progress: bool = false;
+  #[unsafe(no_mangle)]
+  pub static mut x_dnd_frame: *mut frame = std::ptr::null_mut ();
+  #[unsafe(no_mangle)]
+  pub static mut x_dnd_finish_frame: *mut frame = std::ptr::null_mut ();
+  #[unsafe(no_mangle)]
+  pub static mut x_dnd_waiting_for_finish: bool = false;
+
+  /* C 1236-1252: the unsupported-drop state and the tooltip monitor list.  */
+  pub static mut x_dnd_run_unsupported_drop_function: bool = false;
+  pub static mut x_dnd_unsupported_drop_time: Time = 0;
+  pub static mut x_dnd_unsupported_drop_window: Window = 0;
+  pub static mut x_dnd_unsupported_drop_data: Lisp_Object = lisp_h_Qnil ();
+  pub static mut x_dnd_update_tooltip: bool = false;
+  pub static mut x_dnd_monitors: Lisp_Object = lisp_h_Qnil ();
+  /// C: static Display *x_dnd_finish_display;
+  pub static mut x_dnd_finish_display: *mut c_void = std::ptr::null_mut ();
+
+  /* C 1267-1298: the Motif drop state.  */
+  pub static mut x_dnd_waiting_for_motif_finish: c_int = 0;
+  pub static mut x_dnd_waiting_for_motif_finish_display: *mut x_display_info = std::ptr::null_mut ();
+  pub static mut x_dnd_xm_use_help: bool = false;
+  pub static mut x_dnd_motif_setup_p: bool = false;
+  pub static mut x_dnd_motif_atom: Atom = 0;
+  pub static mut x_dnd_pending_finish_target: Window = 0;
+  pub static mut x_dnd_waiting_for_finish_proto: c_int = 0;
+  pub static mut x_dnd_allow_current_frame: bool = false;
+  pub static mut x_dnd_init_type_lists: bool = false;
+  pub static mut x_dnd_return_frame: c_int = 0;
+  pub static mut x_dnd_return_frame_object: *mut frame = std::ptr::null_mut ();
+
+  /* C 1314-1341: the last window the pointer moved over.  */
+  pub static mut x_dnd_last_seen_window: Window = 0;
+  pub static mut x_dnd_last_seen_toplevel: Window = 0;
+  pub static mut x_dnd_end_window: Window = 0;
+  pub static mut x_dnd_last_protocol_version: c_int = 0;
+  pub static mut x_dnd_last_window_is_frame: bool = false;
+  pub static mut x_dnd_last_motif_style: c_int = 0;
+  pub static mut x_dnd_selection_timestamp: Time = 0;
+
+  /* C 1344-1356: the mouse rectangle and the pending XdndPosition message.  */
+  pub static mut x_dnd_mouse_rect_target: Window = 0;
+  pub static mut x_dnd_mouse_rect: XRectangle = unsafe { std::mem::zeroed () };
+  pub static mut x_dnd_waiting_for_status_window: Window = 0;
+  pub static mut x_dnd_pending_send_position: XEvent = unsafe { std::mem::zeroed () };
+  pub static mut x_dnd_pending_send_position_button: bool = false;
+  pub static mut x_dnd_pending_send_position_root_x: c_int = 0;
+  pub static mut x_dnd_pending_send_position_root_y: c_int = 0;
+  pub static mut x_dnd_need_send_drop: bool = false;
+  pub static mut x_dnd_send_drop_proto: c_int = 0;
+
+  /* C 1384-1407: the chosen action and the selection target list.  */
+  pub static mut x_dnd_action: Atom = 0;
+  pub static mut x_dnd_action_symbol: Lisp_Object = lisp_h_Qnil ();
+  pub static mut x_dnd_wanted_action: Atom = 0;
+  pub static mut x_dnd_motif_operations: u8 = 0;
+  pub static mut x_dnd_first_motif_operation: u8 = 0;
+  pub static mut x_dnd_targets: *mut Atom = std::ptr::null_mut ();
+  pub static mut x_dnd_n_targets: c_int = 0;
+
+  /* C 1413-1439: the root window's saved attributes and the movement/wheel state.  */
+  pub static mut x_dnd_old_window_attrs: XWindowAttributes = unsafe { std::mem::zeroed () };
+  pub static mut x_dnd_unwind_flag: bool = false;
+  pub static mut x_dnd_movement_frame: *mut frame = std::ptr::null_mut ();
+  pub static mut x_dnd_movement_x: c_int = 0;
+  pub static mut x_dnd_movement_y: c_int = 0;
+  pub static mut x_dnd_wheel_frame: *mut frame = std::ptr::null_mut ();
+  pub static mut x_dnd_wheel_x: c_int = 0;
+  pub static mut x_dnd_wheel_y: c_int = 0;
+  pub static mut x_dnd_wheel_button: c_int = 0;
+  pub static mut x_dnd_wheel_state: c_int = 0;
+  pub static mut x_dnd_wheel_time: Time = 0;
+
+  /* C 1441-1444: `#ifdef HAVE_XKB` - the keyboard state during the drag.  */
+  #[cfg (feature = "have_xkb")]
+  pub static mut x_dnd_keyboard_state: c_uint = 0;
+
+  /* C 1446-1467: the IO-error escape, the recursion depth and the tooltip position.  */
+  pub static mut x_dnd_disconnect_handler: sigjmp_buf = [0; 196];
+  pub static mut x_dnd_inside_handle_one_xevent: bool = false;
+  pub static mut x_dnd_recursion_depth: c_int = 0;
+  pub static mut x_dnd_selection_alias_cell: Lisp_Object = lisp_h_Qnil ();
+  pub static mut x_dnd_last_tooltip_x: c_int = 0;
+  pub static mut x_dnd_last_tooltip_y: c_int = 0;
+  pub static mut x_dnd_last_tooltip_valid: bool = false;
+
+  /* C 1469-1476: `#ifdef HAVE_XINPUT2` - the devices doing the drag.  */
+  #[cfg (feature = "have_xinput2")]
+  pub static mut x_dnd_pointer_device: c_int = 0;
+  #[cfg (feature = "have_xinput2")]
+  pub static mut x_dnd_keyboard_device: c_int = 0;
+
+  /* C 1535-1548: the stacking-order list, and the Motif drag window's error flag.  */
+  pub static mut x_dnd_toplevels: *mut x_client_list_window = std::ptr::null_mut ();
+  pub static mut x_dnd_use_toplevels: bool = false;
+  pub static mut xm_drag_window_error: *mut bool = std::ptr::null_mut ();
 }
 #[cfg (feature = "have_x_windows")]
 use xterm_globals::*;
+
+/* C 1132-1137: `enum { X_EVENT_NORMAL, X_EVENT_GOTO_OUT, X_EVENT_DROP };` - an anonymous enum,
+   so the port writes the three constants (PORTING.md 1.3); `current_finish` holds them.  */
+#[cfg (feature = "have_x_windows")]
+pub const X_EVENT_NORMAL: c_int = 0;
+#[cfg (feature = "have_x_windows")]
+pub const X_EVENT_GOTO_OUT: c_int = 1;
+#[cfg (feature = "have_x_windows")]
+pub const X_EVENT_DROP: c_int = 2;
+
+/* C 1139-1142 and 1144-1160: the XEmbed protocol's flag and message numbers.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub enum xembed_info { XEMBED_MAPPED = 1 }
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub enum xembed_message
+{
+  XEMBED_EMBEDDED_NOTIFY = 0,
+  XEMBED_WINDOW_ACTIVATE = 1,
+  XEMBED_WINDOW_DEACTIVATE = 2,
+  XEMBED_REQUEST_FOCUS = 3,
+  XEMBED_FOCUS_IN = 4,
+  XEMBED_FOCUS_OUT = 5,
+  XEMBED_FOCUS_NEXT = 6,
+  XEMBED_FOCUS_PREV = 7,
+  XEMBED_MODALITY_ON = 10,
+  XEMBED_MODALITY_OFF = 11,
+  XEMBED_REGISTER_ACCELERATOR = 12,
+  XEMBED_UNREGISTER_ACCELERATOR = 13,
+  XEMBED_ACTIVATE_ACCELERATOR = 14,
+}
+
+/* C 1162-1210: the file's own forward declarations of its static functions -
+   `x_alloc_nearest_color_1` (1162), `x_raise_frame`/`x_lower_frame` (1163-1164),
+   `x_io_error_quitter` (1165), `x_create_terminal` (1166), `x_frame_rehighlight` (1167),
+   `x_clip_to_row` (1169), `x_window_to_scroll_bar` (1171), `x_window_to_frame` (1172),
+   `x_scroll_bar_report_motion`/`x_horizontal_scroll_bar_report_motion` (1173-1180),
+   `x_handle_net_wm_state` (1181), `x_check_fullscreen` (1182), `x_check_expected_move`
+   (1183), `x_sync_with_move` (1184), `handle_one_xevent` (1185), `x_dispatch_event` (1189,
+   `#if ! (defined USE_X_TOOLKIT || defined USE_MOTIF) && defined USE_GTK`),
+   `x_wm_set_window_state`/`x_wm_set_icon_pixmap`/`x_initialize` (1191-1193),
+   `x_get_current_wm_state` (1195), `x_update_opaque_region` (1196), `x_filter_event` (1199,
+   `#ifdef HAVE_X_I18N`), `x_clean_failable_requests` (1201), `x_tooltip_window_to_frame`
+   (1203), `x_get_window_below` (1205), `x_set_input_focus` (1206) and `x_scroll_bar_redraw`
+   (1209, `#ifndef USE_TOOLKIT_SCROLL_BARS`).  Rust has no prototypes and resolves items by
+   name, so the port writes each definition where C writes it and nothing stands here.  */
+
+/* C 1478-1533: a window that can be the target of a drag-and-drop operation.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct x_client_list_window
+{
+  /// C 1483: `Window window;`
+  pub window: Window,
+  /// C 1486: `Display *dpy;`
+  pub dpy: *mut c_void,
+  /// C 1489: `int x, y;`
+  pub x: c_int,
+  pub y: c_int,
+  /// C 1492: `int width, height;`
+  pub width: c_int,
+  pub height: c_int,
+  /// C 1497: `long previous_event_mask;`
+  pub previous_event_mask: c_long,
+  /// C 1500: `unsigned long wm_state;`
+  pub wm_state: c_ulong,
+  /// C 1503: `struct x_client_list_window *next;`
+  pub next: *mut x_client_list_window,
+  /// C 1506-1509: the frame window's extents.
+  pub frame_extents_left: c_int,
+  pub frame_extents_right: c_int,
+  pub frame_extents_top: c_int,
+  pub frame_extents_bottom: c_int,
+  /// C 1511-1526: `#ifdef HAVE_XSHAPE` - the input and bounding shapes.
+  #[cfg (feature = "have_xshape")]
+  pub border_width: c_int,
+  #[cfg (feature = "have_xshape")]
+  pub n_input_rects: c_int,
+  #[cfg (feature = "have_xshape")]
+  pub input_rects: *mut XRectangle,
+  #[cfg (feature = "have_xshape")]
+  pub bounding_rects: *mut XRectangle,
+  #[cfg (feature = "have_xshape")]
+  pub n_bounding_rects: c_int,
+  /// C 1529: `uint8_t xm_protocol_style;`
+  pub xm_protocol_style: u8,
+  /// C 1532: `bool mapped_p;`
+  pub mapped_p: bool,
+}
+
+/* C 1550-1559: the byte order of a Motif message.  C *stores a wire byte* in it before it
+   compares (`xm_read_targets_table_header`, C 1808), so it is a byte holder rather than a
+   closed set, and the port models it as the integer type C's enum is stored as, with the
+   members as constants - the `dispextern.rs` `glyph_row_area` shape (`pub type ...
+   = c_int` plus `pub const ...`).  Two enum variants with one discriminant would not even be
+   expressible (E0081): on this target WORDS_BIGENDIAN is undef, so C's
+   `XM_BYTE_ORDER_CUR_FIRST` has the same *value* as `XM_BYTE_ORDER_LSB_FIRST`.  */
+#[cfg (feature = "have_x_windows")]
+pub type xm_byte_order = c_int;
+
+#[cfg (feature = "have_x_windows")]
+pub const XM_BYTE_ORDER_LSB_FIRST: xm_byte_order = b'l' as c_int;   // C 1552: `= 'l'`
+#[cfg (feature = "have_x_windows")]
+pub const XM_BYTE_ORDER_MSB_FIRST: xm_byte_order = b'B' as c_int;   // C 1553: `= 'B'`
+
+/// C 1554-1558: `#ifndef WORDS_BIGENDIAN XM_BYTE_ORDER_CUR_FIRST = 'l' #else ... = 'B' #endif`.
+#[cfg (all (feature = "have_x_windows", not (feature = "words_bigendian")))]
+pub const XM_BYTE_ORDER_CUR_FIRST: xm_byte_order = XM_BYTE_ORDER_LSB_FIRST;
+#[cfg (all (feature = "have_x_windows", feature = "words_bigendian"))]
+pub const XM_BYTE_ORDER_CUR_FIRST: xm_byte_order = XM_BYTE_ORDER_MSB_FIRST;
+
+/* C 1561-1585: `SWAPCARD32`/`SWAPCARD16` in two arms.  Under `ENABLE_CHECKING` (undef here)
+   C swaps the bytes through a bitfield struct; the port has no bitfields, so that arm swaps
+   the same bytes through a `u32`/`u16` and a `c_char` pointer, and the frozen target takes
+   the `#else` arm, which is gnulib's `bswap_32`/`bswap_16`.  */
+/* The frozen arm comes first on purpose: `tools/extract-abi.py`'s `macro_body_of` answers for a
+   name with the *first* `macro_rules!` it finds, and the arm C compiles here is the `#else` one.  */
+#[cfg (all (feature = "have_x_windows", not (feature = "enable_checking")))]
+macro_rules! SWAPCARD32 { ($l:expr) => { $l = bswap_32 ($l) }; }
+#[cfg (all (feature = "have_x_windows", not (feature = "enable_checking")))]
+macro_rules! SWAPCARD16 { ($l:expr) => { $l = bswap_16 ($l) }; }
+#[cfg (all (feature = "have_x_windows", feature = "enable_checking"))]
+macro_rules! SWAPCARD32 {
+  ($l:expr) => {{
+    let mut bit32: c_uint = $l;
+    let tp: *mut c_char = (&raw mut bit32).cast::<c_char> ();
+    let mut n: c_char;
+    unsafe {
+      n = *tp; *tp = *tp.add (3); *tp.add (3) = n;
+      n = *tp.add (1); *tp.add (1) = *tp.add (2); *tp.add (2) = n;
+    }
+    $l = bit32;
+  }};
+}
+#[cfg (all (feature = "have_x_windows", feature = "enable_checking"))]
+macro_rules! SWAPCARD16 {
+  ($s:expr) => {{
+    let mut bit16: c_uint = $s;
+    let tp: *mut c_char = (&raw mut bit16).cast::<c_char> ();
+    let mut n: c_char;
+    unsafe { n = *tp; *tp = *tp.add (1); *tp.add (1) = n; }
+    $s = bit16;
+  }};
+}
+
+/* C 1587-1685: the Motif drag-and-drop message layouts.  `BYTE`/`CARD16`/`CARD32` are the
+   protocol's own widths, and `FLEXIBLE_ARRAY_MEMBER` (C 1599) is the port's `[u32; 0]`
+   (PORTING.md P-40).  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct xm_targets_table_header
+{
+  /// C 1589-1590: `uint8_t byte_order; uint8_t protocol;`
+  pub byte_order: u8,
+  pub protocol: u8,
+  /// C 1592-1593.
+  pub target_list_count: u16,
+  pub total_data_size: u32,
+}
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct xm_targets_table_rec
+{
+  /// C 1598: `uint16_t n_targets;`
+  pub n_targets: u16,
+  /// C 1599: `uint32_t targets[FLEXIBLE_ARRAY_MEMBER];`
+  pub targets: [u32; 0],
+}
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct xm_drop_start_message
+{
+  /// C 1604-1611.
+  pub reason: u8,
+  pub byte_order: u8,
+  pub side_effects: u16,
+  pub timestamp: u32,
+  pub x: u16,
+  pub y: u16,
+  pub index_atom: u32,
+  pub source_window: u32,
+}
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct xm_drop_start_reply
+{
+  /// C 1616-1621.
+  pub reason: u8,
+  pub byte_order: u8,
+  pub side_effects: u16,
+  pub better_x: u16,
+  pub better_y: u16,
+}
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct xm_drag_initiator_info
+{
+  /// C 1626-1630.
+  pub byteorder: u8,
+  pub protocol: u8,
+  pub table_index: u16,
+  pub selection: u32,
+}
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct xm_drag_receiver_info
+{
+  /// C 1635-1642.
+  pub byteorder: u8,
+  pub protocol: u8,
+  pub protocol_style: u8,
+  pub unspecified0: u8,
+  pub unspecified1: u32,
+  pub unspecified2: u32,
+  pub unspecified3: u32,
+}
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct xm_top_level_enter_message
+{
+  /// C 1647-1653.
+  pub reason: u8,
+  pub byteorder: u8,
+  pub zero: u16,
+  pub timestamp: u32,
+  pub source_window: u32,
+  pub index_atom: u32,
+}
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct xm_drag_motion_message
+{
+  /// C 1658-1663.
+  pub reason: u8,
+  pub byteorder: u8,
+  pub side_effects: u16,
+  pub timestamp: u32,
+  pub x: u16,
+  pub y: u16,
+}
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct xm_drag_motion_reply
+{
+  /// C 1668-1674.
+  pub reason: u8,
+  pub byte_order: u8,
+  pub side_effects: u16,
+  pub timestamp: u32,
+  pub better_x: u16,
+  pub better_y: u16,
+}
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct xm_top_level_leave_message
+{
+  /// C 1679-1684.
+  pub reason: u8,
+  pub byteorder: u8,
+  pub zero: u16,
+  pub timestamp: u32,
+  pub source_window: u32,
+}
+
+/* C 1687-1761: the Motif drag protocol's bit packers.  C 1694's
+   `XM_DRAG_SIDE_EFFECT_OPERATIONS` is commented out in the reference, so it is not ported.  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! XM_DRAG_SIDE_EFFECT {
+  ($op:expr, $site:expr, $ops:expr, $act:expr) =>
+    { (($op) | (($site) << 4) | (($ops) << 8) | (($act) << 12)) };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! XM_DRAG_SIDE_EFFECT_OPERATION { ($effect:expr) => { (($effect) & 0xf) }; }
+#[cfg (feature = "have_x_windows")]
+macro_rules! XM_DRAG_SIDE_EFFECT_SITE_STATUS { ($effect:expr) => { ((($effect) & 0xf0) >> 4) }; }
+#[cfg (feature = "have_x_windows")]
+macro_rules! XM_DRAG_SIDE_EFFECT_DROP_ACTION { ($effect:expr) => { ((($effect) & 0xf000) >> 12) }; }
+
+/* C 1697-1704: the Motif drag operations.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub enum xm_drag_operation
+{
+  XM_DRAG_NOOP = 0,
+  XM_DRAG_MOVE = 1,
+  XM_DRAG_COPY = 2,
+  XM_DRAG_LINK = 4,
+  XM_DRAG_LINK_REC = 3,
+}
+
+#[cfg (feature = "have_x_windows")]
+macro_rules! XM_DRAG_OPERATION_IS_LINK {
+  ($op:expr) => { (($op) == xm_drag_operation::XM_DRAG_LINK as c_int
+                  || ($op) == xm_drag_operation::XM_DRAG_LINK_REC as c_int) };
+}
+
+/* C 1709-1714: what the drop target chose to do.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub enum xm_drag_action
+{
+  XM_DROP_ACTION_DROP = 0,
+  XM_DROP_ACTION_DROP_HELP = 1,
+  XM_DROP_ACTION_DROP_CANCEL = 2,
+}
+
+#[cfg (feature = "have_x_windows")]
+macro_rules! XM_DRAG_REASON {
+  ($originator:expr, $code:expr) => { (($code) | (($originator) << 7)) };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! XM_DRAG_REASON_ORIGINATOR {
+  ($reason:expr) => { if (($reason) & 0x80) != 0 { 1 } else { 0 } };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! XM_DRAG_REASON_CODE { ($reason:expr) => { (($reason) & 0x7f) }; }
+
+/* C 1720-1732: which end of the protocol sent a message.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub enum xm_drag_reason
+{
+  XM_DRAG_REASON_DROP_START = 5,
+  XM_DRAG_REASON_TOP_LEVEL_ENTER = 0,
+  XM_DRAG_REASON_TOP_LEVEL_LEAVE = 1,
+  XM_DRAG_REASON_DRAG_MOTION = 2,
+}
+
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub enum xm_drag_originator
+{
+  XM_DRAG_ORIGINATOR_INITIATOR = 0,
+  XM_DRAG_ORIGINATOR_RECEIVER = 1,
+}
+
+/* C 1734-1744: the protocol style a receiver advertises.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub enum xm_drag_style
+{
+  XM_DRAG_STYLE_NONE = 0,
+  XM_DRAG_STYLE_DROP_ONLY = 1,
+  XM_DRAG_STYLE_DROP_ONLY_REC = 3,
+  XM_DRAG_STYLE_DYNAMIC = 5,
+  XM_DRAG_STYLE_DYNAMIC_REC = 2,
+  XM_DRAG_STYLE_DYNAMIC_REC1 = 4,
+}
+
+#[cfg (feature = "have_x_windows")]
+macro_rules! XM_DRAG_STYLE_IS_DROP_ONLY {
+  ($n:expr) => { (($n) == xm_drag_style::XM_DRAG_STYLE_DROP_ONLY as c_int
+                  || ($n) == xm_drag_style::XM_DRAG_STYLE_DROP_ONLY_REC as c_int) };
+}
+#[cfg (feature = "have_x_windows")]
+macro_rules! XM_DRAG_STYLE_IS_DYNAMIC {
+  ($n:expr) => { (($n) == xm_drag_style::XM_DRAG_STYLE_DYNAMIC as c_int
+                  || ($n) == xm_drag_style::XM_DRAG_STYLE_DYNAMIC_REC as c_int
+                  || ($n) == xm_drag_style::XM_DRAG_STYLE_DYNAMIC_REC1 as c_int) };
+}
+
+/* C 1752-1757: the drop site's verdict.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub enum xm_drop_site_status
+{
+  XM_DROP_SITE_VALID = 3,
+  XM_DROP_SITE_INVALID = 2,
+  XM_DROP_SITE_NONE = 1,
+}
+
+/* C 1759-1761: `#define XM_DRAG_PROTOCOL_VERSION 0` - a value, so the port writes it as the
+   constant the extractor reads it as (the `STANDARD_EVENT_SET` shape in `include/xterm.rs`).  */
+#[cfg (feature = "have_x_windows")]
+pub const XM_DRAG_PROTOCOL_VERSION: c_int = 0;
 
 /* C 961-968: a deferred selection request.  */
 #[cfg (feature = "have_x_windows")]
@@ -941,4 +1436,468 @@ pub unsafe extern "C" fn x_defer_selection_requests ()
 
   x_use_pending_selection_requests += 1;
   unblock_input ();
+}
+
+/* ---- Slice 3: C 1763-2173 - the Motif side-effect mapping, the targets-table reader and
+   writer, the two error handlers, `x_special_window_exists_p` and the drag window.  Xlib's own
+   names stay bare (`XChangeProperty`, `None`, `Success`, `XA_WINDOW`, `PropModeReplace`,
+   `CopyFromParent`, `InputOnly`, `RetainPermanent`, `DestroyAll`), exactly as this file's own
+   header mirror keeps `KeyPressMask`; they resolve on an X11 target and nowhere here.  The
+   three libc entry points C uses through its own headers (`qsort`, `sigsetjmp`, `siglongjmp`)
+   are declared below - measured, not assumed: a program calling all three links, and `nm -u`
+   shows `_qsort`/`_sigsetjmp`/`_siglongjmp` (they are functions, not macros).  */
+
+/* C 1763-1776: the Motif side effect for an XDND action atom.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_side_effect_from_action (dpyinfo: *mut x_display_info, action: Atom) -> u8
+{
+  if action == (*dpyinfo).Xatom_XdndActionCopy
+    { return xm_drag_operation::XM_DRAG_COPY as u8; }
+  else if action == (*dpyinfo).Xatom_XdndActionMove
+    { return xm_drag_operation::XM_DRAG_MOVE as u8; }
+  else if action == (*dpyinfo).Xatom_XdndActionLink
+    { return xm_drag_operation::XM_DRAG_LINK as u8; }
+  else if action == (*dpyinfo).Xatom_XdndActionAsk
+    { return x_dnd_first_motif_operation; }
+
+  return xm_drag_operation::XM_DRAG_NOOP as u8;
+}
+
+/* C 1778-1798.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_operations_from_actions (dpyinfo: *mut x_display_info,
+				      ask_actions: *mut Atom, n_ask_actions: c_int) -> u8
+{
+  let mut i: c_int;
+  let mut flags: u8;
+
+  flags = 0;
+
+  for i in 0..n_ask_actions
+    {
+      if *ask_actions.offset (i as isize) == (*dpyinfo).Xatom_XdndActionCopy
+	{ flags |= xm_drag_operation::XM_DRAG_COPY as u8; }
+      else if *ask_actions.offset (i as isize) == (*dpyinfo).Xatom_XdndActionMove
+	{ flags |= xm_drag_operation::XM_DRAG_MOVE as u8; }
+      else if *ask_actions.offset (i as isize) == (*dpyinfo).Xatom_XdndActionLink
+	{ flags |= xm_drag_operation::XM_DRAG_LINK as u8; }
+    }
+
+  return flags;
+}
+
+/* C 1800-1823: read the table header out of a wire buffer, in place.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_read_targets_table_header (mut bytes: *mut u8, length: ptrdiff_t,
+					header_return: *mut xm_targets_table_header,
+					byteorder_return: *mut xm_byte_order) -> c_int
+{
+  if length < 8
+    { return -1; }
+
+  /* C 1808 chains one assignment (`header_return->byte_order = *byteorder_return = *(bytes++);`);
+     Rust has no assignment *expression*, so the value is bound once and stored twice.  */
+  let byte_order: xm_byte_order = *bytes as xm_byte_order;
+  (*header_return).byte_order = byte_order as u8;
+  *byteorder_return = byte_order;
+  bytes = bytes.add (1);
+  (*header_return).protocol = *bytes;
+  bytes = bytes.add (1);
+
+  (*header_return).target_list_count = *(bytes as *mut u16);
+  (*header_return).total_data_size = *(bytes.add (2) as *mut u32);
+
+  if (*header_return).byte_order as xm_byte_order != XM_BYTE_ORDER_CUR_FIRST
+    {
+      SWAPCARD16! ((*header_return).target_list_count);
+      SWAPCARD32! ((*header_return).total_data_size);
+    }
+
+  (*header_return).byte_order = XM_BYTE_ORDER_CUR_FIRST as u8;
+
+  return 8;
+}
+
+/* C 1825-1856: read one target list.  The record's `targets` member is the flexible array C
+   1599 declares, so its elements are reached through the record's own address (P-40).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_read_targets_table_rec (bytes: *mut u8, length: ptrdiff_t,
+				     byteorder: xm_byte_order) -> *mut xm_targets_table_rec
+{
+  let mut nitems: u16;
+  let mut i: u16;
+  let mut rec: *mut xm_targets_table_rec;
+
+  if length < 2
+    { return std::ptr::null_mut (); }
+
+  nitems = *(bytes as *mut u16);
+
+  if byteorder != XM_BYTE_ORDER_CUR_FIRST
+    { SWAPCARD16! (nitems); }
+
+  if length < 2 + (nitems as ptrdiff_t) * 4
+    { return std::ptr::null_mut (); }
+
+  rec = xmalloc (FLEXSIZEOF! (xm_targets_table_rec, targets, (nitems as usize) * 4))
+	  as *mut xm_targets_table_rec;
+  (*rec).n_targets = nitems;
+
+  for i in 0..nitems
+    {
+      FAM_ELEM! ((*rec).targets, i as isize)
+	= *(bytes.add (2) as *mut u32).add (i as usize);
+
+      if byteorder != XM_BYTE_ORDER_CUR_FIRST
+	{ SWAPCARD32! (FAM_ELEM! ((*rec).targets, i as isize)); }
+    }
+
+  return rec;
+}
+
+/* C 1858-1881: find the record whose list matches `sorted_targets`.  C's `alloca` is the
+   port's stack pool (P-05; `bignum.rs` 428 is the shape).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_find_targets_table_idx (header: *mut xm_targets_table_header,
+				     recs: *mut *mut xm_targets_table_rec,
+				     sorted_targets: *mut Atom, ntargets: c_int) -> c_int
+{
+  let mut j: c_int;
+  let mut i: u16;
+  let mut targets: *mut u32;
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  targets = SAFE_ALLOCA! (sa_avail, std::mem::size_of::<u32> () * ntargets as usize) as *mut u32;
+
+  for j in 0..ntargets
+    { *targets.offset (j as isize) = *sorted_targets.offset (j as isize) as u32; }
+
+  for i in 0..(*header).target_list_count
+    {
+      if (*recs.offset (i as isize)).is_null ()
+	{ break; }
+      if (*(*recs.offset (i as isize))).n_targets == ntargets as u16
+	  && memcmp (core::ptr::addr_of! (FAM_ELEM! ((*(*recs.offset (i as isize))).targets, 0))
+		       as *const c_void,
+		     targets as *const c_void,
+		     std::mem::size_of::<u32> () * ntargets as usize) == 0
+	{ SAFE_FREE! (sa_count); return i as c_int; }
+    }
+
+  SAFE_FREE! (sa_count);
+  return -1;
+}
+
+/* C 1883-1887: the comparator `qsort` sorts the target atoms with.  C's subtraction is an
+   `Atom` (an unsigned long) one, so the port does it at that width and only then narrows.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" fn x_atoms_compare (a: *const c_void, b: *const c_void) -> c_int
+{
+  return (*(a as *const Atom)).wrapping_sub (*(b as *const Atom)) as c_int;
+}
+
+/* C 1889-1934: write the whole targets table to the drag window.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_write_targets_table (dpy: *mut c_void, wdesc: Window,
+				  targets_table_atom: Atom,
+				  header: *mut xm_targets_table_header,
+				  recs: *mut *mut xm_targets_table_rec)
+{
+  let mut header_buffer: *mut u8;
+  let mut ptr: *mut u8;
+  let mut rec_buffer: *mut u8;
+  let mut rec_buffer_size: ptrdiff_t;
+  let mut i: u16;
+  let mut j: u16;
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  header_buffer = SAFE_ALLOCA! (sa_avail, 8) as *mut u8;
+  ptr = header_buffer;
+
+  *header_buffer = (*header).byte_order;
+  header_buffer = header_buffer.add (1);
+  *header_buffer = (*header).protocol;
+  header_buffer = header_buffer.add (1);
+  *(header_buffer as *mut u16) = (*header).target_list_count;
+  *(header_buffer.add (2) as *mut u32) = (*header).total_data_size;
+
+  rec_buffer = xmalloc (600) as *mut u8;
+  rec_buffer_size = 600;
+
+  XChangeProperty (dpy, wdesc, targets_table_atom,
+		   targets_table_atom, 8, PropModeReplace,
+		   ptr, 8);
+
+  for i in 0..(*header).target_list_count
+    {
+      if rec_buffer_size < 2 + (*(*recs.offset (i as isize))).n_targets as ptrdiff_t * 4
+	{
+	  rec_buffer_size = 2 + (*(*recs.offset (i as isize))).n_targets as ptrdiff_t * 4;
+	  rec_buffer = xrealloc (rec_buffer as *mut c_void, rec_buffer_size as usize) as *mut u8;
+	}
+
+      *(rec_buffer as *mut u16) = (*(*recs.offset (i as isize))).n_targets;
+
+      for j in 0..(*(*recs.offset (i as isize))).n_targets
+	{
+	  *(rec_buffer.add (2) as *mut u32).add (j as usize)
+	    = FAM_ELEM! ((*(*recs.offset (i as isize))).targets, j as isize);
+	}
+
+      XChangeProperty (dpy, wdesc, targets_table_atom,
+		       targets_table_atom, 8, PropModeAppend,
+		       rec_buffer,
+		       2 + (*(*recs.offset (i as isize))).n_targets as c_int * 4);
+    }
+
+  xfree (rec_buffer as *mut c_void);
+  SAFE_FREE! (sa_count);
+}
+
+/* C 1936-1958.  C 1950 swaps a CARD32 member with `SWAPCARD16`, which in C narrows to the
+   low 16 bits through gnulib's `bswap_16` and stores them back; the port keeps that
+   arithmetic instead of "fixing" the reference.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_write_drag_initiator_info (dpy: *mut c_void, wdesc: Window,
+					prop_name: Atom, type_name: Atom,
+					info: *mut xm_drag_initiator_info)
+{
+  let mut buf: *mut u8;
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  buf = SAFE_ALLOCA! (sa_avail, 8) as *mut u8;
+  /* C 1944-1945's `buf[0]`/`buf[1]` keep their subscripts, so the numbers stay in the body. */
+  *buf.offset (0) = (*info).byteorder;
+  *buf.offset (1) = (*info).protocol;
+
+  if (*info).byteorder as xm_byte_order != XM_BYTE_ORDER_CUR_FIRST
+    {
+      SWAPCARD16! ((*info).table_index);
+      let mut low: u16 = (*info).selection as u16;
+      SWAPCARD16! (low);
+      (*info).selection = ((*info).selection & !0xffff) | low as u32;
+    }
+
+  *(buf.add (2) as *mut u16) = (*info).table_index;
+  *(buf.add (4) as *mut u32) = (*info).selection;
+
+  XChangeProperty (dpy, wdesc, prop_name, type_name, 8,
+		   PropModeReplace, buf, 8);
+  SAFE_FREE! (sa_count);
+}
+
+/* C 1960-1967: the X error handler that records that the drag window is bad.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" fn xm_drag_window_error_handler (display: *mut c_void,
+						  event: *mut c_void) -> c_int
+{
+  if !xm_drag_window_error.is_null ()
+    { *xm_drag_window_error = true; }
+
+  return 0;
+}
+
+/* C 1969-1975: C declares it `_Noreturn int`, which the port writes `-> !` (PORTING.md 5.2);
+   `siglongjmp` is the libc function declared above.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" fn xm_drag_window_io_error_handler (dpy: *mut c_void) -> !
+{
+  siglongjmp (&raw mut x_dnd_disconnect_handler, 1);
+  /* C declares it `_Noreturn`; `siglongjmp` never returns, so the port gives Rust's `-> !`
+     the divergence it needs (`lread.rs` 720's shape).  */
+  unreachable! ()
+}
+
+/* C 1977-1992: does WINDOW exist on DPYINFO?  Selecting for input from it is what asks.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_special_window_exists_p (dpyinfo: *mut x_display_info, window: Window) -> bool
+{
+  let mut rc: bool;
+
+  x_catch_errors ((*dpyinfo).display);
+  XSelectInput ((*dpyinfo).display, window,
+		StructureNotifyMask);
+  rc = x_had_errors_p ((*dpyinfo).display) == 0;
+  x_uncatch_errors_after_check ();
+
+  return rc;
+}
+
+/* C 2014-2163: create the Motif drag window, or return the one already recorded.  C's comment
+   at 1994-2012 is the protocol; the port keeps the statements in C's order.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_get_drag_window_1 (dpyinfo: *mut x_display_info) -> Window
+{
+  let mut actual_type: Atom;
+  let mut rc: c_int;
+  let mut actual_format: c_int;
+  let mut nitems: c_ulong;
+  let mut bytes_remaining: c_ulong;
+  let mut tmp_data: *mut u8 = std::ptr::null_mut ();
+  let mut drag_window: Window;
+  let mut attrs: XSetWindowAttributes = std::mem::zeroed ();
+  let mut temp_display: *mut c_void;
+  let mut old_handler: Emacs_XErrorHandler;
+  let mut old_io_handler: Emacs_XIOErrorHandler;
+
+  /* This is volatile because GCC mistakenly warns about them being clobbered by longjmp.  */
+  let mut error: bool;
+
+  drag_window = None;
+  rc = (XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,
+			    (*dpyinfo).Xatom_MOTIF_DRAG_WINDOW,
+			    0, 1, False, XA_WINDOW, &raw mut actual_type,
+			    &raw mut actual_format, &raw mut nitems, &raw mut bytes_remaining,
+			    &raw mut tmp_data) == Success) as c_int;
+
+  if rc != 0 && actual_type == XA_WINDOW
+      && actual_format == 32 && nitems == 1
+      && !tmp_data.is_null ()
+    {
+      drag_window = *(tmp_data as *mut Window);
+
+      /* This has the side effect of selecting for StructureNotifyMask, meaning that we
+	 will get notifications once it is deleted.  */
+      rc = x_special_window_exists_p (dpyinfo, drag_window) as c_int;
+
+      if rc == 0
+	{ drag_window = None; }
+    }
+
+  if !tmp_data.is_null ()
+    { XFree (tmp_data); }
+
+  if drag_window == None
+    {
+      block_input ();
+      old_io_handler = XSetIOErrorHandler (Some (xm_drag_window_io_error_handler));
+
+      if sigsetjmp (&raw mut x_dnd_disconnect_handler, 1) != 0
+	{
+	  XSetIOErrorHandler (old_io_handler);
+	  unblock_input ();
+
+	  return None;
+	}
+
+      unrequest_sigio ();
+      temp_display = XOpenDisplay (XDisplayString ((*dpyinfo).display));
+      request_sigio ();
+
+      if temp_display.is_null ()
+	{
+	  XSetIOErrorHandler (old_io_handler);
+	  unblock_input ();
+
+	  return None;
+	}
+
+      error = false;
+      xm_drag_window_error = &raw mut error;
+
+      XSetCloseDownMode (temp_display, RetainPermanent);
+      old_handler = XSetErrorHandler (Some (xm_drag_window_error_handler));
+
+      attrs.override_redirect = True;
+      drag_window = XCreateWindow (temp_display, DefaultRootWindow (temp_display),
+				   -1, -1, 1, 1, 0, CopyFromParent, InputOnly,
+				   CopyFromParent, CWOverrideRedirect, &raw mut attrs);
+
+      /* Handle all errors now.  */
+      XSync (temp_display, False);
+
+      /* Some part of the drag window creation process failed, so punt.  Release all
+	 resources too.  */
+      if error
+	{
+	  XSetCloseDownMode (temp_display, DestroyAll);
+	  drag_window = None;
+	}
+
+      xm_drag_window_error = std::ptr::null_mut ();
+
+      /* FIXME: why does XCloseDisplay hang if SIGIO arrives and there are multiple
+	 displays?  */
+      unrequest_sigio ();
+      XCloseDisplay (temp_display);
+      request_sigio ();
+
+      XSetErrorHandler (old_handler);
+      XSetIOErrorHandler (old_io_handler);
+
+      /* Make sure the drag window created is actually valid for the current display, and
+	 the XOpenDisplay above did not accidentally connect to some other display.  */
+      if !x_special_window_exists_p (dpyinfo, drag_window)
+	{ drag_window = None; }
+      unblock_input ();
+
+      if drag_window != None
+	{
+	  XGrabServer ((*dpyinfo).display);
+
+	  x_catch_errors ((*dpyinfo).display);
+	  tmp_data = std::ptr::null_mut ();
+
+	  rc = (XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,
+				    (*dpyinfo).Xatom_MOTIF_DRAG_WINDOW,
+				    0, 1, False, XA_WINDOW, &raw mut actual_type,
+				    &raw mut actual_format, &raw mut nitems,
+				    &raw mut bytes_remaining,
+				    &raw mut tmp_data) == Success) as c_int;
+
+	  if rc != 0 && actual_type == XA_WINDOW
+	      && actual_format == 32 && nitems == 1
+	      && !tmp_data.is_null ()
+	      && x_special_window_exists_p (dpyinfo, *(tmp_data as *mut Window))
+	    {
+	      /* Kill the client now to avoid leaking a client slot, which is a limited
+		 resource.  */
+	      XKillClient ((*dpyinfo).display, drag_window);
+	      drag_window = *(tmp_data as *mut Window);
+	    }
+	  else
+	    { XChangeProperty ((*dpyinfo).display, (*dpyinfo).root_window,
+			       (*dpyinfo).Xatom_MOTIF_DRAG_WINDOW,
+			       XA_WINDOW, 32, PropModeReplace,
+			       &raw mut drag_window as *mut u8, 1); }
+
+	  if !tmp_data.is_null ()
+	    { XFree (tmp_data); }
+
+	  if x_had_errors_p ((*dpyinfo).display) != 0
+	    { drag_window = None; }
+	  x_uncatch_errors ();
+
+	  XUngrabServer ((*dpyinfo).display);
+	}
+    }
+
+  return drag_window;
+}
+
+/* C 2165-2173.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn xm_get_drag_window (dpyinfo: *mut x_display_info) -> Window
+{
+  if (*dpyinfo).motif_drag_window != None
+    { return (*dpyinfo).motif_drag_window; }
+
+  (*dpyinfo).motif_drag_window = xm_get_drag_window_1 (dpyinfo);
+  return (*dpyinfo).motif_drag_window;
+}
+
+/* The three libc entry points C reaches through its own headers.  `buffer.rs` 132 declares
+   `qsort` the same way (the port's `stdlib.rs` mirror does not carry it); `sigsetjmp` and
+   `siglongjmp` are what C calls directly at C 2061/1974, and C's own `sys_setjmp` spelling
+   (`_setjmp`) does *not* save the signal mask, which is the whole point of C's call here.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: <stdlib.h> 489: `extern void qsort (void *__base, size_t __nmemb, size_t __size,
+  /// __compar_fn_t __compar);`
+  pub fn qsort (base: *mut c_void, nmemb: usize, size: usize,
+		compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
+  /// C: <setjmp.h>: `int sigsetjmp (sigjmp_buf, int);`
+  pub fn sigsetjmp (env: *mut sigjmp_buf, savemask: c_int) -> c_int;
+  /// C: <setjmp.h>: `void siglongjmp (sigjmp_buf, int);`
+  pub fn siglongjmp (env: *mut sigjmp_buf, val: c_int);
 }

@@ -4,8 +4,10 @@
 > has no `src/xterm.c` (this target's platform object variables are empty - `WINDOW_SYSTEM_OBJ=`,
 > `HAIKU_OBJ = `, `MSDOS_OBJ =`, `CYGWIN_OBJ=` in `build/emacs-ref/src/Makefile`), so `make -n`
 > never names the file.  Until round 188 the port was the recorded empty unit; round 188 (lane
-> `xterm`) opened it and landed **slice 1 = C 625-990** (`femacs/src/xterm.rs`), so the checklist
-> below is now a real list again and the unchecked boxes are the lane's remaining demand.
+> `xterm`) opened it and landed **slice 1 = C 625-990** and **slice 2 = C 1131-1762**
+> (`femacs/src/xterm.rs`), so the checklist below is now a real list again and the unchecked
+> boxes are the lane's remaining demand.  C 987-1130 (the `x_atom_refs` table) is deliberately
+> not landed yet - Decisions 9 says why.
 >
 > The unit keeps the file's own header mirror's shape (`femacs/src/include/xterm.rs`, b03d883):
 > the whole body carries `#[cfg (feature = "have_x_windows")]` - P-51's arm for the non-frozen
@@ -13,7 +15,8 @@
 > that means for verification is in Decisions 1 and 2, and the measured readings are in Evidence.
 >
 > `tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` was **460** `- ` lines
-> before slice 1 and is **443** after it; the list below is that same frozen reading, which is
+> before slice 1 and is **443** after it, and **324** after slice 2 (C 1131-1762, the drag-and-drop state and the
+> Motif message layouts); the list below is that same frozen reading, which is
 > *not* the configuration that compiles the file (Decisions 2).
 
 # ----------------------------------------------------------------------
@@ -23,19 +26,19 @@
 - [x] x_defer_selection_requests  (line 900)
 - [x] x_release_selection_requests  (line 947, static)
 - [x] x_release_selection_requests_and_flush  (line 953)
-- [ ] xm_side_effect_from_action  (line 1764, static)
-- [ ] xm_operations_from_actions  (line 1779, static)
-- [ ] xm_read_targets_table_header  (line 1801, static)
-- [ ] xm_read_targets_table_rec  (line 1826, static)
-- [ ] xm_find_targets_table_idx  (line 1859, static)
-- [ ] x_atoms_compare  (line 1884, static)
-- [ ] xm_write_targets_table  (line 1890, static)
-- [ ] xm_write_drag_initiator_info  (line 1937, static)
-- [ ] xm_drag_window_error_handler  (line 1961, static)
-- [ ] xm_drag_window_io_error_handler  (line 1970, static)
-- [ ] x_special_window_exists_p  (line 1980, static)
-- [ ] xm_get_drag_window_1  (line 2015, static)
-- [ ] xm_get_drag_window  (line 2166, static)
+- [x] xm_side_effect_from_action  (line 1764, static)
+- [x] xm_operations_from_actions  (line 1779, static)
+- [x] xm_read_targets_table_header  (line 1801, static)
+- [x] xm_read_targets_table_rec  (line 1826, static)
+- [x] xm_find_targets_table_idx  (line 1859, static)
+- [x] x_atoms_compare  (line 1884, static)
+- [x] xm_write_targets_table  (line 1890, static)
+- [x] xm_write_drag_initiator_info  (line 1937, static)
+- [x] xm_drag_window_error_handler  (line 1961, static)
+- [x] xm_drag_window_io_error_handler  (line 1970, static)
+- [x] x_special_window_exists_p  (line 1980, static)
+- [x] xm_get_drag_window_1  (line 2015, static)
+- [x] xm_get_drag_window  (line 2166, static)
 - [ ] xm_setup_dnd_targets  (line 2176, static)
 - [ ] xm_get_drag_atom_1  (line 2403, static)
 - [ ] xm_get_drag_atom  (line 2512, static)
@@ -336,20 +339,20 @@
 - [ ] HIGHLIGHT_COLOR_DARK_BOOST_LIMIT  (line 9580, body bdbb3f155244)
 - [ ] OPAQUE  (line 6929, body d524558178b7)
 - [ ] STORE_KEYSYM_FOR_DEBUG  (line 17826, body faabc0e0dbea)
-- [ ] SWAPCARD16  (line 1584, body f50347531e4d)
-- [ ] SWAPCARD32  (line 1583, body 393d2f43a49a)
+- [x] SWAPCARD16  (line 1584, body f50347531e4d)
+- [x] SWAPCARD32  (line 1583, body 393d2f43a49a)
 - [ ] XEMBED_VERSION  (line 29148, body b6589fc6ab0d)
-- [ ] XM_DRAG_OPERATION_IS_LINK  (line 1706, body 19c218f1041c)
-- [ ] XM_DRAG_PROTOCOL_VERSION  (line 1761, body b6589fc6ab0d)
-- [ ] XM_DRAG_REASON  (line 1716, body 9456c43f5e20)
-- [ ] XM_DRAG_REASON_CODE  (line 1718, body 7810497b8cdc)
-- [ ] XM_DRAG_REASON_ORIGINATOR  (line 1717, body 49d23216e03e)
-- [ ] XM_DRAG_SIDE_EFFECT  (line 1687, body fcd0aa2b3860)
-- [ ] XM_DRAG_SIDE_EFFECT_DROP_ACTION  (line 1695, body d8acb947f1f0)
-- [ ] XM_DRAG_SIDE_EFFECT_OPERATION  (line 1692, body af8a320359fb)
-- [ ] XM_DRAG_SIDE_EFFECT_SITE_STATUS  (line 1693, body cc712b03bf55)
-- [ ] XM_DRAG_STYLE_IS_DROP_ONLY  (line 1746, body 8a5d0800d81c)
-- [ ] XM_DRAG_STYLE_IS_DYNAMIC  (line 1748, body ff5b4bd375aa)
+- [x] XM_DRAG_OPERATION_IS_LINK  (line 1706, body 19c218f1041c)
+- [x] XM_DRAG_PROTOCOL_VERSION  (line 1761, body b6589fc6ab0d)
+- [x] XM_DRAG_REASON  (line 1716, body 9456c43f5e20)
+- [x] XM_DRAG_REASON_CODE  (line 1718, body 7810497b8cdc)
+- [x] XM_DRAG_REASON_ORIGINATOR  (line 1717, body 49d23216e03e)
+- [x] XM_DRAG_SIDE_EFFECT  (line 1687, body fcd0aa2b3860)
+- [x] XM_DRAG_SIDE_EFFECT_DROP_ACTION  (line 1695, body d8acb947f1f0)
+- [x] XM_DRAG_SIDE_EFFECT_OPERATION  (line 1692, body af8a320359fb)
+- [x] XM_DRAG_SIDE_EFFECT_SITE_STATUS  (line 1693, body cc712b03bf55)
+- [x] XM_DRAG_STYLE_IS_DROP_ONLY  (line 1746, body 8a5d0800d81c)
+- [x] XM_DRAG_STYLE_IS_DYNAMIC  (line 1748, body ff5b4bd375aa)
 - [ ] X_DND_SUPPORTED_VERSION  (line 3626, body ac3478d69a3c)
 - [x] X_NEXT_KBD_EVENT  (line 888, body 1bf69f7be3e8)
 - [ ] x_any_window_to_frame  (line 12486, body c8c88ba3cad5)
@@ -378,72 +381,72 @@
 - [x] static int x_noop_count  (line 851, static)
 - [x] static int x_use_pending_selection_requests  (line 885, static)
 - [x] static struct x_selection_request_event pending_selection_requests  (line 974, static)
-- [ ] bool x_dnd_in_progress  (line 1217)
-- [ ] struct frame x_dnd_frame  (line 1220)
-- [ ] struct frame x_dnd_finish_frame  (line 1225)
-- [ ] bool x_dnd_waiting_for_finish  (line 1231)
-- [ ] static bool x_dnd_run_unsupported_drop_function  (line 1236, static)
-- [ ] static Time x_dnd_unsupported_drop_time  (line 1239, static)
-- [ ] static Window x_dnd_unsupported_drop_window  (line 1242, static)
-- [ ] static Lisp_Object x_dnd_unsupported_drop_data  (line 1245, static)
-- [ ] static bool x_dnd_update_tooltip  (line 1249, static)
-- [ ] static Lisp_Object x_dnd_monitors  (line 1252, static)
-- [ ] static Display x_dnd_finish_display  (line 1256, static)
-- [ ] static int x_dnd_waiting_for_motif_finish  (line 1267, static)
-- [ ] static struct x_display_info x_dnd_waiting_for_motif_finish_display  (line 1271, static)
-- [ ] static bool x_dnd_xm_use_help  (line 1277, static)
-- [ ] static bool x_dnd_motif_setup_p  (line 1280, static)
-- [ ] static Atom x_dnd_motif_atom  (line 1283, static)
-- [ ] static Window x_dnd_pending_finish_target  (line 1287, static)
-- [ ] static int x_dnd_waiting_for_finish_proto  (line 1290, static)
-- [ ] static bool x_dnd_allow_current_frame  (line 1294, static)
-- [ ] static bool x_dnd_init_type_lists  (line 1298, static)
-- [ ] static int x_dnd_return_frame  (line 1305, static)
-- [ ] static struct frame x_dnd_return_frame_object  (line 1309, static)
-- [ ] static Window x_dnd_last_seen_window  (line 1314, static)
-- [ ] static Window x_dnd_last_seen_toplevel  (line 1317, static)
-- [ ] static Window x_dnd_end_window  (line 1321, static)
-- [ ] static int x_dnd_last_protocol_version  (line 1325, static)
-- [ ] static bool x_dnd_last_window_is_frame  (line 1329, static)
-- [ ] static int x_dnd_last_motif_style  (line 1337, static)
-- [ ] static Time x_dnd_selection_timestamp  (line 1341, static)
-- [ ] static Window x_dnd_mouse_rect_target  (line 1344, static)
-- [ ] static XRectangle x_dnd_mouse_rect  (line 1348, static)
-- [ ] static Window x_dnd_waiting_for_status_window  (line 1352, static)
-- [ ] static XEvent x_dnd_pending_send_position  (line 1356, static)
-- [ ] static bool x_dnd_pending_send_position_button  (line 1359, static)
-- [ ] static int x_dnd_pending_send_position_root_x  (line 1362, static)
-- [ ] static int x_dnd_pending_send_position_root_y  (line 1365, static)
-- [ ] static bool x_dnd_need_send_drop  (line 1369, static)
-- [ ] static int x_dnd_send_drop_proto  (line 1372, static)
-- [ ] static Atom x_dnd_action  (line 1384, static)
-- [ ] static Lisp_Object x_dnd_action_symbol  (line 1388, static)
-- [ ] static Atom x_dnd_wanted_action  (line 1393, static)
-- [ ] static uint8_t x_dnd_motif_operations  (line 1397, static)
-- [ ] static uint8_t x_dnd_first_motif_operation  (line 1401, static)
-- [ ] static Atom x_dnd_targets  (line 1404, static)
-- [ ] static int x_dnd_n_targets  (line 1407, static)
-- [ ] static XWindowAttributes x_dnd_old_window_attrs  (line 1413, static)
-- [ ] static bool x_dnd_unwind_flag  (line 1417, static)
-- [ ] static struct frame x_dnd_movement_frame  (line 1420, static)
-- [ ] static int x_dnd_movement_x  (line 1424, static)
-- [ ] static int x_dnd_movement_y  (line 1424, static)
-- [ ] static struct frame x_dnd_wheel_frame  (line 1427, static)
-- [ ] static int x_dnd_wheel_x  (line 1430, static)
-- [ ] static int x_dnd_wheel_y  (line 1430, static)
-- [ ] static int x_dnd_wheel_button  (line 1433, static)
-- [ ] static int x_dnd_wheel_state  (line 1436, static)
-- [ ] static Time x_dnd_wheel_time  (line 1439, static)
-- [ ] static sigjmp_buf x_dnd_disconnect_handler  (line 1448, static)
-- [ ] static bool x_dnd_inside_handle_one_xevent  (line 1452, static)
-- [ ] static int x_dnd_recursion_depth  (line 1456, static)
-- [ ] static Lisp_Object x_dnd_selection_alias_cell  (line 1461, static)
-- [ ] static int x_dnd_last_tooltip_x  (line 1464, static)
-- [ ] static int x_dnd_last_tooltip_y  (line 1464, static)
-- [ ] static bool x_dnd_last_tooltip_valid  (line 1467, static)
-- [ ] static struct x_client_list_window x_dnd_toplevels  (line 1536, static)
-- [ ] static bool x_dnd_use_toplevels  (line 1540, static)
-- [ ] static volatile bool xm_drag_window_error  (line 1548, static)
+- [x] bool x_dnd_in_progress  (line 1217)
+- [x] struct frame x_dnd_frame  (line 1220)
+- [x] struct frame x_dnd_finish_frame  (line 1225)
+- [x] bool x_dnd_waiting_for_finish  (line 1231)
+- [x] static bool x_dnd_run_unsupported_drop_function  (line 1236, static)
+- [x] static Time x_dnd_unsupported_drop_time  (line 1239, static)
+- [x] static Window x_dnd_unsupported_drop_window  (line 1242, static)
+- [x] static Lisp_Object x_dnd_unsupported_drop_data  (line 1245, static)
+- [x] static bool x_dnd_update_tooltip  (line 1249, static)
+- [x] static Lisp_Object x_dnd_monitors  (line 1252, static)
+- [x] static Display x_dnd_finish_display  (line 1256, static)
+- [x] static int x_dnd_waiting_for_motif_finish  (line 1267, static)
+- [x] static struct x_display_info x_dnd_waiting_for_motif_finish_display  (line 1271, static)
+- [x] static bool x_dnd_xm_use_help  (line 1277, static)
+- [x] static bool x_dnd_motif_setup_p  (line 1280, static)
+- [x] static Atom x_dnd_motif_atom  (line 1283, static)
+- [x] static Window x_dnd_pending_finish_target  (line 1287, static)
+- [x] static int x_dnd_waiting_for_finish_proto  (line 1290, static)
+- [x] static bool x_dnd_allow_current_frame  (line 1294, static)
+- [x] static bool x_dnd_init_type_lists  (line 1298, static)
+- [x] static int x_dnd_return_frame  (line 1305, static)
+- [x] static struct frame x_dnd_return_frame_object  (line 1309, static)
+- [x] static Window x_dnd_last_seen_window  (line 1314, static)
+- [x] static Window x_dnd_last_seen_toplevel  (line 1317, static)
+- [x] static Window x_dnd_end_window  (line 1321, static)
+- [x] static int x_dnd_last_protocol_version  (line 1325, static)
+- [x] static bool x_dnd_last_window_is_frame  (line 1329, static)
+- [x] static int x_dnd_last_motif_style  (line 1337, static)
+- [x] static Time x_dnd_selection_timestamp  (line 1341, static)
+- [x] static Window x_dnd_mouse_rect_target  (line 1344, static)
+- [x] static XRectangle x_dnd_mouse_rect  (line 1348, static)
+- [x] static Window x_dnd_waiting_for_status_window  (line 1352, static)
+- [x] static XEvent x_dnd_pending_send_position  (line 1356, static)
+- [x] static bool x_dnd_pending_send_position_button  (line 1359, static)
+- [x] static int x_dnd_pending_send_position_root_x  (line 1362, static)
+- [x] static int x_dnd_pending_send_position_root_y  (line 1365, static)
+- [x] static bool x_dnd_need_send_drop  (line 1369, static)
+- [x] static int x_dnd_send_drop_proto  (line 1372, static)
+- [x] static Atom x_dnd_action  (line 1384, static)
+- [x] static Lisp_Object x_dnd_action_symbol  (line 1388, static)
+- [x] static Atom x_dnd_wanted_action  (line 1393, static)
+- [x] static uint8_t x_dnd_motif_operations  (line 1397, static)
+- [x] static uint8_t x_dnd_first_motif_operation  (line 1401, static)
+- [x] static Atom x_dnd_targets  (line 1404, static)
+- [x] static int x_dnd_n_targets  (line 1407, static)
+- [x] static XWindowAttributes x_dnd_old_window_attrs  (line 1413, static)
+- [x] static bool x_dnd_unwind_flag  (line 1417, static)
+- [x] static struct frame x_dnd_movement_frame  (line 1420, static)
+- [x] static int x_dnd_movement_x  (line 1424, static)
+- [x] static int x_dnd_movement_y  (line 1424, static)
+- [x] static struct frame x_dnd_wheel_frame  (line 1427, static)
+- [x] static int x_dnd_wheel_x  (line 1430, static)
+- [x] static int x_dnd_wheel_y  (line 1430, static)
+- [x] static int x_dnd_wheel_button  (line 1433, static)
+- [x] static int x_dnd_wheel_state  (line 1436, static)
+- [x] static Time x_dnd_wheel_time  (line 1439, static)
+- [x] static sigjmp_buf x_dnd_disconnect_handler  (line 1448, static)
+- [x] static bool x_dnd_inside_handle_one_xevent  (line 1452, static)
+- [x] static int x_dnd_recursion_depth  (line 1456, static)
+- [x] static Lisp_Object x_dnd_selection_alias_cell  (line 1461, static)
+- [x] static int x_dnd_last_tooltip_x  (line 1464, static)
+- [x] static int x_dnd_last_tooltip_y  (line 1464, static)
+- [x] static bool x_dnd_last_tooltip_valid  (line 1467, static)
+- [x] static struct x_client_list_window x_dnd_toplevels  (line 1536, static)
+- [x] static bool x_dnd_use_toplevels  (line 1540, static)
+- [x] static volatile bool xm_drag_window_error  (line 1548, static)
 - [ ] static struct x_display_info XTread_socket_fake_io_error  (line 17833, static)
 - [ ] static struct x_display_info next_noop_dpyinfo  (line 17840, static)
 - [ ] static struct x_error_message_stack x_error_message  (line 26249, static)
@@ -582,6 +585,106 @@ mirror.  Every header that *does* have a mirror is included at C's position.
 uses (`have_x_windows`, `use_x_toolkit`, `use_gtk`, `have_xinput2`, `have_x_i18n`) are already
 in the table from the xterm.h mirror's round.  Requested in this round's report.
 
+### 8. Slice 2 (C 1131-1762): what it landed, and the three shapes worth recording
+
+Slice 2 is the drag-and-drop state block (C 1214-1548), `struct x_client_list_window`
+(1478-1533), the Motif message layouts (1550-1685) and the protocol's bit packers
+(1687-1761): **66 file-scope objects + 13 macros**, all ticked, plus 3 enums, 1 typedef'd
+enum, 9 records and 2 XEmbed enums carried.  The conditions it crosses - with C line numbers -
+are `HAVE_XSHAPE` (1511-1526, the two shape rectangles inside `x_client_list_window`),
+`HAVE_XKB` (1441-1444, `x_dnd_keyboard_state`), `HAVE_XINPUT2` (1469-1476, the two device ids),
+`ENABLE_CHECKING` (1561-1585, the `SWAPCARD*` arm) and `WORDS_BIGENDIAN` (1554-1558,
+`XM_BYTE_ORDER_CUR_FIRST`); each is carried under the lowercased feature name, dead arms
+included (P-51), so nothing in the range is dropped.
+
+Three decisions this slice had to make, because C cannot be transcribed literally:
+
+* **X11 names.**  Slice 1 followed P-72 rule 3 for the three Xlib *pointer* typedefs
+  (`Display`, `XErrorEvent`, `XtAppContext` -> opaque `*mut c_void` + a `/// C:` line).  Slice 2
+  keeps every other X11 name as C spells it - `Window`, `Atom`, `XRectangle`, `XEvent`,
+  `XWindowAttributes` - which is what this file's own header mirror does with `*mut XEvent` and
+  `XRectangle` (its 457, 605), and what makes the by-value objects (`x_dnd_mouse_rect`,
+  `x_dnd_pending_send_position`, `x_dnd_old_window_attrs`) expressible at all: an aggregate by
+  value cannot be an opaque pointer, and its storage is C's zeroed static storage, written here
+  as `std::mem::zeroed ()` (the `buffer.rs` 166 precedent).  Cost, measured: with
+  `have_x_windows` on, the unit's own text has **15** unresolved X11 type names (8 `Window`,
+  4 `Atom`, and one each of `XWindowAttributes`/`XRectangle`/`XEvent`) - the same class of
+  error the mirror already reports 142 times.  If you would rather have one spelling for the
+  whole lane, the alternative is to *name* the X11 types inside the arm (`*mut Display`,
+  `Window`, ...) and wait for an X11 header mirror to define them; slice 1's three `*mut c_void`
+  lines would then be the ones to change.  Say which you want and the next slice follows it.
+* **`XM_BYTE_ORDER_CUR_FIRST` (C 1554-1558).**  With `WORDS_BIGENDIAN` undef, C's third enum
+  member has the *same value* as `XM_BYTE_ORDER_LSB_FIRST`, and Rust refuses two variants with
+  one discriminant (`E0081`).  The port therefore keeps the two real members in the enum and
+  writes C's two spellings of the current order as cfg'd `const`s aliasing whichever member C
+  would have made them equal to; the `#else` arm is carried under `words_bigendian`.
+* **`SWAPCARD32`/`SWAPCARD16` (C 1561-1585).**  `tools/extract-abi.py`'s `macro_body_of` answers
+  for a macro name with the **first** `macro_rules!` in the file, so the frozen arm (`#else`,
+  gnulib's `bswap_32`/`bswap_16`) is written **first** and the `ENABLE_CHECKING` arm after it -
+  with a comment at the definition saying why, so a later reader does not "restore" C's order and
+  break the token check.  The checking arm's bitfield trick is written as a `u32`/`u16` plus a
+  `c_char` pointer swap (Rust has no bitfields); it is dead here and carried for the flip.
+* **`XM_DRAG_PROTOCOL_VERSION` (C 1759-1761)** is an object-like integer macro, which the
+  extractor reads as a *constant* and demands as one: written as `pub const ... : c_int = 0`.
+
+### 9. Deferred by slice 2, and what it needs
+
+**`x_atom_refs` (C 987-1130, 122 entries) is not landed**: its `ATOM_REFS_INIT` rows name
+**115** different `Xatom_*` members of `struct x_display_info`, and `femacs/src/include/xterm.rs`
+carries **61** of them.  The 58 that are missing are xterm.h's own **unconditional** text at
+**xterm.h 772-817** (measured: none of them is inside an `#if` other than the include guard), so
+that mirror is simply a WIP slice of its header.  Writing the table now would put 58 names in
+the file that nothing defines.  It opens the next slice as soon as the mirror has them (or you
+rule that the table is written 1:1 and the names wait), and the request is in this round's
+report.
+
+### 10. Feature names slice 2 adds to the request list
+
+`enable_checking` (C 1561), `have_xshape` (C 1511), `have_xkb` (C 1441).  The previous round's
+five (`use_toolkit_scroll_bars`, `use_motif`, `use_xcb`, `use_cairo_xcb`,
+`have_xcb_shape_input_rects`) are still outstanding too.
+
+### 11. Slice 3 (C 1763-2173): the Motif side-effect map, the targets table and the drag window
+
+Thirteen static functions - `xm_side_effect_from_action`, `xm_operations_from_actions`,
+`xm_read_targets_table_header`, `xm_read_targets_table_rec`, `xm_find_targets_table_idx`,
+`x_atoms_compare`, `xm_write_targets_table`, `xm_write_drag_initiator_info`,
+`xm_drag_window_error_handler`, `xm_drag_window_io_error_handler`, `x_special_window_exists_p`,
+`xm_get_drag_window_1`, `xm_get_drag_window` - all ticked.  What the round had to decide, and
+what the two measurements (the gate and the X11 probe) caught:
+
+* **`xm_byte_order` was modelled wrongly in slice 2 and is corrected here.**  C 1808 *stores a
+  wire byte* into the enum before comparing it (`header_return->byte_order = *byteorder_return =
+  *(bytes++)`), so it is a byte holder, not a closed set; it is now `pub type xm_byte_order =
+  c_int` plus the three constants (the `dispextern.rs` `glyph_row_area` shape), which also
+  dissolves the `E0081` problem slice 2 recorded (two members with one discriminant).
+* **`alloca` is the port's stack pool** (P-05): `USE_SAFE_ALLOCA!`/`SAFE_ALLOCA!`/`SAFE_FREE!`
+  at C 1867, 1899, 1943 (`bignum.rs` 428 is the shape).
+* **Three libc entry points are declared in the unit** because C reaches them through its own
+  headers and no mirror carries them - `qsort` (C 2202; `buffer.rs` 132 declares it the same
+  way), and `sigsetjmp`/`siglongjmp` (C 2061/1974, whose whole point is that they save the
+  signal mask, which C's own `sys_setjmp` spelling does not).  **Measured, not assumed**: a
+  program calling all three links, and `nm -u` shows `_qsort`, `_sigsetjmp`, `_siglongjmp` -
+  they are functions, not macros, so this is not one of the invented externs of status 3.251.
+* **Xlib's own names stay bare** (`XChangeProperty`, `XGetWindowProperty`, `XFree`,
+  `XSetErrorHandler`, `XSetIOErrorHandler`, `XSetCloseDownMode`, `XSync`, `XSelectInput`,
+  `XCreateWindow`, `XKillClient`, `XGrabServer`, `XUngrabServer`, `XSendEvent`, `XInternAtom`,
+  `None`, `Success`, `False`, `True`, `XA_WINDOW`, `PropModeReplace`, `PropModeAppend`,
+  `CopyFromParent`, `InputOnly`, `RetainPermanent`, `DestroyAll`, `CWOverrideRedirect`,
+  `StructureNotifyMask`), the way this file's own header mirror keeps `KeyPressMask`.  One of
+  them is a hazard worth your ruling: **`None` is Rust's prelude `Option::None`**, so the arm
+  cannot be a straight flip; the choice is either an Xlib mirror that defines these names, or
+  unit-local constants (`pub const None: Window = 0;`).  Same question for `Success`.
+* **Six `macro-body-notes.tsv` rows are needed** (requested in this round's report): the six
+  functions above whose C signature or body spells `uint8_t`/`uint16_t`/`uint32_t` and/or
+  `alloca`, which the port writes `u8`/`u16`/`u32` and the stack pool.  The tree already has
+  this shape (`conv_sockaddr_to_lisp`'s `uint16_t` row, `Freplace_region_contents`'s `alloca`
+  row).
+* **`xm_drag_window_io_error_handler`** is C's `static _Noreturn int`, so the port writes
+  `-> !` and adds the `unreachable! ()` Rust's divergence needs (`lread.rs` 720's shape);
+  `xm_drag_window_error_handler` keeps C's `int` return.
+* Still deferred: the `x_atom_refs` table (C 987-1130) - unchanged from Decision 9.
+
 
 ## Evidence
 
@@ -656,3 +759,72 @@ The probe is what caught two real defects in the first draft of the slice (`buil
 it strips the whole body): the module's statics had to be `pub` for the glob import to reach
 them (4x E0425), and C's `event->ie.kind` is a read of `input_event`'s bitfield, so the accessor
 takes `&raw mut (*event).ie` rather than the union (E0609).
+
+Slice 2 (C 1131-1762), same readings:
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+324
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+$ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xterm.c
+built src/xterm.rs -> ../build/femacs/xterm.o
+$ ... layout-check
+layout probe ok
+layout-check passed (see build/femacs/layout_asserts.rs)
+$ grep -c '^- \[ \]' docs/ports/xterm.md        # 425 - 91
+334
+```
+
+The X11-arm probe again, after slice 2 (same command as above, re-run):
+
+```
+159 errors, 19 of them in the unit's own text:
+  8x `Window`, 4x `Atom`, 1x `XWindowAttributes`, 1x `XRectangle`, 1x `XEvent`
+       (slice 2's kept X11 names - Decision 8)
+  2x no field `sie` on `buffered_input_event`          (slice 1's gap, Decision 5)
+  1x `x_push_selection_request` not found              (C 12573, a later slice)
+  1x `x_handle_pending_selection_requests` not found   (xterm.h 1857, slice 1's gap)
+```
+
+The three defects the probe and the gate caught in slice 2's draft, all fixed before landing:
+the extractor reads a macro's body from the **first** `macro_rules!` of that name (so
+`SWAPCARD32`'s `#else` arm had to come first, or it reported "does not mention bswap_32");
+`XM_DRAG_PROTOCOL_VERSION` had to be a `const` (the extractor reads it as a constant); and
+`SWAPCARD16`'s live arm takes C's parameter name `l`, not `s` (C 1584).
+
+Slice 3 (C 1763-2173):
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+317
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+  311-316: six "does not mention" rows, one per function, for uint8_t/uint16_t/uint32_t/alloca
+           (the six notes rows Decision 11 requests)
+$ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xterm.c
+built src/xterm.rs -> ../build/femacs/xterm.o
+$ ... layout-check
+layout probe ok
+layout-check passed (see build/femacs/layout_asserts.rs)
+$ python3 tools/check-link.py
+libc-or-platform=257 port-owed=15 rust-runtime=20 unknown=92
+384 undefined symbol(s) from 76 program + 87 libgnu object(s), 384 ratchet row(s), 0 failure(s)
+$ python3 tools/check-link.py --report | grep port-owed      # all fifteen are xdisp's, not xterm's
+_count_lines, _disp_char_vector, _display_tty_menu_item, _get_font_ascent_descent, _init_xdisp,
+_invisible_prop, _mark_window_display_accurate, _note_mouse_highlight, _produce_stretch_glyph,
+_redisplay_preserve_echo_area, _row_hash, _syms_of_xdisp, _try_window,
+_unwind_display_working_on_window, _update_redisplay_ticks
+```
+
+The X11-arm probe (the unit materialised by `build-tu`, then `rustc --cfg
+'feature="have_x_windows"'`): **107 errors in the unit's own text, and every one is a recorded
+gap** - 94 `cannot find <name>` (X11 names, or functions this file defines in a later slice) and
+13 `no field <name>` (`x_display_info`'s missing members, `buffered_input_event.sie`); the other
+139 are in the mirrors, plus `include/xterm.rs`'s own
+`assert! (!cfg!(feature = "have_x_windows") || HAVE_X_WINDOWS)` const assertion, which is the
+mirror refusing to be flipped before its target exists.
+
+That probe caught three real defects in this round's draft, none of which `build-tu` can see:
+**65 of slice 2's 66 objects were not `pub`** (a `static` in the private module is not reachable
+through the glob import - E0425 in 20 places), C 1808's *chained assignment* was written as
+`(a = b) as u8` (E0605: Rust has no assignment expression), and `-> !` on
+`xm_drag_window_io_error_handler` needs a diverging final expression (E0308).
