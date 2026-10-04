@@ -244,6 +244,13 @@ pub struct terminal
   pub query_frame_background_color: Option<unsafe extern "C" fn (*mut c_void,
                                                                  *mut Emacs_Color)>,     // 613
 
+  // termhooks.h 615-621: C's `#if defined (HAVE_X_WINDOWS) || defined (HAVE_NTGUI) ||
+  // defined (HAVE_PGTK) || defined (HAVE_ANDROID)` arm.
+  #[cfg (any (feature = "have_x_windows", feature = "have_ntgui", feature = "have_pgtk",
+              feature = "have_android"))]
+  pub query_colors: Option<unsafe extern "C" fn (*mut c_void, *mut Emacs_Color,
+                                                  c_int)>,                               // 620
+
   /* Hook to get the position of the mouse.  */
   pub mouse_position_hook: Option<unsafe extern "C" fn (*mut *mut c_void, c_int,
                                                         *mut Lisp_Object,
@@ -278,6 +285,8 @@ pub struct terminal
   pub menu_show_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int, c_int,
                                                    Lisp_Object,
                                                    *mut *const c_char) -> Lisp_Object>,  // 717
+  #[cfg (feature = "have_ext_menu_bar")]
+  pub activate_menubar_hook: Option<unsafe extern "C" fn (*mut c_void)>,                 // 721
   pub popup_dialog_hook: Option<unsafe extern "C" fn (*mut c_void, Lisp_Object,
                                                       Lisp_Object) -> Lisp_Object>,      // 726
 
@@ -305,10 +314,17 @@ pub struct terminal
   pub get_string_resource_hook: Option<unsafe extern "C" fn (*mut c_void, *const c_char,
                                                              *const c_char)
                                                 -> *const c_char>,                       // 846
+  // termhooks.h 849-853: the "Image hooks" pair.  C's parameter types have no mirror here
+  // (`Emacs_Pixmap` is xterm.h's `typedef XImage *`, `Display_Info` xterm.h's display record),
+  // so the parameters stay untyped pointers (P-72 rule 3).
+  #[cfg (feature = "have_window_system")]
+  pub free_pixmap: Option<unsafe extern "C" fn (*mut c_void, *mut c_void)>,              // 851
   pub delete_frame_hook: Option<unsafe extern "C" fn (*mut c_void)>,                     // 859
   pub delete_terminal_hook: Option<unsafe extern "C" fn (*mut terminal)>,                // 871
   pub toolkit_position_hook: Option<unsafe extern "C" fn (*mut c_void, c_int, c_int,
                                                           *mut bool, *mut bool)>,        // 878
+  #[cfg (feature = "have_window_system")]
+  pub any_grab_hook: Option<unsafe extern "C" fn (*mut c_void) -> bool>,                 // 884
 }
 
 // termhooks.h 888-909.

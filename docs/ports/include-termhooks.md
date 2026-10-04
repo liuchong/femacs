@@ -108,3 +108,24 @@
   this target).
 - **Gate**: `python3 tools/extract-abi.py --check emacs/src/termhooks.h
   femacs/src/include/termhooks.rs` → `OK`.
+
+## `struct terminal`'s four gated hooks (status 3.277)
+
+The same class as `struct window`: C declares four of `struct terminal`'s hooks under conditions the
+frozen `config.h` leaves false, so the field scanner's live-line filter (P-73) kept them out of the
+first pass - `query_colors` (termhooks.h 615-621, `HAVE_X_WINDOWS || HAVE_NTGUI || HAVE_PGTK ||
+HAVE_ANDROID`), `activate_menubar_hook` (719-722, `HAVE_EXT_MENU_BAR`), and the image pair
+`free_pixmap` (849-853) and `any_grab_hook` (878-885) under `HAVE_WINDOW_SYSTEM`.  They are carried
+now, each under C's own condition.
+
+Two of them name types this tree has no mirror for (`Emacs_Pixmap` is xterm.h's
+`typedef XImage *`, `Display_Info` xterm.h's display record), so their parameters stay untyped
+pointers with the reason written down (P-72 rule 3, the same ruling `struct glyph_string`'s GC
+already carries).  `docs/baseline/terminal-layout.tsv` is the reading (P-82): frozen 520/8, x11
+544/8, ns_cocoa 544/8 - the window-system arms add sixteen bytes for the two image hooks plus the
+two the conditions above select.
+
+Evidence: `build-tu src/term.c` and `src/keyboard.c` exit 0; `xtask layout-check` passed; the field
+set against the previous revision is `+query_colors +activate_menubar_hook +free_pixmap
++any_grab_hook`, nothing lost; `check-declarations` 13/0, `check-globals` 284/0,
+`check-mirror-dupes` 0 failures.

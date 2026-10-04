@@ -1,0 +1,240 @@
+# struct terminal from termhooks.h (c), read by
+# `spikes/gated-layout-probe.py struct terminal termhooks.h c`:
+# the frozen build's generated config.h, plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tbyte-offset-or-byte:bits.
+# `parse=no` marks an arm this machine cannot read, with the reason in the run.
+arm	member	offset-or-bits
+frozen	sizeof struct terminal	520
+frozen	align struct terminal	8
+frozen	union vectorlike_header header	0
+frozen	ptrdiff_t size	0
+frozen	Lisp_Object param_alist	8
+frozen	Lisp_Object charset_list	16
+frozen	Lisp_Object Vselection_alist	24
+frozen	Lisp_Object glyph_code_table	32
+frozen	struct terminal * next_terminal	40
+frozen	int id	48
+frozen	int reference_count	52
+frozen	enum output_method type	56
+frozen	char * name	64
+frozen	struct kboard * kboard	72
+frozen	union display_info display_info	80
+frozen	struct tty_display_info * tty	80
+frozen	struct x_display_info * x	80
+frozen	struct w32_display_info * w32	80
+frozen	struct ns_display_info * ns	80
+frozen	struct pgtk_display_info * pgtk	80
+frozen	struct haiku_display_info * haiku	80
+frozen	struct android_display_info * android	80
+frozen	struct coding_system * terminal_coding	88
+frozen	struct coding_system * keyboard_coding	96
+frozen	struct redisplay_interface * rif	104
+frozen	void (*)(struct frame *, int, int) cursor_to_hook	112
+frozen	void (*)(struct frame *, int, int) raw_cursor_to_hook	120
+frozen	void (*)(struct frame *) clear_to_end_hook	128
+frozen	void (*)(struct frame *) clear_frame_hook	136
+frozen	void (*)(struct frame *, int) clear_end_of_line_hook	144
+frozen	void (*)(struct frame *, int, int) ins_del_lines_hook	152
+frozen	void (*)(struct frame *, struct glyph *, int) insert_glyphs_hook	160
+frozen	void (*)(struct frame *, struct glyph *, int) write_glyphs_hook	168
+frozen	void (*)(struct frame *, int) delete_glyphs_hook	176
+frozen	void (*)(struct frame *) ring_bell_hook	184
+frozen	void (*)(struct frame *, _Bool) toggle_invisible_pointer_hook	192
+frozen	void (*)(struct terminal *) reset_terminal_modes_hook	200
+frozen	void (*)(struct terminal *) set_terminal_modes_hook	208
+frozen	void (*)(struct frame *) update_begin_hook	216
+frozen	void (*)(struct frame *) update_end_hook	224
+frozen	void (*)(struct frame *, int) set_terminal_window_hook	232
+frozen	_Bool (*)(struct frame *, const char *, Emacs_Color *, _Bool, _Bool) defined_color_hook	240
+frozen	void (*)(struct frame *, Emacs_Color *) query_frame_background_color	248
+frozen	void (*)(struct frame **, int, Lisp_Object *, enum scroll_bar_part *, Lisp_Object *, Lisp_Object *, Time *) mouse_position_hook	256
+frozen	Lisp_Object (*)(struct frame *) get_focus_frame	264
+frozen	void (*)(struct frame *, _Bool) focus_frame_hook	272
+frozen	void (*)(struct frame *) frame_rehighlight_hook	280
+frozen	void (*)(struct frame *, _Bool) frame_raise_lower_hook	288
+frozen	void (*)(struct frame *, _Bool) frame_visible_invisible_hook	296
+frozen	void (*)(struct frame *) fullscreen_hook	304
+frozen	void (*)(struct frame *) iconify_frame_hook	312
+frozen	void (*)(struct frame *, _Bool, int, int) set_window_size_hook	320
+frozen	void (*)(struct frame *, int, int) set_window_size_and_position_hook	328
+frozen	void (*)(struct frame *, int, int, int) set_frame_offset_hook	336
+frozen	void (*)(struct frame *) set_frame_alpha_hook	344
+frozen	Lisp_Object (*)(struct frame *, Lisp_Object, int) set_new_font_hook	352
+frozen	_Bool (*)(struct frame *, Lisp_Object) set_bitmap_icon_hook	360
+frozen	void (*)(struct frame *, Lisp_Object, Lisp_Object) implicit_set_name_hook	368
+frozen	Lisp_Object (*)(struct frame *, int, int, int, Lisp_Object, const char **) menu_show_hook	376
+frozen	Lisp_Object (*)(struct frame *, Lisp_Object, Lisp_Object) popup_dialog_hook	384
+frozen	void (*)(struct frame *, int) change_tab_bar_height_hook	392
+frozen	void (*)(struct frame *, int) change_tool_bar_height_hook	400
+frozen	void (*)(struct window *, int, int, int) set_vertical_scroll_bar_hook	408
+frozen	void (*)(struct window *, int, int, int) set_horizontal_scroll_bar_hook	416
+frozen	void (*)(struct frame *) set_scroll_bar_default_width_hook	424
+frozen	void (*)(struct frame *) set_scroll_bar_default_height_hook	432
+frozen	void (*)(struct frame *) condemn_scroll_bars_hook	440
+frozen	void (*)(struct window *) redeem_scroll_bar_hook	448
+frozen	void (*)(struct frame *) judge_scroll_bars_hook	456
+frozen	int (*)(struct terminal *, struct input_event *) read_socket_hook	464
+frozen	void (*)(struct frame *) frame_up_to_date_hook	472
+frozen	void (*)(struct frame *) buffer_flipping_unblocked_hook	480
+frozen	const char *(*)(void *, const char *, const char *) get_string_resource_hook	488
+frozen	void (*)(struct frame *) delete_frame_hook	496
+frozen	void (*)(struct terminal *) delete_terminal_hook	504
+frozen	void (*)(struct frame *, int, int, _Bool *, _Bool *) toolkit_position_hook	512
+x11	sizeof struct terminal	544
+x11	align struct terminal	8
+x11	union vectorlike_header header	0
+x11	ptrdiff_t size	0
+x11	Lisp_Object param_alist	8
+x11	Lisp_Object charset_list	16
+x11	Lisp_Object Vselection_alist	24
+x11	Lisp_Object glyph_code_table	32
+x11	struct terminal * next_terminal	40
+x11	int id	48
+x11	int reference_count	52
+x11	enum output_method type	56
+x11	char * name	64
+x11	struct kboard * kboard	72
+x11	union display_info display_info	80
+x11	struct tty_display_info * tty	80
+x11	struct x_display_info * x	80
+x11	struct w32_display_info * w32	80
+x11	struct ns_display_info * ns	80
+x11	struct pgtk_display_info * pgtk	80
+x11	struct haiku_display_info * haiku	80
+x11	struct android_display_info * android	80
+x11	struct coding_system * terminal_coding	88
+x11	struct coding_system * keyboard_coding	96
+x11	struct redisplay_interface * rif	104
+x11	void (*)(struct frame *, int, int) cursor_to_hook	112
+x11	void (*)(struct frame *, int, int) raw_cursor_to_hook	120
+x11	void (*)(struct frame *) clear_to_end_hook	128
+x11	void (*)(struct frame *) clear_frame_hook	136
+x11	void (*)(struct frame *, int) clear_end_of_line_hook	144
+x11	void (*)(struct frame *, int, int) ins_del_lines_hook	152
+x11	void (*)(struct frame *, struct glyph *, int) insert_glyphs_hook	160
+x11	void (*)(struct frame *, struct glyph *, int) write_glyphs_hook	168
+x11	void (*)(struct frame *, int) delete_glyphs_hook	176
+x11	void (*)(struct frame *) ring_bell_hook	184
+x11	void (*)(struct frame *, _Bool) toggle_invisible_pointer_hook	192
+x11	void (*)(struct terminal *) reset_terminal_modes_hook	200
+x11	void (*)(struct terminal *) set_terminal_modes_hook	208
+x11	void (*)(struct frame *) update_begin_hook	216
+x11	void (*)(struct frame *) update_end_hook	224
+x11	void (*)(struct frame *, int) set_terminal_window_hook	232
+x11	_Bool (*)(struct frame *, const char *, Emacs_Color *, _Bool, _Bool) defined_color_hook	240
+x11	void (*)(struct frame *, Emacs_Color *) query_frame_background_color	248
+x11	void (*)(struct frame *, Emacs_Color *, int) query_colors	256
+x11	void (*)(struct frame **, int, Lisp_Object *, enum scroll_bar_part *, Lisp_Object *, Lisp_Object *, Time *) mouse_position_hook	264
+x11	Lisp_Object (*)(struct frame *) get_focus_frame	272
+x11	void (*)(struct frame *, _Bool) focus_frame_hook	280
+x11	void (*)(struct frame *) frame_rehighlight_hook	288
+x11	void (*)(struct frame *, _Bool) frame_raise_lower_hook	296
+x11	void (*)(struct frame *, _Bool) frame_visible_invisible_hook	304
+x11	void (*)(struct frame *) fullscreen_hook	312
+x11	void (*)(struct frame *) iconify_frame_hook	320
+x11	void (*)(struct frame *, _Bool, int, int) set_window_size_hook	328
+x11	void (*)(struct frame *, int, int) set_window_size_and_position_hook	336
+x11	void (*)(struct frame *, int, int, int) set_frame_offset_hook	344
+x11	void (*)(struct frame *) set_frame_alpha_hook	352
+x11	Lisp_Object (*)(struct frame *, Lisp_Object, int) set_new_font_hook	360
+x11	_Bool (*)(struct frame *, Lisp_Object) set_bitmap_icon_hook	368
+x11	void (*)(struct frame *, Lisp_Object, Lisp_Object) implicit_set_name_hook	376
+x11	Lisp_Object (*)(struct frame *, int, int, int, Lisp_Object, const char **) menu_show_hook	384
+x11	Lisp_Object (*)(struct frame *, Lisp_Object, Lisp_Object) popup_dialog_hook	392
+x11	void (*)(struct frame *, int) change_tab_bar_height_hook	400
+x11	void (*)(struct frame *, int) change_tool_bar_height_hook	408
+x11	void (*)(struct window *, int, int, int) set_vertical_scroll_bar_hook	416
+x11	void (*)(struct window *, int, int, int) set_horizontal_scroll_bar_hook	424
+x11	void (*)(struct frame *) set_scroll_bar_default_width_hook	432
+x11	void (*)(struct frame *) set_scroll_bar_default_height_hook	440
+x11	void (*)(struct frame *) condemn_scroll_bars_hook	448
+x11	void (*)(struct window *) redeem_scroll_bar_hook	456
+x11	void (*)(struct frame *) judge_scroll_bars_hook	464
+x11	int (*)(struct terminal *, struct input_event *) read_socket_hook	472
+x11	void (*)(struct frame *) frame_up_to_date_hook	480
+x11	void (*)(struct frame *) buffer_flipping_unblocked_hook	488
+x11	const char *(*)(void *, const char *, const char *) get_string_resource_hook	496
+x11	void (*)(struct frame *, Emacs_Pixmap) free_pixmap	504
+x11	void (*)(struct frame *) delete_frame_hook	512
+x11	void (*)(struct terminal *) delete_terminal_hook	520
+x11	void (*)(struct frame *, int, int, _Bool *, _Bool *) toolkit_position_hook	528
+x11	_Bool (*)(Display_Info *) any_grab_hook	536
+ns_cocoa	sizeof struct terminal	544
+ns_cocoa	align struct terminal	8
+ns_cocoa	union vectorlike_header header	0
+ns_cocoa	ptrdiff_t size	0
+ns_cocoa	Lisp_Object param_alist	8
+ns_cocoa	Lisp_Object charset_list	16
+ns_cocoa	Lisp_Object Vselection_alist	24
+ns_cocoa	Lisp_Object glyph_code_table	32
+ns_cocoa	struct terminal * next_terminal	40
+ns_cocoa	int id	48
+ns_cocoa	int reference_count	52
+ns_cocoa	enum output_method type	56
+ns_cocoa	char * name	64
+ns_cocoa	struct kboard * kboard	72
+ns_cocoa	union display_info display_info	80
+ns_cocoa	struct tty_display_info * tty	80
+ns_cocoa	struct x_display_info * x	80
+ns_cocoa	struct w32_display_info * w32	80
+ns_cocoa	struct ns_display_info * ns	80
+ns_cocoa	struct pgtk_display_info * pgtk	80
+ns_cocoa	struct haiku_display_info * haiku	80
+ns_cocoa	struct android_display_info * android	80
+ns_cocoa	struct coding_system * terminal_coding	88
+ns_cocoa	struct coding_system * keyboard_coding	96
+ns_cocoa	struct redisplay_interface * rif	104
+ns_cocoa	void (*)(struct frame *, int, int) cursor_to_hook	112
+ns_cocoa	void (*)(struct frame *, int, int) raw_cursor_to_hook	120
+ns_cocoa	void (*)(struct frame *) clear_to_end_hook	128
+ns_cocoa	void (*)(struct frame *) clear_frame_hook	136
+ns_cocoa	void (*)(struct frame *, int) clear_end_of_line_hook	144
+ns_cocoa	void (*)(struct frame *, int, int) ins_del_lines_hook	152
+ns_cocoa	void (*)(struct frame *, struct glyph *, int) insert_glyphs_hook	160
+ns_cocoa	void (*)(struct frame *, struct glyph *, int) write_glyphs_hook	168
+ns_cocoa	void (*)(struct frame *, int) delete_glyphs_hook	176
+ns_cocoa	void (*)(struct frame *) ring_bell_hook	184
+ns_cocoa	void (*)(struct frame *, _Bool) toggle_invisible_pointer_hook	192
+ns_cocoa	void (*)(struct terminal *) reset_terminal_modes_hook	200
+ns_cocoa	void (*)(struct terminal *) set_terminal_modes_hook	208
+ns_cocoa	void (*)(struct frame *) update_begin_hook	216
+ns_cocoa	void (*)(struct frame *) update_end_hook	224
+ns_cocoa	void (*)(struct frame *, int) set_terminal_window_hook	232
+ns_cocoa	_Bool (*)(struct frame *, const char *, Emacs_Color *, _Bool, _Bool) defined_color_hook	240
+ns_cocoa	void (*)(struct frame *, Emacs_Color *) query_frame_background_color	248
+ns_cocoa	void (*)(struct frame **, int, Lisp_Object *, enum scroll_bar_part *, Lisp_Object *, Lisp_Object *, Time *) mouse_position_hook	256
+ns_cocoa	Lisp_Object (*)(struct frame *) get_focus_frame	264
+ns_cocoa	void (*)(struct frame *, _Bool) focus_frame_hook	272
+ns_cocoa	void (*)(struct frame *) frame_rehighlight_hook	280
+ns_cocoa	void (*)(struct frame *, _Bool) frame_raise_lower_hook	288
+ns_cocoa	void (*)(struct frame *, _Bool) frame_visible_invisible_hook	296
+ns_cocoa	void (*)(struct frame *) fullscreen_hook	304
+ns_cocoa	void (*)(struct frame *) iconify_frame_hook	312
+ns_cocoa	void (*)(struct frame *, _Bool, int, int) set_window_size_hook	320
+ns_cocoa	void (*)(struct frame *, int, int) set_window_size_and_position_hook	328
+ns_cocoa	void (*)(struct frame *, int, int, int) set_frame_offset_hook	336
+ns_cocoa	void (*)(struct frame *) set_frame_alpha_hook	344
+ns_cocoa	Lisp_Object (*)(struct frame *, Lisp_Object, int) set_new_font_hook	352
+ns_cocoa	_Bool (*)(struct frame *, Lisp_Object) set_bitmap_icon_hook	360
+ns_cocoa	void (*)(struct frame *, Lisp_Object, Lisp_Object) implicit_set_name_hook	368
+ns_cocoa	Lisp_Object (*)(struct frame *, int, int, int, Lisp_Object, const char **) menu_show_hook	376
+ns_cocoa	void (*)(struct frame *) activate_menubar_hook	384
+ns_cocoa	Lisp_Object (*)(struct frame *, Lisp_Object, Lisp_Object) popup_dialog_hook	392
+ns_cocoa	void (*)(struct frame *, int) change_tab_bar_height_hook	400
+ns_cocoa	void (*)(struct frame *, int) change_tool_bar_height_hook	408
+ns_cocoa	void (*)(struct window *, int, int, int) set_vertical_scroll_bar_hook	416
+ns_cocoa	void (*)(struct window *, int, int, int) set_horizontal_scroll_bar_hook	424
+ns_cocoa	void (*)(struct frame *) set_scroll_bar_default_width_hook	432
+ns_cocoa	void (*)(struct frame *) set_scroll_bar_default_height_hook	440
+ns_cocoa	void (*)(struct frame *) condemn_scroll_bars_hook	448
+ns_cocoa	void (*)(struct window *) redeem_scroll_bar_hook	456
+ns_cocoa	void (*)(struct frame *) judge_scroll_bars_hook	464
+ns_cocoa	int (*)(struct terminal *, struct input_event *) read_socket_hook	472
+ns_cocoa	void (*)(struct frame *) frame_up_to_date_hook	480
+ns_cocoa	void (*)(struct frame *) buffer_flipping_unblocked_hook	488
+ns_cocoa	const char *(*)(void *, const char *, const char *) get_string_resource_hook	496
+ns_cocoa	void (*)(struct frame *, Emacs_Pixmap) free_pixmap	504
+ns_cocoa	void (*)(struct frame *) delete_frame_hook	512
+ns_cocoa	void (*)(struct terminal *) delete_terminal_hook	520
+ns_cocoa	void (*)(struct frame *, int, int, _Bool *, _Bool *) toolkit_position_hook	528
+ns_cocoa	_Bool (*)(Display_Info *) any_grab_hook	536
