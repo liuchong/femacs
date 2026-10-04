@@ -37,3 +37,17 @@ gates are `build-tu src/comp.c` -> `built` and
   99% drift and could only pass by declaring a tolerance that silences the check, so the row
   asks for the baseline `tools/extract-abi.py` now computes from the same branch evaluator the
   declarations use (45 live lines, 31% drift, tolerance 0.35).
+
+## 2026-10-04: the storage of a member whose `DEFVAR` is dead text (3.252)
+
+`Vcomp_eln_to_el_h` is the one member of C's generated `globals` that this unit's dead text
+owns and that *live* text elsewhere reads: C 5766's `DEFVAR_LISP` sits inside `#ifdef
+HAVE_NATIVE_COMP` (undef here), while `src/lread.c` 1019's `compute_found_effective` reads the
+variable with no enclosing `#if` at all.  C's storage for it is `globals.f_Vcomp_eln_to_el_h` -
+a field of the generated struct, which exists in every configuration - so the port cannot let the
+registration's liveness decide whether the storage exists.  `femacs/src/comp.rs` therefore
+carries one `#[unsafe(no_mangle)] pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();`
+even though the `DEFVAR_LISP` line stays recorded as dead text above.  The first real link found
+the name referenced by `lread.rs` and defined nowhere (`docs/ports/link.md`, reading three); with
+this line the executable link's undefined list is 84 → 83 and `check-globals.py` still reports
+284 units / 0 problems.

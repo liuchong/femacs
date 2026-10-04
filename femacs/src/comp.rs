@@ -30,6 +30,16 @@ DEFUN! ("native-comp-available-p", Fnative_comp_available_p,
   return Qnil ();
 });
 
+// C 5766's `DEFVAR_LISP ("comp-eln-to-el-h", Vcomp_eln_to_el_h, ...)` is dead text on this
+// target, but the storage it names is not: `globals.f_Vcomp_eln_to_el_h` is a field of the
+// generated `struct emacs_globals`, which exists in every configuration, and the *live*
+// `src/lread.c` 1019/1632 reads it.  The port's model gives a member its storage in the unit
+// that owns it (status 3.29), so the storage stands here even though the registration does
+// not.  The first real link found this name referenced by `lread.rs` and defined nowhere
+// (docs/ports/link.md, reading three).
+#[unsafe(no_mangle)]
+pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_comp ()
 {

@@ -1168,6 +1168,29 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a C file-scope object has no symbol in the port's object"),
         Err(e) => return fail(e),
     }
+    // The level above every gate so far: the *program*.  `build-tu` stops at one object,
+    // `layout-check` compiles probes, `check-undef.py` reads one unit's undefined list, and
+    // `check-swift-imports.py` covers the Swift side of the C-ABI seam - so a symbol one unit
+    // defines and another references by the wrong name is invisible until the objects are
+    // merged.  A partial link (`ld -r`) of C's own object set answers exactly that question,
+    // and `docs/baseline/link-pending.txt` is the ratchet, compared the way the symbol gates
+    // above compare theirs: a name that is new fails and a row nothing references any more is
+    // stale.  It is what found the four invented externals of status 3.251 (docs/ports/link.md).
+    println!("== link gate ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-link.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("link: the object set closes over itself"),
+        Ok(_) => {
+            return fail(
+                "a partial link of the whole program leaves a name no member defines \
+                 (a new one, or a stale ratchet row)",
+            )
+        }
+        Err(e) => return fail(e),
+    }
     // The four classes of declaration 0.1-19 keeps out of the tree - the copied
     // ownership block, the product name in a comment, the removed
     // `@ <rev> (<product> x.y.z)` parenthetical, and the comment that recites any of

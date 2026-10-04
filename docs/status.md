@@ -4708,3 +4708,13 @@
   这一步还量出一条**结构性**事实：C **根本没有** `_hscroll_margin` 这个符号——`build/emacs-ref/src/globals.h` 893 是 `#define hscroll_margin globals.f_hscroll_margin`，载体是 `src/alloc.c` 278 的 `struct emacs_globals globals;`；
   而本端口的镜像把它们**摊平**成 `pub static mut hscroll_margin: EMACS_INT;`（`src/include/globals.rs` 7015），`check-symbols.py` 记的 467 个"折算进 Rust statics"的名字因此**没有任何定义点**，跨单元引用必然未定义。
   两条出路（都只做一次决定，不是 467 个小决定）：复刻 C 自己的载体（`struct emacs_globals globals;` + 生成字段表，正是 C 的文本，且字段布局可被 layout 门检查），或保留摊平名字、在**单一**位置给它们存储（`femacs/src/abi_shim.rs` 已经就是"C-ABI 里没人定义的名字"的落点，3.248）。验证：把参照 `xdisp.o` 移开再放回，`check-symbols`（86 units / 1 mismatched，即既有的 `lib/regex` 行）与 `check-undef` 读数**不变**。
+
+- **3.252 第一条"死 text 拥有、活 text 读取"的生成全局量：`Vcomp_eln_to_el_h` 有了存储，链接那一级也变成门（2026-10-04）**：
+  ① **把 3.251 剩下的那一家族量清了**：真链接余下 84 里那一族**不是**结构缺口。逐一核过——**44 个属于 `src/xdisp.c`**（DEFVAR 是活 text，随该单元落地时由属主定义，`callint.rs`/`casetab.rs` 的 3.29 形状）；
+  **`current_buffer`/`specpdl`/`specpdl_ptr`/`specpdl_end`** 是 C 的**线程宏**（`thread.h` 131/139/147，例如 `#define specpdl (current_thread->m_specpdl)`），镜像把存储当**临时**措施声明并在原地说清了，落点是 `thread.rs`；
+  **真正缺的只有一个** `Vcomp_eln_to_el_h`，而且缺的是**存活性**而不是结构：C 5766 的 `DEFVAR_LISP` 在 `HAVE_NATIVE_COMP`（本 target undef）里是死 text，但 C 的**存储**是生成结构体的字段、**在每种配置里都存在**，
+  而 `src/lread.c` 1019（`compute_found_effective`，用预处理器的括号栈实测**外层没有任何 `#if`**）读它。修法：`femacs/src/comp.rs` 保留这条存储
+  （`#[unsafe(no_mangle)] pub static mut Vcomp_eln_to_el_h: Lisp_Object = lisp_h_Qnil ();`），DEFVAR 行继续按死 text 记录在 `docs/ports/comp.md`——即"**存储跟着生成结构体走（无条件）、只有注册跟着冻结构建的话 text 走**"。
+  验证：`build-tu src/comp.c` built；`--check comp.c` OK；`nm -g build/femacs/comp.o` 出现 `_Vcomp_eln_to_el_h`；`check-globals` 仍 284 units/0 problems；`check-symbols` 仍 86/1（既有的 `lib/regex`）；**可执行链接 84 → 83，该名字消失**。
+  ② **链接那一级升格为门**：`tools/check-link.py` 挂进 `xtask gate-fast`（在符号门与 linkage 门之后），理由是它找到的那一类——"被引用、C 有定义、本端口无人定义"——在每一级下层门里都不可见（`build-tu` 停在一个对象、`check-undef.py` 只读单元自己的未定义表、`check-linkage.py` 问的是相反方向）。
+  棘轮按两处修正重生成：**383 rows / 0 failures**；`cargo build -p xtask` exit 0。`docs/ports/link.md` 里 3.251 那段"结构性缺口/一次决定"的说法已就地更正（新增 "Reading three, corrected" 一节，指明被更正的两句与理由）。

@@ -196,3 +196,38 @@ list, which is C's own text and which the field-layout gate can check), or keep 
 names and give each one storage at a single point (`femacs/src/abi_shim.rs` is where the port
 already puts C-ABI entries nobody else defines, 3.248).  Either way it is one decision made once,
 not 467 small ones - and it is the last input-set-shaped gap this rung found.
+
+### Reading three, corrected: the family is not a missing carrier
+
+The section above called the ~20 generated-globals names "the last input-set-shaped gap" and
+said nothing defines them.  Measuring further in the same round gives the sharper account, and
+the two sentences it corrects are the ones about a *structural* gap and about *one decision*.
+
+* **44 of the 46 belong to `src/xdisp.c`.**  Their `DEFVAR_*` calls are live text, so the unit
+  that owns them defines them as it lands (`pub static mut Vdisplay_line_numbers: Lisp_Object =
+  lisp_h_Qnil ();` - the `callint.rs`/`casetab.rs` shape of status 3.29).  Nothing is owed to a
+  decision here; it is the in-flight unit's own work.
+* **`current_buffer`, `specpdl`, `specpdl_ptr`, `specpdl_end`** are C's *thread* macros
+  (`thread.h` 131/139/147, e.g. `#define specpdl (current_thread->m_specpdl)`).  The mirrors
+  declare the storage as an interim measure and say so on the spot, with `thread.rs` as the
+  landing point.
+* **`Vcomp_eln_to_el_h` was the one real gap, and it is a *liveness* gap rather than a structural
+  one.**  C 5766's `DEFVAR_LISP` is dead text (`HAVE_NATIVE_COMP` is undef), but C's *storage* is
+  the generated struct's field and exists in every configuration - and `src/lread.c` 1019, a
+  line with no enclosing `#if` at all (measured against the preprocessor's own nesting), reads
+  it.  Fixed in `femacs/src/comp.rs`: the storage stands there even though the registration does
+  not, which is the "the owner defines it" rule of 3.29 applied to a member whose `DEFVAR` never
+  compiles.  The executable link's undefined list goes 84 → 83 and the name is gone.
+
+So the per-unit carrier does not need redesigning.  What it needed was the rule that a member's
+*storage* follows the generated struct and is unconditional, while only its *registration*
+follows the frozen configuration's live text - and one member was the whole of the difference
+today.
+
+### The rung is a gate now
+
+`tools/check-link.py` is wired into `xtask gate-fast`, next to the symbol and linkage gates: the
+class it found - a name that is referenced, defined by C, and defined nowhere here - is invisible
+at every lower level (`build-tu` stops at one object, `check-undef.py` reads one unit's own
+undefined list, `check-linkage.py` asks the opposite direction).  The ratchet is regenerated for
+the two fixes: **383 rows, 0 failures**.
