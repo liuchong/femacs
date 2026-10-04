@@ -3257,3 +3257,29 @@
   ⑦ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；五门绿；引证门 17 drift / 4 range / 284 external /
   36 allowed / 0 stale。**`layout-check` 目前红**，根因是 Harvey 在飞的 `lib/include/stdbit.in.rs`
   （`cannot find macro _gl_stdbit_popcount*` 三条——正写到一半），不涉及本轮提交。
+
+- **3.184 macfont 的诚实"半轮"、windowed `glyph_string` 实测就位、共享门第三次红的干预（2026-10-04）**：
+  ① **Mill 这轮只推进 1 个函数（52/74）并如实说明为什么**：它的可支配预算被两件事吃掉——（a）**它自己造成的台账事故**：
+  一个脚本的锚点 `## Deferred` 命中了正文里对**同一标题的引用**，把台账中段（Functions/Macros/Types/Objects/Decisions）截掉，
+  它重建并逐节校验（现 488 行、节序完整、82 勾/24 未勾）；（b）新代码的编译迭代（`cf_charset_table` 37 行 + `macfont_get_charset`，
+  含 C 的转义循环、`alloca` → `withUnsafeTemporaryAllocation`、新入口 `fast_c_string_match_ignore_case`）。
+  剩下 19 条活代码约 **1,700 行 C**（驱动核心 ~500、绘制/整形 ~370、OpenType 层 ~400、CoreText helper ~330、记录与收尾 ~80），
+  它判断"继续硬写只会产出没走查的代码"，**在单元仍可编译、台账自洽的状态停下**——这个取舍我认可。
+  ② **它顺手做了下一轮要用的测量**（写进 Evidence）：windowed `struct glyph_string` = **sizeof 272 / align 8**，
+  27 个成员偏移全部量出（`x`@0、`y`@4、`width`@12、`f`@32、`w`@40、`row`@48、`char2b`@64、`face`@80、`font`@88、
+  `cmp`@96、`first_glyph`@128、`img`@136、`xwidget`@144、`clip_head`@160、`clip_tail`@168…），位域在尾部同一分配单元
+  （下轮按 `macfont_info` 的办法处理）。**`macfont_draw` 的阻塞至此只剩"把镜像写出来"。**
+  ③ **它验证了我的工具修复**：用**新 writer** 删掉 `macfont_get_charset` 那一行 manifest，先备份再 diff——
+  **只少那一行、reason 列完好** ⇒ 3.182 的修复有效（这是"修好的工具由使用者复验"的闭环）。
+  ④ **我批准它下一轮的执行序**（逐段编译、段段 `swiftc` exit 0）：`glyph_string` Swift 镜像 → `macfont_draw` + 五个 `CG_SET_*` 宏
+  → OpenType 层（`get_open_type_spec`/`create_attributes_with_spec`/`supports_charset_and_languages_p`）→ `list`/`match`
+  → `open`/`close`/`text_extents`/`shape` → 记录 + `@_cdecl("macfont_driver")` getter + `mac_register_font_driver` +
+  `syms_of_macfont*` + `macfont_get_nsctfont`，CoreText helper 四个最后。收口后接 `src/nsfns.m`。
+  ⑤ **共享门第三次红的干预（升级为硬性要求）**：`layout-check` 已因 `lib/include/stdbit.in.rs` **连续五轮红**
+  （`cannot find macro _gl_stdbit_popcount{,l,ll}`：`stdc_count_ones_*` 的函数体已入文件、它调的宏还没写）。
+  已发第三次请求：**先把文件恢复成可编译状态**（补宏定义，或把函数体挪进注释/`#[cfg (any())]`）再继续。
+  **理由写在请求里**：这是全树镜像**唯一**的编译闸门，红着的时候没有任何人能验证任何镜像可编译。同时把它提为**该 lane 的硬性要求**：
+  每次把新块写进文件前，先确保它引用的名字已在同一文件里。
+  ⑥ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；四门绿（`check-declarations` 13/0、`check-globals` 283/0、
+  `check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 600/0）；引证门 17 drift / 4 range / 284 external /
+  36 allowed / 0 stale；`check-swift-units` 0 new / 0 stale（macfont 22 行、nsfont 2 行）。
