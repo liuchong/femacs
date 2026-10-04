@@ -91,7 +91,7 @@ include!("include/pdumper.rs");                // C 41: `#include "pdumper.h"`
 /* ==========================================================================================
    `font.h`'s records, accessors and macros (the mirror gap; see the header note).  */
 
-/// C: font.h 341-347: `enum font_spacing`, whose members C compares and stores as ints
+/// C: font.h 406-412: `enum font_spacing`, whose members C compares and stores as ints
 /// (`XFIXNUM (val) <= FONT_SPACING_CHARCELL`, `make_fixnum (FONT_SPACING_MONO)`), so the
 /// port keeps the C type as an int alias and the members as constants — the same shape the
 /// mirror uses for `enum font_property_index`.
@@ -125,7 +125,7 @@ macro_rules! PIXEL_TO_POINT {
   ($pixel:expr, $dpi:expr) => { ($pixel) * PT_PER_INCH / ($dpi) + 0.5 };
 }
 
-/// C: font.h 219-233: the style accessors.  C's are expressions over `AREF`/`XFIXNUM`,
+/// C: font.h 193-237: the style accessors.  C's are expressions over `AREF`/`XFIXNUM`,
 /// kept as macros so a ported body holds C's own token sequence (the `FONT_SET_STYLE`
 /// statement macro is the writer).
 macro_rules! FONT_WEIGHT_NUMERIC {
@@ -173,13 +173,13 @@ macro_rules! FONT_SET_STYLE {
   ($font:expr, $prop:expr, $val:expr) =>
     { ASET ($font, $prop as isize, make_fixnum (font_style_to_value ($prop, $val, true) as EMACS_INT)) };
 }
-/// C: font.h 257-265: the four metric accessors (`MSDOS` undef picks the first arm of
+/// C: font.h 239-246: the four metric accessors (`MSDOS` undef picks the first arm of
 /// `FONT_WIDTH`).
 macro_rules! FONT_WIDTH { ($f:expr) => { (*$f).max_width }; }
 macro_rules! FONT_HEIGHT { ($f:expr) => { (*$f).height }; }
 macro_rules! FONT_BASE { ($f:expr) => { (*$f).ascent }; }
 macro_rules! FONT_DESCENT { ($f:expr) => { (*$f).descent }; }
-/// C: font.h 1015-1021: the two logging statement macros; `Vfont_log` is font.c's own.
+/// C: font.h 1004-1013: the two logging statement macros; `Vfont_log` is font.c's own.
 macro_rules! FONT_ADD_LOG {
   ($action:expr, $arg:expr, $result:expr) =>
     { if ! EQ (Vfont_log, Qt ()) { font_add_log ($action, $arg, $result); } };
@@ -189,7 +189,7 @@ macro_rules! FONT_DEFERRED_LOG {
     { if ! EQ (Vfont_log, Qt ()) { font_deferred_log ($action, $arg, $result); } };
 }
 
-/// C: font.h 351-356: `struct font_metrics`.  Measured with the frozen clang: `sizeof` 10
+/// C: font.h 414-417: `struct font_metrics`.  Measured with the frozen clang: `sizeof` 10
 /// (five shorts, no padding).
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -204,7 +204,7 @@ pub struct font_metrics
 
 const _: () = assert! (std::mem::size_of::<font_metrics> () == 10);
 
-/// C: font.h 358-367: `struct font_bitmap`.  Measured: `sizeof` 40, `bits_per_pixel`@0,
+/// C: font.h 419-429: `struct font_bitmap`.  Measured: `sizeof` 40, `bits_per_pixel`@0,
 /// `rows`@4, `width`@8, `pitch`@12, `buffer`@16, `left`@24, `top`@28, `advance`@32.
 #[repr(C)]
 pub struct font_bitmap
@@ -252,7 +252,7 @@ const _: () = assert! (std::mem::offset_of! (font_entity, props) == 8);
    comes from `include/font.rs` now (docs/ports/include-font.md); the records the mirror
    still lacks (`struct font_driver`, `struct font_driver_list`, the accessors) stay here.  */
 
-/// C: font.h 595-793: `struct font_driver`.  The members C guards with `HAVE_WINDOW_SYSTEM`
+/// C: font.h 589-821: `struct font_driver`.  The members C guards with `HAVE_WINDOW_SYSTEM`
 /// (`draw`, `get_bitmap`, `free_bitmap`) and `HAVE_HARFBUZZ` (`begin_hb_font`,
 /// `end_hb_font`) are absent from the frozen layout and carried under the feature naming
 /// the condition's other side (P-51).  Measured: `sizeof` 208, `type`@0,
@@ -317,7 +317,7 @@ const _: () = assert! (std::mem::offset_of! (font_driver, text_extents) == 104);
 const _: () = assert! (std::mem::offset_of! (font_driver, anchor_point) == 112);
 const _: () = assert! (std::mem::offset_of! (font_driver, drop_xrender_surfaces) == 200);
 
-/// C: font.h 800-808: `struct font_driver_list`.  Measured: `sizeof` 24, `on`@0,
+/// C: font.h 828-837: `struct font_driver_list`.  Measured: `sizeof` 24, `on`@0,
 /// `driver`@8, `next`@16.
 #[repr(C)]
 pub struct font_driver_list
@@ -519,7 +519,7 @@ pub const FACE_TTY_OVERLINE_P: u32 = 1 << 19;
 pub const FACE_COLORS_COPIED_BITWISE_P: u32 = 1 << 20;
 pub const FACE_OVERSTRIKE: u32 = 1 << 21;
 
-/// C: dispextern.h 1780-1810: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0,
+/// C: dispextern.h 1991-2009: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0,
 /// `f`@8, `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf
 /// menu_face_changed_p : 1` in the int unit at 36 (carried as `menu_face_changed_p`, the
 /// P-80 convention).
@@ -590,7 +590,7 @@ pub unsafe fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int
 /* The functions this unit calls that no mirror declares, each with C's own prototype
    (PORTING.md 0.1-2/P-72 rule 3).  */
 
-/// C: dispextern.h 3437-3440: `face_at_string_position`, xfaces.c's.
+/// C: dispextern.h 3828-3830: `face_at_string_position`, xfaces.c's.
 unsafe extern "C" {
   /// C: dispextern.h 3824-3825: `int face_at_buffer_position (struct window *,
   /// ptrdiff_t, ptrdiff_t *, ptrdiff_t, bool, int, enum lface_attribute_index);`
@@ -710,15 +710,15 @@ unsafe extern "C" {
   pub fn strstr (haystack: *const c_char, needle: *const c_char) -> *mut c_char;
 }
 
-/// C: fontset.h 88-89: `int fs_query_fontset (Lisp_Object, int);` and
+/// C: fontset.h 40, 44: `int fs_query_fontset (Lisp_Object, int);` and
 /// `Lisp_Object fontset_ascii (int);` — `emacs/src/fontset.h` has no mirror at all, and the
 /// two are reached only through `Ffont_face_attributes`'s `HAVE_WINDOW_SYSTEM` arm, which is
 /// carried, so they are declared under the same feature.
 #[cfg(feature = "window_system")]
 unsafe extern "C" {
-  /// C: fontset.h 88: `extern int fs_query_fontset (Lisp_Object, int);`
+  /// C: fontset.h 40: `extern int fs_query_fontset (Lisp_Object, int);`
   pub fn fs_query_fontset (name: Lisp_Object, name_byte: c_int) -> c_int;
-  /// C: fontset.h 89: `extern Lisp_Object fontset_ascii (int);`
+  /// C: fontset.h 44: `extern Lisp_Object fontset_ascii (int);`
   pub fn fontset_ascii (fontset: c_int) -> Lisp_Object;
 }
 
@@ -733,7 +733,7 @@ unsafe extern "C" {
                                   descent: *mut c_int);
 }
 
-/// C: font.h 693: `struct glyph_string` (declared in dispextern.h) has no mirror; C only
+/// C: font.h 683-684: `struct glyph_string` (declared in dispextern.h) has no mirror; C only
 /// passes a pointer to it (`font_driver.draw`), so the port declares the opaque placeholder
 /// P-70 prescribes for a type that is only ever a pointer target.
 pub struct glyph_string;

@@ -84,7 +84,7 @@ pub struct _gl_verify_type {
 /* verify.h 201: the C++ arm's "the template is defined once" select.  */
 pub const GNULIB_defined_struct__gl_verify_type: c_int = 1;
 
-/* verify.h 209-215, the `_GL_HAVE__STATIC_ASSERT` arm the frozen target takes: C's
+/* verify.h 205-210, the `_GL_HAVE__STATIC_ASSERT` arm the frozen target takes: C's
    `struct { _Static_assert (R, DIAGNOSTIC); int _gl_dummy; }` is a type whose only jobs are
    the check and a non-zero size.  The port spells it as an array whose length is a const
    block holding the check, so the type stays usable where C's is (an operand of

@@ -126,7 +126,7 @@ pub struct font
   #[cfg(feature = "window_system")]
   pub repertory_charset: c_int,
 
-  /// C: `struct font_driver const *driver;` (font.h 407) - `struct font_driver` is this
+  /// C: `struct font_driver const *driver;` (font.h 400) - `struct font_driver` is this
   /// header's record too and has not landed in this mirror yet, so the pointer keeps the
   /// untyped form with this line (PORTING.md P-55/P-72 rule 3, and the pointee's `const` is
   /// C's), and the units that read it cast at the use site, the `frame.rs`

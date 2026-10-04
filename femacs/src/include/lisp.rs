@@ -3689,9 +3689,10 @@ pub mod other_units {
         pub fn xrealloc (block: *mut c_void, size: usize) -> *mut c_void;
     }
 
-    // src/lisp.h 619, 4261, 4540, 4563-4564: character.c's callees.  `validate_subarray`
-    // lives in editfns.c, `args_out_of_range` in eval.c's keymap helpers, and the three
-    // allocation entries in alloc.c; `AVOID` is `-> !` (PORTING.md 5.2).
+    // src/lisp.h 4195, 4261, 4540, 4563-4564: character.c's callees.  `args_out_of_range`
+    // is eval.c's keymap helper, `validate_subarray` editfns.c's, and the three allocation
+    // entries (`string_overflow`, `make_uninit_string`, `make_uninit_multibyte_string`)
+    // alloc.c's; `AVOID` is `-> !` (PORTING.md 5.2).
     unsafe extern "C" {
         pub fn args_out_of_range (a: Lisp_Object, b: Lisp_Object) -> !;
         pub fn validate_subarray (array: Lisp_Object, from: Lisp_Object, to: Lisp_Object,

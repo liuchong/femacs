@@ -4225,7 +4225,7 @@ pub unsafe extern "C" fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Ob
   record_unwind_current_buffer ();
   Fset_buffer (buffer);
 
-  /* lisp.h 313-314: `insertion_type` is bit 1 of `Lisp_Marker.bits` (the mirror's
+  /* lisp.h 2830-2833: `insertion_type` is bit 1 of `Lisp_Marker.bits` (the mirror's
      MARKER_INSERTION_TYPE; docs/ports/token-aliases.tsv's family keeps the token).  */
   let insertion_type: bool = !NILP (Vwindow_point_insertion_type);
   (*XMARKER ((*w).pointm)).bits = ((*XMARKER ((*w).pointm)).bits & ! MARKER_INSERTION_TYPE)
@@ -8231,7 +8231,7 @@ unsafe fn save_window_save (window: Lisp_Object, vector: *mut Lisp_Vector,
 	  else
 	    { (*p).pointm = Fcopy_marker ((*w).pointm, Qnil ()); }
 	  (*p).old_pointm = Fcopy_marker ((*w).old_pointm, Qnil ());
-	  /* lisp.h 313-314: `insertion_type` is bit 1 of `Lisp_Marker.bits` (the mirror's
+	  /* lisp.h 2830-2833: `insertion_type` is bit 1 of `Lisp_Marker.bits` (the mirror's
 	     MARKER_INSERTION_TYPE; docs/ports/token-aliases.tsv's family keeps the token).  */
 	  (*XMARKER ((*p).pointm)).bits =
 	    ((*XMARKER ((*p).pointm)).bits & ! MARKER_INSERTION_TYPE)

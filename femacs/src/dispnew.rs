@@ -281,7 +281,7 @@ unsafe extern "C" {
   fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
   /// C: window.h 1105: `extern struct window *decode_any_window (Lisp_Object);`
   fn decode_any_window (window: Lisp_Object) -> *mut window;
-  /// C: termhooks.h 1058: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object,
+  /// C: keyboard.h 513-514: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object,
   /// Lisp_Object, ptrdiff_t);`
   fn gen_help_event (string: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,
                      object: Lisp_Object, pos: ptrdiff_t);
@@ -447,11 +447,11 @@ macro_rules! CHAR_GLYPH_SPACE_P {
 macro_rules! BYTEPOS { ($pos:expr) => { ($pos).bytepos }; }
 macro_rules! CHARPOS { ($pos:expr) => { ($pos).charpos }; }
 
-/// frame.h 243's `fonts_changed` flag is packed into `frame::bits1` (the mirror names the
+/// frame.h 372's `fonts_changed` flag is packed into `frame::bits1` (the mirror names the
 /// shift).  `frame.rs` defines this one-line accessor for its own unit, which this unit does
 /// not include (C's dispnew.c does not include frame.c either), so the line is repeated here
 /// and the ledger records the gap.
-/// frame.h 300-341's flag run: the two more members this unit reads (`after_make_frame`,
+/// frame.h 494, 398: the two more members this unit reads (`after_make_frame`,
 /// `garbaged`); `frame.rs` defines them for its own unit, which this unit does not include.
 macro_rules! after_make_frame {
   ($f:expr) => { (*$f).bits1 >> FRAME_AFTER_MAKE_FRAME_SHIFT & 1 != 0 };
@@ -477,7 +477,7 @@ macro_rules! SET_FRAME_GARBAGED {
   }};
 }
 
-/// frame.h 1862-1867: `FRAME_PIXEL_TO_TEXT_WIDTH`/`FRAME_PIXEL_TO_TEXT_HEIGHT`
+/// frame.h 1804-1814: `FRAME_PIXEL_TO_TEXT_WIDTH`/`FRAME_PIXEL_TO_TEXT_HEIGHT`
 /// (`frame.rs` defines them for its own unit, which this unit does not include).
 macro_rules! FRAME_PIXEL_TO_TEXT_WIDTH {
   ($f:expr, $width:expr) => {
@@ -492,7 +492,7 @@ macro_rules! FRAME_PIXEL_TO_TEXT_HEIGHT {
   };
 }
 
-/// frame.h 300-341's flag run (`new_size_p`, `glyphs_initialized_p`).  `frame.rs` defines these accessors
+/// frame.h 526, 331 (`new_size_p`, `glyphs_initialized_p`).  `frame.rs` defines these accessors
 /// for its own unit, which this unit does not include, so the one this unit writes is
 /// repeated here (the ledger records the gap).
 macro_rules! new_size_p {

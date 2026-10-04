@@ -330,7 +330,7 @@ const _: () = assert! (std::mem::offset_of! (face, ascii_face) == 272);
 /* `struct font` (font.h 275-418) comes from `include/font.rs` now; this unit reads `props`,
    `pixel_size` and `average_width` of it (docs/ports/include-font.md).  */
 
-/// C: dispextern.h 1780-1810: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0,
+/// C: dispextern.h 1991-2009: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0,
 /// `f`@8, `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf
 /// menu_face_changed_p : 1` in the int unit at 36 (carried as a byte, the P-80 convention).
 #[repr(C)]
@@ -549,16 +549,17 @@ unsafe extern "C" {
 			  noerror: bool) -> c_int;
   /// C: font.h 288-291: `void font_clear_prop (Lisp_Object attrs[], enum font_property_index prop);`
   fn font_clear_prop (attrs: *mut Lisp_Object, prop: font_property_index);
-  /// C: font.h 1198-1201: `Lisp_Object copy_font_spec (Lisp_Object font);`
+  /// C: font.h 839: `Lisp_Object copy_font_spec (Lisp_Object font);`
   fn copy_font_spec (font: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 1202-1205: `Lisp_Object merge_font_spec (Lisp_Object from, Lisp_Object to);`
+  /// C: font.h 840: `Lisp_Object merge_font_spec (Lisp_Object from, Lisp_Object to);`
   fn merge_font_spec (from: Lisp_Object, to: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 5322-5323: `extern FILE *emacs_fopen (char const *, char const *);`
   fn emacs_fopen (file: *const c_char, mode: *const c_char) -> *mut FILE;
   /// C: <stdio.h>: the two stdio entries `Fx_load_color_file` reads.
   fn fgets (s: *mut c_char, n: c_int, stream: *mut FILE) -> *mut c_char;
   fn sscanf (s: *const c_char, format: *const c_char, ...) -> c_int;
-  /// C: dispextern.h 3104/3570: the two display entries `free_realized_faces` calls.
+  /// C: dispextern.h 3629: `forget_escape_and_glyphless_faces`, one of the two display
+  /// entries `free_realized_faces` calls (the other is the next line's `clear_current_matrices`).
   fn forget_escape_and_glyphless_faces ();
   /// C: dispnew.h 88: `extern void clear_current_matrices (struct frame *f);`
   fn clear_current_matrices (f: *mut frame);
@@ -3911,7 +3912,7 @@ pub const TTY_CAP_OVERLINE: c_uint = 1 << 8;
 unsafe extern "C" {
   fn is_tty_frame (f: *mut frame) -> bool;
   fn tty_capable_p (tty: *mut tty_display_info, caps: c_uint) -> bool;
-  /// C: font.h 1256: `void font_update_sort_order (int *order);`
+  /// C: font.h 887: `void font_update_sort_order (int *order);`
   fn font_update_sort_order (order: *mut c_int);
 }
 

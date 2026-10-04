@@ -39,6 +39,8 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
+ALLOWLIST = REPO / "docs" / "baseline" / "citations-allowlist.tsv"
+
 TREES = ["femacs/src", "femacs/lib", "femacs/lib-src", "femacs/platform", "femacs/exec",
          "femacs/lwlib", "femacs/oldXMenu", "femacs/nt", "femacs/msdos"]
 SUFFIXES = {".rs", ".swift", ".kt", ".cc", ".cpp"}
@@ -50,11 +52,29 @@ QUOTE = re.compile(r"`([^`]+)`")
 # "struct font_metrics" and "FONT_SET_STYLE" qualify, while "FD_SET(n, p)" - whose C
 # text the reader has to find by eye - does not).
 CODE_QUOTE = re.compile(r"^[A-Za-z_*][A-Za-z0-9_ *]*$")
+# ...but a *statement keyword* is never the thing a citation names, so pairing one with a citation
+# is noise (the `for` of a FOR_EACH_TAIL row, the `int` of a UTF_16_HIGH_SURROGATE_P row).
+KEYWORDS = {"for", "if", "while", "else", "return", "switch", "case", "break", "continue",
+            "goto", "default", "do", "int", "char", "void", "unsigned", "signed", "short", "long",
+            "struct", "union", "enum", "typedef", "static", "extern", "const", "volatile",
+            "sizeof", "inline", "register", "auto"}
 
 
 ROOTS = [REPO / "emacs", REPO / "emacs" / "src", REPO / "emacs" / "lib",
          REPO / "emacs" / "lib-src", REPO / "build" / "emacs-ref" / "src",
          REPO / "build" / "emacs-ref" / "lib", REPO / "build" / "emacs-ref"]
+
+
+# C's line numbering is `split ("\n")`: Emacs's sources are full of `^L` (form feed, \x0c) page
+# breaks, and Python's `str.splitlines ()` treats one as a line break too - which shifted every
+# citation's line number by the number of form feeds above it.  The first version of this tool
+# used splitlines (), and 124 of its 162 `drift` findings were that bug (found by the lane that
+# used the tool; status 3.172).
+def c_lines_text (text: str) -> list[str]:
+    lines = text.split ("\n")
+    if lines and lines[-1] == "":
+        lines.pop ()
+    return lines
 
 
 def resolve(path: str) -> Path | None:
@@ -80,14 +100,14 @@ def resolve(path: str) -> Path | None:
 def findings_for(rel: str, text: str, limit: int | None = None) -> list[tuple[str, str]]:
     out: list[tuple[str, str]] = []
     cache: dict[Path, list[str]] = {}
-    for lineno, line in enumerate(text.splitlines(), 1):
+    for lineno, line in enumerate(c_lines_text(text), 1):
         for m in CITE.finditer(line):
             ref = resolve(m.group("path"))
             if ref is None:
                 out.append(f"external\t{rel}:{lineno}\t{m.group(0)}")
                 continue
             if ref not in cache:
-                cache[ref] = ref.read_text(encoding="utf-8", errors="replace").splitlines()
+                cache[ref] = c_lines_text(ref.read_text(encoding="utf-8", errors="replace"))
             lines = cache[ref]
             start = int(m.group("start"))
             end = int(m.group("end") or start)
@@ -97,7 +117,7 @@ def findings_for(rel: str, text: str, limit: int | None = None) -> list[tuple[st
                 continue
             quote = None
             for q in QUOTE.findall(line[m.end():]):
-                if CODE_QUOTE.match(q.strip()):
+                if CODE_QUOTE.match(q.strip()) and q.strip() not in KEYWORDS:
                     quote = q.strip().rstrip("(").strip()
                     break
             if not quote:
@@ -152,6 +172,26 @@ def fix_file(rel: str, text: str) -> tuple[str, list[str]]:
     return "\n".join(out_lines), changes
 
 
+def read_allowlist () -> dict[str, str]:
+    """`<port file>:<line>` -> reason, from docs/baseline/citations-allowlist.tsv.
+
+    A citation can be *right* and still pair with a snippet the gate had to guess at (the
+    include-line class: the quoted identifier is an example, not the cited text; or the range is
+    right and the quote is the member's type).  Those rows carry a reason, and a row that no
+    longer matches a finding is a failure - the same rule the other manifests use.
+    """
+    rows: dict[str, str] = {}
+    if not ALLOWLIST.is_file ():
+        return rows
+    for line in ALLOWLIST.read_text (encoding="utf-8").splitlines ():
+        if not line.strip () or line.startswith ("#"):
+            continue
+        parts = line.split ("\t")
+        if len (parts) >= 2:
+            rows[parts[0]] = parts[1]
+    return rows
+
+
 def selftest() -> int:
     ref = REPO / "emacs" / "src" / "font.h"
     cases = [
@@ -200,14 +240,21 @@ def main() -> int:
             files += 1
             rel = str(path.relative_to(REPO))
             found += findings_for(rel, path.read_text(encoding="utf-8", errors="replace"))
-    drift = [f for f in found if f.startswith("drift")]
-    rng = [f for f in found if f.startswith("range")]
-    ext = [f for f in found if f.startswith("external")]
-    for entry in (rng + drift + ext)[: args.limit or len(found)]:
-        print(entry)
-    print(f"check-citations: {files} file(s) scanned, {len(drift)} drift, {len(rng)} range, "
-          f"{len(ext)} external")
-    return 1 if drift or rng else 0
+    allow = read_allowlist ()
+    def site (entry: str) -> str:
+        return entry.split ("\t")[1]
+    drift = [f for f in found if f.startswith ("drift") and site (f) not in allow]
+    rng = [f for f in found if f.startswith ("range") and site (f) not in allow]
+    ext = [f for f in found if f.startswith ("external")]
+    allowed = [f for f in found if f.startswith (("drift", "range")) and site (f) in allow]
+    stale = [k for k in allow if not any (site (f) == k for f in found)]
+    for entry in (rng + drift + ext)[: args.limit or len (found)]:
+        print (entry)
+    for key in stale:
+        print (f"stale\t{key}\t{allow[key]}\tthe row no longer matches a finding")
+    print (f"check-citations: {files} file(s) scanned, {len(drift)} drift, {len(rng)} range, "
+           f"{len(ext)} external, {len(allowed)} allowed, {len(stale)} stale")
+    return 1 if drift or rng or stale else 0
 
 
 if __name__ == "__main__":

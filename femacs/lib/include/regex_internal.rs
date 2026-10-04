@@ -55,7 +55,7 @@ macro_rules! lock_unlock {
     ($($lock:tt)*) => { () };
 }
 
-/* regex_internal.h 70-72: the `isblank` fallback is dead (HAVE_ISBLANK is 1).  */
+/* regex_internal.h 78-81: the `isblank` fallback is dead (HAVE_ISBLANK is 1).  */
 macro_rules! isblank {
     ($ch:expr) => { ($ch) == b' ' as c_int || ($ch) == b'\t' as c_int };
 }
@@ -75,7 +75,7 @@ pub const COLL_ELEM_LEN_MAX: c_int = 8;
 pub const NEWLINE_CHAR: char = '\n';
 pub const WIDE_NEWLINE_CHAR: wchar_t = '\n' as wchar_t;
 
-/* regex_internal.h 126-131: the `_REGEX_AVOID_UCHAR_H` arm is the live one, so `wchar_t`
+/* regex_internal.h 123-131: the `_REGEX_AVOID_UCHAR_H` arm is the live one, so `wchar_t`
    and `wctype_t` are C's types; the `#else` arm's two `#define`s are still named, and
    `macro_rules!` may not shadow a type alias's name, so they live here as the names the
    ledger expects and the aliases come from the <wchar.h>/<wctype.h> mirrors.  */
@@ -147,7 +147,7 @@ macro_rules! REGEX_COB4 {
    <limits.h> (its type is C's `long`, so the use site casts it to `Idx`).  */
 pub const IDX_MAX: Idx = SSIZE_MAX as Idx;
 
-/* regex_internal.h 193-194: the index type.  `_REGEX_LARGE_OFFSETS` is on, so it is
+/* regex_internal.h 196-197: the index type.  `_REGEX_LARGE_OFFSETS` is on, so it is
    `regoff_t` (== `ssize_t`).  */
 pub type Idx = regoff_t;
 
@@ -330,7 +330,7 @@ pub struct re_string_t {
   pub mb_cur_max: c_int,
 }
 
-/* regex_internal.h 424-430: `IS_IN` is `false` outside glibc.  */
+/* regex_internal.h 438-440: `IS_IN` is `false` outside glibc.  */
 macro_rules! IS_IN {
     ($libc:expr) => { false };
 }
@@ -380,7 +380,7 @@ macro_rules! MIN {
     ($a:expr, $b:expr) => { if ($a) < ($b) { ($a) } else { ($b) } };
 }
 
-/* regex_internal.h 455-461: `HAVE_MALLOC_0_NONNULL` is 1 on the frozen target.  */
+/* regex_internal.h 466-470: `HAVE_MALLOC_0_NONNULL` is 1 on the frozen target.  */
 macro_rules! re_malloc {
     ($t:ty, $n:expr) => { malloc (($n) as usize * std::mem::size_of::<$t> ()) as *mut $t };
 }
