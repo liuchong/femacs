@@ -1564,3 +1564,38 @@
   wip=32, todo=144**。
   **仍未过（下一轮）**：`gate-probes` 的 dead-arms 段在 `lib/boot-time.rs` 上红——非冻结臂调
   `get_haiku_boot_time`，本单元没有它的定义（E0425）；要么把 Haiku 臂补齐，要么按 P-51 把该臂的依赖记账。
+- **3.104 `boot-time-aux.h` 成为镜像，`gate-probes` 转绿；顺带修掉三个真缺陷（2026-10-04 第 99 轮第五批）**：
+  起点是 `xtask gate-probes` 在 HEAD 上**红**：dead-arms 段报 `lib/boot-time.rs` 里 `haiku` 臂
+  （C 239-244）调 `get_haiku_boot_time`，而该函数住在 `lib/boot-time-aux.h` 里——那个头**没有镜像**，
+  单元按"名字写在用点"的老约定只抄了自己编的那一个函数。补法和终局一致：**把 `lib/boot-time-aux.h`
+  做成镜像**（`femacs/lib/include/boot-time-aux.rs`，488 行 / C 426，行数门新行 0.15），单元改成
+  `include!("include/boot-time-aux.rs")`（337 行 / C 306，旧行 0.25 仍生效），`CTL_KERN`/`KERN_BOOTTIME`
+  随活体函数搬进镜像；六个平台臂按单元已在用的 feature 名保留（`linux_or_android`/`linux_no_android`/
+  `android`/`openbsd`/`haiku`/`os_h`/`cygwin_win32`+`no_cygwin`）外加四个新名
+  （`no_glibc_boottime`/`no_glibc_realtime`/`have_decl_sysinfo`/`win32_vista`），台账
+  `docs/ports/include-boot-time-aux.md` 勾满并记决策。
+  追 gate 的过程中又挖出**三个 HEAD 上真实存在的破损**（上一次整树 `gate-fast` 停在 `fcbf0bc`，
+  批次 F 的提交之后没人再编译过这些单元）：
+  ① **`src/fns.rs` 编不过**（E0428 `memmem`）：批次 F 给 `lib/include/string.rs` 加 `memmem` 时，
+  fns.rs 自己在用点也声明了一个——而那个声明**没有改名**，于是 `build/femacs/fns.o` 打的是
+  `U _memmem`，参照却是 `U _rpl_memmem`（`build/emacs-ref/lib/string.h` 991 行
+  `#   define memmem rpl_memmem`）：文本忠实、导出齐全、**调错函数**。现在声明只留在
+  `lib/include/string.rs`，写成 `memmem` + `#[link_name = "rpl_memmem"]`（`emacs_fclose` 形状，status 3.57），
+  放进 `memmem_decl` 模块 + glob 导入（P-70），好让 **`lib/memmem.rs`**（同一个符号的定义方）以显式项
+  遮蔽它而不是撞名；
+  ② **`lib/memmem.rs` 编不过**（同一处 E0428）——现在 `build-tu` = `built`，`nm build/femacs/memmem.o`
+  含 `T _rpl_memmem`，与参照逐符号一致；
+  ③ **`no_trunc` 翻转下 `trunc` 找不到**（`src/editfns.rs` C 4008、`src/timefns.rs` 780 是**活代码**）：
+  `lib/include/math.rs` 原来只在"系统有 trunc"时声明它，而 C 的 gnulib `<math.h>` 两种配置都声明
+  （定义在 `floatfns.c`）。现在 `math.rs` 的整块原型进 `math_decls` 模块 + glob，`trunc` 无条件声明，
+  `src/floatfns.rs` 的定义照 P-70 遮蔽它。（先用"用点声明"试过一次，**`check-mirror-dupes` 判它重复**
+  ——门在这里是对的：声明只该有一个落点。）
+  验证：**`xtask gate-probes` = EXIT 0**（7 个 C 差分脚本全 `identical`、`lisp-abi-probe` 182 条、
+  `gmp-abi-probe` 159 条、`dead arms` **322 translation unit(s) compiled with the non-frozen arms**、
+  `layout-check passed`）；`--check` 对 `lib/boot-time.c`/`lib/boot-time-aux.h`/`src/fns.c`/`lib/memmem.c`
+  全 `OK`；`build-tu` = `built` 覆盖从 `lib/boot-time.c`、`lib/memmem.c`、`lib-src/make-fingerprint.c`
+  到 `src/{fns,editfns,timefns,floatfns}.c`；`check-symbols --pending …` = `78 units compared, 0 mismatched,
+  1 still pending`；`check-mirror-dupes` 0 failure；`check-globals` 274/0；`check-declarations` 0 failures。
+  **仍未绿（不是本批引入）**：`check-undef` 的 39 条 NEW 全部来自在飞的 `keyboard.o`/`xdisp.o`，
+  12 条 stale 棘轮行是 coding 落地后的既得项（要在**已提交态**重取）。
+

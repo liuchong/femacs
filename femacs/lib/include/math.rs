@@ -31,7 +31,14 @@ macro_rules! signbit {
     ($x:expr) => { ($x).is_sign_negative () };
 }
 
-unsafe extern "C" {
+/// The `<math.h>` prototypes.  They sit in a module of their own with a glob import
+/// (PORTING.md 0.1-10, the composite.rs/charset.rs shape) so that a unit which *defines* one
+/// of them shadows the declaration: `floatfns.c` defines `trunc` when the target has none,
+/// and C's gnulib `<math.h>` declares it either way.
+pub mod math_decls {
+  use super::*;
+
+  unsafe extern "C" {
   pub fn acos (x: c_double) -> c_double;
   pub fn asin (x: c_double) -> c_double;
   pub fn atan (x: c_double) -> c_double;
@@ -53,7 +60,11 @@ unsafe extern "C" {
   pub fn scalbn (x: c_double, n: c_int) -> c_double;
   pub fn ilogb (x: c_double) -> c_int;
   pub fn rint (x: c_double) -> c_double;
-  /* C defines its own `trunc` in floatfns.c when the target has none (HAVE_TRUNC).  */
-  #[cfg(not(feature = "no_trunc"))]
+  /* C defines its own `trunc` in floatfns.c when the target has none (HAVE_TRUNC); the
+     declaration is here in **both** configurations, the way C's gnulib `<math.h>` declares
+     it, and `floatfns.rs`'s own definition shadows it through this module's glob import
+     (PORTING.md 0.1-10; status 3.104).  */
   pub fn trunc (x: c_double) -> c_double;
+  }
 }
+use math_decls::*;

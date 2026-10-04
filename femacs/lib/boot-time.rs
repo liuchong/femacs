@@ -22,11 +22,13 @@
 // `ut_name`/`ut_time` half).  These features are never set: `xtask dead-arms` can only flip the
 // keys config.rs carries and these are compiler/platform predicates (the status 3.9 note).
 //
-// "readutmp.h" (C 54), "unlocked-io.h" (C 58) and "boot-time-aux.h" (C 61) have no mirror yet,
-// so their names are declared at the use site (the fstatat.rs/lstat.rs in-unit declaration
-// shape): the utmp entries and UTMP_FILE below, and boot-time-aux.h's one live function.  All
-// three headers are included by this file alone (measured: `grep -l` over emacs/lib and
-// emacs/src), so their live text belongs to this translation unit exactly as C compiles it.
+// "readutmp.h" (C 54) and "unlocked-io.h" (C 58) have no mirror yet, so their names are
+// declared at the use site (the fstatat.rs/lstat.rs in-unit declaration shape): the utmp
+// entries and UTMP_FILE below.  "boot-time-aux.h" (C 61) **became a mirror** in status 3.104
+// (`femacs/lib/include/boot-time-aux.rs`), so the one arm of it this configuration compiles -
+// its sysctl fallback - and the dead platform arms beside it are included rather than
+// transcribed here; all three headers are included by this file alone (measured: `grep -l`
+// over emacs/lib and emacs/src).
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
@@ -46,6 +48,7 @@ include!("include/sys_time.rs");        // C 50/55: `<sys/time.h>` (struct timev
 include!("include/utmpx.rs");           // C 54: `#include "readutmp.h"` -> `<utmpx.h>`
 include!("include/sys_sysctl.rs");      // C 40: `#include <sys/sysctl.h>` (sysctl)
 include!("include/boot-time.rs");       // C 22: `#include "boot-time.h"`
+include!("include/boot-time-aux.rs");   // C 61: `#include "boot-time-aux.h"`
 
 /* C 24's `<stdcountof.h>`, C 25's `<stddef.h>`, C 29's `<sys/stat.h>`, C 53's `idx.h` and
    C 55's `stat-time.h` are includes whose names this configuration's live text does not name
@@ -92,38 +95,10 @@ macro_rules! WIN32_LEAN_AND_MEAN { () => {}; }
 /* C 75-79's `#if !HAVE_UTMPX_H && HAVE_UTMP_H && defined UTMP_NAME_FUNCTION` arm is dead
    (HAVE_UTMPX_H is 1), so its `void endutent (void);` declaration is not transcribed.  */
 
-/* C 61's `#include "boot-time-aux.h"`: the one arm of that header this configuration compiles
-   (boot-time-aux.h 230-256, the same sysctl gate as C 230-232 below).  The header's static
-   function is part of this translation unit, so it is defined here; its other arms
-   (Linux/Android/OpenBSD/Haiku/Windows) are dead and are recorded in docs/ports/boot-time.md.
-   `CTL_KERN`/`KERN_BOOTTIME` are the frozen target's <sys/sysctl.h> values (the macro table
-   and the clang probe in docs/ports/boot-time.md); include/sys_sysctl.rs carries only the two
-   rows lib/nproc.c names.  */
-pub const CTL_KERN: c_int = 1;
-pub const KERN_BOOTTIME: c_int = 21;
-
-/* C boot-time-aux.h 240-241: `static int get_bsd_boot_time_final_fallback (struct timespec
-   *p_boot_time)`.  */
-unsafe fn get_bsd_boot_time_final_fallback (p_boot_time: *mut timespec) -> c_int
-{
-  /* The following approach is only usable as a fallback, because it produces
-     wrong values after the date has been bumped in the running system, which
-     happens frequently if the system is running in a virtual machine and this
-     VM has been put into "saved" or "sleep" state and then resumed.  */
-  static mut request: [c_int; 2] = [CTL_KERN, KERN_BOOTTIME];
-  let mut result: timeval = timeval { tv_sec: 0, tv_usec: 0 };
-  let mut result_len: usize = std::mem::size_of_val (&result);
-
-  if sysctl ((*std::ptr::addr_of_mut! (request)).as_mut_ptr (), 2,
-             &mut result as *mut timeval as *mut c_void, &mut result_len,
-             std::ptr::null_mut (), 0) >= 0
-    {
-      (*p_boot_time).tv_sec = result.tv_sec;
-      (*p_boot_time).tv_nsec = (result.tv_usec * 1000) as c_long;
-      return 0;
-    }
-  return -1;
-}
+/* C 61's `#include "boot-time-aux.h"` is the mirror `include/boot-time-aux.rs`: it carries
+   the two <sys/sysctl.h> rows (`CTL_KERN` 1, `KERN_BOOTTIME` 21) and the one arm this
+   configuration compiles (boot-time-aux.h 230-256, the same sysctl gate as C 230-232
+   below), plus the header's dead platform arms under their own features.  */
 
 /* C 81's `#if ...` is live (HAVE_UTMPX_H is 1), so C 83-296 is transcribed; C 298-306's
    `#else` arm (`get_boot_time` returning -1) is dead and is recorded in

@@ -39,3 +39,16 @@
   same linkage C's `static` gives).  `--check lib/str-two-way.h` → **OK**.
 - Line-count drift (C 71 vs the port's 97) is declared in docs/ports/line-drift-tolerance.tsv.
 - Call-relationship differences (D7): none.
+
+- **The *call* side is `rpl_memmem`, and status 3.104 fixed it** (2026-10-04).  C's TU gets
+  `memmem` → `rpl_memmem` from the **generated** `<string.h>` (`build/emacs-ref/lib/string.h`
+  991: `#   define memmem rpl_memmem`; 993 declares the replacement), so `nm
+  build/emacs-ref/src/fns.o` prints `U _rpl_memmem`.  The port's `femacs/src/fns.rs` had declared
+  `memmem` at its use site without a `#[link_name]`, so `build/femacs/fns.o` printed `U _memmem`
+  - textually faithful, right exports, and the wrong callee.  The declaration now lives in
+  `lib/include/string.rs` as `memmem` **with `#[link_name = "rpl_memmem"]`** (the `emacs_fclose`
+  shape, status 3.57) inside a `memmem_decl` module + glob import, so this unit's own definition
+  shadows it instead of colliding with it (`E0428`).  Measured after the fix:
+  `nm build/femacs/fns.o` → `U _rpl_memmem`, `nm build/femacs/memmem.o` → `T _rpl_memmem`, the
+  reference's two lines exactly; `build-tu` built for both units; `--check` `OK` for both files.
+

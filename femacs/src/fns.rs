@@ -119,10 +119,6 @@ unsafe extern "C" {
   /// C: lisp.h 4539: `extern Lisp_Object bool_vector_fill (Lisp_Object, Lisp_Object);` —
   /// alloc.c defines it (the mirror is missing the line).
   fn bool_vector_fill (a: Lisp_Object, item: Lisp_Object) -> Lisp_Object;
-  /// C: <string.h>: `void *memmem (const void *, size_t, const void *, size_t);` (macOS
-  /// libc provides it; no mirror declares it).
-  fn memmem (haystack: *const c_void, haystacklen: usize, needle: *const c_void,
-             needlelen: usize) -> *mut c_void;
   /// C: lisp.h 4223: `extern bool string_ascii_p (Lisp_Object);` (character.c defines it; the
   /// mirror is missing the line).
   fn string_ascii_p (string: Lisp_Object) -> bool;

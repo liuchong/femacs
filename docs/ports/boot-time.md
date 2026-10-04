@@ -100,8 +100,11 @@ binary-io.rs dead-arm note) while the macros and the code they guard are carried
 - **C 65's `#undef UT_USER`**: the port has no `#undef`; the mirror's `UT_USER` is not included
   here, this unit defines it (the mirror rule 0.1-2 keeps definitions out of mirrors).
 - **C 298-306's alternative `get_boot_time`**, as above.
-- **`boot-time-aux.h`'s other arms** (Linux/Android/OpenBSD/Haiku/Windows) - the header is a
-  separate file with its own ledger-to-be; this unit carries only the arm C compiles.
+- ~~**`boot-time-aux.h`'s other arms** (Linux/Android/OpenBSD/Haiku/Windows)~~ - **superseded by
+  status 3.104**: the header is now the mirror `femacs/lib/include/boot-time-aux.rs`, which the
+  unit includes at C 61, so its arms are neither transcribed here nor merely recorded - they live
+  in the mirror's ledger, `docs/ports/include-boot-time-aux.md` (and `xtask dead-arms` compiles
+  the `haiku` one there, which is what forced the mirror into existence).
 - **`volatile`** on C 278-279's two statics: Rust has no qualifier on a `static`, and the
   reads/writes keep C's order (`cached_result < 0`, the two stores, the two loads).  Recorded
   as a deviation; no gate covers it.
@@ -121,9 +124,10 @@ mirrors that `extract-abi.py --all` would then have to track as WIP:
   object imports.
 - `CTL_KERN` (1) and `KERN_BOOTTIME` (21) are the frozen `<sys/sysctl.h>` values; the mirror
   `sys_sysctl.rs` carries only the two rows lib/nproc.c names (the filelock.rs EDOM note).
-- `boot-time-aux.h`'s live function is defined in this unit as the C TU compiles it (C 61
-  includes it): `get_bsd_boot_time_final_fallback`, with the sysctl mib and the
-  `size_of_val` the C `sizeof` spells.
+- ~~`boot-time-aux.h`'s live function is defined in this unit~~ - **superseded by status 3.104**:
+  C 61 is an `include!` of the header's mirror now, which defines
+  `get_bsd_boot_time_final_fallback` (with the sysctl mib and the `size_of_val` the C `sizeof`
+  spells) together with `CTL_KERN`/`KERN_BOOTTIME`.
 - The dead `fopen` arm names `fopen` without a declaration (it is not in `stdio.rs`), the way
   the binary-io.rs dead arm names `_setmode`; `FILE`/`fread`/`fclose` do come from
   `include/stdio.rs`, and `memeq`/`strlen` from `include/string.rs`.
