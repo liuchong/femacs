@@ -15,7 +15,7 @@
 - [x] reset_mouse_highlight  (line 3027)
 
 ## Macros defined — 108
-- [ ] BIDI_AT_BASE_LEVEL  (line 2207, body 971025605d73)
+- [x] BIDI_AT_BASE_LEVEL  (line 2207, body 971025605d73)
 - [x] BIDI_MAXDEPTH  (line 2073, body 0ca9277f91e4)
 - [x] BYTEPOS  (line 286, body f5e18d0fbc01)
 - [x] CHARPOS  (line 287, body 73ec1c170ff8)
@@ -32,7 +32,7 @@
 - [x] CURRENT_TAB_LINE_ACTIVE_FACE_ID  (line 1641, body 925fa57920f2)
 - [x] CURRENT_TAB_LINE_ACTIVE_FACE_ID_3  (line 1629, body aed5798bdffa)
 - [x] CURRENT_TAB_LINE_HEIGHT  (line 1650, body 001407fb1bad)
-- [ ] DEC_TEXT_POS  (line 309, body ae74bb8bed91)
+- [x] DEC_TEXT_POS  (line 309, body ae74bb8bed91)
 - [x] DEFAULT_TAB_BAR_BUTTON_MARGIN  (line 3435, body 356a192b7913)
 - [x] DEFAULT_TAB_BAR_BUTTON_RELIEF  (line 3436, body 356a192b7913)
 - [x] DEFAULT_TAB_BAR_IMAGE_HEIGHT  (line 3440, body 9e6a55b6b456)
@@ -61,14 +61,14 @@
 - [x] GLYPH_INVALID_P  (line 725, body 33ac13298a7b)
 - [x] GLYPH_SLICE_EQUAL_P  (line 660, body 9c418a93c05b)
 - [x] IF_DEBUG  (line 264, body a29646b15239)
-- [ ] INC_TEXT_POS  (line 296, body 6e78be0b5653)
-- [ ] ITERATOR_AT_END_OF_LINE_P  (line 2954, body 5fe0db6bf4f3)
+- [x] INC_TEXT_POS  (line 296, body 6e78be0b5653)
+- [x] ITERATOR_AT_END_OF_LINE_P  (line 2954, body 5fe0db6bf4f3)
 - [x] ITERATOR_AT_END_P  (line 2948, body 41e3bb4fc207)
 - [x] IT_BYTEPOS  (line 2941, body 0f75d85b7e29)
 - [x] IT_CHARPOS  (line 2940, body bcd8f758e9a9)
 - [x] IT_STACK_SIZE  (line 2383, body ac3478d69a3c)
 - [x] IT_STRING_BYTEPOS  (line 2943, body f11b6d59f1ec)
-- [ ] IT_STRING_CHARPOS  (line 2942, body d8348a36bac4)
+- [x] IT_STRING_CHARPOS  (line 2942, body d8348a36bac4)
 - [x] MATRIX_BOTTOM_TEXT_ROW  (line 1231, body aabcfcfcceb6)
 - [x] MATRIX_FIRST_TEXT_ROW  (line 1189, body 4e76fb21e86e)
 - [x] MATRIX_HEADER_LINE_HEIGHT  (line 1529, body 2932fb04bc39)
@@ -107,7 +107,7 @@
 - [ ] NativeRectangle  (line 179, body 46f8ab7c0cff)
 - [x] No_Cursor  (line 58, body 48a28489fbe0)
 - [x] OVERLAY_STRING_CHUNK_SIZE  (line 2572, body 1574bddb75c7)
-- [ ] PRODUCE_GLYPHS  (line 2962, body b381e080c20c)
+- [x] PRODUCE_GLYPHS  (line 2962, body b381e080c20c)
 - [x] SET_CHAR_GLYPH  (line 694, body 87cdee165f02)
 - [x] SET_CHAR_GLYPH_FROM_GLYPH  (line 707, body 93df533422c7)
 - [x] SET_GLYPH  (line 395, body 4660fe499b7f)
@@ -115,7 +115,7 @@
 - [x] SET_GLYPH_FACE  (line 394, body bda12f7fd668)
 - [x] SET_GLYPH_FROM_CHAR_GLYPH  (line 715, body b2e7c6eecdd3)
 - [x] SET_GLYPH_FROM_GLYPH_CODE  (line 414, body 6e5736c7b386)
-- [ ] SET_MARKER_FROM_TEXT_POS  (line 336, body 2a85f22416c9)
+- [x] SET_MARKER_FROM_TEXT_POS  (line 336, body 2a85f22416c9)
 - [x] SET_MATRIX_ROW_ENABLED_P  (line 1243, body c92cc2f3ccd9)
 - [x] SET_TEXT_POS  (line 291, body 191b91beaae4)
 - [x] SET_TEXT_POS_FROM_MARKER  (line 322, body 4aac43f6e52f)
@@ -125,13 +125,13 @@
 - [x] VCENTER_BASELINE_OFFSET  (line 1702, body f9470532af8f)
 
 ## Types and their fields — 19
-- [ ] bidi_it: ptrdiff_t bytepos, ptrdiff_t charpos, int ch, ptrdiff_t nchars, ptrdiff_t ch_len, bidi_type_t type, bidi_type_t type_after_wn, bidi_type_t orig_type, signed char resolved_level, signed char isolate_level, ptrdiff_t invalid_levels, ptrdiff_t invalid_isolates, struct bidi_saved_info prev, struct bidi_saved_info last_strong, struct bidi_saved_info next_for_neutral, struct bidi_saved_info prev_for_neutral, struct bidi_saved_info next_for_ws, ptrdiff_t bracket_pairing_pos, bidi_type_t bracket_enclosed_type, ptrdiff_t next_en_pos, bidi_type_t next_en_type, bidi_dir_t sos, int scan_dir, ptrdiff_t disp_pos, int disp_prop, int stack_idx, struct bidi_stack level_stack, struct bidi_string_data string, struct window* w, bidi_dir_t paragraph_dir, ptrdiff_t separator_limit, bool_bf first_elt : 1, bool_bf new_paragraph : 1, bool_bf frame_window_p : 1
+- [x] bidi_it: ptrdiff_t bytepos, ptrdiff_t charpos, int ch, ptrdiff_t nchars, ptrdiff_t ch_len, bidi_type_t type, bidi_type_t type_after_wn, bidi_type_t orig_type, signed char resolved_level, signed char isolate_level, ptrdiff_t invalid_levels, ptrdiff_t invalid_isolates, struct bidi_saved_info prev, struct bidi_saved_info last_strong, struct bidi_saved_info next_for_neutral, struct bidi_saved_info prev_for_neutral, struct bidi_saved_info next_for_ws, ptrdiff_t bracket_pairing_pos, bidi_type_t bracket_enclosed_type, ptrdiff_t next_en_pos, bidi_type_t next_en_type, bidi_dir_t sos, int scan_dir, ptrdiff_t disp_pos, int disp_prop, int stack_idx, struct bidi_stack level_stack, struct bidi_string_data string, struct window* w, bidi_dir_t paragraph_dir, ptrdiff_t separator_limit, bool_bf first_elt : 1, bool_bf new_paragraph : 1, bool_bf frame_window_p : 1
 - [x] bidi_saved_info: ptrdiff_t charpos, bidi_type_t type, bidi_type_t orig_type
 - [x] bidi_stack: ptrdiff_t next_for_neutral_pos, unsigned next_for_neutral_type : 3, unsigned last_strong_type : 3, unsigned prev_for_neutral_type : 3, unsigned char level, unsigned char flags
 - [x] bidi_string_data: Lisp_Object lstring, const unsigned char* s, ptrdiff_t schars, ptrdiff_t bufpos, bool_bf from_disp_str : 1, bool_bf unibyte : 1
-- [ ] composition_it: ptrdiff_t stop_pos, ptrdiff_t id, int ch, EMACS_INT rule_idx, ptrdiff_t lookback, int nglyphs, bool reversed_p, struct it* parent_it, ptrdiff_t charpos, int nchars, int nbytes, int from, int to, int width
+- [x] composition_it: ptrdiff_t stop_pos, ptrdiff_t id, int ch, EMACS_INT rule_idx, ptrdiff_t lookback, int nglyphs, bool reversed_p, struct it* parent_it, ptrdiff_t charpos, int nchars, int nbytes, int from, int to, int width
 - [x] display_pos: struct text_pos pos, ptrdiff_t overlay_string_index, struct text_pos string_pos, int dpvec_index
-- [ ] draw_fringe_bitmap_params: int which, unsigned short* bits, int wd, int h, int dh, int x, int y, int bx, int nx, int by, int ny, bool_bf cursor_p : 1, bool_bf overlay_p : 1, struct face* face
+- [x] draw_fringe_bitmap_params: int which, unsigned short* bits, int wd, int h, int dh, int x, int y, int bx, int nx, int by, int ny, bool_bf cursor_p : 1, bool_bf overlay_p : 1, struct face* face
 - [x] face: Lisp_Object lface, int id, unsigned long foreground, unsigned long background, unsigned long underline_color, unsigned long overline_color, unsigned long strike_through_color, unsigned long box_color, struct font* font, int fontset, int box_vertical_line_width, int box_horizontal_line_width, int underline_pixels_above_descent_line, ENUM_BF (face_box_type) box : 2, ENUM_BF (face_underline_type) underline : 3, bool_bf use_box_color_for_shadows_p : 1, bool_bf overline_p : 1, bool_bf strike_through_p : 1, bool_bf foreground_defaulted_p : 1, bool_bf background_defaulted_p : 1, bool_bf underline_defaulted_p : 1, bool_bf overline_color_defaulted_p : 1, bool_bf strike_through_color_defaulted_p : 1, bool_bf box_color_defaulted_p : 1, bool_bf underline_at_descent_line_p : 1, bool_bf tty_bold_p : 1, bool_bf tty_italic_p : 1, bool_bf tty_reverse_p : 1, bool_bf tty_strike_through_p : 1, bool_bf tty_overline_p : 1, bool_bf colors_copied_bitwise_p : 1, bool_bf overstrike : 1, uintptr_t hash, struct face* next, struct face* prev, struct face* ascii_face
 - [x] face_cache: struct face** buckets, struct frame* f, struct face** faces_by_id, ptrdiff_t size, int used, bool_bf menu_face_changed_p : 1
 - [x] glyph: ptrdiff_t charpos, Lisp_Object object, struct frame* frame, short pixel_width, short ascent, short descent, short voffset, unsigned type : 3, bool_bf multibyte_p : 1, bool_bf left_box_line_p : 1, bool_bf right_box_line_p : 1, bool_bf overlaps_vertically_p : 1, bool_bf padding_p : 1, bool_bf glyph_not_available_p : 1, bool_bf avoid_cursor_p : 1, unsigned resolved_level : 7, unsigned bidi_type : 3, unsigned face_id : FACE_ID_BITS, unsigned font_type : 3, struct glyph_slice img, short upper_xoff, short upper_yoff, short lower_xoff, short lower_yoff, <aggregate> glyphless, <aggregate> slice, unsigned ch, bool_bf automatic : 1, unsigned id : 31, <aggregate> cmp, int img_id, unsigned height : 16, unsigned ascent : 16, <aggregate> stretch, unsigned method : 2, bool_bf for_no_font : 1, unsigned len : 4, unsigned ch : 25, <aggregate> glyphless, unsigned val, <aggregate> u
@@ -139,9 +139,9 @@
 - [x] glyph_pool: struct glyph* glyphs, ptrdiff_t nglyphs, int nrows, int ncolumns
 - [x] glyph_row: struct glyph* glyphs, short used, unsigned hash, int x, int y, int pixel_width, int ascent, int height, int phys_ascent, int phys_height, int visible_height, int extra_line_spacing, int extra_line_spacing_above, struct display_pos start, struct display_pos end, struct text_pos minpos, struct text_pos maxpos, int overlay_arrow_bitmap, unsigned left_user_fringe_bitmap : FRINGE_ID_BITS, unsigned right_user_fringe_bitmap : FRINGE_ID_BITS, unsigned left_fringe_bitmap : FRINGE_ID_BITS, unsigned right_fringe_bitmap : FRINGE_ID_BITS, unsigned left_user_fringe_face_id : FACE_ID_BITS, unsigned right_user_fringe_face_id : FACE_ID_BITS, unsigned left_fringe_face_id : FACE_ID_BITS, unsigned right_fringe_face_id : FACE_ID_BITS, signed left_fringe_offset : FRINGE_HEIGHT_BITS, signed right_fringe_offset : FRINGE_HEIGHT_BITS, bool_bf fringe_bitmap_periodic_p : 1, bool_bf redraw_fringe_bitmaps_p : 1, bool_bf enabled_p : 1, bool_bf truncated_on_left_p : 1, bool_bf truncated_on_right_p : 1, bool_bf continued_p : 1, bool_bf displays_text_p : 1, bool_bf ends_at_zv_p : 1, bool_bf fill_line_p : 1, bool_bf indicate_empty_line_p : 1, bool_bf contains_overlapping_glyphs_p : 1, bool_bf full_width_p : 1, bool_bf mode_line_p : 1, bool_bf tab_line_p : 1, bool_bf overlapped_p : 1, bool_bf ends_in_middle_of_char_p : 1, bool_bf starts_in_middle_of_char_p : 1, bool_bf overlapping_p : 1, bool_bf mouse_face_p : 1, bool_bf ends_in_newline_from_string_p : 1, bool_bf exact_window_width_line_p : 1, bool_bf cursor_in_fringe_p : 1, bool_bf ends_in_ellipsis_p : 1, bool_bf indicate_bob_p : 1, bool_bf indicate_top_line_p : 1, bool_bf indicate_eob_p : 1, bool_bf indicate_bottom_line_p : 1, bool_bf reversed_p : 1, bool_bf stipple_p : 1, int continuation_lines_width
 - [x] glyph_slice: unsigned x : 16, unsigned y : 16, unsigned width : 16, unsigned height : 16
-- [ ] it: Lisp_Object window, struct window* w, struct frame* f, enum it_method method, ptrdiff_t stop_charpos, ptrdiff_t prev_stop, ptrdiff_t base_level_stop, ptrdiff_t end_charpos, ptrdiff_t medium_narrowing_begv, ptrdiff_t medium_narrowing_zv, ptrdiff_t large_narrowing_begv, ptrdiff_t large_narrowing_zv, const unsigned char* s, ptrdiff_t string_nchars, bool_bf multibyte_p : 1, bool_bf tab_line_p : 1, bool_bf header_line_p : 1, bool_bf string_from_display_prop_p : 1, bool_bf string_from_prefix_prop_p : 1, bool_bf from_disp_prop_p : 1, bool_bf ellipsis_p : 1, bool_bf avoid_cursor_p : 1, struct Lisp_Char_Table* dp, Lisp_Object* dpvec, Lisp_Object* dpend, int dpvec_char_len, int dpvec_face_id, int saved_face_id, Lisp_Object ctl_chars, struct display_pos start, struct display_pos current, ptrdiff_t n_overlay_strings, ptrdiff_t overlay_strings_charpos, Lisp_Object overlay_strings, Lisp_Object string_overlays, Lisp_Object string, Lisp_Object from_overlay, Lisp_Object string, int string_nchars, ptrdiff_t end_charpos, ptrdiff_t stop_charpos, ptrdiff_t prev_stop, ptrdiff_t base_level_stop, struct composition_it cmp_it, int face_id, Lisp_Object object, struct it_slice slice, ptrdiff_t image_id, <aggregate> image, Lisp_Object object, <aggregate> stretch, Lisp_Object object, <aggregate> xwidget, <aggregate> u, struct text_pos position, struct display_pos current, Lisp_Object from_overlay, enum glyph_row_area area, enum it_method method, bidi_dir_t paragraph_embedding, bool_bf multibyte_p : 1, bool_bf string_from_display_prop_p : 1, bool_bf string_from_prefix_prop_p : 1, bool_bf display_ellipsis_p : 1, bool_bf avoid_cursor_p : 1, bool_bf bidi_p : 1, bool_bf from_disp_prop_p : 1, enum line_wrap_method line_wrap, short voffset, Lisp_Object space_width, Lisp_Object font_height, <aggregate> stack, int sp, ptrdiff_t selective, enum display_element_type what, int face_id, bool_bf selective_display_ellipsis_p : 1, bool_bf ctl_arrow_p : 1, bool_bf face_box_p : 1, bool_bf start_of_box_run_p : 1, bool_bf end_of_box_run_p : 1, bool_bf overlay_strings_at_end_processed_p : 1, bool_bf ignore_overlay_strings_at_pos_p : 1, bool_bf glyph_not_available_p : 1, bool_bf starts_in_middle_of_char_p : 1, bool_bf face_before_selective_p : 1, bool_bf constrain_row_ascent_descent_p : 1, bool_bf line_number_produced_p : 1, bool_bf align_visually_p : 1, enum line_wrap_method line_wrap, int base_face_id, int c, int len, struct composition_it cmp_it, int char_to_display, enum glyphless_display_method glyphless_method, ptrdiff_t image_id, struct xwidget* xwidget, struct it_slice slice, Lisp_Object space_width, short voffset, short tab_width, Lisp_Object font_height, Lisp_Object object, struct text_pos position, short truncation_pixel_width, short continuation_pixel_width, int first_visible_x, int last_visible_x, int last_visible_y, int extra_line_spacing, int extra_line_spacing_above, int max_extra_line_spacing, int override_ascent, int override_descent, int override_boff, struct glyph_row* glyph_row, enum glyph_row_area area, int nglyphs, int pixel_width, int ascent, int descent, int max_ascent, int max_descent, int phys_ascent, int phys_descent, int max_phys_ascent, int max_phys_descent, int current_x, int wrap_prefix_width, int continuation_lines_width, struct text_pos eol_pos, int current_y, int first_vpos, int vpos, int hpos, ptrdiff_t lnum, ptrdiff_t lnum_bytepos, int lnum_width, int lnum_pixel_width, ptrdiff_t pt_lnum, int stretch_adjust, unsigned left_user_fringe_bitmap : FRINGE_ID_BITS, unsigned right_user_fringe_bitmap : FRINGE_ID_BITS, unsigned left_user_fringe_face_id : FACE_ID_BITS, unsigned right_user_fringe_face_id : FACE_ID_BITS, bool_bf bidi_p : 1, struct bidi_it bidi_it, bidi_dir_t paragraph_embedding, Lisp_Object min_width_property, int min_width_start
+- [x] it: Lisp_Object window, struct window* w, struct frame* f, enum it_method method, ptrdiff_t stop_charpos, ptrdiff_t prev_stop, ptrdiff_t base_level_stop, ptrdiff_t end_charpos, ptrdiff_t medium_narrowing_begv, ptrdiff_t medium_narrowing_zv, ptrdiff_t large_narrowing_begv, ptrdiff_t large_narrowing_zv, const unsigned char* s, ptrdiff_t string_nchars, bool_bf multibyte_p : 1, bool_bf tab_line_p : 1, bool_bf header_line_p : 1, bool_bf string_from_display_prop_p : 1, bool_bf string_from_prefix_prop_p : 1, bool_bf from_disp_prop_p : 1, bool_bf ellipsis_p : 1, bool_bf avoid_cursor_p : 1, struct Lisp_Char_Table* dp, Lisp_Object* dpvec, Lisp_Object* dpend, int dpvec_char_len, int dpvec_face_id, int saved_face_id, Lisp_Object ctl_chars, struct display_pos start, struct display_pos current, ptrdiff_t n_overlay_strings, ptrdiff_t overlay_strings_charpos, Lisp_Object overlay_strings, Lisp_Object string_overlays, Lisp_Object string, Lisp_Object from_overlay, Lisp_Object string, int string_nchars, ptrdiff_t end_charpos, ptrdiff_t stop_charpos, ptrdiff_t prev_stop, ptrdiff_t base_level_stop, struct composition_it cmp_it, int face_id, Lisp_Object object, struct it_slice slice, ptrdiff_t image_id, <aggregate> image, Lisp_Object object, <aggregate> stretch, Lisp_Object object, <aggregate> xwidget, <aggregate> u, struct text_pos position, struct display_pos current, Lisp_Object from_overlay, enum glyph_row_area area, enum it_method method, bidi_dir_t paragraph_embedding, bool_bf multibyte_p : 1, bool_bf string_from_display_prop_p : 1, bool_bf string_from_prefix_prop_p : 1, bool_bf display_ellipsis_p : 1, bool_bf avoid_cursor_p : 1, bool_bf bidi_p : 1, bool_bf from_disp_prop_p : 1, enum line_wrap_method line_wrap, short voffset, Lisp_Object space_width, Lisp_Object font_height, <aggregate> stack, int sp, ptrdiff_t selective, enum display_element_type what, int face_id, bool_bf selective_display_ellipsis_p : 1, bool_bf ctl_arrow_p : 1, bool_bf face_box_p : 1, bool_bf start_of_box_run_p : 1, bool_bf end_of_box_run_p : 1, bool_bf overlay_strings_at_end_processed_p : 1, bool_bf ignore_overlay_strings_at_pos_p : 1, bool_bf glyph_not_available_p : 1, bool_bf starts_in_middle_of_char_p : 1, bool_bf face_before_selective_p : 1, bool_bf constrain_row_ascent_descent_p : 1, bool_bf line_number_produced_p : 1, bool_bf align_visually_p : 1, enum line_wrap_method line_wrap, int base_face_id, int c, int len, struct composition_it cmp_it, int char_to_display, enum glyphless_display_method glyphless_method, ptrdiff_t image_id, struct xwidget* xwidget, struct it_slice slice, Lisp_Object space_width, short voffset, short tab_width, Lisp_Object font_height, Lisp_Object object, struct text_pos position, short truncation_pixel_width, short continuation_pixel_width, int first_visible_x, int last_visible_x, int last_visible_y, int extra_line_spacing, int extra_line_spacing_above, int max_extra_line_spacing, int override_ascent, int override_descent, int override_boff, struct glyph_row* glyph_row, enum glyph_row_area area, int nglyphs, int pixel_width, int ascent, int descent, int max_ascent, int max_descent, int phys_ascent, int phys_descent, int max_phys_ascent, int max_phys_descent, int current_x, int wrap_prefix_width, int continuation_lines_width, struct text_pos eol_pos, int current_y, int first_vpos, int vpos, int hpos, ptrdiff_t lnum, ptrdiff_t lnum_bytepos, int lnum_width, int lnum_pixel_width, ptrdiff_t pt_lnum, int stretch_adjust, unsigned left_user_fringe_bitmap : FRINGE_ID_BITS, unsigned right_user_fringe_bitmap : FRINGE_ID_BITS, unsigned left_user_fringe_face_id : FACE_ID_BITS, unsigned right_user_fringe_face_id : FACE_ID_BITS, bool_bf bidi_p : 1, struct bidi_it bidi_it, bidi_dir_t paragraph_embedding, Lisp_Object min_width_property, int min_width_start
 - [x] it_slice: Lisp_Object x, Lisp_Object y, Lisp_Object width, Lisp_Object height
-- [ ] redisplay_interface: frame_parm_handler* frame_parm_handlers, void (*) produce_glyphs, void (*) write_glyphs, void (*) insert_glyphs, void (*) clear_end_of_line, void (*) scroll_run_hook, void (*) after_update_window_line_hook, void (*) update_window_begin_hook, void (*) update_window_end_hook, void (*) flush_display, void (*) clear_window_mouse_face, void (*) get_glyph_overhangs, void (*) fix_overlapping_area
+- [x] redisplay_interface: frame_parm_handler* frame_parm_handlers, void (*) produce_glyphs, void (*) write_glyphs, void (*) insert_glyphs, void (*) clear_end_of_line, void (*) scroll_run_hook, void (*) after_update_window_line_hook, void (*) update_window_begin_hook, void (*) update_window_end_hook, void (*) flush_display, void (*) clear_window_mouse_face, void (*) get_glyph_overhangs, void (*) fix_overlapping_area
 - [x] run: int desired_y, int current_y, int desired_vpos, int current_vpos, int height, int nrows
 - [x] text_pos: ptrdiff_t charpos, ptrdiff_t bytepos
 
@@ -151,7 +151,7 @@
 - [x] extern bool redisplaying_p  (line 3608)
 - [x] extern bool display_working_on_window_p  (line 3610)
 - [x] extern int dont_resize_frames  (line 3611)
-- [ ] extern bool help_echo_showing_p  (line 3613)
+- [x] extern bool help_echo_showing_p  (line 3613)
 - [x] extern Lisp_Object help_echo_string  (line 3614)
 - [x] extern Lisp_Object help_echo_window  (line 3614)
 - [x] extern Lisp_Object help_echo_object  (line 3615)
@@ -754,3 +754,79 @@ free         (1): NativeRectangle
   row(s), 0 failure(s)` (the module adds no finding, which is what the non-glob-imported shape is
   for); `check-verbatim` -> `6 trees, 4607 files, 0 failures`; `check-target-names` -> `626 .rs
   files, 591 map targets, 0 finding(s)`.
+
+## Decisions (the five records, dispextern.h 2159-3200)
+
+- **Shape: the five records are carried in the module, each behind the 3.220 flip feature.**
+  They are the same class as the two face records: every one is declared by a unit that includes
+  this mirror (`bidi_it` - `src/bidi.rs` 86; `composition_it` - `src/dispnew.rs` 6828 and
+  `src/indent.rs` 180; `it` - `src/dispnew.rs` 6855; `redisplay_interface` - `src/dispnew.rs` 3569
+  and `src/minibuf.rs` 666; `draw_fringe_bitmap_params` - no unit yet), so an ungated copy is
+  `E0428` in those units.  They sit in `dispextern_unit_names` at their C positions, with
+  `iterator_stack_entry` hoisted to just before `it` because C defines that record *inside* `it`
+  (C 2588-2658) and Rust has no nested record definitions.  The units' typed copies stay live.
+- **Every number is the frozen clang's own measurement of the reference header**, and the
+  assertions repeat it, so a moved member fails the build rather than the ledger:
+  `bidi_it` sizeof 2328 / align 8 (32 member offsets, 3 bits in the byte at 2320);
+  `draw_fringe_bitmap_params` 64 / 8 (13 offsets, 2 bits at 52);
+  `composition_it` 88 / 8 (14 offsets);
+  `iterator_stack_entry` 304 / 8 (20 offsets, 7 bits at 276);
+  `it` 4968 / 8 (94 offsets; four bitfield runs: `bits` at 112, C 2477-2485's eight flags;
+  `bits2` at 2216, C 2696-2707's thirteen; `bits3` at 2604, C 2915-2932's twelve bytes - the two
+  16-bit fringe ids, the two 20-bit face ids and `bidi_p`, which shares the spare bit of their
+  third storage unit, measured by setting it alone and reading `2614 = 10` back);
+  `redisplay_interface` 104 / 8 (13 offsets);
+  `iterator_stack_entry_u` 48 (its `image` arm 48, `slice` at 8 and `image_id` at 40).
+  180 measured offsets in all.
+- **Three port decisions inside the records.**  (a) A pointer to a record this arm does not carry
+  is `*mut c_void` (P-72 ③): `it.w`/`it.f`/`it.dp`/`it.xwidget`, `bidi_it.w` and
+  `redisplay_interface`'s twelve parameters, plus `frame_parm_handlers` (C's
+  `frame_parm_handler *`); the records this arm *does* carry keep their names (`glyph_row`,
+  `glyph`, `run`, `face`, `it_slice`, `text_pos`, `display_pos`, `bidi_saved_info`, `bidi_stack`,
+  `bidi_string_data`, `composition_it`, `bidi_it`).  (b) `draw_fringe_bitmap_params`' bitfield
+  byte is spelled `flags`, because C's pointer member in that record already owns the name `bits`.
+  (c) C's `struct iterator_stack_entry stack[IT_STACK_SIZE]` is spelled `it_stack` - one named head
+  entry plus the remaining four, the same 1520 bytes - because C defines the entry type inline, so
+  its members are C fields of `it` itself, and the field-member gate follows *named* types only
+  (`stack: [iterator_stack_entry; 5]` hides them).
+- **`it_stack` and `iterator_stack_entry_u{,_image,_stretch,_xwidget}` are the port's names for
+  C's anonymous types** (P-67, the `glyph_u`/`glyph_slice_union` shape): the union is named after
+  its member and each arm after the union and its own member.
+- **The arm is still compiled by no gate, and this round proves it compiles by hand.**  `xtask`'s
+  `dead_arms()` flips exactly its six `FLIPS` rows and `dispextern_face_records` is not one of them;
+  a row for it would also need a config constant, because that loop fails on a row whose key is
+  absent from `config.rs`.  The probe is the one `xtask` itself uses (a first-reach-wins expansion
+  of the include graph, so nested duplicates are include-guard no-ops) over `config.rs` +
+  `lisp.rs` (with its own includes) + `character.rs` + `systime.rs` + `dispextern.rs`, compiled with
+  `--cfg 'feature="dispextern_face_records"'`.  **It must be compiled from `femacs/`**, the cwd
+  `layout_check` uses: from the repository root the same expanded root fails with `c_variadic`
+  E0658s in `lisp.rs`/`jni.rs`, which is a probe-invocation artifact, not a defect of the arm.
+
+## Evidence (the five records)
+
+- **The clang measurement**: `clang -std=gnu23 -O0 -I build/emacs-ref/lib -idirafter spikes/shim -I
+  build/emacs-ref/src -I emacs/src -I emacs/lib <probe>.c` -> the probe prints
+  `sizeof`/`alignof`/`offsetof` for `bidi_it`, `composition_it`, `draw_fringe_bitmap_params`, `it`,
+  `iterator_stack_entry` and `redisplay_interface` (180 `offsetof` lines), and a second probe sets
+  one bit at a time and reads the byte back: `bidi_it.bits 2320`,
+  `iterator_stack_entry.bits 276`, `draw_fringe_bitmap_params.bits 52`, `it.bits 112`,
+  `it.bits2 2216`, `it.bits3 2604`, `nonzero byte 2614 = 10` for `bidi_p`, and the fringe run
+  `2604:34 12 2606:78 56 2608:de bc 0a 00 2612:45 23 11 00`.
+- **`--check`**: `python3 tools/extract-abi.py --check emacs/src/dispextern.h
+  femacs/src/include/dispextern.rs` -> `OK emacs/src/dispextern.h -> femacs/src/include/dispextern.rs`,
+  `grep -c '^- '` = **0** (from 15 at the start of the round; the three `false`/do-while rows in
+  `macro-body-notes.tsv` 1243-1245, which the integrator wrote, retired the last three lines).
+- **The arm's own compile** (the flip no gate performs): the `/tmp` probe above, compiled from
+  `femacs/` with `--cfg 'feature="dispextern_face_records"'` -> exit 0, `records probe ok`; the
+  compile is what evaluates the 180 `const _: () = assert! (…)` lines, so every measured offset
+  holds in the port too.
+- **`layout-check`** (the arm is off there, so it is the ungated text that is checked):
+  `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-dx cargo run -q -p xtask -- layout-check` ->
+  `layout probe ok` / `layout-check passed (see build/femacs/layout_asserts.rs)`.
+- **`build-tu`, ten units**: `src/bidi.c` -> `built src/bidi.rs -> …/bidi.o`; `src/dispnew.c`,
+  `src/indent.c`, `src/term.c`, `src/window.c`, `src/xfaces.c`, `src/keyboard.c`, `src/frame.c`,
+  `src/alloc.c`, `src/character.c` - all `built …`.  (`src/xdisp.c` still fails inside
+  `src/xdisp.rs`'s own `buffer_text_bits!` macro, another lane's in-flight work; no diagnostic
+  names this mirror.)
+- **The ledger**: unchecked boxes **14 -> 1**, and the one that stays is `NativeRectangle`, whose
+  deferral is the `excluded-macros.txt` row (3.224) rather than a missing item.

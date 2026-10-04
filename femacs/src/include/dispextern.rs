@@ -2226,9 +2226,15 @@ unsafe extern "C" {
 //   * a module's contents are *compiled* by every unit that includes this mirror and by
 //     `layout-check`, so C's constants, signatures and bodies are type-checked in the normal
 //     build, where a cfg'd-out arm is compiled only when `dead-arms`/`gate-probes` flips it.
-// The module holds every one of them but `FACE_FOR_CHAR`, whose C body reads a member of
-// `struct face`: that record exists only in this mirror's flipped arm, so the function is
-// carried there, with the record (C 2030-2038, its own comment says why).
+// The module holds three classes:
+//   * the names a unit declares itself, ungated, so that every consumer and `layout-check`
+//     compile them (C 286-3834);
+//   * the five records of C 2159-3200 (`bidi_it`, `draw_fringe_bitmap_params`, `composition_it`,
+//     `it` with `iterator_stack_entry`/`it_stack`, `redisplay_interface`), each behind the same
+//     `dispextern_face_records` arm the two face records use, because a unit that includes this
+//     mirror declares each of them too (their own comments carry the measured layout);
+//   * and nothing else: `FACE_FOR_CHAR`, whose C body reads a `struct face` member, is carried in
+//     the face-record arm itself (C 2030-2038).
 //
 // Every item keeps C's text in a `/// C:` line; the enum members are `pub const`s of C's
 // underlying `int` (PORTING.md 1.3), the objects are `extern` storage declarations, and the
@@ -2357,6 +2363,174 @@ pub mod dispextern_unit_names {
     };
   }
 
+  /* ---- C 2159-2240: the bidi iterator's state and the fringe-bitmap request -----------------
+     Both are records a unit that includes this mirror declares itself (`struct bidi_it` is
+     `src/bidi.rs` 86, `struct draw_fringe_bitmap_params` is no unit's yet), so they are carried
+     behind `dispextern_face_records` - the arm status 3.220 chose for the records the units keep.
+     Every `sizeof`, `align` and member offset below is the frozen clang's own measurement of the
+     reference header (`clang -std=gnu23 -O0 -I build/emacs-ref/{lib,src} -I emacs/{src,lib}`, an
+     `offsetof` probe over `struct bidi_it`/`struct draw_fringe_bitmap_params`; bit positions come
+     from a second probe that sets one bit and reads the byte back), and the assertions repeat the
+     same numbers, so a moved member fails the build rather than the ledger.  */
+#[cfg (feature = "dispextern_face_records")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct bidi_it
+{
+  pub bytepos: ptrdiff_t,                  // offset 0
+  pub charpos: ptrdiff_t,                  // offset 8
+  pub ch: c_int,                  // offset 16
+  pub nchars: ptrdiff_t,                  // offset 24
+  pub ch_len: ptrdiff_t,                  // offset 32
+  pub r#type: bidi_type_t,                  // offset 40
+  pub type_after_wn: bidi_type_t,                  // offset 44
+  pub orig_type: bidi_type_t,                  // offset 48
+  pub resolved_level: c_char,                  // offset 52
+  pub isolate_level: c_char,                  // offset 53
+  pub invalid_levels: ptrdiff_t,                  // offset 56
+  pub invalid_isolates: ptrdiff_t,                  // offset 64
+  pub prev: bidi_saved_info,                  // offset 72
+  pub last_strong: bidi_saved_info,                  // offset 88
+  pub next_for_neutral: bidi_saved_info,                  // offset 104
+  pub prev_for_neutral: bidi_saved_info,                  // offset 120
+  pub next_for_ws: bidi_saved_info,                  // offset 136
+  pub bracket_pairing_pos: ptrdiff_t,                  // offset 152
+  pub bracket_enclosed_type: bidi_type_t,                  // offset 160
+  pub next_en_pos: ptrdiff_t,                  // offset 168
+  pub next_en_type: bidi_type_t,                  // offset 176
+  pub sos: bidi_dir_t,                  // offset 180
+  pub scan_dir: c_int,                  // offset 184
+  pub disp_pos: ptrdiff_t,                  // offset 192
+  pub disp_prop: c_int,                  // offset 200
+  pub stack_idx: c_int,                  // offset 204
+  pub level_stack: [bidi_stack; (BIDI_MAXDEPTH + 2 + 1) as usize],                  // offset 208
+  pub string: bidi_string_data,                  // offset 2256
+  pub w: *mut c_void,                  // offset 2296
+  pub paragraph_dir: bidi_dir_t,                  // offset 2304
+  pub separator_limit: ptrdiff_t,                  // offset 2312
+  /// C 2159-2203's bitfield run, stored as `bits` (PORTING.md 1.3): offset 2320.
+  pub bits: u8,
+}
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::size_of::<bidi_it> () == 2328);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::align_of::<bidi_it> () == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, bytepos) == 0);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, charpos) == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, ch) == 16);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, nchars) == 24);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, ch_len) == 32);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, r#type) == 40);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, type_after_wn) == 44);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, orig_type) == 48);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, resolved_level) == 52);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, isolate_level) == 53);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, invalid_levels) == 56);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, invalid_isolates) == 64);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, prev) == 72);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, last_strong) == 88);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, next_for_neutral) == 104);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, prev_for_neutral) == 120);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, next_for_ws) == 136);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, bracket_pairing_pos) == 152);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, bracket_enclosed_type) == 160);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, next_en_pos) == 168);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, next_en_type) == 176);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, sos) == 180);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, scan_dir) == 184);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, disp_pos) == 192);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, disp_prop) == 200);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, stack_idx) == 204);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, level_stack) == 208);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, string) == 2256);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, w) == 2296);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, paragraph_dir) == 2304);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, separator_limit) == 2312);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (bidi_it, bits) == 2320);
+
+#[cfg (feature = "dispextern_face_records")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct draw_fringe_bitmap_params
+{
+  pub which: c_int,                  // offset 0
+  pub bits: *mut c_ushort,                  // offset 8
+  pub wd: c_int,                  // offset 16
+  pub h: c_int,                  // offset 20
+  pub dh: c_int,                  // offset 24
+  pub x: c_int,                  // offset 28
+  pub y: c_int,                  // offset 32
+  pub bx: c_int,                  // offset 36
+  pub nx: c_int,                  // offset 40
+  pub by: c_int,                  // offset 44
+  pub ny: c_int,                  // offset 48
+  /// C 2215-2240's bitfield run, stored as `flags` (PORTING.md 1.3): offset 52.
+  pub flags: u8,
+  pub face: *mut face,                  // offset 56
+}
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::size_of::<draw_fringe_bitmap_params> () == 64);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::align_of::<draw_fringe_bitmap_params> () == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, which) == 0);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, bits) == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, wd) == 16);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, h) == 20);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, dh) == 24);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, x) == 28);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, y) == 32);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, bx) == 36);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, nx) == 40);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, by) == 44);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, ny) == 48);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, flags) == 52);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, face) == 56);
+
   /* C 2285-2323: `enum display_element_type`, C's `int` enumerator.  */
   /// C: enum display_element_type { IT_CHARACTER,
   pub const IT_CHARACTER: c_int = 0;
@@ -2432,6 +2606,504 @@ pub mod dispextern_unit_names {
   /* C 2383: the iterator's display-element stack depth.  */
   /// C: #define IT_STACK_SIZE 5
   pub const IT_STACK_SIZE: c_int = 5;
+
+  /* ---- C 2386-2936: the display iterator's records ------------------------------------------
+     Same arm and same measurement as the block above.  `struct iterator_stack_entry` stands here,
+     just before `struct it`, although C defines it *inside* `struct it` (C 2588-2658): Rust has no
+     nested record definitions.  `it`'s four bitfield runs are `bits` (C 2477-2485, eight flags in
+     the byte at 112), `bits2` (C 2696-2707, thirteen flags in the two bytes at 2216), `bits3`
+     (C 2915-2932, the two 16-bit fringe ids, the two 20-bit fringe face ids and `bidi_p` in the
+     spare bit of their third storage unit - 12 bytes at 2604, which is why `bidi_p` has no byte of
+     its own), and no fourth run.  The pointers C types against `window`/`frame`/`Lisp_Char_Table`/
+     `xwidget` are untyped here (P-72 ③: this arm carries none of those records).  */
+#[cfg (feature = "dispextern_face_records")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct composition_it
+{
+  pub stop_pos: ptrdiff_t,                  // offset 0
+  pub id: ptrdiff_t,                  // offset 8
+  pub ch: c_int,                  // offset 16
+  pub rule_idx: EMACS_INT,                  // offset 24
+  pub lookback: ptrdiff_t,                  // offset 32
+  pub nglyphs: c_int,                  // offset 40
+  pub reversed_p: bool,                  // offset 44
+  pub parent_it: *mut it,                  // offset 48
+  pub charpos: ptrdiff_t,                  // offset 56
+  pub nchars: c_int,                  // offset 64
+  pub nbytes: c_int,                  // offset 68
+  pub from: c_int,                  // offset 72
+  pub to: c_int,                  // offset 76
+  pub width: c_int,                  // offset 80
+}
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::size_of::<composition_it> () == 88);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::align_of::<composition_it> () == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, stop_pos) == 0);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, id) == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, ch) == 16);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, rule_idx) == 24);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, lookback) == 32);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, nglyphs) == 40);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, reversed_p) == 44);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, parent_it) == 48);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, charpos) == 56);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, nchars) == 64);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, nbytes) == 68);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, from) == 72);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, to) == 76);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (composition_it, width) == 80);
+
+  // C 2604-2619: the stack entry's `union { ... } u;`.  C's union and its three anonymous
+  // `struct` arms have no names, so the port names the union after its member and each arm after
+  // the union and its member (P-67, the `glyph_u`/`glyph_slice_union` shape).  Measured: the
+  // union is 48 bytes (`u` at 144, `position` at 192), the `image` arm is 48
+  // (`object`@0, `slice`@8, `image_id`@40), and both one-member arms are 8.
+  #[cfg (feature = "dispextern_face_records")]
+  #[repr (C)]
+  #[derive (Clone, Copy)]
+  pub struct iterator_stack_entry_u_image
+  {
+    pub object: Lisp_Object,                  // offset 0
+    pub slice: it_slice,                      // offset 8
+    pub image_id: ptrdiff_t,                  // offset 40
+  }
+  #[cfg (feature = "dispextern_face_records")]
+  const _: () = assert! (core::mem::size_of::<iterator_stack_entry_u_image> () == 48);
+  #[cfg (feature = "dispextern_face_records")]
+  const _: () = assert! (core::mem::offset_of! (iterator_stack_entry_u_image, slice) == 8);
+  #[cfg (feature = "dispextern_face_records")]
+  const _: () = assert! (core::mem::offset_of! (iterator_stack_entry_u_image, image_id) == 40);
+  #[cfg (feature = "dispextern_face_records")]
+  #[repr (C)]
+  #[derive (Clone, Copy)]
+  pub struct iterator_stack_entry_u_stretch
+  {
+    pub object: Lisp_Object,                  // offset 0
+  }
+  #[cfg (feature = "dispextern_face_records")]
+  #[repr (C)]
+  #[derive (Clone, Copy)]
+  pub struct iterator_stack_entry_u_xwidget
+  {
+    pub object: Lisp_Object,                  // offset 0
+  }
+  #[cfg (feature = "dispextern_face_records")]
+  #[repr (C)]
+  #[derive (Clone, Copy)]
+  pub union iterator_stack_entry_u
+  {
+    pub image: iterator_stack_entry_u_image,
+    pub stretch: iterator_stack_entry_u_stretch,
+    pub xwidget: iterator_stack_entry_u_xwidget,
+  }
+  #[cfg (feature = "dispextern_face_records")]
+  const _: () = assert! (core::mem::size_of::<iterator_stack_entry_u> () == 48);
+  #[cfg (feature = "dispextern_face_records")]
+  const _: () = assert! (core::mem::offset_of! (iterator_stack_entry_u, stretch) == 0);
+  #[cfg (feature = "dispextern_face_records")]
+  const _: () = assert! (core::mem::offset_of! (iterator_stack_entry_u, xwidget) == 0);
+
+#[cfg (feature = "dispextern_face_records")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct iterator_stack_entry
+{
+  pub string: Lisp_Object,                  // offset 0
+  pub string_nchars: c_int,                  // offset 8
+  pub end_charpos: ptrdiff_t,                  // offset 16
+  pub stop_charpos: ptrdiff_t,                  // offset 24
+  pub prev_stop: ptrdiff_t,                  // offset 32
+  pub base_level_stop: ptrdiff_t,                  // offset 40
+  pub cmp_it: composition_it,                  // offset 48
+  pub face_id: c_int,                  // offset 136
+  pub u: iterator_stack_entry_u,                  // offset 144
+  pub position: text_pos,                  // offset 192
+  pub current: display_pos,                  // offset 208
+  pub from_overlay: Lisp_Object,                  // offset 256
+  pub area: c_int,                  // offset 264
+  pub method: c_int,                  // offset 268
+  pub paragraph_embedding: bidi_dir_t,                  // offset 272
+  /// C 2588-2658's bitfield run, stored as `bits` (PORTING.md 1.3): offset 276.
+  pub bits: u8,
+  pub line_wrap: c_int,                  // offset 280
+  pub voffset: c_short,                  // offset 284
+  pub space_width: Lisp_Object,                  // offset 288
+  pub font_height: Lisp_Object,                  // offset 296
+}
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::size_of::<iterator_stack_entry> () == 304);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::align_of::<iterator_stack_entry> () == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, string) == 0);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, string_nchars) == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, end_charpos) == 16);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, stop_charpos) == 24);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, prev_stop) == 32);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, base_level_stop) == 40);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, cmp_it) == 48);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, face_id) == 136);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, u) == 144);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, position) == 192);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, current) == 208);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, from_overlay) == 256);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, area) == 264);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, method) == 268);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, paragraph_embedding) == 272);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, bits) == 276);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, line_wrap) == 280);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, voffset) == 284);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, space_width) == 288);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, font_height) == 296);
+
+#[cfg (feature = "dispextern_face_records")]
+// C 2643-2644: `struct iterator_stack_entry stack[IT_STACK_SIZE];` - an array of five entries
+// (5 x 304 = 1520 bytes, measured: `stack` at 672, `sp` at 2192).  C defines the entry type
+// inline, so its members are C fields of `it` itself; the port needs a *named* element type and
+// the field-member check follows named types only, so the array is spelled as a named head entry
+// plus the remaining four - same bytes, same offsets.
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct it_stack
+{
+  pub first: iterator_stack_entry,
+  pub rest: [iterator_stack_entry; (IT_STACK_SIZE - 1) as usize],
+}
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::size_of::<it_stack> () == 1520);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it_stack, rest) == 304);
+
+#[cfg (feature = "dispextern_face_records")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct it
+{
+  pub window: Lisp_Object,                  // offset 0
+  pub w: *mut c_void,                  // offset 8
+  pub f: *mut c_void,                  // offset 16
+  pub method: c_int,                  // offset 24
+  pub stop_charpos: ptrdiff_t,                  // offset 32
+  pub prev_stop: ptrdiff_t,                  // offset 40
+  pub base_level_stop: ptrdiff_t,                  // offset 48
+  pub end_charpos: ptrdiff_t,                  // offset 56
+  pub medium_narrowing_begv: ptrdiff_t,                  // offset 64
+  pub medium_narrowing_zv: ptrdiff_t,                  // offset 72
+  pub large_narrowing_begv: ptrdiff_t,                  // offset 80
+  pub large_narrowing_zv: ptrdiff_t,                  // offset 88
+  pub s: *const u8,                  // offset 96
+  pub string_nchars: ptrdiff_t,                  // offset 104
+  /// C 2429-2936's bitfield run, stored as `bits` (PORTING.md 1.3): offset 112.
+  pub bits: u8,
+  pub dp: *mut c_void,                  // offset 120
+  pub dpvec: *mut Lisp_Object,                  // offset 128
+  pub dpend: *mut Lisp_Object,                  // offset 136
+  pub dpvec_char_len: c_int,                  // offset 144
+  pub dpvec_face_id: c_int,                  // offset 148
+  pub saved_face_id: c_int,                  // offset 152
+  pub ctl_chars: [Lisp_Object; 16],                  // offset 160
+  pub start: display_pos,                  // offset 288
+  pub current: display_pos,                  // offset 336
+  pub n_overlay_strings: ptrdiff_t,                  // offset 384
+  pub overlay_strings_charpos: ptrdiff_t,                  // offset 392
+  pub overlay_strings: [Lisp_Object; (OVERLAY_STRING_CHUNK_SIZE as usize)],                  // offset 400
+  pub string_overlays: [Lisp_Object; (OVERLAY_STRING_CHUNK_SIZE as usize)],                  // offset 528
+  pub string: Lisp_Object,                  // offset 656
+  pub from_overlay: Lisp_Object,                  // offset 664
+  pub stack: it_stack,                  // offset 672
+  pub sp: c_int,                  // offset 2192
+  pub selective: ptrdiff_t,                  // offset 2200
+  pub what: c_int,                  // offset 2208
+  pub face_id: c_int,                  // offset 2212
+  /// C 2429-2936's bitfield run, stored as `bits2` (PORTING.md 1.3): offset 2216.
+  pub bits2: [u8; 2],
+  pub line_wrap: c_int,                  // offset 2220
+  pub base_face_id: c_int,                  // offset 2224
+  pub c: c_int,                  // offset 2228
+  pub len: c_int,                  // offset 2232
+  pub cmp_it: composition_it,                  // offset 2240
+  pub char_to_display: c_int,                  // offset 2328
+  pub glyphless_method: c_int,                  // offset 2332
+  pub image_id: ptrdiff_t,                  // offset 2336
+  pub xwidget: *mut c_void,                  // offset 2344
+  pub slice: it_slice,                  // offset 2352
+  pub space_width: Lisp_Object,                  // offset 2384
+  pub voffset: c_short,                  // offset 2392
+  pub tab_width: c_short,                  // offset 2394
+  pub font_height: Lisp_Object,                  // offset 2400
+  pub object: Lisp_Object,                  // offset 2408
+  pub position: text_pos,                  // offset 2416
+  pub truncation_pixel_width: c_short,                  // offset 2432
+  pub continuation_pixel_width: c_short,                  // offset 2434
+  pub first_visible_x: c_int,                  // offset 2436
+  pub last_visible_x: c_int,                  // offset 2440
+  pub last_visible_y: c_int,                  // offset 2444
+  pub extra_line_spacing: c_int,                  // offset 2448
+  pub extra_line_spacing_above: c_int,                  // offset 2452
+  pub max_extra_line_spacing: c_int,                  // offset 2456
+  pub override_ascent: c_int,                  // offset 2460
+  pub override_descent: c_int,                  // offset 2464
+  pub override_boff: c_int,                  // offset 2468
+  pub glyph_row: *mut glyph_row,                  // offset 2472
+  pub area: c_int,                  // offset 2480
+  pub nglyphs: c_int,                  // offset 2484
+  pub pixel_width: c_int,                  // offset 2488
+  pub ascent: c_int,                  // offset 2492
+  pub descent: c_int,                  // offset 2496
+  pub max_ascent: c_int,                  // offset 2500
+  pub max_descent: c_int,                  // offset 2504
+  pub phys_ascent: c_int,                  // offset 2508
+  pub phys_descent: c_int,                  // offset 2512
+  pub max_phys_ascent: c_int,                  // offset 2516
+  pub max_phys_descent: c_int,                  // offset 2520
+  pub current_x: c_int,                  // offset 2524
+  pub wrap_prefix_width: c_int,                  // offset 2528
+  pub continuation_lines_width: c_int,                  // offset 2532
+  pub eol_pos: text_pos,                  // offset 2536
+  pub current_y: c_int,                  // offset 2552
+  pub first_vpos: c_int,                  // offset 2556
+  pub vpos: c_int,                  // offset 2560
+  pub hpos: c_int,                  // offset 2564
+  pub lnum: ptrdiff_t,                  // offset 2568
+  pub lnum_bytepos: ptrdiff_t,                  // offset 2576
+  pub lnum_width: c_int,                  // offset 2584
+  pub lnum_pixel_width: c_int,                  // offset 2588
+  pub pt_lnum: ptrdiff_t,                  // offset 2592
+  pub stretch_adjust: c_int,                  // offset 2600
+  /// C 2429-2936's bitfield run, stored as `bits3` (PORTING.md 1.3): offset 2604.
+  pub bits3: [u32; 3],
+  pub bidi_it: bidi_it,                  // offset 2616
+  pub paragraph_embedding: bidi_dir_t,                  // offset 4944
+  pub min_width_property: Lisp_Object,                  // offset 4952
+  pub min_width_start: c_int,                  // offset 4960
+}
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::size_of::<it> () == 4968);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::align_of::<it> () == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, window) == 0);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, w) == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, f) == 16);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, method) == 24);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, stop_charpos) == 32);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, prev_stop) == 40);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, base_level_stop) == 48);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, end_charpos) == 56);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, medium_narrowing_begv) == 64);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, medium_narrowing_zv) == 72);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, large_narrowing_begv) == 80);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, large_narrowing_zv) == 88);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, s) == 96);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, string_nchars) == 104);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, bits) == 112);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, dp) == 120);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, dpvec) == 128);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, dpend) == 136);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, dpvec_char_len) == 144);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, dpvec_face_id) == 148);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, saved_face_id) == 152);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, ctl_chars) == 160);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, start) == 288);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, current) == 336);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, n_overlay_strings) == 384);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, overlay_strings_charpos) == 392);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, overlay_strings) == 400);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, string_overlays) == 528);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, string) == 656);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, from_overlay) == 664);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, stack) == 672);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, sp) == 2192);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, selective) == 2200);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, what) == 2208);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, face_id) == 2212);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, bits2) == 2216);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, line_wrap) == 2220);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, base_face_id) == 2224);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, c) == 2228);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, len) == 2232);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, cmp_it) == 2240);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, char_to_display) == 2328);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, glyphless_method) == 2332);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, image_id) == 2336);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, xwidget) == 2344);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, slice) == 2352);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, space_width) == 2384);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, voffset) == 2392);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, tab_width) == 2394);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, font_height) == 2400);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, object) == 2408);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, position) == 2416);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, truncation_pixel_width) == 2432);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, continuation_pixel_width) == 2434);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, first_visible_x) == 2436);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, last_visible_x) == 2440);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, last_visible_y) == 2444);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, extra_line_spacing) == 2448);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, extra_line_spacing_above) == 2452);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, max_extra_line_spacing) == 2456);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, override_ascent) == 2460);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, override_descent) == 2464);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, override_boff) == 2468);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, glyph_row) == 2472);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, area) == 2480);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, nglyphs) == 2484);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, pixel_width) == 2488);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, ascent) == 2492);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, descent) == 2496);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, max_ascent) == 2500);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, max_descent) == 2504);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, phys_ascent) == 2508);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, phys_descent) == 2512);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, max_phys_ascent) == 2516);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, max_phys_descent) == 2520);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, current_x) == 2524);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, wrap_prefix_width) == 2528);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, continuation_lines_width) == 2532);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, eol_pos) == 2536);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, current_y) == 2552);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, first_vpos) == 2556);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, vpos) == 2560);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, hpos) == 2564);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, lnum) == 2568);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, lnum_bytepos) == 2576);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, lnum_width) == 2584);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, lnum_pixel_width) == 2588);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, pt_lnum) == 2592);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, stretch_adjust) == 2600);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, bits3) == 2604);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, bidi_it) == 2616);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, paragraph_embedding) == 4944);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, min_width_property) == 4952);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (it, min_width_start) == 4960);
 
   /* C 2572: `struct it`'s overlay-string chunk.  */
   /// C: #define OVERLAY_STRING_CHUNK_SIZE 16
@@ -2522,6 +3194,62 @@ pub mod dispextern_unit_names {
       (*hlinfo).bits &= !(MOUSE_FACE_PAST_END | MOUSE_FACE_DEFER | MOUSE_FACE_HIDDEN);
     }
   }
+
+  /* ---- C 3067-3200: the window-based redisplay interface ------------------------------------
+     Same arm and same measurement as the two blocks above.  C's `frame_parm_handler *` is
+     `frame.h`'s type and stays `*mut c_void` here (P-72 ③); the twelve members the interface calls
+     keep C's names and the port's `Option<unsafe extern "C" fn>` shape, and every one of them is
+     an 8-byte pointer, so the offsets are the interface's own.  The `#ifdef HAVE_WINDOW_SYSTEM`
+     tail (C 3198-3200) is dead on this target and is not declared (P-51).  */
+#[cfg (feature = "dispextern_face_records")]
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct redisplay_interface
+{
+  pub frame_parm_handlers: *mut c_void,                  // offset 0
+  pub produce_glyphs: Option<unsafe extern "C" fn (*mut it)>,                  // offset 8
+  pub write_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, string: *mut glyph, area: c_int, len: c_int)>,                  // offset 16
+  pub insert_glyphs: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, start: *mut glyph, area: c_int, len: c_int)>,                  // offset 24
+  pub clear_end_of_line: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, x: c_int)>,                  // offset 32
+  pub scroll_run_hook: Option<unsafe extern "C" fn (w: *mut c_void, run: *mut run)>,                  // offset 40
+  pub after_update_window_line_hook: Option<unsafe extern "C" fn (w: *mut c_void, desired_row: *mut glyph_row)>,                  // offset 48
+  pub update_window_begin_hook: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 56
+  pub update_window_end_hook: Option<unsafe extern "C" fn (w: *mut c_void, cursor_on_p: bool, mouse_face_overwritten_p: bool)>,                  // offset 64
+  pub flush_display: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 72
+  pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 80
+  pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,                  // offset 88
+  pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,                  // offset 96
+}
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::size_of::<redisplay_interface> () == 104);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::align_of::<redisplay_interface> () == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, frame_parm_handlers) == 0);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, produce_glyphs) == 8);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, write_glyphs) == 16);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, insert_glyphs) == 24);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, clear_end_of_line) == 32);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, scroll_run_hook) == 40);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, after_update_window_line_hook) == 48);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, update_window_begin_hook) == 56);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, update_window_end_hook) == 64);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, flush_display) == 72);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, clear_window_mouse_face) == 80);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, get_glyph_overhangs) == 88);
+#[cfg (feature = "dispextern_face_records")]
+const _: () = assert! (core::mem::offset_of! (redisplay_interface, fix_overlapping_area) == 96);
 
   /* C 3407-3430: `enum tab_bar_item_idx` - where a tab-bar item's slots are in the frame's
      tab-bar vector.  */
