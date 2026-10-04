@@ -97,7 +97,7 @@
   （`stdbit.in.rs` 在，因为 `src/include/lisp.rs` 够得到它）。**待办**：把 `lib/include/*.rs` 加进 probe 的种子，
   代价是可能暴露若干「离开 unit 上下文编不过」的镜像（它们现在的证据是 `build-tu lib/<h>` 的 crate-root 形状，
   或 `/tmp` 的 unit 形状探针）；**要在在飞的 lib 镜像（`stdio.in.rs`）落定后再做**，否则会把共享门弄红。
-- **3.10 `lib/stdcountof.in.h` 的模板条件判不了（P-66 的承载问题）**：`check-cond-eval` 报 `10 conditions, 4 unknown, 5 disagreements [NOT VERIFIED]`（`_GL_GNUC_PREREQ (3, 1) && ! defined `__clang__`` 这类它判不了），所以抽取器的清单是**各臂并集**：C++ 那两段模板（`_gl_verify_type`、`GNULIB_defined_struct__gl_verify_type`）也在清单里，`countof (...)`（`sizeof (A) / sizeof (A)[0] + 0 * _gl_verify_is_array (A)`）是活的。**落它之前要先定两件事**：① 未知条件的承载方式（P-51/P-66；同 `assert.in.h`/`stdckdint.in.h`）；② `countof` 在 5 个已端口单元（`alloc.rs`/`data.rs`/`chartab.rs`/`androidvfs.rs`/`emacs.rs`）里已有各自的拼法，镜像落地时一并决定 re-point。
+- **3.10 `lib/stdcountof.in.h` 的模板条件判不了（P-66 的承载问题）**（**已由 3.215 收口**：那些「判不了」的是模板的 `@NAME@` 占位符，它们的值在冻结配置的替换表里，可测）：`check-cond-eval` 报 `10 conditions, 4 unknown, 5 disagreements [NOT VERIFIED]`（`_GL_GNUC_PREREQ (3, 1) && ! defined `__clang__`` 这类它判不了），所以抽取器的清单是**各臂并集**：C++ 那两段模板（`_gl_verify_type`、`GNULIB_defined_struct__gl_verify_type`）也在清单里，`countof (...)`（`sizeof (A) / sizeof (A)[0] + 0 * _gl_verify_is_array (A)`）是活的。**落它之前要先定两件事**：① 未知条件的承载方式（P-51/P-66；同 `assert.in.h`/`stdckdint.in.h`）；② `countof` 在 5 个已端口单元（`alloc.rs`/`data.rs`/`chartab.rs`/`androidvfs.rs`/`emacs.rs`）里已有各自的拼法，镜像落地时一并决定 re-point。
 - **3.5 `lib/binary-io.c` 整文件在 `#if defined __DJGPP__ || defined __EMX__` 之内**：
   这两个宏不在冻结宏表里，求值器保守地要求两支都活，且 `FLIPS` 无对应开关——移植它需要
   先定"未知条件"的既有政策（P-66 已记录该保守行为），否则会产出永不被编译的死文本。
@@ -3916,3 +3916,23 @@
   `lib/libc-config.h`，其 Rust 侧自己声明要用的名字）。门：`check-mirror-dupes` 1/1/0、`check-declarations` 13/0。
   ④ 读数：`gen-port-inventory` **590 files、done=578、wip=10、todo=2**（由 577/10/3 推进一格；
   只剩 `lib/stdcountof.in.h`(124) 与 `src/xterm.h`(2,045)，后者在 Poincare lane 手里）。
+
+- **3.215 `lib/stdcountof.in.h` 落地：占位符的值可测，3.10 的延迟因此收口（2026-10-04）**：
+  ① **3.10 的前提太强**：那一条以「模板条件判不了（P-66）」为由延迟，读数 `10 conditions, 4 unknown,
+  5 disagreements`；本 HEAD 复测是 `10 conditions, 4 unknown, 4 disagreements`（少的那条正是 3.202 修掉的 marker 假象），
+  而四个 unknown **全是模板的 `@NAME@` 占位符**——占位符的值不是求值器的事，它在冻结配置自己的替换表里：
+  `grep -n 'STDCOUNTOF' build/emacs-ref/config.status` → `GL_GENERATE_STDCOUNTOF_H_CONDITION=""`（**所以
+  `build/emacs-ref/lib/stdcountof.h` 根本不存在**，`ls` 证实）、`HAVE_STDCOUNTOF_H="1"`、`CXX_HAVE_STDCOUNTOF_H="1"`、
+  `NEXT_STDCOUNTOF_H="<stdcountof.h>"`。
+  ② **由此每一支都是死的**：`HAVE_*` 与 `CXX_HAVE_*` 都是 1 ⇒ C 26 的
+  `#if (defined __cplusplus ? @CXX_HAVE_STDCOUNTOF_H@ : @HAVE_STDCOUNTOF_H@)` 在语言测试两侧都为真 ⇒ **活文本是
+  C 27 的 `# @INCLUDE_NEXT@ @NEXT_STDCOUNTOF_H@`（系统头）**，整个 body（C 30-122）在本 target 死。门要的三宏一常量一类型
+  （`countof`/`_gl_verify_is_array`/`_gl_verify_type`/`GNULIB_defined_struct__gl_verify_type`）因此**全部来自死臂**，
+  按 P-51 挂在 `no_have_stdcountof_h`/`cplusplus`/`gnu_c_without_clang` 下——这是本批第三种「死臂承载」形状
+  （前两种是 3.207 的 `struct timeval`、3.209 的 `struct sigaction`）。
+  ③ **唯一转写不了的**是 C 63-66 的 `template <int w>` 与它「负位宽即报错」的机关：该类型只在 C++ 臂（本 target 死），
+  端口带上 C 声明的那个成员并把这个理由记下来（P-08 读死臂的事实）。另加一条 body note：`countof` 的 `__va_args`
+  （C 的变参 token 写成 Rust 元变量），在 `docs/ports/macro-body-notes.tsv`。
+  ④ **证据**：`--check` → **OK**、台账框全勾；`build-tu lib/stdcountof.in.h` → `built lib/include/stdcountof.in.rs`；
+  `check-mirror-dupes` 1/1/0。读数：`gen-port-inventory` **590 files、done=579、wip=10、todo=1**——
+  **剩下的唯一一件 todo 是 `src/xterm.h`（2,045 行），在 xterm lane 手里**。
