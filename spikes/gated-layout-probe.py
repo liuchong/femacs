@@ -59,14 +59,22 @@ ARMS = (
 X11_INCLUDE = Path("/opt/homebrew/include")
 
 
-def include_flags(lang: str) -> list[str]:
-    """The frozen configuration's generated headers first, then the reference's sources."""
+def include_flags(lang: str, defs: tuple[str, ...]) -> list[str]:
+    """The frozen configuration's generated headers first, then the reference's sources.
+
+    The platform include paths come with the platform: `-I <X11>` only for an arm that defines
+    `HAVE_X_WINDOWS`, `-I nextstep` only for an Objective-C arm.  Handing X11's headers to the
+    frozen arm made `xterm.h` parse and *report a layout for a struct the frozen configuration
+    never compiles* (measured 3.282: `struct x_display_info`, 207 members that a `have_x_windows`
+    build reaches and the frozen one does not) - a reading that looks like a mirror gap and is an
+    arm's own.
+    """
     out: list[str] = []
     for d in (BUILD / "src", BUILD / "lib", REFERENCE / "src", REFERENCE / "lib"):
         out += ["-I", str(d)]
     if lang == "objc":
         out += ["-I", str(REFERENCE / "nextstep")]
-    if X11_INCLUDE.is_dir():
+    if any(d.startswith("-DHAVE_X_WINDOWS") for d in defs) and X11_INCLUDE.is_dir():
         out += ["-I", str(X11_INCLUDE)]
     return out
 
@@ -85,7 +93,7 @@ def run_clang(type_name: str, header: str, lang: str, defs: tuple[str, ...]) -> 
         # forces a layout for: `sizeof` alone does not make clang dump a record (measured on
         # `struct ns_display_info`), and a *type* query has no other reason to mention it.
         cmd += ["-fsyntax-only", "-Xclang", "-fdump-record-layouts-complete"]
-        cmd += include_flags(lang) + list(defs) + [str(unit)]
+        cmd += include_flags(lang, defs) + list(defs) + [str(unit)]
         r = subprocess.run(cmd, capture_output=True, text=True)
         out = r.stdout + r.stderr
     errors = [line for line in out.splitlines() if re.search(r"error:", line)]
