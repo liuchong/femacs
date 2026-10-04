@@ -346,3 +346,114 @@ after 3.345 landed these prototypes).  C's `window.h` only needs the enum's tag,
 names the underlying `c_int`: every caller passing a `window_part` is unaffected, and
 `tools/check-all-units.sh` (P-87) reads 83/83 at HEAD.  The prototypes and their C lines are
 unchanged otherwise.
+
+## Decision and Evidence (`buffer.rs`, the two names window.h's own text does not declare, 2026-10-05)
+
+### The C facts
+
+`window.h`'s text names two things that belong to `buffer.h`, in three macros (none of them under
+an `#if`: the header's only gates are 20, 290-303, 341-352, 769-794, 898-921, 1267, and every one
+of these lines sits outside them):
+
+```
+603  /* Non-nil if window W is leaf window (has a buffer).  */
+604  #define WINDOW_LEAF_P(W) \
+605    BUFFERP ((W)->contents)
+631  /* Local value of variable V in window W's buffer.  Nil if W has no
+632     buffer.  */
+633  #define WINDOW_BUFFER_LOCAL_VALUE(V, W)		\
+634    (BUFFERP ((W)->contents)			\
+635     ? buffer_local_value(V, (W)->contents)	\
+636     : Qnil)
+1197 /* True if WINDOW is a live window.  */
+1198 #define WINDOW_LIVE_P(WINDOW)					\
+1199   (WINDOWP (WINDOW) && BUFFERP (XWINDOW (WINDOW)->contents))
+```
+
+so the use sites are window.h **605** (`WINDOW_LEAF_P`), **634** and **635**
+(`WINDOW_BUFFER_LOCAL_VALUE`) and **1199** (`WINDOW_LIVE_P`).  The owners are `buffer.h` **757**
+(`INLINE bool BUFFERP (Lisp_Object a)` - the inline, not a macro) and `buffer.h` **1264**
+(`extern Lisp_Object buffer_local_value (Lisp_Object, Lisp_Object);`).
+
+C's `window.h` does **not** include `buffer.h`: its only `#include` is `dispextern.h` at
+**window.h 23**, and the one live include that reaches from there is `character.h` **25**, whose
+own only include is `lisp.h` **26** - neither file names either symbol.  C tolerates this because
+the three are macros: the preprocessor only resolves `BUFFERP`/`buffer_local_value` in a
+translation unit that *expands* one, and every such unit has included `buffer.h` first
+(`src/window.c`: `buffer.h` at **29**, `window.h` at **33**).  Four C sources do include
+`window.h` without `buffer.h` (`androidfont.c`, `gtkutil.c`, `haikufont.c`, `macros.c`), and none
+of them expands these three macros - so the header is not self-contained in C either; it is
+*order*-contained.
+
+### The choice
+
+The mirror carries the owner's include, **P-72 rule 4**:
+
+```rust
+include!("buffer.rs");                        // window.h 605/634/635/1199's BUFFERP, buffer_local_value
+```
+
+- **Why the include and not P-55 use-site declarations.**  This mirror keeps `WINDOW_LEAF_P`
+  (374), `WINDOW_BUFFER_LOCAL_VALUE` (398) and `WINDOW_LIVE_P` (469) as `#[inline(always)] fn`s,
+  and a function body has to compile in *every* unit that includes the mirror - unlike the
+  geometry family below, which is `macro_rules!` precisely so its body resolves only where it is
+  expanded (the note at 509-519).  A P-55 form is unavailable for these two because they are a
+  *call* and a *call's result*, not a type that can degrade to `*mut c_void`; and writing
+  `fn BUFFERP` or `extern "C" fn buffer_local_value` here would collide (E0428) with `buffer.rs`'s
+  own items in the 46 units that already include both files.  Rewriting the three as
+  `macro_rules!` (the geometry family's shape) would change the call syntax at every use site in
+  the units, which this change may not touch.  So the mirror takes the same route 3.377 gave
+  `keyboard.rs` (`include!("buffer.rs")` at keyboard.rs 32, for its two `struct buffer *`
+  declarations): "C's own list does not carry it but the unit needs the type".
+- **Measured no-op for every frozen unit.**  The include-graph closure over
+  `docs/baseline/frozen-build-sources.txt` (83 units) reads **zero** units that newly reach
+  `buffer.rs`.  46 of this mirror's 47 includers already carry it; the one that does not
+  (`include/frame.rs`, C's `frame.h` 23) is reached only by mirrors or by built units that
+  include `include/buffer.rs` directly (checked over the 83: every unit whose graph contains
+  `include/frame.rs` also contains `include/buffer.rs`).  The complete set of files that newly reach `buffer.rs` is
+  `src/androidselect.rs` (the unit this fixes, +`buffer.rs` and the `itree.rs` it pulls) plus the
+  mirrors `window.rs`, `frame.rs`, `androidterm.rs`, `haikuterm.rs`, `nsterm.rs`, `sfntfont.rs`,
+  `termchar.rs`, `textconv.rs`, `w32term.rs`, `msdos.rs`.
+- **No name collision introduced.**  A top-level name scan of `buffer.rs` + `itree.rs` against
+  every file in the new co-inclusion set finds no shared item (the only two "hits" are
+  `const _: () = assert! (…)` anonymous constants in androidterm.rs/textconv.rs, which Rust allows
+  any number of).
+
+### Evidence
+
+- `python3 tools/extract-abi.py --check emacs/src/window.h femacs/src/include/window.rs` ->
+  `OK emacs/src/window.h -> femacs/src/include/window.rs`.
+- `python3 tools/check-mirror-dupes.py` -> before **and** after: `18 duplicate declaration(s), 18
+  ratchet row(s), 0 failure(s)` (the ratchet is unmoved - an `include!` line is not a declaration).
+- `CARGO_TARGET_DIR=… tools/check-all-units.sh` (P-87, the whole point of this shape) ->
+  `checked 83 unit(s), 0 failure(s)`.
+- The `have_android` probe (`probe src/androidselect.rs … --cfg 'feature="have_android"' --cfg
+  'feature="not_android_stubify"'`): **before** exit 1 with 4 `E0425`s, all inside the mirror's
+  materialized copy of `window.rs` - 346 `BUFFERP`, 371 `BUFFERP`, 372 `buffer_local_value`,
+  441 `BUFFERP`; **after** exit 0, `0 error lines`, object `31720` bytes.  The warning count moves
+  3 -> 12 because `rustc` stops emitting post-body lints at the first error: all 12 are the
+  pre-existing FFI-safety warnings of `android.rs`/`jni.rs`/`frame.rs`/`unistd.in.rs`/`lisp.rs`/
+  `stdbit.in.rs`, and none names `window.rs`, `buffer.rs` or `itree.rs`.
+- `python3 tools/check-citations.py` -> `675 file(s) scanned, 0 drift, 0 range, 457 external, 33
+  allowed, 0 stale` (this section adds no `/// C:` line; the `//` citations above are C's own
+  lines).
+- `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures`.
+- `python3 tools/check-carried.py` -> `11 carried file(s), 11 baseline row(s), 0 failure(s)`.
+
+### Deviations
+
+- One, and it is the P-72 rule 4 one: this mirror carries an `#include` C's `window.h` does not
+  have.  The C-side ordering assumption (a unit that expands those three macros has `buffer.h`
+  first) becomes an explicit dependency in the port, because the port's three are functions.
+  Recorded in `docs/ports/include-buffer.md` as this mirror's second P-72 rule 4 consumer.
+
+### The other arms
+
+`window.rs` is included by `include/frame.rs`, so this include is also new for that mirror and,
+through it, for the platform mirrors `androidterm.rs`, `haikuterm.rs`, `nsterm.rs`, `sfntfont.rs`,
+`termchar.rs`, `textconv.rs`, `w32term.rs` and `msdos.rs`.  None of them is a built unit, so the
+83-unit scan does not cover them, and only the Android probe was run here
+(`spikes/haiku_inc_probe.rs` is the one spike that includes `window.rs` directly).  They were
+checked statically (no shared top-level name with `buffer.rs`/`itree.rs`) and are **not**
+claimed green.

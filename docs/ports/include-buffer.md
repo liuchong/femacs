@@ -364,6 +364,21 @@ recorded as an open item:
   -> 59 files, and the same loop with `itree.rs` leaves none out).  `src/androidmenu.c` is the
   one that reaches this mirror through `keyboard.h` (see `docs/ports/include-keyboard.md`).
 
+## Consumers that carry this mirror for a name C's own include list does not reach (2026-10-05)
+
+`include/buffer.rs` is reached by `include!` from two mirrors whose C header does **not** include
+`buffer.h`, both under P-72 rule 4:
+
+- `include/keyboard.rs` (3.377, its `include!("buffer.rs")` at keyboard.rs 32) - the two
+  `struct buffer *` declarations at keyboard.h 267/269.
+- `include/window.rs` (2026-10-05, `include!("buffer.rs")` at window.rs 47) - `WINDOW_LEAF_P`
+  (window.h 605), `WINDOW_BUFFER_LOCAL_VALUE` (634/635) and `WINDOW_LIVE_P` (1199) name
+  `buffer.h` 757's `BUFFERP` and 1264's `buffer_local_value`; C's `window.h` includes only
+  `dispextern.h` (23), so in C those names arrive through the translation unit's include order
+  (`src/window.c` 29 before 33).  See `docs/ports/include-window.md`, "Decision and Evidence
+  (`buffer.rs`, …)" for the readings; the measured no-op there is that **zero** of the 83 frozen
+  units newly reach this mirror.
+
 ## Evidence (`itree.rs`)
 
 - `python3 tools/extract-abi.py --check emacs/src/buffer.h femacs/src/include/buffer.rs` -> `OK

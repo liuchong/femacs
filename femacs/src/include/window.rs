@@ -17,6 +17,36 @@
 // window.h 21: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const WINDOW_H_INCLUDED: bool = true;
 
+// window.h 23's `#include "dispextern.h"` is not carried (the WIP note above).
+//
+// `window.h`'s own text names two things owned by `buffer.h`: `BUFFERP` at window.h 605
+// (`WINDOW_LEAF_P`), 634 and 1199 (`WINDOW_LIVE_P`), and `buffer_local_value` at window.h 635
+// (`WINDOW_BUFFER_LOCAL_VALUE`) - C's `buffer.h` 757 declares the one, 1264 the other.  C's
+// `window.h` does **not** include `buffer.h` (its only `#include` is `dispextern.h` at 23, and
+// the `character.h` that reaches here includes only `lisp.h`), and it does not need to: those
+// three are macros, so the two names resolve only in a translation unit that *expands* them, and
+// every such unit has `buffer.h` ahead of `window.h` (`src/window.c` 29 vs 33).
+//
+// Here the three are `#[inline(always)] fn`s (`WINDOW_LEAF_P` 374, `WINDOW_BUFFER_LOCAL_VALUE`
+// 398, `WINDOW_LIVE_P` 469), and a function body has to compile in *every* unit that includes
+// the mirror, so the two names must resolve where the mirror writes them.  The mirror therefore
+// carries the owner's include - P-72 rule 4, the shape 3.377 gave `keyboard.rs` for its two
+// `struct buffer *` declarations (`include!("buffer.rs")` at keyboard.rs 32, "C's list does not
+// carry it but the unit needs the type").  A P-55 use-site declaration is not available for
+// these two: they are a call and a call's result, not a type that can degrade to `*mut c_void`,
+// and a `fn BUFFERP`/`extern "C" fn buffer_local_value` written here would collide (E0428) with
+// `buffer.rs`'s in the 46 units that already include both.  Nor can the three become
+// `macro_rules!` like the geometry family below: that would change the call syntax at every use
+// site, and this change is confined to this file.
+//
+// Measured no-op for every frozen unit: the include-graph closure over
+// `docs/baseline/frozen-build-sources.txt` (83 units) reads **zero** units that newly reach
+// `buffer.rs` - 46 of this mirror's 47 includers already carry it, and the one that does not
+// (`include/frame.rs`, C's `frame.h` 23) is reached only by mirrors or by units that include
+// `buffer.rs` directly.  The closure that *does* change is
+// `src/androidselect.rs`, and by exactly `buffer.rs` and the `itree.rs` it pulls.
+include!("buffer.rs");                        // window.h 605/634/635/1199's BUFFERP, buffer_local_value
+
 // window.h 91-100.  Measured: 16 bytes, alignment 4.
 #[repr(C)]
 #[derive(Clone, Copy)]

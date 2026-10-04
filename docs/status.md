@@ -6454,3 +6454,30 @@
   ⑤ **未声称**：编译（类型检查）级证据，不是运行级；"这条腿过了"只覆盖 `xdisp.rs` 及其 include 图这一份
      materialization；冻结构建里这行**仍然不编译**（`eassert!` 的 live 臂为空是既定语义）；
      审计是"枚举 + 编译器对拍"，别的单元若有同类站点要各自跑同一探针。
+
+- **3.388 window.h 镜像补上 `buffer.rs`：`have_android` 臂的翻臂编译第一次真的绿了（2026-10-05）**：
+  ① **C 事实（先量后改）**：`window.h` 只在**三个惰性宏**里用这两个名字，且都不在任何 `#if` 里——
+     `WINDOW_LEAF_P`（C 604-605）、`WINDOW_BUFFER_LOCAL_VALUE`（C 633-636）与 `WINDOW_LIVE_P`（C 1198-1199）；
+     名字的家是 `buffer.h` 757（`INLINE bool BUFFERP (Lisp_Object)`）与 `buffer.h` 1264
+     （`extern Lisp_Object buffer_local_value (Lisp_Object, Lisp_Object);`）。**C 的 window.h 并不 include buffer.h**
+     （唯一 include 是 23 行的 `dispextern.h`，其活链只到 `lisp.h`）：C 合法是因为宏**惰性**，只有展开它们的单元
+     才需要名字，而 `window.c` 自己先 include 了 `buffer.h`（29）再 include `window.h`（33）；反证是
+     `androidfont.c`/`gtkutil.c`/`haikufont.c`/`macros.c` 都含 `window.h` 而不含 `buffer.h`（它们一个都没展开这三个宏）。
+  ② **落法**：`femacs/src/include/window.rs` 加一行 `include!("buffer.rs");`（P-72 规则 ④，3.377 的 `keyboard.rs`
+     先例）。为什么不用 P-55 使用点声明：这两个名字是**一次调用与一次调用的结果**（不是能退化成 `*mut c_void` 的类型），
+     在本镜像里重声明会与 `buffer.rs` 的同名项在**已经同时 include 两者的 46 个单元**里 `E0428`（P-26 的方向）；
+     也没有把三个改写成 `macro_rules!`（那会改所有外部调用点语法，超出本工单范围）。
+  ③ **读数**：`extract-abi --check emacs/src/window.h femacs/src/include/window.rs` → **OK**；
+     `check-mirror-dupes` **18/18/0 未动**（`include!` 不是声明）；**P-87 全量扫描 `tools/check-all-units.sh`
+     → `checked 83 unit(s), 0 failure(s)`**；`check-citations` 675/0 drift/0 stale、`check-declarations` 13/0/0、
+     `check-carried` 11/11/0。**闭包实测**：47 个 include 者里只有 `include/frame.rs` 不带 `buffer.rs`（其余 46 个直接带），
+     按 `frozen-build-sources.txt` 算**改后新触达 `buffer.rs` 的受编单元数 = 0**（真正变化的闭包只有 `src/androidselect.rs`）。
+  ④ **这一改把 3.385 的工单关掉了**：`probe src/androidselect.rs --cfg 'feature="have_android"'
+     --cfg 'feature="not_android_stubify"'` 由**改前 `EXIT=1`、4 条 mirror error（`window.rs` 346/371/441 `BUFFERP`、
+     372 `buffer_local_value`）、无对象**，变成**改后 `EXIT=0`、0 error、31,720 字节对象**——即 androidselect 的
+     Android 臂第一次真的过完类型检查与代码生成（不再需要"臂触达预检"那种替代读数）。warning 3 → 12 全部是既有
+     FFI-safety 警告，没有一条点名 `window.rs`/`buffer.rs`/`itree.rs`。
+  ⑤ **未声称**：别的平台臂（`androidterm`/`haikuterm`/`nsterm`/`sfntfont`/`termchar`/`textconv`/`w32term`/`msdos`）
+     经 `frame.rs` 也会新触达 `buffer.rs`，它们**不在 83 个受编单元里**、P-87 扫描不覆盖，本轮只做了静态重名检查
+     （无冲突），**不声称它们绿**；没跑 `gate-fast`/`layout-check`（`window.rs` 作单 crate 根时现在会连带 `buffer.rs`）、
+     没做 P-86 ⑦ 的变异实测、Haiku/NS/sfnt/w32/msdos 各臂无工具链未编。
