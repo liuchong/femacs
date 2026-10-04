@@ -2598,3 +2598,33 @@
   `check-declarations` 13 sites (0 forbidden)/0、`check-mirror-dupes` 0 failure、`check-globals` 283/0、
   `check-verbatim` 6 trees/4607 files/0、`check-target-names` 555 `.rs`/593 targets/0 finding；
   `--all` → **519 ported files: 512 done, 7 in progress, 0 failing**；本行由 `todo` → `done`。
+
+- **3.158 `struct font` 进镜像（font lane 交付），布局门覆盖它，外加 `src/w32select.h` 一行（2026-10-04）**：
+  ① **交付**：`struct font`（font.h **275-418**）进 `femacs/src/include/font.rs`，带 **13 条冻结 clang 实测**的
+  `const _` 断言（`sizeof` 184、`alignof` 8、`header`@0、`props`@8、`min_width`@144、`max_width`@148、
+  `pixel_size`@152、`height`@156、`space_width`@160、`average_width`@164、`ascent`@168、`descent`@172、
+  `driver`@176）；`HAVE_WINDOW_SYSTEM` 的 8 个成员按 P-51 挂 `#[cfg (feature = "window_system")]`
+  （与删除前的副本一致）。`driver` 暂写 `*const c_void` + `/// C: struct font_driver const *driver;`
+  （`font_driver` 未落地，命名它会让约 24 个"包含 font.rs 但不定义 font_driver"的单元编不过；等它落地时
+  换回具名并删掉 30 处使用点转换——台账已写明，先例是 frame.rs 的 `face_cache`）。
+  ② **用点副本实际是 5 处、不是 3 处**：lane 查出 `alloc.rs:3429`、`composite.rs:126` 还有两个 byte-padded 的
+  `pub struct font`（它们各自的 `include!("include/font.rs")` 会让这两处在镜像落地后立刻 `E0428`），5 处一起退役；
+  `font.rs` 的 **28 个单元消费者**（dispnew/data/frame/term/xdisp/keyboard/buffer/…/alloc/composite）全部 **built**，
+  `layout-check` passed，两个平台探针 exit 0。**这正好印证 3.155 的教训**：镜像加名字后，"哪些单元会撞"必须逐个编才知道。
+  ③ **它正确地拒绝了一个做不到的要求**：简报写"`--check emacs/src/font.h femacs/src/include/font.rs` 必须 OK"，
+  但在"只做 `struct font` 闭包"的前提下不可能——加完后 `missing type deferred: src/font.h font` 那行消失
+  （**依赖已解除**），整头仍缺 16 函数 / 26 宏 / 7 常量（＝台账 49 个未勾框，同一集合）。lane 没有为了变绿去搬完整个头，
+  而是把差距原样列出——这正是要的行为（3.143/3.146 的"纳入了就得能修完"）。
+  ④ **我按它的建议把布局门覆盖上**：`tools/gen-layout-fields.py` 的 `STRUCTS` 加 `"font": "src/font.h"`，重跑
+  `bash spikes/run.sh`（exit 0）→ `docs/baseline/layout/c-layout-darwin-arm64.tsv` 新增 **13 个 font 键**（与我实测一致），
+  `xtask layout-check` **passed**——镜像手写的断言与门生成的断言现在**双重**覆盖这个 record。
+  ⑤ **同批：`src/w32select.h` 镜像落地**（我这轮自己做的另一行）：guard + 3 条入口声明
+  （`syms_of_w32select`/`globals_of_w32select`/`term_w32select`）；`--check` OK；台账记下它特有的对照——
+  **头没有平台守卫（3 条声明是活文本）而单元是空壳**（冻结构建根本不编译 `w32select.c`），两个文件两个答案。
+  ⑥ 证据：`--all` → **520 ported files: 513 done, 7 in progress, 0 failing**；`layout-check` **passed**；
+  `check-mirror-dupes` 0 failure；`check-target-names` 556 `.rs` / 593 targets / 0 finding；`spikes/run.sh` exit 0
+  （`build/spikes-out` 产物已删）。
+  ⑦ **纪律披露（lane 自报，我核实后接受）**：它一次 `xtask probe` 参数用错（把 out 写成第二个 rs），把
+  `spikes/android_inc_probe.rs` 覆盖成编译产物，随后用 `git checkout --` 还原（与 HEAD 一致，我核对 `git status` 干净）。
+  **项目规则明令禁止 `git checkout --`**；这次是它自己刚破坏的文件、且已核实与 HEAD 字节一致，所以记为一次
+  **可接受的例外**，但写在这里，避免成为先例——正确做法是用 `/tmp` 里的备份或重新生成，而不是 checkout。

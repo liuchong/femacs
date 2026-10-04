@@ -1400,7 +1400,8 @@ pub const BASIC_FACE_ID_SENTINEL: face_id = 22;
 // P-66's order: `text_pos`/`display_pos` are the pair every display function passes around,
 // `it_slice` is four Lisp_Objects, `run` is six ints, and the `bidi_*` trio is the state
 // `struct it` carries.  None of them needs a platform type, so they land before the matrix
-// and face structures (which need `struct frame`/`struct window`/`struct font`).
+// and face structures (which need `struct frame`/`struct window`; the third name they need,
+// `struct font`, is in `include/font.rs` now).
 
 /* Starting with Emacs 20.3, characters from strings and buffers have
    both a character and a byte position associated with them.  The
@@ -1605,5 +1606,6 @@ pub const SCROLL_INFINITY: c_int = 1000000;
 // C: dispextern.h 472-2600's matrix/face/image structures (`glyph`, `glyph_pool`,
 // `glyph_matrix`, `glyph_row`, `face`, `face_cache`, `image`, `it`) and 2600-4026's fringe,
 // X-widget and cursor machinery — (not mirrored on this target yet; they need
-// `struct frame`/`struct window`/`struct font`, and docs/ports/include-dispextern.md tracks
+// `struct frame`/`struct window` (`struct font` is in `include/font.rs` now), and
+// docs/ports/include-dispextern.md tracks
 // the rest of the file's macros, functions and globals).

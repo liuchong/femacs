@@ -32,6 +32,12 @@ STRUCTS = {
     # are what proves the byte's position (PORTING.md P-80).
     "parmcap": "src/cm.h",
     "cm": "src/cm.h",
+    # font.h's record: `struct haikufont_info` (haikuterm.h 42-50) holds one **by value**, and three
+    # units used to carry their own copy of it (font.rs, window.rs, xfaces.rs, plus the padded
+    # prefixes in alloc.rs/composite.rs) until the mirror grew it (status 3.158).  The mirror's own
+    # 13 measured `const _` assertions cover it; this entry makes `xtask layout-check`'s generated
+    # keys cover it a second time, independently of the mirror's spelling.
+    "font": "src/font.h",
     "itree_node": "src/itree.h",
     "itree_tree": "src/itree.h",
     "itree_iterator": "src/itree.h",

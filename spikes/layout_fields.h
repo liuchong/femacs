@@ -42,6 +42,19 @@
   OFF (struct cm, cc_habs);
   OFF (struct cm, cc_vabs);
 
+  SZ (struct font); AL (struct font);
+  OFF (struct font, header);
+  OFF (struct font, props);
+  OFF (struct font, min_width);
+  OFF (struct font, max_width);
+  OFF (struct font, pixel_size);
+  OFF (struct font, height);
+  OFF (struct font, space_width);
+  OFF (struct font, average_width);
+  OFF (struct font, ascent);
+  OFF (struct font, descent);
+  OFF (struct font, driver);
+
   SZ (struct itree_node); AL (struct itree_node);
   OFF (struct itree_node, parent);
   OFF (struct itree_node, left);

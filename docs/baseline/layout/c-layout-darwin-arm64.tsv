@@ -26,6 +26,7 @@ alignof composition_status	4
 alignof cursor_pos	4
 alignof display_pos	8
 alignof emacs_mule_spec	4
+alignof font	8
 alignof frame	8
 alignof glyph	8
 alignof glyph_matrix	8
@@ -355,6 +356,17 @@ offsetof display_pos.overlay_string_index	16
 offsetof display_pos.pos	0
 offsetof display_pos.string_pos	24
 offsetof emacs_mule_spec.cmp_status	0
+offsetof font.ascent	168
+offsetof font.average_width	164
+offsetof font.descent	172
+offsetof font.driver	176
+offsetof font.header	0
+offsetof font.height	156
+offsetof font.max_width	148
+offsetof font.min_width	144
+offsetof font.pixel_size	152
+offsetof font.props	8
+offsetof font.space_width	160
 offsetof frame.alpha	504
 offsetof frame.alpha_background	520
 offsetof frame.background_pixel	544
@@ -761,6 +773,7 @@ sizeof composition_status	296
 sizeof cursor_pos	16
 sizeof display_pos	48
 sizeof emacs_mule_spec	296
+sizeof font	184
 sizeof frame	568
 sizeof glyph	56
 sizeof glyph_matrix	104

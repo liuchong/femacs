@@ -56,7 +56,7 @@
 - [ ] XSETFONT  (line 552, body a7abab8225c7)
 
 ## Types and their fields — 7
-- [ ] font: union vectorlike_header header, Lisp_Object props, int min_width, int max_width, int pixel_size, int height, int space_width, int average_width, int ascent, int descent, struct font_driver const* driver
+- [x] font: union vectorlike_header header, Lisp_Object props, int min_width, int max_width, int pixel_size, int height, int space_width, int average_width, int ascent, int descent, struct font_driver const* driver
 - [ ] font_bitmap: int bits_per_pixel, int rows, int width, int pitch, unsigned char* buffer, int left, int top, int advance
 - [ ] font_driver: Lisp_Object type, bool case_sensitive, Lisp_Object (*) get_cache, Lisp_Object (*) list, Lisp_Object (*) match, Lisp_Object (*) list_family, void (*) free_entity, Lisp_Object (*) open_font, void (*) close_font, void (*) prepare_face, void (*) done_face, int (*) has_char, unsigned (*) encode_char, void (*) text_extents, int (*) anchor_point, Lisp_Object (*) otf_capability, int (*) otf_drive, int (*) start_for_frame, int (*) end_for_frame, Lisp_Object (*) shape, int (*) check, int (*) get_variation_glyphs, void (*) filter_properties, bool (*) cached_font_ok, Lisp_Object (*) combining_capability, void (*) drop_xrender_surfaces
 - [ ] font_driver_list: bool on, struct font_driver const* driver, struct font_driver_list* next
@@ -65,3 +65,84 @@
 - [ ] font_spec: union vectorlike_header header, Lisp_Object props
 
 ## File-scope objects — 0
+
+## Decisions
+
+- **This round carries `struct font` (font.h 275-418)** and nothing else new: `EMACS_FONT_H`,
+  `enum font_property_index` (as constants) and the four predicates were already here.  The
+  record sits in C's order (after the property constants, before the predicates), and its
+  `HAVE_WINDOW_SYSTEM` members are `#[cfg (feature = "window_system")]` (P-51), the shape
+  `font.rs`'s use-site copy had.  The trigger is `haikuterm.h`'s `struct haikufont_info`,
+  whose first member is this record **by value** (haikuterm.h 42-44, status 3.154).
+- **Still open in this ledger** (the unchecked boxes above): `struct font_spec`,
+  `struct font_entity`, `enum font_spacing`, `struct font_metrics`, `struct font_bitmap`,
+  `struct font_driver`, `struct font_driver_list`, the accessors (`XFONT_*`, `GC_XFONT_*`,
+  `CHECK_FONT*`, `CHECK_FONT_GET_OBJECT`, `XSETFONT`), the `FONT_*` style/point/pixel macros
+  and `valid_font_driver`/`font_data_structures_may_be_ill_formed`.  They are the next rounds'
+  work, not this one's.
+- **`driver` is `*const c_void`, not `*const font_driver`.**  `struct font_driver` is this
+  header's own record and has not landed here, and Rust has no incomplete tag: naming it would
+  break the ~24 units that include `font.rs` without defining it, while a stand-in declared
+  here would be `E0428` in the three units that *do* define their own
+  (`src/font.rs`, `src/alloc.rs`, `src/composite.rs`).  The field therefore keeps the untyped
+  pointer with a `/// C:` line (PORTING.md P-55/P-72 rule 3; C's `const` is kept, as the
+  `xfaces.rs` copy had it), and the reads of it cast at the use site (30 occurrences:
+  `src/font.rs` 28, `src/alloc.rs` 1, `src/composite.rs` 1) — the `frame.rs`
+  `face_cache`/`font_driver_list` precedent.  Flipping it to `*const font_driver` and deleting
+  those casts is the commit that lands `struct font_driver` here.
+- **Five use-site copies retired, not three.**  Besides `src/font.rs` 256, `src/window.rs`
+  893 and `src/xfaces.rs` 337, `src/alloc.rs` 3429 and `src/composite.rs` 126 also declared a
+  `struct font` (byte-padded prefixes) and would have been `E0428` through their own
+  `include!("include/font.rs")` (alloc.rs 76, composite.rs 44).  All five are gone.  `font.rs`
+  keeps its `struct font_driver`/`font_driver_list`, and `alloc.rs`/`composite.rs` keep their
+  `font_driver` prefixes, so the only other edits the retirement needed were the 30
+  `(…).driver as *const font_driver` casts.
+- Two comments made stale by this change are fixed with it: `src/xfaces.rs`'s use-site note
+  and `include/dispextern.rs`'s two "they need `struct font`" notes.  Still stale and *not*
+  this lane's files (reported to the integrator instead): `include/haikuterm.rs` 185/294,
+  `include/androidterm.rs` 250, and the in-flight `src/xdisp.rs` 6548-6549.
+
+## Evidence
+
+- Frozen-clang measurement of the record (the numbers the mirror's `const _` assertions use),
+  run from the repository root:
+
+      printf '%s\n' '#include <config.h>' '#include <stddef.h>' '#include "lisp.h"' \
+        '#include "frame.h"' '#include "dispextern.h"' '#include "font.h"' \
+        'int main (void) { printf ("%zu %zu %zu %zu\n", sizeof (struct font),' \
+        '  _Alignof (struct font), offsetof (struct font, props),' \
+        '  offsetof (struct font, driver)); return 0; }' > /tmp/font_layout_probe.c
+      clang -std=gnu23 -O0 -I build/emacs-ref/lib -idirafter spikes/shim \
+        -I build/emacs-ref/src -I emacs/src -I emacs/lib \
+        /tmp/font_layout_probe.c -o /tmp/font_layout_probe && /tmp/font_layout_probe
+
+  `Apple clang version 21.0.0 (clang-2100.3.34.2)`; output `sizeof` 184, `alignof` 8,
+  `header`@0, `props`@8, `min_width`@144, `max_width`@148, `pixel_size`@152, `height`@156,
+  `space_width`@160, `average_width`@164, `ascent`@168, `descent`@172, `driver`@176,
+  `FONT_OBJECT_MAX` 17.  The mirror pins `sizeof`/`alignof` and all twelve offsets.
+- The five retirements rebuild (from `femacs/`, `CARGO_TARGET_DIR=/tmp/femacs-target-font`):
+  `cargo run -q -p xtask -- build-tu src/font.c` -> `built src/font.rs -> ../build/femacs/font.o`;
+  `src/window.c` -> `built src/window.rs -> ../build/femacs/window.o`; `src/xfaces.c` ->
+  `built src/xfaces.rs -> ../build/femacs/xfaces.o`; the two units whose padded prefixes went
+  too, `src/alloc.c` -> `built src/alloc.rs -> ../build/femacs/alloc.o` and `src/composite.c`
+  -> `built src/composite.rs -> ../build/femacs/composite.o`.  A sample of further `font.rs`
+  consumers (`src/dispnew.c`, `src/data.c`, `src/frame.c`, `src/term.c`, `src/xdisp.c`,
+  `src/keyboard.c`) all report `built`; `cargo run -q -p xtask -- layout-check` ->
+  `layout-check passed`; and the two platform mirrors that include this one still compile under
+  their own probes (`probe ../spikes/haiku_inc_probe.rs …` and the android one, exit 0).
+- `python3 tools/extract-abi.py --check emacs/src/font.h femacs/src/include/font.rs`: the
+  `missing type deferred: src/font.h font` line is **gone** (the record is found now) and no
+  `- missing field font.…` line appears.  The 49 remaining `- ` problems are exactly the
+  ledger's other unchecked boxes (16 functions, 26 macros, 7 constants) — the same list this
+  file's boxes already named before the round, so this check cannot report `OK` until the rest
+  of the header lands (the ledger's own rule; `--check` has no exemption for a WIP mirror
+  except the missing-type one).
+- The unit pairs stay `OK`: `python3 tools/extract-abi.py --check emacs/src/font.c
+  femacs/src/font.rs` (also `window.c`, `xfaces.c`, `alloc.c`, `composite.c`), and
+  `python3 tools/check-mirror-dupes.py` reports `1 duplicate declaration(s), 1 ratchet row(s),
+  0 failure(s)`.
+- `python3 tools/extract-abi.py --check emacs/src/haikuterm.h
+  femacs/src/include/haikuterm.rs` -> `OK`; its `missing type deferred: src/haikuterm.h
+  haikufont_info` line is unchanged, and the type that blocked that record — this one — now
+  exists, so the remaining reason is only that `haikufont_info` itself is not written in that
+  mirror (the Haiku lane's file, whose ledger box is still unchecked).

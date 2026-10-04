@@ -46,10 +46,12 @@
 //     one (status 3.51).
 //
 // **Use-site declarations (mirror gaps).**  `emacs/src/font.h` has a WIP mirror
-// (`femacs/src/include/font.rs`) that carries only `enum font_property_index` (as
-// constants) and the four predicates; the records, accessors and macros this unit needs are
-// declared below with C's own text and a `/// C: font.h <lines>` line above each
-// (PORTING.md 0.1-2/P-72 rule 3) — a mirror is not this unit's file to edit.
+// (`femacs/src/include/font.rs`) that carries `enum font_property_index` (as constants), the
+// four predicates and `struct font` (font.h 275-418, landed in this round — the five font
+// units that used to keep copies of it read that declaration now); the records, accessors
+// and macros this unit still needs are declared below with C's own text and a
+// `/// C: font.h <lines>` line above each (PORTING.md 0.1-2/P-72 rule 3) — a mirror is not
+// this unit's file to edit.
 // `docs/ports/font.md` reports the whole list to the integrator.  What the same rule owes
 // `dispextern.h`/`frame.h` (`struct face`, `struct face_cache`, the `LFACE_*` enum,
 // `FRAME_FACE_CACHE`, `FACE_FROM_ID`, `FACE_FOR_CHAR`, `xstrcasecmp`) and `<intprops.h>`
@@ -246,49 +248,9 @@ pub struct font_entity
 
 const _: () = assert! (std::mem::size_of::<font_entity> () == 120);
 const _: () = assert! (std::mem::offset_of! (font_entity, props) == 8);
-
-/// C: font.h 275-418: `struct font`, the font-object record.  `HAVE_WINDOW_SYSTEM` is undef
-/// on the frozen target, so the thirteen members C guards with it are absent from this
-/// layout.  Measured: `sizeof` 184, `props`@8, `min_width`@144, `max_width`@148,
-/// `pixel_size`@152, `height`@156, `space_width`@160, `average_width`@164, `ascent`@168,
-/// `descent`@172, `driver`@176.
-#[repr(C)]
-pub struct font
-{
-  pub header: vectorlike_header,
-  pub props: [Lisp_Object; FONT_OBJECT_MAX as usize],
-  pub min_width: c_int,
-  pub max_width: c_int,
-  pub pixel_size: c_int,
-  pub height: c_int,
-  pub space_width: c_int,
-  pub average_width: c_int,
-  pub ascent: c_int,
-  pub descent: c_int,
-  #[cfg(feature = "window_system")]
-  pub underline_thickness: c_int,
-  #[cfg(feature = "window_system")]
-  pub underline_position: c_int,
-  #[cfg(feature = "window_system")]
-  pub vertical_centering: bool,
-  #[cfg(feature = "window_system")]
-  pub baseline_offset: c_int,
-  #[cfg(feature = "window_system")]
-  pub relative_compose: c_int,
-  #[cfg(feature = "window_system")]
-  pub default_ascent: c_int,
-  #[cfg(feature = "window_system")]
-  pub encoding_charset: c_int,
-  #[cfg(feature = "window_system")]
-  pub repertory_charset: c_int,
-  pub driver: *const font_driver,
-}
-
-const _: () = assert! (std::mem::size_of::<font> () == 184);
-const _: () = assert! (std::mem::offset_of! (font, props) == 8);
-const _: () = assert! (std::mem::offset_of! (font, min_width) == 144);
-const _: () = assert! (std::mem::offset_of! (font, max_width) == 148);
-const _: () = assert! (std::mem::offset_of! (font, driver) == 176);
+/* C: `struct font` (font.h 275-418) — the record this unit reads through `(*font).driver` —
+   comes from `include/font.rs` now (docs/ports/include-font.md); the records the mirror
+   still lacks (`struct font_driver`, `struct font_driver_list`, the accessors) stay here.  */
 
 /// C: font.h 595-793: `struct font_driver`.  The members C guards with `HAVE_WINDOW_SYSTEM`
 /// (`draw`, `get_bitmap`, `free_bitmap`) and `HAVE_HARFBUZZ` (`begin_hb_font`,
@@ -3733,9 +3695,9 @@ pub unsafe extern "C" fn font_match_p (spec: Lisp_Object, font: Lisp_Object) -> 
 	  if ! FONT_OBJECT_P (font)
 	    { return false; }
 	  fontp = XFONT_OBJECT (font);
-	  if (*((*fontp).driver)).otf_capability.is_none ()
+	  if (*((*fontp).driver as *const font_driver)).otf_capability.is_none ()
 	    { return false; }
-	  let otf_capability = (*((*fontp).driver)).otf_capability;
+	  let otf_capability = (*((*fontp).driver as *const font_driver)).otf_capability;
 	  if let Some (f) = otf_capability
 	    { val2 = f (fontp); }
 	  else
@@ -3863,7 +3825,7 @@ unsafe fn font_clear_cache (f: *mut frame, cache: Lisp_Object, driver: *const fo
 
 		      if ! NILP (AREF (val, FONT_TYPE_INDEX as isize))
 			{
-			  eassert! (!font.is_null () && driver == (*font).driver);
+			  eassert! (!font.is_null () && driver == (*font).driver as *const font_driver);
 			  /* We are going to close the font, so make
 			     sure we don't have any lgstrings lying
 			     around in lgstring cache that reference
@@ -4307,7 +4269,7 @@ unsafe fn font_close_object (f: *mut frame, font_object: Lisp_Object)
     /* Already closed.  */
     { return; }
   FONT_ADD_LOG! (c"close".as_ptr (), font_object, Qnil ());
-  ((*((*font).driver)).close_font.unwrap ()) (font);
+  ((*((*font).driver as *const font_driver)).close_font.unwrap ()) (font);
   /* C 3032-3034: `#ifdef HAVE_WINDOW_SYSTEM`, carried.  */
   #[cfg(feature = "window_system")]
   {
@@ -4342,15 +4304,15 @@ pub unsafe extern "C" fn font_has_char (f: *mut frame, font: Lisp_Object, c: c_i
 
   eassert! (FONT_OBJECT_P (font));
   fontp = XFONT_OBJECT (font);
-  if (*((*fontp).driver)).has_char.is_some ()
+  if (*((*fontp).driver as *const font_driver)).has_char.is_some ()
     {
       let result: c_int
-	= ((*((*fontp).driver)).has_char.unwrap ()) (font, c);
+	= ((*((*fontp).driver as *const font_driver)).has_char.unwrap ()) (font, c);
 
       if result >= 0
 	{ return result; }
     }
-  return (if ((*((*fontp).driver)).encode_char.unwrap ()) (fontp, c)
+  return (if ((*((*fontp).driver as *const font_driver)).encode_char.unwrap ()) (fontp, c)
 	     != FONT_INVALID_CODE { 1 } else { 0 });
 }
 
@@ -4363,7 +4325,7 @@ unsafe fn font_encode_char (font_object: Lisp_Object, c: c_int) -> c_uint
 
   eassert! (FONT_OBJECT_P (font_object));
   font = XFONT_OBJECT (font_object);
-  return ((*((*font).driver)).encode_char.unwrap ()) (font, c);
+  return ((*((*font).driver as *const font_driver)).encode_char.unwrap ()) (font, c);
 }
 
 
@@ -4837,9 +4799,9 @@ pub unsafe extern "C" fn font_load_for_lface (f: *mut frame, attrs: *mut Lisp_Ob
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn font_prepare_for_face (f: *mut frame, face: *mut face)
 {
-  if (*((*(*face).font).driver)).prepare_face.is_some ()
+  if (*((*(*face).font).driver as *const font_driver)).prepare_face.is_some ()
     {
-      let prepare_face = (*((*(*face).font).driver)).prepare_face;
+      let prepare_face = (*((*(*face).font).driver as *const font_driver)).prepare_face;
       if let Some (p) = prepare_face
 	{ p (f, face); }
     }
@@ -4851,9 +4813,9 @@ pub unsafe extern "C" fn font_prepare_for_face (f: *mut frame, face: *mut face)
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn font_done_for_face (f: *mut frame, face: *mut face)
 {
-  if (*((*(*face).font).driver)).done_face.is_some ()
+  if (*((*(*face).font).driver as *const font_driver)).done_face.is_some ()
     {
-      let done_face = (*((*(*face).font).driver)).done_face;
+      let done_face = (*((*(*face).font).driver as *const font_driver)).done_face;
       if let Some (d) = done_face
 	{ d (f, face); }
     }
@@ -5613,9 +5575,9 @@ DEFUN! ("font-get", Ffont_get, Sfont_get, 2, 2, 0,
 
       if EQ (key, QCotf ())
 	{
-	  if (*((*fontp).driver)).otf_capability.is_some ()
+	  if (*((*fontp).driver as *const font_driver)).otf_capability.is_some ()
 	    {
-	      let otf_capability = (*((*fontp).driver)).otf_capability;
+	      let otf_capability = (*((*fontp).driver as *const font_driver)).otf_capability;
 	      if let Some (f) = otf_capability
 		{ val = f (fontp); }
 	    }
@@ -5624,9 +5586,9 @@ DEFUN! ("font-get", Ffont_get, Sfont_get, 2, 2, 0,
 	}
       else if EQ (key, QCcombining_capability ())
 	{
-	  if (*((*fontp).driver)).combining_capability.is_some ()
+	  if (*((*fontp).driver as *const font_driver)).combining_capability.is_some ()
 	    {
-	      let combining_capability = (*((*fontp).driver)).combining_capability;
+	      let combining_capability = (*((*fontp).driver as *const font_driver)).combining_capability;
 	      if let Some (f) = combining_capability
 		{ val = f (fontp); }
 	    }
@@ -5969,7 +5931,7 @@ pub unsafe extern "C" fn font_fill_lglyph_metrics (glyph: Lisp_Object, font: *mu
 						 ascent: 0, descent: 0 };
 
   LGLYPH_SET_CODE! (glyph, code);
-  ((*((*font).driver)).text_extents.unwrap ()) (font, &code, 1, &mut metrics);
+  ((*((*font).driver as *const font_driver)).text_extents.unwrap ()) (font, &code, 1, &mut metrics);
   LGLYPH_SET_LBEARING (glyph, metrics.lbearing as EMACS_INT);
   LGLYPH_SET_RBEARING (glyph, metrics.rbearing as EMACS_INT);
   LGLYPH_SET_WIDTH (glyph, metrics.width as EMACS_INT);
@@ -6004,14 +5966,14 @@ DEFUN! ("font-shape-gstring", Ffont_shape_gstring, Sfont_shape_gstring, 2, 2, 0,
   font_object = LGSTRING_FONT (gstring);
   CHECK_FONT_OBJECT (font_object);
   font = XFONT_OBJECT (font_object);
-  if (*((*font).driver)).shape.is_none ()
+  if (*((*font).driver as *const font_driver)).shape.is_none ()
     { return Qnil (); }
 
   /* Try at most three times with larger gstring each time.  */
   i = 0;
   while i < 3
     {
-      n = ((*((*font).driver)).shape.unwrap ()) (gstring, direction);
+      n = ((*((*font).driver as *const font_driver)).shape.unwrap ()) (gstring, direction);
       if FIXNUMP (n)
 	{ break; }
       gstring = larger_vector (gstring,
@@ -6080,9 +6042,9 @@ DEFUN! ("font-variation-glyphs", Ffont_variation_glyphs, Sfont_variation_glyphs,
   CHECK_FONT_OBJECT (font_object);
   CHECK_CHARACTER (character);
   font = XFONT_OBJECT (font_object);
-  if (*((*font).driver)).get_variation_glyphs.is_none ()
+  if (*((*font).driver as *const font_driver)).get_variation_glyphs.is_none ()
     { return Qnil (); }
-  n = ((*((*font).driver)).get_variation_glyphs.unwrap ())
+  n = ((*((*font).driver as *const font_driver)).get_variation_glyphs.unwrap ())
         (font, XFIXNUM (character) as c_int, variations.as_mut_ptr ());
   if n == 0
     { return Qnil (); }
@@ -6196,7 +6158,7 @@ DEFUN! ("internal-char-font", Finternal_char_font, Sinternal_char_font, 1, 2, 0,
   let face: *mut face = FACE_FROM_ID (f, face_id);
   if (*face).font.is_null ()
     { return Qnil (); }
-  let code: c_uint = (*((*(*face).font).driver)).encode_char.unwrap () ((*face).font, c);
+  let code: c_uint = (*((*(*face).font).driver as *const font_driver)).encode_char.unwrap () ((*face).font, c);
   if code == FONT_INVALID_CODE
     { return Qnil (); }
   let mut font_object: Lisp_Object;
@@ -6259,9 +6221,9 @@ DEFUN! ("query-font", Fquery_font, Squery_font, 1, 1, 0,
 		 make_fixnum ((*font).descent as EMACS_INT),
 		 make_fixnum ((*font).space_width as EMACS_INT),
 		 make_fixnum ((*font).average_width as EMACS_INT),
-		 (if (*((*font).driver)).otf_capability.is_some ()
+		 (if (*((*font).driver as *const font_driver)).otf_capability.is_some ()
 		  { Fcons (Qopentype (),
-			   ((*((*font).driver)).otf_capability.unwrap ()) (font)) }
+			   ((*((*font).driver as *const font_driver)).otf_capability.unwrap ()) (font)) }
 		  else { Qnil () }));
 });
 
@@ -6395,7 +6357,7 @@ DEFUN! ("font-get-glyphs", Ffont_get_glyphs, Sfont_get_glyphs, 3, 4, 0,
       let mut metrics: font_metrics = font_metrics { lbearing: 0, rbearing: 0, width: 0,
 						     ascent: 0, descent: 0 };
 
-      code = (*((*font).driver)).encode_char.unwrap () (font, c);
+      code = (*((*font).driver as *const font_driver)).encode_char.unwrap () (font, c);
       if code == FONT_INVALID_CODE
 	{
 	  ASET (vec, i, Qnil ());
@@ -6407,7 +6369,7 @@ DEFUN! ("font-get-glyphs", Ffont_get_glyphs, Sfont_get_glyphs, 3, 4, 0,
       LGLYPH_SET_TO (g, i);
       LGLYPH_SET_CHAR (g, c as EMACS_INT);
       LGLYPH_SET_CODE! (g, code);
-      ((*((*font).driver)).text_extents.unwrap ()) (font, &code, 1, &mut metrics);
+      ((*((*font).driver as *const font_driver)).text_extents.unwrap ()) (font, &code, 1, &mut metrics);
       LGLYPH_SET_WIDTH (g, metrics.width as EMACS_INT);
       LGLYPH_SET_LBEARING (g, metrics.lbearing as EMACS_INT);
       LGLYPH_SET_RBEARING (g, metrics.rbearing as EMACS_INT);
@@ -6540,9 +6502,9 @@ DEFUN! ("font-info", Ffont_info, Sfont_info, 1, 2, 0,
 		 make_fixnum ((*font).space_width as EMACS_INT),
 		 make_fixnum ((*font).average_width as EMACS_INT),
 		 AREF (font_object, FONT_FILE_INDEX as isize),
-		 (if (*((*font).driver)).otf_capability.is_some ()
+		 (if (*((*font).driver as *const font_driver)).otf_capability.is_some ()
 		  { Fcons (Qopentype (),
-			   ((*((*font).driver)).otf_capability.unwrap ()) (font)) }
+			   ((*((*font).driver as *const font_driver)).otf_capability.unwrap ()) (font)) }
 		  else { Qnil () }));
 
   /* C 5685-5689: `#if 0` (the `font_close_object` call).  Recorded in docs/ports/font.md.  */

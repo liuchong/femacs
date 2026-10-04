@@ -3419,20 +3419,13 @@ macro_rules! PSEUDOVEC_STRUCT {
   };
 }
 
-/* C: `include/font.rs` is the WIP mirror of `font.h` (it carries `enum
-   font_property_index` and the four predicates); the records this unit reads — `struct font`
-   (only `driver`), `struct font_driver` (only `close_font`) and `struct face_cache` — plus
-   `FRAME_FACE_CACHE`, `FACE_FROM_ID_OR_NULL` and `valid_font_driver` are declared here at
-   their use site (PORTING.md P-72 ③), with the frozen clang's offsets.  Reported as a
-   mirror gap in docs/ports/alloc.md.  */
-#[repr(C)]
-pub struct font
-{
-  pub header: vectorlike_header,
-  _pad0: [u8; 176 - 8],
-  pub driver: *const font_driver,
-}
-const _: () = assert! (std::mem::offset_of! (font, driver) == 176);
+/* C: `include/font.rs` is the WIP mirror of `font.h`; `struct font` (font.h 275-418, this
+   unit reads only its `driver`) now comes from there, and its `driver` is the mirror's
+   untyped `*const c_void`, so the read below casts (PORTING.md P-72 rule 3).  The records
+   still declared here at their use site — `struct font_driver` (only `close_font`) and
+   `struct face_cache` — plus `FRAME_FACE_CACHE`, `FACE_FROM_ID_OR_NULL` and
+   `valid_font_driver`, carry the frozen clang's offsets.  Reported as a mirror gap in
+   docs/ports/alloc.md.  */
 
 #[repr(C)]
 pub struct font_driver
@@ -3515,7 +3508,7 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 	if ((*vector).header.size & PSEUDOVECTOR_SIZE_MASK) == FONT_OBJECT_MAX as ptrdiff_t
 	  {
 	    let font = PSEUDOVEC_STRUCT! (vector, font);
-	    let drv: *const font_driver = (*font).driver;
+	    let drv: *const font_driver = (*font).driver as *const font_driver;
 
 	    /* The font driver might sometimes be NULL, e.g. if Emacs was
 	       interrupted before it had time to set it up.  */

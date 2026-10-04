@@ -22,8 +22,9 @@
 // function).
 //
 // **Use-site declarations.**  `dispextern.h` has a mirror (`include/dispextern.rs`) that stops
-// before its face block, so the records `struct face`, `struct face_cache`, `struct font` (via
-// `font.rs`'s own gap), and the `FACE_SUITABLE_FOR_ASCII_CHAR_P`/`FACE_FOR_CHAR`/
+// before its face block, so the records `struct face` and `struct face_cache` (whose `font`
+// field is `include/font.rs`'s `struct font`, mirrored in this round), and the
+// `FACE_SUITABLE_FOR_ASCII_CHAR_P`/`FACE_FOR_CHAR`/
 // `FRAME_FACE_CACHE`/`FACE_FROM_ID`/`FRAME_FOREGROUND_PIXEL` family,
 // and `load_color`/`free_frame_faces`/`lookup_derived_face`… are declared here with clang-measured
 // offsets and `const _` assertions, the shape `term.rs`/`font.rs` established (PORTING.md
@@ -326,33 +327,8 @@ const _: () = assert! (std::mem::offset_of! (face, hash) == 248);
 const _: () = assert! (std::mem::offset_of! (face, next) == 256);
 const _: () = assert! (std::mem::offset_of! (face, ascii_face) == 272);
 
-/// C: font.h 275-418: `struct font` (the font.h mirror stops before it, P-66/P-72).
-/// Measured with the frozen clang: `sizeof` 184, `props`@8, `min_width`@144, `max_width`@148,
-/// `pixel_size`@152, `height`@156, `space_width`@160, `average_width`@164, `ascent`@168,
-/// `descent`@172, `driver`@176.  `HAVE_WINDOW_SYSTEM` (`underline_thickness`,
-/// `underline_position`, `vertical_centering`, `baseline_offset`, `relative_compose`,
-/// `default_ascent`, `encoding_charset`, `repertory_charset`) is undef, so those members are
-/// absent.  This unit reads only `props` and `pixel_size`/`average_width`.
-#[repr(C)]
-pub struct font
-{
-  pub header: vectorlike_header,
-  pub props: [Lisp_Object; FONT_OBJECT_MAX as usize],
-  pub min_width: c_int,
-  pub max_width: c_int,
-  pub pixel_size: c_int,
-  pub height: c_int,
-  pub space_width: c_int,
-  pub average_width: c_int,
-  pub ascent: c_int,
-  pub descent: c_int,
-  pub driver: *const c_void,
-}
-
-const _: () = assert! (std::mem::size_of::<font> () == 184);
-const _: () = assert! (std::mem::offset_of! (font, props) == 8);
-const _: () = assert! (std::mem::offset_of! (font, min_width) == 144);
-const _: () = assert! (std::mem::offset_of! (font, driver) == 176);
+/* `struct font` (font.h 275-418) comes from `include/font.rs` now; this unit reads `props`,
+   `pixel_size` and `average_width` of it (docs/ports/include-font.md).  */
 
 /// C: dispextern.h 1780-1810: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0,
 /// `f`@8, `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf

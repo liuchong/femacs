@@ -883,26 +883,13 @@ DEFUN! ("window-pixel-height", Fwindow_pixel_height, Swindow_pixel_height, 0, 1,
 });
 
 /* C: `include/dispextern.rs` is the WIP mirror of `dispextern.h` and `include/font.rs` the WIP
-   mirror of `font.h`; the records this unit reads — `struct face` (only `font`), `struct font`
-   (only `height`) and `struct face_cache` — plus `FRAME_FACE_CACHE`, `FACE_FROM_ID_OR_NULL`
-   and `lookup_named_face` are declared here at their use site (PORTING.md P-72 ③), with the
-   frozen clang's offsets (`clang -std=gnu23 -I build/emacs-ref/{lib,src} …`: `face.font` 216
-   and `sizeof face` 280; `font.height` 156 and `sizeof font` 184).  Reported as a mirror gap
-   in docs/ports/window.md.  */
-#[repr(C)]
-pub struct font
-{
-  pub header: vectorlike_header,
-  _pad0: [u8; 156 - 8],
-  pub height: c_int,
-  pub space_width: c_int,
-  pub average_width: c_int,
-  _pad1: [u8; 184 - 168],
-}
-const _: () = assert! (std::mem::offset_of! (font, height) == 156);
-const _: () = assert! (std::mem::offset_of! (font, space_width) == 160);
-const _: () = assert! (std::mem::offset_of! (font, average_width) == 164);
-const _: () = assert! (std::mem::size_of::<font> () == 184);
+   mirror of `font.h`; `struct font` (font.h 275-418) — this unit reads `height`,
+   `space_width` and `average_width` of it — now comes from that mirror.  The records still
+   declared here at their use site (PORTING.md P-72 ③) are `struct face` (only `font`) and
+   `struct face_cache`, plus `FRAME_FACE_CACHE`, `FACE_FROM_ID_OR_NULL` and
+   `lookup_named_face`, with the frozen clang's offsets (`clang -std=gnu23 -I
+   build/emacs-ref/{lib,src} …`: `face.font` 216 and `sizeof face` 280).  Reported as a
+   mirror gap in docs/ports/window.md.  */
 
 #[repr(C)]
 pub struct face

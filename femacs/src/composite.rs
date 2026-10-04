@@ -115,20 +115,14 @@ pub struct font_metrics
   pub descent: c_short,
 }
 
-/* C: font.h 277-404 `struct font` and 589-821 `struct font_driver`.  Neither is mirrored
-   (PORTING.md P-66); composite.c reaches exactly one field of each — `font->driver`, then
-   `driver->encode_char` — so both are declared as byte-padded prefixes carrying that one
-   field, with the two offsets measured from the frozen target with clang
-   (`offsetof (struct font, driver)` = 176, `offsetof (struct font_driver, encode_char)` =
-   96; the `struct composition` "measured, not derived" shape, and the two offsets are
-   recorded in docs/ports/composite.md).  */
-#[repr(C)]
-pub struct font
-{
-  pub _pad: [u8; 176],
-  pub driver: *const font_driver,
-}
-
+/* C: font.h 277-404 `struct font` and 589-821 `struct font_driver`.  `struct font`
+   (277-418) now comes from `include/font.rs`; `struct font_driver` is still unmirrored
+   (PORTING.md P-66).  composite.c reaches exactly one field of each — `font->driver`, then
+   `driver->encode_char` — so `font_driver` is declared here as a byte-padded prefix
+   carrying that one field, with its offset measured from the frozen target with clang
+   (`offsetof (struct font_driver, encode_char)` = 96; the `struct composition` "measured,
+   not derived" shape, and the offset is recorded in docs/ports/composite.md).  The
+   mirror's `font.driver` is untyped, so the read below casts (PORTING.md P-72 rule 3).  */
 #[repr(C)]
 pub struct font_driver
 {
@@ -1022,7 +1016,7 @@ unsafe fn fill_gstring_body (gstring: Lisp_Object)
       LGLYPH_SET_CHAR (g, c as EMACS_INT);
 
       if !font.is_null ()
-	{ code = ((*(*font).driver).encode_char.unwrap ()) (font, LGLYPH_CHAR (g) as c_int); }
+	{ code = ((*( (*font).driver as *const font_driver )).encode_char.unwrap ()) (font, LGLYPH_CHAR (g) as c_int); }
       else
 	{ code = FONT_INVALID_CODE; }
       if code != FONT_INVALID_CODE
