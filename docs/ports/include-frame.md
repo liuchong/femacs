@@ -467,3 +467,50 @@ own proof.
    the seven `swift-import-pending` rows for this struct stay open until both halves exist.
 4. Record the gated arm as **read, not compiled** until the platform mirrors land: the numbers
    above come from the C compiler, the Rust side has none yet.
+
+## The window-system arm's members land (status 3.272)
+
+`struct frame` now carries C's guarded members in every configuration, not only the frozen one:
+25 member declarations from the list below, plus the two declarations C makes for them
+(`enum ns_appearance_type`; `enum text_conversion_operation` with `struct text_conversion_action`
+and `struct text_conversion_state`, which `struct frame` embeds as `conversion` and which
+`src/alloc.rs` already names in its gated code).  Positions and guards come from the source and the
+readings in `docs/baseline/frame-layout.tsv` (frozen 568, x11 648, ns_cocoa 608; P-82).
+
+| C guard (frame.h) | members | Rust gate |
+| --- | --- | --- |
+| `HAVE_WINDOW_SYSTEM && !HAVE_EXT_MENU_BAR` | `menu_bar_window` (249) | `all (have_window_system, not (have_ext_menu_bar))` |
+| `HAVE_WINDOW_SYSTEM` | `tab_bar_window` (254), `desired_tab_bar_string` (257), `current_tab_bar_string` (258), `image_cache` (292) | `have_window_system` |
+| `HAVE_WINDOW_SYSTEM && !HAVE_EXT_TOOL_BAR` | `tool_bar_window` (263), `desired_tool_bar_string` (266), `current_tool_bar_string` (267), `last_tool_bar_item` (303) | `all (have_window_system, not (have_ext_tool_bar))` |
+| `HAVE_XFT \|\| HAVE_FREETYPE` | `font_data` (276) | `any (have_xft, have_freetype)` |
+| `USE_X_TOOLKIT \|\| HAVE_NTGUI` | `namebuf` (313) | `any (use_x_toolkit, have_ntgui)` |
+| `USE_X_TOOLKIT` | `shell_position` (318) | `use_x_toolkit` |
+| `HAVE_X_WINDOWS \|\| HAVE_ANDROID` | `wait_event_type` (671) | `any (have_x_windows, have_android)` |
+| `NS_IMPL_COCOA` | `ns_appearance` (737), `ns_transparent_titlebar` (738) | `ns_impl_cocoa` |
+| `HAVE_TEXT_CONVERSION` | `conversion` (743) | `have_text_conversion` |
+
+Two notes the C source forces:
+
+* `ns_transparent_titlebar` is a plain `bool_bf`, and C's `bool_bf` is `typedef unsigned int` in
+  this build (conf_post.h 59) - the reading confirms it (596, `z_order` at 600) - so the port
+  carries `c_uint` there and says why, where its `bool_bf` alias elsewhere is the bitfield spelling.
+* the four new gates (`have_ext_tool_bar`, `have_ext_menu_bar`, `have_xft`, `have_freetype`) were
+  added to `femacs/xtask/Cargo.toml`'s table in its alphabetical place.  `HAVE_EXT_TOOL_BAR` and
+  `HAVE_EXT_MENU_BAR` are *implied* by a window system in C (lisp.h 3933/3938 define them for NS),
+  which is why the ns arm of the probe has them on and the x11 arm off - a flip of `have_ns` has to
+  turn them on with it.
+
+**What is deliberately not written yet.**  The flag numbering is *per configuration* (C's compiler
+inserts the window-system flags into the run and pushes an `ENUM_BF` that does not fit to the next
+unit: `want_fullscreen` sits at 316:0-3 under X11, one bit past `tooltip` at 315:6).  The port has
+the *frozen* numbering as literals and now gates those 37 constants and the nine `#else`-shaped
+accessors of frame.h 1240-1271 with the frozen arm, so a window-system configuration fails to
+compile there instead of silently reading the wrong bit.  The measured numbers for the two
+window-system arms are in the table; writing them out (or deriving them from C's declaration order
+and checking the derivation against the table) is the next step, together with the `#if` bodies of
+those nine accessors.
+
+**Evidence (all re-run at this revision).**  `build-tu src/frame.c`, `src/window.c` and
+`src/buffer.c` exit 0; `xtask layout-check` passed; `check-declarations` 13 sites / 0 forbidden;
+`check-globals` 284 units / 0; `check-mirror-dupes` 0 failures; `check-verbatim` 4604 files / 0
+failures.

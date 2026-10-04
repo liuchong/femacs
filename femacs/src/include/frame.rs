@@ -32,6 +32,72 @@ pub union output_data
   pub android: *mut c_void,    // C: `struct android_output *android;`
 }
 
+/* frame.h 69-76: `enum ns_appearance_type`, inside C's `#ifdef HAVE_WINDOW_SYSTEM` and its own
+   `#ifdef NS_IMPL_COCOA`.  */
+#[cfg (feature = "ns_impl_cocoa")]
+pub type ns_appearance_type = c_int;
+#[cfg (feature = "ns_impl_cocoa")]
+pub const ns_appearance_system_default: ns_appearance_type = 0;
+#[cfg (feature = "ns_impl_cocoa")]
+pub const ns_appearance_aqua: ns_appearance_type = 1;
+#[cfg (feature = "ns_impl_cocoa")]
+pub const ns_appearance_vibrant_dark: ns_appearance_type = 2;
+
+/* frame.h 78-142: `#ifdef HAVE_TEXT_CONVERSION`.  The operation enum, the single action and the
+   per-frame state `struct frame` embeds (`conversion`).  C declares them before the frame, so the
+   port does too.  */
+#[cfg (feature = "have_text_conversion")]
+pub type text_conversion_operation = c_int;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_START_BATCH_EDIT: text_conversion_operation = 0;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_END_BATCH_EDIT: text_conversion_operation = 1;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_COMMIT_TEXT: text_conversion_operation = 2;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_FINISH_COMPOSING_TEXT: text_conversion_operation = 3;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_SET_COMPOSING_TEXT: text_conversion_operation = 4;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_SET_COMPOSING_REGION: text_conversion_operation = 5;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_SET_POINT_AND_MARK: text_conversion_operation = 6;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_DELETE_SURROUNDING_TEXT: text_conversion_operation = 7;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_REQUEST_POINT_UPDATE: text_conversion_operation = 8;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_BARRIER: text_conversion_operation = 9;
+#[cfg (feature = "have_text_conversion")]
+pub const TEXTCONV_REPLACE_TEXT: text_conversion_operation = 10;
+
+// frame.h 100-114.  `next` is a complete-tag pointer to its own type, so the port spells it.
+#[cfg (feature = "have_text_conversion")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct text_conversion_action
+{
+  pub next: *mut text_conversion_action,
+  pub data: Lisp_Object,
+  pub operation: text_conversion_operation,
+  pub counter: c_ulong,
+}
+
+// frame.h 119-142.
+#[cfg (feature = "have_text_conversion")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct text_conversion_state
+{
+  pub actions: *mut text_conversion_action,
+  pub compose_region_start: Lisp_Object,
+  pub compose_region_end: Lisp_Object,
+  pub compose_region_overlay: Lisp_Object,
+  pub field: Lisp_Object,
+  pub batch_edit_count: c_int,
+  pub batch_edit_flags: c_int,
+}
+
 /* The structure that describes a frame.  */
 // frame.h 145-680.  Measured: sizeof 568, alignof 8.  It holds scalars, Lisp_Objects and
 // pointers; the only aggregates by value are the vectorlike header, two
@@ -60,13 +126,38 @@ pub struct frame
   pub buffer_predicate: Lisp_Object,
   pub buffer_list: Lisp_Object,
   pub buried_buffer_list: Lisp_Object,
+  // frame.h 246-268: the window-system windows and their strings, each under C's own guard.
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_menu_bar")))]
+  pub menu_bar_window: Lisp_Object,                        // 249
+  #[cfg (feature = "have_window_system")]
+  pub tab_bar_window: Lisp_Object,                         // 254
+  #[cfg (feature = "have_window_system")]
+  pub desired_tab_bar_string: Lisp_Object,                 // 257
+  #[cfg (feature = "have_window_system")]
+  pub current_tab_bar_string: Lisp_Object,                 // 258
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
+  pub tool_bar_window: Lisp_Object,                        // 263
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
+  pub desired_tool_bar_string: Lisp_Object,                // 266
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
+  pub current_tool_bar_string: Lisp_Object,                // 267
   pub tool_bar_position: Lisp_Object,
+  #[cfg (any (feature = "have_xft", feature = "have_freetype"))]
+  pub font_data: Lisp_Object,                              // 276
   pub tab_bar_items: Lisp_Object,
   pub tool_bar_items: Lisp_Object,
   pub face_cache: *mut c_void,   /// C: `struct face_cache *face_cache`
+  #[cfg (feature = "have_window_system")]
+  pub image_cache: *mut c_void,   /// C: `struct image_cache *image_cache` (frame.h 290-292)
   pub id: EMACS_UINT,
   pub last_tab_bar_item: c_int,
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ext_tool_bar")))]
+  pub last_tool_bar_item: c_int,                           // 303
   pub menu_bar_items_used: c_int,
+  #[cfg (any (feature = "use_x_toolkit", feature = "have_ntgui"))]
+  pub namebuf: *mut c_char,                                // 313
+  #[cfg (feature = "use_x_toolkit")]
+  pub shell_position: *mut c_char,                         // 318
   pub current_pool: *mut c_void,   /// C: `struct glyph_pool *current_pool`
   pub desired_pool: *mut c_void,   /// C: `struct glyph_pool *desired_pool`
   pub desired_matrix: *mut c_void,   /// C: `struct glyph_matrix *desired_matrix`
@@ -122,6 +213,8 @@ pub struct frame
   pub terminal: *mut terminal,
   pub output_data: output_data,        // frame.h 653-663 (C's `union output_data`)
   pub font_driver_list: *mut c_void,   /// C: `struct font_driver_list *font_driver_list`
+  #[cfg (any (feature = "have_x_windows", feature = "have_android"))]
+  pub wait_event_type: c_int,                              // 671
   pub desired_cursor: text_cursor_kinds,
   pub cursor_width: c_int,
   pub blink_off_cursor: text_cursor_kinds,
@@ -138,48 +231,107 @@ pub struct frame
   pub extra_line_spacing_above: c_int,
   pub background_pixel: c_ulong,
   pub foreground_pixel: c_ulong,
+  // frame.h 735-743: the Cocoa tail, and the text-conversion state C embeds before `z_order`.
+  #[cfg (feature = "ns_impl_cocoa")]
+  pub ns_appearance: ns_appearance_type,                   // 737 (measured 592)
+  #[cfg (feature = "ns_impl_cocoa")]
+  pub ns_transparent_titlebar: c_uint,                     // 738; C's `bool_bf` is `unsigned int`
+                                                           // here (conf_post.h 59), measured 596
+  #[cfg (feature = "have_text_conversion")]
+  pub conversion: text_conversion_state,                   // 743
   pub z_order: c_int,
 }
 
-// The 37 flag members of those two units, in C's declaration order (frame.h 300-341).
-// `output_method` is the four-bit `ENUM_BF (output_method)` field in the middle of unit 1.
+// The flag members of those two units, in C's declaration order (frame.h 300-341 and the
+// window-system flags C inserts *inside* the run).  `output_method` is the four-bit
+// `ENUM_BF (output_method)` field in the middle of unit 1.
+//
+// The numbering is *per configuration*: C's compiler packs the flags into four-byte units, a
+// window system inserts its own flags, and an `ENUM_BF` that does not fit in what is left of a
+// unit is pushed to the next one (measured: `want_fullscreen` sits at 316:0-3 under X11, one bit
+// past `tooltip` at 315:6).  The readings for both window-system arms are in
+// `docs/baseline/frame-layout.tsv`, written by `spikes/gated-layout-probe.py 'struct frame'
+// frame.h` (P-82) - `frozen` 568, `x11` 648, `ns_cocoa` 608, every member's byte:bits.
+//
+// The constants below are the *frozen* arm's numbers, and they are gated with it: a
+// window-system configuration has no numbering here yet, so it fails to compile at the first
+// accessor instead of silently reading the wrong bit.  Writing the measured arms out (or
+// deriving them from C's order and checking the derivation against the table) is the next step;
+// the numbers are a table, not a guess.
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_GLYPHS_INITIALIZED_P_SHIFT: u32 = 0;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_RESIZED_P_SHIFT: u32 = 1;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_DEFAULT_FACE_DONE_P_SHIFT: u32 = 2;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_ALREADY_HSCROLLED_P_SHIFT: u32 = 3;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_UPDATED_P_SHIFT: u32 = 4;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_FONTS_CHANGED_SHIFT: u32 = 5;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_CURSOR_TYPE_CHANGED_SHIFT: u32 = 6;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_REDISPLAY_SHIFT: u32 = 7;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_VISIBLE_SHIFT: u32 = 8;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_ICONIFIED_SHIFT: u32 = 9;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_GARBAGED_SHIFT: u32 = 10;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_WANTS_MODELINE_SHIFT: u32 = 11;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_AUTO_RAISE_SHIFT: u32 = 12;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_AUTO_LOWER_SHIFT: u32 = 13;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_NO_SPLIT_SHIFT: u32 = 14;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_EXPLICIT_NAME_SHIFT: u32 = 15;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_WINDOW_CHANGE_SHIFT: u32 = 16;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_WINDOW_STATE_CHANGE_SHIFT: u32 = 17;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_MOUSE_MOVED_SHIFT: u32 = 18;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_POINTER_INVISIBLE_SHIFT: u32 = 19;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_FROZEN_WINDOW_STARTS_SHIFT: u32 = 20;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_OUTPUT_METHOD_SHIFT: u32 = 21;
 pub const FRAME_OUTPUT_METHOD_MASK: u32 = 0x0F;   // 4 bits
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_UNDECORATED_SHIFT: u32 = 25;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_NO_ACCEPT_FOCUS_SHIFT: u32 = 26;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_NO_SPECIAL_GLYPHS_SHIFT: u32 = 27;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_CAN_SET_WINDOW_SIZE_SHIFT: u32 = 28;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_AFTER_MAKE_FRAME_SHIFT: u32 = 29;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_TAB_BAR_REDISPLAYED_SHIFT: u32 = 30;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_TAB_BAR_RESIZED_SHIFT: u32 = 31;
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_TOOL_BAR_REDISPLAYED_SHIFT: u32 = 0;   // unit 2
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_TOOL_BAR_RESIZED_SHIFT: u32 = 1;   // unit 2
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_FACE_CHANGE_SHIFT: u32 = 2;   // unit 2
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_INHIBIT_CLEAR_IMAGE_CACHE_SHIFT: u32 = 3;   // unit 2
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_NEW_SIZE_P_SHIFT: u32 = 4;   // unit 2
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_WAS_INVISIBLE_SHIFT: u32 = 5;   // unit 2
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_SELECT_MINI_WINDOW_FLAG_SHIFT: u32 = 6;   // unit 2
+#[cfg (not (feature = "have_window_system"))]
 pub const FRAME_BORDERS_RESPECT_ALPHA_BACKGROUND_SHIFT: u32 = 7;   // unit 2
 
 // frame.h 27-44: `enum vertical_scroll_bar_type`.
@@ -458,14 +610,19 @@ pub fn FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT (f: *mut frame) -> c_int { let _ =
 pub fn FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT (f: *mut frame) -> c_int { let _ = f; 0 }
 #[inline(always)]
 pub fn FRAME_HAS_HORIZONTAL_SCROLL_BARS (f: *mut frame) -> c_int { let _ = f; 0 }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_OVERRIDE_REDIRECT (f: *mut frame) -> c_int { let _ = f; 0 }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_SKIP_TASKBAR (f: *mut frame) -> c_int { let _ = f; 0 }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_NO_FOCUS_ON_MAP (f: *mut frame) -> c_int { let _ = f; 0 }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_NO_ACCEPT_FOCUS (f: *mut frame) -> c_int { let _ = f; 0 }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_TOOLTIP_P (f: *mut frame) -> bool { let _ = f; false }
 #[inline(always)]
@@ -786,14 +943,21 @@ macro_rules! SET_FRAME_GARBAGED {
   }};
 }
 
-/* frame.h 1266-1269: the live `#else` arm of the z-group family - "the frozen configuration has
-   no window system", so C's `((void) (f), …)` bodies are the ones to spell.  */
+/* frame.h 1240-1271: C spells *two* bodies for this family - the `#if defined (HAVE_WINDOW_SYSTEM)`
+   arm reads the members (through the window-system numbering the port has measured but not yet
+   written out, P-82), the `#else` arm is `((void) (f), …)`.  The port carries the `#else` bodies
+   and gates them with the frozen arm, so a window-system configuration fails to compile here
+   rather than returning the frozen answer for a frame that has the members.  */
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_Z_GROUP (f: *mut frame) -> z_group { let _ = f; z_group_none }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_Z_GROUP_NONE (f: *mut frame) -> bool { let _ = f; true }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_Z_GROUP_ABOVE (f: *mut frame) -> bool { let _ = f; false }
+#[cfg (not (feature = "have_window_system"))]
 #[inline(always)]
 pub fn FRAME_Z_GROUP_BELOW (f: *mut frame) -> bool { let _ = f; false }
 
