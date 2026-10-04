@@ -2713,3 +2713,25 @@
   就是手写的）。**下一步**：给 `extract-abi.py` 加一个最小的 Swift 侧提取器（`func name (`、`@_silgen_name("…")`、
   `@convention(c)`），先只比对函数名与签名，把它挂进现有 `--check`；在那之前 Swift 单元的台账继续由 lane
   手写并在 `## Decisions` 里注明（这条缺口登记在案，不许当成"已覆盖"）。
+
+- **3.161 三个 NS/Haiku 平台头落地、`nsgui.rs` 进排除清单、NS 探针登记（2026-10-04）**：
+  ① **交付**（NS/Haiku lane，我独立复核后提交 `c7b8320`）：`src/haikuselect.h`（88 行 → 138）、
+  `src/nsxwidget.h`（82 → 95）、`src/nsgui.h`（137 → 160）+ 三份台账。三个头的守卫在本目标上都是"未定义"，
+  但**声明是活文本**：haikuselect 的 C++ 半（C 22-24）与两处 `extern "C" { }`（39-42/82-84）是死文本；
+  nsxwidget 的两个 `@interface`（47-51/60-65）死，而 **21 条原型是活的**；nsgui 整个 `#ifdef __OBJC__`
+  头（23-43）与三处 `typedef`（56/62/72-73）死，C 46-135 活。降级照 P-55/P-72③：`struct xwidget *`、
+  `struct xwidget_view *`、`struct glyph_string *` → `*mut c_void` + `/// C:` 原文行（`xwidget.h` 仍 todo、
+  `dispextern.rs` 没有 `glyph_string`）。一个**实打实的名字冲突**被提前避开：haikuselect 里 C 的
+  `int32`/`int64`/`uint32`（Haiku `SupportDefs.h` 拼法）在这个 crate 里会与 `haiku_support.rs` 的同名别名撞
+  `E0428`，镜像改写成 C 26-27 活 include 的 `<stdint.h>` 拼法（同宽度）。
+  ② **`layout-check` 先红后绿，红的原因被记进清单**：`nsgui.rs` 的活文本 `Emacs_Cursor`（C 64）与
+  `dispextern.rs` 62 撞名，实测 `error[E0428]: the name Emacs_Cursor is defined multiple times` ⇒
+  `docs/baseline/layout-excluded-mirrors.txt` 追加一行（含测量到的错误原文），`xtask layout-check` → **passed**。
+  ③ **两个 NS 镜像的常驻编译器**：新探针 `spikes/ns_inc_probe.rs`（`win_inc_probe.rs` 的形状：供给
+  `Lisp_Object` 桩 + `include!` 两个镜像）已登记进 `femacs/xtask/src/main.rs` 的 `PROBES`（12 → 13）；
+  `haikuselect.rs` 同时挂进 `haiku_inc_probe.rs`。
+  ④ 证据（我复跑）：三对 `--check` **OK**（无 `- ` 行）；`check-cond-eval` 4/4/10 conditions、0 unknown、
+  0 disagreements；`xtask probe ../spikes/ns_inc_probe.rs` **exit 0**、`xtask probe ../spikes/haiku_inc_probe.rs`
+  **exit 0**；`xtask layout-check` **passed**。`docs/port-inventory.md` 复算：590 files、done=516、wip=16、todo=58。
+  ⑤ 在飞：Windows/DOS 镜像 lane（`cygw32`/`dosfns`/`termopts`/`w32heap`/`w32gui` 已 `--check` OK，
+  `w32common` 仍 FAIL、`msdos` 未落、`w32.h` 在队列里）、xdisp、keyboard、Swift（nsfont）、gnulib 模板。
