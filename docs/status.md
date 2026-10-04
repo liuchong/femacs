@@ -3950,3 +3950,10 @@
   `cd femacs && for f in lib/include/*.rs; do rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit metadata -Awarnings --crate-name probe_$(basename $f .rs) -o /tmp/probe.rmeta "$f"; done`
   ⇒ **29 个能自成一 crate root、102 个不能**。那 29 个写进 `docs/baseline/layout-standalone-mirrors.txt`（带命令与增删规则），probe 只种它们，**补集由门打印出来**（P-66：两类都不静默）。
   ③ **证据（本轮实测）**：`cargo run -p xtask -- layout-check` → `+ 29 of 131 lib/include mirror(s) seeded as their own crate root (102 need an includer, PORTING.md 0.1-9)`、`92 of 102 src mirror(s) compiled, 10 platform-exclusive skipped (…)`、**`layout-check passed`**。3.214 的 `cdefs.rs` 与 3.215 的 `stdcountof.in.rs` 都在种子里 ⇒ 它们现在由**共享门**编，而不只是各跑一次 `build-tu`。
+
+- **3.218 门的一处"假 done"被修掉，且 590 个目标全部存在（`src/xterm.h` 落地）（2026-10-04）**：
+  ① **发现方式**：我在盘 `todo` 时读到 `src/xterm.h` 那一行是 **`done`**，而 `--check` 同时报 7 条问题。
+  根因是 `ledger_for` 的**回退**（3.102 起就有的 looseness：没有自己台账的头读它 unit 的台账，`src/indent.h` 读 `indent.md`）被 `--all` 的状态机当成了"这个文件自己的清单"——那份 `xterm.md` 是全勾的，于是半个镜像读成了"完成"。**这正是本项目反复在修的那类错误：拿一个不是它的东西当它的判据。**
+  ② **修法（`b03d084`）**：`extract-abi.py` 新增 `own_ledger()`——只有台账首行点名**这个**参照文件时才认它；`--all` 的判定与 WIP 判断都用它，于是"没有自己清单"的文件按**完整条目集**受判，不通过就报 `FAIL … (no checklist of its own)`；`gen-port-inventory.py` 同规则（回退行读 `wip`）并把这一类**打印出来**（P-66：不许静默）。全树只有两个文件吃回退：`src/indent.h`（`--check` 本来就 OK ⇒ 本轮给它补了 `docs/ports/include-indent.md`，勾满 + 读数）与 `src/xterm.h`（它的 lane 自己已经写出 `include-xterm.md`）⇒ **回退类现在是空的**，规则因此只花一个文件的账。
+  ③ **读数（修后实测）**：`python3 tools/extract-abi.py --all` → **`checked 590 ported files: 586 done, 4 in progress, 0 failing`**，四个 WIP 都有名有数（`src/dispextern.h` 142 差异、`src/font.h` 16、`src/frame.h` 3、`src/xdisp.c` 176——都由它们自己的台账认领）；`gen-port-inventory` → **590 files、done=580、wip=10、todo=0**，且没有回退行。
+  ④ **同轮的第二件事：`src/xterm.h`（2,045 行）落地**（`b03d883`）：镜像 76,101 字节、台账 **0 未勾**、`--check` → **OK**，它在 layout 种子里且共享门在这个 HEAD 复跑过（`92 of 102 src mirror(s) compiled` + `+ 29 of 131 lib/include mirror(s) seeded` + **`layout-check passed`**）。**`todo` 由此归零：590 个参照文件每一个都有镜像**；剩下的是 A 组的 4 件 WIP（`dispextern.h`/`font.h`/`frame.h`/`xdisp.c`，各有 lane）与两条非 C 赛道的在飞产物（macfont/nsfont 的 Swift、`nsmenu.m` 的 Swift、xdisp 第 15 轮）。
