@@ -2170,3 +2170,26 @@
   `check-verbatim` 6 trees/4607 files/0；`port-inventory` 复算 **504 = 490 done / 14 wip，待开工 86**
   （由 489/14/87 推进一格）；`extract-abi.py --all`（本轮）→ **504 ported files: 497 done, 7 in progress,
   0 failing**。
+
+- **3.138 xdisp 本轮（C 4667-4980）由集成者复核通过，以及"两个巨型在飞单元不进 git"这条纪律的书面化（2026-10-04）**：
+  ① **独立复核**（不采信 lane 报告）：`--check emacs/src/xdisp.c femacs/src/xdisp.rs` 输出里 312 条 problem
+  **没有一条**落在本轮新增的四个名字上（`handle_fontified_prop`/`face_at_pos`/`handle_face_prop`/
+  `underlying_face_id` 在输出里 **0 命中**，实测用 `rg -c` 数出来），全部是 C 4980 之后的"未到达"条目
+  （234 个函数、20 个宏、12 个常量、17 个文件级对象、13 个 defsubr、11 个 subr，加上仍未定义的 5 个跨单元入口
+  `reseat_at_previous_visible_line_start`/`move_it_to`/`move_it_by_lines`/`add_to_log`/`update_redisplay_ticks`）
+  与一行 86.2% 的漂移（未完成单元的预期结论）；`build-tu src/xdisp.c` → **built**；台账 `docs/ports/xdisp.md`
+  的 Progress 段记 **C 468-4980**、131/415 勾、`SCAFFOLD` 24 → 22。下一条活定义 = **C 4989
+  `face_before_or_after_it_pos`**（签名行 C 4988，文档注释 C 4983-4986）。
+  ② **lane 自己交回的两条交接提醒**（下一轮必须照做）：`it_props[]` 表把 handler 的地址交出去，所以表里余下三个
+  （`handle_display_prop`、`handle_invisible_prop`、`handle_composition_prop`）的定义必须是
+  `unsafe extern "C" fn`（PORTING 0.2/P-52 的"地址被交出"分支）；`handle_overlay_change` 与
+  `face_before_or_after_it_pos` 虽不在表里，scaffold 已按 C ABI 声明，定义时必须删掉对应声明否则
+  `E0428`/`E0308`。
+  ③ **纪律（唯一一处"工作树领先于 git"）**：两个巨型在飞单元 `femacs/src/xdisp.rs`（5,493 行）与
+  `femacs/src/keyboard.rs`（9,355 行）以及它们的台账**不进 git**，`git status` 里恒为 `??`。理由是仓库既有
+  实践——单元**闭合时**一次 `port(NAME): …` 提交（先例：`femacs/src/window.rs` 的 `d08a521`
+  "window: the unit closes - C 1-9740 covered…"，此后只有修复型提交），而这两个单元的 `--check` 在 C 侧还没搬完
+  之前**必然**报 FAIL（本轮实测 312 条 / 36.3% 漂移），所以它们的提交点就是闭合那天。这不是遗漏：本节即是
+  该状态的书面记录，任何人看到 `git status` 的 `??` 都应在这里找到解释。
+  ④ 本轮 lane 面：mirror A/B 已经开始落盘（`femacs/src/include/androidterm.rs` 已出现，尚未收口），
+  Swift lane 在 `src/nsimage.m` 的 ABI 清单上，keyboard lane 仍在原边界内推进。
