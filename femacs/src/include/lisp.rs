@@ -277,7 +277,11 @@ pub struct Lisp_Symbol {
 
 // src/lisp.h 2168 includes "comp.h", which this configuration compiles to its
 // no-native-comp branch; the mirror carries the one entry point data.c calls.
-include!("comp.rs");
+/* C 2168's `#include "comp.h"` sits *after* lisp.h's `eassert` (181-189) and `XUNTAG`
+   (750); this include moves below those macros for the same reason - comp.rs's accessors
+   call both, and `macro_rules!` are textually scoped (measured: with the include above
+   them, `xtask dead-arms` could not find `eassert`/`XUNTAG` in `src/alloc.rs`'s flipped
+   build).  */
 
 // --- subrs (src/lisp.h 2174) -----------------------------------------------
 
@@ -501,6 +505,7 @@ macro_rules! XUNTAG {
         (($a as isize) - ($tag as isize)) as *mut $ctype
     };
 }
+include!("comp.rs");        // C 2168: `#include "comp.h"`, after `eassert`/`XUNTAG`
 
 #[inline(always)]
 pub fn XLI (o: Lisp_Object) -> EMACS_INT { lisp_h_XLI (o) }

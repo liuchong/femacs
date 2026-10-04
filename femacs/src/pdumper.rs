@@ -6012,17 +6012,11 @@ fn dump_make_lv_from_reloc (dump_base: uintptr_t, reloc: dump_reloc) -> Lisp_Obj
    of declaring a second copy of it.  Keeping the copy here would have collided with the mirror's
    record in any `native_comp` build (`E0428`), which is exactly what the missing-type check made
    visible.  */
-#[cfg (feature = "have_native_comp")]
-#[inline(always)]
-pub fn NATIVE_COMP_UNITP (a: Lisp_Object) -> bool {
-  PSEUDOVECTORP (a, pvec_type::PVEC_NATIVE_COMP_UNIT)
-}
-#[cfg (feature = "have_native_comp")]
-#[inline(always)]
-pub fn XNATIVE_COMP_UNIT (a: Lisp_Object) -> *mut Lisp_Native_Comp_Unit {
-  eassert! (NATIVE_COMP_UNITP (a));
-  return XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Native_Comp_Unit);
-}
+/* comp.h 55-67's `NATIVE_COMP_UNITP` / `XNATIVE_COMP_UNIT`: these two followed the record into
+   its owner (`include/comp.rs`, status 3.223) - `lisp.h` 2168 includes `comp.h` and
+   `include/lisp.rs` includes that mirror, so this unit resolves them from there and a second
+   copy here would be `E0428` in a `native_comp` build (the same class as the record itself,
+   which moved at 3.153).  */
 /* `dynlib.h`'s `dynlib_handle_ptr` comes from its own mirror (`include/dynlib.rs`) through
    `lisp.h` -> `comp.h` -> `<dynlib.h>` now that `include/comp.rs` includes it (status 3.154); the
    use-site copy that used to stand here was what the dead-arms gate reported as a duplicate in a

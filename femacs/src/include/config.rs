@@ -24,6 +24,7 @@ pub const HAVE_TYPEOF: bool = true;
 pub const HAVE_X_WINDOWS: bool = false; // #undef in config.h
 pub const HAVE__SETJMP: bool = true;
 pub const HAVE___BUILTIN_UNWIND_INIT: bool = true;
+pub const NATIVE_ELISP_SUFFIX: &core::ffi::CStr = c".eln"; // C string literal
 pub const SYSTEM_TYPE: &core::ffi::CStr = c"darwin"; // C string literal
 pub const USE_X_TOOLKIT: bool = false; // #undef in config.h
 pub const _GL_CONFIG_H_INCLUDED: bool = true;

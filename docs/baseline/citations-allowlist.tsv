@@ -10,7 +10,7 @@ femacs/src/include/coding.rs:215	coding.h 267-281 is the five CODING_MODE_* valu
 femacs/src/include/coding.rs:222	coding.h 507-516 is the ten CODING_ANNOTATION_* values; `common_flags` is the member they land in
 femacs/src/include/coding.rs:311	coding.h 704 is make_string_from_utf8's prototype; `build_string_from_utf8` is the sentence's "who calls it" note
 femacs/src/include/lisp.rs:27	lisp.h 34 is an #include line and the quoted type is what that include brings in (the include-line class)
-femacs/src/include/lisp.rs:4094	lisp.h 4796 is `extern AVOID signal_error (...)`; the quoted `_Noreturn void` is how AVOID expands
+femacs/src/include/lisp.rs:4099	lisp.h 4796 is `extern AVOID signal_error (...)`; the quoted `_Noreturn void` is how AVOID expands
 femacs/src/include/font.rs:5	composite.h 28 is an #include line (that is the cited text) and the quoted struct is what the include brings in
 femacs/src/window.rs:152	frame.h 1163-1226 is the FRAME_* read/write macro run; `bool_bf` is the type the cited flags are declared with
 femacs/src/window.rs:5452	frame.h 1187 is FRAME_WINDOWS_FROZEN's definition; `bool_bf` is the type of the member it reads
@@ -35,9 +35,9 @@ femacs/src/include/androidterm.rs:19	androidgui.h 33-42 is the handle typedefs; 
 femacs/src/include/charset.rs:27	charset.h 322 is right; `struct charset` is the type the sentence discusses
 femacs/src/include/cm.rs:168	cm.h 123-127 is right; `bool_bf` is the member's type
 femacs/src/include/dispextern.rs:539	dispextern.h 648-661 is right; `struct glyph *` is a parameter type
-femacs/src/include/lisp.rs:2748	lisp.h 5276-5280 is right; the condition is at 5273
-femacs/src/include/lisp.rs:3837	lisp.h 759 is the `lispfwd` typedef; `KBOARD` is the type named in the second half
-femacs/src/include/lisp.rs:3966	lisp.h 4654 is right; `struct buffer` belongs to the third citation on the line
+femacs/src/include/lisp.rs:2753	lisp.h 5276-5280 is right; the condition is at 5273
+femacs/src/include/lisp.rs:3842	lisp.h 759 is the `lispfwd` typedef; `KBOARD` is the type named in the second half
+femacs/src/include/lisp.rs:3971	lisp.h 4654 is right; `struct buffer` belongs to the third citation on the line
 femacs/src/include/termchar.rs:13	termhooks.h 533-542 is `union display_info`; `FRAME_TTY` is the macro that reads it
 femacs/src/include/termhooks.rs:349	termhooks.h 920-921 is right; `tty_display_info` is the type being read
 femacs/src/keyboard.rs:14049	lisp.h 803 is right (`bool_bf declared_special : 1`); the quoted `Lisp_Symbol` is the struct whose `bits` unit that bit belongs to, named in the same comment (lisp.h 300 is the tag)

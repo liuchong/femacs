@@ -62,3 +62,20 @@ pub fn maybe_defer_native_compilation (function_name: Lisp_Object, definition: L
 pub fn unload_comp_unit (cu: *mut core::ffi::c_void) {
   let _ = cu;
 }
+
+/* comp.h 55-67: the two accessors, inside the `#ifdef HAVE_NATIVE_COMP` that starts at C 52.
+   They reach every unit the way C reaches them: `lisp.h` 2168 includes `comp.h`, and
+   `include/lisp.rs` includes this mirror at its own 280 (status 3.223).  Before this they lived
+   as a local copy in `src/pdumper.rs`, which is where the dead-arms gate found the last unit
+   that needed them without the declaration (`src/print.rs`, C 2042).  */
+#[cfg (feature = "have_native_comp")]
+#[inline(always)]
+pub fn NATIVE_COMP_UNITP (a: Lisp_Object) -> bool {
+  PSEUDOVECTORP (a, pvec_type::PVEC_NATIVE_COMP_UNIT)
+}
+#[cfg (feature = "have_native_comp")]
+#[inline(always)]
+pub fn XNATIVE_COMP_UNIT (a: Lisp_Object) -> *mut Lisp_Native_Comp_Unit {
+  eassert! (NATIVE_COMP_UNITP (a));
+  return XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Native_Comp_Unit);
+}
