@@ -3450,3 +3450,22 @@
   `build-tu src/lread.c` 都 built。
   ④ 读数：`gen-port-inventory` **590 files、done=547、wip=21、todo=22**；门全绿（`check-declarations` 13/0、
   `check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-target-names` 604 .rs/593/0）。
+
+- **3.192 共享门第四次红的干预：`textconv.rs` 的嵌套 extern 块（集成者最小修复）（2026-10-04）**：
+  ① **现象**：`xtask layout-check` 红，`error: extern block is not supported in `extern` blocks`
+  指向在飞镜像 `femacs/src/include/textconv.rs:174`。根因是 `pub mod textconv_decls` 的外层
+  `unsafe extern "C" { … }` 里又嵌了一个 `#[cfg (feature = "have_android")] unsafe extern "C" { … }`
+  ——**Rust 不允许 extern 块嵌套**（C 侧那 14 个 android 声明在 `#ifdef HAVE_ANDROID` 里，形状上"成组"，
+  但 Rust 只能把 cfg 落在每个 item 上）。`layout-check` 是全树镜像**唯一**的编译闸门，它红着的时候
+  所有 lane 都无法验证任何镜像，所以由我兜底。
+  ② **最小修复**（lane 的文件、未入库，内容仍是它的）：删掉内层 `unsafe extern "C" {`/`}` 包装，
+  把 `#[cfg (feature = "have_android")]` 移到那 **14 个** android 声明各自头上
+  （`start_batch_edit` … `get_conversion_field`），并把缩进并回 mod 的 4 空格级。修完：
+  **`layout-check` passed**、`--check emacs/src/textconv.h` 仍 **OK**（改动不碰任何被比对的 token）。
+  ③ **写给所有 lane 的规则**：需要按 cfg 分组**声明组**时，用「每个 item 前一行 `#[cfg (…)]`」，
+  或把整组收进一个 `#[cfg]` 的 `mod` 再 `pub use`（后者会改调用路径，不推荐）；**不要嵌套 extern 块**。
+  这条与 3.185 的"任何时刻镜像必须可编译"同源：3.184/3.185/3.192 三次红都不是新发明的问题，
+  而是"写完一段没就地编译"。
+  ④ 读数（门修复后）：`gen-port-inventory` **590 files、done=547、wip=21、todo=22**；
+  `check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/1/0、
+  `check-target-names` 604 .rs/593/0、**`layout-check` passed**（83 of 94 镜像编译、11 平台独占跳过）。
