@@ -76,10 +76,13 @@ include!("include/termhooks.rs");             // frame.h 28: `#include "termhook
 include!("include/keyboard.rs");              // C 51: `#include "thread.h"`'s chain
 include!("include/thread.rs");                // C 51: `#include "thread.h"`
 include!("include/pdumper.rs");               // C 47: `#include "pdumper.h"`
+include!("include/treesit.rs");            // C 47: `#include "treesit.h"`
 
-// C 35's `#include <sys/mman.h>`, C 32's `#include <stdarg.h>` (`core::ffi::VaList`,
-// PORTING.md P-04), C 39's `#include <sys/param.h>` and C 53's `#include "treesit.h"` have
-// no mirror yet; the names this unit takes from them are declared below.
+// C 27's `#include <sys/mman.h>`, C 24's `#include <stdarg.h>` (`core::ffi::VaList`,
+// PORTING.md P-04) and C 28's `#include <sys/param.h>` have no mirror yet; the names this
+// unit takes from them are declared below.  `treesit.h` (C 47) now has one and is included
+// above; the two names this unit takes from it sit in its dead `#ifdef HAVE_TREE_SITTER` arm
+// and stay text (P-08/P-51).
 
 /* The names C's headers give this unit that no mirror carries yet (PORTING.md 0.1-2,
    P-26/P-72; the ccl.rs / chartab.rs shape).  Each is C's own declaration, measured on the
@@ -2524,8 +2527,9 @@ fn dump_finalizer (ctx: *mut dump_context, finalizer: *const Lisp_Finalizer) -> 
 }
 
 /* C 2238-2248's `#ifdef HAVE_TREE_SITTER` arm is dead (`HAVE_TREE_SITTER` is undef in the
-   frozen configuration); carried as text (P-51, docs/status.md 3.49).  `treesit.h` has no
-   mirror, so `struct Lisp_TS_Query` and its two members are named here for the dead arm.  */
+   frozen configuration); carried as text (P-51, docs/status.md 3.49).  That record lives in
+   treesit.h's dead arm (its mirror carries only the one live declaration outside the guard),
+   so `struct Lisp_TS_Query` and its two members are named here for the dead arm.  */
 #[cfg (feature = "have_tree_sitter")]
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -6009,7 +6013,8 @@ fn dump_make_lv_from_reloc (dump_base: uintptr_t, reloc: dump_reloc) -> Lisp_Obj
 
 /* C 5462-5521's `#ifdef HAVE_NATIVE_COMP` cases are dead on this target; carried as text
    (P-51, docs/status.md 3.49).  The names its two arms need are declared in the same
-   `#[cfg]` block, because `comp.h`, `<dynlib.h>` and `treesit.h` have no mirrors yet.  */
+   `#[cfg]` block, because `comp.h` and `<dynlib.h>` have no mirrors yet (`treesit.h` has one
+   now, but the record this arm needs is the one in that header's dead arm).  */
 /* `comp.h`'s record and its two inlines (comp.h 25-67) have no mirror (`include/comp.rs`
    carries only `maybe_defer_native_compilation`), so the port declares them at their use
    site inside a `#[cfg (feature = "native_comp")]` block; they move to the mirror when

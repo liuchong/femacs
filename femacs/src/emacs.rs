@@ -163,6 +163,7 @@ include!("include/regex-emacs.rs");            // C 112: `#include "regex-emacs.
 include!("include/syntax.rs");                 // C 113: `#include "syntax.h"`
 include!("include/systime.rs");                // C 115: `#include "systime.h"`
 include!("include/gnutls.rs");                 // C 118: `#include "gnutls.h"`
+include!("include/treesit.rs");                 // C 149: `#include "treesit.h"` (unguarded; C 147-148 says why)
 include!("../lib/include/fingerprint.rs");     // C 152: `#include "fingerprint.h"`
 include!("include/pdumper.rs");                // C 151: `#include "pdumper.h"`
 include!("include/comp.rs");                   // C 156: `#include "comp.h"`
@@ -312,8 +313,6 @@ unsafe extern "C" {
 
   /* --- headers with no mirror at all (P-72's incomplete-type rule does not apply: these
          are plain functions the units own) ------------------------------------------ */
-  /// C: treesit.h 30: `extern void syms_of_treesit (void);`
-  fn syms_of_treesit ();
   /// C: xwidget.h 33: `void syms_of_xwidget (void);`
   fn syms_of_xwidget ();
 

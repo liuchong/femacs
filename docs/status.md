@@ -2144,3 +2144,29 @@
   ③ **在飞 lane（本轮结束时）**：keyboard（Pascal，从 C 8587 起）、xdisp（Beauvoir，从 C 4667 起）、
   mirror A（Dewey：`haikugui.h`/`haiku_support.h`/`androidgui.h`/`android.h`）、
   mirror B（Tesla：`androidterm.h`/`android-asset.h`/`pgtkterm.h`/`gtkutil.h`）、Swift（Mill：`nsimage.m`）。
+
+- **3.137 `src/treesit.h` 镜像落地：整段死文本 + 一条活声明的用点清理（2026-10-04 本轮）**：
+  ① **可判性先测**：`HAVE_TREE_SITTER` 在冻结表里是 `undef`（`docs/baseline/config/darwin-arm64.macros.tsv`
+  1656），`src/treesit.h` 又在 `cond-eval-verified.txt`（392 行），`check-cond-eval.py` 报
+  `2 conditions, 0 unknown, 0 disagreements` ⇒ C 25-253 的 `#ifdef HAVE_TREE_SITTER` 整段是死文本
+  （三个伪向量记录 `Lisp_TS_Parser`/`Lisp_TS_Node`/`Lisp_TS_Query` 连它们的 `TSParser`/`TSTree`/`TSInput`/
+  `TSNode`/`TSQuery`/`TSQueryCursor` 成员与那串 `bool` 标志、九个 inline 存取器/检查器、`ts_linecol` 的
+  四处使用、`TREESIT_EMPTY_LINECOL`、十个 `extern`），按 P-08 **记账不转写**，台账 `docs/ports/include-treesit.md`；
+  它与 `docs/ports/treesit.md`（单元侧）对同一区间的边界必须一致，这正是两次 `--check` 量出来的东西。
+  ② **留下的那一条是活的**：C 255 的 `extern void syms_of_treesit (void);` 在守卫之外，因为
+  `src/emacs.c` 147-149 是**无守卫**包含（注释原文："We don't guard this with HAVE_TREE_SITTER because
+  treesit.o is always compiled (to provide treesit-available-p)"），C 2347 也就无条件调用它。镜像因此只声明这个名字。
+  ③ **用点清理（0.1-4）**：`emacs.rs` 把"headers with no mirror at all"块里的 `syms_of_treesit` 副本删掉
+  （该块现在只剩 `syms_of_xwidget`），改成 C 149 位置的 `include!("include/treesit.rs")`；
+  `src/pdumper.c` 47 也是无守卫包含 ⇒ `pdumper.rs` 同位置加 include。三处"`treesit.h` has no mirror"
+  的注释（`pdumper.rs` 两处、`casefiddle.rs` 563）改成与实际一致。
+  ④ **顺带纠正三个写错的 C 行号**（`pdumper.rs` 的"未镜像"清单）：`<sys/mman.h>` 27（原写 35）、
+  `<stdarg.h>` 24（原写 32）、`<sys/param.h>` 28（原写 39）、`treesit.h` 47（原写 53）——都用
+  `rg -n '#include …' emacs/src/pdumper.c` 现测，`emacs.rs` 的 97/103/151/152 四个同类行号同时复核为**正确**，
+  说明偏差只在这一处，不是系统性口径问题。
+  ⑤ 证据：`--check emacs/src/treesit.h femacs/src/include/treesit.rs` → **OK**；
+  `build-tu src/emacs.c` 与 `build-tu src/pdumper.c` 都 **built**（它们是仅有的两个无守卫包含者）；
+  `check-globals` 283 units / 0、`check-declarations` 13 sites (0 forbidden) / 0、`check-mirror-dupes` 0、
+  `check-verbatim` 6 trees/4607 files/0；`port-inventory` 复算 **504 = 490 done / 14 wip，待开工 86**
+  （由 489/14/87 推进一格）；`extract-abi.py --all`（本轮）→ **504 ported files: 497 done, 7 in progress,
+  0 failing**。

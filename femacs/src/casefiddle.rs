@@ -560,8 +560,9 @@ unsafe fn casify_region (flag: case_action, mut b: Lisp_Object, mut e: Lisp_Obje
   #[cfg (feature = "tree_sitter")]
   {
     // C's `#ifdef HAVE_TREE_SITTER` arm (casefiddle.c 543-552): gated text (P-51) that the
-    // frozen configuration never compiles.  It needs treesit.h, which no mirror carries
-    // yet, so the two entries it calls are declared here, as the vm-limit.c dead arms do.
+    // frozen configuration never compiles.  The two entries it calls live in treesit.h's
+    // dead `#ifdef HAVE_TREE_SITTER` arm (that header's mirror carries only the one live
+    // declaration outside the guard), so they are declared here, as vm-limit.c's dead arms are.
     /// C: struct ts_linecol treesit_linecol_maybe (ptrdiff_t, ptrdiff_t, struct ts_linecol)
     unsafe extern "C" {
       pub fn treesit_linecol_maybe (charpos: ptrdiff_t, bytepos: ptrdiff_t,
