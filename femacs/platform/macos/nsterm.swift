@@ -59,8 +59,11 @@
 // (C 3047-3079).  **Round 15 lands C 3083-3291**: the Fringe and cursor drawing banner
 // (C 3083-3087), its `fringe_bmp` table (C 3089) and the section's three definitions
 // `ns_define_fringe_bitmap` (C 3091-3195), `ns_destroy_fringe_bitmap` (C 3198-3202) and
-// `ns_draw_fringe_bitmap` (C 3205-3291) - **no new C export** (all three are C `static`s).  The
-// next live definition is C 3294's `ns_draw_window_cursor`.
+// `ns_draw_fringe_bitmap` (C 3205-3291) - **no new C export** (all three are C `static`s).
+// **Round 16 lands C 3294-3508**: `ns_draw_window_cursor` (C 3295-3426),
+// `ns_draw_vertical_window_border` (C 3430-3449) and `ns_draw_window_divider` (C 3453-3508) -
+// again no new export - so the covered range is **C 60-3508**.  The next live definition is
+// C 3512's `ns_show_hourglass`.
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -3982,5 +3985,290 @@ fileprivate func ns_draw_fringe_bitmap(_ w: UnsafeMutableRawPointer?, _ row: Uns
     bm_color?.set()
     bmp!.fill()
   }
+  ns_unfocus(f)
+}
+
+/// C: `#define WINDOW_XFRAME(W) XFRAME (WINDOW_FRAME (W))` (src/window.h 620) - the macro of
+/// C 3305/3435/3458, the `WINDOW_FRAME` sibling above.
+@_silgen_name("WINDOW_XFRAME")
+func WINDOW_XFRAME(_ w: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: `struct window`'s cursor members, which live in src/window.h's **`HAVE_WINDOW_SYSTEM`**
+/// block (window.h 340-350): `phys_cursor_type` (written at C 3319), `phys_cursor_on_p` (3319),
+/// `phys_cursor_width` (read at C 3351/3358/3373 and written at 3324/3352) and the nested
+/// `phys_cursor.hpos` (3333).  They are **gated** members - the frozen `struct window` has no
+/// such fields - so the core exports them under the same gate (status 3.262's shape), and the
+/// nested read follows the `window_phys_cursor_x`/`_y` names `nsfns.swift` already imports.
+@_silgen_name("window_set_phys_cursor_type")
+func window_set_phys_cursor_type(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_set_phys_cursor_on_p")
+func window_set_phys_cursor_on_p(_ w: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("window_phys_cursor_width")
+func window_phys_cursor_width(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("window_set_phys_cursor_width")
+func window_set_phys_cursor_width(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_phys_cursor_hpos")
+func window_phys_cursor_hpos(_ w: UnsafeMutableRawPointer?) -> Int32
+/// C: `struct glyph_row`'s members `exact_window_width_line_p` (src/dispextern.h 1115, read at
+/// C 3332), `used[1 + LAST_AREA]` (938, read at 3333 through C's own `TEXT_AREA` subscript, which
+/// is the entry's second argument the way `frame_alpha`'s index is), `cursor_in_fringe_p` (1118,
+/// written at 3335) and `height` (read at 3364-3365).
+@_silgen_name("glyph_row_exact_window_width_line_p")
+func glyph_row_exact_window_width_line_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_row_used")
+func glyph_row_used(_ row: UnsafeMutableRawPointer?, _ area: Int32) -> Int16
+@_silgen_name("glyph_row_set_cursor_in_fringe_p")
+func glyph_row_set_cursor_in_fringe_p(_ row: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("glyph_row_height") func glyph_row_height(_ row: UnsafeMutableRawPointer?) -> Int32
+/// C: `struct glyph`'s members `resolved_level` (`unsigned … : 7`, read at C 3357) and
+/// `pixel_width` (`short`, read at 3358) - the `glyph_type` family's next two.
+@_silgen_name("glyph_resolved_level") func glyph_resolved_level(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_pixel_width") func glyph_pixel_width(_ g: UnsafeMutableRawPointer?) -> Int16
+/// C: `#define FRAME_CURSOR_WIDTH(f) ((f)->cursor_width)` and
+/// `#define FRAME_FOREGROUND_PIXEL(f) ((f)->foreground_pixel)` (src/frame.h 1372/1375), and the
+/// existing `FRAME_CURSOR_COLOR` entry (`nsterm.h` 1037's macro, `macfont.swift` 1157 imports it).
+@_silgen_name("FRAME_CURSOR_WIDTH") func FRAME_CURSOR_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_FOREGROUND_PIXEL")
+func FRAME_FOREGROUND_PIXEL(_ f: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("FRAME_CURSOR_COLOR") func FRAME_CURSOR_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor?
+/// C: the enumerators this slice compares against - `enum glyph_row_area`'s `TEXT_AREA`
+/// (src/dispextern.h 885), `enum draw_glyphs_face`'s `DRAW_CURSOR` (1352), the six
+/// `enum text_cursor_kinds` (DEFAULT_CURSOR -2, NO_CURSOR -1, FILLED_BOX_CURSOR,
+/// HOLLOW_BOX_CURSOR, BAR_CURSOR, HBAR_CURSOR) and the four face ids C 3441/3459-3463 read.
+@_silgen_name("TEXT_AREA") func TEXT_AREA() -> Int32
+@_silgen_name("DRAW_CURSOR") func DRAW_CURSOR() -> Int32
+@_silgen_name("DEFAULT_CURSOR") func DEFAULT_CURSOR() -> Int32
+@_silgen_name("NO_CURSOR") func NO_CURSOR() -> Int32
+@_silgen_name("FILLED_BOX_CURSOR") func FILLED_BOX_CURSOR() -> Int32
+@_silgen_name("HOLLOW_BOX_CURSOR") func HOLLOW_BOX_CURSOR() -> Int32
+@_silgen_name("BAR_CURSOR") func BAR_CURSOR() -> Int32
+@_silgen_name("HBAR_CURSOR") func HBAR_CURSOR() -> Int32
+@_silgen_name("VERTICAL_BORDER_FACE_ID") func VERTICAL_BORDER_FACE_ID() -> Int32
+@_silgen_name("WINDOW_DIVIDER_FACE_ID") func WINDOW_DIVIDER_FACE_ID() -> Int32
+@_silgen_name("WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID")
+func WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID() -> Int32
+@_silgen_name("WINDOW_DIVIDER_LAST_PIXEL_FACE_ID")
+func WINDOW_DIVIDER_LAST_PIXEL_FACE_ID() -> Int32
+/// C: `struct glyph *get_phys_cursor_glyph (struct window *)` (src/window.h 1186; defined
+/// src/window.c 8228, no gate) - **provided** by the core's `femacs/src/window.rs` 8078.
+@_silgen_name("get_phys_cursor_glyph")
+func get_phys_cursor_glyph(_ w: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: the three cursor/fringe helpers no built configuration has a symbol for, all measured:
+/// `get_phys_cursor_geometry` (src/xdisp.c 2707) and `draw_phys_cursor_glyph` (src/xdisp.c 35099)
+/// sit inside `HAVE_WINDOW_SYSTEM` (opened at xdisp.c 2490 and 35086), and `draw_fringe_bitmap`
+/// (src/fringe.c 838) belongs to the file `femacs/src/fringe.rs` records as not compiled at all.
+/// Each is an owed entry whose row carries that gate (status 3.255 ③ / 3.262's shape).
+@_silgen_name("get_phys_cursor_geometry")
+func get_phys_cursor_geometry(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                              _ glyph: UnsafeMutableRawPointer?, _ x: UnsafeMutablePointer<Int32>?,
+                              _ y: UnsafeMutablePointer<Int32>?,
+                              _ height: UnsafeMutablePointer<Int32>?)
+@_silgen_name("draw_phys_cursor_glyph")
+func draw_phys_cursor_glyph(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                            _ draw: Int32)
+@_silgen_name("draw_fringe_bitmap")
+func draw_fringe_bitmap(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                        _ left_p: Int32)
+
+/// C 3294-3426: `static void ns_draw_window_cursor (struct window *w, struct glyph_row *glyph_row,
+/// int x, int y, enum text_cursor_kinds cursor_type, int cursor_width, bool on_p, bool active_p)` -
+/// "External call (RIF): draw cursor."  Three of C's spellings are re-shaped and recorded: the
+/// assignment inside the condition `(phys_cursor_glyph = get_phys_cursor_glyph (w)) == NULL`
+/// becomes the assignment plus the test; the parameter `cursor_width`, which C assigns twice, is
+/// shadowed by a local of the same name (Swift parameters are constants); and C's switch has no
+/// `default:` because it covers the enum, so the port's `default: break` is the arm Swift needs
+/// for an `Int32` switch.  `NSGraphicsContext`'s save/restore pair is C's own and the
+/// `NS_IMPL_GNUSTEP` arm (`GSRectClipList`) is dead for this lane.
+fileprivate func ns_draw_window_cursor(_ w: UnsafeMutableRawPointer?,
+                                       _ glyph_row: UnsafeMutableRawPointer?,
+                                       _ x: Int32, _ y: Int32, _ cursor_type: Int32,
+                                       _ cursor_width: Int32, _ on_p: Bool, _ active_p: Bool) {
+  var r = NSRect.zero
+  var fx: Int32 = 0, fy: Int32 = 0, h: Int32 = 0
+  let f = WINDOW_XFRAME(w)
+
+  /* If cursor is out of bounds, don't draw garbage.  This can happen
+     in mini-buffer windows when switching between echo area glyphs
+     and mini-buffer.  */
+
+  // C 3313-3314: `NSTRACE ("ns_draw_window_cursor (on = %d, cursor_type = %d)", on_p,
+  // cursor_type);` - empty, as above.
+
+  if !on_p {
+    return
+  }
+
+  window_set_phys_cursor_type(w, cursor_type)
+  window_set_phys_cursor_on_p(w, on_p)
+
+  if cursor_type == NO_CURSOR() {
+    window_set_phys_cursor_width(w, 0)
+    return
+  }
+
+  let phys_cursor_glyph = get_phys_cursor_glyph(w)
+  if phys_cursor_glyph == nil {
+    // C 3330: `NSTRACE_MSG ("No phys cursor glyph was found!");` - empty, as above.
+
+    if glyph_row_exact_window_width_line_p(glyph_row)
+         && window_phys_cursor_hpos(w) >= Int32(glyph_row_used(glyph_row, TEXT_AREA())) {
+      glyph_row_set_cursor_in_fringe_p(glyph_row, true)
+      draw_fringe_bitmap(w, glyph_row, 0)
+    }
+    return
+  }
+
+  get_phys_cursor_geometry(w, glyph_row, phys_cursor_glyph, &fx, &fy, &h)
+
+  /* The above get_phys_cursor_geometry call set w->phys_cursor_width
+     to the glyph width; replace with CURSOR_WIDTH for (V)BAR cursors.  */
+  // C 3345-3359: the parameter is C's to reassign; Swift shadows it, so the three later uses
+  // below (`max`, the comparison and the branch) read this local.
+  var cursor_width = cursor_width
+  if cursor_type == BAR_CURSOR() {
+    if cursor_width < 1 {
+      cursor_width = max(FRAME_CURSOR_WIDTH(f), 1)
+    }
+
+    /* The bar cursor should never be wider than the glyph.  */
+    if cursor_width < window_phys_cursor_width(w) {
+      window_set_phys_cursor_width(w, cursor_width)
+    }
+
+    /* If the character under cursor is R2L, draw the bar cursor
+       on the right of its glyph, rather than on the left.  */
+    let cursor_glyph = get_phys_cursor_glyph(w)
+    if (glyph_resolved_level(cursor_glyph) & 1) != 0 {
+      fx += Int32(glyph_pixel_width(cursor_glyph)) - window_phys_cursor_width(w)
+    }
+  }
+  /* If we have an HBAR, "cursor_width" MAY specify height.  */
+  else if cursor_type == HBAR_CURSOR() {
+    var cursor_height = (cursor_width < 1) ? Int32(lrint(0.25 * Double(h))) : cursor_width
+    if cursor_height > glyph_row_height(glyph_row) {
+      cursor_height = glyph_row_height(glyph_row)
+    }
+    if h > cursor_height /* Cursor smaller than line height, move down */ {
+      fy += h - cursor_height
+    }
+    h = cursor_height
+  }
+
+  r.origin.x = CGFloat(fx)
+  r.origin.y = CGFloat(fy)
+  r.size.height = CGFloat(h)
+  r.size.width = CGFloat(window_phys_cursor_width(w))
+
+  /* Prevent the cursor from being drawn outside the text area.  */
+  r = NSIntersectionRect(r, ns_row_rect(w, glyph_row, TEXT_AREA()))
+
+  // C 3378-3386: the `NS_IMPL_COCOA` arm caches the rect for the macOS Accessibility Zoom
+  // integration, the global round 5 landed as `ns_UAZoom_cursor_rect_new`.
+  if active_p {
+    ns_UAZoom_cursor_rect_new = r
+  }
+
+  ns_focus(f, nil, 0)
+
+  let ctx = NSGraphicsContext.current
+  ctx?.saveGraphicsState()
+  // C 3392-3396: the `NS_IMPL_GNUSTEP` arm (`GSRectClipList (ctx, &r, 1)`) is dead; the live arm
+  // is `NSRectClip (r)` - this unit's existing entry.
+  NSRectClip(r)
+
+  FRAME_CURSOR_COLOR(f)?.set()
+
+  switch cursor_type {
+  case DEFAULT_CURSOR(), NO_CURSOR():
+    break
+  case FILLED_BOX_CURSOR():
+    /* The call to draw_phys_cursor_glyph can end up undoing the
+       ns_focus, so unfocus here and regain focus later.  */
+    ctx?.restoreGraphicsState()
+    ns_unfocus(f)
+    draw_phys_cursor_glyph(w, glyph_row, DRAW_CURSOR())
+    ns_focus(f, &r, 1)
+  case HOLLOW_BOX_CURSOR():
+    /* This works like it does in PostScript, not X Windows.  */
+    NSBezierPath.stroke(NSInsetRect(r, 0.5, 0.5))
+    ctx?.restoreGraphicsState()
+  case HBAR_CURSOR(), BAR_CURSOR():
+    NSRectFill(r)
+    ctx?.restoreGraphicsState()
+  default:
+    // C's switch covers every `enum text_cursor_kinds`; Swift needs the arm for an `Int32` value.
+    break
+  }
+
+  ns_unfocus(f)
+}
+
+/// C 3429-3449: `static void ns_draw_vertical_window_border (struct window *w, int x, int y0,
+/// int y1)` - "External (RIF): Draw a vertical line."
+fileprivate func ns_draw_vertical_window_border(_ w: UnsafeMutableRawPointer?, _ x: Int32,
+                                                _ y0: Int32, _ y1: Int32) {
+  let f = XFRAME(WINDOW_FRAME(w))
+  var r = NSMakeRect(CGFloat(x), CGFloat(y0), 1, CGFloat(y1 - y0))
+
+  // C 3439: `NSTRACE ("ns_draw_vertical_window_border");` - empty, as above.
+
+  let face = FACE_FROM_ID_OR_NULL(f, VERTICAL_BORDER_FACE_ID())
+
+  ns_focus(f, &r, 1)
+  if face != nil {
+    NSColor.colorWithUnsignedLong(face_foreground(face)).set()
+  }
+
+  NSRectFill(r)
+  ns_unfocus(f)
+}
+
+/// C 3452-3508: `static void ns_draw_window_divider (struct window *w, int x0, int x1, int y0,
+/// int y1)` - "External (RIF): Draw a window divider."
+fileprivate func ns_draw_window_divider(_ w: UnsafeMutableRawPointer?, _ x0: Int32, _ x1: Int32,
+                                        _ y0: Int32, _ y1: Int32) {
+  let f = XFRAME(WINDOW_FRAME(w))
+  let face = FACE_FROM_ID_OR_NULL(f, WINDOW_DIVIDER_FACE_ID())
+  let face_first = FACE_FROM_ID_OR_NULL(f, WINDOW_DIVIDER_FIRST_PIXEL_FACE_ID())
+  let face_last = FACE_FROM_ID_OR_NULL(f, WINDOW_DIVIDER_LAST_PIXEL_FACE_ID())
+  let color = face != nil ? face_foreground(face) : FRAME_FOREGROUND_PIXEL(f)
+  let color_first = (face_first != nil
+                     ? face_foreground(face_first)
+                     : FRAME_FOREGROUND_PIXEL(f))
+  let color_last = (face_last != nil
+                    ? face_foreground(face_last)
+                    : FRAME_FOREGROUND_PIXEL(f))
+  var divider = NSMakeRect(CGFloat(x0), CGFloat(y0), CGFloat(x1 - x0), CGFloat(y1 - y0))
+
+  // C 3473: `NSTRACE ("ns_draw_window_divider");` - empty, as above.
+
+  ns_focus(f, &divider, 1)
+
+  if (y1 - y0 > x1 - x0) && (x1 - x0 >= 3) {
+    /* A vertical divider, at least three pixels wide: Draw first and
+       last pixels differently.  */
+    NSColor.colorWithUnsignedLong(color_first).set()
+    NSRectFill(NSMakeRect(CGFloat(x0), CGFloat(y0), 1, CGFloat(y1 - y0)))
+    NSColor.colorWithUnsignedLong(color).set()
+    NSRectFill(NSMakeRect(CGFloat(x0 + 1), CGFloat(y0), CGFloat(x1 - x0 - 2),
+                          CGFloat(y1 - y0)))
+    NSColor.colorWithUnsignedLong(color_last).set()
+    NSRectFill(NSMakeRect(CGFloat(x1 - 1), CGFloat(y0), 1, CGFloat(y1 - y0)))
+  } else if (x1 - x0 > y1 - y0) && (y1 - y0 >= 3) {
+    /* A horizontal divider, at least three pixels high: Draw first and
+       last pixels differently.  */
+    NSColor.colorWithUnsignedLong(color_first).set()
+    NSRectFill(NSMakeRect(CGFloat(x0), CGFloat(y0), CGFloat(x1 - x0), 1))
+    NSColor.colorWithUnsignedLong(color).set()
+    NSRectFill(NSMakeRect(CGFloat(x0), CGFloat(y0 + 1), CGFloat(x1 - x0),
+                          CGFloat(y1 - y0 - 2)))
+    NSColor.colorWithUnsignedLong(color_last).set()
+    NSRectFill(NSMakeRect(CGFloat(x0), CGFloat(y1 - 1), CGFloat(x1 - x0), 1))
+  } else {
+    /* In any other case do not draw the first and last pixels
+       differently.  */
+    NSColor.colorWithUnsignedLong(color).set()
+    NSRectFill(divider)
+  }
+
   ns_unfocus(f)
 }
