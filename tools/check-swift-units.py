@@ -210,20 +210,41 @@ def read_manifest() -> dict[str, set[str]]:
     return rows
 
 
+def read_manifest_reasons() -> dict[tuple[str, str], str]:
+    """`(target, name) -> reason` from the manifest's optional fourth column."""
+    out: dict[tuple[str, str], str] = {}
+    if not MANIFEST.is_file():
+        return out
+    for line in MANIFEST.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) >= 4 and parts[3].strip():
+            out[(parts[0], parts[1])] = parts[3]
+    return out
+
+
 def write_manifest(state: dict) -> None:
-    lines = [
+    # The reason column is free text: a row that can never clear says why.  Rewriting keeps the
+    # rows that stay *and* their reasons - dropping them was a defect this writer had until status
+    # 3.182, found by the lane whose notes it ate.
+    header = [
         "# The Swift units' unported C definitions, one row per name (docs/status.md 3.164).",
         "# Written by `python3 tools/check-swift-units.py --write-manifest`.  A name that",
         "# leaves this file must have landed as a Swift `func` (the gate reports a row that",
         "# no longer matches as `stale`, and a missing C definition with no row as `new`).",
-        "# Columns: <swift target>\\t<C definition>\\t<C source>.",
-        "swift\tmissing_c_definition\tc_source",
+        "# Columns: <swift target>, <C definition>, <C source>, <reason>.",
+        "swift\tmissing_c_definition\tc_source\treason",
     ]
+    kept = read_manifest_reasons()
     c_of = {s: c for c, s in pairs()}
+    body = []
     for target in sorted(state):
         for name in sorted(state[target][1]):
-            lines.append(f"{target}\t{name}\t{c_of[target]}")
-    MANIFEST.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            reason = kept.get((target, name), "")
+            row = f"{target}\t{name}\t{c_of[target]}"
+            body.append(row + (f"\t{reason}" if reason else ""))
+    MANIFEST.write_text("\n".join(header + body) + "\n", encoding="utf-8")
 
 
 def selftest() -> int:

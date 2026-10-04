@@ -2,38 +2,22 @@
 # Written by `python3 tools/check-swift-units.py --write-manifest`.  A name that
 # leaves this file must have landed as a Swift `func` (the gate reports a row that
 # no longer matches as `stale`, and a missing C definition with no row as `new`).
-# The reason column is free text: a row that can never clear says why (a C definition in an
-# arm this target does not take).  The tool matches on the first two columns only.
+# Columns: <swift target>, <C definition>, <C source>, <reason>.
 swift	missing_c_definition	c_source	reason
-swift	missing_c_definition	c_source
 femacs/platform/macos/macfont.swift	mac_ctfont_get_glyph_for_cid	src/macfont.m	in the arm this target does not take (`USE_CT_GLYPH_INFO` is undefined, so macfont.m 3993-4066 is dead text); permanent
 femacs/platform/macos/macfont.swift	mac_font_copy_default_descriptors_for_language	src/macfont.m
 femacs/platform/macos/macfont.swift	mac_font_copy_default_name_for_charset_and_languages	src/macfont.m
-femacs/platform/macos/macfont.swift	mac_font_copy_uvs_table	src/macfont.m
 femacs/platform/macos/macfont.swift	mac_font_create_line_with_string_and_font	src/macfont.m
 femacs/platform/macos/macfont.swift	mac_font_create_preferred_family_for_attributes	src/macfont.m
 femacs/platform/macos/macfont.swift	mac_font_descriptor_supports_languages	src/macfont.m
-femacs/platform/macos/macfont.swift	mac_font_equal_in_postscript_name	src/macfont.m
-femacs/platform/macos/macfont.swift	mac_font_get_glyphs_for_variants	src/macfont.m
 femacs/platform/macos/macfont.swift	mac_font_shape	src/macfont.m
 femacs/platform/macos/macfont.swift	mac_register_font_driver	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_close	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_closest_traits_index_p	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_create_attributes_with_spec	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_draw	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_encode_char	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_filter_properties	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_free_entity	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_get_cache	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_get_cf_charset	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_get_cf_charset_for_name	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_get_charset	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_get_glyph_for_character	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_get_glyph_for_cid	src/macfont.m	the `USE_CT_GLYPH_INFO` arm's alias target (macfont.m 4070); permanent
 femacs/platform/macos/macfont.swift	macfont_get_nsctfont	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_get_open_type_spec	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_get_uvs_table	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_has_char	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_list	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_list_family	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_match	src/macfont.m
@@ -41,8 +25,6 @@ femacs/platform/macos/macfont.swift	macfont_open	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_shape	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_supports_charset_and_languages_p	src/macfont.m
 femacs/platform/macos/macfont.swift	macfont_text_extents	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_traits_distance	src/macfont.m
-femacs/platform/macos/macfont.swift	macfont_variation_glyphs	src/macfont.m
 femacs/platform/macos/macfont.swift	syms_of_macfont	src/macfont.m
 femacs/platform/macos/macfont.swift	syms_of_macfont_for_pdumper	src/macfont.m
 femacs/platform/macos/nsfont.swift	ns_dump_glyphstring	src/nsfont.m
