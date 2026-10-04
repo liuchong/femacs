@@ -2404,3 +2404,20 @@
     （mirror lane A 已在 `haiku_support.rs` 里就地声明了几个类型）是同类——将来若也要独立镜像，照这条走。
   ② `android-asset.rs` 之后可以与 `jni.rs` 同批（或随后）落地：2 个 struct、1 个 `static const char *`
   目录树、2 条原型、9 个函数体（含 `AASSET_MODE_*` 匿名枚举）与那两个 `excluded-macros` 之外的排他项。
+
+- **3.149 平台镜像的编译证据入册：两条探针进 `xtask` 的 PROBES 名单（2026-10-04）**：
+  ① lane A 交回 `spikes/haiku_inc_probe.rs`（`haikugui.rs`+`haiku_support.rs`+`haikuterm.rs`）与
+  `spikes/android_inc_probe.rs`（`androidgui.rs`+`android.rs`）——它们就是 3.147 里"平台互斥镜像的编译证据由
+  各自平台探针负责"那条裁决的落地物，文件头都写明了为什么 `layout-check` 装不下它们。
+  ② **我把它们注册进 `femacs/xtask/src/main.rs` 的 `probe_programs()`**（`PROBES` 8 → 10，附一行注释说明
+  与 3.147 的关系），因为那才是本项目既有的"探针编译门"（`gate-fast` 会逐个 `materialize` 去重再编译）；
+  实测 `cargo run -p xtask -- probe ../spikes/haiku_inc_probe.rs …` 与 `… android_inc_probe.rs …` **都 exit 0**。
+  我先写的临时 `spikes/inc-probe.sh` **已删除**——探针的编译路径只留一条（否则就是"同一构造两种写法"）；
+  直接用 `rustc` 编这两个探针会因 `include!` 无包含卫而报几百条 `E0428`，`xtask probe` 的物化去重正是为此存在。
+  ③ lane A 同时把两条 `excluded-macros` 行补成带 `Replacement:` 的完整形式（`NATIVE_NAME` →
+  定义点 `#[unsafe(export_name = "…<name>")]`；`ANDROID_DELETE_LOCAL_REF` → core 侧按 C 构造名导出 C-ABI 入口），
+  并给四个平台镜像的台账补了决策段（都是 additive）。
+  ④ **`haikuterm.rs`（19,671 字节）本轮不提交**：它已落盘、`--check` 也 **OK**，但台账还有 **1 个未勾**
+  （`struct haikufont_info` 的字段行），说明还在 lane 手上。顺带记一条**门的边界**：`--check` 的字段比较只遍历
+  *Rust 侧*已有的容器，所以"C 里有一整个 struct、镜像完全没有"这种情况**不会**被门报出来
+  （`haikufont_info` 正是这一例，靠台账未勾框才看得见）——把"缺类型"也纳入比较是下一步可做的工具改进去处。

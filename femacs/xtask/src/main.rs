@@ -1198,10 +1198,17 @@ fn probe_programs() -> Result<(), String> {
     // header mirrors of `femacs/nt/inc/`, which no configuration reaches - `layout-check` covers
     // the `src/include` and `lib/include` mirrors only, and two real defects lived in that gap
     // until the probe existed (docs/status.md 3.102).
-    const PROBES: [&str; 8] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
-                               "../spikes/write_probe.rs", "../spikes/va_probe.rs",
-                               "../spikes/layout.rs", "../spikes/jump.rs", "../spikes/scan.rs",
-                               "../spikes/f_inc_probe.rs"];
+    // `haiku_inc_probe.rs` and `android_inc_probe.rs` are the platform-exclusive mirrors'
+    // compiler: `layout-check` excludes those mirrors by data
+    // (docs/baseline/layout-excluded-mirrors.txt, status 3.147 - the X-compatibility names
+    // collide by construction), so this is the only place their assertions and declarations are
+    // compiled.  Same shape as `f_inc_probe.rs`: the probe names its mirrors and the graph's
+    // de-duplication does the rest.
+    const PROBES: [&str; 10] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
+                                "../spikes/write_probe.rs", "../spikes/va_probe.rs",
+                                "../spikes/layout.rs", "../spikes/jump.rs", "../spikes/scan.rs",
+                                "../spikes/f_inc_probe.rs",
+                                "../spikes/haiku_inc_probe.rs", "../spikes/android_inc_probe.rs"];
     fs::create_dir_all("../build/probes").ok();
     for probe in PROBES {
         if !Path::new(probe).is_file() {

@@ -109,3 +109,27 @@
   empty unit plus its note, docs/status.md 3.31).
 - Gate readings (repo root): `check-declarations` 0 failures; `check-verbatim` 6 trees / 0;
   `check-mirror-dupes` 0 failures; `check-globals` 0.
+
+- **This mirror's compile evidence is the Haiku platform probe, not `xtask layout-check`**
+  (`spikes/haiku_inc_probe.rs`, the `femacs/nt/inc`/`f_inc_probe.rs` shape, docs/status.md 3.102).
+  `layout-check` compiles *every* `src/include` mirror into one crate, which by construction cannot
+  hold the platform-exclusive mirrors: `haikugui.h` and `androidgui.h` declare the same X-compat
+  block (`NativeRectangle`, `STORE_NATIVE_RECT`, the gravity/value/position constants) and the same
+  `XCharStruct`/`Emacs_Pixmap`/`Emacs_Window`/`Emacs_Cursor`/`Drawable` aliases, and C includes only
+  one of the two behind its platform `#if` (`HAVE_HAIKU` vs `HAVE_ANDROID`).  The probe compiles
+  `haikugui.rs` and `haiku_support.rs` together with the names a Haiku translation unit supplies
+  (`size_t`/`ptrdiff_t` from lisp.h, the `c_*` aliases from the unit's prelude).  **This is a
+  probe-scope record, not a defect of the mirror**: no `#[cfg (feature = …)]` was added (a cfged
+  item would lose every compiler, status 3.141 ④'s reasoning) and no `pub mod` wrapper (it would
+  hide the `macro_rules!` names - they are textually scoped).  Whether `layout-check` learns to
+  skip the platform-exclusive mirrors is the integrator's call.
+  Evidence: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir-probe cargo run -q -p xtask --
+  probe ../spikes/haiku_inc_probe.rs ../build/probes/haiku_inc_probe.rmeta --crate-type=lib
+  --emit=metadata` -> exit 0; and on the materialised root,
+  `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type=lib --emit=metadata -o
+  /tmp/haiku_inc_probe.rmeta build/probes/haiku_inc_probe/_root.rs` -> exit 0.
+- **The `#ifdef __cplusplus` pair this mirror records is live in `include/haikuterm.rs`**:
+  `haiku_put_pixel`/`haiku_get_pixel` (C 507-512 here) are declared unconditionally by
+  `haikuterm.h` 340-341, which is the declaration a Haiku unit gets, so nothing is lost by this
+  header's arm being dead text on the frozen target.
+

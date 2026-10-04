@@ -141,4 +141,22 @@
 - Gate readings (repo root): `check-declarations` 0 failures; `check-verbatim` 6 trees / 0;
   `check-mirror-dupes` 0 failures; `check-globals` 0.
 
-- **The `layout-check` collision, measured** (`cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir-probe cargo run -q -p xtask -- layout-check` -> `layout probe failed to compile (exit status: 1)`, 35 x `E0428`).  This file is the *redefinition* site for all of them: 38 `XCharStruct`, 45 `Emacs_Pixmap`, 47 `Emacs_Window`, 51 `Drawable`, 53 `Emacs_Cursor` and the 29 X-compat constants at 262-292, against `haikugui.rs`; `Emacs_Cursor` also collides with `dispextern.rs` 62 (C's platform `#if`s keep those apart - `include-androidterm.md` records the same class for its own `Emacs_Cursor` note).  The two X-compat *macros* do not error (two `macro_rules!` of one name shadow each other).  A project-level decision is needed; no `cfg` or module wrapper was invented here.
+- **The `layout-check` collision, measured** (`cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir-probe cargo run -q -p xtask -- layout-check` -> `layout probe failed to compile (exit status: 1)`, 35 x `E0428`).  This file is the *redefinition* site for all of them: 38 `XCharStruct`, 45 `Emacs_Pixmap`, 47 `Emacs_Window`, 51 `Drawable`, 53 `Emacs_Cursor` and the 29 X-compat constants at 262-292, against `haikugui.rs`; `Emacs_Cursor` also collides with `dispextern.rs` 62 (C's platform `#if`s keep those apart - `include-androidterm.md` records the same class for its own `Emacs_Cursor` note).  The two X-compat *macros* do not error (two `macro_rules!` of one name shadow each other).  The resolution is the platform probe recorded below (ruled 2026-10-04: no `cfg`, no `pub mod` wrapper, `layout-check`'s single-crate model left alone); these names are the reason the platform mirrors cannot share that probe.
+
+- **This mirror's compile evidence is the Android platform probe, not `xtask layout-check`**
+  (`spikes/android_inc_probe.rs`, the `femacs/nt/inc`/`f_inc_probe.rs` shape, docs/status.md 3.102).
+  `layout-check` compiles *every* `src/include` mirror into one crate, which by construction cannot
+  hold the platform-exclusive mirrors: `androidgui.h` and `haikugui.h` declare the same X-compat
+  block (`NativeRectangle`, `STORE_NATIVE_RECT`, the gravity/value/position constants) and the same
+  `XCharStruct`/`Emacs_Pixmap`/`Emacs_Window`/`Emacs_Cursor`/`Drawable` aliases, and C includes only
+  one of the two behind its platform `#if` (`HAVE_ANDROID` vs `HAVE_HAIKU`).  The probe compiles
+  `androidgui.rs` and `android.rs` (the latter pulls `androidgui.rs`, `lisp.rs`, `config.rs` and the
+  lib mirrors) in one flat namespace, the way an Android translation unit sees them.  **This is a
+  probe-scope record, not a defect of the mirror**: no `#[cfg (feature = …)]` and no `pub mod`
+  wrapper were added, for the reasons `include-haikugui.md` records.  Whether `layout-check` learns
+  to skip the platform-exclusive mirrors is the integrator's call.
+  Evidence: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir-probe cargo run -q -p xtask --
+  probe ../spikes/android_inc_probe.rs ../build/probes/android_inc_probe.rmeta --crate-type=lib
+  --emit=metadata` -> exit 0; and on the materialised root,
+  `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type=lib --emit=metadata -o
+  /tmp/android_inc_probe.rmeta build/probes/android_inc_probe/_root.rs` -> exit 0.
