@@ -5622,3 +5622,30 @@
      `check-citations.py --fix` 在 3.166 就被删掉了（"引文是句子不是字段"），所以这类事只能按报告逐条人工对。
   ⑤ **未声称**：C 里这两条是**每个翻译单元一份的 `static inline`**，端口按本工程既有的 `INLINE` 约定**只留镜像里
      一份**（P-20 的解法，不是新偏离）；本件没有运行期验收，只有"单元能编、镜像 ABI 对齐、四道门读绿"。
+
+- **3.352 Kotlin 第 37/40：`EmacsDesktopNotification` 与 `EmacsWindowManager` 入库（2026-10-05）**：
+  ① **两件形态**：`EmacsDesktopNotification.java` 344 行 → **319 行**；`EmacsWindowManager.java` 458 行 → **415 行**；
+     首行都是 `// femacs: port of java/… @ fd7afced403.`。**进度 40 → 37**，剩 `EmacsView`(989)、`EmacsWindow`(2031)、
+     `EmacsService`(2201) 三件。`docs/baseline/kotlin-order.tsv` 重生成 → **`40 target(s), 37 ported`**，`--check` 通过
+     （`EmacsWindowManager` 仍是拓扑序最后一个）。
+  ② **我自己复跑（不引用 lane 的）**：`spikes/kotlin-compile-probe.sh femacs/platform/android/kotlin/*.kt` →
+     **exit 0 / 0 error / 16 warning**。**基线从 13 变 16**，三条新增我逐条核过并给处置：
+    ⑴ `EmacsActivity.kt:164:35` "corresponding parameter in the supertype 'WindowConsumer' is named 'window'"——
+     **参照自身不一致**（`EmacsWindowManager.java:90` 的形参叫 `window`，`EmacsActivity.java:164` 叫 `child`），
+     接口按前者写，所以这条 warning 保留（改任一侧都会偏离一份 Java）；
+    ⑵⑶ `EmacsWindowManager.kt:125` 的 `condition is always 'true'` 与 `:408` 的 `unnecessary safe call`——
+     android.jar 的 stub 把 `TaskInfo.baseIntent` 标成非空，而同族基线那 5 条是 always-`false`；参照的判空保留
+     （该注解对 API 29 之前的 `RecentTaskInfo.baseIntent` 是假话）。
+  ③ **P-83 添五条（㉑-㉕，都带判据）**：接口落地才暴露的跨目标形参名 warning；⑮ 的非空注解新极性；`object` 是 Kotlin 硬关键字
+     （Java 的 `Object object;` 连变量名都不能照抄）；Java 在循环外声明、循环内赋值 ⇒ 声明必须挪到赋值点；
+     companion 上 `@JvmField` 的初始化位置（`MANAGER` 的静态块落到外层 `<clinit>`）。
+  ④ **名字义务（lane 用组合编译 + grep 验的，我抽查了形状）**：JNI 只按名字找 `EmacsDesktopNotification` 的
+     `<init>`（形参表 `(Ljava/lang/String;…[Ljava/lang/String;[Ljava/lang/String;J)V` 与端口主构造器逐项对上）与
+     `display ()V`；跨目标读的 `WindowConsumer` 五个成员、`MANAGER`/`ACTIVITY_TOKEN`/`NOTIFICATION_TAG`/`NOTIFICATION_ACTION`
+     都写成 JVM 可见的 `@JvmField`/`@JvmStatic`（**含 3.348 记的那条硬约束**）。
+  ⑤ **登记的下一步（未做）**：⑴ 剩三件；`EmacsWindowManager.kt` 已按 JVM 名字绑定 `EmacsWindow` 的 15 类成员共 29 处
+     （`attachmentToken`×9 等），落 `EmacsWindow.kt` 时名字/类型/可变性不能变、且要与它同簇收口；⑵ `EmacsService.SERVICE`
+     的可空性是一笔**未来账**（现在能编是因为 `EmacsService` 还是参照 Java；它落地后所有早于它的直解引用要一起定约定）；
+     ⑶ 三条新 warning 目前**只记在 status 里**——把 Kotlin 的 warning 集合做成机器基线（棘轮）留给下一轮。
+  ⑥ **未声称**：仍是**编译级**验收（探针 exit 0 + warning 计数）；没有 JVM 字节码核验、没有 Gradle/真机、`R` 的 id 值仍是 0、
+     `CancellationReceiver` 的 manifest 注册与通知撤回行为**未验证**。
