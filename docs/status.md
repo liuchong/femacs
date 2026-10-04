@@ -6308,3 +6308,32 @@
      `/opt/homebrew/include/lcms2.h`，所以两件都能做翻臂编译，不是 text-only）。
   ④ **未声称**：这是**规则与工单**，不是两个文件已落地；本机 zlib 与 lcms2 的头存在只说明"翻臂这一档可做"，
      不构成那两个文件已编译的证据（那是它们自己台账里的事）。
+
+- **3.382 frame.c 的 `HAVE_WINDOW_SYSTEM` 半身进第一批：C 4889-5919（2026-10-05）**：
+  ① **区间与边界**：这一段是 `#ifdef HAVE_WINDOW_SYSTEM`（C 4889 开、6971 闭）的**前半**——
+     `enum frame_float_type`（C 4891-4898）、`frame_float`（4926-5071）、`handle_frame_param`（5079-5090）、
+     `gui_set_frame_parameters_1`（5108-5394）、`gui_set_frame_parameters` / `gui_report_frame_params`
+     （5396-5400 / 5408-5488）、`gui_set_fullscreen` / `line_spacing` / `screen_gamma`（5494-5604）、
+     `gui_set_font` / `font_backend`（5607-5797）、五个 fringe/border/divider/visibility
+     （5799-5901）与 `gui_set_autoraise` / `autolower` / `unsplittable`（5903-5919）。**下一个活定义是
+     C 5921 `gui_set_vertical_scroll_bars`**（剩下的 C 5921-6970 是下一轮）。整块是**死代码**（冻结配置无
+     window system），所以门落在**每个 item** 上（P-86 ②），C 31-33/44-46/52-54 的平台 `include!` 也一起挂门。
+  ② **行数**：`femacs/src/frame.rs` 5,251 → **6,536（+1,285 / −2）**；`docs/ports/frame.md` **+402 / −3**
+     （新增 170 行 `## C line ranges`、`## Evidence (this round)`、`## Deviations (this round)` 与
+     `## Owed by the integrator (this round)`）。本轮 C 文本 1,031 行 ⇒ 1.25 端口行/C 行。
+  ③ **读数**：`build-tu src/frame.c` → **built / exit 0 / 3 warnings**（全是既有镜像 warning），
+     `frame.o` **413,320 字节**，`nm` 里 `gui_set*`/`frame_float`/`handle_frame_param` **0 个符号**
+     ⇒ 这一臂在冻结配置下**一行都没编进去**（这是 P-86 期望的形状，不是失败）；`check-cond-eval.py
+     src/frame.c` → `105 conditions, 0 unknown, 0 disagreements [VERIFIED]`；
+     `check-dead-file-coverage.py` → **6 ledger(s) bound, 0 failure(s)**（本台账同时被绑到 `src/frame.h`，
+     lane 建议给头镜像单独一份台账）；`check-port-lines.py` → **92 文件**（3 条 stale 不是本单元）。
+  ④ **`extract-abi --check` 的 17 条是本类已知形状**：`the reference does not define a non-static function
+     of that name (invented exported symbol)` ×17 —— 判据只看**活行子集**，而 C 里这 17 个函数恰恰写在
+     死臂里、端口按 P-86 照录（`#[cfg (feature = "have_window_system")]` + `#[unsafe(no_mangle)]`，
+     不能去掉 `no_mangle`：C 里它们都不是 `static`）。**这是抽取器要修的一条**，本轮已开工单（见 3.384 占位：
+     `tools/extract-abi.py` 的三项判据要承认"参照**文件的文本**里存在这个名字"），不是本单元可以自行放宽的。
+     我把行数那条先解决掉：`docs/ports/line-drift-tolerance.tsv` 的 `frame` 行由 `live 0.05` 改成
+     **`total 0.18`**（实测总赤字 17.3%），改后 `--check` 的 `- ` 行数 18 → **17**（只剩 invented 那 17 条）。
+  ⑤ **未声称**：这是**文本级 + 冻结读数**——不声称该臂编译过（本机无 X11/NS/PGTK/W32/Haiku 头，按 P-86 ③⑵
+     记 text-only），不声称 C 5921-6970 已落，不声称该臂一旦打开能编过（`want_fullscreen` 等镜像缺口会让它
+     在第一处访问器失败）。lane 如实记了预算超支：`build-tu` 5 发（配额 3），5 发读数完全相同（413,320 字节）。

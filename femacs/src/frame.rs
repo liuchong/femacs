@@ -77,6 +77,28 @@ include!("include/window.rs");                 // C 43: `#include "window.h"`
 include!("include/cm.rs");                     // C 47: `#include "cm.h"`
 include!("include/pdumper.rs");                // C 55: `#include "pdumper.h"`
 
+/* C 31-33 / 44-46 / 52-54: `TERM_HEADER`, `fontset.h` and `widget.h`.  C picks `TERM_HEADER` per
+   configuration (configure.ac 7180; the frozen table spells it `undef`, so this arm is text
+   here) and it is one of the six platform terminal headers.  The port has a mirror for each, so
+   the arm keeps C's include shape: one gated `include!` per platform, behind the same feature
+   the mirror's own items use (P-86 ⑧: the gate goes on the include graph too).  */
+#[cfg (feature = "have_x_windows")]
+include!("include/xterm.rs");                  // TERM_HEADER: `xterm.h`
+#[cfg (feature = "have_ns")]
+include!("include/nsterm.rs");                 // TERM_HEADER: `nsterm.h`
+#[cfg (feature = "have_pgtk")]
+include!("include/pgtkterm.rs");               // TERM_HEADER: `pgtkterm.h`
+#[cfg (feature = "have_ntgui")]
+include!("include/w32term.rs");                // TERM_HEADER: `w32term.h`
+#[cfg (feature = "have_haiku")]
+include!("include/haikuterm.rs");              // TERM_HEADER: `haikuterm.h`
+#[cfg (feature = "have_android")]
+include!("include/androidterm.rs");            // TERM_HEADER: `androidterm.h`
+#[cfg (feature = "have_window_system")]
+include!("include/fontset.rs");                // C 45: `#include "fontset.h"`
+#[cfg (feature = "use_x_toolkit")]
+include!("include/widget.rs");                 // C 53: `#include "widget.h"`
+
 /* frame.h 1387-1391: `CHECK_FRAME`/`CHECK_LIVE_FRAME` are the mirror's (`include/frame.rs`
    979/983, which this unit includes at C 42); the unit's own copies were body-identical
    redundancy (P-26).  */
@@ -4696,8 +4718,1271 @@ static mut frame_parms: [frame_parm_table; 51] =
   /* C 4880-4886's `#ifdef HAVE_X_WINDOWS`/`NS_IMPL_COCOA` entries are dead (P-08).  */
 ];
 
-/* C 4889-6970's `#ifdef HAVE_WINDOW_SYSTEM` block (the whole GUI frame-geometry
-   implementation) is dead (P-08).  */
+
+/* ---------------------------------------------------------------------------------------------
+   C 4889-6970: `#ifdef HAVE_WINDOW_SYSTEM`, the GUI frame-geometry implementation.  The frozen
+   configuration leaves the condition false (macros.tsv 1677; `python3 tools/check-cond-eval.py
+   src/frame.c` counts it among the 105 conditions it settles), so none of this text is compiled
+   by anything this repository builds.  P-86 ① applies: the region is carried **in full, both
+   arms of every `#if`**, each item behind C's own condition spelled as a lower-case feature
+   (`have_window_system`, and the nested `have_x_windows`, `have_ns`, `use_x_toolkit`, …), and
+   `docs/ports/frame.md` records it with a C line-range table and the readings rather than
+   checkboxes.  This round lands C 4889-5919 (through `gui_set_unsplittable`); C 5921
+   `gui_set_vertical_scroll_bars` is where the next round begins, and C 6971 is where the
+   `#ifdef` closes.
+   --------------------------------------------------------------------------------------------- */
+
+/* Names this arm takes from headers the unit's include graph does not bring in yet: `*gui.h`
+   (per platform) and the toolkit headers.  Each is defined here with C's own text named, and
+   `docs/ports/frame.md`'s Deviations lists them as mirror gaps (PORTING.md P-72 rule 3, the
+   `androidmenu.rs` shape).  */
+
+/* dispextern.h 189 / haikugui.h 39 / pgtkgui.h 52 / w32gui.h 36 / nsterm.h: `#define
+   WINDOW_HANDLE_UINTPTR(h) ((uintptr_t) (h))` - the arms agree on the cast.  */
+#[cfg (feature = "have_window_system")]
+macro_rules! WINDOW_HANDLE_UINTPTR { ($h:expr) => { ($h) as usize }; }
+
+/* The `"%"PRIuMAX` literal of C 5463/5471: the frozen target's `PRIuMAX` is `"ju"` (the
+   `dispnew.rs` 69-72 reading, measured with clang).  */
+#[cfg (feature = "have_window_system")]
+macro_rules! PRIuMAX { () => { "ju" } }
+
+/* frame.h 49-60: `enum fullscreen_type`, itself inside C's `#ifdef HAVE_WINDOW_SYSTEM`; the
+   `HAVE_NTGUI` member `FULLSCREEN_WAIT` (0x8) is that arm's own and is not carried here.  */
+#[cfg (feature = "have_window_system")]
+pub type fullscreen_type = c_int;
+#[cfg (feature = "have_window_system")]
+const FULLSCREEN_NONE: fullscreen_type = 0;                 // C: frame.h 51
+#[cfg (feature = "have_window_system")]
+const FULLSCREEN_WIDTH: fullscreen_type = 0x1;              // C: frame.h 52
+#[cfg (feature = "have_window_system")]
+const FULLSCREEN_HEIGHT: fullscreen_type = 0x2;             // C: frame.h 53
+#[cfg (feature = "have_window_system")]
+const FULLSCREEN_BOTH: fullscreen_type = 0x3;               // C: frame.h 54
+#[cfg (feature = "have_window_system")]
+const FULLSCREEN_MAXIMIZED: fullscreen_type = 0x4;          // C: frame.h 55
+
+/* The two `size_hint_flags` sign bits: xterm.h's X11 header arms and `nsgui.h` 122, `pgtkgui.h`
+   85, `w32gui.h` 79, `androidgui.h` 242 and `haikugui.h` 83 all define them as 0x0010/0x0020.  */
+#[cfg (feature = "have_window_system")]
+const XNegative: c_int = 0x0010;
+#[cfg (feature = "have_window_system")]
+const YNegative: c_int = 0x0020;
+
+/* C 5157's `NorthWestGravity`: an X11 constant the non-X GUI headers define themselves
+   (nsgui.h 105, pgtkgui.h 68, w32gui.h 62, androidgui.h 225, haikugui.h 66 - all `1`).  */
+#[cfg (feature = "have_window_system")]
+const NorthWestGravity: c_int = 1;
+
+/* The mirror-gap functions this half calls; each `/// C:` is the header's own prototype
+   (PORTING.md P-72 rule 3, the `frame.rs` use-site shape above).  */
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  /// C: lisp.h 4542: extern Lisp_Object make_formatted_string (const char *, ...);
+  pub fn make_formatted_string (format: *const c_char, ...) -> Lisp_Object;
+  /// C: lisp.h 607: extern int check_int_nonnegative (Lisp_Object);
+  pub fn check_int_nonnegative (x: Lisp_Object) -> c_int;
+  /// C: dispextern.h 3896: extern void redraw_frame (struct frame *);
+  pub fn redraw_frame (f: *mut frame);
+  /// C: dispextern.h 3802: void clear_face_cache (bool);
+  pub fn clear_face_cache (thorough: bool);
+  /// C: dispextern.h 3907: void clear_current_matrices (struct frame *f);
+  pub fn clear_current_matrices (f: *mut frame);
+  /// C: dispextern.h 3823: void recompute_basic_faces (struct frame *);
+  pub fn recompute_basic_faces (f: *mut frame);
+  /// C: dispextern.h 3729: extern void clear_image_cache (struct frame *, Lisp_Object);
+  pub fn clear_image_cache (f: *mut frame, filter: Lisp_Object);
+  /// C: dispextern.h 3819: extern struct image_cache *share_image_cache (struct frame *f);
+  pub fn share_image_cache (f: *mut frame) -> *mut image_cache;
+  /// C: dispextern.h 3833: void free_all_realized_faces (Lisp_Object);
+  pub fn free_all_realized_faces (frame: Lisp_Object);
+  /// C: font.h 883: extern Lisp_Object font_open_by_name (struct frame *f, Lisp_Object name);
+  pub fn font_open_by_name (f: *mut frame, name: Lisp_Object) -> Lisp_Object;
+  /// C: font.h 865: extern Lisp_Object font_spec_from_name (Lisp_Object font_name);
+  pub fn font_spec_from_name (font_name: Lisp_Object) -> Lisp_Object;
+  /// C: font.h 860: extern bool font_match_p (Lisp_Object spec, Lisp_Object font);
+  pub fn font_match_p (spec: Lisp_Object, font: Lisp_Object) -> bool;
+  /// C: font.h 907: extern Lisp_Object font_update_drivers (struct frame *f, Lisp_Object list);
+  pub fn font_update_drivers (f: *mut frame, list: Lisp_Object) -> Lisp_Object;
+  /// C: frame.h 1886: extern void x_wm_set_icon_position (struct frame *, int, int);
+  pub fn x_wm_set_icon_position (f: *mut frame, icon_x: c_int, icon_y: c_int);
+}
+
+/* Enumeration type for switch in frame_float.  */
+/* C 4891-4898: `enum frame_float_type`.  C's enum ABI is `c_int` (PORTING.md 1.3; the mirror
+   spells `internal_border_part` the same way).  */
+#[cfg (feature = "have_window_system")]
+pub type frame_float_type = c_int;
+#[cfg (feature = "have_window_system")]
+const FRAME_FLOAT_WIDTH: frame_float_type = 0;              // C 4894
+#[cfg (feature = "have_window_system")]
+const FRAME_FLOAT_HEIGHT: frame_float_type = 1;             // C 4895
+#[cfg (feature = "have_window_system")]
+const FRAME_FLOAT_LEFT: frame_float_type = 2;               // C 4896
+#[cfg (feature = "have_window_system")]
+const FRAME_FLOAT_TOP: frame_float_type = 3;                // C 4897
+
+/* C 4935-4937: `frame_float`'s function-scope statics (`static unsigned parent_width,
+   parent_height;` / `static int parent_left, parent_top;` / `static unsigned
+   outer_minus_text_width, outer_minus_text_height;`).  Rust has no function-scope `static`, so
+   the declarations move to file scope inside the same gate; C's storage duration is static and
+   zero-initialised, which is what the initialisers spell.  */
+#[cfg (feature = "have_window_system")]
+static mut parent_width: c_uint = 0;
+#[cfg (feature = "have_window_system")]
+static mut parent_height: c_uint = 0;
+#[cfg (feature = "have_window_system")]
+static mut parent_left: c_int = 0;
+#[cfg (feature = "have_window_system")]
+static mut parent_top: c_int = 0;
+#[cfg (feature = "have_window_system")]
+static mut outer_minus_text_width: c_uint = 0;
+#[cfg (feature = "have_window_system")]
+static mut outer_minus_text_height: c_uint = 0;
+
+/**
+ * frame_float:
+ *
+ * Process the value VAL of the float type frame parameter 'width',
+ * 'height', 'left', or 'top' specified via a frame_float_type
+ * enumeration type WHAT for frame F.  Such parameters relate the outer
+ * size or position of F to the size of the F's display or parent frame
+ * which have to be both available in some way.
+ *
+ * The return value is a size or position value in pixels.  VAL must be
+ * in the range 0.0 to 1.0 where a width/height of 0.0 means to return 0
+ * and 1.0 means to return the full width/height of the display/parent.
+ * For positions, 0.0 means position in the left/top corner of the
+ * display/parent while 1.0 means to position at the right/bottom corner
+ * of the display/parent frame.
+ *
+ * Set PARENT_DONE and OUTER_DONE to avoid recalculation of the outer
+ * size or parent or display attributes when more float parameters are
+ * calculated in a row: -1 means not processed yet, 0 means processing
+ * failed, 1 means processing succeeded.
+ *
+ * Return DEFAULT_VALUE when processing fails for whatever reason with
+ * one exception: When calculating F's outer edges fails (probably
+ * because F has not been created yet) return the difference between F's
+ * native and text size.
+ */
+/* C 4926-5071: `frame_float`.  `static` in C, so no `#[unsafe(no_mangle)]` (PORTING.md 0.2).  */
+#[cfg (feature = "have_window_system")]
+unsafe fn frame_float (f: *mut frame, val: Lisp_Object, what: frame_float_type,
+                       parent_done: *mut c_int, outer_done: *mut c_int,
+                       default_value: c_int)
+  -> c_int
+{
+  let d_val: f64 = XFLOAT_DATA (val);
+
+  if d_val < 0.0 || d_val > 1.0
+    /* Invalid VAL.  */
+    { return default_value; }
+  else
+    {
+      let p: *mut frame = FRAME_PARENT_FRAME (f);
+
+      if *parent_done == 1
+        { }                                    /* C 4939: the empty statement.  */
+      else if !p.is_null ()
+        {
+          parent_width = FRAME_PIXEL_WIDTH! (p);
+          parent_height = FRAME_PIXEL_HEIGHT! (p);
+          *parent_done = 1;
+        }
+      else
+        {
+          if *parent_done == 0
+            /* No workarea available.  */
+            { return default_value; }
+          else if *parent_done == -1
+            {
+              let monitor_attributes: Lisp_Object;
+              let workarea: Lisp_Object;
+              let mut frame: Lisp_Object = Qnil ();
+
+              XSETFRAME! (frame, f);
+              monitor_attributes = calln! (Qframe_monitor_attributes (), frame);
+              if NILP (monitor_attributes)
+                {
+                  /* No monitor attributes available.  */
+                  *parent_done = 0;
+
+                  return default_value;
+                }
+
+              workarea = Fcdr (Fassq (Qworkarea (), monitor_attributes));
+              if NILP (workarea)
+                {
+                  /* No workarea available.  */
+                  *parent_done = 0;
+
+                  return default_value;
+                }
+
+              /* Workarea available.  */
+              parent_left = XFIXNUM (Fnth (make_fixnum (0), workarea)) as c_int;
+              parent_top = XFIXNUM (Fnth (make_fixnum (1), workarea)) as c_int;
+              parent_width = XFIXNUM (Fnth (make_fixnum (2), workarea)) as c_uint;
+              parent_height = XFIXNUM (Fnth (make_fixnum (3), workarea)) as c_uint;
+              *parent_done = 1;
+            }
+        }
+
+      if *outer_done == 1
+        { }                                    /* C 4965: the empty statement.  */
+      else if FRAME_UNDECORATED (f) != 0
+        {
+          outer_minus_text_width
+            = (FRAME_PIXEL_WIDTH! (f) - FRAME_TEXT_WIDTH! (f)) as c_uint;
+          outer_minus_text_height
+            = (FRAME_PIXEL_HEIGHT! (f) - FRAME_TEXT_HEIGHT! (f)) as c_uint;
+          *outer_done = 1;
+        }
+      else if *outer_done == 0
+        /* No outer size available.  */
+        { return default_value; }
+      else if *outer_done == -1
+        {
+          let mut frame: Lisp_Object = Qnil ();
+          let outer_edges: Lisp_Object;
+
+          XSETFRAME! (frame, f);
+          outer_edges = calln! (Qframe_edges (), frame, Qouter_edges ());
+
+          if !NILP (outer_edges)
+            {
+              outer_minus_text_width
+                = (XFIXNUM (Fnth (make_fixnum (2), outer_edges))
+                   - XFIXNUM (Fnth (make_fixnum (0), outer_edges))
+                   - FRAME_TEXT_WIDTH! (f)) as c_uint;
+              outer_minus_text_height
+                = (XFIXNUM (Fnth (make_fixnum (3), outer_edges))
+                   - XFIXNUM (Fnth (make_fixnum (1), outer_edges))
+                   - FRAME_TEXT_HEIGHT! (f)) as c_uint;
+            }
+          else
+            {
+              /* If we can't get any outer edges, proceed as if the frame
+                 were undecorated.  */
+              outer_minus_text_width
+                = (FRAME_PIXEL_WIDTH! (f) - FRAME_TEXT_WIDTH! (f)) as c_uint;
+              outer_minus_text_height
+                = (FRAME_PIXEL_HEIGHT! (f) - FRAME_TEXT_HEIGHT! (f)) as c_uint;
+            }
+
+          *outer_done = 1;
+        }
+
+      match what
+        {
+          FRAME_FLOAT_WIDTH =>
+            { return (parent_width as f64 * d_val - outer_minus_text_width as f64) as c_int; }
+
+          FRAME_FLOAT_HEIGHT =>
+            { return (parent_height as f64 * d_val - outer_minus_text_height as f64) as c_int; }
+
+          FRAME_FLOAT_LEFT =>
+            {
+              let rest_width: c_int = (parent_width as c_int
+                                       - FRAME_TEXT_WIDTH! (f)
+                                       - outer_minus_text_width as c_int);
+
+              if !p.is_null ()
+                { return if rest_width <= 0 { 0 }
+                         else { (d_val * rest_width as f64) as c_int }; }
+              else
+                { return if rest_width <= 0 { parent_left }
+                         else { parent_left + (d_val * rest_width as f64) as c_int }; }
+            }
+          FRAME_FLOAT_TOP =>
+            {
+              let rest_height: c_int = (parent_height as c_int
+                                        - FRAME_TEXT_HEIGHT! (f)
+                                        - outer_minus_text_height as c_int);
+
+              if !p.is_null ()
+                { return if rest_height <= 0 { 0 }
+                         else { (d_val * rest_height as f64) as c_int }; }
+              else
+                { return if rest_height <= 0 { parent_top }
+                         else { parent_top + (d_val * rest_height as f64) as c_int }; }
+            }
+          _ =>
+            emacs_abort ()
+        }
+    }
+}
+
+/* Handle frame parameter change with frame parameter handler.
+   F is the frame whose frame parameter was changed.
+   PROP is the name of the frame parameter.
+   VAL and OLD_VALUE are the current and the old value of the
+   frame parameter.  */
+/* C 5079-5090: `handle_frame_param`.  C's `frame_parm_handler` is dispextern.h 3063's typedef and
+   `FRAME_RIF (f)->frame_parm_handlers` is the `redisplay_interface` member the mirror keeps as
+   `*mut c_void` (P-80's untyped-pointer rule; `dispextern.rs` 3511), so the port reads the slot
+   as `*mut c_void` and casts it to the typedef spelled here.  */
+#[cfg (feature = "have_window_system")]
+type frame_parm_handler = Option<unsafe extern "C" fn (f: *mut frame, val: Lisp_Object,
+                                                        oldval: Lisp_Object)>;
+
+#[cfg (feature = "have_window_system")]
+unsafe fn handle_frame_param (f: *mut frame, prop: Lisp_Object, val: Lisp_Object,
+                              old_value: Lisp_Object)
+{
+  let param_index: Lisp_Object = Fget (prop, Qx_frame_parameter ());
+  if FIXNATP (param_index) && XFIXNAT (param_index) < countof! (frame_parms) as EMACS_INT
+    {
+      if !FRAME_RIF! (f).is_null ()
+        {
+          let handlers: *mut frame_parm_handler
+            = (*FRAME_RIF! (f)).frame_parm_handlers as *mut frame_parm_handler;
+          let handler: frame_parm_handler
+            = *handlers.offset (XFIXNAT (param_index) as isize);
+
+          if let Some (handler) = handler
+            { handler (f, val, old_value); }
+        }
+    }
+}
+
+/* Change the parameters of frame F as specified by ALIST.
+   If a parameter is not specially recognized, do nothing special;
+   otherwise call the `gui_set_...' function for that parameter.
+   Except for certain geometry properties, always call store_frame_param
+   to store the new value in the parameter alist.
+
+   DEFAULT_PARAMETER should be set if the alist was not specified by
+   the user, or by the face code to set the `font' parameter.  In that
+   case, the `font-parameter' frame parameter should not be changed,
+   so dynamic-setting.el can restore the user's selected font
+   correctly.  */
+/* C 5108-5394: `gui_set_frame_parameters_1`.  Non-`static` in C, so `#[unsafe(no_mangle)]`
+   (PORTING.md 0.2).  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_frame_parameters_1 (f: *mut frame, alist: Lisp_Object,
+                                                      default_parameter: bool)
+{
+  let mut tail: Lisp_Object;
+  let mut frame: Lisp_Object = Qnil ();
+
+  /* Neither of these values should be used.  */
+  let mut width: c_int = -1;
+  let mut height: c_int = -1;
+  let mut width_change: bool = false;
+  let mut height_change: bool = false;
+
+  /* Same here.  */
+  let mut left: Lisp_Object = Qnil ();
+  let mut top: Lisp_Object = Qnil ();
+
+  /* Same with these.  */
+  let mut icon_left: Lisp_Object = Qnil ();
+  let mut icon_top: Lisp_Object = Qnil ();
+
+  /* And with this.  */
+  let mut fullscreen: Lisp_Object = Qnil ();   /* C: `Lisp_Object fullscreen UNINIT;` */
+  let mut fullscreen_change: bool = false;
+
+  /* Record in these vectors all the parms specified.  */
+  let mut parms: *mut Lisp_Object = std::ptr::null_mut ();
+  let values: *mut Lisp_Object;
+  let mut i: ptrdiff_t;
+  let mut j: ptrdiff_t;
+  let mut size: ptrdiff_t;
+  let mut left_no_change: bool = false;
+  let mut top_no_change: bool = false;
+  /* C 5133-5135: the two `#ifdef HAVE_X_WINDOWS` declarations.  */
+  #[cfg (feature = "have_x_windows")]
+  let mut icon_left_no_change: bool = false;
+  #[cfg (feature = "have_x_windows")]
+  let mut icon_top_no_change: bool = false;
+  let mut parent_done: c_int = -1;
+  let mut outer_done: c_int = -1;
+
+  XSETFRAME! (frame, f);
+  size = 0;
+  tail = alist;
+  while CONSP (tail)
+    {
+      size += 1;
+      tail = XCDR (tail);
+    }
+  CHECK_LIST_END (tail, alist);
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  SAFE_ALLOCA_LISP! (sa_avail, parms, 2 * size);
+  values = parms.offset (size);
+
+  /* Extract parm names and values into those vectors.  */
+
+  i = 0;
+  j = size - 1;
+  tail = alist;
+  while CONSP (tail)
+    {
+      let elt: Lisp_Object = XCAR (tail);
+      let prop: Lisp_Object = Fcar (elt);
+      let val: Lisp_Object = Fcdr (elt);
+
+      /* Some properties are independent of other properties, but other
+	 properties are dependent upon them.  These special properties
+	 are foreground_color, background_color (affects cursor_color)
+	 and font (affects fringe widths); they're recorded starting
+	 from the end of PARMS and VALUES to process them first by using
+	 reverse iteration.  */
+
+      if EQ (prop, Qforeground_color ())
+	  || EQ (prop, Qbackground_color ())
+	  || EQ (prop, Qfont ())
+	{
+	  *parms.offset (j) = prop;
+	  *values.offset (j) = val;
+	  j -= 1;
+	}
+      else
+	{
+	  *parms.offset (i) = prop;
+	  *values.offset (i) = val;
+	  i += 1;
+	}
+
+      tail = XCDR (tail);
+    }
+
+  /* TAIL and ALIST are not used again below here.  */
+  alist = Qnil ();
+  tail = Qnil ();
+
+  top = Qunbound ();
+  left = Qunbound ();
+  icon_left = Qunbound ();
+  icon_top = Qunbound ();
+
+  /* Reverse order is used to make sure that special
+     properties noticed above are processed first.  */
+  i = size - 1;
+  while i >= 0
+    {
+      let prop: Lisp_Object;
+      let val: Lisp_Object;
+
+      prop = *parms.offset (i);
+      val = *values.offset (i);
+
+      if EQ (prop, Qwidth ())
+        {
+	  width_change = true;
+
+	  if RANGED_FIXNUMP (0, val, INT_MAX as EMACS_INT)
+	    { width = XFIXNAT (val) as c_int * FRAME_COLUMN_WIDTH (f); }
+	  else if CONSP (val) && EQ (XCAR (val), Qtext_pixels ())
+		   && RANGED_FIXNUMP (0, XCDR (val), INT_MAX as EMACS_INT)
+	    { width = XFIXNAT (XCDR (val)) as c_int; }
+	  else if FLOATP (val)
+	    { width = frame_float (f, val, FRAME_FLOAT_WIDTH, &mut parent_done,
+				   &mut outer_done, -1); }
+	  else
+	    { width_change = false; }
+        }
+      else if EQ (prop, Qheight ())
+        {
+	  height_change = true;
+
+	  if RANGED_FIXNUMP (0, val, INT_MAX as EMACS_INT)
+	    { height = XFIXNAT (val) as c_int * FRAME_LINE_HEIGHT (f); }
+	  else if CONSP (val) && EQ (XCAR (val), Qtext_pixels ())
+		   && RANGED_FIXNUMP (0, XCDR (val), INT_MAX as EMACS_INT)
+	    { height = XFIXNAT (XCDR (val)) as c_int; }
+	  else if FLOATP (val)
+	    { height = frame_float (f, val, FRAME_FLOAT_HEIGHT, &mut parent_done,
+				    &mut outer_done, -1); }
+	  else
+	    { height_change = false; }
+        }
+      else if EQ (prop, Qtop ())
+	{ top = val; }
+      else if EQ (prop, Qleft ())
+	{ left = val; }
+      else if EQ (prop, Qicon_top ())
+	{ icon_top = val; }
+      else if EQ (prop, Qicon_left ())
+	{ icon_left = val; }
+      else if EQ (prop, Qfullscreen ())
+	{
+	  fullscreen = val;
+	  fullscreen_change = true;
+	}
+      else
+	{
+	  let old_value: Lisp_Object = get_frame_param (f, prop);
+
+	  store_frame_param (f, prop, val);
+	  handle_frame_param (f, prop, val, old_value);
+
+	  if !default_parameter && EQ (prop, Qfont ())
+	    /* The user manually specified the `font' frame parameter.
+	       Save that parameter for future use by the
+	       dynamic-setting code.  */
+	    { store_frame_param (f, Qfont_parameter (), val); }
+	}
+
+      i -= 1;
+    }
+
+  /* Don't die if just one of these was set.  */
+  if BASE_EQ (left, Qunbound ())
+    {
+      left_no_change = true;
+      if (*f).left_pos < 0
+	{ left = list2 (Qplus (), make_fixnum ((*f).left_pos as EMACS_INT)); }
+      else
+	{ XSETINT! (left, (*f).left_pos as EMACS_INT); }
+    }
+  if BASE_EQ (top, Qunbound ())
+    {
+      top_no_change = true;
+      if (*f).top_pos < 0
+	{ top = list2 (Qplus (), make_fixnum ((*f).top_pos as EMACS_INT)); }
+      else
+	{ XSETINT! (top, (*f).top_pos as EMACS_INT); }
+    }
+
+  /* If one of the icon positions was not set, preserve or default it.  */
+  if ! TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, icon_left, INT_MAX as EMACS_INT)
+    {
+      /* C 5270-5272: `#ifdef HAVE_X_WINDOWS`.  */
+      #[cfg (feature = "have_x_windows")]
+      { icon_left_no_change = true; }
+      icon_left = Fcdr (Fassq (Qicon_left (), (*f).param_alist));
+      if NILP (icon_left)
+	{ XSETINT! (icon_left, 0); }
+    }
+  if ! TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, icon_top, INT_MAX as EMACS_INT)
+    {
+      /* C 5279-5281: `#ifdef HAVE_X_WINDOWS`.  */
+      #[cfg (feature = "have_x_windows")]
+      { icon_top_no_change = true; }
+      icon_top = Fcdr (Fassq (Qicon_top (), (*f).param_alist));
+      if NILP (icon_top)
+	{ XSETINT! (icon_top, 0); }
+    }
+
+  if width_change || height_change
+    {
+      let parameter: Lisp_Object;
+
+      if width_change
+	{
+	  if height_change
+	    { parameter = Qsize (); }
+	  else
+	    {
+	      height = FRAME_TEXT_HEIGHT! (f);
+	      parameter = Qwidth ();
+	    }
+	}
+      else
+	{
+	  width = FRAME_TEXT_WIDTH! (f);
+	  parameter = Qheight ();
+	}
+
+      adjust_frame_size (f, width, height, 1, false, parameter);
+    }
+
+  if (!NILP (left) || !NILP (top))
+      && ! (left_no_change && top_no_change)
+      && ! (FIXNUMP (left) && XFIXNUM (left) == (*f).left_pos as EMACS_INT
+	    && FIXNUMP (top) && XFIXNUM (top) == (*f).top_pos as EMACS_INT)
+    {
+      let mut leftpos: c_int = 0;
+      let mut toppos: c_int = 0;
+
+      /* Record the signs.  */
+      (*f).size_hint_flags &= ! (XNegative | YNegative);
+      if EQ (left, Qminus ())
+	{ (*f).size_hint_flags |= XNegative; }
+      else if TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, left, INT_MAX as EMACS_INT)
+	{
+	  leftpos = XFIXNUM (left) as c_int;
+	  if leftpos < 0
+	    { (*f).size_hint_flags |= XNegative; }
+	}
+      else if CONSP (left) && EQ (XCAR (left), Qminus ())
+	       && CONSP (XCDR (left))
+	       && RANGED_FIXNUMP (-(INT_MAX as EMACS_INT), XCAR (XCDR (left)),
+				  INT_MAX as EMACS_INT)
+	{
+	  leftpos = - XFIXNUM (XCAR (XCDR (left))) as c_int;
+	  (*f).size_hint_flags |= XNegative;
+	}
+      else if CONSP (left) && EQ (XCAR (left), Qplus ())
+	       && CONSP (XCDR (left))
+	       && TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, XCAR (XCDR (left)),
+				       INT_MAX as EMACS_INT)
+	{ leftpos = XFIXNUM (XCAR (XCDR (left))) as c_int; }
+      else if FLOATP (left)
+	{ leftpos = frame_float (f, left, FRAME_FLOAT_LEFT, &mut parent_done,
+				 &mut outer_done, 0); }
+
+      if EQ (top, Qminus ())
+	{ (*f).size_hint_flags |= YNegative; }
+      else if TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, top, INT_MAX as EMACS_INT)
+	{
+	  toppos = XFIXNUM (top) as c_int;
+	  if toppos < 0
+	    { (*f).size_hint_flags |= YNegative; }
+	}
+      else if CONSP (top) && EQ (XCAR (top), Qminus ())
+	       && CONSP (XCDR (top))
+	       && RANGED_FIXNUMP (-(INT_MAX as EMACS_INT), XCAR (XCDR (top)),
+				  INT_MAX as EMACS_INT)
+	{
+	  toppos = - XFIXNUM (XCAR (XCDR (top))) as c_int;
+	  (*f).size_hint_flags |= YNegative;
+	}
+      else if CONSP (top) && EQ (XCAR (top), Qplus ())
+	       && CONSP (XCDR (top))
+	       && TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, XCAR (XCDR (top)),
+				       INT_MAX as EMACS_INT)
+	{ toppos = XFIXNUM (XCAR (XCDR (top))) as c_int; }
+      else if FLOATP (top)
+	{ toppos = frame_float (f, top, FRAME_FLOAT_TOP, &mut parent_done,
+				&mut outer_done, 0); }
+
+      /* Store the numeric value of the position.  */
+      (*f).top_pos = toppos;
+      (*f).left_pos = leftpos;
+
+      (*f).win_gravity = NorthWestGravity;
+
+      /* Actually set that position, and convert to absolute.  */
+      if let Some (set_frame_offset_hook) = (*FRAME_TERMINAL! (f)).set_frame_offset_hook
+        { set_frame_offset_hook (f as *mut c_void, leftpos, toppos, -1); }
+    }
+
+  if fullscreen_change
+    {
+      let old_value: Lisp_Object = get_frame_param (f, Qfullscreen ());
+
+      store_frame_param (f, Qfullscreen (), fullscreen);
+      if !EQ (fullscreen, old_value)
+	{ gui_set_fullscreen (f, fullscreen, old_value); }
+    }
+
+  /* C 5387-5391: `#ifdef HAVE_X_WINDOWS`.  */
+  #[cfg (feature = "have_x_windows")]
+  {
+    if (!NILP (icon_left) || !NILP (icon_top))
+	&& ! (icon_left_no_change && icon_top_no_change)
+      { x_wm_set_icon_position (f, XFIXNUM (icon_left), XFIXNUM (icon_top)); }
+  }
+
+  SAFE_FREE! (sa_count);
+}
+
+/* C 5396-5400.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_frame_parameters (f: *mut frame, alist: Lisp_Object)
+{
+  gui_set_frame_parameters_1 (f, alist, false);
+}
+
+/* Insert a description of internally-recorded parameters of frame F
+   into the parameter alist *ALISTPTR that is to be given to the user.
+   Only parameters that are specific to the X window system
+   and whose values are not correctly recorded in the frame's
+   param_alist need to be considered here.  */
+/* C 5408-5488: `gui_report_frame_params`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_report_frame_params (f: *mut frame, alistptr: *mut Lisp_Object)
+{
+  let mut tem: Lisp_Object = Qnil ();
+  let mut w: uintmax_t = 0;
+
+  /* Represent negative positions (off the top or left screen edge)
+     in a way that Fmodify_frame_parameters will understand correctly.  */
+  XSETINT! (tem, (*f).left_pos as EMACS_INT);
+  if (*f).left_pos >= 0
+    { store_in_alist (alistptr, Qleft (), tem); }
+  else
+    { store_in_alist (alistptr, Qleft (), list2 (Qplus (), tem)); }
+
+  XSETINT! (tem, (*f).top_pos as EMACS_INT);
+  if (*f).top_pos >= 0
+    { store_in_alist (alistptr, Qtop (), tem); }
+  else
+    { store_in_alist (alistptr, Qtop (), list2 (Qplus (), tem)); }
+
+  store_in_alist (alistptr, Qborder_width (),
+		  make_fixnum ((*f).border_width as EMACS_INT));
+  store_in_alist (alistptr, Qchild_frame_border_width (),
+		  if FRAME_CHILD_FRAME_BORDER_WIDTH (f) >= 0
+		  { make_fixnum (FRAME_CHILD_FRAME_BORDER_WIDTH (f) as EMACS_INT) }
+		  else { Qnil () });
+  store_in_alist (alistptr, Qinternal_border_width (),
+		  make_fixnum (FRAME_INTERNAL_BORDER_WIDTH (f) as EMACS_INT));
+  store_in_alist (alistptr, Qright_divider_width (),
+		  make_fixnum (FRAME_RIGHT_DIVIDER_WIDTH (f) as EMACS_INT));
+  store_in_alist (alistptr, Qbottom_divider_width (),
+		  make_fixnum (FRAME_BOTTOM_DIVIDER_WIDTH (f) as EMACS_INT));
+  store_in_alist (alistptr, Qleft_fringe (),
+		  make_fixnum (FRAME_LEFT_FRINGE_WIDTH (f) as EMACS_INT));
+  store_in_alist (alistptr, Qright_fringe (),
+		  make_fixnum (FRAME_RIGHT_FRINGE_WIDTH (f) as EMACS_INT));
+  store_in_alist (alistptr, Qscroll_bar_width (),
+		  if FRAME_CONFIG_SCROLL_BAR_WIDTH (f) > 0
+		  { make_fixnum (FRAME_CONFIG_SCROLL_BAR_WIDTH (f) as EMACS_INT) }
+		  /* nil means "use default width"
+		     for non-toolkit scroll bar.
+		     ruler-mode.el depends on this.  */
+		  else { Qnil () });
+  store_in_alist (alistptr, Qscroll_bar_height (),
+		  if FRAME_CONFIG_SCROLL_BAR_HEIGHT (f) > 0
+		  { make_fixnum (FRAME_CONFIG_SCROLL_BAR_HEIGHT (f) as EMACS_INT) }
+		  /* nil means "use default height"
+		     for non-toolkit scroll bar.  */
+		  else { Qnil () });
+  /* FRAME_NATIVE_WINDOW is not guaranteed to return an integer.
+     E.g., on MS-Windows it returns a value whose type is HANDLE,
+     which is actually a pointer.  Explicit casting avoids compiler
+     warnings.  */
+  w = WINDOW_HANDLE_UINTPTR! (FRAME_NATIVE_WINDOW! (f)) as uintmax_t;
+  store_in_alist (alistptr, Qwindow_id (),
+		  make_formatted_string (concat! ("%", PRIuMAX! ()).as_ptr ()
+					 as *const c_char, w));
+  /* C 5464-5472: `#ifdef HAVE_X_WINDOWS`, with C 5465-5468's nested `#ifdef USE_X_TOOLKIT`
+     (`if (FRAME_X_OUTPUT (f)->widget)` guards the assignment; the port keeps the guard).  */
+  #[cfg (feature = "have_x_windows")]
+  {
+    /* Tooltip frame may not have this widget.  */
+    #[cfg (feature = "use_x_toolkit")]
+    if !(*FRAME_X_OUTPUT! (f)).widget.is_null ()
+      { w = WINDOW_HANDLE_UINTPTR! (FRAME_OUTER_WINDOW! (f)) as uintmax_t; }
+    #[cfg (not (feature = "use_x_toolkit"))]
+    { w = WINDOW_HANDLE_UINTPTR! (FRAME_OUTER_WINDOW! (f)) as uintmax_t; }
+    store_in_alist (alistptr, Qouter_window_id (),
+		    make_formatted_string (concat! ("%", PRIuMAX! ()).as_ptr ()
+					   as *const c_char, w));
+  }
+  store_in_alist (alistptr, Qicon_name (), (*f).icon_name);
+  store_in_alist (alistptr, Qvisibility (),
+		  if FRAME_VISIBLE_P (f) { Qt () }
+		  else if FRAME_ICONIFIED_P (f) { Qicon () } else { Qnil () });
+  store_in_alist (alistptr, Qdisplay (),
+		  XCAR ((*FRAME_DISPLAY_INFO! (f)).name_list_element));
+
+  /* C 5480-5484's `FRAME_OUTPUT_DATA (f)->parent_desc`.  No platform macro names the member
+     (it is a field of each GUI's `output_data` record), so the arm reaches it through one gated
+     binding per `TERM_HEADER`, exactly as `FRAME_OUTPUT_DATA` is gated above; the record type is
+     in scope only when its mirror is.  */
+  #[cfg (feature = "have_x_windows")]
+  let parent_desc = (*((*f).output_data.x as *mut x_output)).parent_desc;
+  #[cfg (feature = "have_ns")]
+  let parent_desc = (*((*f).output_data.ns as *mut ns_output)).parent_desc;
+  #[cfg (feature = "have_pgtk")]
+  let parent_desc = (*((*f).output_data.pgtk as *mut pgtk_output)).parent_desc;
+  #[cfg (feature = "have_ntgui")]
+  let parent_desc = (*((*f).output_data.w32 as *mut w32_output)).parent_desc;
+  #[cfg (feature = "have_haiku")]
+  let parent_desc = (*((*f).output_data.haiku as *mut haiku_output)).parent_desc;
+  #[cfg (feature = "have_android")]
+  let parent_desc = (*((*f).output_data.android as *mut android_output)).parent_desc;
+
+  if parent_desc == (*FRAME_DISPLAY_INFO! (f)).root_window
+    { tem = Qnil (); }
+  else
+    { tem = make_fixed_natnum (WINDOW_HANDLE_UINTPTR! (parent_desc) as EMACS_INT); }
+  store_in_alist (alistptr, Qexplicit_name (),
+		  if explicit_name! (f) { Qt () } else { Qnil () });
+  store_in_alist (alistptr, Qparent_id (), tem);
+  store_in_alist (alistptr, Qtool_bar_position (), FRAME_TOOL_BAR_POSITION (f));
+}
+
+/* Change the `fullscreen' frame parameter of frame F.  OLD_VALUE is
+   the previous value of that parameter, NEW_VALUE is the new value. */
+/* C 5494-5510: `gui_set_fullscreen`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_fullscreen (f: *mut frame, new_value: Lisp_Object,
+					     old_value: Lisp_Object)
+{
+  if NILP (new_value)
+    { (*f).want_fullscreen = FULLSCREEN_NONE; }
+  else if EQ (new_value, Qfullboth ()) || EQ (new_value, Qfullscreen ())
+    { (*f).want_fullscreen = FULLSCREEN_BOTH; }
+  else if EQ (new_value, Qfullwidth ())
+    { (*f).want_fullscreen = FULLSCREEN_WIDTH; }
+  else if EQ (new_value, Qfullheight ())
+    { (*f).want_fullscreen = FULLSCREEN_HEIGHT; }
+  else if EQ (new_value, Qmaximized ())
+    { (*f).want_fullscreen = FULLSCREEN_MAXIMIZED; }
+
+  if let Some (fullscreen_hook) = (*FRAME_TERMINAL! (f)).fullscreen_hook
+    { fullscreen_hook (f as *mut c_void); }
+}
+
+/* Change the `line-spacing' frame parameter of frame F.  OLD_VALUE is
+   the previous value of that parameter, NEW_VALUE is the new value.  */
+/* C 5516-5578: `gui_set_line_spacing`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_line_spacing (f: *mut frame, new_value: Lisp_Object,
+					       old_value: Lisp_Object)
+{
+  if NILP (new_value)
+    {
+      (*f).extra_line_spacing = 0;
+      (*f).extra_line_spacing_above = 0;
+    }
+  else if RANGED_FIXNUMP (0, new_value, INT_MAX as EMACS_INT)
+    {
+      (*f).extra_line_spacing = XFIXNAT (new_value) as c_int;
+      (*f).extra_line_spacing_above = 0;
+    }
+  else if FLOATP (new_value)
+    {
+      let new_spacing: c_int = (XFLOAT_DATA (new_value) * FRAME_LINE_HEIGHT (f) as f64) as c_int;
+
+      if new_spacing >= 0
+	{
+	  (*f).extra_line_spacing = new_spacing;
+	  (*f).extra_line_spacing_above = 0;
+	}
+      else
+	{ signal_error (c"Invalid line-spacing".as_ptr (), new_value); }
+    }
+  else if CONSP (new_value)
+    {
+      let above: Lisp_Object = XCAR (new_value);
+      let below: Lisp_Object = XCDR (new_value);
+
+      /* Integer pair case.  */
+      if RANGED_FIXNUMP (0, above, INT_MAX as EMACS_INT)
+	  && RANGED_FIXNUMP (0, below, INT_MAX as EMACS_INT)
+	{
+	  (*f).extra_line_spacing = (XFIXNAT (above) + XFIXNAT (below)) as c_int;
+	  (*f).extra_line_spacing_above = XFIXNAT (above) as c_int;
+	}
+
+      /* Float pair case.  */
+      else if FLOATP (XCAR (new_value))
+	       && FLOATP (XCDR (new_value))
+	{
+	  let new_spacing: c_int
+	    = ((XFLOAT_DATA (above) + XFLOAT_DATA (below)) * FRAME_LINE_HEIGHT (f) as f64)
+	      as c_int;
+	  let spacing_above: c_int
+	    = (XFLOAT_DATA (above) * FRAME_LINE_HEIGHT (f) as f64) as c_int;
+
+	  if new_spacing >= 0 && spacing_above >= 0
+	    {
+	      (*f).extra_line_spacing = new_spacing;
+	      (*f).extra_line_spacing_above = spacing_above;
+	    }
+	  else
+	    { signal_error (c"Invalid line-spacing".as_ptr (), new_value); }
+	}
+
+      /* Unmatched pair case.  */
+      else
+	{
+	  signal_error (c"Invalid line-spacing".as_ptr (), new_value);
+	}
+    }
+  else
+    { signal_error (c"Invalid line-spacing".as_ptr (), new_value); }
+
+  if FRAME_VISIBLE_P (f)
+    { redraw_frame (f); }
+}
+
+/* Change the `screen-gamma' frame parameter of frame F.  OLD_VALUE is
+   the previous value of that parameter, NEW_VALUE is the new value.  */
+/* C 5584-5604: `gui_set_screen_gamma`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_screen_gamma (f: *mut frame, new_value: Lisp_Object,
+					       old_value: Lisp_Object)
+{
+  let mut bgcolor: Lisp_Object;
+
+  if NILP (new_value)
+    { (*f).gamma = 0.0; }
+  else if NUMBERP (new_value) && XFLOATINT (new_value) > 0.0
+    /* The value 0.4545 is the normal viewing gamma.  */
+    { (*f).gamma = 1.0 / (0.4545 * XFLOATINT (new_value)); }
+  else
+    { signal_error (c"Invalid screen-gamma".as_ptr (), new_value); }
+
+  /* Apply the new gamma value to the frame background.  */
+  bgcolor = Fassq (Qbackground_color (), (*f).param_alist);
+  if CONSP (bgcolor) && { bgcolor = XCDR (bgcolor); STRINGP (bgcolor) }
+    { handle_frame_param (f, Qbackground_color (), bgcolor, Qnil ()); }
+
+  clear_face_cache (true);	/* FIXME: Why of all frames?  */
+  fset_redisplay (f as *mut c_void);
+}
+
+/* C 5607-5740: `gui_set_font`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_font (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+{
+  let mut arg = arg;
+  let mut font_object: Lisp_Object = Qnil ();
+  let mut fontset: c_int = -1;
+  let mut iwidth: c_int = 0;
+
+  /* Set the frame parameter back to the old value because we may
+     fail to use ARG as the new parameter value.  */
+  store_frame_param (f, Qfont (), oldval);
+
+  /* ARG is a fontset name, a font name, a cons of fontset name and a
+     font object, or a font object.  In the last case, this function
+     never fail.  */
+  if STRINGP (arg)
+    {
+      fontset = fs_query_fontset (arg, 0);
+      if fontset < 0
+	{
+	  font_object = font_open_by_name (f, arg);
+	  if NILP (font_object)
+	    { error (c"Font `%s' is not defined".as_ptr (), SSDATA (arg)); }
+	  arg = AREF (font_object, FONT_NAME_INDEX as isize);
+	}
+      else if fontset > 0
+	{
+	  font_object = font_open_by_name (f, fontset_ascii (fontset));
+	  if NILP (font_object)
+	    { error (c"Font `%s' is not defined".as_ptr (), SDATA (arg)); }
+	  arg = AREF (font_object, FONT_NAME_INDEX as isize);
+	}
+      else
+	{ error (c"The default fontset can't be used for a frame font".as_ptr ()); }
+    }
+  else if CONSP (arg) && STRINGP (XCAR (arg)) && FONT_OBJECT_P (XCDR (arg))
+    {
+      /* This is the case that the ASCII font of F's fontset XCAR
+	 (arg) is changed to the font XCDR (arg) by
+	 `set-fontset-font'.  */
+      fontset = fs_query_fontset (XCAR (arg), 0);
+      if fontset < 0
+	{ error (c"Unknown fontset: %s".as_ptr (), SDATA (XCAR (arg))); }
+      font_object = XCDR (arg);
+      arg = AREF (font_object, FONT_NAME_INDEX as isize);
+    }
+  else if FONT_OBJECT_P (arg)
+    {
+      font_object = arg;
+      /* This is to store the XLFD font name in the frame parameter for
+	 backward compatibility.  We should store the font-object
+	 itself in the future.  */
+      arg = AREF (font_object, FONT_NAME_INDEX as isize);
+      fontset = FRAME_FONTSET! (f);
+      /* Check if we can use the current fontset.  If not, set FONTSET
+	 to -1 to generate a new fontset from FONT-OBJECT.  */
+      if fontset >= 0
+	{
+	  let ascii_font: Lisp_Object = fontset_ascii (fontset);
+	  let spec: Lisp_Object = font_spec_from_name (ascii_font);
+
+	  /* SPEC might be nil because ASCII_FONT's name doesn't parse
+	     according to stupid XLFD rules, which, for example,
+	     disallow font names that include a dash followed by a
+	     number.  So in those cases we simply call
+	     set_new_font_hook below to generate a new fontset.  */
+	  if NILP (spec) || ! font_match_p (spec, font_object)
+	    { fontset = -1; }
+	}
+    }
+  else
+    { signal_error (c"Invalid font".as_ptr (), arg); }
+
+  if ! NILP (Fequal (font_object, oldval))
+    { return; }
+
+  if let Some (set_new_font_hook) = (*FRAME_TERMINAL! (f)).set_new_font_hook
+    { set_new_font_hook (f as *mut c_void, font_object, fontset); }
+  store_frame_param (f, Qfont (), arg);
+
+  /* Recalculate tabbar height.  */
+  (*f).n_tab_bar_rows = 0;
+  /* Recalculate toolbar height.  */
+  (*f).n_tool_bar_rows = 0;
+
+  /* Re-initialize F's image cache.  Since `set_new_font_hook' might
+     have changed the frame's column width, by which images are scaled,
+     it might likewise need to be assigned a different image cache, or
+     have its existing cache adjusted, if by coincidence it is its sole
+     user.  */
+
+  iwidth = max (10, FRAME_COLUMN_WIDTH (f));
+  if ! FRAME_IMAGE_CACHE! (f).is_null ()
+      && iwidth != (*(FRAME_IMAGE_CACHE! (f) as *mut image_cache)).scaling_col_width
+    {
+      eassert! ((*(FRAME_IMAGE_CACHE! (f) as *mut image_cache)).refcount >= 1);
+      if (*(FRAME_IMAGE_CACHE! (f) as *mut image_cache)).refcount == 1
+	{
+	  /* This frame is the only user of this image cache.  */
+	  (*(FRAME_IMAGE_CACHE! (f) as *mut image_cache)).scaling_col_width = iwidth;
+	  /* Clean F's image cache of images whose values are derived
+	     from the font width.  */
+	  clear_image_cache (f, Qauto ());
+	}
+      else
+	{
+	  /* Release the current image cache, and reuse or allocate a
+	     new image cache with IWIDTH.  */
+	  (*(FRAME_IMAGE_CACHE! (f) as *mut image_cache)).refcount -= 1;
+	  (*f).image_cache = share_image_cache (f) as *mut c_void;
+	  (*(FRAME_IMAGE_CACHE! (f) as *mut image_cache)).refcount += 1;
+	}
+    }
+
+  /* Ensure we redraw it.  */
+  clear_current_matrices (f);
+
+  /* Attempt to hunt down bug#16028.  */
+  SET_FRAME_GARBAGED! (f);
+
+  /* This is important if we are called by some Lisp as part of
+     redisplaying the frame, see redisplay_internal.  */
+  fonts_changed! (f, true);
+
+  recompute_basic_faces (f);
+
+  do_pending_window_change (false);
+
+  /* We used to call face-set-after-frame-default here, but it leads to
+     recursive calls (since that function can set the `default' face's
+     font which in turns changes the frame's `font' parameter).
+     Also I don't know what this call is meant to do, but it seems the
+     wrong way to do it anyway (it does a lot more work than what seems
+     reasonable in response to a change to `font').  */
+}
+
+/* C 5742-5797: `gui_set_font_backend`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_font_backend (f: *mut frame, new_value: Lisp_Object,
+					       old_value: Lisp_Object)
+{
+  let mut new_value = new_value;
+
+  if ! NILP (new_value)
+      && !CONSP (new_value)
+    {
+      let mut p0: *mut c_char;
+      let mut p1: *mut c_char;
+
+      CHECK_STRING (new_value);
+      p0 = SSDATA (new_value);
+      p1 = p0;
+      new_value = Qnil ();
+      while *p0 != 0
+	{
+	  while *p1 != 0 && ! c_isspace (*p1 as c_int) && *p1 != b',' as c_char
+	    { p1 = p1.offset (1); }
+	  if p0 < p1
+	    {
+	      new_value = Fcons (Fintern (make_string (p0, p1.offset_from (p0)), Qnil ()),
+				 new_value);
+	    }
+	  if *p1 != 0
+	    {
+	      let mut c: c_int;
+
+	      while { p1 = p1.offset (1); c = *p1 as c_int; c != 0 && c_isspace (c) } { }
+	    }
+	  p0 = p1;
+	}
+      new_value = Fnreverse (new_value);
+    }
+
+  if ! NILP (old_value) && ! NILP (Fequal (old_value, new_value))
+    { return; }
+
+  if ! FRAME_FONT! (f).is_null ()
+    {
+      let mut frame: Lisp_Object = Qnil ();
+
+      XSETFRAME! (frame, f);
+      free_all_realized_faces (frame);
+    }
+
+  new_value = font_update_drivers (f, if NILP (new_value) { Qt () } else { new_value });
+  if NILP (new_value)
+    {
+      if NILP (old_value)
+	{ error (c"No font backend available".as_ptr ()); }
+      font_update_drivers (f, old_value);
+      error (c"None of specified font backends are available".as_ptr ());
+    }
+  store_frame_param (f, Qfont_backend (), new_value);
+
+  if ! FRAME_FONT! (f).is_null ()
+    {
+      /* Reconsider default font after backend(s) change (Bug#23386).  */
+      if let Some (default_font_parameter) = (*FRAME_RIF! (f)).default_font_parameter
+	{ default_font_parameter (f as *mut c_void, Qnil ()); }
+      face_change = true;
+      windows_or_buffers_changed = 18;
+    }
+}
+
+/* C 5799-5821: `gui_set_left_fringe`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_left_fringe (f: *mut frame, new_value: Lisp_Object,
+					      old_value: Lisp_Object)
+{
+  let unit: c_int = FRAME_COLUMN_WIDTH (f);
+  let old_width: c_int = FRAME_LEFT_FRINGE_WIDTH (f);
+  let new_width: c_int;
+
+  new_width = if RANGED_FIXNUMP (-(INT_MAX as EMACS_INT), new_value, INT_MAX as EMACS_INT)
+	      { eabs! (XFIXNUM (new_value)) as c_int } else { 8 };
+
+  if new_width != old_width
+    {
+      (*f).left_fringe_width = new_width;
+      (*f).fringe_cols /* Round up.  */
+	= (new_width + FRAME_RIGHT_FRINGE_WIDTH (f) + unit - 1) / unit;
+
+      if FRAME_NATIVE_WINDOW! (f) != 0
+	{ adjust_frame_size (f, -1, -1, 3, false, Qleft_fringe ()); }
+
+      SET_FRAME_GARBAGED! (f);
+    }
+}
+
+/* C 5823-5845: `gui_set_right_fringe`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_right_fringe (f: *mut frame, new_value: Lisp_Object,
+					       old_value: Lisp_Object)
+{
+  let unit: c_int = FRAME_COLUMN_WIDTH (f);
+  let old_width: c_int = FRAME_RIGHT_FRINGE_WIDTH (f);
+  let new_width: c_int;
+
+  new_width = if RANGED_FIXNUMP (-(INT_MAX as EMACS_INT), new_value, INT_MAX as EMACS_INT)
+	      { eabs! (XFIXNUM (new_value)) as c_int } else { 8 };
+
+  if new_width != old_width
+    {
+      (*f).right_fringe_width = new_width;
+      (*f).fringe_cols /* Round up.  */
+	= (new_width + FRAME_LEFT_FRINGE_WIDTH (f) + unit - 1) / unit;
+
+      if FRAME_NATIVE_WINDOW! (f) != 0
+	{ adjust_frame_size (f, -1, -1, 3, false, Qright_fringe ()); }
+
+      SET_FRAME_GARBAGED! (f);
+    }
+}
+
+/* C 5847-5859: `gui_set_border_width`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_border_width (f: *mut frame, arg: Lisp_Object,
+					       oldval: Lisp_Object)
+{
+  let border_width: c_int = check_integer_range (arg, INT_MIN as EMACS_INT,
+						 INT_MAX as EMACS_INT) as c_int;
+
+  if border_width == (*f).border_width
+    { return; }
+
+  if FRAME_NATIVE_WINDOW! (f) != 0
+    { error (c"Cannot change the border width of a frame".as_ptr ()); }
+
+  (*f).border_width = border_width;
+}
+
+/* C 5861-5873: `gui_set_right_divider_width`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_right_divider_width (f: *mut frame, arg: Lisp_Object,
+						      oldval: Lisp_Object)
+{
+  let old: c_int = FRAME_RIGHT_DIVIDER_WIDTH (f);
+  let new: c_int = check_int_nonnegative (arg);
+  if new != old
+    {
+      (*f).right_divider_width = new;
+      adjust_frame_size (f, -1, -1, 4, false, Qright_divider_width ());
+      adjust_frame_glyphs (f);
+      SET_FRAME_GARBAGED! (f);
+    }
+}
+
+/* C 5875-5887: `gui_set_bottom_divider_width`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_bottom_divider_width (f: *mut frame, arg: Lisp_Object,
+						       oldval: Lisp_Object)
+{
+  let old: c_int = FRAME_BOTTOM_DIVIDER_WIDTH (f);
+  let new: c_int = check_int_nonnegative (arg);
+  if new != old
+    {
+      (*f).bottom_divider_width = new;
+      adjust_frame_size (f, -1, -1, 4, false, Qbottom_divider_width ());
+      adjust_frame_glyphs (f);
+      SET_FRAME_GARBAGED! (f);
+    }
+}
+
+/* C 5889-5901: `gui_set_visibility`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_visibility (f: *mut frame, value: Lisp_Object,
+					     oldval: Lisp_Object)
+{
+  let mut frame: Lisp_Object = Qnil ();
+  XSETFRAME! (frame, f);
+
+  if NILP (value)
+    { Fmake_frame_invisible (frame, Qt ()); }
+  else if EQ (value, Qicon ())
+    { Ficonify_frame (frame); }
+  else
+    { Fmake_frame_visible (frame); }
+}
+
+/* C 5903-5907: `gui_set_autoraise`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_autoraise (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+{
+  auto_raise! (f, !NILP (arg));
+}
+
+/* C 5909-5913: `gui_set_autolower`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_autolower (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+{
+  auto_lower! (f, !NILP (arg));
+}
+
+/* C 5915-5919: `gui_set_unsplittable`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_unsplittable (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Object)
+{
+  no_split! (f, !NILP (arg));
+}
+
+/* C 5921-6970 of the same `#ifdef HAVE_WINDOW_SYSTEM` run is the next round's work: it starts
+   at `gui_set_vertical_scroll_bars` (C 5921) and closes at C 6971's `#endif`.  */
 
 /* C 6973-6999's two pointer-visibility helpers.  `frame_make_pointer_invisible` is declared
    at the crate root by `include/frame.rs` (frame.h 1506), so the definition lives in a

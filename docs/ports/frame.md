@@ -142,13 +142,412 @@
 - [x] int frame_default_tool_bar_height  (line 78)
 - [x] Lisp_Object Vframe_list  (line 284)
 - [x] static intmax_t tty_frame_count  (line 1406, static)
+# ----------------------------------------------------------------------
+## C line ranges
+
+The 66 subrs, 57 functions and 8 objects above are the frozen configuration's *live* checklist
+(`python3 tools/extract-abi.py emacs/src/frame.c`).  This unit now additionally **carries** the
+first half of the `#ifdef HAVE_WINDOW_SYSTEM` arm, **C 4889-5919** (through
+`gui_set_unsplittable`), which P-08 had left recorded only; C 5921-6970 (from
+`gui_set_vertical_scroll_bars` to the `#endif` at C 6971) is the next round's work.  One row per
+C block, in C's order; the `arm` cell says what the port does with it.  This table is the
+coverage evidence P-86 ② asks for - `python3 tools/check-dead-file-coverage.py` binds a ledger
+that carries this heading and requires every non-blank line of the reference to sit in exactly
+one ascending row, with the last row reaching the file's final line.
+
+| C | block | arm |
+| --- | --- | --- |
+| 1-85 | head / includes | live, with dead arms inside |
+| 86-90 | fset_buffer_predicate | live |
+| 91-96 | fset_minibuffer_window | live |
+| 97-105 | decode_live_frame | live |
+| 106-115 | decode_any_frame | live |
+| 116-122 | display_available | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 123-132 | decode_window_system_frame | live, with dead arms inside |
+| 133-143 | check_window_system | live, with dead arms inside |
+| 144-157 | check_tty | live |
+| 158-168 | decode_tty_frame | live |
+| 169-181 | frame_get | live |
+| 182-198 | get_frame_param | live |
+| 199-220 | frame_inhibit_resize | live, with dead arms inside |
+| 221-264 | set_menu_bar_lines | live |
+| 265-285 | set_tab_bar_lines | live |
+| 286-325 | framep | live |
+| 326-344 | frame-live-p | live |
+| 345-366 | frame-id | live |
+| 367-399 | frame_set_id | live |
+| 400-414 | frame_set_id_from_params | live |
+| 415-450 | window-system | live |
+| 451-494 | frame_redisplay_p | live, with dead arms inside |
+| 495-526 | frame-windows-min-size | live |
+| 527-604 | frame_windows_min_size | live |
+| 605-696 | keep_ratio | live |
+| 697-735 | frame_size_history_adjust | live |
+| 736-751 | frame_size_history_plain | live |
+| 752-824 | frame_size_history_extra | live |
+| 825-1145 | adjust_frame_size | live, with dead arms inside |
+| 1146-1152 | allocate_frame | live |
+| 1153-1312 | make_frame | live, with dead arms inside |
+| 1313-1363 | make_frame_without_minibuffer | live |
+| 1364-1407 | make_minibuffer_frame | live |
+| 1408-1421 | frame_next_F_name | live |
+| 1422-1478 | make_initial_frame | live, with dead arms inside |
+| 1479-1621 | make_terminal_frame | live, with dead arms inside |
+| 1622-1643 | get_future_frame_param | live |
+| 1644-1683 | tty_child_pos_param | live |
+| 1684-1723 | tty_child_size_param | live |
+| 1724-1735 | tty_child_frame_rect | live |
+| 1736-1920 | make-terminal-frame | live, with dead arms inside |
+| 1921-2096 | do_switch_frame | live, with dead arms inside |
+| 2097-2125 | select-frame | live |
+| 2126-2141 | handle-switch-frame | live |
+| 2142-2148 | selected-frame | live |
+| 2149-2160 | old-selected-frame | live |
+| 2161-2179 | frame-list | live, with dead arms inside |
+| 2180-2209 | frame-parent | live |
+| 2210-2227 | frame_ancestor_p | live |
+| 2228-2241 | frame_subsumes_p | live |
+| 2242-2259 | frame-ancestor-p | live |
+| 2260-2268 | root_frame | live |
+| 2269-2297 | frame-root-frame | live |
+| 2298-2340 | candidate_frame | live |
+| 2341-2380 | next_frame | live |
+| 2381-2414 | prev_frame | live |
+| 2415-2440 | next-frame | live |
+| 2441-2466 | previous-frame | live |
+| 2467-2494 | last-nonminibuffer-frame | live |
+| 2495-2596 | other_frames | live, with dead arms inside |
+| 2597-3149 | delete_frame | live, with dead arms inside |
+| 3150-3190 | delete-frame | live |
+| 3191-3270 | frame_internal_border_part | live |
+| 3271-3289 | mouse-position | live |
+| 3290-3328 | mouse_position | live |
+| 3329-3375 | mouse-pixel-position | live, with dead arms inside |
+| 3376-3395 | frame_char_to_pixel_position | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 3396-3406 | frame_set_mouse_position | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 3407-3456 | set-mouse-position | live, with dead arms inside |
+| 3457-3504 | set-mouse-pixel-position | live, with dead arms inside |
+| 3505-3533 | make-frame-visible | live |
+| 3534-3548 | make_frame_visible_1 | live |
+| 3549-3590 | make-frame-invisible | live |
+| 3591-3632 | iconify-frame | live |
+| 3633-3651 | frame-visible-p | live |
+| 3652-3666 | visible-frame-list | live |
+| 3667-3685 | raise-frame | live |
+| 3686-3701 | lower-frame | live |
+| 3702-3745 | redirect-frame-focus | live |
+| 3746-3755 | frame-focus | live |
+| 3756-3771 | x-focus-frame | live, with dead arms inside |
+| 3772-3793 | frame-after-make-frame | live |
+| 3794-3810 | frames_discard_buffer | live |
+| 3811-3820 | store_in_alist | live |
+| 3821-3837 | frame_name_fnn_p | live |
+| 3838-3870 | set_term_frame_name | live |
+| 3871-4073 | store_frame_param | live |
+| 4074-4082 | frame_unspecified_color | live |
+| 4083-4171 | frame-parameters | live, with dead arms inside |
+| 4172-4242 | frame-parameter | live, with dead arms inside |
+| 4243-4344 | modify-frame-parameters | live, with dead arms inside |
+| 4345-4362 | frame-char-height | live, with dead arms inside |
+| 4363-4380 | frame-char-width | live, with dead arms inside |
+| 4381-4400 | frame-native-width | live, with dead arms inside |
+| 4401-4429 | frame-native-height | live, with dead arms inside |
+| 4430-4446 | tool-bar-pixel-width | live, with dead arms inside |
+| 4447-4453 | frame-text-cols | live |
+| 4454-4460 | frame-text-lines | live |
+| 4461-4467 | frame-total-cols | live |
+| 4468-4474 | frame-total-lines | live |
+| 4475-4481 | frame-text-width | live |
+| 4482-4488 | frame-text-height | live |
+| 4489-4495 | frame-scroll-bar-width | live |
+| 4496-4502 | frame-scroll-bar-height | live |
+| 4503-4509 | frame-fringe-width | live |
+| 4510-4523 | frame-child-frame-border-width | live |
+| 4524-4530 | frame-internal-border-width | live |
+| 4531-4537 | frame-right-divider-width | live |
+| 4538-4544 | frame-bottom-divider-width | live |
+| 4545-4562 | check_frame_pixels | live |
+| 4563-4591 | set-frame-height | live |
+| 4592-4620 | set-frame-width | live |
+| 4621-4643 | set-frame-size | live |
+| 4644-4661 | frame-position | live |
+| 4662-4696 | set-frame-position | live, with dead arms inside |
+| 4697-4759 | set-frame-size-and-position-pixelwise | live |
+| 4760-4774 | frame-window-state-change | live |
+| 4775-4792 | set-frame-window-state-change | live |
+| 4793-4925 | frame-scale-factor | live, with dead arms inside |
+| 4926-5078 | frame_float | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5079-5107 | handle_frame_param | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5108-5395 | gui_set_frame_parameters_1 | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5396-5407 | gui_set_frame_parameters | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5408-5493 | gui_report_frame_params | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5494-5515 | gui_set_fullscreen | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5516-5583 | gui_set_line_spacing | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5584-5606 | gui_set_screen_gamma | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5607-5741 | gui_set_font | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5742-5798 | gui_set_font_backend | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5799-5822 | gui_set_left_fringe | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5823-5846 | gui_set_right_fringe | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5847-5860 | gui_set_border_width | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5861-5874 | gui_set_right_divider_width | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5875-5888 | gui_set_bottom_divider_width | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5889-5902 | gui_set_visibility | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5903-5908 | gui_set_autoraise | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5909-5914 | gui_set_autolower | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5915-5920 | gui_set_unsplittable | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 5921-5952 | gui_set_vertical_scroll_bars | dead, next round (`have_window_system`, C 5921-6970) |
+| 5953-5973 | gui_set_horizontal_scroll_bars | dead, next round (`have_window_system`, C 5921-6970) |
+| 5974-6007 | gui_set_scroll_bar_width | dead, next round (`have_window_system`, C 5921-6970) |
+| 6008-6045 | gui_set_scroll_bar_height | dead, next round (`have_window_system`, C 5921-6970) |
+| 6046-6096 | gui_set_alpha | dead, next round (`have_window_system`, C 5921-6970) |
+| 6097-6125 | gui_set_alpha_background | dead, next round (`have_window_system`, C 5921-6970) |
+| 6126-6139 | gui_set_borders_respect_alpha_background | dead, next round (`have_window_system`, C 5921-6970) |
+| 6140-6150 | gui_set_no_special_glyphs | dead, next round (`have_window_system`, C 5921-6970) |
+| 6151-6163 | gui_mouse_grabbed | dead, next round (`have_window_system`, C 5921-6970) |
+| 6164-6178 | gui_redo_mouse_highlight | dead, next round (`have_window_system`, C 5921-6970) |
+| 6179-6247 | validate_x_resource_name | dead, next round (`have_window_system`, C 5921-6970) |
+| 6248-6321 | gui_display_get_resource | dead, next round (`have_window_system`, C 5921-6970) |
+| 6322-6343 | x-get-resource | dead, next round (`have_window_system`, C 5921-6970) |
+| 6344-6380 | x_get_resource_string | dead, next round (`have_window_system`, C 5921-6970) |
+| 6381-6479 | gui_display_get_arg | dead, next round (`have_window_system`, C 5921-6970) |
+| 6480-6490 | gui_frame_get_arg | dead, next round (`have_window_system`, C 5921-6970) |
+| 6491-6513 | gui_frame_get_and_record_arg | dead, next round (`have_window_system`, C 5921-6970) |
+| 6514-6551 | gui_default_parameter | dead, next round (`have_window_system`, C 5921-6970) |
+| 6552-6636 | XParseGeometry | dead, next round (`have_window_system`, C 5921-6970) |
+| 6637-6707 | x-parse-geometry | dead, next round (`have_window_system`, C 5921-6970) |
+| 6708-6972 | gui_figure_window_size | dead, next round (`have_window_system`, C 5921-6970) |
+| 6973-6987 | frame_make_pointer_invisible | live |
+| 6988-7000 | frame_make_pointer_visible | live |
+| 7001-7010 | frame-pointer-visible-p | live |
+| 7011-7041 | mouse-position-in-root-frame | live |
+| 7042-7056 | frame--set-was-invisible | live |
+| 7057-7123 | reconsider-frame-fonts | live, with dead arms inside |
+| 7124-7133 | free_monitors | dead, next round (`have_window_system`, C 5921-6970) |
+| 7134-7196 | make_monitor_attribute_list | live, with dead arms inside |
+| 7197-7207 | init_frame_once | live |
+| 7208-7214 | init_frame_once_for_pdumper | live |
+| 7215-7907 | syms_of_frame | live, with dead arms inside |
+
+## Evidence (this round)
+
+**① The frozen configuration (`build-tu`).**
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/frame-gui-7f/target cargo run -q -p xtask -- build-tu src/frame.c
+built src/frame.rs -> ../build/femacs/frame.o          # exit 0, 3 warnings (all pre-existing mirror warnings)
+```
+`build/femacs/frame.o` = **413,320 bytes**, `nm | wc -l` = **1,523**, and
+`nm build/femacs/frame.o | grep -c 'gui_set\|frame_float\|handle_frame_param'` = **0**.  Every item
+of C 4889-5919 sits behind `feature = "have_window_system"` (or a nested feature), which no
+configuration this repository builds enables (`docs/baseline/feature-coverage.tsv`: `have_window_system`
+sites 107 / files 10 / **enabled by `-`**), so the frozen object's shape is unchanged from before this
+round.  This reading shows the new text is *parsed and then stripped*; it is not a compile reading of
+the arm (P-86 ③⑵, and see ③ below).
+
+**② `extract-abi --check` stops being vacuous, exactly as P-86 ⑩ predicts.**
+```
+$ python3 tools/extract-abi.py --check emacs/src/frame.c femacs/src/frame.rs | tail -3
+- fn gui_set_visibility carries #[unsafe(no_mangle)] but the reference does not define a non-static
+  function of that name (invented exported symbol)
+- line count drifted 24.7%: C 5243 live (of 7907) vs Rust 6536
+FAIL emacs/src/frame.c -> femacs/src/frame.rs
+```
+18 rows: **17 `invented exported symbol`** - one per non-`static` C 4889-5919 definition the port now
+carries with C's linkage (`gui_set_frame_parameters_1`, `gui_set_frame_parameters`,
+`gui_report_frame_params`, `gui_set_fullscreen`, `gui_set_line_spacing`, `gui_set_screen_gamma`,
+`gui_set_font`, `gui_set_font_backend`, `gui_set_left_fringe`, `gui_set_right_fringe`,
+`gui_set_border_width`, `gui_set_right_divider_width`, `gui_set_bottom_divider_width`,
+`gui_set_visibility`, `gui_set_autoraise`, `gui_set_autolower`, `gui_set_unsplittable`) - plus the
+**line-drift** row (the check's basis for this unit is `live`, `docs/ports/line-drift-tolerance.tsv`
+196, and the port is now 6,536 lines against 5,243 live C lines).  Neither row is a defect *of this
+unit*: the first is the documented consequence of carrying a dead arm in a `cond-eval-verified` file
+with the C linkage the arm really has, and the second is the row the ledger asks the integrator to
+move (see **Owed**).  No row says a live function is missing or unnamed.
+
+**③ The flip is text-only here (P-86 ③⑵).**
+This machine has no X11/NS/PGTK/W32/Haiku headers the mirror set needs, so a
+`rustc --cfg 'feature="have_window_system"'` flip of `build/femacs/units/frame/_root.rs` is not run
+and is not claimed.  What is measured instead: the file **parses** in both readings - the frozen
+`build-tu` of ①, and a direct compile that skips xtask's include-graph dedupe:
+```
+$ cd femacs && rustc --edition 2024 --crate-type lib --emit=metadata -C panic=abort \
+    -o /tmp/frame-gui-7f/parse.rmeta src/frame.rs
+error: aborting due to 7494 previous errors        # E0428 / E0659 / E0252 only, no parse error
+```
+(The 7,494 are `defined multiple times`/`ambiguous` from the include guard xtask supplies; this same
+reading is what caught two `match` arms whose bodies were unbraced `return` statements before they
+reached the frozen build.)  A flip would also fail for a reason the mirror states itself:
+`include/frame.rs` 250-268 records that a window-system configuration "fails to compile at the first
+accessor" because the flag-run numbering for those arms is not written out yet.
+
+**④ The other gates, one line each.**
+```
+$ python3 tools/check-dead-file-coverage.py
+info docs/ports/frame.md: 170 range row(s) cover src/frame.c (7907 lines; 0 blank line(s) between blocks need no row)
+info docs/ports/frame.md: 170 range row(s) cover src/frame.h (1956 lines; 0 blank line(s) between blocks need no row)
+4 ledger(s) bound (a C range table), 0 failure(s)
+   # the bound-ledger count moves as other lanes add `## C line ranges` sections (it was 5 on a
+   # second run of the same command); the two rows naming this ledger are the ones quoted here.
+   # note: port-map pairs src/frame.c with femacs/src/frame.rs (439) and src/frame.h with
+   # femacs/src/frame.rs's include mirror (440); the ledger rule resolves both to this file, so
+   # this table - whose last row reaches C 7,907 - is also what the gate reads for the 1,956-line
+   # header (docs/ports/include-frame.md is not consulted by this rule).  See Owed 4.
+
+$ python3 tools/check-port-lines.py
+92 file(s) under ten percent, 243,405 reference line(s); 95 ratchet row(s), 0 new, 3 stale
+   # this unit's row is not among the three stale ones; the tree moves under this reading because
+   # other lanes are landing work in the same checkout (see below)
+
+$ python3 tools/check-citations.py
+check-citations: 675 file(s) scanned, 1 drift, 0 range, 456 external, 33 allowed, 0 stale
+   # the one drift finding is femacs/src/androidselect.rs (another lane); frame.rs contributes
+   # none: `python3 tools/check-citations.py | grep -c femacs/src/frame.rs` = 0
+
+$ python3 tools/check-declarations.py
+13 declaration sites (0 forbidden, 13 allowed literals), 0 failures
+
+$ python3 tools/check-cond-eval.py src/frame.c
+105 conditions, 0 unknown, 0 disagreements [VERIFIED]
+
+$ python3 tools/check-globals.py            # no new DEFVAR_* carrier in this arm
+check-globals: 284 units, 0 DEFVAR_* variables without a definition in their own unit
+
+$ python3 tools/check-undef.py              # frame.o unchanged; the 23 NEW rows are all xdisp.o
+check-undef: 23 NEW undefined reference(s) that nothing can satisfy   # every one "referenced by xdisp.o"
+```
+The stale rows, the `check-citations.py` finding and `check-undef.py`'s NEW rows are read in a
+**shared worktree** (`git status --short` also shows `femacs/src/decompress.rs` and
+`femacs/src/xdisp.rs` modified by other lanes while this round ran, and the counts moved between two
+runs of the same command); none of them names `frame.rs`, and `check-port-lines.py`'s **`0 new`** is
+the reading that concerns this unit.
+
+**⑤ Line count.**  C 4889-5919 is 1,031 C lines (all of them carried, comments included); the port
+grew 5,251 -> 6,536 lines (+1,285, i.e. 1.25 port lines per C line - +24.5% against the unit's own
+previous size).  The excess over the C text is the per-item `#[cfg]` attribute (the run's condition
+sits on every item, P-86 ②), the 26 use-site items (2 macros, 8 constants, the `fullscreen_type`
+alias, 14 prototypes, the `frame_parm_handler` typedef), the `match`/`if`-expression shapes Rust
+needs for C's `switch` and `?:`, and the file-scope statics `frame_float`'s function statics become.
+`extract-abi --check`'s line row measures the same change against the **live** C baseline (5,243)
+and reports 24.7%; against the file's 7,907 total lines the port is 17.3% short, which is the number
+the moved tolerance row needs (Owed 1).
+
+## Deviations (this round)
+
+**The `#if`s of C 4889-5919, one by one** (P-86 ②: each arm is carried and each condition is a
+lower-case feature; `HAVE_WINDOW_SYSTEM` is `undef` at `darwin-arm64.macros.tsv` 1677,
+`HAVE_X_WINDOWS` at 1719, `USE_X_TOOLKIT` at 3872):
+
+| C `#if` | verdict | arm the port writes |
+| --- | --- | --- |
+| 4889 `#ifdef HAVE_WINDOW_SYSTEM` (closes at 6971) | false (1677) | no single counterpart: the condition sits on **every item** of the run (P-86 ②) as `#[cfg (feature = "have_window_system")]`, and the run's start/end are comments |
+| 4935-4937 `static` locals of `frame_float` | n/a (not an `#if`) | moved to file scope (`static mut` with C's names, zero-initialised) - Rust has no function-scope `static` |
+| 5133-5135 `#ifdef HAVE_X_WINDOWS` (`icon_left_no_change`/`icon_top_no_change` declarations) | false (1719) | `#[cfg (feature = "have_x_windows")] let …` statement-attributes |
+| 5270-5272 / 5279-5281 `#ifdef HAVE_X_WINDOWS` (the two `…_no_change = 1` assignments) | false | `#[cfg (feature = "have_x_windows")] { … }` statement blocks |
+| 5387-5391 `#ifdef HAVE_X_WINDOWS` (`x_wm_set_icon_position`) | false | `#[cfg (feature = "have_x_windows")] { … }`; the prototype is declared at the use site (`frame.h` 1886, the mirror lacks it) |
+| 31-33 `#ifdef HAVE_WINDOW_SYSTEM` + `#include TERM_HEADER` | false | six **gated `include!`s**, one per platform mirror, behind that platform's own feature (`have_x_windows`, `have_ns`, `have_pgtk`, `have_ntgui`, `have_haiku`, `have_android`) - C picks the one header at `configure.ac` 7180 |
+| 44-46 `#ifdef HAVE_WINDOW_SYSTEM` + `#include "fontset.h"` | false | `#[cfg (feature = "have_window_system")] include!("include/fontset.rs")` |
+| 52-54 `#ifdef USE_X_TOOLKIT` + `#include "widget.h"` | false (3872) | `#[cfg (feature = "use_x_toolkit")] include!("include/widget.rs")` |
+| 5464-5472 `#ifdef HAVE_X_WINDOWS` (+ nested 5465-5468 `#ifdef USE_X_TOOLKIT`) | false | outer `#[cfg (feature = "have_x_windows")] { … }`; inner: `#[cfg (feature = "use_x_toolkit")] if … { w = … }` with the `#[cfg (not (feature = "use_x_toolkit"))] { w = … }` arm (C's guard is a statement guard, so the port keeps it as one) |
+
+**Deviations in the carried text, each with its reason:**
+
+1. **Names with no mirror, carried at the use site** (P-72 rule 3).  Macros:
+   `WINDOW_HANDLE_UINTPTR` (`dispextern.h` 189 and the six `*gui.h`); `PRIuMAX` (the
+   `dispnew.rs` 69-72 reading, `"ju"` on this target).  Constants: `fullscreen_type` and its five
+   members (`frame.h` 49-60 - itself inside `#ifdef HAVE_WINDOW_SYSTEM`; the `HAVE_NTGUI`
+   `FULLSCREEN_WAIT` is that arm's own and is not carried); `XNegative`/`YNegative` (the six
+   `*gui.h`: 0x0010/0x0020); `NorthWestGravity` (the five non-X GUI headers define it as `1`;
+   C's X11 build takes it from `<X11/Xlib.h>`, which this tree does not have).  Functions, with the
+   header prototype on each `/// C:` line: `make_formatted_string` (lisp.h 4542),
+   `check_int_nonnegative` (lisp.h 607), `redraw_frame` (dispextern.h 3896), `clear_face_cache`
+   (3802), `clear_current_matrices` (3907), `recompute_basic_faces` (3823), `clear_image_cache`
+   (3729), `share_image_cache` (3819), `free_all_realized_faces` (3833),
+   `font_open_by_name` (font.h 883), `font_spec_from_name` (865), `font_match_p` (860),
+   `font_update_drivers` (907), `x_wm_set_icon_position` (frame.h 1886).  Each belongs in the
+   mirror that declares it; this unit's copies must be deleted when those land (the `search.rs`
+   precedent the `## Decisions` section already records for the ~40 geometry macros).
+2. **The platform `FRAME_*` macros come from the gated mirrors**, not from hand-written copies:
+   `FRAME_NATIVE_WINDOW`/`FRAME_OUTPUT_DATA`/`FRAME_FONT`/`FRAME_FONTSET`/`FRAME_DISPLAY_INFO`/
+   `FRAME_X_OUTPUT` are the ones `include/xterm.rs`/`nsterm.rs`/`pgtkterm.rs`/`w32term.rs`/
+   `haikuterm.rs`/`androidterm.rs` already define, and the six `have_window_system`-and-platform
+   `include!`s of row 31-33 above are what makes them visible.  This is new to *this* unit's include
+   graph; it is gated off in every configuration this repository builds (evidence ①: the object and
+   its symbol count are unchanged).
+3. **`frame_float`'s function statics are file-scope statics** (`parent_width`, `parent_height`,
+   `parent_left`, `parent_top`, `outer_minus_text_width`, `outer_minus_text_height`): Rust has no
+   function-scope `static`.  C's storage duration is static and zero-initialised; the port's
+   initialisers say so, and the names are C's.
+4. **`want_fullscreen` has no storage in the mirror** (`include/frame.rs` 250-268: the
+   window-system flag run's numbering is measured (`x11` 316:0-3, `ns_cocoa` 276:0-3,
+   `docs/baseline/frame-layout.tsv` 219/374) but not written out, and the mirror's reader takes
+   `have_window_system` as uncompilable on purpose).  The arm therefore keeps C's own write
+   (`(*f).want_fullscreen = FULLSCREEN_…`) rather than inventing an offset, and a GUI flip fails
+   there - the mirror's documented behaviour, not a silent wrong read.  Closing it is mirror work
+   (Owed 3).
+5. **`FRAME_OUTPUT_DATA (f)->parent_desc`** (C 5480/5483): no platform macro names that member, so
+   the arm reaches it through one gated binding per `TERM_HEADER` arm (`x_output`/`ns_output`/
+   `pgtk_output`/`w32_output`/`haiku_output`/`android_output`); `FRAME_DISPLAY_INFO (f)->root_window`
+   and `->name_list_element` go through the platform mirror's own macro (C's `Display_Info` is the
+   platform's display record, `include/xterm.rs` 318).
+6. **`FRAME_IMAGE_CACHE (f)->…`** (C 5685-5705): the mirror keeps the `frame` member as
+   `*mut c_void` (P-72 rule 3), so the arm casts to `*mut image_cache` (the gated record in
+   `include/dispextern.rs`), and the one write to the macro's lvalue goes through the struct member
+   (`(*f).image_cache = …`), as the mirror's own note at 937-945 requires.
+7. **Small C-to-Rust shapes inside the carried bodies**, none changing a value or an order:
+   `switch` -> `match` with a `_ => emacs_abort ()` arm; C's `?:` -> Rust `if`-expressions;
+   `top = left = Qunbound;` -> two statements; `int`/`unsigned` mixes get explicit `as`
+   casts (`XFIXNUM`/`XFIXNAT` are `EMACS_INT` in the port); `do_pending_window_change (0)` and
+   `adjust_frame_size (…, 3, 0, …)` -> the port's `bool` parameters (`false`), the declarations the
+   live part of this unit already uses; `UNINIT` -> zero-initialised (`Qnil ()`), PORTING 1.5;
+   the port's macro-call spelling for C's macros (`XSETFRAME!`, `XSETINT!`, `SAVE_*`, `eabs!`,
+   `countof!`, `SET_FRAME_GARBAGED!`, `FRAME_*!`) - the token check ignores the `!`.
+8. **`handle_frame_param`'s handler read**: the mirror keeps
+   `redisplay_interface.frame_parm_handlers` as `*mut c_void` (P-80's untyped-pointer rule), so the
+   arm reads the slot at C's index and casts it to the `frame_parm_handler` typedef spelled at the
+   use site (`dispextern.h` 3063).
+
+## Owed by the integrator (this round; nothing here is claimed as done)
+
+1. **`docs/ports/line-drift-tolerance.tsv`**: the `frame` row (line 196) asks for the **`live`**
+   basis with tolerance `0.05`, which is the right reading for a unit that *records* its dead arms;
+   this round's change makes the unit carry C 4889-5919, so the row must move to **`total`** basis.
+   Measured: C 7,907 total vs the port's 6,536 = **17.3%** deficit (the arm is carried both-arms, and
+   its per-item `#[cfg]`s and use-site declarations cost more lines than C's text), so the row wants
+   `frame 0.18 total` with this section's reason.  Until then `extract-abi --check` reports the
+   line-drift row of evidence ②.
+2. **`tools/extract-abi.py`'s invented-exported-symbol rule** has no baseline mechanism
+   (`PORT_ONLY_EXPORTS` is the only allowance, status 3.113), so the 17 rows of evidence ② stay red
+   for every future `--all` run of a `cond-eval-verified` file whose dead arm is carried with C
+   linkage.  The 17 names are listed in evidence ②; the fix is a tool/integrator decision (an
+   explicit allowance with the P-86 reason, or a rule that reads the `#[cfg]` gate), **not** dropping
+   `#[unsafe(no_mangle)]` - C defines all 17 non-`static`, and the GUI arm needs those symbols.
+3. **Mirror work this arm needs before any GUI configuration can compile**: the window-system
+   `want_fullscreen` numbering and flag run (`include/frame.rs` 250-268; the readings are already in
+   `docs/baseline/frame-layout.tsv`), and the 14 function prototypes / 2 macros / 5 constants of
+   Deviations 1 into the headers that declare them.  `include/frame.rs`'s own note names
+   `struct frame`'s window-system arms as unmeasured; this unit does not guess them.
+4. **`docs/ports/frame.md` is now a P-86 ② ledger** (it carries `## C line ranges`), so
+   `check-dead-file-coverage.py` binds it.  The bind is **two targets, not one**: `docs/port-map.md`
+   439 pairs `src/frame.c` with `femacs/src/frame.rs` and 440 pairs `src/frame.h` with that unit's
+   include mirror, and the gate's ledger rule resolves both to this file (the 1,956-line header has
+   no `src-frame.md` of its own; `docs/ports/include-frame.md` is not what the rule consults).
+   Today the one table satisfies both because its last row reaches C 7,907; if the include mirror
+   ever needs its own ranges, the fix is a `src-frame.md` for it or a rule change - the header's
+   coverage should not silently ride on the unit's table.  (The blank lines the table does not cover
+   are the file's own empty lines; this run leaves none uncovered.)
 
 # ----------------------------------------------------------------------
 ## Decisions
 
-**STATE: COMPLETE.** 66/66 subrs, 57/57 functions, the `frame_parm_table` type, all 8
-file-scope objects and the 51-entry `frame_parms` table are ported, and every box above is
-ticked.  The gates, with the last line each produced:
+**STATE: COMPLETE for the frozen configuration's checklist; the GUI arm is now being carried.**
+66/66 subrs, 57/57 functions, the `frame_parm_table` type, all 8 file-scope objects and the
+51-entry `frame_parms` table are ported, and every box above is ticked.  What the boxes cannot see
+is the dead region this file also has: **C 4889-5919 (the first half of the `#ifdef
+HAVE_WINDOW_SYSTEM` arm) is now carried in full** under `feature = "have_window_system"` and its
+nested features - see `## C line ranges`, `## Evidence` and `## Deviations` above, which replace
+P-08's "recorded, not transcribed" for this run and turn `extract-abi --check` non-vacuous (evidence
+②).  C 5921-6970 is the next round.  The gates below are the pre-round readings, kept as the
+record of the live checklist; the current readings are in `## Evidence`.  The gates, with the last
+line each produced:
 
 ```
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-frame cargo run -q -p xtask -- build-tu src/frame.c
