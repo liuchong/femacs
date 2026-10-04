@@ -4702,3 +4702,9 @@
   是已记录的偏离与未复刻单元（决定，不是新发现）；最后 2 个 `__RNvCs8kYXCe6bXIp_7___rustc17rust_begin_unwind` 与 `_rust_eh_personality` 是**驱动者的账**：
   `--emit obj` 的单元 crate 没有 `#[panic_handler]`，最终二进制由谁来驱动（rustc 当驱动器，或一个持有 panic handler 的根 crate）是这一级留下的最后一个问题——
   它也是 `xdisp` 之外，`emacs` 可执行文件出现前的最后一步。读数与命令都写进 `docs/ports/link.md` 的 reading three。
+  ⑥ **同轮把⑤里点名的测量补上了**：`make xdisp.o`（在 `build/emacs-ref/src`，几秒钟）建出参照的 xdisp 对象，于是同一张 84 的清单分成 **`port-owed` 15 / `unknown` 67 / `rust-runtime` 2**
+  ——15 个是 xdisp 的**导出**定义（`disp_char_vector`/`init_xdisp`/`count_lines`/`mark_window_display_accurate`/`note_mouse_highlight`…），67 个里约 47 个是 xdisp 的 **`static`**（`nm -g` 看不见；全符号一趟读作 28 个 `port-owed`），
+  余下是 C 的**生成全局量**（`hscroll_margin`/`inhibit_message`/`automatic_hscrolling`/`V…` 族/`current_buffer`/`specpdl*`，分别被我们的 `xdisp.o`/`indent.o`/`term.o`/`alloc.o`/`bidi.o`/`window.o`/`dispnew.o` 引用）与未复刻的 `syms_of_xwidget`。
+  这一步还量出一条**结构性**事实：C **根本没有** `_hscroll_margin` 这个符号——`build/emacs-ref/src/globals.h` 893 是 `#define hscroll_margin globals.f_hscroll_margin`，载体是 `src/alloc.c` 278 的 `struct emacs_globals globals;`；
+  而本端口的镜像把它们**摊平**成 `pub static mut hscroll_margin: EMACS_INT;`（`src/include/globals.rs` 7015），`check-symbols.py` 记的 467 个"折算进 Rust statics"的名字因此**没有任何定义点**，跨单元引用必然未定义。
+  两条出路（都只做一次决定，不是 467 个小决定）：复刻 C 自己的载体（`struct emacs_globals globals;` + 生成字段表，正是 C 的文本，且字段布局可被 layout 门检查），或保留摊平名字、在**单一**位置给它们存储（`femacs/src/abi_shim.rs` 已经就是"C-ABI 里没人定义的名字"的落点，3.248）。验证：把参照 `xdisp.o` 移开再放回，`check-symbols`（86 units / 1 mismatched，即既有的 `lib/regex` 行）与 `check-undef` 读数**不变**。

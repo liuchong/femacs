@@ -166,3 +166,33 @@ already recorded, plus 2 that are the driver's:
   the final link owes them (rustc as the driver, or one small root crate that owns the handler).
   That is the driver question this rung leaves open, and it is the last non-`xdisp` step before an
   `emacs` executable exists.
+
+### Reading three, the composition refined (same round)
+
+`build/emacs-ref/src/xdisp.o` was the one frozen source with no reference object (`make xdisp.o`
+in `build/emacs-ref/src` builds it in seconds; `check-symbols.py` and `check-undef.py` read the
+same either way - measured by moving it aside and back).  With it in place the 84 classify as
+**`port-owed` 15, `unknown` 67, `rust-runtime` 2**; the 15 are `xdisp`'s *exported* definitions
+(`_disp_char_vector`, `_init_xdisp`, `_count_lines`, `_mark_window_display_accurate`,
+`_note_mouse_highlight`, ...).  The `unknown` 67 are three classes, and the referrers are the
+point - every one of them is one of *our* objects:
+
+| class | names | referenced from | what it is |
+| --- | ---: | --- | --- |
+| `xdisp`'s statics | ~47 | `xdisp.o` | `static` in C, so `nm -g` cannot see them (an all-symbols pass reads 28 `port-owed`); they land with the unit |
+| C's generated globals | ~20 | `xdisp.o`, `indent.o`, `term.o`, `alloc.o`, `bidi.o`, `window.o`, `dispnew.o` | `hscroll_margin`, `inhibit_message`, `automatic_hscrolling`, the `V...` family, `current_buffer`, `specpdl`/`specpdl_ptr`/`specpdl_end` |
+| `src/xwidget.c` | 1 | `emacs.o` | `syms_of_xwidget`, unported |
+
+The middle row is the interesting one, and it is a *structural* finding rather than a name list.
+C has no symbol `_hscroll_margin` at all: `build/emacs-ref/src/globals.h` 893 is
+`#define hscroll_margin globals.f_hscroll_margin`, and the storage is one object,
+`struct emacs_globals globals;` in `src/alloc.c` 278.  This port's mirror instead declares a
+flattened `pub static mut hscroll_margin: EMACS_INT;` (`src/include/globals.rs` 7015), and
+`check-symbols.py` records the family as 467 names "folded into Rust statics" - but nothing
+*defines* them, so every cross-unit reference to one is undefined at link time.  Two ways out,
+both faithful in a different sense, and the choice is the same one `docs/status.md` 3.244's
+caveat named: reproduce C's carrier (`struct emacs_globals globals;` plus the generated field
+list, which is C's own text and which the field-layout gate can check), or keep the flattened
+names and give each one storage at a single point (`femacs/src/abi_shim.rs` is where the port
+already puts C-ABI entries nobody else defines, 3.248).  Either way it is one decision made once,
+not 467 small ones - and it is the last input-set-shaped gap this rung found.

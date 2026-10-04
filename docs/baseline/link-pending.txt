@@ -6,7 +6,6 @@
 _BC	the reference references it too (or an SDK .tbd exports it): provided at link time
 _PC	the reference references it too (or an SDK .tbd exports it): provided at link time
 _UP	the reference references it too (or an SDK .tbd exports it): provided at link time
-_VFORK	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _Vclear_message_function	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _Vcomp_eln_to_el_h	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _Vdebug_on_message	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
@@ -96,15 +95,15 @@ _composition_break_at_point	neither the reference nor the SDK explains it: a gen
 _confstr	the reference references it too (or an SDK .tbd exports it): provided at link time
 _connect	the reference references it too (or an SDK .tbd exports it): provided at link time
 _cos	the reference references it too (or an SDK .tbd exports it): provided at link time
-_count_lines	the reference references it too (or an SDK .tbd exports it): provided at link time
+_count_lines	the reference defines it and no unit of this port does - the definition is owed
 _current_buffer	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _cursor_row_fully_visible_p	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _devname	the reference references it too (or an SDK .tbd exports it): provided at link time
-_disp_char_vector	the reference references it too (or an SDK .tbd exports it): provided at link time
+_disp_char_vector	the reference defines it and no unit of this port does - the definition is owed
 _display_line	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _display_mode_line	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _display_raw_bytes_as_hex	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_display_tty_menu_item	the reference references it too (or an SDK .tbd exports it): provided at link time
+_display_tty_menu_item	the reference defines it and no unit of this port does - the definition is owed
 _dup	the reference references it too (or an SDK .tbd exports it): provided at link time
 _dup2	the reference references it too (or an SDK .tbd exports it): provided at link time
 _endgrent	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -129,7 +128,6 @@ _fdopendir	the reference references it too (or an SDK .tbd exports it): provided
 _feof	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _ferror	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _fflush	the reference references it too (or an SDK .tbd exports it): provided at link time
-_fflush_unlocked	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _fgets	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fileno	the reference references it too (or an SDK .tbd exports it): provided at link time
 _flockfile	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -137,7 +135,7 @@ _floor	the reference references it too (or an SDK .tbd exports it): provided at 
 _fmod	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fork	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fprintf	the reference references it too (or an SDK .tbd exports it): provided at link time
-_fputc_unlocked	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
+_fputc	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fputs	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fread	the reference references it too (or an SDK .tbd exports it): provided at link time
 _free	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -153,9 +151,8 @@ _funlockfile	the reference references it too (or an SDK .tbd exports it): provid
 _futimens	the reference references it too (or an SDK .tbd exports it): provided at link time
 _futimes	the reference references it too (or an SDK .tbd exports it): provided at link time
 _fwrite	the reference references it too (or an SDK .tbd exports it): provided at link time
-_fwrite_unlocked	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _gai_strerror	the reference references it too (or an SDK .tbd exports it): provided at link time
-_get_font_ascent_descent	the reference references it too (or an SDK .tbd exports it): provided at link time
+_get_font_ascent_descent	the reference defines it and no unit of this port does - the definition is owed
 _getaddrinfo	the reference references it too (or an SDK .tbd exports it): provided at link time
 _getc	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _getchar	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
@@ -193,8 +190,8 @@ _inhibit_eval_during_redisplay	neither the reference nor the SDK explains it: a 
 _inhibit_free_realized_faces	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _inhibit_menubar_update	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _inhibit_message	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_init_xdisp	the reference references it too (or an SDK .tbd exports it): provided at link time
-_invisible_prop	the reference references it too (or an SDK .tbd exports it): provided at link time
+_init_xdisp	the reference defines it and no unit of this port does - the definition is owed
+_invisible_prop	the reference defines it and no unit of this port does - the definition is owed
 _ioctl	the reference references it too (or an SDK .tbd exports it): provided at link time
 _isatty	the reference references it too (or an SDK .tbd exports it): provided at link time
 _isspace	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -211,7 +208,7 @@ _lseek	the reference references it too (or an SDK .tbd exports it): provided at 
 _lstat	the reference references it too (or an SDK .tbd exports it): provided at link time
 _mach_timebase_info	the reference references it too (or an SDK .tbd exports it): provided at link time
 _malloc	the reference references it too (or an SDK .tbd exports it): provided at link time
-_mark_window_display_accurate	the reference references it too (or an SDK .tbd exports it): provided at link time
+_mark_window_display_accurate	the reference defines it and no unit of this port does - the definition is owed
 _mark_window_display_accurate_1	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _max_redisplay_ticks	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _maybe_produce_line_number	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
@@ -231,7 +228,7 @@ _munmap	the reference references it too (or an SDK .tbd exports it): provided at
 _nanosleep	the reference references it too (or an SDK .tbd exports it): provided at link time
 _nl_langinfo	the reference references it too (or an SDK .tbd exports it): provided at link time
 _nobreak_char_ascii_display	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_note_mouse_highlight	the reference references it too (or an SDK .tbd exports it): provided at link time
+_note_mouse_highlight	the reference defines it and no unit of this port does - the definition is owed
 _ntohs	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _open	the reference references it too (or an SDK .tbd exports it): provided at link time
 _pathconf	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
@@ -256,7 +253,7 @@ _proc_pid_rusage	the reference references it too (or an SDK .tbd exports it): pr
 _proc_pidinfo	the reference references it too (or an SDK .tbd exports it): provided at link time
 _proc_pidpath	the reference references it too (or an SDK .tbd exports it): provided at link time
 _produce_special_glyphs	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_produce_stretch_glyph	the reference references it too (or an SDK .tbd exports it): provided at link time
+_produce_stretch_glyph	the reference defines it and no unit of this port does - the definition is owed
 _pselect	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _pthread_equal	the reference references it too (or an SDK .tbd exports it): provided at link time
 _pthread_kill	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -278,7 +275,7 @@ _realpath	neither the reference nor the SDK explains it: a generated `V...` carr
 _recvfrom	the reference references it too (or an SDK .tbd exports it): provided at link time
 _redisplay__inhibit_bidi	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _redisplay_adhoc_scroll_in_resize_mini_windows	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_redisplay_preserve_echo_area	the reference references it too (or an SDK .tbd exports it): provided at link time
+_redisplay_preserve_echo_area	the reference defines it and no unit of this port does - the definition is owed
 _redisplay_skip_fontification_on_input	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _redisplay_skip_initial_frame	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _redisplay_window_1	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
@@ -289,7 +286,7 @@ _renameatx_np	the reference references it too (or an SDK .tbd exports it): provi
 _reset_mouse_highlight	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _rint	the reference references it too (or an SDK .tbd exports it): provided at link time
 _rmdir	the reference references it too (or an SDK .tbd exports it): provided at link time
-_row_hash	the reference references it too (or an SDK .tbd exports it): provided at link time
+_row_hash	the reference defines it and no unit of this port does - the definition is owed
 _scalbn	the reference references it too (or an SDK .tbd exports it): provided at link time
 _scroll_margin	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _sendto	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -346,7 +343,7 @@ _strtoimax	the reference references it too (or an SDK .tbd exports it): provided
 _strtol	the reference references it too (or an SDK .tbd exports it): provided at link time
 _strtoul	the reference references it too (or an SDK .tbd exports it): provided at link time
 _symlink	the reference references it too (or an SDK .tbd exports it): provided at link time
-_syms_of_xdisp	the reference references it too (or an SDK .tbd exports it): provided at link time
+_syms_of_xdisp	the reference defines it and no unit of this port does - the definition is owed
 _syms_of_xwidget	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _sync	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _sysconf	the reference references it too (or an SDK .tbd exports it): provided at link time
@@ -372,16 +369,16 @@ _toupper	the reference references it too (or an SDK .tbd exports it): provided a
 _tparm	the reference references it too (or an SDK .tbd exports it): provided at link time
 _tputs	the reference references it too (or an SDK .tbd exports it): provided at link time
 _trunc	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_try_window	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
+_try_window	the reference defines it and no unit of this port does - the definition is owed
 _tzset	the reference references it too (or an SDK .tbd exports it): provided at link time
 _umask	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _uname	the reference references it too (or an SDK .tbd exports it): provided at link time
 _unibyte_display_via_language_environment	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _unlink	the reference references it too (or an SDK .tbd exports it): provided at link time
 _unlockpt	the reference references it too (or an SDK .tbd exports it): provided at link time
-_unwind_display_working_on_window	the reference references it too (or an SDK .tbd exports it): provided at link time
+_unwind_display_working_on_window	the reference defines it and no unit of this port does - the definition is owed
 _unwind_redisplay	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_update_redisplay_ticks	the reference references it too (or an SDK .tbd exports it): provided at link time
+_update_redisplay_ticks	the reference defines it and no unit of this port does - the definition is owed
 _utimensat	the reference references it too (or an SDK .tbd exports it): provided at link time
 _utimes	the reference references it too (or an SDK .tbd exports it): provided at link time
 _utmpxname	the reference references it too (or an SDK .tbd exports it): provided at link time
