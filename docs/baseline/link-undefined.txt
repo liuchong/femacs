@@ -1,0 +1,79 @@
+# Symbols a real link cannot resolve (tools/link-probe.py, the C build's own recipe).
+# One `<symbol>\t<reason>` per line; a new name fails the gate and a row the linker
+# now resolves is stale - the count is the distance to load rung L0 (status 3.251, 3.337).
+# `_V...`/`_F...` are the port's generated Lisp-symbol carriers: the name after the
+# prefix is the C variable/function whose unit owes the definition.
+_Fcurrent_bidi_paragraph_direction	a generated subr carrier (`F` + the C function's name): its unit has not defined the DEFUN yet
+_Vclear_message_function	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vdebug_on_message	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vdisplay_line_numbers	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vdisplay_pixels_per_inch	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vfontification_functions	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vglyphless_char_display	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vhscroll_step	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vinhibit_redisplay	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vmake_cursor_line_fully_visible	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vmax_mini_window_height	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vmaximum_scroll_margin	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vmenu_updating_frame	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vmessage_log_max	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vmessages_buffer_name	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vnobreak_char_display	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Voverlay_arrow_string	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Voverlay_arrow_variable_list	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vpre_redisplay_function	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vredisplay__all_windows_cause	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vredisplay__mode_lines_cause	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vresize_mini_windows	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vset_message_function	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vshow_trailing_whitespace	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vtruncate_partial_width_windows	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+_Vwindow_scroll_functions	a generated Lisp-variable carrier (`V` + the C variable's name): its unit has not defined the DEFVAR yet
+__RNvCs8kYXCe6bXIp_7___rustc17rust_begin_unwind	not a carrier: review whether the link line is short a library or the port is short a definition
+_automatic_hscrolling	not a carrier: review whether the link line is short a library or the port is short a definition
+_bidi_inhibit_bpa	not a carrier: review whether the link line is short a library or the port is short a definition
+_calc_pixel_width_or_height	not a carrier: review whether the link line is short a library or the port is short a definition
+_composition_break_at_point	not a carrier: review whether the link line is short a library or the port is short a definition
+_count_lines	not a carrier: review whether the link line is short a library or the port is short a definition
+_current_buffer	not a carrier: review whether the link line is short a library or the port is short a definition
+_cursor_row_p	not a carrier: review whether the link line is short a library or the port is short a definition
+_display_line	not a carrier: review whether the link line is short a library or the port is short a definition
+_display_mode_line	not a carrier: review whether the link line is short a library or the port is short a definition
+_display_raw_bytes_as_hex	not a carrier: review whether the link line is short a library or the port is short a definition
+_display_tty_menu_item	not a carrier: review whether the link line is short a library or the port is short a definition
+_get_font_ascent_descent	not a carrier: review whether the link line is short a library or the port is short a definition
+_handle_line_prefix	not a carrier: review whether the link line is short a library or the port is short a definition
+_hscroll_margin	not a carrier: review whether the link line is short a library or the port is short a definition
+_inhibit_bidi_mirroring	not a carrier: review whether the link line is short a library or the port is short a definition
+_inhibit_eval_during_redisplay	not a carrier: review whether the link line is short a library or the port is short a definition
+_inhibit_free_realized_faces	not a carrier: review whether the link line is short a library or the port is short a definition
+_inhibit_menubar_update	not a carrier: review whether the link line is short a library or the port is short a definition
+_inhibit_message	not a carrier: review whether the link line is short a library or the port is short a definition
+_init_xdisp	not a carrier: review whether the link line is short a library or the port is short a definition
+_invisible_prop	not a carrier: review whether the link line is short a library or the port is short a definition
+_max_redisplay_ticks	not a carrier: review whether the link line is short a library or the port is short a definition
+_maybe_produce_line_number	not a carrier: review whether the link line is short a library or the port is short a definition
+_message_truncate_lines	not a carrier: review whether the link line is short a library or the port is short a definition
+_nobreak_char_ascii_display	not a carrier: review whether the link line is short a library or the port is short a definition
+_note_mouse_highlight	not a carrier: review whether the link line is short a library or the port is short a definition
+_produce_special_glyphs	not a carrier: review whether the link line is short a library or the port is short a definition
+_produce_stretch_glyph	not a carrier: review whether the link line is short a library or the port is short a definition
+_redisplay__inhibit_bidi	not a carrier: review whether the link line is short a library or the port is short a definition
+_redisplay_adhoc_scroll_in_resize_mini_windows	not a carrier: review whether the link line is short a library or the port is short a definition
+_redisplay_skip_fontification_on_input	not a carrier: review whether the link line is short a library or the port is short a definition
+_redisplay_skip_initial_frame	not a carrier: review whether the link line is short a library or the port is short a definition
+_redisplay_window	not a carrier: review whether the link line is short a library or the port is short a definition
+_reset_mouse_highlight	not a carrier: review whether the link line is short a library or the port is short a definition
+_row_hash	not a carrier: review whether the link line is short a library or the port is short a definition
+_rust_eh_personality	not a carrier: review whether the link line is short a library or the port is short a definition
+_scroll_margin	not a carrier: review whether the link line is short a library or the port is short a definition
+_should_produce_line_number	not a carrier: review whether the link line is short a library or the port is short a definition
+_specpdl	not a carrier: review whether the link line is short a library or the port is short a definition
+_specpdl_end	not a carrier: review whether the link line is short a library or the port is short a definition
+_specpdl_ptr	not a carrier: review whether the link line is short a library or the port is short a definition
+_syms_of_xdisp	not a carrier: review whether the link line is short a library or the port is short a definition
+_syms_of_xwidget	not a carrier: review whether the link line is short a library or the port is short a definition
+_tool_bar_max_label_size	not a carrier: review whether the link line is short a library or the port is short a definition
+_try_window	not a carrier: review whether the link line is short a library or the port is short a definition
+_unibyte_display_via_language_environment	not a carrier: review whether the link line is short a library or the port is short a definition
+_word_wrap_by_category	not a carrier: review whether the link line is short a library or the port is short a definition
