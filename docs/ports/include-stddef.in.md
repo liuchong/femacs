@@ -28,24 +28,34 @@
 - **The criterion is the generated header plus the frozen clang, because this is a template.**
   `lib/stddef.in.h` is *not* in `docs/baseline/config/cond-eval-verified.txt`:
   `python3 tools/check-cond-eval.py lib/stddef.in.h` -> `lib/stddef.in.h: 34 conditions,
-  7 unknown to the evaluator, 10 disagreements [NOT VERIFIED]`.  The disagreements are exactly
-  the `@PLACEHOLDER@` and guard conditions (C 25/72/92/103/122/163/164/170/220/237), and the
-  extractor therefore reads the file blind (P-66) and asks for all 12 macro names.
+  7 unknown to the evaluator, 9 disagreements [NOT VERIFIED]`.  All nine are the
+  `@PLACEHOLDER@` and guard conditions (C 72/92/103/122/163/164/170/220/237), and their root is
+  measured: the *probe* is ill-formed for clang, because the template's text still holds `@`:
+  `printf '#include <config.h>\n#if ! defined (_@GUARD_PREFIX@_STDDEF_H)\n#define M 1\n#endif\n' >
+  /tmp/pl.c && clang -dM -E -std=gnu23 … /tmp/pl.c` prints `error: missing ')' after 'defined'`,
+  so clang's "False" for those lines says nothing, while the evaluator answers `unknown` for
+  seven of them (it keeps both arms) and True for two (C 164/170, a cascade of C 163).  The
+  extractor therefore reads the file blind (P-66) and asks for all 12 macro names, and the
+  criterion for the arms is the generated header plus the direct `-dM` measurement below - not
+  either side of that differential.  (The pre-fix reading was `10 disagreements`; the tenth was
+  C 25's `#if __GNUC__ >= 3`, i.e. one of the lines status 3.202's marker fix removed.)
   `build/emacs-ref/lib/stddef.h` (249 lines, `/* DO NOT EDIT! GENERATED AUTOMATICALLY! */`)
   resolves the substitutions - `@GUARD_PREFIX@` `GL_`, `@HAVE_MAX_ALIGN_T@` 1,
   `@REPLACE_NULL@` 0, `@NULLPTR_T_NEEDS_STDDEF@` 1, `@HAVE_C_UNREACHABLE@` 1,
   `@STDDEF_NOT_IDEMPOTENT@` 0 - and the frozen clang's surviving `#define`s confirm each
   verdict (the command is in Evidence).
 
-  Two of the 10 disagreements are worth naming, because they are the tool's own artifact and
-  not a wrong reading of the target: the table
-  `docs/baseline/config/darwin-arm64.macros.tsv` carries `_GL_STDDEF_H` (4247) because
-  `tools/gen-cond-macros.py`'s probe includes `<stddef.h>`, which resolves to *this* header's
-  generated copy and defines its own guard; the evaluator then takes C 122's split
-  double-inclusion guard as dead.  Measured, `config.h` alone does not define it and the
-  header's body is live: `clang -dM -E ... -include config.h -x c /dev/null` prints no
-  `_GL_STDDEF_H`, while the same command with `-include stddef.h` prints
-  `#define gl_unreachable() __builtin_unreachable ()`.
+  C 122's split double-inclusion guard is the one line whose *evaluator* side is worth naming,
+  and it is a table fact, not a target fact: `docs/baseline/config/darwin-arm64.macros.tsv`
+  carries `_GL_STDDEF_H` (4247) because `tools/gen-cond-macros.py`'s probe includes
+  `<stddef.h>`, which resolves to *this* header's generated copy and defines its own guard, so
+  the evaluator takes the guard as already defined.  Measured on this checkout: `grep -n
+  '_GL_STDDEF_H' docs/baseline/config/darwin-arm64.macros.tsv` -> `4247:_GL_STDDEF_H`, and
+  `clang -dM -E … -include config.h -x c /dev/null | grep -c '_GL_STDDEF_H'` -> `0`, while
+  `build/emacs-ref/lib/stddef.h` 123-124 defines it and 73 is the first `#ifndef`: the header's
+  body is live on first inclusion.  Clang's half of the differential for that line is the
+  ill-formed-probe artifact above, so the *generated* header, not the differential, is the
+  criterion for the arms (the `-dM` measurement below is what decided them).
 
 - **Live/dead, name by name (the ledger's own table).**
 

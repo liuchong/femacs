@@ -45,16 +45,21 @@
 
 ## Decisions
 
-- **The header is *not* in the verified list, so the mirror carries both arms of every `#if`
-  and the ledger carries the criterion for the live one.**  `python3
-  tools/check-cond-eval.py lib/unlocked-io.h` -> `lib/unlocked-io.h: 16 conditions, 0 unknown,
-  9 disagreements [NOT VERIFIED]`: the evaluator answers 9 of the 16 conditions differently
-  from clang, because the real `<stdio.h>` defines `clearerr_unlocked`, `feof_unlocked`,
-  `ferror_unlocked`, `fileno_unlocked`, `getc_unlocked`, `getchar_unlocked`, `putc_unlocked`
-  and `putchar_unlocked` as macros - the `|| defined <x>_unlocked` disjunct of C 41, 48, 55,
-  76, 111, 118, 125, 132 - and the configuration's own macro table cannot see a system
-  header's macros.  `tools/extract-abi.py` therefore reads the file blind (P-66) and requires
-  all 32 names; `--check` reports no problem line.
+- **The mirror carries both arms of every `#if`, and the criterion for the live one is
+  measured.**  History, in the terms status 3.202 fixed: the branch marker this tool writes was
+  `EMACS_COND_TAKEN_<stem>_<line>`, which is not a C identifier for a hyphenated stem like this
+  file's, so clang's half of the differential was *always* "dead" and the pre-fix reading
+  (`16 conditions, 0 unknown, 9 disagreements`) reported the nine *live* conditions as
+  disagreements.  With the marker fixed the reading is `python3 tools/check-cond-eval.py
+  lib/unlocked-io.h` -> `lib/unlocked-io.h: 16 conditions, 0 unknown to the evaluator,
+  0 disagreements` - the evaluator and clang now agree on all sixteen, so this header raises
+  nothing for the gate to arbitrate and a `--write-verified` regeneration can put it on the
+  verified list.  Today it is **not** on `docs/baseline/config/cond-eval-verified.txt`, so
+  `tools/extract-abi.py` still reads it blind (P-66) and asks for all 32 names, which is what
+  the mirror carries; `--check` reports no problem line.  The system-header fact the pre-fix
+  note named is still true and is still why the arms must be measured rather than read off a
+  table (`HAVE_DECL_*_UNLOCKED` cannot see macOS's `*_unlocked` macros), and the measurement of
+  each live arm is the one below.
 
 - **The live arm per name, measured with the frozen clang.**  The command (in Evidence) prints
   the surviving `#define`s.  The first arm is live for `clearerr`, `feof`, `ferror`, `fileno`,
