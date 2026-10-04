@@ -138,7 +138,10 @@ class EmacsGC : EmacsHandleObject() {
      pattern defined for this GContext, in the foreground color where
      the pattern is on, and in the background color where off.  */
 
-  protected fun blitOpaqueStipple(canvas: Canvas, rect: Rect) {
+  /* Java's `protected` is also package-visible, and `EmacsFillRectangle` (same package) calls
+     this; Kotlin's `protected` is not package-visible and `internal` mangles the JVM name, so
+     the port widens it to public and records the widening (P-83 ③).  */
+  fun blitOpaqueStipple(canvas: Canvas, rect: Rect) {
     var filter: ColorFilter
 
     prepareStipple(rect)

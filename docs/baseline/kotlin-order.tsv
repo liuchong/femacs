@@ -18,8 +18,8 @@ order	target	references	ported
 14	femacs/platform/android/kotlin/EmacsDrawPoint.kt	EmacsDrawRectangle,EmacsDrawable,EmacsFillRectangle,EmacsGC	
 15	femacs/platform/android/kotlin/EmacsDrawRectangle.kt	EmacsDrawable,EmacsGC	
 16	femacs/platform/android/kotlin/EmacsDrawable.kt	EmacsGC	yes
-17	femacs/platform/android/kotlin/EmacsFillPolygon.kt	EmacsDrawable,EmacsGC	
-18	femacs/platform/android/kotlin/EmacsFillRectangle.kt	EmacsDrawable,EmacsGC	
+17	femacs/platform/android/kotlin/EmacsFillPolygon.kt	EmacsDrawable,EmacsGC	yes
+18	femacs/platform/android/kotlin/EmacsFillRectangle.kt	EmacsDrawable,EmacsGC	yes
 19	femacs/platform/android/kotlin/EmacsFontDriver.kt	EmacsDrawable,EmacsGC,EmacsSdk23FontDriver,EmacsSdk7FontDriver	
 20	femacs/platform/android/kotlin/EmacsGC.kt	EmacsHandleObject,EmacsPixmap,EmacsTileObject	yes
 21	femacs/platform/android/kotlin/EmacsInputConnection.kt	EmacsNative,EmacsService,EmacsView	
