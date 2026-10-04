@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 588 |
-| 其中 done / wip | 578 / 10 |
-| 待开工 | 2 |
+| 已有目标文件 | 589 |
+| 其中 done / wip | 579 / 10 |
+| 待开工 | 1 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 1 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 0 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 0 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 1 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 0 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 1 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 0 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -298,7 +298,7 @@
 | `lib/stdc_memreverse8u.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_memreverse8u.rs` | done |
 | `lib/stdc_trailing_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_trailing_zeros.rs` | done |
 | `lib/stdckdint.in.h` | 58 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/stdckdint.in.rs` | done |
-| `lib/stdcountof.in.h` | 124 | 0 | 0 | 4 | 1 | 1 | 0 | L | `femacs/lib/include/stdcountof.in.rs` | todo |
+| `lib/stdcountof.in.h` | 124 | 0 | 0 | 4 | 1 | 1 | 0 | L | `femacs/lib/include/stdcountof.in.rs` | done |
 | `lib/stddef.in.h` | 248 | 0 | 0 | 12 | 2 | 0 | 0 | L | `femacs/lib/include/stddef.in.rs` | done |
 | `lib/stdint.in.h` | 740 | 0 | 0 | 136 | 9 | 0 | 0 | L | `femacs/lib/include/stdint.in.rs` | done |
 | `lib/stdio-consolesafe.c` | 202 | 7 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdio-consolesafe.rs` | done |
