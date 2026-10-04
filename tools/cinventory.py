@@ -1515,6 +1515,14 @@ def struct_fields(text: str) -> list[dict]:
         i += 1
         if not live or not stripped or stripped.startswith("#"):
             continue
+        if pending is not None and stripped != "{":
+            # `struct X` may only be followed by its body.  When it is not - C's
+            # return-type-on-its-own-line style, `struct timeval\nmake_timeval (struct timespec t)\n{`
+            # - the name is a *type use* and the brace that eventually appears belongs to the
+            # function, not to the struct: taking it as a definition invented a `timeval`/`timespec`
+            # container whose "fields" were the function's locals, which the missing-type check
+            # then reported (status 3.153).
+            pending = None
         m = STRUCT_OPEN_INLINE.match(stripped)
         if m:
             buf = ""

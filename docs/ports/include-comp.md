@@ -24,12 +24,15 @@
   `static inline` no-ops whose empty bodies are the reference's own, plus
   `extern void syms_of_comp (void)` (C 100, comp.c is not ported yet - batch G).  The port
   carries the two inline bodies and leaves `syms_of_comp` to comp.c's own unit.
-- **The three items the generator lists above and beyond that branch are dead text (P-08):
-  `NATIVE_COMP_UNITP` (C 57), `XNATIVE_COMP_UNIT` (C 63) and the field-carrying
-  `struct Lisp_Native_Comp_Unit` (C 30-44) all sit inside `#ifdef HAVE_NATIVE_COMP`, which the
-  frozen configuration does not compile, so they are recorded here rather than transcribed.
-  Their boxes are checked against that decision, not against a compiled counterpart; the
-  reference's own object for this configuration has no such names either.
+- **Two of the items the generator lists above and beyond that branch are dead text (P-08):
+  `NATIVE_COMP_UNITP` (C 57) and `XNATIVE_COMP_UNIT` (C 63) sit inside `#ifdef HAVE_NATIVE_COMP`,
+  which the frozen configuration does not compile, so they are recorded here rather than
+  transcribed; the reference's own object for this configuration has no such names either.
+  **Corrected in status 3.153:** the third item, the field-carrying
+  `struct Lisp_Native_Comp_Unit`, is *not* inside that guard - the record is C 25-51 and the
+  `#ifdef` starts at C 52, so it is live text on every configuration, and the mirror now carries
+  it (the earlier revision of this paragraph had mistaken the guard around the *uses* for one
+  around the definition).
 - **`unload_comp_unit`'s parameter.**  C's `#else` branch never defines the struct, only names
   it in the inline's parameter list - an incomplete type, which C allows and Rust does not
   spell.  The port writes `*mut core::ffi::c_void` (PORTING.md P-72 3) and records it here;

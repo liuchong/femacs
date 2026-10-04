@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 516 |
-| 其中 done / wip | 501 / 15 |
-| 待开工 | 74 |
+| 已有目标文件 | 517 |
+| 其中 done / wip | 502 / 15 |
+| 待开工 | 73 |
 
 ## 2 按目录
 
@@ -38,7 +38,7 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 42 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 41 |
 
 ## 3 按批次
 
@@ -48,7 +48,7 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 8 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 24 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 23 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 32 |
 
@@ -427,7 +427,7 @@
 | `oldXMenu/copyright.h` | 18 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/oldXMenu/include/copyright.rs` | done |
 | `oldXMenu/insque.c` | 57 | 2 | 0 | 0 | 0 | 3 | 0 | F | `femacs/oldXMenu/insque.rs` | done |
 | `src/alloc.c` | 7,639 | 209 | 22 | 94 | 40 | 60 | 51 | B | `femacs/src/alloc.rs` | done |
-| `src/android-asset.h` | 528 | 9 | 0 | 0 | 2 | 19 | 1 | F | `femacs/src/include/android-asset.rs` | todo |
+| `src/android-asset.h` | 528 | 9 | 0 | 0 | 2 | 19 | 1 | F | `femacs/src/include/android-asset.rs` | done |
 | `src/android-emacs.c` | 114 | 1 | 0 | 0 | 0 | 0 | 0 | F | `femacs/src/android-emacs.rs` | done |
 | `src/android.c` | 7,594 | 155 | 0 | 2 | 0 | 60 | 55 | F | `femacs/src/android.rs` | done |
 | `src/android.h` | 363 | 0 | 0 | 7 | 0 | 56 | 14 | F | `femacs/src/include/android.rs` | done |

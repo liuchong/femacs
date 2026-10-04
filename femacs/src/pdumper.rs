@@ -167,17 +167,9 @@ pub mod pdumper_use_site_decls {
 
 use pdumper_use_site_decls::*;
 
-/// `lisp.h` 4504-4508: `struct gc_root_visitor { void (*visit) (Lisp_Object const *,
-/// enum gc_root_type, void *); void *data; };` — the mirror carries `gc_root_type` (1821)
-/// but not this record or `visit_static_gc_roots`, so both are declared here.
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct gc_root_visitor
-{
-  pub visit: Option<unsafe extern "C" fn (root_ptr: *const Lisp_Object, type_: gc_root_type,
-                                          data: *mut c_void)>,
-  pub data: *mut c_void,
-}
+/// `lisp.h` 4504-4508's `struct gc_root_visitor` now lives in the mirror that owns it
+/// (`include/lisp.rs`, status 3.153) and arrives here through `lisp.h`'s include; this unit keeps
+/// only the declaration of `visit_static_gc_roots` (lisp.h 4509) it used to pair it with.
 
 /// `<sys/mman.h>`'s protection and mapping constants, measured on the frozen target
 /// (`clang -E -dM -include sys/mman.h`, darwin-arm64).
@@ -6014,28 +6006,12 @@ fn dump_make_lv_from_reloc (dump_base: uintptr_t, reloc: dump_reloc) -> Lisp_Obj
    (P-51, docs/status.md 3.49).  The names its two arms need are declared in the same
    `#[cfg]` block, because `comp.h` and `<dynlib.h>` have no mirrors yet (`treesit.h` has one
    now, but the record this arm needs is the one in that header's dead arm).  */
-/* `comp.h`'s record and its two inlines (comp.h 25-67) have no mirror (`include/comp.rs`
-   carries only `maybe_defer_native_compilation`), so the port declares them at their use
-   site inside a `#[cfg (feature = "native_comp")]` block; they move to the mirror when
-   comp.h lands (recorded in docs/ports/pdumper.md).  Field names, order and types are
-   comp.h's.  */
-#[cfg (feature = "native_comp")]
-#[repr(C, align(8))]
-#[derive(Clone, Copy)]
-pub struct Lisp_Native_Comp_Unit
-{
-  pub header: vectorlike_header,
-  pub file: Lisp_Object,
-  pub optimize_qualities: Lisp_Object,
-  pub lambda_gc_guard_h: Lisp_Object,
-  pub lambda_c_name_idx_h: Lisp_Object,
-  pub data_fdoc_v: Lisp_Object,
-  pub data_vec: Lisp_Object,
-  pub data_relocs: *mut Lisp_Object,
-  pub loaded_once: bool,
-  pub load_ongoing: bool,
-  pub handle: dynlib_handle_ptr,
-}
+/* `comp.h`'s record moved to its owner (`include/comp.rs`, status 3.153): C's `pdumper.c` reaches
+   it the way this unit does - `lisp.h` includes `comp.h` at lisp.h 2168, and `include/lisp.rs`
+   includes `include/comp.rs` - so the two helpers below resolve the type from the mirror instead
+   of declaring a second copy of it.  Keeping the copy here would have collided with the mirror's
+   record in any `native_comp` build (`E0428`), which is exactly what the missing-type check made
+   visible.  */
 #[cfg (feature = "native_comp")]
 #[inline(always)]
 pub fn NATIVE_COMP_UNITP (a: Lisp_Object) -> bool {

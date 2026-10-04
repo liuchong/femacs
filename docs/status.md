@@ -2477,3 +2477,33 @@
   **未提交**文件 `femacs/src/include/android-asset.rs`，三条是标准 token 类（`AAssetManager_open`/`android_asset_read_internal`
   的 `goto`、`AAsset_seek` 的 `case, default`），按既有惯例要由**集成者**在 `docs/ports/macro-body-notes.tsv`
   补行（`switch,case,default` 与 `goto` 的先例已有多条）——等 lane 收口报告带上它的准确定位后再补，避免改两次。
+
+- **3.153 "缺类型"检查落地：它当场抓到 2 个真缺口，并暴露两处**写反的**决定记录（2026-10-04）**：
+  ① **实现**（按 3.152 量出的三条口径）：`tools/extract-abi.py` 的 `compare()` 新增一段——对"冻结目标的 TU
+  （`FROZEN_BUILD_SOURCES`）或任何 `.h`"里的每个 **有字段的** C 聚合，若它的 **tag 与 typedef 别名都不在**
+  Rust 侧的 `struct/union/enum` 名与 `pub type` 名里，就报 `missing type <名>`；匿名且无别名的容器跳过
+  （没有可比的契约名）。Rust 侧同时开始收集 `pub type` 别名（`rust_inventory` 的 `aliases`）。
+  ② **它第一次跑就报了 4 条**：`src/comp.h` 的 `Lisp_Native_Comp_Unit`、`src/lisp.h` 的 `gc_root_visitor`、
+  `src/timefns.c` 的 `timespec`/`timeval`。其中后两条是**解析器假象**：C 把返回类型单独写一行
+  （`struct timeval\nmake_timeval (struct timespec t)\n{`）时，扫描器把函数的 `{` 当成结构体体，于是凭空造出
+  `timeval`/`timespec` 容器、字段还是函数的局部量。修法：`pending` 的 `struct X` **下一行必须是 `{`**，否则
+  清空 `pending`（`tools/cinventory.py`）——实测该形状产出 0 个容器，而真正的 `struct X\n{` 照旧。
+  ③ **两条真缺口都修了**，而且发现**台账早就把这两行勾了**（`docs/ports/lisp.md` 509、`docs/ports/include-comp.md` 15）
+  ——说明台账领先于镜像，缺的就是这道执行：
+  - `gc_root_visitor`（lisp.h 4504-4508）：加进 `include/lisp.rs`（两个字段，函数指针按本文件既有的
+    `Option<unsafe extern "C" fn …>` 拼法），并**退役两处用点副本**（`alloc.rs` 6043、`pdumper.rs` 175，
+    它们的注释原本写着"mirror 是缺口"）；`comp.c`/`pdumper.c`/`alloc.c`/`data.c` 四个单元重建全 **built**。
+  - `Lisp_Native_Comp_Unit`（comp.h **25-51**）：加进 `include/comp.rs`（字段表照 `pdumper.rs` 里那份**已验证过**
+    的副本；`GCALIGNED_STRUCT` → `#[repr(C, align(8))]`），`comp.rs` 同时补上 C 23 的 `#include <dynlib.h>`
+    （`dynlib_handle_ptr` 的属主）；`pdumper.rs` 里那份 `#[cfg (feature = "native_comp")]` 副本**删掉**
+    （它与镜像的记录在 native_comp 构建里会 `E0428`，镜像经 lisp.h→comp.h 的链条到达该单元）。
+  ④ **纠正两处写反的陈述**（这是本轮最有价值的部分）：`include/comp.rs` 的头注与
+  `docs/ports/include-comp.md` 的 Decisions 都说"字段承载的 `Lisp_Native_Comp_Unit`（C 30-44）在
+  `#ifdef HAVE_NATIVE_COMP` 里、是死文本"——**照参照，结构体是 C 25-51、在 `#ifdef`(C 52) 之前，即无条件活文本**；
+  两处都已按实测重写（并把"曾把守卫用在*使用点*上这件事当成定义"记进去）。
+  ⑤ 顺带两处基建：`xtask layout_asserts` 生成的断言改用 **`::core::assert!`**（镜像里若有"复刻 C 的
+  `<assert.h>` 宏"的文件，例如 lane 正在写的 `android-asset.rs`，会把 prelude 的 `assert!` 变歧义），
+  并把 `android-asset.rs` 加进 `docs/baseline/layout-excluded-mirrors.txt`（Android 平台头，编译证据归 android
+  平台探针）；`layout-check` 恢复 **exit 0 / passed**。
+  ⑥ 证据：`--check` 的 `lisp.h`/`comp.h` 均 **OK**；`build-tu` 的 comp/pdumper/alloc/data 全 **built**；
+  `--all` → **517 ported files: 509 done, 8 in progress, 0 failing**；`cinventory --selftest` 7/0。

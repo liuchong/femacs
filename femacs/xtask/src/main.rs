@@ -750,7 +750,11 @@ fn layout_asserts() -> Result<PathBuf, String> {
         }
         let Some(expr) = rust_type_expr(kind, rest) else { continue };
         out.push_str(&format!(
-            "const _: () = assert!({expr} == {value}, \"{kind} {rest}\");\n"
+            // `::core::assert!`, not `assert!`: the probe includes every mirror in one crate, and
+            // a mirror that defines its own `assert` macro shadows the prelude's - android-asset.h
+            // does, and the generated message form then failed to expand ("no rules expected `,`",
+            // status 3.153).  The path keeps the generated assertions immune to that.
+            "const _: () = ::core::assert! ({expr} == {value}, \"{kind} {rest}\");\n"
         ));
         asserted_keys.push(key.to_string());
         n += 1;

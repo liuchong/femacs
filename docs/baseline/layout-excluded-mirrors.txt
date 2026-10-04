@@ -19,6 +19,10 @@
 androidgui.rs	ANDROID_STUBIFY and HAVE_ANDROID are undefined: androidgui.h is dead on this target
 android.rs	HAVE_ANDROID is undefined: android.h is dead on this target
 androidterm.rs	HAVE_ANDROID is undefined: androidterm.h is dead on this target
+android-asset.rs	HAVE_ANDROID is undefined: android-asset.h is the Android asset shim, and it
+	mirs C's <assert.h> macro with the frozen NDEBUG body (the ebrowse.rs precedent), which
+	shadowed the prelude's `assert!` crate-wide in the single-crate probe (status 3.153); its
+	compile evidence is the android platform probe
 haikugui.rs	HAVE_HAIKU is undefined: haikugui.h is dead on this target
 haiku_support.rs	HAVE_HAIKU is undefined: haiku_support.h is dead on this target
 haikuterm.rs	HAVE_HAIKU is undefined: haikuterm.h is dead on this target

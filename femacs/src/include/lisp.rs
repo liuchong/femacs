@@ -1829,6 +1829,19 @@ pub type gc_root_type = c_int;
 pub const GC_ROOT_STATICPRO: gc_root_type = 0;
 pub const GC_ROOT_BUFFER_LOCAL_DEFAULT: gc_root_type = 1;
 pub const GC_ROOT_BUFFER_LOCAL_NAME: gc_root_type = 2;
+
+/* C 4504-4508: the visitor `visit_static_gc_roots` is handed (C 4509).  Its first member is
+   `void (*visit) (Lisp_Object const *, enum gc_root_type, void *)`, spelled the way this file
+   spells every function pointer (`Option<unsafe extern "C" fn …>`, PORTING.md 1.4); the record was
+   missing from this mirror until the missing-type check asked for it (status 3.153) - the port had
+   recorded it in a comment in `pdumper.rs` instead.  */
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct gc_root_visitor
+{
+  pub visit: Option<unsafe extern "C" fn (*const Lisp_Object, gc_root_type, *mut c_void)>,
+  pub data: *mut c_void,
+}
 pub const GC_ROOT_C_SYMBOL: gc_root_type = 3;
 
 #[repr(C)]

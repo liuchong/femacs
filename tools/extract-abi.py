@@ -686,6 +686,10 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
                 text += "\n" + strip_comments(inc.read_text(encoding="utf-8", errors="replace"))
     structs = {}
     struct_types = {}
+    # `pub type A = B;` aliases: the port may name a C aggregate by the typedef name (etags.c 275's
+    # `typedef struct node_st { … } node;` is `pub struct node`) or by the tag, and the
+    # missing-type check below accepts either (status 3.152/3.153).
+    aliases = set(re.findall(r"^\s*pub\s+type\s+([A-Za-z_]\w*)", text, re.M))
     # A brace-matching scan, because a struct body may contain nested braces
     # (arrays, nested generics) that a single regex would mis-handle.
     for m in re.finditer(r"\b(?:struct|union)\s+([A-Za-z_]\w*)\s*\{", text):
@@ -765,7 +769,7 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
     return {"lines": own.count("\n"),
             "functions": sorted({m.group("name") for m in R_FN.finditer(text)}),
             "macros": sorted({m.group("name") for m in R_MACRO.finditer(text)}),
-            "structs": structs, "struct_types": struct_types,
+            "structs": structs, "struct_types": struct_types, "aliases": aliases,
             "statics": sorted({m.group("name") for m in R_STATIC.finditer(text)}),
             "constants": constants_of(text),
             "variants": variants,
@@ -1657,6 +1661,32 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     for obj in c["globals"]:
         if obj["name"] not in set(r["statics"]) | set(r["constants"]):
             problems.append(f"missing file-scope object {obj['name']}")
+
+    # A C aggregate the frozen build compiles has to appear on the Rust side under one of its names
+    # - the tag or the typedef alias.  Nothing asked that until now: the field loop above walks the
+    # *Rust* containers, so a whole struct the mirror lacks was invisible (haikuterm.h's
+    # `haikufont_info` is the live example, visible only through its ledger's unchecked box, status
+    # 3.149/3.151).  The scope is the one 3.152 measured: frozen translation units only (a platform
+    # backend's text is deferred to the platform target and its unit is the recorded empty shape),
+    # headers included (a mirror carries its header's live declarations), and anonymous aggregates
+    # without an alias skipped - they have no name the two sides could agree on.
+    rel = "/".join(c_path.parts[-2:])
+    in_scope = c_path.suffix == ".h" or FROZEN_BUILD_SOURCES is None or rel in FROZEN_BUILD_SOURCES
+    if in_scope:
+        containers: dict[str, dict] = {}
+        for field in c["struct_fields"]:
+            entry = containers.setdefault(field["container"],
+                                          {"fields": 0, "alias": field.get("alias")})
+            entry["fields"] += 1
+        for name, info in sorted(containers.items()):
+            if info["fields"] == 0:
+                continue                     # a forward declaration, not a definition
+            if name.startswith("<anon") and not info["alias"]:
+                continue                     # no contract name
+            candidates = {name} | ({info["alias"]} if info["alias"] else set())
+            if candidates & (set(r["structs"]) | r["aliases"]):
+                continue
+            problems.append("missing type " + "/".join(sorted(candidates)))
 
     # Function bodies get the same token containment as macro bodies (review C's 13-
     # mutation matrix for casetab.rs: a wrong setter, a dropped call or a changed field

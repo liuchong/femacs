@@ -6037,15 +6037,8 @@ unsafe fn android_make_lisp_symbol (sym: *mut Lisp_Symbol) -> Lisp_Object
    Android arm; on this target the name is `lisp.h`'s inline function, which
    `include/lisp.rs` carries (so the ledger's macro row is answered by that definition).  */
 
-/* C: lisp.h 4504-4508: `struct gc_root_visitor`, whose mirror is a gap (reported).  */
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct gc_root_visitor
-{
-  pub visit: Option<unsafe extern "C" fn (root_ptr: *const Lisp_Object, r#type: gc_root_type,
-					  data: *mut c_void)>,
-  pub data: *mut c_void,
-}
+/* C: lisp.h 4504-4508's `struct gc_root_visitor` is in `include/lisp.rs` as of status 3.153
+   (the mirror was the gap this comment used to record), so this unit uses the mirror's record.  */
 
 unsafe fn visit_vectorlike_root (visitor: gc_root_visitor,
 					ptr: *mut Lisp_Vector,
