@@ -4564,3 +4564,21 @@
   **没有任何 `mpz_*`**（它们在这个端口里是**独立单元** `mini-gmp.o`，`grep -c ' T _mpz_'` = 60，因为 `lib/mini-gmp.c` 是单独的移植文件）⇒
   链接集不是"把归档成员按 stem 映射"那么简单：**还要加上那些被 amalgamating 成员 `#include` 的单元**（gnulib 用 `#include` 合并源码、而本端口一个文件一个单元）。
   这条写进了 `docs/ports/link.md` 的保留①：在那条规则写下来之前，`port-owed` 是线索不是判决。
+
+- **3.246 链接那一级的门落地：`tools/check-link.py`（部分链接 + 棘轮）与第二条读数——**`port-owed` 归零**（2026-10-04）**：
+  ① **新工具**：`tools/check-link.py` 组 C 自己的对象集（`docs/baseline/frozen-build-sources.txt` 的 83 源映射到 `build/femacs/<stem>.o`，
+  减去**精确**匹配 `^\S+ [Tt] _main$` 的那些＝7 个独立程序，再加 `libgnu.a` 的成员），跑 `ld -r`（部分链接：不需要运行时库、不需要可执行成功），
+  `nm -u` 出"程序引用、没有任何成员定义"的名字，按参照对象（定义/引用两个集合）与 SDK `.tbd` 分类，
+  与棘轮 `docs/baseline/link-pending.txt` 比对（**新名字 FAIL、消失即删**）。未构建的对象存在时**拒绝比对**（会虚增清单），
+  提示先跑 `gate-fast`/`build-tu`。
+  ② **本轮修正的那条规则**（上一轮的保留①）：**gnulib 用 `#include` 合并源码、本端口一个文件一个单元** ⇒ 归档成员 `X-gnulib.o` 还要
+  加上同名的 `X.o`（`mini-gmp-gnulib.o` 里**没有一个 `mpz_*`**，`build/femacs/mini-gmp.o` 里有 **127** 个）——加上这条之后，
+  未定义符号从 **427 → 369**（`libc-or-platform` 270、`rust-runtime` 20、`unknown` 79），而 **`port-owed` 从 59 → 0**：
+  **参照的单元定义的每个符号，本端口的单元也都定义了**。这是一条实质结论，改了"链接还欠什么"的判断。
+  ③ **那 79 条 `unknown` 的实测分解**：**19** 条 `V…` 载体（端口**已记录**的偏离，`check-symbols.py` 记 467 个"折叠成 Rust 静态量"）、
+  **7** 条是 `src/xdisp.c` 还没落的名字（随它落地消失）、**53** 条尾巴——其中大多数是**参照-based 分类器看不到的 libc/BSD 名**
+  （C 经内联/宏路径到达它们：`clearerr`/`environ`/`fabs`/`fdopen`/`feof`/`ferror`/`fsync`/`getc`/`getchar`/`htons`/`lrint`/`ntohs`/`pathconf`/`pipe2`/`pselect`/`putc`/`putchar`/`realpath`/`sqrt`/`sync`/`umask`/`sigaddset`/`sigemptyset`…），
+  其余是端口**有意的结构偏离**（`current_buffer`、`specpdl`/`specpdl_ptr`/`specpdl_end` 在本端口是 Rust 结构）与 `src/xwidget.c` 未移植的 `syms_of_xwidget`。
+  ④ **因此链接这一级的真实状态**：**对象集自闭合**；剩下的是**一个决定**（`V…`/`specpdl`/`current_buffer` 这些偏离要不要还是给 C-ABI 载体）、
+  `xdisp` 的余量、以及真正的链接驱动那次带 `-lSystem` 与各 framework 的 `cc` 调用。读数、方法与两条教训（`_main` 前缀误伤 `thread.o`、
+  `.checking.o` 必须排除）都在 `docs/ports/link.md`；棘轮 369 行、门绿。

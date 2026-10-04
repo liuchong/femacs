@@ -70,6 +70,35 @@ Two caveats, both measured rather than assumed:
   whether to (a) export them after all, (b) accept them as a ratchet, or (c) prove no unit
   references them by that name.  This file records the question; it does not answer it.
 
+## The tool
+
+`python3 tools/check-link.py` (default: compare with the ratchet; `--write-pending`; `--report`
+prints every name with its class).  It refuses to compare when a frozen source has no built
+object (`gate-fast`/`build-tu` first), because an incomplete link set inflates the list.
+
+## Reading two (2026-10-04, after the amalgamation rule): 369 undefined, and `port-owed` is zero
+
+With the `X-gnulib.o` -> `X.o` rule the partial link of 76 program + 87 libgnu objects leaves
+**369** names, classified as **`libc-or-platform` 270**, **`rust-runtime` 20** and **`unknown` 79** -
+**nothing is `port-owed`**: every symbol the reference's own units define, this port's units define
+too.  The 79 `unknown` break down (measured, `--report` plus the two comparisons) as
+
+* **19** C carriers of the form `V...` - the port's *documented* deviation (`check-symbols.py`
+  counts 467 of them as folded into Rust statics),
+* **7** names `src/xdisp.c` still owes (`redisplay_internal`, `message_truncate_lines`,
+  `inhibit_message`, ...), which resolve as that unit lands,
+* **53** tail: libc/BSD entries the reference-based classifier cannot see because C reaches them
+  through inlined or macro paths (`clearerr`, `environ`, `fabs`, `fdopen`, `feof`, `ferror`,
+  `fsync`, `getc`, `getchar`, `htons`, `lrint`, `ntohs`, `pathconf`, `pipe2`, `pselect`, `putc`,
+  `putchar`, `realpath`, `sqrt`, `sync`, `umask`, `sigaddset`, `sigemptyset`, ...), plus the port's
+  deliberate structural deviations (`current_buffer`, `specpdl`/`specpdl_ptr`/`specpdl_end`, which
+  are Rust structures here) and `src/xwidget.c`'s unported `syms_of_xwidget`.
+
+So the honest state of the link rung is: **the object set closes over itself**; what is left is one
+*decision* (do the `V...`/`specpdl`/`current_buffer` deviations get C-ABI carriers after all, or do
+they stay the documented deviation?), `xdisp`'s remainder, and the real link driver's `cc`
+invocation with `-lSystem` and the frameworks.
+
 ## What the next step is
 
 `xtask link` (a new subcommand, not yet written): build C's object set as above, run the partial
