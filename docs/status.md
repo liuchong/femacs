@@ -4992,3 +4992,17 @@
   而 `gen-port-map.py` 现在会数出来（214/249/343/342/282/254）；在 HEAD 工作树上重生成，`docs/port-map.md` 与提交版差 **56 行**（diff 输出 170 行），
   其中 50 行是 1:1 Rust 侧的目标行数（`src/comp.rs` 38→48、`lib/stdlib.in.rs` 274→300 这类，且这两个文件在工作树里是**干净的**）⇒
   地图在 HEAD 上**确实是陈的**，值得一次"在 HEAD 里重生成生成物"的专门提交（协议 §1 的新鲜度链那一步）。
+- **3.296 生成物在 HEAD 上重生成：地图 52 行、inventory 11 行都不再是陈的（2026-10-05）**：
+  ① **方法**（协议 §1 的新鲜度链那一步，`Kept` 行的目标行数正是被 3.295 改动的读数，所以这一步不能不做）：一次性 worktree 在 **`7f47065`** 上
+  （`git worktree add --detach HEAD` + 把未跟踪的只读参照 `emacs/` 软链进去；参照与 `build/` 都不在版本控制里，所以 worktree 里必须软链），在**那里**跑
+  `tools/gen-port-map.py`、`tools/gen-port-inventory.py`，把结果拷回。**不拿脏工作树生成**是硬要求：主工作树里有五条 lane 的在飞文件（xdisp 19,197 行、xterm、abi_shim、dispextern、nsterm.swift），
+  用脏树生成会把在飞状态写进生成物。
+  ② **读数**：`docs/port-map.md` **52 行变了**（行数 787 不变、**0 个增/删 hunk**，全是"目标行数"列：`src/comp.rs` 38→48、`lib/stdlib.in.rs` 274→300、`src/alloc.rs` 8,258→8,259 …），
+  其中 `Kept` 六行的"目标行数"从 `-`（地图在 3.284 复制之前生成）变成 **214/249/343/342/282/254**（= 参照行数 − 16 行块 + 1 行出处行）；
+  `docs/port-inventory.md` **11 行变了**（行数 682 不变、**0 个增/删 hunk**）：汇总 `done / wip` **580/10 → 587/3**，状态列方向是**混合的**
+  （`lib/c-ctype.h`、`lib/stdlib.in.h`、`src/emacsgtkfixed.h`、`src/font.h`、`src/frame.h`、`src/w32.h` 等 wip→done；`src/xterm.c` done→wip——HEAD 的台账还有未勾项）
+  ⇒ **提交的那一对不是在任何一个干净 HEAD 上生成的**（3.284 之后主工作树就一直在飞），这就是"生成物 vs 工作树"双向对账才能看到的东西（3.202 同族）。
+  ③ **未测的两位**：`gen-baseline.py`（写 `docs/baseline/` 一整目录）与 `gen-lifetimes.py`（`LIFETIMES.tsv`）本轮**没跑**——它们与本次改动（汇编注释、门的后缀表）无关联，
+  且重生成面大；命名给下一轮或专门的"新鲜度链"提交。读数到此为止：这条链本轮覆盖 `gen-port-map` + `gen-port-inventory` 两位。
+  ④ **复检**：拷回后 `git diff --stat` = 2 文件 / 63 insertions / 63 deletions；`check-declarations` 仍 `13 / 0 / 0`（`read 661 files`，含 6 个 `.s`）、
+  `check-kept` 仍 `6 / 0`；worktree 用完即删（`git worktree remove --force`）。

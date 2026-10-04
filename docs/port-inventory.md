@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 590 |
-| 其中 done / wip | 580 / 10 |
+| 其中 done / wip | 587 / 3 |
 | 待开工 | 0 |
 
 ## 2 按目录
@@ -57,7 +57,7 @@
 | 参照文件 | 行 | 函数 | subr | 宏 | 字段 | 全局 | 批次 | 状态 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
 | `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 7 | 72 | E | wip |
-| `src/xterm.c` | 33,125 | 438 | 0 | 35 | 33 | 103 | F | done |
+| `src/xterm.c` | 33,125 | 438 | 0 | 35 | 33 | 103 | F | wip |
 | `src/sfnt.c` | 21,215 | 268 | 0 | 170 | 53 | 8 | E | done |
 | `src/keyboard.c` | 14,682 | 183 | 38 | 19 | 12 | 83 | E | done |
 | `src/image.c` | 13,805 | 223 | 12 | 152 | 61 | 12 | D | done |
@@ -130,7 +130,7 @@
 | `lib/byteswap.in.h` | 73 | 3 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/include/byteswap.in.rs` | done |
 | `lib/c++defs.h` | 367 | 0 | 0 | 23 | 0 | 0 | 0 | L | `femacs/lib/include/c++defs.rs` | done |
 | `lib/c-ctype.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/c-ctype.rs` | done |
-| `lib/c-ctype.h` | 366 | 15 | 0 | 12 | 1 | 0 | 0 | L | `femacs/lib/include/c-ctype.rs` | wip |
+| `lib/c-ctype.h` | 366 | 15 | 0 | 12 | 1 | 0 | 0 | L | `femacs/lib/include/c-ctype.rs` | done |
 | `lib/c-strcase.h` | 61 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/c-strcase.rs` | done |
 | `lib/c-strcasecmp.c` | 51 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/c-strcasecmp.rs` | done |
 | `lib/c-strncasecmp.c` | 51 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/c-strncasecmp.rs` | done |
@@ -305,7 +305,7 @@
 | `lib/stdio-impl.h` | 308 | 0 | 0 | 31 | 17 | 8 | 0 | L | `femacs/lib/include/stdio-impl.rs` | done |
 | `lib/stdio.in.h` | 2,224 | 1 | 0 | 84 | 11 | 0 | 0 | L | `femacs/lib/include/stdio.in.rs` | done |
 | `lib/stdlib.c` | 21 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdlib.rs` | done |
-| `lib/stdlib.in.h` | 1,991 | 2 | 0 | 75 | 15 | 7 | 0 | L | `femacs/lib/include/stdlib.in.rs` | wip |
+| `lib/stdlib.in.h` | 1,991 | 2 | 0 | 75 | 15 | 7 | 0 | L | `femacs/lib/include/stdlib.in.rs` | done |
 | `lib/stpcpy.c` | 49 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stpcpy.rs` | done |
 | `lib/str-two-way.h` | 455 | 3 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/str-two-way.rs` | done |
 | `lib/streq.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/streq.rs` | done |
@@ -493,18 +493,18 @@
 | `src/emacs-module.in.h` | 246 | 0 | 0 | 6 | 0 | 3 | 0 | G | `femacs/src/include/emacs-module.in.rs` | done |
 | `src/emacs.c` | 3,653 | 24 | 5 | 4 | 1 | 4 | 28 | D | `femacs/src/emacs.rs` | done |
 | `src/emacsgtkfixed.c` | 210 | 8 | 0 | 0 | 0 | 1 | 0 | F | `femacs/src/emacsgtkfixed.rs` | done |
-| `src/emacsgtkfixed.h` | 60 | 0 | 0 | 3 | 0 | 3 | 0 | F | `femacs/src/include/emacsgtkfixed.rs` | wip |
+| `src/emacsgtkfixed.h` | 60 | 0 | 0 | 3 | 0 | 3 | 0 | F | `femacs/src/include/emacsgtkfixed.rs` | done |
 | `src/eval.c` | 4,680 | 109 | 54 | 2 | 0 | 2 | 4 | B | `femacs/src/eval.rs` | done |
 | `src/fileio.c` | 7,085 | 61 | 55 | 10 | 3 | 7 | 8 | D | `femacs/src/fileio.rs` | done |
 | `src/filelock.c` | 840 | 16 | 5 | 2 | 5 | 0 | 0 | D | `femacs/src/filelock.rs` | done |
 | `src/floatfns.c` | 656 | 15 | 25 | 2 | 0 | 0 | 0 | B | `femacs/src/floatfns.rs` | done |
 | `src/fns.c` | 6,973 | 100 | 104 | 4 | 8 | 6 | 6 | B | `femacs/src/fns.rs` | done |
 | `src/font.c` | 6,091 | 82 | 22 | 10 | 29 | 8 | 8 | E | `femacs/src/font.rs` | done |
-| `src/font.h` | 1,034 | 20 | 0 | 28 | 23 | 71 | 5 | E | `femacs/src/include/font.rs` | wip |
+| `src/font.h` | 1,034 | 20 | 0 | 28 | 23 | 71 | 5 | E | `femacs/src/include/font.rs` | done |
 | `src/fontset.c` | 2,257 | 35 | 7 | 30 | 0 | 0 | 6 | E | `femacs/src/fontset.rs` | done |
 | `src/fontset.h` | 48 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/fontset.rs` | done |
 | `src/frame.c` | 7,907 | 100 | 69 | 0 | 5 | 2 | 8 | E | `femacs/src/frame.rs` | done |
-| `src/frame.h` | 1,956 | 48 | 0 | 143 | 37 | 182 | 7 | E | `femacs/src/include/frame.rs` | wip |
+| `src/frame.h` | 1,956 | 48 | 0 | 143 | 37 | 182 | 7 | E | `femacs/src/include/frame.rs` | done |
 | `src/fringe.c` | 1,880 | 20 | 4 | 9 | 5 | 6 | 4 | E | `femacs/src/fringe.rs` | done |
 | `src/ftcrfont.c` | 826 | 22 | 0 | 6 | 1 | 0 | 1 | E | `femacs/src/ftcrfont.rs` | done |
 | `src/ftfont.c` | 3,243 | 48 | 0 | 17 | 5 | 13 | 9 | E | `femacs/src/ftfont.rs` | done |
@@ -628,7 +628,7 @@
 | `src/vm-limit.c` | 220 | 6 | 0 | 3 | 4 | 0 | 6 | B | `femacs/src/vm-limit.rs` | done |
 | `src/w16select.c` | 692 | 11 | 3 | 11 | 11 | 0 | 1 | F | `femacs/src/w16select.rs` | done |
 | `src/w32.c` | 11,362 | 225 | 0 | 29 | 16 | 27 | 91 | F | `femacs/src/w32.rs` | done |
-| `src/w32.h` | 273 | 0 | 0 | 23 | 21 | 0 | 4 | F | `femacs/src/include/w32.rs` | wip |
+| `src/w32.h` | 273 | 0 | 0 | 23 | 21 | 0 | 4 | F | `femacs/src/include/w32.rs` | done |
 | `src/w32common.h` | 103 | 1 | 0 | 12 | 2 | 0 | 7 | F | `femacs/src/include/w32common.rs` | done |
 | `src/w32console.c` | 1,262 | 38 | 5 | 5 | 3 | 0 | 23 | F | `femacs/src/w32console.rs` | done |
 | `src/w32cygwinx.c` | 134 | 2 | 1 | 0 | 0 | 0 | 0 | F | `femacs/src/w32cygwinx.rs` | done |
@@ -637,7 +637,7 @@
 | `src/w32font.c` | 3,079 | 47 | 1 | 18 | 7 | 6 | 4 | F | `femacs/src/w32font.rs` | done |
 | `src/w32font.h` | 120 | 0 | 0 | 11 | 7 | 18 | 0 | F | `femacs/src/include/w32font.rs` | done |
 | `src/w32gdiplus.h` | 145 | 0 | 0 | 27 | 0 | 0 | 28 | F | `femacs/src/include/w32gdiplus.rs` | done |
-| `src/w32gui.h` | 115 | 0 | 0 | 39 | 19 | 0 | 1 | F | `femacs/src/include/w32gui.rs` | wip |
+| `src/w32gui.h` | 115 | 0 | 0 | 39 | 19 | 0 | 1 | F | `femacs/src/include/w32gui.rs` | done |
 | `src/w32heap.c` | 554 | 17 | 0 | 2 | 1 | 0 | 4 | F | `femacs/src/w32heap.rs` | done |
 | `src/w32heap.h` | 69 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/src/include/w32heap.rs` | done |
 | `src/w32image.c` | 717 | 13 | 1 | 1 | 8 | 5 | 34 | F | `femacs/src/w32image.rs` | done |
@@ -655,7 +655,7 @@
 | `src/w32xfns.c` | 447 | 12 | 0 | 3 | 3 | 0 | 8 | F | `femacs/src/w32xfns.rs` | done |
 | `src/widget.c` | 514 | 20 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/widget.rs` | done |
 | `src/widget.h` | 102 | 0 | 0 | 36 | 35 | 0 | 1 | E | `femacs/src/include/widget.rs` | done |
-| `src/widgetprv.h` | 70 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/widgetprv.rs` | wip |
+| `src/widgetprv.h` | 70 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/widgetprv.rs` | done |
 | `src/window.c` | 9,740 | 112 | 121 | 1 | 5 | 64 | 13 | E | `femacs/src/window.rs` | done |
 | `src/window.h` | 1,267 | 16 | 0 | 95 | 5 | 102 | 9 | E | `femacs/src/include/window.rs` | done |
 | `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 36 | 7 | 72 | E | `femacs/src/xdisp.rs` | wip |
@@ -672,7 +672,7 @@
 | `src/xsettings.c` | 1,421 | 28 | 3 | 19 | 26 | 9 | 7 | F | `femacs/src/xsettings.rs` | done |
 | `src/xsettings.h` | 51 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/xsettings.rs` | done |
 | `src/xsmfns.c` | 581 | 16 | 1 | 5 | 4 | 0 | 7 | F | `femacs/src/xsmfns.rs` | done |
-| `src/xterm.c` | 33,125 | 438 | 0 | 35 | 62 | 33 | 103 | F | `femacs/src/xterm.rs` | done |
+| `src/xterm.c` | 33,125 | 438 | 0 | 35 | 62 | 33 | 103 | F | `femacs/src/xterm.rs` | wip |
 | `src/xterm.h` | 2,045 | 3 | 0 | 99 | 12 | 323 | 14 | F | `femacs/src/include/xterm.rs` | done |
 | `src/xwidget.c` | 4,304 | 75 | 36 | 4 | 3 | 5 | 6 | F | `femacs/src/xwidget.rs` | done |
 | `src/xwidget.h` | 243 | 6 | 0 | 11 | 2 | 53 | 0 | F | `femacs/src/include/xwidget.rs` | done |
