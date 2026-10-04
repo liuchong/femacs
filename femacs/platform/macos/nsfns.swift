@@ -305,9 +305,6 @@ func ns_output_explicit_parent(_ f: UnsafeMutableRawPointer?) -> Bool
 func ns_output_set_explicit_parent(_ f: UnsafeMutableRawPointer?, _ v: Bool)
 @_silgen_name("ns_output_text_cursor")
 func ns_output_text_cursor(_ f: UnsafeMutableRawPointer?) -> NSObject?
-@_silgen_name("ns_output_set_text_cursor")
-func ns_output_set_text_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
-@_silgen_name("ns_output_set_cursor_kind") func ns_output_set_cursor_kind(_ f: UnsafeMutableRawPointer?, _ kind: UnsafePointer<CChar>)
 @_silgen_name("ns_output_set_current_pointer")
 func ns_output_set_current_pointer(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
 @_silgen_name("ns_output_in_animation")
@@ -503,6 +500,270 @@ func setDoubleBuffered(_ layer: CALayer?, _ flag: Bool)
 @_silgen_name("FULLSCREEN_WIDTH") func FULLSCREEN_WIDTH() -> Int32
 @_silgen_name("FULLSCREEN_HEIGHT") func FULLSCREEN_HEIGHT() -> Int32
 @_silgen_name("FULLSCREEN_MAXIMIZED") func FULLSCREEN_MAXIMIZED() -> Int32
+
+// ==========================================================================
+// Lane ABI (batch 2): the constructs C 1192-1884 reads.
+// ==========================================================================
+
+/// C: `void record_unwind_protect (void (*) (Lisp_Object), Lisp_Object)` (src/lisp.h 4818)
+/// and `Lisp_Object unbind_to (specpdl_ref, Lisp_Object)` (src/lisp.h 4833).
+@_silgen_name("record_unwind_protect")
+func record_unwind_protect(_ fn: @convention(c) (Lisp_Object) -> Void, _ arg: Lisp_Object)
+@_silgen_name("unbind_to")
+func unbind_to(_ count: specpdl_ref, _ value: Lisp_Object) -> Lisp_Object
+/// C: `Lisp_Object gui_default_parameter (struct frame *, Lisp_Object, Lisp_Object,
+/// Lisp_Object, const char *, const char *, enum resource_type)` (src/dispextern.h 4001).
+@_silgen_name("gui_default_parameter")
+func gui_default_parameter(_ f: UnsafeMutableRawPointer?, _ alist: Lisp_Object,
+                           _ prop: Lisp_Object, _ defval: Lisp_Object,
+                           _ xprop: UnsafePointer<CChar>?, _ xclass: UnsafePointer<CChar>?,
+                           _ type: Int32) -> Lisp_Object
+/// C: `struct frame *make_frame_without_minibuffer (Lisp_Object, struct kboard *, Lisp_Object)`
+/// (src/frame.h 1491), `struct frame *make_minibuffer_frame (void)` (src/frame.h 1489) and
+/// `struct frame *make_frame (bool)` (src/frame.c 581).
+@_silgen_name("make_frame_without_minibuffer")
+func make_frame_without_minibuffer(_ mini_window: Lisp_Object, _ kb: UnsafeMutableRawPointer?,
+                                   _ display: Lisp_Object) -> UnsafeMutableRawPointer?
+@_silgen_name("make_minibuffer_frame") func make_minibuffer_frame() -> UnsafeMutableRawPointer?
+@_silgen_name("make_frame") func make_frame(_ mini: Bool) -> UnsafeMutableRawPointer?
+/// C: `EMACS_UINT frame_set_id_from_params (struct frame *, Lisp_Object)` (src/frame.h 1430).
+@_silgen_name("frame_set_id_from_params")
+func frame_set_id_from_params(_ f: UnsafeMutableRawPointer?, _ params: Lisp_Object) -> UInt
+/// C: `void *xzalloc (size_t)` (src/lisp.h 5537) - `xmalloc` + zero fill.
+@_silgen_name("xzalloc") func xzalloc(_ size: Int) -> UnsafeMutableRawPointer?
+/// C: `void init_frame_faces (struct frame *)` (src/dispextern.h 3821).
+@_silgen_name("init_frame_faces") func init_frame_faces(_ f: UnsafeMutableRawPointer?)
+/// C: `long gui_figure_window_size (struct frame *, Lisp_Object, bool, bool)`
+/// (src/frame.h 1865).
+@_silgen_name("gui_figure_window_size")
+func gui_figure_window_size(_ f: UnsafeMutableRawPointer?, _ parms: Lisp_Object,
+                            _ toolbar_p: Bool, _ menubar_p: Bool) -> Int
+/// C: `void check_window_system (struct frame *)` (src/frame.h 1504) and
+/// `Lisp_Object quit (void)` (src/lisp.h 4786).
+@_silgen_name("check_window_system") func check_window_system(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("quit") func quit() -> Lisp_Object
+/// C: `struct frame *decode_live_frame (Lisp_Object)` (src/frame.h 1471).
+@_silgen_name("decode_live_frame")
+func decode_live_frame(_ frame: Lisp_Object) -> UnsafeMutableRawPointer?
+/// C: `Lisp_Object Fcopy_alist (Lisp_Object)` and `Ffile_directory_p` (subrs, globals.h).
+@_silgen_name("Fcopy_alist") func Fcopy_alist(_ alist: Lisp_Object) -> Lisp_Object
+@_silgen_name("Ffile_directory_p") func Ffile_directory_p(_ file: Lisp_Object) -> Lisp_Object
+/// C: `#define FRAME_HAS_MINIBUF_P(f)` (src/frame.h 1051) and
+/// `#define FRAME_PARENT_FRAME(f) ((f)->parent_frame)` (src/frame.h 1103).
+@_silgen_name("FRAME_HAS_MINIBUF_P")
+func FRAME_HAS_MINIBUF_P(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("FRAME_PARENT_FRAME")
+func FRAME_PARENT_FRAME(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `#define FRAME_UNDECORATED(f)` / `FRAME_NS_TRANSPARENT_TITLEBAR(f)` (src/frame.h 1239,
+/// 1259) - read *and* written by `x-create-frame`.
+@_silgen_name("FRAME_UNDECORATED") func FRAME_UNDECORATED(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("frame_set_undecorated")
+func frame_set_undecorated(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("FRAME_NS_TRANSPARENT_TITLEBAR")
+func FRAME_NS_TRANSPARENT_TITLEBAR(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("frame_set_ns_transparent_titlebar")
+func frame_set_ns_transparent_titlebar(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `#define USPosition (1L << 0)` / `#define PPosition (1L << 2)` (src/nsgui.h 125, 128).
+/// C: `#define SELECTED_FRAME()` (src/frame.h 1526-1528).
+@_silgen_name("SELECTED_FRAME") func SELECTED_FRAME() -> UnsafeMutableRawPointer?
+@_silgen_name("USPosition") func USPosition() -> Int
+@_silgen_name("PPosition") func PPosition() -> Int
+/// C: `enum` member of `enum ns_app_delegate_data_2` (src/nsterm.h 779):
+/// `NSAPP_DATA2_RUNFILEDIALOG`.
+@_silgen_name("NSAPP_DATA2_RUNFILEDIALOG") func NSAPP_DATA2_RUNFILEDIALOG() -> Int
+/// C: `#define KVAR(kboard, field) ((kboard)->field ## _)` (src/keyboard.h 38) and
+/// `INLINE void kset_default_minibuffer_frame (struct kboard *, Lisp_Object)`
+/// (src/keyboard.h 188).
+@_silgen_name("kboard_default_minibuffer_frame")
+func kboard_default_minibuffer_frame(_ kb: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("kset_default_minibuffer_frame")
+func kset_default_minibuffer_frame(_ kb: UnsafeMutableRawPointer?, _ val: Lisp_Object)
+/// C: `void ns_set_offset (struct frame *, int, int, int)` (src/nsterm.h 1126),
+/// `void ns_make_frame_visible (struct frame *)` (1226) and
+/// `void ns_iconify_frame (struct frame *)` (1228) - src/nsterm.m's.
+@_silgen_name("ns_set_offset")
+func ns_set_offset(_ f: UnsafeMutableRawPointer?, _ xoff: Int32, _ yoff: Int32, _ type: Int32)
+@_silgen_name("ns_make_frame_visible") func ns_make_frame_visible(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("ns_iconify_frame") func ns_iconify_frame(_ f: UnsafeMutableRawPointer?)
+/// C: `void ns_set_appearance_1 (struct frame *, Lisp_Object)` (src/nsterm.h 1240) -
+/// src/nsterm.m's.
+@_silgen_name("ns_set_appearance_1")
+func ns_set_appearance_1(_ f: UnsafeMutableRawPointer?, _ value: Lisp_Object)
+/// C: `void mac_register_font_driver (struct frame *)` (src/macfont.h 27) - src/macfont.m's
+/// port exports it (docs/ports/macfont.md).
+@_silgen_name("mac_register_font_driver")
+func mac_register_font_driver(_ f: UnsafeMutableRawPointer?)
+/// C: `char *xstrdup (char const *)` (src/lisp.h 5551) and `void xfree (void *)` (5543).
+@_silgen_name("xstrdup") func xstrdup(_ s: UnsafePointer<CChar>) -> UnsafeMutablePointer<CChar>?
+@_silgen_name("xfree") func xfree(_ p: UnsafeMutableRawPointer?)
+/// C: `ENCODE_FILE (Lisp_Object)` / `DECODE_FILE (Lisp_Object)` (src/coding.h 648, 652) and
+/// `INLINE Lisp_Object Ffile_directory_p`'s neighbour `current_buffer`
+/// (`#define current_buffer (current_thread->m_current_buffer)`, src/thread.h 147) with
+/// `BVAR (current_buffer, directory)` (src/buffer.h 308).
+@_silgen_name("ENCODE_FILE") func ENCODE_FILE(_ file: Lisp_Object) -> Lisp_Object
+@_silgen_name("DECODE_FILE") func DECODE_FILE(_ file: Lisp_Object) -> Lisp_Object
+@_silgen_name("current_buffer") func current_buffer() -> UnsafeMutableRawPointer?
+@_silgen_name("buffer_directory")
+func buffer_directory(_ buf: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `struct terminal`'s `kboard`, `name` and `reference_count` members (src/termhooks.h):
+/// the record is the core's, so each read/write is a C-ABI entry.
+@_silgen_name("terminal_kboard")
+func terminal_kboard(_ t: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("terminal_name") func terminal_name(_ t: UnsafeMutableRawPointer?) -> UnsafePointer<CChar>?
+@_silgen_name("terminal_increment_reference_count")
+func terminal_increment_reference_count(_ t: UnsafeMutableRawPointer?)
+/// C: the `struct frame` / `struct ns_output` members C 1192-1884 writes, as C-ABI entries
+/// (the records belong to the core; the same shape as the batch-1 `frame_set_*` group).
+@_silgen_name("frame_set_terminal")
+func frame_set_terminal(_ f: UnsafeMutableRawPointer?, _ t: UnsafeMutableRawPointer?)
+@_silgen_name("frame_alloc_ns_output") func frame_alloc_ns_output(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("frame_set_fontset") func frame_set_fontset(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("frame_set_no_split") func frame_set_no_split(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("frame_set_was_invisible") func frame_set_was_invisible(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("frame_set_can_set_window_size")
+func frame_set_can_set_window_size(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("fset_param_alist")
+func fset_param_alist(_ f: UnsafeMutableRawPointer?, _ alist: Lisp_Object)
+@_silgen_name("fset_parent_frame")
+func fset_parent_frame(_ f: UnsafeMutableRawPointer?, _ parent: Lisp_Object)
+@_silgen_name("frame_left_pos") func frame_left_pos(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_top_pos") func frame_top_pos(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_COLS") func FRAME_COLS(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_COLUMN_WIDTH") func FRAME_COLUMN_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_LINES") func FRAME_LINES(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: `struct ns_output`'s fifteen `Emacs_Cursor` members and the two on `struct
+/// ns_display_info` (src/nsterm.h 878-913): each is set by `x-create-frame`, so each is an
+/// accessor of the C member's own name.
+@_silgen_name("ns_output_set_text_cursor")
+func ns_output_set_text_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_nontext_cursor")
+func ns_output_set_nontext_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_modeline_cursor")
+func ns_output_set_modeline_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_hand_cursor")
+func ns_output_set_hand_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_hourglass_cursor")
+func ns_output_set_hourglass_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_horizontal_drag_cursor")
+func ns_output_set_horizontal_drag_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_vertical_drag_cursor")
+func ns_output_set_vertical_drag_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_left_edge_cursor")
+func ns_output_set_left_edge_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_top_left_corner_cursor")
+func ns_output_set_top_left_corner_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_top_edge_cursor")
+func ns_output_set_top_edge_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_top_right_corner_cursor")
+func ns_output_set_top_right_corner_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_right_edge_cursor")
+func ns_output_set_right_edge_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_bottom_right_corner_cursor")
+func ns_output_set_bottom_right_corner_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_bottom_edge_cursor")
+func ns_output_set_bottom_edge_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_output_set_bottom_left_corner_cursor")
+func ns_output_set_bottom_left_corner_cursor(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+@_silgen_name("ns_display_info_set_vertical_scroll_bar_cursor")
+func ns_display_info_set_vertical_scroll_bar_cursor(
+  _ dpyinfo: UnsafeMutablePointer<ns_display_info>?, _ v: NSObject?)
+@_silgen_name("ns_display_info_set_horizontal_scroll_bar_cursor")
+func ns_display_info_set_horizontal_scroll_bar_cursor(
+  _ dpyinfo: UnsafeMutablePointer<ns_display_info>?, _ v: NSObject?)
+/// C: the `EmacsView`/`EmacsWindow` messages C 1614-1884 sends across files - each is a C-ABI
+/// entry with the receiver first, and the port of src/nsterm.m owns the definitions.
+@_silgen_name("emacs_view_frame")
+func emacs_view_frame(_ view: AnyObject?) -> UnsafeMutableRawPointer?
+@_silgen_name("is_emacs_view") func is_emacs_view(_ obj: AnyObject?) -> Bool
+@_silgen_name("showFontPanel") func showFontPanel(_ view: NSView?) -> Lisp_Object
+@_silgen_name("restackWindow")
+func restackWindow(_ window: AnyObject?, _ window2: NSWindow?, _ above: Bool) -> Bool
+@_silgen_name("EmacsView_initFrameFromEmacs")
+func EmacsView_initFrameFromEmacs(_ f: UnsafeMutableRawPointer?) -> AnyObject?
+/// C: `id` values C 1614-1884 passes as the `EmacsView`/`EmacsWindow` receivers:
+/// `[NSApp orderedWindows]`' delegates and `[FRAME_NS_VIEW (f) window]` - the latter is the
+/// SDK's, the former an `AnyObject?` the port keeps untyped.
+
+/// C: `PVEC_SUBR` (src/lisp.h 999).
+@_silgen_name("PVEC_SUBR") func PVEC_SUBR() -> Int
+/// C: `PSEUDOVECTOR_AREA_BITS` (src/lisp.h 1039) - the second of the two enumerators the
+/// DEFUN record's header word above is built from.
+@_silgen_name("PSEUDOVECTOR_AREA_BITS") func PSEUDOVECTOR_AREA_BITS() -> Int
+/// C: `SPECPDL_INDEX ()` (src/lisp.h 3544-3660) - the macro over the specpdl stack that
+/// returns a `specpdl_ref`.
+@_silgen_name("SPECPDL_INDEX") func SPECPDL_INDEX() -> specpdl_ref
+/// C: `#define XSETFRAME(a, b) (XSETPSEUDOVECTOR (a, b, PVEC_FRAME))` (src/frame.h 1309) - the
+/// macro assigns to its first argument, so the entry takes its address.
+@_silgen_name("XSETFRAME") func XSETFRAME(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: UnsafeMutableRawPointer?)
+/// C: `void specbind (Lisp_Object symbol, Lisp_Object value)` (src/lisp.h 4817).
+@_silgen_name("specbind") func specbind(_ symbol: Lisp_Object, _ value: Lisp_Object)
+/// C: `FRAME_DISPLAY_INFO (f) = dpyinfo` (src/nsterm.h 1032's macro, written at src/nsfns.m
+/// 1283): the `struct frame` record belongs to the core, so the write is a C-ABI entry.
+@_silgen_name("frame_set_display_info")
+func frame_set_display_info(_ f: UnsafeMutableRawPointer?, _ dpyinfo: UnsafeMutablePointer<ns_display_info>?)
+
+/// More `Q…` symbols (generated globals.h, PORTING.md P-17; called as `Qfoo ()`).
+@_silgen_name("Qterminal") func Qterminal() -> Lisp_Object
+@_silgen_name("Qname") func Qname() -> Lisp_Object
+@_silgen_name("Qparent_id") func Qparent_id() -> Lisp_Object
+@_silgen_name("Qminibuffer") func Qminibuffer() -> Lisp_Object
+@_silgen_name("Qnone") func Qnone() -> Lisp_Object
+@_silgen_name("Qonly") func Qonly() -> Lisp_Object
+@_silgen_name("Qicon_name") func Qicon_name() -> Lisp_Object
+@_silgen_name("Qfont_backend") func Qfont_backend() -> Lisp_Object
+@_silgen_name("Qfontsize") func Qfontsize() -> Lisp_Object
+@_silgen_name("Qfont") func Qfont() -> Lisp_Object
+@_silgen_name("Qborder_width") func Qborder_width() -> Lisp_Object
+@_silgen_name("Qright_divider_width") func Qright_divider_width() -> Lisp_Object
+@_silgen_name("Qbottom_divider_width") func Qbottom_divider_width() -> Lisp_Object
+@_silgen_name("Qvertical_scroll_bars") func Qvertical_scroll_bars() -> Lisp_Object
+@_silgen_name("Qhorizontal_scroll_bars") func Qhorizontal_scroll_bars() -> Lisp_Object
+@_silgen_name("Qline_spacing") func Qline_spacing() -> Lisp_Object
+@_silgen_name("Qleft_fringe") func Qleft_fringe() -> Lisp_Object
+@_silgen_name("Qright_fringe") func Qright_fringe() -> Lisp_Object
+@_silgen_name("Qno_special_glyphs") func Qno_special_glyphs() -> Lisp_Object
+@_silgen_name("Qmin_width") func Qmin_width() -> Lisp_Object
+@_silgen_name("Qmin_height") func Qmin_height() -> Lisp_Object
+@_silgen_name("Qx_create_frame_1") func Qx_create_frame_1() -> Lisp_Object
+@_silgen_name("Qx_create_frame_2") func Qx_create_frame_2() -> Lisp_Object
+@_silgen_name("Qundecorated") func Qundecorated() -> Lisp_Object
+@_silgen_name("Qns_appearance") func Qns_appearance() -> Lisp_Object
+@_silgen_name("Qns_transparent_titlebar") func Qns_transparent_titlebar() -> Lisp_Object
+@_silgen_name("Qparent_frame") func Qparent_frame() -> Lisp_Object
+@_silgen_name("Qz_group") func Qz_group() -> Lisp_Object
+@_silgen_name("Qno_focus_on_map") func Qno_focus_on_map() -> Lisp_Object
+@_silgen_name("Qno_accept_focus") func Qno_accept_focus() -> Lisp_Object
+@_silgen_name("Qmenu_bar_lines") func Qmenu_bar_lines() -> Lisp_Object
+@_silgen_name("Qbuffer_predicate") func Qbuffer_predicate() -> Lisp_Object
+@_silgen_name("Qtitle") func Qtitle() -> Lisp_Object
+@_silgen_name("Qinhibit_double_buffering") func Qinhibit_double_buffering() -> Lisp_Object
+@_silgen_name("Qunsplittable") func Qunsplittable() -> Lisp_Object
+@_silgen_name("Qauto_raise") func Qauto_raise() -> Lisp_Object
+@_silgen_name("Qauto_lower") func Qauto_lower() -> Lisp_Object
+@_silgen_name("Qcursor_type") func Qcursor_type() -> Lisp_Object
+@_silgen_name("Qbox") func Qbox() -> Lisp_Object
+@_silgen_name("Qscroll_bar_width") func Qscroll_bar_width() -> Lisp_Object
+@_silgen_name("Qscroll_bar_height") func Qscroll_bar_height() -> Lisp_Object
+@_silgen_name("Qalpha") func Qalpha() -> Lisp_Object
+@_silgen_name("Qalpha_background") func Qalpha_background() -> Lisp_Object
+@_silgen_name("Qborders_respect_alpha_background")
+func Qborders_respect_alpha_background() -> Lisp_Object
+@_silgen_name("Qvisibility") func Qvisibility() -> Lisp_Object
+@_silgen_name("Qicon") func Qicon() -> Lisp_Object
+@_silgen_name("Qright") func Qright() -> Lisp_Object
+@_silgen_name("Qx_resource_name") func Qx_resource_name() -> Lisp_Object
+@_silgen_name("Qframep") func Qframep() -> Lisp_Object
+
+/// More of the core's variable storage (a `@_silgen_name` `var` imports the storage).
+/// C: `DEFVAR_LISP ("x-resource-name", …)` / `("invocation-name", …)` (src/xfns.c, src/emacs.c);
+/// `DEFVAR_LISP ("window-list", …)` (src/window.c) and the three mode flags
+/// (src/xdisp.c 27333-27343).
+@_silgen_name("Vx_resource_name") var Vx_resource_name: Lisp_Object
+@_silgen_name("Vinvocation_name") var Vinvocation_name: Lisp_Object
+@_silgen_name("Vwindow_list") var Vwindow_list: Lisp_Object
+@_silgen_name("Vmenu_bar_mode") var Vmenu_bar_mode: Lisp_Object
+@_silgen_name("Vtab_bar_mode") var Vtab_bar_mode: Lisp_Object
+@_silgen_name("Vtool_bar_mode") var Vtool_bar_mode: Lisp_Object
 
 // ==========================================================================
 // C 4101-4151: the `NSString (EmacsString)` category - this file's own definitions, called by
@@ -1480,3 +1741,654 @@ func get_geometry_from_preferences(_ dpyinfo: UnsafeMutablePointer<ns_display_in
 
   return parms
 }
+
+// ==========================================================================
+// C 1188-1610: `x-create-frame` (Fx_create_frame) - the file's biggest function.
+// ==========================================================================
+
+/// C: `DEFUN`'s file-static record (src/lisp.h 3406-3440): the header word is
+/// `PVEC_SUBR << PSEUDOVECTOR_AREA_BITS`, the function slot is C's `{.a ## maxargs = fnname}`,
+/// and the initialiser stops at `command_modes`/`doc`.
+fileprivate func make_aligned_subr(_ lname: StaticString, _ minargs: Int16, _ maxargs: Int16,
+                                   _ function: UnsafeMutableRawPointer) -> Aligned_Lisp_Subr {
+  return Aligned_Lisp_Subr(s: Lisp_Subr(
+    header: vectorlike_header(size: PVEC_SUBR() << PSEUDOVECTOR_AREA_BITS()),
+    function: Lisp_Subr_function(ptr: function),
+    min_args: minargs,
+    max_args: maxargs,
+    symbol_name: UnsafeRawPointer(lname.utf8Start).assumingMemoryBound(to: CChar.self),
+    intspec: nil,
+    command_modes: Qnil(),
+    doc: 0
+  ))
+}
+
+/// C 1207: `static int desc_ctr = 1;` - `x-create-frame`'s window-descriptor counter (a
+/// function-static in C, so a fileprivate global here).
+fileprivate var desc_ctr: Int32 = 1
+
+/// C 1192-1610.  `C 1199: NSWindow *main_window = [NSApp mainWindow];` is read before
+/// anything else happens, as C does.
+@_cdecl("Fx_create_frame")
+func Fx_create_frame(_ parmsIn: Lisp_Object) -> Lisp_Object {
+  var parms = parmsIn
+  var f: UnsafeMutableRawPointer?
+  var frame: Lisp_Object = Qnil()
+  var tem: Lisp_Object
+  var name: Lisp_Object
+  var minibuffer_only = false
+  var window_prompting = 0
+  let count = SPECPDL_INDEX()
+  var display: Lisp_Object
+  var dpyinfo: UnsafeMutablePointer<ns_display_info>? = nil
+  var parent: Lisp_Object
+  var parent_frame: Lisp_Object
+  var kb: UnsafeMutableRawPointer?
+  let main_window = NSApp.mainWindow
+
+  /* gui_display_get_arg modifies parms.  */
+  parms = Fcopy_alist(parms)
+
+  /* Use this general default value to start with
+     until we know if this frame has a specified name.  */
+  Vx_resource_name = Vinvocation_name
+
+  display = gui_display_get_arg(dpyinfo, parms, Qterminal(), nil, nil, RES_TYPE_STRING())
+  if EQ(display, Qunbound()) {
+    display = Qnil()
+  }
+  dpyinfo = check_ns_display_info(display)
+  kb = terminal_kboard(dpyinfo!.pointee.terminal)
+
+  if terminal_name(dpyinfo!.pointee.terminal) == nil {
+    error("Terminal is not live, can't create new frames on it")
+  }
+
+  name = gui_display_get_arg(dpyinfo, parms, Qname(), nil, nil, RES_TYPE_STRING())
+  if !STRINGP(name) && !EQ(name, Qunbound()) && !NILP(name) {
+    error("Invalid frame name--not a string or nil")
+  }
+
+  if STRINGP(name) {
+    Vx_resource_name = name
+  }
+
+  parent = gui_display_get_arg(dpyinfo, parms, Qparent_id(), nil, nil, RES_TYPE_NUMBER())
+  if EQ(parent, Qunbound()) {
+    parent = Qnil()
+  }
+  if !NILP(parent) {
+    CHECK_FIXNUM(parent)
+  }
+
+  /* make_frame_without_minibuffer can run Lisp code and garbage collect.  */
+  /* No need to protect DISPLAY because that's not used after passing
+     it to make_frame_without_minibuffer.  */
+  frame = Qnil()
+  tem = gui_display_get_arg(dpyinfo, parms, Qminibuffer(), "minibuffer", "Minibuffer",
+                            RES_TYPE_SYMBOL())
+  if EQ(tem, Qnone()) || NILP(tem) {
+    f = make_frame_without_minibuffer(Qnil(), kb, display)
+  } else if EQ(tem, Qonly()) {
+    f = make_minibuffer_frame()
+    minibuffer_only = true
+  } else if WINDOWP(tem) {
+    f = make_frame_without_minibuffer(tem, kb, display)
+  } else {
+    f = make_frame(true)
+  }
+
+  frame = nil
+  withUnsafeMutablePointer(to: &frame) { XSETFRAME($0, f) }
+
+  _ = frame_set_id_from_params(f, parms)
+
+  frame_set_terminal(f, dpyinfo!.pointee.terminal)
+
+  frame_set_output_method(f, output_ns())
+  frame_alloc_ns_output(f)
+
+  frame_set_fontset(f, -1)
+
+  fset_icon_name(f, gui_display_get_arg(dpyinfo, parms, Qicon_name(), "iconName", "Title",
+                                        RES_TYPE_STRING()))
+  if !STRINGP(frame_icon_name(f)) {
+    fset_icon_name(f, Qnil())
+  }
+
+  frame_set_display_info(f, dpyinfo)
+
+  /* With FRAME_DISPLAY_INFO set up, this unwind-protect is safe.  */
+  record_unwind_protect({ frame in do_unwind_create_frame(frame) }, frame)
+
+  ns_output_set_window_desc(f, UInt(desc_ctr))
+  desc_ctr += 1
+  if TYPE_RANGED_FIXNUMP(parent) {
+    ns_output_set_parent_desc(f, UInt(XFIXNAT(parent)))
+    ns_output_set_explicit_parent(f, true)
+  } else {
+    ns_output_set_parent_desc(f, FRAME_DISPLAY_INFO(f).pointee.root_window)
+    ns_output_set_explicit_parent(f, false)
+  }
+
+  /* Set the name; the functions to which we pass f expect the name to
+     be set.  */
+  if EQ(name, Qunbound()) || NILP(name) || !STRINGP(name) {
+    fset_name(f, lispString(ns_app_name!))
+    frame_set_explicit_name(f, false)
+  } else {
+    fset_name(f, name)
+    frame_set_explicit_name(f, true)
+    specbind(Qx_resource_name(), name)
+  }
+
+  block_input()
+
+  /* C 1310-1314: the `NS_IMPL_COCOA` arm registers the macfont driver; the `#else` arm is
+     `register_font_driver (&nsfont_driver, f)`, another target's.  */
+  mac_register_font_driver(f)
+
+  _ = gui_default_parameter(f, parms, Qfont_backend(), Qnil(), "fontBackend", "FontBackend",
+                            RES_TYPE_STRING())
+
+  do {
+    /* use for default font name */
+    let font = NSFont.userFixedPitchFont(ofSize: -1.0)!  /* default */
+    _ = gui_default_parameter(f, parms, Qfontsize(),
+                              make_fixnum(0 /* (int)[font pointSize] */),
+                              "fontSize", "FontSize", RES_TYPE_NUMBER())
+    /* Remove ' Regular', not handled by backends.  */
+    let fontname = xstrdup(font.displayName!)
+    let len = Int(strlen(fontname!))
+    if len > 8 && strcmp(fontname! + len - 8, " Regular") == 0 {
+      fontname![len - 8] = 0
+    }
+    _ = gui_default_parameter(f, parms, Qfont(), build_string(fontname!),
+                              "font", "Font", RES_TYPE_STRING())
+    xfree(fontname)
+  }
+  unblock_input()
+
+  _ = gui_default_parameter(f, parms, Qborder_width(), make_fixnum(0),
+                            "borderwidth", "BorderWidth", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qinternal_border_width(), make_fixnum(2),
+                            "internalBorderWidth", "InternalBorderWidth", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qchild_frame_border_width(), Qnil(),
+                            "childFrameBorderWidth", "childFrameBorderWidth",
+                            RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qright_divider_width(), make_fixnum(0),
+                            nil, nil, RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qbottom_divider_width(), make_fixnum(0),
+                            nil, nil, RES_TYPE_NUMBER())
+
+  /* default vertical scrollbars on right on Mac */
+  do {
+    let spos = Qright()  /* C 1344-1348: `#ifdef NS_IMPL_GNUSTEP … = Qt; #else … = Qright;` */
+    _ = gui_default_parameter(f, parms, Qvertical_scroll_bars(), spos,
+                              "verticalScrollBars", "VerticalScrollBars", RES_TYPE_SYMBOL())
+  }
+  _ = gui_default_parameter(f, parms, Qhorizontal_scroll_bars(), Qnil(),
+                            "horizontalScrollBars", "HorizontalScrollBars", RES_TYPE_SYMBOL())
+  _ = gui_default_parameter(f, parms, Qforeground_color(), build_string("Black"),
+                            "foreground", "Foreground", RES_TYPE_STRING())
+  _ = gui_default_parameter(f, parms, Qbackground_color(), build_string("White"),
+                            "background", "Background", RES_TYPE_STRING())
+  _ = gui_default_parameter(f, parms, Qline_spacing(), Qnil(),
+                            "lineSpacing", "LineSpacing", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qleft_fringe(), Qnil(),
+                            "leftFringe", "LeftFringe", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qright_fringe(), Qnil(),
+                            "rightFringe", "RightFringe", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qno_special_glyphs(), Qnil(), nil, nil,
+                            RES_TYPE_BOOLEAN())
+
+  init_frame_faces(f)
+
+  /* Read comment about this code in corresponding place in xfns.c.  */
+  tem = gui_display_get_arg(dpyinfo, parms, Qmin_width(), nil, nil, RES_TYPE_NUMBER())
+  if FIXNUMP(tem) {
+    store_frame_param(f, Qmin_width(), tem)
+  }
+  tem = gui_display_get_arg(dpyinfo, parms, Qmin_height(), nil, nil, RES_TYPE_NUMBER())
+  if FIXNUMP(tem) {
+    store_frame_param(f, Qmin_height(), tem)
+  }
+  adjust_frame_size(f, FRAME_COLS(f) * FRAME_COLUMN_WIDTH(f),
+                    FRAME_LINES(f) * FRAME_LINE_HEIGHT(f), 5, true,
+                    Qx_create_frame_1())
+
+  tem = gui_display_get_arg(dpyinfo, parms, Qundecorated(), nil, nil, RES_TYPE_BOOLEAN())
+  frame_set_undecorated(f, !NILP(tem) && !EQ(tem, Qunbound()))
+  store_frame_param(f, Qundecorated(), FRAME_UNDECORATED(f) ? Qt() : Qnil())
+
+  /* C 1405-1418, the `NS_IMPL_COCOA` arm.  */
+  tem = gui_display_get_arg(dpyinfo, parms, Qns_appearance(), nil, nil, RES_TYPE_SYMBOL())
+  ns_set_appearance_1(f, tem)
+  store_frame_param(f, Qns_appearance(),
+                    (!NILP(tem) && !EQ(tem, Qunbound())) ? tem : Qnil())
+
+  tem = gui_display_get_arg(dpyinfo, parms, Qns_transparent_titlebar(), nil, nil,
+                            RES_TYPE_BOOLEAN())
+  frame_set_ns_transparent_titlebar(f, !NILP(tem) && !EQ(tem, Qunbound()))
+  store_frame_param(f, Qns_transparent_titlebar(),
+                    FRAME_NS_TRANSPARENT_TITLEBAR(f) ? Qt() : Qnil())
+
+  parent_frame = gui_display_get_arg(dpyinfo, parms, Qparent_frame(), nil, nil,
+                                     RES_TYPE_SYMBOL())
+  /* Accept parent-frame iff parent-id was not specified.  */
+  if !NILP(parent)
+      || EQ(parent_frame, Qunbound())
+      || NILP(parent_frame)
+      || !FRAMEP(parent_frame)
+      || !FRAME_LIVE_P(XFRAME(parent_frame)) {
+    parent_frame = Qnil()
+  }
+
+  fset_parent_frame(f, parent_frame)
+  store_frame_param(f, Qparent_frame(), parent_frame)
+
+  _ = gui_default_parameter(f, parms, Qz_group(), Qnil(), nil, nil, RES_TYPE_SYMBOL())
+  _ = gui_default_parameter(f, parms, Qno_focus_on_map(), Qnil(), nil, nil, RES_TYPE_BOOLEAN())
+  _ = gui_default_parameter(f, parms, Qno_accept_focus(), Qnil(), nil, nil, RES_TYPE_BOOLEAN())
+
+  /* The resources controlling the menu-bar and tool-bar are
+     processed specially at startup, and reflected in the mode
+     variables; ignore them here.  */
+  _ = gui_default_parameter(f, parms, Qmenu_bar_lines(),
+                            NILP(Vmenu_bar_mode) ? make_fixnum(0) : make_fixnum(1),
+                            nil, nil, RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qtab_bar_lines(),
+                            NILP(Vtab_bar_mode) ? make_fixnum(0) : make_fixnum(1),
+                            nil, nil, RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qtool_bar_lines(),
+                            NILP(Vtool_bar_mode) ? make_fixnum(0) : make_fixnum(1),
+                            nil, nil, RES_TYPE_NUMBER())
+
+  _ = gui_default_parameter(f, parms, Qbuffer_predicate(), Qnil(), "bufferPredicate",
+                            "BufferPredicate", RES_TYPE_SYMBOL())
+  _ = gui_default_parameter(f, parms, Qtitle(), Qnil(), "title", "Title", RES_TYPE_STRING())
+
+  /* C 1455-1461, the `NS_IMPL_COCOA` + macOS 10.14 arm.  */
+  tem = gui_display_get_arg(dpyinfo, parms, Qinhibit_double_buffering(), nil, nil,
+                            RES_TYPE_BOOLEAN())
+  frame_set_double_buffered(f, NILP(tem) || EQ(tem, Qunbound()))
+  store_frame_param(f, Qinhibit_double_buffering(),
+                    FRAME_DOUBLE_BUFFERED(f) ? Qnil() : Qt())
+
+  parms = get_geometry_from_preferences(dpyinfo, parms)
+  window_prompting = gui_figure_window_size(f, parms, false, true)
+
+  tem = gui_display_get_arg(dpyinfo, parms, Qunsplittable(), nil, nil, RES_TYPE_BOOLEAN())
+  frame_set_no_split(f, minibuffer_only || (!EQ(tem, Qunbound()) && !NILP(tem)))
+
+  /* NOTE: on other terms, this is done in set_mouse_color, however this
+     was not getting called under Nextstep.  */
+  ns_output_set_text_cursor(f, NSCursor.iBeam)
+  ns_output_set_nontext_cursor(f, NSCursor.arrow)
+  ns_output_set_modeline_cursor(f, NSCursor.pointingHand)
+  ns_output_set_hand_cursor(f, NSCursor.pointingHand)
+  ns_output_set_hourglass_cursor(f, NSCursor.disappearingItem)
+  ns_output_set_horizontal_drag_cursor(f, NSCursor.resizeLeftRight)
+  ns_output_set_vertical_drag_cursor(f, NSCursor.resizeUpDown)
+  ns_output_set_left_edge_cursor(f, NSCursor.resizeLeftRight)
+  ns_output_set_top_left_corner_cursor(f, NSCursor.arrow)
+  ns_output_set_top_edge_cursor(f, NSCursor.resizeUpDown)
+  ns_output_set_top_right_corner_cursor(f, NSCursor.arrow)
+  ns_output_set_right_edge_cursor(f, NSCursor.resizeLeftRight)
+  ns_output_set_bottom_right_corner_cursor(f, NSCursor.arrow)
+  ns_output_set_bottom_edge_cursor(f, NSCursor.resizeUpDown)
+  ns_output_set_bottom_left_corner_cursor(f, NSCursor.arrow)
+
+  ns_display_info_set_vertical_scroll_bar_cursor(FRAME_DISPLAY_INFO(f), NSCursor.arrow)
+  ns_display_info_set_horizontal_scroll_bar_cursor(FRAME_DISPLAY_INFO(f), NSCursor.arrow)
+  ns_output_set_current_pointer(f, ns_output_text_cursor(f))
+
+  ns_output_set_in_animation(f, 0)
+
+  /* If the app has previously been disabled, start it up again.  */
+  NSApp.setActivationPolicy(.regular)
+
+  _ = EmacsView_initFrameFromEmacs(f)
+
+  ns_icon(f, parms)
+
+  /* ns_display_info does not have a reference_count.  */
+  terminal_increment_reference_count(dpyinfo!.pointee.terminal)
+
+  /* It is now ok to make the frame official even if we get an error
+     below.  The frame needs to be on Vframe_list or making it visible
+     won't work.  */
+  Vframe_list = Fcons(frame, Vframe_list)
+
+  _ = gui_default_parameter(f, parms, Qicon_type(), Qnil(),
+                            "bitmapIcon", "BitmapIcon", RES_TYPE_SYMBOL())
+
+  _ = gui_default_parameter(f, parms, Qauto_raise(), Qnil(),
+                            "autoRaise", "AutoRaiseLower", RES_TYPE_BOOLEAN())
+  _ = gui_default_parameter(f, parms, Qauto_lower(), Qnil(),
+                            "autoLower", "AutoLower", RES_TYPE_BOOLEAN())
+  _ = gui_default_parameter(f, parms, Qcursor_type(), Qbox(),
+                            "cursorType", "CursorType", RES_TYPE_SYMBOL())
+  _ = gui_default_parameter(f, parms, Qscroll_bar_width(), Qnil(),
+                            "scrollBarWidth", "ScrollBarWidth", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qscroll_bar_height(), Qnil(),
+                            "scrollBarHeight", "ScrollBarHeight", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qalpha(), Qnil(),
+                            "alpha", "Alpha", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qalpha_background(), Qnil(),
+                            "alphaBackground", "AlphaBackground", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qborders_respect_alpha_background(), Qnil(),
+                            "bordersRespectAlphaBackground",
+                            "BordersRespectAlphaBackground", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qfullscreen(), Qnil(),
+                            "fullscreen", "Fullscreen", RES_TYPE_SYMBOL())
+
+  /* Allow set_window_size_hook, now.  */
+  frame_set_can_set_window_size(f, true)
+
+  adjust_frame_size(f, FRAME_TEXT_WIDTH(f), FRAME_TEXT_HEIGHT(f),
+                    0, true, Qx_create_frame_2())
+
+  if !ns_output_explicit_parent(f) {
+    var visibility: Lisp_Object
+
+    visibility = gui_display_get_arg(dpyinfo, parms, Qvisibility(), nil, nil,
+                                     RES_TYPE_SYMBOL())
+    if EQ(visibility, Qunbound()) {
+      visibility = Qt()
+    }
+
+    if EQ(visibility, Qicon()) {
+      ns_iconify_frame(f)
+    } else if !NILP(visibility) {
+      ns_make_frame_visible(f)
+      FRAME_NS_VIEW(f)?.window?.makeKey()
+    } else {
+      /* Must have been Qnil.  */
+      frame_set_was_invisible(f, true)
+    }
+  }
+
+  if FRAME_HAS_MINIBUF_P(f)
+      && (!FRAMEP(kboard_default_minibuffer_frame(kb))
+          || !FRAME_LIVE_P(XFRAME(kboard_default_minibuffer_frame(kb)))) {
+    kset_default_minibuffer_frame(kb, frame)
+  }
+
+  /* All remaining specified parameters, which have not been "used" by
+     gui_display_get_arg and friends, now go in the misc. alist of the
+     frame.  */
+  tem = parms
+  while CONSP(tem) {
+    if CONSP(XCAR(tem)) && !NILP(XCAR(XCAR(tem))) {
+      fset_param_alist(f, Fcons(XCAR(tem), frame_param_alist(f)))
+    }
+    tem = XCDR(tem)
+  }
+
+  /* This cascading behavior (which is the job of the window manager
+     on X-based systems) is something NS applications are expected to
+     implement themselves.  At least one person tells me he used
+     Carbon Emacs solely for this behavior.  */
+  if window_prompting & (USPosition() | PPosition()) != 0 || !NILP(FRAME_PARENT_FRAME(f)) {
+    ns_set_offset(f, frame_left_pos(f), frame_top_pos(f), 1)
+  } else {
+    let frame_window = FRAME_NS_VIEW(f)?.window
+
+    if main_window != nil {
+      var top_left = NSPoint(x: main_window!.frame.minX, y: main_window!.frame.maxY)
+      top_left = frame_window!.cascadeTopLeft(from: top_left)
+      _ = frame_window!.cascadeTopLeft(from: top_left)
+    } else {
+      frame_window?.center()
+    }
+  }
+
+  /* Make sure windows on this frame appear in calls to next-window
+     and similar functions.  */
+  Vwindow_list = Qnil()
+
+  return unbind_to(count, frame)
+}
+fileprivate let lname_x_create_frame: StaticString = "x-create-frame"
+fileprivate var Sx_create_frame: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_create_frame, 1, 1,
+                    unsafeBitCast(Fx_create_frame, to: UnsafeMutableRawPointer.self))
+
+// ==========================================================================
+// C 1612-1884: the frame z-order / restack / font / color-panel DEFUNs, the file dialog, and
+// `ns_read_file_name`.
+// ==========================================================================
+
+/// C 1614-1622: test whether CANDIDATE is an ancestor window of WIN.
+func ns_window_is_ancestor(_ win: NSWindow?, _ candidate: NSWindow?) -> Bool {
+  if candidate == nil {
+    return false
+  } else if win == candidate {
+    return true
+  } else {
+    return ns_window_is_ancestor(win, candidate?.parent)
+  }
+}
+
+/// C 1624-1651: `DEFUN ("ns-frame-list-z-order", …)`.
+@_cdecl("Fns_frame_list_z_order")
+func Fns_frame_list_z_order(_ terminal: Lisp_Object) -> Lisp_Object {
+  var frames: Lisp_Object = Qnil()
+  var parent: NSWindow? = nil
+
+  if FRAMEP(terminal) && FRAME_LIVE_P(XFRAME(terminal)) {
+    parent = FRAME_NS_VIEW(XFRAME(terminal))?.window
+  }
+
+  for win in NSApp.orderedWindows.reversed() {
+    var frame: Lisp_Object = Qnil()
+
+    /* Check against [win parentWindow] so that it doesn't match itself. */
+    if is_emacs_view(win.delegate) && (parent == nil || ns_window_is_ancestor(parent, win.parent)) {
+      withUnsafeMutablePointer(to: &frame) { XSETFRAME($0, emacs_view_frame(win.delegate)) }
+      frames = Fcons(frame, frames)
+    }
+  }
+
+  return frames
+}
+fileprivate let lname_ns_frame_list_z_order: StaticString = "ns-frame-list-z-order"
+fileprivate var Sns_frame_list_z_order: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_frame_list_z_order, 0, 1,
+                    unsafeBitCast(Fns_frame_list_z_order, to: UnsafeMutableRawPointer.self))
+
+/// C 1653-1680: `DEFUN ("ns-frame-restack", …)`.
+@_cdecl("Fns_frame_restack")
+func Fns_frame_restack(_ frame1: Lisp_Object, _ frame2: Lisp_Object,
+                       _ above: Lisp_Object) -> Lisp_Object {
+  let f1 = decode_live_frame(frame1)
+  let f2 = decode_live_frame(frame2)
+
+  if FRAME_NS_VIEW(f1) != nil && FRAME_NS_VIEW(f2) != nil {
+    let window = FRAME_NS_VIEW(f1)?.window
+    let window2 = FRAME_NS_VIEW(f2)?.window
+
+    if restackWindow(window, window2, !NILP(above)) {
+      return Qt()
+    } else {
+      return Qnil()
+    }
+  } else {
+    error("Cannot restack frames")
+    /* C 1678-1679's `return Qnil` is unreachable (`error` is `_Noreturn`), recorded above.  */
+  }
+}
+fileprivate let lname_ns_frame_restack: StaticString = "ns-frame-restack"
+fileprivate var Sns_frame_restack: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_frame_restack, 2, 3,
+                    unsafeBitCast(Fns_frame_restack, to: UnsafeMutableRawPointer.self))
+
+/// C 1682-1699: `DEFUN ("x-select-font", …)`.
+@_cdecl("Fx_select_font")
+func Fx_select_font(_ frame: Lisp_Object, _ ignored: Lisp_Object) -> Lisp_Object {
+  let f = decode_window_system_frame(frame)
+  let font = showFontPanel(FRAME_NS_VIEW(f))
+
+  if NILP(font) {
+    _ = quit()
+  }
+
+  return font
+}
+fileprivate let lname_x_select_font: StaticString = "x-select-font"
+fileprivate var Sx_select_font: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_select_font, 0, 2,
+                    unsafeBitCast(Fx_select_font, to: UnsafeMutableRawPointer.self))
+
+/// C 1701-1712: `DEFUN ("ns-popup-color-panel", …)` - C's `""` interactively is a null
+/// interactive spec, which the port spells `nil`.
+@_cdecl("Fns_popup_color_panel")
+func Fns_popup_color_panel(_ frame: Lisp_Object) -> Lisp_Object {
+  check_window_system(nil)
+  NSApp.orderFrontColorPanel(NSApp)
+  return Qnil()
+}
+fileprivate let lname_ns_popup_color_panel: StaticString = "ns-popup-color-panel"
+fileprivate var Sns_popup_color_panel: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_popup_color_panel, 0, 1,
+                    unsafeBitCast(Fns_popup_color_panel, to: UnsafeMutableRawPointer.self))
+
+/// C 1715-1724: the file dialog's `static struct { id panel; BOOL ret; … } ns_fd_data;`.  The
+/// `NS_IMPL_GNUSTEP`-only `dirS`/`initS`/`no_types` members are recorded, not carried.
+struct ns_fd_data_t {
+  var panel: AnyObject? = nil
+  var ret: Bool = false
+}
+fileprivate var ns_fd_data = ns_fd_data_t()
+
+/// C 1768: `static id fileDelegate = nil;` - the panel's delegate, created once and kept
+/// (the port of C 4048-4065's `EmacsFileDelegate` class owns the class itself).
+fileprivate var file_delegate: AnyObject? = nil
+
+/// C 1774: `fileDelegate = [EmacsFileDelegate new];` - a cross-file class-method call into
+/// C 4048-4065's class, which the next batch ports; the ledger's `## ABI` (3) records it.
+@_silgen_name("EmacsFileDelegate_new") func EmacsFileDelegate_new() -> AnyObject?
+
+/// C 1726-1749 (non-static).  The `NS_IMPL_COCOA` arm is `[panel runModal]`; the `#else` arm
+/// is GNUstep's `runModalForDirectory:file:[types:]` pair.
+@_cdecl("ns_run_file_dialog")
+func ns_run_file_dialog() {
+  if ns_fd_data.panel == nil { return }
+  ns_fd_data.ret = (ns_fd_data.panel as? NSSavePanel)?.runModal() == .OK
+  ns_fd_data.panel = nil
+}
+
+/* C 1752-1760: `#define MODAL_OK_RESPONSE NSModalResponseOK` (the `MAC_OS_X_VERSION_MAX_ALLOWED
+   > 1090` arm) with a GNUstep `NSOKButton` fallback.  The port uses the SDK's spelling,
+   `NSApplication.ModalResponse.OK`, at its one use site.  */
+
+/// C 1762-1884: `DEFUN ("ns-read-file-name", …)`.
+@_cdecl("Fns_read_file_name")
+func Fns_read_file_name(_ prompt: Lisp_Object, _ dir: Lisp_Object, _ mustmatch: Lisp_Object,
+                        _ init_ : Lisp_Object, _ dir_only_p: Lisp_Object) -> Lisp_Object {
+  let isSave = NILP(mustmatch) && NILP(dir_only_p)
+  var panel: NSSavePanel?
+  var fname: Lisp_Object = Qnil()
+  var promptS: NSString?
+  var dirS: NSString?
+  var initS: NSString?
+  var str: NSString?
+
+  promptS = (NILP(prompt) || !STRINGP(prompt)) ? nil : stringWithLispString(prompt)
+  if NILP(dir) || !STRINGP(dir) {
+    dirS = stringWithLispString(ENCODE_FILE(buffer_directory(current_buffer())))
+  } else {
+    dirS = stringWithLispString(ENCODE_FILE(dir))
+  }
+  initS = (NILP(init_) || !STRINGP(init_)) ? nil : stringWithLispString(init_)
+
+  check_window_system(nil)
+
+  /* C 1770: `static id fileDelegate = nil;` - the delegate is kept for the panel's lifetime. */
+  if file_delegate == nil {
+    file_delegate = EmacsFileDelegate_new()
+  }
+
+  NSCursor.setHiddenUntilMouseMoves(false)
+
+  if dirS!.character(at: 0) == UInt16(UInt8(ascii: "~")) {
+    dirS = dirS!.expandingTildeInPath as NSString
+  }
+
+  panel = isSave ? NSSavePanel() : NSOpenPanel()
+
+  panel?.title = promptS as String?  /* C 1781: `[panel setTitle: promptS]` */
+
+  panel?.allowsOtherFileTypes = true
+  panel?.treatsFilePackagesAsDirectories = true
+  panel?.delegate = file_delegate as? any NSOpenSavePanelDelegate
+
+  if !NILP(dir_only_p) {
+    (panel as? NSOpenPanel)?.canChooseDirectories = true
+    (panel as? NSOpenPanel)?.canChooseFiles = false
+  } else if !isSave {
+    /* This is not quite what the documentation says, but it is compatible
+       with the Gtk+ code.  Also, the menu entry says "Open File...".  */
+    (panel as? NSOpenPanel)?.canChooseDirectories = false
+    (panel as? NSOpenPanel)?.canChooseFiles = true
+  }
+
+  block_input()
+  ns_fd_data.panel = panel
+  ns_fd_data.ret = false
+  if !NILP(mustmatch) || !NILP(dir_only_p) {
+    /* C 1802-1816, the `NS_IMPL_COCOA` + macOS 12 arm.  */
+    panel?.allowedContentTypes = []
+  }
+  if dirS != nil { panel?.directoryURL = URL(fileURLWithPath: dirS! as String) }
+  if initS != nil && NILP(Ffile_directory_p(init_)) {
+    panel?.nameFieldStringValue = (initS! as String as NSString).lastPathComponent
+  } else {
+    panel?.nameFieldStringValue = ""
+  }
+
+  /* runModalForDirectory/runModal restarts the main event loop when done,
+     so we must start an event loop and then pop up the file dialog.
+     The file dialog may pop up a confirm dialog after Ok has been pressed,
+     so we can not simply pop down on the Ok/Cancel press.
+   */
+  let nxev = NSEvent.otherEvent(with: .applicationDefined,
+                                location: NSPoint(x: 0, y: 0),
+                                modifierFlags: [],
+                                timestamp: 0,
+                                windowNumber: NSApp.mainWindow?.windowNumber ?? 0,
+                                context: nil,
+                                subtype: 0,
+                                data1: 0,
+                                data2: NSAPP_DATA2_RUNFILEDIALOG())
+
+  NSApp.postEvent(nxev!, atStart: false)
+  while ns_fd_data.panel != nil {
+    NSApp.run()
+  }
+
+  if ns_fd_data.ret {
+    str = ns_filename_from_panel(panel!)
+
+    if str == nil {
+      str = ns_directory_from_panel(panel!)
+    }
+    if str != nil {
+      fname = lispString(str!)
+    }
+
+    if !NILP(fname) {
+      fname = DECODE_FILE(fname)
+    }
+  }
+
+  FRAME_NS_VIEW(SELECTED_FRAME())?.window?.makeKey()
+  unblock_input()
+
+  return fname
+}
+fileprivate let lname_ns_read_file_name: StaticString = "ns-read-file-name"
+fileprivate var Sns_read_file_name: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_read_file_name, 1, 5,
+                    unsafeBitCast(Fns_read_file_name, to: UnsafeMutableRawPointer.self))

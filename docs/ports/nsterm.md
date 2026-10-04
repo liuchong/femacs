@@ -47,10 +47,10 @@
 - [x] ns_row_rect  (line 808, static) — landed; `window_box` + `WINDOW_TO_FRAME_PIXEL_Y` are entries, and `row->y`/`row->visible_height` are member entries per nsmenu.swift's rule
 - [x] ns_frame_scale_factor  (line 828) — landed as `@_cdecl("ns_frame_scale_factor")` (src/nsterm.h 1260; called src/nsfns.m 3598); the `backingScaleFactor` arm is live, the GNUstep/`respondsToSelector:` arms recorded dead
 - [x] constrain_frame_rect  (line 892, static) — landed; C's `#if 0` restriction (C 962-985) recorded, not transcribed
-- [ ] ns_constrain_all_frames  (line 1001, static)
-- [ ] ns_update_auto_hide_menu_bar  (line 1033, static)
-- [ ] ns_update_begin  (line 1075, static)
-- [ ] ns_UAZoomChangeFocus  (line 1162, static)
+- [x] ns_constrain_all_frames  (line 1001, static) — landed; `FOR_EACH_FRAME` is spelled out per `docs/ports/nsfns.swift` 967, and `[view isFullscreen]` is the first **deferred entry** (`## ABI` (4))
+- [x] ns_update_auto_hide_menu_bar  (line 1033, static) — landed; the whole body is the `NS_IMPL_COCOA` arm, and `NSApplicationPresentationDefault` is Swift's empty option set (`[]`, since `.default` is unavailable)
+- [x] ns_update_begin  (line 1075, static) — landed; `swiftc -c` reports C's own `lockFocus` deprecation (Evidence), and the port keeps the call
+- [x] ns_UAZoomChangeFocus  (line 1162, static) — landed; the receiver is `NSView?` because only `NSView`/`NSWindow` messages are sent to it, and `UAZoomChangeFocus`'s third argument needs `UAZoomChangeFocusType(…)` (the SDK's enum imports as `Int`)
 - [ ] ns_update_end  (line 1212, static)
 - [ ] ns_unfocus  (line 1282, static)
 - [ ] ns_ring_bell  (line 1436, static)
@@ -165,6 +165,13 @@
 - [ ] ns_xlfd_to_fontname  (line 11484)
 - [ ] mark_nsterm  (line 11529)
 - [ ] syms_of_nsterm  (line 11550)
+
+Two definitions the generator's list misses (the reader skips the `static inline CGRect` return
+line and a `static BOOL` split across lines); they are boxes of their own so the checklist is
+complete - a regeneration would drop them, the way `docs/ports/data.md` records its 120-vs-116
+difference:
+- [x] ns_ua_zoom_enabled_p  (line 1102, static) — landed as `fileprivate func ns_ua_zoom_enabled_p () -> Bool`
+- [x] ns_cg_rect_flip_y  (line 1142, static inline) — landed as `fileprivate func ns_cg_rect_flip_y (_ rect: CGRect) -> CGRect`
 
 
 **8 `@implementation`s, 1 file-local `@interface`, 193 method start lines.**
@@ -454,12 +461,12 @@ the mirror's member names, and its layout is measured rather than assumed - clan
 - [x] static BOOL ns_do_open_file  (line 334, static)  — landed
 - [x] static BOOL ns_last_use_native_fullscreen  (line 335, static)  — landed
 - [x] static BOOL any_help_event_p  (line 340, static)  — landed
-- [ ] static BOOL ns_is_UAZoomEnabled  (line 1095, static)
-- [ ] static unsigned long ns_UAZoomEnabled_last_called_time_ns  (line 1096, static)
-- [ ] static NSTimer ns_deferred_UAZoomChangeFocus_timer  (line 1100, static)
-- [ ] static NSRect ns_UAZoom_cursor_rect_new  (line 1154, static)
-- [ ] static NSRect ns_UAZoom_cursor_rect_old  (line 1155, static)
-- [ ] static BOOL ns_update_was_UAZoomEnabled  (line 1159, static)
+- [x] static BOOL ns_is_UAZoomEnabled  (line 1095, static) — landed as `fileprivate var ns_is_UAZoomEnabled: Bool = false`
+- [x] static unsigned long ns_UAZoomEnabled_last_called_time_ns  (line 1096, static) — landed (`UInt64`)
+- [x] static NSTimer ns_deferred_UAZoomChangeFocus_timer  (line 1100, static) — landed as `Timer?`
+- [x] static NSRect ns_UAZoom_cursor_rect_new  (line 1154, static) — landed as `NSRect.zero`
+- [x] static NSRect ns_UAZoom_cursor_rect_old  (line 1155, static) — landed as `NSRect.zero`
+- [x] static BOOL ns_update_was_UAZoomEnabled  (line 1159, static) — landed as `Bool = false`
 - [ ] static EmacsBell bell_view  (line 1433, static)
 - [ ] static NSMutableDictionary fringe_bmp  (line 3089, static)
 
@@ -476,6 +483,10 @@ otherwise skips); they are added by hand so the checklist is complete - see Deci
 - [x] static NSMutableArray ns_pending_service_names  (line 332) — landed
 - [x] static NSMutableArray ns_pending_service_args  (line 333) — landed
 - [x] static struct { … } hold_event_q  (lines 342-347) — landed as three fields (`hold_event_q_q`/`_nr`/`_cap`)
+- [x] static const unsigned long NS_UAZOOMENABLED_CACHE_INTERVAL_NS  (line 1095) — landed as a
+      file-scope `let` (`500 * NSEC_PER_MSEC`); a generator gap of the `static const` kind
+- [x] static NSTimeInterval NS_UAZOOMENABLED_DEFER_INTERVAL_SECS  (line 1097) — landed as a
+      file-scope `var` (0.2); the same gap family
 
 # ----------------------------------------------------------------------
 ## Decisions
@@ -501,21 +512,22 @@ macros (C 773-807), `ns_row_rect` (C 808-827), `ns_frame_scale_factor` (C 828-89
 `constrain_frame_rect` (C 892-991) - so the covered range is now **C 60-991**, with
 `EV_TRAILER`/`EV_TRAILER2` (C 448-470) held to C 5013 (below).
 
-**The next live definition is C 1001's `ns_constrain_all_frames`**, and it is the lane's next
-design question rather than a transcription: its body calls this unit's own `EmacsView`
-`-isFullscreen` (C 8957), a method of a class that lands 8,000 lines later in the same file.
-Swift resolves the *name* file-wide but needs the class to exist in the compiled file, so the
-free functions' ~71 call sites into `EmacsView`/`EmacsApp` (C 1001-6000) cannot land before the
-classes do.  The two candidate shapes, and the evidence that the second is already the lane's,
-are in this round's report; the ruling decides how the rest of the file is transcribed.
+**Round 5 lands C 1001-1211** under the integrator's ruling for the forward reference (see
+`## ABI` (4)): `ns_constrain_all_frames` (C 1001-1030), `ns_update_auto_hide_menu_bar`
+(C 1033-1073), `ns_update_begin` (C 1075-1087) and the whole macOS Accessibility Zoom block
+(C 1090-1211 - its six statics, two interval constants, `ns_ua_zoom_enabled_p`,
+`ns_cg_rect_flip_y` and `ns_UAZoomChangeFocus`) - so the covered range is now **C 60-1211**.
+The next live definition is C 1212's `ns_update_end`.
 
-Ticked above: **24 of the 142 function boxes** (the twenty-one landed - through round 4's eight -
+Ticked above: **30 of the 144 function boxes** (the generator's 142 plus the two round 5 found
+it misses) (the twenty-one landed - through round 4's eight -
 and the three dead `nstrace_*`), **16 of the 23 macro boxes** (the eight masks,
 `NO_APPDEFINED_DATA` and the five `EV_*` accessors, plus `DOCK_IGNORE_LIMIT` and the two
-`NS_PARENT_WINDOW_*`; the two held ones stay open), **39 of the 47 file-scope-object boxes**
-(31 of the generator's 39 plus the 8 hand-added ones), **1 of the 1 type box** (`EmacsMargins`,
+`NS_PARENT_WINDOW_*`; the two held ones stay open), **47 of the 49 file-scope-object boxes**
+(the generator's 39 minus its gaps, the 8 hand-added round 1 rows, and round 5's two interval
+constants), **1 of the 1 type box** (`EmacsMargins`,
 C 650) and **1 of the 8 Objective-C classes** (`NSColor (EmacsColor)`, all four of its methods).
-The other 118 function boxes, 7 macro boxes, 7 class boxes and 189 method boxes are later
+The other 114 function boxes, 7 macro boxes, 7 class boxes and 189 method boxes are later
 slices.
 
 **The slice's text had been landed before this round but measured with `swiftc -parse`, which
@@ -816,6 +828,41 @@ Roughly 71 such call sites sit in C 1001-6000.  The two candidate shapes:
 
 **This lane recommends (b)**, and this round's report asks for the ruling before C 1001.
 
+### Round 5: the ruling's entry/definition split, and the Accessibility Zoom block
+
+**The forward reference is settled by an entry/definition split.**  The integrator's ruling:
+where a free function messages a class that lands later in this same file, the call site declares
+a C-ABI entry of the selector's name, receiver first, under a **different Swift name**
+(`isFullscreen_entry`), and the definition - `@_cdecl("isFullscreen")` under the selector's own
+Swift name - lands beside the class.  Two Swift functions, one C symbol, so the file compiles at
+every slice; the alternative (the same name declared and later defined) is `invalid
+redeclaration`, measured in round 1.  `## ABI` (4) is the table the ruling asks for, with the
+first call site, the class each entry waits for, and its state; the acceptance for a row is that
+`nm -u` stops listing its name (this round's `nm -u` still shows `_isFullscreen`, which is
+correct - `EmacsView` lands at C 7039).
+
+**(a) was rejected for the reason the integrator gives**: landing `EmacsApp`/`EmacsView`/
+`EmacsWindow` (C 6225-10610) early abandons C order, and their bodies call the free functions
+back, so every boundary becomes a judgement call.
+
+**`FOR_EACH_FRAME` is spelled, not imported.**  C 1011's loop macro becomes `var tail =
+Vframe_list; while CONSP (tail) { … tail = XCDR (tail) }`, the spelling
+`docs/ports/nsfns.swift` 967 already uses for the same macro - a loop cannot be a C-ABI entry, so
+the lane writes the macro's own text.
+
+**The UAZoom block's library reaches.**  `UAZoomEnabled`/`UAZoomChangeFocus` need
+`import ApplicationServices` (HIServices' `UniversalAccess.h`), and the SDK's
+`kUAZoomFocusTypeInsertionPoint` imports as `Int` while the parameter is
+`UAZoomChangeFocusType` (`UInt32`), so the call spells the conversion.  `CGMainDisplayID`/
+`CGDisplayBounds` come from CoreGraphics, `clock_gettime_nsec_np (CLOCK_UPTIME_RAW)` from
+libSystem, and `NSAccessibilityPostNotification` is Swift's
+`NSAccessibility.post(element:notification:)` (the C name is replaced, measured).
+
+**One warning, recorded.**  `swiftc -c` reports `'lockFocus()' was deprecated in macOS 10.14` for
+C's own `[view lockFocus]` (C 1085); the port keeps the call, and the warning is quoted in
+`## Evidence`.  It is not silence-worthy: the lane's landed `nsimage.swift` compiles with four
+warnings of its own (measured).
+
 ## ABI
 
 ### (1) C symbols this file defines and exports (`@_cdecl`)
@@ -869,12 +916,33 @@ what `nm -g` shows (Evidence).
 | `WINDOW_TO_FRAME_PIXEL_Y` | `#define WINDOW_TO_FRAME_PIXEL_Y(W, Y) ((Y) + WINDOW_TOP_EDGE_Y (W))` | src/window.h 1078 | header-only |
 | `window_box` | `void window_box (struct window *, enum glyph_row_area, int *, int *, int *, int *)` | src/dispextern.h 3574 | src/window.c |
 | `glyph_row_y`, `glyph_row_visible_height` | the record members `row->y`, `row->visible_height` | src/dispextern.h (the `struct glyph_row` members) | **open**: member entries, per `docs/ports/nsmenu.swift` 311-328 |
+| `block_input`, `unblock_input` | `void block_input (void)` / `void unblock_input (void)` | src/blockinput.h | src/keyboard.c |
+| `CONSP`, `XCAR`, `XCDR` | the list walkers `FOR_EACH_FRAME` is spelled with | src/lisp.h | header-only (`docs/ports/nsfns.swift` 179/191/192) |
+| `Vframe_list` | `DEFVAR_LISP ("frame-list", …)` variable | src/frame.c | **open**: data symbol, the core's to export |
+| `UAZoomEnabled`, `UAZoomChangeFocus` | `Boolean UAZoomEnabled (void)` / `OSStatus UAZoomChangeFocus (const CGRect *, const CGRect *, UAZoomChangeFocusType)` | ApplicationServices' `UniversalAccess.h` | ApplicationServices |
+| `CGMainDisplayID`, `CGDisplayBounds` | CoreGraphics | `CGDirectDisplay.h` | CoreGraphics |
+| `clock_gettime_nsec_np` | `uint64_t clock_gettime_nsec_np (clockid_t)` | time.h | libSystem |
 
 `Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
 core exports a C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  The
 two `var` imports (`ns_use_srgb_colorspace`, the seven `ns_*_modifier`s) are data symbols, which
 is why `tools/check-swift-units.py` counts only the `func` imports; `nm -u` on the built object
 lists the whole set (Evidence).
+
+### (4) Deferred entries (the round-5 ruling's contract)
+
+| entry name (`@_silgen_name`, Swift name) | first call site | waits for | state |
+| --- | --- | --- | --- |
+| `isFullscreen` (`isFullscreen_entry`) | src/nsterm.m 1001 (`ns_constrain_all_frames`) | `EmacsView -isFullscreen`, C 8957 | **deferred** |
+| `setMiniwindowImage` | `nsfns.swift` 390 | `EmacsView -setMiniwindowImage:`, C 9721 | **deferred** |
+| `fullscreenState` | `nsfns.swift` 392 | `EmacsView -fullscreenState`, C 9741 | **deferred** |
+| `setFSValue` | `nsfns.swift` 393 | `EmacsView -setFSValue:`, C 9177 | **deferred** |
+| `beginDrag` | `nsselect.swift` 223 | `EmacsWindow -beginDrag:…`, C 10528 | **deferred** |
+
+Each row's definition is `@_cdecl("<selector>")` with the receiver first, landing beside its
+class; the acceptance is that `nm -u` no longer lists the entry's name.  Round 5 adds the first
+row; the other four are the cross-unit contract the same table records, and the round's report
+repeats them until they land.
 
 ### (3) What other units must supply
 
@@ -969,6 +1037,20 @@ lists the whole set (Evidence).
   -undefined -Xlinker dynamic_lookup`, then the program) -> `EmacsMargins size 32 align 8 top 0
   bottom 8 left 16 right 24` (the stub C file defines the data symbols the core still owes, so
   that dyld can start the program - the same note as the `input_event` probe).
+* Round 5's compile, same command: **exit 0 with one warning**, `'lockFocus()' was deprecated in
+  macOS 10.14: To draw, subclass NSView and implement -drawRect: …` at the port's
+  `ns_update_begin` - C's own `[view lockFocus]` (C 1085).  For scale: the lane's landed
+  `nsimage.swift` prints **4** warnings under the same command (measured), so a recorded
+  deprecation is ordinary here, not a defect.  Two errors were fixed on the way, both named by
+  the compiler: `let cgRectJiggle` cannot be passed as `&` (`var` now, matching C's mutable
+  local), and the `UAZoomChangeFocusType(…)` conversion above.
+* `nm -g /tmp/s188r5/nsterm.o | grep ' T _'` -> **no new C export this round** (the block adds
+  only fileprivate functions and statics).
+* `nm -u /tmp/s188r5/nsterm.o` -> round 5's imports: `_block_input`, `_unblock_input`, `_XFRAME`,
+  `_FRAME_NS_P`, `_CONSP`, `_XCAR`, `_XCDR`, `_Vframe_list`, `_UAZoomEnabled`,
+  `_UAZoomChangeFocus`, `_CGMainDisplayID`, `_CGDisplayBounds`, `_clock_gettime_nsec_np`, `_NSLog`
+  - and **`_isFullscreen`**, the deferred entry of `## ABI` (4), which stays undefined until
+  `EmacsView` lands (its absence from this list is that row's acceptance test).
 * `struct input_event`'s layout, C side (`clang -std=gnu23 -I build/emacs-ref/src -I
   build/emacs-ref/lib -I emacs/src -I emacs/lib` on a probe including `<config.h>`, `lisp.h`,
   `systime.h` and `termhooks.h`) -> `sizeof 64 align 8`, `code 4 modifiers 8 x 16 y 24

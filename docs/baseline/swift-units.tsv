@@ -22,10 +22,8 @@ femacs/platform/macos/nsfns.swift	ns_init_colors	src/nsfns.m
 femacs/platform/macos/nsfns.swift	ns_make_monitor_attribute_list	src/nsfns.m
 femacs/platform/macos/nsfns.swift	ns_move_tooltip_to_mouse_location	src/nsfns.m
 femacs/platform/macos/nsfns.swift	ns_run_ascript	src/nsfns.m
-femacs/platform/macos/nsfns.swift	ns_run_file_dialog	src/nsfns.m
 femacs/platform/macos/nsfns.swift	ns_set_scroll_bar_default_height	src/nsfns.m
 femacs/platform/macos/nsfns.swift	ns_set_scroll_bar_default_width	src/nsfns.m
-femacs/platform/macos/nsfns.swift	ns_window_is_ancestor	src/nsfns.m
 femacs/platform/macos/nsfns.swift	syms_of_nsfns	src/nsfns.m
 femacs/platform/macos/nsfns.swift	unwind_create_tip_frame	src/nsfns.m
 femacs/platform/macos/nsfns.swift	x_hide_tip	src/nsfns.m
@@ -40,14 +38,12 @@ femacs/platform/macos/nsterm.swift	hide_bell	src/nsterm.m
 femacs/platform/macos/nsterm.swift	mark_nsterm	src/nsterm.m
 femacs/platform/macos/nsterm.swift	nil_or_none	src/nsterm.m
 femacs/platform/macos/nsterm.swift	not_in_argv	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_UAZoomChangeFocus	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_after_update_window_line	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_clear_frame	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_clear_frame_area	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_clear_under_internal_border	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_compute_glyph_string_overhangs	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_condemn_scroll_bars	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_constrain_all_frames	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_convert_key	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_create_font_panel_buttons	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_create_terminal	src/nsterm.m
@@ -140,8 +136,6 @@ femacs/platform/macos/nsterm.swift	ns_string_to_lispmod	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_init	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_shutdown	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_unfocus	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_update_auto_hide_menu_bar	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_update_begin	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_update_end	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_update_window_end	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_xlfd_to_fontname	src/nsterm.m

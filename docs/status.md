@@ -4442,3 +4442,30 @@
 - **3.240 补记（同轮）**：`check-undef` 报两条棘轮行已满足（`_restore_frame_selected_window`、`_restore_selected_window`——`xdisp` 第 17/18 轮把它们落成了定义），
   按"行不再匹配即删"的规则从 `docs/baseline/undef-pending.txt` 删掉（110 行 → **108 行**）：复跑 `check-undef` →
   **`108 pending, 0 new`，且不再打印任何 stale 行**。（工具把"仍对应孤儿的行"计作 pending、把"已满足的行"单列 stale，所以 110→108 时 pending 仍是 108 ✅ 两个读数一起读才对。）
+
+- **3.241 两条平台 lane 入库：`nsterm` 第 5 轮（1,300 行）与 `nsfns` 批②（2,394 行），`swift-units` 与 `swift-imports` 两门同时转绿（2026-10-04）**：
+  ① **`nsterm` 第 5 轮**：`nsterm.swift` 1,084 → **1,300 行**（C 1001-1211：`ns_constrain_all_frames`、`ns_update_auto_hide_menu_bar`、
+  `ns_update_begin`、整个 Accessibility Zoom 块：6 个 static + 2 个区间常量 + `ns_ua_zoom_enabled_p` + `ns_cg_rect_flip_y` + `ns_UAZoomChangeFocus`），
+  台账 1,085 行（**95 勾 / 131 未勾**）；`swiftc -parse-as-library -c` **exit 0**（1 条 warning：C 自己 C 1085 的 `[view lockFocus]` 在 macOS 10.14 弃用；
+  量级参照：已入库的 `nsimage.swift` 有 4 条）。**3.239 的裁决形状落地**：`@_silgen_name("isFullscreen") func isFullscreen_entry (…)` 在调用点、
+  台账 `## ABI` 新表列出 **5 条待定条目**（`isFullscreen` ← C 1001 首个调用点、等 `EmacsView -isFullscreen` C 8957；另四条是别的单元已在用的
+  `setMiniwindowImage`/`fullscreenState`/`setFSValue`/`beginDrag`，各自的类行号都记了），**验收 = `nm -u` 里这些名字消失**。
+  形态决定：`FOR_EACH_FRAME` 照宏自己拼（不导入）、`UAZoomEnabled`/`UAZoomChangeFocus` 要 `import ApplicationServices` 且形参类型要显式转换、
+  `NSApplicationPresentationDefault` 在 Swift 里是 `[]`、`cgRectJiggle` 要 `var`（`&` 传参）；她还**手工补了生成器漏掉的 4 个盒子**
+  （两个 `static inline`/跨行 `static` 的函数 + 两个区间常量，并记了"重生成会丢"）。
+  ② **`nsfns` 批②**：`nsfns.swift` 1,482 → **2,394 行**（+915，C 1188-1884），台账 383 → 487 行（未勾 **71**）；
+  `swiftc -parse-as-library -c` **exit 0 / 0 error / 0 warning**（那一批唯一的 warning 是 `main_window` 未变，已改 `let`）；
+  新增 **7 个 `@_cdecl` 导出**：`Fx_create_frame`（DEFUN 1/1，C 1192 那个 418 行的大函数）、`Fns_frame_list_z_order`、`Fns_frame_restack`、
+  `Fx_select_font`、`Fns_popup_color_panel`、`ns_run_file_dialog`、`Fns_read_file_name`（6 个 `S…` 记录照 C 的 file-static 用 `fileprivate`）。
+  形态决定：`f->output_data.ns = xzalloc (…)` 走 core 的 `frame_alloc_ns_output (f)`（记录归 core、分配是 core 的动作）；
+  15 个 `Emacs_Cursor` 槽 + 2 个滚动条 cursor 走**逐成员访问器**，并**删掉了批① 那条拼错的 `ns_output_set_cursor_kind` 字符串派发**；
+  6 个 DEFUN 对用本批新增的 `make_aligned_subr`（含 `PVEC_SUBR << PSEUDOVECTOR_AREA_BITS` 头字）；`record_unwind_protect` 传非捕获闭包；
+  `MODAL_OK_RESPONSE` = `NSApplication.ModalResponse.OK`；`id panel` → `NSSavePanel? as? NSOpenPanel`；`[NSSavePanel savePanel]` → `NSSavePanel()`；
+  `[[NSApp orderedWindows] reverseObjectEnumerator]` → `NSApp.orderedWindows.reversed()`；`EmacsFileDelegate_new ()` 等下一批。
+  ③ **两条棘轮/清册的同步**：`swift-units.tsv` 删 **6** 行（Poincare 4 + Boyle 2），`swift-import-pending.txt` 本轮 **+102 行**（在飞 lane 新增的
+  "core 还没导出"导入，按四类写 reason）并删 **3 条 stale**（`Vframe_list`、`isFullscreen`、`ns_output_set_cursor_kind`——最后一条正是 Boyle 删掉的错拼法）。
+  **读数的口径提醒**：`check-swift-imports.py` 的"provider 集"取自 `build/femacs/**/*.o` 的导出 + Swift 的 `@_cdecl`，所以 `build/` 里若存在临时探针
+  （例如 shim 设计期的 `abi_shim.rs`）会瞬时"提供"某些名字；判据要在**落库后的那次构建**上重取。
+  ④ 读数（本轮末）：`check-swift-units` **0 new / 0 stale / 7 units**；`check-swift-imports` **662 imports / 5532 core exports /
+  533 unprovided / 533 ratchet rows / 0 failures**；全树台账 **13596 勾 / 531 未勾**（未勾：`nsterm` 323、`xdisp` 131、`nsfns` 71、`macfont` 3、`nsfont` 2）；
+  `check-declarations` 13/0、`check-mirror-dupes` 1/1/0、`check-verbatim` 6/4607/0、`layout-check passed`。

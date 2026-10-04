@@ -18,8 +18,12 @@
 // parent-window rect (C 773-807), `ns_row_rect` (C 808-827), `ns_frame_scale_factor` (C 828-891)
 // and `constrain_frame_rect` (C 892-991).  The next live definition is C 1001's
 // `ns_constrain_all_frames`, which needs a ruling: it calls this unit's own `EmacsView`
-// `-isFullscreen` (C 8957), a method of a class that lands much later in the same file (see the
-// report's finding).
+// `-isFullscreen` (C 8957), a method of a class that lands much later in the same file: the
+// entry/definition split the ruling settled (see `## ABI` (4) in the ledger).  **Round 5 lands
+// C 1001-1211**: `ns_constrain_all_frames` (C 1001-1030), `ns_update_auto_hide_menu_bar`
+// (C 1033-1073), `ns_update_begin` (C 1075-1087) and the whole macOS Accessibility Zoom block
+// (C 1090-1211: its statics, `ns_ua_zoom_enabled_p`, `ns_cg_rect_flip_y` and
+// `ns_UAZoomChangeFocus`).  The next live definition is C 1212's `ns_update_end`.
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -36,6 +40,7 @@
 
 import Foundation
 import AppKit
+import ApplicationServices
 
 // ==========================================================================
 // Lane ABI: C types.
@@ -1081,4 +1086,215 @@ fileprivate func constrain_frame_rect(_ frameRect: NSRect, _ isFullscreen: Bool)
   // screens." - the disabled "ensure frame doesn't stretch below the screens" restriction.
 
   return frameRect
+}
+
+// ==========================================================================
+// C 1001-1211: window constraining, the menu bar's deferred visibility, and
+// the macOS Accessibility Zoom support.
+// ==========================================================================
+
+/// C: `void block_input (void)` / `void unblock_input (void)` (src/blockinput.h).
+@_silgen_name("block_input") func block_input()
+@_silgen_name("unblock_input") func unblock_input()
+/// C: `struct frame *XFRAME (Lisp_Object)` (src/frame.h) - the lane's reading
+/// (docs/ports/nsfns.swift 193).
+@_silgen_name("XFRAME") func XFRAME(_ a: Lisp_Object) -> UnsafeMutableRawPointer?
+/// C: `INLINE bool FRAME_NS_P (struct frame *f)` (src/nsterm.h).
+@_silgen_name("FRAME_NS_P") func FRAME_NS_P(_ f: UnsafeMutableRawPointer?) -> Bool
+/// C: `#define CONSP(x)` / `XCAR (c)` / `XCDR (c)` (src/lisp.h) - the list walkers
+/// `FOR_EACH_FRAME` is spelled with (docs/ports/nsfns.swift 179/191/192).
+@_silgen_name("CONSP") func CONSP(_ x: Lisp_Object) -> Bool
+@_silgen_name("XCAR") func XCAR(_ c: Lisp_Object) -> Lisp_Object
+@_silgen_name("XCDR") func XCDR(_ c: Lisp_Object) -> Lisp_Object
+/// C: `Vframe_list` - the `DEFVAR_LISP ("frame-list", …)` variable (src/frame.c), read here as a
+/// data symbol like the other core variables this unit imports.
+@_silgen_name("Vframe_list") var Vframe_list: Lisp_Object
+
+/// **A deferred entry** (`docs/ports/nsterm.md`'s `## ABI` (4)).  `ns_constrain_all_frames`
+/// (C 1001) messages this unit's own `EmacsView` `-isFullscreen`, whose class lands at C 8957 -
+/// so the call goes through a C-ABI entry of the selector's name, receiver first, under a Swift
+/// name that is *not* the definition's; the `@_cdecl("isFullscreen")` definition lands beside
+/// the class.  When it does, `nm -u` stops listing `_isFullscreen` - that is this entry's
+/// acceptance test (the lane's `macfont_driver` precedent, docs/status.md 3.220/3.231).
+@_silgen_name("isFullscreen") func isFullscreen_entry(_ view: NSView?) -> Bool
+
+/// C 1001-1030: `static void ns_constrain_all_frames (void)` - "Ensure that the menu bar doesn't
+/// cover any frames."
+fileprivate func ns_constrain_all_frames() {
+  block_input()
+
+  /* C 1011: `FOR_EACH_FRAME (tail, frame)` (src/frame.h 1404-1408) - the macro's own spelling:
+     walk `Vframe_list` while it is a cons (docs/ports/nsfns.swift 967).  */
+  var tail: Lisp_Object = Vframe_list
+  while CONSP(tail) {
+    let frame = XCAR(tail)
+    let f = XFRAME(frame)
+    if FRAME_NS_P(f) {
+      let view = FRAME_NS_VIEW(f)
+
+      if !isFullscreen_entry(view) {
+        view?.window?.setFrame(constrain_frame_rect(view!.window!.frame, false),
+                               display: false)
+      }
+    }
+    tail = XCDR(tail)
+  }
+
+  unblock_input()
+}
+
+/// C 1033-1073: `static void ns_update_auto_hide_menu_bar (void)` - "Show or hide the menu bar,
+/// based on user setting."  The whole body is inside `#ifdef NS_IMPL_COCOA`, the arm this ledger
+/// describes.
+fileprivate func ns_update_auto_hide_menu_bar() {
+  block_input()
+
+  if NSApp != nil && NSApp.isActive {
+    // Note, "setPresentationOptions" triggers an error unless the application is active.
+    let menu_bar_should_be_hidden = ns_menu_bar_should_be_hidden()
+
+    if menu_bar_should_be_hidden != ns_menu_bar_is_hidden {
+      // C: `NSApplicationPresentationOptions options = NSApplicationPresentationDefault;` - the
+      // empty option set, whose `default` Swift spelling is unavailable (use `[]`).
+      var options: NSApplication.PresentationOptions = []
+
+      if menu_bar_should_be_hidden {
+        options = [options, .autoHideMenuBar, .autoHideDock]
+      }
+
+      NSApp.presentationOptions = options
+
+      ns_menu_bar_is_hidden = menu_bar_should_be_hidden
+
+      if !ns_menu_bar_is_hidden {
+        ns_constrain_all_frames()
+      }
+    }
+  }
+
+  unblock_input()
+}
+
+/// C 1075-1087: `static void ns_update_begin (struct frame *f)` - "Prepare for a grouped
+/// sequence of drawing calls".  `NSTRACE_WHEN (NSTRACE_GROUP_UPDATES, …)` is empty at
+/// `NSTRACE_ENABLED` 0, and C's `[view lockFocus]` on a nil view does nothing.
+fileprivate func ns_update_begin(_ f: UnsafeMutableRawPointer?) {
+  let view = FRAME_NS_VIEW(f)
+
+  ns_update_auto_hide_menu_bar()
+
+  ns_updating_frame = f
+  // C's `[view lockFocus]` is itself deprecated since macOS 10.14 (AppKit prefers a subclassed
+  // `-drawRect:`), and the port keeps the call: `swiftc -c` reports the deprecation, which is
+  // recorded in the ledger's Evidence rather than silenced.
+  view?.lockFocus()
+}
+
+/* --------------------------------------------------------------------------
+   macOS Accessibility Zoom Support
+   -------------------------------------------------------------------------- */
+// C 1090: `#ifdef NS_IMPL_COCOA` - the whole block below is the Cocoa arm.
+
+/// C 1093: `static BOOL ns_is_UAZoomEnabled = NO;`
+fileprivate var ns_is_UAZoomEnabled: Bool = false
+/// C 1094: `static unsigned long ns_UAZoomEnabled_last_called_time_ns = 0;`
+fileprivate var ns_UAZoomEnabled_last_called_time_ns: UInt64 = 0
+/// C 1095-1096: `static const unsigned long NS_UAZOOMENABLED_CACHE_INTERVAL_NS =
+/// (unsigned long)(500 * NSEC_PER_MSEC); /* 500ms.  */`
+fileprivate let NS_UAZOOMENABLED_CACHE_INTERVAL_NS: UInt64 = 500 * NSEC_PER_MSEC
+/// C 1097: `static NSTimeInterval NS_UAZOOMENABLED_DEFER_INTERVAL_SECS = 0.2; /* 200ms.  */`
+fileprivate var NS_UAZOOMENABLED_DEFER_INTERVAL_SECS: TimeInterval = 0.2
+/// C 1098: `static NSTimer *ns_deferred_UAZoomChangeFocus_timer = nil;`
+fileprivate var ns_deferred_UAZoomChangeFocus_timer: Timer? = nil
+
+/// C 1102-1140: `static BOOL ns_ua_zoom_enabled_p (void)` - "Return the cached result of
+/// UAZoomEnabled.  Refresh the cache every NS_UAZOOMENABLED_CACHE_INTERVAL_NS nanoseconds."
+/// (C's comment on why the result is cached, and on `clock_gettime_nsec_np` rather than
+/// `CFAbsoluteTimeGetCurrent`, is C's own text and is kept with the function.)
+fileprivate func ns_ua_zoom_enabled_p() -> Bool {
+  /* User-space equivalent to mach_absolute_time.  */
+  let now_ns = clock_gettime_nsec_np(CLOCK_UPTIME_RAW)
+  if now_ns - ns_UAZoomEnabled_last_called_time_ns
+       > NS_UAZOOMENABLED_CACHE_INTERVAL_NS {
+    ns_is_UAZoomEnabled = UAZoomEnabled()
+    ns_UAZoomEnabled_last_called_time_ns = now_ns
+  }
+  return ns_is_UAZoomEnabled
+}
+
+/// C 1142-1162: `static inline CGRect ns_cg_rect_flip_y (CGRect r)` - "Convert a CGRect from
+/// Cocoa screen coordinates (origin at bottom-left of the primary display) to CoreGraphics
+/// coordinates (origin at top-left of the primary display)."  The C parameter is by value and
+/// mutated, hence the Swift copy.
+fileprivate func ns_cg_rect_flip_y(_ rect: CGRect) -> CGRect {
+  var r = rect
+  let mainID = CGMainDisplayID()
+  if mainID == kCGNullDirectDisplay {
+    return r
+  }
+  let primaryH = CGDisplayBounds(mainID).size.height
+  if primaryH <= 0 {
+    return r
+  }
+  r.origin.y = primaryH - r.origin.y - r.size.height
+  return r
+}
+
+/* Cache cursor rects to call UAZoomChangeFocus only when the cursor
+   position has changed, not merely when the cursor is blinking.
+   See ns_draw_window_cursor and ns_update_end.  */
+/// C 1152-1153: `static NSRect ns_UAZoom_cursor_rect_new; static NSRect
+/// ns_UAZoom_cursor_rect_old;`
+fileprivate var ns_UAZoom_cursor_rect_new: NSRect = .zero
+fileprivate var ns_UAZoom_cursor_rect_old: NSRect = .zero
+
+/* Track Zoom state per display cycle.  Update the macOS Zoom cursor
+   position when Zoom transitions to enabled.  */
+/// C 1157: `static BOOL ns_update_was_UAZoomEnabled = NO;`
+fileprivate var ns_update_was_UAZoomEnabled: Bool = false
+
+/// C 1164-1211: `static void ns_UAZoomChangeFocus (EmacsView *view, BOOL force)` - "Advise macOS
+/// Accessibility Zoom UAZoomChangeFocus of a potentially new cursor position."
+///
+/// The receiver is this unit's `EmacsView`, but only `NSView`/`NSWindow` messages are sent to
+/// it, so the parameter is the lane's `NSView?`.  A nil view or window yields a zeroed `NSRect`
+/// through C's nil receiver, which the `?? NSRect.zero` reads below make explicit.
+fileprivate func ns_UAZoomChangeFocus(_ view: NSView?, _ force: Bool) {
+  if ns_ua_zoom_enabled_p() {
+    let force = force || !ns_update_was_UAZoomEnabled
+    ns_update_was_UAZoomEnabled = true
+    if NSIsEmptyRect(ns_UAZoom_cursor_rect_new) {
+      return
+    }
+    if force || !NSEqualRects(ns_UAZoom_cursor_rect_new, ns_UAZoom_cursor_rect_old) {
+      ns_UAZoom_cursor_rect_old = ns_UAZoom_cursor_rect_new
+      let windowRect = view?.convert(ns_UAZoom_cursor_rect_new, to: nil) ?? .zero
+      let screenRect = view?.window?.convertToScreen(windowRect) ?? .zero
+      var cgRect = ns_cg_rect_flip_y(NSRectToCGRect(screenRect))
+      /* Some versions of macOS can ignore tiny rects, so we
+         slightly expand a tiny one.  Since we care mostly about its
+         origin, this should be innocuous.  */
+      cgRect.size.width = max(cgRect.size.width, 6)
+      cgRect.size.height = max(cgRect.size.height, 10)
+      if force {
+        /* UAZoomChangeFocus needs old and new cursor positions to
+           be different, and also it sometimes needs a kick.  In
+           both cases, we fake a cursor move followed by the real
+           cursor move.  */
+        var cgRectJiggle = cgRect.offsetBy(dx: 1.0, dy: 1.0)
+        if UAZoomChangeFocus(&cgRectJiggle, nil,
+                             UAZoomChangeFocusType(kUAZoomFocusTypeInsertionPoint)) != 0 {
+          NSLog("UAZoomChangeFocus jiggle failed")
+        }
+      }
+      if UAZoomChangeFocus(&cgRect, nil,
+                           UAZoomChangeFocusType(kUAZoomFocusTypeInsertionPoint)) != 0 {
+        NSLog("UAZoomChangeFocus failed")
+      }
+      NSAccessibility.post(element: view as Any,
+                           notification: .focusedUIElementChanged)
+    }
+  } else {
+    ns_update_was_UAZoomEnabled = false
+  }
 }

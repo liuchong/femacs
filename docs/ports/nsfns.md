@@ -8,23 +8,26 @@
 > **Cocoa/AppKit build** the file's arms describe, and the unit is
 > `femacs/platform/macos/nsfns.swift`.  Line numbers are the raw reference lines.
 >
-> **State: first batch.** The file is 4348 lines and the largest remaining Swift unit after
-> src/nsterm.m, so it is landing in batches the way `macfont.swift` did.  This batch carries
-> C 40-1190 - every file-scope object down to `get_geometry_from_preferences`, i.e. the internal
-> utilities, **every frame-parameter setter the file defines**, the AppKit version/icon helpers, the
-> `ns_frame_parm_handlers` table and the unwind/geometry support.  The remaining 21 C functions
-> (the Lisp definitions' helpers, the tooltip machinery, the file dialog, the monitor list,
-> AppleScript and `syms_of_nsfns`) and the 52 `DEFUN`s are the next batch and are named in
-> `docs/baseline/swift-units.tsv` (21 rows; the `DEFUN`s are not tracked by that gate).
+> **State: second batch (C 40-1884).** The file is 4348 lines and the largest remaining Swift
+> unit after src/nsterm.m, so it is landing in batches the way `macfont.swift` did.  Batch 1
+> carried C 40-1190 (the file-scope objects, the internal utilities, every frame-parameter setter
+> the file defines, the AppKit version/icon helpers, the `ns_frame_parm_handlers` table and the
+> unwind/geometry support).  Batch 2 carries C 1188-1884: **`x-create-frame` (C 1192-1610, the
+> file's biggest function)**, the four frame-operation `DEFUN`s that follow it
+> (`ns-frame-list-z-order`, `ns-frame-restack`, `x-select-font`, `ns-popup-color-panel`),
+> `ns_window_is_ancestor`, the file-dialog record and `ns_run_file_dialog`, and
+> `ns-read-file-name` (C 1762-1884).  The remaining 19 C functions and 46 `DEFUN`s are the next
+> batch and are named in `docs/baseline/swift-units.tsv` (19 rows; the `DEFUN`s are not tracked
+> by that gate).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 52
-- [ ] x-create-frame  (Fx_create_frame, 1/1, doc f3e009aa43c7, line 1192) - next batch
-- [ ] ns-frame-list-z-order  (Fns_frame_list_z_order, 0/1, doc 9f50e5d349c0, line 1626)
-- [ ] ns-frame-restack  (Fns_frame_restack, 2/3, doc eac4febee7e9, line 1657)
-- [ ] x-select-font  (Fx_select_font, 0/2, doc ad00028ff8bf, line 1688)
-- [ ] ns-popup-color-panel  (Fns_popup_color_panel, 0/1, doc 0c21686be8bc, line 1705)
-- [ ] ns-read-file-name  (Fns_read_file_name, 1/5, doc e98e737bd5ec, line 1758)
+- [x] x-create-frame  (Fx_create_frame, 1/1, doc f3e009aa43c7, line 1192) - `@_cdecl` + `Sx_create_frame` - next batch
+- [x] ns-frame-list-z-order  (Fns_frame_list_z_order, 0/1, doc 9f50e5d349c0, line 1626) - `@_cdecl` + `Sns_frame_list_z_order`
+- [x] ns-frame-restack  (Fns_frame_restack, 2/3, doc eac4febee7e9, line 1657) - `@_cdecl` + `Sns_frame_restack`
+- [x] x-select-font  (Fx_select_font, 0/2, doc ad00028ff8bf, line 1688) - `@_cdecl` + `Sx_select_font`
+- [x] ns-popup-color-panel  (Fns_popup_color_panel, 0/1, doc 0c21686be8bc, line 1705) - `@_cdecl` + `Sns_popup_color_panel`
+- [x] ns-read-file-name  (Fns_read_file_name, 1/5, doc e98e737bd5ec, line 1758) - `@_cdecl` + `Sns_read_file_name`
 - [ ] ns-get-resource  (Fns_get_resource, 2/2, doc 9304e7bd5dcc, line 1897)
 - [ ] ns-set-resource  (Fns_set_resource, 3/3, doc 12f0cd058463, line 1917)
 - [ ] x-server-max-request-size  (Fx_server_max_request_size, 0/1, doc f3e009aa43c7, line 1944)
@@ -109,8 +112,8 @@
 - [x] unwind_create_frame  (line 1122, static)
 - [x] do_unwind_create_frame  (line 1145, static)
 - [x] get_geometry_from_preferences  (line 1156, static)
-- [ ] ns_window_is_ancestor  (line 1615, static) - next batch (manifest row)
-- [ ] ns_run_file_dialog  (line 1726) - next batch (manifest row)
+- [x] ns_window_is_ancestor  (line 1615, static)
+- [x] ns_run_file_dialog  (line 1726, non-static - `@_cdecl`)
 - [ ] ns_get_defaults_value  (line 1886) - next batch (manifest row)
 - [ ] ns_init_colors  (line 2237) - next batch (manifest row)
 - [ ] ns_do_applescript  (line 2392, static) - next batch (manifest row)
@@ -141,7 +144,9 @@
 - [ ] IOMasterPort  (line 54, body 08ecf8189f84) - `#define IOMasterPort IOMainPort` under
       `MAC_OS_X_VERSION_MAX_ALLOWED >= 120000` + `MIN_REQUIRED >= 120000`; on this SDK the
       `IOGraphicsLib.h` port call is `IOMainPort`, so the alias is dead text (recorded)
-- [ ] MODAL_OK_RESPONSE  (line 1755, body a4b3cc6adce4) - next batch (the file dialog)
+- [x] MODAL_OK_RESPONSE  (line 1755, body a4b3cc6adce4) - the `MAC_OS_X_VERSION_MAX_ALLOWED
+      > 1090` arm is `NSModalResponseOK`, which the port spells
+      `NSApplication.ModalResponse.OK` at its one use site
 - [ ] Str  (line 982, body f1d202006571) and
 - [ ] Xstr  (line 983, body 36e288827bc0) - the token-pasting pair the GNUstep arm of
       `ns_appkit_version_str` uses; dead text on this target (recorded)
@@ -213,6 +218,58 @@ which is why the entries are closures.)
 shape survive.  The port keeps C's `<!-- invalid string -->` fallback and the two encodings
 (UTF-8 when `STRING_MULTIBYTE`, ASCII otherwise).
 
+**Batch 2: `x-create-frame` (C 1192-1610).**  The port keeps C's construction order exactly:
+parms copy -> `Qterminal` display lookup -> `check_ns_display_info` -> `kb` -> name ->
+`Qparent_id` -> the minibuffer-frame choice -> `XSETFRAME` -> `frame_set_id_from_params` ->
+terminal / output_method / the `ns_output` allocation -> fontset -> icon-name -> display_info ->
+`record_unwind_protect` -> window/parent descriptors -> name + explicit_name ->
+`mac_register_font_driver` -> the ~35 `gui_default_parameter` defaults (with the Cocoa
+`userFixedPitchFontOfSize:` font-name default and its `" Regular"` trim) -> `init_frame_faces`
+-> min width/height -> `adjust_frame_size` -> undecorated / ns-appearance / transparent-titlebar
+-> parent-frame -> z-group / no-focus / no-accept -> menu/tab/tool bar lines ->
+buffer-predicate / title -> inhibit-double-buffering -> `get_geometry_from_preferences` ->
+`gui_figure_window_size` -> unsplittable -> the fifteen cursors -> visibility -> minibuffer-frame
+bookkeeping -> the leftover-parms alist loop -> the cascade/center block -> `unbind_to`.
+
+- **`f->output_data.ns = xzalloc (sizeof *f->output_data.ns)`** (C 1278) is a core-side
+  allocation, so it is `frame_alloc_ns_output (f)` - a port-named C-ABI entry (the record
+  belongs to the core, as in the batch-1 `ns_output_*` group).
+- **The fifteen `Emacs_Cursor` slots** (C 1478-1492) and the two `ns_display_info` scroll-bar
+  cursors (C 1494-1497) get one accessor per C member name.  Batch 1 carried an unused
+  string-dispatched `ns_output_set_cursor_kind`; that is the wrong shape and was **removed** in
+  this batch in favour of the member names.
+- **`record_unwind_protect (do_unwind_create_frame, frame)`** (C 1287): `do_unwind_create_frame`
+  is this file's own `static` function, so the port passes a non-capturing closure over it.  (A
+  `unsafeBitCast` of a Swift function to `@convention(c)` is a *warning* in Swift 6.4 -
+  "changes @convention and is undefined" - which the `ns_frame_parm_handlers` table already
+  taught this lane.)
+- **The 6 `DEFUN`s of this batch** keep the `docs/ports/nsselect.md` shape: the function is
+  `@_cdecl("F…")` with C's arity, and the file-static record is a `fileprivate var S…` built by
+  `make_aligned_subr` (which batch 1 did not need and this batch adds, together with the
+  `PVEC_SUBR << PSEUDOVECTOR_AREA_BITS` header word).  The docstrings stay in the comments that
+  introduce each pair - the DOC-scanner gap of (3).
+
+**Batch 2: the file dialog (C 1715-1884).**
+- C's file-scope anonymous `static struct { id panel; BOOL ret; … } ns_fd_data` becomes the
+  Swift record `ns_fd_data_t` plus one `fileprivate var ns_fd_data`; its `NS_IMPL_GNUSTEP`-only
+  members (`dirS`, `initS`, `no_types`) are recorded, not carried, like the `#else` arm of
+  `ns_run_file_dialog` (`runModalForDirectory:file:[types:]`).
+- `MODAL_OK_RESPONSE`'s live arm is `NSModalResponseOK`, which Swift spells
+  `NSApplication.ModalResponse.OK`.
+- C's `id panel` is `NSSavePanel?`; the two `NSOpenPanel`-only setters
+  (`setCanChooseDirectories:`, `setCanChooseFiles:`) are reached through `as? NSOpenPanel`,
+  which is exactly the dynamic type C's `id` has at that point.
+- `[NSSavePanel savePanel]` / `[NSOpenPanel openPanel]` are the SDK's shared-panel
+  constructors; Swift spells them `NSSavePanel()` / `NSOpenPanel()`.
+- `[panel setAllowedContentTypes: [NSArray array]]` (C 1810, the live macOS-12 arm) is
+  `panel?.allowedContentTypes = []`.
+- `[[NSApp orderedWindows] reverseObjectEnumerator]` (C 1639) is
+  `NSApp.orderedWindows.reversed()`, and `((EmacsView *)[win delegate])->emacsframe` (C 1648) is
+  the two port-named entries `is_emacs_view` / `emacs_view_frame` - the `EmacsView` record and
+  its `emacsframe` ivar belong to src/nsterm.m's port.
+- `[EmacsFileDelegate new]` (C 1774) is `EmacsFileDelegate_new ()`: the class itself is
+  C 4048-4065, i.e. the next batch (see (3)).
+
 ## ABI
 
 ### (1) C symbols this batch defines and exports (`@_cdecl`)
@@ -226,7 +283,21 @@ shape survive.  The port keeps C's `<!-- invalid string -->` fallback and the tw
 | `stringWithLispString` | `+ (NSString *)stringWithLispString:(Lisp_Object)` (src/nsterm.h 367) | `(Lisp_Object) -> NSString?` |
 | `lispString` | `- (Lisp_Object)lispString` (src/nsterm.h 368) | `(NSString) -> Lisp_Object` |
 
-`nm -g` on the batch's object shows exactly these six (Evidence).  The other non-static name in
+`nm -g` on the object shows exactly these six (batch 1, Evidence).  Batch 2 adds seven more, and
+the object now exports **thirteen** C names (Evidence):
+
+| C name | C prototype (reference) | Swift signature |
+| --- | --- | --- |
+| `Fx_create_frame` | `Lisp_Object (Lisp_Object)` (DEFUN, src/lisp.h 3406) | `(Lisp_Object) -> Lisp_Object` |
+| `Fns_frame_list_z_order` | `Lisp_Object (Lisp_Object)` (0/1) | `(Lisp_Object) -> Lisp_Object` |
+| `Fns_frame_restack` | `Lisp_Object (Lisp_Object ×3)` (2/3) | `(Lisp_Object, Lisp_Object, Lisp_Object) -> Lisp_Object` |
+| `Fx_select_font` | `Lisp_Object (Lisp_Object ×2)` (0/2) | `(Lisp_Object, Lisp_Object) -> Lisp_Object` |
+| `Fns_popup_color_panel` | `Lisp_Object (Lisp_Object)` (0/1) | `(Lisp_Object) -> Lisp_Object` |
+| `ns_run_file_dialog` | `void (void)` (src/nsterm.h 1172) | `() -> Void` |
+| `Fns_read_file_name` | `Lisp_Object (Lisp_Object ×5)` (1/5) | `(Lisp_Object ×5) -> Lisp_Object` |
+
+The seven `S…` records of the new `DEFUN`s are `fileprivate` here, as C's `DEFUN` makes them
+file-static.  The other non-static name in
 this range, `ns_frame_parm_handlers` (C 1063), is a **data** symbol: carried as a Swift array,
 flagged in (3).  The 52 `DEFUN`s' `F…` names and their `S…` records arrive with the next batch.
 
@@ -341,7 +412,16 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
    `AnyObject?`; the tooltip section (next batch) is where it gets used.
 4. The remaining 21 functions and 52 `DEFUN`s (next batch), listed in the checklist above and
    in `docs/baseline/swift-units.tsv`.
-5. `tools/extract-abi.py` has no `.m -> .swift` pair, so `--check` cannot compare this unit.
+5. **`EmacsFileDelegate`** (C 4048-4065) is a class the next batch ports; `[EmacsFileDelegate
+   new]` (C 1774) is imported as `EmacsFileDelegate_new ()` and has no definition in the tree
+   yet.  The same shape as `EmacsImage_allocInitFromFile` in item 2.
+6. Batch 2's new cross-file entries: `ns_set_appearance_1` (src/nsterm.m 2120),
+   `mac_register_font_driver` (src/macfont.m, docs/ports/macfont.md),
+   `EmacsView_initFrameFromEmacs`, `showFontPanel`, `restackWindow`, `emacs_view_frame`,
+   `is_emacs_view` (src/nsterm.m's `EmacsView`/`EmacsWindow`), `ns_make_frame_visible` /
+   `ns_iconify_frame` / `ns_set_offset` (src/nsterm.m 1126-1228) and `ns_clear_frame` - all of
+   them are the ported nsterm/macfont side's to define.
+7. `tools/extract-abi.py` has no `.m -> .swift` pair, so `--check` cannot compare this unit.
 
 ## Evidence
 
@@ -381,3 +461,27 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
   6.4: "has been renamed to 'NSAppKitVersion.current'") and `NSImage.name()` (a method, not a
   property, on this SDK).
 - `/tmp/nsfns` (this lane's probe directory) is deleted after these readings.
+
+### Batch 2 evidence
+
+- `swiftc -parse-as-library -c -o /tmp/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0,
+  0 errors, 0 warnings** (the batch's only warning - `main_window` never mutated - was fixed).
+- `nm -g /tmp/nsfns.o | grep ' T _'` minus Swift's own `__swift*` symbols -> **thirteen**
+  exported C names: batch 1's six plus `_Fx_create_frame`, `_Fns_frame_list_z_order`,
+  `_Fns_frame_restack`, `_Fx_select_font`, `_Fns_popup_color_panel`, `_ns_run_file_dialog`,
+  `_Fns_read_file_name`.
+- `python3 tools/check-swift-units.py` ->
+  `femacs/platform/macos/nsfns.swift: 56 C definition(s), 19 unported, 19 row(s); 346 C symbol
+  import(s)`; last line `0 new, 0 stale, 7 Swift unit(s) landed`.  Two rows left the manifest -
+  `ns_run_file_dialog` and `ns_window_is_ancestor`, the two C definitions this batch landed -
+  and the `diff` vs the backup is **2 removed / 0 added / 0 other files** (the gate reported
+  them as `stale` before the removal).
+- `python3 tools/check-cond-eval.py src/nsfns.m` -> `64 conditions, 0 unknown, 0 disagreements
+  [VERIFIED]` (unchanged: this batch takes the `NS_IMPL_COCOA` arms the file already had).
+- `python3 tools/check-citations.py` -> **zero rows name
+  `femacs/platform/macos/nsfns.swift`**; two were corrected in this batch: `ENCODE_FILE`/
+  `DECODE_FILE` cited coding.h 800/803 (the file has 790 lines) -> **648/652**, and the
+  `PVEC_SUBR`/`PSEUDOVECTOR_AREA_BITS` pair on one citation line (which the gate paired with the
+  wrong snippet) -> one citation per line.
+- `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures` (none of them this unit).
