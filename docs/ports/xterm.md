@@ -54,7 +54,7 @@
 - [x] xm_read_drag_motion_reply  (line 2864, static)
 - [x] x_dnd_send_xm_leave_for_drop  (line 2897, static)
 - [x] x_dnd_free_toplevels  (line 2921, static)
-- [ ] x_dnd_compute_toplevels  (line 3013, static)
+- [x] x_dnd_compute_toplevels  (line 3013, static)
 - [ ] x_dnd_io_error_handler  (line 3617, static)
 - [ ] x_dnd_get_target_window_1  (line 3721, static)
 - [ ] x_dnd_get_wm_state_and_proto  (line 3820, static)
@@ -817,6 +817,224 @@ signature or bodies spell `uint8_t`/`uint16_t`/`uint32_t` (the port writes `u8`/
 P-72 rule 3).  Four `macro-body-notes.tsv` rows cover them; the request is in this round's report.
 
 
+### 15. Slice 6 (C 3013-3614): the toplevel list, and the `x11_ext` arm's five members
+
+**The function.**  `x_dnd_compute_toplevels` (C 3013-3614, 601 lines) is ticked - the whole
+function, both of its configuration arms carried under their features (P-51):
+
+* `#ifndef USE_XCB` / `USE_XCB` run through the entire body: `#[cfg (not (feature = "use_xcb"))]`
+  and `#[cfg (feature = "use_xcb")]` blocks at C 3023-3047 (the two local sets), 3093-3155 (the
+  six `SAFE_NALLOCA!` calls and the xcb requests), 3207-3289 (the xcb reply reads), 3293-3298,
+  3314-3324, 3333-3345, 3350-3352, 3385-3419, 3421-3459, 3507-3517, 3546-3577, 3580-3595 and
+  3606-3608 - each tagged with the C line it comes from.
+* inside them `HAVE_XSHAPE`, `HAVE_XCB_SHAPE` and `HAVE_XCB_SHAPE_INPUT_RECTS` become
+  `have_xshape` / `have_xcb_shape` / `have_xcb_shape_input_rects`.
+* C 3461's `#ifdef ShapeInput` asks whether the X11 shape header is new enough to define the
+  shape-input selector.  The X11 headers on this machine do (`X11/extensions/shapeconst.h` 48),
+  so the block is carried without a gate of its own and the decision is recorded here.
+* C's `XWindowAttributes attrs` (the non-xcb arm) and `xcb_get_window_attributes_reply_t attrs`
+  (the xcb arm) are the same Rust name under two `#[cfg]`s, as C has it; the xcb *types* stay
+  bare (`xcb_get_property_cookie_t`, `xcb_rectangle_iterator_t`, ...), the way this file's own
+  mirror keeps `KeyPressMask`.
+* One port-side binding: C 3493-3528 splits one condition across the two arms (the bounding
+  rectangle versus the window dimensions), and the port names it `dims_ok` so the `if` stays a
+  single statement.
+* Seven X11 macros this function names - `AnyPropertyType` (X11/X.h 131, `0L`), `XA_CARDINAL`
+  (X11/Xatom.h 14, `6`), `IsUnmapped` (X.h 445, `0`), `PropertyChangeMask` (X.h 173, `1L<<22`),
+  `ShapeBounding` (shapeconst.h 46, `0`), `ShapeInput` (48, `2`) and `ShapeNotifyMask` (50,
+  `1L << 0`) - are **not** in the mirror's `x11_constants` module, so the unit keeps them bare
+  (the mirror's own convention for X11 names).  They were added to the module and then taken
+  back out, because this round's writing set is `femacs/src/xterm.rs` + this ledger + the
+  mirror's five `HAVE_XSYNC` members only; the measured values are in this round's report for
+  the next mirror round.
+
+**The five `HAVE_XSYNC` members.**  The gated probe grew an `x11_ext` arm (3.309:
+`x11`'s defines plus `HAVE_XSYNC` and `HAVE_X_I18N`), which turned the whole-tree reading from
+`0 gap` into `5 gap`, all of them `struct x_display_info`:
+
+```
+xsync_supported_p   xsync_major   xsync_minor   server_time_monotonic_p   server_time_offset
+```
+
+They are now in the mirror, in C's order and with C's types, gated where C gates them:
+`xsync_supported_p`/`xsync_major`/`xsync_minor` (C 911-915) under `have_xsync`, and
+`server_time_monotonic_p`/`server_time_offset` (C 974-983) under
+`all (have_xsync, not (use_gtk), have_clock_gettime)` - C's own
+`#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME`.  **No frozen-arm
+field was touched**, and `layout-check` still passes, which is the assertion that says so.
+
+**The reading's provenance** (what the integrator asked to have written down): the arm's member
+lists come from `spikes/gated-layout-probe.py 'struct x_display_info' xterm.h`'s four-arm
+output (`frozen`/`x11`/`ns_cocoa`/`x11_ext`; `frozen` and `ns_cocoa` read `unavailable` for this
+record).  Measured with that command, the **direct-member counts are `x11` 207 and `x11_ext`
+218** - a delta of eleven, not nine: the six `HAVE_X_I18N` members (`xim`, `xim_styles`,
+`xim_callback_data`, `preferred_xim_style`, `xim_coding`, `use_xim`; five were already in the
+mirror) plus the five `HAVE_XSYNC` ones.  The integrator's 3.309 note says `190` versus `181`;
+that is a different count of the same output (the machine-readable screen the tool uses), and
+the two are worth reconciling in one place - what both agree on, and what `mirror-struct-
+coverage.py` measures, is that only the five `HAVE_XSYNC` names were missing.
+
+
+### 16. A mirror for Xlib itself: `femacs/src/include/xlib.rs` (the decision, written before the file)
+
+`dispextern.h` **44** is `typedef XRectangle Emacs_Rectangle;`, and `frame.h`'s
+`struct MonitorInfo` is two `Emacs_Rectangle`s plus four `int`s, a `char *` and a `bool` - so the
+same record is **32 bytes in the x11 arm and 48 in `ns_cocoa`**, and the difference is the
+*typedef*, not the record:
+
+```
+$ python3 spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h
+## frozen       unavailable (incomplete type: this configuration has no window system)
+## x11          [sizeof=32, align=8]      (XRectangle: 4 shorts, 8 bytes)
+## ns_cocoa     [sizeof=48, align=8]      (the non-X struct: 4 ints)
+## x11_ext      [sizeof=32, align=8]
+```
+
+The port's `include/dispextern.rs` carries only the non-X struct, so the port would give 48 under
+X11 - a divergence recorded in `include/frame.rs` 1200-1208.  The fix is a home for **Xlib's own
+declarations**, and this is the decision about it (the file lands below, in the same round):
+
+* **Place**: `femacs/src/include/xlib.rs`.  The `src/include` tree is where the X11 arms' mirrors
+  live (`xterm.rs` is next door) and the units that need it are `src/*.c`'s.
+* **First line**: `// femacs: mirror of the X11 SDK's <X11/Xlib.h> (system header of another
+  target's toolchain, PORTING.md P-26/P-49).` - the shape `tools/check-target-names.py` accepts
+  as a declared non-port (`^// femacs: mirror of the .+?'s <`), taken verbatim from
+  `femacs/src/include/jni.rs` (the Android NDK's `<jni.h>`), which is this repo's precedent for a
+  system header of *another* target's toolchain.
+* **What it carries in this round**: `XRectangle` (Xlib.h 426-429: `short x, y; unsigned short
+  width, height;` - 8 bytes, align 2, asserted) and the `pub mod x11_constants` block **moved out
+  of `include/xterm.rs`**, where it was an ad-hoc home, extended with the seven macros slice 6
+  needed and had to leave bare (`AnyPropertyType`, `XA_CARDINAL`, `IsUnmapped`,
+  `PropertyChangeMask`, `ShapeBounding`, `ShapeInput`, `ShapeNotifyMask`), each with the header
+  line its measured value came from.
+* **The split**: `include/dispextern.rs` gains C 29's include and C 44's / 66-70's arms -
+  `#[cfg (feature = "have_x_windows")] pub type Emacs_Rectangle = XRectangle;` and the
+  `not (…)` arm keeping today's struct - so `MonitorInfo` **reproduces** the x11 arm's 32/8
+  instead of recording the divergence.
+* What it deliberately does **not** carry yet: `XColor`/`Cursor`/`Pixmap`/`XGCValues` (which
+  `dispextern.h` 38-45 also aliases) and the Xlib *functions* the gated arms call.  They are the
+  same job's next piece, and the acceptance for this round is the record above.
+
+
+### 17. The Xlib mirror's first consumer: the Xrm surface `src/xrdb.c` needs
+
+`src/xrdb.c` (513 lines, target `femacs/src/xrdb.rs` 11, **not** a member of
+`docs/baseline/frozen-build-sources.txt` - so like `xterm.c` itself, its "live" side is the X11
+one) is the next X11 unit on this lane's path, and it names **17 X11 names this tree did not have
+at all** (measured by the integrator against the whole tree minus the six verbatim ones, 3.320).
+The names come from **two** headers, which is why this mirror now carries both:
+
+```
+$ ls -l /opt/homebrew/include/X11/Xlib.h /opt/homebrew/include/X11/Xresource.h
+lrwxr-xr-x  1 liu  admin  45 Jul  7 14:55 /opt/homebrew/include/X11/Xlib.h -> ../../Cellar/libx11/1.8.13/include/X11/Xlib.h
+lrwxr-xr-x  1 liu  admin  50 Jul  7 14:55 /opt/homebrew/include/X11/Xresource.h -> ../../Cellar/libx11/1.8.13/include/X11/Xresource.h
+```
+
+| name | C | mirror item |
+|---|---|---|
+| `DefaultScreenOfDisplay` | Xlib.h 120 (`#define`) | `macro_rules!` (see the degradation below) |
+| `XResourceManagerString` | Xlib.h 1715 | `unsafe extern "C"` |
+| `XScreenResourceString` | Xlib.h 1718 | `unsafe extern "C"` |
+| `XrmInitialize` | Xlib.h 1483 | `unsafe extern "C"` |
+| `XrmName` / `XrmClass` / `XrmRepresentation` | Xresource.h 136 / 142 / 156 | `pub type … = XrmQuark` |
+| `XrmValue` | Xresource.h 160-163 | `#[repr(C)] pub struct` + 4 assertions |
+| `XrmStringToQuark` | Xresource.h 91 | `unsafe extern "C"` |
+| `XrmStringToQuarkList` | Xresource.h 119-122 | `unsafe extern "C"` (the two macros' target) |
+| `XrmStringToNameList` / `XrmStringToClassList` | Xresource.h 140 / 146 (`#define`) | `macro_rules!`, C's body kept |
+| `XrmGetFileDatabase` / `XrmGetStringDatabase` / `XrmMergeDatabases` / `XrmPutLineResource` / `XrmQGetResource` | Xresource.h 266 / 276 / 285 / 210 / 215-223 | `unsafe extern "C"` |
+| `XrmStringType` | **`src/xrdb.c` 372**, not a header (`#define XrmStringType "String"`) | `pub const XrmStringType: &CStr = c"String"` (+ `.as_ptr ()` at the use site) |
+
+The supporting names come with them because the prototypes need them: `XPointer` (Xlib.h 76,
+`char *`), `Bool` (Xlib.h **78**, `#define Bool int` - not a typedef, so the port writes the alias
+C's body names), `XrmQuark`/`XrmQuarkList` (Xresource.h 84), `XrmString` (87), `XrmNameList` (137),
+`XrmClassList` (143), `XrmValuePtr` (163) and `XDefaultScreenOfDisplay` (Xlib.h 1832, the macro's
+body here).
+
+**Shapes** (the rule the last round's decision used, applied per name):
+
+* scalars and one-line typedefs are **declared** (`Bool`, `XPointer`, the seven `Xrm*` aliases);
+* `XrmValue` is carried **by value** with its layout asserted, because C passes it by value
+  (`XrmValue value;`, `src/xrdb.c` **478**) - measured 16/8, `size`@0 `addr`@8, from a clang probe
+  against the installed header (Evidence);
+* the three records that appear **only** as pointers here - `Display` (Xlib.h 483, incomplete in C
+  too), `Screen` (Xlib.h 253-271, an Xlib record nothing in this tree reads) and
+  `XrmDatabase` (Xresource.h 175, `struct _XrmHashBucketRec *`) - degrade to `*mut c_void` with
+  C's text in the `/// C:` line above the declaration (P-72 rule 3).  Keeping C's spelling for
+  them was rejected here on purpose: `include/xterm.rs` already names `Display`/`Screen` bare and
+  the x11-arm probe counts 15+ unresolved X11 type names for that reason (Decision 5), and adding
+  a *second* home for those two names would be the collision PORTING.md 0.1-3 forbids.
+
+Two call-site spellings follow from C's own kinds (PORTING.md P-37): the Xrm procedures keep
+C's `NAME (…)` because they are procedures, and the three macros below are `macro_rules!`, so a
+consumer writes `DefaultScreenOfDisplay! (display)` where C writes `DefaultScreenOfDisplay
+(display)` - the standing P-37 trade-off.
+
+**The one degradation**: `DefaultScreenOfDisplay`.  C's body (Xlib.h 120) is
+`ScreenOfDisplay(dpy,DefaultScreen(dpy))`, and both of those are Xlib macros over `_XPrivDisplay`
+- Xlib's own complete inline copy of its private display record (Xlib.h 489-546), which no mirror
+here carries and which is ~50 private members wide.  Measured: the C macro expands **inline and
+names no symbol at all**, while `XDefaultScreenOfDisplay` (Xlib.h 1832) is a symbol and returns
+the same `Screen *`.  So the port keeps C's macro **name** (the C text of every consumer is what
+has to be preserved) and takes the public call as the body.  This is the only place in this file
+where the Rust body is not C's body.
+
+**One bit of the integrator's ruling could not be followed as stated, and this is the reading.**
+`XrmDatabase` was to keep its "single existing spelling"
+(`include/xterm.rs:370` / `include/pgtkgui.rs:122` of `pub type XrmDatabase = *mut c_void`).
+Measured:
+
+```
+$ sed -n '369p' femacs/src/include/xterm.rs
+  pub rdb: XrmDatabase,   // C: XrmDatabase rdb;
+$ rg -n 'pub type XrmDatabase' femacs/
+femacs/src/include/pgtkgui.rs:122:pub type XrmDatabase = *mut c_void;
+$ rg -n 'pgtkgui.rs' femacs --glob '*.rs'
+femacs/src/include/dispextern.rs:2393:// pgtkgui.rs 214, nsgui.rs 91, androidgui.rs 245): a second `macro_rules! NativeRectangle` in
+$ rg -n 'include!\("pgtkgui.rs"\)' femacs | wc -l
+       0
+```
+
+`include/xterm.rs` **uses** the name (line 369, inside the `have_x_windows` arm), and its only
+*declaration* in the tree is `include/pgtkgui.rs` 122 - in a mirror no include graph reaches, so
+it is not in scope at any unit's crate root.  Per the ruling this round therefore declares
+nothing: the Xrm prototypes spell it `*mut c_void` with C's text in the `/// C:` line.  If the
+X11 graph should own the name, its P-72 rule-1 home is **this** file (`<X11/Xresource.h>` is its
+header) and the change is one line - the integrator decides; the pgtkgui copy can stay, since
+nothing includes that mirror.
+
+**`XrmStringType` is carried here, not left for the unit.**  C defines it in `src/xrdb.c` 372, so
+`src/xrdb.rs` will want it; putting it in the mirror gives the name one home and keeps the unit's
+`--check xrdb.c xrdb.rs` honest (`tools/extract-abi.py` follows `include!` chains, so the mirror's
+`pub const XrmStringType` is what the check matches C 372's constant against).  Its shape is
+`&CStr = c"String"`, not the `&str` that `include/lisp.rs` uses for `#define pI "l"`: C's literal
+carries a terminating NUL and `src/xrdb.c` 386 hands it to a C function, which is the
+`<config.h>`-string shape of `src/emacs.rs` (status 3.64).  Measured on a scratch pair outside the
+repo (`--reference`/`--root` pointed at it): the extractor compares the constant's **bytes** and
+accepts both spellings, and rejects a wrong value under either.  When `xrdb.rs` lands it must *use*
+this, not declare a copy: a second `const` of the same name in the same scope is `E0428`, and
+`check-mirror-dupes.py` would see the copy.
+
+**Ledger placement**: this stays in `docs/ports/xterm.md` rather than a new
+`docs/ports/include-xlib.md`.  Reasons: `xlib.rs` has no reference file to be named after (the
+tree's `docs/ports/include-*.md` ledgers are one per *reference* header, and this mirror's headers
+are another toolchain's), its only includers are this lane's X11 mirrors, and Decision 16 above is
+already the record of its location and first line - splitting it now would put one file's two
+halves in two ledgers.
+
+**Not link-verifiable on this machine**: only the headers are installed (no `libX11` stubs), which
+the C probe measures (Evidence).  These are declarations, so they add no reference and do not move
+`tools/check-link.py`'s ratchet; the acceptance for them is C's header text, the two layouts, and
+the x11-arm probe.
+
+**One unrequested fix, in this file, revertible in one line**: the `x11_constants` module's
+twenty-one constants are typed `c_int`/`c_long`/`c_ulong`, and a *nested module* does not see the
+including unit's imports - measured: without the `use core::ffi::{c_int, c_long, c_ulong};` line
+now at the module's top, all twenty-one are `E0425: cannot find type c_long` in the x11-arm probe,
+which buries the arm's real gaps (411 errors) among twenty-one scoping errors (432 before).  That
+is why the line is there; PORTING.md 0.1-9 forbids `use crate::…` in a mirror, and `core::ffi` is
+the absolute path.
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -1021,3 +1239,189 @@ an X11 name or a function this file defines later, and the mirror side carries 2
 class.  The probe is what caught this round's real defects: fifteen enum/width errors from the
 `XM_DRAG_*` macros (fixed by making them int-typed, above) and, before that, the same class of
 "inert text that would not compile when flipped" that `build-tu` cannot see.
+
+Slice 6 (C 3013-3614) and the `x11_ext` members:
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+300
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+  earliest missing: "missing function XTcondemn_scroll_bars"; the five "does not mention" rows
+  now read (295-299): xm_find_targets_table_idx/xm_write_targets_table/
+  xm_write_drag_initiator_info -> alloca; xm_setup_dnd_targets -> goto, uninit;
+  x_dnd_free_toplevels -> display, uninit
+$ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xterm.c
+built src/xterm.rs -> ../build/femacs/xterm.o
+$ ... layout-check
+layout probe ok
+layout-check passed (see build/femacs/layout_asserts.rs)
+$ python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs
+OK emacs/src/xterm.h -> femacs/src/include/xterm.rs
+$ python3 spikes/mirror-struct-coverage.py
+284 mirrored struct(s): 1136 arm(s) attempted, 320 unreadable (...), 0 gap(s)
+```
+
+The X11-arm probe after slice 6: **two errors in the unit's own text**, both the recorded
+`buffered_input_event.sie`; everything else is a `cannot find <name>` for an X11/xcb name or a
+function this file defines later, with 226 of the same class on the mirror side.  Slice 6 needed
+no fix from the probe - the three defects it caught in the earlier slices (the `r#type` keyword,
+C's `False`/`True`, the `XM_DRAG_*` widths) had already settled the shapes this one reuses.
+
+### The Xlib mirror and the `MonitorInfo` acceptance (Decision 16), as landed and measured
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs
+OK emacs/src/xterm.h -> femacs/src/include/xterm.rs      (the constants moved out; C 23's
+                                                          include of <X11/Xlib.h> is in)
+$ python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs
+OK emacs/src/dispextern.h -> femacs/src/include/dispextern.rs
+$ python3 spikes/mirror-struct-coverage.py
+284 mirrored struct(s): 1136 arm(s) attempted, 320 unreadable (...), 0 gap(s)
+   (the tool's struct scan matches lower-case names only, so `struct XRectangle` is not one of
+    its structs and never asks for a C header - a fact worth knowing, not a gap)
+$ python3 spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h
+## frozen      unavailable (invalid application of 'sizeof' to an incomplete type)
+## x11         [sizeof=32, align=8]
+## ns_cocoa    [sizeof=48, align=8]
+## x11_ext     [sizeof=32, align=8]
+$ cd femacs && CARGO_TARGET_DIR=/tmp/... cargo run -q -p xtask -- build-tu src/xterm.c
+built src/xterm.rs -> ../build/femacs/xterm.o
+$ ... layout-check
+layout probe ok
+layout-check passed (see build/femacs/layout_asserts.rs)
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+300        (unchanged: the earliest missing is still `missing function XTcondemn_scroll_bars`,
+            and the five "does not mention" rows are the ones decision 15 records)
+```
+
+The X11-arm probe (the unit materialised by `build-tu`, then `rustc --cfg
+'feature="have_x_windows"'`): the unit's own text now has **two** errors, both the recorded
+`buffered_input_event.sie`, and the four macros slice 6 left bare - `AnyPropertyType`,
+`XA_CARDINAL`, `IsUnmapped`, `PropertyChangeMask` - are gone from the list because they are in
+`xlib.rs`'s `x11_constants` module now and slice 6's `use` takes them.
+
+
+### Decision 17's readings: the Xrm surface, and what it moved
+
+The two record layouts, from a clang probe built against the installed headers
+(round 188, 2026-10-05; commands verbatim, probe written to `/tmp/xg188-xrm/` and deleted after):
+
+```
+$ clang -std=gnu23 -I /opt/homebrew/include -o probe probe.c && ./probe
+XrmValue   sizeof 16 align 8 size@0 addr@8
+XRectangle sizeof 8 align 2
+XrmQuark 4  Bool 4  XPointer 8  XrmName 4  XrmClass 4  XrmRepresentation 4
+```
+
+The same probe source, linked: the declarations are right and the symbols are not on this machine
+(only `libX11`'s *headers* are installed; the two macro calls expand to the same real procedure,
+which is why `_XrmStringToQuarkList` is listed twice):
+
+```
+$ clang -I /opt/homebrew/include link2.c -o link2
+Undefined symbols for architecture arm64:
+  "_XResourceManagerString", ... "_XrmGetFileDatabase", "_XrmGetStringDatabase",
+  "_XrmInitialize", "_XrmMergeDatabases", "_XrmPutLineResource", "_XrmQGetResource",
+  "_XrmStringToQuark", "_XrmStringToQuarkList" (twice, the two macros), "_main"
+ld: symbol(s) not found for architecture arm64
+```
+
+`DefaultScreenOfDisplay` is the one name the linker does **not** list - C's macro expands inline
+through `_XPrivDisplay`:
+
+```
+$ nm -u link.o     # the probe that calls DefaultScreenOfDisplay (d)
+  (no _XDefaultScreenOfDisplay: the macro names no symbol)
+```
+
+The gates after the change (all re-run in this round; the file's own readings):
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs
+OK emacs/src/xterm.h -> femacs/src/include/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs
+OK emacs/src/dispextern.h -> femacs/src/include/dispextern.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+300                      # unchanged by this mirror: it is not a unit (first row
+                        # `missing function XTcondemn_scroll_bars`)
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+$ python3 tools/check-mirror-dupes.py
+67 duplicate declaration(s), 111 ratchet row(s), 44 failure(s)
+# red tree-wide, and none of it is this lane: all 44 failures are STALE ratchet rows of
+# `femacs/src/xdisp.rs` (12 against `include/dispextern.rs`, 32 against `include/window.rs`) -
+# the xdisp lane's "shadowing macro removed" slice (status 3.325) plus this gate's new macro
+# namespace (status 3.326), both landed while this round was in flight.  This lane's file is in
+# no row of the ratchet and in no failure:
+$ grep -cE 'xlib|XrmStringToNameList|XrmStringToClassList|DefaultScreenOfDisplay' docs/baseline/mirror-dupes.tsv
+0
+# (With the gate as it stood at the top of this round - before 3.326 - the same tree read
+#  `1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)`, the single row being
+#  `FONT_INVALID_CODE`; this round does not touch that row.)
+$ python3 tools/check-target-names.py
+check-target-names: 628 .rs files, 591 map targets, 0 finding(s)
+$ python3 tools/check-declarations.py
+13 declaration sites (0 forbidden, 13 allowed literals), 0 failures
+$ grep -c '^- \[ \]' docs/ports/xterm.md     # unchanged: a mirror has no checklist row
+305
+$ python3 spikes/mirror-struct-coverage.py
+284 mirrored struct(s): 1136 arm(s) attempted, 320 unreadable (...), 0 gap(s)
+$ python3 spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h
+## frozen       unavailable (incomplete type: this configuration has no window system)
+## x11          [sizeof=32, align=8]      (XRectangle geom: 4 shorts, 8 bytes)
+## ns_cocoa     [sizeof=48, align=8]
+## x11_ext      [sizeof=32, align=8]
+# re-taken after status 3.327 changed the probe's tables; the x11 arm still reproduces 32/8, so
+# Decision 16's acceptance ("the record's arm is reproduced, not recorded") still holds.
+```
+
+`build-tu` and the x11 arm (the unit materialised by `build-tu`, then compiled with the feature
+on):
+
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xterm.c
+built src/xterm.rs -> ../build/femacs/xterm.o
+$ ... layout-check
+layout probe ok
+layout-check passed (see build/femacs/layout_asserts.rs)
+$ rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj -C panic=abort \
+      --cfg 'feature="have_x_windows"' -o /tmp/xg188-xrm/xterm_probe.o build/femacs/units/xterm/_root.rs
+432 errors before the `use core::ffi::{c_int, c_long, c_ulong};` line, 411 after (exactly the
+twenty-one scoping errors, all of them `xlib.rs` lines 50-91, all inside `x11_constants`);
+**xlib.rs now contributes 0 errors**, and the 400 remaining `E0425` spell 47 distinct names, the
+largest `Atom` 161, `Window` 64, `Cursor` 19, `XEvent` 10, and the six `x_*` error/selection
+helpers this lane's later slices define (`x_had_errors_p` 10, `x_catch_errors` 7,
+`x_ignore_errors_for_next_request` 6, `x_stop_ignoring_errors` 6, `x_uncatch_errors_after_check`
+4, `x_uncatch_errors` 3); the rest are one to six each - Decision 5's and Decision 13's recorded
+gaps, not new ones.
+```
+
+One shared-table row has to move because of Decision 16's insertion (this lane's earlier round):
+`docs/baseline/citations-allowlist.tsv` line 37 names `femacs/src/include/dispextern.rs:567`, and
+the finding it explains is now at **587** - the same 20 lines Decision 16 added above it.  Measured:
+
+```
+$ python3 tools/check-citations.py
+stale	femacs/src/include/dispextern.rs:567	dispextern.h 648-661 is right; `struct glyph *` is a parameter type	the row no longer matches a finding
+drift	femacs/src/include/dispextern.rs:587	dispextern.h 648-661	`struct glyph *` is at dispextern.h:754
+check-citations: 666 file(s) scanned, 40 drift, 1 range, 343 external, 37 allowed, 1 stale
+```
+
+The gate is red on that one stale row (a shared table, which this lane may not write): the fix is
+`:567` -> `:587` on line 37 of the allowlist, reason unchanged.
+
+The `XrmStringType` shape, measured on a scratch pair outside the repo (the C side is the macro
+alone, so `tools/extract-abi.py` compares the constant's bytes; `--reference`/`--root` point at
+the scratch directory):
+
+```
+$ python3 tools/extract-abi.py --check /tmp/xg188-xrm/t.c /tmp/xg188-xrm/t1.rs --reference /tmp/xg188-xrm --root /tmp/xg188-xrm
+OK /tmp/xg188-xrm/t.c -> /tmp/xg188-xrm/t1.rs      # pub const XrmStringType: &str = "String";
+$ ... t2.rs                                        # pub const XrmStringType: &core::ffi::CStr = c"String";
+OK /tmp/xg188-xrm/t.c -> /tmp/xg188-xrm/t2.rs
+$ ... t3.rs                                        # the same, value c"Strung"
+- constant XrmStringType: C "String" vs Rust c"Strung" (different bytes)
+FAIL /tmp/xg188-xrm/t.c -> /tmp/xg188-xrm/t3.rs
+$ ... t4.rs                                        # &str with "Strung"
+- constant XrmStringType: C "String" vs Rust "Strung" (different bytes)
+FAIL /tmp/xg188-xrm/t.c -> /tmp/xg188-xrm/t4.rs
+```
