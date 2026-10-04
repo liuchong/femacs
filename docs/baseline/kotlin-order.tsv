@@ -17,18 +17,18 @@ order	target	references	ported
 13	femacs/platform/android/kotlin/EmacsDrawLine.kt	EmacsDrawable,EmacsGC	
 14	femacs/platform/android/kotlin/EmacsDrawPoint.kt	EmacsDrawRectangle,EmacsDrawable,EmacsFillRectangle,EmacsGC	
 15	femacs/platform/android/kotlin/EmacsDrawRectangle.kt	EmacsDrawable,EmacsGC	
-16	femacs/platform/android/kotlin/EmacsDrawable.kt	EmacsGC	
+16	femacs/platform/android/kotlin/EmacsDrawable.kt	EmacsGC	yes
 17	femacs/platform/android/kotlin/EmacsFillPolygon.kt	EmacsDrawable,EmacsGC	
 18	femacs/platform/android/kotlin/EmacsFillRectangle.kt	EmacsDrawable,EmacsGC	
 19	femacs/platform/android/kotlin/EmacsFontDriver.kt	EmacsDrawable,EmacsGC,EmacsSdk23FontDriver,EmacsSdk7FontDriver	
-20	femacs/platform/android/kotlin/EmacsGC.kt	EmacsHandleObject,EmacsPixmap,EmacsTileObject	
+20	femacs/platform/android/kotlin/EmacsGC.kt	EmacsHandleObject,EmacsPixmap,EmacsTileObject	yes
 21	femacs/platform/android/kotlin/EmacsInputConnection.kt	EmacsNative,EmacsService,EmacsView	
 22	femacs/platform/android/kotlin/EmacsLauncherPreferencesActivity.kt	EmacsPreferencesActivity	
 23	femacs/platform/android/kotlin/EmacsMultitaskActivity.kt	EmacsActivity,EmacsWindowManager	
 24	femacs/platform/android/kotlin/EmacsNative.kt	EmacsService	
 25	femacs/platform/android/kotlin/EmacsNoninteractive.kt	EmacsApplication,EmacsNative,EmacsService	
 26	femacs/platform/android/kotlin/EmacsOpenActivity.kt	EmacsActivity,EmacsNative,EmacsService	
-27	femacs/platform/android/kotlin/EmacsPixmap.kt	EmacsDrawable,EmacsGC,EmacsHandleObject	
+27	femacs/platform/android/kotlin/EmacsPixmap.kt	EmacsDrawable,EmacsGC,EmacsHandleObject	yes
 28	femacs/platform/android/kotlin/EmacsPreferencesActivity.kt	EmacsActivity,EmacsApplication,EmacsNative,EmacsThread	
 29	femacs/platform/android/kotlin/EmacsSafThread.kt	EmacsHolder,EmacsNative	
 30	femacs/platform/android/kotlin/EmacsSdk11Clipboard.kt	EmacsClipboard,EmacsService	
@@ -38,7 +38,7 @@ order	target	references	ported
 34	femacs/platform/android/kotlin/EmacsService.kt	EmacsActivity,EmacsApplication,EmacsDirectoryEntry,EmacsDrawLine,EmacsDrawPoint,EmacsDrawRectangle,EmacsDrawable,EmacsFillPolygon,EmacsFillRectangle,EmacsGC,EmacsNative,EmacsNoninteractive,EmacsSafThread,EmacsThread,EmacsView,EmacsWindow,EmacsWindowManager	
 35	femacs/platform/android/kotlin/EmacsSurfaceView.kt	EmacsNative,EmacsService,EmacsView	
 36	femacs/platform/android/kotlin/EmacsThread.kt	EmacsApplication,EmacsNative,EmacsService	
-37	femacs/platform/android/kotlin/EmacsTileObject.kt	EmacsGC	
+37	femacs/platform/android/kotlin/EmacsTileObject.kt	EmacsGC	yes
 38	femacs/platform/android/kotlin/EmacsView.kt	EmacsActivity,EmacsContextMenu,EmacsGC,EmacsInputConnection,EmacsNative,EmacsService,EmacsSurfaceView,EmacsWindow,EmacsWindowManager	
 39	femacs/platform/android/kotlin/EmacsWindow.kt	EmacsActivity,EmacsCursor,EmacsDrawable,EmacsGC,EmacsHandleObject,EmacsNative,EmacsService,EmacsView,EmacsWindowManager	
 40	femacs/platform/android/kotlin/EmacsWindowManager.kt	EmacsActivity,EmacsMultitaskActivity,EmacsNative,EmacsService,EmacsWindow	

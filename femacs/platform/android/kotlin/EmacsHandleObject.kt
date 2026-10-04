@@ -26,9 +26,9 @@ abstract class EmacsHandleObject {
      `"destroyHandle", "()V"`: a Kotlin `fun` keeps both.  Java's `throws` clause becomes
      `@Throws` so the JVM attribute stays (P-83 ⑤).  */
   @Throws(IllegalStateException::class)
-  fun destroyHandle() {
+  open fun destroyHandle() {
     synchronized(this) { destroyed = true }
   }
 
-  fun isDestroyed(): Boolean = destroyed
+  open fun isDestroyed(): Boolean = destroyed
 }
