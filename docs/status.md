@@ -5097,3 +5097,11 @@
   ⑵ 本片**第一次使用 3.271 的带门布局探针**（只读、未 `--write`）：`struct font_metrics` 在 frozen/x11/ns_cocoa 三臂一律 `sizeof=10, align=2`、成员 0/2/4/6/8 ⇒ Swift 侧五个 `Int16` 与 C 一致，**不需要带门臂**。
   ④ **交给集成者的共享表两项**（都由下一轮的棘轮重生成完成，见 3.308）：`docs/baseline/swift-units.tsv` 删 3 行（本片那三个名字）、`docs/baseline/swift-import-pending.txt` 加 **22 行**（4 个 `reference-source`：`font_driver`/`glyph_type`/`CHAR_GLYPH`/`COMPOSITE_GLYPH`；18 个 `unclassified`：`window_pseudo_window_p`、三个 `glyph_row_*`、十个 `glyph_string_*`、三个 `composition_*`、`font_driver_text_extents`）；
   其中 `windows_or_buffers_changed` 与两个 `composition_gstring_*` **已由核心提供**，不用行。`docs/baseline/**` 本片未动，探针未 `--write`。
+- **3.308 落地 3.306/3.307 后重跑四棘轮：三个门第一次同时全绿（0 failure / 0 stale）（2026-10-05）**：
+  ① **跑了**：`tools/reconcile-link-ratchets.sh`（**2m26s**），四本读数如下（`git diff --numstat`）：
+  `swift-import-pending.txt` **+22**（610 → **632**，正是 3.307 ④ 那份清单：4 `reference-source` + 18 `unclassified`）；`swift-units.tsv` **−3**（`nsterm.swift` 的 `ns_after_update_window_line`/`ns_compute_glyph_string_overhangs`/`ns_shift_glyphs_for_insert`，即 3.307 本片那三个定义）；
+  `link-pending.txt` 与 `link-exec-pending.txt` **各 1 行换名**：`_cursor_row_fully_visible_p` → `_Vmake_cursor_line_fully_visible`。
+  ② **门读数（工作树）**：`check-swift-units` **`0 new, 0 stale, 7 Swift unit(s) landed`**（第一次全清）；`check-link` **`373 undefined / 373 行 / 0 failure`**（此前那条 `_Vmake_cursor_line_fully_visible` failure 随 3.306 落地消失）；
+  `check-link --executable` **`83 / 83 / 0 failure`**。⇒ **三本棘轮门与 Swift 单元门同时绿**，而这批没有把任何在飞文件留在树上。
+  ③ **两处换名各自的原因**（写清以免下次误读）：`_cursor_row_fully_visible_p` 那行的消失＝`cursor_row_fully_visible_p` 已经作为函数落地（3.306），不再是"引用而无人定义"；
+  `_Vmake_cursor_line_fully_visible` 出现＝xdisp 里那个 `V...` 载体的名字进入"待定性"行（文案与其它 `V...` 载体同一句，属已记录的偏差类）。

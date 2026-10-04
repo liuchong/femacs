@@ -15,8 +15,6 @@ femacs/platform/macos/nsterm.swift	check_native_fs	src/nsterm.m
 femacs/platform/macos/nsterm.swift	hide_bell	src/nsterm.m
 femacs/platform/macos/nsterm.swift	mark_nsterm	src/nsterm.m
 femacs/platform/macos/nsterm.swift	not_in_argv	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_after_update_window_line	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_compute_glyph_string_overhangs	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_condemn_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_create_font_panel_buttons	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_create_terminal	src/nsterm.m
@@ -71,7 +69,6 @@ femacs/platform/macos/nsterm.swift	ns_set_glyph_string_gc	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_horizontal_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_vertical_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_setup_relief_colors	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_shift_glyphs_for_insert	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_show_hourglass	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_string_to_lispmod	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_init	src/nsterm.m

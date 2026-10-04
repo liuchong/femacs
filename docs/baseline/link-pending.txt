@@ -14,6 +14,7 @@ _Vfontification_functions	neither the reference nor the SDK explains it: a gener
 _Vglyphless_char_display	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _Vhscroll_step	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _Vinhibit_redisplay	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
+_Vmake_cursor_line_fully_visible	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _Vmax_mini_window_height	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _Vmaximum_scroll_margin	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _Vmenu_updating_frame	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
@@ -95,7 +96,6 @@ _connect	the reference references it too (or an SDK .tbd exports it): provided a
 _cos	the reference references it too (or an SDK .tbd exports it): provided at link time
 _count_lines	the reference defines it and no unit of this port does - the definition is owed
 _current_buffer	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_cursor_row_fully_visible_p	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _cursor_row_p	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _devname	the reference references it too (or an SDK .tbd exports it): provided at link time
 _display_line	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
