@@ -57,9 +57,11 @@ R_MACRO = re.compile(r"macro_rules!\s*(?P<name>[A-Za-z_]\w*)", re.M)
 R_STRUCT = re.compile(r"(?:pub\s+)?(?:unsafe\s+)?(?:struct|union)\s+(?P<name>[A-Za-z_]\w*)"
                       r"[^{;]*\{(?P<body>[^{}]*)\}", re.S)
 R_FIELD = re.compile(r"^\s*(?:pub\s+)?(?:r#)?(?P<name>[A-Za-z_]\w*)\s*:", re.M)
-R_STATIC = re.compile(r"\b(?:pub\s+)?(?:static|const)\s+(?:mut\s+)?"
+# `(?:r#)?` as in R_FIELD: C's `static char *in;` is only `r#in` in Rust, and the gate used to
+# report the object as missing (status 3.126's second tool finding).
+R_STATIC = re.compile(r"\b(?:pub\s+)?(?:static|const)\s+(?:mut\s+)?(?:r#)?"
                       r"(?P<name>[A-Za-z_]\w*)")
-R_CONST_NAME = re.compile(r"\b(?:pub\s+)?const\s+(?P<name>[A-Za-z_]\w*)\s*:\s*[^=]+?=", re.S)
+R_CONST_NAME = re.compile(r"\b(?:pub\s+)?const\s+(?:r#)?(?P<name>[A-Za-z_]\w*)\s*:\s*[^=]+?=", re.S)
 
 
 def scan_const_value(text: str, start: int) -> str | None:
@@ -876,6 +878,26 @@ def strip_comments(text: str) -> str:
     out, i, n, depth = [], 0, len(text), 0
     while i < n:
         ch = text[i]
+        if depth == 0 and ch == "'":
+            # A character literal is read first, because `'"'` would otherwise open a *string*
+            # here and swallow everything up to the next `"` - which is how a comment following
+            # such a literal turned into code, hiding definitions and (worse for the token gate)
+            # under-reporting what a body does not mention (the ebrowse lane found it with its
+            # own scanner, status 3.126).  A lifetime (`<'a>`) finds no closing quote inside the
+            # window and falls through as ordinary code.
+            j, closed = i + 1, False
+            while j < n and text[j] != "\n" and j - i <= 12:
+                if text[j] == "\\":
+                    j += 2
+                    continue
+                if text[j] == "'":
+                    closed, j = True, j + 1
+                    break
+                j += 1
+            if closed:
+                out.append(text[i:j])
+                i = j
+                continue
         if depth == 0 and ch == '"':
             j = i + 1
             while j < n:

@@ -1929,3 +1929,22 @@
   `check-mirror-dupes` `1 ratchet row / 0 failure`、`check-declarations` `13 sites (0 forbidden, 13 allowed literals)
   / 0 failures`、`check-verbatim` 0、`check-globals` `283 units / 0`；`port-inventory` 复算
   **590 files, done=476, wip=26, todo=88**。
+
+- **3.127 抽取器的两处缺陷修掉：字符字面量先于字符串，`r#` 标识符进 `R_STATIC`/`R_CONST_NAME`（2026-10-04 第 100 轮第十批）**：
+  两处都是 **ebrowse lane 在做行为差分时自己写准确剥离器、与工具对拍发现**的（3.126 记了它的报告）：
+  ① **`strip_comments` 先判 `"` 后判字符字面量**——遇到 `'"'` 会把它当成"字符串开始"，一路吞到下一个 `"`，
+  于是其后的**注释被当成代码**。后果有两面：可能藏住定义，也会往 Rust 侧灌进假 token，让"does not mention"
+  门**少报**。修法：在判 `"` 之前先按 check-declarations 的同款启发式读字符字面量（`\` 转义、窗口 12 字符内
+  找收尾 `'`；生命周期 `<'a>` 找不到收尾就按普通代码落回）。
+  **修完立刻暴露出 4 个真实欠报**（此前这 4 个文件因为该缺陷而"绿"）：`src/lread.c` 3 条、`src/font.c` 4 条、
+  `src/syntax.c` 2 条、`lib-src/make-docfile.c` 1 条——**全部是既有的"Rust 里不可能出现该 token"家族**
+  （指定初始化器 `.ieee_nan = { .exponent … }`、C 的数组上界惯用式 `MAX (INT_STRLEN_BOUND …, 1 + DBL_MAX_10_EXP + 1)`
+  被端口写成实测常量、`goto`/标签（2.2）、`UNINIT`（P-04/1.5）、`switch`/`case`）。逐条核实后补了 **10 行**
+  `macro-body-notes.tsv`，四个文件重新回到 `--check` = `OK`，全树 `--all` = **484 done / 18 in progress / 0 failing**。
+  ② **`R_STATIC`/`R_CONST_NAME` 不收 `r#` 前缀**（`R_FIELD` 一直收）：C 的 `static char *in;` 在 Rust 只能是
+  `r#in`，工具会把该对象误判成"缺定义"。修法：两个正则都加 `(?:r#)?`（非捕获组，名字本身不带前缀，与 `R_FIELD` 同形）。
+  验证：`python3 tools/extract-abi.py --all` exit 0、`484 done / 18 in progress / 0 failing`；
+  四个受影响文件 `--check` 全 `OK`；`check-mirror-dupes` / `check-declarations` / `check-verbatim` / `check-globals` 与
+  修前一致（`1 ratchet row / 0 failure`、`13 sites (0 forbidden) / 0 failures`、`0`、`283 units / 0`）。
+  **教训（写进这里供后来者）**：门绿不等于门在**看**——`strip_comments` 的这一个顺序错误，让 4 个已竣工单元
+  在一个家族上长期"免检"；这类"扫描器自身的盲点"只能靠**独立实现对拍**（lane 的自写剥离器）发现。
