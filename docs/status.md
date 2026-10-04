@@ -91,7 +91,7 @@
   见 PORTING.md 10.13②，须先落共享源码（`ftoastr`/`strftime`/`strtol`）并把共享体写成
   prelude `macro_rules!` 或参数化，再实例化；在此之前不碰这三个文件。
 - ~~3.4 `lib/allocator.c` 需要 `allocator.h` 镜像~~ **已解决（2026-10-04，3.193）**：`femacs/lib/include/allocator.rs` 其实早已写好且有 `lib/allocator.c` 这个消费者，只是台账框没勾而被记成 WIP；本轮补勾 + 补 `build-tu` 证据，`lib/allocator.c` 已可编译。
-- **3.11 `lib/include/*.rs` 镜像没有全树编译器**：`xtask layout-check` 从 `femacs/src/include/*.rs` 加两个
+- **3.11 `lib/include/*.rs` 镜像没有全树编译器**（**已由 3.217 收口**：可自成一 crate root 的 29 个进 probe 种子，其余 102 个「需要 includer」的按数目打印出来）：`xtask layout-check` 从 `femacs/src/include/*.rs` 加两个
   foundation 出发、只编 `include!` 图**够得到**的文件（`femacs/xtask/src/main.rs` 795-812），所以 `lib/include` 的镜像
   一般**不在这道门里**——实测 `grep -c 'lib/include/stdlib.in.rs' build/femacs/layout_probe.rs` → **0**
   （`stdbit.in.rs` 在，因为 `src/include/lisp.rs` 够得到它）。**待办**：把 `lib/include/*.rs` 加进 probe 的种子，
@@ -3943,3 +3943,10 @@
   ② **证据（本轮重测）**：七个 `--check` 全 **OK**；`build-tu lib/{mktime,strtol,tempname}.c` 三件都 **built**；`check-mirror-dupes` 1/1/0、`check-declarations` 13/0；读数 **590 files、done=579、wip=10、todo=1**。
   ③ **两处形态事实照记**：七个调用点**一个都没改**（镜像形参名不同不算语义，`*errno () = $val` 与 `*errno () = ($val)` 是同一个赋值）；**只有三个 C 文件真的写了 `#include <libc-config.h>`**——`strtol.c`/`euidaccess.c` 走自己的 `#ifndef` 兜底，`regcomp.c`/`regexec.c` 是被 `regex.c` 文本包含的 shim（那行在 `regex.c` 24），所以端口里每个 include 落在它 C 源给出那个名字的位置，出处写在注释里。
   ④ **裁决（w32term lane 交回的那一处，C 33-40）**：`#if USE_STACK_LISP_OBJECTS && !defined _WIN64 && !defined __x86_64__ && __GNUC__ + (__GNUC_MINOR__ > 1) >= 5`——clang 判 True、求值器判 False，因为 `USE_STACK_LISP_OBJECTS` **不是 config.h 的宏，是 `lisp.h` 的**（C 5721-5736），配置表看不到它。**裁决：保持现状（两支都带）**，理由是这不取决于哪支"活"：属性的那一支（`__attribute__((force_align_arg_pointer))`）Rust 表达不了、按既有做法只记录，端口的文本本来就是空臂——两种读法下镜像的文字都一样，所以没有必要为它改文件；把"clang 的 True 来自 lisp.h"这条写进台账，保守读法就有了出处。
+
+- **3.217 §3.11 收口：`lib/include` 里能自成一编译单元的镜像进了 layout probe 的种子（2026-10-04）**：
+  ① **缺口**：probe 只从 `femacs/src/include/*.rs` 出发、顺着 `include!` 图走，所以 `lib/include` 的镜像只有在被 src 镜像够到时才被编（`stdbit.in.rs` 被 `lisp.rs` 够到；`stdlib.in.rs` 谁都不够到）。
+  ② **不能整目录塞，理由可测**：镜像就是头文件，绝大多数要从 includer 拿标量（`c_int`/`size_t`/`time_t`）与 lisp.h 的宏（PORTING.md 0.1-9）。一条命令把目录分好类：
+  `cd femacs && for f in lib/include/*.rs; do rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit metadata -Awarnings --crate-name probe_$(basename $f .rs) -o /tmp/probe.rmeta "$f"; done`
+  ⇒ **29 个能自成一 crate root、102 个不能**。那 29 个写进 `docs/baseline/layout-standalone-mirrors.txt`（带命令与增删规则），probe 只种它们，**补集由门打印出来**（P-66：两类都不静默）。
+  ③ **证据（本轮实测）**：`cargo run -p xtask -- layout-check` → `+ 29 of 131 lib/include mirror(s) seeded as their own crate root (102 need an includer, PORTING.md 0.1-9)`、`92 of 102 src mirror(s) compiled, 10 platform-exclusive skipped (…)`、**`layout-check passed`**。3.214 的 `cdefs.rs` 与 3.215 的 `stdcountof.in.rs` 都在种子里 ⇒ 它们现在由**共享门**编，而不只是各跑一次 `build-tu`。
