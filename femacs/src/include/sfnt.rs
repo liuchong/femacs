@@ -2488,17 +2488,11 @@ unsafe extern "C" {
    `PROTOTYPE` is the header's parameter-list trick - each `#define` holds one entry point's
    parameters until the `#undef` below it, so a signature can be shared by several
    prototypes.  Rust has no textual parameter-list macro, and every declaration above writes
-   its parameters out, so this name carries C's text and has no use site: the tool's item
-   list requires the *name* (`--check` -> `1 C macros have several definitions …, body not
-   compared: PROTOTYPE`), and the construct it stands for is the expanded parameter lists.
-   The `lisp_h_Qnil` row of docs/ports/excluded-macros.txt is the same class; this mirror
-   answers it with the macro below instead of a row, so the name is present and the ledger
-   records the reason, together with the `excluded-macros.txt` row that would replace
-   it (see docs/ports/include-sfnt.md's Decisions).  */
-macro_rules! PROTOTYPE
-{
-  ($($params:tt)*) => { ($($params)*) };
-}
+   its parameters out, so the name has no Rust item at all and no use site.  It is recorded
+   in `docs/ports/excluded-macros.txt` (`kind=syntax`, the row the integrator added for this
+   mirror at status 3.166's follow-up), which is where the checker now finds it - so the
+   placeholder `macro_rules! PROTOTYPE` this mirror carried while the row was pending is
+   deleted.  */
 
 /* Layout assertions.  `src/sfnt.h`'s records are not in `tools/gen-layout-fields.py`'s
    `STRUCTS` whitelist, so `xtask layout-check`'s generated keys do not cover them; these are

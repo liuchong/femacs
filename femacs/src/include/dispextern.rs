@@ -1330,6 +1330,303 @@ pub const DRAW_MOUSE_FACE: draw_glyphs_face = 3;
 pub const DRAW_IMAGE_RAISED: draw_glyphs_face = 4;
 pub const DRAW_IMAGE_SUNKEN: draw_glyphs_face = 5;
 
+// --- the window-system record: `struct glyph_string` (dispextern.h 1358-1509) --------------
+/* C 1358-1509: `#ifdef HAVE_WINDOW_SYSTEM` - dead text on this target.  `HAVE_WINDOW_SYSTEM`
+   is `undef` in the frozen configuration (docs/baseline/config/darwin-arm64.macros.tsv;
+   `python3 tools/check-cond-eval.py src/dispextern.h` reports 0 disagreements with clang for
+   this file), so no unit of the frozen build ever compiled this record and `--check` does not
+   require it (its container list comes from the same evaluation).  It lands now because the
+   window-system *backends* need the record and its fields, not only its name: `src/nsfont.m`'s
+   GNUstep port reads `s->char2b[i]` (nsfont.m 1176), `s->first_glyph->type` (1161) and
+   `s->first_glyph[i].u.ch` (1720), and the X/W32/pgtk backends read the same members - the
+   Swift lane's two signatures (`nsfont_draw` 1151, `ns_dump_glyphstring` 1711) are the
+   immediate consumer.  Per P-51 the text of an arm the frozen build does not compile is
+   carried under a `feature` that names the *non*-frozen side, which is what
+   `#[cfg (feature = "window_system")]` does (nothing in this tree enables it, so what the
+   compiler sees is exactly what clang sees).
+
+   Field types follow P-55/P-72.  `frame`, `window`, `font` and `composition` have owner
+   mirrors (`include/frame.rs`, `include/window.rs`, `include/font.rs`,
+   `include/composite.rs`), and a unit that can enable this feature has them by construction:
+   C's backends include frame.h/window.h/font.h, and `src/nsfont.m` 27-39 includes
+   `dispextern.h`, `composite.h`, `frame.h`, `window.h` and `font.h`.  What has no owner mirror
+   keeps the untyped pointer and the `/// C:` line P-55 asks for: `struct face` and
+   `struct image` are this header's own records (C 1787, C 3215) and are not mirrored yet (two
+   of the seven types the extractor defers for this file), `struct xwidget` is xwidget.h (a todo
+   header in `docs/port-inventory.md`), and `GC`/`HDC`/`struct android_gc` are the platform
+   types of the `gc` blocks below.
+
+   The record is **not** layout-asserted: this target has no window-system configuration to
+   measure it with, so a `const _` here would be an invented number.  What *is* measured is the
+   bitfield run in isolation (the `GLYPH_STRING_*` note below); everything else about the
+   record's layout is unmeasured and is recorded as such in docs/ports/include-dispextern.md.  */
+#[cfg (feature = "window_system")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct glyph_string
+{
+  /* X-origin of the string.  */
+  pub x: c_int,                                // C 1365
+
+  /* Y-origin and y-position of the base line of this string.  */
+  pub y: c_int,                                // C 1368
+  pub ybase: c_int,
+
+  /* The width of the string, not including a face extension.  */
+  pub width: c_int,                            // C 1371
+
+  /* The width of the string, including a face extension.  */
+  pub background_width: c_int,                 // C 1374
+
+  /* The height of this string.  This is the height of the line this
+     string is drawn in, and can be different from the height of the
+     font the string is drawn in.  */
+  pub height: c_int,                           // C 1379
+
+  /* Number of pixels this string overwrites in front of its x-origin.
+     This number is zero if the string has an lbearing >= 0; it is
+     -lbearing, if the string has an lbearing < 0.  */
+  pub left_overhang: c_int,                    // C 1384
+
+  /* Number of pixels this string overwrites past its right-most
+     nominal x-position, i.e. x + width.  Zero if the string's
+     rbearing is <= its nominal width, rbearing - width otherwise.  */
+  pub right_overhang: c_int,                   // C 1389
+
+  /* The frame on which the glyph string is drawn.  */
+  pub f: *mut frame,                           // C 1392
+
+  /* The window on which the glyph string is drawn.  */
+  pub w: *mut window,                          // C 1395
+
+  /* The glyph row for which this string was built.  It determines the
+     y-origin and height of the string.  */
+  pub row: *mut glyph_row,                     // C 1399
+
+  /* The area within row.  */
+  pub area: glyph_row_area,                    // C 1402
+
+  /* Characters to be drawn, and number of characters.  Note that
+     NCHARS can be zero if this is a composition glyph string, as
+     evidenced by FIRST_GLYPH->type.  */
+  pub char2b: *mut c_uint,                     // C 1407
+  pub nchars: c_int,                           // C 1408
+
+  /* A face-override for drawing cursors, mouse face and similar.  */
+  pub hl: draw_glyphs_face,                    // C 1411
+
+  /* Face in which this string is to be drawn.  */
+  pub face: *mut c_void,                       /// C: `struct face *face;` (dispextern.h 1414)
+  // C 1414: the record itself is dispextern.h 1787, which this mirror does not carry yet (it
+  // is one of the seven types the extractor defers for this file), so the member is the
+  // untyped pointer P-55 prescribes; it becomes `*mut face` when C 1787 lands here.
+
+  /* Font in which this string is to be drawn.  */
+  pub font: *mut font,                         // C 1417
+
+  /* Non-null means this string describes (part of) a static
+     composition.  */
+  pub cmp: *mut composition,                   // C 1421
+
+  /* If not negative, this string describes a compos.  */
+  pub cmp_id: ptrdiff_t,                       // C 1424
+
+  /* Start and end glyph indices in a glyph-string.  */
+  pub cmp_from: c_int,                         // C 1427
+  pub cmp_to: c_int,
+
+  /* C 1431-1461: the record's one bitfield run - `bool_bf extends_to_end_of_line_p : 1`
+     (C 1431), `bool_bf background_filled_p : 1` (1434), `bool_bf font_not_found_p : 1`
+     (1439), `bool_bf stippled_p : 1` (1443), `unsigned for_overlaps : 3` (1456) and
+     `bool_bf padding_p : 1` (1461).  Rust has no bitfields, so P-80's shape applies: one
+     storage unit here, and the six member names live in `glyph_string_bits!`'s arms and in
+     the `GLYPH_STRING_*` masks below.  The unit is a `u32` because that is the size a
+     *reduced* probe of exactly these six declarations gives (see the constants; the probe
+     carries no window-system type and is **not** this record's layout, which is unmeasured
+     - see the file note above).  */
+  pub bits: u32,                               // C 1431-1461
+
+  /* The GC to use for drawing this glyph string (C 1464-1475).  A window-system build picks
+     exactly one arm, so each is carried under the feature this tree's units use for that C
+     macro.  */
+  #[cfg (feature = "x_windows")]
+  pub gc: *mut c_void,                         /// C: `GC gc;` (dispextern.h 1465)
+  // C 1465's `GC` is X11's `struct _XGC *` and has no mirror; the only `GC` this tree declares
+  // is msdos.h's `typedef int GC` (msdos.rs 217), a *different* type with the same name, so
+  // the pointer stays untyped rather than silently picking that one up (P-55/P-72).
+  #[cfg (feature = "android")]
+  pub gc: *mut c_void,                         /// C: `struct android_gc *gc;` (dispextern.h 1467)
+  // C 1466-1467: `struct android_gc` (androidgui.h 148) is not in androidgui.rs yet
+  // (that mirror declares `android_gc_function`/`android_gc_values`/`android_gcontext`).
+  #[cfg (feature = "ntgui")]
+  pub gc: *mut Emacs_GC,                       // C 1470: `Emacs_GC *gc;`
+  #[cfg (feature = "ntgui")]
+  pub hdc: *mut c_void,                        /// C: `HDC hdc;` (dispextern.h 1471)
+  #[cfg (feature = "pgtk")]
+  pub xgcv: Emacs_GC,                          // C 1474: `Emacs_GC xgcv;`
+
+  /* A pointer to the first glyph in the string.  This glyph
+     corresponds to char2b[0].  Needed to draw rectangles if
+     font_not_found_p is true.  */
+  pub first_glyph: *mut glyph,                 // C 1480
+
+  /* Image, if any.  */
+  pub img: *mut c_void,                        /// C: `struct image *img;` (dispextern.h 1483)
+  // C 3215 defines the record in this same header and this mirror does not carry it yet.
+
+  /* Xwidget.  */
+  pub xwidget: *mut c_void,                    /// C: `struct xwidget *xwidget;` (dispextern.h 1486)
+  // C 1486: `struct xwidget` is xwidget.h, still a todo header in docs/port-inventory.md.
+
+  /* Slice */
+  pub slice: glyph_slice,                      // C 1489
+
+  /* Non-null means the horizontal clipping region starts from the
+     left edge of *clip_head, and ends with the right edge of
+     *clip_tail, not including their overhangs.  */
+  pub clip_head: *mut glyph_string,            // C 1494
+  pub clip_tail: *mut glyph_string,
+
+  /* The current clipping areas.  */
+  pub clip: [c_int; 2],                        /// C: `NativeRectangle clip[2];` (dispextern.h 1497)
+  // C 1497: `NativeRectangle` is a *type* macro and its answer differs per window system
+  // (C 119's `#define NativeRectangle XRectangle`, C 178-180's fallback - which is live text in
+  // the frozen configuration - `#define NativeRectangle int`, w32gui.h's `RECT`, haikugui.h's
+  // `struct haiku_rect`).  This mirror names none of them: the fallback is what a window-system
+  // build without X, Android or Haiku has (the NS target's answer), and the port's shape for
+  // the macro is a `macro_rules!` at the platform header (w32gui.rs 148, haikugui.rs 64), which
+  // this mirror cannot also carry without colliding with w32gui.rs's in `layout-check`'s single
+  // crate.  The integrator owns that call (docs/ports/include-dispextern.md).
+
+  /* Number of clipping areas. */
+  pub num_clips: c_int,                        // C 1500
+
+  pub underline_position: c_int,               // C 1502
+
+  pub underline_thickness: c_int,              // C 1504
+
+  pub next: *mut glyph_string,                 // C 1506
+  pub prev: *mut glyph_string,
+}
+
+/* C 1445-1448: the four `OVERLAPS_*` macros, written inside the record's body in C but macros
+   in its sense (they are visible to every unit that compiles this arm).  `dispnew.rs` 3646-3647
+   carries `OVERLAPS_PRED`/`OVERLAPS_SUCC` as *live* copies of its own, because the frozen
+   configuration has no such macro - the window-system freeze retires them (the `struct font`
+   use-site precedent, status 3.158), and docs/ports/include-dispextern.md records the pair.  */
+#[cfg (feature = "window_system")]
+pub const OVERLAPS_PRED: c_uint = 1 << 0;                        // C 1445
+#[cfg (feature = "window_system")]
+pub const OVERLAPS_SUCC: c_uint = 1 << 1;                        // C 1446
+#[cfg (feature = "window_system")]
+pub const OVERLAPS_BOTH: c_uint = OVERLAPS_PRED | OVERLAPS_SUCC;  // C 1447
+#[cfg (feature = "window_system")]
+pub const OVERLAPS_ERASED_CURSOR: c_uint = 1 << 2;               // C 1448
+
+/* `glyph_string::bits`, the six members of C 1431-1461, in the order the C declarations put
+   them: four `bool_bf : 1` (bits 0-3), `unsigned for_overlaps : 3` (bits 4-6) and one more
+   `bool_bf : 1` (bit 7).  The *positions* come from a reduced probe - the six declarations
+   alone, compiled by the frozen clang with no window-system type - which prints
+   `sizeof (struct run) = 4` and `ff 00 00 00` with all six set (and `01 00 00 00`/`71 00 00 00`
+   for the first member and the first plus `for_overlaps`), i.e. one byte of members inside a
+   four-byte unit.  That is the run's own answer, not the record's layout: the record's
+   `bits` offset and every other offset are unmeasured on this target and asserted nowhere.  */
+#[cfg (feature = "window_system")]
+pub const GLYPH_STRING_EXTENDS_TO_END_OF_LINE_P: u32 = 1 << 0;   // C 1431
+#[cfg (feature = "window_system")]
+pub const GLYPH_STRING_BACKGROUND_FILLED_P: u32 = 1 << 1;        // C 1434
+#[cfg (feature = "window_system")]
+pub const GLYPH_STRING_FONT_NOT_FOUND_P: u32 = 1 << 2;           // C 1439
+#[cfg (feature = "window_system")]
+pub const GLYPH_STRING_STIPPLED_P: u32 = 1 << 3;                 // C 1443
+#[cfg (feature = "window_system")]
+pub const GLYPH_STRING_FOR_OVERLAPS_SHIFT: u32 = 4;              // C 1456
+#[cfg (feature = "window_system")]
+pub const GLYPH_STRING_FOR_OVERLAPS_WIDTH: u32 = 3;
+#[cfg (feature = "window_system")]
+pub const GLYPH_STRING_PADDING_P: u32 = 1 << 7;                  // C 1461
+
+/// Read one numeric member of `glyph_string::bits` — C's `(S).for_overlaps` (zero-extended,
+/// as an unsigned C bitfield of that width is).
+#[cfg (feature = "window_system")]
+#[inline(always)]
+pub fn glyph_string_bits_get (g: *const glyph_string, shift: u32, width: u32) -> c_int
+{
+  unsafe { (((*g).bits >> shift) & glyph_string_bits_mask (width)) as c_int }
+}
+
+/// Assign one numeric member of `glyph_string::bits` — C's `(S).for_overlaps = VALUE`: only the
+/// member's bits change.
+#[cfg (feature = "window_system")]
+#[inline(always)]
+pub fn glyph_string_bits_set (g: *mut glyph_string, shift: u32, width: u32, value: c_int)
+{
+  unsafe {
+    let mask = glyph_string_bits_mask (width) << shift;
+    (*g).bits = ((*g).bits & !mask) | ((((value as u32) & glyph_string_bits_mask (width)) << shift) & mask);
+  }
+}
+
+/// The `width`-bit mask of a `glyph_string::bits` member.
+#[cfg (feature = "window_system")]
+#[inline(always)]
+pub fn glyph_string_bits_mask (width: u32) -> u32
+{
+  if width >= 32 { u32::MAX } else { (1u32 << width) - 1 }
+}
+
+/// Read one `bool_bf : 1` member of `glyph_string::bits` — C's `(S).MEMBER`.
+#[cfg (feature = "window_system")]
+#[inline(always)]
+pub fn glyph_string_bool_p (g: *const glyph_string, mask: u32) -> bool
+{
+  unsafe { ((*g).bits & mask) != 0 }
+}
+
+/// Assign one `bool_bf : 1` member of `glyph_string::bits` — C's `(S).MEMBER = VALUE`.
+#[cfg (feature = "window_system")]
+#[inline(always)]
+pub fn glyph_string_bool_set (g: *mut glyph_string, mask: u32, value: bool)
+{
+  unsafe {
+    let bits = &mut (*g).bits;
+    *bits = if value { *bits | mask } else { *bits & !mask };
+  }
+}
+
+/// C's bit members of `glyph_string` as a read/write pair, because Rust has no bitfields
+/// (PORTING.md 1.3): `s->padding_p` is `glyph_string_bits! (padding_p, s)`, and
+/// `s->padding_p = v` is `glyph_string_bits! (padding_p, s, v)`.  The second argument is C's
+/// `(S)`; every arm carries the member's position (`glyph_string::bits`, one `u32`).
+#[cfg (feature = "window_system")]
+macro_rules! glyph_string_bits {
+  (extends_to_end_of_line_p, $s:expr) =>
+    { glyph_string_bool_p (&($s), GLYPH_STRING_EXTENDS_TO_END_OF_LINE_P) };
+  (extends_to_end_of_line_p, $s:expr, $value:expr) =>
+    { glyph_string_bool_set (&mut ($s), GLYPH_STRING_EXTENDS_TO_END_OF_LINE_P, $value) };
+  (background_filled_p, $s:expr) =>
+    { glyph_string_bool_p (&($s), GLYPH_STRING_BACKGROUND_FILLED_P) };
+  (background_filled_p, $s:expr, $value:expr) =>
+    { glyph_string_bool_set (&mut ($s), GLYPH_STRING_BACKGROUND_FILLED_P, $value) };
+  (font_not_found_p, $s:expr) =>
+    { glyph_string_bool_p (&($s), GLYPH_STRING_FONT_NOT_FOUND_P) };
+  (font_not_found_p, $s:expr, $value:expr) =>
+    { glyph_string_bool_set (&mut ($s), GLYPH_STRING_FONT_NOT_FOUND_P, $value) };
+  (stippled_p, $s:expr) =>
+    { glyph_string_bool_p (&($s), GLYPH_STRING_STIPPLED_P) };
+  (stippled_p, $s:expr, $value:expr) =>
+    { glyph_string_bool_set (&mut ($s), GLYPH_STRING_STIPPLED_P, $value) };
+  (for_overlaps, $s:expr) =>
+    { glyph_string_bits_get (&($s), GLYPH_STRING_FOR_OVERLAPS_SHIFT, GLYPH_STRING_FOR_OVERLAPS_WIDTH) };
+  (for_overlaps, $s:expr, $value:expr) =>
+    { glyph_string_bits_set (&mut ($s), GLYPH_STRING_FOR_OVERLAPS_SHIFT,
+                             GLYPH_STRING_FOR_OVERLAPS_WIDTH, $value) };
+  (padding_p, $s:expr) =>
+    { glyph_string_bool_p (&($s), GLYPH_STRING_PADDING_P) };
+  (padding_p, $s:expr, $value:expr) =>
+    { glyph_string_bool_set (&mut ($s), GLYPH_STRING_PADDING_P, $value) };
+}
+
 /* Indices of face attributes in Lisp face vectors.  */
 pub type lface_attribute_index = c_int;                 // dispextern.h 1723-1748
 pub const LFACE_FAMILY_INDEX: lface_attribute_index = 1;

@@ -127,19 +127,18 @@
   against 4) and put the record in a module (`sfnt_glyph_record::sfnt_glyph`), which the
   extractor's text scan still checks field by field; that is a call for the integrator, not for
   this lane.
-- **`PROTOTYPE` is C's parameter-list trick and has no Rust counterpart; the name is carried
-  and a shared row is proposed.**  C 1471, 1481, 1500, 1514, 1519, 1537, 1545, 1557, 1565, 1571,
-  1594, 1602, 1633, 1641, 2073, 2081, 2092, 2100, 2109, 2115 and 2125 each `#define PROTOTYPE`
-  one entry point's parameters and `#undef` it after, so one signature serves several
-  prototypes.  Rust has no textual parameter-list macro, so every declaration in the mirror
-  writes its parameters out and the name would have no item at all; `--check` requires it
-  (`missing macro PROTOTYPE`), and the macro at the end of the mirror is what satisfies that -
-  it is a **note that carries C's text, not a construct the mirror uses** (the `lisp_h_Qnil`
-  class of `docs/ports/excluded-macros.txt`).  Proposed shared row (the integrator owns the
-  file): `PROTOTYPE<TAB>syntax<TAB>sfnt.h 1471-2138: the header's parameter-list trick (21
-  `#define`/`#undef` pairs); Rust has no textual parameter-list macro, so each prototype writes
-  its parameters out and the name has no use site`.  With that row the `macro_rules!` becomes
-  unnecessary; without it the name has to stay.
+- **`PROTOTYPE` is C's parameter-list trick and has no Rust counterpart; the exclusion row is
+  in the table.**  C 1471, 1481, 1500, 1514, 1519, 1537, 1545, 1557, 1565, 1571, 1594, 1602,
+  1633, 1641, 2073, 2081, 2092, 2100, 2109, 2115 and 2125 each `#define PROTOTYPE` one entry
+  point's parameters and `#undef` it after, so one signature serves several prototypes.  Rust
+  has no textual parameter-list macro, so every declaration in the mirror writes its
+  parameters out and the name has no Rust item and no use site.  `--check` used to report it
+  as `missing macro PROTOTYPE`; the interim answer was a `macro_rules! PROTOTYPE` that carried
+  the name and nothing else (the `lisp_h_Qnil` class).  The integrator has since written the
+  row into `docs/ports/excluded-macros.txt` (152, `kind=syntax`), and this round **deleted**
+  the placeholder macro: with the row present the checker finds the name in the exclusion
+  list, `--check` still prints `OK`, and the mirror no longer carries a construct it cannot
+  use.
 - **Two C-spelling traps are handled in the bodies, not by shared rows.**  (1) `sfnt_fixed_float`
   (C 126) multiplies by `65535.0f`, and the token comparison sees C's `f` as its own token while
   Rust's only float suffixes (`f32`/`f64`) are skipped - the mirror names the divisor `f`, so the
@@ -176,9 +175,8 @@
 
 - `python3 tools/extract-abi.py --check emacs/src/sfnt.h femacs/src/include/sfnt.rs`
   -> `OK emacs/src/sfnt.h -> femacs/src/include/sfnt.rs` (no `- ` problem lines); the run prints
-  `(1 C macros have several definitions (configuration branches), body not compared: PROTOTYPE)`,
-  which is `PROTOTYPE`'s 21 definitions (the body of such a macro is not compared, its presence
-  is).
+  `(1 C macros have a recorded Rust counterpart: PROTOTYPE)` after the `macro_rules!`
+  placeholder was deleted - the name is answered by `docs/ports/excluded-macros.txt` now.
 - `python3 tools/check-cond-eval.py src/sfnt.h` -> `7 conditions, 0 unknown to the evaluator,
   0 disagreements`.
 - This ledger: 0 subrs, 0 functions defined, 8 macros, 68 types, 0 file-scope objects.

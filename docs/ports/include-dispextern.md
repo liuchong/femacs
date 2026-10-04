@@ -278,3 +278,129 @@ missing counts as pending and the ratchet only shrinks pending).
   femacs/src/include/dispextern.rs` reports 141 problems against 153 before the change
   (none of them these twelve), and `build-tu src/dispnew.c`, `src/menu.c`, `src/window.c`
   and their 41 siblings that include window.rs all report `built`.
+
+## Decisions
+
+### The window-system record `struct glyph_string` (dispextern.h 1358-1509), added 2026-10-04
+
+- **It is dead text on this target, and it is carried anyway under P-51's feature.**  The
+  record sits between C 1358's `#ifdef HAVE_WINDOW_SYSTEM` and C 1509's matching `#endif`;
+  `HAVE_WINDOW_SYSTEM` is `undef` in the frozen configuration
+  (`docs/baseline/config/darwin-arm64.macros.tsv`, and `tools/check-cond-eval.py src/dispextern.h`
+  reports 0 disagreements with clang for this file), so the frozen build never compiled it and
+  `--check`'s container list does not contain it either (it is not one of the seven types the
+  extractor defers for this file).  The mirror carries the record under
+  `#[cfg (feature = "window_system")]` - P-51's rule, the feature naming the *non*-frozen side -
+  so the compiled build is exactly what clang compiles.
+- **Who needs it (why it landed now).**  The window-system backends need the record *and its
+  fields*, not only its name: `src/nsfont.m`'s GNUstep port reads `s->char2b[i]` (nsfont.m
+  1176), `s->first_glyph->type` (1161) and `s->first_glyph[i].u.ch` (1720) - the Swift lane's
+  `nsfont_draw` (1151) and `ns_dump_glyphstring` (1711) are the immediate consumer - and the X,
+  W32 and pgtk backends read the same members.  The alternative (an opaque placeholder such as
+  `femacs/src/font.rs` 739's `pub struct glyph_string;`) was rejected by the integrator, and
+  this is the record's owner: `dispextern.h` is where C defines it.
+- **Field types: named where an owner mirror exists, `*mut c_void` + `/// C:` where not.**
+  `frame`, `window`, `font` and `composition` are named (`include/frame.rs`, `include/window.rs`,
+  `include/font.rs`, `include/composite.rs`), because a unit that enables this feature has them
+  by construction: C's backends include frame.h/window.h/font.h, and `src/nsfont.m` 27-39
+  includes `dispextern.h`, `composite.h`, `frame.h`, `window.h` and `font.h`.  Note the contrast
+  with this mirror's *live* text, where the same types degrade (`glyph.frame`,
+  dispextern.rs 293; `Mouse_HLInfo.mouse_face_mouse_frame`, 1591; `glyph.buffer`, 686): those
+  fields are compiled by every unit that takes this mirror, this record only by a window-system
+  unit.  Degraded here, each with the `/// C:` line P-55 asks for:
+  `face` (C 1414; the record is C 1787 in this same header and is not mirrored yet),
+  `image` (C 1483; C 3215, likewise), `xwidget` (C 1486; xwidget.h, still a todo header in
+  `docs/port-inventory.md`), `GC gc` (C 1465; X11's `struct _XGC *` - the only `GC` this tree
+  declares is msdos.h's `typedef int GC`, msdos.rs 217, a different type with the same name, so
+  naming it would silently pick that one up), `struct android_gc *gc` (C 1467; not in
+  androidgui.rs) and `HDC hdc` (C 1471; `<windows.h>`).  `Emacs_GC *gc` (C 1470) and
+  `Emacs_GC xgcv` (C 1474) *are* named: this mirror declares `Emacs_GC` itself (dispextern.rs 51).
+- **The four platform `gc` arms are carried under their own features**, because a window-system
+  build picks exactly one: `x_windows` (C 1464-1465), `android` (1466-1467), `ntgui`
+  (1469-1471), `pgtk` (1473-1474) - the spellings the tree's units use for those four C macros.
+  `keyboard.rs` 4057/4470/4549 spells the *same* C macro `HAVE_X_WINDOWS` as
+  `have_x_windows`, so the tree currently has two spellings for one condition; that split is
+  recorded here for the integrator, because a unit that enabled only `have_x_windows` would
+  silently leave this record's `gc` out (and if they standardise on `have_x_windows`, this arm
+  changes with them).
+- **The one bitfield run is P-80's shape, and only the run is measured.**  C 1431-1461 is four
+  `bool_bf : 1` members, `unsigned for_overlaps : 3` and one more `bool_bf : 1`; the mirror
+  stores one `bits: u32` and puts the six member names in `glyph_string_bits!`'s arms and in
+  `GLYPH_STRING_*` masks.  The `u32` and the six positions come from a **reduced probe** - those
+  six declarations alone, compiled by the frozen clang with no window-system type - which prints
+  `sizeof = 4` and `ff 00 00 00` with all six set (`01 00 00 00` for the first member alone,
+  `71 00 00 00` for it plus `for_overlaps`), i.e. one byte of members inside a four-byte unit,
+  `extends_to_end_of_line_p` at bit 0 through `padding_p` at bit 7.  **The record's own layout is
+  not measured and no assertion is written for it**: this target has no window-system
+  configuration to measure it with, so `sizeof`/offsets of `glyph_string` - and of every record
+  that embeds one - would be invented numbers (the task's rule; the port's own rule, P-80④, is
+  that measured byte patterns are what licence a bitfield unit).  It is asserted nowhere and is
+  `layout-check`-invisible by construction (the item is `cfg`'d out).
+- **`NativeRectangle clip[2]` (C 1497) is carried as `[c_int; 2]` and the type macro is
+  *not* added here.**  `NativeRectangle` is a type macro whose answer differs per window system:
+  C 119's `#define NativeRectangle XRectangle` (X11), C 178-180's fallback
+  `#ifndef NativeRectangle / #define NativeRectangle int` - *live* text in the frozen
+  configuration - plus `RECT` in w32gui.h and `struct haiku_rect` in haikugui.h.  `int` is what a
+  window-system build without X, Android or Haiku has (the NS target's answer), and the port's
+  shape for the macro is a `macro_rules!` at the platform header (w32gui.rs 148, haikugui.rs 64);
+  this mirror cannot also carry one, because two `macro_rules! NativeRectangle` in
+  `layout-check`'s single crate is a macro-namespace collision with `w32gui.rs`'s.  The
+  integrator owns that call; `[c_int; 2]` must become `[NativeRectangle; 2]`-equivalent text on
+  the X/XRectangle and Haiku paths (the array is 16 bytes there, 8 here).
+- **The four `OVERLAPS_*` macros (C 1445-1448) are carried under the same feature.**  They are
+  written inside the record's body in C but are macros in its sense (visible to every unit that
+  compiles the arm).  `femacs/src/dispnew.rs` 3646-3647 carries `OVERLAPS_PRED`/`OVERLAPS_SUCC`
+  as *live* copies of its own, because the frozen configuration has none - that is a use-site
+  copy to retire when the window-system target is frozen (the `struct font` precedent, status
+  3.158), not a collision today (`dispnew.rs`'s copies are live, this pair is `cfg`'d out).
+- **Two more use-site copies this record's landing creates a claim on** (reported, not edited -
+  they live in other lanes' files): `femacs/src/font.rs` 739 declares
+  `pub struct glyph_string;` as an opaque placeholder for `font.h` 693's
+  `font_driver.draw` (that field is already `#[cfg (feature = "window_system")]`, font.rs 283),
+  so a window-system build now needs that placeholder retired; and `include/nsgui.rs`,
+  `include/haikuterm.rs` (489-494) and `include/nsxwidget.rs` (23-78) degrade
+  `struct glyph_string *` to `*mut c_void` with the note that the record "has no mirror yet" -
+  those notes are now stale, and each of those mirrors would upgrade to `*mut glyph_string` by
+  adding this mirror to its own `include!` list when its target is frozen (P-72④).
+
+## Evidence
+
+- `python3 tools/extract-abi.py --check emacs/src/dispextern.h femacs/src/include/dispextern.rs`
+  -> **142 problem lines both before and after the addition, byte-identical lists** (`diff` of
+  the two runs is empty).  The mirror is a WIP slice - its ledger still has 78 unchecked boxes -
+  and the 142 lines are the not-yet-mirrored *live* text of this header: 43 missing macros, 76
+  missing constants, 16 missing file-scope objects, 5 missing functions and the two
+  `GLYPH_CHAR`/`GLYPH_FACE` token lines.  A full `--check OK` is therefore not achievable by
+  adding a record the frozen evaluation does not even require; the count is the ledger's
+  progress signal (the previous round recorded 141/153).  Adding the `cfg`'d record cannot
+  change it in either direction, which the identical lists measure.
+- `python3 tools/check-cond-eval.py src/dispextern.h` -> `71 conditions, 0 unknown,
+  0 disagreements [VERIFIED]`.
+- **Compile proof, feature on** (a throwaway probe under `/tmp`, not added to the tree: it
+  declares stubs for the four owner records and for lisp.h's/character.h's names this mirror's
+  live text uses - `EMACS_INT`, `intmax_t`, `MAX_CHAR`, `CHARACTERBITS`, `EMACS_INT_MAX`,
+  `CONSP`, `XCAR`, `XCDR`, `XFIXNUM`, `RANGED_FIXNUMP`, `CHARACTERP`, `CHAR_VALID_P` - then
+  `include!`s the real `femacs/src/include/dispextern.rs`):
+  `rustc --edition 2024 --crate-type lib --emit metadata --cfg 'feature="window_system"'
+  /tmp/gstr_feature_probe.rs` -> exit 0, 0 warnings; the probe calls
+  `glyph_string_bits! (padding_p, *s, true)` and `size_of::<glyph_string> ()`, so the record's
+  field names and types and the bit accessors really resolve.  Negative control: the same probe
+  against a `/tmp` copy of the mirror with `pub f: *mut frame` renamed to `*mut frame_typo`
+  fails with `error[E0425]: cannot find type frame_typo` - the probe has teeth.
+- **Bitfield run, reduced probe** (`clang -std=gnu23 -O0`, a file holding exactly C 1431-1461's
+  six declarations): `sizeof 4`, `_Alignof 4`, and the byte dumps above.  The *record's* layout
+  is not measured (no window-system configuration on this target) and is asserted nowhere.
+- `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-disp cargo run -q -p xtask -- layout-check`
+  -> `layout probe ok` / `layout-check passed (see build/femacs/layout_asserts.rs)`;
+  `... -- probe ../spikes/sfnt_inc_probe.rs ...` -> exit 0, 0 warnings;
+  `... -- build-tu src/font.c` -> `built src/font.rs -> ../build/femacs/font.o` (this is the
+  unit that would hit `E0428` against `font.rs` 739's placeholder if the record were not
+  `cfg`'d - it builds), `build-tu src/frame.c` -> `built src/frame.rs -> ../build/femacs/frame.o`.
+- Gate readings on this worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed
+  literals) / 0 failures; `check-globals` 283 units / 0; `check-mirror-dupes` 1 duplicate
+  declaration / 1 ratchet row / 0 failures; `check-verbatim` 6 trees / 4607 files / 0 failures;
+  `check-target-names` 595 `.rs` / 593 map targets / 0 findings.
+- Same round, `src/sfnt.h`: the placeholder `macro_rules! PROTOTYPE` the previous round added is
+  deleted now that `docs/ports/excluded-macros.txt` 152 carries the row; `--check
+  emacs/src/sfnt.h femacs/src/include/sfnt.rs` prints `OK` and `(1 C macros have a recorded Rust
+  counterpart: PROTOTYPE)`.
