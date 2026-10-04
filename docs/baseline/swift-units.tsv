@@ -70,6 +70,7 @@ femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_frame_up_to_date	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_free_pixmap	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_get_glyph_string_clip_rect	src/nsterm.m
+femacs/platform/macos/nsterm.swift	ns_get_shifted_character	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_hide_hourglass	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area_1	src/nsterm.m
