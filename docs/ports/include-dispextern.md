@@ -4,7 +4,7 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 9
-- [ ] xstrcasecmp  (line 108)
+- [x] xstrcasecmp  (line 108)
 - [x] GLYPH_CODE_CHAR  (line 401)
 - [x] GLYPH_CODE_FACE  (line 409)
 - [ ] face_tty_specified_color  (line 1946)
@@ -33,24 +33,24 @@
 - [x] CURRENT_TAB_LINE_ACTIVE_FACE_ID_3  (line 1629, body aed5798bdffa)
 - [x] CURRENT_TAB_LINE_HEIGHT  (line 1650, body 001407fb1bad)
 - [ ] DEC_TEXT_POS  (line 309, body ae74bb8bed91)
-- [ ] DEFAULT_TAB_BAR_BUTTON_MARGIN  (line 3435, body 356a192b7913)
-- [ ] DEFAULT_TAB_BAR_BUTTON_RELIEF  (line 3436, body 356a192b7913)
-- [ ] DEFAULT_TAB_BAR_IMAGE_HEIGHT  (line 3440, body 9e6a55b6b456)
-- [ ] DEFAULT_TOOL_BAR_BUTTON_MARGIN  (line 3514, body 1b6453892473)
-- [ ] DEFAULT_TOOL_BAR_BUTTON_RELIEF  (line 3515, body 356a192b7913)
-- [ ] DEFAULT_TOOL_BAR_IMAGE_HEIGHT  (line 3519, body 4d134bc07221)
-- [ ] DEFAULT_TOOL_BAR_LABEL_SIZE  (line 3510, body fa35e192121e)
-- [ ] DESIRED_HEADER_LINE_HEIGHT  (line 1666, body a8267bef2bfe)
-- [ ] DESIRED_MODE_LINE_HEIGHT  (line 1661, body 841e5d4036b1)
-- [ ] DESIRED_TAB_LINE_HEIGHT  (line 1671, body 11212daf96ab)
+- [x] DEFAULT_TAB_BAR_BUTTON_MARGIN  (line 3435, body 356a192b7913)
+- [x] DEFAULT_TAB_BAR_BUTTON_RELIEF  (line 3436, body 356a192b7913)
+- [x] DEFAULT_TAB_BAR_IMAGE_HEIGHT  (line 3440, body 9e6a55b6b456)
+- [x] DEFAULT_TOOL_BAR_BUTTON_MARGIN  (line 3514, body 1b6453892473)
+- [x] DEFAULT_TOOL_BAR_BUTTON_RELIEF  (line 3515, body 356a192b7913)
+- [x] DEFAULT_TOOL_BAR_IMAGE_HEIGHT  (line 3519, body 4d134bc07221)
+- [x] DEFAULT_TOOL_BAR_LABEL_SIZE  (line 3510, body fa35e192121e)
+- [x] DESIRED_HEADER_LINE_HEIGHT  (line 1666, body a8267bef2bfe)
+- [x] DESIRED_MODE_LINE_HEIGHT  (line 1661, body 841e5d4036b1)
+- [x] DESIRED_TAB_LINE_HEIGHT  (line 1671, body 11212daf96ab)
 - [ ] DISPEXTERN_H_INCLUDED  (line 23, body da39a3ee5e6b)
-- [ ] FACE_EXTENSIBLE_P  (line 2011, body cd0ec3c1d2ae)
+- [x] FACE_EXTENSIBLE_P  (line 2011, body cd0ec3c1d2ae)
 - [ ] FACE_ID_BITS  (line 562, body 91032ad7bbcb)
 - [ ] FACE_TTY_DEFAULT_BG_COLOR  (line 1940, body aec1a599270e)
 - [ ] FACE_TTY_DEFAULT_COLOR  (line 1932, body d129ea7e5b92)
 - [ ] FACE_TTY_DEFAULT_FG_COLOR  (line 1936, body ee7da968dd72)
-- [ ] FACE_UNIBYTE_P  (line 1953, body f9be50a1871d)
-- [ ] FONT_TOO_HIGH  (line 1712, body b1cfce490b0e)
+- [x] FACE_UNIBYTE_P  (line 1953, body f9be50a1871d)
+- [x] FONT_TOO_HIGH  (line 1712, body b1cfce490b0e)
 - [x] FONT_TYPE_UNKNOWN  (line 644, body b6589fc6ab0d)
 - [x] FRINGE_HEIGHT_BITS  (line 250, body fe5dbbcea5ce)
 - [x] FRINGE_ID_BITS  (line 247, body 1574bddb75c7)
@@ -63,7 +63,7 @@
 - [ ] IF_DEBUG  (line 264, body a29646b15239)
 - [ ] INC_TEXT_POS  (line 296, body 6e78be0b5653)
 - [ ] ITERATOR_AT_END_OF_LINE_P  (line 2954, body 5fe0db6bf4f3)
-- [ ] ITERATOR_AT_END_P  (line 2948, body 41e3bb4fc207)
+- [x] ITERATOR_AT_END_P  (line 2948, body 41e3bb4fc207)
 - [ ] IT_BYTEPOS  (line 2941, body 0f75d85b7e29)
 - [ ] IT_CHARPOS  (line 2940, body bcd8f758e9a9)
 - [ ] IT_STACK_SIZE  (line 2383, body ac3478d69a3c)
@@ -100,7 +100,7 @@
 - [x] MATRIX_TAB_LINE_HEIGHT  (line 1538, body a74e931726e2)
 - [x] MATRIX_TAB_LINE_ROW  (line 1178, body c26c1bb176c4)
 - [ ] MAX_FACE_ID  (line 1986, body e89e9b1c9f28)
-- [ ] MAX_FRINGE_BITMAPS  (line 2235, body 737b674ea0ea)
+- [x] MAX_FRINGE_BITMAPS  (line 2235, body 737b674ea0ea)
 - [x] MR_PARTIALLY_VISIBLE  (line 1257, body 3511fa7f7707)
 - [x] MR_PARTIALLY_VISIBLE_AT_BOTTOM  (line 1263, body 4cdbd4949124)
 - [x] MR_PARTIALLY_VISIBLE_AT_TOP  (line 1260, body 886ac09320dc)
@@ -119,10 +119,10 @@
 - [x] SET_MATRIX_ROW_ENABLED_P  (line 1243, body c92cc2f3ccd9)
 - [ ] SET_TEXT_POS  (line 291, body 191b91beaae4)
 - [ ] SET_TEXT_POS_FROM_MARKER  (line 322, body 4aac43f6e52f)
-- [ ] TEXT_POS_EQUAL_P  (line 342, body 4611f71b8e7c)
-- [ ] TRY_WINDOW_CHECK_MARGINS  (line 3699, body ee799cd75778)
-- [ ] TRY_WINDOW_IGNORE_FONTS_CHANGE  (line 3700, body 8ef58e36184c)
-- [ ] VCENTER_BASELINE_OFFSET  (line 1702, body f9470532af8f)
+- [x] TEXT_POS_EQUAL_P  (line 342, body 4611f71b8e7c)
+- [x] TRY_WINDOW_CHECK_MARGINS  (line 3699, body ee799cd75778)
+- [x] TRY_WINDOW_IGNORE_FONTS_CHANGE  (line 3700, body 8ef58e36184c)
+- [x] VCENTER_BASELINE_OFFSET  (line 1702, body f9470532af8f)
 
 ## Types and their fields — 19
 - [ ] bidi_it: ptrdiff_t bytepos, ptrdiff_t charpos, int ch, ptrdiff_t nchars, ptrdiff_t ch_len, bidi_type_t type, bidi_type_t type_after_wn, bidi_type_t orig_type, signed char resolved_level, signed char isolate_level, ptrdiff_t invalid_levels, ptrdiff_t invalid_isolates, struct bidi_saved_info prev, struct bidi_saved_info last_strong, struct bidi_saved_info next_for_neutral, struct bidi_saved_info prev_for_neutral, struct bidi_saved_info next_for_ws, ptrdiff_t bracket_pairing_pos, bidi_type_t bracket_enclosed_type, ptrdiff_t next_en_pos, bidi_type_t next_en_type, bidi_dir_t sos, int scan_dir, ptrdiff_t disp_pos, int disp_prop, int stack_idx, struct bidi_stack level_stack, struct bidi_string_data string, struct window* w, bidi_dir_t paragraph_dir, ptrdiff_t separator_limit, bool_bf first_elt : 1, bool_bf new_paragraph : 1, bool_bf frame_window_p : 1
@@ -157,9 +157,9 @@
 - [ ] extern Lisp_Object help_echo_object  (line 3615)
 - [ ] extern Lisp_Object previous_help_echo_string  (line 3615)
 - [ ] extern ptrdiff_t help_echo_pos  (line 3616)
-- [ ] extern int last_tab_bar_item  (line 3617)
-- [ ] extern int last_tool_bar_item  (line 3618)
-- [ ] extern int max_used_fringe_bitmap  (line 3710)
+- [x] extern int last_tab_bar_item  (line 3617)
+- [x] extern int last_tool_bar_item  (line 3618)
+- [x] extern int max_used_fringe_bitmap  (line 3710)
 - [ ] extern char unspecified_fg  (line 3834)
 - [ ] extern char unspecified_bg  (line 3834)
 # ----------------------------------------------------------------------
@@ -428,13 +428,27 @@ missing counts as pending and the ratchet only shrinks pending).
   that retire their copies cast the two members; that cast is part of the retirement, not of this
   mirror.
 - **Seven units still carry a local copy of the two records** - the shape of the time when this
-  mirror had neither - and their `build-tu` is **red with exactly the two `E0428`s** until their
-  copies retire (the integrator's step, 3.181/3.211's rule).  File and line, both records:
+  mirror had neither - and, **by the ruling below, they keep them**.  File and line, both records:
   `src/alloc.rs` `face` 3442 / `face_cache` 3453; `src/dispnew.rs` 3610 / 3618;
   `src/font.rs` 456 / 519; `src/term.rs` 323 / 308; `src/window.rs` 895 / 906;
   `src/xdisp.rs` 1062 / 1108; `src/xfaces.rs` 288 / 337.  Every other unit that includes this
   mirror builds (measured: `src/character.c`, `src/bidi.c`, `src/lread.c`, `src/bytecode.c`,
   `src/syntax.c`, `src/marker.c`, `src/frame.c`, `src/keyboard.c`).
+- **Ruling (status 3.220): the records stay behind the flip feature, and the units keep their
+  live copies.**  Landing them unconditionally made all seven units red (`E0428`), and the
+  `stdbit.in.rs` retirement of 3.181 was measured as the alternative: the smallest unit,
+  `src/alloc.rs`, needs three edits after deleting its two records (one `E0308` and two
+  `no field header on type c_void`), the whole set is roughly 40-60 edits, and it would have to
+  touch two lanes' in-flight files (`src/xdisp.rs`, `src/font.rs`) and downgrade their *typed*
+  accessors to casts.  The ruling is therefore the cheap arm that keeps C's text present: this
+  copy is gated `#[cfg (feature = "dispextern_face_records")]` (a row in
+  `femacs/xtask/Cargo.toml`, so `xtask dead-arms`/`gate-probes` compiles it when the feature is
+  flipped), it is field-for-field the copy `src/xfaces.rs` 279-345 asserts, and the units' typed
+  copies stay live.  The alternative and its measured cost are in the mirror's own comment too,
+  so a later round can take it deliberately.  The two `*mut c_void` members (`face.font`,
+  `face_cache.f`) are then the *flipped* arm's spelling - what a consumer of this mirror needs
+  (measured: `build-tu src/term.c` / `src/bidi.c` / `src/lread.c` answered "cannot find type") -
+  while the live typed copies spell them `*mut font` / `*mut frame`.
 - **What is still open: the same 142 `- ` lines**, now classified (the two records were in the
   gate's *deferred* set, so closing them moved no line, only the deferral list):
   5 `missing function`, 43 `missing macro`, 76 `missing constant`, 17 `missing file-scope object`,
@@ -469,4 +483,156 @@ missing counts as pending and the ratchet only shrinks pending).
   `built src/lread.rs -> …/lread.o`; `src/bytecode.c`, `src/syntax.c`, `src/marker.c`,
   `src/frame.c` (`built src/frame.rs -> …/frame.o`) and `src/keyboard.c` (`built
   src/keyboard.rs -> …/keyboard.o`) all the same; and the seven units of the bullet above answer
-  `error[E0428]: the name `face` is defined multiple times` and the same for `face_cache`.
+  `error[E0428]: the name `face` is defined multiple times` (and the same for `face_cache`) while
+  the records were ungated; **with the 3.220 ruling in place they build again** (`src/dispnew.c`,
+  `src/term.c`, `src/window.c`, `src/xfaces.c`, `src/alloc.c` all `built`), which is the ruling's
+  own check.
+
+## Decisions (the freely landable remainder, dispextern.h 105-3834)
+
+- **H. The integrator repaired two defects of this lane's first append in place (status 3.221);
+  both repairs stay.**  (i) The append landed `GLYPH_CHAR`/`GLYPH_FACE` a *second* time at the end
+  of the file, which is `E0428` in every unit that includes this mirror (measured: `build-tu
+  src/alloc.c`, `src/keyboard.c`, `src/dispnew.c`); the integrator moved the two
+  `let glyph_char = glyph.ch; glyph_char` bodies - the spelling the two
+  `function … does not mention …` token lines ask for - to C's position (right after
+  `struct GLYPH`) and deleted the trailing pair.  (ii) C 104's `#include <c-strcase.h>` had no
+  counterpart here, so C 110's `c_strcasecmp` had no declaration in scope; the integrator added the
+  include of the mirror that owns that name (`lib/include/c-strcase.rs`), which is the "name the
+  owner" rule for a name C takes from its includer's graph.  This lane's only follow-up is the
+  module placement in the `xstrcasecmp` entry below.
+- **The slice is defined by a measurement, not by taste: an item is landable here exactly when no
+  unit already declares it.**  Matching every one of the round's 105 `- missing …` names against a
+  declaration in `femacs/src/*.rs` + `femacs/lib/*.rs` (the `fn`/`const`/`static`/`type`/
+  `macro_rules!`/`mod` forms, one match per name per file) splits them 102 / 2 / 1: **102 names are
+  declared by a unit** (listed by owner in the Evidence), so landing them here is `E0428` in that
+  unit - the collision status 3.220 ruled on for the two face records - and `NativeRectangle` is
+  the one name no unit declares, deferred on its own grounds below.  (`IT_STACK_SIZE` is both a
+  macro and a constant in C, so 105 `- missing` lines carry 103 distinct names.)
+- **The 29 items that are free by that measurement are landed**, in C's order: `xstrcasecmp`
+  (105-111, in a module - next entry), `TEXT_POS_EQUAL_P` (340-343), `DESIRED_MODE_LINE_HEIGHT`
+  (1661-1662), `DESIRED_HEADER_LINE_HEIGHT` (1666-1667), `DESIRED_TAB_LINE_HEIGHT` (1671-1672),
+  `VCENTER_BASELINE_OFFSET` (1702-1705), `FONT_TOO_HIGH` (1712-1713), `FACE_UNIBYTE_P` (1953),
+  `FACE_EXTENSIBLE_P` (2011-2012), `MAX_FRINGE_BITMAPS` (2235), `IF_DEBUG` (262-265),
+  `ITERATOR_AT_END_P` (2948), the three `DEFAULT_TAB_BAR_*` (3435/3436/3440) and four
+  `DEFAULT_TOOL_BAR_*` (3510/3514/3515/3519) defaults, `enum tool_bar_item_image` with its four
+  `TOOL_BAR_IMAGE_*` members (3502-3508), `TRY_WINDOW_CHECK_MARGINS`/`TRY_WINDOW_IGNORE_FONTS_CHANGE`
+  (3699/3700) and the three objects `last_tab_bar_item` (3617), `last_tool_bar_item` (3618) and
+  `max_used_fringe_bitmap` (3710).  The `DEFAULT_*` names and the `TOOL_BAR_IMAGE_*` members each
+  count twice in the gate (macro + constant), which is why 29 items retire 37 `- ` lines.
+- **`xstrcasecmp` (C 104-111) sits in `dispextern_externs`, a module the including unit does not
+  glob-import.**  `src/font.rs` 561 carries its own definition of the same C name (the shape of the
+  time this mirror had none) and includes this mirror, so a copy at the mirror's top level is
+  `E0428` there (measured: `build-tu src/font.c` -> "the name `xstrcasecmp` is defined multiple
+  times", with `src/font.rs` 561 named as the other definition).  The module is the `bignum.rs`
+  `bignum_externs` / `cm.rs` `cm_globals` shape (P-21/P-39): C's text is present, the unit's
+  definition stays the live one, and the two do not collide.  Both `build-tu src/font.c` and
+  `layout-check` are green with it.
+- **`NativeRectangle` (C 176-181) stays unspelled, and its box stays unchecked.**  It is a *type*
+  macro whose answer is the window system's (`XRectangle` / `RECT` / `struct haiku_rect` / `int`);
+  the platform mirrors own their `macro_rules!` (w32gui.rs 148, haikugui.rs 64, pgtkgui.rs 214,
+  nsgui.rs 91, androidgui.rs 245) and a second one in `layout-check`'s single crate is a
+  macro-namespace collision with theirs, while a `pub type` alias here would hand every
+  window-system unit this target's 8-byte `int`.  An `excluded-macros.txt` row
+  (`NativeRectangle`, `kind=config`) is requested so the inventory gate can report the deferral
+  instead of a missing macro.
+- **`IF_DEBUG` (C 262-265) is landed as the live arm's no-op.**  `GLYPH_DEBUG` is undef, so the
+  evaluated body is `((void) 0)` and the port's expansion (`let _ = $x;`) has no `0` to name; a
+  `macro-body-notes.tsv` row (`IF_DEBUG`, token `0`, the `FD_SET`/`FD_CLR` class) is requested, and
+  this ledger's box stays unchecked until it lands.
+- **What is left is not landable from this mirror alone.**  The C 2600-4026 windowed machinery
+  (`struct image`, `image_cache`, the fringe/X-widget/cursor records) is *dead text* on this target
+  (`HAVE_WINDOW_SYSTEM` is undef: C 3203-3395 and 3633-3686), so P-51/P-66 apply and nothing was
+  transcribed.  The five types the extractor still defers are live text but unit-owned exactly like
+  the 102 names: `struct bidi_it` (`src/bidi.rs` 86), `composition_it` (`src/dispnew.rs` 6828 and
+  `src/indent.rs` 180), `struct it` (`src/dispnew.rs` 6855), `redisplay_interface`
+  (`src/dispnew.rs` 3569 and `src/minibuf.rs` 666), `draw_fringe_bitmap_params` (no unit); landing
+  any of them needs the 3.220 shape (a flip feature row) or the unit retirement, both of which the
+  integrator owns.
+
+## Evidence (the freely landable remainder)
+
+- **`--check`, measured against the committed mirror and the working tree**: `git show
+  HEAD:femacs/src/include/dispextern.rs > /tmp/dxhead/dispextern.rs` then
+  `python3 tools/extract-abi.py --check emacs/src/dispextern.h /tmp/dxhead/dispextern.rs` ->
+  `FAIL`, `grep -c '^- '` **142** (140 `missing` + the two `GLYPH_CHAR`/`GLYPH_FACE` token lines);
+  the same command on `femacs/src/include/dispextern.rs` -> `FAIL`, `grep -c '^- '` **106**
+  (105 `missing` = 4 functions + 23 macros + 65 constants + 13 objects, plus one token line,
+  `macro IF_DEBUG does not mention 0 (C body: ((void) 0))`).  `diff` of the two sorted lists: 37
+  lines gone (the 29 landed items - the `DEFAULT_*`/`TOOL_BAR_IMAGE_*` ones twice each - plus
+  `missing function xstrcasecmp` and the two `GLYPH_*` token lines) and 1 line new (the `IF_DEBUG`
+  token line).
+- **The free / unit-declared split** (the round's 105 `- missing` lines, 103 distinct names):
+
+```
+xdisp.rs     (63): BIDI_AT_BASE_LEVEL, BYTEPOS, CHARPOS, COMPOSITION_PROP_IDX, DEC_TEXT_POS,
+  DISPLAY_PROP_IDX, FACE_FOR_CHAR, FACE_PROP_IDX, FONTIFIED_PROP_IDX, GET_FROM_BUFFER,
+  GET_FROM_C_STRING, GET_FROM_DISPLAY_VECTOR, GET_FROM_IMAGE, GET_FROM_STRETCH, GET_FROM_STRING,
+  GET_FROM_XWIDGET, GLYPHLESS_DISPLAY_ACRONYM, GLYPHLESS_DISPLAY_EMPTY_BOX,
+  GLYPHLESS_DISPLAY_HEX_CODE, GLYPHLESS_DISPLAY_THIN_SPACE, INC_TEXT_POS, INVISIBLE_PROP_IDX,
+  ITERATOR_AT_END_OF_LINE_P, IT_BYTEPOS, IT_CHARACTER, IT_CHARPOS, IT_COMPOSITION,
+  IT_CONTINUATION, IT_EOB, IT_GLYPHLESS, IT_IMAGE, IT_STACK_SIZE, IT_STRETCH, IT_STRING_BYTEPOS,
+  IT_STRING_CHARPOS, IT_TRUNCATION, IT_XWIDGET, LAST_PROP_IDX, MOVE_TO_POS, MOVE_TO_VPOS,
+  MOVE_TO_X, MOVE_TO_Y, NUM_IT_METHODS, OVERLAY_PROP_IDX, OVERLAY_STRING_CHUNK_SIZE,
+  PRODUCE_GLYPHS, SET_MARKER_FROM_TEXT_POS, SET_TEXT_POS, SET_TEXT_POS_FROM_MARKER, TRUNCATE,
+  WINDOW_WRAP, WORD_WRAP, display_working_on_window_p, dont_resize_frames, face_change,
+  help_echo_object, help_echo_pos, help_echo_showing_p, help_echo_string, help_echo_window,
+  previous_help_echo_string, redisplay_counter, redisplaying_p
+dispnew.rs   (30): BYTEPOS, CHARPOS, CHAR_GLYPH_SPACE_P, CLIP_TEXT_POS_FROM_MARKER,
+  FACE_TTY_DEFAULT_BG_COLOR, FACE_TTY_DEFAULT_FG_COLOR, IT_CHARACTER, IT_CHARPOS, IT_COMPOSITION,
+  IT_CONTINUATION, IT_EOB, IT_GLYPHLESS, IT_IMAGE, IT_STRETCH, IT_TRUNCATION, MOVE_TO_POS,
+  MOVE_TO_VPOS, MOVE_TO_X, MOVE_TO_Y, SET_GLYPH_FROM_GLYPH_CODE, TRUNCATE, WINDOW_WRAP,
+  WORD_WRAP, dont_resize_frames, help_echo_object, help_echo_pos, help_echo_string,
+  help_echo_window, previous_help_echo_string, redisplaying_p
+indent.rs    (25): BYTEPOS, CHARPOS, GET_FROM_BUFFER, GET_FROM_C_STRING, GET_FROM_DISPLAY_VECTOR,
+  GET_FROM_IMAGE, GET_FROM_STRETCH, GET_FROM_STRING, GET_FROM_XWIDGET, IT_BYTEPOS, IT_CHARPOS,
+  IT_STACK_SIZE, IT_STRING_BYTEPOS, MOVE_TO_POS, MOVE_TO_VPOS, MOVE_TO_X, MOVE_TO_Y,
+  NUM_IT_METHODS, OVERLAY_STRING_CHUNK_SIZE, SET_TEXT_POS, SET_TEXT_POS_FROM_MARKER, TRUNCATE,
+  WINDOW_WRAP, WORD_WRAP, display_working_on_window_p
+window.rs    (25): BYTEPOS, CHARPOS, CLIP_TEXT_POS_FROM_MARKER, IT_BYTEPOS, IT_CHARACTER,
+  IT_CHARPOS, IT_COMPOSITION, IT_CONTINUATION, IT_EOB, IT_GLYPHLESS, IT_IMAGE, IT_STACK_SIZE,
+  IT_STRETCH, IT_TRUNCATION, IT_XWIDGET, MOVE_TO_POS, MOVE_TO_VPOS, MOVE_TO_X, MOVE_TO_Y,
+  OVERLAY_STRING_CHUNK_SIZE, SET_TEXT_POS, SET_TEXT_POS_FROM_MARKER, display_working_on_window_p,
+  face_change, reset_mouse_highlight
+term.rs      (25): CHARPOS, FACE_TTY_DEFAULT_BG_COLOR, FACE_TTY_DEFAULT_COLOR,
+  FACE_TTY_DEFAULT_FG_COLOR, GLYPHLESS_DISPLAY_ACRONYM, GLYPHLESS_DISPLAY_EMPTY_BOX,
+  GLYPHLESS_DISPLAY_HEX_CODE, GLYPHLESS_DISPLAY_THIN_SPACE, IT_CHARACTER, IT_COMPOSITION,
+  IT_CONTINUATION, IT_EOB, IT_GLYPHLESS, IT_IMAGE, IT_STRETCH, IT_TRUNCATION, TTY_CAP_BOLD,
+  TTY_CAP_DIM, TTY_CAP_INVERSE, TTY_CAP_ITALIC, TTY_CAP_OVERLINE, TTY_CAP_STRIKE_THROUGH,
+  TTY_CAP_UNDERLINE, TTY_CAP_UNDERLINE_STYLED, face_tty_specified_color
+keyboard.rs  (21): CHARPOS, TAB_BAR_ITEM_BINDING, TAB_BAR_ITEM_CAPTION, TAB_BAR_ITEM_ENABLED_P,
+  TAB_BAR_ITEM_HELP, TAB_BAR_ITEM_KEY, TAB_BAR_ITEM_NSLOTS, TAB_BAR_ITEM_SELECTED_P,
+  TOOL_BAR_ITEM_BINDING, TOOL_BAR_ITEM_CAPTION, TOOL_BAR_ITEM_ENABLED_P, TOOL_BAR_ITEM_HELP,
+  TOOL_BAR_ITEM_IMAGES, TOOL_BAR_ITEM_KEY, TOOL_BAR_ITEM_LABEL, TOOL_BAR_ITEM_NSLOTS,
+  TOOL_BAR_ITEM_RTL_IMAGE, TOOL_BAR_ITEM_SELECTED_P, TOOL_BAR_ITEM_TYPE, TOOL_BAR_ITEM_VERT_ONLY,
+  TOOL_BAR_ITEM_WRAP
+xfaces.rs    (16): FACE_FOR_CHAR, FACE_SUITABLE_FOR_ASCII_CHAR_P, FACE_TTY_DEFAULT_BG_COLOR,
+  FACE_TTY_DEFAULT_COLOR, FACE_TTY_DEFAULT_FG_COLOR, TTY_CAP_BOLD, TTY_CAP_DIM, TTY_CAP_INVERSE,
+  TTY_CAP_ITALIC, TTY_CAP_OVERLINE, TTY_CAP_STRIKE_THROUGH, TTY_CAP_UNDERLINE,
+  TTY_CAP_UNDERLINE_STYLED, face_change, unspecified_bg, unspecified_fg
+frame.rs      (5): FACE_TTY_DEFAULT_BG_COLOR, FACE_TTY_DEFAULT_COLOR, FACE_TTY_DEFAULT_FG_COLOR,
+  unspecified_bg, unspecified_fg
+bidi.rs       (2): IT_STACK_SIZE, SET_TEXT_POS
+eval.rs       (2): redisplay_counter, redisplaying_p
+font.rs       (1): FACE_FOR_CHAR
+free         (1): NativeRectangle
+```
+
+- **`layout-check`** (the mirror is in the seed set, so this is its compile evidence):
+  `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-dx cargo run -q -p xtask -- layout-check` ->
+  `layout probe ok` / `layout-check passed (see build/femacs/layout_asserts.rs)` - run after the
+  module move *and* after the ledger edit.
+- **The units' `build-tu`**: `src/character.c` -> `built src/character.rs ->
+  ../build/femacs/character.o`; `src/bidi.c` -> `built src/bidi.rs -> …/bidi.o`; `src/lread.c` ->
+  `built src/lread.rs -> …/lread.o`; `src/frame.c` -> `built src/frame.rs -> …/frame.o`;
+  `src/dispnew.c` -> `built src/dispnew.rs -> …/dispnew.o`; `src/xfaces.c` -> `built
+  src/xfaces.rs -> …/xfaces.o`; `src/font.c` -> `built src/font.rs -> …/font.o` (the module move's
+  own check: the same command answered `error[E0428]: the name `xstrcasecmp` is defined multiple
+  times … src/font.rs 561` before it).  `src/keyboard.c` answers `error[E0609]: no field `bits` on
+  type `buffered_input_event`` at `keyboard.rs`'s own `input_event_bits!` macro (4089-4090) - a
+  diagnostic that names neither this mirror nor any file of it, in another lane's in-flight unit.
+- **The other text gates, in one run**: `check-declarations` -> `13 declaration sites (0
+  forbidden, 13 allowed literals), 0 failures`; `check-globals` -> `283 units, 0 DEFVAR_*
+  variables without a definition in their own unit`; `check-mirror-dupes` -> `1 duplicate
+  declaration(s), 1 ratchet row(s), 0 failure(s)`; `check-verbatim` -> `6 trees, 4607 files, 0
+  failures`; `check-target-names` -> `626 .rs files, 591 map targets, 0 finding(s)`.

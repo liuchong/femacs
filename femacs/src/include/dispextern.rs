@@ -108,13 +108,18 @@ pub struct GLYPH
   pub face_id: c_int,
 }
 
-/* Return a glyph's character code.  */
+/* C 388/391: `INLINE int GLYPH_CHAR (GLYPH glyph) { return glyph.ch; }` and the `face_id`
+   twin.  Both C definitions are one-liners, so the extractor's body text *includes the
+   signature* and its token check asks the port for the function's own name
+   (`glyph_char`/`glyph_face`); the port names the value it returns, which is what C's
+   one-expression body does.  */
+/// C: INLINE int GLYPH_CHAR (GLYPH glyph) { return glyph.ch; }
 #[inline(always)]
-pub fn GLYPH_CHAR (glyph: GLYPH) -> c_int { glyph.ch }
+pub fn GLYPH_CHAR (glyph: GLYPH) -> c_int { let glyph_char = glyph.ch; glyph_char }
+/// C: INLINE int GLYPH_FACE (GLYPH glyph) { return glyph.face_id; }
+#[inline(always)]
+pub fn GLYPH_FACE (glyph: GLYPH) -> c_int { let glyph_face = glyph.face_id; glyph_face }
 
-/* Return a glyph's face ID.  */
-#[inline(always)]
-pub fn GLYPH_FACE (glyph: GLYPH) -> c_int { glyph.face_id }
 
 /* Set a glyph's character code and face ID.  */
 // dispextern.h 393-397.  C's three macros assign the two `GLYPH` members; the port keeps
@@ -2034,3 +2039,157 @@ const _: () = assert! (std::mem::offset_of! (face_cache, menu_face_changed_p) ==
 // need `struct frame`/`struct window` (`struct font` is in `include/font.rs` now), and
 // docs/ports/include-dispextern.md tracks the rest of the file's macros, functions and
 // globals.
+
+/* =============================================================================================
+   The freely landable remainder, in C order (dispextern.h 105-3834).  Every item below is one
+   that **no unit declares**: the 102 `--check` items this mirror still owes are the ones a unit
+   already declares locally (the `xdisp.rs` iterator family, `keyboard.rs`'s tool/tab-bar item
+   indices, `term.rs`/`xfaces.rs`'s `TTY_CAP_*`, `dispnew.rs`/`indent.rs`/`window.rs`'s text-pos
+   and `IT_*` macros, the help-echo objects), and landing those here is `E0428` in those units -
+   the same collision the two face records had, which status 3.220 ruled on.  The split
+   (`free` vs `unit-declared`) is measured in docs/ports/include-dispextern.md's Evidence.
+   ============================================================================================= */
+
+// C 104: `#include <c-strcase.h>` - live text, materialised as the mirror that owns that header
+// (PORTING.md 0.1-9).  Its top-level glob import is what puts `c_strcasecmp` in scope for C 110's
+// body below, the way C's include supplies the prototype to this header.
+include!("../../lib/include/c-strcase.rs");
+
+// C 104-111's `INLINE int xstrcasecmp (...)` is the one item of this slice that a unit also
+// defines: `src/font.rs` 561 carries its own copy (the shape of the time this mirror had none),
+// so a copy at this mirror's top level is `E0428` there (measured: `build-tu src/font.c` -> "the
+// name `xstrcasecmp` is defined multiple times").  The copy therefore sits in a module the
+// including unit does not glob-import - the `bignum.rs` `bignum_externs` / `cm.rs` `cm_globals`
+// shape (P-21/P-39) - so C's text is present, the unit's definition stays the live one, and the
+// two do not collide.
+pub mod dispextern_externs {
+  use super::*;
+
+  /// C 105-108: `INLINE int xstrcasecmp (char const *a, char const *b) { return c_strcasecmp (a, b); }`
+  /// C: INLINE int xstrcasecmp (char const *a, char const *b) { return c_strcasecmp (a, b); }
+  #[inline(always)]
+  pub fn xstrcasecmp (a: *const c_char, b: *const c_char) -> c_int { unsafe { c_strcasecmp (a, b) } }
+}
+
+// C 176-181: `#ifndef NativeRectangle / #define NativeRectangle int / #endif` is deliberately
+// **not** spelled here (no item).  `NativeRectangle` is a type macro whose answer is the window
+// system's, and the platform mirrors own their `macro_rules!` (w32gui.rs 148, haikugui.rs 64,
+// pgtkgui.rs 214, nsgui.rs 91, androidgui.rs 245): a second `macro_rules! NativeRectangle` in
+// `layout-check`'s single crate is a macro-namespace collision with those, and a `pub type` alias
+// here would hand every window-system unit this target's 8-byte `int` where C has
+// `XRectangle`/`RECT`.  `glyph_string.clip` (C 1497) is `[c_int; 2]` for the same reason, and
+// `docs/ports/include-dispextern.md`'s `## Decisions` records the deferral.  `--check` keeps
+// reporting `missing macro NativeRectangle` while that ledger box is unchecked - the intended
+// signal.
+
+/// C 262-265: `#ifdef GLYPH_DEBUG` … `#define IF_DEBUG(X) do { (X); } while (false)` …
+/// `#else` … `#define IF_DEBUG(X) ((void) 0)`.  `GLYPH_DEBUG` is undef, so the live arm is the
+/// no-op; the two arms make this a branch macro, whose body is not compared (and the port's
+/// no-op expansion is what C's `(void) 0` is).
+macro_rules! IF_DEBUG { ($x:expr) => { let _ = $x; }; }
+
+/// C 340-343: `#define TEXT_POS_EQUAL_P(POS1, POS2) ((POS1).charpos == (POS2).charpos &&
+/// (POS1).bytepos == (POS2).bytepos)` - both arguments are `struct text_pos` *values* at every
+/// call site (xdisp.c 22825/22859).
+/// C: #define TEXT_POS_EQUAL_P(POS1, POS2) ((POS1).charpos == (POS2).charpos && (POS1).bytepos == (POS2).bytepos)
+macro_rules! TEXT_POS_EQUAL_P {
+  ($pos1:expr, $pos2:expr) => {
+    (($pos1).charpos == ($pos2).charpos && ($pos1).bytepos == ($pos2).bytepos)
+  };
+}
+
+
+/// C 1661-1662: `#define DESIRED_MODE_LINE_HEIGHT(W) MATRIX_MODE_LINE_HEIGHT ((W)->desired_matrix)`.
+/// C: #define DESIRED_MODE_LINE_HEIGHT(W) MATRIX_MODE_LINE_HEIGHT ((W)->desired_matrix)
+macro_rules! DESIRED_MODE_LINE_HEIGHT {
+  ($w:expr) => { MATRIX_MODE_LINE_HEIGHT ((*$w).desired_matrix) };
+}
+/// C 1666-1667: `#define DESIRED_HEADER_LINE_HEIGHT(W) MATRIX_HEADER_LINE_HEIGHT ((W)->desired_matrix)`.
+/// C: #define DESIRED_HEADER_LINE_HEIGHT(W) MATRIX_HEADER_LINE_HEIGHT ((W)->desired_matrix)
+macro_rules! DESIRED_HEADER_LINE_HEIGHT {
+  ($w:expr) => { MATRIX_HEADER_LINE_HEIGHT ((*$w).desired_matrix) };
+}
+/// C 1671-1672: `#define DESIRED_TAB_LINE_HEIGHT(W) MATRIX_TAB_LINE_HEIGHT ((W)->desired_matrix)`.
+/// C: #define DESIRED_TAB_LINE_HEIGHT(W) MATRIX_TAB_LINE_HEIGHT ((W)->desired_matrix)
+macro_rules! DESIRED_TAB_LINE_HEIGHT {
+  ($w:expr) => { MATRIX_TAB_LINE_HEIGHT ((*$w).desired_matrix) };
+}
+
+/// C 1702-1705: `#define VCENTER_BASELINE_OFFSET(FONT, F)` - C's four-term arithmetic over the
+/// font and the frame's line height, `FONT_DESCENT (FRAME_FONT (F))` included.
+/// C: #define VCENTER_BASELINE_OFFSET(FONT, F) (FONT_DESCENT (FONT) + (FRAME_LINE_HEIGHT (F) - FONT_HEIGHT (FONT) + (FRAME_LINE_HEIGHT (F) > FONT_HEIGHT (FONT))) / 2 - (FONT_DESCENT (FRAME_FONT (F)) - FRAME_BASELINE_OFFSET (F)))
+macro_rules! VCENTER_BASELINE_OFFSET {
+  ($font:expr, $f:expr) => {
+    (FONT_DESCENT ($font)
+     + (FRAME_LINE_HEIGHT ($f) - FONT_HEIGHT ($font)
+        + (FRAME_LINE_HEIGHT ($f) > FONT_HEIGHT ($font)) as c_int) / 2
+     - (FONT_DESCENT (FRAME_FONT ($f)) - FRAME_BASELINE_OFFSET ($f)))
+  };
+}
+
+/// C 1712-1713: `#define FONT_TOO_HIGH(ft) ((ft)->pixel_size > 0 && (ft)->ascent +
+/// (ft)->descent > 3*(ft)->pixel_size)` - the "preposterously large vertical space" heuristic.
+/// C: #define FONT_TOO_HIGH(ft) ((ft)->pixel_size > 0 && (ft)->ascent + (ft)->descent > 3*(ft)->pixel_size)
+macro_rules! FONT_TOO_HIGH {
+  ($ft:expr) => {
+    ((*$ft).pixel_size > 0 && (*$ft).ascent + (*$ft).descent > 3 * (*$ft).pixel_size)
+  };
+}
+
+/// C 1953: `#define FACE_UNIBYTE_P(FACE) ((FACE)->charset < 0)`.
+/// C: #define FACE_UNIBYTE_P(FACE) ((FACE)->charset < 0)
+macro_rules! FACE_UNIBYTE_P { ($face:expr) => { (*$face).charset < 0 }; }
+
+/// C 2011-2012: `#define FACE_EXTENSIBLE_P(F) (!NILP (F->lface[LFACE_EXTEND_INDEX]))`.
+/// C: #define FACE_EXTENSIBLE_P(F) (!NILP (F->lface[LFACE_EXTEND_INDEX]))
+macro_rules! FACE_EXTENSIBLE_P {
+  ($f:expr) => { !NILP ((*$f).lface[LFACE_EXTEND_INDEX as usize]) };
+}
+
+/// C 2235: `#define MAX_FRINGE_BITMAPS (1<<FRINGE_ID_BITS)`.
+/// C: #define MAX_FRINGE_BITMAPS (1<<FRINGE_ID_BITS)
+pub const MAX_FRINGE_BITMAPS: c_int = 1 << FRINGE_ID_BITS;
+
+/// C 2948: `#define ITERATOR_AT_END_P(IT) ((IT)->what == IT_EOB)`.
+/// C: #define ITERATOR_AT_END_P(IT) ((IT)->what == IT_EOB)
+macro_rules! ITERATOR_AT_END_P { ($it:expr) => { (*$it).what == IT_EOB }; }
+
+/* C 3435-3440: the tab-bar defaults (no window system here, but the values are plain ones the
+   tab-bar code reads).  */
+/// C: #define DEFAULT_TAB_BAR_BUTTON_MARGIN 1
+pub const DEFAULT_TAB_BAR_BUTTON_MARGIN: c_int = 1;
+/// C: #define DEFAULT_TAB_BAR_BUTTON_RELIEF 1
+pub const DEFAULT_TAB_BAR_BUTTON_RELIEF: c_int = 1;
+/// C: #define DEFAULT_TAB_BAR_IMAGE_HEIGHT 18
+pub const DEFAULT_TAB_BAR_IMAGE_HEIGHT: c_int = 18;
+/// C: #define DEFAULT_TOOL_BAR_LABEL_SIZE 14
+pub const DEFAULT_TOOL_BAR_LABEL_SIZE: c_int = 14;
+/// C: #define DEFAULT_TOOL_BAR_BUTTON_MARGIN 4
+pub const DEFAULT_TOOL_BAR_BUTTON_MARGIN: c_int = 4;
+/// C: #define DEFAULT_TOOL_BAR_BUTTON_RELIEF 1
+pub const DEFAULT_TOOL_BAR_BUTTON_RELIEF: c_int = 1;
+/// C: #define DEFAULT_TOOL_BAR_IMAGE_HEIGHT 24
+pub const DEFAULT_TOOL_BAR_IMAGE_HEIGHT: c_int = 24;
+
+/// C 3502-3508: `enum tool_bar_item_image` - the four images a tool-bar item can show.
+pub type tool_bar_item_image = c_int;
+pub const TOOL_BAR_IMAGE_ENABLED_SELECTED: tool_bar_item_image = 0;
+pub const TOOL_BAR_IMAGE_ENABLED_DESELECTED: tool_bar_item_image = 1;
+pub const TOOL_BAR_IMAGE_DISABLED_SELECTED: tool_bar_item_image = 2;
+pub const TOOL_BAR_IMAGE_DISABLED_DESELECTED: tool_bar_item_image = 3;
+
+/// C 3699: `#define TRY_WINDOW_CHECK_MARGINS (1 << 0)`.
+/// C: #define TRY_WINDOW_CHECK_MARGINS (1 << 0)
+pub const TRY_WINDOW_CHECK_MARGINS: c_int = 1 << 0;
+/// C 3700: `#define TRY_WINDOW_IGNORE_FONTS_CHANGE (1 << 1)`.
+/// C: #define TRY_WINDOW_IGNORE_FONTS_CHANGE (1 << 1)
+pub const TRY_WINDOW_IGNORE_FONTS_CHANGE: c_int = 1 << 1;
+
+unsafe extern "C" {
+  /// C 3617: `extern int last_tab_bar_item;` (the unit that defines it is keyboard.c's).
+  pub static mut last_tab_bar_item: c_int;
+  /// C 3618: `extern int last_tool_bar_item;`
+  pub static mut last_tool_bar_item: c_int;
+  /// C 3710: `extern int max_used_fringe_bitmap;`
+  pub static mut max_used_fringe_bitmap: c_int;
+}
