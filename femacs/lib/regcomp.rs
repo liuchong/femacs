@@ -256,7 +256,7 @@ unsafe fn re_set_fastmap_icase (fastmap: *mut c_char, wc: wchar_t, mbs: *mut mbs
   let mut i: c_int = 0;
   while i < nfolded
     {
-      let mut buf: [c_char; MB_LEN_MAX as usize] = [0; MB_LEN_MAX as usize];
+      let mut buf: [c_char; MB_LEN_MAX! () as usize] = [0; MB_LEN_MAX! () as usize];
       if __wcrtomb! (buf.as_mut_ptr (), folded[i as usize], mbs) != 1usize.wrapping_neg ()
 	{ re_set_fastmap (fastmap, buf[0] as u8); }
       i += 1;
@@ -282,7 +282,7 @@ unsafe fn re_compile_fastmap_iter (bufp: *mut regex_t, init_state: *const re_dfa
 	  re_set_fastmap (fastmap, (*(*dfa).nodes.add (node as usize)).opr.c);
 	  if (*bufp).syntax & RE_ICASE != 0
 	    {
-	      let mut buf: [u8; MB_LEN_MAX as usize] = [0; MB_LEN_MAX as usize];
+	      let mut buf: [u8; MB_LEN_MAX! () as usize] = [0; MB_LEN_MAX! () as usize];
 	      let mut p: *mut u8;
 	      let mut wc: wchar_t = 0;
 	      let mut state: mbstate_t = mbstate_t { count: 0, value: [0; 4] };
@@ -356,7 +356,7 @@ unsafe fn re_compile_fastmap_iter (bufp: *mut regex_t, init_state: *const re_dfa
 	      i = 0;
 	      while i < (*cset).nmbchars
 		{
-		  let mut buf: [c_char; MB_LEN_MAX as usize] = [0; MB_LEN_MAX as usize];
+		  let mut buf: [c_char; MB_LEN_MAX! () as usize] = [0; MB_LEN_MAX! () as usize];
 		  let mut state: mbstate_t = mbstate_t { count: 0, value: [0; 4] };
 		  memset (&mut state as *mut mbstate_t as *mut c_void, 0, std::mem::size_of::<mbstate_t> ());
 		  if __wcrtomb! (buf.as_mut_ptr (), *(*cset).mbchars.add (i as usize), &mut state)

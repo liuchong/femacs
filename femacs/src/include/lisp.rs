@@ -33,6 +33,12 @@ include!("../../lib/include/stdint.in.rs");
 // (docs/status.md 3.70).  `xtask materialize` dedupes by file path, so a unit that also
 // includes stdio.rs directly still gets exactly one copy.
 include!("../../lib/include/stdio.rs");
+// src/lisp.h 44 includes <verify.h> (after <attribute.h> 39, <byteswap.h> 40,
+// <intprops.h> 41 and <sys-limits.h> 42, whose mirrors are not in this list yet --
+// P-26).  The mirror defines `assume` (verify.h 389), which `eassume!` below expands,
+// and `static_assert` (verify.h 309, the C23 keyword PORTING.md 2.5 maps), so lisp.rs
+// declares neither: one name, one place (PORTING.md 0.1-3).
+include!("../../lib/include/verify.rs");
 
 // --- integers --------------------------------------------------------------
 // src/lisp.h: EMACS_INT is one word; the frozen configuration says 64 bits
@@ -366,14 +372,8 @@ pub fn MARKER_INSERTION_TYPE_P (m: *mut Lisp_Marker) -> bool {
 // evaluated (PORTING.md 2.5).
 
 
-/// lib/verify.h `assume`: a compile-time promise, undefined behaviour if false.
-macro_rules! assume {
-    ($cond:expr) => {
-        if !($cond) {
-            unsafe { core::hint::unreachable_unchecked() }
-        }
-    };
-}
+// lib/verify.h `assume`: a compile-time promise, undefined behaviour if false.  The
+// definition is the mirror's, included above at this file's C 44 position.
 
 /// C's `eassert (cond)` is `die (#cond, __FILE__, __LINE__)`: the message is the
 /// condition *text* and the file is the unit that expanded it.  `concat!` folds
@@ -416,13 +416,11 @@ macro_rules! eassume {
     };
 }
 
-/// C23 spells `static_assert (cond)` as a keyword (src/lisp.h 2007); the port
-/// keeps the same name and evaluates it at compile time.
-macro_rules! static_assert {
-    ($cond:expr $(, $msg:expr)? $(,)?) => {
-        const _: () = assert!($cond $(, $msg)?);
-    };
-}
+// C23 spells `static_assert (cond)` as a keyword (src/lisp.h 2007); the port keeps the
+// same name and evaluates it at compile time.  The definition is the verify.h mirror's
+// (`femacs/lib/include/verify.rs`), included above at this file's C 44 position: PORTING.md
+// 2.5's macro is reachable in lisp.rs's scope, and PORTING.md 0.1-3 keeps it to one
+// definition for the whole tree.
 
 // C defines PSEUDOVECSIZE at lisp.h 2022, *after* the char-table constants (2231-2247) that
 // are built from it.  Rust's `macro_rules!` is textually scoped (P-57) and those constants

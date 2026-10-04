@@ -42,9 +42,7 @@ unsafe extern "C" {
 /* <sys/types.h>'s `ssize_t` (the sys_types mirror in this build spells it
    through its own block, so the port repeats the alias the C header gives).  */
 pub type ssize_t = isize;
-/* <limits.h>'s `SSIZE_MAX` (the regex mirror spells its own; the port keeps this one local
-   so that no other mirror has to change).  */
-pub const SSIZE_MAX: isize = isize::MAX;
+/* <limits.h>'s `SSIZE_MAX` comes from the limits.in.rs mirror (this unit includes it).  */
 
 /* C 34-42's live `#elif` arm.  */
 /* # define flockfile(x) ((void) 0)  */

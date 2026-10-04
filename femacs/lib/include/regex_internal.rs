@@ -143,9 +143,9 @@ macro_rules! REGEX_COB4 {
 }
 
 /* regex_internal.h 193-200: `_REGEX_LARGE_OFFSETS` is 1 and `SSIZE_MAX` is defined, so
-   `IDX_MAX` is `SSIZE_MAX`.  */
-pub const SSIZE_MAX: isize = isize::MAX;
-pub const IDX_MAX: Idx = SSIZE_MAX;
+   `IDX_MAX` is `SSIZE_MAX` - the limits.in.rs mirror's constant, which C reaches through
+   <limits.h> (its type is C's `long`, so the use site casts it to `Idx`).  */
+pub const IDX_MAX: Idx = SSIZE_MAX as Idx;
 
 /* regex_internal.h 193-194: the index type.  `_REGEX_LARGE_OFFSETS` is on, so it is
    `regoff_t` (== `ssize_t`).  */

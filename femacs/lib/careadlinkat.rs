@@ -21,10 +21,8 @@ include!("include/unistd.in.rs");
 include!("include/errno.rs");
 include!("include/allocator.rs");
 
-/* <limits.h>'s `SSIZE_MAX` (LONG_MAX on this target, measured): the limits mirror does not
-   carry it yet, so this unit declares the value C's <limits.h> would have given it (the
-   getdelim.rs/regex_internal.rs shape; see docs/status.md 3.21).  */
-pub const SSIZE_MAX: c_long = c_long::MAX;
+/* <limits.h>'s `SSIZE_MAX` (`LONG_MAX` on this target) comes from the limits.in.rs mirror,
+   which this unit includes.  */
 
 /* C 36-38's `#ifndef SIZE_MAX / # define SIZE_MAX ((size_t) -1)`.  This file does not include
    <stdint.h>, and `tools/check-cond-eval.py` measures that the macro is *not* defined by the

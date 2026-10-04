@@ -134,11 +134,9 @@ unsafe extern "C" {
   fn reseat_at_previous_visible_line_start (it: *mut it);
 }
 
-/* C: lib/limits.in.h 115: `# define SHRT_WIDTH _GL_INTEGER_WIDTH (SHRT_MIN, SHRT_MAX)`,
-   i.e. 16 on the frozen target.  The `<limits.h>` mirror carries the INT_WIDTH family but
-   not SHRT_WIDTH (P-26), so it is declared here (a mirror gap) and derived the way that
-   mirror derives its own widths.  */
-pub const SHRT_WIDTH: c_int = (8 * std::mem::size_of::<c_short> ()) as c_int;
+/* C: lib/limits.in.h 115's `# define SHRT_WIDTH _GL_INTEGER_WIDTH (SHRT_MIN, SHRT_MAX)` is
+   16 on the frozen target and now comes from the limits.in.rs mirror this unit includes
+   (P-26's mirror gap closed; PORTING.md 0.1-3).  */
 
 /* C: dispextern.h 2590: `#define OVERLAY_STRING_CHUNK_SIZE 16`.  dispextern.h is mirrored
    only to its batch-II prefix (P-66), so the constant is declared here.  */

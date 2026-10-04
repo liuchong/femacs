@@ -182,7 +182,7 @@ unsafe fn build_wcs_buffer (pstr: *mut re_string_t)
   // C: `#ifdef _LIBC unsigned char buf[MB_LEN_MAX]; ... #else unsigned char buf[64]; #endif`
   // -- the frozen target takes the 64-byte arm; the _LIBC arm is kept as text (P-51).
   #[cfg(feature = "libc")]
-  { let buf: [u8; MB_LEN_MAX] = [0; MB_LEN_MAX]; DEBUG_ASSERT! (MB_LEN_MAX as c_int >= (*pstr).mb_cur_max); let _ = buf; }
+  { let buf: [u8; MB_LEN_MAX! ()] = [0; MB_LEN_MAX! ()]; DEBUG_ASSERT! (MB_LEN_MAX! () as c_int >= (*pstr).mb_cur_max); let _ = buf; }
   let mut buf: [u8; 64] = [0; 64];
   let mut prev_st: mbstate_t;
   let mut byte_idx: Idx;
@@ -268,7 +268,7 @@ unsafe fn build_wcs_upper_buffer (pstr: *mut re_string_t) -> reg_errcode_t
   // C: `#ifdef _LIBC char buf[MB_LEN_MAX]; ... #else char buf[64]; #endif` -- the frozen
   // target takes the 64-byte arm (P-51 keeps the glibc arm as text).
   #[cfg(feature = "libc")]
-  { let buf: [c_char; MB_LEN_MAX] = [0; MB_LEN_MAX]; DEBUG_ASSERT! ((*pstr).mb_cur_max <= MB_LEN_MAX as c_int); let _ = buf; }
+  { let buf: [c_char; MB_LEN_MAX! ()] = [0; MB_LEN_MAX! ()]; DEBUG_ASSERT! ((*pstr).mb_cur_max <= MB_LEN_MAX! () as c_int); let _ = buf; }
   let mut buf: [c_char; 64] = [0; 64];
 
   byte_idx = (*pstr).valid_len;

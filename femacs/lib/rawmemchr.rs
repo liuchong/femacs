@@ -38,12 +38,13 @@ pub unsafe extern "C" fn rawmemchr (mut s: *const c_void, c_in: c_int) -> *mut c
   type longword = usize;
 
   /* C 61's `static_assert (UINTPTR_WIDTH == UCHAR_WIDTH * sizeof (uintptr_t));` keeps its
-     place in the body; the two macros are the configuration's own expressions
-     (macros.tsv 1825, 1852), whose frozen values are recorded here the way a mirror
-     records a configuration constant (PORTING.md 0.1).  */
+     place in the body.  `UCHAR_WIDTH` is <limits.h>'s (`limits.in.rs`, in this unit's
+     include graph) and `UINTPTR_WIDTH` is the configuration's own expression (macros.tsv
+     1825, 1852), whose frozen value is recorded here the way a mirror records a
+     configuration constant (PORTING.md 0.1); the assert reads C's widths, so the
+     limits mirror's `c_int` is cast to the width arithmetic's `usize`.  */
   const UINTPTR_WIDTH: usize = 64;
-  const UCHAR_WIDTH: usize = 8;
-  const _: () = assert! (UINTPTR_WIDTH == UCHAR_WIDTH * size_of::<usize> ());
+  const _: () = assert! (UINTPTR_WIDTH == UCHAR_WIDTH as usize * size_of::<usize> ());
 
   let c: u8 = c_in as u8;
 

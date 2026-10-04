@@ -1958,3 +1958,32 @@
   单独抽出来跑同一批用例，**`'"'` 那条失败**（1/9 命中），其余 8 条通过——即这条用例真能咬住那个缺陷，
   而不会只是复述现在的行为。用法：`python3 tools/extract-abi.py --selftest`（9 cases, 0 failures）。
   验证：`--all` 读数与修前一致（**484 done / 18 in progress / 0 failing**，说明这次只加了用例、没有动判定逻辑）。
+
+- **3.129 四个 gnulib 头镜像收口（`verify.h`/`limits.in.h`/`attribute.h`/`stat-time.h`）+ `process.c` 的 `E0428` 修掉（2026-10-04 第 100 轮第十二批）**：
+  ① **`lib/verify.h`**（186 行镜像，26 条差异清 0）：`_GL_VERIFY_*`/`assume`/`static_assert` 家族落地。**跨切面收敛**：
+  `femacs/src/include/lisp.rs` 原本自带 `assume`/`static_assert` 的 `macro_rules!`，现在按 C 的 lisp.h 44 位置
+  `include!` 这份镜像（0.1-3 一个名字一个落点——改前全树有两处定义，charset 链一旦接上就是 `E0428`）。
+  ② **`lib/limits.in.h`**（132 行）：C23 的 11 个宽度、`BOOL_*`、`SSIZE_MAX`/`SHRT_WIDTH`/`UCHAR_WIDTH` 等按冻结
+  clang 实测值落地；`MB_LEN_MAX` 走**排除表**而不是 `pub const`——模板自己的兜底是 16，而冻结目标经系统
+  `<limits.h>`（模板 C 40 的 `#include_next`）实测是 **6**，两个 `DEBUG_ASSERT` 与多字节缓冲区尺寸都按 6 走，
+  所以只有"宏形状 + `excluded-macros.txt` 的 dead-text 行"能同时保住冻结值（集成者补行，实测即 `OK`）。
+  ③ **`lib/attribute.h`**（300 行，32 条清 0）：`ATTRIBUTE_*` 家族两层次写法，私有 `_GL_ATTRIBUTE_*` 空展开、
+  公开名转发，既有 `FALLTHROUGH!()` 用点（ebrowse.rs 3 处）照旧展开为空。
+  ④ **`lib/stat-time.h`**（236 行）：`STAT_TIMESPEC!`/`STAT_TIMESPEC_OFFSETOF!` 按 `NUMNAME` 形状枚举 4/3 个 ident
+  分支，死支用 port 局部 feature 名（`stat_time_*`）包起来并各配 `const _: () = assert! (!cfg! (…))`；
+  `_GL_STAT_TIME_INLINE` 走排除表（单元 `lib/stat-time.c` 自己定义它，镜像落名会 `E0428`），
+  `get_stat_birthtime` 的两条 `#if` 条件文本走 `macro-body-notes.tsv`。
+  **收敛的消费者 10 个**（全是删用点副本/改走镜像）：`lib/include/regex_internal.rs`、`lib/regex_internal.rs`、
+  `lib/regcomp.rs`、`lib/rawmemchr.rs`、`lib/getdelim.rs`、`lib/careadlinkat.rs`、`src/fileio.rs`、`src/indent.rs`、
+  `lib-src/make-fingerprint.rs`、`src/include/lisp.rs`；代表消费者 `build-tu` 全 `built`
+  （`lib/regex_internal.c`、`src/bignum.c`、`lib/stat-time.c`、`lib/mktime.c`、`lib/rawmemchr.c`、`lib/regcomp.c`、
+  `lib/careadlinkat.c`、`lib-src/make-fingerprint.c`）。
+  ⑤ **顺带修掉一个已提交态的 `E0428`**：`femacs/src/process.rs` 仍在 crate 根自带 `FD_SET`/`FD_CLR`/`FD_ZERO`
+  的用点副本（注释还写着"镜像只有 `FD_ISSET`"——那已经过期，`lib/include/sys_select.rs` 现在三个都有），
+  `build-tu src/process.c` 因此报三条 `E0428`，并会挡住 `gate-fast` 的建单元步骤。按 0.1-3 删掉三份副本后
+  `built src/process.rs`。**这是 lane 报告里点名、由集成者修掉的跨单元缺陷**（`docs/ports/process.md` 未勾项为 0，
+  所以门不会自己发现它——记录在案）。另已提醒 etags lane：它单元里的 `pub const CHAR_MAX` 与收口后的
+  `limits.in.rs` 重复，须删除。
+  实测：四个镜像 `--check` 全 `OK`；`check-mirror-dupes` `1 ratchet row / 0 failure`、`check-declarations`
+  `13 sites (0 forbidden, 13 allowed literals) / 0 failures`、`check-verbatim` 0、`check-globals` `283 units / 0`；
+  `port-inventory` 复算 **590 files, done=480, wip=22, todo=88**。

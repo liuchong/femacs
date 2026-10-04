@@ -1249,23 +1249,10 @@ unsafe fn allocate_pty (pty_name: *mut c_char) -> c_int
 /* ------------------------------------------------------------------------------------------
    Use-site declarations, group 2 (C 570-1100).  */
 
-/* <sys/select.h>'s `FD_SET`/`FD_ZERO` are the two `__header_always_inline` entries the
-   `lib/include/sys_select.rs` mirror does not carry yet (only `FD_ISSET` is there); the port
-   declares them here and reports the gap (P-72 rule 3).  */
-/// <sys/select.h> 106: `#define FD_SET(n, p) __DARWIN_FD_SET (n, p)`, i.e.
-/// `__darwin_fd_set ((n), (p))`.
-#[inline(always)]
-pub unsafe fn FD_SET (fd: c_int, p: *mut fd_set)
-{
-  if __darwin_check_fd_set (fd, p as *const c_void) != 0
-    {
-      (*p).fds_bits [(fd as u64 / __DARWIN_NFDBITS as u64) as usize] |=
-	1i32.wrapping_shl ((fd as u64 % __DARWIN_NFDBITS as u64) as u32);
-    }
-}
-/// <sys/select.h> 115: `#define FD_ZERO(p) __builtin_bzero (p, sizeof (*(p)))`.
-#[inline(always)]
-pub unsafe fn FD_ZERO (p: *mut fd_set) { memset (p as *mut c_void, 0, std::mem::size_of::<fd_set> ()); }
+/* <sys/select.h>'s three writers - `FD_SET` (C 106), `FD_CLR` (C 111) and `FD_ZERO` (C 115) -
+   are the mirror's now (`lib/include/sys_select.rs` 87/99/111 carries them since the
+   select-family round), so this unit's use-site copies are gone (PORTING.md 0.1-3; the
+   `build-tu` failure that found them was `E0428`).  */
 
 /* `enum { PTY_NAME_SIZE = 24 }`'s sibling in systty.h: `FIRST_PTY_LETTER` is `undef` in the
    frozen table (Darwin uses `PTY_ITERATION` instead), so it appears only in carried text.  */
@@ -6300,16 +6287,6 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
 /// `TYPE_MAXIMUM (time_t)` measures as `INT64_MAX`.
 const TYPE_MAXIMUM_TIME_T: time_t = i64::MAX;
 
-/// C: int FD_CLR (int, fd_set *)   (<sys/select.h>'s `__DARWIN_FD_CLR`) — declared here because
-/// the `lib/include/sys_select.rs` mirror carries only `FD_ISSET`.
-pub unsafe fn FD_CLR (fd: c_int, p: *mut fd_set)
-{
-  if __darwin_check_fd_set (fd, p as *const c_void) != 0
-    {
-      (*p).fds_bits [(fd as u64 / __DARWIN_NFDBITS as u64) as usize] &=
-	!1i32.wrapping_shl ((fd as u64 % __DARWIN_NFDBITS as u64) as u32);
-    }
-}
 
 unsafe extern "C" {
   /// C: void clear_waiting_for_input (void)   (keyboard.c, lisp.h 5398)

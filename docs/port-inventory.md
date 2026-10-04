@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 502 |
-| 其中 done / wip | 476 / 26 |
+| 其中 done / wip | 480 / 22 |
 | 待开工 | 88 |
 
 ## 2 按目录
@@ -120,7 +120,7 @@
 | `lib/arg-nonnull.h` | 26 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/arg-nonnull.rs` | todo |
 | `lib/assert.in.h` | 27 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/assert.in.rs` | todo |
 | `lib/at-func.c` | 142 | 1 | 0 | 5 | 1 | 0 | 0 | L | `femacs/lib/at-func.rs` | done |
-| `lib/attribute.h` | 364 | 0 | 0 | 32 | 0 | 0 | 0 | L | `femacs/lib/include/attribute.rs` | wip |
+| `lib/attribute.h` | 364 | 0 | 0 | 32 | 0 | 0 | 0 | L | `femacs/lib/include/attribute.rs` | done |
 | `lib/binary-io.c` | 38 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/binary-io.rs` | done |
 | `lib/binary-io.h` | 89 | 2 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/include/binary-io.rs` | done |
 | `lib/boot-time-aux.h` | 426 | 11 | 0 | 3 | 0 | 0 | 2 | L | `femacs/lib/include/boot-time-aux.rs` | done |
@@ -215,7 +215,7 @@
 | `lib/issymlinkat.h` | 68 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/issymlinkat.rs` | done |
 | `lib/lchmod.c` | 97 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/lchmod.rs` | done |
 | `lib/libc-config.h` | 209 | 0 | 0 | 16 | 1 | 0 | 0 | L | `femacs/lib/include/libc-config.rs` | todo |
-| `lib/limits.in.h` | 151 | 0 | 0 | 28 | 5 | 0 | 0 | L | `femacs/lib/include/limits.in.rs` | wip |
+| `lib/limits.in.h` | 151 | 0 | 0 | 28 | 5 | 0 | 0 | L | `femacs/lib/include/limits.in.rs` | done |
 | `lib/lstat.c` | 97 | 2 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/lstat.rs` | done |
 | `lib/malloc.c` | 56 | 1 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/malloc.rs` | done |
 | `lib/malloc/dynarray-skeleton.c` | 528 | 1 | 0 | 7 | 1 | 7 | 0 | L | `femacs/lib/malloc/dynarray-skeleton.rs` | done |
@@ -289,7 +289,7 @@
 | `lib/sigdescr_np.c` | 351 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/sigdescr_np.rs` | done |
 | `lib/signal.in.h` | 536 | 0 | 0 | 26 | 17 | 16 | 0 | L | `femacs/lib/include/signal.in.rs` | todo |
 | `lib/stat-time.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stat-time.rs` | done |
-| `lib/stat-time.h` | 266 | 10 | 0 | 6 | 1 | 0 | 0 | L | `femacs/lib/include/stat-time.rs` | wip |
+| `lib/stat-time.h` | 266 | 10 | 0 | 6 | 1 | 0 | 0 | L | `femacs/lib/include/stat-time.rs` | done |
 | `lib/stdbit.c` | 23 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdbit.rs` | done |
 | `lib/stdbit.in.h` | 2,229 | 173 | 0 | 90 | 33 | 0 | 0 | L | `femacs/lib/include/stdbit.in.rs` | todo |
 | `lib/stdc_bit_width.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_bit_width.rs` | done |
@@ -323,7 +323,7 @@
 | `lib/sys_select.in.h` | 342 | 1 | 0 | 25 | 2 | 0 | 0 | L | `femacs/lib/include/sys_select.in.rs` | todo |
 | `lib/sys_stat.in.h` | 995 | 2 | 0 | 71 | 10 | 14 | 0 | L | `femacs/lib/include/sys_stat.in.rs` | wip |
 | `lib/sys_time.in.h` | 235 | 0 | 0 | 22 | 1 | 2 | 0 | L | `femacs/lib/include/sys_time.in.rs` | todo |
-| `lib/sys_types.in.h` | 138 | 0 | 0 | 12 | 6 | 0 | 0 | L | `femacs/lib/include/sys_types.in.rs` | wip |
+| `lib/sys_types.in.h` | 138 | 0 | 0 | 12 | 6 | 0 | 0 | L | `femacs/lib/include/sys_types.in.rs` | done |
 | `lib/tempname.c` | 284 | 9 | 0 | 16 | 5 | 0 | 0 | L | `femacs/lib/tempname.rs` | done |
 | `lib/tempname.h` | 72 | 0 | 0 | 4 | 3 | 0 | 0 | L | `femacs/lib/include/tempname.rs` | done |
 | `lib/time-internal.h` | 54 | 0 | 0 | 1 | 0 | 3 | 0 | L | `femacs/lib/include/time-internal.rs` | done |

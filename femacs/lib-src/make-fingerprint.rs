@@ -56,10 +56,9 @@ include!("../lib/include/sys_types.in.rs");     // off_t, for C 118's `TYPE_MAXI
 // the two `TYPE_MAXIMUM` uses handled below.
 
 /* `PTRDIFF_MAX` and `SIZE_MAX` come from the `stdint.in.rs` mirror that C 32 includes
-   (`isize::MAX` and `usize::MAX`).  `SSIZE_MAX` is deliberately *not* mirrored yet
-   (lib/include/limits.in.rs says so in its own note), so the measured value stands here:
-   `clang` against the frozen SDK prints `SSIZE_MAX=9223372036854775807`.  */
-const SSIZE_MAX: isize = isize::MAX;
+   (`isize::MAX` and `usize::MAX`), and `SSIZE_MAX` from the `limits.in.rs` mirror C 30
+   includes: C 45-47's `#ifndef` is dead on the frozen target, whose `<limits.h>` defines it
+   as `LONG_MAX` (`clang` against the frozen SDK prints `9223372036854775807`).  */
 
 /// `<stdio.h>`'s `#define SEEK_SET 0` (measured with clang).  The port's `unistd.in.rs` mirror
 /// carries the same three constants, but this program has no `<unistd.h>` include, so the use

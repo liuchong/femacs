@@ -2968,11 +2968,9 @@ unsafe fn xlseek (fd: emacs_fd, pos: off_t, whence: c_int, filename: Lisp_Object
 
 /* ---- further use-site declarations (PORTING.md 0.1-2/P-72 rule 3) ---------------------- */
 
-/// C: `<limits.h>` 3566: `#define SSIZE_MAX LONG_MAX` (the frozen target's value).  The
-/// limits mirror deliberately does not carry it (its own note: three units declared it
-/// locally and consolidating is a follow-up), so this unit declares it too, the
-/// careadlinkat.rs shape.
-pub const SSIZE_MAX: c_long = c_long::MAX;
+/// C: `<limits.h>`'s `#define SSIZE_MAX LONG_MAX` (the frozen target's value) comes from
+/// the limits.in.rs mirror, which this unit includes; the use-site copy is gone
+/// (PORTING.md 0.1-3).
 /// C: `<unistd.h>` 4380: `#define _PC_CASE_SENSITIVE 11` - `unistd.in.rs` carries no
 /// `_PC_*` name, so it is declared here (the frozen target's measured value).
 pub const _PC_CASE_SENSITIVE: c_int = 11;
