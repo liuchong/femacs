@@ -5208,3 +5208,9 @@
   ② **重跑读数**（3m12s，脚本自己的 HEAD worktree）：`swift-import-pending.txt` **+23 / −37**（**650 → 636**）——**−37 行**是 3.317 那 18 个（`WINDOW_FRAME`、`max_used_fringe_bitmap`、15 个 `draw_fringe_bitmap_params_*`/`face_foreground`/`face_background`、`gui_define_fringe_bitmap`）+ 别的 lane 刚落的导入；**+23 行**是 nsterm 在飞第 16 轮等新导入（净 −14）。
   `link-pending.txt`/`link-exec-pending.txt`/`swift-units.tsv` **内容零变化**。
   ③ **门读数（工作树）**：`check-swift-units` `0 new / 3 stale / 7 landed`（3 条 stale 是在飞 `nsterm.swift` 第 16 轮的定义）；`check-link` `374 undefined / 373 行 / 1 failure`（仍是在飞 xdisp 的对象）。
+- **3.320 `src/xrdb.c` 的开门前置条件量清了：它要的 19 个 X 名字里 **17 个全树都不存在**，所以 X11 面的第一件文件**必须等 Xlib 镜像**（集成者，2026-10-05）**：
+  ① **我本轮本来要开 `src/xrdb.c`**（3.316 的工单），读完全文前先把它的外部依赖逐名查了一遍——结论是**不能先开**，理由是可复算的：`xrdb.c` 用到的 X 名字里，**只有 `XrmDatabase` 在树里有拼法**（`femacs/src/include/{xterm.rs:370,pgtkgui.rs:122}` → `pub type XrmDatabase = *mut c_void`），**其余 17 个在 `femacs/**`（扣掉六棵逐字树）里一次都没出现**：
+  `DefaultScreenOfDisplay`、`XResourceManagerString`、`XScreenResourceString`、`XrmClass`、`XrmGetFileDatabase`、`XrmGetStringDatabase`、`XrmInitialize`、`XrmMergeDatabases`、`XrmName`、`XrmPutLineResource`、`XrmQGetResource`、`XrmRepresentation`、`XrmStringToClassList`、`XrmStringToNameList`、`XrmStringToQuark`、`XrmStringType`、`XrmValue`。
+  ② **为什么不就地声明**：若在 `xrdb.rs` 里自带一套 `extern "C"`，`XrmDatabase`/`XrmValue`/`XrmStringType` 就会有**两个家**（本文件 + xterm lane 正在建的 `src/include/xlib.rs`）——那正是 PORTING.md 0.1-3"一处声明点"要防的漂移。**顺序只能是"先镜像、后单元"**。
+  ③ **因此这条同时是给镜像的验收清单**（xterm lane 的 `include/xlib.rs` 已在建，见 3.312 ④ 的 `XRectangle`/`None`/`Success`）：上面 17 个名字 + `XrmDatabase` 的**唯一拼法**，是 X11 面第一个消费者的实测需求；镜像落地后，`xrdb.c` 才能按 3.316 ⑤ 的流程开（11 函数 + 1 宏 + 2 全局，`cinventory` 已量）。
+  ④ **未做**：本轮没有改任何 `femacs/src/{xrdb.rs,xlib.rs}`（前者仍是空单元、后者是在飞文件），没有再动 `docs/baseline/**`；这条是"量清了顺序"，不是"推迟"——X11 面的第一件文件的开工条件第一次变成**可复算的清单**。
