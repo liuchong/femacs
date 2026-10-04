@@ -5308,3 +5308,8 @@
   ④ **我自己复核**：受影响的 7 个单元 `build-tu` **7/7 built**、`extract-abi --check` **7/7 OK**；`check-declarations` 13/0/0、`check-carried` 11/11/0。
   ⑤ **棘轮收口**：`docs/baseline/mirror-dupes.tsv` **111 → 18 行**，18 行**每条都带 C 依据**、全是**合法的两种拼法**——gnulib/glibc 的 `#define access euidaccess`（`euidaccess.rs` 7 条）、`faccessat.c` 的 live `#undef access`、`ftoastr.h` 的数组长度常量（Rust 宏当不了长度，`ftoastr.rs` 3 条）、`mktime.c` 的 `tzset`、生成的 `<time.h>` 的 `mktime`/`timegm`、`lisp.h` 的 `emacs_fclose fclose`、`unistd.in.h` 的 `pipe2 rpl_pipe2`、`floatfns.rs signbit`（`#ifndef signbit` 的死臂，P-51）、`insdel.rs bset_redisplay`（原有那条 `kept on purpose`）。
   门读数：**18 dup / 18 棘轮行 / 0 failure**，`--selftest` 9 例 0 失败。⇒ 从 3.326 那次发现（110 处、其中 40 处体不同）到现在，**93 条已消、剩 18 条记录在案**。
+- **3.334 重名清理之后的引文对账：5 条过期允许行删掉、1 条行号搬移；并量清 `check-citations` 现在的红在哪（集成者，2026-10-05）**：
+  ① **删掉的 5 条**（`docs/baseline/citations-allowlist.tsv`）：`dispnew.rs:3644`、`window.rs:152`、`window.rs:5452`、`frame.rs:124`、`keyboard.rs:14049`——3.332/3.333 删掉的重复宏**连带删掉了它们上面那些 `/// C:` 引文注释**，所以这 5 条允许行的 finding **已经不存在**（gate 报 `stale … the row no longer matches a finding`）。删后 **stale 归 0**。
+  ② **搬移的 1 条**：`include/dispextern.rs:567 → :587`（Ohm 的 20 行"`Emacs_Rectangle` 两臂"插入把它解释的那条 finding 下移；它报的 `drift …:587` + `stale …:567` 一对都消掉）。
+  ③ **剩下 44 条 drift 的分布**（我在**工作树**与**HEAD worktree** 各跑一次：工作树 44、**HEAD 43**——即这条门在 HEAD 上本来就已经红，不是本轮新引入的唯一问题）：`abi_shim.rs` **20**（Turing 在飞文件自己的引文行号）、Swift 三件 17（`nsterm.swift` 8 / `nsfont.swift` 5 / `macfont.swift` 4，属更早的 Swift 轮次）、我们刚动过的 6 个文件各 1（`window` 2 条）。
+  ⇒ **命名一条工单**：这 44 条要逐条要么**改准引文行号**、要么**进允许表并写理由**（`check-citations` 的语义是：drift = 引文引的参照行号与实际不符）。分派：`abi_shim.rs` 那 20 条归 Turing（它下一批就在这个文件里）、Swift 那 17 条归 Ramanujan/nsterm 线，其余零头归集成者。
