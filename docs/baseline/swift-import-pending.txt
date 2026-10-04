@@ -433,6 +433,7 @@ make_nil_vector	the reference's own C text declares or defines it (a header macr
 make_widget_value	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 maybe_quit	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 mint_ptrp	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+mouse_highlight_set_mouse_face_defer	member/data entry imported by nsterm.swift; the core must export one C-ABI entry per directly-read or directly-written record member (docs/ports/nsmenu.swift 311-328)
 ns_alternate_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_antialias_text	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_auto_hide_menu_bar	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
@@ -529,6 +530,7 @@ unsignedLong	the reference's own C text declares or defines it (a header macro/I
 up_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 update_submenu_strings	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 valid_image_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+visible_bell	member/data entry imported by nsterm.swift; the core must export one C-ABI entry per directly-read or directly-written record member (docs/ports/nsmenu.swift 311-328)
 waiting_for_input	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 window_contents	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 window_current_matrix	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)

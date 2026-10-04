@@ -112,7 +112,6 @@ femacs/platform/macos/nsterm.swift	ns_read_socket	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_read_socket_1	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redeem_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redraw_scroll_bars	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_ring_bell	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_run_loop_break	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_scroll_run	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_select	src/nsterm.m
@@ -135,8 +134,6 @@ femacs/platform/macos/nsterm.swift	ns_show_hourglass	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_string_to_lispmod	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_init	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_shutdown	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_unfocus	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_update_end	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_update_window_end	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_xlfd_to_fontname	src/nsterm.m
 femacs/platform/macos/nsterm.swift	nstrace_fullscreen_type_name	src/nsterm.m
@@ -146,3 +143,4 @@ femacs/platform/macos/nsterm.swift	nswindow_orderedIndex_sort	src/nsterm.m
 femacs/platform/macos/nsterm.swift	right_mod	src/nsterm.m
 femacs/platform/macos/nsterm.swift	runAlertPanel	src/nsterm.m
 femacs/platform/macos/nsterm.swift	syms_of_nsterm	src/nsterm.m
+

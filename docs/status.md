@@ -4538,3 +4538,24 @@
   （**新名字 FAIL、消失即删**，形状照 `check-undef.py`/`check-swift-imports.py`）；它的第一件活是把④的两条保留解决掉，第二件是把这份清单与
   `docs/baseline/swift-import-pending.txt`（533 条 Swift 侧导入）**求交集**——那个交集就是"能跑的 macOS 构建"最先需要的那批 C-ABI 条目，
   它们落进 `femacs/src/abi_shim.rs`。
+
+- **3.245 `nsterm` 第 6 轮入库（1,538 行）——本文件的**第一个类**落地，且它证明 3.239 的裁决形状有"不需要用"的一侧（2026-10-04）**：
+  ① **实产**：`nsterm.swift` 1,300 → **1,538 行**（C 1212-1492，281 行 C）：`ns_update_end`(1212)、`ns_focus`(1236，**又一个生成器漏项**——
+  `static void` 跨行导致 reader 跳过，手工补盒并记"重生成会丢")、`ns_unfocus`(1282)、可见铃的叙述注释(1313-1330)、
+  **第一个类 `EmacsBell`**(1333-1430：`@interface` + 四个方法)、`bell_view`(1433)、`ns_ring_bell`(1436-1469)；
+  `hide_bell`(1471-1491) **判死**（守卫是 `#if !defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED < 101400`，
+  本 lane 目标两半都不成立，唯一调用点 C 9388 也在同一守卫内 ⇒ 按 P-08 记录不落文本）。台账 95 → **103 勾 / 124 未勾**；
+  `swiftc -parse-as-library -c` **exit 0，8 条 warning**（4× `lockFocus` + 4× `unlockFocus`，全是 C 自己的调用，
+  C 1085/1219/1220/1249/1300/1302 一带；量级参照：已入库的 `nsimage.swift` 同命令 4 条）。
+  ② **裁决形状的第一次"不需要用"**：`EmacsBell` 是第一个类，但它的方法调用点都在类之后（类在 C 1345 落地、首个外部调用在 C 1436+）
+  ⇒ **完全不需要 entry**，台账 (4) 待定条目表本轮 **+0**（`isFullscreen` 等跨单元条目仍按 deferred 留着，`nm -u` 里 `_isFullscreen` 未消失是**正确**状态）。
+  这补齐了 3.239 那条裁决的另一半：entry 只在"调用点早于定义点"时才需要。
+  ③ **本轮新面**（按既有规则）：`MOUSE_HL_INFO (f)->mouse_face_defer = 0` 是该单元第一次写"没有宏命名的核心记录成员"，而它是
+  `bool_bf : 1` **位域**（Swift 视图写不了）⇒ 走**成员条目** `mouse_highlight_set_mouse_face_defer`（命名照 `nsmenu.swift` 311-328 的
+  `ns_output_set_*` 族）；`NSRectClip`/`NSRectClipList` 是 NSGraphics.h 210-211 的 `APPKIT_EXTERN` C 函数、Swift 标 unavailable ⇒ 按名导入
+  （`nsfont.swift` 对 `fprintf` 的同款读法）；`visible_bell`（`DEFVAR_BOOL` 数据符号）与 `SELECTED_FRAME`（宏条目）。
+  棘轮 `swift-import-pending.txt` **+2 行**（`visible_bell`、`mouse_highlight_set_mouse_face_defer`，reason 按 lane 建议）；`swift-units.tsv` **−3 行**（本 lane）。
+  ④ 三门读数：`check-swift-units` **0 new / 8 stale**（那 8 条是 `nsfns` 批③ 在飞的，不是本件）；`check-declarations` 13/0；
+  `check-citations` 本 lane **1 条 `external`**（`nsterm.swift:1312` 引 `NSGraphics.h 210-211`＝AppKit 系统头，按规则"counted, never a failure"）。
+  ⑤ 下一段起点：**C 1493 `ns_get_focus_frame`** → `ns_focus_frame`/`ns_raise_frame`/`ns_lower_frame`/`ns_frame_raise_lower`/`ns_frame_rehighlight`/
+  `ns_make_frame_visible`…（frame 管理段，正是 (4) 待定条目表开始长行的地方）。

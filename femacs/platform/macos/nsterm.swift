@@ -23,7 +23,12 @@
 // C 1001-1211**: `ns_constrain_all_frames` (C 1001-1030), `ns_update_auto_hide_menu_bar`
 // (C 1033-1073), `ns_update_begin` (C 1075-1087) and the whole macOS Accessibility Zoom block
 // (C 1090-1211: its statics, `ns_ua_zoom_enabled_p`, `ns_cg_rect_flip_y` and
-// `ns_UAZoomChangeFocus`).  The next live definition is C 1212's `ns_update_end`.
+// `ns_UAZoomChangeFocus`).  **Round 6 lands C 1212-1492**: `ns_update_end` (C 1212-1234),
+// `ns_focus` (C 1236-1273) and `ns_unfocus` (C 1282-1310), the visible bell's narrative
+// (C 1313-1330), the file's **first class** `EmacsBell` (C 1333-1430, its `@interface` and all
+// four methods), `bell_view` (C 1433) and `ns_ring_bell` (C 1436-1469); `hide_bell` (C 1471-1491)
+// is dead in this build (guard at 1471) and is recorded, not transcribed.  The next live
+// definition is C 1493's `ns_get_focus_frame`.
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -1298,3 +1303,236 @@ fileprivate func ns_UAZoomChangeFocus(_ view: NSView?, _ force: Bool) {
     ns_update_was_UAZoomEnabled = false
   }
 }
+
+// ==========================================================================
+// C 1212-1492: the focus pair, the visual bell, and the file's first class.
+// ==========================================================================
+
+/// C: `void NSRectClip (NSRect rect)` and `void NSRectClipList (const NSRect *rects, NSInteger
+/// count)` (AppKit's NSGraphics.h 210-211) - `APPKIT_EXTERN` C functions that Swift marks
+/// unavailable, so the lane reaches them by name.
+@_silgen_name("NSRectClip") func NSRectClip(_ rect: NSRect)
+@_silgen_name("NSRectClipList")
+func NSRectClipList(_ rects: UnsafePointer<NSRect>?, _ count: Int)
+
+/// C: the `struct mouse_highlight` bitfield member `ns_update_end` writes
+/// (`MOUSE_HL_INFO (f)->mouse_face_defer = 0`; the member is src/dispextern.h 3020's `bool_bf
+/// mouse_face_defer : 1`).  A bitfield cannot be written through a Swift view of the record, so
+/// the access is a C-ABI entry named after the member - the `<record>_set_<member>` naming
+/// `docs/ports/nsmenu.swift` 311-328 uses (`ns_output_set_in_animation`), taking C's own
+/// argument (the frame, like `frame_left_pos`).
+@_silgen_name("mouse_highlight_set_mouse_face_defer")
+func mouse_highlight_set_mouse_face_defer(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `bool visible_bell` - the `DEFVAR_BOOL ("visible-bell", …)` variable (src/dispnew.c), read
+/// by `ns_ring_bell`; imported as the C data symbol the core exports.
+@_silgen_name("visible_bell") var visible_bell: Bool
+/// C: `#define SELECTED_FRAME() …` (src/frame.h) - the selected frame, an entry of its own name.
+@_silgen_name("SELECTED_FRAME") func SELECTED_FRAME() -> UnsafeMutableRawPointer?
+
+/// C 1212-1234: `static void ns_update_end (struct frame *f)` - "Finished a grouped sequence of
+/// drawing calls".  The `[[view window] flushWindow]` arm is guarded by
+/// `#if defined (NS_IMPL_GNUSTEP) || MAC_OS_X_VERSION_MIN_REQUIRED < 101400` - dead at 260000 -
+/// and `ns_UAZoomChangeFocus` is the `NS_IMPL_COCOA` arm, which is live.  `NSTRACE_WHEN` is
+/// empty at `NSTRACE_ENABLED` 0.
+fileprivate func ns_update_end(_ f: UnsafeMutableRawPointer?) {
+  let view = FRAME_NS_VIEW(f)
+
+  /*   if (f == MOUSE_HL_INFO (f)->mouse_face_mouse_frame) */
+  mouse_highlight_set_mouse_face_defer(f, 0)
+
+  block_input()
+
+  view?.unlockFocus()
+
+  ns_UAZoomChangeFocus(view, false)
+
+  unblock_input()
+  ns_updating_frame = nil
+}
+
+/// C 1236-1273: `static void ns_focus (struct frame *f, NSRect *r, int n)` - "Internal: Focus on
+/// given frame."  (C's own explanation of why the accumulate-rectangle behaviour is GNUstep's
+/// is kept above the function.)  `r` is C's `NSRect *`, called with a real rect or NULL, so it
+/// is optional here; the `#ifdef NS_IMPL_COCOA` clipping arm is the live one and the
+/// `GSRectClipList` else-arm is the GNUstep dead text.
+fileprivate func ns_focus(_ f: UnsafeMutableRawPointer?, _ r: UnsafePointer<NSRect>?,
+                          _ n: Int32) {
+  if f != ns_updating_frame {
+    let view = FRAME_NS_VIEW(f)
+    view?.lockFocus()
+  }
+
+  /* clipping */
+  if r != nil {
+    let ctx = NSGraphicsContext.current
+    ctx?.saveGraphicsState()
+
+    if n == 2 {
+      NSRectClipList(r, 2)
+    } else {
+      NSRectClip(r!.pointee)
+    }
+    gsaved = true
+  }
+}
+
+/// C 1282-1310: `static void ns_unfocus (struct frame *f)` - "Internal: Remove focus on given
+/// frame".  The `flushWindow` arm is the same dead GNUstep/pre-10.14 guard as `ns_update_end`'s.
+fileprivate func ns_unfocus(_ f: UnsafeMutableRawPointer?) {
+  if gsaved {
+    NSGraphicsContext.current?.restoreGraphicsState()
+    gsaved = false
+  }
+
+  if f != ns_updating_frame {
+    let view = FRAME_NS_VIEW(f)
+    view?.unlockFocus()
+  }
+}
+
+/* ==========================================================================
+
+    Visible bell and beep.
+
+   ========================================================================== */
+
+// This bell implementation shows the visual bell image asynchronously
+// from the rest of Emacs. This is done by adding a NSView to the
+// superview of the Emacs window and removing it using a timer.
+//
+// Unfortunately, some Emacs operations, like scrolling, is done using
+// low-level primitives that copy the content of the window, including
+// the bell image. To some extent, this is handled by removing the
+// image prior to scrolling and marking that the window is in need for
+// redisplay.
+//
+// To test this code, make sure that there is no artifacts of the bell
+// image in the following situations. Use a non-empty buffer (like the
+// tutorial) to ensure that a scroll is performed:
+//
+// * Single-window: C-g C-v
+//
+// * Side-by-windows: C-x 3 C-g C-v
+//
+// * Windows above each other: C-x 2 C-g C-v
+
+/// C 1333-1343: `@interface EmacsBell : NSImageView` - the ivars `unsigned int nestCount;`
+/// (1336), `NSView * mView;` (1337) and `bool isAttached;` (1338), and the three methods
+/// (`show:` 1340, `hide` 1341, `remove` 1342).  **The file's first class**, and the first of the
+/// eight the ledger's Objective-C section tracks.  Each method is `@objc`, which is what makes
+/// its selector reachable (`#selector(hide)` below) and mirrors the reference's Objective-C
+/// methods (the reading `docs/ports/nsmenu.swift` 849 uses); the ivars become stored properties
+/// with C's values.
+class EmacsBell: NSImageView {
+  /// C 1336: `unsigned int nestCount;` - "Number of currently active bells."
+  fileprivate var nestCount: UInt32 = 0
+  /// C 1337: `NSView * mView;`
+  fileprivate var mView: NSView? = nil
+  /// C 1338: `bool isAttached;`
+  fileprivate var isAttached: Bool = false
+
+  /// C 1347-1371: `- (id)init`.  C's `init` on an `NSView` is AppKit's designated
+  /// `-initWithFrame:`, hence the override's parameter; `required init(coder:)` below is Swift's
+  /// requirement on a view subclass, and C has no unarchiving path for this class.
+  ///
+  /// The `NS_IMPL_GNUSTEP && !HAVE_DECL_NSIMAGENAMECAUTION` arm is the GNUstep-only fallback
+  /// (dead here); the live arm names AppKit's caution image and scales it by five.  C's
+  /// `self.image` can be nil there and the messages to it would do nothing, which is what the
+  /// optional chaining reads.
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+
+    image = NSImage(named: NSImage.cautionName)
+    image?.size = NSSize(width: (image?.size.width ?? 0) * 5,
+                         height: (image?.size.height ?? 0) * 5)
+  }
+
+  /// NSImageView's own `-initWithCoder:`, inherited as-is (the class is only ever built in code
+  /// by `ns_ring_bell`); the port's designated override above makes Swift want it spelled out,
+  /// the way `docs/ports/nsmenu.swift` 843 does.
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+  }
+
+  /// C 1373-1398: `- (void)show:(NSView *)view`.
+  @objc func show(_ view: NSView) {
+    // Show the image, unless it's already shown.
+    if nestCount == 0 {
+      let rect = view.bounds
+      var pos = NSPoint.zero
+      pos.x = rect.origin.x + (rect.size.width - (image?.size.width ?? 0)) / 2
+      pos.y = rect.origin.y + (rect.size.height - (image?.size.height ?? 0)) / 2
+
+      setFrameOrigin(pos)
+      setFrameSize(image?.size ?? .zero)
+
+      isAttached = true
+      mView = view
+      view.window?.contentView?.addSubview(self, positioned: .above, relativeTo: nil)
+    }
+
+    nestCount += 1
+
+    perform(#selector(hide), with: self, afterDelay: 0.5)
+  }
+
+  /// C 1402-1415: `- (void)hide`.  (C's note that this method's trace output never shows is
+  /// C's own text and stays with it.)
+  @objc func hide() {
+    if nestCount > 0 {
+      nestCount -= 1
+    }
+
+    // Remove the image once the last bell became inactive.
+    if nestCount == 0 {
+      remove()
+    }
+  }
+
+  /// C 1418-1429: `-(void)remove`.
+  @objc func remove() {
+    if isAttached {
+      removeFromSuperview()
+      mView?.needsDisplay = true
+      isAttached = false
+    }
+  }
+}
+
+/// C 1433: `static EmacsBell * bell_view = nil;`
+fileprivate var bell_view: EmacsBell? = nil
+
+/// C 1436-1469: `static void ns_ring_bell (struct frame *f)` - the "Beep" routine.
+fileprivate func ns_ring_bell(_ f: UnsafeMutableRawPointer?) {
+  if visible_bell {
+    let frame = SELECTED_FRAME()
+
+    if bell_view == nil {
+      // C's `bell_view = [[EmacsBell alloc] init]; [bell_view retain];` - the global owns the
+      // object, which is what ARC's strong reference does; the explicit `retain` is C's manual
+      // memory management for the same ownership.  `init` on an `NSView` is `initWithFrame:`,
+      // and C's `[[NSView alloc] init]` yields a zero frame.
+      bell_view = EmacsBell(frame: .zero)
+    }
+
+    block_input()
+
+    let view = FRAME_NS_VIEW(frame)
+    if view != nil {
+      bell_view!.show(view!)
+    }
+
+    unblock_input()
+  } else {
+    // C: `NSBeep ();` - Swift's AppKit spells it `NSSound.beep ()` (measured: `NSBeep` is not in
+    // scope in Swift).
+    NSSound.beep()
+  }
+}
+
+// C 1471-1491: `hide_bell` is **dead** in this build - its guard is
+// `#if !defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED < 101400`, and this lane's
+// target both defines `NS_IMPL_COCOA` and has a minimum of 260000.  Its one call site (C 9388,
+// inside the same guard) is dead with it, and the ledger's box for the function is ticked with
+// that reason rather than transcribed.

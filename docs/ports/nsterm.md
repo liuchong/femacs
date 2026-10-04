@@ -51,10 +51,14 @@
 - [x] ns_update_auto_hide_menu_bar  (line 1033, static) — landed; the whole body is the `NS_IMPL_COCOA` arm, and `NSApplicationPresentationDefault` is Swift's empty option set (`[]`, since `.default` is unavailable)
 - [x] ns_update_begin  (line 1075, static) — landed; `swiftc -c` reports C's own `lockFocus` deprecation (Evidence), and the port keeps the call
 - [x] ns_UAZoomChangeFocus  (line 1162, static) — landed; the receiver is `NSView?` because only `NSView`/`NSWindow` messages are sent to it, and `UAZoomChangeFocus`'s third argument needs `UAZoomChangeFocusType(…)` (the SDK's enum imports as `Int`)
-- [ ] ns_update_end  (line 1212, static)
-- [ ] ns_unfocus  (line 1282, static)
-- [ ] ns_ring_bell  (line 1436, static)
-- [ ] hide_bell  (line 1471, static)
+- [x] ns_focus  (line 1236, static) — landed; **a generator gap** (the reader skips the `static
+      void` split across lines): `NSRectClip`/`NSRectClipList` are AppKit's own C functions,
+      reached by name because Swift marks them unavailable, and C's NULL-able `NSRect *r` is the
+      optional `UnsafePointer<NSRect>?`
+- [x] ns_update_end  (line 1212, static) — landed; the dead `flushWindow` arm (GNUstep/pre-10.14) recorded, and `MOUSE_HL_INFO (f)->mouse_face_defer = 0` is the first member-entry **write** (`mouse_highlight_set_mouse_face_defer`)
+- [x] ns_unfocus  (line 1282, static) — landed; `NSGraphicsContext` restore + C's `gsaved` flag
+- [x] ns_ring_bell  (line 1436, static) — landed; `visible_bell` and `SELECTED_FRAME()` are entries, `NSBeep ()` is Swift's `NSSound.beep ()`, and `[[EmacsBell alloc] init]` is `EmacsBell (frame: .zero)`
+- [x] hide_bell  (line 1471, static) — **dead**: the guard at C 1471 is `#if !defined (NS_IMPL_COCOA) || MAC_OS_X_VERSION_MIN_REQUIRED < 101400`, and this lane's target both defines `NS_IMPL_COCOA` and has a minimum of 260000; its one call site (C 9388) is inside the same guard. Recorded, not transcribed
 - [ ] ns_get_focus_frame  (line 1493, static)
 - [ ] ns_focus_frame  (line 1510, static)
 - [ ] ns_raise_frame  (line 1528, static)
@@ -190,16 +194,19 @@ spelling the same selector is one box and is named where it occurs.)
   - [x] `- (NSColor *)colorUsingDefaultColorSpace`  (line 175) -> `func colorUsingDefaultColorSpace()`
   - [x] `+ (NSColor *)colorWithUnsignedLong:(unsigned long)c`  (line 185) -> `class func colorWithUnsignedLong(_:)`
   - [x] `- (unsigned long)unsignedLong`  (line 195) -> `func unsignedLong() -> UInt`
-- [ ] EmacsBell  (`@interface` 1333, `@end` 1343 - a file-local declaration; its three
+- [x] EmacsBell  (`@interface` 1333, `@end` 1343 - a file-local declaration; its three
       methods are the `@implementation`'s below)
-  - [ ] `- (void)show:(NSView *)view`  (line 1340)
-  - [ ] `- (void)hide`  (line 1341)
-  - [ ] `- (void)remove`  (line 1342)
-- [ ] EmacsBell  (`@implementation` 1345, `@end` 1430)
-  - [ ] `- (id)init`  (line 1347)
-  - [ ] `- (void)show:(NSView *)view`  (line 1373)
-  - [ ] `- (void)hide`  (line 1402)
-  - [ ] `-(void)remove`  (line 1418)
+  - [x] `- (void)show:(NSView *)view`  (line 1340) -> the class's `@objc func show(_ view: NSView)`
+  - [x] `- (void)hide`  (line 1341) -> `@objc func hide()`
+  - [x] `- (void)remove`  (line 1342) -> `@objc func remove()`
+- [x] EmacsBell  (`@implementation` 1345, `@end` 1430) - **the file's first class**, a Swift
+      `class EmacsBell: NSImageView`; the ivars `nestCount`/`mView`/`isAttached` (1336-1338)
+      become stored properties, and each method is `@objc` so its selector is reachable
+      (`#selector(hide)` in `show:`)
+  - [x] `- (id)init`  (line 1347) -> `override init(frame:)` + `required init?(coder:)` (AppKit's designated initializer is `-initWithFrame:`, which is what C's `[[EmacsBell alloc] init]` is); the GNUstep no-named-images arm is dead
+  - [x] `- (void)show:(NSView *)view`  (line 1373) -> `@objc func show(_ view: NSView)`
+  - [x] `- (void)hide`  (line 1402) -> `@objc func hide()`
+  - [x] `-(void)remove`  (line 1418) -> `@objc func remove()`
 - [ ] EmacsApp  (`@implementation` 6225, `@end` 6912)
   - [ ] `- (id)init`  (line 6227)
   - [ ] `- (void)run`  (line 6257)
@@ -467,7 +474,7 @@ the mirror's member names, and its layout is measured rather than assumed - clan
 - [x] static NSRect ns_UAZoom_cursor_rect_new  (line 1154, static) — landed as `NSRect.zero`
 - [x] static NSRect ns_UAZoom_cursor_rect_old  (line 1155, static) — landed as `NSRect.zero`
 - [x] static BOOL ns_update_was_UAZoomEnabled  (line 1159, static) — landed as `Bool = false`
-- [ ] static EmacsBell bell_view  (line 1433, static)
+- [x] static EmacsBell bell_view  (line 1433, static) — landed as `fileprivate var bell_view: EmacsBell? = nil`; C's `[[EmacsBell alloc] init]` + `[bell_view retain]` is ARC's strong reference to the same ownership
 - [ ] static NSMutableDictionary fringe_bmp  (line 3089, static)
 
 
@@ -517,18 +524,24 @@ macros (C 773-807), `ns_row_rect` (C 808-827), `ns_frame_scale_factor` (C 828-89
 (C 1033-1073), `ns_update_begin` (C 1075-1087) and the whole macOS Accessibility Zoom block
 (C 1090-1211 - its six statics, two interval constants, `ns_ua_zoom_enabled_p`,
 `ns_cg_rect_flip_y` and `ns_UAZoomChangeFocus`) - so the covered range is now **C 60-1211**.
-The next live definition is C 1212's `ns_update_end`.
+**Round 6 lands C 1212-1492** - `ns_update_end` (C 1212-1234), `ns_focus` (C 1236-1273, which
+the generator misses) and `ns_unfocus` (C 1282-1310), the visible bell's narrative (C 1313-1330),
+**the file's first class** `EmacsBell` (C 1333-1430, its `@interface` and all four methods),
+`bell_view` (C 1433) and `ns_ring_bell` (C 1436-1469); `hide_bell` (C 1471-1491) is dead in this
+build and is recorded.  The covered range is now **C 60-1492**, and the next live definition is
+C 1493's `ns_get_focus_frame`.
 
-Ticked above: **30 of the 144 function boxes** (the generator's 142 plus the two round 5 found
-it misses) (the twenty-one landed - through round 4's eight -
+Ticked above: **35 of the 145 function boxes** (the generator's 142 plus the three it misses -
+round 5's two and round 6's `ns_focus`) (the twenty-one landed - through round 4's eight -
 and the three dead `nstrace_*`), **16 of the 23 macro boxes** (the eight masks,
 `NO_APPDEFINED_DATA` and the five `EV_*` accessors, plus `DOCK_IGNORE_LIMIT` and the two
-`NS_PARENT_WINDOW_*`; the two held ones stay open), **47 of the 49 file-scope-object boxes**
-(the generator's 39 minus its gaps, the 8 hand-added round 1 rows, and round 5's two interval
-constants), **1 of the 1 type box** (`EmacsMargins`,
-C 650) and **1 of the 8 Objective-C classes** (`NSColor (EmacsColor)`, all four of its methods).
-The other 114 function boxes, 7 macro boxes, 7 class boxes and 189 method boxes are later
-slices.
+`NS_PARENT_WINDOW_*`; the two held ones stay open), **48 of the 49 file-scope-object boxes**
+(the generator's 39 minus its gaps, the 8 hand-added round 1 rows, round 5's two interval
+constants and round 6's `bell_view`), **1 of the 1 type box** (`EmacsMargins`,
+C 650) and **2 of the 8 Objective-C classes** (`NSColor (EmacsColor)` with its four methods, and
+**`EmacsBell`** - the file's first *class*, with its `@interface` declaration and all four
+methods).  The other 110 function boxes, 7 macro boxes, 6 class boxes and 185 method boxes are
+later slices.
 
 **The slice's text had been landed before this round but measured with `swiftc -parse`, which
 resolves no names.** This lane's compile gate is `swiftc -parse-as-library -c` (the form
@@ -863,6 +876,42 @@ C's own `[view lockFocus]` (C 1085); the port keeps the call, and the warning is
 `## Evidence`.  It is not silence-worthy: the lane's landed `nsimage.swift` compiles with four
 warnings of its own (measured).
 
+### Round 6: the file's first class, and the first member write
+
+**`EmacsBell` is the first class of the file** (C 1333-1430), and it lands *inside* its C order
+with no deferred entries: its methods are called only from `ns_ring_bell` (C 1436) and from its
+own body, both after the class.  The three `@interface` ivars become stored properties; the
+methods are `@objc` so their selectors are reachable (`show:` schedules `hide` with
+`#selector(hide)`), the reading `docs/ports/nsmenu.swift` 849 already uses; and C's `- (id)init`
+becomes `override init(frame:)` with `required init?(coder:)` - AppKit's designated initializer
+is `-initWithFrame:`, and `[[EmacsBell alloc] init]` is a zero frame (the reading
+`docs/ports/nsmenu.swift` 843 uses for the same Swift requirement).
+
+**`MOUSE_HL_INFO (f)->mouse_face_defer = 0` is the first member *write*.**  The member is
+src/dispextern.h 3020's `bool_bf mouse_face_defer : 1` - a **bitfield**, which no Swift view can
+write - so it takes the member-entry route, named `<record>_set_<member>` exactly as
+`docs/ports/nsmenu.swift` 311-328 names its writes (`ns_output_set_in_animation`), and taking
+C's own argument (the frame, like `frame_left_pos`).
+
+**`NSRectClip`/`NSRectClipList` are AppKit's own C symbols that Swift hides.**  They are
+`APPKIT_EXTERN` in NSGraphics.h 210-211, so the lane reaches them by name - the same treatment
+`docs/ports/nsfont.swift` gives `fprintf`.  (The citation is an `external` row in
+`check-citations.py`: counted, never a failure.)
+
+**Three Swift-name readings, all measured.**  `NSBeep ()` is `NSSound.beep ()`;
+`NSImageNameCaution` is `NSImage.cautionName`; and `[[EmacsBell alloc] init]` needs the frame
+parameter, because a view subclass's designated initializer is `init(frame:)`.
+
+**Eight deprecation warnings, recorded.**  `swiftc -c` prints four `lockFocus()` and four
+`unlockFocus()` deprecations for C's own calls (C 1085, 1219, 1220, 1249, 1300, 1302 and the two
+in the bell's neighbours); the port keeps every call, and the lane's landed `nsimage.swift`
+compiles with four warnings of its own (measured) - so a recorded deprecation is ordinary here.
+
+**`hide_bell` is dead in this build.**  Its guard (C 1471) is `#if !defined (NS_IMPL_COCOA) ||
+MAC_OS_X_VERSION_MIN_REQUIRED < 101400`, and this lane's target defines `NS_IMPL_COCOA` and has a
+minimum of 260000; its single call site (C 9388) sits inside the same guard.  The box is ticked
+with that reason rather than transcribed (P-08).
+
 ## ABI
 
 ### (1) C symbols this file defines and exports (`@_cdecl`)
@@ -922,6 +971,10 @@ what `nm -g` shows (Evidence).
 | `UAZoomEnabled`, `UAZoomChangeFocus` | `Boolean UAZoomEnabled (void)` / `OSStatus UAZoomChangeFocus (const CGRect *, const CGRect *, UAZoomChangeFocusType)` | ApplicationServices' `UniversalAccess.h` | ApplicationServices |
 | `CGMainDisplayID`, `CGDisplayBounds` | CoreGraphics | `CGDirectDisplay.h` | CoreGraphics |
 | `clock_gettime_nsec_np` | `uint64_t clock_gettime_nsec_np (clockid_t)` | time.h | libSystem |
+| `NSRectClip`, `NSRectClipList` | `void NSRectClip (NSRect)` / `void NSRectClipList (const NSRect *, NSInteger)` | AppKit's NSGraphics.h 210-211 | AppKit (Swift marks them unavailable) |
+| `mouse_highlight_set_mouse_face_defer` | the bitfield member `MOUSE_HL_INFO (f)->mouse_face_defer` (src/dispextern.h 3020) | src/dispextern.h | **open**: member-write entry, `<record>_set_<member>` per `docs/ports/nsmenu.swift` 311-328 |
+| `visible_bell` | `DEFVAR_BOOL ("visible-bell", …)` variable | src/dispnew.c | **open**: data symbol, the core's to export |
+| `SELECTED_FRAME` | `#define SELECTED_FRAME() …` | src/frame.h | header-only |
 
 `Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
 core exports a C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  The
@@ -1051,6 +1104,16 @@ repeats them until they land.
   `_UAZoomChangeFocus`, `_CGMainDisplayID`, `_CGDisplayBounds`, `_clock_gettime_nsec_np`, `_NSLog`
   - and **`_isFullscreen`**, the deferred entry of `## ABI` (4), which stays undefined until
   `EmacsView` lands (its absence from this list is that row's acceptance test).
+* Round 6's compile, same command: **exit 0 with eight deprecation warnings** - four
+  `'lockFocus()' was deprecated in macOS 10.14` and four `'unlockFocus()' was deprecated in macOS
+  10.14`, for C's own calls.  Three errors were fixed on the way, each named by the compiler:
+  `required init?(coder:)` is mandatory on an `NSImageView` subclass and `init()` is not a
+  designated initializer to override (hence `init(frame:)`), and `NSBeep` is not in scope in
+  Swift.
+* `nm -g /tmp/s188r6/nsterm.o | grep ' T _'` -> **no new C export this round** (the bell class's
+  methods are Objective-C methods, not C symbols).
+* `nm -u /tmp/s188r6/nsterm.o` -> round 6's imports: `_NSRectClip`, `_NSRectClipList`,
+  `_SELECTED_FRAME`, `_visible_bell` and `_mouse_highlight_set_mouse_face_defer`.
 * `struct input_event`'s layout, C side (`clang -std=gnu23 -I build/emacs-ref/src -I
   build/emacs-ref/lib -I emacs/src -I emacs/lib` on a probe including `<config.h>`, `lisp.h`,
   `systime.h` and `termhooks.h`) -> `sizeof 64 align 8`, `code 4 modifiers 8 x 16 y 24
