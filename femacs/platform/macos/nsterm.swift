@@ -1,12 +1,16 @@
 // femacs: port of src/nsterm.m @ fd7afced403.
 //
 // **Giant unit** (`docs/ports/nsterm.md`'s `## Progress`): the reference is 11,811 lines and is
-// transcribed in C order, one slice per round.  **This round lands C 60-390** - the file's first
+// transcribed in C order, one slice per round.  **Round 1 landed C 60-390** - the file's first
 // statics (C 82-88), the dead `NSTRACE_ENABLED` block (C 96-149), the `NSColor (EmacsColor)`
 // category (C 152-206), the `convert_ns_to_X_keysym` table (C 214-293), the file-scope objects
 // (C 295-347), the seven modifier masks (C 349-356) and the first two functions
-// (`mod_of_kind` C 358, `ev_modifiers_helper` C 369).  The next slice starts at C 391 (the
-// `EV_*` macro block).
+// (`mod_of_kind` C 358, `ev_modifiers_helper` C 369).  **Round 2 lands C 391-519**: five of the
+// seven `EV_*` accessors (C 397-444), the forward declarations (C 473-475, recorded - Swift has
+// none), `ns_init_events`/`ns_finish_events` (C 484-495, the unit's C interface) and
+// `hold_event`/`append2` (C 498-519).  `EV_TRAILER`/`EV_TRAILER2` (C 448-470) are **held** to
+// C 5013, where their two callees exist (see the note at the end of this file).  The next slice
+// starts at C 522 (`ns_relocate`).
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -40,6 +44,35 @@ typealias EmacsCGFloat = CGFloat
 /// the records the later slices carry.
 struct vectorlike_header {
   var size: Int
+}
+
+/// C: `struct input_event` (src/termhooks.h 371-412) - the record `emacs_event` points at, and
+/// the one the `EV_*` accessors and `hold_event` fill.  It belongs to termhooks.h and has a
+/// Rust mirror (`femacs/src/include/termhooks.rs`); a Swift unit cannot see a Rust record, so
+/// this unit carries its own view of the same members, under the mirror's names.  The layout is
+/// measured, not assumed - clang on the frozen configuration says `sizeof 64`, `align 8`, and
+/// `code` 4, `modifiers` 8, `x` 16, `y` 24, `timestamp` 32, `frame_or_window` 40, `arg` 48,
+/// `device` 56, with the two bitfields sharing the unit at 0 (Evidence).
+struct input_event {
+  /// C: `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH;` and `ENUM_BF (scroll_bar_part)
+  /// part : 16;` (src/termhooks.h 374 and 377; the width is 360's `EVENT_KIND_WIDTH = 16`) -
+  /// `kind` is the low half, `part` the high half.
+  var bits: UInt32
+  /// C: `unsigned code;` (src/termhooks.h 383)
+  var code: UInt32
+  /// C: `unsigned modifiers;` (src/termhooks.h 386)
+  var modifiers: UInt32
+  /// C: `Lisp_Object x, y;` (src/termhooks.h 390)
+  var x: Lisp_Object
+  var y: Lisp_Object
+  /// C: `timestamp` (src/termhooks.h 395), whose type `Time` is systime.h's `unsigned long`.
+  var timestamp: UInt
+  /// C: `Lisp_Object frame_or_window;` (src/termhooks.h 399)
+  var frame_or_window: Lisp_Object
+  /// C: `Lisp_Object arg;` (src/termhooks.h 404)
+  var arg: Lisp_Object
+  /// C: `Lisp_Object device;` (src/termhooks.h 411)
+  var device: Lisp_Object
 }
 
 // ==========================================================================
@@ -317,10 +350,10 @@ fileprivate var select_mutex = pthread_mutex_t()
 /// to; the symbols are in libobjc but not in the SDK's Swift-visible headers - measured).
 fileprivate var outerpool: UnsafeMutableRawPointer? = nil
 /// C: `static struct input_event *emacs_event = NULL; static struct input_event *q_event_ptr =
-/// NULL;` - `struct input_event` is termhooks.h's (`femacs/src/include/termhooks.rs`), so the
-/// pointer keeps P-55's untyped stand-in.
-fileprivate var emacs_event: UnsafeMutableRawPointer? = nil
-fileprivate var q_event_ptr: UnsafeMutableRawPointer? = nil
+/// NULL;` - the record is this unit's view of termhooks.h's (see `input_event` above), so the
+/// pointers are typed by it rather than by P-55's untyped stand-in.
+fileprivate var emacs_event: UnsafeMutablePointer<input_event>? = nil
+fileprivate var q_event_ptr: UnsafeMutablePointer<input_event>? = nil
 /// C: `static int n_emacs_events_pending = 0;`
 fileprivate var n_emacs_events_pending: Int32 = 0
 /// C: `static NSMutableArray *ns_pending_files, *ns_pending_service_names,
@@ -337,7 +370,9 @@ fileprivate var ns_last_use_native_fullscreen: Bool = false
 fileprivate var any_help_event_p: Bool = false
 
 /// C 338-342: `static struct { struct input_event *q; int nr, cap; } hold_event_q = { NULL, 0, 0 };`
-fileprivate var hold_event_q_q: UnsafeMutableRawPointer? = nil
+/// C's `q` is an array of `struct input_event` (`xrealloc`ed, indexed by `nr`), so it is a typed
+/// pointer here.
+fileprivate var hold_event_q_q: UnsafeMutablePointer<input_event>? = nil
 fileprivate var hold_event_q_nr: Int32 = 0
 fileprivate var hold_event_q_cap: Int32 = 0
 
@@ -397,8 +432,182 @@ fileprivate func ev_modifiers_helper(_ flags: UInt32, _ left_mask: UInt32, _ rig
   return modifiers
 }
 
-// C 379-470: the `EV_*` macro block (`EV_MODIFIERS2`, `EV_MODIFIERS`, `EV_UDMODIFIERS`,
-// `EV_BUTTON`, `EV_TIMESTAMP`, `EV_TRAILER`, `EV_TRAILER2`) is the **next slice** (it reads
-// `emacs_event`, `ns_send_appdefined`, the `ns_*_modifier` globals and AppKit events); the two
-// forward declarations at C 473-475 (`ns_condemn_scroll_bars`, `ns_judge_scroll_bars`) are the
-// slice after that.
+
+// ==========================================================================
+// C 391-519: the `EV_*` accessors, the forward declarations, and the event-loop utilities.
+// ==========================================================================
+
+// The seven `DEFVAR_LISP` variables `syms_of_nsterm` defines (C 11608-11670).  This block reads
+// them about 11,000 lines earlier, and a fileprivate global of this unit's own would not exist
+// yet at C 397, so the lane imports them as the C data symbols the core exports - the shape
+// `docs/ports/macfont.swift` uses for `Votf_script_alist`, and the integrator's ruling for this
+// slice (docs/ports/nsterm.md's Decisions).
+@_silgen_name("ns_alternate_modifier") var ns_alternate_modifier: Lisp_Object
+@_silgen_name("ns_right_alternate_modifier") var ns_right_alternate_modifier: Lisp_Object
+@_silgen_name("ns_command_modifier") var ns_command_modifier: Lisp_Object
+@_silgen_name("ns_right_command_modifier") var ns_right_command_modifier: Lisp_Object
+@_silgen_name("ns_control_modifier") var ns_control_modifier: Lisp_Object
+@_silgen_name("ns_right_control_modifier") var ns_right_control_modifier: Lisp_Object
+@_silgen_name("ns_function_modifier") var ns_function_modifier: Lisp_Object
+
+// `src/termhooks.h` 434-459's modifier bits are enumerators; the lane reaches an enumerator
+// through a C-ABI entry carrying its own name (docs/ports/nsselect.md's `PVEC_SUBR` reading).
+@_silgen_name("up_modifier") func up_modifier() -> Int32
+@_silgen_name("down_modifier") func down_modifier() -> Int32
+@_silgen_name("hyper_modifier") func hyper_modifier() -> Int32
+@_silgen_name("shift_modifier") func shift_modifier() -> Int32
+
+/// C: `DEFSYM (QCmouse, ":mouse")` (src/nsterm.m 11795) is **this file's own** `DEFSYM`, and it
+/// is absent from `docs/baseline/globals/symbols.tsv` (whose table is generated from the frozen
+/// build set, which never compiles this file); the core has to export it like the rest - the
+/// reading `docs/ports/macfont.swift` gives `Qmac_ct`/`QCdestination`.
+@_silgen_name("QCmouse") func QCmouse() -> Lisp_Object
+
+/// C: `void *xrealloc (void *, size_t)` (src/lisp.h 5541) - the "x" allocator: it never returns
+/// NULL (src/alloc.c 4130's `memory_full`), which is why the call below takes the result apart.
+@_silgen_name("xrealloc") func xrealloc(_ p: UnsafeMutableRawPointer?,
+                                        _ size: Int) -> UnsafeMutableRawPointer?
+/// C: `Lisp_Object nconc2 (Lisp_Object, Lisp_Object)` (src/lisp.h 4271; defined src/fns.c).
+@_silgen_name("nconc2") func nconc2(_ a: Lisp_Object, _ b: Lisp_Object) -> Lisp_Object
+/// C: `list1` (src/lisp.h 4486; defined src/alloc.c) - the fixed-arity spelling of the
+/// variadic `list` macro (src/lisp.h 4493), see `append2` below.
+@_silgen_name("list1") func list1(_ a: Lisp_Object) -> Lisp_Object
+/// C: `#define EVENT_INIT(event) ((event) = (struct input_event) {.device = Qt})` (src/termhooks.h
+/// 414).  The core's entry takes `struct input_event *`, which this unit's view of that record
+/// spells as a pointer to it (the same layout - see the type's comment).
+@_silgen_name("EVENT_INIT") func EVENT_INIT(_ event: UnsafeMutablePointer<input_event>)
+
+/// C 397-424: `#define EV_MODIFIERS2(flags, kind)` - "Convert modifiers in a NeXTstep event to
+/// emacs style modifiers".  C's value is `unsigned int`, and its three helper calls take
+/// `unsigned int` parameters, so the `NSUInteger` flags, masks and AppKit flags are converted
+/// exactly where C's implicit conversions convert them (`truncatingIfNeeded:` is C's narrowing).
+func EV_MODIFIERS2(_ flags: UInt, _ kind: Lisp_Object) -> UInt32 {
+  var modifiers: UInt32 = 0
+
+  modifiers |= (flags & NSEvent.ModifierFlags.help.rawValue) != 0
+    ? UInt32(bitPattern: hyper_modifier()) : 0
+  modifiers |= (flags & NSEvent.ModifierFlags.shift.rawValue) != 0
+    ? UInt32(bitPattern: shift_modifier()) : 0
+  modifiers |= (flags & NS_FUNCTION_KEY_MASK) != 0
+    ? UInt32(bitPattern: parse_solitary_modifier(mod_of_kind(ns_function_modifier, kind))) : 0
+
+  modifiers |= ev_modifiers_helper(UInt32(truncatingIfNeeded: flags),
+                                   UInt32(truncatingIfNeeded: NSLeftControlKeyMask),
+                                   UInt32(truncatingIfNeeded: NSRightControlKeyMask),
+                                   UInt32(NSEvent.ModifierFlags.control.rawValue),
+                                   mod_of_kind(ns_control_modifier, kind),
+                                   mod_of_kind(ns_right_control_modifier, kind))
+  modifiers |= ev_modifiers_helper(UInt32(truncatingIfNeeded: flags),
+                                   UInt32(truncatingIfNeeded: NSLeftCommandKeyMask),
+                                   UInt32(truncatingIfNeeded: NSRightCommandKeyMask),
+                                   UInt32(NSEvent.ModifierFlags.command.rawValue),
+                                   mod_of_kind(ns_command_modifier, kind),
+                                   mod_of_kind(ns_right_command_modifier, kind))
+  modifiers |= ev_modifiers_helper(UInt32(truncatingIfNeeded: flags),
+                                   UInt32(truncatingIfNeeded: NSLeftAlternateKeyMask),
+                                   UInt32(truncatingIfNeeded: NSRightAlternateKeyMask),
+                                   UInt32(NSEvent.ModifierFlags.option.rawValue),
+                                   mod_of_kind(ns_alternate_modifier, kind),
+                                   mod_of_kind(ns_right_alternate_modifier, kind))
+
+  return modifiers
+}
+
+/// C 425: `#define EV_MODIFIERS(e) EV_MODIFIERS2 ([e modifierFlags], QCmouse)`.
+func EV_MODIFIERS(_ e: NSEvent) -> UInt32 {
+  EV_MODIFIERS2(e.modifierFlags.rawValue, QCmouse())
+}
+
+/// C 427-437: `#define EV_UDMODIFIERS(e)` - the up/down bit of a mouse event, C's `int`.  The
+/// ten comparisons are transcribed one for one (C ORs the same bit in more than once when more
+/// than one holds, which is why this is not folded into a set membership test).
+func EV_UDMODIFIERS(_ e: NSEvent) -> Int32 {
+  ((e.type == .leftMouseDown) ? down_modifier() : 0)
+    | ((e.type == .rightMouseDown) ? down_modifier() : 0)
+    | ((e.type == .otherMouseDown) ? down_modifier() : 0)
+    | ((e.type == .leftMouseDragged) ? down_modifier() : 0)
+    | ((e.type == .rightMouseDragged) ? down_modifier() : 0)
+    | ((e.type == .otherMouseDragged) ? down_modifier() : 0)
+    | ((e.type == .leftMouseUp) ? up_modifier() : 0)
+    | ((e.type == .rightMouseUp) ? up_modifier() : 0)
+    | ((e.type == .otherMouseUp) ? up_modifier() : 0)
+}
+
+/// C 438-442: `#define EV_BUTTON(e)` - the wheel/button index C computes from `[e buttonNumber]`,
+/// C's `NSInteger`.
+func EV_BUTTON(_ e: NSEvent) -> Int {
+  ((e.type == .leftMouseDown) || (e.type == .leftMouseUp)) ? 0
+    : ((e.type == .rightMouseDown) || (e.type == .rightMouseUp)) ? 2
+    : e.buttonNumber - 1
+}
+
+/// C 444: `#define EV_TIMESTAMP(e) ([e timestamp] * 1000)` - "Convert the time field to a
+/// timestamp in milliseconds."  C's product of `NSTimeInterval` (double); the sites that store
+/// it convert it the way C's assignment converts a double to `Time`.
+func EV_TIMESTAMP(_ e: NSEvent) -> Double {
+  e.timestamp * 1000
+}
+
+// C 448-470: `EV_TRAILER` and `EV_TRAILER2`, the two macros every event handler ends with, are
+// **held**: Swift has no forward declaration, and their bodies call `hold_event` (this file's
+// C 498) and `ns_send_appdefined` (this file's C 5013), whose Swift definitions do not exist
+// yet.  The reference's own macro text sits before those definitions too, and is only *expanded*
+// after them (the first expansion is C 6412) - so they land at C 5013, the point where both
+// callees exist, and their checklist boxes stay open until then (docs/ports/nsterm.md).
+
+// C 473-475: "TODO: Get rid of need for these forward declarations." - `static void
+// ns_condemn_scroll_bars (struct frame *f);` and `static void ns_judge_scroll_bars (struct
+// frame *f);`.  Swift has no forward declaration and needs none: each function lands once, at
+// its own definition (C 5575 and C 5622).
+
+/// C 484-489: `void ns_init_events (struct input_event *ev)`.  Declared src/nsterm.h 1257 and
+/// called from src/nsfns.m 2492, so it is part of the unit's C interface (the `@_cdecl` half of
+/// the lane's ABI).  C: `EVENT_INIT (*ev); emacs_event = ev;`
+///
+/// The exported parameter is untyped: `@_cdecl` refuses a pointer to a Swift record ("the type
+/// of the parameter cannot be represented in Objective-C", measured), and at the ABI it is C's
+/// `struct input_event *` either way - the caller passes its own view of the record.
+@_cdecl("ns_init_events") func ns_init_events(_ ev: UnsafeMutableRawPointer) {
+  let event = ev.assumingMemoryBound(to: input_event.self)
+  EVENT_INIT(event)
+  emacs_event = event
+}
+
+/// C 492-495: `void ns_finish_events (void)` (declared src/nsterm.h 1258, called src/nsfns.m
+/// 2495).  C: `emacs_event = NULL;`
+@_cdecl("ns_finish_events") func ns_finish_events() {
+  emacs_event = nil
+}
+
+/// C 498-514: `static void hold_event (struct input_event *event)` (the record's line above is
+/// termhooks.h 371) - the hold queue
+/// `ns_read_socket` drains; `EV_TRAILER2` (C 467) and the scroller's
+/// `sendScrollEventAtLoc:fromEvent:` (C 10886) are its callers.
+fileprivate func hold_event(_ event: UnsafeMutablePointer<input_event>?) {
+  if hold_event_q_nr == hold_event_q_cap {
+    if hold_event_q_cap == 0 { hold_event_q_cap = 10 } else { hold_event_q_cap *= 2 }
+    // C's `xrealloc` never returns NULL, so the pointer comes back to this lane's typed view
+    // without an optional in between (src/alloc.c's `memory_full` on failure).
+    hold_event_q_q = xrealloc(hold_event_q_q,
+                              Int(hold_event_q_cap) * MemoryLayout<input_event>.stride)!
+      .assumingMemoryBound(to: input_event.self)
+  }
+
+  // C's `hold_event_q.q[hold_event_q.nr++] = *event;` - the value copy of one record; a NULL
+  // argument traps here as the reference's unguarded `*event` faults there.
+  hold_event_q_q![Int(hold_event_q_nr)] = event!.pointee
+  hold_event_q_nr += 1
+  /* Make sure ns_read_socket is called, i.e. we have input.  */
+  raise(SIGIO)
+  send_appdefined = true
+}
+
+/// C 515-519: `static Lisp_Object append2 (Lisp_Object list, Lisp_Object item)` - "Utility to
+/// append to a list".  C's `list` (src/lisp.h 4493) is the variadic macro
+/// `listn (countof (…), …)`; with one argument it is `list1`'s call (src/lisp.h 4486), the
+/// lane's reading for a fixed-arity spelling of a variadic macro (docs/ports/nsselect.md's
+/// `calln`).
+fileprivate func append2(_ list: Lisp_Object, _ item: Lisp_Object) -> Lisp_Object {
+  nconc2(list, list1(item))
+}
+

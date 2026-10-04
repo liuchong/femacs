@@ -28,10 +28,10 @@
 - [x] nstrace_fullscreen_type_name  (line 129)  — dead, like the box above
 - [x] mod_of_kind  (line 360, static)  — C 358-367, landed as `fileprivate func mod_of_kind`
 - [x] ev_modifiers_helper  (line 372, static)  — C 369-389, landed as `fileprivate func ev_modifiers_helper`
-- [ ] ns_init_events  (line 485)
-- [ ] ns_finish_events  (line 492)
-- [ ] hold_event  (line 498, static)
-- [ ] append2  (line 515, static)
+- [x] ns_init_events  (line 485) — landed, `@_cdecl("ns_init_events")` (the unit's C interface, src/nsterm.h 1257)
+- [x] ns_finish_events  (line 492) — landed, `@_cdecl("ns_finish_events")` (src/nsterm.h 1258)
+- [x] hold_event  (line 498, static) — landed as `fileprivate func hold_event` (the hold queue's `input_event` copy is `MemoryLayout<input_event>.stride`, measured 64)
+- [x] append2  (line 515, static) — landed as `fileprivate func append2`; C's `list (item)` is `list1` for one argument
 - [ ] ns_relocate  (line 525)
 - [ ] ns_init_pool  (line 560)
 - [ ] ns_init_locale  (line 569)
@@ -387,13 +387,13 @@ spelling the same selector is one box and is named where it occurs.)
 
 ## Macros defined — 23
 - [ ] DOCK_IGNORE_LIMIT  (line 708, body c1dfd96eea8c)
-- [ ] EV_BUTTON  (line 438, body 02ec0a9e0dff)
-- [ ] EV_MODIFIERS  (line 425, body 0a951d59f9e1)
-- [ ] EV_MODIFIERS2  (line 397, body 8155b8d11eb3)
-- [ ] EV_TIMESTAMP  (line 444, body 8e139f589481)
-- [ ] EV_TRAILER  (line 448, body 0dd430c310a9)
-- [ ] EV_TRAILER2  (line 455, body bf5ab84e8621)
-- [ ] EV_UDMODIFIERS  (line 427, body 89301cbc268c)
+- [x] EV_BUTTON  (line 438, body 02ec0a9e0dff) — landed as `func EV_BUTTON (_ e: NSEvent) -> Int`
+- [x] EV_MODIFIERS  (line 425, body 0a951d59f9e1) — landed as `func EV_MODIFIERS (_ e: NSEvent) -> UInt32`
+- [x] EV_MODIFIERS2  (line 397, body 8155b8d11eb3) — landed as `func EV_MODIFIERS2 (_ flags: UInt, _ kind: Lisp_Object) -> UInt32`; C's `NSUInteger`→`unsigned int` conversions are `truncatingIfNeeded:`
+- [x] EV_TIMESTAMP  (line 444, body 8e139f589481) — landed as `func EV_TIMESTAMP (_ e: NSEvent) -> Double`
+- [ ] EV_TRAILER  (line 448, body 0dd430c310a9) — **held** to C 5013: its body calls the hold queue and `EV_TRAILER2`, and `ns_send_appdefined` (C 5013) is this file's own function, so no Swift text can exist before it does (see Decisions)
+- [ ] EV_TRAILER2  (line 455, body bf5ab84e8621) — **held** to C 5013, like `EV_TRAILER` (its callees are C 498's `hold_event` and C 5013's `ns_send_appdefined`)
+- [x] EV_UDMODIFIERS  (line 427, body 89301cbc268c) — landed as `func EV_UDMODIFIERS (_ e: NSEvent) -> Int32`, C's ten comparisons transcribed one for one
 - [x] NO_APPDEFINED_DATA  (line 318, body 9d95217d51d9)  — landed as a file-scope `let` of the same name
 - [ ] NSAppKitVersionNumber10_10  (line 10407, body ed9f6e93628b)
 - [ ] NSAppKitVersionNumber10_9  (line 6262, body 74b10c057ded)
@@ -412,6 +412,13 @@ spelling the same selector is one box and is named where it occurs.)
 
 ## Types and their fields — 1
 - [ ] EmacsMargins: CGFloat top, CGFloat bottom, CGFloat left, CGFloat right
+
+(Not counted here, the way `docs/ports/nsselect.md` does not count `Lisp_Subr`/`specpdl_ref`: the
+unit also declares a Swift **view** of `struct input_event` (src/termhooks.h 371-412), which this
+file's `emacs_event` points at.  The record is termhooks.h's and already has a Rust mirror
+(`femacs/src/include/termhooks.rs`); a Swift unit cannot see a Rust record, so the view repeats
+the mirror's member names, and its layout is measured rather than assumed - clang `sizeof 64`,
+`align 8`, and the offsets in `## Evidence`, which the Swift side matches exactly.)
 
 ## File-scope objects — 39
 - [x] static EmacsMenu dockMenu  (line 82, static)  — landed
@@ -474,25 +481,28 @@ otherwise skips); they are added by hand so the checklist is complete - see Deci
 ### Progress (this lane is incremental)
 
 `src/nsterm.m` is 11,811 lines - the largest `.m` of batch F - and is transcribed in C order,
-one slice per round (`docs/ports/xdisp.md` is the same shape for `src/xdisp.c`).  **This round
-covers C 60-390**: the `#include`/`#import` prologue (C 60-81) recorded rather than transcribed,
-the first three statics (C 82-88), the dead `NSTRACE_ENABLED` block (C 96-149), the
+one slice per round (`docs/ports/xdisp.md` is the same shape for `src/xdisp.c`).  **Round 1 landed
+C 60-390**: the `#include`/`#import` prologue (C 60-81) recorded rather than transcribed, the
+first three statics (C 82-88), the dead `NSTRACE_ENABLED` block (C 96-149), the
 `NSColor (EmacsColor)` category (C 152-206), the `convert_ns_to_X_keysym` table (C 214-293), the
 file-scope objects (C 295-347), the seven modifier masks (C 349-356) and the file's first two
-functions `mod_of_kind`/`ev_modifiers_helper` (C 358-389).
+functions `mod_of_kind`/`ev_modifiers_helper` (C 358-389).  **Round 2 lands C 391-519** - the
+`EV_*` accessors' five self-contained macros (C 397-444), the forward declarations recorded
+(C 473-475), `ns_init_events`/`ns_finish_events` (C 484-495) and `hold_event`/`append2`
+(C 498-519) - so the covered range is now **C 60-519**, with `EV_TRAILER`/`EV_TRAILER2`
+(C 448-470) held to C 5013 (below).
 
-**The next slice starts at C 391** - the `EV_*` macro block (C 397-463), which reads the seven
-`ns_*_modifier` globals that `syms_of_nsterm` sets at C 11654+ and the fields of
-`struct input_event`, so that slice has to settle how those two land.  C 473-475's two forward
-declarations (`ns_condemn_scroll_bars`/`ns_judge_scroll_bars`) carry no Swift text at all -
-Swift has no forward declaration, and the definitions land at their own C sites - and
-`ns_init_events` (C 484) follows.
+**The next slice starts at C 522** (`ns_relocate`, whose `NS_SELF_CONTAINED` arm needs a ruling:
+the macro belongs to the build, not to `config.h`, and the Cocoa app bundle defines it).
 
-Ticked above: **5 of the 142 function boxes** (the two landed and the three dead `nstrace_*`),
-**8 of the 23 macro boxes**, **39 of the 47 file-scope-object boxes** (31 of the generator's 39
-plus the 8 hand-added ones), and **1 of the 8 Objective-C classes** (`NSColor (EmacsColor)`, all
-four of its methods).  The other 137 function boxes, 7 class boxes, 189 method boxes and the one
-type box (`struct EmacsMargins`, C 650) are later slices.
+Ticked above: **9 of the 142 function boxes** (the six landed - `mod_of_kind`,
+`ev_modifiers_helper`, `ns_init_events`, `ns_finish_events`, `hold_event`, `append2` - and the
+three dead `nstrace_*`), **13 of the 23 macro boxes** (the eight masks and `NO_APPDEFINED_DATA`,
+plus the five `EV_*` accessors; the two held ones stay open), **39 of the 47 file-scope-object
+boxes** (31 of the generator's 39 plus the 8 hand-added ones), and **1 of the 8 Objective-C
+classes** (`NSColor (EmacsColor)`, all four of its methods).  The other 133 function boxes, 10
+macro boxes, 7 class boxes, 189 method boxes and the one type box (`struct EmacsMargins`, C 650)
+are later slices.
 
 **The slice's text had been landed before this round but measured with `swiftc -parse`, which
 resolves no names.** This lane's compile gate is `swiftc -parse-as-library -c` (the form
@@ -520,6 +530,59 @@ core and of the lane's own C constructs, this unit's own C interface exported wi
 the constructs that have no symbol at all spelled out here.  `src/nsterm.h` already has a Rust
 mirror (`femacs/src/include/nsterm.rs`, status 3.199) - this unit does not repeat it; it declares
 only what its own slice reads.
+
+### Round 2: the `EV_*` accessors, the held pair, and the event-loop utilities
+
+**The seven `ns_*_modifier` variables are imported, not declared here.**  C 11608-11670 defines
+them with `DEFVAR_LISP` (i.e. as fields of `globals`), and the macro block reads them ~11,000
+lines earlier: a fileprivate Swift global of this unit's own would not exist yet at C 397.  The
+lane's shape for a C variable the core exports is `@_silgen_name("…") var …: Lisp_Object` - the
+reading `docs/ports/macfont.swift` gives `Votf_script_alist`/`Vscript_representative_chars`, and
+the integrator's ruling for this slice.  The same holds for `QCmouse` (C 11795's `DEFSYM`, **this
+file's own**, so it is absent from `docs/baseline/globals/symbols.tsv`, whose table is generated
+from a frozen build that never compiles this file), for the four `termhooks.h` enumerators the
+accessors read (`up_modifier`/`down_modifier`/`hyper_modifier`/`shift_modifier`, reached as
+C-ABI entries of their own names - `docs/ports/nsselect.md`'s `PVEC_SUBR` reading), and for
+`xrealloc`/`nconc2`/`list1`/`EVENT_INIT`.  **Each is an owed symbol** until the core (or the
+slice that owns its definition) exports it; `## ABI` (3) lists them, and the round's report
+hands the list to the integrator's `docs/baseline/undef-pending.txt` ratchet.
+
+**`EV_TRAILER`/`EV_TRAILER2` are held to C 5013.**  Swift has no forward declaration and no
+"declare now, define later" pair (`@_silgen_name` on a declaration plus a later definition of the
+same name is an "invalid redeclaration", measured), and the two macros' bodies call `hold_event`
+(this file's C 498) and `ns_send_appdefined` (this file's C 5013) - both *this* unit's functions,
+so neither an import nor a placeholder exists.  C's own macro text has the same shape: it is
+written at C 448-470 and only *expanded* after those definitions (the first expansion is
+C 6412), so holding them to C 5013 matches the reference's own order, and nothing before C 6412
+needs them.  The slice that lands C 5013 lands them.
+
+**`struct input_event` gets a Swift view.**  `emacs_event` points at termhooks.h 371-412's
+record and `hold_event` copies one value (`hold_event_q.q[nr++] = *event`).  Swift cannot see the
+Rust mirror, so the unit declares the same members under the mirror's names and **measures** the
+layout rather than assuming it - clang on the frozen configuration and the Swift side agree
+member for member (`## Evidence`).  The carried `Lisp_Subr`/`specpdl_ref`/`Lisp_Fwd` of
+`nsselect.swift` are the same situation, and like those this view is not counted a second time in
+the checklist.
+
+**`ns_init_events`/`ns_finish_events` are the unit's C interface.**  Both are declared in
+src/nsterm.h (1257-1258) and called from src/nsfns.m (2492/2495), so they are `@_cdecl` exports
+keeping C's names.  `@_cdecl` refuses `UnsafeMutablePointer<input_event>` ("the type of the
+parameter cannot be represented in Objective-C", measured), so the exported parameter is
+`UnsafeMutableRawPointer` and the body re-binds it to the view; at the ABI it is C's
+`struct input_event *` either way.
+
+**`hold_event`'s copy and `append2`'s `list`.**  The queue's element size is
+`MemoryLayout<input_event>.stride` (64, measured), so C's `xrealloc (q, cap * sizeof *q)` and its
+value copy transcribe literally, and `xrealloc`'s result is taken apart without an optional in
+between (it never returns NULL - src/alloc.c's `memory_full`); a NULL `event` traps where the
+reference's unguarded `*event` faults.  C's `list (item)` is the variadic macro
+`listn (countof (…), …)` (src/lisp.h 4493), which for one argument is `list1`'s call - the lane's
+reading for a fixed-arity spelling of a variadic macro (`docs/ports/nsselect.md`'s `calln`).
+
+**The forward declarations carry no Swift text.**  C 473-475 declares
+`ns_condemn_scroll_bars`/`ns_judge_scroll_bars` (defined at C 5575 and C 5622) to get around C's
+one-pass compilation; Swift resolves names file-wide, so there is nothing to write, and each
+function lands once at its own definition.
 
 ### C data symbols are exported as C-ABI *functions*
 
@@ -658,8 +721,10 @@ declaration) and C 96 (`NSTRACE_ENABLED`, dead).
 | `ns_app_name` | `extern NSString *ns_app_name` (src/nsterm.h 775) | `func ns_app_name() -> NSString?` |
 | `x_display_list` | `extern struct ns_display_info *x_display_list` (931) | `func x_display_list_get() -> UnsafeMutableRawPointer?` |
 | `context_menu_value` | `extern long context_menu_value` (933) | `func context_menu_value() -> Int` |
+| `ns_init_events` | `extern void ns_init_events (struct input_event *)` (src/nsterm.h 1257) | `func ns_init_events(_ ev: UnsafeMutableRawPointer)` |
+| `ns_finish_events` | `extern void ns_finish_events (void)` (src/nsterm.h 1258) | `func ns_finish_events()` |
 
-`mod_of_kind` and `ev_modifiers_helper` are C `static`s - no C symbol exists in the reference
+`mod_of_kind`, `ev_modifiers_helper`, `hold_event` and `append2` are C `static`s - no C symbol exists in the reference
 either - so they land as `fileprivate func`s of their own names.  The exported set is exactly
 what `nm -g` shows (Evidence).
 
@@ -674,17 +739,29 @@ what `nm -g` shows (Evidence).
 | `Qnil` | generated global (`globals.h`) | - | core |
 | `Qleft` | generated global (`globals.h`) | - | core |
 | `ns_use_srgb_colorspace` | `bool ns_use_srgb_colorspace` (a `DEFVAR_BOOL` variable) | src/nsterm.m 11716 | **open** - see Decisions |
+| `QCmouse` | `Lisp_Object` symbol (a `DEFSYM`) | src/nsterm.m 11795 | **open**: this file's own `DEFSYM`, not in `docs/baseline/globals/symbols.tsv` |
+| `up_modifier`, `down_modifier`, `hyper_modifier`, `shift_modifier` | `int` enumerators | src/termhooks.h 434-459 | **open**: the mirror's `pub const`s carry no C symbol yet |
+| `ns_alternate_modifier`, `ns_right_alternate_modifier`, `ns_command_modifier`, `ns_right_command_modifier`, `ns_control_modifier`, `ns_right_control_modifier`, `ns_function_modifier` | `Lisp_Object` `DEFVAR_LISP` variables | src/nsterm.m 11608-11670 | **open**: imported as data symbols (Decisions) |
+| `xrealloc` | `void *xrealloc (void *, size_t)` | src/lisp.h 5541 | src/alloc.c |
+| `nconc2` | `Lisp_Object nconc2 (Lisp_Object, Lisp_Object)` | src/lisp.h 4271 | src/fns.c |
+| `list1` | `Lisp_Object list1 (Lisp_Object)` | src/lisp.h (the `list` family) | src/alloc.c |
+| `EVENT_INIT` | `INLINE void EVENT_INIT (struct input_event *)` | src/termhooks.h 414 | header-only |
 
-`Qnil`/`Qleft` and the two `INLINE` predicates are header-only constructs, so the core exports a
-C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  `nm -u` on the built
-object lists exactly these seven (plus Swift-runtime and AppKit entries); `ns_use_srgb_colorspace`
-is imported as a data symbol (`@_silgen_name` on a `var`), which is why
-`tools/check-swift-units.py` counts six `func` imports rather than seven.
+`Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
+core exports a C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  The
+two `var` imports (`ns_use_srgb_colorspace`, the seven `ns_*_modifier`s) are data symbols, which
+is why `tools/check-swift-units.py` counts only the `func` imports; `nm -u` on the built object
+lists the whole set (Evidence).
 
 ### (3) What other units must supply
 
-* the core: `SYMBOLP`, `EQ`, `Qnil`, `Qleft`, `plist_get`, `parse_solitary_modifier`, and the
-  `ns_use_srgb_colorspace` data symbol (open, above);
+* the core: (2)'s ten call entries - `SYMBOLP`, `EQ`, `plist_get`,
+  `parse_solitary_modifier`, `Qnil`, `Qleft`, `xrealloc`, `nconc2`, `list1`, `EVENT_INIT` - and
+  its **thirteen** data symbols `ns_use_srgb_colorspace`, `QCmouse`, `up_modifier`, `down_modifier`,
+  `hyper_modifier`, `shift_modifier` and the seven `ns_*_modifier` variables.  `QCmouse` and the
+  seven modifiers are this file's own `DEFSYM`/`DEFVAR_LISP`, so the core has to export them the
+  way it exports the rest; `QCmouse` is also absent from `docs/baseline/globals/symbols.tsv`,
+  whose table comes from a build that never compiles this file;
 * `femacs/platform/macos/nsmenu.swift` (another lane's unit): the `EmacsMenu` class whose
   pointer this unit carries untyped;
 * other lanes read this unit's exports: `nsselect.swift` calls `ns_send_types()` and
@@ -727,6 +804,37 @@ is imported as a data symbol (`@_silgen_name` on a `var`), which is why
   the dead `nstrace_*` definitions too.
 * `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
   literals), 0 failures` (no site from this unit).
+* Round 2's compile, same command: **exit 0, no output**.  Two measurements came out of it:
+  `@_cdecl` refuses a pointer to a Swift record - `error: global function cannot be marked
+  '@_cdecl' because the type of the parameter cannot be represented in Objective-C` on
+  `ns_init_events(_ ev: UnsafeMutablePointer<input_event>)`, hence the untyped parameter - and a
+  bodyless `@_silgen_name("foo") func foo` followed by `func foo` in the same file is
+  `error: invalid redeclaration of 'foo'`, which is why `EV_TRAILER`/`EV_TRAILER2` are held.
+* `nm -g /tmp/s188r2/nsterm.o | grep ' T _'` -> the exports now include `_ns_init_events` and
+  `_ns_finish_events` beside round 1's five, plus `___swift_memcpy64_8` - the helper Swift emits
+  for `hold_event`'s 64-byte value copy, which is the record's measured size.
+* `nm -u /tmp/s188r2/nsterm.o` -> the own imports of (2): `_EQ`, `_EVENT_INIT`, `_QCmouse`,
+  `_Qleft`, `_Qnil`, `_SYMBOLP`, `_down_modifier`, `_hyper_modifier`, `_list1`,
+  `_nconc2`, `_ns_alternate_modifier`, `_ns_command_modifier`, `_ns_control_modifier`,
+  `_ns_function_modifier`, `_ns_right_alternate_modifier`, `_ns_right_command_modifier`,
+  `_ns_right_control_modifier`, `_ns_use_srgb_colorspace`, `_parse_solitary_modifier`,
+  `_plist_get`, `_shift_modifier`, `_up_modifier`, `_xrealloc` (with the Swift runtime and
+  AppKit entries; the `var` imports are the non-lazy ones).
+* `struct input_event`'s layout, C side (`clang -std=gnu23 -I build/emacs-ref/src -I
+  build/emacs-ref/lib -I emacs/src -I emacs/lib` on a probe including `<config.h>`, `lisp.h`,
+  `systime.h` and `termhooks.h`) -> `sizeof 64 align 8`, `code 4 modifiers 8 x 16 y 24
+  timestamp 32 frame_or_window 40 arg 48 device 56` (the two bitfields share the unit at 0,
+  width 16); the same probe prints the modifier bits `up 1 down 2 drag 4 click 8 double 16
+  triple 32 alt 4194304 super 8388608 hyper 16777216 shift 33554432 ctrl 67108864
+  meta 134217728`.
+* `struct input_event`'s layout, Swift side (`swiftc -o /tmp/s188r2/layoutprobe
+  femacs/platform/macos/nsterm.swift /tmp/s188r2/main.swift /tmp/s188r2/stubs.c -Xlinker
+  -undefined -Xlinker dynamic_lookup`, then the program) -> `input_event size 64 stride 64
+  align 8`, `bits 0`, `code 4`, `modifiers 8`, `x 16`, `y 24`, `timestamp 32`,
+  `frame_or_window 40`, `arg 48`, `device 56` - member for member the same as the C side.
+  (The probe links a two-line C file that only *defines* the data symbols the core still owes,
+  because dyld resolves data imports at launch; `nsselect.md`'s probe ran without it only
+  because every import it had was a lazily bound function.)
 * `python3 tools/extract-abi.py emacs/src/nsterm.m` -> the checklist above (0 subrs, 142
   functions, 23 macros, 1 type, 39 file-scope objects); the Objective-C section is hand-written
   from the same reference.

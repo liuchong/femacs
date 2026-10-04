@@ -4184,3 +4184,31 @@
   每个自带副本加一行 `#[cfg (not (feature = "dispextern_face_records"))]`，等 `xdisp.rs`/`font.rs` 两个在飞单元入库后一次做完，
   那时翻转臂才能真正全绿。另外核了一遍：`femacs/xtask/Cargo.toml:61` 有这条 feature 行，但 `dead-arms` 不 flip 它
   （它 flip 的是配置侧的臂）⇒ 这条 feature 目前**没有门在编**，这才是上面那条欠账一直没暴露的原因。
+
+- **3.231 `macfont` ④ 收口入库、`nsterm` 第 2 轮入库，以及两条裁决（`ns_relocate` 的自包含臂、Swift 导入不进 Rust 棘轮）（2026-10-04）**：
+  ① **`macfont` ④ 收口（`a40bce4`）**：`macfont.swift` 11,069 → **11,313** 行，`swiftc -parse-as-library -c` exit 0；
+  门读数 **`74 C definition(s), 3 unported, 3 row(s); 131 C symbol import(s)`**，`0 new / 0 stale` —— 剩下 3 条正是**永久死臂**
+  （`mac_ctfont_get_glyph_for_cid` 在未定义的 `USE_CT_GLYPH_INFO` 下 + 两个 GNUstep-only 体），不是欠账。
+  **3.220 那条附条件验收成立**：`nm -u` 里 **`_macfont_driver` 消失**（同文件 `@_silgen_name` 自引用由定义落地解析），
+  留下的导入都是核心提供的（`_VECSIZE`/`_font_build_object`/`_QC*`）；`nm -g` 的导出是 `_macfont_driver`、
+  `_mac_register_font_driver`、`_macfont_get_nsctfont`、`_macfont_update_antialias_threshold`、`_syms_of_macfont`。
+  ② **`nsterm` 第 2 轮入库**：`nsterm.swift` 404 → **613 行**（C 391-521：`EV_*` 宏块、`hold_event`/`append2`、
+  `ns_init_events`/`ns_finish_events` 等），`docs/ports/nsterm.md` 846 行；`swiftc -parse-as-library -c` **exit 0**；
+  门读数 **`142 C definition(s), 136 unported, 136 row(s); 15 C symbol import(s)`**。台账里两条**有意留空的盒子**记着原因：
+  `EV_TRAILER`/`EV_TRAILER2` 的体调用本文件自己的 `hold_event`(C 498) 与 `ns_send_appdefined`(C 5013)，Swift 没有前向声明、
+  先 `@_silgen_name` 后定义同名函数是 `invalid redeclaration` ⇒ 按 C 的顺序挂到 C 5013（首次展开在 C 6412，之前无使用者）。
+  形态决定按 C 记：`EV_UDMODIFIERS` 保留十项 OR（不折成集合判断）、`EV_MODIFIERS2` 的隐式窄化一律 `truncatingIfNeeded`、
+  `struct input_event` 的 Swift 视图按 `include/termhooks.rs` 的字段名 + clang 实测布局（sizeof 64、逐字段偏移）。
+  ③ **裁决：`ns_relocate`（C 522）取 `NS_SELF_CONTAINED` 臂为活**。实测依据：`configure.ac` **689-690 的默认值是 yes**
+  （`EN_NS_SELF_CONTAINED=$enableval` / 缺省 `yes`），2885-2886 据此 `AC_DEFINE([NS_SELF_CONTAINED])` ⇒ 自包含臂是缺省构建的活文本，
+  `--without-ns-self-contained` 那一支按 P-51 记死文本（行号进台账）；`nsterm.m` 本来就在 `check-cond-eval` 的 NOT VERIFIED 类
+  （盲读，P-51/P-66），所以这条由 configure.ac + 行号记录定，不靠 evaluator。
+  ④ **裁决：Swift 侧的 `@_silgen_name` 导入进不了 `undef-pending.txt`**。lane 请求把 `_QCmouse`/`_up_modifier`/…/`_list1`
+  这 16 个"核心还没导出 C ABI 入口"的导入记进 Rust 棘轮——**不加**：`check-undef.py` 的 universe 是 `build/femacs/**/*.o`
+  里**被移植的 Rust 单元对象**，Swift 单元的对象不在其中，加进去就是一行永不匹配的 stale（门会红）。
+  **同时把这条记成缺口**：Swift lane 的"核心必须导出 X"目前**没有任何门在核**（`check-swift-units.py` 只数导入条数），
+  `ns_use_srgb_colorspace`（等 `syms_of_nsterm` 的 `DEFVAR_BOOL`）就是这类欠账的实例。下一轮把它做成一条能跑的门
+  （例如从 Swift 的 `@_silgen_name`/`@_cdecl` 抽出符号集，与 Rust 单元的导出集求差）。
+  ⑤ 读数（本轮末）：`check-swift-units` **0 new / 0 stale / 7 Swift unit(s) landed**（4 个文件的行数全部与树一致）；
+  `check-declarations` 13/0；`check-verbatim` 6 trees/4607 files/0；`layout-check passed`；
+  `extract-abi --all` 587 done / 3 in progress / 0 failing。
