@@ -6277,3 +6277,15 @@
      `have_xrender` 下引用它们）。
   ⑧ **未声称**：没有 X11 目标构建、没有链接、没有运行期证据；宽臂必须先补那 1 个宏调用才走到类型检查；
      `include-xlib.rs` 无对应 C 文件，所以它的证据是臂探针 + 镜像自证 scratch 编译，不是 `--check`。
+
+- **3.380 棘轮复算（3.379 之后）：四本表在原位，一次有理由的 no-op（2026-10-05）**：
+  ① 这次是在**干净工作树（= HEAD `c70a3ff`）**里跑 `tools/reconcile-link-ratchets.sh`：它在一次性
+     worktree 里按 HEAD 重建、`--strict` 绿了才写回四本表；`git diff` **为空** ⇒ 本轮的三个提交都不产生
+     冻结符号——动的只有镜像（全在冻结配置为假的门后）、Swift 单元与 feature 表，没有一个 C 单元的链接读数参与。
+  ② 四本读数：`link-pending.txt` **383 行**（`check-link.py` → `383 undefined symbol(s) from 76 program +
+     87 libgnu object(s), 383 ratchet row(s), 0 failure(s)`）、`link-exec-pending.txt` **103 行**、
+     `swift-units.tsv` **51 行 / 7 unit(s)**、`swift-import-pending.txt` **801 行**。
+  ③ **手工结清与工具复算逐字节相同**：3.378 的两本 Swift 棘轮是我按 lane 清单结清的
+     （`--write-manifest` / `--write-pending`），工具在 HEAD 上重新推导出同样的 801 行 ⇒ 集成时没有把
+     在飞状态夹带进棘轮。
+  ④ **未声称**：这只是棘轮与 HEAD 的一致性读数，不是链接、运行或行为验收。
