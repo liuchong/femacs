@@ -6107,3 +6107,22 @@
   ⑦ **未声称**：整身 `#[cfg (feature = "have_x_windows")]`，冻结配置下 `build-tu` 打 `built` 但**一个 token 都没编**；
      `use_xcb`/`have_xshape`/`have_xcomposite(_overlay)` 四个臂**从未被编译**，`x_dnd_get_proxy_proto`/
      `x_dnd_get_target_window_2` 是整函数死文本、**连 token 检查都不覆盖**；无 X11 目标构建、无链接、无运行时证据。
+
+- **3.375 HEAD 又坏着三个单元（自 3.345 起）：`include/window.rs` 的 `window_part` 不在 includer 的作用域里（2026-10-05）**：
+  ① **怎么发现的**：3.374 之后跑 `tools/reconcile-link-ratchets.sh`，它在 HEAD 上重建在飞单元时
+     **`src/editfns.rs` 直接 E0425**；我复现并在 HEAD 的临时 worktree 上逐个量：**`editfns`/`insdel`/`textprop` 三个单元各报
+     2 条 `cannot find type 'window_part'`**——即 **HEAD 自 `5a5ffa8`（3.345，Boyle 的 29 条 `window.h` 原型）起对这三个单元是坏的**，
+     坏了约十个提交。
+  ② **成因与本类的前例**：那两条原型（`window_from_coordinates` 的 `part: *mut window_part`、
+     `window_relative_x_coord` 的 `part: window_part`）把 C 的 `enum window_part` 写进了镜像，而**这三个单元 include `window.rs`
+     却不 include `dispextern.rs`**（`window_part` 定义在那里）。**这与 3.363 是同一类**（镜像命名了它的 includer 可能没有的类型），
+     只是那次是 6 个单元、这次是 3 个；3.345 的验收集是"`window.c` + 11 个单元"，**没覆盖这三个**。
+  ③ **修法（按 C 与端口的真相，不发明）**：C 的 `window.h` 只需要 `enum window_part` 的 **tag**（C 允许原型里用不完整枚举），
+     而端口的 `window_part` 本就是 **`pub type window_part = c_int;`**（dispextern.rs 96）⇒ 镜像里**写底层类型 `c_int`**，
+     所有传 `window_part` 的调用点（它是 `c_int` 的别名）**一个都不用改**；镜像里加一段注释写明这条与它的实测依据。
+  ④ **读数（本轮实跑）**：修后 `build-tu` **5/5 built**（`editfns`/`insdel`/`textprop` 三个受害单元 + 定义方 `window` + 调用方 `keyboard`）；
+     **HEAD 侧对拍**：在 `HEAD` 的临时 worktree 上这三个单元**各 2 条 E0425**、修后 0 条；
+     `extract-abi --check emacs/src/window.h femacs/src/include/window.rs` **OK**；`check-mirror-dupes` **18/18/0**。
+  ⑤ **一条该被写下来的结论（第三次同类）**：**镜像改动的验证集是"所有 include 它的单元"**（3.363 写过一次），
+     而"所有 includer"这件事**现在没有机器在读**——`reconcile-link-ratchets.sh` 只重建**在飞**的镜像的 includer，
+     已提交的镜像改动不会被再验一次；**全量单元构建才是最终判据**（本工程还没有跑过一次全量）。3.376 起把这件事做成一次全量扫描。

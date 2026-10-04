@@ -263,6 +263,12 @@ unsafe extern "C" { pub static mut Vwindow_list: Lisp_Object; }                /
 // Parameters whose type this mirror cannot name degrade per P-72 rule 3 and are spelled
 // `*mut c_void`, exactly as `fset_redisplay`/`bset_redisplay` below already spell `struct
 // frame *`/`struct buffer *`; the callers cast.
+// `window_from_coordinates`/`window_relative_x_coord` take C's `enum window_part` as `c_int`:
+// three units include this mirror without including dispextern.rs (`editfns`, `insdel`,
+// `textprop`), and C's window.h only needs the tag, while the port's `window_part` is an
+// alias to `c_int` (dispextern.rs 96) - so the mirror names the underlying type and every
+// caller passing a `window_part` is unaffected.  Measured: 3.345 spelled `window_part` here
+// and build-tu src/editfns.c failed E0425 twice until 3.375 (status 3.375).
 pub mod window_fn_decls {
   use super::*;
 
@@ -270,7 +276,7 @@ pub mod window_fn_decls {
     /// C: window.h 1123: `make_window` - `Lisp_Object make_window (void)`
     pub fn make_window () -> Lisp_Object;
     /// C: window.h 1124: `window_from_coordinates` - `Lisp_Object window_from_coordinates (struct frame *, int, int, enum window_part *, bool, bool, bool)`
-    pub fn window_from_coordinates (f: *mut c_void, x: c_int, y: c_int, part: *mut window_part,
+    pub fn window_from_coordinates (f: *mut c_void, x: c_int, y: c_int, part: *mut c_int,
                               menu_bar_p: bool, tab_bar_p: bool, tool_bar_p: bool) -> Lisp_Object;
     /// C: window.h 1126: `resize_frame_windows` - `void resize_frame_windows (struct frame *, int, bool)`
     pub fn resize_frame_windows (f: *mut c_void, size: c_int, horflag: bool);
@@ -285,7 +291,7 @@ pub mod window_fn_decls {
     /// C: window.h 1131: `shrink_mini_window` - `void shrink_mini_window (struct window *, int)`
     pub fn shrink_mini_window (w: *mut window, unit: c_int);
     /// C: window.h 1132: `window_relative_x_coord` - `int window_relative_x_coord (struct window *, enum window_part, int)`
-    pub fn window_relative_x_coord (w: *mut window, part: window_part, x: c_int) -> c_int;
+    pub fn window_relative_x_coord (w: *mut window, part: c_int, x: c_int) -> c_int;
     /// C: window.h 1175: `bset_update_mode_line` - `void bset_update_mode_line (struct buffer *)`
     pub fn bset_update_mode_line (b: *mut c_void);
     /// C: window.h 1176: `wset_update_mode_line` - `void wset_update_mode_line (struct window *)`
