@@ -2869,3 +2869,29 @@
   ⑥ 读数：`--all` 见下一段；五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、
   `check-verbatim` 4607/0、`check-target-names` 580 `.rs`/0）；`layout-check` **passed**（`67 of 78 mirror(s) compiled`）；
   `probe ../spikes/sfnt_inc_probe.rs` exit 0。
+
+- **3.167 keyboard 再推 625 行、`lib/alloca.in.h` 作为处置镜像落地、引证复核队列派出（2026-10-04）**：
+  ① **keyboard lane（C 11906-12530，625 行）**：9 个函数（`read_key_sequence_vs` … `clear_waiting_for_input`）
+  + 16 个 subr（`read-key-sequence`、`input-pending-p`、`recent-keys`、`open-dribble-file`、`discard-input`、
+  `suspend-emacs` …），`keyboard.rs` 12,827 → **13,440 行**，line drift **12.6% → 8.5%**，scaffold 5 → 3。
+  它照上轮的做法用带注释/字符串感知的花括号配对自己复核了 9 个函数的起止（结束边界落在
+  `clear_waiting_for_input` 末尾，不在长函数中途），并新增 10 条 use-site 声明。**它报的两条共享行已由我写入**
+  `docs/ports/macro-body-notes.tsv`（`set_waiting_for_input	0`：C 把 int 字面量 0 传给 `bool from_signal`；
+  `clear_waiting_for_input	0`：C 把 0 赋给 `struct timespec *`，端口写 `null_mut()`）——复测该文件 `does not mention` 行**归零**。
+  ② **`lib/alloca.in.h` 处置镜像**（`9e7b693`）：抽取器对它是 **0 项**（整文件是条件链，只定义 `alloca` 宏，模板的
+  `@PLACEHOLDER@` 条件冻结表判不了），所以镜像的职责是**决定**而不是条目——判据是**生成头**
+  `build/emacs-ref/lib/alloca.h`（第 47 行取 clang 臂 `#define alloca __builtin_alloca`，其余各臂（`_AIX`/`_MSC_VER`/
+  `__DECC`/`__TANDEM`/`__MVS__` 与末尾 `extern void *alloca (size_t)` 回退）在本目标都是死文本；
+  `_WIN32` 未定义故 `include_next <alloca.h>` 那段也不触发）。端口**故意没有 alloca**（P-05 与 §3.2 用栈池
+  `sa_avail`/`sa_alloc` 取代，用点拼法记在 `excluded-macros.txt` 的 `AVAIL_ALLOCA alloca …` 行）——镜像里造一个
+  `alloca!` 就是第二套机制，所以只把 C 的臂留成 `/// C:` 行并写明理由（`lib/assert.in.h` 的先例，3.157）。
+  证据：`--check` **OK**（0 项）；五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、
+  `check-verbatim` 4607/0、`check-target-names` 590 `.rs`/0）。
+  ③ **三条 lane 重新排活**：keyboard 从 **C 12538 `handle_interrupt_signal`** 起（余下 3 条 scaffold 自然到达时落地，
+  `force_quit_count` C 12596 不许为消一行而插队）；**Boole 接手"引证复核队列"**（3.166 量出的 162 drift + 22 range，
+  只碰 tracked 文件、跳过在飞的 `keyboard.rs`/`xdisp.rs`/`nsfont.swift`，真错就改成从 **pin `fd7afced403`** 实找到的
+  构造行，"引号串是举例"的假阳性列给我写 allowlist——**不许写自动修复**）；**Hilbert 补 `struct glyph_string`**
+  （dispextern.h 1362-1507，windowed 门内的死文本 ⇒ `#[cfg (feature = "window_system")]`，字段名照 C、pointee 无 owner
+  镜像的按 P-55/P-72③ 降级、**不写布局断言**并说明"未测"），这是 Swift lane 两个函数唯一的 blocker，并顺手删掉
+  `sfnt.rs` 里那个只为消 `missing macro PROTOTYPE` 而留的空壳宏（共享行已入表）。
+  ④ `gen-port-inventory` 复算：590 files、**done=535、wip=19、todo=36**（本 session 开始时是 505/15/70 一线）。
