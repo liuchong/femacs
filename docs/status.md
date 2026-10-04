@@ -2686,3 +2686,30 @@
   ⑧ 在飞 lane：xdisp（C 5654 起）、keyboard（C 10901 `read_key_sequence` 起）、Windows/DOS 镜像
   （`cygw32.h`/`dosfns.h`/`termopts.h`/`w32heap.h`/`w32common.h`/`w32gui.h`/`msdos.h`）、NS/Haiku 镜像
   （`haikuselect.h`/`nsxwidget.h`/`nsgui.h`）、Swift（`nsfont.m`）、gnulib 模板（`errno.in.h`/`dirent.in.h`）。
+
+- **3.160 `tools/cinventory.py` 的"返回类型换行"盲区修好，全树爆炸半径实测 = 1 个文件（2026-10-04）**：
+  ① **盲区**：`src/nsfont.m` 六处写成
+  `static NSString` ⏎ `*ns_lang_to_script (Lisp_Object lang)` ⏎ `{`（582-584、600-602、611-613、
+  632-634、688-690、728-730——GNUstep 后端的 Objective-C 返回类型长到必须折行）。`CFUNC` 只看行首 token，
+  `typed_def_name` 在"`*` 紧贴下一个 token"处返回 `None` ⇒ 这六个函数在**C 侧**就消失了，是 3.143 修掉的
+  "多词说明符"盲区的**下一行**（那个 lane 的台账只好手写这六行并在 Decisions 里注明）。
+  ② **修法**：新增 `PTR_DEF = ^[ \t]*\*+[ \t]*name[ \t]*\(`，命中时 `typed=False`——于是**返回类型与 `static`
+  由上方那条 7 行说明符窗口给出**（不拿声明行冒充返回类型），而"是不是定义"仍由既有的 body 规则裁决
+  （原型的 `;` 不是 body）。
+  ③ **判据自证**：`cinventory --selftest` 加第 8 个用例
+  （`functions: a pointer return type on its own line`，同源里放一个原型 `*ns_declared_only (…);` 证明它仍是声明）
+  → **8 cases, 0 failures**；`extract-abi --selftest` → 9 cases, 0 failures。
+  ④ **爆炸半径是量出来的，不是猜的**：把 `HEAD:tools/cinventory.py` 复制进树、两个模块同时加载，
+  对参照树**全部 605 个 `.c/.h/.m/.mm/.cc`**（排除 `test/`）逐文件比对函数名单 →
+  **只有 `src/nsfont.m` 变化：+6 / −0**，其余 604 个逐条相同；`docs/baseline/inventory.tsv` 里没有 `.m` 行，
+  所以**没有任何基线需要重生成**（`docs/port-inventory.md`/`port-map.md` 只是随本轮 lane 的新镜像重生成）。
+  ⑤ 读数：**`--all` → 530 ported files: 523 done, 7 in progress, 0 failing**（上一轮 523/516/7/0；+7 是本轮
+  lane 新落的镜像）；五门如常全绿：`check-declarations` 13 sites (0 forbidden) / 0、`check-globals` 283/0、
+  `check-mirror-dupes` 1/0、`check-verbatim` 6 trees/4607 files/0、`check-target-names` 566 `.rs`/593/0。
+  ⑥ **同时记下一个真缺口（不是本轮引入，但必须写在权威处）**：`tools/extract-abi.py` **没有任何 Swift 支持**
+  （`rg -n swift tools/extract-abi.py` 零命中），于是 batch F 的 `.swift` 目标在 `--check` 下**每个 C 函数都报
+  `missing function`**（`src/nsfont.m` 36 条全报，`src/nsimage.m`/`src/nsselect.m` 同理）。那类单元今天的证据是
+  3.144/3.150 定的三件套：**逐文件 `swiftc -c` + `nm` 导出符号 + 手写台账**（`docs/ports/nsfont.md` 的函数清单
+  就是手写的）。**下一步**：给 `extract-abi.py` 加一个最小的 Swift 侧提取器（`func name (`、`@_silgen_name("…")`、
+  `@convention(c)`），先只比对函数名与签名，把它挂进现有 `--check`；在那之前 Swift 单元的台账继续由 lane
+  手写并在 `## Decisions` 里注明（这条缺口登记在案，不许当成"已覆盖"）。

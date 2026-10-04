@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 523 |
-| 其中 done / wip | 507 / 16 |
-| 待开工 | 67 |
+| 已有目标文件 | 530 |
+| 其中 done / wip | 516 / 14 |
+| 待开工 | 60 |
 
 ## 2 按目录
 
@@ -38,7 +38,7 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 39 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 32 |
 
 ## 3 按批次
 
@@ -47,8 +47,8 @@
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 1 |
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
-| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 8 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 21 |
+| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 7 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 15 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 28 |
 
@@ -145,7 +145,7 @@
 | `lib/copy-file-range.c` | 99 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/copy-file-range.rs` | done |
 | `lib/diffseq.h` | 578 | 2 | 0 | 5 | 1 | 10 | 0 | L | `femacs/lib/include/diffseq.rs` | done |
 | `lib/dirent-private.h` | 67 | 0 | 0 | 4 | 1 | 7 | 0 | L | `femacs/lib/include/dirent-private.rs` | todo |
-| `lib/dirent.in.h` | 427 | 0 | 0 | 29 | 14 | 2 | 0 | L | `femacs/lib/include/dirent.in.rs` | wip |
+| `lib/dirent.in.h` | 427 | 0 | 0 | 29 | 14 | 2 | 0 | L | `femacs/lib/include/dirent.in.rs` | done |
 | `lib/dirfd.c` | 44 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/dirfd.rs` | done |
 | `lib/dtoastr.c` | 19 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/dtoastr.rs` | done |
 | `lib/dtotimespec.c` | 53 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/dtotimespec.rs` | done |
@@ -153,7 +153,7 @@
 | `lib/dynarray.h` | 284 | 0 | 0 | 8 | 0 | 0 | 0 | L | `femacs/lib/include/dynarray.rs` | done |
 | `lib/endian.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/endian.rs` | done |
 | `lib/endian.in.h` | 301 | 12 | 0 | 30 | 15 | 0 | 0 | L | `femacs/lib/include/endian.in.rs` | done |
-| `lib/errno.in.h` | 270 | 0 | 0 | 74 | 73 | 0 | 0 | L | `femacs/lib/include/errno.in.rs` | wip |
+| `lib/errno.in.h` | 270 | 0 | 0 | 74 | 73 | 0 | 0 | L | `femacs/lib/include/errno.in.rs` | done |
 | `lib/euidaccess.c` | 217 | 2 | 0 | 14 | 4 | 0 | 0 | L | `femacs/lib/euidaccess.rs` | done |
 | `lib/execinfo.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/execinfo.rs` | done |
 | `lib/execinfo.in.h` | 69 | 3 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/execinfo.in.rs` | todo |
@@ -473,7 +473,7 @@
 | `src/composite.h` | 362 | 5 | 0 | 53 | 20 | 11 | 2 | C | `femacs/src/include/composite.rs` | done |
 | `src/conf_post.h` | 445 | 0 | 0 | 66 | 5 | 0 | 0 | B | `femacs/src/include/conf_post.rs` | todo |
 | `src/cygw32.c` | 139 | 5 | 2 | 0 | 0 | 0 | 0 | F | `femacs/src/cygw32.rs` | done |
-| `src/cygw32.h` | 40 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/cygw32.rs` | todo |
+| `src/cygw32.h` | 40 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/cygw32.rs` | done |
 | `src/data.c` | 4,400 | 60 | 120 | 1 | 12 | 2 | 0 | B | `femacs/src/data.rs` | done |
 | `src/dbusbind.c` | 2,190 | 24 | 6 | 19 | 1 | 0 | 3 | D | `femacs/src/dbusbind.rs` | done |
 | `src/decompress.c` | 349 | 6 | 2 | 4 | 1 | 5 | 3 | D | `femacs/src/decompress.rs` | done |
@@ -484,7 +484,7 @@
 | `src/doc.c` | 746 | 6 | 6 | 6 | 0 | 0 | 2 | B | `femacs/src/doc.rs` | done |
 | `src/doprnt.c` | 607 | 6 | 0 | 0 | 1 | 0 | 0 | B | `femacs/src/doprnt.rs` | done |
 | `src/dosfns.c` | 798 | 12 | 10 | 2 | 0 | 0 | 1 | F | `femacs/src/dosfns.rs` | done |
-| `src/dosfns.h` | 35 | 0 | 0 | 1 | 1 | 0 | 0 | F | `femacs/src/include/dosfns.rs` | todo |
+| `src/dosfns.h` | 35 | 0 | 0 | 1 | 1 | 0 | 0 | F | `femacs/src/include/dosfns.rs` | done |
 | `src/dynlib.c` | 340 | 14 | 0 | 3 | 2 | 0 | 2 | D | `femacs/src/dynlib.rs` | done |
 | `src/dynlib.h` | 41 | 0 | 0 | 1 | 0 | 0 | 0 | D | `femacs/src/include/dynlib.rs` | done |
 | `src/editfns.c` | 4,975 | 41 | 80 | 7 | 0 | 4 | 2 | C | `femacs/src/editfns.rs` | done |
@@ -525,7 +525,7 @@
 | `src/haikuimage.c` | 116 | 3 | 0 | 0 | 0 | 0 | 0 | F | `femacs/src/haikuimage.rs` | done |
 | `src/haikumenu.c` | 845 | 14 | 2 | 0 | 0 | 0 | 2 | F | `femacs/src/haikumenu.rs` | done |
 | `src/haikuselect.c` | 1,450 | 19 | 9 | 0 | 0 | 0 | 3 | F | `femacs/src/haikuselect.rs` | done |
-| `src/haikuselect.h` | 88 | 0 | 0 | 1 | 3 | 0 | 0 | F | `femacs/src/include/haikuselect.rs` | todo |
+| `src/haikuselect.h` | 88 | 0 | 0 | 1 | 3 | 0 | 0 | F | `femacs/src/include/haikuselect.rs` | done |
 | `src/haikuterm.c` | 4,898 | 108 | 0 | 3 | 1 | 0 | 6 | F | `femacs/src/haikuterm.rs` | done |
 | `src/haikuterm.h` | 375 | 0 | 0 | 18 | 1 | 119 | 8 | F | `femacs/src/include/haikuterm.rs` | done |
 | `src/hbfont.c` | 612 | 9 | 0 | 28 | 0 | 0 | 2 | E | `femacs/src/hbfont.rs` | done |
@@ -565,9 +565,9 @@
 | `src/module-env-32.h` | 12 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-32.rs` | todo |
 | `src/msdos.c` | 4,350 | 96 | 5 | 33 | 22 | 12 | 38 | F | `femacs/src/msdos.rs` | done |
 | `src/msdos.h` | 156 | 0 | 0 | 21 | 7 | 0 | 3 | F | `femacs/src/include/msdos.rs` | todo |
-| `src/nsgui.h` | 137 | 0 | 0 | 35 | 19 | 0 | 0 | F | `femacs/src/include/nsgui.rs` | todo |
+| `src/nsgui.h` | 137 | 0 | 0 | 35 | 19 | 0 | 0 | F | `femacs/src/include/nsgui.rs` | done |
 | `src/nsterm.h` | 1,395 | 0 | 0 | 140 | 21 | 102 | 8 | F | `femacs/src/include/nsterm.rs` | todo |
-| `src/nsxwidget.h` | 82 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/nsxwidget.rs` | todo |
+| `src/nsxwidget.h` | 82 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/nsxwidget.rs` | done |
 | `src/pdumper.c` | 5,920 | 202 | 4 | 16 | 56 | 92 | 11 | G | `femacs/src/pdumper.rs` | done |
 | `src/pdumper.h` | 281 | 12 | 0 | 5 | 9 | 2 | 1 | G | `femacs/src/include/pdumper.rs` | done |
 | `src/pgtkfns.c` | 3,906 | 63 | 39 | 6 | 4 | 0 | 9 | F | `femacs/src/pgtkfns.rs` | done |
@@ -613,7 +613,7 @@
 | `src/termhooks.h` | 993 | 4 | 0 | 18 | 88 | 86 | 3 | E | `femacs/src/include/termhooks.rs` | done |
 | `src/terminal.c` | 725 | 29 | 9 | 0 | 0 | 0 | 3 | E | `femacs/src/terminal.rs` | done |
 | `src/terminfo.c` | 55 | 1 | 0 | 0 | 0 | 0 | 3 | E | `femacs/src/terminfo.rs` | done |
-| `src/termopts.h` | 29 | 0 | 0 | 1 | 0 | 0 | 2 | E | `femacs/src/include/termopts.rs` | todo |
+| `src/termopts.h` | 29 | 0 | 0 | 1 | 0 | 0 | 2 | E | `femacs/src/include/termopts.rs` | done |
 | `src/textconv.c` | 2,640 | 46 | 1 | 1 | 2 | 2 | 3 | E | `femacs/src/textconv.rs` | done |
 | `src/textconv.h` | 163 | 0 | 0 | 1 | 13 | 12 | 0 | E | `femacs/src/include/textconv.rs` | todo |
 | `src/textprop.c` | 2,477 | 26 | 20 | 2 | 5 | 0 | 2 | C | `femacs/src/textprop.rs` | done |
@@ -639,7 +639,7 @@
 | `src/w32gdiplus.h` | 145 | 0 | 0 | 27 | 0 | 0 | 28 | F | `femacs/src/include/w32gdiplus.rs` | todo |
 | `src/w32gui.h` | 115 | 0 | 0 | 39 | 19 | 0 | 1 | F | `femacs/src/include/w32gui.rs` | todo |
 | `src/w32heap.c` | 554 | 17 | 0 | 2 | 1 | 0 | 4 | F | `femacs/src/w32heap.rs` | done |
-| `src/w32heap.h` | 69 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/src/include/w32heap.rs` | todo |
+| `src/w32heap.h` | 69 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/src/include/w32heap.rs` | done |
 | `src/w32image.c` | 717 | 13 | 1 | 1 | 8 | 5 | 34 | F | `femacs/src/w32image.rs` | done |
 | `src/w32inevt.c` | 862 | 12 | 0 | 4 | 4 | 0 | 8 | F | `femacs/src/w32inevt.rs` | done |
 | `src/w32inevt.h` | 32 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/src/include/w32inevt.rs` | done |

@@ -31,6 +31,20 @@ from pathlib import Path
 CFUNC = re.compile(r"^(?:\((?P<pname>[A-Za-z_]\w*)\)|(?P<name>[A-Za-z_]\w*))\s*\(")
 
 
+# A declarator line that opens with the return type's `*` because its specifiers took the line
+# above:
+#     static NSString
+#     *ns_lang_to_script (Lisp_Object lang)
+#     {
+# src/nsfont.m writes this six times (582-584, 600-602, 611-613, 632-634, 688-690, 728-730 - the
+# GNUstep font backend's Objective-C return types are long enough to wrap).  `CFUNC` keys on the
+# line's first token and `typed_def_name` stops at a `*` glued to the next token, so all six were
+# invisible to the function side of the gate - the same blind spot status 3.143 fixed one line
+# further up.  The leading `*` is what makes the line a declarator rather than an expression, and
+# the caller's body rule still decides: a prototype's `;` is not a body (docs/status.md 3.160).
+PTR_DEF = re.compile(r"^[ \t]*\*+[ \t]*(?P<name>[A-Za-z_]\w*)[ \t]*\(")
+
+
 # A definition whose declaration specifiers share the line with the name:
 # `void openat_save_fail (int errnum) { abort (); }` (gnulib's one-line form, openat-die.c
 # 7-8) and the header form `INLINE int GLYPH_CHAR (GLYPH glyph) { return glyph.ch; }`
@@ -1085,9 +1099,17 @@ def function_spans(text: str) -> list[dict]:
             name = m.group("name") if gd.get("name") is not None else m.group("pname")
             k = m.end() - 1
         else:
-            # The one-line form: declaration specifiers, name and `(` share the line.
-            hit = typed_def_name(line)
-            typed = True
+            # The declarator may open with the return type's `*` (its specifiers on the line
+            # above), which is still a declarator: PTR_DEF's paragraph above has the six live
+            # cases and why they used to vanish.  `typed` stays false for that shape, so the
+            # specifier window below (not this line) supplies the return type and `static`.
+            pd = PTR_DEF.match(line)
+            if pd is not None and pd.group("name") not in STATEMENT_WORDS:
+                hit, typed = (pd.group("name"), pd.end() - 1), False
+            else:
+                # The one-line form: declaration specifiers, name and `(` share the line.
+                hit = typed_def_name(line)
+                typed = True
             if hit is None or hit[0] in STATEMENT_WORDS:
                 # A definition whose *name* has a line of its own, with the parameter list on
                 # the next one: src/eval.c 2464-2467 writes
@@ -1867,6 +1889,14 @@ def selftest() -> int:
          ["X.a", "U.b"]),
         # `typedef struct X { … } Y;` names the aggregate twice; both names are recorded, and the
         # same `} name;` shape inside a *non*-typedef aggregate stays a member (status 3.152).
+        # The pointer-declarator shape (status 3.160): src/nsfont.m's six functions were
+        # invisible to the function gate until `PTR_DEF` existed.  The declaration under them
+        # must stay a declaration - the body rule (`{`, not `;`) is what decides.
+        ("functions: a pointer return type on its own line",
+         "static NSString\n*ns_lang_to_script (Lisp_Object lang)\n{\n  return 0;\n}\n"
+         "static NSString\n*ns_declared_only (Lisp_Object lang);\n"
+         "static void\nplain (void)\n{\n}\n",
+         ["ns_lang_to_script", "plain"]),
         ("a typedef'd aggregate records its alias, a member does not",
          "typedef struct node_st\n{\n  int a;\n} node;\n"
          "struct Z\n{\n  struct\n  {\n    int b;\n  } spec;\n};\n",
@@ -1874,7 +1904,9 @@ def selftest() -> int:
     ]
     bad = 0
     for name, src, want in cases:
-        if name.startswith("typedef'd"):
+        if name.startswith("functions:"):
+            got = [f["name"] for f in functions(src)]
+        elif name.startswith("typedef'd"):
             got = [f"{f['container']}.{f['name']}" for f in struct_fields(src)]
         elif name.startswith("a typedef'd aggregate"):
             got = [f"{f['container']}.{f['name']}"
