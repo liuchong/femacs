@@ -99,7 +99,7 @@ pub mod disptab_decls {
 }
 use disptab_decls::*;
 
-/* disptab.h 72-122: the glyph-table family.  C's `GLYPH_CHAR`/`GLYPH_FACE`/`SET_GLYPH_CHAR`/
+/* disptab.h 72-115: the glyph-table family.  C's `GLYPH_CHAR`/`GLYPH_FACE`/`SET_GLYPH_CHAR`/
    `GLYPH_CHAR_VALID_P`/`SET_GLYPH` and `DEFAULT_FACE_ID` come from the dispextern mirror, which
    is where dispextern.h puts them; each macro here is a `macro_rules!` because C's is
    (PORTING.md P-33).  */

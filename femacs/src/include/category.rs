@@ -154,7 +154,7 @@ pub mod category_externs {
   use super::*;
 
   unsafe extern "C" {
-    /* category.h 126: `extern bool word_boundary_p (int, int);` */
+    /* category.h 120: `extern bool word_boundary_p (int, int);` */
     pub fn word_boundary_p (c1: c_int, c2: c_int) -> bool;
   }
 }

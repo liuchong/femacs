@@ -4,7 +4,7 @@
 // records, the checkpoint accessors, the four Lisp-object records and the prototypes.  Every
 // `#if` in the header is decided by docs/baseline/config/darwin-arm64.macros.tsv, and the
 // dead arms are recorded in docs/ports/include-thread.md rather than transcribed (P-08):
-// `HAVE_ANDROID` (thread.h 32-38's `"android.h"` and the `JNIEnv *java_env` member at 96),
+// `HAVE_ANDROID` (the `JNIEnv *java_env` member at thread.h 98, and `"android.h"` at 32-38),
 // `WINDOWSNT` (24-26's `<sys/socket.h>`) and `MSDOS` (28-31's `<time.h>`/`<signal.h>`).
 //
 // The declarations of the functions `src/thread.c` itself defines sit in `pub mod
@@ -14,8 +14,9 @@
 //
 // Two names C declares in `lisp.h` are declared here, because this mirror names them and a
 // mirror may only name a type it declares itself or reaches through its own `include!`s
-// (PORTING.md P-72): `sys_jmp_buf` (lisp.h 2273) and `struct handler` (lisp.h 3839, whose
-// `handlertype`/`nonlocal_exit`/`specpdl_ref` members are already in `lisp.rs`).  `struct
+// (PORTING.md P-72): `struct handler` (lisp.h 3839, whose
+// `handlertype`/`nonlocal_exit`/`specpdl_ref` members are already in `lisp.rs`) and
+// `sys_jmp_buf` (lisp.h 2273).  `struct
 // re_registers` comes through `regex-emacs.rs`, exactly as C's thread.h 21 includes
 // regex-emacs.h for it.  When `lisp.rs` carries the two, the copies here are the ones to drop
 // (the dired.rs `struct dirent` and keyboard.rs `KBOARD` precedents).
@@ -45,7 +46,7 @@ const _: () = assert! (std::mem::size_of::<sys_jmp_buf> () == 192);
 const _: () = assert! (std::mem::align_of::<sys_jmp_buf> () == 4);
 
 /* Byte-code interpreter thread state.  */
-// thread.h 60-66.  `fp` is `struct bc_frame *`, a type no mirror carries and only a pointer
+// thread.h 54-60.  `fp` is `struct bc_frame *`, a type no mirror carries and only a pointer
 // here (P-55); measured `sizeof (struct bc_thread_state)` = 24, `fp@0`, `stack@8`,
 // `stack_end@16`.
 #[repr(C)]

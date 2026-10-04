@@ -389,12 +389,12 @@ pub unsafe extern "C" fn call_debugger (arg: Lisp_Object) -> Lisp_Object
   max_ensure_room (200);
 
   /* C 293-296's `#ifdef HAVE_WINDOW_SYSTEM` (dead in the frozen configuration; P-51).  */
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
     unsafe extern "C" {
       /// C: dispextern.h 3073: `extern bool display_hourglass_p;`
       pub static mut display_hourglass_p: bool;
-      /// C: termhooks.h 1052: `extern void cancel_hourglass (void);`
+      /// C: dispextern.h 3854: `extern void cancel_hourglass (void);`
       pub fn cancel_hourglass ();
     }
     if display_hourglass_p
@@ -1437,7 +1437,7 @@ unsafe fn unwind_to_catch (catch: *mut handler, r#type: nonlocal_exit,
 
   /* C 1438-1443's `#ifdef HAVE_X_WINDOWS` arm (dead in the frozen configuration; P-51):
      restore the X error handler stack.  */
-  #[cfg (feature = "x_windows")]
+  #[cfg (feature = "have_x_windows")]
   {
     unsafe extern "C" {
       /// C: xterm.h 1472: `extern void x_unwind_errors_to (int);`
@@ -1848,7 +1848,7 @@ pub unsafe extern "C" fn push_handler_nosignal (tag_ch_val: Lisp_Object,
   (*c).poll_suppress_count = poll_suppress_count;
   (*c).interrupt_input_blocked = interrupt_input_blocked;
   /* C 1862-1864's `#ifdef HAVE_X_WINDOWS` arm (dead in the frozen configuration).  */
-  #[cfg (feature = "x_windows")]
+  #[cfg (feature = "have_x_windows")]
   {
     unsafe extern "C" {
       /// C: xterm.h 1442: `extern int x_error_message_count;`
@@ -3168,7 +3168,7 @@ unsafe fn funcall_lambda (fun: Lisp_Object, nargs: ptrdiff_t, arg_vector: *mut L
      flip `config.rs` keys).  */
   else if {
       let mut taken: bool = false;
-      #[cfg (feature = "modules")]
+      #[cfg (feature = "have_modules")]
       {
         unsafe extern "C" {
           /// C: lisp.h 4896: `Lisp_Object funcall_module (Lisp_Object, ptrdiff_t, Lisp_Object *);`
@@ -3178,7 +3178,7 @@ unsafe fn funcall_lambda (fun: Lisp_Object, nargs: ptrdiff_t, arg_vector: *mut L
         if MODULE_FUNCTIONP (fun)
           { return funcall_module (fun, nargs, arg_vector); }
       }
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       {
         if NATIVE_COMP_FUNCTION_DYNP (fun)
           {
@@ -3308,7 +3308,7 @@ DEFUN! ("func-arity", Ffunc_arity, Sfunc_arity, 1, 1, 0,
       else if CLOSUREP (function)
 	{ result = lambda_arity (function); }
       /* C 3513-3516's `#ifdef HAVE_MODULES` arm (dead in the frozen configuration).  */
-      #[cfg (feature = "modules")]
+      #[cfg (feature = "have_modules")]
       {
         unsafe extern "C" {
           /// C: lisp.h 4895: `Lisp_Object module_function_arity (const struct Lisp_Module_Function *);`
@@ -3336,7 +3336,7 @@ DEFUN! ("func-arity", Ffunc_arity, Sfunc_arity, 1, 1, 0,
               { xsignal1 (Qinvalid_function (), original); }
           }
       }
-      #[cfg(not (feature = "modules"))]
+      #[cfg(not (feature = "have_modules"))]
       {
 	if NILP (function)
 	  { xsignal1 (Qvoid_function (), original); }
@@ -3738,7 +3738,7 @@ unsafe fn do_one_unbind (this_binding: *mut specbinding, unwinding: bool,
   else
     {
       /* C 3840-3847's `#ifdef HAVE_MODULES` arms (dead in the frozen configuration; P-51).  */
-      #[cfg (feature = "modules")]
+      #[cfg (feature = "have_modules")]
       {
 	unsafe extern "C" {
 	  /// C: lisp.h 4904: `void finalize_runtime_unwind (void *);`
@@ -4234,7 +4234,7 @@ pub unsafe extern "C" fn mark_specpdl (first: *mut specbinding, ptr: *mut specbi
 	     `default: emacs_abort ()`.  While other loops that scan the specpdl use
 	     "default: break;" for simplicity, here we explicitly list all cases and abort
 	     if we find an unexpected value, as a sanity check.  */
-	  #[cfg (feature = "modules")]
+	  #[cfg (feature = "have_modules")]
 	  {
 	    unsafe extern "C" {
 	      /// C: lisp.h 4906: `void mark_module_environment (void *);`
@@ -4245,7 +4245,7 @@ pub unsafe extern "C" fn mark_specpdl (first: *mut specbinding, ptr: *mut specbi
 	    else
 	      { emacs_abort (); }
 	  }
-	  #[cfg (not (feature = "modules"))]
+	  #[cfg (not (feature = "have_modules"))]
 	  { emacs_abort (); }
 	}
       pdl = pdl.offset (1);
@@ -4565,7 +4565,7 @@ DEFUN! ("commandp", Fcommandp, Scommandp, 1, 2, 0,
 	 It sits in the `else` the live chain below would otherwise occupy because an
 	 attribute cannot prefix an `else if`; the arm only ever returns, so the chain's
 	 meaning is unchanged.  */
-      #[cfg (feature = "modules")]
+      #[cfg (feature = "have_modules")]
       {
         unsafe extern "C" {
           /// C: emacs-module.c 432: `Lisp_Object module_function_interactive_form (const struct Lisp_Module_Function *);`

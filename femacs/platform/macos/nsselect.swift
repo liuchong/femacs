@@ -131,7 +131,8 @@ enum ns_return_frame_mode: Int32 {
 /// C: `extern Lisp_Object assq_no_quit (Lisp_Object, Lisp_Object)` (src/lisp.h 4272).
 @_silgen_name("assq_no_quit") func assq_no_quit(_ key: Lisp_Object, _ list: Lisp_Object) -> Lisp_Object
 /// C: `extern AVOID error (const char *, ...)` (src/lisp.h 4835) - `AVOID` is `_Noreturn`
-/// (src/lisp.h 153).  Its variadic arguments are Lisp_Objects, like `add_to_log`'s.
+/// (src/lisp.h 153).  Its variadic arguments are Lisp_Objects, like
+/// `add_to_log`'s (src/lisp.h 4378).
 @_silgen_name("error") func error(_ format: UnsafePointer<CChar>, _ args: CVarArg...) -> Never
 /// C: `extern AVOID signal_error (const char *, Lisp_Object)` (src/lisp.h 4796).
 @_silgen_name("signal_error") func signal_error(_ s: UnsafePointer<CChar>, _ data: Lisp_Object) -> Never
@@ -178,11 +179,11 @@ func record_unwind_protect_ptr(_ fn: @convention(c) (UnsafeMutableRawPointer?) -
 /// C: `#define XSETFRAME(a, b) (XSETPSEUDOVECTOR (a, b, PVEC_FRAME))` (src/frame.h) - the
 /// macro assigns to its first argument, so the entry takes its address.
 @_silgen_name("XSETFRAME") func XSETFRAME(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: UnsafeMutableRawPointer?)
-/// C: `PVEC_SUBR` (src/lisp.h 999) and `PSEUDOVECTOR_AREA_BITS` (src/lisp.h 1039), the two
-/// enumerators of the subr record's header word.
+/// C: `PVEC_SUBR` (src/lisp.h 999) and
+/// `PSEUDOVECTOR_AREA_BITS` (src/lisp.h 1039) - the two enumerators of the subr header word.
 @_silgen_name("PVEC_SUBR") func PVEC_SUBR() -> Int
 @_silgen_name("PSEUDOVECTOR_AREA_BITS") func PSEUDOVECTOR_AREA_BITS() -> Int
-/// C: `Lisp_Fwd_Obj` (src/lisp.h 532), the `enum Lisp_Fwd_Type` member `DEFVAR_LISP` stores.
+/// C: `Lisp_Fwd_Obj` (src/lisp.h 528-532), the `enum Lisp_Fwd_Type` member `DEFVAR_LISP` stores.
 @_silgen_name("Lisp_Fwd_Obj") func Lisp_Fwd_Obj() -> UInt8
 /// C: `#define Qfoo builtin_lisp_symbol (...)`, one per symbol, generated into globals.h
 /// (PORTING.md P-17); called as `Qfoo ()`, the Rust mirror's shape.

@@ -57,7 +57,10 @@ CODE_QUOTE = re.compile(r"^[A-Za-z_*][A-Za-z0-9_ *]*$")
 KEYWORDS = {"for", "if", "while", "else", "return", "switch", "case", "break", "continue",
             "goto", "default", "do", "int", "char", "void", "unsigned", "signed", "short", "long",
             "struct", "union", "enum", "typedef", "static", "extern", "const", "volatile",
-            "sizeof", "inline", "register", "auto"}
+            "sizeof", "inline", "register", "auto",
+            # Not C keywords, but they are what a sentence's prose uses and the picker used to
+            # pair a citation with them (`pdumper.rs`'s `and`, `include/cm.rs`'s `let`).
+            "and", "let"}
 
 
 ROOTS = [REPO / "emacs", REPO / "emacs" / "src", REPO / "emacs" / "lib",

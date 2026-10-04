@@ -1911,7 +1911,7 @@ pub struct context
   pub too_expensive: OFFSET! (),
 }
 
-/* diffseq.h 155-167: `struct partition`.  */
+/* diffseq.h 152-163: `struct partition`.  */
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct partition

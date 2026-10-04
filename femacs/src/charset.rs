@@ -292,7 +292,7 @@ macro_rules! INDEX_TO_CODE_POINT {
 /* Structure to hold mapping tables for a charset.  Used by temacs
    invoked for dumping.  */
 
-/// C: charset.c 144-168: the file-scope anonymous struct `temp_charset_work` is a pointer
+/// C: charset.c 144-174: the file-scope anonymous struct `temp_charset_work` is a pointer
 /// to.  It has no tag in C, so the port names the type after the variable (P-67).
 #[repr(C)]
 pub struct temp_charset_work

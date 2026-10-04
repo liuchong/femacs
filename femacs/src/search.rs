@@ -87,7 +87,7 @@ macro_rules! TYPE_MINIMUM { ($t:ty) => { <$t>::MIN }; }
    `femacs/src/include/regex-emacs.rs` carries them with C's prototypes, and this unit names
    them through that header exactly as C does (PORTING.md 0.1-10; the two copies that stood
    here went away in the same commit as the mirror, or this unit would be an `E0428`).  */
-/// C: region-cache.h 59-60: `struct buffer;` / `struct region_cache` (region-cache.c defines it).
+/// C: region-cache.h 68: `struct region_cache` (region-cache.c defines it), 65's `struct buffer;`.
 pub type region_cache = c_void;
 /* `region-cache.h`'s five entries (`new_region_cache`, `free_region_cache`,
    `know_region_cache`, `region_cache_forward`, `region_cache_backward`) and C's `struct

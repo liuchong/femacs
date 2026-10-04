@@ -197,7 +197,7 @@ macro_rules! bidi_stack_bits {
 		   | (((($value) as u16) << 6) & BIDI_STACK_PREV_FOR_NEUTRAL_TYPE_MASK); };
 }
 
-/* C: dispextern.h 2153-2155 `struct bidi_string_data`'s two `bool_bf : 1` members; the
+/* C: dispextern.h 2147-2156 `struct bidi_string_data`'s two `bool_bf : 1` members; the
    mirror packs them into `bits: u32` (measured: `01` for `from_disp_str`, `02` for
    `unibyte`).  */
 pub const BIDI_STRING_FROM_DISP_STR: u32 = 1 << 0;

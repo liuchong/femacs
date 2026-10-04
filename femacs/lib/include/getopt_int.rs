@@ -13,7 +13,7 @@
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const _GETOPT_INT_H: c_int = 1;
 
-/* getopt_int.h 41-44: `enum __ord`.  */
+/* getopt_int.h 55-58: `enum __ord`.  */
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum __ord {
@@ -60,7 +60,8 @@ pub struct _getopt_data {
   pub __last_nonopt: c_int,
 }
 
-/* getopt_int.h 86-88: the initializer C uses for a fresh `struct _getopt_data`.  */
+/* getopt_int.h 99's initializer (C uses it for a fresh
+   `struct _getopt_data`).  */
 macro_rules! _GETOPT_DATA_INITIALIZER {
   () => { _getopt_data { optind: 1, opterr: 1, optopt: 0, optarg: std::ptr::null_mut (),
                          __initialized: 0, __nextchar: std::ptr::null_mut (),

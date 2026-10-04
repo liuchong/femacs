@@ -2032,7 +2032,7 @@ pub unsafe extern "C" fn emacs_set_tty (fd: c_int, settings: *mut emacs_tty, flu
 // C 1088-1090: `#ifdef F_SETOWN` — live.
 static mut old_fcntl_owner: [c_int; FD_SETSIZE as usize] = [0; FD_SETSIZE as usize];
 
-/// termchar.h 62 and 174-183's `bool_bf` runs, in P-80's member-name form: C's field names
+/// termchar.h 66 and 187-217's `bool_bf` runs, in P-80's member-name form: C's field names
 /// stay in the port's text and dispatch to the mask bytes the mirror declares
 /// (`femacs/src/include/termchar.rs`'s `bits_initted`/`bits_caps` and their `TTY_*` masks).
 /// This unit reaches two of the members — `term_initted` (read at C 1148/1215/1216, written
@@ -4127,12 +4127,12 @@ pub unsafe extern "C" fn close_output_streams () {
      builds under Android.  */
 
   // C 2958-2975: `#ifdef __ANDROID__` is dead; carried.
-  #[cfg (feature = "android")]
+  #[cfg (feature = "have_android")]
   {
     fflush (stderr);
     fflush (stdout);
   }
-  #[cfg (not (feature = "android"))]
+  #[cfg (not (feature = "have_android"))]
   {
     if close_stream (stdout) != 0
       {

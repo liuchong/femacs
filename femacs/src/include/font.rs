@@ -109,21 +109,21 @@ pub struct font
   /* font.h 325-403's `#if defined (HAVE_WINDOW_SYSTEM)` block: underline_thickness,
      underline_position, vertical_centering, baseline_offset, relative_compose,
      default_ascent, encoding_charset, repertory_charset.  */
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub underline_thickness: c_int,
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub underline_position: c_int,
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub vertical_centering: bool,
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub baseline_offset: c_int,
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub relative_compose: c_int,
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub default_ascent: c_int,
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub encoding_charset: c_int,
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub repertory_charset: c_int,
 
   /// C: `struct font_driver const *driver;` (font.h 400) - `struct font_driver` is this

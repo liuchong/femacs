@@ -952,8 +952,8 @@ fn dump_ptr_referrer (label: *const c_char, address: *const c_void) -> Lisp_Obje
 }
 
 /* C 697's `static AVOID error_unsupported_dump_object (...)`: `AVOID` is
-   `ATTRIBUTE_NO_RETURN` (lisp.h 145), so the Rust definition is `-> !` and `error` (also
-   `AVOID`) never returns.  */
+   `_Noreturn ATTRIBUTE_COLD void` (lisp.h 153's definition), so the Rust definition is `-> !`
+   and the same `error` (also an AVOID) never returns.  */
 fn error_unsupported_dump_object (ctx: *mut dump_context, object: Lisp_Object,
                                   msg: *const c_char) -> !
 {
@@ -3265,9 +3265,9 @@ fn dump_subr (ctx: *mut dump_context, subr: *const Lisp_Subr) -> dump_off
      the frozen configuration); both arms are carried (P-51, docs/status.md 3.49).  C's
      `#else`-less `if (non_primitive) ... else` chain means the shared statement is C's
      second arm; the port writes it under each `#[cfg]`.  */
-  #[cfg (feature = "native_comp")]
+  #[cfg (feature = "have_native_comp")]
   let non_primitive: bool = !NILP (unsafe { (*subr).native_comp_u });
-  #[cfg (feature = "native_comp")]
+  #[cfg (feature = "have_native_comp")]
   unsafe {
     if non_primitive
       { out.function.a0 = None; }   /* C: `out.function.a0 = NULL;` */
@@ -3275,7 +3275,7 @@ fn dump_subr (ctx: *mut dump_context, subr: *const Lisp_Subr) -> dump_off
       { dump_field_emacs_ptr (ctx, (&raw mut out) as *mut c_void, subr as *const c_void,
                               (&raw const (*subr).function.a0) as *const c_void); }
   }
-  #[cfg (not (feature = "native_comp"))]
+  #[cfg (not (feature = "have_native_comp"))]
   unsafe {
     dump_field_emacs_ptr (ctx, (&raw mut out) as *mut c_void, subr as *const c_void,
                           (&raw const (*subr).function.a0) as *const c_void);
@@ -3284,7 +3284,7 @@ fn dump_subr (ctx: *mut dump_context, subr: *const Lisp_Subr) -> dump_off
     DUMP_FIELD_COPY! (&raw mut out, subr, min_args);
     DUMP_FIELD_COPY! (&raw mut out, subr, max_args);
   }
-  #[cfg (feature = "native_comp")]
+  #[cfg (feature = "have_native_comp")]
   unsafe {
     if non_primitive
       {
@@ -3309,7 +3309,7 @@ fn dump_subr (ctx: *mut dump_context, subr: *const Lisp_Subr) -> dump_off
                               (&raw const (*subr).command_modes) as *const c_void);
       }
   }
-  #[cfg (not (feature = "native_comp"))]
+  #[cfg (not (feature = "have_native_comp"))]
   unsafe {
     dump_field_emacs_ptr (ctx, (&raw mut out) as *mut c_void, subr as *const c_void,
                           (&raw const (*subr).symbol_name) as *const c_void);
@@ -3319,7 +3319,7 @@ fn dump_subr (ctx: *mut dump_context, subr: *const Lisp_Subr) -> dump_off
                           (&raw const (*subr).command_modes) as *const c_void);
   }
   unsafe { DUMP_FIELD_COPY! (&raw mut out, subr, doc); }
-  #[cfg (feature = "native_comp")]
+  #[cfg (feature = "have_native_comp")]
   unsafe {
     dump_field_lv (ctx, (&raw mut out) as *mut c_void, subr as *const c_void,
                    &raw const (*subr).native_comp_u, WEIGHT_NORMAL);
@@ -3334,7 +3334,7 @@ fn dump_subr (ctx: *mut dump_context, subr: *const Lisp_Subr) -> dump_off
   }
   let subr_off: dump_off = dump_object_finish (ctx, (&raw const out) as *const c_void,
                                                core::mem::size_of_val (&out) as dump_off);
-  #[cfg (feature = "native_comp")]
+  #[cfg (feature = "have_native_comp")]
   unsafe {
     if non_primitive && ((*ctx).flags.bits & DUMP_FLAGS_DUMP_OBJECT_CONTENTS) != 0
       /* We'll do the final addr relocation during VERY_LATE_RELOCS time
@@ -3349,7 +3349,7 @@ fn dump_subr (ctx: *mut dump_context, subr: *const Lisp_Subr) -> dump_off
 /* C 2945-2967's `#ifdef HAVE_NATIVE_COMP` arm is dead; carried as text (P-51).  The record
    it names is declared with the other `comp.h` names below (Rust items are
    order-independent).  */
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 fn dump_native_comp_unit (ctx: *mut dump_context, comp_u: *mut Lisp_Native_Comp_Unit)
   -> dump_off
 {
@@ -3451,9 +3451,9 @@ fn dump_vectorlike (ctx: *mut dump_context, lv: Lisp_Object, offset: dump_off) -
       pvec_type::PVEC_NATIVE_COMP_UNIT
         => {
           /* C 3049-3054's `#ifdef HAVE_NATIVE_COMP` arm is dead; carried (P-51).  */
-          #[cfg (feature = "native_comp")]
+          #[cfg (feature = "have_native_comp")]
           { return dump_native_comp_unit (ctx, unsafe { XNATIVE_COMP_UNIT (lv) }); }
-          #[cfg (not (feature = "native_comp"))]
+          #[cfg (not (feature = "have_native_comp"))]
           { break 'dump_vectorlike; }
         }
       pvec_type::PVEC_THREAD
@@ -3908,7 +3908,7 @@ fn dump_cold_bignum (ctx: *mut dump_context, object: Lisp_Object)
 }
 
 /* C 3465-3488's `#ifdef HAVE_NATIVE_COMP` arm is dead; carried as text (P-51).  */
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 fn dump_cold_native_subr (ctx: *mut dump_context, subr: Lisp_Object)
 {
   /* Dump subr contents.  */
@@ -3972,7 +3972,7 @@ fn dump_drain_cold_data (ctx: *mut dump_context)
               }
             cold_op::COLD_OP_BIGNUM
               => { dump_cold_bignum (ctx, data); }
-            #[cfg (feature = "native_comp")]
+            #[cfg (feature = "have_native_comp")]
             cold_op::COLD_OP_NATIVE_SUBR
               => { dump_cold_native_subr (ctx, data); }
             _ => { emacs_abort (); }
@@ -4549,7 +4549,7 @@ DEFUN! ("dump-emacs-portable",
 	   { unsafe { error (c"No other Lisp threads can be running when this function is called".as_ptr ()); } }
 
 	 /* C 4096-4098's `#ifdef HAVE_NATIVE_COMP` call is dead; carried (P-51).  */
-	 #[cfg (feature = "native_comp")]
+	 #[cfg (feature = "have_native_comp")]
 	 { calln! (intern_c_string (c"load--fixup-all-elns".as_ptr ())); }
 
 	 /* Clear out any detritus in memory.  */
@@ -6012,12 +6012,12 @@ fn dump_make_lv_from_reloc (dump_base: uintptr_t, reloc: dump_reloc) -> Lisp_Obj
    of declaring a second copy of it.  Keeping the copy here would have collided with the mirror's
    record in any `native_comp` build (`E0428`), which is exactly what the missing-type check made
    visible.  */
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 #[inline(always)]
 pub fn NATIVE_COMP_UNITP (a: Lisp_Object) -> bool {
   PSEUDOVECTORP (a, pvec_type::PVEC_NATIVE_COMP_UNIT)
 }
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 #[inline(always)]
 pub fn XNATIVE_COMP_UNIT (a: Lisp_Object) -> *mut Lisp_Native_Comp_Unit {
   eassert! (NATIVE_COMP_UNITP (a));
@@ -6027,17 +6027,17 @@ pub fn XNATIVE_COMP_UNIT (a: Lisp_Object) -> *mut Lisp_Native_Comp_Unit {
    `lisp.h` -> `comp.h` -> `<dynlib.h>` now that `include/comp.rs` includes it (status 3.154); the
    use-site copy that used to stand here was what the dead-arms gate reported as a duplicate in a
    `native_comp` build, the same class as the three functions retired above.  */
-/// `<config.h 120>`: `#define DIRECTORY_SEP '/'` and `<config.h 2097>`:
+/// config.h 120's `#define DIRECTORY_SEP '/'` and config.h 2097's
 /// `#define IS_DIRECTORY_SEP(_c_) ((_c_) == DIRECTORY_SEP)` (the same use-site pair
 /// callproc.rs keeps).
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 pub const DIRECTORY_SEP: c_char = b'/' as c_char;
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 #[inline(always)]
 pub fn IS_DIRECTORY_SEP (_c_: c_char) -> bool { _c_ == DIRECTORY_SEP }
 /// C's `static enum { UNKNOWN, LOCAL_BUILD, INSTALLED } installation_state;` inside
 /// `dump_do_dump_relocation` (C 5468).
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum native_installation_state { UNKNOWN, LOCAL_BUILD, INSTALLED }
@@ -6047,7 +6047,7 @@ pub enum native_installation_state { UNKNOWN, LOCAL_BUILD, INSTALLED }
    retired when `include/comp.rs` began including `include/dynlib.rs` (status 3.154,
    `check-mirror-dupes` found them).  The three below are `comp.c`'s and `fileio.c`'s, which no
    mirror carries yet.  */
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 unsafe extern "C" {
   pub fn load_comp_unit (comp_u: *mut Lisp_Native_Comp_Unit, loading_dump: bool,
                          late_load: bool) -> Lisp_Object;
@@ -6082,7 +6082,7 @@ fn dump_do_dump_relocation (dump_base: uintptr_t, reloc: dump_reloc)
         value += dump_base;
         dump_write_word_to_dump (dump_base, reloc_offset, value);
       }
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       x if x == dump_reloc_type::RELOC_NATIVE_COMP_UNIT as c_int
       => {
 	static mut installation_state: native_installation_state =
@@ -6171,7 +6171,7 @@ fn dump_do_dump_relocation (dump_base: uintptr_t, reloc: dump_reloc)
 	  }
 	unsafe { load_comp_unit (comp_u, true, false); }
       }
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       x if x == dump_reloc_type::RELOC_NATIVE_SUBR as c_int
       => {
 	/* When resurrecting from a dump given non all the original
@@ -6336,14 +6336,14 @@ fn dump_do_all_emacs_relocations (header: *const dump_header, dump_base: uintptr
 }
 
 /* C 5572-5604's `#ifdef HAVE_NATIVE_COMP` arm is dead; carried (P-51).  */
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 static mut emacs_execdir: *mut c_char = core::ptr::null_mut ();
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 static mut execdir_size: ptrdiff_t = 0;
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 static mut execdir_len: ptrdiff_t = 0;
 
-#[cfg (feature = "native_comp")]
+#[cfg (feature = "have_native_comp")]
 fn pdumper_set_emacs_execdir (emacs_executable: *mut c_char)
 {
   unsafe {
@@ -6608,9 +6608,9 @@ pub unsafe extern "C" fn pdumper_load (dump_filename: *const c_char, argv0: *mut
 
   /* C 5789-5793's `#ifdef HAVE_NATIVE_COMP` call is dead; the `#else` arm is the live
      text.  */
-  #[cfg (feature = "native_comp")]
+  #[cfg (feature = "have_native_comp")]
   { pdumper_set_emacs_execdir (argv0); }
-  #[cfg (not (feature = "native_comp"))]
+  #[cfg (not (feature = "have_native_comp"))]
   { let _ = argv0; }
 
   dump_do_all_dump_reloc_for_phase (header, dump_base, reloc_phase::LATE_RELOCS);

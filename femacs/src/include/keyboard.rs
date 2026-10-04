@@ -55,14 +55,14 @@ pub struct kboard
   pub reference_count: c_int,                       // 168
   pub echo_string_: Lisp_Object,                    // 176
   pub kbd_queue_has_data: bool,                     // 184 (`bool_bf` is conf_post.h's `bool`)
-  // keyboard.h 233: `bool_bf immediate_echo : 1`.  `bool_bf` is one byte here, so this is its
+  // keyboard.h 181: `bool_bf immediate_echo : 1`.  `bool_bf` is one byte here, so this is its
   // own 1-byte unit: with both flags set the bytes are `01 01`, and with only this one `00 01`
   // (measured) — the port keeps the unit and masks bit 0.
-  pub immediate_echo: u8,                           // 185
+  pub immediate_echo: u8,                           // 181
   pub echo_prompt_: Lisp_Object,                    // 192
 }
 
-// keyboard.h 478-486 (the `sie` member is inside `HAVE_X11 || HAVE_PGTK`).
+// keyboard.h 228-235 (the `sie` member is inside `HAVE_X11 || HAVE_PGTK`).
 //
 // C's first member is the bitfield `ENUM_BF (event_kind) kind : EVENT_KIND_WIDTH`, which is the
 // low 16 bits of the same bytes `ie` starts with; a Rust union cannot carry a bitfield, so the
@@ -71,8 +71,8 @@ pub struct kboard
 #[repr(C)]
 pub union buffered_input_event
 {
-  pub kind: u16,                                    // keyboard.h 480 (`kind : EVENT_KIND_WIDTH`)
-  pub ie: input_event,                              // 481
+  pub kind: u16,                                    // keyboard.h 230 (`kind : EVENT_KIND_WIDTH`)
+  pub ie: input_event,                              // 231
 }
 
 /* Most code should use these functions to set Lisp fields in struct kboard.  */
@@ -280,8 +280,8 @@ unsafe extern "C" {
 }
 
 /* C 471 and C 531: this header's two file-scope objects.  The unit owns the definitions
-   (`keyboard.rs`'s `keyboard_globals`: `timers_run` from keyboard.c 340, `DEV_TTY` from
-   keyboard.c 92-95), so these are declarations only - the defining unit's own item shadows a
+   (`keyboard.rs`'s `keyboard_globals`: `timers_run` is keyboard.c 340's,
+   `DEV_TTY` is keyboard.c 92-95's), so these are declarations only - the defining unit's own item shadows a
    glob import (PORTING.md 0.1-10 / P-21), which is why `keyboard.rs` itself compiles with
    both in scope.  They are here because status 3.143's tool fix made the extractor see them:
    its `GLOBAL_LINE` split `extern unsigned int timers_run;` after `unsigned`, so the object

@@ -191,5 +191,5 @@ pub mod process_fd_decls {
 }
 use process_fd_decls::*;
 
-// C: process.h 307-320's remaining prototypes and the `fd_callback` typedef — (not mirrored
+// C: process.h 296-308's remaining prototypes and the `fd_callback` typedef — (not mirrored
 // yet; they land with process.c/sysdep.c, batch D).

@@ -656,7 +656,7 @@ unsafe fn flush_frame (f: *mut frame)
     { ((*rif).flush_display).unwrap () (f); }
 }
 
-/* C: dispextern.h 3110-3200: `struct redisplay_interface`.  It has no mirror (termhooks.rs
+/* C: dispextern.h 3069-3196: `struct redisplay_interface`.  It has no mirror (termhooks.rs
    181 degrades `rif` to `*mut c_void`), and `flush_frame` reaches exactly one member,
    `flush_display` at offset 72 (clang, frozen target).  The ten members C declares before it
    are all pointers, so the port mirrors the prefix as an opaque pointer array and pins the

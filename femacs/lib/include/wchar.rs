@@ -1,6 +1,6 @@
 // femacs: mirror of the frozen target's <wchar.h> (system header, P-26/P-50).
 //
-// regex_internal.h 113-115 takes the `_REGEX_AVOID_UCHAR_H` arm (the frozen macro
+// regex_internal.h 123-125 takes the `_REGEX_AVOID_UCHAR_H` arm (the frozen macro
 // table has it at 1), so the port's wide characters are C's `wchar_t`/`wint_t`
 // rather than gnulib's `char32_t`, and the `__mbrtowc`/`__wcrtomb` renames at
 // regex_internal.h 151-152 point at the wide functions.

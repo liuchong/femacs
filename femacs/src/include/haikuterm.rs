@@ -198,7 +198,7 @@ pub struct haiku_output
   /// P-80; the same shape `itree.rs` uses for its three `bool_bf : 1` members).
   pub bits: u8,
 
-  /// C: `struct font *font;` (haikuterm.h 174) - `struct font` is `include/font.rs`'s record.
+  /// C: `struct font *font;` (haikuterm.h 181) - `struct font` is `include/font.rs`'s record.
   pub font: *mut font,
 
   /* The pending position we're waiting for.  */

@@ -5,7 +5,7 @@
 //
 // The two `#ifdef HAVE_WINDOW_SYSTEM` regions in `lisp_string_width` (character.c 361-364
 // and 396-420) are dead on the frozen target (config.h leaves HAVE_WINDOW_SYSTEM
-// undefined), so their text stays behind `feature = "window_system"`, the feature that
+// undefined), so their text stays behind `feature = "have_window_system"`, the feature that
 // names the non-frozen side (P-51); `lisp_string_width`'s `#if 0` block
 // (character.c 91-97) is a comment, as C's own `#if 0` never compiles.
 //
@@ -22,10 +22,10 @@
 
 include!("include/config.rs");
 include!("../lib/include/stdio.rs");
-// C's <string.h> reaches this unit through lisp.h (lisp.h 38-40); `str_as_multibyte`'s
+// C's <string.h> reaches this unit through lisp.h (lisp.h 30); `str_as_multibyte`'s
 // `memmove` and `lisp_string_width`'s `memcmp` come from that mirror.
 include!("../lib/include/string.rs");
-// C's <sys/types.h> (character.c 29) has no declaration this unit needs; `ptrdiff_t` comes
+// C's <sys/types.h> (character.c 32) has no declaration this unit needs; `ptrdiff_t` comes
 // from lisp.rs, as it does in C through <stddef.h>.  <intprops.h> (character.c 30) is the
 // `ckd_*` family, which the port spells `overflowing_*` at each site (PORTING.md P-15).
 include!("include/lisp.rs");
@@ -392,9 +392,9 @@ pub unsafe extern "C" fn lisp_string_width (string: Lisp_Object, from: ptrdiff_t
   let mut font_width: c_int = -1;
   // C's `#ifdef HAVE_WINDOW_SYSTEM` declarations (character.c 361-364) are dead on this
   // target; the feature that names the non-frozen side keeps the text (P-51).
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   let mut default_font: Lisp_Object = Qnil ();
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   let mut frame_font: Lisp_Object = Qnil ();
 
   eassert! (precision <= 0 || (! nchars.is_null () && ! nbytes.is_null ()));
@@ -436,7 +436,7 @@ pub unsafe extern "C" fn lisp_string_width (string: Lisp_Object, from: ptrdiff_t
 							     std::ptr::null_mut ());
 
 	  // C: `#ifdef HAVE_WINDOW_SYSTEM` (character.c 396-420), dead on this target (P-51).
-	  #[cfg(feature = "window_system")]
+	  #[cfg(feature = "have_window_system")]
 	  {
 	    /* The below is somewhat expensive, so compute it only once
 	       for the entire loop, and only if needed.  */

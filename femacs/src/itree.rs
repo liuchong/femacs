@@ -25,7 +25,8 @@ include!("../lib/include/math.rs");
 include!("include/lisp.rs");
 include!("include/itree.rs");
 
-/* C spells `enum itree_order`'s members bare (itree.c 1240-1464), and Rust 2024 keeps
+/* C spells `enum itree_order`'s members bare (itree.h 104-110; the switch that reads them is
+   itree.c 1238's), and Rust 2024 keeps
    enum variants out of scope, so the port imports them (PORTING.md 0.1).  */
 use itree_order::*;
 

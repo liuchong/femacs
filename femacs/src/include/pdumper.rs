@@ -16,7 +16,7 @@
 // pdumper.h 20-21: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const EMACS_PDUMPER_H: bool = true;
 
-include!("../../lib/include/stdio.rs");        // pdumper.h 22: `#include <stdio.h>` (`FILE`)
+include!("../../lib/include/stdio.rs");        // pdumper.h 23: `#include <stdio.h>` (`FILE`)
 include!("../../lib/include/fingerprint.rs");  // pdumper.h 23: `#include "fingerprint.h"`
 // pdumper.h 24's `#include "lisp.h"` reaches config.h (lisp.h 27), which the lisp.rs mirror
 // reads for `HAVE_PDUMPER`/`HAVE_NATIVE_COMP` (PORTING.md 0.1-14: config.rs first).

@@ -180,7 +180,7 @@ pub unsafe extern "C" fn cursor_to (f: *mut frame, vpos: c_int, hpos: c_int)
 			rx: *mut c_int, ry: *mut c_int);
       }
       root_xy (f, hpos, vpos, &raw mut x, &raw mut y);
-      #[cfg (feature = "android")]
+      #[cfg (feature = "have_android")]
       { x = hpos; y = vpos; }
       hook (f as *mut c_void, y, x);
     }
@@ -204,7 +204,7 @@ pub unsafe extern "C" fn raw_cursor_to (f: *mut frame, row: c_int, col: c_int)
 			rx: *mut c_int, ry: *mut c_int);
       }
       root_xy (f, col, row, &raw mut x, &raw mut y);
-      #[cfg (feature = "android")]
+      #[cfg (feature = "have_android")]
       { x = col; y = row; }
       hook (f as *mut c_void, y, x);
     }
@@ -743,7 +743,7 @@ pub unsafe extern "C" fn init_initial_terminal () -> *mut terminal
   unsafe extern "C" {
     /// C: bool tty_defined_color (struct frame *f, const char *color_name,
     ///                            Emacs_Color *color_def, bool alloc, bool makeIndex)
-    ///    (xfaces.c 1144, the `defined_color_hook` at termhooks.h 593-596)
+    ///    (xfaces.c 1141-1144, the `defined_color_hook` at termhooks.h 593-596)
     pub fn tty_defined_color (f: *mut c_void, color_name: *const c_char,
 			      color_def: *mut Emacs_Color, alloc: bool,
 			      makeIndex: bool) -> bool;

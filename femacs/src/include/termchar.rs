@@ -30,7 +30,7 @@ include!("../../lib/include/stdio.rs");   // termchar.h 22: `#include <stdio.h>`
 include!("dispextern.rs");                // termchar.h 23: `#include "dispextern.h"`
 include!("termhooks.rs");                 // `struct terminal` for the `terminal` member
 include!("frame.rs");                     // `FRAME_TTY` reads `frame`'s `output_method`
-// termchar.h 86's `struct cm *Wcm` — the type cm.h defines, so its mirror comes in here and
+// termchar.h 75's `struct cm *Wcm` — the type cm.h defines, so its mirror comes in here and
 // every unit that carries termchar.rs carries cm.h too (C's tty units all do).
 include!("cm.rs");
 

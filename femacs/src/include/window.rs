@@ -343,7 +343,8 @@ pub fn WINDOW_LIVE_P (window_: Lisp_Object) -> bool
 { WINDOWP (window_) && BUFFERP (unsafe { (*XWINDOW (window_)).contents }) }
 
 /* Most code should use this macro to set Lisp fields in struct window.  */
-// window.h 1282-1300: the mini-window predicates.  `mini` is one of the nineteen packed flags.
+// window.h 565-574: the mini-window predicates (`MINI_WINDOW_P`, `MINI_NON_ONLY_WINDOW_P`,
+// `MINI_ONLY_WINDOW_P`; `mini` is one of the nineteen packed flags).
 #[inline(always)]
 pub fn MINI_WINDOW_P (w: *mut window) -> bool { window_bit (w, WINDOW_MINI_SHIFT) }
 
@@ -355,13 +356,13 @@ pub fn MINI_NON_ONLY_WINDOW_P (w: *mut window) -> bool
 pub fn MINI_ONLY_WINDOW_P (w: *mut window) -> bool
 { MINI_WINDOW_P (w) && NILP (unsafe { (*w).prev }) }
 
-// window.h 1305-1312: the minimum sizes (the C macros ignore their argument).
+// window.h 668, 673: the minimum sizes (the C macros ignore their argument).
 #[inline(always)]
 pub fn MIN_SAFE_WINDOW_HEIGHT (_w: *mut window) -> c_int { 1 }
 #[inline(always)]
 pub fn MIN_SAFE_WINDOW_WIDTH (_w: *mut window) -> c_int { 2 }
 
-// window.h 1316: `#define USE_HORIZONTAL_SCROLL_BARS false` — object-like, so the port keeps a
+// window.h 898-904: `#define USE_HORIZONTAL_SCROLL_BARS false` — object-like, so the port keeps a
 // constant.
 pub const USE_HORIZONTAL_SCROLL_BARS: bool = false;
 

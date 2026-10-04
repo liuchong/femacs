@@ -47,7 +47,7 @@ include!("include/window.rs");                 // C 59: `#include "window.h"`
 include!("include/blockinput.rs");             // C 60: `#include "blockinput.h"`
 include!("include/region-cache.rs");           // C 61: `#include "region-cache.h"`
 include!("include/itree.rs");                  // buffer.h 27: `#include "itree.h"` (buffer.rs's fields)
-include!("include/termhooks.rs");              // frame.h 24: `#include "termhooks.h"` (`terminal`)
+include!("include/termhooks.rs");              // frame.h 22: `#include "termhooks.h"` (`terminal`)
 include!("include/font.rs");                   // dispextern.h's font names
 include!("include/dispextern.rs");             // frame.h's `text_cursor_kinds`/`output_method`
 include!("include/frame.rs");                  // C 62: `#include "frame.h"`

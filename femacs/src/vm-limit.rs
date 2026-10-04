@@ -61,7 +61,7 @@ unsafe extern "C" {
 #[derive(Clone, Copy, PartialEq, PartialOrd)]
 enum warnlevel { not_warned, warned_75, warned_85, warned_95 }
 use warnlevel::*;
-// vm-limit.c 74: `static enum warnlevel warnlevel;` - bss, i.e. `not_warned`.
+// vm-limit.c 77-78: `static enum warnlevel warnlevel;` - bss, i.e. `not_warned`.
 static mut warnlevel: warnlevel = warnlevel::not_warned;
 
 /* Function to call to issue a warning;

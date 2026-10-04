@@ -174,7 +174,7 @@ pub struct composition_it
   pub width: c_int,
 }
 
-/* C: dispextern.h 2422- `struct it`.  Only the first three members are reached (the
+/* C: dispextern.h 2430-2437 `struct it`.  Only the first three members are reached (the
    `parent_it->w` and `parent_it->f` reads), and their offsets are C's 0/8/16; the rest of
    the record lands with xdisp.c (PORTING.md P-66).  */
 #[repr(C)]

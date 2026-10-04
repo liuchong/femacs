@@ -6283,7 +6283,7 @@ pub unsafe fn wait_reading_process_output (time_limit: i64, nsecs: c_int, read_k
   return got_some_output;
 }
 
-/// C: lisp.h 5194's `TYPE_MAXIMUM (time_t)` — `time_t` is `i64` on this target, so
+/// C: lisp.h 5187's `TYPE_MAXIMUM (time_t)` — `time_t` is `i64` on this target, so
 /// `TYPE_MAXIMUM (time_t)` measures as `INT64_MAX`.
 const TYPE_MAXIMUM_TIME_T: time_t = i64::MAX;
 

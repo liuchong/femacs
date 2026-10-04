@@ -1,19 +1,42 @@
-# Citations the citations gate must not fail on, one row per site (docs/status.md 3.172).
+# Citations the citations gate must not fail on, one row per site (docs/status.md 3.172/3.180).
 # A citation can be right and still pair with a snippet the gate had to guess at: the quoted
 # identifier is an *example* on an include-line citation, or the cited range is right and the
-# quote is the member's type.  Every row carries that reason; a row that no longer matches a
-# finding is a failure, the same rule the other manifests use.  Columns:
+# quote is the member's type or a neighbour's name.  Every row carries that reason; a row that no
+# longer matches a finding is a failure, the same rule the other manifests use.  Columns:
 # <port file>:<line>\t<reason>.
-femacs/src/dispnew.rs:3644	the range is right (dispextern.h 1445-1446 is OVERLAPS_PRED/OVERLAPS_SUCC) and the quote names the function that explains the two bits; the gate pairs a citation with the first code-like snippet on the line
-femacs/src/include/coding.rs:170	coding.h 384-392 is struct coding_detection_info; the quoted `detector` is a member of struct coding_system (whose comment is why the range is cited)
-femacs/src/include/coding.rs:215	coding.h 267-281 is the five CODING_MODE_* values; `mode` is the member they are stored in (262 is that member's comment)
-femacs/src/include/coding.rs:222	coding.h 507-516 is the ten CODING_ANNOTATION_* values; `common_flags` is the member they land in (407)
+femacs/src/dispnew.rs:3644	the range is right (dispextern.h 1445-1446 is OVERLAPS_PRED/OVERLAPS_SUCC) and the quote names the function that explains the two bits
+femacs/src/include/coding.rs:170	coding.h 384-392 is struct coding_detection_info; the quoted `detector` is a member of struct coding_system
+femacs/src/include/coding.rs:215	coding.h 267-281 is the five CODING_MODE_* values; `mode` is the member they are stored in
+femacs/src/include/coding.rs:222	coding.h 507-516 is the ten CODING_ANNOTATION_* values; `common_flags` is the member they land in
 femacs/src/include/coding.rs:311	coding.h 704 is make_string_from_utf8's prototype; `build_string_from_utf8` is the sentence's "who calls it" note
-femacs/src/include/lisp.rs:27	lisp.h 34 is an #include line and the quoted type is what that include brings in - the include-line class (the cm.c 23 shape the tool cannot judge)
+femacs/src/include/lisp.rs:27	lisp.h 34 is an #include line and the quoted type is what that include brings in (the include-line class)
 femacs/src/include/lisp.rs:4094	lisp.h 4796 is `extern AVOID signal_error (...)`; the quoted `_Noreturn void` is how AVOID expands
 femacs/src/include/font.rs:5	composite.h 28 is an #include line (that is the cited text) and the quoted struct is what the include brings in
-femacs/src/window.rs:152	frame.h 1163-1226 is the FRAME_* read/write macro run; `bool_bf` is the type the cited flags are declared with (frame.h 331)
+femacs/src/window.rs:152	frame.h 1163-1226 is the FRAME_* read/write macro run; `bool_bf` is the type the cited flags are declared with
 femacs/src/window.rs:5452	frame.h 1187 is FRAME_WINDOWS_FROZEN's definition; `bool_bf` is the type of the member it reads
 femacs/lib/include/verify.rs:29	verify.h 41/45 are the two _GL_HAVE__STATIC_ASSERT defines; `_Static_assert` is only mentioned in the 24 comment
 femacs/lib/include/verify.rs:106	verify.h 267-270 is the MSVC arm's _Static_assert definition; `_GL_STATIC_ASSERT_H` is the outer guard at 240
-femacs/lib/include/verify.rs:154	verify.h 323/334 are the two _GL_HAS_BUILTIN_* fallbacks; `assume` is the macro this paragraph discusses (368)
+femacs/lib/include/verify.rs:154	verify.h 323/334 are the two _GL_HAS_BUILTIN_* fallbacks; `assume` is the macro this paragraph discusses
+femacs/src/atimer.rs:39	lisp.h 30 is an #include line; `memset` is what that include brings in
+femacs/src/character.rs:25	lisp.h 30 is an #include line; `str_as_multibyte` is a name the sentence discusses
+femacs/src/character.rs:28	character.c 32 is the `<sys/types.h>` include line; `ptrdiff_t` is what it brings in
+femacs/src/chartab.rs:18	lisp.h 34/28 are include lines; `countof` belongs to the second citation
+femacs/src/cm.rs:34	cm.c 23 is the include line this docstring quotes as its example (the class the tool documents)
+femacs/src/fileio.rs:50	frame.h 22 is the `#include "termhooks.h"` line; `terminal` is what it brings in
+femacs/src/include/comp.rs:8	comp.h 23 is an include line; `dynlib_handle_ptr` is a member the sentence names
+femacs/src/include/fontset.rs:42	fontset.h 29 is an include line; `Lisp_Object` is what it brings in
+femacs/src/include/pdumper.rs:19	pdumper.h 23 is an include line; `FILE` is what it brings in
+femacs/src/profiler.rs:37	lisp.h 30 is an include line; `memcpy` is what that include brings in
+femacs/src/scroll.rs:39	lisp.h 30 is an include line; `memset` is what that include brings in
+femacs/src/data.rs:1409	data.c 84 is the `eassert` the sentence cites; `set_blv_valcell` is the related function it names
+femacs/src/frame.rs:124	frame.h 1790-1823 is the conversion-macro family; `adjust_frame_size` is its caller
+femacs/src/filelock.rs:31	lisp.h 5303-5334 is right; `kill` belongs to the `<signal.h>` group named later in the sentence
+femacs/src/include/androidterm.rs:19	androidgui.h 33-42 is the handle typedefs; `frame` is another mirror's type
+femacs/src/include/charset.rs:27	charset.h 322 is right; `struct charset` is the type the sentence discusses
+femacs/src/include/cm.rs:168	cm.h 123-127 is right; `bool_bf` is the member's type
+femacs/src/include/dispextern.rs:539	dispextern.h 648-661 is right; `struct glyph *` is a parameter type
+femacs/src/include/lisp.rs:2748	lisp.h 5276-5280 is right; the condition is at 5273
+femacs/src/include/lisp.rs:3837	lisp.h 759 is the `lispfwd` typedef; `KBOARD` is the type named in the second half
+femacs/src/include/lisp.rs:3966	lisp.h 4654 is right; `struct buffer` belongs to the third citation on the line
+femacs/src/include/termchar.rs:13	termhooks.h 533-542 is `union display_info`; `FRAME_TTY` is the macro that reads it
+femacs/src/include/termhooks.rs:349	termhooks.h 920-921 is right; `tty_display_info` is the type being read

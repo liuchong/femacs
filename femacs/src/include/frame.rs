@@ -188,7 +188,7 @@ pub const vertical_scroll_bar_none: vertical_scroll_bar_type = 0;
 pub const vertical_scroll_bar_left: vertical_scroll_bar_type = 1;
 pub const vertical_scroll_bar_right: vertical_scroll_bar_type = 2;
 
-// frame.h 840-...: `XFRAME` is an expression in C (an assert plus `XUNTAG`), so the port keeps a
+// frame.h 924-925: `XFRAME` is an expression in C (an assert plus `XUNTAG`), so the port keeps a
 // function of the same name.
 #[inline(always)]
 pub fn XFRAME (p: Lisp_Object) -> *mut frame
@@ -231,7 +231,7 @@ macro_rules! FOR_EACH_FRAME {
     };
 }
 
-// frame.h 1459-1462: `SELECTED_FRAME`.  C's `emacs_abort ()` arm yields a null frame pointer.
+// frame.h 1526-1530: `SELECTED_FRAME`.  C's `emacs_abort ()` arm yields a null frame pointer.
 #[inline(always)]
 pub fn SELECTED_FRAME () -> *mut frame
 {
@@ -602,7 +602,7 @@ pub fn SET_FRAME_ICONIFIED (f: *mut frame, i: c_int)
 #[inline(always)]
 /// C: `(f)->output_method`.  frame.h 1069's family reads the field through a macro; the port
 /// reads it through `frame_output_method`, and this alias keeps the C token `output_method`
-/// available to the macro bodies that spell it (termchar.h 231's `FRAME_TTY`).  The function
+/// available to the macro bodies that spell it (termchar.h 243's `FRAME_TTY`).  The function
 /// and the field's type share a name because they live in different namespaces.
 #[inline(always)]
 pub fn output_method (f: *mut frame) -> output_method { frame_output_method (f) }

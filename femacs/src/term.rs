@@ -391,8 +391,9 @@ unsafe extern "C" {
 }
 
 
-/* dispextern.h 2400-2442: `struct face`'s `underline : 3` and `bool_bf` members, stored in
-   the three bytes at 240-242; the member name is the macro's first token (P-80).  */
+/* dispextern.h 1861-1895: `underline` and the `bool_bf` members of `struct face`
+   (`tty_bold_p` … `tty_overline_p`), stored in the three bytes at 240-242; the member name is
+   the macro's first token (P-80).  */
 macro_rules! face_bits {
   (underline, $f:expr) =>
     { ((((*$f).bits [0] & FACE_UNDERLINE_MASK) >> FACE_UNDERLINE_SHIFT) as face_underline_type) };
@@ -814,7 +815,7 @@ unsafe extern "C" fn tty_clear_end_of_line (f: *mut frame, first_unused_hpos: c_
     }
 }
 
-/* coding.h 620: `coding_charset_list` (the coding mirror does not reach it).  */
+/* coding.h 687: `coding_charset_list` (the coding mirror does not reach it).  */
 unsafe extern "C" { fn coding_charset_list (coding: *mut coding_system) -> Lisp_Object; }
 
 /* dispextern.h 596-602: `glyph::u::cmp`'s two bit members.  The port stores the 4-byte unit
@@ -2856,7 +2857,7 @@ unsafe fn tty_default_color_capabilities (tty: *mut tty_display_info, save: bool
    MODE's value is generally the number of colors which we want to
    support; zero means set up for the default capabilities, the ones
    we saw at init_tty time; -1 means turn off color support.  */
-/* termchar.h 241 declares `tty_setup_colors` at the mirror's crate root, so the
+/* termchar.h 255 declares `tty_setup_colors` at the mirror's crate root, so the
    definition lives in a glob-imported module (the terminal.rs shape, P-21).  */
 pub mod term_setup_colors_def {
   use super::*;

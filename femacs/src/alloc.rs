@@ -108,7 +108,7 @@ unsafe extern "C" {
   fn rpl_free (ptr: *mut c_void);
   /// C: profiler.h `extern void malloc_probe (size_t size);`
   fn malloc_probe (size: size_t);
-  /// C: character.h 1046: `extern void parse_str_as_multibyte (const unsigned char *,
+  /// C: lisp.h 4426-4427: `extern void parse_str_as_multibyte (const unsigned char *,
   /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);`
   fn parse_str_as_multibyte (str: *const c_uchar, len: ptrdiff_t, nchars: *mut ptrdiff_t,
 			     nbytes: *mut ptrdiff_t);
@@ -8125,13 +8125,13 @@ pub unsafe extern "C" fn syms_of_alloc ()
       intspec: Lisp_Subr_intspec { string: std::ptr::null () },
       command_modes: lisp_h_Qnil (),
       doc: 0,
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       native_comp_u: lisp_h_Qnil (),
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       native_c_name: std::ptr::null_mut (),
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       lambda_list: lisp_h_Qnil (),
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       r#type: lisp_h_Qnil (),
     } };
   XSETSUBR! (watcher, &raw mut Swatch_gc_cons_threshold.s);
@@ -8151,13 +8151,13 @@ pub unsafe extern "C" fn syms_of_alloc ()
       intspec: Lisp_Subr_intspec { string: std::ptr::null () },
       command_modes: lisp_h_Qnil (),
       doc: 0,
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       native_comp_u: lisp_h_Qnil (),
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       native_c_name: std::ptr::null_mut (),
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       lambda_list: lisp_h_Qnil (),
-      #[cfg (feature = "native_comp")]
+      #[cfg (feature = "have_native_comp")]
       r#type: lisp_h_Qnil (),
     } };
   XSETSUBR! (watcher, &raw mut Swatch_gc_cons_percentage.s);

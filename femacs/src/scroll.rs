@@ -933,7 +933,7 @@ pub unsafe extern "C" fn scrolling_1 (frame: *mut frame, window_size: c_int,
 				  unchanged_at_bottom,
 				  draw_cost, old_draw_cost,
 				  old_hash, new_hash, free_at_end);
-      // frame.h 1086: `current_matrix` is a `struct glyph_matrix *` in C; the frame mirror
+      // frame.h 325: `current_matrix` is a `struct glyph_matrix *` in C; the frame mirror
       // keeps it as `*mut c_void` (P-72 rule 3), so the use site casts once.
       do_direct_scrolling (frame, (*frame).current_matrix as *mut glyph_matrix,
 			   matrix, window_size, unchanged_at_top);

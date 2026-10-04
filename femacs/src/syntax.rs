@@ -3547,10 +3547,10 @@ unsafe fn scan_sexps_forward (state: *mut lisp_parse_state,
   let mut stage: c_int = STAGE_LOOP;
   let mut exit_kind: c_int = EXIT_DONE;
 
-  /* dispextern.h 4052: the redisplay tick budget this function charges.  Its mirror
+  /* dispextern.h 3721: the redisplay tick budget this function charges.  Its mirror
      does not exist yet, so it is declared at its use site (the doc.rs shape).  */
   unsafe extern "C" {
-    /// C: void update_redisplay_ticks (int, struct glyph_row *)
+    /// C: void update_redisplay_ticks (int, struct window *)
     pub fn update_redisplay_ticks (ticks: c_int, row: *mut c_void);
   }
 

@@ -359,7 +359,7 @@ macro_rules! TEXT_PROP_MEANS_INVISIBLE {
 pub mod intervals_decls {
   use super::*;
 
-  /* intervals.h 241's `make_interval` is defined in *alloc.c*, not in intervals.c, which is
+  /* intervals.h 247's `make_interval` is defined in *alloc.c*, not in intervals.c, which is
      why it stood at crate root in a block of its own - and why `femacs/src/alloc.rs` had to
      wrap its definition in a module instead of shadowing the declaration (status 3.82).  It
      belongs with its siblings here: the glob import is what lets the owner's definition win

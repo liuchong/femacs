@@ -1128,7 +1128,7 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 			  as *mut glyph_matrix); }
   }
 
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
   /* Clear the matrix of the tab-bar window, if any.  */
   if WINDOWP ((*f).tab_bar_window)
@@ -1164,7 +1164,7 @@ unsafe fn reverse_rows (matrix: *mut glyph_matrix, start: c_int, end: c_int)
 			  as *mut glyph_matrix); }
   }
 
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
   if WINDOWP ((*f).tab_bar_window)
     { clear_glyph_matrix ((*XWINDOW ((*f).tab_bar_window)).desired_matrix
@@ -1451,7 +1451,7 @@ unsafe fn glyph_row_slice_p (window_row: *mut glyph_row, frame_row: *mut glyph_r
 
 /* C 1165-3827: `#ifndef HAVE_ANDROID` — live on the frozen target (HAVE_ANDROID is
    undefined), so nothing below is gated; the two `#else` arms C has inside this region
-   (`#else /* HAVE_ANDROID */`, C 4118) are carried under `feature = "android"`.  */
+   (`#else /* HAVE_ANDROID */`, C 4118) are carried under `feature = "have_android"`.  */
 
 /* Return a hash code for glyph row ROW, which may
    be from current or desired matrix of frame F.  */
@@ -1999,7 +1999,7 @@ unsafe fn allocate_matrices_for_frame_redisplay (window: Lisp_Object, x: c_int, 
 
 unsafe fn required_matrix_height (w: *mut window) -> c_int
 {
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
   let f: *mut frame = XFRAME ((*w).frame);
 
@@ -2027,7 +2027,7 @@ unsafe fn required_matrix_height (w: *mut window) -> c_int
 
 unsafe fn required_matrix_width (w: *mut window) -> c_int
 {
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
   let f: *mut frame = XFRAME ((*w).frame);
   if FRAME_WINDOW_P (f)
@@ -2487,7 +2487,7 @@ unsafe fn adjust_frame_glyphs_for_window_redisplay (f: *mut frame)
   }
   }
 
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
   {
     /* Allocate/ reallocate matrices of the tab bar window.  If we
@@ -2629,7 +2629,7 @@ unsafe fn adjust_decode_mode_spec_buffer (f: *mut frame)
 	}
       }
 
-      #[cfg (feature = "window_system")]
+      #[cfg (feature = "have_window_system")]
       {
       /* Free the tab bar window and its glyph matrices.  */
       if !NILP ((*f).tab_bar_window)
@@ -4197,7 +4197,7 @@ unsafe fn update_menu_bar (f: *mut frame)
   }
 }
 
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 unsafe fn update_bar_window (window: Lisp_Object, current: *mut Lisp_Object,
 			     desired: *mut Lisp_Object)
 {
@@ -4219,7 +4219,7 @@ unsafe fn update_bar_window (window: Lisp_Object, current: *mut Lisp_Object,
 
 unsafe fn update_tab_bar (f: *mut frame)
 {
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
   update_bar_window ((*f).tab_bar_window, &mut (*f).current_tab_bar_string,
 		     &mut (*f).desired_tab_bar_string);
@@ -4464,7 +4464,7 @@ unsafe fn terminal_cursor_magic (root: *mut frame, topmost_child: *mut frame)
     }
 }
 
-#[cfg (feature = "android")]
+#[cfg (feature = "have_android")]
 #[unsafe(no_mangle)] pub unsafe extern "C" fn combine_updates_for_frame
   (f: *mut frame, inhibit_scrolling: bool)
 {
@@ -4626,11 +4626,11 @@ unsafe fn update_window_tree (w: *mut window)
     }
 }
 
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 /* Redraw lines from the current matrix of window W that are
    overlapped by other rows.  YB is bottom-most y-position in W.  */
 
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 unsafe fn redraw_overlapped_rows (w: *mut window, yb: c_int)
 {
   let mut i: c_int;
@@ -4681,7 +4681,7 @@ unsafe fn redraw_overlapped_rows (w: *mut window, yb: c_int)
 /* Redraw lines from the current matrix of window W that overlap
    others.  YB is bottom-most y-position in W.  */
 
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 unsafe fn redraw_overlapping_rows (w: *mut window, yb: c_int)
 {
   let mut i: c_int; let mut bottom_y: c_int;
@@ -4831,7 +4831,7 @@ unsafe fn check_current_matrix_flags (w: *mut window)
 unsafe fn update_window (w: *mut window)
 {
   let desired_matrix: *mut glyph_matrix = (*w).desired_matrix as *mut glyph_matrix;
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   let rif: *mut redisplay_interface = FRAME_RIF! (XFRAME (WINDOW_FRAME! (w))) as *mut redisplay_interface;
   #[cfg (feature = "glyph_debug")]
   /* Check that W's frame doesn't have glyph matrices.  */
@@ -4847,11 +4847,11 @@ unsafe fn update_window (w: *mut window)
   let mut changed_p: bool = false; let mut mouse_face_overwritten_p: bool = false;
   let mut invisible_rows_marked: bool = false;
 
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
   gui_update_window_begin (w);
   }
-  #[cfg (not (feature = "window_system"))]
+  #[cfg (not (feature = "have_window_system"))]
   {
   let _ = changed_p;   /* C's `(void) changed_p;` */
   }
@@ -5014,7 +5014,7 @@ unsafe fn update_window (w: *mut window)
   /* Fix the appearance of overlapping/overlapped rows.  */
   if !window_bits! (pseudo_window_p, w)
     {
-      #[cfg (feature = "window_system")]
+      #[cfg (feature = "have_window_system")]
       {
       if changed_p && (*rif).fix_overlapping_area.is_some ()
 	{
@@ -5037,7 +5037,7 @@ unsafe fn update_window (w: *mut window)
 	  (*( (*w).desired_matrix as *mut glyph_matrix )).method.as_ptr ());
   }
 
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
   update_window_fringes (w, 0);
 
@@ -5066,10 +5066,10 @@ unsafe fn update_window (w: *mut window)
 /* C 4633-4711: `#ifdef HAVE_WINDOW_SYSTEM` — `gui_update_window_begin` and
    `gui_update_window_end`.  Dead on the frozen target; carried as text (P-51).  */
 
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 /* Start update of window W.  */
 
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)] pub unsafe extern "C" fn gui_update_window_begin (w: *mut window)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
@@ -5104,7 +5104,7 @@ unsafe fn update_window (w: *mut window)
    MOUSE_FACE_OVERWRITTEN_P non-zero means that some row containing
    glyphs in mouse-face were overwritten.  In that case we have to
    make sure that the mouse-highlight is properly redrawn.  */
-#[cfg (feature = "window_system")]
+#[cfg (feature = "have_window_system")]
 #[unsafe(no_mangle)] pub unsafe extern "C" fn gui_update_window_end
   (w: *mut window, cursor_on_p: bool, mouse_face_overwritten_p: bool)
 {
@@ -5794,7 +5794,7 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
   /* Can't scroll the display of w32 GUI frames when position of point
      is indicated by the system caret, because scrolling the display
      will then "copy" the pixels used by the caret.  */
-  #[cfg (feature = "ntgui")]
+  #[cfg (feature = "have_ntgui")]
   {
   if w32_use_visible_system_caret
     { return 0; }
@@ -6977,7 +6977,7 @@ unsafe extern "C" {
   let mut startp: text_pos = text_pos { charpos: 0, bytepos: 0 };
   let mut string: Lisp_Object;
   let mut row: *mut glyph_row;
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   let img: *mut c_void = core::ptr::null_mut ();
   let mut x0: c_int; let x1: c_int; let mut to_x: c_int; let mut it_vpos: c_int;
   let mut itdata: *mut c_void = core::ptr::null_mut ();
@@ -7080,7 +7080,7 @@ unsafe extern "C" {
 							  CHARPOS! ((*pos).pos)); }
     }
 
-  #[cfg (feature = "window_system")]
+  #[cfg (feature = "have_window_system")]
   {
   if it.what == IT_IMAGE
     {
@@ -7112,7 +7112,7 @@ unsafe extern "C" {
 	  /* C 6353-6372: `#ifdef HAVE_WINDOW_SYSTEM if (img) { … } else #endif` — the `if`
 	     arm is dead text on this target and the `else` arm is shared; the port writes the
 	     pair once per configuration.  */
-	  #[cfg (feature = "window_system")]
+	  #[cfg (feature = "have_window_system")]
 	  {
 	    if !img.is_null ()
 	      {
@@ -7129,7 +7129,7 @@ unsafe extern "C" {
 		*height = (*glyph).ascent as c_int + (*glyph).descent as c_int;
 	      }
 	  }
-	  #[cfg (not (feature = "window_system"))]
+	  #[cfg (not (feature = "have_window_system"))]
 	  {
 	    *width = (*glyph).pixel_width as c_int;
 	    *height = (*glyph).ascent as c_int + (*glyph).descent as c_int;
@@ -7208,7 +7208,7 @@ unsafe extern "C" {
 	  *charpos = (*glyph).charpos;
 	  *width = (*glyph).pixel_width as c_int;
 	  *height = (*glyph).ascent as c_int + (*glyph).descent as c_int;
-	  #[cfg (feature = "window_system")]
+	  #[cfg (feature = "have_window_system")]
 	  {
 	  if glyph_bits! (type, *glyph) == IMAGE_GLYPH
 	    {
@@ -7311,7 +7311,7 @@ unsafe extern "C" {
 	  *charpos = (*glyph).charpos;
 	  *width = (*glyph).pixel_width as c_int;
 	  *height = (*glyph).ascent as c_int + (*glyph).descent as c_int;
-	  #[cfg (feature = "window_system")]
+	  #[cfg (feature = "have_window_system")]
 	  {
 	  if glyph_bits! (type, *glyph) == IMAGE_GLYPH
 	    {
@@ -8026,7 +8026,7 @@ unsafe fn init_display_interactive ()
      try to use X, and if that fails output a line to stderr
      reporting that -nw will be simulated.  */
 
-  #[cfg (feature = "x_windows")]
+  #[cfg (feature = "have_x_windows")]
   {
   if !inhibit_window_system && !display_arg
     {
@@ -8056,7 +8056,7 @@ unsafe fn init_display_interactive ()
     }
   }
 
-  #[cfg (feature = "android")]
+  #[cfg (feature = "have_android")]
   {
   if !inhibit_window_system && android_init_gui
     {
@@ -8066,7 +8066,7 @@ unsafe fn init_display_interactive ()
     }
   }
 
-  #[cfg (feature = "ntgui")]
+  #[cfg (feature = "have_ntgui")]
   {
   if !inhibit_window_system
     {
@@ -8075,7 +8075,7 @@ unsafe fn init_display_interactive ()
     }
   }
 
-  #[cfg (feature = "ns")]
+  #[cfg (feature = "have_ns")]
   {
   if !inhibit_window_system && !will_dump_p ()
     {
@@ -8084,7 +8084,7 @@ unsafe fn init_display_interactive ()
     }
   }
 
-  #[cfg (feature = "pgtk")]
+  #[cfg (feature = "have_pgtk")]
   {
   if !inhibit_window_system && !will_dump_p ()
     {
@@ -8093,7 +8093,7 @@ unsafe fn init_display_interactive ()
     }
   }
 
-  #[cfg (feature = "haiku")]
+  #[cfg (feature = "have_haiku")]
   {
   if !inhibit_window_system && !will_dump_p ()
     {
@@ -8114,7 +8114,7 @@ unsafe fn init_display_interactive ()
     {
       let mut msg: *const c_char
 	= c"Please set the environment variable TERM; see 'tset'.\n".as_ptr ();
-      #[cfg (feature = "window_system")]
+      #[cfg (feature = "have_window_system")]
       {
       if !inhibit_window_system
 	{ msg = c"Please set the environment variable DISPLAY or TERM; see 'tset'.\n".as_ptr (); }

@@ -4,8 +4,8 @@
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
 // femacs: port of lib/fseterr.c @ fd7afced403.  Blind file: the same
 // `__sferror` arm as lib/fpending.c is the live one here, i.e. C 22-24's
-// `fp_->_flags |= __SERR;` with `fp_` = `fp` (stdio-impl.h 198) and `__SERR` = 64
-// (`<stdio.h>`'s `#define __SERR 0x0040`, measured; the mirror carries it).  C's other ten
+// `fp_->_flags |= __SERR;` with `fp_` = `fp` and `__SERR` = 64 (stdio-impl.h 198,
+// 235: `<stdio.h>`'s `#define __SERR 0x40`, measured; the mirror carries it).  C's other ten
 // arms are carried as the reference's own text (P-51).  The reference object confirms the
 // symbol: `nm build/emacs-ref/lib/fseterr.o` prints `T _fseterr`.
 include!("../src/include/config.rs");

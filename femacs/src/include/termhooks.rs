@@ -346,7 +346,7 @@ unsafe extern "C" { pub static mut terminal_list: *mut terminal; }        // ter
 
 /* The initial terminal device, created by initial_term_init.  */
 unsafe extern "C" { pub static mut initial_terminal: *mut terminal; }     // termhooks.h 971
-// termhooks.h 920-921: both read the `tty_display_info` that `FRAME_TTY` (termchar.h 230) hands
+// termhooks.h 920-921: both read the `tty_display_info` that `FRAME_TTY` (termchar.h 243) hands
 // back, so they stay macros — `FRAME_TTY` is one, and a `fn` cannot call it (PORTING.md P-33).
 // `scroll_region_ok` is the `bool_bf` in `tty_display_info.bits_caps` (the TTY_* masks), which
 // is why that one token is exempted in docs/ports/macro-body-notes.tsv (the FRAME_GARBAGED_P
@@ -377,7 +377,7 @@ macro_rules! TERMINAL_ACTIVE_P {
 
 // termhooks.h 917-922: `FRAME_MUST_WRITE_SPACES`, `FRAME_LINE_INS_DEL_OK`,
 // `FRAME_CHAR_INS_DEL_OK` and `FRAME_MEMORY_BELOW_FRAME`.  Each dereferences the
-// `tty_display_info` `FRAME_TTY` (termchar.h 230) hands back, whose four `bool_bf : 1`
+// `tty_display_info` `FRAME_TTY` (termchar.h 243) hands back, whose four `bool_bf : 1`
 // members live in the one-byte `bits_caps` (termchar.rs's TTY_* masks), so they stay macros
 // expanded at their use site — a `fn` here would be E0412 for every unit that includes
 // termhooks.rs without termchar.rs (the FRAME_SCROLL_REGION_OK shape above).  That member
@@ -414,7 +414,7 @@ macro_rules! FRAME_RIF { ($f:expr) => { (*(*$f).terminal).rif }; }
 macro_rules! cursorX { ($t:expr) => { curX! ($t) }; }
 macro_rules! cursorY { ($t:expr) => { curY! ($t) }; }
 
-// C: termhooks.h 940-1000's prototypes (`decode_live_terminal`, `decode_tty_terminal`,
+// C: termhooks.h 961-989's prototypes (`decode_live_terminal`, `decode_tty_terminal`,
 // `get_named_terminal`, `create_terminal`, `delete_terminal`, `delete_terminal_internal`,
 // `terminal_glyph_code`, `encode_terminal_code`, `tty_hide_cursor`, `tty_show_cursor`) and
 // the `#ifdef HAVE_WINDOW_SYSTEM`/`#ifdef HAVE_GPM`/`#ifdef WINDOWSNT` arms are not mirrored

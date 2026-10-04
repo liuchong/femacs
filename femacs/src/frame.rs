@@ -86,7 +86,7 @@ macro_rules! CHECK_LIVE_FRAME {
     ($x:expr) => { CHECK_TYPE (FRAMEP ($x) && FRAME_LIVE_P (XFRAME ($x)), Qframe_live_p (), $x) };
 }
 
-/* frame.h 1166-1172: `SET_FRAME_VISIBLE`.  The mirror has only the reader
+/* frame.h 1536-1552: `SET_FRAME_VISIBLE`.  The mirror has only the reader
    `FRAME_VISIBLE_P`; the writer masks unit 1 (frame.rs 154).  */
 macro_rules! SET_FRAME_VISIBLE {
     ($f:expr, $v:expr) => { (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_VISIBLE_SHIFT))
@@ -361,7 +361,7 @@ pub const INTERNAL_BORDER_BOTTOM_RIGHT_CORNER: internal_border_part = 6;
 pub const INTERNAL_BORDER_BOTTOM_EDGE: internal_border_part = 7;
 pub const INTERNAL_BORDER_BOTTOM_LEFT_CORNER: internal_border_part = 8;
 
-/* C's `f->output_method = …` (frame.h 1145's `ENUM_BF`); the reader is the mirror's
+/* C's `f->output_method = …` (frame.h 446's `ENUM_BF`); the reader is the mirror's
    `output_method (f)`, and this macro is the writer (PORTING.md 1.3).  */
 macro_rules! output_method {
     ($f:expr) => { frame_output_method ($f) };

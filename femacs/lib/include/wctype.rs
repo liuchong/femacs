@@ -2,7 +2,7 @@
 //
 // regex_internal.h 145-149 renames `__wctype`/`__iswalnum`/`__iswctype`/`__towlower`/
 // `__towupper` onto these (the `_REGEX_AVOID_UCHAR_H` arm); `wctype_t` at
-// regex_internal.h 331 types `re_charset_t.char_classes`.  `wint_t`/`wchar_t` come
+// regex_internal.h 331 types re_charset_t's `char_classes`.  `wint_t`/`wchar_t` come
 // from the <wchar.h> mirror the same unit includes (C's <wctype.h> gets them there too).
 
 

@@ -469,7 +469,7 @@ DEFUN! ("markerp", Fmarkerp, Smarkerp, 1, 1, 0,
 
 // data.c 499-508: `user-ptrp` lives inside `#ifdef HAVE_MODULES`, and HAVE_MODULES is
 // undefined in the frozen configuration, so C defines neither `Fuser_ptrp` nor its
-// `defsubr` (data.c 4360-4362).  Porting the text as `#[cfg(feature = "modules")]` was
+// `defsubr` (data.c 4360-4362).  Porting the text as `#[cfg(feature = "have_modules")]` was
 // tried and reverted: with `src/data.c` now in the condition table the gate reads the
 // frozen text, and an arm C does not compile is an invented item (D3) -- so the subr is
 // simply not part of this target.  See docs/ports/data.md Decisions (and PORTING.md P-76
@@ -844,8 +844,8 @@ DEFUN! ("fset", Ffset, Sfset, 2, 2, 0,
 
   // C gates this block on `#ifdef HAVE_NATIVE_COMP`; HAVE_NATIVE_COMP is undefined in
   // the frozen configuration, so the port keeps the text under the same condition
-  // (PORTING.md P-08/P-51).  `native_comp` is what `xtask dead-arms` flips.
-  #[cfg(feature = "native_comp")]
+  // (PORTING.md P-08/P-51).  `have_native_comp` is what `xtask dead-arms` flips.
+  #[cfg(feature = "have_native_comp")]
   {
     let function = unsafe { (*XSYMBOL (symbol)).u.s.function };
 
@@ -913,7 +913,7 @@ DEFUN! ("subr-native-lambda-list", Fsubr_native_lambda_list,
   // C gates this block on `#ifdef HAVE_NATIVE_COMP`; HAVE_NATIVE_COMP is undefined in the
   // frozen configuration, so the port keeps the text under the same condition
   // (PORTING.md P-08/P-51), and `xtask dead-arms` is what compiles it.
-  #[cfg(feature = "native_comp")]
+  #[cfg(feature = "have_native_comp")]
   {
     if NATIVE_COMP_FUNCTION_DYNP (subr)
       { return (*XSUBR (subr)).lambda_list; }
@@ -927,11 +927,11 @@ DEFUN! ("subr-type", Fsubr_type,
        (subr: Lisp_Object),
        {
   CHECK_SUBR (subr);
-  #[cfg(feature = "native_comp")]
+  #[cfg(feature = "have_native_comp")]
   {
     return SUBR_TYPE (subr);
   }
-  #[cfg(not(feature = "native_comp"))]
+  #[cfg(not(feature = "have_native_comp"))]
   {
     return Qnil ();
   }

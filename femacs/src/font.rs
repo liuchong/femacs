@@ -242,7 +242,7 @@ pub struct font_entity
 {
   pub header: vectorlike_header,
   pub props: [Lisp_Object; FONT_ENTITY_MAX as usize],
-  #[cfg(feature = "android")]
+  #[cfg(feature = "have_android")]
   pub is_android: bool,
 }
 
@@ -280,13 +280,13 @@ pub struct font_driver
   pub encode_char: Option<unsafe extern "C" fn (*mut font, c_int) -> c_uint>,
   pub text_extents: Option<unsafe extern "C" fn (*mut font, *const c_uint, c_int,
                                                   *mut font_metrics)>,
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub draw: Option<unsafe extern "C" fn (*mut glyph_string, c_int, c_int, c_int, c_int,
                                          bool) -> c_int>,
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub get_bitmap: Option<unsafe extern "C" fn (*mut font, c_uint, *mut font_bitmap,
                                                c_int) -> c_int>,
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   pub free_bitmap: Option<unsafe extern "C" fn (*mut font, *mut font_bitmap)>,
   pub anchor_point: Option<unsafe extern "C" fn (*mut font, c_uint, c_int, *mut c_int,
                                                  *mut c_int) -> c_int>,
@@ -613,11 +613,11 @@ unsafe extern "C" {
 pub fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int,
                       pos: ptrdiff_t, object: Lisp_Object) -> c_int
 {
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   {
     return face_for_char (f, face, character, pos, object);
   }
-  #[cfg(not (feature = "window_system"))]
+  #[cfg(not (feature = "have_window_system"))]
   {
     let _ = (f, character, pos, object);
     return unsafe { (*face).id };
@@ -627,7 +627,7 @@ pub fn FACE_FOR_CHAR (f: *mut frame, face: *mut face, character: c_int,
 /// C: dispextern.h 3811: `int face_for_char (struct frame *, struct face *, int,
 /// ptrdiff_t, Lisp_Object);`, xfaces.c's — reached only through the `HAVE_WINDOW_SYSTEM`
 /// arm of `FACE_FOR_CHAR` above.
-#[cfg(feature = "window_system")]
+#[cfg(feature = "have_window_system")]
 unsafe extern "C" {
   /// C: dispextern.h 3811: `int face_for_char (struct frame *, struct face *, int,
   /// ptrdiff_t, Lisp_Object);`
@@ -683,7 +683,7 @@ pub fn CHECK_FRAME (x: Lisp_Object) { CHECK_TYPE (FRAMEP (x), Qframe (), x); }
 
 /// C: frame.h 1214: `extern struct frame *decode_window_system_frame (Lisp_Object);`
 /// (frame.c), reached only through `Ffont_info`'s `HAVE_WINDOW_SYSTEM` arm.
-#[cfg(feature = "window_system")]
+#[cfg(feature = "have_window_system")]
 unsafe extern "C" {
   /// C: frame.h 1214: `extern struct frame *decode_window_system_frame (Lisp_Object);`
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
@@ -714,7 +714,7 @@ unsafe extern "C" {
 /// `Lisp_Object fontset_ascii (int);` — `emacs/src/fontset.h` has no mirror at all, and the
 /// two are reached only through `Ffont_face_attributes`'s `HAVE_WINDOW_SYSTEM` arm, which is
 /// carried, so they are declared under the same feature.
-#[cfg(feature = "window_system")]
+#[cfg(feature = "have_window_system")]
 unsafe extern "C" {
   /// C: fontset.h 40: `extern int fs_query_fontset (Lisp_Object, int);`
   pub fn fs_query_fontset (name: Lisp_Object, name_byte: c_int) -> c_int;
@@ -925,7 +925,7 @@ pub unsafe extern "C" fn font_make_entity () -> Lisp_Object
 
   /* C 181-182: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` (both undef on the
      frozen target), carried under the feature that names the condition's other side.  */
-  #[cfg(feature = "android")]
+  #[cfg(feature = "have_android")]
   { (*entity).is_android = false; }
 
   return font_entity;
@@ -933,7 +933,7 @@ pub unsafe extern "C" fn font_make_entity () -> Lisp_Object
 
 /* C 187: `#ifdef HAVE_ANDROID` (undef in the frozen configuration), carried.  */
 
-#[cfg(feature = "android")]
+#[cfg(feature = "have_android")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn font_make_entity_android (size: c_int) -> Lisp_Object
 {
@@ -1108,7 +1108,7 @@ pub unsafe extern "C" fn font_intern_prop (str_: *const c_char, len: ptrdiff_t,
 
 unsafe fn font_pixel_size (f: *mut frame, spec: Lisp_Object) -> c_int
 {
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   {
     let size: Lisp_Object = AREF (spec, FONT_SIZE_INDEX as isize);
     let mut point_size: c_double;
@@ -4218,7 +4218,7 @@ unsafe fn font_open_entity (f: *mut frame, entity: Lisp_Object, mut pixel_size: 
 
   font = XFONT_OBJECT (font_object);
   /* C 2987-2991: `#ifdef HAVE_WINDOW_SYSTEM` (undef in the frozen configuration), carried.  */
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   let min_width: c_int = if (*font).min_width != 0 { (*font).min_width }
 			 else if (*font).average_width != 0 { (*font).average_width }
 			 else if (*font).space_width != 0 { (*font).space_width }
@@ -4231,7 +4231,7 @@ unsafe fn font_open_entity (f: *mut frame, entity: Lisp_Object, mut pixel_size: 
   if height <= 0
     { height = 1; }
   /* C 2999-3013: `#ifdef HAVE_WINDOW_SYSTEM`, carried.  */
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   {
     FRAME_DISPLAY_INFO (f).n_fonts += 1;
     if FRAME_DISPLAY_INFO (f).n_fonts == 1
@@ -4271,7 +4271,7 @@ unsafe fn font_close_object (f: *mut frame, font_object: Lisp_Object)
   FONT_ADD_LOG! (c"close".as_ptr (), font_object, Qnil ());
   ((*((*font).driver as *const font_driver)).close_font.unwrap ()) (font);
   /* C 3032-3034: `#ifdef HAVE_WINDOW_SYSTEM`, carried.  */
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   {
     eassert! (FRAME_DISPLAY_INFO (f).n_fonts != 0);
     FRAME_DISPLAY_INFO (f).n_fonts -= 1;
@@ -4708,7 +4708,7 @@ pub unsafe extern "C" fn font_open_for_lface (f: *mut frame, entity: Lisp_Object
 	  pt /= 10.0;
 	  size = POINT_TO_PIXEL! (pt, FRAME_RES (f)) as c_int;
 	  /* C 3414-3421: `#ifdef HAVE_NS` (undef in the frozen configuration), carried.  */
-	  #[cfg(feature = "ns")]
+	  #[cfg(feature = "have_ns")]
 	  {
 	    if size == 0
 	      {
@@ -4839,9 +4839,9 @@ pub unsafe extern "C" fn font_open_by_spec (f: *mut frame, spec: Lisp_Object) ->
   attrs[LFACE_SLANT_INDEX as usize] = Qnormal ();
   /* C 3527-3530: `#ifndef HAVE_NS` is live on the frozen target (`HAVE_NS` is undef); the
      `#else` arm is carried under the feature that names the condition's other side.  */
-  #[cfg(not (feature = "ns"))]
+  #[cfg(not (feature = "have_ns"))]
   { attrs[LFACE_HEIGHT_INDEX as usize] = make_fixnum (120); }
-  #[cfg(feature = "ns")]
+  #[cfg(feature = "have_ns")]
   { attrs[LFACE_HEIGHT_INDEX as usize] = make_fixnum (0); }
   attrs[LFACE_FONT_INDEX as usize] = Qnil ();
 
@@ -4887,7 +4887,7 @@ pub unsafe extern "C" fn register_font_driver (driver: *const font_driver, f: *m
   let mut list: *mut font_driver_list;
 
   /* C 3572-3575: `#ifdef HAVE_WINDOW_SYSTEM` (undef in the frozen configuration), carried.  */
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   {
     if !f.is_null () && (*driver).draw.is_none ()
       { error (c"Unusable font driver for a frame: %s".as_ptr (),
@@ -5287,7 +5287,7 @@ unsafe fn font_at (c: c_int, pos: ptrdiff_t, face: *mut face, w: *mut window,
 /// C: dispextern.h 3820: `Lisp_Object font_for_char (struct face *, int, ptrdiff_t,
 /// Lisp_Object);`, xfaces.c's — reached only through the `HAVE_WINDOW_SYSTEM` arm of
 /// `font_range`.
-#[cfg(feature = "window_system")]
+#[cfg(feature = "have_window_system")]
 unsafe extern "C" {
   /// C: dispextern.h 3820: `Lisp_Object font_for_char (struct face *, int, ptrdiff_t,
   /// Lisp_Object);`
@@ -5299,7 +5299,7 @@ unsafe extern "C" {
    emoji font, even if the codepoint itself has Emoji_Presentation =
    No.  Vauto_composition_emoji_eligible_codepoints is filled in for
    us by admin/unidata/emoji-zwj.awk.  */
-#[cfg(feature = "window_system")]
+#[cfg(feature = "have_window_system")]
 unsafe fn codepoint_is_emoji_eligible (ch: c_int) -> bool
 {
   if EQ (CHAR_TABLE_REF (Vchar_script_table, ch), Qemoji ())
@@ -5326,7 +5326,7 @@ unsafe fn codepoint_is_emoji_eligible (ch: c_int) -> bool
 
    It is assured that the current buffer (or STRING) is multibyte.  */
 
-#[cfg(feature = "window_system")]
+#[cfg(feature = "have_window_system")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn font_range (pos: ptrdiff_t, pos_byte: ptrdiff_t,
 				     limit: *mut ptrdiff_t, w: *mut window,
@@ -5602,7 +5602,7 @@ DEFUN! ("font-get", Ffont_get, Sfont_get, 2, 2, 0,
 /* C 4276: `#ifdef HAVE_WINDOW_SYSTEM` (undef in the frozen configuration), carried; the
    definition below is C 4278-4355's.  */
 
-#[cfg(feature = "window_system")]
+#[cfg(feature = "have_window_system")]
 DEFUN! ("font-face-attributes", Ffont_face_attributes, Sfont_face_attributes, 1, 2, 0,
        doc: "Return a plist of face attributes generated by FONT.\nFONT is a font name, a font-spec, a font-entity, or a font-object.\nThe return value is a list of the form\n\n(:family FAMILY :height HEIGHT :weight WEIGHT :slant SLANT :width WIDTH)\n\nwhere FAMILY, HEIGHT, WEIGHT, SLANT, and WIDTH are face attribute values\ncompatible with `set-face-attribute'.  Some of these key-attribute pairs\nmay be omitted from the list if they are not specified by FONT.\n\nThe optional argument FRAME specifies the frame that the face attributes\nare to be displayed on.  If omitted, the selected frame is used.",
        (font: Lisp_Object, frame: Lisp_Object),
@@ -6433,7 +6433,7 @@ DEFUN! ("frame-font-cache", Fframe_font_cache, Sframe_font_cache, 0, 1, 0,
        (frame: Lisp_Object),
        {
   /* C 5580-5588: `#ifdef HAVE_WINDOW_SYSTEM` (undef in the frozen configuration), carried.  */
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   {
     let f: *mut frame = decode_live_frame (frame);
 
@@ -6447,7 +6447,7 @@ DEFUN! ("frame-font-cache", Fframe_font_cache, Sframe_font_cache, 0, 1, 0,
    definition below is C 5594-5699's.  Its own inner `#if 0` (C 5685-5689, the
    `font_close_object` call) is recorded in `docs/ports/font.md`.  */
 
-#[cfg(feature = "window_system")]
+#[cfg(feature = "have_window_system")]
 DEFUN! ("font-info", Ffont_info, Sfont_info, 1, 2, 0,
        doc: "Return information about a font named NAME on frame FRAME.\nIf FRAME is omitted or nil, use the selected frame.\n\nThe returned value is a vector of 14 elements:\n  [ OPENED-NAME FULL-NAME SIZE HEIGHT BASELINE-OFFSET RELATIVE-COMPOSE\n    DEFAULT-ASCENT MAX-WIDTH ASCENT DESCENT SPACE-WIDTH AVERAGE-WIDTH\n    FILENAME CAPABILITY ]\nwhere\n  OPENED-NAME is the name used for opening the font,\n  FULL-NAME is the full name of the font,\n  SIZE is the pixelsize of the font,\n  HEIGHT is the pixel-height of the font (i.e., ascent + descent),\n  BASELINE-OFFSET is the upward offset pixels from ASCII baseline,\n  RELATIVE-COMPOSE and DEFAULT-ASCENT are the numbers controlling\n    how to compose characters,\n  MAX-WIDTH is the maximum advance width of the font,\n  ASCENT, DESCENT, SPACE-WIDTH, and AVERAGE-WIDTH are metrics of\n    the font in pixels,\n  FILENAME is the font file name, a string (or nil if the font backend\n    doesn't provide a file name).\n  CAPABILITY is a list whose first element is a symbol representing the\n    font format, one of `x', `opentype', `truetype', `type1', `pcf', or `bdf'.\n    The remaining elements describe the details of the font capabilities,\n    as follows:\n\n      If the font is OpenType font, the form of the list is\n        (opentype GSUB GPOS)\n      where GSUB shows which \"GSUB\" features the font supports, and GPOS\n      shows which \"GPOS\" features the font supports.  Both GSUB and GPOS are\n      lists of the form:\n\t((SCRIPT (LANGSYS FEATURE ...) ...) ...)\n\n      where\n        SCRIPT is a symbol representing OpenType script tag.\n        LANGSYS is a symbol representing OpenType langsys tag, or nil\n         representing the default langsys.\n        FEATURE is a symbol representing OpenType feature tag.\n\n      If the font is not an OpenType font, there are no elements\n      in CAPABILITY except the font format symbol.\n\nIf the named font cannot be opened and loaded, return nil.",
        (name: Lisp_Object, frame: Lisp_Object),
@@ -6855,12 +6855,12 @@ pub unsafe extern "C" fn syms_of_font ()
 
   /* C 6053-6083: `#ifdef HAVE_WINDOW_SYSTEM` (undef in the frozen configuration), carried;
      the whole `syms_of_*font` chain is C's.  */
-  #[cfg(feature = "window_system")]
+  #[cfg(feature = "have_window_system")]
   {
     #[cfg(feature = "freetype")]
     {
       syms_of_ftfont ();
-      #[cfg(feature = "x_windows")]
+      #[cfg(feature = "have_x_windows")]
       {
 	syms_of_xfont ();
 	#[cfg(feature = "cairo")]
@@ -6871,7 +6871,7 @@ pub unsafe extern "C" fn syms_of_font ()
 	  { syms_of_xftfont (); }
 	}
       }
-      #[cfg(not (feature = "x_windows"))]
+      #[cfg(not (feature = "have_x_windows"))]
       {
 	#[cfg(feature = "cairo")]
 	{ syms_of_ftcrfont (); }
@@ -6879,12 +6879,12 @@ pub unsafe extern "C" fn syms_of_font ()
     }
     #[cfg(not (feature = "freetype"))]
     {
-      #[cfg(feature = "x_windows")]
+      #[cfg(feature = "have_x_windows")]
       { syms_of_xfont (); }
     }
     #[cfg(feature = "bdffont")]
     { syms_of_bdffont (); }
-    #[cfg(feature = "ntgui")]
+    #[cfg(feature = "have_ntgui")]
     { syms_of_w32font (); }
     #[cfg(feature = "be_cairo")]
     { syms_of_ftcrfont (); }

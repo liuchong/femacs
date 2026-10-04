@@ -16,7 +16,7 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uchar, c_uint, c_ulon
 
 // src/lisp.h 26 includes <stdbit.h>, ahead of <float.h> (31) and <inttypes.h> (32);
 // the port mirrors the C23 header cut down to the three functions data.c calls.
-include!("../../lib/include/stdbit.rs");
+include!("../../lib/include/stdbit.in.rs");
 // src/lisp.h 31 includes <float.h> first and <inttypes.h> (hence <stdint.h>) at 32;
 // the port keeps that order (review D's F10 found the two swapped).  gnulib has no
 // wrapper for <float.h>, so that mirror is a system mirror.
@@ -318,13 +318,13 @@ pub struct Lisp_Subr {
     pub doc: EMACS_INT,
     // Present only when the reference is configured with HAVE_NATIVE_COMP
     // (PORTING.md 9.2 structural condition).
-    #[cfg(feature = "native_comp")]
+    #[cfg(feature = "have_native_comp")]
     pub native_comp_u: Lisp_Object,
-    #[cfg(feature = "native_comp")]
+    #[cfg(feature = "have_native_comp")]
     pub native_c_name: *mut c_char,
-    #[cfg(feature = "native_comp")]
+    #[cfg(feature = "have_native_comp")]
     pub lambda_list: Lisp_Object,
-    #[cfg(feature = "native_comp")]
+    #[cfg(feature = "have_native_comp")]
     pub r#type: Lisp_Object,
 }
 
@@ -2802,11 +2802,11 @@ pub fn safe_free_unbind_to (count: specpdl_ref, sa_count: specpdl_ref, val: Lisp
 // The live pair comes first on purpose: `tools/extract-abi.py` reads the *first*
 // definition of a function it finds, and the port wants its body compared with the body C
 // compiles for this target (PORTING.md P-51's dead text follows).
-#[cfg(not(feature = "native_comp"))]
+#[cfg(not(feature = "have_native_comp"))]
 #[inline(always)]
 pub fn NATIVE_COMP_FUNCTIONP (a: Lisp_Object) -> bool { let _ = a; false }
 
-#[cfg(not(feature = "native_comp"))]
+#[cfg(not(feature = "have_native_comp"))]
 #[inline(always)]
 pub fn NATIVE_COMP_FUNCTION_DYNP (a: Lisp_Object) -> bool { let _ = a; false }
 
@@ -2816,21 +2816,21 @@ pub fn NATIVE_COMP_FUNCTION_DYNP (a: Lisp_Object) -> bool { let _ = a; false }
 // The bodies themselves were never through rustc until `dead-arms` learned to flip
 // `native_comp` (review A's F6), and it found two spelling errors in them: the pointer was
 // compared with `!= 0` instead of C's `!NILP`, and `type_` is `r#type` in the mirror.
-#[cfg(feature = "native_comp")]
+#[cfg(feature = "have_native_comp")]
 #[inline(always)]
 pub fn NATIVE_COMP_FUNCTIONP (a: Lisp_Object) -> bool {
     SUBRP (a) && !NILP (unsafe { (*XSUBR (a)).native_comp_u })
 }
 
-#[cfg(feature = "native_comp")]
+#[cfg(feature = "have_native_comp")]
 #[inline(always)]
 pub fn NATIVE_COMP_FUNCTION_DYNP (a: Lisp_Object) -> bool {
     NATIVE_COMP_FUNCTIONP (a) && !NILP (unsafe { (*XSUBR (a)).lambda_list })
 }
 
-const _: () = assert! (!cfg! (feature = "native_comp") || HAVE_NATIVE_COMP);
+const _: () = assert! (!cfg! (feature = "have_native_comp") || HAVE_NATIVE_COMP);
 
-#[cfg(feature = "native_comp")]
+#[cfg(feature = "have_native_comp")]
 #[inline(always)]
 pub fn SUBR_TYPE (a: Lisp_Object) -> Lisp_Object {
     unsafe { (*XSUBR (a)).r#type }
@@ -2842,7 +2842,7 @@ pub fn SUBR_TYPE (a: Lisp_Object) -> Lisp_Object {
 
 // lisp.h 4872-4876 / 4878-4883: both are unconditional in C (the `#ifdef HAVE_MODULES`
 // in that region opens *after* them, at lisp.h 4885).  The port had gated the pair on a
-// `modules` feature nothing ever passed, so the frozen build compiled a `false` stub for
+// `have_modules` feature nothing ever passed, so the frozen build compiled a `false` stub for
 // `MODULE_FUNCTIONP` while C compiled the real `PSEUDOVECTORP`; review B's F2 (found while
 // reviewing data.c's `module-function-p`, which calls it).
 #[inline(always)]
@@ -3396,14 +3396,14 @@ macro_rules! DEFUN {
                 // C's initialiser stops at `lisp_h_Qnil`, so under HAVE_NATIVE_COMP the
                 // four fields after `doc` are zero-filled by the aggregate rule (lisp.h
                 // 2201-2206); Rust has to spell them.  Turning this arm's compiler on
-                // (`dead-arms` flips `native_comp`, review A's F6) is what found them.
-                #[cfg(feature = "native_comp")]
+                // (`dead-arms` flips `have_native_comp`, review A's F6) is what found them.
+                #[cfg(feature = "have_native_comp")]
                 native_comp_u: lisp_h_Qnil (),
-                #[cfg(feature = "native_comp")]
+                #[cfg(feature = "have_native_comp")]
                 native_c_name: std::ptr::null_mut (),
-                #[cfg(feature = "native_comp")]
+                #[cfg(feature = "have_native_comp")]
                 lambda_list: lisp_h_Qnil (),
-                #[cfg(feature = "native_comp")]
+                #[cfg(feature = "have_native_comp")]
                 r#type: lisp_h_Qnil (),
             },
         };
