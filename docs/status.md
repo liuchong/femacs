@@ -4516,3 +4516,25 @@
   **框位纠正必须按名字做，且每次改完要复跑 `--check`**——按位置批量回退会把两类错误互换成一个更难发现的错误。
   ③ 读数：全树台账 **13596 勾 / 531 未勾**（未勾仍是 `nsterm` 323、`xdisp` 131、`nsfns` 71、`macfont` 3（永久死臂）、`nsfont` 2
   （两条 deferred 体，等 `glyph_string` 的字段））。**该 lane 的 `include-*.md` 尾巴全部清零**。
+
+- **3.244 第一次量"链起来还缺什么"：C 自己的对象集（程序 76 + `libgnu.a` 86 = 162 个）在 `ld -r` 下报 **427 个未定义符号**；方法与读数写进 `docs/ports/link.md`（2026-10-04）**：
+  ① **为什么量这个**：全树的门都停在 `.o` 或文本层——`build-tu` 只编单个单元、`layout-check` 编探针、`check-undef.py` 看每个单元自己的
+  undefined 列表、`check-swift-imports.py` 只管 Swift 侧的 C-ABI 缝——**没有任何东西量过"整个程序"**。这就是 L0 之前那一级的欠账。
+  ② **对象集必须照 C 的配方取**（`build/emacs-ref/src/Makefile`：`temacs: $(ALLOBJS) $(LIBEGNU_ARCHIVE) …`、`LIBEGNU_ARCHIVE = $(lib)/libgnu.a`）：
+  `docs/baseline/frozen-build-sources.txt` 的 83 个源映射到 `build/femacs/<stem>.o`，**减去**定义了 `_main` 的那些（那张清单里混着 7 个独立程序：
+  `emacsclient`/`ebrowse`/`etags`/`hexl`/`make-docfile`/`make-fingerprint`/`movemail`），**加上** `libgnu.a` 的成员。
+  **实测教训**：① 用 `nm` 的 ` T _main` **前缀**匹配会把 `src/thread.c`（它的 `_main_thread_p` 以 `_main` 开头）误删，正确判据是 `^\S+ [Tt] _main$`；
+  ② `build/femacs/*.checking.o`（`enable_checking` 那份）必须排除——第一版没排，`ld -r` 报 **4,978 个重复符号**；
+  ③ 只取"冻结源"（不含 libgnu）时报 **459** 个未定义，取全 C 的对象集（162 个）时报 **427**。
+  ③ **读数与分类**（对照 `nm -g build/emacs-ref/**/*.o` 的定义/未定义两个集合）：`rust-runtime` 20（`_RNv…4core…panic*`，链接期由 Rust 运行时提供）、
+  `libc-or-platform` 269（参照对象也引用它们 ⇒ libc/SDK 提供）、**`port-owed` 59（参照定义了、我们没有任何单元定义）**、
+  `unknown` 79（主要是 C `globals.h` 生成的 `V…` 载体符号——那是端口**已记录**的偏离（`check-symbols.py` 记 467 个"折叠成 Rust 静态量"），
+  加上 `src/xdisp.c` 还没移植的余量 `calc_pixel_width_or_height`/`automatic_hscrolling`/`composition_break_at_point`/`handle_line_prefix`/
+  `maybe_produce_line_number` 等，以及少数 libc 名）。
+  ④ **两条已测的保留**（写进 `docs/ports/link.md`，不让它变成假结论）：`libgnu.a` 成员 → 单元对象的**映射要精确**——`mini-gmp.c` 的成员名与单元 stem
+  不同，所以那 59 条 `port-owed` 里绝大多数是 `mpz_*`，而 `femacs/lib/mini-gmp.rs` **是定义了它们的**（`nm -g build/femacs/mini-gmp.o` 打 `T _mpz_add`）；
+  `V…` 那一类必须由链接器决定：(a) 照样导出、(b) 记进棘轮、还是 (c) 证明没有单元按那个名字引用它——本文件只记录问题，不给答案。
+  ⑤ **下一步**：写 `xtask link`（新子命令）——按上面的配方组对象集、跑部分链接、打印未定义清单、与棘轮 `docs/baseline/link-pending.txt` 比对
+  （**新名字 FAIL、消失即删**，形状照 `check-undef.py`/`check-swift-imports.py`）；它的第一件活是把④的两条保留解决掉，第二件是把这份清单与
+  `docs/baseline/swift-import-pending.txt`（533 条 Swift 侧导入）**求交集**——那个交集就是"能跑的 macOS 构建"最先需要的那批 C-ABI 条目，
+  它们落进 `femacs/src/abi_shim.rs`。
