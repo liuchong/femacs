@@ -5202,3 +5202,9 @@
   ⑶ **一个读法陷阱**：`x_display_info-bits.tsv` 的那 3 行其实是**嵌套 `Mouse_HLInfo` 的位串**（296:0-2），谁照它给 `x_display_info` 本体造位镜像都会错——**命名一条改进**（本轮不做，因为会改已发布位表的列形状）：让 `--bits` 把**嵌套深度**一起记下来。
   ⑤ **集成者的裁决（Boyle 问的那条）**：`parse=no` 的语义**不改表格式**——两张表的表头本来就写着"marks an arm this machine cannot read, with the reason in the run"，而探针把原因打在 `unavailable: N error(s)` 块里（本处是 `fatal error: 'X11/Xlib.h' file not found`，因为 `-I <X11>` 只给定义了 `HAVE_X_WINDOWS` 的臂）。
   我把这条读法写进了 `spikes/gated-layout-probe.py` 的 docstring：**`ns_cocoa` 的 `parse=no` 绝不能被读成"NS 没有 `x_display_info`"**——NS 的那个记录在 `nsterm.h`、镜像在 `femacs/src/include/nsterm.rs`，两者是**同名不同源**的两个类型。
+- **3.319 落地 3.317 后重跑四棘轮（650 → 636），并修掉对账脚本一个"静默死亡"（2026-10-05）**：
+  ① **先撞上一个真 bug（工具层的）**：第一次跑 `tools/reconcile-link-ratchets.sh` **1.6 秒退出、一个字都没打印**。`bash -x` 追到根因：脚本把"改动的镜像 → 包含它的单元"用 `grep -l "include/$m" femacs/src/*.rs` 找，而 xterm lane **刚落的 `src/include/xlib.rs` 还没有任何单元 include 它** ⇒ `grep -l` 退出 1，`set -e` + `set -o pipefail` 把它变成**静默死亡**（命令替换里的非零状态不打印任何东西）。
+  修法两处（都写进脚本注释、留在代码里）：⑴ 那条 `grep` 之后加 `|| true`——"还没有单元包含它"是**一个读数**，不是失败；⑵ `git worktree add` 用 `if ! … ; then` 包起来并打印原因 + 处置（原来 `--quiet` 让"残留 worktree 挡路"也变成静默退出）。这个失败模式与 3.196/3.198/3.202/3.268 同族：**工具静默失败比工具报错更坏**，而它是靠"跑一次、看它什么都不说"才被抓住的。
+  ② **重跑读数**（3m12s，脚本自己的 HEAD worktree）：`swift-import-pending.txt` **+23 / −37**（**650 → 636**）——**−37 行**是 3.317 那 18 个（`WINDOW_FRAME`、`max_used_fringe_bitmap`、15 个 `draw_fringe_bitmap_params_*`/`face_foreground`/`face_background`、`gui_define_fringe_bitmap`）+ 别的 lane 刚落的导入；**+23 行**是 nsterm 在飞第 16 轮等新导入（净 −14）。
+  `link-pending.txt`/`link-exec-pending.txt`/`swift-units.tsv` **内容零变化**。
+  ③ **门读数（工作树）**：`check-swift-units` `0 new / 3 stale / 7 landed`（3 条 stale 是在飞 `nsterm.swift` 第 16 轮的定义）；`check-link` `374 undefined / 373 行 / 1 failure`（仍是在飞 xdisp 的对象）。

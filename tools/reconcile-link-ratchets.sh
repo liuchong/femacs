@@ -33,7 +33,14 @@ rm -rf "$wt"
 # A previous run that was killed can leave the *registration* behind (the directory is gone), and
 # `worktree add` then refuses; prune first so the script is re-runnable.
 git worktree prune
-git worktree add --detach --quiet "$wt" HEAD
+# A leftover *registration whose directory exists* is not pruned (only one whose directory is
+# gone is), and `worktree add` then refuses; say so instead of exiting with `--quiet` and nothing
+# to read (the 3.319 failure mode).
+if ! git worktree add --detach --quiet "$wt" HEAD; then
+  echo "reconcile: git worktree add failed at $wt - check 'git worktree list' and remove the" >&2
+  echo "reconcile: stale entry (git worktree remove --force <path>), then re-run" >&2
+  exit 1
+fi
 
 # The reference checkout and the frozen build are git-ignored, so a worktree has neither.
 ln -s "$root/emacs" "$wt/emacs"
@@ -52,9 +59,13 @@ rm -f "$wt"/build/femacs/*.checking.o
 # made the old rule try to build the mirror itself).
 units=$(git status --porcelain -- femacs/src ':!femacs/src/include' | awk '{print $NF}')
 mirrors=$(git status --porcelain -- femacs/src/include | awk '{print $NF}' | sed 's|^femacs/src/include/||')
+# `grep -l` exits 1 when a changed mirror has no includer yet - a mirror landed before the unit
+# that will include it (measured 3.319: the new `src/include/xlib.rs` killed this script after
+# 1.6 s with *no output at all*, because `set -o pipefail` turned that 1 into a silent death).
+# The `|| true` is what makes "no unit includes it yet" a reading rather than a failure.
 stems=$(for u in $units; do echo "$u" | sed 's|^femacs/||' | sed 's|\.rs$|.c|'; done; \
         for m in $mirrors; do grep -l "include/$m" femacs/src/*.rs 2>/dev/null \
-          | sed 's|^femacs/||' | sed 's|\.rs$|.c|'; done | sort -u | tr '\n' ' ')
+          | sed 's|^femacs/||' | sed 's|\.rs$|.c|' || true; done | sort -u | tr '\n' ' ')
 if [ -n "$stems" ]; then
   echo "rebuilding at HEAD: $stems"
   for stem in $stems; do
