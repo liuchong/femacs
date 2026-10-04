@@ -2814,3 +2814,26 @@
   `gen-port-inventory` 590 files / done=521 / wip=21 / todo=48；五门绿（`check-declarations` 13/0、`check-globals` 283/0、
   `check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 578 `.rs`/0）；`layout-check` **passed**；
   `build-tu src/{w32,msdos,cygw32}.c` → **built**。
+
+- **3.165 `src/emacsgtkfixed.h` 进镜像：两条记录**故意延后**（2026-10-04）**：
+  ① **交付**（`b2f8ef8`）：`src/emacsgtkfixed.h`（60 行）→ `femacs/src/include/emacsgtkfixed.rs` + 台账。
+  这个头在本目标上是**从头到尾的死文本**：`HAVE_PGTK` 未定义 ⇒ C 30-33 的两个类型宏（两个记录的守卫）与
+  C 52-54 的 `emacs_fixed_get_type` 都死；`src/emacsgtkfixed.c` 不在冻结构建源表里（单元是空壳注记）；
+  C 24 的 `<gtk/gtk.h>` 在本树没有镜像（平台目标自己的头拥有那些名字，0.1-9）。镜像照 3.158/3.162/3.163 的先例
+  带上**活文本**：guard、C 26/35 的 `struct frame;` 前向声明、以及 C 56 的 `emacs_fixed_new`（arity 与两个指针位
+  置照 C，参数/返回都按 P-55/P-72 去类型 + `/// C:` 原件行——`GtkWidget` 属 GTK）。
+  ② **两条记录是"延后"不是"编造"**：`struct _EmacsFixed`(C 39-45) 与 `struct _EmacsFixedClass`(C 47-50) 各含一个
+  **按值**的 GTK 记录（`GtkFixed container`/`GtkFixedClass parent_class`），本目标没有任何编译器能量它们 ⇒
+  **台账两个框保持未勾**，抽取器把延后**打在 stderr 上**：`missing type deferred: src/emacsgtkfixed.h
+  _EmacsFixed/_EmacsFixedClass (the ledger has unchecked boxes)`，stdout 仍是 **OK**（无 `- ` 行）。
+  两条会"变绿"的路都是谎：零大小替身（没有 `sizeof`）、字节数组（一个没人量过的尺寸）——与
+  `include-w32heap.md` 的 `struct file_data`、`include-haikuterm.md` 在 `struct font` 落地前的 `haikufont_info`
+  同一条读法（3.154/3.164）。关闭条件写在台账里：GTK 目标冻结时落地。
+  ③ 证据：`--check` 如上；`check-cond-eval src/emacsgtkfixed.h` → 3 conditions / 0 unknown / 0 disagreements；
+  `xtask layout-check` **passed**（新镜像进同一个 crate）；五门绿（`check-declarations` 13/0、`check-globals` 283/0、
+  `check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 580 `.rs`/0）。
+  ④ **在飞 lane 的可见状态**（我实测，等它们的报告）：gnulib 模板批的五件（`_Noreturn`/`c-strcase`/`ignore-value`/
+  `stdckdint.in`/`inttypes.in`，合计 1,477 行 Rust）与 sfnt/fontset（`fontset.rs` 80、`sfnt.rs` **2,582** 行）
+  **`--check` 全部 OK**，但台账的 `## Decisions`/`## Evidence` 还没写完（`include-sfnt.md`/`include-fontset.md`
+  还不存在）⇒ **不提前入库**：台账不只是文档，还是闸门的输入（类型延后就是靠"未勾框"读的）。
+  ⑤ `gen-port-inventory` 复算：590 files、done=526、wip=18、todo=46。
