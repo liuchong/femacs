@@ -4653,3 +4653,30 @@
   ④ 读数：`build-tu src/xterm.c` → **built**；`--check emacs/src/xterm.c femacs/src/xterm.rs` = **443 条 `- `**（本片之后）；
   链接棘轮重生成：**387 undefined / 387 行 / 0 failures**——`unknown` 类从 79 涨到 **97**，多出来的正是这一片承载的 **X11 专属符号**
   （它们在 X11 构建里由 X11 库解析；冻结 target 从不链接它们），这条已写进 `docs/ports/link.md` 的口径里。
+
+- **3.250 产品名声明这条长期指令的复算，与门的一个真洞：`femacs/platform` 只按"名字"被扫过（2026-10-04）**：
+  ① **指令的读法不变**（3.226 ①②）：`版本声明不要再说是gnu emacs了` 与 38 秒之后的 `把之前的代码中的这种声明也去掉` 是**同一条指令的前后两半**，
+  不只对新写的文件生效，**已写进树的代码**也要清；三段处置（231 个首行版本括注压到只剩修订号、268 个版权/许可块不抄、标题注释与"复述许可块"的句子进 `title`/`recital` 两类）
+  一处没退。本轮在 HEAD `2241507` 的工作树上复算，且把这个复算的**扫描面**从"门读的那些树"扩到全仓我们自己写的文件。
+  ② **当轮实测**：`python3 tools/check-declarations.py` → `13 declaration sites (0 forbidden, 13 allowed literals), 0 failures`；
+  `--selftest` **28 → 33 例 / 0 失败**（新增 5 例走的是**别的语言**的形状：Swift 注释里的声明块 → `decl`+`title`、Swift 里引 C 的 docstring 字面量 → `literal`、
+  Kotlin 的出处行只留修订号 → 无、C++ 标题注释 → `title`、Swift 注释里的许可复述 → `recital`）；`docs/ports/*.md` 台账零命中（600 份）；
+  逐字树 `check-verbatim.py` → `6 trees, 4607 files, 0 failures`。定向扫描面**扩到 1,373 个文件**（全仓减去参照 `emacs/`、六棵逐字树、`build/` 与 `femacs/target/`，
+  后缀含 `rs/swift/py/sh/md/toml/json/yml/c`）后，被移植树上的命中仍然**只有那 13 处字面量**，其余命中全在四处"许可注解的家"里
+  （`PORTING.md` 的规则正文、`docs/baseline/**` 的实测值与允许清单、`docs/status.md`+`docs/reviews` 的决策叙述、`tools/check-declarations.py` 自己的模式表）——**3.226 之后落的单元零命中**。
+  ③ **门的一个真洞（本轮要改的就是它）**：`findings()` 走的是 `(root / base).rglob("*.rs")`，而 `SCAN_DIRS` 里的 `femacs/platform` **一个 `.rs` 都没有**——
+  那里是 7 个 `.swift`（`src/*.m` 的 Swift 目标）。也就是说：docstring 写着"平台树也被扫"，实际**一个文件都没读**；而 `src/*.m` 每个文件开头恰好有 4 处产品名
+  （`nsterm.m` 的 6 / 8 / 13 / 19 行就是那个 FSF 声明块），平台单元按定义又要把 C 的**注释**转写进 Swift ⇒ 这条用户指令**在最该被绑的树上没有守卫**。
+  **修法**：读什么由**后缀**决定（`SRC_SUFFIXES` = `rs/swift/kt/kts/java/cpp/cc/cxx/m/mm/h/hpp/c`），并每次打印一条覆盖读数——
+  `read 630 files (623 .rs 7 .swift)` 与 `walked past 1 file(s) of an unscanned kind: femacs/xtask/Cargo.toml`——**让"某个被点名的树一个文件都没读"变成读数，而不是沉默**。
+  `//` 与 `/* */` 在各语言里同形，扫描器本来就是按语法走的（raw 串、`c"` 串都已建模），所以四类判据原样搬过去，没有新机制。
+  ④ **正对照（洞是真的，且已合上）**：把两行 FSF 声明块写进 `femacs/platform/macos/__probe.swift`，**HEAD 的门报 `13 sites, 0 failures`——探针完全不可见**；
+  本门的门报 `FAIL …: decl x1` 与 `FAIL …: title x1`。把探针换成五类全带（版本括注 + 声明块 + 标题注释 + 复述 + 字面量）→
+  `19 declaration sites (5 forbidden, 14 allowed literals), 6 failures`（`version`/`decl`/`title` x2/`recital`/`literal` 各一条），删掉探针回到 `13 / 0 / 0`。
+  **这次改动的实际效果 = 平台的 7 个 Swift 单元第一次被读**；读数是**零新增行**（它们今天是干净的），门只是从此看得见——所以允许清单一行没动。
+  ⑤ **边界与残余（沿用 3.226 ④⑤，本轮拿到更硬的一条证据）**：我们自己写的散文可以**提到**参照（基线行、"femacs 一比一复刻参照检出 `fd7afced403`"、根 `README.md` 的许可句），
+  **但任何文件都不许声明自己是该产品**。13 处字面量继续留在允许清单：运行时那行产品名是**逐字树**的 `femacs/lisp/version.el:111`
+  （`(format "GNU Emacs %s (build %s, %s%s%s%s)%s" …)`）拼出来的，本轮实测该文件与参照 `emacs/lisp/version.el` **`cmp` 逐字节相同**、`check-verbatim` 钉着它 ⇒
+  改 C 侧那几条字面量既**减不掉**程序里出现的产品名，又会同时破坏 1:1 与 docstring 门。产品身份层面要不要改口径，是**全面验收期**的判决（用户长期指令：前期复刻期间与 C 尽量一致）。
+  ⑥ 读数：门 `13 / 0 / 0`、`read 630 files (623 .rs 7 .swift)`、`--selftest 33 例 0 失败`；`check-verbatim` 6/4607/0；
+  改动面 `tools/check-declarations.py` 一个文件（`SCAN_DIRS` 的走法改成按 `SRC_SUFFIXES` 取文件、每次打印覆盖读数、5 条跨语言自测例），**允许清单零改动**。

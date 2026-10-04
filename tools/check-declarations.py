@@ -20,7 +20,13 @@ ported tree is scanned - `femacs/src` and `femacs/lib` plus batch F's own progra
 libraries (`lib-src`, `exec`, `lwlib`, `oldXMenu`, `nt`) and its non-C platform trees
 (`femacs/platform`: the Swift/Kotlin/C++ targets of `src/*.m`, `java/`, `haiku_*.cc`);
 `femacs/xtask` is this gate's own
-source, scanned for the first three classes and exempt from the fourth:
+source, scanned for the first three classes and exempt from the fourth.  What is read is
+decided by *suffix*, not by tree (`SRC_SUFFIXES`): the platform trees are Swift/Kotlin/C++
+today, and a tree named in `SCAN_DIRS` whose files the walk does not match is a tree the
+gate only *claims* to read.  3.250 found `femacs/platform` in exactly that state - seven
+`.swift` files, a `*.rs` glob that matched none of them, while those same files transcribe
+the comments of `src/*.m`, whose first twenty lines are the product-name prose this gate
+exists to keep out:
 
   decl     the copied ownership/licence prose (FSF, "General Public License",
            "part of GNU", "is free software", "Copyright (C)") inside a comment.
@@ -76,6 +82,16 @@ SCAN_DIRS = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/exec", "femac
              # haiku_*.cc -> C++).  They do not exist yet; naming them here is what makes
              # the rule bind the first file written into them rather than the first review.
              "femacs/platform", "femacs/xtask")
+# What the walk reads.  Keyed on the suffix, so a tree named in SCAN_DIRS cannot be bound
+# by the *name* alone: `femacs/platform` is the Swift target of `src/*.m` and holds seven
+# `.swift` files and no `.rs` at all, so a `*.rs` glob read none of the tree whose comments
+# are the ones most likely to carry the reference's opening block (3.250).  `//` and
+# `/* */` are the same syntax in every language here and the scanner already models raw and
+# `c"` strings, so the classes carry over unchanged.  The `.h`/`.c`/`.m` members are what a
+# copied file of the reference would arrive as if one is ever dropped into a scanned tree
+# (a verbatim tree is not scanned at all: `tools/check-verbatim.py` owns those).
+SRC_SUFFIXES = (".rs", ".swift", ".kt", ".kts", ".java", ".cpp", ".cc", ".cxx", ".m", ".mm",
+                ".h", ".hpp", ".c")
 # The recital rule binds the ported units and mirrors; `femacs/xtask` explains the rule in
 # its own comments and is outside it (a licence remark about this repository belongs in
 # docs/status.md and the ledger, never in a ported unit).
@@ -255,24 +271,52 @@ def classify(code: str, comment: str, recital: bool = True) -> str | None:
     return None
 
 
+def scanned_files(root: Path) -> list[tuple[str, Path]]:
+    """`(rel path, path)` for every file of every scanned tree the gate reads.
+
+    Trees are named by `SCAN_DIRS`, files by `SRC_SUFFIXES`; both are needed, because a
+    tree can hold only another language (3.250) and a suffix list is what keeps a
+    language-specific glob from deciding whether the rule binds.
+    """
+    out: list[tuple[str, Path]] = []
+    for base in SCAN_DIRS:
+        for path in sorted((root / base).rglob("*")):
+            if path.is_file() and path.suffix in SRC_SUFFIXES:
+                out.append((path.relative_to(root).as_posix(), path))
+    return out
+
+
+def unread_files(root: Path) -> list[str]:
+    """Files under a scanned tree that the gate does not read, as `rel path` strings.
+
+    Never empty by accident: `femacs/xtask/Cargo.toml` is the standing example.  It is a
+    reading, printed every run, because the failure mode it catches is a *silent* one -
+    a tree the docstring says is scanned while every file in it is skipped.
+    """
+    out: list[str] = []
+    for base in SCAN_DIRS:
+        for path in sorted((root / base).rglob("*")):
+            if path.is_file() and path.suffix not in SRC_SUFFIXES:
+                out.append(path.relative_to(root).as_posix())
+    return out
+
+
 def findings(root: Path) -> list[tuple[str, str, str]]:
     """`(path, class, line)` for every declaration this gate knows about."""
     out: list[tuple[str, str, str]] = []
-    for base in SCAN_DIRS:
-        for path in sorted((root / base).rglob("*.rs")):
-            rel = path.relative_to(root).as_posix()
-            text = path.read_text(encoding="utf-8", errors="replace")
-            code, comment = scan(text)
-            raw_lines = text.split("\n")
-            for line_no in range(max(len(code), len(comment))):
-                c = comment[line_no] if line_no < len(comment) else ""
-                k = code[line_no] if line_no < len(code) else ""
-                # The raw line is the key, not the code half: the report has to show
-                # the line a reader will open in an editor, quotes and all.
-                snippet = " ".join(raw_lines[line_no].split())[:240] if line_no < len(raw_lines) else ""
-                klass = classify(k, c, recital=not rel.startswith("femacs/xtask/"))
-                if klass:
-                    out.append((rel, klass, snippet))
+    for rel, path in scanned_files(root):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        code, comment = scan(text)
+        raw_lines = text.split("\n")
+        for line_no in range(max(len(code), len(comment))):
+            c = comment[line_no] if line_no < len(comment) else ""
+            k = code[line_no] if line_no < len(code) else ""
+            # The raw line is the key, not the code half: the report has to show
+            # the line a reader will open in an editor, quotes and all.
+            snippet = " ".join(raw_lines[line_no].split())[:240] if line_no < len(raw_lines) else ""
+            klass = classify(k, c, recital=not rel.startswith("femacs/xtask/"))
+            if klass:
+                out.append((rel, klass, snippet))
     for base in DOC_DIRS:
         for path in sorted((root / base).rglob("*.md")):
             rel = path.relative_to(root).as_posix()
@@ -354,6 +398,21 @@ SELFTEST = (
     ("declaration block reports decl, not recital", "/* Copyright (C) 2026 Free Software Foundation, Inc. */", ["decl"]),
     ("licence prose in a literal is ported semantics", 'let s = "under the terms of the GNU General Public License";', ["literal"]),
     ("emacs path is not the product", "// femacs: mirror of emacs/src/lisp.h", []),
+    # The other languages of a scanned tree - the shapes `femacs/platform` writes.  The
+    # scanner is syntax-driven (comments, `"` strings), so nothing language-specific is
+    # needed; these cases exist because the *walk* decides whether they are reached at all
+    # (3.250), and a case per language is what makes a walk that skips them visible.
+    ("copied block in a Swift comment",
+     "// This file is part of GNU Emacs.\n// Copyright (C) 2026 Free Software Foundation, Inc.",
+     ["decl", "title"]),
+    ("Swift citation of C's docstring literal",
+     'let s = "Directory of machine-readable files that come with GNU Emacs."', ["literal"]),
+    ("Kotlin port header keeps the revision only",
+     "// femacs: port of src/x.java @ fd7afced403.", []),
+    ("C++ platform title comment",
+     "/* Support for the Haiku window system, for GNU Emacs.  */", ["title"]),
+    ("licence recital in a Swift comment",
+     "// the reference's licence block is not carried.", ["recital"]),
 )
 
 
@@ -423,6 +482,11 @@ def main() -> int:
         return selftest()
 
     root = Path(args.root)
+    read = scanned_files(root)
+    skip = unread_files(root)
+    by_suffix: dict[str, int] = {}
+    for _, path in read:
+        by_suffix[path.suffix] = by_suffix.get(path.suffix, 0) + 1
     counted = tally(findings(root))
     if args.write_allowlist:
         write_allowlist(ALLOWLIST, counted)
@@ -449,6 +513,14 @@ def main() -> int:
     literals = sum(n for (_, k, _), n in counted.items() if k == "literal")
     print(f"{len(counted)} declaration sites ({decls} forbidden, {literals} allowed literals), "
           f"{failures} failures")
+    # The coverage line is the gate's own bound: what it read, and what it walked past.
+    # 3.250 added it because `femacs/platform` was "scanned" by name while its seven
+    # `.swift` files - the ones transcribing `src/*.m` - were read by nobody.
+    spans = " ".join(f"{n} {ext}" for ext, n in sorted(by_suffix.items(), key=lambda kv: -kv[1]))
+    print(f"read {len(read)} files ({spans})")
+    if skip:
+        print(f"walked past {len(skip)} file(s) of an unscanned kind: "
+              + ", ".join(sorted(skip)[:8]) + (" ..." if len(skip) > 8 else ""))
     return 1 if failures else 0
 
 
