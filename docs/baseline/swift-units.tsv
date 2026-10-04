@@ -36,9 +36,6 @@ femacs/platform/macos/nsterm.swift	ns_draw_relief	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_stretch_glyph_string	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_text_decoration	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_underwave	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_draw_vertical_window_border	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_draw_window_cursor	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_draw_window_divider	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_dumpglyphs_box_or_relief	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_dumpglyphs_image	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_fill_underline	src/nsterm.m
