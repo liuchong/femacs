@@ -1173,7 +1173,11 @@ def function_spans(text: str) -> list[dict]:
             # keyboard.c, minibuf.c, window.c, w32fns.c and oldXMenu/XLookAssoc.c, and every
             # one of them is either not ported, not built on this target, or already carries
             # that function.
-            for jj in range(j + 1, min(j + 9, len(rows))):
+            # The window is a safety bound, not the rule: the loop below stops at the first
+            # line that is neither dead, nor blank, nor a preprocessor line, nor a comment,
+            # and `{` on that line is what makes this a definition.  64 lines is enough for
+            # Emacs's longest documented declarator and still bounded.
+            for jj in range(j + 1, min(j + 64, len(rows))):
                 # A line the frozen configuration does not compile is not part of the
                 # declarator: src/emacs.c's `main` is written as
                 #   #if !defined HAVE_ANDROID || defined ANDROID_STUBIFY
@@ -1201,6 +1205,19 @@ def function_spans(text: str) -> list[dict]:
                 # at it lost the file's only live function - the checker then reported the
                 # port's `nanosleep` as an invented exported symbol.
                 if nxt.startswith("#"):
+                    continue
+                # A comment between the parameter list and the body is Emacs's own style for a
+                # documented function:
+                #     static void
+                #     ns_set_undecorated (struct frame *f, Lisp_Object new_value, …)
+                #     /* Set the undecorated flag of frame F to NEW_VALUE … (many lines) */
+                #     {
+                # and stopping at it dropped the definition entirely.  The eight-line window
+                # made that look like a lookahead limit, which is why 3.259 recorded four
+                # nsterm.m functions as a generator gap; the fix is to skip the comment, not
+                # to widen the window.
+                if (nxt.startswith("/*") or nxt.startswith("*") or nxt.startswith("//")
+                        or nxt.endswith("*/")):
                     continue
                 if nxt.startswith("{"):
                     body_line = jj

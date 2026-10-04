@@ -4782,3 +4782,11 @@
   ② **lane 自报并量清的两件事**：⑴ `tools/cinventory.py` 的 `function_spans` **8 行 lookahead 窗口**让 4 个函数（`ns_set_undecorated`/`ns_set_parent_frame`/`ns_set_no_accept_focus`/`ns_set_z_group`，文档注释 ≥8 行）**永久不进出清单** —— 台账用 4 个手补框承载，**manifest 不得为它们加行**（重生成会把它们丢掉）；这是**工具缺陷**，记进我的队列（与 `emacs.c` 的 `main` 那次同类，修法是放宽窗口并对全参照树量差异）。⑵ `Emacs_Color` 布局实测：C `sizeof 16 align 8 pixel 0 red 8 green 10 blue 12`，Swift `size 14 stride 16 align 8` 且四个 offset 相同（`stride` = C 的 `sizeof`）。
   ③ **四队棘轮按新 HEAD 重生成**（`tools/reconcile-link-ratchets.sh`）：`swift-units.tsv` **−11 行**（r10 落地的定义离开清单，且**没有**为 4 个 generator-gap 名字加行），`swift-import-pending.txt` **549 行**（195 行变动 = 3.258 的新理由 + 本片新导入），`link-pending` **365**、`link-exec-pending` **63** 不变。
   ④ **交接**：本片欠 shim lane **21 个 A 类条目**（6 个 `frame_set_*` 成员写 + `frame_alpha` + 枚举器/全局量等，名单已交给 Dirac）；`nsfns` 批⑤ 与 `xdisp`/`xterm` 仍各自在飞。
+
+- **3.260 `tools/cinventory.py` 的声明体前瞻：真正的问题是"注释"，不是窗口大小——修好后全树读数不变，但清单多出 8 个名字（其中 1 个从未被列过）（2026-10-05）**：
+  ① **触发**：3.259 ② 转来的 lane 发现——4 个 r10 函数（`ns_set_undecorated`/`ns_set_parent_frame`/`ns_set_no_accept_focus`/`ns_set_z_group`）**永久不进出清单**。lane 的判断是"8 行 lookahead 窗口"，实测**原因不同**：`function_spans` 在参数表结束行之后逐行找 `{`，遇到**注释行就 break**，于是 Emacs 那种
+  `static void` / `name (args)` / `/* 多行文档 */` / `{` 的写法（文档注释写在**声明体之前、参数表之后**）整条被丢掉；那个 8 行**窗口只是让它看起来像窗口问题**（注释越长越容易超窗）。
+  ② **修法**：前瞻里**跳过注释行**（`/*`、`*`、`*/`、`//`），并把安全上限从 8 放宽到 **64 行**——**规则**是"遇到既非死行、又非空行、又非预处理行、又非注释行的那一行就停，`{` 在那行即为定义"，窗口只是界。
+  ③ **实测（全树，两步都量）**：`emacs/src/nsterm.m` 的函数 **142 → 150**（r10 那 4 个现在在列 ✓）；**`tools/extract-abi.py --all` 全树读数不变**：`checked 590 ported files: 588 done, 2 in progress, 0 failing`——即这 8 个名字**早就被端口写出来了**，盲区在**清单**而不在端口（这正是"清单完整性"这一级证据原本的漏洞）。
+  ④ **残留一个真缺口**：修好后 `check-swift-units.py` 报 **1 new**：`ns_get_shifted_character`（nsterm.m，**既没有 Swift func 也没有 manifest 行**）——它是盲区里唯一"从未被列过、也确实没落地"的定义；下一次对账会把它写进 `swift-units.tsv`，此后它就是 nsterm lane 的正常清单项。
+  ⑤ **口径**：这是**工具正确性**修正（不是口径变化），经全树读数前后一致确认无副作用；`--all` 的两次读数（修前 588/2/0、修后 588/2/0）就是这条断言的证据。
