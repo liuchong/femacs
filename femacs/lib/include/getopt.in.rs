@@ -15,7 +15,7 @@
 // The includes follow the generated header: getopt-cdefs.h (C 77), then getopt-pfx-core.h
 // (C 78) and getopt-pfx-ext.h (C 79), each of which includes the core/ext header it prefixes.
 
-include!("getopt-cdefs.rs");
+include!("getopt-cdefs.in.rs");
 include!("getopt-pfx-core.rs");
 include!("getopt-pfx-ext.rs");
 include!("getopt-core.rs");

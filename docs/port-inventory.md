@@ -23,22 +23,22 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 504 |
-| 其中 done / wip | 490 / 14 |
-| 待开工 | 86 |
+| 已有目标文件 | 508 |
+| 其中 done / wip | 494 / 14 |
+| 待开工 | 82 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 35 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 34 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 51 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 48 |
 
 ## 3 按批次
 
@@ -48,9 +48,9 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 9 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 32 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 29 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 35 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 34 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -189,7 +189,7 @@
 | `lib/getgroups.c` | 121 | 2 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/getgroups.rs` | done |
 | `lib/getline.c` | 27 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/getline.rs` | done |
 | `lib/getloadavg.c` | 897 | 1 | 0 | 19 | 4 | 2 | 7 | L | `femacs/lib/getloadavg.rs` | done |
-| `lib/getopt-cdefs.in.h` | 74 | 0 | 0 | 5 | 1 | 0 | 0 | L | `femacs/lib/include/getopt-cdefs.in.rs` | todo |
+| `lib/getopt-cdefs.in.h` | 74 | 0 | 0 | 5 | 1 | 0 | 0 | L | `femacs/lib/include/getopt-cdefs.in.rs` | done |
 | `lib/getopt-core.h` | 96 | 0 | 0 | 1 | 1 | 0 | 4 | L | `femacs/lib/include/getopt-core.rs` | done |
 | `lib/getopt-ext.h` | 77 | 0 | 0 | 4 | 4 | 4 | 0 | L | `femacs/lib/include/getopt-ext.rs` | done |
 | `lib/getopt-pfx-core.h` | 76 | 0 | 0 | 10 | 1 | 0 | 0 | L | `femacs/lib/include/getopt-pfx-core.rs` | done |
@@ -437,7 +437,7 @@
 | `src/androidmenu.c` | 860 | 14 | 1 | 2 | 0 | 16 | 3 | F | `femacs/src/androidmenu.rs` | done |
 | `src/androidselect.c` | 1,220 | 12 | 8 | 1 | 0 | 18 | 5 | F | `femacs/src/androidselect.rs` | done |
 | `src/androidterm.c` | 7,117 | 132 | 0 | 1 | 4 | 40 | 7 | F | `femacs/src/androidterm.rs` | done |
-| `src/androidterm.h` | 496 | 0 | 0 | 19 | 3 | 103 | 4 | F | `femacs/src/include/androidterm.rs` | todo |
+| `src/androidterm.h` | 496 | 0 | 0 | 19 | 3 | 103 | 4 | F | `femacs/src/include/androidterm.rs` | done |
 | `src/androidvfs.c` | 7,950 | 181 | 1 | 5 | 10 | 81 | 25 | F | `femacs/src/androidvfs.rs` | done |
 | `src/atimer.c` | 625 | 17 | 1 | 1 | 2 | 2 | 6 | B | `femacs/src/atimer.rs` | done |
 | `src/atimer.h` | 84 | 0 | 0 | 1 | 3 | 6 | 0 | B | `femacs/src/include/atimer.rs` | done |
@@ -515,7 +515,7 @@
 | `src/gnutls.c` | 3,196 | 28 | 19 | 115 | 1 | 0 | 3 | D | `femacs/src/gnutls.rs` | done |
 | `src/gnutls.h` | 100 | 0 | 0 | 10 | 9 | 0 | 0 | D | `femacs/src/include/gnutls.rs` | done |
 | `src/gtkutil.c` | 6,753 | 146 | 0 | 19 | 7 | 10 | 9 | F | `femacs/src/gtkutil.rs` | done |
-| `src/gtkutil.h` | 245 | 0 | 0 | 10 | 6 | 0 | 2 | F | `femacs/src/include/gtkutil.rs` | todo |
+| `src/gtkutil.h` | 245 | 0 | 0 | 10 | 6 | 0 | 2 | F | `femacs/src/include/gtkutil.rs` | done |
 | `src/haiku.c` | 286 | 7 | 0 | 0 | 0 | 4 | 4 | F | `femacs/src/haiku.rs` | done |
 | `src/haiku_io.c` | 217 | 8 | 0 | 1 | 1 | 0 | 3 | F | `femacs/src/haiku_io.rs` | done |
 | `src/haiku_support.h` | 784 | 0 | 0 | 3 | 125 | 100 | 3 | F | `femacs/src/include/haiku_support.rs` | todo |
@@ -576,7 +576,7 @@
 | `src/pgtkmenu.c` | 1,123 | 22 | 2 | 0 | 0 | 0 | 2 | F | `femacs/src/pgtkmenu.rs` | done |
 | `src/pgtkselect.c` | 1,975 | 34 | 8 | 1 | 0 | 21 | 7 | F | `femacs/src/pgtkselect.rs` | done |
 | `src/pgtkterm.c` | 7,780 | 199 | 0 | 16 | 9 | 6 | 14 | F | `femacs/src/pgtkterm.rs` | done |
-| `src/pgtkterm.h` | 681 | 1 | 0 | 46 | 3 | 169 | 1 | F | `femacs/src/include/pgtkterm.rs` | todo |
+| `src/pgtkterm.h` | 681 | 1 | 0 | 46 | 3 | 169 | 1 | F | `femacs/src/include/pgtkterm.rs` | done |
 | `src/print.c` | 3,069 | 47 | 11 | 3 | 7 | 44 | 12 | B | `femacs/src/print.rs` | done |
 | `src/process.c` | 9,122 | 125 | 63 | 24 | 17 | 9 | 20 | D | `femacs/src/process.rs` | wip |
 | `src/process.h` | 320 | 6 | 0 | 2 | 4 | 59 | 2 | D | `femacs/src/include/process.rs` | done |

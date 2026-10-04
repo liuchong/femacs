@@ -68,7 +68,7 @@ items ticked; `build-tu lib/getopt.c` -> `built lib/getopt.rs -> ../build/femacs
   written out, and `int option_index;` (C 206) starts at C's zero for the type because Rust
   needs a value before the binding can be read (PORTING.md 0.1-13).
 - **Mirrors.**  `include/getopt.in.rs` (the generated `<getopt.h>`),
-  `include/getopt-cdefs.rs`, `include/getopt-pfx-core.rs`, `include/getopt-pfx-ext.rs`,
+  `include/getopt-cdefs.in.rs`, `include/getopt-pfx-core.rs`, `include/getopt-pfx-ext.rs`,
   `include/getopt-core.rs`, `include/getopt-ext.rs` and `include/getopt_int.rs` are new; the
   first three carry the record only, because a `#include_next` of the system header, the
   `__BEGIN_DECLS`/`__THROW` attributes and the `rpl_` rename layer have no Rust item (the

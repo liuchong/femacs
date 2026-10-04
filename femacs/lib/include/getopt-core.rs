@@ -1,7 +1,7 @@
 // femacs: WIP mirror of lib/getopt-core.h @ fd7afced403 (PORTING.md P-26).
 //
 // The header declares the four variables and `getopt` itself; the `__BEGIN_DECLS` /
-// `__END_DECLS` pair around them is `extern "C"` (getopt-cdefs.rs), and the names are the
+// `__END_DECLS` pair around them is `extern "C"` (getopt-cdefs.in.rs), and the names are the
 // `rpl_`-prefixed ones because getopt-pfx-core.h re-includes this header with
 // `__GETOPT_PREFIX` = `rpl_` in the frozen configuration (PORTING.md 10.13).
 //

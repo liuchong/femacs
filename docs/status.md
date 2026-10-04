@@ -2193,3 +2193,30 @@
   该状态的书面记录，任何人看到 `git status` 的 `??` 都应在这里找到解释。
   ④ 本轮 lane 面：mirror A/B 已经开始落盘（`femacs/src/include/androidterm.rs` 已出现，尚未收口），
   Swift lane 在 `src/nsimage.m` 的 ABI 清单上，keyboard lane 仍在原边界内推进。
+
+- **3.139 对账抓到的唯一一处"文件名不在 map 上"：`getopt-cdefs` 少了个 `.in`，已 `git mv` 回 map 的名字（2026-10-04）**：
+  ① **发现方式（双向对账，不是抽样）**：把 `docs/port-inventory.md` 的 target 列（593 行有目标）与工作树里全部
+  `femacs/**/*.rs`（541 个）做**两个方向**的集合差。反向（有文件、没有行指向它）命中 36 个，其中 **35 个是系统头
+  镜像**——`<stdio.h>`/`<stdlib.h>`/`<string.h>`/`<ctype.h>`/`<dirent.h>`/`<errno.h>`/`<signal.h>`/`<math.h>`/
+  `<pwd.h>`/`<grp.h>`/`<termios.h>`/`<langinfo.h>`/`<sys/time.h>`/`<sys/select.h>`/`<sys/resource.h>`/
+  `<sys/mount.h>`/`<sys/utsname.h>`/`<sys/sysctl.h>`/`<sys/acl.h>`/`<stdbit.h>`/`<stdcountof.h>`/`<float.h>`/
+  `<a.out.h>` 等，它们是 P-26/P-50 的"冻结目标系统头"镜像，参照里没有对应的文件，**本来就不该有行**；
+  **只有 1 个是真错**：`femacs/lib/include/getopt-cdefs.rs` 与它的台账 `docs/ports/include-getopt-cdefs.md`。
+  ② **为什么它必须修**：`docs/port-map.md` 给 `lib/getopt-cdefs.in.h` 定的目标是
+  `femacs/lib/include/getopt-cdefs.in.rs`（与 `getopt.in.rs`/`limits.in.rs`/`stdint.in.rs`/`sys_types.in.rs`/
+  `time.in.rs`/`fcntl.in.rs`/`unistd.in.rs`/`sys_stat.in.rs` 同一形状），而台账名同规则是
+  `docs/ports/include-<stem>.md`。少了 `.in` 的后果不是编译错，而是**清单永远读 `todo`**——文件早在树里、`--check`
+  也是 OK 的，DoD 第 1 条（590 条全 `ported`）却永远不可能满足。这正是"生成物 vs 工作树"双向对账才能看到的缺陷：
+  前 100 多轮只单向看 `todo` 行，就把它读成了"还没开工"。
+  ③ **修法**：`git mv` 两个文件到 map 的名字（保留历史：`R` 状态），同步三处引用——`include/getopt.in.rs` 18 的
+  `include!("getopt-cdefs.in.rs")`、`include/getopt-core.rs` 4 的注释、`docs/ports/getopt.md` 71 的引用；台账的
+  Decisions 记下改名与理由，"WIP mirror" 的措辞改成"处置记录、无条目"（与 `arg-nonnull.rs` 同形：四个拼写宏
+  `__BEGIN_DECLS`/`__END_DECLS`/`__GNUC_PREREQ`/`__THROW` 无 Rust 条目，`HAVE_SYS_CDEFS_H` 未定义使
+  `#include <sys/cdefs.h>` 是死文本）。
+  ④ 证据：`--check emacs/lib/getopt-cdefs.in.h femacs/lib/include/getopt-cdefs.in.rs` → **OK**；
+  消费者两侧 `build-tu lib/getopt.c` 与 `build-tu lib-src/make-fingerprint.c` 都 **built**；
+  `check-declarations` 13 sites (0 forbidden) / 0、`check-mirror-dupes` 0 failures、`check-globals` 283 units / 0、
+  `check-verbatim` 6 trees/4607 files/0；`port-inventory` 复算 **508 = 494 done / 14 wip，待开工 82**
+  （该行由 `todo` 直接跳到 `done`；总数同时含两条镜像 lane 已落盘的在飞文件）。
+  ⑤ **留给后续的规矩**：每轮收尾时把 target 列与工作树做一次双向对账（本次是 541 个文件里唯一一处），
+  比只盯 `todo` 行可靠。
