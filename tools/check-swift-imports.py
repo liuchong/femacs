@@ -160,28 +160,63 @@ def classify(name: str) -> str:
         return "reference-source"
     if rust_side_names() and name in rust_side_names():
         return "rust-side"
+    if name in RUST_SIDE_GATED:
+        return "rust-side-gated"
     return "unclassified"
 
 
 RUST_SIDE: set[str] = set()
+# A name the tree declares behind a feature gate is a *different* thing from one it declares
+# unconditionally: the export exists, and no configuration this repository builds turns that arm
+# on, so the row can only be cleared by a build with the feature on (status 3.262 measured what
+# that costs for `have_ns`; 3.264 recorded the shim's 43 guarded bodies as exactly this class).
+# The lane that reported it is right that calling them `rust-side` - "the core must export it" -
+# asks for work that is already done.
+RUST_SIDE_GATED: dict[str, str] = {}
+GATE = re.compile(r'#\[cfg\s*\(\s*feature\s*=\s*"([a-z0-9_]+)"\s*\)\]')
 
 
-def rust_items() -> set[str]:
-    """Every item name the Rust tree declares with a C-ABI-relevant spelling (`pub fn NAME`)."""
+def rust_items() -> tuple[set[str], dict[str, str]]:
+    """`(unconditional names, gated name -> feature)` the Rust tree spells C-ABI-fashion.
+
+    The gate is the nearest `#[cfg (feature = "...")]` in the attributes directly above the
+    declaration, which is how this tree writes them (`#[unsafe(no_mangle)]` then `#[cfg (...)`
+    then `pub ... fn NAME`).
+    """
     names: set[str] = set()
+    gated: dict[str, str] = {}
     for g in ("femacs/src/*.rs", "femacs/src/include/*.rs", "femacs/lib/*.rs",
               "femacs/lib/include/*.rs"):
         for path in glob.glob(str(REPO / g)):
             txt = Path(path).read_text(encoding="utf-8", errors="replace")
-            names |= {m.group(1) for m in re.finditer(r"\bpub\s+(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn\s+(\w+)", txt)}
-            names |= {m.group(1) for m in re.finditer(r"\bmacro_rules!\s+(\w+)", txt)}
-    return names
+            lines = txt.split("\n")
+            for i, line in enumerate(lines):
+                found = re.findall(r"\bpub\s+(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn\s+(\w+)", line)
+                found += re.findall(r"\bmacro_rules!\s+(\w+)", line)
+                if not found:
+                    continue
+                feature = None
+                for j in range(i - 1, max(-1, i - 5), -1):
+                    stripped = lines[j].strip()
+                    if stripped.startswith("#["):
+                        m = GATE.search(stripped)
+                        if m:
+                            feature = m.group(1)
+                            break
+                    elif stripped and not stripped.startswith("//"):
+                        break
+                for name in found:
+                    if feature:
+                        gated[name] = feature
+                    else:
+                        names.add(name)
+    return names, gated
 
 
 def rust_side_names() -> set[str]:
-    global RUST_SIDE
-    if not RUST_SIDE:
-        RUST_SIDE = rust_items()
+    global RUST_SIDE, RUST_SIDE_GATED
+    if not RUST_SIDE and not RUST_SIDE_GATED:
+        RUST_SIDE, RUST_SIDE_GATED = rust_items()
     return RUST_SIDE
 
 
@@ -255,6 +290,11 @@ def reason(name: str) -> str:
     if klass == "rust-side":
         return ("an accessor the mirror names in Rust for a record member the unit reads; the core must export "
                 "it as a C-ABI entry (the lane's rule) or the Swift unit cannot link")
+    if klass == "rust-side-gated":
+        feature = RUST_SIDE_GATED.get(name, "?")
+        return (f"the core does export it, but only behind `feature = \"{feature}\"`: no configuration this "
+                f"repository builds turns that arm on, so only a build with {feature} can clear this row "
+                f"(docs/status.md 3.262/3.264) - the work is done, the row is a record")
     # The class the universes cannot explain is *two* things, and 3.257 asked for the reason to say
     # which instead of suggesting a typo: a C-ABI spelling a Swift unit chose for a C construct
     # (the unit's own `## ABI` table records that decision, and the core owes the same-name entry -
@@ -338,7 +378,8 @@ def main() -> int:
     if args.report:
         for name in review:
             print(f"REVIEW {name}: imported by {', '.join(sorted(missing[name]))}")
-    counts = {k: 0 for k in ("reference", "reference-source", "rust-side", "system", "unclassified")}
+    counts = {k: 0 for k in ("reference", "reference-source", "rust-side", "rust-side-gated",
+                             "system", "unclassified")}
     for name in missing:
         counts[classify(name)] += 1
     print(" ".join(f"{k}={v}" for k, v in counts.items()))
