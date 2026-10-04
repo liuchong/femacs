@@ -3508,3 +3508,1018 @@ unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
 
   return 0;
 }
+
+/* ---- Slice 7: C 3616-4466 - the drag-and-drop target-window discovery (the io-error escape,
+   the two helpers C keeps inside its own conditions, the toplevel walk, the wm-state/protocol
+   query, the unsupported-drop fallback and the window walk itself).  The conventions are slice
+   6's: every configuration arm is carried under its feature (P-51); the X11 macros the mirror's
+   `x11_constants` module does not carry stay bare (`NormalState`, `IsViewable`, `XA_PRIMARY`,
+   `ButtonPress`/`ButtonRelease` and their two masks - the Decision 15 ruling, with the measured
+   values in this ledger's Evidence); C's uninitialised locals take the port's zero (PORTING.md
+   1.5); C's prototypes are not transcribed (Rust resolves items by name - the C 1162-1210 note's
+   rule), except the two this unit takes from another *unit's* header, which the one function
+   that calls them declares (the `font.rs` 413-418 shape).  */
+
+/* C 3616-3624: C declares it `_Noreturn int`, which the port writes `-> !` (PORTING.md 5.2);
+   the `USE_GTK` half is C's other arm (P-51), and `siglongjmp` is the libc function declared
+   above.  */
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" fn x_dnd_io_error_handler (display: *mut c_void) -> !
+{
+  #[cfg (feature = "use_gtk")]
+  { emacs_abort () }
+  #[cfg (not (feature = "use_gtk"))]
+  {
+    siglongjmp (&raw mut x_dnd_disconnect_handler, 1);
+    /* C's arm is `_Noreturn`; `siglongjmp` never returns, so the port gives Rust's `-> !` the
+       divergence it needs (the `xm_drag_window_io_error_handler` shape).  */
+    unreachable! ()
+  }
+}
+
+/* C 3626: `#define X_DND_SUPPORTED_VERSION 5` - a value, so the port writes the constant the
+   extractor reads it as (the `XM_DRAG_PROTOCOL_VERSION` shape, C 1759-1761).  */
+#[cfg (feature = "have_x_windows")]
+pub const X_DND_SUPPORTED_VERSION: c_int = 5;
+
+/* C 3628-3630: three forward declarations (`x_dnd_get_window_proto` 3628, `x_dnd_get_window_proxy`
+   3629 and `x_dnd_update_state` 3630).  Rust has no prototypes and resolves items by name, so
+   each definition stands where C writes it and nothing stands here.  */
+
+/* C 3632-3696: `#ifdef USE_XCB` - the xcb half of the proxy/protocol query, dead in the frozen
+   configuration and carried under its feature (P-51).  The xcb type names stay bare (this file's
+   convention for the X11-header names it cannot see), and C's uninitialised cookies take the
+   port's zero (PORTING.md 1.5).  */
+
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
+unsafe fn x_dnd_get_proxy_proto (dpyinfo: *mut x_display_info, wdesc: Window,
+				 proxy_out: *mut Window, proto_out: *mut c_int)
+{
+  use crate::x11_constants::{None, XA_ATOM, XA_WINDOW};
+
+  let mut xdnd_proto_cookie: xcb_get_property_cookie_t = std::mem::zeroed ();
+  let mut xdnd_proxy_cookie: xcb_get_property_cookie_t = std::mem::zeroed ();
+  let mut reply: *mut xcb_get_property_reply_t = std::ptr::null_mut ();
+  let mut error: *mut xcb_generic_error_t = std::ptr::null_mut ();
+
+  if !proxy_out.is_null ()
+    { *proxy_out = None as Window; }
+
+  if !proto_out.is_null ()
+    { *proto_out = -1; }
+
+  if !proxy_out.is_null ()
+    {
+      xdnd_proxy_cookie = xcb_get_property ((*dpyinfo).xcb_connection, 0,
+					    wdesc as xcb_window_t,
+					    (*dpyinfo).Xatom_XdndProxy as xcb_atom_t,
+					    XA_WINDOW, 0, 1);
+    }
+
+  if !proto_out.is_null ()
+    {
+      xdnd_proto_cookie = xcb_get_property ((*dpyinfo).xcb_connection, 0,
+					    wdesc as xcb_window_t,
+					    (*dpyinfo).Xatom_XdndAware as xcb_atom_t,
+					    XA_ATOM, 0, 1);
+    }
+
+  if !proxy_out.is_null ()
+    {
+      reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,
+				      xdnd_proxy_cookie, &raw mut error);
+
+      if reply.is_null ()
+	{ free (error as *mut c_void); }
+      else
+	{
+	  if (*reply).format == 32
+	      && (*reply).r#type == XA_WINDOW
+	      && (xcb_get_property_value_length (reply) >= 4)
+	    { *proxy_out = *(xcb_get_property_value (reply) as *mut xcb_window_t); }
+
+	  free (reply as *mut c_void);
+	}
+    }
+
+  if !proto_out.is_null ()
+    {
+      reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,
+				      xdnd_proto_cookie, &raw mut error);
+
+      if reply.is_null ()
+	{ free (error as *mut c_void); }
+      else
+	{
+	  if (*reply).format == 32
+	      && (*reply).r#type == XA_ATOM
+	      && (xcb_get_property_value_length (reply) >= 4)
+	    { *proto_out = *(xcb_get_property_value (reply) as *mut xcb_atom_t) as c_int; }
+
+	  free (reply as *mut c_void);
+	}
+    }
+}
+
+/* C 3698-3718: `#ifdef HAVE_XSHAPE` - the point-in-rectangles test, dead in the frozen
+   configuration and carried under its feature (P-51).  `XRectangle`'s fields are `short` and
+   `unsigned short`, so C's `tem->x + tem->width` is int arithmetic; the port writes the two
+   promotions C's integer promotion performs.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xshape"))]
+unsafe fn x_dnd_get_target_window_2 (rects: *mut XRectangle, nrects: c_int,
+				     x: c_int, y: c_int) -> bool
+{
+  let mut i: c_int;
+  let mut tem: *mut XRectangle;
+
+  i = 0;
+  while i < nrects
+    {
+      tem = rects.offset (i as isize);
+
+      if x >= (*tem).x as c_int && y >= (*tem).y as c_int
+	  && x < (*tem).x as c_int + (*tem).width as c_int
+	  && y < (*tem).y as c_int + (*tem).height as c_int
+	{ return true; }
+
+      i += 1;
+    }
+
+  return false;
+}
+
+/* C 3720-3817: the toplevel search.  C's `for` increment runs on its `continue` too, so the
+   port keeps the increment after a labelled `'body:` block (PORTING.md 2.2, the
+   `overlay_arrow_in_current_buffer_p` shape of deviation 133) and names the loop `'toplevels`
+   for C's two `break`s - a bare `break` inside a labelled block needs a label (E0695, measured
+   in this slice's first x11-arm probe).  The `#ifdef HAVE_XSHAPE` half of C 3777 is a named
+   binding so the `if` C writes once stays one statement (the `dims_ok` shape of Decision 15).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_get_target_window_1 (dpyinfo: *mut x_display_info, root_x: c_int,
+				     root_y: c_int, motif_out: *mut c_int,
+				     extents_p: *mut bool) -> Window
+{
+  use crate::x11_constants::None;
+
+  let mut tem: *mut x_client_list_window;
+  let mut chosen: *mut x_client_list_window = std::ptr::null_mut ();
+
+  /* Loop through x_dnd_toplevels until we find the toplevel where
+     root_x and root_y are.  */
+
+  *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int;
+
+  tem = x_dnd_toplevels;
+  'toplevels: while !tem.is_null ()
+    {
+      'body:
+	{
+	  if !(*tem).mapped_p || (*tem).wm_state != NormalState as c_ulong
+	    { break 'body; }
+
+	  /* Test if the coordinates are inside the window's frame
+	     extents, and return None in that case.  */
+
+	  *extents_p = true;
+	  if root_x > (*tem).x - (*tem).frame_extents_left
+	      && root_x < (*tem).x
+	      && root_y > (*tem).y - (*tem).frame_extents_top
+	      && root_y < ((*tem).y + (*tem).height - 1
+			   + (*tem).frame_extents_bottom)
+	    { return None as Window; }
+
+	  if root_x > (*tem).x + (*tem).width
+	      && root_x < ((*tem).x + (*tem).width - 1
+			   + (*tem).frame_extents_right)
+	      && root_y > (*tem).y - (*tem).frame_extents_top
+	      && root_y < ((*tem).y + (*tem).height - 1
+			   + (*tem).frame_extents_bottom)
+	    { return None as Window; }
+
+	  if root_y > (*tem).y - (*tem).frame_extents_top
+	      && root_y < (*tem).y
+	      && root_x > (*tem).x - (*tem).frame_extents_left
+	      && root_x < ((*tem).x + (*tem).width - 1
+			   + (*tem).frame_extents_right)
+	    { return None as Window; }
+
+	  if root_y > (*tem).y + (*tem).height
+	      && root_y < ((*tem).y + (*tem).height - 1
+			   + (*tem).frame_extents_bottom)
+	      && root_x >= (*tem).x - (*tem).frame_extents_left
+	      && root_x < ((*tem).x + (*tem).width - 1
+			   + (*tem).frame_extents_right)
+	    { return None as Window; }
+	  *extents_p = false;
+
+	  if root_x >= (*tem).x && root_y >= (*tem).y
+	      && root_x < (*tem).x + (*tem).width
+	      && root_y < (*tem).y + (*tem).height
+	    {
+	      /* C 3776-3778's `#ifdef HAVE_XSHAPE` half; without the shape extension C's `if`
+		 has no condition at all.  */
+	      #[cfg (feature = "have_xshape")]
+	      let bounding_only = (*tem).n_bounding_rects == -1;
+	      #[cfg (not (feature = "have_xshape"))]
+	      let bounding_only = true;
+
+	      if bounding_only
+		{
+		  chosen = tem;
+		  break 'toplevels;
+		}
+
+	      #[cfg (feature = "have_xshape")]
+	      {
+		if x_dnd_get_target_window_2 ((*tem).bounding_rects,
+					      (*tem).n_bounding_rects,
+					      (*tem).border_width + root_x - (*tem).x,
+					      (*tem).border_width + root_y - (*tem).y)
+		  {
+		    if (*tem).n_input_rects == -1
+			|| x_dnd_get_target_window_2 ((*tem).input_rects,
+						      (*tem).n_input_rects,
+						      ((*tem).border_width
+						       + root_x - (*tem).x),
+						      ((*tem).border_width
+						       + root_y - (*tem).y))
+		      {
+			chosen = tem;
+			break 'toplevels;
+		      }
+		  }
+	      }
+	    }
+	}
+      tem = (*tem).next;
+    }
+
+  if !chosen.is_null ()
+    {
+      *motif_out = if x_dnd_disable_motif_protocol
+	{ xm_drag_style::XM_DRAG_STYLE_NONE as c_int }
+	else
+	  { (*chosen).xm_protocol_style as c_int };
+      return (*chosen).window;
+    }
+  else
+    { *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int; }
+
+  return None as Window;
+}
+
+/* C 3819-3980: the wm-state and protocol query.  Both of C's arms are carried - the `#ifndef
+   USE_XCB` one (live in the frozen reading) and the `#else` one, whose xcb type names stay bare
+   and whose `free (error), rc = false;` is C's comma operator, which Rust has no spelling for
+   (the two statements stand on their own lines; the `magic_db` note's class).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_get_wm_state_and_proto (dpyinfo: *mut x_display_info, window: Window,
+					wmstate_out: *mut c_int, proto_out: *mut c_int,
+					motif_out: *mut c_int, proxy_out: *mut Window) -> c_int
+{
+  #[cfg (not (feature = "use_xcb"))]
+  use crate::x11_constants::{AnyPropertyType, Success};
+  #[cfg (feature = "use_xcb")]
+  use crate::x11_constants::{None, XA_ATOM, XA_WINDOW};
+
+  #[cfg (not (feature = "use_xcb"))]
+  let mut r#type: Atom;
+  #[cfg (not (feature = "use_xcb"))]
+  let mut format: c_int;
+  #[cfg (not (feature = "use_xcb"))]
+  let mut nitems: c_ulong;
+  #[cfg (not (feature = "use_xcb"))]
+  let mut bytes_after: c_ulong;
+  #[cfg (not (feature = "use_xcb"))]
+  let mut data: *mut u8 = std::ptr::null_mut ();
+  #[cfg (not (feature = "use_xcb"))]
+  let mut xm_info: xm_drag_receiver_info = std::mem::zeroed ();
+
+  #[cfg (feature = "use_xcb")]
+  let mut wmstate_cookie: xcb_get_property_cookie_t = std::mem::zeroed ();
+  #[cfg (feature = "use_xcb")]
+  let mut xdnd_proto_cookie: xcb_get_property_cookie_t = std::mem::zeroed ();
+  #[cfg (feature = "use_xcb")]
+  let mut xdnd_proxy_cookie: xcb_get_property_cookie_t = std::mem::zeroed ();
+  #[cfg (feature = "use_xcb")]
+  let mut xm_style_cookie: xcb_get_property_cookie_t = std::mem::zeroed ();
+  #[cfg (feature = "use_xcb")]
+  let mut reply: *mut xcb_get_property_reply_t = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut error: *mut xcb_generic_error_t = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut xmdata: *mut u8 = std::ptr::null_mut ();
+
+  let mut rc: c_int;
+
+  #[cfg (not (feature = "use_xcb"))]
+  {
+    x_catch_errors ((*dpyinfo).display);
+    rc = (XGetWindowProperty ((*dpyinfo).display, window,
+			      (*dpyinfo).Xatom_wm_state,
+			      0, 2, false, AnyPropertyType,
+			      &raw mut r#type, &raw mut format, &raw mut nitems,
+			      &raw mut bytes_after, &raw mut data)
+	  == Success
+	  && x_had_errors_p ((*dpyinfo).display) == 0
+	  && !data.is_null () && nitems == 2 && format == 32) as c_int;
+    x_uncatch_errors ();
+
+    if rc != 0
+      { *wmstate_out = *(data as *mut c_ulong) as c_int; }
+
+    *proto_out = x_dnd_get_window_proto (dpyinfo, window);
+
+    if xm_read_drag_receiver_info (dpyinfo, window, &raw mut xm_info) == 0
+      { *motif_out = xm_info.protocol_style as c_int; }
+    else
+      { *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int; }
+
+    *proxy_out = x_dnd_get_window_proxy (dpyinfo, window);
+
+    if !data.is_null ()
+      { XFree (data); }
+  }
+
+  #[cfg (feature = "use_xcb")]
+  {
+    rc = 1;
+
+    wmstate_cookie = xcb_get_property ((*dpyinfo).xcb_connection, 0,
+				       window as xcb_window_t,
+				       (*dpyinfo).Xatom_wm_state as xcb_atom_t,
+				       0, 0, 2);
+    xdnd_proto_cookie = xcb_get_property ((*dpyinfo).xcb_connection, 0,
+					  window as xcb_window_t,
+					  (*dpyinfo).Xatom_XdndAware as xcb_atom_t,
+					  XA_ATOM, 0, 1);
+    xdnd_proxy_cookie = xcb_get_property ((*dpyinfo).xcb_connection, 0,
+					  window as xcb_window_t,
+					  (*dpyinfo).Xatom_XdndProxy as xcb_atom_t,
+					  XA_WINDOW, 0, 1);
+    xm_style_cookie
+      = xcb_get_property ((*dpyinfo).xcb_connection, 0,
+			  window as xcb_window_t,
+			  (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO as xcb_atom_t,
+			  (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO as xcb_atom_t,
+			  0, 4);
+
+    reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,
+				    wmstate_cookie, &raw mut error);
+
+    if reply.is_null ()
+      {
+	free (error as *mut c_void);
+	rc = 0;
+      }
+    else
+      {
+	if (*reply).format != 32
+	    || xcb_get_property_value_length (reply) != 8
+	  { rc = 0; }
+	else
+	  { *wmstate_out = *(xcb_get_property_value (reply) as *mut u32) as c_int; }
+
+	free (reply as *mut c_void);
+      }
+
+    reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,
+				    xdnd_proto_cookie, &raw mut error);
+
+    *proto_out = -1;
+    if reply.is_null ()
+      { free (error as *mut c_void); }
+    else
+      {
+	if (*reply).format == 32
+	    && xcb_get_property_value_length (reply) >= 4
+	  { *proto_out = *(xcb_get_property_value (reply) as *mut u32) as c_int; }
+
+	free (reply as *mut c_void);
+      }
+
+    *proxy_out = None as Window;
+    reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,
+				    xdnd_proxy_cookie, &raw mut error);
+
+    if reply.is_null ()
+      { free (error as *mut c_void); }
+    else
+      {
+	if (*reply).format == 32
+	    && (*reply).r#type == XA_WINDOW
+	    && (xcb_get_property_value_length (reply) >= 4)
+	  { *proxy_out = *(xcb_get_property_value (reply) as *mut xcb_window_t); }
+
+	free (reply as *mut c_void);
+      }
+
+    *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int;
+
+    reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,
+				    xm_style_cookie, &raw mut error);
+
+    if reply.is_null ()
+      { free (error as *mut c_void); }
+    else
+      {
+	if (*reply).format == 8
+	    && (*reply).r#type == (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO
+	    && xcb_get_property_value_length (reply) >= 4
+	  {
+	    xmdata = xcb_get_property_value (reply);
+	    *motif_out = *xmdata.offset (2) as c_int;
+	  }
+
+	free (reply as *mut c_void);
+      }
+  }
+
+  return rc;
+}
+
+/* From the XDND protocol specification:
+
+   Dropping on windows that do not support XDND
+
+   Since middle clicking is the universal shortcut for pasting
+   in X, one can drop data into a window that does not support
+   XDND by:
+
+   1. After the mouse has been released to trigger the drop,
+   obtain ownership of XA_PRIMARY.
+
+   2. Send a ButtonPress event and then a ButtonRelease event to
+   the deepest subwindow containing the mouse to simulate a
+   middle click.  The times for these events should be the time
+   of the actual button release +1 and +2, respectively.  These
+   values will not be used by anybody else, so one can
+   unambiguously recognize the resulting `XConvertSelection'
+   request.
+
+   3. If a request for XA_PRIMARY arrives bearing the timestamp
+   of either the ButtonPress or the ButtonRelease event, treat
+   it as a request for XdndSelection.  Note that you must use
+   the X data types instead of the MIME types in this case.
+   (e.g. XA_STRING instead of text/plain).  */
+
+/* C 3985-4079.  `XA_PRIMARY`, `ButtonPress`, `ButtonRelease` and the two button masks are
+   X11-header names the mirror's `x11_constants` module does not carry yet, so they stay bare
+   (Decision 15's ruling; the measured values are in this ledger's Evidence).  Two declarations
+   C takes from *other units'* headers sit in the body: `frame.h`'s
+   `decode_window_system_frame` (`frame.c` defines it) and `xterm.h`'s `x_own_selection`
+   (`xselect.c` defines it) - this unit's include graph reaches no mirror that carries either,
+   and the transcription lands with the unit that needs it (the `include/xterm.rs` prototype
+   note; the `font.rs` 413-418 and `keyboard.rs` `haiku_handle_selection_clear` shapes).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_do_unsupported_drop (dpyinfo: *mut x_display_info, frame: Lisp_Object,
+				     value: Lisp_Object, targets: Lisp_Object,
+				     target_window: Window, root_x: c_int,
+				     root_y: c_int, before: Time)
+{
+  use crate::x11_constants::None;
+
+  unsafe extern "C" {
+    /// C: frame.h 1474-1475: `extern WINDOW_SYSTEM_RETURN struct frame *decode_window_system_frame (Lisp_Object);`
+    pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
+    /// C: xterm.h 1947-1948: `extern void x_own_selection (Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object, Time);`
+    pub fn x_own_selection (selection_name: Lisp_Object, selection_value: Lisp_Object,
+			    frame: Lisp_Object, dnd_data: Lisp_Object, timestamp: Time);
+  }
+
+  let mut event: XEvent = std::mem::zeroed ();
+  let mut dest_x: c_int;
+  let mut dest_y: c_int;
+  let mut child_return: Window = 0;
+  let mut child: Window;
+  let mut owner: Window;
+  let mut current_value: Lisp_Object;
+  let mut f: *mut frame;
+
+  f = decode_window_system_frame (frame);
+
+  if NILP (value)
+    { return; }
+
+  if !x_dnd_use_unsupported_drop
+    { return; }
+
+  event.xbutton.serial = 0;
+  event.xbutton.send_event = true;
+  event.xbutton.display = (*dpyinfo).display;
+  event.xbutton.root = (*dpyinfo).root_window;
+  event.xbutton.x_root = root_x;
+  event.xbutton.y_root = root_y;
+
+  x_catch_errors ((*dpyinfo).display);
+
+  child = (*dpyinfo).root_window;
+  dest_x = root_x;
+  dest_y = root_y;
+
+  while XTranslateCoordinates ((*dpyinfo).display, (*dpyinfo).root_window,
+			       child, root_x, root_y, &raw mut dest_x, &raw mut dest_y,
+			       &raw mut child_return) != 0
+      && child_return != None as Window
+    { child = child_return; }
+
+  x_uncatch_errors ();
+
+  if !CONSP (value)
+    { return; }
+
+  current_value = assq_no_quit (QPRIMARY (),
+				(*(*dpyinfo).terminal).Vselection_alist);
+
+  if !NILP (current_value)
+    { current_value = XCAR (XCDR (current_value)); }
+
+  x_own_selection (QPRIMARY (), current_value, frame,
+		   XCAR (XCDR (value)), before);
+
+  owner = XGetSelectionOwner ((*dpyinfo).display, XA_PRIMARY);
+
+  /* If we didn't successfully obtain selection ownership, refrain
+     from generating events that will insert something else.  */
+
+  if owner != FRAME_X_WINDOW! (f)
+    { return; }
+
+  /* mouse-drag-and-drop-region will immediately deactivate the mark
+     after this is set.  Make sure the primary selection is not
+     clobbered in that case by setting `deactivate-mark' to
+     Qdont_save.  */
+  Vdeactivate_mark = Qdont_save ();
+
+  event.xbutton.window = child;
+  event.xbutton.subwindow = None as Window;
+  event.xbutton.x = dest_x;
+  event.xbutton.y = dest_y;
+  event.xbutton.state = 0;
+  event.xbutton.button = 2;
+  event.xbutton.same_screen = true;
+
+  (*dpyinfo).pending_dnd_time = before;
+
+  event.xbutton.r#type = ButtonPress;
+  event.xbutton.time = before + 1;
+
+  x_ignore_errors_for_next_request (dpyinfo, 0);
+  XSendEvent ((*dpyinfo).display, child,
+	      true, ButtonPressMask, &raw mut event);
+
+  event.xbutton.r#type = ButtonRelease;
+  event.xbutton.time = before + 2;
+
+  XSendEvent ((*dpyinfo).display, child,
+	      true, ButtonReleaseMask, &raw mut event);
+  x_stop_ignoring_errors (dpyinfo);
+
+  x_dnd_action_symbol = QXdndActionPrivate ();
+
+  return;
+}
+
+/* C 4081-4125.  C's `alloca` is the port's stack pool (PORTING.md P-05).  `x_get_atom_name` is
+   declared in xterm.h 1844 and defined in xterm.c 29984, so the port resolves it by name.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_send_unsupported_drop (dpyinfo: *mut x_display_info, target_window: Window,
+				       root_x: c_int, root_y: c_int, before: Time)
+{
+  let mut targets: Lisp_Object;
+  let mut arg: Lisp_Object;
+  let mut i: c_int;
+  let mut atom_names: *mut *mut c_char;
+  let mut name: *mut c_char;
+
+  targets = Qnil ();
+  atom_names = sa_stack_alloc (std::mem::size_of::<*mut c_char> ()
+			       * x_dnd_n_targets as usize) as *mut *mut c_char;
+
+  if XGetAtomNames ((*dpyinfo).display, x_dnd_targets,
+		    x_dnd_n_targets, atom_names) == 0
+    { return; }
+
+  i = x_dnd_n_targets;
+  while i > 0
+    {
+      targets = Fcons (build_string (*atom_names.offset ((i - 1) as isize)),
+		       targets);
+      XFree (*atom_names.offset ((i - 1) as isize) as *mut c_void);
+      i -= 1;
+    }
+
+  name = x_get_atom_name (dpyinfo, x_dnd_wanted_action,
+			  std::ptr::null_mut ());
+
+  if !name.is_null ()
+    {
+      arg = intern (name);
+      xfree (name as *mut c_void);
+    }
+  else
+    { arg = Qnil (); }
+
+  x_dnd_run_unsupported_drop_function = true;
+  x_dnd_unsupported_drop_time = before;
+  x_dnd_unsupported_drop_window = target_window;
+  x_dnd_unsupported_drop_data
+    = list! (assq_no_quit (QXdndSelection (),
+			   (*(*dpyinfo).terminal).Vselection_alist),
+	     targets, arg, make_fixnum (root_x as EMACS_INT),
+	     make_fixnum (root_y as EMACS_INT));
+
+  x_dnd_waiting_for_finish = true;
+  x_dnd_finish_display = (*dpyinfo).display;
+}
+
+/* C 4127-4137.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_fill_empty_target (proto_out: *mut c_int, motif_out: *mut c_int,
+				   toplevel_out: *mut Window, was_frame: *mut bool) -> Window
+{
+  use crate::x11_constants::None;
+
+  *proto_out = -1;
+  *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int;
+  *toplevel_out = None as Window;
+  *was_frame = false;
+
+  return None as Window;
+}
+
+/* C 4139-4466: the target-window search - the toplevel list first (with the composite overlay
+   window between it and the root-window proxy), then the child-window walk.  C's
+   `#if defined HAVE_XCOMPOSITE && (XCOMPOSITE_MAJOR > 0 || XCOMPOSITE_MINOR > 2)` names an X11
+   header's major/minor pair, which this tree cannot see, so that arm is carried under the
+   derived feature `have_xcomposite_overlay` beside `have_xcomposite` - the
+   `have_xcb_shape_input_rects` shape of Decision 3.  The fields that arm reads
+   (`composite_supported_p`, `composite_major`, `composite_minor`, xterm.h 922-924) are not in
+   the mirror yet either; the gap is recorded in this round's report.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_get_target_window (dpyinfo: *mut x_display_info, root_x: c_int,
+				   root_y: c_int, proto_out: *mut c_int,
+				   motif_out: *mut c_int, toplevel_out: *mut Window,
+				   was_frame: *mut bool) -> Window
+{
+  use crate::x11_constants::None;
+
+  let mut child_return: Window;
+  let mut child: Window;
+  let mut proxy: Window;
+  let mut dest_x_return: c_int;
+  let mut dest_y_return: c_int;
+  let mut rc: c_int;
+  let mut proto: c_int;
+  let mut motif: c_int;
+  let mut parent_x: c_int;
+  let mut parent_y: c_int;
+  let mut extents_p: bool;
+
+  #[cfg (all (feature = "have_xcomposite", feature = "have_xcomposite_overlay"))]
+  let mut overlay_window: Window = 0;
+  #[cfg (all (feature = "have_xcomposite", feature = "have_xcomposite_overlay"))]
+  let mut attrs: XWindowAttributes = std::mem::zeroed ();
+
+  let mut wmstate: c_int;
+  let mut tooltip: *mut frame;
+  let mut f: *mut frame;
+  let mut unrelated: bool;
+
+  child_return = (*dpyinfo).root_window;
+  dest_x_return = root_x;
+  dest_y_return = root_y;
+
+  proto = -1;
+  *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int;
+  *toplevel_out = None as Window;
+  *was_frame = false;
+
+  if x_dnd_use_toplevels
+    {
+      extents_p = false;
+      child = x_dnd_get_target_window_1 (dpyinfo, root_x,
+					 root_y, motif_out,
+					 &raw mut extents_p);
+
+      if !x_dnd_allow_current_frame
+	  && FRAME_X_WINDOW! (x_dnd_frame) == child
+	{ *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int; }
+
+      f = x_top_window_to_frame (dpyinfo, child);
+
+      *toplevel_out = child;
+
+      if child != None as Window
+	{
+	  if !f.is_null ()
+	    {
+	      *was_frame = true;
+	      *proto_out = -1;
+	      *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int;
+
+	      return child;
+	    }
+
+	  #[cfg (not (feature = "use_xcb"))]
+	  { proxy = x_dnd_get_window_proxy (dpyinfo, child); }
+	  #[cfg (feature = "use_xcb")]
+	  { x_dnd_get_proxy_proto (dpyinfo, child, &raw mut proxy, proto_out); }
+
+	  if proxy != None as Window
+	    {
+	      proto = x_dnd_get_window_proto (dpyinfo, proxy);
+
+	      if proto != -1
+		{
+		  *proto_out = proto;
+		  return proxy;
+		}
+	    }
+
+	  #[cfg (not (feature = "use_xcb"))]
+	  { *proto_out = x_dnd_get_window_proto (dpyinfo, child); }
+	  return child;
+	}
+
+      if extents_p
+	{
+	  *proto_out = -1;
+	  *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int;
+	  *toplevel_out = None as Window;
+
+	  return None as Window;
+	}
+
+      /* Then look at the composite overlay window.  */
+      #[cfg (all (feature = "have_xcomposite", feature = "have_xcomposite_overlay"))]
+      {
+	if (*dpyinfo).composite_supported_p
+	    && ((*dpyinfo).composite_major > 0
+		|| (*dpyinfo).composite_minor > 2)
+	  {
+	    if XGetSelectionOwner ((*dpyinfo).display,
+				   (*dpyinfo).Xatom_NET_WM_CM_Sn) != None as Window
+	      {
+		x_catch_errors ((*dpyinfo).display);
+		XGrabServer ((*dpyinfo).display);
+		overlay_window = XCompositeGetOverlayWindow ((*dpyinfo).display,
+							     (*dpyinfo).root_window);
+		XCompositeReleaseOverlayWindow ((*dpyinfo).display,
+						(*dpyinfo).root_window);
+		XUngrabServer ((*dpyinfo).display);
+
+		if x_had_errors_p ((*dpyinfo).display) == 0
+		  {
+		    XGetWindowAttributes ((*dpyinfo).display, overlay_window,
+					  &raw mut attrs);
+
+		    if attrs.map_state == IsViewable
+		      {
+			proxy = x_dnd_get_window_proxy (dpyinfo, overlay_window);
+
+			if proxy != None as Window
+			  {
+			    proto = x_dnd_get_window_proto (dpyinfo, proxy);
+
+			    if proto != -1
+			      {
+				*proto_out = proto;
+				*toplevel_out = overlay_window;
+				x_uncatch_errors_after_check ();
+
+				return proxy;
+			      }
+			  }
+		      }
+		  }
+		x_uncatch_errors_after_check ();
+	      }
+	  }
+      }
+
+      /* Now look for an XdndProxy on the root window.  */
+
+      proxy = x_dnd_get_window_proxy (dpyinfo, (*dpyinfo).root_window);
+
+      if proxy != None as Window
+	{
+	  proto = x_dnd_get_window_proto (dpyinfo, (*dpyinfo).root_window);
+
+	  if proto != -1
+	    {
+	      *toplevel_out = (*dpyinfo).root_window;
+	      *proto_out = proto;
+	      return proxy;
+	    }
+	}
+
+      /* No toplevel was found and the overlay and root windows were
+	 not proxies, so return None.  */
+      *proto_out = -1;
+      *toplevel_out = (*dpyinfo).root_window;
+      return None as Window;
+    }
+
+  /* Not strictly necessary, but satisfies GCC.  */
+  child = (*dpyinfo).root_window;
+
+  while child_return != None as Window
+    {
+      child = child_return;
+      parent_x = dest_x_return;
+      parent_y = dest_y_return;
+
+      x_catch_errors ((*dpyinfo).display);
+      rc = XTranslateCoordinates ((*dpyinfo).display, (*dpyinfo).root_window,
+				  child_return, root_x, root_y, &raw mut dest_x_return,
+				  &raw mut dest_y_return, &raw mut child_return);
+
+      if x_had_errors_p ((*dpyinfo).display) != 0 || rc == 0
+	{
+	  x_uncatch_errors_after_check ();
+	  break;
+	}
+
+      if child_return != 0
+	{
+	  /* If child_return is a tooltip frame, look beneath it.  We
+	     never want to drop anything onto a tooltip frame.  */
+
+	  tooltip = x_tooltip_window_to_frame (dpyinfo, child_return,
+					       &raw mut unrelated);
+
+	  if !tooltip.is_null () || unrelated
+	    { child_return = x_get_window_below ((*dpyinfo).display, child_return,
+						 parent_x, parent_y,
+						 &raw mut dest_x_return,
+						 &raw mut dest_y_return); }
+
+	  if child_return == 0
+	    {
+	      x_uncatch_errors ();
+	      break;
+	    }
+
+	  f = x_top_window_to_frame (dpyinfo, child_return);
+
+	  if !f.is_null ()
+	    {
+	      *proto_out = -1;
+	      *motif_out = xm_drag_style::XM_DRAG_STYLE_NONE as c_int;
+	      *toplevel_out = child_return;
+	      *was_frame = true;
+
+	      return child_return;
+	    }
+
+	  if x_dnd_get_wm_state_and_proto (dpyinfo, child_return,
+					   &raw mut wmstate, &raw mut proto,
+					   &raw mut motif, &raw mut proxy) != 0
+	      /* `proto' and `motif' are set by x_dnd_get_wm_state
+		 even if getting the wm state failed.  */
+	      || proto != -1 || motif != xm_drag_style::XM_DRAG_STYLE_NONE as c_int
+	    {
+	      *proto_out = proto;
+	      *motif_out = if x_dnd_disable_motif_protocol
+		{ xm_drag_style::XM_DRAG_STYLE_NONE as c_int }
+		else
+		  { motif };
+	      *toplevel_out = child_return;
+	      x_uncatch_errors ();
+
+	      return child_return;
+	    }
+
+	  if proxy != None as Window
+	    {
+	      proto = x_dnd_get_window_proto (dpyinfo, proxy);
+
+	      if proto != -1
+		{
+		  *proto_out = proto;
+		  *toplevel_out = child_return;
+
+		  x_uncatch_errors ();
+		  return proxy;
+		}
+	    }
+	}
+
+      x_uncatch_errors ();
+    }
+
+  /* C writes this body twice - once inside the composite arm's
+     `if (child != dpyinfo->root_window)` and once after it; the port keeps both copies.  */
+  #[cfg (not (all (feature = "have_xcomposite", feature = "have_xcomposite_overlay")))]
+  {
+    if child != None as Window
+      {
+	proxy = x_dnd_get_window_proxy (dpyinfo, child);
+
+	if proxy != 0
+	  {
+	    proto = x_dnd_get_window_proto (dpyinfo, proxy);
+
+	    if proto != -1
+	      {
+		*proto_out = proto;
+		*toplevel_out = child;
+		return proxy;
+	      }
+	  }
+      }
+
+    *proto_out = x_dnd_get_window_proto (dpyinfo, child);
+    return child;
+  }
+
+  #[cfg (all (feature = "have_xcomposite", feature = "have_xcomposite_overlay"))]
+  {
+    if child != (*dpyinfo).root_window
+      {
+	if child != None as Window
+	  {
+	    proxy = x_dnd_get_window_proxy (dpyinfo, child);
+
+	    if proxy != 0
+	      {
+		proto = x_dnd_get_window_proto (dpyinfo, proxy);
+
+		if proto != -1
+		  {
+		    *proto_out = proto;
+		    *toplevel_out = child;
+		    return proxy;
+		  }
+	      }
+	  }
+
+	*proto_out = x_dnd_get_window_proto (dpyinfo, child);
+	return child;
+      }
+    else if (*dpyinfo).composite_supported_p
+	&& ((*dpyinfo).composite_major > 0
+	    || (*dpyinfo).composite_minor > 2)
+      {
+	/* Only do this if a compositing manager is present.  */
+	if XGetSelectionOwner ((*dpyinfo).display,
+			       (*dpyinfo).Xatom_NET_WM_CM_Sn) != None as Window
+	  {
+	    x_catch_errors ((*dpyinfo).display);
+	    XGrabServer ((*dpyinfo).display);
+	    overlay_window = XCompositeGetOverlayWindow ((*dpyinfo).display,
+							 (*dpyinfo).root_window);
+	    XCompositeReleaseOverlayWindow ((*dpyinfo).display,
+					    (*dpyinfo).root_window);
+	    XUngrabServer ((*dpyinfo).display);
+
+	    if x_had_errors_p ((*dpyinfo).display) == 0
+	      {
+		XGetWindowAttributes ((*dpyinfo).display, overlay_window, &raw mut attrs);
+
+		if attrs.map_state == IsViewable
+		  {
+		    proxy = x_dnd_get_window_proxy (dpyinfo, overlay_window);
+
+		    if proxy != None as Window
+		      {
+			proto = x_dnd_get_window_proto (dpyinfo, proxy);
+
+			if proto != -1
+			  {
+			    *proto_out = proto;
+			    *toplevel_out = overlay_window;
+			    x_uncatch_errors_after_check ();
+
+			    return proxy;
+			  }
+		      }
+		  }
+	      }
+	    x_uncatch_errors_after_check ();
+	  }
+      }
+
+    if child != None as Window
+      {
+	proxy = x_dnd_get_window_proxy (dpyinfo, child);
+
+	if proxy != 0
+	  {
+	    proto = x_dnd_get_window_proto (dpyinfo, proxy);
+
+	    if proto != -1
+	      {
+		*toplevel_out = child;
+		*proto_out = proto;
+		return proxy;
+	      }
+	  }
+      }
+
+    *proto_out = x_dnd_get_window_proto (dpyinfo, child);
+    *toplevel_out = child;
+    return child;
+  }
+}

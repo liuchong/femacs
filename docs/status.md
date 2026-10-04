@@ -6071,3 +6071,39 @@
   ④ **口径提醒**：这三个数分别是"清单口径 / 行数口径 / 一构造一拼法口径"，**都不能单独当完成度**：
      `588 done` 对"整身在假条件下"的文件是**空跑通过**（P-73），所以必须与 ② 的 95/245,578 一起读；
      ③ 的 18 行是**记录在案的例外**，不是零债务。
+
+- **3.374 xterm 片 7 入库：C 3616-4466（851 C 行，+1,015 行纯追加），`--check` 300 → 286（2026-10-05）**：
+  ① **交付形态**：`femacs/src/xterm.rs` **3,510 → 4,525 行**（单 hunk、**0 删除**），落 7 个函数 + 1 个宏
+     （`x_dnd_io_error_handler`、`x_dnd_get_target_window_1`、`x_dnd_get_wm_state_and_proto`、`x_dnd_do_unsupported_drop`、
+     `x_dnd_send_unsupported_drop`、`x_dnd_fill_empty_target`、`x_dnd_get_target_window` + `X_DND_SUPPORTED_VERSION`），
+     台账 `docs/ports/xterm.md` 的未勾框 **305 → 297**，新增 `### 18. Slice 7` 与 Evidence 小节。边界理由：3616-4466 是
+     "找目标窗口"的**完整一族**（toplevel 走查 → wm_state/proto 查询 → 不支持 XDND 的回退 → 子窗口走查），
+     到 `x_dnd_get_target_window` 收口。
+  ② **我复跑的读数**：`build-tu src/xterm.c` → **built**；`extract-abi --check emacs/src/xterm.c femacs/src/xterm.rs`
+     **300 → 286**（他的片到 293：清 9 行、新增 2 行；我又按他给的清单往 `docs/ports/macro-body-notes.tsv` 落了 **7 行**
+     ——本片 `x_dnd_get_target_window_1⇥continue`、`x_dnd_send_unsupported_drop⇥alloca`，以及遗留的
+     `xm_find_targets_table_idx`/`xm_write_targets_table`/`xm_write_drag_initiator_info⇥alloca`、
+     `xm_setup_dnd_targets⇥goto,uninit`、`x_dnd_free_toplevels⇥display,uninit`——把 7 条 `does not mention` 清掉）。
+  ③ **功能门表补 5 条（我做的，逐条核过 C 条件）**：`femacs/xtask/Cargo.toml` 加 `have_xshape`（configure.ac 5754）、
+     `have_xcomposite`（5762）、`use_xcb`（4782）、`use_cairo_xcb`（xterm.c 797 → `USE_CAIRO_XCB_SURFACE`），
+     以及**派生条件** `have_xcomposite_overlay`（C 写的是 `#if defined HAVE_XCOMPOSITE && (XCOMPOSITE_MAJOR > 0 ||
+     XCOMPOSITE_MINOR > 2)`，xterm.c 4149/4225/4377/4400；注释里写明它是**派生**名——我 `rg` 过全树，
+     **没有 `HAVE_XCOMPOSITE_OVERLAY` 这个宏**，所以表里给的是派生名而不是冒充 C 的宏）。
+  ④ **臂探针的价值（他给的读数，我采信并记下）**：`have_x_windows` 的 x11 臂探针读到 `aborting due to 490 previous errors`
+     （480 E0425 / 7 E0133 / 2 E0609 / 1 E0080），其中本片占 **81 个 E0425**、逐条属已登记类（X11 头名如 `Window` 34、
+     `Atom`、`XEvent`、`XFree`… 或本文件后面的片）；**它抓到他 3 处真错并已修**：裸 `break`（E0695）、2 处
+     `make_fixnum` 隐式加宽（E0308）、13 处裸 `XM_DRAG_STYLE_NONE`（E0425，枚举在 `xm_drag_style`）。⇒ **"探针不是通过，但它在干活"**。
+  ⑤ **登记的下一步（本件不入库，写进台账与他⑥清单）**：xterm.h 镜像缺 `composite_supported_p`/`composite_major`/
+     `composite_minor`（xterm.h 922-924）与 `xcb_connection`/`xcb_visual`（840-843）；`<X11/Xutil.h>` **全树没有镜像**
+     （`NormalState` 来自它，是否照 `xlib.rs` 立镜像待裁定）；`x11_constants` 要补 7 个实测常量
+     （`NormalState 1`/`IsViewable 2`/`XA_PRIMARY`/`ButtonPress 4`/`ButtonRelease 5`/两个 mask）；
+     `x_own_selection`（xselect.c 尚无单元）与 `decode_window_system_frame` 现在按行内 `unsafe extern "C"` 接上；
+     **xcb 拼写口径在片 6 与片 7 之间不一致**（一个用 `*mut c_void`+字段解引用、一个用 bare 类型 + `free (x as *mut c_void)`），
+     两者都还编不过（都等 xcb 头镜像）——留作 X11 镜像那条 lane 的工单。
+  ⑥ **引文门的两个口径（老规矩）**：HEAD 侧上次读 `675 files / 0 drift / 0 stale`；**工作树现在读 `5 drift / 4 stale`**，
+     5 条漂移与 4 条 stale **全部落在 Planck 在飞的两个镜像**（`include/coding.rs` ×4 + `include/dispextern.rs` ×1），
+     `xterm.rs` 0 命中。同刻 `check-declarations` **13/0**、`check-mirror-dupes` **18/18/0**、
+     `check-dead-file-coverage` **1 ledger bound / 0 failure**（3.372 的新门第一次跟着跑）。
+  ⑦ **未声称**：整身 `#[cfg (feature = "have_x_windows")]`，冻结配置下 `build-tu` 打 `built` 但**一个 token 都没编**；
+     `use_xcb`/`have_xshape`/`have_xcomposite(_overlay)` 四个臂**从未被编译**，`x_dnd_get_proxy_proto`/
+     `x_dnd_get_target_window_2` 是整函数死文本、**连 token 检查都不覆盖**；无 X11 目标构建、无链接、无运行时证据。

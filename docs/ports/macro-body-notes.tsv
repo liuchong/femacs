@@ -1257,3 +1257,10 @@ FONT_ADD_LOG	false	PORTING.md 2.2 and the PDUMPER_RESET precedent: C's body is `
 FONT_DEFERRED_LOG	false	same class as FONT_ADD_LOG: C's `do { ... } while (false)` (font.h 1010-1014) has no Rust counterpart, so `false` is the token without a match
 SET_FRAME_GARBAGED	garbaged	frame.h 1173-1176's body writes `f->garbaged = true`; the port writes the same bit as `(*$f).bits1 = (*$f).bits1 | (1u32 << FRAME_GARBAGED_SHIFT)`, the bits1 spelling 3.333 chose for the mirror (include/frame.rs), so the member name `garbaged` is the token without a match
 android_menu_show	goto	PORTING.md 2.2 and the doprnt/find_symbol_value precedent: C's `goto next_item`/`goto finish` and the `finish:` label become the port's loop and blocks, so the token `goto` has no counterpart in the Rust text (every other token of this body is present)
+x_dnd_get_target_window_1	continue	PORTING.md 2.2 and the xterm ledger's deviation 133: C's `continue` in a `for` runs the increment, so the port uses a labeled block and writes it as `break 'body`
+x_dnd_send_unsupported_drop	alloca	PORTING.md P-05: `alloca` is the port's stack pool (`sa_stack_alloc`), which is why the token has no counterpart
+xm_find_targets_table_idx	alloca	see x_dnd_send_unsupported_drop (P-05)
+xm_write_targets_table	alloca	see x_dnd_send_unsupported_drop (P-05)
+xm_write_drag_initiator_info	alloca	see x_dnd_send_unsupported_drop (P-05)
+xm_setup_dnd_targets	goto,uninit	C's `goto fail`/`done` labels become the port's blocks, and the `uninit` local is a Rust let (PORTING.md 2.2; the xterm ledger records each shape)
+x_dnd_free_toplevels	display,uninit	the `display` and `uninit` locals of C's `x_dnd_free_toplevels` are Rust lets, and its cleanup `goto` becomes a block (PORTING.md 2.2)

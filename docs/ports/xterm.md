@@ -15,9 +15,10 @@
 > that means for verification is in Decisions 1 and 2, and the measured readings are in Evidence.
 >
 > `tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs` was **460** `- ` lines
-> before slice 1 and is **443** after it, and **324** after slice 2 (C 1131-1762, the drag-and-drop state and the
-> Motif message layouts); the list below is that same frozen reading, which is
-> *not* the configuration that compiles the file (Decisions 2).
+> before slice 1, **443** after it, **324** after slice 2 (C 1131-1762, the drag-and-drop state
+> and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
+> discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
+> same frozen reading, which is *not* the configuration that compiles the file (Decisions 2).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -55,13 +56,13 @@
 - [x] x_dnd_send_xm_leave_for_drop  (line 2897, static)
 - [x] x_dnd_free_toplevels  (line 2921, static)
 - [x] x_dnd_compute_toplevels  (line 3013, static)
-- [ ] x_dnd_io_error_handler  (line 3617, static)
-- [ ] x_dnd_get_target_window_1  (line 3721, static)
-- [ ] x_dnd_get_wm_state_and_proto  (line 3820, static)
-- [ ] x_dnd_do_unsupported_drop  (line 3986, static)
-- [ ] x_dnd_send_unsupported_drop  (line 4082, static)
-- [ ] x_dnd_fill_empty_target  (line 4128, static)
-- [ ] x_dnd_get_target_window  (line 4140, static)
+- [x] x_dnd_io_error_handler  (line 3617, static)
+- [x] x_dnd_get_target_window_1  (line 3721, static)
+- [x] x_dnd_get_wm_state_and_proto  (line 3820, static)
+- [x] x_dnd_do_unsupported_drop  (line 3986, static)
+- [x] x_dnd_send_unsupported_drop  (line 4082, static)
+- [x] x_dnd_fill_empty_target  (line 4128, static)
+- [x] x_dnd_get_target_window  (line 4140, static)
 - [ ] x_dnd_get_window_proxy  (line 4469, static)
 - [ ] x_dnd_get_window_proto  (line 4511, static)
 - [ ] x_dnd_send_enter  (line 4545, static)
@@ -353,7 +354,7 @@
 - [x] XM_DRAG_SIDE_EFFECT_SITE_STATUS  (line 1693, body cc712b03bf55)
 - [x] XM_DRAG_STYLE_IS_DROP_ONLY  (line 1746, body 8a5d0800d81c)
 - [x] XM_DRAG_STYLE_IS_DYNAMIC  (line 1748, body ff5b4bd375aa)
-- [ ] X_DND_SUPPORTED_VERSION  (line 3626, body ac3478d69a3c)
+- [x] X_DND_SUPPORTED_VERSION  (line 3626, body ac3478d69a3c)
 - [x] X_NEXT_KBD_EVENT  (line 888, body 1bf69f7be3e8)
 - [ ] x_any_window_to_frame  (line 12486, body c8c88ba3cad5)
 
@@ -1044,6 +1045,105 @@ is why the line is there; PORTING.md 0.1-9 forbids `use crate::…` in a mirror,
 the absolute path.
 
 
+### 18. Slice 7 (C 3616-4466): the target-window discovery, and the two functions C keeps inside its own conditions
+
+Seven checklist functions - `x_dnd_io_error_handler` (C 3616-3624), `x_dnd_get_target_window_1`
+(3720-3817), `x_dnd_get_wm_state_and_proto` (3819-3980), `x_dnd_do_unsupported_drop` (3985-4079),
+`x_dnd_send_unsupported_drop` (4081-4125), `x_dnd_fill_empty_target` (4127-4137) and
+`x_dnd_get_target_window` (4139-4466), 851 lines of C - plus `X_DND_SUPPORTED_VERSION` (C 3626),
+the version byte the later `x_dnd_send_enter` writes into the XdndAware property.  The slice
+stops before C 4468 (`x_dnd_get_window_proxy`, then `x_dnd_get_window_proto` at 4510) on purpose:
+those two are the query helpers the drag *senders* are built on, while everything here is the
+search that decides which window to send to.
+
+**Two functions the checklist does not list.**  C 3632-3696 (`x_dnd_get_proxy_proto`, inside
+`#ifdef USE_XCB`) and C 3698-3718 (`x_dnd_get_target_window_2`, inside `#ifdef HAVE_XSHAPE`) sit
+in branches the frozen reading calls dead, so the inventory has no box for either - the state
+`x_dnd_compute_toplevels`'s inner arms are in.  Per P-51 the port carries both functions whole,
+under `use_xcb` and `have_xshape`; being unlisted they are compared by no gate, which is why the
+reading below moves by the nine rows the seven listed functions and the constant clear, and by
+neither of these two.
+
+**The composite arm gets a derived name.**  `x_dnd_get_target_window` wraps its overlay-window
+code in C 4225's and C 4377/4400's
+`#if defined HAVE_XCOMPOSITE && (XCOMPOSITE_MAJOR > 0 || XCOMPOSITE_MINOR > 2)`.  The first half
+is `have_xcomposite`; the second names an X11 header's major/minor pair, which this tree cannot
+see, so the port carries it under the derived name **`have_xcomposite_overlay`** (the
+`have_xcb_shape_input_rects` shape of Decision 3):
+`#[cfg (all (feature = "have_xcomposite", feature = "have_xcomposite_overlay"))]`.  Measured with
+the frozen table, every line of both arms is dead (`tools/cinventory.py`'s `dead_branch_map`:
+4225-4266 and 4377-4443 all `False`), so nothing in them is demanded by the token check.  The arm
+reads three `x_display_info` members - `composite_supported_p`, `composite_major`,
+`composite_minor` (xterm.h 922-924, inside `#ifdef HAVE_XCOMPOSITE`) - that **no arm of the mirror
+carries** (the `x11_ext` arm defines neither `HAVE_XCOMPOSITE` nor them), so the port names them
+the way the C text does and the gap is in this round's report; `Xatom_NET_WM_CM_Sn` (C 609,
+ungated) is already in the mirror.
+
+**Seven X11 names the module does not carry stay bare** (Decision 15's ruling; the values are
+measured this round rather than remembered):
+
+| name | header:line | measured value | site |
+| --- | --- | --- | --- |
+| `NormalState` | Xutil.h 147 | `1` | C 3734 |
+| `IsViewable` | X.h 447 | `2` | C 4245, 4422 |
+| `XA_PRIMARY` | Xatom.h 9 | `((Atom) 1)` | C 4038 |
+| `ButtonPress` | X.h 183 | `4` | C 4062 |
+| `ButtonRelease` | X.h 184 | `5` | C 4069 |
+| `ButtonPressMask` | X.h 153 | `(1L<<2)` | C 4067 |
+| `ButtonReleaseMask` | X.h 154 | `(1L<<3)` | C 4073 |
+
+`<X11/Xutil.h>` has **no mirror in this tree** (`include/xlib.rs` carries `<X11/Xlib.h>` and
+`<X11/Xresource.h>`), so `NormalState` is a new mirror question rather than a module addition;
+both are requested in this round's report.
+
+**Two declarations move into the body.**  `x_dnd_do_unsupported_drop` calls
+`decode_window_system_frame` (declared `frame.h` 1474-1475, defined `frame.c` 124) and
+`x_own_selection` (declared `xterm.h` 1947-1948, defined `xselect.c` 280).  This unit's include
+graph reaches no mirror that carries either - `include/frame.rs` records the frame prototypes as
+text and there is no `xselect.h` mirror at all - so both are transcribed into the function that
+needs them, which is what the xterm.h mirror's own note says the recorded prototype block is for
+(the `font.rs` 413-418 `decode_window_system_frame` block, the `keyboard.rs`
+`haiku_handle_selection_clear` shape).  `x_get_atom_name` (declared `xterm.h` 1844, *defined*
+`xterm.c` 29984) needs none: Rust resolves same-unit items by name.
+
+**Five port-side shapes, each recorded rather than silent.**
+
+* C's `for (tem = x_dnd_toplevels; tem; tem = tem->next)` runs its increment on `continue` too;
+  the port keeps the increment after a labelled `'body:` block and writes C's `continue` as
+  `break 'body` (the `overlay_arrow_in_current_buffer_p` shape, deviation 133).
+* A bare `break` inside that labelled block is `E0695`, so the loop itself is labelled and C's two
+  `break`s are `break 'toplevels` - found by the x11-arm probe, not by any text gate.
+* C 3776-3782 writes `chosen = tem; break;` once, shared by the `#ifdef HAVE_XSHAPE` arm; the port
+  names that arm's condition `bounding_only` so the `if` stays one statement (the `dims_ok` shape,
+  Decision 15).
+* C's comma operator (`free (error), rc = false;`, C 3878-3879 and its siblings) has no Rust
+  spelling, so the two statements stand on their own lines (the `magic_db` row's class); and the
+  widenings C performs implicitly are written out where the arm would need them
+  (`make_fixnum (root_x as EMACS_INT)`, `xm_drag_style::XM_DRAG_STYLE_NONE as c_int`).
+* C leaves `x_dnd_get_proxy_proto`'s cookies and several `x_dnd_do_unsupported_drop`/
+  `x_dnd_get_target_window` locals uninitialised; the port writes the zero (PORTING.md 1.5).  The
+  xcb type names stay bare, which leaves `free (error)`/`free (reply)` needing the pun
+  `free (x as *mut c_void)`: that spelling is this slice's, while slice 6 modelled the same
+  pointers as `*mut c_void` up front.  Both readings are text-only (nothing with `use_xcb`
+  compiles here), and unifying the two spellings is a follow-up, not something this round claims
+  to have settled.
+
+**Two new `does not mention` rows, both table requests.**  The gate now reads
+`function x_dnd_get_target_window_1 does not mention continue` and
+`function x_dnd_send_unsupported_drop does not mention alloca`; the reasons are the `'body:`
+shape above and PORTING.md P-05 (C's `alloca` is the port's `sa_stack_alloc`).  They are the same
+class as Decision 12's three `alloca` rows and Decision 14's `goto, uninit` row, still open
+because `docs/ports/macro-body-notes.tsv` is not in a code lane's writing set - all five are
+requested together in this round's report.
+
+**What this slice does not claim.**  The whole body is under `have_x_windows`, so the frozen
+`build-tu` prints `built` while compiling none of it (Decision 1); the `use_xcb`, `have_xshape`
+and `have_xcomposite` arms have never been compiled by anything, and the x11-arm probe is the
+only reading that reaches the rest.  `x_dnd_get_target_window` still calls five helpers that are
+later slices of this same file (`x_dnd_get_window_proxy`, `x_dnd_get_window_proto`,
+`x_top_window_to_frame`, `x_tooltip_window_to_frame`, `x_get_window_below`), so no X11 link of
+this unit is in reach this round.
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -1433,4 +1533,105 @@ FAIL /tmp/xg188-xrm/t.c -> /tmp/xg188-xrm/t3.rs
 $ ... t4.rs                                        # &str with "Strung"
 - constant XrmStringType: C "String" vs Rust "Strung" (different bytes)
 FAIL /tmp/xg188-xrm/t.c -> /tmp/xg188-xrm/t4.rs
+```
+
+### Slice 7's readings: the target-window discovery, as landed and measured
+
+The `- ` reading, before and after, with the rows that moved (`extract-abi.py --check`, then
+`grep '^- '` on each output and `diff`):
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # before this slice
+300
+$ ...                                                                          # after it
+293
+$ <the two `grep '^- '` outputs, diffed>
+< - missing function x_dnd_io_error_handler            # the seven functions
+< - missing function x_dnd_get_target_window_1
+< - missing function x_dnd_get_wm_state_and_proto
+< - missing function x_dnd_do_unsupported_drop
+< - missing function x_dnd_send_unsupported_drop
+< - missing function x_dnd_fill_empty_target
+< - missing function x_dnd_get_target_window
+< - missing macro X_DND_SUPPORTED_VERSION              # the constant
+< - missing constant X_DND_SUPPORTED_VERSION
+< - line count drifted 89.4%: C 33125 vs Rust 3510
+> - line count drifted 86.3%: C 33125 vs Rust 4524
+> - function x_dnd_get_target_window_1 does not mention continue   # the `'body:` shape
+> - function x_dnd_send_unsupported_drop does not mention alloca   # PORTING.md P-05
+$ grep -c '^- \[ \]' docs/ports/xterm.md
+305 -> 297                                                     # seven functions + one macro ticked
+```
+
+`build-tu` (twice in the round: the second run re-materialised the unit after the `E0695` fix
+below) and the three shared gates, each on the final text:
+
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xterm-s7 cargo run -q -p xtask -- build-tu src/xterm.c
+built src/xterm.rs -> ../build/femacs/xterm.o
+$ python3 tools/check-citations.py
+check-citations: 675 file(s) scanned, 0 drift, 0 range, 350 external, 33 allowed, 0 stale
+$ python3 tools/check-declarations.py
+13 declaration sites (0 forbidden, 13 allowed literals), 0 failures
+$ python3 tools/check-mirror-dupes.py
+18 duplicate declaration(s), 18 ratchet row(s), 0 failure(s)
+# the ratchet read 23 rows when this round opened and 18 after the two commits another lane
+# landed while it was in flight (`72f935a` -> `334448a`); 0 failures in both readings, and this
+# lane's file is in no row of either.
+```
+
+The X11 values the module does not carry, measured with `clang -E -dM -I/opt/homebrew/include`
+over a probe that includes `<X11/X.h>` and `<X11/Xatom.h>`, plus the one `Xutil.h` line the probe
+does not reach:
+
+```
+#define ButtonPress 4
+#define ButtonPressMask (1L<<2)
+#define ButtonRelease 5
+#define ButtonReleaseMask (1L<<3)
+#define IsUnmapped 0
+#define IsViewable 2
+#define XA_PRIMARY ((Atom) 1)
+$ grep -n 'define NormalState' /opt/homebrew/include/X11/Xutil.h
+147:#define NormalState 1	/* most applications want to start this way */
+```
+
+The composite arms are dead in the frozen reading (`tools/cinventory.py`'s `dead_branch_map`
+over `src/xterm.c`, set up the way `extract-abi.py` sets it up):
+
+```
+4225 False '#if defined HAVE_XCOMPOSITE && (XCOMPOSITE_MAJOR > 0 || XCOM'
+4226 False '      if (dpyinfo->composite_supported_p'
+4245 False '          if (attrs.map_state == IsViewable)'
+4258 False '                      return proxy;'
+4377 False '#if defined HAVE_XCOMPOSITE && (XCOMPOSITE_MAJOR > 0 || XCOM'
+4378 False '  if (child != dpyinfo->root_window)'
+4381 True  '      if (child != None)'
+4445 False '  if (child != None)'
+```
+
+The x11-arm probe (the unit materialised by `build-tu`, compiled with the feature on) is what
+caught the three defects in this slice that no text gate can see:
+
+```
+$ rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj -C panic=abort \
+      --cfg 'feature="have_x_windows"' -o /tmp/s7/xterm_probe.o build/femacs/units/xterm/_root.rs
+# with the slice as first written
+error: aborting due to 505 previous errors
+  492 E0425   7 E0133   2 E0609   2 E0308   1 E0080   1 E0695
+# after `break 'toplevels` (E0695), the two `make_fixnum` widenings (E0308) and the thirteen bare
+# `XM_DRAG_STYLE_NONE`s (E0425; the enum lives in `xm_drag_style`, so the port names it)
+error: aborting due to 490 previous errors
+  480 E0425   7 E0133   2 E0609   1 E0080
+# of the 480 E0425, 81 fall inside this slice's lines and every one is a class already recorded:
+# X11-header names with no mirror (`Window` 34, `Atom`, `XEvent`, `XFree` 2, `XGetAtomNames`,
+# `XGetSelectionOwner`, `XGetWindowProperty`, `XSendEvent` 2, `XTranslateCoordinates` 2,
+# `NormalState`, `XA_PRIMARY`, `ButtonPress`, `ButtonRelease`, `ButtonPressMask`,
+# `ButtonReleaseMask`) and this file's own later slices (`x_dnd_get_window_proto` 7,
+# `x_uncatch_errors` 6, `x_dnd_get_window_proxy` 4, `x_catch_errors` 3, `x_had_errors_p` 2,
+# `x_top_window_to_frame` 2, and one each of `x_get_atom_name`, `x_get_window_below`,
+# `x_ignore_errors_for_next_request`, `x_stop_ignoring_errors`, `x_tooltip_window_to_frame`,
+# `x_uncatch_errors_after_check`).  The other classes are not this lane's: the 7 E0133 are
+# `include/xterm.rs` 1458-1465's INLINE bodies outside an unsafe block, E0609 is Decision 5's
+# pair, and E0080 is `include/systime.rs` 27's own frozen-configuration assertion.
 ```
