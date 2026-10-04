@@ -237,3 +237,40 @@ directory**, so it must be run with that directory as the working directory), `C
 (macroexp, cconv, byte-opt, bytecomp, loaddefs-gen, radix-tree), `MAIN_FIRST`, the autoloads pass
 (`-l emacs-lisp/loaddefs-gen.elc -f loaddefs-generate--emacs-batch <subdirs>`), and the rest in
 compile passes that repeat until they stop making progress.
+
+## 完成定义第 5 条（`lisp/`/`test/` 逐字节一致）：判据与实测（2026-10-05）
+
+`docs/port-plan.md` §8 第 5 条要的是"与参照逐字节一致（`diff -r` 无差异）"。**本轮把它量了一遍，
+并把"字面 `diff -r` 与真正的判据差在哪里"钉住**——因为参照检出**在本地被构建过**（冻结基线就是
+在 `emacs/` 里 `make` 出来的，见本文上一节），构建产物留在树里，而它们**不是参照的内容**。
+
+实测（`diff -r emacs/<tree> femacs/<tree>`，六棵树）：
+
+| 树 | 字面 `diff -r` | 参照侧多出的东西 | 参照 `.gitignore` 的规则 |
+| --- | --- | --- | --- |
+| `lisp` | 1727 条 "Only in emacs/lisp" | 全部是 `*.elc`（就地字节编译产物） | `.gitignore:180` `*.elc` |
+| `etc` | 132 条 | 全部是 `etc/charsets/*.map` | `.gitignore:265` `etc/charsets/*.map` |
+| `doc` | 4 条 | `doc/emacs/emacsver.texi`、`doc/man/emacs.1` 等 | `.gitignore:314`/`:315` |
+| `admin` | 4 条 | `*.stamp`、`admin/unidata/*.elc` | `.gitignore:171` `*.stamp`、`:180` `*.elc` |
+| `test` | **无差异** | — | — |
+| `leim` | **无差异** | — | — |
+
+**被参照自己的 `.gitignore` 忽略的文件不是参照内容**（`git -C emacs check-ignore -v` 逐条给出上面的规则行），
+所以第 5 条的判据是**已跟踪内容**，而且它已经是绿的：
+
+```
+$ for t in lisp test etc doc leim admin; do echo "$t $(git -C emacs ls-files $t | wc -l) $(git ls-files femacs/$t | wc -l)"; done
+lisp 1627/1627   test 1555/1555   etc 886/886   doc 255/255   leim 28/28   admin 253/253
+
+$ python3 tools/check-verbatim.py
+OK      leim: 28 files, byte-identical
+OK      admin: 253 files, byte-identical
+6 trees, 4604 files, 0 failures
+```
+
+即：六棵树的**已跟踪文件数逐个相等**，`check-verbatim`（按树、逐文件 `cmp`）读 **0 failures**。
+**注意**：`emacs/` 是**外部只读检出，不在本仓库的索引里**（`git ls-files emacs/lisp` = 0），
+所以这条判据只能在有该检出的机器上跑（`docs/port-plan.md` §10 已记 CI 的这一限制）。
+
+**未声称**：这只是"复制"这一条的读数；§8 的其余各条（清单/layout/符号/subr、L0-L5、双向互换与
+生成物、平台冒烟、性能）**一条都还没点亮**。

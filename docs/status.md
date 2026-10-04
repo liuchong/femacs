@@ -6506,3 +6506,17 @@
      退化情形（某个 port-only 的名字恰好在参照的 `#if 0` 臂里被顺带写成一个定义）现在不会被报成 invented；
      收紧它需要区分"哪个臂在冻结配置下真为假"，属 P-86 的另一半工作，本轮明确不覆盖。
      另外它没跑 `gate-fast`/`cargo test`/`check-all-units.sh`，也没动 `docs/baseline/**` 与 `docs/ports/**`。
+
+- **3.390 §8 第 5 条（原样复制）量清楚了：已跟踪内容逐字节一致，字面 `diff -r` 的差全是被参照
+  `.gitignore` 忽略的构建产物（2026-10-05）**：
+  ① 背景：参照检出**在本地被构建过**（冻结基线就在 `emacs/` 里 `make` 出来），所以它的 `lisp/*.elc`、
+     `etc/charsets/*.map`、`doc/{emacs/emacsver.texi,man/emacs.1}`、`admin/**` 的 `*.stamp`/`*.elc` 留在树里。
+  ② 实测：`diff -r` 只有 `test`/`leim` 无差异，其余四棵树的差异**全是"参照侧多出的文件"**（lisp 1727、etc 132、
+     doc 4、admin 4），逐条问参照自己的 `.gitignore`——`*.elc`（:180）、`etc/charsets/*.map`（:265）、
+     `doc/emacs/emacsver.texi`（:314）、`*.stamp`（:171）、`doc/man/emacs.1`（:315）**全部命中**。
+  ③ 真判据（**已绿**）：六棵树**已跟踪文件数逐个相等**（lisp 1627/1627、test 1555/1555、etc 886/886、
+     doc 255/255、leim 28/28、admin 253/253），`tools/check-verbatim.py` → **`6 trees, 4604 files, 0 failures`**。
+     这一条与判据一起写进 `docs/acceptance.md`（新增一节），免得后来者对着字面 `diff -r` 反复排查。
+  ④ 顺带记录一个事实：**`emacs/` 不在本仓库索引里**（`git ls-files emacs/lisp` = 0，它是外部只读检出），
+     所以这条判据依赖本机的参照检出，CI 上无法复核（`docs/port-plan.md` §10 已记）。
+  ⑤ **未声称**：§8 的其余七条一条都没点亮；本轮只把第 5 条变成"有判据、有读数"。
