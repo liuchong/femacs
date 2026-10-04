@@ -3163,3 +3163,25 @@
   镜像必须始终可编译），这轮它正在改；我会在它收口后重跑确认转绿。**在红期间的提交要如实标注**（本轮无提交涉及该门）。
   ⑤ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；`check-declarations` 13/0；引证门
   **40 drift / 4 range / 284 external / 13 allowed / 0 stale**（持续下降：78 → 59 → 43 → 40）。
+
+- **3.180 引证清扫第二轮：44 条改正、36 条进 allowlist，tracked 面的 drift 打到 ~0（2026-10-04）**：
+  ① **交付**（`69fcd4e`）：39 个 tracked 文件里改了 **44 条引证**，每一条都指向 **pin `fd7afced403` 里的真身**而不是"迎合工具的形状"：
+  `alloc.rs` 的 `parse_str_as_multibyte`（`character.h 1046` → **lisp.h 4426**）、`itree.rs` 的 `enum itree_order`
+  （`itree.c 1240-1464` → **itree.h 104-110**）、`frame.rs` 的 `SET_FRAME_VISIBLE`（那不是宏而是 **INLINE 函数 1536-1552**）、
+  `syntax.rs` 的 `update_redisplay_ticks`（**4052 → 3721**，并把引文里写错的签名改成 C 的 `struct window *`）、
+  `term.rs` 的 face 位域区（2400-2442 → **1861-1895**）、`include/thread.rs` 3 条、`include/keyboard.rs` 5 条、
+  `pdumper.rs` 2 条……其中三处是**多引证同行**的行：它把句子重排让"第一条引证与它首先点名的构造"配对
+  （号仍是 pin 实查，不是挪号迎合）。
+  ② **36 条 allowlist 行由我写入** `docs/baseline/citations-allowlist.tsv`（引证对、引号串只是"举例/类型/邻居名"两类：
+  **include 行引证**是最大一类——`lisp.h 30` 引给 `memset`/`memcpy`/`str_as_multibyte` 当"这个 include 带来了什么"）。
+  工具读数：**16 drift / 4 range / 284 external / 36 allowed / 0 stale**，剩下 16 条全在**在飞文件**里
+  （`keyboard.rs`/`xdisp.rs`/`nsfont.swift`/`macfont.swift`），lane 按我的要求原样跳过。
+  ③ **工具又学到一条**：引号串配对的 `KEYWORDS` 表补了散文词 `and`/`let`（两条 finding 本来配的就是它们）——
+  补完这两条消失，我把对应的两条 allowlist 行**删掉**以免 stale（这正是"行不再匹配即失败"这条规矩在起作用）。
+  ④ **一处"不许占功"的处置**：`src/include/dispextern.rs` 里该 lane 修的 2 行注释**没有进这次提交**——那颗文件
+  正被另一个 lane 大改（cfg feature 改名），它的工作树不是本轮成果；等那边收口我再把这两行一起收。
+  ⑤ lane 已排下一批：**`lib/string.in.h`（1,852 行）**（gnulib 模板方法；Harvey 也推荐从这件开始，因为它有现成的
+  "系统半边"可 `include!`，而 `stdlib.in.h` 的 `@GNULIB_*@` 块更密）。**新规矩同时下发**：镜像必须始终可编译
+  （3.178 立），每轮除 `--check` 外自己再跑一次 `layout-check`。
+  ⑥ **`layout-check` 仍红（第三轮）**：根因仍是 Harvey 在飞的 `lib/include/stdbit.in.rs`（现在 639 行，
+  当前错误 `expected item after doc comment`）；我已两度告知规矩，等它收口后重跑确认。
