@@ -57,6 +57,6 @@ python3 tools/check-link.py --executable --strict
 cd "$root"
 cp "$wt/docs/baseline/link-pending.txt" docs/baseline/link-pending.txt
 cp "$wt/docs/baseline/link-exec-pending.txt" docs/baseline/link-exec-pending.txt
-git worktree remove --force --quiet "$wt"
+git worktree remove --force "$wt"
 rm -rf "$target"
 echo "reconciled: docs/baseline/link-pending.txt, docs/baseline/link-exec-pending.txt"

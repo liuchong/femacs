@@ -4738,3 +4738,5 @@
   ② **读数五（HEAD `ee92417`，对账后）**：部分链接 **365 个名字**、可执行链接 **63 个名字**（`port-owed` 15 / `unknown` 48）。同一时刻工作树上的两个门读作 373 与 71，其中 **14 个名字只在在飞的 `src/xdisp.rs` 里被引用**（`_display_line`/`_redisplay_window`/`_set_cursor_from_row`/`_hscroll_margin`/`_Voverlay_arrow_*` 等，都是 xdisp 自己后续切片要定义的名字）——两个读数之差就是 lane 的进度，没有别的。
   ③ **工具修正（同一轮实测抓到）**：`write_exec_pending` 的写文件循环被一次按行替换误删，于是 `--executable --write-pending` **只写了注释头、没有行**，而汇总行仍报 "wrote N row(s)"——`ee92417` 里落库的那份 `link-exec-pending.txt` 因此是**空棘轮**（10 行注释、0 行数据），在净 HEAD 上表现为"63 个名字全是新的"。修正已入本轮提交；教训写进脚本的注释：**写后必须用 `--strict` 复检**，否则"写成功"这句话本身没有证据。
   ④ 现状：`tools/check-link.py`（部分链接那级）仍挂在 `gate-fast`，`--executable` 仍不挂——现在两队棘轮都精确了，等 `xdisp` 落地后把可执行那级也接上就是一个两行改动。
+  ⑤ **为什么可执行那级不挂进 `gate-fast`（本轮把理由量清）**：可执行链接剩下的未定义名字是部分链接那一级的**子集**（部分链接里没人定义的名字，除非被库或运行时提供，否则在可执行级仍无人定义），所以"名字类"的回归由已挂进 `gate-fast` 的部分链接门覆盖；
+  可执行那级的价值在别处——它是**收官时的验收命令**（`--executable` 绿即"程序存在"），以及每轮读一次就能拿到"离可执行还有多远"的**进度读数**（本轮 63）。脚本已端到端自测：在本轮 HEAD 上重跑 `tools/reconcile-link-ratchets.sh` → 两级 `--strict` 全绿、两队棘轮**零 diff**、worktree 自动清除。
