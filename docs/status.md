@@ -3872,3 +3872,15 @@
   （生成物 `build/femacs/units/frame/_root.rs` 352）。注释现在只写镜像的路径。
   ⑤ 读数：`gen-port-inventory` **590 files、done=577、wip=10、todo=3**（`frame.h` 仍是 WIP，但只剩三条**已记录**的行）；
   门：`check-mirror-dupes` 1 duplicate/1 ratchet/0、`check-declarations` 13/0。
+
+- **3.212 `src/w32term.h` 入库（lane 交付，集成者复核）＋A 组里 `frame.h` 降到 3 行（2026-10-04）**：
+  ① `src/w32term.h`（929 行）→ `femacs/src/include/w32term.rs` + 台账 `docs/ports/include-w32term.md` 入库
+  （`7f03341`）。判据：`check-cond-eval.py src/w32term.h` → `17 conditions, 0 unknown, 1 disagreement
+  [NOT VERIFIED]`（镜像按工具那条保守读法走并记录）；清单满：**119 宏 / 10 类型与字段 / 25 文件级对象 / 0 函数**，
+  `--check` → **OK**、台账 **0 未勾**。
+  ② **它的编译证据是共享门**：这一件**在 layout 种子里**（`docs/baseline/layout-excluded-mirrors.txt` 里没有它），
+  本轮在这个 HEAD 重跑 `cargo run -p xtask -- layout-check` → `layout probe ok` + **`layout-check passed`**——
+  这一次同时覆盖了 3.211 对 `src/include/frame.rs` 的改动。
+  ③ `tools/audit-wip.py` 的 A 组现在是：`dispextern.h`（142 行，在飞）、`font.h`（49）、**`frame.h`（3，全部是本轮
+  记录在案的 includer-owned 行）**、`xdisp.c`（176，在飞）。读数：`gen-port-inventory` **590 files、done=577、
+  wip=10、todo=3**；门：`check-mirror-dupes` 1/1/0、`check-declarations` 13/0。
