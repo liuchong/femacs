@@ -4559,3 +4559,8 @@
   `check-citations` 本 lane **1 条 `external`**（`nsterm.swift:1312` 引 `NSGraphics.h 210-211`＝AppKit 系统头，按规则"counted, never a failure"）。
   ⑤ 下一段起点：**C 1493 `ns_get_focus_frame`** → `ns_focus_frame`/`ns_raise_frame`/`ns_lower_frame`/`ns_frame_raise_lower`/`ns_frame_rehighlight`/
   `ns_make_frame_visible`…（frame 管理段，正是 (4) 待定条目表开始长行的地方）。
+
+- **3.245 补记（同轮）：`docs/ports/link.md` 的保留①被量成了结构性的**——`libgnu.a` 的成员是 `mini-gmp-gnulib.o`，而 `nm -g build/femacs/mini-gmp-gnulib.o`
+  **没有任何 `mpz_*`**（它们在这个端口里是**独立单元** `mini-gmp.o`，`grep -c ' T _mpz_'` = 60，因为 `lib/mini-gmp.c` 是单独的移植文件）⇒
+  链接集不是"把归档成员按 stem 映射"那么简单：**还要加上那些被 amalgamating 成员 `#include` 的单元**（gnulib 用 `#include` 合并源码、而本端口一个文件一个单元）。
+  这条写进了 `docs/ports/link.md` 的保留①：在那条规则写下来之前，`port-owed` 是线索不是判决。

@@ -57,11 +57,15 @@ without pretending the program is ready to run.
 
 Two caveats, both measured rather than assumed:
 
-* the `libgnu.a` member -> `build/femacs/<stem>.o` mapping needs care: `mini-gmp.c` is an archive
-  member under a different name than the unit's stem, so the 59 `port-owed` names are dominated by
-  `mpz_*`, which `femacs/lib/mini-gmp.rs` does define (`nm -g build/femacs/mini-gmp.o` shows
-  `T _mpz_add`).  The classification is therefore a *lead*, not a verdict, until the mapping is
-  exact.
+* the `libgnu.a` member -> `build/femacs/<stem>.o` mapping needs care, and the reason is
+  structural rather than a typo: gnulib amalgamates sources with `#include`, and this port splits
+  them into one unit per **file**.  `ar t build/emacs-ref/lib/libgnu.a` names `mini-gmp-gnulib.o`,
+  and `nm -g build/femacs/mini-gmp-gnulib.o` shows no `mpz_*` at all - those live in
+  `build/femacs/mini-gmp.o` (`nm -g … | grep -c ' T _mpz_'` = 60), which is a *separate* unit here
+  because `lib/mini-gmp.c` is its own port file.  So the link set for this port is not simply
+  "the archive members mapped by stem": it must also add the units whose sources the amalgamating
+  member `#include`s.  Until that rule is written down, the `port-owed` count is a lead rather
+  than a verdict.
 * the `V…` symbols are the port's known and documented deviation, so a link driver must decide
   whether to (a) export them after all, (b) accept them as a ratchet, or (c) prove no unit
   references them by that name.  This file records the question; it does not answer it.
