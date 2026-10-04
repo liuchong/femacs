@@ -3229,3 +3229,31 @@
   是 getter 路线的第一个真实消费者）。
   ⑤ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；五门绿 + `layout-check` passed；
   引证门 16 drift / 4 range / 284 external / 36 allowed / 0 stale（剩 16 条全在在飞文件）。
+
+- **3.183 全树 cfg feature 卫生：223 处拼法统一、`[features]` 表落地、FLIPS 跟着改（2026-10-04）**：
+  ① **问题规模是量出来的**：树里用了 **545 个** `feature = "…"` 名字而**任何 manifest 都没有 `[features]` 表**；
+  15 个 C 开关各有两种拼法（`window_system` 82 / `have_window_system` 28、`native_comp` 56 / `have_native_comp` 14、
+  `android` 14 / `have_android` 96、`x_windows` 13 / `have_x_windows` 11、`tree_sitter` 14、`modules` 10、`haiku` 10 …）。
+  **交付**（`7ad6561`）：27 个文件里 **223 处**统一到"C 宏字面小写"，另修 7 处注释里的旧拼法（含 `floatfns.rs` 两处
+  写错的宏名），并把 tracked 树用到的名字**全部声明一次**。
+  ② **两处结构性决定**：**（a）`[features]` 落在 `femacs/xtask/Cargo.toml`**——`femacs/Cargo.toml` 是 **virtual manifest**，
+  cargo 直接拒绝 `features` 段（lane 实测 `error: this virtual manifest specifies a 'features' section, which is not allowed`），
+  而"把根变成 package / 新建 port crate"是结构性决定、不该为一张表仓促做；表头写明"这是**移植树**的命名空间、
+  等移植树有 package 时整段搬走"。**（b）`xtask` 的 `FLIPS` 两个 feature 串跟着改**：不改就会**静默掉死臂覆盖**
+  （`dead-arms` 按 feature 名翻常量，名字一改翻转就不再与 cfg 相配，断言退化恒真）。
+  ③ **证据**：`--check-cfg` 过一遍最大的消费者单元，`unexpected cfg condition value` **228 → 0**（34 个名字 → 0）；
+  `layout-check` 与 18 个 `build-tu` 在副本上先跑过（当时真树忙），**真树上同样 18 个全部 `built`**；
+  `cargo metadata --no-deps`、`cargo build -p xtask` exit 0；新探针 `spikes/window_system_probe.rs`
+  （把 `--cfg` 命令写在文件头、保留负向对照）。
+  ④ **四条裁决**：`[features]` 落点与 FLIPS 都**接受**（理由如上）；**`enable_checking` 的轴裁定为"裸 `--cfg`"**
+  （`regex-emacs.rs` 大量用裸形式、xtask 的 check 通过程显式传它），因此树里那 **3 处 `feature = "enable_checking"` 是错的**
+  （那个 feature 永不开、等于死文本）⇒ 已排下轮修；**16 个缩写名**（`bdffont`/`be_cairo`/`freetype`/`harfbuzz`/`xft`…）
+  与 **`windows`(81)/`windowsnt`(100)** **保持不动**——规则定为"只有同一 C 开关出现两种拼法时才统一到 C 字面小写"，
+  而这两个的 C 条件本就不同（gnulib 的 `_WIN32`/`_CYGWIN` 臂 vs `WINDOWSNT`），lane 的实测判断我采纳。
+  ⑤ **prose 的边界**：`docs/ports/*.md` 的 229 处旧拼法**做**（tracked ledger，逐文件列改动）；`docs/status.md`(18)/
+  `docs/reviews/*`(6)/`docs/spikes/*`(1) **不做**——历史条目里的旧拼法是对当时状态的记录，我在新条目里说明更名即可；
+  `PORTING.md` 的 5 处（P-51/P-68/P-76）**由我自己改**。
+  ⑥ 在飞文件的 **36 个**未声明 feature 名**先记账**，等那些单元闭合入库后再并进表。
+  ⑦ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；五门绿；引证门 17 drift / 4 range / 284 external /
+  36 allowed / 0 stale。**`layout-check` 目前红**，根因是 Harvey 在飞的 `lib/include/stdbit.in.rs`
+  （`cannot find macro _gl_stdbit_popcount*` 三条——正写到一半），不涉及本轮提交。
