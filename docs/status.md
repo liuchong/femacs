@@ -6795,3 +6795,35 @@
      ⑷ **刻意不加** `line-drift-tolerance` 行（WIP 口径同 xdisp），该行应在文件落完时按最终密度推导。
   ⑥ **未声称**：**无 Haiku 构建、无链接、无运行**；③ 的 harness 读数不是 Haiku-target 编译；
      `build-tu` 的 336 字节空对象只证明"门在、冻结档编不到"，不是新文本的证明；`femacs/platform/haiku/*.cc` 那一侧未触及。
+
+- **3.401 最大的死文件第一片：`image.c` C 1-1095（2026-10-05）**：
+  ① **区间**：收在 C 1095（`image_create_bitmap_from_file` 的 `}`）；**下一个活定义 = `free_bitmap_record`（C 1099-1119）**。
+     41 个块，覆盖 include 图与平台宏/类型段（X / CAIRO / NS / PGTK+IMAGEMAGICK / NTGUI **两臂** / HAIKU / ANDROID / `ANDROID_STUBIFY` /
+     `WORDS_BIGENDIAN` 全录）、CAIRO 六个像素容器助手、NS 两个 shim、位图访问器、PGTK pattern 构造、
+     `image_create_bitmap_from_data`（C 595-735）与 `image_create_bitmap_from_file`（C 755-1095）。
+  ② **行数**：`femacs/src/image.rs` **11 → 1,714 行**（密度 1.57）；台账 **24 → 401 行**（P-08 的"空单元"整篇改写成 P-86 三节 + 41 行区间表）；
+     6 个导出定义全部 `#[unsafe(no_mangle)]`。
+  ③ **读数**：冻结档 `build-tu` → built / exit 0 / **336 字节空对象**（末版 md5 与直接 rustc 复现一致）；
+     **翻臂两发**：NS 配置 `exit 1 / 55 error 行（127 位点）、0 个在单元文本`（全在镜像：frame 45 / dispextern 36 / nsterm 32 /
+     font 8 的 `E0080` / window 3 / lisp 1 / stdbit 1）；X+cairo 配置 `exit 1 / 233 error 行`，单元文本 3 条是 Xlib/Xutil 的 SDK 名
+     + `E0428 x_bitmap_stipple`（与 `include/xterm.rs` 190-192 的声明撞名）。**臂触达预检 + 变异实测**：NS 配置下 harness
+     **exit 0 / 0 error / 31,520 字节对象**，注入一处类型错误立刻 `E0308`（非空读数）。
+     `check-dead-file-coverage` **13 ledger(s) bound / 0 failure**；`check-citations` 675/0 drift/0 stale；
+     `check-port-lines` 报本件 **stale**（退出棘轮）。
+  ④ **本片的一个方法论收益（值得记）**：lane 顺手跑了**九配置扫描**（frozen/NS/haiku/android+stub/android/ntgui/pgtk/x11/x11+cairo），
+     除了给出每个配置"单元文本多少错"的表，**它抓到了三处翻臂抓不到的缺陷**——Haiku/Android 臂的 `!(STRINGP (…) != 0)`、
+     `android_create_bitmap_from_data` 的两个 `c_uint` 形参、四处 `f->foreground_pixel & 0xffffffff` 写进 `uint32_t`
+     字段需要显式截断。也就是说：**多配置只读扫描是 P-86 这一类里比"挑一个配置翻臂"更强的读数**，值得成为后续轮次的常规动作。
+  ⑤ **集成者这一轮的动作**：`femacs/xtask/Cargo.toml` 补 **四个**单元已在用、表里没有的 feature——
+     `have_png`（C 30）、`have_gif`（C 244）、`have_webp`（C 244）、`have_imagemagick`（C 104，
+     `#if defined HAVE_PGTK && defined HAVE_IMAGEMAGICK`）。`--check` 无新增 `does not mention`，故不欠 notes 行；
+     行数容差行按 WIP 口径**刻意不加**（同 xdisp/haikuterm）。
+  ⑥ **仍未解决（点名）**：⑴ 五条臂是 **text-only**（无 mingw/windows.h、无 Haiku SDK、无 GTK/PGTK；X11 臂因 `include/xlib.rs`
+     缺名不可编）；⑵ **本机没有任何 window-system TU 能编过**，所以"单元 0 错"只能靠 harness + 变异测试成立；
+     ⑶ 镜像缺口一串：`include/pgtkterm.rs` 是无 `include!` 链的占位、`frame.rs` 的 window-system 区、`dispextern.rs` 的
+     `Emacs_Cursor` 未分臂、`nsterm.rs` 缺 `Window`/`NSArray`/`NSString`/`NSRect`/`EmacsMenu` 且不引 `nsgui.h`、
+     `font.rs` 8 条按冻结布局的断言、`xterm.rs` 缺 Xlib 记录/过程、`w32gui.rs` 202 把 `XImage` 门在 `windows`、
+     `xterm.rs` 190-192 的 `x_bitmap_stipple` 声明与单元定义撞名（要 `*_decls` 模块化）；树里**没有 cairo 镜像**；
+     ⑷ 预算：`build-tu` **8 发**（超 5），原因（4 发失败迭代）记在台账 Deviations。
+  ⑦ **未声称**：无运行/行为证据；NS 的 `exit 0` 是 **harness 读数**（打了三类补丁，不是 `xtask probe` 读数）；
+     Windows/Haiku/PGTK/Android 臂**不声称能编或布局正确**；**C 1,096-13,805 只是登记、没有移植**。
