@@ -5038,3 +5038,17 @@
   ⑤ **教训（工具层，写在这里以免重犯）**：`3440f71`（Kotlin 四件）的 commit message 里两处反引号被 **shell 命令替换**吃掉了（`\`val apk: File\`` 变成空、`apk` 一词变成 `cat` 的输出错误提示）；
   该提交**已推送**，而 `git push --force` 是硬禁止 ⇒ **不重写历史**（内容与证据以本条与 3.297 为准）。从此提交信息一律写进文件、用 `git commit -S -F <file>`（`6b24abc` 已是这么做的）。
   ⑥ **清理**：本轮我自己造的两个临时目录已删（`/tmp/femacs-verify` 的 cargo target、`/tmp/{bt-abishim,kotlin-probe}.txt`）；`build/femacs/` 里的对象是工程正常状态、按 3.284 的口径保留。
+- **3.299 五个 C++ 目标一次性落地（地图的 `C++` 节 8,264 行），载文门从 `Kept` 扩到两类：`check-kept` → `check-carried`（2026-10-05）**：
+  ① **落地**：`femacs/platform/haiku/{haiku_support.cc 5,661 行, haiku_font_support.cc 1,193, haiku_select.cc 647, haiku_draw_support.cc 520, be_resources.cc 163}` —— 参照是 5,677/1,209/663/536/179（**共 8,264 行 → 端口 8,184，每件 −16**：17 行 `/* … */` 声明块换成 1 行出处行），
+  首行逐个是 `// femacs: port of <参照路径> @ fd7afced403.`，**正文五对逐字节相同**（`diff <(tail -n +18 emacs/…) <(tail -n +2 femacs/…)` 全过）。
+  ② **为什么是"承载文本"而不是 3.31 的空单元**（P-85 ②⑥）：目标语言＝源语言——`docs/port-plan.md` §4 batch F 对这批的写法是 "`*.cc`→C++"，也就是**保留 C++** ⇒ 端口就是文本本身，没有要发明的语义；C 侧的 Haiku 单元（`femacs/src/haikufns.rs` 等 11 行 + 台账）仍按 3.31 留空单元，因为那要把 C 重写成 Rust、而本机没有工具链可验证。丢掉这 8,264 行才是信息损失。
+  ③ **门跟着扩**：`tools/check-kept.py` → **`tools/check-carried.py`**、`docs/baseline/kept-files.tsv` → **`docs/baseline/carried-files.tsv`**，行集＝地图 `Kept` 节 ∪ `C++` 节（**11 行 = 6 + 5**）。每行四读：参照整文件 sha256、目标首行（并按**类别**要求短语——`Kept` 写 `kept from`、`C++` 写 `port of`，因为 `C++` 的路径要从 `src/`/`lib-src/` 移到 `femacs/platform/haiku/`）、正文与参照 `removed_lines` 之后逐字节相同。
+  读数 **`11 carried file(s), 11 baseline row(s), 0 failure(s)`**；`--selftest` **8 例 / 0 失败**（每类 4 例：干净过、正文翻一个 bit 报 1、删首行报 2、**换成别类的短语报 1**——最后这条是类别规则的正面证据）。
+  ④ **声明门的覆盖第三次扩张**（3.250 的 `.swift`、3.295 的 `.s` 之后）：`check-declarations.py` 现在读 **666 文件（623 .rs + 25 .kt + 7 .swift + 6 .s + 5 .cc）**，`femacs/platform` 的 **`.cc` 半边第一次进扫描面**，读数仍是 **13 sites / 0 forbidden / 0 failures**（新落地的 5 件零命中：块已去）。
+  ⑤ **P-84 ④ 的工具名/基线名更新**到 `check-carried`/`carried-files.tsv`；**P-85 立规**（C++ 目标的路径、载文、名字不许变、SDK 头是"另一个目标的工具链头"、编译证据只能来自 Haiku target）。实测记录：本机 `clang++ -std=c++23` 可用（纯 C++ 片段 exit 0），但 `-fsyntax-only` 到这五个文件立刻 `fatal error: 'View.h' file not found`（exit 1）——所以 P-85 ④ 把"编译"记成 Haiku target 的事，而不是发明 SDK stub 头。
+  ⑥ **清理**：本轮临时脚本与临时 inventory 读数（`/tmp/land-cpp.py`、`/tmp/patch-porting.py`、`/tmp/inv-now.md` 等）已删；没有跑 cargo/rustc。
+- **3.300 地图在落地之后重生成：9 个"目标行数"格子（5 个 C++ + 4 个 Kotlin）（2026-10-05）**：
+  ① **方法同 3.296**：一次性 worktree 在 `6674342` 上（`git worktree add --detach` + 软链未跟踪的参照 `emacs/`），在那里跑 `tools/gen-port-map.py`，拷回；`docs/port-inventory.md` **零行变化**（它迭代的是 590 个 C 文件，`C++`/`Kotlin` 目标不在它的行里——跟踪它们的是地图的 `C++` 节与 `docs/baseline/carried-files.tsv`）。
+  ② **读数**：地图 **9 行变、0 个增/删 hunk** —— `C++` 五行的目标行数从 `-` 变成 **163/520/1,193/647/5,661**（= 8,264 − 5×16 + 5），
+  Kotlin 四行（`3440f71` 落的三件字体驱动 + `EmacsApplication`）从 `-` 变成 **119/162/98/440**。
+  ③ 复检：`check-declarations` 13/0/0（`read 666 files`）、`check-carried` `11 / 11 / 0`；worktree 用完即删。
