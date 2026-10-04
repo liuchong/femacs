@@ -3304,3 +3304,34 @@
   ④ 读数：`gen-port-inventory` 590 files、done=542、wip=22、todo=26；四门绿（`check-declarations` 13/0、
   `check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 600/0）；
   **`layout-check` passed**；引证门 17 drift / 4 range / 284 external / 36 allowed / 0 stale。
+
+- **3.186 `src/widget.h` 进镜像（Xaw 半挂 `use_x_toolkit`），并复算"产品名声明"这条长期指令在这一版 HEAD 上的状态（2026-10-04）**：
+  ① **本轮实产**（`f2217ec`，签名 `verified=true`，已推 `origin/master`）：`src/widget.h`（102 行，**36 宏 + 1 对象**）
+  → `femacs/src/include/widget.rs` + `docs/ports/include-widget.md`（台账 37 个勾选框全满、0 未勾）。
+  35 个资源名字符串（`XtNminibuffer`/`XtCMinibuffer`/`XtCForeground`…）是 C 自己的字面量，冻结可见，落成
+  `pub const … : &CStr`（`c"…"` 形式，Rust 侧逐字）；`display_context` 是 `*mut c_void` 加 `/// C:` 原文行；
+  `_EmacsFrameRec`/`_EmacsFrameClassRec` 是 **Xaw 的类型**（本目标没有它的镜像），两个 typedef 随之为 `*mut c_void`；
+  五个声明（`emacsFrameClass`/`EmacsFrameSetCharSize`/`widget_store_internal_border`/
+  `widget_update_wm_size_hints`）与所有 Xaw 类型一起挂 `#[cfg (feature = "use_x_toolkit")]`，**照 C 写 C 的名字**
+  （P-51：非冻结侧的存在理由是该目标自己供给这些名字；`USE_X_TOOLKIT`/`USE_LUCID` 在 `docs/baseline/config/` 里未定义，
+  `src/widget.c` 也不在冻结源码清单里）。六个 `#ifndef` 守卫的宏照发并记理由（它们是"未定义才定义"的守卫，不是普通 `#define`）。
+  ② **长期指令的复算，不是重做**：`把之前的代码中的这种声明也去掉`（与 10-03 的 `版本声明不要再说是gnu emacs了` 同 turn，
+  见 3.134）的处置没有回退——`2ee1d1d`/`4810bb0` 把 231 个首行压到只留修订号（`@ fd7afced403`）、`fd9cf89` 不携带
+  268 个版权/许可块。本轮实测：`check-declarations` → **13 declaration sites (0 forbidden, 13 allowed literals), 0 failures**；
+  定向扫 `part of GNU|is free software|Free Software Foundation|Copyright (C)|under the terms of the GNU|GNU Emacs [0-9]`
+  命中 8 处，**每一处都是允许清单 `docs/baseline/declarations-allowlist.tsv` 上的 C 字符串字面量**
+  （`src/emacs.rs` 4、`lib-src/etags.rs` 2、`lib-src/ebrowse.rs` 2——横幅要打印、docstring 门要逐字比对，属被移植的语义），
+  另 1 处是 `lib/getopt.rs:91` 的上游注释提到 "GNU libc"（不是本产品名）；本轮新落的 `include/widget.rs` **零命中**。
+  ③ 读数：`gen-port-inventory` **590 files、done=543、wip=22、todo=25**；门全绿——`check-declarations` 13/0、
+  `check-globals` **283 单元 / 0 缺定义**、`check-mirror-dupes` 1 重复声明 / 1 棘轮行 / 0 失败、`check-verbatim`
+  **6 trees / 4607 files / 0 failures**、`check-target-names` **601 .rs / 593 targets / 0**、`check-swift-units`
+  **0 new / 0 stale / 4 Swift 单元已入库**、`check-citations` 600 files / 18 drift / 4 range / 284 external / 36 allowed / 0 stale；
+  **`layout-check` passed**（我自己重跑，`CARGO_TARGET_DIR=/tmp/femacs-lc-187`，用完即删）。
+  ④ **三条 lane 本轮交活，下一轮由我入库**（3.187/3.188）：**keyboard 闭合**（接手 C 13173 `wipe_kboard` → C 14682
+  `mark_kboards` 的收尾括号 = 全文件；`keyboard.rs` 15,360 行，`--check` 的 missing 行归 0，scaffold 3→0，
+  78 个 `DEFVAR_*` 持有者落地使 `check-undef` 的 21 条棘轮行 stale 而 `check-globals` 从 78 条缺定义降到 0）；
+  **macfont 第 ① 段**（`glyph_string` Swift 镜像按实测 sizeof 272/align 8 与 27 个偏移、`macfont_draw`、
+  五个 `CG_SET_*` 宏的 Swift 形态，`macfont.swift` 9,240 行、53/74 函数）；**cfg 卫生第二批**
+  （`alloc.rs` 三处 `#[cfg (feature = "enable_checking")]` 改成裸 `#[cfg (enable_checking)]`，一改立刻暴露
+  `AVAIL_ALLOCA!` 单参调用与 `terminate_due_to_signal` 未声明两个从未被任何编译器读过的缺陷；66 处台账散文旧拼法；
+  `[features]` 表删掉"声明了但没有 `--cfg` 驱动方"的 `enable_checking`）。
