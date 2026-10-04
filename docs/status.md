@@ -6021,3 +6021,25 @@
      被 `excluded-macros.txt` 排除的宏其前提可被后来的镜像推翻，要由消费单元按 C 的名字定义。
   ⑤ **未声称**：真臂只做到**类型检查**（而且是在 /tmp 的“臂触达”预检里，不是在仓库构建里）；**冻结配置下这文件一行都没运行**；
      无设备/模拟器/JNI/菜单显示；`ANDROID_DELETE_LOCAL_REF` 在单元里的宏定义与 `excluded-macros.txt` 尚未对齐（已在 Deviations 记录）。
+
+- **3.371 最后 5 条重名债清零：重名棘轮 23 → 18 行（回到"两种合法拼法"的地板）（2026-10-05）**：
+  ① **清的是 3.362 记下的 9 条里剩下那 5 条"两侧拼法不同"的**（另外 4 条 3.363 已清）：
+     `femacs/lib/mini-gmp.rs` 的 `fwrite`、`femacs/src/keyboard.rs` 的 `get_property_and_range`、
+     `femacs/src/lread.rs` 的 `record_unwind_protect_int` ——**两侧签名逐项相同**（只差形参名），删单元副本即可；
+     `femacs/src/marker.rs` 的 `build_marker`（镜像按 P-72 rule 3 写 `b: *mut c_void`）与 `femacs/src/window.rs` 的 `vmotion`
+     （镜像写 `w: *mut c_void`，因为 `include/indent.rs` 拿不到 `window` 类型）——这两条删副本后**调用点要强转**，
+     我给 `build_marker` 的 4 处与 `vmotion` 的 6 处加了 `as *mut c_void`。
+  ② **读数（本轮实跑）**：5 个单元 `build-tu` **5/5 built**（`lib/mini-gmp`、`src/keyboard`、`src/lread`、`src/marker`、`src/window`）；
+     `extract-abi --check` 5/5 **OK**；`check-mirror-dupes` 先读 `18 dup / 23 ratchet row / 5 failure`（那 5 条正是变 stale 的行），
+     `--write-ratchet` 后 **`18 duplicate declaration(s), 18 ratchet row(s), 0 failure(s)`** ——棘轮回到它的**地板**：
+     剩下 18 行是**有 C 依据的"两种合法拼法"**（gnulib 重定向、数组长度常量、`#undef access` 之类），不是 P-26 意义上的重复。
+     `check-citations` **675 files / 0 drift / 0 stale**、`check-declarations` **13 sites / 0 forbidden**。
+  ③ **一条"这次我先自己核了"的正向记录**：`window.rs` 那份 `vmotion` 原地带一段**为自己辩护的注释**
+     （"`struct window` 是本单元的真实类型，所以与 `include/indent.rs` 那份不同，形参用真类型"）——那正是 P-26 要删掉的
+     "同一个构造的第二种拼法"，删副本时连这段注释一起退掉、并留一句指向镜像的说明。
+  ④ **两次自我纠错（都记下来，因为它们是同一类错误）**：⑴ 我第一版替换脚本的"向上收集 `///` 注释"有个 off-by-one
+     （用 `text[line_start:start]` 而 `start == line_start`，永远不向上走），于是 5 处陈旧注释留在原地——我自己读 diff 时发现并逐块删掉；
+     ⑵ 给 mini-gmp 的指路注释我**差点又写一个猜的行号**（`stdio.h 798`，与 3.363 那次 `lisp.h 4009` 同型）——这次在跑门之前
+     自己改成不带行号的 `<stdio.h>`。**两次都是"我写下的数字/结构需要被核"，不是门的错**。
+  ⑤ **未声称**：这 18 行是**记录**不是清零（每一行都带理由）；重名门只保证它看得见的那部分（3.362 的教训：换行声明它现在看得见了）；
+     P-26 的"一构造一拼法"在这 18 个点上仍是**有理由的例外**。

@@ -222,13 +222,10 @@ unsafe extern "C" {
   pub fn reset_mouse_highlight (hlinfo: *mut Mouse_HLInfo);
   /// C: dispextern.h 3903: `void free_window_matrices (struct window *);`.
   pub fn free_window_matrices (w: *mut window);
-  /// C: indent.h 39-40: `struct position *vmotion (ptrdiff_t from, ptrdiff_t from_byte,
-  /// EMACS_INT vtarget, struct window *);` (indent.c defines it).  `struct window` is a real
-  /// type in this unit, so unlike `include/indent.rs`'s copy (which sees only `lisp.h` and
-  /// spells `*mut c_void`) the parameter is the real one; `vtarget` is `EMACS_INT` — the first
-  /// lane's `n: c_int` was a `clashing_extern_declarations` mismatch with the mirror's own
-  /// prototype and would pass a 32-bit value where C passes `EMACS_INT`.
-  pub fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t, vtarget: EMACS_INT, w: *mut window) -> *mut position;
+  // indent.h 39-40's `vmotion` is the include/indent.rs mirror's now; the mirror spells
+  // `struct window *` as `*mut c_void` (P-72 rule 3, indent.rs cannot name the type), so the
+  // six call sites below cast - the copy this unit used to keep spelled the real type, which
+  // is exactly the second spelling P-26 asks to drop (status 3.371).
 }
 
 
@@ -3545,7 +3542,7 @@ DEFUN! ("delete-other-windows-internal", Fdelete_other_windows_internal,
 	  Fset_buffer ((*w).contents);
 	  /* This computation used to temporarily move point, but that
 	     can have unwanted side effects due to text properties.  */
-	  pos = *vmotion (startpos, startbyte, (-top) as EMACS_INT, w);
+	  pos = *vmotion (startpos, startbyte, (-top) as EMACS_INT, w as *mut c_void);
 
 	  set_marker_both ((*w).start, (*w).contents, pos.bufpos, pos.bytepos);
 	  window_bits! (w, window_end_valid, false);
@@ -6043,14 +6040,14 @@ unsafe fn window_scroll_for_long_lines (w: *mut window, n: c_int, noerror: bool)
 			  &raw mut rbot, &raw mut dummy_rowh, &raw mut dummy_vpos)
 	&& rtop == 0 && rbot == 0)
     {
-      pos = *vmotion (PT! (), PT_BYTE! (), (- (ht / 2)) as EMACS_INT, w);
+      pos = *vmotion (PT! (), PT_BYTE! (), (- (ht / 2)) as EMACS_INT, w as *mut c_void);
       startpos = pos.bufpos;
       startbyte = pos.bytepos;
     }
   SET_PT_BOTH (startpos, startbyte);
 
   let lose: bool = n < 0 && PT! () == BEGV! ();
-  pos = *vmotion (PT! (), PT_BYTE! (), n as EMACS_INT, w);
+  pos = *vmotion (PT! (), PT_BYTE! (), n as EMACS_INT, w as *mut c_void);
   if lose
     {
       if noerror
@@ -6072,9 +6069,9 @@ unsafe fn window_scroll_for_long_lines (w: *mut window, n: c_int, noerror: bool)
       window_bits! (w, force_start, true);
       SET_PT_BOTH (pos.bufpos, pos.bytepos);
       if n > 0
-	{ pos = *vmotion (PT! (), PT_BYTE! (), (ht / 2) as EMACS_INT, w); }
+	{ pos = *vmotion (PT! (), PT_BYTE! (), (ht / 2) as EMACS_INT, w as *mut c_void); }
       else if n < 0
-	{ pos = *vmotion (PT! (), PT_BYTE! (), (- (ht / 2)) as EMACS_INT, w); }
+	{ pos = *vmotion (PT! (), PT_BYTE! (), (- (ht / 2)) as EMACS_INT, w as *mut c_void); }
       SET_PT_BOTH (pos.bufpos, pos.bytepos);
 
       /* Since `vmotion' computes coordinates after vscroll is applied,
@@ -7234,7 +7231,7 @@ DEFUN! ("recenter", Frecenter, Srecenter, 0, 2, "P\np",
       iarg = clip_to_bounds (this_scroll_margin as EMACS_INT, iarg,
 			     (ht - this_scroll_margin - 1) as EMACS_INT);
 
-      pos = *vmotion (PT! (), PT_BYTE! (), - iarg, w);
+      pos = *vmotion (PT! (), PT_BYTE! (), - iarg, w as *mut c_void);
       charpos = pos.bufpos;
       bytepos = pos.bytepos;
     }

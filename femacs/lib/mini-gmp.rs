@@ -76,8 +76,7 @@ unsafe extern "C" {
 
 /* <stdio.h>'s output side (the mirror carries FILE and fclose).  */
 unsafe extern "C" {
-  /* size_t fwrite (const void *ptr, size_t size, size_t nmemb, FILE *stream);  */
-  pub fn fwrite (ptr: *const c_void, size: usize, nmemb: usize, stream: *mut FILE) -> usize;
+  // `<stdio.h>`'s `fwrite` is the include/stdio.rs mirror's now (status 3.371).
   /* extern FILE *stderr;  — darwin spells the object `__stderrp` (stdio.h's `stderr`
      is a macro over it), so the port keeps C's name and binds the platform symbol.  */
 }

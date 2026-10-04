@@ -1178,8 +1178,7 @@ unsafe extern "C" {
   fn set_unwind_protect_ptr (count: specpdl_ref,
 			     func: Option<unsafe extern "C" fn (*mut c_void)>,
 			     arg: *mut c_void);
-  /// C: lisp.h 4823: `extern void record_unwind_protect_int (void (*) (int), int);`
-  fn record_unwind_protect_int (func: Option<unsafe extern "C" fn (c_int)>, int_: c_int);
+  // lisp.h 4823's `record_unwind_protect_int` is the include/lisp.rs mirror's now (status 3.371).
   // lisp.h 4820's `record_unwind_protect_ptr` is the include/lisp.rs mirror's now
   // (status 3.363).
   /// C: lisp.h 4998: `extern void record_unwind_save_match_data (void);` (search.c).

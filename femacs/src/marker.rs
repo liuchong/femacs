@@ -226,12 +226,10 @@ const BYTECHAR_DISTANCE_INCREMENT: c_int = 50;
 
 /* Return the byte position corresponding to CHARPOS in B.  */
 
-/* lisp.h 4963: `extern Lisp_Object build_marker (struct buffer *, ptrdiff_t, ptrdiff_t);`.
-   The lisp.h mirror keeps `struct buffer *` opaque (units include it without buffer.rs), and
-   this unit needs the real type, so the prototype is declared here as well and shadows the
-   import (the tparam.rs precedent for a prototype whose home mirror cannot name the type).  */
 unsafe extern "C" {
-  pub fn build_marker (b: *mut buffer, charpos: ptrdiff_t, bytepos: ptrdiff_t) -> Lisp_Object;
+  // lisp.h 4963's `build_marker` is the include/lisp.rs mirror's now; the mirror spells
+  // `struct buffer *` as `*mut c_void` (P-72 rule 3), so the four call sites below cast
+  // (status 3.371).
 }
 
 #[unsafe(no_mangle)]
@@ -335,7 +333,7 @@ pub unsafe extern "C" fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdif
 	 cache the correspondence by creating a marker here.
 	 It will last until the next GC.  */
       if record
-	{ build_marker (b, best_below, best_below_byte); }
+	{ build_marker (b as *mut c_void, best_below, best_below_byte); }
 
       byte_char_debug_check! (b, best_below, best_below_byte);
 
@@ -360,7 +358,7 @@ pub unsafe extern "C" fn buf_charpos_to_bytepos (b: *mut c_void, charpos: ptrdif
 	 cache the correspondence by creating a marker here.
 	 It will last until the next GC.  */
       if record
-	{ build_marker (b, best_above, best_above_byte); }
+	{ build_marker (b as *mut c_void, best_above, best_above_byte); }
 
       byte_char_debug_check! (b, best_above, best_above_byte);
 
@@ -524,7 +522,7 @@ pub unsafe extern "C" fn buf_bytepos_to_charpos (b: *mut c_void, bytepos: ptrdif
 	 But don't do it if BUF_MARKERS is nil;
 	 that is a signal from Fset_buffer_multibyte.  */
       if record && !BUF_MARKERS! (b).is_null ()
-	{ build_marker (b, best_below, best_below_byte); }
+	{ build_marker (b as *mut c_void, best_below, best_below_byte); }
 
       byte_char_debug_check! (b, best_below, best_below_byte);
 
@@ -551,7 +549,7 @@ pub unsafe extern "C" fn buf_bytepos_to_charpos (b: *mut c_void, bytepos: ptrdif
 	 But don't do it if BUF_MARKERS is nil;
 	 that is a signal from Fset_buffer_multibyte.  */
       if record && !BUF_MARKERS! (b).is_null ()
-	{ build_marker (b, best_above, best_above_byte); }
+	{ build_marker (b as *mut c_void, best_above, best_above_byte); }
 
       byte_char_debug_check! (b, best_above, best_above_byte);
 

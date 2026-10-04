@@ -584,11 +584,8 @@ unsafe extern "C" {
                                                               -> Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4412: `extern Lisp_Object safe_eval (Lisp_Object);`
   fn safe_eval (form: Lisp_Object) -> Lisp_Object;
-  /// C: intervals.h 279: `extern bool get_property_and_range (ptrdiff_t, Lisp_Object, Lisp_Object *,
-  ///   ptrdiff_t *, ptrdiff_t *, Lisp_Object);`
-  fn get_property_and_range (pos: ptrdiff_t, prop: Lisp_Object, val: *mut Lisp_Object,
-                             start: *mut ptrdiff_t, end: *mut ptrdiff_t,
-                             base_interval: Lisp_Object) -> bool;
+  // intervals.h 279's `get_property_and_range` is the include/intervals.rs mirror's now
+  // (status 3.371).
   // intervals.h 305's `get_char_property_and_overlay` is the include/intervals.rs mirror's
   // now (status 3.363).
   /// C: dispextern.h 4012: `bool is_tty_frame (struct frame *f);` (dispnew.c 3490 defines it)
