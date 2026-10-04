@@ -1,4 +1,5 @@
-// The Haiku platform mirrors' compiler: `haikugui.rs`, `haiku_support.rs` and `haikuterm.rs`.
+// The Haiku platform mirrors' compiler: `haikugui.rs`, `haiku_support.rs`, `haikuselect.rs`
+// and `haikuterm.rs`.
 //
 // `xtask layout-check` compiles every `src/include` mirror into ONE crate, which is the right
 // model for the portable headers but cannot hold the platform-exclusive ones: `haikugui.h` and
@@ -50,6 +51,12 @@ include!("../femacs/src/include/coding.rs");
 
 include!("../femacs/src/include/haikugui.rs");
 include!("../femacs/src/include/haiku_support.rs");
+
+// `src/haikuselect.h` is the third Haiku header the port mirrors; nothing on this target
+// includes it (`src/haikuselect.c` is not compiled), and its own include list is
+// `lib/include/stdint.in.rs` + `lib/include/unistd.in.rs` for `int32_t`/`int64_t`/
+// `uint32_t`/`ssize_t`, so the probe is its only compiler too.
+include!("../femacs/src/include/haikuselect.rs");
 
 mod dispextern_dead_arm {
   use super::*;

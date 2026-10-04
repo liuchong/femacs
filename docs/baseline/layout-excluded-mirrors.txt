@@ -28,3 +28,7 @@ haiku_support.rs	HAVE_HAIKU is undefined: haiku_support.h is dead on this target
 haikuterm.rs	HAVE_HAIKU is undefined: haikuterm.h is dead on this target
 pgtkterm.rs	HAVE_PGTK is undefined: pgtkterm.h is dead on this target
 gtkutil.rs	USE_GTK is undefined: gtkutil.h is dead on this target
+nsgui.rs	HAVE_NS, NS_IMPL_COCOA are undefined: nsgui.h is dead on this target, and its
+	live X-compatibility names collide with dispextern.rs by construction - measured as
+	`error[E0428]: the name Emacs_Cursor is defined multiple times` (nsgui.rs 64 vs
+	dispextern.rs 62, status 3.161); its compile evidence is `spikes/ns_inc_probe.rs`
