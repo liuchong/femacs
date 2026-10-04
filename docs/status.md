@@ -3822,3 +3822,28 @@
   ⑤ 读数：`gen-port-inventory` **590 files、done=577、wip=10、todo=3**（由 576/10/4 推进一格；
   剩 `lib/cdefs.h`(900)、`lib/stdcountof.in.h`(124)、`src/xterm.h`(2,045)）；门：`check-declarations` 13/0、
   `check-mirror-dupes` 1 duplicate/1 ratchet/0（cfg 掉的类型定义没有新增重复）、`check-target-names` 622/593/0。
+
+- **3.210 `lib/intprops.h` 入库（lane 交付，集成者复核）＋两条待裁决留在报告里（2026-10-04）**：
+  ① `femacs/lib/include/intprops.rs` + `docs/ports/include-intprops.md` 入库（`3083d23`）。镜像头部写着判据：
+  `check-cond-eval.py lib/intprops.h` → `4 conditions, 0 unknown, 2 disagreements [NOT VERIFIED]`，两条都在
+  同一条 `__STDC_VERSION__ < 201112 || (defined _MSC_VER && _MSC_VER < 1944) || …`（C 28 与 C 66），
+  而 `_GL__GENERIC_BOGUS` 在冻结 clang 上是 1（存活的定义是 `include/intprops-internal.rs` 的 C 34-38 臂）
+  ⇒ 本文件走**非 `_Generic`** 一侧，所有臂按 P-51 都带；6 个多定义宏（`TYPE_IS_INTEGER`/`TYPE_MAXIMUM`/
+  `TYPE_MINIMUM`/`_GL_ADD_OVERFLOW`/`_GL_MULTIPLY_OVERFLOW`/`_GL_SUBTRACT_OVERFLOW`）门只要求在场。
+  ② **我在这个 HEAD 重测的证据**：`--check` → **OK**、台账 **0 个未勾**；`check-mirror-dupes` **1 duplicate /
+  1 ratchet row / 0 failures**——某条 lane 中途读到的 **18 条 `INTERNAL_BORDER_*` 失败是在飞的 `frame.rs` 对**
+  （`src/frame.rs` / `src/keyboard.rs` vs `src/include/frame.rs`），现在已消失，**共享门是绿的**；
+  `check-declarations` 13/0；`check-target-names` 622/593/0；`build-tu lib/lchmod.c`（该头最小的包含者）→ built。
+  ③ 读数：`gen-port-inventory` **590 files、done=577、wip=10、todo=3**（剩 `lib/cdefs.h`(900)、
+  `lib/stdcountof.in.h`(124)、`src/xterm.h`(2,045)）。
+  ④ **两条留给下一轮的裁决（来自 frame.h lane 的报告，我没有代它决定）**：
+  (a) `src/frame.h` 镜像要的 **2 条共享行**：`excluded-macros.txt` 的 `WINDOW_SYSTEM_RETURN`（kind=syntax，
+  C 1471-1475 的 `_Noreturn ATTRIBUTE_COLD`，端口写 `-> !`）与 `macro-body-notes.tsv` 的 `FRAME_MOUSE_UPDATE`
+  的 `false`（C 的 `do { … } while (false)`）；
+  (b) **12 项 ownership**：10 个 `INTERNAL_BORDER_*` + `internal_border_part` 已被 `src/frame.rs`（351-362）
+  与在飞的 `src/keyboard.rs` 定义，`FRAME_FACE_CACHE`/`FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL` 已被
+  `src/dispnew.rs`/`src/term.rs`/`src/xfaces.rs` 定义且那三处是**带类型**的更好端口；镜像里再放一份就是
+  `E0428`（lane 实测 `build-tu src/frame.c` 10 条 E0428 + 1 条 `E0659`），所以它**只记录不动**，迁移按
+  3.181 的 `stdbit.in.rs` 规则逐项裁决——其中能"被镜像修好"的唯一 unit 是在飞的 `keyboard.rs`，要等它落地。
+  同一份报告里还留了一条观察：`src/font.rs` 689 把 `decode_window_system_frame` 声明成返回 `*mut frame`，
+  而本 target 的 `WINDOW_SYSTEM_RETURN` 是 `_Noreturn`，那里应为 `-> !`（未改，只报）。
