@@ -5874,3 +5874,29 @@
      3.357 的 `E0428`、本条的门盲区。**结论不是"门不可靠"，而是"门的读数要按它自己的口径读"**：这次的绿是"它看得见的那部分没有重复"，
      而它看不见"换行写的一行声明"。
   ⑥ **未声称**：9 条重复**仍在**（棘轮行是债的记录，不是清偿）；`E0428` 那一类**能编译所以不阻塞**，但 P-26 的一构造一拼法仍未达成。
+
+- **3.363 修一个我上一轮引入的 HEAD 级破坏：镜像里的 `*mut window` 让 6 个单元编不过；并清偿 4 条重名债（2026-10-05）**：
+  ① **发现**：清偿重名债要 `build-tu src/lread.c`，而它当场 **E0425 ×2 `cannot find type 'window' in this scope`**，
+     报错位置正是 **3.357 我加进 `include/dispextern.rs` 的那个模块**。**实测确认这不是 lread 一个人的事**：在 HEAD 的临时
+     worktree 里逐个编，`bidi`/`coding`/`lread`/`regex-emacs`/`syntax`/`xml` **六个单元各报 2 条**同样的错——它们 include
+     这个镜像却**不** include `window.rs`，而我把 `struct window *` 写成了 `*mut window`。⇒ **HEAD 自 `d90609a`（3.357）起
+     对这 6 个单元是坏的**，一直到本件。
+  ② **成因是我的验收集口径错了**（写下来）：3.357 我只编了"我改动的文本所在的两个单元"（xdisp/dispnew），而**镜像改动的
+     验证集是"所有 include 它的单元"**；`build-tu` 是唯一能证伪这件事的手段。**这是本会话第 4 次"门说绿、build 说红"**，
+     也是唯一一次**红的是我自己上一轮的提交**。
+  ③ **修法**：两条声明的 window 指针按 **P-72 rule 3** 写 `*mut c_void`（镜像不得命名其 includer 可能没有的类型），
+     `xdisp.rs` 的 4 个调用点补 `as *mut c_void`。**9 个单元逐个 build 通过**：`lread`/`xdisp`/`dispnew`/`bidi`/`coding`/
+     `syntax`/`doprnt`/`font`/`keyboard`。
+  ④ **同时清偿 4 条重名债**（3.362 记的 9 条里"两侧拼法相同"的那 4 条）：`doprnt xpalloc`、`font composition_gstring_put_cache`、
+     `keyboard get_char_property_and_overlay`、`lread record_unwind_protect_ptr`——删单元副本、原处留一行指路注释；
+     棘轮 **27 → 23 行**，门读 **`23 duplicate declaration(s), 23 ratchet row(s), 0 failure(s)`**。剩 5 条是"两侧拼法不同"的
+     （`mini-gmp fwrite`、`keyboard get_property_and_range`、`lread record_unwind_protect_int`、`marker build_marker`、
+     `window vmotion`），要连带改调用点强转，留作工单。
+  ⑤ **两个读数分开记（HEAD vs 工作树）**：`extract-abi --check xdisp` **HEAD 107 / 工作树 105**——差额两条是**别的 lane 在飞的
+     第 26 轮**已经定义了 `try_window`（`missing function try_window` 与 `try_window is not static…` 同时消失，行漂移 47.8% → 47.5%）。
+     所以本件的提交**只挑我自己的 4 个 hunk**（`git apply --cached` 单挑选，xdisp.rs 其余改动留在工作树），与 3.338 同法。
+  ⑥ 其它读数：`--check dispextern.h` 镜像 **OK**；`check-citations` **674 files / 0 drift / 0 stale**；`check-declarations`
+     **13 sites / 0 forbidden**。
+  ⑦ **一处我自己的知识错，被门抓住**：给 `doprnt.rs` 写指路注释时我把 `xpalloc` 的 C 行号猜成 `lisp.h 4009`，引文门量出真值
+     **5548** 并报 drift，已改。**门的第四个用处**（前三次见 3.362⑤）：它不只抓漂移，还纠正我写下的数字。
+  ⑧ **未声称**：5 条拼法不同的重名债仍在；本件只保证"这 9 个单元能编 + 四道文本门不回退"，没有运行期验收；xdisp/xterm 仍是 WIP。

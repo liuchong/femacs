@@ -589,10 +589,8 @@ unsafe extern "C" {
   fn get_property_and_range (pos: ptrdiff_t, prop: Lisp_Object, val: *mut Lisp_Object,
                              start: *mut ptrdiff_t, end: *mut ptrdiff_t,
                              base_interval: Lisp_Object) -> bool;
-  /// C: intervals.h 305: `Lisp_Object get_char_property_and_overlay (Lisp_Object, Lisp_Object,
-  ///   Lisp_Object, Lisp_Object *);`
-  fn get_char_property_and_overlay (position: Lisp_Object, prop: Lisp_Object,
-                                    object: Lisp_Object, overlay: *mut Lisp_Object) -> Lisp_Object;
+  // intervals.h 305's `get_char_property_and_overlay` is the include/intervals.rs mirror's
+  // now (status 3.363).
   /// C: dispextern.h 4012: `bool is_tty_frame (struct frame *f);` (dispnew.c 3490 defines it)
   fn is_tty_frame (f: *mut frame) -> bool;
   /// C: lisp.h 4394: `extern void message3_frame (Lisp_Object, struct frame *);`

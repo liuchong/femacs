@@ -19600,7 +19600,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	  row = (*((*w).desired_matrix as *mut glyph_matrix)).rows;
 	  while y < yb
 	    {
-	      blank_row (w, row, y);
+	      blank_row (w as *mut c_void, row, y);
 	      y += (*row).height;
 	      row = row.offset (1);
 	    }
@@ -19878,7 +19878,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 		{ alt_pt = XFIXNAT (invprop_end) as ptrdiff_t; }
 	      else
 		{ alt_pt = ZV! (); }
-	      r = row_containing_pos (w, alt_pt,
+	      r = row_containing_pos (w as *mut c_void, alt_pt,
 				      (*((*w).desired_matrix as *mut glyph_matrix)).rows,
 				      core::ptr::null_mut (), 0);
 	    }
@@ -20445,7 +20445,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 	else { (*w).current_matrix as *mut glyph_matrix };
       /* First, try locating the proper glyph row for PT.  */
       let mut row: *mut glyph_row =
-	row_containing_pos (w, PT! (), (*matrix).rows, core::ptr::null_mut (), 0);
+	row_containing_pos (w as *mut c_void, PT! (), (*matrix).rows, core::ptr::null_mut (), 0);
 
       /* Sometimes point is at the beginning of invisible text that is
 	 before the 1st character displayed in the row.  In that case,
@@ -20470,7 +20470,7 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
 		{ alt_pos = XFIXNAT (invis_end) as ptrdiff_t; }
 	      else
 		{ alt_pos = ZV! (); }
-	      row = row_containing_pos (w, alt_pos, (*matrix).rows,
+	      row = row_containing_pos (w as *mut c_void, alt_pos, (*matrix).rows,
 					core::ptr::null_mut (), 0);
 	    }
 	}

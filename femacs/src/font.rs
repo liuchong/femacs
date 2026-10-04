@@ -423,9 +423,8 @@ unsafe extern "C" {
 /// and `composition_gstring_cache_clear_font` only, and `lisp.rs` does not declare
 /// `larger_vector` at all.
 unsafe extern "C" {
-  /// C: composite.h 335: `extern Lisp_Object composition_gstring_put_cache (Lisp_Object,
-  /// ptrdiff_t);`
-  pub fn composition_gstring_put_cache (gstring: Lisp_Object, len: ptrdiff_t) -> Lisp_Object;
+  // composite.h 335's `composition_gstring_put_cache` is the include/composite.rs mirror's
+  // now (status 3.363).
   /// C: lisp.h 4599: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
   pub fn larger_vector (vec: Lisp_Object, elt: ptrdiff_t, elt_bytes: ptrdiff_t) -> Lisp_Object;
 }

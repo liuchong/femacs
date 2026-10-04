@@ -3696,11 +3696,15 @@ pub mod dispextern_late_decls {
   unsafe extern "C" {
     /// C: dispextern.h 3563-3565: `struct glyph_row *row_containing_pos (struct window *,
     /// ptrdiff_t, struct glyph_row *, struct glyph_row *, int);` (xdisp.c defines it).
-    pub fn row_containing_pos (w: *mut window, charpos: ptrdiff_t, start: *mut glyph_row,
+    /// The window pointer is spelled `*mut c_void` (P-72 rule 3): six units include this
+    /// mirror without including window.rs (`bidi`, `coding`, `lread`, `regex-emacs`, `syntax`,
+    /// `xml`), and a mirror may not name a type its includers may lack - 3.357's first version
+    /// spelled `*mut window` here and `build-tu src/lread.c` failed E0425 on it (status 3.363).
+    pub fn row_containing_pos (w: *mut c_void, charpos: ptrdiff_t, start: *mut glyph_row,
                                end: *mut glyph_row, dy: c_int) -> *mut glyph_row;
     /// C: dispextern.h 3914: `void blank_row (struct window *, struct glyph_row *, int);`
-    /// (dispnew.c defines it).
-    pub fn blank_row (w: *mut window, row: *mut glyph_row, vpos: c_int);
+    /// (dispnew.c defines it; the same `*mut c_void` spelling and reason as above).
+    pub fn blank_row (w: *mut c_void, row: *mut glyph_row, vpos: c_int);
   }
 }
 use dispextern_late_decls::*;

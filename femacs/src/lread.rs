@@ -1180,9 +1180,8 @@ unsafe extern "C" {
 			     arg: *mut c_void);
   /// C: lisp.h 4823: `extern void record_unwind_protect_int (void (*) (int), int);`
   fn record_unwind_protect_int (func: Option<unsafe extern "C" fn (c_int)>, int_: c_int);
-  /// C: lisp.h 4820: `extern void record_unwind_protect_ptr (void (*) (void *), void *);`
-  fn record_unwind_protect_ptr (func: Option<unsafe extern "C" fn (*mut c_void)>,
-				arg: *mut c_void);
+  // lisp.h 4820's `record_unwind_protect_ptr` is the include/lisp.rs mirror's now
+  // (status 3.363).
   /// C: lisp.h 4998: `extern void record_unwind_save_match_data (void);` (search.c).
   fn record_unwind_save_match_data ();
   /// C: comp.c: `extern Lisp_Object Fmodule_load (...)`?  It is a DEFUN; globals.rs's subrs

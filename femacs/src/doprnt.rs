@@ -64,8 +64,7 @@ unsafe extern "C" {
   pub fn strnlen (s: *const c_char, maxlen: size_t) -> size_t;
   pub fn strncmp (a: *const c_char, b: *const c_char, n: size_t) -> c_int;
   pub fn mempcpy (dst: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
-  pub fn xpalloc (block: *mut c_void, n: *mut ptrdiff_t, incr: ptrdiff_t,
-                  min_size: ptrdiff_t, size: ptrdiff_t) -> *mut c_void;
+  // lisp.h 5548's `xpalloc` is the include/lisp.rs mirror's now (status 3.363).
 }
 
 /* Enough to handle floating point formats with large numbers.  */
