@@ -3649,3 +3649,37 @@
   `#[cfg (feature = "windowsnt")]`、照 C 写 C 的名字 ⇒ 留给下一批（连同 `font.h`/`frame.h`，它们没有 lane）。
   ⑤ 读数：`gen-port-inventory` **590 files、done=568、wip=12、todo=10**；门全绿（`check-declarations` 13/0、
   `check-globals` 283/0、`check-mirror-dupes` 1/1/0、`layout-check` 90 of 100 + 10 平台独占跳过）。
+
+- **3.201 四个单元交出 `conf_post` 的名字；两处陈旧注释改正（2026-10-04）**：
+  ① **实产**（`dbe36bb`，签名 `verified=true`，已推 `origin/master`）：`lib/time_rz.rs`、`src/sysdep.rs`、
+  `src/alloc.rs`、`src/emacs.rs` 各自 `include!` 新的 `conf_post.rs` 镜像，并把它们自己声明的副本删掉
+  （`getenv_TZ`/`setenv_TZ`、`ADDRESS_SANITIZER`、`VFORK`、`EXTERN_INLINE`/`INLINE`）。`emacs.c` 那一处**先核语义再动**：
+  C 21 的 `#define INLINE EXTERN_INLINE` 与 `conf_post.h` 358 的**逐字相同**，且 emacs.c 写在 `<config.h>` 之前，
+  差别只是"两份同义文本哪一份生效"，而端口里**没有任何 `INLINE! (…)` 展开**（lisp.h 的 INLINE 函数一律
+  `#[inline(always)] fn`，P-12）⇒ 无可观察差别，可以只留一个落地点（P-26）。
+  ② **两处陈旧陈述改正**：`window.rs` 3346 说 `UNINIT` 在本 target 是 `/* empty */`，实测 `GCC_LINT` 是 1 ⇒
+  C 369 的 `= {0,}` 才是活臂（其台账的 deviation 条目同改）；`alloc.rs` 288-292 说 `ADDRESS_SANITIZER` 未定义，
+  实测它定义为 0。**该编辑必须零行差**：引证允许表按行号索引 `femacs/src/window.rs:5452`，多加一行就会把该 finding
+  推出范围（实测 `13 drift …, 1 stale`）；改成同尺寸的一行后门恢复 `12 drift / 3 range / 36 allowed / 0 stale`。
+  ⇒ 给所有 lane 的教训：**改 `.rs` 的行数会移动其下方所有引证 finding**，要么零行差改，要么先改共享表。
+  ③ 五个单元的 `--check` 结论不变（都 OK），四个被改的单元都 built。
+
+- **3.202 条件求值器的 marker 对含连字符的文件名无效，7 条"已验证"是空洞的（已修，2026-10-04）**：
+  ① **实产**（`6b5a238`，签名 `verified=true`，已推 `origin/master`）：`tools/check-cond-eval.py` 原来把分支 marker 写成
+  `EMACS_COND_TAKEN_{stem}_{line}`；**stem 含连字符或点**时那不是合法 C 标识符，于是 clang 把
+  `#define EMACS_COND_TAKEN_intprops-internal_17 1` 读成一个名叫 `EMACS_COND_TAKEN_intprops`、body 是
+  `-internal_17 1` 的宏（并给 `ISO C99 requires whitespace after the macro name` 警告），工具的
+  `"#define <marker> " in out` 永远不匹配 ⇒ **clang 对"冻结构建实际走的分支"一律被记成 dead**。marker 现已消毒。
+  ② **后果（实测）**：用修好的工具重跑 `cond-eval-verified.txt`，**7 个文件**的"每个条件都与 clang 一致"是那个 bug 的
+  产物：`lib/alloca.in.h`、`lib/arg-nonnull.h`、`lib/c++defs.h`、`lib/getopt-cdefs.in.h`、`lib/getopt-core.h`、
+  `lib/getopt-pfx-core.h`、`lib/warn-on-use.h`（全部是含连字符/点的 stem）。清单按工具重生成（436 → **424**），
+  这 7 个从此**盲读**（P-66 的保守政策：每个 `#if` 的两支都要）而不再咨询一张没人替它们验证过的表。
+  ③ **补洞**：三个镜像补上它们新清单要的守卫（`_GETOPT_CDEFS_H`、`_GETOPT_CORE_H`、`_GETOPT_PFX_CORE_H`），
+  38 个 Rust 无法承载的名字写进 `excluded-macros.txt`（`alloca` ⇒ 栈池 P-05；getopt 六个重命名 ⇒ `linkage`
+  （声明处 `#[link_name]`、定义处 `#[export_name]`）；`__BEGIN_DECLS`/`__END_DECLS`/`__THROW`/`__GNUC_PREREQ`
+  四个声明拼法；四个 `_GL_WARN_ON_USE*` 属性；`c++defs.h` 的 22 个 C++ 兼容宏）。六份台账按抽取器**重新生成**
+  （旧清单正是在那次空洞验证下产出的），六件 `--check` 全部恢复 **OK**。
+  ④ **`tools/audit-wip.py` 增加 `--done`**：查的另一半问题——inventory 记 `done` 而 `--check` 其实失败的行
+  （3.202 这一类的可见化；WIP 审计看不见它们）。**本轮读数：568 个 done 行逐个 `--check`，失败 0 个。**
+  ⑤ 这条是 **conf_post lane 从探针里那句 clang 警告读出来的**（它把读数贴进了 `include-readutmp.md`），
+  与 3.196/3.198 同源：**门的读数反了，比没有门更糟**。

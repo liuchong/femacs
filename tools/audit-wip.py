@@ -62,9 +62,16 @@ def ledger_for(ref: str) -> pathlib.Path | None:
 
 
 def main() -> int:
+    # `--done` answers the other half of the question (status 3.202): a row the inventory calls
+    # `done` whose `--check` actually fails.  That is how six mirrors sat green while the
+    # extractor consulted a verified-list entry whose verification had been vacuous - the WIP
+    # audit cannot see it, because those rows are not WIP.  It costs one `--check` per done row
+    # (the same work `extract-abi.py --all` does), so it is opt-in.
+    done_mode = "--done" in sys.argv
     rows: list[tuple[str, pathlib.Path, int, int]] = []
     for line in INVENTORY.read_text(encoding="utf-8").splitlines():
-        if not line.startswith("| `") or not line.rstrip().endswith("| wip |"):
+        want = "| done |" if done_mode else "| wip |"
+        if not line.startswith("| `") or not line.rstrip().endswith(want):
             continue
         cells = [c.strip() for c in line.split("|")[1:-1]]
         ref = cells[0].strip("` ")
@@ -84,6 +91,13 @@ def main() -> int:
             unchecked = sum(1 for l in ledger.read_text(encoding="utf-8", errors="replace")
                             .splitlines() if re.match(r"^\s*- \[ \]", l))
         rows.append((ref, p, problems, unchecked))
+
+    if done_mode:
+        bad = [r for r in rows if r[2] != 0]
+        print(f"done rows checked: {len(rows)}; whose --check fails: {len(bad)}")
+        for ref, p, problems, unchecked in bad:
+            print(f"  {ref:28s} {str(p.relative_to(REPO)):40s} {problems} problem row(s)")
+        return 1 if bad else 0
 
     groups = {"A": [], "B": [], "C": [], "?": []}
     for ref, p, problems, unchecked in rows:
