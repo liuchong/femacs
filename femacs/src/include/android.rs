@@ -34,17 +34,12 @@ include!("../../lib/include/time.in.rs");      // `struct timespec` (the `<sys/s
 // C 26: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const _ANDROID_H_: bool = true;
 
-/* `<jni.h>` (C 30's `#include <jni.h>`), C branch, cut down to the five names this header's
-   live text uses: `typedef void *jobject;` with `jclass`/`jstring` the same pointer,
-   `typedef struct _jmethodID *jmethodID;` and `typedef const struct JNINativeInterface *JNIEnv;`
-   (measured against the NDK's own `jni.h`).  The two structs stay opaque (P-70).  */
-pub struct JNINativeInterface;
-pub struct _jmethodID;
-pub type JNIEnv = *const JNINativeInterface;
-pub type jmethodID = *mut _jmethodID;
-pub type jobject = *mut c_void;
-pub type jclass = jobject;
-pub type jstring = jobject;
+// C 30's `#include <jni.h>`: the NDK's header now has its own mirror (`include/jni.rs`, the
+// measured ABI with all 233 `JNINativeInterface` entries), so this file includes it instead of
+// declaring the five names itself - one definition point per name (PORTING.md 0.1-3/P-70); the
+// names this header's live text uses are `JNIEnv`, `jobject`, `jclass`, `jmethodID` and
+// `jstring`, and `_jmethodID` stays opaque there.
+include!("jni.rs");
 
 /* `<android/bitmap.h>` (C 39), which `android_lock_bitmap` names only through a pointer, so it
    stays opaque (PORTING.md P-70).  */

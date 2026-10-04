@@ -1208,11 +1208,12 @@ fn probe_programs() -> Result<(), String> {
     // collide by construction), so this is the only place their assertions and declarations are
     // compiled.  Same shape as `f_inc_probe.rs`: the probe names its mirrors and the graph's
     // de-duplication does the rest.
-    const PROBES: [&str; 10] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
+    const PROBES: [&str; 11] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
                                 "../spikes/write_probe.rs", "../spikes/va_probe.rs",
                                 "../spikes/layout.rs", "../spikes/jump.rs", "../spikes/scan.rs",
                                 "../spikes/f_inc_probe.rs",
-                                "../spikes/haiku_inc_probe.rs", "../spikes/android_inc_probe.rs"];
+                                "../spikes/haiku_inc_probe.rs", "../spikes/android_inc_probe.rs",
+                                "../spikes/android_asset_probe.rs"];
     fs::create_dir_all("../build/probes").ok();
     for probe in PROBES {
         if !Path::new(probe).is_file() {
@@ -1617,10 +1618,14 @@ fn gate_probes() -> i32 {
             "{} is missing: configure the reference tree out of tree first \
              (docs/spikes/2026-10-02-three-spikes.md, Reproduction)", header.display()));
     }
+    // `jni-probe.sh` is `jni.rs`'s only gate: the mirror is of a system header of another
+    // target's toolchain, so there is no reference file to pair it with - the probe compiles the
+    // NDK's own <jni.h> and the mirror side by side and diffs the 233 function-table entries and
+    // their offsets (status 3.154).
     for probe in ["spikes/inline-probe.sh", "spikes/accessor-probe.sh",
                   "spikes/write-probe.sh", "spikes/va-probe.sh",
                   "spikes/syshdrs-probe.sh", "spikes/gmp-abi-probe.sh",
-                  "spikes/lisp-abi-probe.sh"] {
+                  "spikes/lisp-abi-probe.sh", "spikes/jni-probe.sh"] {
         println!("== {probe} ==");
         let status = Command::new("bash").arg(probe).current_dir(REPO).status();
         match status {

@@ -6023,11 +6023,10 @@ pub fn XNATIVE_COMP_UNIT (a: Lisp_Object) -> *mut Lisp_Native_Comp_Unit {
   eassert! (NATIVE_COMP_UNITP (a));
   return XUNTAG! (a, Lisp_Type::Lisp_Vectorlike, Lisp_Native_Comp_Unit);
 }
-/// `dynlib.h`: `typedef void *dynlib_handle_ptr;` (the header has a mirror,
-/// `include/dynlib.rs`, which this unit does not include: only the native-comp arms name
-/// it, and they are not compiled in any real build of the port).
-#[cfg (feature = "native_comp")]
-pub type dynlib_handle_ptr = *mut c_void;
+/* `dynlib.h`'s `dynlib_handle_ptr` comes from its own mirror (`include/dynlib.rs`) through
+   `lisp.h` -> `comp.h` -> `<dynlib.h>` now that `include/comp.rs` includes it (status 3.154); the
+   use-site copy that used to stand here was what the dead-arms gate reported as a duplicate in a
+   `native_comp` build, the same class as the three functions retired above.  */
 /// `<config.h 120>`: `#define DIRECTORY_SEP '/'` and `<config.h 2097>`:
 /// `#define IS_DIRECTORY_SEP(_c_) ((_c_) == DIRECTORY_SEP)` (the same use-site pair
 /// callproc.rs keeps).
@@ -6042,11 +6041,14 @@ pub fn IS_DIRECTORY_SEP (_c_: c_char) -> bool { _c_ == DIRECTORY_SEP }
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum native_installation_state { UNKNOWN, LOCAL_BUILD, INSTALLED }
+/* This arm's three `<dynlib.h>` entries (`dynlib_open_for_eln`, `dynlib_sym`, `dynlib_error`) come
+   from the mirror that owns them: `lisp.h` 2168 includes `comp.h`, `comp.h` 23 includes
+   `<dynlib.h>`, and the mirrors follow that chain, so the copies that used to stand here were
+   retired when `include/comp.rs` began including `include/dynlib.rs` (status 3.154,
+   `check-mirror-dupes` found them).  The three below are `comp.c`'s and `fileio.c`'s, which no
+   mirror carries yet.  */
 #[cfg (feature = "native_comp")]
 unsafe extern "C" {
-  pub fn dynlib_open_for_eln (path: *const c_char) -> dynlib_handle_ptr;
-  pub fn dynlib_sym (handle: dynlib_handle_ptr, name: *const c_char) -> *mut c_void;
-  pub fn dynlib_error () -> *const c_char;
   pub fn load_comp_unit (comp_u: *mut Lisp_Native_Comp_Unit, loading_dump: bool,
                          late_load: bool) -> Lisp_Object;
   pub fn fixup_eln_load_path (directory: Lisp_Object);
