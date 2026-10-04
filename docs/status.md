@@ -2735,3 +2735,27 @@
   **exit 0**；`xtask layout-check` **passed**。`docs/port-inventory.md` 复算：590 files、done=516、wip=16、todo=58。
   ⑤ 在飞：Windows/DOS 镜像 lane（`cygw32`/`dosfns`/`termopts`/`w32heap`/`w32gui` 已 `--check` OK，
   `w32common` 仍 FAIL、`msdos` 未落、`w32.h` 在队列里）、xdisp、keyboard、Swift（nsfont）、gnulib 模板。
+
+- **3.162 `src/xgselect.h` 进镜像、X 探针登记、keyboard 的共享行补齐（2026-10-04）**：
+  ① **交付**（`7f0ce06`）：`src/xgselect.h`（35 行）→ `femacs/src/include/xgselect.rs`。这个头**没有平台守卫**
+  （C 20-21 guard、C 28-33 活文本），但本目标上没有单元编译它——它唯一的定义者 `src/xgselect.c` 整个函数体
+  在 `#ifdef HAVE_GLIB` 里（冻结配置未定义，`femacs/src/xgselect.rs` 就是那条空壳注记）⇒ 按 3.158 `w32select.h`
+  的先例，头镜像照带四条入口声明。**P-72 决定每个名字**：头自己不含任何类型的定义，所以六个指针参数一律用
+  P-55 替身 + `/// C:` 原件行（`fd_set` 来自 `sysselect.h` 自带的 include、`sigset_t` 来自 `<signal.h>`、
+  C 26 的 `struct timespec;` 只是前向声明——三者都由**消费者**自己到达，0.1-9）。
+  ② **它有了编译器**：新探针 `spikes/x_inc_probe.rs`（`c_int`/`c_void` + `include!` 该镜像）登记进 `xtask` 的
+  `PROBES`（13 → 14）。**第一次跑就抓到我自己写错的一处**：镜像用 `c_void` 而探针只 `use` 了 `c_int`
+  ⇒ `E0425` 五条；补上 `use std::ffi::{c_int, c_void}` 后 **exit 0**。这正是"探针=消费者"的价值
+  （3.102 的 `f_inc_probe` 抓 `sys_types.rs.in` 是同一类）。`xsettings.h`/`emacsgtkfixed.h` 落地时加入同一个探针。
+  ③ **共享行**：补 `docs/ports/macro-body-notes.tsv` 一行 `read_key_sequence	goto,uninit`
+  （keyboard.c 10901-11904：六处 `goto` 落成 PORTING.md 2.2 的带标签循环/块，`UNINIT` 是 conf_post.h 的
+  `= {0,}` 标记）。复测：该函数的 `does not mention` 行归零。
+  ④ **keyboard lane 同时交付了整段 `read_key_sequence`**（C 10901-11904，一次性吃完，与前期"边界靠叙述"
+  相反——它自己用带注释/字符串感知的花括号配对复核了 C 10905 `{` 配平到 C 11904）：`keyboard.rs`
+  11,766 → **12,827 行**（line drift 19.9% → **12.6%**），`build-tu src/keyboard.c` → **built**，
+  `--check` problem 行 91 → 90、missing function 27 → 26、scaffold 6 → 5。它还**如实上报**了台账缺项：
+  `keyboard.md` 的 `## File-scope objects — 83` 清单生成于 `cinventory` 近期改动之前，不含 `force_quit_count`
+  （C 12596）——该单元闭合时用新抽取器重生成并补回手写段。**该单元仍未跟踪、不入库**（巨型单元规矩）。
+  ⑤ 读数：`layout-check` **passed**；五门全绿（`check-declarations` 13 sites/0、`check-globals` 283/0、
+  `check-mirror-dupes` 1/0、`check-verbatim` 4607 files/0、`check-target-names` 572 `.rs`/0 findings）；
+  `gen-port-inventory` 复算 590 files / done=518 / wip=16 / todo=56。
