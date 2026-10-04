@@ -6520,3 +6520,29 @@
   ④ 顺带记录一个事实：**`emacs/` 不在本仓库索引里**（`git ls-files emacs/lisp` = 0，它是外部只读检出），
      所以这条判据依赖本机的参照检出，CI 上无法复核（`docs/port-plan.md` §10 已记）。
   ⑤ **未声称**：§8 的其余七条一条都没点亮；本轮只把第 5 条变成"有判据、有读数"。
+
+- **3.391 xdisp 第二十八轮：`try_window_id` 整函数落完（C 22545-23381，794 行）（2026-10-05）**：
+  ① **边界校正**：简报说的"C 22588-23821"不是边界——C 23821 是**下一个**定义 `get_overlay_arrow_glyph_row`
+     的所在行；`try_window_id` 自己在 **C 23381** 收尾（`23381-22588+1 = 794`），中间的 C 23388-23809 是整块
+     **死的 `#ifdef GLYPH_DEBUG`**（`dump-*`/`trace-*` 七个 subr），本轮未转录、只记入 dead-arm 清单（deviation 209）。
+     函数内 26 个活 `GIVE_UP`（+1 个死）、两条整流复用短路、`display_line` 循环、`dy && run.height` 的终端滚动臂
+     （`set_terminal_window`/`ins_del_lines`）、`rotate_matrix`+`clear_glyph_matrix_rows`+`shift_glyph_matrix` 与四路
+     `adjust_window_ends`/`window_end_*` 收尾全部按 C 顺序落下。
+  ② **行数**：`femacs/src/xdisp.rs` 21,690 → **22,573（+885/-2）**；`docs/ports/xdisp.md` 2,830 → **2,979**；
+     勾选 **322/415**（Functions 226/302）。
+  ③ **读数**：`build-tu src/xdisp.c` → **built / exit 0**，对象 **2,230,704 字节**（上一轮 2,136,144；
+     变大正是那四个 helper 第一次真的被 codegen 保留——上一轮它们只因 `try_window_id` 没落而没有机器码），
+     警告仍同样六条、未新增；`extract-abi --check` 的 `^- ` **99 → 99（退 2 进 2）**，其中新增的
+     `does not mention`（`try_window_id`：7 条活 `IF_DEBUG` 的 8 个 token）**集成者补
+     `docs/ports/macro-body-notes.tsv` 一行后复读 = 98**；`--cfg enable_checking` 探针 **exit 0 / 0 error**
+     （对象 2,785,240 字节 —— 本轮新加的 11 条 `eassert!/eassume!` 只有这条腿看得见，正是 3.387 的同类防线）；
+     `check-citations` 675/0 drift/0 stale、`check-declarations` 13/0/0、`check-carried` 11/11/0、
+     `check-ledger-ticks` 235/0、`check-dead-file-coverage` 7/0。
+  ④ **两点方法论（记下来）**：⑴ lane 首跑 `enable_checking` 用了**默认 stable** 工具链，得 16 个与本单元无关的
+     `E0658`——**这条腿必须用仓库钉住的 `nightly-2026-10-01`**（`femacs/rust-toolchain.toml`），否则读数是噪声；
+     ⑵ `build-tu` 只跑一发 rustc，**不编 `#[cfg (enable_checking)]` 臂**，所以这一类的门只能在探针里读（见 3.389 的工单）。
+  ⑤ **未声称**：无行为验证（没有任何测试/差分证明"矩阵复用"运行时正确）；`eassert!/eassume!` 只在探针里过类型检查、
+     从未执行；6 个 use-site 名（`update_begin`/`update_end`/`set_terminal_window`/`ins_del_lines`/
+     `clear_glyph_matrix_rows`/`shift_glyph_matrix`，家在 `dispextern.rs` 镜像缺口）与脚手架里的
+     `gui_clear_window_mouse_face` 本轮没有任何机器码；`HAVE_WINDOW_SYSTEM`/`HAVE_NTGUI`/`GLYPH_DEBUG` 各块
+     只有文本记录；`build-tu` 4 发（超预算 1 发，如实记）。
