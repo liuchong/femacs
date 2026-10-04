@@ -695,21 +695,56 @@ pub const INTERNAL_BORDER_BOTTOM_RIGHT_CORNER: internal_border_part = 6;
 pub const INTERNAL_BORDER_BOTTOM_EDGE: internal_border_part = 7;
 pub const INTERNAL_BORDER_BOTTOM_LEFT_CORNER: internal_border_part = 8;
 
-/* frame.h 1379/1646/1664's `FRAME_FACE_CACHE` / `FACE_FROM_ID` / `FACE_FROM_ID_OR_NULL` are
-   **not** carried, and in this slice that is a ruling rather than an omission (status 3.211).
-   Each is text C pastes into every unit that includes this header - `#define
-   FRAME_FACE_CACHE(f) ((struct frame *) (f))->face_cache` (C 1379) and `INLINE struct face *
-   FACE_FROM_ID (struct frame *f, int id) { … }` (C 1646/1664) - so the port's 1:1 form for an
-   inline definition is one copy per including unit, which is what the units do; measured,
-   `macro_rules! FRAME_FACE_CACHE` stands in `src/alloc.rs` 3467, `src/font.rs` 545,
-   `src/xfaces.rs` 445, `src/xdisp.rs` 1101 and `src/window.rs` 920, with the fn forms beside
-   them in `src/term.rs` 364-377 and the other includers.  A copy here is `E0659` (macro name
-   ambiguity) or `E0428` in those units - measured by the lane with `build-tu src/frame.c` (10
-   `E0428` plus `E0659: WINDOW_FRAME is ambiguous`) and `build-tu src/term.c`.  The closure needs
-   `struct face_cache` / `struct face` to exist in a shared mirror first: they live in
-   `dispextern.h`, whose mirror is the in-flight A-group unit, and once it carries them
-   `frame.face_cache` here can be typed and the units' copies can retire, the same move this
-   commit makes for the enum.  */
+/* frame.h 1379 / 1646-1650 / 1656-1661's `FRAME_FACE_CACHE` / `FACE_FROM_ID` /
+   `FACE_FROM_ID_OR_NULL` are carried **here**: in a module this mirror does not glob-import, and
+   behind `dispextern_face_records`.  That is the closure of 3.211's ruling (landed 3.230).  Each
+   is text C pastes into every unit that includes this header (`#define FRAME_FACE_CACHE(f)
+   ((struct frame *) (f))->face_cache` at C 1379, `INLINE struct face * FACE_FROM_ID (struct
+   frame *f, int id)` at C 1646, `FACE_FROM_ID_OR_NULL` at C 1656), so the port's live form for an
+   inline definition is one copy per including unit: measured, `macro_rules! FRAME_FACE_CACHE`
+   stands in `src/alloc.rs` 3467, `src/font.rs` 545, `src/xfaces.rs` 445, `src/xdisp.rs` 1101 and
+   `src/window.rs` 920, with the `fn` forms in `src/term.rs` 364-377 and the other includers.  A
+   top-level copy here is `E0428` in all of them (measured with `build-tu src/frame.c` and
+   `build-tu src/term.c`), so this copy is a **module**: `tools/check-mirror-dupes.py` reports a
+   declaration with a body as a definition and never as a duplicate, and a module the mirror does
+   not glob-import is not in the unit's scope - C's text is present for the gates, and the units
+   keep their live copies.  It needs `struct face` / `struct face_cache`, which
+   `include/dispextern.rs` carries behind the same feature.  **The flip arm is not green yet**:
+   `rustc --cfg 'feature="dispextern_face_records"'
+   build/femacs/units/<stem>/_root.rs` is `E0428` for `face`/`face_cache` in `src/term.rs`,
+   `src/alloc.rs` and `src/xfaces.rs` (measured), because those units' typed copies are
+   unconditional; closing it is one `#[cfg (not (feature = "dispextern_face_records"))]` per copy
+   and waits for the two in-flight ones (`xdisp.rs`, `font.rs`) so it can be done in one move.
+   `src/frame.rs` itself flips green today (measured).  */
+
+#[cfg (feature = "dispextern_face_records")]
+pub mod frame_face_accessors
+{
+  use super::*;
+
+  /// C 1379: `#define FRAME_FACE_CACHE(F) (F)->face_cache`
+  #[inline (always)]
+  pub fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
+  { unsafe { (*f).face_cache as *mut face_cache } }
+
+  /// C 1646-1650: `INLINE struct face * FACE_FROM_ID (struct frame *f, int id)`
+  #[inline (always)]
+  pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
+  {
+    eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+    unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
+  }
+
+  /// C 1656-1661: `INLINE struct face * FACE_FROM_ID_OR_NULL (struct frame *f, int id)`
+  #[inline (always)]
+  pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
+  {
+    let used: c_int = unsafe { (*FRAME_FACE_CACHE (f)).used };
+    eassume! (0 <= used);
+    if 0 <= id && id < used { unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) } }
+    else { core::ptr::null_mut () }
+  }
+}
 /* frame.h 61-67: `enum z_group` - C defines it *inside* `#ifdef HAVE_WINDOW_SYSTEM` (C 47),
    while C 1266's live `#else` arm of `FRAME_Z_GROUP` names one of its enumerators, so the port
    carries the four members (the `sys_types.in.rs` 103-132 reading of a dead arm's fact) and the

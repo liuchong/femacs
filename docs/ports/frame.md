@@ -342,3 +342,18 @@ the `FACE_TTY_DEFAULT_*` constants (dispextern.h 1932-1940).
    `_face_at_buffer_position`, `_face_at_string_position`, `_lookup_basic_face`,
    `_recompute_basic_faces`) — none referenced by `frame.o`, and they are gone from the
    final measurement above; this unit did not absorb them into the ratchet.
+7. **`FRAME_FACE_CACHE` / `FACE_FROM_ID` / `FACE_FROM_ID_OR_NULL` landed (3.230), so this header's
+   mirror is complete.** 3.211's ruling deferred them until `struct face` / `struct face_cache`
+   existed in a shared mirror; `include/dispextern.rs` now carries both behind
+   `dispextern_face_records`, so the three are in `include/frame.rs` as a **module**
+   (`frame_face_accessors`) this mirror does not glob-import, behind the same feature: C's text is
+   present for the gates while the units keep their live per-unit copies (`macro_rules!
+   FRAME_FACE_CACHE` in alloc.rs 3467 / font.rs 545 / xfaces.rs 445 / xdisp.rs 1101 /
+   window.rs 920, `fn` forms in term.rs 364-377).  Evidence: `extract-abi --check frame.h` ->
+   **OK** (was 3 rows); `build-tu src/{frame,term,alloc,xfaces,category,cm,data}.c` all built;
+   flip build (`rustc --cfg 'feature="dispextern_face_records"' build/femacs/units/<stem>/_root.rs`)
+   exit 0 for frame, category, cm, data, doc, eval, ccl.  **Known gap**: the flip arm is `E0428`
+   for `face`/`face_cache` in term.rs, alloc.rs and xfaces.rs (their typed copies are
+   unconditional), plus the two in-flight units; closing it is one
+   `#[cfg (not (feature = "dispextern_face_records"))]` per copy, deferred until `xdisp.rs` and
+   `font.rs` land so it can be done in one move.

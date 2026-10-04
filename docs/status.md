@@ -4159,3 +4159,28 @@
   `append2`/`hold_event`/`ns_finish_events`/`ns_init_events`——Poincare 第 2 轮已在工作树里落了这几个，
   **那 4 行在它入库时删掉**）；`check-declarations` 13/0；`check-verbatim` 6 trees/4607 files/0；
   `check-citations` 9 drift / 0 range / 38 allowed / 0 stale；`layout-check passed`；`extract-abi --all` 587 done / 3 in progress / 0 failing。
+
+- **3.230 `src/frame.h` 收口：三个访问器落进 `include/frame.rs` 的模块臂，`--check frame.h` 转 OK（2026-10-04）**：
+  ① **实产**：`FRAME_FACE_CACHE`（C 1379 的 `#define`）、`FACE_FROM_ID`（C 1646-1650 的 `INLINE`）、
+  `FACE_FROM_ID_OR_NULL`（C 1656-1661）三个名字落进 `femacs/src/include/frame.rs` 的
+  **`#[cfg (feature = "dispextern_face_records")] pub mod frame_face_accessors`** —— 3.211 的裁决说"等共享镜像先承载
+  `struct face`/`struct face_cache`"，3.220 把它们落在 `include/dispextern.rs` 的同一 feature 下，本轮据此收口。
+  **判据**：`extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs` → **`OK`**（此前 3 条 `missing`：
+  两个 function + 一个 macro；中途还抓到一条 token 行——C 1659 的 `eassume (0 <= used);` 必须照写，写成 `eassume!` 后才过）。
+  ② **为什么是"模块 + feature"而不是写在镜像顶层**：37 个单元 `include!` 这份镜像（实测：这 37 个**全部**也 include
+  `include/dispextern.rs`，所以模块依赖 `face`/`face_cache` 是安全的），而 INLINE/`#define` 的活形态在端口里是"每个 include 者一份"
+  （`macro_rules! FRAME_FACE_CACHE` 在 alloc.rs 3467 / font.rs 545 / xfaces.rs 445 / xdisp.rs 1101 / window.rs 920，
+  `fn` 形态在 term.rs 364-377）⇒ 顶层副本是那些单元的 `E0428`（本轮复测过）。放进模块后两边并存：
+  `tools/check-mirror-dupes.py` 的规则是"**带体的声明是定义、从不作为重复报**"，而"镜像不 glob-import 的模块不在单元作用域里"
+  ——复跑仍是 **1 duplicate / 1 ratchet row / 0 failure**，没有新增行。
+  ③ **编译证据（普通臂）**：`build-tu src/{frame,term,alloc,xfaces,category,cm,data}.c` **七件全 built**；
+  `layout-check passed`；`check-declarations` 13/0；`check-citations` 9 drift / 1 range / 38 allowed / 0 stale
+  （那条 range 是 `femacs/platform/macos/macfont.swift:11287` 引 `src/macfont.m 4248-4260` 而参照只有 4,257 行，是 Mill 在飞的新文本，
+  下一轮找它改）。
+  ④ **翻转臂的实测状态（写清楚，别让它变成假声明）**：`rustc --cfg 'feature="dispextern_face_records"' build/femacs/units/<stem>/_root.rs`
+  → **frame / category / cm / data / doc / eval / ccl 全 exit 0**（我的新模块在这些单元里编得过，这是本轮真正的验证），
+  而 **term / alloc / xfaces 仍是 `E0428: face/face_cache defined multiple times`**——那是 3.220 就存在的欠账（这些单元自带
+  无条件的带类型副本），不是本轮的回归。**收口路径已写进 `docs/ports/frame.md` 的决定 7 与 `include/frame.rs` 的注释**：
+  每个自带副本加一行 `#[cfg (not (feature = "dispextern_face_records"))]`，等 `xdisp.rs`/`font.rs` 两个在飞单元入库后一次做完，
+  那时翻转臂才能真正全绿。另外核了一遍：`femacs/xtask/Cargo.toml:61` 有这条 feature 行，但 `dead-arms` 不 flip 它
+  （它 flip 的是配置侧的臂）⇒ 这条 feature 目前**没有门在编**，这才是上面那条欠账一直没暴露的原因。
