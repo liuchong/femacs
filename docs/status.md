@@ -3978,3 +3978,13 @@
   - 证据：两件 `--check` **OK**（修法保住 C 的 token：`kind`/`ie`/`SELECTION_CLEAR_EVENT` 都在）、`build-tu src/alloc.c` 与 `src/keyboard.c` **built**；`dead-arms` 现在越过这两件、报在 `src/font.rs`（font lane 在飞的那一件）。
   ② **容差行按实测更新（`alloc` 0.08 → 0.10）**：`docs/ports/line-drift-tolerance.tsv` 的 `alloc` 行原本记 C 7639 vs 8169（6.9%），我那两个臂的修法把它推到 **8258 行（8.1%）**，于是 `--check` 只剩那一条漂移行 ⇒ 按 3.220 的规则（实测 + 0.01）改写该行并把新数字与原因写进去。
   ③ **更正（我自己的错读数）**：`3a819d0` 的提交信息里写了 `--check emacs/src/alloc.c …` → OK，**那是错的**：当时它报的正是上面那条 8.1% 漂移行（我的编辑把它推过了 0.08 的容差）。修完容差行之后这两件才是真的 OK（本轮实测）。这条按项目惯例留在这里更正，不重写历史。
+
+- **3.222 静态门全跑了一遍（结果分派到 owner）；`dead-arms` 又推过一件；五条引证按实测更正（2026-10-04）**：
+  ① **静态门读数**：`check-globals` 283 units / 0、`check-declarations` 13/0、`check-mirror-dupes` 1 duplicate / 1 ratchet / 0 failures、`layout-check passed`、`extract-abi --all` **586 done / 4 in progress / 0 failing** ✅。
+  ② **三类非绿，全部追到 owner**：`check-citations` 由 14 drift/3 range/35 allowed 变成 **10 drift / 0 range / 37 allowed / 1 stale**——我改了 5 处（三处就地改数：`coding.h 800→689` 的 `code_convert_string`、`termopts.h/termchar.h 425→dispextern.h 4012` 的 `is_tty_frame`（dispnew.c 3490 定义）、`dispextern.h 3410-3430→3407`；`nsimage.swift` 把 `make_float` 的声明从 `floatfns.c 4652` 改成实测的 `lisp.h 4652`；两条"引证正确但门只能猜片段"的按规矩进 allowlist，带理由）；**剩下的 10 drift 与 1 stale 全在 lane 在飞文件里**（Harvey 的 `dispextern.rs`、Mill 的 `macfont/nsfont.swift`、Boyle 的 `nsmenu.swift`）。`check-undef` 的 **12 条 NEW 全是 `referenced by xdisp.o`**（xdisp 单元后段才定义的函数，在飞期的预期状态，闭合时重取棘轮）。`check-swift-units` 的 **140 new** 全在 Swin lane 的在飞文件里（func 落地但 manifest 行还没写）。
+  ③ **`dead-arms` 又推过一件（`keyboard.rs`）**：三处翻转臂缺陷 + 我自己引入的一处**活代码回归**。
+  - `have_haiku` 臂调 `haiku_handle_selection_clear` 没声明（C 从 haikuterm.h 370 拿）⇒ 在臂里声明，且调用改 `&raw mut copy`（C 的 `&copy` 在非 const 局部上就是可变指针）；
+  - 同一臂把 C 的 `event->ie.kind` 当 Rust 字段读（端口把 `kind : 16`/`part : 16` 放在一个 `bits` 单元里）⇒ 改用 `input_event_bits! (kind, &raw mut (*event).ie)`；
+  - `kbd_buffer[0] = kbd_buffer[KBD_BUFFER_SIZE - 1]` 要求元素 `Copy`，而 C 的 `union buffered_input_event` 是可平凡复制的、端口那份镜像漏了 derive ⇒ `include/keyboard.rs` 补 `#[derive(Clone, Copy)]`（树里其它 C union 镜像的形状）。
+  - **回归与教训**：C 的 `event->kind`（`union buffered_input_event *` 上）读的是**联合体自己的 `kind` 成员**（端口镜像成 `u16`），不是 `ie` 的位域——我把两处**活**站点改成了位域宏，`build-tu src/keyboard.c` 立刻报 `no field bits on type buffered_input_event`。两处已还原成 C 的写法（`(*event).kind == … as u16`）。**教训**：翻转门只看死臂，活代码要另有一个门兜住——这次是 `build-tu`。
+  ④ 证据：`--check keyboard.c` **OK**；`build-tu src/{keyboard,alloc,lread,cm,term}.c` **五件全 built**；`dead-arms` 现在越过 `alloc.rs` 与 `keyboard.rs`、报在 **`src/lread.rs`**（下一件，仍是同类小修）。
