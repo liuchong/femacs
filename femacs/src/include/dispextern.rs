@@ -1944,6 +1944,21 @@ pub struct face
 {
   pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
   pub id: c_int,
+
+  // dispextern.h 1797-1811: C's `#ifdef HAVE_WINDOW_SYSTEM` arm of `struct face` - the GC it may
+  // draw with, and the stipple id.  Read from `docs/baseline/face-layout.tsv` (P-82: frozen
+  // 280/8, both window-system arms 296/8, `gc` at 168 and `stipple` at 176 in both), which is
+  // also why the two window-system arms add the same sixteen bytes.
+  #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
+  pub gc: *mut c_void,        /// C: `GC gc;` (1799) - X11's `struct _XGC *`; no mirror, so the
+                              /// pointer stays untyped (P-72 rule 3, as in `glyph_string`)
+  #[cfg (all (feature = "have_window_system", feature = "have_android"))]
+  pub gc: *mut c_void,        /// C: `struct android_gc *gc;` (1801)
+  #[cfg (all (feature = "have_window_system", not (feature = "have_x_windows"),
+              not (feature = "have_android")))]
+  pub gc: *mut Emacs_GC,      // C: `Emacs_GC *gc;` (1803)
+  #[cfg (feature = "have_window_system")]
+  pub stipple: ptrdiff_t,     // 1810 (measured 176)
   pub foreground: c_ulong,
   pub background: c_ulong,
   pub underline_color: c_ulong,

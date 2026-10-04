@@ -830,3 +830,18 @@ free         (1): NativeRectangle
   names this mirror.)
 - **The ledger**: unchecked boxes **14 -> 1**, and the one that stays is `NativeRectangle`, whose
   deferral is the `excluded-macros.txt` row (3.224) rather than a missing item.
+
+## `struct face`'s window-system pair (status 3.276)
+
+`struct face`'s window-system arm was not carried either: C declares the GC it may draw with and the
+stipple id under `#ifdef HAVE_WINDOW_SYSTEM` (dispextern.h 1797-1811), with the GC itself having
+three arms (`GC` for X11, `struct android_gc *` for Android, `Emacs_GC *` otherwise).  Both are
+carried now under those gates, with the same untyped-pointer ruling the port already uses for
+`struct glyph_string`'s GC.
+
+`docs/baseline/face-layout.tsv` (`spikes/gated-layout-probe.py 'struct face' dispextern.h`, P-82)
+is the reading: frozen 280/8, x11 296/8, ns_cocoa 296/8, with `gc` at 168 and `stipple` at 176 in
+both window-system arms - the sixteen bytes are exactly this pair, and the flag run after them does
+not move, so no numbering is gated for this struct.
+
+Evidence: `build-tu src/xfaces.c` and `src/dispnew.c` exit 0; `xtask layout-check` passed.

@@ -1,0 +1,125 @@
+# struct face from dispextern.h (c), read by
+# `spikes/gated-layout-probe.py struct face dispextern.h c`:
+# the frozen build's generated config.h, plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tbyte-offset-or-byte:bits.
+# `parse=no` marks an arm this machine cannot read, with the reason in the run.
+arm	member	offset-or-bits
+frozen	sizeof struct face	280
+frozen	align struct face	8
+frozen	Lisp_Object[20] lface	0
+frozen	int id	160
+frozen	unsigned long foreground	168
+frozen	unsigned long background	176
+frozen	unsigned long underline_color	184
+frozen	unsigned long overline_color	192
+frozen	unsigned long strike_through_color	200
+frozen	unsigned long box_color	208
+frozen	struct font * font	216
+frozen	int fontset	224
+frozen	int box_vertical_line_width	228
+frozen	int box_horizontal_line_width	232
+frozen	int underline_pixels_above_descent_line	236
+frozen	enum face_box_type box	240:0-1
+frozen	enum face_underline_type underline	240:2-4
+frozen	bool_bf use_box_color_for_shadows_p	240:5-5
+frozen	bool_bf overline_p	240:6-6
+frozen	bool_bf strike_through_p	240:7-7
+frozen	bool_bf foreground_defaulted_p	241:0-0
+frozen	bool_bf background_defaulted_p	241:1-1
+frozen	bool_bf underline_defaulted_p	241:2-2
+frozen	bool_bf overline_color_defaulted_p	241:3-3
+frozen	bool_bf strike_through_color_defaulted_p	241:4-4
+frozen	bool_bf box_color_defaulted_p	241:5-5
+frozen	bool_bf underline_at_descent_line_p	241:6-6
+frozen	bool_bf tty_bold_p	241:7-7
+frozen	bool_bf tty_italic_p	242:0-0
+frozen	bool_bf tty_reverse_p	242:1-1
+frozen	bool_bf tty_strike_through_p	242:2-2
+frozen	bool_bf tty_overline_p	242:3-3
+frozen	bool_bf colors_copied_bitwise_p	242:4-4
+frozen	bool_bf overstrike	242:5-5
+frozen	uintptr_t hash	248
+frozen	struct face * next	256
+frozen	struct face * prev	264
+frozen	struct face * ascii_face	272
+x11	sizeof struct face	296
+x11	align struct face	8
+x11	Lisp_Object[20] lface	0
+x11	int id	160
+x11	GC gc	168
+x11	ptrdiff_t stipple	176
+x11	unsigned long foreground	184
+x11	unsigned long background	192
+x11	unsigned long underline_color	200
+x11	unsigned long overline_color	208
+x11	unsigned long strike_through_color	216
+x11	unsigned long box_color	224
+x11	struct font * font	232
+x11	int fontset	240
+x11	int box_vertical_line_width	244
+x11	int box_horizontal_line_width	248
+x11	int underline_pixels_above_descent_line	252
+x11	enum face_box_type box	256:0-1
+x11	enum face_underline_type underline	256:2-4
+x11	bool_bf use_box_color_for_shadows_p	256:5-5
+x11	bool_bf overline_p	256:6-6
+x11	bool_bf strike_through_p	256:7-7
+x11	bool_bf foreground_defaulted_p	257:0-0
+x11	bool_bf background_defaulted_p	257:1-1
+x11	bool_bf underline_defaulted_p	257:2-2
+x11	bool_bf overline_color_defaulted_p	257:3-3
+x11	bool_bf strike_through_color_defaulted_p	257:4-4
+x11	bool_bf box_color_defaulted_p	257:5-5
+x11	bool_bf underline_at_descent_line_p	257:6-6
+x11	bool_bf tty_bold_p	257:7-7
+x11	bool_bf tty_italic_p	258:0-0
+x11	bool_bf tty_reverse_p	258:1-1
+x11	bool_bf tty_strike_through_p	258:2-2
+x11	bool_bf tty_overline_p	258:3-3
+x11	bool_bf colors_copied_bitwise_p	258:4-4
+x11	bool_bf overstrike	258:5-5
+x11	uintptr_t hash	264
+x11	struct face * next	272
+x11	struct face * prev	280
+x11	struct face * ascii_face	288
+ns_cocoa	sizeof struct face	296
+ns_cocoa	align struct face	8
+ns_cocoa	Lisp_Object[20] lface	0
+ns_cocoa	int id	160
+ns_cocoa	Emacs_GC * gc	168
+ns_cocoa	ptrdiff_t stipple	176
+ns_cocoa	unsigned long foreground	184
+ns_cocoa	unsigned long background	192
+ns_cocoa	unsigned long underline_color	200
+ns_cocoa	unsigned long overline_color	208
+ns_cocoa	unsigned long strike_through_color	216
+ns_cocoa	unsigned long box_color	224
+ns_cocoa	struct font * font	232
+ns_cocoa	int fontset	240
+ns_cocoa	int box_vertical_line_width	244
+ns_cocoa	int box_horizontal_line_width	248
+ns_cocoa	int underline_pixels_above_descent_line	252
+ns_cocoa	enum face_box_type box	256:0-1
+ns_cocoa	enum face_underline_type underline	256:2-4
+ns_cocoa	bool_bf use_box_color_for_shadows_p	256:5-5
+ns_cocoa	bool_bf overline_p	256:6-6
+ns_cocoa	bool_bf strike_through_p	256:7-7
+ns_cocoa	bool_bf foreground_defaulted_p	257:0-0
+ns_cocoa	bool_bf background_defaulted_p	257:1-1
+ns_cocoa	bool_bf underline_defaulted_p	257:2-2
+ns_cocoa	bool_bf overline_color_defaulted_p	257:3-3
+ns_cocoa	bool_bf strike_through_color_defaulted_p	257:4-4
+ns_cocoa	bool_bf box_color_defaulted_p	257:5-5
+ns_cocoa	bool_bf underline_at_descent_line_p	257:6-6
+ns_cocoa	bool_bf tty_bold_p	257:7-7
+ns_cocoa	bool_bf tty_italic_p	258:0-0
+ns_cocoa	bool_bf tty_reverse_p	258:1-1
+ns_cocoa	bool_bf tty_strike_through_p	258:2-2
+ns_cocoa	bool_bf tty_overline_p	258:3-3
+ns_cocoa	bool_bf colors_copied_bitwise_p	258:4-4
+ns_cocoa	bool_bf overstrike	258:5-5
+ns_cocoa	bool_bf synth_ital	258:6-6
+ns_cocoa	uintptr_t hash	264
+ns_cocoa	struct face * next	272
+ns_cocoa	struct face * prev	280
+ns_cocoa	struct face * ascii_face	288
