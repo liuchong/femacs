@@ -2551,3 +2551,29 @@
   ④ 证据：`--all` → **517 ported files: 510 done, 7 in progress, 0 failing**；`check-mirror-dupes` 1 duplicate /
   1 ratchet / **0 failure**；`check-declarations` 13 sites (0 forbidden) / 0；`check-target-names` 553 `.rs` /
   593 targets / 0 finding。
+
+- **3.156 `lib/root-uid.h` 镜像落地：一个宏、两个臂，并纠正一处写错的用点副本注释（2026-10-04）**：
+  ① **单元**：`emacs/lib/root-uid.h`（30 行）→ `femacs/lib/include/root-uid.rs`，台账
+  `docs/ports/include-root-uid.md`。整头只贡献一个宏：C 20-21 是 include guard、C 23 是注释、
+  C 24-28 是 `#ifdef __TANDEM / # define ROOT_UID 65535 / #else / # define ROOT_UID 0 / #endif`。
+  ② **两臂都带，C 27 的 `0` 在前**：`__TANDEM` 是 NonStop 编译器自己的宏，冻结表看不见它，
+  `check-cond-eval.py lib/root-uid.h` 如实报 `2 conditions, 0 unknown, 1 disagreement`。C 27 的 `0` 既是冻结配置
+  选择的那条、也是抽取器记录的"最后定义"（C 的 `#else` 在后），所以写在前；C 25 的 `65535` 走
+  `#[cfg (feature = "tandem")]`（P-51）。这类"同名多定义"抽取器**按 presence 比、不计 body**——`--check` 的原话就有
+  `1 C macros have several definitions (configuration branches), body not compared: ROOT_UID`——这正是两臂能并存的原因。
+  ③ **命名规则留档**：特性名去掉前导下划线（`HAVE_ANDROID`→`have_android` 全树 96 处、`WINDOWSNT`→`windowsnt` 79 处），
+  所以 `__TANDEM` → `"tandem"`。`ROOT_UID` 拼成 `uid_t`（C 宏无类型；唯一用户 `euidaccess.c` 拿它比
+  `geteuid ()`，类型由该单元的 include 提供，PORTING.md 0.1-9）。
+  ④ **纠正一处写错的用点注释**（与 3.153 的 comp.h 同类）：`femacs/lib/euidaccess.rs` 原本写着
+  "root-uid.h is two lines: `#include <sys/types.h>` and that define"——照参照，这个头**没有任何 `#include`**、
+  共 30 行（guard + 注释 + `__TANDEM` 两臂）。副本的退役与该注释的删除同批完成，单元改为在 C 32-34 的位置
+  `include!("include/root-uid.rs")`。
+  ⑤ 证据：`--check` **OK**（含上面的 branch-macro 注记）；`build-tu lib/euidaccess.c` → **built**；
+  `check-declarations` 13 sites (0 forbidden)/0、`check-mirror-dupes` 0 failure、`check-globals` 283/0、
+  `check-verbatim` 6 trees/4607 files/0、`check-target-names` 554 `.rs`/593 targets/0 finding；
+  `--all` → **518 ported files: 511 done, 7 in progress, 0 failing**；`port-inventory` 复算
+  **518 = 503 done / 15 wip，待开工 72**（本行由 todo → done）。
+  ⑥ **调度记录**：本机 agent 线程 6 个位子已满（xdisp / keyboard / font / mirror lane A / Swift），所以
+  gnulib-template 的下一批（`lib/errno.in.h`、`lib/dirent.in.h`）**本轮没能开 lane**。它的方法与先例写在这里备下一轮：
+  判据是**生成后的头**（`build/emacs-ref/lib/<name>.h`），不可判的臂按 P-51 以 `#[cfg (feature = "…")]` 承载，
+  取值/宽度用冻结 clang 实测；先例见 status 3.131/3.132 与 `docs/ports/include-{stdint.in,fcntl.in,unistd.in}.md`。

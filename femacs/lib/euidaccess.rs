@@ -30,16 +30,13 @@ include!("include/errno.rs");
 include!("include/fcntl.in.rs");
 include!("include/sys_types.in.rs");
 include!("include/sys_stat.in.rs");
+include!("include/root-uid.rs");                   // C 32-34: `#include "root-uid.h"` (`ROOT_UID`)
 include!("include/unistd.in.rs");
 
 /* C 24-40: `_LIBC` is undefined, so `# include <config.h>` is live; <fcntl.h>,
    <sys/types.h>, <sys/stat.h>, <unistd.h> and <errno.h> are the mirrors above.
    <libgen.h> is not needed (HAVE_LIBGEN_H's only use is an include of the file itself).  */
 
-/* C 32-34's `#if !(defined _WIN32 && ! defined __CYGWIN__) / # include "root-uid.h"`: live,
-   and the header's whole contribution is `#define ROOT_UID 0` (root-uid.h is two lines:
-   `#include <sys/types.h>` and that define).  The port carries the value here.  */
-pub const ROOT_UID: uid_t = 0;
 
 /* C 41-43's `#ifndef __set_errno / # define __set_errno(val) errno = (val)`: this file does
    not include <libc-config.h>, so the fallback is the live one (the canonicalize-lgpl.rs
