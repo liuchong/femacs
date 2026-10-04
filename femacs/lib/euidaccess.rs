@@ -27,6 +27,7 @@ use std::ffi::{c_char, c_int, c_long, c_uint, c_ulong, c_ushort, c_void};
 include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/errno.rs");
+include!("include/libc-config.rs");   // C 41-43: the `__set_errno` fallback
 include!("include/fcntl.in.rs");
 include!("include/sys_types.in.rs");
 include!("include/sys_stat.in.rs");
@@ -39,11 +40,10 @@ include!("include/unistd.in.rs");
 
 
 /* C 41-43's `#ifndef __set_errno / # define __set_errno(val) errno = (val)`: this file does
-   not include <libc-config.h>, so the fallback is the live one (the canonicalize-lgpl.rs
-   shape, without the parentheses that header's version adds).  */
-macro_rules! __set_errno {
-  ($val:expr) => { *errno () = ($val) };
-}
+   not include <libc-config.h>, so the fallback is the live one.  Its text is the same
+   assignment as that header's C 46 macro (which parenthesises the value; this file's copy did
+   not - the expansion is the same either way), so the port takes the macro from the
+   `libc-config.rs` mirror above and keeps one landing point (P-26).  */
 
 /* C 45-47's `#if defined EACCES && !defined EACCESS / # define EACCESS EACCES`.  */
 pub const EACCESS: c_int = EACCES;

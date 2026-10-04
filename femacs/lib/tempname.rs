@@ -28,6 +28,7 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/errno.rs");
+include!("include/libc-config.rs");   // C 18: `#include <libc-config.h>`
 include!("include/stdio.rs");
 include!("include/stdlib.rs");
 include!("include/string.rs");
@@ -41,9 +42,8 @@ include!("include/time.in.rs");
 include!("include/tempname.rs");
 
 /* C 18-21: `_LIBC` is undefined, so `# include <libc-config.h>` and
-   `# include "tempname.h"` are live.  libc-config.h contributes `__set_errno` (below, the
-   canonicalize-lgpl.rs shape - that header has no mirror of its own yet) and tempname.h the
-   mirror above.  C 23-46's <errno.h>, <stdio.h>, <stdlib.h>, <string.h>, <fcntl.h>,
+   `# include "tempname.h"` are live.  libc-config.h is the `libc-config.rs` mirror above now
+   (it contributes `__set_errno`) and tempname.h the mirror at the end of the list.  C 23-46's <errno.h>, <stdio.h>, <stdlib.h>, <string.h>, <fcntl.h>,
    <stdint.h>, <sys/random.h>, <sys/stat.h> and <time.h> are the mirrors above
    (<stdarg.h> has no counterpart: Rust's C-variadic `...` is the list, P-04).  */
 
@@ -58,10 +58,9 @@ pub const __GT_FILE: c_int = 0;
 pub const __GT_DIR: c_int = 1;
 pub const __GT_NOCREATE: c_int = 2;
 
-/* <libc-config.h> 46's `# define __set_errno(val) (errno = (val))`.  */
-macro_rules! __set_errno {
-  ($val:expr) => { *errno () = ($val) };
-}
+/* <libc-config.h> 46's `# define __set_errno(val) (errno = (val))` is the
+   `include/libc-config.rs` mirror's now (P-26, one landing point); the calls below keep C's
+   spelling.  */
 
 /* C 48-59's `#if _LIBC` / `#else` pair.  The `#else` arm is the frozen build's (see the
    header comment); the `_LIBC` arm's two spellings are named here: C 49's

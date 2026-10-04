@@ -37,19 +37,16 @@ include!("include/regex_internal.rs");
 include!("include/dynarray.rs");
 /* C: the `malloc/dynarray-skeleton.c` expansion below includes <errno.h> (skeleton 91).  */
 include!("include/errno.rs");
+include!("include/libc-config.rs");   // `weak_alias`/`libc_hidden_def`
 
 /* C: `__always_inline`.  */
 macro_rules! __always_inline {
     ($($x:tt)*) => {};
 }
 
-/* C: the two binding helpers, kept as call text (PORTING.md 8: attributes are no-ops).  */
-macro_rules! weak_alias {
-    ($a:ident, $b:ident) => {};
-}
-macro_rules! libc_hidden_def {
-    ($a:ident) => {};
-}
+/* C: the two binding helpers are the `libc-config.rs` mirror's now, for the same reason as
+   regcomp.rs's (this file's C text does not include `<libc-config.h>` itself - the includer
+   regex.c 24 does - and the mirror is the port's one landing point, P-26).  */
 
 /* C: `__glibc_unlikely`/`__glibc_likely` are branch hints (PORTING.md 2.6).  */
 #[inline(always)]

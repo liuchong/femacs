@@ -6,8 +6,10 @@
 // 3680-...) are dead and only their *live* text is ported here (a comment marks each spot).
 //
 // C's `static` forward declarations (regcomp.c 29-115) have no Rust counterpart (0.1-12),
-// so they are dropped.  `weak_alias`/`libc_hidden_def` only affect symbol binding; the port
-// keeps the call text as no-op macros.
+// so they are dropped.  `weak_alias`/`libc_hidden_def` only affect symbol binding, and the
+// no-op macros are the `libc-config.rs` mirror's now: this file's C text does not include
+// `<libc-config.h>` itself (its includer regex.c 24 does), and the mirror is where the port
+// keeps them so the calls below stay C's text (P-26).
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
@@ -17,14 +19,11 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 use std::ptr::null_mut;
 
 include!("include/regex_internal.rs");
+include!("include/libc-config.rs");   // `weak_alias`/`libc_hidden_def`
 
-/* C: the two binding helpers, kept as call text (PORTING.md 8: attributes are no-ops).  */
-macro_rules! weak_alias {
-    ($a:ident, $b:ident) => {};
-}
-macro_rules! libc_hidden_def {
-    ($a:ident) => {};
-}
+/* C: the two binding helpers are the `libc-config.rs` mirror's now (PORTING.md 8: the
+   attributes they spell are no-ops; the mirror's shapes are `($name:ident, $aliasname:ident)`
+   and `($name:ident)`, which is what the calls below use).  */
 
 /* C: `__always_inline` is an attribute.  */
 macro_rules! __always_inline {

@@ -48,6 +48,7 @@ include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/limits.in.rs");
 include!("include/errno.rs");
+include!("include/libc-config.rs");   // C 34: `#include <libc-config.h>`
 include!("include/time.in.rs");
 include!("include/mktime-internal.rs");
 
@@ -79,8 +80,10 @@ macro_rules! TYPE_MINIMUM { ($t:ty) => { <$t>::MIN }; }
 macro_rules! TYPE_MAXIMUM { ($t:ty) => { <$t>::MAX }; }
 /* PORTING.md 2.5: C's `static_assert` is `const _: () = assert! (cond);`.  */
 macro_rules! static_assert { ($cond:expr) => { const _: () = assert! ($cond); }; }
-/* <libc-config.h> 46: `# define __set_errno(val) (errno = (val))`.  */
-macro_rules! __set_errno { ($val:expr) => { *errno () = $val }; }
+/* <libc-config.h> 46: `# define __set_errno(val) (errno = (val))` is the
+   `include/libc-config.rs` mirror's now (P-26, one landing point); the calls below keep C's
+   spelling (the mirror's body parenthesises the value, this unit's local copy did not - the
+   expansion is the same assignment either way).  */
 
 /* C 124-128: `# if INT_MAX <= LONG_MAX / 4 / 366 / 24 / 60 / 60` holds on this target
    (a 64-bit `long`), so `long_int` is C's `long int`; the `#else` arm (`long long int`)

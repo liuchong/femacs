@@ -29,12 +29,14 @@ include!("../src/include/config.rs");
 include!("include/limits.in.rs");
 include!("include/ctype.rs");
 include!("include/errno.rs");
+include!("include/libc-config.rs");   // C 30-32: `__set_errno`
 
 /* C 22-32: `_LIBC` is undefined, so C 25's `# include <config.h>` is the include above and C
    28-37's <ctype.h>/<errno.h>/<limits.h>/<stddef.h>/<stdlib.h>/<string.h> are the
    ctype/errno/limits mirrors (`<stddef.h>`'s NULL is `core::ptr::null`, and <stdlib.h> and
-   <string.h> have no live user here).  C 30-32's `#ifndef __set_errno` is live.  */
-macro_rules! __set_errno { ($val:expr) => { *errno () = ($val) } }
+   <string.h> have no live user here).  C 30-32's `#ifndef __set_errno` is live, and its
+   text is libc-config.h 46's macro - the `libc-config.rs` mirror above carries it now, so
+   this unit no longer spells a second copy (P-26, one landing point).  */
 
 /* C 43-50: `UNSIGNED` is undefined, so C 46's `UNSIGNED 0` and C 47's `INT LONG int` are the
    live arm; `UNSIGNED` is the ledger's constant (`INT` is one of the `mod standalone`
