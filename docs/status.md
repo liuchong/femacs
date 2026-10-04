@@ -5649,3 +5649,19 @@
      ⑶ 三条新 warning 目前**只记在 status 里**——把 Kotlin 的 warning 集合做成机器基线（棘轮）留给下一轮。
   ⑥ **未声称**：仍是**编译级**验收（探针 exit 0 + warning 计数）；没有 JVM 字节码核验、没有 Gradle/真机、`R` 的 id 值仍是 0、
      `CancellationReceiver` 的 manifest 注册与通知撤回行为**未验证**。
+
+- **3.353 四本棘轮在 `dd8713d` 的复算：HEAD 读数不变（四本表一行没动），工作树读数被两条在飞切片推动（2026-10-05）**：
+  ① **为什么要跑**：3.349（xterm 片 6 666 行）与 3.351（`include/lisp.rs` 加两条 `INLINE` 访问器，而它被**几乎每个单元**
+     include）都改了端口，按 3.270② 的顺序要在新 HEAD 上重跑 `tools/reconcile-link-ratchets.sh`。脚本走完（`set -e` 下
+     它的两次 `--strict` 后置条件都过了），`git diff --stat docs/baseline` **为空** ⇒ 四本表与本轮之前逐字节相同。
+  ② **HEAD 读数（脚本内部，即"算数的那个"）**：`check-link --strict` **374/374/0**、`check-link --executable --strict`
+     **84/84/0**、`check-swift-units` **0 new / 0 stale**、`check-swift-imports` **685 unprovided / 685 行 / 0 failure**
+     （与 3.347 同）。**为什么加了两条函数却不掉行**：镜像那两条是普通 `pub fn`（不带 `no_mangle`），不产生 C 名字；
+     xterm 那片 666 行在冻结配置下整身 gated，也不产生符号。
+  ③ **工作树读数（两条在飞切片的正确效应，不是缺陷）**：`check-link --strict` 现在读 **373 undefined / 374 行 / 1 stale →
+     `STALE _redisplay_window: no longer undefined`**（executable 那条同）；`check-swift-units` 读 **0 new / 5 stale**。
+     原因都是"lane 已把东西写出来、只是还没入库"：Godel 的 xdisp 第 25 轮正在落 `redisplay_window`（C 20475 那一节，
+     它一落地，HEAD 里那条"未定义"就该消失），Raman 的 nsterm 第 18 轮已给 5 个定义落了同名 Swift `func`。
+     **入库后这两条读数会自然归位**（届时重跑一次，棘轮缩小）。
+  ④ **未声称**：`link-probe.py` 那条"真链接余量"口径本轮**没跑**（3.337 记的是 74），所以"距离第一次真链接更近"
+     这句话本轮不说；`--strict` 的绿只说明"棘轮与 HEAD 的对象精确相等"，不说明链接能过。
