@@ -2421,3 +2421,17 @@
   （`struct haikufont_info` 的字段行），说明还在 lane 手上。顺带记一条**门的边界**：`--check` 的字段比较只遍历
   *Rust 侧*已有的容器，所以"C 里有一整个 struct、镜像完全没有"这种情况**不会**被门报出来
   （`haikufont_info` 正是这一例，靠台账未勾框才看得见）——把"缺类型"也纳入比较是下一步可做的工具改进去处。
+
+- **3.150 两个单元入库：`lib/diffseq.h` 镜像与 batch F 的第三个 Swift 文件 `nsselect.swift`（2026-10-04）**：
+  ① **`lib/diffseq.h`（578 行）→ `femacs/lib/include/diffseq.rs`**（mirror lane A）：`--check` **OK**、台账
+  `docs/ports/include-diffseq.md` **0 未勾**。
+  ② **`src/nsselect.m`（825 行）→ `femacs/platform/macos/nsselect.swift`（982 行）**（Swift lane），台账
+  `docs/ports/nsselect.md`（384 行、30 勾、0 未勾）。**集成者独立复验**（不采信 lane 报告）：
+  `swiftc -parse-as-library -c` **exit 0、0 行 error**；`nm -g` 数出 **3 个 `T _ns_*`**——
+  `ns_get_local_selection`、`ns_string_from_pasteboard`、`ns_string_to_pasteboard`，正是这个单元对外的那一面
+  （其余是 ObjC 方法，不导出 C 符号）。
+  ③ **`femacs/src/include/jni.rs`（51,840 字节）暂不提交**：它首行已按 3.148 定下的形式自我声明
+  （`// femacs: mirror of the Android NDK's <jni.h> …`），`check-target-names` 全树 **0 finding**、552 个 `.rs`；
+  但它与 `android-asset.rs` 是一对（后者要对前者取 `JNIEnv` 的函数表），**等后者落地一起验、一起提交**，
+  避免只进一半造成"半影子"状态。
+  ④ **`haikuterm.rs` 仍不提交**：台账那 1 个未勾（`struct haikufont_info` 的字段行）还在，属 lane 手上。
