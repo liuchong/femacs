@@ -291,6 +291,8 @@ def write_exec_pending(rows: dict[str, str]) -> None:
             "# reconciles it (`--executable --strict`; `--write-pending` when only the stale",
             "# rows differ).  A *new* name fails in either mode; stale rows are informational",
             "# unless `--strict`."]
+    for name in sorted(rows):
+        body.append(f"{name}\t{rows[name]}")
     EXEC_PENDING.write_text("\n".join(body) + "\n", encoding="utf-8")
 
 

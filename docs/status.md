@@ -4731,3 +4731,10 @@
   ④ **棘轮口径（同轮实测后定）**：棘轮行"不再成立"= 棘轮在**收缩**，而在飞单元的对象恰好造成这种收缩——`src/xdisp.rs` 在一小时内又落了十个定义，
   于是当轮读数是 `373 undefined / 383 行棘轮 / 1 failure / 11 stale`（那一个 failure 是同一 lane 在飞切片里的新引用 `_redisplay_window`）。因此 `check-link.py` 两种模式都**只对"新名字"失败**，
   stale 行只在 `--strict` 下算失败；`--strict` 是**净 HEAD worktree** 里对账用的模式（那里文件必须精确），`gate-fast` 用默认模式，于是五条 lane 不停重建对象时快速门不会红。
+
+- **3.254 两队棘轮都改成"在 HEAD 对账"，工具修正与 `--strict` 后置条件（2026-10-04）**：
+  ① **为什么要有这一步**：两队棘轮都是 `build/femacs/*.o` 的 `nm` 读数，而仓里**永远有五条 lane 的对象在飞**——正在复刻的单元会先引用、后定义。在工作树上重生成棘轮就等于把 lane 的半成品写进一个**之后每个门都要比**的文件；
+  能算数的读数是 **HEAD 上**的。新脚本 `tools/reconcile-link-ratchets.sh` 就是那个测量：临时 worktree 挂 HEAD、把 `emacs/` 与 `build/emacs-ref/`（两者都不被 git 跟踪，worktree 里没有）符号链接进去、抄进当前对象、**只**把工作树在飞的那些单元按 **HEAD 自己的源码**重建，然后写两队棘轮并用 `--strict` **复检**（后置条件：文件对 HEAD 的对象必须**精确**）。
+  ② **读数五（HEAD `ee92417`，对账后）**：部分链接 **365 个名字**、可执行链接 **63 个名字**（`port-owed` 15 / `unknown` 48）。同一时刻工作树上的两个门读作 373 与 71，其中 **14 个名字只在在飞的 `src/xdisp.rs` 里被引用**（`_display_line`/`_redisplay_window`/`_set_cursor_from_row`/`_hscroll_margin`/`_Voverlay_arrow_*` 等，都是 xdisp 自己后续切片要定义的名字）——两个读数之差就是 lane 的进度，没有别的。
+  ③ **工具修正（同一轮实测抓到）**：`write_exec_pending` 的写文件循环被一次按行替换误删，于是 `--executable --write-pending` **只写了注释头、没有行**，而汇总行仍报 "wrote N row(s)"——`ee92417` 里落库的那份 `link-exec-pending.txt` 因此是**空棘轮**（10 行注释、0 行数据），在净 HEAD 上表现为"63 个名字全是新的"。修正已入本轮提交；教训写进脚本的注释：**写后必须用 `--strict` 复检**，否则"写成功"这句话本身没有证据。
+  ④ 现状：`tools/check-link.py`（部分链接那级）仍挂在 `gate-fast`，`--executable` 仍不挂——现在两队棘轮都精确了，等 `xdisp` 落地后把可执行那级也接上就是一个两行改动。

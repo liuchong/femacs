@@ -286,3 +286,28 @@ slice).  So `check-link.py` fails on a **new** name in either mode, and reports 
 information unless `--strict` is passed - and `--strict` is what a clean worktree at HEAD is
 reconciled with, where the file has to be exact.  `gate-fast` uses the default, so a shrinking
 ratchet cannot make the fast gate red while five lanes are rebuilding objects.
+
+## Reconciling the ratchets at HEAD (2026-10-04)
+
+Both ratchets are `nm` readings of `build/femacs/*.o`, and this repository always has lane objects
+in flight: a unit being ported defines some of its own names and references others before defining
+them.  Regenerating a ratchet in the working tree therefore bakes the lanes' half-finished state
+into a file every later gate compares against.  The reading that counts is the one at HEAD, and it
+is a two-minute measurement:
+
+```sh
+tools/reconcile-link-ratchets.sh
+```
+
+A throwaway worktree at HEAD, `emacs/` and `build/emacs-ref/` symlinked in (both are git-ignored,
+so a worktree has neither), the current objects copied over, and **only** the units the working
+tree has in flight rebuilt from HEAD's own sources.  Then the partial ratchet and the executable
+ratchet are written and re-checked with `--strict`, which is the post-condition - the file must be
+*exact* for HEAD's objects, not approximate.
+
+**Reading five (HEAD `ee92417`, reconciled):** partial link **365 names**, executable link **63
+names** (`port-owed` 15, `unknown` 48).  On the working tree at that moment the same two gates read
+373 and 71, with 14 names that only the in-flight `src/xdisp.rs` references - so the difference
+between the two readings is the lanes' progress and nothing else.  That is why the stale-row policy
+above exists: a ratchet regenerated in the working tree is *smaller* than HEAD's, and the next
+clean run would report HEAD's names as new.
