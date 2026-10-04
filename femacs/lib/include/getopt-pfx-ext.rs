@@ -11,3 +11,13 @@
 // The renames are expressed at the declaration (`#[link_name = "rpl_getopt_long"]` in
 // getopt-ext.rs) and the definition (`#[unsafe(export_name = ...)]` in lib/getopt1.rs); the
 // file has no item of its own.  docs/ports/include-getopt-pfx-ext.md records the rest.
+
+/* C 21: the include guard, whose C body is `1`.  */
+pub const _GETOPT_PFX_EXT_H: core::ffi::c_int = 1;
+
+/* C 60-63: the `__GETOPT_PREFIX` arm is the live one (`__GETOPT_PREFIX` is `rpl_` in the
+   generated header), so `__getopt_argv_const` is empty and `__getopt_argv_const_is_empty` is 1.
+   The empty macro is a marker here; getopt-ext.rs's prototypes take `char **argv` because of
+   it, and lib/getopt1.rs's `ARGV_CAST` is the identity.  */
+pub const __getopt_argv_const: bool = true;
+pub const __getopt_argv_const_is_empty: core::ffi::c_int = 1;
