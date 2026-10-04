@@ -181,13 +181,17 @@ positions (`text_pos`, `display_pos`, `it_slice`, `run`) and the bidi state (`bi
 `bidi_stack`, `bidi_string_data`, the `bidi_type_t`/`bidi_bracket_type_t`/`bidi_dir_t`
 enumerations); `Mouse_HLInfo`, `CHECK_MATRIX`, and the `space_glyph`/`bitch_at_user` externs.
 
-Not mirrored yet (the unchecked boxes): `face`, `face_cache`, `image`, `image_cache`, the
-`struct it`/`composition_it`/`bidi_it` iterators, the fringe and X-widget sections, the
-`CURRENT_*`/`DESIRED_*` face and line-height macros, and everything gated on
-`HAVE_WINDOW_SYSTEM`/`HAVE_X_WINDOWS`/… .  A struct lands when the unit that needs its
-*layout* does (`xtask layout-asserts` must be able to assert it: a type joins
-`tools/gen-layout-fields.py`'s `STRUCTS` together with its mirror, since a key whose type is
-missing counts as pending and the ratchet only shrinks pending).
+Not mirrored yet: the rest of C's second `HAVE_WINDOW_SYSTEM` block (`struct image_type`,
+`struct image_cache`), the fringe and X-widget sections, and the gated branches not already
+carried (besides `struct glyph_string`, `struct image` and `struct face`'s window-system pair).
+The extractor's *only* unchecked box is `NativeRectangle`, whose deferral is an
+`excluded-macros.txt` row (3.224) rather than missing work; the remaining content is the
+deferred-branch set, which `--check` leaves out (`OK emacs/src/dispextern.h ->
+femacs/src/include/dispextern.rs`).  A struct lands when the unit that needs its *layout* does
+(`xtask layout-asserts` must be able to assert it: a type joins `tools/gen-layout-fields.py`'s
+`STRUCTS` together with its mirror, since a key whose type is missing counts as pending and the
+ratchet only shrinks pending) - or, for a record that exists only in a window-system arm, with
+the P-82 readings and a window-system probe crate (`struct image`, below).
 
 ### Deviations (recorded, not missing work)
 
@@ -309,7 +313,7 @@ missing counts as pending and the ratchet only shrinks pending).
   fields are compiled by every unit that takes this mirror, this record only by a window-system
   unit.  Degraded here, each with the `/// C:` line P-55 asks for:
   `face` (C 1414; the record is C 1787 in this same header and is not mirrored yet),
-  `image` (C 1483; C 3215, likewise), `xwidget` (C 1486; xwidget.h, still a todo header in
+  `xwidget` (C 1486; xwidget.h, still a todo header in
   `docs/port-inventory.md`), `GC gc` (C 1465; X11's `struct _XGC *` - the only `GC` this tree
   declares is msdos.h's `typedef int GC`, msdos.rs 217, a different type with the same name, so
   naming it would silently pick that one up), `struct android_gc *gc` (C 1467; not in
@@ -541,9 +545,9 @@ missing counts as pending and the ratchet only shrinks pending).
   `macro-body-notes.tsv` row (`IF_DEBUG`, token `0`, the `FD_SET`/`FD_CLR` class) is requested, and
   this ledger's box stays unchecked until it lands.
 - **What is left is not landable from this mirror alone.**  The C 2600-4026 windowed machinery
-  (`struct image`, `image_cache`, the fringe/X-widget/cursor records) is *dead text* on this target
-  (`HAVE_WINDOW_SYSTEM` is undef: C 3203-3395 and 3633-3686), so P-51/P-66 apply and nothing was
-  transcribed.  The five types the extractor still defers are live text but unit-owned exactly like
+  (`struct image_cache`, the fringe/X-widget/cursor records) is *dead text* on this target
+  (`HAVE_WINDOW_SYSTEM` is undef: C 3203-3395 and 3633-3686), so P-51/P-66 apply.
+  `struct image` (C 3215) has since landed under that arm - see its own section below.  The five types the extractor still defers are live text but unit-owned exactly like
   the 102 names: `struct bidi_it` (`src/bidi.rs` 86), `composition_it` (`src/dispnew.rs` 6828 and
   `src/indent.rs` 180), `struct it` (`src/dispnew.rs` 6855), `redisplay_interface`
   (`src/dispnew.rs` 3569 and `src/minibuf.rs` 666), `draw_fringe_bitmap_params` (no unit); landing
@@ -845,3 +849,130 @@ both window-system arms - the sixteen bytes are exactly this pair, and the flag 
 not move, so no numbering is gated for this struct.
 
 Evidence: `build-tu src/xfaces.c` and `src/dispnew.c` exit 0; `xtask layout-check` passed.
+
+## Decisions (`struct image`, dispextern.h 3203-3395)
+
+- **The whole record is one gated arm.**  C's second `#ifdef HAVE_WINDOW_SYSTEM` block opens at
+  C 3203 and closes at C 3395; `struct image` (C 3215-3362) is inside it, and
+  `spikes/gated-layout-probe.py 'struct image' dispextern.h` reads `frozen` as `parse=no` (an
+  *incomplete* type there - measured).  The mirror carries the record - and its one bitfield run
+  - under `#[cfg (feature = "have_window_system")]`, P-51's feature for the non-frozen side, the
+  same arm `struct glyph_string` and `struct face`'s window-system pair use.
+- **Layout: measured on both window-system arms, and deliberately not asserted in the mirror.**
+  The 3.271 tool's readings are `docs/baseline/image-layout.tsv` (new file, written by
+  `--write`): `x11` `sizeof` 256 / `align` 8 and `ns_cocoa` 240 / 8, every member's byte offset.
+  A `const _: () = assert! (…)` in this mirror would be an *invented* number: `layout-check`'s
+  single crate compiles the frozen configuration, where this record does not exist, and its C
+  baseline `docs/baseline/layout/c-layout-darwin-arm64.tsv` has no `image` keys (the recorder is
+  `tools/gen-layout-fields.py`, whose `STRUCTS` this type is not in).  Asserting these offsets
+  needs a window-system probe crate (the `spikes/ns_inc_probe.rs` / Android-probe shape); the
+  readings above are what it would assert.  What replaces the in-tree assertion for now is the
+  *reduced probe* in Evidence - the mirror's own `struct image` text compiled with the feature on
+  and every measured offset asserted - the same substitute `glyph_string`'s six-member run used.
+- **The bitfield run: the NS arm has three members too, and one set of shifts covers both arms.**
+  The integrator's count found only two on the NS arm; the tool says otherwise - the NS arm's raw
+  reading is `96:0-0`, `96:1-1`, `96:2-2` (`background_transparent`, `background_valid`,
+  `background_transparent_valid`), the same three the X arm puts at 112.  It was an extraction
+  slip, not a configuration difference, and the mirror spells all three.  `--bits` gives
+  `unit/shift` = `1/0`, `1/1`, `1/2` on *both* arms, so one set of `IMAGE_*_SHIFT`/`_MASK`
+  constants serves both: the unit's byte offset differs (112 vs 96) only because of the guarded
+  members ahead of it, which the declaration reproduces, and the `frame-bits.tsv` lesson - a
+  member can move *unit* between configurations - does not apply to this run.  The unit is
+  `bits: u32` (one four-byte allocation unit of `bool_bf` bits).
+- **Degradations (P-72 rule 3 / P-55).**  Each names C's prototype in a `/// C:` line:
+  `Emacs_Pixmap` (C 3222; X11's `Pixmap`, nsgui.h's `id` - both one 8-byte scalar, and
+  dispextern.rs declares no `Emacs_Pixmap`, the platform mirrors do), `XImage` (3232),
+  `Picture` (3236), `struct android_image` (3244) and `struct image_type` (3345) - that last one
+  is this header's own record, in the same gated block, still unmirrored.  `next`/`prev` name
+  this record; `struct timespec` (3219) is the existing mirror.
+- **One deviation is on record.**  C 3247's `XFORM xform` is a *by-value* member (six `FLOAT`s,
+  24 bytes, `<windows.h>`'s `struct tagXFORM`, no mirror declares it).  P-72 rule 3's untyped
+  pointer does **not** preserve those 24 bytes; it is used because `have_ntgui` (the MS-W32
+  target) is not a target of this lane.  A Windows probe crate has to give the member
+  `tagXFORM`'s six floats before it asserts this record's layout.
+- **`struct timespec` arrives through `include!("../../lib/include/time.in.rs")`.**  P-72: a
+  mirror may only name types it declares or includes.  The include is unconditional, not inside
+  the `have_window_system` arm, because `xtask`'s include-graph expansion is textual (it dedupes
+  a file's *second* reach to a comment and does not evaluate `cfg`): a cfg'd include could be
+  stripped in the frozen build while its dedupe had already eaten another mirror's copy.
+- **`glyph_string.img` (C 1483) now names the record** (`*mut image`) instead of the untyped
+  pointer it used while this record had no owner mirror - P-72's rule that a degradation is only
+  for a type with no mirror.  The two are in the same gated arm, so nothing changes for the
+  frozen build.
+- **What this landing cannot claim.**  The type does not exist in the frozen configuration, so
+  nothing here is compiled or asserted by the frozen gates (`layout-check`, `build-tu`,
+  `--check`): its evidence is the gated-arm readings plus the reduced probe.  Four guarded
+  combinations (`use_cairo`, `have_x_windows`+`have_xrender`, `have_ntgui`, `have_haiku`) have
+  no probe arm at all - the tool's `--define` arm builds on the *frozen* configuration, which
+  leaves the record incomplete - so their member positions are unmeasured (the `have_android`
+  arm's `ximg`/`mask_img` pair is the X arm's shape by C's own text).
+
+## Evidence (`struct image`)
+
+- **The P-82 readings** (`python3 spikes/gated-layout-probe.py 'struct image' dispextern.h
+  --write docs/baseline/image-layout.tsv` -> `wrote docs/baseline/image-layout.tsv: 81 row(s)`,
+  the new file): `frozen` `parse=no` (`invalid application of 'sizeof' to an incomplete type
+  'struct image'`); `x11` `sizeof 256`, `align 8`, members `0/16/24/32/40/48/56/64/72/80/88/96/
+  104/108/112/116/120/124/128/132/136/144/160/168/176/184/188/192/200/208/216/224/232/240/248`;
+  `ns_cocoa` `sizeof 240`, `align 8`, members `0/16/24/32/40/48/56/64/72/80/88/92/96/100/104/
+  108/112/116/120/128/144/152/160/168/172/176/184/192/200/208/216/224/232`.
+- **The `--bits` derivation** (`… 'struct image' dispextern.h --bits`): `x11 1/0, 1/1, 1/2` and
+  `ns_cocoa 1/0, 1/1, 1/2` for `background_transparent`, `background_valid`,
+  `background_transparent_valid` - one set of shifts, and the NS arm's three rows are what
+  answered the count question.
+- **The reduced probe** (the mirror's own `struct image` text, cut from
+  `femacs/src/include/dispextern.rs`, with `struct timespec` from `lib/include/time.in.rs` and
+  the four scalar aliases; `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib
+  -C panic=abort --cfg 'feature="have_window_system"' …` -> **exit 0** with 35 `const _`
+  assertions, `sizeof 240`/`align 8` and every `ns_cocoa` offset above; the same probe with
+  `--cfg 'feature="have_x_windows"'` -> **exit 0** with 36 assertions, `sizeof 256` and every
+  `x11` offset).  This is the only compile the record gets today; it is a `/tmp` probe, not a
+  gate.
+- **`xtask layout-check`** (the arm is off, so it checks that the ungated text is unchanged):
+  `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-img cargo run -q -p xtask -- layout-check`
+  -> `layout probe ok` / `layout-check passed (see build/femacs/layout_asserts.rs)`.
+- **`build-tu`**: `src/xfaces.c` -> `built src/xfaces.rs -> ../build/femacs/xfaces.o`;
+  `src/dispnew.c` -> `built src/dispnew.rs -> ../build/femacs/dispnew.o`.
+- **The other gates**: `python3 tools/extract-abi.py --check emacs/src/dispextern.h
+  femacs/src/include/dispextern.rs` -> `OK emacs/src/dispextern.h ->
+  femacs/src/include/dispextern.rs` (the type is in the extractor's *deferred* set, so the
+  verdict is unchanged) and `grep -c '^- '` still 0; `python3 tools/check-cond-eval.py
+  src/dispextern.h` -> `71 conditions, 0 unknown, 0 disagreements [VERIFIED]`;
+  `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures` / `read 630 files (623 .rs 7 .swift)`; `python3
+  tools/check-mirror-dupes.py` -> `1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)`
+  (the pre-existing duplicate, not this record).
+
+## Decisions (the window-system coverage pass, status 3.283)
+
+- **`struct redisplay_interface`'s `#ifdef HAVE_WINDOW_SYSTEM` arm (C 3131-3195) lands as the
+  fifteen display hooks** (`draw_fringe_bitmap` … `default_font_parameter`), each one pointer
+  wide and each behind `#[cfg (feature = "have_window_system")]`, the same arm the record's
+  other window-system users take.  The frozen arm's thirteen members, the measured 104/8 and
+  every asserted offset are unchanged, because the fields do not exist without the feature.  The
+  member types are the mirror's own: `text_cursor_kinds` and `Emacs_Cursor` are declared here,
+  `glyph_row`/`glyph_string` are this file's records, and `struct window`/`struct frame`
+  parameters keep the `*mut c_void` spelling the thirteen frozen members already use.
+- **`struct image`'s `type` member is C's own name.**  The field was spelled `type_` (a Rust
+  keyword workaround) and is now `r#type` - the spelling the tree's other `type` members use
+  (`bidi_saved_info`, dispextern.rs 1811; `bidi_it`, 2608), and the one
+  `spikes/mirror-struct-coverage.py` accepts (`pub (r#)?<name>:`).
+
+## Evidence (the coverage pass)
+
+- **`python3 spikes/mirror-struct-coverage.py`** -> `282 mirrored struct(s): 846 arm(s)
+  attempted, 239 unreadable (the configuration does not define the type, or the platform headers
+  are absent), 82 gap(s)` - from **114**, and the `## ns_cocoa` section is gone (that arm is at
+  0 gaps): this file's `struct image` (1) and `struct redisplay_interface` (15) closed on *both*
+  arms, 32 rows.  The 82 that remain are `struct x_display_info` (80) and `struct x_output` (2),
+  both `xterm.rs`'s.
+- **The gated arm's own compile** (no tree gate turns `have_window_system` on, and `frame.rs`
+  fails by design at its first gated accessor - P-82's Rust-side wall): the `redisplay_interface`
+  text cut from this mirror, compiled with stubs for the six referenced records,
+  `rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib -C panic=abort
+  --cfg 'feature="dispextern_face_records"' --cfg 'feature="have_window_system"'` -> **exit 0**,
+  with `size_of::<redisplay_interface> () == 224` asserting (13 + 15) pointers.  This is the same
+  reduced-probe substitute `struct image` used.
+- **The frozen gates**: `xtask layout-check` -> `layout-check passed`; `build-tu src/xfaces.c`,
+  `src/dispnew.c`, `src/window.c` -> `built …`; `python3 tools/extract-abi.py --check
+  emacs/src/dispextern.h femacs/src/include/dispextern.rs` -> `OK …`.

@@ -1,0 +1,87 @@
+# struct image from dispextern.h (c), read by
+# `spikes/gated-layout-probe.py struct image dispextern.h c`:
+# the frozen build's generated config.h, plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tbyte-offset-or-byte:bits.
+# `parse=no` marks an arm this machine cannot read, with the reason in the run.
+arm	member	offset-or-bits
+frozen	parse	no
+x11	sizeof struct image	256
+x11	align struct image	8
+x11	struct timespec timestamp	0
+x11	__darwin_time_t tv_sec	0
+x11	long tv_nsec	8
+x11	Emacs_Pixmap pixmap	16
+x11	Emacs_Pixmap mask	24
+x11	XImage * ximg	32
+x11	XImage * mask_img	40
+x11	unsigned long * colors	48
+x11	int ncolors	56
+x11	unsigned long background	64
+x11	unsigned long face_foreground	72
+x11	unsigned long face_background	80
+x11	int face_font_size	88
+x11	char * face_font_family	96
+x11	int face_font_height	104
+x11	int face_font_width	108
+x11	bool_bf background_transparent	112:0-0
+x11	bool_bf background_valid	112:1-1
+x11	bool_bf background_transparent_valid	112:2-2
+x11	uint32_t refresh	116
+x11	int original_width	120
+x11	int original_height	124
+x11	int width	128
+x11	int height	132
+x11	double scale	136
+x11	int[4] corners	144
+x11	int ascent	160
+x11	Lisp_Object spec	168
+x11	Lisp_Object dependencies	176
+x11	int relief	184
+x11	int hmargin	188
+x11	int vmargin	192
+x11	const struct image_type * type	200
+x11	_Bool load_failed_p	208
+x11	Lisp_Object lisp_data	216
+x11	EMACS_UINT hash	224
+x11	ptrdiff_t id	232
+x11	struct image * next	240
+x11	struct image * prev	248
+ns_cocoa	sizeof struct image	240
+ns_cocoa	align struct image	8
+ns_cocoa	struct timespec timestamp	0
+ns_cocoa	__darwin_time_t tv_sec	0
+ns_cocoa	long tv_nsec	8
+ns_cocoa	Emacs_Pixmap pixmap	16
+ns_cocoa	Emacs_Pixmap mask	24
+ns_cocoa	unsigned long * colors	32
+ns_cocoa	int ncolors	40
+ns_cocoa	unsigned long background	48
+ns_cocoa	unsigned long face_foreground	56
+ns_cocoa	unsigned long face_background	64
+ns_cocoa	int face_font_size	72
+ns_cocoa	char * face_font_family	80
+ns_cocoa	int face_font_height	88
+ns_cocoa	int face_font_width	92
+ns_cocoa	bool_bf background_transparent	96:0-0
+ns_cocoa	bool_bf background_valid	96:1-1
+ns_cocoa	bool_bf background_transparent_valid	96:2-2
+ns_cocoa	uint32_t refresh	100
+ns_cocoa	int original_width	104
+ns_cocoa	int original_height	108
+ns_cocoa	int width	112
+ns_cocoa	int height	116
+ns_cocoa	double scale	120
+ns_cocoa	int[4] corners	128
+ns_cocoa	int ascent	144
+ns_cocoa	Lisp_Object spec	152
+ns_cocoa	Lisp_Object dependencies	160
+ns_cocoa	int relief	168
+ns_cocoa	int hmargin	172
+ns_cocoa	int vmargin	176
+ns_cocoa	const struct image_type * type	184
+ns_cocoa	_Bool load_failed_p	192
+ns_cocoa	Lisp_Object lisp_data	200
+ns_cocoa	EMACS_UINT hash	208
+ns_cocoa	ptrdiff_t id	216
+ns_cocoa	struct image * next	224
+ns_cocoa	struct image * prev	232

@@ -1356,9 +1356,9 @@ pub const DRAW_IMAGE_SUNKEN: draw_glyphs_face = 5;
    `include/composite.rs`), and a unit that can enable this feature has them by construction:
    C's backends include frame.h/window.h/font.h, and `src/nsfont.m` 27-39 includes
    `dispextern.h`, `composite.h`, `frame.h`, `window.h` and `font.h`.  What has no owner mirror
-   keeps the untyped pointer and the `/// C:` line P-55 asks for: `struct face` and
-   `struct image` are this header's own records (C 1787, C 3215) and are not mirrored yet (two
-   of the seven types the extractor defers for this file), `struct xwidget` is xwidget.h (a todo
+   keeps the untyped pointer and the `/// C:` line P-55 asks for: `struct face` (C 1787) is
+   this header's own record and is not mirrored yet, `struct image` (C 3215) landed with this
+   batch, `struct xwidget` is xwidget.h (a todo
    header in `docs/port-inventory.md`), and `GC`/`HDC`/`struct android_gc` are the platform
    types of the `gc` blocks below.
 
@@ -1477,8 +1477,7 @@ pub struct glyph_string
   pub first_glyph: *mut glyph,                 // C 1480
 
   /* Image, if any.  */
-  pub img: *mut c_void,                        /// C: `struct image *img;` (dispextern.h 1483)
-  // C 3215 defines the record in this same header and this mirror does not carry it yet.
+  pub img: *mut image,                         // C 1483: `struct image *img;` (defined below, C 3215)
 
   /* Xwidget.  */
   pub xwidget: *mut c_void,                    /// C: `struct xwidget *xwidget;` (dispextern.h 1486)
@@ -2065,11 +2064,220 @@ pub fn FACE_FOR_CHAR (f: *mut c_void, face: *mut face, character: c_int, pos: pt
   unsafe { (*face).id }
 }
 
-// C: dispextern.h 472-2600's remaining structures (`image`, `image_cache`, `it`) and
-// 2600-4026's fringe, X-widget and cursor machinery — not mirrored on this target yet; they
-// need `struct frame`/`struct window` (`struct font` is in `include/font.rs` now), and
+/* =============================================================================================
+   The image record - C's second `HAVE_WINDOW_SYSTEM` block (dispextern.h 3203-3395)
+   ============================================================================================= */
+
+// C's `<time.h>` chain (dispextern.h 25 includes character.h, which reaches it through lisp.h)
+// is what makes C 3219's `struct timespec` a complete type.  The mirror is this tree's
+// (`lib/include/time.in.rs`, the same file `buffer.rs` and `systime.rs` reach), included here
+// per P-72's rule that a mirror may only name types it declares or includes; `xtask`'s
+// include-graph expansion dedupes the second reach of the file (PORTING.md 0.1-4/P-61), so a
+// unit that already has it does not define it twice.
+include!("../../lib/include/time.in.rs");
+
+/* The image record (dispextern.h 3215-3362).  C wraps it in `#ifdef HAVE_WINDOW_SYSTEM`, so it
+   is dead text on the frozen target - `spikes/gated-layout-probe.py 'struct image'
+   dispextern.h` reads `parse=no` there (the record is an *incomplete* type) - and the mirror
+   carries it under P-51's `#[cfg (feature = "have_window_system")]` arm, the feature naming the
+   non-frozen side.  The frozen build therefore compiles exactly what clang compiles.
+
+   Its layout **is** measured on both window-system arms (P-82), and the readings are in
+   `docs/baseline/image-layout.tsv`: `x11` 256/8 and `ns_cocoa` 240/8, every member's byte
+   offset.  The guarded members are what makes the sizes differ (the X arm's `ximg`/`mask_img`
+   take 32-47, where the NS arm already has `colors` at 32), and the mirror reproduces C's
+   guards rather than one arm's numbers.
+
+   There is deliberately **no** `const _` assertion here.  `xtask layout-check`'s single crate
+   compiles the frozen configuration, where this record does not exist, and its C baseline
+   (`docs/baseline/layout/c-layout-darwin-arm64.tsv`) has no `image` keys, so a `const _` would
+   be an invented number - the same reason `glyph_string` above carries none.  Asserting these
+   offsets belongs to a window-system probe crate (the `spikes/ns_inc_probe.rs` / Android probe
+   shape), which is a shared-gate change; docs/ports/include-dispextern.md records it.
+
+   Types this mirror cannot name degrade per P-72 rule 3 / P-55, each with C's prototype in the
+   `/// C:` line: `Emacs_Pixmap` (X11's `Pixmap`, nsgui.h's `id`), `XImage`, `Picture`,
+   `struct android_image`, `XFORM` and `struct image_type`; `next`/`prev` name this record.  */
+#[cfg (feature = "have_window_system")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct image
+{
+  /* The time in seconds at which the image was last displayed.  Set
+     in prepare_image_for_display.  */
+  pub timestamp: timespec,                     // C 3219
+
+  /* Pixmaps of the image.  */
+  pub pixmap: *mut c_void,                     /// C: `Emacs_Pixmap pixmap, mask;` (dispextern.h 3222)
+  pub mask: *mut c_void,
+  // C 3222: `Emacs_Pixmap` is X11's `Pixmap` (an `unsigned long`) under `HAVE_X_WINDOWS` and
+  // nsgui.h's `id`/`void *` under `HAVE_NS`; both are one 8-byte scalar and this mirror names
+  // neither (dispextern.rs declares no `Emacs_Pixmap` - the platform mirrors do), so the member
+  // is the untyped pointer C's type is one word wide as (P-72 rule 3).
+
+  #[cfg (feature = "use_cairo")]
+  pub cr_data: *mut c_void,                    // C 3225: `void *cr_data;`
+
+  /* X images of the image, corresponding to the above Pixmaps.  Non-NULL means it and its
+     Pixmap counterpart may be out of sync and the latter is outdated.  */
+  #[cfg (feature = "have_x_windows")]
+  pub ximg: *mut c_void,                       /// C: `XImage *ximg, *mask_img;` (dispextern.h 3232)
+  #[cfg (feature = "have_x_windows")]
+  pub mask_img: *mut c_void,
+
+  /* Picture versions of pixmap and mask for compositing.  */
+  #[cfg (all (feature = "have_x_windows", feature = "have_xrender", not (feature = "use_cairo")))]
+  pub picture: *mut c_void,                    /// C: `Picture picture, mask_picture;` (dispextern.h 3236)
+  #[cfg (all (feature = "have_x_windows", feature = "have_xrender", not (feature = "use_cairo")))]
+  pub mask_picture: *mut c_void,
+  // C 3232's `XImage` is Xlib's/`xterm.h`'s and C 3236's `Picture` is Xrender's; neither has a
+  // mirror (`w32gui.rs`'s `_XImage` is that platform's own shim), so both stay `*mut c_void` and
+  // the arm reads them through the platform mirror it already includes (P-72 rule 3).
+
+  /* Android images of the image, corresponding to the above Pixmaps.  */
+  #[cfg (feature = "have_android")]
+  pub ximg: *mut c_void,                       /// C: `struct android_image *ximg, *mask_img;` (dispextern.h 3244)
+  #[cfg (feature = "have_android")]
+  pub mask_img: *mut c_void,
+  // C 3244: `struct android_image` is androidgui.h's; androidgui.rs does not carry it (P-72
+  // rule 3).
+
+  #[cfg (feature = "have_ntgui")]
+  pub xform: *mut c_void,                      /// C: `XFORM xform;` (dispextern.h 3247)
+  #[cfg (feature = "have_ntgui")]
+  pub smoothing: bool,                         // C 3248
+  // C 3247: `XFORM` is `<windows.h>`'s `struct tagXFORM` (six `FLOAT`s), which no mirror
+  // declares.  **Deviation on record**: the C member is *by value*, so P-72 rule 3's untyped
+  // pointer does not preserve its 24 bytes; the pointer is used because `have_ntgui` (the MS-W32
+  // target) is not a target of this lane, and a Windows probe crate that asserts this record's
+  // layout has to give the member `tagXFORM`'s six floats first.
+
+  /* The affine transformation to apply to this image.  */
+  #[cfg (feature = "have_haiku")]
+  pub transform: [[c_double; 3]; 3],           // C 3252: `double transform[3][3];`
+  /* Whether or not bilinear filtering should be used to "smooth" the image.  */
+  #[cfg (feature = "have_haiku")]
+  pub use_bilinear_filtering: bool,            // C 3256
+
+  /* Colors allocated for this image, if any.  Allocated via xmalloc.  */
+  pub colors: *mut c_ulong,                    // C 3260
+  pub ncolors: c_int,                          // C 3261
+
+  /* A single `background color' for this image, for the use of anyone that cares about such a
+     thing.  Only valid if the `background_valid' field is true.  */
+  pub background: c_ulong,                     // C 3268
+
+  /* Foreground and background colors of the face on which the image is created.  */
+  pub face_foreground: c_ulong,                // C 3272
+  pub face_background: c_ulong,
+
+  /* Details of the font, only really relevant for types like SVG that allow us to draw text.  */
+  pub face_font_size: c_int,                   // C 3276
+  pub face_font_family: *mut c_char,           // C 3277
+
+  /* Details of the font used to calculate image size relative to the canonical character size,
+     with `ch' and `cw' specifiers.  */
+  pub face_font_height: c_int,                 // C 3281
+  pub face_font_width: c_int,                  // C 3282
+
+  /* C 3287-3291: the record's one bitfield run - `bool_bf background_transparent : 1` (C 3287)
+     and `bool_bf background_valid : 1, background_transparent_valid : 1` (C 3291).  Rust has no
+     bitfields (PORTING.md 1.3/P-80), so the run is one storage unit here and the three members
+     are the `IMAGE_*` shifts/masks below.  The unit is a `u32` - the four-byte unit C's
+     `bool_bf` bitfields ride in - and the positions are measured on both window-system arms:
+     `spikes/gated-layout-probe.py 'struct image' dispextern.h --bits` gives `x11 1/0, 1/1, 1/2`
+     (raw `112:0-0`, `112:1-1`, `112:2-2`) and `ns_cocoa 1/0, 1/1, 1/2` (raw `96:0-0`,
+     `96:1-1`, `96:2-2`), so **one set of shifts covers both arms**: the unit's byte offset
+     differs only because of the guarded members ahead of it (112 vs 96), which this declaration
+     reproduces, and the shift *within* the unit is 0/1/2 either way.  (`docs/baseline/
+     image-layout.tsv`; the `frame-bits.tsv` lesson - a member can move *unit* between
+     configurations - does not apply to this run.)  */
+  pub bits: u32,                               // C 3287-3291
+
+  /* Refresh counter reflecting the current version of the image.  Always larger than zero for
+     images which may need refreshing.  */
+  pub refresh: u32,                            // C 3296: `uint32_t refresh;`
+
+  /* The original width and height of the image before transformations
+     like scaling or rotation.  */
+  pub original_width: c_int,                   // C 3300
+  pub original_height: c_int,
+
+  /* Width and height of the image.  These values depend on
+     the :scale or :rotation image parameters.  */
+  pub width: c_int,                            // C 3304
+  pub height: c_int,
+
+  /* The scale factor applied to the image.  */
+  pub scale: c_double,                         // C 3307
+
+  /* Top/left and bottom/right corner pixel of actual image data.  Used by four_corners_best to
+     consider the real image data, rather than looking at the optional image margin.  */
+  pub corners: [c_int; 4],                     // C 3317
+
+  /* Percent of image height used as ascent.  A value of CENTERED_IMAGE_ASCENT means draw the
+     image centered on the line.  */
+  pub ascent: c_int,                           // C 3326
+
+  /* Lisp specification of this image.  */
+  pub spec: Lisp_Object,                       // C 3331
+
+  /* List of "references" followed to build the image.  Typically will just contain the name of
+     the image file.  Used to allow fine-grained cache flushing.  */
+  pub dependencies: Lisp_Object,               // C 3336
+
+  /* Relief to draw around the image.  */
+  pub relief: c_int,                           // C 3339
+
+  /* Optional margins around the image.  This includes the relief.  */
+  pub hmargin: c_int,                          // C 3342
+  pub vmargin: c_int,
+
+  /* Reference to the type of the image.  */
+  pub r#type: *const c_void,                   /// C: `struct image_type const *type;` (dispextern.h 3345)
+  // C 3345: `struct image_type` is this header's own record (C 3367's region) and is not
+  // mirrored yet; the pointer stays untyped (P-72 rule 3).
+
+  /* True means that loading the image failed.  Don't try again.  */
+  pub load_failed_p: bool,                     // C 3348
+
+  /* A place for image types to store additional data.  It is marked during GC.  */
+  pub lisp_data: Lisp_Object,                  // C 3352
+
+  /* Hash value of image specification to speed up comparisons.  */
+  pub hash: EMACS_UINT,                        // C 3355
+
+  /* Image id of this image.  */
+  pub id: ptrdiff_t,                           // C 3358
+
+  /* Hash collision chain.  */
+  pub next: *mut image,                        // C 3361
+  pub prev: *mut image,
+}
+
+/* C's bit members of `struct image`, read and written through the storage unit `bits` above
+   (PORTING.md 1.3/P-80).  The three shifts are 0/1/2 in both window-system arms, so one set of
+   constants serves both (see the note on `bits`).  */
+#[cfg (feature = "have_window_system")]
+pub const IMAGE_BACKGROUND_TRANSPARENT_SHIFT: u32 = 0;                 // C 3287
+#[cfg (feature = "have_window_system")]
+pub const IMAGE_BACKGROUND_TRANSPARENT_MASK: u32 = 1 << 0;
+#[cfg (feature = "have_window_system")]
+pub const IMAGE_BACKGROUND_VALID_SHIFT: u32 = 1;                       // C 3291
+#[cfg (feature = "have_window_system")]
+pub const IMAGE_BACKGROUND_VALID_MASK: u32 = 1 << 1;
+#[cfg (feature = "have_window_system")]
+pub const IMAGE_BACKGROUND_TRANSPARENT_VALID_SHIFT: u32 = 2;           // C 3291
+#[cfg (feature = "have_window_system")]
+pub const IMAGE_BACKGROUND_TRANSPARENT_VALID_MASK: u32 = 1 << 2;
+
+// What C's 472-2600 span still leaves unmirrored - `image_cache` (dispextern.h 3368), whose
+// `struct image **buckets`/`images` are this header's own - and the 2600-4026 fringe, X-widget
+// and cursor machinery are not mirrored on this target yet; they need `struct
+// frame`/`struct window` (`struct font` is in `include/font.rs` now), and
 // docs/ports/include-dispextern.md tracks the rest of the file's macros, functions and
-// globals.
+// globals.  (`struct image`, C 3215, landed above; `struct it` and its stack, C 2386-2936, are
+// in the module below.)
 
 /* =============================================================================================
    The freely landable remainder, in C order (dispextern.h 105-3834).  Every item below is one
@@ -3214,8 +3422,10 @@ const _: () = assert! (core::mem::offset_of! (it, min_width_start) == 4960);
      Same arm and same measurement as the two blocks above.  C's `frame_parm_handler *` is
      `frame.h`'s type and stays `*mut c_void` here (P-72 ③); the twelve members the interface calls
      keep C's names and the port's `Option<unsafe extern "C" fn>` shape, and every one of them is
-     an 8-byte pointer, so the offsets are the interface's own.  The `#ifdef HAVE_WINDOW_SYSTEM`
-     tail (C 3198-3200) is dead on this target and is not declared (P-51).  */
+     an 8-byte pointer, so the offsets are the interface's own.  C's `#ifdef HAVE_WINDOW_SYSTEM`
+     arm (C 3131-3195) is dead text on this target and is carried under that feature - the
+     fifteen hooks below (status 3.283); the frozen arm's thirteen members and their offsets are
+     unchanged by it.  */
 #[cfg (feature = "dispextern_face_records")]
 #[repr (C)]
 #[derive (Clone, Copy)]
@@ -3234,6 +3444,46 @@ pub struct redisplay_interface
   pub clear_window_mouse_face: Option<unsafe extern "C" fn (w: *mut c_void)>,                  // offset 80
   pub get_glyph_overhangs: Option<unsafe extern "C" fn (glyph: *mut glyph, f: *mut c_void, left: *mut c_int, right: *mut c_int)>,                  // offset 88
   pub fix_overlapping_area: Option<unsafe extern "C" fn (w: *mut c_void, row: *mut glyph_row, area: c_int, overlaps: c_int)>,                  // offset 96
+
+  /* C 3131-3195: the `#ifdef HAVE_WINDOW_SYSTEM` arm of the interface - the fifteen display
+     hooks a window system installs.  Dead text on the frozen target (`HAVE_WINDOW_SYSTEM` is
+     undef there), carried under that feature so that a window-system build gets C's full
+     record; each is one pointer wide and none of them exists in the frozen arm, so the
+     assertions above are unchanged.  They are what `spikes/mirror-struct-coverage.py --arm
+     ns_cocoa` names when it reports this struct's window-system gap (status 3.283).  */
+  #[cfg (feature = "have_window_system")]
+  pub draw_fringe_bitmap: Option<unsafe extern "C" fn (*mut c_void, *mut glyph_row, *mut draw_fringe_bitmap_params)>,   // C 3134
+  #[cfg (feature = "have_window_system")]
+  pub define_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int, bits: *mut c_ushort, h: c_int, wd: c_int)>,      // C 3138
+  #[cfg (feature = "have_window_system")]
+  pub destroy_fringe_bitmap: Option<unsafe extern "C" fn (which: c_int)>,                                               // C 3140
+  #[cfg (feature = "have_window_system")]
+  pub compute_glyph_string_overhangs: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                              // C 3144
+  #[cfg (feature = "have_window_system")]
+  pub draw_glyph_string: Option<unsafe extern "C" fn (s: *mut glyph_string)>,                                           // C 3147
+  #[cfg (feature = "have_window_system")]
+  pub define_frame_cursor: Option<unsafe extern "C" fn (f: *mut c_void, cursor: Emacs_Cursor)>,                        // C 3150
+  #[cfg (feature = "have_window_system")]
+  pub clear_frame_area: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int, height: c_int)>, // C 3153
+  #[cfg (feature = "have_window_system")]
+  pub clear_under_internal_border: Option<unsafe extern "C" fn (f: *mut c_void)>,                                       // C 3159
+  #[cfg (feature = "have_window_system")]
+  pub draw_window_cursor: Option<unsafe extern "C" fn (w: *mut c_void, glyph_row: *mut glyph_row, x: c_int, y: c_int,
+                                                       cursor_type: text_cursor_kinds, cursor_width: c_int,
+                                                       on_p: bool, active_p: bool)>,                                  // C 3165
+  #[cfg (feature = "have_window_system")]
+  pub draw_vertical_window_border: Option<unsafe extern "C" fn (w: *mut c_void, x: c_int, y_0: c_int, y_1: c_int)>,   // C 3172
+  #[cfg (feature = "have_window_system")]
+  pub draw_window_divider: Option<unsafe extern "C" fn (w: *mut c_void, x_0: c_int, x_1: c_int, y_0: c_int, y_1: c_int)>, // C 3176
+  #[cfg (feature = "have_window_system")]
+  pub shift_glyphs_for_insert: Option<unsafe extern "C" fn (f: *mut c_void, x: c_int, y: c_int, width: c_int,
+                                                            height: c_int, shift_by: c_int)>,                         // C 3182
+  #[cfg (feature = "have_window_system")]
+  pub show_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3187
+  #[cfg (feature = "have_window_system")]
+  pub hide_hourglass: Option<unsafe extern "C" fn (f: *mut c_void)>,                                                    // C 3190
+  #[cfg (feature = "have_window_system")]
+  pub default_font_parameter: Option<unsafe extern "C" fn (f: *mut c_void, parms: Lisp_Object)>,                        // C 3194
 }
 #[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (core::mem::size_of::<redisplay_interface> () == 104);
