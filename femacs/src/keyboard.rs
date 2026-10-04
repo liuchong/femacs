@@ -4645,8 +4645,8 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 
       /* Selection-request events never have frames, they are actually
          instances of 'struct selection_input_event'.  */
-      if !((*event).kind == SELECTION_REQUEST_EVENT as u16
-	    || (*event).kind == SELECTION_CLEAR_EVENT as u16)
+      if !(input_event_bits! (kind, event) == SELECTION_REQUEST_EVENT
+	    || input_event_bits! (kind, event) == SELECTION_CLEAR_EVENT)
 	  && FRAMEP ((*event).ie.frame_or_window)
 	{ *event_frame = XFRAME ((*event).ie.frame_or_window); }
 
@@ -4696,6 +4696,15 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 
 	  kbd_fetch_ptr = next_kbd_event (event);
 	  input_pending = readable_events (0);
+	  /* C 4645-4665's `#elif defined HAVE_HAIKU` arm calls a name C takes from haikuterm.h 370
+	     (`extern void haiku_handle_selection_clear (struct input_event *);`); this unit's
+	     include graph does not reach that mirror, so the declaration sits in the arm - the
+	     shape the alloc.rs `mark_haiku_display` fix of status 3.221 uses.  haikuterm.c 1447
+	     defines it with C's own name, so the link name matches.  */
+	  #[cfg (feature = "have_haiku")]
+	  unsafe extern "C" {
+	    pub fn haiku_handle_selection_clear (event: *mut input_event);
+	  }
 	  haiku_handle_selection_clear (&raw const copy);
 	}
 
@@ -5065,8 +5074,8 @@ unsafe fn process_special_events ()
   while event != kbd_store_ptr
     {
       /* If we find a stored X selection request, handle it now.  */
-      if (*event).kind == SELECTION_REQUEST_EVENT as u16
-	  || (*event).kind == SELECTION_CLEAR_EVENT as u16
+      if input_event_bits! (kind, event) == SELECTION_REQUEST_EVENT
+	  || input_event_bits! (kind, event) == SELECTION_CLEAR_EVENT
 	{
 	  /* C 4597-4604: the enclosing `#if defined HAVE_X11 || defined HAVE_PGTK ||
 	     defined HAVE_HAIKU` and its `#ifndef HAVE_HAIKU` / `#else` pair, then C 4605's
@@ -5119,7 +5128,7 @@ unsafe fn process_special_events ()
 	  let mut copy: input_event;
 	  let mut moved_events: c_int;
 
-	  if (*event).ie.kind != SELECTION_CLEAR_EVENT as u16
+	  if input_event_bits! (kind, &raw mut (*event).ie) != SELECTION_CLEAR_EVENT
 	    { emacs_abort (); }
 
 	  copy = (*event).ie;
@@ -5143,6 +5152,15 @@ unsafe fn process_special_events ()
 		    * std::mem::size_of::<buffered_input_event> () as isize) as usize);
 	  kbd_fetch_ptr = next_kbd_event (kbd_fetch_ptr);
 	  input_pending = readable_events (0);
+	  /* C 4645-4665's `#elif defined HAVE_HAIKU` arm calls a name C takes from haikuterm.h 370
+	     (`extern void haiku_handle_selection_clear (struct input_event *);`); this unit's
+	     include graph does not reach that mirror, so the declaration sits in the arm - the
+	     shape the alloc.rs `mark_haiku_display` fix of status 3.221 uses.  haikuterm.c 1447
+	     defines it with C's own name, so the link name matches.  */
+	  #[cfg (feature = "have_haiku")]
+	  unsafe extern "C" {
+	    pub fn haiku_handle_selection_clear (event: *mut input_event);
+	  }
 	  haiku_handle_selection_clear (&raw mut copy);
 	  }
 	  /* C 4666-4673: the chain's `#else` arm — the live one on this target.  */

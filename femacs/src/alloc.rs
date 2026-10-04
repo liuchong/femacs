@@ -3573,7 +3573,11 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 	#[cfg (feature = "have_native_comp")]
 	{
 	  let cu = PSEUDOVEC_STRUCT! (vector, Lisp_Native_Comp_Unit);
-	  unload_comp_unit (cu);
+	  // C 3193 passes the typed pointer; `include/comp.rs` declares the parameter as the
+	  // untyped pointer because `Lisp_Native_Comp_Unit` is not in that mirror's scope
+	  // (P-72 rule ③, comp.rs's own note).  This arm is the one place the type *is* in scope,
+	  // so the conversion lives here - same pointer, same call.
+	  unload_comp_unit (cu as *mut core::ffi::c_void);
 	}
       }
     pvec_type::PVEC_SUBR =>
@@ -6394,7 +6398,15 @@ pub unsafe extern "C" fn garbage_collect ()
   #[cfg (feature = "use_gtk")]
   { xg_mark_data (); }
 
-  /* C 5915-5918 (`#ifdef HAVE_HAIKU`) is dead.  */
+  /* C 5915-5918 (`#ifdef HAVE_HAIKU`) is dead.  The name has to exist when the arm is compiled
+     (`xtask dead-arms` / `gate-probes` flip the feature on): C gets the prototype from
+     haikuterm.h 323 through its own include chain, and this unit's graph does not reach that
+     mirror, so the declaration sits in the arm - the `dynlib_handle_ptr` shape of status 3.x.
+     haikuterm.c 1501 defines it with C's own name, so the link name matches.  */
+  #[cfg (feature = "have_haiku")]
+  unsafe extern "C" {
+    pub fn mark_haiku_display ();
+  }
   #[cfg (feature = "have_haiku")]
   { mark_haiku_display (); }
 
