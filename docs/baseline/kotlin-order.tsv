@@ -1,8 +1,8 @@
-# The Kotlin targets' compile order (PORTING.md P-83 ⑥): a `.kt` file that names another
-# target cannot compile before it, so the batch goes leaves-first.  Companion to
-# `docs/port-map.md`'s Kotlin table; regenerate with the dependency scan in docs/status.md 3.286.
+# The Kotlin targets' compile order (PORTING.md P-83 ⑥): a `.kt` file that names
+# another target cannot compile before it, so the batch goes leaves-first.  Written by
+# `spikes/kotlin-target-order.py`.  Columns: order, target, references, ported.
 order	target	references	ported
-1	femacs/platform/android/kotlin/EmacsDialogButtonLayout.kt		
+1	femacs/platform/android/kotlin/EmacsDialogButtonLayout.kt		yes
 2	femacs/platform/android/kotlin/EmacsDirectoryEntry.kt		yes
 3	femacs/platform/android/kotlin/EmacsDocumentsProvider.kt		
 4	femacs/platform/android/kotlin/EmacsHandleObject.kt		yes
