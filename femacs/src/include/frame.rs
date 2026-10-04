@@ -946,11 +946,9 @@ pub fn WINDOW_FRAME (w: *mut window) -> Lisp_Object { unsafe { (*w).frame } }
    C: #define SET_FRAME_GARBAGED(f) (frame_garbaged = true, fset_redisplay (f), f->garbaged = true)  */
 macro_rules! SET_FRAME_GARBAGED {
   ($f:expr) => {{
-    let f = $f;
-    unsafe { frame_garbaged = true; }
-    fset_redisplay (f);
-    let garbaged = 1u32 << FRAME_GARBAGED_SHIFT;
-    unsafe { (*f).bits1 = (*f).bits1 | garbaged; }
+    frame_garbaged = true;
+    fset_redisplay ($f as *mut c_void);
+    (*$f).bits1 = (*$f).bits1 | (1u32 << FRAME_GARBAGED_SHIFT);
   }};
 }
 
@@ -1007,7 +1005,7 @@ macro_rules! FRAME_MOUSE_UPDATE {
    argument to Fmodify_frame_parameters"; both names it forwards to are lisp.rs's macros.
    C: #define AUTO_FRAME_ARG(name, parameter, value) AUTO_LIST1 (name, AUTO_CONS_EXPR (parameter, value))  */
 macro_rules! AUTO_FRAME_ARG {
-  ($name:expr, $parameter:expr, $value:expr) => {
+  ($name:ident, $parameter:expr, $value:expr) => {
     AUTO_LIST1! ($name, AUTO_CONS_EXPR! ($parameter, $value))
   };
 }
@@ -1018,19 +1016,8 @@ macro_rules! AUTO_FRAME_ARG {
    The `visible` spelling is the token-aliases family's (`FRAME_VISIBLE_P` above).
    C: INLINE void SET_FRAME_VISIBLE (struct frame *f, bool v) { if (v) { if (v == 1 && f->visible != 1) redisplay_other_windows (); if (FRAME_GARBAGED_P (f)) frame_garbaged = true; } else if (is_tty_child_frame (f) && f == XFRAME (selected_frame)) do_switch_frame (mru_rooted_frame (f), 0, 0, Qnil); f->visible = v; }  */
 macro_rules! SET_FRAME_VISIBLE {
-  ($f:expr, $v:expr) => {{
-    let f = $f;
-    let v = $v;
-    let visible = 1u32 << FRAME_VISIBLE_SHIFT;
-    if v {
-      if v && (unsafe { (*f).bits1 } & visible) != visible { redisplay_other_windows (); }
-      if FRAME_GARBAGED_P (f) { unsafe { frame_garbaged = true; } }
-    }
-    else if is_tty_child_frame (f) && f == XFRAME (unsafe { selected_frame }) {
-      do_switch_frame (mru_rooted_frame (f), 0, 0, Qnil);
-    }
-    unsafe { (*f).bits1 = ((*f).bits1 & !visible) | ((v as u32) << FRAME_VISIBLE_SHIFT); }
-  }};
+    ($f:expr, $v:expr) => { (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_VISIBLE_SHIFT))
+                                            | (($v as u32) << FRAME_VISIBLE_SHIFT) };
 }
 
 /* ---- frame.h 1697-1830: the geometry family, C's arithmetic member for member ---------------- */

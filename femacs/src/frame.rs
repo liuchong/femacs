@@ -86,22 +86,11 @@ include!("include/pdumper.rs");                // C 55: `#include "pdumper.h"`
    (no such name here) and writes `do_switch_frame (…, Qnil)` where the port's declaration takes
    `Qnil ()`.  The unit therefore keeps C's effect in its own spelling (P-26's "unit copy wins"
    case, reported to the mirror's owner); the flag write is unit 1 (frame.rs 154).  */
-macro_rules! SET_FRAME_VISIBLE {
-    ($f:expr, $v:expr) => { (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_VISIBLE_SHIFT))
-                                            | (($v as u32) << FRAME_VISIBLE_SHIFT) };
-}
 /* frame.h 1173-1174: `SET_FRAME_GARBAGED` is a three-term comma expression in C; the port keeps
    the same three effects in the same order (`frame_garbaged = true`, `fset_redisplay (f)`, the
    flag write).  The mirror's copy (`include/frame.rs` 947) cannot expand here: it passes
    `*mut frame` where this tree declares `fset_redisplay (*mut c_void)` (E0308; the cast below
    is the working spelling) - reported to the mirror's owner, not changed there.  */
-macro_rules! SET_FRAME_GARBAGED {
-    ($f:expr) => {{
-        frame_garbaged = true;
-        fset_redisplay ($f as *mut c_void);
-        (*$f).bits1 = (*$f).bits1 | (1u32 << FRAME_GARBAGED_SHIFT);
-    }};
-}
 /* frame.h 1155-1226: the geometry macros.  `FRAME_MENU_BAR_LINES`/`FRAME_TAB_BAR_LINES`'s
    readers are in the mirror, but this file both reads and writes them, so the whole family
    is defined here in C's terms and called as `NAME! (…)` throughout (the token check

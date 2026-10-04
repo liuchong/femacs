@@ -2736,34 +2736,10 @@ unsafe extern "C" fn encode_coding_emacs_mule (coding: *mut coding_system) -> bo
       }
     };
   }
-  /* `CHAR_CHARSET_P` (charset.h 519-529): the charset.rs mirror's copy compares the
-     boolean `CHARSET_FAST_MAP_REF!` against `0`, which does not compile (`expected bool,
-     found integer`); this unit is its first user, so the faithful transcription is
-     defined here and shadows the mirror inside this function (a use-site workaround --
-     the mirror is not edited, and the defect is reported in docs/ports/coding.md).  */
-  macro_rules! CHAR_CHARSET_P {
-    ($c:expr, $charset:expr) => {
-      {
-	let charset: *mut charset = $charset;
-	let c: c_int = $c;
-	((ASCII_CHAR_P (c as isize) && (*charset).bits & CHARSET_ASCII_COMPATIBLE_P != 0)
-	 || (if (*charset).bits & CHARSET_UNIFIED_P != 0
-		|| (*charset).method == CHARSET_METHOD_SUBSET
-		|| (*charset).method == CHARSET_METHOD_SUPERSET
-	       { encode_char (charset, c) != (*charset).invalid_code }
-	     else if CHARSET_FAST_MAP_REF! (c, (*charset).fast_map.as_ptr ())
-	       { if (*charset).method == CHARSET_METHOD_OFFSET
-		   { c >= (*charset).min_char && c <= (*charset).max_char }
-		 else if (*charset).method == CHARSET_METHOD_MAP
-			 && (*charset).bits & CHARSET_COMPACT_CODES_P != 0
-			 && CHAR_TABLE_P (CHARSET_ENCODER! (charset))
-		   { ! NILP (CHAR_TABLE_REF (CHARSET_ENCODER! (charset), c as isize)) }
-		 else
-		   { encode_char (charset, c) != (*charset).invalid_code } }
-	     else { false }))
-      }
-    };
-  }
+  /* `CHAR_CHARSET_P` (charset.h 519-529) is the mirror's now: its body compared the boolean
+     `CHARSET_FAST_MAP_REF!` against `0` (unexpandable, `expected bool, found integer`) until
+     status 3.333 ported it from this unit's copy; the two use-site workarounds that stood in
+     for it here are gone, and the wrapper below calls the mirror's macro.  */
 
   macro_rules! CODING_CHAR_CHARSET_P {
     ($coding:expr, $dst:expr, $dst_end:expr, $c:expr, $charset:expr, $result:expr) => {
@@ -4634,29 +4610,6 @@ unsafe extern "C" fn encode_coding_iso_2022 (coding: *mut coding_system) -> bool
   }
   /* The charset.rs mirror's `CHAR_CHARSET_P` does not compile (see encode_coding_emacs_mule);
      the faithful transcription shadows it here too.  */
-  macro_rules! CHAR_CHARSET_P {
-    ($c:expr, $charset:expr) => {
-      {
-	let charset: *mut charset = $charset;
-	let c: c_int = $c;
-	((ASCII_CHAR_P (c as isize) && (*charset).bits & CHARSET_ASCII_COMPATIBLE_P != 0)
-	 || (if (*charset).bits & CHARSET_UNIFIED_P != 0
-		|| (*charset).method == CHARSET_METHOD_SUBSET
-		|| (*charset).method == CHARSET_METHOD_SUPERSET
-	       { encode_char (charset, c) != (*charset).invalid_code }
-	     else if CHARSET_FAST_MAP_REF! (c, (*charset).fast_map.as_ptr ())
-	       { if (*charset).method == CHARSET_METHOD_OFFSET
-		   { c >= (*charset).min_char && c <= (*charset).max_char }
-		 else if (*charset).method == CHARSET_METHOD_MAP
-			 && (*charset).bits & CHARSET_COMPACT_CODES_P != 0
-			 && CHAR_TABLE_P (CHARSET_ENCODER! (charset))
-		   { ! NILP (CHAR_TABLE_REF (CHARSET_ENCODER! (charset), c as isize)) }
-		 else
-		   { encode_char (charset, c) != (*charset).invalid_code } }
-	     else { false }))
-      }
-    };
-  }
   macro_rules! CODING_CHAR_CHARSET {
     ($coding:expr, $dst:expr, $dst_end:expr, $c:expr, $charset_list:expr, $code_return:expr, $charset:expr) => {
       {
@@ -10405,29 +10358,6 @@ unsafe fn char_encodable_p (mut c: c_int, attrs: Lisp_Object) -> bool
      transcription is defined here and shadows the mirror inside it (a use-site
      workaround -- the mirror is not edited, and the defect is reported in
      docs/ports/coding.md).  */
-  macro_rules! CHAR_CHARSET_P {
-    ($c:expr, $charset:expr) => {
-      {
-	let charset: *mut charset = $charset;
-	let c: c_int = $c;
-	((ASCII_CHAR_P (c as isize) && (*charset).bits & CHARSET_ASCII_COMPATIBLE_P != 0)
-	 || (if (*charset).bits & CHARSET_UNIFIED_P != 0
-		|| (*charset).method == CHARSET_METHOD_SUBSET
-		|| (*charset).method == CHARSET_METHOD_SUPERSET
-	       { encode_char (charset, c) != (*charset).invalid_code }
-	     else if CHARSET_FAST_MAP_REF! (c, (*charset).fast_map.as_ptr ())
-	       { if (*charset).method == CHARSET_METHOD_OFFSET
-		   { c >= (*charset).min_char && c <= (*charset).max_char }
-		 else if (*charset).method == CHARSET_METHOD_MAP
-			 && (*charset).bits & CHARSET_COMPACT_CODES_P != 0
-			 && CHAR_TABLE_P (CHARSET_ENCODER! (charset))
-		   { ! NILP (CHAR_TABLE_REF (CHARSET_ENCODER! (charset), c as isize)) }
-		 else
-		   { encode_char (charset, c) != (*charset).invalid_code } }
-	     else { false }))
-      }
-    };
-  }
 
   translation_table = CODING_ATTR_TRANS_TBL (attrs);
   if ! NILP (translation_table)

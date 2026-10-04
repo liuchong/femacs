@@ -467,13 +467,6 @@ macro_rules! garbaged {
    expand here - it passes `*mut frame` where this tree declares `fset_redisplay (*mut c_void)`
    (E0308; the cast below is the working spelling) - so the unit keeps its own, reported to the
    mirror's owner.  */
-macro_rules! SET_FRAME_GARBAGED {
-  ($f:expr) => {{
-    frame_garbaged = true;
-    fset_redisplay ($f as *mut c_void);
-    (*$f).bits1 = (*$f).bits1 | (1u32 << FRAME_GARBAGED_SHIFT);
-  }};
-}
 
 /// frame.h 1804-1814: `FRAME_PIXEL_TO_TEXT_WIDTH`/`FRAME_PIXEL_TO_TEXT_HEIGHT`
 /// (`frame.rs` defines them for its own unit, which this unit does not include).
@@ -7365,11 +7358,6 @@ macro_rules! output_method {
 /// expand: it binds the name `$name:expr` and `AUTO_LIST1!` takes an `ident` there ("no rules
 /// expected `expr` metavariable", E-none), so the unit keeps C's two lines with C's own name
 /// position (reported to the mirror's owner, not changed there).
-macro_rules! AUTO_FRAME_ARG {
-  ($name:ident, $param:expr, $value:expr) => {
-    AUTO_LIST1! ($name, AUTO_CONS_EXPR! ($param, $value));
-  };
-}
 
 /* <unistd.h>: `STDIN_FILENO` now comes from the unistd.in.rs mirror (2026-10-04); this unit's
    use-site copy is gone, and the mirror is the single declaration point (PORTING.md

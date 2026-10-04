@@ -5431,13 +5431,6 @@ unsafe fn xwidget_view_delete_all_in_window (_w: *mut window) {}
    expand here - it passes `*mut frame` where this tree declares `fset_redisplay (*mut c_void)`
    (E0308; the cast below is the working spelling) - so the unit keeps its own, reported to the
    mirror's owner.  */
-macro_rules! SET_FRAME_GARBAGED {
-  ($f:expr) => {{
-    frame_garbaged = true;
-    fset_redisplay ($f as *mut c_void);
-    (*$f).bits1 = (*$f).bits1 | (1u32 << FRAME_GARBAGED_SHIFT);
-  }};
-}
 
 /* frame.h 378: `bool_bf redisplay : 1` — frame.rs defines the same member-named accessor for
    its own unit (PORTING.md 1.3/P-80); this unit does not include it, so it is defined here.  */

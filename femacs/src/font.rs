@@ -113,47 +113,13 @@ pub type font_spacing = c_int;
 /// unit copy because **the mirror's body cannot expand**: it is C's ternary
 /// `(FIXNUMP (AREF (font, I)) ? (XFIXNUM (…) >> 8) : -1)`, and Rust has no `? :` - reported to
 /// the mirror's owner rather than changed there.
-macro_rules! FONT_WEIGHT_NUMERIC {
-  ($font:expr) =>
-    { if FIXNUMP (AREF ($font, FONT_WEIGHT_INDEX as isize)) { XFIXNUM (AREF ($font, FONT_WEIGHT_INDEX as isize)) >> 8 } else { -1 } };
-}
-macro_rules! FONT_SLANT_NUMERIC {
-  ($font:expr) =>
-    { if FIXNUMP (AREF ($font, FONT_SLANT_INDEX as isize)) { XFIXNUM (AREF ($font, FONT_SLANT_INDEX as isize)) >> 8 } else { -1 } };
-}
-macro_rules! FONT_WIDTH_NUMERIC {
-  ($font:expr) =>
-    { if FIXNUMP (AREF ($font, FONT_WIDTH_INDEX as isize)) { XFIXNUM (AREF ($font, FONT_WIDTH_INDEX as isize)) >> 8 } else { -1 } };
-}
 /// C: font.h 251-254: `FONT_SET_STYLE (font, prop, val)` is `ASET (font, prop, make_fixnum
 /// (font_style_to_value (prop, val, true)))`.  The mirror's copy (`include/font.rs` 216) cannot
 /// expand here: `ASET`'s index parameter is `isize` in this tree while `FONT_*_INDEX` is `c_int`
 /// (E0308, `expected isize, found i32`), and `make_fixnum` wants the `EMACS_INT` cast below - so
-/// the unit keeps the working spelling (reported to the mirror's owner, not changed there).
-macro_rules! FONT_SET_STYLE {
-  ($font:expr, $prop:expr, $val:expr) =>
-    { ASET ($font, $prop as isize, make_fixnum (font_style_to_value ($prop, $val, true) as EMACS_INT)) };
-}
-/// C: font.h 239-246: the four metric accessors - the mirror's now (`include/font.rs` 221-224,
-/// ported from C's `((f)->height)` spelling in status 3.328), so the unit's copies are gone.
-/// C: font.h 1004-1013: the two logging statement macros.  The mirror's bodies are C's
-/// `do { … } while (false)`, which Rust cannot expand; the unit keeps the same two effects with
-/// Rust's own statement form (reported to the mirror's owner).
-macro_rules! FONT_ADD_LOG {
-  ($action:expr, $arg:expr, $result:expr) =>
-    { if ! EQ (Vfont_log, Qt ()) { font_add_log ($action, $arg, $result); } };
-}
-macro_rules! FONT_DEFERRED_LOG {
-  ($action:expr, $arg:expr, $result:expr) =>
-    { if ! EQ (Vfont_log, Qt ()) { font_deferred_log ($action, $arg, $result); } };
-}
-/// C: font.h 552: `XSETFONT (a, b)` is `XSETPSEUDOVECTOR (a, b, PVEC_FONT)`.  The mirror's body
-/// is that C spelling - a function-style call with no `!` and the bare `PVEC_FONT` - which
-/// cannot expand as Rust, so the unit keeps the working spelling (reported to the mirror's
-/// owner).
-macro_rules! XSETFONT {
-  ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_FONT) };
-}
+/// C 244-246 / 1004-1013 / 552: the metric accessors, the two logging statement macros and
+/// `XSETFONT` are the mirror's now - its bodies were C's own spelling (unexpandable Rust) until
+/// status 3.328 and 3.333 ported them from this unit's copies, and the unit's copies are gone.
 
 const _: () = assert! (std::mem::size_of::<font_metrics> () == 10);
 
@@ -200,9 +166,6 @@ const _: () = assert! (std::mem::offset_of! (font_driver_list, next) == 16);
 
 
 /// C: font.h 553-554: `#define XSETFONT(a, b) XSETPSEUDOVECTOR (a, b, PVEC_FONT)`.
-macro_rules! XSETFONT {
-  ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_FONT) };
-}
 
 
 

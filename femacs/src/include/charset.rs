@@ -586,29 +586,29 @@ macro_rules! CHARSET_FAST_MAP_SET {
 
 /* True if CHARSET may contain the character C.  */
 // charset.h 519-529: `CHAR_CHARSET_P`.
-macro_rules! CHAR_CHARSET_P {
-  ($c:expr, $charset:expr) => {
-    {
-      let charset: *mut charset = $charset;
-      let c: c_int = $c;
-      ((ASCII_CHAR_P (c as isize) && (*charset).bits & CHARSET_ASCII_COMPATIBLE_P != 0)
-       || (if (*charset).bits & CHARSET_UNIFIED_P != 0
-	      || (*charset).method == CHARSET_METHOD_SUBSET
-	      || (*charset).method == CHARSET_METHOD_SUPERSET
-	     { encode_char (charset, c) != (*charset).invalid_code }
-	   else if CHARSET_FAST_MAP_REF! (c, (*charset).fast_map.as_ptr ()) != 0
-	     { if (*charset).method == CHARSET_METHOD_OFFSET
-		 { c >= (*charset).min_char && c <= (*charset).max_char }
-	       else if (*charset).method == CHARSET_METHOD_MAP
-		       && (*charset).bits & CHARSET_COMPACT_CODES_P != 0
-		       && CHAR_TABLE_P (CHARSET_ENCODER! (charset))
-		 { ! NILP (CHAR_TABLE_REF (CHARSET_ENCODER! (charset), c as isize)) }
-	       else
-		 { encode_char (charset, c) != (*charset).invalid_code } }
-	   else { false }))
-    }
-  };
-}
+  macro_rules! CHAR_CHARSET_P {
+    ($c:expr, $charset:expr) => {
+      {
+	let charset: *mut charset = $charset;
+	let c: c_int = $c;
+	((ASCII_CHAR_P (c as isize) && (*charset).bits & CHARSET_ASCII_COMPATIBLE_P != 0)
+	 || (if (*charset).bits & CHARSET_UNIFIED_P != 0
+		|| (*charset).method == CHARSET_METHOD_SUBSET
+		|| (*charset).method == CHARSET_METHOD_SUPERSET
+	       { encode_char (charset, c) != (*charset).invalid_code }
+	     else if CHARSET_FAST_MAP_REF! (c, (*charset).fast_map.as_ptr ())
+	       { if (*charset).method == CHARSET_METHOD_OFFSET
+		   { c >= (*charset).min_char && c <= (*charset).max_char }
+		 else if (*charset).method == CHARSET_METHOD_MAP
+			 && (*charset).bits & CHARSET_COMPACT_CODES_P != 0
+			 && CHAR_TABLE_P (CHARSET_ENCODER! (charset))
+		   { ! NILP (CHAR_TABLE_REF (CHARSET_ENCODER! (charset), c as isize)) }
+		 else
+		   { encode_char (charset, c) != (*charset).invalid_code } }
+	     else { false }))
+      }
+    };
+  }
 
 /* Special macros for emacs-mule encoding.  */
 

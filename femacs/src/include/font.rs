@@ -184,13 +184,16 @@ pub fn FONT_OBJECT_P (x: Lisp_Object) -> bool
 
 /* C 193-201: `FONT_WEIGHT_NUMERIC`/`FONT_WIDTH_NUMERIC`/`FONT_SLANT_NUMERIC`.  */
 macro_rules! FONT_WEIGHT_NUMERIC {
-  ($font:expr) => { (FIXNUMP (AREF ($font, FONT_WEIGHT_INDEX)) ? (XFIXNUM (AREF ($font, FONT_WEIGHT_INDEX)) >> 8) : -1) };
+  ($font:expr) =>
+    { if FIXNUMP (AREF ($font, FONT_WEIGHT_INDEX as isize)) { XFIXNUM (AREF ($font, FONT_WEIGHT_INDEX as isize)) >> 8 } else { -1 } };
 }
 macro_rules! FONT_WIDTH_NUMERIC {
-  ($font:expr) => { (FIXNUMP (AREF ($font, FONT_WIDTH_INDEX)) ? (XFIXNUM (AREF ($font, FONT_WIDTH_INDEX)) >> 8) : -1) };
+  ($font:expr) =>
+    { if FIXNUMP (AREF ($font, FONT_WIDTH_INDEX as isize)) { XFIXNUM (AREF ($font, FONT_WIDTH_INDEX as isize)) >> 8 } else { -1 } };
 }
 macro_rules! FONT_SLANT_NUMERIC {
-  ($font:expr) => { (FIXNUMP (AREF ($font, FONT_SLANT_INDEX)) ? (XFIXNUM (AREF ($font, FONT_SLANT_INDEX)) >> 8) : -1) };
+  ($font:expr) =>
+    { if FIXNUMP (AREF ($font, FONT_SLANT_INDEX as isize)) { XFIXNUM (AREF ($font, FONT_SLANT_INDEX as isize)) >> 8 } else { -1 } };
 }
 
 /* C 205-217: the `*_SYMBOLIC` and `*_FOR_FACE` queries.  */
@@ -214,7 +217,8 @@ macro_rules! FONT_WIDTH_NAME_NUMERIC {
 
 /* C 236: `FONT_SET_STYLE (font, prop, val)`.  */
 macro_rules! FONT_SET_STYLE {
-  ($font:expr, $prop:expr, $val:expr) => { ASET ($font, $prop, make_fixnum (font_style_to_value ($prop, $val, true))) };
+  ($font:expr, $prop:expr, $val:expr) =>
+    { ASET ($font, $prop as isize, make_fixnum (font_style_to_value ($prop, $val, true) as EMACS_INT)) };
 }
 
 /* C 244-246: the metrics accessors (`#define FONT_HEIGHT(f) ((f)->height)` and friends).
@@ -241,7 +245,9 @@ pub const FONT_SPACING_MONO: c_int = 100;
 pub const FONT_SPACING_CHARCELL: c_int = 110;
 
 /* C 552: `XSETFONT (a, b)`.  */
-macro_rules! XSETFONT { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR ($a, $b, PVEC_FONT) }; }
+macro_rules! XSETFONT {
+  ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_FONT) };
+}
 
 /* C 563: `PT_PER_INCH` - the TeXbook value, which is the live arm (`HAVE_ANDROID` is undef);
    C 566-570's 160.00 arm is dead and recorded in the ledger.  */
@@ -253,14 +259,12 @@ macro_rules! PIXEL_TO_POINT { ($pixel:expr, $dpi:expr) => { (($pixel) * PT_PER_I
 
 /* C 1004-1011: the two logging macros.  */
 macro_rules! FONT_ADD_LOG {
-  ($action:expr, $arg:expr, $result:expr) => {
-    do { if (! EQ (Vfont_log, Qt)) font_add_log ($action, $arg, $result); } while (false)
-  };
+  ($action:expr, $arg:expr, $result:expr) =>
+    { if ! EQ (Vfont_log, Qt ()) { font_add_log ($action, $arg, $result); } };
 }
 macro_rules! FONT_DEFERRED_LOG {
-  ($action:expr, $arg:expr, $result:expr) => {
-    do { if (! EQ (Vfont_log, Qt)) font_deferred_log ($action, $arg, $result); } while (false)
-  };
+  ($action:expr, $arg:expr, $result:expr) =>
+    { if ! EQ (Vfont_log, Qt ()) { font_deferred_log ($action, $arg, $result); } };
 }
 
 /* font.h 249-256: `struct font_spec` - C 251-255's `union vectorlike_header header;
