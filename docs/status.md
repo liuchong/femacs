@@ -3847,3 +3847,28 @@
   3.181 的 `stdbit.in.rs` 规则逐项裁决——其中能"被镜像修好"的唯一 unit 是在飞的 `keyboard.rs`，要等它落地。
   同一份报告里还留了一条观察：`src/font.rs` 689 把 `decode_window_system_frame` 声明成返回 `*mut frame`，
   而本 target 的 `WINDOW_SYSTEM_RETURN` 是 `_Noreturn`，那里应为 `-> !`（未改，只报）。
+
+- **3.211 `src/frame.h` 的 ownership 裁决：镜像收下 enum，三件 inline 留在各自单元（2026-10-04）**：
+  ① **裁决的依据与做法**：这一件有 14 条 `--check` 行。`enum internal_border_part` 与九个枚举值此前**两边都有**
+  （`src/frame.rs` 351-362、`src/keyboard.rs` 6155-6166，两处注释自己写着"镜像没有它"），镜像再放一份就是 `E0428`
+  ⇒ 按 3.181 的 `stdbit.in.rs` 规则**镜像当 owner、单元副本退休**，本轮就把两份副本删掉（类型与九个常量随
+  `include/frame.rs` 进入每个包含者）。**实测**：`build-tu src/frame.c` → built、`build-tu src/keyboard.c` → built，
+  间接读这个枚举的三个 unit（`src/term.c`/`src/dispnew.c`/`src/xfaces.c`）也都 built。
+  ② **lane 要的两条共享行由我加**（本来就是集成者的活）：`docs/ports/excluded-macros.txt` 的 `WINDOW_SYSTEM_RETURN`
+  （kind=syntax，C 1471 的 `_Noreturn ATTRIBUTE_COLD struct frame *`，`AVOID` 先例，端口写 `-> !`）与
+  `docs/ports/macro-body-notes.tsv` 的 `FRAME_MOUSE_UPDATE` 的 `false`（C 1411-1423 的 `do { … } while (false)`，
+  `FD_SET`/`FD_CLR` 同类）；`FOR_EACH_FRAME` 的框也顺手勾上（它早已满足，是旧框）。加完这两条，`--check` **14 → 3**。
+  ③ **剩下三条不是漏，是裁决**：`FRAME_FACE_CACHE`/`FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL` 都是 C 会**粘贴进每个
+  包含者**的文本，所以"inline 定义"的 1:1 形式就是**每个单元一份**——实测 `macro_rules! FRAME_FACE_CACHE` 在
+  `src/alloc.rs` 3467、`src/font.rs` 545、`src/xfaces.rs` 445、`src/xdisp.rs` 1101、`src/window.rs` 920，`fn` 形式在
+  `src/term.rs` 364-377 等处；镜像里再放一份就是那些单元的 `E0659`/`E0428`（lane 的实测仍在：`build-tu src/frame.c`
+  10 条 `E0428` + `E0659: WINDOW_FRAME is ambiguous`）。**闭合的前置条件**写进台账
+  `docs/ports/include-frame.md`：先要有一个共享的家放 `struct face_cache`/`struct face`——它们是 `dispextern.h` 的，
+  而那件正是 A 组在飞单元；它带上这两个类型之后，这里的 `frame.face_cache` 才能定型、镜像才能按 C 的 body 收下这三件、
+  单元的副本才能退休（与本轮处理 enum 是同一个动作）。台账同时记了一条工具事实：`cinventory` 把 enum 成员折进类型视图，
+  而 `--check` 按常量数，所以这九个名字在清单里**没有行**，裁决段就是它们的记录。
+  ④ **本轮换来的一条实测教训**：**单元文件的注释里不要写 include 指令的字面拼法**——`xtask` 的 dedupe 会把它当指令、
+  整行替换掉，第一版注释因此让 `build-tu src/frame.c` 报 `error: prefix \`mirror\` is unknown`
+  （生成物 `build/femacs/units/frame/_root.rs` 352）。注释现在只写镜像的路径。
+  ⑤ 读数：`gen-port-inventory` **590 files、done=577、wip=10、todo=3**（`frame.h` 仍是 WIP，但只剩三条**已记录**的行）；
+  门：`check-mirror-dupes` 1 duplicate/1 ratchet/0、`check-declarations` 13/0。
