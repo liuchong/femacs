@@ -3782,3 +3782,20 @@
   **剩下的 5 件 todo**：`lib/cdefs.h`(900)、`lib/signal.in.h`(536)、`lib/stdcountof.in.h`(124)、
   `lib/sys_select.in.h`(342)、`src/xterm.h`(2,045)（`src/w32term.h` 已被 Poincare lane 落盘、转 wip）。
   门：`check-declarations` 13/0、`check-mirror-dupes` 1 duplicate/1 ratchet/0、`check-target-names` 621/593/0。
+
+- **3.208 `lib/sys_select.in.h` 落地：`pselect` 的 SYS 臂活，而 `select` 根本不在这次构建里（2026-10-04）**：
+  ① 同一套判据（见 3.207）：**生成头**决定每一支——`build/emacs-ref/lib/sys/select.h`（36,552 字节），
+  `diff <(sed 's/@GUARD_PREFIX@/GL/g' emacs/lib/sys_select.in.h) build/emacs-ref/lib/sys/select.h` 逐条给出替换值；
+  `check-cond-eval.py lib/sys_select.in.h` 给 `40 conditions, 18 unknown, 29 disagreements [NOT VERIFIED]`
+  ⇒ 盲读（P-51/P-66），每个 `#if` 两支都带。
+  ② 三条结构性读数（生成头行号）：`@HAVE_SYS_SELECT_H@`=1（33/42/77）配 `@HAVE_WINSOCK2_H@`=0（661、696 两个 `#if 0`）
+  ⇒ C 154-174 的 `suseconds_t` typedef、**`rpl_fd_isset` 函数**（body 逐 token 转写）与 `FD_ISSET` 覆盖、
+  以及 C 176-254 的 18 个 `*_used_without_including_*` 改名全死（挂 `windowsnt`）；`@GNULIB_PSELECT@`=1 /
+  `@REPLACE_PSELECT@`=0 / `@HAVE_PSELECT@`=1（777/778/790）⇒ **SYS 臂活、`pselect` 不改名**；
+  **`@GNULIB_SELECT@`=0（813 读 `#if 0`）**⇒ `select` 模块**不在这棵构建里**，C 292-317 的每一支都是死的
+  （`rpl_select` 改名、SYS 别名、`select_used_without_requesting_gnulib_module_select`），名字只好从死臂承载。
+  ③ 系统半边仍是 `sys_select.rs`（C 39/51/60/88 的 `#include_next`），另加 `sys_types.in.rs`（C 75）与
+  C 103-105 的 `<signal.h>`（**活的**：实测 `!((__GLIBC__ || __CYGWIN__ || __KLIBC__) && !__UCLIBC__)` 为真）。
+  ④ 读数：`gen-port-inventory` **590 files、done=576、wip=10、todo=4**（由 575/10/5 推进一格；
+  剩 `lib/cdefs.h`(900)、`lib/signal.in.h`(536)、`lib/stdcountof.in.h`(124)、`src/xterm.h`(2,045)）；
+  门：`check-declarations` 13/0、`check-mirror-dupes` 1 duplicate/1 ratchet/0、`check-target-names` 622/593/0。
