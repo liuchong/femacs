@@ -1105,6 +1105,18 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a ledger ticks a function no ported file carries"),
         Err(e) => return fail(e),
     }
+    // A P-86 file's ledger records C line ranges instead of ticked boxes (its checklist is empty),
+    // and the table is prose unless something reads it (status 3.372).
+    println!("== dead-file coverage ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-dead-file-coverage.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("dead-file coverage: every range table accounts for its reference"),
+        Ok(_) => return fail("a P-86 ledger's C range table has a gap or a malformed row"),
+        Err(e) => return fail(e),
+    }
     println!("== workspace check ==");
     match Command::new("cargo")
         .env("CARGO_TARGET_DIR", "../build/cargo")
