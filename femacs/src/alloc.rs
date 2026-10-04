@@ -3428,15 +3428,6 @@ macro_rules! PSEUDOVEC_STRUCT {
    `valid_font_driver`, carry the frozen clang's offsets.  Reported as a mirror gap in
    docs/ports/alloc.md.  */
 
-#[repr(C)]
-pub struct font_driver
-{
-  _pad0: [u8; 64],
-  pub close_font: Option<unsafe extern "C" fn (*mut font)>,
-  _pad1: [u8; 136],
-}
-const _: () = assert! (std::mem::offset_of! (font_driver, close_font) == 64);
-const _: () = assert! (std::mem::size_of::<font_driver> () == 208);
 
 #[repr(C)]
 pub struct face

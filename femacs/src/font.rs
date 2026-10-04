@@ -200,63 +200,6 @@ const _: () = assert! (std::mem::offset_of! (font_entity, props) == 8);
    comes from `include/font.rs` now (docs/ports/include-font.md); the records the mirror
    still lacks (`struct font_driver`, `struct font_driver_list`, the accessors) stay here.  */
 
-/// C: font.h 589-821: `struct font_driver`.  The members C guards with `HAVE_WINDOW_SYSTEM`
-/// (`draw`, `get_bitmap`, `free_bitmap`) and `HAVE_HARFBUZZ` (`begin_hb_font`,
-/// `end_hb_font`) are absent from the frozen layout and carried under the feature naming
-/// the condition's other side (P-51).  Measured: `sizeof` 208, `type`@0,
-/// `case_sensitive`@8, `get_cache`@16, `list`@24, `match`@32, `list_family`@40,
-/// `free_entity`@48, `open_font`@56, `close_font`@64, `prepare_face`@72, `done_face`@80,
-/// `has_char`@88, `encode_char`@96, `text_extents`@104, `anchor_point`@112,
-/// `otf_capability`@120, `otf_drive`@128, `start_for_frame`@136, `end_for_frame`@144,
-/// `shape`@152, `check`@160, `get_variation_glyphs`@168, `filter_properties`@176,
-/// `cached_font_ok`@184, `combining_capability`@192, `drop_xrender_surfaces`@200.
-#[repr(C)]
-pub struct font_driver
-{
-  pub r#type: Lisp_Object,
-  pub case_sensitive: bool,
-  pub get_cache: Option<unsafe extern "C" fn (*mut frame) -> Lisp_Object>,
-  pub list: Option<unsafe extern "C" fn (*mut frame, Lisp_Object) -> Lisp_Object>,
-  pub r#match: Option<unsafe extern "C" fn (*mut frame, Lisp_Object) -> Lisp_Object>,
-  pub list_family: Option<unsafe extern "C" fn (*mut frame) -> Lisp_Object>,
-  pub free_entity: Option<unsafe extern "C" fn (Lisp_Object)>,
-  pub open_font: Option<unsafe extern "C" fn (*mut frame, Lisp_Object, c_int) -> Lisp_Object>,
-  pub close_font: Option<unsafe extern "C" fn (*mut font)>,
-  pub prepare_face: Option<unsafe extern "C" fn (*mut frame, *mut face)>,
-  pub done_face: Option<unsafe extern "C" fn (*mut frame, *mut face)>,
-  pub has_char: Option<unsafe extern "C" fn (Lisp_Object, c_int) -> c_int>,
-  pub encode_char: Option<unsafe extern "C" fn (*mut font, c_int) -> c_uint>,
-  pub text_extents: Option<unsafe extern "C" fn (*mut font, *const c_uint, c_int,
-                                                  *mut font_metrics)>,
-  #[cfg(feature = "have_window_system")]
-  pub draw: Option<unsafe extern "C" fn (*mut glyph_string, c_int, c_int, c_int, c_int,
-                                         bool) -> c_int>,
-  #[cfg(feature = "have_window_system")]
-  pub get_bitmap: Option<unsafe extern "C" fn (*mut font, c_uint, *mut font_bitmap,
-                                               c_int) -> c_int>,
-  #[cfg(feature = "have_window_system")]
-  pub free_bitmap: Option<unsafe extern "C" fn (*mut font, *mut font_bitmap)>,
-  pub anchor_point: Option<unsafe extern "C" fn (*mut font, c_uint, c_int, *mut c_int,
-                                                 *mut c_int) -> c_int>,
-  pub otf_capability: Option<unsafe extern "C" fn (*mut font) -> Lisp_Object>,
-  pub otf_drive: Option<unsafe extern "C" fn (*mut font, Lisp_Object, Lisp_Object, c_int,
-                                              c_int, Lisp_Object, c_int, bool) -> c_int>,
-  pub start_for_frame: Option<unsafe extern "C" fn (*mut frame) -> c_int>,
-  pub end_for_frame: Option<unsafe extern "C" fn (*mut frame) -> c_int>,
-  pub shape: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object) -> Lisp_Object>,
-  pub check: Option<unsafe extern "C" fn (*mut frame, *mut font) -> c_int>,
-  pub get_variation_glyphs: Option<unsafe extern "C" fn (*mut font, c_int,
-                                                         *mut c_uint) -> c_int>,
-  pub filter_properties: Option<unsafe extern "C" fn (Lisp_Object, Lisp_Object)>,
-  pub cached_font_ok: Option<unsafe extern "C" fn (*mut frame, Lisp_Object, Lisp_Object)
-                                                 -> bool>,
-  pub combining_capability: Option<unsafe extern "C" fn (*mut font) -> Lisp_Object>,
-  pub drop_xrender_surfaces: Option<unsafe extern "C" fn (*mut frame)>,
-  #[cfg(feature = "harfbuzz")]
-  pub begin_hb_font: Option<unsafe extern "C" fn (*mut font, *mut c_double) -> *mut c_void>,
-  #[cfg(feature = "harfbuzz")]
-  pub end_hb_font: Option<unsafe extern "C" fn (*mut font, *mut c_void)>,
-}
 
 const _: () = assert! (std::mem::size_of::<font_driver> () == 208);
 const _: () = assert! (std::mem::offset_of! (font_driver, case_sensitive) == 8);
@@ -265,15 +208,6 @@ const _: () = assert! (std::mem::offset_of! (font_driver, text_extents) == 104);
 const _: () = assert! (std::mem::offset_of! (font_driver, anchor_point) == 112);
 const _: () = assert! (std::mem::offset_of! (font_driver, drop_xrender_surfaces) == 200);
 
-/// C: font.h 828-837: `struct font_driver_list`.  Measured: `sizeof` 24, `on`@0,
-/// `driver`@8, `next`@16.
-#[repr(C)]
-pub struct font_driver_list
-{
-  pub on: bool,
-  pub driver: *const font_driver,
-  pub next: *mut font_driver_list,
-}
 
 const _: () = assert! (std::mem::size_of::<font_driver_list> () == 24);
 const _: () = assert! (std::mem::offset_of! (font_driver_list, driver) == 8);
@@ -4667,7 +4601,7 @@ pub unsafe extern "C" fn font_prepare_for_face (f: *mut frame, face: *mut face)
     {
       let prepare_face = (*((*(*face).font).driver as *const font_driver)).prepare_face;
       if let Some (p) = prepare_face
-	{ p (f, face); }
+	{ p (f, face as *mut c_void); }
     }
 }
 
@@ -4681,7 +4615,7 @@ pub unsafe extern "C" fn font_done_for_face (f: *mut frame, face: *mut face)
     {
       let done_face = (*((*(*face).font).driver as *const font_driver)).done_face;
       if let Some (d) = done_face
-	{ d (f, face); }
+	{ d (f, face as *mut c_void); }
     }
 }
 

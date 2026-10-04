@@ -6,24 +6,24 @@
 ## Functions defined — 20
 - [x] FONTP  (line 435)
 - [x] FONT_SPEC_P  (line 442)
-- [ ] GC_FONT_SPEC_P  (line 449)
+- [x] GC_FONT_SPEC_P  (line 449)
 - [x] FONT_ENTITY_P  (line 456)
-- [ ] GC_FONT_ENTITY_P  (line 463)
+- [x] GC_FONT_ENTITY_P  (line 463)
 - [x] FONT_OBJECT_P  (line 470)
-- [ ] GC_FONT_OBJECT_P  (line 477)
-- [ ] CHECK_FONT  (line 485)
-- [ ] CHECK_FONT_SPEC  (line 491)
-- [ ] CHECK_FONT_ENTITY  (line 497)
-- [ ] CHECK_FONT_OBJECT  (line 503)
-- [ ] XFONT_SPEC  (line 511)
-- [ ] GC_XFONT_SPEC  (line 518)
-- [ ] XFONT_ENTITY  (line 525)
-- [ ] GC_XFONT_ENTITY  (line 532)
-- [ ] XFONT_OBJECT  (line 539)
-- [ ] GC_XFONT_OBJECT  (line 546)
-- [ ] CHECK_FONT_GET_OBJECT  (line 555)
-- [ ] valid_font_driver  (line 902)
-- [ ] font_data_structures_may_be_ill_formed  (line 1021)
+- [x] GC_FONT_OBJECT_P  (line 477)
+- [x] CHECK_FONT  (line 485)
+- [x] CHECK_FONT_SPEC  (line 491)
+- [x] CHECK_FONT_ENTITY  (line 497)
+- [x] CHECK_FONT_OBJECT  (line 503)
+- [x] XFONT_SPEC  (line 511)
+- [x] GC_XFONT_SPEC  (line 518)
+- [x] XFONT_ENTITY  (line 525)
+- [x] GC_XFONT_ENTITY  (line 532)
+- [x] XFONT_OBJECT  (line 539)
+- [x] GC_XFONT_OBJECT  (line 546)
+- [x] CHECK_FONT_GET_OBJECT  (line 555)
+- [x] valid_font_driver  (line 902)
+- [x] font_data_structures_may_be_ill_formed  (line 1021)
 
 ## Macros defined — 28
 - [x] EMACS_FONT_H  (line 23, body da39a3ee5e6b)
@@ -146,3 +146,49 @@
   haikufont_info` line is unchanged, and the type that blocked that record — this one — now
   exists, so the remaining reason is only that `haikufont_info` itself is not written in that
   mirror (the Haiku lane's file, whose ledger box is still unchecked).
+
+## Decisions (font_driver round)
+
+- **`struct font_driver` (C 589-821) and `struct font_driver_list` (C 824-837) moved into this
+  mirror from `femacs/src/font.rs`**, which carried them at the use site; the unit's copies are
+  retired (PORTING.md P-26, the 3.181/3.211/3.220 ownership rule), and `femacs/src/alloc.rs`'s
+  own `font_driver` stand-in was retired for the same reason (`build-tu src/alloc.c` was the
+  check that found it).  Layout, measured with the probe this ledger records: `struct
+  font_driver` sizeof 208, align 8, `type`@0 `get_cache`@16 `list`@24 `match`@32
+  `close_font`@64 `text_extents`@104 `otf_capability`@120 `shape`@152 `check`@160
+  `cached_font_ok`@184 `combining_capability`@192; `struct font_driver_list` sizeof 24, align 8,
+  on@0 driver@8 next@16.  The `HAVE_WINDOW_SYSTEM` members (`draw`, `get_bitmap`, `free_bitmap`,
+  C 682-698) are absent from the frozen layout and carried under
+  `#[cfg (feature = "have_window_system")]` (P-51, the status 3.220 shape).
+
+- **Why `font_driver_list` could not move before `font_driver`** - the "unit copy vs mirror copy"
+  ruling again (status 3.220's `face`/`face_cache` case).  With the record in the mirror and its
+  `driver` member spelled `*const c_void` (P-72 (3)), the *unit*'s own code stopped compiling:
+
+      error[E0609]: no field `filter_properties` on type `std::ffi::c_void`
+          if (*((*driver_list).driver)).filter_properties.is_some ()
+      error[E0609]: no field `r#type` on type `std::ffi::c_void`
+          && (NILP (ftype) || EQ ((*((*driver_list).driver)).r#type, ftype))
+
+  So the mirror needed the **typed** `font_driver` first, and this round provides it: the
+  `driver` member is `*const font_driver` now, exactly as C writes it.
+
+- **Two members keep P-72 (3)'s untyped pointer, and for a measured reason.**  `prepare_face`
+  and `done_face` take `struct face *`, and `struct face` lives in `include/dispextern.rs`
+  under `#[cfg (feature = "dispextern_face_records")]` (status 3.220), so the *layout probe*
+  (which compiles font.rs without that feature) has no `face` type and every unit that includes
+  font.rs without the dispextern arm failed:
+
+      error[E0425]: cannot find type `face` in this scope
+          pub prepare_face: Option<unsafe extern "C" fn (*mut frame, *mut face)>,
+      note: found an item that was configured out
+
+  They are therefore `*mut c_void` with their `/// C:` prototype lines (the `buffer`/
+  `face_cache.f` precedent in this file), and the unit's two call sites pass the pointer with a
+  cast (`p (f, face as *mut c_void)`), which is C's own pointer with the port's spelling.
+
+- **State after this round**: the ledger's 55 boxes are all ticked, `--check` is `OK` with **no
+  deferred line** (the six records the deferral was hiding - `font_spec`, `font_entity`,
+  `font_metrics`, `font_bitmap`, `font_driver`, `font_driver_list` - are all in the mirror now),
+  and the five units that include this header build (`src/font.c`, `src/keyboard.c`,
+  `src/alloc.c`, `src/xfaces.c`, `src/dispnew.c`).
