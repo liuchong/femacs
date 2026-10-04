@@ -5338,3 +5338,7 @@
   ③ **顺手一条事实更正**：`window.rs` 的注释里引过一个**参照里根本不存在**的标识符 `SELECT_MINI_WINDOW_FLAG`（`rg` 全树 0 命中；成员名是 `select_mini_window_flag`，frame.h 536），已从注释里删掉。
   ④ **入库前我自己复核**：`check-citations` exit 0 / 0 drift / 0 stale（见 ①）；`build-tu src/{dispnew,frame,keyboard,window}.c` **4/4 built**；`swiftc -parse-as-library -c` 对 `nsfont.swift`/`macfont.swift` **0 error**。
   ⑤ **一条提交时的取舍**：`femacs/src/include/dispextern.rs` 的工作树里**混着 xterm lane 在飞的 +20 行**（`Emacs_Rectangle` 两臂拆分 + `xlib.rs` 引入），所以这个提交**只挑走 Boyle 那一处引文改动**（`git apply --cached` 单 hunk，2 行），Ohm 的在飞行**原样留在工作树**——这是"只提交本次明确处理的文件"在**同一文件内**的落法。
+- **3.339 引文门的两个口径分开记：**工作树** 0 drift / 0 stale，**HEAD** 28 drift / 1 stale——差额全部是**未入库的在飞改动**（2026-10-05）**：
+  ① **HEAD worktree 读数**（同 3.334 的方法）：`668 file(s) scanned, **28 drift**, 0 range, 402 external, 32 allowed, **1 stale**`。差额逐条对得上：**`abi_shim.rs` 的 20 条**（Turing 的在飞文件，它已修好但未入库）+ **`nsterm.swift` 的 8 条**（Ramanujan 的在飞文件）= 28；那 **1 条 stale** 是本轮搬到 `include/dispextern.rs:587` 的允许行——**HEAD 上那个 587 还不存在**（Ohm 的 +20 行在飞），所以它在 HEAD 上匹配不到 finding。
+  ② **结论**：3.338 的"全绿"是**工作树**读数；要 HEAD 也全绿，需要**Turing 的 `abi_shim` 批与 Ohm 的 `Emacs_Rectangle` 两臂**入库（这两件入库后这条门应读 0/0/0，届时我复跑并把 HEAD 读数写进那一条的 status）。
+  ③ 这条与 3.315②/3.323② 是同一类口径（工作树 vs HEAD）：**在飞 lane 造成的红不算 HEAD 的红，但也绝不能把工作树的绿当成 HEAD 的绿**——两个数都要写下来。
