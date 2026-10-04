@@ -4212,3 +4212,10 @@
   ⑤ 读数（本轮末）：`check-swift-units` **0 new / 0 stale / 7 Swift unit(s) landed**（4 个文件的行数全部与树一致）；
   `check-declarations` 13/0；`check-verbatim` 6 trees/4607 files/0；`layout-check passed`；
   `extract-abi --all` 587 done / 3 in progress / 0 failing。
+
+- **3.231 补记（同轮修）**：上一条 ② 说"`swift-units.tsv` 少了本轮的四条 nsterm 行"——**这条在 `d6e3d3f` 里没落地**：
+  我算了 tsvA/tsvB 两个版本，却只把 tsvA 写回工作树（tsvB 只存在于内存里做断言），于是 `d6e3d3f` 只提了 3 个文件，
+  仓库里那 4 行仍在（干净检出上会报 4 条 `stale`）。**本补记的提交把它修掉**：删掉
+  `append2`/`hold_event`/`ns_finish_events`/`ns_init_events` 四行，`check-swift-units` 回到 **0 new / 0 stale / 7 units**。
+  教训与 3.229 的竞态同源：**"我算出来的版本"不等于"工作树里的版本"**——凡是对生成文件做"减法"，写完必须
+  在同一分钟里用门（或 `rg -c`）复核工作树，再 `git add`。

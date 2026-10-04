@@ -31,7 +31,6 @@ femacs/platform/macos/nsfns.swift	unwind_create_tip_frame	src/nsfns.m
 femacs/platform/macos/nsfns.swift	x_hide_tip	src/nsfns.m
 femacs/platform/macos/nsfont.swift	ns_dump_glyphstring	src/nsfont.m
 femacs/platform/macos/nsfont.swift	nsfont_draw	src/nsfont.m
-femacs/platform/macos/nsterm.swift	append2	src/nsterm.m
 femacs/platform/macos/nsterm.swift	cancel_ns_deferred_UAZoomChangeFocus_timer	src/nsterm.m
 femacs/platform/macos/nsterm.swift	check_native_fs	src/nsterm.m
 femacs/platform/macos/nsterm.swift	compute_offset	src/nsterm.m
@@ -39,7 +38,6 @@ femacs/platform/macos/nsterm.swift	constrain_frame_rect	src/nsterm.m
 femacs/platform/macos/nsterm.swift	frame_set_mouse_pixel_position	src/nsterm.m
 femacs/platform/macos/nsterm.swift	get_keysym_name	src/nsterm.m
 femacs/platform/macos/nsterm.swift	hide_bell	src/nsterm.m
-femacs/platform/macos/nsterm.swift	hold_event	src/nsterm.m
 femacs/platform/macos/nsterm.swift	mark_nsterm	src/nsterm.m
 femacs/platform/macos/nsterm.swift	nil_or_none	src/nsterm.m
 femacs/platform/macos/nsterm.swift	not_in_argv	src/nsterm.m
@@ -85,7 +83,6 @@ femacs/platform/macos/nsterm.swift	ns_draw_window_divider	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_dumpglyphs_box_or_relief	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_dumpglyphs_image	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_fill_underline	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_finish_events	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_flush_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_focus_frame	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
@@ -104,7 +101,6 @@ femacs/platform/macos/nsterm.swift	ns_iconify_frame	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area_1	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area_2	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_init_events	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_init_locale	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_init_pool	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_initialize_display_info	src/nsterm.m
