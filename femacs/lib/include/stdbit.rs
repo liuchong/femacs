@@ -1,8 +1,13 @@
 // femacs: mirror of the frozen target's <stdbit.h> (C23; gnulib header, P-26).
 //
-// The frozen configuration has HAVE_STDBIT_H = 1, so this is gnulib's stdbit.in.h with
-// `configure`'s substitutions applied: the `_GL_STDBIT_HAS_BUILTIN_CLZ/CTZ/POPCOUNT`
-// branches are the live ones (this target's compiler has __builtin_clz/ctz/popcount), so
+// The frozen configuration has HAVE_STDBIT_H **undefined** (`build/emacs-ref/src/config.h`
+// 1433 `/* #undef HAVE_STDBIT_H */`, `docs/baseline/config/darwin-arm64.macros.tsv` 1556
+// `HAVE_STDBIT_H<TAB>undef`), so the system has no C23 `<stdbit.h>` and gnulib generates its
+// own from `stdbit.in.h` with `configure`'s substitutions applied
+// (`build/emacs-ref/lib/stdbit.h`, 2,230 lines - the judge `include-stdbit.in.md` uses): the
+// `_GL_STDBIT_HAS_BUILTIN_CLZ/CTZ/POPCOUNT` branches are the live ones (this target's compiler
+// *does* have __builtin_clz/ctz/popcount - that is a fact about clang, not about the system
+// header), so
 // the `_gl_stdbit_*` helpers the macro arms call are Rust's leading_zeros,
 // trailing_zeros and count_ones.  The three generic macros the ported files use are
 // mirrored whole - each is C's dispatcher on `sizeof (n)`, and the narrow variants
