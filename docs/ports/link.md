@@ -61,7 +61,7 @@ Two caveats, both measured rather than assumed:
   structural rather than a typo: gnulib amalgamates sources with `#include`, and this port splits
   them into one unit per **file**.  `ar t build/emacs-ref/lib/libgnu.a` names `mini-gmp-gnulib.o`,
   and `nm -g build/femacs/mini-gmp-gnulib.o` shows no `mpz_*` at all - those live in
-  `build/femacs/mini-gmp.o` (`nm -g … | grep -c ' T _mpz_'` = 60), which is a *separate* unit here
+  `build/femacs/mini-gmp.o` (`nm -g build/femacs/mini-gmp.o | grep -c ' T _mpz_'` = **127**), which is a *separate* unit here
   because `lib/mini-gmp.c` is its own port file.  So the link set for this port is not simply
   "the archive members mapped by stem": it must also add the units whose sources the amalgamating
   member `#include`s.  Until that rule is written down, the `port-owed` count is a lead rather
