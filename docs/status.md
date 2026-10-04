@@ -6424,3 +6424,12 @@
   ⑥ **未声称**：只有**编译级**证据——无链接、无 JNI 调用、无设备、无真实 Android 构建；本单元正文的读数来自
      臂触达预检（另一档），两条 `cfg!` 臂**类型检查过、未执行**；`android_api_le_11/30` 现在才进 manifest，
      真翻这两条门是下一轮的事。
+
+- **3.386 行数棘轮收口：92 文件 / 243,405 行、0 stale（2026-10-05）**：
+  ① 本批（3.382/3.383/3.385）三件退出 `<10%` 棘轮（`src/frame.c`、`src/decompress.c`、`src/lcms.c`、
+     `src/androidselect.c` —— 后三件是同一天落地的整文件），`python3 tools/check-port-lines.py --write-pending`
+     把三行 stale 收掉：**`wrote docs/baseline/port-lines-pending.tsv: 92 file(s), 243,405 reference line(s)`**。
+  ② 复读：`92 file(s) under ten percent, 243,405 reference line(s); 92 ratchet row(s), **0 new, 0 stale**`
+     （入口是 95 文件 / 245,578 行 ⇒ 净 −3 文件 / −2,173 行）。
+  ③ **未声称**：这只说明这批文件的端口行数越过了阈值，不构成它们"落完"的证据——那由各自台账的
+     `## C line ranges` + `check-dead-file-coverage.py`（0 failure）与编译/翻臂读数承担。
