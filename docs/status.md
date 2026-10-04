@@ -5811,3 +5811,22 @@
      lane **照录两遍**未"修正"——符合 1:1 口径，我保留。
   ⑤ **未声称**：冻结配置没有 `HAVE_NS`/`NS_IMPL_COCOA`，这 5 个函数**一行都没运行过**——box/relief 几何、CG stipple 绘制、
      指针遍历全是"照录"不是"验证"；指针比较里 Swift 需要的 `g != nil && end != nil` 守卫已在台账记为 reshape。
+
+- **3.360 四棘轮在 `7015961` 复算：Swift 那对按预期动（−5 / +36），两本 link 反而**长**了 10 行——如实记（2026-10-05）**：
+  ① **顺序照旧**：3.357（xdisp 第 25 轮）、3.359（nsterm 第 18 片）先各自入库，`tools/reconcile-link-ratchets.sh`
+     随后在 HEAD 的 worktree 里做 fresh 生成 + `--strict` 后置条件，两本 link 的 `--strict` 都过。
+  ② **读数（四本表与四个门，本轮实跑）**：`check-link --strict` **384/384/0**、`check-link --executable --strict`
+     **94/94/0**、`check-swift-units` **0 new / 0 stale**、`check-swift-imports` **`1062 import(s) in 7 Swift file(s),
+     5733 core export(s), 721 unprovided, 721 ratchet row(s), 0 failure(s)`**。
+  ③ **两本 link 从 374/84 长到 384/94（+10 / +10）**，这是本轮最值得写下来的一条：`redisplay_window` 那 1,290 行
+     **退休了 `_redisplay_window`**（它现在被定义了），但同时**新引用**了 10 个还没人定义的名字——
+     `display_string`/`display_mode_lines`/`display_menu_bar`/`compute_line_metrics`/`make_window_start_visible`/
+     `scroll_conservatively`/`scroll_minibuffer_conservatively`/`try_window_id`/`try_window_reusing_current_matrix`
+     （本单元**后面的片**）与 `row_containing_pos`（同单元 C 22472，棘轮行写的理由就是 **"the definition is owed"**）。
+     ⇒ **"更接近第一次真链接"这句话本轮不能说**：逐字转写让**引用**比**定义**长得快，pending 清单就是这笔账；
+     真正回答"离真链接多远"的是 `tools/link-probe.py` 那条独立口径（最近一次读数 73，见 3.353 的同类说明）。
+  ④ **Swift 那对按预期**：`swift-units.tsv` **−5 行**（nsterm 第 18 片刚落地的 5 个同名 Swift `func`，门报的 stale 全走），
+     `swift-import-pending.txt` **685 → 721 行（+36）**，正是 lane 登记的 36 个新名字（5 `reference-source` + 31
+     `unclassified`）；`unprovided` 增加是**登记欠账**，不是"已提供"。
+  ⑤ **未声称**：`--strict` 的绿只说明"四本棘轮与 HEAD 的对象/文本精确相等"；两本 link 的**增长本身**是欠账的增加，
+     不是进度指标；Swift 仍是编译级（无运行时）。

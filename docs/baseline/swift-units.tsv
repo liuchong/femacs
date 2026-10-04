@@ -25,15 +25,12 @@ femacs/platform/macos/nsterm.swift	ns_delete_terminal	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_display_pixel_height	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_display_pixel_width	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_displays_reconfigured	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_draw_box	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_composite_glyph_string_foreground	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_glyph_string	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_glyph_string_foreground	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_glyphless_glyph_string_foreground	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_image_relief	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_draw_relief	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_draw_stretch_glyph_string	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_dumpglyphs_box_or_relief	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_dumpglyphs_image	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_flush_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
@@ -43,7 +40,6 @@ femacs/platform/macos/nsterm.swift	ns_in_echo_area_1	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area_2	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_initialize_display_info	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_judge_scroll_bars	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_maybe_dumpglyphs_background	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_new_font	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_read_socket	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_read_socket_1	src/nsterm.m
@@ -56,7 +52,6 @@ femacs/platform/macos/nsterm.swift	ns_send_appdefined	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_glyph_string_gc	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_horizontal_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_vertical_scroll_bar	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_setup_relief_colors	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_string_to_lispmod	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_init	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_term_shutdown	src/nsterm.m
