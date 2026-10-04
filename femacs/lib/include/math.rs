@@ -11,6 +11,8 @@
 // system headers that still need mirrors.
 
 pub const HUGE_VAL: c_double = c_double::INFINITY;
+/// C: math.h 751: `#define M_PI        3.14159265358979323846264338327950288   /* pi             */`
+pub const M_PI: c_double = 3.14159265358979323846264338327950288;
 /// FP_ILOGB0 is INT_MIN on this target (floatfns.c's HAIKU block is the only user).
 pub const FP_ILOGB0: c_int = -2147483648;
 
@@ -43,6 +45,8 @@ pub mod math_decls {
   pub fn asin (x: c_double) -> c_double;
   pub fn atan (x: c_double) -> c_double;
   pub fn atan2 (y: c_double, x: c_double) -> c_double;
+  /// C: math.h 455: `extern double cbrt(double);`
+  pub fn cbrt (x: c_double) -> c_double;
   pub fn cos (x: c_double) -> c_double;
   pub fn sin (x: c_double) -> c_double;
   pub fn tan (x: c_double) -> c_double;
@@ -50,6 +54,8 @@ pub mod math_decls {
   pub fn floor (x: c_double) -> c_double;
   pub fn fmod (x: c_double, y: c_double) -> c_double;
   pub fn frexp (x: c_double, e: *mut c_int) -> c_double;
+  /// C: math.h 459: `extern double hypot(double, double);`
+  pub fn hypot (x: c_double, y: c_double) -> c_double;
   pub fn ldexp (x: c_double, e: c_int) -> c_double;
   pub fn exp (x: c_double) -> c_double;
   pub fn pow (x: c_double, y: c_double) -> c_double;

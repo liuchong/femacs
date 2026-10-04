@@ -6337,3 +6337,31 @@
   ⑤ **未声称**：这是**文本级 + 冻结读数**——不声称该臂编译过（本机无 X11/NS/PGTK/W32/Haiku 头，按 P-86 ③⑵
      记 text-only），不声称 C 5921-6970 已落，不声称该臂一旦打开能编过（`want_fullscreen` 等镜像缺口会让它
      在第一处访问器失败）。lane 如实记了预算超支：`build-tu` 5 发（配额 3），5 发读数完全相同（413,320 字节）。
+
+- **3.383 P-86 的外部件第一批：`decompress.c` 与 `lcms.c` 两个整文件落地（2026-10-05）**：
+  ① **两个整文件**：`femacs/src/decompress.rs` **627 行**（C 349）、`femacs/src/lcms.rs` **895 行**（C 604）；
+     台账 `docs/ports/decompress.md` **242 行**（13 行区间表覆盖 C 1-349）、`docs/ports/lcms.md` **266 行**
+     （33 行区间表覆盖 C 1-604）。两本台账都**显式记下 P-08 → P-86 的推翻**（旧版写的是"整身死 ⇒ 空单元"）。
+     两件的 `WINDOWSNT` 延迟加载臂也照录（`DEF_DLL_FN`/`LOAD_DLL_FN`），门 `all(have_*, windowsnt)`。
+  ② **读数（我自己复跑过冻结与翻臂两条）**：冻结档 `build-tu` 两件都 **built / 336 字节空对象**（未回退）；
+     翻臂 `xtask probe … --cfg 'feature="have_zlib"'` → **exit 0 / 3,744 字节对象**，
+     `--cfg 'feature="have_lcms2"'` → **exit 0 / 13,112 字节对象**（错误分类：单元文本 0、镜像副本 0）。
+     即这两个文件第一次真的被类型检查 + 代码生成，而冻结配置里它们仍是一行都没编进去的死文本。
+     `check-cond-eval`：decompress `6 conditions, 0 unknown, 0 disagreements [VERIFIED]`、lcms `10 … [VERIFIED]`。
+     `check-dead-file-coverage` **5 ledger(s) bound, 0 failure(s)**；`check-mirror-dupes` **18/18/0**。
+  ③ **外部头的声明形状按 P-88 落**（本轮刚立的规则）：`<zlib.h>`/`<lcms2.h>` 的类型/常量/原型写在**单元内部**，
+     每条带 `/// C:` 引文，布局是 **clang 探针量的**（`z_stream` 112 字节 + 全字段偏移；`cmsCIELab`/`cmsCIEXYZ`/
+     `cmsJCh`/`cmsCIExyY` 各 24、`cmsViewingConditions` 56、四个 `*_SURROUND` = 1..4；源码与输出都抄进台账
+     Evidence）。没有新建 `femacs/src/include/` 下的文件。
+  ④ **集成者这一轮的动作（我能证的）**：⑴ 把 lcms.rs 里三处**使用点声明**（`M_PI` math.h 751、`cbrt` 455、
+     `hypot` 459）**搬进共享镜像 `femacs/lib/include/math.rs`** 并删掉单元内副本（P-26 的单一声明点；
+     `check-mirror-dupes` 复读 18/18/0），搬完重跑冻结 `build-tu`（仍 336 字节）与翻臂
+     （仍 exit 0 / **13,112 字节**，对象字节数不变 ⇒ 镜像确实供上了这三个名字）。
+     ⑵ `docs/ports/line-drift-tolerance.tsv` 的 `decompress`（0.99 → **0.80 / total**）与 `lcms`
+     （0.99 → **0.49 / total**）两行改为按**整文件**行数计。
+     ⑶ `check-port-lines.py` 的棘轮从 **95 文件 / 245,578 行** 降到 **92 文件 / 243,405 行**（两件退出该棘轮，
+     第三条 stale 是别的 lane 的），`--write-pending` 收口归集成者（本批末尾做）。
+  ⑤ **仍未解决（点名）**：⑴ `extract-abi --check` 对两件仍报 **6 行（decompress）/ 17 行（lcms）**
+     —— 与 3.382 的 17 行同一个根因（判据只看活行子集），已开工单（3.384）。⑵ `windowsnt` 臂：本机无 mingw，
+     `text-only`。⑶ `have_native_comp` 子臂只到"裸 `--cfg` 会被 P-51 的配置常量断言挡住"，要 `xtask dead-arms` 那一档。
+     ⑷ 两件的外部头布局读数**没有**进 `xtask layout-check` 基线（段在单元内），故无机器断言防漂移。
