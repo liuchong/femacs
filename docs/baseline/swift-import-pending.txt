@@ -25,7 +25,7 @@ DRAW_CURSOR	the reference's own C text declares or defines it (a header macro/IN
 ENCODE_MENU_STRING	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 EQ	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 EVENT_INIT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-EmacsImage_allocInitFromFile	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+EmacsImage_allocInitFromFile	provided by another Swift unit, not by the core (see docs/reviews/2026-10-04-swift-import-rulings.md)
 FIXNUMP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 FONT_ADD_LOG	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 FONT_ADSTYLE_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -87,8 +87,8 @@ FULLSCREEN_HEIGHT	the reference's own C text declares or defines it (a header ma
 FULLSCREEN_MAXIMIZED	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 FULLSCREEN_NONE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 FULLSCREEN_WIDTH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-GSFontEnumerator_availableFontDescriptors	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-GSFontEnumerator_sharedEnumerator	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+GSFontEnumerator_availableFontDescriptors	provided by the platform SDK, not by the core (see docs/reviews/2026-10-04-swift-import-rulings.md)
+GSFontEnumerator_sharedEnumerator	provided by the platform SDK, not by the core (see docs/reviews/2026-10-04-swift-import-rulings.md)
 HASH_KEY	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 HASH_TABLE_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 HASH_TABLE_SIZE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -128,7 +128,7 @@ MENU_ITEMS_PANE_PREFIX	the reference's own C text declares or defines it (a head
 MENU_KEYMAPS	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 MINI_WINDOW_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 NILP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-NSColor_colorWithUnsignedLong	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+NSColor_colorWithUnsignedLong	provided by another Swift unit, not by the core (see docs/reviews/2026-10-04-swift-import-rulings.md)
 NS_FACE_BACKGROUND	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 NS_FACE_FOREGROUND	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 PSEUDOVECTOR_AREA_BITS	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -261,7 +261,7 @@ XWINDOW	the reference's own C text declares or defines it (a header macro/INLINE
 aref_addr	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 beginDrag	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 block_input	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-buffer_filename	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+buffer_filename	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 build_string	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 build_unibyte_string	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 colorWithUnsignedLong	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -270,44 +270,44 @@ current_buffer	the reference's own C text declares or defines it (a header macro
 digest_single_submenu	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 down_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 dumped_with_pdumper_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-face_set_background	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+face_set_background	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 fast_c_string_match_ignore_case	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 fast_string_match	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 find_and_return_menu_selection	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 font_build_object	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 fprintf	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
 fputs	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
-frame_explicit_name	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_icon_name	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_left_pos	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_menu_bar_items_used	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_menu_bar_vector	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_n_tool_bar_items	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_explicit_name	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_icon_name	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_left_pos	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_menu_bar_items_used	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_menu_bar_vector	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_n_tool_bar_items	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 frame_name	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-frame_param_alist	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_selected_window	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_background_pixel	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_border_width	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_child_frame_border_width	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_double_buffered	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_explicit_name	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_external_menu_bar	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_external_tool_bar	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_foreground_pixel	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_internal_border_width	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_menu_bar_items_used	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_menu_bar_lines	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_output_method	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_tab_bar_height	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_tab_bar_lines	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_tab_bar_resized	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_wants_modeline	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_tab_bar_redisplayed	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_tab_bar_resized	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_tab_bar_window	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_title	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_tool_bar_items	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_top_pos	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_param_alist	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_selected_window	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_background_pixel	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_border_width	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_child_frame_border_width	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_double_buffered	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_explicit_name	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_external_menu_bar	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_external_tool_bar	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_foreground_pixel	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_internal_border_width	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_menu_bar_items_used	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_menu_bar_lines	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_output_method	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_tab_bar_height	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_tab_bar_lines	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_tab_bar_resized	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_set_wants_modeline	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_tab_bar_redisplayed	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_tab_bar_resized	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_tab_bar_window	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_title	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_tool_bar_items	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+frame_top_pos	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 free_menubar_widget_value_tree	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 fset_icon_name	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 fset_menu_bar_items	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -342,8 +342,8 @@ gui_update_cursor	the reference's own C text declares or defines it (a header ma
 hash_unused_entry_key_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 hyper_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 image_find_image_file	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-image_load_failed_p	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-image_pixmap	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+image_load_failed_p	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+image_pixmap	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 intern	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 lookup_image	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 make_fixnum	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -360,33 +360,33 @@ ns_control_modifier	the reference's own C text declares or defines it (a header 
 ns_free_frame_resources	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_function_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_lisp_to_color	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-ns_output_background_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_cursor_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_display_info	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_explicit_parent	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_foreground_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_icon_left	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_icon_top	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_in_animation	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_miniimage	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_parent_desc	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_background_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_current_pointer	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_cursor_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_cursor_kind	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_explicit_parent	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_foreground_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_icon_left	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_icon_top	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_in_animation	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_miniimage	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_parent_desc	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_text_cursor	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_view	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_set_window_desc	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_text_cursor	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_view	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-ns_output_window_desc	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_background_color	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_cursor_color	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_display_info	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_explicit_parent	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_foreground_color	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_icon_left	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_icon_top	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_in_animation	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_miniimage	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_parent_desc	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_background_color	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_current_pointer	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_cursor_color	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_cursor_kind	spelled wrong on the Swift side - see docs/reviews/2026-10-04-swift-import-rulings.md
+ns_output_set_explicit_parent	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_foreground_color	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_icon_left	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_icon_top	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_in_animation	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_miniimage	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_parent_desc	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_text_cursor	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_view	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_set_window_desc	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_text_cursor	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_view	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_output_window_desc	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 ns_right_alternate_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_right_command_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_right_control_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -412,11 +412,11 @@ setFSValue	the reference's own C text declares or defines it (a header macro/INL
 setMiniwindowImage	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 set_frame_cursor_types	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 set_hash_value_slot	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-set_waiting_for_input_flag	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+set_waiting_for_input_flag	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 shift_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 svcsMenu	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-terminal_display_info_ns	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-terminal_id	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+terminal_display_info_ns	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+terminal_id	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 terminal_type	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 timespec_valid_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 unsignedLong	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -424,9 +424,14 @@ up_modifier	the reference's own C text declares or defines it (a header macro/IN
 update_submenu_strings	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 valid_image_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 waiting_for_input	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-window_contents	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-window_current_matrix	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+window_contents	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+window_current_matrix	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 window_system_available	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 word_size	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 xmint_pointer	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 xvector_contents	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_PARENT_FRAME	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+WINDOW_TO_FRAME_PIXEL_Y	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+ns_auto_hide_menu_bar	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
+glyph_row_visible_height	the core must export this C-ABI entry (a record accessor the lane names in Rust; not yet classified - see the rulings doc's method)
+glyph_row_y	the core must export this C-ABI entry (a record accessor the lane names in Rust; not yet classified - see the rulings doc's method)

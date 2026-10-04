@@ -4369,3 +4369,31 @@
   `lib/include/c-ctype`(19) + `stdlib.in`(1) + 五条小镜像尾巴（frame 3 / widgetprv 3 / emacsgtkfixed 2 / w32 1 / w32gui 1）
   → font lane（它刚把 `comp.c` 量穿）；`include-dispextern` 最后 1 条 → 原 lane；**`nsfns` 的 80 条暂时无人**
   ——它原 lane 已被关闭，而 agent 线程上限（6）挡住了 resume/spawn，等有槽我再把它接上（或由我本人在集成间隙推）。
+
+- **3.238 一条回归的完整闭环、`dispextern.h` 收口、以及 Swift 导入棘轮的 70 条裁定落地（2026-10-04）**：
+  ① **回归与修法（`6e975c2`）**：`25115c1` 把 `struct font_driver` 搬进 `include/font.rs` 时，12 个成员写成 `*mut frame`，
+  而 `struct frame` 在 `include/frame.rs` 里——**正常构建**下就有 4 个单元编不过（`callint`/`coding`/`marker`/`json`，C 的这四个 .c
+  也都不 include frame.h），`dead-arms` 也在 `callint` 上红。修法按 P-72 ③（C 只需要不完整类型：指针不带类型 + `/// C:` 原文行），
+  12 个成员改 `*mut c_void`、`font.rs` 15 处调用点加转换、`composite.rs` 为 `driver->encode_char` 自带的那份 byte-padded
+  `font_driver` 前缀退休（镜像 owns 了，第二份是 `E0428`）。**验收**：**28 个 include font 镜像的单元全部 built**（不是抽查五个）、
+  `layout-check passed`、`dead-arms` 回到 **exit 0 / `337 translation unit(s) compiled with the non-frozen arms`**。
+  **教训（比上一轮更锋利）**："镜像改动必须能让每个消费者编过"的验证动作是**枚举全部 include 者逐个编**，
+  而不是编 lane 顺手点名的几个——这次是 lane 在 `dead-arms` 上撞见才暴露的，我上一轮的验证太窄。
+  ② **`dispextern.h` 收口（`a295cb5`）**：最后 15 个名字进同一模块；5 个记录挂 `dispextern_face_records`（3.220 的同一裁决，
+  unit 的带类型副本保持活的）：`bidi_it` 2328/8（32 偏移）、`draw_fringe_bitmap_params` 64/8（13）、`composition_it` 88/8（14）、
+  `iterator_stack_entry` 304/8（20，C 把它定义在 `it` 内部、Rust 不能嵌套定义记录，所以提到 `it` 之前）、`it` **4968/8（94 偏移）**
+  与匿名联合的三条臂 —— 合计 **180 条实测偏移断言**。判据：`--check dispextern.h` **15 → 0（OK）**、台账未勾 **53 → 1**
+  （只剩 `NativeRectangle`，它的 deferral 行 3.224 就写在 `excluded-macros.txt`）、`--all` 不再把它算 in progress；
+  臂本身被手工编过（按 `xtask` 的展开规则从 `femacs/` 目录展开 + `--cfg feature="dispextern_face_records"` → exit 0、
+  `records probe ok`、180 条断言在场；同一展开从仓库根编会因别的镜像的 `c_variadic` 失败——这是探针 cwd 的问题，已记台账）。
+  **仍然开着的缺口（我的文件）**：`xtask dead_arms()` 只翻它那 6 行 `FLIPS`，所以**这条 feature 臂没有任何门在编**；
+  要给它一条真 config 常量的 `FLIPS` 行（或让循环跳过空 key）——下一轮做。
+  ③ **Swift 导入棘轮的 70 条裁定落地**：那条 lane 把逐条取证写成了 `docs/reviews/2026-10-04-swift-import-rulings.md`
+  （70 行表格；裁定计数 **1 → 65**（核心必须以该名字导出）、**2 → 2**（别的 Swift 单元提供）、**3 → 2**（平台符号）、
+  **4 → 1**（Swift 侧拼错）），我据此把 `docs/baseline/swift-import-pending.txt` 的 reason 列**逐条改写**，
+  并补上 nsterm 第 4 轮在飞带出的 5 条新名字（`FRAME_PARENT_FRAME`、`WINDOW_TO_FRAME_PIXEL_Y`、`ns_auto_hide_menu_bar`、
+  `glyph_row_visible_height`、`glyph_row_y`）⇒ `check-swift-imports.py` → **545 imports / 5531 core exports /
+  432 unprovided / 432 ratchet rows / 0 failures**。
+  ④ 读数（本轮末）：全树台账 **13553 勾 / 570 未勾**（未勾集中在 `nsterm` 333、`xdisp` 143、`nsfns` 80，其余是 3 条以下的小尾巴）；
+  `extract-abi --all` 589 done / 1 in progress（`src/xdisp.c`）/ 0 failing；`dead-arms` 337 单元 exit 0；
+  `check-declarations` 13/0、`check-undef` 108 pending/0 new、`check-verbatim` 6/4607/0、`check-mirror-dupes` 1/1/0。
