@@ -2435,3 +2435,21 @@
   但它与 `android-asset.rs` 是一对（后者要对前者取 `JNIEnv` 的函数表），**等后者落地一起验、一起提交**，
   避免只进一半造成"半影子"状态。
   ④ **`haikuterm.rs` 仍不提交**：台账那 1 个未勾（`struct haikufont_info` 的字段行）还在，属 lane 手上。
+
+- **3.151 量了"缺类型"检测的噪音：先别做朴素版，先把 tag↔typedef 别名的对应补上（2026-10-04）**：
+  3.149 记下了一条门的边界——`--check` 的字段比较只遍历 *Rust 侧*已有的容器，所以"C 有、镜像完全没有"的 struct
+  不会被报（`haikufont_info` 是活例子）。本轮**先量了朴素版会报多少**，方法是把 514 对（C 文件 ↔ 它的镜像）里
+  两边都存在、且 C 侧有容器的 **192 对**逐对比：C 的容器名（`cinventory.struct_fields`）是否有同名的
+  Rust `pub struct/union/enum/type`。
+  **结果：344 个容器"没有同名 Rust 类型"**——如果直接拿它当门，就是 344 条噪音。抽样分类（证据在下面）：
+  - **主因是命名约定，不是缺口**：C 的 `typedef struct X { … } Y;` 在工具里容器名是 **tag** `X`，而端口按
+    typedef 名写 Rust（`lib-src/etags.c` 275 的 `typedef struct node_st { … } node;` → 镜像是
+    `pub struct node`；`lib-src/etags.c` 249 的匿名 `typedef struct { … } compressor;` → 镜像
+    `pub struct compressor`，而 C 侧容器名是 `<anon@245>`）。这两类在朴素检查里必然"缺"。
+  - **少数是真的缺**（要逐个回查才会知道）：例如 `lib-src/asset-directory-tool.c` 60 的
+    `struct directory_tree`，镜像 `femacs/lib-src/asset-directory-tool.rs` 里**搜不到**这个名字。
+  **设计（下一步照这个做）**：① `cinventory.struct_fields` 在遇到 `} NAME;` 时把那个 typedef 别名也记进
+  记录（tag 与别名并存）；② 比较时"C 的 tag 或别名"命中"Rust 的 struct 名或 `pub type` 别名"即算在场；
+  ③ 再跑一次全表，把残留按"真缺 / P-55 的 `*mut c_void` + `/// C:` 记账 / P-70 替身"逐个归类，
+  真缺的才开成 lane 的工作项。**不先做这一步就不加门**——3.143/3.146 的教训是"纳入了就要能修完"，
+  而 344 条里绝大多数是约定而非缺陷。
