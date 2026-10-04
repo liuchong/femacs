@@ -236,7 +236,7 @@
 - [x] redisplay_window_0  (line 18540, static)
 - [x] redisplay_window_1  (line 18548, static)
 - [x] update_redisplay_ticks  (line 18574)
-- [ ] set_cursor_from_row  (line 18631, static)
+- [x] set_cursor_from_row  (line 18631, static)
 - [ ] run_window_scroll_functions  (line 19264, static)
 - [ ] cursor_row_fully_visible_p  (line 19305, static)
 - [ ] try_scrolling  (line 19402, static)
@@ -432,28 +432,19 @@
 ### Progress (this lane is incremental)
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds C
-18237-18619** — the redisplay tail between `redisplay_internal` and `set_cursor_from_row`:
-`unwind_redisplay_preserve_echo_area`, `redisplay_preserve_echo_area`,
-`unwind_redisplay` and `unwind_display_working_on_window` (the unwind-protect callbacks),
-`mark_window_display_accurate_1` (the buffer/window "up to date" bookkeeping, C 18304-18398),
-`mark_window_display_accurate` (the recursive window-tree walk), `disp_char_vector`,
-`buffer_flip_blocked_depth` with `block_buffer_flips`/`unblock_buffer_flips`/
-`buffer_flipping_blocked_p`, `redisplay_windows`, the three `redisplay_window_*` condition-case
-functions, and `update_redisplay_ticks` with its function-local statics.  The covered range is
-now **C 468-18619**.  The next live definition is **C 18631 `set_cursor_from_row`** (637 C
-lines, the next round's whole work).  Ticked in the ledger above, bucket by bucket —
-**measured** with `grep -c '^- \[x\]'` over each section (`Subrs` 3/13, `Functions` 208/302,
-`Macros` 29/38, `Types and their fields` 2/2, `File-scope objects` 59/60) — **301 of the 415
-boxes** (208+3+29+2+59); the remaining 114 are untouched.  **The scaffold retires nine entries
-and gains one** (`redisplay_window`, C 1154/20475) — **measured**: the block goes from
-twenty-three `fn` entries to **fifteen**.  Five of the round's definitions are C statics whose
-*address* the port hands out (`unwind_redisplay_preserve_echo_area`, `unwind_redisplay`,
-`redisplay_window_error`, `redisplay_window_0`, `redisplay_window_1`) and are therefore
-`unsafe extern "C" fn` (deviation 152); `disp_char_vector` lives in a glob-imported module
-because `include/disptab.rs:67` declares it at its top level (deviation 153, item 49); and
-`update_redisplay_ticks`'s two function statics are an inline module inside its body, where C
-declares them (deviation 154).  **No new `docs/ports/macro-body-notes.tsv` row is owed this
-round** — `--check`'s only `does not mention` line is the previous round's recorded one.
+18630-19255 — `set_cursor_from_row`, 626 C lines, the whole of the row-to-cursor mapping.**  Its
+one label, `compute_x:` (C 19123), is a Rust labelled block: C's forward `goto compute_x`
+(C 19077) is the port's `break 'compute_x`, and the block's fall-through is C's own drop into
+the label.  The covered range is now **C 468-19255**.  The next live definition is **C 19264
+`run_window_scroll_functions`**.  Ticked in the ledger above, bucket by bucket — **measured**
+with `grep -c '^- \[x\]'` over each section (`Subrs` 3/13, `Functions` 209/302, `Macros`
+29/38, `Types and their fields` 2/2, `File-scope objects` 59/60) — **302 of the 415 boxes**
+(209+3+29+2+59); the remaining 113 are untouched.  **The scaffold retires `set_cursor_from_row`
+and gains `cursor_row_p`** (C 1130, called here and defined at C 25062) — **measured**: the
+block stays at **fifteen** entries.  C's `max`/`min` over glyph pointers became
+`std::cmp::max`/`min` (the dispnew.rs shape), which is also what keeps those two C tokens
+spelled; the only token the port cannot spell is `goto`, so **this round owes one
+`docs/ports/macro-body-notes.tsv` row** (item 53).
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -764,10 +755,22 @@ C 5773).
   `redisplay_window_0`/`redisplay_window_1` and `update_redisplay_ticks` (the tick
   accumulators and the "takes too long" `error`).  C 18307-18309 and C 18339-18383
   (`HAVE_TEXT_CONVERSION`) are recorded, not transcribed (deviation 157).
+* C 18630-19255 — `set_cursor_from_row`: the two edge-pointer scans that skip the glyphs with no
+  object at the row's start and end (with the reversed-row mirror image and the
+  `LAST_AREA` terminal-border guard), the two `Step 1` scans (forward and reversed) that hunt
+  for the glyph at point, record `pos_before`/`pos_after` alternatives, accumulate
+  `bpos_max`/`bpos_min`/`bpos_covered` and consult the `cursor` text property through
+  `Fget_char_property` and `string_buffer_position_lim`, the `Step 2` fallbacks
+  (`ends_in_ellipsis_p`'s backward scan, `match_with_avoid_cursor`, the `string_seen`
+  interval search with its `start`/`stop` ordering and the `compute_x` jump, the truncated
+  left/right and zero-width cases), the `compute_x:` block itself, and the final candidate
+  comparison against `w->cursor` (the `g1` glyph, `eabs` distance, the `cursor`-property
+  preference and the row-span tie-break) before `w->cursor.{hpos,x,vpos,y}` and the
+  `this_line_*` records are written.  No C `#if` inside the function is dead.
 
 ### The transcription that is in place
 
-The ledger above is the checklist.  208 of the C file's 302 functions (plus 3 of its 13
+The ledger above is the checklist.  209 of the C file's 302 functions (plus 3 of its 13
 subrs — the three the frozen configuration keeps live and this round's three) are defined, in
 C's order, with C's names, C's statements and
 C's comments; `src/xdisp.rs` is 17,557 lines.  Every function that C declares `static` is a
@@ -1831,6 +1834,30 @@ them).
      that retires the ledger's last-but-two file-scope-object box and one `--check` row
      (`missing file-scope object` 3 -> 2).
 
+### Deviations, continued (the round's twentieth pass: `set_cursor_from_row`)
+
+159. **`compute_x:` is a labelled block.**  C's `goto compute_x` (C 19077) is the port's
+     `break 'compute_x`, and the labelled block that carries the name opens at the
+     `if (!((…)) && !(…))` whose body holds the jump; the block's end is C's `compute_x:` site,
+     so the fall-through reaches the same code.  C's `return false` statements inside stay
+     `return false` (they leave the function, not the block).
+160. **`max`/`min` over glyph pointers are `std::cmp::max`/`min`** (C 18994/18995/18999/19000) —
+     the mirror's `max`/`min` take `isize`, and the dispnew.rs precedent writes the pointer
+     folds this way; it is also what keeps the two C tokens spelled (deviation 161 is only
+     `goto`).
+161. **The five `if`/`while` bodies that C leaves brace-less** are braced in the port
+     (C 18692/18708/18718's single-statement `while` bodies, and the two `if`s at C 18743 and
+     C 18835 whose body is a `while`), because Rust requires a block.  Two of them (C 18698,
+     C 19002) are `for` loops whose increment moves into the body's end — the standing shape.
+162. **Type spellings this round**: `MATRIX_ROW_USED!` yields `c_short`, so the `hpos`
+     comparison casts it to `c_int`; `MATRIX_ROW_VPOS!` yields `isize` (it is a pointer
+     difference), so `w->cursor.vpos` casts it; `eabs` is the mirror's macro, so both uses are
+     `eabs! (…)`; and the C ternary at C 19128-19130 (which glyph's `object` to test) is a
+     dereferencing `if`-expression: `STRINGP ((*(if … { A } else { B })).object)`.
+163. **`cursor_row_p` is a new scaffold entry** (C 1130 declares it, C 25062 defines it) and
+     `set_cursor_from_row`'s own forward declaration retires in the same round its definition
+     lands — measured: the block stays at fifteen entries.
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -2089,6 +2116,9 @@ them).
     lane owns that call site.
 52. **Scaffold shape**: nine entries retire and `redisplay_window` (C 1154/20475) is added —
     23 -> 15 entries.
+53. `docs/ports/macro-body-notes.tsv`: **this round owes one row** — `set_cursor_from_row` /
+    `goto` / `xdisp.c 19077: C's `goto compute_x` is the port's `break 'compute_x` out of the
+    `'compute_x` labelled block (a label has no Rust site; deviations 159-160)`.
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  The

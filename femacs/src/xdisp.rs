@@ -17838,6 +17838,643 @@ update_redisplay_ticks (ticks: c_int, mut w: *mut window)
       error (c"Window showing buffer %s takes too long to redisplay".as_ptr (), bufname);
     }
 }
+unsafe fn
+set_cursor_from_row (w: *mut window, row: *mut glyph_row,
+		     matrix: *mut glyph_matrix,
+		     delta: ptrdiff_t, delta_bytes: ptrdiff_t,
+		     dy: c_int, dvpos: c_int) -> bool
+{
+  let mut glyph: *mut glyph = (*row).glyphs[TEXT_AREA as usize];
+  let mut end: *mut glyph = glyph.offset ((*row).used[TEXT_AREA as usize] as isize);
+  let mut cursor: *mut glyph = core::ptr::null_mut ();
+  /* The last known character position in row.  */
+  let last_pos: ptrdiff_t = MATRIX_ROW_START_CHARPOS! (row) + delta;
+  let mut x: c_int = (*row).x;
+  let pt_old: ptrdiff_t = PT! () - delta;
+  let mut pos_before: ptrdiff_t = MATRIX_ROW_START_CHARPOS! (row) + delta;
+  let mut pos_after: ptrdiff_t = MATRIX_ROW_END_CHARPOS! (row) + delta;
+  let mut glyph_before: *mut glyph = glyph.offset (-1);
+  let mut glyph_after: *mut glyph = end;
+  /* A glyph beyond the edge of TEXT_AREA which we should never
+     touch.  */
+  let mut glyphs_end: *mut glyph = end;
+  /* True means we've found a match for cursor position, but that
+     glyph has the avoid_cursor_p flag set.  */
+  let mut match_with_avoid_cursor: bool = false;
+  /* True means we've seen at least one glyph that came from a
+     display string.  */
+  let mut string_seen: bool = false;
+  /* Largest and smallest buffer positions seen so far during scan of
+     glyph row.  */
+  let mut bpos_max: ptrdiff_t = pos_before;
+  let mut bpos_min: ptrdiff_t = pos_after;
+  /* Last buffer position covered by an overlay string with an integer
+     `cursor' property.  */
+  let mut bpos_covered: ptrdiff_t = 0;
+  /* True means the display string on which to display the cursor
+     comes from a text property, not from an overlay.  */
+  let mut string_from_text_prop: bool = false;
+
+  /* Don't even try doing anything if called for a mode-line or
+     header-line or tab-line row, since the rest of the code isn't
+     prepared to deal with such calamities.  */
+  eassert! (!glyph_row_bits! (mode_line_p, row));
+  if glyph_row_bits! (mode_line_p, row)
+    { return false; }
+
+  /* Skip over glyphs not having an object at the start and the end of
+     the row.  These are special glyphs like truncation marks on
+     terminal frames.  */
+  if MATRIX_ROW_DISPLAYS_TEXT_P! (row)
+    {
+      if !glyph_row_bits! (reversed_p, row)
+	{
+	  while glyph < end
+		 && NILP ((*glyph).object)
+		 && (*glyph).charpos < 0
+	    {
+	      x += (*glyph).pixel_width as c_int;
+	      glyph = glyph.offset (1);
+	    }
+	  while end > glyph
+		 && NILP ((*(end.offset (-1))).object)
+		 /* CHARPOS is zero for blanks and stretch glyphs
+		    inserted by extend_face_to_end_of_line.  */
+		 && (*(end.offset (-1))).charpos <= 0
+	    { end = end.offset (-1); }
+	  glyph_before = glyph.offset (-1);
+	  glyph_after = end;
+	}
+      else
+	{
+	  let mut g: *mut glyph;
+
+	  /* If the glyph row is reversed, we need to process it from back
+	     to front, so swap the edge pointers.  */
+	  glyphs_end = end.offset (-1);
+  end = end.offset (-1);
+	  glyph = glyph.offset ((*row).used[TEXT_AREA as usize] as isize - 1);
+
+	  while glyph > end.offset (1)
+		 && NILP ((*glyph).object)
+		 && (*glyph).charpos < 0
+	    { glyph = glyph.offset (-1); }
+	  if NILP ((*glyph).object) && (*glyph).charpos < 0
+	    { glyph = glyph.offset (-1); }
+	  /* By default, in reversed rows we put the cursor on the
+	     rightmost (first in the reading order) glyph.  */
+	  x = (*row).x;
+  g = end.offset (1);
+  while g < glyph
+	    { x += (*g).pixel_width as c_int; g = g.offset (1); }
+	  while end < glyph
+		 && NILP ((*(end.offset (1))).object)
+		 && (*(end.offset (1))).charpos <= 0
+	    { end = end.offset (1); }
+	  glyph_before = glyph.offset (1);
+	  glyph_after = end;
+	}
+    }
+  else if glyph_row_bits! (reversed_p, row)
+    {
+      /* In R2L rows that don't display text, put the cursor on the
+	 rightmost glyph.  Case in point: an empty last line that is
+	 part of an R2L paragraph.  */
+      cursor = end.offset (-1);
+      /* Avoid placing the cursor on the last glyph of the row, where
+	 on terminal frames we hold the vertical border between
+	 adjacent windows.  */
+      if !FRAME_WINDOW_P (WINDOW_XFRAME! (w))
+	  && !WINDOW_RIGHTMOST_P! (w)
+	  && cursor == (*row).glyphs[LAST_AREA as usize].offset (-1)
+	{ cursor = cursor.offset (-1); }
+      x = -1;	/* will be computed below, at label compute_x */
+    }
+
+  /* Step 1: Try to find the glyph whose character position
+     corresponds to point.  If that's not possible, find 2 glyphs
+     whose character positions are the closest to point, one before
+     point, the other after it.  */
+  if !glyph_row_bits! (reversed_p, row)
+    { while glyph < end
+	   && !NILP ((*glyph).object)
+	   /* glyph was not inserted by redisplay for internal purposes */
+      {
+	if BUFFERP ((*glyph).object)
+	  {
+	    let dpos: ptrdiff_t = (*glyph).charpos - pt_old;
+
+	    if (*glyph).charpos > bpos_max
+	      { bpos_max = (*glyph).charpos; }
+	    if (*glyph).charpos < bpos_min
+	      { bpos_min = (*glyph).charpos; }
+	    if !glyph_bits! (avoid_cursor_p, *glyph)
+	      {
+		/* If we hit point, we've found the glyph on which to
+		   display the cursor.  */
+		if dpos == 0
+		  {
+		    match_with_avoid_cursor = false;
+		    break;
+		  }
+		/* See if we've found a better approximation to
+		   POS_BEFORE or to POS_AFTER.  */
+		if 0 > dpos && dpos > pos_before - pt_old
+		  {
+		    pos_before = (*glyph).charpos;
+		    glyph_before = glyph;
+		  }
+		else if 0 < dpos && dpos < pos_after - pt_old
+		  {
+		    pos_after = (*glyph).charpos;
+		    glyph_after = glyph;
+		  }
+	      }
+	    else if dpos == 0
+	      { match_with_avoid_cursor = true; }
+	  }
+	else if STRINGP ((*glyph).object)
+		 && !glyph_bits! (avoid_cursor_p, *glyph)
+	  {
+	    let chprop: Lisp_Object;
+	    let glyph_pos: ptrdiff_t = (*glyph).charpos;
+
+	    chprop = Fget_char_property (make_fixnum (glyph_pos), Qcursor (),
+					 (*glyph).object);
+	    if !NILP (chprop)
+	      {
+		/* If the string came from a `display' text property,
+		   look up the buffer position of that property and
+		   use that position to update bpos_max, as if we
+		   actually saw such a position in one of the row's
+		   glyphs.  This helps with supporting integer values
+		   of `cursor' property on the display string in
+		   situations where most or all of the row's buffer
+		   text is completely covered by display properties,
+		   so that no glyph with valid buffer positions is
+		   ever seen in the row.  */
+		let prop_pos: ptrdiff_t =
+		  string_buffer_position_lim ((*glyph).object, pos_before,
+					      pos_after, false);
+
+		if prop_pos >= pos_before
+		  { bpos_max = prop_pos; }
+	      }
+	    if FIXNUMP (chprop)
+	      {
+		bpos_covered = bpos_max + XFIXNUM (chprop);
+		/* If the `cursor' property covers buffer positions up
+		   to and including point, we should display cursor on
+		   this glyph.  Note that, if a `cursor' property on one
+		   of the string's characters has an integer value, we
+		   will break out of the loop below _before_ we get to
+		   the position match above.  IOW, integer values of
+		   the `cursor' property override the "exact match for
+		   point" strategy of positioning the cursor.  */
+		/* Implementation note: bpos_max == pt_old when, e.g.,
+		   we are in an empty line, where bpos_max is set to
+		   MATRIX_ROW_START_CHARPOS, see above.  */
+		if bpos_max <= pt_old && bpos_covered >= pt_old
+		  {
+		    cursor = glyph;
+		    break;
+		  }
+	      }
+
+	    string_seen = true;
+	  }
+	x += (*glyph).pixel_width as c_int;
+	glyph = glyph.offset (1);
+      }
+  }
+  else if glyph > end	/* row is reversed */
+    { while !NILP ((*glyph).object)
+      {
+	if BUFFERP ((*glyph).object)
+	  {
+	    let dpos: ptrdiff_t = (*glyph).charpos - pt_old;
+
+	    if (*glyph).charpos > bpos_max
+	      { bpos_max = (*glyph).charpos; }
+	    if (*glyph).charpos < bpos_min
+	      { bpos_min = (*glyph).charpos; }
+	    if !glyph_bits! (avoid_cursor_p, *glyph)
+	      {
+		if dpos == 0
+		  {
+		    match_with_avoid_cursor = false;
+		    break;
+		  }
+		if 0 > dpos && dpos > pos_before - pt_old
+		  {
+		    pos_before = (*glyph).charpos;
+		    glyph_before = glyph;
+		  }
+		else if 0 < dpos && dpos < pos_after - pt_old
+		  {
+		    pos_after = (*glyph).charpos;
+		    glyph_after = glyph;
+		  }
+	      }
+	    else if dpos == 0
+	      { match_with_avoid_cursor = true; }
+	  }
+	else if STRINGP ((*glyph).object)
+	  {
+	    let chprop: Lisp_Object;
+	    let glyph_pos: ptrdiff_t = (*glyph).charpos;
+
+	    chprop = Fget_char_property (make_fixnum (glyph_pos), Qcursor (),
+					 (*glyph).object);
+	    if !NILP (chprop)
+	      {
+		let prop_pos: ptrdiff_t =
+		  string_buffer_position_lim ((*glyph).object, pos_before,
+					      pos_after, false);
+
+		if prop_pos >= pos_before
+		  { bpos_max = prop_pos; }
+	      }
+	    if FIXNUMP (chprop)
+	      {
+		bpos_covered = bpos_max + XFIXNUM (chprop);
+		/* If the `cursor' property covers buffer positions up
+		   to and including point, we should display cursor on
+		   this glyph.  */
+		if bpos_max <= pt_old && bpos_covered >= pt_old
+		  {
+		    cursor = glyph;
+		    break;
+		  }
+	      }
+	    string_seen = true;
+	  }
+	glyph = glyph.offset (-1);
+	if glyph == glyphs_end /* don't dereference outside TEXT_AREA */
+	  {
+	    x -= 1;		/* can't use any pixel_width */
+	    break;
+	  }
+	x -= (*glyph).pixel_width as c_int;
+    }
+  }
+
+  /* Step 2: If we didn't find an exact match for point, we need to
+     look for a proper place to put the cursor among glyphs between
+     GLYPH_BEFORE and GLYPH_AFTER.  */
+  'compute_x: {
+  if !((if glyph_row_bits! (reversed_p, row) { glyph > glyphs_end } else { glyph < glyphs_end })
+	&& BUFFERP ((*glyph).object) && (*glyph).charpos == pt_old)
+      && !(bpos_max <= pt_old && pt_old <= bpos_covered)
+    {
+      /* An empty line has a single glyph whose OBJECT is nil and
+	 whose CHARPOS is the position of a newline on that line.
+	 Note that on a TTY, there are more glyphs after that, which
+	 were produced by extend_face_to_end_of_line, but their
+	 CHARPOS is zero or negative.  */
+      let empty_line_p: bool =
+	((if glyph_row_bits! (reversed_p, row) { glyph > glyphs_end } else { glyph < glyphs_end })
+	 && NILP ((*glyph).object) && (*glyph).charpos > 0
+	 /* On a TTY, continued and truncated rows also have a glyph at
+	    their end whose OBJECT is nil and whose CHARPOS is
+	    positive (the continuation and truncation glyphs), but such
+	    rows are obviously not "empty".  */
+	 && !(glyph_row_bits! (continued_p, row) || glyph_row_bits! (truncated_on_right_p, row)));
+
+      if glyph_row_bits! (ends_in_ellipsis_p, row) && pos_after == last_pos
+	{
+	  let mut ellipsis_pos: ptrdiff_t;
+
+	  /* Scan back over the ellipsis glyphs.  */
+	  if !glyph_row_bits! (reversed_p, row)
+	    {
+	      ellipsis_pos = (*(glyph.offset (-1))).charpos;
+	      while glyph > (*row).glyphs[TEXT_AREA as usize]
+		     && (*(glyph.offset (-1))).charpos == ellipsis_pos
+		{ glyph = glyph.offset (-1); x -= (*glyph).pixel_width as c_int; }
+	      /* That loop always goes one position too far, including
+		 the glyph before the ellipsis.  So scan forward over
+		 that one.  */
+	      x += (*glyph).pixel_width as c_int;
+	      glyph = glyph.offset (1);
+	    }
+	  else	/* row is reversed */
+	    {
+	      ellipsis_pos = (*(glyph.offset (1))).charpos;
+	      while glyph < (*row).glyphs[TEXT_AREA as usize].offset ((*row).used[TEXT_AREA as usize] as isize - 1)
+		     && (*(glyph.offset (1))).charpos == ellipsis_pos
+		{ glyph = glyph.offset (1); x += (*glyph).pixel_width as c_int; }
+	      x -= (*glyph).pixel_width as c_int;
+	      glyph = glyph.offset (-1);
+	    }
+	}
+      else if match_with_avoid_cursor
+	{
+	  cursor = glyph_after;
+	  x = -1;
+	}
+      else if string_seen
+	{
+	  let incr: isize = if glyph_row_bits! (reversed_p, row) { -1 } else { 1 };
+
+	  /* Need to find the glyph that came out of a string which is
+	     present at point.  That glyph is somewhere between
+	     GLYPH_BEFORE and GLYPH_AFTER, and it came from a string
+	     positioned between POS_BEFORE and POS_AFTER in the
+	     buffer.  */
+	  let mut start: *mut glyph;
+  let mut stop: *mut glyph;
+	  let mut pos: ptrdiff_t = pos_before;
+
+	  x = -1;
+
+	  /* If the row ends in a newline from a display string,
+	     reordering could have moved the glyphs belonging to the
+	     string out of the [GLYPH_BEFORE..GLYPH_AFTER] range.  So
+	     in this case we extend the search to the last glyph in
+	     the row that was not inserted by redisplay.  */
+	  if glyph_row_bits! (ends_in_newline_from_string_p, row)
+	    {
+	      glyph_after = end;
+	      pos_after = MATRIX_ROW_END_CHARPOS! (row) + delta;
+	    }
+
+	  /* GLYPH_BEFORE and GLYPH_AFTER are the glyphs that
+	     correspond to POS_BEFORE and POS_AFTER, respectively.  We
+	     need START and STOP in the order that corresponds to the
+	     row's direction as given by its reversed_p flag.  If the
+	     directionality of characters between POS_BEFORE and
+	     POS_AFTER is the opposite of the row's base direction,
+	     these characters will have been reordered for display,
+	     and we need to reverse START and STOP.  */
+	  if !glyph_row_bits! (reversed_p, row)
+	    {
+	      start = std::cmp::min (glyph_before, glyph_after);
+	      stop = std::cmp::max (glyph_before, glyph_after);
+	    }
+	  else
+	    {
+	      start = std::cmp::max (glyph_before, glyph_after);
+	      stop = std::cmp::min (glyph_before, glyph_after);
+	    }
+	  glyph = start.offset (incr);
+	       while if glyph_row_bits! (reversed_p, row) { glyph > stop } else { glyph < stop }
+	    {
+
+	      /* Any glyphs that come from the buffer are here because
+		 of bidi reordering.  Skip them, and only pay
+		 attention to glyphs that came from some string.  */
+	      if STRINGP ((*glyph).object)
+		  && !glyph_bits! (avoid_cursor_p, *glyph)
+		{
+		  let str: Lisp_Object;
+		  let mut tem: ptrdiff_t;
+		  /* If the display property covers the newline, we
+		     need to search for it one position farther.  */
+		  let lim: ptrdiff_t = pos_after
+		    + (if pos_after == MATRIX_ROW_END_CHARPOS! (row) + delta { 1 } else { 0 });
+
+		  string_from_text_prop = false;
+		  str = (*glyph).object;
+		  tem = string_buffer_position_lim (str, pos, lim, false);
+		  if tem == 0	/* from overlay */
+		      || pos <= tem
+		    {
+		      /* If the string from which this glyph came is
+			 found in the buffer at point, or at position
+			 that is closer to point than pos_after, then
+			 we've found the glyph we've been looking for.
+			 If it comes from an overlay (tem == 0), and
+			 it has the `cursor' property on one of its
+			 glyphs, record that glyph as a candidate for
+			 displaying the cursor.  (As in the
+			 unidirectional version, we will display the
+			 cursor on the last candidate we find.)  */
+		      if tem == 0
+			  || tem == pt_old
+			  || (tem - pt_old > 0 && tem < pos_after)
+			{
+			  /* The glyphs from this string could have
+			     been reordered.  Find the one with the
+			     smallest string position.  Or there could
+			     be a character in the string with the
+			     `cursor' property, which means display
+			     cursor on that character's glyph.  */
+			  let mut strpos: ptrdiff_t = (*glyph).charpos;
+
+			  if tem != 0
+			    {
+			      cursor = glyph;
+			      string_from_text_prop = true;
+			    }
+			  while (if glyph_row_bits! (reversed_p, row) { glyph > stop } else { glyph < stop })
+			       && EQ ((*glyph).object, str)
+			    {
+			      let cprop: Lisp_Object;
+			      let gpos: ptrdiff_t = (*glyph).charpos;
+
+			      cprop = Fget_char_property (make_fixnum (gpos),
+							  Qcursor (),
+							  (*glyph).object);
+			      if !NILP (cprop)
+				{
+				  cursor = glyph;
+				  break;
+				}
+			      if tem != 0 && (*glyph).charpos < strpos
+				{
+				  strpos = (*glyph).charpos;
+				  cursor = glyph;
+				}
+			    glyph = glyph.offset (incr);
+			    }
+
+			  if tem == pt_old
+			      || (tem - pt_old > 0 && tem < pos_after)
+			    { break 'compute_x; }
+			}
+		      if tem != 0
+			{ pos = tem + 1; } /* don't find previous instances */
+		    }
+		  /* This string is not what we want; skip all of the
+		     glyphs that came from it.  */
+		  while (if glyph_row_bits! (reversed_p, row) { glyph > stop } else { glyph < stop })
+			 && EQ ((*glyph).object, str)
+		    { glyph = glyph.offset (incr); }
+		}
+	      else
+		{ glyph = glyph.offset (incr); }
+	    }
+
+	  /* If we reached the end of the line, and END was from a string,
+	     the cursor is not on this line.  */
+	  if cursor.is_null ()
+	      && (if glyph_row_bits! (reversed_p, row) { glyph <= end } else { glyph >= end })
+	      && (if glyph_row_bits! (reversed_p, row) { end > glyphs_end } else { end < glyphs_end })
+	      && STRINGP ((*end).object)
+	      && glyph_row_bits! (continued_p, row)
+	    { return false; }
+	}
+      /* A truncated row may not include PT among its character positions.
+	 Setting the cursor inside the scroll margin will trigger
+	 recalculation of hscroll in hscroll_window_tree.  But if a
+	 display string covers point, defer to the string-handling
+	 code below to figure this out.  */
+      else if glyph_row_bits! (truncated_on_left_p, row) && pt_old < bpos_min
+	{
+	  cursor = glyph_before;
+	  x = -1;
+	}
+      else if (glyph_row_bits! (truncated_on_right_p, row) && pt_old > bpos_max)
+	       /* Zero-width characters produce no glyphs.  */
+	       || (!empty_line_p
+		   && (if glyph_row_bits! (reversed_p, row)
+		       { glyph_after > glyphs_end }
+		       else { glyph_after < glyphs_end }))
+	{
+	  cursor = glyph_after;
+	  x = -1;
+	}
+    }
+  }
+
+ /* compute_x:  (C 19123 — the label has no Rust site; `break 'compute_x` above is
+     C's `goto compute_x`, and the fall-through out of the block lands here too.)  */
+  if !cursor.is_null ()
+    { glyph = cursor; }
+  else if glyph == glyphs_end
+	   && pos_before == pos_after
+	   && STRINGP ((*(if glyph_row_bits! (reversed_p, row)
+			{ (*row).glyphs[TEXT_AREA as usize].offset ((*row).used[TEXT_AREA as usize] as isize - 1) }
+			else { (*row).glyphs[TEXT_AREA as usize] })).object)
+    {
+      /* If all the glyphs of this row came from strings, put the
+	 cursor on the first glyph of the row.  This avoids having the
+	 cursor outside of the text area in this very rare and hard
+	 use case.  */
+      glyph =
+	if glyph_row_bits! (reversed_p, row)
+	{ (*row).glyphs[TEXT_AREA as usize].offset ((*row).used[TEXT_AREA as usize] as isize - 1) }
+	else { (*row).glyphs[TEXT_AREA as usize] };
+    }
+  if x < 0
+    {
+      let mut g: *mut glyph;
+
+      /* Need to compute x that corresponds to GLYPH.  */
+      g = (*row).glyphs[TEXT_AREA as usize];
+  x = (*row).x;
+  while g < glyph
+	{
+	  if g >= (*row).glyphs[TEXT_AREA as usize].offset ((*row).used[TEXT_AREA as usize] as isize)
+	    { emacs_abort (); }
+	  x += (*g).pixel_width as c_int;
+	g = g.offset (1);
+    }
+    }
+
+  /* ROW could be part of a continued line, which, under bidi
+     reordering, might have other rows whose start and end charpos
+     occlude point.  Only set w->cursor if we found a better
+     approximation to the cursor position than we have from previously
+     examined candidate rows belonging to the same continued line.  */
+  if /* We already have a candidate row.  */
+      (*w).cursor.vpos >= 0
+      /* That candidate is not the row we are processing.  */
+      && MATRIX_ROW! (matrix, (*w).cursor.vpos) != row
+      /* Make sure cursor.vpos specifies a row whose start and end
+	 charpos occlude point, and it is valid candidate for being a
+	 cursor-row.  This is because some callers of this function
+	 leave cursor.vpos at the row where the cursor was displayed
+	 during the last redisplay cycle.  */
+      && MATRIX_ROW_START_CHARPOS! (MATRIX_ROW! (matrix, (*w).cursor.vpos)) <= pt_old
+      && pt_old <= MATRIX_ROW_END_CHARPOS! (MATRIX_ROW! (matrix, (*w).cursor.vpos))
+      && cursor_row_p (MATRIX_ROW! (matrix, (*w).cursor.vpos))
+    {
+      let g1: *mut glyph
+	= MATRIX_ROW_GLYPH_START! (matrix, (*w).cursor.vpos).offset ((*w).cursor.hpos as isize);
+
+      /* Don't consider glyphs that are outside TEXT_AREA.  */
+      if !(if glyph_row_bits! (reversed_p, row) { glyph > glyphs_end } else { glyph < glyphs_end })
+	{ return false; }
+      /* Keep the candidate whose buffer position is the closest to
+	 point or has the `cursor' property.  */
+      if /* Previous candidate is a glyph in TEXT_AREA of that row.  */
+	  (*w).cursor.hpos >= 0
+	  && (*w).cursor.hpos < MATRIX_ROW_USED! (matrix, (*w).cursor.vpos) as c_int
+	  && ((BUFFERP ((*g1).object)
+	       && ((*g1).charpos == pt_old /* An exact match always wins.  */
+		   || (BUFFERP ((*glyph).object)
+		       && eabs! ((*g1).charpos - pt_old)
+		       < eabs! ((*glyph).charpos - pt_old))))
+	      /* Previous candidate is a glyph from a string that has
+		 a non-nil `cursor' property.  */
+	      || (STRINGP ((*g1).object)
+		  && (!NILP (Fget_char_property (make_fixnum ((*g1).charpos),
+						Qcursor (), (*g1).object))
+		      /* Previous candidate is from the same display
+			 string as this one, and the display string
+			 came from a text property.  */
+		      || (EQ ((*g1).object, (*glyph).object)
+			  && string_from_text_prop)
+		      /* this candidate is from newline and its
+			 position is not an exact match */
+		      || (NILP ((*glyph).object)
+			  && (*glyph).charpos != pt_old))))
+	{ return false; }
+      /* If this candidate gives an exact match, use that.  */
+      if !((BUFFERP ((*glyph).object) && (*glyph).charpos == pt_old)
+	    /* If this candidate is a glyph created for the
+	       terminating newline of a line, and point is on that
+	       newline, it wins because it's an exact match.  */
+	    || (!glyph_row_bits! (continued_p, row)
+		&& NILP ((*glyph).object)
+		&& (*glyph).charpos == 0
+		&& pt_old == MATRIX_ROW_END_CHARPOS! (row) - 1))
+	  /* Otherwise, keep the candidate that comes from a row
+	     spanning less buffer positions.  This may win when one or
+	     both candidate positions are on glyphs that came from
+	     display strings, for which we cannot compare buffer
+	     positions.  */
+	  && MATRIX_ROW_END_CHARPOS! (MATRIX_ROW! (matrix, (*w).cursor.vpos))
+	     - MATRIX_ROW_START_CHARPOS! (MATRIX_ROW! (matrix, (*w).cursor.vpos))
+	     < MATRIX_ROW_END_CHARPOS! (row) - MATRIX_ROW_START_CHARPOS! (row)
+	{ return false; }
+    }
+  (*w).cursor.hpos = glyph.offset_from ((*row).glyphs[TEXT_AREA as usize]) as c_int;
+  (*w).cursor.x = x;
+  (*w).cursor.vpos = MATRIX_ROW_VPOS! (row, matrix) as c_int + dvpos;
+  (*w).cursor.y = (*row).y + dy;
+
+  if w == XWINDOW (selected_window)
+    {
+      if !glyph_row_bits! (continued_p, row)
+	  && !MATRIX_ROW_CONTINUATION_LINE_P! (row)
+	  && (*row).x == 0
+	{
+	  this_line_buffer = XBUFFER ((*w).contents);
+
+	  CHARPOS! (this_line_start_pos)
+	    = MATRIX_ROW_START_CHARPOS! (row) + delta;
+	  BYTEPOS! (this_line_start_pos)
+	    = MATRIX_ROW_START_BYTEPOS! (row) + delta_bytes;
+
+	  CHARPOS! (this_line_end_pos)
+	    = Z! () - (MATRIX_ROW_END_CHARPOS! (row) + delta);
+	  BYTEPOS! (this_line_end_pos)
+	    = Z_BYTE! () - (MATRIX_ROW_END_BYTEPOS! (row) + delta_bytes);
+
+	  this_line_y = (*w).cursor.y;
+	  this_line_pixel_height = (*row).height as c_int;
+	  this_line_vpos = (*w).cursor.vpos;
+	  this_line_start_x = (*row).x;
+	}
+      else
+	{ CHARPOS! (this_line_start_pos) = 0; }
+    }
+
+  return true;
+}
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */
 /* ==================================================================== */
@@ -17882,10 +18519,9 @@ unsafe extern "C" {
   /// C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);` (defined
   /// later in this unit; C's is non-`static`).
   fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
-  /// C: xdisp.c 1158-1160/18631: `static bool set_cursor_from_row (struct window *,
-  /// struct glyph_row *, struct glyph_matrix *, ptrdiff_t, ptrdiff_t, int, int);`
-  fn set_cursor_from_row (w: *mut window, row: *mut glyph_row, matrix: *mut glyph_matrix,
-                          start: ptrdiff_t, start_byte: ptrdiff_t, x: c_int, y: c_int) -> bool;
+  /// C: xdisp.c 1130/25062: `static bool cursor_row_p (struct glyph_row *);` (defined
+  /// later in this unit).
+  fn cursor_row_p (row: *mut glyph_row) -> bool;
   /// C: xdisp.c 1161/19305: `static bool cursor_row_fully_visible_p (struct window *, bool,
   /// bool, bool);`
   fn cursor_row_fully_visible_p (w: *mut window, force_p: bool, current_p: bool,
