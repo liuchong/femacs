@@ -94,6 +94,7 @@ have_aclv_h                                = []  # HAVE_ACLV_H
 have_android                               = []  # HAVE_ANDROID
 android_api_le_11                          = []  # the derived condition `__ANDROID_API__ <= 11` (androidselect.c 432/447)
 android_api_le_30                          = []  # the derived condition `__ANDROID_API__ <= 30` (androidselect.c 478)
+no_value                                   = []  # the derived condition `!defined HAVE_X_WINDOWS && defined (NoValue)` (frame.c 6538; `NoValue` is the non-X `*gui.h` constant)
 have_android_mmap                          = []  # see femacs/src/sysdep.rs:2850
 have_copy_file_range                       = []  # HAVE_COPY_FILE_RANGE
 have_decl_strmode                          = []  # HAVE_DECL_STRMODE

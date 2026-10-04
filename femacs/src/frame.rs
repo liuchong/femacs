@@ -16,8 +16,10 @@
 //     4422-4425, 4438-4442, 4680-4682, 4880-4885, 7055-7112, 7120-7187, 7251-7252,
 //     7285-7286, 7316-7321, 7396-7425, 7455-7462, 7551-7552 — the `HAVE_WINDOW_SYSTEM`
 //     (`#include TERM_HEADER`/`fontset.h`, `gui_report_frame_params`, the display-available
-//     probe, `frame_redisplay_p`'s `HAVE_X_WINDOWS` arm, `make_frame`'s window-system
-//     initialization, and the whole GUI frame-geometry implementation at C 4889-6970).
+//     probe, `frame_redisplay_p`'s `HAVE_X_WINDOWS` arm and `make_frame`'s window-system
+//     initialization).  The one large arm of this family that is *carried* rather than
+//     recorded is the GUI frame-geometry implementation at C 4889-6970 (P-86 ①: both arms,
+//     one gate per item; see `docs/ports/frame.md`'s C-line-range table).
 //   * C 48-51, 52-54, 1030-1043, 1568-1582, 1762-1789, 3436-3442, 3481-3487 — the `MSDOS`
 //     and `USE_X_TOOLKIT` arms (both undef in the frozen configuration).
 //   * C 482-491, 206-208, 943-945, 1055-1062, 1064-1071, 1218-1226, 1477/1722/1755-1758
@@ -4727,9 +4729,9 @@ static mut frame_parms: [frame_parm_table; 51] =
    arms of every `#if`**, each item behind C's own condition spelled as a lower-case feature
    (`have_window_system`, and the nested `have_x_windows`, `have_ns`, `use_x_toolkit`, …), and
    `docs/ports/frame.md` records it with a C line-range table and the readings rather than
-   checkboxes.  This round lands C 4889-5919 (through `gui_set_unsplittable`); C 5921
-   `gui_set_vertical_scroll_bars` is where the next round begins, and C 6971 is where the
-   `#ifdef` closes.
+   checkboxes.  The run is carried in two halves and is now complete: C 4889-5919 (through
+   `gui_set_unsplittable`, the round before this one) and C 5921-6970 (`gui_set_vertical_scroll_bars`
+   through `gui_figure_window_size`, this round); C 6971 is where the `#ifdef` closes.
    --------------------------------------------------------------------------------------------- */
 
 /* Names this arm takes from headers the unit's include graph does not bring in yet: `*gui.h`
@@ -5981,8 +5983,1327 @@ pub unsafe extern "C" fn gui_set_unsplittable (f: *mut frame, arg: Lisp_Object, 
   no_split! (f, !NILP (arg));
 }
 
-/* C 5921-6970 of the same `#ifdef HAVE_WINDOW_SYSTEM` run is the next round's work: it starts
-   at `gui_set_vertical_scroll_bars` (C 5921) and closes at C 6971's `#endif`.  */
+/* C 5921-6970: the rest of the run, carried this round - `gui_set_vertical_scroll_bars`
+   (C 5921) through `gui_figure_window_size` (C 6708-6967), with C 6971's `#endif` as the run's
+   end.  Same treatment as the first half: both arms of every `#if`, one gate per item, the
+   C-line-range table and readings in `docs/ports/frame.md`.  */
+
+/* The names this half takes from headers the unit's include graph does not bring in yet, and
+   the ones the mirrors gate away for a window-system configuration.  Each is declared here
+   under C's own name with C's own body/prototype in a `/// C:` line (PORTING.md P-72 rule 3,
+   the P-86 ⑩ shape); `docs/ports/frame.md`'s Deviations lists them as mirror gaps.  */
+
+/* frame.h 1219-1229: the `HAVE_WINDOW_SYSTEM` arm of the scroll-bar accessors.  `include/frame.rs`
+   carries the `#else` arm's readers and gates them with `not (have_window_system)` (its own note
+   records why: the window-system body needs the flag numbering in `docs/baseline/frame-bits.tsv`),
+   so the arm's versions are defined here, in C's terms.  */
+/// C: frame.h 1217: `#define FRAME_VERTICAL_SCROLL_BAR_TYPE(f) ((f)->vertical_scroll_bar_type)`
+#[cfg (feature = "have_window_system")]
+macro_rules! FRAME_VERTICAL_SCROLL_BAR_TYPE {
+  ($f:expr) => { (*$f).vertical_scroll_bar_type };
+}
+/// C: frame.h 1218-1219: `#define FRAME_HAS_VERTICAL_SCROLL_BARS(f) ((f)->vertical_scroll_bar_type != vertical_scroll_bar_none)`
+#[cfg (feature = "have_window_system")]
+macro_rules! FRAME_HAS_VERTICAL_SCROLL_BARS {
+  ($f:expr) => { ((*$f).vertical_scroll_bar_type != vertical_scroll_bar_none) };
+}
+/// C: frame.h 1220-1221: `#define FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT(f) ((f)->vertical_scroll_bar_type == vertical_scroll_bar_left)`
+#[cfg (feature = "have_window_system")]
+macro_rules! FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT {
+  ($f:expr) => { ((*$f).vertical_scroll_bar_type == vertical_scroll_bar_left) };
+}
+/// C: frame.h 1222-1223: `#define FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT(f) ((f)->vertical_scroll_bar_type == vertical_scroll_bar_right)`
+#[cfg (feature = "have_window_system")]
+macro_rules! FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT {
+  ($f:expr) => { ((*$f).vertical_scroll_bar_type == vertical_scroll_bar_right) };
+}
+
+/* frame.h 1276-1280: `FRAME_HAS_HORIZONTAL_SCROLL_BARS`.  The mirror's reader is the `#else`
+   arm (`not (use_horizontal_scroll_bars)`, a constant `0`); the `USE_HORIZONTAL_SCROLL_BARS`
+   arm reads the flag, which the mirror's run does not number for a window-system
+   configuration - C's text is kept, as above.  */
+/// C: frame.h 1277-1278: `#define FRAME_HAS_HORIZONTAL_SCROLL_BARS(f) ((f)->horizontal_scroll_bars)`
+#[cfg (feature = "use_horizontal_scroll_bars")]
+macro_rules! FRAME_HAS_HORIZONTAL_SCROLL_BARS {
+  ($f:expr) => { (*$f).horizontal_scroll_bars };
+}
+
+/* frame.h 1283-1299: the four `FRAME_CONFIG_SCROLL_BAR_*` slots.  `include/frame.rs` mirrors
+   them as readers, and C's text is an *l-value* macro (C 5985-5986, 6020-6021 write them), so
+   the writable form is here at the use site under the same gate as the C text that uses it.  */
+/// C: frame.h 1286: `#define FRAME_CONFIG_SCROLL_BAR_WIDTH(f) ((f)->config_scroll_bar_width)`
+#[cfg (feature = "have_window_system")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_WIDTH {
+  ($f:expr) => { (*$f).config_scroll_bar_width };
+}
+/// C: frame.h 1291: `#define FRAME_CONFIG_SCROLL_BAR_HEIGHT(f) ((f)->config_scroll_bar_height)`
+#[cfg (feature = "have_window_system")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_HEIGHT {
+  ($f:expr) => { (*$f).config_scroll_bar_height };
+}
+/// C: frame.h 1296: `#define FRAME_CONFIG_SCROLL_BAR_COLS(f) ((f)->config_scroll_bar_cols)`
+#[cfg (feature = "have_window_system")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_COLS {
+  ($f:expr) => { (*$f).config_scroll_bar_cols };
+}
+/// C: frame.h 1301: `#define FRAME_CONFIG_SCROLL_BAR_LINES(f) ((f)->config_scroll_bar_lines)`
+#[cfg (feature = "have_window_system")]
+macro_rules! FRAME_CONFIG_SCROLL_BAR_LINES {
+  ($f:expr) => { (*$f).config_scroll_bar_lines };
+}
+
+/* frame.h 1107-1108: `FRAME_TOOL_BAR_LINES`/`FRAME_TOOL_BAR_HEIGHT`.  `include/frame.rs`
+   mirrors both as readers (the C text is an l-value macro), and C 6734/6766/6783-6784 write
+   the height, so the writable pair is here at the use site (same shape as the tab-bar pair the
+   first half of the run defines).  */
+/// C: frame.h 1107: `#define FRAME_TOOL_BAR_LINES(f) (f)->tool_bar_lines`
+#[cfg (feature = "have_window_system")]
+macro_rules! FRAME_TOOL_BAR_LINES {
+  ($f:expr) => { (*$f).tool_bar_lines };
+}
+/// C: frame.h 1108: `#define FRAME_TOOL_BAR_HEIGHT(f) (f)->tool_bar_height`
+#[cfg (feature = "have_window_system")]
+macro_rules! FRAME_TOOL_BAR_HEIGHT {
+  ($f:expr) => { (*$f).tool_bar_height };
+}
+
+/* dispextern.h 115-165: `typedef struct <platform>_display_info Display_Info;`, one per GUI.
+   `include/dispextern.rs` does not carry the typedef (this unit's report to its owner), so each
+   arm is written here behind its platform's own feature, exactly as `FRAME_OUTPUT_DATA` is.  */
+/// C: dispextern.h 115: `typedef struct x_display_info Display_Info;`
+#[cfg (feature = "have_x_windows")]
+pub type Display_Info = x_display_info;
+/// C: dispextern.h 136: `typedef struct w32_display_info Display_Info;`
+#[cfg (feature = "have_ntgui")]
+pub type Display_Info = w32_display_info;
+/// C: dispextern.h 145: `typedef struct ns_display_info Display_Info;`
+#[cfg (feature = "have_ns")]
+pub type Display_Info = ns_display_info;
+/// C: dispextern.h 152: `typedef struct pgtk_display_info Display_Info;`
+#[cfg (feature = "have_pgtk")]
+pub type Display_Info = pgtk_display_info;
+/// C: dispextern.h 159: `typedef struct haiku_display_info Display_Info;`
+#[cfg (feature = "have_haiku")]
+pub type Display_Info = haiku_display_info;
+/// C: dispextern.h 165: `typedef struct android_display_info Display_Info;`
+#[cfg (feature = "have_android")]
+pub type Display_Info = android_display_info;
+
+/* dispextern.h 3983-3992: `enum resource_types`, itself inside C's `#ifdef HAVE_WINDOW_SYSTEM`;
+   C's enum ABI is `c_int` (PORTING.md 1.3).  */
+/// C: dispextern.h 3983: `enum resource_types { RES_TYPE_NUMBER, RES_TYPE_FLOAT, RES_TYPE_BOOLEAN, RES_TYPE_STRING, RES_TYPE_SYMBOL, RES_TYPE_BOOLEAN_NUMBER };`
+#[cfg (feature = "have_window_system")]
+pub type resource_types = c_int;
+#[cfg (feature = "have_window_system")]
+const RES_TYPE_NUMBER: resource_types = 0;          // C 3985
+#[cfg (feature = "have_window_system")]
+const RES_TYPE_FLOAT: resource_types = 1;           // C 3986
+#[cfg (feature = "have_window_system")]
+const RES_TYPE_BOOLEAN: resource_types = 2;         // C 3987
+#[cfg (feature = "have_window_system")]
+const RES_TYPE_STRING: resource_types = 3;          // C 3988
+#[cfg (feature = "have_window_system")]
+const RES_TYPE_SYMBOL: resource_types = 4;          // C 3989
+#[cfg (feature = "have_window_system")]
+const RES_TYPE_BOOLEAN_NUMBER: resource_types = 5;  // C 3990
+
+/* frame.c 6191's `EMACS_CLASS`: frame.h 1840's `#define EMACS_CLASS "Emacs"` (no mirror in the
+   include graph; `xterm.rs` 801-802 records the same reading).  C uses it as a string literal,
+   `sizeof (EMACS_CLASS) - 1` (the character count without the NUL) and a `%s` argument.  */
+/// C: frame.h 1840: `#define EMACS_CLASS "Emacs"`
+#[cfg (feature = "have_window_system")]
+const EMACS_CLASS: &str = "Emacs";
+
+/* The `window_prompting` bits and the `win_gravity` values.  The six `*gui.h` headers all define
+   them with the same values (the X11 build takes them from `<X11/Xutil.h>`, which this tree does
+   not have); the mirrors that carry them are `include/{ns,pgtk,w32,haiku,android}gui.rs`, and
+   `NorthWestGravity` is already defined above for the first half of the run.  */
+#[cfg (feature = "have_window_system")]
+const NorthEastGravity: c_int = 3;      // nsgui.h 107 / pgtkgui.h 70 / w32gui.h 64 / androidgui.h 227 / haikugui.h 68
+#[cfg (feature = "have_window_system")]
+const SouthWestGravity: c_int = 7;      // nsgui.h 111 / pgtkgui.h 74 / w32gui.h 68 / androidgui.h 231 / haikugui.h 72
+#[cfg (feature = "have_window_system")]
+const SouthEastGravity: c_int = 9;      // nsgui.h 113 / pgtkgui.h 76 / w32gui.h 70 / androidgui.h 233 / haikugui.h 74
+#[cfg (feature = "have_window_system")]
+const USPosition: c_long = 1 << 0;      // nsgui.h 125 / pgtkgui.h 88 / w32gui.h 82 / androidgui.h 245 / haikugui.h 86
+#[cfg (feature = "have_window_system")]
+const USSize: c_long = 1 << 1;
+#[cfg (feature = "have_window_system")]
+const PPosition: c_long = 1 << 2;
+#[cfg (feature = "have_window_system")]
+const PSize: c_long = 1 << 3;
+
+/* C 6538's `#if !defined (HAVE_X_WINDOWS) && defined (NoValue)`: the `NoValue` family, defined
+   by the same six `*gui.h` headers (all `0x0000`/`0x0001`/`0x0002`/`0x0004`/`0x0008`; nsgui.h
+   116-120, pgtkgui.h 79-83, w32gui.h 73-77, androidgui.h 236-240, haikugui.h 77-81).  */
+/// C: nsgui.h 116: `#define NoValue 0x0000` / `XValue 0x0001` / `YValue 0x0002` / `WidthValue 0x0004` / `HeightValue 0x0008`
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+const NoValue: c_int = 0x0000;
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+const XValue: c_int = 0x0001;
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+const YValue: c_int = 0x0002;
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+const WidthValue: c_int = 0x0004;
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+const HeightValue: c_int = 0x0008;
+
+/* The mirror-gap functions this half calls; each `/// C:` is the header's own prototype
+   (PORTING.md P-72 rule 3).  */
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  /// C: dispextern.h 3993: extern Display_Info *check_x_display_info (Lisp_Object);
+  pub fn check_x_display_info (frame: Lisp_Object) -> *mut Display_Info;
+  /// C: dispextern.h 3688: extern void note_mouse_highlight (struct frame *, int, int);
+  pub fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
+  /// C: xterm.h 1744: extern const char *x_get_string_resource (void *, const char *, const char *);
+  pub fn x_get_string_resource (rdb: *mut c_void, name: *const c_char,
+                                class: *const c_char) -> *const c_char;
+  /// C: lisp.h 4717: extern ptrdiff_t esprintf (char *, char const *, ...)
+  pub fn esprintf (buf: *mut c_char, format: *const c_char, ...) -> ptrdiff_t;
+}
+
+/* C 5921-5951: `gui_set_vertical_scroll_bars`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_vertical_scroll_bars (f: *mut frame, arg: Lisp_Object,
+						       oldval: Lisp_Object)
+{
+  if (EQ (arg, Qleft ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT! (f))
+    || (EQ (arg, Qright ()) && FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT! (f))
+    || (NILP (arg) && FRAME_HAS_VERTICAL_SCROLL_BARS! (f))
+    || (!NILP (arg) && !FRAME_HAS_VERTICAL_SCROLL_BARS! (f))
+    {
+      FRAME_VERTICAL_SCROLL_BAR_TYPE! (f)
+	= if NILP (arg) { vertical_scroll_bar_none }
+	  else if EQ (Qleft (), arg) { vertical_scroll_bar_left }
+	  else if EQ (Qright (), arg) { vertical_scroll_bar_right }
+	  else if EQ (Qleft (), Vdefault_frame_scroll_bars) { vertical_scroll_bar_left }
+	  else if EQ (Qright (), Vdefault_frame_scroll_bars) { vertical_scroll_bar_right }
+	  else { vertical_scroll_bar_none };
+
+      /* We set this parameter before creating the native window for
+	 the frame, so we can get the geometry right from the start.
+	 However, if the window hasn't been created yet, we shouldn't
+	 call set_window_size_hook.  */
+      if FRAME_NATIVE_WINDOW! (f) != 0
+	{ adjust_frame_size (f, -1, -1, 3, 0, Qvertical_scroll_bars ()); }
+
+      SET_FRAME_GARBAGED! (f);
+    }
+}
+
+/* C 5953-5972: `gui_set_horizontal_scroll_bars`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_horizontal_scroll_bars (f: *mut frame, arg: Lisp_Object,
+							  oldval: Lisp_Object)
+{
+  /* C 5956-5971's `#if USE_HORIZONTAL_SCROLL_BARS` (window.h 898-904; the mirror's
+     `USE_HORIZONTAL_SCROLL_BARS` is `false`).  */
+  #[cfg (feature = "use_horizontal_scroll_bars")]
+  {
+    if (NILP (arg) && FRAME_HAS_HORIZONTAL_SCROLL_BARS! (f))
+      || (!NILP (arg) && !FRAME_HAS_HORIZONTAL_SCROLL_BARS! (f))
+      {
+	(*f).horizontal_scroll_bars = if NILP (arg) { false } else { true };
+
+	/* We set this parameter before creating the native window for
+	   the frame, so we can get the geometry right from the start.
+	   However, if the window hasn't been created yet, we shouldn't
+	   call set_window_size_hook.  */
+	if FRAME_NATIVE_WINDOW! (f) != 0
+	  { adjust_frame_size (f, -1, -1, 3, 0, Qhorizontal_scroll_bars ()); }
+
+	SET_FRAME_GARBAGED! (f);
+      }
+  }
+}
+
+/* C 5974-6006: `gui_set_scroll_bar_width`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_scroll_bar_width (f: *mut frame, arg: Lisp_Object,
+						   oldval: Lisp_Object)
+{
+  let unit: c_int = FRAME_COLUMN_WIDTH (f);
+
+  if RANGED_FIXNUMP (1, arg, INT_MAX as EMACS_INT)
+    {
+      if XFIXNAT (arg) == FRAME_CONFIG_SCROLL_BAR_WIDTH! (f) as EMACS_INT
+	{ return; }
+      else
+	{
+	  FRAME_CONFIG_SCROLL_BAR_WIDTH! (f) = XFIXNAT (arg) as c_int;
+	  FRAME_CONFIG_SCROLL_BAR_COLS! (f)
+	    = ((XFIXNAT (arg) + unit as EMACS_INT - 1) / unit as EMACS_INT) as c_int;
+	  if FRAME_NATIVE_WINDOW! (f) != 0
+	    { adjust_frame_size (f, -1, -1, 3, 0, Qscroll_bar_width ()); }
+
+	  SET_FRAME_GARBAGED! (f);
+	}
+    }
+  else
+    {
+      if (*FRAME_TERMINAL! (f)).set_scroll_bar_default_width_hook.is_some ()
+	{ if let Some (set_scroll_bar_default_width_hook)
+	      = (*FRAME_TERMINAL! (f)).set_scroll_bar_default_width_hook
+	  { set_scroll_bar_default_width_hook (f as *mut c_void); } }
+
+      if FRAME_NATIVE_WINDOW! (f) != 0
+	{ adjust_frame_size (f, -1, -1, 3, 0, Qscroll_bar_width ()); }
+
+      SET_FRAME_GARBAGED! (f);
+    }
+
+  (*XWINDOW (FRAME_SELECTED_WINDOW (f))).cursor.hpos = 0;
+  (*XWINDOW (FRAME_SELECTED_WINDOW (f))).cursor.x = 0;
+}
+
+/* C 6008-6042: `gui_set_scroll_bar_height`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_scroll_bar_height (f: *mut frame, arg: Lisp_Object,
+						    oldval: Lisp_Object)
+{
+  /* C 6011-6041's `#if USE_HORIZONTAL_SCROLL_BARS`.  */
+  #[cfg (feature = "use_horizontal_scroll_bars")]
+  {
+    let unit: c_int = FRAME_LINE_HEIGHT (f);
+
+    if RANGED_FIXNUMP (1, arg, INT_MAX as EMACS_INT)
+      {
+	if XFIXNAT (arg) == FRAME_CONFIG_SCROLL_BAR_HEIGHT! (f) as EMACS_INT
+	  { return; }
+	else
+	  {
+	    FRAME_CONFIG_SCROLL_BAR_HEIGHT! (f) = XFIXNAT (arg) as c_int;
+	    FRAME_CONFIG_SCROLL_BAR_LINES! (f)
+	      = ((XFIXNAT (arg) + unit as EMACS_INT - 1) / unit as EMACS_INT) as c_int;
+	    if FRAME_NATIVE_WINDOW! (f) != 0
+	      { adjust_frame_size (f, -1, -1, 3, 0, Qscroll_bar_height ()); }
+
+	    SET_FRAME_GARBAGED! (f);
+	  }
+      }
+    else
+      {
+	if (*FRAME_TERMINAL! (f)).set_scroll_bar_default_height_hook.is_some ()
+	  { if let Some (set_scroll_bar_default_height_hook)
+		= (*FRAME_TERMINAL! (f)).set_scroll_bar_default_height_hook
+	    { set_scroll_bar_default_height_hook (f as *mut c_void); } }
+
+	if FRAME_NATIVE_WINDOW! (f) != 0
+	  { adjust_frame_size (f, -1, -1, 3, 0, Qscroll_bar_height ()); }
+
+	SET_FRAME_GARBAGED! (f);
+      }
+
+    (*XWINDOW (FRAME_SELECTED_WINDOW (f))).cursor.vpos = 0;
+    (*XWINDOW (FRAME_SELECTED_WINDOW (f))).cursor.y = 0;
+  }
+}
+
+/* C 6044-6095: `gui_set_alpha`.  C's guard is
+   `#if (defined HAVE_PGTK || defined HAVE_NTGUI || defined HAVE_HAIKU || defined HAVE_NS)`.  */
+#[cfg (feature = "have_window_system")]
+#[cfg (any (feature = "have_pgtk", feature = "have_ntgui", feature = "have_haiku",
+	    feature = "have_ns"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_alpha (f: *mut frame, mut arg: Lisp_Object,
+					 oldval: Lisp_Object)
+{
+  let mut alpha: c_double = 1.0;
+  let mut newval: [c_double; 2] = [0.0; 2];
+  let mut i: c_int;
+  let mut item: Lisp_Object = Qnil ();
+
+  i = 0;
+  while i < 2
+    {
+      newval[i as usize] = 1.0;
+      if CONSP (arg)
+	{
+	  item = XCAR (arg);
+	  arg  = XCDR (arg);
+	}
+      else
+	{ item = arg; }
+
+      if NILP (item)
+	{ alpha = -1.0; }
+      else if FLOATP (item)
+	{
+	  alpha = XFLOAT_DATA (item);
+	  if ! (0.0 <= alpha && alpha <= 1.0)
+	    { args_out_of_range (make_float (0.0), make_float (1.0)); }
+	}
+      else if FIXNUMP (item)
+	{
+	  let ialpha: EMACS_INT = XFIXNUM (item);
+	  if ! (0 <= ialpha && ialpha <= 100)
+	    { args_out_of_range (make_fixnum (0), make_fixnum (100)); }
+	  alpha = ialpha as c_double / 100.0;
+	}
+      else
+	{ wrong_type_argument (Qnumberp (), item); }
+      newval[i as usize] = alpha;
+      i += 1;
+    }
+
+  i = 0;
+  while i < 2
+    {
+      (*f).alpha[i as usize] = newval[i as usize];
+      i += 1;
+    }
+
+  if (*FRAME_TERMINAL! (f)).set_frame_alpha_hook.is_some ()
+    {
+      block_input ();
+      if let Some (set_frame_alpha_hook) = (*FRAME_TERMINAL! (f)).set_frame_alpha_hook
+	{ set_frame_alpha_hook (f as *mut c_void); }
+      unblock_input ();
+    }
+}
+
+/* C 6097-6124: `gui_set_alpha_background`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_alpha_background (f: *mut frame, arg: Lisp_Object,
+						   oldval: Lisp_Object)
+{
+  let mut alpha: c_double = 1.0;
+
+  if NILP (arg)
+    { alpha = 1.0; }
+  else if FLOATP (arg)
+    {
+      alpha = XFLOAT_DATA (arg);
+      if ! (0.0 <= alpha && alpha <= 1.0)
+	{ args_out_of_range (make_float (0.0), make_float (1.0)); }
+    }
+  else if FIXNUMP (arg)
+    {
+      let ialpha: EMACS_INT = XFIXNUM (arg);
+      if ! (0 <= ialpha && ialpha <= 100)
+	{ args_out_of_range (make_fixnum (0), make_fixnum (100)); }
+      alpha = ialpha as c_double / 100.0;
+    }
+  else
+    { wrong_type_argument (Qnumberp (), arg); }
+
+  (*f).alpha_background = alpha;
+
+  recompute_basic_faces (f);
+  SET_FRAME_GARBAGED! (f);
+}
+
+/* C 6126-6131: `gui_set_borders_respect_alpha_background`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_borders_respect_alpha_background (f: *mut frame,
+								   arg: Lisp_Object,
+								   oldval: Lisp_Object)
+{
+  borders_respect_alpha_background! (f, !NILP (arg));
+}
+
+/* C 6133-6145: `gui_set_no_special_glyphs`.  */
+/**
+ * gui_set_no_special_glyphs:
+ *
+ * Set frame F's `no-special-glyphs' parameter which, if non-nil,
+ * suppresses the display of truncation and continuation glyphs
+ * outside fringes.
+ */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_set_no_special_glyphs (f: *mut frame, new_value: Lisp_Object,
+						    old_value: Lisp_Object)
+{
+  if !EQ (new_value, old_value)
+    { FRAME_NO_SPECIAL_GLYPHS! (f, !NILP (new_value)); }
+}
+
+/* Non-zero if mouse is grabbed on DPYINFO
+   and we know the frame where it is.  */
+/* C 6151-6159: `gui_mouse_grabbed`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_mouse_grabbed (dpyinfo: *mut Display_Info) -> bool
+{
+  return (*dpyinfo).grabbed != 0
+    || ((*(*dpyinfo).terminal).any_grab_hook.is_some ()
+	&& (if let Some (any_grab_hook) = (*(*dpyinfo).terminal).any_grab_hook
+	      { any_grab_hook (dpyinfo as *mut c_void) } else { false }))
+    && !(*dpyinfo).last_mouse_frame.is_null ()
+    && FRAME_LIVE_P ((*dpyinfo).last_mouse_frame);
+}
+
+/* Re-highlight something with mouse-face properties
+   on DPYINFO using saved frame and mouse position.  */
+/* C 6164-6172: `gui_redo_mouse_highlight`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_redo_mouse_highlight (dpyinfo: *mut Display_Info)
+{
+  if !(*dpyinfo).last_mouse_motion_frame.is_null ()
+    && FRAME_LIVE_P ((*dpyinfo).last_mouse_motion_frame)
+    { note_mouse_highlight ((*dpyinfo).last_mouse_motion_frame,
+			    (*dpyinfo).last_mouse_motion_x,
+			    (*dpyinfo).last_mouse_motion_y); }
+}
+
+/* Subroutines of creating an X frame.  */
+
+/* Make sure that Vx_resource_name is set to a reasonable value.
+   Fix it up, or set it to `emacs' if it is too hopeless.  */
+/* C 6179-6243: `validate_x_resource_name`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn validate_x_resource_name ()
+{
+  let mut len: ptrdiff_t = 0;
+  /* Number of valid characters in the resource name.  */
+  let mut good_count: ptrdiff_t = 0;
+  /* Number of invalid characters in the resource name.  */
+  let mut bad_count: ptrdiff_t = 0;
+  let new: Lisp_Object;
+  let mut i: ptrdiff_t;
+
+  if !STRINGP (Vx_resource_class)
+    { Vx_resource_class = build_string (EMACS_CLASS.as_ptr () as *const c_char); }
+
+  if STRINGP (Vx_resource_name)
+    {
+      let p: *mut u8 = SDATA (Vx_resource_name);
+
+      len = SBYTES (Vx_resource_name);
+
+      /* Only letters, digits, - and _ are valid in resource names.
+	 Count the valid characters and count the invalid ones.  */
+      i = 0;
+      while i < len
+	{
+	  let c: c_int = *p.offset (i as isize) as c_int;
+	  if ! ((c >= 'a' as c_int && c <= 'z' as c_int)
+		 || (c >= 'A' as c_int && c <= 'Z' as c_int)
+		 || (c >= '0' as c_int && c <= '9' as c_int)
+		 || c == '-' as c_int || c == '_' as c_int)
+	    { bad_count += 1; }
+	  else
+	    { good_count += 1; }
+	  i += 1;
+	}
+    }
+  else
+    /* Not a string => completely invalid.  */
+    { bad_count = 5; good_count = 0; }
+
+  /* If name is valid already, return.  */
+  if bad_count == 0
+    { return; }
+
+  /* If name is entirely invalid, or nearly so, or is so implausibly
+     large that alloca might not work, use `emacs'.  */
+  if good_count < 2 || MAX_ALLOCA - 16 < len /* C's `sizeof ".customization"` (15 bytes + NUL) */
+    {
+      Vx_resource_name = build_string (c"emacs".as_ptr ());
+      return;
+    }
+
+  /* Name is partly valid.  Copy it and replace the invalid characters
+     with underscores.  */
+
+  Vx_resource_name = Fcopy_sequence (Vx_resource_name);
+  new = Vx_resource_name;
+
+  i = 0;
+  while i < len
+    {
+      let c: c_int = SREF (new, i as usize) as c_int;
+      if ! ((c >= 'a' as c_int && c <= 'z' as c_int)
+	     || (c >= 'A' as c_int && c <= 'Z' as c_int)
+	     || (c >= '0' as c_int && c <= '9' as c_int)
+	     || c == '-' as c_int || c == '_' as c_int)
+	{ SSET (new, i as usize, b'_'); }
+      i += 1;
+    }
+}
+
+/* Get a GUI resource, like Fx_get_resource, but for display DPYINFO.
+   See Fx_get_resource below for other parameters.  */
+/* C 6248-6319: `gui_display_get_resource`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_display_get_resource (dpyinfo: *mut Display_Info,
+						   attribute: Lisp_Object,
+						   class: Lisp_Object,
+						   component: Lisp_Object,
+						   subclass: Lisp_Object)
+  -> Lisp_Object
+{
+  CHECK_STRING (attribute);
+  CHECK_STRING (class);
+
+  if !NILP (component)
+    { CHECK_STRING (component); }
+  if !NILP (subclass)
+    { CHECK_STRING (subclass); }
+  if NILP (component) != NILP (subclass)
+    { error (c"x-get-resource: must specify both COMPONENT and SUBCLASS or neither".as_ptr ()); }
+
+  validate_x_resource_name ();
+
+  /* Allocate space for the components, the dots which separate them,
+     and the final '\0'.  Make them big enough for the worst case.  */
+  let name_keysize: ptrdiff_t = SBYTES (Vx_resource_name)
+			    + (if STRINGP (component) { SBYTES (component) } else { 0 })
+			    + SBYTES (attribute)
+			    + 3;
+
+  let class_keysize: ptrdiff_t = SBYTES (Vx_resource_class)
+			     + SBYTES (class)
+			     + (if STRINGP (subclass) { SBYTES (subclass) } else { 0 })
+			     + 3;
+
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+  let name_key: *mut c_char = SAFE_ALLOCA! (sa_avail, name_keysize + class_keysize) as *mut c_char;
+  let class_key: *mut c_char = name_key.offset (name_keysize as isize);
+
+  /* Start with emacs.FRAMENAME for the name (the specific one)
+     and with `Emacs' for the class key (the general one).  */
+  let mut nz: *mut c_char = lispstpcpy (name_key, Vx_resource_name);
+  let mut cz: *mut c_char = lispstpcpy (class_key, Vx_resource_class);
+
+  *cz = b'.' as c_char;
+  cz = cz.offset (1);
+  cz = lispstpcpy (cz, class);
+
+  if !NILP (component)
+    {
+      *cz = b'.' as c_char;
+      cz = cz.offset (1);
+      lispstpcpy (cz, subclass);
+
+      *nz = b'.' as c_char;
+      nz = nz.offset (1);
+      nz = lispstpcpy (nz, component);
+    }
+
+  *nz = b'.' as c_char;
+  nz = nz.offset (1);
+  lispstpcpy (nz, attribute);
+
+  /* C 6302-6318: `#ifndef HAVE_ANDROID` (the live arm on this configuration's GUIs; the
+     `#else` arm returns `Qnil' after the same `SAFE_FREE`).  */
+  #[cfg (not (feature = "have_android"))]
+  {
+    let value: *const c_char
+      = if let Some (get_string_resource_hook)
+	  = (*(*dpyinfo).terminal).get_string_resource_hook
+	{ get_string_resource_hook (&raw mut (*dpyinfo).rdb as *mut c_void,
+				    name_key, class_key) }
+	else { std::ptr::null () };
+
+    SAFE_FREE! (sa_count);
+
+    if !value.is_null () && *value != 0
+      { return build_string (value); }
+    else
+      { return Qnil (); }
+  }
+
+  #[cfg (feature = "have_android")]
+  {
+    SAFE_FREE! (sa_count);
+    return Qnil ();
+  }
+}
+
+/* C 6322-6339: `Fx_get_resource`.  */
+#[cfg (feature = "have_window_system")]
+DEFUN! ("x-get-resource", Fx_get_resource, Sx_get_resource, 2, 4, 0,
+       doc: "Return the value of ATTRIBUTE, of class CLASS, from the X defaults database.\nThis uses `INSTANCE.ATTRIBUTE' as the key and `Emacs.CLASS' as the\nclass, where INSTANCE is the name under which Emacs was invoked, or\nthe name specified by the `-name' or `-rn' command-line arguments.\n\nThe optional arguments COMPONENT and SUBCLASS add to the key and the\nclass, respectively.  You must specify both of them or neither.\nIf you specify them, the key is `INSTANCE.COMPONENT.ATTRIBUTE'\nand the class is `Emacs.CLASS.SUBCLASS'.  ",
+       (attribute: Lisp_Object, class: Lisp_Object, component: Lisp_Object,
+	subclass: Lisp_Object),
+       {
+  check_window_system (std::ptr::null_mut ());
+
+  return gui_display_get_resource (check_x_display_info (Qnil ()),
+				   attribute, class, component, subclass);
+});
+
+/* C 6341-6366: `x_get_resource_string`, under
+   `#if defined HAVE_X_WINDOWS && !defined USE_X_TOOLKIT && !defined USE_GTK`; used when C code
+   wants a resource value (called from oldXMenu/Create.c).  */
+#[cfg (feature = "have_window_system")]
+#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"),
+	    not (feature = "use_gtk")))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_get_resource_string (attribute: *const c_char,
+						class: *const c_char) -> *const c_char
+{
+  let result: *const c_char;
+  let sf: *mut frame = SELECTED_FRAME ();
+  let invocation_namelen: ptrdiff_t = SBYTES (Vinvocation_name);
+  USE_SAFE_ALLOCA! (sa_avail, sa_count);
+
+  /* Allocate space for the components, the dots which separate them,
+     and the final '\0'.  */
+  let name_keysize: ptrdiff_t = invocation_namelen + strlen (attribute) as isize + 2;
+  let class_keysize: ptrdiff_t = EMACS_CLASS.len () as isize + strlen (class) as isize + 2;
+  let name_key: *mut c_char = SAFE_ALLOCA! (sa_avail, name_keysize + class_keysize) as *mut c_char;
+  let class_key: *mut c_char = name_key.offset (name_keysize as isize);
+  esprintf (name_key, c"%s.%s".as_ptr (), SSDATA (Vinvocation_name), attribute);
+  sprintf (class_key, c"%s.%s".as_ptr (), EMACS_CLASS.as_ptr () as *const c_char, class);
+
+  result = x_get_string_resource (&raw mut (*FRAME_DISPLAY_INFO! (sf)).rdb as *mut c_void,
+				  name_key, class_key);
+  SAFE_FREE! (sa_count);
+  return result;
+}
+
+/* Return the value of parameter PARAM.
+
+   First search ALIST, then Vdefault_frame_alist, then the GUI
+   resource database, using ATTRIBUTE as the attribute name and CLASS
+   as its class.
+
+   Convert the resource to the type specified by desired_type.
+
+   If no default is specified, return Qunbound.  If you call
+   gui_display_get_arg, make sure you deal with Qunbound in a
+   reasonable way, and don't let it get stored in any Lisp-visible
+   variables!  */
+/* C 6381-6478: `gui_display_get_arg`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_display_get_arg (dpyinfo: *mut Display_Info, alist: Lisp_Object,
+					      param: Lisp_Object, attribute: *const c_char,
+					      class: *const c_char, r#type: resource_types)
+  -> Lisp_Object
+{
+  let mut tem: Lisp_Object;
+
+  tem = Fassq (param, alist);
+
+  if !NILP (tem)
+    {
+      /* If we find this parm in ALIST, clear it out
+	 so that it won't be "left over" at the end.  */
+      let mut tail: Lisp_Object;
+      XSETCAR (tem, Qnil ());
+      /* In case the parameter appears more than once in the alist,
+	 clear it out.  */
+      tail = alist;
+      while CONSP (tail)
+	{
+	  if CONSP (XCAR (tail))
+	    && EQ (XCAR (XCAR (tail)), param)
+	    { XSETCAR (XCAR (tail), Qnil ()); }
+	  tail = XCDR (tail);
+	}
+    }
+  else
+    { tem = Fassq (param, Vdefault_frame_alist); }
+
+  /* If it wasn't specified in ALIST or the Lisp-level defaults,
+     look in the X resources.  */
+  if NILP (tem)
+    {
+      if !attribute.is_null () && !dpyinfo.is_null ()
+	{
+	  AUTO_STRING! (at, attribute);
+	  AUTO_STRING! (cl, class);
+	  tem = gui_display_get_resource (dpyinfo, at, cl, Qnil (), Qnil ());
+
+	  if NILP (tem)
+	    { return Qunbound (); }
+
+	  match r#type
+	    {
+	      RES_TYPE_NUMBER =>
+		{ return make_fixnum (atoi (SSDATA (tem)) as EMACS_INT); }
+
+	      RES_TYPE_BOOLEAN_NUMBER =>
+		{
+		  if strcmp (SSDATA (tem), c"on".as_ptr ()) == 0
+		      || strcmp (SSDATA (tem), c"true".as_ptr ()) == 0
+		    { return make_fixnum (1); }
+		  return make_fixnum (atoi (SSDATA (tem)) as EMACS_INT);
+		}
+
+	      RES_TYPE_FLOAT =>
+		{ return make_float (atof (SSDATA (tem))); }
+
+	      RES_TYPE_BOOLEAN =>
+		{
+		  tem = Fdowncase (tem);
+		  if strcmp (SSDATA (tem), c"on".as_ptr ()) == 0
+		    /* C 6437-6439's `#ifdef HAVE_NS` alternative (`|| !strcmp (SSDATA (tem), "yes")`).  */
+		    || { #[cfg (feature = "have_ns")]
+			 { strcmp (SSDATA (tem), c"yes".as_ptr ()) == 0 }
+			 #[cfg (not (feature = "have_ns"))]
+			 { false } }
+		    || strcmp (SSDATA (tem), c"true".as_ptr ()) == 0
+		    { return Qt (); }
+		  else
+		    { return Qnil (); }
+		}
+
+	      RES_TYPE_STRING =>
+		{ return tem; }
+
+	      RES_TYPE_SYMBOL =>
+		{
+		  /* As a special case, we map the values `true' and `on'
+		     to Qt, and `false' and `off' to Qnil.  */
+		  let lower: Lisp_Object;
+		  lower = Fdowncase (tem);
+		  if strcmp (SSDATA (lower), c"on".as_ptr ()) == 0
+		    /* C 6455-6457's `#ifdef HAVE_NS` alternative.  */
+		    || { #[cfg (feature = "have_ns")]
+			 { strcmp (SSDATA (lower), c"yes".as_ptr ()) == 0 }
+			 #[cfg (not (feature = "have_ns"))]
+			 { false } }
+		    || strcmp (SSDATA (lower), c"true".as_ptr ()) == 0
+		    { return Qt (); }
+		  else if strcmp (SSDATA (lower), c"off".as_ptr ()) == 0
+		    /* C 6461-6463's `#ifdef HAVE_NS` alternative.  */
+		    || { #[cfg (feature = "have_ns")]
+			 { strcmp (SSDATA (lower), c"no".as_ptr ()) == 0 }
+			 #[cfg (not (feature = "have_ns"))]
+			 { false } }
+		    || strcmp (SSDATA (lower), c"false".as_ptr ()) == 0
+		    { return Qnil (); }
+		  else
+		    { return Fintern (tem, Qnil ()); }
+		}
+
+	      _ =>
+		{ emacs_abort (); }
+	    }
+	}
+      else
+	{ return Qunbound (); }
+    }
+  return Fcdr (tem);
+}
+
+/* C 6480-6487: `gui_frame_get_arg`.  `static` in C, so no `#[unsafe(no_mangle)]`.  */
+#[cfg (feature = "have_window_system")]
+unsafe fn gui_frame_get_arg (f: *mut frame, alist: Lisp_Object, param: Lisp_Object,
+			     attribute: *const c_char, class: *const c_char,
+			     r#type: resource_types) -> Lisp_Object
+{
+  return gui_display_get_arg (FRAME_DISPLAY_INFO! (f), alist, param, attribute, class,
+			      r#type);
+}
+
+/* Like gui_frame_get_arg, but also record the value in f->param_alist.  */
+/* C 6491-6505: `gui_frame_get_and_record_arg`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_frame_get_and_record_arg (f: *mut frame, alist: Lisp_Object,
+						       param: Lisp_Object,
+						       attribute: *const c_char,
+						       class: *const c_char,
+						       r#type: resource_types)
+  -> Lisp_Object
+{
+  let value: Lisp_Object;
+
+  value = gui_display_get_arg (FRAME_DISPLAY_INFO! (f), alist, param, attribute, class,
+			       r#type);
+  if ! NILP (value) && ! BASE_EQ (value, Qunbound ())
+    { store_frame_param (f, param, value); }
+
+  return value;
+}
+
+/* Record in frame F the specified or default value according to ALIST
+   of the parameter named PROP (a Lisp symbol).
+   If no value is specified for PROP, look for an X default for XPROP
+   on the frame named NAME.
+   If that is not found either, use the value DEFLT.  */
+/* C 6514-6535: `gui_default_parameter`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_default_parameter (f: *mut frame, alist: Lisp_Object,
+						prop: Lisp_Object, deflt: Lisp_Object,
+						xprop: *const c_char, xclass: *const c_char,
+						r#type: resource_types) -> Lisp_Object
+{
+  let mut tem: Lisp_Object;
+  let was_unbound: bool;
+
+  tem = gui_frame_get_arg (f, alist, prop, xprop, xclass, r#type);
+
+  if BASE_EQ (tem, Qunbound ())
+    {
+      tem = deflt;
+      was_unbound = true;
+    }
+  else
+    { was_unbound = false; }
+
+  AUTO_FRAME_ARG! (arg, prop, tem);
+  gui_set_frame_parameters_1 (f, arg, was_unbound);
+  return tem;
+}
+
+
+/* C 6538-6626: `#if !defined (HAVE_X_WINDOWS) && defined (NoValue)`
+
+     XParseGeometry parses strings of the form
+    "=<width>x<height>{+-}<xoffset>{+-}<yoffset>", where
+    width, height, xoffset, and yoffset are unsigned integers.
+    Example:  "=80x24+300-49"
+    The equal sign is optional.
+    It returns a bitmask that indicates which of the four values
+    were actually found in the string.  For each value found,
+    the corresponding argument is updated;  for each value
+    not found, the corresponding argument is left unchanged.  */
+#[cfg (feature = "have_window_system")]
+#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]
+unsafe fn XParseGeometry (mut string: *mut c_char, x: *mut c_int, y: *mut c_int,
+			  width: *mut c_uint, height: *mut c_uint) -> c_int
+{
+  let mut mask: c_int = NoValue;
+  let mut strind: *mut c_char;
+  let mut tempWidth: c_ulong = 0;      /* C: `unsigned long tempWidth UNINIT` */
+  let mut tempHeight: c_ulong = 0;     /* C: `unsigned long tempHeight UNINIT` */
+  let mut tempX: c_long = 0;           /* C: `long int tempX UNINIT` */
+  let mut tempY: c_long = 0;           /* C: `long int tempY UNINIT` */
+  let mut nextCharacter: *mut c_char = std::ptr::null_mut ();
+
+  if string.is_null () || *string == 0
+    { return mask; }
+  if *string == b'=' as c_char
+    { string = string.offset (1); }  /* ignore possible '=' at beg of geometry spec */
+
+  strind = string;
+  if *strind != b'+' as c_char && *strind != b'-' as c_char && *strind != b'x' as c_char
+    {
+      tempWidth = strtoul (strind, &raw mut nextCharacter, 10);
+      if strind == nextCharacter
+	{ return 0; }
+      strind = nextCharacter;
+      mask |= WidthValue;
+    }
+
+  if *strind == b'x' as c_char || *strind == b'X' as c_char
+    {
+      strind = strind.offset (1);
+      tempHeight = strtoul (strind, &raw mut nextCharacter, 10);
+      if strind == nextCharacter
+	{ return 0; }
+      strind = nextCharacter;
+      mask |= HeightValue;
+    }
+
+  if *strind == b'+' as c_char || *strind == b'-' as c_char
+    {
+      if *strind == b'-' as c_char
+	{ mask |= XNegative; }
+      tempX = strtol (strind, &raw mut nextCharacter, 10);
+      if strind == nextCharacter
+	{ return 0; }
+      strind = nextCharacter;
+      mask |= XValue;
+      if *strind == b'+' as c_char || *strind == b'-' as c_char
+	{
+	  if *strind == b'-' as c_char
+	    { mask |= YNegative; }
+	  tempY = strtol (strind, &raw mut nextCharacter, 10);
+	  if strind == nextCharacter
+	    { return 0; }
+	  strind = nextCharacter;
+	  mask |= YValue;
+	}
+    }
+
+  /* If strind isn't at the end of the string then it's an invalid
+     geometry specification. */
+  if *strind != 0
+    { return 0; }
+
+  if mask & XValue != 0
+    { *x = clip_to_bounds (INT_MIN as isize, tempX as isize, INT_MAX as isize) as c_int; }
+  if mask & YValue != 0
+    { *y = clip_to_bounds (INT_MIN as isize, tempY as isize, INT_MAX as isize) as c_int; }
+  if mask & WidthValue != 0
+    { *width = min (tempWidth as isize, UINT_MAX as isize) as c_uint; }
+  if mask & HeightValue != 0
+    { *height = min (tempHeight as isize, UINT_MAX as isize) as c_uint; }
+  return mask;
+}
+
+
+/* NS used to define x-parse-geometry in ns-win.el, but that confused
+   make-docfile: the documentation string in ns-win.el was used for
+   x-parse-geometry even in non-NS builds.
+
+   With two definitions of x-parse-geometry in this file, various
+   things still get confused (eg M-x apropos documentation), so that
+   it is best if the two definitions just share the same doc-string.  */
+/* C 6637-6696: `Fx_parse_geometry`.  */
+#[cfg (feature = "have_window_system")]
+DEFUN! ("x-parse-geometry", Fx_parse_geometry, Sx_parse_geometry, 1, 1, 0,
+       doc: "Parse a display geometry string STRING.\nReturns an alist of the form ((top . TOP), (left . LEFT) ... ).\nThe properties returned may include `top', `left', `height', and `width'.\nFor X, the value of `left' or `top' may be an integer,\nor a list (+ N) meaning N pixels relative to top/left corner,\nor a list (- N) meaning -N pixels relative to bottom/right corner.\nOn Nextstep, this just calls `ns-parse-geometry'.  ",
+       (string: Lisp_Object),
+       {
+  /* x and y don't need initialization, as they are not accessed
+     unless XParseGeometry sets them, in which case it always returns
+     a non-zero value.  */
+  let mut x: c_int = 0;              /* C: `int x UNINIT` */
+  let mut y: c_int = 0;              /* C: `int y UNINIT` */
+  let mut width: c_uint;
+  let mut height: c_uint;
+
+  width = 0;
+  height = 0;
+
+  CHECK_STRING (string);
+
+  /* C 6657-6660's `#ifdef HAVE_NS`.  */
+  #[cfg (feature = "have_ns")]
+  {
+    if !strchr (SSDATA (string), b' ' as c_int).is_null ()
+      { return calln! (Qns_parse_geometry (), string); }
+  }
+  let geometry: c_int = XParseGeometry (SSDATA (string), &raw mut x, &raw mut y,
+					&raw mut width, &raw mut height);
+  let mut result: Lisp_Object = Qnil ();
+  if geometry & XValue != 0
+    {
+      let element: Lisp_Object;
+
+      if x >= 0 && (geometry & XNegative) != 0
+	{ element = list3 (Qleft (), Qminus (), make_fixnum (-x as EMACS_INT)); }
+      else if x < 0 && (geometry & XNegative) == 0
+	{ element = list3 (Qleft (), Qplus (), make_fixnum (x as EMACS_INT)); }
+      else
+	{ element = Fcons (Qleft (), make_fixnum (x as EMACS_INT)); }
+      result = Fcons (element, result);
+    }
+
+  if geometry & YValue != 0
+    {
+      let element: Lisp_Object;
+
+      if y >= 0 && (geometry & YNegative) != 0
+	{ element = list3 (Qtop (), Qminus (), make_fixnum (-y as EMACS_INT)); }
+      else if y < 0 && (geometry & YNegative) == 0
+	{ element = list3 (Qtop (), Qplus (), make_fixnum (y as EMACS_INT)); }
+      else
+	{ element = Fcons (Qtop (), make_fixnum (y as EMACS_INT)); }
+      result = Fcons (element, result);
+    }
+
+  if geometry & WidthValue != 0
+    { result = Fcons (Fcons (Qwidth (), make_fixnum (width as EMACS_INT)), result); }
+  if geometry & HeightValue != 0
+    { result = Fcons (Fcons (Qheight (), make_fixnum (height as EMACS_INT)), result); }
+
+  return result;
+});
+
+
+/* Calculate the desired size and position of frame F.
+   Return the flags saying which aspects were specified.
+
+   Also set the win_gravity and size_hint_flags of F.
+
+   Adjust height for toolbar if TOOLBAR_P is 1.
+
+   This function does not make the coordinates positive.  */
+/* C 6708-6967: `gui_figure_window_size`.  */
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn gui_figure_window_size (f: *mut frame, parms: Lisp_Object,
+						 tabbar_p: bool, toolbar_p: bool) -> c_long
+{
+  let mut height: Lisp_Object;
+  let mut width: Lisp_Object;
+  let mut user_size: Lisp_Object;
+  let mut top: Lisp_Object;
+  let mut left: Lisp_Object;
+  let mut user_position: Lisp_Object;
+  let mut window_prompting: c_long = 0;
+  let dpyinfo: *mut Display_Info = FRAME_DISPLAY_INFO! (f);
+  let mut parent_done: c_int = -1;
+  let mut outer_done: c_int = -1;
+  let mut text_width: c_int = 80 * FRAME_COLUMN_WIDTH (f);
+  let mut text_height: c_int = 36 * FRAME_LINE_HEIGHT (f);
+
+  /* Window managers expect that if program-specified
+     positions are not (0,0), they're intentional, not defaults.  */
+  (*f).top_pos = 0;
+  (*f).left_pos = 0;
+
+  /* Calculate a tab bar height so that the user gets a text display
+     area of the size he specified with -g or via .Xdefaults.  Later
+     changes of the tab bar height don't change the frame size.  This
+     is done so that users can create tall Emacs frames without having
+     to guess how tall the tab bar will get.  */
+  if tabbar_p && FRAME_TAB_BAR_LINES! (f) != 0
+    {
+      if frame_default_tab_bar_height != 0
+	/* A default tab bar height was already set by the display code
+	   for some other frame, use that.  */
+	{ FRAME_TAB_BAR_HEIGHT! (f) = frame_default_tab_bar_height; }
+      else
+	/* Calculate the height from various other settings.  For some
+	   reason, these are usually off by 2 hence of no use.  */
+	{
+	  let margin: c_int;
+	  let relief: c_int;
+
+	  relief = if tab_bar_button_relief < 0
+		   { DEFAULT_TAB_BAR_BUTTON_RELIEF }
+		   else { min (tab_bar_button_relief, 1000000) as c_int };
+
+	  if RANGED_FIXNUMP (1, Vtab_bar_button_margin, INT_MAX as EMACS_INT)
+	    { margin = XFIXNAT (Vtab_bar_button_margin) as c_int; }
+	  else if CONSP (Vtab_bar_button_margin)
+		   && RANGED_FIXNUMP (1, XCDR (Vtab_bar_button_margin), INT_MAX as EMACS_INT)
+	    { margin = XFIXNAT (XCDR (Vtab_bar_button_margin)) as c_int; }
+	  else
+	    { margin = 0; }
+
+	  FRAME_TAB_BAR_HEIGHT! (f)
+	    = DEFAULT_TAB_BAR_IMAGE_HEIGHT + 2 * margin + 2 * relief;
+	}
+    }
+
+  /* Calculate a tool bar height so that the user gets a text display
+     area of the size he specified with -g or via .Xdefaults.  Later
+     changes of the tool bar height don't change the frame size.  This
+     is done so that users can create tall Emacs frames without having
+     to guess how tall the tool bar will get.  */
+  if toolbar_p && FRAME_TOOL_BAR_LINES (f) != 0
+    {
+      if frame_default_tool_bar_height != 0
+	{ FRAME_TOOL_BAR_HEIGHT! (f) = frame_default_tool_bar_height; }
+      else
+	{
+	  let margin: c_int;
+	  let relief: c_int;
+
+	  relief = if tool_bar_button_relief < 0
+		   { DEFAULT_TOOL_BAR_BUTTON_RELIEF }
+		   else { min (tool_bar_button_relief, 1000000) as c_int };
+
+	  if RANGED_FIXNUMP (1, Vtool_bar_button_margin, INT_MAX as EMACS_INT)
+	    { margin = XFIXNAT (Vtool_bar_button_margin) as c_int; }
+	  else if CONSP (Vtool_bar_button_margin)
+		   && RANGED_FIXNUMP (1, XCDR (Vtool_bar_button_margin), INT_MAX as EMACS_INT)
+	    { margin = XFIXNAT (XCDR (Vtool_bar_button_margin)) as c_int; }
+	  else
+	    { margin = 0; }
+
+	  FRAME_TOOL_BAR_HEIGHT! (f)
+	    = DEFAULT_TOOL_BAR_IMAGE_HEIGHT + 2 * margin + 2 * relief;
+	}
+    }
+
+  /* Ensure that earlier new_width and new_height settings won't
+     override what we specify below.  */
+  (*f).new_width = -1;
+  (*f).new_height = -1;
+
+  height = gui_display_get_arg (dpyinfo, parms, Qheight (), std::ptr::null (),
+				std::ptr::null (), RES_TYPE_NUMBER);
+  width = gui_display_get_arg (dpyinfo, parms, Qwidth (), std::ptr::null (),
+			       std::ptr::null (), RES_TYPE_NUMBER);
+  if !BASE_EQ (width, Qunbound ()) || !BASE_EQ (height, Qunbound ())
+    {
+      if !BASE_EQ (width, Qunbound ())
+	{
+	  if CONSP (width) && EQ (XCAR (width), Qtext_pixels ())
+	    {
+	      CHECK_FIXNUM (XCDR (width));
+	      if XFIXNUM (XCDR (width)) < 0 || XFIXNUM (XCDR (width)) > INT_MAX as EMACS_INT
+		{ xsignal1 (Qargs_out_of_range (), XCDR (width)); }
+
+	      text_width = XFIXNUM (XCDR (width)) as c_int;
+	    }
+	  else if FLOATP (width)
+	    {
+	      let d_width: c_double = XFLOAT_DATA (width);
+
+	      if d_width < 0.0 || d_width > 1.0
+		{ xsignal1 (Qargs_out_of_range (), width); }
+	      else
+		{
+		  let new_width: c_int = frame_float (f, width, FRAME_FLOAT_WIDTH,
+						      &raw mut parent_done, &raw mut outer_done, -1);
+
+		  if new_width > -1
+		    { text_width = new_width; }
+		}
+	    }
+	  else
+	    {
+	      CHECK_FIXNUM (width);
+	      if XFIXNUM (width) < 0 || XFIXNUM (width) > INT_MAX as EMACS_INT
+		{ xsignal1 (Qargs_out_of_range (), width); }
+
+	      text_width = (XFIXNUM (width) * FRAME_COLUMN_WIDTH (f) as EMACS_INT) as c_int;
+	    }
+	}
+
+      if !BASE_EQ (height, Qunbound ())
+	{
+	  if CONSP (height) && EQ (XCAR (height), Qtext_pixels ())
+	    {
+	      CHECK_FIXNUM (XCDR (height));
+	      if XFIXNUM (XCDR (height)) < 0 || XFIXNUM (XCDR (height)) > INT_MAX as EMACS_INT
+		{ xsignal1 (Qargs_out_of_range (), XCDR (height)); }
+
+	      text_height = XFIXNUM (XCDR (height)) as c_int;
+	    }
+	  else if FLOATP (height)
+	    {
+	      let d_height: c_double = XFLOAT_DATA (height);
+
+	      if d_height < 0.0 || d_height > 1.0
+		{ xsignal1 (Qargs_out_of_range (), height); }
+	      else
+		{
+		  let new_height: c_int = frame_float (f, height, FRAME_FLOAT_HEIGHT,
+						       &raw mut parent_done, &raw mut outer_done, -1);
+
+		  if new_height > -1
+		    { text_height = new_height; }
+		}
+	    }
+	  else
+	    {
+	      CHECK_FIXNUM (height);
+	      if XFIXNUM (height) < 0 || XFIXNUM (height) > INT_MAX as EMACS_INT
+		{ xsignal1 (Qargs_out_of_range (), height); }
+
+	      text_height = (XFIXNUM (height) * FRAME_LINE_HEIGHT (f) as EMACS_INT) as c_int;
+	    }
+	}
+
+      user_size = gui_display_get_arg (dpyinfo, parms, Quser_size (), std::ptr::null (),
+				       std::ptr::null (), RES_TYPE_NUMBER);
+      if !NILP (user_size) && !BASE_EQ (user_size, Qunbound ())
+	{ window_prompting |= USSize; }
+      else
+	{ window_prompting |= PSize; }
+    }
+
+  adjust_frame_size (f, text_width, text_height, 5, false, Qgui_figure_window_size ());
+
+  top = gui_display_get_arg (dpyinfo, parms, Qtop (), std::ptr::null (),
+			     std::ptr::null (), RES_TYPE_NUMBER);
+  left = gui_display_get_arg (dpyinfo, parms, Qleft (), std::ptr::null (),
+			      std::ptr::null (), RES_TYPE_NUMBER);
+  user_position = gui_display_get_arg (dpyinfo, parms, Quser_position (),
+				       std::ptr::null (), std::ptr::null (),
+				       RES_TYPE_NUMBER);
+  if ! BASE_EQ (top, Qunbound ()) || ! BASE_EQ (left, Qunbound ())
+    {
+      if EQ (top, Qminus ())
+	{
+	  (*f).top_pos = 0;
+	  window_prompting |= YNegative as c_long;
+	}
+      else if CONSP (top) && EQ (XCAR (top), Qminus ())
+	       && CONSP (XCDR (top))
+	       && RANGED_FIXNUMP (-(INT_MAX as EMACS_INT), XCAR (XCDR (top)),
+				  INT_MAX as EMACS_INT)
+	{
+	  (*f).top_pos = -XFIXNUM (XCAR (XCDR (top))) as c_int;
+	  window_prompting |= YNegative as c_long;
+	}
+      else if CONSP (top) && EQ (XCAR (top), Qplus ())
+	       && CONSP (XCDR (top))
+	       && TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, XCAR (XCDR (top)),
+				       INT_MAX as EMACS_INT)
+	{
+	  (*f).top_pos = XFIXNUM (XCAR (XCDR (top))) as c_int;
+	}
+      else if FLOATP (top)
+	{ (*f).top_pos = frame_float (f, top, FRAME_FLOAT_TOP, &raw mut parent_done,
+				     &raw mut outer_done, 0); }
+      else if BASE_EQ (top, Qunbound ())
+	{ (*f).top_pos = 0; }
+      else
+	{
+	  (*f).top_pos = check_integer_range (top, INT_MIN as intmax_t,
+					      INT_MAX as intmax_t) as c_int;
+	  if (*f).top_pos < 0
+	    { window_prompting |= YNegative as c_long; }
+	}
+
+      if EQ (left, Qminus ())
+	{
+	  (*f).left_pos = 0;
+	  window_prompting |= XNegative as c_long;
+	}
+      else if CONSP (left) && EQ (XCAR (left), Qminus ())
+	       && CONSP (XCDR (left))
+	       && RANGED_FIXNUMP (-(INT_MAX as EMACS_INT), XCAR (XCDR (left)),
+				  INT_MAX as EMACS_INT)
+	{
+	  (*f).left_pos = -XFIXNUM (XCAR (XCDR (left))) as c_int;
+	  window_prompting |= XNegative as c_long;
+	}
+      else if CONSP (left) && EQ (XCAR (left), Qplus ())
+	       && CONSP (XCDR (left))
+	       && TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, XCAR (XCDR (left)),
+				       INT_MAX as EMACS_INT)
+	{
+	  (*f).left_pos = XFIXNUM (XCAR (XCDR (left))) as c_int;
+	}
+      else if FLOATP (left)
+	{ (*f).left_pos = frame_float (f, left, FRAME_FLOAT_LEFT, &raw mut parent_done,
+				      &raw mut outer_done, 0); }
+      else if BASE_EQ (left, Qunbound ())
+	{ (*f).left_pos = 0; }
+      else
+	{
+	  (*f).left_pos = check_integer_range (left, INT_MIN as intmax_t,
+					      INT_MAX as intmax_t) as c_int;
+	  if (*f).left_pos < 0
+	    { window_prompting |= XNegative as c_long; }
+	}
+
+      if !NILP (user_position) && ! BASE_EQ (user_position, Qunbound ())
+	{ window_prompting |= USPosition; }
+      else
+	{ window_prompting |= PPosition; }
+    }
+
+  if window_prompting & (XNegative as c_long) != 0
+    {
+      if window_prompting & (YNegative as c_long) != 0
+	{ (*f).win_gravity = SouthEastGravity; }
+      else
+	{ (*f).win_gravity = NorthEastGravity; }
+    }
+  else
+    {
+      if window_prompting & (YNegative as c_long) != 0
+	{ (*f).win_gravity = SouthWestGravity; }
+      else
+	{ (*f).win_gravity = NorthWestGravity; }
+    }
+
+  (*f).size_hint_flags = window_prompting as c_int;
+
+  return window_prompting;
+}
+
+/* C 6971: `#endif /* HAVE_WINDOW_SYSTEM */` - the run's end, text only.  */
+
 
 /* C 6973-6999's two pointer-visibility helpers.  `frame_make_pointer_invisible` is declared
    at the crate root by `include/frame.rs` (frame.h 1506), so the definition lives in a

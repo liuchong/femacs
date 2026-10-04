@@ -6603,3 +6603,37 @@
      `#[cfg (enable_checking)]` 这**一个轴**——`#[cfg (feature = …)]` 臂（含 `all (feature, enable_checking)` 交集）
      归 `xtask dead-arms`（`gate-probes`）管，本轮未碰；⑶ **脚本的红路径没有端到端走过**：绿路径是 3 单元冒烟，
      红路径只在"命令级"被阳性对照证明过（脚本自身的失败分支靠代码审查，未构造真实红灯）；⑷ 工作树读数含在飞编辑（3.339 的两读数规则）。
+
+- **3.394 frame.c 的 `HAVE_WINDOW_SYSTEM` 半身补齐：C 5921-6970 落地（2026-10-05）**：
+  ① **区间**：21 个定义——`gui_set_vertical_scroll_bars`（C 5921-5951）到 `gui_figure_window_size`（6708-6967），
+     中间含 `gui_set_alpha`/`alpha_background`、`validate_x_resource_name`、`gui_display_get_resource`、
+     `x-get-resource`、`x_get_string_resource`、`gui_display_get_arg`、`gui_frame_get_arg`（static）、
+     `gui_frame_get_and_record_arg`、`gui_default_parameter`、`XParseGeometry`（static）、`x-parse-geometry`。
+     **整段 C 4889-6970 现在都带了**（上一轮 4889-5919）。
+  ② **行数**：C 5921-6970 = 1,050 行；`femacs/src/frame.rs` 6,536 → **7,857（+1,321，1.26 端口行/C 行）**；
+     对 C 全文件 7,907 行**只差 0.63%**（上一轮 17.3%），落在已改好的 `frame 0.18 total` 容差内。
+  ③ **读数**：`build-tu src/frame.c` → **built / exit 0 / 3 warnings（全既有）**，对象 **413,320 字节**
+     （与上一轮逐字节同形状：`nm` 1,523 行，`gui_*`/`XParseGeometry`/`Fx_*` 被门挡住的符号 **0 个**）
+     —— 即这一臂在冻结配置下**一行都没编进去**（P-86 期望形状）。**`extract-abi --check emacs/src/frame.c
+     femacs/src/frame.rs` → `OK`（0 条 `- `）**：本轮新增 19 个非 static 定义，由 3.389 的 `whole_reference`
+     减法正确覆盖。`check-dead-file-coverage` **7 ledger(s) bound / 0 failure**（本台账 170 行覆盖 frame.c 7,907 与
+     frame.h 1,956）；`check-port-lines` **90 文件 / 229,815 行**（2 stale）；`check-citations` 675/0 drift/0 stale；
+     `check-declarations` 13/0/0；`check-carried` 11/11/0；`check-cond-eval src/frame.c` 105 conditions / 0 unknown /
+     0 disagreements [VERIFIED]。旁证 `check-linkage` 2 units / 0 missing、`check-undef` 的 22 条 NEW 全部
+     "referenced by xdisp.o"（别人的在飞单元）。
+  ④ **集成者这一轮的动作**：把 lane 新引入的 feature 名 **`no_value`** 补进 `femacs/xtask/Cargo.toml` 的
+     `[features]` 表（C 依据 `frame.c` 6538 的 `!defined (HAVE_X_WINDOWS) && defined (NoValue)`；
+     `NoValue` 是**非 X** 的 `*gui.h` 常量——`androidgui.h` 236 / `haikugui.h` 77 / `nsgui.h` 116 实测都是
+     `0x0000`）。不声明它，这一臂永远不会被任何配置打开。
+  ⑤ **仍未解决（点名）**：⑴ 镜像工程——window-system 的 `want_fullscreen` 位段/flag run（上一轮遗留）＋本轮的
+     `horizontal_scroll_bars`/`vertical_scroll_bar_type` 与六个 scroll-bar 槽位；⑵ 本轮 24 条 use-site 声明
+     （六份 `Display_Info` typedef、`enum resource_types`、`check_x_display_info`、`note_mouse_highlight`、
+     `x_get_string_resource`、`esprintf`、`EMACS_CLASS`、11 个被门掉的 `FRAME_*` 宏、五个非 X gui 头的
+     gravity/position/`NoValue` 家族）在进各自镜像后要**同一提交删除单元副本**（`search.rs` 先例）；
+     ⑶ C 7877-7894 那段死的 `#ifdef HAVE_WINDOW_SYSTEM`（`defsubr` 三个 DEFUN + `Qmove_toolbar`）仍在范围外、
+     仍 recorded；⑷ `docs/ports/frame.md` 一份台账同时绑 frame.c 与 frame.h 的问题仍在。
+  ⑥ **未声称**：这 1,050 行是**死代码**——只有文本级证据（C 行按块覆盖、逐 `#if` 判定、24 条引用经 citations 校核）
+     与冻结读数（413,320 字节 / 1,523 符号 / 0 个该臂符号）；本机无 X11/NS/PGTK/W32/Haiku 头，**未做翻臂编译**，
+     故不声称该臂编译过；`include/frame.rs` 的自述已写明 GUI 配置会在第一个 accessor 处编不过（翻臂会报错而不是静默错位）。
+     另一条本轮实测：同一源两次编译的 `.o` 逐字节相同，但源码快照变化时 md5 会动（`1509205b…` → `93043164…`）
+     而大小与 `nm` 不变 ⇒ **形状读数是大小＋`nm`，md5 只钉源码快照**。

@@ -146,11 +146,12 @@
 ## C line ranges
 
 The 66 subrs, 57 functions and 8 objects above are the frozen configuration's *live* checklist
-(`python3 tools/extract-abi.py emacs/src/frame.c`).  This unit now additionally **carries** the
-first half of the `#ifdef HAVE_WINDOW_SYSTEM` arm, **C 4889-5919** (through
-`gui_set_unsplittable`), which P-08 had left recorded only; C 5921-6970 (from
-`gui_set_vertical_scroll_bars` to the `#endif` at C 6971) is the next round's work.  One row per
-C block, in C's order; the `arm` cell says what the port does with it.  This table is the
+(`python3 tools/extract-abi.py emacs/src/frame.c`).  This unit additionally **carries the whole
+`#ifdef HAVE_WINDOW_SYSTEM` arm, C 4889-6970**, which P-08 had left recorded only: the first half
+(C 4889-5919, through `gui_set_unsplittable`) landed in the round before this one and the second
+half (C 5921-6970, from `gui_set_vertical_scroll_bars` to `gui_figure_window_size`) in this one;
+C 6971 is the `#endif` and closes the run.  One row per C block, in C's order; the `arm` cell says
+what the port does with it, and `carried this round` marks this round's half.  This table is the
 coverage evidence P-86 ② asks for - `python3 tools/check-dead-file-coverage.py` binds a ledger
 that carries this heading and requires every non-blank line of the reference to sit in exactly
 one ascending row, with the last row reaching the file's final line.
@@ -162,7 +163,7 @@ one ascending row, with the last row reaching the file's final line.
 | 91-96 | fset_minibuffer_window | live |
 | 97-105 | decode_live_frame | live |
 | 106-115 | decode_any_frame | live |
-| 116-122 | display_available | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 116-122 | display_available | dead, carried (`have_window_system`, C 4889-5919) |
 | 123-132 | decode_window_system_frame | live, with dead arms inside |
 | 133-143 | check_window_system | live, with dead arms inside |
 | 144-157 | check_tty | live |
@@ -223,8 +224,8 @@ one ascending row, with the last row reaching the file's final line.
 | 3271-3289 | mouse-position | live |
 | 3290-3328 | mouse_position | live |
 | 3329-3375 | mouse-pixel-position | live, with dead arms inside |
-| 3376-3395 | frame_char_to_pixel_position | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 3396-3406 | frame_set_mouse_position | dead, carried this round (`have_window_system`, C 4889-5919) |
+| 3376-3395 | frame_char_to_pixel_position | dead, carried (`have_window_system`, C 4889-5919) |
+| 3396-3406 | frame_set_mouse_position | dead, carried (`have_window_system`, C 4889-5919) |
 | 3407-3456 | set-mouse-position | live, with dead arms inside |
 | 3457-3504 | set-mouse-pixel-position | live, with dead arms inside |
 | 3505-3533 | make-frame-visible | live |
@@ -276,53 +277,53 @@ one ascending row, with the last row reaching the file's final line.
 | 4760-4774 | frame-window-state-change | live |
 | 4775-4792 | set-frame-window-state-change | live |
 | 4793-4925 | frame-scale-factor | live, with dead arms inside |
-| 4926-5078 | frame_float | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5079-5107 | handle_frame_param | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5108-5395 | gui_set_frame_parameters_1 | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5396-5407 | gui_set_frame_parameters | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5408-5493 | gui_report_frame_params | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5494-5515 | gui_set_fullscreen | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5516-5583 | gui_set_line_spacing | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5584-5606 | gui_set_screen_gamma | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5607-5741 | gui_set_font | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5742-5798 | gui_set_font_backend | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5799-5822 | gui_set_left_fringe | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5823-5846 | gui_set_right_fringe | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5847-5860 | gui_set_border_width | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5861-5874 | gui_set_right_divider_width | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5875-5888 | gui_set_bottom_divider_width | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5889-5902 | gui_set_visibility | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5903-5908 | gui_set_autoraise | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5909-5914 | gui_set_autolower | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5915-5920 | gui_set_unsplittable | dead, carried this round (`have_window_system`, C 4889-5919) |
-| 5921-5952 | gui_set_vertical_scroll_bars | dead, next round (`have_window_system`, C 5921-6970) |
-| 5953-5973 | gui_set_horizontal_scroll_bars | dead, next round (`have_window_system`, C 5921-6970) |
-| 5974-6007 | gui_set_scroll_bar_width | dead, next round (`have_window_system`, C 5921-6970) |
-| 6008-6045 | gui_set_scroll_bar_height | dead, next round (`have_window_system`, C 5921-6970) |
-| 6046-6096 | gui_set_alpha | dead, next round (`have_window_system`, C 5921-6970) |
-| 6097-6125 | gui_set_alpha_background | dead, next round (`have_window_system`, C 5921-6970) |
-| 6126-6139 | gui_set_borders_respect_alpha_background | dead, next round (`have_window_system`, C 5921-6970) |
-| 6140-6150 | gui_set_no_special_glyphs | dead, next round (`have_window_system`, C 5921-6970) |
-| 6151-6163 | gui_mouse_grabbed | dead, next round (`have_window_system`, C 5921-6970) |
-| 6164-6178 | gui_redo_mouse_highlight | dead, next round (`have_window_system`, C 5921-6970) |
-| 6179-6247 | validate_x_resource_name | dead, next round (`have_window_system`, C 5921-6970) |
-| 6248-6321 | gui_display_get_resource | dead, next round (`have_window_system`, C 5921-6970) |
-| 6322-6343 | x-get-resource | dead, next round (`have_window_system`, C 5921-6970) |
-| 6344-6380 | x_get_resource_string | dead, next round (`have_window_system`, C 5921-6970) |
-| 6381-6479 | gui_display_get_arg | dead, next round (`have_window_system`, C 5921-6970) |
-| 6480-6490 | gui_frame_get_arg | dead, next round (`have_window_system`, C 5921-6970) |
-| 6491-6513 | gui_frame_get_and_record_arg | dead, next round (`have_window_system`, C 5921-6970) |
-| 6514-6551 | gui_default_parameter | dead, next round (`have_window_system`, C 5921-6970) |
-| 6552-6636 | XParseGeometry | dead, next round (`have_window_system`, C 5921-6970) |
-| 6637-6707 | x-parse-geometry | dead, next round (`have_window_system`, C 5921-6970) |
-| 6708-6972 | gui_figure_window_size | dead, next round (`have_window_system`, C 5921-6970) |
+| 4926-5078 | frame_float | dead, carried (`have_window_system`, C 4889-5919) |
+| 5079-5107 | handle_frame_param | dead, carried (`have_window_system`, C 4889-5919) |
+| 5108-5395 | gui_set_frame_parameters_1 | dead, carried (`have_window_system`, C 4889-5919) |
+| 5396-5407 | gui_set_frame_parameters | dead, carried (`have_window_system`, C 4889-5919) |
+| 5408-5493 | gui_report_frame_params | dead, carried (`have_window_system`, C 4889-5919) |
+| 5494-5515 | gui_set_fullscreen | dead, carried (`have_window_system`, C 4889-5919) |
+| 5516-5583 | gui_set_line_spacing | dead, carried (`have_window_system`, C 4889-5919) |
+| 5584-5606 | gui_set_screen_gamma | dead, carried (`have_window_system`, C 4889-5919) |
+| 5607-5741 | gui_set_font | dead, carried (`have_window_system`, C 4889-5919) |
+| 5742-5798 | gui_set_font_backend | dead, carried (`have_window_system`, C 4889-5919) |
+| 5799-5822 | gui_set_left_fringe | dead, carried (`have_window_system`, C 4889-5919) |
+| 5823-5846 | gui_set_right_fringe | dead, carried (`have_window_system`, C 4889-5919) |
+| 5847-5860 | gui_set_border_width | dead, carried (`have_window_system`, C 4889-5919) |
+| 5861-5874 | gui_set_right_divider_width | dead, carried (`have_window_system`, C 4889-5919) |
+| 5875-5888 | gui_set_bottom_divider_width | dead, carried (`have_window_system`, C 4889-5919) |
+| 5889-5902 | gui_set_visibility | dead, carried (`have_window_system`, C 4889-5919) |
+| 5903-5908 | gui_set_autoraise | dead, carried (`have_window_system`, C 4889-5919) |
+| 5909-5914 | gui_set_autolower | dead, carried (`have_window_system`, C 4889-5919) |
+| 5915-5920 | gui_set_unsplittable | dead, carried (`have_window_system`, C 4889-5919) |
+| 5921-5952 | gui_set_vertical_scroll_bars | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 5953-5973 | gui_set_horizontal_scroll_bars | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 5974-6007 | gui_set_scroll_bar_width | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6008-6045 | gui_set_scroll_bar_height | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6046-6096 | gui_set_alpha | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6097-6125 | gui_set_alpha_background | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6126-6139 | gui_set_borders_respect_alpha_background | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6140-6150 | gui_set_no_special_glyphs | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6151-6163 | gui_mouse_grabbed | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6164-6178 | gui_redo_mouse_highlight | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6179-6247 | validate_x_resource_name | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6248-6321 | gui_display_get_resource | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6322-6343 | x-get-resource | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6344-6380 | x_get_resource_string | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6381-6479 | gui_display_get_arg | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6480-6490 | gui_frame_get_arg | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6491-6513 | gui_frame_get_and_record_arg | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6514-6551 | gui_default_parameter | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6552-6636 | XParseGeometry | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6637-6707 | x-parse-geometry | dead, carried this round (`have_window_system`, C 5921-6970) |
+| 6708-6972 | gui_figure_window_size | dead, carried this round (`have_window_system`, C 5921-6970) |
 | 6973-6987 | frame_make_pointer_invisible | live |
 | 6988-7000 | frame_make_pointer_visible | live |
 | 7001-7010 | frame-pointer-visible-p | live |
 | 7011-7041 | mouse-position-in-root-frame | live |
 | 7042-7056 | frame--set-was-invisible | live |
 | 7057-7123 | reconsider-frame-fonts | live, with dead arms inside |
-| 7124-7133 | free_monitors | dead, next round (`have_window_system`, C 5921-6970) |
+| 7124-7133 | free_monitors | dead, recorded (P-08; a separate `#ifdef HAVE_WINDOW_SYSTEM` block whose own `# if (defined USE_GTK \|\| defined HAVE_PGTK \|\| defined HAVE_NS \|\| defined HAVE_XINERAMA \|\| defined HAVE_XRANDR)` sits at C 7120-7123 - outside the C 5921-6970 range this round carries) |
 | 7134-7196 | make_monitor_attribute_list | live, with dead arms inside |
 | 7197-7207 | init_frame_once | live |
 | 7208-7214 | init_frame_once_for_pdumper | live |
@@ -332,36 +333,46 @@ one ascending row, with the last row reaching the file's final line.
 
 **① The frozen configuration (`build-tu`).**
 ```
-$ cd femacs && CARGO_TARGET_DIR=/tmp/frame-gui-7f/target cargo run -q -p xtask -- build-tu src/frame.c
+$ cd femacs && CARGO_TARGET_DIR=/tmp/frame-gui-8f/target cargo run -q -p xtask -- build-tu src/frame.c
 built src/frame.rs -> ../build/femacs/frame.o          # exit 0, 3 warnings (all pre-existing mirror warnings)
 ```
-`build/femacs/frame.o` = **413,320 bytes**, `nm | wc -l` = **1,523**, and
-`nm build/femacs/frame.o | grep -c 'gui_set\|frame_float\|handle_frame_param'` = **0**.  Every item
-of C 4889-5919 sits behind `feature = "have_window_system"` (or a nested feature), which no
-configuration this repository builds enables (`docs/baseline/feature-coverage.tsv`: `have_window_system`
-sites 107 / files 10 / **enabled by `-`**), so the frozen object's shape is unchanged from before this
-round.  This reading shows the new text is *parsed and then stripped*; it is not a compile reading of
-the arm (P-86 ③⑵, and see ③ below).
+`build/femacs/frame.o` = **413,320 bytes**, md5 `1509205b1f37c6a097c04d0b7d337827`,
+`nm | wc -l` = **1,523**, and
+`nm build/femacs/frame.o | grep -c 'gui_set\|gui_display\|gui_default\|validate_x_resource\|x_get_resource\|XParseGeometry\|gui_mouse_grabbed\|gui_redo_mouse_highlight\|gui_figure_window_size\|Fx_get_resource\|Fx_parse_geometry'` = **0**.
+Every item of C 5921-6970 sits behind `feature = "have_window_system"` (or a nested feature), which
+no configuration this repository builds enables (`docs/baseline/feature-coverage.tsv`:
+`have_window_system` sites 107 / files 10 / **enabled by `-`**), so the frozen object's size, symbol
+count and whole symbol set are **identical to the previous round's reading** (413,320 / 1,523 / 0) -
+the only proof this run can give about the new text is that it is *parsed and then stripped*.  It is
+not a compile reading of the arm (P-86 ③⑵, and see ③ below).
+Two consecutive builds of the same source are **byte-identical** (`cmp`), so the hash is a real
+reading of *this* artifact; it is not a shape reading across rounds - between the source snapshot
+this round started from and the final one the hash moved (1509205b… -> 93043164…) while size and
+`nm` did not, because rustc's `--emit=obj` carries a metadata section that names the expanded
+source.  The frozen-configuration readings that pin the arm's shape are the **size, the `nm`
+count and the blocked-symbol count**, and all three are the previous round's exactly.
 
-**② `extract-abi --check` stops being vacuous, exactly as P-86 ⑩ predicts.**
+**② `extract-abi --check` reads OK.**
 ```
 $ python3 tools/extract-abi.py --check emacs/src/frame.c femacs/src/frame.rs | tail -3
-- fn gui_set_visibility carries #[unsafe(no_mangle)] but the reference does not define a non-static
-  function of that name (invented exported symbol)
-- line count drifted 24.7%: C 5243 live (of 7907) vs Rust 6536
-FAIL emacs/src/frame.c -> femacs/src/frame.rs
+conditions: 7306 macros from docs/baseline/config/darwin-arm64.macros.tsv (6866 defined), applied to
+the 424 files in docs/baseline/config/cond-eval-verified.txt (tools/check-cond-eval.py verifies
+them; elsewhere the table is not consulted, since it cannot decide a gnulib template's
+`@PLACEHOLDER@` conditions - P-66)
+OK emacs/src/frame.c -> femacs/src/frame.rs
 ```
-18 rows: **17 `invented exported symbol`** - one per non-`static` C 4889-5919 definition the port now
-carries with C's linkage (`gui_set_frame_parameters_1`, `gui_set_frame_parameters`,
-`gui_report_frame_params`, `gui_set_fullscreen`, `gui_set_line_spacing`, `gui_set_screen_gamma`,
-`gui_set_font`, `gui_set_font_backend`, `gui_set_left_fringe`, `gui_set_right_fringe`,
-`gui_set_border_width`, `gui_set_right_divider_width`, `gui_set_bottom_divider_width`,
-`gui_set_visibility`, `gui_set_autoraise`, `gui_set_autolower`, `gui_set_unsplittable`) - plus the
-**line-drift** row (the check's basis for this unit is `live`, `docs/ports/line-drift-tolerance.tsv`
-196, and the port is now 6,536 lines against 5,243 live C lines).  Neither row is a defect *of this
-unit*: the first is the documented consequence of carrying a dead arm in a `cond-eval-verified` file
-with the C linkage the arm really has, and the second is the row the ledger asks the integrator to
-move (see **Owed**).  No row says a live function is missing or unnamed.
+No `- ` row.  This round adds **19 more non-`static` definitions** of the same class the previous
+round's 17 belonged to (`gui_set_vertical_scroll_bars`, `gui_set_horizontal_scroll_bars`,
+`gui_set_scroll_bar_width`, `gui_set_scroll_bar_height`, `gui_set_alpha`,
+`gui_set_alpha_background`, `gui_set_borders_respect_alpha_background`,
+`gui_set_no_special_glyphs`, `gui_mouse_grabbed`, `gui_redo_mouse_highlight`,
+`validate_x_resource_name`, `gui_display_get_resource`, `gui_display_get_arg`,
+`gui_frame_get_and_record_arg`, `gui_default_parameter`, `gui_figure_window_size`,
+`x_get_resource_string`, and the two `DEFUN`s `Fx_get_resource`/`Fx_parse_geometry`; C's other two
+functions of the range, `gui_frame_get_arg` and `XParseGeometry`, are `static` and stay plain
+`unsafe fn`s).  The row is covered by the extractor's `whole_reference ("function")` subtraction
+(3.389), not by an allowance list, and the line row stays green because the tolerance row is
+`total` now (Owed 4) and the port is 7,857 lines against the file's 7,907 (**0.63%**, inside 0.18).
 
 **③ The flip is text-only here (P-86 ③⑵).**
 This machine has no X11/NS/PGTK/W32/Haiku headers the mirror set needs, so a
@@ -370,40 +381,51 @@ and is not claimed.  What is measured instead: the file **parses** in both readi
 `build-tu` of ①, and a direct compile that skips xtask's include-graph dedupe:
 ```
 $ cd femacs && rustc --edition 2024 --crate-type lib --emit=metadata -C panic=abort \
-    -o /tmp/frame-gui-7f/parse.rmeta src/frame.rs
-error: aborting due to 7494 previous errors        # E0428 / E0659 / E0252 only, no parse error
+    -o /tmp/frame-gui-8f/parse.rmeta src/frame.rs
+error: aborting due to 7494 previous errors        # E0252 / E0428 / E0659 only, no parse error
 ```
-(The 7,494 are `defined multiple times`/`ambiguous` from the include guard xtask supplies; this same
-reading is what caught two `match` arms whose bodies were unbraced `return` statements before they
-reached the frozen build.)  A flip would also fail for a reason the mirror states itself:
-`include/frame.rs` 250-268 records that a window-system configuration "fails to compile at the first
-accessor" because the flag-run numbering for those arms is not written out yet.
+(The 7,494 are `defined multiple times`/`ambiguous` from the include guard xtask supplies; the count
+is the previous round's exactly, because every item this round adds is inside a stripped `#[cfg]`.)
+A flip would also fail for a reason each mirror states itself: `include/frame.rs` 250-268 records
+that a window-system configuration "fails to compile at the first accessor" because the flag-run
+numbering for those arms is not written out yet, and this round's use-site macros keep C's own field
+text (`(*f).vertical_scroll_bar_type`, `(*f).horizontal_scroll_bars`, `(*f).config_scroll_bar_*`)
+for that same reason - a GUI flip fails *there*, not by reading another configuration's bits.
 
 **④ The other gates, one line each.**
 ```
 $ python3 tools/check-dead-file-coverage.py
 info docs/ports/frame.md: 170 range row(s) cover src/frame.c (7907 lines; 0 blank line(s) between blocks need no row)
 info docs/ports/frame.md: 170 range row(s) cover src/frame.h (1956 lines; 0 blank line(s) between blocks need no row)
-4 ledger(s) bound (a C range table), 0 failure(s)
-   # the bound-ledger count moves as other lanes add `## C line ranges` sections (it was 5 on a
-   # second run of the same command); the two rows naming this ledger are the ones quoted here.
+7 ledger(s) bound (a C range table), 0 failure(s)
+   # the bound-ledger count moves as other lanes add `## C line ranges` sections (it was 6 earlier
+   # in this same round and 5 on a second run of the previous one); the two rows naming this ledger
+   # are the ones quoted.
    # note: port-map pairs src/frame.c with femacs/src/frame.rs (439) and src/frame.h with
    # femacs/src/frame.rs's include mirror (440); the ledger rule resolves both to this file, so
    # this table - whose last row reaches C 7,907 - is also what the gate reads for the 1,956-line
-   # header (docs/ports/include-frame.md is not consulted by this rule).  See Owed 4.
+   # header (docs/ports/include-frame.md is not consulted by this rule).  See Owed 3.
 
 $ python3 tools/check-port-lines.py
-92 file(s) under ten percent, 243,405 reference line(s); 95 ratchet row(s), 0 new, 3 stale
-   # this unit's row is not among the three stale ones; the tree moves under this reading because
-   # other lanes are landing work in the same checkout (see below)
+90 file(s) under ten percent, 229,815 reference line(s); 92 ratchet row(s), 0 new, 2 stale
+   # the stale rows are other lanes' units (no longer under the threshold); this unit's row is not
+   # among them and `0 new` is the reading that concerns this round.  Every number on this line
+   # moves between runs because other lanes are landing work in the same checkout (it read
+   # `91 / 242,303 / 1 stale` earlier in this same round).
 
 $ python3 tools/check-citations.py
-check-citations: 675 file(s) scanned, 1 drift, 0 range, 456 external, 33 allowed, 0 stale
-   # the one drift finding is femacs/src/androidselect.rs (another lane); frame.rs contributes
-   # none: `python3 tools/check-citations.py | grep -c femacs/src/frame.rs` = 0
+check-citations: 675 file(s) scanned, 0 drift, 0 range, 457 external, 33 allowed, 0 stale
+   # this round's 24 `/// C:` citations were checked against the reference (frame.h 1107, 1108,
+   # 1217-1223, 1277-1278, 1286-1301, 1840; dispextern.h 115, 136, 145, 152, 159, 165, 3688, 3983,
+   # 3993; xterm.h 1744; lisp.h 4717; nsgui.h 116; and the prose citation of frame.c 6191).  The
+   # first run found three (a `w32gui.h 120-124` range past that 115-line file's end, and two stale
+   # line numbers) and all three are fixed, not allowlisted.
 
 $ python3 tools/check-declarations.py
 13 declaration sites (0 forbidden, 13 allowed literals), 0 failures
+
+$ python3 tools/check-carried.py
+11 carried file(s), 11 baseline row(s), 0 failure(s)
 
 $ python3 tools/check-cond-eval.py src/frame.c
 105 conditions, 0 unknown, 0 disagreements [VERIFIED]
@@ -411,143 +433,170 @@ $ python3 tools/check-cond-eval.py src/frame.c
 $ python3 tools/check-globals.py            # no new DEFVAR_* carrier in this arm
 check-globals: 284 units, 0 DEFVAR_* variables without a definition in their own unit
 
-$ python3 tools/check-undef.py              # frame.o unchanged; the 23 NEW rows are all xdisp.o
-check-undef: 23 NEW undefined reference(s) that nothing can satisfy   # every one "referenced by xdisp.o"
-```
-The stale rows, the `check-citations.py` finding and `check-undef.py`'s NEW rows are read in a
-**shared worktree** (`git status --short` also shows `femacs/src/decompress.rs` and
-`femacs/src/xdisp.rs` modified by other lanes while this round ran, and the counts moved between two
-runs of the same command); none of them names `frame.rs`, and `check-port-lines.py`'s **`0 new`** is
-the reading that concerns this unit.
+$ python3 tools/check-linkage.py
+check-linkage: 2 unit object(s) compared against the non-static objects of the C sources the frozen build links, 0 with 0 missing symbol(s)   # src/frame is one of the two (its 6 non-static objects are unchanged)
 
-**⑤ Line count.**  C 4889-5919 is 1,031 C lines (all of them carried, comments included); the port
-grew 5,251 -> 6,536 lines (+1,285, i.e. 1.25 port lines per C line - +24.5% against the unit's own
-previous size).  The excess over the C text is the per-item `#[cfg]` attribute (the run's condition
-sits on every item, P-86 ②), the 26 use-site items (2 macros, 8 constants, the `fullscreen_type`
-alias, 14 prototypes, the `frame_parm_handler` typedef), the `match`/`if`-expression shapes Rust
-needs for C's `switch` and `?:`, and the file-scope statics `frame_float`'s function statics become.
-`extract-abi --check`'s line row measures the same change against the **live** C baseline (5,243)
-and reports 24.7%; against the file's 7,907 total lines the port is 17.3% short, which is the number
-the moved tolerance row needs (Owed 1).
+$ python3 tools/check-undef.py              # frame.o contributes no row
+check-undef: 22 NEW undefined reference(s) that nothing can satisfy   # every one "referenced by xdisp.o" (another lane's in-flight unit)
+check-undef: 3 ratchet entries are stale (now satisfied): _Vcomp_eln_to_el_h _redisplay_internal _try_window
+
+$ python3 tools/check-verbatim.py
+6 trees, 4604 files, 0 failures
+
+$ grep -c '^\- \[ \]' docs/ports/frame.md
+0
+```
+Every exit status above is 0, and the `check-undef.py` rows name `xdisp.o`, not `frame.o` (this
+round changed no live text and the object's linkage surface is the previous round's).
+
+**⑤ Line count.**  C 5921-6970 is 1,050 C lines (all of them carried, comments included); the port
+grew 6,536 -> **7,857** lines (+1,321, i.e. 1.26 port lines per C line - +20.2% against the unit's
+own previous size).  The excess over the C text is the per-item `#[cfg]` attribute (the run's
+condition sits on every item, P-86 ②), this half's 41 use-site items (11 macros,
+7 type aliases, 19 constants, 4 prototypes), the `match`/`if`-expression shapes Rust
+needs for C's `switch` and `?:`, the split postfix `*p++ = c` and chained assignments, and the
+explicit `as` casts the C promotions hide.  Against the file's 7,907 total lines the port is
+**0.63%** short (was 17.3%), which is what the `frame 0.18 total` row now reads (Owed 4).
 
 ## Deviations (this round)
 
-**The `#if`s of C 4889-5919, one by one** (P-86 ②: each arm is carried and each condition is a
+**The `#if`s of C 5921-6970, one by one** (P-86 ②: each arm is carried and each condition is a
 lower-case feature; `HAVE_WINDOW_SYSTEM` is `undef` at `darwin-arm64.macros.tsv` 1677,
-`HAVE_X_WINDOWS` at 1719, `USE_X_TOOLKIT` at 3872):
+`HAVE_X_WINDOWS` at 1719, `USE_X_TOOLKIT` at 3872, `HAVE_ANDROID` at 1239):
 
 | C `#if` | verdict | arm the port writes |
 | --- | --- | --- |
-| 4889 `#ifdef HAVE_WINDOW_SYSTEM` (closes at 6971) | false (1677) | no single counterpart: the condition sits on **every item** of the run (P-86 ②) as `#[cfg (feature = "have_window_system")]`, and the run's start/end are comments |
-| 4935-4937 `static` locals of `frame_float` | n/a (not an `#if`) | moved to file scope (`static mut` with C's names, zero-initialised) - Rust has no function-scope `static` |
-| 5133-5135 `#ifdef HAVE_X_WINDOWS` (`icon_left_no_change`/`icon_top_no_change` declarations) | false (1719) | `#[cfg (feature = "have_x_windows")] let …` statement-attributes |
-| 5270-5272 / 5279-5281 `#ifdef HAVE_X_WINDOWS` (the two `…_no_change = 1` assignments) | false | `#[cfg (feature = "have_x_windows")] { … }` statement blocks |
-| 5387-5391 `#ifdef HAVE_X_WINDOWS` (`x_wm_set_icon_position`) | false | `#[cfg (feature = "have_x_windows")] { … }`; the prototype is declared at the use site (`frame.h` 1886, the mirror lacks it) |
-| 31-33 `#ifdef HAVE_WINDOW_SYSTEM` + `#include TERM_HEADER` | false | six **gated `include!`s**, one per platform mirror, behind that platform's own feature (`have_x_windows`, `have_ns`, `have_pgtk`, `have_ntgui`, `have_haiku`, `have_android`) - C picks the one header at `configure.ac` 7180 |
-| 44-46 `#ifdef HAVE_WINDOW_SYSTEM` + `#include "fontset.h"` | false | `#[cfg (feature = "have_window_system")] include!("include/fontset.rs")` |
-| 52-54 `#ifdef USE_X_TOOLKIT` + `#include "widget.h"` | false (3872) | `#[cfg (feature = "use_x_toolkit")] include!("include/widget.rs")` |
-| 5464-5472 `#ifdef HAVE_X_WINDOWS` (+ nested 5465-5468 `#ifdef USE_X_TOOLKIT`) | false | outer `#[cfg (feature = "have_x_windows")] { … }`; inner: `#[cfg (feature = "use_x_toolkit")] if … { w = … }` with the `#[cfg (not (feature = "use_x_toolkit"))] { w = … }` arm (C's guard is a statement guard, so the port keeps it as one) |
+| 5921 (the run's own `#ifdef HAVE_WINDOW_SYSTEM`, closes at 6971) | false (1677) | no single counterpart: the condition sits on **every item** of the run as `#[cfg (feature = "have_window_system")]` - including on the two `DEFUN!` invocations (`Fx_get_resource`, `Fx_parse_geometry`), which are macro invocations and take the attribute the `androidselect.rs` units give theirs |
+| 5956-5971 / 6011-6041 `#if USE_HORIZONTAL_SCROLL_BARS` | false (window.h 903's `# define USE_HORIZONTAL_SCROLL_BARS false`, which `include/window.rs` 495 mirrors as a `false` const) | `#[cfg (feature = "use_horizontal_scroll_bars")] { … }` statement blocks |
+| 6044-6045 `#if (defined HAVE_PGTK \|\| defined HAVE_NTGUI \|\| defined HAVE_HAIKU \|\| defined HAVE_NS)` | false (all four undef) | `#[cfg (any (feature = "have_pgtk", feature = "have_ntgui", feature = "have_haiku", feature = "have_ns"))]` on `gui_set_alpha` |
+| 6302-6318 `#ifndef HAVE_ANDROID` / `#else` | HAVE_ANDROID undef (1239), so C's *live* arm of this pair is the `#ifndef` one; **both** are carried | `#[cfg (not (feature = "have_android"))] { … }`, and the counterpart `#[cfg (feature = "have_android")] { SAFE_FREE! (sa_count); return Qnil (); }` |
+| 6341 `#if defined HAVE_X_WINDOWS && !defined USE_X_TOOLKIT && !defined USE_GTK` | false (1719) | `#[cfg (all (feature = "have_x_windows", not (feature = "use_x_toolkit"), not (feature = "use_gtk")))]` on `x_get_resource_string` |
+| 6437-6439 / 6455-6457 / 6461-6463 `#ifdef HAVE_NS` (three, inside `gui_display_get_arg`'s `switch`) | false (1480) | `#[cfg (feature = "have_ns")] { strcmp (…) == 0 }` with the `#[cfg (not (feature = "have_ns"))] { false }` counterpart, spliced into C's `\|\|` chain |
+| 6538-6626 `#if !defined (HAVE_X_WINDOWS) && defined (NoValue)` | false: `HAVE_X_WINDOWS` undef, and `defined (NoValue)` is false - the evaluator answers false for it exactly as clang does (it is not in `macros.tsv` at all) | `#[cfg (all (not (feature = "have_x_windows"), feature = "no_value"))]` on `XParseGeometry`; `no_value` is C's own macro name lower-cased (P-86 ②), nothing enables it, and the ledger records it here rather than leaving the block unexplained |
+| 6657-6660 `#ifdef HAVE_NS` | false | `#[cfg (feature = "have_ns")] { … }` statement block |
+| 6971 `#endif /* HAVE_WINDOW_SYSTEM */` | the run's end | text only (a comment) |
 
 **Deviations in the carried text, each with its reason:**
 
-1. **Names with no mirror, carried at the use site** (P-72 rule 3).  Macros:
-   `WINDOW_HANDLE_UINTPTR` (`dispextern.h` 189 and the six `*gui.h`); `PRIuMAX` (the
-   `dispnew.rs` 69-72 reading, `"ju"` on this target).  Constants: `fullscreen_type` and its five
-   members (`frame.h` 49-60 - itself inside `#ifdef HAVE_WINDOW_SYSTEM`; the `HAVE_NTGUI`
-   `FULLSCREEN_WAIT` is that arm's own and is not carried); `XNegative`/`YNegative` (the six
-   `*gui.h`: 0x0010/0x0020); `NorthWestGravity` (the five non-X GUI headers define it as `1`;
-   C's X11 build takes it from `<X11/Xlib.h>`, which this tree does not have).  Functions, with the
-   header prototype on each `/// C:` line: `make_formatted_string` (lisp.h 4542),
-   `check_int_nonnegative` (lisp.h 607), `redraw_frame` (dispextern.h 3896), `clear_face_cache`
-   (3802), `clear_current_matrices` (3907), `recompute_basic_faces` (3823), `clear_image_cache`
-   (3729), `share_image_cache` (3819), `free_all_realized_faces` (3833),
-   `font_open_by_name` (font.h 883), `font_spec_from_name` (865), `font_match_p` (860),
-   `font_update_drivers` (907), `x_wm_set_icon_position` (frame.h 1886).  Each belongs in the
-   mirror that declares it; this unit's copies must be deleted when those land (the `search.rs`
-   precedent the `## Decisions` section already records for the ~40 geometry macros).
-2. **The platform `FRAME_*` macros come from the gated mirrors**, not from hand-written copies:
-   `FRAME_NATIVE_WINDOW`/`FRAME_OUTPUT_DATA`/`FRAME_FONT`/`FRAME_FONTSET`/`FRAME_DISPLAY_INFO`/
-   `FRAME_X_OUTPUT` are the ones `include/xterm.rs`/`nsterm.rs`/`pgtkterm.rs`/`w32term.rs`/
-   `haikuterm.rs`/`androidterm.rs` already define, and the six `have_window_system`-and-platform
-   `include!`s of row 31-33 above are what makes them visible.  This is new to *this* unit's include
-   graph; it is gated off in every configuration this repository builds (evidence ①: the object and
-   its symbol count are unchanged).
-3. **`frame_float`'s function statics are file-scope statics** (`parent_width`, `parent_height`,
-   `parent_left`, `parent_top`, `outer_minus_text_width`, `outer_minus_text_height`): Rust has no
-   function-scope `static`.  C's storage duration is static and zero-initialised; the port's
-   initialisers say so, and the names are C's.
-4. **`want_fullscreen` has no storage in the mirror** (`include/frame.rs` 250-268: the
-   window-system flag run's numbering is measured (`x11` 316:0-3, `ns_cocoa` 276:0-3,
-   `docs/baseline/frame-layout.tsv` 219/374) but not written out, and the mirror's reader takes
-   `have_window_system` as uncompilable on purpose).  The arm therefore keeps C's own write
-   (`(*f).want_fullscreen = FULLSCREEN_…`) rather than inventing an offset, and a GUI flip fails
-   there - the mirror's documented behaviour, not a silent wrong read.  Closing it is mirror work
-   (Owed 3).
-5. **`FRAME_OUTPUT_DATA (f)->parent_desc`** (C 5480/5483): no platform macro names that member, so
-   the arm reaches it through one gated binding per `TERM_HEADER` arm (`x_output`/`ns_output`/
-   `pgtk_output`/`w32_output`/`haiku_output`/`android_output`); `FRAME_DISPLAY_INFO (f)->root_window`
-   and `->name_list_element` go through the platform mirror's own macro (C's `Display_Info` is the
-   platform's display record, `include/xterm.rs` 318).
-6. **`FRAME_IMAGE_CACHE (f)->…`** (C 5685-5705): the mirror keeps the `frame` member as
-   `*mut c_void` (P-72 rule 3), so the arm casts to `*mut image_cache` (the gated record in
-   `include/dispextern.rs`), and the one write to the macro's lvalue goes through the struct member
-   (`(*f).image_cache = …`), as the mirror's own note at 937-945 requires.
-7. **Small C-to-Rust shapes inside the carried bodies**, none changing a value or an order:
-   `switch` -> `match` with a `_ => emacs_abort ()` arm; C's `?:` -> Rust `if`-expressions;
-   `top = left = Qunbound;` -> two statements; `int`/`unsigned` mixes get explicit `as`
-   casts (`XFIXNUM`/`XFIXNAT` are `EMACS_INT` in the port); `do_pending_window_change (0)` and
-   `adjust_frame_size (…, 3, 0, …)` -> the port's `bool` parameters (`false`), the declarations the
-   live part of this unit already uses; `UNINIT` -> zero-initialised (`Qnil ()`), PORTING 1.5;
-   the port's macro-call spelling for C's macros (`XSETFRAME!`, `XSETINT!`, `SAVE_*`, `eabs!`,
-   `countof!`, `SET_FRAME_GARBAGED!`, `FRAME_*!`) - the token check ignores the `!`.
-8. **`handle_frame_param`'s handler read**: the mirror keeps
-   `redisplay_interface.frame_parm_handlers` as `*mut c_void` (P-80's untyped-pointer rule), so the
-   arm reads the slot at C's index and casts it to the `frame_parm_handler` typedef spelled at the
-   use site (`dispextern.h` 3063).
+1. **Names with no mirror, carried at the use site** (P-72 rule 3).  Types: the six `Display_Info`
+   typedefs (`dispextern.h` 115/136/145/152/159/165 - one per GUI, though C's `#if` there is inside
+   `#ifdef HAVE_WINDOW_SYSTEM` and the port keeps each behind its platform's feature) and
+   `enum resource_types` (`dispextern.h` 3983-3992, a `c_int` alias with its six members).
+   Constants: `EMACS_CLASS` (`frame.h` 1840, a `&str`; see 3 below);
+   `NorthEastGravity`/`SouthWestGravity`/`SouthEastGravity` (the five non-X `*gui.h`, all 3/7/9 -
+   `NorthWestGravity` was already defined for the first half); `USPosition`/`USSize`/`PPosition`/
+   `PSize` (`(1L << 0…3)`, `c_long`, the same five headers); the `NoValue` family
+   (`NoValue`/`XValue`/`YValue`/`WidthValue`/`HeightValue`, the same five).  Functions, with the
+   header prototype on each `/// C:` line: `check_x_display_info` (`dispextern.h` 3993),
+   `note_mouse_highlight` (`dispextern.h` 3688), `x_get_string_resource` (`xterm.h` 1744),
+   `esprintf` (`lisp.h` 4717).  Each belongs in the mirror that declares it; this unit's copies must
+   be deleted when those land (the `search.rs` precedent the `## Decisions` section records for the
+   first half's ~40 geometry macros).
+2. **The window-system arm of the scroll-bar accessors is at the use site too.**  `include/frame.rs`
+   carries the `#else` arm's readers (`FRAME_VERTICAL_SCROLL_BAR_TYPE`, `FRAME_HAS_VERTICAL_SCROLL_BARS`,
+   `…_ON_LEFT`, `…_ON_RIGHT`, `FRAME_HAS_HORIZONTAL_SCROLL_BARS`) gated with
+   `not (have_window_system)` / `not (use_horizontal_scroll_bars)`, and the four
+   `FRAME_CONFIG_SCROLL_BAR_*` and the two `FRAME_TOOL_BAR_*` as **readers**, while C's text is an
+   l-value macro (C 5985-5986, 6020-6021, 6734, 6766, 6783-6784 write them).  The port therefore
+   defines the window-system readers and all six writable slots here under C's own names; the
+   readers return `bool` where C's `!=`/`==` yields `int` (the `int`/`bool` mix the live text already
+   spells with explicit comparisons).
+3. **`EMACS_CLASS` is a `&str`.**  C's three uses are `build_string (EMACS_CLASS)`,
+   `sizeof (EMACS_CLASS) - 1` and a `%s` argument; the port writes `build_string (EMACS_CLASS.as_ptr ()
+   as *const c_char)`, `EMACS_CLASS.len ()` (5, the same character count) and
+   `EMACS_CLASS.as_ptr () as *const c_char`.  The one magic number C hides behind `sizeof` at C 6223
+   (`MAX_ALLOCA - sizeof ".customization" < len`) is written out as `MAX_ALLOCA - 16` with C's
+   `sizeof` text in the comment (15 bytes + NUL).
+4. **`horizontal_scroll_bars` has no storage in the mirror** (the window-system flag run's numbering
+   is not written out - the same deferral `want_fullscreen` records above).  C 5960 therefore keeps
+   C's own field write (`(*f).horizontal_scroll_bars = …`), and the C 5929-5940 write to
+   `FRAME_VERTICAL_SCROLL_BAR_TYPE` is the use-site l-value macro's `(*f).vertical_scroll_bar_type`.
+   A GUI flip fails at those fields (E0609), which is the mirror's documented behaviour, not a silent
+   wrong read.
+5. **`dpyinfo->rdb` is untyped at the hook call.**  `termhooks.h` 846's `get_string_resource_hook`
+   takes `void *rdb`, and the record's member is `XrmDatabase` (X), `Lisp_Object` (NS/Haiku),
+   `*const c_char` (W32) or nothing (Android); the port passes
+   `&raw mut (*dpyinfo).rdb as *mut c_void`, C's own `&dpyinfo->rdb`.  The call itself is the port's
+   `if let Some (hook) = … { … } else { std::ptr::null () }` shape (the `Option` fn-pointer field has
+   no C counterpart; the same family the live text uses for `set_window_size_hook`).
+6. **Small C-to-Rust shapes inside the carried bodies**, none changing a value or an order:
+   `switch` -> `match` with a `_ => { emacs_abort (); }` arm; C's `?:` -> Rust `if`-expressions;
+   C's postfix `*cz++ = '.'` / `*nz++` / `string++` (C 6287, 6295, 6299, 6566, 6580) -> the store
+   followed by `cz = cz.offset (1)` / `&raw mut`-free pointer steps, and C's chained assignments (`Vx_resource_name = new = Fcopy_sequence (…)`
+   at C 6232, `f->new_width = f->new_height = -1` at C 6790) -> one statement each (the established
+   split); `min (…)`, `clip_to_bounds (…)`, `check_integer_range (…)` and the `XFIXNUM`-into-`int`
+   stores get the explicit `as` casts C's promotions hide, and `window_prompting` (C's `long`) mixes
+   with the `int` sign bits as `window_prompting |= XNegative as c_long`; `UNINIT` and the
+   otherwise-indeterminate locals -> zero-initialised (PORTING 1.5): `XParseGeometry`'s
+   `tempWidth`/`tempHeight`/`tempX`/`tempY`/`nextCharacter`, `Fx_parse_geometry`'s `x`/`y`,
+   `gui_set_alpha`'s `item`; `frame_float`'s `parent_done`/`outer_done` are passed as
+   `&raw mut …` exactly as C's `&parent_done`; the port's macro-call spelling for C's macros
+   (`FRAME_*!`, `SAFE_*!`, `AUTO_STRING!`, `AUTO_FRAME_ARG!`, `calln!`; `XSETCAR` is a plain function
+   here) - the token check ignores the `!`.
+7. **`gui_set_alpha`'s `#if` is an item gate, not a statement gate.**  C's guard wraps the *whole
+   function*, so the port puts both features on the definition (two `#[cfg]` attributes) rather than
+   around the body; C has no `#else`, so there is no counterpart item.
+8. **The two `DEFUN`s carry C's own docstring text** (C 6323-6331, 6638-6644), escaped the way the
+   other 66 do; they are not in the live inventory (`extract-abi.py`'s subr list filters by the
+   frozen arms, so they appear in `## Subrs` nowhere - they are inside the dead run), which is why
+   the checklist at the top of this file still reads 66.
 
 ## Owed by the integrator (this round; nothing here is claimed as done)
 
-1. **`docs/ports/line-drift-tolerance.tsv`**: the `frame` row (line 196) asks for the **`live`**
-   basis with tolerance `0.05`, which is the right reading for a unit that *records* its dead arms;
-   this round's change makes the unit carry C 4889-5919, so the row must move to **`total`** basis.
-   Measured: C 7,907 total vs the port's 6,536 = **17.3%** deficit (the arm is carried both-arms, and
-   its per-item `#[cfg]`s and use-site declarations cost more lines than C's text), so the row wants
-   `frame 0.18 total` with this section's reason.  Until then `extract-abi --check` reports the
-   line-drift row of evidence ②.
-2. **`tools/extract-abi.py`'s invented-exported-symbol rule** has no baseline mechanism
-   (`PORT_ONLY_EXPORTS` is the only allowance, status 3.113), so the 17 rows of evidence ② stay red
-   for every future `--all` run of a `cond-eval-verified` file whose dead arm is carried with C
-   linkage.  The 17 names are listed in evidence ②; the fix is a tool/integrator decision (an
-   explicit allowance with the P-86 reason, or a rule that reads the `#[cfg]` gate), **not** dropping
-   `#[unsafe(no_mangle)]` - C defines all 17 non-`static`, and the GUI arm needs those symbols.
-3. **Mirror work this arm needs before any GUI configuration can compile**: the window-system
-   `want_fullscreen` numbering and flag run (`include/frame.rs` 250-268; the readings are already in
-   `docs/baseline/frame-layout.tsv`), and the 14 function prototypes / 2 macros / 5 constants of
-   Deviations 1 into the headers that declare them.  `include/frame.rs`'s own note names
-   `struct frame`'s window-system arms as unmeasured; this unit does not guess them.
-4. **`docs/ports/frame.md` is now a P-86 ② ledger** (it carries `## C line ranges`), so
-   `check-dead-file-coverage.py` binds it.  The bind is **two targets, not one**: `docs/port-map.md`
-   439 pairs `src/frame.c` with `femacs/src/frame.rs` and 440 pairs `src/frame.h` with that unit's
-   include mirror, and the gate's ledger rule resolves both to this file (the 1,956-line header has
-   no `src-frame.md` of its own; `docs/ports/include-frame.md` is not what the rule consults).
-   Today the one table satisfies both because its last row reaches C 7,907; if the include mirror
+1. **Mirror work this arm needs before any GUI configuration can compile.**
+   `include/frame.rs` 250-268 records the window-system `want_fullscreen` numbering and flag run
+   (the previous round's item, still open; the readings are in `docs/baseline/frame-layout.tsv`);
+   this round adds `horizontal_scroll_bars`, `vertical_scroll_bar_type` and the six scroll-bar
+   slots to the same deferral, because C's text for them is the field itself and the mirror numbers
+   only the frozen arm.  Also missing from mirrors, and therefore written at this unit's use site:
+   the six `Display_Info` typedefs (`dispextern.h` 115-165), `enum resource_types`
+   (`dispextern.h` 3983-3992), the four prototypes of Deviations 1, `EMACS_CLASS` (`frame.h` 1840)
+   and the `*gui.h` gravity/`US*`/`PPosition`/`NoValue` constants.  The `*gui.h` mirrors carry the
+   constants already, but this unit reaches them only through a platform `TERM_HEADER` include,
+   which is a GUI configuration; when the typedefs and the enum land in `include/dispextern.rs`
+   this unit's copies must go in the same commit (the `search.rs` precedent).
+2. **C 7877-7894's dead `#ifdef HAVE_WINDOW_SYSTEM` block is still recorded, not carried**
+   (`defsubr (&Sx_get_resource)`, `defsubr (&Sx_parse_geometry)`,
+   `defsubr (&Sreconsider_frame_fonts)`, the `Qmove_toolbar` `DEFSYM`/`Fprovide`).  It is outside
+   this round's range (C 5921-6970), but it is the only text that would register the two `DEFUN`s
+   this round defines - so under a GUI flip they would exist and be unreachable.  Whoever carries
+   C 6972-7907 closes it; until then this is a text-level gap, not a symbol-level one (the frozen
+   object has neither).
+3. **`docs/ports/frame.md` is a two-target ledger** (the previous round's item, still open):
+   `docs/port-map.md` 439 pairs `src/frame.c` with `femacs/src/frame.rs` and 440 pairs `src/frame.h`
+   with that unit's include mirror, and `check-dead-file-coverage.py`'s ledger rule resolves both to
+   this file.  Today the one table satisfies both because its last row reaches C 7,907; if the header
    ever needs its own ranges, the fix is a `src-frame.md` for it or a rule change - the header's
-   coverage should not silently ride on the unit's table.  (The blank lines the table does not cover
-   are the file's own empty lines; this run leaves none uncovered.)
+   coverage should not keep riding on the unit's table.  (`free_monitors`, C 7124-7133, is a row
+   this round corrected: it was labelled "next round (`have_window_system`, C 5921-6970)" and is
+   neither - it is a separate `#ifdef HAVE_WINDOW_SYSTEM` block with its own nested
+   `# if (defined USE_GTK || defined HAVE_PGTK || defined HAVE_NS || defined HAVE_XINERAMA
+   || defined HAVE_XRANDR)` at C 7120-7123, recorded under P-08, still not carried.)
+4. **`docs/ports/line-drift-tolerance.tsv` 196's `frame 0.18 total` row**: the previous round's
+   item 1 was done by the integrator (the row moved from `live`/0.05 to `total`/0.18), and it is
+   what makes evidence ② green at this round's 0.63%.  It stays `total` for good: the whole
+   `#ifdef HAVE_WINDOW_SYSTEM` run is carried, both arms.
+5. **The extractor's invented-exported-symbol rule**: the previous round's item 2 is resolved by
+   3.389's `whole_reference ("function")` subtraction (not by an allowance list), and this round's
+   17 more non-`static` definitions of that class read OK.  Nothing is owed here; recorded so the
+   next reader does not re-open it.
 
 # ----------------------------------------------------------------------
 ## Decisions
 
-**STATE: COMPLETE for the frozen configuration's checklist; the GUI arm is now being carried.**
+**STATE: COMPLETE for the frozen configuration's checklist; the `#ifdef HAVE_WINDOW_SYSTEM` arm
+is now carried in full (C 4889-6970).**
 66/66 subrs, 57/57 functions, the `frame_parm_table` type, all 8 file-scope objects and the
 51-entry `frame_parms` table are ported, and every box above is ticked.  What the boxes cannot see
-is the dead region this file also has: **C 4889-5919 (the first half of the `#ifdef
-HAVE_WINDOW_SYSTEM` arm) is now carried in full** under `feature = "have_window_system"` and its
-nested features - see `## C line ranges`, `## Evidence` and `## Deviations` above, which replace
-P-08's "recorded, not transcribed" for this run and turn `extract-abi --check` non-vacuous (evidence
-②).  C 5921-6970 is the next round.  The gates below are the pre-round readings, kept as the
-record of the live checklist; the current readings are in `## Evidence`.  The gates, with the last
-line each produced:
+is the dead region this file also has: **C 4889-6970 is carried in full** under
+`feature = "have_window_system"` and its nested features - the first half (C 4889-5919) in the
+round before this one and the second (C 5921-6970) in this one - which replaces P-08's "recorded,
+not transcribed" for the run, turns `extract-abi --check` non-vacuous and keeps it green
+(evidence ②).  1,050 C lines landed this round; the port is 7,857 lines against the file's 7,907
+(0.63%).  What is *not* carried, and is owed rather than claimed, is in `## Owed by the
+integrator`.  The gates below are the pre-round readings, kept as the record of the live
+checklist; the current readings are in `## Evidence`.  The gates, with the last line each
+produced:
 
 ```
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-frame cargo run -q -p xtask -- build-tu src/frame.c
@@ -606,7 +655,11 @@ does for the frozen build.  Arms the port therefore does not carry:
     4438-4443 (`#ifdef FRAME_TOOLBAR_WIDTH`), 4680-4683 (`Fset_frame_position`), 4880-4886
     (the two `frame_parms` entries), 7055-7112 and 7120-7187 (the pointer and `Display_Info`
     machinery), 7251-7253, 7285-7287, 7316-7322, 7396-7426, 7455-7462, 7551-7552, 7685-7691,
-    7877-7894 — and **the whole GUI frame-geometry implementation at C 4889-6970**.
+    7877-7894.  The one large arm of this family the port **does** carry is the whole GUI
+    frame-geometry implementation at C 4889-6970 (P-86 ①: both arms, one `#[cfg]` per item;
+    `## C line ranges` above is its coverage table and `## Deviations` its `#if` inventory),
+    which this bullet recorded until the two rounds that landed it; C 7877-7894's `defsubr`
+    block is the part of it still recorded (Owed 2).
   * **`#ifdef MSDOS`** — C 48-51, 1030-1043, 1568-1576, 1762-1764, 1782-1788, 3436-3442,
     3481-3487 (each of the last two keeps its `#else` text, which is live).
   * **`#ifdef HAVE_X_WINDOWS`** — C 482-491 (keeps the `#ifndef` arm's
@@ -697,6 +750,15 @@ Rust/mirror spellings (`let`, `unsafe`, `include`, `as_ptr`, `is_null`, `is_some
 `addr_of`, `offset_of`, `zeroed`, `lisp_h_Qnil`, `check_type`, `is_daemon`, `fset_redisplay`,
 `Some`).  No C callee is missing and the port adds no callee C does not name.
 
+This round's text (C 5921-6970) is inside the dead arm, so it is outside the C side's live set by
+construction; what was measured instead is that it names nothing C does not.  Every identifier
+followed by `(` in the added region was extracted the same way (comments and literals stripped,
+macro `!` ignored): **129 identifiers, 96 of them in C's text too, and the 33 that are not are all
+in families the list above already carries** - the 21 `Q*` Lisp-symbol functions, the pointer/mirror
+spellings (`as_ptr`, `is_null`, `is_some`, `len`, `null`, `null_mut`, `offset`) and the `cfg`
+attribute vocabulary (`cfg`, `all`, `any`, `not`, `mut`).  No new C-only name and no new Rust-only
+family.
+
 ### Use-site declarations (headers without a mirror; each keeps C's prototype in `/// C:`)
 
 `is_tty_frame`, `is_tty_child_frame`, `is_tty_root_frame`, `change_frame_size`,
@@ -711,12 +773,26 @@ Rust/mirror spellings (`let`, `unsafe`, `include`, `as_ptr`, `is_null`, `is_some
 `unspecified_fg`/`unspecified_bg`, and the `frame_parm_table`/`internal_border_part` types and
 the `FACE_TTY_DEFAULT_*` constants (dispextern.h 1932-1940).
 
+**Added by the C 5921-6970 round** (all behind `have_window_system` or a nested feature, all named
+in `## Deviations` above): the prototypes `check_x_display_info` (dispextern.h 3993),
+`note_mouse_highlight` (dispextern.h 3688), `x_get_string_resource` (xterm.h 1744) and `esprintf`
+(lisp.h 4717); the type `resource_types` (dispextern.h 3983-3992) and the six `Display_Info`
+typedefs (dispextern.h 115/136/145/152/159/165, one per GUI); the constants `EMACS_CLASS`
+(frame.h 1840), `NorthEastGravity`/`SouthWestGravity`/`SouthEastGravity`,
+`USPosition`/`USSize`/`PPosition`/`PSize` and `NoValue`/`XValue`/`YValue`/`WidthValue`/`HeightValue`
+(the five non-X `*gui.h`); and the eleven macros the mirror gated away or mirrors as readers -
+`FRAME_VERTICAL_SCROLL_BAR_TYPE`, `FRAME_HAS_VERTICAL_SCROLL_BARS{,_ON_LEFT,_ON_RIGHT}`,
+`FRAME_HAS_HORIZONTAL_SCROLL_BARS`, `FRAME_CONFIG_SCROLL_BAR_{WIDTH,HEIGHT,COLS,LINES}` and
+`FRAME_TOOL_BAR_{LINES,HEIGHT}`.
+
 ### Integrator note (mirror gaps this unit reports and does not touch)
 
 1. **`include/frame.rs` (frame.h's mirror) is read-only WIP**: it carries the readers as
    functions and the flag run as `bits1`/`bits2` masks but no l-value macros, which is why
-   §3 above defines ~40 macros at the use site.  When the mirror grows them, this unit's
-   copies must be deleted in the same commit (the search.rs precedent).
+   §3 above defines ~40 macros at the use site (and the C 5921-6970 round eleven more, including
+   the window-system arm of the scroll-bar accessors the mirror gates with
+   `not (have_window_system)`).  When the mirror grows them, this unit's copies must be deleted in
+   the same commit (the search.rs precedent).
 2. **`include/frame.rs`'s crate-root declarations** of the seven file-scope objects and of
    `frame_make_pointer_invisible` are why `frame_globals`/`frame_pointer_fns` exist; moving
    those declarations into a `pub mod … ; use …::*;` (P-21) would let the definitions return
@@ -724,13 +800,19 @@ the `FACE_TTY_DEFAULT_*` constants (dispextern.h 1932-1940).
 3. **`include/window.rs`** says `WINDOW_XFRAME` (window.h 1358) "lands with frame.rs"; it is
    defined here at the use site, and `fset_redisplay`'s mirror declaration takes
    `*mut c_void` where frame.h's prototype takes `struct frame *` (the port casts).
-4. **Missing mirrors**: `systty.h`/`<stdio.h>`'s `fileno`, `frame.h`'s `CHECK_FRAME`/
+4. **Missing mirrors**: `dispextern.h`'s six `Display_Info` typedefs (115-165), `enum
+   resource_types` (3983-3992) and the `check_x_display_info`/`note_mouse_highlight` prototypes
+   (3993/3688), `xterm.h`'s `x_get_string_resource` (1744), `lisp.h`'s `esprintf` (4717) and
+   `frame.h`'s `EMACS_CLASS` (1840) - all written at this unit's use site for the C 5921-6970
+   round; `systty.h`/`<stdio.h>`'s `fileno`, `frame.h`'s `CHECK_FRAME`/
    `CHECK_LIVE_FRAME`, `SET_FRAME_*` writers, `FRAME_INNER_*`, the pixel/text conversions,
    `FRAME_TEXT_COLS_TO_PIXEL_WIDTH`/`FRAME_PIXEL_HEIGHT_TO_TEXT_LINES`,
    `WINDOW_FRAME`/`WINDOW_XFRAME`, `lisp.h`'s `hashtest_eq`, `xfaces.c`'s `unspecified_fg`/
    `unspecified_bg` arrays, `dispextern.h`'s `internal_border_part` enum and
    `FACE_TTY_DEFAULT_*`.
-5. **`docs/ports/line-drift-tolerance.tsv`** now carries the `frame … live` row;
+5. **`docs/ports/line-drift-tolerance.tsv`** now carries the `frame 0.18 total` row (the
+   integrator moved it from `live`/0.05 when the first half landed, and it is what makes
+   `extract-abi --check` green at this round's 0.63%);
    `docs/baseline/undef-pending.txt` gained this unit's 19 dependencies (dispnew.c, window.c,
    fns.c, keyboard.c, xfaces.c — all in `frozen-build-sources.txt`, none ported yet), of which
    two (`_is_tty_child_frame`, `_mru_rooted_frame`) a later `--write-pending` from another lane
