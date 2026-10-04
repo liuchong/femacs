@@ -2971,3 +2971,30 @@
   ③ 读数：`gen-port-inventory` 590 files、**done=540、wip=20、todo=30**；五门绿（`check-declarations` 13/0、
   `check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 596 `.rs`/0）；
   `layout-check` passed；`check-swift-units` 0 new / 0 stale（macfont 的 39 条缺口已在 manifest 里当棘轮）。
+
+- **3.171 `struct glyph_string` 进镜像（windowed 门内）、`sfnt.h` 删占位宏、一条我自己造成的错要更正（2026-10-04）**：
+  ① **交付**（`c2e3faf`）：`struct glyph_string`（dispextern.h **1362-1507**，在 C 1358 的 `#ifdef HAVE_WINDOW_SYSTEM` 内）
+  进 `include/dispextern.rs`，挂 `#[cfg (feature = "window_system")]`——字段名照 C，有 owner 镜像的具名
+  （`frame`/`window`/`glyph_row`/`font`/`composition`/`Emacs_GC`），没有的按 P-55/P-72③ 降级 + `/// C:` 行
+  （`face`/`img`/`xwidget`/X11 的 `GC`/`android_gc`/`HDC`）；六个位域存成一个 `bits: u32` + `glyph_string_bits!` + 掩码
+  （**用冻结 clang 实测**：六位都在 4 字节单元的第 0 字节）；四个 `OVERLAPS_*` 常量同门。**不写布局断言**（本目标没有
+  编译器能量它）。证据：**feature-on 影子探针**（`--cfg 'feature="window_system"'` + 桩名，`include!` 真镜像）**exit 0**，
+  **负向对照**（把某字段类型改成 `frame_typo`）→ `E0425`，证明探针真的在解析这条记录；`layout-check` **passed**；
+  `build-tu src/font.c`/`frame.c` **built**。`dispextern.h` 自己的 `--check` 仍是 **142 条既有项**（WIP），改动前后
+  **逐字节相同**（lane 实测并附了前后 diff 结论）⇒ 本轮对该头是**中性**的，没有为了变绿去搬别的东西。
+  ② 同批：`include/sfnt.rs` 里那个只为消 `missing macro PROTOTYPE` 而留的**占位宏删掉**了（共享行已入表），复测 `OK`。
+  ③ **更正我自己在 3.170 里写错的一句话**：我写"等 `include/dispextern.rs` 落地就把 `sfntfont.rs` 两处改回具名"——
+  **这是错的**，因为该记录挂在 `feature = "window_system"` 下，本配置根本不编译它，具名会再次 `E0425`。我实际试过一遍
+  （把 5 处 `*mut c_void` 全改成 `*mut glyph_string`）→ 必须回退；现在的正确口径是：**`sfntfont.h` 的 `glyph_string` 参数
+  在本配置上保持 P-55 的 `*mut c_void` 替身，等某个 GUI 目标真正打开该 feature 时再具名**（并同步把 `dispextern.rs`
+  加进该单元的 include 列表）。`--check` OK、`layout-check` passed（回退后复测）。教训与 3.157/3.158 同族：
+  **"等依赖落地就改回"这类注记，必须把依赖的 cfg 条件一起写清**。
+  ④ **新发现（已排成独立批次）**：`femacs/Cargo.toml` **没有 `[features]` 表**，而树里在用的 feature 名有 40+ 个，
+  同一个 C 开关常有两种拼法（实测计数：`window_system` 84 / `have_window_system` 28；`have_android` 96 / `android` 14；
+  `x_windows` 13 / `have_x_windows` 11；`native_comp` 56 / `have_native_comp` 14）。裁决：**按"C 宏字面小写"统一**
+  （`have_window_system` 等）并在 `Cargo.toml` 里声明全部在用的 feature，附带"只碰 tracked 文件 + 在飞文件列给我"的约束，
+  由 Hilbert 执行（含 warning 数前后对照）。
+  ⑤ 在飞：Boole 的引证队列已把计数从 **164/22 推到 142/15**（改的是 `font.rs`、`include/lisp.rs`、`include/font.rs`、
+  `dispnew.rs`、`window.rs`、`xfaces.rs`、`regex_internal.rs`、`verify.rs` 等 tracked 文件）；Harvey 的小件队列五个镜像与
+  台账已在树里（`pathmax`/`dirent-private`/`execinfo.in`/`widgetprv`/`sfntfont`，均待它报告）；xdisp（C 7573+）、
+  keyboard（C 12538+）、Mill（`macfont.swift`）在推。
