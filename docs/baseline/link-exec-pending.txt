@@ -54,6 +54,7 @@ _display_string	neither the reference nor the SDK explains it: a generated `V...
 _display_tty_menu_item	the reference defines it and no unit of this port does - the definition is owed
 _emacs_scroll_step	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _get_font_ascent_descent	the reference defines it and no unit of this port does - the definition is owed
+_gui_clear_window_mouse_face	the reference defines it and no unit of this port does - the definition is owed
 _handle_line_prefix	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _hscroll_margin	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _inhibit_bidi_mirroring	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
@@ -76,7 +77,7 @@ _redisplay_adhoc_scroll_in_resize_mini_windows	neither the reference nor the SDK
 _redisplay_skip_fontification_on_input	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _redisplay_skip_initial_frame	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _reset_mouse_highlight	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_row_containing_pos	the reference defines it and no unit of this port does - the definition is owed
+_row_for_charpos_p	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _row_hash	the reference defines it and no unit of this port does - the definition is owed
 _scroll_conservatively	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _scroll_margin	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
@@ -97,7 +98,5 @@ _tigetstr	the reference references it too (or an SDK .tbd exports it): provided 
 _tool_bar_max_label_size	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _tparm	the reference references it too (or an SDK .tbd exports it): provided at link time
 _tputs	the reference references it too (or an SDK .tbd exports it): provided at link time
-_try_window_id	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_try_window_reusing_current_matrix	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _unibyte_display_via_language_environment	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _word_wrap_by_category	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate

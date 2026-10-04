@@ -6698,3 +6698,16 @@
   ⑥ **未声称**：⑴ 两腿都只是**类型检查级**（不链接、不跑测试、不代表运行时行为）；⑵ 棘轮量的是**参照行数**，
      不是完成度；⑶ port-map 的 55.5% 是**行数比**，不等于 590 条里有 55.5% "落完"（清单/布局/符号/subr 与
      L0-L5 仍未点亮）；⑷ §8 里只有第 5 条（原样复制）有判据与读数（3.390）。
+
+- **3.397 链接棘轮复算（3.396 之后）：382 行 / 0 failure，三退两进（2026-10-05）**：
+  ① **跑法**：`tools/reconcile-link-ratchets.sh`（一次性 worktree 在 **HEAD = `8666ae1`** 上重建，`--strict` 绿了才写回四本表；
+     在飞单元按"工作树里脏的单元"识别、用 HEAD 自己的源码重建），**4 分 09 秒**，exit 0。
+  ② **读数**：`check-link.py` → **`382 undefined symbol(s) from 76 program + 87 libgnu object(s), 382 ratchet row(s),
+     0 failure(s)`**（上一批 383）；`check-linkage.py` → **`2 unit object(s) compared …, 0 with 0 missing symbol(s)`**；
+     Swift 两本（`swift-units.tsv` 51 行、`swift-import-pending.txt` 801 行）**未动**（本批没碰 Swift）。
+  ③ **表里的进出（diff 全文）**：**退三条**——`_try_window_id`、`_try_window_reusing_current_matrix`、`_row_containing_pos`
+     （本批 xdisp 把这三个定义落了，于是它们从"未定义引用"名单里消失）；**进两条**——`_gui_clear_window_mouse_face`
+     （xdisp 里等 C 37705 定义的非 static 名，台账 to-do item 67 记着）与 `_row_for_charpos_p`（同族的 interim 名）。
+     净 **−1 行**。⇒ 这正是 `check-link` 该有的行为：**它量的是"参照定义、端口还没有"的差集**，落一个函数就退一行。
+  ④ **未声称**：链接棘轮只说明"未定义引用名单与 HEAD 的 83 个单元对象一致"，**不是链接成功**（没有任何可执行文件被链出来）；
+     Swift 两本没动只说明本批没改 Swift，不是它们的读数变了。
