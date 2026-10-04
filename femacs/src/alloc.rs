@@ -995,6 +995,73 @@ pub unsafe extern "C" fn record_xmalloc (size: size_t) -> *mut c_void
 }
 
 
+/* ---- the stack pool (PORTING.md P-05; `sa_stack_alloc` and its release) --------------------
+
+   C's `AVAIL_ALLOCA` is `alloca`: bytes on the calling frame, released when that frame returns.
+   Rust has no `alloca`, so the port keeps C's `sa_avail` accounting in the `AVAIL_ALLOCA!` and
+   `SAFE_ALLOCA!` macros (lisp.h's mirror) and takes the bytes from this pool.
+
+   What C gets from the frame, the port gets from the specpdl: each block remembers the depth it
+   was requested at, and `safe_free` (lisp.h's, which is what `SAFE_FREE` calls) releases the
+   blocks an unwinding passes.  The test is deliberate and **strict** - `depth > the depth being
+   freed` - because C's `SAFE_FREE` does not free `alloca` bytes at all (the frame does), and two
+   sibling `SAFE_ALLOCA` scopes in one function share a specpdl depth: a `>=` rule would free a
+   block whose owner is still live.  The price is that a scope which starts and ends at the same
+   depth keeps its block until a shallower release, so the pool holds more memory than C's frames
+   would - the memory-pressure comparison P-05 still owes a spike for
+   (`PORTING.md` P-05/§3.2), together with the design's "single bump buffer" (this
+   implementation takes one block per request, because a bump area cannot be released until the
+   last block inside it is gone and a release drops a *subset* of the blocks).
+
+   Nothing here is C's: the C tree has neither an `alloca` symbol nor a pool, so
+   `sa_stack_alloc`/`sa_stack_release` are the port's own names.  `check-symbols.py` therefore
+   counts them as this unit's documented deviation (`docs/baseline/symbol-pending.txt`).  */
+
+/// Every block starts on this boundary, the strictest alignment C's `alloca` gives.
+const SA_STACK_ALIGN: usize = 16;
+
+/* One released block's bookkeeping: the bytes, the specpdl depth they were asked at, and the
+   chain.  A Rust-only record (the C tree has no counterpart), so no `#[repr(C)]`.  */
+struct sa_stack_block
+{
+  base: *mut u8,
+  used: usize,
+  depth: isize,
+  next: *mut sa_stack_block,
+}
+
+static mut sa_stack_top: *mut sa_stack_block = std::ptr::null_mut ();
+
+/// C: `alloca`'s port - the allocator behind `AVAIL_ALLOCA!`, called with the byte count the
+/// macro has already charged to `sa_avail`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sa_stack_alloc (size: usize) -> *mut c_void
+{
+  let depth = unwrap_specpdl_ref (SPECPDL_INDEX ());
+  let bytes = (size + SA_STACK_ALIGN - 1) & !(SA_STACK_ALIGN - 1);
+  let base = malloc (bytes) as *mut u8;
+  if base.is_null ()
+    { memory_full (bytes); }
+  let header = xmalloc (std::mem::size_of::<sa_stack_block> ()) as *mut sa_stack_block;
+  (*header) = sa_stack_block { base, used: bytes, depth, next: sa_stack_top };
+  sa_stack_top = header;
+  return base as *mut c_void;
+}
+
+/// Release every block an unwinding to `depth` passes: `safe_free` calls this.  See the note
+/// above for why the comparison is strict.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn sa_stack_release (depth: isize)
+{
+  while !sa_stack_top.is_null () && (*sa_stack_top).depth > depth
+    {
+      let header = sa_stack_top;
+      sa_stack_top = (*header).next;
+      free ((*header).base as *mut c_void);
+      xfree (header as *mut c_void);
+    }
+}
+
 /* C 883-887: `#if ! USE_LSB_TAG extern void *lisp_malloc_loser; void *lisp_malloc_loser
    EXTERNALLY_VISIBLE; #endif` — dead on this target (`USE_LSB_TAG` is 1, see the file
    header).  */

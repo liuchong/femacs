@@ -598,7 +598,7 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
 | P-02 | `USE_LSB_TAG` 作为 `cfg` 决策，仅支持 true 的 64 位目标 | 已定 | 配置生成器 + 断言 |
 | P-03 | computed goto 只移植 switch 版 | 已定（偏离已记录） | 基准对比 + ERT |
 | P-04 | 变参：`c_variadic`（stable ≥1.99）+ 锁具体 dated nightly | **已定**（2026-10-02，pin `nightly-2026-10-01`） | `doprnt.c` 试跑 + `spikes/va-probe.sh` 6 行 + `docs/ports/va-arg-types.tsv` 的多重集检查（P-45）+ `gate-probes` |
-| P-05 | `alloca`：栈池 + `sa_avail` 记账 + 循环点特判 | 待 spike | 内存压力对拍 + 循环点用例 |
+| P-05 | `alloca`：栈池 + `sa_avail` 记账 + 循环点特判 | **落在 `alloc.rs`（2026-10-04，status 3.113）；spike 仍欠** | 已落地：`sa_stack_alloc`/`sa_stack_release` 两个端口自有入口（`AVAIL_ALLOCA!` 记账后向池要字节），释放挂在 `safe_free` 上，按**严格**深度比较（`depth > 被解开的深度`）释放；两条已记录偏离：① 一次请求一个 malloc 块（不是单一 bump 区——释放是子集，bump 区没法在最后一个块之前还回去）；② 同深度起止的作用域要到更浅的释放才还，池比 C 的栈帧占得多。两个符号是唯一的"端口自有导出"类，两个门（`extract-abi.py` 的 invented 规则、`check-symbols.py` 的 invented 表）都按 `PORT_ONLY` 常量显式放行（其它任何自带 `#[unsafe(no_mangle)]` 而没有 C 定义的名字一律是缺陷）。仍欠：内存压力对拍（与 `record_xmalloc` 路径的对拍）与循环点用例，尤其是 `depth == sa_count` 的兄弟/嵌套作用域与恒在深度 0 的分配 |
 | P-06 | `static mut` 地址稳定 | 已定 | `staticpro` 断言 |
 | P-07 | docstring 用字符串字面量，`--check` 校验摘要 | 已定 | `docs/baseline/subrs.tsv` |
 | P-08 | `config.h` 需按目标冻结 | **部分完成**：darwin-arm64（minimal）已冻结；GUI/其他目标待冻结 | `docs/baseline/config/*.json` + `xtask gen-config` |

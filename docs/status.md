@@ -1712,4 +1712,20 @@
   `0x800`（lane 报告），现在 `tools/extract-abi.py` 的正则收了 `0[oO][0-7]+`，镜像改回 C 的忠实拼写
   **`0o4000`** 且 `--check` 仍 `OK`；抽样复核 `src/syntax.c`/`src/charset.c` 等使用 `0o` 的单元不受影响
   （归一化只会更宽松）。
+- **3.113 P-05 的栈池落地：`_sa_stack_alloc` 不再是未定义符号（2026-10-04 第 99 轮第十二批）**：
+  `AVAIL_ALLOCA!` 一直向一个从未定义的 `sa_stack_alloc` 要字节（`dispnew.o`/`frame.o`/`scroll.o` 等
+  三处引用），这是 `gate-load` 工单里唯一"设计未定"的项（P-05 标着"待 spike"）。本轮按 PORTING.md §3.2 的口径落地：
+  ① `femacs/src/alloc.rs` 增**栈池**：`sa_stack_alloc`（对齐到 16 字节、记账 `sa_avail` 之外再记 specpdl 深度）与
+  `sa_stack_release`（`safe_free` 调用），块头串成链表，**严格**按 `depth > 被解开的深度` 释放；
+  ② `femacs/src/include/lisp.rs` 的 `safe_free` 末尾调 `sa_stack_release (unwrap_specpdl_ref (sa_count))`（C 的
+  `SAFE_FREE` 不负责 alloca 字节——那是栈帧的事，这行是端口机制，注释里写明）；
+  ③ **两条已记录偏离**：一次请求一个 malloc 块（P-05 写的是"单一栈缓冲池"，但释放是子集，bump 区在最后一个块还回去之前
+  不能释放），以及同深度起止的作用域要到更浅的释放才还（保守，不会释放仍然活着的块；C 的栈帧语义更早回收）。
+  **关键裁决**：这两个名字是**唯一的"端口自有导出"类**——两个门（`extract-abi.py` 的 invented-exported-symbol 规则、
+  `check-symbols.py` 的 invented 表）原先一律拒绝自带 `#[unsafe(no_mangle)]` 而 C 没有定义的名字（这是对的：
+  `emacs_fclose`/P-52 类），现在各自加一个显式的 `PORT_ONLY` 常量放行这两个名字并注释指向 P-05；别的一律仍然拒绝。
+  实测：`build-tu src/alloc.c` 与七个调用方（dispnew/frame/scroll/editfns/font/eval/pdumper）全 `built`；
+  `--check emacs/src/alloc.c` = `OK`（此前报 "invented exported symbol"）；`check-symbols --pending` 里 `src/alloc`
+  不再出现（只剩在飞的 `src/keyboard`）；**`gate-load` 162 total / 1 ratcheted / 161 new，`sa_stack_*` 从工单里消失**。
+  **仍欠**：P-05 的 spike（与 `record_xmalloc` 路径的内存/性能对拍、`depth == sa_count` 的兄弟与嵌套作用域、恒在深度 0 的分配）。
 

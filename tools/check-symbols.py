@@ -98,6 +98,13 @@ def syms(path: str) -> tuple[set[str], set[str]]:
     return exported, imported
 
 
+# PORTING.md P-05: the stack pool's entry points.  C has no `alloca` symbol and no pool, so the
+# port's `SAFE_ALLOCA` implementation exports these two names of its own; they are the one
+# deliberate class of port-only symbols (everything else the symbol gate reports as "invented"
+# is a defect).
+PORT_ONLY = {"sa_stack_alloc", "sa_stack_release"}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", default="lib")
@@ -127,7 +134,7 @@ def main() -> int:
         compared += 1
         me, _ = syms(mine)
         re_, _ = syms(ref)
-        allowed = defvar_carriers(a.dir, stem) & me
+        allowed = (defvar_carriers(a.dir, stem) | {f"_{n}" for n in PORT_ONLY}) & me
         p17 = P17 & re_
         missing = sorted(re_ - me - p17)
         invented = sorted(me - re_ - allowed)

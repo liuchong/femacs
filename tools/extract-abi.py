@@ -1214,6 +1214,13 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             # spelling (the function loop already skips these, line ~1240).
             continue
         problems.extend(alias_count_problems(macro["body"], rust_body, skip_short=False))
+    # PORTING.md P-05: the stack pool's two entry points are the port's own names - C has no
+    # `alloca` symbol and no pool, and every unit that takes `SAFE_ALLOCA` bytes calls them
+    # across crates - so they are the one deliberate class of port-only exports.  Everything
+    # else that carries `#[unsafe(no_mangle)]` must correspond to a C definition (the
+    # `emacs_fclose`/P-52 rule).
+    PORT_ONLY_EXPORTS = {"sa_stack_alloc", "sa_stack_release"}
+
     def norm_const (v: str) -> str:
         v = v.strip()
         v = {"true": "1", "false": "0"}.get (v, v)
@@ -1627,7 +1634,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
                             r"_GL_\w+_INLINE\b[^;{}\n]*?\b(\w+)\s*\(",
                             cand.read_text(encoding="utf-8", errors="replace")))
                         break
-        for name in sorted(no_mangle_names - c_exported - unknown_linkage):
+        for name in sorted(no_mangle_names - c_exported - unknown_linkage - PORT_ONLY_EXPORTS):
             problems.append(f"fn {name} carries #[unsafe(no_mangle)] but the reference "
                             f"does not define a non-static function of that name "
                             f"(invented exported symbol)")
