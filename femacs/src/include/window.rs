@@ -4,9 +4,12 @@
 // C sees `struct glyph_matrix` complete here — the port cannot yet, because the display chain's
 // matrix/face segment is still ahead of it, so those two pointers carry the P-72 rule ③
 // degradation until it lands.  `HAVE_TEXT_CONVERSION` and `HAVE_WINDOW_SYSTEM` are `#undef` in the
-// frozen `config.h`, so `ephemeral_last_point` and the `phys_cursor_*` members are not part of
-// this target's structure (the field scanner's live-line filter is what keeps them out — P-73).
-// The 95 macros, 16 inlines and 9 file-scope objects land next.
+// frozen `config.h`, so the field scanner's live-line filter (P-73) kept the members they gate out
+// of the first pass; the `HAVE_WINDOW_SYSTEM` four this mirror now carries are gated with it, their
+// positions read from `docs/baseline/window-layout.tsv` (P-82: frozen 520, x11 536, ns_cocoa 536 -
+// the two window-system arms add exactly these four, at 452/456/460/464 and none of the flag run
+// moves, which is why no numbering is gated here).  `ephemeral_last_point` is the next one.  The
+// 95 macros, 16 inlines and 9 file-scope objects land next.
 //
 // `tools/check-cond-eval.py` reports zero disagreements for this header, so the branch set above
 // is the frozen configuration's.
@@ -112,6 +115,16 @@ pub struct window
   pub phys_cursor: cursor_pos,              // 416
   pub output_cursor: cursor_pos,            // 432
   pub last_cursor_vpos: c_int,              // 448
+
+  /* window.h 339-351: the cursor C remembers for undrawing, under its own gate.  */
+  #[cfg (feature = "have_window_system")]
+  pub phys_cursor_type: text_cursor_kinds,   // 344; measured 452 in both window-system arms
+  #[cfg (feature = "have_window_system")]
+  pub phys_cursor_width: c_int,              // 347 (456)
+  #[cfg (feature = "have_window_system")]
+  pub phys_cursor_ascent: c_int,             // 350 (460)
+  #[cfg (feature = "have_window_system")]
+  pub phys_cursor_height: c_int,             // 350 (464)
 
   /* Fringe and margin widths, and the heights of the window's decorations.  */
   pub left_fringe_width: c_int,             // 452

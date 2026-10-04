@@ -267,3 +267,20 @@ list is the tail this file documents.
   (`lib/include/sys_select.rs` vs `process.rs`), unrelated to this change.
 - `python3 tools/extract-abi.py --check emacs/src/window.h ...` and the three repo-wide checks
   are recorded in the lane's report.
+
+## The window-system four (status 3.275)
+
+`struct window`'s window-system members were filtered out of the first pass by the field scanner's
+live-line filter (P-73, which reads the frozen `config.h`): C declares `phys_cursor_type`,
+`phys_cursor_width`, `phys_cursor_ascent` and `phys_cursor_height` under
+`#ifdef HAVE_WINDOW_SYSTEM` (window.h 339-351).  They are carried now, gated with the feature.
+
+The reading (`spikes/gated-layout-probe.py 'struct window' window.h`, P-82;
+`docs/baseline/window-layout.tsv`) is what makes this a one-line-per-member addition rather than a
+layout question: frozen 520/8, x11 536/8, ns_cocoa 536/8 - the two window-system arms add exactly
+those four bytes and **none of the flag run moves** (`docs/baseline/window-bits.tsv`: 19 flag
+members, identical `(unit, shift)` in all three arms), so no numbering is gated here.  The four sit
+at 452/456/460/464, i.e. right after `last_cursor_vpos`.
+
+Evidence: `build-tu src/window.c` exit 0; `xtask layout-check` passed; the mirror now answers the
+probe with no missing member (`struct window`).
