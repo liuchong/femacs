@@ -3283,3 +3283,24 @@
   ⑥ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；四门绿（`check-declarations` 13/0、`check-globals` 283/0、
   `check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 600/0）；引证门 17 drift / 4 range / 284 external /
   36 allowed / 0 stale；`check-swift-units` 0 new / 0 stale（macfont 22 行、nsfont 2 行）。
+
+- **3.185 共享门由我兜底修好（第五次红的收尾），并定下"脚本改台账"的规矩（2026-10-04）**：
+  ① **兜底修复**（`7f74cf9`）：`layout-check` 连续五轮红的根因是 `lib/include/stdbit.in.rs` 里三条
+  `stdc_count_ones_*` 调用 `_gl_stdbit_popcount{,l,ll}` **当宏用**，而该文件自己的 `_gl_stdbit_clz` 一族是**函数**
+  ——全树镜像唯一的编译闸门因此对所有人失效。我做了**最小修复**：把三个 helper 定义成函数
+  （`n.count_ones () as c_int`，与同文件 `_gl_stdbit_clz` 的形状一致；C 的活臂 `__builtin_popcount*` 返回 `int`），
+  三处调用点改成函数调用，并在文件里留 **NOTE** 说明"这是集成者的解封，拥有该文件的 lane 回到这一族时请换成本意定义"。
+  **`layout-check` 恢复 passed**；该镜像的 `--check` 未完成项 **162 → 136**。
+  ② **规矩：脚本改台账必须锚定"第一次出现"或按行号，改完必须 diff**。来源是 Mill 那轮的事故——它的脚本锚点
+  `## Deferred` 命中了正文里对**同一标题的引用**，把关账中段（Functions/Macros/Types/Objects/Decisions）截掉；
+  它重建并逐节校验（488 行、节序完整）后如实上报。这条与 3.153/3.156/3.157/3.169 那几轮"叙述性文本被当成事实"
+  同源：**结构锚点只能锚结构**。
+  ③ **两条 lane 重新排活**：Harvey 先看我的 NOTE 决定 helper 的本意形态（宏或函数，**只要文件仍可编译**），
+  再继续落 136 条家族层（含 13 个 dispatcher 宏 + `stdc_imm8*`/`load8`/`store8`/`memreverse8`），
+  并**重申硬性要求**（写进文件的引用必须先有定义；每段落完自己跑 `layout-check`，绿了才继续）；
+  Mill 按 3.184 批准的执行序推进 macfont（`glyph_string` 镜像 → `macfont_draw` + 五个 `CG_SET_*` 宏 → OpenType 层
+  → `list`/`match` → `open`/`close`/`text_extents`/`shape` → 记录 + getter + `syms_of_*`），
+  并提醒它 **cfg 名已统一为 `have_window_system`**（3.183）。
+  ④ 读数：`gen-port-inventory` 590 files、done=542、wip=22、todo=26；四门绿（`check-declarations` 13/0、
+  `check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 600/0）；
+  **`layout-check` passed**；引证门 17 drift / 4 range / 284 external / 36 allowed / 0 stale。
