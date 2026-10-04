@@ -666,7 +666,14 @@ def digest(text: str) -> str:
 
 def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
     own = path.read_text(encoding="utf-8", errors="replace")
-    text = own
+    # Comments must not be able to create or destroy a definition.  Mirrors quote C
+    # prototypes in doc comments (PORTING.md 0.1-2 / P-55), and a doc comment that spells
+    # `typedef struct _widget_value { ... } widget_value;` used to match this scan and
+    # *replace* the real struct's field list with the comment's empty one, so
+    # lwlib-widget.h reported all 18 of its fields missing as soon as 3.146's struct fix made
+    # the C side ask about them.  The scan runs on the comment-blanked view, and a later
+    # empty match no longer overwrites a non-empty one.
+    text = strip_comments(own)
     if follow_includes:
         # a mirror includes the generated files it needs (for example
         # globals.rs); those declarations count as part of it
@@ -676,7 +683,7 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
             if not inc.is_absolute():
                 inc = here / inc
             if inc.is_file():
-                text += "\n" + inc.read_text(encoding="utf-8", errors="replace")
+                text += "\n" + strip_comments(inc.read_text(encoding="utf-8", errors="replace"))
     structs = {}
     struct_types = {}
     # A brace-matching scan, because a struct body may contain nested braces
@@ -691,7 +698,9 @@ def rust_inventory(path: Path, follow_includes: bool = True) -> dict:
                 depth -= 1
             i += 1
         body = text[m.end(): i - 1]
-        structs[name] = [f.group("name").removeprefix("r#") for f in R_FIELD.finditer(body)]
+        fields = [f.group("name").removeprefix("r#") for f in R_FIELD.finditer(body)]
+        if fields or name not in structs:
+            structs[name] = fields
         for f in re.finditer(r"^\s*(?:pub\s+)?(?:r#)?(\w+)\s*:\s*([A-Za-z_]\w*)", body, re.M):
             struct_types[(name, f.group(1))] = f.group(2)
     # Comments and layout must not be able to hide a definition from the checks

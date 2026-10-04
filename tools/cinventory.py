@@ -71,8 +71,13 @@ DEFUN = re.compile(r'^DEFUN\s*\(\s*"(?P<lisp>[^"]+)"\s*,\s*(?P<cname>\w+)\s*,\s*
                    r'(?P<n>[^,]+?)\s*,\s*doc\s*:\s*/\*(?P<doc>.*?)\*/', re.S | re.M)
 ATTRIBUTES = re.compile(r"^[^)]*?attributes\s*:\s*(?P<list>[A-Za-z_ ]*)", re.S)
 DEFINE = re.compile(r"^#\s*define\s+(?P<name>[A-Za-z_]\w*)(?P<args>\([^)]*\))?\s*(?P<body>.*)$")
-STRUCT_OPEN_INLINE = re.compile(r"^(?P<kind>struct|union)\s+(?P<name>[A-Za-z_]\w*)?\s*\{")
-STRUCT_OPEN_NAME = re.compile(r"^(?P<kind>struct|union)(?:\s+(?P<name>[A-Za-z_]\w*))?\s*$")
+# `typedef struct X { … } Y;` and `typedef struct X\n{ … } Y;` are as common in this tree as
+# the untagged forms, and without the optional `typedef` the tagged ones were invisible: every
+# field of `src/haikugui.h`'s `haiku_char_struct` was carried by the mirror and never compared
+# (status 3.146 - the same class of blind spot as 3.143's file-scope objects).  The trailing
+# alias the closing line names (`} Y;`) is not a field and is not collected.
+STRUCT_OPEN_INLINE = re.compile(r"^(?:typedef\s+)?(?P<kind>struct|union)\s+(?P<name>[A-Za-z_]\w*)?\s*\{")
+STRUCT_OPEN_NAME = re.compile(r"^(?:typedef\s+)?(?P<kind>struct|union)(?:\s+(?P<name>[A-Za-z_]\w*))?\s*$")
 ENUM_OPEN = re.compile(r"^enum\s+(?P<name>[A-Za-z_]\w*)?\s*\{")
 TYPE_WORDS = {
     "static", "extern", "const", "volatile", "inline", "INLINE", "register",
@@ -1824,10 +1829,16 @@ def selftest() -> int:
         ("an array of pointers to const objects",
          "Lisp_Object const *staticvec[NSTATICS];\n",
          ["staticvec"]),
+        ("typedef'd struct and union bodies are not invisible",
+         "typedef struct X\n{\n  int a;\n} Y;\ntypedef union U {\n  int b;\n} V;\n",
+         ["X.a", "U.b"]),
     ]
     bad = 0
     for name, src, want in cases:
-        got = [g["name"] for g in globals_(src)]
+        if name.startswith("typedef'd"):
+            got = [f"{f['container']}.{f['name']}" for f in struct_fields(src)]
+        else:
+            got = [g["name"] for g in globals_(src)]
         ok = got == want
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got}" + ("" if ok else f" (want {want})"))
         bad += 0 if ok else 1

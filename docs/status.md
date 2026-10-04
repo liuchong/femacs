@@ -2343,3 +2343,25 @@
   不加 `#[cfg]`、不包 `pub mod`**（前者让被 cfged 的项失去编译器，后者会藏起 `macro_rules!` 的名字），改用
   **独立平台探针 crate** 提供编译证据（`femacs/nt/inc` 的先例），lane A 本轮补探针；`layout-check` 自身是否
   学会跳过平台互斥镜像由集成者决定（记入下一轮）。
+
+- **3.146 又两个同类的抽取器盲点：`typedef struct X {…} Y;` 看不见，以及"注释里的结构体把真结构体的字段表覆盖成空"（2026-10-04）**：
+  ① **盲点一（lane A 报的）**：`struct_fields` 的 `STRUCT_OPEN_INLINE`/`STRUCT_OPEN_NAME` 只认行首的
+  `struct|union`，于是 `typedef struct haiku_char_struct { … } XCharStruct;` 整段**不可见**——
+  `src/haikugui.h` 的 `XCharStruct` 五个字段一直被镜像携带着，却**从不参与比较**（3.143 的同类）。
+  修法：两条正则各加可选前缀 `typedef\s+`（`} Y;` 里的别名不是字段，不收）；`struct_fields` 的
+  `--selftest` 用例由 5 条变 **6 条**（新增 `typedef'd struct and union bodies are not invisible`）。
+  ② **盲点二（修完①立刻暴露的）**：`rust_inventory` 的 Rust 侧结构体扫描跑在**原始文本**上，而镜像的文档
+  注释里会照抄 C 原型（PORTING.md 0.1-2/P-55 要求的那一行）——`lwlib-widget.rs` 的
+  `/// lwlib-widget.h 43-103: \`typedef struct _widget_value { ... } widget_value;\`` 正好被那条正则匹配，
+  并且**用注释里的空字段表覆盖了真结构体的 18 个字段**（同名后写覆盖）。②①合起来让 6 个单元立刻 FAIL：
+  `lib-src/etags.c`（`struct stack_entry`）、`lwlib/lwlib-int.h`、`lwlib/lwlib-widget.h`、`lwlib/xlwmenuP.h`、
+  `oldXMenu/X10.h`、`oldXMenu/XMenu.h`，报的都是"整条字段表全缺"。
+  修法：扫描跑在 `strip_comments` 之后的视图上（`include!` 进来的文件同样剥注释），并且**后到的空匹配不再
+  覆盖已有的非空表**。修完 6 对 `--check` 全 **OK**，`--all` 回到 **514 ported files: 507 done / 7 in progress /
+  0 failing**。
+  ③ **记录（不静默）**：`docs/ports/*.md` 的 "Types and their fields" 段是 3.146 之前生成的，因此**不含**
+  typedef 形态的结构体行；这些台账在该文件下次被动到时用新抽取器重生成（生成会覆盖手写的
+  `## Decisions`/`## Evidence`，所以由集成者在重生成后补回）。本轮只动工具与状态，不改任何台账。
+  ④ 证据：`cinventory --selftest` **6 cases / 0 failures**；六个单元 `--check` OK；`--all` 0 failing；
+  `check-declarations` 13 sites (0 forbidden)/0；`check-mirror-dupes` 0 failure；`check-target-names` 549 `.rs`/
+  593 targets/0 finding。
