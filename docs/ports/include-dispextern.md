@@ -7,22 +7,22 @@
 - [x] xstrcasecmp  (line 108)
 - [x] GLYPH_CODE_CHAR  (line 401)
 - [x] GLYPH_CODE_FACE  (line 409)
-- [ ] face_tty_specified_color  (line 1946)
-- [ ] FACE_SUITABLE_FOR_ASCII_CHAR_P  (line 2016)
-- [ ] FACE_FOR_CHAR  (line 2031)
+- [x] face_tty_specified_color  (line 1946)
+- [x] FACE_SUITABLE_FOR_ASCII_CHAR_P  (line 2016)
+- [x] FACE_FOR_CHAR  (line 2031)
 - [x] GLYPH_CHAR_VALID_P  (line 2043)
-- [ ] GLYPH_CODE_P  (line 2053)
-- [ ] reset_mouse_highlight  (line 3027)
+- [x] GLYPH_CODE_P  (line 2053)
+- [x] reset_mouse_highlight  (line 3027)
 
 ## Macros defined — 108
 - [ ] BIDI_AT_BASE_LEVEL  (line 2207, body 971025605d73)
 - [x] BIDI_MAXDEPTH  (line 2073, body 0ca9277f91e4)
-- [ ] BYTEPOS  (line 286, body f5e18d0fbc01)
-- [ ] CHARPOS  (line 287, body 73ec1c170ff8)
+- [x] BYTEPOS  (line 286, body f5e18d0fbc01)
+- [x] CHARPOS  (line 287, body 73ec1c170ff8)
 - [x] CHAR_GLYPH_PADDING_P  (line 729, body c0865b8ac24d)
-- [ ] CHAR_GLYPH_SPACE_P  (line 648, body e2dd0bbfb3cd)
-- [ ] CHECK_MATRIX  (line 869, body a29646b15239)
-- [ ] CLIP_TEXT_POS_FROM_MARKER  (line 328, body 002b35e3ba7f)
+- [x] CHAR_GLYPH_SPACE_P  (line 648, body e2dd0bbfb3cd)
+- [x] CHECK_MATRIX  (line 869, body a29646b15239)
+- [x] CLIP_TEXT_POS_FROM_MARKER  (line 328, body 002b35e3ba7f)
 - [x] CURRENT_HEADER_LINE_ACTIVE_FACE_ID  (line 1607, body fabe4139f274)
 - [x] CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3  (line 1594, body 93df835e5c32)
 - [x] CURRENT_HEADER_LINE_HEIGHT  (line 1616, body b0a21d9aff69)
@@ -43,12 +43,12 @@
 - [x] DESIRED_HEADER_LINE_HEIGHT  (line 1666, body a8267bef2bfe)
 - [x] DESIRED_MODE_LINE_HEIGHT  (line 1661, body 841e5d4036b1)
 - [x] DESIRED_TAB_LINE_HEIGHT  (line 1671, body 11212daf96ab)
-- [ ] DISPEXTERN_H_INCLUDED  (line 23, body da39a3ee5e6b)
+- [x] DISPEXTERN_H_INCLUDED  (line 23, body da39a3ee5e6b)
 - [x] FACE_EXTENSIBLE_P  (line 2011, body cd0ec3c1d2ae)
-- [ ] FACE_ID_BITS  (line 562, body 91032ad7bbcb)
-- [ ] FACE_TTY_DEFAULT_BG_COLOR  (line 1940, body aec1a599270e)
-- [ ] FACE_TTY_DEFAULT_COLOR  (line 1932, body d129ea7e5b92)
-- [ ] FACE_TTY_DEFAULT_FG_COLOR  (line 1936, body ee7da968dd72)
+- [x] FACE_ID_BITS  (line 562, body 91032ad7bbcb)
+- [x] FACE_TTY_DEFAULT_BG_COLOR  (line 1940, body aec1a599270e)
+- [x] FACE_TTY_DEFAULT_COLOR  (line 1932, body d129ea7e5b92)
+- [x] FACE_TTY_DEFAULT_FG_COLOR  (line 1936, body ee7da968dd72)
 - [x] FACE_UNIBYTE_P  (line 1953, body f9be50a1871d)
 - [x] FONT_TOO_HIGH  (line 1712, body b1cfce490b0e)
 - [x] FONT_TYPE_UNKNOWN  (line 644, body b6589fc6ab0d)
@@ -60,14 +60,14 @@
 - [x] GLYPH_EQUAL_P  (line 671, body cf3e48fcd372)
 - [x] GLYPH_INVALID_P  (line 725, body 33ac13298a7b)
 - [x] GLYPH_SLICE_EQUAL_P  (line 660, body 9c418a93c05b)
-- [ ] IF_DEBUG  (line 264, body a29646b15239)
+- [x] IF_DEBUG  (line 264, body a29646b15239)
 - [ ] INC_TEXT_POS  (line 296, body 6e78be0b5653)
 - [ ] ITERATOR_AT_END_OF_LINE_P  (line 2954, body 5fe0db6bf4f3)
 - [x] ITERATOR_AT_END_P  (line 2948, body 41e3bb4fc207)
-- [ ] IT_BYTEPOS  (line 2941, body 0f75d85b7e29)
-- [ ] IT_CHARPOS  (line 2940, body bcd8f758e9a9)
-- [ ] IT_STACK_SIZE  (line 2383, body ac3478d69a3c)
-- [ ] IT_STRING_BYTEPOS  (line 2943, body f11b6d59f1ec)
+- [x] IT_BYTEPOS  (line 2941, body 0f75d85b7e29)
+- [x] IT_CHARPOS  (line 2940, body bcd8f758e9a9)
+- [x] IT_STACK_SIZE  (line 2383, body ac3478d69a3c)
+- [x] IT_STRING_BYTEPOS  (line 2943, body f11b6d59f1ec)
 - [ ] IT_STRING_CHARPOS  (line 2942, body d8348a36bac4)
 - [x] MATRIX_BOTTOM_TEXT_ROW  (line 1231, body aabcfcfcceb6)
 - [x] MATRIX_FIRST_TEXT_ROW  (line 1189, body 4e76fb21e86e)
@@ -99,26 +99,26 @@
 - [x] MATRIX_ROW_VPOS  (line 1225, body 5ed91f0f505c)
 - [x] MATRIX_TAB_LINE_HEIGHT  (line 1538, body a74e931726e2)
 - [x] MATRIX_TAB_LINE_ROW  (line 1178, body c26c1bb176c4)
-- [ ] MAX_FACE_ID  (line 1986, body e89e9b1c9f28)
+- [x] MAX_FACE_ID  (line 1986, body e89e9b1c9f28)
 - [x] MAX_FRINGE_BITMAPS  (line 2235, body 737b674ea0ea)
 - [x] MR_PARTIALLY_VISIBLE  (line 1257, body 3511fa7f7707)
 - [x] MR_PARTIALLY_VISIBLE_AT_BOTTOM  (line 1263, body 4cdbd4949124)
 - [x] MR_PARTIALLY_VISIBLE_AT_TOP  (line 1260, body 886ac09320dc)
 - [ ] NativeRectangle  (line 179, body 46f8ab7c0cff)
 - [x] No_Cursor  (line 58, body 48a28489fbe0)
-- [ ] OVERLAY_STRING_CHUNK_SIZE  (line 2572, body 1574bddb75c7)
+- [x] OVERLAY_STRING_CHUNK_SIZE  (line 2572, body 1574bddb75c7)
 - [ ] PRODUCE_GLYPHS  (line 2962, body b381e080c20c)
-- [ ] SET_CHAR_GLYPH  (line 694, body 87cdee165f02)
-- [ ] SET_CHAR_GLYPH_FROM_GLYPH  (line 707, body 93df533422c7)
+- [x] SET_CHAR_GLYPH  (line 694, body 87cdee165f02)
+- [x] SET_CHAR_GLYPH_FROM_GLYPH  (line 707, body 93df533422c7)
 - [x] SET_GLYPH  (line 395, body 4660fe499b7f)
 - [x] SET_GLYPH_CHAR  (line 393, body df53ce587fba)
 - [x] SET_GLYPH_FACE  (line 394, body bda12f7fd668)
-- [ ] SET_GLYPH_FROM_CHAR_GLYPH  (line 715, body b2e7c6eecdd3)
-- [ ] SET_GLYPH_FROM_GLYPH_CODE  (line 414, body 6e5736c7b386)
+- [x] SET_GLYPH_FROM_CHAR_GLYPH  (line 715, body b2e7c6eecdd3)
+- [x] SET_GLYPH_FROM_GLYPH_CODE  (line 414, body 6e5736c7b386)
 - [ ] SET_MARKER_FROM_TEXT_POS  (line 336, body 2a85f22416c9)
 - [x] SET_MATRIX_ROW_ENABLED_P  (line 1243, body c92cc2f3ccd9)
-- [ ] SET_TEXT_POS  (line 291, body 191b91beaae4)
-- [ ] SET_TEXT_POS_FROM_MARKER  (line 322, body 4aac43f6e52f)
+- [x] SET_TEXT_POS  (line 291, body 191b91beaae4)
+- [x] SET_TEXT_POS_FROM_MARKER  (line 322, body 4aac43f6e52f)
 - [x] TEXT_POS_EQUAL_P  (line 342, body 4611f71b8e7c)
 - [x] TRY_WINDOW_CHECK_MARGINS  (line 3699, body ee799cd75778)
 - [x] TRY_WINDOW_IGNORE_FONTS_CHANGE  (line 3700, body 8ef58e36184c)
@@ -147,21 +147,21 @@
 
 ## File-scope objects — 16
 - [x] extern struct glyph space_glyph  (line 1338)
-- [ ] extern bool face_change  (line 2068)
-- [ ] extern bool redisplaying_p  (line 3608)
-- [ ] extern bool display_working_on_window_p  (line 3610)
-- [ ] extern int dont_resize_frames  (line 3611)
+- [x] extern bool face_change  (line 2068)
+- [x] extern bool redisplaying_p  (line 3608)
+- [x] extern bool display_working_on_window_p  (line 3610)
+- [x] extern int dont_resize_frames  (line 3611)
 - [ ] extern bool help_echo_showing_p  (line 3613)
-- [ ] extern Lisp_Object help_echo_string  (line 3614)
-- [ ] extern Lisp_Object help_echo_window  (line 3614)
-- [ ] extern Lisp_Object help_echo_object  (line 3615)
-- [ ] extern Lisp_Object previous_help_echo_string  (line 3615)
-- [ ] extern ptrdiff_t help_echo_pos  (line 3616)
+- [x] extern Lisp_Object help_echo_string  (line 3614)
+- [x] extern Lisp_Object help_echo_window  (line 3614)
+- [x] extern Lisp_Object help_echo_object  (line 3615)
+- [x] extern Lisp_Object previous_help_echo_string  (line 3615)
+- [x] extern ptrdiff_t help_echo_pos  (line 3616)
 - [x] extern int last_tab_bar_item  (line 3617)
 - [x] extern int last_tool_bar_item  (line 3618)
 - [x] extern int max_used_fringe_bitmap  (line 3710)
-- [ ] extern char unspecified_fg  (line 3834)
-- [ ] extern char unspecified_bg  (line 3834)
+- [x] extern char unspecified_fg  (line 3834)
+- [x] extern char unspecified_bg  (line 3834)
 # ----------------------------------------------------------------------
 ## Notes
 
@@ -636,3 +636,121 @@ free         (1): NativeRectangle
   variables without a definition in their own unit`; `check-mirror-dupes` -> `1 duplicate
   declaration(s), 1 ratchet row(s), 0 failure(s)`; `check-verbatim` -> `6 trees, 4607 files, 0
   failures`; `check-target-names` -> `626 .rs files, 591 map targets, 0 finding(s)`.
+
+## Decisions (the unit-owned names, dispextern.h 286-3834)
+
+- **Shape: one non-glob-imported module, `dispextern_unit_names`, carrying C's names in C order.**
+  The measurement below says 102 of the round's 104 `--check` items are names a unit that
+  includes this mirror already declares, so a copy at the mirror's top level is `E0428` in that
+  unit - the collision status 3.220 ruled on for the two face records.  Of the three shapes 3.220
+  left open for names of this class, this is the one `xstrcasecmp` already uses (3.224), and it is
+  preferred over a `#[cfg (feature = …)]` arm here because
+  * it needs no shared row: status 3.187 requires a `--cfg` producer for a feature name, and
+    `femacs/xtask/Cargo.toml` plus the FLIPS rows are the integrator's; one feature for the whole
+    class would still leave 87 names invisible to every ordinary build;
+  * a module's contents are *compiled* by every unit that includes this mirror and by
+    `layout-check`, so C's constants, signatures and bodies are type-checked in the normal build,
+    where a cfg'd-out arm is compiled only when `dead-arms`/`gate-probes` flips it.
+  The module makes no unit file change of any kind (P-21/P-39's `bignum_externs`/`cm_globals`
+  shape), and the units' own copies stay live by the 3.220 ruling.
+- **The 87 names landed, in C order.**  The text-position accessors `BYTEPOS`, `CHARPOS`,
+  `SET_TEXT_POS`, `SET_TEXT_POS_FROM_MARKER`, `CLIP_TEXT_POS_FROM_MARKER` (286-343);
+  `SET_GLYPH_FROM_GLYPH_CODE` (414-420) and `CHAR_GLYPH_SPACE_P` (648-650); the three
+  `FACE_TTY_DEFAULT_*` sentinels (1932/1936/1940) and `face_tty_specified_color` (1944-1949);
+  `FACE_SUITABLE_FOR_ASCII_CHAR_P` (2015-2022) and `FACE_FOR_CHAR` (2030-2038); the object
+  `face_change` (2068); the nine `IT_*` display-element members (2285-2323), the three
+  `line_wrap_method` members (2338-2343), the four `glyphless_display_method` members
+  (2347-2365), the eight `it_method` members (2371-2380), `IT_STACK_SIZE` (2383),
+  `OVERLAY_STRING_CHUNK_SIZE` (2572), the three iterator accessors `IT_CHARPOS`/`IT_BYTEPOS`/
+  `IT_STRING_BYTEPOS` (2937-2943), the four `move_operation_enum` flags (2977-2993),
+  `reset_mouse_highlight` (3026-3041), the seven `tab_bar_item_idx` members (3407-3430), the
+  thirteen `tool_bar_item_idx` members (3440-3495), the eight terminal-capability bits
+  (3533-3540), and the ten objects of 3608-3616 plus `unspecified_fg`/`unspecified_bg` (3834).
+  The C enumerator constants are `pub const`s of C's `int` (PORTING.md 1.3) with C's values, the
+  objects are `extern` declarations with the types the units already use (`bool` for
+  `redisplaying_p`/`dont_resize_frames`, `c_uint` for `redisplay_counter`, `Lisp_Object` for the
+  help-echo group, `[c_char; 0]` for the two "possibly empty" arrays), and the macros keep C's
+  bodies.
+- **`FACE_FOR_CHAR` (2030-2038) is the one name of the 87 that does *not* sit in the module: it
+  is carried in the 3.220 arm, with `struct face`, at its C position.**  C's frozen body is
+  `return face->id;`, a read of a `struct face` member, and that record exists in this mirror only
+  in that arm.  Its frame parameter is `*mut c_void` because the arm does not carry
+  `struct frame` (P-72 ③).  `FACE_SUITABLE_FOR_ASCII_CHAR_P` (2015-2022) needs no member read (its
+  frozen body is `return true;`), so it is ungated in the module and spells the same `*mut c_void`;
+  both units' typed `*mut face` copies (`src/xfaces.rs` 484/489) stay live.
+- **The arm's own compile coverage is a gap this round measured, and it is the integrator's to
+  close.**  `xtask`'s `dead_arms()` flips exactly the six rows of its `FLIPS` array, and
+  `dispextern_face_records` is not one of them; that feature name appears in the tree only in
+  `femacs/xtask/Cargo.toml` 61 and in this mirror, no `spikes/*.sh` names it, and `dead_arms()`
+  refuses a row whose config key is absent ("config.rs has no {key} to flip"), so closing it needs
+  either a FLIPS row with a real config constant or a `key.is_empty()` skip in that loop.  Until
+  then the two records and `FACE_FOR_CHAR` are text no compiler sees - the 86 ungated names of the
+  module are compiled by every consumer.
+- **`reset_mouse_highlight` (3026-3041) writes C's three `bool_bf : 1` members through the
+  mirror's one `bits` byte.**  `struct Mouse_HLInfo` in this mirror packs
+  `mouse_face_past_end`/`mouse_face_defer`/`mouse_face_hidden` (C 3019-3023) into `bits` with the
+  `MOUSE_FACE_*` masks, so C's three `= false` writes are the mask clear; the three C names are
+  bound to the `false`s C assigns them (the `GLYPH_CHAR` "name the value" shape, status 3.228) so
+  the body-token rule sees them.  If a `macro-body-notes.tsv` row for those three names and
+  `false` is preferred, the three `let`s can go - the mask clear is the whole body either way.
+- **`SET_GLYPH_FROM_GLYPH_CODE` (414-420) is the one landed name whose `--check` line does not
+  retire yet.**  C's body ends in `while (false)`, and the port's spelling is the `if` the loop
+  encloses (the shape `src/dispnew.rs` 245-252 carries), so the gate asks for `false` - exactly
+  the `FD_SET`/`FD_CLR` class of `macro-body-notes.tsv`.  The macro itself is landed; the row is
+  requested in this round's report.
+- **The 15 names still `missing` are `src/xdisp.rs`'s (and `src/font.rs`'s) alone**:
+  `BIDI_AT_BASE_LEVEL`, `DEC_TEXT_POS`, `INC_TEXT_POS`, `ITERATOR_AT_END_OF_LINE_P`,
+  `IT_STRING_CHARPOS`, `PRODUCE_GLYPHS`, `SET_MARKER_FROM_TEXT_POS`, `COMPOSITION_PROP_IDX`,
+  `DISPLAY_PROP_IDX`, `FACE_PROP_IDX`, `FONTIFIED_PROP_IDX`, `INVISIBLE_PROP_IDX`,
+  `LAST_PROP_IDX`, `OVERLAY_PROP_IDX`, `help_echo_showing_p`.  They are deferred by this round's
+  lane boundary (two in-flight units); the module shape touches no unit file, so landing them
+  needs only a go-ahead, not a unit edit.
+- **The five records stay for the next round** (`bidi_it`, `composition_it`,
+  `draw_fringe_bitmap_params`, `it`, `redisplay_interface`): status 3.220 assigned them the flip
+  arm, and each arm needs a row in `femacs/xtask/Cargo.toml` (the integrator's file).  All five
+  are unit-owned as well (`src/bidi.rs` 86, `src/dispnew.rs` 6828/6855/3569, `src/indent.rs` 180,
+  `src/minibuf.rs` 666).
+- **Nine stale boxes were ticked** - `GLYPH_CODE_P`, `CHECK_MATRIX`, `DISPEXTERN_H_INCLUDED`,
+  `FACE_ID_BITS`, `IF_DEBUG`, `MAX_FACE_ID`, `SET_CHAR_GLYPH`, `SET_CHAR_GLYPH_FROM_GLYPH`,
+  `SET_GLYPH_FROM_CHAR_GLYPH`: every one is in the mirror and `--check` has not asked about it for
+  several rounds, so the box (which means "the C item has a Rust counterpart the gate accepts")
+  was simply older than the item.
+- **The ledger's checklist carries no box for the 57 enumerator constants** this round landed: the
+  default inventory lists functions, macros, types and objects, not C's enumerator constants,
+  while `--check` does compare them (value included).  They are named in the Evidence below.
+
+## Evidence (the unit-owned names)
+
+- **`--check` before and after**: `python3 tools/extract-abi.py --check emacs/src/dispextern.h
+  femacs/src/include/dispextern.rs` -> `grep -c '^- '` went **104 -> 16**; the 16 are the 15
+  `missing` names of the deferred list above plus one token line, `macro
+  SET_GLYPH_FROM_GLYPH_CODE does not mention false (C body: do { if (CONSP (gc)) SET_GLYPH (glyph,
+  XFIXNUM (XCAR (gc)), …)`.  `comm -23`/`comm -13` of the two sorted `- ` lists: **89 lines gone,
+  1 line new** (the `missing macro SET_GLYPH_FROM_GLYPH_CODE` line became that token line).
+- **The free / unit-declared split this round worked from** (the same scan as the previous
+  slice's Evidence, run on the 104 `- missing` names): 87 names in scope, 15 with no owner except
+  the two in-flight units.  Owner counts: `indent.rs` 25, `term.rs` 25, `window.rs` 25,
+  `keyboard.rs` 21, `xfaces.rs` 16, `frame.rs` 5, `eval.rs` 2, `dispnew.rs` 30, `bidi.rs` 2, and
+  the deferred 15 in `xdisp.rs` (48 names total there, 33 of them shared with an in-scope owner).
+- **`layout-check`**: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-dx cargo run -q -p xtask --
+  layout-check` -> `layout probe ok` / `layout-check passed (see build/femacs/layout_asserts.rs)`.
+  This is the module's compile evidence: the probe crate `include!`s this mirror, so all 87 items
+  were compiled and type-checked in one crate.
+- **`build-tu`, twelve consumers** (the first four are the module's new owners, the rest include
+  this mirror for other reasons): `src/indent.c` -> `built src/indent.rs -> …/indent.o`;
+  `src/term.c` -> `built src/term.rs -> …/term.o`; `src/window.c` -> `built src/window.rs ->
+  …/window.o`; `src/keyboard.c` -> `built src/keyboard.rs -> …/keyboard.o`; `src/xfaces.c`,
+  `src/frame.c`, `src/eval.c`, `src/dispnew.c`, `src/bidi.c`, `src/character.c`, `src/lread.c`,
+  `src/alloc.c` - all `built …`.  (Last round's `src/keyboard.c` reading was against a stale
+  `build/` object; the integrator re-measured it as built, and it is built here too.)
+- **`xtask dead-arms`** (the flipped-configuration compile of every finished unit):
+  `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-dx cargo run -q -p xtask -- dead-arms` -> exit 0,
+  `337 translation unit(s) compiled with the non-frozen arms`, 0 `error` lines.  It does not name
+  `dispextern_face_records` (see the FLIPS bullet above), so this is evidence that the module's 86
+  ungated names compile in the units, not that the arm does.
+- **The five text gates, one run**: `check-declarations` -> `13 declaration sites (0 forbidden, 13
+  allowed literals), 0 failures`; `check-globals` -> `283 units, 0 DEFVAR_* variables without a
+  definition in their own unit`; `check-mirror-dupes` -> `1 duplicate declaration(s), 1 ratchet
+  row(s), 0 failure(s)` (the module adds no finding, which is what the non-glob-imported shape is
+  for); `check-verbatim` -> `6 trees, 4607 files, 0 failures`; `check-target-names` -> `626 .rs
+  files, 591 map targets, 0 finding(s)`.

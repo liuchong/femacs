@@ -2034,6 +2034,22 @@ const _: () = assert! (std::mem::offset_of! (face_cache, used) == 32);
 #[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face_cache, menu_face_changed_p) == 36);
 
+/// C 2030-2038: `INLINE int FACE_FOR_CHAR (struct frame *f, struct face *face, int character,
+/// ptrdiff_t pos, Lisp_Object object)` - `HAVE_WINDOW_SYSTEM` is undef, so C's body is
+/// `return face->id;`, a read of a `struct face` member.  The function therefore lives in the
+/// same arm as the record it reads (status 3.220); its frame parameter is `*mut c_void`
+/// because this arm does not carry `struct frame` (P-72 ③), and `src/xfaces.rs` 489 keeps the
+/// unit's own typed copy.
+/// C: INLINE int FACE_FOR_CHAR (struct frame *f, struct face *face, int character, ptrdiff_t pos, Lisp_Object object) { return face->id; }
+#[cfg (feature = "dispextern_face_records")]
+#[inline(always)]
+pub fn FACE_FOR_CHAR (f: *mut c_void, face: *mut face, character: c_int, pos: ptrdiff_t,
+                      object: Lisp_Object) -> face_id
+{
+  let _ = (f, character, pos, object);
+  unsafe { (*face).id }
+}
+
 // C: dispextern.h 472-2600's remaining structures (`image`, `image_cache`, `it`) and
 // 2600-4026's fringe, X-widget and cursor machinery — not mirrored on this target yet; they
 // need `struct frame`/`struct window` (`struct font` is in `include/font.rs` now), and
@@ -2192,4 +2208,407 @@ unsafe extern "C" {
   pub static mut last_tool_bar_item: c_int;
   /// C 3710: `extern int max_used_fringe_bitmap;`
   pub static mut max_used_fringe_bitmap: c_int;
+}
+
+// =============================================================================================
+// C 286-3834: the names of this header that the port's *units* declare themselves.
+//
+// The measurement in docs/ports/include-dispextern.md's `## Evidence` splits the 104 `--check`
+// items 102 / 1: 102 of them are names a unit that includes this mirror already declares, so a
+// copy at the mirror's top level is `E0428` in that unit - the collision status 3.220 ruled on
+// for the two face records.  The shape used here is the one status 3.220 left open for names of
+// this class and the one `xstrcasecmp` already uses: the copy sits in a module the including
+// unit does not glob-import (the `bignum.rs` `bignum_externs` / `cm.rs` `cm_globals` shape,
+// P-21/P-39).  It is preferred over a `#[cfg (feature = …)]` arm for these names because
+//   * it needs no shared row (status 3.187: a feature name needs a `--cfg` producer, and
+//     `femacs/xtask/Cargo.toml` plus the FLIPS rows are the integrator's), while a single
+//     feature for the whole class would still hide the code from every ordinary build; and
+//   * a module's contents are *compiled* by every unit that includes this mirror and by
+//     `layout-check`, so C's constants, signatures and bodies are type-checked in the normal
+//     build, where a cfg'd-out arm is compiled only when `dead-arms`/`gate-probes` flips it.
+// The module holds every one of them but `FACE_FOR_CHAR`, whose C body reads a member of
+// `struct face`: that record exists only in this mirror's flipped arm, so the function is
+// carried there, with the record (C 2030-2038, its own comment says why).
+//
+// Every item keeps C's text in a `/// C:` line; the enum members are `pub const`s of C's
+// underlying `int` (PORTING.md 1.3), the objects are `extern` storage declarations, and the
+// macros are `macro_rules!` with C's own bodies.
+pub mod dispextern_unit_names {
+  use super::*;
+
+  /* C 286-343: the text-position accessors.  `BYTEPOS`/`CHARPOS` are usable as assignment
+     targets in C, and `macro_rules!` keeps that property (`BYTEPOS! (pos) = n`).  */
+  /// C: #define BYTEPOS(POS)	(POS).bytepos
+  macro_rules! BYTEPOS {
+    ($pos:expr) => { ($pos).bytepos };
+  }
+  /// C: #define CHARPOS(POS)	(POS).charpos
+  macro_rules! CHARPOS {
+    ($pos:expr) => { ($pos).charpos };
+  }
+  /// C: #define SET_TEXT_POS(POS, CHARPOS, BYTEPOS) ((POS).charpos = (CHARPOS), (POS).bytepos = BYTEPOS)
+  macro_rules! SET_TEXT_POS {
+    ($pos:expr, $charpos:expr, $bytepos:expr) => {
+      { ($pos).charpos = ($charpos); ($pos).bytepos = ($bytepos); }
+    };
+  }
+  /// C: #define INC_TEXT_POS(POS, MULTIBYTE_P) do { ++(POS).charpos; if (MULTIBYTE_P) (POS).bytepos += next_char_len ((POS).bytepos); else ++(POS).bytepos; } while (false)
+  macro_rules! INC_TEXT_POS {
+    ($pos:expr, $multibyte_p:expr) => { {
+      ($pos).charpos += 1;
+      if $multibyte_p
+        { ($pos).bytepos += next_char_len (($pos).bytepos); }
+      else
+        { ($pos).bytepos += 1; }
+    } };
+  }
+  /// C: #define DEC_TEXT_POS(POS, MULTIBYTE_P) do { --(POS).charpos; if (MULTIBYTE_P) (POS).bytepos -= prev_char_len ((POS).bytepos); else --(POS).bytepos; } while (false)
+  macro_rules! DEC_TEXT_POS {
+    ($pos:expr, $multibyte_p:expr) => { {
+      ($pos).charpos -= 1;
+      if $multibyte_p
+        { ($pos).bytepos -= prev_char_len (($pos).bytepos); }
+      else
+        { ($pos).bytepos -= 1; }
+    } };
+  }
+  /// C: #define SET_TEXT_POS_FROM_MARKER(POS, MARKER) (CHARPOS (POS) = marker_position (MARKER), BYTEPOS (POS) = marker_byte_position (MARKER))
+  macro_rules! SET_TEXT_POS_FROM_MARKER {
+    ($pos:expr, $marker:expr) => {
+      { CHARPOS! ($pos) = marker_position ($marker);
+        BYTEPOS! ($pos) = marker_byte_position ($marker); }
+    };
+  }
+  /// C: #define CLIP_TEXT_POS_FROM_MARKER(POS, MARKER) (CHARPOS (POS) = clip_to_bounds (BEGV, marker_position (MARKER), ZV), BYTEPOS (POS) = clip_to_bounds (BEGV_BYTE, marker_byte_position (MARKER), ZV_BYTE))
+  macro_rules! CLIP_TEXT_POS_FROM_MARKER {
+    ($pos:expr, $marker:expr) => { {
+      CHARPOS! ($pos) = clip_to_bounds (BEGV! (), marker_position ($marker), ZV! ());
+      BYTEPOS! ($pos) = clip_to_bounds (BEGV_BYTE! (), marker_byte_position ($marker), ZV_BYTE! ());
+    } };
+  }
+
+  /// C: #define SET_MARKER_FROM_TEXT_POS(MARKER, POS) set_marker_both (MARKER, Qnil, CHARPOS (POS), BYTEPOS (POS))
+  macro_rules! SET_MARKER_FROM_TEXT_POS {
+    ($marker:expr, $pos:expr) => {
+      set_marker_both! ($marker, Qnil! (), CHARPOS! ($pos), BYTEPOS! ($pos))
+    };
+  }
+
+  /* C 414-420: the glyph-code setter (the `SET_GLYPH` pair it calls is this mirror's).  */
+  /// C: #define SET_GLYPH_FROM_GLYPH_CODE(glyph, gc) do { if (CONSP (gc)) SET_GLYPH (glyph, XFIXNUM (XCAR (gc)), XFIXNUM (XCDR (gc))); else SET_GLYPH (glyph, (XFIXNUM (gc) & ((1 << CHARACTERBITS)-1)), XFIXNUM (gc) >> CHARACTERBITS); } while (false)
+  macro_rules! SET_GLYPH_FROM_GLYPH_CODE {
+    ($glyph:expr, $gc:expr) => { {
+      if CONSP ($gc)
+        { SET_GLYPH! ($glyph, XFIXNUM (XCAR ($gc)) as c_int, XFIXNUM (XCDR ($gc)) as c_int); }
+      else
+        { SET_GLYPH! ($glyph, (XFIXNUM ($gc) & ((1 << CHARACTERBITS) - 1)) as c_int,
+                      (XFIXNUM ($gc) >> CHARACTERBITS) as c_int); }
+    } };
+  }
+
+  /* C 648-650: the "space in the default face on FRAME" test.  */
+  /// C: # define CHAR_GLYPH_SPACE_P(FRAME, GLYPH) ((GLYPH).u.ch == SPACEGLYPH && (GLYPH).face_id == DEFAULT_FACE_ID && (GLYPH).frame == (FRAME))
+  macro_rules! CHAR_GLYPH_SPACE_P {
+    ($frame:expr, $glyph:expr) => {
+      (($glyph).u.ch == SPACEGLYPH as c_uint
+       && glyph_bits! (face_id, $glyph) == DEFAULT_FACE_ID
+       && ($glyph).frame == ($frame) as *mut c_void)
+    };
+  }
+
+  /* C 1932-1949: the three tty "default colour" sentinels and the predicate that reads them.
+     C spells them `((unsigned long) -1/-2/-3)`; the port's spelling is the one term.rs and
+     frame.rs already use.  */
+  /// C: #define FACE_TTY_DEFAULT_COLOR ((unsigned long) -1)
+  pub const FACE_TTY_DEFAULT_COLOR: c_ulong = -1i64 as c_ulong;
+  /// C: #define FACE_TTY_DEFAULT_FG_COLOR ((unsigned long) -2)
+  pub const FACE_TTY_DEFAULT_FG_COLOR: c_ulong = -2i64 as c_ulong;
+  /// C: #define FACE_TTY_DEFAULT_BG_COLOR ((unsigned long) -3)
+  pub const FACE_TTY_DEFAULT_BG_COLOR: c_ulong = -3i64 as c_ulong;
+  /// C: INLINE bool face_tty_specified_color (unsigned long color) { return color < FACE_TTY_DEFAULT_BG_COLOR; }
+  #[inline(always)]
+  pub fn face_tty_specified_color (color: c_ulong) -> bool
+  {
+    color < FACE_TTY_DEFAULT_BG_COLOR
+  }
+
+  /* C 2015-2022: `HAVE_WINDOW_SYSTEM` is undef, so C's body is `return true;`.  The parameter
+     is C's `struct face *`; `struct face` is behind `dispextern_face_records` in this mirror,
+     so the pointer is the untyped one P-72 ③ prescribes.  */
+  /// C: INLINE bool FACE_SUITABLE_FOR_ASCII_CHAR_P (struct face *face) { return true; }
+  #[inline(always)]
+  pub fn FACE_SUITABLE_FOR_ASCII_CHAR_P (face: *mut c_void) -> bool
+  {
+    let _ = face;
+    true
+  }
+
+  /* C 2068: the global the redisplay path reads.  */
+  unsafe extern "C" {
+    /// C: extern bool face_change;
+    pub static mut face_change: bool;
+  }
+
+  /* C 2204-2207: the base-embedding-level test.  */
+  /// C: #define BIDI_AT_BASE_LEVEL(BIDI_IT) ((BIDI_IT).resolved_level == (BIDI_IT).level_stack[0].level)
+  macro_rules! BIDI_AT_BASE_LEVEL {
+    ($bidi_it:expr) => {
+      (($bidi_it).resolved_level == ($bidi_it).level_stack[0].level)
+    };
+  }
+
+  /* C 2285-2323: `enum display_element_type`, C's `int` enumerator.  */
+  /// C: enum display_element_type { IT_CHARACTER,
+  pub const IT_CHARACTER: c_int = 0;
+  /// C:   IT_COMPOSITION,
+  pub const IT_COMPOSITION: c_int = 1;
+  /// C:   IT_GLYPHLESS,
+  pub const IT_GLYPHLESS: c_int = 2;
+  /// C:   IT_IMAGE,
+  pub const IT_IMAGE: c_int = 3;
+  /// C:   IT_STRETCH,
+  pub const IT_STRETCH: c_int = 4;
+  /// C:   IT_EOB,
+  pub const IT_EOB: c_int = 5;
+  /// C:   IT_TRUNCATION,
+  pub const IT_TRUNCATION: c_int = 6;
+  /// C:   IT_CONTINUATION,
+  pub const IT_CONTINUATION: c_int = 7;
+  /// C:   IT_XWIDGET };
+  pub const IT_XWIDGET: c_int = 8;
+
+  /* C 2323-2340: `enum prop_idx` - one slot per display-relevant text property.  */
+  /// C: enum prop_idx { FONTIFIED_PROP_IDX,
+  pub const FONTIFIED_PROP_IDX: c_int = 0;
+  /// C:   FACE_PROP_IDX,
+  pub const FACE_PROP_IDX: c_int = 1;
+  /// C:   INVISIBLE_PROP_IDX,
+  pub const INVISIBLE_PROP_IDX: c_int = 2;
+  /// C:   DISPLAY_PROP_IDX,
+  pub const DISPLAY_PROP_IDX: c_int = 3;
+  /// C:   COMPOSITION_PROP_IDX,
+  pub const COMPOSITION_PROP_IDX: c_int = 4;
+  /// C:   OVERLAY_PROP_IDX,
+  pub const OVERLAY_PROP_IDX: c_int = 5;
+  /// C:   LAST_PROP_IDX };
+  pub const LAST_PROP_IDX: c_int = 6;
+
+  /* C 2338-2343: `enum line_wrap_method`.  */
+  /// C: enum line_wrap_method { TRUNCATE,
+  pub const TRUNCATE: c_int = 0;
+  /// C:   WORD_WRAP,
+  pub const WORD_WRAP: c_int = 1;
+  /// C:   WINDOW_WRAP };
+  pub const WINDOW_WRAP: c_int = 2;
+
+  /* C 2347-2365: `enum glyphless_display_method`.  */
+  /// C: enum glyphless_display_method { GLYPHLESS_DISPLAY_THIN_SPACE,
+  pub const GLYPHLESS_DISPLAY_THIN_SPACE: c_int = 0;
+  /// C:   GLYPHLESS_DISPLAY_EMPTY_BOX,
+  pub const GLYPHLESS_DISPLAY_EMPTY_BOX: c_int = 1;
+  /// C:   GLYPHLESS_DISPLAY_ACRONYM,
+  pub const GLYPHLESS_DISPLAY_ACRONYM: c_int = 2;
+  /// C:   GLYPHLESS_DISPLAY_HEX_CODE };
+  pub const GLYPHLESS_DISPLAY_HEX_CODE: c_int = 3;
+
+  /* C 2371-2380: `enum it_method` - the input source the iterator is reading from.  */
+  /// C: enum it_method { GET_FROM_BUFFER = 0,
+  pub const GET_FROM_BUFFER: c_int = 0;
+  /// C:   GET_FROM_DISPLAY_VECTOR,
+  pub const GET_FROM_DISPLAY_VECTOR: c_int = 1;
+  /// C:   GET_FROM_STRING,
+  pub const GET_FROM_STRING: c_int = 2;
+  /// C:   GET_FROM_C_STRING,
+  pub const GET_FROM_C_STRING: c_int = 3;
+  /// C:   GET_FROM_IMAGE,
+  pub const GET_FROM_IMAGE: c_int = 4;
+  /// C:   GET_FROM_STRETCH,
+  pub const GET_FROM_STRETCH: c_int = 5;
+  /// C:   GET_FROM_XWIDGET,
+  pub const GET_FROM_XWIDGET: c_int = 6;
+  /// C:   NUM_IT_METHODS };
+  pub const NUM_IT_METHODS: c_int = 7;
+
+  /* C 2383: the iterator's display-element stack depth.  */
+  /// C: #define IT_STACK_SIZE 5
+  pub const IT_STACK_SIZE: c_int = 5;
+
+  /* C 2572: `struct it`'s overlay-string chunk.  */
+  /// C: #define OVERLAY_STRING_CHUNK_SIZE 16
+  pub const OVERLAY_STRING_CHUNK_SIZE: c_int = 16;
+
+  /* C 2937-2943: the iterator position accessors.  */
+  /// C: #define IT_CHARPOS(IT)		CHARPOS ((IT).current.pos)
+  macro_rules! IT_CHARPOS {
+    ($it:expr) => { CHARPOS! (($it).current.pos) };
+  }
+  /// C: #define IT_BYTEPOS(IT)		BYTEPOS ((IT).current.pos)
+  macro_rules! IT_BYTEPOS {
+    ($it:expr) => { BYTEPOS! (($it).current.pos) };
+  }
+  /// C: #define IT_STRING_BYTEPOS(IT)	BYTEPOS ((IT).current.string_pos)
+  macro_rules! IT_STRING_BYTEPOS {
+    ($it:expr) => { BYTEPOS! (($it).current.string_pos) };
+  }
+
+  /// C: #define IT_STRING_CHARPOS(IT)	CHARPOS ((IT).current.string_pos)
+  macro_rules! IT_STRING_CHARPOS {
+    ($it:expr) => { CHARPOS! (($it).current.string_pos) };
+  }
+  /// C: #define ITERATOR_AT_END_OF_LINE_P(IT) ((IT)->what == IT_CHARACTER && ((IT)->c == '\n' || ((IT)->c == '\r' && (IT)->selective)))
+  macro_rules! ITERATOR_AT_END_OF_LINE_P {
+    ($it:expr) => {
+      ((*$it).what == IT_CHARACTER
+       && ((*$it).c == '\n' as c_int
+           || ((*$it).c == '\r' as c_int && (*$it).selective)))
+    };
+  }
+  /* C 2960-2976: the glyph producer.  C's `do { … } while (false)`; the port writes the
+     statements it encloses (the `SET_CHAR_GLYPH`/`CHECK_CODING_SYSTEM` class).  The `NULL`
+     comparisons and the `R2L` test are C's own text.  */
+  /// C: #define PRODUCE_GLYPHS(IT) do { if ((IT)->glyph_row != NULL && (IT)->bidi_p) (IT)->glyph_row->reversed_p = (IT)->bidi_it.paragraph_dir == R2L; if (FRAME_RIF ((IT)->f) != NULL) FRAME_RIF ((IT)->f)->produce_glyphs (IT); else produce_glyphs (IT); if ((IT)->glyph_row != NULL) inhibit_free_realized_faces =true; reset_box_start_end_flags (IT); } while (false)
+  macro_rules! PRODUCE_GLYPHS {
+    ($it:expr) => { {
+      if !(*$it).glyph_row.is_null () && (*$it).bidi_p
+        { (*(*$it).glyph_row).reversed_p =
+            ((*$it).bidi_it.paragraph_dir == R2L) as bool; }
+      if FRAME_RIF! ((*$it).f) != std::ptr::null_mut ()
+        { (*(FRAME_RIF! ((*$it).f))).produce_glyphs ($it); }
+      else
+        { produce_glyphs ($it); }
+      if !(*$it).glyph_row.is_null ()
+        { inhibit_free_realized_faces = true; }
+      reset_box_start_end_flags ($it);
+    } };
+  }
+
+  /* C 2977-2993: `enum move_operation_enum`, the bit-flags of `move_it_to`.  */
+  /// C: enum move_operation_enum { MOVE_TO_X = 0x01,
+  pub const MOVE_TO_X: c_int = 0x01;
+  /// C:   MOVE_TO_Y = 0x02,
+  pub const MOVE_TO_Y: c_int = 0x02;
+  /// C:   MOVE_TO_VPOS = 0x04,
+  pub const MOVE_TO_VPOS: c_int = 0x04;
+  /// C:   MOVE_TO_POS = 0x08 };
+  pub const MOVE_TO_POS: c_int = 0x08;
+
+  /* C 3026-3041: the mouse-highlight resetter.  C's body is a list of member writes; the
+     record it writes into (`struct Mouse_HLInfo`) is this mirror's own and ungated.  */
+  /// C: INLINE void reset_mouse_highlight (Mouse_HLInfo *hlinfo)
+  #[inline(always)]
+  pub fn reset_mouse_highlight (hlinfo: *mut Mouse_HLInfo)
+  {
+    unsafe {
+      (*hlinfo).mouse_face_beg_row = -1;
+      (*hlinfo).mouse_face_beg_col = -1;
+      (*hlinfo).mouse_face_end_row = -1;
+      (*hlinfo).mouse_face_end_col = -1;
+      (*hlinfo).mouse_face_mouse_x = 0;
+      (*hlinfo).mouse_face_mouse_y = 0;
+      (*hlinfo).mouse_face_beg_x = 0;
+      (*hlinfo).mouse_face_end_x = 0;
+      (*hlinfo).mouse_face_face_id = DEFAULT_FACE_ID;
+      (*hlinfo).mouse_face_mouse_frame = std::ptr::null_mut ();
+      (*hlinfo).mouse_face_window = Qnil ();
+      (*hlinfo).mouse_face_overlay = Qnil ();
+      // C 3019-3023's three `bool_bf : 1` members (`mouse_face_past_end`, `mouse_face_defer`,
+      // `mouse_face_hidden`) are the mirror's single `bits` byte with the three masks below, so
+      // C's three `= false` writes are the mask clear; the three C names are bound to the
+      // `false`s C assigns them, the way `GLYPH_CHAR` names the value it returns.
+      let mouse_face_past_end = false;
+      let mouse_face_defer = false;
+      let mouse_face_hidden = false;
+      let _ = (mouse_face_past_end, mouse_face_defer, mouse_face_hidden);
+      (*hlinfo).bits &= !(MOUSE_FACE_PAST_END | MOUSE_FACE_DEFER | MOUSE_FACE_HIDDEN);
+    }
+  }
+
+  /* C 3407-3430: `enum tab_bar_item_idx` - where a tab-bar item's slots are in the frame's
+     tab-bar vector.  */
+  /// C: enum tab_bar_item_idx { TAB_BAR_ITEM_KEY,
+  pub const TAB_BAR_ITEM_KEY: c_int = 0;
+  /// C:   TAB_BAR_ITEM_ENABLED_P,
+  pub const TAB_BAR_ITEM_ENABLED_P: c_int = 1;
+  /// C:   TAB_BAR_ITEM_SELECTED_P,
+  pub const TAB_BAR_ITEM_SELECTED_P: c_int = 2;
+  /// C:   TAB_BAR_ITEM_CAPTION,
+  pub const TAB_BAR_ITEM_CAPTION: c_int = 3;
+  /// C:   TAB_BAR_ITEM_BINDING,
+  pub const TAB_BAR_ITEM_BINDING: c_int = 4;
+  /// C:   TAB_BAR_ITEM_HELP,
+  pub const TAB_BAR_ITEM_HELP: c_int = 5;
+  /// C:   TAB_BAR_ITEM_NSLOTS };
+  pub const TAB_BAR_ITEM_NSLOTS: c_int = 6;
+
+  /* C 3440-3495: `enum tool_bar_item_idx`.  */
+  /// C: enum tool_bar_item_idx { TOOL_BAR_ITEM_KEY,
+  pub const TOOL_BAR_ITEM_KEY: c_int = 0;
+  /// C:   TOOL_BAR_ITEM_ENABLED_P,
+  pub const TOOL_BAR_ITEM_ENABLED_P: c_int = 1;
+  /// C:   TOOL_BAR_ITEM_SELECTED_P,
+  pub const TOOL_BAR_ITEM_SELECTED_P: c_int = 2;
+  /// C:   TOOL_BAR_ITEM_CAPTION,
+  pub const TOOL_BAR_ITEM_CAPTION: c_int = 3;
+  /// C:   TOOL_BAR_ITEM_IMAGES,
+  pub const TOOL_BAR_ITEM_IMAGES: c_int = 4;
+  /// C:   TOOL_BAR_ITEM_BINDING,
+  pub const TOOL_BAR_ITEM_BINDING: c_int = 5;
+  /// C:   TOOL_BAR_ITEM_TYPE,
+  pub const TOOL_BAR_ITEM_TYPE: c_int = 6;
+  /// C:   TOOL_BAR_ITEM_HELP,
+  pub const TOOL_BAR_ITEM_HELP: c_int = 7;
+  /// C:   TOOL_BAR_ITEM_RTL_IMAGE,
+  pub const TOOL_BAR_ITEM_RTL_IMAGE: c_int = 8;
+  /// C:   TOOL_BAR_ITEM_LABEL,
+  pub const TOOL_BAR_ITEM_LABEL: c_int = 9;
+  /// C:   TOOL_BAR_ITEM_VERT_ONLY,
+  pub const TOOL_BAR_ITEM_VERT_ONLY: c_int = 10;
+  /// C:   TOOL_BAR_ITEM_WRAP,
+  pub const TOOL_BAR_ITEM_WRAP: c_int = 11;
+  /// C:   TOOL_BAR_ITEM_NSLOTS };
+  pub const TOOL_BAR_ITEM_NSLOTS: c_int = 12;
+
+  /* C 3533-3540: the anonymous `enum` of terminal capabilities.  */
+  /// C: TTY_CAP_INVERSE = 1 << 1,
+  pub const TTY_CAP_INVERSE: c_uint = 1 << 1;
+  /// C:   TTY_CAP_UNDERLINE = 1 << 2,
+  pub const TTY_CAP_UNDERLINE: c_uint = 1 << 2;
+  /// C:   TTY_CAP_BOLD = 1 << 3,
+  pub const TTY_CAP_BOLD: c_uint = 1 << 3;
+  /// C:   TTY_CAP_DIM = 1 << 4,
+  pub const TTY_CAP_DIM: c_uint = 1 << 4;
+  /// C:   TTY_CAP_ITALIC = 1 << 5,
+  pub const TTY_CAP_ITALIC: c_uint = 1 << 5;
+  /// C:   TTY_CAP_STRIKE_THROUGH = 1 << 6,
+  pub const TTY_CAP_STRIKE_THROUGH: c_uint = 1 << 6;
+  /// C:   TTY_CAP_UNDERLINE_STYLED = 1 << 7,
+  pub const TTY_CAP_UNDERLINE_STYLED: c_uint = 1 << 7;
+  /// C:   TTY_CAP_OVERLINE = 1 << 8
+  pub const TTY_CAP_OVERLINE: c_uint = 1 << 8;
+
+  /* C 3608-3616: the redisplay state the header exports.  */
+  unsafe extern "C" {
+    /// C: extern bool redisplaying_p;
+    pub static mut redisplaying_p: bool;
+    /// C: extern unsigned int redisplay_counter;
+    pub static mut redisplay_counter: c_uint;
+    /// C: extern bool display_working_on_window_p;
+    pub static mut display_working_on_window_p: bool;
+    /// C: extern int dont_resize_frames;
+    pub static mut dont_resize_frames: c_int;
+    /// C: extern bool help_echo_showing_p;
+    pub static mut help_echo_showing_p: bool;
+    /// C: extern Lisp_Object help_echo_string, help_echo_window;
+    pub static mut help_echo_string: Lisp_Object;
+    pub static mut help_echo_window: Lisp_Object;
+    /// C: extern Lisp_Object help_echo_object, previous_help_echo_string;
+    pub static mut help_echo_object: Lisp_Object;
+    pub static mut previous_help_echo_string: Lisp_Object;
+    /// C: extern ptrdiff_t help_echo_pos;
+    pub static mut help_echo_pos: ptrdiff_t;
+    /// C 3834: `extern char unspecified_fg[], unspecified_bg[];` - the two arrays are
+     // "possibly empty" (xfaces.c appends to them), so the port keeps C's array type.
+    pub static mut unspecified_fg: [c_char; 0];
+    pub static mut unspecified_bg: [c_char; 0];
+  }
 }
