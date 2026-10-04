@@ -154,10 +154,17 @@ Eight names this unit's live text needs are declared at their use site with C's 
 the `pub fn` line (the minibuf.rs/ccl.rs shape).  They move to their owner's mirror when it
 lands, and are reported here rather than added to a mirror that is not this unit's:
 
-- `keyboard.h`'s `reorder_modifiers` (462), `parse_modifiers` (463),
-  `parse_solitary_modifier` (465), `lucid_event_type_list_p` (417),
-  `menu_item_eval_property` (440) and `message_with_string` (450) — the `include/keyboard.rs`
-  mirror is WIP and stops at line 520 of the header; its own note says so.
+- `keyboard.h`'s `reorder_modifiers` (462), `parse_modifiers` (461),
+  `parse_solitary_modifier` (463, `int`), `lucid_event_type_list_p` (497),
+  `menu_item_eval_property` (516) and `message_with_string` (`lisp.h` 4397) — the
+  `include/keyboard.rs` mirror is WIP and stops at line 520 of the header; its own note says so.
+  **Four of these six citations were wrong** until 3.227, and one carried a wrong type:
+  `parse_solitary_modifier` was declared `-> Lisp_Object` while C declares `extern int`
+  (keyboard.h 463) and defines `int` (keyboard.c 7920) — the call site at `keymap.rs:2609`
+  papered over it with `as isize as c_int`, which is exactly the "a wrong name/type here is
+  invisible until it links" class `tools/check-undef.py` exists for.  Fixed in place with the
+  file's line count unchanged (3,456 before and after), so no `citations-allowlist.tsv` key
+  moved; `build-tu src/keymap.c` -> built.
 - `lisp.h`'s `nconc2` (4271) and `esprintf` (4717) — two lisp.h declarations the `lisp.rs`
   mirror does not carry yet (the ccl.rs/callproc.rs shape).
 - `<string.h>`'s `strstr` — the `string.rs` mirror carries memcpy/memset/strchr/strlen but not

@@ -4059,3 +4059,43 @@
   `-c` 才是闸门）；nsfns lane（`nsfns.swift` + `docs/ports/nsfns.md` 383 行 + 21 条 `swift-units.tsv` 行，
   manifest 由 lane 按 writer 的形状写入并 diff 验证）。入库时要补的是 `nsterm.swift` 那 **140 条 manifest 行**
   （`--write-manifest` 会同时加它自己那 140 条与 nsfns 的 21 条，只取 nsterm 的部分）。
+
+- **3.227 两条 Swift lane 入库（`nsfns` 与 `nsterm` 第 1 轮），`keymap.rs` 的 `parse_solitary_modifier` 声明修正，以及"引文正文从来没人读"这条实测缺口（2026-10-04）**：
+  ① **`nsfns` 入库**（`bcd3e83`）：`femacs/platform/macos/nsfns.swift`（1,482 行）+ `docs/ports/nsfns.md`（383 行）
+  + 21 条 `swift-units.tsv` 行。判据：`swiftc -parse-as-library -c -o /tmp/s226/nsfns.o` **exit 0 无诊断**；
+  `check-swift-units` 对本文件 **56 C definition(s) / 21 unported / 21 row(s)；216 C symbol import(s)**。
+  清单**不是** `--write-manifest` 刷出来的：生成器会同时删 `macfont.swift` 的 3 行（Mill 在飞的切片已在工作树里落成那三个函数，
+  但没进仓库）并加 `nsterm.swift` 的 140 行，直接再生就会把本提交不携带的文件写成事实——所以按"只让该消失的行消失"的纪律
+  手插 21 条（与生成器对该文件的输出逐字节一致，顺序仍是文件自己的 (path, name)）。唯一带 reason 的行是
+  `interpret_services_menu`（`#ifndef NS_IMPL_COCOA` 文本，本 target 定义了 `NS_IMPL_COCOA` ⇒ 永久死文本）。
+  ② **`nsterm` 第 1 轮入库**：`nsterm.swift`（404 行，C 60-390 的切片）+ `docs/ports/nsterm.md`（738 行）+ 140 条 manifest 行
+  （142 定义 − 2 已落）。**lane 的发现入册**：上一轮那份文本用 `swiftc -parse` 看是"绿"的，
+  `swiftc -parse-as-library -c` 却报 **12 个 error** ⇒ **`-parse` 不做名字解析，不能当 Swift lane 的编译证据，`-c` 才是闸门**
+  （与 `nsselect` 先例一致）。其余按 C 行号记：`#if NSTRACE_ENABLED`（C 96-149，`NSTRACE_ENABLED`=0）整块死文本；
+  GNUstep 的 include/import 序言被 `import Foundation/AppKit` 取代；`dockMenu`/`mainMenu` 跨单元（`nsmenu.swift`）走 P-55 的
+  `UnsafeMutableRawPointer?` + 接收者在前的 C-ABI 条目；`NSAutoreleasePool` 在 ARC 下不可用 ⇒ 保存/恢复用
+  `objc_autoreleasePoolPush/Pop`；26 个 `static` → `fileprivate`。**欠账（记在这里，别让它消失）**：
+  `ns_use_srgb_colorspace` 这个数据符号**核心侧还没有导出**（`rg` 只有 Swift 侧的两处导入），它在 `syms_of_nsterm` 的
+  `DEFVAR_BOOL`（C 11716）那一段落地时补。
+  ③ **`femacs/src/keymap.rs` 的一处真缺陷（由 lane 的报告带出来的）**：`/// C: keyboard.h 465: … parse_solitary_modifier … -> Lisp_Object`
+  —— 实测 C 是 keyboard.h **463** 的 `extern int parse_solitary_modifier (Lisp_Object symbol);`、定义在 keyboard.c 7920 也是 `int`，
+  而调用点 `keymap.rs:2609` 用 `as isize as c_int` 把这个错类型糊过去（"名字/类型错了要等链接才现形"，正是 `check-undef.py` 的存在理由）。
+  同块另外三条引证也错：`parse_modifiers` 463→**461**、`lucid_event_type_list_p` 417→**497**、`menu_item_eval_property` 440→**516**，
+  而 `message_with_string` **不在 keyboard.h**（在 `lisp.h` 4397）。全部就地改正（**文件行数不变**：改前改后都是 3,456 行，
+  所以 `citations-allowlist.tsv` 一个 key 都没移动），`build-tu src/keymap.c` → **built**；台账 `docs/ports/keymap.md` 记了决定。
+  ④ **新测出来的系统性缺口：`/// C:` 引证的"引文正文"没有任何门在读**。我（集成者）写了个一次性审计：抽 `femacs/src/**/*.rs` 里
+  **单行**且带反引号引文的 `/// C: <header> <line>: \`…\`` 引证，与参照该行逐条比对，读数
+  **checked 618 / mismatched 215 / ranges 185 / unresolved 4**（抽查确认是真错：`buffer.rs:105` 引 `lisp.h 4420`，而
+  `extern void mark_object (Lisp_Object);` 在 **4436**；`alloc.rs:3472` 引 `emacs.c 818`，那一行是 `{`，`emacs_pipe` 不在 emacs.c 里）。
+  `tools/check-citations.py` 只校验**类型名类**引证（`\`struct glyph *\` is at dispextern.h:754`），所以这批从没被读到——
+  而引证是这套复刻的**可追溯性本体**（"每个数字都要有一条能重跑的命令撑着"）。**已派 lane（Feynman）**：写 `tools/check-citation-text.py`
+  把这条量化和可复跑，逐条就地改正（行数不变、排除在飞文件 `xdisp.rs`/`font.rs`/`include/font.rs`/`include/dispextern.rs`/`platform/**`/`keymap.rs`
+  与全部共享表），带回逐条 old→new 表与未动清单；**树级修正由它分级推进，不要静默批量改**。
+  ⑤ **读数（本轮末，工作树）**：`check-swift-units` **0 new / 3 stale / 7 Swift unit(s) landed**（3 条 stale 是 `macfont.swift` 的
+  `mac_font_create_line_with_string_and_font`/`mac_font_shape`/`macfont_shape`——Mill 的 ③b 在工作树里落了这三个函数但没入库，
+  **那一段入库时这 3 行必须从 manifest 上删掉**）；`check-declarations` 13/0（`--selftest` 28/0）；`check-verbatim` 6 trees / 4607 files / 0；
+  `check-citations` 628 files / 10 drift / 0 range / 1 stale（stale 行是 `femacs/src/include/dispextern.rs:539`，dispextern lane 的在飞件）；
+  `layout-check passed`。
+  ⑥ **生成物的一条纪律（本轮实测后没有提交）**：`gen-port-map.py`/`gen-port-inventory.py` 现在跑出来的读数**描述的是工作树**，
+  其中 `macfont.swift 11,069`（Mill 在飞）、`alloc.rs 8,268`（历史漂移）、`font.rs`/`include/font.rs`（Ohm 在飞）都不是本提交携带的状态 ⇒
+  我按 HEAD 还原了这两个文件，**等这些 lane 入库后的那一轮再一起再生**（生成物不许超前于它所描述的文件）。

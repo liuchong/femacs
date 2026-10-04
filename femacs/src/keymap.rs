@@ -85,15 +85,15 @@ include!("include/blockinput.rs");             // C 52: `#include "blockinput.h"
 unsafe extern "C" {
   /// C: keyboard.h 462: `extern Lisp_Object reorder_modifiers (Lisp_Object);`
   pub fn reorder_modifiers (event: Lisp_Object) -> Lisp_Object;
-  /// C: keyboard.h 463: `extern Lisp_Object parse_modifiers (Lisp_Object);`
+  /// C: keyboard.h 461: `extern Lisp_Object parse_modifiers (Lisp_Object);`
   pub fn parse_modifiers (item: Lisp_Object) -> Lisp_Object;
-  /// C: keyboard.h 465: `extern Lisp_Object parse_solitary_modifier (Lisp_Object);`
-  pub fn parse_solitary_modifier (symbol: Lisp_Object) -> Lisp_Object;
-  /// C: keyboard.h 417: `extern bool lucid_event_type_list_p (Lisp_Object);`
+  /// C: keyboard.h 463: `extern int parse_solitary_modifier (Lisp_Object symbol);`
+  pub fn parse_solitary_modifier (symbol: Lisp_Object) -> c_int;
+  /// C: keyboard.h 497: `extern bool lucid_event_type_list_p (Lisp_Object);`
   pub fn lucid_event_type_list_p (object: Lisp_Object) -> bool;
-  /// C: keyboard.h 440: `extern Lisp_Object menu_item_eval_property (Lisp_Object);`
+  /// C: keyboard.h 516: `extern Lisp_Object menu_item_eval_property (Lisp_Object);`
   pub fn menu_item_eval_property (sexpr: Lisp_Object) -> Lisp_Object;
-  /// C: keyboard.h 450: `extern void message_with_string (const char *, Lisp_Object, bool);`
+  /// C: lisp.h 4397: `extern void message_with_string (const char *, Lisp_Object, bool);`
   pub fn message_with_string (m: *const c_char, string: Lisp_Object, log: bool);
   /// C: lisp.h 4245: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
   /// (the lisp.rs mirror does not carry it yet - the ccl.rs shape).
@@ -2606,7 +2606,7 @@ DEFUN! ("where-is-internal", Fwhere_is_internal, Swhere_is_internal, 1, 5, 0,
 
   /* Refresh the C version of the modifier preference.  */
   where_is_preferred_modifier
-    = parse_solitary_modifier (Vwhere_is_preferred_modifier) as isize as c_int;
+    = parse_solitary_modifier (Vwhere_is_preferred_modifier);
 
   /* Find the relevant keymaps.  */
   if CONSP (keymap) && KEYMAPP! (XCAR (keymap))
