@@ -102,6 +102,21 @@
 
 ## Decisions
 
+### Gating: the port's narrowing, not C's condition
+
+`struct x_display_info` (C 426-1013) and `struct x_output` (C 1050-...) are **ungated in C**:
+they live inside `XTERM_H` and are compiled whenever the header is read, in every configuration.
+This mirror carries both - and every other record whose members name X11 types - under
+`#[cfg (feature = "have_x_windows")]`.  That gate is the **port's**, decided by *type
+availability*: `Display`, `Screen`, `XVisualInfo`, `Atom`, `Window`, `GC`, `Pixmap`, `KeySym`,
+`XModifierKeymap` and the rest have no definition in this tree, so a frozen-configuration layout
+assertion for these records cannot be compiled, and `spikes/mirror-struct-coverage.py --arm
+frozen` therefore reports them `unavailable` rather than complete.  The gated arm is what the
+tool measures for them, and its reading is the port's remaining work list for that surface
+(`--arm x11` was 98 gaps on 3.283, 0 after this round's fill; the fields, the hoisted
+`struct relief` and the `X_WMTYPE_*` constants are recorded in `docs/ports/xterm.md` Decision 13).
+
+
 - **`check-cond-eval` is VERIFIED for this file, so every arm is the frozen configuration's
   verdict.**  `python3 tools/check-cond-eval.py src/xterm.h` -> `112 conditions, 0 unknown, 0
   disagreements [VERIFIED]`; `HAVE_X_WINDOWS`, `USE_X_TOOLKIT`, `USE_GTK`, `HAVE_XAW3D`,

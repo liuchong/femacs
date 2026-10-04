@@ -39,12 +39,12 @@
 - [x] x_special_window_exists_p  (line 1980, static)
 - [x] xm_get_drag_window_1  (line 2015, static)
 - [x] xm_get_drag_window  (line 2166, static)
-- [ ] xm_setup_dnd_targets  (line 2176, static)
-- [ ] xm_get_drag_atom_1  (line 2403, static)
-- [ ] xm_get_drag_atom  (line 2512, static)
-- [ ] xm_setup_drag_info  (line 2526, static)
-- [ ] xm_send_drop_message  (line 2563, static)
-- [ ] xm_send_top_level_enter_message  (line 2588, static)
+- [x] xm_setup_dnd_targets  (line 2176, static)
+- [x] xm_get_drag_atom_1  (line 2403, static)
+- [x] xm_get_drag_atom  (line 2512, static)
+- [x] xm_setup_drag_info  (line 2526, static)
+- [x] xm_send_drop_message  (line 2563, static)
+- [x] xm_send_top_level_enter_message  (line 2588, static)
 - [ ] xm_send_drag_motion_message  (line 2615, static)
 - [ ] xm_send_top_level_leave_message  (line 2646, static)
 - [ ] xm_read_drop_start_reply  (line 2705, static)
@@ -686,6 +686,101 @@ what the two measurements (the gate and the X11 probe) caught:
 * Still deferred: the `x_atom_refs` table (C 987-1130) - unchanged from Decision 9.
 
 
+### 12. Slice 4 (C 2175-2612), and the X11-macro ruling carried out
+
+Six more functions - `xm_setup_dnd_targets` (C's `goto retry_drag_window`, 2192/2224, becomes the
+labelled `loop`; C 2316-2319's four `ckd_*` calls keep their short circuit as the first eager
+plus block expressions after `||`, the `ccl.rs` 2913 shape), `xm_get_drag_atom_1`,
+`xm_get_drag_atom`, `xm_setup_drag_info`, `xm_send_drop_message` and
+`xm_send_top_level_enter_message` - all ticked.  Three points:
+
+* **The ruling on X11's macros is implemented in the mirror.**  `femacs/src/include/xterm.rs`
+  now has a `pub mod x11_constants` (gated on `have_x_windows`) with the fourteen macros this lane
+  names - `None`, `Success`, `CopyFromParent`, `NoEventMask`, `StructureNotifyMask`,
+  `ClientMessage`, `InputOnly`, `CWOverrideRedirect`, `DestroyAll`, `RetainPermanent`,
+  `PropModeReplace`, `PropModeAppend`, `XA_ATOM`, `XA_WINDOW` - each with the header line its
+  value is quoted from.  **The values are measured, not remembered**: the machine has the
+  `xorgproto` headers at `/opt/homebrew/include`, so `clang -E -dM` over `X11/X.h`,
+  `X11/Xatom.h` and `X11/Xproto.h` gives `None 0L` (X.h 115), `Success 0` (350), `XA_WINDOW
+  ((Atom) 33)` (Xatom.h 41), `StructureNotifyMask (1L<<17)` (168), `PropModeAppend 2` (477) and
+  the rest (the ledger's Evidence has the commands).  The reference tree defines none of them
+  (measured: `grep -rn '# *define *<name>' emacs/` is empty for every one), so the headers are
+  the only source there is.  They sit in a **module** rather than at the mirror's top level, and
+  each function imports the few it needs (`use crate::x11_constants::{None, Success};` inside the
+  body), because a top-level `None` would shadow Rust's prelude `Option::None` for the whole
+  unit.  The mirror's own gate is still OK (`--check emacs/src/xterm.h ...`).
+* **C's `False`/`True` are Rust's `false`/`true`** in the ported statements: the token check
+  folds case (that is what the equivalence set is for), and `False` is not a Rust literal.  The
+  other X11 macros keep C's spelling because Rust has none for them.
+* **Nine bodies still carry a `does not mention` row** (the `- ` list's 305-313): `uint8_t`/
+  `uint16_t`/`uint32_t` (C's fixed-width spellings; the port writes `u8`/`u16`/`u32`), `alloca`
+  (the stack pool, P-05), and for `xm_setup_dnd_targets` also `goto` and `uninit` (the labelled
+  loop, and `UNINIT` = conf_post.h 369's zero marker, which the port writes as the explicit
+  `std::ptr::null_mut ()` initialiser).  Three `macro-body-notes.tsv` rows cover all nine; they
+  are requested in this round's report.  The boxes are ticked because the text is written and
+  compiles; the rows are the gate's record of the substitutions.
+
+
+### 13. The mirror's x11-arm coverage gaps: filled, and the口径 of the gating written down
+
+`spikes/mirror-struct-coverage.py --arm x11` (the integrator's new tool, 3.282/3.283) reported
+`98 gap(s) over 4 struct(s)` in the x11 arm, **80 of them `struct x_display_info` and 2
+`struct x_output` - both this lane's**.  They are filled now and the reading is **0** for the
+whole tree (`282 mirrored struct(s): ... 0 gap(s)`; the other 16 were dispextern's and landed
+with that lane's work).
+
+What went into `femacs/src/include/xterm.rs` (+131 lines):
+
+* **85 `x_display_info` members** in C's order: 80 the x11 arm reads (C 734-990 - `wm_type`,
+  `x_dnd_atoms`/`_size`/`_length`, `motif_drag_atom`/`_name`/`_time`/`_owner`/`motif_drag_window`,
+  the EWMH/XSettings/SM/XDND/XDS `Xatom_*` families, `net_supported_atoms`/
+  `nr_net_supported_atoms`/`net_supported_window`, `modmap`, `screen_width`/`_height`/`_mm_*`,
+  `failable_requests`/`next_failable_request`, `pending_dnd_time`, `quit_keysym`/
+  `quit_keysym_time`) plus the five `#ifdef HAVE_XKB` virtual-modifier atoms (gated
+  `have_xkb`; the x11 arm does not define that macro, so the tool does not count them - they are
+  here because `xterm.c`'s `ATOM_REFS_INIT` table reaches them).  `motif_drag_atom_name`'s
+  length is the arm's own reading of C's constant expression: **33**.
+* **2 `x_output` members** (`black_relief`, `white_relief`) and the record they need: C defines
+  `struct relief { GC gc; unsigned long pixel; }` *inside* `struct x_output` (C 1308-1313), and
+  Rust has no nested struct definitions, so the port hoists it next to its user.
+* **`X_WMTYPE_UNKNOWN`/`_A`/`_B`**, the members of C 740-745's anonymous enum (the port keeps
+  `wm_type: c_int` and writes the constants, PORTING.md 1.3).
+
+**The口径 the integrator asked to have written down: this gating is the port's, not C's.**
+In C, `struct x_display_info` and `struct x_output` are **ungated** - they sit inside
+`XTERM_H` and are compiled whenever the header is read, whatever the configuration.  The port
+carries both under `#[cfg (feature = "have_x_windows")]`, and the reason is type availability,
+not C's own condition: their members name Xlib types (`Display`, `Screen`, `XVisualInfo`,
+`Atom`, `Window`, `GC`, `Pixmap`, `KeySym`, `XModifierKeymap`, ...) that no mirror in this tree
+defines, so a frozen-configuration layout assertion for them cannot be compiled.  The same
+sentence is now in the mirror's own ledger (`docs/ports/include-xterm.md`), and it is the reason
+`mirror-struct-coverage.py --arm frozen` reports these records as `unavailable` rather than
+complete: the port narrowed the gate, and the narrowing is what the gated-arm reading measures.
+
+The reading, before and after (both `--arm x11`):
+
+```
+282 mirrored struct(s): 846 arm(s) attempted, 239 unreadable, 114 gap(s)     # before
+## x11: 98 gap(s) over 4 struct(s)
+   struct x_display_info            80 missing e.g. ['wm_type', 'x_dnd_atoms', ...]
+   struct x_output                   2 missing e.g. ['black_relief', 'white_relief']
+282 mirrored struct(s): 846 arm(s) attempted, 241 unreadable, 0 gap(s)       # after
+```
+
+The X11-arm probe moved with it: the unit's own `no field` errors went **20 → 2** (the two that
+remain are `buffered_input_event.sie`, Decision 5), while the *mirror* side's errors grew
+(153 → 220) because the members just carried are live under the arm and name Xlib types - the
+expected direction: the mirror now holds more of the gated surface, and that surface cannot
+compile until an X11 header mirror exists.
+
+One process note, because it is the kind of thing this lane has to watch: the hoisted `relief`
+record was first inserted between `struct x_output`'s attributes and the struct's own `pub struct`
+line, which un-gated `x_output` and made `layout-check` fail with `cannot find type Pixmap` in
+`include/xterm.rs`.  The failure was shown to be *mine* rather than pre-existing by restoring
+`HEAD`'s mirror (layout-check passed), and the fix was to move the hoisted record below the
+struct's closing brace.  `layout-check passed` again.
+
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -828,3 +923,43 @@ That probe caught three real defects in this round's draft, none of which `build
 through the glob import - E0425 in 20 places), C 1808's *chained assignment* was written as
 `(a = b) as u8` (E0605: Rust has no assignment expression), and `-> !` on
 `xm_drag_window_io_error_handler` needs a diverging final expression (E0308).
+
+Slice 4 (C 2175-2612) and the mirror addition:
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs
+314
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+  305-313: nine "does not mention" rows (uint8_t/uint16_t/uint32_t, alloca, goto, uninit)
+$ python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs
+OK emacs/src/xterm.h -> femacs/src/include/xterm.rs
+$ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-g188-j cargo run -q -p xtask -- build-tu src/xterm.c
+built src/xterm.rs -> ../build/femacs/xterm.o
+$ ... layout-check
+layout probe ok
+layout-check passed (see build/femacs/layout_asserts.rs)
+```
+
+The X11 constants, as measured (`/opt/homebrew/include` is the `xorgproto` headers this machine
+has; the reference tree defines none of them):
+
+```
+$ printf '#include <X11/X.h>\n#include <X11/Xatom.h>\n#include <X11/Xproto.h>\n' | clang -E -dM -I /opt/homebrew/include -x c - | grep -E '^#define (None|Success|...) '
+#define None 0L                                  X11/X.h 115
+#define Success 0                                X11/X.h 350
+#define XA_WINDOW ((Atom) 33)                    X11/Xatom.h 41
+#define StructureNotifyMask (1L<<17)             X11/X.h 168
+```
+
+The X11-arm probe after slice 4: **169 errors in the unit's own text, every one a recorded gap**
+(148 `cannot find <name>` - X11 names, or functions this file defines later - and 20
+`no field <name>` - the mirror's missing members); the other 153 are in the mirrors.  The probe
+caught three real defects in this round's draft, none visible to `build-tu` or `--check`:
+`msg.xclient.type` is Rust's keyword (`r#type`; the `r#` prefix is stripped by the token
+comparison, which is why the port keeps C's name), C's `False`/`True` had to become Rust's
+`false`/`true` (case folding keeps the tokens), and `xm_get_drag_window_1`'s import list was
+missing `PropModeReplace`.
+
+`tools/check-link.py` reports `1 failure(s), 1 stale`: the failure is `_cursor_row_p` and the
+stale row is `_set_cursor_from_row`, both xdisp's (`femacs/src/xdisp.rs` is modified in this
+working tree) - nothing xterm's, and `docs/baseline/link-pending.txt` was not touched here.

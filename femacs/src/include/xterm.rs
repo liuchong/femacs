@@ -484,7 +484,125 @@ pub struct x_display_info
   pub green_offset: c_int,   // C: int red_offset, blue_offset, green_offset, alpha_offset;
   pub alpha_offset: c_int,   // C: int red_offset, blue_offset, green_offset, alpha_offset;
   pub alpha_mask: c_ulong,   // C: unsigned long alpha_mask;
+
+  /* C 734-745: the window manager type.  C spells it as an anonymous enum, so the port writes
+     the member's integer type and the three constants below (PORTING.md 1.3).  */
+  pub wm_type: c_int,   // C: enum { X_WMTYPE_UNKNOWN, X_WMTYPE_A, X_WMTYPE_B } wm_type;
+  /* C 748-751: the atoms that are drag and drop atoms.  */
+  pub x_dnd_atoms: *mut Atom,   // C: Atom *x_dnd_atoms;
+  pub x_dnd_atoms_size: ptrdiff_t,   // C: ptrdiff_t x_dnd_atoms_size;
+  pub x_dnd_atoms_length: ptrdiff_t,   // C: ptrdiff_t x_dnd_atoms_length;
+  /* C 753-768: the Motif drag atom, its name and its owner.  The C array's length is the
+     constant expression `sizeof "_EMACS_ATOM_%lu" - 3 + INT_STRLEN_BOUND (unsigned long)`,
+     which the arm reads as **33** (`spikes/gated-layout-probe.py 'struct x_display_info'
+     xterm.h`).  */
+  pub motif_drag_atom: Atom,   // C: Atom motif_drag_atom;
+  pub motif_drag_atom_name: [c_char; 33],   // C: char motif_drag_atom_name[sizeof "_EMACS_ATOM_%lu" - 3 + INT_STRLEN_BOUND (unsigned long)];
+  pub motif_drag_atom_time: Time,   // C: Time motif_drag_atom_time;
+  pub motif_drag_atom_owner: *mut frame,   // C: struct frame *motif_drag_atom_owner;
+  pub motif_drag_window: Window,   // C: Window motif_drag_window;
+  /* C 770-777: EWMH atoms, the list of supported atoms and the window type atoms.  */
+  pub Xatom_net_supported: Atom,   // C: Atom Xatom_net_supported, Xatom_net_supporting_wm_check;
+  pub Xatom_net_supporting_wm_check: Atom,
+  pub net_supported_atoms: *mut Atom,   // C: Atom *net_supported_atoms;
+  pub nr_net_supported_atoms: c_int,   // C: int nr_net_supported_atoms;
+  pub net_supported_window: Window,   // C: Window net_supported_window;
+  pub Xatom_net_window_type: Atom,   // C: Atom Xatom_net_window_type, Xatom_net_window_type_tooltip;
+  pub Xatom_net_window_type_tooltip: Atom,
+  pub Xatom_net_active_window: Atom,   // C: Atom Xatom_net_active_window;
+  /* C 779-790: the EWMH (`_NET_...`) atoms.  */
+  pub Xatom_net_wm_state: Atom,   // C: Atom Xatom_net_wm_state, Xatom_net_wm_state_fullscreen, ... , Xatom_net_wm_bypass_compositor;
+  pub Xatom_net_wm_state_fullscreen: Atom,
+  pub Xatom_net_wm_state_maximized_horz: Atom,
+  pub Xatom_net_wm_state_maximized_vert: Atom,
+  pub Xatom_net_wm_state_sticky: Atom,
+  pub Xatom_net_wm_state_above: Atom,
+  pub Xatom_net_wm_state_below: Atom,
+  pub Xatom_net_wm_state_hidden: Atom,
+  pub Xatom_net_wm_state_skip_taskbar: Atom,
+  pub Xatom_net_wm_state_shaded: Atom,
+  pub Xatom_net_frame_extents: Atom,
+  pub Xatom_net_current_desktop: Atom,
+  pub Xatom_net_workarea: Atom,
+  pub Xatom_net_wm_opaque_region: Atom,
+  pub Xatom_net_wm_ping: Atom,
+  pub Xatom_net_wm_sync_request: Atom,
+  pub Xatom_net_wm_sync_request_counter: Atom,
+  pub Xatom_net_wm_sync_fences: Atom,
+  pub Xatom_net_wm_frame_drawn: Atom,
+  pub Xatom_net_wm_frame_timings: Atom,
+  pub Xatom_net_wm_user_time: Atom,
+  pub Xatom_net_wm_user_time_window: Atom,
+  pub Xatom_net_client_list_stacking: Atom,
+  pub Xatom_net_wm_pid: Atom,
+  pub Xatom_net_wm_bypass_compositor: Atom,
+  /* C 792-799: XSettings atoms and window, the frame name/icon name and the opacity atom.  */
+  pub Xatom_xsettings_sel: Atom,   // C: Atom Xatom_xsettings_sel, Xatom_xsettings_prop, Xatom_xsettings_mgr;
+  pub Xatom_xsettings_prop: Atom,
+  pub Xatom_xsettings_mgr: Atom,
+  pub xsettings_window: Window,   // C: Window xsettings_window;
+  pub Xatom_net_wm_name: Atom,   // C: Atom Xatom_net_wm_name, Xatom_net_wm_icon_name;
+  pub Xatom_net_wm_icon_name: Atom,
+  pub Xatom_net_wm_window_opacity: Atom,   // C: Atom Xatom_net_wm_window_opacity;
+  pub Xatom_SM_CLIENT_ID: Atom,   // C 801-802: Atom Xatom_SM_CLIENT_ID;
+  /* C 804-813: the XDND source atoms and the XDS source/target atoms.  */
+  pub Xatom_XdndAware: Atom,   // C: Atom Xatom_XdndAware, Xatom_XdndSelection, ... , Xatom_XdndFinished;
+  pub Xatom_XdndSelection: Atom,
+  pub Xatom_XdndTypeList: Atom,
+  pub Xatom_XdndActionCopy: Atom,
+  pub Xatom_XdndActionMove: Atom,
+  pub Xatom_XdndActionLink: Atom,
+  pub Xatom_XdndActionAsk: Atom,
+  pub Xatom_XdndActionPrivate: Atom,
+  pub Xatom_XdndActionList: Atom,
+  pub Xatom_XdndActionDescription: Atom,
+  pub Xatom_XdndProxy: Atom,
+  pub Xatom_XdndEnter: Atom,
+  pub Xatom_XdndPosition: Atom,
+  pub Xatom_XdndStatus: Atom,
+  pub Xatom_XdndLeave: Atom,
+  pub Xatom_XdndDrop: Atom,
+  pub Xatom_XdndFinished: Atom,
+  pub Xatom_XdndDirectSave0: Atom,   // C: Atom Xatom_XdndDirectSave0, Xatom_XdndActionDirectSave, Xatom_text_plain;
+  pub Xatom_XdndActionDirectSave: Atom,
+  pub Xatom_text_plain: Atom,
+  /* C 815-818: `#ifdef HAVE_XKB` - the virtual modifier atoms (the frozen reading does not
+     have them; they are carried under the feature, P-51).  */
+  #[cfg (feature = "have_xkb")]
+  pub Xatom_Meta: Atom,   // C: Atom Xatom_Meta, Xatom_Super, Xatom_Hyper, Xatom_ShiftLock, Xatom_Alt;
+  #[cfg (feature = "have_xkb")]
+  pub Xatom_Super: Atom,
+  #[cfg (feature = "have_xkb")]
+  pub Xatom_Hyper: Atom,
+  #[cfg (feature = "have_xkb")]
+  pub Xatom_ShiftLock: Atom,
+  #[cfg (feature = "have_xkb")]
+  pub Xatom_Alt: Atom,
+  /* C 820-821: the core modifier map, used when XKB is not present.  `XModifierKeymap` is
+     Xlib's; the pointer keeps C's name (this file's convention for X11 types).  */
+  pub modmap: *mut XModifierKeymap,   // C: XModifierKeymap *modmap;
+  /* C 941-950: the screen's dimensions, as last seen in a ConfigureNotify.  */
+  pub screen_width: c_int,   // C: int screen_width;
+  pub screen_height: c_int,   // C: int screen_height;
+  pub screen_mm_width: c_int,   // C: int screen_mm_width;
+  pub screen_mm_height: c_int,   // C: int screen_mm_height;
+  /* C 952-957: the circular buffer of request serial ranges to ignore.  */
+  pub failable_requests: [x_failable_request; N_FAILABLE_REQUESTS as usize],   // C: struct x_failable_request failable_requests[N_FAILABLE_REQUESTS];
+  pub next_failable_request: *mut x_failable_request,   // C: struct x_failable_request *next_failable_request;
+  /* C 970-990: the DND emulation time, and the double-press quit keysym.  */
+  pub pending_dnd_time: Time,   // C: Time pending_dnd_time;
+  pub quit_keysym: KeySym,   // C: KeySym quit_keysym;
+  pub quit_keysym_time: Time,   // C: Time quit_keysym_time;
 }
+
+/* C 740-745's anonymous enum, written as the constants its members are (PORTING.md 1.3);
+   `wm_type` holds them.  */
+#[cfg (feature = "have_x_windows")]
+pub const X_WMTYPE_UNKNOWN: c_int = 0;
+#[cfg (feature = "have_x_windows")]
+pub const X_WMTYPE_A: c_int = 1;
+#[cfg (feature = "have_x_windows")]
+pub const X_WMTYPE_B: c_int = 2;
 
 
 /* C 990-1013: the display chain and the tooltip objects `xterm.c` keeps.  */
@@ -657,6 +775,8 @@ pub struct x_output
   pub sync_fences: [XSyncFence; 2],   // C: XSyncFence sync_fences[2];
   pub gc: GC,   // C: GC gc;
   pub pixel: c_ulong,   // C: unsigned long pixel;
+  pub black_relief: relief,   // C: struct relief black_relief, white_relief;
+  pub white_relief: relief,
   pub relief_background: c_ulong,   // C: unsigned long relief_background;
   pub focus_state: c_int,   // C: int focus_state;
   pub move_offset_top: c_int,   // C: int move_offset_top;
@@ -687,6 +807,17 @@ pub struct x_output
   pub tool_bar_touch_id: c_int,   // C: int tool_bar_touch_id;
   #[cfg (feature = "have_xinput2_2")]
   pub tool_bar_touch_device: c_int,   // C: int tool_bar_touch_device;
+}
+
+/// C 1308-1313: `struct relief { GC gc; unsigned long pixel; } black_relief, white_relief;` -
+/// C defines it *inside* `struct x_output`; Rust has no nested struct definitions, so the port
+/// hoists it to the crate root and both members below use it.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct relief
+{
+  pub gc: GC,                            // C: GC gc;
+  pub pixel: c_ulong,                    // C: unsigned long pixel;
 }
 
 /// C 1330-1335: "Extreme 'short' and 'long' values suitable for libX11."  C defines these five
@@ -1398,3 +1529,42 @@ macro_rules! STORE_NATIVE_RECT {
 // C: extern void x_init_frame_parm_handlers (void);
 // C: extern void x_delete_display (struct x_display_info *);
 // C: ... (the whole block is C 750-2043; every declaration keeps C's own text in the reference)
+
+/* X11's own macros that `xterm.c` uses by name.  The reference tree defines none of them (they
+   come from the X11 headers), so they are recorded here, in C's spelling, measured from the
+   `xorgproto` headers this machine has at `/opt/homebrew/include` (`clang -E -dM`, and the
+   `#define` line each value is quoted from).  They live in a module of their own rather than at
+   the mirror's top level: a unit that includes this mirror is X11 code and wants C's `None`,
+   but a top-level `None` would shadow Rust's prelude `Option::None` for the whole unit, so the
+   consumer imports the few names it needs where it needs them.  */
+#[cfg (feature = "have_x_windows")]
+pub mod x11_constants {
+  /// X11/X.h 115: `#define None 0L` - "universal null resource or null atom".
+  pub const None: c_long = 0;
+  /// X11/X.h 350: `#define Success 0` - "everything's okay".
+  pub const Success: c_int = 0;
+  /// X11/X.h 121: `#define CopyFromParent 0L` - the CreateWindow border/colormap value.
+  pub const CopyFromParent: c_long = 0;
+  /// X11/X.h 150: `#define NoEventMask 0L`.
+  pub const NoEventMask: c_long = 0;
+  /// X11/X.h 168: `#define StructureNotifyMask (1L<<17)`.
+  pub const StructureNotifyMask: c_long = 1 << 17;
+  /// X11/X.h 212: `#define ClientMessage 33` - the `XEvent` union member `xclient` selects.
+  pub const ClientMessage: c_int = 33;
+  /// X11/X.h 388: `#define InputOnly 2` - the `XCreateWindow` class.
+  pub const InputOnly: c_int = 2;
+  /// X11/X.h 401: `#define CWOverrideRedirect (1L<<9)`.
+  pub const CWOverrideRedirect: c_long = 1 << 9;
+  /// X11/X.h 456: `#define DestroyAll 0` - `XSetCloseDownMode`'s first mode.
+  pub const DestroyAll: c_int = 0;
+  /// X11/X.h 457: `#define RetainPermanent 1` - the mode that keeps the client slot.
+  pub const RetainPermanent: c_int = 1;
+  /// X11/X.h 475: `#define PropModeReplace 0`.
+  pub const PropModeReplace: c_int = 0;
+  /// X11/X.h 477: `#define PropModeAppend 2`.
+  pub const PropModeAppend: c_int = 2;
+  /// X11/Xatom.h 12: `#define XA_ATOM ((Atom) 4)`; C's `Atom` is `unsigned long`.
+  pub const XA_ATOM: c_ulong = 4;
+  /// X11/Xatom.h 41: `#define XA_WINDOW ((Atom) 33)`.
+  pub const XA_WINDOW: c_ulong = 33;
+}
