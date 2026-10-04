@@ -1599,4 +1599,23 @@
   1 still pending`；`check-mirror-dupes` 0 failure；`check-globals` 274/0；`check-declarations` 0 failures。
   **仍未绿（不是本批引入）**：`check-undef` 的 39 条 NEW 全部来自在飞的 `keyboard.o`/`xdisp.o`，
   12 条 stale 棘轮行是 coding 落地后的既得项（要在**已提交态**重取）。
+- **3.106 第一个链接门：`xtask gate-load`（2026-10-04 第 99 轮第六批）**：加载阶梯 L0（`docs/port-plan.md`
+  §7.1）此前**没有任何基础设施**，而它需要的第一个东西是"能不能把已落的单元链起来"。本轮把它做成门：
+  `gate-load` 用 `make -C ../build/emacs-ref/src -n temacs` 问**参照构建自己的链接命令**（不手抄 `LIBES`：
+  Makefile 怎么写就怎么用，含 `-lncurses` 与那串 `-L` 路径），把其中的参照目标文件逐个换成
+  `build/femacs/<同名>.o`、把 `../lib/libgnu.a` 换成**端口自己的 `lib/` 单元对象**（端口没有归档，
+  混进参照的 `libgnu.a` 就是硬约束 2 禁止的 C/Rust 混链），然后真的链一次；链不上的符号就是 L0 的工单。
+  `gat-load`（严格）非零退出，`--report` 打印后退出 0 并写 `build/load/undefined.txt`（`符号\t引用它的对象`）。
+  **第一次实测**（`--report`）：**230 个未定义符号，来自 44 个对象；零 `duplicate symbol`**——后者是个
+  好消息（每个 `.c` 一个 crate 的模型没有在链接层撞名），前者就是 L0 的工作量清单。构成上：
+  ① 在飞单元未收口的部分（`keyboard.o` 引 `_Fdiscard_user` 一族、`xdisp.o`/`window.o` 引
+  `_MOUSE_HL_INFO` 等）；② **镜像缺口**被链接层准确点出来：`MOUSE_HL_INFO` 在 C 里是 `dispextern.h` 的
+  `INLINE` 函数（参照对象里**没有**这个符号，clang 全内联），端口的 `window.rs` 却在用点把它当外部符号调，
+  说明 `include/dispextern.rs` 还缺这个（以及 xdisp lane 列出的 `struct it`、`IT_*`、`PRODUCE_GLYPHS` 等）
+  内联镜像；③ 未移植单元的 DEFVAR 载体与函数。
+  **门的位置**：`gate-load` **不**并入 `gate-fast`/`gate-probes`（它要参照构建树、而且要等阶梯前置工作落地），
+  按批次单独跑；`xtask` 的 usage 与 `gate-full` 的说明都指向它。
+  **顺带核实**（lanes 报的两处镜像缺陷）：`charset.rs` 的 `CHAR_CHARSET_P` `E0308` **不复现**——
+  `build-tu src/coding.c` 与 `build-tu src/xdisp.c` 都 `built`，两单元的 `rustc --cfg enable_checking` 都 exit 0；
+  `coding.h` 镜像那 5 条 crate-root 声明仍是待办（待 coding 镜像的下一次整理）。
 

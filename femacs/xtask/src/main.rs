@@ -40,6 +40,7 @@ fn main() {
         "gate-fast" => gate_fast(),
         "gate-probes" => gate_probes(),
         "dead-arms" => dead_arms(),
+        "gate-load" => gate_load(args.get(1).map(String::as_str)),
         "gate-full" => {
             eprintln!(
                 "gate-full needs the reference Emacs configured, built and its ERT suite \
@@ -51,7 +52,7 @@ fn main() {
         _ => {
             println!(
                 "usage: xtask <gen-config|layout-asserts|layout-check|build-tu <c-file>|\
-                 gate-fast|gate-probes|dead-arms|gate-full>"
+                 gate-fast|gate-probes|dead-arms|gate-load [--report]|gate-full>"
             );
             0
         }
@@ -1175,6 +1176,162 @@ fn probe_programs() -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+/// `gate-load`: the loading ladder's first rung (docs/port-plan.md section 7.1).
+///
+/// The frozen reference build knows its own `temacs` link command; this asks it with
+/// `make -n temacs`, substitutes the port's objects for the reference ones, and links.  Every
+/// symbol the linker cannot resolve is a unit that is not ported yet or a name the port spells
+/// wrong - the worklist L0 needs, which no other gate can produce (the text gates compare
+/// files, the symbol gate compares exports, the undefined-reference gate works per object
+/// against the SDK's own export list).  `--report` prints the list and exits 0; without it the
+/// command is a gate, and it needs the reference build's tree (`build/emacs-ref/src/Makefile`,
+/// see the batch-F derivation in `docs/baseline/frozen-build-sources.txt`).
+fn gate_load(arg: Option<&str>) -> i32 {
+    let report = arg == Some("--report");
+    let out = match Command::new("make").args(["-C", "../build/emacs-ref/src", "-n", "temacs"]).output() {
+        Ok(o) => o,
+        Err(e) => return fail(format!("make -n temacs: {e}")),
+    };
+    if !out.status.success() {
+        return fail("make -n temacs failed: configure the reference build first");
+    }
+    let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
+    let lines: Vec<&str> = stdout.lines().collect();
+    let start = match lines.iter().position(|l| l.contains("-o temacs.tmp")) {
+        Some(i) => i,
+        None => return fail("`make -n temacs` has no `-o temacs.tmp` line"),
+    };
+    let mut end = start;
+    while lines[end].trim_end().ends_with('\\') && end + 1 < lines.len() {
+        end += 1;
+    }
+    // The command is one `gcc ... temacs.tmp` invocation plus the flags and objects on the
+    // continuation lines the Makefile writes.
+    // Strip the Makefile's line continuations: the backslash-newline pairs are shell syntax,
+    // and leaving them in would make `sh -c` escape the space that follows.
+    let joined = lines[start..=end].iter()
+        .map(|l| l.trim_end().strip_suffix('\\').unwrap_or(l.trim_end()).trim_end())
+        .collect::<Vec<&str>>().join(" ");
+
+    // The port's own objects for the `lib/` units stand in for the reference `libgnu.a`: the
+    // port has no archive (each C file is one crate), and mixing the reference library in
+    // would be the C/Rust hybrid the port forbids (goal constraint 2).
+    let mut lib_objs: Vec<String> = Vec::new();
+    if let Ok(rd) = fs::read_dir("lib") {
+        let mut stems: Vec<String> = rd.filter_map(|e| e.ok())
+            .filter_map(|e| e.path().file_stem().map(|s| s.to_string_lossy().into_owned()))
+            .collect();
+        stems.sort();
+        for stem in stems {
+            let p = Path::new(REPO).join("build/femacs").join(format!("{stem}.o"));
+            if p.is_file() {
+                lib_objs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
+            }
+        }
+    }
+
+    let mut missing: Vec<String> = Vec::new();
+    let mut tokens: Vec<String> = Vec::new();
+    for tok in joined.split_whitespace() {
+        let is_obj = tok.len() > 2 && tok.ends_with(".o")
+            && tok[..tok.len() - 2].chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
+        if is_obj {
+            let p = Path::new(REPO).join("build/femacs").join(tok);
+            if p.is_file() {
+                tokens.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
+            } else {
+                missing.push(tok.to_string());
+                tokens.push(tok.to_string());
+            }
+        } else if tok.ends_with("../lib/libgnu.a") {
+            tokens.extend(lib_objs.iter().cloned());
+        } else if tok == "temacs.tmp" {
+            tokens.push(fs::canonicalize("..").map(|p| p.join("build/load/temacs-port"))
+                .unwrap_or_else(|_| PathBuf::from("temacs-port")).display().to_string());
+        } else if tok == "gcc" {
+            tokens.push("clang".to_string());
+        } else {
+            tokens.push(tok.to_string());
+        }
+    }
+    if !missing.is_empty() {
+        println!("port objects the frozen link needs but the port has not built: {}", missing.join(" "));
+        if !report {
+            return fail(format!("{} reference object(s) have no port object", missing.len()));
+        }
+    }
+    let cmd = tokens.join(" ");
+    let _ = fs::create_dir_all("../build/load");
+    println!("== gate-load: linking the frozen temacs object list against the port ==");
+    let linked = Command::new("sh").arg("-c").arg(&cmd)
+        .current_dir("../build/emacs-ref/src").output();
+    let out = match linked {
+        Ok(o) => o,
+        Err(e) => return fail(format!("link: {e}")),
+    };
+    let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
+    let mut undefined: Vec<(String, Vec<String>)> = Vec::new();
+    let mut current: Option<usize> = None;
+    for line in text.lines() {
+        if line.trim_start().starts_with('"') && line.contains(", referenced from:") {
+            // `  "_name", referenced from:` - the name is the first quoted word.
+            let name = line.trim_start().trim_start_matches('"')
+                .split('"').next().unwrap_or("").to_string();
+            undefined.push((name, Vec::new()));
+            current = Some(undefined.len() - 1);
+        } else if line.starts_with("      _") || line.starts_with("  _") && line.contains(" in ") {
+            if let Some(i) = current {
+                if let Some((_, referrers)) = undefined.get_mut(i) {
+                    if let Some(obj) = line.split(" in ").nth(1) {
+                        referrers.push(obj.trim().to_string());
+                    }
+                }
+            }
+        }
+    }
+    let mut why: BTreeMap<String, usize> = BTreeMap::new();
+    for (_, refs) in &undefined {
+        for r in refs { *why.entry(r.clone()).or_default() += 1; }
+    }
+    let mut why: Vec<(String, usize)> = why.into_iter().collect();
+    why.sort_by(|a, b| b.1.cmp(&a.1));
+    println!("undefined symbols: {} (referenced from {} object(s))", undefined.len(), why.len());
+    for (obj, n) in why.iter().take(10) {
+        println!("  {n:4}  {obj}");
+    }
+    let list = undefined.iter()
+        .map(|(name, refs)| {
+            // one entry per referencing object, in the order the linker printed them
+            let mut seen: Vec<&String> = Vec::new();
+            for r in refs { if !seen.contains(&r) { seen.push(r); } }
+            format!("{name}\t{}", seen.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join(","))
+        })
+        .collect::<Vec<String>>().join("\n");
+    if let Err(e) = fs::write("../build/load/undefined.txt", list + "\n") {
+        eprintln!("warning: could not write build/load/undefined.txt: {e}");
+    } else {
+        println!("full list: build/load/undefined.txt");
+    }
+    if undefined.is_empty() {
+        if out.status.success() {
+            println!("link: temacs linked from the port's objects alone");
+            return 0;
+        }
+        // A link can fail for reasons that are not undefined symbols (a flag the frozen build
+        // passes, a duplicate definition, a missing file); print what it said.
+        for line in text.lines().rev().take(15).collect::<Vec<&str>>().into_iter().rev() {
+            println!("  {line}");
+        }
+        return fail("the link failed without an undefined-symbol list (the lines above)");
+    }
+    if report {
+        println!("gate-load --report: {} undefined symbol(s); the list is the L0 worklist", undefined.len());
+        0
+    } else {
+        fail(format!("{} undefined symbol(s) stand between the port and L0", undefined.len()))
+    }
 }
 
 /// Compile every finished translation unit with the **non-frozen** arms selected.
