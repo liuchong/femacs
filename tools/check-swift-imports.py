@@ -279,8 +279,15 @@ def main() -> int:
         print(f"FAIL {name} ({classify(name)}): imported by {', '.join(sorted(missing[name]))} "
               f"and provided by nothing")
         failures += 1
+    # A row leaves the ratchet for one of two reasons, and they ask for different actions, so the
+    # gate names them apart (`status` 3.247's ambiguity): the name is *provided* now (delete the
+    # row), or nothing imports it any more (check the call site - the import may have moved or the
+    # row may have been added for a spelling that was never used).
     for name in sorted(set(rows) - set(missing)):
-        print(f"STALE {name}: nothing imports it any more")
+        if name in imp:
+            print(f"STALE (satisfied) {name}: provided now, so the row goes")
+        else:
+            print(f"STALE (unimported) {name}: no Swift unit imports it any more")
         failures += 1
     # A ratcheted name that no universe explains is a *review* item, not a failure: the import is
     # real (the unit compiles), so it is either a C-ABI entry the core still owes under a name only

@@ -4607,3 +4607,24 @@
   ④ 读数（本轮末）：`check-swift-units` **0 new / 0 stale / 7 units**；`check-swift-imports` **724 imports / 5557 core exports /
   567 unprovided / 567 ratchet rows / 0 failures**；全树台账 **13678 勾 / 885 未勾**——未勾的跳升是**新的 `docs/ports/xterm.md`**（413 个框，
   那是新战线的完整工作清单，不是回归）；其余仍是 `nsterm` 299、`xdisp` 130、`nsfns` 37、`macfont` 3（永久死臂）、`nsfont` 2。
+
+- **3.248 连接期 shim 批① 入库（`abi_shim.rs` 34 个 C-ABI 导出），导入门的 STALE 一分为二，并记下一条"台账散文"的坑（2026-10-04）**：
+  ① **实产**：新单元 `femacs/src/abi_shim.rs`（122 行）+ 台账 `docs/ports/abi_shim.md`。选址按 3.242 的裁决（候选 A）：镜像是被 `include!` 进每个单元的，
+  在里面写定义＝每单元一份定义（`E0428`）；没有 C 配对的新产物有 `xtask` 先例，门也放行（`check-target-names` 实测 627 .rs / 591 targets / **0 finding**，
+  首行 `// femacs: generated mirror of the frozen build's C-ABI exports …` 命中既有 `DECLARED` 模式，**不需要改工具**）。本批落 **10 个 `frame_*` 取值器**
+  （`frame_left_pos`/`frame_top_pos`/`frame_title`/`frame_icon_name`/`frame_param_alist`/`frame_selected_window`/`frame_menu_bar_vector`/`frame_tool_bar_items`/
+  `frame_menu_bar_items_used`/`frame_n_tool_bar_items`），**签名与 Swift 的 `@_silgen_name` 逐字一致**（`UnsafeMutableRawPointer?`↔`*mut c_void`、`Int32`↔`c_int`、
+  `Lisp_Object`↔端口 8 字节 `Lisp_Object`），体是 `include/frame.rs` 的 `pub` 成员直读 + `/// C:` 行带 C 行号（frame.h 604/162/158/209/1204/234/283/307/573）。
+  **判据**：`build-tu abi_shim` → `built src/abi_shim.rs -> ../build/femacs/abi_shim.o`（无 C 源的 stem 兜底已记台账）；`nm -g` = **34 个 `T _`**；
+  导入门那 10 条从"未提供"变成 **`STALE (satisfied)`** ⇒ 行删掉（棘轮 −10，**557 行**）。
+  ② **导入门的 STALE 一分为二**（本轮改，回答 `abi_shim.md` 提出的措辞坑）：`STALE (satisfied)` = 名字**已被提供**（删行即可）vs
+  `STALE (unimported)` = **没有任何 Swift 单元再导入它**（要去查调用点——行可能为某个从未用过的拼法加的）。判据是"名字是否还在 `imp` 集合里"，
+  与 `missing`/`rows` 的差集一起用。这条同时解释了上一轮"10 条 `frame_*` 瞬时 stale"的歧义（`tools/check-swift-imports.py` 的分支现在会直接说 `satisfied`）。
+  ③ **一条新的坑（值得所有人记）**：台账散文里**不能写"未勾选框"的字面拼法**。shim 台账第一版在 `## Decisions` 里引用那个两字符记号，结果 `xtask` 的
+  `finished_units()` 把它当成"还有未勾框"⇒ **该单元不进流水线**（`dead-arms` 只有 337 个单元、没有 `src/abi_shim.rs`）；改成散文措辞后
+  `dead-arms` 编它了：**`338 translation unit(s) compiled with the non-frozen arms`**。这是 3.198/3.202 那一族"把散文当数据"的又一实例。
+  ④ 其余门读数（batch ① 收口时）：`check-globals` **284 units / 0**（shim 算一个单元）、`check-mirror-dupes` 1/1/0、`check-verbatim` 4607/0、
+  `layout-check passed`、`check-undef` 0 new（shim 的导入全在 `build/femacs` 里被满足）、`check-symbols` 86 units / 1 mismatched（`lib/regex`，非本件）。
+  ⑤ **一条瞬态说明**：`check-swift-imports` 此刻报 28 条 failure——那是在飞的 Swift 轮次（`nsterm` r8 / `nsfns` b4）新引入的导入，按惯例在它们入库时录入棘轮；
+  同理 `ns_set_offset`/`ns_free_frame_resources` 这两条已显 `STALE (satisfied)` 是因为 `nsterm.swift` 的**未提交** r8 已在工作树里定义了它们——
+  **判据在已落库的状态上取**（3.241/3.247 的同一条）。
