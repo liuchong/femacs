@@ -5243,3 +5243,13 @@
   ② **入库前我自己复核（两项）**：⑴ 四张表**逐张与"用当前探针重新 `--write` 的结果"逐字节相同**（生成器↔生成物一致，不是半途状态）；⑵ 逐表点 depth：`x_display_info` 的 **6 行全部 depth 1**（正是 3.318 ④ 那条陷阱——它们是**嵌套 `Mouse_HLInfo`** 的位串，现在数据本身就说得明明白白），
   而 **`frame`（181 行）与 `window`（76 行）里 depth>0 的行是 0**——这回答了 lane 问的第 3 条：两张老位表**从来没有**带这个坑。`x_output` 的 17 行全 depth 0。
   ③ **格式变更是有意的**（3.318 ⑤ 已记口径）：这三张表**只有探针自己读**（实测），所以加列不破坏任何消费者；位表"一行一个位成员"的语义现在没有歧义。
+- **3.325 xdisp 第 24 轮入库（19,771 行、缺口 107），并修掉一处"影子宏"语义偏差（Hypatia 交付 + 集成者纠错，2026-10-05）**：
+  ① **入的两件**：`femacs/src/xdisp.rs` **19,197 → 19,771 行**、`docs/ports/xdisp.md`（+108/−66，未勾框 **107 → 102**）。本轮 4 个函数 + 1 个 subr（结束边界 **C 20422**）：分类 112 → **107**（`missing function` −4：`try_cursor_movement`/`set_vertical_scroll_bar`/`set_horizontal_scroll_bar`/`window_start_acceptable_p`；`missing subr` 7 → 6：`Flong_line_optimizations_p`）；台账 **308 → 313/415**（Subrs 3 → **4**/13、Functions defined 213 → **217**/302）。
+  ② **入库前我自己复检**：`build-tu src/xdisp.c` → **exit 0、0 条 `^error`**；`extract-abi --check` → **107 条**（与 lane 同数）；台账 102 未勾；lane 的六项自查（括号平衡、逐 C 行标识符覆盖）我在改完后重跑过。
+  ③ **我抓到并修掉的一处真偏差（"影子宏"类）**：本片在 `xdisp.rs` 里新造了两个宏
+  `macro_rules! BUF_BEGV { ($buf:expr) => { (*$buf).begv }; }` / `BUF_ZV`，注释写的是"buffer.h 1399-1400: `#define BUF_BEGV(buf) ((buf)->begv)`"。**这个引用是错的**：参照里 `BUF_BEGV`/`BUF_ZV` **只有** `buffer.h` 917/951 的 **INLINE 函数**（带 `current_buffer` 快路径与 `begv_marker`/`zv_marker` 分支），没有任何 `#define`；
+  而**镜像早就有它们**（`include/buffer.rs:923/957` 的 `#[inline(always)] pub fn`）。Rust 的**宏与函数是两个命名空间**，所以这个宏不报重名、却让 `BUF_ZV! (buf)`/`BUF_BEGV! (buf)` 的 4 个调用点（xdisp.c 20285-20287 的三条语句）**只读裸字段**、丢掉快路径与 marker 分支——这正是硬约束 1 禁止的"发明 C 里没有的行为"。
+  处置：删掉两个宏与其注释，4 个调用点改用**镜像的 inline 函数**（同一文件里另有 7 处早就是这么写的，本身就自相矛盾）；改后 `build-tu` 仍 exit 0、`--check` 仍 107、`BUF_BEGV!`/`BUF_ZV!` 全树 **0 次**。
+  ④ **因此命名一条门改进（给下一个空出来的 lane）**：现在的重名门只看**声明**、且跨不过宏/函数两个命名空间，抓不到这一类。要加的是："**一个单元声明的名字（宏**或**函数）与它所 `include!` 的镜像里已声明的同名项**"——即 0.1-3"一处声明点"的机械化版本（本轮这条它就是漏网的）。判据用现成的 `check-mirror-dupes.py` 扩一档，或新写一个（先量清两者边界再定）。
+  ⑤ **lane 交接的三条**：**item 56 关闭**（它说"镜像缺 `BUF_BEGV`/`BUF_ZV`"——实测**镜像有**，所以正确做法不是"补镜像"而是"**删单元里那个影子宏**"，已按 ③ 做）；**item 55 记成镜像完备性任务**（`window.h` 的**函数** extern 一整族——`window_list` 1187、`window_scroll_margin` 1226 等——`include/window.rs` 只带文件级对象 1100-1206、不带函数，各单元按 P-72 rule 3 就地声明；搬进镜像归窗口镜像那条线）；
+  **item 39 结论不变**（`include/dispextern.rs` 的 `pub struct it` 整块在 `dispextern_face_records` 臂里、对本单元不可见，单元内的实测副本继续留）。

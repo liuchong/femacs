@@ -8,7 +8,7 @@
 - [x] window-text-pixel-size  (Fwindow_text_pixel_size, 0/7, doc 24dfcb0ed7db, line 12078)
 - [x] buffer-text-pixel-size  (Fbuffer_text_pixel_size, 0/6, doc 8ad2cd85d9f9, line 12158)
 - [x] display--line-is-continued-p  (Fdisplay__line_is_continued_p, 0/0, doc 198c6180dfb2, line 12216)
-- [ ] long-line-optimizations-p  (Flong_line_optimizations_p, 0/0, doc 9778916a82c2, line 20414)
+- [x] long-line-optimizations-p  (Flong_line_optimizations_p, 0/0, doc 9778916a82c2, line 20414)
 - [ ] current-bidi-paragraph-direction  (Fcurrent_bidi_paragraph_direction, 0/1, doc 2adae0649377, line 26937)
 - [ ] bidi-find-overridden-directionality  (Fbidi_find_overridden_directionality, 3/4, doc 6e06604b8c32, line 27030)
 - [ ] move-point-visually  (Fmove_point_visually, 1/1, doc 3a8d3658283b, line 27181)
@@ -241,10 +241,10 @@
 - [x] cursor_row_fully_visible_p  (line 19305, static)
 - [x] try_scrolling  (line 19402, static)
 - [x] compute_window_start_on_continuation_line  (line 19745, static)
-- [ ] try_cursor_movement  (line 19865, static)
-- [ ] set_vertical_scroll_bar  (line 20268)
-- [ ] set_horizontal_scroll_bar  (line 20325)
-- [ ] window_start_acceptable_p  (line 20389, static)
+- [x] try_cursor_movement  (line 19865, static)
+- [x] set_vertical_scroll_bar  (line 20268)
+- [x] set_horizontal_scroll_bar  (line 20325)
+- [x] window_start_acceptable_p  (line 20389, static)
 - [ ] redisplay_window  (line 20475, static)
 - [ ] try_window  (line 21684)
 - [ ] try_window_reusing_current_matrix  (line 21793, static)
@@ -432,32 +432,26 @@
 ### Progress (this lane is incremental)
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds C
-19256-19862** — `run_window_scroll_functions` (the `window-scroll-functions` hook call and the
-`w->start` re-read a buffer switch makes necessary), `cursor_row_fully_visible_p` (the
-`make-cursor-line-fully-visible` preference with its `Qunbound` fallback and `dsafe_call1`, and
-the row test that decides whether scrolling would help), `try_scrolling` (its three outcomes,
-the `too_near_end` label the round spells as a labelled `loop`, the two `do … while` loops, the
-conservative/`scroll_step`/aggressive `amount_to_scroll` chain and the
-`run_window_scroll_functions` → `try_window` tail), `compute_window_start_on_continuation_line`
-(the `find_newline`-cached line start, the `WORD_WRAP` two-call X precision and the
-closest-below-point candidate), plus the two anonymous enums (`SCROLLING_*`, `CURSOR_MOVEMENT_*`)
-as the port's `const`s and the `SCROLL_LIMIT`/`BASE_LINE_NUMBER_VALID_P` macros.  The covered
-range is now **C 468-19862**.  The next live definition is **C 19864 `try_cursor_movement`**.
-Ticked in the ledger above, bucket by bucket — **measured** with `grep -c '^- \[x\]'` over each
-section (`Subrs` 3/13, `Functions` 213/302, `Macros` 31/38, `Types and their fields` 2/2,
-`File-scope objects` 59/60) — **308 of the 415 boxes** (213+3+31+2+59); the remaining 107 are
-untouched.  **The scaffold retires `cursor_row_fully_visible_p` and adds nothing** —
-**measured**: the block goes from fifteen `fn` entries to **fourteen**.  This round's one
-`goto` is `try_scrolling`'s `goto too_near_end` (C 19725), the port's `continue 'too_near_end`
-out of a labelled `loop` that spans the rest of the function, so **this round owes one
-`docs/ports/macro-body-notes.tsv` row** (item 54).  The range starts at C 19256 (not C 19263)
-so that `run_window_scroll_functions`' own C comment is carried, and round 22's boundary loss —
-`set_cursor_from_row`'s comment (C 18623-18628) — is restored at its site (deviation 171).  The
-eight constants the two enums define —
-`SCROLLING_SUCCESS`/`SCROLLING_FAILED`/`SCROLLING_NEED_LARGER_MATRICES` (C 19380-19385) and
-`CURSOR_MOVEMENT_SUCCESS`/`_CANNOT_BE_USED`/`_MUST_SCROLL`/`_NEED_LARGER_MATRICES`
-(C 19856-19862) — have **no ledger box** to tick (`Types and their fields` holds only the two
-structs, both long ticked); reported here rather than invented.
+19863-20422** — `try_cursor_movement` (the "text unchanged, only point moved" shortcut: the
+scroll-margin probe, the forward and backward row walks with their bidi-reordered second pass,
+the `must_scroll`/`scroll_p`/`rv`/`pt_invis` decisions, the two `do … while` loops that try
+`set_cursor_from_row` on each continuation row, and the `CURSOR_MOVEMENT_*` outcome), the two
+scroll-bar setters `set_vertical_scroll_bar` and `set_horizontal_scroll_bar` (their whole/start/
+end/portion arithmetic, the `window_end_valid`/`long_line_optimizations_p` recomputation, the
+`bidi_p` right-to-left flip and the `set_*_scroll_bar_hook` call), `window_start_acceptable_p`
+(the `make_window_start_visible` gate, the invisible-text and replacing-`display` tests) and the
+`long-line-optimizations-p` subr.  The covered range is now **C 468-20422**.  The next live
+definition is **C 20424's `redisplay_window`** (C 20424-20472 is its doc comment; the function
+opens at C 20475).  Ticked in the ledger above, bucket by bucket — **measured** with
+`grep -c '^- \[x\]'` over each section (`Subrs` 4/13, `Functions` 217/302, `Macros` 31/38,
+`Types and their fields` 2/2, `File-scope objects` 59/60) — **313 of the 415 boxes**
+(217+4+31+2+59); the remaining 102 are untouched.  **The scaffold is untouched** —
+**measured**: the block stays at **fourteen** `fn` entries, because all four of this round's
+functions are declared by C right here (no forward declaration to retire).  **No new
+`docs/ports/macro-body-notes.tsv` row is owed** — `--check`'s `does not mention` lines are still
+the two recorded ones (`redisplay_internal`, `set_cursor_from_row`), and `try_cursor_movement`
+carries no `goto`.  Two mirror-gap macros are added under C's own name: `BUF_BEGV` and `BUF_ZV`
+(buffer.h 1399-1400 — `include/buffer.rs` carries `BUF_Z`/`BUF_GPT` but not these two; item 56).
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -801,12 +795,29 @@ C 5773).
   the closest-below-point walk with its `WORD_WRAP` two-call X precision, and the
   `pos_before_pt` fallback before `SET_MARKER_FROM_TEXT_POS`), and the `CURSOR_MOVEMENT_*` enum
   as `const`s.
+* C 19863-20422 — `try_cursor_movement` (the `is_tty_root_frame_with_visible_child` bail-out, the
+  two `eassert`s on `last_point`/`window_end_vpos`, the seventeen-clause outer test —
+  `PT >= CHARPOS (startp)`, `clip_changed`, `update_mode_lines`, `windows_or_buffers_changed`,
+  `cursor_type_changed`, `show-trailing-whitespace`, three `display-line-numbers` clauses,
+  `minibuf_window` and `overlay_arrow_in_current_buffer_p` — then the last-cursor-row
+  validation, the forward walk with its "next row owns PT" loop, the backward walk with the
+  `row0->continued_p` bidi second pass, the BEGV/START and overlay-newline fixups, the two
+  scroll tests, the `must_scroll`/partially-visible/`scroll_p` chain, the bidi candidate loop
+  with its `at_zv_p`/`exact_match_p` test on `candidate->glyphs[TEXT_AREA] + w->cursor.hpos`,
+  and the plain `set_cursor_from_row` walk), `set_vertical_scroll_bar` (`BUF_ZV`/`BUF_BEGV`/
+  `BUF_Z` arithmetic, the `window_end_valid`/`long_line_optimizations_p` recomputation through
+  `start_display`/`move_it_to`, and `set_vertical_scroll_bar_hook`), `set_horizontal_scroll_bar`
+  (`last_visible_x = INT_MAX`, the `move_it_to` width, `hscroll * FRAME_COLUMN_WIDTH`, the
+  `it.bidi_p` left-to-right flip through `Fcurrent_bidi_paragraph_direction`, `hscroll_whole`,
+  and `set_horizontal_scroll_bar_hook`), `window_start_acceptable_p`,
+  `Flong_line_optimizations_p`'s `DEFUN` body, and the two mirror-gap macros `BUF_BEGV`/`BUF_ZV`.
+  C 19879-19882 and C 19934-19936 (`#ifdef GLYPH_DEBUG`) are the round's two dead arms.
 ### The transcription that is in place
 
-The ledger above is the checklist.  213 of the C file's 302 functions (plus 3 of its 13
-subrs — the three the frozen configuration keeps live) are defined, in
+The ledger above is the checklist.  217 of the C file's 302 functions (plus 4 of its 13
+subrs — the three the frozen configuration keeps live and `long-line-optimizations-p`) are defined, in
 C's order, with C's names, C's statements and
-C's comments; `src/xdisp.rs` is 19,197 lines.  Every function that C declares `static` is a
+C's comments; `src/xdisp.rs` is 19,778 lines.  Every function that C declares `static` is a
 plain `unsafe fn` here (and `unsafe extern "C" fn` where it is variadic or its address is
 handed out — `redisplay_trace`, `move_trace`, `dsafe_eval_handler`,
 `funcall_with_backtraces`, `handle_display_prop` (whose address is `it_props[]`'s handler
@@ -814,9 +825,9 @@ field) and `unwind_narrowed_begv`, whose address `SET_WITH_NARROWED_BEGV` hands 
 `record_unwind_protect`); every non-`static` definition carries
 `#[unsafe(no_mangle)] pub unsafe extern "C"` (PORTING.md 0.2/P-52).
 
-The 24 `DEFUN`s of C are the unit's subrs; the three that are live on the frozen target
-(`set-buffer-redisplay`, `line-pixel-height`, `get-display-property`) use `DEFUN!`
-(PORTING.md 5.1).
+The 24 `DEFUN`s of C are the unit's subrs; the four that are live on the frozen target
+(`set-buffer-redisplay`, `line-pixel-height`, `get-display-property`,
+`long-line-optimizations-p`) use `DEFUN!` (PORTING.md 5.1).
 
 ### Dead arms (P-08: recorded here, not transcribed)
 
@@ -885,6 +896,13 @@ The twenty-third round's range (C 19256-19862) holds one `#if` block, dead on th
 * C 19418-19420 — `try_scrolling`'s `#ifdef GLYPH_DEBUG` `debug_method_add (w, "try_scrolling")`
   (the macro is not defined in `docs/baseline/config/darwin-arm64.macros.tsv`); the port keeps a
   pointer comment at the site (deviation 170).
+
+The twenty-fourth round's range (C 19863-20422) holds two `#if` blocks, both dead on this target:
+
+* C 19879-19882 — `try_cursor_movement`'s `#ifdef GLYPH_DEBUG` `if (inhibit_try_cursor_movement)
+  return rc;` (the macro is not defined in `docs/baseline/config/darwin-arm64.macros.tsv`).
+* C 19934-19936 — the same function's `#ifdef GLYPH_DEBUG` `debug_method_add (w, "cursor
+  movement")`.  Both keep a pointer comment at the site (deviation 178).
 
 ### Use-site declarations (headers without a mirror, or mirror gaps; each keeps C's prototype in a `/// C:` line)
 
@@ -1935,6 +1953,36 @@ The twenty-third round's range (C 19256-19862) holds one `#if` block, dead on th
      put back at its site in the same step.  **Measured**: both texts are in `src/xdisp.rs`
      (lines 17848 and 18494) and neither is a paraphrase.
 
+### Deviations, continued (the round's twenty-second pass: cursor movement and the scroll bars)
+
+172. **The two `do … while` loops** (C 20176-20233's bidi candidate loop and C 20247-20258's plain
+     loop) are `loop { … if !(cond) { break; } }`, the standing shape; the `break`s inside them
+     (C 20222, 20226, 20252) leave the loop exactly as C's do.  C's `do`/`}` pair becomes the
+     Rust `loop`/`}` pair, and the trailing `while (…)` becomes the tail `if !(…) { break; }`.
+173. **`if (must_scroll) ;`** (C 20123-20124) is the port's `if must_scroll { }` — C's empty
+     statement; the `else if` chain that follows is unchanged.
+174. **The two comma/walrus conditions**: C 20401-20402's
+     `if ((invprop = Fget_char_property (…)), TEXT_PROP_MEANS_INVISIBLE (invprop) != 0)` hoists
+     the assignment to its own statement, and C 20406's `if (!NILP (disp_spec = …) && …)` uses
+     the unit's `{ X = …; X }` block (the `handle_single_display_spec` shape).  Both keep the
+     exact evaluation order.
+175. **No `goto` and no new label this round**, so `--check` gains no `does not mention` line.
+176. **Type spellings this round**: `!update_mode_lines`/`!windows_or_buffers_changed` (C 19904/
+     19905) are `== 0` (the two are `c_int`, not `bool`); `w->current_matrix` is the mirror's
+     `*mut c_void`, so its fields are read as `(*((*w).current_matrix as *mut glyph_matrix)).nrows`
+     / `.rows` (the `redisplay_window` precedent — the parens are required because Rust's `as`
+     binds looser than unary `*`); the two `set_*_scroll_bar_hook`s take
+     `(*mut c_void, c_int, c_int, c_int)`, so the vertical site writes
+     `(w as *mut c_void, (end - start) as c_int, whole as c_int, start as c_int)`; `hscroll` is
+     `ptrdiff_t`, so `w->hscroll * FRAME_COLUMN_WIDTH (…)` is `((…) as isize) as c_int` and
+     `w->hscroll_whole = whole` casts to `ptrdiff_t`; and `scroll_step` is passed as `*mut bool`,
+     which is what `*scroll_step = true` (C 20143) writes through.
+177. **`BUF_BEGV` and `BUF_ZV` are unit-local macros** (buffer.h 1399-1400).  `include/buffer.rs`
+     carries `BUF_Z`, `BUF_GPT` and their `_BYTE` twins but not these two, so the unit defines
+     them under C's own name (PORTING.md P-72 rule 3; item 56).
+178. **The two dead `#ifdef GLYPH_DEBUG` arms** (C 19879-19882, C 19934-19936) are recorded, not
+     transcribed (the dead-arm list above).
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -2202,38 +2250,37 @@ The twenty-third round's range (C 19256-19862) holds one `#if` block, dead on th
 55. `include/window.rs`: `window_scroll_margin` (window.h 1226; window.c defines it) is declared
     use-site in `src/xdisp.rs` because the mirror chain does not carry it — the §"Use-site
     declarations" 1 block should gain it (deviation 169).
+56. `include/buffer.rs`: `BUF_BEGV`/`BUF_ZV` (buffer.h 1399-1400) are missing from the mirror —
+    `src/xdisp.rs` defines them locally under C's own name (deviation 177).  They belong with the
+    `BUF_Z`/`BUF_GPT` family the mirror already has.
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  The
-figures below were taken at the 19,197-line revision (through
-`compute_window_start_on_continuation_line`, C 19838):
+figures below were taken at the 19,778-line revision (through `Flong_line_optimizations_p`,
+C 20422):
 
 * `build-tu src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, taken **in place at
-  the current workspace state**.  This revision's `xdisp.rs` md5 is
-  `9fda370daeafcc916a9f793679657aeb` (19,197 lines); the mirrors it was built against, all
-  re-read in the same shell step as the closing `build-tu`, are
-  `include/dispextern.rs 5d6ea00c8bb2770d888ada8e04be6955` (its `struct it` is gated — item 39;
-  another lane moved it during this round, so the pairing is the moment of the build),
-  `include/lisp.rs 44f7b6ab6ee488c8796c5f405f174952`,
+  the current workspace state** (after a fix-up loop itemised in the report).  This revision's
+  `xdisp.rs` md5 is `3b656bf824207d48869e4d37d7fc6387` (19,778 lines); the mirrors it was built
+  against, all re-read in the same shell step as the closing `build-tu`, are
+  `include/dispextern.rs 70308d0d00d893a0716364ce8a8a0399` (its `struct it` is gated — item 39;
+  another lane moved it during this round), `include/lisp.rs 44f7b6ab6ee488c8796c5f405f174952`,
   `include/window.rs b135191988afc9300ab3bf816f5425d6` and
   `lib/include/stdbit.in.rs bd5e18f5cf4b99d4d0d32412d275bf50` (the last two are other lanes' and
-  mutable); the object is `build/femacs/xdisp.o 7064374aa9711964765726cad1fd23ad`.  The build
+  mutable); the object is `build/femacs/xdisp.o e5e0c5ffb1b977a2946d02aae3bbcf1e`.  The build
   prints the same six warnings as the previous rounds; this round adds none;
 * `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its
-  last two lines are `- line count drifted 51.8%: C 39805 vs Rust 19197` and
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count falls from 126 to **113**
-  (`missing function` 83 -> 79, `missing macro` 8 -> 6, `missing constant` 8 -> 0) and gains one
-  (`function try_scrolling does not mention goto`, the port's `continue 'too_near_end` spelling —
-  the row item 54 asks for); `missing subr` stays at 7, `missing defsubr` at 13, `missing
-  file-scope object` at 2, and there is still no `stub or empty body` line.  Every remaining
-  `missing function` line names a definition after C 19838 (the earliest is C 19864
-  `try_cursor_movement`), with the single exception of the intentional C 15616
-  `tty_handle_tab_bar_click` gap (item 38);
+  last two lines are `- line count drifted 50.3%: C 39805 vs Rust 19778` and
+  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count falls from 112 to **107**
+  (`missing function` 79 -> 75, `missing subr` 7 -> 6) and gains nothing; `missing macro` stays
+  at 6, `missing defsubr` at 13, `missing file-scope object` at 2, and there is still no
+  `stub or empty body` line.  Every remaining `missing function` names a definition after
+  C 20422 (the earliest is C 20475 `redisplay_window`), with the single exception of the
+  intentional C 15616 `tty_handle_tab_bar_click` gap (item 38);
 * `python3 tools/check-cond-eval.py src/xdisp.c` = `196 conditions, 0 unknown to the evaluator,
-  0 disagreements` (this round's dead arm is deviation 170's);
-* `python3 tools/check-citations.py` = `629 file(s) scanned, 31 drift, 1 range, 301 external,
-  37 allowed, 1 stale` — the one `xdisp.c` citation is in another lane's
-  `femacs/platform/macos/nsterm.swift`; `femacs/src/xdisp.rs` still has **no** finding;
+  0 disagreements` (this round's dead arms are deviation 178's);
+* `python3 tools/check-citations.py` = `662 file(s) scanned, 32 drift, 1 range, 306 external,
+  38 allowed, 0 stale`; `femacs/src/xdisp.rs` still has **no** finding;
 * `python3 tools/check-mirror-dupes.py` = `1 duplicate declaration(s), 1 ratchet row(s), 0
   failure(s)`; the surviving row is the `insdel.rs`/`window.rs` `bset_redisplay` one;
 * `python3 tools/check-declarations.py` = `13 declaration sites (0 forbidden, 13 allowed
@@ -2242,12 +2289,7 @@ figures below were taken at the 19,197-line revision (through
 * `python3 tools/check-globals.py` = `284 units, 0 DEFVAR_* variables without a definition in
   their own unit`;
 * `python3 tools/check-target-names.py` = `627 .rs files, 591 map targets, 0 finding(s)`;
-* `xtask layout-check` = `layout-check passed (see build/femacs/layout_asserts.rs)` when it was
-  run inside this round; it is **red at the close of the round and not from this unit** —
-  another lane moved `femacs/src/include/xterm.rs` in the meantime, and the probe now stops
-  on `error[E0425]: cannot find type `Pixmap` in this scope` at
-  `femacs/src/include/xterm.rs:647` (`pub border_tile: Pixmap,`).  `xdisp.rs` names the
-  failing file nowhere; it is reported, not touched (the standing rule for other lanes'
-  in-flight files).
+* `xtask layout-check` = `layout-check passed (see build/femacs/layout_asserts.rs)` (green again;
+  the red at the close of the previous round was another lane's `include/xterm.rs`).
 
 (The unit/file counts move with the other lanes; every reading above is from this round's run.)
