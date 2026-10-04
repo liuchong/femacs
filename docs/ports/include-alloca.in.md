@@ -3,44 +3,30 @@
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
 
-- [x] _GL_ALLOCA_H  (the guard, carried by the mirror; the extractor lists no item here)
-
 ## Functions defined — 0
 
-## Macros defined — 0
+## Macros defined — 2
+- [x] _GL_ALLOCA_H  (line 22, body da39a3ee5e6b)
+- [x] alloca  (line 60, body e2372e7e5df7)
 
 ## Types and their fields — 0
 
 ## File-scope objects — 0
 
+- **Status: the unit is PORTED** (`lib/alloca.in`'s mirror, 2026-10-04).
+
 ## Decisions
 
-- **The extractor lists zero items, and the mirror owes none.**  `tools/extract-abi.py
-  emacs/lib/alloca.in.h` reports 0 subrs, 0 functions, 0 macros, 0 types, 0 objects: the whole
-  file is a conditional chain that defines the `alloca` *macro*, and a template's `@PLACEHOLDER@`
-  conditions cannot be decided by the frozen table (P-66), so the item list is empty rather than
-  wrong.  `--check` is therefore OK by construction, and the mirror's job is the decision, not
-  items - the `lib/assert.in.h` disposition-mirror shape (status 3.157).
-- **The judge is the generated header.**  `build/emacs-ref/lib/alloca.h` exists and its line 47 is
-  `#  define alloca __builtin_alloca`: the frozen configuration takes the `__GNUC__`/clang arm, so
-  every other arm (including the trailing `extern void *alloca (size_t)` fallback and the
-  `#include_next <alloca.h>` workaround, whose `_WIN32` is undefined) is dead text here.  The
-  sibling templates judge the same way (`errno.in`/`dirent.in`, status 3.159).
-- **The port has no `alloca`, deliberately.**  PORTING.md P-05 and section 3.2 replace it with the
-  stack pool (`sa_avail`/`sa_alloc`), and the use-site spelling is recorded in
-  `docs/ports/excluded-macros.txt` (`AVAIL_ALLOCA alloca ...`).  A Rust `alloca!` in this mirror
-  would be a second mechanism for the same job, which the port forbids; the mirror therefore
-  carries C's arms as `/// C:` lines and says why.
+**Status: the unit is PORTED; the checklist above was regenerated in 2026-10-04 (status 3.202)**
+after `tools/check-cond-eval.py`'s marker bug was fixed.  Until then this header was listed in
+`docs/baseline/config/cond-eval-verified.txt`, so the extractor consulted the frozen macro table
+for it — but the tool built the marker as `EMACS_COND_TAKEN_{stem}_{line}` and a stem with a
+hyphen or a dot made that an invalid C identifier, so clang's verdict was recorded as "dead" for
+*every* branch the frozen build takes and the file's "verification" was vacuous.  With the marker
+sanitised, this header is no longer verifiable (its disagreements are clang builtins and
+`__cplusplus` predicates the table cannot decide), so it left the list and the extractor now reads
+it blindly (P-66's conservative policy): both arms of every `#if` are demanded, which is what the
+regenerated checklist shows.  Every name the mirror cannot hold as a Rust item is recorded with its
+reason in `docs/ports/excluded-macros.txt` - the table is the port's answer to "C has this name and
+Rust has no spelling for it".
 
-## Evidence
-
-- `python3 tools/extract-abi.py --check emacs/lib/alloca.in.h femacs/lib/include/alloca.in.rs`
-  -> `OK emacs/lib/alloca.in.h -> femacs/lib/include/alloca.in.rs` (no `- ` problem lines).
-- `python3 tools/extract-abi.py emacs/lib/alloca.in.h` -> this ledger: 0 items of every class.
-- `grep -n 'define alloca' build/emacs-ref/lib/alloca.h` -> `47:#  define alloca
-  __builtin_alloca` (and the dead arms at 49/52/54/61), i.e. the clang arm is the frozen one.
-- `rg -n 'alloca' docs/ports/excluded-macros.txt` -> the `AVAIL_ALLOCA alloca ...` row records the
-  use-site spelling the port uses instead.
-- Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
-  failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failures;
-  `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures.

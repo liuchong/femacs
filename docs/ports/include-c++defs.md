@@ -5,47 +5,49 @@
 
 ## Functions defined — 0
 
-## Macros defined — 0
+## Macros defined — 23
+- [x] _GL_BEGIN_NAMESPACE  (line 25, body da39a3ee5e6b)
+- [x] _GL_CXXALIASWARN  (line 338, body b25da74b5ddd)
+- [x] _GL_CXXALIASWARN1  (line 363, body b25da74b5ddd)
+- [x] _GL_CXXALIASWARN1_1  (line 349, body 5c403b095ea6)
+- [x] _GL_CXXALIASWARN1_2  (line 359, body b25da74b5ddd)
+- [x] _GL_CXXALIASWARN_1  (line 321, body 52f71663411a)
+- [x] _GL_CXXALIASWARN_2  (line 334, body b25da74b5ddd)
+- [x] _GL_CXXALIAS_MDA  (line 192, body 4f9f1e31af3f)
+- [x] _GL_CXXALIAS_MDA_CAST  (line 225, body de4488a988c6)
+- [x] _GL_CXXALIAS_RPL  (line 163, body b619500f8d3e)
+- [x] _GL_CXXALIAS_RPL_1  (line 181, body b25da74b5ddd)
+- [x] _GL_CXXALIAS_RPL_CAST_1  (line 216, body b25da74b5ddd)
+- [x] _GL_CXXALIAS_SYS  (line 254, body b25da74b5ddd)
+- [x] _GL_CXXALIAS_SYS_CAST  (line 279, body b25da74b5ddd)
+- [x] _GL_CXXALIAS_SYS_CAST2  (line 310, body b25da74b5ddd)
+- [x] _GL_CXXDEFS_H  (line 18, body da39a3ee5e6b)
+- [x] _GL_END_NAMESPACE  (line 26, body da39a3ee5e6b)
+- [x] _GL_EXTERN_C  (line 93, body bf1ee3119b17)
+- [x] _GL_EXTERN_C_FUNC  (line 104, body da39a3ee5e6b)
+- [x] _GL_FUNCDECL_RPL  (line 125, body ba420a912aae)
+- [x] _GL_FUNCDECL_RPL_1  (line 127, body 248cd57169d7)
+- [x] _GL_FUNCDECL_SYS  (line 151, body 03604a18d063)
+- [x] _GL_FUNCDECL_SYS_NAME  (line 137, body 8bb2e794d1ca)
 
 ## Types and their fields — 0
 
 ## File-scope objects — 0
 
+- **Status: the unit is PORTED** (`lib/c++defs`'s mirror, 2026-10-04).
+
 ## Decisions
 
-- **Nothing to carry, and that is measured rather than assumed.**  Every definition in the header
-  sits in a C++-only arm (`#if defined __cplusplus && defined GNULIB_NAMESPACE` at C 21-27,
-  165-183, 200-218, 238-256, 263-281, 289-312, 318-340, 345-362; `#if defined __cplusplus` at
-  C 90-105, 134-138) whose `#else` arm is a no-op spelling of the same name, and the frozen
-  target compiles C.  `tools/extract-abi.py lib/c++defs.h` reports 0 subrs, 0 functions, 0 macros,
-  0 types and 0 file-scope objects; `tools/check-cond-eval.py lib/c++defs.h` confirms the file's
-  27 conditions against clang (0 unknown, 0 disagreements), so the dead-arm reading is the
-  frozen configuration's own.
-- **The alias machinery keeps an owner, and the use sites record the resolution.**  The
-  `_GL_CXXALIAS_*` / `_GL_FUNCDECL_*` macros are how the generated gnulib headers name the system
-  entry point they resolve to; on this side that resolution is recorded where it is used:
-  `fcntl.in.rs` 274-276 (`creat`, `open`, `openat`), `time.in.rs` 156, `unistd.in.rs` 24 and
-  `sys_stat.in.rs` 43 and 175.  This mirror is the file-level record those four comments already
-  describe one use at a time.
-- **Who includes it, measured:** nobody.  A fixed-string search over the reference
-  (`grep -rn -F 'c++defs.h' emacs --include='*.h' --include='*.in.h' --include='*.c'`) matches only
-  `emacs/lib/gnulib.mk.in` 3180 and 3182 - the build machinery's `CXXDEFS_H` variable and its
-  `EXTRA_DIST` - and a search under `build/emacs-ref/lib/` matches only `gnulib.mk`; no source file
-  and no generated header names it.  An earlier draft of this paragraph listed `lib/verify.h`,
-  `lib/stdint.in.h`, `lib/getopt.in.h` and `lib/getopt-cdefs.in.h` as includers: that came from a
-  grep whose pattern was `c++defs\.h`, which is not a valid regex, so its output was never
-  evidence.  Nothing includes this mirror because the header it mirrors is a snippet the generated
-  headers consume under the gnulib build, and the resolution of its macros is already recorded at
-  the use sites above; the omission is named here so it is auditable.
-## Evidence
+**Status: the unit is PORTED; the checklist above was regenerated in 2026-10-04 (status 3.202)**
+after `tools/check-cond-eval.py`'s marker bug was fixed.  Until then this header was listed in
+`docs/baseline/config/cond-eval-verified.txt`, so the extractor consulted the frozen macro table
+for it — but the tool built the marker as `EMACS_COND_TAKEN_{stem}_{line}` and a stem with a
+hyphen or a dot made that an invalid C identifier, so clang's verdict was recorded as "dead" for
+*every* branch the frozen build takes and the file's "verification" was vacuous.  With the marker
+sanitised, this header is no longer verifiable (its disagreements are clang builtins and
+`__cplusplus` predicates the table cannot decide), so it left the list and the extractor now reads
+it blindly (P-66's conservative policy): both arms of every `#if` are demanded, which is what the
+regenerated checklist shows.  Every name the mirror cannot hold as a Rust item is recorded with its
+reason in `docs/ports/excluded-macros.txt` - the table is the port's answer to "C has this name and
+Rust has no spelling for it".
 
-- `python3 tools/extract-abi.py --check emacs/lib/c++defs.h femacs/lib/include/c++defs.rs`
-  -> `OK emacs/lib/c++defs.h -> femacs/lib/include/c++defs.rs` (no `- ` problem lines).
-- `python3 tools/check-cond-eval.py lib/c++defs.h`
-  -> `27 conditions, 0 unknown to the evaluator, 0 disagreements`.
-- `python3 tools/extract-abi.py lib/c++defs.h` -> this ledger: 0 items in all five sections.
-- Compile proof: the mirror is one `pub const` with no dependencies; a standalone
-  `rustc --edition 2024 --crate-type=lib --emit=obj` crate that `include!`s it builds (exit 0).
-- Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) /
-  0 failures; `check-mirror-dupes` 0 failures; `check-globals` 283 units / 0; `check-verbatim`
-  6 trees / 4607 files / 0; `check-target-names` 0 findings.

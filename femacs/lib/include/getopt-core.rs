@@ -38,3 +38,6 @@ pub mod getopt_core_decls {
   }
 }
 use getopt_core_decls::*;
+
+/* C 21: the include guard, whose C body is `1`.  */
+pub const _GETOPT_CORE_H: core::ffi::c_int = 1;

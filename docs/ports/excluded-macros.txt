@@ -186,3 +186,41 @@ __GETOPT_ID	syntax	getopt-pfx-ext.h 37: `# define __GETOPT_ID(y) __GETOPT_XCONCA
 getopt_long	linkage	getopt-pfx-ext.h 42: `# define getopt_long __GETOPT_ID (getopt_long)` renames the symbol; the port expresses it as `#[link_name = "rpl_getopt_long"]` at the declarations (getopt-ext.rs) and `#[unsafe(export_name = "rpl_getopt_long")]` at the definition (lib/getopt1.rs), measured on the reference object (`nm build/emacs-ref/lib/getopt1.o` defines `_rpl_getopt_long`)
 getopt_long_only	linkage	getopt-pfx-ext.h 43: the same rename as getopt_long, for `rpl_getopt_long_only`
 _getopt_internal	linkage	getopt-pfx-ext.h 44: the same rename, for `rpl_getopt_internal` (measured: `nm build/emacs-ref/lib/getopt.o` defines `_rpl_getopt_internal`)
+alloca	syntax	alloca.in.h 47/49: the live arm is `# define alloca __builtin_alloca` (clang defines `__clang_major__`, and the frozen value is >= 4); the builtin has no Rust spelling and the port has no `alloca` - a plain `alloca (n)` site allocates from the port's stack pool (`sa_stack_alloc`, PORTING.md P-05), which is why every such site is named in its own unit
+__BEGIN_DECLS	syntax	getopt-cdefs.in.h 31: the C arm is `extern "C" {` (the `__cplusplus` arm) or nothing; `HAVE_SYS_CDEFS_H` is 1 on this target, so the *system's* definition is what a C unit gets, and the port's `extern "C"` block is the construct
+__END_DECLS	syntax	getopt-cdefs.in.h 43: the closing half of the same pair
+__GNUC_PREREQ	syntax	getopt-cdefs.in.h 55/59: clang's arm is `((maj) < 4 + ((min) <= 2))`; the frozen configuration's value is a preprocessor predicate with no Rust spelling, and the port's own spelling lives in the units that ask (`lib/md5.rs` 53's `macro_rules! __GNUC_PREREQ { ($maj:expr, $min:expr) => { 0 } }`, whose answer matches this target)
+__THROW	syntax	getopt-cdefs.in.h 67: the C arm here is empty (the `__cplusplus` arms are the others), and `<sys/cdefs.h>` supplies it for the units that use it; an exception specification has no Rust counterpart
+_GETOPT	linkage	getopt-pfx-core.h 41: `# define _GETOPT __GETOPT_ID (getopt)` renames the symbol; the port expresses it at the declaration (`#[link_name = "rpl_getopt"]`, getopt-core.rs) and the definition (`#[unsafe(export_name = "rpl_getopt")]`, lib/getopt.rs), measured on the reference object (`nm build/emacs-ref/lib/getopt.o` defines `_rpl_getopt`)
+getopt	linkage	getopt-pfx-core.h 47: the same rename as _GETOPT, for the function itself
+optarg	linkage	getopt-pfx-core.h 44: the same rename, for the `rpl_optarg` data symbol
+opterr	linkage	getopt-pfx-core.h 45: the same rename, for `rpl_opterr`
+optind	linkage	getopt-pfx-core.h 46: the same rename, for `rpl_optind`
+optopt	linkage	getopt-pfx-core.h 48: the same rename, for `rpl_optopt`
+_GL_WARN_EXTERN_C	syntax	warn-on-use.h 87: the C arm is `extern` (or `extern "C"` under `__cplusplus`), a linkage keyword the port gets from its own `extern "C"` blocks
+_GL_WARN_ON_USE	syntax	warn-on-use.h 120: the live arm attaches `__attribute__ ((__warning__ (...)))` to a declaration; PORTING.md 0.3/§8 drops attributes structurally, so the port writes no item and the warning is unavailable (the same class as `_GL_ATTRIBUTE_*`)
+_GL_WARN_ON_USE_ATTRIBUTE	syntax	warn-on-use.h 148: the attribute spelling the row above attaches; same reason
+_GL_WARN_ON_USE_CXX	syntax	warn-on-use.h 156: the `__cplusplus` half of the same attribute (and the C fallback is empty)
+_GL_CXXDEFS_H	config	c++defs.h 18: the guard, whose C body is empty; the whole file exists for C++ callers (`__cplusplus` and the CXXALIAS family), so nothing below needs a Rust item - this row records the guard and the family rows below record each name
+_GL_BEGIN_NAMESPACE	syntax	c++defs.h 22/25: the C arm is empty (the `__cplusplus` arm spells `namespace GNULIB_NAMESPACE {`); Rust has no namespace blocks, and the port keeps names flat
+_GL_END_NAMESPACE	syntax	c++defs.h 23/26: the closing half of the same pair
+_GL_EXTERN_C	syntax	c++defs.h 91/93: the live C arm is `extern`; the port writes its own `extern "C"` block (same class as the __BEGIN_DECLS row)
+_GL_EXTERN_C_FUNC	syntax	c++defs.h 96-108: a declaration *prefix* (`_GL_EXTERN_C` plus the function's return type) that C expands at the declaration site; the port declares the function itself (PORTING.md 0.1)
+_GL_FUNCDECL_RPL	syntax	c++defs.h 150: `_GL_EXTERN_C int _gl_cxxalias_dummy`-shaped declaration machinery for the replacement name; the port declares the replacement at its own use site and exports it with `#[unsafe(export_name = "rpl_...")]` (P-81)
+_GL_FUNCDECL_RPL_1	syntax	c++defs.h 168: the same declaration machinery, for the ARGLIST-taking spelling
+_GL_FUNCDECL_SYS	syntax	c++defs.h 171: the same machinery for the *system* name; the port declares the system function at its use site (PORTING.md 0.1's in-unit declaration shape)
+_GL_FUNCDECL_SYS_NAME	syntax	c++defs.h 189: the same machinery with the name spelled separately; same reason
+_GL_CXXALIAS_MDA	syntax	c++defs.h 199: under `__cplusplus` it aliases the MDA spelling, in C it is empty; the port has no aliases (a function is referred to by the name its declaration carries)
+_GL_CXXALIAS_MDA_CAST	syntax	c++defs.h 214: the same empty-in-C alias with a cast argument
+_GL_CXXALIAS_RPL	syntax	c++defs.h 231: the empty-in-C alias for the replacement name; the port's replacement name is the one it exports (P-81)
+_GL_CXXALIAS_RPL_1	syntax	c++defs.h 249: the same alias, ARGLIST spelling
+_GL_CXXALIAS_RPL_CAST_1	syntax	c++defs.h 258: the same alias with a cast
+_GL_CXXALIAS_SYS	syntax	c++defs.h 273: the empty-in-C alias for the system name; the port calls the system function through the declaration it writes (PORTING.md 0.1)
+_GL_CXXALIAS_SYS_CAST	syntax	c++defs.h 292: the same alias with a cast
+_GL_CXXALIAS_SYS_CAST2	syntax	c++defs.h 303: the same alias with two casts
+_GL_CXXALIASWARN	syntax	c++defs.h 315: in C it expands to `_GL_WARN_ON_USE (...)` (the attribute row above); the port drops it with the attributes
+_GL_CXXALIASWARN1	syntax	c++defs.h 317: the same warning, ATTRIBUTE spelling
+_GL_CXXALIASWARN1_1	syntax	c++defs.h 327: the same warning with one argument
+_GL_CXXALIASWARN1_2	syntax	c++defs.h 337: the same warning with two arguments
+_GL_CXXALIASWARN_1	syntax	c++defs.h 350: the same warning, ARGLIST spelling
+_GL_CXXALIASWARN_2	syntax	c++defs.h 358: the same warning with two arguments

@@ -109,7 +109,13 @@ def main() -> int:
             # lane and fixed here (status 3.63).
             expr = re.sub(r"/\*.*$", "", expr).rstrip()
             prefix = "\n".join(lines[:line_index])
-            tag = f"{Path(header).stem}_{line_index}"
+            # The tag becomes a *C identifier* (`EMACS_COND_TAKEN_<tag>`), so a stem with a
+            # hyphen or a dot has to be sanitised: `intprops-internal_17` made clang read the
+            # marker as `EMACS_COND_TAKEN_intprops` with the body `-internal_17 1`, so the
+            # gate's `"#define <marker> " in out` test never matched and clang was recorded as
+            # dead for *every* branch the frozen build takes (measured, status 3.201 - the
+            # text is what pointed at it: `ISO C99 requires whitespace after the macro name`).
+            tag = re.sub(r"[^A-Za-z0-9_]", "_", Path(header).stem) + f"_{line_index}"
             want = clang_verdict(header, prefix, expr, kind, include_dirs, tag)
             # What matters is whether the *branch* is the one the frozen configuration
             # compiles, which is what `live` says: for an `#elif` whose chain already took a
