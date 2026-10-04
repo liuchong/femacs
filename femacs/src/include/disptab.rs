@@ -1,13 +1,11 @@
 // femacs: WIP mirror of src/disptab.h @ fd7afced403.
 //
-// WIP mirror (PORTING.md P-66): `character.c` is the first unit on this target that reads
-// the display table, so this file carries the parts of the header that do not depend on the
-// glyph datatype — the slot accessors, C's `enum box` (whose last member fixes
-// `DISP_TABLE_EXTRA_SLOTS`), `DISP_CHAR_VECTOR` and the two `*_display_table` prototypes.
-// The glyph-table macros at the bottom of the header (`GLYPH_TABLE_LENGTH`/`BASE`,
-// `GLYPH_SIMPLE_P` … `GLYPH_STRING`, `SPACEGLYPH`, `SET_GLYPH_FROM_CHAR`) need
-// dispextern.h's `GLYPH_*` accessors, which are not mirrored on this target yet; their
-// boundary is marked below and they land with the display batch.
+// The header is complete: the slot accessors, C's `enum box` (whose last member fixes
+// `DISP_TABLE_EXTRA_SLOTS`), `DISP_CHAR_VECTOR`, the two `*_display_table` prototypes and -
+// since the dispextern mirror landed its `GLYPH_*` accessors - the whole glyph-table family
+// at the bottom (`GLYPH_TABLE_LENGTH`/`BASE`, `GLYPH_SIMPLE_P`/`GLYPH_ALIAS_P`/
+// `GLYPH_FOLLOW_ALIASES`, `GLYPH_LENGTH`/`GLYPH_STRING`, `SPACEGLYPH`, `NULL_GLYPH`,
+// `SET_GLYPH_FROM_CHAR`).
 
 // C's `#include "lisp.h"` (disptab.h 23) is the including unit's `include!("include/lisp.rs")`.
 
@@ -101,8 +99,61 @@ pub mod disptab_decls {
 }
 use disptab_decls::*;
 
-// C: disptab.h 72-116's GLYPH_TABLE_LENGTH/GLYPH_TABLE_BASE, GLYPH_SIMPLE_P/GLYPH_ALIAS_P/
-// GLYPH_FOLLOW_ALIASES, GLYPH_LENGTH/GLYPH_STRING, SPACEGLYPH, NULL_GLYPH and
-// SET_GLYPH_FROM_CHAR — (not mirrored on this target yet: they need dispextern.h's
-// GLYPH_FACE/GLYPH_CHAR/SET_GLYPH/DEFAULT_FACE_ID accessors; they land with the display
-// batch, PORTING.md P-66).
+/* disptab.h 72-122: the glyph-table family.  C's `GLYPH_CHAR`/`GLYPH_FACE`/`SET_GLYPH_CHAR`/
+   `GLYPH_CHAR_VALID_P`/`SET_GLYPH` and `DEFAULT_FACE_ID` come from the dispextern mirror, which
+   is where dispextern.h puts them; each macro here is a `macro_rules!` because C's is
+   (PORTING.md P-33).  */
+
+/* Return the current length of the GLYPH table, or 0 if the table isn't currently valid.  */
+macro_rules! GLYPH_TABLE_LENGTH {
+  () => { { if VECTORP (Vglyph_table) { ASIZE (Vglyph_table) } else { 0 } } };
+}
+
+/* Return the current base (for indexing) of the GLYPH table, or 0 if invalid.  */
+macro_rules! GLYPH_TABLE_BASE {
+  () => { { if VECTORP (Vglyph_table) { unsafe { (*XVECTOR (Vglyph_table)).contents.as_mut_ptr () } }
+            else { 0 as *mut Lisp_Object } } };
+}
+
+/* disptab.h 81-83.  */
+macro_rules! GLYPH_SIMPLE_P {
+  ($base:expr, $len:expr, $g:expr) => {
+    (GLYPH_FACE ($g) != DEFAULT_FACE_ID || GLYPH_CHAR ($g) >= ($len) as c_int
+     || ! STRINGP (*(($base)).add (GLYPH_CHAR ($g) as usize)))
+  };
+}
+
+/* disptab.h 87-88.  */
+macro_rules! GLYPH_ALIAS_P {
+  ($base:expr, $len:expr, $g:expr) => {
+    (GLYPH_FACE ($g) == DEFAULT_FACE_ID && GLYPH_CHAR ($g) < ($len) as c_int
+     && FIXNUMP (*(($base)).add (GLYPH_CHAR ($g) as usize)))
+  };
+}
+
+/* disptab.h 92-98: C's `do { … } while (false)`, written as a block (the SET_GLYPH_FROM_GLYPH_CODE
+   shape in dispnew.rs).  */
+macro_rules! GLYPH_FOLLOW_ALIASES {
+  ($base:expr, $length:expr, $g:expr) => {{
+    while GLYPH_ALIAS_P! ($base, $length, $g)
+      { SET_GLYPH_CHAR! ($g, XFIXNUM (*(($base)).add (GLYPH_CHAR ($g) as usize)) as c_int); }
+    if ! GLYPH_CHAR_VALID_P ($g) { SET_GLYPH_CHAR! ($g, ' ' as c_int); }
+  }};
+}
+
+/* disptab.h 103-104.  */
+macro_rules! GLYPH_LENGTH {
+  ($base:expr, $g:expr) => { SCHARS (*(($base)).add (GLYPH_CHAR ($g) as usize)) };
+}
+macro_rules! GLYPH_STRING {
+  ($base:expr, $g:expr) => { SDATA (*(($base)).add (GLYPH_CHAR ($g) as usize)) };
+}
+
+/* disptab.h 108-110: octal 040 is 32 (C's value; the extractor folds `040` and `32` alike).  */
+pub const SPACEGLYPH: c_int = 32;
+pub const NULL_GLYPH: c_int = 0;
+
+/* disptab.h 112-113.  */
+macro_rules! SET_GLYPH_FROM_CHAR {
+  ($glyph:expr, $c:expr) => { SET_GLYPH! ($glyph, $c, DEFAULT_FACE_ID) };
+}

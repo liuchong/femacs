@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 502 |
-| 其中 done / wip | 470 / 32 |
+| 其中 done / wip | 472 / 30 |
 | 待开工 | 88 |
 
 ## 2 按目录
@@ -343,7 +343,7 @@
 | `lib/utimens.c` | 690 | 7 | 0 | 5 | 1 | 0 | 2 | L | `femacs/lib/utimens.rs` | done |
 | `lib/utimens.h` | 82 | 1 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/include/utimens.rs` | done |
 | `lib/utimensat.c` | 222 | 2 | 0 | 6 | 0 | 0 | 0 | L | `femacs/lib/utimensat.rs` | done |
-| `lib/verify.h` | 407 | 0 | 0 | 24 | 6 | 1 | 0 | L | `femacs/lib/include/verify.rs` | wip |
+| `lib/verify.h` | 407 | 0 | 0 | 24 | 6 | 1 | 0 | L | `femacs/lib/include/verify.rs` | done |
 | `lib/warn-on-use.h` | 153 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/warn-on-use.rs` | todo |
 | `lwlib/lwlib-Xaw.c` | 844 | 20 | 0 | 0 | 0 | 8 | 1 | F | `femacs/lwlib/lwlib-Xaw.rs` | done |
 | `lwlib/lwlib-Xaw.h` | 29 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/lwlib/include/lwlib-Xaw.rs` | done |
@@ -480,7 +480,7 @@
 | `src/dired.c` | 1,213 | 14 | 8 | 3 | 3 | 0 | 0 | D | `femacs/src/dired.rs` | done |
 | `src/dispextern.h` | 4,025 | 11 | 0 | 130 | 219 | 551 | 16 | E | `femacs/src/include/dispextern.rs` | wip |
 | `src/dispnew.c` | 7,584 | 150 | 13 | 4 | 1 | 13 | 20 | E | `femacs/src/dispnew.rs` | done |
-| `src/disptab.h` | 117 | 0 | 0 | 20 | 14 | 0 | 0 | B | `femacs/src/include/disptab.rs` | wip |
+| `src/disptab.h` | 117 | 0 | 0 | 20 | 14 | 0 | 0 | B | `femacs/src/include/disptab.rs` | done |
 | `src/doc.c` | 746 | 6 | 6 | 6 | 0 | 0 | 2 | B | `femacs/src/doc.rs` | done |
 | `src/doprnt.c` | 607 | 6 | 0 | 0 | 1 | 0 | 0 | B | `femacs/src/doprnt.rs` | done |
 | `src/dosfns.c` | 798 | 12 | 10 | 2 | 0 | 0 | 1 | F | `femacs/src/dosfns.rs` | done |

@@ -390,46 +390,6 @@ unsafe extern "C" { fn dupstring (ptr: *mut *mut c_char, string: *const c_char);
 unsafe extern "C" {
 }
 
-/* disptab.h 72-122: the glyph-table family.  The disptab mirror stops before it (its own
-   note says these "land with the display batch"), so they are spelled here with C's bodies;
-   every one is a `macro_rules!` because C's is (PORTING.md P-33), and `GLYPH_CHAR`/
-   `GLYPH_FACE`/`SET_GLYPH_CHAR` come from the dispextern mirror.  */
-macro_rules! GLYPH_TABLE_LENGTH {
-  () => { { if VECTORP (Vglyph_table) { ASIZE (Vglyph_table) } else { 0 } } };
-}
-macro_rules! GLYPH_TABLE_BASE {
-  () => { { if VECTORP (Vglyph_table) { unsafe { (*XVECTOR (Vglyph_table)).contents.as_mut_ptr () } }
-            else { 0 as *mut Lisp_Object } } };
-}
-macro_rules! GLYPH_SIMPLE_P {
-  ($base:expr, $len:expr, $g:expr) => {
-    (GLYPH_FACE ($g) != DEFAULT_FACE_ID || GLYPH_CHAR ($g) >= ($len) as c_int
-     || ! STRINGP (*(($base)).add (GLYPH_CHAR ($g) as usize)))
-  };
-}
-macro_rules! GLYPH_ALIAS_P {
-  ($base:expr, $len:expr, $g:expr) => {
-    (GLYPH_FACE ($g) == DEFAULT_FACE_ID && GLYPH_CHAR ($g) < ($len) as c_int
-     && FIXNUMP (*(($base)).add (GLYPH_CHAR ($g) as usize)))
-  };
-}
-macro_rules! GLYPH_FOLLOW_ALIASES {
-  ($base:expr, $length:expr, $g:expr) => {{
-    while GLYPH_ALIAS_P! ($base, $length, $g)
-      { SET_GLYPH_CHAR! ($g, XFIXNUM (*(($base)).add (GLYPH_CHAR ($g) as usize)) as c_int); }
-    if ! GLYPH_CHAR_VALID_P ($g) { SET_GLYPH_CHAR! ($g, ' ' as c_int); }
-  }};
-}
-macro_rules! GLYPH_LENGTH {
-  ($base:expr, $g:expr) => { SCHARS (*(($base)).add (GLYPH_CHAR ($g) as usize)) };
-}
-macro_rules! GLYPH_STRING {
-  ($base:expr, $g:expr) => { SDATA (*(($base)).add (GLYPH_CHAR ($g) as usize)) };
-}
-/* disptab.h 118: `#define SPACEGLYPH 040` — octal 040 is 32 (the extractor's octal defect
-   is docs/status.md 3.28②; the value here is C's).  */
-pub const SPACEGLYPH: c_int = 32;
-pub const NULL_GLYPH: c_int = 0;
 
 /* dispextern.h 2400-2442: `struct face`'s `underline : 3` and `bool_bf` members, stored in
    the three bytes at 240-242; the member name is the macro's first token (P-80).  */

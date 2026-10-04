@@ -1864,3 +1864,23 @@
   做法是用 `check-undef.py --write-pending` 生成一份"现状"副本，再**只把旧文件里出现在删除集合里的行删掉**
   （新增的 43 条全是 keyboard/window 等在飞单元的未定义引用，属于**不能**在脏树上烘进棘轮的部分）。
   实测：`check-undef` 从 `15 stale + 43 NEW` 变成 **`0 stale + 43 NEW`**；`undef-pending.txt` 117 → 102 条数据行。
+
+- **3.124 `src/disptab.h` 镜像收口：glyph-table 家族落地，term.rs/dispnew.rs 的 12 处副本同批退位（2026-10-04 第 100 轮第七批）**：
+  该镜像的 WIP 注释一直写着"等 dispextern.h 的 `GLYPH_*` 访问器镜像落地再补"——现在那个前提已经满足，于是本轮把
+  disptab.h 72-122 整段补上：`GLYPH_TABLE_LENGTH`/`GLYPH_TABLE_BASE`、`GLYPH_SIMPLE_P`/`GLYPH_ALIAS_P`/
+  `GLYPH_FOLLOW_ALIASES`（C 的 `do { … } while (false)` 写成块，`SET_GLYPH_FROM_GLYPH_CODE` 同形）、
+  `GLYPH_LENGTH`/`GLYPH_STRING`、`SPACEGLYPH`（C 的八进制 040 = 32）、`NULL_GLYPH`（0）与
+  `SET_GLYPH_FROM_CHAR`；每个宏都是 `macro_rules!`，因为 C 的就是（P-33）。
+  **同批收敛（0.1-3）**：`femacs/src/term.rs` 原来自带其中 7 个宏 + 两个常量、`femacs/src/dispnew.rs` 自带 5 个 +
+  `SET_GLYPH_FROM_CHAR`（各自都写着"disptab 镜像到这里为止"），两个单元都 include 本镜像，所以家族一落地它们
+  就是重复定义——共删 12 处（term.rs −40 行、dispnew.rs −27 行）。其余 7 个消费者（doc/indent/xfaces/print/
+  window/character + 在飞的 xdisp/keyboard）一行都不用改：它们从来自带副本。
+  一笔共享行：`GLYPH_FOLLOW_ALIASES` 的 `false`（C 的循环测试，Rust 块里没有落点）进
+  `docs/ports/macro-body-notes.tsv`。
+  实测：`extract-abi.py --check emacs/src/disptab.h femacs/src/include/disptab.rs` = **`OK`**；十个消费者
+  （`term`/`dispnew`/`doc`/`indent`/`xfaces`/`print`/`window`/`character`/`xdisp`/`keyboard`）全部 `built`；
+  `check-mirror-dupes` `1 ratchet row / 0 failure`、`check-declarations` `13 sites (0 forbidden, 13 allowed
+  literals) / 0 failures`、`check-verbatim` 0、`check-globals` `283 units / 0`；`port-inventory` 复算
+  **590 files, done=472, wip=30, todo=88**。
+  顺带清掉一个**跑出来的杂散产物**：仓库根出现 `BROWSE`（54 KB，ebrowse 对 `emacs/src/xdisp.c` 生成的标签文件，
+  某条 lane 的探针留在工作树里），已删除并提醒该 lane 把这类探针产物放到 `/tmp`。

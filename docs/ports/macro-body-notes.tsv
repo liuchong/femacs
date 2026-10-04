@@ -1107,3 +1107,9 @@ install_handler	sa_handler	emacsclient: C 1499/1502's `oact.sa_handler` / `.sa_h
 local_sockname	priumax	emacsclient: C 1631-1632's `"/emacs%"PRIuMAX"/%s"` uses <inttypes.h>'s `PRIuMAX`, which the frozen target defines as "ju" (measured); the port writes the measured format as one literal, so the macro name cannot reappear (the lib-src/hexl.rs PRIxMAX row)
 set_local_socket	priumax	emacsclient: see local_sockname (C 1800-1801's `"/run/user/%"PRIuMAX`)
 set_socket	alternate,alternate_editor,editor,emacs_server_file,environment,file,variable	emacsclient: C 1882-1888's message is a concatenation whose last literal is written with a backslash-newline continuation, which the literal blanker does not see, so the message's words turn into body tokens; the port carries them as one Rust literal
+SAVE_IT	if (CACHE)	C's `void *CACHE` tested as a boolean has no Rust counterpart: the port's arm (xdisp.c 1690/2348's `SAVE_IT` uses) is `if !$CACHE.is_null ()`
+SAVE_IT	false	xdisp.c 1690/2348: C's body reads `bidi_unshelve_cache (CACHE, true)`; the port's arm keeps the call and its `true` literal, and Rust has no place for the second `false` of the macro's own `if` test (the `if (CACHE)` row above covers that token)
+dsafe_calln	__va_args	the variadic arm is a Rust `$($args:expr),*` metavariable over a local array (the lisp.h safe_calln row's shape); C's `__VA_ARGS__` has no Rust token
+redisplay_trace	va_end,va_list,va_start	xdisp.c 2844: C's `va_list ap; va_start (ap, fmt); … va_end (ap);` have no port counterpart - the `...` parameter *is* the list (PORTING.md P-04, the make-docfile `error`/`fatal` rows)
+move_trace	va_end,va_list,va_start	see redisplay_trace (xdisp.c 2850's move_trace is the same shape)
+GLYPH_FOLLOW_ALIASES	false	disptab.h 92-98: C's `do { … } while (false)` becomes a Rust block (the SET_GLYPH_FROM_GLYPH_CODE shape); the loop's own `false` test has no site in a block

@@ -242,9 +242,6 @@ macro_rules! CHECK_FRAME {
 /// so the two `SET_GLYPH_FROM_*` macros C's dispnew.c needs are declared here at their use
 /// site.  dispextern.h 414-422's `SET_GLYPH_FROM_GLYPH_CODE` keeps C's `do { … } while (0)`
 /// as a block (the `SET_CHAR_GLYPH` shape).
-macro_rules! SET_GLYPH_FROM_CHAR {
-  ($glyph:expr, $c:expr) => { SET_GLYPH! ($glyph, $c, DEFAULT_FACE_ID) };
-}
 macro_rules! SET_GLYPH_FROM_GLYPH_CODE {
   ($glyph:expr, $gc:expr) => { {
     if CONSP ($gc)
@@ -442,30 +439,6 @@ macro_rules! CHAR_GLYPH_SPACE_P {
   };
 }
 
-/* disptab.h 72-122: the glyph-table family.  term.rs spells these for the same reason —
-   the disptab mirror stops before them — and its text is C's (P-33: every one is a
-   `macro_rules!` because C's is).  `GLYPH_CHAR`/`GLYPH_FACE`/`SET_GLYPH_CHAR` come from the
-   dispextern mirror.  */
-macro_rules! GLYPH_TABLE_LENGTH {
-  () => { { if VECTORP (Vglyph_table) { ASIZE (Vglyph_table) } else { 0 } } };
-}
-macro_rules! GLYPH_TABLE_BASE {
-  () => { { if VECTORP (Vglyph_table)
-              { unsafe { (*XVECTOR (Vglyph_table)).contents.as_mut_ptr () } }
-            else { 0 as *mut Lisp_Object } } };
-}
-macro_rules! GLYPH_SIMPLE_P {
-  ($base:expr, $len:expr, $g:expr) => {
-    (GLYPH_FACE ($g) != DEFAULT_FACE_ID || GLYPH_CHAR ($g) >= ($len) as c_int
-     || ! STRINGP (*(($base)).add (GLYPH_CHAR ($g) as usize)))
-  };
-}
-macro_rules! GLYPH_LENGTH {
-  ($base:expr, $g:expr) => { SCHARS (*(($base)).add (GLYPH_CHAR ($g) as usize)) };
-}
-/* disptab.h 118: `#define SPACEGLYPH 040` — octal 040 is 32 (the extractor's octal defect is
-   docs/status.md 3.28②; the value here is C's).  */
-pub const SPACEGLYPH: c_int = 32;
 
 // dispextern.h 286-287: C's `#define BYTEPOS(POS) (POS).bytepos` and
 // `#define CHARPOS(POS) (POS).charpos`, both usable as an assignment target the way C's

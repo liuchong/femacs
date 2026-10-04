@@ -16,16 +16,16 @@
 - [x] DISP_TABLE_P  (line 26, body 266b96509423)
 - [x] DISP_TRUNC_GLYPH  (line 31, body 0c94632e1e0e)
 - [x] EMACS_DISPTAB_H  (line 22, body da39a3ee5e6b)
-- [ ] GLYPH_ALIAS_P  (line 90, body 67d46f9d4886)
-- [ ] GLYPH_FOLLOW_ALIASES  (line 95, body 779ac3bd1c98)
-- [ ] GLYPH_LENGTH  (line 106, body da6feb2167bf)
-- [ ] GLYPH_SIMPLE_P  (line 85, body 5999168d4661)
-- [ ] GLYPH_STRING  (line 107, body e7fe4f2bebd0)
-- [ ] GLYPH_TABLE_BASE  (line 79, body 25355ea345c8)
-- [ ] GLYPH_TABLE_LENGTH  (line 74, body a0b8c63f242e)
-- [ ] NULL_GLYPH  (line 112, body fb96549631c8)
-- [ ] SET_GLYPH_FROM_CHAR  (line 114, body a05658b49d09)
-- [ ] SPACEGLYPH  (line 111, body 0471315ef8e6)
+- [x] GLYPH_ALIAS_P  (line 90, body 67d46f9d4886)
+- [x] GLYPH_FOLLOW_ALIASES  (line 95, body 779ac3bd1c98)
+- [x] GLYPH_LENGTH  (line 106, body da6feb2167bf)
+- [x] GLYPH_SIMPLE_P  (line 85, body 5999168d4661)
+- [x] GLYPH_STRING  (line 107, body e7fe4f2bebd0)
+- [x] GLYPH_TABLE_BASE  (line 79, body 25355ea345c8)
+- [x] GLYPH_TABLE_LENGTH  (line 74, body a0b8c63f242e)
+- [x] NULL_GLYPH  (line 112, body fb96549631c8)
+- [x] SET_GLYPH_FROM_CHAR  (line 114, body a05658b49d09)
+- [x] SPACEGLYPH  (line 111, body 0471315ef8e6)
 
 ## Types and their fields — 0
 
@@ -47,3 +47,29 @@
   function with C's expression order, and the checker's token comparison accepts it.
 - `SPACEGLYPH`/`NULL_GLYPH` are C octal literals (`040`, `00`) with no Rust spelling; they
   are left unmirrored with the rest of the glyph block rather than exempted one by one.
+
+## Decisions
+
+- **The glyph-table family landed** (disptab.h 72-122): `GLYPH_TABLE_LENGTH`/`GLYPH_TABLE_BASE`,
+  `GLYPH_SIMPLE_P`/`GLYPH_ALIAS_P`/`GLYPH_FOLLOW_ALIASES`, `GLYPH_LENGTH`/`GLYPH_STRING`,
+  `SPACEGLYPH` (C's octal 040 = 32), `NULL_GLYPH` (0) and `SET_GLYPH_FROM_CHAR`.  The blocker the
+  earlier WIP note named - dispextern.h's `GLYPH_CHAR`/`GLYPH_FACE`/`SET_GLYPH_CHAR`/
+  `GLYPH_CHAR_VALID_P`/`SET_GLYPH` and `DEFAULT_FACE_ID` - is gone: that mirror carries them now.
+  Every macro is a `macro_rules!` because C's is (PORTING.md P-33).
+- **Use-site copies retired in the same batch** (0.1-3): `term.rs` carried seven of the macros plus
+  both constants and `dispnew.rs` carried five plus `SET_GLYPH_FROM_CHAR`, each with its own "the
+  disptab mirror stops before this" note.  Both units include this mirror, so the copies were
+  duplicates the moment the family landed.  The other seven consumers (doc, indent, xfaces, print,
+  window, character and - in flight - xdisp/keyboard) needed no edit: they never declared them.
+- One shared row: `GLYPH_FOLLOW_ALIASES`'s `false`, C's `do { … } while (false)` test, which a Rust
+  block has no site for (`docs/ports/macro-body-notes.tsv`, the `SET_GLYPH_FROM_GLYPH_CODE` shape).
+
+## Evidence
+
+- `python3 tools/extract-abi.py --check emacs/src/disptab.h femacs/src/include/disptab.rs`
+  -> `OK emacs/src/disptab.h -> femacs/src/include/disptab.rs`.
+- `xtask build-tu` -> `built` for all ten units that include this mirror: `src/term.c`,
+  `src/dispnew.c`, `src/doc.c`, `src/indent.c`, `src/xfaces.c`, `src/print.c`, `src/window.c`,
+  `src/character.c`, `src/xdisp.c` and `src/keyboard.c` (the last two are the in-flight units).
+- `python3 tools/check-mirror-dupes.py` -> `1 duplicate declaration(s), 1 ratchet row(s),
+  0 failure(s)` (the surviving row is insdel.rs's).
