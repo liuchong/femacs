@@ -3554,3 +3554,26 @@
   （修前 88/99、11 skipped）且 **passed** ⇒ `dispextern.rs` 的断言现在真的在跑并且成立。
   ③ **教训**（与 3.153/3.185 同源）：**"把散文当数据"** 这类解析错误会让门**安静地少测一块**；凡是"台账/清单 → 代码"
   的解析，都要对**形状**做约束（列位、后缀、类型），并在输出里**打印被排除/被跳过的集合**（这次正是那条打印救了它）。
+
+- **3.197 `src/conf_post.h` 落地；三个 gnulib 单元的邻居指向真镜像（2026-10-04）**：
+  ① **实产**（`815277e`，签名 `verified=true`，已推 `origin/master`）：`src/conf_post.h`（445 行 / 66 宏）
+  → `femacs/src/include/conf_post.rs`（366 行；40 `macro_rules!` + 16 `const`，其中 **25 条活臂 + 31 条死臂**
+  挂 `#[cfg (feature = …)]`）。**判活靠实测**：`clang -E -dD` 的预处理输出 + `check-cond-eval`（41 conditions /
+  4 unknown / 3 disagreements [NOT VERIFIED]，三处 disagreement 全是 clang 内建谓词），所以抽取器在这里是盲态、
+  66 个名字都必须有落点。`HAVE_LSTAT`/`_REGEX_AVOID_UCHAR_H` 虽在 MSDOS 臂里，但冻结 `config.h` 同名同值也定义
+  ⇒ 按**活值**承载。
+  ② **我写的 10 条 `excluded-macros.txt` 行**：`HAS_ATTRIBUTE`/`HAS_FEATURE`（预处理器内建谓词 + 标识符粘贴，
+  Rust 两样都没有）、其死回退表 `HAS_ATTR_*`（5 条）、`UNINIT`（声明后缀）、`likely`（唯一拼法在 `lisp.rs` 704）、
+  `vfork`（死重命名）。写入后本件 `--check` **OK/0 行**。**裁决**：这几条**维持 excluded 行**而不改
+  `#[cfg (feature = …)]` 承载（3.187 的不变量：feature 名必须有 `--cfg` 驱动方，`address_sanitizer` 一类在本 target
+  永远没人驱动）；死臂目前**没有任何门在编**是已知的 FLIPS 缺口（§3.2/§3.9），属门自身的改动、不在 lane 范围内。
+  ③ **邻居指向真镜像**（这一批 gnulib 镜像落地的自然收尾，我做集成）/本轮先做三件：`lib/ftoastr.rs` 的五个
+  `FTOASTR_*` 改从 `include/ftoastr.rs` 取、`lib/utimensat.rs` 的 `openat_save_fail`/`openat_restore_fail` 改从
+  `include/openat.rs` 取（只留 `openat-priv.h` 那条）、`lib/openat-die.rs` 为 C 4 的 `#include "openat.h"` 加上该镜像
+  ——**而且它顺手纠正了一句陈旧的判断**："`openat.h` 是系统头"是错的（实测 `!HAVE_OPENAT` 的声明支才是活臂）。
+  三件的 `--check` 结论**不变**（都 OK）、三件都 built；`line-drift-tolerance.tsv` 的两行随行数变化更新
+  （`ftoastr` 0.15→0.20、`openat-die` 3.35→3.70）。**顺带发现**：这两个漂移行**在改之前就已经超窗**
+  （HEAD 版实测 14.5% / 328.6%）——说明"每个单元的 `--check` 在提交时是 OK"这条不变量**有历史缺口**，
+  台账/容忍表要按当前树复核一遍（已交给该 lane 的下一轮）。
+  ④ 读数：`gen-port-inventory` **590 files、done=562、wip=17、todo=11**；门全绿（`check-declarations` 13/0、
+  `check-globals` 283/0、`check-mirror-dupes` 1/1/0、`layout-check` 89 of 99 + 10 平台独占跳过）。
