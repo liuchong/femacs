@@ -284,3 +284,189 @@ pub unsafe extern "C" fn frame_set_external_tool_bar (f: *mut c_void, v: c_int)
 {
   let _ = (f, v);
 }
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 5, group 1: the `struct frame` members the Swift lanes' `nsfns.m` port reads and writes.
+   Every member here is in the frozen record (`include/frame.rs`), so the export carries no gate;
+   the flag positions are that mirror's `FRAME_*_SHIFT` constants, and each `/// C:` line is C's
+   own text with the reference's line number.
+   --------------------------------------------------------------------------------------------- */
+
+/// `frame_name` is the ABI of C's `f->name` (`struct frame` member, frame.h 154); the Swift unit
+/// `nsfns.swift` imports it (`nsfns.swift` 252) and its `nsfns.m` port reads it in six places.
+/// C: Lisp_Object name;   (frame.h 154)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_name (f: *mut c_void) -> Lisp_Object
+{
+  unsafe { (*f.cast::<frame> ()).name }
+}
+
+/// C: struct terminal *terminal;   (frame.h 648; C's writes are src/nsfns.m 1267 and 2988,
+/// `f->terminal = dpyinfo->terminal;`)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_terminal (f: *mut c_void, t: *mut c_void)
+{
+  unsafe { (*f.cast::<frame> ()).terminal = t.cast::<terminal> (); }
+}
+
+/// C: bool_bf no_split : 1;   (frame.h 411; C's writes are src/nsfns.m 1474 `f->no_split = …`
+/// and 3139 `f->no_split = true;`)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_no_split (f: *mut c_void, v: bool)
+{
+  unsafe {
+    let bits = &mut (*f.cast::<frame> ()).bits1;
+    *bits = (*bits & !(1 << FRAME_NO_SPLIT_SHIFT)) | ((v as u32) << FRAME_NO_SPLIT_SHIFT);
+  }
+}
+
+/// C: bool_bf undecorated : 1;   (frame.h 449; C's write is src/nsfns.m 1404
+/// `FRAME_UNDECORATED (f) = !NILP (tem) && !EQ (tem, Qunbound);`)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_undecorated (f: *mut c_void, v: bool)
+{
+  unsafe {
+    let bits = &mut (*f.cast::<frame> ()).bits1;
+    *bits = (*bits & !(1 << FRAME_UNDECORATED_SHIFT)) | ((v as u32) << FRAME_UNDECORATED_SHIFT);
+  }
+}
+
+/// C: bool_bf can_set_window_size : 1;   (frame.h 491; C's writes are src/nsfns.m 1545 and 3149,
+/// `f->can_set_window_size = true;`)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_can_set_window_size (f: *mut c_void, v: bool)
+{
+  unsafe {
+    let bits = &mut (*f.cast::<frame> ()).bits1;
+    *bits = (*bits & !(1 << FRAME_CAN_SET_WINDOW_SIZE_SHIFT))
+            | ((v as u32) << FRAME_CAN_SET_WINDOW_SIZE_SHIFT);
+  }
+}
+
+/// C: bool_bf was_invisible : 1;   (frame.h 530; the second flag word, so this writer and the
+/// `was_invisible!` macro of `frame.rs` 276-278 address the same bit; C's write is src/nsfns.m
+/// 1569 `f->was_invisible = true;`)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_was_invisible (f: *mut c_void, v: bool)
+{
+  unsafe {
+    let bits = &mut (*f.cast::<frame> ()).bits2;
+    *bits = (*bits & !(1 << FRAME_WAS_INVISIBLE_SHIFT)) | ((v as u32) << FRAME_WAS_INVISIBLE_SHIFT);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 5, group 2: the `struct window`, `struct buffer` and `struct terminal` members the same
+   Swift lane reads.  Those three records belong to the core and no Swift file declares their
+   layout, so the read is a C-ABI entry named after the member - the rule the lanes' own headers
+   state (`nsfns.swift` 503-505, 370-375, `nsterm.swift` 818-825).
+   --------------------------------------------------------------------------------------------- */
+
+/// C: Lisp_Object contents;   (window.h 143)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_contents (w: *mut c_void) -> Lisp_Object
+{
+  unsafe { (*w.cast::<window> ()).contents }
+}
+
+/// C: struct glyph_matrix *current_matrix;   (window.h 224)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_current_matrix (w: *mut c_void) -> *mut c_void
+{
+  unsafe { (*w.cast::<window> ()).current_matrix }
+}
+
+/// C: BVAR (XBUFFER (buf), filename)   (buffer.h 308; the member `BVAR` concatenates is
+/// `Lisp_Object filename_;`, buffer.h 330)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn buffer_filename (b: *mut c_void) -> Lisp_Object
+{
+  unsafe { (*b.cast::<buffer> ()).filename_ }
+}
+
+/// C: int id;   (termhooks.h 516)
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn terminal_id (t: *mut c_void) -> c_int
+{
+  unsafe { (*t.cast::<terminal> ()).id }
+}
+
+/// C: union display_info { … struct ns_display_info *ns; … };   (termhooks.h 533, the member at
+/// 538 - "nsterm.h").  The port keeps the untyped pointer the union holds (P-72 rule 3), so the
+/// read is a plain pointer even though the Swift declaration names `ns_display_info`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn terminal_display_info_ns (t: *mut c_void) -> *mut c_void
+{
+  unsafe { (*t.cast::<terminal> ()).display_info.ns }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 5, group 3: the arm-only writers.  `struct ns_output` (nsterm.rs 419-489) and
+   `struct ns_display_info` (nsterm.rs 317-392) are `#[cfg (feature = "have_ns")]`, and `HAVE_NS`
+   is undef in the frozen configuration (`docs/baseline/config/darwin-arm64.macros.tsv` 1481), so
+   each export carries the gate of the record it writes - the `frame_set_double_buffered` ruling
+   (`docs/status.md` 3.255 item 3): the ratchet row stays with "only a HAVE_NS build can clear
+   it".  Exporting any of them ungated would invent a host for a member the frozen record does not
+   have (P-08).
+   --------------------------------------------------------------------------------------------- */
+
+/// C's prototype is lisp.h's (`extern void *xzalloc (size_t)`); the port's definition is
+/// `femacs/src/alloc.rs` 775-783 (`#[unsafe(no_mangle)] pub unsafe extern "C" fn xzalloc`), which
+/// is the symbol the frozen build's `_xzalloc` resolves to.
+#[cfg (feature = "have_ns")]
+unsafe extern "C" { fn xzalloc (size: size_t) -> *mut c_void; }
+
+/// C: f->output_data.ns = xzalloc (sizeof *f->output_data.ns);   (src/nsfns.m 1270 and 2991)
+#[cfg (feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_alloc_ns_output (f: *mut c_void)
+{
+  unsafe {
+    (*f.cast::<frame> ()).output_data.ns = xzalloc (std::mem::size_of::<ns_output> ());
+  }
+}
+
+/// C: FRAME_FONTSET (f) = -1;   (src/nsfns.m 1272 and 2994; the macro is nsterm.h 1096,
+/// `#define FRAME_FONTSET(f) ((f)->output_data.ns->fontset)`)
+#[cfg (feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_fontset (f: *mut c_void, v: c_int)
+{
+  unsafe {
+    let ns = (*f.cast::<frame> ()).output_data.ns as *mut ns_output;
+    (*ns).fontset = v;
+  }
+}
+
+/// C: FRAME_DISPLAY_INFO (f) = dpyinfo;   (src/nsfns.m 1280 and 2995; the macro is nsterm.h 1032,
+/// `#define FRAME_DISPLAY_INFO(f) ((f)->output_data.ns->display_info)`)
+#[cfg (feature = "have_ns")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_display_info (f: *mut c_void, dpyinfo: *mut c_void)
+{
+  unsafe {
+    let ns = (*f.cast::<frame> ()).output_data.ns as *mut ns_output;
+    (*ns).display_info = dpyinfo as *mut ns_display_info;
+  }
+}
+
+/// C: #if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MIN_REQUIRED >= 101400 /
+/// C: #define FRAME_DOUBLE_BUFFERED(f) ((f)->output_data.ns->double_buffered) / #endif
+/// (nsterm.h 1051-1053; C's writes are src/nsfns.m 813 `FRAME_DOUBLE_BUFFERED (f) = NILP
+/// (new_value);` and 1464 `FRAME_DOUBLE_BUFFERED (f) = NILP (tem) || EQ (tem, Qunbound);`, and
+/// the Swift import is `nsfns.swift` 495-496).
+///
+/// The gate is the mirror's own pair, `have_ns` + `ns_impl_cocoa` (nsterm.rs 582-584 on the
+/// macro, 487-488 on the member): the member lives on `ns_output`, itself `have_ns`-gated, so a
+/// lone `ns_impl_cocoa` gate would name a type the mirror does not have in that configuration.
+/// Status 3.255 item 3 rules the export out of the ungated set; this is that export.
+#[cfg (feature = "have_ns")]
+#[cfg (feature = "ns_impl_cocoa")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_double_buffered (f: *mut c_void, v: bool)
+{
+  unsafe {
+    let ns = (*f.cast::<frame> ()).output_data.ns as *mut ns_output;
+    (*ns).double_buffered = v;
+  }
+}

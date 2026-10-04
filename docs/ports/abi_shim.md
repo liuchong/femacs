@@ -13,7 +13,10 @@ a port (`^// femacs: generated mirror of the frozen build's`), which is why the 
 `femacs/src/` yet appears in no row of `docs/port-inventory.md` or `docs/port-map.md`; both were
 re-run to confirm it (see `## Evidence`).
 
-## Exports - 10 (all `#[unsafe(no_mangle)] pub unsafe extern "C" fn`, `frame` received as `*mut c_void` by the lanes' habit; the ABI is the Swift declaration's)
+## Exports - 43 (all `#[unsafe(no_mangle)] pub unsafe extern "C" fn`, `frame` received as `*mut c_void` by the lanes' habit; the ABI is the Swift declaration's)
+
+Forty-three: thirty-nine are in the frozen object (`nm -g build/femacs/abi_shim.o`) and the four
+arm-only writers appear when the configuration that owns their member is built (see `## Decisions`).
 
 | name | Swift import | providing Rust item | C text (line) |
 | --- | --- | --- | --- |
@@ -45,6 +48,21 @@ re-run to confirm it (see `## Evidence`).
 | `frame_tab_bar_window` | `nsfns.swift` 256 (`-> Lisp_Object`) | `abi_shim.rs` 263 | `Lisp_Object tab_bar_window;` frame.h 254 (**inside `#ifdef HAVE_WINDOW_SYSTEM`**) - the frozen answer is `Qnil` |
 | `frame_set_external_menu_bar` | `nsfns.swift` 487-488 (`(…, Int32)`) | `abi_shim.rs` 275 | `#define FRAME_EXTERNAL_MENU_BAR(f) false` frame.h 1082 (the `#else` arm) - no-op |
 | `frame_set_external_tool_bar` | `nsfns.swift` 493-494 (`(…, Int32)`) | `abi_shim.rs` 283 | `#define FRAME_EXTERNAL_TOOL_BAR(f) false` frame.h 1097 (the `#else` arm) - no-op |
+| `frame_name` | `nsfns.swift` 252 (`-> Lisp_Object`) | `abi_shim.rs` 299 | `Lisp_Object name;` frame.h 154 |
+| `frame_set_terminal` | `nsfns.swift` 631-632 (`(…, UnsafeMutableRawPointer?)`) | `abi_shim.rs` 307 | `struct terminal *terminal;` frame.h 648 (C's writes: nsfns.m 1267, 2988) |
+| `frame_set_no_split` | `nsfns.swift` 635 (`(…, Bool)`) | `abi_shim.rs` 315 | `bool_bf no_split : 1` frame.h 411 (`FRAME_NO_SPLIT_SHIFT` 14; C's writes: nsfns.m 1474, 3139) |
+| `frame_set_undecorated` | `nsfns.swift` 573-574 (`(…, Bool)`) | `abi_shim.rs` 326 | `bool_bf undecorated : 1` frame.h 449 (shift 25; C's write: nsfns.m 1404 `FRAME_UNDECORATED (f) = …`) |
+| `frame_set_can_set_window_size` | `nsfns.swift` 637-638 (`(…, Bool)`) | `abi_shim.rs` 337 | `bool_bf can_set_window_size : 1` frame.h 491 (shift 28; C's writes: nsfns.m 1545, 3149) |
+| `frame_set_was_invisible` | `nsfns.swift` 636 (`(…, Bool)`) | `abi_shim.rs` 350 | `bool_bf was_invisible : 1` frame.h 530 (second flag word, shift 5; C's write: nsfns.m 1569) |
+| `window_contents` | `nsfns.swift` 499, `nsmenu.swift` 413-414 (`-> Lisp_Object`) | `abi_shim.rs` 367 | `Lisp_Object contents;` window.h 143 |
+| `window_current_matrix` | `nsfns.swift` 500-501 (`-> UnsafeMutableRawPointer?`) | `abi_shim.rs` 374 | `struct glyph_matrix *current_matrix;` window.h 224 |
+| `buffer_filename` | `nsfns.swift` 504-505 (`-> Lisp_Object`) | `abi_shim.rs` 382 | `#define BVAR(buf, field) ((buf)->field ## _)` buffer.h 308 (the member is `Lisp_Object filename_;`, buffer.h 330) |
+| `terminal_id` | `nsfns.swift` 373 (`-> Int32`) | `abi_shim.rs` 389 | `int id;` termhooks.h 516 |
+| `terminal_display_info_ns` | `nsfns.swift` 374-375 (`-> UnsafeMutablePointer<ns_display_info>?`) | `abi_shim.rs` 398 | `struct ns_display_info *ns;` termhooks.h 538 (inside `union display_info`, 533) |
+| `frame_alloc_ns_output` | `nsfns.swift` 633 (`(…)`) | `abi_shim.rs` 422, **`#[cfg (feature = "have_ns")]`** | `f->output_data.ns = xzalloc (sizeof *f->output_data.ns);` nsfns.m 1270, 2991 |
+| `frame_set_fontset` | `nsfns.swift` 634 (`(…, Int32)`) | `abi_shim.rs` 433, **`have_ns`** | `#define FRAME_FONTSET(f) ((f)->output_data.ns->fontset)` nsterm.h 1096 (C's writes: nsfns.m 1272, 2994) |
+| `frame_set_display_info` | `nsfns.swift` 716-717 (`(…, UnsafeMutablePointer<ns_display_info>?)`) | `abi_shim.rs` 445, **`have_ns`** | `#define FRAME_DISPLAY_INFO(f) ((f)->output_data.ns->display_info)` nsterm.h 1032 (C's writes: nsfns.m 1280, 2995) |
+| `frame_set_double_buffered` | `nsfns.swift` 495-496 (`(…, Bool)`) | `abi_shim.rs` 465, **`have_ns` + `ns_impl_cocoa`** | `#define FRAME_DOUBLE_BUFFERED(f) ((f)->output_data.ns->double_buffered)` nsterm.h 1052 (inside `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MIN_REQUIRED >= 101400`, 1051-1053) |
 
 - [x] `frame_left_pos`
 - [x] `frame_top_pos`
@@ -74,6 +92,21 @@ re-run to confirm it (see `## Evidence`).
 - [x] `frame_tab_bar_window`
 - [x] `frame_set_external_menu_bar`
 - [x] `frame_set_external_tool_bar`
+- [x] `frame_name`
+- [x] `frame_set_terminal`
+- [x] `frame_set_no_split`
+- [x] `frame_set_undecorated`
+- [x] `frame_set_can_set_window_size`
+- [x] `frame_set_was_invisible`
+- [x] `window_contents`
+- [x] `window_current_matrix`
+- [x] `buffer_filename`
+- [x] `terminal_id`
+- [x] `terminal_display_info_ns`
+- [x] `frame_alloc_ns_output`
+- [x] `frame_set_fontset`
+- [x] `frame_set_display_info`
+- [x] `frame_set_double_buffered`
 
 **The remaining names of the ruling's class 1 (37) are not listed as unchecked boxes here on
 purpose**: a ledger that still carries an unchecked box is skipped by `xtask`'s
@@ -83,6 +116,73 @@ already provides would read as missing.  The live tracking of what is left is th
 file gives.
 
 ## Decisions
+- **Batch 5 lands the `frame_*` family's second half plus the head of the read family: 15 exports,
+  11 of which clear their ratchet row.**  The six ungated `frame_*` names (`frame_name`,
+  `frame_set_terminal`, `frame_set_no_split`, `frame_set_undecorated`,
+  `frame_set_can_set_window_size`, `frame_set_was_invisible`) write members the frozen record has
+  (`include/frame.rs`), and the five reads (`window_contents`, `window_current_matrix`,
+  `buffer_filename`, `terminal_id`, `terminal_display_info_ns`) read `struct window`/`struct
+  buffer`/`struct terminal` members no Swift file declares a layout for - the lane's own headers say
+  so in as many words (`nsfns.swift` 503-505 and 370-375, `nsterm.swift` 818-825).  Each flag writer
+  uses the mirror's own shift constant (`FRAME_NO_SPLIT_SHIFT` 14, `FRAME_UNDECORATED_SHIFT` 25,
+  `FRAME_CAN_SET_WINDOW_SIZE_SHIFT` 28, `FRAME_WAS_INVISIBLE_SHIFT` 5 in the second word), i.e. the
+  same bit `frame.rs` 220-250's `no_split!`/`undecorated!`/`can_set_window_size!`/`was_invisible!`
+  macros read, so writer and reader cannot drift apart unnoticed.  **The integrator deletes exactly
+  eleven rows** from `docs/baseline/swift-import-pending.txt` - the gate's `STALE (satisfied)` list
+  for this batch: `frame_name`, `frame_set_terminal`, `frame_set_no_split`, `frame_set_undecorated`,
+  `frame_set_can_set_window_size`, `frame_set_was_invisible`, `window_contents`,
+  `window_current_matrix`, `buffer_filename`, `terminal_id`, `terminal_display_info_ns` - and leaves
+  the four arm-only rows below.
+- **Four of the fifteen are arm-only: they carry the arm's gate and their ratchet rows stay.**  The
+  three writers of `struct ns_output` members - `frame_alloc_ns_output` (nsfns.m 1270/2991:
+  `f->output_data.ns = xzalloc (sizeof *f->output_data.ns);`), `frame_set_fontset` (nsfns.m
+  1272/2994: `FRAME_FONTSET (f) = -1;`) and `frame_set_display_info` (nsfns.m 1280/2995:
+  `FRAME_DISPLAY_INFO (f) = dpyinfo;`) - are exported under **`#[cfg (feature = "have_ns")]`**,
+  because the record they write lives under that gate in the mirror (`include/nsterm.rs` 419-489;
+  `ns_display_info` at 317-392).  `HAVE_NS` is undef in the frozen configuration
+  (`docs/baseline/config/darwin-arm64.macros.tsv` 1481; `NS_IMPL_COCOA` 2996, `NS_IMPL_GNUSTEP`
+  2997).  `frame_set_double_buffered` - the name status 3.255 item 3 ruled on - carries the mirror's
+  own pair (nsterm.rs 582-584 on the macro, 487-488 on the member): `have_ns` **and**
+  `ns_impl_cocoa`, because the member lives on `ns_output`, itself `have_ns`-gated; the ruling's
+  shorthand `ns_impl_cocoa` alone would name a type the mirror does not have in that configuration.
+  All four rows stay, with the reason re-worded to "the export exists behind the member's own gate;
+  only a HAVE_NS build can clear this row" - the `frame_set_double_buffered` shape and the
+  `macfont`/`nsfont` permanent-dead-arm class.  Measured: the frozen object answers none of the four
+  (`nm -g build/femacs/abi_shim.o`).
+- **One name of the batch list is held back outright: `frame_set_ns_transparent_titlebar`.**  Its
+  member is `bool_bf ns_transparent_titlebar;` inside `#ifdef NS_IMPL_COCOA` (frame.h 735-739, the
+  macro at 1259; C's write is nsfns.m 1416), and the port's `struct frame` mirror carries **no** such
+  field (`include/frame.rs` 27-142's member run ends at `z_order`, 141).  With no host in the record
+  there is no faithful body: an ungated export would invent a host for a member the frozen record
+  does not have (P-08), and a gated one would write nothing.  The fix is the frame lane's one field
+  under the same gate - the shape `include/nsterm.rs` 487-488 already uses for `double_buffered` -
+  after which this export is the same one-liner as its seven siblings.  The ratchet row stays as it
+  is until that field lands.
+- **B class, not shim work: `FRAME_NS_VIEW`, `FRAME_DISPLAY_INFO`, `MOUSE_HL_INFO`,
+  `WINDOW_TO_FRAME_PIXEL_Y`.**  Status 3.255's test applies first, and each of these bodies is a
+  member read (or arithmetic over one) the Swift lane can spell at the use site, so a same-name entry
+  here would put a symbol in the frozen record that C does not have (P-08).  The datum behind the
+  test is in the tree: `nsfns.swift` 39-58, `nsfont.swift` 427 and `macfont.swift` 248 already
+  declare `struct ns_display_info`'s prefix on the Swift side, which is what makes a record's member
+  readable there; `nsterm.swift` has no `struct ns_output` declaration yet, so the two
+  `ns_output`-shaped names need that decision from the Swift lane first.  The nsterm lane's own
+  expansions (`nsterm.swift` 2009-2031, `frame_ns_titlebar_height`/`frame_toolbar_height`) call
+  `FRAME_NS_VIEW (f)` today, so a B ruling for that name reaches those two call sites as well.  The
+  rest of the `ns_output` member-macro family (`FRAME_NS_WINDOW`, `FRAME_CURSOR_COLOR`,
+  `FRAME_POINTER_TYPE`, `FRAME_FONT`) is the same shape and wants the same ruling before a batch
+  touches it.
+- **The ratchet's reason column does not recognise this family, and one row is a false positive.**
+  Fourteen of this batch's fifteen rows carry the machine reason "not found in the reference objects,
+  the SDK or the reference's C and Rust text - check the spelling", and only `frame_name` carries the
+  A wording - and that one is an accident of `print.c` 1915-1930's **local variable** `frame_name`,
+  which the classifier's word-boundary search reads as "the reference's own C text declares or defines
+  it".  The cause is structural: `tools/check-swift-imports.py`'s provider universe is the reference
+  objects, the SDK, the reference's C text and the Rust tree's *item* names, while these names are the
+  lanes' own C-ABI spelling of a record member (the rulings doc's class 1, "the core must export this
+  C-ABI entry"), so all of them fall through to the spelling bucket.  The integrator may want to
+  re-word those rows rather than leave "check the spelling" on names that are spelled exactly as the
+  lanes import them.
+
 - **One name of the batch list is held back: `frame_set_double_buffered`.**  Its C construct is
   `#define FRAME_DOUBLE_BUFFERED(f) ((f)->output_data.ns->double_buffered)` (nsterm.h 1052) inside
   `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MIN_REQUIRED >= 101400`, and the frozen
@@ -123,6 +223,39 @@ file gives.
   `Lisp_Object` (`Lisp_Word`, 8 bytes).
 
 ## Evidence
+- **Batch 5 (the `frame_*` second half and the head of the read family, 15 exports)**:
+  `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-abi cargo run -q -p xtask -- build-tu src/abi_shim.c`
+  -> `built src/abi_shim.rs -> ../build/femacs/abi_shim.o`.  `nm -g build/femacs/abi_shim.o` answers
+  the eleven ungated names - `T _frame_name`, `T _frame_set_terminal`, `T _frame_set_no_split`,
+  `T _frame_set_undecorated`, `T _frame_set_can_set_window_size`, `T _frame_set_was_invisible`,
+  `T _window_contents`, `T _window_current_matrix`, `T _buffer_filename`, `T _terminal_id`,
+  `T _terminal_display_info_ns` (39 named exports in all, 34 of them `_frame_*`) - and answers **none**
+  of the four arm-only ones (`_frame_alloc_ns_output`, `_frame_set_fontset`,
+  `_frame_set_display_info`, `_frame_set_double_buffered`), which is the expected reading for the
+  frozen configuration.  `tools/check-swift-imports.py` prints
+  `STALE (satisfied) <name>: provided now, so the row goes` for exactly those eleven and for no other
+  row of this shim's; its tail is `838 import(s) in 7 Swift file(s), 5629 core export(s), 616
+  unprovided, 549 ratchet row(s), 89 failure(s)` - the 89 failures are the in-flight `nsfns.swift`
+  batch (`window_set_*`, `frame_set_pixel_*`, `current_buffer_begv_byte`, …), another lane's imports,
+  so the only rows this batch owns are the eleven `STALE (satisfied)` lines just named.
+- **No host and no reference symbol was invented**: `nm -g build/emacs-ref/{src,lib}/*.o` has no
+  symbol for any of the fifteen (checked name by name against the object symbol list; C's nearest
+  text is the macro or member each `/// C:` line names), and `check-undef.py`'s reading for this
+  object is unchanged - `nm -u build/femacs/abi_shim.o` is the same twelve entries as before the
+  batch (`__RNv…` panic shims, `_setjmp`, `_cons_to_signed`, `_cons_to_unsigned`,
+  `_wrong_type_argument`, `_xfree`); the tool's current `14 NEW undefined reference(s)` are all
+  `xdisp.o`'s, another lane's unit.  The four gated bodies contribute no reference in the frozen
+  configuration (they are compiled out), so `frame_alloc_ns_output`'s `xzalloc` call is invisible to
+  this reading - and **no gate compiles those bodies**: `xtask dead-arms`' `FLIPS` list holds six
+  configurations (`no_rint`, `no_trunc`, `no_signbit`, `have_haiku`, `have_native_comp`,
+  `HAVE_LOG2`), none of them `HAVE_NS`/`NS_IMPL_COCOA`, so the arm's text is recorded rather than
+  compiled - the same status the `ns_impl_cocoa` field of `struct ns_output` already has in this tree
+  (P-51's "carrying the text is not the same as compiling it", recorded here rather than claimed).
+- **Other gates at this point**: `check-globals` `284 units, 0 DEFVAR_* variables without a
+  definition in their own unit`; `check-mirror-dupes` `1 duplicate declaration(s), 1 ratchet row(s),
+  0 failure(s)`; `check-declarations` `13 declaration sites (0 forbidden, 13 allowed literals), 0
+  failures` plus `read 630 files (623 .rs 7 .swift)`; `check-target-names` `627 .rs files, 591 map
+  targets, 0 finding(s)` (the `DECLARED` first line is untouched, so the shim stays out of R1).
 - **Batches 3 and 4 (the `frames.bits1` accessors and the three names status 3.242 fixed)**:
   `build-tu src/abi_shim.c` -> `built src/abi_shim.rs -> ../build/femacs/abi_shim.o`;
   `nm -g build/femacs/abi_shim.o` answers `T _frame_explicit_name`, `T _frame_set_explicit_name`,
