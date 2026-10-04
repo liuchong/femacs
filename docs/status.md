@@ -3124,3 +3124,21 @@
   ⑤ 读数：`gen-port-inventory` 590 files、done=541、wip=21、todo=28；五门绿（`check-declarations` 13/0、`check-globals` 283/0、
   `check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 598 `.rs`/0）；`layout-check` passed；
   引证门 **59 drift / 4 range / 284 external**（Boole 续扫）。
+
+- **3.178 `src/ftfont.h` 进镜像；记一次"在飞镜像把共享门弄红"的规则（2026-10-04）**：
+  ① **交付**（`05bb476` 之后的 `ftfont` 提交）：`src/ftfont.h`（94 行）→ `femacs/src/include/ftfont.rs` + 台账。
+  这个头是 FreeType 后端的（XFT/FreeType/Cairo 三家共享），本目标上不编译（无窗口系统、`src/ftfont.c` 不在冻结构建源表、
+  它点名的类型全来自 FreeType/Xft/Fontconfig）。**形状沿用 3.170/3.176 的分半**：`struct font_info` 与三个 Fontconfig 入口
+  挂 `#[cfg (feature = "have_x_windows")]`（P-51 的非冻结侧；feature 名按 3.171 的规则取 C 宏字面小写）并**照 C 写 C 的名字**
+  （`FT_Size`/`FT_Matrix`/`Display`/`XftFont`/`FcPattern`），因为它们由那个目标提供；C 的其余臂（`HAVE_LIBOTF` 的
+  `maybe_otf`/`otf`、`HAVE_HARFBUZZ` 的 `hb_font`、`USE_CAIRO || USE_BE_CAIRO` 的四个成员）在本目标上是死文本，
+  按 P-51 **记录不镜像**（守卫名与成员名留在 `/// C:` 行），抽取器的字段清单也确实不要它们。
+  C 26-43 的 include 链（ft2build/FreeType/cairo/hb/otf/m17n-flt）同样只记录（那些头无镜像，名字归平台目标）。
+  ② **一次"在飞镜像把共享门弄红"**：`xtask layout-check` 的单 crate **同时**编 `src/include` 与 `lib/include` 的每个镜像，
+  所以 Harvey 正在收口的 `lib/include/stdbit.in.rs` 半写状态（`expected item after doc comment` +
+  `E0425: cannot find type c_schar`（stdbit.in.rs:616））就把这道门弄红了——**与 3.163 那次同类**（当时是 `w32common.rs` 半写）。
+  已给该 lane 立规矩：**镜像文件必须始终可编译**，写一半的条目先放注释或用 `#[cfg (any())]` 挂起，引用未落地名字前先补定义，
+  并且每轮在 `--check` 之外**自己再跑一次 `layout-check`**。我的 `ftfont.rs` 本身是 cfg 死臂（不参与该 crate 的编译），
+  红不是它引起的——但这次提交时门是红的，**已如实记下**，等该 lane 收口后我会重跑一次确认转绿。
+  ③ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；`check-declarations` 13/0；引证门
+  **43 drift / 4 range / 284 external / 13 allowed / 0 stale**（Boole 继续清扫）。
