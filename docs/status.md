@@ -3683,3 +3683,27 @@
   （3.202 这一类的可见化；WIP 审计看不见它们）。**本轮读数：568 个 done 行逐个 `--check`，失败 0 个。**
   ⑤ 这条是 **conf_post lane 从探针里那句 clang 警告读出来的**（它把读数贴进了 `include-readutmp.md`），
   与 3.196/3.198 同源：**门的读数反了，比没有门更糟**。
+
+- **3.203 `lib/stdio.in.h` 落地并闭合；`src/w32common.h` 闭合；A 组只剩 4（2026-10-04）**：
+  ① **实产**（`3d00656` + `5376f55` + `d87717b`，签名 `verified=true`，已推 `origin/master`）：
+  `lib/stdio.in.h`（2,224 行 / 85 项）→ `femacs/lib/include/stdio.in.rs`（307 行：32 条声明进
+  `stdio_in_decls` 模块 + 12 `macro_rules!` + 11 `pub const`）。**判据实测**：`getline` 的 `@GNULIB_GETLINE@` →
+  生成头 1684 `#if 1`、`@REPLACE_GETLINE@` → 1691 `# if 0`（所以 RPL 臂全死，`HAVE_DECL_GETLINE` = 1 连 gnulib 自己的
+  `_GL_FUNCDECL_SYS` 都跳过 ⇒ **`getline` 就是系统的**）；14 个活宏里**没有任何 `#define X rpl_X`**，所以本件按规则
+  保留 C 源名、不需要 export_name 单元。我写 **6 条 excluded 行**（`getline` 的函数项、`fcloseall`、`fwrite_unlocked`、
+  `obstack_printf`、`obstack_vprintf`、`rpl_getdelim`）⇒ **`--check` OK/0 行**、7 个框勾上、单元离开 WIP。
+  **lane 的探针当场抓到一个真 `E0428`**（它原把模块叫 `stdio_decls`，而 `stdio.rs:23` 已拥有该名）⇒ 改名 `stdio_in_decls`。
+  ② **`__has_feature` 行的理由更正**：那行原说"冻结配置既没有该 builtin 也没有该宏"，实测 clang **有** `__has_feature`
+  （`printf '#ifdef __has_feature…' | clang -E` 打印 `HAS_FEATURE`）⇒ 跳过的是模板的 fallback，活臂是 builtin 本身；
+  结论不变、理由改了。③ `vfork` 行的措辞按 lane 的核查收紧为"没有**已声明**的 `[features]` 名字"（台账词汇把那个
+  feature 叫 `address_sanitizer`，但树里没有该声明）。
+  ④ **`src/w32common.h` 闭合**：两条缺项是两个缓存对象，按 `w32gdiplus.rs` 同型挂 `#[cfg (feature = "windowsnt")]`
+  并照 C 写 C 的类型名（该 target 的 `<windows.h>` 供给它们；feature 关闭时在名字解析前被剥离 ⇒ `layout-check` 编过它
+  就是证据）。三个 DLL 装载宏的行**早已存在**（`excluded-macros.txt` 149-151，`kind=deferred`：粘贴 + `__VA_ARGS__`
+  + 从外层函数 `return`，`macro_rules!` 一样都表达不了，由 Windows target 首次展开时定形状）。
+  ⑤ **读数**：`gen-port-inventory` **590 files、done=571、wip=10、todo=9**；`tools/audit-wip.py` 的 **A 组降到 4**：
+  两件在飞单元（`src/dispextern.h`、`src/xdisp.c`）+ **`src/frame.h`（47 行）**、**`src/font.h`（49 行）**——
+  这两件**没有 lane**，已派给刚收工的 stdio lane（并发纪律写进简报：先重读文件、只追加、绝不回退别人的项、
+  `frame.h` 做完先报一次）。
+  ⑥ 门：`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-verbatim` 4607/0、
+  `layout-check` 89 of 99 + 10 平台独占（本轮它编过 `w32common.rs`）；`check-citations` 12 drift/3 range/0 stale。
