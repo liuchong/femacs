@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 579 |
-| 其中 done / wip | 562 / 17 |
-| 待开工 | 11 |
+| 已有目标文件 | 580 |
+| 其中 done / wip | 563 / 17 |
+| 待开工 | 10 |
 
 ## 2 按目录
 
@@ -38,7 +38,7 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 3 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 2 |
 
 ## 3 按批次
 
@@ -48,7 +48,7 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 0 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 3 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 2 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 0 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 8 |
 
@@ -67,7 +67,7 @@
 | `src/xfns.c` | 10,662 | 116 | 53 | 7 | 13 | 11 | F | done |
 | `src/window.c` | 9,740 | 112 | 121 | 1 | 64 | 13 | E | done |
 | `src/macuvs.h` | 9,218 | 0 | 0 | 0 | 0 | 0 | F | done |
-| `src/process.c` | 9,122 | 125 | 63 | 24 | 9 | 20 | D | wip |
+| `src/process.c` | 9,122 | 125 | 63 | 24 | 9 | 20 | D | done |
 | `src/w32term.c` | 8,414 | 151 | 0 | 11 | 0 | 37 | F | done |
 | `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 0 | 12 | F | done |
 | `src/androidvfs.c` | 7,950 | 181 | 1 | 5 | 81 | 25 | F | done |
@@ -566,7 +566,7 @@
 | `src/msdos.c` | 4,350 | 96 | 5 | 33 | 22 | 12 | 38 | F | `femacs/src/msdos.rs` | done |
 | `src/msdos.h` | 156 | 0 | 0 | 21 | 7 | 0 | 3 | F | `femacs/src/include/msdos.rs` | done |
 | `src/nsgui.h` | 137 | 0 | 0 | 35 | 19 | 0 | 0 | F | `femacs/src/include/nsgui.rs` | done |
-| `src/nsterm.h` | 1,395 | 0 | 0 | 140 | 21 | 102 | 8 | F | `femacs/src/include/nsterm.rs` | todo |
+| `src/nsterm.h` | 1,395 | 0 | 0 | 140 | 21 | 102 | 8 | F | `femacs/src/include/nsterm.rs` | wip |
 | `src/nsxwidget.h` | 82 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/nsxwidget.rs` | done |
 | `src/pdumper.c` | 5,920 | 202 | 4 | 16 | 56 | 92 | 11 | G | `femacs/src/pdumper.rs` | done |
 | `src/pdumper.h` | 281 | 12 | 0 | 5 | 9 | 2 | 1 | G | `femacs/src/include/pdumper.rs` | done |
@@ -578,7 +578,7 @@
 | `src/pgtkterm.c` | 7,780 | 199 | 0 | 16 | 9 | 6 | 14 | F | `femacs/src/pgtkterm.rs` | done |
 | `src/pgtkterm.h` | 681 | 1 | 0 | 46 | 3 | 169 | 1 | F | `femacs/src/include/pgtkterm.rs` | done |
 | `src/print.c` | 3,069 | 47 | 11 | 3 | 7 | 44 | 12 | B | `femacs/src/print.rs` | done |
-| `src/process.c` | 9,122 | 125 | 63 | 24 | 17 | 9 | 20 | D | `femacs/src/process.rs` | wip |
+| `src/process.c` | 9,122 | 125 | 63 | 24 | 17 | 9 | 20 | D | `femacs/src/process.rs` | done |
 | `src/process.h` | 320 | 6 | 0 | 2 | 4 | 59 | 2 | D | `femacs/src/include/process.rs` | done |
 | `src/profiler.c` | 733 | 24 | 9 | 0 | 3 | 3 | 7 | D | `femacs/src/profiler.rs` | done |
 | `src/ralloc.c` | 1,214 | 18 | 0 | 7 | 0 | 0 | 12 | B | `femacs/src/ralloc.rs` | done |

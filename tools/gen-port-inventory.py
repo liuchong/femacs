@@ -178,7 +178,12 @@ def ledger_state(rel: Path, target: Path) -> str:
         if not cand.is_file():
             continue
         text = cand.read_text(encoding="utf-8", errors="replace")
-        state = "wip" if "- [ ]" in text else "done"
+        # A checklist row is a *line* that starts with `- [ ]`; the raw substring test also
+        # matched prose and fenced commands that quote it, which marked a fully ported unit
+        # (`src/process.c`: 9,126 lines, `--check` OK with 0 rows, ledger 235/235, builds) as
+        # WIP because its Evidence quotes `grep -c '^- [ ]' … -> 0` (status 3.198).  Same class
+        # as 3.196: a ledger is prose, so the reader has to constrain the shape it reads.
+        state = "wip" if re.search(r"(?m)^\s*- \[ \]", text) else "done"
         if first is None:
             first = state
         m = LEDGER_HEAD.match(text.split("\n", 1)[0])
