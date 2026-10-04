@@ -18,7 +18,7 @@
 > nor defines the `MAC_OS_X_*` macros, so the frozen table cannot decide its arms and the port
 > decides them by its target and records each one below.
 >
-> **The unit's state: 64 of the 74 functions are ported.**  Round 1 carried the engine layer
+> **The unit's state: 67 of the 74 functions are ported.**  Round 1 carried the engine layer
 > (111-1535) and the three helpers C forward-declares at 49-56; round 2 carried the charset
 > layer (1536-1756), the UVS layer (3301-3592), seven small entry points and the whole UVS data
 > of `src/macuvs.h`; round 3 added `macfont_get_charset` and the `cf_charset_table` it reads;
@@ -27,9 +27,11 @@
 > `macfont_create_attributes_with_spec`, `macfont_supports_charset_and_languages_p`), the two
 > spec entry points `macfont_list`/`macfont_match`, and the two CoreText helpers they call
 > (`mac_font_descriptor_supports_languages`, `mac_font_create_preferred_family_for_attributes`);
-> round 6 (this round, the approved 3a cut) added the rest of the driver core's entry points:
-> `macfont_list_family`, `macfont_open`, `macfont_close`, `macfont_text_extents`.
-> The remaining 10 are listed with a reason each under `## Deferred`; three of them are in arms
+> round 6 (the approved 3a cut) added the rest of the driver core's entry points:
+> `macfont_list_family`, `macfont_open`, `macfont_close`, `macfont_text_extents`; round 7 (this
+> round, the approved 3b cut) added `macfont_shape` and the two CoreText helpers it needs,
+> `mac_font_create_line_with_string_and_font` and `mac_font_shape`.
+> The remaining 7 are listed with a reason each under `## Deferred`; three of them are in arms
 > this target does not take and can never land, and nothing is stubbed.
 >
 > **The UVS table is Swift data** (rc 3.166, decision 1): the file carries
@@ -43,7 +45,7 @@
 
 ## Functions defined — 74
 
-Ported (64 of 74):
+Ported (67 of 74):
 
 - [x] cfdata_to_lisp  (line 138, static)
 - [x] cfstring_to_lisp_nodecode  (line 154, static)
@@ -99,7 +101,7 @@ Ported (64 of 74):
 - [x] macfont_encode_char  (line 2878, static)
 - [x] macfont_text_extents  (line 2890, static)
 - [x] macfont_draw  (line 2923, static)
-- [ ] macfont_shape  (line 3094, static)
+- [x] macfont_shape  (line 3094, static)
 - [x] mac_font_copy_uvs_table  (line 3301, static)
 - [x] mac_font_get_glyphs_for_variants  (line 3429, static)
 - [x] macfont_variation_glyphs  (line 3520, static)
@@ -110,8 +112,8 @@ Ported (64 of 74):
 - [x] mac_font_get_bounding_rect_for_glyph  (line 3714, static)
 - [x] mac_font_create_available_families  (line 3721, static)
 - [x] mac_font_equal_in_postscript_name  (line 3750, static)
-- [ ] mac_font_create_line_with_string_and_font  (line 3775, static)
-- [ ] mac_font_shape  (line 3839, static)
+- [x] mac_font_create_line_with_string_and_font  (line 3775, static)
+- [x] mac_font_shape  (line 3839, static)
 - [ ] mac_ctfont_get_glyph_for_cid  (line 3995, static)
 - [ ] mac_font_copy_default_descriptors_for_language  (line 4070, static)
 - [ ] mac_font_copy_default_name_for_charset_and_languages  (line 4162, static)
@@ -151,12 +153,15 @@ the rows in `docs/baseline/swift-units.tsv`.
 - [x] SIZEOF_UVS_TABLE_HEADER (3258) / SIZEOF_NON_DEFAULT_UVS_TABLE_HEADER (3283) /
       SIZEOF_DEFAULT_UVS_TABLE_HEADER (3270) (bodies ae104b9d306b / 90be0aad6424 /
       4ab941ba6212) -> the same `sizeof (record) - sizeof (member)` expressions over the mirrors
-- [x] OTF_SYM_TAG (1875-1880) -> `fileprivate func OTF_SYM_TAG (sym) -> UInt32` (C's macro
+- [x] OTF_SYM_TAG (1869-1873) -> `fileprivate func OTF_SYM_TAG (sym) -> UInt32` (C's macro
       assigns its second argument; the port returns the tag).  `macfont_get_open_type_spec`
       (1885) is its first reader; `macfont_create_attributes_with_spec` (1951) reaches it
       through that function
-- [ ] OTF_TAG_STR (1869-1873) - its only readers are `macfont_shape` (3094) and
-      `mac_font_shape` (3839), both still in `## Deferred`
+- [x] OTF_TAG_STR (1875-1882) -> **no reader in this file**: `grep -n OTF_TAG_STR
+      emacs/src/macfont.m` finds only the definition, so there is no call site to transcribe and
+      a Swift copy would be dead code (recorded, not written).  This corrects round 5's row,
+      which claimed `macfont_shape` (3094) and `mac_font_shape` (3839) were its readers - they
+      are not, and round 7 landed both and checked
 - [x] CG_SET_FILL_COLOR_WITH_FACE_FOREGROUND / _FACE_BACKGROUND / _FRAME_CURSOR /
       _FRAME_BACKGROUND / CG_SET_STROKE_COLOR_WITH_FACE_FOREGROUND (633-667) -> five
       fileprivate functions of the same names taking `(context, face|frame)`, each the C
@@ -205,9 +210,18 @@ the rows in `docs/baseline/swift-units.tsv`.
       prefix mirror nsfont.swift carries (`name_list_element` is all `macfont_get_cache` reads)
 - [x] OpenTypeSpec (1866-1872) -> `struct OpenTypeSpec` (`script`, `script_tag`, `langsys_tag`,
       the two 2-element arrays `nfeatures`/`features` as tuples with `otspec_*` accessors).  Its
-      user `macfont_get_open_type_spec` (1885) landed this round; `features[i]` is `malloc`'d and
+      user `macfont_get_open_type_spec` (1885) landed in round 5; `features[i]` is `malloc`'d and
       `free`'d exactly as C does (uninitialised until the loop fills it, read only through
       `nfeatures[i]`)
+- [x] `enum lgstring_direction` (44-48, `DIR_R2L = -1, DIR_UNKNOWN = 0, DIR_L2R = 1`) ->
+      `enum lgstring_direction: Int32`, the file's **one Swift raw-value enum** and the one
+      exception the "no raw-value enums" rule needs: the rule guards *mirrors of C records*
+      (whose C enum field is 4 bytes where a Swift enum is 1), and this enum is a parameter type
+      of this file's own `fileprivate` functions - it never crosses the ABI, so no C compiler
+      sees its layout (`nsfont.swift` keeps the same one).  `mac_font_shape_1` (329),
+      `mac_screen_font_shape` (593) and `macfont_shape` (3094) read it; its three members ride
+      on the `DIR_*` names C gives them.  The extractor's "12" above counts the file's structs
+      only, so this row is outside it
 
 ## File-scope objects — 6
 - [x] static const CGAffineTransform synthetic_italic_atfm (111) -> `fileprivate let
@@ -486,17 +500,61 @@ has no function-local statics, so it is a fileprivate global, which preserves C'
   the cast pointer keeps C's own name (`let macfont_info = …`), the shape
   `macfont_monospace_width_multiplier` established.
 
+**Round 7's decisions (3b: `macfont_shape` and the two CoreText helpers it needs).**
+
+* **The three `alloca` scratch arrays are nested `withUnsafeTemporaryAllocation` closures.**
+  C allocates `unichars`, `nonbmp_indices` and `glyph_layouts` on the stack and keeps each one
+  alive to the end of the function; Swift's scoped temporary allocation is the same
+  stack-first storage (the device `nsfont_shape` established), so the three closures nest with
+  the second phase inside the innermost, and each capacity is `max (_, 1)` because C's
+  `alloca (0)` never yields NULL while Swift's zero-capacity buffer has no `baseAddress` to
+  hand to the SDK.  The pointers live in outer `var`s (`unichars`, `nonbmp_indices`,
+  `glyph_layouts`) so every later statement keeps C's own spelling.
+* **`RIGHT_TO_LEFT_P` is live text here** (the Macros row records it; this is the file's
+  *second* definition of the alias, at 3870 - `mac_font_shape_1` has the first at 433):
+  `permutation` is
+  `xmalloc`'d for a right-to-left run and `xfree`'d at the end of the run, so every branch
+  behind C's alias is a `permutation != nil` test in the port - the same reading
+  `mac_font_shape_1`'s port already uses.
+* **One Swift-forced initialisation in `macfont_shape`**: C declares `j` uninitialised with
+  `i`/`len`/`glyph_len` and gives it its first value inside the loop; Swift requires a variable
+  captured by a closure to be initialised before the capture, so `j` starts at the record's
+  trivial value (`j = 0`).  The same reason `ascent`/`descent`/`leading` got theirs in round 6.
+* **C's discarded call is `_ = macfont_glyph_extents (…)`** in the second phase (C ignores the
+  returned advance; only `metrics` is read), and `CALLN (Fvector, xoff, yoff, wadjust)` is the
+  stack argument array the `Fmake_hash_table` call already established.
+* **`if (string == NULL)` collapses to one path.**  The string is the only thing that can set
+  `used`, so C's `unblock_input (); if (used == 0) return Qnil;` on that path always returns
+  `Qnil`; the port writes `unblock_input (); return Qnil ()` there and keeps C's own two
+  statements in the `string != NULL` branch (they sit after the shape call, before the second
+  phase's `block_input`).
+* **The `CTRunGetAttributes` deviation repeats** in
+  `mac_font_create_line_with_string_and_font`: the SDK imports that copy as non-optional, so
+  only C's `font_in_run == NULL` guard is written (the `attributes == NULL` one has no Swift
+  spelling).  `CFTypeRef values[]` is spelled as the port's `[UnsafeRawPointer?]` and keeps
+  C's own role for `values[1]` (the `CFNumberCreate` result whose NULL is C's test).
+* **`mac_font_shape`'s `dir` parameter is unused in C** (the function never reads it; only the
+  `mac_screen_font_shape` arm of `macfont_shape` does), so the port keeps the parameter as C
+  declares it and writes no reference to it.
+* **A finding that corrects round 5's ledger**: `OTF_TAG_STR` (1875-1882) has **no call site
+  anywhere in src/macfont.m** - `grep -n OTF_TAG_STR` finds only the definition - so there is
+  no reader to transcribe and the port writes none (a Swift copy would be dead code).  The
+  Macros row now says so instead of pointing at the two shaping functions, and the same
+  re-read corrected `OTF_SYM_TAG`'s range (1869-1873, not 1875-1880).
+* **`enum lgstring_direction` stays a Swift raw-value enum** (the Types row records why): it is
+  a parameter type of this file's own `fileprivate` functions and never crosses the ABI, so the
+  one-byte Swift layout no C compiler ever sees; the "raw integers, never raw-value enums" rule
+  guards record mirrors, whose C enum *field* is four bytes.
+
 ## Deferred
 
-10 functions.  Three of them can **never** land (they are inside arms this target does not
-take); the rest are `macfont_shape` and the closure round's list, and each row says what it
-needs.  Nothing is stubbed.
+7 functions.  Three of them can **never** land (they are inside arms this target does not
+take); the other four are the closure round's, and each row says what it needs.  Nothing is
+stubbed.
 
 | functions (C line) | why |
 | --- | --- |
-| `macfont_shape` (3094) | the `LGSTRING_*`/`LGLYPH_*` core entries (declarable, as nsfont.swift does) |
-| `mac_font_create_line_with_string_and_font` (3775), `mac_font_shape` (3839) | the CoreText helper layer left over (the other two landed in round 5); `macfont_shape` (3094) needs both, so they go with it in the 3b cut |
-| `macfont_get_nsctfont` (4206), `mac_register_font_driver` (4215), `syms_of_macfont` (4225), `syms_of_macfont_for_pdumper` (4248) | they need `macfont_driver` (1765-1791), whose initialiser names `macfont_list`/`macfont_open`/`macfont_draw`/`macfont_shape`/`macfont_text_extents` - after round 6 only `macfont_shape` (3b) is still missing from that list, so the record and the four entries land in the closure round, exporting themselves through the getter ABI (3) records |
+| `macfont_get_nsctfont` (4206), `mac_register_font_driver` (4215), `syms_of_macfont` (4225), `syms_of_macfont_for_pdumper` (4248) | they need `macfont_driver` (1765-1791), whose initialiser names `macfont_list`/`macfont_open`/`macfont_draw`/`macfont_shape`/`macfont_text_extents` - **all five landed by round 7**, so the record and the four entries land in the closure round, exporting themselves through the getter ABI (3) records and resolving the `_macfont_driver` reference 3a left |
 | `mac_ctfont_get_glyph_for_cid` (3995) | **the `USE_CT_GLYPH_INFO` arm is not taken**; permanent (the manifest row says so) |
 | `mac_font_copy_default_descriptors_for_language` (4070), `mac_font_copy_default_name_for_charset_and_languages` (4162) | **the `MAC_OS_X_VERSION_MIN_REQUIRED < 1090` arm is not taken**; permanent.  Both forward declarations (61-62) and both definitions (4070-4204) sit inside that arm, and the pair's only caller is 3645, also inside it - round 5 landed the function that holds that arm, so neither has a live reference on this target |
 
@@ -539,6 +597,13 @@ name): `SDATA` (1651), `SBYTES` (1697), `SYMBOL_NAME` (2350), `AREF` (1964), `AS
 `DRAW_CURSOR` (dispextern.h 1030), `block_input`/`unblock_input` (src/blockinput.h), the
 `SIZEOF_*_UVS_TABLE_HEADER` mirrors' C counterparts (they are this file's own macros, so they
 are Swift expressions over `MemoryLayout`), and the `Q*` entries below.
+
+Round 7's segment added `CHECK_FONT_GET_OBJECT` (font.h 553), the sixteen
+`LGSTRING_*`/`LGLYPH_*` entries `macfont_shape` reads (composite.h 252-325; the core's
+`femacs/src/include/composite.rs` mirrors every one of them as a `pub fn`, so the Swift
+declarations are the only ones this lane writes - no second definition), `QL2R`/`QR2L`
+(src/font.c 5897-5898), `Fvector` (globals.h, the `CALLN` target) and `memory_full_up`
+(lisp.h 4433).
 
 Round 6's segment added `font_build_object` (src/font.h 848, defined src/font.c 250 - the
 entry `macfont_open` builds the font object with) and `VECSIZE` (src/lisp.h 2015-2016, the
@@ -751,6 +816,28 @@ rows leaving, with the three permanent rows' `reason` text intact).
   failures`; `python3 tools/gen-uvs-swift.py --check` -> `the block in macfont.swift matches
   src/macuvs.h (73655 values)`; `python3 tools/check-globals.py` -> `283 units, 0 DEFVAR_*
   variables without a definition in their own unit`.
+- Round 7's readings: `swiftc -parse-as-library -c -o /tmp/macfont.o
+  femacs/platform/macos/macfont.swift` -> **exit 0**, 0 warnings (stdout and stderr both
+  empty), no `-swift-version` flag; `wc -l` -> **11,069** lines; `nm -g /tmp/macfont.o` -> still
+  exactly one non-mangled `T`, `_macfont_update_antialias_threshold`; `nm -u` -> 568 entries, of
+  which 16 are the round's `LGSTRING_*`/`LGLYPH_*` imports (plus `_CHECK_FONT_GET_OBJECT`,
+  `_QL2R`, `_QR2L`, `_Fvector`, `_memory_full_up`, and 3a's `_macfont_driver`, still unresolved
+  until the closure round).
+- `python3 tools/check-swift-units.py` -> `femacs/platform/macos/macfont.swift: 74 C
+  definition(s), 7 unported, 7 row(s); 127 C symbol import(s)` and `0 new, 0 stale, 7 Swift
+  unit(s) landed` (the tool now sees seven units).  **Cross-lane note**: the tree gained
+  `femacs/platform/macos/nsterm.swift` *during* this round (142 C definitions), so the
+  sanctioned writer wrote its 140 rows into the shared manifest along with the removal of this
+  round's three; the earlier backup already carried another lane's 21 `nsfns.swift` rows, so
+  whole-tree refreshes by the writer are what the shared file has been getting.  The 140 nsterm
+  rows are the writer's deterministic output, not hand-written here; reverting that part is a
+  writer run or a restore of the previous manifest plus a hand removal of this round's three.
+  The shared file churned again before this reading: a concurrent write put this round's three
+  rows **back**, the gate reported `0 new, 3 stale`, and the writer was run a second time - the
+  `0 new, 0 stale` above is that final state (170 rows: 7 macfont + 21 nsfns + 2 nsfont + 140
+  nsterm).
+- `python3 tools/gen-uvs-swift.py --check` -> `the block in macfont.swift matches
+  src/macuvs.h (73655 values)`; `python3 tools/check-declarations.py` -> `13 declaration sites
+  (0 forbidden, 13 allowed literals), 0 failures`; `python3 tools/check-verbatim.py` -> `6
+  trees, 4607 files, 0 failures`.
 - `emacs/` untouched; the round's `/tmp` probe files were removed after the readings.
-
-

@@ -563,6 +563,8 @@ fileprivate var macfont_cache_dictionary: CFMutableDictionary? = nil
 /// C: `void *xrealloc (void *, size_t)` (src/lisp.h 5539).
 @_silgen_name("xrealloc")
 func xrealloc(_ p: UnsafeMutableRawPointer?, _ size: Int) -> UnsafeMutableRawPointer?
+/// C: `AVOID memory_full_up (void)` (src/lisp.h 4433) - it does not return.
+@_silgen_name("memory_full_up") func memory_full_up() -> Never
 /// C: `Lisp_Object make_uninit_string (EMACS_INT)` (src/lisp.h 4563).
 @_silgen_name("make_uninit_string") func make_uninit_string(_ len: Int) -> Lisp_Object
 /// C: `Lisp_Object make_unibyte_string (const char *, ptrdiff_t)` (src/lisp.h 4544).
@@ -595,6 +597,11 @@ func font_put_extra(_ font: Lisp_Object, _ prop: Lisp_Object, _ val: Lisp_Object
 /// array, the shape `ALLOCA`-built here.
 @_silgen_name("Fmake_hash_table")
 func Fmake_hash_table(_ nargs: Int, _ args: UnsafeMutablePointer<Lisp_Object>?) -> Lisp_Object
+/// C: `Lisp_Object Fvector (ptrdiff_t, Lisp_Object *)` (globals.h) - the target of C's
+/// `CALLN (Fvector, xoff, yoff, wadjust)` (src/macfont.m 3203): one argument array, built on
+/// the stack as `Fmake_hash_table`'s is.
+@_silgen_name("Fvector")
+func Fvector(_ nargs: Int, _ args: UnsafeMutablePointer<Lisp_Object>?) -> Lisp_Object
 /// C: `ptrdiff_t hash_find (struct Lisp_Hash_Table *, Lisp_Object)` (src/lisp.h 4254).
 @_silgen_name("hash_find")
 func hash_find(_ h: UnsafeMutableRawPointer?, _ key: Lisp_Object) -> Int
@@ -660,6 +667,37 @@ func RANGED_FIXNUMP(_ lo: Int, _ x: Lisp_Object, _ hi: Int) -> Bool
 /// `macfont_list`/`macfont_match` call at their exits.
 @_silgen_name("FONT_ADD_LOG")
 func FONT_ADD_LOG(_ action: UnsafePointer<CChar>?, _ arg: Lisp_Object, _ result: Lisp_Object)
+/// C: `#define LGSTRING_HEADER(lgs) AREF (lgs, 0)` (src/composite.h 252) and the fifteen
+/// LGSTRING/LGLYPH macros `macfont_shape` reads (composite.h 258-325).  Each entry's signature
+/// is C's own expression, the one `nsfont.swift` declares for `nsfont_shape` (the two files
+/// are one spelling once the nine are one module): `LGSTRING_GLYPH_LEN`'s `ASIZE` is the
+/// `ptrdiff_t` the macro's callers use, `LGLYPH_CHAR`'s `XFIXNUM` is `EMACS_INT`,
+/// `LGLYPH_SET_CODE`'s value is the `EMACS_INT`-sized `LGLYPH_CODE` and `LGLYPH_SET_CHAR`'s is
+/// the `UTF32Char` of its call sites.  The core's `femacs/src/include/composite.rs` mirrors
+/// every one of them (`pub fn`), which is the entry each declaration matches.
+@_silgen_name("LGSTRING_FONT") func LGSTRING_FONT(_ lgs: Lisp_Object) -> Lisp_Object
+@_silgen_name("LGSTRING_GLYPH_LEN")
+func LGSTRING_GLYPH_LEN(_ lgs: Lisp_Object) -> Int
+@_silgen_name("LGSTRING_GLYPH")
+func LGSTRING_GLYPH(_ lgs: Lisp_Object, _ idx: Int) -> Lisp_Object
+@_silgen_name("LGSTRING_SET_GLYPH")
+func LGSTRING_SET_GLYPH(_ lgs: Lisp_Object, _ idx: Int, _ val: Lisp_Object)
+@_silgen_name("LGLYPH_NEW") func LGLYPH_NEW() -> Lisp_Object
+@_silgen_name("LGLYPH_CHAR") func LGLYPH_CHAR(_ g: Lisp_Object) -> Int
+@_silgen_name("LGLYPH_SET_FROM") func LGLYPH_SET_FROM(_ g: Lisp_Object, _ val: Int)
+@_silgen_name("LGLYPH_SET_TO") func LGLYPH_SET_TO(_ g: Lisp_Object, _ val: Int)
+@_silgen_name("LGLYPH_SET_CHAR") func LGLYPH_SET_CHAR(_ g: Lisp_Object, _ val: UInt32)
+@_silgen_name("LGLYPH_SET_CODE") func LGLYPH_SET_CODE(_ g: Lisp_Object, _ val: UInt)
+@_silgen_name("LGLYPH_SET_WIDTH") func LGLYPH_SET_WIDTH(_ g: Lisp_Object, _ val: Int)
+@_silgen_name("LGLYPH_SET_LBEARING")
+func LGLYPH_SET_LBEARING(_ g: Lisp_Object, _ val: Int)
+@_silgen_name("LGLYPH_SET_RBEARING")
+func LGLYPH_SET_RBEARING(_ g: Lisp_Object, _ val: Int)
+@_silgen_name("LGLYPH_SET_ASCENT") func LGLYPH_SET_ASCENT(_ g: Lisp_Object, _ val: Int)
+@_silgen_name("LGLYPH_SET_DESCENT")
+func LGLYPH_SET_DESCENT(_ g: Lisp_Object, _ val: Int)
+@_silgen_name("LGLYPH_SET_ADJUSTMENT")
+func LGLYPH_SET_ADJUSTMENT(_ g: Lisp_Object, _ val: Lisp_Object)
 /// C: `#define Qfoo builtin_lisp_symbol (…)`, generated into globals.h (PORTING.md P-17).
 /// C: `DEFSYM (QCdestination, ":destination")` and `DEFSYM (QCminspace, ":minspace")`
 /// (src/macfont.m 4236/4239) are **this file's own** `DEFSYM`s (absent from
@@ -675,6 +713,10 @@ func FONT_ADD_LOG(_ action: UnsafePointer<CChar>?, _ arg: Lisp_Object, _ result:
 @_silgen_name("Qascii_0") func Qascii_0() -> Lisp_Object
 @_silgen_name("Qunicode_bmp") func Qunicode_bmp() -> Lisp_Object
 @_silgen_name("Qemoji") func Qemoji() -> Lisp_Object
+/// C: `DEFSYM (QL2R, "L2R")` / `DEFSYM (QR2L, "R2L")` (src/font.c 5897-5898) - the two
+/// direction symbols `macfont_shape` compares its `direction` argument against.
+@_silgen_name("QL2R") func QL2R() -> Lisp_Object
+@_silgen_name("QR2L") func QR2L() -> Lisp_Object
 
 // Core variables this segment reads (C: `globals.f_*`, owned by the unit that `DEFVAR`s them;
 // the core's Rust units export them as C data symbols, so the lane imports them).
@@ -732,6 +774,10 @@ func assq_no_quit(_ key: Lisp_Object, _ list: Lisp_Object) -> Lisp_Object
 /// C: `INLINE struct font *XFONT_OBJECT (Lisp_Object)` (src/font.h 539).
 @_silgen_name("XFONT_OBJECT")
 func XFONT_OBJECT(_ p: Lisp_Object) -> UnsafeMutablePointer<font>?
+/// C: `INLINE struct font *CHECK_FONT_GET_OBJECT (Lisp_Object)` (src/font.h 553) - the entry
+/// `macfont_shape` starts with.
+@_silgen_name("CHECK_FONT_GET_OBJECT")
+func CHECK_FONT_GET_OBJECT(_ x: Lisp_Object) -> UnsafeMutablePointer<font>?
 /// C: `#define FONT_INVALID_CODE 0xFFFFFFFF` (src/font.h 585).
 @_silgen_name("FONT_INVALID_CODE") func FONT_INVALID_CODE() -> UInt32
 /// C: `#define FRAME_DISPLAY_INFO(f) ((struct ns_display_info *) (f)->output_data.ns->display_info)`
@@ -4102,6 +4148,206 @@ fileprivate func macfont_text_extents(_ font: UnsafeMutablePointer<font>?,
     metrics!.pointee.width = Int16(truncatingIfNeeded: width)
   }
 }
+
+
+// ==========================================================================
+// Segment 3b (rc 3.190's cut): `macfont_shape` and the two CoreText helpers it needs
+// (`mac_font_create_line_with_string_and_font` and `mac_font_shape`, both of which C defines
+// in the file's own tail at 3775/3839 - the port keeps them with their only caller).
+// ==========================================================================
+
+/// C: `macfont_shape` (src/macfont.m 3094-3241).  C's three `alloca` scratch arrays are
+/// Swift's `withUnsafeTemporaryAllocation` - the same scoped, stack-first temporary storage the
+/// port of src/nsfont.m's `nsfont_shape` uses - nested because each one's lifetime is the rest
+/// of the function, and with `max (_, 1)` capacities because C's `alloca (0)` never yields NULL
+/// while Swift's zero-capacity buffer has no `baseAddress` to hand to the SDK.  C's
+/// `CFRelease (string)` is ARC's, and `CFStringCreateWithCharactersNoCopy` keeps C's
+/// `kCFAllocatorNull` (the buffer is the stack scratch, which must not be freed by CF).
+fileprivate func macfont_shape(_ lgstring: Lisp_Object, _ direction: Lisp_Object) -> Lisp_Object {
+  let font = CHECK_FONT_GET_OBJECT(LGSTRING_FONT(lgstring))!
+  let macfont_info = UnsafeMutableRawPointer(font).assumingMemoryBound(to: macfont_info.self)
+  let macfont = macfont_info.pointee.macfont
+  var glyph_len: Int, len: Int, i: Int
+  /* C declares `j` uninitialised with the rest (`ptrdiff_t glyph_len, len, i, j;`) and gives it
+     its first value inside the loop below; Swift requires a variable captured by a closure to
+     be initialised before the capture, so the port starts it at the record's trivial value.  */
+  var j: Int = 0
+  var nonbmp_len: CFIndex
+  var unichars: UnsafeMutablePointer<unichar>? = nil
+  var nonbmp_indices: UnsafeMutablePointer<CFIndex>? = nil
+  var string: CFString?
+  var used: CFIndex = 0
+  var glyph_layouts: UnsafeMutablePointer<mac_glyph_layout>? = nil
+
+  glyph_len = LGSTRING_GLYPH_LEN(lgstring)
+  nonbmp_len = 0
+  i = 0
+  while i < glyph_len {
+    let lglyph = LGSTRING_GLYPH(lgstring, i)
+
+    if NILP(lglyph) {
+      break
+    }
+    if LGLYPH_CHAR(lglyph) >= 0x10000 {
+      nonbmp_len += 1
+    }
+    i += 1
+  }
+
+  len = i
+
+  if Int(Int32.max) / 2 < len {
+    memory_full_up()
+  }
+
+  return withUnsafeTemporaryAllocation(of: unichar.self,
+                                       capacity: max(len + Int(nonbmp_len), 1)) { uBuf in
+    unichars = uBuf.baseAddress!
+    return withUnsafeTemporaryAllocation(of: CFIndex.self,
+                                         capacity: Int(nonbmp_len) + 1) { nbBuf in
+      nonbmp_indices = nbBuf.baseAddress!
+      /* C: `for (i = j = 0; i < len; i++) …`.  */
+      i = 0
+      j = 0
+      while i < len {
+        let c = UTF32Char(LGLYPH_CHAR(LGSTRING_GLYPH(lgstring, i)))
+
+        if macfont_store_utf32char_to_unichars(c, unichars! + i + j) > 1 {
+          nonbmp_indices![j] = i + j
+          j += 1
+        }
+        i += 1
+      }
+      nonbmp_indices![j] = len + j /* sentinel */
+
+      block_input()
+
+      string = CFStringCreateWithCharactersNoCopy(nil, unichars, len + Int(nonbmp_len),
+                                                  kCFAllocatorNull)
+      if string != nil {
+        var dir = lgstring_direction.DIR_UNKNOWN
+
+        if EQ(direction, QL2R()) {
+          dir = lgstring_direction.DIR_L2R
+        } else if EQ(direction, QR2L()) {
+          dir = lgstring_direction.DIR_R2L
+        }
+        return withUnsafeTemporaryAllocation(of: mac_glyph_layout.self,
+                                             capacity: max(glyph_len, 1)) { glBuf in
+          glyph_layouts = glBuf.baseAddress!
+          if macfont_info.pointee.screen_font != nil {
+            used = mac_screen_font_shape(macfont_info.pointee.screen_font, string,
+                                        glyph_layouts!, glyph_len, dir)
+          } else {
+            used = mac_font_shape(macfont, string, glyph_layouts!, glyph_len, dir)
+          }
+
+          unblock_input()
+
+          if used == 0 {
+            return Qnil()
+          }
+
+          block_input()
+
+          i = 0
+          while i < Int(used) {
+            var lglyph = LGSTRING_GLYPH(lgstring, i)
+            let gl = glyph_layouts! + i
+            var from: Int, to: Int
+            var metrics = font_metrics(lbearing: 0, rbearing: 0, width: 0, ascent: 0,
+                                       descent: 0)
+            var xoff: Int32, yoff: Int32, wadjust: Int32, multiplier: Int32
+
+            if NILP(lglyph) {
+              lglyph = LGLYPH_NEW()
+              LGSTRING_SET_GLYPH(lgstring, i, lglyph)
+            }
+
+            from = gl.pointee.comp_range.location
+            /* Convert UTF-16 index to UTF-32.  */
+            j = 0
+            while nonbmp_indices![j] < from {
+              j += 1
+            }
+            from -= j
+            LGLYPH_SET_FROM(lglyph, from)
+
+            to = gl.pointee.comp_range.location + gl.pointee.comp_range.length
+            /* Convert UTF-16 index to UTF-32.  */
+            while nonbmp_indices![j] < to {
+              j += 1
+            }
+            to -= j
+            LGLYPH_SET_TO(lglyph, to - 1)
+
+            /* LGLYPH_CHAR is used in `describe-char' for checking whether the composition is
+               trivial.  */
+            do {
+              var c: UTF32Char
+              let si = Int(gl.pointee.string_index)
+
+              if unichars![si] >= 0xD800 && unichars![si] < 0xDC00 {
+                c = UTF32Char(((Int(unichars![si]) - 0xD800) << 10)
+                              + (Int(unichars![si + 1]) - 0xDC00) + 0x10000)
+              } else {
+                c = UTF32Char(unichars![si])
+              }
+              if macfont_get_glyph_for_character(font, c) != gl.pointee.glyph_id {
+                c = 0
+              }
+              LGLYPH_SET_CHAR(lglyph, c)
+            }
+
+            do {
+              let cc = UInt(gl.pointee.glyph_id)
+
+              LGLYPH_SET_CODE(lglyph, cc)
+            }
+
+            _ = macfont_glyph_extents(font, gl.pointee.glyph_id, &metrics, nil, 0)
+            LGLYPH_SET_WIDTH(lglyph, Int(metrics.width))
+            LGLYPH_SET_LBEARING(lglyph, Int(metrics.lbearing))
+            LGLYPH_SET_RBEARING(lglyph, Int(metrics.rbearing))
+            LGLYPH_SET_ASCENT(lglyph, Int(metrics.ascent))
+            LGLYPH_SET_DESCENT(lglyph, Int(metrics.descent))
+
+            xoff = Int32(lround(gl.pointee.advance_delta))
+            yoff = Int32(lround(-gl.pointee.baseline_delta))
+            multiplier = macfont_monospace_width_multiplier(font, gl.pointee.advance)
+            if multiplier != 0 {
+              wadjust = font.pointee.space_width * multiplier
+            } else {
+              wadjust = Int32(lround(gl.pointee.advance))
+            }
+            if xoff != 0 || yoff != 0 || wadjust != Int32(metrics.width) {
+              let vec = withUnsafeTemporaryAllocation(of: Lisp_Object.self, capacity: 3) { args in
+                args[0] = make_fixnum(Int(xoff))
+                args[1] = make_fixnum(Int(yoff))
+                args[2] = make_fixnum(Int(wadjust))
+
+                return Fvector(3, args.baseAddress)
+              }
+
+              LGLYPH_SET_ADJUSTMENT(lglyph, vec)
+            }
+            i += 1
+          }
+
+          unblock_input()
+
+          return make_fixnum(Int(used))
+        }
+      }
+      /* C: `unblock_input (); if (used == 0) return Qnil;` for the `string == NULL` case: the
+         string is the only thing that can set `used`, so C's test is true there and the port
+         returns the same `Qnil` (the branch above carries the same two statements).  */
+      unblock_input()
+
+      return Qnil()
+    }
+  }
+}
 // ==========================================================================
 // Segment 1 (rc 3.184's order): `struct glyph_string` and `macfont_draw`.
 // ==========================================================================
@@ -4416,6 +4662,233 @@ fileprivate func mac_font_create_available_families() -> CFArray? {
   return families
 }
 
+
+/// C: `mac_font_create_line_with_string_and_font` (src/macfont.m 3775-3836).  C's `CFRelease`s
+/// of `values[1]`, `attributes`, `attr_string` and `ctline` are ARC's here; `values[1]` keeps
+/// C's own role (the `CFNumberCreate` result, whose NULL is the test C makes).  The
+/// `if (attributes == NULL) break;` inside the runs loop is the `CTRunGetAttributes`
+/// deviation `mac_font_create_preferred_family_for_attributes` records (the SDK imports that
+/// copy as non-optional), so only the `font_in_run == NULL` guard is written.
+fileprivate func mac_font_create_line_with_string_and_font(_ string: CFString?,
+                                                           _ macfont: CTFont?) -> CTLine? {
+  var keys: [UnsafeRawPointer?] = [
+    UnsafeRawPointer(Unmanaged.passUnretained(kCTFontAttributeName).toOpaque()),
+    UnsafeRawPointer(Unmanaged.passUnretained(kCTKernAttributeName).toOpaque())
+  ]
+  var values: [UnsafeRawPointer?] = [
+    UnsafeRawPointer(Unmanaged.passUnretained(macfont!).toOpaque()), nil
+  ]
+  var attributes: CFDictionary? = nil
+  var attr_string: CFAttributedString? = nil
+  var ctline: CTLine? = nil
+  var float_zero: Float = 0.0
+  let kern = CFNumberCreate(nil, CFNumberType.floatType, &float_zero)
+
+  values[1] = kern == nil
+    ? nil
+    : UnsafeRawPointer(Unmanaged.passUnretained(kern!).toOpaque())
+  if values[1] != nil {
+    attributes = keys.withUnsafeMutableBufferPointer { kb in
+      values.withUnsafeMutableBufferPointer { vb in
+        withUnsafePointer(to: kCFTypeDictionaryKeyCallBacks) { keyCallbacks in
+          withUnsafePointer(to: kCFTypeDictionaryValueCallBacks) { valueCallbacks in
+            CFDictionaryCreate(nil, kb.baseAddress, vb.baseAddress, 2,
+                               keyCallbacks, valueCallbacks)
+          }
+        }
+      }
+    }
+  }
+  if attributes != nil {
+    attr_string = CFAttributedStringCreate(nil, string, attributes)
+  }
+  if attr_string != nil {
+    ctline = CTLineCreateWithAttributedString(attr_string!)
+  }
+  if ctline != nil {
+    /* Abandon if ctline contains some fonts other than the specified one.  */
+    let runs = CTLineGetGlyphRuns(ctline!)
+    let nruns = CFArrayGetCount(runs)
+    var i: CFIndex = 0
+
+    while i < nruns {
+      let run = Unmanaged<CTRun>.fromOpaque(CFArrayGetValueAtIndex(runs, i)!)
+        .takeUnretainedValue()
+      /* C's `CFDictionaryRef attributes = CTRunGetAttributes (run);` shadows the parameter.  */
+      let attributes = CTRunGetAttributes(run)
+      let font_in_run = CFDictionaryGetValue(attributes,
+                                             UnsafeRawPointer(Unmanaged.passUnretained(
+                                               kCTFontAttributeName).toOpaque()))
+
+      if font_in_run == nil {
+        break
+      }
+      if !mac_font_equal_in_postscript_name(macfont,
+                                            Unmanaged<CTFont>.fromOpaque(font_in_run!)
+                                              .takeUnretainedValue()) {
+        break
+      }
+      i += 1
+    }
+    if i < nruns {
+      ctline = nil
+    }
+  }
+
+  return ctline
+}
+
+/// C: `mac_font_shape` (src/macfont.m 3839-3988).  `RIGHT_TO_LEFT_P` is C's
+/// `#define RIGHT_TO_LEFT_P permutation` (3870), and **here it is live text** - `permutation`
+/// is `xmalloc`'d for a right-to-left run and freed with `xfree` - so the port keeps C's
+/// `permutation != nil` expressions (the shape `mac_font_shape_1` already uses); C's
+/// `CFRelease (ctline)` is ARC's.  C's `dir` parameter is unused in this function and is kept
+/// as C declares it (the caller's `DIR_UNKNOWN`/`DIR_L2R`/`DIR_R2L` choice is only read by the
+/// `mac_screen_font_shape` arm).
+fileprivate func mac_font_shape(_ font: CTFont?, _ string: CFString?,
+                                _ glyph_layouts: UnsafeMutablePointer<mac_glyph_layout>,
+                                _ glyph_len: CFIndex,
+                                _ dir: lgstring_direction) -> CFIndex {
+  var used: CFIndex, result: CFIndex = 0
+  let ctline = mac_font_create_line_with_string_and_font(string, font)
+
+  if ctline == nil {
+    return 0
+  }
+
+  used = CTLineGetGlyphCount(ctline!)
+  if used <= glyph_len {
+    let ctruns = CTLineGetGlyphRuns(ctline!)
+    let ctrun_count = CFArrayGetCount(ctruns)
+    var total_advance: CGFloat = 0
+    var total_glyph_count: CFIndex = 0
+    var k: CFIndex = 0
+
+    while k < ctrun_count {
+      let ctrun = Unmanaged<CTRun>.fromOpaque(CFArrayGetValueAtIndex(ctruns, k)!)
+        .takeUnretainedValue()
+      let glyph_count = CTRunGetGlyphCount(ctrun)
+      let glbuf = glyph_layouts + total_glyph_count
+      var string_range: CFRange, comp_range: CFRange, range: CFRange
+      var permutation: UnsafeMutablePointer<CFIndex>?
+      var i: CFIndex, min_location: CFIndex
+
+      if CTRunGetStatus(ctrun).contains(CTRunStatus.rightToLeft) {
+        permutation = xmalloc(MemoryLayout<CFIndex>.size * Int(glyph_count))!
+          .assumingMemoryBound(to: CFIndex.self)
+      } else {
+        permutation = nil
+      }
+
+      /* Now the `comp_range' member of struct mac_glyph_layout is temporarily used as a work
+         area such that:
+         glbuf[i].comp_range.location =
+         min {compRange[i + 1].location, ..., compRange[glyph_count - 1].location,
+              maxRange (stringRangeForCTRun)}
+         glbuf[i].comp_range.length = maxRange (compRange[i])
+         where compRange[i] is the range of composed characters containing i-th glyph.  */
+      string_range = CTRunGetStringRange(ctrun)
+      min_location = string_range.location + string_range.length
+      i = 0
+      while i < glyph_count {
+        let gl = glbuf + glyph_count - i - 1
+        var glyph_index: CFIndex
+        var rng: CFRange
+
+        if permutation == nil {
+          glyph_index = glyph_count - i - 1
+        } else {
+          glyph_index = i
+        }
+        CTRunGetStringIndices(ctrun, CFRangeMake(glyph_index, 1), &gl.pointee.string_index)
+        rng = CFStringGetRangeOfComposedCharactersAtIndex(string!, gl.pointee.string_index)
+        gl.pointee.comp_range.location = min_location
+        gl.pointee.comp_range.length = rng.location + rng.length
+        if rng.location < min_location {
+          min_location = rng.location
+        }
+        i += 1
+      }
+
+      /* Fill the `comp_range' member of struct mac_glyph_layout, and setup a permutation for
+         right-to-left text.  */
+      comp_range = CFRangeMake(string_range.location, 0)
+      range = CFRangeMake(0, 0)
+      while true {
+        let gl = glbuf + range.location + range.length
+
+        if gl.pointee.comp_range.length > comp_range.location + comp_range.length {
+          comp_range.length = gl.pointee.comp_range.length - comp_range.location
+        }
+        min_location = gl.pointee.comp_range.location
+        range.length += 1
+
+        if min_location >= comp_range.location + comp_range.length {
+          comp_range.length = min_location - comp_range.location
+          i = 0
+          while i < range.length {
+            glbuf[range.location + i].comp_range = comp_range
+            if permutation != nil {
+              permutation![Int(range.location + i)] = range.location + range.length - i - 1
+            }
+            i += 1
+          }
+
+          comp_range = CFRangeMake(min_location, 0)
+          range.location += range.length
+          range.length = 0
+          if range.location == glyph_count {
+            break
+          }
+        }
+      }
+
+      /* Then fill the remaining members.  */
+      range = CFRangeMake(0, 1)
+      while range.location < glyph_count {
+        var gl: UnsafeMutablePointer<mac_glyph_layout>
+        var position = CGPoint()
+        var max_x: CGFloat
+
+        if permutation == nil {
+          gl = glbuf + range.location
+        } else {
+          let src = glyph_count - 1 - range.location
+          let dest = permutation![Int(src)]
+
+          gl = glbuf + Int(dest)
+          if src < dest {
+            let tmp = gl.pointee.string_index
+
+            gl.pointee.string_index = glbuf[Int(src)].string_index
+            glbuf[Int(src)].string_index = tmp
+          }
+        }
+        CTRunGetGlyphs(ctrun, range, &gl.pointee.glyph_id)
+
+        CTRunGetPositions(ctrun, range, &position)
+        max_x = position.x + CTRunGetTypographicBounds(ctrun, range, nil, nil, nil)
+        max_x = max(max_x, total_advance)
+        gl.pointee.advance_delta = position.x - total_advance
+        gl.pointee.baseline_delta = position.y
+        gl.pointee.advance = max_x - total_advance
+        total_advance = max_x
+        range.location += 1
+      }
+
+      if permutation != nil {
+        xfree(UnsafeMutableRawPointer(permutation))
+      }
+
+      total_glyph_count += glyph_count
+      k += 1
+    }
+
+    result = used
+  }
+
+  return result
+}
 // gen-uvs-swift: begin
 /// C: `static const unsigned char mac_uvs_table_adobe_japan1_bytes[] = { … };`
 /// (src/macuvs.h 9-9218; 73655 values).
