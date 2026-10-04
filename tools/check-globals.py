@@ -38,9 +38,18 @@ DEFINITION = re.compile(r'static mut ([A-Za-z_][A-Za-z0-9_]*)\s*:[^;=]*=\s*[^;]+
 
 
 def units() -> list[Path]:
+    """Every ported unit under `femacs/src` and `femacs/lib`, mirrors excluded.
+
+    The walk is recursive because a ported tree is not flat any more: the first gnulib
+    library that lives in a subdirectory of the reference (`lib/malloc/`) put its units in
+    `femacs/lib/malloc/`, where a single-level glob could not see them (status 3.121).  A
+    path with an `include` component is a mirror, and a mirror is reached through the units
+    that include it, so it is not a unit of its own.
+    """
     out = []
     for d in ("src", "lib"):
-        out += sorted((ROOT / "femacs" / d).glob("*.rs"))
+        base = ROOT / "femacs" / d
+        out += sorted(p for p in base.rglob("*.rs") if "include" not in p.relative_to(base).parts)
     return out
 
 

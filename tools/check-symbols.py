@@ -124,11 +124,20 @@ def main() -> int:
     compared = 0
     carriers = 0
     folded = 0
-    for rs in sorted(glob.glob(f"{ROOT}/femacs/{a.dir}/*.rs")):
-        stem = os.path.basename(rs)[:-3]
-        mine_stem = ALIASES.get(f"{a.dir}/{stem}", f"{a.dir}/{stem}").split("/")[1]
+    # Recursive for the same reason check-globals.py is: `lib/malloc/` is a ported
+    # subdirectory now, and a single-level glob left its three units out of the symbol
+    # comparison entirely (status 3.121).  `include` is the mirror directory, never a unit.
+    femacs_dir = f"{ROOT}/femacs/{a.dir}"
+    for rs in sorted(path for path in glob.glob(f"{femacs_dir}/**/*.rs", recursive=True)
+                     if "include" not in os.path.relpath(path, femacs_dir).split(os.sep)):
+        # The reference object keeps the reference's own directory (`lib/malloc/x.o`), which
+        # is what `port_path` in xtask resolves the port against; the port's own object is the
+        # flat `build/femacs/<stem>.o` build-tu writes.
+        rel = os.path.relpath(rs, femacs_dir)[:-3].replace(os.sep, "/")
+        stem = os.path.basename(rel)
+        mine_stem = ALIASES.get(f"{a.dir}/{rel}", f"{a.dir}/{rel}").split("/")[-1]
         mine = f"{ROOT}/build/femacs/{mine_stem}.o"
-        ref = f"{ROOT}/build/emacs-ref/{a.dir}/{stem}.o"
+        ref = f"{ROOT}/build/emacs-ref/{a.dir}/{rel}.o"
         if not (os.path.exists(mine) and os.path.exists(ref)):
             continue
         compared += 1
@@ -140,7 +149,7 @@ def main() -> int:
         invented = sorted(me - re_ - allowed)
         carriers += len(allowed)
         folded += len(p17)
-        key = f"{a.dir}/{stem}"
+        key = f"{a.dir}/{rel}"
         if missing or invented:
             if key in pending:
                 continue

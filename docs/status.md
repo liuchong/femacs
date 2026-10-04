@@ -1806,3 +1806,22 @@
   → 6 s**；`python3 tools/extract-abi.py --all` **106 s 跑完并打出汇总**：
   `checked 500 ported files: 472 done, 27 in progress, 1 failing`——**唯一 FAIL 是 `lib-src/emacsclient.c`
   还欠的 9 行共享豁免行**（该单元的框已勾，属集成侧待补），其余 27 条全是台账仍有未勾项的 WIP。
+
+- **3.121 三个门补上递归：`lib/malloc/` 这样的嵌套参照目录第一次有了符号/全局/镜像重复覆盖（2026-10-04 第 100 轮第四批）**：
+  `lib/malloc/` 是本树第一个**参照自身带子目录**的端口树（单元在 `femacs/lib/malloc/*.rs`、镜像在
+  `femacs/lib/malloc/include/*.rs`），而 `tools/check-globals.py` 的 `units()`、`tools/check-symbols.py` 的
+  单元循环、`tools/check-mirror-dupes.py` 的两侧都只做**单层** `glob("*.rs")`——三层门都看不见这批文件
+  （两条 lane 独立报过）。修法：
+  ① `check-globals.py`：`units()` 改成对 `femacs/{src,lib}` 递归，并排除路径里带 `include` 的组件（镜像是
+  "被 include 的"，不是编译单元）；单位数 **274 → 283**（正好 +9 = malloc 的 9 个单元），仍 `0` 缺定义；
+  ② `check-symbols.py`：单元按参照路径**递归**发现（同样排除 `include`），并且**参照对象按参照自己的目录**
+  解析（`build/emacs-ref/lib/malloc/x.o`，而不是扁平化后的 `build/emacs-ref/lib/x.o`）——不修这一条，
+  递归只会把新单元"发现"出来然后因为参照对象路径不存在而跳过；`--dir lib` 的比对单位数 **78 → 86**，
+  仍只有既有的 `lib/mempcpy` 一条 mismatch（1 pending）；
+  ③ `check-mirror-dupes.py`：镜像改成"任一已端口树里路径含 `include` 的 `.rs`"（因此
+  `lib/malloc/include/*.rs` 进了扫描面），单元同规则排除 `include`；读数仍是 `1 duplicate declaration(s),
+  1 ratchet row(s), 0 failure(s)`（既有的 `insdel.rs` 棘轮行），说明新面里没有隐藏重复。
+  验证：`xtask gate-fast` **整条链第一次跑完**（287 s；此前卡在 inventory 步骤，见 3.117）——它现在把
+  501 个端口文件报成 `476 done / 24 in progress / 1 failing`，**唯一那条 FAIL 是 `lib-src/etags.rs`**：
+  那条 lane 刚落文件、台账 `docs/ports/etags.md` 还没建（"有端口文件、没有台账"按设计就是 FAIL），已通知
+  该 lane 下一个停顿点先落台账；其余 24 条都是有未勾项的 WIP。

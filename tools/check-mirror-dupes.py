@@ -153,11 +153,24 @@ def include_graph(unit: Path, seen: set[Path] | None = None) -> set[Path]:
 
 
 def findings(root: Path) -> list[tuple[str, str, str]]:
-    mirrors = {p.resolve(): p for d in MIRROR_DIRS for p in (root / d).glob("*.rs")}
+    # Both sides walk recursively: `femacs/lib/malloc/` has units of its own and
+    # `femacs/lib/malloc/include/` mirrors of its own, and a single-level glob saw neither
+    # (status 3.121).  A unit is any `.rs` that is not under an `include` directory.
+    # A mirror is any `.rs` under an `include` directory of a ported tree - `lib/include/`
+    # for the gnulib headers, `lib/malloc/include/` for the ones that live one level down
+    # (status 3.121) - and a unit is any `.rs` that is not.
+    mirrors: dict[Path, Path] = {}
+    for d in UNIT_DIRS:
+        base = root / d
+        for p in sorted(base.rglob("*.rs")):
+            if "include" in p.relative_to(base).parts:
+                mirrors[p.resolve()] = p
     visible = {p: visible_declarations(p) for p in mirrors}
     out: list[tuple[str, str, str]] = []
     for d in UNIT_DIRS:
-        for unit in sorted((root / d).glob("*.rs")):
+        base = root / d
+        for unit in sorted(p for p in base.rglob("*.rs")
+                           if "include" not in p.relative_to(base).parts):
             graph = include_graph(unit.resolve())
             unit_fns, unit_consts = scan(unit)
             declared_fns = set(unit_fns.get("", []))
