@@ -223,7 +223,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
 
     /* Create the view from the context's UI thread.  The window is
        unmapped, so the view is GONE.  */
-    view = EmacsService.SERVICE.getEmacsView(this, View.GONE,
+    view = EmacsService.SERVICE!!.getEmacsView(this, View.GONE,
                                              parent == null)
 
     /* The initial frame should always be bound to the startup
@@ -241,7 +241,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
         parent.children.add(this)
       }
 
-      EmacsService.SERVICE.runOnUiThread(Runnable {
+      EmacsService.SERVICE!!.runOnUiThread(Runnable {
         parent.view.addView(view)
       })
     }
@@ -292,7 +292,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
                                   + "children!")
 
     /* Remove the view from its parent and make it invisible.  */
-    EmacsService.SERVICE.runOnUiThread(object : Runnable {
+    EmacsService.SERVICE!!.runOnUiThread(object : Runnable {
       override fun run() {
         val parent: ViewManager?
         val manager: EmacsWindowManager
@@ -377,7 +377,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
   fun requestViewLayout() {
     view.explicitlyDirtyBitmap()
 
-    EmacsService.SERVICE.runOnUiThread(object : Runnable {
+    EmacsService.SERVICE!!.runOnUiThread(object : Runnable {
       override fun run() {
         if (overrideRedirect) {
           val params: WindowManager.LayoutParams
@@ -470,7 +470,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
     isMapped = true
 
     if (parent == null) {
-      EmacsService.SERVICE.runOnUiThread(object : Runnable {
+      EmacsService.SERVICE!!.runOnUiThread(object : Runnable {
         override fun run() {
           /* Make the view visible, first of all.  */
           view.setVisibility(View.VISIBLE)
@@ -531,7 +531,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
     } else {
       /* Do the same thing as above, but don't register this
          window.  */
-      EmacsService.SERVICE.runOnUiThread(Runnable {
+      EmacsService.SERVICE!!.runOnUiThread(Runnable {
         view.setVisibility(View.VISIBLE)
 
         if (!getDontFocusOnMap())
@@ -587,13 +587,13 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
   }
 
   fun clearWindow() {
-    EmacsService.SERVICE.fillRectangle(this, scratchGC,
+    EmacsService.SERVICE!!.fillRectangle(this, scratchGC,
                                        0, 0, rect.width(),
                                        rect.height())
   }
 
   fun clearArea(x: Int, y: Int, width: Int, height: Int) {
-    EmacsService.SERVICE.fillRectangle(this, scratchGC,
+    EmacsService.SERVICE!!.fillRectangle(this, scratchGC,
                                        x, y, width, height)
   }
 
@@ -1174,7 +1174,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
 
     /* Now do the work necessary on the UI thread to reparent the
        window.  */
-    EmacsService.SERVICE.runOnUiThread(object : Runnable {
+    EmacsService.SERVICE!!.runOnUiThread(object : Runnable {
       override fun run() {
         val manager: EmacsWindowManager
         val parent: ViewManager?
@@ -1216,7 +1216,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
   fun makeInputFocus(time: Long) {
     /* TIME is currently ignored.  Request the input focus now.  */
 
-    EmacsService.SERVICE.runOnUiThread(Runnable {
+    EmacsService.SERVICE!!.runOnUiThread(Runnable {
       view.requestFocus()
     })
   }
@@ -1234,7 +1234,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
     }
 
     /* Request a relayout.  */
-    EmacsService.SERVICE.runOnUiThread(Runnable {
+    EmacsService.SERVICE!!.runOnUiThread(Runnable {
       view.raise()
     })
   }
@@ -1252,7 +1252,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
     }
 
     /* Request a relayout.  */
-    EmacsService.SERVICE.runOnUiThread(Runnable {
+    EmacsService.SERVICE!!.runOnUiThread(Runnable {
       view.lower()
     })
   }
@@ -1310,7 +1310,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
           /* Effect the same adjustment upon the view
              hierarchy.  */
 
-          EmacsService.SERVICE.runOnUiThread(Runnable {
+          EmacsService.SERVICE!!.runOnUiThread(Runnable {
             if (stackMode == 0)
               view.moveAbove(window.view)
             else
@@ -1350,7 +1350,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
   @Synchronized
   fun setDontAcceptFocus(dontAcceptFocus: Boolean) {
     /* Update the view's focus state.  */
-    EmacsService.SERVICE.runOnUiThread(Runnable {
+    EmacsService.SERVICE!!.runOnUiThread(Runnable {
       view.setFocusable(!dontAcceptFocus)
       view.setFocusableInTouchMode(!dontAcceptFocus)
     })
@@ -1370,7 +1370,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
       return
 
-    EmacsService.SERVICE.runOnUiThread(Runnable {
+    EmacsService.SERVICE!!.runOnUiThread(Runnable {
       this@EmacsWindow.wmName = wmName
 
       /* If an activity is already attached, replace its task
@@ -1390,7 +1390,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
        whose origin point, in this context, is that of the toplevel
        activity host to this view.  */
     array = IntArray(2)
-    EmacsService.SERVICE.getLocationInWindow(view, array)
+    EmacsService.SERVICE!!.getLocationInWindow(view, array)
 
     /* Now, the coordinates of the view should be in array.  Offset X
        and Y by them.  */
@@ -1452,7 +1452,7 @@ class EmacsWindow(parent: EmacsWindow?, x: Int, y: Int, width: Int, height: Int,
   }
 
   fun setFullscreen(isFullscreen: Boolean) {
-    EmacsService.SERVICE.runOnUiThread(Runnable {
+    EmacsService.SERVICE!!.runOnUiThread(Runnable {
       fullscreen = isFullscreen
 
       val tem = getAttachedConsumer()

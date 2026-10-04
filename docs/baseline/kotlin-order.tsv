@@ -35,7 +35,7 @@ order	target	references	ported
 31	femacs/platform/android/kotlin/EmacsSdk23FontDriver.kt	EmacsSdk7FontDriver	yes
 32	femacs/platform/android/kotlin/EmacsSdk7FontDriver.kt	EmacsDrawable,EmacsFontDriver,EmacsGC,EmacsService	yes
 33	femacs/platform/android/kotlin/EmacsSdk8Clipboard.kt	EmacsClipboard,EmacsService	yes
-34	femacs/platform/android/kotlin/EmacsService.kt	EmacsActivity,EmacsApplication,EmacsDirectoryEntry,EmacsDrawLine,EmacsDrawPoint,EmacsDrawRectangle,EmacsDrawable,EmacsFillPolygon,EmacsFillRectangle,EmacsGC,EmacsNative,EmacsNoninteractive,EmacsSafThread,EmacsThread,EmacsView,EmacsWindow,EmacsWindowManager	
+34	femacs/platform/android/kotlin/EmacsService.kt	EmacsActivity,EmacsApplication,EmacsDirectoryEntry,EmacsDrawLine,EmacsDrawPoint,EmacsDrawRectangle,EmacsDrawable,EmacsFillPolygon,EmacsFillRectangle,EmacsGC,EmacsNative,EmacsNoninteractive,EmacsSafThread,EmacsThread,EmacsView,EmacsWindow,EmacsWindowManager	yes
 35	femacs/platform/android/kotlin/EmacsSurfaceView.kt	EmacsNative,EmacsService,EmacsView	yes
 36	femacs/platform/android/kotlin/EmacsThread.kt	EmacsApplication,EmacsNative,EmacsService	yes
 37	femacs/platform/android/kotlin/EmacsTileObject.kt	EmacsGC	yes

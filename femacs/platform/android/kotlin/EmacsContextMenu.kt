@@ -348,7 +348,7 @@ class EmacsContextMenu {
      context menu is being displayed.  */
 
   fun dismiss(window: EmacsWindow) {
-    EmacsService.SERVICE.runOnUiThread(Runnable {
+    EmacsService.SERVICE!!.runOnUiThread(Runnable {
       window.view.cancelPopupMenu()
       itemAlreadySelected = false
     })

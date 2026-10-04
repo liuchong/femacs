@@ -291,8 +291,8 @@ class EmacsDesktopNotification(title: String, content: String,
      importance if such a channel is already defined.  */
 
   fun display() {
-    EmacsService.SERVICE.runOnUiThread(Runnable {
-      display1(EmacsService.SERVICE)
+    EmacsService.SERVICE!!.runOnUiThread(Runnable {
+      display1(EmacsService.SERVICE!!)
     })
   }
 

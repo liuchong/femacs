@@ -84,7 +84,7 @@ open class EmacsSdk7FontDriver : EmacsFontDriver() {
       slant = typeface.slant
       spacing = typeface.spacing
       width = typeface.width
-      metrics = EmacsService.SERVICE.getResources().getDisplayMetrics()
+      metrics = EmacsService.SERVICE!!.getResources().getDisplayMetrics()
       dpi = Math.round(metrics.scaledDensity * 160f)
 
       /* C: `this.typeface = typeface;` - the property above is that assignment, made where the
@@ -108,7 +108,7 @@ open class EmacsSdk7FontDriver : EmacsFontDriver() {
       slant = typeface.slant
       spacing = typeface.spacing
       width = typeface.width
-      metrics = EmacsService.SERVICE.getResources().getDisplayMetrics()
+      metrics = EmacsService.SERVICE!!.getResources().getDisplayMetrics()
       dpi = Math.round(metrics.scaledDensity * 160f)
 
       /* Compute the ascent and descent.  */

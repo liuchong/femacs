@@ -5936,3 +5936,30 @@
      已经落下的同名 Swift `func`；他入库时这 2 行随棘轮重生成消失（3.353/3.363 同一口径：在飞造成的红不算 HEAD 的红）。
   ④ **未声称**：`--strict` 只说明四本表与 HEAD 的对象/文本精确相等；两本 link 仍是**欠账清单**（383/93），
      离"第一次真链接"的距离只有 `tools/link-probe.py` 那条独立口径能答（最近一次 73）。
+
+- **3.367 Kotlin 40/40：`EmacsService` 是最后一件；`SERVICE` 可空性定案，31 处 `!!` 落到 8 个已入库文件（2026-10-05）**：
+  ① **交付形态**：`EmacsService.java` **2,201 行** → `EmacsService.kt` **2,012 行**（md5 `836702aeebbf4269e012d2d4318af17c`，
+     我独立核对）；65 个方法 / 92 个字段名逐名对齐（55 实例 `fun` + 10 companion `fun` + 6 个框架 override），无 `internal`、
+     无 stub/空体；JNI 契约按 `android.c:1725` 的 `FindClass("org/gnu/emacs/EmacsService")` 与 `android_init_emacs_service`
+     里 **41 条 `FIND_METHOD`** 逐字保留（实例方法，描述符逐个照抄；**JNI 不读字段、不调 static**——所以 `@JvmField`/`@JvmStatic`
+     是为 Java/Kotlin 调用者而设）。`spikes/kotlin-target-order.py` 重生成后读 **`40 target(s), 40 ported, 0 to go`**，`--check` 通过。
+  ② **`SERVICE` 的可空性（3.352 记的那笔账）定案：可空**——`@JvmField var SERVICE: EmacsService? = null`。判据不是"哪边解引用多"，
+     而是**参照语义不能变成假**：Java 里 `SERVICE` 在 `onCreate`（`EmacsService.java:251`）之前是 NULL，而**五处读取依赖这个 NULL**
+     （`startEmacsService` 自己 :697、`EmacsOpenActivity.kt:624`、`EmacsWindowManager.kt:336`、`EmacsActivity.kt:557`、
+     `EmacsDesktopNotification.kt:308`）；"非空"在 Kotlin 里只有 `lateinit` 一种写法（实测 `@JvmField lateinit` 直接报
+     `jvmField cannot be applied to lateinit property`），而 `lateinit` **让那五处判空全部变成抛
+     `UninitializedPropertyAccessException`**（实测）——即参照里"还没起来"的分支会变成崩溃。所以可空是唯一能保住语义的形状。
+  ③ **代价与清偿**：可空之后，**8 个已入库文件共 31 处解引用需要 `!!`**（3.352 记账时是 16 处，之后 `EmacsWindow`/`EmacsView`
+     等入库使它长到 31）。**我先复现了 lane 的读数**：全目录探针 **exit 1 / 31 error**（`EmacsWindow` 17、`EmacsWindowManager` 4、
+     `EmacsSdk11Clipboard` 3、`EmacsDesktopNotification` 2、`EmacsSdk7FontDriver` 2、`EmacsContextMenu`/`EmacsCursor`/
+     `EmacsSdk8Clipboard` 各 1），然后按探针逐条定位把 `!!` 加到 `EmacsService.SERVICE` 之后（31 处，全部是**解引用或实参**位置，
+     没有一处是判空比较）——**再跑全目录：exit 0 / 0 error / 17 warning**，与 lane 的预测性验证一致。
+  ④ **第 17 条 warning 的裁决（明写）**：`EmacsWindow.kt:1601` 的 `condition is always 'true'`——参照 `EmacsWindow.java` 同点
+     **自己就写 `if (uriString != null)`**，而 `buildContentName` 的参照实现从不返回 NULL；若把它的返回写成 `String?` 以求消警，
+     已入库的 `EmacsOpenActivity.kt:216/488/523` **会立刻 3 处报错**（lane 实测）。⇒ **保留参照的判空、接受这条 warning**，
+     与基线里 5 条 `condition is always 'false'` 同族（都是"参照自己写的恒真/恒假判空"）；基线因此 **16 → 17**。
+  ⑤ **其它读数**：`check-declarations` **13 sites / 0 forbidden**（读 40 + 7 + 6 个源文件）；`kotlin-order.tsv` **40/40**。
+  ⑥ **未声称**：仍是**编译级**（无 Gradle 工程、无 JVM 字节码核验、无真机/模拟器；`R` 的 id 值仍为 0）；那 31 个 `!!` 编码的是
+     "参照隐含的非空假定"，**运行期未验证**；`syncRunnable` 的 `as V` 只验证了"返回 NULL 不抛"这一点；SAF 六件与前台通知等
+     行为未验证。**另有一条 lane 记下的真话要保留**：`EmacsService` 单独编 exit 0 **不等于**批次绿——本轮之前全目录是红的，
+     红的原因正是它落地后才暴露的那 31 处。

@@ -20,7 +20,7 @@ class EmacsSdk8Clipboard : EmacsClipboard() {
 
   init {
     val what: String = Context.CLIPBOARD_SERVICE
-    val context: Context = EmacsService.SERVICE
+    val context: Context = EmacsService.SERVICE!!
     @Suppress("UNCHECKED_CAST")
     manager = context.getSystemService(what) as ClipboardManager
   }

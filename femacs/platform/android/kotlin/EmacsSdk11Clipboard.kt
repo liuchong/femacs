@@ -25,7 +25,7 @@ class EmacsSdk11Clipboard : EmacsClipboard(), ClipboardManager.OnPrimaryClipChan
   @JvmField var resolver: ContentResolver
 
   init {
-    manager = EmacsService.SERVICE.getClipboardManager()
+    manager = EmacsService.SERVICE!!.getClipboardManager()
 
     /* The system forbids Emacs from reading clipboard data in the
        background under Android 10 or later.  */
@@ -36,7 +36,7 @@ class EmacsSdk11Clipboard : EmacsClipboard(), ClipboardManager.OnPrimaryClipChan
     /* Now obtain the content resolver used to open file
        descriptors.  */
 
-    resolver = EmacsService.SERVICE.contentResolver
+    resolver = EmacsService.SERVICE!!.contentResolver
   }
 
   @Synchronized
@@ -103,7 +103,7 @@ class EmacsSdk11Clipboard : EmacsClipboard(), ClipboardManager.OnPrimaryClipChan
     if (clip == null || clip.itemCount < 1)
       return null
 
-    context = EmacsService.SERVICE
+    context = EmacsService.SERVICE!!
     text = clip.getItemAt(0).coerceToText(context)
     return text.toString()
   }

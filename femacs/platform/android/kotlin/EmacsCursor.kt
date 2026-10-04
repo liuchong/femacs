@@ -19,6 +19,6 @@ class EmacsCursor(glyph: Int) : EmacsHandleObject() {
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N)
         null
       else
-        PointerIcon.getSystemIcon(EmacsService.SERVICE, glyph)
+        PointerIcon.getSystemIcon(EmacsService.SERVICE!!, glyph)
   }
 }

@@ -196,7 +196,7 @@ class EmacsWindowManager {
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
       try {
-        EmacsService.SERVICE.startActivity(intent)
+        EmacsService.SERVICE!!.startActivity(intent)
       } catch (exception: Exception) {
         Log.w(TAG, "an activity could not be started on behalf"
                    + " of the mapped default window " + window.handle)
@@ -236,12 +236,12 @@ class EmacsWindowManager {
 
     try {
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N)
-        EmacsService.SERVICE.startActivity(intent)
+        EmacsService.SERVICE!!.startActivity(intent)
       else {
         /* Specify the desired window size.  */
         options = ActivityOptions.makeBasic()
         options.setLaunchBounds(window.getGeometry())
-        EmacsService.SERVICE.startActivity(intent, options.toBundle())
+        EmacsService.SERVICE!!.startActivity(intent, options.toBundle())
       }
     } catch (exception: Exception) {
       Log.w(TAG, "an activity could not be started on behalf"
@@ -338,7 +338,7 @@ class EmacsWindowManager {
 
     if (activityManager == null)
       activityManager =
-        EmacsService.SERVICE.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        EmacsService.SERVICE!!.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
 
     appTasks = activityManager!!.getAppTasks()
 
