@@ -2075,3 +2075,24 @@
   `line-drift-tolerance.tsv`/`*pending*.txt`）**只许追加**，任何"还原成我的快照"的动作都会把别人并发写入的行一起铲掉；
   ② 集成者在每个 lane 交回后要**重跑一次受影响文件的 `--check`**（而不是只看 lane 报告里的读数）——本次就是靠
   `--all` 的 FAIL 才发现的。
+
+- **3.134 版本声明的全树复核：任何已写单元里都不再声明产品名（2026-10-04 用户指令，本轮逐项复算）**：
+  用户当轮的两句话（`版本声明不要再说是gnu emacs了，我们这样说可能会有法律风险` + 38 秒后的
+  `把之前的代码中的这种声明也去掉`）是**同一条指令的前后两半**：不要只对新写的文件生效，**已写进树的代码**
+  也要清。当前树的三段处置全部落在这条指令上，本轮把每一段都重新验了一遍：
+  ① **版本行的括注**（`@ fd7afced403 (GNU Emacs 32.0.50)`）**231 个文件**一次性去名，只留修订号
+  （`2ee1d1d` + 收尾空格的 `4810bb0`，3.36 的机械改写）；
+  ② **参照文件自带的版本/版权声明块**（C 文件开头那段"本文件属于某产品"的整块）**268 块不随复刻携带**
+  （`fd9cf89`）——它是对**本仓库**的虚假陈述，不是被复制的语义；
+  ③ **标题注释里的产品名**与**复述"许可块怎么处理"的句子**并入 `tools/check-declarations.py` 的
+  `title`/`recital` 两类，随 `decl`/`version` 一起在**每轮**判。
+  本轮实测（都在 `ef75d4d` 工作树上）：`check-declarations.py` → **13 declaration sites (0 forbidden,
+  13 allowed literals), 0 failures**；`--selftest` → **22 cases, 0 failures**；对 `femacs/src`、`femacs/lib`、
+  `femacs/lib-src`、`femacs/exec`、`femacs/lwlib`、`femacs/oldXMenu`、`femacs/nt`、`femacs/msdos`、`femacs/xtask`
+  的定向扫描（`part of GNU Emacs` / `GNU Emacs is free software` / `GNU Emacs is distributed` /
+  `along with GNU Emacs` / `Free Software Foundation` / `Copyright (C)` / `@ <rev> (` 产品括注）**零命中**。
+  **余下的 13 处全是 C 自己的字符串字面量**（`emacs.rs` 的 `PACKAGE_NAME`/`COPYRIGHT`/`RCS_Id`、
+  `etags.rs`/`ebrowse.rs` 的 `COPYRIGHT` 与版本横幅、四条 `callproc.c`/`emacs.c` 的 docstring），它们是被
+  移植的**语义**（横幅要打印、docstring 门要逐字比对），逐条理由在 `docs/baseline/declarations-allowlist.tsv`；
+  照抄树（`lisp`/`test`/`etc`/`doc`/`leim`/`admin`，`check-verbatim` 6 trees/4607 files）与 `emacs/` 参照树
+  不在范围内（前者是逐字节复制，后者是只读参照）；`docs/` 的中性历史叙述是决定记录，按 3.90/3.100 的定义留下。
