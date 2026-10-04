@@ -5463,3 +5463,31 @@
   ④ **一条方法论**（写下来给下一轮）：**"build-tu 通过"必须区分"用陈旧生成物通过"与"fresh 生成通过"**——
      这一轮两个读数差了整整一个 HEAD 缺陷；`reconcile-link-ratchets.sh` 的 fresh 生成恰好是抓它的工具，
      所以这条流程以后不许跳过。
+
+- **3.345 window.h 的二十九条原型进镜像：十二个单元的用点声明删掉，xdisp 的八条随之清空（2026-10-05）**：
+  ① **交付形态**：`femacs/src/include/window.rs` **+79 行**（新的 `window_fn_decls` 模块 + glob 导入，29 条
+     `window.h` 原型；`struct frame *`/`struct buffer *` 两处退化按 **P-72 rule 3** 写 `*mut c_void`，
+     其余用本树已有拼法，**不发明类型**）；台账 `docs/ports/include-window.md` 286 → **337 行**；
+     **十二个单元**的 26 条用点声明被删（`buffer` 4、`frame` 4、`emacs` 3、`indent` 3、`bytecode` 2、
+     `keyboard` 2、`minibuf` 2、`window` 2、`composite`/`dispnew`/`font`/`process` 各 1），原处各留一句
+     "该名字归 window.rs 镜像"；同时**补 9 处调用点强转**（删声明后形参从 `*mut frame`/`*mut buffer` 变成
+     镜像的 `*mut c_void`：`buffer.rs` 3、`process.rs` 1、`frame.rs` 4、`keyboard.rs` 1）。
+  ② **xdisp 的八条**：`decode_live_window`/`grow_mini_window`/`shrink_mini_window`/`window_list`/
+     `window_outdated`/`window_parameter`/`window_point`/`wset_buffer` —— 它们是重名门当时**唯一**的新增 hit
+     （`8 failure(s)`）。本轮由我删（原 lane 已收工），每条换成一行指路注释；**重名门随即
+     `18 duplicate declaration(s), 18 ratchet row(s), 0 failure(s)`**。
+  ③ **引文门在这一次帮了两次忙（都记下来）**：⑴ 我第一版指路注释把 `struct frame *` 放在行号后，门把
+     "行号 + 其后第一个代码样子的小片段"配成 `window.h 1209` + `struct frame *` ⇒ **5 drift**；改成
+     "`window.h <行号>'s \`<名字>\` …"（名字紧跟行号）后归零。⑵ 其中一条还暴露出**旧引文的错数**：
+     xdisp 原写 `window.h 1187: window_list`，而参照里 `window_list` 的声明在 **1208**（1187 那条是别的东西；
+     1206 是 `Vwindow_list`）——新注释已改成 1208。这两条都是"门读出真错、不是伪造漂移"的实例。
+  ④ **判据（本轮实跑）**：`build-tu` **15/15**（本件的 `window`+11 个单元 + Ohm 的 `xrdb`/`xterm` + 我删完的
+     `xdisp`，逐个 `built`）；`extract-abi --check`：`window.h`→镜像 **OK**、`dispextern.h`→镜像 **OK**、
+     `xterm.h`→镜像 **OK**、`xrdb.c`→**OK**（先补了 `docs/ports/macro-body-notes.tsv` 两行，见 3.346）、
+     `xdisp` 仍 **107** 行（与台账 2305 一致）；`check-citations` **670 files, 0 drift, 0 stale**、
+     `check-mirror-dupes` **18/18/0**、`check-declarations` **13 sites / 0 forbidden / 0 failures**、
+     `check-carried 11/11/0`、`check-verbatim 6 trees/4604 files/0 failures`、
+     `check-target-names 628 .rs / 591 targets / 0 finding`。
+  ⑤ **未入库与未声称**：`femacs/src/xterm.rs` 的工作树上有 **+666 行**未提交的切片、而 `docs/ports/xterm.md`
+     **一行都没动**（台账没有对应轮次）⇒ 本轮**不入库**，已向该 lane 追问来源；四本 link/Swift 棘轮要在本件
+     入库后的 HEAD 上重跑（3.270② 的顺序），本条不冒充入库后的读数。

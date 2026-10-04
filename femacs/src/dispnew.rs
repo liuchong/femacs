@@ -275,8 +275,7 @@ unsafe extern "C" {
   fn mark_window_display_accurate (window: Lisp_Object, flag: bool);
   /// C: dispextern.h 3688: `extern void note_mouse_highlight (struct frame *, int, int);`
   fn note_mouse_highlight (f: *mut frame, x: c_int, y: c_int);
-  /// C: window.h 1211: `extern struct window *decode_any_window (Lisp_Object);`
-  fn decode_any_window (window: Lisp_Object) -> *mut window;
+  // (window.h 1211's `decode_any_window` is the window.rs mirror's now; the use-site copy is gone, P-26.)
   /// C: keyboard.h 513-514: `extern void gen_help_event (Lisp_Object, Lisp_Object, Lisp_Object,
   /// Lisp_Object, ptrdiff_t);`
   fn gen_help_event (string: Lisp_Object, frame: Lisp_Object, window: Lisp_Object,

@@ -109,10 +109,8 @@ unsafe extern "C" {
                       no_catch: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 5120: `extern Lisp_Object get_frame_param (struct frame *, Lisp_Object);`
   fn get_frame_param (f: *mut frame, prop: Lisp_Object) -> Lisp_Object;
-  /// C: window.h 1127: `extern void restore_window_configuration (Lisp_Object);`
-  fn restore_window_configuration (configuration: Lisp_Object);
-  /// C: window.h 1128: `extern void restore_focus_frame (Lisp_Object);`
-  fn restore_focus_frame (frame_and_focus_frame: Lisp_Object);
+  // window.h 1127/1128 (`restore_window_configuration`, `restore_focus_frame`) are the
+  // window.rs mirror's now; the use-site copies are gone (P-26).
   /// C: window.h 1139-1140: `void set_window_buffer (Lisp_Object window, Lisp_Object
   /// buffer, bool run_hooks_p, bool keep_margins_p);`
   fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Object, run_hooks_p: bool,

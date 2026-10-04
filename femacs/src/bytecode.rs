@@ -86,14 +86,12 @@ unsafe extern "C" {
                                        handlers: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4703: `void temp_output_buffer_setup (const char *);`
   pub fn temp_output_buffer_setup (bufname: *const c_char);
-  /// C: window.h 1227: `extern void temp_output_buffer_show (Lisp_Object);`
-  pub fn temp_output_buffer_show (buf: Lisp_Object);
+  // (window.h 1227's `temp_output_buffer_show` is the window.rs mirror's now; the use-site copy is gone, P-26.)
   /// C: lisp.h 4924: `extern Lisp_Object save_restriction_save (void);`
   pub fn save_restriction_save () -> Lisp_Object;
   /// C: lisp.h 4925: `extern void save_restriction_restore (Lisp_Object);`
   pub fn save_restriction_restore (data: Lisp_Object);
-  /// C: window.h 1127: `extern void restore_window_configuration (Lisp_Object);`
-  pub fn restore_window_configuration (configuration: Lisp_Object);
+  // (window.h 1127's `restore_window_configuration` is the window.rs mirror's now; the use-site copy is gone, P-26.)
   /// C: lisp.h 4860: `extern void prog_ignore (Lisp_Object);`
   pub fn prog_ignore (body: Lisp_Object);
   /// C: lisp.h 4843: `extern Lisp_Object call_debugger (Lisp_Object arg);`

@@ -284,3 +284,54 @@ at 452/456/460/464, i.e. right after `last_cursor_vpos`.
 
 Evidence: `build-tu src/window.c` exit 0; `xtask layout-check` passed; the mirror now answers the
 probe with no missing member (`struct window`).
+
+## Decisions (the 29 function prototypes, status 3.325 item 55)
+
+- **window.h's function prototypes are the mirror's now.**  The header declares 38 `extern`
+  functions; 9 were already carried and **29 were not**, so thirteen units declared the ones they
+  called at their own use sites (34 declarations).  The 29 land in `window_fn_decls`, a module
+  with a glob import, in the same shape `window_redisplay_decls` (C 1167-1169) already uses:
+  nine of them are **defined** in this tree (`src/window.rs` defines `make_window`,
+  `window_from_coordinates`, `decode_live_window`, `window_point`, `window_list`,
+  `mru_rooted_frame`, `init_window_once`, `init_window` and `syms_of_window`), and a definition at
+  the unit's crate root would collide with a crate-root declaration (E0428, PORTING.md 0.1-10);
+  as a glob-imported item the unit's definition simply shadows it.
+- **Parameter types degrade per P-72 rule 3 where the mirror cannot name the pointee.**  `struct
+  frame *` and `struct buffer *` are `*mut c_void` - the spelling `fset_redisplay`/`bset_redisplay`
+  in `window_redisplay_decls` already uses, because this mirror includes neither `frame.rs` nor a
+  `buffer` mirror.  Four declarations take a degraded pointer (`window_from_coordinates`,
+  `resize_frame_windows`, `mru_rooted_frame`, `bset_update_mode_line`); the nine callers in the
+  units cast (`f as *mut c_void`) - C's own pointer, in the port's spelling.  Everything else is
+  spelled with types the mirror has: `*mut window`, `Lisp_Object`, `c_int`, `bool`, `ptrdiff_t`,
+  `window_part`, `window_body_unit`.
+- **26 use-site declarations removed** (the units that only *declare* the name; P-26):
+  `buffer.rs` 4, `frame.rs` 4, `emacs.rs` 3, `indent.rs` 3, `bytecode.rs` 2, `keyboard.rs` 2,
+  `minibuf.rs` 2, `window.rs` 2, and one each in `composite.rs`, `dispnew.rs`, `font.rs`,
+  `process.rs`.  Each unit's comment now says the name is the mirror's.
+- **8 declarations remain, in `src/xdisp.rs`** (`decode_live_window`, `grow_mini_window`,
+  `shrink_mini_window`, `window_list`, `window_outdated`, `window_parameter`, `window_point`,
+  `wset_buffer`): that unit is another lane's in-flight file, so the sweep stopped at its border.
+  `check-mirror-dupes` reports exactly those eight as `FAIL` until its lane drops them; the rows
+  are listed in the batch report for routing.
+- **Two prototypes have no caller anywhere in the tree** (`window_relative_x_coord`,
+  `mark_window_cursors_off`) - they are the header's text, and the mirror carries them so the
+  header's list is complete rather than "the names some unit happened to need".
+
+## Evidence (the 29 function prototypes)
+
+- **The count**: a script over `emacs/src/window.h`'s `extern … (…);` lines reads **38 function
+  prototypes**, of which **29** did not occur in `femacs/src/include/window.rs`; the other 9
+  (`wset_redisplay`, `fset_redisplay`, `bset_redisplay`, `window_wants_mode_line`,
+  `window_wants_header_line`, `window_wants_tab_line`, `window_body_width`, `window_body_height`,
+  `window_scroll_margin`) were already there.
+- **`python3 tools/extract-abi.py --check emacs/src/window.h femacs/src/include/window.rs`** ->
+  `OK emacs/src/window.h -> femacs/src/include/window.rs`.
+- **`build-tu`**: `src/window.c`, `src/frame.rs`, `src/keyboard.rs`, `src/buffer.rs`,
+  `src/process.rs`, `src/bytecode.rs`, `src/composite.rs`, `src/dispnew.rs`, `src/emacs.rs`,
+  `src/font.rs`, `src/indent.rs`, `src/minibuf.rs` - all `built …`.
+- **`xtask layout-check`** -> `layout-check passed (see build/femacs/layout_asserts.rs)`.
+- **`python3 tools/check-citations.py`** -> `0 drift, 0 range, 0 stale` (the new `/// C: window.h
+  <line>:` lines are checked one by one; every line number is the header's own).
+- **`python3 tools/check-mirror-dupes.py`** -> `26 duplicate declaration(s), 18 ratchet row(s),
+  8 failure(s)`: the 18 rows are the previous batch's legal two-spelling cases, and the 8 failures
+  are the `xdisp.rs` declarations above (this batch's only new hits).

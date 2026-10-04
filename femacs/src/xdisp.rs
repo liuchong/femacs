@@ -600,10 +600,7 @@ unsafe extern "C" {
    1108), which C's xdisp.c reaches through `#include "buffer.h"` (C 485); the mirror-dupes
    gate flags a second local declaration (the integrator's 2026-10-04 07:3x finding), so this
    unit uses the mirror's copy and declares nothing.  */
-  /// C: window.h 1209: `extern Lisp_Object window_parameter (struct window *,
-  /// Lisp_Object parameter);` (window.c defines it; the mirror carries the field, not the
-  /// accessor).
-  pub fn window_parameter (w: *mut window, parameter: Lisp_Object) -> Lisp_Object;
+  /// window.h 1209's `window_parameter` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
   /// C: dispextern.h 3556-3557: `extern void *bidi_shelve_cache (void);`
   /// `extern void bidi_unshelve_cache (void *, bool);`
   pub fn bidi_shelve_cache () -> *mut c_void;
@@ -720,20 +717,14 @@ unsafe extern "C" {
   /// (xfaces.c defines it; the `dispnew.rs` spelling).
   pub fn merge_faces (w: *mut window, face_name: Lisp_Object, face_id: c_int,
 		      base_face_id: c_int) -> c_int;
-  /// C: window.h 1233: `extern ptrdiff_t window_point (struct window *w);` (window.c
-  /// defines it; the mirror chain does not carry it).
-  pub fn window_point (w: *mut window) -> ptrdiff_t;
+  /// window.h 1233's `window_point` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
+  /// window.h 1210's `decode_live_window` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
   /// C: <stdlib.h> 489: `extern void qsort (void *__base, size_t __nmemb, size_t __size,
   /// __compar_fn_t __compar) __nonnull ((1, 4));` (the port's stdlib.rs mirror does not
   /// carry it; declared here, the `buffer.rs`/`font.rs` shape).
   pub fn qsort (base: *mut c_void, nmemb: usize, size: usize,
 		compar: Option<unsafe extern "C" fn (*const c_void, *const c_void) -> c_int>);
-  /// C: window.h 1210: `extern struct window *decode_live_window (Lisp_Object);`
-  /// (window.c defines it; the mirror chain does not carry it).
-  pub fn decode_live_window (window: Lisp_Object) -> *mut window;
-  /// C: window.h 1231: `extern void wset_buffer (struct window *, Lisp_Object);`
-  /// (window.c defines it; the mirror carries the field, not the setter).
-  pub fn wset_buffer (w: *mut window, buffer: Lisp_Object);
+  /// window.h 1231's `wset_buffer` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
   /// C: lisp.h 4331-4332: `extern void insert_1_both (const char *, ptrdiff_t, ptrdiff_t,
   /// bool, bool, bool);` (insdel.c defines it).
   pub fn insert_1_both (s: *const c_char, nchars: ptrdiff_t, nbytes: ptrdiff_t,
@@ -768,8 +759,7 @@ unsafe extern "C" {
   pub fn frame_redisplay_p (f: *mut frame) -> bool;
   /// C: dispextern.h 4012: `bool is_tty_frame (struct frame *f);` (dispnew.c defines it).
   pub fn is_tty_frame (f: *mut frame) -> bool;
-  /// C: window.h 1232: `extern bool window_outdated (struct window *);` (window.c defines it).
-  pub fn window_outdated (w: *mut window) -> bool;
+  /// window.h 1232's `window_outdated` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
   /// C: lisp.h 4843: `extern Lisp_Object call_debugger (Lisp_Object arg);` (eval.c defines it).
   pub fn call_debugger (arg: Lisp_Object) -> Lisp_Object;
   /// C: dispextern.h 3907: `void clear_current_matrices (struct frame *f);` (dispnew.c).
@@ -780,11 +770,9 @@ unsafe extern "C" {
   pub fn update_single_window (w: *mut window);
   /// C: dispextern.h 4017: `void combine_updates_for_frame (struct frame *f, bool
   /// inhibit_id_p);` (dispnew.c).
+  /// window.h 1130's `grow_mini_window` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
   pub fn combine_updates_for_frame (f: *mut frame, inhibit_id_p: bool);
-  /// C: window.h 1130: `extern void grow_mini_window (struct window *, int, int);` (window.c).
-  pub fn grow_mini_window (w: *mut window, delta: c_int, unit: c_int);
-  /// C: window.h 1131: `extern void shrink_mini_window (struct window *, int);` (window.c).
-  pub fn shrink_mini_window (w: *mut window, unit: c_int);
+  /// window.h 1131's `shrink_mini_window` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
   /// C: dispextern.h 3897: `void update_frame (struct frame *, bool);` (dispnew.c).
   pub fn update_frame (f: *mut frame, force_p: bool);
   /// C: lisp.h 4335-4336: `extern void insert_from_string (Lisp_Object, ptrdiff_t, ptrdiff_t,
@@ -807,8 +795,7 @@ unsafe extern "C" {
   /// C: window.h 1226: `extern int window_scroll_margin (struct window *, enum margin_unit);`
   /// (window.c defines it; the mirror chain does not carry it).
   pub fn window_scroll_margin (window: *mut window, unit: margin_unit) -> c_int;
-  /// C: window.h 1187: `extern Lisp_Object window_list (void);` (window.c defines it).
-  pub fn window_list () -> Lisp_Object;
+  /// window.h 1208's `window_list` is the window.rs mirror's now (P-72 rule 3: the mirror spells the pointee `*mut c_void`).
   /// C: lisp.h 4850: `extern Lisp_Object menu_bar_items (Lisp_Object);` (keyboard.c defines it).
   pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4851: `extern Lisp_Object tab_bar_items (Lisp_Object, int *);` (keyboard.c).

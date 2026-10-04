@@ -100,15 +100,12 @@ unsafe extern "C" {
   fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
   /// C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);`
   fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
-  /// C: window.h 1210: `extern struct window *decode_live_window (Lisp_Object);`
-  fn decode_live_window (window: Lisp_Object) -> *mut window;
-  /// C: window.h 1216: `extern int window_internal_height (struct window *);`
-  fn window_internal_height (w: *mut window) -> c_int;
+  // window.h 1210/1216 (`decode_live_window`, `window_internal_height`) are the window.rs
+  // mirror's now; the use-site copies are gone (P-26).
   /// C: window.h 1223: `extern int window_body_width (struct window *w, enum
   /// window_body_unit);`
   fn window_body_width (w: *mut window, unit: window_body_unit) -> c_int;
-  /// C: window.h 1231: `extern void wset_buffer (struct window *, Lisp_Object);`
-  fn wset_buffer (w: *mut window, buf: Lisp_Object);
+  // (window.h 1231's `wset_buffer` is the window.rs mirror's now; the use-site copy is gone, P-26.)
   /// C: dispextern.h 3556: `extern void *bidi_shelve_cache (void);`
   fn bidi_shelve_cache () -> *mut c_void;
   /// C: dispextern.h 3557: `extern void bidi_unshelve_cache (void *, bool);`

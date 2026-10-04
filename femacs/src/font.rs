@@ -390,8 +390,7 @@ unsafe extern "C" {
 /// `frame.h`/`window.h`/`character.h`/`lisp.h`/`<stdio.h>` names this unit calls that no
 /// mirror carries.
 unsafe extern "C" {
-  /// C: window.h 1148: `extern struct window *decode_live_window (Lisp_Object);`
-  pub fn decode_live_window (window: Lisp_Object) -> *mut window;
+  // (window.h 1210's `decode_live_window` is the window.rs mirror's now; the use-site copy is gone, P-26.)
   /// C: character.h 149-150: `extern void parse_str_as_multibyte (const unsigned char *,
   /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);`
   pub fn parse_str_as_multibyte (str_: *const c_uchar, len: ptrdiff_t,

@@ -8033,7 +8033,7 @@ unsafe fn status_notify (deleting_process: *mut Lisp_Process,
 	exec_sentinel (proc_, msg);
 	if (BUFFERP ((*p).buffer))
 	  /* In case it uses %s in mode-line-format.  */
-	  { bset_update_mode_line (XBUFFER ((*p).buffer)); }
+	  { bset_update_mode_line (XBUFFER ((*p).buffer) as *mut c_void); }
       }
   }); /* end for */
 
@@ -8184,10 +8184,9 @@ unsafe fn keyboard_bit_set (mask: *mut fd_set) -> bool
   return false;
 }
 
-unsafe extern "C" {
-  /// C: void bset_update_mode_line (struct buffer *)   (buffer.h 1757)
-  fn bset_update_mode_line (b: *mut buffer);
-}
+/* `bset_update_mode_line` (window.h 1175; buffer.h 1757 declares it too) is the window.rs
+   mirror's now - the mirror spells `struct buffer *` as `*mut c_void` (P-72 rule 3), so the
+   caller below casts (P-26).  */
 
 /* C 8102-8325: the `#else /* not subprocesses */` arm of the `#ifdef subprocesses` that opens
    at C 163 — the MS-DOS/no-subprocess implementations.  The whole region is carried text

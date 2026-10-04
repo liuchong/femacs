@@ -399,8 +399,7 @@ unsafe extern "C" {
   /// bool run_hooks, bool keep_margins);`
   pub fn set_window_buffer (window: Lisp_Object, buffer: Lisp_Object,
                             run_hooks: bool, keep_margins: bool);
-  /// C: window.h 1123: `extern Lisp_Object make_window (void);`
-  pub fn make_window () -> Lisp_Object;
+  // window.h 1123's `make_window` is the window.rs mirror's now (`window_fn_decls`).
   /// C: lisp.h 4945: `extern Lisp_Object other_buffer_safely (Lisp_Object);`
   pub fn other_buffer_safely (buffer: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 5058: `extern Lisp_Object get_minibuffer (EMACS_INT);`
@@ -409,8 +408,8 @@ unsafe extern "C" {
   pub fn adjust_frame_glyphs (f: *mut frame);
   /// C: dispextern.h 3955: `extern void calculate_costs (struct frame *);`
   pub fn calculate_costs (f: *mut frame);
-  /// C: window.h 1126: `extern void resize_frame_windows (struct frame *, int, bool);`
-  pub fn resize_frame_windows (f: *mut frame, size: c_int, horflag: bool);
+  // window.h 1126's `resize_frame_windows` is the mirror's now; the mirror spells
+  // `struct frame *` as `*mut c_void` (P-72 rule 3), so the two callers below cast (P-26).
   /// C: dispextern.h 3959: `extern void create_tty_output (struct frame *);`
   pub fn create_tty_output (f: *mut frame);
   /// C: dispextern.h 3960: `extern struct terminal *init_tty (const char *, const char *,
@@ -452,12 +451,11 @@ unsafe extern "C" {
   /// (dispextern.h 178-179's `#ifndef NativeRectangle #define NativeRectangle int`).
   pub fn pixel_to_glyph_coords (f: *mut frame, x: c_int, y: c_int, px: *mut c_int,
                                 py: *mut c_int, bounds: *mut c_int, noclip: bool);
-  /// C: window.h 1235: `extern Lisp_Object mru_rooted_frame (struct frame *);`
-  pub fn mru_rooted_frame (f: *mut frame) -> Lisp_Object;
+  // window.h 1235's `mru_rooted_frame` is the mirror's now (same `*mut c_void` spelling;
+  // the two callers below cast).
   /// C: dispextern.h 3902: `void free_glyphs (struct frame *);`
   pub fn free_glyphs (f: *mut frame);
-  /// C: window.h 1129: `extern void delete_all_child_windows (Lisp_Object);`
-  pub fn delete_all_child_windows (window: Lisp_Object);
+  // window.h 1129's `delete_all_child_windows` is the window.rs mirror's now (P-26).
   /// C: lisp.h 4275: `extern Lisp_Object delq_no_quit (Lisp_Object, Lisp_Object);`
   pub fn delq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
   /// C: font.h 897: `extern void free_font_driver_list (struct frame *f);`
@@ -1412,7 +1410,7 @@ pub unsafe extern "C" fn adjust_frame_size (f: *mut frame, new_text_width: c_int
 
   if new_inner_width != old_inner_width
     {
-      resize_frame_windows (f, new_inner_width, true);
+      resize_frame_windows (f as *mut c_void, new_inner_width, true);
 
       /* MSDOS frames cannot PRETEND, as they change frame size by
 	 manipulating video hardware.  */
@@ -1432,7 +1430,7 @@ pub unsafe extern "C" fn adjust_frame_size (f: *mut frame, new_text_width: c_int
 	 left edges.  */
       || WINDOW_TOP_PIXEL_EDGE (r) != FRAME_TOP_MARGIN_HEIGHT (f)
     {
-      resize_frame_windows (f, new_inner_height, false);
+      resize_frame_windows (f as *mut c_void, new_inner_height, false);
 
       /* MSDOS frames cannot PRETEND, as they change frame size by
 	 manipulating video hardware. */
@@ -2913,7 +2911,7 @@ pub unsafe extern "C" fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -
       if is_tty_child_frame (f)
 	/* If F is a child frame on a tty and is the selected frame, try
 	   to re-select the frame that was selected before F.  */
-	{ do_switch_frame (mru_rooted_frame (f), 0, 1, Qnil ()); }
+	{ do_switch_frame (mru_rooted_frame (f as *mut c_void), 0, 1, Qnil ()); }
       else
 	{
 	  frame1 = Qnil ();
@@ -3580,7 +3578,7 @@ DEFUN! ("make-frame-invisible", Fmake_frame_invisible, Smake_frame_invisible,
 	/* If FRAME is a tty child frame and the selected frame, we have
 	   to select another frame instead.  Use the first visible
 	   ancestor as returned by 'mru_rooted_frame'.  */
-	{ Fselect_frame (mru_rooted_frame (f), Qnil ()); }
+	{ Fselect_frame (mru_rooted_frame (f as *mut c_void), Qnil ()); }
     }
 
   /* Make menu bar update for the Buffers and Frames menus.  */

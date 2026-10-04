@@ -599,11 +599,9 @@ unsafe extern "C" {
   fn message3_frame (m: Lisp_Object, frame: *mut frame);
   /// C: coding.c (coding.h 786's `extern bool raw_text_coding_system_p (struct coding_system *);`)
   fn raw_text_coding_system_p (coding: *mut coding_system) -> bool;
-  /// C: window.h 1124-1125: `extern Lisp_Object window_from_coordinates (struct frame *, int,
-  ///   int, enum window_part *, bool, bool, bool);` (window.c defines it; the `window.rs`
-  ///   mirror does not declare it).
-  fn window_from_coordinates (f: *mut frame, x: c_int, y: c_int, part: *mut window_part,
-                              menu_bar_p: bool, tab_bar_p: bool, tool_bar_p: bool) -> Lisp_Object;
+  // window.h 1124-1125's `window_from_coordinates` (window.c defines it) is the window.rs
+  // mirror's now; the mirror spells `struct frame *` as `*mut c_void` (P-72 rule 3), so the
+  // caller below casts (P-26).
   /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);`
   ///   (xdisp.c defines it; the mirror does not declare it, and the
   ///   `WINDOW_HEADER_LINE_HEIGHT`/`WINDOW_TAB_LINE_HEIGHT` expansions above need it).
@@ -684,9 +682,7 @@ unsafe extern "C" {
   ///   the `include/termhooks.rs` mirror does not carry them, `term.rs` declares its own).
   fn decode_tty_terminal (terminal: Lisp_Object) -> *mut terminal;
   fn get_named_terminal (name: *const c_char) -> *mut terminal;
-  /// C: window.h 1210: `extern struct window *decode_live_window (Lisp_Object);` (window.c
-  ///   defines it; the mirror does not declare it, `indent.rs`/`font.rs` declare their own).
-  fn decode_live_window (window: Lisp_Object) -> *mut window;
+  // window.h 1210's `decode_live_window` (window.c defines it) is the window.rs mirror's now.
   /// C: dispextern.h 3580: `int window_box_left_offset (struct window *, enum
   ///   glyph_row_area);` (xdisp.c defines it; the mirror does not declare it).
   fn window_box_left_offset (w: *mut window, area: glyph_row_area) -> c_int;
@@ -6183,8 +6179,8 @@ pub const ON_NONE: frame_border_side = 4;
    `WINDOW_RIGHT_DIVIDER_WIDTH`, `WINDOW_BOTTOM_DIVIDER_WIDTH`,
    `WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_RIGHT`), which `include/window.rs` now carries, plus
    `WINDOW_HAS_FRINGES_OUTSIDE_MARGINS` — window.h 872's macro, which the mirror spells as a
-   `bool` function (the accessor shape, include/window.rs 331).  Six symbols it needs carry no
-   mirror declaration (window.h 1124's `window_from_coordinates`; dispextern.h 3578/3579's
+   `bool` function (the accessor shape, include/window.rs 331).  Five symbols it needs carry no
+   mirror declaration (window.h 1124's `window_from_coordinates` is the mirror's since this batch; dispextern.h 3578/3579's
    `window_box_width`/`window_box_left` and 3883-3895's `buffer_posn_from_coords`,
    `mode_line_string`/`marginal_area_string`), so they stand in this unit's use-site block
    above (P-72③).  The `HAVE_WINDOW_SYSTEM` and `HAVE_EXT_TOOL_BAR` arms are carried per P-51.
@@ -6300,7 +6296,7 @@ unsafe fn make_lispy_position (f: *mut frame, x: Lisp_Object, y: Lisp_Object, t:
   /* The window or frame under frame pixel coordinates (x,y)  */
   let mut window_or_frame: Lisp_Object
     = if !f.is_null ()
-	{ window_from_coordinates (f, mx, my, &raw mut part, false, true, true) }
+	{ window_from_coordinates (f as *mut c_void, mx, my, &raw mut part, false, true, true) }
       else
 	{ Qnil () };
 

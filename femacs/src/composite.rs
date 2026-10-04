@@ -80,8 +80,7 @@ unsafe extern "C" {
   fn mark_object (obj: Lisp_Object);
   /// C: lisp.h 4259: `void hash_remove_from_table (struct Lisp_Hash_Table *, Lisp_Object);`
   fn hash_remove_from_table (h: *mut Lisp_Hash_Table, key: Lisp_Object);
-  /// C: window.h 1233: `extern ptrdiff_t window_point (struct window *w);`
-  fn window_point (w: *mut window) -> ptrdiff_t;
+  // (window.h 1233's `window_point` is the window.rs mirror's now; the use-site copy is gone, P-26.)
   /// C: dispextern.h 3592: `ptrdiff_t get_small_narrowing_begv (struct window *, ptrdiff_t);`
   fn get_small_narrowing_begv (w: *mut window, pos: ptrdiff_t) -> ptrdiff_t;
   /// C: <stdlib.h>: `void qsort (void *base, size_t nmemb, size_t size,

@@ -170,8 +170,7 @@ unsafe extern "C" {
   pub fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
   /// C: frame.h 1477: `struct frame *decode_any_frame (Lisp_Object);`
   pub fn decode_any_frame (frame: Lisp_Object) -> *mut frame;
-  /// C: window.h 1180: `extern void redisplay_other_windows (void);` (xdisp.c defines it).
-  pub fn redisplay_other_windows ();
+  // window.h 1180's `redisplay_other_windows` (xdisp.c defines it) is the mirror's now.
 }
 
 unsafe extern "C" {
@@ -947,9 +946,8 @@ unsafe extern "C" {
     -> bool;
   /// C: dispextern.h 3577: `int window_text_bottom_y (struct window *);` (xdisp.c).
   pub fn window_text_bottom_y (w: *mut window) -> c_int;
-  /// C: window.h 1176: `extern void wset_update_mode_line (struct window *w);` (xdisp.c; the
-  /// mirror's `window_redisplay_decls` carries only the three `*set_redisplay` entries).
-  pub fn wset_update_mode_line (w: *mut window);
+  // window.h 1176's `wset_update_mode_line` (xdisp.c defines it) is the mirror's `window_fn_decls`
+  // now; the use-site copy is gone (P-26).
 }
 unsafe extern "C" {
   /// C: dispextern.h 3578: `int window_box_width (struct window *, enum glyph_row_area);`

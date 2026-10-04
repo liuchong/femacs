@@ -252,6 +252,85 @@ unsafe extern "C" { pub static mut update_mode_lines: c_int; }                 /
 unsafe extern "C" { pub static mut windows_or_buffers_changed: c_int; }        // 1161
 unsafe extern "C" { pub static mut Vwindow_list: Lisp_Object; }                // 1206
 
+// window.h 1123-1238: the header's 29 function prototypes.  Declared in a module with a glob
+// import (the `window_redisplay_decls` shape below) because nine of them are *defined* in this
+// tree - `src/window.rs` defines `make_window`, `window_from_coordinates`, `decode_live_window`,
+// `window_point`, `window_list`, `mru_rooted_frame`, `init_window_once`, `init_window` and
+// `syms_of_window`, and `src/xdisp.rs` defines several more - and a definition at the unit's
+// crate root would collide with a crate-root declaration (E0428, PORTING.md 0.1-10); the unit's
+// item shadows the glob import instead.  A unit that only *calls* one of these now finds the
+// declaration here instead of a use-site copy: this batch removed 26 such copies (P-26).
+// Parameters whose type this mirror cannot name degrade per P-72 rule 3 and are spelled
+// `*mut c_void`, exactly as `fset_redisplay`/`bset_redisplay` below already spell `struct
+// frame *`/`struct buffer *`; the callers cast.
+pub mod window_fn_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: window.h 1123: `make_window` - `Lisp_Object make_window (void)`
+    pub fn make_window () -> Lisp_Object;
+    /// C: window.h 1124: `window_from_coordinates` - `Lisp_Object window_from_coordinates (struct frame *, int, int, enum window_part *, bool, bool, bool)`
+    pub fn window_from_coordinates (f: *mut c_void, x: c_int, y: c_int, part: *mut window_part,
+                              menu_bar_p: bool, tab_bar_p: bool, tool_bar_p: bool) -> Lisp_Object;
+    /// C: window.h 1126: `resize_frame_windows` - `void resize_frame_windows (struct frame *, int, bool)`
+    pub fn resize_frame_windows (f: *mut c_void, size: c_int, horflag: bool);
+    /// C: window.h 1127: `restore_window_configuration` - `void restore_window_configuration (Lisp_Object)`
+    pub fn restore_window_configuration (configuration: Lisp_Object);
+    /// C: window.h 1128: `restore_focus_frame` - `void restore_focus_frame (Lisp_Object)`
+    pub fn restore_focus_frame (frame_and_focus_frame: Lisp_Object);
+    /// C: window.h 1129: `delete_all_child_windows` - `void delete_all_child_windows (Lisp_Object)`
+    pub fn delete_all_child_windows (window: Lisp_Object);
+    /// C: window.h 1130: `grow_mini_window` - `void grow_mini_window (struct window *, int, int)`
+    pub fn grow_mini_window (w: *mut window, delta: c_int, unit: c_int);
+    /// C: window.h 1131: `shrink_mini_window` - `void shrink_mini_window (struct window *, int)`
+    pub fn shrink_mini_window (w: *mut window, unit: c_int);
+    /// C: window.h 1132: `window_relative_x_coord` - `int window_relative_x_coord (struct window *, enum window_part, int)`
+    pub fn window_relative_x_coord (w: *mut window, part: window_part, x: c_int) -> c_int;
+    /// C: window.h 1175: `bset_update_mode_line` - `void bset_update_mode_line (struct buffer *)`
+    pub fn bset_update_mode_line (b: *mut c_void);
+    /// C: window.h 1176: `wset_update_mode_line` - `void wset_update_mode_line (struct window *)`
+    pub fn wset_update_mode_line (w: *mut window);
+    /// C: window.h 1180: `redisplay_other_windows` - `void redisplay_other_windows (void)`
+    pub fn redisplay_other_windows ();
+    /// C: window.h 1208: `window_list` - `Lisp_Object window_list (void)`
+    pub fn window_list () -> Lisp_Object;
+    /// C: window.h 1209: `window_parameter` - `Lisp_Object window_parameter (struct window *, Lisp_Object parameter)`
+    pub fn window_parameter (w: *mut window, parameter: Lisp_Object) -> Lisp_Object;
+    /// C: window.h 1210: `*decode_live_window` - `struct window *decode_live_window (Lisp_Object)`
+    pub fn decode_live_window (window: Lisp_Object) -> *mut window;
+    /// C: window.h 1211: `*decode_any_window` - `struct window *decode_any_window (Lisp_Object)`
+    pub fn decode_any_window (window: Lisp_Object) -> *mut window;
+    /// C: window.h 1212: `mark_window_cursors_off` - `void mark_window_cursors_off (struct window *)`
+    pub fn mark_window_cursors_off (w: *mut window);
+    /// C: window.h 1216: `window_internal_height` - `int window_internal_height (struct window *)`
+    pub fn window_internal_height (w: *mut window) -> c_int;
+    /// C: window.h 1227: `temp_output_buffer_show` - `void temp_output_buffer_show (Lisp_Object)`
+    pub fn temp_output_buffer_show (buf: Lisp_Object);
+    /// C: window.h 1228: `replace_buffer_in_windows` - `void replace_buffer_in_windows (Lisp_Object)`
+    pub fn replace_buffer_in_windows (buffer: Lisp_Object);
+    /// C: window.h 1229: `replace_buffer_in_windows_safely` - `void replace_buffer_in_windows_safely (Lisp_Object)`
+    pub fn replace_buffer_in_windows_safely (buffer: Lisp_Object);
+    /// C: window.h 1231: `wset_buffer` - `void wset_buffer (struct window *, Lisp_Object)`
+    pub fn wset_buffer (w: *mut window, buf: Lisp_Object);
+    /// C: window.h 1232: `window_outdated` - `bool window_outdated (struct window *)`
+    pub fn window_outdated (w: *mut window) -> bool;
+    /// C: window.h 1233: `window_point` - `ptrdiff_t window_point (struct window *w)`
+    pub fn window_point (w: *mut window) -> ptrdiff_t;
+    /// C: window.h 1234: `window_discard_buffer_from_dead_windows` - `void window_discard_buffer_from_dead_windows (Lisp_Object)`
+    pub fn window_discard_buffer_from_dead_windows (buffer: Lisp_Object);
+    /// C: window.h 1235: `mru_rooted_frame` - `Lisp_Object mru_rooted_frame (struct frame *)`
+    pub fn mru_rooted_frame (f: *mut c_void) -> Lisp_Object;
+    /// C: window.h 1236: `init_window_once` - `void init_window_once (void)`
+    pub fn init_window_once ();
+    /// C: window.h 1237: `init_window` - `void init_window (void)`
+    pub fn init_window ();
+    /// C: window.h 1238: `syms_of_window` - `void syms_of_window (void)`
+    pub fn syms_of_window ();
+  }
+}
+use window_fn_decls::*;
+
+
 /* True if W is a leaf window.  */
 // window.h 567-1244's accessors.  C writes them as macros over the structure's fields; the port
 // keeps the names and the values, and reads the bitfield members through the unit's shift

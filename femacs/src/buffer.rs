@@ -84,9 +84,9 @@ unsafe extern "C" {
                                operation: Lisp_Object, r#where: Lisp_Object);
   /// C: lisp.h 5297: `extern EMACS_INT get_random (void);`
   fn get_random () -> EMACS_INT;
-  /// C: window.h 1175: `extern void bset_update_mode_line (struct buffer *b);` (defined in
-  /// xdisp.c)
-  fn bset_update_mode_line (b: *mut buffer);
+  // `bset_update_mode_line` (window.h 1175) is the window.rs mirror's; the use-site copy and
+  // its call sites' casts are gone - the mirror spells `struct buffer *` as `*mut c_void`
+  // (P-72 rule 3), so the three callers pass the pointer cast (P-26).
   /// C: frame.h 1476: `extern struct frame *decode_live_frame (Lisp_Object);` (defined in
   /// frame.c)
   fn decode_live_frame (frame: Lisp_Object) -> *mut c_void; // struct frame *
@@ -106,12 +106,9 @@ unsafe extern "C" {
   fn unlock_buffer (b: *mut buffer);
   /// C: lisp.h 4954: `extern void clear_charpos_cache (struct buffer *);`
   fn clear_charpos_cache (b: *mut buffer);
-  /// C: window.h 1228: `extern void replace_buffer_in_windows (Lisp_Object);`
-  fn replace_buffer_in_windows (buffer: Lisp_Object);
-  /// C: window.h 1229: `extern void replace_buffer_in_windows_safely (Lisp_Object);`
-  fn replace_buffer_in_windows_safely (buffer: Lisp_Object);
-  /// C: window.h 1234: `extern void window_discard_buffer_from_dead_windows (Lisp_Object);`
-  fn window_discard_buffer_from_dead_windows (buffer: Lisp_Object);
+  // window.h 1228/1229/1234 (`replace_buffer_in_windows`,
+  // `replace_buffer_in_windows_safely`, `window_discard_buffer_from_dead_windows`) are the
+  // window.rs mirror's now; the use-site copies are gone (P-26).
   /// C: region-cache.h 71: `void free_region_cache (struct region_cache *);` -- that header
   /// has no mirror (the gap docs/ports/buffer.md reports).
   fn free_region_cache (cache: *mut c_void); // struct region_cache *
@@ -1632,7 +1629,7 @@ DEFUN! ("force-mode-line-update", Fforce_mode_line_update,
     }
   else if buffer_window_count (current_buffer) != 0
     {
-      bset_update_mode_line (current_buffer);
+      bset_update_mode_line (current_buffer as *mut c_void);
       (*current_buffer).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P;
     }
   return all;
@@ -1786,7 +1783,7 @@ DEFUN! ("rename-buffer", Frename_buffer, Srename_buffer, 1, 2,
 
   /* Catch redisplay's attention.  Unless we do this, the mode lines for
      any windows displaying current_buffer will stay unchanged.  */
-  bset_update_mode_line (current_buffer);
+  bset_update_mode_line (current_buffer as *mut c_void);
 
   XSETBUFFER! (buf, current_buffer);
   Fsetcar (Frassq (buf, Vbuffer_alist), newname);
@@ -3159,7 +3156,7 @@ DEFUN! ("kill-all-local-variables", Fkill_all_local_variables,
 
   /* Force mode-line redisplay.  Useful here because all major mode
      commands call this function.  */
-  bset_update_mode_line (current_buffer);
+  bset_update_mode_line (current_buffer as *mut c_void);
 
   return Qnil ();
 });
