@@ -152,8 +152,7 @@ pub mod pdumper_use_site_decls {
     pub fn fatal (msgid: *const c_char, ...) -> !;
     /* void garbage_collect (void);  (lisp.h 4477)  */
     pub fn garbage_collect ();
-    /* extern Lisp_Object const *staticvec[NSTATICS]; extern int staticidx;  (lisp.h 3922-3923)  */
-    pub static mut staticvec: [*const Lisp_Object; NSTATICS as usize];
+    /* extern int staticidx;  (lisp.h 3923)  */
     /* int sys_fstat (int, struct stat *);  (lisp.h 5305; sysdep.c defines it)  */
     pub fn sys_fstat (fd: c_int, statb: *mut stat) -> c_int;
     /* char *splice_dir_file (char *, char const *, char const *);  (lisp.h 4968)  */

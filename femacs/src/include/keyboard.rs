@@ -275,3 +275,13 @@ unsafe extern "C" { pub fn temporarily_switch_to_single_kboard (f: *mut c_void);
 unsafe extern "C" {
   pub fn kbd_buffer_store_event (event: *mut c_void);
 }
+
+/* C 471 and C 531: this header's two file-scope objects.  The unit owns the definitions
+   (`keyboard.rs`'s `keyboard_globals`: `timers_run` from keyboard.c 340, `DEV_TTY` from
+   keyboard.c 92-95), so these are declarations only - the defining unit's own item shadows a
+   glob import (PORTING.md 0.1-10 / P-21), which is why `keyboard.rs` itself compiles with
+   both in scope.  They are here because status 3.143's tool fix made the extractor see them:
+   its `GLOBAL_LINE` split `extern unsigned int timers_run;` after `unsigned`, so the object
+   never reached the gate's C side and both mirrors looked complete without them.  */
+unsafe extern "C" { pub static mut timers_run: c_uint; }   // C 471
+unsafe extern "C" { pub static DEV_TTY: [c_char; 9]; }     // C 531

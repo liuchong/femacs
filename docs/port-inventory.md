@@ -23,22 +23,22 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 510 |
-| 其中 done / wip | 496 / 14 |
-| 待开工 | 80 |
+| 已有目标文件 | 514 |
+| 其中 done / wip | 499 / 15 |
+| 待开工 | 76 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 34 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 33 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 46 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 43 |
 
 ## 3 按批次
 
@@ -48,9 +48,9 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 8 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 28 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 25 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 34 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 33 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -128,7 +128,7 @@
 | `lib/boot-time.h` | 49 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/boot-time.rs` | done |
 | `lib/byteswap.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/byteswap.rs` | done |
 | `lib/byteswap.in.h` | 73 | 3 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/include/byteswap.in.rs` | done |
-| `lib/c++defs.h` | 367 | 0 | 0 | 23 | 0 | 0 | 0 | L | `femacs/lib/include/c++defs.rs` | todo |
+| `lib/c++defs.h` | 367 | 0 | 0 | 23 | 0 | 0 | 0 | L | `femacs/lib/include/c++defs.rs` | done |
 | `lib/c-ctype.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/c-ctype.rs` | done |
 | `lib/c-ctype.h` | 366 | 15 | 0 | 12 | 1 | 0 | 0 | L | `femacs/lib/include/c-ctype.rs` | wip |
 | `lib/c-strcase.h` | 61 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/c-strcase.rs` | todo |
@@ -430,10 +430,10 @@
 | `src/android-asset.h` | 528 | 9 | 0 | 0 | 2 | 19 | 1 | F | `femacs/src/include/android-asset.rs` | todo |
 | `src/android-emacs.c` | 114 | 1 | 0 | 0 | 0 | 0 | 0 | F | `femacs/src/android-emacs.rs` | done |
 | `src/android.c` | 7,594 | 155 | 0 | 2 | 0 | 60 | 55 | F | `femacs/src/android.rs` | done |
-| `src/android.h` | 363 | 0 | 0 | 7 | 0 | 56 | 14 | F | `femacs/src/include/android.rs` | todo |
+| `src/android.h` | 363 | 0 | 0 | 7 | 0 | 56 | 14 | F | `femacs/src/include/android.rs` | wip |
 | `src/androidfns.c` | 3,797 | 50 | 35 | 1 | 16 | 5 | 8 | F | `femacs/src/androidfns.rs` | done |
 | `src/androidfont.c` | 1,102 | 24 | 0 | 4 | 0 | 52 | 7 | F | `femacs/src/androidfont.rs` | done |
-| `src/androidgui.h` | 930 | 0 | 0 | 37 | 125 | 194 | 2 | F | `femacs/src/include/androidgui.rs` | todo |
+| `src/androidgui.h` | 930 | 0 | 0 | 37 | 125 | 194 | 2 | F | `femacs/src/include/androidgui.rs` | done |
 | `src/androidmenu.c` | 860 | 14 | 1 | 2 | 0 | 16 | 3 | F | `femacs/src/androidmenu.rs` | done |
 | `src/androidselect.c` | 1,220 | 12 | 8 | 1 | 0 | 18 | 5 | F | `femacs/src/androidselect.rs` | done |
 | `src/androidterm.c` | 7,117 | 132 | 0 | 1 | 4 | 40 | 7 | F | `femacs/src/androidterm.rs` | done |
@@ -518,7 +518,7 @@
 | `src/gtkutil.h` | 245 | 0 | 0 | 10 | 6 | 0 | 2 | F | `femacs/src/include/gtkutil.rs` | done |
 | `src/haiku.c` | 286 | 7 | 0 | 0 | 0 | 4 | 4 | F | `femacs/src/haiku.rs` | done |
 | `src/haiku_io.c` | 217 | 8 | 0 | 1 | 1 | 0 | 3 | F | `femacs/src/haiku_io.rs` | done |
-| `src/haiku_support.h` | 784 | 0 | 0 | 3 | 125 | 100 | 3 | F | `femacs/src/include/haiku_support.rs` | todo |
+| `src/haiku_support.h` | 784 | 0 | 0 | 3 | 125 | 100 | 3 | F | `femacs/src/include/haiku_support.rs` | done |
 | `src/haikufns.c` | 3,324 | 56 | 34 | 5 | 0 | 12 | 7 | F | `femacs/src/haikufns.rs` | done |
 | `src/haikufont.c` | 1,480 | 31 | 3 | 3 | 1 | 0 | 1 | F | `femacs/src/haikufont.rs` | done |
 | `src/haikugui.h` | 205 | 0 | 0 | 35 | 19 | 4 | 0 | F | `femacs/src/include/haikugui.rs` | done |

@@ -1682,10 +1682,11 @@ def globals_(text: str) -> list[dict]:
         ctype = m.group("type").strip()
         if not ctype or ctype in STATEMENT_WORDS:
             continue
-        for decl in split_declarators(m.group("decls")):
-            d = DECLARATOR.match(decl.strip())
-            if not d:
-                continue
+        split = _specifiers_and_declarators(ctype, m.group("decls"))
+        if split is None:
+            continue
+        ctype, decls = split
+        for d in decls:
             out.append({"c_type": ctype, "name": d.group("name"),
                         "array": d.group("array") or "",
                         "pointer_depth": len(d.group("stars") or ""),
@@ -1693,6 +1694,42 @@ def globals_(text: str) -> list[dict]:
                         "const": "const" in ctype,
                         "init": (m.group("init") or "").strip(), "line": i})
     return out
+
+
+# C writes some attributes *after* the declarator (`void *lisp_malloc_loser EXTERNALLY_VISIBLE;`,
+# `bool print_output_debug_flag EXTERNALLY_VISIBLE = 1;`), so the object's name is what precedes
+# them.  The set is measured, not guessed: a scan of all 590 reference files for objects whose
+# name matches C's attribute spelling returned 17 ALL-CAPS names, and exactly this one is an
+# attribute rather than an object (status 3.143).
+TRAILING_ATTRIBUTES = frozenset({"EXTERNALLY_VISIBLE"})
+
+
+def _specifiers_and_declarators(ctype: str, decls: str):
+    """Give back (specifiers, [DECLARATOR match, ...]) or None.
+
+    C's declaration specifiers are several words, and `GLOBAL_LINE`'s type group is lazy:
+    `extern unsigned int a_one;` parses as type "extern unsigned" and declarator "int a_one",
+    which `DECLARATOR` then refuses - so the object was **silently dropped** from the C side of
+    the file-scope-object gate.  Every multi-word type (`unsigned int`, `unsigned long`,
+    `long long`, `unsigned short`, a pointer with a trailing `const`, ...) was invisible that
+    way, which is what status 3.143 fixed after a lane hit it on `src/androidterm.h`'s
+    `current_menu_serial` (an `extern unsigned int`).  Walk specifier words across the boundary
+    until every declarator parses, and keep the last such split; if none parses, report None so
+    the caller skips the line rather than inventing an object.
+    """
+    words = decls.split()
+    while len(words) > 1 and words[-1] in TRAILING_ATTRIBUTES:
+        words.pop()
+    decls = " ".join(words)
+    while True:
+        parts = [d.strip() for d in split_declarators(decls)]
+        matches = [DECLARATOR.match(part) for part in parts]
+        if parts and all(matches):
+            return ctype, matches
+        if len(words) <= 1:
+            return None
+        ctype = (ctype + " " + words.pop(0)).strip()
+        decls = " ".join(words)
 
 
 def defuns(text: str) -> list[dict]:
@@ -1757,3 +1794,51 @@ def _inventory(path: Path) -> dict:
         "struct_fields": structs,
         "globals": globals_(text),
     }
+
+
+def selftest() -> int:
+    """The `globals_` classifier cases an earlier version got wrong (status 3.143).
+
+    The bug this pins down was silent: `GLOBAL_LINE`'s lazy type group left the last specifier
+    at the front of the declarator (`extern unsigned int a_one;` parsed as type "extern unsigned",
+    declarator "int a_one"), `DECLARATOR` then refused it, and the object simply vanished from
+    the C side of the file-scope-object gate.  A lane hit it on `src/androidterm.h`'s
+    `current_menu_serial`; the second case is the fix's own false positive (C's post-declarator
+    attributes), and the third and fourth are the shapes that must not regress.
+    """
+    cases = [
+        ("multi-word specifiers",
+         "extern unsigned int a_one;\nextern unsigned long a_two;\n"
+         "extern long long a_three;\nunsigned short a_four;\n",
+         ["a_one", "a_two", "a_three", "a_four"]),
+        ("trailing attribute names the object before it",
+         "void *lisp_malloc_loser EXTERNALLY_VISIBLE;\n"
+         "bool print_output_debug_flag EXTERNALLY_VISIBLE = 1;\n",
+         ["lisp_malloc_loser", "print_output_debug_flag"]),
+        ("ordinary shapes do not regress",
+         "extern Lisp_Object Qt, Qnil;\nstatic const char *a_six;\nFILE *a_seven, *a_eight;\n",
+         ["Qt", "Qnil", "a_six", "a_seven", "a_eight"]),
+        ("a function declaration is not an object",
+         "extern void debug_output_compilation_hack (bool) EXTERNALLY_VISIBLE;\n",
+         []),
+        ("an array of pointers to const objects",
+         "Lisp_Object const *staticvec[NSTATICS];\n",
+         ["staticvec"]),
+    ]
+    bad = 0
+    for name, src, want in cases:
+        got = [g["name"] for g in globals_(src)]
+        ok = got == want
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got}" + ("" if ok else f" (want {want})"))
+        bad += 0 if ok else 1
+    print(f"{len(cases)} cases, {bad} failures")
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    import sys
+
+    if "--selftest" in sys.argv[1:]:
+        sys.exit(selftest())
+    print("cinventory.py: import this module (extract-abi.py does), or pass --selftest")
+    sys.exit(2)

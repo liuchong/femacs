@@ -3872,7 +3872,9 @@ pub mod other_units {
     unsafe extern "C" { pub static mut doomed_finalizers: Lisp_Finalizer; }
     unsafe extern "C" { pub static mut memory_signal_data: Lisp_Object; }
     unsafe extern "C" { pub static mut Vascii_downcase_table: Lisp_Object; }
+    unsafe extern "C" { pub static mut staticvec: [*const Lisp_Object; NSTATICS as usize]; }
     unsafe extern "C" { pub static mut staticidx: c_int; }
+    unsafe extern "C" { pub static mut hashtest_eq: hash_table_test; }
     unsafe extern "C" { pub static mut hashtest_eql: hash_table_test; }
     unsafe extern "C" { pub static mut hashtest_equal: hash_table_test; }
     unsafe extern "C" { pub static mut noninteractive_need_newline: bool; }
@@ -3916,6 +3918,7 @@ pub mod other_units {
     unsafe extern "C" { pub static mut w32_daemon_event: *mut c_void; }
     unsafe extern "C" { pub static mut fatal_error_in_progress: bool; }
     unsafe extern "C" { pub static mut inhibit_window_system: bool; }
+    unsafe extern "C" { pub static mut emacs_wd: *const c_char; }
     unsafe extern "C" { pub static mut running_asynch_code: bool; }
     unsafe extern "C" { pub static mut char_ins_del_vector: *mut c_int; }
     unsafe extern "C" { pub static mut Vface_alternative_font_family_alist: Lisp_Object; }

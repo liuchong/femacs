@@ -63,7 +63,9 @@
 - [x] extern Lisp_Object real_this_command  (line 467)
 - [x] extern int quit_char  (line 469)
 - [x] extern bool input_was_pending  (line 470)
+- [x] extern unsigned int timers_run  (line 471)
 - [x] extern char dev_tty  (line 529)
+- [x] extern char const DEV_TTY  (line 531)
 
 # ----------------------------------------------------------------------
 ## Decisions (pre-implementation, measured 2026-10-02)

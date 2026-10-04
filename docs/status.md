@@ -2268,3 +2268,32 @@
   `check-declarations` 13 sites (0 forbidden) / 0、`check-mirror-dupes` 1 duplicate / 1 ratchet / 0 failure、
   `check-globals` 283 units / 0、`check-verbatim` 6 trees/4607 files/0、**`check-target-names` 545 `.rs` / 593
   targets / 0 finding**；清单复算 **510 = 496 done / 14 wip，待开工 80**。
+
+- **3.143 抽取器的 `globals_` 盲点（多词类型说明符）修掉，它当场暴露 5 个真的镜像缺口（2026-10-04）**：
+  ① **bug 与最小复现**（mirror lane B 在对读 `src/androidterm.h` 时发现，`current_menu_serial` 那个
+  `extern unsigned int` 对象在台账里根本不存在）：`GLOBAL_LINE` 的类型组是惰性的，
+  `extern unsigned int a_one;` 被切成 `type="extern unsigned"` / `decls="int a_one"`，`DECLARATOR` 随即拒绝，
+  于是对象**被静默丢弃**——所有 `unsigned int`/`unsigned long`/`long long`/`unsigned short` 形状的文件级对象
+  都不在门比较的 C 侧里。修法是"把说明符一个词一个词挪过边界，直到每个 declarator 都能解析"；
+  另加一条实测出来的抑制：C 把属性写在 declarator **之后**（`void *lisp_malloc_loser EXTERNALLY_VISIBLE;`），
+  扫描 590 个参照文件里所有"名字长得像属性"的对象共 17 个，只有 `EXTERNALLY_VISIBLE` 是属性而不是对象，
+  所以它进 `TRAILING_ATTRIBUTES`（不猜、用实测集合）。
+  ② **回归用例**：`tools/cinventory.py` 新增 `--selftest`（5 例：多词说明符、尾属性、普通形状不回归、
+  函数声明不是对象、`Lisp_Object const *staticvec[NSTATICS]`），实测 **5 cases / 0 failures**。
+  ③ **它暴露的 5 个缺口全是真的**（`--all` 由 0 failing 变 2 failing）：`src/keyboard.h` 的 `timers_run`(471)、
+  `DEV_TTY`(531)，`src/lisp.h` 的 `staticvec`(3922)、`hashtest_eq`(4260)、`emacs_wd`(5131)——
+  对照各处定义点（keyboard.c 340/92-95、alloc.c 503、fns.c 5019、emacs.c 262），端口一直靠**用点副本**撑着。
+  本轮把 5 条声明补进两个镜像（`include/keyboard.rs`、`include/lisp.rs`，位置按 C 行序），
+  并**退役 5 处用点副本**（`process.rs`、`emacs.rs`、`pdumper.rs`、`xfaces.rs`、`buffer.rs`），
+  5 个单元重建全 **built**；两个头 `--check` 均 **OK**；台账 `docs/ports/lisp.md` 与
+  `docs/ports/include-keyboard.md` 各补上对应行（C 行号照抄抽取器的新读数）。
+  ④ **教训（写给后来者）**：工具的盲点会让"全绿"变成假象——这次是"某类对象从不被比较"，上一次是
+  "反斜杠续行字面量被当成 5 个对象"（3.130）。因此 gate 修好后必须**重跑 `--all` 看新增的 FAIL**，
+  而不是只跑改动文件；也要把新发现的对象挨个回查定义点，别让"镜像缺声明 + 单元有副本"这种半影子状态留下来。
+  ⑤ 本轮实测：`--all` **514 ported files: 507 done, 7 in progress, 0 failing**；`cinventory --selftest` 5/0；
+  `check-declarations` 13 sites (0 forbidden) / 0；`check-mirror-dupes` 0 failure；
+  `check-globals` 283/0；`check-verbatim` 6 trees/4607 files/0；`check-target-names` 549 `.rs`/593 targets/0。
+  另：`docs/ports/include-c++defs.md` 的一处**错误论断**同批改正——它原先按
+  `rg "c++defs\.h"` 的输出列了四个"包含者"，而那个模式不是合法正则；用
+  `grep -F` 复测的真相是**没有任何源文件包含它**（只有 `gnulib.mk.in` 3180/3182 的构建机制），
+  台账已按实测重写（并把"为什么当时的输出不可当证据"写进去）。

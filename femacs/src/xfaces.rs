@@ -527,9 +527,6 @@ pub const FACE_TTY_DEFAULT_BG_COLOR: c_ulong = -3i64 as c_ulong;
 unsafe extern "C" {
   /// C: frame.h 1501: `struct frame *decode_live_frame (Lisp_Object);` (frame.c).
   fn decode_live_frame (frame: Lisp_Object) -> *mut frame;
-  /// C: fns.c 4550: `struct hash_table_test hashtest_eq;` - the equality test
-  /// `make_hash_table` is handed.
-  static mut hashtest_eq: hash_table_test;
   /// C: lisp.h 2xxx: `bool FUNCTIONP (Lisp_Object)` is an INLINE in lisp.h that no mirror
   /// carries; the port declares the same predicate here.
   fn FUNCTIONP (a: Lisp_Object) -> bool;

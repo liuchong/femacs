@@ -6316,8 +6316,6 @@ unsafe extern "C" {
   fn process_pending_signals ();
   /// C: bool interrupt_input   (keyboard.c, keyboard.h 71)
   static mut interrupt_input: bool;
-  /// C: unsigned int timers_run   (atimer.c, lisp.h 5381)
-  static mut timers_run: c_uint;
   /// C: bool pending_signals   (keyboard.c, lisp.h 5176)
   static mut pending_signals: bool;
   /// C: bool noninteractive   (emacs.c, lisp.h's `noninteractive`)

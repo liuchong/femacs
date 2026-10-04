@@ -341,9 +341,6 @@ unsafe extern "C" {
   fn execvp (file: *const c_char, argv: *const *mut c_char) -> c_int;
   /// C: <locale.h>: `char *setlocale (int, const char *);`
   fn setlocale (category: c_int, locale: *const c_char) -> *mut c_char;
-  /// C: keyboard.h 531: `extern char const DEV_TTY[];` -- defined in keyboard.c as
-  /// `"/dev/tty"`, so the mirror's array is nine bytes (the definition is keyboard.rs's).
-  static DEV_TTY: [c_char; 9];
 
   /* --- objects C declares in a header and defines in this file -------------------- */
   /* C's lisp.h 5131 `extern char const *emacs_wd;`: this file defines the object, so only

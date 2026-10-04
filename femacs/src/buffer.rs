@@ -144,8 +144,6 @@ unsafe extern "C" {
   fn emacs_strerror (error_num: c_int) -> *mut c_char;
   /// C: minibuf.c 2132 (prototype in lisp.h 5178): `extern Lisp_Object get_minibuffer (int);`
   fn get_minibuffer (depth: c_int) -> Lisp_Object;
-  /// C: emacs.c 237: `extern char *emacs_wd;`
-  static mut emacs_wd: *mut c_char;
   /// C: lisp.h 4624: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
   fn larger_vector (vec: Lisp_Object, elt_size: ptrdiff_t, new_size: ptrdiff_t) -> Lisp_Object;
 }
