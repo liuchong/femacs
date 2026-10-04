@@ -4944,3 +4944,9 @@
   ② `EmacsDrawLine`：`Math.hypot/abs/min/max` → `kotlin.math`；`polyDashPattern` 的 `while (offset >= gc.dashes[i])` 与 dash 相位切换照抄。
   ③ **又一处"Java 形参被重赋"**（第三例，与 `EmacsDocumentsProvider.projection`、`EmacsGC` 的数组同族）：`polyDashPattern` 在循环里重赋 `x1/y1`，Kotlin 形参不可变 ⇒ 在循环前 `var px1/var py1` 两个局部承接（语义不变，已在文件里记一句）。
   ④ 读数：**40 目标 / 13 已落 / 27 待做**；十三个文件全部由 `spikes/kotlin-compile-probe.sh` 编译通过（只剩 `EmacsDocumentsProvider` 那两条参照自身不判空的 warning）。
+
+- **3.291 Kotlin 剪贴板簇 + 光标：`EmacsCursor`/`EmacsClipboard`/`EmacsSdk8Clipboard`/`EmacsSdk11Clipboard`（461 行）——18/40（2026-10-05）**：
+  ① 四件落地并编译通过：`EmacsCursor`（47，构造器早退改成单表达式）、`EmacsClipboard`（48，抽象类 + companion 的 `makeClipboard`）、`EmacsSdk8Clipboard`（133，`manager` 的 `getSystemService` 强转）、`EmacsSdk11Clipboard`（233，`@Synchronized` 三个方法、`ClipData`/`ClipDescription` 的读取、两个 catch 返回 null）。
+  ② **P-83 又添一条 ⑪（实测）**：**JNI 按名字找的 `static` 方法必须 `@JvmStatic`**——Kotlin 的 companion 成员在 JVM 上住在 `X$Companion` 上，而 `androidselect.c` 110-112 是在 `EmacsClipboard` 类上找 `makeClipboard`（`()Lorg/gnu/emacs/EmacsClipboard;`）⇒ 不加就找不到。
+  ③ **探针升级（这批的关键使能）**：不再要求"依赖先落库才能编"——`spikes/kotlin-compile-probe.sh` 现在把**参照自己的 `java/**`（去掉已被 Kotlin 覆盖的那些名字）**一起交给编译器，作为未落库依赖的替身（就是端口将来要复现的那套接口）⇒ **每个 Kotlin 文件一落地就能真编译**。它证明的是被移植文件的语法与类型对参照接口成立；"与端口自己后续文件的接口一致性"仍由 `docs/baseline/kotlin-order.tsv` 的簇闭包在落库时核（这条限制已写进探针注释）。
+  ④ 读数：**40 目标 / 18 已落 / 22 待做**，十八个文件全部编译通过（只剩 `EmacsDocumentsProvider` 那两条参照自身不判空的 warning）。

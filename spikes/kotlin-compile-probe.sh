@@ -42,5 +42,20 @@ kotlin_stdlib="$gradle_lib/kotlin-stdlib-2.4.0.jar"
 # reference's own `res/` tree (see spikes/android-r-from-res.py) so the names come from the
 # reference rather than from a hand-written stub.
 "$root/spikes/android-r-from-res.py" > "$out/R.kt"
+# Targets whose dependencies are not ported yet still get a real compile: the reference's own
+# `java/**` files stand in for them (the same API the port will later reproduce), with the ported
+# `.kt` names removed so a class is never defined twice.  What this proves is the *ported* file's
+# syntax and types against the reference's interfaces; the interface agreement with the port's own
+# later files is what the cluster closures in docs/baseline/kotlin-order.tsv check.
+ported=""
+java_deps=""
+for kt in "$@"; do ported="$ported ${kt##*/}"; done
+for java in "$root"/emacs/java/org/gnu/emacs/*.java; do
+  stem="$(basename "$java" .java)"
+  case " $ported " in
+    *" ${stem}.kt "*) continue ;;
+  esac
+  java_deps="$java_deps $java"
+done
 "java" -cp "$gradle_lib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
-  -no-stdlib -classpath "$kotlin_stdlib:$android_jar" -d "$out/classes" "$out/R.kt" "$@"
+  -no-stdlib -classpath "$kotlin_stdlib:$android_jar" -d "$out/classes" "$out/R.kt" $java_deps "$@"
