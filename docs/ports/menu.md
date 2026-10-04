@@ -157,3 +157,13 @@ declares come from the mirrors instead (see the next item).
    (the globals.rs `variables` shape, PORTING.md 0.1-10/P-21) - otherwise this unit's
    `#[unsafe(no_mangle)] pub static mut` definitions collide with the mirror's declarations
    (E0428).  `--check emacs/src/keyboard.h femacs/src/include/keyboard.rs` is still `OK`.
+
+### Integrator addition (2026-10-04, window.h's geometry family)
+
+- The use-site declarations this ledger recorded for `WINDOW_FRAME` (frame.h 929), `WINDOW_XFRAME`/`WINDOW_LEFT_EDGE_X`/`WINDOW_TOP_EDGE_Y` (window.h 620/758/797), `WINDOW_HEADER_LINE_HEIGHT`/`WINDOW_TAB_LINE_HEIGHT` (1030/1040), `MATRIX_HEADER_LINE_HEIGHT`/`MATRIX_TAB_LINE_HEIGHT`, `CURRENT_HEADER_LINE_HEIGHT`/`CURRENT_TAB_LINE_HEIGHT` and the two `window_wants_*` declarations are the mirrors' now: the window.h
+  geometry macros (and, where they were here, the dispextern.h `MATRIX_*_LINE_HEIGHT`/
+  `CURRENT_*_LINE_HEIGHT` family) moved into `include/window.rs`/`include/dispextern.rs` with
+  window.h's third slice and the local copies were deleted (PORTING.md P-26;
+  `docs/ports/include-window.md`'s "Decisions (third slice, 2026-10-04: the geometry family)"
+  has the full list and the reason the family keeps C's `macro_rules!` shape).  Call sites keep
+  C's text; `estimate_mode_line_height` (dispextern.h 3582) stays a use-site declaration here.

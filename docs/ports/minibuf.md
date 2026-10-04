@@ -234,3 +234,13 @@ pre-existing mirror warnings (`include/lisp.rs` 3836's unused doc comment and
   resolves to a reference declaration except the 14 Rust runtime symbols
   (`core::panicking::*`, `core::option::unwrap_failed`) and `__stdoutp`, which is libc's
   `stdout` on this target and is what cm.rs already links against.
+
+### Integrator addition (2026-10-04, window.h's geometry family)
+
+- The use-site declarations this ledger recorded for the `WINDOW_FRAME` macro are the mirrors' now: the window.h
+  geometry macros (and, where they were here, the dispextern.h `MATRIX_*_LINE_HEIGHT`/
+  `CURRENT_*_LINE_HEIGHT` family) moved into `include/window.rs`/`include/dispextern.rs` with
+  window.h's third slice and the local copies were deleted (PORTING.md P-26;
+  `docs/ports/include-window.md`'s "Decisions (third slice, 2026-10-04: the geometry family)"
+  has the full list and the reason the family keeps C's `macro_rules!` shape).  Call sites keep
+  C's text; `estimate_mode_line_height` (dispextern.h 3582) stays a use-site declaration here.

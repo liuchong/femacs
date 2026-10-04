@@ -23,17 +23,17 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 486 |
-| 其中 done / wip | 454 / 32 |
-| 待开工 | 104 |
+| 已有目标文件 | 500 |
+| 其中 done / wip | 469 / 31 |
+| 待开工 | 90 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 48 |
-| `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 4 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 36 |
+| `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 2 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
@@ -48,9 +48,9 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 10 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 36 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 34 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 48 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 36 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -96,7 +96,7 @@
 | `exec/trace.c` | 2,258 | 24 | 0 | 9 | 5 | 0 | 7 | F | `femacs/exec/trace.rs` | done |
 | `lib-src/asset-directory-tool.c` | 338 | 5 | 0 | 0 | 0 | 5 | 1 | F | `femacs/lib-src/asset-directory-tool.rs` | done |
 | `lib-src/ebrowse.c` | 3,926 | 66 | 0 | 37 | 125 | 41 | 41 | F | `femacs/lib-src/ebrowse.rs` | todo |
-| `lib-src/emacsclient.c` | 2,524 | 52 | 0 | 11 | 4 | 4 | 15 | F | `femacs/lib-src/emacsclient.rs` | todo |
+| `lib-src/emacsclient.c` | 2,524 | 52 | 0 | 11 | 4 | 4 | 15 | F | `femacs/lib-src/emacsclient.rs` | done |
 | `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 62 | 0 | 12 | F | `femacs/lib-src/etags.rs` | todo |
 | `lib-src/hexl.c` | 221 | 3 | 0 | 0 | 0 | 0 | 1 | F | `femacs/lib-src/hexl.rs` | done |
 | `lib-src/make-docfile.c` | 1,232 | 21 | 0 | 0 | 10 | 15 | 6 | F | `femacs/lib-src/make-docfile.rs` | done |
@@ -104,7 +104,7 @@
 | `lib-src/movemail.c` | 871 | 13 | 0 | 7 | 1 | 0 | 1 | F | `femacs/lib-src/movemail.rs` | done |
 | `lib-src/ntlib.c` | 601 | 24 | 0 | 2 | 0 | 2 | 4 | F | `femacs/lib-src/ntlib.rs` | done |
 | `lib-src/ntlib.h` | 96 | 0 | 0 | 29 | 0 | 0 | 0 | F | `femacs/lib-src/include/ntlib.rs` | done |
-| `lib-src/pop.c` | 1,703 | 29 | 0 | 17 | 12 | 2 | 3 | F | `femacs/lib-src/pop.rs` | todo |
+| `lib-src/pop.c` | 1,703 | 29 | 0 | 17 | 12 | 2 | 3 | F | `femacs/lib-src/pop.rs` | done |
 | `lib-src/pop.h` | 75 | 0 | 0 | 5 | 2 | 7 | 2 | F | `femacs/lib-src/include/pop.rs` | done |
 | `lib-src/seccomp-filter.c` | 409 | 5 | 0 | 5 | 2 | 0 | 1 | F | `femacs/lib-src/seccomp-filter.rs` | done |
 | `lib-src/update-game-score.c` | 506 | 16 | 0 | 4 | 2 | 2 | 0 | F | `femacs/lib-src/update-game-score.rs` | done |
@@ -150,7 +150,7 @@
 | `lib/dtoastr.c` | 19 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/dtoastr.rs` | done |
 | `lib/dtotimespec.c` | 53 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/dtotimespec.rs` | done |
 | `lib/dup2.c` | 205 | 5 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/dup2.rs` | done |
-| `lib/dynarray.h` | 284 | 0 | 0 | 8 | 0 | 0 | 0 | L | `femacs/lib/include/dynarray.rs` | todo |
+| `lib/dynarray.h` | 284 | 0 | 0 | 8 | 0 | 0 | 0 | L | `femacs/lib/include/dynarray.rs` | done |
 | `lib/endian.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/endian.rs` | done |
 | `lib/endian.in.h` | 301 | 12 | 0 | 30 | 15 | 0 | 0 | L | `femacs/lib/include/endian.in.rs` | done |
 | `lib/errno.in.h` | 270 | 0 | 0 | 74 | 73 | 0 | 0 | L | `femacs/lib/include/errno.in.rs` | todo |
@@ -218,17 +218,17 @@
 | `lib/limits.in.h` | 151 | 0 | 0 | 28 | 5 | 0 | 0 | L | `femacs/lib/include/limits.in.rs` | wip |
 | `lib/lstat.c` | 97 | 2 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/lstat.rs` | done |
 | `lib/malloc.c` | 56 | 1 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/malloc.rs` | done |
-| `lib/malloc/dynarray-skeleton.c` | 528 | 1 | 0 | 7 | 1 | 7 | 0 | L | `femacs/lib/malloc/dynarray-skeleton.rs` | todo |
-| `lib/malloc/dynarray.h` | 177 | 2 | 0 | 1 | 0 | 5 | 0 | L | `femacs/lib/malloc/include/dynarray.rs` | todo |
-| `lib/malloc/dynarray_at_failure.c` | 40 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_at_failure.rs` | todo |
-| `lib/malloc/dynarray_emplace_enlarge.c` | 77 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_emplace_enlarge.rs` | todo |
-| `lib/malloc/dynarray_finalize.c` | 66 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_finalize.rs` | todo |
-| `lib/malloc/dynarray_resize.c` | 68 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_resize.rs` | todo |
-| `lib/malloc/dynarray_resize_clear.c` | 39 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_resize_clear.rs` | todo |
-| `lib/malloc/scratch_buffer.h` | 135 | 5 | 0 | 1 | 0 | 2 | 0 | L | `femacs/lib/malloc/include/scratch_buffer.rs` | todo |
-| `lib/malloc/scratch_buffer_grow.c` | 56 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/scratch_buffer_grow.rs` | todo |
-| `lib/malloc/scratch_buffer_grow_preserve.c` | 67 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/scratch_buffer_grow_preserve.rs` | todo |
-| `lib/malloc/scratch_buffer_set_array_size.c` | 64 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/scratch_buffer_set_array_size.rs` | todo |
+| `lib/malloc/dynarray-skeleton.c` | 528 | 1 | 0 | 7 | 1 | 7 | 0 | L | `femacs/lib/malloc/dynarray-skeleton.rs` | done |
+| `lib/malloc/dynarray.h` | 177 | 2 | 0 | 1 | 0 | 5 | 0 | L | `femacs/lib/malloc/include/dynarray.rs` | done |
+| `lib/malloc/dynarray_at_failure.c` | 40 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_at_failure.rs` | done |
+| `lib/malloc/dynarray_emplace_enlarge.c` | 77 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_emplace_enlarge.rs` | done |
+| `lib/malloc/dynarray_finalize.c` | 66 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_finalize.rs` | done |
+| `lib/malloc/dynarray_resize.c` | 68 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_resize.rs` | done |
+| `lib/malloc/dynarray_resize_clear.c` | 39 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/dynarray_resize_clear.rs` | done |
+| `lib/malloc/scratch_buffer.h` | 135 | 5 | 0 | 1 | 0 | 2 | 0 | L | `femacs/lib/malloc/include/scratch_buffer.rs` | done |
+| `lib/malloc/scratch_buffer_grow.c` | 56 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/scratch_buffer_grow.rs` | done |
+| `lib/malloc/scratch_buffer_grow_preserve.c` | 67 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/scratch_buffer_grow_preserve.rs` | done |
+| `lib/malloc/scratch_buffer_set_array_size.c` | 64 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/malloc/scratch_buffer_set_array_size.rs` | done |
 | `lib/md5-stream.c` | 134 | 1 | 0 | 7 | 2 | 0 | 0 | L | `femacs/lib/md5-stream.rs` | done |
 | `lib/md5.c` | 394 | 7 | 0 | 16 | 1 | 0 | 0 | L | `femacs/lib/md5.rs` | done |
 | `lib/md5.h` | 181 | 0 | 0 | 14 | 5 | 7 | 0 | L | `femacs/lib/include/md5.rs` | done |
@@ -657,7 +657,7 @@
 | `src/widget.h` | 102 | 0 | 0 | 36 | 35 | 0 | 1 | E | `femacs/src/include/widget.rs` | todo |
 | `src/widgetprv.h` | 70 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/widgetprv.rs` | todo |
 | `src/window.c` | 9,740 | 112 | 121 | 1 | 5 | 64 | 13 | E | `femacs/src/window.rs` | done |
-| `src/window.h` | 1,267 | 16 | 0 | 95 | 5 | 102 | 9 | E | `femacs/src/include/window.rs` | wip |
+| `src/window.h` | 1,267 | 16 | 0 | 95 | 5 | 102 | 9 | E | `femacs/src/include/window.rs` | done |
 | `src/xdisp.c` | 39,805 | 406 | 24 | 57 | 36 | 7 | 72 | E | `femacs/src/xdisp.rs` | wip |
 | `src/xfaces.c` | 7,843 | 101 | 33 | 34 | 22 | 3 | 17 | E | `femacs/src/xfaces.rs` | done |
 | `src/xfns.c` | 10,662 | 116 | 53 | 7 | 17 | 13 | 11 | F | `femacs/src/xfns.rs` | done |

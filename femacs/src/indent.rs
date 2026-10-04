@@ -462,12 +462,6 @@ macro_rules! IT_STRING_BYTEPOS {
   ($it:expr) => { BYTEPOS! (($it).current.string_pos) };
 }
 
-/* C: window.h 543: `#define WINDOW_FRAME(w) ((w)->frame)`.  The window.h mirror is WIP
-   (P-66) and does not carry it; the one use site is recorded in docs/ports/indent.md.  */
-macro_rules! WINDOW_FRAME {
-  ($w:expr) => { (*$w).frame };
-}
-
 /* C 35: `#define CR 015`.  C's octal literal has no Rust spelling the constants rule
    reads (`scan_const_value`/`norm_const` take `0400` but not `0o400`), so the port writes
    the decimal value; docs/ports/indent.md records the spelling.  */

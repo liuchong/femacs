@@ -259,12 +259,6 @@ macro_rules! SET_GLYPH_FROM_GLYPH_CODE {
 unsafe extern "C" {
   /// C: dispextern.h 1155: `unsigned row_hash (struct glyph_row *row);` (term.c defines it)
   fn row_hash (row: *mut glyph_row) -> c_uint;
-  /// C: window.h 1213: `bool window_wants_mode_line (struct window *w);`
-  pub fn window_wants_mode_line (w: *mut window) -> bool;
-  /// C: window.h 1214: `bool window_wants_header_line (struct window *w);`
-  pub fn window_wants_header_line (w: *mut window) -> bool;
-  /// C: window.h 1215: `bool window_wants_tab_line (struct window *w);`
-  pub fn window_wants_tab_line (w: *mut window) -> bool;
   /// C: dispextern.h 3582: `int estimate_mode_line_height (struct frame *, enum face_id);`
   fn estimate_mode_line_height (f: *mut frame, face_id: face_id) -> c_int;
   /// C: dispextern.h 3822: `int lookup_basic_face (struct frame *, struct frame *, int);`
@@ -545,20 +539,6 @@ macro_rules! fonts_changed {
   ($f:expr) => { (*$f).bits1 >> FRAME_FONTS_CHANGED_SHIFT & 1 != 0 };
 }
 
-/// C: window.h 687-690: `#define WINDOW_RIGHTMOST_P(W) (WINDOW_RIGHT_PIXEL_EDGE (W) ==
-/// (WINDOW_RIGHT_PIXEL_EDGE (XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME (W))))))`.  The
-/// mirror's own note lists this accessor (and `WINDOW_XFRAME`) as "not mirrored yet", so it
-/// is declared here at its use site (PORTING.md P-72 rule 3); `WINDOW_XFRAME` is inlined
-/// into its C definition's expansion.
-#[inline(always)]
-fn WINDOW_RIGHTMOST_P (w: *mut window) -> bool
-{
-  unsafe {
-    WINDOW_RIGHT_PIXEL_EDGE (w)
-    == WINDOW_RIGHT_PIXEL_EDGE (XWINDOW (FRAME_ROOT_WINDOW (XFRAME ((*w).frame))))
-  }
-}
-
 /// C: xwidget.h 26 and 238: `#ifdef HAVE_XWIDGETS extern void xwidget_end_redisplay (struct
 /// window *, struct glyph_matrix *); #else INLINE void xwidget_end_redisplay (struct window
 /// *w, struct glyph_matrix *m) {} #endif`.  xwidget.h has no mirror at all and HAVE_XWIDGETS
@@ -816,7 +796,7 @@ unsafe fn adjust_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix,
 		  .offset ((dim.width - left - right) as isize);
 	      /* Leave room for a border glyph.  */
 	      if !FRAME_WINDOW_P (XFRAME ((*w).frame))
-		  && !WINDOW_RIGHTMOST_P (w)
+		  && !WINDOW_RIGHTMOST_P! (w)
 		  && right > 0
 		{ (*row).glyphs [RIGHT_MARGIN_AREA as usize]
 		    = (*row).glyphs [RIGHT_MARGIN_AREA as usize].offset (-1); }
@@ -1002,165 +982,6 @@ unsafe fn adjust_glyph_matrix (w: *mut window, matrix: *mut glyph_matrix,
       (*matrix).window_vscroll = (*w).vscroll;
     }
 }
-
-/* window.h 612-1075, frame.h 929 and dispextern.h 1509-1660: the geometry and line-height
-   macros this unit calls.  A macro must be defined before its use in Rust's textual
-   expansion (§0.1-18), so the block sits before the functions that call it.  window.rs and
-   frame.rs carry the ones a mirror could express as a function; each of these is declared
-   here at its use site because the mirrors keep only what their own units needed
-   (PORTING.md P-72 rule 3, the menu.rs/xfaces.rs shape).  */
-
-macro_rules! WINDOW_FRAME { ($w:expr) => { (*($w)).frame }; }
-macro_rules! WINDOW_XFRAME { ($w:expr) => { XFRAME (WINDOW_FRAME! ($w)) }; }
-
-// window.h 695-698.
-macro_rules! WINDOW_BOTTOMMOST_P { ($w:expr) => {
-  WINDOW_BOTTOM_PIXEL_EDGE ($w)
-  == WINDOW_BOTTOM_PIXEL_EDGE (XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w)))) }; }
-
-// window.h 712-718.
-macro_rules! WINDOW_BOTTOM_DIVIDER_WIDTH { ($w:expr) => {
-  if (WINDOW_BOTTOMMOST_P! ($w)
-      && NILP ((*XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w)))).next))
-     || EQ ((*($w)).prev, FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w)))
-     || WINDOW_PSEUDO_P ($w)
-    { 0 } else { FRAME_BOTTOM_DIVIDER_WIDTH (WINDOW_XFRAME! ($w)) } }; }
-
-// window.h 707-709.
-macro_rules! WINDOW_RIGHT_DIVIDER_WIDTH { ($w:expr) => {
-  if WINDOW_RIGHTMOST_P ($w) { 0 } else { FRAME_RIGHT_DIVIDER_WIDTH (WINDOW_XFRAME! ($w)) } }; }
-
-// window.h 994-998.
-macro_rules! WINDOW_CONFIG_SCROLL_BAR_HEIGHT { ($w:expr) => {
-  if (*($w)).scroll_bar_height >= 0
-    { (*($w)).scroll_bar_height }
-    else { FRAME_CONFIG_SCROLL_BAR_HEIGHT (WINDOW_XFRAME! ($w)) } }; }
-
-// window.h 1013-1016.
-macro_rules! WINDOW_SCROLL_BAR_AREA_HEIGHT { ($w:expr) => {
-  if WINDOW_HAS_HORIZONTAL_SCROLL_BAR ($w)
-    { WINDOW_CONFIG_SCROLL_BAR_HEIGHT! ($w) } else { 0 } }; }
-
-// window.h 639-640.
-macro_rules! WINDOW_FRAME_COLUMN_WIDTH { ($w:expr) => {
-  FRAME_COLUMN_WIDTH (WINDOW_XFRAME! ($w)) }; }
-
-// window.h 858-869.
-macro_rules! WINDOW_LEFT_FRINGE_WIDTH { ($w:expr) => {
-  if (*($w)).left_fringe_width >= 0
-    { (*($w)).left_fringe_width }
-    else { FRAME_LEFT_FRINGE_WIDTH (WINDOW_XFRAME! ($w)) } }; }
-macro_rules! WINDOW_RIGHT_FRINGE_WIDTH { ($w:expr) => {
-  if (*($w)).right_fringe_width >= 0
-    { (*($w)).right_fringe_width }
-    else { FRAME_RIGHT_FRINGE_WIDTH (WINDOW_XFRAME! ($w)) } }; }
-macro_rules! WINDOW_FRINGES_WIDTH { ($w:expr) => {
-  WINDOW_LEFT_FRINGE_WIDTH! ($w) + WINDOW_RIGHT_FRINGE_WIDTH! ($w) }; }
-
-// window.h 797-800.
-macro_rules! WINDOW_TOP_EDGE_Y { ($w:expr) => {
-  (if WINDOW_MENU_BAR_P ($w) || WINDOW_TAB_BAR_P ($w) || WINDOW_TOOL_BAR_P ($w)
-     { 0 } else { FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) })
-  + WINDOW_TOP_PIXEL_EDGE ($w) }; }
-
-// dispextern.h 1509-1518 and 1525-1528: the mode line's height from a glyph matrix, and the
-// face id of the mode line.  C's `(MATRIX) && (MATRIX)->rows` guard is the null check below.
-macro_rules! MATRIX_MODE_LINE_HEIGHT { ($m:expr) => { {
-  let matrix = $m as *mut glyph_matrix;
-  if !matrix.is_null () && !(*matrix).rows.is_null ()
-    { (*MATRIX_MODE_LINE_ROW! (matrix)).height } else { 0 } } } }
-macro_rules! MATRIX_HEADER_LINE_HEIGHT { ($m:expr) => { {
-  let matrix = $m as *mut glyph_matrix;
-  if !matrix.is_null () && !(*matrix).rows.is_null ()
-    { (*MATRIX_HEADER_LINE_ROW! (matrix)).height } else { 0 } } } }
-macro_rules! MATRIX_TAB_LINE_HEIGHT { ($m:expr) => { {
-  let matrix = $m as *mut glyph_matrix;
-  if !matrix.is_null () && !(*matrix).rows.is_null ()
-    { (*MATRIX_TAB_LINE_ROW! (matrix)).height } else { 0 } } } }
-
-// dispextern.h 1553-1561.
-macro_rules! CURRENT_MODE_LINE_ACTIVE_FACE_ID_3 { ($selw:expr, $mbw:expr, $scrw:expr) => {
-  if !mode_line_in_non_selected_windows
-     || ($selw) == XWINDOW (selected_window)
-     || (minibuf_level > 0
-	 && !NILP (minibuf_selected_window)
-	 && ($mbw) == XWINDOW (minibuf_window)
-	 && ($scrw) == XWINDOW (minibuf_selected_window))
-    { MODE_LINE_ACTIVE_FACE_ID } else { MODE_LINE_INACTIVE_FACE_ID } }; }
-// dispextern.h 1566-1568.
-macro_rules! CURRENT_MODE_LINE_ACTIVE_FACE_ID { ($w:expr) => {
-  CURRENT_MODE_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) }; }
-// dispextern.h 1574-1579.
-macro_rules! CURRENT_MODE_LINE_HEIGHT { ($w:expr) => {
-  if (*($w)).mode_line_height >= 0
-    { (*($w)).mode_line_height }
-  else
-    { (*($w)).mode_line_height =
-	if MATRIX_MODE_LINE_HEIGHT! ((*($w)).current_matrix) != 0
-	  { MATRIX_MODE_LINE_HEIGHT! ((*($w)).current_matrix) }
-	  else
-	  { estimate_mode_line_height (XFRAME (WINDOW_FRAME! ($w)),
-				       CURRENT_MODE_LINE_ACTIVE_FACE_ID! ($w)) };
-      (*($w)).mode_line_height } }; }
-
-// dispextern.h 1594-1612.
-macro_rules! CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3 { ($selw:expr, $mbw:expr, $scrw:expr) => {
-  if !mode_line_in_non_selected_windows
-     || ($selw) == XWINDOW (selected_window)
-     || (minibuf_level > 0
-	 && !NILP (minibuf_selected_window)
-	 && ($mbw) == XWINDOW (minibuf_window)
-	 && ($scrw) == XWINDOW (minibuf_selected_window))
-    { HEADER_LINE_ACTIVE_FACE_ID } else { HEADER_LINE_INACTIVE_FACE_ID } }; }
-macro_rules! CURRENT_HEADER_LINE_ACTIVE_FACE_ID { ($w:expr) => {
-  CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) }; }
-macro_rules! CURRENT_HEADER_LINE_HEIGHT { ($w:expr) => {
-  if (*($w)).header_line_height >= 0
-    { (*($w)).header_line_height }
-  else
-    { (*($w)).header_line_height =
-	if MATRIX_HEADER_LINE_HEIGHT! ((*($w)).current_matrix) != 0
-	  { MATRIX_HEADER_LINE_HEIGHT! ((*($w)).current_matrix) }
-	  else
-	  { estimate_mode_line_height (XFRAME (WINDOW_FRAME! ($w)),
-				       CURRENT_HEADER_LINE_ACTIVE_FACE_ID! ($w)) };
-      (*($w)).header_line_height } }; }
-
-// dispextern.h 1626-1656.
-macro_rules! CURRENT_TAB_LINE_ACTIVE_FACE_ID_3 { ($selw:expr, $mbw:expr, $scrw:expr) => {
-  if !mode_line_in_non_selected_windows
-     || ($selw) == XWINDOW (selected_window)
-     || (minibuf_level > 0
-	 && !NILP (minibuf_selected_window)
-	 && ($mbw) == XWINDOW (minibuf_window)
-	 && ($scrw) == XWINDOW (minibuf_selected_window))
-    { TAB_LINE_ACTIVE_FACE_ID } else { TAB_LINE_INACTIVE_FACE_ID } }; }
-macro_rules! CURRENT_TAB_LINE_ACTIVE_FACE_ID { ($w:expr) => {
-  CURRENT_TAB_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) }; }
-macro_rules! CURRENT_TAB_LINE_HEIGHT { ($w:expr) => {
-  if (*($w)).tab_line_height >= 0
-    { (*($w)).tab_line_height }
-  else
-    { (*($w)).tab_line_height =
-	if MATRIX_TAB_LINE_HEIGHT! ((*($w)).current_matrix) != 0
-	  { MATRIX_TAB_LINE_HEIGHT! ((*($w)).current_matrix) }
-	  else
-	  { estimate_mode_line_height (XFRAME (WINDOW_FRAME! ($w)),
-				       CURRENT_TAB_LINE_ACTIVE_FACE_ID! ($w)) };
-      (*($w)).tab_line_height } }; }
-
-// window.h 1020-1054.
-macro_rules! WINDOW_MODE_LINE_HEIGHT { ($w:expr) => {
-  if window_wants_mode_line ($w) { CURRENT_MODE_LINE_HEIGHT! ($w) } else { 0 } }; }
-macro_rules! WINDOW_HEADER_LINE_HEIGHT { ($w:expr) => {
-  if window_wants_header_line ($w) { CURRENT_HEADER_LINE_HEIGHT! ($w) } else { 0 } }; }
-macro_rules! WINDOW_TAB_LINE_HEIGHT { ($w:expr) => {
-  if window_wants_tab_line ($w) { CURRENT_TAB_LINE_HEIGHT! ($w) } else { 0 } }; }
-macro_rules! WINDOW_BOX_HEIGHT_NO_MODE_LINE { ($w:expr) => {
-  WINDOW_PIXEL_HEIGHT ($w)
-  - WINDOW_BOTTOM_DIVIDER_WIDTH! ($w)
-  - WINDOW_SCROLL_BAR_AREA_HEIGHT! ($w)
-  - WINDOW_MODE_LINE_HEIGHT! ($w) }; }
 
 /* Reverse the contents of rows in MATRIX between START and END.  The
    contents of the row at END - 1 end up at START, END - 2 at START +
@@ -1647,7 +1468,7 @@ unsafe fn glyph_row_slice_p (window_row: *mut glyph_row, frame_row: *mut glyph_r
 	    = (*row).glyphs [LAST_AREA as usize].offset (-(right as isize));
 	  /* Leave room for a border glyph.  */
 	  if !FRAME_WINDOW_P (XFRAME ((*w).frame))
-	      && !WINDOW_RIGHTMOST_P (w)
+	      && !WINDOW_RIGHTMOST_P! (w)
 	      && right > 0
 	    { (*row).glyphs [RIGHT_MARGIN_AREA as usize]
 		= (*row).glyphs [RIGHT_MARGIN_AREA as usize].offset (-1); }
@@ -2391,7 +2212,7 @@ unsafe fn fake_current_matrices (window: Lisp_Object)
 		  /* Non-rightmost windows have the border glyph at the
 		     end of the right margin, if any, in addition to the
 		     glyphs reserved for the margin itself.  */
-		  if (*m).right_margin_glyphs > 0 && !WINDOW_RIGHTMOST_P (w)
+		  if (*m).right_margin_glyphs > 0 && !WINDOW_RIGHTMOST_P! (w)
 		    { (*r).used [RIGHT_MARGIN_AREA as usize] += 1; }
 		  (*r).used [TEXT_AREA as usize] = ((*m).matrix_w
 						    - (*r).used [LEFT_MARGIN_AREA as usize] as c_int
@@ -3076,7 +2897,7 @@ unsafe fn build_frame_matrix_from_leaf_window (frame_matrix: *mut glyph_matrix,
       window_matrix = (*w).desired_matrix as *mut glyph_matrix;
 
       /* Decide whether we want to add a vertical border glyph.  */
-      if !WINDOW_RIGHTMOST_P (w)
+      if !WINDOW_RIGHTMOST_P! (w)
 	{
 	  let dp: *mut Lisp_Char_Table = window_display_table (w);
 	  let mut gc: Lisp_Object = Qnil ();

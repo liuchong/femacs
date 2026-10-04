@@ -258,3 +258,14 @@
   the reference objects carry no such symbol at all (clang inlines the macro away).  Measured
   after the change: `gate-load --report` 165 -> 164 undefined symbols and the name is gone;
   `build-tu src/window.c` and `src/dispnew.c` both `built`.
+
+### Integrator addition (2026-10-04, from window.h's geometry family)
+
+- `WINDOW_FRAME` (929) is **named at its use point** in `include/window.rs` for now: window.h's
+  `WINDOW_XFRAME` (620) is `XFRAME (WINDOW_FRAME (W))` and C defines `WINDOW_FRAME` here, in
+  frame.h, whose mirror has not reached it.  The port keeps C's name and body (a macro, because
+  `((w)->frame)` is a *place*) next to `WINDOW_XFRAME` (PORTING.md P-72 rule ③), and this
+  header's box stays open until the macro lands in `include/frame.rs` - at which point the
+  window.h copy must be deleted (P-26, one landing point), together with the six units that
+  used to declare their own (`window.rs`, `dispnew.rs`, `menu.rs`, `xfaces.rs`, `indent.rs`,
+  `minibuf.rs`; all deleted with this change except the in-flight `xdisp.rs`/`keyboard.rs`).

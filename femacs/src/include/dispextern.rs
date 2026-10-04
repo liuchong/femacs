@@ -1011,6 +1011,131 @@ macro_rules! MATRIX_HEADER_LINE_ROW {
   } };
 }
 
+/* Return the height of the mode line in glyph matrix MATRIX, or zero if not known.  This macro
+   is called under circumstances where MATRIX might not have been allocated yet.  */
+macro_rules! MATRIX_MODE_LINE_HEIGHT {
+  ($m:expr) => { {
+    let matrix = $m as *mut glyph_matrix;
+    if !matrix.is_null () && !(*matrix).rows.is_null ()
+      { (*(MATRIX_MODE_LINE_ROW! (matrix))).height } else { 0 }
+  } };
+}
+
+/* Return the height of the header line in glyph matrix MATRIX, or zero if not known.  */
+macro_rules! MATRIX_HEADER_LINE_HEIGHT {
+  ($m:expr) => { {
+    let matrix = $m as *mut glyph_matrix;
+    if !matrix.is_null () && !(*matrix).rows.is_null ()
+      { (*(MATRIX_HEADER_LINE_ROW! (matrix))).height } else { 0 }
+  } };
+}
+
+/* Return the height of the tab line in glyph matrix MATRIX, or zero if not known.  */
+macro_rules! MATRIX_TAB_LINE_HEIGHT {
+  ($m:expr) => { {
+    let matrix = $m as *mut glyph_matrix;
+    if !matrix.is_null () && !(*matrix).rows.is_null ()
+      { (*(MATRIX_TAB_LINE_ROW! (matrix))).height } else { 0 }
+  } };
+}
+
+/* Return the desired face id for the mode line of a window, depending on whether the window is
+   selected or not, or if the window is the scrolling window for the currently active minibuffer
+   window.  C's three arguments are SELW, MBW and SCRW.  */
+macro_rules! CURRENT_MODE_LINE_ACTIVE_FACE_ID_3 {
+  ($selw:expr, $mbw:expr, $scrw:expr) => {
+    if !mode_line_in_non_selected_windows
+       || ($selw) == XWINDOW (selected_window)
+       || (minibuf_level > 0
+	   && !NILP (minibuf_selected_window)
+	   && ($mbw) == XWINDOW (minibuf_window)
+	   && ($scrw) == XWINDOW (minibuf_selected_window))
+      { MODE_LINE_ACTIVE_FACE_ID } else { MODE_LINE_INACTIVE_FACE_ID }
+  };
+}
+
+/* Return the desired face id for the mode line of window W.  */
+macro_rules! CURRENT_MODE_LINE_ACTIVE_FACE_ID {
+  ($w:expr) => { CURRENT_MODE_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) };
+}
+
+/* Return the current height of the mode line of window W.  If not known from
+   W->mode_line_height, look at W's current glyph matrix, or return a default based on the
+   height of the font of the face `mode-line'.  */
+macro_rules! CURRENT_MODE_LINE_HEIGHT {
+  ($w:expr) => {
+    if (*($w)).mode_line_height >= 0
+      { (*($w)).mode_line_height }
+    else
+      { (*($w)).mode_line_height =
+	  if MATRIX_MODE_LINE_HEIGHT! ((*($w)).current_matrix) != 0
+	    { MATRIX_MODE_LINE_HEIGHT! ((*($w)).current_matrix) }
+	    else
+	    { estimate_mode_line_height (XFRAME ((*($w)).frame),
+					 CURRENT_MODE_LINE_ACTIVE_FACE_ID! ($w)) };
+	(*($w)).mode_line_height }
+  };
+}
+
+/* The same three for the header line.  */
+macro_rules! CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3 {
+  ($selw:expr, $mbw:expr, $scrw:expr) => {
+    if !mode_line_in_non_selected_windows
+       || ($selw) == XWINDOW (selected_window)
+       || (minibuf_level > 0
+	   && !NILP (minibuf_selected_window)
+	   && ($mbw) == XWINDOW (minibuf_window)
+	   && ($scrw) == XWINDOW (minibuf_selected_window))
+      { HEADER_LINE_ACTIVE_FACE_ID } else { HEADER_LINE_INACTIVE_FACE_ID }
+  };
+}
+macro_rules! CURRENT_HEADER_LINE_ACTIVE_FACE_ID {
+  ($w:expr) => { CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) };
+}
+macro_rules! CURRENT_HEADER_LINE_HEIGHT {
+  ($w:expr) => {
+    if (*($w)).header_line_height >= 0
+      { (*($w)).header_line_height }
+    else
+      { (*($w)).header_line_height =
+	  if MATRIX_HEADER_LINE_HEIGHT! ((*($w)).current_matrix) != 0
+	    { MATRIX_HEADER_LINE_HEIGHT! ((*($w)).current_matrix) }
+	    else
+	    { estimate_mode_line_height (XFRAME ((*($w)).frame),
+					 CURRENT_HEADER_LINE_ACTIVE_FACE_ID! ($w)) };
+	(*($w)).header_line_height }
+  };
+}
+
+/* The same three for the tab line.  */
+macro_rules! CURRENT_TAB_LINE_ACTIVE_FACE_ID_3 {
+  ($selw:expr, $mbw:expr, $scrw:expr) => {
+    if !mode_line_in_non_selected_windows
+       || ($selw) == XWINDOW (selected_window)
+       || (minibuf_level > 0
+	   && !NILP (minibuf_selected_window)
+	   && ($mbw) == XWINDOW (minibuf_window)
+	   && ($scrw) == XWINDOW (minibuf_selected_window))
+      { TAB_LINE_ACTIVE_FACE_ID } else { TAB_LINE_INACTIVE_FACE_ID }
+  };
+}
+macro_rules! CURRENT_TAB_LINE_ACTIVE_FACE_ID {
+  ($w:expr) => { CURRENT_TAB_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) };
+}
+macro_rules! CURRENT_TAB_LINE_HEIGHT {
+  ($w:expr) => {
+    if (*($w)).tab_line_height >= 0
+      { (*($w)).tab_line_height }
+    else
+      { (*($w)).tab_line_height =
+	  if MATRIX_TAB_LINE_HEIGHT! ((*($w)).current_matrix) != 0
+	    { MATRIX_TAB_LINE_HEIGHT! ((*($w)).current_matrix) }
+	    else
+	    { estimate_mode_line_height (XFRAME ((*($w)).frame),
+					 CURRENT_TAB_LINE_ACTIVE_FACE_ID! ($w)) };
+	(*($w)).tab_line_height }
+  };
+}
 /* Return a pointer to first row in MATRIX used for text display.  */
 macro_rules! MATRIX_FIRST_TEXT_ROW {
   ($matrix:expr) => { {

@@ -561,10 +561,6 @@ macro_rules! FONT_WIDTH_NAME_NUMERIC {
   ($name:expr) => { font_style_to_value (FONT_WIDTH_INDEX, $name, false) >> 8 };
 }
 
-/* frame.h 929/1390 and window.h 620: the frame/window macros this unit reads that the
-   frame/window mirrors do not carry.  */
-macro_rules! WINDOW_FRAME { ($w:expr) => { (*$w).frame }; }
-macro_rules! WINDOW_XFRAME { ($w:expr) => { XFRAME (WINDOW_FRAME! ($w)) }; }
 macro_rules! CHECK_LIVE_FRAME {
   ($x:expr) => { CHECK_TYPE (FRAMEP ($x) && FRAME_LIVE_P (XFRAME ($x)), Qframe_live_p (), $x) };
 }

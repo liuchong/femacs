@@ -380,3 +380,13 @@ symbols of units that are not ported yet (`_automatic_hscrolling`, `_Vexecuting_
 `_Vchar_width_table`, `_mode_line_in_non_selected_windows`, `_frame_size_history`,
 `_symbols_with_pos_enabled`, `_noninteractive1`).  No callee of C's source text is missing
 from the port's set and no callee is renamed.
+
+### Integrator addition (2026-10-04, window.h's geometry family)
+
+- The use-site declarations this ledger recorded for the geometry block (window.h 612-1092), the function-shaped `WINDOW_RIGHTMOST_P` and the dispextern.h `MATRIX_*`/`CURRENT_*` family are the mirrors' now: the window.h
+  geometry macros (and, where they were here, the dispextern.h `MATRIX_*_LINE_HEIGHT`/
+  `CURRENT_*_LINE_HEIGHT` family) moved into `include/window.rs`/`include/dispextern.rs` with
+  window.h's third slice and the local copies were deleted (PORTING.md P-26;
+  `docs/ports/include-window.md`'s "Decisions (third slice, 2026-10-04: the geometry family)"
+  has the full list and the reason the family keeps C's `macro_rules!` shape).  Call sites keep
+  C's text; `estimate_mode_line_height` (dispextern.h 3582) stays a use-site declaration here.

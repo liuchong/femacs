@@ -497,3 +497,13 @@ demanding the dead-arm text.  Consequences, each measured with `extract-abi.py -
 - the `Frecenter` row keeps only `uninit` (the two `minimize_*` tokens were the same cause).
 
 `extract-abi.py --check emacs/src/window.c femacs/src/window.rs` is still `OK` after the prune.
+
+### Integrator addition (2026-10-04, window.h's geometry family)
+
+- The use-site declarations this ledger recorded for the whole geometry block (window.h 620-1092), the dispextern.h `MATRIX_*`/`CURRENT_*` family and `margin_unit` + its two members are the mirrors' now: the window.h
+  geometry macros (and, where they were here, the dispextern.h `MATRIX_*_LINE_HEIGHT`/
+  `CURRENT_*_LINE_HEIGHT` family) moved into `include/window.rs`/`include/dispextern.rs` with
+  window.h's third slice and the local copies were deleted (PORTING.md P-26;
+  `docs/ports/include-window.md`'s "Decisions (third slice, 2026-10-04: the geometry family)"
+  has the full list and the reason the family keeps C's `macro_rules!` shape).  Call sites keep
+  C's text; `estimate_mode_line_height` (dispextern.h 3582) stays a use-site declaration here.

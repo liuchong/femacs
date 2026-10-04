@@ -37,9 +37,10 @@
 // site (the terminal.rs/scroll.rs shape), with C's own bodies for the macros so that each
 // argument is evaluated as often as C evaluates it: `larger_vector`, `record_unwind_protect_void`,
 // `parse_menu_item`, `init_raw_keybuf_count`, `pixel_to_glyph_coords`, `window_box_left`,
-// `is_tty_frame`, `decode_any_frame`, `window_wants_header_line`, `window_wants_tab_line`,
-// `estimate_mode_line_height`, `selected_window`, and the `WINDOW_*`/`CURRENT_*`/`MATRIX_*`
-// macros of window.h/frame.h/dispextern.h.
+// `is_tty_frame`, `decode_any_frame`, `estimate_mode_line_height` and `selected_window`.  (The
+// `WINDOW_*` geometry and the `window_wants_*`/`CURRENT_*`/`MATRIX_*` families used to sit here
+// too; they are the mirrors' now - include/window.rs and include/dispextern.rs - and this unit
+// only calls them.)
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
@@ -94,86 +95,10 @@ unsafe extern "C" { pub fn window_box_left (w: *mut window,
 unsafe extern "C" { pub fn is_tty_frame (f: *mut frame) -> bool; }
 /// C: extern struct frame *decode_any_frame (Lisp_Object)  frame.h 1477
 unsafe extern "C" { pub fn decode_any_frame (frame: Lisp_Object) -> *mut frame; }
-/// C: extern bool window_wants_header_line (struct window *)  window.h 1214
-unsafe extern "C" { pub fn window_wants_header_line (w: *mut window) -> bool; }
-/// C: extern bool window_wants_tab_line (struct window *)  window.h 1215
-unsafe extern "C" { pub fn window_wants_tab_line (w: *mut window) -> bool; }
 /// C: int estimate_mode_line_height (struct frame *, enum face_id)  dispextern.h 3582
 unsafe extern "C" { pub fn estimate_mode_line_height (f: *mut frame,
 						      face_id: face_id) -> c_int; }
 // `selected_window` (window.h 1100) comes from the window.rs mirror this unit includes.
-
-// window.h 758/797/1030/1040/620 and frame.h 929: the window geometry macros this unit calls.
-// C's bodies are these; `WINDOW_LEFT_PIXEL_EDGE`/`WINDOW_TOP_PIXEL_EDGE`/`WINDOW_MENU_BAR_P`/
-// `WINDOW_TAB_BAR_P`/`WINDOW_TOOL_BAR_P`/`FRAME_INTERNAL_BORDER_WIDTH` are the mirror's
-// functions (window.rs/frame.rs).
-macro_rules! WINDOW_FRAME { ($w:expr) => { (*($w)).frame }; }
-macro_rules! WINDOW_XFRAME { ($w:expr) => { XFRAME (WINDOW_FRAME! ($w)) }; }
-macro_rules! WINDOW_LEFT_EDGE_X { ($w:expr) => {
-  FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) + WINDOW_LEFT_PIXEL_EDGE ($w) }; }
-macro_rules! WINDOW_TOP_EDGE_Y { ($w:expr) => {
-  (if WINDOW_MENU_BAR_P ($w) || WINDOW_TAB_BAR_P ($w) || WINDOW_TOOL_BAR_P ($w)
-     { 0 } else { FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) })
-  + WINDOW_TOP_PIXEL_EDGE ($w) }; }
-// dispextern.h 1529/1538.  C reads `(W)->current_matrix` three times as its argument to
-// these (through `MATRIX_HEADER_LINE_ROW`); the port's `$m` binding reads it once, and every
-// call site below passes exactly that field, so both sides see the same value.
-macro_rules! MATRIX_HEADER_LINE_HEIGHT { ($m:expr) => { {
-  let matrix = $m as *mut glyph_matrix;
-  if !matrix.is_null () && !(*matrix).rows.is_null ()
-    { (*MATRIX_HEADER_LINE_ROW! (matrix)).height } else { 0 } } } }
-macro_rules! MATRIX_TAB_LINE_HEIGHT { ($m:expr) => { {
-  let matrix = $m as *mut glyph_matrix;
-  if !matrix.is_null () && !(*matrix).rows.is_null ()
-    { (*MATRIX_TAB_LINE_ROW! (matrix)).height } else { 0 } } } }
-// dispextern.h 1594-1610 and 1616-1624: the header line's face and current height.
-macro_rules! CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3 { ($selw:expr, $mbw:expr, $scrw:expr) => {
-  if !mode_line_in_non_selected_windows
-     || ($selw) == XWINDOW (selected_window)
-     || (minibuf_level > 0
-	 && !NILP (minibuf_selected_window)
-	 && ($mbw) == XWINDOW (minibuf_window)
-	 && ($scrw) == XWINDOW (minibuf_selected_window))
-    { HEADER_LINE_ACTIVE_FACE_ID } else { HEADER_LINE_INACTIVE_FACE_ID } }; }
-macro_rules! CURRENT_HEADER_LINE_ACTIVE_FACE_ID { ($w:expr) => {
-  CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) }; }
-macro_rules! CURRENT_HEADER_LINE_HEIGHT { ($w:expr) => {
-  if (*($w)).header_line_height >= 0
-    { (*($w)).header_line_height }
-  else
-    { (*($w)).header_line_height =
-	if MATRIX_HEADER_LINE_HEIGHT! ((*($w)).current_matrix) != 0
-	  { MATRIX_HEADER_LINE_HEIGHT! ((*($w)).current_matrix) }
-	  else
-	  { estimate_mode_line_height (XFRAME (WINDOW_FRAME! ($w)),
-				       CURRENT_HEADER_LINE_ACTIVE_FACE_ID! ($w)) };
-      (*($w)).header_line_height } }; }
-// dispextern.h 1626-1642 and 1648-1656: the same pair for the tab line.
-macro_rules! CURRENT_TAB_LINE_ACTIVE_FACE_ID_3 { ($selw:expr, $mbw:expr, $scrw:expr) => {
-  if !mode_line_in_non_selected_windows
-     || ($selw) == XWINDOW (selected_window)
-     || (minibuf_level > 0
-	 && !NILP (minibuf_selected_window)
-	 && ($mbw) == XWINDOW (minibuf_window)
-	 && ($scrw) == XWINDOW (minibuf_selected_window))
-    { TAB_LINE_ACTIVE_FACE_ID } else { TAB_LINE_INACTIVE_FACE_ID } }; }
-macro_rules! CURRENT_TAB_LINE_ACTIVE_FACE_ID { ($w:expr) => {
-  CURRENT_TAB_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) }; }
-macro_rules! CURRENT_TAB_LINE_HEIGHT { ($w:expr) => {
-  if (*($w)).tab_line_height >= 0
-    { (*($w)).tab_line_height }
-  else
-    { (*($w)).tab_line_height =
-	if MATRIX_TAB_LINE_HEIGHT! ((*($w)).current_matrix) != 0
-	  { MATRIX_TAB_LINE_HEIGHT! ((*($w)).current_matrix) }
-	  else
-	  { estimate_mode_line_height (XFRAME (WINDOW_FRAME! ($w)),
-				       CURRENT_TAB_LINE_ACTIVE_FACE_ID! ($w)) };
-      (*($w)).tab_line_height } }; }
-macro_rules! WINDOW_HEADER_LINE_HEIGHT { ($w:expr) => {
-  if window_wants_header_line ($w) { CURRENT_HEADER_LINE_HEIGHT! ($w) } else { 0 } }; }
-macro_rules! WINDOW_TAB_LINE_HEIGHT { ($w:expr) => {
-  if window_wants_tab_line ($w) { CURRENT_TAB_LINE_HEIGHT! ($w) } else { 0 } }; }
 
 /* Return non-zero if menus can handle radio and toggle buttons.  */
 fn have_boxes () -> bool

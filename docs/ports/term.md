@@ -229,3 +229,13 @@
   definitions the extractor calls out (`tty_turn_off_insert`, `tty_hide_cursor`,
   `tty_show_cursor`, `encode_terminal_code`) are exported as C does.  `check-linkage.py`
   reports 0 missing symbols for the unit and `check-undef.py` reports `0 new`.
+
+### Integrator addition (2026-10-04, window.h's geometry family)
+
+- The use-site declarations this ledger recorded for the six geometry functions (`WINDOW_XFRAME`, `WINDOW_FRAME_COLUMN_WIDTH`, `WINDOW_LEFT_EDGE_X`, `WINDOW_TOP_EDGE_Y`, `WINDOW_RIGHTMOST_P`, `WINDOW_RIGHT_MARGIN_WIDTH`) are the mirrors' now: the window.h
+  geometry macros (and, where they were here, the dispextern.h `MATRIX_*_LINE_HEIGHT`/
+  `CURRENT_*_LINE_HEIGHT` family) moved into `include/window.rs`/`include/dispextern.rs` with
+  window.h's third slice and the local copies were deleted (PORTING.md P-26;
+  `docs/ports/include-window.md`'s "Decisions (third slice, 2026-10-04: the geometry family)"
+  has the full list and the reason the family keeps C's `macro_rules!` shape).  Call sites keep
+  C's text; `estimate_mode_line_height` (dispextern.h 3582) stays a use-site declaration here.

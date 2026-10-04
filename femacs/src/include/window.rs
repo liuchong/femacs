@@ -378,14 +378,366 @@ pub fn CHECK_LIVE_WINDOW (window_: Lisp_Object)
 fn window_bit (w: *mut window, shift: u32) -> bool
 { (unsafe { (*w).bits }) >> shift & 1 != 0 }
 
-// C: window.h 567-1244's remaining accessors that dereference `struct frame` through
-// `WINDOW_XFRAME` (`WINDOW_FRAME_COLUMN_WIDTH`, `WINDOW_LEFT_EDGE_X`, the fringe/scroll-bar
-// geometry, `WINDOW_RIGHTMOST_P`, `MIN_SAFE_WINDOW_PIXEL_*`, `FRAME_TO_WINDOW_PIXEL_*`, …),
-// `WINDOW_MODE_LINE_HEIGHT`/`_LINES` and the header/tab-line pair (they need dispextern.h's
-// `window_wants_*` and `CURRENT_*_LINE_HEIGHT`), and `WINDOW_VERTICAL_SCROLL_BAR_TYPE` (it needs
-// frame.h's `vertical_scroll_bar_none`/`_left`/`_right`) — (not mirrored yet; they land with
-// frame.rs, termchar.h and the display chain's `window_wants_*` declarations).
+// window.h 620-1092: the geometry family.  C writes all of it as macros, and the port keeps
+// that shape (`macro_rules!`, PORTING.md 2.1) rather than the `#[inline(always)]` functions
+// the accessors above use, because a macro's body is resolved where it is *expanded*: it may
+// name frame.h's `struct frame`, `FRAME_*` and dispextern.h's `CURRENT_*_LINE_HEIGHT`/
+// `window_box_left` exactly as C's does, and only in the units that have those headers — while
+// a function body would have to compile in every unit that includes this mirror, and most of
+// those units (C's own include chain says so) never opened frame.h or dispextern.h at all
+// (PORTING.md P-72 rule ①/④ — the hazard include/dispextern.rs's `MATRIX_BOTTOM_TEXT_ROW`
+// records).  C's bodies also mention their window argument once per use, and a macro keeps
+// that evaluation count (P-16); `NAME! (…)` is the call in Rust, whose `!` the token check
+// ignores.
+//
+// Two groups still name a construct of a header whose mirror is behind:
+//
+//   * `WINDOW_FRAME` is C's frame.h 929 and frame.h's mirror has not reached it, so it is
+//     named here at its use point (PORTING.md P-72 rule ③; the ledger's Decisions record it).
+//     C's `((w)->frame)` is a *place*, so it stays a macro.
+//   * `CURRENT_MODE_LINE_HEIGHT`/`CURRENT_HEADER_LINE_HEIGHT`/`CURRENT_TAB_LINE_HEIGHT` and the
+//     `MATRIX_*_LINE_HEIGHT`/`*_ACTIVE_FACE_ID` family they call are dispextern.h's (1553-1660)
+//     and now live in include/dispextern.rs, next to the matrix rows and the face ids already
+//     there; `WINDOW_TEXT_TO_FRAME_PIXEL_X` calls dispextern.h 3579's `window_box_left`.
 
+// window.h 620.
+/// C: frame.h 929: `#define WINDOW_FRAME(w) ((w)->frame)`
+macro_rules! WINDOW_FRAME { ($w:expr) => { (*$w).frame }; }
+macro_rules! WINDOW_XFRAME { ($w:expr) => { XFRAME (WINDOW_FRAME! ($w)) }; }
+
+// window.h 639-643: the canonical metrics of W's frame.
+macro_rules! WINDOW_FRAME_COLUMN_WIDTH {
+  ($w:expr) => { FRAME_COLUMN_WIDTH (WINDOW_XFRAME! ($w)) };
+}
+macro_rules! WINDOW_FRAME_LINE_HEIGHT {
+  ($w:expr) => { FRAME_LINE_HEIGHT (WINDOW_XFRAME! ($w)) };
+}
+
+// window.h 668-676: the smallest acceptable dimensions (C's `2` and the line height).
+macro_rules! MIN_SAFE_WINDOW_PIXEL_WIDTH {
+  ($w:expr) => { 2 * WINDOW_FRAME_COLUMN_WIDTH! ($w) };
+}
+macro_rules! MIN_SAFE_WINDOW_PIXEL_HEIGHT {
+  ($w:expr) => { WINDOW_FRAME_LINE_HEIGHT! ($w) };
+}
+
+// window.h 679-703: the "outermost" and "full width" predicates.
+macro_rules! WINDOW_RIGHTMOST_P {
+  ($w:expr) => {
+    WINDOW_RIGHT_PIXEL_EDGE ($w)
+    == WINDOW_RIGHT_PIXEL_EDGE (XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w))))
+  };
+}
+macro_rules! WINDOW_BOTTOMMOST_P {
+  ($w:expr) => {
+    WINDOW_BOTTOM_PIXEL_EDGE ($w)
+    == WINDOW_BOTTOM_PIXEL_EDGE (XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w))))
+  };
+}
+macro_rules! WINDOW_FULL_WIDTH_P {
+  ($w:expr) => {
+    WINDOW_PIXEL_WIDTH ($w)
+    == WINDOW_PIXEL_WIDTH (XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w))))
+  };
+}
+
+// window.h 707-718: the divider widths.
+macro_rules! WINDOW_RIGHT_DIVIDER_WIDTH {
+  ($w:expr) => {
+    if WINDOW_RIGHTMOST_P! ($w) { 0 }
+    else { FRAME_RIGHT_DIVIDER_WIDTH (WINDOW_XFRAME! ($w)) }
+  };
+}
+macro_rules! WINDOW_BOTTOM_DIVIDER_WIDTH {
+  ($w:expr) => {
+    if (WINDOW_BOTTOMMOST_P! ($w)
+        && NILP ((*XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w)))).next))
+       || EQ ((*$w).prev, FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w)))
+       || WINDOW_PSEUDO_P ($w)
+      { 0 }
+    else { FRAME_BOTTOM_DIVIDER_WIDTH (WINDOW_XFRAME! ($w)) }
+  };
+}
+
+// window.h 758-803: the frame-relative edges.  The menu/tab/tool-bar predicates are the
+// mirrors' `false` accessors (no window system on this target).
+macro_rules! WINDOW_LEFT_EDGE_X {
+  ($w:expr) => {
+    FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) + WINDOW_LEFT_PIXEL_EDGE ($w)
+  };
+}
+macro_rules! WINDOW_RIGHT_EDGE_X {
+  ($w:expr) => {
+    FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) + WINDOW_RIGHT_PIXEL_EDGE ($w)
+  };
+}
+macro_rules! WINDOW_TOP_EDGE_Y {
+  ($w:expr) => {
+    (if WINDOW_MENU_BAR_P ($w) || WINDOW_TAB_BAR_P ($w) || WINDOW_TOOL_BAR_P ($w)
+       { 0 } else { FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) })
+    + WINDOW_TOP_PIXEL_EDGE ($w)
+  };
+}
+macro_rules! WINDOW_BOTTOM_EDGE_Y {
+  ($w:expr) => {
+    (if WINDOW_MENU_BAR_P ($w) || WINDOW_TAB_BAR_P ($w) || WINDOW_TOOL_BAR_P ($w)
+       { 0 } else { FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) })
+    + WINDOW_BOTTOM_PIXEL_EDGE ($w)
+  };
+}
+
+// window.h 810-835: the text-box edges (the scroll bar and divider on the right are out).
+macro_rules! WINDOW_BOX_LEFT_PIXEL_EDGE {
+  ($w:expr) => { WINDOW_LEFT_PIXEL_EDGE ($w) + WINDOW_LEFT_SCROLL_BAR_AREA_WIDTH! ($w) };
+}
+macro_rules! WINDOW_BOX_RIGHT_PIXEL_EDGE {
+  ($w:expr) => {
+    WINDOW_RIGHT_PIXEL_EDGE ($w)
+    - WINDOW_RIGHT_DIVIDER_WIDTH! ($w)
+    - WINDOW_RIGHT_SCROLL_BAR_AREA_WIDTH! ($w)
+  };
+}
+macro_rules! WINDOW_BOX_LEFT_EDGE_X {
+  ($w:expr) => {
+    FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) + WINDOW_BOX_LEFT_PIXEL_EDGE! ($w)
+  };
+}
+macro_rules! WINDOW_BOX_RIGHT_EDGE_X {
+  ($w:expr) => {
+    FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) + WINDOW_BOX_RIGHT_PIXEL_EDGE! ($w)
+  };
+}
+
+// window.h 847-869: the margin and fringe pixel widths.
+macro_rules! WINDOW_LEFT_MARGIN_WIDTH {
+  ($w:expr) => { (*$w).left_margin_cols * WINDOW_FRAME_COLUMN_WIDTH! ($w) };
+}
+macro_rules! WINDOW_RIGHT_MARGIN_WIDTH {
+  ($w:expr) => { (*$w).right_margin_cols * WINDOW_FRAME_COLUMN_WIDTH! ($w) };
+}
+macro_rules! WINDOW_MARGINS_WIDTH {
+  ($w:expr) => { WINDOW_LEFT_MARGIN_WIDTH! ($w) + WINDOW_RIGHT_MARGIN_WIDTH! ($w) };
+}
+macro_rules! WINDOW_LEFT_FRINGE_WIDTH {
+  ($w:expr) => {
+    if (*$w).left_fringe_width >= 0 { (*$w).left_fringe_width }
+    else { FRAME_LEFT_FRINGE_WIDTH (WINDOW_XFRAME! ($w)) }
+  };
+}
+macro_rules! WINDOW_RIGHT_FRINGE_WIDTH {
+  ($w:expr) => {
+    if (*$w).right_fringe_width >= 0 { (*$w).right_fringe_width }
+    else { FRAME_RIGHT_FRINGE_WIDTH (WINDOW_XFRAME! ($w)) }
+  };
+}
+macro_rules! WINDOW_FRINGES_WIDTH {
+  ($w:expr) => { WINDOW_LEFT_FRINGE_WIDTH! ($w) + WINDOW_RIGHT_FRINGE_WIDTH! ($w) };
+}
+
+// window.h 877-901: which side the vertical scroll bar is on, and whether there is one.
+macro_rules! WINDOW_VERTICAL_SCROLL_BAR_TYPE {
+  ($w:expr) => {
+    if WINDOW_PSEUDO_P ($w) { vertical_scroll_bar_none }
+    else if EQ ((*$w).vertical_scroll_bar_type, Qt ())
+      { FRAME_VERTICAL_SCROLL_BAR_TYPE (WINDOW_XFRAME! ($w)) }
+    else if EQ ((*$w).vertical_scroll_bar_type, Qleft ()) { vertical_scroll_bar_left }
+    else if EQ ((*$w).vertical_scroll_bar_type, Qright ()) { vertical_scroll_bar_right }
+    else { vertical_scroll_bar_none }
+  };
+}
+macro_rules! WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_LEFT {
+  ($w:expr) => { WINDOW_VERTICAL_SCROLL_BAR_TYPE! ($w) == vertical_scroll_bar_left };
+}
+macro_rules! WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_RIGHT {
+  ($w:expr) => { WINDOW_VERTICAL_SCROLL_BAR_TYPE! ($w) == vertical_scroll_bar_right };
+}
+macro_rules! WINDOW_HAS_VERTICAL_SCROLL_BAR {
+  ($w:expr) => {
+    WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_LEFT! ($w)
+    || WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_RIGHT! ($w)
+  };
+}
+
+// window.h 926-983: the scroll bar's width in pixels and columns, and where its area starts.
+// `WINDOW_HAS_HORIZONTAL_SCROLL_BAR` is the mirror's `false` accessor (this target has none).
+macro_rules! WINDOW_CONFIG_SCROLL_BAR_WIDTH {
+  ($w:expr) => {
+    if (*$w).scroll_bar_width >= 0 { (*$w).scroll_bar_width }
+    else { FRAME_CONFIG_SCROLL_BAR_WIDTH (WINDOW_XFRAME! ($w)) }
+  };
+}
+macro_rules! WINDOW_CONFIG_SCROLL_BAR_COLS {
+  ($w:expr) => {
+    if (*$w).scroll_bar_width >= 0
+      { ((*$w).scroll_bar_width + WINDOW_FRAME_COLUMN_WIDTH! ($w) - 1)
+          / WINDOW_FRAME_COLUMN_WIDTH! ($w) }
+    else { FRAME_CONFIG_SCROLL_BAR_COLS (WINDOW_XFRAME! ($w)) }
+  };
+}
+macro_rules! WINDOW_LEFT_SCROLL_BAR_COLS {
+  ($w:expr) => {
+    if WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_LEFT! ($w) { WINDOW_CONFIG_SCROLL_BAR_COLS! ($w) }
+    else { 0 }
+  };
+}
+macro_rules! WINDOW_RIGHT_SCROLL_BAR_COLS {
+  ($w:expr) => {
+    if WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_RIGHT! ($w) { WINDOW_CONFIG_SCROLL_BAR_COLS! ($w) }
+    else { 0 }
+  };
+}
+macro_rules! WINDOW_SCROLL_BAR_COLS {
+  ($w:expr) => {
+    if WINDOW_HAS_VERTICAL_SCROLL_BAR! ($w) { WINDOW_CONFIG_SCROLL_BAR_COLS! ($w) }
+    else { 0 }
+  };
+}
+macro_rules! WINDOW_LEFT_SCROLL_BAR_AREA_WIDTH {
+  ($w:expr) => {
+    if WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_LEFT! ($w) { WINDOW_CONFIG_SCROLL_BAR_WIDTH! ($w) }
+    else { 0 }
+  };
+}
+macro_rules! WINDOW_RIGHT_SCROLL_BAR_AREA_WIDTH {
+  ($w:expr) => {
+    if WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_RIGHT! ($w) { WINDOW_CONFIG_SCROLL_BAR_WIDTH! ($w) }
+    else { 0 }
+  };
+}
+macro_rules! WINDOW_SCROLL_BAR_AREA_WIDTH {
+  ($w:expr) => {
+    if WINDOW_HAS_VERTICAL_SCROLL_BAR! ($w) { WINDOW_CONFIG_SCROLL_BAR_WIDTH! ($w) }
+    else { 0 }
+  };
+}
+macro_rules! WINDOW_SCROLL_BAR_AREA_X {
+  ($w:expr) => {
+    if WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_RIGHT! ($w) { WINDOW_BOX_RIGHT_EDGE_X! ($w) }
+    else { WINDOW_LEFT_EDGE_X! ($w) }
+  };
+}
+
+// window.h 991-1016: the scroll bar's height in pixels and lines.
+macro_rules! WINDOW_CONFIG_SCROLL_BAR_HEIGHT {
+  ($w:expr) => {
+    if (*$w).scroll_bar_height >= 0 { (*$w).scroll_bar_height }
+    else { FRAME_CONFIG_SCROLL_BAR_HEIGHT (WINDOW_XFRAME! ($w)) }
+  };
+}
+macro_rules! WINDOW_CONFIG_SCROLL_BAR_LINES {
+  ($w:expr) => {
+    if (*$w).scroll_bar_height >= 0
+      { ((*$w).scroll_bar_height + WINDOW_FRAME_LINE_HEIGHT! ($w) - 1)
+          / WINDOW_FRAME_LINE_HEIGHT! ($w) }
+    else { FRAME_CONFIG_SCROLL_BAR_LINES (WINDOW_XFRAME! ($w)) }
+  };
+}
+macro_rules! WINDOW_SCROLL_BAR_LINES {
+  ($w:expr) => {
+    if WINDOW_HAS_HORIZONTAL_SCROLL_BAR ($w) { WINDOW_CONFIG_SCROLL_BAR_LINES! ($w) }
+    else { 0 }
+  };
+}
+macro_rules! WINDOW_SCROLL_BAR_AREA_HEIGHT {
+  ($w:expr) => {
+    if WINDOW_HAS_HORIZONTAL_SCROLL_BAR ($w) { WINDOW_CONFIG_SCROLL_BAR_HEIGHT! ($w) }
+    else { 0 }
+  };
+}
+
+// window.h 1020-1046: the mode/header/tab line heights and their `LINES` predicates.
+// `window_wants_*` is declared by window.h 1213-1215 (the module below).
+macro_rules! WINDOW_MODE_LINE_HEIGHT {
+  ($w:expr) => { if window_wants_mode_line ($w) { CURRENT_MODE_LINE_HEIGHT! ($w) } else { 0 } };
+}
+macro_rules! WINDOW_MODE_LINE_LINES {
+  ($w:expr) => { window_wants_mode_line ($w) };
+}
+macro_rules! WINDOW_HEADER_LINE_HEIGHT {
+  ($w:expr) => {
+    if window_wants_header_line ($w) { CURRENT_HEADER_LINE_HEIGHT! ($w) } else { 0 }
+  };
+}
+macro_rules! WINDOW_HEADER_LINE_LINES {
+  ($w:expr) => { window_wants_header_line ($w) };
+}
+macro_rules! WINDOW_TAB_LINE_HEIGHT {
+  ($w:expr) => { if window_wants_tab_line ($w) { CURRENT_TAB_LINE_HEIGHT! ($w) } else { 0 } };
+}
+macro_rules! WINDOW_TAB_LINE_LINES {
+  ($w:expr) => { window_wants_tab_line ($w) };
+}
+
+// window.h 1050-1072: the box heights, and where the horizontal scroll bar's area starts.
+macro_rules! WINDOW_BOX_HEIGHT_NO_MODE_LINE {
+  ($w:expr) => {
+    WINDOW_PIXEL_HEIGHT ($w)
+    - WINDOW_BOTTOM_DIVIDER_WIDTH! ($w)
+    - WINDOW_SCROLL_BAR_AREA_HEIGHT! ($w)
+    - WINDOW_MODE_LINE_HEIGHT! ($w)
+  };
+}
+macro_rules! WINDOW_BOX_TEXT_HEIGHT {
+  ($w:expr) => {
+    WINDOW_PIXEL_HEIGHT ($w)
+    - WINDOW_BOTTOM_DIVIDER_WIDTH! ($w)
+    - WINDOW_SCROLL_BAR_AREA_HEIGHT! ($w)
+    - WINDOW_MODE_LINE_HEIGHT! ($w)
+    - WINDOW_HEADER_LINE_HEIGHT! ($w)
+    - WINDOW_TAB_LINE_HEIGHT! ($w)
+  };
+}
+macro_rules! WINDOW_SCROLL_BAR_AREA_Y {
+  ($w:expr) => {
+    WINDOW_TOP_EDGE_Y! ($w)
+    + (if WINDOW_HAS_HORIZONTAL_SCROLL_BAR ($w) { WINDOW_BOX_HEIGHT_NO_MODE_LINE! ($w) }
+       else { 0 })
+  };
+}
+
+// window.h 1074-1092: the window/frame pixel conversions.
+macro_rules! WINDOW_TO_FRAME_PIXEL_X {
+  ($w:expr, $x:expr) => { ($x) + WINDOW_BOX_LEFT_EDGE_X! ($w) };
+}
+macro_rules! WINDOW_TO_FRAME_PIXEL_Y {
+  ($w:expr, $y:expr) => { ($y) + WINDOW_TOP_EDGE_Y! ($w) };
+}
+macro_rules! FRAME_TO_WINDOW_PIXEL_X {
+  ($w:expr, $x:expr) => { ($x) - WINDOW_BOX_LEFT_EDGE_X! ($w) };
+}
+macro_rules! FRAME_TO_WINDOW_PIXEL_Y {
+  ($w:expr, $y:expr) => { ($y) - WINDOW_TOP_EDGE_Y! ($w) };
+}
+macro_rules! WINDOW_TEXT_TO_FRAME_PIXEL_X {
+  ($w:expr, $x:expr) => { window_box_left ($w, TEXT_AREA) + ($x) };
+}
+
+// window.h 1213-1215: the three line predicates.  C declares them here and window.c defines
+// them; declared in a module + glob import because window.rs *defines* them, and a crate-root
+// declaration would collide (PORTING.md 0.1-10, the window_redisplay_decls shape below).
+pub mod window_wants_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: bool window_wants_mode_line (struct window *)
+    pub fn window_wants_mode_line (w: *mut window) -> bool;
+    /// C: bool window_wants_header_line (struct window *)
+    pub fn window_wants_header_line (w: *mut window) -> bool;
+    /// C: bool window_wants_tab_line (struct window *)
+    pub fn window_wants_tab_line (w: *mut window) -> bool;
+  }
+}
+use window_wants_decls::*;
+
+/// window.h 1225: `enum margin_unit { MARGIN_IN_LINES, MARGIN_IN_PIXELS };` — C's implicit
+/// values, the unit `window_scroll_margin` measures in.
+#[repr(C)]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum margin_unit
+  {
+    MARGIN_IN_LINES = 0,
+    MARGIN_IN_PIXELS,
+  }
 // window.h 1167-1169's redisplay entry points (`wset_redisplay`/`fset_redisplay`/
 // `bset_redisplay`); xdisp.c defines them.  Declared in a module + glob import because a unit
 // that defines one would otherwise collide with the crate-root declaration (PORTING.md 0.1-10).

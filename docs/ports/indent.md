@@ -206,3 +206,13 @@ are C's own macros expanding at the same points, and the three `*mut c_void` spe
 (`composition_reseat_it`/`composition_compute_stop_pos`/`composition_update_it`,
 `overlay_strings`, `window_display_table`'s callers) change a parameter's declared type, not
 the call graph.
+
+### Integrator addition (2026-10-04, window.h's geometry family)
+
+- The use-site declarations this ledger recorded for the `WINDOW_FRAME` macro are the mirrors' now: the window.h
+  geometry macros (and, where they were here, the dispextern.h `MATRIX_*_LINE_HEIGHT`/
+  `CURRENT_*_LINE_HEIGHT` family) moved into `include/window.rs`/`include/dispextern.rs` with
+  window.h's third slice and the local copies were deleted (PORTING.md P-26;
+  `docs/ports/include-window.md`'s "Decisions (third slice, 2026-10-04: the geometry family)"
+  has the full list and the reason the family keeps C's `macro_rules!` shape).  Call sites keep
+  C's text; `estimate_mode_line_height` (dispextern.h 3582) stays a use-site declaration here.

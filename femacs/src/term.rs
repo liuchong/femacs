@@ -30,10 +30,12 @@
 // systime.h, `struct timeval` is not reached); C 46's `msdos.h`, C 53-55's `lwlib.h`
 // (USE_X_TOOLKIT) and C 61-63's `w32term.h` (WINDOWSNT) are dead on this target.  A few
 // headers this unit needs are not mirrored as far as term.c reaches: the `struct it`,
-// `bidi_it`, `composition_it`, `face` and `face_cache` records and the
-// `FACE_FROM_ID`/`WINDOW_LEFT_EDGE_X`-family macros are declared at their use sites below
-// with clang-measured offsets, the shape `indent.rs`/`composite.rs` established
-// (PORTING.md P-66/P-72).
+// `bidi_it`, `composition_it`, `face` and `face_cache` records and the `FACE_FROM_ID` family
+// are declared at their use sites below with clang-measured offsets, the shape
+// `indent.rs`/`composite.rs` established (PORTING.md P-66/P-72).  (The six window.h geometry
+// macros this unit used to declare here - `WINDOW_XFRAME`, `WINDOW_FRAME_COLUMN_WIDTH`,
+// `WINDOW_LEFT_EDGE_X`, `WINDOW_TOP_EDGE_Y`, `WINDOW_RIGHTMOST_P`, `WINDOW_RIGHT_MARGIN_WIDTH`
+// - are the window.h mirror's now.)
 //
 // `tty_list`, `char_ins_del_vector`, `tty_setup_colors`, `encode_terminal_code`,
 // `tty_hide_cursor` and `tty_show_cursor` are declared by mirrors this unit includes
@@ -375,29 +377,6 @@ pub fn FACE_FROM_ID_OR_NULL (f: *mut frame, id: c_int) -> *mut face
   if 0 <= id && id < used { unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) } }
   else { std::ptr::null_mut () }
 }
-
-/* window.h 1183-1215: the four geometry macros this unit expands, declared here because the
-   window.h mirror stops at `WINDOW_RIGHT_MARGIN_COLS`.  */
-#[inline(always)]
-pub fn WINDOW_XFRAME (w: *mut window) -> *mut frame { XFRAME (unsafe { (*w).frame }) }
-#[inline(always)]
-pub fn WINDOW_FRAME_COLUMN_WIDTH (w: *mut window) -> c_int
-{ FRAME_COLUMN_WIDTH (WINDOW_XFRAME (w)) }
-#[inline(always)]
-pub fn WINDOW_LEFT_EDGE_X (w: *mut window) -> c_int
-{ WINDOW_LEFT_PIXEL_EDGE (w) / WINDOW_FRAME_COLUMN_WIDTH (w) }
-#[inline(always)]
-pub fn WINDOW_TOP_EDGE_Y (w: *mut window) -> c_int
-{ WINDOW_TOP_PIXEL_EDGE (w) / FRAME_LINE_HEIGHT (WINDOW_XFRAME (w)) }
-#[inline(always)]
-pub fn WINDOW_RIGHTMOST_P (w: *mut window) -> bool
-{
-  WINDOW_RIGHT_PIXEL_EDGE (w)
-    == WINDOW_RIGHT_PIXEL_EDGE (XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME (w))))
-}
-#[inline(always)]
-pub fn WINDOW_RIGHT_MARGIN_WIDTH (w: *mut window) -> c_int
-{ WINDOW_RIGHT_MARGIN_COLS (w) * WINDOW_FRAME_COLUMN_WIDTH (w) }
 
 /* lisp.h 5315-5322: `emacs_fdopen` (the mirror carries `emacs_open`/`emacs_close` and the
    `emacs_fclose!` macro but not this one).  */
@@ -2104,8 +2083,8 @@ unsafe fn append_glyph (it: *mut it)
     (if (*it).area == TEXT_AREA { 1 } else { 0 })
     /* Exclude mode/header/tab lines and menu/tool bars.  */
     & (if ! glyph_row_bits! (full_width_p, (*it).glyph_row) { 1 } else { 0 })
-    & (if ! WINDOW_RIGHTMOST_P ((*it).w) { 1 } else { 0 })
-    & (if WINDOW_RIGHT_MARGIN_WIDTH ((*it).w) == 0 { 1 } else { 0 });
+    & (if ! WINDOW_RIGHTMOST_P! ((*it).w) { 1 } else { 0 })
+    & (if WINDOW_RIGHT_MARGIN_WIDTH! ((*it).w) == 0 { 1 } else { 0 });
   end = (*(*it).glyph_row).glyphs [1 + (*it).area as usize].sub (reserve_last as usize);
 
   /* If the glyph row is reversed, we need to prepend the glyph rather
@@ -2354,8 +2333,8 @@ unsafe fn append_composite_glyph (it: *mut it, padding: c_int)
   let reserve_last: c_int =
     (if (*it).area == TEXT_AREA { 1 } else { 0 })
     & (if ! glyph_row_bits! (full_width_p, (*it).glyph_row) { 1 } else { 0 })
-    & (if ! WINDOW_RIGHTMOST_P ((*it).w) { 1 } else { 0 })
-    & (if WINDOW_RIGHT_MARGIN_WIDTH ((*it).w) == 0 { 1 } else { 0 });
+    & (if ! WINDOW_RIGHTMOST_P! ((*it).w) { 1 } else { 0 })
+    & (if WINDOW_RIGHT_MARGIN_WIDTH! ((*it).w) == 0 { 1 } else { 0 });
   end = (*(*it).glyph_row).glyphs [1 + (*it).area as usize].sub (reserve_last as usize);
   if glyph < end
     {
@@ -2524,8 +2503,8 @@ unsafe fn append_glyphless_glyph (it: *mut it, face_id: c_int, str: *const c_cha
   let reserve_last: c_int =
     (if (*it).area == TEXT_AREA { 1 } else { 0 })
     & (if ! glyph_row_bits! (full_width_p, (*it).glyph_row) { 1 } else { 0 })
-    & (if ! WINDOW_RIGHTMOST_P ((*it).w) { 1 } else { 0 })
-    & (if WINDOW_RIGHT_MARGIN_WIDTH ((*it).w) == 0 { 1 } else { 0 });
+    & (if ! WINDOW_RIGHTMOST_P! ((*it).w) { 1 } else { 0 })
+    & (if WINDOW_RIGHT_MARGIN_WIDTH! ((*it).w) == 0 { 1 } else { 0 });
   end = (*(*it).glyph_row).glyphs [1 + (*it).area as usize].sub (reserve_last as usize);
 
   /* If the glyph row is reversed, we need to prepend the glyph rather
@@ -3244,9 +3223,9 @@ pub unsafe extern "C" fn tty_draw_row_with_mouse_face (w: *mut window, window_ro
   window_end_x += (*window_row).used [LEFT_MARGIN_AREA as usize] as c_int;
 
   /* Translate from window to window's frame.  */
-  let frame_start_x: c_int = WINDOW_LEFT_EDGE_X (w) + window_start_x;
-  let frame_end_x: c_int = WINDOW_LEFT_EDGE_X (w) + window_end_x;
-  let frame_y: c_int = (*window_row).y + WINDOW_TOP_EDGE_Y (w);
+  let frame_start_x: c_int = WINDOW_LEFT_EDGE_X! (w) + window_start_x;
+  let frame_end_x: c_int = WINDOW_LEFT_EDGE_X! (w) + window_end_x;
+  let frame_y: c_int = (*window_row).y + WINDOW_TOP_EDGE_Y! (w);
 
   /* Translate from (possible) child frame to root frame.  */
   let mut root_start_x: c_int = 0;

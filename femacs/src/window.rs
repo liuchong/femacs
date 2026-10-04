@@ -30,19 +30,20 @@
 //     so C's live text is the `#else` arm's single `wset_horizontal_scroll_bar_type (w, Qnil);`
 //     (the mirror keeps `USE_HORIZONTAL_SCROLL_BARS` as a `const`).
 //
-// **Use-site declarations.**  `window.h`'s mirror is WIP: it carries the two records, the
-// nineteen flag shifts, the read-only accessors and the redisplay entry points, but not the
-// accessors that dereference `struct frame`, the `window_wants_*`/`CURRENT_*_LINE_HEIGHT`
-// family, or `WINDOW_FRAME`/`WINDOW_XFRAME`; those are defined here under C's own name with a
-// `/// C:` line (PORTING.md 0.1-2/P-72 rule 3, the frame.rs/editfns.rs shape), and the mirror
-// gaps this unit reports and does not touch are listed in `docs/ports/window.md`.
+// **The geometry family is the mirror's.**  `include/window.rs` carries all of `window.h`'s
+// accessors now — the frame-dereferencing geometry, the scroll-bar/fringe/divider widths, the
+// three `WINDOW_*_LINE_HEIGHT` accessors and `WINDOW_XFRAME`/`WINDOW_FRAME` — so this unit no
+// longer declares any of them at its use sites (the block that did was removed in the lane
+// that landed them; PORTING.md P-26).  The ones the mirror mirrors as `#[inline(always)]`
+// functions are called without the `!`; the seven C macros whose expansion names
+// dispextern.h's `CURRENT_*_LINE_HEIGHT`/`window_box_left` keep C's `macro_rules!` shape and
+// are called with it (`WINDOW_MODE_LINE_HEIGHT! (w)`, …).
 //
 // **L-value macros.**  `window.h`'s accessors are macros in C; `include/window.rs` mirrors the
 // read-only ones as functions and packs the nineteen `bool_bf` flags into `bits` (PORTING.md
-// 1.3/P-80).  The macros this file's C *writes* to, and the ones the mirror does not carry,
-// are defined here at the use site under C's own name (`window_bits!`, `WINDOW_FRAME`, …), so
-// the port's body keeps C's token and the write goes through the mirror's mask;
-// `NAME! (…)` is the macro call in Rust, whose `!` the token check ignores.
+// 1.3/P-80).  The macros this file's C *writes* to are defined here at the use site under C's
+// own name (`window_bits!`, …), so the port's body keeps C's token and the write goes through
+// the mirror's mask; `NAME! (…)` is the macro call in Rust, whose `!` the token check ignores.
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
@@ -81,11 +82,6 @@ include!("include/commands.rs");               // C 36: `#include "commands.h"`
 include!("include/indent.rs");                 // C 37: `#include "indent.h"`
 include!("include/pdumper.rs");                // C 51: `#include "pdumper.h"`
 
-/* frame.h 929: `#define WINDOW_FRAME(w) ((w)->frame)`.  The mirror does not carry it
-   (`window.h` is where a reader expects it, but C defines it in frame.h).  */
-macro_rules! WINDOW_FRAME { ($w:expr) => { (*$w).frame }; }
-/* window.h 620: `#define WINDOW_XFRAME(W) XFRAME (WINDOW_FRAME! (W))`.  */
-macro_rules! WINDOW_XFRAME { ($w:expr) => { XFRAME (WINDOW_FRAME! ($w)) }; }
 
 /* window.h 392-410: the nineteen `bool_bf : 1` members share the unit `bits`; the readers are
    in the mirror (`window_bit`), the writers are here (PORTING.md 1.3/P-80).  */
@@ -118,249 +114,6 @@ macro_rules! window_bits_shift {
     (preserve_vscroll_p) => { WINDOW_PRESERVE_VSCROLL_P_SHIFT };
 }
 
-/* window.h 639-643: the frame canonical metrics of W's frame.  */
-macro_rules! WINDOW_FRAME_COLUMN_WIDTH {
-    ($w:expr) => { FRAME_COLUMN_WIDTH (WINDOW_XFRAME! ($w)) };
-}
-macro_rules! WINDOW_FRAME_LINE_HEIGHT {
-    ($w:expr) => { FRAME_LINE_HEIGHT (WINDOW_XFRAME! ($w)) };
-}
-/* window.h 648-664: `MIN_SAFE_WINDOW_PIXEL_WIDTH`/`_HEIGHT` (C 668-673).  */
-macro_rules! MIN_SAFE_WINDOW_PIXEL_WIDTH {
-    ($w:expr) => { 2 * WINDOW_FRAME_COLUMN_WIDTH! ($w) };
-}
-macro_rules! MIN_SAFE_WINDOW_PIXEL_HEIGHT {
-    ($w:expr) => { WINDOW_FRAME_LINE_HEIGHT! ($w) };
-}
-/* window.h 687-712: the "outermost" predicates and the divider widths.  */
-macro_rules! WINDOW_RIGHTMOST_P {
-    ($w:expr) => {
-        WINDOW_RIGHT_PIXEL_EDGE ($w)
-        == WINDOW_RIGHT_PIXEL_EDGE (XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w))))
-    };
-}
-macro_rules! WINDOW_BOTTOMMOST_P {
-    ($w:expr) => {
-        WINDOW_BOTTOM_PIXEL_EDGE ($w)
-        == WINDOW_BOTTOM_PIXEL_EDGE (XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w))))
-    };
-}
-macro_rules! WINDOW_FULL_WIDTH_P {
-    ($w:expr) => {
-        WINDOW_PIXEL_WIDTH ($w)
-        == WINDOW_PIXEL_WIDTH (XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w))))
-    };
-}
-macro_rules! WINDOW_RIGHT_DIVIDER_WIDTH {
-    ($w:expr) => {
-        if WINDOW_RIGHTMOST_P! ($w) { 0 }
-        else { FRAME_RIGHT_DIVIDER_WIDTH (WINDOW_XFRAME! ($w)) }
-    };
-}
-macro_rules! WINDOW_BOTTOM_DIVIDER_WIDTH {
-    ($w:expr) => {
-        if (WINDOW_BOTTOMMOST_P! ($w)
-            && NILP ((*XWINDOW (FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w)))).next))
-           || EQ ((*$w).prev, FRAME_ROOT_WINDOW (WINDOW_XFRAME! ($w)))
-           || window_bits! ($w, pseudo_window_p)
-          { 0 }
-        else { FRAME_BOTTOM_DIVIDER_WIDTH (WINDOW_XFRAME! ($w)) }
-    };
-}
-/* window.h 758-770: the frame edges, and the text-box edges.  */
-macro_rules! WINDOW_LEFT_EDGE_X {
-    ($w:expr) => { FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) + WINDOW_LEFT_PIXEL_EDGE ($w) };
-}
-macro_rules! WINDOW_RIGHT_EDGE_X {
-    ($w:expr) => { FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) + WINDOW_RIGHT_PIXEL_EDGE ($w) };
-}
-macro_rules! WINDOW_TOP_EDGE_Y {
-    ($w:expr) => {
-        (if WINDOW_MENU_BAR_P ($w) || WINDOW_TAB_BAR_P ($w) || WINDOW_TOOL_BAR_P ($w)
-         { 0 } else { FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) })
-        + WINDOW_TOP_PIXEL_EDGE ($w)
-    };
-}
-macro_rules! WINDOW_BOTTOM_EDGE_Y {
-    ($w:expr) => {
-        (if WINDOW_MENU_BAR_P ($w) || WINDOW_TAB_BAR_P ($w) || WINDOW_TOOL_BAR_P ($w)
-         { 0 } else { FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) })
-        + WINDOW_BOTTOM_PIXEL_EDGE ($w)
-    };
-}
-macro_rules! WINDOW_BOX_LEFT_PIXEL_EDGE {
-    ($w:expr) => { WINDOW_LEFT_PIXEL_EDGE ($w) + WINDOW_LEFT_SCROLL_BAR_AREA_WIDTH! ($w) };
-}
-macro_rules! WINDOW_BOX_RIGHT_PIXEL_EDGE {
-    ($w:expr) => {
-        WINDOW_RIGHT_PIXEL_EDGE ($w)
-        - WINDOW_RIGHT_DIVIDER_WIDTH! ($w)
-        - WINDOW_RIGHT_SCROLL_BAR_AREA_WIDTH! ($w)
-    };
-}
-macro_rules! WINDOW_BOX_LEFT_EDGE_X {
-    ($w:expr) => { FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) + WINDOW_BOX_LEFT_PIXEL_EDGE! ($w) };
-}
-macro_rules! WINDOW_BOX_RIGHT_EDGE_X {
-    ($w:expr) => { FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME! ($w)) + WINDOW_BOX_RIGHT_PIXEL_EDGE! ($w) };
-}
-/* window.h 847-872: the margin and fringe pixel widths.  */
-macro_rules! WINDOW_LEFT_MARGIN_WIDTH {
-    ($w:expr) => { (*$w).left_margin_cols * WINDOW_FRAME_COLUMN_WIDTH! ($w) };
-}
-macro_rules! WINDOW_RIGHT_MARGIN_WIDTH {
-    ($w:expr) => { (*$w).right_margin_cols * WINDOW_FRAME_COLUMN_WIDTH! ($w) };
-}
-macro_rules! WINDOW_MARGINS_WIDTH {
-    ($w:expr) => { WINDOW_LEFT_MARGIN_WIDTH! ($w) + WINDOW_RIGHT_MARGIN_WIDTH! ($w) };
-}
-macro_rules! WINDOW_LEFT_FRINGE_WIDTH {
-    ($w:expr) => {
-        if (*$w).left_fringe_width >= 0 { (*$w).left_fringe_width }
-        else { FRAME_LEFT_FRINGE_WIDTH (WINDOW_XFRAME! ($w)) }
-    };
-}
-macro_rules! WINDOW_RIGHT_FRINGE_WIDTH {
-    ($w:expr) => {
-        if (*$w).right_fringe_width >= 0 { (*$w).right_fringe_width }
-        else { FRAME_RIGHT_FRINGE_WIDTH (WINDOW_XFRAME! ($w)) }
-    };
-}
-macro_rules! WINDOW_FRINGES_WIDTH {
-    ($w:expr) => { WINDOW_LEFT_FRINGE_WIDTH! ($w) + WINDOW_RIGHT_FRINGE_WIDTH! ($w) };
-}
-/* window.h 877-920: the vertical scroll-bar type and presence; horizontal scroll bars are
-   off for this target (`USE_HORIZONTAL_SCROLL_BARS` is false, mirror).  */
-macro_rules! WINDOW_VERTICAL_SCROLL_BAR_TYPE {
-    ($w:expr) => {
-        if WINDOW_PSEUDO_P ($w) { vertical_scroll_bar_none }
-        else if EQ ((*$w).vertical_scroll_bar_type, Qt ())
-          { FRAME_VERTICAL_SCROLL_BAR_TYPE (WINDOW_XFRAME! ($w)) }
-        else if EQ ((*$w).vertical_scroll_bar_type, Qleft ()) { vertical_scroll_bar_left }
-        else if EQ ((*$w).vertical_scroll_bar_type, Qright ()) { vertical_scroll_bar_right }
-        else { vertical_scroll_bar_none }
-    };
-}
-macro_rules! WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_LEFT {
-    ($w:expr) => { WINDOW_VERTICAL_SCROLL_BAR_TYPE! ($w) == vertical_scroll_bar_left };
-}
-macro_rules! WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_RIGHT {
-    ($w:expr) => { WINDOW_VERTICAL_SCROLL_BAR_TYPE! ($w) == vertical_scroll_bar_right };
-}
-macro_rules! WINDOW_HAS_VERTICAL_SCROLL_BAR {
-    ($w:expr) => {
-        WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_LEFT! ($w)
-        || WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_RIGHT! ($w)
-    };
-}
-/* window.h 926-1013: the scroll-bar widths/heights in columns/lines.  */
-macro_rules! WINDOW_CONFIG_SCROLL_BAR_WIDTH {
-    ($w:expr) => {
-        if (*$w).scroll_bar_width >= 0 { (*$w).scroll_bar_width }
-        else { FRAME_CONFIG_SCROLL_BAR_WIDTH (WINDOW_XFRAME! ($w)) }
-    };
-}
-macro_rules! WINDOW_CONFIG_SCROLL_BAR_COLS {
-    ($w:expr) => {
-        if (*$w).scroll_bar_width >= 0
-          { ((*$w).scroll_bar_width + WINDOW_FRAME_COLUMN_WIDTH! ($w) - 1)
-            / WINDOW_FRAME_COLUMN_WIDTH! ($w) }
-        else { FRAME_CONFIG_SCROLL_BAR_COLS (WINDOW_XFRAME! ($w)) }
-    };
-}
-macro_rules! WINDOW_LEFT_SCROLL_BAR_COLS {
-    ($w:expr) => {
-        if WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_LEFT! ($w) { WINDOW_CONFIG_SCROLL_BAR_COLS! ($w) }
-        else { 0 }
-    };
-}
-macro_rules! WINDOW_RIGHT_SCROLL_BAR_COLS {
-    ($w:expr) => {
-        if WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_RIGHT! ($w) { WINDOW_CONFIG_SCROLL_BAR_COLS! ($w) }
-        else { 0 }
-    };
-}
-macro_rules! WINDOW_SCROLL_BAR_COLS {
-    ($w:expr) => {
-        if WINDOW_HAS_VERTICAL_SCROLL_BAR! ($w) { WINDOW_CONFIG_SCROLL_BAR_COLS! ($w) } else { 0 }
-    };
-}
-macro_rules! WINDOW_LEFT_SCROLL_BAR_AREA_WIDTH {
-    ($w:expr) => {
-        if WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_LEFT! ($w) { WINDOW_CONFIG_SCROLL_BAR_WIDTH! ($w) }
-        else { 0 }
-    };
-}
-macro_rules! WINDOW_RIGHT_SCROLL_BAR_AREA_WIDTH {
-    ($w:expr) => {
-        if WINDOW_HAS_VERTICAL_SCROLL_BAR_ON_RIGHT! ($w) { WINDOW_CONFIG_SCROLL_BAR_WIDTH! ($w) }
-        else { 0 }
-    };
-}
-macro_rules! WINDOW_SCROLL_BAR_AREA_WIDTH {
-    ($w:expr) => {
-        if WINDOW_HAS_VERTICAL_SCROLL_BAR! ($w) { WINDOW_CONFIG_SCROLL_BAR_WIDTH! ($w) } else { 0 }
-    };
-}
-macro_rules! WINDOW_CONFIG_SCROLL_BAR_HEIGHT {
-    ($w:expr) => {
-        if (*$w).scroll_bar_height >= 0 { (*$w).scroll_bar_height }
-        else { FRAME_CONFIG_SCROLL_BAR_HEIGHT (WINDOW_XFRAME! ($w)) }
-    };
-}
-macro_rules! WINDOW_CONFIG_SCROLL_BAR_LINES {
-    ($w:expr) => {
-        if (*$w).scroll_bar_height >= 0
-          { ((*$w).scroll_bar_height + WINDOW_FRAME_LINE_HEIGHT! ($w) - 1)
-            / WINDOW_FRAME_LINE_HEIGHT! ($w) }
-        else { FRAME_CONFIG_SCROLL_BAR_LINES (WINDOW_XFRAME! ($w)) }
-    };
-}
-macro_rules! WINDOW_SCROLL_BAR_LINES {
-    ($w:expr) => {
-        if WINDOW_HAS_HORIZONTAL_SCROLL_BAR ($w) { WINDOW_CONFIG_SCROLL_BAR_LINES! ($w) } else { 0 }
-    };
-}
-macro_rules! WINDOW_SCROLL_BAR_AREA_HEIGHT {
-    ($w:expr) => {
-        if WINDOW_HAS_HORIZONTAL_SCROLL_BAR ($w) { WINDOW_CONFIG_SCROLL_BAR_HEIGHT! ($w) } else { 0 }
-    };
-}
-/* window.h 1020-1045: the mode/header/tab line pixel heights.  */
-macro_rules! WINDOW_MODE_LINE_HEIGHT {
-    ($w:expr) => {
-        if window_wants_mode_line ($w) { CURRENT_MODE_LINE_HEIGHT! ($w) } else { 0 }
-    };
-}
-macro_rules! WINDOW_HEADER_LINE_HEIGHT {
-    ($w:expr) => {
-        if window_wants_header_line ($w) { CURRENT_HEADER_LINE_HEIGHT! ($w) } else { 0 }
-    };
-}
-macro_rules! WINDOW_TAB_LINE_HEIGHT {
-    ($w:expr) => {
-        if window_wants_tab_line ($w) { CURRENT_TAB_LINE_HEIGHT! ($w) } else { 0 }
-    };
-}
-/* window.h 1050-1058.  */
-macro_rules! WINDOW_BOX_HEIGHT_NO_MODE_LINE {
-    ($w:expr) => {
-        WINDOW_PIXEL_HEIGHT ($w)
-        - WINDOW_BOTTOM_DIVIDER_WIDTH! ($w)
-        - WINDOW_SCROLL_BAR_AREA_HEIGHT! ($w)
-        - WINDOW_MODE_LINE_HEIGHT! ($w)
-    };
-}
-macro_rules! WINDOW_BOX_TEXT_HEIGHT {
-    ($w:expr) => {
-        WINDOW_PIXEL_HEIGHT ($w)
-        - WINDOW_BOTTOM_DIVIDER_WIDTH! ($w)
-        - WINDOW_SCROLL_BAR_AREA_HEIGHT! ($w)
-        - WINDOW_MODE_LINE_HEIGHT! ($w)
-        - WINDOW_HEADER_LINE_HEIGHT! ($w)
-        - WINDOW_TAB_LINE_HEIGHT! ($w)
-    };
-}
 /* window.h 1226-1233: `WINDOW_CONFIGURATIONP`.  */
 macro_rules! WINDOW_CONFIGURATIONP {
     ($a:expr) => { PSEUDOVECTORP ($a, pvec_type::PVEC_WINDOW_CONFIGURATION) };
@@ -423,90 +176,6 @@ unsafe extern "C" {
   /// C: lisp.h 4917: `extern void redisplay_other_windows (void);` (xdisp.c defines it).
   pub fn redisplay_other_windows ();
 }
-
-/* dispextern.h 1509-1528/1553-1581/1594-1665: the mode/header/tab line heights and the face
-   ids they use.  `include/window.rs`'s `WINDOW_*_LINE_HEIGHT` is not mirrored either (the
-   mirror carries the field name only), so the family lives here with C's body; the glyph
-   matrix types and `MATRIX_*_LINE_ROW` come from `include/dispextern.rs` (PORTING.md P-72 ③,
-   the dispnew.rs shape).  */
-macro_rules! MATRIX_MODE_LINE_HEIGHT { ($m:expr) => { {
-  let matrix = $m as *mut glyph_matrix;
-  if !matrix.is_null () && !(*matrix).rows.is_null ()
-    { (*(MATRIX_MODE_LINE_ROW! (matrix))).height } else { 0 } } } }
-macro_rules! MATRIX_HEADER_LINE_HEIGHT { ($m:expr) => { {
-  let matrix = $m as *mut glyph_matrix;
-  if !matrix.is_null () && !(*matrix).rows.is_null ()
-    { (*(MATRIX_HEADER_LINE_ROW! (matrix))).height } else { 0 } } } }
-macro_rules! MATRIX_TAB_LINE_HEIGHT { ($m:expr) => { {
-  let matrix = $m as *mut glyph_matrix;
-  if !matrix.is_null () && !(*matrix).rows.is_null ()
-    { (*(MATRIX_TAB_LINE_ROW! (matrix))).height } else { 0 } } } }
-
-macro_rules! CURRENT_MODE_LINE_ACTIVE_FACE_ID_3 { ($selw:expr, $mbw:expr, $scrw:expr) => {
-  if !mode_line_in_non_selected_windows
-     || ($selw) == XWINDOW (selected_window)
-     || (minibuf_level > 0
-	 && !NILP (minibuf_selected_window)
-	 && ($mbw) == XWINDOW (minibuf_window)
-	 && ($scrw) == XWINDOW (minibuf_selected_window))
-    { MODE_LINE_ACTIVE_FACE_ID } else { MODE_LINE_INACTIVE_FACE_ID } }; }
-macro_rules! CURRENT_MODE_LINE_ACTIVE_FACE_ID { ($w:expr) => {
-  CURRENT_MODE_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) }; }
-macro_rules! CURRENT_MODE_LINE_HEIGHT { ($w:expr) => {
-  if (*($w)).mode_line_height >= 0
-    { (*($w)).mode_line_height }
-  else
-    { (*($w)).mode_line_height =
-	if MATRIX_MODE_LINE_HEIGHT! ((*($w)).current_matrix) != 0
-	  { MATRIX_MODE_LINE_HEIGHT! ((*($w)).current_matrix) }
-	  else
-	  { estimate_mode_line_height (XFRAME (WINDOW_FRAME! ($w)),
-				       CURRENT_MODE_LINE_ACTIVE_FACE_ID! ($w)) };
-      (*($w)).mode_line_height } }; }
-
-macro_rules! CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3 { ($selw:expr, $mbw:expr, $scrw:expr) => {
-  if !mode_line_in_non_selected_windows
-     || ($selw) == XWINDOW (selected_window)
-     || (minibuf_level > 0
-	 && !NILP (minibuf_selected_window)
-	 && ($mbw) == XWINDOW (minibuf_window)
-	 && ($scrw) == XWINDOW (minibuf_selected_window))
-    { HEADER_LINE_ACTIVE_FACE_ID } else { HEADER_LINE_INACTIVE_FACE_ID } }; }
-macro_rules! CURRENT_HEADER_LINE_ACTIVE_FACE_ID { ($w:expr) => {
-  CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) }; }
-macro_rules! CURRENT_HEADER_LINE_HEIGHT { ($w:expr) => {
-  if (*($w)).header_line_height >= 0
-    { (*($w)).header_line_height }
-  else
-    { (*($w)).header_line_height =
-	if MATRIX_HEADER_LINE_HEIGHT! ((*($w)).current_matrix) != 0
-	  { MATRIX_HEADER_LINE_HEIGHT! ((*($w)).current_matrix) }
-	  else
-	  { estimate_mode_line_height (XFRAME (WINDOW_FRAME! ($w)),
-				       CURRENT_HEADER_LINE_ACTIVE_FACE_ID! ($w)) };
-      (*($w)).header_line_height } }; }
-
-macro_rules! CURRENT_TAB_LINE_ACTIVE_FACE_ID_3 { ($selw:expr, $mbw:expr, $scrw:expr) => {
-  if !mode_line_in_non_selected_windows
-     || ($selw) == XWINDOW (selected_window)
-     || (minibuf_level > 0
-	 && !NILP (minibuf_selected_window)
-	 && ($mbw) == XWINDOW (minibuf_window)
-	 && ($scrw) == XWINDOW (minibuf_selected_window))
-    { TAB_LINE_ACTIVE_FACE_ID } else { TAB_LINE_INACTIVE_FACE_ID } }; }
-macro_rules! CURRENT_TAB_LINE_ACTIVE_FACE_ID { ($w:expr) => {
-  CURRENT_TAB_LINE_ACTIVE_FACE_ID_3! ($w, XWINDOW (selected_window), $w) }; }
-macro_rules! CURRENT_TAB_LINE_HEIGHT { ($w:expr) => {
-  if (*($w)).tab_line_height >= 0
-    { (*($w)).tab_line_height }
-  else
-    { (*($w)).tab_line_height =
-	if MATRIX_TAB_LINE_HEIGHT! ((*($w)).current_matrix) != 0
-	  { MATRIX_TAB_LINE_HEIGHT! ((*($w)).current_matrix) }
-	  else
-	  { estimate_mode_line_height (XFRAME (WINDOW_FRAME! ($w)),
-				       CURRENT_TAB_LINE_ACTIVE_FACE_ID! ($w)) };
-      (*($w)).tab_line_height } }; }
 
 unsafe extern "C" {
   /// C: dispextern.h 3843: `int estimate_mode_line_height (struct frame *, enum face_id);`
@@ -6327,12 +5996,6 @@ unsafe fn window_scroll (window: Lisp_Object, n: EMACS_INT, whole: bool, noerror
    of the window.  The result is measured in lines or in pixels
    depending on the second parameter.  */
 
-/* window.h 1225: `enum margin_unit { MARGIN_IN_LINES, MARGIN_IN_PIXELS };` — the mirror
-   stops before it (PORTING.md 1.3: C's enum ABI is `c_int`).  */
-pub type margin_unit = c_int;
-pub const MARGIN_IN_LINES: margin_unit = 0;
-pub const MARGIN_IN_PIXELS: margin_unit = 1;
-
 unsafe extern "C" {
   /// C: dispextern.h 3567: `int default_line_pixel_height (struct window *);` (indent.c).
   pub fn default_line_pixel_height (w: *mut window) -> c_int;
@@ -6361,7 +6024,7 @@ pub unsafe extern "C" fn window_scroll_margin (window: *mut window, unit: margin
 				   (window_lines as f64 * ratio) as c_int as isize) as c_int;
       let margin: c_int = clip_to_bounds (0, scroll_margin as EMACS_INT, max_margin as EMACS_INT)
 	as c_int;
-      return if unit == MARGIN_IN_PIXELS
+      return if unit == margin_unit::MARGIN_IN_PIXELS
         { margin * frame_line_height }
         else { margin };
     }
@@ -6814,7 +6477,7 @@ unsafe fn window_scroll_pixel_based (window: Lisp_Object, n: c_int, whole: bool,
   /* Move PT out of scroll margins.
      This code wants current_y to be zero at the window start position
      even if there is a header line.  */
-  this_scroll_margin = window_scroll_margin (w, MARGIN_IN_PIXELS);
+  this_scroll_margin = window_scroll_margin (w, margin_unit::MARGIN_IN_PIXELS);
 
   if n > 0
     {
@@ -7073,7 +6736,7 @@ unsafe fn window_scroll_line_based (window: Lisp_Object, n: c_int, whole: bool, 
 
   if pos < ZV! ()
     {
-      let this_scroll_margin: c_int = window_scroll_margin (w, MARGIN_IN_LINES);
+      let this_scroll_margin: c_int = window_scroll_margin (w, margin_unit::MARGIN_IN_LINES);
 
       set_marker_restricted_both ((*w).start, (*w).contents, pos, pos_byte);
       window_bits! (w, start_at_line_beg, !NILP (bolp));
@@ -7448,7 +7111,7 @@ DEFUN! ("recenter", Frecenter, Srecenter, 0, 2, "P\np",
 
   /* Do this after making BUF current
      in case scroll_margin is buffer-local.  */
-  this_scroll_margin = window_scroll_margin (w, MARGIN_IN_LINES);
+  this_scroll_margin = window_scroll_margin (w, margin_unit::MARGIN_IN_LINES);
 
   /* Don't use the display code for initial frames, as the necessary
      data structures might not be set up yet then.  Also don't use it

@@ -361,15 +361,6 @@ pub const INTERNAL_BORDER_BOTTOM_RIGHT_CORNER: internal_border_part = 6;
 pub const INTERNAL_BORDER_BOTTOM_EDGE: internal_border_part = 7;
 pub const INTERNAL_BORDER_BOTTOM_LEFT_CORNER: internal_border_part = 8;
 
-/* window.h 1358: `WINDOW_FRAME (w)` is `((w)->frame)`; the mirror carries the reader
-   `WINDOW_XFRAME` for a Lisp_Object but not this one (P-72 rule 3).  */
-macro_rules! WINDOW_FRAME { ($w:expr) => { (*$w).frame }; }
-
-/* window.h 1358's `WINDOW_XFRAME (w)` is `XFRAME ((w)->frame)`; the mirror says it lands with
-   this file, so it is defined here (`docs/ports/frame.md` reports it).  */
-#[inline(always)]
-pub unsafe fn WINDOW_XFRAME (w: *mut window) -> *mut frame { XFRAME ((*w).frame) }
-
 /* C's `f->output_method = …` (frame.h 1145's `ENUM_BF`); the reader is the mirror's
    `output_method (f)`, and this macro is the writer (PORTING.md 1.3).  */
 macro_rules! output_method {
@@ -1903,7 +1894,7 @@ unsafe fn make_terminal_frame (terminal: *mut terminal, parent: Lisp_Object,
 	    {
 	      if !WINDOW_LIVE_P (mini)
 		  || !MINI_WINDOW_P (XWINDOW (mini))
-		  || (root_frame (WINDOW_XFRAME (XWINDOW (mini)))
+		  || (root_frame (WINDOW_XFRAME! (XWINDOW (mini)))
 		      != root_frame (XFRAME (parent)))
 		{ error (c"The `minibuffer' parameter does not specify a valid minibuffer window".as_ptr ()); }
 	      else
@@ -2834,7 +2825,7 @@ pub unsafe extern "C" fn delete_frame (frame: Lisp_Object, force: Lisp_Object) -
     { FOR_EACH_FRAME! (frames, frame1, {
 	let f1: *mut frame = XFRAME (frame1);
 
-	if frame_subsumes_p (f, WINDOW_XFRAME (XWINDOW ((*f1).minibuffer_window)))
+	if frame_subsumes_p (f, WINDOW_XFRAME! (XWINDOW ((*f1).minibuffer_window)))
 	    && !frame_subsumes_p (f, f1)
 	  { error (c"Cannot delete surrogate minibuffer frame".as_ptr ()); }
       }); }
@@ -3866,7 +3857,7 @@ pub unsafe extern "C" fn store_frame_param (f: *mut frame, prop: Lisp_Object, va
 	  if !WINDOW_LIVE_P (val) || !MINI_WINDOW_P (XWINDOW (val))
 	    { error (c"The `minibuffer' parameter does not specify a valid minibuffer window".as_ptr ()); }
 	  else if FRAME_LIVE_P (f)
-		   && FRAME_TERMINAL! (WINDOW_XFRAME (XWINDOW (val))) != FRAME_TERMINAL! (f)
+		   && FRAME_TERMINAL! (WINDOW_XFRAME! (XWINDOW (val))) != FRAME_TERMINAL! (f)
 	    { error (c"Minibuffer window must be on same terminal as frame that uses it".as_ptr ()); }
 	  else if FRAME_MINIBUF_ONLY_P (f)
 	    {
@@ -3883,7 +3874,7 @@ pub unsafe extern "C" fn store_frame_param (f: *mut frame, prop: Lisp_Object, va
 		{ error (c"Can't change the minibuffer window of a frame with its own minibuffer".as_ptr ()); }
 	    }
 	  else if is_tty_frame (f)
-		   && (root_frame (WINDOW_XFRAME (XWINDOW (val)))
+		   && (root_frame (WINDOW_XFRAME! (XWINDOW (val)))
 		       != root_frame (f))
 	    { error (c"A frame and its surrogate minibuffer frame must have the same roots".as_ptr ()); }
 	  else
@@ -3989,7 +3980,7 @@ pub unsafe extern "C" fn store_frame_param (f: *mut frame, prop: Lisp_Object, va
 	  /* Spare GUI frames (Bug#79947).  */
 	  if is_tty_frame (f1)
 	    {
-	      let m1: *mut frame = WINDOW_XFRAME (XWINDOW ((*f1).minibuffer_window));
+	      let m1: *mut frame = WINDOW_XFRAME! (XWINDOW ((*f1).minibuffer_window));
 	      let mismatch: bool;
 
 	      /* Temporarily install VAL and check whether our invariant
@@ -4011,7 +4002,7 @@ pub unsafe extern "C" fn store_frame_param (f: *mut frame, prop: Lisp_Object, va
 	{
 	  if !FRAME_HAS_MINIBUF_P (f)
 	      && !frame_ancestor_p
-		  (f, WINDOW_XFRAME (XWINDOW ((*f).minibuffer_window)))
+		  (f, WINDOW_XFRAME! (XWINDOW ((*f).minibuffer_window)))
 	    { error (c"Cannot make tty root frame without valid minibuffer window".as_ptr ()); }
 	  else
 	    {

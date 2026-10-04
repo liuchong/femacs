@@ -23,15 +23,15 @@
 - [ ] CHAR_GLYPH_SPACE_P  (line 648, body e2dd0bbfb3cd)
 - [ ] CHECK_MATRIX  (line 869, body a29646b15239)
 - [ ] CLIP_TEXT_POS_FROM_MARKER  (line 328, body 002b35e3ba7f)
-- [ ] CURRENT_HEADER_LINE_ACTIVE_FACE_ID  (line 1607, body fabe4139f274)
-- [ ] CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3  (line 1594, body 93df835e5c32)
-- [ ] CURRENT_HEADER_LINE_HEIGHT  (line 1616, body b0a21d9aff69)
-- [ ] CURRENT_MODE_LINE_ACTIVE_FACE_ID  (line 1566, body af19b7b09f94)
-- [ ] CURRENT_MODE_LINE_ACTIVE_FACE_ID_3  (line 1553, body 5312b10a70fc)
-- [ ] CURRENT_MODE_LINE_HEIGHT  (line 1575, body fba2902e5cc3)
-- [ ] CURRENT_TAB_LINE_ACTIVE_FACE_ID  (line 1641, body 925fa57920f2)
-- [ ] CURRENT_TAB_LINE_ACTIVE_FACE_ID_3  (line 1629, body aed5798bdffa)
-- [ ] CURRENT_TAB_LINE_HEIGHT  (line 1650, body 001407fb1bad)
+- [x] CURRENT_HEADER_LINE_ACTIVE_FACE_ID  (line 1607, body fabe4139f274)
+- [x] CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3  (line 1594, body 93df835e5c32)
+- [x] CURRENT_HEADER_LINE_HEIGHT  (line 1616, body b0a21d9aff69)
+- [x] CURRENT_MODE_LINE_ACTIVE_FACE_ID  (line 1566, body af19b7b09f94)
+- [x] CURRENT_MODE_LINE_ACTIVE_FACE_ID_3  (line 1553, body 5312b10a70fc)
+- [x] CURRENT_MODE_LINE_HEIGHT  (line 1575, body fba2902e5cc3)
+- [x] CURRENT_TAB_LINE_ACTIVE_FACE_ID  (line 1641, body 925fa57920f2)
+- [x] CURRENT_TAB_LINE_ACTIVE_FACE_ID_3  (line 1629, body aed5798bdffa)
+- [x] CURRENT_TAB_LINE_HEIGHT  (line 1650, body 001407fb1bad)
 - [ ] DEC_TEXT_POS  (line 309, body ae74bb8bed91)
 - [ ] DEFAULT_TAB_BAR_BUTTON_MARGIN  (line 3435, body 356a192b7913)
 - [ ] DEFAULT_TAB_BAR_BUTTON_RELIEF  (line 3436, body 356a192b7913)
@@ -71,9 +71,9 @@
 - [ ] IT_STRING_CHARPOS  (line 2942, body d8348a36bac4)
 - [x] MATRIX_BOTTOM_TEXT_ROW  (line 1231, body aabcfcfcceb6)
 - [x] MATRIX_FIRST_TEXT_ROW  (line 1189, body 4e76fb21e86e)
-- [ ] MATRIX_HEADER_LINE_HEIGHT  (line 1529, body 2932fb04bc39)
+- [x] MATRIX_HEADER_LINE_HEIGHT  (line 1529, body 2932fb04bc39)
 - [x] MATRIX_HEADER_LINE_ROW  (line 1184, body 17a50d307fc8)
-- [ ] MATRIX_MODE_LINE_HEIGHT  (line 1520, body 37d33c0cddf3)
+- [x] MATRIX_MODE_LINE_HEIGHT  (line 1520, body 37d33c0cddf3)
 - [x] MATRIX_MODE_LINE_ROW  (line 1171, body 819b62a04044)
 - [x] MATRIX_ROW  (line 1165, body c6255477f955)
 - [x] MATRIX_ROW_BOTTOM_Y  (line 1290, body e6875dfb0c96)
@@ -97,7 +97,7 @@
 - [x] MATRIX_ROW_START_CHARPOS  (line 1212, body fafca7eb1d99)
 - [x] MATRIX_ROW_USED  (line 1203, body 7f85c52fa373)
 - [x] MATRIX_ROW_VPOS  (line 1225, body 5ed91f0f505c)
-- [ ] MATRIX_TAB_LINE_HEIGHT  (line 1538, body a74e931726e2)
+- [x] MATRIX_TAB_LINE_HEIGHT  (line 1538, body a74e931726e2)
 - [x] MATRIX_TAB_LINE_ROW  (line 1178, body c26c1bb176c4)
 - [ ] MAX_FACE_ID  (line 1986, body e89e9b1c9f28)
 - [ ] MAX_FRINGE_BITMAPS  (line 2235, body 737b674ea0ea)
@@ -258,3 +258,23 @@ missing counts as pending and the ratchet only shrinks pending).
 ### Call-relationship differences (D7)
 
 - None so far; the file follows C's order for what it carries.
+
+### Integrator addition (2026-10-04, with window.h's geometry family)
+
+- The twelve display-dimension macros land here, not in `include/window.rs`: window.h's
+  `WINDOW_MODE_LINE_HEIGHT`/`WINDOW_HEADER_LINE_HEIGHT`/`WINDOW_TAB_LINE_HEIGHT` and the two
+  `WINDOW_BOX_*` macros call `CURRENT_*_LINE_HEIGHT` (1575/1616/1650), whose bodies call the
+  three `MATRIX_*_LINE_HEIGHT` readers (1513/1529/1538) and `estimate_mode_line_height` (3582).
+  They were duplicated at four use sites - `window.rs`, `dispnew.rs`, `menu.rs` and the
+  in-flight `xdisp.rs`; the mirror is the landing point now, the three committed copies are
+  deleted, and `xdisp.rs`'s is its own lane's to drop (P-26, docs/ports/include-window.md
+  records the change from window.h's side).  Their bodies use C's `XFRAME ((W)->frame)` text
+  rather than `WINDOW_FRAME (W)`, so this mirror needs no window.h name and no unit gains one.
+  `estimate_mode_line_height` stays a use-site declaration in `window.rs`/`dispnew.rs`/
+  `menu.rs`/`xdisp.rs` (dispextern.h 3582; xdisp.c defines it), because a crate-root
+  declaration would collide with a defining unit (PORTING.md 0.1-10) - the module + glob
+  import pattern is available if the integrator wants one landing point for it.
+- Evidence: `python3 tools/extract-abi.py --check emacs/src/dispextern.h
+  femacs/src/include/dispextern.rs` reports 141 problems against 153 before the change
+  (none of them these twelve), and `build-tu src/dispnew.c`, `src/menu.c`, `src/window.c`
+  and their 41 siblings that include window.rs all report `built`.

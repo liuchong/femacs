@@ -684,11 +684,6 @@ unsafe extern "C" {
   fn clear_message (inhibit_message: bool, inhibit_clear_message: bool);
 }
 
-/* C: window.h 543: `#define WINDOW_FRAME(w) ((w)->frame)`.  The window.h mirror is WIP and
-   stops before the macro block (PORTING.md P-66), so the port keeps C's macro name, as
-   indent.rs/menu.rs do.  */
-macro_rules! WINDOW_FRAME { ($w:expr) => { (*($w)).frame }; }
-
 /* Read from the minibuffer using keymap MAP and initial contents INITIAL,
    putting point minus BACKUP_N bytes from the end of INITIAL,
    prompting with PROMPT (a string), using history list HISTVAR
