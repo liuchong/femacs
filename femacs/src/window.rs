@@ -140,14 +140,9 @@ macro_rules! FRAME_CANON_Y_FROM_PIXEL_Y {
     };
 }
 
-/* frame.h 1387-1390: `CHECK_FRAME`/`CHECK_LIVE_FRAME` are macros in C and the mirror does not
-   carry them (PORTING.md P-72 rule 3; the frame.rs shape).  */
-macro_rules! CHECK_FRAME {
-    ($x:expr) => { CHECK_TYPE (FRAMEP ($x), Qframep (), $x) };
-}
-macro_rules! CHECK_LIVE_FRAME {
-    ($x:expr) => { CHECK_TYPE (FRAMEP ($x) && FRAME_LIVE_P (XFRAME ($x)), Qframe_live_p (), $x) };
-}
+/* frame.h 1387-1391: `CHECK_FRAME`/`CHECK_LIVE_FRAME` are the mirror's (`include/frame.rs`
+   979/983, which this unit includes); the unit's body-identical copies were redundancy
+   (P-26).  */
 
 /* frame.h 1163-1226: the packed `bool_bf` flags this file writes (`SELECT_MINI_WINDOW_FLAG`
    and the window-change flags).  The readers are in the mirror; the writers are here
@@ -5431,9 +5426,11 @@ DEFUN! ("split-window-internal", Fsplit_window_internal, Ssplit_window_internal,
 #[inline(always)]
 unsafe fn xwidget_view_delete_all_in_window (_w: *mut window) {}
 
-/* frame.h 1174-1176: `SET_FRAME_GARBAGED` is a three-term comma expression in C; the port
-   keeps the same three effects in the same order (the dispnew.rs copy of the same macro;
-   `frame.rs` defines it for its own unit, which this unit does not include).  */
+/* frame.h 1174-1176: `SET_FRAME_GARBAGED` is a three-term comma expression in C; the port keeps
+   the same three effects in the same order.  The mirror's copy (`include/frame.rs` 947) cannot
+   expand here - it passes `*mut frame` where this tree declares `fset_redisplay (*mut c_void)`
+   (E0308; the cast below is the working spelling) - so the unit keeps its own, reported to the
+   mirror's owner.  */
 macro_rules! SET_FRAME_GARBAGED {
   ($f:expr) => {{
     frame_garbaged = true;
@@ -7471,11 +7468,9 @@ DEFUN! ("window-configuration-frame", Fwindow_configuration_frame, Swindow_confi
   return (*XWINDOW ((*SAVED_WINDOW_N! (saved_windows, 0)).window)).frame;
 });
 
-/* C's `list(...)` is `listn (countof (...), __VA_ARGS__)` (lisp.h 4493-4494); the term.rs
-   copy of the same macro (`list` is listed in docs/ports/excluded-macros.txt).  */
-macro_rules! list {
-  ($($x:expr),* $(,)?) => { listn ([$($x),*].len () as isize, $($x),*) };
-}
+/* C's `list(...)` is `listn (countof (...), __VA_ARGS__)` (lisp.h 4493-4494) and the mirror
+   carries it (`include/lisp.rs` 3227, same double evaluation of __VA_ARGS__); the unit's copy
+   was redundancy (P-26).  */
 
 unsafe extern "C" {
   /// C: frame.h 1511-1512: `extern void adjust_frame_size (struct frame *, int, int, int,

@@ -77,24 +77,24 @@ include!("include/window.rs");                 // C 43: `#include "window.h"`
 include!("include/cm.rs");                     // C 47: `#include "cm.h"`
 include!("include/pdumper.rs");                // C 55: `#include "pdumper.h"`
 
-/* frame.h 1387-1390: `CHECK_FRAME`/`CHECK_LIVE_FRAME` are macros in C; the mirror does not
-   carry them, so they are defined here with C's body (PORTING.md P-72 rule 3).  */
-macro_rules! CHECK_FRAME {
-    ($x:expr) => { CHECK_TYPE (FRAMEP ($x), Qframep (), $x) };
-}
-macro_rules! CHECK_LIVE_FRAME {
-    ($x:expr) => { CHECK_TYPE (FRAMEP ($x) && FRAME_LIVE_P (XFRAME ($x)), Qframe_live_p (), $x) };
-}
+/* frame.h 1387-1391: `CHECK_FRAME`/`CHECK_LIVE_FRAME` are the mirror's (`include/frame.rs`
+   979/983, which this unit includes at C 42); the unit's own copies were body-identical
+   redundancy (P-26).  */
 
-/* frame.h 1536-1552: `SET_FRAME_VISIBLE`.  The mirror has only the reader
-   `FRAME_VISIBLE_P`; the writer masks unit 1 (frame.rs 154).  */
+/* frame.h 1536-1552: `SET_FRAME_VISIBLE`.  The mirror's copy (`include/frame.rs` 1020) carries
+   C's full writer, but its body cannot expand in this unit: it calls `redisplay_other_windows`
+   (no such name here) and writes `do_switch_frame (…, Qnil)` where the port's declaration takes
+   `Qnil ()`.  The unit therefore keeps C's effect in its own spelling (P-26's "unit copy wins"
+   case, reported to the mirror's owner); the flag write is unit 1 (frame.rs 154).  */
 macro_rules! SET_FRAME_VISIBLE {
     ($f:expr, $v:expr) => { (*$f).bits1 = ((*$f).bits1 & ! (1u32 << FRAME_VISIBLE_SHIFT))
                                             | (($v as u32) << FRAME_VISIBLE_SHIFT) };
 }
-/* frame.h 1174-1176: `SET_FRAME_GARBAGED` is a three-term comma expression in C; the port
-   keeps the same three effects in the same order (frame_garbaged = true, fset_redisplay (f),
-   the flag write).  */
+/* frame.h 1173-1174: `SET_FRAME_GARBAGED` is a three-term comma expression in C; the port keeps
+   the same three effects in the same order (`frame_garbaged = true`, `fset_redisplay (f)`, the
+   flag write).  The mirror's copy (`include/frame.rs` 947) cannot expand here: it passes
+   `*mut frame` where this tree declares `fset_redisplay (*mut c_void)` (E0308; the cast below
+   is the working spelling) - reported to the mirror's owner, not changed there.  */
 macro_rules! SET_FRAME_GARBAGED {
     ($f:expr) => {{
         frame_garbaged = true;

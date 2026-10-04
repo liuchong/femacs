@@ -4096,9 +4096,8 @@ macro_rules! input_event_bits {
                  | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
 }
 
-/* window.h: `WINDOW_FRAME` is the window's `frame` field; the port keeps the name (the
-   dispnew.rs precedent).  */
-macro_rules! WINDOW_FRAME { ($w:expr) => { (*$w).frame }; }
+/* window.h: `WINDOW_FRAME` is the window's `frame` field and the mirror carries it
+   (`include/window.rs` 419); the unit's body-identical copy was redundancy (P-26).  */
 
 /* Set this for debugging, to have a way to get out */
 /* C 3724-3725: `extern int stop_character;` and its `EXTERNALLY_VISIBLE` definition.  */
@@ -4411,11 +4410,10 @@ macro_rules! tty_bits {
       else { (*$tty).bits_caps &= ! TTY_FLOW_CONTROL; } } };
 }
 
-/* termchar.h 235's `CURTTY ()` reaches this file as a macro; the port keeps the name (the
-   `WINDOW_FRAME` precedent).  */
-macro_rules! CURTTY { () => {
-  (*FRAME_TERMINAL! (SELECTED_FRAME ())).display_info.tty as *mut tty_display_info
-} }
+/* termchar.h 235: `CURTTY ()` is the mirror's (`include/termchar.rs` 266, C's own one-token
+   `FRAME_TTY (SELECTED_FRAME ())`); the unit's copy inlined FRAME_TTY's field walk and
+   skipped C's `output_method` test, so converging to the mirror is also the faithful reading
+   (P-26).  */
 
 /* Clear input event EVENT.  */
 
@@ -13445,12 +13443,8 @@ pub unsafe extern "C" fn clear_waiting_for_input ()
   waiting_for_input! () = false;
   input_available_clear_time = std::ptr::null_mut ();
 }
-/* frame.h 1387-1390: `CHECK_FRAME`/`CHECK_LIVE_FRAME` are macros in C; the mirror does not
-   carry them (`frame.rs` defines its own copies), so this unit defines the one it uses with
-   C's body (PORTING.md P-72 rule 3).  */
-macro_rules! CHECK_LIVE_FRAME {
-  ($x:expr) => { CHECK_TYPE (FRAMEP ($x) && FRAME_LIVE_P (XFRAME ($x)), Qframe_live_p (), $x) };
-}
+/* frame.h 1387-1391: `CHECK_LIVE_FRAME` is the mirror's (`include/frame.rs` 983, which this
+   unit includes); the unit's body-identical copy was redundancy (P-26).  */
 
 /* ============================================================================
    C 12532-13166: the SIGINT/signal-handler and interrupt layer

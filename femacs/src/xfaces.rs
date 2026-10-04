@@ -512,31 +512,11 @@ unsafe extern "C" {
   fn add_to_log (format: *const c_char, ...);
 }
 
-/* font.h 195-232: the font.h macros this unit expands.  The mirror stops before them
-   (its own note says "the property accessors land with font.c"), so they are declared here
-   with C's bodies, the shape `font.rs` uses at its own use site.  */
-macro_rules! FONT_WEIGHT_FOR_FACE {
-  ($font:expr) => { font_style_symbolic ($font, FONT_WEIGHT_INDEX, true) };
-}
-macro_rules! FONT_SLANT_FOR_FACE {
-  ($font:expr) => { font_style_symbolic ($font, FONT_SLANT_INDEX, true) };
-}
-macro_rules! FONT_WIDTH_FOR_FACE {
-  ($font:expr) => { font_style_symbolic ($font, FONT_WIDTH_INDEX, true) };
-}
-macro_rules! FONT_WEIGHT_NAME_NUMERIC {
-  ($name:expr) => { font_style_to_value (FONT_WEIGHT_INDEX, $name, false) >> 8 };
-}
-macro_rules! FONT_SLANT_NAME_NUMERIC {
-  ($name:expr) => { font_style_to_value (FONT_SLANT_INDEX, $name, false) >> 8 };
-}
-macro_rules! FONT_WIDTH_NAME_NUMERIC {
-  ($name:expr) => { font_style_to_value (FONT_WIDTH_INDEX, $name, false) >> 8 };
-}
-
-macro_rules! CHECK_LIVE_FRAME {
-  ($x:expr) => { CHECK_TYPE (FRAMEP ($x) && FRAME_LIVE_P (XFRAME ($x)), Qframe_live_p (), $x) };
-}
+/* font.h 205-230: the six property accessors this unit expands are the mirror's now
+   (`include/font.rs` 203-213: three `*_FOR_FACE` and three `*_NAME_NUMERIC`, C's own bodies);
+   the unit's copies were redundancy, the first three body-identical and the second three
+   differing only by the mirror's outer parentheses (P-26).
+   frame.h 1387-1391: `CHECK_LIVE_FRAME` is `include/frame.rs` 983.  */
 
 /* sysstdio.h 37-40: `FOPEN_TEXT` is `""` on this target (`O_BINARY` is 0).  */
 macro_rules! FOPEN_TEXT { () => { "" }; }
@@ -2158,8 +2138,10 @@ unsafe fn merge_face_ref (w: *mut window, f: *mut frame, face_ref: Lisp_Object,
 }
 
 
-/* frame.h 1425-1426: `AUTO_FRAME_ARG` (the `AUTO_LIST1`/`AUTO_CONS_EXPR` pair the mirror
-   carries).  C declares a local, so the Rust form is a `macro_rules!` that does the same.  */
+/* frame.h 1425-1426: `AUTO_FRAME_ARG` (the `AUTO_LIST1`/`AUTO_CONS_EXPR` pair).  The mirror's
+   copy (`include/frame.rs` 1009) cannot expand - it binds the name `$name:expr` while
+   `AUTO_LIST1!` takes an `ident` there - so the unit keeps C's two lines with C's own name
+   position (reported to the mirror's owner, not changed there).  */
 macro_rules! AUTO_FRAME_ARG {
   ($name:ident, $parameter:expr, $value:expr) => {
     AUTO_LIST1! ($name, AUTO_CONS_EXPR! ($parameter, $value))
@@ -4317,7 +4299,10 @@ DEFUN! ("internal-set-alternative-font-registry-alist",
 			   Face Realization
  ***********************************************************************/
 
-/* frame.h 1174-1176: `SET_FRAME_GARBAGED` (frame.rs carries the same shape).  */
+/* frame.h 1173-1174: `SET_FRAME_GARBAGED` (C's three effects in order).  The mirror's copy
+   (`include/frame.rs` 947) cannot expand here - it passes `*mut frame` where this tree
+   declares `fset_redisplay (*mut c_void)` (E0308; the cast below is the working spelling) -
+   so the unit keeps its own, reported to the mirror's owner.  */
 macro_rules! SET_FRAME_GARBAGED {
   ($f:expr) => {{
     frame_garbaged = true;

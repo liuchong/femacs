@@ -104,22 +104,15 @@ pub type font_spacing = c_int;
 
 /// C: font.h 584-586: `#define FONT_PIXEL_SIZE_QUANTUM 1`.
 
-/// C: font.h 561-568: `PT_PER_INCH` (`<math.h>`'s constant on this target;
-/// `HAVE_ANDROID` undef picks the first arm) and the two conversions, which C's bodies use
-/// with double operands.  C's `(POINT) * (DPI) / PT_PER_INCH + 0.5` keeps the argument
-/// order; the port keeps the same expression (a macro is needed because C's `+ 0.5` binds
-/// after the division, and Rust's `as` cannot be written in a `const fn`).
+/* font.h 561-579: `PT_PER_INCH` (the frozen arm) and the two conversions.  The mirror carries
+   both (`include/font.rs` 245/246, C's own parenthesised bodies), so the unit's copies -
+   which differed only by the mirror's outer parentheses - are retired (P-26).  */
 
-macro_rules! POINT_TO_PIXEL {
-  ($point:expr, $dpi:expr) => { ($point) * ($dpi) / PT_PER_INCH + 0.5 };
-}
-macro_rules! PIXEL_TO_POINT {
-  ($pixel:expr, $dpi:expr) => { ($pixel) * PT_PER_INCH / ($dpi) + 0.5 };
-}
-
-/// C: font.h 193-237: the style accessors.  C's are expressions over `AREF`/`XFIXNUM`,
-/// kept as macros so a ported body holds C's own token sequence (the `FONT_SET_STYLE`
-/// statement macro is the writer).
+/// C: font.h 193-237: the style accessors.  The three `*_SYMBOLIC` and three `*_FOR_FACE`
+/// queries are the mirror's (C's own bodies, byte-identical); the three `*_NUMERIC` keep a
+/// unit copy because **the mirror's body cannot expand**: it is C's ternary
+/// `(FIXNUMP (AREF (font, I)) ? (XFIXNUM (…) >> 8) : -1)`, and Rust has no `? :` - reported to
+/// the mirror's owner rather than changed there.
 macro_rules! FONT_WEIGHT_NUMERIC {
   ($font:expr) =>
     { if FIXNUMP (AREF ($font, FONT_WEIGHT_INDEX as isize)) { XFIXNUM (AREF ($font, FONT_WEIGHT_INDEX as isize)) >> 8 } else { -1 } };
@@ -132,46 +125,20 @@ macro_rules! FONT_WIDTH_NUMERIC {
   ($font:expr) =>
     { if FIXNUMP (AREF ($font, FONT_WIDTH_INDEX as isize)) { XFIXNUM (AREF ($font, FONT_WIDTH_INDEX as isize)) >> 8 } else { -1 } };
 }
-macro_rules! FONT_WEIGHT_SYMBOLIC {
-  ($font:expr) => { font_style_symbolic ($font, FONT_WEIGHT_INDEX, false) };
-}
-macro_rules! FONT_SLANT_SYMBOLIC {
-  ($font:expr) => { font_style_symbolic ($font, FONT_SLANT_INDEX, false) };
-}
-macro_rules! FONT_WIDTH_SYMBOLIC {
-  ($font:expr) => { font_style_symbolic ($font, FONT_WIDTH_INDEX, false) };
-}
-macro_rules! FONT_WEIGHT_FOR_FACE {
-  ($font:expr) => { font_style_symbolic ($font, FONT_WEIGHT_INDEX, true) };
-}
-macro_rules! FONT_SLANT_FOR_FACE {
-  ($font:expr) => { font_style_symbolic ($font, FONT_SLANT_INDEX, true) };
-}
-macro_rules! FONT_WIDTH_FOR_FACE {
-  ($font:expr) => { font_style_symbolic ($font, FONT_WIDTH_INDEX, true) };
-}
-macro_rules! FONT_WEIGHT_NAME_NUMERIC {
-  ($name:expr) => { font_style_to_value (FONT_WEIGHT_INDEX, $name, false) >> 8 };
-}
-macro_rules! FONT_SLANT_NAME_NUMERIC {
-  ($name:expr) => { font_style_to_value (FONT_SLANT_INDEX, $name, false) >> 8 };
-}
-macro_rules! FONT_WIDTH_NAME_NUMERIC {
-  ($name:expr) => { font_style_to_value (FONT_WIDTH_INDEX, $name, false) >> 8 };
-}
-/// C: font.h 251-254: `#define FONT_SET_STYLE(font, prop, val) ASET (font, prop,
-/// make_fixnum (font_style_to_value (prop, val, true)))`.
+/// C: font.h 251-254: `FONT_SET_STYLE (font, prop, val)` is `ASET (font, prop, make_fixnum
+/// (font_style_to_value (prop, val, true)))`.  The mirror's copy (`include/font.rs` 216) cannot
+/// expand here: `ASET`'s index parameter is `isize` in this tree while `FONT_*_INDEX` is `c_int`
+/// (E0308, `expected isize, found i32`), and `make_fixnum` wants the `EMACS_INT` cast below - so
+/// the unit keeps the working spelling (reported to the mirror's owner, not changed there).
 macro_rules! FONT_SET_STYLE {
   ($font:expr, $prop:expr, $val:expr) =>
     { ASET ($font, $prop as isize, make_fixnum (font_style_to_value ($prop, $val, true) as EMACS_INT)) };
 }
-/// C: font.h 239-246: the four metric accessors (`MSDOS` undef picks the first arm of
-/// `FONT_WIDTH`).
-macro_rules! FONT_WIDTH { ($f:expr) => { (*$f).max_width }; }
-macro_rules! FONT_HEIGHT { ($f:expr) => { (*$f).height }; }
-macro_rules! FONT_BASE { ($f:expr) => { (*$f).ascent }; }
-macro_rules! FONT_DESCENT { ($f:expr) => { (*$f).descent }; }
-/// C: font.h 1004-1013: the two logging statement macros; `Vfont_log` is font.c's own.
+/// C: font.h 239-246: the four metric accessors - the mirror's now (`include/font.rs` 221-224,
+/// ported from C's `((f)->height)` spelling in status 3.328), so the unit's copies are gone.
+/// C: font.h 1004-1013: the two logging statement macros.  The mirror's bodies are C's
+/// `do { … } while (false)`, which Rust cannot expand; the unit keeps the same two effects with
+/// Rust's own statement form (reported to the mirror's owner).
 macro_rules! FONT_ADD_LOG {
   ($action:expr, $arg:expr, $result:expr) =>
     { if ! EQ (Vfont_log, Qt ()) { font_add_log ($action, $arg, $result); } };
@@ -180,7 +147,13 @@ macro_rules! FONT_DEFERRED_LOG {
   ($action:expr, $arg:expr, $result:expr) =>
     { if ! EQ (Vfont_log, Qt ()) { font_deferred_log ($action, $arg, $result); } };
 }
-
+/// C: font.h 552: `XSETFONT (a, b)` is `XSETPSEUDOVECTOR (a, b, PVEC_FONT)`.  The mirror's body
+/// is that C spelling - a function-style call with no `!` and the bare `PVEC_FONT` - which
+/// cannot expand as Rust, so the unit keeps the working spelling (reported to the mirror's
+/// owner).
+macro_rules! XSETFONT {
+  ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_FONT) };
+}
 
 const _: () = assert! (std::mem::size_of::<font_metrics> () == 10);
 

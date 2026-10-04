@@ -81,10 +81,9 @@ const PATH_SITELOADSEARCH: *const c_char =
 macro_rules! TYPE_MAXIMUM { ($t:ty) => { <$t>::MAX }; }
 macro_rules! TYPE_MINIMUM { ($t:ty) => { <$t>::MIN }; }
 
-/// C: lisp.h 94: `#define countof (array) (sizeof (array) / sizeof ((array)[0]))` - the port
-/// writes the same fold with Rust's `size_of_val` (const-evaluable, so it also serves the
-/// `static_assert (countof (saved_strings) == 2)` below).
-macro_rules! countof { ($a:expr) => { std::mem::size_of_val (&$a) / std::mem::size_of_val (&$a[0]) }; }
+/* `countof`: the mirror carries it (`lib/include/stdcountof.rs`, the frozen target's live
+   C23 `<stdcountof.h>` definition - lisp.h 94's `#ifndef HAVE_STDCOUNTOF_H` arm is the dead
+   one), so the unit's copy was pure redundancy (P-26; same fold, same const-evaluability).  */
 
 /// C: <config.h> 810-811: `DYNAMIC_LIB_SUFFIX` / `DYNAMIC_LIB_SECONDARY_SUFFIX` (the frozen
 /// table's measured values, `docs/baseline/config/darwin-arm64.macros.tsv`).

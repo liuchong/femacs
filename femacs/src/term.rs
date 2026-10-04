@@ -124,15 +124,18 @@ macro_rules! frame_mouse_moved {
     let mask = 1u32 << FRAME_MOUSE_MOVED_SHIFT;
     unsafe { (*$f).bits1 = ((*$f).bits1 & !mask) | ((($v) as u32) << FRAME_MOUSE_MOVED_SHIFT); } }};
 }
+/* frame.h 1173-1174: the mirror's `SET_FRAME_GARBAGED` (`include/frame.rs` 947) cannot expand
+   here - it passes `*mut frame` where this tree declares `fset_redisplay (*mut c_void)`
+   (E0308; the cast below is the working spelling) - so the unit keeps C's three effects in its
+   own spelling (reported to the mirror's owner, not changed there).  */
 macro_rules! SET_FRAME_GARBAGED {
   ($f:expr) => {{ frame_garbaged = true; fset_redisplay ($f as *mut c_void);
                           frame_bits_set! (garbaged, $f, true) }};
 }
 
-/* C's `list(...)` is `listn (countof (...), __VA_ARGS__)` (lisp.h 4493-4494).  */
-macro_rules! list {
-  ($($x:expr),* $(,)?) => { listn ([$($x),*].len () as isize, $($x),*) };
-}
+/* C's `list(...)` is `listn (countof (...), __VA_ARGS__)` (lisp.h 4493-4494) and the mirror
+   carries it (`include/lisp.rs` 3227, same double evaluation of __VA_ARGS__); the unit's copy
+   was redundancy (P-26).  */
 
 /* C hook assignments: termhooks.h degrades `struct frame *`/`struct window *` parameters
    to `*mut c_void` (P-72 rule 3: the mirror cannot name those types) while the

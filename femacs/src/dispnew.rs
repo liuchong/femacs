@@ -230,12 +230,8 @@ DEFUN! ("dump-redisplay-history", Fdump_redisplay_history,
    (PORTING.md P-72 rule 3; the C prototype is quoted per name).  */
 
 
-/* frame.h 1387-1388: `#define CHECK_FRAME(x) CHECK_TYPE (FRAMEP (x), Qframep, x)`.  The
-   mirror does not carry it (`frame.rs` defines the same macro for its own unit, which this
-   unit does not include), so C's body is written here (PORTING.md P-72 rule 3).  */
-macro_rules! CHECK_FRAME {
-  ($x:expr) => { CHECK_TYPE (FRAMEP ($x), Qframep (), $x) };
-}
+/* frame.h 1387-1388: `CHECK_FRAME` is the mirror's (`include/frame.rs` 979, which this unit
+   includes); the unit's body-identical copy was redundancy (P-26).  */
 
 /// disptab.h 114-115: `#define SET_GLYPH_FROM_CHAR(glyph, c) SET_GLYPH (glyph, c,
 /// DEFAULT_FACE_ID)`.  The disptab mirror stops before the glyph-table block (its own note),
@@ -466,9 +462,11 @@ macro_rules! garbaged {
       else { (*$f).bits1 & !(1 << FRAME_GARBAGED_SHIFT) } };
 }
 
-/* frame.h 1174-1176: `SET_FRAME_GARBAGED` is a three-term comma expression in C; the port
-   keeps the same three effects in the same order (`frame.rs` defines the same macro for its
-   own unit, which this unit does not include).  */
+/* frame.h 1174-1176: `SET_FRAME_GARBAGED` is a three-term comma expression in C; the port keeps
+   the same three effects in the same order.  The mirror's copy (`include/frame.rs` 947) cannot
+   expand here - it passes `*mut frame` where this tree declares `fset_redisplay (*mut c_void)`
+   (E0308; the cast below is the working spelling) - so the unit keeps its own, reported to the
+   mirror's owner.  */
 macro_rules! SET_FRAME_GARBAGED {
   ($f:expr) => {{
     frame_garbaged = true;
@@ -7363,7 +7361,10 @@ macro_rules! output_method {
 }
 
 /// frame.h 1425-1426: `AUTO_FRAME_ARG (name, parameter, value)` is `AUTO_LIST1 (name,
-/// AUTO_CONS_EXPR (parameter, value))`; `xfaces.rs` writes the same two lines for its own unit.
+/// AUTO_CONS_EXPR (parameter, value))`.  The mirror's copy (`include/frame.rs` 1009) cannot
+/// expand: it binds the name `$name:expr` and `AUTO_LIST1!` takes an `ident` there ("no rules
+/// expected `expr` metavariable", E-none), so the unit keeps C's two lines with C's own name
+/// position (reported to the mirror's owner, not changed there).
 macro_rules! AUTO_FRAME_ARG {
   ($name:ident, $param:expr, $value:expr) => {
     AUTO_LIST1! ($name, AUTO_CONS_EXPR! ($param, $value));
