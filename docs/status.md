@@ -4469,3 +4469,27 @@
   ④ 读数（本轮末）：`check-swift-units` **0 new / 0 stale / 7 units**；`check-swift-imports` **662 imports / 5532 core exports /
   533 unprovided / 533 ratchet rows / 0 failures**；全树台账 **13596 勾 / 531 未勾**（未勾：`nsterm` 323、`xdisp` 131、`nsfns` 71、`macfont` 3、`nsfont` 2）；
   `check-declarations` 13/0、`check-mirror-dupes` 1/1/0、`check-verbatim` 6/4607/0、`layout-check passed`。
+
+- **3.242 `xdisp` 第 19 轮入库（16,570 行，前沿 C 17351 `redisplay_internal`），并给连接期 shim 的落位定了案（2026-10-04）**：
+  ① **实产**：`femacs/src/xdisp.rs` 16,194 → **16,570 行**（C 17005-17348，**344 行全是活码**；唯一死臂是 `overlay_arrow_at_row` 内的
+  C 17233-17240 七行，按 P-08 记录）。新增 **10 个函数**（`text_outside_line_unchanged_p`、`redisplay`（非 static ⇒
+  `#[unsafe(no_mangle)] pub unsafe extern "C" fn`）、`overlay_arrow_string_or_property`、`overlay_arrow_in_current_buffer_p`、
+  `overlay_arrows_changed_p`、`update_overlay_arrows`、`overlay_arrow_at_row`、`check_point_in_composition`、`reconsider_clip_changes`、
+  `propagate_buffer_redisplay`）+ **2 个宏**（`STOP_POLLING`/`RESUME_POLLING`）+ 3 个 use-site extern；Scaffold 不烧不加（`redisplay_internal`
+  按 C 自己的前置声明（C 1149）必须留到 C 17351 落地，实测块内 `fn` 行仍 13）。台账：Functions **182 → 192/302**、Macros **27 → 29/38**、
+  合计 **272 → 284/415**。**判据**：`build-tu src/xdisp.rs` → built（对象 mtime 22:16:56 晚于源 22:16:51，6 warnings 与上轮完全同）；
+  `--check emacs/src/xdisp.c femacs/src/xdisp.rs`：157/156 → **149**，本轮的 5 条共享行录入后 → **144**，
+  **`does not mention` = 0**、`stub or empty body` = 0。**下一轮起点：C 17351 `redisplay_internal`**（891 行的最大函数，之后是
+  `unwind_redisplay_preserve_echo_area` C 18238）；唯一早于边界的 `missing function` 是 C 15616 那个**故意的 E0428 缺口**（item 38，不是未到达）。
+  ② **5 条共享行已录**（lane 逐条给了 C 行号与 deviation 号，我只做录入）：`overlay_arrow_in_current_buffer_p`/`overlay_arrows_changed_p`/
+  `update_overlay_arrows`/`overlay_arrow_at_row` 的 `continue`（C 的 `for (…; COND; INC)` 带 `continue` ⇒ 端口用 `'body:` 标签块把
+  C 的 increment 放在体末，保证每条路径都执行；deviation 133）与 `STOP_POLLING` 的 `false`（`do { … } while (false)` 在 Rust 无对应物；
+  deviation 140；`RESUME_POLLING` 的体仍提到 `false`，不需要行）。
+  ③ **连接期 shim 的落位定案（写给后续）**：**候选 A 批准** —— 新建 `femacs/src/abi_shim.rs`（+ 台账 `docs/ports/abi_shim.md`），
+  `include!` 所需镜像，只放 `#[unsafe(no_mangle)] pub unsafe extern "C" fn` 导出。**理由是硬的**：镜像是被 `include!` 进**每个**单元的，
+  在镜像里写定义＝每单元一份定义（`E0428`）；而"没有对应 C 源的新产物"在本仓库有 `xtask` 的先例，门也放行（`check-target-names`
+  实测 `627 .rs / 591 targets / 0 finding(s)`）——**文件首行保持 `// femacs: generated mirror of the frozen build's C-ABI exports …`
+  即命中既有 `DECLARED` 模式（该工具第 6 条），不需要改工具**。三条语义裁定同时定下：`frame_tab_bar_window` 导出 `Qnil` 并在
+  `/// C:` 行注明"该成员在 `#ifdef HAVE_WINDOW_SYSTEM` 内、本 target 无它"（先例：comp.rs 的 `Fnative_comp_available_p` 冻结臂）；
+  `frame_set_external_menu_bar`/`frame_set_external_tool_bar` 导出成 **no-op** 并引 frame.h 1082/1097 的 `#define … false`；
+  其余按 lane 表里的签名/体落，每批 8-10 条、逐字对照 `nm -g` 与 Swift 的 `@_silgen_name("…")`，参数 ABI 不一致时**以 Swift 侧为准**。

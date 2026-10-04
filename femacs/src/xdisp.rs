@@ -1059,6 +1059,12 @@ unsafe extern "C" {
   pub fn menu_bar_items (menu_bar_items: Lisp_Object) -> Lisp_Object;
   /// C: lisp.h 4851: `extern Lisp_Object tab_bar_items (Lisp_Object, int *);` (keyboard.c).
   pub fn tab_bar_items (tab_bar_items: Lisp_Object, ntab_bar_items: *mut c_int) -> Lisp_Object;
+  /// C: lisp.h 4944: `extern bool overlay_touches_p (ptrdiff_t);` (buffer.c defines it).
+  pub fn overlay_touches_p (pos: ptrdiff_t) -> bool;
+  /// C: keyboard.h 485-486: `extern void start_polling (void);` / `stop_polling (void);`
+  /// (keyboard.c defines both).
+  pub fn start_polling ();
+  pub fn stop_polling ();
 }
 /* `set_buffer_internal_1` is C's prototype at buffer.h 1261, which C's xdisp.c
    reaches through its own `#include "buffer.h"` (C 485); `include/buffer.rs` already
@@ -16130,6 +16136,376 @@ unsafe fn hscroll_windows (window: Lisp_Object) -> bool
     { clear_desired_matrices (XFRAME (WINDOW_FRAME! (XWINDOW (window)))); }
   return hscrolled_p;
 }
+unsafe fn
+text_outside_line_unchanged_p (w: *mut window,
+			       start: ptrdiff_t, end: ptrdiff_t) -> bool
+{
+  let mut unchanged_p: bool = true;
+
+  /* If text or overlays have changed, see where.  */
+  if window_outdated (w)
+    {
+      /* Gap in the line?  */
+      if GPT! () < start || Z! () - GPT! () < end
+	{ unchanged_p = false; }
+
+      /* Changes start in front of the line, or end after it?  */
+      if unchanged_p
+	  && (BEG_UNCHANGED! () < start - 1
+	      || END_UNCHANGED! () < end)
+	{ unchanged_p = false; }
+
+      /* If selective display, can't optimize if changes start at the
+	 beginning of the line.  */
+      if unchanged_p
+	  && FIXNUMP (BVAR! (current_buffer, selective_display_))
+	  && XFIXNUM (BVAR! (current_buffer, selective_display_)) > 0
+	  && (BEG_UNCHANGED! () < start || GPT! () <= start)
+	{ unchanged_p = false; }
+
+      /* If there are overlays at the start or end of the line, these
+	 may have overlay strings with newlines in them.  A change at
+	 START, for instance, may actually concern the display of such
+	 overlay strings as well, and they are displayed on different
+	 lines.  So, quickly rule out this case.  (For the future, it
+	 might be desirable to implement something more telling than
+	 just BEG/END_UNCHANGED.)  */
+      if unchanged_p
+	{
+	  if BEG as ptrdiff_t + BEG_UNCHANGED! () == start
+	      && overlay_touches_p (start)
+	    { unchanged_p = false; }
+	  if END_UNCHANGED! () == end
+	      && overlay_touches_p (Z! () - end)
+	    { unchanged_p = false; }
+	}
+
+      /* Under bidi reordering, adding or deleting a character in the
+	 beginning of a paragraph, before the first strong directional
+	 character, can change the base direction of the paragraph (unless
+	 the buffer specifies a fixed paragraph direction), which will
+	 require redisplaying the whole paragraph.  It might be worthwhile
+	 to find the paragraph limits and widen the range of redisplayed
+	 lines to that, but for now just give up this optimization.  */
+      if !NILP (BVAR! (XBUFFER ((*w).contents), bidi_display_reordering_))
+	  && NILP (BVAR! (XBUFFER ((*w).contents), bidi_paragraph_direction_))
+	{ unchanged_p = false; }
+    }
+
+  return unchanged_p;
+}
+
+
+/* Do a frame update, taking possible shortcuts into account.  This is
+   the main external entry point for redisplay.
+
+   If the last redisplay displayed an echo area message and that message
+   is no longer requested, we clear the echo area or bring back the
+   mini-buffer if that is in use.  */
+
+#[unsafe(no_mangle)] pub unsafe extern "C" fn
+redisplay ()
+{
+  redisplay_internal ();
+}
+
+
+unsafe fn
+overlay_arrow_string_or_property (var: Lisp_Object) -> Lisp_Object
+{
+  let mut val: Lisp_Object;
+
+  if { val = Fget (var, Qoverlay_arrow_string ()); STRINGP (val) }
+    { return val; }
+
+  return Voverlay_arrow_string;
+}
+
+/* Return true if there are any overlay-arrows in current_buffer.  */
+unsafe fn
+overlay_arrow_in_current_buffer_p () -> bool
+{
+  let mut vlist: Lisp_Object;
+
+  vlist = Voverlay_arrow_variable_list;
+  while CONSP (vlist)
+    {
+      let var: Lisp_Object = XCAR (vlist);
+      let val: Lisp_Object;
+
+      'body:
+	{
+	  if !SYMBOLP (var)
+	    { break 'body; }
+	  val = find_symbol_value (var);
+	  if MARKERP (val)
+	      && (*XMARKER (val)).buffer as *mut buffer == current_buffer
+	    { return true; }
+	}
+      vlist = XCDR (vlist);
+    }
+  return false;
+}
+
+
+/* Return true if any overlay_arrows have moved or overlay-arrow-string
+   has changed.
+   If SET_REDISPLAY is true, additionally, set the `redisplay' bit in those
+   buffers that are affected.  */
+
+unsafe fn
+overlay_arrows_changed_p (set_redisplay: bool) -> bool
+{
+  let mut vlist: Lisp_Object;
+  let mut changed: bool = false;
+
+  vlist = Voverlay_arrow_variable_list;
+  while CONSP (vlist)
+    {
+      let var: Lisp_Object = XCAR (vlist);
+      let mut val: Lisp_Object;
+      let mut pstr: Lisp_Object;
+
+      'body:
+	{
+	  if !SYMBOLP (var)
+	    { break 'body; }
+	  val = find_symbol_value (var);
+	  if !MARKERP (val)
+	    { break 'body; }
+	  if !EQ (Fmarker_position (val),
+                /* FIXME: Don't we have a problem, using such a global
+                 * "last-position" if the variable is buffer-local?  */
+		  Fget (var, Qlast_arrow_position ()))
+	  || ! { pstr = overlay_arrow_string_or_property (var);
+		 EQ (pstr, Fget (var, Qlast_arrow_string ())) }
+	{
+	  let buf: *mut buffer = (*XMARKER (val)).buffer as *mut buffer;
+
+	  if set_redisplay
+            {
+              if !buf.is_null ()
+	        { bset_redisplay (buf); }
+              changed = true;
+            }
+	  else
+	    { return true; }
+	}
+	}
+      vlist = XCDR (vlist);
+    }
+  return changed;
+}
+
+/* Mark overlay arrows to be updated on next redisplay.  */
+
+unsafe fn
+update_overlay_arrows (up_to_date: c_int)
+{
+  let mut vlist: Lisp_Object;
+
+  vlist = Voverlay_arrow_variable_list;
+  while CONSP (vlist)
+    {
+      let var: Lisp_Object = XCAR (vlist);
+
+      'body:
+	{
+	  if !SYMBOLP (var)
+	    { break 'body; }
+
+      if up_to_date > 0
+	{
+	  let val: Lisp_Object = find_symbol_value (var);
+          if !MARKERP (val)
+	    { break 'body; }
+	  Fput (var, Qlast_arrow_position (), Fmarker_position (val));
+	  Fput (var, Qlast_arrow_string (),
+		  overlay_arrow_string_or_property (var));
+	}
+      else if up_to_date < 0
+	       || !NILP (Fget (var, Qlast_arrow_position ()))
+	{
+	  Fput (var, Qlast_arrow_position (), Qt ());
+	  Fput (var, Qlast_arrow_string (), Qt ());
+	}
+	}
+      vlist = XCDR (vlist);
+    }
+}
+
+
+/* Return overlay arrow string to display at row.
+   Return integer (bitmap number) for arrow bitmap in left fringe.
+   Return nil if no overlay arrow.  */
+
+unsafe fn
+overlay_arrow_at_row (it: *mut it, row: *mut glyph_row) -> Lisp_Object
+{
+  let mut vlist: Lisp_Object;
+
+  vlist = Voverlay_arrow_variable_list;
+  while CONSP (vlist)
+    {
+      let var: Lisp_Object = XCAR (vlist);
+      let mut val: Lisp_Object;
+
+      'body:
+	{
+	  if !SYMBOLP (var)
+	    { break 'body; }
+
+      val = find_symbol_value (var);
+
+      let mut arrow_marker_pos: ptrdiff_t;
+      if MARKERP (val)
+	  && (*XMARKER (val)).buffer as *mut buffer == current_buffer
+	  && { arrow_marker_pos = marker_position (val);
+	      /* Normally, the marker position will be at the row's
+                 start charpos.  But if the previous text lines are
+                 invisible, the row's start charpos includes those
+                 invisible lines, so we make a more general test that
+                 the marker position is anywhere between the start and
+                 the end character positions of this row.  */
+	      (MATRIX_ROW_START_CHARPOS! (row) <= arrow_marker_pos
+	       && arrow_marker_pos < MATRIX_ROW_END_CHARPOS! (row)) }
+	{
+	  if FRAME_WINDOW_P ((*it).f)
+	      /* FIXME: if ROW->reversed_p is set, this should test
+		 the right fringe, not the left one.  */
+	      && WINDOW_LEFT_FRINGE_WIDTH! ((*it).w) > 0
+	    {
+/* C 17233-17240's `#ifdef HAVE_WINDOW_SYSTEM` arm is dead on this target (P-08):
+	      the `Fget (var, Qoverlay_arrow_bitmap)` test, the `lookup_fringe_bitmap`
+	      call and the `fringe_bitmap != 0` early return are recorded in
+	      docs/ports/xdisp.md, not transcribed.  */
+	      return make_fixnum (-1); /* Use default arrow bitmap.  */
+	    }
+	  return overlay_arrow_string_or_property (var);
+	}
+	}
+      vlist = XCDR (vlist);
+    }
+
+  return Qnil ();
+}
+
+/* Return true if point moved out of or into a composition.  Otherwise
+   return false.  PREV_BUF and PREV_PT are the last point buffer and
+   position.  BUF and PT are the current point buffer and position.  */
+
+unsafe fn
+check_point_in_composition (prev_buf: *mut buffer, prev_pt: ptrdiff_t,
+			    buf: *mut buffer, pt: ptrdiff_t) -> bool
+{
+  let mut start: ptrdiff_t = 0;
+  let mut end: ptrdiff_t = 0;
+  /* C leaves `start`, `end` and `prop` for the `find_composition` calls below to
+     fill in; Rust has no partial initialisation, so the port zero-initialises them
+     (PORTING.md 1.5, deviation 1's rule, the C 8849 shape).  */
+  let mut prop: Lisp_Object = Qnil ();
+  let mut buffer: Lisp_Object = Qnil ();
+
+  XSETBUFFER! (buffer, buf);
+  /* Check a composition at the last point if point moved within the
+     same buffer.  */
+  if prev_buf == buf
+    {
+      if prev_pt == pt
+	/* Point didn't move.  */
+	{ return false; }
+
+      if prev_pt > BUF_BEGV (buf) && prev_pt < BUF_ZV (buf)
+	  && find_composition (prev_pt, -1, &raw mut start, &raw mut end, &raw mut prop, buffer)
+	  && composition_valid_p (start, end, prop)
+	  && start < prev_pt && end > prev_pt
+	/* The last point was within the composition.  Return true iff
+            point moved out of the composition.  */
+	{ return (pt <= start || pt >= end); }
+    }
+
+  /* Check a composition at the current point.  */
+  return (pt > BUF_BEGV (buf) && pt < BUF_ZV (buf)
+	  && find_composition (pt, -1, &raw mut start, &raw mut end, &raw mut prop, buffer)
+	  && composition_valid_p (start, end, prop)
+	  && start < pt && end > pt);
+}
+
+/* Reconsider the clip changes of buffer which is displayed in W.  */
+
+unsafe fn
+reconsider_clip_changes (w: *mut window)
+{
+  let b: *mut buffer = XBUFFER ((*w).contents);
+
+  if buffer_bits! (clip_changed, b)
+      && window_bits! (w, window_end_valid)
+      && (*((*w).current_matrix as *mut glyph_matrix)).buffer as *mut buffer == b
+      && (*((*w).current_matrix as *mut glyph_matrix)).zv == BUF_ZV (b)
+      && (*((*w).current_matrix as *mut glyph_matrix)).begv == BUF_BEGV (b)
+    { buffer_bits! (clip_changed, b, false); }
+
+  /* If display wasn't paused, and W is not a tool bar window, see if
+     point has been moved into or out of a composition.  In that case,
+     set b->clip_changed to force updating the screen.  If
+     b->clip_changed has already been set, skip this check.  */
+  if !buffer_bits! (clip_changed, b) && window_bits! (w, window_end_valid)
+    {
+      let pt: ptrdiff_t = (if w == XWINDOW (selected_window)
+		      { PT! () } else { marker_position ((*w).pointm) });
+
+      if (((*((*w).current_matrix as *mut glyph_matrix)).buffer as *mut buffer != b
+	  || pt != (*w).last_point)
+	  && check_point_in_composition ((*((*w).current_matrix as *mut glyph_matrix)).buffer as *mut buffer,
+					 (*w).last_point, b, pt))
+	{ buffer_bits! (clip_changed, b, true); }
+    }
+}
+
+unsafe fn
+propagate_buffer_redisplay ()
+{ /* Resetting b->text->redisplay is problematic!
+     We can't just reset it in the case that some window that displays
+     it has not been redisplayed; and such a window can stay
+     unredisplayed for a long time if it's currently invisible.
+     But we do want to reset it at the end of redisplay otherwise
+     its displayed windows will keep being redisplayed over and over
+     again.
+     So we copy all b->text->redisplay flags up to their windows here,
+     such that mark_window_display_accurate can safely reset
+     b->text->redisplay.  */
+  let mut ws: Lisp_Object = window_list ();
+  while CONSP (ws)
+    {
+      let thisw: *mut window = XWINDOW (XCAR (ws));
+      let thisb: *mut buffer = XBUFFER ((*thisw).contents);
+      if buffer_text_bits! (text.redisplay, thisb)
+	{ window_bits! (thisw, redisplay, true); }
+      ws = XCDR (ws);
+    }
+}
+
+/* C 17339-17341: `#define STOP_POLLING do { if (! polling_stopped_here) stop_polling ();
+   polling_stopped_here = true; } while (false)`.  The C macro assigns a local of its
+   caller, so the port passes that local in (the coding.rs `ONE_MORE_BYTE` shape).  */
+macro_rules! STOP_POLLING {
+  ($polling_stopped_here:ident) => {
+    { if !$polling_stopped_here { stop_polling (); }
+      $polling_stopped_here = true; }
+  };
+}
+
+/* C 17343-17345: `#define RESUME_POLLING do { if (polling_stopped_here) start_polling ();
+   polling_stopped_here = false; } while (false)`.  */
+macro_rules! RESUME_POLLING {
+  ($polling_stopped_here:ident) => {
+    { if $polling_stopped_here { start_polling (); }
+      $polling_stopped_here = false; }
+  };
+}
+
+/* Perhaps in the future avoid recentering windows if it
+   is not necessary; currently that causes some problems.  */
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */
 /* ==================================================================== */

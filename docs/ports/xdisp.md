@@ -210,16 +210,16 @@
 - [ ] tty_handle_tab_bar_click  (line 15616)
 - [x] hscroll_window_tree  (line 16625, static)
 - [x] hscroll_windows  (line 16923, static)
-- [ ] text_outside_line_unchanged_p  (line 17006, static)
-- [ ] redisplay  (line 17073)
-- [ ] overlay_arrow_string_or_property  (line 17080, static)
-- [ ] overlay_arrow_in_current_buffer_p  (line 17092, static)
-- [ ] overlay_arrows_changed_p  (line 17120, static)
-- [ ] update_overlay_arrows  (line 17162, static)
-- [ ] overlay_arrow_at_row  (line 17199, static)
-- [ ] check_point_in_composition  (line 17255, static)
-- [ ] reconsider_clip_changes  (line 17290, static)
-- [ ] propagate_buffer_redisplay  (line 17318, static)
+- [x] text_outside_line_unchanged_p  (line 17006, static)
+- [x] redisplay  (line 17073)
+- [x] overlay_arrow_string_or_property  (line 17080, static)
+- [x] overlay_arrow_in_current_buffer_p  (line 17092, static)
+- [x] overlay_arrows_changed_p  (line 17120, static)
+- [x] update_overlay_arrows  (line 17162, static)
+- [x] overlay_arrow_at_row  (line 17199, static)
+- [x] check_point_in_composition  (line 17255, static)
+- [x] reconsider_clip_changes  (line 17290, static)
+- [x] propagate_buffer_redisplay  (line 17318, static)
 - [ ] redisplay_internal  (line 17351, static)
 - [ ] unwind_redisplay_preserve_echo_area  (line 18238, static)
 - [ ] redisplay_preserve_echo_area  (line 18255)
@@ -348,13 +348,13 @@
 - [x] RECORD_OVERLAY_STRING  (line 7121, body 16715b981720)
 - [x] REDISPLAY_SOME_P  (line 14235, body c6fb49f84210)
 - [x] RESTORE_IT  (line 848, body 4985d364c618)
-- [ ] RESUME_POLLING  (line 17343, body 2a5d0cb2a6a4)
+- [x] RESUME_POLLING  (line 17343, body 2a5d0cb2a6a4)
 - [ ] ROW_GLYPH_NEWLINE_P  (line 27196, body 9d6d5b96f828)
 - [x] SAFE_CALLMANY  (line 3155, body 67a378c1bce8)
 - [x] SAVE_IT  (line 840, body cf8ea527efc2)
 - [ ] SCROLL_LIMIT  (line 19391, body 310b86e0b62b)
 - [x] SET_WITH_NARROWED_BEGV  (line 3829, body 53ab6f455be2)
-- [ ] STOP_POLLING  (line 17339, body c86b380dd52a)
+- [x] STOP_POLLING  (line 17339, body c86b380dd52a)
 - [x] TEXT_PROP_DISTANCE_LIMIT  (line 831, body 310b86e0b62b)
 - [x] dsafe_calln  (line 3157, body a9ee6403caf7)
 - [x] face_after_it_pos  (line 1213, body 27264910dde1)
@@ -432,39 +432,35 @@
 ### Progress (this lane is incremental)
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds C
-15584-16929** — but **most of that range is one more dead arm**: C 15662-16610 is the whole
-Tool-bars section, which sits inside `#ifdef HAVE_WINDOW_SYSTEM` (the frozen configuration has
-no window system), so the round transcribes only its three live definitions —
-`tty_get_tab_bar_item`, `hscroll_window_tree` (with the `hscroll_step_abs`/`hscroll_step_rel`
-margin arithmetic, the auto-hscroll suspension, the `MATRIX_BOTTOM_TEXT_ROW`/`MATRIX_ROW` row
-choice, the `init_to_row_start` + infinite-width `move_it_in_display_line_to` scan and the
-`hscroll` clamp) and `hscroll_windows`.  `tty_handle_tab_bar_click` (C 15615-15654) is **not**
-defined here: `include/termchar.rs` already carries termchar.h 238-239's `extern "C"`
-declaration of that name, and a Rust definition beside it is E0428 (the
-`set_buffer_internal_1` family — the ledger's integrator item 6); the box stays unticked and
-the gap is reported (item 38).  The covered range is now **C 468-16929** (the earlier rounds'
-C 468-4323, and the C 4326-4641 / C 4667-4980 / C 4983-5647 / C 5650-5896 / C 5897-6762 /
-C 6763-7562 / C 7573-8430 / C 8437-9246 / C 9258-10060 / C 10063-10877 / C 10879-11645 /
-C 11647-12525 / C 12526-13255 / C 13256-13994 / C 13995-14783 rounds).  C 17006's
-`text_outside_line_unchanged_p` is the next live definition, reached after the dead
-`#ifdef GLYPH_DEBUG` block (C 16940-16997, `debug_method_add`).  Ticked in the ledger above, bucket by bucket — **measured** with
-`grep -c '^- \[x\]'` over each section (`Subrs` 3/13, `Functions` 182/302, `Macros` 27/38,
-`Types and their fields` 2/2, `File-scope objects` 58/60) — **272 of the 415 boxes**
-(182+3+27+2+58); the remaining 143 are untouched.  The three live subrs
-`set-buffer-redisplay`, `line-pixel-height` and `get-display-property` keep their `Subrs`
-boxes unticked as before, so the `Subrs` trio is the thirteen-round-earlier one.  (Earlier
-drafts of this sentence listed only the function total plus three round-specific increments
-and still claimed 272, an addition that does not close; the bucket list above is the one that
-does.)
-**No scaffold entry is burned or added this round** — **measured**: the block stays at thirteen
-`fn` entries.  `include/dispextern.rs` now **has** `pub struct it` (C 2815, with
-`len: c_int`@2232 as the ledger's item 31 required) — but the record is inside
-`#[cfg (feature = "dispextern_face_records")]`, and `xtask build-tu` passes **no `--cfg`
-flags at all**, so that record is invisible to every unit build and this unit's own measured
-copy is still what compiles (verified by `rg` + a clean build; the finding is reported as
-item 39).  One new use-site extern is declared (`clear_desired_matrices`, dispextern.h 3908).
-**This round owes one `docs/ports/macro-body-notes.tsv` row** —
-`hscroll_window_tree` / `double` (C 16630's `double hscroll_step_rel`).
+17005-17348** — the redisplay family that sits between the `GLYPH_DEBUG` debug block and the
+giant `redisplay_internal`: `text_outside_line_unchanged_p` (the gap / `BEG_UNCHANGED` /
+overlay-touch / bidi tests), `redisplay` itself (C 17072-17076, one call), the four overlay-arrow
+helpers (`overlay_arrow_string_or_property`, `overlay_arrow_in_current_buffer_p`,
+`overlay_arrows_changed_p`, `update_overlay_arrows`, `overlay_arrow_at_row`),
+`check_point_in_composition`, `reconsider_clip_changes` and `propagate_buffer_redisplay`, plus
+the polling macros `STOP_POLLING`/`RESUME_POLLING` (C 17339-17345).  The covered range is now
+**C 468-17348** (the earlier rounds' C 468-4323, and the C 4326-4641 / C 4667-4980 /
+C 4983-5647 / C 5650-5896 / C 5897-6762 / C 6763-7562 / C 7573-8430 / C 8437-9246 /
+C 9258-10060 / C 10063-10877 / C 10879-11645 / C 11647-12525 / C 12526-13255 / C 13256-13994 /
+C 13995-14783 / C 15584-16929 rounds).  The next live definition is **C 17351
+`redisplay_internal`**: it is *one* function of 886 C lines (17350-18235) with ten `#ifdef` arms
+and the `retry` / `cancel` / `update` / `retry_frame` / `end_of_redisplay` label cluster, and it
+**cannot be split across rounds** (a half-written Rust function does not compile), so it is the
+whole of the next round — 886 C lines, inside this lane's 600-900 band on its own.  Ticked in
+the ledger above, bucket by bucket — **measured** with `grep -c '^- \[x\]'` over each section
+(`Subrs` 3/13, `Functions` 192/302, `Macros` 29/38, `Types and their fields` 2/2, `File-scope
+objects` 58/60) — **284 of the 415 boxes** (192+3+29+2+58); the remaining 131 are untouched.
+The three live subrs `set-buffer-redisplay`, `line-pixel-height` and `get-display-property`
+keep their `Subrs` boxes unticked as before.  **No scaffold entry is burned or added this
+round**: `redisplay_internal` is now *called* by a definition that landed, but the scaffold's
+entry for it must stay until C 17351 is transcribed (C's own forward declaration is C 1149) —
+**measured**: the block stays at thirteen `fn` entries.  `include/dispextern.rs`'s `pub struct
+it` is still gated by `dispextern_face_records` and still invisible to `build-tu` (item 39).
+Four new use-site externs are declared (`overlay_touches_p`, lisp.h 4944;
+`start_polling`/`stop_polling`, keyboard.h 485-486).  **This round owes five
+`docs/ports/macro-body-notes.tsv` rows** — the four `continue` rows
+(`overlay_arrow_in_current_buffer_p`, `overlay_arrows_changed_p`, `update_overlay_arrows`,
+`overlay_arrow_at_row`) and `STOP_POLLING`'s `false` (items 41-45).
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -727,13 +723,28 @@ C 5773).
   `prevent_redisplay_optimizations_p` store).  C 15615-15654's `tty_handle_tab_bar_click` and
   the whole Tool-bars section (C 15656-16610) are recorded, not transcribed (see the Progress
   paragraph).
+* C 17005-17348 — `text_outside_line_unchanged_p` (the `GPT`/`Z` gap test, the two
+  `BEG_UNCHANGED`/`END_UNCHANGED` bounds, the `overlay_touches_p` pair and the bidi
+  `bidi_display_reordering`/`bidi_paragraph_direction` give-up), `redisplay`,
+  `overlay_arrow_string_or_property` (the `if (val = Fget (...), STRINGP (val))` comma
+  expression), the four `Voverlay_arrow_variable_list` walks
+  (`overlay_arrow_in_current_buffer_p`, `overlay_arrows_changed_p` with its `Fmarker_position` /
+  `Qlast_arrow_position` / `Qlast_arrow_string` comparison and `bset_redisplay`,
+  `update_overlay_arrows` with its `Fput` pairs and `overlay_arrow_at_row` with the
+  `MATRIX_ROW_START_CHARPOS`/`MATRIX_ROW_END_CHARPOS` window and the dead fringe arm),
+  `check_point_in_composition` (the `find_composition` + `composition_valid_p` pair),
+  `reconsider_clip_changes` (the `current_matrix->{buffer,zv,begv}` test and the `check_point_in_composition`
+  call) and `propagate_buffer_redisplay` (the `window_list` copy of `text->redisplay` up to
+  `w->redisplay`), plus the `STOP_POLLING`/`RESUME_POLLING` macros.  `redisplay_internal`
+  (C 17350-18235) is *not* here: it is one 886-line function and is the whole of the next
+  round.
 
 ### The transcription that is in place
 
-The ledger above is the checklist.  182 of the C file's 302 functions (plus 3 of its 13
+The ledger above is the checklist.  192 of the C file's 302 functions (plus 3 of its 13
 subrs — the three the frozen configuration keeps live and this round's three) are defined, in
 C's order, with C's names, C's statements and
-C's comments; `src/xdisp.rs` is 16,194 lines.  Every function that C declares `static` is a
+C's comments; `src/xdisp.rs` is 16,570 lines.  Every function that C declares `static` is a
 plain `unsafe fn` here (and `unsafe extern "C" fn` where it is variadic or its address is
 handed out — `redisplay_trace`, `move_trace`, `dsafe_eval_handler`,
 `funcall_with_backtraces`, `handle_display_prop` (whose address is `it_props[]`'s handler
@@ -1663,6 +1674,48 @@ them).
      `(*((*w).desired_matrix as *mut glyph_matrix)).rows` (the `as`-before-`.` precedence the
      previous round also hit).
 
+### Deviations, continued (the round's seventeenth pass: the redisplay family)
+
+133. **The four overlay-arrow `for` loops carry `continue`, and C's increment clause must still
+     run.**  `for (vlist = Voverlay_arrow_variable_list; CONSP (vlist); vlist = XCDR (vlist))`
+     with `continue` in the body becomes a `while` whose increment sits at the end of the body
+     and a `'body:` labelled block whose `break 'body` is C's `continue` (PORTING.md 2.2; the
+     `ccl.rs`/`bytecode.rs` `'tail_step` shape, and the integrity of every path is why the
+     increment may not be skipped).  `--check` therefore reports `does not mention continue` for
+     the four functions — the tsv rows are items 41-44.
+134. **`redisplay` is C's non-`static` `void redisplay (void)`**, so the port is
+     `#[unsafe(no_mangle)] pub unsafe extern "C" fn redisplay ()` with the one call C has.
+135. **`if (val = Fget (var, Qoverlay_arrow_string), STRINGP (val))`** is the port's
+     `if { val = Fget (var, Qoverlay_arrow_string ()); STRINGP (val) }` (the C 8879 shape): the
+     comma expression's assignment stays inside the condition.
+136. **`Voverlay_arrow_variable_list` / `Voverlay_arrow_string`** are `globals::variables`'
+     `pub static mut` Lisp_Objects and are read unqualified, exactly as the unit already reads
+     `Vhscroll_step`.
+137. **`XMARKER (val)->buffer` is the mirror's `*mut c_void`**, so the identity test is
+     `(*XMARKER (val)).buffer as *mut buffer == current_buffer` (the buffer.rs 806 spelling), and
+     the same cast is what `bset_redisplay` receives.
+138. **The packed bits this round reaches.**  `b->clip_changed` is `buffer_bits! (clip_changed,
+     b)` (the unit's own macro, 2432); `w->window_end_valid` is `window_bits! (w,
+     window_end_valid)`; `w->current_matrix->{buffer,zv,begv}` are
+     `(*((*w).current_matrix as *mut glyph_matrix)).…` with the `buffer` field cast back to
+     `*mut buffer` (the row/frame casts of the previous round).
+139. **`check_point_in_composition`'s `start`, `end` and `prop` are filled in through `&raw mut`
+     by `find_composition`.**  Rust has no partial initialisation, so the port zero-initialises
+     them (PORTING.md 1.5, deviation 1's rule) with the same comment C 8849 carries.
+140. **`STOP_POLLING` / `RESUME_POLLING` assign a local of their caller**, so they are
+     `macro_rules!`s that take that local as `$polling_stopped_here:ident` (the coding.rs
+     `ONE_MORE_BYTE` shape) rather than file-scope `fn`s.  C's `do { … } while (false)` has no
+     Rust counterpart at all, so the `false` token cannot reappear — row 45.
+141. **`BEG` is an enum constant in this Emacs** (`buffer.h`'s `enum { BEG = 1, BEG_BYTE = 1 }`),
+     so C's `BEG + BEG_UNCHANGED == start` is `BEG as ptrdiff_t + BEG_UNCHANGED! () == start`
+     (the `BEG as ptrdiff_t` spelling the unit already uses).
+142. **C 17233-17240's `#ifdef HAVE_WINDOW_SYSTEM` arm inside `overlay_arrow_at_row` is dead**
+     (P-08): the `Fget (var, Qoverlay_arrow_bitmap)` test, the `lookup_fringe_bitmap` call and
+     the `fringe_bitmap != 0` early return are recorded in the file's own comment and here, not
+     transcribed.  The live `FRAME_WINDOW_P (it->f)` (a function in the mirror, `frame.rs` 282)
+     and `WINDOW_LEFT_FRINGE_WIDTH! ((*it).w)` (the unit's macro) remain, and both are false on
+     a TTY, so the arm is unreachable at run time as well.
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -1866,36 +1919,57 @@ them).
     `hscroll_window_tree` / `double` / `xdisp.c 16630: C's `double hscroll_step_rel;` is the
     port's `f64`, so the C token cannot appear (deviation 129)`.
 
+41. `docs/ports/macro-body-notes.tsv`: **this round owes** `overlay_arrow_in_current_buffer_p` /
+    `continue` / `xdisp.c 17104: C's `for (…; CONSP (vlist); vlist = XCDR (vlist))` loop carries
+    a `continue`, and the port's `'body:` labelled block holds C's increment at the end of the
+    body so every path runs it (PORTING.md 2.2, deviation 133)`.
+42. `docs/ports/macro-body-notes.tsv`: **this round owes** `overlay_arrows_changed_p` /
+    `continue` / `xdisp.c 17133 and 17136: the same `'body:` shape (deviation 133)`.
+43. `docs/ports/macro-body-notes.tsv`: **this round owes** `update_overlay_arrows` / `continue` /
+    `xdisp.c 17173 and 17179: the same `'body:` shape (deviation 133)`.
+44. `docs/ports/macro-body-notes.tsv`: **this round owes** `overlay_arrow_at_row` / `continue` /
+    `xdisp.c 17211: the same `'body:` shape (deviation 133)`.
+45. `docs/ports/macro-body-notes.tsv`: **this round owes** `STOP_POLLING` / `false` /
+    `xdisp.c 17341: C's `do { … } while (false)` runs its block once; Rust has no do-while, so
+    the port writes the block and the `false` has no site (deviation 140)`.  `RESUME_POLLING`
+    needs **no** row (its body still mentions `false`).
+    (Items 41-44 may also be written as one glob row `overlay_arrow*` plus
+    `update_overlay_arrows` if the integrator prefers.)
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  The
-figures below were taken at the 16,194-line revision (through `hscroll_windows`, C 16929):
+figures below were taken at the 16,570-line revision (through `propagate_buffer_redisplay` and
+the two polling macros, C 17348):
 
 * `build-tu src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, taken **in place at
-  the current workspace state**, after a three-step fix-up loop (the compiler caught, in order:
-  the E0428 clash with termchar.rs's `tty_handle_tab_bar_click` declaration plus the
-  `TYPE_RANGED_FIXNUMP`/`SET_FRAME_GARBAGED`/`glyph_matrix`-deref/`pixel_width` spellings; then
-  `hscroll`/`min_hscroll`-as-`ptrdiff_t` and the by-value `it`; then the missing
-  `clear_desired_matrices`).  This revision's `xdisp.rs` md5 is
-  `b9950fbb6cc2494d20b86fda8669ff86` (16,194 lines) and the mirrors it was built against are
+  the current workspace state**, after a four-step fix-up loop (the compiler caught, in order:
+  an `'body:`-block paren from a mis-split C line; then the `for`-loop head that C aligns at
+  seven spaces because its condition sits on the continuation line; then a stray `)` left by
+  C's `if (`; then `propagate_buffer_redisplay`'s `{` — C 17330 carries the whole `for (; …; …)`
+  on one line, so C 17331 is the body's brace, not the increment — then the untranslated
+  `w->last_point` continuation at C 17312; finally, a review pass that the compiler cannot make,
+  the `propagate_buffer_redisplay` increment which the first splice had left *outside* its
+  `while` body — an infinite loop that still compiled, which is why every transcribed loop's
+  increment was then re-checked against its enclosing brace by hand).  This revision's `xdisp.rs` md5 is
+  `a9dbbb9a0da446fe83b51e9701ac5dc2` (16,570 lines) and the mirrors it was built against are
   `include/dispextern.rs a1d71da831bba153fe9bd26e70b24cbd` (its `struct it` is gated, see item
   39), `include/lisp.rs 44f7b6ab6ee488c8796c5f405f174952`, `include/window.rs
   d163253b3b643d79b39187e77411a4d4` and `lib/include/stdbit.in.rs bd5e18f5cf4b99d4d0d32412d275bf50`
   (the last two are other lanes' and mutable; every md5 above was re-read in the same shell
-  step as the closing `build-tu`, so the pairing is exact).  The
-  build prints 6 warnings: 4 pre-existing mirror ones and 2 `while_true` from this unit's two
-  `'scan: while true` loops;
+  step as the closing `build-tu`, so the pairing is exact).  The build prints 6 warnings, the
+  same four mirror ones and two `while_true` as last round: the round adds no warning;
 * `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its
-  last two lines are `- line count drifted 59.3%: C 39805 vs Rust 16194` and
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count stays at 159 lines (the three
-  new definitions retire three `missing function` rows, from 113 to 110, and this round's one
-  `double` row replaces the `uninit` row the integrator landed).  Every remaining `missing …`
-  line names a definition after C 16929 (the earliest is C 17006
-  `text_outside_line_unchanged_p`, after the dead `#ifdef GLYPH_DEBUG` block C 16940-16997) and there is still no `stub or empty body` line;
+  last two lines are `- line count drifted 58.4%: C 39805 vs Rust 16570` and
+  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count falls from 159 to **149**
+  (`missing function` 110 -> 100, `missing macro` 11 -> 9 — `STOP_POLLING` and `RESUME_POLLING`
+  land), and it gains this round's five recorded rows (`does not mention`, items 41-45: the
+  four `continue`s and `STOP_POLLING`'s `false`).  Every remaining `missing function` line names
+  a definition after C 17348 — the earliest are C 17351 `redisplay_internal` and then
+  C 18238 — with the single exception of the intentional C 15616 `tty_handle_tab_bar_click`
+  gap (item 38), and there is still no `stub or empty body` line;
 * `python3 tools/check-cond-eval.py src/xdisp.c` = `196 conditions, 0 unknown to the evaluator,
-  0 disagreements` (this round's dead arms: C 15615-15654's caller-side twin is live but the
-  function is not defined here, and C 15662-16610 with its nested `HAVE_EXT_TOOL_BAR`/`GLYPH_DEBUG`
-  arms is one recorded dead block);
+  0 disagreements` (this round's dead arm is C 17233-17240, the `HAVE_WINDOW_SYSTEM` fringe test
+  inside `overlay_arrow_at_row`, deviation 142);
 * `python3 tools/check-citations.py` = `628 file(s) scanned, 9 drift, 1 range, 284 external,
   38 allowed, 0 stale` — `femacs/src/xdisp.rs` still has **no** finding;
 * `python3 tools/check-mirror-dupes.py` = `1 duplicate declaration(s), 1 ratchet row(s), 0
@@ -1905,14 +1979,8 @@ figures below were taken at the 16,194-line revision (through `hscroll_windows`,
   literals), 0 failures` (none from this unit);
 * `python3 tools/check-verbatim.py` = `6 trees, 4607 files, 0 failures`;
 * `python3 tools/check-globals.py` = `283 units, 0 DEFVAR_* variables without a definition in
-  their own unit` (the unit count moves as the other lanes add units; this run's value);
-* `python3 tools/check-target-names.py` = `626 .rs files, 591 map targets, 0 finding(s)`.
-  (the counts move with the other lanes).
-  (the file count moves with the other lanes).
+  their own unit`;
+* `python3 tools/check-target-names.py` = `626 .rs files, 591 map targets, 0 finding(s)`;
+* `xtask layout-check` = `layout-check passed (see build/femacs/layout_asserts.rs)`.
 
-Note: the `--check` header line now says `424 files` in
-`docs/baseline/config/cond-eval-verified.txt` where the previous round's said `431` — another
-lane's edit to that manifest, not this unit's.
-  (the file count moves with the other lanes).
-  (the file count moves with the other lanes).
-  (the file count moves with the other lanes).
+(The unit/file counts move with the other lanes; every reading above is from this round's run.)

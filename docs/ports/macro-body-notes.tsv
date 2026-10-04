@@ -1245,3 +1245,8 @@ INC_TEXT_POS	false	dispextern.h 291-295: same shape as DEC_TEXT_POS (`do { ++(PO
 PRODUCE_GLYPHS	false	dispextern.h 648-700: same shape (`do { … } while (false)` around the glyph-row setup)
 restore_selected_window	uninit	xdisp.c 14541: C's `Lisp_Object frame UNINIT;` (in this configuration `UNINIT` is `= {0,}`) has no Rust spelling; the port initialises it to `Qnil ()` (PORTING.md 1.5)
 hscroll_window_tree	double	xdisp.c 16630: C's `double hscroll_step_rel;` is the port's `f64`, so the C token `double` cannot appear (deviation 129)
+overlay_arrow_in_current_buffer_p	continue	xdisp.c 17104: C's `for (…; CONSP (vlist); vlist = XCDR (vlist))` loop carries a `continue`, and the port's `'body:` labelled block holds C's increment at the end of the body so every path runs it (PORTING.md 2.2, deviation 133)
+overlay_arrows_changed_p	continue	xdisp.c 17133 and 17136: the same `'body:` shape (deviation 133)
+update_overlay_arrows	continue	xdisp.c 17173 and 17179: the same `'body:` shape (deviation 133)
+overlay_arrow_at_row	continue	xdisp.c 17211: the same `'body:` shape (deviation 133)
+STOP_POLLING	false	xdisp.c 17341: C's `do { … } while (false)` runs its block once; Rust has no do-while, so the port writes the block and the `false` has no site (deviation 140)
