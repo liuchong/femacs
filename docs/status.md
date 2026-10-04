@@ -5905,3 +5905,21 @@
   `eb850c7` 的临时 worktree 上逐个 `build-tu`：`bidi`/`coding`/`lread`/`regex-emacs`/`syntax`/`xml` **6/6 built**
   （每条都是 `built src/<u>.rs -> ../build/femacs/<u>.o`）。**这就是 3.363① 那个"HEAD 坏了 4 个提交"的对应读数**：
   修之前每个单元 2 × `E0425`，修之后 0 条。读数的口径仍按 3.339/3.353：工作树的绿不算 HEAD 的绿，**这一条是 HEAD 的**。
+
+- **3.365 xdisp 第 26 轮入库：C 21664-21779（`try_window` 整函数），`--check` 107 → 105（2026-10-05）**：
+  ① **交付形态**：`femacs/src/xdisp.rs` **20,784 → 20,897 行（+113）**，md5 **`6992b840593e9bc26dda43a1044d8585`**（我独立核对过）；
+     覆盖区间 **C 468-21779**，下一个活定义 **C 21793 `try_window_reusing_current_matrix`**（注释起于 C 21787）；台账
+     `docs/ports/xdisp.md` 2,602 → **2,661 行**：勾掉 `try_window`（Functions **219/302**、合计 **315/415**）、Progress 整段改写、
+     区间表新增一行、`### The transcription that is in place` 更新到 20,897、新增偏离 192-196、Evidence 整段重写。
+  ② **我自己的复核（不引用 lane 的）**：`build-tu src/xdisp.c` → **built**（仍那 6 条 warning）；`extract-abi --check`
+     **105 行**（他报的 107 → 105 一致）；`check-citations` **674 files / 0 drift / 0 stale**；`check-declarations`
+     **13 sites / 0 forbidden**；`check-mirror-dupes` **23/23/0**（xdisp 不出现在输出里）。
+  ③ **两条行为什么自然退场（这正是本工程想要的形状）**：`missing function try_window` 因为**定义落地**而消失，
+     `function try_window is not static in C but has no #[unsafe(no_mangle)] in the port` 因为定义带了
+     `#[unsafe(no_mangle)]` 而消失——**净 −2，不需要上一轮那种"可达下界"论证**；`does not mention` 仍是 3 行
+     （`try_window` 逐 token 覆盖参照本体，没给它加行）。
+  ④ **他顺手关掉了我上一轮记的三项**：item 57（`row_containing_pos`+`blank_row` 进 `dispextern_late_decls`）、
+     item 58（`DESIRED_*` 的 `!` 修好）、item 59（`clear_glyph_row` 的 citation 3916）；新增 item 60（脚手架构 17 → 16）。
+     并且**更正了自己上一轮的一处陈旧读数**（上一轮台账写的 20,795/md5 与当时实际 20,784 不符）——这类自我更正值得保留。
+  ⑤ **未声称**：`build-tu` 只证明编译与类型/ABI 面、token 门只证明"提及齐全"；`try_window` 的**行为级差分/对拍未做**；
+     单元仍不能链接（脚手架 16 项 + `--check` 里仍有多条 `missing function`）；xdisp 仍是 WIP。

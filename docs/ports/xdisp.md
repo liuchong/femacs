@@ -246,7 +246,7 @@
 - [x] set_horizontal_scroll_bar  (line 20325)
 - [x] window_start_acceptable_p  (line 20389, static)
 - [x] redisplay_window  (line 20475, static)
-- [ ] try_window  (line 21684)
+- [x] try_window  (line 21684)
 - [ ] try_window_reusing_current_matrix  (line 21793, static)
 - [ ] find_last_row_displaying_text  (line 22261, static)
 - [ ] find_last_unchanged_at_beg_row  (line 22295, static)
@@ -432,51 +432,42 @@
 ### Progress (this lane is incremental)
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds C
-20424-21662** — the whole of `redisplay_window`: the reference's doc comment for it (C
-20424-20472), the prologue and the prepare-the-window run (the `needs_no_redisplay`
-early-out, the two marker `eassert`s, `reconsider_clip_changes`/`default_line_pixel_height`/
-`window_scroll_margin`, the `update_mode_line` fold, the `MINI_WINDOW_P` shortcuts with
-their three `goto`s, `set_buffer_internal_1`, the `current_matrix_up_to_date_p` test, the
-`windows_or_buffers_changed` repair, `CHECK_WINDOW_END` and its two `emacs_abort`s, the
-point-marker fixup, the width-run-cache invalidation and the long-line threshold scan), the
-`optional_new_start` feasibility probe, the `force_start` block (the vscroll/mode-line
-repair, the `run_window_scroll_functions` call, `window_start_acceptable_p`, `try_window`,
-the invisible-text cursor fixup through `row_containing_pos`, the
-`cursor_row_fully_visible_p` retries and the `pre-redisplay-function` re-run),
-`ignore_start`'s `try_cursor_movement` switch, the `start_at_line_beg`/`try_window_id`/
-same-window-start alternatives, `try_to_scroll`'s `try_scrolling` call, the whole `recenter`
-body (`init_iterator`, the `centering_position` arithmetic with the `scroll-*-aggressively`
-measurement, `back_to_previous_visible_line_start`/`move_it_vertically_backward`, the two
-`try_window`/`try_window_reusing_current_matrix` passes around `bidi_shelve_cache`, the three
-cursor fallbacks), the `done` block (the mode-line/header-line/tab-line display and the three
-height fixups) and the `finish_menu_bars`/`need_larger_matrices`/`finish_scroll_bars` tail
-(the frame's menu bar, the two scroll-bar setters with `redeem_scroll_bar_hook`, and the
-point/buffer restore).  **The boundary is not the one the brief suggested, and the reason is
-measured**: `--check`'s "does not mention" and family rows are whole-function counts, so the
-suggested C 20424-20693 boundary measures **109** (`- ` 107 -> 109: the
-`long_line_optimizations_p` and `redisplay` families under-count, their missing occurrences
-being C 21236 and C 20913-20918), while the whole function measures **108**; 108 is also the
-floor, because a boundary that stops before C 20824 owes the two family rows instead of the declaration (109),
-one that stops between C 20824 and C 21236 owes both (>= 110), and one that crosses C 21236
-owes `row_containing_pos`'s declaration (item 57) — so **107 is unreachable this round**, and
-the whole function is the boundary that leaves no half-transcribed function behind.  The
-covered range is now **C 468-21662**.  The next live definition is **C 21684's `try_window`**
-(its comment opens at C 21664).  Ticked in the ledger above, bucket by bucket —
-**measured** with `grep -c '^- \[x\]'` over each section
-(`Subrs` 4/13, `Functions` 218/302, `Macros` 31/38, `Types and their fields` 2/2,
-`File-scope objects` 59/60) — **314 of the 415 boxes** (218+4+31+2+59); the remaining 101
-are untouched.  **The scaffold moves by four entries** — **measured**: `redisplay_window`'s
-forward declaration is deleted in the same round its definition lands (the standing rule),
-and this round's five new use-site declarations of this unit's own later definitions
-(`row_containing_pos`, `try_window_reusing_current_matrix`, `try_window_id`,
-`display_mode_lines`, `display_menu_bar`) enter it, so fourteen -> eighteen.  **No new
-`docs/ports/macro-body-notes.tsv` row is owed** — `--check`'s `does not mention` lines go
-from two to three (`redisplay_internal`, `set_cursor_from_row`, and this round's
-`redisplay_window`, whose line names `case`/`default`/`switch` (the port's `match`),
-`goto`, `debug_method_add`/`if_debug` (dead `GLYPH_DEBUG` arms) and the three
-`desired_*_line_height` names (spelled as their own expansions because the mirror's macros
-call the inner name without its `!` — item 58)).  `--check` is at **108** (item 57's row is
-the +1) and `src/xdisp.rs` is 20,795 lines.
+21664-21779** — the whole of `try_window`: the reference's doc comment for it (C 21665-21682,
+the "Build the complete desired matrix" note the round-25 `redisplay_window` text already names)
+and the body (the `set_marker_both (w->start, Qnil, …)` window-start store, the
+`w->cursor.vpos = -1`/`overlay_arrow_seen = false` reset, `start_display` and
+`it.glyph_row->reversed_p = false`, the `while (it.current_y < it.last_visible_y)` display loop
+with `display_line`'s `last_text_row = it.glyph_row - 1` capture and the per-iteration
+`nrows_scale_factor`/`ncols_scale_factor` snapshots that decide the `f->fonts_changed` +
+`TRY_WINDOW_IGNORE_FONTS_CHANGE` early `return 0`, the `IT_CHARPOS` snapshot, the
+`TRY_WINDOW_CHECK_MARGINS` block — `window_scroll_margin (w, MARGIN_IN_PIXELS)`, the
+`CURRENT_HEADER_LINE_HEIGHT`/`CURRENT_TAB_LINE_HEIGHT` top-margin adds, `bot_scroll_margin`, the
+second `start_display` and the `partial_line_height` bottom test that `return -1`s after
+`clear_glyph_matrix` — the `window_end_pos <= 0 && Z != it_charpos` mode-line fixup, the
+`MATRIX_ROW_DISPLAYS_TEXT_P` `eassert` pair around `adjust_window_ends`, the
+`window_end_bytepos`/`window_end_pos`/`window_end_vpos` fallback and the `w->window_end_valid =
+false` + `return 1` tail).  The boundary is exactly the C function (C 21684-21779; its comment
+opens at C 21664), the next live definition the round-25 ledger named, so the round leaves no
+half-transcribed function behind.  The covered range is now **C 468-21779**.  The next live
+definition is **C 21793's `try_window_reusing_current_matrix`** (its comment opens at C 21787).
+Ticked in the ledger above, bucket by bucket — **measured** with `grep -c '^- \[x\]'` over each
+section (`Subrs` 4/13, `Functions` 219/302, `Macros` 31/38, `Types and their fields` 2/2,
+`File-scope objects` 59/60) — **315 of the 415 boxes** (219+4+31+2+59); the remaining 100 are
+untouched.  **The scaffold shrinks by one entry** — **measured**: `try_window`'s use-site
+declaration (C dispextern.h 3573) is deleted in the same round its definition lands (the standing
+rule), so the block goes to **sixteen** entries — the round-25 text's "fourteen -> eighteen" was
+written before the same commit (d90609a/3.357) moved `row_containing_pos` into the mirror's
+`dispextern_late_decls` module (dispextern.rs 3686-3706, glob-imported at 3706), which took the
+unit's own declaration with it; this round adds none, because every callee `try_window` names
+(`display_line`, `partial_line_height`, `window_scroll_margin`, `clear_glyph_matrix`,
+`adjust_window_ends`, `start_display`, `set_marker_both`) is already in scope.  **No new
+`docs/ports/macro-body-notes.tsv` row is owed** — `--check`'s `does not mention` lines stay at
+three (`redisplay_internal`, `set_cursor_from_row`, `redisplay_window`); this round's `try_window`
+mentions every token the reference's body carries.  `--check` is at **105**: measured 107 before
+the round (the round-25 text's 108 predates the same commit's `row_containing_pos` move —
+deviation 184), and this round's two retirements — `missing function try_window` and its `is not
+static in C … no #[unsafe(no_mangle)]` row — have no replacement, so the brief's "must not grow"
+holds with two to spare and its `+1` fallback is not needed.  `src/xdisp.rs` is 20,897 lines.
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -914,12 +905,28 @@ C 5773).
   C 21045-21047, C 21056-21058, C 21062-21064, C 21157-21159, C 21077's `IF_DEBUG`,
   C 21527-21533, C 21551-21581 and C 21584-21605 are recorded, not transcribed
   (the dead-arm list above).
+* C 21664-21779 — `try_window`: the doc comment (C 21665-21682) and the whole body.  The
+  `set_marker_both ((*w).start, Qnil, CHARPOS (pos), BYTEPOS (pos))` window-start store, the
+  `cursor.vpos = -1`/`overlay_arrow_seen = false` reset, `start_display` and
+  `it.glyph_row->reversed_p = false`; the display loop with `display_line` and the
+  `last_text_row = it.glyph_row - 1` capture, the two per-iteration `last_row_scale`/
+  `last_col_scale` snapshots and the `f->fonts_changed` + `TRY_WINDOW_IGNORE_FONTS_CHANGE` test
+  that returns 0 when the matrix dimensions moved; `IT_CHARPOS`; the `TRY_WINDOW_CHECK_MARGINS`
+  block (`window_scroll_margin (w, MARGIN_IN_PIXELS)`, the `CURRENT_HEADER_LINE_HEIGHT`/
+  `CURRENT_TAB_LINE_HEIGHT` top-margin adds, `bot_scroll_margin`, the second `start_display` and
+  the `partial_line_height` bottom test that returns -1 after `clear_glyph_matrix`); the
+  `window_end_pos <= 0 && Z != it_charpos` mode-line fixup; the `MATRIX_ROW_DISPLAYS_TEXT_P`
+  `eassert` pair around `adjust_window_ends`; the `window_end_bytepos`/`window_end_pos`/
+  `window_end_vpos` fallback and `window_end_valid = false`.  The function is non-`static`
+  (dispextern.h 3573), so the definition carries `#[unsafe(no_mangle)] pub unsafe extern "C"`;
+  it opens with C's own doc comment, verbatim.  **No `#if`** — the live-conditional list above is
+  unchanged this round.
 ### The transcription that is in place
 
-The ledger above is the checklist.  218 of the C file's 302 functions (plus 4 of its 13
+The ledger above is the checklist.  219 of the C file's 302 functions (plus 4 of its 13
 subrs — the three the frozen configuration keeps live and `long-line-optimizations-p`) are defined, in
 C's order, with C's names, C's statements and
-C's comments; `src/xdisp.rs` is 20,795 lines.  Every function that C declares `static` is a
+C's comments; `src/xdisp.rs` is 20,897 lines.  Every function that C declares `static` is a
 plain `unsafe fn` here (and `unsafe extern "C" fn` where it is variadic or its address is
 handed out — `redisplay_trace`, `move_trace`, `dsafe_eval_handler`,
 `funcall_with_backtraces`, `handle_display_prop` (whose address is `it_props[]`'s handler
@@ -2257,6 +2264,41 @@ the site (the standing shape, deviations 170/178).
      are the mirrors'; `specpdl_ref count1` keeps C's name for the mode-line block's
      `SPECPDL_INDEX`.
 
+### Deviations, continued (the round's twenty-fifth pass: `try_window`)
+
+192. **The scaffold loses `try_window`'s declaration.**  The standing rule (deviation 150's
+     class) is that a use-site declaration is deleted in the same round its definition lands;
+     `try_window` (C dispextern.h 3573) is this round's only such entry, so the block goes
+     17 -> 16.  There is no `row_containing_pos` sibling to delete: the round-25 commit
+     (d90609a/3.357) added the mirror's `dispextern_late_decls` module (dispextern.rs 3686-3706)
+     for `row_containing_pos` and `blank_row` and glob-imports it (3706), so the unit declares
+     neither (item 57, CLOSED) — and `--check`'s `is not static … no #[unsafe(no_mangle)]` row
+     for `row_containing_pos` (deviation 184) retired with the unit's own copy, which is why this
+     round's measured baseline is 107, not the round-25 text's 108.
+193. **The three `DESIRED_*_LINE_HEIGHT` macros are C's now** (item 58, CLOSED): the mirror's
+     bodies carry the `!` their inner `MATRIX_*_LINE_HEIGHT` calls need, so `redisplay_window`'s
+     six sites (C 21479-21506) read `DESIRED_MODE_LINE_HEIGHT! (w)` and its two siblings again —
+     deviation 185 is superseded and the three `desired_*_line_height` tokens have left
+     `redisplay_window`'s `does not mention` line.  `try_window` does not call them.
+194. **`CURRENT_HEADER_LINE_HEIGHT!`/`CURRENT_TAB_LINE_HEIGHT!` are the mirror's macros** (the
+     `include/window.rs` 751/758 spellings the unit already used at C 18949-18951); C 21725/21727
+     are their new call sites and keep the same shape.
+195. **Type spellings this round.**  `flags` is `c_int` and the two `TRY_WINDOW_*` masks are
+     `c_int` constants (`include/dispextern.rs` 2499/2502), so the two tests read
+     `(flags & TRY_WINDOW_… ) != 0`; `cursor_vpos`, `last_row_scale`/`last_col_scale`,
+     `top_scroll_margin`/`bot_scroll_margin` are `c_int` and the `IT_CHARPOS` snapshot
+     `it_charpos` is `ptrdiff_t`; `last_text_row` is `*mut glyph_row` and C's `it.glyph_row - 1`
+     is `.offset (-1)`; `it.glyph_row->reversed_p = false` is `glyph_row_bits! (reversed_p,
+     it.glyph_row, false)` (the bitfield writer, PORTING.md 1.3); `w->update_mode_line = true`
+     and `w->window_end_valid = false` are `window_bits! (w, update_mode_line, true)`/
+     `window_bits! (w, window_end_valid, false)`; `f->fonts_changed` is `frame_bits!
+     (fonts_changed, f)`; and `w->desired_matrix` is the mirror's `*mut c_void`, so
+     `clear_glyph_matrix` and `MATRIX_ROW` take the `as *mut glyph_matrix` cast (deviation 191's
+     rule).
+196. **`struct it it;` is `core::mem::zeroed ()`** (C 21687), the standing shape (deviations
+     139/168/190): `start_display` fills it in and Rust has no partial initialisation.  The loop's
+     `while` is C's own (not `while true`), so the build's warning set is unchanged.
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -2530,73 +2572,90 @@ the site (the standing shape, deviations 170/178).
     (buffer.h 917/951) and `include/buffer.rs:923/957` already carries them as `pub fn`; the
     unit's two `macro_rules!` copies were an invented construct and are deleted (integrator
     8958c83; deviation 177).  No mirror work is owed.
-57. `include/dispextern.rs`: **`row_containing_pos` (dispextern.h 3563-3565) and `blank_row`
-    (dispextern.h 3914) are mirror gaps.**  Both are declared at the use site this round (item
-    10).  Taking `row_containing_pos` into the mirror retires the unit's declaration and with it
-    this round's one `--check` growth (deviation 184: 108 -> 107); `blank_row` is `dispnew.c`'s
-    definition, so its declaration costs no row, but the same gap hides it from every other unit
-    that needs it (`dispnew.rs` declares its own copy).
+57. `include/dispextern.rs`: **CLOSED for both names** (d90609a/3.357).  `row_containing_pos`
+    (dispextern.h 3563-3565) and `blank_row` (dispextern.h 3914) now live in the mirror's
+    `dispextern_late_decls` module (dispextern.rs 3686-3706, glob-imported at 3706).  The unit
+    declares neither, and `row_containing_pos`'s `--check` row (deviation 184) retired with the
+    unit's own copy — so the round-25 text's 108 is really 107.  `blank_row` is `dispnew.c`'s
+    definition; a unit that defines it needs the module shape, not a local copy.
 
-58. `include/dispextern.rs`: the three `DESIRED_MODE_LINE_HEIGHT`/`DESIRED_HEADER_LINE_HEIGHT`/
-    `DESIRED_TAB_LINE_HEIGHT` macros call `MATRIX_MODE_LINE_HEIGHT`/`MATRIX_HEADER_LINE_HEIGHT`/
-    `MATRIX_TAB_LINE_HEIGHT` **without the `!`** (`dispextern.rs` 2421/2426/2431 — measured
-    `E0423` at the first unit that uses them, this one).  Until they are fixed, every user has
-    to spell the expansion (deviation 185); with the `!` added, the six sites in this unit's
-    `redisplay_window` can go back to C's name.
+58. `include/dispextern.rs`: **CLOSED** (d90609a/3.357).  The three
+    `DESIRED_MODE_LINE_HEIGHT`/`DESIRED_HEADER_LINE_HEIGHT`/`DESIRED_TAB_LINE_HEIGHT` macros now
+    carry the `!` on their inner `MATRIX_*_LINE_HEIGHT` calls (dispextern.rs 2420-2432), and this
+    unit's six `redisplay_window` sites (C 21479-21506) read C's own names again — deviation 185
+    is superseded.
 
-59. `femacs/src/xdisp.rs:782`'s citation reads `dispextern.h 3914: void clear_glyph_row (struct
-    glyph_row *);`, but 3914 is `blank_row`'s line — `clear_glyph_row` is at dispextern.h 3916
-    (measured).  The citation gate cannot see it (the quoted snippet carries parentheses, so it
-    is not a bare identifier), so it stands until a citation round fixes it; this round only
-    records it and cites 3914 for the function that really is there.
+59. `femacs/src/xdisp.rs`'s `clear_glyph_row` citation: **CLOSED** (d90609a/3.357 fixed it to
+    dispextern.h 3916, `clear_glyph_row`'s real line; 3914 is `blank_row`'s).
+
+60. **Scaffold shape**: `try_window`'s declaration retires as its definition lands —
+    17 -> 16 entries (deviation 192).  The block's remaining sixteen are other rounds' work.
 
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  The
-figures below were taken at the 20,795-line revision (through `redisplay_window`, C 21662):
+figures below were taken at the 20,897-line revision (through `try_window`, C 21779).  **The
+round-25 table's own figures did not match the revision it described** — it printed 20,795 lines
+and md5 `0b19d30c0cdaed1aa779d3207fd939fe`, while the file that commit (`d90609a`) shipped is
+20,784 lines, md5 `c17ee2875e26c49782e918dd30435bd5`; the table below is measured in place.
+**HEAD moved under the round** — `429fbad` -> `5053e70` (the mirror-dupes gate learns wrapped
+declarations, status 3.362) -> `eb850c7` (the mirror's `dispextern_late_decls` moves both window
+parameters to `*mut c_void` and four duplicate debts clear, status 3.363) -> `c04101f` (a
+reading-only commit, status 3.364), all other lanes' commits; this round's own baseline is
+re-measured against `eb850c7`, and at closing the working tree carries only this round's two
+files (`docs/ports/xdisp.md`, `femacs/src/xdisp.rs`):
 
-* `build-tu src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, taken **in place at
-  the current workspace state**.  This revision's `xdisp.rs` md5 is
-  `0b19d30c0cdaed1aa779d3207fd939fe` (20,795 lines); the mirrors it was built against, all
-  re-read in the same shell step as the closing gate runs, are
-  `include/dispextern.rs 90dff2b4cd26c38d4e02aa5c83880041`, `include/window.rs
+* `build-tu src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, **exit 0, run twice
+  and built both times** with no failure.  The first run is against the pre-`eb850c7` base
+  (`dispextern.rs 3786e267c9fd83fc67cef558a51ec467`, both `dispextern_late_decls` parameters still
+  `*mut window` and `redisplay_window`'s calls carrying no cast — that combination built); the
+  closing run is against `xdisp.rs` md5 `6992b840593e9bc26dda43a1044d8585` (20,897 lines = HEAD's
+  `xdisp.rs` plus this round's insertion) and the mirrors
+  `include/dispextern.rs aeaea92dc9cbffae07a8b01c4d484c41` (HEAD/`eb850c7`), `include/window.rs
   cd81ea3d5ad97cd4fb483e6ad237cc89`, `include/lisp.rs c277d40ce82a56f22fbfae19ccf83ebc`,
   `include/globals.rs 9b742a9ab376158f544d4ae2689f0c2e` and `lib/include/stdbit.in.rs
   bd5e18f5cf4b99d4d0d32412d275bf50` (the last two are other lanes' and mutable); the object is
-  `build/femacs/xdisp.o e5948e1d43704966d396a41fd3b6160e`.  The build prints the same six
-  warnings as the previous rounds (three `unused doc comment`s in mirrors, two `while true`
-  lint notes and one `unused attribute`); this round adds none — the loop is `'force_start:
-  loop`, not `while true`;
-* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its
-  last two lines are `- line count drifted 47.8%: C 39805 vs Rust 20795` and
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count goes 107 -> **108**: one
-  `missing function` row retires (`redisplay_window`), one `does not mention` row replaces it
-  (the same function: `goto` — deviation 180; the three
-  `desired_*_line_height` — deviation 185; `case`/`default`/`switch` — deviation 187; and
-  `debug_method_add`/`if_debug` — the dead-arm list above), and
-  item 57's `row_containing_pos` row is the round's only growth (deviation 184).  `missing
-  macro` stays at 6, `missing defsubr` at 13, `missing file-scope object` at 2, `missing subr`
-  at 6, and there is still no `stub or empty body` line.  **The brief's `C 20700` boundary is
-  not reachable under this rule and the round says so** — measured at C 20424-20693 the count
-  is **109** (the two family rows), so the whole function is the smallest-growth boundary;
-* `python3 tools/check-cond-eval.py src/xdisp.c` = `196 conditions, 0 unknown to the evaluator,
-  0 disagreements` (this round's fourteen dead arms are in the list above);
+  `build/femacs/xdisp.o bedf21d11e20d78f89ca4e89e80ced3a`.  The four `w as *mut c_void` casts
+  `redisplay_window` carries are **HEAD's** (`eb850c7`) — they sit in the base this round's diff
+  is taken against, not in this round's text.  The build prints the same six warnings as the
+  previous rounds (three `unused doc comment`s in mirrors, two `while true` lint notes and one
+  `unused attribute`); this round adds none — `try_window`'s loop is
+  `while it.current_y < it.last_visible_y`, not `while true`;
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its last
+  two lines are `- line count drifted 47.5%: C 39805 vs Rust 20897` and
+  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The baseline **107 is re-measured on
+  `eb850c7`'s own `xdisp.rs`** (checked out to a scratch path; its row set is byte-identical to
+  the pre-round `429fbad` reading).  The count goes 107 -> **105**: two rows retire
+  and none replaces them — `missing function try_window` (its definition lands) and
+  `function try_window is not static in C but has no #[unsafe(no_mangle)] in the port` (the
+  definition carries `#[unsafe(no_mangle)]`).  The `missing function` set's remaining rows are
+  this unit's later definitions, and the `is not static … no #[unsafe(no_mangle)]` row
+  `produce_stretch_glyph` still carries (a later round's declaration) is untouched.  The `does
+  not mention` rows stay at three (`redisplay_internal`, `set_cursor_from_row`,
+  `redisplay_window`) — `try_window` mentions every token its reference body carries, so it adds
+  no row.  `missing macro` stays at 6, `missing defsubr` at 13, `missing file-scope object` at 2,
+  `missing subr` at 6, and there is still no `stub or empty body` line.  **This round is not one
+  where the count had to grow** — the brief's `+1`/reachable-lower-bound fallback is not needed;
 * `python3 tools/check-citations.py` = `674 file(s) scanned, 0 drift, 0 range, 349 external,
-  33 allowed, 0 stale`; `femacs/src/xdisp.rs` has **no** finding (the six new `/// C:` lines of
-  this round are clean; the drift/stale rows the previous reading carried were other lanes' and
-  are gone).  Item 59 records the one wrong citation the gate cannot see;
-* `python3 tools/check-mirror-dupes.py` = `18 duplicate declaration(s), 18 ratchet row(s), 0
-  failure(s)` — unchanged (this round adds no unit-local macro);
+  33 allowed, 0 stale`; `femacs/src/xdisp.rs` has **no** finding (this round adds no `/// C:`
+  line — the definition opens with C's own doc comment).  Mid-round the figure read `1 drift`
+  (`femacs/src/doprnt.rs:67`, `xpalloc` quoted against lisp.h 4009 — another lane's file, present
+  only while that lane's write was in the tree).  Item 59 is CLOSED (d90609a fixed the
+  `clear_glyph_row` citation to dispextern.h 3916);
 * `python3 tools/check-declarations.py` = `13 declaration sites (0 forbidden, 13 allowed
-  literals), 0 failures` (none from this unit);
-* `python3 tools/check-verbatim.py` = `6 trees, 4604 files, 0 failures`;
-* `python3 tools/check-globals.py` = `284 units, 0 DEFVAR_* variables without a definition in
-  their own unit`;
-* `python3 tools/check-target-names.py` = `628 .rs files, 591 map targets, 0 finding(s)`.
+  literals), 0 failures`; its final line is `walked past 0 file(s) of an unscanned kind: none (1
+  of them read above)`.  No finding from this unit;
+* `python3 tools/check-mirror-dupes.py` = `23 duplicate declaration(s), 23 ratchet row(s), 0
+  failure(s)`.  **Not this round's signal**: the tool and its ratchet
+  (`docs/baseline/mirror-dupes.tsv`) were being extended in this checkout during the round (its
+  first reading here was `26 duplicate declaration(s), 18 ratchet row(s), 10 failure(s)`, all ten
+  in other lanes' units and the ratchet mid-rewrite; once that lane committed, the reading became
+  `23 … 0 failure(s)`).  `femacs/src/xdisp.rs` appears **nowhere** in its output, before or after
+  — this round's definition (a body, never a copy) adds no duplicate and deletes one
+  declaration;
+* `python3 tools/check-cond-eval.py src/xdisp.c` = `196 conditions, 0 unknown to the evaluator,
+  0 disagreements` — unchanged this round (`try_window` has no `#if`).
 
 `xtask layout-check` was **not** re-run this round: this unit's text adds no `struct` and no
 layout assertion (the round touches no measured record), and the task's reading list is
-`build-tu` plus the three text gates above.  The unit/file counts move with the other lanes
-(`femacs/platform/macos/nsterm.swift`, `femacs/platform/android/kotlin/EmacsWindow.kt` and
-`docs/baseline/port-lines-pending.tsv` are dirty in this checkout and are not this round's);
-every reading above is from this round's own run.
+`build-tu` plus the three text gates above.  Every reading above is from this round's own run.

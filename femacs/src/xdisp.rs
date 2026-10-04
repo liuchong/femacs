@@ -20708,6 +20708,122 @@ redisplay_window (window: Lisp_Object, just_this_one_p: bool)
   unbind_to (count, Qnil ());
 }
 
+/* Build the complete desired matrix of WINDOW with a window start
+   buffer position POS.
+
+   Value is 1 if successful.  It is zero if fonts were loaded during
+   redisplay or the dimensions of the desired matrix were found
+   insufficient, which makes re-adjusting glyph matrices necessary.
+   Value is -1 if point would appear in the scroll margins.  (We check
+   the former only if TRY_WINDOW_IGNORE_FONTS_CHANGE is unset in
+   FLAGS, and the latter only if TRY_WINDOW_CHECK_MARGINS is set in
+   FLAGS.)
+
+   Note that 'x-show-tip' invokes this function in a special way, and
+   in that case the return value of zero doesn't necessarily mean the
+   glyph matrices need to be re-adjusted, if the entire text of the
+   tooltip was processed and has its glyphs in the matrix's glyph
+   rows, i.e. if the dimensions of the matrix were found insufficient
+   while producing empty glyph rows beyond ZV.  (C 21684-21779)  */
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int
+{
+  let w: *mut window = XWINDOW (window);
+  let mut it: it = core::mem::zeroed ();
+  let mut last_text_row: *mut glyph_row = core::ptr::null_mut ();
+  let f: *mut frame = XFRAME ((*w).frame);
+  let cursor_vpos: c_int = (*w).cursor.vpos;
+
+  /* Make POS the new window start.  */
+  set_marker_both ((*w).start, Qnil (), CHARPOS! (pos), BYTEPOS! (pos));
+
+  /* Mark cursor position as unknown.  No overlay arrow seen.  */
+  (*w).cursor.vpos = -1;
+  overlay_arrow_seen = false;
+
+  /* Initialize iterator and info to start at POS.  */
+  start_display (&raw mut it, w, pos);
+  glyph_row_bits! (reversed_p, it.glyph_row, false);
+
+  /* Display all lines of W.  */
+  while it.current_y < it.last_visible_y
+    {
+      let last_row_scale: c_int = (*it.w).nrows_scale_factor;
+      let last_col_scale: c_int = (*it.w).ncols_scale_factor;
+      if display_line (&raw mut it, cursor_vpos) != 0
+	{ last_text_row = it.glyph_row.offset (-1); }
+      if frame_bits! (fonts_changed, f)
+	  && !((flags & TRY_WINDOW_IGNORE_FONTS_CHANGE) != 0
+	       /* If the matrix dimensions are insufficient, we _must_
+		  fail and let dispnew.c reallocate the matrix.  */
+	       && last_row_scale == (*it.w).nrows_scale_factor
+	       && last_col_scale == (*it.w).ncols_scale_factor)
+	{ return 0; }
+    }
+
+  /* Save the character position of 'it' before we call
+     'start_display' again.  */
+  let it_charpos: ptrdiff_t = IT_CHARPOS! (it);
+
+  /* Don't let the cursor end in the scroll margins.  However, when
+     the window is vscrolled, we leave it to vscroll to handle the
+     margins, see window_scroll_pixel_based.  */
+  if (flags & TRY_WINDOW_CHECK_MARGINS) != 0
+      && (*w).vscroll == 0
+      && !MINI_WINDOW_P (w)
+    {
+      let mut top_scroll_margin: c_int = window_scroll_margin (w, margin_unit::MARGIN_IN_PIXELS);
+      let bot_scroll_margin: c_int = top_scroll_margin;
+      if window_wants_header_line (w)
+	{ top_scroll_margin += CURRENT_HEADER_LINE_HEIGHT! (w); }
+      if window_wants_tab_line (w)
+	{ top_scroll_margin += CURRENT_TAB_LINE_HEIGHT! (w); }
+      start_display (&raw mut it, w, pos);
+
+      if (*w).cursor.y >= 0
+	  && (*w).cursor.y < top_scroll_margin
+	  && CHARPOS! (pos) > BEGV! ()
+	  /* rms: considering make_cursor_line_fully_visible_p here
+	     seems to give wrong results.  We don't want to recenter
+	     when the last line is partly visible, we want to allow
+	     that case to be handled in the usual way.  */
+	  || (*w).cursor.y > (it.last_visible_y - partial_line_height (&raw mut it)
+			      - bot_scroll_margin - 1)
+	{
+	  (*w).cursor.vpos = -1;
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  return -1;
+	}
+    }
+
+  /* If bottom moved off end of frame, change mode line percentage.  */
+  if (*w).window_end_pos <= 0 && Z! () != it_charpos
+    { window_bits! (w, update_mode_line, true); }
+
+  /* Set window_end_pos to the offset of the last character displayed
+     on the window from the end of current_buffer.  Set
+     window_end_vpos to its row number.  */
+  if !last_text_row.is_null ()
+    {
+      eassert! (MATRIX_ROW_DISPLAYS_TEXT_P! (last_text_row));
+      adjust_window_ends (w, last_text_row, false);
+      eassert!
+	(MATRIX_ROW_DISPLAYS_TEXT_P! (MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix,
+						    (*w).window_end_vpos)));
+    }
+  else
+    {
+      (*w).window_end_bytepos = Z_BYTE! () - ZV_BYTE! ();
+      (*w).window_end_pos = Z! () - ZV! ();
+      (*w).window_end_vpos = 0;
+    }
+
+  /* But that is not valid info until redisplay finishes.  */
+  window_bits! (w, window_end_valid, false);
+  return 1;
+}
+
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */
 /* ==================================================================== */
@@ -20760,9 +20876,6 @@ unsafe extern "C" {
   /// C: xdisp.c 1175: `static void display_menu_bar (struct window *);` (defined at
   /// C 27761).
   fn display_menu_bar (w: *mut window);
-  /// C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);` (defined
-  /// later in this unit; C's is non-`static`).
-  fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
   /// C: xdisp.c 1130/25062: `static bool cursor_row_p (struct glyph_row *);` (defined
   /// later in this unit).
   fn cursor_row_p (row: *mut glyph_row) -> bool;
