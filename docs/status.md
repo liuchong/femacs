@@ -5694,3 +5694,22 @@
   ⑥ **未声称**：仍是**编译级**验收（探针 exit 0 + warning 16 条）；没有 `javap`/JVM 描述符导出、没有 Gradle/设备、
      `R` 的 id 值仍是 0；`EmacsView` 依赖的 `EmacsWindow`(39)/`EmacsService`(40) 两个类的接口一致**不成立**（收口时它们是
      参照 Java 替身）——这条 lane 已把自己需要的成员清单留给下一轮。
+
+- **3.355 两个"离完成还有多远"的读数：`check-port-lines` 棘轮前进（98→96 文件），`extract-abi --all` 590 文件 586 done / 2 WIP / 2 failing（2026-10-05）**：
+  ① **棘轮前进（本件的提交内容）**：`tools/check-port-lines.py` 之前读 `98 file(s) under ten percent, 280,076
+     reference line(s)`；本件 `--write-pending` 后读 **`96 file(s), 246,438 reference line(s)`、`0 new, 0 stale`**。
+     两条退出的行都是**已入库的真进度**：`src/xrdb.c`（3.346 落整文件，11 → 533 行）与 `src/xterm.c`（3.349 落片 6，
+     2,403 → 3,069 行）——它们越过了"低于参照 10%"的阈值，所以从待办名单里消失。
+  ② **这份"看不见的三分之一"现在的准确规模**：还剩 **96 个目标**的端口小于其参照的 10%，合计 **246,438 C 行**。
+     这一类的共同点（P-73 的洞）是：它们的正文整身挂在冻结配置为假的 `#if` 下 ⇒ `extract-abi --check` 对它们
+     **空跑通过**，只有 `check-port-lines.py` 这一道棘轮看得见；所以这个数要跟 ③ 那个数一起读，不能只报 ③。
+  ③ **`extract-abi --all` 的总读数（本轮实跑，约 2.5 分钟）**：`checked 590 ported files: **586 done, 2 in progress,
+     2 failing**`，`exit 1`。WIP 两件是 `src/xdisp.c`（108 differences）与 `src/xterm.c`（300 differences）——
+     都是巨型单元按片推进的正常态（它们的台账还有未勾项）。**failing 两件是新的**，而且不是"没写完"，是
+     **宏体 token 比对**：`src/font.h` 的 `FONT_ADD_LOG`/`FONT_DEFERRED_LOG` "does not mention `false`"、
+     `src/frame.h` 的 `SET_FRAME_GARBAGED` "does not mention `garbaged`"。这两件都是 **3.333 那次"镜像体收编"**
+     的余波：那轮把镜像的体换成单元验证过的版本，`while (false)` 的 `false`（C 的 `do…while (false)` 写法）与局部变量
+     `let garbaged = …` 的名字随之消失，而 3.333 的验收是"七个**单元** build-tu + `--check`"，**没有覆盖
+     `--all` 走的那对"头文件镜像"**，所以它漏到了今天。3.356 用 `docs/ports/macro-body-notes.tsv` 的三行收口。
+  ④ **未声称**：`586 done` 是**清单口径**（`--check` 对"整身在假条件下"的目标空跑通过）；"完成"仍以
+     `docs/port-plan.md` §8 的八条为准（L0-L5、双向兼容、生成物逐字节、`diff -r` 原样树），本轮没有一项被点亮。
