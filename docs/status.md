@@ -4628,3 +4628,28 @@
   ⑤ **一条瞬态说明**：`check-swift-imports` 此刻报 28 条 failure——那是在飞的 Swift 轮次（`nsterm` r8 / `nsfns` b4）新引入的导入，按惯例在它们入库时录入棘轮；
   同理 `ns_set_offset`/`ns_free_frame_resources` 这两条已显 `STALE (satisfied)` 是因为 `nsterm.swift` 的**未提交** r8 已在工作树里定义了它们——
   **判据在已落库的状态上取**（3.241/3.247 的同一条）。
+
+- **3.249 `xterm.c` 这条战线开篇（设计 + 第一片）：非冻结平台文件的"活侧"裁定，与 443 行剩余清单（2026-10-04）**：
+  ① **量清的实况**（lane 实测）：`src/xterm.c` **33,125 行**、代码正文起 **C 625**；`check-cond-eval src/xterm.c` → **852 conditions /
+  0 unknown / 0 disagreements [VERIFIED]**（在 `cond-eval-verified.txt` 426 行 ⇒ 冻结宏表**读得准**这个文件）；`HAVE_X_WINDOWS` **全文只出现 1 次**，
+  且在一个 `#elif`（C 26143）——**这个文件不是被它包起来的**，"本 target 是否编它"由 Makefile 决定（`frozen-build-sources.txt` 里没有 `src/xterm.c`）；
+  条件组地图：`USE_GTK` 204 组/4,223 行、`USE_X_TOOLKIT` 77/1,676、`HAVE_XINPUT2` 75/5,309、`USE_CAIRO` 48/2,009、`USE_TOOLKIT_SCROLL_BARS` 45/2,077、
+  `USE_XCB` 42/840、`HAVE_X_I18N` 34/845、`USE_MOTIF` 25/1,123…；按冻结表：**活 19,809 / 死 13,317 行**（可归属的死行：`HAVE_XINPUT2` 1,442、`USE_GTK` 1,231、
+  `#else` 臂 1,172、`USE_CAIRO` 850、`USE_X_TOOLKIT` 828、`USE_MOTIF` 807…）。
+  ② **裁决（三条路线里选）**：lane 给出路线 A（另立 X11/GTK3 表：667 个必须名、26,914 活行；**要新机制**——今天是一 target 一张表 + 文件白名单，没有 per-file 表，
+  且仍漏 Lucid/Motif/Xaw/Xt 那 59 个名字）与路线 B（**盲读**：721 个必须名、33,006 活行；零新机制，一行共享文件——把 `src/xterm.c` 从 `cond-eval-verified.txt` 去掉），
+  并建议**两者都不选**。**我采纳他的建议**：**清单保持冻结读数，但按 P-51 把各臂的文本都承载**（两臂都写、非冻结一侧挂 feature 并在台账记名）——
+  理由：① 同一子系统（`src/include/xterm.rs` 头镜像 b03d883 已经落成这个形状：全身挂 `have_x_windows`、清单取冻结读数、清单外的臂在台账记名）不该有两种读数；
+  ② 路线 A 要为一个**冻结 target 从不编译**的文件发明新机制；③ 范围是 P-42 的 1:1 文本，臂无论选哪条读数都要写，读数只决定"**必须**"集合。
+  **若将来真要配一个 X11 target**，正确且最便宜的开关是路线 B（一行）。
+  ③ **第一片（C 625-990）**：`femacs/src/xterm.rs` 616 → **944 行**、台账 `docs/ports/xterm.md` 658 行（413 个未勾框＝这条战线的完整工作清单）；
+  落了 19 个名字 + 2 个 typedef + 2 个 record（宏 `XtNpickTop`/`XtNinitialState`/`USE_CAIRO_XCB_SURFACE`/`HAVE_XCB_SHAPE_INPUT_RECTS`/`X_XI*`/`X_NEXT_KBD_EVENT`/`ATOM_REFS_INIT`；
+  对象 `xg_pending_quit_event`/`any_help_event_p`/`x_display_list`/`Xt_app_con`/`Xt_default_resources`/`toolkit_scroll_bar_interaction`/`emacs_class`/…；
+  函数 `x_defer_selection_requests`/`x_release_selection_requests`/`x_release_selection_requests_and_flush`；记录 `x_selection_request_event`/`x_atom_ref`；
+  typedef `Emacs_XErrorHandler`/`Emacs_XIOErrorHandler`）。**记录在案的降级**：`Display`/`XErrorEvent`/`XtAppContext` 用不透明指针 + `/// C:`（P-72 ③）、
+  `EMACS_CLASS` 展成 `[c_char; 6]`（frame.h 1840 的 `"Emacs"`）、`#ifndef XtNpickTop` 那类是"X11 头自己是否已定义"的守卫（端口看不到那些头 ⇒ 按外层 feature 承载并记名）、
+  `buffered_input_event.sie`（C 917/920）与 `x_handle_pending_selection_requests`（xterm.h 1857）两个名字在镜像里**没有**（前者只在 `include/keyboard.rs` 的注释里、
+  后者只在 `include/xterm.rs` 的宏体里）⇒ 已记台账。
+  ④ 读数：`build-tu src/xterm.c` → **built**；`--check emacs/src/xterm.c femacs/src/xterm.rs` = **443 条 `- `**（本片之后）；
+  链接棘轮重生成：**387 undefined / 387 行 / 0 failures**——`unknown` 类从 79 涨到 **97**，多出来的正是这一片承载的 **X11 专属符号**
+  （它们在 X11 构建里由 X11 库解析；冻结 target 从不链接它们），这条已写进 `docs/ports/link.md` 的口径里。

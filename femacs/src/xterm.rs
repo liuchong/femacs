@@ -604,13 +604,341 @@
   `x_uncatch_errors' will always synchronize with the X server, which
   is a potentially slow operation.  */
 
+/* femacs: `src/xterm.c` is the X11 backend, and the frozen configuration does not compile it.
 
-/* femacs: emacs/src/xterm.c (@ 33125 lines) is not compiled by the frozen configuration.
+   `docs/baseline/frozen-build-sources.txt` has no `src/xterm.c`: this target's platform object
+   variables are empty (`WINDOW_SYSTEM_OBJ=`, `HAIKU_OBJ = `, `MSDOS_OBJ =`, `CYGWIN_OBJ=` in
+   `build/emacs-ref/src/Makefile`), so `make -n` never names the file (docs/status.md 3.31).
+   What is "live" for it is the X11 target, not this one, and the port has the shape the file's
+   own header mirror already has (`femacs/src/include/xterm.rs`, commit b03d883):
 
-   `build/emacs-ref/src/Makefile`'s platform object variables are empty for this target
-   (`WINDOW_SYSTEM_OBJ=`, `HAIKU_OBJ = `, `MSDOS_OBJ =`, `CYGWIN_OBJ=`), so the file is not in
-   the build's source list at all; its text also needs headers this target has not got.  The
-   authority is `docs/baseline/frozen-build-sources.txt` (generated from `make -n` in that
-   build directory) and the policy is docs/status.md 3.31: the port is an empty unit with this
-   note, and `docs/ports/xterm.md` records the deferred declarations so a future configuration
-   that builds it knows where to start.  */
+     * the whole body carries `#[cfg (feature = "have_x_windows")]` - P-51's arm for the
+       non-frozen side, the side whose target supplies Xlib, Xt, Xft, cairo and GTK;
+     * every inner condition keeps C's own spelling lowercased as its feature name (`USE_GTK`
+       -> `use_gtk`, `HAVE_X_I18N` -> `have_x_i18n`, `USE_X_TOOLKIT` -> `use_x_toolkit`, ...),
+       and the arm C compiles on the frozen target is the one that feature disables;
+     * the arms outside the frozen reading are carried as text (P-51) instead of dropped, so the
+       file stays a 1:1 transcript of the reference (PORTING.md P-42) and the checklist in
+       `docs/ports/xterm.md` is the frozen reading's, with the arms outside it tabulated in that
+       ledger's Decisions.
+
+   Verification, and what it is worth: `xtask build-tu src/xterm.c` compiles the unit with every
+   feature off, so it proves that the text parses and that the lazy arms are legal Rust, and
+   nothing beyond that - the same evidence `femacs/src/include/xterm.rs` has (status 3.171).
+   The progress reading is `tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs`:
+   its `- ` count is what the frozen reading still demands (460 before this slice).  Nothing here
+   is reached by the frozen build, and a Lisp test cannot reach it either: the file exists only
+   in an X11 build of Emacs.
+
+   Slice 1 (this round) = C 625-990: the header preamble, the two X11 handler typedefs, the first
+   file-scope objects with their conditional arms, the two selection-request records, the three
+   selection-request functions and the atom-table macro.  What the slice names but does not
+   define is in the ledger's Decisions.  */
+
+#![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
+         unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
+         unsafe_op_in_unsafe_fn)]
+
+/* C 625-728: the header preamble, in C's order.  A header this tree has a mirror for is
+   included where C includes it; the rest are X11/xcb/Xt/Xm/Xaw headers (C 637, 644-645,
+   650-683, 688, 691, 724-725, 733, 738, 742, 746-748, 755-765, 785, 788) and the ledger lists
+   them instead.  */
+include!("include/config.rs");                    // C 625: `#include <config.h>`
+include!("../lib/include/stdlib.rs");             // C 626: `#include <stdlib.h>`
+include!("../lib/include/math.rs");               // C 627: `#include <math.h>`
+include!("../lib/include/signal.rs");             // C 628: `#include <signal.h>`
+include!("include/lisp.rs");                      // C 630: `#include "lisp.h"`
+include!("include/blockinput.rs");                // C 631: `#include "blockinput.h"`
+include!("../lib/include/stdio.rs");              // C 632: `#include "sysstdio.h"`
+include!("include/xterm.rs");                     // C 636: `#include "xterm.h"`
+include!("include/textconv.rs");                  // C 640: `#include "textconv.h"` (HAVE_X_I18N)
+include!("../lib/include/sys_types.in.rs");       // C 688: `#include <sys/types.h>`
+include!("include/systime.rs");                   // C 693: `#include "systime.h"`
+include!("../lib/include/fcntl.in.rs");           // C 695: `#include <fcntl.h>`
+include!("../lib/include/errno.rs");              // C 696: `#include <errno.h>`
+include!("../lib/include/sys_stat.in.rs");        // C 697: `#include <sys/stat.h>`
+include!("../lib/include/flexmember.rs");         // C 698: `#include <flexmember.h>`
+include!("../lib/include/c-ctype.rs");            // C 699: `#include <c-ctype.h>`
+include!("../lib/include/byteswap.in.rs");        // C 700: `#include <byteswap.h>`
+include!("include/character.rs");                 // C 702: `#include "character.h"`
+include!("include/coding.rs");                    // C 703: `#include "coding.h"`
+include!("include/composite.rs");                 // C 704: `#include "composite.h"`
+include!("include/frame.rs");                     // C 705: `#include "frame.h"`
+include!("include/dispextern.rs");                // C 706: `#include "dispextern.h"`
+include!("include/xwidget.rs");                   // C 707: `#include "xwidget.h"`
+include!("include/fontset.rs");                   // C 708: `#include "fontset.h"`
+include!("include/termhooks.rs");                 // C 709: `#include "termhooks.h"`
+include!("include/termopts.rs");                  // C 710: `#include "termopts.h"`
+include!("include/termchar.rs");                  // C 711: `#include "termchar.h"`
+include!("include/emacs-icon.rs");                // C 712: `#include "emacs-icon.h"`
+include!("include/intervals.rs");                 // buffer.h 27: `#include "intervals.h"`
+include!("include/itree.rs");                     // intervals.h: `itree_node`/`itree_tree`
+include!("include/buffer.rs");                    // C 713: `#include "buffer.h"`
+include!("include/window.rs");                    // C 714: `#include "window.h"`
+include!("include/keyboard.rs");                  // C 715: `#include "keyboard.h"`
+include!("include/atimer.rs");                    // C 716: `#include "atimer.h"`
+include!("include/font.rs");                      // C 717: `#include "font.h"`
+include!("include/xsettings.rs");                 // C 718: `#include "xsettings.h"`
+include!("include/sysselect.rs");                 // C 719: `#include "sysselect.h"`
+include!("include/menu.rs");                      // C 720: `#include "menu.h"`
+include!("include/pdumper.rs");                   // C 721: `#include "pdumper.h"`
+include!("../lib/include/unistd.in.rs");          // C 728: `#include <unistd.h>`
+include!("include/gtkutil.rs");                   // C 731: `#include "gtkutil.h"` (USE_GTK)
+include!("include/xgselect.rs");                  // C 782: `#include <xgselect.h>` (USE_GTK)
+include!("include/widget.rs");                    // C 775: `#include "widget.h"` (USE_X_TOOLKIT)
+
+/* C 791-795: the two X11 handler typedefs - C defines them because Xlib does not promise the
+   names are in every Xlib header.  `Display` and `XErrorEvent` are Xlib's and no mirror in this
+   tree owns them, so the two pointers are opaque and the C prototype stays on the `/// C:`
+   line (P-72 rule 3).  */
+/// C: typedef int (*Emacs_XErrorHandler) (Display *, XErrorEvent *);
+#[cfg (feature = "have_x_windows")]
+pub type Emacs_XErrorHandler = Option<unsafe extern "C" fn (*mut c_void, *mut c_void) -> c_int>;
+/// C: typedef int (*Emacs_XIOErrorHandler) (Display *);
+#[cfg (feature = "have_x_windows")]
+pub type Emacs_XIOErrorHandler = Option<unsafe extern "C" fn (*mut c_void) -> c_int>;
+
+/* C 766-768: `#ifndef XtNpickTop` / `#define XtNpickTop "pickTop"`, inside `USE_X_TOOLKIT`
+   (750) + `USE_TOOLKIT_SCROLL_BARS` (753) + the `#else` of `USE_MOTIF` (754-769).  The
+   `#ifndef` exists because Xaw3d's own header defines the name; the port cannot see the X11
+   headers, so the arm is carried under its enclosing features and the ledger records that.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit",
+            feature = "use_toolkit_scroll_bars", not (feature = "use_motif")))]
+macro_rules! XtNpickTop { () => { "pickTop" } }
+
+/* C 774-778: the toolkit's `initialState` resource name, again behind an `#ifndef` guard.  */
+#[cfg (all (feature = "have_x_windows", feature = "use_x_toolkit"))]
+macro_rules! XtNinitialState { () => { "initialState" } }
+
+/* C 797-799: `#if defined USE_XCB && defined USE_CAIRO_XCB` -> `USE_CAIRO_XCB_SURFACE`.  C's
+   `#define` has no body, so the port's arm defines the name with an empty expansion (the
+   `lread.rs` `USE_ANDROID_ASSETS` shape).  */
+#[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "use_cairo_xcb"))]
+macro_rules! USE_CAIRO_XCB_SURFACE { () => {} }
+
+/* C 801-805: `#if XCB_SHAPE_MAJOR_VERSION > 1 || (XCB_SHAPE_MAJOR_VERSION == 1 &&
+   XCB_SHAPE_MINOR_VERSION >= 1)` -> `HAVE_XCB_SHAPE_INPUT_RECTS`.  The three version macros
+   come from the xcb shape headers, which this tree has no mirror for, so the name C derives is
+   the feature the arm is carried under.  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xcb_shape_input_rects"))]
+macro_rules! HAVE_XCB_SHAPE_INPUT_RECTS { () => {} }
+
+/* C 869-881: the three XInput2 request codes, each behind an `#ifndef` (the XI2 headers define
+   them once they are new enough to need a different spelling).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+macro_rules! X_XIGrabDevice { () => { 51 } }
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+macro_rules! X_XIUngrabDevice { () => { 52 } }
+#[cfg (all (feature = "have_x_windows", feature = "have_xinput2"))]
+macro_rules! X_XIAllowEvents { () => { 53 } }
+
+/* C 888-889: the keyboard buffer's "next entry" step.  C's `kbd_buffer` is the keyboard.h
+   mirror's static array, `KBD_BUFFER_SIZE` its length; the comparison is against the last
+   slot, and the `?:` is the port's `if`/`else` (PORTING.md 2.1).  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! X_NEXT_KBD_EVENT {
+  ($ptr:expr) => {
+    if $ptr == (&raw mut kbd_buffer).cast::<buffered_input_event> ()
+                 .add ((KBD_BUFFER_SIZE - 1) as usize)
+      { (&raw mut kbd_buffer).cast::<buffered_input_event> () }
+      else { $ptr.add (1) }
+  };
+}
+
+/* C 883-889, 961-983: the file-scope objects, and the two records they use.  The objects live
+   in this module, which is glob-imported below: `include/xterm.rs` declares one of them
+   (`x_display_list`, its C 999) at the crate root, so a crate-root definition would be `E0428`
+   as soon as the X11 target turns `have_x_windows` on - the `keyboard_globals` shape
+   (PORTING.md P-21, the same rule that put `input_pending` in a module).  */
+#[cfg (feature = "have_x_windows")]
+pub mod xterm_globals {
+  use super::*;
+
+  /* C 807-816: `#ifdef USE_GTK` -- the quit event a GTK signal handler cannot deliver itself;
+     C's compound literal names only `.kind`, so every other member is its zero value and
+     `NIL_IS_ZERO` makes the four `Lisp_Object`s nil (termhooks.rs's `EVENT_INIT` note).  */
+  #[cfg (feature = "use_gtk")]
+  #[unsafe(no_mangle)]
+  pub static mut xg_pending_quit_event: input_event =
+    input_event { bits: NO_EVENT as u32, code: 0, modifiers: 0, x: lisp_h_Qnil (),
+                  y: lisp_h_Qnil (), timestamp: 0, frame_or_window: lisp_h_Qnil (),
+                  arg: lisp_h_Qnil (), device: lisp_h_Qnil () };
+
+  /* C 818-821: `static bool any_help_event_p;`  */
+  pub static mut any_help_event_p: bool = false;
+
+  /* C 823-826: the chain of X displays in use.  This is the one object of the module whose
+     declaration the mirror already has at the crate root (its C 999).  */
+  #[unsafe(no_mangle)]
+  pub static mut x_display_list: *mut x_display_info = std::ptr::null_mut ();
+
+  /* C 828-837: `#ifdef USE_X_TOOLKIT` -- the Xt application context and the toolkit
+     scroll-bar flag.  `XtAppContext` is Xt's opaque handle and `String` Xt's `char *`, and no
+     mirror in this tree owns either, so the first is an opaque pointer with its prototype on
+     the `/// C:` line (P-72 rule 3) and the second is `*mut c_char`.  */
+  /// C: XtAppContext Xt_app_con;
+  #[cfg (feature = "use_x_toolkit")]
+  #[unsafe(no_mangle)]
+  pub static mut Xt_app_con: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_x_toolkit")]
+  pub static mut Xt_default_resources: [*mut c_char; 1] = [std::ptr::null_mut ()];
+  #[cfg (feature = "use_x_toolkit")]
+  pub static mut toolkit_scroll_bar_interaction: bool = false;
+
+  /* C 839-847: the click that selected a frame is not a command.  */
+  pub static mut ignore_next_mouse_click_timeout: Time = 0;
+  pub static mut mouse_click_timeout_display: *mut x_display_info = std::ptr::null_mut ();
+
+  /* C 849-851: `static int x_noop_count;`  */
+  pub static mut x_noop_count: c_int = 0;
+
+  /* C 853-856: `#ifdef USE_GTK` -- the icon file name.  */
+  #[cfg (feature = "use_gtk")]
+  pub static mut xg_default_icon_file: Lisp_Object = lisp_h_Qnil ();
+
+  /* C 858-861: `#ifdef HAVE_X_I18N` -- `static char emacs_class[] = EMACS_CLASS;`, and frame.h
+     1840 defines `EMACS_CLASS` as the string `Emacs` (six bytes with the NUL).  */
+  #[cfg (feature = "have_x_i18n")]
+  pub static mut emacs_class: [c_char; 6] =
+    [b'E' as c_char, b'm' as c_char, b'a' as c_char, b'c' as c_char, b's' as c_char, 0];
+
+  /* C 863-867: `#ifdef USE_GTK` -- the state a GTK signal handler passes to XTread_socket.  */
+  #[cfg (feature = "use_gtk")]
+  pub static mut current_count: c_int = 0;
+  #[cfg (feature = "use_gtk")]
+  pub static mut current_finish: c_int = 0;
+  #[cfg (feature = "use_gtk")]
+  pub static mut current_hold_quit: *mut input_event = std::ptr::null_mut ();
+
+  /* C 883-885: `static int x_use_pending_selection_requests;`  */
+  pub static mut x_use_pending_selection_requests: c_int = 0;
+
+  /* C 970-974: the chain of unprocessed selection requests.  */
+  pub static mut pending_selection_requests: *mut x_selection_request_event = std::ptr::null_mut ();
+}
+#[cfg (feature = "have_x_windows")]
+use xterm_globals::*;
+
+/* C 961-968: a deferred selection request.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct x_selection_request_event
+{
+  /// C 964: `struct selection_input_event se;`
+  pub se: selection_input_event,
+  /// C 967: `struct x_selection_request_event *next;`
+  pub next: *mut x_selection_request_event,
+}
+
+/* C 976-983: one atom to intern when a display is connected.  */
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+pub struct x_atom_ref
+{
+  /// C 979: `const char *name;`
+  pub name: *const c_char,
+  /// C 982: `int offset;`
+  pub offset: c_int,
+}
+
+/* C 989-990, the `ATOM_REFS_INIT` macro the `x_atom_refs` table at C 987 is written with.  The
+   table itself needs all 122 `Xatom_*` members of `struct x_display_info`, so it opens the next
+   slice; the macro is here because C defines it outside the table's braces.  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! ATOM_REFS_INIT {
+  ($string:expr, $member:ident) => {
+    /* C: { string, offsetof (struct x_display_info, member) }, */
+    x_atom_ref { name: $string, offset: core::mem::offset_of! (x_display_info, $member) as c_int }
+  };
+}
+
+/* C 891: `static void x_push_selection_request (struct selection_input_event *);` - a forward
+   declaration of the static C defines at 12573.  Rust has no prototypes and resolves items by
+   name, so the port writes the definition where C writes it; until that slice lands the call
+   below names a function that exists nowhere, which is what makes this unit's text - not a
+   compilation unit - the deliverable (the same state `include/xterm.rs` is in).  */
+
+/* C 893-944: defer selection requests, queueing the ones already in the keyboard buffer.  The
+   bitfield read `event->ie.kind` is the mirror's `input_event::bits` unit, and the port keeps
+   C's member name in a per-unit accessor (the `keyboard.rs` `input_event_bits` shape,
+   PORTING.md P-80).  */
+#[cfg (feature = "have_x_windows")]
+macro_rules! input_event_bits {
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
+  (part, $e:expr) => { ((*$e).bits >> INPUT_EVENT_PART_SHIFT) as c_int };
+  (part, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
+                 | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
+}
+
+/* C 946-950: the counter's other half.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_release_selection_requests ()
+{
+  x_use_pending_selection_requests -= 1;
+}
+
+/* C 952-959: release, and handle what was queued if this was the outermost deferral.  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_release_selection_requests_and_flush ()
+{
+  x_release_selection_requests ();
+
+  if x_use_pending_selection_requests == 0
+    {
+      /* C: x_handle_pending_selection_requests () - xterm.h 1857 declares it and this tree's
+         xterm.h mirror does not carry it yet (the ledger records the gap).  */
+      x_handle_pending_selection_requests ();
+    }
+}
+
+/* C 899-944.  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_defer_selection_requests ()
+{
+  let mut event: *mut buffered_input_event;
+  let mut between: bool;
+
+  between = false;
+
+  block_input ();
+  if x_use_pending_selection_requests == 0
+    {
+      event = kbd_fetch_ptr;
+
+      while event != kbd_store_ptr
+	{
+	  if input_event_bits! (kind, &raw mut (*event).ie) == SELECTION_REQUEST_EVENT
+	      || input_event_bits! (kind, &raw mut (*event).ie) == SELECTION_CLEAR_EVENT
+	    {
+	      x_push_selection_request (&raw mut (*event).sie);
+
+	      /* Mark this selection event as invalid.  */
+	      SELECTION_EVENT_DPYINFO! (&raw mut (*event).sie) = std::ptr::null_mut ();
+
+	      /* Move the kbd_fetch_ptr along if doing so would not result in any other
+		 events being skipped.  This avoids exhausting the keyboard buffer with
+		 some over-enthusiastic clipboard managers.  */
+	      if !between
+		{
+		  kbd_fetch_ptr = X_NEXT_KBD_EVENT! (event);
+
+		  /* `detect_input_pending' will then recompute whether or not pending input
+		     events exist.  */
+		  input_pending = false;
+		}
+	    }
+	  else
+	    { between = true; }
+
+	  event = X_NEXT_KBD_EVENT! (event);
+	}
+    }
+
+  x_use_pending_selection_requests += 1;
+  unblock_input ();
+}
