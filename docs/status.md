@@ -3065,3 +3065,20 @@
   有余力再接 `lib/string.in.h`(1,852) 或 `lib/stdlib.in.h`(1,991)。
   ⑤ 读数：五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、
   `check-target-names` 596 `.rs`/0）；`layout-check` passed；`check-swift-units` 0/0。
+
+- **3.175 keyboard 再推 629 行：38 个 DEFUN 全部落地、行漂移行消失、只剩 9 个函数（2026-10-04）**：
+  ① **keyboard lane（C 12538-13166，629 行）**：8 个函数（`handle_interrupt_signal` … `allocate_kboard`）+ **9 个 subr**
+  ——**本文件 38 个 `DEFUN` 至此全部端口完毕**（`--check` 的 subr missing 行归零）+ **`force_quit_count`**（C 12596，
+  它此前只以"清单缺行"的形式存在）⇒ file-scope object 的 missing 行也**归零**。`keyboard.rs` 13,440 → **14,062 行**，
+  `--check` missing 行 **65 → 47**；**`line count drifted` 行消失**（14,062 对 14,682 = **4.2% < 5%** 默认容忍，
+  台账无需新增行）；SCAFFOLD **3 → 1**（只剩 `is_ignored_event`，C 13360）。它照旧用配对工具自证 8 个函数的起止
+  （文件最后一行 14,062 就是 `allocate_kboard` 的 `}`），并把 `include <ignore-value.h>` 切给本单元
+  （`write_stdout` 是消费者）——这正是 3.166 那批"每个镜像切一个消费者"的继续。
+  ② 我写入的共享行：`handle_interrupt_signal	1`（C 把 int 字面量 1 传给 `bool in_signal_handler`），复测该行消失。
+  ③ **它已排下一轮"收口"**：从 **C 13173 `wipe_kboard`** 起，目标是把 keyboard.c 吃完（剩 9 个函数 + 38 个 `defsubr`
+  + `event_head` C 13310 的缺类型延后）；我告诉它"能一轮吃下就吃下，这是全仓最大的单元，闭合后我一次入库"
+  （`window.rs` 的先例 `d08a521`），并在它收口后用新抽取器重生成台账（含 `force_quit_count` 那行）。
+  ④ **Swift 侧**：`macfont.swift` 已到 **7,950 行**（Mill 在续做，未提交；Swift 单元闭合才入库的规矩不变）。
+  ⑤ 引证门：**78 drift / 4 range / 282 external / 13 allowed / 0 stale**（Boole 在把 tracked 面的 drift 往 0 打）。
+  ⑥ 读数：五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、
+  `check-target-names` 596 `.rs`/0）；`layout-check` passed；`check-swift-units` 0/0。
