@@ -219,22 +219,22 @@
 
   | C lines | condition | frozen verdict | carried as |
   | ---: | --- | --- | --- |
-  | 293-296 | `HAVE_WINDOW_SYSTEM` | false | `#[cfg (feature = "window_system")]` block in `call_debugger`, with the two declarations it needs (`display_hourglass_p`, `cancel_hourglass`) inside it |
+  | 293-296 | `HAVE_WINDOW_SYSTEM` | false | `#[cfg (feature = "have_window_system")]` block in `call_debugger`, with the two declarations it needs (`display_hourglass_p`, `cancel_hourglass`) inside it |
   | 316-319 | `#if 0` | dead everywhere | **recorded here, not transcribed** (the literal `#if 0` is dead for the inventory too): it binds `Qinhibit_eval_during_redisplay` around redisplay |
-  | 1438-1443 | `HAVE_X_WINDOWS` | false | `#[cfg (feature = "x_windows")]` block in `unwind_to_catch` (the `x_unwind_errors_to` call and its declaration) |
+  | 1438-1443 | `HAVE_X_WINDOWS` | false | `#[cfg (feature = "have_x_windows")]` block in `unwind_to_catch` (the `x_unwind_errors_to` call and its declaration) |
   | 1643-1647 | `GCC_LINT && __GNUC__ && !__clang__` | false | `#[cfg (feature = "gcc_lint_not_clang")]` block in `internal_lisp_condition_case` (the `var = var_volatile` that pacifies GCC 14.2.1); a compiler predicate, so there is no `config.rs` constant to bind it to (status 3.9/3.49) |
-  | 1862-1864 | `HAVE_X_WINDOWS` | false | `#[cfg (feature = "x_windows")]` block in `push_handler_nosignal` (`x_error_handler_depth` and its declaration) |
-  | 2349-2357 | `HAVE_MODULES` | false | `#[cfg (feature = "modules")]` block in `Fcommandp`, with `module_function_interactive_form` declared inside it |
-  | 3378-3381 | `HAVE_MODULES` | false | `#[cfg (feature = "modules")]` arm inside `funcall_lambda`'s branch chain (`funcall_module` declared there) |
-  | 3382-3388 | `HAVE_NATIVE_COMP` | false | `#[cfg (feature = "native_comp")]` arm in the same chain (`lambda_list`) |
-  | 3513-3516 | `HAVE_MODULES` | false | `#[cfg (feature = "modules")]` arm in `Ffunc_arity` (`module_function_arity`) |
-  | 3840-3847 | `HAVE_MODULES` | false | `#[cfg (feature = "modules")]` arm in `do_one_unbind` (`finalize_runtime_unwind`, `finalize_environment_unwind`) |
-  | 4364-4370 | `HAVE_MODULES` | false | `#[cfg (feature = "modules")]` arm in `mark_specpdl` (`mark_module_environment`) |
+  | 1862-1864 | `HAVE_X_WINDOWS` | false | `#[cfg (feature = "have_x_windows")]` block in `push_handler_nosignal` (`x_error_handler_depth` and its declaration) |
+  | 2349-2357 | `HAVE_MODULES` | false | `#[cfg (feature = "have_modules")]` block in `Fcommandp`, with `module_function_interactive_form` declared inside it |
+  | 3378-3381 | `HAVE_MODULES` | false | `#[cfg (feature = "have_modules")]` arm inside `funcall_lambda`'s branch chain (`funcall_module` declared there) |
+  | 3382-3388 | `HAVE_NATIVE_COMP` | false | `#[cfg (feature = "have_native_comp")]` arm in the same chain (`lambda_list`) |
+  | 3513-3516 | `HAVE_MODULES` | false | `#[cfg (feature = "have_modules")]` arm in `Ffunc_arity` (`module_function_arity`) |
+  | 3840-3847 | `HAVE_MODULES` | false | `#[cfg (feature = "have_modules")]` arm in `do_one_unbind` (`finalize_runtime_unwind`, `finalize_environment_unwind`) |
+  | 4364-4370 | `HAVE_MODULES` | false | `#[cfg (feature = "have_modules")]` arm in `mark_specpdl` (`mark_module_environment`) |
 
-  `const _: () = assert! (!cfg! (feature = "modules") || HAVE_MODULES);` and its
-  `native_comp`/`x_windows`/`window_system` siblings bind the features to the frozen
-  constants, so a build that passes one of them without the constant fails; `modules` and
-  `window_system`/`x_windows` are platform/preprocessor predicates, not `xtask dead-arms`
+  `const _: () = assert! (!cfg! (feature = "have_modules") || HAVE_MODULES);` and its
+  `have_native_comp`/`have_x_windows`/`have_window_system` siblings bind the features to the frozen
+  constants, so a build that passes one of them without the constant fails; `have_modules` and
+  `have_window_system`/`have_x_windows` are platform/preprocessor predicates, not `xtask dead-arms`
   FLIPS (the doc.rs precedent).  The `#if 0` and C 3378-3388's `HAVE_NATIVE_COMP` arm are
   also recorded in the "no Rust counterpart" sense in `docs/ports/excluded-macros.txt`'
   territory only in that they have no live text of their own — nothing was added there.
@@ -308,7 +308,7 @@
     389) — the one extra statement, marked in the source.
   * **`funcall_lambda`** zero-initialises `syms_left`/`lexenv` because C's branch chain
     assigns them and the two `#ifdef` arms can only be reached in a build with
-    `modules`/`native_comp` (PORTING.md 0.1-13's shape); the port's `else if { … }` arm keeps
+    `have_modules`/`have_native_comp` (PORTING.md 0.1-13's shape); the port's `else if { … }` arm keeps
     C's chain and `emacs_abort ()` tail.
   * **`unbind_to`** copies the binding out of the specpdl slot and then decrements the
     pointer, exactly as C's `this_binding = *--specpdl_ptr;` does — two statements

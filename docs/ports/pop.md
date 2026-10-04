@@ -30,7 +30,7 @@
   P-08 basis (this one is in `docs/baseline/config/cond-eval-verified.txt`, and 3.49's
   transcribe-both-arms rule is for the files the evaluator answers `unknown` for), so the dead
   region is recorded, not carried - an arm this configuration does not compile is an invented
-  item, the D3 class `src/data.rs` records for the `#[cfg (feature = "modules")]` arm it
+  item, the D3 class `src/data.rs` records for the `#[cfg (feature = "have_modules")]` arm it
   reverted.  There is therefore no `#[cfg (feature = "mail_use_pop")]` transcription: the 1,703
   lines of POP3 client, socket setup and three platform variants (HESIOD, KERBEROS v4/v5,
   WINDOWSNT) are recorded here instead of being written out.

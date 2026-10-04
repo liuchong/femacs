@@ -66,7 +66,7 @@
   `androidgui.rs` 45-53).  C 33's `HDC` spelling is kept in the comment because it is the reason
   this header's `Display` is not the X11 one; C 33's `Emacs_Cursor` is the one name with a `cfg`
   (below).
-- **`Emacs_Cursor` carries `#[cfg (feature = "window_system")]`.**  `dispextern.h` 175 declares
+- **`Emacs_Cursor` carries `#[cfg (feature = "have_window_system")]`.**  `dispextern.h` 175 declares
   the same name on the other side of `#ifndef HAVE_WINDOW_SYSTEM`, and `dispextern.rs` 62 carries
   that arm (the frozen target has no window system).  Compiled into one crate the two aliases are
   two items and the crate reports `E0428` - measured when `xtask layout-check` includes every
@@ -121,7 +121,7 @@
   with only `cygw32.rs` of this batch present, printed `layout probe ok`; a later one failed with
   `error[E0428]: the name Emacs_Cursor is defined multiple times … nsgui.rs:57:1 …
   dispextern.rs:62:1` - two mirrors of another lane, both of which had entered the skip list by the
-  time of the passing run, and no diagnostic of either run named a mirror of this batch.  Its `Emacs_Cursor`, `Window` and `Display` sit behind the `window_system` feature, so the crate holds no duplicate of the other platform mirrors' names.
+  time of the passing run, and no diagnostic of either run named a mirror of this batch.  Its `Emacs_Cursor`, `Window` and `Display` sit behind the `have_window_system` feature, so the crate holds no duplicate of the other platform mirrors' names.
 
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);

@@ -218,8 +218,8 @@ types needed care:
   print the raw bytes 15/3); the storage unit's width itself stays recorded, not proven
   (P-35).
 - The four tree-sitter members (`ts_parser_list_`, `ts_linecol_begv/point/zv`) are behind
-  `#[cfg(feature = "tree_sitter")]`, and the six accessors C gates on `HAVE_TREE_SITTER`
-  with them.  A `const _: () = assert! (!cfg! (feature = "tree_sitter") ||
+  `#[cfg(feature = "have_tree_sitter")]`, and the six accessors C gates on `HAVE_TREE_SITTER`
+  with them.  A `const _: () = assert! (!cfg! (feature = "have_tree_sitter") ||
   HAVE_TREE_SITTER);` ties the feature to the frozen configuration, so enabling it without
   regenerating the configuration (which is what would add those members' layout keys)
   fails to compile instead of growing unasserted fields (P-08, P-34).
@@ -314,7 +314,7 @@ same name, an `INLINE` function becomes an `#[inline(always)]` function.
 - Not covered by any evidence yet: the accessors that need a real runtime
   (`BUF_BEGV`/`BUF_PT`/`BUF_ZV` through markers, `downcase`/`upcase` and the char-table
   readers, `buffer_intervals`, the overlay accessors, `GET_OVERLAYS_AT`'s allocation
-  path, `CHARACTER_WIDTH`), and the `feature = "tree_sitter"` branch (P-30, P-38).
+  path, `CHARACTER_WIDTH`), and the `feature = "have_tree_sitter"` branch (P-30, P-38).
 
 ### Adversarial review of 2026-10-02 and its dispositions
 
@@ -332,7 +332,7 @@ recorded as an open item:
 | the ledger's `99 / 19` mixed an `offsetof` count with a key count | corrected to 99 / 17 `offsetof` (101 / 19 keys) |
 | `eassert!` dropped the condition text and hardcoded `lisp.rs` | `concat! (stringify! ($cond), "\0")` + `concat! (file! (), "\0")` |
 | `FOR_EACH_PER_BUFFER_OBJECT_AT` was filed under P-22 although it needs no loop-macro decision | written, with the body as its last argument |
-| the `cfg (feature = "tree_sitter")` was not tied to the frozen configuration | `const _` assertion |
+| the `cfg (feature = "have_tree_sitter")` was not tied to the frozen configuration | `const _` assertion |
 | crate-root `extern` declarations in `lisp.rs` (74, of which ~62 are Emacs C functions) will collide with `E0428` when the defining unit lands | recorded as P-39 with the plan (move them into a `pub mod` + `use …::*`, the P-21/P-28 shadowing shape) |
 | `#[repr(C, align(8))]`, the include-guard constant and the `buf_charpos_to_bytepos` parameter name | recorded / corrected above |
 - **Two edits when `femacs/src/textprop.rs` landed** (the P-70 same-commit rule,

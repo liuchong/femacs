@@ -99,7 +99,7 @@
      `init_environment`/`dostounix_filename`/`unixtodos_filename` (C 199/204/205), which
      `include/msdos.rs` 101-104 declares with the MS-DOS shapes.
   3. **C 269-277 (`HAVE_GNUTLS`)** is dead text on this target (the macro is `undef`), so it is
-     carried under `#[cfg (feature = "gnutls")]` (PORTING.md P-51 names the non-frozen side); its
+     carried under `#[cfg (feature = "have_gnutls")]` (PORTING.md P-51 names the non-frozen side); its
      `gnutls_transport_ptr_t` is not resolved unless the feature is on.
 - **The macros keep C's shapes.**  `FD_SET`/`FD_CLR` (C 41-53) are `do { … } while (0)` statement
   macros; the port writes the `if` the loop encloses, so C's `do`/`while` words (token-table
@@ -159,7 +159,7 @@
   (android-asset.rs, android.rs, androidgui.rs, androidterm.rs, dispextern.rs, gtkutil.rs,
   haiku_support.rs, haikugui.rs, haikuterm.rs, nsgui.rs, pgtkterm.rs)` and `layout-check passed
   (see build/femacs/layout_asserts.rs)`.  **This mirror is among the 66** (it is not in that skip
-  list), so the gate compiles it every round - with its `windowsnt`/`gnutls` arms masked.  The
+  list), so the gate compiles it every round - with its `windowsnt`/`have_gnutls` arms masked.  The
   first attempt failed with two real collisions,
   `error[E0428]: the name FD_SETSIZE is defined multiple times … w32.rs:71:1` and
   `error[E0428]: the name fd_set is defined multiple times … w32.rs:82:1` (against

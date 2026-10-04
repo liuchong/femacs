@@ -52,7 +52,7 @@
 - **`struct haikufont_info` (C 42-50) is mirrored once its dependency landed.**  Its first member
   is a `struct font` **by value**, and that record is now `include/font.rs`'s (font.h 275-418,
   status 3.158: 184 frozen bytes with the eight `HAVE_WINDOW_SYSTEM`-guarded members carried under
-  `#[cfg (feature = "window_system")]`, thirteen hand-written assertions); this mirror includes
+  `#[cfg (feature = "have_window_system")]`, thirteen hand-written assertions); this mirror includes
   `font.rs` (C 33), so the member is `pub font: font` and the record's own layout is the measured
   one.  `be_font` is `haikugui.rs`'s `haiku` and `glyphs` is C's `unsigned short **`.
 - **The one member of that record whose pointee has no owner mirror keeps the stand-in**:

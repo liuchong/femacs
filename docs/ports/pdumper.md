@@ -282,7 +282,7 @@ guard and it is `OK`.  The gates, verbatim:
        pre-existing mirror warnings (include/lisp.rs 3844 and include/charset.rs 697's unused
        doc comments, include/frame.rs 589's duplicate `#[inline(always)]`), none of them this
        unit's.
-    (extra) the `native_comp` arm: the same rustc with `--cfg 'feature="native_comp"'` and
+    (extra) the `have_native_comp` arm: the same rustc with `--cfg 'feature = "have_native_comp"'` and
       `HAVE_NATIVE_COMP` flipped to `true` in the *generated* copy of config.rs (what
       `xtask dead-arms` does) -> exit 0.  This unit is a finished unit, so `gate-probes`'
       dead-arms step compiles it with that feature on: the `#ifdef HAVE_NATIVE_COMP` arms
@@ -302,7 +302,7 @@ sites, in these families:
 - `have_pduper`-style liveness: `HAVE_PDUMPER` is 1, so C 71-5877 and the three `#ifdef`s
   inside `syms_of_pdumper`/`init_pdumper_once` are live text and their empty `#else` arms
   carry nothing.
-- `native_comp` (`HAVE_NATIVE_COMP` undef): the `HAVE_NATIVE_COMP` bodies of `dump_subr`,
+- `have_native_comp` (`HAVE_NATIVE_COMP` undef): the `HAVE_NATIVE_COMP` bodies of `dump_subr`,
   `dump_native_comp_unit`, `dump_cold_native_subr`, `dump_vectorlike`,
   `dump_do_dump_relocation` (`RELOC_NATIVE_COMP_UNIT`, `RELOC_NATIVE_SUBR`),
   `pdumper_set_emacs_execdir`, the `emacs_execdir` trio, `COLD_OP_NATIVE_SUBR`'s
@@ -406,7 +406,7 @@ for the dead arms), and reported for the integrator:
 | `int_least32_t`, `INT_LEAST32_MIN/MAX/WIDTH`, `PRIdLEAST32`, `UINT_FAST32_WIDTH`, `INTPTR_MAX` | `<stdint.h>`/`<inttypes.h>` | `lib/include/stdint.in.rs` is a WIP mirror (the WIDTH section only) |
 | `hexbuf_digest`, `emacs_write`, `emacs_open_noquit`, `garbage_collect`, `fatal`, `staticvec`, `sys_fstat`, `splice_dir_file`, `file_name_absolute_p`, `hash_table_alloc_bytes`, `hash_table_thaw`, `visit_static_gc_roots`, `gc_root_visitor` | `lisp.h`/`fns.c` | `lisp.rs`/`globals.rs` do not reach them yet (`sys_fstat` is *defined* by `sysdep.rs`, which is ported — its prototype is what is missing) |
 | `MAP_ANONYMOUS`, `MAXPATHLEN`, `S_ISREG`, `IS_DIRECTORY_SEP`/`DIRECTORY_SEP` | `<sys/mman.h>`, `<sys/param.h>`, `<sys/stat.h>`, `config.h` | no mirrors for the first two; the last two follow callproc.rs's use-site pair |
-| `Lisp_Native_Comp_Unit` + `NATIVE_COMP_UNITP`/`XNATIVE_COMP_UNIT`, `dynlib_handle_ptr`, `dynlib_*`, `load_comp_unit`, `fixup_eln_load_path`, `file_access_p` | `comp.h`, `dynlib.h` | `include/comp.rs` is a 22-line stub (only `maybe_defer_native_compilation`); the whole block is `#[cfg (feature = "native_comp")]` |
+| `Lisp_Native_Comp_Unit` + `NATIVE_COMP_UNITP`/`XNATIVE_COMP_UNIT`, `dynlib_handle_ptr`, `dynlib_*`, `load_comp_unit`, `fixup_eln_load_path`, `file_access_p` | `comp.h`, `dynlib.h` | `include/comp.rs` is a 22-line stub (only `maybe_defer_native_compilation`); the whole block is `#[cfg (feature = "have_native_comp")]` |
 
 `lib/include/fingerprint.rs` (the header mirror) and `include/pdumper.rs` (this unit's header)
 were complete and were **not** modified.  Two names the *mirror import list* lacks are imported

@@ -38,15 +38,15 @@ author line are the file's own declaration and are not copied (PORTING.md 0.1-19
 (C 230-256, the gate `lib/boot-time.c` 230-232 repeats), and until 3.104 that one function was
 transcribed *inside* the unit (`lib/boot-time.rs`) while the header's other arms were recorded in
 `docs/ports/boot-time.md`.  The port's own `xtask dead-arms` then failed: the unit's carried
-`haiku` arm calls `get_haiku_boot_time` (C 239-244), which the header defines, and nothing
+`have_haiku` arm calls `get_haiku_boot_time` (C 239-244), which the header defines, and nothing
 defined it there.  The mirror is the honest fix, and it also brings the header's own 426 lines
 into the inventory as a file of their own instead of "a ledger-to-be".
 
-**Features.** `linux_or_android` (C 19), `linux_no_android` (C 82), `android` (C 171),
-`openbsd` (C 202), `haiku` (C 258), `os_h` (C 284), `cygwin_win32` (C 302) with `no_cygwin`
+**Features.** `linux_or_android` (C 19), `linux_no_android` (C 82), `have_android` (C 171),
+`openbsd` (C 202), `have_haiku` (C 258), `os_h` (C 284), `cygwin_win32` (C 302) with `no_cygwin`
 (C 313) - the names `lib/boot-time.rs` already uses - plus four this header adds:
 `no_glibc_boottime` (C 30's glibc predicate), `no_glibc_realtime` (C 138's), `have_decl_sysinfo`
-(C 66), `win32_vista` (C 344).  Only `haiku` is flipped by `xtask dead-arms`, so it is the one
+(C 66), `win32_vista` (C 344).  Only `have_haiku` is flipped by `xtask dead-arms`, so it is the one
 arm whose Rust is compiled; the others carry C's text with the platform names they name
 (`sysinfo`/`struct sysinfo`, `system_info`/`get_system_info`, `ULONGLONG`/`BOOL`/`HMODULE`,
 `clock_gettime`/`CLOCK_BOOTTIME`/`timespec_get`/`TIME_UTC`, `gettimeofday`, `LoadLibrary`,

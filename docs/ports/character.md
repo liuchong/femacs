@@ -70,7 +70,7 @@
   396-420) are dead on this target: `config.h` leaves `HAVE_WINDOW_SYSTEM` undefined
   (`HAVE_NS` too — `--without-all --with-x=no --with-ns=no`, docs/baseline/config), so
   `FRAME_WINDOW_P` is the mirror's constant `false` and the font-metrics block is
-  unreachable.  Their text is kept behind `#[cfg (feature = "window_system")]`, the feature
+  unreachable.  Their text is kept behind `#[cfg (feature = "have_window_system")]`, the feature
   that names the non-frozen side (P-51), with `const _: () = assert! (! cfg! (…))` binding
   it to the frozen configuration.  `config.rs` does not carry the macro yet, which is why
   the assertion names the feature alone.

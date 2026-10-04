@@ -561,3 +561,47 @@
     reaches it (`HAVE___BUILTIN_UNWIND_INIT` is defined, so the `#ifndef` arm is dead).
   * No callee of C's source text is missing from the port's set, and the only *renamed*
     callee is `free` → `rpl_free` (above), which the port spells the same way.
+
+## The `ENABLE_CHECKING` text's axis, and the two defects the axis exposed (3.184)
+
+- **The axis is the *bare* `#[cfg (enable_checking)]`, and three items in this unit were on the
+  wrong one.**  C 7342-7356 (`suppress_checking`, `die`) and C 7358-7378 (`verify_alloca`) are
+  `#ifdef ENABLE_CHECKING` text, and the port carried them under
+  `#[cfg (feature = "enable_checking")]` - a *feature* nothing in this tree ever turns on (the
+  integrator's ruling: `regex-emacs.rs` and seven other files spell this axis `#[cfg
+  (enable_checking)]`, and `xtask`'s checking pass compiles every finished unit with `--cfg
+  enable_checking`, xtask/src/main.rs 1870-1880, part of `gate-probes`).  All three are now on
+  the bare axis.
+- **Why no gate could see the wrong spelling.**  Every gate is blind to a cfg's *name*:
+  `extract-abi.py --check` strips `#[…]` attributes from both sides of its token comparison
+  (`body_token_seq`), so a cfg attribute is not part of any compared body; `build-tu` and every
+  gate that compiles a unit pass **no** `--cfg feature=…`, so a feature-gated item is stripped
+  exactly as a correctly-spelled off feature would be - a wrong name and a right-but-off name
+  are indistinguishable; the checking pass looks for the bare name, so the feature-spelled
+  items were invisible to it too; and no gate asks whether a feature name is *reachable*
+  (driven by some `--cfg`).  The `[features]` table added in 3.183 made this quieter rather
+  than louder - declaring the name silences rustc's `unexpected_cfgs` without ever enabling
+  anything - which is why the table's own header should be read together with this note: **a
+  feature name only has a reason to exist if some `--cfg` pass (a FLIPS row, a probe, the
+  checking pass) can turn it on.**  `enable_checking` was in that table and driven by nothing;
+  it is removed now that the tree spells the axis the bare way.
+- **Two defects were hiding in that unreachable text, and both are fixed here.**
+  1. `verify_alloca`'s `alloca` call was written `AVAIL_ALLOCA! (i as isize)`, but the port's
+     macro takes the host's `sa_avail` first (`($sa_avail:ident, $size:expr)`, lisp.rs 2972,
+     PORTING.md P-37) - a one-argument call it cannot match
+     (`error: no rules expected keyword `as``).  C's `alloca (i)` here is a plain allocation
+     that does not touch `sa_avail`, so the port now calls the pool directly,
+     `sa_stack_alloc (i as usize)`, the shape `eval.rs` 1598, `editfns.rs` 2477, `font.rs`
+     2530/2561 and `pdumper.rs` 2241 use for C's plain `alloca` (PORTING.md P-05).
+  2. `die`'s `terminate_due_to_signal` had no declaration in this unit's include graph: C
+     declares it in `lisp.h` 5137 and the lisp.h mirror does not carry it, so the unit declares
+     its own copy for its own caller (gated with the caller), the `keyboard.rs` 537-540 shape.
+  Both defects are the `no_signbit`/F6 class - text that no compiler had ever read.
+- **Evidence.**  In `build/femacs/units/alloc/`, the frozen build's object has neither symbol
+  (`nm -g build/femacs/alloc.o | grep -cE 'suppress_checking|_die'` -> `0`), and the checking
+  pass's object has both (`_die` T, `_suppress_checking` S) - the pass is
+  `rustc --edition 2024 --crate-type lib --emit obj --crate-name alloc --cfg enable_checking
+  -C panic=abort -C codegen-units=1 -C opt-level=0 <root>` (xtask's own arguments), exit 0.
+  `python3 tools/extract-abi.py --check emacs/src/alloc.c femacs/src/alloc.rs` -> `OK`, and
+  `build-tu src/alloc.c` -> `built src/alloc.rs -> ../build/femacs/alloc.o` (the frozen build
+  is unchanged; the two fixes are inside the checking-gated item and its declaration).

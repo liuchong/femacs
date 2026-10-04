@@ -64,7 +64,6 @@ dos_nt                                     = []  # DOS_NT
 doug_lea_malloc                            = []  # DOUG_LEA_MALLOC
 dragonfly                                  = []  # DragonFly
 eff_only_ok                                = []  # EFF_ONLY_OK
-enable_checking                            = []  # ENABLE_CHECKING
 eoverflow                                  = []  # EOVERFLOW
 exec_64                                    = []  # see femacs/exec/include/exec.rs:153
 freebsd                                    = []  # FreeBSD

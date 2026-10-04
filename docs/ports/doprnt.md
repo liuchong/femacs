@@ -79,7 +79,7 @@ right end to end — that is the ERT ladder (`gate-full`, not implemented).
   lisp.h includes `<float.h>`, and `LOG2_FLT_RADIX`/`IEEE_FLOATING_POINT` are now C's
   expressions instead of folded constants.
 - **`exprintf`** is gated in C on `HAVE_X_WINDOWS && USE_X_TOOLKIT` (doprnt.c 561); the
-  frozen configuration has neither, so the port wraps it in `#[cfg(feature = "x_windows")]`
+  frozen configuration has neither, so the port wraps it in `#[cfg(feature = "have_x_windows")]`
   with a `const _` assertion tying the feature to the frozen constants (P-08);
   `USE_X_TOOLKIT` was added to `docs/baseline/config/darwin-arm64.json` for that assertion.
 - **`error`/`verror`** were added to `lisp.rs`'s `other_units` module (lisp.h 4835-4836;

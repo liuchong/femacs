@@ -316,8 +316,8 @@ missing counts as pending and the ratchet only shrinks pending).
   androidgui.rs) and `HDC hdc` (C 1471; `<windows.h>`).  `Emacs_GC *gc` (C 1470) and
   `Emacs_GC xgcv` (C 1474) *are* named: this mirror declares `Emacs_GC` itself (dispextern.rs 51).
 - **The four platform `gc` arms are carried under their own features**, because a window-system
-  build picks exactly one: `x_windows` (C 1464-1465), `android` (1466-1467), `ntgui`
-  (1469-1471), `pgtk` (1473-1474) - the spellings the tree's units use for those four C macros.
+  build picks exactly one: `have_x_windows` (C 1464-1465), `have_android` (1466-1467), `have_ntgui`
+  (1469-1471), `have_pgtk` (1473-1474) - the spellings the tree's units use for those four C macros.
   `keyboard.rs` 4057/4470/4549 spells the *same* C macro `HAVE_X_WINDOWS` as
   `have_x_windows`, so the tree currently has two spellings for one condition; that split is
   recorded here for the integrator, because a unit that enabled only `have_x_windows` would
@@ -381,7 +381,7 @@ missing counts as pending and the ratchet only shrinks pending).
   live text uses - `EMACS_INT`, `intmax_t`, `MAX_CHAR`, `CHARACTERBITS`, `EMACS_INT_MAX`,
   `CONSP`, `XCAR`, `XCDR`, `XFIXNUM`, `RANGED_FIXNUMP`, `CHARACTERP`, `CHAR_VALID_P` - then
   `include!`s the real `femacs/src/include/dispextern.rs`):
-  `rustc --edition 2024 --crate-type lib --emit metadata --cfg 'feature="window_system"'
+  `rustc --edition 2024 --crate-type lib --emit metadata --cfg 'feature = "have_window_system"'
   /tmp/gstr_feature_probe.rs` -> exit 0, 0 warnings; the probe calls
   `glyph_string_bits! (padding_p, *s, true)` and `size_of::<glyph_string> ()`, so the record's
   field names and types and the bit accessors really resolve.  Negative control: the same probe

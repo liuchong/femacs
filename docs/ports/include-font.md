@@ -71,7 +71,7 @@
 - **This round carries `struct font` (font.h 275-418)** and nothing else new: `EMACS_FONT_H`,
   `enum font_property_index` (as constants) and the four predicates were already here.  The
   record sits in C's order (after the property constants, before the predicates), and its
-  `HAVE_WINDOW_SYSTEM` members are `#[cfg (feature = "window_system")]` (P-51), the shape
+  `HAVE_WINDOW_SYSTEM` members are `#[cfg (feature = "have_window_system")]` (P-51), the shape
   `font.rs`'s use-site copy had.  The trigger is `haikuterm.h`'s `struct haikufont_info`,
   whose first member is this record **by value** (haikuterm.h 42-44, status 3.154).
 - **Still open in this ledger** (the unchecked boxes above): `struct font_spec`,

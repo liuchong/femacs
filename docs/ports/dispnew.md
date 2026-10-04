@@ -222,15 +222,15 @@ femacs/src/dispnew.rs` prints `OK`.
   `glyph_row_slice_p`, `flush_stdout`, `check_matrix_pointer_lossage`, `matrix_row`,
   `check_window_matrix_pointers`, `check_matrix_pointers`, `check_current_matrix_flags`,
   the two `(void) glyph->method` `strcpy`s), `glyph_debug` + `enable_checking` (the two
-  allocation counters), `profiling` (`__executable_start`), `window_system` /
+  allocation counters), `profiling` (`__executable_start`), `have_window_system` /
   `window_system_no_ext_menu_bar` / `window_system_no_ext_tool_bar` (the menu/tab/tool bar
   matrices in `adjust_frame_glyphs_for_window_redisplay`, `clear_current_matrices`,
   `clear_desired_matrices`, `free_glyphs`, `update_menu_bar`/`update_bar_window`/
   `update_tab_bar`/`update_tool_bar`, `redraw_overlapped_rows`/`redraw_overlapping_rows`,
   `gui_update_window_begin`/`gui_update_window_end`, the frame/face arms of
   `required_matrix_height`/`required_matrix_width`, the `it.what == IT_IMAGE` arms),
-  `ntgui` (`w32_use_visible_system_caret`), `android` (the empty
-  `combine_updates_for_frame`), `x_windows`/`use_ncurses`/`android`/`ns`/`pgtk`/`haiku`/
+  `have_ntgui` (`w32_use_visible_system_caret`), `have_android` (the empty
+  `combine_updates_for_frame`), `have_x_windows`/`use_ncurses`/`have_android`/`have_ns`/`have_pgtk`/`have_haiku`/
   `windowsnt`/`msdos` (the window-system probes and the two platform arms of
   `init_display_interactive`).  `#if 0` regions (`check_rows`, `find_glyph_row_slice`,
   `check_matrix_invariants`, `swap_glyphs_in_rows`, `IF_DEBUG (check_matrix_invariants (w))`)

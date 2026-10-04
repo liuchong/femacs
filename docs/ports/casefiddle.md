@@ -69,7 +69,7 @@
   `docs/ports/macro-body-notes.tsv` records it together with the `doc:` label the
   `DEFVAR_*` mirrors consume positionally (the syms_of_data row's two classes).
 - **`#ifdef HAVE_TREE_SITTER` (C 543-552, 572-579)**: `HAVE_TREE_SITTER` is `false` in the
-  frozen configuration, so the two arms are kept as `#[cfg (feature = "tree_sitter")]` text
+  frozen configuration, so the two arms are kept as `#[cfg (feature = "have_tree_sitter")]` text
   (P-51) with the two treesit.h entries they call declared inside the arms, as the
   vm-limit.c dead arms do (status §3.2); a `const _: () = assert! (!cfg! (feature =
   "tree_sitter") || HAVE_TREE_SITTER);` ties the feature to the configuration (the

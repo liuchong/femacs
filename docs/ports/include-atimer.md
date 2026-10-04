@@ -24,7 +24,7 @@
   verbatim — the same device `r#type` uses in dispextern.rs/lisp.rs.
 - **`#ifdef HAVE_TIMERFD`** (C 81-83) is dead on this target (docs/baseline/config's table
   records `HAVE_TIMERFD` as `undef`), so `timerfd_callback` keeps its text behind
-  `#[cfg (feature = "timerfd")]` (P-51) and a build that enables it gets the declaration.
+  `#[cfg (feature = "have_timerfd")]` (P-51) and a build that enables it gets the declaration.
 - **The seven prototypes live in `pub mod atimer_decls` + `use atimer_decls::*;`** and not at
   file scope: `src/atimer.c` *defines* all seven, and Rust refuses a declaration and a
   definition of one name in one module — the module-plus-glob is C's prototype/definition pair

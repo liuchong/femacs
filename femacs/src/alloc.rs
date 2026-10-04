@@ -7863,12 +7863,30 @@ pub unsafe extern "C" fn which_symbols (obj: Lisp_Object, mut find_max: EMACS_IN
    return unbind_to (gc_count, found);
 }
 
-/* C 7342-7356 (`#ifdef ENABLE_CHECKING`) is dead on this target.  */
-#[cfg (feature = "enable_checking")]
+/* C 7342-7356 (`#ifdef ENABLE_CHECKING`) is dead in the frozen configuration - and its
+   ported text is gated the way every other checking-only item in this tree is gated: the
+   **bare** `#[cfg (enable_checking)]`, which `xtask`'s checking pass compiles every finished
+   unit with (`--cfg enable_checking`, xtask/src/main.rs 1870-1880, part of `gate-probes`).
+   It was spelled `#[cfg (feature = "enable_checking")]` until 3.184, and that spelling made
+   the text unreachable: no `--cfg 'feature="enable_checking"'` is ever passed by anything.
+   See docs/ports/alloc.md for why no gate could see it.  */
+#[cfg (enable_checking)]
 #[unsafe(no_mangle)]
 pub static mut suppress_checking: bool = false;
 
-#[cfg (feature = "enable_checking")]
+/* `die` (C 7346-7351) calls `terminate_due_to_signal`, which C declares in `lisp.h` 5137
+   (`extern AVOID terminate_due_to_signal (int, int);`, defined in emacs.c) - a declaration
+   the lisp.h mirror does not carry, so this unit declares its own copy for its own caller,
+   the shape `keyboard.rs` 537-540 uses for the same function.  It is gated with its caller:
+   only the checking pass needs it.  */
+#[cfg (enable_checking)]
+unsafe extern "C" {
+  /// C: lisp.h 5137: `extern AVOID terminate_due_to_signal (int, int);` (emacs.c; the mirror
+  ///   does not carry it).
+  fn terminate_due_to_signal (sig: c_int, backtrace_limit: c_int) -> !;
+}
+
+#[cfg (enable_checking)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn die (msg: *const c_char, file: *const c_char, line: c_int)
 {
@@ -7883,7 +7901,7 @@ pub unsafe extern "C" fn die (msg: *const c_char, file: *const c_char, line: c_i
 /* Stress alloca with inconveniently sized requests and check
    whether all allocated areas may be used for Lisp_Object.  */
 
-#[cfg (feature = "enable_checking")]
+#[cfg (enable_checking)]
 /* `NO_INLINE` has no Rust counterpart (PORTING.md P-13).  */
 unsafe fn verify_alloca ()
 {
@@ -7894,7 +7912,14 @@ unsafe fn verify_alloca ()
   while i <= ALLOCA_CHECK_MAX
     {
       let mut ptr: *mut c_void;
-      ptr = AVAIL_ALLOCA! (i as isize) as *mut c_void;
+      /* C's `alloca (i)`: the port has no `alloca`, so the request goes straight to the
+         stack pool `AVAIL_ALLOCA!`/`SAFE_ALLOCA!` allocate from (PORTING.md P-05), the shape
+         this tree uses at every other plain-`alloca` site (`eval.rs` 1598, `editfns.rs`
+         2477, `font.rs` 2530/2561, `pdumper.rs` 2241).  C does not account this request
+         against `sa_avail` here, and neither does the port - the macro's two-argument form
+         (P-37: the host's `sa_avail` first) needs a budget this standalone helper has no
+         source for, which is what the single-argument call this replaces tried to skip.  */
+      ptr = sa_stack_alloc (i as usize);
       make_lisp_ptr (ptr, Lisp_Type::Lisp_Cons);
       i += 1;
     }

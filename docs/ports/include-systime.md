@@ -23,7 +23,7 @@
 - The include guard has no Rust counterpart (PORTING.md 0.1): `pub const EMACS_SYSTIME_H: bool = true`.
 - `Time` (systime.h 34-41) keeps all three branches: the frozen configuration takes `#else`
   (`typedef unsigned long Time`, HAVE_X_WINDOWS and HAIKU are both 0, P-08), and the two dead ones
-  keep C's text under `feature = "x_windows"` / `feature = "haiku"` (P-51), each bound to its frozen
+  keep C's text under `feature = "have_x_windows"` / `feature = "have_haiku"` (P-51), each bound to its frozen
   constant by a `const _` assertion.  `<X11/X.h>` (which *defines* `Time` as `unsigned long` on every
   supported X target) and `<support/SupportDefs.h>` have no mirror, so the dead branches state the
   type C ends up with instead of including a header the port cannot mirror.

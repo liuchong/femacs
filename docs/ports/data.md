@@ -557,7 +557,7 @@
 - **`user-ptrp` (data.c 499-508) is not ported: it is dead in this configuration.**
   `HAVE_MODULES` is `undef` in the frozen table (`config.rs`'s `HAVE_MODULES = false`), so C
   compiles neither the `DEFUN` nor its `defsubr` (data.c 4360-4362).  Keeping the text as
-  `#[cfg(feature = "modules")]` was tried in this round and reverted: with `src/data.c` now
+  `#[cfg(feature = "have_modules")]` was tried in this round and reverted: with `src/data.c` now
   in `cond-eval-verified.txt` the gate reads the frozen text, so the arm C never compiles is
   reported as `the reference file has no such DEFUN` (an invented item, D3).  The subr is
   therefore absent from the port, and PORTING.md P-76 records the remaining half of the
@@ -565,7 +565,7 @@
   still expects `defsubr (&Suser_ptrp)`; `syms_of_data` must record that as a ledger
   deviation rather than write the call.
 - **`MODULE_FUNCTIONP` / `XMODULE_FUNCTION` are unconditional (review B's F2).**  The port
-  had gated the pair in `lisp.rs` on a `modules` feature that no build ever passes, leaving
+  had gated the pair in `lisp.rs` on a `have_modules` feature that no build ever passes, leaving
   the frozen build with a `false` stub for a predicate C compiles as
   `PSEUDOVECTORP (o, PVEC_MODULE_FUNCTION)` (lisp.h 4872-4883; the `#ifdef HAVE_MODULES` in
   that region opens *after* them, at 4885).  The gates are gone and this file's
@@ -706,9 +706,9 @@
   writing them would be reported as missing rather than as dead.
 - **This segment's three dead-text decisions (recorded, not implied by the code).**
   (a) `subr-native-lambda-list` and `subr-type` keep C's `#ifdef HAVE_NATIVE_COMP` text
-  under `#[cfg(feature = "native_comp")]` (the `floatfns.rs` `no_rint` precedent), and
+  under `#[cfg(feature = "have_native_comp")]` (the `floatfns.rs` `no_rint` precedent), and
   *that text does compile*: a run of `xtask dead-arms` with this ledger presented as
-  complete compiled `src_data.o` under the flipped configuration (the `native_comp` entry
+  complete compiled `src_data.o` under the flipped configuration (the `have_native_comp` entry
   in `FLIPS` flips the constant and the feature together; the `const _` assertion in
   `lisp.rs` is what makes the pair meaningful).  Until the ledger is complete,
   `finished_units()` skips this unit, so that text is compiled at batch boundaries rather
@@ -718,7 +718,7 @@
   frozen text has no such branch, so the `if`/`else if` chain is the same shape without
   it.  Unlike (b) this is a *choice* (the tokens would not be compared either way,
   because `c_body_text` drops dead lines) - it is recorded because the port could have
-  kept it under `#[cfg(feature = "modules")]`, and chose not to while that feature has no
+  kept it under `#[cfg(feature = "have_modules")]`, and chose not to while that feature has no
   mirror for the `module_function_*` helpers it would need.
 - **A real defect the reviewers caught in this segment (review B's P1).**
   `Findirect_variable` must rebind the parameter (`XSETSYMBOL (object, sym)`) and return

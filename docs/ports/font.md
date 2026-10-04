@@ -186,13 +186,13 @@ writes as `goto`; the 22 `DEFUN!` docstrings are the one place the port saves te
   `font_close_object`, C 3572-3575 `register_font_driver`, C 3892-3993
   `codepoint_is_emoji_eligible`/`font_range`, C 4276-4355 `Ffont_face_attributes`, C
   5580-5588 `Fframe_font_cache`, C 5592-5699 `Ffont_info`, C 6053-6083 the `syms_of_*font`
-  chain — all under `feature = "window_system"` (and its sub-features `freetype`,
-  `x_windows`, `cairo`, `xft`, `bdffont`, `ntgui`, `be_cairo` for the chain); C 135-154
+  chain — all under `feature = "have_window_system"` (and its sub-features `freetype`,
+  `have_x_windows`, `use_cairo`, `xft`, `bdffont`, `have_ntgui`, `be_cairo` for the chain); C 135-154
   `valid_font_driver` under the bare `#[cfg (enable_checking)]` pass (the bidi.rs/
   regex-emacs.rs key, status 3.50); C 181-182, 188-206 (`HAVE_ANDROID`, `ANDROID_STUBIFY`)
-  and `font_entity.is_android` under `feature = "android"`; C 242-277 `font_build_object` and
+  and `font_entity.is_android` under `feature = "have_android"`; C 242-277 `font_build_object` and
   `font_unparse_fcname` (C 1882-2001) under `feature = "xft_or_freetype_or_ns"`; C 1647-1658
-  and 2034-2041 under `feature = "w32"`; C 3414-3421 under `feature = "ns"`; C 3730-3762
+  and 2034-2041 under `feature = "w32"`; C 3414-3421 under `feature = "have_ns"`; C 3730-3762
   `fset_font_data`/`font_put_frame_data`/`font_get_frame_data` under
   `feature = "xft_or_freetype"`; C 6031-6034 (`inhibit_compacting_font_caches = 1`) under
   `feature = "windowsnt"`; the `font_driver` members C guards with `HAVE_WINDOW_SYSTEM`

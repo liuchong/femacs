@@ -37,7 +37,7 @@
   *type* macro, so the one declaration it heads reads `let fd: doc_fd! () = doc_open! (…)`.
 - **C 51-70's `#else` arm (the `struct android_fd_or_asset` set) and the three
   `USE_ANDROID_ASSETS` sites (C 148-153, 553-558 and `close_file_unwind_android_fd`) are
-  gated text** under `#[cfg (feature = "android_assets")]` (P-51, the status §3.9 convention
+  gated text** under `#[cfg (feature = "use_android_assets")]` (P-51, the status §3.9 convention
   of naming the feature after the non-frozen side).  Nothing compiles them: the feature is
   not in `xtask dead-arms`'s FLIPS, and android.h has no mirror.
 - **`#include "buildobj.h"` (C 520)** is a *generated* header, so its mirror is generated
@@ -66,11 +66,11 @@
   `lib/include/string.rs`.
 - **`#ifdef HAVE_NATIVE_COMP` / `#ifdef HAVE_MODULES` (C 387-397)**: both are off in the
   frozen configuration, so the live body is C's `if (SUBRP (function)) … else return Qt;`.
-  The native arm is gated as `#[cfg (feature = "native_comp")]` — *that* feature **is** in
+  The native arm is gated as `#[cfg (feature = "have_native_comp")]` — *that* feature **is** in
   `xtask dead-arms`'s FLIPS, so the arm compiles there, and it declares
   `native_function_doc` (comp.h 78, no mirror carries it) inside itself, as the vm-limit dead
   arms declare their platform entries.  The modules arm is gated as
-  `#[cfg (feature = "modules")]` (never compiled) and declares `MODULE_FUNCTIONP`,
+  `#[cfg (feature = "have_modules")]` (never compiled) and declares `MODULE_FUNCTIONP`,
   `XMODULE_FUNCTION` and `module_function_documentation` the same way.  Because the live
   `if/else` must stay one chain, the two gated arms precede it and each returns.
 - **`intervals.h`**: doc.c includes it but calls nothing it declares (it only parses the DOC

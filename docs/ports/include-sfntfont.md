@@ -24,7 +24,7 @@
 - **`glyph_string` is `*mut c_void`, and the measurement says that is the standing spelling.**  The
   integrator's 3.170 note recorded two `E0425`s when the mirror named the record; re-measured here,
   the reason is that `include/dispextern.rs` 1362 declares `glyph_string`
-  `#[cfg (feature = "window_system")]` - correctly, because dispextern.h 1358 has it inside
+  `#[cfg (feature = "have_window_system")]` - correctly, because dispextern.h 1358 has it inside
   `#ifdef HAVE_WINDOW_SYSTEM` and the frozen configuration has no window system - so the name exists
   in no crate this target builds.  Naming it un-gated reddens `xtask layout-check` every round; gating
   the two declarations with that feature would deviate from C's unconditional text.  The two sites
@@ -51,7 +51,7 @@
   1 macro (the guard), 0 types, 0 file-scope objects (`--check` asks only for the guard, and the
   four declarations groups are carried because they are the header's live text).
 - The `glyph_string` measurement: `sed -n '1358,1366p' femacs/src/include/dispextern.rs` ->
-  `#[cfg (feature = "window_system")]` immediately above `pub struct glyph_string`; the mirror's head
+  `#[cfg (feature = "have_window_system")]` immediately above `pub struct glyph_string`; the mirror's head
   NOTE records the two `E0425`s the integrator's edit was made from.
 - **Compile evidence**: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-win cargo run -q -p xtask
   -- layout-check` -> `layout-check: 80 of 91 mirror(s) compiled, 11 platform-exclusive skipped

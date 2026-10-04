@@ -78,12 +78,12 @@ Every dead arm of this file is carried under a feature that names its non-frozen
 | `utmp_ut_name` | C 68-73's `# define UT_USER(UT) ((UT)->ut_name)` arm |
 | `win32` | C 47-51's `WIN32_LEAN_AND_MEAN` marker (the arm's own `_WIN32 && !__CYGWIN__` guard; its two includes are recorded below) |
 | `linux_no_android` | C 103-106, 124-128, 138-156, 207-212, 216-221 |
-| `android` | C 158-164 |
+| `have_android` | C 158-164 |
 | `minix` | C 129-133, 166-176 |
 | `no_utmp_name_function` | C 178-205's `#else` (`fopen`/`fread`/`fclose`) |
 | `no_utmp_x_ut_type` | C 214-228's `#else` |
 | `openbsd` | C 223-226 |
-| `haiku` | C 239-244 |
+| `have_haiku` | C 239-244 |
 | `os_h` | C 246-251 |
 | `cygwin_win32` (with `no_cygwin` for C 258) | C 253-263 |
 | `utmp_h` | C 117-119's `ut_time` arm (and the same arm in C 191-196) |
@@ -104,7 +104,7 @@ binary-io.rs dead-arm note) while the macros and the code they guard are carried
   status 3.104**: the header is now the mirror `femacs/lib/include/boot-time-aux.rs`, which the
   unit includes at C 61, so its arms are neither transcribed here nor merely recorded - they live
   in the mirror's ledger, `docs/ports/include-boot-time-aux.md` (and `xtask dead-arms` compiles
-  the `haiku` one there, which is what forced the mirror into existence).
+  the `have_haiku` one there, which is what forced the mirror into existence).
 - **`volatile`** on C 278-279's two statics: Rust has no qualifier on a `static`, and the
   reads/writes keep C's order (`cached_result < 0`, the two stores, the two loads).  Recorded
   as a deviation; no gate covers it.

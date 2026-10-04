@@ -303,7 +303,7 @@ listed files), `extract-abi.py` keeps both arms of every `#if` in this file and 
 must be satisfied for the dead text too.  The route taken here is: record the arms (as below)
 and exempt their tokens in `docs/ports/macro-body-notes.tsv` (the rows are in the report's
 "追加行" section) — except `Fwindow_cursor_info`'s arm, which is *carried* under
-`#[cfg (feature = "window_system")]` because `token-aliases.tsv`'s `type` family gets an
+`#[cfg (feature = "have_window_system")]` because `token-aliases.tsv`'s `type` family gets an
 *occurrence* check that the notes cannot relax.  The frozen configuration's dead text is
 otherwise not repeated:
 
@@ -426,7 +426,7 @@ carry the prototype (PORTING.md 0.1-2/P-72 rule 3) — `decode_live_frame`, `dec
    leaves the upper half of the register unspecified, so the six call sites now pass
    `EMACS_INT`.  rustc still warns (`clashing_extern_declarations`) because the mirror's copy
    cannot name `struct window` and spells `*mut c_void`; the ABI is the same pointer.
-8. **`Fwindow_cursor_info`'s dead arm is carried** under `#[cfg (feature = "window_system")]`
+8. **`Fwindow_cursor_info`'s dead arm is carried** under `#[cfg (feature = "have_window_system")]`
    instead of recorded — see the correction under "Dead arms"; it is the one dead arm whose
    tokens cannot be exempted (the `type` family's occurrence check).
 
@@ -450,7 +450,7 @@ carry the prototype (PORTING.md 0.1-2/P-72 rule 3) — `decode_live_frame`, `dec
    above).  That single line removes the need for most of the report's notes rows
    (`replace_window`, `make_window`, `candidate_window_p`, `run_window_change_functions`,
    `window_from_coordinates`, `Frecenter`, `set_window_scroll_bars`) and lets the carried
-   `window_system` arm go back to being recorded.
+   `have_window_system` arm go back to being recorded.
 6. `docs/ports/macro-body-notes.tsv`: append the rows listed in the report's "给 integrator 的
    追加行" section (10 rows: the null-pointer `0` family, the `double` family, the
    `switch/case/default/break` and `goto` families, the dead-arm token lists and `syms_of_window

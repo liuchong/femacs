@@ -87,7 +87,7 @@
   itself is not written out, because its body needs `<errno.h>`, `<linux/kd.h>`,
   `<sys/ioctl.h>` (no mirror carries them) and a `struct unipair`/`struct unimapdesc` the port
   would have to invent.  `HAVE_STRUCT_UNIPAIR_UNICODE` and `HAVE_ANDROID` (C 117/135's
-  `#ifndef` arms, whose dead side is kept behind `feature = "android"`) have no entry in
+  `#ifndef` arms, whose dead side is kept behind `feature = "have_android"`) have no entry in
   docs/baseline/config, so no `const _: () = assert!` binds either feature and `dead-arms`
   cannot flip them (the scroll.rs `glyph_debug` precedent).
 - **Mirror corrections/additions made for this unit:**
