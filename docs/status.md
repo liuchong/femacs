@@ -5079,3 +5079,12 @@
   链接级未定义表因此没有新行，Swift 侧一个 import 也没变。
   ③ **重生成后的读数（工作树）**：`check-link` **373 undefined / 373 行 / 1 failure / 1 stale(informational)**（那条 failure 仍是 xdisp 在飞的 `_Vmake_cursor_line_fully_visible`）；`--executable` **83 / 83 / 1 failure**；
   `check-swift-units` **0 new / 3 stale / 7 landed**（3 条 stale 全点名在飞的 `nsterm.swift`）。**没有一条落在 HEAD 上。**
+- **3.306 xdisp 第 23 轮入库：C 19256-19862（607 行 C → 640 行 Rust），台账 302 → 308/415、缺口 113（Hypatia 交付，2026-10-05）**：
+  ① **入的两件**：`femacs/src/xdisp.rs` **+654 / −4**（19,197 行）、`docs/ports/xdisp.md` **+139 / −55**（未勾框 **107**，缺口分类 126 → **113**）。
+  本轮四个函数 + 两个宏 + 两组匿名枚举常量：`run_window_scroll_functions`(C 19263)、`cursor_row_fully_visible_p`(C 19304)、`try_scrolling`(C 19401，330 行)、`compute_window_start_on_continuation_line`(C 19744)；
+  `SCROLL_LIMIT`(C 19391 → `const`)、`BASE_LINE_NUMBER_VALID_P`(C 19396 → `macro_rules!`，C 的逗号表达式落成语句块)；`SCROLLING_{SUCCESS,FAILED,NEED_LARGER_MATRICES}`(C 19380-19385)、`CURSOR_MOVEMENT_{SUCCESS,CANNOT_BE_USED,MUST_SCROLL,NEED_LARGER_MATRICES}`(C 19856-19862)；
+  跨单元 extern：`window_scroll_margin`(window.h 1226，按 P-72 rule 3 带 `/// C:` 就地声明)、`safe_run_hooks_2`(keyboard.c)；删 scaffold 里 `cursor_row_fully_visible_p` 的前向声明（块内 `fn` 15 → 14）。分类读数（lane 逐类对 base 与现文件 diff 过）：`missing function` 83 → **79**、`missing macro` 8 → **6**、`missing constant` 8 → **0**、`does not mention` 2 → **3**（新增的正是 `try_scrolling`/`goto`）、`stub or empty body` 0 → 0。
+  ② **入库前我自己复检**：`build-tu src/xdisp.c` → **`built src/xdisp.rs -> ../build/femacs/xdisp.o`**（exit 0）；`extract-abi --check emacs/src/xdisp.c femacs/src/xdisp.rs` → **113 条**分类 + **`line count drifted 51.8%: C 39,805 vs Rust 19,197`**（中段单元的既有状态，不是本片缺陷）；
+  它的四条边界自证我抽验过两条（台账四个函数框开工时全 `[ ]`、`--check` 最早的 `missing function` 是 C 15616 `tty_handle_tab_bar_click`＝item 38 的刻意缺口，其后第一个 ≥ C 20475，都在本片区间之外）。
+  ③ **集成者动作**：`docs/ports/macro-body-notes.tsv` 补一行 `try_scrolling\tgoto\t…`（C 19725 的 `goto too_near_end` 是端口的 `continue too_near_end` + 跨函数其余部分的标签 loop，deviations 164-165）——加完**重跑 `--check`，那条 `function try_scrolling does not mention goto` 消失**（剩下两条 `does not mention` 是 3.305 之前就在的，不进这张表）；`include/window.rs` 的 `window_scroll_margin` 条目与 `include/dispextern.rs` 的 `pub struct it` 归属（在 `dispextern_face_records` 臂里、对本单元不可见 ⇒ item 39 仍成立）按 lane 的说明留给它自己的下一轮或对应 lane。
+  ④ 未声称：本片只有 `build-tu` + `--check` 分类 + 台账边界三类证据；**没有**在冻结 target 上运行任何 xdisp 代码路径（P-51 的"承载文本"），本片新增的四个 static 函数一个都没有跨单元调用点。

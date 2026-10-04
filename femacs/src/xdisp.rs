@@ -1054,6 +1054,12 @@ unsafe extern "C" {
   pub fn root_frame (f: *mut frame) -> *mut frame;
   /// C: lisp.h 4326: `extern void safe_run_hooks (Lisp_Object hook);` (keyboard.c defines it).
   pub fn safe_run_hooks (hook: Lisp_Object);
+  /// C: lisp.h 5098: `extern void safe_run_hooks_2 (Lisp_Object, Lisp_Object, Lisp_Object);`
+  /// (keyboard.c defines it).
+  pub fn safe_run_hooks_2 (hook: Lisp_Object, arg1: Lisp_Object, arg2: Lisp_Object);
+  /// C: window.h 1226: `extern int window_scroll_margin (struct window *, enum margin_unit);`
+  /// (window.c defines it; the mirror chain does not carry it).
+  pub fn window_scroll_margin (window: *mut window, unit: margin_unit) -> c_int;
   /// C: window.h 1187: `extern Lisp_Object window_list (void);` (window.c defines it).
   pub fn window_list () -> Lisp_Object;
   /// C: lisp.h 4850: `extern Lisp_Object menu_bar_items (Lisp_Object);` (keyboard.c defines it).
@@ -17838,6 +17844,14 @@ update_redisplay_ticks (ticks: c_int, mut w: *mut window)
       error (c"Window showing buffer %s takes too long to redisplay".as_ptr (), bufname);
     }
 }
+
+/* Set cursor position of W.  PT is assumed to be displayed in ROW.
+   DELTA and DELTA_BYTES are the numbers of characters and bytes by
+   which positions recorded in ROW differ from current buffer
+   positions.
+
+   Return true iff cursor is on this row.  */
+
 unsafe fn
 set_cursor_from_row (w: *mut window, row: *mut glyph_row,
 		     matrix: *mut glyph_matrix,
@@ -18475,6 +18489,646 @@ set_cursor_from_row (w: *mut window, row: *mut glyph_row,
 
   return true;
 }
+
+
+/* Run window scroll functions, if any, for WINDOW with new window
+   start STARTP.  Sets the window start of WINDOW to that position.
+
+   We assume that the window's buffer is really current.  */
+
+unsafe fn
+run_window_scroll_functions (window: Lisp_Object, mut startp: text_pos) -> text_pos
+{
+  let w: *mut window = XWINDOW (window);
+  SET_MARKER_FROM_TEXT_POS! ((*w).start, startp);
+
+  eassert! (current_buffer == XBUFFER ((*w).contents));
+
+  if !NILP (Vwindow_scroll_functions)
+    {
+      safe_run_hooks_2
+	(Qwindow_scroll_functions (), window, make_fixnum (CHARPOS! (startp)));
+      SET_TEXT_POS_FROM_MARKER! (startp, (*w).start);
+      /* In case the hook functions switch buffers.  */
+      set_buffer_internal (XBUFFER ((*w).contents));
+    }
+
+  return startp;
+}
+
+
+/* Make sure the line containing the cursor is fully visible.
+   A value of true means there is nothing to be done.
+   (Either the line is fully visible, or it cannot be made so,
+   or we cannot tell.)
+
+   If FORCE_P, return false even if partial visible cursor row
+   is higher than window.
+
+   If CURRENT_MATRIX_P, use the information from the
+   window's current glyph matrix; otherwise use the desired glyph
+   matrix.
+
+   If JUST_TEST_USER_PREFERENCE_P, just test what the value of
+   make-cursor-row-fully-visible requires, don't test the actual
+   cursor position.  The assumption is that in that case the caller
+   performs the necessary testing of the cursor position.
+
+   A value of false means the caller should do scrolling
+   as if point had gone off the screen.  */
+
+unsafe fn
+cursor_row_fully_visible_p (w: *mut window, force_p: bool,
+			    current_matrix_p: bool,
+			    just_test_user_preference_p: bool) -> bool
+{
+  let mut matrix: *mut glyph_matrix;
+  let mut row: *mut glyph_row;
+  let mut window_height: c_int;
+  let mut mclfv_p: Lisp_Object =
+    buffer_local_value (Qmake_cursor_line_fully_visible (), (*w).contents);
+
+  /* If no local binding, use the global value.  */
+  if BASE_EQ (mclfv_p, Qunbound ())
+    { mclfv_p = Vmake_cursor_line_fully_visible; }
+  /* Follow mode sets the variable to a Lisp function in buffers that
+     are under Follow mode.  */
+  if FUNCTIONP (mclfv_p)
+    {
+      let window: Lisp_Object;
+      XSETWINDOW! (window, w);
+      /* Implementation note: if the function we call here signals an
+	 error, we will NOT scroll when the cursor is partially-visible.  */
+      let val: Lisp_Object = dsafe_call1 (mclfv_p, window);
+      if NILP (val)
+	{ return true; }
+      else if just_test_user_preference_p
+	{ return false; }
+    }
+  else if NILP (mclfv_p)
+    { return true; }
+  else if just_test_user_preference_p
+    { return false; }
+
+  /* It's not always possible to find the cursor, e.g, when a window
+     is full of overlay strings.  Don't do anything in that case.  */
+  if (*w).cursor.vpos < 0
+    { return true; }
+
+  matrix = if current_matrix_p { (*w).current_matrix as *mut glyph_matrix }
+    else { (*w).desired_matrix as *mut glyph_matrix };
+  row = MATRIX_ROW! (matrix, (*w).cursor.vpos);
+
+  /* If the cursor row is not partially visible, there's nothing to do.  */
+  if !MATRIX_ROW_PARTIALLY_VISIBLE_P! (w, row)
+    { return true; }
+
+  /* If the row the cursor is in is taller than the window's height,
+     it's not clear what to do, so do nothing.  */
+  window_height = window_box_height (w);
+  if (*row).height >= window_height
+    {
+      if !force_p || MINI_WINDOW_P (w)
+	  || (*w).vscroll != 0 || (*w).cursor.vpos == 0
+	{ return true; }
+    }
+  return false;
+}
+
+
+/* Try scrolling PT into view in window WINDOW.  JUST_THIS_ONE_P
+   means only WINDOW is redisplayed in redisplay_internal.
+   TEMP_SCROLL_STEP has the same meaning as emacs_scroll_step, and is used
+   in redisplay_window to bring a partially visible line into view in
+   the case that only the cursor has moved.
+
+   LAST_LINE_MISFIT should be true if we're scrolling because the
+   last screen line's vertical height extends past the end of the screen.
+
+   Value is
+
+   1	if scrolling succeeded
+
+   0	if scrolling didn't find point.
+
+   -1	if new fonts have been loaded so that we must interrupt
+   redisplay, adjust glyph matrices, and try again.  */
+
+/* C 19380-19385: `enum { SCROLLING_SUCCESS = 1, SCROLLING_FAILED = 0,
+   SCROLLING_NEED_LARGER_MATRICES = -1 };` — C's anonymous enum, the port's
+   `const`s (the `GET_FROM_BUFFER` shape).  */
+pub const SCROLLING_SUCCESS: c_int = 1;
+pub const SCROLLING_FAILED: c_int = 0;
+pub const SCROLLING_NEED_LARGER_MATRICES: c_int = -1;
+
+/* If scroll-conservatively is more than this, never recenter.
+
+   If you change this, don't forget to update the doc string of
+   `scroll-conservatively' and the Emacs manual.  */
+/* C 19391: `#define SCROLL_LIMIT 100` — the port's `const` (the
+   `CLEAR_FACE_CACHE_COUNT` shape).  */
+pub const SCROLL_LIMIT: c_int = 100;
+
+/* The freshness of the w->base_line_number cache is only ensured at every
+   redisplay cycle, so the cache can be used only if there's been
+   no relevant changes to the buffer since the last redisplay.  */
+/* C 19396-19399: `#define BASE_LINE_NUMBER_VALID_P(w)` — the C comma expression
+   becomes a statement block in the port's macro; the `current_buffer->clip_changed`
+   read is the unit's `buffer_bits!` arm.  */
+macro_rules! BASE_LINE_NUMBER_VALID_P {
+  ($w:expr) => {
+    {
+      eassert! (current_buffer == XBUFFER ((*$w).contents));
+      !buffer_bits! (clip_changed, current_buffer)
+      && BEG_UNCHANGED! () >= (*$w).base_line_pos
+    }
+  };
+}
+
+unsafe fn
+try_scrolling (window: Lisp_Object, just_this_one_p: bool,
+	       mut arg_scroll_conservatively: intmax_t, mut scroll_step: intmax_t,
+	       temp_scroll_step: bool, last_line_misfit: bool) -> c_int
+{
+  let w: *mut window = XWINDOW (window);
+  let mut pos: text_pos = core::mem::zeroed ();
+  let mut startp: text_pos = core::mem::zeroed ();
+  let mut it: it = core::mem::zeroed ();
+  let mut this_scroll_margin: c_int;
+  let mut scroll_max: c_int;
+  let mut rc: c_int;
+  let mut height: c_int;
+  let mut dy: c_int = 0;
+  let mut amount_to_scroll: c_int = 0;
+  let mut scroll_down_p: bool = false;
+  let mut extra_scroll_margin_lines: c_int = last_line_misfit as c_int;
+  let mut aggressive: Lisp_Object;
+  /* We will never try scrolling more than this number of lines.  */
+  let scroll_limit: c_int = SCROLL_LIMIT;
+  let frame_line_height: c_int = default_line_pixel_height (w);
+
+/* C 19418-19420's `#ifdef GLYPH_DEBUG` block (`debug_method_add (w,
+     "try_scrolling")`) is dead on this target (P-08).  */
+
+  SET_TEXT_POS_FROM_MARKER! (startp, (*w).start);
+
+  this_scroll_margin = window_scroll_margin (w, margin_unit::MARGIN_IN_PIXELS);
+
+  /* Force arg_scroll_conservatively to have a reasonable value, to
+     avoid scrolling too far away with slow move_it_* functions.  Note
+     that the user can supply scroll-conservatively equal to
+     `most-positive-fixnum', which can be larger than INT_MAX.  */
+  if arg_scroll_conservatively > scroll_limit as intmax_t
+    {
+      arg_scroll_conservatively = scroll_limit as intmax_t + 1;
+      scroll_max = scroll_limit * frame_line_height;
+    }
+  else if 0 < scroll_step || 0 < arg_scroll_conservatively || temp_scroll_step
+    /* Compute how much we should try to scroll maximally to bring
+       point into view.  */
+    {
+      let scroll_lines_max: intmax_t
+	= max (scroll_step as isize, max (arg_scroll_conservatively as isize,
+		 temp_scroll_step as isize)) as intmax_t;
+      let scroll_lines: c_int = clip_to_bounds (0, scroll_lines_max as isize, 1000000) as c_int;
+      scroll_max = scroll_lines * frame_line_height;
+    }
+  else if NUMBERP (BVAR! (current_buffer, scroll_down_aggressively_))
+	   || NUMBERP (BVAR! (current_buffer, scroll_up_aggressively_))
+    /* We're trying to scroll because of aggressive scrolling but no
+       scroll_step is set.  Choose an arbitrary one.  */
+    { scroll_max = 10 * frame_line_height; }
+  else
+    { scroll_max = 0; }
+
+ 'too_near_end: loop
+	  {
+
+  /* Decide whether to scroll down.  */
+  if PT! () > CHARPOS! (startp)
+    {
+      let mut scroll_margin_y: c_int;
+
+      /* Compute the pixel ypos of the scroll margin, then move IT to
+	 either that ypos or PT, whichever comes first.  */
+      start_display (&raw mut it, w, startp);
+      scroll_margin_y = it.last_visible_y - partial_line_height (&raw mut it)
+        - this_scroll_margin
+	- frame_line_height * extra_scroll_margin_lines;
+      move_it_to (&raw mut it, PT! (), -1, scroll_margin_y - 1, -1,
+		  (MOVE_TO_POS | MOVE_TO_Y));
+
+      if PT! () > CHARPOS! (it.current.pos)
+	{
+	  let y0: c_int = line_bottom_y (&raw mut it);
+	  /* Compute how many pixels below window bottom to stop searching
+	     for PT.  This avoids costly search for PT that is far away if
+	     the user limited scrolling by a small number of lines, but
+	     always finds PT if scroll_conservatively is set to a large
+	     number, such as most-positive-fixnum.  */
+	  let slack: c_int = max (scroll_max as isize, (10 * frame_line_height) as isize) as c_int;
+	  let y_to_move: c_int = it.last_visible_y + slack;
+
+	  /* Compute the distance from the scroll margin to PT or to
+	     the scroll limit, whichever comes first.  This should
+	     include the height of the cursor line, to make that line
+	     fully visible.  */
+	  move_it_to (&raw mut it, PT! (), -1, y_to_move,
+	  	      -1, MOVE_TO_POS | MOVE_TO_Y);
+	  dy = line_bottom_y (&raw mut it) - y0;
+
+	  if dy > scroll_max
+	    { return SCROLLING_FAILED; }
+
+	  if dy > 0
+	    { scroll_down_p = true; }
+	}
+      else if PT! () == IT_CHARPOS! (it)
+	       && IT_CHARPOS! (it) < ZV! ()
+	       && it.method == GET_FROM_STRING
+	       && arg_scroll_conservatively > scroll_limit as intmax_t
+	       && it.current_x == 0
+	{
+	  let mut skip: move_it_result;
+	  let y1: c_int = it.current_y;
+	  let mut vpos: c_int;
+
+	  /* A before-string that includes newlines and is displayed
+	     on the last visible screen line could fail us under
+	     scroll-conservatively > 100, because we will be unable to
+	     position the cursor on that last visible line.  Try to
+	     recover by finding the first screen line that has some
+	     glyphs coming from the buffer text.  */
+	  loop {
+	    skip = move_it_in_display_line_to (&raw mut it, ZV! (), -1, MOVE_TO_POS);
+	    if skip != MOVE_NEWLINE_OR_CR
+		|| IT_CHARPOS! (it) != PT! ()
+		|| it.method == GET_FROM_BUFFER
+	      { break; }
+	    vpos = it.vpos;
+	    move_it_to (&raw mut it, -1, -1, -1, vpos + 1, MOVE_TO_VPOS);
+	  if !(it.vpos > vpos)
+		    { break; }
+		  }
+
+	  dy = it.current_y - y1;
+
+	  if dy > scroll_max
+	    { return SCROLLING_FAILED; }
+
+	  if dy > 0
+	    { scroll_down_p = true; }
+	}
+      else if scroll_margin_y < 0
+	{
+	  /* A tall row (like tall image?) at window's bottom.  */
+	  scroll_down_p = true;
+	}
+    }
+
+  if scroll_down_p
+    {
+      /* Point is in or below the bottom scroll margin, so move the
+	 window start down.  If scrolling conservatively, move it just
+	 enough down to make point visible.  If scroll_step is set,
+	 move it down by scroll_step.  */
+      if arg_scroll_conservatively != 0
+	  {
+	amount_to_scroll
+	  = min (max (dy as isize, frame_line_height as isize),
+		 (frame_line_height as intmax_t * arg_scroll_conservatively) as isize) as c_int;
+	  }
+      else if scroll_step != 0 || temp_scroll_step
+	{ amount_to_scroll = scroll_max; }
+      else
+	{
+	  aggressive = BVAR! (current_buffer, scroll_up_aggressively_);
+	  height = WINDOW_BOX_TEXT_HEIGHT! (w) as c_int;
+	  if NUMBERP (aggressive)
+	    {
+	      let float_amount: c_double = XFLOATINT (aggressive) * height as c_double;
+	      let mut aggressive_scroll: c_int = float_amount as c_int;
+	      if aggressive_scroll == 0 && float_amount > 0.0
+		{ aggressive_scroll = 1; }
+	      /* Don't let point enter the scroll margin near top of
+		 the window.  This could happen if the value of
+		 scroll_up_aggressively is too large and there are
+		 non-zero margins, because scroll_up_aggressively
+		 means put point that fraction of window height
+		 _from_the_bottom_margin_.  */
+	      if aggressive_scroll + 2 * this_scroll_margin > height
+		{ aggressive_scroll = height - 2 * this_scroll_margin; }
+	      amount_to_scroll = dy + aggressive_scroll;
+	    }
+	}
+
+      if amount_to_scroll <= 0
+	{ return SCROLLING_FAILED; }
+
+      start_display (&raw mut it, w, startp);
+      if arg_scroll_conservatively <= scroll_limit as intmax_t
+	{ move_it_vertically (&raw mut it, amount_to_scroll); }
+      else
+	{
+	  /* Extra precision for users who set scroll-conservatively
+	     to a large number: make sure the amount we scroll
+	     the window start is never less than amount_to_scroll,
+	     which was computed as distance from window bottom to
+	     point.  This matters when lines at window top and lines
+	     below window bottom have different height.  */
+	  let mut it1: it = core::mem::zeroed ();
+	  let mut it1data: *mut c_void = core::ptr::null_mut ();
+	  /* We use a temporary it1 because line_bottom_y can modify
+	     its argument, if it moves one line down; see there.  */
+	  let mut start_y: c_int;
+
+	  SAVE_IT! (it1, it, it1data);
+	  start_y = line_bottom_y (&raw mut it1);
+	  loop {
+	    RESTORE_IT! (&raw mut it, &raw mut it, it1data);
+	    move_it_by_lines (&raw mut it, 1);
+	    SAVE_IT! (it1, it, it1data);
+	  if !(IT_CHARPOS! (it) < ZV! ()
+	     && line_bottom_y (&raw mut it1) - start_y < amount_to_scroll)
+		   { break; }
+	  }
+	  bidi_unshelve_cache (it1data, true);
+	}
+
+      /* If STARTP is unchanged, move it down another screen line.  */
+      if IT_CHARPOS! (it) == CHARPOS! (startp)
+	{ move_it_by_lines (&raw mut it, 1); }
+      startp = it.current.pos;
+    }
+  else
+    {
+      let mut scroll_margin_pos: text_pos = startp;
+      let mut y_offset: c_int = 0;
+
+      /* See if point is inside the scroll margin at the top of the
+         window.  */
+      if this_scroll_margin != 0
+	{
+	  let mut y_start: c_int;
+
+	  start_display (&raw mut it, w, startp);
+	  y_start = it.current_y;
+	  move_it_vertically (&raw mut it, this_scroll_margin);
+	  scroll_margin_pos = it.current.pos;
+	  /* If we didn't move enough before hitting ZV, request
+	     additional amount of scroll, to move point out of the
+	     scroll margin.  */
+	  if IT_CHARPOS! (it) == ZV! ()
+	      && it.current_y - y_start < this_scroll_margin
+	    { y_offset = this_scroll_margin - (it.current_y - y_start); }
+	}
+
+      if PT! () < CHARPOS! (scroll_margin_pos)
+	{
+	  /* Point is in the scroll margin at the top of the window or
+	     above what is displayed in the window.  */
+	  let mut y0: c_int;
+  let mut y_to_move: c_int;
+
+	  /* Compute the vertical distance from PT to the scroll
+	     margin position.  Move as far as scroll_max allows, or
+	     one screenful, or 10 screen lines, whichever is largest.
+	     Give up if distance is greater than scroll_max or if we
+	     didn't reach the scroll margin position.  */
+	  SET_TEXT_POS! (pos, PT! (), PT_BYTE! ());
+	  start_display (&raw mut it, w, pos);
+	  y0 = it.current_y;
+	  y_to_move = max (it.last_visible_y as isize,
+			   max (scroll_max as isize, (10 * frame_line_height) as isize)) as c_int;
+	  move_it_to (&raw mut it, CHARPOS! (scroll_margin_pos), 0,
+		      y_to_move, -1,
+		      MOVE_TO_POS | MOVE_TO_X | MOVE_TO_Y);
+	  dy = it.current_y - y0;
+	  if dy > scroll_max
+	      || IT_CHARPOS! (it) < CHARPOS! (scroll_margin_pos)
+	    { return SCROLLING_FAILED; }
+
+	  /* Additional scroll for when ZV was too close to point.  */
+	  dy += y_offset;
+
+	  /* Compute new window start.  */
+	  start_display (&raw mut it, w, startp);
+
+	  if arg_scroll_conservatively != 0
+	  {
+	    amount_to_scroll
+	      = min (max (dy as isize, frame_line_height as isize),
+		     (frame_line_height as intmax_t * arg_scroll_conservatively) as isize) as c_int;
+	  }
+	  else if scroll_step != 0 || temp_scroll_step
+	    { amount_to_scroll = scroll_max; }
+	  else
+	    {
+	      aggressive = BVAR! (current_buffer, scroll_down_aggressively_);
+	      height = WINDOW_BOX_TEXT_HEIGHT! (w) as c_int;
+	      if NUMBERP (aggressive)
+		{
+		  let float_amount: c_double = XFLOATINT (aggressive) * height as c_double;
+		  let mut aggressive_scroll: c_int = float_amount as c_int;
+		  if aggressive_scroll == 0 && float_amount > 0.0
+		    { aggressive_scroll = 1; }
+		  /* Don't let point enter the scroll margin near
+		     bottom of the window, if the value of
+		     scroll_down_aggressively happens to be too
+		     large.  */
+		  if aggressive_scroll + 2 * this_scroll_margin > height
+		    { aggressive_scroll = height - 2 * this_scroll_margin; }
+		  amount_to_scroll = dy + aggressive_scroll;
+		}
+	    }
+
+	  if amount_to_scroll <= 0
+	    { return SCROLLING_FAILED; }
+
+	  move_it_vertically_backward (&raw mut it, amount_to_scroll);
+	  startp = it.current.pos;
+	}
+    }
+
+  /* Run window scroll functions.  */
+  startp = run_window_scroll_functions (window, startp);
+
+  /* Display the window.  Give up if new fonts are loaded, or if point
+     doesn't appear.  */
+  if try_window (window, startp, 0) == 0
+	    { rc = SCROLLING_NEED_LARGER_MATRICES; }
+  else if (*w).cursor.vpos < 0
+	    {
+      clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+      rc = SCROLLING_FAILED;
+    }
+  else
+    {
+      /* Maybe forget recorded base line for line number display.  */
+      /* FIXME: Why do we need this?  `try_scrolling` can only be called from
+         `redisplay_window` which should have flushed this cache already when
+         needed.  */
+      if !BASE_LINE_NUMBER_VALID_P! (w)
+	{ (*w).base_line_number = 0; }
+
+      /* If cursor ends up on a partially visible line,
+	 treat that as being off the bottom of the screen.  */
+      if !cursor_row_fully_visible_p (w, extra_scroll_margin_lines <= 1,
+					false, false)
+	  /* It's possible that the cursor is on the first line of the
+	     buffer/window, which is partially obscured due to a vscroll
+	     (Bug#7537, Bug#78766).  If so, just return, since the code
+	     above is not prepared to deal with that case.  */
+	  && !MATRIX_ROW_PARTIALLY_VISIBLE_AT_TOP_P!
+		 (w, MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix, (*w).cursor.vpos))
+	{
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  extra_scroll_margin_lines += 1;
+	  continue 'too_near_end;
+	}
+      rc = SCROLLING_SUCCESS;
+    }
+  break 'too_near_end;
+	  }
+
+  return rc;
+}
+
+
+/* Compute a suitable window start for window W if display of W starts
+   on a continuation line.  Value is true if a new window start
+   was computed.
+
+   The new window start will be computed, based on W's width, starting
+   from the start of the continued line.  It is the start of the
+   screen line with the minimum distance from the old start W->start,
+   which is still before point (otherwise point will definitely not
+   be visible in the window).  */
+
+unsafe fn
+compute_window_start_on_continuation_line (w: *mut window) -> bool
+{
+  let mut pos: text_pos = core::mem::zeroed ();
+  let mut start_pos: text_pos = core::mem::zeroed ();
+  let mut pos_before_pt: text_pos = core::mem::zeroed ();
+  let mut window_start_changed_p: bool = false;
+
+  SET_TEXT_POS_FROM_MARKER! (start_pos, (*w).start);
+
+  /* If window start is on a continuation line...  Window start may be
+     < BEGV in case there's invisible text at the start of the
+     buffer (M-x rmail, for example).  */
+  if CHARPOS! (start_pos) > BEGV! ()
+      && FETCH_BYTE! (BYTEPOS! (start_pos) - 1) != b'\n'
+    {
+      let mut it: it = core::mem::zeroed ();
+      let mut row: *mut glyph_row;
+
+      /* Handle the case that the window start is out of range.  */
+      if CHARPOS! (start_pos) < BEGV! ()
+	{ SET_TEXT_POS! (start_pos, BEGV! (), BEGV_BYTE! ()); }
+      else if CHARPOS! (start_pos) > ZV! ()
+	{ SET_TEXT_POS! (start_pos, ZV! (), ZV_BYTE! ()); }
+
+      /* Find the start of the continued line.  This should be fast
+	 because find_newline is fast (newline cache).  */
+      row = (*((*w).desired_matrix as *mut glyph_matrix)).rows.offset (window_wants_tab_line (w) as isize
+				    + window_wants_header_line (w) as isize);
+      init_iterator (&raw mut it, w, CHARPOS! (start_pos), BYTEPOS! (start_pos),
+		     row, DEFAULT_FACE_ID);
+      reseat_at_previous_visible_line_start (&raw mut it);
+
+      /* Give up (by not using the code in the block below) and say it
+         takes too much time to compute a new window start, if the
+         line start is "too far" away from the window start.  Also,
+         give up if the line start is after point, as in that case
+         point will not be visible with any window start we
+         compute.  */
+      if IT_CHARPOS! (it) <= PT! ()
+	  && (CHARPOS! (start_pos) - IT_CHARPOS! (it)
+	      /* PXW: Do we need upper bounds here?  */
+	      < (WINDOW_TOTAL_LINES (w) * WINDOW_TOTAL_COLS (w)) as ptrdiff_t)
+	{
+	  let mut min_distance: c_int;
+  let mut distance: c_int;
+
+	  /* Move forward by display lines to find the new window
+	     start.  If window width was enlarged, the new start can
+	     be expected to be > the old start.  If window width was
+	     decreased, the new window start will be < the old start.
+	     So, we're looking for the display line start with the
+	     minimum distance from the old window start.  */
+	  pos_before_pt = it.current.pos;
+  pos = pos_before_pt;
+	  min_distance = DISP_INFINITY;
+	  distance = eabs! (CHARPOS! (start_pos) - IT_CHARPOS! (it)) as c_int;
+  while distance < min_distance
+	    {
+	      min_distance = distance;
+	      if CHARPOS! (pos) <= PT! ()
+		{ pos_before_pt = pos; }
+	      pos = it.current.pos;
+	      if it.line_wrap == WORD_WRAP
+		{
+		  /* Under WORD_WRAP, move_it_by_lines is likely to
+		     overshoot and stop not at the first, but the
+		     second character from the left margin.  So in
+		     that case, we need a more tight control on the X
+		     coordinate of the iterator than move_it_by_lines
+		     promises in its contract.  The method is to first
+		     go to the last (rightmost) visible character of a
+		     line, then move to the leftmost character on the
+		     next line in a separate call.  */
+		  move_it_to (&raw mut it, ZV! (), it.last_visible_x, it.current_y, -1,
+			      MOVE_TO_POS | MOVE_TO_X | MOVE_TO_Y);
+		  move_it_to (&raw mut it, ZV! (), 0,
+			      it.current_y + it.max_ascent + it.max_descent, -1,
+			      MOVE_TO_POS | MOVE_TO_X | MOVE_TO_Y);
+		}
+	      else
+		{ move_it_by_lines (&raw mut it, 1); }
+	    distance = eabs! (CHARPOS! (start_pos) - IT_CHARPOS! (it)) as c_int;
+		  }
+
+	  /* It makes very little sense to make the new window start
+	     after point, as point won't be visible.  If that's what
+	     the loop above finds, fall back on the candidate before
+	     or at point that is closest to the old window start.  */
+	  if CHARPOS! (pos) > PT! ()
+	    { pos = pos_before_pt; }
+
+	  /* Set the window start there.  */
+	  SET_MARKER_FROM_TEXT_POS! ((*w).start, pos);
+	  window_start_changed_p = true;
+	}
+    }
+
+  return window_start_changed_p;
+}
+
+
+/* Try cursor movement in case text has not changed in window WINDOW,
+   with window start STARTP.  Value is
+
+   CURSOR_MOVEMENT_SUCCESS if successful
+
+   CURSOR_MOVEMENT_CANNOT_BE_USED if this method cannot be used
+
+   CURSOR_MOVEMENT_MUST_SCROLL if we know we have to scroll the
+   display.  *SCROLL_STEP is set to true, under certain circumstances, if
+   we want to scroll as if scroll-step were set to 1.  See the code.
+
+   CURSOR_MOVEMENT_NEED_LARGER_MATRICES if we need larger matrices, in
+   which case we have to abort this redisplay, and adjust matrices
+   first.  */
+
+/* C 19856-19862: `enum { CURSOR_MOVEMENT_SUCCESS, CURSOR_MOVEMENT_CANNOT_BE_USED,
+   CURSOR_MOVEMENT_MUST_SCROLL, CURSOR_MOVEMENT_NEED_LARGER_MATRICES };` — C's
+   anonymous enum, the port's `const`s in C's order (0-3).  */
+pub const CURSOR_MOVEMENT_SUCCESS: c_int = 0;
+pub const CURSOR_MOVEMENT_CANNOT_BE_USED: c_int = 1;
+pub const CURSOR_MOVEMENT_MUST_SCROLL: c_int = 2;
+pub const CURSOR_MOVEMENT_NEED_LARGER_MATRICES: c_int = 3;
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */
 /* ==================================================================== */
@@ -18522,10 +19176,6 @@ unsafe extern "C" {
   /// C: xdisp.c 1130/25062: `static bool cursor_row_p (struct glyph_row *);` (defined
   /// later in this unit).
   fn cursor_row_p (row: *mut glyph_row) -> bool;
-  /// C: xdisp.c 1161/19305: `static bool cursor_row_fully_visible_p (struct window *, bool,
-  /// bool, bool);`
-  fn cursor_row_fully_visible_p (w: *mut window, force_p: bool, current_p: bool,
-                                 partially_p: bool) -> bool;
   /// C: dispextern.h 3595: `int display_line (struct it *, int);` (xdisp.c defines it at
   /// C 25865).
   /// C: xdisp.c 1154/20475: `static void redisplay_window (Lisp_Object, bool);`

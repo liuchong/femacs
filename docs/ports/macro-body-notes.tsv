@@ -1250,3 +1250,4 @@ overlay_arrows_changed_p	continue	xdisp.c 17133 and 17136: the same `'body:` sha
 update_overlay_arrows	continue	xdisp.c 17173 and 17179: the same `'body:` shape (deviation 133)
 overlay_arrow_at_row	continue	xdisp.c 17211: the same `'body:` shape (deviation 133)
 STOP_POLLING	false	xdisp.c 17341: C's `do { … } while (false)` runs its block once; Rust has no do-while, so the port writes the block and the `false` has no site (deviation 140)
+try_scrolling	goto	xdisp.c 19725: C's `goto too_near_end` is the port's `continue too_near_end`, and the label sits on a `loop` that covers the rest of the function (deviations 164-165)
