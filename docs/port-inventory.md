@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 540 |
-| 其中 done / wip | 519 / 21 |
-| 待开工 | 50 |
+| 已有目标文件 | 542 |
+| 其中 done / wip | 521 / 21 |
+| 待开工 | 48 |
 
 ## 2 按目录
 
@@ -38,7 +38,7 @@
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 26 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 24 |
 
 ## 3 按批次
 
@@ -47,7 +47,7 @@
 | **B** | 内核：解释器、内存、数据结构 | 先落地，供所有后续批次 include | 29 | 51,139 | 1,111 | 379 | 494 | 386 | 211 | 1 |
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
-| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 7 |
+| **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 5 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 9 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 24 |
@@ -502,7 +502,7 @@
 | `src/font.c` | 6,091 | 82 | 22 | 10 | 29 | 8 | 8 | E | `femacs/src/font.rs` | done |
 | `src/font.h` | 1,034 | 20 | 0 | 28 | 23 | 71 | 5 | E | `femacs/src/include/font.rs` | wip |
 | `src/fontset.c` | 2,257 | 35 | 7 | 30 | 0 | 0 | 6 | E | `femacs/src/fontset.rs` | done |
-| `src/fontset.h` | 48 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/fontset.rs` | todo |
+| `src/fontset.h` | 48 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/fontset.rs` | done |
 | `src/frame.c` | 7,907 | 100 | 69 | 0 | 5 | 2 | 8 | E | `femacs/src/frame.rs` | done |
 | `src/frame.h` | 1,956 | 48 | 0 | 143 | 37 | 182 | 7 | E | `femacs/src/include/frame.rs` | wip |
 | `src/fringe.c` | 1,880 | 20 | 4 | 9 | 5 | 6 | 4 | E | `femacs/src/fringe.rs` | done |
@@ -589,7 +589,7 @@
 | `src/scroll.c` | 993 | 9 | 0 | 1 | 0 | 6 | 0 | E | `femacs/src/scroll.rs` | done |
 | `src/search.c` | 3,514 | 36 | 19 | 2 | 1 | 8 | 4 | C | `femacs/src/search.rs` | done |
 | `src/sfnt.c` | 21,215 | 268 | 0 | 170 | 8 | 53 | 8 | E | `femacs/src/sfnt.rs` | done |
-| `src/sfnt.h` | 2,151 | 0 | 0 | 8 | 108 | 436 | 0 | E | `femacs/src/include/sfnt.rs` | todo |
+| `src/sfnt.h` | 2,151 | 0 | 0 | 8 | 108 | 436 | 0 | E | `femacs/src/include/sfnt.rs` | done |
 | `src/sfntfont-android.c` | 821 | 14 | 1 | 2 | 0 | 2 | 3 | F | `femacs/src/sfntfont-android.rs` | done |
 | `src/sfntfont.c` | 4,222 | 60 | 0 | 0 | 2 | 92 | 13 | E | `femacs/src/sfntfont.rs` | done |
 | `src/sfntfont.h` | 78 | 0 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/include/sfntfont.rs` | todo |
