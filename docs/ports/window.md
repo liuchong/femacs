@@ -435,9 +435,12 @@ carry the prototype (PORTING.md 0.1-2/P-72 rule 3) — `decode_live_frame`, `dec
 1. `include/window.rs`: the accessors and the `window_wants_*` family above should move into the
    mirror when the display chain's `CURRENT_*_LINE_HEIGHT` prerequisites land (PORTING.md P-26:
    one spelling per construct); the unit's copies are then the duplicates to delete.
-2. `include/dispextern.rs`: `struct face`/`struct face_cache`, `FACE_FROM_ID_OR_NULL`,
-   `MOUSE_HL_INFO`/`struct Mouse_HLInfo` (this file re-declares a minimal `face`/`face_cache`
-   with measured offsets, the `term.rs`/`alloc.rs` shape).
+2. `include/dispextern.rs`: `struct face`/`struct face_cache`, `FACE_FROM_ID_OR_NULL`
+   (this file re-declares a minimal `face`/`face_cache` with measured offsets, the
+   `term.rs`/`alloc.rs` shape).  **`MOUSE_HL_INFO` is done** (status 3.109): it is a macro in
+   `frame.h` 1023-1039, not a declaration in dispextern.h, and it now lives in `include/frame.rs`
+   - this unit's use-site `unsafe extern "C"` declaration and `src/dispnew.rs`'s two calls are the
+   macro now, which is what removes the `_MOUSE_HL_INFO` symbol C never had.
 3. `include/font.rs`: `struct font` is not mirrored at all (only `height`, `space_width` and
    `average_width` are read here).
 4. `include/disptab.rs` declares `window_display_table` at its **top level** (disptab.h 67,

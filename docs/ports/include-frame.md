@@ -175,7 +175,7 @@
 - [ ] FRAME_Z_GROUP_ABOVE  (line 1268, body 1379974e8198)
 - [ ] FRAME_Z_GROUP_BELOW  (line 1269, body 1379974e8198)
 - [ ] FRAME_Z_GROUP_NONE  (line 1267, body c3e599a9b9ef)
-- [ ] MOUSE_HL_INFO  (line 1038, body 7bdaea6e5b2b)
+- [x] MOUSE_HL_INFO  (line 1038, body 7bdaea6e5b2b)
 - [x] SELECTED_FRAME  (line 1526, body 40b81fe06248)
 - [ ] SET_FRAME_GARBAGED  (line 1173, body 7740c4b03c8e)
 - [ ] WINDOW_FRAME  (line 929, body d0a15ef83288)
@@ -242,7 +242,19 @@
   `frame_window_p`, `XSETFRAME` and `frame` — text the frozen configuration never compiles.  The
   body comparison now drops dead lines (and `body_is_empty` does the same), which is what the
   frozen configuration's bodies are.
-- **Still blocked (48).**  `FRAME_DISPLAY_INFO`, `FRAME_IMAGE_CACHE`, `FRAME_SMALLEST_*`,
+- **Still blocked (47)** - `MOUSE_HL_INFO` left the list in status 3.109, whose
+  recipe is the `macro_rules!` in `frame.rs`:  `FRAME_DISPLAY_INFO`, `FRAME_IMAGE_CACHE`, `FRAME_SMALLEST_*`,
   `FRAME_*_PIXEL_*`'s display-dependent forms, `FRAME_MOUSE_UPDATE`, `FACE_FROM_ID`,
   `FACE_FROM_ID_OR_NULL`, `flush_frame` and `SET_FRAME_VISIBLE` need dispextern.h's display
   structures (image cache, face cache, `Mouse_HLInfo`) or the redisplay functions.
+- **`MOUSE_HL_INFO` (2026-10-04, status 3.109).**  C 1023-1039 has three arms and the frozen
+  configuration (no window system) takes the TTY one, `(&(F)->output_data.tty->display_info->
+  mouse_highlight)`; the other two are recorded there (P-08).  The macro lives here because C's
+  does, and its body names `tty_output`/`tty_display_info`/`mouse_highlight` from `termchar.rs`,
+  which the *including* unit brings in - `frame.rs` cannot include it, because `termchar.rs`
+  includes `frame.rs` (C's macro is unhygienic in the same way).  Before this the units that need
+  it (`src/window.rs`, `src/dispnew.rs`) declared `MOUSE_HL_INFO` as an `unsafe extern "C"` fn,
+  which is why `gate-load` reported `_MOUSE_HL_INFO` as an undefined symbol that C never has:
+  the reference objects carry no such symbol at all (clang inlines the macro away).  Measured
+  after the change: `gate-load --report` 165 -> 164 undefined symbols and the name is gone;
+  `build-tu src/window.c` and `src/dispnew.c` both `built`.

@@ -564,10 +564,6 @@ unsafe extern "C" {
   /// lane's `n: c_int` was a `clashing_extern_declarations` mismatch with the mirror's own
   /// prototype and would pass a 32-bit value where C passes `EMACS_INT`.
   pub fn vmotion (from: ptrdiff_t, from_byte: ptrdiff_t, vtarget: EMACS_INT, w: *mut window) -> *mut position;
-  /// C: dispextern.h 4020: `Mouse_HLInfo *MOUSE_HL_INFO (struct frame *);` (frame.h 1389's macro
-  /// reads `f->mouse_highlight`, which the mirror degrades to `*mut c_void`; the record itself
-  /// is `include/dispextern.rs`'s).
-  pub fn MOUSE_HL_INFO (f: *mut frame) -> *mut Mouse_HLInfo;
 }
 
 
@@ -3782,7 +3778,7 @@ DEFUN! ("delete-other-windows-internal", Fdelete_other_windows_internal,
   block_input ();
   if !FRAME_INITIAL_P (f)
     {
-      let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO (f);
+      let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);
 
       /* We are going to free the glyph matrices of WINDOW, and with
 	 that we might lose any information about glyph rows that have
@@ -5881,7 +5877,7 @@ DEFUN! ("delete-window-internal", Fdelete_window_internal, Sdelete_window_intern
 	 highlight, invalidate that slot to be safe (Bug#9904).  */
       if !FRAME_INITIAL_P (f)
 	{
-	  let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO (f);
+	  let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);
 
 	  if EQ ((*hlinfo).mouse_face_window, window)
 	    { (*hlinfo).mouse_face_window = Qnil (); }

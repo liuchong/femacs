@@ -1656,4 +1656,18 @@
   （buffer.rs 158、fileio.rs 105、insdel.rs 63、include/buffer.rs 58、editfns.rs 52……），且必须等两个在飞单元
   （keyboard.rs 12、xdisp.rs 6）落地后**一次做完**，否则中间态会打断它们的构建。
   ③ **lane 进度**：`nt/inc` 的 19 个里已落 15 个（剩 `stdint.h`、`sys/stat.h`、`sys/socket.h`、`unistd.h` 四个大件）。
+- **3.109 `MOUSE_HL_INFO` 从"外部符号"改回宏：gate-load 少一个不存在的符号（2026-10-04 第 99 轮第九批）**：
+  `gate-load` 报的 `_MOUSE_HL_INFO` 是个**参照里根本不存在的符号**——C 的 `MOUSE_HL_INFO` 是
+  `frame.h` 1023-1039 的宏（三条臂，冻结配置无窗口系统所以走 TTY 那条：
+  `(&(F)->output_data.tty->display_info->mouse_highlight)`），clang 把它内联掉了，参照对象里没有它；
+  而端口的 `src/window.rs` 在**用点**把它声明成 `unsafe extern "C" fn`（注释还把它记成
+  `dispextern.h 4020` 的声明——dispextern.h 里没有这条），`src/dispnew.rs` 也照着调。
+  修法：把宏放回它的 C 老家 `include/frame.rs`（`macro_rules! MOUSE_HL_INFO`，body 里
+  `tty_output`/`tty_display_info`/`mouse_highlight` 由**使用方**的 `termchar.rs` 提供——`frame.rs` 不能
+  自己 include termchar.rs，那是环，C 的宏同样是不卫生的），`window.rs` 与 `dispnew.rs` 的调用点改成
+  `MOUSE_HL_INFO! (f)`。
+  实测：`build-tu src/window.c`/`src/dispnew.c` = `built`；两文件 `--check` 仍 `OK`（C 的拼写是调用形状，
+  Rust 侧是宏调用，token 门按名字比对 ✓）；`check-mirror-dupes` 仍是 0 failure；`gate-load --report`
+  **165 → 164 个未定义符号，`_MOUSE_HL_INFO` 消失**。`docs/ports/include-frame.md` 的第 178 项由此勾上
+  （frame.h 的镜像还剩 47 个未勾项，是它的 display/face 结构族，见该台账的 blocked 段）。
 

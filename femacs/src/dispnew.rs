@@ -5279,7 +5279,7 @@ unsafe fn update_window (w: *mut window)
 #[unsafe(no_mangle)] pub unsafe extern "C" fn gui_update_window_begin (w: *mut window)
 {
   let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
-  let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO (f);
+  let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);
 
   block_input ();
 
@@ -5340,7 +5340,7 @@ unsafe fn update_window (w: *mut window)
      frame_up_to_date_hook to redisplay the mouse highlight.  */
   if mouse_face_overwritten_p
     {
-      let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO (f);
+      let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (f);
 
       (*hlinfo).mouse_face_beg_row = -1;
       (*hlinfo).mouse_face_beg_col = -1;

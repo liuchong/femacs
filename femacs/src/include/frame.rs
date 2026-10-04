@@ -281,6 +281,24 @@ pub fn FRAME_ANDROID_P (f: *mut frame) -> bool { let _ = f; false }
 #[inline(always)]
 pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { let _ = f; false }
 
+// frame.h 1023-1039: `MOUSE_HL_INFO (F)` - "Return a pointer to the structure holding
+// information about the region of text, if any, that is currently shown in mouse-face on frame
+// F.  We need to define two versions because a TTY-only build does not have
+// FRAME_DISPLAY_INFO."  It is a macro in C and stays one here: its body names `tty_output`'s
+// `display_info` and `tty_display_info`'s `mouse_highlight`, which the *including* unit brings in
+// through `termchar.rs` (frame.rs cannot include it - termchar.rs includes frame.rs).  The frozen
+// configuration has no window system, so C 1037-1039's TTY arm is the live one and the
+// HAVE_WINDOW_SYSTEM/HAVE_ANDROID arms are recorded in docs/ports/include-frame.md (P-08).
+macro_rules! MOUSE_HL_INFO {
+  ($f:expr) => {{
+    let f = $f;
+    unsafe {
+      let tty: *mut tty_output = (*f).output_data.tty as *mut tty_output;
+      std::ptr::addr_of_mut! ((*(*tty).display_info).mouse_highlight)
+    }
+  }};
+}
+
 // frame.h 884-895.
 #[inline(always)]
 pub fn FRAME_RES_X (f: *mut frame) -> c_double { let _ = f; unsafe { default_pixels_per_inch_x () } }
