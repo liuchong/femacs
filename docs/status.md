@@ -4219,3 +4219,25 @@
   `append2`/`hold_event`/`ns_finish_events`/`ns_init_events` 四行，`check-swift-units` 回到 **0 new / 0 stale / 7 units**。
   教训与 3.229 的竞态同源：**"我算出来的版本"不等于"工作树里的版本"**——凡是对生成文件做"减法"，写完必须
   在同一分钟里用门（或 `rg -c`）复核工作树，再 `git add`。
+
+- **3.232 `xdisp.rs` 第 16 轮入库（15,185 行，前沿 C 13994），并把它欠的 9 条 token 行写进共享表（2026-10-04）**：
+  ① **实产**：`femacs/src/xdisp.rs`（未跟踪 → 入库，**15,185 行**，`--check` 的 frontier 到 **C 13994
+  `format_mode_line_unwind_data` 的闭括号**）+ `docs/ports/xdisp.md`（1,799 行）。本轮区间 C 13256-13994（739 行 C），
+  新增 **21 个函数**（`resize_echo_area_exactly`/`resize_mini_window`/`current_message`/`push_message`/`restore_message`/
+  `pop_message_unwind`/`check_message_stack`/`clear_message_stack`/`truncate_echo_area`/`clear_message`/`clear_garbaged_frames`/
+  `echo_area_display`/…）、`MODE_LINE_NOPROP_LEN` 与 9 个文件级对象；SCAFFOLD 烧 4 加 1（15 → 12 条）。
+  `build-tu src/xdisp.rs` → **built**（4 轮修错后）。台账勾选：Functions **169/302**、Macros 26/38、File-scope 58/60。
+  ② **本单元欠的 9 条 `macro-body-notes.tsv` 行已写**（lane 逐条给了理由与 C 行号，我只做录入；
+  两条 `SAVE_IT` 早就在表里）：`redisplay_trace`/`move_trace`（`va_list,va_start,va_end` → `VaList`）、
+  `dsafe_calln`（`__VA_ARGS__` → `$($args:expr),*`）、`move_it_in_display_line_to`（六个 `goto` → labelled `break`；
+  `UNINIT` → `0`）、`move_it_to`（`switch`/`case`/`default`/`goto out` → `match`/`break`）、`move_it_vertically_backward`
+  （`move_further_back:` → labelled `loop`）、`add_to_log`（`va_*` → `VaList`）、`message_dolog`（`INT_STRLEN_BOUND` 实测 30、
+  `PRIdMAX` 实测 `"jd"`）、`ensure_echo_area_buffers`（`INT_STRLEN_BOUND` 实测 27）。
+  **判据**：`--check emacs/src/xdisp.c femacs/src/xdisp.rs` 的 `does not mention` 行 **6 → 0**，`- ` 行 176 → **170**
+  （剩下全是 `missing …` 的未转写余量，含 7 subr + 13 defsubr + 123 function）。`extract-abi.py --selftest` 9 cases / 0。
+  ③ **这条单元的在飞性质要写清**：它是**增量入库**（39,805 行的最大单元，本轮前沿 C 13994），所以 `--check` 仍是 FAIL，
+  台账 157 个未勾框；`extract-abi --all` 因此把它算在 **3 个 in progress** 里（另两个是 `include-dispextern` 53、`include-font` 16）。
+  另据 lane 实测：它引证的 `cond-eval-verified.txt` 文件数从 431 变 424 是别的 lane 改的，不是本单元。
+  ④ 读数（本轮末）：`check-swift-units` 0 new / 0 stale / 7 units；`check-declarations` 13/0；`check-verbatim` 6 trees/4607 files/0；
+  `check-citations` 9 drift / 1 range（macfont 在飞文本，已转给该 lane）/ 38 allowed / 0 stale；`layout-check passed`；
+  `extract-abi --all` 587 done / 3 in progress / 0 failing。
