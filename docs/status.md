@@ -2998,3 +2998,23 @@
   `dispnew.rs`、`window.rs`、`xfaces.rs`、`regex_internal.rs`、`verify.rs` 等 tracked 文件）；Harvey 的小件队列五个镜像与
   台账已在树里（`pathmax`/`dirent-private`/`execinfo.in`/`widgetprv`/`sfntfont`，均待它报告）；xdisp（C 7573+）、
   keyboard（C 12538+）、Mill（`macfont.swift`）在推。
+
+- **3.172 引证闸门的两处工具错误修好（`^L` 行号 + 关键字配对），首批 34 条引证改正（2026-10-04）**：
+  ① **两处工具错误都是"使用它的 lane"发现的**（这正是"每个 lane 都要能证伪我的工具"的价值）：
+  **（a）`splitlines()` 的 `^L` 误差**——`tools/check-citations.py` 用 Python 的 `str.splitlines()` 切参照文件，
+  而 C（`sed`/clang/本项目所有引证）用的是 `split("\n")`；Emacs 源码大量用 `^L`（form feed）分页，`splitlines()`
+  把它当换行 ⇒ **每条引证的行号都按"它之前的分页符个数"整体后移**（实测：`lisp.h` 有 17 个 `\x0c`，累计到 3833 行时偏移 14）。
+  **第一版 162 条 `drift` 里有 124 条就是这条 bug**。修法：`findings_for` 与缓存都用 `split("\n")` 并去掉尾随空元素；
+  同一次扫描 **142/15 → 93/15**。**（b）引号串配对**：旧版把引证与"该行第一个代码样反引号串"配对，而那常常是**语句关键字**
+  （`for`、`int`）——现在有一张 31 词的 `KEYWORDS` 表把它排除。
+  ② **allowlist 落地**：新 `docs/baseline/citations-allowlist.tsv`（`<port file>:<line>\t<reason>`），收录"引证是对的、
+  但配对的引号串只是举例/类型"这一类（**include 行引证**、成员名、类型名、`AVOID`/`_Static_assert` 这类"描述里的名字"），
+  共 **13 行**；规则与其他 manifest 一致：**行不再匹配任何 finding 即失败**（实测 `13 allowed, 0 stale`）。
+  ③ **首批 34 条引证改正**（`c789e68`，8 个 tracked 文件）：`font.rs` 14 条（`enum font_spacing` 341-347 → **406-412**、
+  `font_metrics` 351-356 → **414-417**、`font_driver` 595-793 → **589-821**、fontset.h 两处 → **40/44** …）、
+  `dispnew.rs` 5、`xfaces.rs` 5、`lisp.rs` 1（并把句序重排）、`window.rs` 2、`regex_internal.rs` 5、`verify.rs` 1、
+  `include/font.rs` 1。**在飞文件**（`keyboard.rs` 3、`xdisp.rs` 9、`nsfont.swift` 4、`macfont.swift` 2）只登记不动。
+  ④ 读数：`check-citations` **93 drift / 15 range / 282 external / 13 allowed / 0 stale**；
+  五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、
+  `check-target-names` 596 `.rs`/0）。lane 已按"先攻坚 range、再按密度打 drift"排下一批，目标是把 **tracked 面的
+  drift+range 打到 0**（在飞文件除外）。
