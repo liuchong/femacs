@@ -193,6 +193,19 @@ femacs/src/include/dispextern.rs`).  A struct lands when the unit that needs its
 ratchet only shrinks pending) - or, for a record that exists only in a window-system arm, with
 the P-82 readings and a window-system probe crate (`struct image`, below).
 
+### The X11 arm of `Emacs_Rectangle` (round: the X11 front's first mirror work)
+
+C spells `Emacs_Rectangle` twice: `typedef XRectangle Emacs_Rectangle;` under
+`#ifdef HAVE_X_WINDOWS` (C 44, reached through the `<X11/Xlib.h>` at C 29) and a four-short
+struct in the `#else` (C 66-70).  The mirror now carries both arms: the X11 one aliases the
+Xlib record from `include/xlib.rs` (`pub type Emacs_Rectangle = XRectangle;`, so the mirror
+includes that file under the same feature) and the frozen one keeps the struct the frozen
+configuration measures.  The two arms are 8 and 16 bytes, which is why `struct MonitorInfo`
+(two of them) is 32 bytes in the x11 arm and 48 in `ns_cocoa`
+(`spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h`, `docs/ports/xterm.md`
+Decision 16).  `python3 tools/extract-abi.py --check emacs/src/dispextern.h
+femacs/src/include/dispextern.rs` is OK with both arms present.
+
 ### Deviations (recorded, not missing work)
 
 - The include guard has no Rust counterpart: `pub const DISPEXTERN_H_INCLUDED: bool = true`.

@@ -39,6 +39,7 @@
 
 include!("dispextern.rs");       // C 129: `#include "dispextern.h"`
 include!("termhooks.rs");        // C 130: `#include "termhooks.h"`
+include!("xlib.rs");             // C 23: `#include <X11/Xlib.h>`
 
 /// C 20-21: `#ifndef XTERM_H / #define XTERM_H` - the include guard (its `#endif /* XTERM_H */`
 /// is C 2045).
@@ -51,6 +52,20 @@ pub const XTERM_H: bool = true;
 /// C: enum { X_ERROR_MESSAGE_SIZE = 200 };
 #[cfg (feature = "have_x_windows")]
 pub const X_ERROR_MESSAGE_SIZE: c_int = 200;
+
+/* Xlib's boolean pair, which `src/xrdb.c`'s `XrmQGetResource` lookups compare against.  Their
+   home is `<X11/Xlib.h>` (Xlib.h 79-80: `#define True 1` / `#define False 0`), and after
+   Decision 16 of `docs/ports/xterm.md` the X11 macros' module lives in `include/xlib.rs`'s
+   `x11_constants` - which is frozen for this round, so the pair is declared here (the 3.270
+   ruling's home) and moving these four lines into that module is the follow-up.  C's spelling is
+   kept, and a unit that needs them takes them at its own crate root (this file is `include!`d
+   there), not with a module-level `use` - `Option::None` would be shadowed by that.  */
+/// C: Xlib.h 79: `#define True 1`
+#[cfg (feature = "have_x_windows")]
+pub const True: c_int = 1;
+/// C: Xlib.h 80: `#define False 0`
+#[cfg (feature = "have_x_windows")]
+pub const False: c_int = 0;
 
 /// C 73-75: `#ifndef USE_GTK / #define GTK_CHECK_VERSION(i, j, k) false / #endif` - "Some
 /// definitions to reduce conditionals" (the `#ifndef` guard is there because GTK's own headers
@@ -582,6 +597,14 @@ pub struct x_display_info
      Xlib's; the pointer keeps C's name (this file's convention for X11 types).  */
   pub modmap: *mut XModifierKeymap,   // C: XModifierKeymap *modmap;
   /* C 941-950: the screen's dimensions, as last seen in a ConfigureNotify.  */
+  /* C 911-915: `#ifdef HAVE_XSYNC` - whether the XSync extension is present, and its
+     version.  */
+  #[cfg (feature = "have_xsync")]
+  pub xsync_supported_p: bool,   // C: bool xsync_supported_p;
+  #[cfg (feature = "have_xsync")]
+  pub xsync_major: c_int,   // C: int xsync_major;
+  #[cfg (feature = "have_xsync")]
+  pub xsync_minor: c_int,   // C: int xsync_minor;
   pub screen_width: c_int,   // C: int screen_width;
   pub screen_height: c_int,   // C: int screen_height;
   pub screen_mm_width: c_int,   // C: int screen_mm_width;
@@ -591,8 +614,15 @@ pub struct x_display_info
   pub next_failable_request: *mut x_failable_request,   // C: struct x_failable_request *next_failable_request;
   /* C 970-990: the DND emulation time, and the double-press quit keysym.  */
   pub pending_dnd_time: Time,   // C: Time pending_dnd_time;
+  /* C 974-983: `#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME` -
+     how the X server clock relates to the monotonic clock.  */
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"), feature = "have_clock_gettime"))]
+  pub server_time_monotonic_p: bool,   // C: bool server_time_monotonic_p;
+  #[cfg (all (feature = "have_xsync", not (feature = "use_gtk"), feature = "have_clock_gettime"))]
+  pub server_time_offset: int_fast64_t,   // C: int_fast64_t server_time_offset;
   pub quit_keysym: KeySym,   // C: KeySym quit_keysym;
   pub quit_keysym_time: Time,   // C: Time quit_keysym_time;
+
 }
 
 /* C 740-745's anonymous enum, written as the constants its members are (PORTING.md 1.3);
@@ -1530,41 +1560,3 @@ macro_rules! STORE_NATIVE_RECT {
 // C: extern void x_delete_display (struct x_display_info *);
 // C: ... (the whole block is C 750-2043; every declaration keeps C's own text in the reference)
 
-/* X11's own macros that `xterm.c` uses by name.  The reference tree defines none of them (they
-   come from the X11 headers), so they are recorded here, in C's spelling, measured from the
-   `xorgproto` headers this machine has at `/opt/homebrew/include` (`clang -E -dM`, and the
-   `#define` line each value is quoted from).  They live in a module of their own rather than at
-   the mirror's top level: a unit that includes this mirror is X11 code and wants C's `None`,
-   but a top-level `None` would shadow Rust's prelude `Option::None` for the whole unit, so the
-   consumer imports the few names it needs where it needs them.  */
-#[cfg (feature = "have_x_windows")]
-pub mod x11_constants {
-  /// X11/X.h 115: `#define None 0L` - "universal null resource or null atom".
-  pub const None: c_long = 0;
-  /// X11/X.h 350: `#define Success 0` - "everything's okay".
-  pub const Success: c_int = 0;
-  /// X11/X.h 121: `#define CopyFromParent 0L` - the CreateWindow border/colormap value.
-  pub const CopyFromParent: c_long = 0;
-  /// X11/X.h 150: `#define NoEventMask 0L`.
-  pub const NoEventMask: c_long = 0;
-  /// X11/X.h 168: `#define StructureNotifyMask (1L<<17)`.
-  pub const StructureNotifyMask: c_long = 1 << 17;
-  /// X11/X.h 212: `#define ClientMessage 33` - the `XEvent` union member `xclient` selects.
-  pub const ClientMessage: c_int = 33;
-  /// X11/X.h 388: `#define InputOnly 2` - the `XCreateWindow` class.
-  pub const InputOnly: c_int = 2;
-  /// X11/X.h 401: `#define CWOverrideRedirect (1L<<9)`.
-  pub const CWOverrideRedirect: c_long = 1 << 9;
-  /// X11/X.h 456: `#define DestroyAll 0` - `XSetCloseDownMode`'s first mode.
-  pub const DestroyAll: c_int = 0;
-  /// X11/X.h 457: `#define RetainPermanent 1` - the mode that keeps the client slot.
-  pub const RetainPermanent: c_int = 1;
-  /// X11/X.h 475: `#define PropModeReplace 0`.
-  pub const PropModeReplace: c_int = 0;
-  /// X11/X.h 477: `#define PropModeAppend 2`.
-  pub const PropModeAppend: c_int = 2;
-  /// X11/Xatom.h 12: `#define XA_ATOM ((Atom) 4)`; C's `Atom` is `unsigned long`.
-  pub const XA_ATOM: c_ulong = 4;
-  /// X11/Xatom.h 41: `#define XA_WINDOW ((Atom) 33)`.
-  pub const XA_WINDOW: c_ulong = 33;
-}

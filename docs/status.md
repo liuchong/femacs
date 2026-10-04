@@ -5491,3 +5491,29 @@
   ⑤ **未入库与未声称**：`femacs/src/xterm.rs` 的工作树上有 **+666 行**未提交的切片、而 `docs/ports/xterm.md`
      **一行都没动**（台账没有对应轮次）⇒ 本轮**不入库**，已向该 lane 追问来源；四本 link/Swift 棘轮要在本件
      入库后的 HEAD 上重跑（3.270② 的顺序），本条不冒充入库后的读数。
+
+- **3.346 `src/xrdb.c` 整文件入库：X11 面的第一个整文件；镜像把 `Emacs_Rectangle` 的两条臂都带上（2026-10-05）**：
+  ① **交付形态**：`femacs/src/xrdb.rs` **14 → 533 行**（清单 14 项：11 函数 + 1 宏 `XrmStringType` +
+     2 个文件级对象；整身 `#[cfg (feature = "have_x_windows")]`，因为 `src/xrdb.c` 不在冻结构建的源列表里
+     —— `docs/baseline/frozen-build-sources.txt`）；台账 `docs/ports/xrdb.md` 14 → **252 行**（14 框全勾 +
+     10 条 Decisions + Evidence）。同批入库 `femacs/src/include/xterm.rs`（`True`/`False` 两条 +
+     Decision 16 的搬迁：`x11_constants` 移出、`include!("xlib.rs")`、5 个 `HAVE_XSYNC` 成员——**这是 3.336
+     入库 `xlib.rs` 时缺的另一半**，不带上 `xlib.rs` 就没人引用）与 `femacs/src/include/dispextern.rs`
+     （`Emacs_Rectangle` 的两条臂：X11 臂 `pub type Emacs_Rectangle = XRectangle` + `include!("xlib.rs")`，
+     `#else` 臂保留冻结配置量到的四 short 结构；两条臂 8/16 字节，正是 `struct MonitorInfo` 在 x11 臂 32、
+     `ns_cocoa` 臂 48 的原因）。台账 `docs/ports/include-dispextern.md` 补了这段 X11 臂的记录（原 lane 的
+     `## Deviations` 之前只记了非 X 的那些）。
+  ② **我自己复跑的读数**：`build-tu src/xrdb.c` → `built`；`build-tu src/xterm.c` → `built`；
+     `extract-abi --check emacs/src/xrdb.c femacs/src/xrdb.rs` → **OK**（先补 `docs/ports/macro-body-notes.tsv`
+     两行：`x_get_customization_string` 的 `alloca`（P-05 的栈池，`sa_stack_alloc`/`safe_free`）与
+     `magic_db` 的 `switch,case,default,break`（C 的 switch 成为端口的 `match` 臂，与
+     `do_symval_forwarding`/`check_fwd_predicate` 同一记录先例））；`--check` 对
+     `include/xterm.rs`/`include/dispextern.rs` 两个镜像都是 **OK**；`check-cond-eval src/xrdb.c` →
+     `6 conditions, 0 unknown, 0 disagreements [VERIFIED]`。
+  ③ **一条"工具 vs 文件"的读数**（lane 实测，值得记）：`XrmStringType` 同时出现在清单的 Macros 与 constants
+     两张表里，所以"15 项"是重复计数，真实是 **14 项**；另外 **`x_rm_string`（C 374）工具根本看不到**——
+     `cinventory.globals_` 要求"原始行以 `;` 结尾"，行尾注释会让它被静默丢弃（三行探针实测），端口照样承载它
+     （C 396 写、C 502 读）。这是**工具 artifact、不是豁免行**。
+  ④ **未声称**：没有 X11 运行时验收（本机没有可编 `have_x_windows` 的完整 Xlib 头面）；`x_get_customization_string`
+     的 `PBaseSize` 条件按"文件自己平台的活臂"取（冻结宏表里没有这一行，`#else` 的 `_XPrivDisplay` 本配置永不编译，
+     就地记录不转写）；整身 gated 意味着**冻结构建下这个单元几乎不编译任何东西**。

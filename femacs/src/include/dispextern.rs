@@ -34,7 +34,20 @@ pub struct Emacs_Color
 // `#define No_Cursor (NULL)` (dispextern.h 58; the X branch's `(None)` is dead).
 pub const No_Cursor: *mut c_void = std::ptr::null_mut ();
 
+/* C 44: `typedef XRectangle Emacs_Rectangle;` in the X11 arm, and the struct C 66-70 defines in
+   the `#else`; the two arms are 8 and 16 bytes, which is why `struct MonitorInfo` (two of these)
+   is 32 bytes in the x11 arm and 48 in `ns_cocoa`
+   (`spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h`, docs/ports/xterm.md Decision 16).
+   `<X11/Xlib.h>` is where C's alias comes from (C 29), and `include/xlib.rs` is its mirror.  */
+#[cfg (feature = "have_x_windows")]
+include!("xlib.rs");                            // C 29: `#include <X11/Xlib.h>` (XRectangle)
+
+/// C 44: the X11 arm aliases Xlib's record instead of defining one.
+#[cfg (feature = "have_x_windows")]
+pub type Emacs_Rectangle = XRectangle;
+
 /* XRectangle-like struct used by non-X GUI code.  */
+#[cfg (not (feature = "have_x_windows"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct Emacs_Rectangle
@@ -44,6 +57,13 @@ pub struct Emacs_Rectangle
   pub width: c_uint,
   pub height: c_uint,
 }
+
+/// C 66-70 / 44: the arms' sizes, asserted where each arm is compiled (8 through `XRectangle`'s
+/// own assertion in `include/xlib.rs`, 16 here).
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<Emacs_Rectangle> () == 8);
+#[cfg (not (feature = "have_x_windows"))]
+const _: () = assert! (core::mem::size_of::<Emacs_Rectangle> () == 16);
 
 /* XGCValues-like struct used by non-X GUI code.  */
 #[repr(C)]

@@ -1251,3 +1251,5 @@ update_overlay_arrows	continue	xdisp.c 17173 and 17179: the same `'body:` shape 
 overlay_arrow_at_row	continue	xdisp.c 17211: the same `'body:` shape (deviation 133)
 STOP_POLLING	false	xdisp.c 17341: C's `do { … } while (false)` runs its block once; Rust has no do-while, so the port writes the block and the `false` has no site (deviation 140)
 try_scrolling	goto	xdisp.c 19725: C's `goto too_near_end` is the port's `continue too_near_end`, and the label sits on a `loop` that covers the rest of the function (deviations 164-165)
+x_get_customization_string	alloca	PORTING.md P-05: the port has no alloca - the two blocks come from the stack pool (sa_stack_alloc) and are released by safe_free, which the pool's own note records (docs/ports/xrdb.md Decision 4)
+magic_db	switch,case,default,break	PORTING.md 2.2 and the do_symval_forwarding/check_fwd_predicate precedent: C's switch/case/default/break on the character after '%' become the port's `match` arms, one per byte literal
