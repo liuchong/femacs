@@ -2235,3 +2235,19 @@
   → `R2` 两个负例）；在全树上跑 **544 个 `.rs`、593 个 map target、0 finding**。
   ④ **每轮的 check 门因此由四个变五个**：`check-globals` / `check-declarations` / `check-mirror-dupes` /
   `check-verbatim` / **`check-target-names`**。
+
+- **3.141 mirror lane A/B 的前四个镜像单元入库：`androidterm.h`、`gtkutil.h`、`pgtkterm.h`、`haikugui.h`（2026-10-04）**：
+  ① **复核（集成者自己跑，不采信 lane 报告）**：四对 `--check` 全 **OK**——`emacs/src/androidterm.h` +
+  `include/androidterm.rs`（26,017 字节的镜像，496 行参照）、`gtkutil.h`、`pgtkterm.h`（681 行参照、1 个函数、
+  46 个宏、169 个字段）、`haikugui.h`（205 行、35 个宏、19 个常量、4 个字段）；四个台账都是 **0 未勾**、
+  `## Decisions` 与 `## Evidence` 齐备（含 lane 自己的编译证明与"最接近消费者"的 `build-tu` 冒烟）。
+  ② **五个门全绿**：`check-globals` 283 units / 0、`check-declarations` 13 sites (0 forbidden, 13 allowed
+  literals) / 0、`check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row / 0 failure、
+  `check-verbatim` 6 trees / 4607 files / 0、**`check-target-names` 544 个 `.rs` / 593 个 target / 0 finding**。
+  ③ **提交态自洽性的一处说明**：`androidterm`/`gtkutil`/`pgtkterm` 三行在上一批 `docs/port-inventory.md`
+  的提交（`105c2b6`）里就已经被计成 `done`——生成器按**工作区**统计（含尚未提交的在飞文件，这是它能当进度账
+  的原因），所以本轮把它们真正入库后，提交态与清单才对得上；本次唯一新翻的一行是 `src/haikugui.h`
+  （`todo` → `done`）。复算 **509 = 495 done / 14 wip，待开工 81**。
+  ④ lane 在 `haikugui` 台账里记下的处置值得留档：`XCharStruct` 一类的名字与 `dispextern.rs` 的别名冲突时，
+  选择"照参照逐声明携带 + 在台账写明"，而不是发明 `pub mod` 包装（`macro_rules!` 是文本作用域，包装会把宏名
+  藏起来，比冲突更糟）。
