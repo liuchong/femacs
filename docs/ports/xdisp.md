@@ -254,17 +254,17 @@
 - [x] sync_frame_with_window_matrix_rows  (line 22428, static)
 - [x] row_containing_pos  (line 22472)
 - [x] try_window_id  (line 22588, static)
-- [ ] get_overlay_arrow_glyph_row  (line 23822, static)
-- [ ] insert_left_trunc_glyphs  (line 23893, static)
-- [ ] row_hash  (line 24048)
-- [ ] compute_line_metrics  (line 24082, static)
-- [ ] clear_position  (line 24157, static)
-- [ ] append_space_for_newline  (line 24176, static)
-- [ ] extend_face_to_end_of_line  (line 24384, static)
-- [ ] trailing_whitespace_p  (line 24869, static)
-- [ ] highlight_trailing_whitespace  (line 24891, static)
-- [ ] row_for_charpos_p  (line 24975, static)
-- [ ] cursor_row_p  (line 25062, static)
+- [x] get_overlay_arrow_glyph_row  (line 23822, static)
+- [x] insert_left_trunc_glyphs  (line 23893, static)
+- [x] row_hash  (line 24048)
+- [x] compute_line_metrics  (line 24082, static)
+- [x] clear_position  (line 24157, static)
+- [x] append_space_for_newline  (line 24176, static)
+- [x] extend_face_to_end_of_line  (line 24384, static)
+- [x] trailing_whitespace_p  (line 24869, static)
+- [x] highlight_trailing_whitespace  (line 24891, static)
+- [x] row_for_charpos_p  (line 24975, static)
+- [x] cursor_row_p  (line 25062, static)
 - [ ] push_prefix_prop  (line 25077, static)
 - [ ] get_it_property  (line 25175, static)
 - [ ] get_line_prefix_it_property  (line 25196, static)
@@ -432,53 +432,46 @@
 ### Progress (this lane is incremental)
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds C
-22545-23381** — `try_window_id` whole (the doc comment at C 22545-22586 states the contract,
-"Value is >= 1 ... 0 if otherwise unsuccessful", and the body is C 22587-23381, the unit's one
-794-line function).  In C's order: the `is_tty_root_frame_with_visible_child` early exit; the
-**26 live `GIVE_UP` gates** (C 22636=`(1)`, 22640=`(2)`, 22646=`(200)`, 22654=`(3)`,
-22661=`(4)`, 22665=`(5)`, 22669=`(6)`, 22673=`(7)`, 22677=`(8)`, 22681=`(11)`, 22686=`(12)`,
-22693=`(21)`, 22705=`(22)`, 22710=`(23)`, 22720=`(24)`, 22726=`(27)`, 22772=`(13)`,
-22819=`(14)`, 22852=`(15)`, 22860=`(16)`, 22866=`(20)`, 22896=`(17)`, 22899=`(18)`,
-22920=`(26)`, 22947=`(108)` and 22995=`(19)` — plus the one dead `GIVE_UP (25)` under
-`HAVE_NTGUI`); the
-`BEG_UNCHANGED`/`END_UNCHANGED` refresh and the `first_changed_charpos`/`last_changed_charpos`
-pair; the two whole-matrix shortcuts (C 22751-22801's stealth-fontification arm, with its
-`Z_old`/`Z_delta`/`Z_BYTE_old`/`Z_delta_bytes`, the `increment_matrix_positions` call and the
-`row_containing_pos` + `set_cursor_from_row` cursor set, and C 22807-22841's "changes are all
-below" arm with its `TEXT_POS_EQUAL_P (start, r0->minpos)` test); the window-start checks (C
-22850-22866); `find_last_unchanged_at_beg_row`'s trailing-whitespace `while` walk, the
-`init_to_row_end` reseat and the fringe/line-prefix/wrap-prefix give-up (C 22883-22931);
-`start_display` for the no-reusable-rows arm; `find_first_unchanged_at_end_row` with the
-continuation-line advance and the `stop_pos`/`first_unchanged_at_end_vpos` record; the
-`display_line` loop with its `reversed_p` reset and the `f->fonts_changed`/`window_end_valid`
-give-ups; the `dvpos`/`dy`/`run` scroll record; the cursor search (over the top rows, then from
-`first_unchanged_at_end_row` with the `delta`/`delta_bytes`/`dy`/`dvpos` record); the
-scroll-margin block; the `if (dy && run.height)` scroll with its terminal-frame
-`set_terminal_window`/`ins_del_lines` arm; `rotate_matrix` + `clear_glyph_matrix_rows` +
-`increment_matrix_positions` + `shift_glyph_matrix`; the `dy < 0` tail-display block; and the
-four-way `adjust_window_ends`/`window_end_*` tail.  The covered range is now **C 468-23381**.
-The next live definition is **C 23821's `get_overlay_arrow_glyph_row`**; C 23388-23809, the
-"More debugging support" `#ifdef GLYPH_DEBUG` block of `dump-*`/`trace-*` subrs, sits between
-the two and is recorded in the dead-arm list (the next round starts after it).
-**The brief's "the body runs to C 23821, 1,234 lines" is a subtraction, not a boundary**: the
-reference's own `try_window_id` closes at C 23381 (`23381 - 22588 + 1 = 794` lines, its comment
-from C 22545), and C 23821 is where the *next* definition's `static struct glyph_row *` opens —
-so this round stops at the function's own brace, as the "whole function, no half" rule asks.
+23817-25075** — the "Building Desired Matrix Rows" group's first eleven definitions, from
+`get_overlay_arrow_glyph_row` through `cursor_row_p` (C 23385-23816, the "More debugging
+support" banner and its whole `#ifdef GLYPH_DEBUG` dump/trace block, sits between the previous
+round's end and this round's first doc comment and is recorded, not transcribed).  In C's
+order: `get_overlay_arrow_glyph_row` (C 23821-23886, the `SDATA`/`SBYTES` walk over the overlay
+arrow string with `check_char_and_length`, the per-character face lookup through
+`lookup_basic_face`/`compute_char_face`, and the `PRODUCE_GLYPHS` width test);
+`insert_left_trunc_glyphs` (C 23893-24044, the `produce_special_glyphs (…, IT_TRUNCATION, …)`
+fill of `scratch_glyph_row` and the L2R/R2L overwrite loops with their `memmove` and
+padding-glyph arms); `row_hash` (C 24048-24062, the four-area hash over
+`u.val`/`face_id`/`padding_p`/`type`); `compute_line_metrics` (C 24082-24153, the
+`FRAME_WINDOW_P` ascent/width/visible-height arm against the terminal
+`pixel_width`/`height = 1` arm, and the `row_hash` store); `clear_position` (C 24157-24161);
+`append_space_for_newline` (C 24176-24372, the saved-iterator field set, the
+`fill_column_indicator_column` corner case with `merge_faces`/`FACE_FOR_CHAR`, the
+`should_keep_end_of_box_run` decision and the restore tail); `extend_face_to_end_of_line`
+(C 24384-24862, the default-face `specbind`/`unbind_to` guard with `face_at_pos`, the
+`margin_fill_face_id` lookup, the `fill_line_p` set, and the live `else` arm's left/right margin
+fills and `fill_column_indicator_column` loop); `trailing_whitespace_p` (C 24869-24889, the
+`CHAR_TO_BYTE`/`FETCH_BYTE` walk to `ZV_BYTE`); `highlight_trailing_whitespace` (C 24891-24973,
+the L2R/R2L glyph walks and the `Qtrailing_whitespace` face store); `row_for_charpos_p`
+(C 24975-25060, the `display`/`cursor` text-property test) and `cursor_row_p` (C 25062-25075).
+The covered range is now **C 468-25075**.  The next live definition is **C 25077's
+`push_prefix_prop`** (`static bool`) — the `line-prefix`/`wrap-prefix` group, whose forward
+declaration C 1132 already sits in this unit's scaffold.
 Ticked in the ledger above, bucket by bucket — **measured** with `grep -c '^- \[x\]'` over each
-section (`Subrs` 4/13, `Functions` 226/302, `Macros` 31/38, `Types and their fields` 2/2,
-`File-scope objects` 59/60) — **322 of the 415 boxes** (226+4+31+2+59); the remaining 93 are
-untouched.  **The scaffold grows 16 -> 17**: `try_window_id`'s own entry is deleted in the round
-its definition lands (the standing rule) and `gui_clear_window_mouse_face` (dispextern.h 3689,
-non-`static`, defined later in this unit at C 37705) is added, because C 23172 calls it and the
-port has no other declaration.  **One `docs/ports/macro-body-notes.tsv` row is owed** —
-`--check`'s `does not mention` set grows 3 -> 4 with `try_window_id` /
-`debug_delta, debug_delta_bytes, debug_dvpos, debug_dy, debug_end_pos, debug_end_vpos,
-debug_method_add, if_debug` (the eight tokens of the seven live `IF_DEBUG (...)` statements,
-whose `IF_DEBUG` arm is C's `((void) 0)` — the `redisplay_window` row's class).  `--check`'s
-`^- ` count **stays at 99**, not the drop the brief expected: two rows retire (`missing function
-try_window_id` and `missing macro GIVE_UP`) and two appear (the `try_window_id` row above, and
-`function gui_clear_window_mouse_face is not static in C but has no #[unsafe(no_mangle)] in the
-port (no C symbol to link)` — the class to-do item 48 recorded).  `src/xdisp.rs` is 22,573 lines.
+section (`Subrs` 4/13, `Functions` 237/302, `Macros` 31/38, `Types and their fields` 2/2,
+`File-scope objects` 59/60) — **333 of the 415 boxes** (237+4+31+2+59); the remaining 82 are
+untouched.  **The scaffold shrinks 17 -> 14**: the three entries whose definitions land
+(`row_for_charpos_p` C 1129/24975, `cursor_row_p` C 1130/25062, `compute_line_metrics` C 1183)
+are deleted and none is added — every other name the round's eleven bodies reach is already
+defined in the unit, defined before use in C (`row_hash`), or the include graph's.
+**No `docs/ports/macro-body-notes.tsv` row is owed** — the round transcribes every live token,
+so `--check`'s `does not mention` set **stays 3** (the three pre-existing
+`redisplay_internal`/`set_cursor_from_row`/`redisplay_window` rows).  That is what the dead-arm
+comments are for: the five dead `#if` blocks remove their tokens from `c_body_text` before the
+comparison, so the `get_it_property`/`calc_line_height_property`/`normal_char_ascent_descent`/
+`append_stretch_glyph` names and the `Qline_height`/`Qline_spacing` reads never enter the C
+side.  `--check`'s `^- ` count drops **98 -> 87**: the round retires the eleven `missing
+function` rows it defines and adds none.  `src/xdisp.rs` is 23,569 lines.
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -940,12 +933,22 @@ C 5773).
   three forward declarations at C 22247-22253 are dropped (0.1-12); the round's six dead `#if`
   blocks are in the dead-arm list below, and its two `does not mention` rows
   (`try_window_reusing_current_matrix`, `row_containing_pos`) are deviation 197's.
+* C 23817-25075 — the "Building Desired Matrix Rows" group's first eleven definitions (the
+  C 23813-23816 banner introduces them): `get_overlay_arrow_glyph_row` (C 23821, `static struct
+  glyph_row *`), `insert_left_trunc_glyphs` (C 23893), `row_hash` (C 24048, non-`static`), the
+  already-scaffolded `compute_line_metrics` (C 24082), `clear_position` (C 24157),
+  `append_space_for_newline` (C 24176), the already-forwarded `extend_face_to_end_of_line`
+  (C 24384), `trailing_whitespace_p` (C 24869), `highlight_trailing_whitespace` (C 24891) and
+  the two scaffold entries `row_for_charpos_p` (C 24975) and `cursor_row_p` (C 25062).  The
+  round's five dead `#if` blocks are in the dead-arm list below; it retires three scaffold
+  entries and adds none, and it owes no `macro-body-notes.tsv` row (the Progress section).
 ### The transcription that is in place
 
-The ledger above is the checklist.  219 of the C file's 302 functions (plus 4 of its 13
-subrs — the three the frozen configuration keeps live and `long-line-optimizations-p`) are defined, in
-C's order, with C's names, C's statements and
-C's comments; `src/xdisp.rs` is 20,897 lines.  Every function that C declares `static` is a
+The ledger above is the checklist.  Its tick boxes read 237 of the C file's 302 functions
+(the sentence here previously carried the stale figures 219 functions / 20,897 lines) plus 4 of
+its 13 subrs — the three the frozen configuration keeps live and `long-line-optimizations-p` —
+defined in C's order, with C's names, C's statements and C's comments; `src/xdisp.rs` is 23,569
+lines.  Every function that C declares `static` is a
 plain `unsafe fn` here (and `unsafe extern "C" fn` where it is variadic or its address is
 handed out — `redisplay_trace`, `move_trace`, `dsafe_eval_handler`,
 `funcall_with_backtraces`, `handle_display_prop` (whose address is `it_props[]`'s handler
@@ -1099,6 +1102,31 @@ All five in-range blocks keep a pointer comment at the site (the standing shape,
 23330, 23367 and 23372-23373), whose `IF_DEBUG` arm is C's `((void) 0)` — recorded at the site,
 and the reason `--check` owes the `try_window_id` row (see the to-do list).
 
+The twenty-eighth round's range (C 23817-25075, the desired-matrix-row builders) holds five
+dead `#if` blocks, all `undef` in `docs/baseline/config/darwin-arm64.macros.tsv`:
+
+* C 24205-24207 — `append_space_for_newline`'s `#ifdef HAVE_WINDOW_SYSTEM` disjunct
+  (`|| FRAME_WINDOW_P (it->f)`) of its `if (default_face_p …)` test.
+* C 24213-24225 — the same function's `HAVE_WINDOW_SYSTEM` arm (`FACE_FROM_ID`, `FRAME_FONT`,
+  `default_face->font` and the `font->average_width`/`font->space_width` `char_width`
+  computation).
+* C 24271-24356 — the same function's `HAVE_WINDOW_SYSTEM` arm (the appended space glyph's
+  ascent/descent setup: `normal_char_ascent_descent`, `get_it_property` and
+  `calc_line_height_property` with `Qline_height`/`Qline_spacing`, `VCENTER_BASELINE_OFFSET`,
+  and the `it->max_ascent`/`max_descent` stores).
+* C 24449-24451 — `extend_face_to_end_of_line`'s `#ifdef HAVE_WINDOW_SYSTEM` disjunct
+  (`&& !face->stipple`) of its skip test.
+* C 24474-24732 — the same function's whole `HAVE_WINDOW_SYSTEM` arm (the `FRAME_WINDOW_P (f)`
+  GUI block: `space_glyph`, the left/right margin stretch fills through
+  `append_stretch_glyph`/`FONT_BASE`/`FONT_HEIGHT`, `WINDOW_*_MARGIN_COLS`, the fill-column
+  indicator glyph, and the R2L stretch prepend), with its nested `#ifndef HAVE_EXT_TOOL_BAR` at
+  C 24491-24493.
+
+All five keep a pointer comment at the site (the standing shape, deviations 170/178).  The
+`#ifdef GLYPH_DEBUG` block the previous round recorded as C 23388-23809 is the "More debugging
+support" banner's own block (banner C 23385-23387, `#ifdef` C 23389, `#endif` C 23809); this
+round opens at C 23817 and only reconciles the boundary.
+
 ### Use-site declarations (headers without a mirror, or mirror gaps; each keeps C's prototype in a `/// C:` line)
 
 1. **`window.h`'s accessor macros — retired to the mirror.**  `include/window.rs` was WIP and
@@ -1192,6 +1220,12 @@ and the reason `--check` owes the `try_window_id` row (see the to-do list).
     (dispextern.h 3915/3909-3910; dispnew.c defines them).  C's `gui_clear_window_mouse_face`
     (dispextern.h 3689) is **not** among them: `xdisp.c` itself defines it (C 37705, non-`static`),
     so it is a temporary scaffold entry until that definition lands (to-do item 67).
+
+14. **Two more use-site declarations this round**: `lookup_named_face` (dispextern.h 3812) and
+    `compute_char_face` (dispextern.h 3832), both defined by xfaces.c, join the unit's `unsafe
+    extern "C"` block next to `lookup_basic_face`/`merge_faces` (the mirror chain does not carry
+    them; `get_overlay_arrow_glyph_row` at C 23866/23868 and `highlight_trailing_whitespace` at
+    C 24932 are this unit's first uses).
 
 ### Deviations (each one also named in the report)
 
@@ -2542,6 +2576,69 @@ and the reason `--check` owes the `try_window_id` row (see the to-do list).
      Because `build-tu`'s single-unit path compiles one rustc pass, these bodies are visible to
      the `--cfg enable_checking` probe only (see the Gate evidence section, which runs it).
 
+### Deviations, continued (the round's twenty-eighth pass: the desired-matrix-row builders)
+
+218. **The round's C range is C 23817-25075; the gap above it is C 23385-23816.**  The previous
+     round ended at `try_window_id`'s closing brace (C 23381); C 23385-23816 is the "More
+     debugging support" banner and its whole `#ifdef GLYPH_DEBUG` block (already recorded as
+     C 23388-23809), so this round's first transcribed line is C 23817's doc comment.  The next
+     live definition is C 25077's `push_prefix_prop`.
+219. **`struct face` names four more members** (the unit's own measured copy, deviation 26's
+     record): `background` (offset 176, carved out of the copy's old `_pad0`) and the
+     `face_bits!` read arms `underline` (dispextern.h 1893-1935's `ENUM_BF (face_underline_type)
+     underline : 3` at bit 2) and the `overline_p`/`strike_through_p` `bool_bf` bits (bits 6/7),
+     measured in `docs/baseline/face-layout.tsv` and spelled identically to `xfaces.rs`'s copy of
+     the record.  `extend_face_to_end_of_line`'s C 24442-24458 skip test and its two margin fills
+     (C 24753, C 24830) are the readers.
+220. **`glyph_bits!`/`glyph_row_bits!`/`it_bits!` stand in for C's bitfields** (PORTING.md 1.3):
+     `row->glyphs[area][k].type` is `glyph_bits! (type, *ptr)` and `padding_p` is
+     `glyph_bits! (padding_p, *ptr)` (C 24058 names the member directly, so the port does too
+     rather than through `CHAR_GLYPH_PADDING_P`), `glyph->face_id = face_id` is
+     `glyph_bits! (face_id, *glyph, face_id)`, the row flags (`reversed_p`, `continued_p`,
+     `truncated_on_right_p`, `overlapping_p`, `mode_line_p`, `ends_at_zv_p`,
+     `ends_in_ellipsis_p`, `fill_line_p`) are `glyph_row_bits!` readers/writers, `it`'s
+     `end_of_box_run_p`/`constrain_row_ascent_descent_p`/`string_from_prefix_prop_p`/
+     `face_before_selective_p` are `it_bits!`, and C's `int saved_end_of_box_run =
+     it->end_of_box_run_p;` is `it_bits! (…) as c_int`, restored as `saved_end_of_box_run != 0`.
+221. **Pointer arithmetic, `memmove` and the `short` accumulators.**  Every `to++`/`from--`
+     becomes a `.offset (±1)` step with C's order kept; `it->glyph_row->glyphs[TEXT_AREA][k]` is
+     `.glyphs[TEXT_AREA as usize].offset (k as isize)`; `(toend - g) * sizeof(*g)` is
+     `toend.offset_from (g) as usize * core::mem::size_of::<glyph> ()`; `g - to - tused` is
+     `g.offset_from (to) - tused as isize`; `from - end + 1` is `from.offset_from (end) as c_int
+     + 1`; and C's `short += int`/`short -= int` (`insert_left_trunc_glyphs`,
+     `compute_line_metrics`) is written in the widened form
+     `((*gp).pixel_width as c_int + extra) as c_short`, because Rust's `+=` on a `c_short` would
+     trap where C truncates.
+222. **`as c_int` before a `<` is parenthesised.**  C's `row->used[LEFT_MARGIN_AREA] <
+     WINDOW_LEFT_MARGIN_WIDTH (it->w)` compares a `short` with an `int`, so the port writes
+     `((… as c_int) < WINDOW_LEFT_MARGIN_WIDTH! (it->w))` — the `(BEG as ptrdiff_t)` shape
+     deviation 216 records; the four sites were the round's first build's only type errors.
+223. **The whole `HAVE_WINDOW_SYSTEM` arms are recorded, not transcribed** (P-08, the unit's
+     standing rule).  They leave their C tokens out of `c_body_text`, which is why `--check` owes
+     no new `does not mention` row even though `append_space_for_newline` and
+     `extend_face_to_end_of_line` name `get_it_property`, `calc_line_height_property`,
+     `normal_char_ascent_descent` and `append_stretch_glyph` in their dead halves.
+224. **Type spellings this round**: `SDATA`/`SBYTES` are `lisp.rs`'s fns; `WINDOW_FRAME! (w)` is
+     the window.rs mirror's macro (`XFRAME (WINDOW_FRAME! (w))`); `it->glyph_row->used[TEXT_AREA]`
+     is `(*(*it).glyph_row).used[TEXT_AREA as usize]` and the local-`it` form is
+     `(*(it.glyph_row)).used[…]`; `MATRIX_FIRST_TEXT_ROW (it->w->desired_matrix)` needs the
+     `as *mut glyph_matrix` cast (the window mirror's `*mut c_void`, deviation 213);
+     `WINDOW_TAB_LINE_HEIGHT!`/`WINDOW_HEADER_LINE_HEIGHT!`/`WINDOW_BOX_HEIGHT_NO_MODE_LINE!` and
+     `WINDOW_LEFT_MARGIN_WIDTH!`/`WINDOW_RIGHT_MARGIN_WIDTH!`/
+     `WINDOW_{LEFT,RIGHT}_FRINGE_WIDTH!`/`MATRIX_FIRST_TEXT_ROW!`/`MATRIX_ROW_OVERLAPS_*!`/
+     `MATRIX_ROW_{END_CHARPOS,ENDS_IN_MIDDLE_OF_CHAR_P}!`/`MATRIX_ROW_DISPLAYS_TEXT_P!`/`BVAR!`/
+     `SET_TEXT_POS!`/`CHARPOS!`/`BYTEPOS!`/`PRODUCE_GLYPHS!`/`CHAR_GLYPH_PADDING_P!` are the
+     mirrors' `macro_rules!` (the `!` form); `FRAME_WINDOW_P`/`FRAME_LINE_HEIGHT`/
+     `FRAME_COLUMN_WIDTH`/`FRAME_BACKGROUND_PIXEL`/`FACE_FROM_ID`/`FACE_FOR_CHAR`/
+     `FACE_FROM_ID_OR_NULL`/`CHAR_TO_BYTE` are fns; `FACE_FROM_ID (f,
+     margin_fill_face_id)->background` is `(*FACE_FROM_ID (f, margin_fill_face_id)).background`;
+     and `glyph->frame = it->f` is `(*glyph).frame = (*it).f as *mut c_void` (the glyph mirror's
+     untyped pointer).
+225. **Two `eassert!`s, the mirror's release arms** (deviations 208/217's shape): C 23898-23902's
+     four-part fringe test and C 24109-24110's `pixel_width >= 0` /
+     `ascent >= 0 && height > 0` pair carry their conditions unevaluated in the frozen build and
+     are visible to the `--cfg enable_checking` probe only (the Gate evidence section runs it).
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -2900,46 +2997,64 @@ and the reason `--check` owes the `try_window_id` row (see the to-do list).
 70. `docs/ports/xdisp.md`'s own §"Dead arms" and §"Use-site declarations" are updated in place
     this round (the five in-range `#if` blocks of C 22545-23381, the dead C 23388-23809 block
     that sits between this round and the next, and the six new use-site names).
+71. `include/dispextern.rs`: the round's two use-site externs — `lookup_named_face`
+    (dispextern.h 3812) and `compute_char_face` (dispextern.h 3832), both xfaces.c's — belong in
+    the mirror next to `lookup_basic_face`/`merge_faces` (item 8's family).  `struct face`'s
+    `background` (offset 176) and the three `face_bits!` read arms (`underline` bit 2,
+    `overline_p` bit 6, `strike_through_p` bit 7) the round names in this unit's own copy join
+    items 10/24/30's list for whoever pushes the record into the mirror.
+72. **Text-vs-machine gap (item 69's class), this round's share.**  Seven of the round's eleven
+    definitions are unreachable from the transcribed text, so `nm build/femacs/xdisp.o` emits no
+    symbol for them: `get_overlay_arrow_glyph_row`, `insert_left_trunc_glyphs`, `clear_position`,
+    `append_space_for_newline`, `extend_face_to_end_of_line`, `trailing_whitespace_p` and
+    `highlight_trailing_whitespace` (their callers are at C 26761-26815, C 30293 and C 26068-26487
+    — all past this unit's transcribed range).  `cursor_row_p`/`row_for_charpos_p`/
+    `compute_line_metrics` do get `t` symbols (already-transcribed callers) and `row_hash` a `T`
+    one.  The gap closes as the callers land.
 
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  Every
 reading below is from this round's own run, against `femacs/src/xdisp.rs` md5
-`32e1ec11496de32a50ab71498267a53a` (22,573 lines = HEAD's 21,690 plus the round's 883 net
+`0c7f4cc0af54b773b370699ec2b1baca` (23,569 lines = HEAD's 22,573 plus the round's 996 net
 inserted lines) and the mirrors it includes: `include/dispextern.rs`, `include/window.rs`,
 `include/buffer.rs`, `include/lisp.rs` (the last three are other lanes' and mutable).  The
-`^- ` baseline is the same file measured before the edit (99 lines, the
-round's own working reading; the scratch files under `/tmp` were deleted at the round's end).
+`^- ` baseline is the same file measured before the edit (98 lines, the previous round's
+post-follow-up reading; the scratch files under `/tmp/xdisp28` were deleted at the round's end).
 
-* `cd femacs && CARGO_TARGET_DIR=/tmp/xdisp-c22588 cargo run -q -p xtask -- build-tu
-  src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, **exit 0**, object
-  `build/femacs/xdisp.o` **2,230,704 bytes**, md5 `f253551eeb42d4e30462ebd0b044c88d`.  The build
-  emits **the same six warnings as every previous round** (three `unused doc comment`s in
-  mirrors, the two `while true` lint notes in `produce_stretch_glyph`/`move_it_to`, one
-  `unused attribute`); this round adds none.  **It took four `build-tu` invocations** (two error
-  rounds, one fix, one confirming) — over the brief's three-shot budget, and reported rather
-  than hidden: the first round's errors come from the two `E0423`s (`FRAME_LINE_INS_DEL_OK`,
-  `WINDOW_FULL_WIDTH_P` — both are the mirrors' `macro_rules!` and need the `!`), the
-  `max (i32, i32)` argument mismatch (the mirror's `max` takes `isize`) and
-  `GPT! () - BEG as ptrdiff_t < BEG_UNCHANGED! ()`, which rustc reads as generic arguments for
-  `ptrdiff_t` (`(BEG as ptrdiff_t)` is the fix);
+* `cd femacs && cargo run -q -p xtask -- build-tu src/xdisp.c` = `built src/xdisp.rs ->
+  ../build/femacs/xdisp.o`, **exit 0**, object `build/femacs/xdisp.o` **2,281,096 bytes**, md5
+  `c25eef2f5da183d47713abeee814ea4f`.  The build emits **the same six warnings as every previous
+  round** (three `unused doc comment`s in mirrors, the two `while true` lint notes in
+  `produce_stretch_glyph`/`move_it_to`, one `unused attribute`); this round adds none.  **It took
+  two `build-tu` invocations** (one error round, one confirming) — within the brief's
+  three-shot budget.  The first round's only errors were six: the four `E0423`-class
+  `x as c_int < y` parses (`<` read as generic arguments for `c_int` — deviation 222's
+  parenthesisation) and the two `CHAR_GLYPH_PADDING_P` calls that needed the `!` (the mirror's
+  `macro_rules!`, deviation 224's list).  Both error classes were also diagnosed once with a
+  bare `rustc` (the same flags `build_tu` uses) against the previously materialised
+  `build/femacs/units/xdisp/_root.rs`, which is why the full six were known before the second
+  `build-tu`; that diagnostic is not a `build-tu` invocation;
 * `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its last
-  two lines are `- line count drifted 43.3%: C 39805 vs Rust 22573` and
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The `^- ` count is **99 -> 99** (see the
-  Progress section): two rows retire (`missing function try_window_id`, `missing macro GIVE_UP`)
-  and two appear (`function try_window_id does not mention debug_delta, debug_delta_bytes,
-  debug_dvpos, debug_dy, debug_end_pos, debug_end_vpos, debug_method_add, if_debug`, and
-  `function gui_clear_window_mouse_face is not static in C but has no #[unsafe(no_mangle)] in the
-  port (no C symbol to link)`).  After the round: **`missing function` 67 -> 66**,
-  **`missing macro` 6 -> 5**, `missing subr` 6, `missing defsubr` 13, `missing file-scope
-  object` 2, **`does not mention` 3 -> 4**, and still no `stub or empty body` line;
-* `python3 tools/check-citations.py` = `675 file(s) scanned, 0 drift, 0 range, 457 external,
-  33 allowed, 0 stale`.  **`femacs/src/xdisp.rs` has no finding** (this round adds seven
-  `/// C:` lines: the six use-site declarations and the scaffold's
-  `gui_clear_window_mouse_face`).  Mid-round the same gate read `2 drift, 1 range` —
-  `femacs/src/frame.rs:6055/6110/6138` (`frame.h 1435-1442`, `frame.c 6179`, `w32gui.h 120-124`),
-  another lane's in-flight file, present only while that lane's write was in the tree (the same
-  class as the last round's `androidselect.rs` note);
+  two lines are `- line count drifted 40.8%: C 39805 vs Rust 23569` and
+  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The `^- ` count is **98 -> 87** (see the
+  Progress section): the round retires the eleven `missing function` rows it defines
+  (`get_overlay_arrow_glyph_row`, `insert_left_trunc_glyphs`, `row_hash`, `compute_line_metrics`,
+  `clear_position`, `append_space_for_newline`, `extend_face_to_end_of_line`,
+  `trailing_whitespace_p`, `highlight_trailing_whitespace`, `row_for_charpos_p`, `cursor_row_p`)
+  and adds none.  After the round: **`missing function` 66 -> 55**, `missing macro` 5,
+  `missing subr` 6, `missing defsubr` 13, `missing file-scope object` 2, **`does not mention`
+  3 -> 3** (the three pre-existing rows; no new one, so no `docs/ports/macro-body-notes.tsv` row
+  is owed), and still no `stub or empty body` line;
+* `python3 tools/check-citations.py` = `675 file(s) scanned, 2 drift, 0 range, 491 external,
+  33 allowed, 0 stale`; **`femacs/src/xdisp.rs` has no finding** (this round adds three
+  `/// C:` lines: the two use-site declarations and the extended `face_bits!` accessor's
+  dispextern.h citation).  Both `drift` lines name another
+  lane's in-flight files (`femacs/src/androidterm.rs:103` against `lisp.h 33`,
+  `femacs/src/image.rs:498` against `w32term.h 97-105`), and the count moved between runs
+  (1 -> 2, with `femacs/oldXMenu/include/XMenuInt.rs:123` appearing on an earlier one) —
+  `git status --short` shows `androidterm.rs`/`haikuterm.rs`/`image.rs` modified by that lane,
+  the same class as the previous round's `frame.rs`/`androidselect.rs` notes;
 * `python3 tools/check-declarations.py` = `13 declaration sites (0 forbidden, 13 allowed
   literals), 0 failures`; its final line is `walked past 0 file(s) of an unscanned kind: none
   (1 of them read above)`.  No finding from this unit;
@@ -2948,32 +3063,38 @@ round's own working reading; the scratch files under `/tmp` were deleted at the 
   failure(s), 0 carried by another file, 355 row(s) with no function tick - a unit with no
   function at all, or one whose body the frozen configuration leaves under a false condition
   (check-port-lines.py is that class's gate), 0 row(s) without a ledger`;
-* `python3 tools/check-dead-file-coverage.py` = `6 ledger(s) bound (a C range table), 0
-  failure(s)` (this unit is not a P-86 file; the gate is run because the brief's reading list
-  names it).
+* `python3 tools/check-dead-file-coverage.py` = `10 ledger(s) bound (a C range table), 2
+  failure(s)` — both failures are `docs/ports/androidterm.md` (another lane's in-flight ledger:
+  eleven and thirty-three reference lines with text outside its ranges); **no finding names
+  `docs/ports/xdisp.md`** (this unit is not a P-86 file; the gate is run because the brief's
+  reading list names it).  The same gate read `8 ledger(s) bound, 0 failure(s)` earlier in the
+  round, before that lane's write landed;
 
-**Symbol-table reading** (`nm`, run by hand): `build/femacs/xdisp.o` now emits `t
-__RNvCs3P4vcM1aRw9_5xdisp13try_window_id` (C's `static` -> a plain `unsafe fn`) **and the four
-helpers that had no symbol at all one round ago** — `…29find_last_row_displaying_text`,
-`…30find_last_unchanged_at_beg_row`, `…31find_first_unchanged_at_end_row`,
-`…34sync_frame_with_window_matrix_rows` — so round 26's text-vs-machine gap closes (to-do item
-69).  `_gui_clear_window_mouse_face` is `U` (the scaffold declaration; the C 37705 definition
-lands later), joining the eleven older interim names the last round listed, and
-`_row_containing_pos`/`_row_for_charpos_p` are unchanged (`T` and `U` respectively).
+**Symbol-table reading** (`nm`, run by hand): `build/femacs/xdisp.o` gains four symbols this
+round — `T _row_hash` (C's non-`static` definition, `#[unsafe(no_mangle)]`) and three `t`
+mangled statics whose callers are already transcribed: `…12cursor_row_p`,
+`…17row_for_charpos_p` and `…20compute_line_metrics`.  The round's other seven definitions are
+unreachable from the transcribed text (their C callers are all past C 25075), so they still have
+**no machine symbol** — the text-vs-machine gap item 69 opened, now recorded per-round in
+to-do item 72: `get_overlay_arrow_glyph_row`, `insert_left_trunc_glyphs`, `clear_position`,
+`append_space_for_newline`, `extend_face_to_end_of_line`, `trailing_whitespace_p` and
+`highlight_trailing_whitespace`.  `_gui_clear_window_mouse_face` is still `U` (the scaffold
+declaration; the C 37705 definition lands later), joining the eleven older interim names the
+earlier round listed.
 
-**The `enable_checking` probe** (not one of the four gates): `rustup run nightly-2026-10-01
-rustc --edition 2024 --crate-type lib --emit obj --crate-name xdisp --cfg enable_checking -C
-panic=abort -C codegen-units=1 -C opt-level=0 build/femacs/units/xdisp/_root.rs -o
-/tmp/xdisp22588/xdisp.checking.o` = **exit 0, 0 errors**, the same six warnings, object
-**2,785,240 bytes**.  It matters here because `build-tu` does **not** compile the
-`#[cfg (enable_checking)]` arm (`xtask`'s single-unit `build_tu` runs one rustc pass; only the
-all-units path runs the second), so this round's eleven `eassert!`/`eassume!` bodies — the
-pointer `>=`, the `Z! () - END_UNCHANGED! ()` comparison and the two
-`MATRIX_ROW_DISPLAYS_TEXT_P!` reads — were checked only by this probe, which is the same
-question round 26's `E0609` raised.  **A first attempt at this probe was invalid and is
-reported**: run with the default `rustc` (stable 1.98.1) it fails with 16 `E0658`s (the port
-pins `nightly-2026-10-01` in `femacs/rust-toolchain.toml` because `c_variadic` is stable only
-from 1.99), which says nothing about this unit.
+**The `enable_checking` probe** (not one of the four gates): `cd femacs && rustup run
+nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj --crate-name xdisp --cfg
+enable_checking -C panic=abort -C codegen-units=1 -C opt-level=0
+build/femacs/units/xdisp/_root.rs -o /tmp/xdisp28/xdisp.checking.o` = **exit 0, 0 errors**, the
+same six warnings, object **2,845,464 bytes**.  It matters here because `build-tu` does **not**
+compile the `#[cfg (enable_checking)]` arm (`xtask`'s single-unit `build_tu` runs one rustc
+pass), so this round's two `eassert!` bodies (C 23898-23902's four-part fringe test and
+C 24109-24110's two row-metric assertions) were checked only by this probe.  The probe is run
+from `femacs/` with `rustup run nightly-2026-10-01` because a bare `rustc` from the repository
+root falls through to stable 1.98.1 and reports spurious `E0658 c_variadic` errors (the
+`rust-toolchain.toml` pin).
 
-`xtask layout-check` was **not** re-run this round: the unit's text adds no `struct` and no
-layout assertion, and the task's reading list is `build-tu` plus the five text gates above.
+`xtask layout-check` was **not** re-run this round: the unit's text adds no `struct` (the
+`face` copy's `background` carves an existing measured pad; the added `const _` assertion is a
+`offset_of` on a member already inside the record's measured span) and no new layout assertion
+family, and the task's reading list is `build-tu` plus the five text gates above.

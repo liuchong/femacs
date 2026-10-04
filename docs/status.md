@@ -6711,3 +6711,24 @@
      净 **−1 行**。⇒ 这正是 `check-link` 该有的行为：**它量的是"参照定义、端口还没有"的差集**，落一个函数就退一行。
   ④ **未声称**：链接棘轮只说明"未定义引用名单与 HEAD 的 83 个单元对象一致"，**不是链接成功**（没有任何可执行文件被链出来）；
      Swift 两本没动只说明本批没改 Swift，不是它们的读数变了。
+
+- **3.398 xdisp 第二十九轮：C 23817-25075 十一个定义（2026-10-05）**：
+  ① **区间与清单**：`get_overlay_arrow_glyph_row`（C 23821）、`insert_left_trunc_glyphs`（23893）、
+     `row_hash`（24048，**非 static**）、`compute_line_metrics`（24082，收掉一个 scaffold）、`clear_position`（24157）、
+     `append_space_for_newline`（24176）、`extend_face_to_end_of_line`（24384）、`trailing_whitespace_p`（24869）、
+     `highlight_trailing_whitespace`（24891）、`row_for_charpos_p`（24975，收 scaffold）、`cursor_row_p`（25062，收 scaffold）。
+     区间上方 C 23385-23816（"More debugging support" 横幅 + 整块死 `#ifdef GLYPH_DEBUG`）上一轮已记进 dead-arm 清单，
+     本轮只做边界对账、不转录。**下一个活定义是 C 25077 `push_prefix_prop`**。
+  ② **行数**：`femacs/src/xdisp.rs` 22,573 → **23,569（+996）**，覆盖到 C 25075；台账 2,979 → **3,090**；
+     勾选 `Functions 237/302`、合计 **333/415**；scaffold 17 → 14。
+  ③ **读数**：`build-tu src/xdisp.c` → built / exit 0，对象 **2,281,096 字节**（上轮 2,230,704），警告同样六条未增；
+     **`extract-abi --check` 的 `^- ` 98 → 87**（退掉本轮 11 条 `missing function`，**无新增**，
+     所以**不欠 `macro-body-notes` 行**）；`--cfg enable_checking` 探针 **exit 0 / 0 error**（对象 2,845,464 字节，
+     本轮两条 `eassert!` 只在这一档被检查）；`nm` 新增 4 个符号（`T _row_hash` + 三个 static）。
+     `check-citations`/`check-declarations`/`check-carried`/`check-ledger-ticks` 全绿；报告里另外两条红
+     （citations 2 drift、dead-file-coverage 2 failure）**全部落在别的 lane 的在飞文件**（`androidterm.rs`/`image.rs`/
+     `docs/ports/androidterm.md`），本单元零 finding。
+  ④ **未声称**：本轮 7 个 static **只有类型检查、没有机器码**（C 调用点还在未转写区，`nm` 无符号，记 item 72）；
+     五块 `HAVE_WINDOW_SYSTEM` 死臂按 P-08 记入台账不转录；无运行时证据（无链接、无测试）；
+     `it`/`face`/`glyph` 仍是本单元自己的量测副本（`struct face.background` 的偏移 176 有 `face-layout.tsv` 与
+     `xfaces.rs` 双证），**未改任何镜像文件**（两个 extern 与 3 个成员/访问器记进 to-do item 71）。
