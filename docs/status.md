@@ -2782,3 +2782,35 @@
   ⑥ `gen-port-inventory` 复算：590 files、**done=519、wip=21、todo=50**——wip 从 16 涨到 21 是**在飞 lane 的镜像**
   （Harvey 的 `cygw32`/`dofsns`/`termopts`/`w32heap`/`w32gui`/`msdos`、Boole 的 gnulib 模板、Hilbert 的 sfnt 起步）
   进了树但台账方框没勾完导致的**可见 WIP**，不是 FAIL（`--all` 仍 0 failing）。
+
+- **3.164 八个 Windows/MS-DOS 头镜像入库，Swift 单元第一次有了 C 侧闸门（2026-10-04）**：
+  ① **批量交付**（`cf4540a`，Windows/DOS 镜像 lane）：`cygw32.h`(40)/`dosfns.h`(35)/`termopts.h`(29)/
+  `w32heap.h`(69)/`w32common.h`(103)/`w32gui.h`(115)/`msdos.h`(156)/`w32.h`(273) → `femacs/src/include/*.rs`，
+  合计 **1,472 行 Rust** + 八份台账。八个单位在本目标上都不被编译（平台 object 变量为空），所以镜像是"活文本"，
+  **它们这一批的编译器是 `xtask layout-check`**（八个都在那个单 crate 里，`66 of 77 mirror(s) compiled`）。
+  三条值得复核的决定：① `w32.h` 的 `#ifdef FD_SETSIZE` 是本仓已知的 cond-eval 不一致（clang False / 求值器 True），
+  **如实记录不修**——C 32-34 只是 `#undef` 系统先前的值，两臂都终结于 C 36 的 `#define FD_SETSIZE 2048`，镜像文本相同；
+  ② `termopts.h` 的两个对象由 `src/keyboard.rs` 在**单元 crate 根**定义 ⇒ 镜像里放进 `pub mod termopts_objs { … }` +
+  `use termopts_objs::*;`（P-21），这正是 3.155 那条教训的应用；③ `msdos.h` 的 `#ifndef HAVE_X_WINDOWS` 段是**活文本**
+  （那个守卫关于 X，不关于 MS-DOS），与 `EINPROGRESS`/`O_CLOEXEC`/五个假 X 类型/POSIX 原型同名的冲突挂
+  `#[cfg (feature = "msdos")]`（`errno.in.rs` 的形制）。
+  ② **五条共享行是量出来的**：`excluded-macros.txt` 加 `DEF_DLL_FN`/`LOAD_DLL_FN`/`LOAD_DLL_FN_OPT`（`kind=deferred`：
+  token 拼接 + 尾部属性 `__VA_ARGS__`，Rust 无对应物，P-22）；`macro-body-notes.tsv` 加 `FD_SET	0`/`FD_CLR	0`
+  （`do { … } while (0)` 语句宏，循环条件那个 `0` 在端口里没有落点）。加完复测：`w32.h` **OK**。
+  ③ **`w32common.h` 是 WIP，缺口被点名而不是抹平**：它的两个对象是 `<sysinfoapi.h>`/`<winver.h>` 的**按值记录**，
+  本目标没有任何编译器能量它们，lane 选择"不写未测拼法"，于是 `--check` 恰好报这两行、台账两个框保持未勾——
+  这是 3.158 立的"WIP 不是 FAIL"读法，`--all` 把该文件算作 in progress。**集成者裁决：接受这个可见缺口**
+  （另一条路是给按值对象写指针大小的替身，那会在 `--check` 变绿的同时把一处未测的保真偏差藏起来；用户的目标是
+  一比一，可见的缺口优于隐藏的偏差）。关闭条件写在台账里：Windows 目标冻结时用真记录替换。
+  ④ **Swift 单元第一次有 C 侧闸门**（`0bbcf96`）：`tools/extract-abi.py` 完全没有 Swift 支持，此前每个 `.swift` 目标在
+  `--check` 下都是"C 的每个函数都缺"（3.160 记的缺口）。新工具 `tools/check-swift-units.py` 用
+  `tools/cinventory.py`（与台账清单同一个读取器）拿 **C 定义**，对 Swift 的 `func` 定义做**名字集**比对，并把
+  `@_silgen_name("…") func x (…)` **无函数体**的那一类判为**导入**（它引一个 C 符号，不是移植一个）；缺口记在
+  `docs/baseline/swift-units.tsv`（`new`：C 有定义而 Swift 无 `func` 且无行；`stale`：行还在但函数已落地——两者都失败）。
+  它**不**碰签名/函数体/布局/ABI，那些仍归 `swiftc -c` + `nm` + 各台账的 Decisions。实测：`nsfont.swift` **36 个 C 定义里 34 个已落**
+  （只差 `nsfont_draw`/`ns_dump_glyphstring`，两者在清单里）、`nsimage.swift` **15/15**、`nsselect.swift` **20/20**；
+  `--selftest` 3 例钉住三个形状（定义 vs 导入、函数体在下一行、字符串/注释不得凭空造出定义）。
+  ⑤ 读数（同一工作树）：`--all` → **542 ported files: 534 done, 8 in progress, 0 failing**；
+  `gen-port-inventory` 590 files / done=521 / wip=21 / todo=48；五门绿（`check-declarations` 13/0、`check-globals` 283/0、
+  `check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 578 `.rs`/0）；`layout-check` **passed**；
+  `build-tu src/{w32,msdos,cygw32}.c` → **built**。
