@@ -6059,3 +6059,15 @@
      "172 blank line(s) need no row"——那是把**已被区间覆盖的空行**也算进去了；改成只数**区间没覆盖的空行**（21）才是这张表的真实余量。
   ④ **未声称**：它检查的是**表的覆盖声明**，不是"表与 `.rs` 里的文本一致"（那一步仍是 P-86 ③ 的翻臂编译/臂触达预检，需要人判类）；
      它只绑**有区间表**的台账，所以另外 95 个死文件仍然只有行数棘轮看得见；区间表的行号是作者写的，门不核对它指的那些 C 行内容。
+
+- **3.373 三组头条读数在 `7a6080a` 复测（工作树有两件在飞：Planck 的 Android 镜像、Dirac 的 xterm 切片）（2026-10-05）**：
+  ① **`extract-abi --all`**（本轮实跑，约 2.5 分钟）：**`checked 590 ported files: 588 done, 2 in progress, 0 failing`**、`exit 0`——
+     与 3.356 同一口径；**注意它是在工作树有两件在飞（`include/{androidgui,buffer,coding,dispextern,font,frame,keyboard}.rs`
+     与 `src/xterm.rs`）时读的**，所以这个 0 failing 说明"在飞的那些镜像编辑**还没**破坏冻结口径的清单"，
+     不说明它们已经对（P-86 ③ 的翻臂那一档才是它们的判据）。
+  ② **`check-port-lines`**：**`95 file(s) under ten percent, 245,578 reference line(s); 95 ratchet row(s), 0 new, 0 stale`**
+     ——3.355 的 96/246,438 → 现在 95/245,578（androidmenu 越阈值 + 它的 1,011 行）。
+  ③ **`check-mirror-dupes`**：**`18 duplicate declaration(s), 18 ratchet row(s), 0 failure(s)`**——3.371 清完最后 5 条债后停在**地板**上。
+  ④ **口径提醒**：这三个数分别是"清单口径 / 行数口径 / 一构造一拼法口径"，**都不能单独当完成度**：
+     `588 done` 对"整身在假条件下"的文件是**空跑通过**（P-73），所以必须与 ② 的 95/245,578 一起读；
+     ③ 的 18 行是**记录在案的例外**，不是零债务。
