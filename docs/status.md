@@ -5537,3 +5537,23 @@
      （真链接余量由 `tools/link-probe.py` 那条独立口径量，3.337 记的是 74）。
   ⑤ **未入库**：`femacs/src/xterm.rs` 的 +666 行切片仍在工作树里（台账无对应轮次，已向该 lane 追问），
      所以本轮的 374/84/685 都是**不含它**的读数；它入库后这四本要再跑一次。
+
+- **3.348 生成器补上 `@+id/` 这一源：`R.id` 有了，`EmacsDesktopNotification` 的解封（2026-10-05）**：
+  ① **缺口（lane 复算过、我复现过）**：`EmacsDesktopNotification.java` 252/254 行用
+     `R.id.sdk8_notifications_title` / `R.id.sdk8_notifications_content`，而这两个 id **只声明在 layout 里**：
+     `emacs/java/res/layout/sdk8_notifications_view.xml:25/29` 的 `android:id="@+id/…"`；
+     `emacs/java/res/values/` 只有 `bool.xml`/`strings.xml`/`style.xml`，**全树没有任何 `ids.xml`/`public.xml`、
+     也没有 `<item type="id" …>`**。而 `spikes/android-r-from-res.py` 只在 value 文件上跑 `TAG_TYPES`，
+     生成物里 `object id` 的计数就是 **0** ⇒ 探针报 `error: unresolved reference 'id'`（`exit 1`）。
+  ② **修法**：`res/` 下**任何 XML** 里的 `@+id/NAME`（aapt 的规则）都算一个 id，进 `entries["id"]`；
+     docstring 写明这是第三个来源与它的历史。**判据**：`python3 spikes/android-r-from-res.py` 现在输出
+     `object id { const val sdk8_notifications_content = 0; const val sdk8_notifications_title = 0 }`；
+     写一个两行的探针对象（`object RidProof { fun title () = R.id.sdk8_notifications_title … }`）过
+     `spikes/kotlin-compile-probe.sh` → **exit 0**（修前同一个文件是 `unresolved reference 'id'`）。
+  ③ **回归读数**：Kotlin 全目录 `spikes/kotlin-compile-probe.sh femacs/platform/android/kotlin/*.kt` →
+     **exit 0 / 0 error / 13 warning**（13 条仍与基线逐条同形），`spikes/kotlin-target-order.py --check` →
+     `40 target(s), 35 ported, 5 to go`（3.342 时重生成过的表没过期）。
+  ④ **未声称**：生成器写出的 id **值全是 0**（只有名字与嵌套是按参照读的，aapt 的真 id 这里没有——
+     这是编译级探针，不是资源系统）；`EmacsDesktopNotification.kt`(344) 本身**还没写**，本件只把它的阻塞项拆掉；
+     另外 lane 记下一条跨目标约束：`EmacsActivity.onNewIntent` 引用
+     `EmacsDesktopNotification.NOTIFICATION_TAG`/`NOTIFICATION_ACTION`，那两件落地时**必须是 `@JvmField`**。

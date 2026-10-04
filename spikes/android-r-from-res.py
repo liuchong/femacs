@@ -9,8 +9,13 @@ names and the same nesting aapt would produce.
     spikes/android-r-from-res.py > R.kt
 
 Names come from the tree (`drawable/emacs.png` -> `R.drawable.emacs`; `layout/x.xml` ->
-`R.layout.x`; `mipmap-v26/y.xml` -> `R.mipmap.y`) and from the value files (`<string name="a">` ->
-`R.string.a`; `<item type="id" name="b">` -> `R.id.b`).  The *values* are all zero: a real `R`
+`R.layout.x`; `mipmap-v26/y.xml` -> `R.mipmap.y`), from the value files (`<string name="a">` ->
+`R.string.a`; `<item type="id" name="b">` -> `R.id.b`) and from the `@+id/...` references any
+XML under `res/` writes (`android:id="@+id/name"`
+in a layout -> `R.id.name`).  That third source is the one `EmacsDesktopNotification.java` needs:
+its two ids live only inside `res/layout/sdk8_notifications_view.xml`, and this generator read
+value files alone until 3.348, so `R.id` did not exist at all (the probe failed with an unresolved
+reference on `R.id.sdk8_notifications_title`).  The *values* are all zero: a real `R`
 carries aapt's ids, and nothing here runs, so the numbers would be invented rather than read
 (P-83 ⑥'s compile check only needs the shape).
 """
@@ -56,6 +61,14 @@ def main() -> int:
                                    f"generator knows")
         else:
             entries.setdefault(kind, set()).add(path.stem)
+            # `@+id/NAME` in *any* XML file under res/ defines an id (aapt's rule).  The two
+            # `EmacsDesktopNotification` needs are declared only inside a layout, and until 3.348
+            # this generator read value files alone - so `R.id` did not exist and the probe failed
+            # with an unresolved reference on `R.id.sdk8_notifications_title`.
+            if path.suffix == ".xml":
+                for name in re.findall (r'@\+id/([A-Za-z_][A-Za-z0-9_]*)',
+                                       path.read_text (encoding="utf-8", errors="replace")):
+                    entries.setdefault ("id", set()).add (name)
     out = ["// Generated from emacs/java/res by spikes/android-r-from-res.py - the `R` class the",
            "// Kotlin targets compile against.  Ids are zero: only the names and the nesting are read",
            "// from the reference (see the tool's docstring).",
