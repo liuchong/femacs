@@ -1,0 +1,48 @@
+# lib/include mirrors the layout probe seeds as their own crate root (status 3.11, closed 3.217).
+#
+# The probe seeds `femacs/src/include/*.rs` and follows their `include!` graph, so a lib mirror is
+# only compiled there when a src mirror reaches it (`lib/include/stdbit.in.rs` is reached by
+# `src/include/lisp.rs`; `lib/include/stdlib.in.rs` is not reached by anything).  Status 3.11
+# recorded that gap and asked for the seed to include `lib/include` once the in-flight ones had
+# landed.  It can, but not wholesale: a mirror is a *header*, and most of them take their scalars
+# (`c_int`, `size_t`, `time_t`) and lisp.h's macros from the including unit (PORTING.md 0.1-9), so
+# they legitimately cannot stand alone.
+#
+# The classification is measured, one command over the whole directory:
+#
+#     $ cd femacs && for f in lib/include/*.rs; do
+#         rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit metadata \
+#           -Awarnings --crate-name probe_$(basename $f .rs) -o /tmp/probe.rmeta "$f"; done
+#
+# -> 29 of 131 compile (this file) and 102 do not (they need an includer; `xtask layout-check`
+# prints both counts, so neither class is silent - P-66).  Add a name here when its mirror starts
+# compiling that way, and remove it when it stops: the gate is the compile itself.
+_Noreturn.rs
+allocator.rs
+arg-nonnull.rs
+assert.in.rs
+attribute.rs
+cdefs.rs
+dynarray.rs
+flexmember.rs
+ftoastr.rs
+getopt-cdefs.in.rs
+getopt-pfx-core.rs
+getopt-pfx-ext.rs
+gnulib_config.rs
+idx.rs
+ignore-value.rs
+intprops-internal.rs
+intprops.rs
+inttypes.in.rs
+libc-config.rs
+min-max.rs
+minmax.rs
+openat.rs
+stdbit.rs
+stdcountof.in.rs
+stdcountof.rs
+stddef.in.rs
+stdio-impl.rs
+unlocked-io.rs
+warn-on-use.rs

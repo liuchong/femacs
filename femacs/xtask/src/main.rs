@@ -832,7 +832,36 @@ fn layout_check() -> i32 {
     let skipped = { let mut v = skipped; v.sort(); v };
     mirrors.retain(|p| !p.file_name()
         .map(|n| excluded.iter().any(|e| e == &n.to_string_lossy())).unwrap_or(false));
-    println!("layout-check: {} of {} mirror(s) compiled, {} platform-exclusive skipped ({})",
+    // The lib/include mirrors that compile as their own crate root are seeded too, so the shared
+    // gate really compiles them (status 3.11, closed 3.217).  A mirror is a header: most of
+    // lib/include legitimately needs the including unit's scalars, so the seed is the measured
+    // class in docs/baseline/layout-standalone-mirrors.txt (one file name per line) and the
+    // complement is printed, not hidden.
+    let standalone: Vec<String> =
+        fs::read_to_string("../docs/baseline/layout-standalone-mirrors.txt")
+            .unwrap_or_default()
+            .lines()
+            .filter(|l| !l.starts_with('#') && !l.trim().is_empty())
+            .map(|l| l.split_whitespace().next().unwrap_or("").to_string())
+            .filter(|l| l.ends_with(".rs"))
+            .collect();
+    let mut lib_mirrors: Vec<PathBuf> = fs::read_dir("lib/include")
+        .map(|d| d.filter_map(Result::ok).map(|e| e.path()).collect())
+        .unwrap_or_default();
+    lib_mirrors.retain(|p| p.extension().map(|x| x == "rs").unwrap_or(false));
+    let lib_total = lib_mirrors.len();
+    lib_mirrors.retain(|p| p.file_name()
+        .map(|n| standalone.iter().any(|e| e == &n.to_string_lossy())).unwrap_or(false));
+    let lib_seeded: Vec<String> = lib_mirrors.iter()
+        .filter_map(|p| p.file_name().map(|n| n.to_string_lossy().to_string())).collect();
+    if lib_total > 0 {
+        println!("layout-check: + {} of {} lib/include mirror(s) seeded as their own crate root \
+({} need an includer, PORTING.md 0.1-9): {}",
+                 lib_seeded.len(), lib_total, lib_total - lib_seeded.len(), lib_seeded.join(", "));
+    }
+    mirrors.extend(lib_mirrors);
+
+    println!("layout-check: {} of {} src mirror(s) compiled, {} platform-exclusive skipped ({})",
              total - skipped.len(), total, skipped.len(), skipped.join(", "));
     // PORTING.md 0.1-4: expand the include! graph and dedupe by file, so a mirror that
     // (like lib/inttypes.in.rs will) includes another mirror is not listed twice.
