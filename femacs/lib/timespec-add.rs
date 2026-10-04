@@ -13,6 +13,9 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/timespec.rs");   // "timespec.h", <stdckdint.h>, "intprops.h"
+include!("include/stdckdint.in.rs");  // C 26: `#include <stdckdint.h>` (the three
+                                         // names are dead here; the unit spells the
+                                         // `overflowing_*` pair, P-15)
 
 macro_rules! TYPE_MINIMUM { ($t:ty) => { <$t>::MIN }; }
 macro_rules! TYPE_MAXIMUM { ($t:ty) => { <$t>::MAX }; }

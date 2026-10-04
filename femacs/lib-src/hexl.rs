@@ -29,6 +29,8 @@ pub type uintmax_t = u64;
 
 include!("../src/include/config.rs");        // C 22: `#include <config.h>`
 include!("../lib/include/stdint.in.rs");     // C 24's `<inttypes.h>` half: the int types
+include!("../lib/include/inttypes.in.rs");  // C 24: `#include <inttypes.h>` (the
+                                            // PRI*/SCN* names and their frozen values)
 include!("../lib/include/stdlib.rs");        // C 25: `#include <stdlib.h>`
 include!("../lib/include/string.rs");        // C 26: `#include <string.h>`
 include!("../lib/include/binary-io.rs");     // C 28: `#include <binary-io.h>` (`set_binary_mode`)

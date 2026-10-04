@@ -12,6 +12,9 @@ include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");   // _GL_CMP
 include!("include/limits.in.rs");       // <limits.h> (UCHAR_MAX, INT_MAX)
 include!("include/c-ctype.rs");         // "c-ctype.h" (c_tolower)
+include!("include/c-strcase.rs");     // "c-strcase.h"; its declaration of this
+                                        // unit's function is shadowed by the definition
+                                        // below (PORTING.md 0.1-10)
 
 
 /* int c_strcasecmp (const char *s1, const char *s2)  */
