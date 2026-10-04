@@ -154,11 +154,26 @@
 - [x] ns_draw_dash  (line 3598, static) — landed as `fileprivate func`; C's `alloc`/`init`/`release` `NSBezierPath` is `NSBezierPath()` under ARC (the `[path release]` is dropped, round 3's reading)
 - [x] ns_fill_underline  (line 3620, static) — landed as `fileprivate func`; the six `enum face_underline_type` enumerators are new class-A entries, and C's `FACE_NO_UNDERLINE`/`FACE_UNDERLINE_WAVE`/`default` trio becomes one Swift `default` (the two named cases fall through into it, so both stay entries)
 - [x] ns_draw_text_decoration  (line 3655, static) — landed as `fileprivate func`; `WINDOW_BUFFER_LOCAL_VALUE` stays class A (its body needs `BUFFERP` + `buffer_local_value`), `font_for_underline_metrics` is **gated** (src/xdisp.c 32256, `HAVE_WINDOW_SYSTEM`), and C's `unsigned long` locals narrow back with `truncatingIfNeeded:`
-- [ ] ns_draw_box  (line 3810, static)
-- [ ] ns_setup_relief_colors  (line 3844, static)
-- [ ] ns_draw_relief  (line 3872, static)
-- [ ] ns_dumpglyphs_box_or_relief  (line 4027, static)
-- [ ] ns_maybe_dumpglyphs_background  (line 4092, static)
+- [x] ns_draw_box  (line 3810, static) — landed as `fileprivate func`; C's two `char` flags are
+      `Bool` (the file's own `ns_draw_image_relief` spells the same flags `bool`, C 4183), `[col set]`
+      reads through the optional receiver, and `NSRect s = r` is Swift's by-value `var s = r`
+- [x] ns_setup_relief_colors  (line 3844, static) — landed as `fileprivate func`; `[NSColor grayColor]`
+      is `NSColor.gray`, `highlightWithLevel:`/`shadowWithLevel:` are `highlight (withLevel :)`/
+      `shadow (withLevel :)`, and the three `[old release]; field = [new retain];` pairs are the six
+      `ns_output_*_relief_color` entries with the runtime's release half and the nil-receiver reading
+      `color.flatMap { … }` (Decisions)
+- [x] ns_draw_relief  (line 3872, static) — landed as `fileprivate func`; the reference's own
+      duplicated `vthickness > 1 && left_p` block (C 3980-3986 and 3988-3994) is kept verbatim, and
+      the `NSBezierPath` spellings are `NSBezierPath ()`/`close ()`/`fill ()`/`stroke ()`/
+      `removeAllPoints ()`/`NSBezierPath.fill (_:)`
+- [x] ns_dumpglyphs_box_or_relief  (line 4027, static) — landed as `fileprivate func`; the composite
+      walk keeps C's pointer shape through the new `glyph_advance` entry (the member family's first
+      *operation* row), and `WINDOW_RIGHT_EDGE_X`/`window_box_right`/`glyph_row_glyphs`/
+      `glyph_row_used`/`glyph_string_row`/`glyph_string_area` are its row reads
+- [x] ns_maybe_dumpglyphs_background  (line 4092, static) — landed as `fileprivate func`; `char
+      force_p` is `Bool`, the `NS_IMPL_COCOA` stipple arm is the live one (its `#else`'s
+      `goto fill;` and the `fill:` label are recorded, not transcribed), and the arm's five
+      CoreGraphics calls plus `EmacsImage -stippleMask` (`ns_display_info_bitmaps_img`) are entries
 - [ ] ns_draw_image_relief  (line 4180, static)
 - [ ] ns_dumpglyphs_image  (line 4267, static)
 - [ ] ns_draw_stretch_glyph_string  (line 4397, static)
@@ -623,15 +638,21 @@ the RIF hourglass pair `ns_show_hourglass` (C 3511-3515) and `ns_hide_hourglass`
 whose whole bodies are their TODO comments - `ns_get_glyph_string_clip_rect` (C 3529-3539),
 `ns_draw_underwave` (C 3553-3591), `ns_draw_dash` (C 3598-3613), `ns_fill_underline`
 (C 3620-3652) and the text-decoration block's `ns_draw_text_decoration` (C 3655-3807) - **no new
-C export** (all seven are C `static`s) - so the covered range is now **C 60-3807**.  The next live
-definition is C 3810's `ns_draw_box`, the first of the box/relief sub-block.
+C export** (all seven are C `static`s) - so the covered range is now **C 60-3807**.  **Round 18
+lands C 3809-4177**: `ns_draw_box` (C 3809-3839), `ns_setup_relief_colors` (C 3841-3869),
+`ns_draw_relief` (C 3871-4023), `ns_dumpglyphs_box_or_relief` (C 4026-4089) and
+`ns_maybe_dumpglyphs_background` (C 4091-4177) - **no new C export** (all five are C `static`s) -
+so the covered range is now **C 60-4177**.  The next live definition is C 4179's
+`ns_draw_image_relief`, the first of the image sub-block.
 
-Ticked above: **96 of the 150 function boxes**.  The count is the generator's own again: the
+Ticked above: **101 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
 declarator to its `{` stopped at the documentation comment in between - status 3.260), the port had
 already written seven of them (round 5's two, round 6's `ns_focus`, round 10's four), and the
 eighth - `ns_get_shifted_character`, C 2693 - landed in round 12.  Also
-**17 of the 23 macro boxes** (the eight masks,
+**17 of the 23 macro boxes** (round 18's four macro entries - `WINDOW_RIGHT_EDGE_X`,
+`NS_FACE_FOREGROUND`, `FONT_HEIGHT`, `FONT_TOO_HIGH` - are other files' headers, so nothing here
+moves; the eight masks,
 `NO_APPDEFINED_DATA`, the five `EV_*` accessors, `DOCK_IGNORE_LIMIT`, the two
 `NS_PARENT_WINDOW_*` and round 10's `NSAppKitVersionNumber10_10`; the two held `EV_TRAILER*` and
 the four later ones stay open), **49 of the 49 file-scope-object boxes**
@@ -640,7 +661,7 @@ constants, round 6's `bell_view` and round 15's `fringe_bmp` - **the file's last
 box**), **1 of the 1 type box** (`EmacsMargins`,
 C 650) and **2 of the 8 Objective-C classes** (`NSColor (EmacsColor)` with its four methods, and
 **`EmacsBell`** - the file's first *class*, with its `@interface` declaration and all four
-methods).  The other 54 function boxes, 6 macro boxes, 6 class boxes and 185 method boxes are
+methods).  The other 49 function boxes, 6 macro boxes, 6 class boxes and 185 method boxes are
 later slices; round 7 added five rows to the `## ABI` (4) table - three class methods and, for the
 first time, two of this unit's own *functions* - and round 10 added two more, both class methods
 (`EmacsWindow_initWithEmacsFrame`, `setAppearance`).
@@ -1501,6 +1522,59 @@ the boxes are ticked as *recorded*, not converted.
 `ns_get_shifted_character` (C 2693) was "an open box here until its slice lands"; round 12 landed
 it, so the sentence now reads "landed in round 12".
 
+### Round 18: the box/relief sub-block, the background helper, and the family's first *operation* row
+
+**Scope.**  C 3809-4177: `ns_draw_box` (C 3809-3839), `ns_setup_relief_colors` (C 3841-3869),
+`ns_draw_relief` (C 3871-4023), `ns_dumpglyphs_box_or_relief` (C 4026-4089) and
+`ns_maybe_dumpglyphs_background` (C 4091-4177).  **No new C export** - all five are C `static`s -
+so `## ABI` (1) is unchanged; the slice declares **44** `@_silgen_name` names and all 44 are
+referenced in the built object (Evidence).
+
+**C's `char` boolean flags are `Bool`, and the reference itself is the reason.**  `ns_draw_box`,
+`ns_draw_relief` and `ns_maybe_dumpglyphs_background` spell their flags `char`, while the sibling
+`ns_draw_image_relief` (C 4183) spells the identical set `bool raised_p, top_p, bot_p, left_p,
+right_p`; every `char` here is only tested with C truthiness or copied to another flag, and Swift
+has no truthiness, so the port types them `Bool` and records it.  The call sites follow: C's
+`ns_draw_relief (r, abs (hthickness), abs (vthickness), s->face->box == FACE_RAISED_BOX, 1, 1,
+left_p, right_p, s)` reads `… FACE_RAISED_BOX (), true, true, left_p, right_p, s`.
+
+**`glyph_advance` is the member family's first *operation* row.**  `ns_dumpglyphs_box_or_relief`
+walks `struct glyph` pointers (`s->first_glyph + s->nchars - 1` at C 4062, the row walk's
+`…glyphs[s->area] + …used[s->area]` at 4053, `g++` at 4055/4058 and `g < end` at 4056), and
+`struct glyph` is a core record with no Swift view in this lane: the stride is the core's fact, so
+the advance cannot be spelled at the use site and the class-B half of the 3.255 ruling does not
+apply.  The entry takes the pointer and the count C's expression has and returns C's pointer type;
+`g < end` is Swift's `<` on `UnsafeMutableRawPointer` (its `Strideable` conformance supplies
+`Comparable`), with the two nil guards the optional pointer type needs - C's own comparison against
+a NULL `end` is false for the non-NULL `g` the loop holds, which is what the guards reproduce, and
+a `g` walking off a NULL base is a case C does not survive either.
+
+**The stipple arm reaches outside this unit three times.**  `ns_maybe_dumpglyphs_background`'s
+`NS_IMPL_COCOA` arm is the live one (its `#else`'s `goto fill;` and the `fill:` label are the
+GNUstep text, recorded not transcribed - a `goto` has no Swift form and no live reader).
+①`dpyinfo->bitmaps[face->stipple - 1].img` is a two-level member entry whose second argument is
+C's own subscript (the `glyph_row_used` shape); ②`EmacsImage` is another lane's class
+(`nsimage.swift`'s - the `@interface` at src/nsterm.h 670-703), so `- (CGImageRef)stippleMask`
+crosses as a `<Class>_<selector>` entry, the `EmacsImage_allocInitFromFile` shape `nsfns.swift`
+402 declares - and **no provider exists yet**, so the (3) table registers it as owed; ③the five
+CoreGraphics calls keep their C names as entries (the round-5 `CGMainDisplayID`/`CGDisplayBounds`
+shape) because `CoreGraphics.apinotes` renames all five in Swift.  `CGRectMake` is the one
+expression of the arm that does **not** become an entry: it is a `static inline` of CGGeometry.h
+with no symbol, so the port spells the rect with Swift's own initializer (class B).
+
+**The reference's own duplicated block is kept.**  `ns_draw_relief` tests
+`vthickness > 1 && left_p` twice (C 3980-3986 and C 3988-3994); the second is what a `right_p`
+test would mean, but "照录不转写" is the lane's rule for a live statement, so both blocks are
+transcribed verbatim - the C text is the reference's, not the port's to repair.
+
+**The slice's four macro names are audited, and two of them are already ratcheted.**  The
+macro-name audit's rule applies to `WINDOW_RIGHT_EDGE_X`, `NS_FACE_FOREGROUND`, `FONT_HEIGHT` and
+`FONT_TOO_HIGH`: each has **0** symbols in `build/emacs-ref/{src,lib}/*.o` (measured this round),
+so each is a header-only name; `NS_FACE_FOREGROUND` and `FONT_HEIGHT` are already imported by
+`macfont.swift`, so only `WINDOW_RIGHT_EDGE_X` and `FONT_TOO_HIGH` are new class-A rows, and
+`window_box_right` is the slice's one name with a reference-side symbol (`T` in
+`build/emacs-ref/src/xdisp.o`) - which is why its row reads *provided*.
+
 ### The macro-name audit (status 3.251's rule)
 
 `nm -g build/emacs-ref/{src,lib}/*.o` was searched for every macro/INLINE name this unit imports
@@ -1652,6 +1726,21 @@ what `nm -g` shows (Evidence).
 | `Qx_underline_at_descent_line`, `Qx_use_underline_position_properties` | this file's own `DEFSYM`s, C 11770 and 11748 | **this file** | **open**: class A - symbols of this file, absent from `docs/baseline/globals/symbols.tsv` (the `QCmouse` reading of round 2) |
 | the text-decoration records (round 17) | the fifteen `struct glyph_string` members (`glyph_string_ybase`/`_x`/`_y`/`_width`/`_height`/`_f`/`_face`/`_prev`/`_w`/`_hl`/`_for_overlaps`, the `_underline_thickness` and `_underline_position` reads plus their two `_set_` writes), the two `struct glyph` members `glyph_ascent`/`glyph_descent` (src/dispextern.h 506), the eleven `struct face` members (`face_underline`, `_underline_defaulted_p`, `_underline_color`, `_underline_at_descent_line_p`, `_underline_pixels_above_descent_line`, `_overline_p`, `_overline_color`, `_overline_color_defaulted_p`, `_strike_through_p`, `_strike_through_color`, `_strike_through_color_defaulted_p`, src/dispextern.h 1823-1887), the three `struct font` members `font_descent`/`font_underline_thickness`/`font_underline_position` (src/font.h 319-332) and the six `enum face_underline_type` enumerators (src/dispextern.h 1767-1780) | src/dispextern.h / src/font.h | **open**: member/enumerator entries under `<record>_<member>`, the family round 14 opened; `for_overlaps` is an `unsigned : 3` bitfield, so its entry keeps C's raw value rather than a `Bool` |
 
+| `face_box`, `face_box_color`, `face_box_vertical_line_width`, `face_box_horizontal_line_width`, `face_use_box_color_for_shadows_p`, `face_stipple` | the `struct face` members C 3849-3850/4040-4041/4077-4086/4120 read - `ENUM_BF (face_box_type) box : 2`, `unsigned long box_color`, `int box_vertical_line_width`, `int box_horizontal_line_width`, `bool_bf use_box_color_for_shadows_p : 1` and `ptrdiff_t stipple` (src/dispextern.h 1858/1826/1844/1845/1865/1810) | src/dispextern.h | **open**: member entries under `<record>_<member>`; `box` is a bitfield, so its entry keeps C's raw value |
+| `FACE_SIMPLE_BOX`, `FACE_RAISED_BOX`, `DRAW_MOUSE_FACE` | the two `enum face_box_type` enumerators C 4077-4087 tests (src/dispextern.h 1757/1761) and the `enum draw_glyphs_face` one C 4068/4071 tests (1353) | src/dispextern.h | **open**: enumerator entries (class A of 3.255 - an enumerator's value is the core's fact) |
+| `ns_output_relief_background_color`, `ns_output_light_relief_color`, `ns_output_dark_relief_color` and their three `_set_` writes | `struct ns_output`'s `NSColor *relief_background_color` / `light_relief_color` / `dark_relief_color` (src/nsterm.h 943-945; the frozen arm's pointer spellings are 953-955) | src/nsterm.h | **open**: three member pairs of the `have_ns` family, the `ns_output_cursor_color` shape; the setter's C text is `x = [y retain];` |
+| `glyph_string_row`, `glyph_string_area`, `glyph_string_img`, `glyph_string_next`, `glyph_string_background_width`, `glyph_string_extends_to_end_of_line_p`, `glyph_string_background_filled_p` + `glyph_string_set_background_filled_p`, `glyph_string_font_not_found_p`, `glyph_string_stippled_p` | the `struct glyph_string` members C 4045-4174 reads and the one it writes (src/dispextern.h 1374, 1399, 1402, 1431, 1434, 1439, 1443, 1483, 1506) | src/dispextern.h | **open**: member entries (`_set_` for `background_filled_p`, the one write) |
+| `glyph_u_cmp_automatic`, `glyph_u_cmp_id`, `glyph_slice_cmp_to`, `glyph_left_box_line_p`, `glyph_right_box_line_p` | the `struct glyph` members the composite walk and the two box-line tests read - `bool_bf automatic : 1`, `unsigned id : 31`, the other union's `struct { int from, to; } cmp`, `bool_bf left_box_line_p`/`right_box_line_p` (src/dispextern.h 599/601/581/524-525) | src/dispextern.h | **open**: member entries under `<record>_<member>`; `id` is 31 bits, so it is `Int32` and widens to the `ptrdiff_t` `s->cmp_id` (C's own promotion) |
+| `glyph_row_glyphs` | `struct glyph *glyphs[1 + LAST_AREA]` (src/dispextern.h 934) with C's `s->area` subscript as the entry's second argument | src/dispextern.h | **open**: member entry, the `glyph_row_used` shape |
+| `glyph_advance` | C's `struct glyph *` arithmetic - `g + n` (C 4053), `g++` (C 4055/4058), `s->first_glyph + s->nchars - 1` (C 4062) and the `g < end` comparison (C 4056) | src/dispextern.h | **open**: the family's first *operation* row - the record's stride is the core's fact (Decisions) |
+| `WINDOW_RIGHT_EDGE_X` | `#define WINDOW_RIGHT_EDGE_X(W) (FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME (W)) + WINDOW_RIGHT_PIXEL_EDGE (W))` (src/window.h 764-766) | header-only | **open**: class A (a macro over three other macros), the `WINDOW_FRAME` shape |
+| `window_box_right` | `int window_box_right (struct window *, enum glyph_row_area)` (src/dispextern.h 3581) | src/xdisp.c 1450 | **provided**: `T` in `build/emacs-ref/src/xdisp.o`, and xdisp.c is a ported unit |
+| `NS_FACE_FOREGROUND` | `#define NS_FACE_FOREGROUND(f) ((f)->foreground)` (src/nsterm.h 1040) | header-only | **open**: the other half of the `NS_FACE_BACKGROUND` pair round 13 imports; already ratcheted (`macfont.swift`) |
+| `FONT_HEIGHT`, `FONT_TOO_HIGH` | `#define FONT_HEIGHT(f) ((f)->height)` (src/font.h 244) and `#define FONT_TOO_HIGH(ft) ((ft)->pixel_size > 0 && (ft)->ascent + (ft)->descent > 3*(ft)->pixel_size)` (src/dispextern.h 1712-1713) | header-only | **open**: class A (both bodies are `struct font` member arithmetic); `FONT_HEIGHT` is already ratcheted |
+| `CGContextClipToRect`, `CGContextScaleCTM`, `CGContextDrawTiledImage`, `CGImageGetWidth`, `CGImageGetHeight` | the five CoreGraphics calls of C 4130-4137 | CoreGraphics' `CGContext.h`/`CGImage.h` | **system**: the SDK's own symbols (the round-5 `CGMainDisplayID` row); Swift's API notes rename all five, which is why they are entries |
+| `ns_display_info_bitmaps_img` | `struct ns_bitmap_record *bitmaps` (src/nsterm.h 873, the record at 810-819) with C's `face->stipple - 1` subscript as the argument, reaching the record's `EmacsImage *img` (813 in the `__OBJC__` arm, `void *` 816 in the frozen one) - C 4119-4120 | src/nsterm.h | **open**: a two-level member entry whose second argument is C's own subscript (the `glyph_row_used` shape) |
+| `EmacsImage_stippleMask` | `- (CGImageRef)stippleMask` (declared src/nsterm.h 696, defined src/nsimage.m 542) | another lane's class (`nsimage.swift`'s `EmacsImage`) | **open**: the `<Class>_<selector>` shape (`EmacsImage_allocInitFromFile`, `nsfns.swift` 402) - that class landed; its C-ABI entry has not |
+
 `Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
 core exports a C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  The
 five `var` imports (`ns_use_srgb_colorspace`, the seven `ns_*_modifier`s, `ns_auto_hide_menu_bar`,
@@ -1767,6 +1856,25 @@ call site takes an entry and the definition lands at its own C line - and **both
   Provided already: `NSRectFill`/`NSRectClip` (AppKit), `DRAW_CURSOR`, `glyph_string_first_glyph`,
   `glyph_string_char2b`, `glyph_string_font` and `enum glyph_type`'s pair; `XFIXNAT` and
   `Qunbound` already carry ratchet rows (they are not among the 43 `FAIL` names);
+* the core, **round 18's names**: the six `struct face` members (`face_box`, `face_box_color`,
+  `face_box_vertical_line_width`, `face_box_horizontal_line_width`,
+  `face_use_box_color_for_shadows_p`, `face_stipple`); the three enumerators (`FACE_SIMPLE_BOX`,
+  `FACE_RAISED_BOX`, `DRAW_MOUSE_FACE`); the three `ns_output_*_relief_color` read/write pairs (the
+  `have_ns` family's next three, `ns_output_cursor_color`'s shape); the ten `struct glyph_string`
+  member entries (`glyph_string_row`/`_area`/`_img`/`_next`/`_background_width`/
+  `_extends_to_end_of_line_p`/`_background_filled_p` plus its `_set_`/`_font_not_found_p`/
+  `_stippled_p`); the five `struct glyph` members (`glyph_u_cmp_automatic`, `glyph_u_cmp_id`,
+  `glyph_slice_cmp_to`, `glyph_left_box_line_p`, `glyph_right_box_line_p`); `glyph_row_glyphs`;
+  **`glyph_advance`** - the member family's first *operation* row, whose provider owes the
+  `struct glyph` stride; `WINDOW_RIGHT_EDGE_X` and `FONT_TOO_HIGH` (class A); `NS_FACE_FOREGROUND`
+  (the `NS_FACE_BACKGROUND` pair's other half) and `FONT_HEIGHT`, both already ratcheted; and
+  `ns_display_info_bitmaps_img`.  `window_box_right` is **provided** (xdisp.c's port,
+  `T` in `build/emacs-ref/src/xdisp.o`) and the five CoreGraphics calls are the SDK's own symbols.
+  The gate files **36 of the 44 as `FAIL`** - five `reference-source` and thirty-one
+  `unclassified`, the rounds-13/14 shape - and round 17's forty-three are gone from that list;
+* `femacs/platform/macos/nsimage.swift` (another lane's unit), round 18's addition: the
+  `EmacsImage -stippleMask` entry of (2) - C 4120's message - is that side's to define (receiver
+  first, the `EmacsImage_allocInitFromFile` shape).  This unit imports it and nothing else;
 * `femacs/platform/macos/nsmenu.swift` (another lane's unit), round 11's addition: the
   `EmacsTooltip` class is landed there, so the `is_emacs_tooltip` entry of (2) - C 2534's
   `isKindOfClass: [EmacsTooltip class]` - is that side's to define (receiver first, the
@@ -2292,6 +2400,55 @@ call site takes an entry and the definition lands at its own C line - and **both
   i.e. an in-flight lane regenerating that mirror while this round ran - and
   `grep -c nsterm docs/baseline/mirror-dupes.tsv` is **0**, so no row of the new duplicate-name
   ratchet names this unit and the gate does not touch this lane.
+
+* Round 18's compile, same command: **exit 0 on the first pass**, the same **seven** warnings the
+  previous rounds carry (four C's own `lockFocus`/`unlockFocus`, three `'scanFloat' was deprecated
+  in macOS 10.15`) and **no new one**; the compiler's last output line is its
+  `[#DeprecatedDeclaration]` note and the exit status is 0.  Object `/tmp/nsterm18.o` **md5
+  `8357eb1d9e1e0d40a013917bb4c970b`**.  The three citation fixes below are `///`-only edits made
+  after this compile (`git diff` shows the appended block plus the header's `//` lines and nothing
+  else), so the reading stands for the code as delivered.
+* `nm -g /tmp/nsterm18.o` -> **no new C export** (a count of ` [Tt] _(ns_draw_box|
+  ns_setup_relief_colors|ns_draw_relief|ns_dumpglyphs_box_or_relief|ns_maybe_dumpglyphs_background)$`
+  is 0: all five are C `static`s, so `## ABI` (1) gains no row).
+* `nm -u /tmp/nsterm18.o` -> the slice's **44** declared names, **every one of them referenced**
+  (checked name by name, 0 anomalies); **732 undefined names in all** (679 after round 17): the 44
+  plus the five AppKit selectors whose first use in this unit is this slice (`grayColor`,
+  `highlightWithLevel:`, `shadowWithLevel:`, `removeAllPoints`, `fillRect:`) and a few
+  Swift-runtime helpers (`Optional.flatMap`'s specialization among them).
+* The symbol audit for round 18's 44 names (`nm -g -A` over `build/emacs-ref/src/*.o` and
+  `build/emacs-ref/lib/*.o`): **1** for `window_box_right` (`T` in `build/emacs-ref/src/xdisp.o` -
+  the provided row) and **0 for the other forty-three** - the member/operation entries, the three
+  enumerators, the four macro names and the SDK's five CoreGraphics calls have no reference-side
+  symbol.
+* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C definition(s),
+  53 unported, 58 row(s); 324 C symbol import(s)` and `0 new, 5 stale, 7 Swift unit(s) landed`.
+  The five stale rows are exactly this slice's five definitions - the rows
+  `docs/baseline/swift-units.tsv` still carries for them, the integrator's to drop - and the tool's
+  `53 unported` is the ledger's 49 open boxes **plus** the four `recorded, not transcribed`
+  definitions (the three dead `NSTRACE` names and `hide_bell`).
+* `python3 tools/check-swift-imports.py` -> `1062 import(s) in 7 Swift file(s), 5733 core
+  export(s), 721 unprovided, 685 ratchet row(s), 36 failure(s)`, with
+  `reference=133 reference-source=395 rust-side=1 rust-side-gated=73 system=0 unclassified=119`.
+  **All thirty-six `FAIL` names are this lane's** - five `reference-source` (`DRAW_MOUSE_FACE`,
+  `FACE_SIMPLE_BOX`, `FACE_RAISED_BOX`, `FONT_TOO_HIGH`, `WINDOW_RIGHT_EDGE_X`) and thirty-one
+  `unclassified` (the member/operation entries) - and not one of round 17's forty-three is left in
+  that list.
+* `python3 tools/check-citations.py` -> the **first** reading was `672 file(s) scanned, 3 drift,
+  0 range, 349 external, 33 allowed, 0 stale`, with all three rows this unit's new comments (a
+  cited line whose first following snippet lived elsewhere: `void *` against src/nsterm.h 943-945,
+  `HAVE_WINDOW_SYSTEM` against src/xdisp.c 1450, `enum draw_glyphs_face` against
+  src/dispextern.h 1353).  Each was re-worded so the snippet after the number is the name that
+  lives on the cited line (`relief_background_color`, `window_box_right`, `DRAW_MOUSE_FACE`), and
+  the tool's last line is `674 file(s) scanned, 0 drift, 0 range, 349 external, 33 allowed,
+  0 stale`.
+* `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures`, `read 681 files (624 .rs 39 .kt 7 .swift 6 .s 5 .cc)` (the Kotlin, `.s`
+  and `.cc` files are other lanes', and the two counts moved under this round).
+* `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
+  0 failure(s)` - the in-flight lane's stale rows the round-17 block records are gone this round -
+  and `grep -c nsterm docs/baseline/mirror-dupes.tsv` is **0**, so no row of that ratchet names
+  this unit.
 
 - **Ruling (3.255, integrator) on this file's macro-name entries.**  Two halves, and the criterion
   is whether the macro's body can be spelled in Swift: **(B) first** - a body that is a pure AppKit

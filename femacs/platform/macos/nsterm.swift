@@ -62,8 +62,11 @@
 // `ns_draw_fringe_bitmap` (C 3205-3291) - **no new C export** (all three are C `static`s).
 // **Round 16 lands C 3294-3508**: `ns_draw_window_cursor` (C 3295-3426),
 // `ns_draw_vertical_window_border` (C 3430-3449) and `ns_draw_window_divider` (C 3453-3508) -
-// again no new export - so the covered range is **C 60-3508**.  The next live definition is
-// C 3512's `ns_show_hourglass`.
+// again no new export - so the covered range is **C 60-3508**.  **Round 17 lands C 3511-3807**
+// (the hourglass pair, the Glyph drawing operations banner and the text-decoration block) and
+// **round 18 lands C 3809-4177** (the box/relief sub-block and the `dumpglyphs` background
+// helper), so the covered range is **C 60-4177**; the next live definition is C 4179's
+// `ns_draw_image_relief`.
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -4705,5 +4708,565 @@ fileprivate func ns_draw_text_decoration(_ s: UnsafeMutableRawPointer?,
     }
 
     NSRectFill(r)
+  }
+}
+
+// ==========================================================================
+// C 3809-4177: the box/relief sub-block and the `dumpglyphs` background helper.
+// ==========================================================================
+
+/// C 3809-3839: `static void ns_draw_box (NSRect r, CGFloat hthickness, CGFloat vthickness,
+/// NSColor *col, char left_p, char right_p)` - "Draw an unfilled rect inside r, optionally leaving
+/// left and/or right open.  Note we can't just use an NSDrawRect command, because of the
+/// possibility of some sides not being drawn, and because the rect will be filled."  C's two
+/// `char` flags are `Bool` here and the reason is in the reference itself: the identical flag set
+/// is spelled `bool raised_p, top_p, bot_p, left_p, right_p` in the sibling `ns_draw_image_relief`
+/// (C 4183), and both `char`s are only ever tested with C truthiness or copied.  `NSRect s = r` is
+/// C's by-value copy, which `var s = r` is; `[col set]` reads through the optional receiver C
+/// relies on (`col?.set ()`), as `ns_draw_text_decoration`'s `defaultCol` does.
+fileprivate func ns_draw_box(_ r: NSRect, _ hthickness: CGFloat, _ vthickness: CGFloat,
+                             _ col: NSColor?, _ left_p: Bool, _ right_p: Bool) {
+  var s = r
+  col?.set()
+
+  /* top, bottom */
+  s.size.height = hthickness
+  NSRectFill(s)
+  s.origin.y += r.size.height - hthickness
+  NSRectFill(s)
+
+  s.size.height = r.size.height
+  s.origin.y = r.origin.y
+
+  /* left, right (optional) */
+  s.size.width = vthickness
+  if left_p {
+    NSRectFill(s)
+  }
+  if right_p {
+    s.origin.x += r.size.width - vthickness
+    NSRectFill(s)
+  }
+}
+
+/// C: `struct face`'s box members - `enum face_box_type box` (a `: 2` bitfield, src/dispextern.h
+/// 1858, so its entry keeps C's raw value, the `for_overlaps` reading), `unsigned long box_color`
+/// (1826), `int box_vertical_line_width` / `int box_horizontal_line_width` (1844-1845),
+/// `bool_bf use_box_color_for_shadows_p : 1` (1865) and `ptrdiff_t stipple` (1810, the array index
+/// `ns_maybe_dumpglyphs_background` subtracts one from) - plus the two `enum face_box_type`
+/// enumerators C 4078-4087 tests (`FACE_SIMPLE_BOX`, `FACE_RAISED_BOX`, src/dispextern.h 1757/1761).
+/// The record belongs to the core (`femacs/src/dispextern.rs`), so each read is a member entry
+/// under `face_<member>`, the family round 17's eleven already use.
+@_silgen_name("face_box") func face_box(_ face: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("face_box_color") func face_box_color(_ face: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("face_box_vertical_line_width")
+func face_box_vertical_line_width(_ face: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("face_box_horizontal_line_width")
+func face_box_horizontal_line_width(_ face: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("face_use_box_color_for_shadows_p")
+func face_use_box_color_for_shadows_p(_ face: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_stipple") func face_stipple(_ face: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("FACE_SIMPLE_BOX") func FACE_SIMPLE_BOX() -> Int32
+@_silgen_name("FACE_RAISED_BOX") func FACE_RAISED_BOX() -> Int32
+
+/// C: `struct ns_output`'s three relief colors - src/nsterm.h 943-945's `relief_background_color`,
+/// `light_relief_color` and `dark_relief_color`; the frozen arm's pointer spellings are 953-955 -
+/// read and written by `ns_setup_relief_colors` (C 3861-3867) and read by
+/// `ns_draw_relief` (C 3912, 3934, 3996).  The family takes the *frame* C's `FRAME_OUTPUT_DATA`
+/// starts from (`ns_output_cursor_color`'s shape), and the writes' C text is `x = [y retain];` -
+/// the reading `ns_output_set_cursor_color`'s own row records (`FRAME_CURSOR_COLOR (f) =
+/// [col retain];`, nsfns.m 358), so the `NSColor?` setter is the `retain` half and the port's
+/// `release` half is the runtime's (`Unmanaged.passUnretained (…).release ()`, the
+/// `ns_free_frame_resources` reading).
+@_silgen_name("ns_output_relief_background_color")
+func ns_output_relief_background_color(_ f: UnsafeMutableRawPointer?) -> NSColor?
+@_silgen_name("ns_output_set_relief_background_color")
+func ns_output_set_relief_background_color(_ f: UnsafeMutableRawPointer?, _ v: NSColor?)
+@_silgen_name("ns_output_light_relief_color")
+func ns_output_light_relief_color(_ f: UnsafeMutableRawPointer?) -> NSColor?
+@_silgen_name("ns_output_set_light_relief_color")
+func ns_output_set_light_relief_color(_ f: UnsafeMutableRawPointer?, _ v: NSColor?)
+@_silgen_name("ns_output_dark_relief_color")
+func ns_output_dark_relief_color(_ f: UnsafeMutableRawPointer?) -> NSColor?
+@_silgen_name("ns_output_set_dark_relief_color")
+func ns_output_set_dark_relief_color(_ f: UnsafeMutableRawPointer?, _ v: NSColor?)
+
+/// C 3841-3869: `static void ns_setup_relief_colors (struct glyph_string *s)` - "Set up colors for
+/// the relief lines around glyph string S."  Four spellings are re-shaped and here recorded: C's
+/// `[NSColor grayColor]` is Swift's `NSColor.gray` and `highlightWithLevel:`/`shadowWithLevel:` are
+/// `highlight (withLevel :)`/`shadow (withLevel :)` (AppKit's own renames - the two selectors have
+/// no `AppKit.apinotes` entry, so the importer's default rule applies); the `color == nil` test and
+/// the `color != di->relief_background_color` comparison are Swift's (`color == nil`, `!==` on the
+/// two optionals - C compares the pointers); and the three `[old release]; field = [new retain];`
+/// pairs keep both halves (see the `ns_output_*_relief_color` block above), with
+/// `[color highlightWithLevel: 0.4]`'s nil-receiver reading as `color.flatMap { … }` - C's message
+/// to a nil receiver yields nil.  `FRAME_OUTPUT_DATA (s->f)`'s local `di` is not carried: the
+/// member entries take the frame, the reading round 11's mouse section uses.
+fileprivate func ns_setup_relief_colors(_ s: UnsafeMutableRawPointer?) {
+  var color: NSColor?
+
+  if face_use_box_color_for_shadows_p(glyph_string_face(s)) {
+    color = NSColor.colorWithUnsignedLong(face_box_color(glyph_string_face(s)))
+  } else {
+    color = NSColor.colorWithUnsignedLong(face_background(glyph_string_face(s)))
+  }
+
+  if glyph_string_hl(s) == DRAW_CURSOR() {
+    color = FRAME_CURSOR_COLOR(glyph_string_f(s))
+  }
+
+  if color == nil {
+    color = NSColor.gray
+  }
+
+  if color !== ns_output_relief_background_color(glyph_string_f(s)) {
+    if let old = ns_output_relief_background_color(glyph_string_f(s)) {
+      Unmanaged.passUnretained(old).release()
+    }
+    ns_output_set_relief_background_color(glyph_string_f(s), color)
+
+    if let old = ns_output_light_relief_color(glyph_string_f(s)) {
+      Unmanaged.passUnretained(old).release()
+    }
+    ns_output_set_light_relief_color(glyph_string_f(s),
+                                     color.flatMap { $0.highlight(withLevel: 0.4) })
+
+    if let old = ns_output_dark_relief_color(glyph_string_f(s)) {
+      Unmanaged.passUnretained(old).release()
+    }
+    ns_output_set_dark_relief_color(glyph_string_f(s),
+                                    color.flatMap { $0.shadow(withLevel: 0.4) })
+  }
+}
+
+/// C 3871-4023: `static void ns_draw_relief (NSRect outer, int hthickness, int vthickness, char
+/// raised_p, char top_p, char bottom_p, char left_p, char right_p, struct glyph_string *s)` -
+/// "Draw a relief rect inside r, optionally leaving some sides open.  Note we can't just use an
+/// NSDrawBezel command, because of the possibility of some sides not being drawn, and because the
+/// rect will be filled."  The five `char` flags are `Bool` (the `ns_draw_box` reading above), and
+/// C's `1, 1` literals at the one call site become `true, true`.  The two `NSBezierPath *p = nil`
+/// blocks are `NSBezierPath ()` under ARC (the reading round 15 records for `fringe_bmp`'s path),
+/// `[p closePath]` is `close ()`, `[p fill]`/`[p stroke]` are `fill ()`/`stroke ()`,
+/// `[p removeAllPoints]` is `removeAllPoints ()` and `[NSBezierPath fillRect: …]` is the class
+/// method `NSBezierPath.fill (_:)` - the rename the already-landed `NSBezierPath.stroke (_:)`
+/// (C 3470) proves for the pair.  `inner`/`p` are C's uninitialized locals
+/// (`var inner = NSRect.zero`, `var p: NSBezierPath? = nil`), and the three reads of
+/// `di->light_relief_color`/`di->dark_relief_color` go through the member entries with the frame
+/// C's `di` was `FRAME_OUTPUT_DATA` of.  **One transcription note**: the reference's own
+/// `vthickness > 1 && left_p` block appears **twice** (C 3980-3986 and C 3988-3994 - the second
+/// is what a `right_p` test would mean); the port keeps both, verbatim, as the reference's text.
+fileprivate func ns_draw_relief(_ outer: NSRect, _ hthickness: Int32, _ vthickness: Int32,
+                                _ raised_p: Bool, _ top_p: Bool, _ bottom_p: Bool,
+                                _ left_p: Bool, _ right_p: Bool,
+                                _ s: UnsafeMutableRawPointer?) {
+  var inner = NSRect.zero
+  var p: NSBezierPath? = nil
+
+  // C 3884: `NSTRACE ("ns_draw_relief");` - empty at `NSTRACE_ENABLED` 0, like the rest.
+
+  /* set up colors */
+  ns_setup_relief_colors(s)
+
+  /* Calculate the inner rectangle.  */
+  inner = outer
+
+  if left_p {
+    inner.origin.x += CGFloat(vthickness)
+    inner.size.width -= CGFloat(vthickness)
+  }
+
+  if right_p {
+    inner.size.width -= CGFloat(vthickness)
+  }
+
+  if top_p {
+    inner.origin.y += CGFloat(hthickness)
+    inner.size.height -= CGFloat(hthickness)
+  }
+
+  if bottom_p {
+    inner.size.height -= CGFloat(hthickness)
+  }
+
+  // C 3910: `struct ns_output *di = FRAME_OUTPUT_DATA (s->f);` - the entries below take the frame
+  // C's macro starts from.
+
+  (raised_p ? ns_output_light_relief_color(glyph_string_f(s))
+            : ns_output_dark_relief_color(glyph_string_f(s)))?.set()
+
+  if top_p || left_p {
+    p = NSBezierPath()
+
+    p!.move(to: NSMakePoint(NSMinX(outer), NSMinY(outer)))
+    if top_p {
+      p!.line(to: NSMakePoint(NSMaxX(outer), NSMinY(outer)))
+      p!.line(to: NSMakePoint(NSMaxX(inner), NSMinY(inner)))
+    }
+    p!.line(to: NSMakePoint(NSMinX(inner), NSMinY(inner)))
+    if left_p {
+      p!.line(to: NSMakePoint(NSMinX(inner), NSMaxY(inner)))
+      p!.line(to: NSMakePoint(NSMinX(outer), NSMaxY(outer)))
+    }
+    p!.close()
+    p!.fill()
+  }
+
+  (raised_p ? ns_output_dark_relief_color(glyph_string_f(s))
+            : ns_output_light_relief_color(glyph_string_f(s)))?.set()
+
+  if bottom_p || right_p {
+    p = NSBezierPath()
+
+    p!.move(to: NSMakePoint(NSMaxX(outer), NSMaxY(outer)))
+    if right_p {
+      p!.line(to: NSMakePoint(NSMaxX(outer), NSMinY(outer)))
+      p!.line(to: NSMakePoint(NSMaxX(inner), NSMinY(inner)))
+    }
+    p!.line(to: NSMakePoint(NSMaxX(inner), NSMaxY(inner)))
+    if bottom_p {
+      p!.line(to: NSMakePoint(NSMinX(inner), NSMaxY(inner)))
+      p!.line(to: NSMakePoint(NSMinX(outer), NSMaxY(outer)))
+    }
+    p!.close()
+    p!.fill()
+  }
+
+  /* If one of h/vthickness are more than 1, draw the outermost line
+     on the respective sides in the black relief color.  */
+
+  if p != nil {
+    p!.removeAllPoints()
+  } else {
+    p = NSBezierPath()
+  }
+
+  if hthickness > 1 && top_p {
+    p!.move(to: NSMakePoint(NSMinX(outer), NSMinY(outer) + 0.5))
+    p!.line(to: NSMakePoint(NSMaxX(outer), NSMinY(outer) + 0.5))
+  }
+
+  if hthickness > 1 && bottom_p {
+    p!.move(to: NSMakePoint(NSMinX(outer), NSMaxY(outer) - 0.5))
+    p!.line(to: NSMakePoint(NSMaxX(outer), NSMaxY(outer) - 0.5))
+  }
+
+  if vthickness > 1 && left_p {
+    p!.move(to: NSMakePoint(NSMinX(outer) + 0.5, NSMinY(outer) + 0.5))
+    p!.line(to: NSMakePoint(NSMinX(outer) + 0.5, NSMaxY(outer) - 0.5))
+  }
+
+  if vthickness > 1 && left_p {
+    p!.move(to: NSMakePoint(NSMinX(outer) + 0.5, NSMinY(outer) + 0.5))
+    p!.line(to: NSMakePoint(NSMinX(outer) + 0.5, NSMaxY(outer) - 0.5))
+  }
+
+  ns_output_dark_relief_color(glyph_string_f(s))?.set()
+  p!.stroke()
+
+  if vthickness > 1 && hthickness > 1 {
+    FRAME_BACKGROUND_COLOR(glyph_string_f(s))?.set()
+
+    if left_p && top_p {
+      NSBezierPath.fill(NSMakeRect(NSMinX(outer), NSMinY(outer), 1, 1))
+    }
+
+    if right_p && top_p {
+      NSBezierPath.fill(NSMakeRect(NSMaxX(outer) - 1, NSMinY(outer), 1, 1))
+    }
+
+    if right_p && bottom_p {
+      NSBezierPath.fill(NSMakeRect(NSMaxX(outer) - 1, NSMaxY(outer) - 1, 1, 1))
+    }
+
+    if left_p && bottom_p {
+      NSBezierPath.fill(NSMakeRect(NSMinX(outer), NSMaxY(outer) - 1, 1, 1))
+    }
+  }
+}
+
+/// C: `struct glyph_string`'s members this slice adds to the family round 17 started -
+/// `struct glyph_row *row` (src/dispextern.h 1399, read at C 4045/4053/4064), `enum glyph_row_area
+/// area` (1402, read at 4047/4053), `struct image *img` (1483, the `s->img` test at 4048),
+/// `struct glyph_string *next` (1506, the `s->next` read at 4072), `int background_width`
+/// (1374, 4065/4115/4171), `bool_bf extends_to_end_of_line_p : 1` (1431, 4064/4153),
+/// `bool_bf background_filled_p : 1` (1434, the read at 4103 and the **writes** at 4118/4174),
+/// `bool_bf font_not_found_p : 1` (1439, 4152) and `bool_bf stippled_p : 1` (1443, 4107).  The
+/// record belongs to the core (`femacs/src/dispextern.rs`), so each is a member entry under
+/// `<record>_<member>` with `_set_` for the write; `prev` (round 17's) completes the pair.
+@_silgen_name("glyph_string_row")
+func glyph_string_row(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_area") func glyph_string_area(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_img")
+func glyph_string_img(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_next")
+func glyph_string_next(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_background_width")
+func glyph_string_background_width(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_extends_to_end_of_line_p")
+func glyph_string_extends_to_end_of_line_p(_ s: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_string_background_filled_p")
+func glyph_string_background_filled_p(_ s: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_string_set_background_filled_p")
+func glyph_string_set_background_filled_p(_ s: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("glyph_string_font_not_found_p")
+func glyph_string_font_not_found_p(_ s: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_string_stippled_p")
+func glyph_string_stippled_p(_ s: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `struct glyph`'s members the composite walk reads - `u.cmp.automatic` (the `bool_bf
+/// automatic : 1` of the union `u`'s `cmp` sub-struct, src/dispextern.h 599, read at C 4051/4056),
+/// `u.cmp.id` (`unsigned id : 31`, 601, read at 4056) and the other union's `slice.cmp.to`
+/// (`struct { int from, to; } cmp;`, 581, read at 4057) - plus the two box-line flags
+/// `left_box_line_p`/`right_box_line_p` (`bool_bf … : 1`, 524-525, read at 4067/4070).  Names keep
+/// C's member path (the `glyph_type` family's spelling); `u.cmp.id` is a 31-bit field, so its entry
+/// is `Int32` and the comparison against the `ptrdiff_t` `s->cmp_id` widens it (`Int (…)`), which
+/// is C's own conversion (the field's `unsigned` promotes to the long).
+@_silgen_name("glyph_u_cmp_automatic")
+func glyph_u_cmp_automatic(_ g: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_u_cmp_id") func glyph_u_cmp_id(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_slice_cmp_to") func glyph_slice_cmp_to(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_left_box_line_p")
+func glyph_left_box_line_p(_ g: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_right_box_line_p")
+func glyph_right_box_line_p(_ g: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `struct glyph_row`'s `struct glyph *glyphs[1 + LAST_AREA]` (src/dispextern.h 934, read at
+/// C 4053 with C's own `s->area` subscript, which is the entry's second argument the way
+/// `glyph_row_used`'s `TEXT_AREA` is) - the base of the composite walk.
+@_silgen_name("glyph_row_glyphs")
+func glyph_row_glyphs(_ row: UnsafeMutableRawPointer?, _ area: Int32) -> UnsafeMutableRawPointer?
+
+/// C: `struct glyph *` arithmetic - the reference's `s->first_glyph + s->nchars - 1` (C 4062), the
+/// walk's `… .glyphs[s->area] + s->row->used[s->area]` (C 4053), `g++` (C 4055/4058) and the
+/// `g < end` comparison (C 4056).  `struct glyph` is the core's record and this unit has no Swift
+/// view of it, so the **stride** is the core's fact and the advance is an entry of its own - the
+/// family's first *operation* row, next to round 14's member rows; `glyph_advance (g, n)` is C's
+/// `g + n` and returns the same pointer type C's expression has.
+@_silgen_name("glyph_advance")
+func glyph_advance(_ g: UnsafeMutableRawPointer?, _ n: Int32) -> UnsafeMutableRawPointer?
+
+/// C: `#define WINDOW_RIGHT_EDGE_X(W) (FRAME_INTERNAL_BORDER_WIDTH (WINDOW_XFRAME (W)) +
+/// WINDOW_RIGHT_PIXEL_EDGE (W))` (src/window.h 764-766), read at C 4046, and
+/// `int window_box_right (struct window *, enum glyph_row_area)` (src/dispextern.h 3581) - defined
+/// at src/xdisp.c 1450's `window_box_right`, **before** that file's HAVE_WINDOW_SYSTEM block
+/// (opened at 500), so it is a real symbol of the frozen build (measured `T` in
+/// `build/emacs-ref/src/xdisp.o`); C 4047 reads it.  The macro keeps its own name as a class-A
+/// entry (`WINDOW_FRAME`'s shape); the function is the core's provider, since xdisp.c is a ported
+/// unit.
+@_silgen_name("WINDOW_RIGHT_EDGE_X")
+func WINDOW_RIGHT_EDGE_X(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("window_box_right")
+func window_box_right(_ w: UnsafeMutableRawPointer?, _ area: Int32) -> Int32
+/// C: src/dispextern.h 1353's `DRAW_MOUSE_FACE` - the third enumerator of `enum draw_glyphs_face`
+/// (src/dispextern.h 1348-1353), which `DRAW_CURSOR` 1352 precedes - the face-override the two
+/// box-line tests compare against.
+@_silgen_name("DRAW_MOUSE_FACE") func DRAW_MOUSE_FACE() -> Int32
+
+/// C 4026-4089: `static void ns_dumpglyphs_box_or_relief (struct glyph_string *s)` - "Function
+/// modeled after x_draw_glyph_string_box ().  Sets up parameters for drawing."  Three readings:
+/// C's `char` locals are `Bool` and its `int`s stay `Int32` (`last_glyph` is the untyped
+/// `struct glyph *`), the `s->cmp || s->img` test and the two `DRAW_MOUSE_FACE` dereferences read
+/// through the member
+/// entries above, and **the composite walk keeps C's pointer shape** through `glyph_advance` with
+/// the nil guards Swift needs for `g < end` (C's comparison against a NULL `end` is false for the
+/// non-NULL `g` the loop holds, which is what the guards reproduce) - a `g` that walks off a NULL
+/// base is not a case C survives either.  `abs (hthickness)` keeps C's `int` `abs` and the box
+/// call's two `CGFloat` parameters (C's implicit conversion), while the relief call's are the
+/// `int`s C declares.
+fileprivate func ns_dumpglyphs_box_or_relief(_ s: UnsafeMutableRawPointer?) {
+  var right_x: Int32 = 0, last_x: Int32 = 0
+  var left_p = false, right_p = false
+  var last_glyph: UnsafeMutableRawPointer?
+  var r = NSRect.zero
+  var hthickness: Int32 = 0, vthickness: Int32 = 0
+  let face = glyph_string_face(s)
+
+  vthickness = face_box_vertical_line_width(face)
+  hthickness = face_box_horizontal_line_width(face)
+
+  // C 4043: `NSTRACE ("ns_dumpglyphs_box_or_relief");` - empty at `NSTRACE_ENABLED` 0.
+
+  last_x = (glyph_row_full_width_p(glyph_string_row(s))
+            && !window_pseudo_window_p(glyph_string_w(s))
+            ? WINDOW_RIGHT_EDGE_X(glyph_string_w(s))
+            : window_box_right(glyph_string_w(s), glyph_string_area(s)))
+  if glyph_string_cmp(s) != nil || glyph_string_img(s) != nil {
+    last_glyph = glyph_string_first_glyph(s)
+  } else if glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH()
+              && glyph_u_cmp_automatic(glyph_string_first_glyph(s)) {
+    let end = glyph_advance(glyph_row_glyphs(glyph_string_row(s), glyph_string_area(s)),
+                            Int32(glyph_row_used(glyph_string_row(s), glyph_string_area(s))))
+    var g = glyph_string_first_glyph(s)
+    /* C 4055-4059: `for (last_glyph = g++; cond; last_glyph = g++) ;` - the empty body's
+       increment is this loop's tail.  */
+    last_glyph = g
+    g = glyph_advance(g, 1)
+    while g != nil && end != nil && g! < end!
+            && glyph_u_cmp_automatic(g)
+            && Int(glyph_u_cmp_id(g)) == glyph_string_cmp_id(s)
+            && glyph_slice_cmp_to(g) < glyph_string_cmp_to(s) {
+      last_glyph = g
+      g = glyph_advance(g, 1)
+    }
+  } else {
+    last_glyph = glyph_advance(glyph_string_first_glyph(s), glyph_string_nchars(s) - 1)
+  }
+
+  right_x = (glyph_row_full_width_p(glyph_string_row(s))
+             && glyph_string_extends_to_end_of_line_p(s)
+             ? last_x - 1
+             : min(last_x, glyph_string_x(s) + glyph_string_background_width(s)) - 1)
+
+  left_p = (glyph_left_box_line_p(glyph_string_first_glyph(s))
+            || (glyph_string_hl(s) == DRAW_MOUSE_FACE()
+                && (glyph_string_prev(s) == nil
+                    || glyph_string_hl(glyph_string_prev(s)) != glyph_string_hl(s))))
+  right_p = (glyph_right_box_line_p(last_glyph)
+             || (glyph_string_hl(s) == DRAW_MOUSE_FACE()
+                 && (glyph_string_next(s) == nil
+                     || glyph_string_hl(glyph_string_next(s)) != glyph_string_hl(s))))
+
+  r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s)),
+                 CGFloat(right_x - glyph_string_x(s) + 1), CGFloat(glyph_string_height(s)))
+
+  /* TODO: Sometimes box_color is 0 and this seems wrong; should investigate.  */
+  if face_box(face) == FACE_SIMPLE_BOX() && face_box_color(face) != 0 {
+    ns_draw_box(r, CGFloat(abs(hthickness)), CGFloat(abs(vthickness)),
+                NSColor.colorWithUnsignedLong(face_box_color(face)), left_p, right_p)
+  } else {
+    ns_draw_relief(r, abs(hthickness), abs(vthickness),
+                   face_box(face) == FACE_RAISED_BOX(), true, true, left_p, right_p, s)
+  }
+}
+
+/// C: `#define NS_FACE_FOREGROUND(f) ((f)->foreground)` (src/nsterm.h 1040) - the write half of the
+/// `NS_FACE_BACKGROUND` pair round 13 imports (src/nsterm.h 1041); C 4166 reads it.
+@_silgen_name("NS_FACE_FOREGROUND")
+func NS_FACE_FOREGROUND(_ face: UnsafeMutableRawPointer?) -> UInt
+/// C: `#define FONT_HEIGHT(f) ((f)->height)` (src/font.h 244) and `#define FONT_TOO_HIGH(ft)
+/// ((ft)->pixel_size > 0 && (ft)->ascent + (ft)->descent > 3*(ft)->pixel_size)`
+/// (src/dispextern.h 1712-1713) - the two font predicates of C 4157-4163.  Both bodies need
+/// `struct font` members the core owns, so each keeps its own name as a class-A entry (the 3.255 A
+/// criterion), the `FONT_HEIGHT` reading of the reference's own `FONT_TOO_HIGH` comment.
+@_silgen_name("FONT_HEIGHT") func FONT_HEIGHT(_ font: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FONT_TOO_HIGH") func FONT_TOO_HIGH(_ font: UnsafeMutableRawPointer?) -> Bool
+
+/// C: the five CoreGraphics calls of the stipple arm (C 4130-4137) - `void CGContextClipToRect
+/// (CGContextRef, CGRect)`, `void CGContextScaleCTM (CGContextRef, CGFloat, CGFloat)`,
+/// `void CGContextDrawTiledImage (CGContextRef, CGRect, CGImageRef)`, `size_t CGImageGetWidth
+/// (CGImageRef)` and `size_t CGImageGetHeight (CGImageRef)`.  Each keeps its C name as an
+/// `@_silgen_name` entry (the round-5 `CGMainDisplayID`/`CGDisplayBounds` shape) because the API
+/// notes rename all five in Swift (`CoreGraphics.apinotes` 194-195, 236-237, 361-364 and 508-511
+/// map them to `CGContext.scaleBy (x:y:)`, `CGContext.clip (to:)`,
+/// `CGContext.__draw (_:in:byTiling:)` and the `CGImage.width`/`CGImage.height` getters), and each
+/// entry's provider is the SDK's own symbol - the `CGImageMaskCreate` reading `nsimage.swift` 159
+/// records.
+@_silgen_name("CGContextClipToRect")
+func CGContextClipToRect(_ c: CGContext?, _ rect: CGRect)
+@_silgen_name("CGContextScaleCTM")
+func CGContextScaleCTM(_ c: CGContext?, _ sx: CGFloat, _ sy: CGFloat)
+@_silgen_name("CGContextDrawTiledImage")
+func CGContextDrawTiledImage(_ c: CGContext?, _ rect: CGRect, _ image: CGImage?)
+@_silgen_name("CGImageGetWidth") func CGImageGetWidth(_ image: CGImage?) -> Int
+@_silgen_name("CGImageGetHeight") func CGImageGetHeight(_ image: CGImage?) -> Int
+
+/// C: `struct ns_display_info`'s `struct ns_bitmap_record *bitmaps` (src/nsterm.h 873; the record
+/// itself is 810-819) with C's own subscript `face->stipple - 1` as the second argument (the
+/// `glyph_row_used` shape), reaching that record's `EmacsImage *img` (src/nsterm.h 813 in the
+/// `__OBJC__` arm; the frozen arm's `void *img` is 816) - C 4119-4120.
+/// `EmacsImage` is another lane's class (`nsimage.swift`'s, the `@interface` at src/nsterm.h
+/// 670-703), so its `- (CGImageRef)stippleMask` (declared src/nsterm.h 696, defined src/nsimage.m
+/// 542) crosses as a C-ABI entry under `<Class>_<selector>` - the `EmacsImage_allocInitFromFile`
+/// shape `nsfns.swift` 402 declares.  **No provider exists yet**: the ledger's (3) registers it as
+/// owed, the P-55 reading.
+@_silgen_name("ns_display_info_bitmaps_img")
+func ns_display_info_bitmaps_img(_ dpyinfo: UnsafeMutableRawPointer?,
+                                 _ i: Int) -> AnyObject?
+@_silgen_name("EmacsImage_stippleMask")
+func EmacsImage_stippleMask(_ img: AnyObject?) -> CGImage?
+
+/// C 4091-4177: `static void ns_maybe_dumpglyphs_background (struct glyph_string *s, char force_p)` -
+/// "Modeled after x_draw_glyph_string_background, which draws BG in certain cases.  Others are left
+/// to the text rendering routine."  `char force_p` is `Bool` (the `ns_draw_box` reading), and the
+/// `NS_IMPL_COCOA` stipple arm is **the live one**: the `#else` arm's
+/// `[[dpyinfo->bitmaps[…].img stippleMask] set]; goto fill;` and the `fill:` label the `!NS_IMPL_COCOA`
+/// guard carries at C 4167-4169 are the GNUstep text and are recorded, not transcribed (the `goto`
+/// has no Swift form and no live reader).  Four more readings: `FRAME_DISPLAY_INFO (s->f)`'s local
+/// `dpyinfo` is not carried (the entry takes the frame, as in `ns_setup_relief_colors`); the colour
+/// ternary and the `else if`'s comparison keep C's statement shape with an explicit `NSColor?`
+/// binding, whose `?.set ()` is C's message to a possibly-nil receiver; `[nil unsignedLong]`'s
+/// zero is `?? 0` (the category method above is this unit's own); and `CGRectMake (0, 0, …)`
+/// - a `static inline` of CGGeometry.h with no symbol - is Swift's `CGRect (x:y:width:height:)`,
+/// a class-B expansion, with C's two `size_t` arguments converted to `CGFloat`.
+fileprivate func ns_maybe_dumpglyphs_background(_ s: UnsafeMutableRawPointer?,
+                                               _ force_p: Bool) {
+  let face = glyph_string_face(s)
+  var r = NSRect.zero
+
+  // C 4101: `NSTRACE ("ns_maybe_dumpglyphs_background");` - empty at `NSTRACE_ENABLED` 0.
+
+  if !glyph_string_background_filled_p(s) {
+    let box_line_width = max(face_box_horizontal_line_width(face), 0)
+
+    if glyph_string_stippled_p(s) {
+      /* On cocoa emacs the stipple is stored as a mask CGImage.
+         First we want to clear the background with the bg color.  */
+      NSColor.colorWithUnsignedLong(face_background(face)).set()
+      r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s) + box_line_width),
+                     CGFloat(glyph_string_background_width(s)),
+                     CGFloat(glyph_string_height(s) - 2 * box_line_width))
+      NSRectFill(r)
+      glyph_string_set_background_filled_p(s, true)
+      let mask = EmacsImage_stippleMask(
+        ns_display_info_bitmaps_img(FRAME_DISPLAY_INFO(glyph_string_f(s)),
+                                    face_stipple(face) - 1))
+
+      /* This part could possibly be improved, the author is
+         unfamiliar with NS/CoreGraphics and isn't sure if it's
+         possible to do this with NSImage */
+      let ctx = NSGraphicsContext.current
+      ctx?.saveGraphicsState()
+      /* Checkpoint the graphics state and then focus in on the area
+         we're going to fill */
+      let context = ctx?.cgContext
+      CGContextClipToRect(context, r)
+      CGContextScaleCTM(context, 1, -1)
+
+      /* Stamp the foreground color using the stipple mask */
+      NSColor.colorWithUnsignedLong(face_foreground(face)).set()
+      let imageSize = CGRect(x: 0, y: 0, width: CGFloat(CGImageGetWidth(mask)),
+                             height: CGFloat(CGImageGetHeight(mask)))
+      CGContextDrawTiledImage(context, imageSize, mask)
+
+      NSGraphicsContext.current?.restoreGraphicsState()
+
+    } else if FONT_HEIGHT(glyph_string_font(s)) < glyph_string_height(s) - 2 * box_line_width
+                /* When xdisp.c ignores FONT_HEIGHT, we cannot trust font
+                   dimensions, since the actual glyphs might be much
+                   smaller.  So in that case we always clear the
+                   rectangle with background color.  */
+                || FONT_TOO_HIGH(glyph_string_font(s))
+                || glyph_string_font_not_found_p(s)
+                || glyph_string_extends_to_end_of_line_p(s)
+                || force_p {
+      if glyph_string_hl(s) != DRAW_CURSOR() {
+        let bg: NSColor? = NS_FACE_BACKGROUND(face) != 0
+          ? NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face))
+          : FRAME_BACKGROUND_COLOR(glyph_string_f(s))
+        bg?.set()
+      } else if face != nil
+                  && (NS_FACE_BACKGROUND(face)
+                      == (FRAME_CURSOR_COLOR(glyph_string_f(s))?.unsignedLong() ?? 0)) {
+        NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(face)).set()
+      } else {
+        FRAME_CURSOR_COLOR(glyph_string_f(s))?.set()
+      }
+
+      r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s) + box_line_width),
+                     CGFloat(glyph_string_background_width(s)),
+                     CGFloat(glyph_string_height(s) - 2 * box_line_width))
+      NSRectFill(r)
+      glyph_string_set_background_filled_p(s, true)
+    }
   }
 }

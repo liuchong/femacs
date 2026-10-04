@@ -5791,3 +5791,23 @@
   ⑤ **未声称**：仍是**编译级**验收（exit 0 / 0 error / 16 warning）；没有 `javap`/字节码、没有 Gradle/设备、`R` 的 id 值仍是 0；
      `EmacsService` 未落，其 `SERVICE` 的可空性账（3.352 记的 16 处直解引用）仍挂着；参照自身 `reconfigure` 里
      `emacsAbort()` 的位置看着像上游缺陷，lane 按 1:1 **照录不表态**——我也照这个口径保留。
+
+- **3.359 nsterm 第 18 片入库：C 3809-4177（box/relief 子块 + `ns_maybe_dumpglyphs_background`）（2026-10-05）**：
+  ① **交付形态**：`femacs/platform/macos/nsterm.swift` **4,709 → 5,272 行**（`git diff --stat` 的 `+567/-13`），
+     落 5 个定义（全 C `static`）：`ns_draw_box` C 3809-3839、`ns_setup_relief_colors` C 3841-3869、
+     `ns_draw_relief` C 3871-4023、`ns_dumpglyphs_box_or_relief` C 4026-4089、
+     `ns_maybe_dumpglyphs_background` C 4091-4177；台账 `docs/ports/nsterm.md` **+179 行**（勾选 96 → **101/150**、
+     Round 18 章、`## ABI` (2) 13 行、(3) 两条工单、Evidence 整段）。覆盖区间 **C 60-4177**，下一个活定义
+     **C 4179 `ns_draw_image_relief`**。
+  ② **我自己复跑的读数（不引用 lane 的）**：`swiftc -parse-as-library -c` → **exit 0 / 0 error / 14 条 warning 行**
+     （3 类 deprecation，`lockFocus` 4、`unlockFocus` 4、`scanFloat` 6——即既有那 **7 条**不同 warning，无新增）；
+     `check-citations` **0 drift / 0 stale**（本片含 lane 自己修掉的 3 条新注释漂移）；`check-declarations` 未变。
+  ③ **本片给 shim lane 的账（只登记不造导出）**：36 个新名字（5 `reference-source` 枚举/宏 + 31 `unclassified` 成员/操作项，
+     含 `glyph_advance` 需要 `struct glyph` 的 stride、四个类 A 宏名、`EmacsImage_stippleMask` 归 `nsimage.swift`）；
+     符号审计显示这 36 个里**只有 `window_box_right`** 在参照对象里有符号（其余 35 个为 0），5 个 CoreGraphics 入口由 SDK 提供。
+     `swift-units` 会报本片 5 行 stale、`swift-import-pending` 要加 36 行——**都在下一步的四棘轮复算里落**（本条不冒充）。
+  ④ **如实记的两条**：⑴ lane 交代"编译之后又改过注释"（3 处 citation 修复），我**用当前文件重编了一次**，exit 0/14 行 warning
+     与他的读数一致 ⇒ 那条证据瑕疵已被独立覆盖；⑵ 参照自身在 C 3980-3986 与 3988-3994 有一对**重复块**（看着像上游 bug），
+     lane **照录两遍**未"修正"——符合 1:1 口径，我保留。
+  ⑤ **未声称**：冻结配置没有 `HAVE_NS`/`NS_IMPL_COCOA`，这 5 个函数**一行都没运行过**——box/relief 几何、CG stipple 绘制、
+     指针遍历全是"照录"不是"验证"；指针比较里 Swift 需要的 `g != nil && end != nil` 守卫已在台账记为 reshape。
