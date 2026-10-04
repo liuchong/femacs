@@ -51,8 +51,13 @@
 // **Round 12 lands C 2624-2761**: `ns_define_frame_cursor` (C 2624-2637), the Keyboard handling
 // banner (C 2641-2645), `ns_convert_key` (C 2648-2663), `get_keysym_name` (C 2666-2677),
 // `right_mod` (C 2680-2684), `nil_or_none` (C 2686-2690) and `ns_get_shifted_character`
-// (C 2692-2761).  The next live definition is C 2789's `ns_clear_frame` (C 2771-2786's
-// `ns_redraw_scroll_bars` is `NS_IMPL_GNUSTEP`-only, i.e. dead for this lane).
+// (C 2692-2761).  **Round 13 lands C 2789-2960**: `ns_clear_frame` (C 2788-2820, exported),
+// `ns_clear_frame_area` (C 2823-2846), `ns_scroll_run` (C 2849-2916) and
+// `ns_clear_under_internal_border` (C 2919-2960).  **Round 14 lands C 2963-3079**:
+// `ns_after_update_window_line` (C 2963-3019), `ns_shift_glyphs_for_insert` (C 3022-3036), the
+// "Character encoding and metrics" banner (C 3040-3044) and `ns_compute_glyph_string_overhangs`
+// (C 3047-3079) - the next live definition is C 3091's `ns_define_fringe_bitmap` (the Fringe and
+// cursor drawing banner is at C 3083-3087, and its `fringe_bmp` static at C 3089).
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -104,6 +109,21 @@ struct Emacs_Color {
   var red: UInt16
   var green: UInt16
   var blue: UInt16
+}
+
+/// C: `struct font_metrics` (src/font.h 414-417) - `short lbearing, rbearing, width, ascent,
+/// descent;`.  `ns_compute_glyph_string_overhangs` **holds** one: the core's driver slot fills it
+/// through a pointer and C then reads the fields, so the unit declares the same five members (the
+/// view `macfont.swift` 49-60 and `femacs/src/font.rs` 196 already carry).  Measured with
+/// `spikes/gated-layout-probe.py 'struct font_metrics' font.h` (status 3.271's probe, read-only
+/// here): **all three arms read `sizeof=10, align=2`** with `lbearing 0, rbearing 2, width 4,
+/// ascent 6, descent 8` - the frozen arm parses for this record (Evidence).
+struct font_metrics {
+  var lbearing: Int16
+  var rbearing: Int16
+  var width: Int16
+  var ascent: Int16
+  var descent: Int16
 }
 
 /// C: `struct input_event` (src/termhooks.h 371-412) - the record `emacs_event` points at, and
@@ -3499,5 +3519,210 @@ fileprivate func ns_clear_under_internal_border(_ f: UnsafeMutableRawPointer?) {
     NSRectFill(NSMakeRect(0, CGFloat(height - bottom_margin - border),
                           CGFloat(width), CGFloat(border)))
     ns_unfocus(f)
+  }
+}
+
+// ==========================================================================
+// C 2963-3079: the RIF's fringe-update preparation, the glyph shift, and the
+// overhang computation (with the "Character encoding and metrics" banner).
+// ==========================================================================
+
+/// C: `struct window`'s member `w->pseudo_window_p` (src/window.h) - read at C 2977, the
+/// `window_<member>` family round 13 opened.
+@_silgen_name("window_pseudo_window_p")
+func window_pseudo_window_p(_ w: UnsafeMutableRawPointer?) -> Bool
+/// C: `struct glyph_row`'s members this slice reads and the one it writes -
+/// `desired_row->mode_line_p` (C 2977), `desired_row->full_width_p` (C 2983) and
+/// `desired_row->redraw_fringe_bitmaps_p = 1` (C 2978, a **bitfield write**, the
+/// `mouse_highlight_set_mouse_face_defer` shape).  `glyph_row_y`/`glyph_row_visible_height`
+/// above are the family's first two rows.
+@_silgen_name("glyph_row_mode_line_p")
+func glyph_row_mode_line_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_row_full_width_p")
+func glyph_row_full_width_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_row_set_redraw_fringe_bitmaps_p")
+func glyph_row_set_redraw_fringe_bitmaps_p(_ row: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `int windows_or_buffers_changed` (src/xdisp.c) - a plain global, and the reference objects
+/// hold it (`C`, common, in `build/emacs-ref/src/xdisp.o`), so the core exports a data symbol of
+/// its own name - the `Vframe_list` reading.
+@_silgen_name("windows_or_buffers_changed") var windows_or_buffers_changed: Int32
+/// C: `struct glyph_string`'s members (src/dispextern.h): the two overhangs this slice **writes**
+/// (C 3070-3077 - their *reads* are elsewhere in the file and get their own entries when that
+/// slice arrives, so only the `_set_` pair is declared here; a declared-but-uncalled entry is
+/// dropped from the object and never reaches `nm -u`, measured this round),
+/// `char2b`/`nchars`/`font` (C 3062), `cmp`/`cmp_id`/`cmp_from`/`cmp_to` (C 3053/3066/3068) and
+/// `first_glyph` (C 3054).  This is the family's first slice - the record belongs to the core
+/// (`femacs/src/dispextern.rs`), so each access is a member entry under `<record>_<member>`.
+@_silgen_name("glyph_string_set_left_overhang")
+func glyph_string_set_left_overhang(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("glyph_string_set_right_overhang")
+func glyph_string_set_right_overhang(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("glyph_string_char2b")
+func glyph_string_char2b(_ s: UnsafeMutableRawPointer?) -> UnsafePointer<UInt32>?
+@_silgen_name("glyph_string_nchars") func glyph_string_nchars(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_font")
+func glyph_string_font(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_cmp")
+func glyph_string_cmp(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_cmp_id")
+func glyph_string_cmp_id(_ s: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("glyph_string_cmp_from")
+func glyph_string_cmp_from(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_cmp_to") func glyph_string_cmp_to(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_first_glyph")
+func glyph_string_first_glyph(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: `struct glyph`'s `unsigned type : 3;` (src/dispextern.h 514) - the bitfield read at
+/// C 3054/3055/3059 - and the two `enum glyph_type` enumerators it is compared with
+/// (src/dispextern.h 431-438).
+@_silgen_name("glyph_type") func glyph_type(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("CHAR_GLYPH") func CHAR_GLYPH() -> Int32
+@_silgen_name("COMPOSITE_GLYPH") func COMPOSITE_GLYPH() -> Int32
+/// C: `struct composition`'s members (src/composite.h 148; `short pixel_width, ascent, descent;
+/// short lbearing, rbearing;`), read at C 3076-3077.
+@_silgen_name("composition_pixel_width")
+func composition_pixel_width(_ cmp: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("composition_lbearing")
+func composition_lbearing(_ cmp: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("composition_rbearing")
+func composition_rbearing(_ cmp: UnsafeMutableRawPointer?) -> Int32
+/// C: `struct font`'s member `driver` (`struct font_driver *`, src/font.h) and the driver slot
+/// `void (*text_extents) (struct font *, const unsigned *, int, struct font_metrics *)`
+/// (src/font.h 672-673, ~offset 104 in that table - the slot `macfont.swift` 11160-11162
+/// declares).  C reaches the call as `font->driver->text_extents (…)`; the port reads the two
+/// hops as entries and calls what the second returns, so no `struct font`/`struct font_driver`
+/// view is needed here.
+typealias font_text_extents_fn = @convention(c) (UnsafeMutableRawPointer?, UnsafePointer<UInt32>?,
+                                                Int32, UnsafeMutableRawPointer?) -> Void
+@_silgen_name("font_driver") func font_driver(_ font: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("font_driver_text_extents")
+func font_driver_text_extents(_ driver: UnsafeMutableRawPointer?) -> font_text_extents_fn?
+/// C: the two core functions of C 3062/3068 - `femacs/src/composite.rs` 758 and 829 define them,
+/// so they are provided, not owed.  `composition_gstring_width`'s `metrics` is a
+/// `struct font_metrics *`, i.e. the pointer the local view above is handed through.
+@_silgen_name("composition_gstring_from_id")
+func composition_gstring_from_id(_ id: Int) -> Lisp_Object
+@_silgen_name("composition_gstring_width")
+func composition_gstring_width(_ gstring: Lisp_Object, _ from: Int, _ to: Int,
+                               _ metrics: UnsafeMutableRawPointer?) -> Int32
+
+/// C 2963-3019: `static void ns_after_update_window_line (struct window *w, struct glyph_row
+/// *desired_row)` - "External (RIF): preparatory to fringe update after text was updated".
+/// Two of C's spellings are re-shaped: `eassert (w)` is the no-op it is when `ENABLE_CHECKING`
+/// is off (recorded, as the `NSTRACE` family), and the condition's comma expressions
+/// (`(f = XFRAME (w->frame), width = …, width != 0)`) become the nested `if`s below - the same
+/// short-circuit, with the three pure reads where C evaluates them.
+fileprivate func ns_after_update_window_line(_ w: UnsafeMutableRawPointer?,
+                                             _ desired_row: UnsafeMutableRawPointer?) {
+  var f: UnsafeMutableRawPointer? = nil
+  var width: Int32 = 0
+  var height: Int32 = 0
+
+  // C 2972: `NSTRACE_WHEN (NSTRACE_GROUP_UPDATES, "ns_after_update_window_line");` - empty at
+  // `NSTRACE_ENABLED` 0, so neither its group nor its format string is evaluated.
+
+  /* begin copy from other terms */
+  // C 2975: `eassert (w);` - the empty macro unless `ENABLE_CHECKING`, which this configuration
+  // leaves undefined (the reading the dead `NSTRACE_ENABLED` block above already carries).
+
+  if !glyph_row_mode_line_p(desired_row) && !window_pseudo_window_p(w) {
+    glyph_row_set_redraw_fringe_bitmaps_p(desired_row, true)
+  }
+
+  /* When a window has disappeared, make sure that no rest of
+     full-width rows stays visible in the internal border.  */
+  if windows_or_buffers_changed != 0
+       && glyph_row_full_width_p(desired_row) {
+    f = XFRAME(window_frame(w))
+    width = FRAME_INTERNAL_BORDER_WIDTH(f)
+
+    if width != 0 {
+      height = glyph_row_visible_height(desired_row)
+
+      if height > 0 {
+        // C 2990: `int y = WINDOW_TO_FRAME_PIXEL_Y (w, max (0, desired_row->y));` - C's `max`
+        // is the two-argument macro (`lisp.h`/`sysdep`'s), expressible in Swift as
+        // `Swift.max` (class B of the 3.255 ruling: the body is arithmetic, no core fact).
+        let y = WINDOW_TO_FRAME_PIXEL_Y(w, max(0, glyph_row_y(desired_row)))
+        let face_id =
+          !NILP(Vface_remapping_alist)
+          ? lookup_basic_face(nil, f, INTERNAL_BORDER_FACE_ID())
+          : INTERNAL_BORDER_FACE_ID()
+        let face = FACE_FROM_ID_OR_NULL(f, face_id)
+
+        block_input()
+        if face != nil {
+          var r = NSMakeRect(0, CGFloat(y), CGFloat(FRAME_PIXEL_WIDTH(f)), CGFloat(height))
+          ns_focus(f, &r, 1)
+
+          NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face)).set()
+          NSRectFill(NSMakeRect(0, CGFloat(y), CGFloat(width), CGFloat(height)))
+          NSRectFill(NSMakeRect(CGFloat(FRAME_PIXEL_WIDTH(f) - width),
+                                CGFloat(y), CGFloat(width), CGFloat(height)))
+
+          ns_unfocus(f)
+        } else {
+          ns_clear_frame_area(f, 0, y, width, height)
+          ns_clear_frame_area(f,
+                              FRAME_PIXEL_WIDTH(f) - width,
+                              y, width, height)
+        }
+        unblock_input()
+      }
+    }
+  }
+}
+
+/// C 3022-3036: `static void ns_shift_glyphs_for_insert (struct frame *f, int x, int y, int
+/// width, int height, int shift_by)` - "External (RIF): copy an area horizontally, don't worry
+/// about clearing src".  The copy is the `EmacsView -copyRect:to:` entry round 13 added.
+fileprivate func ns_shift_glyphs_for_insert(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32,
+                                            _ width: Int32, _ height: Int32, _ shift_by: Int32) {
+  let srcRect = NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(width), CGFloat(height))
+  let dest = NSMakePoint(CGFloat(x + shift_by), CGFloat(y))
+
+  // C 3033: `NSTRACE ("ns_shift_glyphs_for_insert");` - empty, as above.
+
+  copyRect_entry(FRAME_NS_VIEW(f), srcRect, dest)
+}
+
+/* ==========================================================================
+
+    Character encoding and metrics
+
+   ========================================================================== */
+
+/// C 3047-3079: `static void ns_compute_glyph_string_overhangs (struct glyph_string *s)` -
+/// "External (RIF); compute left/right overhang of whole string and set in s".  C's
+/// `struct font_metrics metrics;` is a local the driver slot fills through a pointer, which is
+/// why the unit declares the view above; `font->driver->text_extents (…)` is the two-hop read the
+/// entries `font_driver`/`font_driver_text_extents` spell (C calls the slot unconditionally, and
+/// the port's `if let` is the nil check C's driver contract makes unnecessary).
+fileprivate func ns_compute_glyph_string_overhangs(_ s: UnsafeMutableRawPointer?) {
+  if glyph_string_cmp(s) == nil
+       && (glyph_type(glyph_string_first_glyph(s)) == CHAR_GLYPH()
+           || glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH()) {
+    var metrics = font_metrics(lbearing: 0, rbearing: 0, width: 0, ascent: 0, descent: 0)
+
+    if glyph_type(glyph_string_first_glyph(s)) == CHAR_GLYPH() {
+      let font = glyph_string_font(s)
+      if let text_extents = font_driver_text_extents(font_driver(font)) {
+        text_extents(font, glyph_string_char2b(s), glyph_string_nchars(s), &metrics)
+      }
+    } else {
+      let gstring = composition_gstring_from_id(glyph_string_cmp_id(s))
+
+      _ = composition_gstring_width(gstring, Int(glyph_string_cmp_from(s)),
+                                    Int(glyph_string_cmp_to(s)), &metrics)
+    }
+    // C 3070-3072: `metrics.rbearing > metrics.width ? metrics.rbearing - metrics.width : 0`
+    // (the `short` fields promote to `int` in C's arithmetic, hence the `Int32` conversions) and
+    // `metrics.lbearing < 0 ? - metrics.lbearing : 0`.
+    glyph_string_set_right_overhang(s, metrics.rbearing > metrics.width
+                                       ? Int32(metrics.rbearing) - Int32(metrics.width) : 0)
+    glyph_string_set_left_overhang(s, metrics.lbearing < 0 ? -Int32(metrics.lbearing) : 0)
+  } else if glyph_string_cmp(s) != nil {
+    glyph_string_set_right_overhang(s, composition_rbearing(glyph_string_cmp(s))
+                                       - composition_pixel_width(glyph_string_cmp(s)))
+    glyph_string_set_left_overhang(s, -composition_lbearing(glyph_string_cmp(s)))
   }
 }

@@ -5088,3 +5088,12 @@
   它的四条边界自证我抽验过两条（台账四个函数框开工时全 `[ ]`、`--check` 最早的 `missing function` 是 C 15616 `tty_handle_tab_bar_click`＝item 38 的刻意缺口，其后第一个 ≥ C 20475，都在本片区间之外）。
   ③ **集成者动作**：`docs/ports/macro-body-notes.tsv` 补一行 `try_scrolling\tgoto\t…`（C 19725 的 `goto too_near_end` 是端口的 `continue too_near_end` + 跨函数其余部分的标签 loop，deviations 164-165）——加完**重跑 `--check`，那条 `function try_scrolling does not mention goto` 消失**（剩下两条 `does not mention` 是 3.305 之前就在的，不进这张表）；`include/window.rs` 的 `window_scroll_margin` 条目与 `include/dispextern.rs` 的 `pub struct it` 归属（在 `dispextern_face_records` 臂里、对本单元不可见 ⇒ item 39 仍成立）按 lane 的说明留给它自己的下一轮或对应 lane。
   ④ 未声称：本片只有 `build-tu` + `--check` 分类 + 台账边界三类证据；**没有**在冻结 target 上运行任何 xdisp 代码路径（P-51 的"承载文本"），本片新增的四个 static 函数一个都没有跨单元调用点。
+- **3.307 nsterm 第 14 轮入库：三个 C 定义落地，`nsterm.swift` 3,728 行；共享表两项交集成者（Ramanujan 交付，2026-10-05）**：
+  ① **入的两件**：`femacs/platform/macos/nsterm.swift` **+227 / −2**（3,728 行）、`docs/ports/nsterm.md` **+116 / −9**（未勾框 **265**）。本轮落地三个 C 定义（正是 manifest 里那三行）：
+  `ns_after_update_window_line`、`ns_shift_glyphs_for_insert`、`ns_compute_glyph_string_overhangs`；台账记的累计读数：**150 个 C 定义里 83 已落 / 71 未落**、**186 个 C 符号导入**（`check-swift-units`/`check-swift-imports` 的同一读数）。
+  ② **入库前我自己复检**：`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift` → **exit 0**（deprecation 警告与上一片同一批）；`check-swift-units` → **`0 new, 3 stale, 7 Swift unit(s) landed`**，三条 stale **正好点名本片的三个定义**（"manifest row no longer matches (it landed?)"）——这就是"它们真的落地了"的机器证据；
+  `check-declarations` **13 / 0 / 0**、`check-carried` **11 / 11 / 0**。
+  ③ **本片的两条实测机制发现**（lane 写进台账，我照抄）：⑴ **未被调用的 `@_silgen_name` 声明会被整个丢掉**——不进 `nm -u`、也进不了导入棘轮；所以本片只声明本片真正调用的名字（两个 overhang 只声明 `_set_` 半边，读条目等读到它们的那一片再声明）。这条解释了"为什么棘轮的行数不能当作'声明数'"。
+  ⑵ 本片**第一次使用 3.271 的带门布局探针**（只读、未 `--write`）：`struct font_metrics` 在 frozen/x11/ns_cocoa 三臂一律 `sizeof=10, align=2`、成员 0/2/4/6/8 ⇒ Swift 侧五个 `Int16` 与 C 一致，**不需要带门臂**。
+  ④ **交给集成者的共享表两项**（都由下一轮的棘轮重生成完成，见 3.308）：`docs/baseline/swift-units.tsv` 删 3 行（本片那三个名字）、`docs/baseline/swift-import-pending.txt` 加 **22 行**（4 个 `reference-source`：`font_driver`/`glyph_type`/`CHAR_GLYPH`/`COMPOSITE_GLYPH`；18 个 `unclassified`：`window_pseudo_window_p`、三个 `glyph_row_*`、十个 `glyph_string_*`、三个 `composition_*`、`font_driver_text_extents`）；
+  其中 `windows_or_buffers_changed` 与两个 `composition_gstring_*` **已由核心提供**，不用行。`docs/baseline/**` 本片未动，探针未 `--write`。

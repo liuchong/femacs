@@ -138,9 +138,9 @@
 - [x] ns_clear_frame_area  (line 2824, static) — landed as `fileprivate func` (C's `static void`); `NSIntersectionRect` is AppKit's own Swift-visible function while `NSRectFill` is reached by name (the `NSRectClip` reading)
 - [x] ns_scroll_run  (line 2850, static) — landed as `fileprivate func`; `w->frame` is the `window_frame` member entry, the three `run->…` reads are the new `struct run` member entries, and `[view copyRect:to:]` is the deferred entry `copyRect` (this unit's own `EmacsView` method, C 9340) - the SDK-101400 arm at C 2910-2912 is dead here
 - [x] ns_clear_under_internal_border  (line 2920, static) — landed as `fileprivate func`; the face-id expression is the three-way `FRAME_PARENT_FRAME`/`Vface_remapping_alist` conditional of C 2931-2938 over `lookup_basic_face` (which returns the **id**, not a face) and the three face-id enumerators
-- [ ] ns_after_update_window_line  (line 2964, static)
-- [ ] ns_shift_glyphs_for_insert  (line 3023, static)
-- [ ] ns_compute_glyph_string_overhangs  (line 3048, static)
+- [x] ns_after_update_window_line  (line 2964, static) — landed as `fileprivate func` (C's `static void`); `eassert` is the no-op of an unset `ENABLE_CHECKING` and C's two comma-expression conditions become nested `if`s (same short-circuit), with `max (0, …)` expanded as `Swift.max` (class B: arithmetic)
+- [x] ns_shift_glyphs_for_insert  (line 3023, static) — landed as `fileprivate func`; the copy is round 13's `copyRect` entry, so the function adds no new name at all
+- [x] ns_compute_glyph_string_overhangs  (line 3048, static) — landed as `fileprivate func`; it **holds** a `struct font_metrics` (measured, Evidence), reaches C's `font->driver->text_extents (…)` as the two-hop pair `font_driver`/`font_driver_text_extents`, and starts the `glyph_string_*` family with the overhang **writes** only (the reads belong to their own slice)
 - [ ] ns_define_fringe_bitmap  (line 3092, static)
 - [ ] ns_destroy_fringe_bitmap  (line 3199, static)
 - [ ] ns_draw_fringe_bitmap  (line 3206, static)
@@ -472,8 +472,12 @@ spelling the same selector is one box and is named where it occurs.)
       (Evidence)
 
 (Not counted here, the way `docs/ports/nsselect.md` does not count `Lisp_Subr`/`specpdl_ref`: the
-unit also declares a Swift **view** of `struct input_event` (src/termhooks.h 371-412), which this
-file's `emacs_event` points at.  The record is termhooks.h's and already has a Rust mirror
+unit also declares Swift **views** of `struct input_event` (src/termhooks.h 371-412) - which this
+file's `emacs_event` points at - and, since round 14, of `struct font_metrics` (src/font.h
+414-417), which `ns_compute_glyph_string_overhangs` holds as a local and hands to the core's
+driver slot through a pointer (the same view `macfont.swift` 49-60 and `femacs/src/font.rs` 196
+already carry; `spikes/gated-layout-probe.py` reads all three arms as `sizeof=10, align=2`, members
+0/2/4/6/8 - Evidence).  The record is termhooks.h's and already has a Rust mirror
 (`femacs/src/include/termhooks.rs`); a Swift unit cannot see a Rust record, so the view repeats
 the mirror's member names, and its layout is measured rather than assumed - clang `sizeof 64`,
 `align 8`, and the offsets in `## Evidence`, which the Swift side matches exactly.)
@@ -600,10 +604,15 @@ reader fix surfaced, with `import Carbon` as C 72-73's header) - so the covered 
 definitions: `ns_clear_frame` (C 2788-2820, exported - src/nsterm.h 1124), `ns_clear_frame_area`
 (C 2823-2846), `ns_scroll_run` (C 2849-2916) and `ns_clear_under_internal_border` (C 2919-2960);
 C 2771-2786's `ns_redraw_scroll_bars` is `NS_IMPL_GNUSTEP`-only, i.e. dead for this lane and
-recorded - so the covered range is now **C 60-2960**.  The next live definition is C 2964's
-`ns_after_update_window_line`.
+recorded - so the covered range is now **C 60-2960**.  **Round 14 lands C 2963-3079**: the RIF's
+fringe-update preparation `ns_after_update_window_line` (C 2963-3019), `ns_shift_glyphs_for_insert`
+(C 3022-3036), the "Character encoding and metrics" banner (C 3040-3044) and
+`ns_compute_glyph_string_overhangs` (C 3047-3079) - **no new C export this round** (all three are
+C `static`s) - so the covered range is now **C 60-3079**.  The next live definition is C 3091's
+`ns_define_fringe_bitmap` (the Fringe and cursor drawing banner at C 3083-3087, and its
+`fringe_bmp` static at C 3089, are the next slice's openers).
 
-Ticked above: **80 of the 150 function boxes**.  The count is the generator's own again: the
+Ticked above: **83 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
 declarator to its `{` stopped at the documentation comment in between - status 3.260), the port had
 already written seven of them (round 5's two, round 6's `ns_focus`, round 10's four), and the
@@ -1290,6 +1299,53 @@ gives `beginDrag:forPasteboard:withMode:returnFrameTo:prohibitSame:followTooltip
 **No new warning.**  `swiftc -parse-as-library -c` is exit 0 with the same seven warnings the
 previous rounds carry (four `lockFocus`/`unlockFocus`, three `scanFloat`).
 
+### Round 14: the fringe update, the shift, and the first held record view
+
+**Scope.**  Three definitions, C 2963-3079, and **no new C export**: all three are C `static`s
+(`ns_after_update_window_line` C 2963-3019, `ns_shift_glyphs_for_insert` C 3022-3036,
+`ns_compute_glyph_string_overhangs` C 3047-3079 - with the "Character encoding and metrics" banner
+at C 3040-3044).  `ns_shift_glyphs_for_insert` adds *no* new name at all: its copy is round 13's
+`copyRect` entry.
+
+**`font_metrics` is the unit's second held record, and the status-3.271 probe read it.**  C declares
+`struct font_metrics metrics;` as a *local* and hands `&metrics` to the core's driver slot, which
+fills it through the pointer; C then reads `rbearing`/`width`/`lbearing`.  That is the
+`Emacs_Color`/`input_event` situation (the unit owns the storage), so the unit declares the view -
+the same five `short`s `macfont.swift` 49-60 and `femacs/src/font.rs` 196 already carry.  Its layout
+is *measured*, and this round is the first to use the gated-arm probe the integrator landed in
+3.271: `spikes/gated-layout-probe.py 'struct font_metrics' font.h` reads **frozen**, x11 and
+ns_cocoa alike as `sizeof=10, align=2` with `lbearing 0, rbearing 2, width 4, ascent 6, descent 8`
+- this record parses in the frozen arm too (`parse=no` is the NS-only types' row), which is why the
+reading did not need an arm at all.  The probe was run read-only; its `--write` target is a
+`docs/baseline/**` table, which this lane does not touch.
+
+**`font->driver->text_extents (…)` is two entries, not a view.**  C walks a `struct font` member
+(`driver`) and then a `struct font_driver` slot (`text_extents`, a function pointer at ~offset 104
+of that table).  The lane's rule for a member of a *core* record is an entry, so the port reads the
+two hops as `font_driver` and `font_driver_text_extents` and calls what the second returns - the
+second's type is the `@convention(c)` closure `macfont.swift` 11160-11162 declares for the same
+slot, so the two units agree on the ABI.  (The alternative, declaring `struct font`'s and
+`struct font_driver`'s prefixes here, would repeat ~40 members of a table this file never builds.)
+C calls the slot unconditionally; the port's `if let` is the nil check that C's driver contract
+makes unnecessary, and it is the same shape as the file's optional chaining elsewhere.
+
+**C's comma expressions and `eassert`.**  C's two conditions are
+`(f = XFRAME (w->frame), width = FRAME_INTERNAL_BORDER_WIDTH (f), width != 0)` and
+`(height = desired_row->visible_height, height > 0)`; Swift has neither the comma operator nor an
+assignment expression, so the three pure reads move into the body (the same short-circuit - C does
+not evaluate them either when the earlier conjuncts fail), and the two locals keep C's names.
+`eassert (w)` is the empty macro unless `ENABLE_CHECKING` is defined, which this configuration
+leaves off (the `NSTRACE_ENABLED` reading), and `max (0, desired_row->y)` is class B of the 3.255
+ruling: its body is arithmetic, so it becomes `Swift.max` rather than an entry.
+
+**A declared-but-uncalled entry never reaches the object.**  This round's first written form
+declared both the `glyph_string_*` overhang **reads** and their writers; the object's `nm -u` then
+listed only the writers, because nothing called the readers and the compiler drops unused
+`@_silgen_name` declarations whole.  The port therefore declares only what its slice calls (the
+unit's own rule: "it declares only what its own slice reads"), and the reads will arrive with the
+slice that reads them - the finding is recorded because it is also the mechanism that keeps an
+unused entry from inflating the import ratchet.
+
 ### The macro-name audit (status 3.251's rule)
 
 `nm -g build/emacs-ref/{src,lib}/*.o` was searched for every macro/INLINE name this unit imports
@@ -1422,6 +1478,11 @@ what `nm -g` shows (Evidence).
 | `FRAME_DEFAULT_FACE`, `FRAME_ROOT_WINDOW`, `XWINDOW`, `NS_FACE_BACKGROUND`, `FRAME_INTERNAL_BORDER_WIDTH`, `FRAME_PIXEL_WIDTH`, `FRAME_PIXEL_HEIGHT` | the frame/window/face accessors (src/nsterm.h 1043, src/frame.h 1201/1066, src/window.h) | the reference's headers | **open**: already ratcheted from the other Swift units' imports; round 13 is where this unit starts reading them |
 | `mark_window_cursors_off`, `lookup_basic_face`, `NSRectFill` | `void mark_window_cursors_off (struct window *)` (src/dispextern.h), `int lookup_basic_face (struct window *, struct frame *, int)` (src/xfaces.c), `void NSRectFill (NSRect)` (AppKit) | src/window.c / src/xfaces.c / AppKit's NSGraphics.h | **provided**: the core's own (`femacs/src/window.rs` 5788, `femacs/src/xfaces.rs` 3753) and the SDK's (`system` in the gate's classes) |
 | `copyRect` (`copyRect_entry`) | C 2909: `[view copyRect:srcRect to:dest];` - `EmacsView -copyRect:to:` (C 9340) | **this unit's own class** | **deferred** (`## ABI` (4)): the first selector segment as the entry name, the `beginDrag` reading |
+| the glyph_row/window/glyph-string records (round 14) | `window_pseudo_window_p` (src/window.h), `glyph_row_mode_line_p`/`glyph_row_full_width_p`/`glyph_row_set_redraw_fringe_bitmaps_p` (the `glyph_row_*` family round 4 opened with `glyph_row_y`/`glyph_row_visible_height`), `glyph_string_set_left_overhang`/`glyph_string_set_right_overhang`/`glyph_string_char2b`/`glyph_string_nchars`/`glyph_string_font`/`glyph_string_cmp`/`glyph_string_cmp_id`/`glyph_string_cmp_from`/`glyph_string_cmp_to`/`glyph_string_first_glyph` (the new family), `glyph_type` (the `unsigned type : 3` bitfield) and the enumerators `CHAR_GLYPH`/`COMPOSITE_GLYPH` (src/dispextern.h 431-438) | src/dispextern.h / src/window.h | **open**: member/enumerator entries, `<record>_<member>` with `_set_` for the two writes |
+| `composition_pixel_width`, `composition_lbearing`, `composition_rbearing` | `struct composition`'s `short pixel_width, ascent, descent; short lbearing, rbearing;` (src/composite.h 148) | src/composite.h | **open**: the record belongs to the core (`femacs/src/composite.rs`), so the three reads are member entries |
+| `windows_or_buffers_changed` | `int windows_or_buffers_changed` (src/xdisp.c) | src/xdisp.c | **open**: a plain global the objects hold (`C`, common, in `build/emacs-ref/src/xdisp.o`), so the core exports a data symbol of its own name |
+| `font_driver`, `font_driver_text_extents` | `struct font`'s member `driver` and the driver slot `void (*text_extents) (struct font *, const unsigned *, int, struct font_metrics *)` (src/font.h 672-673) | src/font.h | **open**: C's `font->driver->text_extents (…)` as two member entries, the second returning the C function pointer (`@convention(c)`, the slot `macfont.swift` 11162 declares) - no `struct font`/`struct font_driver` view in this unit |
+| `composition_gstring_from_id`, `composition_gstring_width` | `Lisp_Object composition_gstring_from_id (ptrdiff_t)` and `int composition_gstring_width (Lisp_Object, ptrdiff_t, ptrdiff_t, struct font_metrics *)` (src/composite.h) | defined src/composite.c | **provided**: `femacs/src/composite.rs` 758 and 829 |
 | Carbon and CoreFoundation (round 12) | `TISCopyCurrentKeyboardLayoutInputSource`, `TISGetInputSourceProperty`, `UCKeyTranslate`, `LMGetKbdType`, `kUCKeyActionDown`, `kUCKeyTranslateNoDeadKeysBit` and the four key masks (`shiftKey`/`optionKey`/`rightOptionKey`/`cmdKey`), plus `CFDataGetBytePtr` | Carbon.HIToolbox / CoreFoundation (C 72-73's `#include <Carbon/Carbon.h>`, C 70-80's arm) | **system**: these are *module* calls, not `@_silgen_name` entries - `import Carbon` at the top of the unit - which is a new kind of dependency for this file: the eventual Cocoa link line needs `-framework Carbon` |
 | `FRAME_BACKGROUND_COLOR` | `#define FRAME_BACKGROUND_COLOR(f) ((f)->output_data.ns->background_color)` (src/nsterm.h 1038) | header-only | **open**: `macfont.swift` 756 imports the same name and type |
 
@@ -1511,6 +1572,14 @@ call site takes an entry and the definition lands at its own C line - and **both
   (`FRAME_DEFAULT_FACE`, `FRAME_ROOT_WINDOW`, `XWINDOW`, `NS_FACE_BACKGROUND`,
   `FRAME_INTERNAL_BORDER_WIDTH`, `FRAME_PIXEL_WIDTH`, `FRAME_PIXEL_HEIGHT`) were already ratcheted
   by the other Swift units' imports;
+* the core, **round 14's names**: the `glyph_row_*` trio (`mode_line_p`, `full_width_p`, the
+  `set_redraw_fringe_bitmaps_p` write), `window_pseudo_window_p`, the ten new `glyph_string_*`
+  entries (the family's first slice; the two overhang **writes** only - their reads land with the
+  slice that reads them), `glyph_type`, the `CHAR_GLYPH`/`COMPOSITE_GLYPH` enumerators, the three
+  `composition_*` member reads, `font_driver`, `font_driver_text_extents` and the
+  `windows_or_buffers_changed` data symbol.  Provided already: `composition_gstring_from_id`/
+  `composition_gstring_width` (`femacs/src/composite.rs` 758/829) and the `struct glyph_row`
+  family's first two rows (`glyph_row_y`/`glyph_row_visible_height`);
 * `femacs/platform/macos/nsmenu.swift` (another lane's unit), round 11's addition: the
   `EmacsTooltip` class is landed there, so the `is_emacs_tooltip` entry of (2) - C 2534's
   `isKindOfClass: [EmacsTooltip class]` - is that side's to define (receiver first, the
@@ -1875,6 +1944,44 @@ call site takes an entry and the definition lands at its own C line - and **both
   `gui_clear_cursor`, `run_current_y`, `run_desired_y`, `run_height`, `window_frame`) and round
   12's two (`QCordinary`, `ns_output_current_pointer`), with the remaining fourteen the in-flight
   `nsfns.swift` batch.
+
+* Round 14's compile, same command: **exit 0 on the first pass**, the same **seven** warnings the
+  previous rounds carry (four C's own `lockFocus`/`unlockFocus`, three `'scanFloat' was deprecated
+  in macOS 10.15`) and no new one.
+* `nm -g /tmp/s188r14/nsterm.o` -> **no new C export this round** (`grep -cE ' T
+  _(ns_after_update_window_line|ns_shift_glyphs_for_insert|ns_compute_glyph_string_overhangs)$'` is
+  0: all three are C `static`s).
+* `nm -u /tmp/s188r14/nsterm.o` -> the slice's 22 new imports (`_window_pseudo_window_p`, the three
+  `_glyph_row_*`, `_windows_or_buffers_changed`, the ten `_glyph_string_*` this slice calls,
+  `_glyph_type`, `_CHAR_GLYPH`, `_COMPOSITE_GLYPH`, the three `_composition_*` reads,
+  `_font_driver`, `_font_driver_text_extents`) plus the two provided core functions
+  (`_composition_gstring_from_id`, `_composition_gstring_width`); 547 undefined names in all (521
+  after round 13).  The `glyph_string_left_overhang`/`_right_overhang` reads were declared in the
+  round's first written form and are **absent from both the object and this list** - the mechanism
+  the Decisions record.
+* The symbol audit for round 14's names (`nm -g -A` over `build/emacs-ref/src/*.o` and
+  `build/emacs-ref/lib/*.o`): **1** for `_windows_or_buffers_changed` (`C`, common, in
+  `build/emacs-ref/src/xdisp.o`), `_composition_gstring_from_id` (`T` in `composite.o`) and
+  `_composition_gstring_width` (`T` in `composite.o`); **0** for `window_pseudo_window_p`, the
+  three `glyph_row_*`, `glyph_type`, `CHAR_GLYPH`, `COMPOSITE_GLYPH`, the three `composition_*`
+  members, `font_driver`, `font_driver_text_extents` and the ten `glyph_string_*` entries.
+* `spikes/gated-layout-probe.py 'struct font_metrics' font.h` (status 3.271's probe, run
+  read-only) -> **frozen**, `x11` and `ns_cocoa` all read `[sizeof=10, align=2]` with
+  `short lbearing 0, rbearing 2, width 4, ascent 6, descent 8`.  This record parses in the frozen
+  arm as well (`parse=no` is the NS-only types' row), so the view's layout needs no arm at all;
+  the Swift side's five `Int16` members give the same 10 bytes at the same offsets.
+* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+  definition(s), 71 unported, 74 row(s); 186 C symbol import(s)` and `0 new, 3 stale, 7 Swift
+  unit(s) landed` - the three stale rows are exactly this slice's three definitions.
+* `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures`, `read 652 files (623 .rs 22 .kt 7 .swift)` (the Kotlin files are another
+  lane's).
+* `python3 tools/check-swift-imports.py` -> `931 import(s) in 7 Swift file(s), 5687 core export(s),
+  632 unprovided, 636 ratchet row(s), 48 failure(s)`.  The `FAIL` names that are this lane's are
+  **22** - `font_driver`, `glyph_type`, `CHAR_GLYPH`, `COMPOSITE_GLYPH` (`reference-source`) and the
+  eighteen member entries (`unclassified`) - with the remaining twenty-six the other lanes'
+  in-flight units; `windows_or_buffers_changed` and the two `composition_gstring_*` names are not
+  in the list (the core provides them).
 
 - **Ruling (3.255, integrator) on this file's macro-name entries.**  Two halves, and the criterion
   is whether the macro's body can be spelled in Swift: **(B) first** - a body that is a pure AppKit
