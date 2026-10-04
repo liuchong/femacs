@@ -244,12 +244,112 @@ def read_macro_notes(path: Path) -> list[tuple[str, set[str]]]:
     return out
 
 
+# The reference text of one file is asked for hundreds of times: `c_body_text` and
+# `body_is_empty` are called once per C function `compare` walks, and each call used to re-run
+# the whole-file scans (`blank_comments` walks the file character by character, `blank_literals`
+# walks it again, `function_spans`/`defun_spans` parse it, `dead_branch_map` re-evaluates every
+# `#if`).  That is quadratic in the file's size, and on `emacs/src/xdisp.c` (39,805 lines) it
+# was the gate's own worst case: a 3,000-line slice took 8.6 s, 6,000 took 26.7 s, 12,000 took
+# 74.1 s, and the whole file did not finish inside ten minutes (450 MB resident) - which is why
+# `xtask gate-fast`'s inventory step was reported as ending without its summary (status 3.117).
+# The memos are keyed by the *text object*, and the entry keeps a reference to that object so a
+# recycled `id` can never answer for a different file.  They are bounded: one `Lines` holds five
+# copies of its text, so eight entries stay inside a few tens of MB even for xdisp.c.
+_LINES_MEMO: dict[tuple[int, int], tuple[str, Any]] = {}
+_SPANS_MEMO: dict[tuple[int, int], tuple[str, list[dict]]] = {}
+_MEMO_MAX = 8
+
+
+def _lines_for(text: str):
+    """`ci.Lines (text)`, memoized per text object (see above)."""
+    key = (id(text), len(text))
+    hit = _LINES_MEMO.get(key)
+    if hit is not None and hit[0] is text:
+        return hit[1]
+    lines = ci.Lines(text)
+    if len(_LINES_MEMO) >= _MEMO_MAX:
+        _LINES_MEMO.clear()
+    _LINES_MEMO[key] = (text, lines)
+    return lines
+
+
+_ROWS_MEMO: dict[tuple[int, int], tuple[str, list[str]]] = {}
+
+
+def _rows_for(text: str) -> list[str]:
+    """`text.split ("\\n")`, memoized for the same reason as `_lines_for`.
+
+    Both body lookups split the *whole* file once per function, and a 39,805-line split per
+    function was what still scaled worse than the file size after the first two memos went in
+    (6,000 lines 11 s, 12,000 34 s).
+    """
+    key = (id(text), len(text))
+    hit = _ROWS_MEMO.get(key)
+    if hit is not None and hit[0] is text:
+        return hit[1]
+    rows = text.split("\n")
+    if len(_ROWS_MEMO) >= _MEMO_MAX:
+        _ROWS_MEMO.clear()
+    _ROWS_MEMO[key] = (text, rows)
+    return rows
+
+
+_TEXT_MEMO: dict[Path, str] = {}
+
+
+def _text_for(c_path: Path) -> str:
+    """The reference file's text, memoized by path.
+
+    `body_is_empty` runs once per C function (and once per subr) from `compare`, and it used to
+    read the file again on every call - which also defeated the memos above, because each read
+    is a new string object.  Of the 341 `blank_comments` calls one 6,000-line check made, 82
+    came from this one line (status 3.117).  The reference tree is read-only for the whole run,
+    so the text cannot go stale under it; the port's own sources are never cached.
+    """
+    text = _TEXT_MEMO.get(c_path)
+    if text is None:
+        if len(_TEXT_MEMO) >= _MEMO_MAX:
+            _TEXT_MEMO.clear()
+        text = c_path.read_text(encoding="utf-8", errors="replace")
+        _TEXT_MEMO[c_path] = text
+    return text
+
+
+def _spans_for(text: str) -> list[dict]:
+    """`ci.function_spans (text) + ci.defun_spans (text)`, memoized the same way."""
+    key = (id(text), len(text))
+    hit = _SPANS_MEMO.get(key)
+    if hit is not None and hit[0] is text:
+        return hit[1]
+    spans = ci.function_spans(text) + ci.defun_spans(text)
+    if len(_SPANS_MEMO) >= _MEMO_MAX:
+        _SPANS_MEMO.clear()
+    _SPANS_MEMO[key] = (text, spans)
+    return spans
+
+
+# `fnmatchcase`'s compiled form, memoized.  fnmatch keeps its own 256-entry cache, and
+# `docs/ports/macro-body-notes.tsv` carries ~1,100 patterns, so that cache thrashes: a profile
+# of one xdisp.c check counted 69,900 `translate` calls - 4.1 s of its 12.0 s.  `re.compile` of
+# `fnmatch.translate` with `.match` is exactly what `fnmatchcase` runs, so nothing changes but
+# the lookup.
+_NOTE_PATTERNS: dict[str, Any] = {}
+
+
+def _note_pattern(glob: str):
+    pat = _NOTE_PATTERNS.get(glob)
+    if pat is None:
+        pat = re.compile(fnmatch.translate(glob))
+        _NOTE_PATTERNS[glob] = pat
+    return pat
+
+
 def note_tokens(notes: list[tuple[str, set[str]]], name: str) -> set[str]:
     """Allowed tokens for NAME; the name column may list several globs, comma-separated."""
     allowed: set[str] = set()
     for pattern, toks in notes:
         for one in pattern.split(","):
-            if fnmatch.fnmatchcase(name, one.strip()):
+            if _note_pattern(one.strip()).match(name):
                 allowed |= toks
     return allowed
 
@@ -497,12 +597,12 @@ def c_body_text(text: str, name: str) -> str | None:
     the reference either (P-75).  The window is evaluated with the file's own macro state, which is
     what the frozen configuration compiles.
     """
-    window = ci.Lines(text)
-    rows = text.split("\n")
+    window = _lines_for(text)
+    rows = _rows_for(text)
     # A subr's body hangs off a `DEFUN (...)` invocation, which `function_spans` cannot
     # name; `ci.defun_spans` finds those (P-78).  Both kinds are compared now, so a
     # mutation inside a subr body is no longer silent.
-    for span in ci.function_spans(text) + ci.defun_spans(text):
+    for span in _spans_for(text):
         if span["name"] == name:
             body = rows[span["body_start"] - 1: span["body_end"]]
             live = window.live[span["body_start"] - 1: span["body_end"]]
@@ -912,11 +1012,11 @@ def split_top_level(text: str) -> list[str]:
 
 def body_is_empty(c_path: Path, name: str) -> bool:
     """True when the reference function's body has no live statements."""
-    text = c_path.read_text(encoding="utf-8", errors="replace")
-    window = ci.Lines(text)
-    for span in ci.function_spans(text) + ci.defun_spans(text):
+    text = _text_for(c_path)
+    window = _lines_for(text)
+    for span in _spans_for(text):
         if span["name"] == name:
-            body = text.split("\n")[span["body_start"] - 1: span["body_end"]]
+            body = _rows_for(text)[span["body_start"] - 1: span["body_end"]]
             live = window.live[span["body_start"] - 1: span["body_end"]]
             return all(not l.strip("\t ;{}") or l.strip().startswith(("/*", "*", "//"))
                        for l, ok in zip(body, live) if ok)

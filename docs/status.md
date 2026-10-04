@@ -1786,3 +1786,23 @@
   **`--all` 复查（进行时）**：3.101/3.99 两处 lane 报"`gate-fast` 的 inventory 步骤在打印汇总前中止、无
   traceback"。本轮实测复跑：`python3 tools/extract-abi.py --all` 的 Python 进程 **RSS 41.9 MB、99% CPU、
   3 分钟时输出 82 行**（远未到 20 分钟），说明它不是一启动就死；结论待跑完后再补。
+
+- **3.117 `--all` 从"20+ 分钟不返回"变成 106 秒：每函数重扫整份 C 文件的四条 memo（2026-10-04 第 100 轮第三批）**：
+  两条 lane 报过"`gate-fast` 的 inventory 步骤在打印 `checked N ported files` 汇总前结束、无 traceback"，
+  本轮把它当成主验收闸门不可用的问题查到底（证据都是实测，不是推断）：
+  **① 根因（cProfile 3,000 行切片 + 逐级计时）**：`tools/extract-abi.py` 的 `c_body_text`/`body_is_empty`
+  **按每个 C 函数**重新扫整份参照文件——`blank_comments` 逐字符重写（341 次/6,000 行）、`blank_literals`
+  重扫、`function_spans`/`defun_spans` 重解析、`dead_branch_map` 重算每个 `#if`；`body_is_empty` 还每次
+  重新 `read_text`，**新字符串对象把按对象的 memo 一起打掉**（memo 只按 `id(text)` 命中）。另有
+  `note_tokens` 的 **71,400 次 `fnmatchcase`**（fnmatch 自带 256 项缓存，被 `macro-body-notes.tsv` 的
+  ~1,100 条 pattern 击穿，profile 里 69,900 次 `translate`，占 12 s 中的 4.1 s）。
+  实测缩放：3,000 行 8.6 s / 6,000 行 26.7 s / 12,000 行 74.1 s，整份 `xdisp.c`（39,805 行）**十分钟不结束、
+  RSS 450 MB**——这就是"静默中止"和用户先前看到的"Python 吃内存"的同一条路径。
+  **② 修法（行为不变）**：`_lines_for`/`_rows_for`/`_spans_for`/`_text_for` 四条按对象的 memo（都带
+  `hit[0] is text` 的身份校验并保强引用，上限 8 项，避免 `id` 复用答错文件；参照树整轮只读，所以文本
+  不会过期），`_note_pattern` 预编译 `fnmatch.translate`（`re.compile(...).match` 就是 `fnmatchcase` 本体）。
+  **③ 验证**：四个文件的 `--check` stdout **逐字节不变**（`src/dispnew.c`、`lib-src/hexl.c`、`src/window.c`、
+  `lib/getopt.c`）；6,000 行 **26.7 s → 1 s**、12,000 行 **74.1 s → 2 s**、整份 `src/xdisp.c` **>600 s（450 MB）
+  → 6 s**；`python3 tools/extract-abi.py --all` **106 s 跑完并打出汇总**：
+  `checked 500 ported files: 472 done, 27 in progress, 1 failing`——**唯一 FAIL 是 `lib-src/emacsclient.c`
+  还欠的 9 行共享豁免行**（该单元的框已勾，属集成侧待补），其余 27 条全是台账仍有未勾项的 WIP。
