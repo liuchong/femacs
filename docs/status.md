@@ -4423,3 +4423,18 @@
   每个边界都变判断题。**记账要求**：台账 `## ABI` 增"entry 名 / 首个调用点 C 行 / 待定义的类（C 行）/ 状态"表，
   每条在定义落地前都是 `## Deferred` 的一行，最终验收 = `nm -u` 里这些 entry 名全部消失；别的单元已经在用的四个条目
   （`setMiniwindowImage`/`fullscreenState`/`setFSValue`/`beginDrag`）同表。
+
+- **3.240 台账清扫：22 个"陈旧框"清掉、8 个"真欠账"被识别并保持未勾，附带一条可复用的操作规则（2026-10-04）**：
+  ① **实产**（ledger-only，本条目同批提交的 7 个 `docs/ports/include-*.md`）：`include-c-ctype` 未勾 **19 → 0**（12 个 `c_*` 函数、
+  `C_CTYPE_INLINE`、4 个 `_C_CTYPE_*` 宏都早已在镜像里；另 2 个由 `excluded-macros.txt` 的既有行满足）、`include-frame` 未勾 **3 → 0**
+  （`FRAME_FACE_CACHE`/`FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL`——3.230 收口后它们才真正满足）。全树框数：**13567 勾 / 560 未勾**（前 13553/570）。
+  ② **8 个"真欠账"没有被勾掉**（勾上就等于把它们变成硬失败＝假绿）：`lib/stdlib.in.h` 的 `struct random_data`（1）、
+  `src/w32.h` 的 `_child_process`（1）、`src/w32gui.h` 的 `XImage`（1）、`src/emacsgtkfixed.h` 的 `_EmacsFixed`/`_EmacsFixedClass`（2）、
+  `src/widgetprv.h` 的三个 X11 widget 记录（3）。这 5 条各自在台账里写了 `## Decisions (stale-box sweep: **not stale**)`，
+  判据与 `missing type` 原文都贴在里面；后四条是**死平台文本**（本 target 无窗口系统/非 Windows/非 GTK），落地时按 P-51/3.9 挂 feature。
+  ③ **这条操作规则值得记（台账清扫的可复跑做法）**：**"带延期时 `--check` 干净是二义的"** —— 框未勾时
+  `--check` 只在 stderr 打 `missing type deferred: <file> <name> (the ledger has unchecked boxes)`、`- ` 计数是 0；
+  **勾框后同一命令会把它变成硬行**。所以清扫的动作是"**勾框 → 复跑 → 若出现硬行就回退**"，本轮 7 条正是这么分开的
+  （复跑读数：7 条全部 `- :0`；`build-tu lib/c-ctype.c` built、`build-tu src/frame.c` built、`layout-check passed`）。
+  ④ 下一段（该 lane 自己排的序）：先 `lib/stdlib.in.h` 的 `random_data`（**先看生成头 `build/emacs-ref/lib/stdlib.h` 定活臂**，
+  P-66/3.207 的 `sys_time.in.h` 先例），再 w32 → w32gui → emacsgtkfixed → widgetprv（含一个匿名成员，按 P-72 ③ 命名）。

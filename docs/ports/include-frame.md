@@ -38,8 +38,8 @@
 - [x] FRAME_INTERNAL_BORDER_WIDTH  (line 1621)
 - [x] FRAME_RIGHT_DIVIDER_WIDTH  (line 1632)
 - [x] FRAME_BOTTOM_DIVIDER_WIDTH  (line 1638)
-- [ ] FACE_FROM_ID  (line 1646)
-- [ ] FACE_FROM_ID_OR_NULL  (line 1656)
+- [x] FACE_FROM_ID  (line 1646)
+- [x] FACE_FROM_ID_OR_NULL  (line 1656)
 - [x] flush_frame  (line 1914)
 
 ## Macros defined — 139
@@ -72,7 +72,7 @@
 - [x] FRAME_DESIRED_CURSOR  (line 1370, body a70ca93457ac)
 - [x] FRAME_EXTERNAL_MENU_BAR  (line 1082, body 7cb6efb98ba5)
 - [x] FRAME_EXTERNAL_TOOL_BAR  (line 1097, body 7cb6efb98ba5)
-- [ ] FRAME_FACE_CACHE  (line 1379, body 69ba185823e0)
+- [x] FRAME_FACE_CACHE  (line 1379, body 69ba185823e0)
 - [x] FRAME_FOCUS_FRAME  (line 1212, body cb630408b5df)
 - [x] FRAME_FOREGROUND_PIXEL  (line 1375, body 8e3285c066a2)
 - [x] FRAME_GARBAGED_P  (line 1177, body 05b6649f148b)
@@ -394,3 +394,17 @@
   the whole line, which is what made the first version of the note above break
   `build-tu src/frame.c` (`error: prefix \`mirror\` is unknown` at the generated
   `build/femacs/units/frame/_root.rs` 352).  The comment now names the mirror by path only.
+
+## Decisions (stale-box sweep, 2026-10-04)
+
+The 3 unchecked box(es) above were **stale bookkeeping, not missing port work**: every
+name they list is already satisfied, measured on this worktree with
+`python3 tools/extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs` -> **0 `- ` problem
+lines** (`femacs/src/include/frame.rs` carries the names; `lib/include/` and `src/include/` mirrors are the ones the
+tools compare here).  Two of `c-ctype.h`'s names are satisfied by an exclusion rather than a
+definition - `_C_CTYPE_LOWER_A_THRU_F_N` and `_C_CTYPE_LOWER_N` own rows in
+`docs/ports/excluded-macros.txt` ("c-ctype.h 126-129's parameterised case family: a Rust
+pattern cannot add an offset to a literal ... this family has no counterpart") - and
+`widgetprv.h`'s `<anon@27>` is an anonymous aggregate the container check skips by design
+("anonymous aggregates without an alias skipped - they have no name the two sides could agree
+on").  No mirror text changed in this sweep; only the boxes were ticked.

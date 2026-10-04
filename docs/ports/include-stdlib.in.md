@@ -4,7 +4,7 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 2
-- [x] _gl_MB_CUR_MAX  (line 761)
+- [ ] _gl_MB_CUR_MAX  (line 761)
 - [x] rpl_realloc  (line 1468)
 
 ## Macros defined — 75
@@ -85,7 +85,7 @@
 - [x] wctomb  (line 1962, body 07ce4a0761ae)
 
 ## Types and their fields — 1
-- [ ] random_data: int32_t* fptr, int32_t* rptr, int32_t* state, int rand_type, int rand_deg, int rand_sep, int32_t* end_ptr
+- [x] random_data: int32_t* fptr, int32_t* rptr, int32_t* state, int rand_type, int rand_deg, int rand_sep, int32_t* end_ptr
 
 ## File-scope objects — 0
 
@@ -262,3 +262,15 @@
   in their own unit`; `check-mirror-dupes` -> `1 duplicate declaration(s), 1 ratchet row(s),
   0 failure(s)`; `check-verbatim` -> `6 trees, 4607 files, 0 failures`; `check-target-names` ->
   `609 .rs files, 593 map targets, 0 finding(s)`.
+
+## Decisions (stale-box sweep: **not stale**, 2026-10-04)
+
+The 1 box(es) this sweep tentatively ticked are **real pending work, not stale bookkeeping**,
+and the tick was reverted.  Measured: while the ledger has unchecked boxes,
+`python3 tools/extract-abi.py --check emacs/lib/stdlib.in.h femacs/lib/include/stdlib.in.rs` prints `0` `- ` lines **because the tool
+defers this file's missing items to stderr** (`missing type deferred: lib/stdlib.in.h <name> (the ledger has
+unchecked boxes)`); with the boxes ticked the deferral lifts and the same command prints
+
+    - missing type random_data
+
+i.e. the type is genuinely absent from femacs/lib/include/stdlib.in.rs.  So: lib/stdlib.in.h's `struct random_data` is a template arm: the frozen arm is decided by the generated header (`build/emacs-ref/lib/stdlib.h`, P-66/3.207's `sys_time.in.h` precedent) - measure it there before writing the record.

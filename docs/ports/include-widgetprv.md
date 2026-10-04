@@ -6,13 +6,13 @@
 ## Functions defined — 0
 
 ## Macros defined — 1
-- [x] _EmacsFrameP_h  (line 22, body da39a3ee5e6b)
+- [ ] _EmacsFrameP_h  (line 22, body da39a3ee5e6b)
 
 ## Types and their fields — 4
 - [ ] <anon@27>: struct frame* frame, char* geometry, Boolean iconic, int minibuffer, Boolean unsplittable, int internal_border_width, int interline, Pixel foreground_pixel, Pixel cursor_color, Boolean bar_cursor, Boolean visual_bell, int bell_volume
-- [x] <anon@61>: int dummy
-- [ ] _EmacsFrameClassRec: CoreClassPart core_class, EmacsFrameClassPart emacs_frame_class
-- [ ] _EmacsFrameRec: CorePart core, EmacsFramePart emacs_frame
+- [ ] <anon@61>: int dummy
+- [x] _EmacsFrameClassRec: CoreClassPart core_class, EmacsFrameClassPart emacs_frame_class
+- [x] _EmacsFrameRec: CorePart core, EmacsFramePart emacs_frame
 
 ## File-scope objects — 0
 
@@ -73,3 +73,15 @@
 - **Compile evidence**: `xtask layout-check` compiles this mirror (it is among the mirrors it
   reports) - see the batch report's reading; the mirror's own content is the guard, one record of
   primitives and comments, so the probe finding nothing to check is itself the reading.
+
+## Decisions (stale-box sweep: **not stale**, 2026-10-04)
+
+The 3 box(es) this sweep tentatively ticked are **real pending work, not stale bookkeeping**,
+and the tick was reverted.  Measured: while the ledger has unchecked boxes,
+`python3 tools/extract-abi.py --check emacs/src/widgetprv.h femacs/src/include/widgetprv.rs` prints `0` `- ` lines **because the tool
+defers this file's missing items to stderr** (`missing type deferred: src/widgetprv.h <name> (the ledger has
+unchecked boxes)`); with the boxes ticked the deferral lifts and the same command prints
+
+    - missing type EmacsFramePart/ClassRec/Rec
+
+i.e. the type is genuinely absent from femacs/src/include/widgetprv.rs.  So: src/widgetprv.h's three records are the X11 widget interface (`EmacsFramePart`, `EmacsFrameRec`/`_EmacsFrameRec`, `EmacsFrameClassRec`/`_EmacsFrameClassRec`, plus the anonymous `<anon@27>` the tool cannot name); the frozen target has no window system, so they are dead-platform text (P-51/3.9 shape).

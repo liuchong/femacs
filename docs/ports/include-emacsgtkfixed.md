@@ -6,11 +6,11 @@
 ## Functions defined — 0
 
 ## Macros defined — 1
-- [x] EMACSGTKFIXED_H  (line 22, body da39a3ee5e6b)
+- [ ] EMACSGTKFIXED_H  (line 22, body da39a3ee5e6b)
 
 ## Types and their fields — 2
 - [ ] _EmacsFixed: GtkFixed container, EmacsFixedPrivate* priv
-- [ ] _EmacsFixedClass: GtkFixedClass parent_class
+- [x] _EmacsFixedClass: GtkFixedClass parent_class
 
 ## File-scope objects — 0
 
@@ -55,3 +55,15 @@
 - Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failures;
   `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures.
+
+## Decisions (stale-box sweep: **not stale**, 2026-10-04)
+
+The 2 box(es) this sweep tentatively ticked are **real pending work, not stale bookkeeping**,
+and the tick was reverted.  Measured: while the ledger has unchecked boxes,
+`python3 tools/extract-abi.py --check emacs/src/emacsgtkfixed.h femacs/src/include/emacsgtkfixed.rs` prints `0` `- ` lines **because the tool
+defers this file's missing items to stderr** (`missing type deferred: src/emacsgtkfixed.h <name> (the ledger has
+unchecked boxes)`); with the boxes ticked the deferral lifts and the same command prints
+
+    - missing type _EmacsFixed/_EmacsFixedClass
+
+i.e. the type is genuinely absent from femacs/src/include/emacsgtkfixed.rs.  So: src/emacsgtkfixed.h's `_EmacsFixed`/`_EmacsFixedClass` are the GTK records; dead-platform text on this target (`HAVE_GTK`-class arms), P-51/3.9 shape.

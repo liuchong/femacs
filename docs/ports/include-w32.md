@@ -6,7 +6,7 @@
 ## Functions defined — 0
 
 ## Macros defined — 23
-- [x] CHILD_ACTIVE  (line 117, body a34f0ef898f5)
+- [ ] CHILD_ACTIVE  (line 117, body a34f0ef898f5)
 - [x] EMACS_W32_H  (line 2, body da39a3ee5e6b)
 - [x] FD_CLR  (line 48, body e2bff60d0e12)
 - [x] FD_ISSET  (line 54, body e13c63378c93)
@@ -33,7 +33,7 @@
 ## Types and their fields — 3
 - [x] <anon@120>: unsigned flags, HANDLE hnd, child_process* cp
 - [x] <anon@37>: unsigned int bits
-- [ ] _child_process: int fd, int pid, HANDLE char_avail, HANDLE char_consumed, HANDLE thrd, HWND hwnd, PROCESS_INFORMATION procinfo, volatile int status, volatile int errcode, char chr, OVERLAPPED ovl_read, OVERLAPPED ovl_write
+- [x] _child_process: int fd, int pid, HANDLE char_avail, HANDLE char_consumed, HANDLE thrd, HWND hwnd, PROCESS_INFORMATION procinfo, volatile int status, volatile int errcode, char chr, OVERLAPPED ovl_read, OVERLAPPED ovl_write
 
 ## File-scope objects — 4
 - [x] extern filedesc fd_info  (line 127)
@@ -173,3 +173,15 @@
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);
   `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures;
   `check-target-names` 576 .rs files / 592 map targets / 0 findings.
+
+## Decisions (stale-box sweep: **not stale**, 2026-10-04)
+
+The 1 box(es) this sweep tentatively ticked are **real pending work, not stale bookkeeping**,
+and the tick was reverted.  Measured: while the ledger has unchecked boxes,
+`python3 tools/extract-abi.py --check emacs/src/w32.h femacs/src/include/w32.rs` prints `0` `- ` lines **because the tool
+defers this file's missing items to stderr** (`missing type deferred: src/w32.h <name> (the ledger has
+unchecked boxes)`); with the boxes ticked the deferral lifts and the same command prints
+
+    - missing type _child_process
+
+i.e. the type is genuinely absent from femacs/src/include/w32.rs.  So: src/w32.h's `_child_process`/`child_process` is the Windows subprocess record; dead-platform text (no `_WIN32`), P-51/3.9 shape.

@@ -6,7 +6,7 @@
 ## Functions defined — 0
 
 ## Macros defined — 39
-- [x] AllValues  (line 78, body 652902e8f0f1)
+- [ ] AllValues  (line 78, body 652902e8f0f1)
 - [x] CONVERT_FROM_EMACS_RECT  (line 102, body 15595bc8aee4)
 - [x] CONVERT_TO_EMACS_RECT  (line 96, body 51a1392cc194)
 - [x] CenterGravity  (line 66, body ac3478d69a3c)
@@ -47,7 +47,7 @@
 - [x] local_heap  (line 26, body f45b7efa690e)
 
 ## Types and their fields — 1
-- [ ] _XImage: unsigned char* data, BITMAPINFO info
+- [x] _XImage: unsigned char* data, BITMAPINFO info
 
 ## File-scope objects — 1
 - [x] extern HINSTANCE hinst  (line 57)
@@ -127,3 +127,15 @@
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);
   `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures;
   `check-target-names` 566 .rs files / 593 map targets / 0 findings.
+
+## Decisions (stale-box sweep: **not stale**, 2026-10-04)
+
+The 1 box(es) this sweep tentatively ticked are **real pending work, not stale bookkeeping**,
+and the tick was reverted.  Measured: while the ledger has unchecked boxes,
+`python3 tools/extract-abi.py --check emacs/src/w32gui.h femacs/src/include/w32gui.rs` prints `0` `- ` lines **because the tool
+defers this file's missing items to stderr** (`missing type deferred: src/w32gui.h <name> (the ledger has
+unchecked boxes)`); with the boxes ticked the deferral lifts and the same command prints
+
+    - missing type XImage/_XImage
+
+i.e. the type is genuinely absent from femacs/src/include/w32gui.rs.  So: src/w32gui.h's `XImage`/`_XImage` is the Windows GDI record; dead-platform text (no `_WIN32`), P-51/3.9 shape.
