@@ -5105,3 +5105,11 @@
   `check-link --executable` **`83 / 83 / 0 failure`**。⇒ **三本棘轮门与 Swift 单元门同时绿**，而这批没有把任何在飞文件留在树上。
   ③ **两处换名各自的原因**（写清以免下次误读）：`_cursor_row_fully_visible_p` 那行的消失＝`cursor_row_fully_visible_p` 已经作为函数落地（3.306），不再是"引用而无人定义"；
   `_Vmake_cursor_line_fully_visible` 出现＝xdisp 里那个 `V...` 载体的名字进入"待定性"行（文案与其它 `V...` 载体同一句，属已记录的偏差类）。
+- **3.309 带门探针补上 X11 扩展臂 `x11_ext`：臂读数 846 → 1,128，第一个新缺口立刻出现（集成者，2026-10-05）**：
+  ① **做了什么**（3.294 ④ 命名的那件事）：`spikes/gated-layout-probe.py` 的 `ARMS` 增一臂 **`x11_ext`** = `x11` 的定义 + **`HAVE_XSYNC`** + **`HAVE_X_I18N`**。
+  为什么只有这两个扩展宏：本机（**实测**）`X11/Xlib.h`、`X11/Xlocale.h`、`X11/extensions/{Xext.h,sync.h}` **在**，而 `X11/extensions/{Xfixes.h,Xrandr.h,XInput2.h,Xinerama.h}` **不在** ⇒ `HAVE_XFIXES`/`HAVE_XRANDR`/`HAVE_XINPUT2`/`HAVE_XINERAMA` 在这台机器上**打不开**（这是机器的限制、不是取舍；`xterm.h` 第 23 行是无条件的 `#include <X11/Xlib.h>`，所以冻结臂连这个头都进不去——那是 P-51 的"冻结配置不编译 xterm.h"）。四个打不开的宏写在臂的注释里，换一台有头的机器（或做头镜像）时是**往元组里加宏**，不是发明第二套机制。
+  ② **顺带纠正一处口径**：`--define` 造的是"**冻结配置** + 这些宏"的 `custom` 臂，**不是**"x11 + 这些宏"——所以它到不了 X11 扩展臂（本轮实测：`--define HAVE_XSYNC=1 --define HAVE_X_I18N=1` 的 `custom` 臂跟 frozen 一样死在 `'X11/Xlib.h' file not found`）。这一句写进了模块 docstring。
+  ③ **读数（`spikes/mirror-struct-coverage.py`，整树）**：`282 mirrored struct(s): **1,128 arm(s) attempted**（原 **846**）, **318 unreadable**（原 241）, **5 gap(s)**（原 0）`——
+  多出来的 282 次尝试＝每个镜像结构体多读一臂；**5 条缺口全部来自新臂，全部是 `struct x_display_info` 的 `HAVE_XSYNC` 成员**：`xsync_supported_p`、`xsync_major`、`xsync_minor`、`server_time_monotonic_p`、`server_time_offset`。
+  实测该镜像里这 5 个名字 **0 次**（而 XIM 那 4 个 `use_xim`/`xim`/`xim_coding`/`preferred_xim_style` 都在）⇒ 新臂**当场把"未知面"变成了工作清单**（这是加臂的目的，不是回归：旧臂的 0 gap 读数一个字没变）。
+  ④ **交接**：这 5 个名字归 xterm lane 的镜像 `femacs/src/include/xterm.rs`（它正在做 C 3,013 起的下一片；已把清单发过去）。**未**重生成任何已发布的 `docs/baseline/*-layout.tsv`：那五个类型（frame/window/face/terminal/ns_display_info）不依赖 XSYNC/X_I18N，加一列只会是 `x11` 的复制品（覆盖率工具是**动态读臂**，不需要基线）。

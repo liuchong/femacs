@@ -18,8 +18,12 @@ probe asks clang for one type's record layout in the arms below and prints what 
     spikes/gated-layout-probe.py 'struct frame' frame.h --write docs/baseline/frame-layout.tsv
 
 Arms: `frozen` (the baseline's own configuration), `x11` (`HAVE_WINDOW_SYSTEM` +
-`HAVE_X_WINDOWS`, through the machine's own X11 headers), `ns_cocoa` (what `configure
---with-ns` emits on macOS), and any further arm `--define` builds.  A type that the
+`HAVE_X_WINDOWS`, through the machine's own X11 headers), `x11_ext` (the same plus the
+X11 extension macros this machine has headers for - `HAVE_XSYNC`, `HAVE_X_I18N`; see the
+arm's comment for the four whose headers are absent), `ns_cocoa` (what `configure
+--with-ns` emits on macOS), and any further arm `--define` builds (`--define` builds it
+from the *frozen* configuration plus those macros, so it is not the way to reach an
+X11-extension arm).  A type that the
 frozen configuration only forward-declares (`struct ns_display_info`, every NS type)
 reads `parse=no` in that arm and is complete in the gated one, so the TSV keeps a
 `parse` row per arm and only an all-arms failure is an error.  A window-system arm
@@ -52,6 +56,16 @@ ARMS = (
     # alone leaves dispextern.h without Emacs_Cursor/Display_Info and parses in neither arm.
     ("x11", ("-DHAVE_WINDOW_SYSTEM=1", "-DHAVE_X_WINDOWS=1")),
     ("ns_cocoa", ("-DHAVE_WINDOW_SYSTEM=1", "-DHAVE_NS=1", "-DNS_IMPL_COCOA=1")),
+    # X11's *optional* libraries change the same records again (`struct x_display_info`'s
+    # HAVE_XFIXES / HAVE_XRANDR / HAVE_XINPUT2 / HAVE_XSYNC / HAVE_XINERAMA members, xterm.h
+    # 406/496/700).  This arm turns on as many as this machine's headers allow, measured 3.309:
+    # `X11/Xlib.h`, `X11/Xlocale.h` and `X11/extensions/{Xext.h,sync.h}` are present, while
+    # `X11/extensions/{Xfixes.h,Xrandr.h,XInput2.h,Xinerama.h}` are not - so HAVE_XSYNC (which
+    # needs sync.h + Xext.h) and HAVE_X_I18N (Xlocale.h) can be read here and the other four
+    # macros cannot, which is a limit of the machine rather than a choice (the frozen tree does
+    # not build xterm.h at all: xterm.h's line 23 includes <X11/Xlib.h> unconditionally).
+    ("x11_ext", ("-DHAVE_WINDOW_SYSTEM=1", "-DHAVE_X_WINDOWS=1",
+                 "-DHAVE_XSYNC=1", "-DHAVE_X_I18N=1")),
 )
 # X11's headers are not part of the frozen configuration; they come from the machine
 # (`/opt/homebrew/include/X11/Xlib.h` was measured here).  Absent, the x11 arm reports
