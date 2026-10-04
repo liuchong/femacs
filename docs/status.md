@@ -2529,3 +2529,25 @@
   ⑤ 证据：`--all` → **517 ported files: 510 done, 7 in progress, 0 failing**；`layout-check` **passed**；
   `gate-probes` **exit 0**（含 jni 探针与 336 个 TU 的非冻结臂编译）；`check-declarations` 13 sites (0 forbidden)/0；
   `check-target-names` 553 `.rs` / 593 targets / 0 finding；`check-mirror-dupes` 0 failure。
+
+- **3.155 两条巨型 lane 的本轮交付复核通过，并修掉我自己在 3.143 留的一个漏检（2026-10-04）**：
+  ① **xdisp（C 4983-5647）**：`face_before_or_after_it_pos` → `handle_invisible_prop`，`xdisp.rs` 5,094 → **6,313** 行；
+  我复核的 `--check` **313 条 problem 全部在 C 5647 之后**（无一条落在本轮新增函数上），`build-tu src/xdisp.c` **built**，
+  台账 Progress 段已推进。下一条活定义 **C 5654 `setup_for_ellipsis`**；已按它自己交回的三条 ABI 提醒重新派工
+  （`it_props[]` 余下两个 handler 必须 `unsafe extern "C" fn`；`move_it_vertically_backward`/`move_it_in_display_line`
+  定义要 `#[unsafe(no_mangle)]`；`reseat_1`/`next_overlay_string`/`get_overlay_strings` 的 scaffold 声明定义时删）。
+  ② **keyboard（C 8577-10070）**：菜单栏/标签栏/工具条整族（1,496 C 行、19 函数、9 对象），`keyboard.rs` 9,355 →
+  **10,990** 行；`--check` 的 **108 条 problem 全部在 C 10070 之后**；台账未勾 103 → **74**，SCAFFOLD 仍 9。
+  下一条活定义 **C 10096 `read_char_x_menu_prompt`**，已重新派工。
+  ③ **复核抓到一处我自己的漏检（本轮修）**：3.143 我把 `timers_run`(C 471)/`DEV_TTY`(C 531) 按"镜像拥有名字"加进
+  `include/keyboard.rs` 的 **crate 根**，而这两个对象的**定义**在 `keyboard.rs` 的 **crate 根** → 同 crate 同作用域
+  两个项 ⇒ `build-tu src/keyboard.c` 报 `E0428: the name timers_run is defined multiple times`。
+  **根因是我的验证集漏了它**：3.143 那轮我编了 process/emacs/pdumper/xfaces/buffer 五个单元，**唯独没编 keyboard**
+  （它当时是 WIP 单元、不在我的验证集合里）。修法：把两条声明**移进 `pub mod keyboard_objs` + 既有 glob 导入**
+  （PORTING.md 0.1-10/P-21 的 `variables` 形状——定义方在 crate 根、声明方走整体导入，定义遮蔽导入）；修完
+  keyboard/process/emacs **三个单元全 built**。
+  **教训（写进这里）**：往镜像加声明后，**凡其定义位于某个单元 crate 根的，都要编那个单元**；"定义在 crate 根"
+  与"定义在模块里"是**两种相反的布置**——前者要求镜像的声明走 glob，后者相反（`item_properties` 就是后者）。
+  ④ 证据：`--all` → **517 ported files: 510 done, 7 in progress, 0 failing**；`check-mirror-dupes` 1 duplicate /
+  1 ratchet / **0 failure**；`check-declarations` 13 sites (0 forbidden) / 0；`check-target-names` 553 `.rs` /
+  593 targets / 0 finding。

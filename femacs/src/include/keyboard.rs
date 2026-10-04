@@ -246,6 +246,9 @@ pub mod keyboard_objs {
     pub static mut menu_items_allocated: c_int;                        // 351
     pub static mut menu_items_used: c_int;                             // 354
     pub static mut menu_items_n_panes: c_int;                          // 358
+    /* C 471 and C 531, keyboard.c's own definitions (`keyboard.rs`'s crate root, status 3.155).  */
+    pub static mut timers_run: c_uint;                                 // 471
+    pub static DEV_TTY: [c_char; 9];                                   // 531
   }
 }
 use keyboard_objs::*;
@@ -283,5 +286,9 @@ unsafe extern "C" {
    both in scope.  They are here because status 3.143's tool fix made the extractor see them:
    its `GLOBAL_LINE` split `extern unsigned int timers_run;` after `unsigned`, so the object
    never reached the gate's C side and both mirrors looked complete without them.  */
-unsafe extern "C" { pub static mut timers_run: c_uint; }   // C 471
-unsafe extern "C" { pub static DEV_TTY: [c_char; 9]; }     // C 531
+/* C 471's `timers_run` and C 531's `DEV_TTY` (and C 529's `dev_tty` above) are declared in
+   `pub mod keyboard_objs` below, next to the five menu objects: their definitions are crate-root
+   items in the *owning* unit (`keyboard.rs`), so the declaration has to arrive through a glob
+   import for the definition to shadow it (PORTING.md 0.1-10/P-21) - a crate-root declaration
+   collides with them instead, which is what `build-tu src/keyboard.c` reported as
+   `E0428: the name timers_run is defined multiple times` (status 3.155).  */
