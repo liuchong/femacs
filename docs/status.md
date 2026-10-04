@@ -34,11 +34,12 @@
   而消失），重取后单跑该门是 `534 unit object(s), 123 pending, 0 new`；门的其余步骤（符号门 src
   **0 mismatched / 0 pending**——已提交状态 67 个单元、主树含在飞的 `dispnew.rs` 为 69 个；连接门 0 缺失、
   declaration gate 0、mirror-dupes gate 0、`layout-check` passed）也已逐条跑过。**总进度**：590 个参照 `.c/.h` 里已端口 268 个单元 + 131 个镜像。
-- **进度（2026-10-04 第 99 轮）**：`src/coding.rs` 收口入树后**已提交单元 323 个**（`femacs/src/*.rs` 150
-  + `femacs/lib/*.rs` 122 + `femacs/lib-src/*.rs` 7 + `femacs/exec/*.rs` 5 + `femacs/lwlib/*.rs` 6 +
-  `femacs/oldXMenu/*.rs` 29 + `femacs/nt/*.rs` 4）、**已提交镜像 144 个**（`femacs/src/include/*.rs` 49 +
-  `femacs/lib/include/*.rs` 94 + `femacs/lib-src/include/*.rs` 1）。`docs/port-inventory.md` 本轮复算：
-  **590 files, done=410, wip=36, todo=144**（该文件的状态列按工作树取，所以里面也含**未提交**的在飞项：
+- **进度（2026-10-04 第 99 轮）**：`src/coding.rs` 收口入树、`lib/include/boot-time-aux.rs`（3.104）成为镜像后
+  **已提交单元 323 个**（`femacs/src/*.rs` 150 + `femacs/lib/*.rs` 122 + `femacs/lib-src/*.rs` 7 +
+  `femacs/exec/*.rs` 5 + `femacs/lwlib/*.rs` 6 + `femacs/oldXMenu/*.rs` 29 + `femacs/nt/*.rs` 4）、
+  **已提交镜像 145 个**（`femacs/src/include/*.rs` 49 + `femacs/lib/include/*.rs` 95 +
+  `femacs/lib-src/include/*.rs` 1）。`docs/port-inventory.md` 最近一次复算（3.104 之后）：
+  **590 files, done=415, wip=32, todo=143**（该文件的状态列按工作树取，所以里面也含**未提交**的在飞项：
   `keyboard.rs`/`xdisp.rs` 与 `femacs/nt/inc/sys/` 的 8 个镜像）。**在飞（未提交）**：
   `femacs/src/keyboard.rs`、`femacs/src/xdisp.rs`、`femacs/nt/inc/`（16 个 `nt/inc` 镜像的前 8 个已写好、
   台账名冲突待裁决，见 3.100 之后的待办）。
