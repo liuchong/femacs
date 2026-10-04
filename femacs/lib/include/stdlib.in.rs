@@ -272,3 +272,29 @@ macro_rules! free { ($ptr:expr) => { rpl_free ($ptr) }; }
 /// C 2151: `#   define realpath rpl_realpath` - **live** (the generated header's 2149-2153).
 /// C: #   define realpath rpl_realpath
 macro_rules! realpath { ($name:expr, $resolved:expr) => { rpl_realpath ($name, $resolved) }; }
+
+/* lib/stdlib.in.h 88-102: `struct random_data`, inside `# if !@HAVE_STRUCT_RANDOM_DATA@`.
+   **Criterion (P-66/3.207):** the generated header decides it, measured -
+   `build/emacs-ref/lib/stdlib.h` 88 is `# if !1`, i.e. this arm is **dead** because the frozen
+   target's <stdlib.h> already provides `struct random_data`; so the record is carried as the
+   dead arm's text (P-51) under the feature naming the non-frozen side.  The seven members are
+   C's own, in C's order.  */
+#[cfg (feature = "no_struct_random_data")]
+#[repr(C)]
+pub struct random_data
+{
+  /* int32_t *fptr;  Front pointer.  */
+  pub fptr: *mut i32,
+  /* int32_t *rptr;  Rear pointer.  */
+  pub rptr: *mut i32,
+  /* int32_t *state;  Array of state values.  */
+  pub state: *mut i32,
+  /* int rand_type;  Type of random number generator.  */
+  pub rand_type: c_int,
+  /* int rand_deg;  Degree of random number generator.  */
+  pub rand_deg: c_int,
+  /* int rand_sep;  Distance between front and rear.  */
+  pub rand_sep: c_int,
+  /* int32_t *end_ptr;  Pointer behind state table.  */
+  pub end_ptr: *mut i32,
+}

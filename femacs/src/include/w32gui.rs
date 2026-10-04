@@ -184,3 +184,19 @@ macro_rules! STORE_NATIVE_RECT {
         ($nr).bottom = ($nr).top + ($height);
       } };
 }
+
+/* src/w32gui.h 38-44: "Windows equivalent of XImage",
+   `typedef struct _XImage { unsigned char *data; BITMAPINFO info; } XImage;`.
+   Dead platform text on the frozen target (no `_WIN32`), carried under `windows` (P-51/3.9);
+   `BITMAPINFO` is C's spelling, which nothing compiles here.  */
+#[cfg (feature = "windows")]
+#[repr(C)]
+pub struct _XImage
+{
+  /* unsigned char *data;  */
+  pub data: *mut c_uchar,
+  /* BITMAPINFO info;  */
+  pub info: *mut c_void,
+}
+#[cfg (feature = "windows")]
+pub type XImage = _XImage;

@@ -480,3 +480,41 @@ unsafe extern "C" {
   pub fn emacs_gnutls_pull (p: gnutls_transport_ptr_t, buf: *mut c_void, sz: usize) -> c_long;
   pub fn emacs_gnutls_push (p: gnutls_transport_ptr_t, buf: *const c_void, sz: usize) -> c_long;
 }
+
+/* src/w32.h 61-113: the subprocess record, `typedef struct _child_process { … } child_process;`
+   (C 74-113).  Dead platform text on the frozen target (no `_WIN32`), so it is carried as the
+   dead arm's text (P-51/3.9) under `windows`: the member names are C's own, in C's order, and
+   the member *types* stay C's spellings (`HANDLE`/`HWND`/`PROCESS_INFORMATION`/`OVERLAPPED`),
+   which no configuration of the port compiles.  */
+#[cfg (feature = "windows")]
+#[repr(C)]
+pub struct _child_process
+{
+  /* int fd;  */
+  pub fd: c_int,
+  /* int pid;  */
+  pub pid: c_int,
+  /* HANDLE char_avail;  */
+  pub char_avail: *mut c_void,
+  /* HANDLE char_consumed;  */
+  pub char_consumed: *mut c_void,
+  /* HANDLE thrd;  */
+  pub thrd: *mut c_void,
+  /* HWND hwnd;  */
+  pub hwnd: *mut c_void,
+  /* PROCESS_INFORMATION procinfo;  */
+  pub procinfo: *mut c_void,
+  /* volatile int status;  */
+  pub status: c_int,
+  /* volatile int errcode;  */
+  pub errcode: c_int,
+  /* char chr;  */
+  pub chr: c_char,
+  /* OVERLAPPED ovl_read;  */
+  pub ovl_read: *mut c_void,
+  /* OVERLAPPED ovl_write;  */
+  pub ovl_write: *mut c_void,
+}
+/* C 113: the typedef name the rest of src/w32.h uses.  */
+#[cfg (feature = "windows")]
+pub type child_process = _child_process;

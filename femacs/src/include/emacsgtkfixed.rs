@@ -49,3 +49,25 @@ pub const EMACSGTKFIXED_H: bool = true;
 unsafe extern "C" {
   pub fn emacs_fixed_new (f: *mut c_void) -> *mut c_void;
 }
+
+/* src/emacsgtkfixed.h 37-50: the GTK widget's records - `struct _EmacsFixed { GtkFixed
+   container; EmacsFixedPrivate *priv; }` and `struct _EmacsFixedClass { GtkFixedClass
+   parent_class; }`.  Dead platform text on the frozen target (no GTK/PGTK), carried under
+   the header's own `HAVE_PGTK` guard name (P-51/3.9); `GtkFixed`/`GtkFixedClass` and the
+   private-struct pointer keep C's spellings, which nothing compiles here.  */
+#[cfg (feature = "have_pgtk")]
+#[repr(C)]
+pub struct _EmacsFixed
+{
+  /* GtkFixed container;  */
+  pub container: *mut c_void,
+  /* EmacsFixedPrivate *priv;  (C's `priv` is a Rust keyword: `r#priv`)  */
+  pub r#priv: *mut c_void,
+}
+#[cfg (feature = "have_pgtk")]
+#[repr(C)]
+pub struct _EmacsFixedClass
+{
+  /* GtkFixedClass parent_class;  */
+  pub parent_class: *mut c_void,
+}

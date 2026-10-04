@@ -4493,3 +4493,26 @@
   `/// C:` 行注明"该成员在 `#ifdef HAVE_WINDOW_SYSTEM` 内、本 target 无它"（先例：comp.rs 的 `Fnative_comp_available_p` 冻结臂）；
   `frame_set_external_menu_bar`/`frame_set_external_tool_bar` 导出成 **no-op** 并引 frame.h 1082/1097 的 `#define … false`；
   其余按 lane 表里的签名/体落，每批 8-10 条、逐字对照 `nm -g` 与 Swift 的 `@_silgen_name("…")`，参数 ABI 不一致时**以 Swift 侧为准**。
+
+- **3.243 8 个真欠账落地（5 个镜像的 8 条记录），并更正 3.240 那轮的一次按位回退失误（2026-10-04）**：
+  ① **实产**（5 个镜像 + 5 个台账）：
+  - `lib/include/stdlib.in.rs` 的 `struct random_data`（模板 88-102，7 成员）：**死臂**——生成头 `build/emacs-ref/lib/stdlib.h` 第 88 行是
+    `# if !1`，即冻结 `<stdlib.h>` 自带该类型 ⇒ gnulib 臂是死文本，挂 `no_struct_random_data`（P-66/3.207 的"按生成头定活臂"先例）。
+  - `src/include/w32.rs` 的 `_child_process` + `child_process` 别名（C 74-113）、`src/include/w32gui.rs` 的 `_XImage` + `XImage`（C 38-44）：
+    **死平台**（本 target 无 `_WIN32`）⇒ 挂 `windows`。
+  - `src/include/emacsgtkfixed.rs` 的 `_EmacsFixed`（C 39-44）、`_EmacsFixedClass`（C 46-50）：无 GTK/PGTK ⇒ 用该头自己的 `HAVE_PGTK` 名；
+    C 的成员 `priv` 在 Rust 是 `r#priv`。
+  - `src/include/widgetprv.rs` 的 `EmacsFramePart`（C 27 的匿名 `typedef`，取别名名，P-72 ③）、`EmacsFrameRec`、`EmacsFrameClassRec`：
+    无窗口系统（`HAVE_X11` undef）⇒ 挂 `have_x11`。成员名与顺序一律照 C（字段成员检查比的就是名字）；死臂内的成员类型保 C 拼写
+    （`HANDLE`/`BITMAPINFO`/`GtkFixed`/`Boolean`/`Pixel`/`CorePart`…），因为冻结构建不编它们。
+  **判据**：五条 `--check` 全部 `OK`、**stderr 里再无 `missing type deferred`**（`- :0`、`deferred:0`）；`layout-check passed`
+  （它编全树 `src/include` 镜像与 include 图）。一条口径说明：`lib/stdlib.in.rs` **今天没有任何单元 include 它**（实测
+  `grep -rln 'include/stdlib.in.rs' femacs/lib femacs/src` 为空），所以"最小包含者 `build-tu`"对它不成立（头形式需要 includer 提供标量，
+  这一点在我动手前就如此）；该镜像新增内容全在 `#[cfg (feature = "no_struct_random_data")]` 里，故最强证据是 `layout-check` + cfg 门。
+  ② **更正上一轮的一次失误**：3.240 那条"回退假勾"是**按位置**（前 n 个 `- [ ]`）做的、不是按名字，于是勾/取消勾错位：
+  该回退的 8 个**类型框**被留成已勾，而 `_gl_MB_CUR_MAX`/`CHILD_ACTIVE`/`AllValues`/`EMACSGTKFIXED_H`/`_EmacsFrameP_h`/`<anon@61>`
+  这些**已满足**的框被误取消——`0570d2b` 提交的就是那个状态。本轮把 8 个类型落地后，**按名字**把 5 份台账重新核对并勾满
+  （5 份都 0 未勾），并各自补了 `## Decisions`/`## Evidence`（判据 + 读数 + 前后框数）。**教训**（与 3.240 的规则同族）：
+  **框位纠正必须按名字做，且每次改完要复跑 `--check`**——按位置批量回退会把两类错误互换成一个更难发现的错误。
+  ③ 读数：全树台账 **13596 勾 / 531 未勾**（未勾仍是 `nsterm` 323、`xdisp` 131、`nsfns` 71、`macfont` 3（永久死臂）、`nsfont` 2
+  （两条 deferred 体，等 `glyph_string` 的字段））。**该 lane 的 `include-*.md` 尾巴全部清零**。

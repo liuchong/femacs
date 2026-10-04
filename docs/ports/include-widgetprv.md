@@ -6,11 +6,11 @@
 ## Functions defined — 0
 
 ## Macros defined — 1
-- [ ] _EmacsFrameP_h  (line 22, body da39a3ee5e6b)
+- [x] _EmacsFrameP_h  (line 22, body da39a3ee5e6b)
 
 ## Types and their fields — 4
-- [ ] <anon@27>: struct frame* frame, char* geometry, Boolean iconic, int minibuffer, Boolean unsplittable, int internal_border_width, int interline, Pixel foreground_pixel, Pixel cursor_color, Boolean bar_cursor, Boolean visual_bell, int bell_volume
-- [ ] <anon@61>: int dummy
+- [x] <anon@27>: struct frame* frame, char* geometry, Boolean iconic, int minibuffer, Boolean unsplittable, int internal_border_width, int interline, Pixel foreground_pixel, Pixel cursor_color, Boolean bar_cursor, Boolean visual_bell, int bell_volume
+- [x] <anon@61>: int dummy
 - [x] _EmacsFrameClassRec: CoreClassPart core_class, EmacsFrameClassPart emacs_frame_class
 - [x] _EmacsFrameRec: CorePart core, EmacsFramePart emacs_frame
 
@@ -85,3 +85,16 @@ unchecked boxes)`); with the boxes ticked the deferral lifts and the same comman
     - missing type EmacsFramePart/ClassRec/Rec
 
 i.e. the type is genuinely absent from femacs/src/include/widgetprv.rs.  So: src/widgetprv.h's three records are the X11 widget interface (`EmacsFramePart`, `EmacsFrameRec`/`_EmacsFrameRec`, `EmacsFrameClassRec`/`_EmacsFrameClassRec`, plus the anonymous `<anon@27>` the tool cannot name); the frozen target has no window system, so they are dead-platform text (P-51/3.9 shape).
+
+## Decisions / Evidence (the eight true gaps, 2026-10-04)
+
+the three X11 widget records landed as dead platform text under `have_x11` (no window system; `HAVE_X11` undef, P-51/3.9): `EmacsFramePart` (C 27's anonymous `typedef`, the tool's `<anon@27>`/`EmacsFramePart` pair - the alias name is the one the port spells), `EmacsFrameRec` and `EmacsFrameClassRec`.  The other boxes this ledger lists were already satisfied and were ticked in the same
+pass (they had been left unchecked, and the earlier sweep had un-ticked some of them by
+position rather than by name - corrected here).
+
+    $ python3 tools/extract-abi.py --check emacs/src/widgetprv.h femacs/src/include/widgetprv.rs
+    OK emacs/src/widgetprv.h -> femacs/src/include/widgetprv.rs                     # `- ` lines: 0, no `missing type deferred`
+    $ cargo run -q -p xtask -- layout-check
+    layout-check passed (see build/femacs/layout_asserts.rs)
+
+(**before** this pass: 3 unchecked box(es); **after**: 0)

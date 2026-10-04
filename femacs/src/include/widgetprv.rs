@@ -110,3 +110,58 @@ pub struct EmacsFrameClassPart
          EmacsFrameClassPart	emacs_frame_class;
      } EmacsFrameClassRec;
 */
+
+/* src/widgetprv.h: the X11 widget records - `EmacsFramePart` (C 27's anonymous
+   `typedef struct { … } EmacsFramePart;`, the `<anon@27>` the tool names), `EmacsFrameRec`
+   (`CorePart core; EmacsFramePart emacs_frame;`) and `EmacsFrameClassRec` (`CoreClassPart
+   core_class; EmacsFrameClassPart emacs_frame_class;`).  Dead platform text on the frozen
+   target (no window system, `HAVE_X11` undef), carried under `have_x11` (P-51/3.9); the
+   member names are C's own and the types keep C's spellings (`Boolean`/`Pixel`/`CorePart`/
+   `EmacsFrameClassPart`), which nothing compiles here.  */
+#[cfg (feature = "have_x11")]
+#[repr(C)]
+pub struct EmacsFramePart
+{
+  /* struct frame *frame;  */
+  pub frame: *mut frame,
+  /* char *geometry;  */
+  pub geometry: *mut c_char,
+  /* Boolean iconic;  */
+  pub iconic: c_int,
+  /* int minibuffer;  */
+  pub minibuffer: c_int,
+  /* Boolean unsplittable;  */
+  pub unsplittable: c_int,
+  /* int internal_border_width;  */
+  pub internal_border_width: c_int,
+  /* int interline;  */
+  pub interline: c_int,
+  /* Pixel foreground_pixel;  */
+  pub foreground_pixel: c_ulong,
+  /* Pixel cursor_color;  */
+  pub cursor_color: c_ulong,
+  /* Boolean bar_cursor;  */
+  pub bar_cursor: c_int,
+  /* Boolean visual_bell;  */
+  pub visual_bell: c_int,
+  /* int bell_volume;  */
+  pub bell_volume: c_int,
+}
+#[cfg (feature = "have_x11")]
+#[repr(C)]
+pub struct EmacsFrameRec
+{
+  /* CorePart core;  */
+  pub core: *mut c_void,
+  /* EmacsFramePart emacs_frame;  */
+  pub emacs_frame: EmacsFramePart,
+}
+#[cfg (feature = "have_x11")]
+#[repr(C)]
+pub struct EmacsFrameClassRec
+{
+  /* CoreClassPart core_class;  */
+  pub core_class: *mut c_void,
+  /* EmacsFrameClassPart emacs_frame_class;  */
+  pub emacs_frame_class: *mut c_void,
+}

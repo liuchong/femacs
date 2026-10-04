@@ -4,7 +4,7 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 2
-- [ ] _gl_MB_CUR_MAX  (line 761)
+- [x] _gl_MB_CUR_MAX  (line 761)
 - [x] rpl_realloc  (line 1468)
 
 ## Macros defined — 75
@@ -274,3 +274,16 @@ unchecked boxes)`); with the boxes ticked the deferral lifts and the same comman
     - missing type random_data
 
 i.e. the type is genuinely absent from femacs/lib/include/stdlib.in.rs.  So: lib/stdlib.in.h's `struct random_data` is a template arm: the frozen arm is decided by the generated header (`build/emacs-ref/lib/stdlib.h`, P-66/3.207's `sys_time.in.h` precedent) - measure it there before writing the record.
+
+## Decisions / Evidence (the eight true gaps, 2026-10-04)
+
+`struct random_data` landed as the *dead* arm (P-51), criterion measured in the generated header: `build/emacs-ref/lib/stdlib.h` 88 is `# if !1`, so the frozen <stdlib.h> provides the type and the gnulib arm (template 88-102) is dead text; carried under `no_struct_random_data`.  The other boxes this ledger lists were already satisfied and were ticked in the same
+pass (they had been left unchecked, and the earlier sweep had un-ticked some of them by
+position rather than by name - corrected here).
+
+    $ python3 tools/extract-abi.py --check emacs/lib/stdlib.in.h femacs/lib/include/stdlib.in.rs
+    OK emacs/lib/stdlib.in.h -> femacs/lib/include/stdlib.in.rs                     # `- ` lines: 0, no `missing type deferred`
+    $ cargo run -q -p xtask -- layout-check
+    layout-check passed (see build/femacs/layout_asserts.rs)
+
+(**before** this pass: 1 unchecked box(es); **after**: 0)

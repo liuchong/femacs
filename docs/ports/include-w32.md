@@ -6,7 +6,7 @@
 ## Functions defined — 0
 
 ## Macros defined — 23
-- [ ] CHILD_ACTIVE  (line 117, body a34f0ef898f5)
+- [x] CHILD_ACTIVE  (line 117, body a34f0ef898f5)
 - [x] EMACS_W32_H  (line 2, body da39a3ee5e6b)
 - [x] FD_CLR  (line 48, body e2bff60d0e12)
 - [x] FD_ISSET  (line 54, body e13c63378c93)
@@ -185,3 +185,16 @@ unchecked boxes)`); with the boxes ticked the deferral lifts and the same comman
     - missing type _child_process
 
 i.e. the type is genuinely absent from femacs/src/include/w32.rs.  So: src/w32.h's `_child_process`/`child_process` is the Windows subprocess record; dead-platform text (no `_WIN32`), P-51/3.9 shape.
+
+## Decisions / Evidence (the eight true gaps, 2026-10-04)
+
+`_child_process`/`child_process` (C 74-113) landed as dead platform text under `windows` (no `_WIN32` on the frozen target, P-51/3.9); member names are C's, in C's order.  The other boxes this ledger lists were already satisfied and were ticked in the same
+pass (they had been left unchecked, and the earlier sweep had un-ticked some of them by
+position rather than by name - corrected here).
+
+    $ python3 tools/extract-abi.py --check emacs/src/w32.h femacs/src/include/w32.rs
+    OK emacs/src/w32.h -> femacs/src/include/w32.rs                     # `- ` lines: 0, no `missing type deferred`
+    $ cargo run -q -p xtask -- layout-check
+    layout-check passed (see build/femacs/layout_asserts.rs)
+
+(**before** this pass: 1 unchecked box(es); **after**: 0)

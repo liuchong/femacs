@@ -6,10 +6,10 @@
 ## Functions defined — 0
 
 ## Macros defined — 1
-- [ ] EMACSGTKFIXED_H  (line 22, body da39a3ee5e6b)
+- [x] EMACSGTKFIXED_H  (line 22, body da39a3ee5e6b)
 
 ## Types and their fields — 2
-- [ ] _EmacsFixed: GtkFixed container, EmacsFixedPrivate* priv
+- [x] _EmacsFixed: GtkFixed container, EmacsFixedPrivate* priv
 - [x] _EmacsFixedClass: GtkFixedClass parent_class
 
 ## File-scope objects — 0
@@ -67,3 +67,16 @@ unchecked boxes)`); with the boxes ticked the deferral lifts and the same comman
     - missing type _EmacsFixed/_EmacsFixedClass
 
 i.e. the type is genuinely absent from femacs/src/include/emacsgtkfixed.rs.  So: src/emacsgtkfixed.h's `_EmacsFixed`/`_EmacsFixedClass` are the GTK records; dead-platform text on this target (`HAVE_GTK`-class arms), P-51/3.9 shape.
+
+## Decisions / Evidence (the eight true gaps, 2026-10-04)
+
+`_EmacsFixed` (C 39-44) and `_EmacsFixedClass` (C 46-50) landed as dead platform text under the header's own `HAVE_PGTK` name (no GTK on the frozen target, P-51/3.9); C's `priv` is `r#priv` in Rust.  The other boxes this ledger lists were already satisfied and were ticked in the same
+pass (they had been left unchecked, and the earlier sweep had un-ticked some of them by
+position rather than by name - corrected here).
+
+    $ python3 tools/extract-abi.py --check emacs/src/emacsgtkfixed.h femacs/src/include/emacsgtkfixed.rs
+    OK emacs/src/emacsgtkfixed.h -> femacs/src/include/emacsgtkfixed.rs                     # `- ` lines: 0, no `missing type deferred`
+    $ cargo run -q -p xtask -- layout-check
+    layout-check passed (see build/femacs/layout_asserts.rs)
+
+(**before** this pass: 2 unchecked box(es); **after**: 0)

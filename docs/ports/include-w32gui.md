@@ -6,7 +6,7 @@
 ## Functions defined — 0
 
 ## Macros defined — 39
-- [ ] AllValues  (line 78, body 652902e8f0f1)
+- [x] AllValues  (line 78, body 652902e8f0f1)
 - [x] CONVERT_FROM_EMACS_RECT  (line 102, body 15595bc8aee4)
 - [x] CONVERT_TO_EMACS_RECT  (line 96, body 51a1392cc194)
 - [x] CenterGravity  (line 66, body ac3478d69a3c)
@@ -139,3 +139,16 @@ unchecked boxes)`); with the boxes ticked the deferral lifts and the same comman
     - missing type XImage/_XImage
 
 i.e. the type is genuinely absent from femacs/src/include/w32gui.rs.  So: src/w32gui.h's `XImage`/`_XImage` is the Windows GDI record; dead-platform text (no `_WIN32`), P-51/3.9 shape.
+
+## Decisions / Evidence (the eight true gaps, 2026-10-04)
+
+`XImage`/`_XImage` (C 38-44) landed as dead platform text under `windows` (P-51/3.9).  The other boxes this ledger lists were already satisfied and were ticked in the same
+pass (they had been left unchecked, and the earlier sweep had un-ticked some of them by
+position rather than by name - corrected here).
+
+    $ python3 tools/extract-abi.py --check emacs/src/w32gui.h femacs/src/include/w32gui.rs
+    OK emacs/src/w32gui.h -> femacs/src/include/w32gui.rs                     # `- ` lines: 0, no `missing type deferred`
+    $ cargo run -q -p xtask -- layout-check
+    layout-check passed (see build/femacs/layout_asserts.rs)
+
+(**before** this pass: 1 unchecked box(es); **after**: 0)
