@@ -1728,4 +1728,15 @@
   `--check emacs/src/alloc.c` = `OK`（此前报 "invented exported symbol"）；`check-symbols --pending` 里 `src/alloc`
   不再出现（只剩在飞的 `src/keyboard`）；**`gate-load` 162 total / 1 ratcheted / 161 new，`sa_stack_*` 从工单里消失**。
   **仍欠**：P-05 的 spike（与 `record_xmalloc` 路径的内存/性能对拍、`depth == sa_count` 的兄弟与嵌套作用域、恒在深度 0 的分配）。
+- **3.114 `cursorX` 也是宏（`MOUSE_HL_INFO` 同类）：工单 162 → 161（2026-10-04 第 99 轮第十三批）**：
+  `gate-load` 的 `_cursorX`（引用方 `sysdep.o`）又是一处"把 C 的宏写成外部符号"：`termhooks.h` 979-984
+  只在 `WINDOWSNT` 下声明 `extern int cursorX (struct tty_display_info *)`，其余情况是
+  `#define cursorX(t) curX(t)`（cm.h 的 place 宏），所以冻结配置里 C 的 `sysdep.c` 1526 编成 `curX (tty_out)`，
+  参照对象**没有** `_cursorX`。端口把 `cursorX` 写在用点当 `unsafe extern "C" fn`，调用点又按函数调它
+  （`term.rs` 那边其实已经是 `cursorX!` 宏了）。修法：删掉该 extern 声明（`cursorX` 的宏在
+  `include/termhooks.rs`、`curX!` 在 `include/cm.rs`，`sysdep.rs` 已按 C 的 `#include "cm.h"` 引了它），
+  调用点改 `cursorX! (tty_out)`。实测：`build-tu src/sysdep.c` = `built`、`--check emacs/src/sysdep.c` = `OK`、
+  `nm -u build/femacs/sysdep.o` 里 cursorX 归零、**`gate-load` 161 total / 1 ratcheted / 160 new**。
+  顺带核实：同批工单里的 `_count_lines` **不是**缺陷——C 的 `count_lines` 定义在 `src/xdisp.c:29897`，
+  属于在飞 xdisp lane 的余量（`fns.o`/`lread.o` 引用它是忠实的）。
 

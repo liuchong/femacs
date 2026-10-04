@@ -612,8 +612,8 @@ unsafe extern "C" { pub fn emacs_strerror (error_num: c_int) -> *const c_char; }
 unsafe extern "C" { pub fn gethostname (name: *mut c_char, len: usize) -> c_int; }
 
 /// `src/xfaces.c`/`src/dispnew.c` and `src/terminal.c`'s entries the live arms reach
-/// (`init_frame_faces`, `is_tty_frame`, `tty_turn_off_insert`, `cursorX`); their mirrors land
-/// with those units, so the port declares them at their use site with C's own prototype.
+/// (`init_frame_faces`, `is_tty_frame`, `tty_turn_off_insert`); their mirrors land with those
+/// units, so the port declares them at their use site with C's own prototype.
 unsafe extern "C" {
   /* void init_frame_faces (struct frame *);  */
   pub fn init_frame_faces (f: *mut frame);
@@ -621,9 +621,12 @@ unsafe extern "C" {
   pub fn is_tty_frame (f: *mut frame) -> bool;
   /* void tty_turn_off_insert (struct tty_display_info *);  */
   pub fn tty_turn_off_insert (tty: *mut tty_display_info);
-  /* int cursorX (struct tty_display_info *);  */
-  pub fn cursorX (tty: *mut tty_display_info) -> c_int;
 }
+/* `cursorX` is **not** declared here: `termhooks.h` 979-984 declares the function only under
+   `WINDOWSNT` and otherwise `#define`s it to `curX` (cm.h), so on the frozen target C's
+   `sysdep.c` 1526 compiles to `curX (tty_out)` and the reference object has no `_cursorX` at
+   all - while the port's extern made it ask for one (found by `xtask gate-load`, status 3.114,
+   the `MOUSE_HL_INFO` class from 3.109).  The call site uses `cursorX!`, the mirror's macro.  */
 
 /// `src/keyboard.c`/`src/emacs.c`/`src/alloc.c` and `src/sfntfont.c`'s entries the signal
 /// arms reach; their mirrors land with those units, so the port declares them at their use
@@ -2535,7 +2538,7 @@ pub unsafe extern "C" fn reset_sys_modes (tty_out: *mut tty_display_info) {
       {			/* have to do it the hard way */
 	tty_turn_off_insert (tty_out);
 
-	let mut i: c_int = cursorX (tty_out);
+	let mut i: c_int = cursorX! (tty_out);
 	while i < FrameCols! (tty_out) - 1
 	  {
 	    putc (b' ' as c_int, (*tty_out).output);
