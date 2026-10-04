@@ -102,18 +102,10 @@ unsafe extern "C" {
   pub static mut inhibit_modification_hooks: bool;
 }
 
-/* C: font.h 414-417: `struct font_metrics { short lbearing, rbearing, width, ascent,
-   descent; };` — font.h is mirrored only up to its predicates (PORTING.md P-66), so the
-   record is declared here.  */
-#[repr(C)]
-pub struct font_metrics
-{
-  pub lbearing: c_short,
-  pub rbearing: c_short,
-  pub width: c_short,
-  pub ascent: c_short,
-  pub descent: c_short,
-}
+/* C: font.h 414-417's `struct font_metrics` is the font mirror's now
+   (`include/font.rs` 293-302, status 3.225): the record landed there with its measured layout,
+   and this unit includes that mirror at C's position (composite.h 28), so a second copy here is
+   `E0428` (the face-record move of 3.211/3.220).  */
 
 /* C: font.h 277-404 `struct font` and 589-821 `struct font_driver`.  `struct font`
    (277-418) now comes from `include/font.rs`; `struct font_driver` is still unmirrored
@@ -130,15 +122,9 @@ pub struct font_driver
   pub encode_char: Option<unsafe extern "C" fn (font: *mut font, c: c_int) -> c_uint>,
 }
 
-/* C: font.h 537-541: `INLINE struct font *XFONT_OBJECT (Lisp_Object p)`.  The mirror has
-   the predicate (font.rs 81) but not the accessor (PORTING.md P-66), so it is written
-   here.  */
-#[inline(always)]
-pub unsafe fn XFONT_OBJECT (p: Lisp_Object) -> *mut font
-{
-  eassert! (FONT_OBJECT_P (p));
-  return XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font);
-}
+/* C: font.h 537-544's `XFONT_OBJECT` is the font mirror's now (font.rs 415-418, status 3.225):
+   this unit includes that mirror at C's position (composite.h 28), so a second copy here is
+   `E0428` - the same ownership move as the face records (3.211/3.220).  */
 
 /* C: dispextern.h 2386-2420 `struct composition_it`, in C's field order.  dispextern.h is
    not mirrored this far (PORTING.md P-66); the type is declared here and reported as a

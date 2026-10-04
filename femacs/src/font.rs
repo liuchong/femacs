@@ -181,62 +181,18 @@ macro_rules! FONT_DEFERRED_LOG {
     { if ! EQ (Vfont_log, Qt ()) { font_deferred_log ($action, $arg, $result); } };
 }
 
-/// C: font.h 414-417: `struct font_metrics`.  Measured with the frozen clang: `sizeof` 10
-/// (five shorts, no padding).
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct font_metrics
-{
-  pub lbearing: c_short,
-  pub rbearing: c_short,
-  pub width: c_short,
-  pub ascent: c_short,
-  pub descent: c_short,
-}
 
 const _: () = assert! (std::mem::size_of::<font_metrics> () == 10);
 
-/// C: font.h 419-429: `struct font_bitmap`.  Measured: `sizeof` 40, `bits_per_pixel`@0,
-/// `rows`@4, `width`@8, `pitch`@12, `buffer`@16, `left`@24, `top`@28, `advance`@32.
-#[repr(C)]
-pub struct font_bitmap
-{
-  pub bits_per_pixel: c_int,
-  pub rows: c_int,
-  pub width: c_int,
-  pub pitch: c_int,
-  pub buffer: *mut c_uchar,
-  pub left: c_int,
-  pub top: c_int,
-  pub advance: c_int,
-}
 
 const _: () = assert! (std::mem::size_of::<font_bitmap> () == 40);
 const _: () = assert! (std::mem::offset_of! (font_bitmap, buffer) == 16);
 const _: () = assert! (std::mem::offset_of! (font_bitmap, left) == 24);
 
-/// C: font.h 244-249: `struct font_spec`.  Measured: `sizeof` 112, `props`@8.
-#[repr(C)]
-pub struct font_spec
-{
-  pub header: vectorlike_header,
-  pub props: [Lisp_Object; FONT_SPEC_MAX as usize],
-}
 
 const _: () = assert! (std::mem::size_of::<font_spec> () == 112);
 const _: () = assert! (std::mem::offset_of! (font_spec, props) == 8);
 
-/// C: font.h 251-266: `struct font_entity`.  Measured: `sizeof` 120, `props`@8.
-/// `HAVE_ANDROID` is undef, so C's `is_android` member is absent from this layout; the port
-/// carries it under the feature that names that condition's other side (P-51).
-#[repr(C)]
-pub struct font_entity
-{
-  pub header: vectorlike_header,
-  pub props: [Lisp_Object; FONT_ENTITY_MAX as usize],
-  #[cfg(feature = "have_android")]
-  pub is_android: bool,
-}
 
 const _: () = assert! (std::mem::size_of::<font_entity> () == 120);
 const _: () = assert! (std::mem::offset_of! (font_entity, props) == 8);
@@ -323,114 +279,25 @@ const _: () = assert! (std::mem::size_of::<font_driver_list> () == 24);
 const _: () = assert! (std::mem::offset_of! (font_driver_list, driver) == 8);
 const _: () = assert! (std::mem::offset_of! (font_driver_list, next) == 16);
 
-/// C: font.h 477-570: the pointer-extraction accessors.  `XFONT_SPEC`/`XFONT_ENTITY`/
-/// `XFONT_OBJECT` are `XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, struct …)`, C's unaligned-safe
-/// pseudo-vector cast; the port spells them as functions over the mirror's `XUNTAG`.
-/// Accessors cannot be `const fn` (PORTING.md 0.1-9).
-#[inline(always)]
-pub unsafe fn GC_FONT_SPEC_P (x: Lisp_Object) -> bool
-{
-  FONTP (x) && (gc_asize (x) & PSEUDOVECTOR_SIZE_MASK) == FONT_SPEC_MAX as isize
-}
 
-#[inline(always)]
-pub unsafe fn GC_FONT_ENTITY_P (x: Lisp_Object) -> bool
-{
-  FONTP (x) && (gc_asize (x) & PSEUDOVECTOR_SIZE_MASK) == FONT_ENTITY_MAX as isize
-}
 
-#[inline(always)]
-pub unsafe fn GC_FONT_OBJECT_P (x: Lisp_Object) -> bool
-{
-  FONTP (x) && (gc_asize (x) & PSEUDOVECTOR_SIZE_MASK) == FONT_OBJECT_MAX as isize
-}
 
-/// C: font.h 434-475: the four type checks.
-#[inline(always)]
-pub fn CHECK_FONT (x: Lisp_Object) { CHECK_TYPE (FONTP (x), Qfont (), x); }
 
-#[inline(always)]
-pub fn CHECK_FONT_SPEC (x: Lisp_Object) { CHECK_TYPE (FONT_SPEC_P (x), Qfont_spec (), x); }
 
-#[inline(always)]
-pub fn CHECK_FONT_ENTITY (x: Lisp_Object)
-{ CHECK_TYPE (FONT_ENTITY_P (x), Qfont_entity (), x); }
 
-#[inline(always)]
-pub fn CHECK_FONT_OBJECT (x: Lisp_Object)
-{ CHECK_TYPE (FONT_OBJECT_P (x), Qfont_object (), x); }
 
-#[inline(always)]
-pub fn XFONT_SPEC (p: Lisp_Object) -> *mut font_spec
-{
-  eassert! (FONT_SPEC_P (p));
-  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font_spec)
-}
 
-#[inline(always)]
-pub fn GC_XFONT_SPEC (p: Lisp_Object) -> *mut font_spec
-{
-  eassert! (unsafe { GC_FONT_SPEC_P (p) });
-  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font_spec)
-}
 
-#[inline(always)]
-pub fn XFONT_ENTITY (p: Lisp_Object) -> *mut font_entity
-{
-  eassert! (FONT_ENTITY_P (p));
-  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font_entity)
-}
 
-#[inline(always)]
-pub fn GC_XFONT_ENTITY (p: Lisp_Object) -> *mut font_entity
-{
-  eassert! (unsafe { GC_FONT_ENTITY_P (p) });
-  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font_entity)
-}
 
-#[inline(always)]
-pub fn XFONT_OBJECT (p: Lisp_Object) -> *mut font
-{
-  eassert! (FONT_OBJECT_P (p));
-  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font)
-}
 
-#[inline(always)]
-pub fn GC_XFONT_OBJECT (p: Lisp_Object) -> *mut font
-{
-  eassert! (unsafe { GC_FONT_OBJECT_P (p) });
-  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font)
-}
 
 /// C: font.h 553-554: `#define XSETFONT(a, b) XSETPSEUDOVECTOR (a, b, PVEC_FONT)`.
 macro_rules! XSETFONT {
   ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_FONT) };
 }
 
-/// C: font.h 556-560: `CHECK_FONT_GET_OBJECT`.
-#[inline(always)]
-pub fn CHECK_FONT_GET_OBJECT (x: Lisp_Object) -> *mut font
-{
-  CHECK_FONT_OBJECT (x);
-  XFONT_OBJECT (x)
-}
 
-/// C: font.h 1023-1033: `font_data_structures_may_be_ill_formed` (`USE_CAIRO` and
-/// `USE_BE_CAIRO` are both undef, so C compiles the `#else` arm; both are carried).
-#[inline(always)]
-pub fn font_data_structures_may_be_ill_formed () -> bool
-{
-  #[cfg(feature = "use_cairo")]
-  {
-    /* Although this works around Bug#20890, it is probably not the
-       right thing to do.  */
-    return unsafe { gc_in_progress };
-  }
-  #[cfg(not (feature = "use_cairo"))]
-  {
-    return false;
-  }
-}
 
 /// C: font.h 894-904 declares `valid_font_driver` twice (the `ENABLE_CHECKING` prototype
 /// and the `#else` INLINE returning true).  `font.c` *defines* it under `#ifdef
@@ -866,6 +733,11 @@ static mut font_driver_list: *mut font_driver_list = std::ptr::null_mut ();
 
 /* Used to catch bogus pointers in font objects.  */
 
+/* C's shape here is font.h's prototype plus this one definition; the mirror therefore does
+   **not** declare the checking build's prototype (status 3.225) - the units that call it declare
+   it themselves (the `mark_haiku_display` shape), because a declaration and a definition of the
+   same Rust name in one crate is `E0428` (measured: `rustc --cfg enable_checking` on this unit's
+   root).  */
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn valid_font_driver (drv: *const font_driver) -> bool
 {

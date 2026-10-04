@@ -327,22 +327,12 @@ const _: () = assert! (std::mem::align_of::<font_bitmap> () == 8);
 const _: () = assert! (std::mem::offset_of! (font_bitmap, buffer) == 16);
 const _: () = assert! (std::mem::offset_of! (font_bitmap, advance) == 32);
 
-/* font.h 824-837: `struct font_driver_list` - "chain of font drivers".  `driver` points at
-   the `struct font_driver` of C 589-821, which this mirror does not carry yet, so it keeps
-   the port's `*const c_void` + `/// C:` spelling (P-72 (3)).  Measured: sizeof 24, align 8,
-   on@0 driver@8 next@16.  */
-#[repr(C)]
-pub struct font_driver_list
-{
-  pub on: bool,
-  /// C: `struct font_driver const *driver;`
-  pub driver: *const c_void,
-  pub next: *mut font_driver_list,
-}
-const _: () = assert! (std::mem::size_of::<font_driver_list> () == 24);
-const _: () = assert! (std::mem::align_of::<font_driver_list> () == 8);
-const _: () = assert! (std::mem::offset_of! (font_driver_list, driver) == 8);
-const _: () = assert! (std::mem::offset_of! (font_driver_list, next) == 16);
+/* font.h 824-837's `struct font_driver_list` is **not** carried yet, and deliberately: its
+   `driver` member is `struct font_driver const *`, and `lib/font.rs`'s own code reads through
+   it (`(*driver_list).driver.filter_properties`, `.r#type`), so the port needs the *typed*
+   `struct font_driver` (C 589-821) before this record can move into the mirror - the same
+   "keep the unit's typed copy while the mirror's would be `*const c_void`" ruling as
+   `struct face`/`face_cache` (status 3.220).  The unit keeps its copy meanwhile.  */
 
 /* ---------------------------------------------------------------------------------------
    font.h 449-560, 902, 1021: the predicate/type-check/pointer-extraction families and the
@@ -453,11 +443,12 @@ pub fn valid_font_driver (d: *const c_void) -> bool
   let _ = d;                      /* C's `d` is unused in this arm */
   true
 }
-#[cfg (enable_checking)]
-unsafe extern "C" {
-  /// C: `extern bool valid_font_driver (struct font_driver const *);`
-  pub fn valid_font_driver (d: *const c_void) -> bool;
-}
+/* C 902's prototype (the checking build's) is **not** declared here: `src/font.rs` 737-759
+   *defines* the function under the same `enable_checking` cfg, and a Rust declaration plus a
+   definition of one name in a crate is `E0428` (measured: `rustc --cfg enable_checking` on the
+   font unit's root at status 3.225).  The units that call it declare it themselves - C's own
+   reading of "header prototype, one definition" (PORTING.md P-11's shape, the
+   `mark_haiku_display`/`haiku_handle_selection_clear` precedents).  */
 
 /* C 1017-1030: `font_data_structures_may_be_ill_formed` - "for use in functions that can be
    called while garbage-collecting".  The frozen `USE_CAIRO`/`USE_BE_CAIRO` are undef (macros.tsv

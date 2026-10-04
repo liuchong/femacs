@@ -3469,8 +3469,6 @@ macro_rules! FRAME_FACE_CACHE {
 }
 
 unsafe extern "C" {
-  /// C: font.h 1000: `bool valid_font_driver (struct font_driver const *drv);`
-  fn valid_font_driver (drv: *const font_driver) -> bool;
   /// C: emacs.c 818: `extern int emacs_pipe (int fd[2]);`
   fn emacs_pipe (fd: *mut c_int) -> c_int;
   /// C: sysdep.c 2619: `extern ptrdiff_t emacs_write (int, void const *, ptrdiff_t);`
@@ -3488,6 +3486,15 @@ unsafe extern "C" fn call0_thunk (fn_: Lisp_Object) -> Lisp_Object { call0 (fn_)
 
 /* Release extra resources still in use by VECTOR, which may be any
    small vector-like object.  */
+
+/* C: font.h 899's `extern bool valid_font_driver (struct font_driver const *);` (the checking
+   build's prototype).  The font mirror does not carry it - `src/font.rs` defines the function
+   under the same cfg and Rust would report `E0428` - so this unit declares it at its one call
+   site, with the untyped parameter the mirror would have used (P-72 rule \u2462).  */
+#[cfg (enable_checking)]
+unsafe extern "C" {
+  pub fn valid_font_driver (d: *const c_void) -> bool;
+}
 
 unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 {
@@ -3516,7 +3523,10 @@ unsafe fn cleanup_vector (vector: *mut Lisp_Vector)
 	    if !drv.is_null ()
 	      {
 		/* Attempt to catch subtle bugs like Bug#16140.  */
-		eassert! (valid_font_driver (drv));
+		/* `include/font.rs` declares the checking build's prototype with the untyped pointer
+		   (P-72 rule ③: that mirror has no `font_driver` in scope), so the call converts -
+		   same pointer, same call.  */
+		eassert! (valid_font_driver (drv as *const c_void));
 		((*drv).close_font.unwrap ()) (font);
 	      }
 	  }
