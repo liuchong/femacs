@@ -5578,3 +5578,27 @@
   ④ **未声称**：片 6 的 666 行在冻结构建下**整身 gated**（`build-tu` 编到的是空区间）；真正编译它的 X11 臂探针
      报 410 条错误，其中**落在片 6 自己文本里的 24 条**全是**已登记**类别（8 条是本文件后面才定义的函数、
      4 条是镜像已记名的 X11 类型，其余在别的片与镜像里）——"片 6 无新缺口"是**分类后的判断**，不是"探针 green"。
+
+- **3.350 把 3.349 的教训做成门：`tools/check-ledger-ticks.py`（台账勾了的函数必须有人承载）（2026-10-05）**：
+  ① **门在读什么**：`docs/port-map.md` 的 590 行里每一个 `.rs` 目标，找到它自己的台账（`femacs/src/xrdb.rs` →
+     `docs/ports/xrdb.md`；`femacs/src/include/window.rs` → `include-window.md`；`femacs/lib-src/etags.rs` →
+     `lib-src-etags.md`；表头类目标在**参照没有同名兄弟 `.c`** 时才回落到裸名，`src/lisp.h` → `docs/ports/lisp.md`
+     而 `lib/boot-time.h` **不许**绑定 `lib/boot-time.c` 那份台账——这条判据是用"不加就 1435 条假失败"量出来的），
+     然后只读台账里 `## Functions defined` 那一段的 `- [x] NAME`，要求 `NAME` 出现在目标文件里。
+  ② **为什么只绑"函数"那一段**（这是测量，不是偏好）：全部 590 行里，函数段的勾意味着"这个名字在端口里"；把宏段一起绑会
+     报 **82** 条"缺名"，而那正是**有意不拼写**的一类（`_GL_ATTRIBUTE_*`、`_GL_BEGIN_NAMESPACE` 等 gnulib/属性机器，
+     逐条是决定不是缺口）。函数段在 3.349 落完 xterm 片 6 之后读 **0 failure** ⇒ 这道门从绿开始，而它**恰好**能在
+     3.349 那个窗口里红（那时 xterm 的台账勾了 `x_dnd_compute_toplevels` 而树里没有）。
+  ③ **两档判定**（因为"本目标没有"不等于"端口没有"）：名字**在别的文件里**（本树：`src/lisp.h` 的
+     `get_act_rec`/`set_act_rec` 由 `femacs/src/eval.rs` 承载，eval.rs 自己的注释就写着"镜像不承载这两条"）⇒ 记为
+     `info`（**一条已记录的技术债**，不是失败，而且它留在报告里可见）；名字**全树都没有** ⇒ `FAIL`（3.349 那一类）。
+  ④ **读数与负对照**：`235 ledger(s) bound, 0 failure(s), 2 carried by another file, 355 row(s) with no function tick,
+     0 row(s) without a ledger`（355 行是"该单元没有函数"或"整身在冻结配置里是死文本"——那一类由 `check-port-lines.py`
+     管）；**负对照**：往 `docs/ports/xrdb.md` 的 `## Functions defined` 注进一条假勾 → **1 FAIL / exit 1**，
+     还原后 0（台账文件无 diff）。`--selftest` 5 例 0 失败。
+  ⑤ **已进 `gate-fast`**：`femacs/xtask/src/main.rs` 的 `== ledger ticks ==` 一步（在 globals 门之后、workspace check 之前），
+     `cargo check -q -p xtask` exit 0；本轮**没有**跑整条 `gate-fast`（它含 `extract-abi --all` 与整仓 `cargo check`，
+     按"不要频繁编译"留到下一轮拼批跑）。同刻其它门：`check-citations 670 files / 0 drift / 0 stale`、
+     `check-declarations 13 sites / 0 forbidden`、`check-mirror-dupes 18/18/0`。
+  ⑥ **下一步（门自己指出的）**：把那两条 `INLINE` 搬进 `include/lisp.rs`（C 5234/5240 的位置），再按镜像重名门的规矩删
+     `eval.rs` 的本地副本——那之后 `info` 归零。

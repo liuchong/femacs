@@ -1091,6 +1091,20 @@ configuration (see PORTING.md 2.1's setup steps)");
         Ok(_) => return fail("a DEFVAR_* variable has no definition in its own unit"),
         Err(e) => return fail(e),
     }
+    // A ledger's own claim is a fifth reading of the tree (status 3.349/3.350): a ledger that
+    // ticks a function no ported file carries is a contradiction the four gates around this one
+    // cannot see, because each of them measures something else (line counts, unticked boxes,
+    // the Swift units, the ABI difference).
+    println!("== ledger ticks ==");
+    match Command::new("python3")
+        .current_dir(REPO)
+        .args(["tools/check-ledger-ticks.py"])
+        .status()
+    {
+        Ok(s) if s.success() => println!("ledger ticks: every ticked function is carried"),
+        Ok(_) => return fail("a ledger ticks a function no ported file carries"),
+        Err(e) => return fail(e),
+    }
     println!("== workspace check ==");
     match Command::new("cargo")
         .env("CARGO_TARGET_DIR", "../build/cargo")
