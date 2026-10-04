@@ -370,7 +370,6 @@ _toupper	the reference references it too (or an SDK .tbd exports it): provided a
 _tparm	the reference references it too (or an SDK .tbd exports it): provided at link time
 _tputs	the reference references it too (or an SDK .tbd exports it): provided at link time
 _trunc	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
-_try_window	the reference defines it and no unit of this port does - the definition is owed
 _try_window_id	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _try_window_reusing_current_matrix	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
 _tzset	the reference references it too (or an SDK .tbd exports it): provided at link time

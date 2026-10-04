@@ -5923,3 +5923,16 @@
      并且**更正了自己上一轮的一处陈旧读数**（上一轮台账写的 20,795/md5 与当时实际 20,784 不符）——这类自我更正值得保留。
   ⑤ **未声称**：`build-tu` 只证明编译与类型/ABI 面、token 门只证明"提及齐全"；`try_window` 的**行为级差分/对拍未做**；
      单元仍不能链接（脚手架 16 项 + `--check` 里仍有多条 `missing function`）；xdisp 仍是 WIP。
+
+- **3.366 四棘轮在 `f2b5c46` 复算：三本表各掉一行 `try_window`（2026-10-05）**：
+  ① **顺序**：3.362（门盲区 + 9 条记录）、3.363（镜像 `*mut c_void` + 4 条重名债）、3.365（xdisp 第 26 轮）先入库，
+     `tools/reconcile-link-ratchets.sh` 随后在 HEAD 复算，两本 link 的 `--strict` 都过。
+  ② **读数**：`check-link --strict` **384 → 383**（`_try_window` 退休）、`check-link --executable --strict` **94 → 93**、
+     `swift-import-pending` **721 → 720**——三本各掉**同一行** `try_window`，理由行写的就是
+     "the reference objects define or reference it … the core must export it"：第 26 轮把 `try_window` 的**定义**落进
+     `xdisp.rs`（带 `#[unsafe(no_mangle)]`）之后，核心**已经有这个导出**了，欠账自然消失。**这是本工程第一次因为
+     "某个单元的切片落地"而让棘轮收缩**（3.360 那次增长是因为转写让引用比定义长得快）。
+  ③ **工作树读数（在飞，不是缺陷）**：`check-swift-units` 读 **0 new / 2 stale**——那 2 行是 **Zeno 在飞的 nsterm 第 19 片**
+     已经落下的同名 Swift `func`；他入库时这 2 行随棘轮重生成消失（3.353/3.363 同一口径：在飞造成的红不算 HEAD 的红）。
+  ④ **未声称**：`--strict` 只说明四本表与 HEAD 的对象/文本精确相等；两本 link 仍是**欠账清单**（383/93），
+     离"第一次真链接"的距离只有 `tools/link-probe.py` 那条独立口径能答（最近一次 73）。
