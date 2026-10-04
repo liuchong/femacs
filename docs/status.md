@@ -2220,3 +2220,18 @@
   （该行由 `todo` 直接跳到 `done`；总数同时含两条镜像 lane 已落盘的在飞文件）。
   ⑤ **留给后续的规矩**：每轮收尾时把 target 列与工作树做一次双向对账（本次是 541 个文件里唯一一处），
   比只盯 `todo` 行可靠。
+
+- **3.140 把 3.139 的对账做成常驻门：`tools/check-target-names.py`（2026-10-04，第五个 check 门）**：
+  ① **两条规则**：**R1** 每个 `femacs/**/*.rs` 必须要么是 `docs/port-inventory.md` 某行的 target，要么在首行**自我声明**
+  不是参照文件的复刻——系统头镜像（`<stdio.h>`、`<errno.h>`、`<sys/select.h>`… 26 个）、三个生成物
+  （`config.rs`/`globals.rs`/`buildobj.rs`）、`gnulib_config.rs`、照抄树里的 4 个 `.rs`、以及 `xtask`；
+  **R2** 首行写了 `// femacs: port|mirror of X @ rev` 的文件，map 必须把 X 送到**这条路径**——这正是
+  3.139 手改的那一类（`getopt-cdefs.rs` 声明自己是 `lib/getopt-cdefs.in.h` 的镜像，map 却要
+  `getopt-cdefs.in.rs`）。
+  ② **为什么值得常驻**：这类缺陷对编译、`--check`、四个既有门**全部隐形**——文件在树里、`--check` 是 OK 的，
+  只有清单那一行永远读 `todo`，而 DoD 第 1 条（590 条全 `ported`）就卡在那里。R1+R2 把"文件说自己是复刻的谁"
+  与"map 认为它该叫什么"直接对上。
+  ③ 实测：`--selftest` **8 cases / 0 failures**（含 `getopt-cdefs` 的真实首行 → `R1`、以及 `alloc.rs` 报错参照
+  → `R2` 两个负例）；在全树上跑 **544 个 `.rs`、593 个 map target、0 finding**。
+  ④ **每轮的 check 门因此由四个变五个**：`check-globals` / `check-declarations` / `check-mirror-dupes` /
+  `check-verbatim` / **`check-target-names`**。
