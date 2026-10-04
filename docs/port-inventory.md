@@ -23,22 +23,22 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 582 |
-| 其中 done / wip | 572 / 10 |
-| 待开工 | 8 |
+| 已有目标文件 | 585 |
+| 其中 done / wip | 575 / 10 |
+| 待开工 | 5 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 6 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 4 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 2 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 1 |
 
 ## 3 按批次
 
@@ -48,9 +48,9 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 0 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 2 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 1 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 0 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 6 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 4 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -207,7 +207,7 @@
 | `lib/ieee754.in.h` | 215 | 0 | 0 | 8 | 4 | 86 | 0 | L | `femacs/lib/include/ieee754.in.rs` | done |
 | `lib/ignore-value.h` | 51 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/ignore-value.rs` | done |
 | `lib/intprops-internal.h` | 413 | 0 | 0 | 29 | 3 | 0 | 0 | L | `femacs/lib/include/intprops-internal.rs` | done |
-| `lib/intprops.h` | 377 | 0 | 0 | 38 | 0 | 0 | 0 | L | `femacs/lib/include/intprops.rs` | todo |
+| `lib/intprops.h` | 377 | 0 | 0 | 38 | 0 | 0 | 0 | L | `femacs/lib/include/intprops.rs` | done |
 | `lib/inttypes.in.h` | 1,029 | 0 | 0 | 167 | 113 | 0 | 0 | L | `femacs/lib/include/inttypes.in.rs` | done |
 | `lib/issymlink.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/issymlink.rs` | done |
 | `lib/issymlink.h` | 65 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/issymlink.rs` | done |
@@ -322,7 +322,7 @@
 | `lib/sys_random.in.h` | 105 | 0 | 0 | 4 | 2 | 0 | 0 | L | `femacs/lib/include/sys_random.in.rs` | done |
 | `lib/sys_select.in.h` | 342 | 1 | 0 | 25 | 2 | 0 | 0 | L | `femacs/lib/include/sys_select.in.rs` | todo |
 | `lib/sys_stat.in.h` | 995 | 2 | 0 | 71 | 10 | 14 | 0 | L | `femacs/lib/include/sys_stat.in.rs` | done |
-| `lib/sys_time.in.h` | 235 | 0 | 0 | 22 | 1 | 2 | 0 | L | `femacs/lib/include/sys_time.in.rs` | todo |
+| `lib/sys_time.in.h` | 235 | 0 | 0 | 22 | 1 | 2 | 0 | L | `femacs/lib/include/sys_time.in.rs` | done |
 | `lib/sys_types.in.h` | 138 | 0 | 0 | 12 | 6 | 0 | 0 | L | `femacs/lib/include/sys_types.in.rs` | done |
 | `lib/tempname.c` | 284 | 9 | 0 | 16 | 5 | 0 | 0 | L | `femacs/lib/tempname.rs` | done |
 | `lib/tempname.h` | 72 | 0 | 0 | 4 | 3 | 0 | 0 | L | `femacs/lib/include/tempname.rs` | done |
@@ -650,7 +650,7 @@
 | `src/w32select.c` | 1,370 | 20 | 5 | 4 | 2 | 0 | 17 | F | `femacs/src/w32select.rs` | done |
 | `src/w32select.h` | 28 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/w32select.rs` | done |
 | `src/w32term.c` | 8,414 | 151 | 0 | 11 | 9 | 0 | 37 | F | `femacs/src/w32term.rs` | done |
-| `src/w32term.h` | 929 | 0 | 0 | 119 | 19 | 129 | 25 | F | `femacs/src/include/w32term.rs` | todo |
+| `src/w32term.h` | 929 | 0 | 0 | 119 | 19 | 129 | 25 | F | `femacs/src/include/w32term.rs` | done |
 | `src/w32uniscribe.c` | 1,628 | 24 | 0 | 16 | 1 | 0 | 9 | F | `femacs/src/w32uniscribe.rs` | done |
 | `src/w32xfns.c` | 447 | 12 | 0 | 3 | 3 | 0 | 8 | F | `femacs/src/w32xfns.rs` | done |
 | `src/widget.c` | 514 | 20 | 0 | 1 | 0 | 0 | 0 | E | `femacs/src/widget.rs` | done |
