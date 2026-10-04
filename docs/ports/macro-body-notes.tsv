@@ -1181,3 +1181,11 @@ main	fallthrough	etags: C 1255/1290's `FALLTHROUGH` has no `match` site in the p
 parse_modifiers_uncached	case,switch	keyboard.c 7365-7476: C's `switch (SREF (name, i))` is a `match` on the same byte arms in the same order, so `case`/`switch` cannot reappear (the kbd_buffer_get_event rule)
 parse_solitary_modifier	break,case,switch	keyboard.c 7920-8008: the same `switch` -> `match` (so `case`/`switch` are gone) and C's `break` after each arm is the arm's end, which a Rust `match` arm does not spell
 handle_async_input	1	keyboard.c 8346-8367: C 8357's `while (1)` is Rust's `loop`, which cannot spell the constant condition (the itree_propagate_limit row)
+read_char_x_menu_prompt	0,1	keyboard.c 10096-10155: C's `get_keymap (map, 0, 1)` passes int literals to the two bool parameters, which the port spells `false`/`true` (PORTING.md 5.2, the Fset_case_table class)
+follow_key	0,1	keyboard.c 10157-10162: the same `get_keymap (keymap, 0, 1)` / `access_keymap (…, 1, 0)` pair of int literals for bool parameters (PORTING.md 5.2)
+access_keymap_keyremap	0	keyboard.c 10433-10473: C's `access_keymap (map, key, 1, 0)` passes `0` to `noinherit`, which the port spells `false`; the `1` stays in the body through `Fvector (end - start + 1, …)`
+read_filtered_event	goto	keyboard.c 10590-10698: C's three `goto retry`s become `continue 'retry` on the labelled loop (PORTING.md 2.2), which cannot spell `goto`
+Fread_char	0,1	keyboard.c 10700-10747: C's `read_filtered_event (1, 1, 1, …)` and `message_with_string (…, 0)` pass int literals to bool parameters, which the port spells `true`/`false` (PORTING.md 5.2)
+Fread_event	0	keyboard.c 10749-10782: C's `read_filtered_event (0, 0, 0, …)` and `message_with_string (…, 0)` are the same bool-literal class
+Fread_char_exclusive	0,1	keyboard.c 10784-10825: C's `read_filtered_event (1, 1, 0, …)` and `message_with_string (…, 0)` are the same bool-literal class
+find_display_property	goto	xdisp.c 5696-5762: C's three `goto found;` (C 5710, 5724, 5741) keep the same statement order inside a labelled block whose tail is C's `found:` label (the casefiddle.rs shape, PORTING.md 2.2), which cannot spell `goto`

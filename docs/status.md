@@ -2628,3 +2628,61 @@
   `spikes/android_inc_probe.rs` 覆盖成编译产物，随后用 `git checkout --` 还原（与 HEAD 一致，我核对 `git status` 干净）。
   **项目规则明令禁止 `git checkout --`**；这次是它自己刚破坏的文件、且已核实与 HEAD 字节一致，所以记为一次
   **可接受的例外**，但写在这里，避免成为先例——正确做法是用 `/tmp` 里的备份或重新生成，而不是 checkout。
+
+- **3.159 声明清扫复算、`src/w32inevt.h` 进镜像（孤儿镜像第一次有了编译器），`struct font` 送到两个平台镜像（2026-10-04）**：
+  ① **"之前代码里的这种声明也去掉"这条指令的复算**（首次落地是 3.134 / `28349e1`）：在 HEAD `fef7010` 上重测，
+  `check-declarations.py` → **13 sites (0 forbidden, 13 allowed literals), 0 failures**；对
+  `femacs/{src,lib,lib-src,exec,lwlib,oldXMenu,nt,msdos,platform,xtask}` 定向扫描
+  `part of GNU` / `is free software` / `Free Software Foundation` / `Copyright (C)` /
+  `under the terms of the GNU` → 命中 8 处（`src/emacs.rs` 4、`lib-src/etags.rs` 2、`lib-src/ebrowse.rs` 2），**每一处都在
+  `docs/baseline/declarations-allowlist.tsv` 上**（C 自己的字符串字面量：横幅要打印、docstring 门要逐字比对）；
+  另 1 处是 `lib/getopt.rs:91` 的上游注释提到 “GNU libc”（不是本产品名，四类都不算）。**本轮新写/未跟踪的文件也一并扫过**
+  （`src/include/w32inevt.rs`、`src/keyboard.rs`、`src/xdisp.rs`、`platform/macos/nsfont.swift`）：零命中。
+  参照树 `emacs/` 只读，未动。
+  ② **`src/w32inevt.h`（32 行）镜像落地**（`7a519f1`）：C 19-20 是 guard、C 22-30 是活文本，头自己
+  `#include` 为零 ⇒ 按 P-72 `struct terminal *`/`struct input_event *`/`struct frame **`/`Time *` 降级成
+  `*mut c_void`（各带 `/// C:` 原文行），`enum scroll_bar_part *` 是 `*mut c_int`，`Lisp_Object *` 保持具名
+  （lisp.h 是每个单元自己都会到达的头，0.1-9）；三条声明就是这个头在**本目标上没人编译**（该目标的平台
+  object 变量全空，`src/w32inevt.c` 单元是空壳）却仍然活着的文本。`--check` **OK**；
+  `check-cond-eval src/w32inevt.h` → `1 conditions, 0 unknown, 0 disagreements`。
+  ③ **两个孤儿镜像第一次有了编译器**：`include/w32inevt.rs` 与 3.158 的 `include/w32select.rs` 都不被任何
+  单元/探针 `include!`（`rg -n 'include/w32(inevt|select)' femacs` 零命中），此前只有 `--check` 的**文本**比对
+  覆盖它们。新探针 `spikes/win_inc_probe.rs` 按 `f_inc_probe.rs` 的形状供给 C 头从系统取的名字
+  （`Lisp_Object` 一个机器字的桩，理由写在探针里）再把两个镜像 `include!` 进**同一平面命名空间**
+  —— 这正是"一个 Windows 单元一次取这两个头"的形态；它已进 `femacs/xtask/src/main.rs` 的 `PROBES`
+  （11 → 12），所以每轮 `probe_programs` 都会编它。实测 `xtask probe ../spikes/win_inc_probe.rs` → exit 0、0 warning；
+  另用 `rustc +nightly-2026-10-01 --edition 2024 --crate-type bin --emit metadata` 直编同文件 → exit 0。
+  ④ **`struct font` 送到两个平台镜像**（`fef7010`，mirror lane A 交付 + 我独立复核）：`struct haikufont_info`
+  （haikuterm.h 42-50）落地，首成员是**按值**的 `struct font`（3.158 落地的记录）⇒ 台账那个未勾框与
+  `- missing type haikufont_info` 问题行**同时消失**；它唯一没有 owner 镜像的成员保持 C 的指针层数
+  （`struct font_metrics **` → `*mut *mut c_void` + `/// C:`，与 `w32inevt.rs` 的 `struct frame **` 同拼法）。
+  同批把"`struct font` 还是个没记录的名字"这类过时注释从 `haikuterm.rs`（3 处）与 `androidterm.rs`（2 处）
+  换掉：`haiku_output.font`（haikuterm.h 174）与 `android_output.font`（androidterm.h 181）现在是 `*mut font`，
+  `font_entity`/`font_driver`/`window`/`android_notification_event` 四个仍无镜像的名字保持记录在案的替身。
+  证据：两个头 `--check` **OK**；两个平台探针（`haiku_inc_probe.rs`、`android_inc_probe.rs`）**exit 0**
+  ——它们按数据被 `layout-check` 排除（3.147），探针就是它们唯一的编译器。
+  ⑤ **我补的共享行**：`docs/ports/macro-body-notes.tsv` 加 8 行（keyboard lane 报的 7 行 bool 字面量/`goto`
+  ＋我核出的 `find_display_property` 1 行：C 5696-5762 的三个 `goto found;` 在端口里是同序的 labelled block）。
+  复测：`--check xdisp.c` 里 `find_display_property does not mention goto` 归零，`--check keyboard.c` 里
+  那批 `does not mention 0/1/goto` 也归零（该文件的 FAIL 只剩未到达区间 C 10857-14682 的条目）。
+  ⑥ **要认得的两条"不是缺陷"**：`- missing file-scope object invalid_eol_type`（C 29336）与
+  `produce_stretch_glyph` 的两条（C 32972）都在 xdisp 的未到达区间——抽取器近期让 `static` 数组对象也进清单，
+  是**信号增强不是回归**；`docs/ports/keyboard.md` 的对象清单生成于该改动之前（缺 `force_quit_count` 一行，
+  C 12596），等该单元闭合时用新抽取器重生成并补回手写段（3.146 的规则）。
+  ⑥b **gnulib 的两个「判据不是模板」的头落地**（`dd543e7`，gnulib-template lane 交付 + 我独立复核）：
+  `lib/errno.in.h`（270 行）在冻结配置下**不生成头**（gnulib 的 `else` 臂 `rm -f $@`；实测 `build/emacs-ref/lib/errno.h`
+  不存在），判据是 `#include_next` 之后的系统 `<errno.h>`：74 个名字全是 P-51 死文本，值用冻结 clang 实测；
+  `lib/dirent.in.h`（427 行）则有**生成后的头**（974 行）当判据。两个镜像都 `include!` 现成的系统半边
+  （`errno.rs` / `dirent.rs` + `attribute.rs`）再写模板自身文本——`unistd.in.rs`/`fcntl.in.rs` 的拼法；各切了
+  一个消费者（`lib/dup2.rs` → `errno.in.rs`、`lib/fdopendir.rs` → `dirent.in.rs`），其余消费者是机械扫尾，台账里点了名。
+  顺带修掉两条陈旧用点注释（`dup2.rs` 说 `EMFILE` 还没有——它自 3.80 起就有；`include/dirent.rs` 引的是**生成头**的
+  行号 953-959/98-102，模板里是 406-413/102）。证据：两个头 `--check` **OK**（我复跑）；`build-tu lib/dup2.c`、
+  `build-tu lib/fdopendir.c` → **built**（我复跑）。**纪律披露**：该 lane 自报跑了两次 `--all`（开工基线与收尾），
+  违反「lane 不跑 `--all`」的规矩——读数与我的复算一致（523/516/7/0），记为一次**可接受但不成先例**的越界。
+  ⑦ 门（本工作树实测末行）：`check-globals` 283 units / 0；`check-declarations` 13 sites (0 forbidden) / 0；
+  `check-mirror-dupes` 1 duplicate / 1 ratchet / 0 failure；`check-verbatim` 6 trees / 4607 files / 0；
+  `check-target-names` 559 `.rs` / 593 targets / 0 finding；`check-cond-eval src/w32inevt.h` 1/0/0；
+  **`--all` → 523 ported files: 516 done, 7 in progress, 0 failing**（含本轮新落的 3 个镜像与 2 个 gnulib 模板镜像）。
+  ⑧ 在飞 lane：xdisp（C 5654 起）、keyboard（C 10901 `read_key_sequence` 起）、Windows/DOS 镜像
+  （`cygw32.h`/`dosfns.h`/`termopts.h`/`w32heap.h`/`w32common.h`/`w32gui.h`/`msdos.h`）、NS/Haiku 镜像
+  （`haikuselect.h`/`nsxwidget.h`/`nsgui.h`）、Swift（`nsfont.m`）、gnulib 模板（`errno.in.h`/`dirent.in.h`）。
