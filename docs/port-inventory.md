@@ -23,22 +23,22 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 544 |
-| 其中 done / wip | 526 / 18 |
-| 待开工 | 46 |
+| 已有目标文件 | 554 |
+| 其中 done / wip | 535 / 19 |
+| 待开工 | 36 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 23 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 22 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 23 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 14 |
 
 ## 3 按批次
 
@@ -49,8 +49,8 @@
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 5 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 8 |
-| **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 23 |
+| **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 0 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 22 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -114,7 +114,7 @@
 | `lib/acl-internal.h` | 284 | 0 | 0 | 40 | 27 | 13 | 0 | L | `femacs/lib/include/acl-internal.rs` | done |
 | `lib/acl.h` | 118 | 0 | 0 | 4 | 1 | 7 | 0 | L | `femacs/lib/include/acl.rs` | wip |
 | `lib/acl_entries.c` | 68 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/acl_entries.rs` | done |
-| `lib/alloca.in.h` | 72 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/alloca.in.rs` | todo |
+| `lib/alloca.in.h` | 72 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/alloca.in.rs` | done |
 | `lib/allocator.c` | 22 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/allocator.rs` | done |
 | `lib/allocator.h` | 68 | 0 | 0 | 1 | 0 | 4 | 0 | L | `femacs/lib/include/allocator.rs` | wip |
 | `lib/arg-nonnull.h` | 26 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/arg-nonnull.rs` | done |
@@ -490,7 +490,7 @@
 | `src/editfns.c` | 4,975 | 41 | 80 | 7 | 0 | 4 | 2 | C | `femacs/src/editfns.rs` | done |
 | `src/emacs-icon.h` | 353 | 0 | 0 | 2 | 2 | 0 | 0 | E | `femacs/src/include/emacs-icon.rs` | done |
 | `src/emacs-module.c` | 1,798 | 80 | 1 | 6 | 1 | 22 | 4 | G | `femacs/src/emacs-module.rs` | done |
-| `src/emacs-module.in.h` | 246 | 0 | 0 | 6 | 0 | 3 | 0 | G | `femacs/src/include/emacs-module.in.rs` | todo |
+| `src/emacs-module.in.h` | 246 | 0 | 0 | 6 | 0 | 3 | 0 | G | `femacs/src/include/emacs-module.in.rs` | wip |
 | `src/emacs.c` | 3,653 | 24 | 5 | 4 | 1 | 4 | 28 | D | `femacs/src/emacs.rs` | done |
 | `src/emacsgtkfixed.c` | 210 | 8 | 0 | 0 | 0 | 1 | 0 | F | `femacs/src/emacsgtkfixed.rs` | done |
 | `src/emacsgtkfixed.h` | 60 | 0 | 0 | 3 | 0 | 3 | 0 | F | `femacs/src/include/emacsgtkfixed.rs` | wip |
@@ -555,14 +555,14 @@
 | `src/menu.c` | 1,638 | 30 | 3 | 0 | 0 | 3 | 7 | E | `femacs/src/menu.rs` | done |
 | `src/menu.h` | 72 | 0 | 0 | 1 | 3 | 0 | 0 | E | `femacs/src/include/menu.rs` | done |
 | `src/minibuf.c` | 2,759 | 24 | 24 | 4 | 2 | 0 | 9 | E | `femacs/src/minibuf.rs` | done |
-| `src/module-env-25.h` | 131 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-25.rs` | todo |
-| `src/module-env-26.h` | 3 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-26.rs` | todo |
-| `src/module-env-27.h` | 18 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-27.rs` | todo |
-| `src/module-env-28.h` | 19 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-28.rs` | todo |
-| `src/module-env-29.h` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-29.rs` | todo |
-| `src/module-env-30.h` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-30.rs` | todo |
-| `src/module-env-31.h` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-31.rs` | todo |
-| `src/module-env-32.h` | 12 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-32.rs` | todo |
+| `src/module-env-25.h` | 131 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-25.rs` | done |
+| `src/module-env-26.h` | 3 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-26.rs` | done |
+| `src/module-env-27.h` | 18 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-27.rs` | done |
+| `src/module-env-28.h` | 19 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-28.rs` | done |
+| `src/module-env-29.h` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-29.rs` | done |
+| `src/module-env-30.h` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-30.rs` | done |
+| `src/module-env-31.h` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-31.rs` | done |
+| `src/module-env-32.h` | 12 | 0 | 0 | 0 | 0 | 0 | 0 | G | `femacs/src/include/module-env-32.rs` | done |
 | `src/msdos.c` | 4,350 | 96 | 5 | 33 | 22 | 12 | 38 | F | `femacs/src/msdos.rs` | done |
 | `src/msdos.h` | 156 | 0 | 0 | 21 | 7 | 0 | 3 | F | `femacs/src/include/msdos.rs` | done |
 | `src/nsgui.h` | 137 | 0 | 0 | 35 | 19 | 0 | 0 | F | `femacs/src/include/nsgui.rs` | done |
