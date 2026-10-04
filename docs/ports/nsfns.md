@@ -8,7 +8,7 @@
 > **Cocoa/AppKit build** the file's arms describe, and the unit is
 > `femacs/platform/macos/nsfns.swift`.  Line numbers are the raw reference lines.
 >
-> **State: third batch (C 40-2610).** The file is 4348 lines and the largest remaining Swift
+> **State: fifth batch (C 40-3800).** The file is 4348 lines and the largest remaining Swift
 > unit after src/nsterm.m, so it is landing in batches the way `macfont.swift` did.  Batch 1
 > carried C 40-1190 (the file-scope objects, the internal utilities, every frame-parameter setter
 > the file defines, the AppKit version/icon helpers, the `ns_frame_parm_handlers` table and the
@@ -20,9 +20,14 @@
 > `DEFUN`s, the `x-server-*`/`x-display-*` group, the application-level `DEFUN`s
 > (`ns-hide-others` … `ns-list-services`/`ns-perform-service`), AppleScript, the two
 > `ns_set_scroll_bar_default_*` functions, `ns_get_string_resource` and
-> `system-move-file-to-trash` - 23 `DEFUN`s and 8 functions.  The remaining 11 C functions and
-> 23 `DEFUN`s are the next batch and are named in `docs/baseline/swift-units.tsv` (11 rows; the
-> `DEFUN`s are not tracked by that gate).
+> `system-move-file-to-trash` - 23 `DEFUN`s and 8 functions.  Batch 4 carries C 2612-3227: the
+> color/display group, `ns_make_monitor_attribute_list` and the monitor attribute list,
+> `compute_tip_xy`, the tip frame's creation and `x_hide_tip` - 9 `DEFUN`s and 5 functions.  Batch 5 carries
+> C 3229-3800: **`x-show-tip` (C 3229-3540, the tooltip machinery)**, `x-hide-tip`,
+> `frame_geometry` and the geometry/edge `DEFUN`s, the absolute-mouse-position pair, the
+> character palette, the accessibility query and `ns-badge` - 9 `DEFUN`s and 1 function.
+> The remaining 5 C functions and 5 `DEFUN`s are the next batch and are named in
+> `docs/baseline/swift-units.tsv` (5 rows; the `DEFUN`s are not tracked by that gate).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 52
@@ -55,24 +60,24 @@
 - [x] ns-perform-service  (Fns_perform_service, 2/2, doc 1c52a8aeaf8f, line 2356)
 - [x] ns-do-applescript  (Fns_do_applescript, 1/1, doc 20491d02fe35, line 2454)
 - [x] system-move-file-to-trash  (Fsystem_move_file_to_trash, 1/1, doc 4e8f353b9231, line 2574)
-- [ ] xw-color-defined-p  (Fxw_color_defined_p, 1/2, doc f3e009aa43c7, line 2612)
-- [ ] xw-color-values  (Fxw_color_values, 1/2, doc f3e009aa43c7, line 2622)
-- [ ] xw-display-color-p  (Fxw_display_color_p, 0/1, doc f3e009aa43c7, line 2647)
-- [ ] x-display-grayscale-p  (Fx_display_grayscale_p, 0/1, doc f3e009aa43c7, line 2664)
-- [ ] x-display-pixel-width  (Fx_display_pixel_width, 0/1, doc f3e009aa43c7, line 2678)
-- [ ] x-display-pixel-height  (Fx_display_pixel_height, 0/1, doc f3e009aa43c7, line 2689)
-- [ ] ns-display-monitor-attributes-list  (Fns_display_monitor_attributes_list, 0/1, doc fe0f18f2b85b, line 2736)
-- [ ] x-display-planes  (Fx_display_planes, 0/1, doc f3e009aa43c7, line 2848)
-- [ ] x-display-color-cells  (Fx_display_color_cells, 0/1, doc f3e009aa43c7, line 2859)
-- [ ] x-show-tip  (Fx_show_tip, 1/6, doc f3e009aa43c7, line 3229)
-- [ ] x-hide-tip  (Fx_hide_tip, 0/0, doc f3e009aa43c7, line 3541)
-- [ ] ns-frame-geometry  (Fns_frame_geometry, 0/1, doc ed7876cab3f5, line 3616)
-- [ ] ns-frame-edges  (Fns_frame_edges, 0/2, doc 64d4478f2b7a, line 3660)
-- [ ] ns-set-mouse-absolute-pixel-position  (Fns_set_mouse_absolute_pixel_position, 2/2, doc 084be46aa072, line 3684)
-- [ ] ns-mouse-absolute-pixel-position  (Fns_mouse_absolute_pixel_position, 0/0, doc cdeb37cbd73d, line 3726)
-- [ ] ns-show-character-palette  (Fns_show_character_palette, 0/0, doc a6af2b7c9688, line 3745)
-- [ ] ns-process-is-accessibility-trusted  (Fns_process_is_accessibility_trusted, 0/0, doc 33940a79fea0, line 3759)
-- [ ] ns-badge  (Fns_badge, 1/1, doc 43c87b05e806, line 3779)
+- [x] xw-color-defined-p  (Fxw_color_defined_p, 1/2, doc f3e009aa43c7, line 2612)
+- [x] xw-color-values  (Fxw_color_values, 1/2, doc f3e009aa43c7, line 2622)
+- [x] xw-display-color-p  (Fxw_display_color_p, 0/1, doc f3e009aa43c7, line 2647)
+- [x] x-display-grayscale-p  (Fx_display_grayscale_p, 0/1, doc f3e009aa43c7, line 2664)
+- [x] x-display-pixel-width  (Fx_display_pixel_width, 0/1, doc f3e009aa43c7, line 2678)
+- [x] x-display-pixel-height  (Fx_display_pixel_height, 0/1, doc f3e009aa43c7, line 2689)
+- [x] ns-display-monitor-attributes-list  (Fns_display_monitor_attributes_list, 0/1, doc fe0f18f2b85b, line 2736)
+- [x] x-display-planes  (Fx_display_planes, 0/1, doc f3e009aa43c7, line 2848)
+- [x] x-display-color-cells  (Fx_display_color_cells, 0/1, doc f3e009aa43c7, line 2859)
+- [x] x-show-tip  (Fx_show_tip, 1/6, doc f3e009aa43c7, line 3229)
+- [x] x-hide-tip  (Fx_hide_tip, 0/0, doc f3e009aa43c7, line 3541)
+- [x] ns-frame-geometry  (Fns_frame_geometry, 0/1, doc ed7876cab3f5, line 3616)
+- [x] ns-frame-edges  (Fns_frame_edges, 0/2, doc 64d4478f2b7a, line 3660)
+- [x] ns-set-mouse-absolute-pixel-position  (Fns_set_mouse_absolute_pixel_position, 2/2, doc 084be46aa072, line 3684)
+- [x] ns-mouse-absolute-pixel-position  (Fns_mouse_absolute_pixel_position, 0/0, doc cdeb37cbd73d, line 3726)
+- [x] ns-show-character-palette  (Fns_show_character_palette, 0/0, doc a6af2b7c9688, line 3745)
+- [x] ns-process-is-accessibility-trusted  (Fns_process_is_accessibility_trusted, 0/0, doc 33940a79fea0, line 3759)
+- [x] ns-badge  (Fns_badge, 1/1, doc 43c87b05e806, line 3779)
 - [ ] ns-request-user-attention  (Fns_request_user_attention, 1/1, doc b7dd254b2e0a, line 3802)
 - [ ] ns-progress-indicator  (Fns_progress_indicator, 1/1, doc 8aad684a609a, line 3832)
 - [ ] ns-block-system-sleep  (Fns_block_system_sleep, 2/2, doc a61a3188a360, line 3912)
@@ -126,12 +131,12 @@
 - [x] ns_set_scroll_bar_default_width  (line 2527, non-static - `@_cdecl`)
 - [x] ns_set_scroll_bar_default_height  (line 2536, non-static - `@_cdecl`)
 - [x] ns_get_string_resource  (line 2546, non-static - `@_cdecl`)
-- [ ] ns_make_monitor_attribute_list  (line 2700, static) - next batch (manifest row)
-- [ ] compute_tip_xy  (line 2870, static) - next batch (manifest row)
-- [ ] unwind_create_tip_frame  (line 2942, static) - next batch (manifest row)
-- [ ] ns_create_tip_frame  (line 2961, static) - next batch (manifest row)
-- [ ] x_hide_tip  (line 3165, static) - next batch (manifest row)
-- [ ] frame_geometry  (line 3554, static) - next batch (manifest row)
+- [x] ns_make_monitor_attribute_list  (line 2700, static)
+- [x] compute_tip_xy  (line 2870, static)
+- [x] unwind_create_tip_frame  (line 2942, static)
+- [x] ns_create_tip_frame  (line 2961, static)
+- [x] x_hide_tip  (line 3165, static)
+- [x] frame_geometry  (line 3554, static)
 - [ ] all_nonzero_ascii  (line 4072, static) - next batch (manifest row)
 - [ ] count_utf8_chars  (line 4083, static) - next batch (manifest row)
 - [ ] ns_move_tooltip_to_mouse_location  (line 4154) - next batch (manifest row)
@@ -319,6 +324,76 @@ bookkeeping -> the leftover-parms alist loop -> the cascade/center block -> `unb
   `trashItemAtURL:resultingItemURL:error:` is `fm.responds(to:)` plus
   `try? fm.trashItem(at:resultingItemURL:)`.
 
+**Batch 4: the color/display group and the tip frame (C 2612-3227).**  9 `DEFUN`s and 5
+functions.
+
+- **`struct MonitorInfo` and `Emacs_Rectangle` are mirrored** (src/frame.h 1928-1935,
+  src/dispextern.h 63-69) because the port *fills* the array `xcalloc` gives it and hands it
+  back to the core's `make_monitor_attribute_list`/`free_monitors`: 16-byte `Emacs_Rectangle`
+  (`int x, y; unsigned width, height`), 48-byte `MonitorInfo` with `geom` 0, `work` 16,
+  `mm_width` 32, `mm_height` 36, `name` 40 - measured on both sides (Evidence).
+- **`snprintf` is variadic and unavailable in Swift**, so the synthesized monitor name
+  (C 2802-2807, the 25-byte buffer) is built with `String (format:)` and handed to `xstrdup` -
+  the same formatted text, at the same place.
+- **`NSScreen.deviceDescription`'s key** is `NSDeviceDescriptionKey` in Swift, so
+  `dict["NSScreenNumber"]` is `dict[NSDeviceDescriptionKey("NSScreenNumber")]`.
+- **`compute_tip_xy`'s `screen`** (C 2878) is assigned by the search loop and keeps C's value
+  when no screen matches (the last one); the port initialises it to that same element.
+- **`AUTO_FRAME_ARG`** (src/frame.h 1425-1426 + src/lisp.h 5763-5773) is the port's
+  `list1 (Fcons (parameter, value))` - C's `USE_STACK_CONS` fast path is a GC optimisation the
+  core owns.
+- **The three `NSColorSpaceFromDepth`/`NSBitsPerPixelFromDepth`** lookups are SDK
+  `APPKIT_EXTERN` functions Swift does not vend (like `NSBestDepth` in batch 3), so they are
+  `@_silgen_name` bindings; the colour-space names are Swift's
+  `NSColorSpaceName.deviceWhite`/`.calibratedWhite`.
+- **`[ns_tooltip isActive]`/`[ns_tooltip hide]`** are `EmacsTooltip` methods of
+  `docs/ports/nsmenu.md`'s class: two port-named cross-file entries, receiver first
+  (`EmacsTooltip_isActive`/`EmacsTooltip_hide`); they need definitions on that side (see (3)).
+- **Dead arms recorded**: the GNUstep `register_font_driver (&nsfont_driver, f)` arms in
+  `ns_create_tip_frame` (C 3002-3004), and `x-display-mm-*`'s `#else` (already recorded in
+  batch 3).
+
+**Batch 5: the tooltip machinery and the geometry group (C 3229-3800).**  9 `DEFUN`s and
+`frame_geometry`.
+
+- **`x-show-tip`'s `goto start_timer`** (C 3475, 3534) is a flag on the shared tail, since Swift
+  has no `goto`; the "only DX and DY changed" fast path and the `tooltip_reuse_hidden_frame`
+  parameter-comparison path both set it and fall through to the same
+  `tip_timer = calln (Qrun_at_time, …)`.
+- **`AUTO_STRING (tip, " *tip*")`** (src/lisp.h 5760-5766) is `build_string (" *tip*")`: the macro
+  makes a Lisp string from the literal, which is the same value (C's is stack-allocated).
+- **`list (…)`** (src/lisp.h 4493-4494) expands to `listn`, which is variadic and cannot be called
+  from Swift, so the port folds the array with `Fcons` - the same list value, the
+  `docs/ports/nsselect.swift` `calln` shape.
+- **`struct text_pos`** (src/lisp.h 1103-1108) is mirrored (two `ptrdiff_t`) because
+  `SET_TEXT_POS`/`try_window` take it by value.
+- **`displayed`** (C 3468) is only read by the reference's `#ifdef ENABLE_CHECKING` block
+  (C 3470-3490), which is dead text on this target: the port records the block and discards the
+  value.
+- **`struct window`'s fifteen members, `struct frame`'s six and `struct buffer`'s three** are the
+  usual per-member C-ABI entries (the records belong to the core); `NSPopUpMenuWindowLevel` is
+  Swift's `NSWindow.Level.popUpMenu`; `AXIsProcessTrusted` and `CGWarpMouseCursorPosition` come
+  from the SDK (`import ApplicationServices` is new in this file's import list, for the
+  accessibility query).
+- **3.255's macro ruling applied to this file.**  Of the macros this unit imports, only
+  `FRAME_NS_TITLEBAR_HEIGHT` (src/nsterm.h 1062-1068) and `FRAME_TOOLBAR_HEIGHT` (1071-1079)
+  have bodies that need nothing but AppKit and the existing `FRAME_NS_VIEW` entry, so - like
+  docs/ports/nsterm.md - the port spells their bodies as fileprivate Swift functions
+  (`frame_ns_titlebar_height`/`frame_toolbar_height`) and imports no name for them: `nm -u` on
+  the object no longer mentions either.  Everything else this batch imports is a *core* fact
+  (`Lisp_Object` predicates, `globals.h` entries, enumerators, `struct frame`/`window`/`buffer`
+  member reads, cross-record INLINEs) and stays a same-named entry for the shim/core side; the
+  empirical split is in the Evidence (`nm -g build/emacs-ref/{src,lib}/*.o`, Mach-O's leading
+  underscore).
+- **`frame_geometry`'s `list4i`/`list`** keep C's attribute dispatch exactly
+  (`outer-edges`/`native-edges`/`inner-edges`, else the alist).  Its `f->border_width` read has
+  no `FRAME_BORDER_WIDTH` macro in C, so the entry is the port-named `frame_border_width`, not a
+  macro's capitalised name (the imports gate's two classes: `reference-source` for a macro the
+  reference text defines, `unclassified` for a port name).
+- **`EmacsTooltip`'s six messages** (`init`, `setBackgroundColor:`, `setForegroundColor:`,
+  `setText:`, `frame`, `showAtX:Y:for:`) join batch 4's `isActive`/`hide` as cross-file entries
+  into docs/ports/nsmenu.md's class (see (3)).
+
 ## ABI
 
 ### (1) C symbols this batch defines and exports (`@_cdecl`)
@@ -355,7 +430,14 @@ file-static.  Batch 3 adds **thirty** more: the 23 `DEFUN`s of C 1897-2608 (`Fns
 `Fns_do_applescript`, `Fsystem_move_file_to_trash`) plus the 7 non-static functions of the same
 range (`ns_get_defaults_value`, `ns_init_colors`, `ns_run_ascript`, `check_x_display_info`,
 `ns_set_scroll_bar_default_width`, `ns_set_scroll_bar_default_height`, `ns_get_string_resource`).
-The object now exports **43** C names (Evidence).  The other non-static name in
+The object now exports **43** C names (Evidence).  Batch 4 adds the 9 `DEFUN`s of
+C 2612-2867 (`Fxw_color_defined_p`, `Fxw_color_values`, `Fxw_display_color_p`,
+`Fx_display_grayscale_p`, `Fx_display_pixel_width`, `Fx_display_pixel_height`,
+`Fns_display_monitor_attributes_list`, `Fx_display_planes`, `Fx_display_color_cells`), for
+**52** C names.  Batch 5 adds the 9 `DEFUN`s of C 3229-3800 (`Fx_show_tip`, `Fx_hide_tip`,
+`Fns_frame_geometry`, `Fns_frame_edges`, `Fns_set_mouse_absolute_pixel_position`,
+`Fns_mouse_absolute_pixel_position`, `Fns_show_character_palette`,
+`Fns_process_is_accessibility_trusted`, `Fns_badge`), for **61** C names.  The other non-static name in
 this range, `ns_frame_parm_handlers` (C 1063), is a **data** symbol: carried as a Swift array,
 flagged in (3).  The 52 `DEFUN`s' `F…` names and their `S…` records arrive with the next batch.
 
@@ -483,7 +565,14 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
    `@try`/`@catch`-protected call (C 2290-2310), because Swift cannot catch an `NSException`.
    It needs a definition on the port's C-ABI side (a tiny C/ObjC shim is the natural home, like
    the `ns_frame_parm_handlers` table of item 1).
-8. `tools/extract-abi.py` has no `.m -> .swift` pair, so `--check` cannot compare this unit.
+8. Batch 4's `EmacsTooltip_isActive` / `EmacsTooltip_hide` - `EmacsTooltip` is
+   docs/ports/nsmenu.md's Swift class, so these two cross-file entries need definitions on that
+   side (the `EmacsImage_allocInitFromFile` shape of item 2).
+9. Batch 5's six `EmacsTooltip` entries (`EmacsTooltip_new`,
+   `EmacsTooltip_setBackgroundColor`, `EmacsTooltip_setForegroundColor`,
+   `EmacsTooltip_setText`, `EmacsTooltip_frame`, `EmacsTooltip_showAtX_Y_for`) join item 8: the
+   class is docs/ports/nsmenu.md's, so that side owes the definitions.
+10. `tools/extract-abi.py` has no `.m -> .swift` pair, so `--check` cannot compare this unit.
 
 ## Evidence
 
@@ -569,3 +658,66 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
   `clang` probe that includes `<config.h>` and `"termhooks.h"`; and the `@_cdecl` result-type
   rule, from a scratch `swiftc -parse-as-library -c` with `UnsafePointer<CChar>?` (refused),
   `UnsafeMutablePointer<CChar>?` (accepted) and `UnsafeMutableRawPointer?` (accepted) results.
+
+### Batch 4 evidence
+
+- `swiftc -parse-as-library -c -o /tmp/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0,
+  0 errors, 0 warnings**.
+- `nm -g /tmp/nsfns.o | grep ' T _'` minus Swift's own `__swift*` symbols -> **52** exported C
+  names (batch 1+2+3's 43 + this batch's 9).
+- `python3 tools/check-swift-units.py` ->
+  `femacs/platform/macos/nsfns.swift: 56 C definition(s), 6 unported, 6 row(s); 420 C symbol
+  import(s)`; last line `0 new, 4 stale, 7 Swift unit(s) landed` (the 4 `stale` rows are another
+  lane's).  Five rows left the manifest - the five C definitions this batch landed - and the
+  `diff` vs the backup is **5 removed / 0 added / 0 other files**.
+- **Layout, both sides** (`clang -std=gnu23 -DHAVE_WINDOW_SYSTEM=1 -DHAVE_NS=1
+  -DNS_IMPL_COCOA=1 -I build/emacs-ref/src -I build/emacs-ref/lib -I emacs/src -I emacs/lib` on a
+  probe that includes `<config.h>`, `"lisp.h"`, `"nsterm.h"`, `"frame.h"`; and `swiftc -o run
+  femacs/platform/macos/nsfns.swift /tmp/nsfns4/main.swift /tmp/nsfns4/stub.c -Xlinker
+  -undefined -Xlinker dynamic_lookup`, where `main.swift` prints `MemoryLayout`/`offset(of:)` and
+  `stub.c` defines the file's imported data symbols) -> both sides print
+  `sizeof Emacs_Rectangle 16 sizeof MonitorInfo 48 align 8` and
+  `offsetof geom 0 work 16 mm_width 32 mm_height 36 name 40`.
+- `python3 tools/check-cond-eval.py src/nsfns.m` -> `64 conditions, 0 unknown, 0 disagreements
+  [VERIFIED]`; `check-citations.py` -> zero *failure* rows name this file (one `external` row for
+  the SDK's `NSGraphics.h`); `check-declarations.py` -> `13 declaration sites (0 forbidden, 13
+  allowed literals), 0 failures`; `check-verbatim.py` -> `6 trees, 4607 files, 0 failures`;
+  `check-mirror-dupes.py` -> `1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)`.
+
+### Batch 5 evidence
+
+- **The 3.255 macro test, run on this tree** (`nm -g build/emacs-ref/src/*.o
+  build/emacs-ref/lib/*.o | grep -cE "[ _]NAME$"`, Mach-O's leading underscore; 74 + 78
+  objects): real symbols = 45 for `Fcons`, 144 for `error`, **1 for `try_window`** - and **0**
+  for every macro-shaped name this unit imports that I sampled: `FRAME_NS_TITLEBAR_HEIGHT`,
+  `FRAME_TOOLBAR_HEIGHT`, `FRAME_PIXEL_WIDTH`, `FRAME_TOTAL_COLS`, `FRAME_ROOT_WINDOW`,
+  `TRY_WINDOW_IGNORE_FONTS_CHANGE`, `list4i`, `flush_frame`, `CHECK_FIXNAT`, `USPosition`,
+  `Qrun_at_time`, `bset_truncate_lines`, `colorUsingDefaultColorSpace`,
+  `NS_SCROLL_BAR_WIDTH_DEFAULT`, `NSAPP_DATA2_RUNASSCRIPT`, `window_pixel_height`,
+  `make_monitor_attribute_list`, `free_monitors` (the last two are real functions that the
+  frozen build's `HAVE_WINDOW_SYSTEM`-less frame.c does not compile).
+- **The `nm` check the import rulings ask for is unavailable for this file**:
+  `build/emacs-ref/src/nsfns.o` does not exist, because src/nsfns.m is one of the 77 src files
+  the frozen configuration never compiles (`docs/status.md` 3.31), and a hand-built object with
+  `-DHAVE_NS=1` fails against the frozen `config.h` (the generated `globals.h` has no
+  `x-create-frame`/`x-open-connection`/`ns_use_proxy_icon`).  The macro-vs-symbol question is
+  therefore answered from the reference text, which is what `check-swift-imports.py`'s
+  `reference-source` class already does.
+
+- `swiftc -parse-as-library -c -o /tmp/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0,
+  0 errors, 0 warnings**.
+- `nm -g /tmp/nsfns.o | grep ' T _'` minus Swift's own `__swift*` symbols -> **61** exported C
+  names (batches 1-4's 52 + this batch's 9).
+- `python3 tools/check-swift-units.py` ->
+  `femacs/platform/macos/nsfns.swift: 56 C definition(s), 5 unported, 5 row(s); 495 C symbol
+  import(s)`; last line `0 new, 6 stale, 7 Swift unit(s) landed` (the 6 `stale` rows are other
+  lanes').  One row left the manifest - `frame_geometry`, the one C definition this batch
+  landed - and the `diff` vs the backup is **1 removed / 0 added / 0 other files**.
+- `python3 tools/check-cond-eval.py src/nsfns.m` -> `64 conditions, 0 unknown, 0 disagreements
+  [VERIFIED]`; `check-citations.py` -> zero *failure* rows name this file (two `external` rows for
+  the SDK's `NSGraphics.h`; one `drift` and three `external` rows were corrected in this batch -
+  `try_window` is src/dispextern.h 3573, `update_single_window` src/dispextern.h 3918,
+  `flush_frame` src/frame.h 1914 and the `bset` family src/buffer.h 779-782);
+  `check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed literals), 0
+  failures`; `check-verbatim.py` -> `6 trees, 4607 files, 0 failures`; `check-mirror-dupes.py` ->
+  `1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)`.

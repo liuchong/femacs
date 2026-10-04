@@ -269,7 +269,7 @@ func frame_set_foreground_pixel(_ f: UnsafeMutableRawPointer?, _ v: UInt)
 @_silgen_name("frame_set_background_pixel")
 func frame_set_background_pixel(_ f: UnsafeMutableRawPointer?, _ v: UInt)
 @_silgen_name("frame_set_wants_modeline")
-func frame_set_wants_modeline(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+func frame_set_wants_modeline(_ f: UnsafeMutableRawPointer?, _ v: Bool)
 @_silgen_name("frame_set_border_width")
 func frame_set_border_width(_ f: UnsafeMutableRawPointer?, _ v: Int32)
 @_silgen_name("ns_output_view") func ns_output_view(_ f: UnsafeMutableRawPointer?) -> NSView?
@@ -345,7 +345,6 @@ func ns_output_display_info(_ f: UnsafeMutableRawPointer?) -> UnsafeMutablePoint
 @_silgen_name("Qinternal_border_width") func Qinternal_border_width() -> Lisp_Object
 @_silgen_name("Qwidth") func Qwidth() -> Lisp_Object
 @_silgen_name("Qheight") func Qheight() -> Lisp_Object
-@_silgen_name("Qleft") func Qleft() -> Lisp_Object
 @_silgen_name("Qicon_left") func Qicon_left() -> Lisp_Object
 @_silgen_name("Qicon_top") func Qicon_top() -> Lisp_Object
 @_silgen_name("Qunbound") func Qunbound() -> Lisp_Object
@@ -718,6 +717,302 @@ func EmacsView_initFrameFromEmacs(_ f: UnsafeMutableRawPointer?) -> AnyObject?
 func frame_set_display_info(_ f: UnsafeMutableRawPointer?, _ dpyinfo: UnsafeMutablePointer<ns_display_info>?)
 
 /// ==========================================================================
+// Lane ABI (batch 5): the constructs C 3229-3800 reads.
+// ==========================================================================
+
+/// C: `INLINE void CHECK_FIXNAT (Lisp_Object)` (src/lisp.h 3364) and
+/// `intmax_t check_integer_range (Lisp_Object, intmax_t, intmax_t)` (src/lisp.h 608).
+@_silgen_name("CHECK_FIXNAT") func CHECK_FIXNAT(_ x: Lisp_Object)
+@_silgen_name("check_integer_range")
+func check_integer_range(_ x: Lisp_Object, _ lo: Int, _ hi: Int) -> Int
+/// C: `INLINE Lisp_Object list4i (intmax_t, intmax_t, intmax_t, intmax_t)` (src/lisp.h 4532)
+/// and `#define list(...)` over `listn` (src/lisp.h 4493-4494).  `listn` is variadic, which
+/// Swift cannot call, so the port folds the array with `Fcons` - the same list value (the
+/// `calln` shape of docs/ports/nsselect.swift).
+@_silgen_name("list4i")
+func list4i(_ a: Int, _ b: Int, _ c: Int, _ d: Int) -> Lisp_Object
+@inline(__always)
+fileprivate func list(_ args: [Lisp_Object]) -> Lisp_Object {
+  var out: Lisp_Object = Qnil()
+  for a in args.reversed() { out = Fcons(a, out) }
+  return out
+}
+/// C: `Lisp_Object Fequal (Lisp_Object, Lisp_Object)` / `Fequal_including_properties`
+/// (subrs, globals.h), and `Lisp_Object Fget_buffer_create (Lisp_Object, Lisp_Object)` /
+/// `Ferase_buffer` / `Finsert` / `Fwindow_text_pixel_size` (subrs, globals.h).
+@_silgen_name("Fequal") func Fequal(_ a: Lisp_Object, _ b: Lisp_Object) -> Lisp_Object
+@_silgen_name("Fequal_including_properties")
+func Fequal_including_properties(_ a: Lisp_Object, _ b: Lisp_Object) -> Lisp_Object
+@_silgen_name("Fget_buffer_create")
+func Fget_buffer_create(_ name: Lisp_Object, _ base_buffer: Lisp_Object) -> Lisp_Object
+@_silgen_name("Ferase_buffer") func Ferase_buffer() -> Lisp_Object
+@_silgen_name("Finsert") func Finsert(_ nargs: Int, _ args: UnsafeMutablePointer<Lisp_Object>) -> Lisp_Object
+@_silgen_name("Fwindow_text_pixel_size")
+func Fwindow_text_pixel_size(_ window: Lisp_Object, _ from: Lisp_Object, _ to: Lisp_Object,
+                             _ x_limit: Lisp_Object, _ y_limit: Lisp_Object,
+                             _ mode_lines: Lisp_Object, _ pixelwise: Lisp_Object) -> Lisp_Object
+/// C: `void set_window_buffer (Lisp_Object, Lisp_Object, bool, bool)` (src/window.h 965) and
+/// `Lisp_Object Fset_window_parameter (Lisp_Object, Lisp_Object, Lisp_Object)` (subr).
+@_silgen_name("set_window_buffer")
+func set_window_buffer(_ window: Lisp_Object, _ buffer: Lisp_Object, _ run_hooks: Bool,
+                       _ keep_margins: Bool)
+@_silgen_name("Fset_window_parameter")
+func Fset_window_parameter(_ window: Lisp_Object, _ alist: Lisp_Object, _ value: Lisp_Object) -> Lisp_Object
+/// C: `int try_window (Lisp_Object, struct text_pos, int)` (src/dispextern.h 3573),
+/// `void update_single_window (struct window *)` (src/dispextern.h 3918) and
+/// `INLINE void flush_frame (struct frame *f)` (src/frame.h 1914).
+@_silgen_name("try_window")
+func try_window(_ window: Lisp_Object, _ pos: text_pos, _ flags: Int32) -> Bool
+@_silgen_name("update_single_window")
+func update_single_window(_ w: UnsafeMutableRawPointer?)
+@_silgen_name("flush_frame") func flush_frame(_ f: UnsafeMutableRawPointer?)
+/// C: `INLINE void bset_left_margin_cols (struct buffer *, Lisp_Object)` and
+/// `bset_right_margin_cols` / `bset_truncate_lines` (src/buffer.h 779-782, the `bset` family):
+/// `struct buffer`'s fields belong to the core.
+/// C: `void set_buffer_internal_1 (struct buffer *b)` (src/buffer.h 1113).
+@_silgen_name("set_buffer_internal_1")
+func set_buffer_internal_1(_ b: UnsafeMutableRawPointer?)
+@_silgen_name("bset_left_margin_cols")
+func bset_left_margin_cols(_ b: UnsafeMutableRawPointer?, _ v: Lisp_Object)
+@_silgen_name("bset_right_margin_cols")
+func bset_right_margin_cols(_ b: UnsafeMutableRawPointer?, _ v: Lisp_Object)
+@_silgen_name("bset_truncate_lines")
+func bset_truncate_lines(_ b: UnsafeMutableRawPointer?, _ v: Lisp_Object)
+/// C: `struct text_pos` (src/lisp.h 1103-1108): `ptrdiff_t charpos, bytepos`, and C's
+/// `SET_TEXT_POS (pos, charpos, bytepos)` (src/dispextern.h 291-297).
+struct text_pos {
+  var charpos: Int
+  var bytepos: Int
+}
+/// C: `INLINE void SET_FRAME_VISIBLE (struct frame *f, bool v)` (src/frame.h 1537),
+/// `FRAME_INITIAL_P (f)`
+/// (src/frame.h 932), `FRAME_ROOT_WINDOW (f)` (src/frame.h 1201),
+/// `FRAME_TOTAL_COLS (f)` (src/frame.h 1068), `FRAME_PIXEL_WIDTH/HEIGHT (f)`
+/// (src/frame.h 1066-1067), `FRAME_TOOL_BAR_POSITION (f)` (src/frame.h 1104),
+/// `FRAME_NS_TITLEBAR_HEIGHT (f)` / `FRAME_TOOLBAR_HEIGHT (f)` (src/nsterm.h 1062, 1071) and
+/// the two position macros `BEGV`/`BEGV_BYTE` (src/buffer.h 41-42).
+@_silgen_name("SET_FRAME_VISIBLE")
+func SET_FRAME_VISIBLE(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("FRAME_INITIAL_P") func FRAME_INITIAL_P(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("FRAME_ROOT_WINDOW") func FRAME_ROOT_WINDOW(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+@_silgen_name("FRAME_TOTAL_COLS") func FRAME_TOTAL_COLS(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_total_cols")
+func frame_set_total_cols(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_PIXEL_WIDTH") func FRAME_PIXEL_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_pixel_width")
+func frame_set_pixel_width(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_PIXEL_HEIGHT") func FRAME_PIXEL_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_pixel_height")
+func frame_set_pixel_height(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("FRAME_TOOL_BAR_POSITION")
+func FRAME_TOOL_BAR_POSITION(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `#define frame_ns_titlebar_height(f) …` (src/nsterm.h 1062-1068, "Compute pixel height of
+/// the frame's titlebar") and `#define frame_toolbar_height(f) …` (src/nsterm.h 1071-1079).
+/// **Neither has a symbol anywhere in the port** (measured: `nm -g` over
+/// `build/emacs-ref/{src,lib}/*.o` finds none), so per 3.255's ruling - a name with no real C
+/// symbol cannot be a C-ABI entry (P-08) - this unit spells each macro's *body* instead of
+/// importing its name.  The bodies need only AppKit and the existing `FRAME_NS_VIEW` entry
+/// (the same shape docs/ports/nsterm.md gave the same two macros).
+fileprivate func frame_ns_titlebar_height(_ f: UnsafeMutableRawPointer?) -> Int32 {
+  let view = FRAME_NS_VIEW(f)
+  if view == nil || NSHeight(view!.frame) == 0 {
+    return 0
+  }
+  let window = view!.window
+  return Int32(NSHeight(window!.frame)
+               - NSHeight(NSWindow.contentRect(forFrameRect: window!.frame,
+                                               styleMask: window!.styleMask)))
+}
+
+fileprivate func frame_toolbar_height(_ f: UnsafeMutableRawPointer?) -> Int32 {
+  let window = FRAME_NS_VIEW(f)?.window
+  let toolbar = window?.toolbar
+  if toolbar == nil || !toolbar!.isVisible {
+    return 0
+  }
+  return Int32(NSHeight(NSWindow.contentRect(forFrameRect: window!.frame,
+                                            styleMask: window!.styleMask))
+               - NSHeight(window!.contentView!.frame))
+}
+/// `struct frame`'s `border_width` field (`f->border_width`), which C has no `FRAME_BORDER_WIDTH`
+/// macro for: a port-named accessor, like the other lowercase `frame_*` entries.
+@_silgen_name("frame_border_width") func frame_border_width(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("current_buffer_begv") func current_buffer_begv() -> Int
+@_silgen_name("current_buffer_begv_byte") func current_buffer_begv_byte() -> Int
+/// C: `enum ... { TRY_WINDOW_IGNORE_FONTS_CHANGE = (1 << 1) }` (src/dispextern.h 3700).
+@_silgen_name("TRY_WINDOW_IGNORE_FONTS_CHANGE") func TRY_WINDOW_IGNORE_FONTS_CHANGE() -> Int32
+/// C: `struct window`'s members C 3430-3520 reads or writes (src/window.h): the record belongs
+/// to the core, so each access is a C-ABI entry named after the member.
+@_silgen_name("window_set_pseudo_window_p")
+func window_set_pseudo_window_p(_ w: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("window_set_left_col")
+func window_set_left_col(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_set_top_line")
+func window_set_top_line(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_set_pixel_left")
+func window_set_pixel_left(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_set_pixel_top")
+func window_set_pixel_top(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_total_cols") func window_total_cols(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("window_set_total_cols")
+func window_set_total_cols(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_total_lines") func window_total_lines(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("window_set_total_lines")
+func window_set_total_lines(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_pixel_width") func window_pixel_width(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("window_set_pixel_width")
+func window_set_pixel_width(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_pixel_height") func window_pixel_height(_ w: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("window_set_pixel_height")
+func window_set_pixel_height(_ w: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("window_desired_matrix")
+func window_desired_matrix(_ w: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("window_set_must_be_updated_p")
+func window_set_must_be_updated_p(_ w: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `- (instancetype)init` (src/nsmenu.m's `EmacsTooltip`, docs/ports/nsmenu.md),
+/// `- (void)setBackgroundColor:`, `- (void)setForegroundColor:`, `- (void)setText:`,
+/// `- (NSRect)frame`, `- (void)showAtX:(int)x Y:(int)y for:(int)seconds`: cross-file methods
+/// of that Swift class, receiver first.
+@_silgen_name("EmacsTooltip_new") func EmacsTooltip_new() -> AnyObject?
+@_silgen_name("EmacsTooltip_setBackgroundColor")
+func EmacsTooltip_setBackgroundColor(_ tip: AnyObject?, _ col: NSColor?)
+@_silgen_name("EmacsTooltip_setForegroundColor")
+func EmacsTooltip_setForegroundColor(_ tip: AnyObject?, _ col: NSColor?)
+@_silgen_name("EmacsTooltip_setText")
+func EmacsTooltip_setText(_ tip: AnyObject?, _ text: UnsafePointer<CChar>?)
+@_silgen_name("EmacsTooltip_frame") func EmacsTooltip_frame(_ tip: AnyObject?) -> NSRect
+@_silgen_name("EmacsTooltip_showAtX_Y_for")
+func EmacsTooltip_showAtX_Y_for(_ tip: AnyObject?, _ x: Int32, _ y: Int32, _ seconds: Int32)
+/// The core's tooltip-related storage: `DEFVAR_LISP ("x-show-tooltip-timeout", …)`,
+/// `DEFVAR_LISP ("x-max-tooltip-size", …)` and the `bool tooltip_reuse_hidden_frame`
+/// (`DEFVAR_BOOL ("tooltip-reuse-hidden-frame", …)`) - all in src/xfns.c's family, mirrored by
+/// the port's core.
+@_silgen_name("Vx_show_tooltip_timeout") var Vx_show_tooltip_timeout: Lisp_Object
+@_silgen_name("Vx_max_tooltip_size") var Vx_max_tooltip_size: Lisp_Object
+@_silgen_name("tooltip_reuse_hidden_frame") var tooltip_reuse_hidden_frame: Bool
+/// More `Q…` symbols (generated globals.h, PORTING.md P-17; called as `Qfoo ()`).
+@_silgen_name("Qassq_delete_all") func Qassq_delete_all() -> Lisp_Object
+@_silgen_name("Qno_other_window") func Qno_other_window() -> Lisp_Object
+@_silgen_name("Qinhibit_read_only") func Qinhibit_read_only() -> Lisp_Object
+@_silgen_name("Qinhibit_modification_hooks") func Qinhibit_modification_hooks() -> Lisp_Object
+@_silgen_name("Qinhibit_point_motion_hooks") func Qinhibit_point_motion_hooks() -> Lisp_Object
+@_silgen_name("Qrun_at_time") func Qrun_at_time() -> Lisp_Object
+@_silgen_name("Qx_hide_tip") func Qx_hide_tip() -> Lisp_Object
+@_silgen_name("Qfullboth") func Qfullboth() -> Lisp_Object
+@_silgen_name("Qouter_edges") func Qouter_edges() -> Lisp_Object
+@_silgen_name("Qnative_edges") func Qnative_edges() -> Lisp_Object
+@_silgen_name("Qinner_edges") func Qinner_edges() -> Lisp_Object
+@_silgen_name("Qouter_position") func Qouter_position() -> Lisp_Object
+@_silgen_name("Qouter_size") func Qouter_size() -> Lisp_Object
+@_silgen_name("Qexternal_border_size") func Qexternal_border_size() -> Lisp_Object
+@_silgen_name("Qtitle_bar_size") func Qtitle_bar_size() -> Lisp_Object
+@_silgen_name("Qmenu_bar_external") func Qmenu_bar_external() -> Lisp_Object
+@_silgen_name("Qmenu_bar_size") func Qmenu_bar_size() -> Lisp_Object
+@_silgen_name("Qtool_bar_external") func Qtool_bar_external() -> Lisp_Object
+@_silgen_name("Qtool_bar_position") func Qtool_bar_position() -> Lisp_Object
+@_silgen_name("Qtool_bar_size") func Qtool_bar_size() -> Lisp_Object
+@_silgen_name("Qleft") func Qleft() -> Lisp_Object
+
+// ==========================================================================
+// Lane ABI (batch 4): the constructs C 2612-3227 reads.
+// ==========================================================================
+
+/// C: `typedef struct { int x, y; unsigned width, height; } Emacs_Rectangle;`
+/// (src/dispextern.h 63-69, the non-X arm).
+struct Emacs_Rectangle {
+  var x: Int32
+  var y: Int32
+  var width: UInt32
+  var height: UInt32
+}
+
+/// C: `struct MonitorInfo` (src/frame.h 1928-1935): `Emacs_Rectangle geom, work; int mm_width,
+/// mm_height; char *name;`.  `make_monitor_attribute_list`/`free_monitors` (the core) read
+/// this record, so the mirror's layout is asserted in the ledger's Evidence.
+struct MonitorInfo {
+  var geom: Emacs_Rectangle
+  var work: Emacs_Rectangle
+  var mm_width: Int32
+  var mm_height: Int32
+  var name: UnsafeMutablePointer<CChar>?
+}
+
+/// C: `NSColorSpaceFromDepth (NSWindowDepth)` and `NSBitsPerPixelFromDepth (NSWindowDepth)`
+/// (the SDK's NSGraphics.h 166, 168) - like `NSBestDepth`, AppKit's Swift interface does not
+/// vend them, so the port binds the C symbols (system functions, not the core's).
+@_silgen_name("NSColorSpaceFromDepth")
+func NSColorSpaceFromDepth(_ depth: NSWindow.Depth) -> NSColorSpaceName?
+@_silgen_name("NSBitsPerPixelFromDepth")
+func NSBitsPerPixelFromDepth(_ depth: NSWindow.Depth) -> Int
+/// C: `- (NSColor *)colorUsingDefaultColorSpace` (src/nsterm.h 360, src/nsterm.m's
+/// `NSColor (EmacsColor)` category): a cross-file method, receiver first.
+@_silgen_name("colorUsingDefaultColorSpace")
+func colorUsingDefaultColorSpace(_ col: NSColor) -> NSColor
+/// C: `Lisp_Object make_nil_vector (ptrdiff_t)` (src/lisp.h 4621),
+/// `void *xcalloc (size_t, size_t)` (src/lisp.h 5539) and
+/// `void free_monitors (struct MonitorInfo *, int)` / `Lisp_Object
+/// make_monitor_attribute_list (struct MonitorInfo *, int, int, Lisp_Object, const char *)`
+/// (src/frame.h 1937-1942).
+@_silgen_name("make_nil_vector") func make_nil_vector(_ size: Int) -> Lisp_Object
+@_silgen_name("xcalloc") func xcalloc(_ n: Int, _ size: Int) -> UnsafeMutableRawPointer?
+@_silgen_name("xmalloc") func xmalloc(_ size: Int) -> UnsafeMutableRawPointer?
+@_silgen_name("free_monitors")
+func free_monitors(_ monitors: UnsafeMutablePointer<MonitorInfo>?, _ n_monitors: Int32)
+@_silgen_name("make_monitor_attribute_list")
+func make_monitor_attribute_list(_ monitors: UnsafeMutablePointer<MonitorInfo>?,
+                                 _ n_monitors: Int32, _ primary_monitor: Int32,
+                                 _ monitor_frames: Lisp_Object,
+                                 _ source: UnsafePointer<CChar>?) -> Lisp_Object
+/// C: `INLINE Lisp_Object AREF (Lisp_Object, ptrdiff_t)` / `INLINE void ASET (…)`
+/// (src/lisp.h 1964, 1978).
+@_silgen_name("AREF") func AREF(_ array: Lisp_Object, _ idx: Int) -> Lisp_Object
+@_silgen_name("ASET") func ASET(_ array: Lisp_Object, _ idx: Int, _ val: Lisp_Object)
+/// C: `Lisp_Object delete_frame (Lisp_Object, Lisp_Object)` (src/frame.h 1509) and
+/// `void ns_make_frame_invisible (struct frame *)` (src/nsterm.h 1227, src/nsterm.m's).
+@_silgen_name("delete_frame")
+func delete_frame(_ frame: Lisp_Object, _ force: Lisp_Object) -> Lisp_Object
+@_silgen_name("ns_make_frame_invisible")
+func ns_make_frame_invisible(_ f: UnsafeMutableRawPointer?)
+/// C: `Lisp_Object Fframe_parameter (Lisp_Object, Lisp_Object)` /
+/// `Fmodify_frame_parameters` (subrs, globals.h).
+@_silgen_name("Fframe_parameter")
+func Fframe_parameter(_ frame: Lisp_Object, _ prop: Lisp_Object) -> Lisp_Object
+@_silgen_name("Fmodify_frame_parameters")
+func Fmodify_frame_parameters(_ frame: Lisp_Object, _ alist: Lisp_Object) -> Lisp_Object
+/// C: the `struct frame` members the tip machinery writes (`f->tooltip`, `f->wants_modeline`).
+@_silgen_name("frame_set_tooltip")
+func frame_set_tooltip(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `#define AUTO_FRAME_ARG(name, parameter, value)` (src/frame.h 1425-1426) with
+/// `AUTO_CONS_EXPR`/`AUTO_LIST1` (src/lisp.h 5763-5773): `name = list1 (Fcons (parameter,
+/// value))`.  C's `USE_STACK_CONS` fast path is a GC optimisation the core owns; the value is
+/// the same.
+@inline(__always)
+fileprivate func AUTO_FRAME_ARG(_ parameter: Lisp_Object, _ value: Lisp_Object) -> Lisp_Object {
+  return list1(Fcons(parameter, value))
+}
+/// C: `- (void)hide` and `- (BOOL)isActive` on `EmacsTooltip` (src/nsmenu.m's class, now
+/// docs/ports/nsmenu.md's `EmacsTooltip`): cross-file methods, receiver first.
+@_silgen_name("EmacsTooltip_hide") func EmacsTooltip_hide(_ tip: AnyObject?)
+@_silgen_name("EmacsTooltip_isActive") func EmacsTooltip_isActive(_ tip: AnyObject?) -> Bool
+/// The core's two tooltip-related variables: `extern bool use_system_tooltips`
+/// (`DEFVAR_BOOL ("use-system-tooltips", …)`, src/frame.c 7727) and `extern bool face_change`
+/// (src/xfaces.c 349).
+@_silgen_name("use_system_tooltips") var use_system_tooltips: Bool
+@_silgen_name("face_change") var face_change: Bool
+/// More `Q…` symbols (generated globals.h, PORTING.md P-17; called as `Qfoo ()`).
+@_silgen_name("Qbottom") func Qbottom() -> Lisp_Object
+@_silgen_name("Qmouse_color") func Qmouse_color() -> Lisp_Object
+@_silgen_name("Qborder_color") func Qborder_color() -> Lisp_Object
+@_silgen_name("Qtooltip") func Qtooltip() -> Lisp_Object
+@_silgen_name("Qdisplay_type") func Qdisplay_type() -> Lisp_Object
+@_silgen_name("Qcolor") func Qcolor() -> Lisp_Object
+@_silgen_name("Qface_set_after_frame_default") func Qface_set_after_frame_default() -> Lisp_Object
+@_silgen_name("Qtip_frame") func Qtip_frame() -> Lisp_Object
+@_silgen_name("Qcancel_timer") func Qcancel_timer() -> Lisp_Object
+@_silgen_name("Qinhibit_redisplay") func Qinhibit_redisplay() -> Lisp_Object
+@_silgen_name("Qinhibit_quit") func Qinhibit_quit() -> Lisp_Object
+
+// ==========================================================================
 // Lane ABI (batch 3): the constructs C 1886-2610 reads.
 // ==========================================================================
 
@@ -3193,3 +3488,1100 @@ fileprivate let lname_system_move_file_to_trash: StaticString = "system-move-fil
 fileprivate var Ssystem_move_file_to_trash: Aligned_Lisp_Subr =
   make_aligned_subr(lname_system_move_file_to_trash, 1, 1,
                     unsafeBitCast(Fsystem_move_file_to_trash, to: UnsafeMutableRawPointer.self))
+
+// ==========================================================================
+// C 2612-3227: the color/display group, the monitor attribute list, `compute_tip_xy`, the tip
+// frame's creation and `x_hide_tip`.
+// ==========================================================================
+
+/// C 2612-2620: `DEFUN ("xw-color-defined-p", …)`.
+@_cdecl("Fxw_color_defined_p")
+func Fxw_color_defined_p(_ color: Lisp_Object, _ frame: Lisp_Object) -> Lisp_Object {
+  var col: NSColor? = nil
+  check_window_system(nil)
+  return ns_lisp_to_color(color, &col) != 0 ? Qnil() : Qt()
+}
+fileprivate let lname_xw_color_defined_p: StaticString = "xw-color-defined-p"
+fileprivate var Sxw_color_defined_p: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_xw_color_defined_p, 1, 2,
+                    unsafeBitCast(Fxw_color_defined_p, to: UnsafeMutableRawPointer.self))
+
+/// C 2622-2645: `DEFUN ("xw-color-values", …)`.
+@_cdecl("Fxw_color_values")
+func Fxw_color_values(_ color: Lisp_Object, _ frame: Lisp_Object) -> Lisp_Object {
+  var col: NSColor? = nil
+  var red: EmacsCGFloat = 0, green: EmacsCGFloat = 0
+  var blue: EmacsCGFloat = 0, alpha: EmacsCGFloat = 0
+
+  check_window_system(nil)
+  CHECK_STRING(color)
+
+  block_input()
+  if ns_lisp_to_color(color, &col) != 0 {
+    unblock_input()
+    return Qnil()
+  }
+
+  colorUsingDefaultColorSpace(col!).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+  unblock_input()
+  return list3i(lrint(Double(red * 65535)), lrint(Double(green * 65535)),
+                lrint(Double(blue * 65535)))
+}
+fileprivate let lname_xw_color_values: StaticString = "xw-color-values"
+fileprivate var Sxw_color_values: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_xw_color_values, 1, 2,
+                    unsafeBitCast(Fxw_color_values, to: UnsafeMutableRawPointer.self))
+
+/// C 2647-2662: `DEFUN ("xw-display-color-p", …)`.
+@_cdecl("Fxw_display_color_p")
+func Fxw_display_color_p(_ terminal: Lisp_Object) -> Lisp_Object {
+  var depth: NSWindow.Depth
+  var colorSpace: NSColorSpaceName?
+
+  _ = check_ns_display_info(terminal)
+  depth = NSScreen.screens[0].depth
+  colorSpace = NSColorSpaceFromDepth(depth)
+
+  return (colorSpace == NSColorSpaceName.deviceWhite
+          || colorSpace == NSColorSpaceName.calibratedWhite) ? Qnil() : Qt()
+}
+fileprivate let lname_xw_display_color_p: StaticString = "xw-display-color-p"
+fileprivate var Sxw_display_color_p: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_xw_display_color_p, 0, 1,
+                    unsafeBitCast(Fxw_display_color_p, to: UnsafeMutableRawPointer.self))
+
+/// C 2664-2676: `DEFUN ("x-display-grayscale-p", …)`.
+@_cdecl("Fx_display_grayscale_p")
+func Fx_display_grayscale_p(_ terminal: Lisp_Object) -> Lisp_Object {
+  var depth: NSWindow.Depth
+
+  _ = check_ns_display_info(terminal)
+  depth = NSScreen.screens[0].depth
+
+  return NSBitsPerPixelFromDepth(depth) > 1 ? Qt() : Qnil()
+}
+fileprivate let lname_x_display_grayscale_p: StaticString = "x-display-grayscale-p"
+fileprivate var Sx_display_grayscale_p: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_grayscale_p, 0, 1,
+                    unsafeBitCast(Fx_display_grayscale_p, to: UnsafeMutableRawPointer.self))
+
+/// C 2678-2687: `DEFUN ("x-display-pixel-width", …)`.
+@_cdecl("Fx_display_pixel_width")
+func Fx_display_pixel_width(_ terminal: Lisp_Object) -> Lisp_Object {
+  let dpyinfo = check_ns_display_info(terminal)
+
+  return make_fixnum(Int(ns_display_pixel_width(dpyinfo)))
+}
+fileprivate let lname_x_display_pixel_width: StaticString = "x-display-pixel-width"
+fileprivate var Sx_display_pixel_width: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_pixel_width, 0, 1,
+                    unsafeBitCast(Fx_display_pixel_width, to: UnsafeMutableRawPointer.self))
+
+/// C 2689-2698: `DEFUN ("x-display-pixel-height", …)`.
+@_cdecl("Fx_display_pixel_height")
+func Fx_display_pixel_height(_ terminal: Lisp_Object) -> Lisp_Object {
+  let dpyinfo = check_ns_display_info(terminal)
+
+  return make_fixnum(Int(ns_display_pixel_height(dpyinfo)))
+}
+fileprivate let lname_x_display_pixel_height: StaticString = "x-display-pixel-height"
+fileprivate var Sx_display_pixel_height: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_pixel_height, 0, 1,
+                    unsafeBitCast(Fx_display_pixel_height, to: UnsafeMutableRawPointer.self))
+
+/// C 2700-2734 (static).
+func ns_make_monitor_attribute_list(_ monitors: UnsafeMutablePointer<MonitorInfo>?,
+                                    _ n_monitors: Int32, _ primary_monitor: Int32,
+                                    _ source: UnsafePointer<CChar>?) -> Lisp_Object {
+  let monitor_frames = make_nil_vector(Int(n_monitors))
+  var frame: Lisp_Object = Qnil()
+  let screens = NSScreen.screens
+  var i: Int32
+
+  /* C 2709: `FOR_EACH_FRAME (rest, frame)` - the macro's own spelling (src/frame.h
+     1404-1408).  */
+  var rest: Lisp_Object = Vframe_list
+  while CONSP(rest) {
+    frame = XCAR(rest)
+    let f = XFRAME(frame)
+
+    if FRAME_NS_P(f) {
+      let view = FRAME_NS_VIEW(f)
+      let screen = view?.window?.screen
+
+      i = -1
+      var k = 0
+      while i == -1 && k < screens.count {
+        if screens[k] == screen {
+          i = Int32(k)
+        }
+        k += 1
+      }
+
+      if i > -1 {
+        ASET(monitor_frames, Int(i), Fcons(frame, AREF(monitor_frames, Int(i))))
+      }
+    }
+    rest = XCDR(rest)
+  }
+
+  return make_monitor_attribute_list(monitors, n_monitors, primary_monitor,
+                                      monitor_frames, source)
+}
+
+/// C 2736-2846: `DEFUN ("ns-display-monitor-attributes-list", …)`.
+@_cdecl("Fns_display_monitor_attributes_list")
+func Fns_display_monitor_attributes_list(_ terminal: Lisp_Object) -> Lisp_Object {
+  let term = decode_live_terminal(terminal)
+  var screens: [NSScreen]
+  var n_monitors: Int
+  var monitors: UnsafeMutablePointer<MonitorInfo>?
+  var attributes_list: Lisp_Object = Qnil()
+  var primary_display_height: CGFloat = 0
+
+  if terminal_type(term) != output_ns() {
+    return Qnil()
+  }
+
+  screens = NSScreen.screens
+  n_monitors = screens.count
+  if n_monitors == 0 {
+    return Qnil()
+  }
+
+  monitors = xcalloc(n_monitors, MemoryLayout<MonitorInfo>.stride)?
+    .assumingMemoryBound(to: MonitorInfo.self)
+
+  for ii in 0 ..< screens.count {
+    let s = screens[ii]
+    let m = monitors!.advanced(by: ii)
+    let fr = s.frame
+    let vfr = s.visibleFrame
+
+    /* The `NS_IMPL_COCOA` arm reads the screen's device description for the display id.  */
+    let dict = s.deviceDescription
+    let nid = dict[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+    let did = nid?.uint32Value ?? 0
+
+    /* The primary display is always the first in the array.  */
+    if ii == 0 {
+      primary_display_height = fr.size.height
+    }
+
+    /* Flip y coordinate as NS screen coordinates originate from
+       the bottom.  */
+
+    m.pointee.geom.x = Int32(fr.origin.x)
+    m.pointee.geom.y = Int32(primary_display_height - fr.maxY)
+    m.pointee.geom.width = UInt32(fr.size.width)
+    m.pointee.geom.height = UInt32(fr.size.height)
+
+    /* The work area excludes the menu bar and the dock.  */
+    m.pointee.work.x = Int32(vfr.origin.x)
+    m.pointee.work.y = Int32(primary_display_height - vfr.maxY)
+    m.pointee.work.width = UInt32(vfr.size.width)
+    m.pointee.work.height = UInt32(vfr.size.height)
+
+    m.pointee.name = nil
+    if s.responds(to: #selector(getter: NSScreen.localizedName)) {
+      let name: NSString? = s.localizedName as NSString?
+      if name != nil {
+        m.pointee.name = xmalloc(name!.lengthOfBytes(using: String.Encoding.utf8.rawValue) + 1)?
+          .assumingMemoryBound(to: CChar.self)
+        strcpy(m.pointee.name, name!.utf8String)
+      }
+    }
+    /* If necessary, synthesize a name of the following form:
+        %dx%d@%d,%d width height x y. */
+    if m.pointee.name == nil {
+      /* C 2802-2807 fills a 25-byte buffer ("sufficient for 12345x78901@34567,90123") with
+         `snprintf` and copies it with `xstrdup`; `snprintf` is variadic and unavailable in
+         Swift, so the port builds the same formatted string and hands it to `xstrdup`.  */
+      let synthesized = String(format: "%ux%u@%d,%d",
+                               m.pointee.work.width, m.pointee.work.height,
+                               m.pointee.work.x, m.pointee.work.y)
+      m.pointee.name = xstrdup(synthesized)
+    }
+
+    do {
+      let mms = CGDisplayScreenSize(did)
+      m.pointee.mm_width = Int32(mms.width)
+      m.pointee.mm_height = Int32(mms.height)
+    }
+  }
+
+  /* Primary monitor is always ordered first for NS.  */
+  attributes_list = ns_make_monitor_attribute_list(monitors, Int32(n_monitors), 0, "NS")
+
+  free_monitors(monitors, Int32(n_monitors))
+  return attributes_list
+}
+fileprivate let lname_ns_display_monitor_attributes_list: StaticString =
+  "ns-display-monitor-attributes-list"
+fileprivate var Sns_display_monitor_attributes_list: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_display_monitor_attributes_list, 0, 1,
+                    unsafeBitCast(Fns_display_monitor_attributes_list,
+                                  to: UnsafeMutableRawPointer.self))
+
+/// C 2848-2857: `DEFUN ("x-display-planes", …)`.
+@_cdecl("Fx_display_planes")
+func Fx_display_planes(_ terminal: Lisp_Object) -> Lisp_Object {
+  _ = check_ns_display_info(terminal)
+  return make_fixnum(Int(NSBitsPerPixelFromDepth(NSScreen.screens[0].depth)))
+}
+fileprivate let lname_x_display_planes: StaticString = "x-display-planes"
+fileprivate var Sx_display_planes: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_planes, 0, 1,
+                    unsafeBitCast(Fx_display_planes, to: UnsafeMutableRawPointer.self))
+
+/// C 2859-2867: `DEFUN ("x-display-color-cells", …)`.
+@_cdecl("Fx_display_color_cells")
+func Fx_display_color_cells(_ terminal: Lisp_Object) -> Lisp_Object {
+  let dpyinfo = check_ns_display_info(terminal)
+  /* We force 24+ bit depths to 24-bit to prevent an overflow.  */
+  return make_fixnum(1 << Int(min(dpyinfo!.pointee.n_planes, 24)))
+}
+fileprivate let lname_x_display_color_cells: StaticString = "x-display-color-cells"
+fileprivate var Sx_display_color_cells: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_display_color_cells, 0, 1,
+                    unsafeBitCast(Fx_display_color_cells, to: UnsafeMutableRawPointer.self))
+
+/// C 2869-2940 (static).
+func compute_tip_xy(_ f: UnsafeMutableRawPointer?, _ parms: Lisp_Object, _ dx: Lisp_Object,
+                    _ dy: Lisp_Object, _ width: Int32, _ height: Int32,
+                    _ root_x: UnsafeMutablePointer<Int32>, _ root_y: UnsafeMutablePointer<Int32>) {
+  var left: Lisp_Object
+  var top: Lisp_Object
+  var right: Lisp_Object
+  var bottom: Lisp_Object
+  var pt = NSPoint()
+  /* C 2878: `NSScreen *screen;` - the loop assigns it every iteration, so C's value when no
+     screen matches is the *last* one; the port starts from that same element.  */
+  var screen = NSScreen.screens[NSScreen.screens.count - 1]
+
+  /* Start with user-specified or mouse position.  */
+  left = Fcdr(Fassq(Qleft(), parms))
+  top = Fcdr(Fassq(Qtop(), parms))
+  right = Fcdr(Fassq(Qright(), parms))
+  bottom = Fcdr(Fassq(Qbottom(), parms))
+
+  if (!FIXNUMP(left) && !FIXNUMP(right)) || (!FIXNUMP(top) && !FIXNUMP(bottom)) {
+    pt = NSEvent.mouseLocation
+  } else {
+    /* Absolute coordinates.  */
+    pt.x = CGFloat(FIXNUMP(left) ? XFIXNUM(left) : XFIXNUM(right))
+    pt.y = CGFloat(Int(ns_display_pixel_height(FRAME_DISPLAY_INFO(f)))
+                   - (FIXNUMP(top) ? XFIXNUM(top) : XFIXNUM(bottom))
+                   - Int(height))
+  }
+
+  /* Find the screen that pt is on.  */
+  for s in NSScreen.screens {
+    if pt.x >= s.frame.origin.x
+        && pt.x < s.frame.origin.x + s.frame.size.width
+        && pt.y >= s.frame.origin.y
+        && pt.y < s.frame.origin.y + s.frame.size.height {
+      screen = s
+      break
+    }
+  }
+
+  /* We could use this instead of the if above:
+
+         if (CGRectContainsPoint ([screen frame], pt))
+
+     which would be neater, but it causes problems building on old
+     versions of macOS and in GNUstep.  */
+
+  /* Ensure in bounds.  (Note, screen origin = lower left.) */
+  if FIXNUMP(left) || FIXNUMP(right) {
+    root_x.pointee = Int32(pt.x)
+  } else if pt.x + CGFloat(XFIXNUM(dx)) <= screen.frame.origin.x {
+    root_x.pointee = Int32(screen.frame.origin.x)
+  } else if pt.x + CGFloat(XFIXNUM(dx)) + CGFloat(width)
+              <= screen.frame.origin.x + screen.frame.size.width {
+    /* It fits to the right of the pointer.  */
+    root_x.pointee = Int32(pt.x + CGFloat(XFIXNUM(dx)))
+  } else if CGFloat(width) + CGFloat(XFIXNUM(dx)) <= pt.x {
+    /* It fits to the left of the pointer.  */
+    root_x.pointee = Int32(pt.x - CGFloat(width) - CGFloat(XFIXNUM(dx)))
+  } else {
+    /* Put it left justified on the screen -- it ought to fit that way.  */
+    root_x.pointee = Int32(screen.frame.origin.x)
+  }
+
+  if FIXNUMP(top) || FIXNUMP(bottom) {
+    root_y.pointee = Int32(pt.y)
+  } else if pt.y - CGFloat(XFIXNUM(dy)) - CGFloat(height) >= screen.frame.origin.y {
+    /* It fits below the pointer.  */
+    root_y.pointee = Int32(pt.y - CGFloat(height) - CGFloat(XFIXNUM(dy)))
+  } else if pt.y + CGFloat(XFIXNUM(dy)) + CGFloat(height)
+              <= screen.frame.origin.y + screen.frame.size.height {
+    /* It fits above the pointer.  */
+    root_y.pointee = Int32(pt.y + CGFloat(XFIXNUM(dy)))
+  } else {
+    /* Put it on the top.  */
+    root_y.pointee = Int32(screen.frame.origin.y + screen.frame.size.height - CGFloat(height))
+  }
+}
+
+/// C 2942-2948 (static).
+func unwind_create_tip_frame(_ frame: Lisp_Object) {
+  var deleted: Lisp_Object
+
+  deleted = unwind_create_frame(frame)
+  if EQ(deleted, Qt()) {
+    tip_frame = Qnil()
+  }
+}
+
+/// C 2950-3163 (static).  Create a frame for a tooltip on the display described by DPYINFO.
+func ns_create_tip_frame(_ dpyinfo: UnsafeMutablePointer<ns_display_info>?,
+                         _ parmsIn: Lisp_Object) -> Lisp_Object {
+  var parms = parmsIn
+  var f: UnsafeMutableRawPointer?
+  var frame: Lisp_Object = Qnil()
+  var name: Lisp_Object
+  let count = SPECPDL_INDEX()
+  let face_change_before = face_change
+
+  if terminal_name(dpyinfo!.pointee.terminal) == nil {
+    error("Terminal is not live, can't create new frames on it")
+  }
+
+  parms = Fcopy_alist(parms)
+
+  /* Get the name of the frame to use for resource lookup.  */
+  name = gui_display_get_arg(dpyinfo, parms, Qname(), "name", "Name", RES_TYPE_STRING())
+  if !STRINGP(name) && !EQ(name, Qunbound()) && !NILP(name) {
+    error("Invalid frame name--not a string or nil")
+  }
+
+  frame = Qnil()
+  f = make_frame(false)
+  frame_set_wants_modeline(f, false)
+  withUnsafeMutablePointer(to: &frame) { XSETFRAME($0, f) }
+  record_unwind_protect({ frame in unwind_create_tip_frame(frame) }, frame)
+
+  frame_set_terminal(f, dpyinfo!.pointee.terminal)
+
+  frame_set_output_method(f, output_ns())
+  frame_alloc_ns_output(f)
+  frame_set_tooltip(f, true)
+
+  frame_set_fontset(f, -1)
+  frame_set_display_info(f, dpyinfo)
+
+  block_input()
+  /* C 3001-3005: the `NS_IMPL_COCOA` arm; the `#else` arm registers the nsfont driver.  */
+  mac_register_font_driver(f)
+  unblock_input()
+
+  _ = gui_default_parameter(f, parms, Qfont_backend(), Qnil(), "fontBackend", "FontBackend",
+                            RES_TYPE_STRING())
+
+  do {
+    /* use for default font name */
+    let font = NSFont.userFixedPitchFont(ofSize: -1.0)!  /* default */
+    _ = gui_default_parameter(f, parms, Qfontsize(),
+                              make_fixnum(0 /* (int)[font pointSize] */),
+                              "fontSize", "FontSize", RES_TYPE_NUMBER())
+    /* Remove ' Regular', not handled by backends.  */
+    let fontname = xstrdup(font.displayName!)
+    let len = Int(strlen(fontname!))
+    if len > 8 && strcmp(fontname! + len - 8, " Regular") == 0 {
+      fontname![len - 8] = 0
+    }
+    _ = gui_default_parameter(f, parms, Qfont(), build_string(fontname!),
+                              "font", "Font", RES_TYPE_STRING())
+    xfree(fontname)
+  }
+
+  _ = gui_default_parameter(f, parms, Qborder_width(), make_fixnum(0),
+                            "borderWidth", "BorderWidth", RES_TYPE_NUMBER())
+
+  /* This defaults to 1 in order to match xterm.  We recognize either
+     internalBorderWidth or internalBorder (which is what xterm calls
+     it).  */
+  if NILP(Fassq(Qinternal_border_width(), parms)) {
+    let value = gui_display_get_arg(dpyinfo, parms, Qinternal_border_width(),
+                                    "internalBorder", "internalBorder", RES_TYPE_NUMBER())
+    if !EQ(value, Qunbound()) {
+      parms = Fcons(Fcons(Qinternal_border_width(), value), parms)
+    }
+  }
+
+  _ = gui_default_parameter(f, parms, Qinternal_border_width(), make_fixnum(1),
+                            "internalBorderWidth", "internalBorderWidth", RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qright_divider_width(), make_fixnum(0),
+                            nil, nil, RES_TYPE_NUMBER())
+  _ = gui_default_parameter(f, parms, Qbottom_divider_width(), make_fixnum(0),
+                            nil, nil, RES_TYPE_NUMBER())
+
+  /* Also do the stuff which must be set before the window exists.  */
+  _ = gui_default_parameter(f, parms, Qforeground_color(), build_string("black"),
+                            "foreground", "Foreground", RES_TYPE_STRING())
+  _ = gui_default_parameter(f, parms, Qbackground_color(), build_string("white"),
+                            "background", "Background", RES_TYPE_STRING())
+  _ = gui_default_parameter(f, parms, Qmouse_color(), build_string("black"),
+                            "pointerColor", "Foreground", RES_TYPE_STRING())
+  _ = gui_default_parameter(f, parms, Qcursor_color(), build_string("black"),
+                            "cursorColor", "Foreground", RES_TYPE_STRING())
+  _ = gui_default_parameter(f, parms, Qborder_color(), build_string("black"),
+                            "borderColor", "BorderColor", RES_TYPE_STRING())
+  _ = gui_default_parameter(f, parms, Qno_special_glyphs(), Qnil(), nil, nil,
+                            RES_TYPE_BOOLEAN())
+
+  /* Init faces before gui_default_parameter is called for the
+     scroll-bar-width parameter because otherwise we end up in
+     init_iterator with a null face cache, which should not happen.  */
+  init_frame_faces(f)
+
+  ns_output_set_parent_desc(f, FRAME_DISPLAY_INFO(f).pointee.root_window)
+
+  _ = gui_default_parameter(f, parms, Qinhibit_double_buffering(), Qnil(),
+                            "inhibitDoubleBuffering", "InhibitDoubleBuffering",
+                            RES_TYPE_BOOLEAN())
+
+  _ = gui_figure_window_size(f, parms, false, false)
+
+  block_input()
+  _ = EmacsView_initFrameFromEmacs(f)
+  ns_icon(f, parms)
+  unblock_input()
+
+  _ = gui_default_parameter(f, parms, Qauto_raise(), Qnil(),
+                            "autoRaise", "AutoRaiseLower", RES_TYPE_BOOLEAN())
+  _ = gui_default_parameter(f, parms, Qauto_lower(), Qnil(),
+                            "autoLower", "AutoRaiseLower", RES_TYPE_BOOLEAN())
+  _ = gui_default_parameter(f, parms, Qcursor_type(), Qbox(),
+                            "cursorType", "CursorType", RES_TYPE_SYMBOL())
+  _ = gui_default_parameter(f, parms, Qalpha(), Qnil(),
+                            "alpha", "Alpha", RES_TYPE_NUMBER())
+
+  /* Add `tooltip' frame parameter's default value. */
+  if NILP(Fframe_parameter(frame, Qtooltip())) {
+    let arg = AUTO_FRAME_ARG(Qtooltip(), Qt())
+    _ = Fmodify_frame_parameters(frame, arg)
+  }
+
+  /* FIXME - can this be done in a similar way to normal frames?
+     https://lists.gnu.org/r/emacs-devel/2007-10/msg00641.html */
+
+  /* Set the `display-type' frame parameter before setting up faces. */
+  do {
+    let disptype = Qcolor()
+
+    if NILP(Fframe_parameter(frame, Qdisplay_type())) {
+      let arg = AUTO_FRAME_ARG(Qdisplay_type(), disptype)
+      _ = Fmodify_frame_parameters(frame, arg)
+    }
+  }
+
+  /* Set up faces after all frame parameters are known.  This call
+     also merges in face attributes specified for new frames.
+
+     Frame parameters may be changed if .Xdefaults contains
+     specifications for the default font.  For example, if there is an
+     `Emacs.default.attributeBackground: pink', the `background-color'
+     attribute of the frame gets set, which let's the internal border
+     of the tooltip frame appear in pink.  Prevent this.  */
+  do {
+    let bg = Fframe_parameter(frame, Qbackground_color())
+
+    _ = calln([Qface_set_after_frame_default(), frame, Qnil()])
+
+    if !EQ(bg, Fframe_parameter(frame, Qbackground_color())) {
+      let arg = AUTO_FRAME_ARG(Qbackground_color(), bg)
+      _ = Fmodify_frame_parameters(frame, arg)
+    }
+  }
+
+  frame_set_no_split(f, true)
+
+  /* Now that the frame will be official, it counts as a reference to
+     its display and terminal.  */
+  terminal_increment_reference_count(dpyinfo!.pointee.terminal)
+
+  /* It is now ok to make the frame official even if we get an error
+     below.  And the frame needs to be on Vframe_list or making it
+     visible won't work.  */
+  Vframe_list = Fcons(frame, Vframe_list)
+  frame_set_can_set_window_size(f, true)
+  adjust_frame_size(f, FRAME_TEXT_WIDTH(f), FRAME_TEXT_HEIGHT(f), 0, true, Qtip_frame())
+
+  /* Setting attributes of faces of the tooltip frame from resources
+     and similar will set face_change, which leads to the clearing of
+     all current matrices.  Since this isn't necessary here, avoid it
+     by resetting face_change to the value it had before we created
+     the tip frame.  */
+  face_change = face_change_before
+
+  /* Discard the unwind_protect.  */
+  return unbind_to(count, frame)
+}
+
+/// C 3165-3227 (static).
+func x_hide_tip(_ delete: Bool) -> Lisp_Object {
+  if !NILP(tip_timer) {
+    _ = calln([Qcancel_timer(), tip_timer])
+    tip_timer = Qnil()
+  }
+
+  if !(ns_tooltip == nil || !EmacsTooltip_isActive(ns_tooltip)) {
+    EmacsTooltip_hide(ns_tooltip)
+    tip_last_frame = Qnil()
+    return Qt()
+  }
+
+  if (NILP(tip_last_frame) && NILP(tip_frame))
+      || (!use_system_tooltips
+          && !delete
+          && !NILP(tip_frame)
+          && FRAME_LIVE_P(XFRAME(tip_frame))
+          && !FRAME_VISIBLE_P(XFRAME(tip_frame))) {
+    /* Either there's no tooltip to hide or it's an already invisible
+       Emacs tooltip and we don't want to change its type.  Return
+       quickly.  */
+    return Qnil()
+  } else {
+    var count: specpdl_ref
+    var was_open: Lisp_Object = Qnil()
+
+    count = SPECPDL_INDEX()
+    specbind(Qinhibit_redisplay(), Qt())
+    specbind(Qinhibit_quit(), Qt())
+
+    /* Now look whether there's an Emacs tip around.  */
+    if !NILP(tip_frame) {
+      let f = XFRAME(tip_frame)
+
+      if FRAME_LIVE_P(f) {
+        if delete || use_system_tooltips {
+          /* Delete the Emacs tooltip frame when DELETE is true
+             or we change the tooltip type from an Emacs one to
+             a GTK+ system one.  */
+          _ = delete_frame(tip_frame, Qnil())
+          tip_frame = Qnil()
+        } else {
+          ns_make_frame_invisible(f)
+        }
+
+        was_open = Qt()
+      } else {
+        tip_frame = Qnil()
+      }
+    } else {
+      tip_frame = Qnil()
+    }
+
+    return unbind_to(count, was_open)
+  }
+}
+
+// ==========================================================================
+// C 3229-3800: `x-show-tip`/`x-hide-tip`, `frame_geometry`, the geometry/edge DEFUNs, the
+// absolute mouse position pair, the character palette, the accessibility query and `ns-badge`.
+// ==========================================================================
+
+/// C 3229-3540: `DEFUN ("x-show-tip", …)`.  C's `goto start_timer` (C 3475, 3534) is the
+/// flag on the shared tail, since Swift has no `goto`.
+@_cdecl("Fx_show_tip")
+func Fx_show_tip(_ string: Lisp_Object, _ frame: Lisp_Object, _ parmsIn: Lisp_Object,
+                 _ timeoutIn: Lisp_Object, _ dxIn: Lisp_Object,
+                 _ dyIn: Lisp_Object) -> Lisp_Object {
+  var parms = parmsIn
+  var timeout = timeoutIn
+  var dx = dxIn
+  var dy = dyIn
+  var root_x: Int32 = 0
+  var root_y: Int32 = 0
+  let count = SPECPDL_INDEX()
+  var f: UnsafeMutableRawPointer?
+  var tip_f: UnsafeMutableRawPointer?
+  var w: UnsafeMutableRawPointer?
+  var old_buffer: UnsafeMutableRawPointer?
+  var pos = text_pos(charpos: 0, bytepos: 0)
+  var width: Int32 = 0
+  var height: Int32 = 0
+  let old_windows_or_buffers_changed = windows_or_buffers_changed
+  var count_1: specpdl_ref
+  var window: Lisp_Object
+  var size: Lisp_Object
+  var tip_buf: Lisp_Object
+  var str: UnsafeMutablePointer<CChar>
+  var nswindow: NSWindow?
+  var start_timer = false
+
+  /* C 3247: `AUTO_STRING (tip, " *tip*")` (src/lisp.h 5760-5766) - the macro makes a Lisp
+     string out of the literal; the port's value is the same (`build_string`).  */
+  let tip = build_string(" *tip*")
+
+  specbind(Qinhibit_redisplay(), Qt())
+
+  CHECK_STRING(string)
+  str = SSDATA(string)
+  f = decode_window_system_frame(frame)
+  if NILP(timeout) {
+    timeout = Vx_show_tooltip_timeout
+  }
+  CHECK_FIXNAT(timeout)
+
+  if NILP(dx) {
+    dx = make_fixnum(5)
+  } else {
+    CHECK_FIXNUM(dx)
+  }
+
+  if NILP(dy) {
+    dy = make_fixnum(-10)
+  } else {
+    CHECK_FIXNUM(dy)
+  }
+
+  tip_dx = dx
+  tip_dy = dy
+
+  if use_system_tooltips {
+    var size: NSSize
+    var color: NSColor? = nil
+    var t: Lisp_Object
+
+    block_input()
+    if ns_tooltip == nil {
+      ns_tooltip = EmacsTooltip_new()
+    } else {
+      _ = Fx_hide_tip()
+    }
+
+    t = gui_display_get_arg(nil, parms, Qbackground_color(), nil, nil, RES_TYPE_STRING())
+    if ns_lisp_to_color(t, &color) == 0 {
+      EmacsTooltip_setBackgroundColor(ns_tooltip, color)
+    }
+
+    t = gui_display_get_arg(nil, parms, Qforeground_color(), nil, nil, RES_TYPE_STRING())
+    if ns_lisp_to_color(t, &color) == 0 {
+      EmacsTooltip_setForegroundColor(ns_tooltip, color)
+    }
+
+    EmacsTooltip_setText(ns_tooltip, str)
+    size = EmacsTooltip_frame(ns_tooltip).size
+
+    /* Move the tooltip window where the mouse pointer is.  Resize and
+       show it.  */
+    compute_tip_xy(f, parms, dx, dy, Int32(size.width), Int32(size.height), &root_x, &root_y)
+
+    EmacsTooltip_showAtX_Y_for(ns_tooltip, root_x, root_y, Int32(XFIXNUM(timeout)))
+    unblock_input()
+  } else {
+    if !NILP(tip_frame) && FRAME_LIVE_P(XFRAME(tip_frame)) {
+      if FRAME_VISIBLE_P(XFRAME(tip_frame))
+          && !NILP(Fequal_including_properties(tip_last_string, string))
+          && !NILP(Fequal(tip_last_parms, parms)) {
+        /* Only DX and DY have changed.  */
+        tip_f = XFRAME(tip_frame)
+        if !NILP(tip_timer) {
+          _ = calln([Qcancel_timer(), tip_timer])
+          tip_timer = Qnil()
+        }
+
+        nswindow = FRAME_NS_VIEW(tip_f)?.window
+
+        block_input()
+        compute_tip_xy(tip_f, parms, dx, dy, FRAME_PIXEL_WIDTH(tip_f),
+                       FRAME_PIXEL_HEIGHT(tip_f), &root_x, &root_y)
+        nswindow?.setFrame(NSRect(x: CGFloat(root_x), y: CGFloat(root_y),
+                                  width: CGFloat(FRAME_PIXEL_WIDTH(tip_f)),
+                                  height: CGFloat(FRAME_PIXEL_HEIGHT(tip_f))),
+                           display: true)
+        nswindow?.level = .popUpMenu
+        nswindow?.orderFront(NSApp)
+        nswindow?.display()
+
+        SET_FRAME_VISIBLE(tip_f, true)
+        unblock_input()
+
+        start_timer = true
+      } else if tooltip_reuse_hidden_frame && EQ(frame, tip_last_frame) {
+        var delete = false
+        var elt: Lisp_Object
+        var parm: Lisp_Object
+        var last: Lisp_Object
+
+        /* Check if every parameter in PARMS has the same value in
+           tip_last_parms.  This may destruct tip_last_parms which,
+           however, will be recreated below.  */
+        var tail: Lisp_Object = parms
+        while CONSP(tail) {
+          elt = XCAR(tail)
+          parm = Fcar(elt)
+          /* The left, top, right and bottom parameters are handled
+             by compute_tip_xy so they can be ignored here.  */
+          if !EQ(parm, Qleft()) && !EQ(parm, Qtop())
+              && !EQ(parm, Qright()) && !EQ(parm, Qbottom()) {
+            last = Fassq(parm, tip_last_parms)
+            if NILP(Fequal(Fcdr(elt), Fcdr(last))) {
+              /* We lost, delete the old tooltip.  */
+              delete = true
+              break
+            } else {
+              tip_last_parms = calln([Qassq_delete_all(), parm, tip_last_parms])
+            }
+          } else {
+            tip_last_parms = calln([Qassq_delete_all(), parm, tip_last_parms])
+          }
+          tail = XCDR(tail)
+        }
+
+        /* Now check if every parameter in what is left of
+           tip_last_parms with a non-nil value has an association in
+           PARMS.  */
+        var tail2: Lisp_Object = tip_last_parms
+        while CONSP(tail2) {
+          elt = XCAR(tail2)
+          parm = Fcar(elt)
+          if !EQ(parm, Qleft()) && !EQ(parm, Qtop()) && !EQ(parm, Qright())
+              && !EQ(parm, Qbottom()) && !NILP(Fcdr(elt)) {
+            /* We lost, delete the old tooltip.  */
+            delete = true
+            break
+          }
+          tail2 = XCDR(tail2)
+        }
+
+        _ = x_hide_tip(delete)
+      } else {
+        _ = x_hide_tip(true)
+      }
+    } else {
+      _ = x_hide_tip(true)
+    }
+
+    tip_last_frame = frame
+    tip_last_string = string
+    tip_last_parms = parms
+
+    if !start_timer {
+      if NILP(tip_frame) || !FRAME_LIVE_P(XFRAME(tip_frame)) {
+        /* Add default values to frame parameters.  */
+        if NILP(Fassq(Qname(), parms)) {
+          parms = Fcons(Fcons(Qname(), build_string("tooltip")), parms)
+        }
+        if NILP(Fassq(Qinternal_border_width(), parms)) {
+          parms = Fcons(Fcons(Qinternal_border_width(), make_fixnum(3)), parms)
+        }
+        if NILP(Fassq(Qborder_width(), parms)) {
+          parms = Fcons(Fcons(Qborder_width(), make_fixnum(1)), parms)
+        }
+        if NILP(Fassq(Qborder_color(), parms)) {
+          parms = Fcons(Fcons(Qborder_color(), build_string("lightyellow")), parms)
+        }
+        if NILP(Fassq(Qbackground_color(), parms)) {
+          parms = Fcons(Fcons(Qbackground_color(), build_string("lightyellow")), parms)
+        }
+
+        /* Create a frame for the tooltip, and record it in the global
+           variable tip_frame.  */
+        tip_frame = ns_create_tip_frame(FRAME_DISPLAY_INFO(f), parms)
+        if NILP(tip_frame) {
+          /* Creating the tip frame failed.  */
+          return unbind_to(count, Qnil())
+        }
+      }
+
+      tip_f = XFRAME(tip_frame)
+      window = FRAME_ROOT_WINDOW(tip_f)
+      tip_buf = Fget_buffer_create(tip, Qnil())
+      /* We will mark the tip window a "pseudo-window" below, and such
+         windows cannot have display margins.  */
+      bset_left_margin_cols(XBUFFER(tip_buf), make_fixnum(0))
+      bset_right_margin_cols(XBUFFER(tip_buf), make_fixnum(0))
+      set_window_buffer(window, tip_buf, false, false)
+      w = XWINDOW(window)
+      window_set_pseudo_window_p(w, true)
+      /* Try to avoid that `other-window' select us (Bug#47207).  */
+      _ = Fset_window_parameter(window, Qno_other_window(), Qt())
+
+      /* Set up the frame's root window.  Note: The following code does not
+         try to size the window or its frame correctly.  Its only purpose is
+         to make the subsequent text size calculations work.  The right
+         sizes should get installed when the toolkit gets back to us.  */
+      window_set_left_col(w, 0)
+      window_set_top_line(w, 0)
+      window_set_pixel_left(w, 0)
+      window_set_pixel_top(w, 0)
+
+      if CONSP(Vx_max_tooltip_size)
+          && RANGED_FIXNUMP(1, XCAR(Vx_max_tooltip_size), Int(Int32.max))
+          && RANGED_FIXNUMP(1, XCDR(Vx_max_tooltip_size), Int(Int32.max)) {
+        window_set_total_cols(w, Int32(XFIXNAT(XCAR(Vx_max_tooltip_size))))
+        window_set_total_lines(w, Int32(XFIXNAT(XCDR(Vx_max_tooltip_size))))
+      } else {
+        window_set_total_cols(w, 80)
+        window_set_total_lines(w, 40)
+      }
+
+      window_set_pixel_width(w, window_total_cols(w) * FRAME_COLUMN_WIDTH(tip_f))
+      window_set_pixel_height(w, window_total_lines(w) * FRAME_LINE_HEIGHT(tip_f))
+      frame_set_total_cols(tip_f, window_total_cols(w))
+      adjust_frame_glyphs(tip_f)
+
+      /* Insert STRING into root window's buffer and fit the frame to the
+         buffer.  */
+      count_1 = SPECPDL_INDEX()
+      old_buffer = current_buffer()
+      set_buffer_internal_1(XBUFFER(window_contents(w)))
+      bset_truncate_lines(current_buffer(), Qnil())
+      specbind(Qinhibit_read_only(), Qt())
+      specbind(Qinhibit_modification_hooks(), Qt())
+      specbind(Qinhibit_point_motion_hooks(), Qt())
+      _ = Ferase_buffer()
+      var s = string
+      withUnsafeMutablePointer(to: &s) { _ = Finsert(1, $0) }
+      clear_glyph_matrix(window_desired_matrix(w))
+      clear_glyph_matrix(window_current_matrix(w))
+      pos = text_pos(charpos: current_buffer_begv(), bytepos: current_buffer_begv_byte())
+      /* C 3468: `displayed = try_window (window, pos, TRY_WINDOW_IGNORE_FONTS_CHANGE);` - the
+         value is read only by the reference's `#ifdef ENABLE_CHECKING` block below, which is
+         dead text on this target.  */
+      _ = try_window(window, pos, TRY_WINDOW_IGNORE_FONTS_CHANGE())
+
+      /* C 3470-3490's `#ifdef ENABLE_CHECKING` block (the `row`/`end` walk and its `eassert`)
+         is the reference's own checking build - dead text here, recorded.  */
+
+      /* Calculate size of tooltip window.  */
+      size = Fwindow_text_pixel_size(window, Qnil(), Qnil(), Qnil(),
+                                     make_fixnum(Int(window_pixel_height(w))), Qnil(), Qnil())
+      /* Add the frame's internal border to calculated size.  */
+      width = Int32(XFIXNUM(Fcar(size))) + 2 * FRAME_INTERNAL_BORDER_WIDTH(tip_f)
+      height = Int32(XFIXNUM(Fcdr(size))) + 2 * FRAME_INTERNAL_BORDER_WIDTH(tip_f)
+
+      /* Calculate position of tooltip frame.  */
+      compute_tip_xy(tip_f, parms, dx, dy, width, height, &root_x, &root_y)
+
+      block_input()
+      nswindow = FRAME_NS_VIEW(tip_f)?.window
+      nswindow?.setFrame(NSRect(x: CGFloat(root_x), y: CGFloat(root_y),
+                                width: CGFloat(width), height: CGFloat(height)),
+                         display: true)
+      nswindow?.level = .popUpMenu
+      nswindow?.orderFront(NSApp)
+      nswindow?.display()
+
+      SET_FRAME_VISIBLE(tip_f, true)
+      frame_set_pixel_width(tip_f, width)
+      frame_set_pixel_height(tip_f, height)
+      unblock_input()
+
+      window_set_must_be_updated_p(w, true)
+      update_single_window(w)
+      flush_frame(tip_f)
+      set_buffer_internal_1(old_buffer)
+      _ = unbind_to(count_1, Qnil())
+      windows_or_buffers_changed = old_windows_or_buffers_changed
+    }
+
+    /* C 3534-3536: `start_timer: tip_timer = calln (Qrun_at_time, timeout, Qnil, Qx_hide_tip);`
+       - let the tip disappear after timeout seconds.  */
+    tip_timer = calln([Qrun_at_time(), timeout, Qnil(), Qx_hide_tip()])
+  }
+
+  return unbind_to(count, Qnil())
+}
+fileprivate let lname_x_show_tip: StaticString = "x-show-tip"
+fileprivate var Sx_show_tip: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_show_tip, 1, 9,
+                    unsafeBitCast(Fx_show_tip, to: UnsafeMutableRawPointer.self))
+
+/// C 3541-3549: `DEFUN ("x-hide-tip", …)`.
+@_cdecl("Fx_hide_tip")
+func Fx_hide_tip() -> Lisp_Object {
+  return x_hide_tip(!tooltip_reuse_hidden_frame)
+}
+fileprivate let lname_x_hide_tip: StaticString = "x-hide-tip"
+fileprivate var Sx_hide_tip: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_x_hide_tip, 0, 0,
+                    unsafeBitCast(Fx_hide_tip, to: UnsafeMutableRawPointer.self))
+
+/// C 3551-3614 (static).  Return geometric attributes of FRAME according to ATTRIBUTES.
+func frame_geometry(_ frame: Lisp_Object, _ attribute: Lisp_Object) -> Lisp_Object {
+  let f = decode_live_frame(frame)
+  let fullscreen_symbol = Fframe_parameter(frame, Qfullscreen())
+  let fullscreen = (EQ(fullscreen_symbol, Qfullboth()) || EQ(fullscreen_symbol, Qfullscreen()))
+  let border = fullscreen ? 0 : frame_border_width(f)
+  let title_height = fullscreen ? 0 : frame_ns_titlebar_height(f)
+  let tool_bar_height = frame_toolbar_height(f)
+  let native_width = FRAME_PIXEL_WIDTH(f)
+  let native_height = FRAME_PIXEL_HEIGHT(f)
+  let outer_width = native_width + 2 * border
+  let outer_height = native_height + 2 * border + title_height + tool_bar_height
+  let native_left = frame_left_pos(f) + border
+  let native_top = frame_top_pos(f) + border + title_height
+  let native_right = frame_left_pos(f) + outer_width - border
+  let native_bottom = frame_top_pos(f) + outer_height - border
+  let internal_border_width = FRAME_INTERNAL_BORDER_WIDTH(f)
+  let tool_bar_width = tool_bar_height != 0 ? outer_width - 2 * internal_border_width : 0
+
+  /* Construct list.  */
+  if EQ(attribute, Qouter_edges()) {
+    return list4i(Int(frame_left_pos(f)), Int(frame_top_pos(f)),
+                  Int(frame_left_pos(f) + outer_width),
+                  Int(frame_top_pos(f) + outer_height))
+  } else if EQ(attribute, Qnative_edges()) {
+    return list4i(Int(native_left), Int(native_top), Int(native_right), Int(native_bottom))
+  } else if EQ(attribute, Qinner_edges()) {
+    return list4i(Int(native_left + internal_border_width),
+                  Int(native_top + tool_bar_height + internal_border_width),
+                  Int(native_right - internal_border_width),
+                  Int(native_bottom - internal_border_width))
+  } else {
+    return
+      list([Fcons(Qouter_position(),
+                  Fcons(make_fixnum(Int(frame_left_pos(f))), make_fixnum(Int(frame_top_pos(f))))),
+            Fcons(Qouter_size(),
+                  Fcons(make_fixnum(Int(outer_width)), make_fixnum(Int(outer_height)))),
+            Fcons(Qexternal_border_size(),
+                  (fullscreen
+                   ? Fcons(make_fixnum(0), make_fixnum(0))
+                   : Fcons(make_fixnum(Int(border)), make_fixnum(Int(border))))),
+            Fcons(Qtitle_bar_size(),
+                  Fcons(make_fixnum(0), make_fixnum(Int(title_height)))),
+            Fcons(Qmenu_bar_external(), Qnil()),
+            Fcons(Qmenu_bar_size(), Fcons(make_fixnum(0), make_fixnum(0))),
+            Fcons(Qtool_bar_external(), FRAME_EXTERNAL_TOOL_BAR(f) != 0 ? Qt() : Qnil()),
+            Fcons(Qtool_bar_position(), FRAME_TOOL_BAR_POSITION(f)),
+            Fcons(Qtool_bar_size(),
+                  Fcons(make_fixnum(Int(tool_bar_width)), make_fixnum(Int(tool_bar_height)))),
+            Fcons(Qinternal_border_width(), make_fixnum(Int(internal_border_width)))])
+  }
+}
+
+/// C 3616-3658: `DEFUN ("ns-frame-geometry", …)`.
+@_cdecl("Fns_frame_geometry")
+func Fns_frame_geometry(_ frame: Lisp_Object) -> Lisp_Object {
+  return frame_geometry(frame, Qnil())
+}
+fileprivate let lname_ns_frame_geometry: StaticString = "ns-frame-geometry"
+fileprivate var Sns_frame_geometry: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_frame_geometry, 0, 1,
+                    unsafeBitCast(Fns_frame_geometry, to: UnsafeMutableRawPointer.self))
+
+/// C 3660-3682: `DEFUN ("ns-frame-edges", …)`.
+@_cdecl("Fns_frame_edges")
+func Fns_frame_edges(_ frame: Lisp_Object, _ type: Lisp_Object) -> Lisp_Object {
+  return frame_geometry(frame, ((EQ(type, Qouter_edges()) || EQ(type, Qinner_edges()))
+                                ? type : Qnative_edges()))
+}
+fileprivate let lname_ns_frame_edges: StaticString = "ns-frame-edges"
+fileprivate var Sns_frame_edges: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_frame_edges, 0, 2,
+                    unsafeBitCast(Fns_frame_edges, to: UnsafeMutableRawPointer.self))
+
+/// C 3684-3723: `DEFUN ("ns-set-mouse-absolute-pixel-position", …)` (the `NS_IMPL_COCOA` arm;
+/// the GNUstep arm is empty text).
+@_cdecl("Fns_set_mouse_absolute_pixel_position")
+func Fns_set_mouse_absolute_pixel_position(_ x: Lisp_Object, _ y: Lisp_Object) -> Lisp_Object {
+  /* GNUstep doesn't support CGWarpMouseCursorPosition, so none of
+     this will work.  */
+  let f = SELECTED_FRAME()
+  let view = FRAME_NS_VIEW(f)
+  let screen = view?.window?.screen
+  let screen_frame = screen?.frame ?? NSRect()
+  var mouse_x: Int32
+  var mouse_y: Int32
+
+  let primary_screen = NSScreen.screens[0]
+  let primary_screen_frame = primary_screen.frame
+  let primary_screen_height = primary_screen_frame.size.height
+
+  if FRAME_INITIAL_P(f) || !FRAME_NS_P(f) {
+    return Qnil()
+  }
+
+  let xval = Int32(check_integer_range(x, Int(Int32.min), Int(Int32.max)))
+  let yval = Int32(check_integer_range(y, Int(Int32.min), Int(Int32.max)))
+
+  mouse_x = Int32(screen_frame.origin.x) + xval
+
+  if screen == primary_screen {
+    mouse_y = Int32(screen_frame.origin.y) + yval
+  } else {
+    mouse_y = Int32(primary_screen_height - screen_frame.size.height
+                    - screen_frame.origin.y) + yval
+  }
+
+  CGWarpMouseCursorPosition(CGPoint(x: CGFloat(mouse_x), y: CGFloat(mouse_y)))
+
+  return Qnil()
+}
+fileprivate let lname_ns_set_mouse_absolute_pixel_position: StaticString =
+  "ns-set-mouse-absolute-pixel-position"
+fileprivate var Sns_set_mouse_absolute_pixel_position: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_set_mouse_absolute_pixel_position, 2, 2,
+                    unsafeBitCast(Fns_set_mouse_absolute_pixel_position,
+                                  to: UnsafeMutableRawPointer.self))
+
+/// C 3726-3743: `DEFUN ("ns-mouse-absolute-pixel-position", …)`.
+@_cdecl("Fns_mouse_absolute_pixel_position")
+func Fns_mouse_absolute_pixel_position() -> Lisp_Object {
+  let f = SELECTED_FRAME()
+  let view = FRAME_NS_VIEW(f)
+  let screen = view?.window?.screen ?? NSScreen.screens[0]
+  let pt = NSEvent.mouseLocation
+
+  return Fcons(make_fixnum(Int(pt.x - screen.frame.origin.x)),
+               make_fixnum(Int(screen.frame.size.height - (pt.y - screen.frame.origin.y))))
+}
+fileprivate let lname_ns_mouse_absolute_pixel_position: StaticString =
+  "ns-mouse-absolute-pixel-position"
+fileprivate var Sns_mouse_absolute_pixel_position: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_mouse_absolute_pixel_position, 0, 0,
+                    unsafeBitCast(Fns_mouse_absolute_pixel_position,
+                                  to: UnsafeMutableRawPointer.self))
+
+/// C 3745-3757: `DEFUN ("ns-show-character-palette", …)`.
+@_cdecl("Fns_show_character_palette")
+func Fns_show_character_palette() -> Lisp_Object {
+  let f = SELECTED_FRAME()
+  let view = FRAME_NS_VIEW(f)
+  NSApp.orderFrontCharacterPalette(view)
+
+  return Qnil()
+}
+fileprivate let lname_ns_show_character_palette: StaticString = "ns-show-character-palette"
+fileprivate var Sns_show_character_palette: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_show_character_palette, 0, 0,
+                    unsafeBitCast(Fns_show_character_palette, to: UnsafeMutableRawPointer.self))
+
+/// C 3759-3777: `DEFUN ("ns-process-is-accessibility-trusted", …)`.
+@_cdecl("Fns_process_is_accessibility_trusted")
+func Fns_process_is_accessibility_trusted() -> Lisp_Object {
+  if AXIsProcessTrusted() {
+    return Qt()
+  }
+  return Qnil()
+}
+fileprivate let lname_ns_process_is_accessibility_trusted: StaticString =
+  "ns-process-is-accessibility-trusted"
+fileprivate var Sns_process_is_accessibility_trusted: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_process_is_accessibility_trusted, 0, 0,
+                    unsafeBitCast(Fns_process_is_accessibility_trusted,
+                                  to: UnsafeMutableRawPointer.self))
+
+/// C 3779-3800: `DEFUN ("ns-badge", …)`.
+@_cdecl("Fns_badge")
+func Fns_badge(_ badge: Lisp_Object) -> Lisp_Object {
+  block_input()
+  if NILP(badge) {
+    NSApp.dockTile.badgeLabel = nil
+  } else {
+    CHECK_STRING(badge)
+    NSApp.dockTile.badgeLabel = NSString(utf8String: SSDATA(badge)) as String?
+  }
+  unblock_input()
+  return Qnil()
+}
+fileprivate let lname_ns_badge: StaticString = "ns-badge"
+fileprivate var Sns_badge: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_badge, 1, 1,
+                    unsafeBitCast(Fns_badge, to: UnsafeMutableRawPointer.self))
