@@ -12,7 +12,7 @@ include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/sys_types.in.rs");
 include!("include/sys_stat.in.rs");
-include!("include/dirent.rs");
+include!("include/dirent.in.rs");
 include!("include/errno.rs");
 include!("include/stdlib.rs");
 

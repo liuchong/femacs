@@ -28,13 +28,13 @@ include!("include/sys_types.in.rs");
 include!("include/sys_stat.in.rs");
 include!("include/unistd.in.rs");
 include!("include/fcntl.in.rs");
-include!("include/errno.rs");
+include!("include/errno.in.rs");
 
 /* C 25's `#undef dup2`: the port's live call names the system entry directly.  */
 
-/* <errno.h>'s `EMFILE` (the one code the live path names that the errno mirror has not
-   got; measured the same way as that mirror's values: `printf` of `int x = EMFILE;` on the
-   frozen target's clang expands to `int x = 24;`).  */
+/* `<errno.h>`'s `EMFILE`, which C 205's `*errno () = EMFILE` names, comes from the errno
+   mirror (24, the value this unit's own comment recorded while it still declared the code
+   itself; the copy was retired when the mirror grew it, status 3.80).  */
 
 /* C 30-98's `#if defined _WIN32 && ! defined __CYGWIN__` arm (dead on this target).  */
 
