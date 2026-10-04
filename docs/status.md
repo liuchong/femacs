@@ -1852,3 +1852,15 @@
   一致；etags lane 交回 C 143-1659（1,787 行）后暴露出结构性前置——`lang_names` 表要取 31 个语言解析器的地址，
   而它们定义在 C 3456-7000，Rust 没有前向声明（0.1-12），所以**该单元在解析器落地前不可能编译**，新 lane 已按
   "先移植 31 个解析器"的顺序派出。
+
+- **3.123 `undef-pending.txt` 棘轮按"只减不增"收缩 15 条（2026-10-04 第 100 轮第六批）**：
+  棘轮的完整重取要求**已提交态的隔离 worktree**（见 3.112 的口径），而当前树里有 5 条在飞 lane，所以本轮
+  只做**严格收缩**那一步：把已经是"陈旧（now satisfied）"的 15 条删掉，一条也不新增——
+  `_Vcoding_system_for_read`/`_Vcoding_system_for_write`/`_Vdefault_process_coding_system`/
+  `_Vlast_coding_system_used`/`_Vlocale_coding_system`/`_Vminibuf_scroll_window`/
+  `_Vselect_safe_coding_system_function`/`_Vtranslation_table_for_input`/`_coding_system_require_warning`/
+  `_inherit_process_coding_system`/`_mode_line_in_non_selected_windows`/`_record_auto_save`（coding.rs 落地后
+  它们已有定义）、`_cursorX`（3.114 的宏化）、`_rpl_mempcpy`（3.112 的正名）、`_sa_stack_alloc`（3.113 的栈池）。
+  做法是用 `check-undef.py --write-pending` 生成一份"现状"副本，再**只把旧文件里出现在删除集合里的行删掉**
+  （新增的 43 条全是 keyboard/window 等在飞单元的未定义引用，属于**不能**在脏树上烘进棘轮的部分）。
+  实测：`check-undef` 从 `15 stale + 43 NEW` 变成 **`0 stale + 43 NEW`**；`undef-pending.txt` 117 → 102 条数据行。
