@@ -987,6 +987,64 @@ SELFTEST = (
 )
 
 
+# PORTING.md P-86's widened reference set (see `whole_file_*` above).  The unit's whole body
+# hangs on a condition the configuration disables, so the *live* extraction finds nothing;
+# `#if 0` stands in for such a condition here because it is dead even without the frozen
+# macro table, which `--selftest` does not load.
+WHOLE_FILE_SELFTEST = (
+    ("a dead arm's names are the whole file's",
+     "#if 0\n"
+     "DEFUN (\"x-thing\", Fx_thing, Sx_thing, 0, 0, 0,\n"
+     "       doc: /* Doc.  */)\n"
+     "(Lisp_Object a)\n"
+     "{\n"
+     "  return a;\n"
+     "}\n"
+     "static int\n"
+     "hidden_thing (void)\n"
+     "{\n"
+     "  return 0;\n"
+     "}\n"
+     "int\n"
+     "exported_thing (void)\n"
+     "{\n"
+     "  return 1;\n"
+     "}\n"
+     "void\n"
+     "syms_of_x (void)\n"
+     "{\n"
+     "  defsubr (&Sx_thing);\n"
+     "}\n"
+     "#endif\n",
+     {"defun": {"Fx_thing"}, "function": {"exported_thing", "syms_of_x"},
+      "defsubr": {"Sx_thing"}}),
+    # ... but the set is still the extractor's: a bare mention in a comment, a call, and a
+    # `static` (or subr-shaped) definition are not definitions, so none can back an invented
+    # symbol or an unregistered subr.
+    ("a mention in a comment or a call is not a definition",
+     "#if 0\n"
+     "/* Fx_thing (0); exported_thing; defsubr (&Sx_thing); */\n"
+     "static void called_only (void) { }\n"
+     "static void caller (void) { called_only (); }\n"
+     "#endif\n",
+     {"defun": set(), "function": set(), "defsubr": set()}),
+    # A dead arm's *static prototype* must not make the dead arm's own definition internal:
+    # with every line looking live, the prior-declaration rule would otherwise read the two
+    # lines as one live program (frame.c 82 vs 5409, the shape that kept a correct port
+    # failing on `gui_report_frame_params`).
+    ("a dead arm's static prototype does not make its definition internal",
+     "#ifdef HAVE_WINDOW_SYSTEM\n"
+     "static void gui_thing (void *);\n"
+     "\n"
+     "void\n"
+     "gui_thing (void *p)\n"
+     "{\n"
+     "}\n"
+     "#endif\n",
+     {"defun": set(), "function": {"gui_thing"}, "defsubr": set()}),
+)
+
+
 def selftest() -> int:
     bad = 0
     for name, source, want in SELFTEST:
@@ -996,7 +1054,15 @@ def selftest() -> int:
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got!r}"
               + ("" if ok else f" (want {expected!r})"))
         bad += 0 if ok else 1
-    print(f"{len(SELFTEST)} cases, {bad} failures")
+    for name, source, want in WHOLE_FILE_SELFTEST:
+        got = {"defun": whole_file_defun_names(source),
+               "function": whole_file_exported_names(source),
+               "defsubr": whole_file_defsubr_names(source)}
+        ok = got == want
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got}"
+              + ("" if ok else f" (want {want})"))
+        bad += 0 if ok else 1
+    print(f"{len(SELFTEST) + len(WHOLE_FILE_SELFTEST)} cases, {bad} failures")
     return 1 if bad else 0
 
 
@@ -1344,6 +1410,65 @@ def clear_unbuilt_inventory(inv: dict) -> int:
     return total
 
 
+def _without_dead_branches(fn):
+    """Call FN with `ci`'s dead-branch filter replaced by "every line is live".
+
+    PORTING.md P-86 transcribes a file whose whole body hangs on an `#if` the frozen
+    configuration makes false (both arms kept, the gate written as a lowercase feature of
+    the macro the reference tests).  For such a file the *live* line subset `ci.inventory`
+    computes has none of that text, so the three existence rules below read a correct port
+    as inventing names.  The widened reference set is the file's **entire** text, extracted
+    by `ci`'s own extractors and comment blanking - only the liveness map is dropped, so a
+    name still has to sit where the extractor recognises a definition (a mention in a
+    comment, or a call, is not one).
+    """
+    saved, saved_blinded = ci.dead_branch_map, ci.BLINDED
+    ci.dead_branch_map = lambda text, path=None: [True] * (text.count("\n") + 1)
+    # `BLINDED` as well, and for `cinventory`'s own reason (its `function_spans` says it): with
+    # every line looking live, a `static` prototype inside a *dead* arm would wrongly give a
+    # definition internal linkage - frame.c 82's `static void gui_report_frame_params (...)` is
+    # inside the same `#ifdef HAVE_WINDOW_SYSTEM` its definition at 5409 is, so reading the two
+    # lines as one live program would make the port's `no_mangle` look invented when the frozen
+    # configuration simply has neither line.  `BLINDED` turns that back-off on: linkage is read
+    # from the definition's own specifiers, which is the only text that decides it here.
+    ci.BLINDED = True
+    try:
+        return fn()
+    finally:
+        ci.dead_branch_map, ci.BLINDED = saved, saved_blinded
+
+
+def whole_file_defun_names(text: str) -> set[str]:
+    """The `DEFUN (...)` C names of TEXT, dead arms included (P-86).
+
+    `ci.defuns` is the live rule's own extractor; it matches the raw text (the docstring is
+    a comment, so the text cannot be comment-blanked before the match) and consults the
+    liveness map only to skip dead lines - which is the one thing dropped here.
+    """
+    return {d["c_name"] for d in _without_dead_branches(lambda: ci.defuns(text))}
+
+
+def whole_file_exported_names(text: str) -> set[str]:
+    """The non-`static` function definitions of TEXT, dead arms included (P-86).
+
+    `ci.functions` is `ci.inventory`'s function scan (the same `static` verdict the live
+    rule uses); a `DEFUN (...)` is a macro invocation, not a definition, so it is absent
+    here as it is there.
+    """
+    return {f["name"] for f in _without_dead_branches(lambda: ci.functions(text))
+            if not f.get("static")}
+
+
+def whole_file_defsubr_names(text: str) -> set[str]:
+    """The `defsubr (&S...)` spellings of TEXT, dead arms included (P-86).
+
+    A `defsubr` is a call site rather than a definition, so the live rule's extraction is
+    the regex over the comment-blanked text; the same regex runs here with no liveness
+    filter, and `blank_comments` is what keeps a `defsubr` written inside a comment out.
+    """
+    return set(re.findall(r"defsubr\s*\(\s*&\s*(S\w+)\s*\)", ci.blank_comments(text)))
+
+
 def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             excluded: dict[str, str] | None = None,
             macro_notes: dict[str, set[str]] | None = None,
@@ -1367,6 +1492,25 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     excluded = excluded or {}
     macro_notes = macro_notes or {}
     problems: list[str] = []
+
+    # PORTING.md P-86: a unit whose whole body hangs on an `#if` the frozen configuration
+    # makes false is transcribed as it stands, so its DEFUNs, `defsubr` calls and non-`static`
+    # definitions are all *absent* from the live subset `ci.inventory` gives `c`.  The three
+    # existence rules below therefore also consult a set extracted from the file's **entire**
+    # text (`whole_file_*` above); each is computed only when the live sets already disagree,
+    # and the extractor is the same one, so this only widens "does this name exist in the
+    # reference", never "does the port have what the reference's live text requires".
+    whole: dict[str, set[str]] = {}
+
+    def whole_reference(which: str) -> set[str]:
+        names = whole.get(which)
+        if names is None:
+            text = _text_for(c_path)
+            names = {"defun": whole_file_defun_names,
+                     "function": whole_file_exported_names,
+                     "defsubr": whole_file_defsubr_names}[which](text)
+            whole[which] = names
+        return names
 
     c_funcs = {f["name"] for f in c["functions"]}
     # Only a *definition* answers for a C function.  The mirrors a unit includes declare
@@ -1562,7 +1706,9 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         defs_by_name.setdefault(d["c_name"], []).append(d)
 
     for name, defs in sorted(defs_by_name.items()):
-        if name not in c_by_name:
+        # P-86's widening is "exists anywhere in the reference's text", so the whole-file set
+        # is consulted before this is called an invention; a name in neither is still one.
+        if name not in c_by_name and name not in whole_reference("defun"):
             problems.append(f"DEFUN! {name}: the reference file has no such DEFUN")
         if len(defs) > 1:
             problems.append(f"DEFUN! {name}: defined {len(defs)} times in this file")
@@ -1620,7 +1766,13 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         if c.get("not_built_on_target"):
             break                     # status 3.31: nothing here is compiled on this target
         problems.append(f"missing defsubr (&raw const {name})")
-    for name in sorted(r_defsubr - c_defsubr):
+    # `r_defsubr` names the port registers; the reference must register each of them
+    # *somewhere* - the live checklist below is unchanged, but a registration the frozen
+    # configuration does not compile still exists in the file's text (P-86).
+    unexpected = sorted(r_defsubr - c_defsubr)
+    if unexpected:
+        unexpected = sorted(set(unexpected) - whole_reference("defsubr"))
+    for name in unexpected:
         problems.append(f"unexpected defsubr (&{name}): the reference file does not register it")
 
     # A crate-root declaration of a subr name collides with the unit's own
@@ -1888,7 +2040,12 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
                             r"_GL_\w+_INLINE\b[^;{}\n]*?\b(\w+)\s*\(",
                             cand.read_text(encoding="utf-8", errors="replace")))
                         break
-        for name in sorted(no_mangle_names - c_exported - unknown_linkage - PORT_ONLY_EXPORTS):
+        # P-86: a non-`static` definition inside an arm the frozen configuration disables is
+        # still a definition in the reference's text, so it backs the port's `no_mangle`.
+        invented = set(no_mangle_names - c_exported - unknown_linkage - PORT_ONLY_EXPORTS)
+        if invented:
+            invented -= whole_reference("function")
+        for name in sorted(invented):
             problems.append(f"fn {name} carries #[unsafe(no_mangle)] but the reference "
                             f"does not define a non-static function of that name "
                             f"(invented exported symbol)")

@@ -6481,3 +6481,28 @@
      经 `frame.rs` 也会新触达 `buffer.rs`，它们**不在 83 个受编单元里**、P-87 扫描不覆盖，本轮只做了静态重名检查
      （无冲突），**不声称它们绿**；没跑 `gate-fast`/`layout-check`（`window.rs` 作单 crate 根时现在会连带 `buffer.rs`）、
      没做 P-86 ⑦ 的变异实测、Haiku/NS/sfnt/w32/msdos 各臂无工具链未编。
+
+- **3.389 抽取器认下 P-86 那一类：`--all` 变成 588 done / 2 WIP / **0 failing**（2026-10-05）**：
+  ① **问题**：`extract-abi --check` 的三项判据（DEFUN 是否存在、`defsubr` 是否被参照注册、非 static 定义是否
+     "凭空发明"）只看**活行子集**；该文件在 `cond-eval-verified.txt` 里时死分支被剪掉，于是按 P-86 照录的死臂
+     被读成"发明"（实测：decompress 6 行、lcms 17 行、frame 17 行——3.382/3.383/3.385 三笔一直带着这些 FAIL）。
+  ② **改法（只改"名字在参照里到底存不存在"这一问）**：新增 `_without_dead_branches(fn)`（临时把
+     `ci.dead_branch_map` 换成"每行都活"**并同时置 `ci.BLINDED = True`**，`finally` 还原）、
+     `whole_file_defun_names` / `whole_file_exported_names` / `whole_file_defsubr_names` 与 `compare()` 内的惰性
+     `whole_reference(which)`（正常文件零开销）；三处判据各把整文件集合减掉。**活行侧一个检查都没动**：
+     DEFUN 参数/`noreturn`/docstring、`subr_defs` 一一对应、missing-* 系列、逐函数 token/body、常量/结构体值、
+     行数漂移全部原样。`ci.BLINDED` 那一半是必须的：frame.c 82 行是死臂里的 `static` 原型、5409 才是定义，
+     只抹平 liveness 会让 `function_spans` 把它判成内部链接（新增的自测用例钉住这点）。
+  ③ **读数**：三条 `--check` **6 → 0 / 17 → 0 / 17 → 0**（末行都是 `OK`，行数漂移行也随 `total` 三行一起消失）；
+     `--selftest` **12 cases, 0 failures**（新增 3 例）；**`--all`：`585 done / 2 in progress / 3 failing`（exit 1）
+     → `588 done / 2 in progress / 0 failing`（exit 0）**，diff 的全部内容就是那三个文件从 FAIL 变 done
+     （decompress 删 6 行、lcms 删 17 行、frame 删 17 行），**其余 587 个 pair 逐字节相同**，
+     `xdisp`（99 行）/`xterm`（286 行）两个 WIP 的差异条数一字未变。这次 `--all` 的前后两次运行用
+     `git rev-parse HEAD`（`ac6599c`）+ 全树 mtime/size 指纹锁住同一棵树（第一次跑时别的 lane 连提 5 个 commit，那次读数作废重做）。
+  ④ **负对照（三条，全在 `/tmp` 副本上实测）**：把 `Flcms_cam02_ucs` 改成参照里不存在的
+     `Flcms_cam02_ucs_zzz_nonexistent` → **仍报 FAIL**；改成只在**函数体里被调用**的 `Fcons` → **仍报 FAIL**；
+     改成只出现在**注释里**的 `chromaticity` → **仍报 FAIL**。即"定义位置"这条约束没丢。
+  ⑤ **未声称的边界（lane 照实记的）**：整文件集合是**该文件文本的全部**，所以 `#if 0` 臂里的定义/注册也算数——
+     退化情形（某个 port-only 的名字恰好在参照的 `#if 0` 臂里被顺带写成一个定义）现在不会被报成 invented；
+     收紧它需要区分"哪个臂在冻结配置下真为假"，属 P-86 的另一半工作，本轮明确不覆盖。
+     另外它没跑 `gate-fast`/`cargo test`/`check-all-units.sh`，也没动 `docs/baseline/**` 与 `docs/ports/**`。
