@@ -9,6 +9,7 @@
 # rows differ).  A *new* name fails in either mode; stale rows are informational
 # unless `--strict`.
 _BC	the reference references it too (or an SDK .tbd exports it): provided at link time
+_Fcurrent_bidi_paragraph_direction	the reference defines it and no unit of this port does - the definition is owed
 _PC	the reference references it too (or an SDK .tbd exports it): provided at link time
 _UP	the reference references it too (or an SDK .tbd exports it): provided at link time
 _Vclear_message_function	neither the reference nor the SDK explains it: a generated `V...` carrier (the port's documented deviation), a function of an unported unit, or a name to investigate
