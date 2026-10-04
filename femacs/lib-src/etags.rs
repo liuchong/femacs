@@ -15,7 +15,8 @@
 // 0 disagreements [VERIFIED]), and every later dead arm is recorded at its window.
 //
 // **Use-site handling** (P-26/P-72 (3)), because C names these from headers the port has no
-// mirror for: `mempcpy` (the generated `<string.h>` renames it to `rpl_mempcpy`, PORTING.md
+// mirror for: `mempcpy` under its own name (the generated `<string.h>`'s `rpl_mempcpy` rename is
+// inside `# if 0`; PORTING.md
 // 10.13), `c_strcasecmp`/`c_strncasecmp` (`<c-strcase.h>`), `assert` (Rust's `assert!`, the
 // `lib/mini-gmp.rs` 8 precedent: `NDEBUG` is undefined in the frozen build).  `<limits.h>`'s
 // `CHAR_MAX` used to be declared here too; the `lib/include/limits.in.rs` mirror now carries
@@ -82,11 +83,12 @@ pub const MSDOS: bool = false;
 /// C 133-135: `#ifndef MERCURY_HEURISTICS_RATIO` / `# define MERCURY_HEURISTICS_RATIO 0.5`.
 pub const MERCURY_HEURISTICS_RATIO: f32 = 0.5;
 
-/* The generated `<string.h>` renames `mempcpy` (PORTING.md 10.13): `memcpyz` below calls
-   `rpl_mempcpy`, the symbol `lib/mempcpy.rs` emits.  */
+/* C's `mempcpy`, under its own name: the generated `<string.h>`'s `rpl_mempcpy` rename sits
+   inside `# if 0` (status 3.205), and `lib/mempcpy.rs` emits `mempcpy`.  The reference object
+   has no mempcpy reference at all (clang inlines the call); the port keeps the call.  */
 unsafe extern "C" {
   /* void *mempcpy (void *dest, const void *src, size_t n);  */
-  pub fn rpl_mempcpy (dest: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
+  pub fn mempcpy (dest: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
 }
 
 /* `<stdlib.h>`: `void exit (int);` -- no mirror carries it yet (the emacsclient.rs / sysdep.rs
@@ -108,7 +110,7 @@ unsafe extern "C" {
 /* COPY to DEST from SRC (containing LEN bytes), and append a NUL byte.  */
 unsafe fn memcpyz (dest: *mut c_void, src: *const c_void, len: ptrdiff_t)
 {
-  let e: *mut c_char = rpl_mempcpy (dest, src, len as size_t) as *mut c_char;
+  let e: *mut c_char = mempcpy (dest, src, len as size_t) as *mut c_char;
   *e = 0;
 }
 
@@ -1571,7 +1573,7 @@ pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
 	    }
 	  let escaped_tagfile_len: ptrdiff_t = z.offset_from (escaped_tagfile);
 	  z = stpcpy (z, c"' '".as_ptr ());
-	  z = rpl_mempcpy (z as *mut c_void, escaped_tagfile as *const c_void,
+	  z = mempcpy (z as *mut c_void, escaped_tagfile as *const c_void,
 			   escaped_tagfile_len as size_t) as *mut c_char;
 	  strcpy (z, c"'".as_ptr ());
 	  return system (cmd);
@@ -4115,7 +4117,7 @@ unsafe fn C_entries (c_ext_arg: c_int,		/* extension of C */
 				    stpcpy (token_name.buffer, objtag);
 				  let mut p2: *mut c_char = stpcpy (p1, c"(".as_ptr ());
 				  let mut p3: *mut c_char =
-				    rpl_mempcpy (p2 as *mut c_void,
+				    mempcpy (p2 as *mut c_void,
 						 newlb! ().buffer.offset (tokoff) as *const c_void,
 						 toklen as size_t) as *mut c_char;
 				  strcpy (p3, c")".as_ptr ());
@@ -5713,7 +5715,7 @@ unsafe extern "C" fn Ruby_functions (inf: *mut FILE)
 			  let mut wr_name: *mut c_char =
 			    xmalloc ((name_len + 1) as ptrdiff_t) as *mut c_char;
 
-			  strcpy (rpl_mempcpy (wr_name as *mut c_void,
+			  strcpy (mempcpy (wr_name as *mut c_void,
 					       np as *const c_void,
 					       name_len - 1) as *mut c_char,
 				  c"=".as_ptr ());
@@ -8351,7 +8353,7 @@ unsafe fn readline_internal (lbp: *mut linebuffer, stream: *mut FILE,
 	  xrnew! (filebuf.buffer, filebuf.size, 2);
 	  filebuf.size *= 2;
 	}
-      strcpy (rpl_mempcpy (filebuf.buffer.offset (filebuf.len) as *mut c_void,
+      strcpy (mempcpy (filebuf.buffer.offset (filebuf.len) as *mut c_void,
 			   (*lbp).buffer as *const c_void,
 			   (*lbp).len as size_t) as *mut c_char,
 	      c"\n".as_ptr ());

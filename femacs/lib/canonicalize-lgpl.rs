@@ -31,6 +31,7 @@ include!("../src/include/config.rs");
 include!("include/gnulib_config.rs");
 include!("include/limits.in.rs");
 include!("include/errno.rs");
+include!("include/libc-config.rs");   // C 24: `#include <libc-config.h>`
 include!("include/fcntl.in.rs");
 include!("include/sys_stat.in.rs");   // <sys/stat.h> (and, through it, <sys/types.h>)
 include!("include/unistd.in.rs");
@@ -42,7 +43,8 @@ include!("include/scratch_buffer.rs");
 
 /* C 19-25's `#ifndef _LIBC` arm (live) is `<libc-config.h>` plus the empty
    `_GL_ARG_NONNULL(params)`; the macro has no Rust counterpart
-   (docs/ports/excluded-macros.txt) and the header contributes only `__set_errno` (below).  */
+   (docs/ports/excluded-macros.txt) and the header contributes `__set_errno`, which is the
+   `libc-config.rs` mirror in the include block above now.  */
 /* C 43-46's `#ifdef _LIBC` arm is dead text: the port records the glibc-only items
    (`GCC_LINT`, `_GL_ATTRIBUTE_PURE` - the latter excluded) in the ledger.  */
 
@@ -75,7 +77,7 @@ macro_rules! __getcwd {
 }
 /* C 74's `# define __mempcpy mempcpy`.  */
 macro_rules! __mempcpy {
-    ($dest:expr, $src:expr, $n:expr) => { rpl_mempcpy ($dest, $src, $n) };
+    ($dest:expr, $src:expr, $n:expr) => { mempcpy ($dest, $src, $n) };
 }
 /* C 75's `# define __pathconf pathconf`.  */
 macro_rules! __pathconf {
@@ -115,21 +117,21 @@ pub const GCC_LINT: c_int = 1;
 unsafe extern "C" {
   /* void *mempcpy (void *dest, const void *src, size_t n);  - the **generated** `<string.h>`
      renames it (`build/emacs-ref/lib/string.h` 1027-1028: `# undef mempcpy` /
-     `# define mempcpy rpl_mempcpy`), so this unit's identifier is `rpl_mempcpy` and
+     `# define mempcpy rpl_mempcpy`) sits inside `# if 0` (status 3.205), so C's identifier
+     here is the unrenamed `mempcpy`, which `lib/mempcpy.rs` emits, and
      `lib/mempcpy.rs` emits that symbol with `#[unsafe(export_name)]` (PORTING.md 10.13).  The
      declaration used to say `mempcpy`, which made the port's object ask for `_mempcpy` while the
      definition emitted... `_mempcpy` too - a pair that linked only by accident and that the
      `token-aliases.tsv` row already covers for the text gate.  */
-  pub fn rpl_mempcpy (dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void;
+  pub fn mempcpy (dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void;
   /* char *strdup (const char *s);  */
   pub fn strdup (s: *const c_char) -> *mut c_char;
   /* long pathconf (const char *path, int name);  */
   pub fn pathconf (path: *const c_char, name: c_int) -> c_long;
 }
-/* <libc-config.h> 46: `# define __set_errno(val) (errno = (val))`.  */
-macro_rules! __set_errno {
-    ($val:expr) => { *errno () = $val };
-}
+/* <libc-config.h> 46's `# define __set_errno(val) (errno = (val))` is the
+   `include/libc-config.rs` mirror's now (P-26, one landing point); the calls below keep C's
+   spelling.  */
 /* <intprops.h>'s `INT_ADD_OVERFLOW (a, b)`: true when a + b wraps (PORTING.md 2.6's
    `overflowing_` family, which is also how the ckd_ helpers and intprops are spelled).  */
 macro_rules! INT_ADD_OVERFLOW {

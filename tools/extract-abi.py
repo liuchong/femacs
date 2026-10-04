@@ -1794,10 +1794,14 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         return m.group(1) if m else None
 
     # `#[unsafe(export_name = "X")]` exports a symbol the same way `#[unsafe(no_mangle)]`
-    # does, and it is what a gnulib replacement needs: C's own object emits `rpl_mempcpy`
-    # because <string.h> renames the identifier, while the definition keeps C's name
-    # (PORTING.md 10.13).  Rust forbids combining the two attributes, so the port's rule is
-    # "one of them"; the exported-name comparison below then still catches an invented symbol.
+    # does, and it is what a gnulib replacement needs: where a module *replaces* a libc
+    # function, C's object defines the renamed symbol - measured, `T _rpl_mktime` in
+    # `build/emacs-ref/lib/mktime.o` and `T _rpl_re_search` in the reference
+    # `src/regex-emacs.o` (PORTING.md 10.13).  The `mempcpy` example this comment used to
+    # give was wrong: that rename sits inside the generated <string.h>'s `# if 0` (line 1025)
+    # and C's object emits `T _mempcpy` (status 3.205, correcting 3.112).  Rust forbids
+    # combining the two attributes, so the port's rule is "one of them"; the exported-name
+    # comparison below then still catches an invented symbol.
     no_mangle_names = {name for name in
                        (defined_name_after_attribute(own_text, m.end())
                         for m in re.finditer(

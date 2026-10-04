@@ -57,10 +57,13 @@ use core::ffi::VaList;
 
 unsafe extern "C" {
   // <stdio.h>/<string.h> on the frozen target (HAVE_MEMCPY... the config has no
-  // HAVE_MEMPCPY, so gnulib's `mempcpy` is `rpl_mempcpy`, which is what C calls here).
+  // HAVE_MEMPCPY is undefined, so C's `mempcpy` here is the definition `lib/mempcpy.c`
+  // emits under C's own name: the generated `<string.h>`'s `rpl_mempcpy` rename sits
+  // inside `# if 0` (status 3.205), so the port calls that name too.  clang inlines
+  // the call in the reference object; the port keeps the call.)
   pub fn strnlen (s: *const c_char, maxlen: size_t) -> size_t;
   pub fn strncmp (a: *const c_char, b: *const c_char, n: size_t) -> c_int;
-  pub fn rpl_mempcpy (dst: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
+  pub fn mempcpy (dst: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
   pub fn xpalloc (block: *mut c_void, n: *mut ptrdiff_t, incr: ptrdiff_t,
                   min_size: ptrdiff_t, size: ptrdiff_t) -> *mut c_void;
 }
@@ -255,7 +258,7 @@ pub unsafe extern "C" fn doprnt (buffer: *mut c_char, mut bufsize: ptrdiff_t,
 	     character into FMTSTAR, and append a NUL.  */
 	  mlen = modifier_len[length_mod as usize];
 	  string = unsafe {
-	    rpl_mempcpy (string as *mut c_void, fmt as *const c_void, (mlen + 1) as size_t)
+	    mempcpy (string as *mut c_void, fmt as *const c_void, (mlen + 1) as size_t)
 	      as *mut c_char
 	  };
 	  fmt = unsafe { fmt.add (mlen as usize) };

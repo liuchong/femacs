@@ -55,7 +55,8 @@ right end to end — that is the ERT ladder (`gate-full`, not implemented).
   (ptrdiff_t)` (gnulib `intprops.h`) is `isize::MAX`; `min`/`max` are `.min()`/`.max()`;
   `ckd_mul`/`ckd_add` are `overflowing_mul`/`overflowing_add` (P-15, with the wrapped value
   and the overflow flag, as gnulib defines them); `memcpy` is `copy_nonoverlapping`;
-  `mempcpy` is `rpl_mempcpy` (the frozen config has no `HAVE_MEMPCPY`, so gnulib's
+  `mempcpy` keeps C's own name (the frozen config has no `HAVE_MEMPCPY`, but the generated
+  header's `rpl_mempcpy` rename sits inside `# if 0`; status 3.205), so gnulib's
   replacement is what C calls); the `pD`/`pI` macros come from `lisp.rs`.
 - **File-scope constants this port invents** (C has no such names, so nothing in the
   artifact compares them; review A's F6 asked for them by name, P-48 tracks the general
@@ -71,7 +72,7 @@ right end to end — that is the ERT ladder (`gate-full`, not implemented).
   *compiles* in that shape — it does not evaluate it (review A's F5).
 - **New externs declared by this unit** (C gets them from `<stdio.h>`/`<string.h>`, whose
   WIP mirrors do not carry them yet, P-26): `sprintf` (variadic), `strnlen`, `strncmp`,
-  `rpl_mempcpy`, `xpalloc`.  `PRIdMAX` has no `inttypes` mirror yet, so the value the C
+  `mempcpy`, `xpalloc`.  `PRIdMAX` has no `inttypes` mirror yet, so the value the C
   compiler reports for the frozen target (`jd`, verified with
   `printf ("[%s] [%s] [%s]\n", pD, pI, PRIdMAX)` -> `[t] [l] [jd]`) is a local constant.
 - **`<float.h>`**: gnulib has no wrapper, so `lib/include/float.in.rs` is a *system* mirror
