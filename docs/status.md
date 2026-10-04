@@ -2321,3 +2321,25 @@
   ⑤ **一条待更正的映射**：`docs/port-map.md` 把 `lib-src/be_resources.cc`（Haiku 构建用的资源工具）映成
   `femacs/platform/macos/be_resources.swift`，这是生成器"按 `*.cc` 归到平台新技术"的归类结果，落该文件前
   先改 `tools/gen-port-map.py` 的规则（或加显式例外）。
+
+- **3.145 mirror lane 的六个镜像单元入库：`haiku_support.h`、`androidgui.h`、`android.h` 新增，`androidterm.h`/`pgtkterm.h`/`haikugui.h` 收尾（2026-10-04）**：
+  ① **集成者逐对复跑 `--check`**（不采信 lane 报告）：`haiku_support.h`(784)、`androidgui.h`(930)、`android.h`(363)、
+  `androidterm.h`(496)、`pgtkterm.h`(681) **五对全 OK**，五个台账 **0 未勾**；`check-mirror-dupes` 1 duplicate /
+  1 ratchet / 0 failure、`check-declarations` 13 sites (0 forbidden) / 0、`check-target-names` 0 finding。
+  ② **lane A 的三条判定值得留档**：`androidgui.h` 在冻结目标**没有死区**（`ANDROID_STUBIFY` undef ⇒ C 256-928
+  的 image 段全活，逐声明携带）；`haiku_support.h` 的活文本是 13 个 enum（125 常量）、29 个结构、3 个对象、
+  175 条原型，死文本（`__cplusplus` 头尾、`HAVE_FREETYPE` 两个 include、`HAVE_NATIVE_IMAGE_API` 3 条、
+  `USE_BE_CAIRO` 4 条）按 P-08 记账不抄——**并点名"批 F 的 Haiku C++ 消费者（4 文件/8,085 行）将来要用的正是
+  那一段"，到时要给它落点**；`android.h` 的 `<jni.h>`/`<android/bitmap.h>` 按 P-49/P-70 在镜像里按 C 分支形状
+  声明（`JNIEnv = *const JNINativeInterface` 等，不透明）。
+  ③ **两条 `excluded-macros.txt` 新增行**（lane 写、我复核并补了"替代物"一句，符合该文件表头"a mirror of
+  another header appends its own rows here"的邀请）：`NATIVE_NAME`（android.h 344 的
+  `Java_org_gnu_emacs_EmacsNative_##name` 把实参拼进标识符，Rust 无 identifier pasting ⇒ 定义点写
+  `#[unsafe(export_name = "…<name>")]`）与 `ANDROID_DELETE_LOCAL_REF`（android.h 340-342 读 `<jni.h>` 的
+  vtable 项，NDK 的 `JNINativeInterface` 约 230 项无镜像 ⇒ 不透明结构读不到字段）。
+  ④ **一条已记录的平台冲突**：`xtask layout-check` 把整个 `src/include` 编进一个 crate，平台互斥镜像因此报
+  **35 条 `E0428`**（`haikugui.rs` 与 `dispextern.rs` 的 `Emacs_Cursor`；`androidgui.rs` 与 `haikugui.rs` 的
+  `XCharStruct`/`Emacs_Pixmap`/`Emacs_Window`/`Drawable`/`Emacs_Cursor` 与 29 个 X-compat 常量）。裁决：**镜像
+  不加 `#[cfg]`、不包 `pub mod`**（前者让被 cfged 的项失去编译器，后者会藏起 `macro_rules!` 的名字），改用
+  **独立平台探针 crate** 提供编译证据（`femacs/nt/inc` 的先例），lane A 本轮补探针；`layout-check` 自身是否
+  学会跳过平台互斥镜像由集成者决定（记入下一轮）。

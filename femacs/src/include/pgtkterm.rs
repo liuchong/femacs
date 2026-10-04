@@ -19,7 +19,7 @@
 // What the dead region holds, named so the ledger can be re-derived from the reference: the four
 // records `pgtk_bitmap_record` (C 43-49), `pgtk_device_t` (C 51-64), `pgtk_touch_point`
 // (C 66-83) and `scroll_bar` (C 93-144, this header's own tag), the two big records
-// `pgtk_display_info` (C 146-283) and `pgtk_output` (C 286-455), the PGTK-side `struct x_output`
+// `pgtk_display_info` (C 146-281) and `pgtk_output` (C 286-455), the PGTK-side `struct x_output`
 // (C 456-473), `struct selection_input_event` (C 539-554), the six colour macros (C 85-91), the
 // roughly fifty `FRAME_*` accessors (C 474-530, including `FRAME_X_OUTPUT`, `FRAME_FONTSET`,
 // `BLACK_PIX_DEFAULT`, `WHITE_PIX_DEFAULT` and `XSCROLL_BAR`), the seven `SELECTION_EVENT_*`

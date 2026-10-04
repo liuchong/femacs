@@ -54,14 +54,14 @@
   spelling most mirrors use, because the guard's own name is what the extractor keys: C spells it
   `_ANDROID_TERM_H_` (C 20-21).  It is a `pub const ... : bool = true`, the house shape for a
   guard that has no Rust counterpart (0.1-4/-9).
-- **The anonymous `enum` at C 267-277 (FOCUS_NONE/IMPLICIT/EXPLICIT) is three `c_int`
+- **The anonymous `enum` at C 277-289 (FOCUS_NONE/IMPLICIT/EXPLICIT) is three `c_int`
   constants**, keyed by `cinventory` under `constants`, not under `macros`; the generated checklist
   above therefore does not list them, but the constant gate compares their values (0/1/2).
 - **`struct android_output`'s five `bool_bf : 1` members fold into one `bits: u8` after
   `display_info`** (PORTING.md 1.3): `bool_bf` is `bool` (`conf_post.h` 61 takes that arm for this
   compiler), so the allocation unit is one byte, and the measured offset (240) is asserted.  The
   five C members are named in the comment at that field.
-- **The nested anonymous `struct relief` (C 197-201) gets C's own tag as its Rust name** (1.3);
+- **The nested anonymous `struct relief` (C 249-253) gets C's own tag as its Rust name** (1.3);
   `black_relief`/`white_relief` are two fields of that type, which is also how
   `cinventory` flattens them (`gc`, `pixel`).
 - **Foreign types come from the include graph** (P-69/P-72): `androidgui.rs` (`android_pixmap`,
@@ -72,7 +72,7 @@
   includes (0.1-9) - every unit that carries this mirror has it.
 - **Five names have no owner mirror yet and keep a recorded stand-in** (P-72 rule 3, the
   dispextern.rs `struct frame *` precedent), each with its C text in a `/// C:` line:
-  `struct font *font` (C 185), `struct font_entity *` (C 444) and the two `struct font_driver`
+  `struct font *font` (C 181), `struct font_entity *` (C 444) and the two `struct font_driver`
   objects (C 439/464) - `include/font.rs` is a WIP slice without the driver interface - plus
   `struct window *` (C 401, window.h is not in this header's include list) and
   `struct android_notification_event *` (C 474/476, no record anywhere in the ported tree).
@@ -83,6 +83,24 @@
   dispextern.h 3063's typedef, which `include/dispextern.rs` does not carry yet.  The port uses the
   `lisp.rs` `pub static mut my_edata: [c_char; 0]` shape for `extern char my_edata[];`, with the
   pointer-sized element stand-in.
+- **Three macro bodies are the mirror's known uncompilable site, and the shared notes table is
+  where the fix goes.**  `FRAME_ANDROID_NEED_BUFFER_FLIP` (C 298-299), `FRAME_ANDROID_COMPLETE_P`
+  (C 311-312) and `FRAME_ANDROID_DRAWABLE` (C 305-307) read the `bool_bf` members
+  `need_buffer_flip` and `complete`, which the port folds into `android_output.bits` (PORTING.md
+  1.3).  The mirror keeps C's member names in those bodies so the token gate compares C's own
+  tokens, but the folded record has no such fields, so those three bodies cannot compile as
+  written.  The P-80/cm.rs mask shape (`bits & MASK != 0`, mask constants named the way cm.rs
+  names `CM_AUTOWRAP`, plus `FRAME_ANDROID_DRAWABLE`'s write becoming an OR/AND-NOT pair) is the
+  resolution, and it needs three rows in the shared `docs/ports/macro-body-notes.tsv`:
+  `FRAME_ANDROID_NEED_BUFFER_FLIP\tneed_buffer_flip\t...`,
+  `FRAME_ANDROID_COMPLETE_P\tcomplete\t...` and
+  `FRAME_ANDROID_DRAWABLE\tneed_buffer_flip\t...`.  That table is the integrator's, so the rows
+  are requested in the lane report rather than written here (the `CODING_FOR_UNIBYTE`,
+  `MINI_WINDOW_P`, `SET_FRAME_ICONIFIED` and `FrameCols`-class rows are the precedent).
+- **`FRAME_ANDROID_OUTPUT`/`FRAME_OUTPUT_DATA` are *place* expressions in C** (P-37): both expand
+  to `f->output_data.android`, an lvalue, and the port keeps them `macro_rules!` for that reason -
+  `FRAME_ANDROID_DRAWABLE` assigns through the chain.  The union read is `unsafe` at the use site,
+  as C's union member access is unchecked.
 - **The four colour macros are duplicated in `pgtkterm.rs` on purpose**: pgtkterm.h 71-76 defines
   its own `RGB_TO_ULONG`/`RED_/GREEN_/BLUE_FROM_ULONG`, and no unit includes both headers, so each
   mirror carries the header's own set (C's text, PORTING.md P-26 is a per-TU rule).

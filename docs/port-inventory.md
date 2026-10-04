@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 514 |
-| 其中 done / wip | 499 / 15 |
+| 其中 done / wip | 500 / 14 |
 | 待开工 | 76 |
 
 ## 2 按目录
@@ -430,7 +430,7 @@
 | `src/android-asset.h` | 528 | 9 | 0 | 0 | 2 | 19 | 1 | F | `femacs/src/include/android-asset.rs` | todo |
 | `src/android-emacs.c` | 114 | 1 | 0 | 0 | 0 | 0 | 0 | F | `femacs/src/android-emacs.rs` | done |
 | `src/android.c` | 7,594 | 155 | 0 | 2 | 0 | 60 | 55 | F | `femacs/src/android.rs` | done |
-| `src/android.h` | 363 | 0 | 0 | 7 | 0 | 56 | 14 | F | `femacs/src/include/android.rs` | wip |
+| `src/android.h` | 363 | 0 | 0 | 7 | 0 | 56 | 14 | F | `femacs/src/include/android.rs` | done |
 | `src/androidfns.c` | 3,797 | 50 | 35 | 1 | 16 | 5 | 8 | F | `femacs/src/androidfns.rs` | done |
 | `src/androidfont.c` | 1,102 | 24 | 0 | 4 | 0 | 52 | 7 | F | `femacs/src/androidfont.rs` | done |
 | `src/androidgui.h` | 930 | 0 | 0 | 37 | 125 | 194 | 2 | F | `femacs/src/include/androidgui.rs` | done |

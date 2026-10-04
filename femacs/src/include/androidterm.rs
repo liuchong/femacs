@@ -78,7 +78,7 @@ pub struct android_bitmap_record
 const _: () = assert! (std::mem::size_of::<android_bitmap_record> () == 48);
 
 /* Per-display information.  */
-// androidterm.h 48-155.  Measured: sizeof 312, alignof 8.  `double` is `f64` (PORTING.md 1.1);
+// androidterm.h 48-152.  Measured: sizeof 312, alignof 8.  `double` is `f64` (PORTING.md 1.1);
 // `ptrdiff_t` is `isize`; `Mouse_HLInfo` is dispextern.h's 72-byte record.
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -194,7 +194,7 @@ const _: () = assert! (std::mem::size_of::<android_display_info> () == 312);
 
 /* Structure representing a single tool (finger or stylus) pressed
    onto a frame.  */
-// androidterm.h 157-171.  Measured: sizeof 24, alignof 8; next 0, tool_id 8, x 12, y 16,
+// androidterm.h 157-167.  Measured: sizeof 24, alignof 8; next 0, tool_id 8, x 12, y 16,
 // tool_bar_p 20.
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -213,7 +213,7 @@ pub struct android_touch_point
 }
 const _: () = assert! (std::mem::size_of::<android_touch_point> () == 24);
 
-// androidterm.h 197-199: C's nested `struct relief { struct android_gc *gc; unsigned long
+// androidterm.h 249-253: C's nested `struct relief { struct android_gc *gc; unsigned long
 // pixel; }`, the type of the two `black_relief`/`white_relief` members.  A nested struct
 // needs a name in Rust (PORTING.md 1.3), and C's own tag is `relief`.
 #[repr(C)]
@@ -225,10 +225,10 @@ pub struct relief
 }
 
 /* Per-frame output data.  */
-// androidterm.h 173-265.  Measured: sizeof 320, alignof 8; hourglass 224, display_info 232,
+// androidterm.h 169-275.  Measured: sizeof 320, alignof 8; hourglass 224, display_info 232,
 // the bitfield byte 240, black_relief 248, white_relief 264, relief_background 280,
 // focus_state 288, touch_points 296, extracted_text_flags 304, extracted_text_token 308,
-// extracted_text_hint 312.  The five `bool_bf : 1` members (C 231-249) share one 1-byte
+// extracted_text_hint 312.  The five `bool_bf : 1` members (C 229-247) share one 1-byte
 // allocation unit (`bool_bf` is `bool`, conf_post.h 61), folded into `bits` after
 // `display_info` (PORTING.md 1.3) - the position is what the offsets above assert.
 #[repr(C)]
@@ -247,7 +247,7 @@ pub struct android_output
   pub parent_desc: Emacs_Window,
 
   /* Default ASCII font of this frame.  */
-  /// C: `struct font *font;` (androidterm.h 185) - font.rs does not carry `struct font` yet.
+  /// C: `struct font *font;` (androidterm.h 181) - font.rs does not carry `struct font` yet.
   pub font: *mut c_void,
 
   /* The baseline offset of the default ASCII font.  */
@@ -295,7 +295,7 @@ pub struct android_output
   /* This is the Emacs structure for the display this frame is on.  */
   pub display_info: *mut android_display_info,
 
-  // androidterm.h 231-249: `bool_bf has_been_visible : 1;`, `alpha_identical_p : 1`,
+  // androidterm.h 229-247: `bool_bf has_been_visible : 1;`, `alpha_identical_p : 1`,
   // `complete : 1`, `need_buffer_flip : 1` and `need_cursor_updates : 1`, five bits of one
   // unsigned-char-sized unit (the `bits: u8` shape cm.rs uses, PORTING.md 1.3).
   pub bits: u8,
@@ -336,7 +336,7 @@ const _: () = assert! (std::mem::offset_of! (android_output, focus_state) == 288
 const _: () = assert! (std::mem::offset_of! (android_output, touch_points) == 296);
 const _: () = assert! (std::mem::offset_of! (android_output, extracted_text_hint) == 312);
 
-// androidterm.h 267-277: the anonymous `enum` whose members are the `focus_state` values
+// androidterm.h 277-289: the anonymous `enum` whose members are the `focus_state` values
 // (C 295-296's comment says the field is "actually a boolean").  C gives the enumeration no
 // tag, so the port keeps the three members as `c_int` constants, the cm.rs `CM_*` shape.
 pub const FOCUS_NONE: c_int = 0;
@@ -344,7 +344,7 @@ pub const FOCUS_IMPLICIT: c_int = 1;
 pub const FOCUS_EXPLICIT: c_int = 2;
 
 /* Android scroll bars.  */
-// androidterm.h 328-379.  Measured: sizeof 72, alignof 8; header 0, window 8, next 16, prev 24,
+// androidterm.h 338-379.  Measured: sizeof 72, alignof 8; header 0, window 8, next 16, prev 24,
 // x_window 32, top 40, left 44, width 48, height 52, start 56, end 60, dragging 64,
 // horizontal 68.  C's own `struct scroll_bar` (the header defines it rather than including
 // xterm.h), so the port declares it here too.
@@ -419,7 +419,14 @@ macro_rules! FRAME_NATIVE_WINDOW {
 }
 
 /* Return the need-buffer-flip flag for frame F.  */
-// androidterm.h 298-299.
+// androidterm.h 298-299.  This C body, like FRAME_ANDROID_COMPLETE_P and
+// FRAME_ANDROID_DRAWABLE below, reads a `bool_bf` member that the mirror folds into
+// `android_output.bits` (PORTING.md 1.3).  The C member names stay in the bodies so the token
+// gate compares C's own tokens, but the folded record has no such fields: these three bodies are
+// this mirror's known uncompilable site.  The P-80 mask shape (`bits & MASK != 0`, with mask
+// constants named as cm.rs names `CM_AUTOWRAP`) needs three `docs/ports/macro-body-notes.tsv`
+// rows - that table is shared, so the rows are listed in docs/ports/include-androidterm.md and in
+// the lane report instead of being written here.
 macro_rules! FRAME_ANDROID_NEED_BUFFER_FLIP {
   ($f:expr) => { ((*(*$f).output_data.android).need_buffer_flip) };
 }
