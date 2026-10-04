@@ -464,9 +464,10 @@ unsafe extern "C" {
   /// Lisp_Object);`
   pub fn intern_driver (string: Lisp_Object, obarray: Lisp_Object,
                         index: Lisp_Object) -> Lisp_Object;
-  /// C: `<stdio.h>`: `int snprintf (char *, size_t, const char *, ...);` — the port's
-  /// `stdio.rs` mirror carries `sprintf` but not `snprintf`.
-  pub fn snprintf (s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
+  // C: `<stdio.h>`: `int snprintf (char *, size_t, const char *, ...);` — the mirror
+  // `lib/include/stdio.rs` carries it as of status 3.263, so this unit no longer declares
+  // it itself (and the declaration that stood here was what made the GLYPH_DEBUG arms
+  // uncompilable everywhere else).
 }
 
 /// C: frame.h 1317-1320: `INLINE void CHECK_FRAME (Lisp_Object x)`, which frame.h writes

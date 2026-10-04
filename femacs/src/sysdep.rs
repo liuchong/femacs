@@ -428,8 +428,8 @@ unsafe extern "C" {
   pub fn fscanf (stream: *mut FILE, format: *const c_char, ...) -> c_int;
   /* int sscanf (const char *, const char *, ...);  */
   pub fn sscanf (s: *const c_char, format: *const c_char, ...) -> c_int;
-  /* int snprintf (char *, size_t, const char *, ...);  */
-  pub fn snprintf (s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
+  /* `int snprintf (char *, size_t, const char *, ...)` comes from `lib/include/stdio.rs`
+     (status 3.263): the mirror carries it, so this block does not (0.1-3).  */
   /* char *strerror (int);  */
 }
 

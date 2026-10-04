@@ -146,3 +146,9 @@ Every `#if` in this file is decided by `docs/baseline/config/darwin-arm64.macros
 `HAVE_PWD_H` 1.  `src/filelock.c` is already in `docs/baseline/config/cond-eval-verified.txt`,
 so the extractor's branch selection for it is the clang-verified one; no condition-table gap
 was found and no `source-header-macros.tsv` row was needed.
+
+- **Integrator note (3.263): `snprintf` is declared by the mirror, not here.**  `lib/include/stdio.rs`
+  gained the `<stdio.h>` entry so the `GLYPH_DEBUG` arms (which call it) compile - `xtask dead-arms`
+  with the `glyph_debug` flip is what found it - and this unit's own declaration of the same name was
+  what made the name ambiguous once the mirror carried it.  The declaration is gone; the mirror is
+  the single declaration point (PORTING.md 0.1-3).

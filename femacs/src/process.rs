@@ -1281,8 +1281,8 @@ unsafe extern "C" {
   fn unlockpt (fd: c_int) -> c_int;
   /// C: char *ptsname (int)   (<stdlib.h>)
   fn ptsname (fd: c_int) -> *mut c_char;
-  /// C: int snprintf (char *restrict, size_t, const char *restrict, ...)   (<stdio.h>)
-  fn snprintf (s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
+  // `<stdio.h>`'s `int snprintf (char *restrict, size_t, const char *restrict, ...)` comes from
+  // `lib/include/stdio.rs` (status 3.263): the mirror carries it, so this block does not (0.1-3).
   /// C: void sigemptyset (sigset_t *)   (<signal.h>)
   fn sigemptyset (set: *mut sigset_t) -> c_int;
   /// C: void sigaddset (sigset_t *, int)   (<signal.h>)

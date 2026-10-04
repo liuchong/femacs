@@ -390,3 +390,9 @@ names).  `src/sysstdio.h` 29's `#include <unlocked-io.h>` is now carried by the
 `include/sysstdio.rs` mirror, the four call sites invoke those macros, and the three declarations
 are deleted.  Evidence: `build-tu src/sysdep.c` built, `--check` OK, and the executable link's
 undefined list drops by those three names (`docs/ports/link.md`, reading three).
+
+- **Integrator note (3.263): `snprintf` is declared by the mirror, not here.**  `lib/include/stdio.rs`
+  gained the `<stdio.h>` entry so the `GLYPH_DEBUG` arms (which call it) compile - `xtask dead-arms`
+  with the `glyph_debug` flip is what found it - and this unit's own declaration of the same name was
+  what made the name ambiguous once the mirror carried it.  The declaration is gone; the mirror is
+  the single declaration point (PORTING.md 0.1-3).

@@ -1572,7 +1572,7 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
 /// not of `gate-fast`, because it is a second compile of every unit.
 fn dead_arms() -> i32 {
     // feature -> (config key, value with the feature on)
-    const FLIPS: [(&str, &str, &str); 6] = [
+    const FLIPS: [(&str, &str, &str); 7] = [
         ("no_rint", "HAVE_RINT", "false"),
         ("no_trunc", "HAVE_TRUNC", "false"),
         ("no_signbit", "HAVE_SIGNBIT", "false"),
@@ -1588,6 +1588,11 @@ fn dead_arms() -> i32 {
         // HAVE_LOG2 is not gated on a feature (the condition keeps the constant), but
         // the other arm is still C text that has to compile.
         ("", "HAVE_LOG2", "false"),
+        // 3.263 measured the rest of the carried surface (`tools/feature-coverage.py`: 730 of the
+        // 736 features the tree mentions are enabled by no configuration) and tried the four
+        // largest arms that need no platform toolchain - the two semantic switches and the two
+        // optional-library switches whose constant the generator emits.
+        ("glyph_debug", "", "true"),
         // The NS/Cocoa arms were the second structural pair nothing compiled (the shim lane's
         // honest note, status 3.257 ③), and 3.262 tried the flip: `("have_ns", "HAVE_NS",
         // "true")` and `("ns_impl_cocoa", "", "true")` (an empty key means "a feature with no

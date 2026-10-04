@@ -604,3 +604,9 @@ check-cond-eval.py src/process.c -> 222 conditions, 0 unknown, 1 disagreements (
 check-undef.py                -> 1 NEW: _inherit_process_coding_system (the unported src/coding.c; see above)
 grep -c '^- [ ]' docs/ports/process.md -> 0   (235 rows ticked)
 ```
+
+- **Integrator note (3.263): `snprintf` is declared by the mirror, not here.**  `lib/include/stdio.rs`
+  gained the `<stdio.h>` entry so the `GLYPH_DEBUG` arms (which call it) compile - `xtask dead-arms`
+  with the `glyph_debug` flip is what found it - and this unit's own declaration of the same name was
+  what made the name ambiguous once the mirror carried it.  The declaration is gone; the mirror is
+  the single declaration point (PORTING.md 0.1-3).

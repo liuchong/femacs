@@ -84,8 +84,9 @@ unsafe extern "C" {
   pub fn kill (pid: pid_t, sig: c_int) -> c_int;
   /// C: int mkostemp (char *, int)   -- <stdlib.h>
   pub fn mkostemp (template: *mut c_char, flags: c_int) -> c_int;
-  /// C: int snprintf (char *, size_t, const char *, ...)   -- <stdio.h>
-  pub fn snprintf (s: *mut c_char, maxlen: usize, format: *const c_char, ...) -> c_int;
+  // `<stdio.h>`'s `int snprintf (char *, size_t, const char *, ...)` comes from
+  // `lib/include/stdio.rs` (status 3.263): the mirror carries it, so this unit does not
+  // declare it a second time (PORTING.md 0.1-3).
   /// C: intmax_t strtoimax (const char *, char **, int)   -- <inttypes.h>
   pub fn strtoimax (nptr: *const c_char, endptr: *mut *mut c_char, base: c_int) -> intmax_t;
   /// C: void *memrchr (const void *, int, size_t)   -- gnulib <string.h> (HAVE_MEMRCHR undef)

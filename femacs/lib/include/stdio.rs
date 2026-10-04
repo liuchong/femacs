@@ -38,6 +38,11 @@ pub mod stdio_decls {
        that formats into a caller-supplied buffer (`string_escape_byte8`'s "\\%03o"); the
        declaration is C-variadic, like lisp.rs's `error` (PORTING.md P-04).  */
     pub fn sprintf (s: *mut c_char, format: *const c_char, ...) -> c_int;
+    /* int snprintf (char *s, size_t n, const char *format, ...); - the same <stdio.h> as
+       `sprintf`, and the entry the GLYPH_DEBUG arms call (src/dispnew.rs 169, src/font.rs);
+       lib/stdio.in.h 1646 redirects the name to `rpl_snprintf` only where the system lacks it,
+       which this target does not (the frozen `HAVE_SNPRINTF` is 1).  */
+    pub fn snprintf (s: *mut c_char, n: usize, format: *const c_char, ...) -> c_int;
 
     /* The entries the debug/dump paths print with.  Thirteen units declared `fprintf`
        themselves before this landed (status 3.79); the module + glob import is what lets any

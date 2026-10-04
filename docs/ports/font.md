@@ -366,3 +366,9 @@ would see it.
    `lisp.rs` still lacks `larger_vector`/`make_specified_string` (status 3.57's list).
 5. `docs/baseline/undef-pending.txt`: the nine entries this unit adds (see the gates' tail);
    they shrink when xfaces.c/frame.c/dispnew.c/fns.c land.
+
+- **Integrator note (3.263): `snprintf` is declared by the mirror, not here.**  `lib/include/stdio.rs`
+  gained the `<stdio.h>` entry so the `GLYPH_DEBUG` arms (which call it) compile - `xtask dead-arms`
+  with the `glyph_debug` flip is what found it - and this unit's own declaration of the same name was
+  what made the name ambiguous once the mirror carried it.  The declaration is gone; the mirror is
+  the single declaration point (PORTING.md 0.1-3).

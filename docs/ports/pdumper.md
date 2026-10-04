@@ -457,3 +457,9 @@ allocation is the port's stack pool).  Functions C leaves to other units
 `garbage_collect`, `fatal`, `sys_fstat`, `file_name_absolute_p`, `splice_dir_file`,
 `emacs_write`, `emacs_open_noquit`, `emacs_close`, `emacs_open`) stay declared, never
 re-implemented here.
+
+- **Integrator note (3.263): `snprintf` is declared by the mirror, not here.**  `lib/include/stdio.rs`
+  gained the `<stdio.h>` entry so the `GLYPH_DEBUG` arms (which call it) compile - `xtask dead-arms`
+  with the `glyph_debug` flip is what found it - and this unit's own declaration of the same name was
+  what made the name ambiguous once the mirror carried it.  The declaration is gone; the mirror is
+  the single declaration point (PORTING.md 0.1-3).

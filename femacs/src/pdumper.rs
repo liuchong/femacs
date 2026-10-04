@@ -121,9 +121,9 @@ pub mod pdumper_use_site_decls {
     pub fn mprotect (addr: *mut c_void, len: size_t, prot: c_int) -> c_int;
 
     /* int fprintf (FILE *, const char *, ...); int vfprintf (FILE *, const char *, va_list);
-       int snprintf (char *, size_t, const char *, ...); int putc (int, FILE *);  */
+       int putc (int, FILE *);  - `int snprintf (char *, size_t, const char *, ...)` comes
+       from `lib/include/stdio.rs` (status 3.263).  */
     pub fn vfprintf (stream: *mut FILE, format: *const c_char, ap: VaList<'_>) -> c_int;
-    pub fn snprintf (s: *mut c_char, n: size_t, format: *const c_char, ...) -> c_int;
 
     /* void abort (void);  */
     pub fn abort () -> !;
