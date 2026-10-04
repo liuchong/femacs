@@ -1240,3 +1240,6 @@ add_to_log	va_end,va_list,va_start	xdisp.c 12278-12285: C's `va_list ap; va_star
 message_dolog	int_strlen_bound,pridmax	xdisp.c 12458-12463: C's `INT_STRLEN_BOUND (dups)` sizes the local array (measured 20 + 10 = 30, deviation 93) and `PRIdMAX` (measured "jd", deviation 94) is pasted into the `sprintf` format, so neither token survives
 ensure_echo_area_buffers	int_strlen_bound	xdisp.c 12906: C's `char name[sizeof name_fmt + INT_STRLEN_BOUND (int)];` sizes the local array from the C macro (measured 16 + 11 = 27, deviation 105); `INT_STRLEN_BOUND` has no Rust token
 SET_GLYPH_FROM_GLYPH_CODE	false	dispextern.h 414-420: C's `do { … } while (false)` statement macro; the port writes the `if` the loop encloses (the FD_SET/FD_CLR class), so the loop's own `false` is the one token with no match
+DEC_TEXT_POS	false	dispextern.h 286-290: C's `do { --(POS).charpos; if (MULTIBYTE_P) …; } while (false)` statement macro; the port writes the block the loop encloses (the FD_SET/FD_CLR class), so the loop's own `false` has no match
+INC_TEXT_POS	false	dispextern.h 291-295: same shape as DEC_TEXT_POS (`do { ++(POS).charpos; … } while (false)`)
+PRODUCE_GLYPHS	false	dispextern.h 648-700: same shape (`do { … } while (false)` around the glyph-row setup)

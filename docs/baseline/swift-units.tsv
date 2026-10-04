@@ -43,7 +43,6 @@ femacs/platform/macos/nsterm.swift	nil_or_none	src/nsterm.m
 femacs/platform/macos/nsterm.swift	not_in_argv	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_UAZoomChangeFocus	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_after_update_window_line	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_alloc_autorelease_pool	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_clear_frame	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_clear_frame_area	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_clear_under_internal_border	src/nsterm.m
@@ -101,8 +100,6 @@ femacs/platform/macos/nsterm.swift	ns_iconify_frame	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area_1	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area_2	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_init_locale	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_init_pool	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_initialize_display_info	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_judge_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_lisp_to_color	src/nsterm.m
@@ -124,10 +121,6 @@ femacs/platform/macos/nsterm.swift	ns_read_socket	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_read_socket_1	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redeem_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redraw_scroll_bars	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_release_autorelease_pool	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_release_object	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_relocate	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_retain_object	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_ring_bell	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_row_rect	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_run_loop_break	src/nsterm.m

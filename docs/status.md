@@ -4277,3 +4277,34 @@
   （status 3.144），而这 427 条里绝大多数是这类构造 ⇒ **现在没有任何 Rust 单元导出它们**，链接阶段一旦开工就会全线失败。
   这不是 lane 的缺陷（Swift 侧的声明与它们的台账一致），是**核心侧还没实现的 shim**：下一轮起把"按名字导出"做成一个真实的活儿
   （逐镜像 `#[no_mangle] extern "C"` 包装，或一个专门的 shim 单元），并在每批落地后让那 427 行按"消失即删行"的棘轮规则收缩。
+
+- **3.235 三条 lane 入库：`font.h` 与 `dispextern.h` 的镜像都转 `OK`，`nsterm` 第 3 轮进来；`extract-abi --all` 只剩 `xdisp.c` 一个 WIP（2026-10-04）**：
+  ① **`font.h` 收口（`25115c1`）**：`struct font_driver`（C 589-821，sizeof 208/align 8，`close_font`@64、`text_extents`@104、
+  `cached_font_ok`@184…）与 `struct font_driver_list`（C 824-837，24/8，`on`@0/`driver`@8/`next`@16）从 unit 搬进 `include/font.rs`，
+  带 13 条实测断言；`draw`/`get_bitmap`/`free_bitmap`（C 682-698）挂 `have_window_system`；unit 侧退休 `font.rs` 两条记录与
+  `alloc.rs` 的 9 行 stand-in；台账 **55/55 全勾**，两条 `deferred` 消失 ⇒ `--check emacs/src/font.h …` = **OK**。
+  ② **同一提交里的回归与修法（值得记）**：那批新成员把 `prepare_face`/`done_face` 写成了 `*mut face`，而 `struct face` 只在
+  `include/dispextern.rs` 的 `dispextern_face_records` 臂里 —— 28 个 include 这份镜像的单元里有 7 个不含那条臂，
+  `build-tu src/keyboard.c` 直接 `E0425: cannot find type face`（rustc 的 note 还写着 `found an item that was configured out`）。
+  修法照镜像自己的先例（P-72 ③：`*mut c_void` + `/// C:` 原文行），unit 两处调用点加转换。**教训**：`layout-check` 只编布局探针、
+  `dead-arms` 只翻配置臂，**镜像改动可以打断它的消费者单元而没有任何门会响** —— 337 单元的那次 `dead-arms` 是全树唯一的批量编译，
+  但它不是每次改动都跑。判据在最终产物上重取：`build-tu src/{keyboard,font,alloc,xfaces,dispnew}.c` 五件 built、`layout-check passed`、
+  `check-mirror-dupes` 1/1/0。
+  ③ **`dispextern.h`（`e14a852`）**：87 个 unit-owned 名字落进**不 glob-import 的模块 `dispextern_unit_names`**（C 顺序、`/// C:` 原文；
+  宏/枚举常量/对象声明三类；`FACE_FOR_CHAR` 因为要读 `struct face` 成员而落在同一条 records 臂里）——这是 `xstrcasecmp`（3.224）的形状，
+  不需要新 feature 行，而且模块文本被每个包含它的单元与 `layout-check` 真编译。**一处更正**：那条提交实际携带的比它的信息里说的多
+  —— 我 stage 的那一刻工作树里已经有该 lane 落下的**下一批 15 个名字**，所以 `e14a852` 的真实状态是 `--check` **3 条 token 行**（不是 15 条 missing）；
+  本轮的 3 条 `DEC_TEXT_POS`/`INC_TEXT_POS`/`PRODUCE_GLYPHS` 的 `false` 行（同 FD_SET 那一类）进 `macro-body-notes.tsv` 之后，
+  **`--check emacs/src/dispextern.h femacs/src/include/dispextern.rs` = `OK`**。台账未勾 53 → 14（剩下的 5 个记录 + 若干 stale 框）。
+  ④ **`nsterm` 第 3 轮入库**：`nsterm.swift` 613 → **757 行**（C 522-641：`ns_relocate`/`ns_init_pool`/`ns_init_locale`/`ns_release_object`/
+  `ns_retain_object`/两个池入口），`docs/ports/nsterm.md` 918 行；`swiftc -parse-as-library -c` **exit 0**；
+  门读数 `142 C definition(s), 129 unported, 129 row(s); 18 C symbol import(s)`，**0 new / 0 stale**（第 2 轮那 7 个函数对应的 manifest 行已删）。
+  本轮的裁决与形状：`ns_relocate` 取 `NS_SELF_CONTAINED` 臂为活（`configure.ac` 689-690 默认 yes、2885-2886 `AC_DEFINE`），
+  池三件套走 `objc_autoreleasePoolPush/Pop`（ARC 没有 `NSAutoreleasePool`，第 1 轮 `outerpool` 的同一条），
+  `retain`/`release` 用 `Unmanaged` 的引用计数入口（真实 RC 操作，不是 stub），autoreleased 指针用 `passRetained(...).autorelease()`
+  保住 C 的生命周期（物证：`nm -u` 里有 `_objc_autorelease`）。
+  ⑤ **里程碑读数**：`extract-abi --all` → **checked 590 ported files: 589 done, 1 in progress, 0 failing**。
+  **唯一的 WIP 是 `src/xdisp.c`**（`WIP src/xdisp.c -> femacs/src/xdisp.rs (160 differences, docs/ports/xdisp.md has unchecked boxes)`）——
+  也就是说 `frame.h`、`font.h`、`dispextern.h` 三个曾经 WIP 的头镜像现在 `--check` 全 `OK`，其余 586 个文件也全部 0 differences。
+  其余门：`check-declarations` 13/0、`check-undef` **108 pending / 0 new**、`check-citations` 9 drift/1 range/38 allowed/0 stale、
+  `check-swift-units` 0 new/0 stale/7 units、`check-mirror-dupes` 1/1/0。

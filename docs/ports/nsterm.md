@@ -32,13 +32,13 @@
 - [x] ns_finish_events  (line 492) — landed, `@_cdecl("ns_finish_events")` (src/nsterm.h 1258)
 - [x] hold_event  (line 498, static) — landed as `fileprivate func hold_event` (the hold queue's `input_event` copy is `MemoryLayout<input_event>.stride`, measured 64)
 - [x] append2  (line 515, static) — landed as `fileprivate func append2`; C's `list (item)` is `list1` for one argument
-- [ ] ns_relocate  (line 525)
-- [ ] ns_init_pool  (line 560)
-- [ ] ns_init_locale  (line 569)
-- [ ] ns_release_object  (line 602)
-- [ ] ns_retain_object  (line 612)
-- [ ] ns_alloc_autorelease_pool  (line 622)
-- [ ] ns_release_autorelease_pool  (line 632)
+- [x] ns_relocate  (line 525) — landed as `@_cdecl("ns_relocate")` (src/nsterm.h 1195; called src/emacs.c 1059/3298); the `NS_SELF_CONTAINED` arm is the live one (`configure.ac` 689-690 default `yes`, 2885-2886 `AC_DEFINE`)
+- [x] ns_init_pool  (line 560) — landed as `@_cdecl("ns_init_pool")`; C's `[[NSAutoreleasePool alloc] init]` is the runtime's `objc_autoreleasePoolPush` (ARC has no `NSAutoreleasePool`)
+- [x] ns_init_locale  (line 569) — landed as `@_cdecl("ns_init_locale")` (src/nsterm.h 1172; src/emacs.c 1647); `NSTRACE (…)` is the empty macro at `NSTRACE_ENABLED` 0, so it carries no statement
+- [x] ns_release_object  (line 602) — landed as `@_cdecl("ns_release_object")`; `[(id)obj release]` is `Unmanaged.release` under ARC, and `nsselect.swift` 215 already imports that signature
+- [x] ns_retain_object  (line 612) — landed as `@_cdecl("ns_retain_object")` (src/nsterm.h 1167; src/image.c 4418); `[(id)obj retain]` is `Unmanaged.retain`, its +1 belonging to the caller
+- [x] ns_alloc_autorelease_pool  (line 622) — landed as `@_cdecl("ns_alloc_autorelease_pool")` (src/nsterm.h 1168; src/thread.c 786); the runtime's pool push
+- [x] ns_release_autorelease_pool  (line 632) — landed as `@_cdecl("ns_release_autorelease_pool")` (src/thread.c 842); C's `ns_release_object (pool)` is a pool pop
 - [ ] ns_menu_bar_should_be_hidden  (line 642, static)
 - [ ] ns_screen_margins  (line 660, static)
 - [ ] ns_screen_margins_ignoring_hidden_dock  (line 711, static)
@@ -486,23 +486,28 @@ C 60-390**: the `#include`/`#import` prologue (C 60-81) recorded rather than tra
 first three statics (C 82-88), the dead `NSTRACE_ENABLED` block (C 96-149), the
 `NSColor (EmacsColor)` category (C 152-206), the `convert_ns_to_X_keysym` table (C 214-293), the
 file-scope objects (C 295-347), the seven modifier masks (C 349-356) and the file's first two
-functions `mod_of_kind`/`ev_modifiers_helper` (C 358-389).  **Round 2 lands C 391-519** - the
+functions `mod_of_kind`/`ev_modifiers_helper` (C 358-389).  **Round 2 landed C 391-519** - the
 `EV_*` accessors' five self-contained macros (C 397-444), the forward declarations recorded
 (C 473-475), `ns_init_events`/`ns_finish_events` (C 484-495) and `hold_event`/`append2`
-(C 498-519) - so the covered range is now **C 60-519**, with `EV_TRAILER`/`EV_TRAILER2`
+(C 498-519).  **Round 3 lands C 522-638** - `ns_relocate` (C 525-557), `ns_init_pool`
+(C 560-568), `ns_init_locale` (C 569-600) and the four retain/release/pool hooks
+`ns_release_object`/`ns_retain_object`/`ns_alloc_autorelease_pool`/`ns_release_autorelease_pool`
+(C 602-638) - so the covered range is now **C 60-638**, with `EV_TRAILER`/`EV_TRAILER2`
 (C 448-470) held to C 5013 (below).
 
-**The next slice starts at C 522** (`ns_relocate`, whose `NS_SELF_CONTAINED` arm needs a ruling:
-the macro belongs to the build, not to `config.h`, and the Cocoa app bundle defines it).
+**The next slice starts at C 641** (`ns_menu_bar_should_be_hidden`, then `struct EmacsMargins`
+at C 650 and `ns_screen_margins` at C 660).
 
-Ticked above: **9 of the 142 function boxes** (the six landed - `mod_of_kind`,
-`ev_modifiers_helper`, `ns_init_events`, `ns_finish_events`, `hold_event`, `append2` - and the
-three dead `nstrace_*`), **13 of the 23 macro boxes** (the eight masks and `NO_APPDEFINED_DATA`,
-plus the five `EV_*` accessors; the two held ones stay open), **39 of the 47 file-scope-object
-boxes** (31 of the generator's 39 plus the 8 hand-added ones), and **1 of the 8 Objective-C
-classes** (`NSColor (EmacsColor)`, all four of its methods).  The other 133 function boxes, 10
-macro boxes, 7 class boxes, 189 method boxes and the one type box (`struct EmacsMargins`, C 650)
-are later slices.
+Ticked above: **16 of the 142 function boxes** (the thirteen landed - `mod_of_kind`,
+`ev_modifiers_helper`, `ns_init_events`, `ns_finish_events`, `hold_event`, `append2`,
+`ns_relocate`, `ns_init_pool`, `ns_init_locale`, `ns_release_object`, `ns_retain_object`,
+`ns_alloc_autorelease_pool`, `ns_release_autorelease_pool` - and the three dead `nstrace_*`),
+**13 of the 23 macro boxes** (the eight masks and `NO_APPDEFINED_DATA`, plus the five `EV_*`
+accessors; the two held ones stay open), **39 of the 47 file-scope-object boxes** (31 of the
+generator's 39 plus the 8 hand-added ones), and **1 of the 8 Objective-C classes**
+(`NSColor (EmacsColor)`, all four of its methods).  The other 126 function boxes, 10 macro boxes,
+7 class boxes, 189 method boxes and the one type box (`struct EmacsMargins`, C 650) are later
+slices.
 
 **The slice's text had been landed before this round but measured with `swiftc -parse`, which
 resolves no names.** This lane's compile gate is `swiftc -parse-as-library -c` (the form
@@ -710,6 +715,51 @@ declaration) and C 96 (`NSTRACE_ENABLED`, dead).
 | 9812 | `!defined (NS_IMPL_COCOA) \|\| MAC_OS_X_VERSION_MIN_REQUIRED <= 1090` | live | **dead** |
 | 9813 | `#if MAC_OS_X_VERSION_MAX_ALLOWED > 1090` | live | **dead** (nested in 9812) |
 
+### Round 3: the startup hooks, and the two `const char *` lifetimes
+
+**`ns_relocate`'s arm.**  The `#ifdef NS_SELF_CONTAINED` block is **live**: `configure.ac`
+689-690 gives the option the default `yes` and 2885-2886 `AC_DEFINE`s the macro, so the bundled
+build this ledger describes has it; the `--disable-ns-self-contained` build compiles the same
+function with the block removed.  That dead arm is recorded here, not transcribed (P-51), and
+`nsterm.m`'s `check-cond-eval` state (`[NOT VERIFIED]`, round 1) is not an obstacle: the ruling
+rests on the build system's own lines, which do not need the macro table.
+
+**`const char *` out of autoreleased objects, twice.**  C hands out pointers into an
+`NSString`/`NSString(format:)` that is *autoreleased* - valid until the enclosing pool drains -
+in `ns_relocate` (returns `[fixedPath UTF8String]`) and in `ns_init_locale` (uses
+`[localeID UTF8String]` for the rest of the function).  ARC releases a local at scope end, so the
+unit keeps C's lifetime explicitly with `Unmanaged.passRetained(x).autorelease()`: the object is
+retained and immediately autoreleased, which is exactly the pair C's `+pathWithComponents:` /
+`+stringWithFormat:` perform, and the returned pointer stays valid as long as C's does.  The
+generated code calls `objc_autorelease` (visible in `nm -u`, Evidence), so this is the real
+runtime path and not a naming accident.  `ns_init_locale`'s *other* source of `lang` is
+`getenv`, whose storage is static; C's `default_lang` literal is static too, and the unit's
+file-scope `NSString` is its storage of the same class (a local Swift `String` or a
+`withCString` scope would die before the `setenv` below runs).
+
+**`NSAutoreleasePool` becomes the runtime pair.**  `ns_init_pool` (C 560-568),
+`ns_alloc_autorelease_pool` (C 622-628) and `ns_release_autorelease_pool` (C 632-638) are C's
+pool lifecycle; ARC has no `NSAutoreleasePool` (round 1's `outerpool` decision), so they are
+`objc_autoreleasePoolPush`/`objc_autoreleasePoolPop` - the two entries `@autoreleasepool`
+compiles to, which round 1 measured in libobjc.  The push/pop pair is the pool's own primitive,
+and C's `ns_release_autorelease_pool`'s `ns_release_object (pool)` is the same `[(id)pool
+release]` a pop is.
+
+**`retain`/`release` under ARC.**  C's `[(id)obj retain]` / `[(id)obj release]` (C 602-616) are
+unavailable to Swift ARC as written; the port performs the same reference-count operations
+through the runtime's own entries - `Unmanaged.fromOpaque(obj).release()` consumes the +1 the
+reference consumes, and `.retain()` performs the +1 `ns_retain_object`'s caller owns.  Both keep
+C's nil-receiver behaviour (a NULL argument does nothing).  `nsselect.swift` 215 already imports
+this export's exact signature (`(_ obj: UnsafeMutableRawPointer?)`), so the two units agree.
+
+**No new owed symbols.**  Round 3's imports are all library entries - `objc_autoreleasePoolPush`,
+`objc_autoreleasePoolPop`, `objc_autorelease`, `objc_retain`, `objc_release` (libobjc) and
+`fprintf`, `getenv`, `setenv`, `setlocale` (libSystem) - so `## ABI` (3)'s list does not grow.
+
+**`NSTRACE` is empty.**  `ns_init_locale`'s `NSTRACE ("ns_init_locale")` expands to nothing when
+`NSTRACE_ENABLED` is 0 (src/nsterm.h 297's `NSTRACE` → 302's empty `NSTRACE_WHEN`), so it carries
+no statement in the port either - the same dead arm round 1 recorded for C 96-149.
+
 ## ABI
 
 ### (1) C symbols this file defines and exports (`@_cdecl`)
@@ -723,6 +773,13 @@ declaration) and C 96 (`NSTRACE_ENABLED`, dead).
 | `context_menu_value` | `extern long context_menu_value` (933) | `func context_menu_value() -> Int` |
 | `ns_init_events` | `extern void ns_init_events (struct input_event *)` (src/nsterm.h 1257) | `func ns_init_events(_ ev: UnsafeMutableRawPointer)` |
 | `ns_finish_events` | `extern void ns_finish_events (void)` (src/nsterm.h 1258) | `func ns_finish_events()` |
+| `ns_relocate` | `extern const char *ns_relocate (const char *)` (src/nsterm.h 1195) | `func ns_relocate(_ epath: UnsafePointer<CChar>?) -> UnsafePointer<CChar>?` |
+| `ns_init_pool` | `extern void ns_init_pool (void)` (src/nsterm.h 1171) | `func ns_init_pool()` |
+| `ns_init_locale` | `extern void ns_init_locale (void)` (src/nsterm.h 1172) | `func ns_init_locale()` |
+| `ns_release_object` | `extern void ns_release_object (void *)` (src/nsterm.h 1166) | `func ns_release_object(_ obj: UnsafeMutableRawPointer?)` |
+| `ns_retain_object` | `extern void ns_retain_object (void *)` (src/nsterm.h 1167) | `func ns_retain_object(_ obj: UnsafeMutableRawPointer?)` |
+| `ns_alloc_autorelease_pool` | `extern void *ns_alloc_autorelease_pool (void)` (1168) | `func ns_alloc_autorelease_pool() -> UnsafeMutableRawPointer?` |
+| `ns_release_autorelease_pool` | `extern void ns_release_autorelease_pool (void *)` (1169) | `func ns_release_autorelease_pool(_ pool: UnsafeMutableRawPointer?)` |
 
 `mod_of_kind`, `ev_modifiers_helper`, `hold_event` and `append2` are C `static`s - no C symbol exists in the reference
 either - so they land as `fileprivate func`s of their own names.  The exported set is exactly
@@ -746,6 +803,9 @@ what `nm -g` shows (Evidence).
 | `nconc2` | `Lisp_Object nconc2 (Lisp_Object, Lisp_Object)` | src/lisp.h 4271 | src/fns.c |
 | `list1` | `Lisp_Object list1 (Lisp_Object)` | src/lisp.h (the `list` family) | src/alloc.c |
 | `EVENT_INIT` | `INLINE void EVENT_INIT (struct input_event *)` | src/termhooks.h 414 | header-only |
+| `objc_autoreleasePoolPush` | `void *objc_autoreleasePoolPush (void)` | objc/runtime (not Swift-visible) | libobjc |
+| `objc_autoreleasePoolPop` | `void objc_autoreleasePoolPop (void *)` | objc/runtime (not Swift-visible) | libobjc |
+| `fprintf` | `int fprintf (FILE *, const char *, ...)` | stdio.h | libSystem (`docs/ports/nsfont.swift` 1173-1177's reading) |
 
 `Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
 core exports a C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  The
@@ -764,8 +824,12 @@ lists the whole set (Evidence).
   whose table comes from a build that never compiles this file;
 * `femacs/platform/macos/nsmenu.swift` (another lane's unit): the `EmacsMenu` class whose
   pointer this unit carries untyped;
-* other lanes read this unit's exports: `nsselect.swift` calls `ns_send_types()` and
-  `ns_return_types()`.
+* other lanes read this unit's exports: `nsselect.swift` calls `ns_send_types()`,
+  `ns_return_types()` and `ns_release_object` (as a callback, 215/793); `emacs.c`'s port will call
+  `ns_relocate`/`ns_init_pool`/`ns_init_locale`, `image.c`'s `ns_retain_object`, and `thread.c`'s
+  the two pool hooks;
+* nothing new to supply here: round 3's imports are libobjc/libSystem entries ("no new owed
+  symbols" in Decisions).
 
 ## Evidence
 
@@ -827,6 +891,14 @@ lists the whole set (Evidence).
   width 16); the same probe prints the modifier bits `up 1 down 2 drag 4 click 8 double 16
   triple 32 alt 4194304 super 8388608 hyper 16777216 shift 33554432 ctrl 67108864
   meta 134217728`.
+* Round 3's compile, same command: **exit 0, no output**.
+* `nm -g /tmp/s188r3/nsterm.o | grep ' T _'` -> the exports now carry `_ns_relocate`,
+  `_ns_init_pool`, `_ns_init_locale`, `_ns_release_object`, `_ns_retain_object`,
+  `_ns_alloc_autorelease_pool` and `_ns_release_autorelease_pool` beside the earlier seven.
+* `nm -u /tmp/s188r3/nsterm.o` -> round 3's imports are `_fprintf`, `_getenv`, `_setenv`,
+  `_setlocale`, `_objc_autoreleasePoolPush`, `_objc_autoreleasePoolPop` - and **`_objc_autorelease`**,
+  which is the object-time proof that `Unmanaged.passRetained(x).autorelease()` is C's
+  autorelease and not a no-op; `_objc_retain`/`_objc_release` are the two hooks' runtime entries.
 * `struct input_event`'s layout, Swift side (`swiftc -o /tmp/s188r2/layoutprobe
   femacs/platform/macos/nsterm.swift /tmp/s188r2/main.swift /tmp/s188r2/stubs.c -Xlinker
   -undefined -Xlinker dynamic_lookup`, then the program) -> `input_event size 64 stride 64

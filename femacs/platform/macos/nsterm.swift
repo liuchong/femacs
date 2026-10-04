@@ -8,9 +8,12 @@
 // (`mod_of_kind` C 358, `ev_modifiers_helper` C 369).  **Round 2 lands C 391-519**: five of the
 // seven `EV_*` accessors (C 397-444), the forward declarations (C 473-475, recorded - Swift has
 // none), `ns_init_events`/`ns_finish_events` (C 484-495, the unit's C interface) and
-// `hold_event`/`append2` (C 498-519).  `EV_TRAILER`/`EV_TRAILER2` (C 448-470) are **held** to
-// C 5013, where their two callees exist (see the note at the end of this file).  The next slice
-// starts at C 522 (`ns_relocate`).
+// `hold_event`/`append2` (C 498-519).  **Round 3 lands C 522-638**: `ns_relocate` (C 525-557,
+// its `NS_SELF_CONTAINED` arm live per `configure.ac` 689-690/2885-2886), `ns_init_pool`
+// (C 560-568), `ns_init_locale` (C 569-600), and the four retain/release/pool hooks "callable
+// from C" (C 602-638).  `EV_TRAILER`/`EV_TRAILER2` (C 448-470) are **held** to C 5013, where
+// their two callees exist (see the note in round 2's block).  The next slice starts at C 641
+// (`ns_menu_bar_should_be_hidden`) and C 650's `struct EmacsMargins`.
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -611,3 +614,144 @@ fileprivate func append2(_ list: Lisp_Object, _ item: Lisp_Object) -> Lisp_Objec
   nconc2(list, list1(item))
 }
 
+// ==========================================================================
+// C 522-638: path relocation, the autorelease pool, the locale, and the
+// retain/release hooks "callable from C".
+// ==========================================================================
+
+/// C: `void *objc_autoreleasePoolPush (void)` and `void objc_autoreleasePoolPop (void *)` - the
+/// pair `@autoreleasepool` compiles to, and the runtime's own pool primitives.  The SDK's
+/// Swift-visible headers do not carry them (measured) and `NSAutoreleasePool` is unavailable
+/// under ARC (round 1's `outerpool` decision), so the pool functions below reach the runtime by
+/// name; round 1 measured the two symbols in libobjc with a C probe.
+@_silgen_name("objc_autoreleasePoolPush")
+func objc_autoreleasePoolPush() -> UnsafeMutableRawPointer?
+@_silgen_name("objc_autoreleasePoolPop")
+func objc_autoreleasePoolPop(_ pool: UnsafeMutableRawPointer?)
+
+/// C: `int fprintf (FILE *, const char *, ...)` (stdio.h) - Swift's own `fprintf` is marked
+/// unavailable, and the lane reaches the C entry by name (docs/ports/nsfont.swift 1173-1177).
+@_silgen_name("fprintf")
+func fprintf(_ stream: UnsafeMutablePointer<FILE>?, _ format: UnsafePointer<CChar>,
+             _ args: CVarArg...)
+
+/// C 525-557: `const char *ns_relocate (const char *epath)` - "If we're running in a
+/// self-contained app bundle some hard-coded paths are relative to the root of the bundle, so
+/// work out the full path."  Declared src/nsterm.h 1195 and called from src/emacs.c 1059 and
+/// 3298, so it is a `@_cdecl` export.
+///
+/// The `#ifdef NS_SELF_CONTAINED` arm is the live one: `configure.ac` 689-690 defaults the
+/// option to `yes` and 2885-2886 `AC_DEFINE`s the macro, so the bundled build - the one this
+/// ledger describes - has the block; the `--disable-ns-self-contained` build compiles the same
+/// function without it (P-51: the dead arm is this paragraph, recorded, not transcribed).
+@_cdecl("ns_relocate") func ns_relocate(_ epath: UnsafePointer<CChar>?)
+  -> UnsafePointer<CChar>? {
+  let root = Bundle.main.bundlePath
+  let original: NSString? = epath.flatMap { NSString(utf8String: $0) }
+  // C's `[NSArray arrayWithObjects: root, original, nil]` stops at the first nil, so a path
+  // that is not UTF-8 leaves `root` alone in the array.
+  let components = original == nil ? [root] : [root, original! as String]
+  let fixedPath = NSString.path(withComponents: components) as NSString
+  let fileManager = FileManager.default
+
+  if !(original?.isAbsolutePath ?? false)
+       && fileManager.fileExists(atPath: fixedPath as String, isDirectory: nil) {
+    // C returns `[fixedPath UTF8String]`, and `fixedPath` is *autoreleased* there: the pointer
+    // stays valid until the pool drains.  The unit autoreleases its `NSString` the same way -
+    // `passRetained` + `autorelease` is exactly that pair - so the pointer the caller gets has
+    // C's lifetime instead of one that ends when this scope does.
+    _ = Unmanaged.passRetained(fixedPath).autorelease()
+    return fixedPath.utf8String
+  }
+
+  /* If we reach here either the path is absolute and therefore we
+     don't need to complete it, or we're unable to relocate the
+     file/directory.  If it's the latter it may be because the user is
+     trying to use a bundled app as though it's a Unix style install
+     and we have no way to guess what was intended, so return the
+     original string unaltered.  */
+
+  return epath
+}
+
+/// C 560-568: `void ns_init_pool (void)` - "Initialize the 'outerpool' autorelease pool.  This
+/// should be called from main before any Objective C code is run."  Declared src/nsterm.h 1171,
+/// called from src/emacs.c 1426.  C: `outerpool = [[NSAutoreleasePool alloc] init];` - under ARC
+/// that type is unavailable, so the pool is the runtime's push (round 1's `outerpool` decision).
+@_cdecl("ns_init_pool") func ns_init_pool() {
+  outerpool = objc_autoreleasePoolPush()
+}
+
+/// C 597: `const char *const default_lang = "en_US.UTF-8";` - a C literal has static storage, so
+/// its bytes outlive the call; this file-scope `NSString` is the same storage class (a
+/// `withCString` scope or a local Swift `String` would die before `setenv` below runs).
+fileprivate let ns_init_locale_default_lang = NSString(string: "en_US.UTF-8")
+
+/// C 569-600: `void ns_init_locale (void)` - "macOS doesn't set any environment variables for
+/// the locale when run from the GUI.  Get the locale from the OS and set LANG."  Declared
+/// src/nsterm.h 1172, called from src/emacs.c 1647.  `NSTRACE ("ns_init_locale")` is the empty
+/// macro when `NSTRACE_ENABLED` is 0 (src/nsterm.h 297 and 302), so it carries no statement here
+/// either - the same dead arm round 1 recorded for C 96-149.
+@_cdecl("ns_init_locale") func ns_init_locale() {
+  /* Either use LANG, if set, or try to construct LANG from
+     NSLocale.  */
+  var lang = UnsafePointer<CChar>(getenv("LANG"))
+  if lang == nil || lang!.pointee == 0 {
+    let localeID = NSString(format: "%@.UTF-8" as NSString,
+                            Locale.current.identifier as NSString)
+    // C's `[NSString stringWithFormat:…]` is autoreleased there, so the `const char *` it yields
+    // is valid for the rest of the function; the unit autoreleases it the same way.
+    _ = Unmanaged.passRetained(localeID).autorelease()
+    lang = localeID.utf8String
+  }
+
+  /* Check if LANG can be used for initializing the locale.  If not,
+     use a default setting.  Note that Emacs's main will undo the
+     setlocale below, initializing the locale from the
+     environment.  */
+  if setlocale(LC_ALL, lang) == nil {
+    fprintf(stderr, "LANG=%s cannot be used, using %s instead.\n",
+            lang!, ns_init_locale_default_lang.utf8String!)
+    lang = ns_init_locale_default_lang.utf8String
+  }
+
+  setenv("LANG", lang, 1)
+}
+
+/// C 602-608: `void ns_release_object (void *obj)` - "Release an object (callable from C)".
+/// Declared src/nsterm.h 1166, and `nsselect.swift` (line 215) imports it as the
+/// `record_unwind_protect_ptr` callback (src/nsselect.m 601), so this export's parameter type is
+/// that file's: an optional untyped pointer.
+@_cdecl("ns_release_object") func ns_release_object(_ obj: UnsafeMutableRawPointer?) {
+  // C: `[(id)obj release];`.  ARC refuses `release`, so the unit consumes the +1 the reference
+  // consumes through the runtime's own entry (`Unmanaged.release`); a NULL argument is C's
+  // nil-receiver message, which does nothing.
+  if obj == nil { return }
+  Unmanaged<AnyObject>.fromOpaque(obj!).release()
+}
+
+/// C 610-616: `void ns_retain_object (void *obj)` - "Retain an object (callable from C)".
+/// Declared src/nsterm.h 1167, called from src/image.c 4418.  C: `[(id)obj retain];` - the +1
+/// belongs to the caller, so the result is discarded rather than balanced.
+@_cdecl("ns_retain_object") func ns_retain_object(_ obj: UnsafeMutableRawPointer?) {
+  if obj == nil { return }
+  _ = Unmanaged<AnyObject>.fromOpaque(obj!).retain()
+}
+
+/// C 622-628: `void *ns_alloc_autorelease_pool (void)` - "Allocate a pool for temporary objects
+/// (callable from C)".  Declared src/nsterm.h 1168, called from src/thread.c 786 (paired with
+/// `ns_release_autorelease_pool` at 842).
+@_cdecl("ns_alloc_autorelease_pool")
+func ns_alloc_autorelease_pool() -> UnsafeMutableRawPointer? {
+  objc_autoreleasePoolPush()
+}
+
+/// C 632-638: `void ns_release_autorelease_pool (void *pool)` - "Free a pool and temporary
+/// objects it refers to (callable from C)".  C: `ns_release_object (pool);` - the same
+/// `[(id)pool release]` that a pool's pop is, which is the runtime entry this unit pushes with;
+/// C's nil receiver is a no-op, so a NULL pool returns here.
+@_cdecl("ns_release_autorelease_pool")
+func ns_release_autorelease_pool(_ pool: UnsafeMutableRawPointer?) {
+  if pool == nil { return }
+  objc_autoreleasePoolPop(pool)
+}
