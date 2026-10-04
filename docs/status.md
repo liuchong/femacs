@@ -3730,3 +3730,33 @@
   同 crate 两份定义会报错 ⇒ 已派给 conf_post lane，**一次一个文件**（每个都 `--check` 不变 + `build-tu`）。
   ③ 读数：`gen-port-inventory` **590 files、done=572、wip=10、todo=8**；`tools/audit-wip.py` 的 A 组仍是 4
   （`dispextern.h`/`xdisp.c` 在飞 + `frame.h`/`font.h` 已派给 stdio lane）；C 组 0。
+
+- **3.205 `mempcpy` 导出 C 自己的符号，三个用点停用 `rpl_mempcpy`（2026-10-04）**：
+  ① **3.112 的结论是错的**。那一条读的是生成头 `build/emacs-ref/lib/string.h` 的 `# undef mempcpy` /
+  `# define mempcpy rpl_mempcpy`（它引的是该头 1027-1028 行），据此把定义端写成
+  `#[unsafe(export_name = "rpl_mempcpy")]`，并让 `src/doprnt.rs`（3 处）、`lib/canonicalize-lgpl.rs`（宏体 + 声明）、
+  `lib-src/etags.rs`（声明 + 5 处调用）去调这个**发明出来的**名字。实测：那两行躺在**第 1025 行的 `# if 0` 里**
+  （3.112 漏读了外层条件），`nm -g build/emacs-ref/lib/mempcpy.o` 打 **`T _mempcpy`**——C 的标识符根本没被改名。
+  ② 修正（`dc302aa`）：定义端回到 `#[unsafe(no_mangle)]`，三个用点回到 `mempcpy`。`export_name` 真正的用场是
+  **真的替换了 libc 函数**的那些单元——实测 `T _rpl_mktime`（参照 `lib/mktime.o`）、`T _rpl_re_search`（参照
+  `src/regex-emacs.o`）——`tools/extract-abi.py` 里拿 mempcpy 当例子的那段注释改成这两件。
+  ③ 读数：`check-symbols.py --dir lib --pending …` **86 units / 0 mismatched / 1 pending**（唯一 pending 仍是
+  `lib/regex` 的聚合拆分，`symbol-pending.txt` 已记录；`--dir src` 73 units / 0 mismatched；`check-linkage` 3 units / 0 missing）；
+  `nm -g build/femacs/{mempcpy,doprnt,canonicalize-lgpl,etags}.o` → `T _mempcpy` + 三个 `U _mempcpy`；
+  `check-undef.py` 的 `_rpl_mempcpy` **消失**，NEW 只剩 `src/xdisp.c` 的 6 个待落函数（它们由 xdisp 自己后段定义）。
+  ④ 教训：**读生成头（生成文件）的一行，必须连它的外层 `#if` 一起读**——与 3.196（排除清单的续行被当文件名）、
+  3.198（台账散文里的 `- [ ]` 被当未勾项）、3.202（非法 marker 让 7 个文件的"已验证"变空洞）是同一类"把片段当事实"。
+  另外 `build/` 的 `.checking.o` 会过期：3.112 留下的旧对象仍报 `_rpl_mempcpy`，判据前先按 §四 的命令重编。
+
+- **3.206 端口树自己的 README 不再把产品名写进标题（2026-10-04）**：
+  ① 2026-10-03 的两道指令扫的是**被复制来的代码**（版本行的产品括注 473 件、复制来的声明块与首行标题 268 件，
+  `2ee1d1d` / `4810bb0` / `fd9cf89`）。`femacs/README.md` 的首行
+  `# femacs — the Rust replication of GNU Emacs` **是我们自己写的句子**，而 `check-declarations.py` 只扫被移植的树
+  （`femacs/{src,lib,lib-src,exec,lwlib,oldXMenu,nt,platform,xtask}`），所以它扫不到这一件，那一轮也就没动它。
+  ② 现在改成 `# femacs — the Rust rewrite`（`30ff6c2`）——文件下面本来就写着 "the ported sources and the tooling that
+  builds them"、"`src/` mirrors the reference C tree"、"The reference checkout is read-only"，标题不需要点名。
+  ③ 复核：`rg -c 'GNU Emacs' .`（扣掉六棵逐字节树 `femacs/{lisp,test,etc,doc,leim,admin}`、`femacs/target` 与参照 `emacs/`）
+  只剩——门自己的模式表（`tools/check-declarations.py` 10）、实测值与台账行（`docs/baseline` 10）、描述参照或许可的散文
+  （`docs` 13 处 + 根 `README.md` 1 处许可句）、以及三个被移植单元里 **C 自己的字符串字面量**（`src/emacs.rs` 3、
+  `src/callproc.rs` 3、`lib-src/etags.rs` 2；全部在 `declarations-allowlist.tsv` 里——docstring 门要与参照逐字对比，
+  改不得）。`check-declarations` **13 sites / 0 forbidden / 13 allowed literals / 0 failures**。
