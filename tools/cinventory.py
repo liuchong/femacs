@@ -76,8 +76,8 @@ DEFINE = re.compile(r"^#\s*define\s+(?P<name>[A-Za-z_]\w*)(?P<args>\([^)]*\))?\s
 # field of `src/haikugui.h`'s `haiku_char_struct` was carried by the mirror and never compared
 # (status 3.146 - the same class of blind spot as 3.143's file-scope objects).  The trailing
 # alias the closing line names (`} Y;`) is not a field and is not collected.
-STRUCT_OPEN_INLINE = re.compile(r"^(?:typedef\s+)?(?P<kind>struct|union)\s+(?P<name>[A-Za-z_]\w*)?\s*\{")
-STRUCT_OPEN_NAME = re.compile(r"^(?:typedef\s+)?(?P<kind>struct|union)(?:\s+(?P<name>[A-Za-z_]\w*))?\s*$")
+STRUCT_OPEN_INLINE = re.compile(r"^(?P<td>typedef\s+)?(?P<kind>struct|union)\s+(?P<name>[A-Za-z_]\w*)?\s*\{")
+STRUCT_OPEN_NAME = re.compile(r"^(?P<td>typedef\s+)?(?P<kind>struct|union)(?:\s+(?P<name>[A-Za-z_]\w*))?\s*$")
 ENUM_OPEN = re.compile(r"^enum\s+(?P<name>[A-Za-z_]\w*)?\s*\{")
 TYPE_WORDS = {
     "static", "extern", "const", "volatile", "inline", "INLINE", "register",
@@ -1492,6 +1492,15 @@ def struct_fields(text: str) -> list[dict]:
     stack: list[tuple[str, str]] = []
     pending = None
     out: list[dict] = []
+    # A `typedef struct X { … } Y;` names the aggregate twice - the tag X and the alias Y - and the
+    # port may put either on the Rust type (etags.c 275's `typedef struct node_st { … } node;` is
+    # `pub struct node`, while lwlib-widget.h's `_widget_value` keeps the tag).  Both names are
+    # therefore recorded, so a comparison can accept either (status 3.152); the alias is only read
+    # for aggregates a `typedef` introduced, because in `struct Z { struct { … } spec; };` the same
+    # `} spec;` shape names a *member* of the enclosing type, which the code below already records.
+    typedef_keys: set[str] = set()
+    typedef_pending: set[str] = set()
+    aliases: dict[str, str] = {}
     # A C declaration may span lines (`void (*set_window_size_hook) (struct frame *f,\n int width,
     # int height);`), and reading one line at a time invented fields out of the *parameters* of
     # such a member (`width`, `yoff`, `title` appeared as members of `struct terminal`) while the
@@ -1509,24 +1518,32 @@ def struct_fields(text: str) -> list[dict]:
         m = STRUCT_OPEN_INLINE.match(stripped)
         if m:
             buf = ""
-            stack.append((m.group("kind"), m.group("name") or f"<anon@{i}>"))
+            key = m.group("name") or f"<anon@{i}>"
+            stack.append((m.group("kind"), key))
+            if m.group("td"):
+                typedef_keys.add(key)
             if stripped.count("{") == stripped.count("}"):
                 stack.pop()
             continue
         m = STRUCT_OPEN_NAME.match(stripped)
         if m:
             pending = (m.group("kind"), m.group("name") or f"<anon@{i}>")
+            if m.group("td"):
+                typedef_pending.add(pending[1])
             continue
         if stripped == "{":
             if pending:
                 stack.append(pending)
+                if pending[1] in typedef_pending:
+                    typedef_keys.add(pending[1])
                 pending = None
             continue
         if stripped.startswith("}"):
             buf = ""
+            closed: list[tuple[str, str]] = []
             for _ in range(stripped.count("}")):
                 if stack:
-                    stack.pop()
+                    closed.append(stack.pop())
             # `} spec;` names the aggregate that just closed: it is a field of whatever
             # contains it, and C lets it be keyed (`offsetof (struct coding_system, spec)`)
             # even though its own members cannot.  Without this the type had no key for the
@@ -1554,6 +1571,10 @@ def struct_fields(text: str) -> list[dict]:
                                     "bitfield": False, "c_type": "<aggregate>",
                                     "raw": following})
                         i += 1          # consume the declarator line
+            if tail and closed and closed[-1][1] in typedef_keys:
+                # `typedef struct X { … } Y;` (or the anonymous twin): Y is the alias of the
+                # aggregate that just closed, and it is the name the port may have used.
+                aliases[closed[-1][1]] = tail.group("name")
             if tail and stack:
                 outer = next((e for e in stack if not e[1].startswith("<anon")), stack[-1])
                 out.append({"container": outer[1], "container_kind": outer[0],
@@ -1575,6 +1596,10 @@ def struct_fields(text: str) -> list[dict]:
                         "nesting": " > ".join(e[1] for e in stack),
                         "line": i, **field})
         buf = ""
+    for record in out:
+        alias = aliases.get(record["container"])
+        if alias:
+            record["alias"] = alias
     return out
 
 
@@ -1832,11 +1857,20 @@ def selftest() -> int:
         ("typedef'd struct and union bodies are not invisible",
          "typedef struct X\n{\n  int a;\n} Y;\ntypedef union U {\n  int b;\n} V;\n",
          ["X.a", "U.b"]),
+        # `typedef struct X { … } Y;` names the aggregate twice; both names are recorded, and the
+        # same `} name;` shape inside a *non*-typedef aggregate stays a member (status 3.152).
+        ("a typedef'd aggregate records its alias, a member does not",
+         "typedef struct node_st\n{\n  int a;\n} node;\n"
+         "struct Z\n{\n  struct\n  {\n    int b;\n  } spec;\n};\n",
+         ["node_st.a@node", "Z.b", "Z.spec"]),
     ]
     bad = 0
     for name, src, want in cases:
         if name.startswith("typedef'd"):
             got = [f"{f['container']}.{f['name']}" for f in struct_fields(src)]
+        elif name.startswith("a typedef'd aggregate"):
+            got = [f"{f['container']}.{f['name']}"
+                   + (f"@{f['alias']}" if f.get("alias") else "") for f in struct_fields(src)]
         else:
             got = [g["name"] for g in globals_(src)]
         ok = got == want

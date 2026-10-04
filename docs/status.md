@@ -2453,3 +2453,27 @@
   ③ 再跑一次全表，把残留按"真缺 / P-55 的 `*mut c_void` + `/// C:` 记账 / P-70 替身"逐个归类，
   真缺的才开成 lane 的工作项。**不先做这一步就不加门**——3.143/3.146 的教训是"纳入了就要能修完"，
   而 344 条里绝大多数是约定而非缺陷。
+
+- **3.152 `struct_fields` 记下 typedef 别名（tag 与别名并存），并把"缺类型"检测的残差一路量到 21（2026-10-04）**：
+  ① **改动**（`tools/cinventory.py`）：两条 open 正则各多一个 `(?P<td>typedef\s+)?` 捕获；被 `typedef` 引入的聚合
+  在闭合行 `} NAME;` 处把 `NAME` 记成该容器的 **alias**（字段记录上同时带 `container` 与 `alias`）。
+  **关键区分**：非 typedef 聚合里的同一个 `} spec;` 形状是**成员**，代码路径不动——实测四例：
+  `typedef struct X {…} Y;` → `(X, alias Y)`；匿名 `typedef struct {…} Y;` → `(<anon@N>, alias Y)`；
+  `struct Z { struct { … } spec; };` → `spec` 仍是 Z 的成员、无 alias；`typedef struct node_st {…} node;` →
+  `(node_st, alias node)`（`etags.c` 实测：`<anon@245>→compressor`、`node_st→node`、`stack_entry→stkentry`）。
+  `--selftest` 由 6 例变 **7 例**（新增"typedef 聚合记别名、成员不记"）。
+  ② **残差一路量下去**（每一步都实测，不是估）：
+  - 朴素版（C 容器名 vs 镜像同名类型）：**344**；
+  - 引入 tag-或-alias 匹配后：**253**（alias 只解释掉 90 条左右）；
+  - 只统计 `docs/baseline/frozen-build-sources.txt` 里的 TU（83 条；其余 515 对跳过）：**21**。
+  这 21 条**看着全是"我的临时脚本绕过了工具的条件上下文"造成的假阳性**——`ci.Lines`/`ci.struct_fields` 直接调用
+  时没有装载冻结宏表（工具的入口 `inventory()` 是用 `_BlindConditions` 包住的），于是 `#ifdef HAVE_TREE_SITTER`
+  （undef）里的 `treesit_lang_cache_entry`、`HAVE_ALSA` 里的 `alsa_params` 等**死分支结构体**都被当成活文本。
+  ③ **结论（仍未开门，但设计收敛了）**：这条检查要成立必须同时满足——(a) **只对冻结 TU 列表里的文件**比；
+  (b) **用工具自己的条件上下文**（`inventory()` 那条路径）而不是裸调 `struct_fields`；
+  (c) 跳过"匿名且无 alias"的容器（它们没有可比的契约名）。下一步是在工具里按这三条实现、再量一次真残差，
+  真缺的才开成工作项。**本轮只落了①（有自检的净改进）与②的实测链**，没有把 253/21 里的任何一条当成缺陷去改。
+  ④ **当前门读数**：`--all` → **517 ported files: 509 done, 7 in progress, 1 failing**；唯一 FAIL 是 lane 正在做的
+  **未提交**文件 `femacs/src/include/android-asset.rs`，三条是标准 token 类（`AAssetManager_open`/`android_asset_read_internal`
+  的 `goto`、`AAsset_seek` 的 `case, default`），按既有惯例要由**集成者**在 `docs/ports/macro-body-notes.tsv`
+  补行（`switch,case,default` 与 `goto` 的先例已有多条）——等 lane 收口报告带上它的准确定位后再补，避免改两次。
