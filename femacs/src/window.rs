@@ -3343,7 +3343,7 @@ DEFUN! ("delete-other-windows-internal", Fdelete_other_windows_internal,
   let mut sibling: Lisp_Object;
   let mut pwindow: Lisp_Object;
   let mut delta: Lisp_Object;
-  /* C: `UNINIT` is `/* empty */` on this target (conf_post.h 371).  */
+  /* C: `UNINIT` is `= {0,}` here (conf_post.h 369: `GCC_LINT` is 1, macros.tsv 1162, so the empty arm at 371 is dead), and the port writes the initializer out (PORTING.md 1.5).  */
   let mut swindow: Lisp_Object = Qnil ();
   let mut startpos: ptrdiff_t = 0;
   let mut startbyte: ptrdiff_t = 0;

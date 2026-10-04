@@ -54,6 +54,7 @@
    are dead for the frozen build and carry no `#include` the port needs.  */
 
 include!("include/config.rs");                 // C 20: `#include <config.h>`
+include!("include/conf_post.rs");               // C 20: the AH_BOTTOM `#include <conf_post.h>` inside it
 include!("include/sysstdio.rs");                // C 23: `#include "sysstdio.h"`
 include!("../lib/include/limits.in.rs");       // C 28: `#include <limits.h>`
 include!("../lib/include/stdcountof.rs");      // lisp.h 30's <stdcountof.h>: `countof`
@@ -764,9 +765,9 @@ unsafe extern "C" {
 /// `<stdio.h>`: `int rename (const char *, const char *);` (`stdio.rs` does not carry it).
 unsafe extern "C" { pub fn rename (old: *const c_char, new: *const c_char) -> c_int; }
 
-/// `<config.h>`: `#define ADDRESS_SANITIZER false` (the frozen macro table: this
-/// configuration is not an ASan build, so C 2970's ternary takes its `close_stream` arm).
-pub const ADDRESS_SANITIZER: bool = false;
+/// `<config.h>`'s `ADDRESS_SANITIZER` (`conf_post.h` C 89-94) now comes from the
+/// `include/conf_post.rs` mirror, which spells the frozen `false` - the value that makes
+/// C 2971's ternary take its `close_stream` arm in the `close_output_streams` body below.
 
 /// `<stdlib.h>`: `void exit (int);` — `force_open` is the only caller.  `EXIT_FAILURE` itself
 /// now comes from the `stdlib.rs` mirror (which carried only `malloc` when this unit was
@@ -958,9 +959,9 @@ unsafe extern "C" {
   pub fn unsetenv (name: *const c_char) -> c_int;
 }
 
-/// `conf_post.h` 284-290: `#define VFORK () vfork ()` on the target that has `vfork`
-/// (the other arm is the `fork` one and is not this configuration's).
-macro_rules! VFORK { () => { vfork () }; }
+/// `conf_post.h` 284-290's `VFORK ()` now comes from the `include/conf_post.rs` mirror too
+/// (`DARWIN_OS` is defined, so the `_Pragma`-wrapped `vfork ()` arm is the live one; the
+/// `fork` arm is the other configuration's).  `subshell` below keeps C's call spelling.
 
 /// `"termopts.h"`'s second object: keyboard.c owns the storage, so the unit only declares it.
 unsafe extern "C" { pub static mut interrupts_deferred: bool; }

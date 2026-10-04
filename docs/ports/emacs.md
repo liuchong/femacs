@@ -64,12 +64,20 @@
 
 ## Decisions
 
+- **`INLINE` is the `include/conf_post.rs` mirror's now** (2026-10-04 neighbour round). C 21's
+  `#define INLINE EXTERN_INLINE` is conf_post.h C 358's define *verbatim*, and C 357's
+  `#ifndef INLINE` is what makes C's effective definition for this unit emacs.c's own (the
+  header's identical one is skipped); with no semantic difference between the two, the port
+  keeps one landing point, and the checklist item above resolves through the mirror
+  (`tools/extract-abi.py` follows `include!`).  Nothing expands `INLINE! ()` in the port:
+  lisp.h's INLINE functions are `#[inline(always)] fn` here (P-12).
 - **What the file carries.** C's 5 `DEFUN`s, its 20 functions (9 non-`static`:
   `terminate_due_to_signal`, `main`, `shut_down_emacs`, `fixup_locale`,
   `synchronize_system_time_locale`, `synchronize_system_messages_locale`, `emacs_strerror`,
-  `decode_env_path`, `syms_of_emacs`), the 3 file-local macros (`INLINE`, `MAIN_PROGRAM`,
-  `SECCOMP_USABLE`), the one type it declares (`struct standard_args`, plus the two file-local
-  arrays `standard_args` and `usage_message` that the extractor's object list does not key),
+  `decode_env_path`, `syms_of_emacs`), the 3 file-local macros (`INLINE` - defined by the
+  conf_post.h mirror, above - `MAIN_PROGRAM`, `SECCOMP_USABLE`), the one type it declares
+  (`struct standard_args`, plus the two file-local arrays `standard_args` and `usage_message`
+  that the extractor's object list does not key),
   the 22 file-scope objects, the 21 `DEFVAR_*` variables whose storage this unit owns
   (status 3.29 — the extractor cannot see them, which is why `tools/check-globals.py`
   exists), and two objects the extractor's list misses: `RCS_Id` (because of

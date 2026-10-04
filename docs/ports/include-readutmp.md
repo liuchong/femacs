@@ -60,12 +60,37 @@
   | 257 | `#ifndef WTMP_FILE` | False | True |
   | 278 | `#if !(HAVE_UTMPX_H ? HAVE_STRUCT_UTMPX_UT_TYPE : HAVE_STRUCT_UTMP_UT_TYPE)` | False | unknown (kept live) |
 
-  Every disagreement is a *system-header* macro the configuration's table cannot see
-  (`_PATH_UTMP`, `UTMPX_FILE`, `_PATH_WTMP`, `WTMPX_FILE` and the two "already defined?"
-  guards), plus the ternary at C 278; none of them is a disagreement about a configuration
-  macro.  `tools/extract-abi.py` therefore reads the file blind (P-66), which is why the
-  mirror carries both arms of every `#if` below and why the live arm per name had to be
-  measured.
+  **These six clang verdicts are a tool artifact, not an arm difference - measured.**  For
+  every header whose *stem contains a hyphen* `tools/check-cond-eval.py` builds the marker
+  name as `EMACS_COND_TAKEN_<stem>_<line>`, which is not a C identifier:
+  `tag = f"{Path(header).stem}_{line_index}"` in that file, so `lib/readutmp.h`'s probe holds
+  `#define EMACS_COND_TAKEN_readutmp 1`-shaped text only by accident and for
+  `lib/intprops-internal.h` it holds `#define EMACS_COND_TAKEN_intprops-internal_17 1`, which
+  clang tokenizes as a macro named `EMACS_COND_TAKEN_intprops` with the body `-internal_17 1`
+  (warning: `ISO C99 requires whitespace after the macro name`), so the gate's test
+  `"#define <marker> " in out` never matches and clang is recorded as **False for every branch
+  that is taken**.  Reproduced:
+
+      # the probe the tool wrote for lib/intprops-internal.h's line 18
+      $ clang -dM -E -std=gnu23 -I build/emacs-ref/src -I build/emacs-ref/lib -I emacs/src \
+          -I emacs/lib /tmp/femacs-cond-eval/probe_intprops-internal_17.c 2>/dev/null \
+          | grep EMACS_COND_TAKEN
+      #define EMACS_COND_TAKEN_intprops -internal_17 1        # <- the gate looks for the whole
+      #                                                          hyphenated name: no match
+      $ clang -dM -E -std=gnu23 -I build/emacs-ref/src -I build/emacs-ref/lib -I emacs/src \
+          -I emacs/lib /tmp/g188i/good.c 2>/dev/null | grep EMACS_COND_TAKEN
+      #define EMACS_COND_TAKEN_intprops_internal_17 1        # the same condition, `_` tag
+
+  Scope, measured: 43 entries of `docs/baseline/config/cond-eval-verified.txt` have a hyphen in
+  their stem; they are on the list only because *every* condition in them is dead, so the
+  bogus "False" agrees with the evaluator (the controls `lib/arg-nonnull.h` and
+  `lib/warn-on-use.h` print `0 disagreements`).  A hyphenated header with at least one *live*
+  condition can therefore never join the verified list, and the disagreements it reports are
+  bogus.  For this file the evaluator's "True" at C 237/250 is the **correct** answer and
+  clang's "False" is the artifact (the system-header macros the table genuinely cannot see are
+  the *reason the evaluator is right here*, not the reason for the disagreement).  The mirror
+  is unaffected - the arms it carries were decided by the direct measurement below, which does
+  not use the marker mechanism at all - and no mirror semantics were changed for a gate.
 
 - **The criterion: the frozen clang's own preprocessor, with `config.h` alone as the control.**
   The command (Evidence) prints *nothing* for these names with `config.h` alone and the

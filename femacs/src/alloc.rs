@@ -51,6 +51,7 @@
          unreachable_code, unused_labels, while_true, unused_must_use)]
 
 include!("include/config.rs");              // C 20: `#include <config.h>`
+include!("include/conf_post.rs");            // C 20: the AH_BOTTOM `#include <conf_post.h>` inside it
 include!("../lib/include/stdint.in.rs");    // C 27: `#include <stdint.h>`
 include!("../lib/include/limits.in.rs");    // C 29: `#include <limits.h>` (CHAR_BIT, PTRDIFF_MAX)
 include!("../lib/include/stdlib.rs");       // C 28: `#include <stdlib.h>`
@@ -114,11 +115,10 @@ unsafe extern "C" {
 			     nbytes: *mut ptrdiff_t);
 }
 
-/// C: `ADDRESS_SANITIZER` is the compiler's own macro rather than a `configure` output (it is
-/// absent from the frozen `src/config.h`), so `config.rs` cannot carry it and the frozen macro
-/// table records it as undefined.  `src/sysdep.rs` declares the same constant; this unit
-/// repeats it because it reaches no mirror (P-26 gap, reported in docs/ports/alloc.md).
-pub const ADDRESS_SANITIZER: bool = false;
+/// C: `ADDRESS_SANITIZER` now comes from the `include/conf_post.rs` mirror (conf_post.h C 89-94,
+/// the frozen macro table's own `ADDRESS_SANITIZER false`): the two conditions of this file that
+/// read it (C 108-113 and C 370) keep C's spelling, and the copy `src/sysdep.rs` kept is gone the
+/// same way, which closes the P-26 gap this comment used to record.
 
 /* C's `max`/`min`/`ROUNDUP` (lisp.h 71-72, 1831-1835) reach this file as macros over any
    integer type; the port's lisp.rs mirror carries `max`/`min`/`ROUNDUP` as ordinary `fn`s,
@@ -286,9 +286,10 @@ pub static mut __malloc_initialize_hook: voidfuncptr = malloc_initialize_hook;
 pub const USE_VALGRIND: c_int = 1;
 
 /* C 108-113: `#if ADDRESS_SANITIZER && defined HAVE_SANITIZER_ASAN_INTERFACE_H &&
-   !defined GC_ASAN_POISON_OBJECTS` is false (`ADDRESS_SANITIZER` is undefined on this
-   target), so the `#else` arm defines it to 0 and every `#if GC_ASAN_POISON_OBJECTS` arm
-   below is carried as `#[cfg]` text.  */
+   !defined GC_ASAN_POISON_OBJECTS` is false (`ADDRESS_SANITIZER` is *defined* as `false` on
+   this target, conf_post.h C 93, and `HAVE_SANITIZER_ASAN_INTERFACE_H` is undefined), so the
+   `#else` arm defines it to 0 and every `#if GC_ASAN_POISON_OBJECTS` arm below is carried as
+   `#[cfg]` text.  */
 pub const GC_ASAN_POISON_OBJECTS: c_int = 0;
 
 /* C 213-215: `# define MMAP_MAX_AREAS 100000000` inside the dead `#ifdef DOUG_LEA_MALLOC`.  */

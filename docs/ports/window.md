@@ -366,8 +366,10 @@ carry the prototype (PORTING.md 0.1-2/P-72 rule 3) — `decode_live_frame`, `dec
    `MARKER_INSERTION_TYPE` mask (lisp.h 313-314 packs the two `bool_bf` members into
    `Lisp_Marker.bits`); the C token is kept in a local named `insertion_type`, which is what
    `docs/ports/token-aliases.tsv`'s `insertion_type` family counts.
-3. C's `UNINIT` (`conf_post.h` 371: `/* empty */` on this target) is transcribed as a
-   zero-initialised local and named in this ledger (PORTING.md 1.5):
+3. C's `UNINIT` is `= {0,}` on this target (`conf_post.h` 369: `GCC_LINT` is 1, macros.tsv
+   1162, so the empty arm at 371 is the dead one), i.e. C's
+   `Lisp_Object swindow UNINIT;` spells a *zero-initialised* local; the port writes the
+   initializer out and names each one here (PORTING.md 1.5):
    `Fdelete_other_windows_internal`'s `swindow`/`startpos`/`startbyte`/`top`.
 4. `wset_buffer`/`adjust_window_count` etc. keep C's `int`→`EMACS_INT` conversions explicit
    (`as EMACS_INT`); `make_fixnum` is typed `EMACS_INT` while C's implicit conversions are
@@ -401,7 +403,8 @@ carry the prototype (PORTING.md 0.1-2/P-72 rule 3) — `decode_live_frame`, `dec
    (`lisp_h_Qnil ()`/`false`/`0`) — `window.rs`'s definitions shadow
    `include/globals.rs`'s `variables` glob import (P-21).
 3. **Zero-initialised locals** (PORTING.md 1.5, C leaves them uninitialised and this unit only
-   names them here): `window_from_coordinates`'s `dummy` and `cw` (a struct cannot be
+   names them here; `Frecenter`'s `iarg` is C's `UNINIT`, which is `= {0,}` on this target -
+   deviations item 3): `window_from_coordinates`'s `dummy` and `cw` (a struct cannot be
    partially initialised), `Fwindow_end`'s `startp`/`it`, `window_scroll_pixel_based`'s `it`,
    `Frecenter`'s `iarg` (C's `UNINIT`), its three iterators and `pt`, `displayed_window_lines`'
    `it`/`start`, `window_scroll_for_long_lines`' `pos`/`rtop`/`rbot`/`dummy_*`,

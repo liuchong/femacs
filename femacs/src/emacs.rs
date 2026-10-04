@@ -103,14 +103,17 @@ use std::ffi::CStr;
 // (the enum lives in `include/pdumper.rs`).
 use pdumper_load_result::*;
 
-// C 21: `#define INLINE EXTERN_INLINE` — C99's inline model, this translation unit being the
-// one that emits the external definitions of lisp.h's INLINE functions.  The port's mirrors
-// write those functions as `#[inline(always)] fn` (P-12), so the macro is a marker whose body
-// keeps C's qualifier name (the gate compares the macro bodies).
-const EXTERN_INLINE: () = ();
-macro_rules! INLINE { () => { EXTERN_INLINE } }
+// C 21's `#define INLINE EXTERN_INLINE`, ahead of C 22's `<config.h>`: that text is
+// conf_post.h C 358's define verbatim (`#  define INLINE EXTERN_INLINE`), and C 357's
+// `#ifndef INLINE` is what makes C's effective definition for this unit emacs.c's own - the
+// header's identical one is skipped.  The port keeps one landing point (P-26): the
+// `include/conf_post.rs` mirror below defines both markers (`INLINE` and `EXTERN_INLINE`,
+// conf_post.h C 357-362), and nothing expands them - lisp.h's INLINE functions are
+// `#[inline(always)] fn` here (P-12) and C's `static inline` has no Rust spelling to carry -
+// so which of the two identical defines is in force has no observable effect.
 
 include!("include/config.rs");                 // C 22: `#include <config.h>`
+include!("include/conf_post.rs");               // C 22: the AH_BOTTOM `#include <conf_post.h>` inside it
 
 // C 74-80: `#if defined HAVE_LINUX_SECCOMP_H && defined HAVE_LINUX_FILTER_H
 // && HAVE_DECL_SECCOMP_SET_MODE_FILTER && HAVE_DECL_SECCOMP_FILTER_FLAG_TSYNC` defines

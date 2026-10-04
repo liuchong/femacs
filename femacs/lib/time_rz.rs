@@ -41,6 +41,7 @@
 use std::ffi::{c_char, c_double, c_int, c_long, c_schar, c_short, c_uchar, c_uint, c_ulong,
                 c_ulonglong, c_ushort, c_void};
 include!("../src/include/config.rs");
+include!("../src/include/conf_post.rs");  // C 25: the AH_BOTTOM `#include <conf_post.h>`
 include!("include/gnulib_config.rs");
 include!("include/errno.rs");
 include!("include/idx.rs");
@@ -62,18 +63,13 @@ unsafe extern "C" {
   pub fn rpl_free (ptr: *mut c_void);
 }
 
-/* src/conf_post.h 178-184: "Tell time_rz.c to use Emacs's getter and setter for TZ."  The
-   macros are what make C 182-196's two `static` definitions dead, so the port keeps C's
-   call spelling and calls the src/ entries.  */
-unsafe extern "C" {
-  /* char *emacs_getenv_TZ (void);  */
-  pub fn emacs_getenv_TZ () -> *mut c_char;
-  /* int emacs_setenv_TZ (char const *tz);  */
-  pub fn emacs_setenv_TZ (tz: *const c_char) -> c_int;
-}
-/* conf_post.h 180-181.  */
-macro_rules! getenv_TZ { () => { emacs_getenv_TZ () }; }
-macro_rules! setenv_TZ { ($tz:expr) => { emacs_setenv_TZ ($tz) }; }
+/* src/conf_post.h 178-184: "Tell time_rz.c to use Emacs's getter and setter for TZ."  The two
+   macros and the two prototypes are that header's, and they come from its mirror above now
+   (`src/include/conf_post.rs` carries C 180-181 and declares C 182-183 in `conf_post_decls`,
+   P-21); this unit used to keep its own copies, which is exactly what the mirror-dupes gate
+   reports once a unit includes the header that owns them (P-26, one landing point).  The macros
+   are what make C 182-196's two `static` definitions dead, and the port keeps C's call spelling
+   (`getenv_TZ ()` / `setenv_TZ (tz)`).  */
 
 /* The generated <time.h> 841-842 and 1144-1145: `# define mktime rpl_mktime` and
    `# define timegm rpl_timegm`, the two replacements this port defines in mktime.rs and

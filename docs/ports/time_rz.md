@@ -57,10 +57,14 @@ both names as macros.
 | `mktime (&tm_1)` | `<time.h>` 841-842: `# define mktime rpl_mktime` | `nm` shows `U _rpl_mktime` |
 | `timegm (tm)` | `<time.h>` 1144-1145: `# define timegm rpl_timegm` | `nm` shows `U _rpl_timegm` |
 
-Each is kept as C's spelling plus a `macro_rules!` of the same name (the strftime.rs
-`LOCALE_PARAM` shape), so the bodies read like C'; `rpl_free`'s declaration is unit-local
-(the lchmod.rs local-declaration shape) and the three `rpl_*` calls resolve through the
-declarations appended to the time mirror.
+Each is kept as C's spelling, and the shapes differ by who *owns* the name: `mktime`/`timegm`
+are this unit's own `macro_rules!` (the strftime.rs `LOCALE_PARAM` shape), while
+`getenv_TZ`/`setenv_TZ` (and the `emacs_getenv_TZ`/`emacs_setenv_TZ` declarations) are the
+`src/include/conf_post.rs` mirror's now - C 25's `<config.h>` includes conf_post.h, so the unit
+takes them from the header that defines them (P-26; the unit's own copies were removed in the
+2026-10-04 neighbour round).  `rpl_free`'s declaration is unit-local (the lchmod.rs
+local-declaration shape) and the three `rpl_*` calls resolve through the declarations appended
+to the time mirror.
 
 ### Deviations
 
