@@ -3607,3 +3607,25 @@
   先查 `intprops-internal.h` 的 C 18 守卫 disagreement"的派工。
   ⑤ 读数：`gen-port-inventory` **590 files、done=563、wip=17、todo=10**；门全绿
   （`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/1/0、`layout-check` 89 of 99 + 10 跳过）。
+
+- **3.199 `src/nsterm.h` 落地；三份台账的陈旧勾选清掉；把"WIP 复核"做成常驻工具（2026-10-04）**：
+  ① **实产**（`8b21bb3`，签名 `verified=true`，已推 `origin/master`）：`src/nsterm.h`（1,395 行：140 宏 +
+  21 常量 + 102 字段 + 8 全局）→ `femacs/src/include/nsterm.rs`（1,237 行），`--check` **OK**、台账框全勾
+  ——这是 macOS 两个终端单元（`nsfns.m`/`nsterm.m`）要用到的头。
+  ② **三份台账的陈旧勾选**（与 3.198 的 `process.c` 同一类）：`--check` 都 OK 但框没勾，逐名核对后确认
+  **镜像确实带这些名字**，于是补勾 + 补 Evidence：`lib/execinfo.in.h` 的那一条是**已登记的 excluded 名**
+  （`_GL_EXECINFO_INLINE`）；`lib/acl.h` 的五条是 split guard + C 活臂 `#else` 定义的两个 `aclinfo` 宏 +
+  `aclinfo_scontext_free` + `aclinfo` 记录本身；`lib/stdlib.in.h` 的十条就是我 3.193 写进 `excluded-macros.txt`
+  的九行加 `MB_CUR_MAX` 的 notes 行——它的 `random_data` 一条**故意不勾**（死臂 + 本 target 无该类型），
+  所以 extractor 打的是 `missing type deferred` 而不是失败。
+  ③ **新增常驻工具 `tools/audit-wip.py`**：把"WIP 复核"从一次性脚本变成可重跑的门。它读 `port-inventory.md`
+  的 `wip` 行，对每一行跑 `--check` 并数台账未勾框，分成三组——**A** 检查失败且有余框（真的没做完，不用管）；
+  **B** 检查 OK 但有余框（去读该台账的 `## Decisions`：**有意的 deferral** 还是**陈旧框**）；
+  **C** 检查 OK 且框全勾（**inventory 错了，这单元其实完工**，`exit 1` 让包装脚本能抓）。**当前读数**：
+  A=8（`lib/getopt-pfx-ext.h` 11 行、`lib/getopt.in.h` 3、`lib/stdio.in.h` 6（在飞）、`src/dispextern.h` 142、
+  `src/font.h` 49、`src/frame.h` 47、`src/w32common.h` 2、`src/xdisp.c` 229（在飞））、**C=0**（不再有账目错误）、
+  B=6 且**全部**是台账自己写明的有意 deferral（`c-ctype.h` 的 19 条是它 Decisions 里写着的 WIP；
+  `stdlib.in.h` 的 `random_data`；`emacsgtkfixed.h` 2、`w32.h` 1、`w32gui.h` 1、`widgetprv.h` 3）。
+  **A 组里没有 lane 的**（`font.h`/`frame.h`/`getopt` 一对/`w32common.h`）就是下一批要派的活。
+  ④ 读数：`gen-port-inventory` **590 files、done=566、wip=14、todo=10**；门全绿（`check-declarations` 13/0、
+  `check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-verbatim` 4607/0、`layout-check passed`）。
