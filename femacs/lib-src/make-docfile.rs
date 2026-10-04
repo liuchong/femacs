@@ -59,7 +59,7 @@ include!("../lib/include/stdio.rs");         // C's `<stdio.h>` (`<config.h>`'s 
 include!("../lib/include/stdcountof.rs");    // C 40: `#include <stdcountof.h>`
 include!("../lib/include/stdint.in.rs");     // C 42: `#include <stdint.h>`
 include!("../lib/include/stdlib.rs");        // C 43: `#include <stdlib.h>`
-include!("../lib/include/string.rs");        // C 44: `#include <string.h>`
+include!("../lib/include/string.in.rs");        // C 44: `#include <string.h>`
 include!("../lib/include/attribute.rs");     // C 46: `#include <attribute.h>`
 include!("../lib/include/binary-io.rs");     // C 47: `#include <binary-io.h>` (`set_binary_mode`)
 include!("../lib/include/c-ctype.rs");       // C 48: `#include <c-ctype.h>`

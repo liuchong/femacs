@@ -3,29 +3,17 @@
 // regex_internal.h 26 includes <string.h>; the regex units use the byte-memory
 // family (`memcpy`/`memmove`/`memset`/`memcmp`) and `strlen`/`strcmp`/`strchr`.
 
+/* The gnulib template's own two function definitions - `memeq` (string.in.h 425-431) and
+   `streq` (string.in.h 817-822), both live on this target - are **not here**: the inventory
+   gate reads a mirror's *own* text for a function body, and two definitions of one name in
+   one crate is `E0428`, so they live in the template's own mirror, `lib/include/string.in.rs`,
+   which `include!`s this file (the ownership ruling `stdbit.in.rs` states, status 3.181).
+   Every unit that calls them includes the owner: lib/memeq.rs, lib/streq.rs, lib/time_rz.rs,
+   lib/sig2str.rs, lib/boot-time.rs and lib-src/{ebrowse,etags,make-docfile}.rs.
 
-/* gnulib's <string.h> template (lib/string.in.h 424-440): `memeq`, defined when the system
-   header has not got it (it has not).  C's `_GL_MEMEQ_INLINE bool memeq (void const *__s1,
-   void const *__s2, size_t __n)` returns `!memcmp (…)`; Rust's `!` on a `c_int` is bitwise,
-   so the port writes the same value as `== 0`.  The frozen target's object exports
-   `_memeq` (lib/memeq.rs re-exports this definition, PORTING.md P-81).  */
-#[inline(always)]
-pub unsafe fn memeq (s1: *const c_void, s2: *const c_void, n: usize) -> bool
-{
-  return memcmp (s1, s2, n) == 0;
-}
-
-/* gnulib's <string.h> template (lib/string.in.h 813-828): `streq`, defined when the system
-   header has not got it (it has not).  C's `_GL_STREQ_INLINE bool streq (char const *__s1,
-   char const *__s2)` returns `!strcmp (…)`, written as `== 0` for the same reason as
-   `memeq`; the frozen target's object exports `_streq` (lib/streq.rs re-exports it, P-81).
-   This was a `macro_rules!` before: C's frozen configuration defines the *function*, and
-   the reference object's `T _streq` is the evidence (tools/check-symbols.py).  */
-#[inline(always)]
-pub unsafe fn streq (s1: *const c_char, s2: *const c_char) -> bool
-{
-  return strcmp (s1, s2) == 0;
-}
+   The template's **macro** spellings stay here, because `include!` carries their names into a
+   unit's scope already: `strnul!` (C 1302-1305's `_Generic` arm over `_gl_strnul`, PORTING.md
+   checklist 12) and the `memmem_decl` `#[link_name = "rpl_memmem"]` declaration below.  */
 
 unsafe extern "C" {
   /* void *memcpy (void *dest, const void *src, size_t n);  */

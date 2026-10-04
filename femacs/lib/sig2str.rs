@@ -7,7 +7,7 @@
    `{ 0, "EXIT" }`.  `SIGRTMIN`/`SIGRTMAX` are *not* defined on this target, so C 33-39's
    fallbacks are the live text (0 and -1) and the two realtime branches below are inert exactly
    as in C.  C 20-31's includes are the signal, limits, stdcountof, stdlib, stdio and string
-   mirrors (whose `streq` macro gnulib's <string.h> template provides); C 274's `sprintf` is declared in-unit (the doprnt.rs
+   mirrors (whose `streq` gnulib's <string.h> template defines); C 274's `sprintf` is declared in-unit (the doprnt.rs
    shape, since that mirror deliberately does not carry it).  */
 use std::ffi::{c_char, c_double, c_int, c_long, c_short, c_uint, c_ulong, c_void};
 include!("../src/include/config.rs");
@@ -17,7 +17,7 @@ include!("include/sig2str.rs");
 include!("include/limits.in.rs");
 include!("include/stdcountof.rs");
 include!("include/stdlib.rs");
-include!("include/string.rs");
+include!("include/string.in.rs");
 
 /* C 274's <stdio.h>: `sprintf`, declared here because the stdio mirror does not carry it (a
    mirror-level declaration is a second definition in src/doprnt.c, which declares its own).  */

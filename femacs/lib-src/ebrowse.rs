@@ -112,7 +112,7 @@ include!("../src/include/config.rs");        // C 21: `#include <config.h>`
 include!("../lib/include/stdio.rs");         // C's `<stdio.h>` (via `<config.h>`'s conf_post.h)
 include!("../lib/include/stdcountof.rs");    // C 23: `#include <stdcountof.h>`
 include!("../lib/include/stdlib.rs");        // C 25: `#include <stdlib.h>`
-include!("../lib/include/string.rs");        // C 26: `#include <string.h>`
+include!("../lib/include/string.in.rs");        // C 26: `#include <string.h>`
 include!("../lib/include/getopt.in.rs");     // C 28: `#include <getopt.h>`
 include!("../lib/include/attribute.rs");     // C 30: `#include <attribute.h>`
 include!("../lib/include/c-ctype.rs");       // C 31: `#include <c-ctype.h>`

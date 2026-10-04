@@ -58,7 +58,7 @@ include!("../lib/include/unistd.in.rs");     // C 110: `#include <unistd.h>`
 // C 111's `#include <stdarg.h>` has no mirror: Rust spells the C variadic list as `VaList`.
 include!("../lib/include/stdcountof.rs");    // C 113: `#include <stdcountof.h>`
 include!("../lib/include/stdlib.rs");        // C 114: `#include <stdlib.h>`
-include!("../lib/include/string.rs");        // C 115: `#include <string.h>`
+include!("../lib/include/string.in.rs");        // C 115: `#include <string.h>`
 include!("../src/include/sysstdio.rs");      // C 116: `#include <sysstdio.h>`
 include!("../lib/include/errno.rs");         // C 117: `#include <errno.h>`
 include!("../lib/include/fcntl.in.rs");      // C 118: `#include <fcntl.h>`

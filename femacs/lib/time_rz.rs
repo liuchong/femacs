@@ -45,7 +45,7 @@ include!("include/gnulib_config.rs");
 include!("include/errno.rs");
 include!("include/idx.rs");
 include!("include/stdlib.rs");
-include!("include/string.rs");
+include!("include/string.in.rs");
 include!("include/time.in.rs");
 include!("include/time-internal.rs");
 include!("include/flexmember.rs");

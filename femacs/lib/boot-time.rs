@@ -41,7 +41,7 @@ use std::ffi::{c_char, c_int, c_long, c_short, c_uint, c_void};
 include!("../src/include/config.rs");   // C 19: `#include <config.h>`
 include!("include/gnulib_config.rs");
 include!("include/stdio.rs");           // C 26: `#include <stdio.h>` (FILE, fread, fclose)
-include!("include/string.rs");          // C 27: `#include <string.h>` (memeq, strlen)
+include!("include/string.in.rs");       // C 27: `#include <string.h>` (memeq, strlen)
 include!("include/sys_types.in.rs");    // C 28: `#include <sys/types.h>` (pid_t)
 include!("include/time.in.rs");         // C 33/55: `<time.h>` (struct timespec)
 include!("include/sys_time.rs");        // C 50/55: `<sys/time.h>` (struct timeval)
