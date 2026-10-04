@@ -34,8 +34,12 @@ typealias EmacsCGFloat = CGFloat
 /// C: `struct ns_display_info`'s prefix (src/nsterm.h 853-928).  This file reads `next`,
 /// `terminal`, `name_list_element`, `resx`/`resy`, `n_planes` and `root_window`, so the mirror
 /// runs to `root_window` and stops there.  The same mirror is in nsfont.swift and macfont.swift;
-/// the three are one spelling once the ~9 files are one module (PORTING.md 0.1-5), and the
-/// ledger's Evidence measures this struct on both sides.
+/// the three are one spelling once the ~9 files are one module (PORTING.md 0.1-5).  The member
+/// offsets are the gated `ns_cocoa` reading of `spikes/gated-layout-probe.py 'struct
+/// ns_display_info' nsterm.h objc` (PORTING.md P-82, `docs/baseline/ns_display_info-layout.tsv`):
+/// `next 0, terminal 8, name_list_element 16, n_fonts 24, smallest_char_width 28,
+/// smallest_font_height 32, bitmaps 40, bitmaps_size 48, bitmaps_last 56, resx 64, resy 72,
+/// grabbed 80, n_planes 84, color_p 88, root_window 92` - the order spelled below.
 struct ns_display_info {
   /// Chain of all ns_display_info structures.
   var next: UnsafeMutablePointer<ns_display_info>?
@@ -350,10 +354,14 @@ func ns_output_display_info(_ f: UnsafeMutableRawPointer?) -> UnsafeMutablePoint
 @_silgen_name("Qunbound") func Qunbound() -> Lisp_Object
 
 // The core's variable storage this file reads or writes.
-/// C: `extern bool ns_use_proxy_icon;` (`DEFVAR_BOOL`, src/nsfns.m 4280).
-@_silgen_name("ns_use_proxy_icon") var ns_use_proxy_icon: Bool
-/// C: `extern Lisp_Object Vns_icon_type_alist;` (`DEFVAR_LISP`, src/nsfns.m 4268).
-@_silgen_name("Vns_icon_type_alist") var Vns_icon_type_alist: Lisp_Object
+/// C 4280-4286: `DEFVAR_BOOL ("ns-use-proxy-icon", ns_use_proxy_icon, …)` - the variable is
+/// *this* unit's (C's `DEFVAR_BOOL` defines it here), so the storage lives here with the C
+/// name's spelling; Swift cannot emit a C-named data symbol (the
+/// docs/ports/nsselect.md `Vns_sent_selection_hooks` shape).
+fileprivate var ns_use_proxy_icon: Bool = false
+/// C 4268-4279: `DEFVAR_LISP ("ns-icon-type-alist", Vns_icon_type_alist, …)` - this unit's
+/// storage, for the same reason.
+fileprivate var Vns_icon_type_alist: Lisp_Object = nil
 /// C: `extern Lisp_Object Vframe_list;` (`DEFVAR_LISP ("frame-list", …)`, src/frame.c 284).
 @_silgen_name("Vframe_list") var Vframe_list: Lisp_Object
 /// C: `extern NSString *ns_app_name;` (src/nsterm.h 775, src/nsterm.m's).
@@ -717,6 +725,67 @@ func EmacsView_initFrameFromEmacs(_ f: UnsafeMutableRawPointer?) -> AnyObject?
 func frame_set_display_info(_ f: UnsafeMutableRawPointer?, _ dpyinfo: UnsafeMutablePointer<ns_display_info>?)
 
 /// ==========================================================================
+// Lane ABI (batch 6): the constructs C 3802-4348 reads.
+// ==========================================================================
+
+/// C: `struct Lisp_Fwd { ENUM_BF (Lisp_Fwd_Type) type : 8; union { … } u; }` (src/lisp.h
+/// 3118-3133).  The bitfield is one byte and the union one slot; the port keeps the union's
+/// single slot raw and passes each member's address (`objvar`, `boolvar`), exactly as C's
+/// `DEFVAR_LISP`/`DEFVAR_BOOL` do (src/lisp.h 3495-3512).  The shape is
+/// docs/ports/nsselect.swift's, extended to the `bool` member.
+struct Lisp_Fwd_u {
+  var ptr: UnsafeMutableRawPointer?
+}
+struct Lisp_Fwd {
+  var type: UInt8
+  var u: Lisp_Fwd_u
+}
+/// C: `Lisp_Fwd_Bool` (src/lisp.h 531) and `Lisp_Fwd_Obj` (src/lisp.h 532), the two
+/// `enum Lisp_Fwd_Type` members this file uses; `defvar_lisp` (src/lisp.h 3472) and
+/// `defvar_bool` (src/lisp.h 3474) are the registering calls.
+/// C: `void staticpro (Lisp_Object const *)` (src/lisp.h 3919).
+@_silgen_name("Lisp_Fwd_Obj") func Lisp_Fwd_Obj() -> UInt8
+@_silgen_name("Lisp_Fwd_Bool") func Lisp_Fwd_Bool() -> UInt8
+@_silgen_name("defvar_lisp")
+func defvar_lisp(_ o_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?)
+@_silgen_name("defvar_bool")
+func defvar_bool(_ b_fwd: UnsafePointer<Lisp_Fwd>?, _ namestring: UnsafePointer<CChar>?)
+@_silgen_name("staticpro") func staticpro(_ varaddress: UnsafePointer<Lisp_Object>?)
+/// C: `INLINE bool FLOATP (Lisp_Object)` (src/lisp.h 1596) and
+/// `INLINE double XFLOAT_DATA (Lisp_Object)` (src/lisp.h 3176).
+@_silgen_name("FLOATP") func FLOATP(_ x: Lisp_Object) -> Bool
+@_silgen_name("XFLOAT_DATA") func XFLOAT_DATA(_ x: Lisp_Object) -> Double
+/// C: `INLINE void CHECK_LIST (Lisp_Object)` (src/lisp.h 3326).
+@_silgen_name("CHECK_LIST") func CHECK_LIST(_ x: Lisp_Object)
+/// C: `void window_box (struct window *, enum glyph_row_area, int *, int *, int *, int *)`
+/// (src/dispextern.h 4009), whose area argument's enumerator is:
+/// C: `TEXT_AREA` (src/dispextern.h 885).
+@_silgen_name("window_box")
+func window_box(_ w: UnsafeMutableRawPointer?, _ area: Int32, _ box_x: UnsafeMutablePointer<Int32>,
+                _ box_y: UnsafeMutablePointer<Int32>, _ box_width: UnsafeMutablePointer<Int32>,
+                _ box_height: UnsafeMutablePointer<Int32>)
+@_silgen_name("TEXT_AREA") func TEXT_AREA() -> Int32
+/// C: `struct window`'s `phys_cursor` (src/window.h 332), whose record is `struct cursor_pos`
+/// (src/window.h 91).  Its two members are read, the record belonging to the core.
+@_silgen_name("window_phys_cursor_x") func window_phys_cursor_x(_ w: UnsafeMutableRawPointer?) -> Int
+@_silgen_name("window_phys_cursor_y") func window_phys_cursor_y(_ w: UnsafeMutableRawPointer?) -> Int
+/// C: `extern Lisp_Object selected_window;` (src/window.h 1141).
+@_silgen_name("selected_window") var selected_window: Lisp_Object
+/// C: `Lisp_Object string_to_multibyte (Lisp_Object)` (src/character.c 448),
+/// `INLINE ptrdiff_t SCHARS (Lisp_Object)` (src/lisp.h 1870),
+/// `int string_char_advance (const unsigned char **)` (src/character.h 346) and
+/// `Lisp_Object make_multibyte_string (const char *, ptrdiff_t, ptrdiff_t)` (src/lisp.h 4562).
+@_silgen_name("string_to_multibyte") func string_to_multibyte(_ string: Lisp_Object) -> Lisp_Object
+@_silgen_name("SCHARS") func SCHARS(_ str: Lisp_Object) -> Int
+@_silgen_name("string_char_advance")
+func string_char_advance(_ p: UnsafeMutablePointer<UnsafePointer<UInt8>?>) -> Int32
+@_silgen_name("make_multibyte_string")
+func make_multibyte_string(_ str: UnsafePointer<CChar>?, _ nchars: Int, _ nbytes: Int) -> Lisp_Object
+/// More `Q…` symbols (generated globals.h, PORTING.md P-17; called as `Qfoo ()`).
+@_silgen_name("Qinformational") func Qinformational() -> Lisp_Object
+@_silgen_name("Qcritical") func Qcritical() -> Lisp_Object
+
+// ==========================================================================
 // Lane ABI (batch 5): the constructs C 3229-3800 reads.
 // ==========================================================================
 
@@ -888,7 +957,9 @@ func EmacsTooltip_showAtX_Y_for(_ tip: AnyObject?, _ x: Int32, _ y: Int32, _ sec
 /// (`DEFVAR_BOOL ("tooltip-reuse-hidden-frame", …)`) - all in src/xfns.c's family, mirrored by
 /// the port's core.
 @_silgen_name("Vx_show_tooltip_timeout") var Vx_show_tooltip_timeout: Lisp_Object
-@_silgen_name("Vx_max_tooltip_size") var Vx_max_tooltip_size: Lisp_Object
+/// C 4235-4237: `DEFVAR_LISP ("x-max-tooltip-size", Vx_max_tooltip_size, …)` - this unit's
+/// storage (`xfns.c` has the same DEFVAR, but only one of the two files is ever compiled).
+fileprivate var Vx_max_tooltip_size: Lisp_Object = nil
 @_silgen_name("tooltip_reuse_hidden_frame") var tooltip_reuse_hidden_frame: Bool
 /// More `Q…` symbols (generated globals.h, PORTING.md P-17; called as `Qfoo ()`).
 @_silgen_name("Qassq_delete_all") func Qassq_delete_all() -> Lisp_Object
@@ -1169,44 +1240,6 @@ func Qborders_respect_alpha_background() -> Lisp_Object
 @_silgen_name("Vmenu_bar_mode") var Vmenu_bar_mode: Lisp_Object
 @_silgen_name("Vtab_bar_mode") var Vtab_bar_mode: Lisp_Object
 @_silgen_name("Vtool_bar_mode") var Vtool_bar_mode: Lisp_Object
-
-// ==========================================================================
-// C 4101-4151: the `NSString (EmacsString)` category - this file's own definitions, called by
-// the setters above (`[NSString stringWithLispString: …]`, `[ns_app_name lispString]`) exactly
-// as C's `@implementation` is reached through the category declared in src/nsterm.h 366-369.
-// ==========================================================================
-
-/// C 4104-4141: `+[NSString stringWithLispString:]`, the `NS_IMPL_COCOA` arm.
-@_cdecl("stringWithLispString")
-func stringWithLispString(_ string: Lisp_Object) -> NSString? {
-  let str = string
-  if !STRINGP(str) {
-    return "<!-- invalid string -->"
-  }
-
-  let cString = SDATA(str)
-  let length = SBYTES(str)
-
-  /* C 4120-4124: `NSString *result = [[NSString alloc] initWithBytes: … encoding:
-     NSUTF8StringEncoding];` - the multibyte arm; the unibyte arm (4126-4130) is
-     `initWithBytes:length:cString encoding:NSASCIIStringEncoding`.  */
-  if STRING_MULTIBYTE(str) {
-    if let result = NSString(bytes: cString, length: length,
-                             encoding: String.Encoding.utf8.rawValue) {
-      return result
-    }
-    return "<!-- invalid string -->"
-  }
-  return NSString(bytes: cString, length: length,
-                  encoding: String.Encoding.ascii.rawValue)
-}
-
-/// C 4143-4149: `-[NSString lispString]`, the `NS_IMPL_COCOA` arm:
-/// `build_string ([self UTF8String])`.
-@_cdecl("lispString")
-func lispString(_ string: NSString) -> Lisp_Object {
-  return build_string(string.utf8String!)
-}
 
 // ==========================================================================
 // C 86-84: the file-scope objects.
@@ -2671,9 +2704,11 @@ fileprivate var ns_fd_data = ns_fd_data_t()
 /// (the port of C 4048-4065's `EmacsFileDelegate` class owns the class itself).
 fileprivate var file_delegate: AnyObject? = nil
 
-/// C 1774: `fileDelegate = [EmacsFileDelegate new];` - a cross-file class-method call into
-/// C 4048-4065's class, which the next batch ports; the ledger's `## ABI` (3) records it.
-@_silgen_name("EmacsFileDelegate_new") func EmacsFileDelegate_new() -> AnyObject?
+/// C 1774: `fileDelegate = [EmacsFileDelegate new];` - the call site precedes the class
+/// (C 4048-4065) *in this same file*, so per 3.239 the declaration is a distinct Swift name
+/// into the same C symbol, and the `@_cdecl("EmacsFileDelegate_new")` at the class is the
+/// definition (the `macfont_driver` precedent).
+@_silgen_name("EmacsFileDelegate_new") func EmacsFileDelegate_new_entry() -> AnyObject?
 
 /// C 1726-1749 (non-static).  The `NS_IMPL_COCOA` arm is `[panel runModal]`; the `#else` arm
 /// is GNUstep's `runModalForDirectory:file:[types:]` pair.
@@ -2712,7 +2747,7 @@ func Fns_read_file_name(_ prompt: Lisp_Object, _ dir: Lisp_Object, _ mustmatch: 
 
   /* C 1770: `static id fileDelegate = nil;` - the delegate is kept for the panel's lifetime. */
   if file_delegate == nil {
-    file_delegate = EmacsFileDelegate_new()
+    file_delegate = EmacsFileDelegate_new_entry()
   }
 
   NSCursor.setHiddenUntilMouseMoves(false)
@@ -4585,3 +4620,520 @@ fileprivate let lname_ns_badge: StaticString = "ns-badge"
 fileprivate var Sns_badge: Aligned_Lisp_Subr =
   make_aligned_subr(lname_ns_badge, 1, 1,
                     unsafeBitCast(Fns_badge, to: UnsafeMutableRawPointer.self))
+
+// ==========================================================================
+// C 3802-4348: the closing batch - the dock-icon DEFUNs, the sleep block pair, `ns-send-items`,
+// `EmacsFileDelegate`, the two string helpers, the `NSString (EmacsString)` category,
+// `ns_move_tooltip_to_mouse_location` and `syms_of_nsfns`.
+// ==========================================================================
+
+/// C 3908-3910: `static NSInteger ns_request_user_attention_id = -1;` (C 3799) and the sleep
+/// block pair: "A unique integer sleep block id and a hash map of its id to opaque NSObject
+/// sleep block activity tokens."
+/// C 4229-4233's variable - this unit's storage, like the two above.
+fileprivate var Vns_version_string: Lisp_Object = nil
+
+/// C's `DEFVAR_LISP`/`DEFVAR_BOOL` build a function-local `static struct Lisp_Fwd`
+/// (src/lisp.h 3495-3512); Swift has no function-local statics, so each record is a
+/// fileprivate global that `syms_of_nsfns` fills in and hands to `defvar_lisp`/`defvar_bool`
+/// (the docs/ports/nsselect.md `O_FWD_…` shape).
+fileprivate var O_FWD_Vns_icon_type_alist: Lisp_Fwd =
+  Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_Vns_version_string: Lisp_Fwd =
+  Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_ns_use_proxy_icon: Lisp_Fwd =
+  Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+fileprivate var O_FWD_Vx_max_tooltip_size: Lisp_Fwd =
+  Lisp_Fwd(type: 0, u: Lisp_Fwd_u(ptr: nil))
+
+fileprivate var ns_request_user_attention_id: Int = -1
+fileprivate var sleep_block_id: UInt32 = 0
+fileprivate var sleep_block_map: NSMutableDictionary? = nil
+
+/// C 3802-3830: `DEFUN ("ns-request-user-attention", …)`.
+@_cdecl("Fns_request_user_attention")
+func Fns_request_user_attention(_ urgency: Lisp_Object) -> Lisp_Object {
+  block_input()
+  if ns_request_user_attention_id != -1 {
+    NSApp.cancelUserAttentionRequest(ns_request_user_attention_id)
+    ns_request_user_attention_id = -1
+  }
+  if !NILP(urgency) && SYMBOLP(urgency) {
+    if EQ(urgency, Qinformational()) {
+      ns_request_user_attention_id =
+        NSApp.requestUserAttention(.informationalRequest)
+    } else if EQ(urgency, Qcritical()) {
+      ns_request_user_attention_id =
+        NSApp.requestUserAttention(.criticalRequest)
+    }
+  }
+  unblock_input()
+  return Qnil()
+}
+fileprivate let lname_ns_request_user_attention: StaticString = "ns-request-user-attention"
+fileprivate var Sns_request_user_attention: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_request_user_attention, 1, 1,
+                    unsafeBitCast(Fns_request_user_attention, to: UnsafeMutableRawPointer.self))
+
+/// C 3832-3907: `DEFUN ("ns-progress-indicator", …)`.
+@_cdecl("Fns_progress_indicator")
+func Fns_progress_indicator(_ progress: Lisp_Object) -> Lisp_Object {
+  block_input()
+  let dock_tile = NSApp.dockTile
+  /* Use NSLevelIndicator with reliable redraws, not NSProgressIndicator.  */
+  var level_indicator: NSLevelIndicator
+  /* Reuse the indicator subview or create one. */
+  if dock_tile.contentView != nil
+      && (dock_tile.contentView!.subviews.count) > 0
+      && ((dock_tile.contentView!.subviews.last)!.isKind(of: NSLevelIndicator.self)) {
+    level_indicator = dock_tile.contentView!.subviews.last as! NSLevelIndicator
+  } else {
+    if dock_tile.contentView == nil {
+      let image_view = NSImageView()
+      image_view.image = NSApp.applicationIconImage
+      dock_tile.contentView = image_view
+    }
+    /* Set width to the width of the application icon, and height to
+       % of the icon height to respect scaled icons.  */
+    let width = Float(NSApp.applicationIconImage.size.width)
+    let height = Float(0.10 * NSApp.applicationIconImage.size.height)
+    level_indicator = NSLevelIndicator(frame: NSRect(x: 0.0, y: 0.0,
+                                                     width: CGFloat(width),
+                                                     height: CGFloat(height)))
+    level_indicator.wantsLayer = true  /* Performance.  */
+    level_indicator.isEnabled = false  /* Ignore mouse input.  */
+    /* C 3876-3882: the `NS_IMPL_GNUSTEP` arm sets `NSContinuousCapacityLevelIndicatorStyle`;
+       this target takes `NSLevelIndicatorStyleContinuousCapacity` = Swift's
+       `NSLevelIndicator.Style.continuousCapacity`.  */
+    level_indicator.levelIndicatorStyle = .continuousCapacity
+    /* Match NSProgressIndicator color.  */
+    level_indicator.fillColor = NSColor.controlAccentColor
+    level_indicator.minValue = 0.0
+    level_indicator.maxValue = 1.0
+    /* The contentView takes ownership.  */
+    dock_tile.contentView!.addSubview(level_indicator)
+  }
+  var progress_value: Double = 0
+  var hide = (NILP(progress) || (!NILP(progress) && !FLOATP(progress)))
+  if !hide {
+    progress_value = XFLOAT_DATA(progress)
+    hide = (progress_value < 0.0 || progress_value > 1.0)
+  }
+  if hide {
+    level_indicator.doubleValue = 0.0
+    level_indicator.isHidden = true
+  } else {
+    level_indicator.doubleValue = progress_value
+    level_indicator.isHidden = false
+  }
+  dock_tile.display()
+  unblock_input()
+  return Qnil()
+}
+fileprivate let lname_ns_progress_indicator: StaticString = "ns-progress-indicator"
+fileprivate var Sns_progress_indicator: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_progress_indicator, 1, 1,
+                    unsafeBitCast(Fns_progress_indicator, to: UnsafeMutableRawPointer.self))
+
+/// C 3912-3958: `DEFUN ("ns-block-system-sleep", …)`.
+@_cdecl("Fns_block_system_sleep")
+func Fns_block_system_sleep(_ why: Lisp_Object, _ allow_display_sleep: Lisp_Object) -> Lisp_Object {
+  block_input()
+
+  var reason: NSString = "Emacs"
+  if !NILP(why) {
+    CHECK_STRING(why)
+    reason = stringWithLispString(why)!
+  }
+
+  var activity_options: ProcessInfo.ActivityOptions =
+    [.userInitiated, .idleSystemSleepDisabled]
+  if NILP(allow_display_sleep) {
+    activity_options.insert(.idleDisplaySleepDisabled)
+  }
+
+  let processInfo = ProcessInfo.processInfo
+  var activity_id: (any NSObjectProtocol)? = nil
+  if processInfo.responds(to: #selector(ProcessInfo.beginActivity(options:reason:))) {
+    activity_id = ProcessInfo.processInfo.beginActivity(options: activity_options,
+                                                        reason: reason as String)
+  }
+  if sleep_block_map == nil {
+    sleep_block_map = NSMutableDictionary(capacity: 25)
+  }
+
+  if activity_id != nil {
+    sleep_block_id += 1
+    sleep_block_map!.setObject(activity_id!,
+                               forKey: NSNumber(value: sleep_block_id))
+    unblock_input()
+    return make_fixnum(Int(sleep_block_id))
+  } else {
+    unblock_input()
+    return Qnil()
+  }
+}
+fileprivate let lname_ns_block_system_sleep: StaticString = "ns-block-system-sleep"
+fileprivate var Sns_block_system_sleep: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_block_system_sleep, 2, 2,
+                    unsafeBitCast(Fns_block_system_sleep, to: UnsafeMutableRawPointer.self))
+
+/// C 3960-3991: `DEFUN ("ns-unblock-system-sleep", …)`.
+@_cdecl("Fns_unblock_system_sleep")
+func Fns_unblock_system_sleep(_ token: Lisp_Object) -> Lisp_Object {
+  block_input()
+  var res: Lisp_Object = Qnil()
+  CHECK_FIXNAT(token)
+  if sleep_block_map != nil {
+    let key = NSNumber(value: XFIXNAT(token))
+    let activity_id = sleep_block_map!.object(forKey: key) as? NSObjectProtocol
+    if activity_id != nil {
+      let processInfo = ProcessInfo.processInfo
+      if processInfo.responds(to: #selector(ProcessInfo.endActivity(_:))) {
+        ProcessInfo.processInfo.endActivity(activity_id!)
+        res = Qt()
+      }
+      sleep_block_map!.removeObject(forKey: key)
+    }
+  }
+  unblock_input()
+  return res
+}
+fileprivate let lname_ns_unblock_system_sleep: StaticString = "ns-unblock-system-sleep"
+fileprivate var Sns_unblock_system_sleep: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_unblock_system_sleep, 1, 1,
+                    unsafeBitCast(Fns_unblock_system_sleep, to: UnsafeMutableRawPointer.self))
+
+/// C 3993-4045: `DEFUN ("ns-send-items", …)` (the `NS_IMPL_COCOA` arm).
+@_cdecl("Fns_send_items")
+func Fns_send_items(_ items: Lisp_Object) -> Lisp_Object {
+  CHECK_LIST(items)
+
+  let sent = NSMutableArray()
+  var tail: Lisp_Object = items
+  while CONSP(tail) {
+    let elt = XCAR(tail)
+    if !STRINGP(elt) {
+      signal_error("Element not a string", elt)
+    }
+    var isDir: ObjCBool = false
+    if FileManager.default.fileExists(atPath: String(cString: SSDATA(elt)), isDirectory: &isDir) {
+      sent.add(URL(fileURLWithPath: String(cString: SSDATA(elt))))
+      tail = XCDR(tail)
+      continue
+    }
+    sent.add(String(cString: SSDATA(elt)))
+    tail = XCDR(tail)
+  }
+
+  let frame = SELECTED_FRAME()
+  let window = XWINDOW(selected_window)
+
+  var text_area_x: Int32 = 0, text_area_y: Int32 = 0
+  var text_area_width: Int32 = 0, text_area_height: Int32 = 0
+  window_box(window, TEXT_AREA(), &text_area_x, &text_area_y,
+             &text_area_width, &text_area_height)
+
+  let x = Int32(text_area_x) + Int32(window_phys_cursor_x(window))
+  let y = Int32(text_area_y) + Int32(window_phys_cursor_y(window))
+
+  let point = NSPoint(x: CGFloat(x + FRAME_COLUMN_WIDTH(frame) / 2),
+                      y: CGFloat(y + FRAME_LINE_HEIGHT(frame) + 10))
+
+  let view = FRAME_NS_VIEW(frame)
+  let picker = NSSharingServicePicker(items: sent as! [Any])
+  picker.show(relativeTo: NSRect(x: point.x - 1, y: point.y - 1, width: 2, height: 2),
+              of: view!,
+              preferredEdge: .maxY)
+
+  return Qnil()
+}
+fileprivate let lname_ns_send_items: StaticString = "ns-send-items"
+fileprivate var Sns_send_items: Aligned_Lisp_Subr =
+  make_aligned_subr(lname_ns_send_items, 1, 1,
+                    unsafeBitCast(Fns_send_items, to: UnsafeMutableRawPointer.self))
+
+// ==========================================================================
+// C 4048-4065: `@implementation EmacsFileDelegate` - delegate methods for Open/Save panels.
+// `Fns_read_file_name` (C 1774) instantiates it, and the call site precedes this definition in
+// C too, so the C-ABI entry is `@_silgen_name` there and `@_cdecl` here (3.239's shape).
+// ==========================================================================
+
+class EmacsFileDelegate: NSObject, NSOpenSavePanelDelegate {
+  /* C 4053-4069 implements three delegate methods, and each body is a *constant* return:
+
+       - (BOOL)panel: (id)sender isValidFilename: (NSString *)filename  { return YES; }
+       - (BOOL)panel: (id)sender shouldShowFilename: (NSString *)filename { return YES; }
+       - (NSString *)panel: (id)sender userEnteredFilename: (NSString *)filename
+                 confirmed: (BOOL)okFlag                                { return filename; }
+
+     Swift cannot spell any of the three: the SDK declares the same selectors on `NSObject`
+     (`NSOpenPanel.h`'s deprecated `NSObject (NSOpenSavePanelDelegate)` category) *and* marks
+     them `NS_SWIFT_UNAVAILABLE`, so both a plain declaration ("conflicts with method … from
+     superclass 'NSObject'") and an `@objc(selector)`-renamed one are refused (measured with a
+     scratch compile).  Because every body is the delegate's neutral answer, the class with the
+     methods omitted behaves identically; the ledger's `## ABI` (3) records the gap and the
+     C-shim option.  */
+}
+/// C 1774's `[EmacsFileDelegate new]` - the class is a Swift one, so another unit's `alloc`
+/// cannot reach it and the port exposes the same message as a C-ABI entry.
+@_cdecl("EmacsFileDelegate_new")
+func EmacsFileDelegate_new() -> AnyObject? {
+  return EmacsFileDelegate()
+}
+
+/// C 4071-4080: whether N bytes at STR are in the [1,127] range.
+func all_nonzero_ascii(_ str: UnsafeMutablePointer<UInt8>?, _ n: Int) -> Bool {
+  var i = 0
+  while i < n {
+    if str![i] < 1 || str![i] > 127 {
+      return false
+    }
+    i += 1
+  }
+  return true
+}
+
+/// C 4082-4100: count the number of characters in STR, NBYTES long.  The string must be valid
+/// UTF-8 - "This is faster than parse_str_as_multibyte, and much faster than
+/// `[NSString lengthOfBytesUsingEncoding: NSUTF32StringEncoding]`."
+func count_utf8_chars(_ strIn: UnsafePointer<CChar>?, _ nbytes: Int) -> Int {
+  var str = UnsafeRawPointer(strIn!).assumingMemoryBound(to: UInt8.self)
+  let end = str.advanced(by: nbytes)
+  var nc = 0
+  while str < end {
+    nc += 1
+    let c = str.pointee
+    str = str.advanced(by: c <= 0x7f ? 1    // 0xxxxxxx
+                          : c <= 0xdf ? 2   // 110xxxxx 10xxxxxx
+                          : c <= 0xef ? 3   // 1110xxxx 10xxxxxx 10xxxxxx
+                          : 4)              // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+  }
+  return nc
+}
+
+// ==========================================================================
+// C 4101-4151: `@implementation NSString (EmacsString)` - this file's own definitions, called
+// by the setters above and by nsmenu/nsfont/nsimage/nsselect's ports.
+// ==========================================================================
+
+/// C 4104-4141: `+ (NSString *)stringWithLispString: (Lisp_Object)string`.  STRING must not be
+/// in an encoded form (e.g. UTF-8).
+@_cdecl("stringWithLispString")
+func stringWithLispString(_ stringIn: Lisp_Object) -> NSString? {
+  var string = stringIn
+  if !STRINGP(string) {
+    return nil
+  }
+
+  /* Shortcut for the common case.  */
+  if all_nonzero_ascii(UnsafeMutableRawPointer(SSDATA(string))
+                        .assumingMemoryBound(to: UInt8.self), SBYTES(string)) {
+    return NSString(cString: SSDATA(string), encoding: String.Encoding.ascii.rawValue)
+  }
+  string = string_to_multibyte(string)
+
+  /* Now the string is multibyte; convert to UTF-16.  */
+  let chars = xmalloc(4 * SCHARS(string))!.assumingMemoryBound(to: UInt16.self)
+  var d = chars
+  var s = UnsafeRawPointer(SDATA(string)).assumingMemoryBound(to: UInt8.self)
+  let end = s.advanced(by: SBYTES(string))
+  while s < end {
+    var p: UnsafePointer<UInt8>? = s
+    let c = string_char_advance(&p)
+    s = p!
+    /* We pass unpaired surrogates through, because they are typically
+       handled fairly well by the NS libraries (displayed with distinct
+       glyphs etc).  */
+    if c <= 0xffff {
+      d.pointee = UInt16(c)
+      d = d.advanced(by: 1)
+    } else if c <= 0x10ffff {
+      d.pointee = UInt16(0xd800 + ((c - 0x10000) >> 10))
+      d = d.advanced(by: 1)
+      d.pointee = UInt16(0xdc00 + (c & 0x3ff))
+      d = d.advanced(by: 1)
+    } else {
+      d.pointee = UInt16(0xfffd)  /* Not valid for UTF-16.  */
+      d = d.advanced(by: 1)
+    }
+  }
+  let str = NSString(characters: chars, length: d - chars)
+  xfree(chars)
+  return str
+}
+
+/// C 4143-4149: `- (Lisp_Object)lispString`.
+@_cdecl("lispString")
+func lispString(_ string: NSString) -> Lisp_Object {
+  /* If the input string includes unpaired surrogates, then the result
+     will be an empty string.  */
+  let utf8 = string.utf8String
+  let bytes = string.lengthOfBytes(using: String.Encoding.utf8.rawValue)
+  return make_multibyte_string(utf8, count_utf8_chars(utf8, bytes), bytes)
+}
+
+/// C 4153-4200 (non-static).
+@_cdecl("ns_move_tooltip_to_mouse_location")
+func ns_move_tooltip_to_mouse_location(_ screen_point: NSPoint) {
+  var root_x: Int32 = 0, root_y: Int32 = 0
+  var size = NSSize()
+  var window: NSWindow? = nil
+
+  window = nil
+
+  if !FIXNUMP(tip_dx) || !FIXNUMP(tip_dy) {
+    return
+  }
+
+  if ns_tooltip != nil {
+    size = EmacsTooltip_frame(ns_tooltip).size
+  } else if !FRAMEP(tip_frame)
+      || !FRAME_LIVE_P(XFRAME(tip_frame))
+      || !FRAME_VISIBLE_P(XFRAME(tip_frame)) {
+    return
+  } else {
+    let tip_f = XFRAME(tip_frame)
+    window = FRAME_NS_VIEW(tip_f)?.window
+    size = window!.frame.size
+  }
+
+  root_x = Int32(screen_point.x)
+  root_y = Int32(screen_point.y)
+
+  /* We can directly use `compute_tip_xy' here, since it doesn't cons
+     nearly as much as it does on X.  */
+  compute_tip_xy(nil, Qnil(), tip_dx, tip_dy, Int32(size.width), Int32(size.height),
+                 &root_x, &root_y)
+
+  if ns_tooltip != nil {
+    EmacsTooltip_moveTo(ns_tooltip, NSPoint(x: CGFloat(root_x), y: CGFloat(root_y)))
+  } else {
+    window?.setFrame(NSRect(x: CGFloat(root_x), y: CGFloat(root_y),
+                            width: size.width, height: size.height),
+                     display: true)
+  }
+}
+
+// ==========================================================================
+// C 4202-4348: `syms_of_nsfns`.
+// ==========================================================================
+
+/// C: `- (void)moveTo: (NSPoint)screen_point` on `EmacsTooltip` (src/nsmenu.m's class).
+@_silgen_name("EmacsTooltip_moveTo")
+func EmacsTooltip_moveTo(_ tip: AnyObject?, _ screen_point: NSPoint)
+
+/// C 4202-4348.  `DEFSYM` (src/lisp.h 2394) is `/* empty */` - a make-docfile marker, not a
+/// statement - so those call sites are recorded, not called; the symbols come from the
+/// generated globals.
+@_cdecl("syms_of_nsfns")
+func syms_of_nsfns() {
+  // C 4204-4208: `DEFSYM (Qfontsize, "fontsize"); … DEEPSYM (Qlight, "light");`
+
+  // C 4210-4227: `DEFVAR_LISP ("ns-icon-type-alist", Vns_icon_type_alist, …)` - the macro
+  // builds its `struct Lisp_Fwd` with `Lisp_Fwd_Obj` and the variable's address
+  // (src/lisp.h 3495-3500) and hands it to `defvar_lisp`; the docstring is the macro's third
+  // argument.
+  O_FWD_Vns_icon_type_alist = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vns_icon_type_alist) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_Vns_icon_type_alist, "ns-icon-type-alist")
+  Vns_icon_type_alist = list1(Qt())
+
+  // C 4229-4233: `DEFVAR_LISP ("ns-version-string", Vns_version_string, …)`.
+  O_FWD_Vns_version_string = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vns_version_string) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_Vns_version_string, "ns-version-string")
+  Vns_version_string = ns_appkit_version_str()
+
+  // C 4280-4286: `DEFVAR_BOOL ("ns-use-proxy-icon", ns_use_proxy_icon, …)`.
+  O_FWD_ns_use_proxy_icon = Lisp_Fwd(
+    type: Lisp_Fwd_Bool(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &ns_use_proxy_icon) { UnsafeMutableRawPointer($0) }))
+  defvar_bool(&O_FWD_ns_use_proxy_icon, "ns-use-proxy-icon")
+  ns_use_proxy_icon = true
+
+  // C 4235-4241: `DEFVAR_LISP ("x-max-tooltip-size", Vx_max_tooltip_size, "…")`.
+  O_FWD_Vx_max_tooltip_size = Lisp_Fwd(
+    type: Lisp_Fwd_Obj(), u: Lisp_Fwd_u(ptr: withUnsafeMutablePointer(to: &Vx_max_tooltip_size) { UnsafeMutableRawPointer($0) }))
+  defvar_lisp(&O_FWD_Vx_max_tooltip_size, "x-max-tooltip-size")
+  Vx_max_tooltip_size = Qnil()
+
+  defsubr(&Sns_read_file_name)
+  defsubr(&Sns_get_resource)
+  defsubr(&Sns_set_resource)
+  defsubr(&Sxw_display_color_p)  /* this and next called directly by C code */
+  defsubr(&Sx_display_grayscale_p)
+  defsubr(&Sns_font_name)
+  defsubr(&Sns_list_colors)
+  defsubr(&Sns_do_applescript)
+  defsubr(&Sxw_color_defined_p)
+  defsubr(&Sxw_color_values)
+  defsubr(&Sx_server_max_request_size)
+  defsubr(&Sx_server_vendor)
+  defsubr(&Sx_server_version)
+  defsubr(&Sx_display_pixel_width)
+  defsubr(&Sx_display_pixel_height)
+  defsubr(&Sns_display_monitor_attributes_list)
+  defsubr(&Sns_frame_geometry)
+  defsubr(&Sns_frame_edges)
+  defsubr(&Sns_frame_list_z_order)
+  defsubr(&Sns_frame_restack)
+  defsubr(&Sns_set_mouse_absolute_pixel_position)
+  defsubr(&Sns_mouse_absolute_pixel_position)
+  defsubr(&Sns_show_character_palette)
+  defsubr(&Sns_process_is_accessibility_trusted)
+  defsubr(&Sns_badge)
+  defsubr(&Sns_request_user_attention)
+  defsubr(&Sns_progress_indicator)
+  defsubr(&Sns_block_system_sleep)
+  defsubr(&Sns_unblock_system_sleep)
+  defsubr(&Sns_send_items)
+  defsubr(&Sx_display_mm_width)
+  defsubr(&Sx_display_mm_height)
+  defsubr(&Sx_display_screens)
+  defsubr(&Sx_display_planes)
+  defsubr(&Sx_display_color_cells)
+  defsubr(&Sx_display_visual_class)
+  defsubr(&Sx_display_backing_store)
+  defsubr(&Sx_display_save_under)
+  defsubr(&Sx_create_frame)
+  defsubr(&Sx_open_connection)
+  defsubr(&Sx_close_connection)
+  defsubr(&Sx_display_list)
+
+  defsubr(&Sns_hide_others)
+  defsubr(&Sns_hide_emacs)
+  defsubr(&Sns_emacs_info_panel)
+  defsubr(&Sns_list_services)
+  defsubr(&Sns_perform_service)
+  defsubr(&Sx_select_font)
+  defsubr(&Sns_popup_color_panel)
+
+  defsubr(&Sx_show_tip)
+  defsubr(&Sx_hide_tip)
+
+  tip_timer = Qnil()
+  staticpro(&tip_timer)
+  tip_frame = Qnil()
+  staticpro(&tip_frame)
+  tip_last_frame = Qnil()
+  staticpro(&tip_last_frame)
+  tip_last_string = Qnil()
+  staticpro(&tip_last_string)
+  tip_last_parms = Qnil()
+  staticpro(&tip_last_parms)
+  tip_dx = Qnil()
+  staticpro(&tip_dx)
+  tip_dy = Qnil()
+  staticpro(&tip_dy)
+
+  /* C 4326-4328, the `NS_IMPL_COCOA` + macOS 10.8 arm.  */
+  defsubr(&Ssystem_move_file_to_trash)
+
+  as_status = 0
+  as_script = Qnil()
+  staticpro(&as_script)
+  as_result = nil
+
+  // C 4337-4352: the thirteen `DEFSYM` calls that close the function - recorded, not called
+  // (`DEFSYM` is empty in the reference).
+}

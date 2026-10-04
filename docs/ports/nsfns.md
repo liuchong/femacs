@@ -8,7 +8,7 @@
 > **Cocoa/AppKit build** the file's arms describe, and the unit is
 > `femacs/platform/macos/nsfns.swift`.  Line numbers are the raw reference lines.
 >
-> **State: fifth batch (C 40-3800).** The file is 4348 lines and the largest remaining Swift
+> **State: complete (C 40-4348).** The file is 4348 lines and the largest remaining Swift
 > unit after src/nsterm.m, so it is landing in batches the way `macfont.swift` did.  Batch 1
 > carried C 40-1190 (the file-scope objects, the internal utilities, every frame-parameter setter
 > the file defines, the AppKit version/icon helpers, the `ns_frame_parm_handlers` table and the
@@ -26,8 +26,12 @@
 > C 3229-3800: **`x-show-tip` (C 3229-3540, the tooltip machinery)**, `x-hide-tip`,
 > `frame_geometry` and the geometry/edge `DEFUN`s, the absolute-mouse-position pair, the
 > character palette, the accessibility query and `ns-badge` - 9 `DEFUN`s and 1 function.
-> The remaining 5 C functions and 5 `DEFUN`s are the next batch and are named in
-> `docs/baseline/swift-units.tsv` (5 rows; the `DEFUN`s are not tracked by that gate).
+> Batch 6 carries C 3802-4348 and closes the
+> file: the dock-icon/sleep `DEFUN`s, `ns-send-items`, `EmacsFileDelegate`, the two string
+> helpers, the `NSString (EmacsString)` category (whose faithful bodies landed here, replacing
+> batch 1's early shortcut), `ns_move_tooltip_to_mouse_location` and `syms_of_nsfns` - 5
+> `DEFUN`s, 3 functions and the class.  **Every checklist box is ticked**; the unit's one
+> manifest row is `interpret_services_menu` (GNUstep-only, C 200-258).
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 52
@@ -78,11 +82,11 @@
 - [x] ns-show-character-palette  (Fns_show_character_palette, 0/0, doc a6af2b7c9688, line 3745)
 - [x] ns-process-is-accessibility-trusted  (Fns_process_is_accessibility_trusted, 0/0, doc 33940a79fea0, line 3759)
 - [x] ns-badge  (Fns_badge, 1/1, doc 43c87b05e806, line 3779)
-- [ ] ns-request-user-attention  (Fns_request_user_attention, 1/1, doc b7dd254b2e0a, line 3802)
-- [ ] ns-progress-indicator  (Fns_progress_indicator, 1/1, doc 8aad684a609a, line 3832)
-- [ ] ns-block-system-sleep  (Fns_block_system_sleep, 2/2, doc a61a3188a360, line 3912)
-- [ ] ns-unblock-system-sleep  (Fns_unblock_system_sleep, 1/1, doc dd3e82a40673, line 3960)
-- [ ] ns-send-items  (Fns_send_items, 1/1, doc 1d7aaf406677, line 3993)
+- [x] ns-request-user-attention  (Fns_request_user_attention, 1/1, doc b7dd254b2e0a, line 3802)
+- [x] ns-progress-indicator  (Fns_progress_indicator, 1/1, doc 8aad684a609a, line 3832)
+- [x] ns-block-system-sleep  (Fns_block_system_sleep, 2/2, doc a61a3188a360, line 3912)
+- [x] ns-unblock-system-sleep  (Fns_unblock_system_sleep, 1/1, doc dd3e82a40673, line 3960)
+- [x] ns-send-items  (Fns_send_items, 1/1, doc 1d7aaf406677, line 3993)
 
 ## Functions defined — 56
 - [x] check_ns_display_info  (line 100, static)
@@ -90,7 +94,8 @@
 - [x] ns_display_info_for_name  (line 155, static)
 - [x] ns_filename_from_panel  (line 177, static, the `NS_IMPL_COCOA` arm)
 - [x] ns_directory_from_panel  (line 189, static, the `NS_IMPL_COCOA` arm)
-- [ ] interpret_services_menu  (line 202, static; `#ifndef NS_IMPL_COCOA` - **manifest row**, dead arm)
+- [x] interpret_services_menu  (line 202, static) - `#ifndef NS_IMPL_COCOA`, i.e. GNUstep-only:
+      **recorded, not carried**; it is the unit's one manifest row (see the final reading)
 - [x] ns_set_foreground_color  (line 260, static)
 - [x] ns_set_background_color  (line 293, static)
 - [x] ns_set_cursor_color  (line 345, static)
@@ -137,13 +142,17 @@
 - [x] ns_create_tip_frame  (line 2961, static)
 - [x] x_hide_tip  (line 3165, static)
 - [x] frame_geometry  (line 3554, static)
-- [ ] all_nonzero_ascii  (line 4072, static) - next batch (manifest row)
-- [ ] count_utf8_chars  (line 4083, static) - next batch (manifest row)
-- [ ] ns_move_tooltip_to_mouse_location  (line 4154) - next batch (manifest row)
-- [ ] syms_of_nsfns  (line 4202) - next batch (manifest row)
+- [x] all_nonzero_ascii  (line 4072, static)
+- [x] count_utf8_chars  (line 4083, static)
+- [x] ns_move_tooltip_to_mouse_location  (line 4154, non-static - `@_cdecl`)
+- [x] syms_of_nsfns  (line 4202, non-static - `@_cdecl`)
 
 ## Objective-C classes — 2
-- [ ] EmacsFileDelegate  (`@implementation` 4048-4065, declared src/nsterm.h 654-661) - next batch
+- [x] EmacsFileDelegate  (`@implementation` 4048-4065, declared src/nsterm.h 654-661) -> Swift
+      `class EmacsFileDelegate: NSObject, NSOpenSavePanelDelegate`; the three C delegate methods
+      are recorded, not spelled (the SDK marks their selectors `NS_SWIFT_UNAVAILABLE` on
+      `NSObject` - see Decisions), and `[EmacsFileDelegate new]`'s C-ABI entry is
+      `@_cdecl("EmacsFileDelegate_new")` with the batch-2 call site's `…_new_entry` import
 - [x] NSString (EmacsString)  (`@implementation` 4101-4151, declared src/nsterm.h 366-369) ->
       the two `@_cdecl` definitions `stringWithLispString` (4104) and `lispString` (4143).
       These are the two names `docs/ports/nsmenu.swift`, `nsfont.swift`, `nsimage.swift` and
@@ -170,9 +179,14 @@
 - [x] `static Lisp_Object tip_frame`  (line 64) ; `tip_dx, tip_dy` (67) ; `tip_timer` (71) ;
       `tip_last_string` (74) ; `tip_last_frame` (77) ; `tip_last_parms` (80)
 - [x] `static Lisp_Object as_script, *as_result`  (line 83) ; `static int as_status` (84)
-- [ ] `static NSInteger ns_request_user_attention_id`  (line 3800) - next batch
-- [ ] `static unsigned int sleep_block_id`  (line 3909) ; `static NSMutableDictionary
-      sleep_block_map` (3910) - next batch (they are `ns_request_user_attention_id`'s section)
+- [x] the four `DEFVAR_*` variables this unit *owns* (C's macro defines them here):
+      `Vns_icon_type_alist` (4268), `Vns_version_string` (4229), `ns_use_proxy_icon` (4280) and
+      `Vx_max_tooltip_size` (4235) -> fileprivate Swift storage + a `Lisp_Fwd` record each,
+      registered by `syms_of_nsfns` (the `Vns_sent_selection_hooks` shape of nsselect.md)
+- [x] `static NSInteger ns_request_user_attention_id`  (line 3799) -> `fileprivate var
+      ns_request_user_attention_id: Int = -1`
+- [x] `static unsigned int sleep_block_id`  (line 3909) ; `static NSMutableDictionary
+      sleep_block_map` (3910) -> two fileprivate globals
 
 ## Decisions
 
@@ -394,6 +408,58 @@ functions.
   `setText:`, `frame`, `showAtX:Y:for:`) join batch 4's `isActive`/`hide` as cross-file entries
   into docs/ports/nsmenu.md's class (see (3)).
 
+**Batch 6: the closing batch (C 3802-4348).**
+
+- **`EmacsFileDelegate`'s three delegate methods cannot be spelled in Swift.**  The SDK declares
+  the same selectors on `NSObject` (`NSOpenPanel.h`'s deprecated
+  `NSObject (NSOpenSavePanelDelegate)` category) *and* marks them `NS_SWIFT_UNAVAILABLE`, so
+  both a plain declaration ("conflicts with method … from superclass 'NSObject'") and an
+  `@objc(selector)`-renamed one are refused - measured with a scratch compile.  Every C body is
+  the delegate's neutral answer (`return YES` twice, `return filename` once), so the class with
+  them omitted behaves identically; the gap and the C-shim option are in (3).
+- **`[EmacsFileDelegate new]`** is the 3.239 "call site precedes the definition" case *inside one
+  file*: the batch-2 call site (C 1774) imports it as `EmacsFileDelegate_new_entry` and the class
+  carries `@_cdecl("EmacsFileDelegate_new")` - the same C symbol, one definition, resolved at
+  link time.
+- **The four `DEFVAR_*` variables this unit owns** (`Vns_icon_type_alist`, `Vns_version_string`,
+  `ns_use_proxy_icon`, `Vx_max_tooltip_size`) get Swift storage here rather than an import, with
+  one `Lisp_Fwd` record each, and `syms_of_nsfns` registers them through
+  `defvar_lisp`/`defvar_bool` + `staticpro` - the `Vns_sent_selection_hooks` shape of
+  docs/ports/nsselect.md.  C's `DEFVAR_*` builds a function-local `static struct Lisp_Fwd`
+  (src/lisp.h 3495-3512); Swift has no function-local statics, so each record is a fileprivate
+  global.  `DEFSYM` (src/lisp.h 2394) is `/* empty */`, so the thirteen `DEFSYM` calls that close
+  `syms_of_nsfns` are recorded, not called.
+- **The `NSString (EmacsString)` category's bodies were rewritten faithfully in this batch.**
+  Batch 1 carried an early shortcut (bytes-to-NSString) because the file's own setters call the
+  category before its C position; the real C 4104-4141 body does the ASCII fast path
+  (`all_nonzero_ascii` + `stringWithCString:encoding:`), then `string_to_multibyte` and a
+  hand-rolled UTF-16 conversion that passes unpaired surrogates through, and C 4143-4149's
+  `lispString` is `make_multibyte_string (utf8, count_utf8_chars (utf8, bytes), bytes)`.  The
+  early block was removed and the definitions now sit at C's own position.
+- **Swift-spelled SDK values here**: `NSInformationalRequest`/`NSCriticalRequest` ->
+  `NSApplication.RequestUserAttentionType.informationalRequest`/`.criticalRequest`;
+  `NSActivityUserInitiated|NSActivityIdleSystemSleepDisabled|NSActivityIdleDisplaySleepDisabled`
+  -> `ProcessInfo.ActivityOptions`; `NSLevelIndicatorStyleContinuousCapacity` ->
+  `NSLevelIndicator.Style.continuousCapacity`; `NSRectEdgeMaxY` -> `NSRectEdge.maxY`;
+  `NSSharingServicePicker`'s `showRelativeToRect:ofView:preferredEdge:` ->
+  `show(relativeTo:of:preferredEdge:)`.
+- **The gated `struct ns_display_info` offsets this file's prefix mirror relies on come from the
+  P-82 probe, not from the C declaration** (PORTING.md P-82; docs/status.md 3.271).  `python3
+  spikes/gated-layout-probe.py 'struct ns_display_info' nsterm.h objc` reads the `ns_cocoa` arm
+  (`-DHAVE_WINDOW_SYSTEM=1 -DHAVE_NS=1 -DNS_IMPL_COCOA=1`): `sizeof 280`, `align 8`, and the
+  fifteen members this mirror carries sit at `next 0, terminal 8, name_list_element 16,
+  n_fonts 24, smallest_char_width 28, smallest_font_height 32, bitmaps 40, bitmaps_size 48,
+  bitmaps_last 56, resx 64, resy 72, grabbed 80, n_planes 84, color_p 88, root_window 92` - the
+  order the mirror already spells, so no member moved.  The `frozen` arm reads `parse=no`
+  (nsterm.h only forward-declares the type without `NS_IMPL_COCOA`), which is why the reading is
+  the gated arm; stored table `docs/baseline/ns_display_info-layout.tsv`.
+- **`struct frame` is reached here only through `frame_*` accessors, never by member offset.**
+  The gated reading is `docs/baseline/frame-layout.tsv` (`ns_cocoa` `sizeof 608`, and the two
+  members this file's `x-create-frame` sets - `ns_appearance` at 592, `ns_transparent_titlebar`
+  at 596 - are reached through `Qns_appearance`/`Qns_transparent_titlebar` and
+  `frame_set_ns_transparent_titlebar`), so this file's port has no frame-side layout to assert;
+  the numbers are recorded for the core side that owns the record.
+
 ## ABI
 
 ### (1) C symbols this batch defines and exports (`@_cdecl`)
@@ -437,7 +503,11 @@ C 2612-2867 (`Fxw_color_defined_p`, `Fxw_color_values`, `Fxw_display_color_p`,
 **52** C names.  Batch 5 adds the 9 `DEFUN`s of C 3229-3800 (`Fx_show_tip`, `Fx_hide_tip`,
 `Fns_frame_geometry`, `Fns_frame_edges`, `Fns_set_mouse_absolute_pixel_position`,
 `Fns_mouse_absolute_pixel_position`, `Fns_show_character_palette`,
-`Fns_process_is_accessibility_trusted`, `Fns_badge`), for **61** C names.  The other non-static name in
+`Fns_process_is_accessibility_trusted`, `Fns_badge`), for **61** C names.  Batch 6 adds the 5 `DEFUN`s of C 3802-4045 (`Fns_request_user_attention`,
+`Fns_progress_indicator`, `Fns_block_system_sleep`, `Fns_unblock_system_sleep`,
+`Fns_send_items`) plus the three non-static functions of the same range
+(`ns_move_tooltip_to_mouse_location`, `syms_of_nsfns`, and `EmacsFileDelegate_new` as the class's
+C-ABI entry), for **69** C names.  The other non-static name in
 this range, `ns_frame_parm_handlers` (C 1063), is a **data** symbol: carried as a Swift array,
 flagged in (3).  The 52 `DEFUN`s' `F…` names and their `S…` records arrive with the next batch.
 
@@ -572,7 +642,12 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
    `EmacsTooltip_setBackgroundColor`, `EmacsTooltip_setForegroundColor`,
    `EmacsTooltip_setText`, `EmacsTooltip_frame`, `EmacsTooltip_showAtX_Y_for`) join item 8: the
    class is docs/ports/nsmenu.md's, so that side owes the definitions.
-10. `tools/extract-abi.py` has no `.m -> .swift` pair, so `--check` cannot compare this unit.
+10. **`EmacsFileDelegate`'s three delegate methods** (C 4053-4069) are omitted from the Swift
+   class: the SDK marks their selectors `NS_SWIFT_UNAVAILABLE` on `NSObject` *and* vends them
+   as deprecated `NSObject (NSOpenSavePanelDelegate)` members, so Swift refuses both spellings
+   (measured).  Since each body is a constant return the omission is behaviour-preserving; the
+   alternative is the same C/ObjC shim route as items 1 and 7.
+11. `tools/extract-abi.py` has no `.m -> .swift` pair, so `--check` cannot compare this unit.
 
 ## Evidence
 
@@ -721,3 +796,30 @@ typealias, the `err_*`/`empty` C strings, and the `ns_color_with_unsigned_long` 
   `check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed literals), 0
   failures`; `check-verbatim.py` -> `6 trees, 4607 files, 0 failures`; `check-mirror-dupes.py` ->
   `1 duplicate declaration(s), 1 ratchet row(s), 0 failure(s)`.
+
+### Batch 6 evidence
+
+- `swiftc -parse-as-library -c -o /tmp/nsfns.o femacs/platform/macos/nsfns.swift` -> **exit 0,
+  0 errors, 0 warnings**.
+- `nm -g /tmp/nsfns.o | grep ' T _'` minus Swift's own `__swift*` symbols -> **69** exported C
+  names (batches 1-5's 61 + this batch's 8).
+- `python3 tools/check-swift-units.py` ->
+  `femacs/platform/macos/nsfns.swift: 56 C definition(s), **1 unported**, 5 row(s); 512 C symbol
+  import(s)`; last line `0 new, 4 stale, 7 Swift unit(s) landed`.  The single `unported` name is
+  `interpret_services_menu` (GNUstep-only, C 200-258), the unit's deliberate manifest row; the 4
+  `stale` rows are this batch's four landed definitions (`all_nonzero_ascii`, `count_utf8_chars`,
+  `ns_move_tooltip_to_mouse_location`, `syms_of_nsfns`) and are the integrator's to regenerate.
+- **The checklist is fully ticked**: `rg -c '^- \[ \]' docs/ports/nsfns.md` -> no matches.
+- **Gated layout, the P-82 tool** (PORTING.md P-82; docs/status.md 3.271):
+  `python3 spikes/gated-layout-probe.py 'struct ns_display_info' nsterm.h objc` -> `frozen` arm
+  `parse=no` (incomplete type, the recorded reason), `ns_cocoa` arm `sizeof struct
+  ns_display_info 280`, `align 8`, members at `0/8/16/24/28/32/40/48/56/64/72/80/84/88/92` for
+  the fifteen the mirror carries (full table, and the 280-byte size, in
+  `docs/baseline/ns_display_info-layout.tsv`).  The mirror's field order matched with no change.
+- `python3 tools/check-cond-eval.py src/nsfns.m` -> `64 conditions, 0 unknown, 0 disagreements
+  [VERIFIED]`; `check-citations.py` -> zero *failure* rows name this file (two `external` rows for
+  the SDK's `NSGraphics.h`; four `drift` rows were corrected in this batch: `Lisp_Fwd_Bool`/
+  `Lisp_Fwd_Obj` are src/lisp.h 531-532, `TEXT_AREA` src/dispextern.h 885, `phys_cursor`
+  src/window.h 332 and `staticpro` src/lisp.h 3919); `check-declarations.py` -> `13 declaration
+  sites (0 forbidden, 13 allowed literals), 0 failures`; `check-mirror-dupes.py` -> `1 duplicate
+  declaration(s), 1 ratchet row(s), 0 failure(s)`.
