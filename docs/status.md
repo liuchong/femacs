@@ -4127,3 +4127,35 @@
   `include-dispextern` 53、`include-font` 16、`xdisp` 157）；`build-tu src/{font,dispnew,xfaces,bidi,character}.c` **五件全 built**；
   `layout-check passed`；`check-mirror-dupes` 1 duplicate / 1 ratchet row / 0；`check-globals` 283 units / 0；`check-declarations` 13/0；
   `check-target-names` 626 .rs / 591 targets / 0。
+
+- **3.229 `macfont` ③b 入库、`nsfont` 补入库，以及"生成文件在 `git add` 与 `commit` 之间被改掉"这条竞态（2026-10-04）**：
+  ① **`macfont` ③b 入库（`061fac1`）**：`macfont.swift` 10,596 → **11,069** 行（C 3094-3241、3775-3836、3839-3988），
+  函数 **64/74 → 67/74**；`swiftc -parse-as-library -c` exit 0 无诊断；`check-swift-units` 对本文件
+  **74 C definition(s) / 7 unported / 7 row(s)；127 C symbol import(s)**。形态决定按 C 记：三处 `alloca` → 嵌套
+  `withUnsafeTemporaryAllocation`（容量 `max(_,1)`，C 的 `alloca(0)` 不会给 NULL）；`RIGHT_TO_LEFT_P` 的 `permutation`
+  路径是活代码（`xmalloc`/`xfree`），C 的 `permutation != nil` 判定全留；`mac_font_shape` 的 `dir` 参数在 C 里没人读 ⇒
+  按声明保留、不引用。**台账按参照改正了三处**：`OTF_TAG_STR`（1875-1882）在 macfont.m 里**没有任何读者** ⇒ 不写（写了就是死代码），
+  `OTF_SYM_TAG` 的范围是 1869-1873，另外四处是本 lane 上一轮自己写错的行号（`macfont_shape` 3094-3241、
+  `mac_font_create_line_with_string_and_font` 3775-3836、`mac_font_shape` 3839-3988、第二处 `RIGHT_TO_LEFT_P` 3870）。
+  21 条新 `@_silgen_name` 全都先 grep 过全树（`LGSTRING_*`/`LGLYPH_*` 在 `include/composite.rs` 已有整套 `pub fn`，
+  `CHECK_FONT_GET_OBJECT` 在 `font.rs`/`include/font.rs`，`QL2R`/`QR2L` 在 `symbols.tsv`）⇒ **只写声明，没有第二份定义**。
+  ② **竞态（本轮实测，值得记）**：`docs/baseline/swift-units.tsv` 我在 3.227 是按 "HEAD 的 12 行 + 21 nsfns + 140 nsterm = 173 行"
+  写好的，`cp` 之后隔了十来分钟才 `git commit`；**这中间 lane 跑了一次 `--write-manifest`**（它把已落的 3 条 `macfont.swift` 行删掉、
+  保留 140 条 nsterm 行），于是 `0389861` 里实际进去的是**那份 170 行的再生版本**。后果实测出来了：那个提交里
+  `femacs/platform/macos/macfont.swift` 仍是 10,596 行的旧版（10 unported）而 manifest 只写 7 行 ⇒ **在干净检出上会报 3 条 missing**。
+  本轮的 ① 把文件补上之后两边重新一致（7 unported / 7 row(s) / 0 new），`git diff` 为空。**纪律（写在这里）**：
+  生成物在 `git add` 与 `git commit` 之间必须**重读一次**（`git diff --cached --stat` + 与它配套的门读数），
+  不能拿"我写它的时候是对的"当判据——与 3.196/3.202 同一类"把片段当事实"。
+  ③ **`nsfont` 补入库**：`femacs/platform/macos/nsfont.swift`（2,320 行）+ `docs/ports/nsfont.md`（455 行）。
+  这是一个**孤儿交付**：它的 2 条 manifest 行在 `805f713`（3.220 那一轮）就进了仓库，而**文件从来没 add 过**——反过来的同一种不一致
+  （干净检出上那 2 行会是 stale）。现在补上，`swiftc -parse-as-library -c` **exit 0**，门读数
+  **`nsfont.swift: 36 C definition(s), 2 unported, 2 row(s); 111 C symbol import(s)`**，与它台账的 `Functions 36（34 已落、
+  2 deferred）`、2 个未勾框逐条对上。它为什么长这样（台账首段）：**`src/nsfont.m` 是 GNUstep 的字体后端，冻结配置不编译它**
+  （`docs/baseline/frozen-build-sources.txt`；`configure.ac` 2816 与 2762 让 `nsfont.o`/`macfont.o` 二选一），
+  整文件没有预处理条件（唯一的 `#if 0` 在 659-662），所以端口承载**整份文本**而不是提供可编译单元；两个 deferred 体
+  （`nsfont_draw` 1151、`ns_dump_glyphstring` 1711）都需要 `struct glyph_string` 的字段，而本树只把它声明成不透明占位
+  （`femacs/src/font.rs` 739，P-70）。
+  ④ 读数（本轮末）：`check-swift-units` **0 new / 4 stale / 7 Swift unit(s) landed**（4 条 stale 全在 `nsterm.swift`：
+  `append2`/`hold_event`/`ns_finish_events`/`ns_init_events`——Poincare 第 2 轮已在工作树里落了这几个，
+  **那 4 行在它入库时删掉**）；`check-declarations` 13/0；`check-verbatim` 6 trees/4607 files/0；
+  `check-citations` 9 drift / 0 range / 38 allowed / 0 stale；`layout-check passed`；`extract-abi --all` 587 done / 3 in progress / 0 failing。
