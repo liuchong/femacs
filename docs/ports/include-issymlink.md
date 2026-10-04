@@ -4,11 +4,11 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 1
-- [ ] issymlink  (line 49)
+- [x] issymlink  (line 49)
 
 ## Macros defined — 2
-- [ ] _GL_ISSYMLINK_INLINE  (line 32, body a960df3ab827)
-- [ ] _ISSYMLINK_H  (line 18, body da39a3ee5e6b)
+- [x] _GL_ISSYMLINK_INLINE  (line 32, body a960df3ab827)
+- [x] _ISSYMLINK_H  (line 18, body da39a3ee5e6b)
 
 ## Types and their fields — 0
 

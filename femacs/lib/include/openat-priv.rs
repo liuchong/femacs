@@ -44,3 +44,7 @@ pub mod openat_priv_decls {
   }
 }
 use openat_priv_decls::*;
+
+/* C 20-21: the include guard.  It has no Rust counterpart (PORTING.md 0.1), and the mirror
+   records it the way the other guards are recorded.  */
+pub const _GL_HEADER_OPENAT_PRIV: bool = true;

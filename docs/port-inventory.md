@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 502 |
-| 其中 done / wip | 472 / 30 |
+| 其中 done / wip | 475 / 27 |
 | 待开工 | 88 |
 
 ## 2 按目录
@@ -210,9 +210,9 @@
 | `lib/intprops.h` | 377 | 0 | 0 | 38 | 0 | 0 | 0 | L | `femacs/lib/include/intprops.rs` | todo |
 | `lib/inttypes.in.h` | 1,029 | 0 | 0 | 167 | 113 | 0 | 0 | L | `femacs/lib/include/inttypes.in.rs` | todo |
 | `lib/issymlink.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/issymlink.rs` | done |
-| `lib/issymlink.h` | 65 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/issymlink.rs` | wip |
+| `lib/issymlink.h` | 65 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/issymlink.rs` | done |
 | `lib/issymlinkat.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/issymlinkat.rs` | done |
-| `lib/issymlinkat.h` | 68 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/issymlinkat.rs` | wip |
+| `lib/issymlinkat.h` | 68 | 1 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/issymlinkat.rs` | done |
 | `lib/lchmod.c` | 97 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/lchmod.rs` | done |
 | `lib/libc-config.h` | 209 | 0 | 0 | 16 | 1 | 0 | 0 | L | `femacs/lib/include/libc-config.rs` | todo |
 | `lib/limits.in.h` | 151 | 0 | 0 | 28 | 5 | 0 | 0 | L | `femacs/lib/include/limits.in.rs` | wip |
@@ -252,7 +252,7 @@
 | `lib/nstrftime.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/nstrftime.rs` | done |
 | `lib/open.c` | 240 | 3 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/open.rs` | done |
 | `lib/openat-die.c` | 7 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/openat-die.rs` | done |
-| `lib/openat-priv.h` | 74 | 0 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/include/openat-priv.rs` | wip |
+| `lib/openat-priv.h` | 74 | 0 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/include/openat-priv.rs` | done |
 | `lib/openat-proc.c` | 154 | 1 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/openat-proc.rs` | done |
 | `lib/openat.h` | 137 | 6 | 0 | 6 | 0 | 0 | 0 | L | `femacs/lib/include/openat.rs` | todo |
 | `lib/pathmax.h` | 88 | 0 | 0 | 3 | 2 | 0 | 0 | L | `femacs/lib/include/pathmax.rs` | todo |

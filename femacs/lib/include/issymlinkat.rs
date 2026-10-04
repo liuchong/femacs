@@ -12,9 +12,13 @@ include!("errno.rs");          // <errno.h> (errno, EINVAL)
 // The include guard has no Rust counterpart (PORTING.md 0.1).
 pub const _ISSYMLINKAT_H: bool = true;
 
-// C's `#ifndef _GL_ISSYMLINKAT_INLINE / # define _GL_ISSYMLINKAT_INLINE _GL_INLINE` spells gnulib's inline model; the wrapper
-// `femacs/lib/issymlinkat.rs` carries the qualifier (the timespec/stat-time shape), so its box stays
-// unchecked in docs/ports/include-issymlinkat.md.
+/* C 31-33: `#ifndef _GL_ISSYMLINKAT_INLINE / # define _GL_ISSYMLINKAT_INLINE _GL_INLINE`.
+   The wrapper `femacs/lib/issymlinkat.rs` defines the name before including this header (the
+   acl-internal shape), so the mirror records it as C's `_GL_INLINE` is.  */
+/* The name is not carried here: the wrapper `femacs/lib/issymlinkat.rs` defines it before
+   including this header (C 20-21 do `#define _GL_ISSYMLINKAT_INLINE _GL_EXTERN_INLINE`), so a const in
+   the mirror would be E0428 against it.  The gate records it in
+   docs/ports/excluded-macros.txt instead (the `_GL_TIMESPEC_INLINE` shape).  */
 
 /* Tests whether FILENAME represents a symbolic link.
    This function is more reliable than lstat() / fstatat() followed by S_ISLNK,

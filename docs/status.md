@@ -1884,3 +1884,23 @@
   **590 files, done=472, wip=30, todo=88**。
   顺带清掉一个**跑出来的杂散产物**：仓库根出现 `BROWSE`（54 KB，ebrowse 对 `emacs/src/xdisp.c` 生成的标签文件，
   某条 lane 的探针留在工作树里），已删除并提醒该 lane 把这类探针产物放到 `/tmp`。
+
+- **3.125 三个小镜像收口：`issymlink.h` / `issymlinkat.h` / `openat-priv.h`（2026-10-04 第 100 轮第八批）**：
+  三个文件各自只差一项，收口后 `--check` 全 `OK`：
+  ① `lib/issymlink.h` 与 ② `lib/issymlinkat.h` 的 `_GL_ISSYMLINK_INLINE` / `_GL_ISSYMLINKAT_INLINE`
+  （C 31-33 的 `#ifndef … / # define … _GL_INLINE`）——**不能在镜像里落成 const**：两个单元
+  （`femacs/lib/issymlink.rs` / `issymlinkat.rs`）按 C 的做法在 include 之前自己定义它
+  （`#define … _GL_EXTERN_INLINE`），镜像再定义一次就是 `E0428`（实测踩到）。于是改用既有的
+  `docs/ports/excluded-macros.txt` 机制记两行（`kind=syntax`，与 `_GL_TIMESPEC_INLINE`/`_GL_U64_INLINE`/
+  `_GL_UTIMENS_INLINE` 同族），并在镜像注释里写明为什么这里不落名字；
+  ③ `lib/openat-priv.h` 20-21 的 include guard `_GL_HEADER_OPENAT_PRIV` 落成
+  `pub const _GL_HEADER_OPENAT_PRIV: bool = true;`（其它 guard 的既有写法）。
+  实测：三个文件的 `--check` 全 `OK`；消费者 `build-tu lib/issymlink.c` / `lib/issymlinkat.c` /
+  `lib/lchmod.c` 全 `built`；`check-declarations` `13 sites (0 forbidden, 13 allowed literals) / 0 failures`、
+  `check-verbatim` 0、`check-globals` `283 units / 0`；`port-inventory` 复算 **590 files, done=475,
+  wip=27, todo=88**。
+  **两条在飞 lane 的红灯（已反馈给对应 lane，不是本批引入）**：`check-mirror-dupes` 报
+  `femacs/lib/rawmemchr.rs: UCHAR_WIDTH is already declared by femacs/lib/include/limits.in.rs`（镜像 lane 正在
+  重写 limits.in.rs，需同批收敛 rawmemchr.rs 的副本）；`build-tu lib/openat-proc.c` 报
+  `cannot find type c_longlong`（同一镜像的新文本用了 `c_longlong`/`c_ulonglong`，但包含它的单元未必 import
+  这两个名字——建议镜像里写全限定 `core::ffi::c_longlong`，或按单元 prelude 的既有约定处理）。
