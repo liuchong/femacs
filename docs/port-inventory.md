@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 502 |
-| 其中 done / wip | 487 / 15 |
+| 其中 done / wip | 488 / 14 |
 | 待开工 | 88 |
 
 ## 2 按目录
@@ -300,7 +300,7 @@
 | `lib/stdckdint.in.h` | 58 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/stdckdint.in.rs` | todo |
 | `lib/stdcountof.in.h` | 124 | 0 | 0 | 4 | 1 | 1 | 0 | L | `femacs/lib/include/stdcountof.in.rs` | todo |
 | `lib/stddef.in.h` | 248 | 0 | 0 | 12 | 2 | 0 | 0 | L | `femacs/lib/include/stddef.in.rs` | todo |
-| `lib/stdint.in.h` | 740 | 0 | 0 | 136 | 9 | 0 | 0 | L | `femacs/lib/include/stdint.in.rs` | wip |
+| `lib/stdint.in.h` | 740 | 0 | 0 | 136 | 9 | 0 | 0 | L | `femacs/lib/include/stdint.in.rs` | done |
 | `lib/stdio-consolesafe.c` | 202 | 7 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdio-consolesafe.rs` | done |
 | `lib/stdio-impl.h` | 308 | 0 | 0 | 31 | 17 | 8 | 0 | L | `femacs/lib/include/stdio-impl.rs` | done |
 | `lib/stdio.in.h` | 2,224 | 1 | 0 | 84 | 11 | 0 | 0 | L | `femacs/lib/include/stdio.in.rs` | todo |

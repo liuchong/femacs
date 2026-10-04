@@ -6232,9 +6232,6 @@ pub unsafe extern "C" fn maybe_garbage_collect ()
 
 /* Use-site declarations (PORTING.md P-72 ③): the mirrors this unit includes do not carry the
    `mark_*`/message entry points `garbage_collect` calls.  */
-/* C: `<limits.h>`'s `UINTPTR_MAX`, which `lib/limits.in.rs` does not carry (gap).  */
-pub const UINTPTR_MAX: uintptr_t = uintptr_t::MAX;
-
 /* C: fns.c 4315: `extern bool sweep_weak_table (struct Lisp_Hash_Table *, bool);` */
 unsafe extern "C" { fn sweep_weak_table (h: *mut Lisp_Hash_Table, remove_entries_p: bool) -> bool; }
 

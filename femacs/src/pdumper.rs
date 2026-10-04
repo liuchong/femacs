@@ -90,8 +90,8 @@ include!("include/pdumper.rs");               // C 47: `#include "pdumper.h"`
      (measured with `clang -E -dM -include sys/mman.h` on the frozen target);
    * `<stdio.h>`: `fprintf`/`vfprintf`/`snprintf`/`putc`/`stderr` (stdio.rs keeps only the
      four md5-stream entries, `sprintf` and `fclose`);
-   * `<stdint.h>`: `int_least32_t` and its `INT_LEAST32_MIN`/`_MAX`/`_WIDTH` and
-     `PRIdLEAST32` (stdint.in.rs carries the width section only);
+   * `<stdint.h>`: `PRIdLEAST32` only (the mirror carries `int_least32_t`, its
+     `INT_LEAST32_MIN`/`_MAX`/`_WIDTH`, `UINT_FAST32_WIDTH` and `INTPTR_MAX` now);
    * `<stdlib.h>`: `qsort`; `<string.h>`: `strcat`; `<sys/param.h>`: `MAXPATHLEN`;
      `<sys/stat.h>`: `S_ISREG`;
    * `lisp.h`: `hexbuf_digest`, `emacs_write`, `emacs_open_noquit`; `treesit.h`'s
@@ -206,24 +206,10 @@ pub const POSIX_MADV_DONTNEED: c_int = 4;
 /// `<sys/mman.h>`: `#define MAP_ANONYMOUS MAP_ANON` (0x1000) on the frozen target; C 4493's
 /// `#ifndef` arm is dead because the system header defines it.
 pub const MAP_ANONYMOUS: c_int = MAP_ANON;
-/// `<stdint.h>`: `#define UINT_FAST32_WIDTH 32` (`uint_fast32_t` is 4 bytes here; the frozen
-/// table spells it `_GL_INTEGER_WIDTH (0, UINT_FAST32_MAX)`).
-pub const UINT_FAST32_WIDTH: c_int = 32;
 /// `fingerprint.h` 26: `extern unsigned char fingerprint[32]` — the size C's
 /// `sizeof fingerprint` reads (`emacs.rs` spells the same constant for `emacs.c`).
 pub const FINGERPRINT_SIZE: usize = core::mem::size_of::<[c_uchar; 32]> ();
 
-/// `<stdint.h>`: `#define INTPTR_MAX INT64_MAX` on the frozen target (stdint.in.rs carries
-/// PTRDIFF_MIN/MAX and SIZE_MAX, but not the INTPTR pair pdumper.c's `stat.st_size` check
-/// names).
-pub const INTPTR_MAX: intptr_t = intptr_t::MAX;
-
-/// `<stdint.h>`: `typedef int32_t int_least32_t;` and what the four least-32 macros of
-/// C 135-139 expand to on the frozen target (stdint.in.rs carries the width section only).
-pub type int_least32_t = i32;
-pub const INT_LEAST32_MIN: int_least32_t = i32::MIN;
-pub const INT_LEAST32_MAX: int_least32_t = i32::MAX;
-pub const INT_LEAST32_WIDTH: c_int = 32;
 /// `<inttypes.h>`: `#define PRIdLEAST32 "d"` (`<inttypes.h>` has no mirror yet, P-26).
 /// The macro form is the one `concat!` can expand (PORTING.md 2.1), the `const` the one
 /// the C-side value comparison reads.

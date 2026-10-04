@@ -124,9 +124,8 @@ pub const BOOL_MAX: c_int = 1;
 pub const SSIZE_MAX: c_long = c_long::MAX;
 
 /* --- extra names this mirror carries for P-26's gaps -------------------------------------
-   `PATH_MAX` is gnulib's pathmax.h fallback (the frozen macro table records 1024), and
-   `INTMAX_WIDTH`/`UINTMAX_WIDTH` are intprops.h's `TYPE_WIDTH` family, which has no mirror
-   of its own (P-26); the ported units that need them read them from here.  */
+   `PATH_MAX` is gnulib's pathmax.h fallback (the frozen macro table records 1024).
+   `INTMAX_WIDTH`/`UINTMAX_WIDTH` were carried here as well while they had no home; C defines
+   them in `lib/stdint.in.h` 725-726, so they moved to that mirror (`stdint.in.rs`), which
+   every unit that names them includes (`src/bignum.rs`, `src/print.rs`).  */
 pub const PATH_MAX: c_long = 1024;
-pub const INTMAX_WIDTH: c_int = 64;
-pub const UINTMAX_WIDTH: c_int = 64;

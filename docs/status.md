@@ -2038,3 +2038,29 @@
   sysdep/fcntl/timefns/regcomp/faccessat/term）；`check-mirror-dupes` `1 ratchet row / 0 failure`、
   `check-declarations` `13 sites (0 forbidden, 13 allowed literals) / 0 failures`、`check-verbatim` 0、
   `check-globals` `283 units / 0`；`port-inventory` 复算 **590 files, done=489, wip=13, todo=88**。
+
+- **3.132 `lib/stdint.in.h` 镜像收口（136 个宏名 + 9 个常量），`INTMAX_WIDTH`/`UINTMAX_WIDTH` 归位（2026-10-04 第 100 轮第十五批）**：
+  ① **镜像**（`femacs/lib/include/stdint.in.rs`，**343 行**）：135 条差异清零。做法与上一批同族——gnulib 模板的
+  两半都写全（模板自身定义 + 系统 `<stdint.h>` 经 `#include_next` 提供的那半），**每个取值/类型宽度用冻结 clang
+  实测**（`_Generic` 类型 + `__INT_FAST16_TYPE__` 一族），实测命令与结果写在台账 Evidence；镜像的探针把 88 个
+  实测值/宽度/类型写成 `const _: () = assert!(…)` 并 exit 0。
+  ② **31 条 `excluded-macros.txt` 行**（集成者补）：**26 条类型重命名**（`int8_t`…`uintptr_t`、`int_least*`、
+  `int_fast*`——C 的 `# define intN_t gl_intN_t` 在冻结目标是死文本，系统头供类型，端口写 `pub type … = core::ffi::…`，
+  门名的 item 扫描读不到 `pub type`）+ **5 条 dead-text 值**（`INT_FAST16_MIN/MAX`、`UINT_FAST16_MAX`、
+  `SIG_ATOMIC_MAX`、`WCHAR_MAX`——模板的整套 limit 段在 `#if !@HAVE_C99_STDINT_H@` 下、冻结目标为假，值是系统头的
+  实测值；后两条的体还是 `@PLACEHOLDER@` 文本，Rust 无拼法）。**裁决记录**：26 个类型名选"`pub type` + 排除行"
+  而非 P-51 双分支（P-66 对 gnulib 模板的规定就是"镜像冻结文本 + 台账逐段列未镜像部分"，`MB_LEN_MAX` 是同型先例）；
+  `INT_FAST16_MIN/MAX` 类的"模板死臂 `INT_FAST32_*` vs 冻结 `short`"也按冻结值写常量。
+  ③ **归属修正**：C 把 `INTMAX_WIDTH`/`UINTMAX_WIDTH` 定义在 `lib/stdint.in.h` 725-726，`limits.in.rs` 只是
+  无家可归时的临时携带者——本轮把两条常量移进 `stdint.in.rs`、从 `limits.in.rs` 删除（两个都仍 `--check` = `OK`；
+  用到它们的 `src/bignum.rs`/`src/print.rs` 本来就包含 stdint 镜像），并把 limits 台账里那句"本镜像携带这两个名字"
+  的 Evidence 改成"已移出"的说明。同批收敛 `src/alloc.rs`（`UINTPTR_MAX` 副本）与 `src/pdumper.rs`
+  （`UINT_FAST32_WIDTH`/`INTPTR_MAX`/`int_least32_t`/`INT_LEAST32_*` 副本）；`limits.in.rs` 的
+  `_GL_INTEGER_WIDTH` 签名**未改**（仍是 `(isize, isize) -> usize`，因为 `src/sort.rs`/`src/buffer.rs` 按 `usize` 用它）。
+  ④ **跨镜像隐患（记录不修）**：`nt/inc/include/stdint.rs` 也定义了 `INT32_MAX`/`UINT64_MAX`/`SIZE_MAX`/`intptr_t`
+  等一批名字；今天没有任何单元同时 include 两者，但将来某个 `nt/` 单元这样做会 `E0428`
+  （`docs/ports/nt-inc-stdint.md` 的 Decisions 已留待办）。
+  实测：两个镜像 `--check` 全 `OK`；消费者 `build-tu` 全 `built`（`lib/byteswap.c`、`lib/regcomp.c`、`src/bignum.c`、
+  `src/fileio.c`、`src/pdumper.c`、`src/alloc.c`）；`check-mirror-dupes` `1 ratchet row / 0 failure`、
+  `check-declarations` `13 sites (0 forbidden, 13 allowed literals) / 0 failures`、`check-verbatim` 0、
+  `check-globals` `283 units / 0`；`port-inventory` 复算 **590 files, done=488, wip=14, todo=88**。

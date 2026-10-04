@@ -142,8 +142,10 @@ exit=0        # the probe includes the mirror and asserts the value of every nam
               # the eleven C23 widths (8/8/8/16/16/32/32/64/64/64/64), CHAR_BIT 8, the six
               # signed minima, UCHAR_MAX/USHRT_MAX/UINT_MAX/ULONG_MAX, LONG_BIT 64,
               # WORD_BIT 32, BOOL_WIDTH/BOOL_MAX 1, MB_LEN_MAX! () == 6, SSIZE_MAX ==
-              # c_long::MAX, PATH_MAX 1024, INTMAX_WIDTH/UINTMAX_WIDTH 64 and the
-              # core::ffi long-long limits.
+              # c_long::MAX, PATH_MAX 1024 and the core::ffi long-long limits.
+              # (The probe asserted INTMAX_WIDTH/UINTMAX_WIDTH 64 while this mirror carried
+              # them; the stdint round moved the pair to `stdint.in.rs`, where C defines them
+              # at lib/stdint.in.h 725-726, so the assertion lives in that mirror's probe.)
 
 $ cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-mir-limits \
     cargo run -q -p xtask -- build-tu <unit.c>          # each printed "built <unit.rs>", exit 0
