@@ -3082,3 +3082,21 @@
   ⑤ 引证门：**78 drift / 4 range / 282 external / 13 allowed / 0 stale**（Boole 在把 tracked 面的 drift 往 0 打）。
   ⑥ 读数：五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、
   `check-target-names` 596 `.rs`/0）；`layout-check` passed；`check-swift-units` 0/0。
+
+- **3.176 `src/w32font.h` 进镜像：一个可实测的标量记录 + 一个 `windows.h` 门（2026-10-04）**：
+  ① **交付**（`05bb476`）：`src/w32font.h`（120 行）→ `femacs/src/include/w32font.rs` + 台账（11 宏 + 3 记录全勾）。
+  这个头属于 Windows 字体后端（Uniscribe/HarfBuzz/DirectWrite），本目标上不编译；它点名的 `TEXTMETRICW`/`HFONT`/
+  `LOGFONT`/`HDC`/`COLORREF` 都来自 `<windows.h>`（本树无镜像）。**形状照 `include/macfont.rs`（3.170）分两半**：
+  **冻结半边**＝guard + 数值宏 + `struct w32_metric_cache`；**Windows 半边**（`struct w32font_info`/`struct uniscribe_font_info`
+  + 18 条原型）挂 `#[cfg (feature = "windowsnt")]` 并**照 C 写 C 的名字**（那个目标自己提供它们，在这里写替身等于把平台类型丢掉）。
+  ② **可实测的就实测**：`w32_metric_cache` 的字段全是 C 标量，所以冻结 clang 即使没有 `<windows.h>` 也能量它——
+  `sizeof 12 / alignof 2`，六个偏移 `lbearing` 0、`rbearing` 2、`width` 4、`ascent` 6、`descent` 8、`status` 10
+  全部写成镜像里的 `const _` 断言（`layout-check` 每轮求值）；**两条 Windows 记录不写断言**（本目标没有编译器能量它们）。
+  ③ 两个细节写进台账：`w32font_draw` 的 `struct glyph_string *` **即使在 Windows 臂里也保持 P-55 替身**（那条记录是
+  dispextern.h 的、本镜像不 include 它——3.170/3.171 在 `sfntfont.rs` 上量过同一形状）；`FONT_HANDLE`/`FONT_TEXTMETRIC`
+  写成 `macro_rules!`（体里保留 C 的 cast 与成员读；宏体不展开不解析，故冻结构建照过）。
+  ④ 读数：`gen-port-inventory` 590 files、**done=541、wip=21、todo=28**；五门绿（`check-declarations` 13/0、
+  `check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 596 `.rs`/0）；
+  `layout-check` **passed**；`check-swift-units` 0/0；引证门 **72 drift / 4 range / 282 external / 13 allowed / 0 stale**。
+  ⑤ 在飞：keyboard 的**收口轮**（C 13173 起，剩 9 函数 + 38 defsubr）、`macfont.swift`（**7,950 行**）、Harvey 的
+  `lib/stdbit.in.h`（2,229，刚起步）、Hilbert 的 cfg feature 卫生、Boole 的引证清扫。
