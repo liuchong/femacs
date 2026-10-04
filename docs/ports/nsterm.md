@@ -181,12 +181,12 @@
 - [x] ns_dumpglyphs_image  (line 4267, static) — landed as `fileprivate func` (C's `NSRect r`
       parameter is unused in the reference's own body and is kept); its four `EmacsImage` accesses
       are cross-lane entries, and `-appendTransform:` is the compiler's rename `append(_:)`
-- [ ] ns_draw_stretch_glyph_string  (line 4397, static)
-- [ ] ns_draw_glyph_string_foreground  (line 4548, static)
-- [ ] ns_draw_composite_glyph_string_foreground  (line 4568, static)
-- [ ] ns_draw_glyphless_glyph_string_foreground  (line 4659, static)
-- [ ] ns_set_glyph_string_gc  (line 4748, static)
-- [ ] ns_draw_glyph_string  (line 4783, static)
+- [x] ns_draw_stretch_glyph_string  (line 4397, static) — C 4396-4545, landed as `fileprivate func ns_draw_stretch_glyph_string`
+- [x] ns_draw_glyph_string_foreground  (line 4548, static) — C 4547-4564, landed as `fileprivate func ns_draw_glyph_string_foreground` (the driver's `draw` slot is a two-hop read)
+- [x] ns_draw_composite_glyph_string_foreground  (line 4568, static) — C 4567-4655, landed as `fileprivate func ns_draw_composite_glyph_string_foreground`
+- [x] ns_draw_glyphless_glyph_string_foreground  (line 4659, static) — C 4658-4741, landed as `fileprivate func ns_draw_glyphless_glyph_string_foreground` (the `char2b`/`buf` lifetimes are two `withUnsafeMutableBufferPointer` closures)
+- [x] ns_set_glyph_string_gc  (line 4748, static) — C 4747-4780, landed as `fileprivate func ns_set_glyph_string_gc`
+- [x] ns_draw_glyph_string  (line 4783, static) — C 4782-5001, landed as `fileprivate func ns_draw_glyph_string` (the RIF's main draw-text call)
 - [ ] ns_send_appdefined  (line 5013, static)
 - [ ] check_native_fs  (line 5088, static)
 - [ ] ns_read_socket_1  (line 5111, static)
@@ -649,10 +649,18 @@ lands C 3809-4177**: `ns_draw_box` (C 3809-3839), `ns_setup_relief_colors` (C 38
 `ns_maybe_dumpglyphs_background` (C 4091-4177) - **no new C export** (all five are C `static`s) -
 so the covered range is now **C 60-4177**.  **Round 19 lands C 4179-4393**, the image sub-block:
 `ns_draw_image_relief` (C 4179-4264) and `ns_dumpglyphs_image` (C 4266-4393) - **no new C export**
-again (both are C `static`s) - so the covered range is now **C 60-4393**.  The next live definition
-is C 4396's `ns_draw_stretch_glyph_string`, which opens the stretch-glyph block.
+again (both are C `static`s) - so the covered range is now **C 60-4393**.  **Round 20 lands
+C 4396-5001**: the stretch glyph (`ns_draw_stretch_glyph_string`, C 4396-4545), the three
+foregrounds (`ns_draw_glyph_string_foreground` C 4547-4564,
+`ns_draw_composite_glyph_string_foreground` C 4567-4655 and
+`ns_draw_glyphless_glyph_string_foreground` C 4658-4741), the GC setter (`ns_set_glyph_string_gc`,
+C 4747-4780) and the RIF's `ns_draw_glyph_string` (C 4782-5001) - **no new C export** (all six are
+C `static`s) - so the covered range is now **C 60-5001**.  The boundary is the `Event loop` banner
+at C 5005-5009: the dispatcher is the Glyph drawing operations section's last definition (the
+section the ledger has walked since round 17), and the next live definition - C 5013's
+`ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait for.
 
-Ticked above: **103 of the 150 function boxes**.  The count is the generator's own again: the
+Ticked above: **109 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
 declarator to its `{` stopped at the documentation comment in between - status 3.260), the port had
 already written seven of them (round 5's two, round 6's `ns_focus`, round 10's four), and the
@@ -668,7 +676,7 @@ constants, round 6's `bell_view` and round 15's `fringe_bmp` - **the file's last
 box**), **1 of the 1 type box** (`EmacsMargins`,
 C 650) and **2 of the 8 Objective-C classes** (`NSColor (EmacsColor)` with its four methods, and
 **`EmacsBell`** - the file's first *class*, with its `@interface` declaration and all four
-methods).  The other 47 function boxes, 6 macro boxes, 6 class boxes and 185 method boxes are
+methods).  The other 41 function boxes, 6 macro boxes, 6 class boxes and 185 method boxes are
 later slices; round 7 added five rows to the `## ABI` (4) table - three class methods and, for the
 first time, two of this unit's own *functions* - and round 10 added two more, both class methods
 (`EmacsWindow_initWithEmacsFrame`, `setAppearance`).
@@ -1683,6 +1691,107 @@ Swift bodies (`frame_ns_titlebar_height`/`frame_toolbar_height`) rather than imp
 shim is owed for them - the reading status 3.251 asks for (`fflush_unlocked`'s lesson: a macro
 whose expansion is expressible must not become a symbol).
 
+### Round 20: the stretch glyph, the three foregrounds, and the dispatcher that closes the section
+
+**Scope.**  C 4396-5001: `ns_draw_stretch_glyph_string` (C 4396-4545), the three foregrounds -
+`ns_draw_glyph_string_foreground` (C 4547-4564), `ns_draw_composite_glyph_string_foreground`
+(C 4567-4655) and `ns_draw_glyphless_glyph_string_foreground` (C 4658-4741) - `ns_set_glyph_string_gc`
+(C 4747-4780) and the RIF's `ns_draw_glyph_string` (C 4782-5001).  **No new C export** - all six are
+C `static`s - so `## ABI` (1) is unchanged, and the six function boxes close (**109 of 150**).  The
+boundary is the `Event loop` banner at C 5005-5009: the dispatcher is the last definition of the
+Glyph drawing operations section the ledger has walked since round 17, and the next live definition
+- C 5013's `ns_send_appdefined` - is the callee the two held `EV_TRAILER` macro boxes already wait
+for.
+
+**The slice declares 60 new `@_silgen_name` names** (this unit's C symbol imports go from 347 to
+405), which the gate files as **30 `reference-source`, 27 `unclassified` and 1 `reference`**
+(`cursor_in_mouse_face_p`), with `window_box_left`/`window_box_left_offset` **provided** by the
+core's `xdisp.rs`; `FRAME_COLUMN_WIDTH`, `LGSTRING_GLYPH` and `XCHAR_TABLE` already carry ratchet
+rows, so **55 new `swift-import-pending` rows are owed** (Evidence).  The slice adds **no**
+cross-lane name: the stretch block re-uses round 18's `EmacsImage_stippleMask` and nothing else of
+that class, so the five outstanding `EmacsImage_*` spellings stay five.
+
+**The stretch block's five readings.**  ①`x_stretch_cursor_p` is a generated `globals` field
+(`bool f_x_stretch_cursor_p;`, globals.h 1230-1231, the `DEFVAR_BOOL` at src/xdisp.c 38638), so it
+is a class-A entry and the core owes it - the `tab_bar_button_relief` row of round 19.  ②C 4434
+re-tests `s->hl == DRAW_CURSOR` inside an arm C 4402 has already established: the reference's own
+duplication, transcribed as it stands.  ③The row's three new flags are this slice's members
+(`reversed_p`, read three times; `mouse_face_p`, with `cursor_in_mouse_face_p`; and the
+`stipple_p` read/write pair).  ④`MOUSE_HL_INFO (s->f)->mouse_face_face_id` is a two-level read
+(`ns_display_info_bitmaps_img`'s shape) and `MOUSE_FACE_ID` is the fallback's face id.  ⑤The
+`NS_IMPL_COCOA` stipple arm is the live one and is round 18's three lines again - `CGRectMake` is
+the spelled initializer (class B, round 19), and the `#else`'s single `[[…stippleMask] set];` (C
+4523) is recorded, not transcribed.
+
+**The driver gains two slots, and both are two-hop reads.**  `draw`
+(`int (*draw) (struct glyph_string *, int, int, int, int, bool)`, src/font.h 683-684) and
+`encode_char` (`unsigned (*encode_char) (struct font *, int)`, src/font.h 667) are the second
+`@convention(c)` slot view beside round 14's `font_text_extents_fn`, reached through the same
+`font_driver` entry.  C calls `draw` unconditionally and drops its `int` at all eight call sites;
+the port's `if let` is the nil check C's driver contract makes unnecessary, and each call is `_ =`
+(`_ = composition_gstring_width`'s shape, round 14).
+
+**The composite body's four new reads.**  `s->cmp->offsets[j * 2]` and `… [j * 2 + 1]` (C 4605-4606)
+are the `short *offsets` member (src/composite.h 177) with C's own subscript, so it is one entry
+returning the promoted `Int32` (`glyph_row_used`'s shape); `COMPOSITION_GLYPH`, `LGSTRING_GLYPH`
+and the four `LGLYPH_*` abbreviations keep C's macro names as class-A entries; `s->face->overstrike`
+(four reads) is the fourth.  C 4603's `'\t'` is spelled `9`, the character constant's value, and
+the four `XFIXNUM`-derived `lglyph` reads are C's `ptrdiff_t`, narrowed at the `int` locals with
+`Int32(truncatingIfNeeded:)` - round 17's narrowing rule.
+
+**The glyphless body is the slice's one lifetime reading, and it changes the shape of the text.**
+C's `NSGlyph char2b[8]` (`unsigned int` in this SDK, AppKit's NSFont.h 147) *is* the storage the
+driver reads through `s->char2b`, so that pointer has to live from C 4673's `s->char2b = char2b;` to
+C 4740's `s->char2b = NULL;`; Swift's array storage is only valid inside
+`withUnsafeMutableBufferPointer`, so those two assignments and the loop between them sit in that
+closure.  C's `char buf[8 + PACIFY_GCC_BUG_81401]` needs the same treatment for the hex-code arm,
+because `str` points into it: the per-iteration body that reads `str[j]` sits in `buf`'s closure.
+Three spellings are recorded with it - `snprintf (buf, 8, "%0*X", …)` (C 4708) is variadic and has
+no Swift spelling (round 12's `get_keysym_name` reading), so the port writes the same uppercase
+zero-padded hexadecimal conversion of width 4 or 6 into the same eight-byte buffer; C 4682's
+`#ifdef GCC_LINT` arm (its 1) is a compiler this build does not use, and the live arm's 0 - eight
+bytes - is what is transcribed; and `eassume (ch <= MAX_CHAR);` (C 4707) is src/lisp.h 182/193's
+macro, `assume (cond)`, a compiler hint with no statement when `ENABLE_CHECKING` is off, which this
+configuration leaves undefined (round 13's `eassert (w)` reading) - so it is recorded and `MAX_CHAR`
+(src/character.h 49) is not imported with it.
+
+**The char-table reads get a member entry instead of a struct view.**  `nsfont.swift` 50 and
+531-532 declare that record's view and its own `XCHAR_TABLE`; this unit has no view of that record
+(it is the core's), so `XCHAR_TABLE (Vglyphless_char_display)->extras[0]` crosses as
+`char_table_extras (XCHAR_TABLE (…), 0)` - a member entry whose second argument is C's own
+subscript 0, the `ns_display_info_bitmaps_img` shape of round 18.  `Vglyphless_char_display` is the
+other generated `globals` field this slice reads (globals.h 296-297, the `DEFVAR_LISP` at
+src/xdisp.c 39354).
+
+**`ns_draw_glyph_string` is transcribed whole, and four of its shapes are worth naming.**  ①`NSRect
+r[2]` is a two-element `[NSRect]` - `get_glyph_string_clip_rects` documents "pointer to two
+successive NSRects", so the two slots are the reference's - and the entries that take it want the
+element pointer: `&r` for the mutable one, the array itself for `ns_focus`.  ②`NSRect r` inside the
+two overhang loops (C 4933 and C 4974) shadows the array's name exactly as C's does, and the
+`NSRect rc;` + `get_glyph_string_clip_rect (s, &rc);` pair is the zero default plus the call; the
+first loop guards its second clip with `if (n)` (C 4938) and the second does not (C 4979) - the
+reference's own asymmetry, transcribed.  ③C's right-overhang loop mixes `next` and `s->next` in one
+body (C 4805-4816); the port keeps both readings, because on the loop's first turn they are the same
+pointer and the reference's own text tests `s->next` in the rest of the body.  ④The four
+`NS_IMPL_GNUSTEP` arms (`DPSgsave` with two `DPSrectclip`s at C 4941-4945 and C 4981-4985, and
+`DPSgrestore` at C 4952 and C 4992) are dead and recorded; the live
+`saveGraphicsState`/`restoreGraphicsState` pair stays.  The two extra C block scopes in the
+`CHAR_GLYPH`/`COMPOSITE_GLYPH` arm (C 4860 and C 4875) are the plain declarations here - no name
+collides - and `case XWIDGET_GLYPH:` (C 4850-4851) reaches `x_draw_xwidget_glyph_string`:
+src/xwidget.h 188's declaration, src/xwidget.c 2793's definition, and *no* object in the frozen
+build (src/xwidget.c is not among `docs/baseline/frozen-build-sources.txt`'s files), so the (3)
+table carries it as a shim work order.
+
+**The overhang reads round 14 deferred land here.**  `glyph_string_left_overhang` and
+`glyph_string_right_overhang` are declared by this slice (round 14 wrote the pair at C 3070-3077 and
+recorded that their reads "get their own entries when that slice arrives"); the same is true of
+`glyph_string_set_char2b` and `glyph_string_set_stippled_p`, which complete two read-only rows.
+
+**No Swift API is renamed this round** - unlike round 19's `-appendTransform:` - so the ledger has
+no rename to record.  The two platform spellings it re-uses are round 18's `ctx?.cgContext` and
+round 19's `CGRect (x:y:width:height:)`; its one new stdlib spelling is `String (_:radix:uppercase:)`,
+which replaces the recorded `snprintf`.
+
 ## ABI
 
 
@@ -1994,7 +2103,32 @@ call site takes an entry and the definition lands at its own C line - and **both
   **ratchet already carries** (`docs/baseline/swift-import-pending.txt` 583), which is why it is a
   review row and not a `FAIL`; the gate files **26 of the 27 as `FAIL`** - thirteen
   `reference-source` and thirteen `unclassified` - and round 18's thirty-six are gone from that
-  list (Evidence);
+  list (Evidence).  **Round 20 adds sixty**: the driver's two new slots (`font_driver_draw`,
+  `font_driver_encode_char`, with the `font_draw_fn`/`font_encode_char_fn` slot views); the four
+  `struct glyph_row` flags (`glyph_row_reversed_p`, `glyph_row_stipple_p`,
+  `glyph_row_set_stipple_p`, `glyph_row_mouse_face_p`); the two window queries the core already
+  provides (`window_box_left`, `window_box_left_offset`) and `cursor_in_mouse_face_p` (the one
+  `reference`-class row: the frozen `xdisp.o` holds the symbol and the core does not export it
+  yet); `FRAME_COLUMN_WIDTH`; `mouse_highlight_mouse_face_face_id` and `MOUSE_FACE_ID`;
+  `prepare_face_for_display` (src/xfaces.c's - no object in the frozen build holds it); the two
+  generated `globals` fields (`x_stretch_cursor_p`, `Vglyphless_char_display`); `char_table_extras`,
+  `CHAR_TABLE_P`, `XCHAR_TABLE`, `CHAR_TABLE_EXTRA_SLOTS` and `CHAR_TABLE_REF`; the composite and
+  `lglyph` family (`composition_offsets`, `COMPOSITION_GLYPH`, `LGSTRING_GLYPH`,
+  `LGLYPH_ADJUSTMENT`, `LGLYPH_WIDTH`, `LGLYPH_XOFF`, `LGLYPH_YOFF`, `LGLYPH_WADJUST`);
+  `face_overstrike`; the glyphless members (`glyph_u_glyphless_method`/`_for_no_font`/`_len`/`_ch`,
+  the four `glyph_slice_glyphless_*` offsets and the three `GLYPHLESS_DISPLAY_*` enumerators);
+  `glyph_string_set_char2b` and `glyph_string_set_stippled_p`; the dispatcher's reads and writes
+  (`glyph_string_left_overhang`, `glyph_string_right_overhang`, `glyph_string_clip_head`,
+  `glyph_string_clip_tail`, `glyph_string_set_clip_head`, `glyph_string_set_hl`,
+  `glyph_string_set_num_clips`); `face_font`, `FRAME_FONT` and `FRAME_FOREGROUND_COLOR`; the six
+  `enum glyph_type`/`enum draw_glyphs_face` members (`IMAGE_GLYPH`, `STRETCH_GLYPH`,
+  `XWIDGET_GLYPH`, `GLYPHLESS_GLYPH`, `DRAW_NORMAL_TEXT`, `DRAW_INVERSE_VIDEO`);
+  `get_glyph_string_clip_rect` (the gated one-rect wrapper beside round 16's plural); and
+  `x_draw_xwidget_glyph_string` (src/xwidget.c's, which the frozen build does not compile - the
+  `image_ascent` shape).  The gate files **55 of those 58 as `FAIL`** - thirty `reference-source`,
+  twenty-seven `unclassified` and one `reference` - because `FRAME_COLUMN_WIDTH`
+  (`docs/baseline/swift-import-pending.txt` 94), `LGSTRING_GLYPH` (161) and `XCHAR_TABLE` (412)
+  already carry rows and the two window queries are provided (Evidence);
 * `femacs/platform/macos/nsmenu.swift` (another lane's unit), round 11's addition: the
   `EmacsTooltip` class is landed there, so the `is_emacs_tooltip` entry of (2) - C 2534's
   `isKindOfClass: [EmacsTooltip class]` - is that side's to define (receiver first, the
@@ -2617,6 +2751,66 @@ call site takes an entry and the definition lands at its own C line - and **both
   0 failure(s)`, and `grep -c nsterm docs/baseline/mirror-dupes.tsv` is **0**, so no row of that
   ratchet names this unit.  (The same tree read `26 / 18 / 10` before this slice - the drop is
   other lanes' rows being regenerated while this round ran, not this slice's doing.)
+
+* Round 20's compile, same command: **exit 0**, the same **seven** warnings the previous rounds
+  carry and no new one (`grep -cE '^[^ ]+:[0-9]+:[0-9]+: warning:'` is 7: the two
+  `lockFocus`/two `unlockFocus` deprecations, all four before C 1500, and the three
+  `'scanFloat' was deprecated in macOS 10.15` at C 2594-2596; the tool's rendering repeats the word
+  in seven caret lines, which is why `grep -c 'warning:'` reads 14).  Object `/tmp/nsterm20.o`,
+  **md5 `c5e4e2256caee24abde2bd3818eb624b`**.  **This round needed three compiles**: the first's
+  five errors were all one missing declaration (`Vglyphless_char_display` - the gate printed
+  `cannot find 'Vglyphless_char_display' in scope`), which the second run fixed; the third
+  recompiled **comment-only** changes (six function ranges and the section banner were off by the
+  blank lines around each `static void`), and it produced a **byte-identical object** to the second
+  run - the md5 above is both - so the three runs are one reading.
+* `nm -g /tmp/nsterm20.o` -> **no new C export**: `grep -cE ' T _(ns_draw_stretch_glyph_string|
+  ns_draw_glyph_string_foreground|ns_draw_composite_glyph_string_foreground|
+  ns_draw_glyphless_glyph_string_foreground|ns_set_glyph_string_gc|ns_draw_glyph_string)$'` is 0
+  (all six are C `static`s); the object's `T _` count is 375, which counts the Swift-mangled
+  globals too, so `## ABI` (1) gains no row.
+* `nm -u /tmp/nsterm20.o` -> the slice's **60** declared names, **every one of them referenced**
+  (checked name by name, 0 anomalies).  The check has a trap worth recording: this toolchain's
+  `nm -u` prints the bare names with **no leading `U`**, so a comparison that expects one reports
+  all sixty missing - round 19's Evidence records the same shape with a leading space.  The object
+  has **835 undefined names in all** (762 after round 19).
+* The symbol audit for round 20's 60 names (`nm -g` over `build/emacs-ref/src/*.o` and
+  `build/emacs-ref/lib/*.o`, 5,018 names): exactly **three** of the sixty hold a symbol -
+  `window_box_left`, `window_box_left_offset` and `cursor_in_mouse_face_p`, all `T` in
+  `xdisp.o` - and **57 have none** (the member and operation entries, the macro/enumerator names,
+  the two `globals` fields, `prepare_face_for_display`, the gated `get_glyph_string_clip_rect`, and
+  `x_draw_xwidget_glyph_string`, whose file this build does not compile).
+* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C definition(s),
+  45 unported, 51 row(s); 405 C symbol import(s)` and `0 new, 6 stale, 7 Swift unit(s) landed`.
+  The six stale rows are exactly this slice's six definitions - `docs/baseline/swift-units.tsv`'s
+  rows for them, the integrator's to drop - and `45 unported` is the ledger's 41 open boxes **plus**
+  the four `recorded, not transcribed` definitions.  (Before this slice, same tool: `51 unported`,
+  `347` imports.)
+* `python3 tools/check-swift-imports.py` -> `1145 import(s) in 7 Swift file(s), 5734 core
+  export(s), 801 unprovided, 746 ratchet row(s), 55 failure(s)`, with
+  `reference=133 reference-source=435 rust-side=1 rust-side-gated=73 system=0 unclassified=159`.
+  The slice's delta is +57 imports and +55 unprovided: of its sixty names, three
+  (`FRAME_COLUMN_WIDTH`, `LGSTRING_GLYPH`, `XCHAR_TABLE`) already carry ratchet rows and two
+  (`window_box_left`, `window_box_left_offset`) are provided by the core, which is why the class
+  deltas are `reference-source` +27, `unclassified` +27 and `reference` +1.  Before this slice, same
+  tool and tree: `1088 / 5734 / 746 / 746 / 0` with `reference=132 reference-source=408 rust-side=1
+  rust-side-gated=73 system=0 unclassified=132`.
+* `python3 tools/check-citations.py` -> `675 file(s) scanned, 0 drift, 0 range, 395 external,
+  33 allowed, 0 stale`.  This slice's one new `external` is NSFont.h 147 (the `NSGlyph` typedef its
+  buffer's width comes from); the other 44 new `external` rows are other lanes'.  Four first-draft
+  citations were re-worded before the compile (`src/font.h 683-684`, `src/font.h 667`,
+  `src/lisp.h 2081`, `src/nsterm.h 1049`), so the snippet that follows each cited number now lives
+  on the cited line - the gate's drift rule.  Mid-round the same tree read `5 drift / 4 stale` from
+  two other lanes' in-flight mirror files (their rows named only
+  `femacs/src/include/coding.rs` and `femacs/src/include/dispextern.rs`); those lanes cleared them,
+  and the reading above is the tree at rest.
+* `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures` - unchanged by this slice.
+* `python3 tools/check-ledger-ticks.py` -> `235 ledger(s) bound (a function tick to compare),
+  0 failure(s), 0 carried by another file, 355 row(s) with no function tick ..., 0 row(s) without a
+  ledger` - unchanged by this slice (the six ticks it adds bind to the six landed functions).
+* `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
+  0 failure(s)`, and `grep -c nsterm docs/baseline/mirror-dupes.tsv` is **0**, so no row of that
+  ratchet names this unit.
 
 - **Ruling (3.255, integrator) on this file's macro-name entries.**  Two halves, and the criterion
   is whether the macro's body can be spelled in Swift: **(B) first** - a body that is a pure AppKit

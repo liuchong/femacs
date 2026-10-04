@@ -5718,3 +5718,944 @@ fileprivate func ns_dumpglyphs_image(_ s: UnsafeMutableRawPointer?, _ r: NSRect)
                 FRAME_CURSOR_COLOR(glyph_string_f(s)), true, true)
   }
 }
+
+// ==========================================================================
+// C 4396-5001: the stretch glyph, the three foregrounds, the GC setter and the
+// glyph-string dispatcher - the Glyph drawing operations section closes.
+// ==========================================================================
+
+/// C: `bool x_stretch_cursor_p;` - the `x-stretch-cursor` variable, read at C 4402.
+///
+/// It is a generated `globals` field (`bool f_x_stretch_cursor_p;`, globals.h 1230-1231,
+/// from the `DEFVAR_BOOL` at src/xdisp.c 38638), so no object holds a symbol of this
+/// name and the core owes the export - the `tab_bar_button_relief` shape of round 19.
+@_silgen_name("x_stretch_cursor_p") var x_stretch_cursor_p: Bool
+
+/// C: `struct glyph_row`'s `bool_bf reversed_p : 1` (src/dispextern.h 1141, read at
+/// C 4409, 4431 and 4447 - the stretch block's R2L tests), `bool_bf stipple_p : 1`
+/// (1144, the read at C 4483 and the **write** at C 4484, so the `_set_` pair) and
+/// `bool_bf mouse_face_p : 1` (1108, read at C 4452-4453) - three more members of the row
+/// family round 13 started.
+@_silgen_name("glyph_row_reversed_p")
+func glyph_row_reversed_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_row_stipple_p")
+func glyph_row_stipple_p(_ row: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_row_set_stipple_p")
+func glyph_row_set_stipple_p(_ row: UnsafeMutableRawPointer?, _ v: Bool)
+@_silgen_name("glyph_row_mouse_face_p")
+func glyph_row_mouse_face_p(_ row: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `int window_box_left_offset (struct window *, enum glyph_row_area)` (declared
+/// src/dispextern.h 3580) and `int window_box_left (…)` (declared 3579) - defined at
+/// src/xdisp.c 1385 and 1430, **before** that file's glyph-clipping block, so both are
+/// real symbols of the frozen build (measured `T` in `build/emacs-ref/src/xdisp.o`) and
+/// the core's `xdisp.rs` provides them (`window_box_right`'s reading of round 18); C 4411
+/// and C 4473 read them.
+@_silgen_name("window_box_left_offset")
+func window_box_left_offset(_ w: UnsafeMutableRawPointer?, _ area: Int32) -> Int32
+@_silgen_name("window_box_left")
+func window_box_left(_ w: UnsafeMutableRawPointer?, _ area: Int32) -> Int32
+
+/// C: `#define FRAME_COLUMN_WIDTH(F) ((F)->column_width)` (src/frame.h 1565) - the
+/// `min (…)` partner of C 4430.  Class A of the 3.255 ruling (`FRAME_CURSOR_WIDTH`'s
+/// shape), and its member is `int column_width;` (src/frame.h 641), so the entry is `Int32`.
+@_silgen_name("FRAME_COLUMN_WIDTH")
+func FRAME_COLUMN_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `bool cursor_in_mouse_face_p (struct window *w)` (declared src/dispextern.h 3692,
+/// defined src/xdisp.c 35727) - C 4453's second test.  The frozen objects hold the symbol
+/// (`T` in `build/emacs-ref/src/xdisp.o`); the core does not export it yet (measured), so
+/// the row is the class the gate calls `reference` and the core owes its provider.
+@_silgen_name("cursor_in_mouse_face_p")
+func cursor_in_mouse_face_p(_ w: UnsafeMutableRawPointer?) -> Bool
+
+/// C: `struct mouse_highlight`'s `int mouse_face_face_id;` (src/dispextern.h 3007) - the
+/// member `MOUSE_HL_INFO (s->f)->mouse_face_face_id` reads at C 4456
+/// (`mouse_highlight_mouse_face_mouse_frame`'s family, round 7).
+@_silgen_name("mouse_highlight_mouse_face_face_id")
+func mouse_highlight_mouse_face_face_id(_ hlinfo: UnsafeMutableRawPointer?) -> Int32
+/// C: src/dispextern.h 1971's `MOUSE_FACE_ID` - the `enum face_id` member C 4459 falls
+/// back to (`DEFAULT_FACE_ID`'s family, round 18).
+@_silgen_name("MOUSE_FACE_ID") func MOUSE_FACE_ID() -> Int32
+/// C: `void prepare_face_for_display (struct frame *, struct face *)` (declared
+/// src/dispextern.h 3810, defined src/xfaces.c 4764) - C 4461's call, in the cursor
+/// fallback.  Neither the frozen objects nor the core holds the symbol (measured), so the
+/// row is a shim work order rather than a "provided" reading.
+@_silgen_name("prepare_face_for_display")
+func prepare_face_for_display(_ f: UnsafeMutableRawPointer?, _ face: UnsafeMutableRawPointer?)
+
+/// C 4396-4545: `static void ns_draw_stretch_glyph_string (struct glyph_string *s)` -
+/// the stretch glyph's cursor background, its stipple or plain background, and its text
+/// decoration.
+///
+/// Readings this body makes:
+///
+/// * C's `int width, background_width = s->background_width;` and `int x = s->x;` are the
+///   three locals below; `width` is uninitialized in C, so it takes the zero default
+///   (`ns_draw_image_relief`'s reading of round 19).
+/// * C 4434 re-tests `s->hl == DRAW_CURSOR` inside an arm that already established it
+///   (C 4402) - the reference's own duplication, transcribed as it stands.
+/// * `[[NSColor colorWithUnsignedLong: …] set]` is this unit's own `NSColor` category
+///   method, and `[FRAME_CURSOR_COLOR (s->f) set]` is `FRAME_CURSOR_COLOR(…)?.set()`
+///   (round 19's optional receiver).
+/// * `CGRectMake` is the spelled initializer (class B, round 19) and the `NS_IMPL_COCOA`
+///   stipple arm is the live one; the `#else`'s single `[[…stippleMask] set];` is the
+///   GNUstep text, recorded.
+fileprivate func ns_draw_stretch_glyph_string(_ s: UnsafeMutableRawPointer?) {
+  var face: UnsafeMutableRawPointer? = nil
+  var fg_color: NSColor? = nil
+
+  if glyph_string_hl(s) == DRAW_CURSOR() && !x_stretch_cursor_p {
+    /* If `x-stretch-cursor' is nil, don't draw a block cursor as
+       wide as the stretch glyph.  */
+    var width: Int32 = 0
+    var background_width = glyph_string_background_width(s)
+    var x = glyph_string_x(s)
+
+    if !glyph_row_reversed_p(glyph_string_row(s)) {
+      let left_x = window_box_left_offset(glyph_string_w(s), TEXT_AREA())
+
+      if x < left_x {
+        background_width -= left_x - x
+        x = left_x
+      }
+    } else {
+      /* In R2L rows, draw the cursor on the right edge of the
+         stretch glyph.  */
+      let right_x = window_box_right(glyph_string_w(s), TEXT_AREA())
+
+      if x + background_width > right_x {
+        background_width -= x - right_x
+      }
+      x += background_width
+    }
+
+    width = min(FRAME_COLUMN_WIDTH(glyph_string_f(s)), background_width)
+    if glyph_row_reversed_p(glyph_string_row(s)) {
+      x -= width
+    }
+
+    if glyph_string_hl(s) == DRAW_CURSOR() {
+      FRAME_CURSOR_COLOR(glyph_string_f(s))?.set()
+    } else {
+      NSColor.colorWithUnsignedLong(face_foreground(glyph_string_face(s))).set()
+    }
+
+    NSRectFill(NSMakeRect(CGFloat(x), CGFloat(glyph_string_y(s)), CGFloat(width),
+                          CGFloat(glyph_string_height(s))))
+
+    /* Clear rest using the GC of the original non-cursor face.  */
+    if width < background_width {
+      let y = glyph_string_y(s)
+      let w = background_width - width
+      let h = glyph_string_height(s)
+
+      if !glyph_row_reversed_p(glyph_string_row(s)) {
+        x += width
+      } else {
+        x = glyph_string_x(s)
+      }
+
+      if glyph_row_mouse_face_p(glyph_string_row(s))
+           && cursor_in_mouse_face_p(glyph_string_w(s)) {
+        face = FACE_FROM_ID_OR_NULL(glyph_string_f(s),
+                                    mouse_highlight_mouse_face_face_id(
+                                      MOUSE_HL_INFO(glyph_string_f(s))))
+
+        if face == nil {
+          face = FACE_FROM_ID(glyph_string_f(s), MOUSE_FACE_ID())
+        }
+        prepare_face_for_display(glyph_string_f(s), face)
+
+        NSColor.colorWithUnsignedLong(face_background(face)).set()
+      } else {
+        NSColor.colorWithUnsignedLong(face_background(glyph_string_face(s))).set()
+      }
+      NSRectFill(NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(w), CGFloat(h)))
+    }
+  } else if !glyph_string_background_filled_p(s) {
+    var background_width = glyph_string_background_width(s)
+    var x = glyph_string_x(s)
+    let text_left_x = window_box_left(glyph_string_w(s), TEXT_AREA())
+
+    /* Don't draw into left fringe or scrollbar area except for
+       header line and mode line.  */
+    if glyph_string_area(s) == TEXT_AREA()
+         && x < text_left_x && !glyph_row_mode_line_p(glyph_string_row(s)) {
+      background_width -= text_left_x - x
+      x = text_left_x
+    }
+
+    if !glyph_row_stipple_p(glyph_string_row(s)) {
+      glyph_row_set_stipple_p(glyph_string_row(s), glyph_string_stippled_p(s))
+    }
+
+    if background_width > 0 {
+      let dpyinfo = FRAME_DISPLAY_INFO(glyph_string_f(s))
+      if glyph_string_hl(s) == DRAW_CURSOR() {
+        FRAME_CURSOR_COLOR(glyph_string_f(s))?.set()
+      } else if glyph_string_stippled_p(s) {
+        /* On cocoa emacs the stipple is stored as a mask CGImage.
+           First we want to clear the background with the bg color.  */
+        NSColor.colorWithUnsignedLong(face_background(glyph_string_face(s))).set()
+        NSRectFill(NSMakeRect(CGFloat(x), CGFloat(glyph_string_y(s)),
+                              CGFloat(background_width), CGFloat(glyph_string_height(s))))
+
+        /* This part could possibly be improved, the author is unfamiliar with
+           NS/CoreGraphics and isn't sure if it's possible to do this with NSImage.  */
+        let mask = EmacsImage_stippleMask(
+          ns_display_info_bitmaps_img(dpyinfo, face_stipple(glyph_string_face(s)) - 1))
+        let bounds = CGRect(x: CGFloat(glyph_string_x(s)), y: CGFloat(glyph_string_y(s)),
+                            width: CGFloat(glyph_string_background_width(s)),
+                            height: CGFloat(glyph_string_height(s)))
+
+        /* Checkpoint the graphics state and then focus in on the
+           area we're going to fill.  */
+        let ctx = NSGraphicsContext.current
+        ctx?.saveGraphicsState()
+        let context = ctx?.cgContext
+        CGContextClipToRect(context, bounds)
+        CGContextScaleCTM(context, 1, -1)
+
+        /* Stamp the foreground color using the stipple mask.  */
+        NSColor.colorWithUnsignedLong(face_foreground(glyph_string_face(s))).set()
+        let imageSize = CGRect(x: 0, y: 0, width: CGFloat(CGImageGetWidth(mask)),
+                               height: CGFloat(CGImageGetHeight(mask)))
+        CGContextDrawTiledImage(context, imageSize, mask)
+
+        NSGraphicsContext.current?.restoreGraphicsState()
+        // C 4523: the `#else` arm's `[[dpyinfo->bitmaps[…].img stippleMask] set];` is the
+        // GNUstep text behind `#ifdef NS_IMPL_COCOA` - recorded, not transcribed.
+      } else {
+        NSColor.colorWithUnsignedLong(face_background(glyph_string_face(s))).set()
+      }
+
+      NSRectFill(NSMakeRect(CGFloat(x), CGFloat(glyph_string_y(s)),
+                            CGFloat(background_width), CGFloat(glyph_string_height(s))))
+    }
+  }
+
+  /* Draw overlining, etc. on the stretch glyph (or the part of the
+     stretch glyph after the cursor).  If the glyph has a box, then
+     decorations will be drawn after drawing the box in
+     ns_draw_glyph_string, in order to prevent them from being
+     overwritten by the box.  */
+  if face_box(glyph_string_face(s)) == FACE_NO_BOX() {
+    fg_color = NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(glyph_string_face(s)))
+    ns_draw_text_decoration(s, glyph_string_face(s), fg_color,
+                            CGFloat(glyph_string_background_width(s)), CGFloat(glyph_string_x(s)))
+  }
+}
+
+/// C: `struct font_driver`'s `draw` slot
+/// `int (*draw) (struct glyph_string *s, int from, int to, int x, int y,
+/// bool with_background)` (src/font.h 683-684) - the second slot this lane reaches through
+/// round 14's two-hop `font_driver` read (`font_driver_text_extents`'s shape) - and the
+/// driver's `encode_char` slot `unsigned (*encode_char) (struct font *font, int c)`
+/// (src/font.h 667's `encode_char`), the third.  `draw` returns C's `int`, which C drops at
+/// every one of this slice's eight call sites.
+typealias font_draw_fn = @convention(c) (UnsafeMutableRawPointer?, Int32, Int32, Int32, Int32,
+                                         Bool) -> Int32
+typealias font_encode_char_fn = @convention(c) (UnsafeMutableRawPointer?, Int32) -> UInt32
+@_silgen_name("font_driver_draw")
+func font_driver_draw(_ driver: UnsafeMutableRawPointer?) -> font_draw_fn?
+@_silgen_name("font_driver_encode_char")
+func font_driver_encode_char(_ driver: UnsafeMutableRawPointer?) -> font_encode_char_fn?
+
+/// C 4547-4564: `static void ns_draw_glyph_string_foreground (struct glyph_string *s)` -
+/// the plain text foreground: one driver call and no background.
+///
+/// `font->driver->draw (…)` is the two-hop read above; C calls the slot unconditionally,
+/// so the port's `if let` is the nil check C's driver contract makes unnecessary, and `_ =`
+/// is C's dropped `int` return (`_ = composition_gstring_width`'s shape, round 14).
+/// `!s->for_overlaps` on the bitfield entry is `== 0` (round 18's reading).
+fileprivate func ns_draw_glyph_string_foreground(_ s: UnsafeMutableRawPointer?) {
+  var x: Int32 = 0
+  let font = glyph_string_font(s)
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if glyph_string_face(s) != nil && face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && glyph_left_box_line_p(glyph_string_first_glyph(s)) {
+    x = glyph_string_x(s) + max(face_box_vertical_line_width(glyph_string_face(s)), 0)
+  } else {
+    x = glyph_string_x(s)
+  }
+
+  if let draw = font_driver_draw(font_driver(font)) {
+    _ = draw(s, glyph_string_cmp_from(s), glyph_string_nchars(s), x,
+             glyph_string_ybase(s),
+             glyph_string_for_overlaps(s) == 0 && !glyph_string_background_filled_p(s))
+  }
+}
+
+/// C: `struct composition`'s `short *offsets;` (src/composite.h 177) with C's own
+/// subscript - `s->cmp->offsets[j * 2]` (C 4605) and `… [j * 2 + 1]` (C 4606) - so the row
+/// is a member entry whose second argument is that subscript (`glyph_row_used`'s shape),
+/// and the `short` promotes to `int` in C's arithmetic, hence `Int32`.
+@_silgen_name("composition_offsets")
+func composition_offsets(_ cmp: UnsafeMutableRawPointer?, _ i: Int32) -> Int32
+/// C: `#define COMPOSITION_GLYPH(cmp, n)` (src/composite.h 91-93, `XFIXNUM (AREF (…))`) -
+/// the abbreviation table read at C 4603.
+@_silgen_name("COMPOSITION_GLYPH")
+func COMPOSITION_GLYPH(_ cmp: UnsafeMutableRawPointer?, _ n: Int32) -> Int
+/// C: `struct face`'s `bool_bf overstrike : 1` (src/dispextern.h 1903) - the
+/// `s->face->overstrike` read at C 4609, 4632, 4640 and 4651.
+@_silgen_name("face_overstrike") func face_overstrike(_ face: UnsafeMutableRawPointer?) -> Bool
+
+/// C: the `lglyph` family the compound branch of C 4613-4654 reads - `LGSTRING_GLYPH` and
+/// `LGLYPH_ADJUSTMENT` (src/composite.h 273 and 312) plus the three adjustment members
+/// `LGLYPH_WIDTH`/`LGLYPH_XOFF`/`LGLYPH_YOFF`/`LGLYPH_WADJUST` (307, 328, 330 and 332).
+/// Each expands to `XFIXNUM`-of-`AREF` arithmetic over `Lisp_Object`s, so the three offsets
+/// are C's `ptrdiff_t` (Swift `Int`) and the port narrows them at the `int` locals with
+/// `Int32(truncatingIfNeeded:)` (round 17's narrowing rule).
+@_silgen_name("LGSTRING_GLYPH")
+func LGSTRING_GLYPH(_ lgs: Lisp_Object, _ idx: Int) -> Lisp_Object
+@_silgen_name("LGLYPH_ADJUSTMENT")
+func LGLYPH_ADJUSTMENT(_ g: Lisp_Object) -> Lisp_Object
+@_silgen_name("LGLYPH_WIDTH") func LGLYPH_WIDTH(_ g: Lisp_Object) -> Int
+@_silgen_name("LGLYPH_XOFF") func LGLYPH_XOFF(_ g: Lisp_Object) -> Int
+@_silgen_name("LGLYPH_YOFF") func LGLYPH_YOFF(_ g: Lisp_Object) -> Int
+@_silgen_name("LGLYPH_WADJUST") func LGLYPH_WADJUST(_ g: Lisp_Object) -> Int
+
+/// C 4567-4655: `static void ns_draw_composite_glyph_string_foreground
+/// (struct glyph_string *s)` - the two composition shapes: the rule-based walk over
+/// `s->cmp->offsets` and the automatic one over the `lglyph` vector.
+///
+/// Two more readings: C's `'\t'` comparison is the character constant, spelled `9` here,
+/// and the `font_not_found_p` arm's `NSRect r` is a local of the same name as nothing else
+/// in this function (the dispatcher's array is elsewhere).
+fileprivate func ns_draw_composite_glyph_string_foreground(_ s: UnsafeMutableRawPointer?) {
+  var i: Int32 = 0, j: Int32 = 0, x: Int32 = 0
+  let font = glyph_string_font(s)
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if glyph_string_face(s) != nil && face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && glyph_left_box_line_p(glyph_string_first_glyph(s)) {
+    x = glyph_string_x(s) + max(face_box_vertical_line_width(glyph_string_face(s)), 0)
+  } else {
+    x = glyph_string_x(s)
+  }
+
+  /* S is a glyph string for a composition.  S->cmp_from is the index
+     of the first character drawn for glyphs of this composition.
+     S->cmp_from == 0 means we are drawing the very first character of
+     this composition.  */
+
+  /* Draw a rectangle for the composition if the font for the very
+     first character of the composition could not be loaded.  */
+  if glyph_string_font_not_found_p(s) {
+    if glyph_string_cmp_from(s) == 0 {
+      let r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s)),
+                         CGFloat(glyph_string_width(s) - 1),
+                         CGFloat(glyph_string_height(s) - 1))
+      ns_draw_box(r, 1, 1, FRAME_CURSOR_COLOR(glyph_string_f(s)), true, true)
+    }
+  } else if !glyph_u_cmp_automatic(glyph_string_first_glyph(s)) {
+    let y = glyph_string_ybase(s)
+
+    i = 0
+    j = glyph_string_cmp_from(s)
+    while i < glyph_string_nchars(s) {
+      /* TAB in a composition means display glyphs with padding
+         space on the left or right.  */
+      if COMPOSITION_GLYPH(glyph_string_cmp(s), j) != 9 {
+        let xx = x + composition_offsets(glyph_string_cmp(s), j * 2)
+        let yy = y - composition_offsets(glyph_string_cmp(s), j * 2 + 1)
+
+        if let draw = font_driver_draw(font_driver(font)) {
+          _ = draw(s, j, j + 1, xx, yy, false)
+          if face_overstrike(glyph_string_face(s)) {
+            _ = draw(s, j, j + 1, xx + 1, yy, false)
+          }
+        }
+      }
+      i += 1
+      j += 1
+    }
+  } else {
+    let gstring = composition_gstring_from_id(glyph_string_cmp_id(s))
+    var glyph: Lisp_Object = nil
+    let y = glyph_string_ybase(s)
+    var width: Int32 = 0
+
+    i = glyph_string_cmp_from(s)
+    j = i
+    while i < glyph_string_cmp_to(s) {
+      glyph = LGSTRING_GLYPH(gstring, Int(i))
+      if NILP(LGLYPH_ADJUSTMENT(glyph)) {
+        width += Int32(truncatingIfNeeded: LGLYPH_WIDTH(glyph))
+      } else {
+        var xoff: Int32 = 0, yoff: Int32 = 0, wadjust: Int32 = 0
+
+        if j < i {
+          if let draw = font_driver_draw(font_driver(font)) {
+            _ = draw(s, j, i, x, y, false)
+            if face_overstrike(glyph_string_face(s)) {
+              _ = draw(s, j, i, x + 1, y, false)
+            }
+          }
+          x += width
+        }
+        xoff = Int32(truncatingIfNeeded: LGLYPH_XOFF(glyph))
+        yoff = Int32(truncatingIfNeeded: LGLYPH_YOFF(glyph))
+        wadjust = Int32(truncatingIfNeeded: LGLYPH_WADJUST(glyph))
+        if let draw = font_driver_draw(font_driver(font)) {
+          _ = draw(s, i, i + 1, x + xoff, y + yoff, false)
+          if face_overstrike(glyph_string_face(s)) {
+            _ = draw(s, i, i + 1, x + xoff + 1, y + yoff, false)
+          }
+        }
+        x += wadjust
+        j = i + 1
+        width = 0
+      }
+      i += 1
+    }
+    if j < i {
+      if let draw = font_driver_draw(font_driver(font)) {
+        _ = draw(s, j, i, x, y, false)
+        if face_overstrike(glyph_string_face(s)) {
+          _ = draw(s, j, i, x + 1, y, false)
+        }
+      }
+    }
+  }
+}
+
+/// C: `struct glyph`'s `u.glyphless` sub-struct (src/dispextern.h 624-635): the
+/// `unsigned method : 2` (628, read at C 4686, 4704 and 4728), the
+/// `bool_bf for_no_font : 1` (630, C 4694) and the two widths `unsigned len : 4` (632,
+/// C 4684) and `unsigned ch : 25` (634, C 4696 and 4706).  Each field promotes to `int` in
+/// C's expressions, so the three numeric entries are `Int32` (round 18's `glyph_u_cmp_id`).
+@_silgen_name("glyph_u_glyphless_method")
+func glyph_u_glyphless_method(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_u_glyphless_for_no_font")
+func glyph_u_glyphless_for_no_font(_ g: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("glyph_u_glyphless_len")
+func glyph_u_glyphless_len(_ g: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_u_glyphless_ch")
+func glyph_u_glyphless_ch(_ g: UnsafeMutableRawPointer?) -> Int32
+/// C: the three `enum glyphless_display_method` members C 4670 and 4684-4704 test
+/// (src/dispextern.h 2351, 2355 and 2357).
+@_silgen_name("GLYPHLESS_DISPLAY_THIN_SPACE")
+func GLYPHLESS_DISPLAY_THIN_SPACE() -> Int32
+@_silgen_name("GLYPHLESS_DISPLAY_ACRONYM")
+func GLYPHLESS_DISPLAY_ACRONYM() -> Int32
+@_silgen_name("GLYPHLESS_DISPLAY_HEX_CODE")
+func GLYPHLESS_DISPLAY_HEX_CODE() -> Int32
+/// C: `Lisp_Object Vglyphless_char_display;` - the `glyphless-char-display` variable the
+/// acronym branch reads at C 4689, 4690, 4695 and 4697.
+///
+/// A generated `globals` field too (like `x_stretch_cursor_p` above): `Lisp_Object
+/// f_Vglyphless_char_display;`, globals.h 296-297, the `DEFVAR_LISP` at src/xdisp.c 39354,
+/// so no object holds a symbol of this name and the core owes the export.
+@_silgen_name("Vglyphless_char_display") var Vglyphless_char_display: Lisp_Object
+
+/// C: the char-table reads of C 4685-4690 - `CHAR_TABLE_P` and `XCHAR_TABLE`
+/// (src/lisp.h 2085 and 2091, both `INLINE`s, class A), `CHAR_TABLE_EXTRA_SLOTS`
+/// (2263, also an `INLINE`), `CHAR_TABLE_REF` (2150) and the `->extras[…]` member read
+/// (src/lisp.h 2081's `extras`, the record's flexible array).  `nsfont.swift` 531-532
+/// declares `XCHAR_TABLE` with a `struct Lisp_Char_Table` view of its own; this unit has no
+/// such view (the record is the core's), so the member read is an entry whose second
+/// argument is C's own subscript 0 - the `ns_display_info_bitmaps_img` shape of round 18.
+@_silgen_name("CHAR_TABLE_P") func CHAR_TABLE_P(_ a: Lisp_Object) -> Bool
+@_silgen_name("XCHAR_TABLE")
+func XCHAR_TABLE(_ a: Lisp_Object) -> UnsafeMutableRawPointer?
+@_silgen_name("CHAR_TABLE_EXTRA_SLOTS")
+func CHAR_TABLE_EXTRA_SLOTS(_ ct: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("CHAR_TABLE_REF")
+func CHAR_TABLE_REF(_ ct: Lisp_Object, _ idx: Int32) -> Lisp_Object
+@_silgen_name("char_table_extras")
+func char_table_extras(_ ct: UnsafeMutableRawPointer?, _ i: Int32) -> Lisp_Object
+/// C: `struct glyph`'s `slice.glyphless` sub-struct - `short upper_xoff, upper_yoff;` and
+/// `short lower_xoff, lower_yoff;` (src/dispextern.h 583-586), read at C 4720-4725; each
+/// `short` promotes to `int` in C's `x + …`, so the entries are `Int16` and the use site
+/// widens (the `glyph_ascent` reading of round 16).
+@_silgen_name("glyph_slice_glyphless_upper_xoff")
+func glyph_slice_glyphless_upper_xoff(_ g: UnsafeMutableRawPointer?) -> Int16
+@_silgen_name("glyph_slice_glyphless_upper_yoff")
+func glyph_slice_glyphless_upper_yoff(_ g: UnsafeMutableRawPointer?) -> Int16
+@_silgen_name("glyph_slice_glyphless_lower_xoff")
+func glyph_slice_glyphless_lower_xoff(_ g: UnsafeMutableRawPointer?) -> Int16
+@_silgen_name("glyph_slice_glyphless_lower_yoff")
+func glyph_slice_glyphless_lower_yoff(_ g: UnsafeMutableRawPointer?) -> Int16
+
+/// C: `struct glyph_string`'s `unsigned *char2b;` (src/dispextern.h 1407) - the member
+/// C 4695 writes the local buffer's address into and C 4745 clears.  Round 14 declared the
+/// *read* (`glyph_string_char2b`); this slice adds the two writes.
+@_silgen_name("glyph_string_set_char2b")
+func glyph_string_set_char2b(_ s: UnsafeMutableRawPointer?, _ v: UnsafeMutablePointer<UInt32>?)
+
+/// C 4658-4741: `static void ns_draw_glyphless_glyph_string_foreground
+/// (struct glyph_string *s)` - "Draw the foreground of glyph string S for glyphless
+/// characters."
+///
+/// Four readings, beyond the entries above:
+///
+/// * `NSGlyph char2b[8];` (C 4662) is `unsigned int` in this SDK (AppKit's NSFont.h 147),
+///   so the buffer is `[UInt32]` of eight and C's two assignments, C 4673's
+///   `s->char2b = char2b;` and C 4740's `s->char2b = NULL;`, are the `_set_` entry's.  C's array *is* the storage the driver reads through that pointer, so the
+///   pointer has to live across the whole walk - Swift's array storage is only valid inside
+///   `withUnsafeMutableBufferPointer`, which is why the pair and the loop sit in that
+///   closure (the `withUnsafeBufferPointer` reading `macfont.swift` 2207 uses).
+/// * `char buf[8 + PACIFY_GCC_BUG_81401];` (C 4682) is eight bytes here: the `#ifdef
+///   GCC_LINT` arm's 1 (`enum { PACIFY_GCC_BUG_81401 = 1 };`, C 4678) is for a compiler this
+///   build does not use, and the live arm's 0 (C 4680) is the one transcribed - a dead arm,
+///   recorded.
+/// * `snprintf (buf, 8, "%0*X", ch < 0x10000 ? 4 : 6, ch);` (C 4708) is variadic and has no Swift
+///   spelling (round 12's `get_keysym_name` reading), so the port writes the same
+///   conversion into the same buffer: an uppercase zero-padded hexadecimal number of width
+///   4 or 6, and `ch` is at most `MAX_CHAR` (0x3FFFFF, six digits), so C's eight-byte bound
+///   is kept.  `str` therefore points into `buf` only inside `buf`'s closure.
+/// * `eassume (ch <= MAX_CHAR);` (C 4707) is the src/lisp.h 182/193 macro - `assume (cond)`,
+///   a compiler hint with no statement when `ENABLE_CHECKING` is off, which this
+///   configuration leaves undefined (round 13's `eassert (w)` reading); it is recorded, and
+///   `MAX_CHAR` (src/character.h 49) is not imported with it.
+fileprivate func ns_draw_glyphless_glyph_string_foreground(_ s: UnsafeMutableRawPointer?) {
+  var glyph = glyph_string_first_glyph(s)
+  var char2b = [UInt32](repeating: 0, count: 8)
+  var x: Int32 = 0
+  var i: Int32 = 0
+  var j: Int32 = 0
+
+  /* If first glyph of S has a left box line, start drawing the text
+     of S to the right of that box line.  */
+  if glyph_string_face(s) != nil && face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && glyph_left_box_line_p(glyph_string_first_glyph(s)) {
+    x = glyph_string_x(s) + max(face_box_vertical_line_width(glyph_string_face(s)), 0)
+  } else {
+    x = glyph_string_x(s)
+  }
+
+  char2b.withUnsafeMutableBufferPointer { char2b_buf in
+    glyph_string_set_char2b(s, char2b_buf.baseAddress)
+
+    i = 0
+    while i < glyph_string_nchars(s) {
+      var buf = [CChar](repeating: 0, count: 8)
+      let len = glyph_u_glyphless_len(glyph)
+
+      buf.withUnsafeMutableBufferPointer { bufPtr in
+        var str: UnsafeMutablePointer<CChar>? = nil
+
+        if glyph_u_glyphless_method(glyph) == GLYPHLESS_DISPLAY_ACRONYM() {
+          if len > 0
+               && CHAR_TABLE_P(Vglyphless_char_display)
+               && (CHAR_TABLE_EXTRA_SLOTS(XCHAR_TABLE(Vglyphless_char_display)) >= 1) {
+            var acronym = !glyph_u_glyphless_for_no_font(glyph)
+              ? CHAR_TABLE_REF(Vglyphless_char_display, glyph_u_glyphless_ch(glyph))
+              : char_table_extras(XCHAR_TABLE(Vglyphless_char_display), 0)
+            if CONSP(acronym) {
+              acronym = XCAR(acronym)
+            }
+            if STRINGP(acronym) {
+              str = SSDATA(acronym)
+            }
+          }
+        } else if glyph_u_glyphless_method(glyph) == GLYPHLESS_DISPLAY_HEX_CODE() {
+          let ch = UInt32(truncatingIfNeeded: glyph_u_glyphless_ch(glyph))
+          let digits = Array(String(ch, radix: 16, uppercase: true).utf8)
+          let width = ch < 0x10000 ? 4 : 6
+          /* C's `%0*X` pads to WIDTH but never truncates a longer number, and the 25-bit
+             field can hold seven digits; the buffer's eight bytes still bound the write.  */
+          let pad = max(width - digits.count, 0)
+
+          for (idx, d) in digits.enumerated() {
+            bufPtr[pad + idx] = CChar(bitPattern: d)
+          }
+          str = bufPtr.baseAddress
+        }
+
+        if str != nil {
+          let upper_len = (len + 1) / 2
+
+          /* It is assured that all LEN characters in STR is ASCII.  */
+          j = 0
+          while j < len {
+            let font = glyph_string_font(s)
+            if let encode_char = font_driver_encode_char(font_driver(font)) {
+              let code = encode_char(font, Int32(str![Int(j)]))
+              char2b_buf[Int(j)] = code & 0xFFFF
+            }
+            j += 1
+          }
+
+          let font = glyph_string_font(s)
+          if let draw = font_driver_draw(font_driver(font)) {
+            _ = draw(s, 0, upper_len,
+                     x + Int32(glyph_slice_glyphless_upper_xoff(glyph)),
+                     glyph_string_ybase(s) + Int32(glyph_slice_glyphless_upper_yoff(glyph)),
+                     false)
+            _ = draw(s, upper_len, len,
+                     x + Int32(glyph_slice_glyphless_lower_xoff(glyph)),
+                     glyph_string_ybase(s) + Int32(glyph_slice_glyphless_lower_yoff(glyph)),
+                     false)
+          }
+        }
+      }
+
+      if glyph_u_glyphless_method(glyph) != GLYPHLESS_DISPLAY_THIN_SPACE() {
+        let ascent = Int32(glyph_ascent(glyph))
+        let descent = Int32(glyph_descent(glyph))
+        ns_draw_box(NSMakeRect(CGFloat(x), CGFloat(glyph_string_ybase(s) - ascent),
+                               CGFloat(Int32(glyph_pixel_width(glyph)) - 1),
+                               CGFloat(ascent + descent - 1)),
+                    1, 1,
+                    NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(glyph_string_face(s))),
+                    true, true)
+      }
+      x += Int32(glyph_pixel_width(glyph))
+
+      i += 1
+      glyph = glyph_advance(glyph, 1)
+    }
+
+    /* GCC 12 complains even though nothing ever uses s->char2b after
+       this function returns.  */
+    glyph_string_set_char2b(s, nil)
+  }
+}
+
+/// C: the two `enum draw_glyphs_face` members C 4756 and 4761 test that round 16's
+/// `DRAW_CURSOR` and round 18's `DRAW_MOUSE_FACE` do not already carry
+/// (src/dispextern.h 1350-1351).
+@_silgen_name("DRAW_NORMAL_TEXT") func DRAW_NORMAL_TEXT() -> Int32
+@_silgen_name("DRAW_INVERSE_VIDEO") func DRAW_INVERSE_VIDEO() -> Int32
+/// C: `struct glyph_string`'s `bool_bf stippled_p : 1` (src/dispextern.h 1443) - round 18
+/// declared the read; the five-arm write of C 4758-4779 is this `_set_` row.
+@_silgen_name("glyph_string_set_stippled_p")
+func glyph_string_set_stippled_p(_ s: UnsafeMutableRawPointer?, _ v: Bool)
+
+/// C 4747-4780: `static void ns_set_glyph_string_gc (struct glyph_string *s)` -
+/// "Transfer glyph string parameters from S's face to S itself.  Set S->stipple_p as
+/// appropriate, taking the draw type into account."
+///
+/// The five comment-only lines (C 4754 `s->gc = s->face->gc;`, C 4759
+/// `x_set_mode_line_face_gc (s);`, C 4764 `x_set_cursor_gc (s);`, C 4769
+/// `x_set_mouse_face_gc (s);` and C 4775 `s->gc = s->face->gc;`) are the X port's leftovers
+/// and carry no statement in this arm - recorded.  C's final `emacs_abort ()` (C 4779) is
+/// the core's own symbol (round 3's row).
+fileprivate func ns_set_glyph_string_gc(_ s: UnsafeMutableRawPointer?) {
+  prepare_face_for_display(glyph_string_f(s), glyph_string_face(s))
+
+  if glyph_string_hl(s) == DRAW_NORMAL_TEXT() {
+    /* s->gc = s->face->gc; */
+    glyph_string_set_stippled_p(s, face_stipple(glyph_string_face(s)) != 0)
+  } else if glyph_string_hl(s) == DRAW_INVERSE_VIDEO() {
+    /* x_set_mode_line_face_gc (s); */
+    glyph_string_set_stippled_p(s, face_stipple(glyph_string_face(s)) != 0)
+  } else if glyph_string_hl(s) == DRAW_CURSOR() {
+    /* x_set_cursor_gc (s); */
+    glyph_string_set_stippled_p(s, false)
+  } else if glyph_string_hl(s) == DRAW_MOUSE_FACE() {
+    /* x_set_mouse_face_gc (s); */
+    glyph_string_set_stippled_p(s, face_stipple(glyph_string_face(s)) != 0)
+  } else if glyph_string_hl(s) == DRAW_IMAGE_RAISED()
+              || glyph_string_hl(s) == DRAW_IMAGE_SUNKEN() {
+    /* s->gc = s->face->gc; */
+    glyph_string_set_stippled_p(s, face_stipple(glyph_string_face(s)) != 0)
+  } else {
+    emacs_abort()
+  }
+}
+
+/// C: `struct face`'s `struct font *font;` (src/dispextern.h 1828's `font` member) - the
+/// `s->face->font` read at C 4786 - and the `FRAME_NS_VIEW` macro's shape,
+/// `#define FRAME_FONT(f) ((f)->output_data.ns->font)` (src/nsterm.h 1049) - the fallback
+/// C 4787 reads - plus `#define FRAME_FOREGROUND_COLOR(f)
+/// ((f)->output_data.ns->foreground_color)` (src/nsterm.h 1037) - the non-zero-foreground
+/// arm's value at C 4849.
+@_silgen_name("face_font")
+func face_font(_ face: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("FRAME_FONT")
+func FRAME_FONT(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("FRAME_FOREGROUND_COLOR")
+func FRAME_FOREGROUND_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor?
+
+/// C: `struct glyph_string`'s `int left_overhang` (src/dispextern.h 1384) and
+/// `int right_overhang` (1389) - the two **reads** round 14's note left open (that slice
+/// wrote them at C 3070-3077 and declared only the `_set_` pair); C 4837 and C 4967 read
+/// the left one here, and C 4797, 4803, 4838 and 4926 the right one.
+@_silgen_name("glyph_string_left_overhang")
+func glyph_string_left_overhang(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_right_overhang")
+func glyph_string_right_overhang(_ s: UnsafeMutableRawPointer?) -> Int32
+/// C: `enum glyph_type`'s remaining four members - `GLYPHLESS_GLYPH` (src/dispextern.h
+/// 440), `IMAGE_GLYPH` (443), `STRETCH_GLYPH` (446) and `XWIDGET_GLYPH` (449) - the
+/// dispatcher's `switch` at C 4843 tests all four beside round 14's `CHAR_GLYPH` and
+/// `COMPOSITE_GLYPH`.
+@_silgen_name("IMAGE_GLYPH") func IMAGE_GLYPH() -> Int32
+@_silgen_name("STRETCH_GLYPH") func STRETCH_GLYPH() -> Int32
+@_silgen_name("XWIDGET_GLYPH") func XWIDGET_GLYPH() -> Int32
+@_silgen_name("GLYPHLESS_GLYPH") func GLYPHLESS_GLYPH() -> Int32
+/// C: `struct glyph_string`'s `struct glyph_string *clip_head, *clip_tail;`
+/// (src/dispextern.h 1494), `int num_clips;` (1500) and `enum draw_glyphs_face hl;` (1411).
+/// Round 14 declared the `hl` *read* (`glyph_string_hl`); the five writes below - C 4932's
+/// `prev->hl = s->hl`, C 4955's `prev->hl = save`, C 4973's `next->hl = s->hl`, C 4995's
+/// `next->hl = save` and C 4996's `next->clip_head = s->next` - and the two `num_clips`
+/// writes (C 4815 and C 5000) are the `_set_` rows.
+@_silgen_name("glyph_string_clip_head")
+func glyph_string_clip_head(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_set_clip_head")
+func glyph_string_set_clip_head(_ s: UnsafeMutableRawPointer?,
+                                _ v: UnsafeMutableRawPointer?)
+@_silgen_name("glyph_string_clip_tail")
+func glyph_string_clip_tail(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_set_num_clips")
+func glyph_string_set_num_clips(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("glyph_string_set_hl")
+func glyph_string_set_hl(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C: `void get_glyph_string_clip_rect (struct glyph_string *, NativeRectangle *nr)`
+/// (declared src/dispextern.h 3663, right after round 16's `get_glyph_string_clip_rects`)
+/// - "Wrapper utility …"; defined at src/xdisp.c 2695, inside that file's glyph-clipping
+/// block.  The frozen configuration has no symbol for it (measured), so it carries the same
+/// gate as its plural sibling: this unit's `ns_get_glyph_string_clip_rect` (round 17) is the
+/// two-rect wrapper and this is the one-rect core call C 4935 and C 4976 make.
+@_silgen_name("get_glyph_string_clip_rect")
+func get_glyph_string_clip_rect(_ s: UnsafeMutableRawPointer?,
+                                _ nr: UnsafeMutablePointer<NSRect>?)
+/// C: `void x_draw_xwidget_glyph_string (struct glyph_string *)` - declared src/xwidget.h
+/// 188 (the `HAVE_XWIDGETS` arm) and defined src/xwidget.c 2793; the header's `#else` arm
+/// (236) is the `INLINE { eassume (0); }` stub.  C 4850-4851's `case XWIDGET_GLYPH` calls it,
+/// and neither object exists in the frozen build (`src/xwidget.c` is not among
+/// `docs/baseline/frozen-build-sources.txt`'s files, measured), so this is a shim work
+/// order - the `image_ascent` row of round 19.
+@_silgen_name("x_draw_xwidget_glyph_string")
+func x_draw_xwidget_glyph_string(_ s: UnsafeMutableRawPointer?)
+
+/// C 4782-5001: `static void ns_draw_glyph_string (struct glyph_string *s)` - the RIF's
+/// "Main draw-text call" and the Glyph drawing operations section's last definition.
+///
+/// Readings this body makes:
+///
+/// * `NSRect r[2]` is a two-element `[NSRect]` - `get_glyph_string_clip_rects` "should be
+///   pointer to two successive NSRects", so the two slots are the reference's - and both
+///   entries that take it want the element pointer, which is `&r` (the `&unichars` reading
+///   `macfont.swift` 2261-2262 uses).
+/// * C's `char box_drawn_p = 0;` (C 4791) is `Bool`, and C 4830's `box_drawn_p = 1` is
+///   `true`.
+/// * `struct font *font = s->face->font;` (C 4792) with `if (! font) font = FRAME_FONT
+///   (s->f);` (C 4793) is the member entry plus the macro entry with C's nil fallback.
+/// * the right-overhang loop's comma-headed `for (width = 0, next = s->next; …;
+///   width += next->width, next = next->next)` (C 4802-4804) is the `while` below, C's two
+///   clauses as the statements they are; C's body mixes `next` and `s->next` (C 4805-4816)
+///   and the port keeps both readings - on the first turn they are the same pointer, and
+///   the reference's own text uses `s->next` in the rest of the body.
+/// * `!s->clip_head` and `!s->clip_tail` are `== nil` on the pointer getters, and
+///   `NSIntersectionRect` is Foundation's own (round 13's spelling of it).
+/// * the two overhang loops' `NSRect r = NSMakeRect (…)` (C 4933 and C 4974) shadows the
+///   outer array's name exactly as C's does, and their `NSRect rc;` with
+///   `get_glyph_string_clip_rect (s, &rc);` (C 4934-4935 and C 4975-4976) is the zero
+///   default plus the call.  The first loop guards its second clip with `if (n)` (C 4938),
+///   the second does not (C 4979) - the reference's own asymmetry, transcribed.
+/// * the four `NS_IMPL_GNUSTEP` arms (`DPSgsave` with two `DPSrectclip`s at C 4941-4945 and
+///   C 4981-4985, `DPSgrestore` at C 4952 and C 4992) are dead - recorded; the live
+///   `saveGraphicsState`/`restoreGraphicsState` pair stays.
+/// * the `CHAR_GLYPH`/`COMPOSITE_GLYPH` arm's two extra C block scopes (the case's own at
+///   C 4860 and the `NSColor *col` one at C 4875) are the plain declarations below: C's
+///   names do not collide there, so no scope is needed, and C's `break`s are Swift's arm
+///   ends (round 16's `switch` reading).
+/// * `case XWIDGET_GLYPH:` (C 4850-4851) calls the entry above.
+fileprivate func ns_draw_glyph_string(_ s: UnsafeMutableRawPointer?) {
+  /* TODO (optimize): focus for box and contents draw */
+  var r = [NSRect](repeating: NSRect.zero, count: 2)
+  var n: Int32 = 0
+  var box_drawn_p = false
+  var font = face_font(glyph_string_face(s))
+  if font == nil { font = FRAME_FONT(glyph_string_f(s)) }
+
+  // C 4795: `NSTRACE ("ns_draw_glyph_string (hl = %u)", s->hl);` - empty at `NSTRACE_ENABLED`
+  // 0, so neither its group nor its format argument is evaluated.
+
+  if glyph_string_next(s) != nil && glyph_string_right_overhang(s) != 0
+       && glyph_string_for_overlaps(s) == 0 {
+    var width: Int32 = 0
+    var next = glyph_string_next(s)
+
+    while next != nil && width < glyph_string_right_overhang(s) {
+      if glyph_type(glyph_string_first_glyph(next)) != IMAGE_GLYPH() {
+        ns_set_glyph_string_gc(next)
+        n = ns_get_glyph_string_clip_rect(glyph_string_next(s), &r)
+        ns_focus(glyph_string_f(s), r, n)
+        if glyph_type(glyph_string_first_glyph(next)) != STRETCH_GLYPH() {
+          ns_maybe_dumpglyphs_background(glyph_string_next(s), true)
+        } else {
+          ns_draw_stretch_glyph_string(glyph_string_next(s))
+        }
+        ns_unfocus(glyph_string_f(s))
+        glyph_string_set_num_clips(next, 0)
+      }
+      width += glyph_string_width(next)
+      next = glyph_string_next(next)
+    }
+  }
+
+  ns_set_glyph_string_gc(s)
+
+  if glyph_string_for_overlaps(s) == 0 && face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && (glyph_type(glyph_string_first_glyph(s)) == CHAR_GLYPH()
+           || glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH()) {
+    n = ns_get_glyph_string_clip_rect(s, &r)
+    ns_focus(glyph_string_f(s), r, n)
+    ns_maybe_dumpglyphs_background(s, true)
+    ns_dumpglyphs_box_or_relief(s)
+    ns_unfocus(glyph_string_f(s))
+    box_drawn_p = true
+  }
+
+  n = ns_get_glyph_string_clip_rect(s, &r)
+
+  if glyph_string_clip_head(s) == nil /* draw_glyphs didn't specify a clip mask. */
+       && glyph_string_clip_tail(s) == nil
+       && ((glyph_string_prev(s) != nil
+            && glyph_string_hl(glyph_string_prev(s)) != glyph_string_hl(s)
+            && glyph_string_left_overhang(s) != 0)
+           || (glyph_string_next(s) != nil
+               && glyph_string_hl(glyph_string_next(s)) != glyph_string_hl(s)
+               && glyph_string_right_overhang(s) != 0)) {
+    r[0] = NSIntersectionRect(r[0],
+                              NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s)),
+                                         CGFloat(glyph_string_width(s)),
+                                         CGFloat(glyph_string_height(s))))
+  }
+
+  ns_focus(glyph_string_f(s), r, n)
+
+  switch glyph_type(glyph_string_first_glyph(s)) {
+  case IMAGE_GLYPH():
+    ns_dumpglyphs_image(s, r[0])
+  case XWIDGET_GLYPH():
+    x_draw_xwidget_glyph_string(s)
+  case STRETCH_GLYPH():
+    ns_draw_stretch_glyph_string(s)
+  case CHAR_GLYPH(), COMPOSITE_GLYPH():
+    let isComposite = glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH()
+    if glyph_string_for_overlaps(s) != 0
+         || (isComposite
+             && (glyph_string_cmp_from(s) > 0
+                 && !glyph_u_cmp_automatic(glyph_string_first_glyph(s)))) {
+      glyph_string_set_background_filled_p(s, true)
+    } else {
+      ns_maybe_dumpglyphs_background(s,
+                                     glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH())
+    }
+
+    if isComposite {
+      ns_draw_composite_glyph_string_foreground(s)
+    } else {
+      ns_draw_glyph_string_foreground(s)
+    }
+
+    let col: NSColor? = (NS_FACE_FOREGROUND(glyph_string_face(s)) != 0
+      ? NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(glyph_string_face(s)))
+      : FRAME_FOREGROUND_COLOR(glyph_string_f(s)))
+
+    /* Draw underline, overline, strike-through.  */
+    ns_draw_text_decoration(s, glyph_string_face(s), col, CGFloat(glyph_string_width(s)),
+                            CGFloat(glyph_string_x(s)))
+  case GLYPHLESS_GLYPH():
+    if glyph_string_for_overlaps(s) != 0
+         || (glyph_string_cmp_from(s) > 0
+             && !glyph_u_cmp_automatic(glyph_string_first_glyph(s))) {
+      glyph_string_set_background_filled_p(s, true)
+    } else {
+      ns_maybe_dumpglyphs_background(s,
+                                     glyph_type(glyph_string_first_glyph(s)) == COMPOSITE_GLYPH())
+    }
+    ns_draw_glyphless_glyph_string_foreground(s)
+  default:
+    // C's switch covers every `enum glyph_type`; Swift needs the arm for an `Int32` value.
+    emacs_abort()
+  }
+
+  /* Draw box if not done already.  */
+  if glyph_string_for_overlaps(s) == 0 && !box_drawn_p
+       && face_box(glyph_string_face(s)) != FACE_NO_BOX() {
+    ns_dumpglyphs_box_or_relief(s)
+  }
+
+  if face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && glyph_type(glyph_string_first_glyph(s)) == STRETCH_GLYPH() {
+    let fg_color = NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(glyph_string_face(s)))
+
+    ns_draw_text_decoration(s, glyph_string_face(s), fg_color,
+                            CGFloat(glyph_string_background_width(s)),
+                            CGFloat(glyph_string_x(s)))
+  }
+
+  ns_unfocus(glyph_string_f(s))
+
+  /* Draw surrounding overhangs.  */
+  if glyph_string_prev(s) != nil {
+    ns_focus(glyph_string_f(s), nil, 0)
+    var prev = glyph_string_prev(s)
+
+    while prev != nil {
+      if glyph_string_hl(prev) != glyph_string_hl(s)
+           && glyph_string_x(prev) + glyph_string_width(prev)
+                + glyph_string_right_overhang(prev) > glyph_string_x(s) {
+        /* As prev was drawn while clipped to its own area, we
+           must draw the right_overhang part using s->hl now.  */
+        let save = glyph_string_hl(prev)
+
+        glyph_string_set_hl(prev, glyph_string_hl(s))
+        let r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s)),
+                           CGFloat(glyph_string_width(s)), CGFloat(glyph_string_height(s)))
+        var rc = NSRect.zero
+        get_glyph_string_clip_rect(s, &rc)
+        NSGraphicsContext.current?.saveGraphicsState()
+        NSRectClip(r)
+        if n != 0 {
+          NSRectClip(rc)
+        }
+        if glyph_type(glyph_string_first_glyph(prev)) == CHAR_GLYPH() {
+          ns_draw_glyph_string_foreground(prev)
+        } else {
+          ns_draw_composite_glyph_string_foreground(prev)
+        }
+        NSGraphicsContext.current?.restoreGraphicsState()
+        glyph_string_set_hl(prev, save)
+      }
+      prev = glyph_string_prev(prev)
+    }
+    ns_unfocus(glyph_string_f(s))
+  }
+
+  if glyph_string_next(s) != nil {
+    ns_focus(glyph_string_f(s), nil, 0)
+    var next = glyph_string_next(s)
+
+    while next != nil {
+      if glyph_string_hl(next) != glyph_string_hl(s)
+           && glyph_string_x(next) - glyph_string_left_overhang(next)
+                < glyph_string_x(s) + glyph_string_width(s) {
+        /* As next will be drawn while clipped to its own area,
+           we must draw the left_overhang part using s->hl now.  */
+        let save = glyph_string_hl(next)
+
+        glyph_string_set_hl(next, glyph_string_hl(s))
+        let r = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_y(s)),
+                           CGFloat(glyph_string_width(s)), CGFloat(glyph_string_height(s)))
+        var rc = NSRect.zero
+        get_glyph_string_clip_rect(s, &rc)
+        NSGraphicsContext.current?.saveGraphicsState()
+        NSRectClip(r)
+        NSRectClip(rc)
+        if glyph_type(glyph_string_first_glyph(next)) == CHAR_GLYPH() {
+          ns_draw_glyph_string_foreground(next)
+        } else {
+          ns_draw_composite_glyph_string_foreground(next)
+        }
+        NSGraphicsContext.current?.restoreGraphicsState()
+        glyph_string_set_hl(next, save)
+        glyph_string_set_clip_head(next, glyph_string_next(s))
+      }
+      next = glyph_string_next(next)
+    }
+    ns_unfocus(glyph_string_f(s))
+  }
+  glyph_string_set_num_clips(s, 0)
+}

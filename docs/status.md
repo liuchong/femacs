@@ -6173,3 +6173,46 @@
      `ANDROID_DELETE_LOCAL_REF` 与 `excluded-macros.txt` 尚未对齐。
   ⑦ **未声称**：这是**编译**级证据（`--emit obj`，类型检查 + 代码生成），没有链接、没有 ABI/行为差分、没有设备/模拟器/JNI/菜单显示；
      冻结配置下这文件**一行都没编进去**（336 字节空对象）；`check-*` 是逐个门单独跑的，不是整条 `gate-full`。
+
+- **3.378 nsterm 第二十片：C 4396-5001 的六个绘制函数落地（2026-10-05）**：
+  ① **C 区间与边界理由**：六个定义——`ns_draw_stretch_glyph_string`（C 4396-4545）、
+     `ns_draw_glyph_string_foreground`（4547-4564）、`ns_draw_composite_glyph_string_foreground`（4567-4655）、
+     `ns_draw_glyphless_glyph_string_foreground`（4658-4741）、`ns_set_glyph_string_gc`（4747-4780）、
+     `ns_draw_glyph_string`（4782-5001）。停在 5001 的理由是 C 5005-5009 是 `Event loop` 横幅：本片收尾的
+     dispatcher 是第 17 片以来那条 "Glyph drawing operations" 段的最后一个定义，下一个活定义是 C 5013
+     `ns_send_appdefined`（正好是台账里两条被扣住的 `EV_TRAILER*` 宏所等的被调者）。
+  ② **行数与台账**：`femacs/platform/macos/nsterm.swift` 5720 → **6661（+941）**；
+     `docs/ports/nsterm.md` 2630 → **2824（+194）**；勾选 `[x]` 173 → **179**、`[ ]` 59 → **53**；
+     函数框 **103 → 109 / 150**；宏 17/23、文件级对象 49/49、类型 1/1、ObjC 类 2/8 不变（本片新增的名字
+     全是别的头文件/其它记录的宏与 INLINE，不移动本文件的框）。全程 HEAD 被别的 lane 推进（本片入库时
+     HEAD 已是 7e5bbd3/3.377），本片的 diff 只有上面两个文件。
+  ③ **lane 的 swiftc 读数（三次同读数）**：`swiftc -parse-as-library -c -o /tmp/nsterm20.o …` → **exit 0**、
+     `warning:` **7** 条（全部既有：`lockFocus`×2、`unlockFocus`×2、`scanFloat`×3，行号都在 C 1500 前与
+     C 2594-2596）、0 error；第 1 次 exit 1 的唯一缺陷是他漏声明 `Vglyphless_char_display`（5 条
+     `cannot find … in scope`），第 2 次起 exit 0，第 3 次只因 6 处函数区间行号差一而**改注释**后重编，
+     产物 **md5 与第 2 次完全相同**（`c5e4e2256caee24abde2bd3818eb624b`）⇒ 三次是同一个读数。
+  ④ **我（集成者）独立复跑的读数**：`swiftc -parse-as-library -c -o /tmp/nsterm20.o
+     femacs/platform/macos/nsterm.swift` → exit 0、0 error、产物 425,688 字节（只有既有 warning）；
+     棘轮两本按 lane 的清单结清——`check-swift-units.py --write-manifest` → **51 row(s), 7 Swift unit(s)**
+     （删掉 6 条 stale：`ns_draw_stretch_glyph_string`/`ns_draw_glyph_string_foreground`/
+     `ns_draw_composite_glyph_string_foreground`/`ns_draw_glyphless_glyph_string_foreground`/
+     `ns_set_glyph_string_gc`/`ns_draw_glyph_string`），`check-swift-imports.py --write-pending` →
+     **801 row(s)（+55）**；两门复读 **`0 new, 0 stale`** 与 **`1145 import(s) in 7 Swift file(s),
+     5734 core export(s), 801 unprovided, 801 ratchet row(s), 0 failure(s)`**（其中 159 个已记账名字
+     仍待裁定，`--report` 列全）。同刻其它门：`check-declarations` **13 sites / 0 forbidden / 0 failures**、
+     `check-citations` **675 files / 0 drift / 0 stale**（external 350 → 395）、`check-mirror-dupes`
+     **18/18/0**、`check-ledger-ticks` **235 / 0**、`check-dead-file-coverage` **1 / 0**、
+     `check-verbatim` **6 trees / 4604 files / 0 failures**。
+  ⑤ **本片新引的 60 个 C 名字与 shim 工单**：`reference` 1（`cursor_in_mouse_face_p`，冻结 `xdisp.o`
+     有符号而 core 尚未导出）、`reference-source` 30、`unclassified`（成员/操作行）27、已由 core 提供 2
+     （`window_box_left`、`window_box_left_offset`）；**符号审计**：60 个里只有 3 个在冻结对象里有符号，
+     其余 57 个没有；另加 2 个非 C 名的 `@convention(c)` 槽视图（`font_draw_fn`/`font_encode_char_fn`），
+     **无删除名字**。新 FAIL 共 **55** 个（已全部进 `swift-import-pending.txt`），其中三类特别注明：
+     `x_draw_xwidget_glyph_string`（`src/xwidget.c` 不在冻结构建里）、`prepare_face_for_display`
+     （`src/xfaces.c` 无符号）、`get_glyph_string_clip_rect`（被 `HAVE_WINDOW_SYSTEM` 门住）。
+     `nsimage` 欠账不变：仍 5 个 `EmacsImage_*`（`stippleMask`/`transform`/`smoothing`/`size`/`drawInRect`），
+     本片只复用第 18 片的 `EmacsImage_stippleMask`，**没有新增、也没有自造导出**，本片无新增 `@_cdecl`。
+  ⑥ **未声称**：只有**单文件 `swiftc -c` 的编译/类型级证据**——没有链接、没有 Cocoa/AppKit 构建、
+     没有运行、没有真机或行为验收；被"记录而非转写"的：`NSTRACE` 死宏、`eassume`/`eassert`
+     （并因此不导入 `MAX_CHAR`）、`#ifdef GCC_LINT` 的 1 臂、四处 `NS_IMPL_GNUSTEP` 的 `DPS*` 臂、
+     stipple 的 `#else` 臂、`ns_set_glyph_string_gc` 里三行 X 端 `gc` 注释。
