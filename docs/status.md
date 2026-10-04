@@ -2759,3 +2759,26 @@
   ⑤ 读数：`layout-check` **passed**；五门全绿（`check-declarations` 13 sites/0、`check-globals` 283/0、
   `check-mirror-dupes` 1/0、`check-verbatim` 4607 files/0、`check-target-names` 572 `.rs`/0 findings）；
   `gen-port-inventory` 复算 590 files / done=518 / wip=16 / todo=56。
+
+- **3.163 `src/xsettings.h` 进镜像，X 探针把它一起编上；记一条并发噪音（2026-10-04）**：
+  ① **交付**（`d3da861`）：`src/xsettings.h`（51 行）→ `femacs/src/include/xsettings.rs`。这个头的 include 是**条件**的，
+  而冻结配置选了 X 那支：`HAVE_PGTK` 未定义 ⇒ C 23-25（`dispextern.h` + `<X11/Xlib.h>`）活、C 26-28 的 cairo 支死
+  （`check-cond-eval` 6 conditions / 0 unknown / 0 disagreements）；同时**本目标上没有单元编译它**（`src/xsettings.c`
+  不在冻结构建源表里，`femacs/src/xsettings.rs` 是空壳注记）⇒ 照 3.158/3.162 的先例，镜像照带三条活声明。
+  P-72：`Display_Info` 是 C 33-35 那个 `#ifdef HAVE_PGTK` 的 typedef（在本目标上是**死文本**），`XEvent` 是 Xlib 的
+  ——两者都不是这个头自己的类型，所以参数一律 P-55 替身 + `/// C:` 原件行；arity、指针性、`const XEvent *` 的 `const`、
+  `bool`/`const char *` 返回都是 C 的。
+  ② **两条死臂是"记录"不是"镜像"**：C 42-44 的 `xsettings_get_system_normal_font`（`#ifdef USE_LUCID`）与
+  C 46-49 的 PGTK 两条，各带守卫名留在 `/// C:` 行里，好让将来的配置知道该重读哪个 `#if`（P-51）。
+  ③ **X 探针扩容**：`spikes/x_inc_probe.rs` 现在把 `xsettings.rs` 与 `xgselect.rs` 一起 `include!`，两者每轮都被编译；
+  探针 `use` 行相应加上 `c_char`。
+  ④ **一条并发噪音，记下来免得下次误判**：我第一次跑 `xtask layout-check` 时它**失败**（`layout probe failed to compile`），
+  但**同一命令立刻重跑就 passed**——原因是另一个 lane 的 `w32common.rs` 正在**半写状态**，而 `layout-check` 会把
+  `femacs/src/include/` 下**所有**镜像编进同一个 crate。**教训**：lane 在飞时布局门的失败要先重跑一次再判断归因；
+  反过来这也说明 `layout-excluded-mirrors.txt` 的"排除"只是按平台家族，不能隔离"半写的文件"。
+  ⑤ 证据（我复跑）：`--check` **OK**；`check-cond-eval` 6/0/0；`xtask probe ../spikes/x_inc_probe.rs` **exit 0**；
+  `xtask layout-check` **passed**；五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、
+  `check-verbatim` 4607/0、`check-target-names` 576 `.rs`/0 findings）。
+  ⑥ `gen-port-inventory` 复算：590 files、**done=519、wip=21、todo=50**——wip 从 16 涨到 21 是**在飞 lane 的镜像**
+  （Harvey 的 `cygw32`/`dofsns`/`termopts`/`w32heap`/`w32gui`/`msdos`、Boole 的 gnulib 模板、Hilbert 的 sfnt 起步）
+  进了树但台账方框没勾完导致的**可见 WIP**，不是 FAIL（`--all` 仍 0 failing）。
