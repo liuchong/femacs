@@ -13,15 +13,16 @@ a port (`^// femacs: generated mirror of the frozen build's`), which is why the 
 `femacs/src/` yet appears in no row of `docs/port-inventory.md` or `docs/port-map.md`; both were
 re-run to confirm it (see `## Evidence`).
 
-## Exports - 98 (all `#[unsafe(no_mangle)] pub unsafe extern "C" fn`, `frame` received as `*mut c_void` by the lanes' habit; the ABI is the Swift declaration's)
+## Exports - 113 (all `#[unsafe(no_mangle)] pub unsafe extern "C" fn`, `frame` received as `*mut c_void` by the lanes' habit; the ABI is the Swift declaration's)
 
-Ninety-eight: fifty-one are in the frozen object (`nm -g build/femacs/abi_shim.o`, 75 `T` symbols
-including the unit's own Rust-internal ones) and the other forty-seven appear when the
-configuration that owns their member is built - the four batch-5 arm-only writers, the
+One hundred and thirteen: sixty-six are in the frozen object (`nm -g build/femacs/abi_shim.o`,
+90 `T` symbols including the unit's own Rust-internal ones) and the other forty-seven appear when
+the configuration that owns their member is built - the four batch-5 arm-only writers, the
 forty-two `struct ns_output` accessors of batch 6 and batch 6's `face_set_background` (see
-`## Decisions`).  Six of the ninety-eight (the `z_group_*` enumerators and the two `Lisp_Object`
-accessors) stand in a module, `c_abi_of_mirror_named_items`, because the mirrors already spell
-those names in Rust; the module is why the crate root can hold both (measured, `## Evidence`).
+`## Decisions`).  Twenty of the hundred and thirteen (the four `z_group_*` enumerators, the two
+`Lisp_Object` accessors of batch 7, and batch 8's fourteen mirror-named entries) stand in a
+module, `c_abi_of_mirror_named_items`, because the mirrors already spell those names in Rust;
+the module is why the crate root can hold both (measured, `## Evidence`).
 
 | name | Swift import | providing Rust item | C text (line) |
 | --- | --- | --- | --- |
@@ -123,8 +124,23 @@ those names in Rust; the module is why the crate root can hold both (measured, `
 | `z_group_above_suspended` | `nsterm.swift` 2172 | `abi_shim.rs` 1194 **`mirror-named`** | `z_group_above_suspended,` frame.h 66 = 3 |
 | `FLOATP` | `nsterm.swift` 2228 (`(Lisp_Object) -> Bool`) | `abi_shim.rs` 1202 **`mirror-named`** | `#define FLOATP(x) lisp_h_FLOATP (x)` lisp.h 448 |
 | `XFLOAT_DATA` | `nsterm.swift` 2229 (`(Lisp_Object) -> Double`) | `abi_shim.rs` 1208 **`mirror-named`** | `INLINE double XFLOAT_DATA (Lisp_Object f)` lisp.h 3186-3189 |
+| `Qnil` | `nsfns.swift` 323, `nsterm.swift` 157, `nsmenu.swift` 367, `nsselect.swift` 190, `nsimage.swift` 131, `nsfont.swift` 532, `macfont.swift` 868 (`() -> Lisp_Object`) | `abi_shim.rs` 1231 **`mirror-named`** | `#define Qnil builtin_lisp_symbol (0)` globals.h 7363 (`iQnil` 0 at 1242) |
+| `Qt` | `nsfns.swift` 324, `nsmenu.swift` 368, `nsselect.swift` 191 (`() -> Lisp_Object`) | `abi_shim.rs` 1238 **`mirror-named`** | `# define Qt builtin_lisp_symbol (1)` globals.h 7365 (`iQt` 1 at 1244) |
+| `Qabove` | `nsterm.swift` 2191 (`() -> Lisp_Object`) | `abi_shim.rs` 1246 **`mirror-named`** | `# define Qabove builtin_lisp_symbol (218)` globals.h 7582 (`iQabove` 1678); `DEFSYM (Qabove, "above")` window.c 9251 |
+| `Qabove_suspended` | `nsterm.swift` 2192 (`-> Lisp_Object`) | `abi_shim.rs` 1252 **`mirror-named`** | `DEFSYM (Qabove_suspended, "above-suspended")` frame.c 7368 (`iQabove_suspended` 220, globals.h 1682) |
+| `Qbelow` | `nsterm.swift` 2193 (`-> Lisp_Object`) | `abi_shim.rs` 1258 **`mirror-named`** | `DEFSYM (Qbelow, "below")` frame.c 7367 (`iQbelow` 278, globals.h 1798) |
+| `Qdark` | `nsterm.swift` 2194 (`-> Lisp_Object`) | `abi_shim.rs` 1264 **`mirror-named`** | `DEFSYM (Qdark, "dark")` nsfns.m 4207 (`iQdark` 447, globals.h 2136) |
+| `NILP` | `nsfns.swift` 180, `nsterm.swift` 818, `nsmenu.swift` 252, `nsselect.swift` 152, `nsfont.swift` 476, `macfont.swift` 741 (`(Lisp_Object) -> Bool`) | `abi_shim.rs` 1272 **`mirror-named`** | `# define NILP(x) lisp_h_NILP (x)` lisp.h 450 (over 397, `INLINE bool (NILP)` 1447-1452) |
+| `EQ` | `nsfns.swift` 181, `macfont.swift` 649, `nsfont.swift` 478, `nsimage.swift` 117, `nsmenu.swift` 251, `nsselect.swift` 151, `nsterm.swift` 137 (`(Lisp_Object, Lisp_Object) -> Bool`) | `abi_shim.rs` 1281 **`mirror-named`** | `INLINE bool EQ (Lisp_Object, Lisp_Object)` lisp.h 1314-1325 |
+| `CONSP` | `nsfns.swift` 183, `nsterm.swift` 1142, `nsselect.swift` 153, `nsfont.swift` 480, `macfont.swift` 651 (`(Lisp_Object) -> Bool`) | `abi_shim.rs` 1289 **`mirror-named`** | `# define CONSP(x) lisp_h_CONSP (x)` lisp.h 446 (over 392, `INLINE bool (CONSP)` 1455-1458) |
+| `SYMBOLP` | `nsfns.swift` 185, `nsterm.swift` 135, `nsselect.swift` 156, `nsfont.swift` 484, `macfont.swift` 653 (`(Lisp_Object) -> Bool`) | `abi_shim.rs` 1296 **`mirror-named`** | `INLINE bool SYMBOLP (Lisp_Object)` lisp.h 1074-1079 |
+| `STRINGP` | `nsfns.swift` 184, `nsterm.swift` 2212, `nsmenu.swift` 253, `nsselect.swift` 155, `nsimage.swift` 118 (`(Lisp_Object) -> Bool`) | `abi_shim.rs` 1303 **`mirror-named`** | `INLINE bool STRINGP (Lisp_Object)` lisp.h 1581-1584 |
+| `FIXNUMP` | `nsfns.swift` 190, `nsterm.swift` 2230, `nsselect.swift` 154, `nsimage.swift` 119, `nsfont.swift` 482, `macfont.swift` 655 (`(Lisp_Object) -> Bool`) | `abi_shim.rs` 1311 **`mirror-named`** | `# define FIXNUMP(x) lisp_h_FIXNUMP (x)` lisp.h 449 (over 395, `INLINE bool (FIXNUMP)` 1263-1266) |
+| `XCAR` | `nsfns.swift` 195, `nsterm.swift` 1143, `nsselect.swift` 158, `nsfont.swift` 486, `macfont.swift` 784 (`(Lisp_Object) -> Lisp_Object`) | `abi_shim.rs` 1319 **`mirror-named`** | `# define XCAR(c) lisp_h_XCAR (c)` lisp.h 455 (over 405, `INLINE Lisp_Object (XCAR)` 1492-1497) |
+| `XCDR` | `nsfns.swift` 196, `nsterm.swift` 1144, `nsselect.swift` 159, `nsimage.swift` 121, `nsfont.swift` 488, `macfont.swift` 785 (`(Lisp_Object) -> Lisp_Object`) | `abi_shim.rs` 1326 **`mirror-named`** | `# define XCDR(c) lisp_h_XCDR (c)` lisp.h 456 (over 406, `INLINE Lisp_Object (XCDR)` 1499-1503) |
+| `XSETFRAME` | `nsfns.swift` 711, `nsmenu.swift` 272, `nsselect.swift` 181, `nsterm.swift` 1594 (`(UnsafeMutablePointer<Lisp_Object>, UnsafeMutableRawPointer?)`) | `abi_shim.rs` 1346 (crate root: the mirror spells this one as a macro) | `#define XSETFRAME(a, b) XSETPSEUDOVECTOR (a, b, PVEC_FRAME)` frame.h 926 |
 
-**`ns_output_*` / `ns_output_set_*` (batch 6) and the batch-7 additions**: the `have_ns` mark is the gate of `struct ns_output` (nsterm.h 935-1022, mirrored gated in `include/nsterm.rs` 419-489); `dispextern_face_records` is the gate `include/dispextern.rs` 1941 puts on `struct face`; `mirror-named` means the name is also a Rust item in a mirror, so the C-ABI spelling stands in `c_abi_of_mirror_named_items` (see `## Decisions`).
+**`ns_output_*` / `ns_output_set_*` (batch 6) and the batch-7 additions**: the `have_ns` mark is the gate of `struct ns_output` (nsterm.h 935-1022, mirrored gated in `include/nsterm.rs` 419-489); `dispextern_face_records` is the gate `include/dispextern.rs` 1941 puts on `struct face`; `mirror-named` means the name is also a Rust item in a mirror, so the C-ABI spelling stands in `c_abi_of_mirror_named_items` (see `## Decisions`).  Batch 8's fifteen are the family read below (`Q*` and the accessors); fourteen carry `mirror-named`, and `XSETFRAME` is the one entry of the family whose mirror spelling is a `macro_rules!` rather than an item, so its name is free at the crate root - the split is the criterion, not an accident (`## Decisions`).
 
 - [x] `frame_left_pos`
 - [x] `frame_top_pos`
@@ -224,11 +240,28 @@ those names in Rust; the module is why the crate root can hold both (measured, `
 - [x] `z_group_above_suspended`
 - [x] `FLOATP`
 - [x] `XFLOAT_DATA`
+- [x] `Qnil`
+- [x] `Qt`
+- [x] `Qabove`
+- [x] `Qabove_suspended`
+- [x] `Qbelow`
+- [x] `Qdark`
+- [x] `NILP`
+- [x] `EQ`
+- [x] `CONSP`
+- [x] `SYMBOLP`
+- [x] `STRINGP`
+- [x] `FIXNUMP`
+- [x] `XCAR`
+- [x] `XCDR`
+- [x] `XSETFRAME`
 
 **No unchecked box appears below on purpose**: a ledger that still carries one is skipped by
 `xtask`'s `finished_units()`, so the shim would never be built by `gate-fast`/`dead-arms` and the
 exports it already provides would read as missing.  The live tracking of what is left is the
-ratchet (`docs/baseline/swift-import-pending.txt`, 549 rows at this batch) plus the rulings doc.
+ratchet (`docs/baseline/swift-import-pending.txt`, 537 rows at this batch; batch 8's
+fifteen rows are among them and go at the integrator's next `--write-pending`) plus the rulings
+doc.
 Of the ruling's 65 class-1 names, **62 stand in this file now** (`c_abi_of_mirror_named_items`
 included) and 3 do not, each for a measured reason: `image_load_failed_p` and `image_pixmap` name
 members of `struct image`, which `include/dispextern.rs` 1360 says is not mirrored yet (a
@@ -439,7 +472,91 @@ that are *not* landed are listed in `## Decisions` with their measurements.
   `frame_set_display_info` took the degraded form because the Swift side hands in an untyped
   pointer).
 
+- **Batch 8 lands the head of the `Lisp_Object` accessor family: 15 exports, all A class by name,
+  all of which clear their ratchet row.**  The family ruling is status 3.264 item 3 (`Q*` and the
+  accessors are A class with the *call* shape); this batch re-tests it name by name against status
+  3.255's B-first rule and the B answer is the same for all fifteen, for a datum the lane had not
+  written down before: the Swift side's `Lisp_Object` **is an opaque pointer** (`typealias
+  Lisp_Object = UnsafeMutableRawPointer?`, `nsfns.swift` 29 and `macfont.swift` 38) - no tag, no
+  `x` word, no layout.  So `NILP`/`CONSP`/`SYMBOLP`/`STRINGP`/`FIXNUMP`'s tag tests, `EQ`'s `XLI`
+  comparison, `XCAR`/`XCDR`'s `XCONS (c)->u.s.…` reads and `XSETFRAME`'s tag-and-pointer write all
+  name core-internal facts and have no Swift-side spelling.  **This batch's B list is empty**; the
+  family's real B candidates are member reads whose record layout a Swift file does declare
+  (`FRAME_NS_VIEW`-shaped names, ruled on in batch 5) and they are not in this family.
+- **Six of the fifteen have a *data* symbol in the reference objects, and are still this lane's.**
+  `_Qnil`, `_Qt`, `_Qabove`, `_Qabove_suspended`, `_Qbelow` and `_Qdark` are `S` in
+  `nm -g build/emacs-ref/src/*.o` - the frozen record does define these names, so the handoff's
+  `nm -g` sieve ("a real symbol -> not yours") fires and has to be read together with the family
+  ruling.  Three measured facts make them the core's: the port exports **no** `_Q*` symbol at all
+  (`nm -g build/femacs/*.o` at HEAD; `DEFSYM!` is a no-op macro, `include/lisp.rs` 3493), the
+  mirror spells each symbol as a Rust `pub fn Q*` (`include/globals.rs`, PORTING.md P-17's call
+  shape), and every Swift unit imports it as a **call** (`func Qnil() -> Lisp_Object`, seven
+  units).  P-08 is not violated - the datum exists; what the port cannot hand the seam is a
+  *data* symbol (the symbol-table address is not a Rust constant), so the C-ABI form of this
+  family is the function, exactly as 3.264 item 3 ruled.
+- **The module/crate-root split is the `mirror-named` criterion, and batch 8 measures both
+  sides.**  Fourteen of the fifteen names are already Rust items in mirrors included into this
+  unit, so they stand in `c_abi_of_mirror_named_items` and each body calls the mirror's own item
+  through `super::` (one source of truth; the crate root would be `E0428`, measured at batch 7).
+  `XSETFRAME` is the counter-example that shows the criterion is about *items*: the mirror spells
+  it as `macro_rules! XSETFRAME` (`include/frame.rs` 202-204), macros live in their own
+  namespace, so the name is free and the entry is an ordinary `#[unsafe(no_mangle)]` crate-root
+  export whose body invokes the mirror's macro (the batch-6 `set_waiting_for_input_flag` shape).
+  A name only has to move into the module when the mirror has bound it as a value/item.
+
 ## Evidence
+- **Batch 8 (15 entries, 15 ratchet rows cleared)**: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-abi8
+  cargo run -q -p xtask -- build-tu src/abi_shim.c` -> `built src/abi_shim.rs ->
+  ../build/femacs/abi_shim.o` (exit status **0**, no `error:` line; the warning stream is the
+  tree's - 2789 warnings, none naming a batch-8 entry - and rustc's trailing `rustc --explain
+  E0133` hint belongs to that pre-existing `warning[E0133]` lint stream, not to a failure).
+  `nm -g build/femacs/abi_shim.o` answers all fifteen as
+  `T`, verbatim: `0000000000000000 T _CONSP`, `0000000000000010 T _EQ`,
+  `0000000000000080 T _FIXNUMP`, `0000000000000178 T _NILP`, `0000000000000184 T _Qabove`,
+  `0000000000000190 T _Qabove_suspended`, `000000000000019c T _Qbelow`,
+  `00000000000001a8 T _Qdark`, `00000000000001b4 T _Qnil`, `00000000000001bc T _Qt`,
+  `00000000000001c8 T _STRINGP`, `00000000000001d8 T _SYMBOLP`, `00000000000002f0 T _XCAR`,
+  `0000000000000378 T _XCDR`, `0000000000000488 T _XSETFRAME`.  The object now holds **66** C-ABI
+  names out of **90** `T` symbols (51 / 75 before this batch) and still answers none of the 47
+  guarded ones.
+- **The handoff's `nm -g` sieve, run name by name against the reference objects**: the nine
+  accessors have **no** symbol in `build/emacs-ref/{src,lib}/*.o` at all (they are lisp.h's
+  macros and INLINEs - 3.251's A-class test), and the six `Q*` names have **data** (`S`) symbols
+  only: `_Qnil` 0x3168, `_Qt` 0x3170, `_Qabove` 0x3838, `_Qabove_suspended` 0x3848,
+  `_Qbelow` 0x3a18, `_Qdark` 0x3f60.  None of the fifteen is a *function* symbol in the reference.
+  The port side of the same test: at HEAD `nm -g build/femacs/*.o` answered **no** `_Q*` symbol,
+  and `DEFSYM!` is `{}` (`include/lisp.rs` 3493) - which is why the call shape is the only shape
+  the seam can get (see `## Decisions`).
+- **`check-swift-imports.py`**: exactly fifteen `STALE (satisfied)` lines, and they are this
+  batch's fifteen and no other row of this shim's - `CONSP`, `EQ`, `FIXNUMP`, `NILP`, `Qabove`,
+  `Qabove_suspended`, `Qbelow`, `Qdark`, `Qnil`, `Qt`, `STRINGP`, `SYMBOLP`, `XCAR`, `XCDR`,
+  `XSETFRAME` ("provided now, so the row goes").  Tail:
+  `877 import(s) in 7 Swift file(s), 5656 core export(s), 616 unprovided, 537 ratchet row(s), 109
+  failure(s)` - the failures and the `unclassified` rows are the in-flight Swift batches of other
+  lanes in this worktree, unchanged by this batch.
+- **The object's own undefined list grew by exactly two names, and both are satisfied**: at HEAD
+  `nm -u build/femacs/abi_shim.o` was 15 entries (nine Rust-runtime panic symbols, `_setjmp`,
+  `_cons_to_signed`, `_cons_to_unsigned`, `_current_thread`, `_wrong_type_argument`, `_xfree`);
+  with batch 8 it is 17, the two new ones being `_slow_eq` and `_symbols_with_pos_enabled`, which
+  **only** this batch's `EQ` body reaches (its non-inline arm; every other body of the file
+  inlines `BASE_EQ`/`TAGGEDP`).  Both are defined by other unit objects (`nm -g build/femacs/*.o`
+  answers `T _slow_eq` / `_symbols_with_pos_enabled`), so `tools/check-undef.py` reports **0** new
+  references out of `abi_shim.o`: its `NEW` list is 14 entries, every one of them `referenced by
+  xdisp.o` (another lane's unit), and its three stale ratchet rows (`_Vcomp_eln_to_el_h`,
+  `_redisplay_internal`, `_try_window`) are that lane's too.
+- **The batch-8 bodies are compiled in *both* configurations - the one reading this file's
+  history has never had**: `xtask probe src/abi_shim.rs /tmp/abi_shim.checking.o --crate-type lib
+  --emit obj --cfg enable_checking -C panic=abort -C codegen-units=1 -C opt-level=0` -> exit 0,
+  and `nm -g` on that object answers the same fifteen `T` names, with **`_die`** now in its
+  undefined list (absent from the frozen object's 17) - i.e. the `eassert!` arm of
+  `XSETFRAME`'s expansion (`XSETTYPED_PSEUDOVECTOR!`, `include/lisp.rs` 3085-3089) is live there.
+  All fifteen entries are ungated, so unlike the 47 guarded bodies of batches 5-7 these bodies are
+  compiled by the frozen build itself, not merely carried.
+- **The other four gates, re-run in this tree**: `check-globals` -> `284 units, 0 DEFVAR_*
+  variables without a definition in their own unit`; `check-mirror-dupes` -> `1 duplicate
+  declaration(s), 1 ratchet row(s), 0 failure(s)`; `check-declarations` -> `13 declaration sites
+  (0 forbidden, 13 allowed literals), 0 failures`; `check-target-names` -> `627 .rs files, 591 map
+  targets, 0 finding(s)` (the `DECLARED` first line still keeps this file out of rule R1).
 - **Batches 6 and 7 (46 + 9 entries, 12 ratchet rows cleared)**: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-abi cargo run -q -p xtask -- build-tu src/abi_shim.c` -> `built src/abi_shim.rs -> ../build/femacs/abi_shim.o` (exit 0, no `error:`; the warning stream is the tree's, 2793 of them, none naming a batch-6/7 entry).  `nm -g build/femacs/abi_shim.o` answers **51** C-ABI names out of 75 `T` symbols, and answers **none** of the 47 guarded ones (the expected reading for the frozen configuration): the new ungated twelve are `_glyph_row_y`, `_glyph_row_visible_height`, `_set_waiting_for_input_flag`, `_frame_set_no_accept_focus`, `_frame_alpha`, `_frame_set_menu_bar_items_used`, `_z_group_none`, `_z_group_above`, `_z_group_below`, `_z_group_above_suspended`, `_FLOATP`, `_XFLOAT_DATA`; `_face_set_background` and the 42 `_ns_output_*` names are absent.  `tools/check-swift-imports.py` prints exactly twelve `STALE (satisfied)` lines - those twelve names and no other row of this shim's - and its tail is
   `877 import(s) in 7 Swift file(s), 5641 core export(s), 631 unprovided, 549 ratchet row(s), 106 failure(s)`, the failures being the in-flight Swift batches of other lanes.
 - **The two gates of the guarded blocks, measured**: `xtask probe src/abi_shim.rs … --cfg feature="dispextern_face_records"` -> **exit 0**, and `nm -g` on that object answers `T _face_set_background` (so that body is compiled, not merely carried); the same probe with `--cfg feature="have_ns"` -> exit 1 with **eight** errors, all inside `include/nsterm.rs` (`NSArray` x2, `NSString`, `EmacsMenu`, `Window` x3, `NSRect`), **none of them naming a batch-6/7 body** - the reading status 3.262 recorded when the `dead-arms` flip was tried and reverted.  The counterfactual for the guarded include is in `## Decisions` (39 + 36 errors without it).

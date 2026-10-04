@@ -1206,4 +1206,144 @@ pub mod c_abi_of_mirror_named_items
   /// mirror's own `XFLOAT_DATA` (`include/lisp.rs` 1695).
   #[unsafe(no_mangle)]
   pub unsafe extern "C" fn XFLOAT_DATA (f: Lisp_Object) -> f64 { super::XFLOAT_DATA (f) }
+
+  /* -------------------------------------------------------------------------------------------
+     Batch 8: the head of the `Lisp_Object` accessor family - the two universal symbols
+     (`Qnil`, `Qt`), the four `Q*` of the nsterm lane's slice (the names status 3.264 item 3
+     ruled on), and the predicate/list accessors the same Swift import blocks already group as
+     "header-only lisp.h constructs" (`nsfns.swift` 178-196, `nsterm.swift` 1137-1144).  Every
+     one is A class by the 3.255 test: the Swift lane declares `Lisp_Object` as an opaque
+     pointer (`typealias Lisp_Object = UnsafeMutableRawPointer?`, `nsfns.swift` 29 /
+     `macfont.swift` 38), so no expansion of `XLI`/`TAGGEDP`/`XCONS`/`XSTRING` is expressible
+     there - the representation is a core-internal fact.  The port already carries each name
+     (`include/globals.rs`'s `pub fn Q*`, `include/lisp.rs`'s `pub fn NILP` ...), and a
+     crate-root definition of the same name beside them is `E0428` (status 3.264 item 2), so
+     the C-ABI spelling stands here and each body calls the mirror's own item through
+     `super::`.
+     ------------------------------------------------------------------------------------------- */
+
+  /// C: `#define Qnil builtin_lisp_symbol (0)` (build/emacs-ref/src/globals.h 7363; `iQnil` 0
+  /// at 1242) - the port's symbol is `include/globals.rs` 10's `pub fn Qnil`, i.e. P-17's call
+  /// shape.  The Swift import is `nsfns.swift` 323 (`func Qnil() -> Lisp_Object`), the head of
+  /// the seven units that spell it this way (`nsterm.swift` 157, `nsmenu.swift` 367,
+  /// `nsselect.swift` 190, `nsimage.swift` 131, `nsfont.swift` 532, `macfont.swift` 868).
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn Qnil () -> Lisp_Object { super::Qnil () }
+
+  /// C: `# define Qt builtin_lisp_symbol (1)` (build/emacs-ref/src/globals.h 7365, inside
+  /// `#if DEFINE_NON_NIL_Q_SYMBOL_MACROS` - defined in the frozen configuration; `iQt` 1 at
+  /// 1244) - the port's `include/globals.rs` 13.  Swift: `nsfns.swift` 324, `nsmenu.swift` 368,
+  /// `nsselect.swift` 191.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn Qt () -> Lisp_Object { super::Qt () }
+
+  /// C: `# define Qabove builtin_lisp_symbol (218)` (build/emacs-ref/src/globals.h 7582;
+  /// `iQabove` 218 at 1678, `DEFINE_LISP_SYMBOL (Qabove)` 1679) - C's `DEFSYM (Qabove,
+  /// "above")` is src/window.c 9251, and the port's symbol is `include/globals.rs` 991.  Swift:
+  /// `nsterm.swift` 2191, whose own comment reads `_Qdark` and friends as `S` in
+  /// `build/emacs-ref/src/` (the data symbol 3.264 item 3 rules on).
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn Qabove () -> Lisp_Object { super::Qabove () }
+
+  /// C: `#define iQabove_suspended 220` (build/emacs-ref/src/globals.h 1682) - C's
+  /// `DEFSYM (Qabove_suspended, "above-suspended")` is src/frame.c 7368; the port's symbol is
+  /// `include/globals.rs` 997.  Swift: `nsterm.swift` 2192.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn Qabove_suspended () -> Lisp_Object { super::Qabove_suspended () }
+
+  /// C: `#define iQbelow 278` (build/emacs-ref/src/globals.h 1798) - C's `DEFSYM (Qbelow,
+  /// "below")` is src/frame.c 7367; the port's symbol is `include/globals.rs` 1249.  Swift:
+  /// `nsterm.swift` 2193.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn Qbelow () -> Lisp_Object { super::Qbelow () }
+
+  /// C: `# define Qdark builtin_lisp_symbol (447)` (build/emacs-ref/src/globals.h 7811;
+  /// `iQdark` 447 at 2136) - C's `DEFSYM (Qdark, "dark")` is src/nsfns.m 4207 (and src/frame.c
+  /// 7905); the port's symbol is `include/globals.rs` 1906.  Swift: `nsterm.swift` 2194.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn Qdark () -> Lisp_Object { super::Qdark () }
+
+  /// C: `# define NILP(x) lisp_h_NILP (x)` (src/lisp.h 450, over `#define lisp_h_NILP(x)
+  /// BASE_EQ (x, Qnil)` 397 and the `INLINE bool (NILP) (Lisp_Object)` 1447-1452) - the
+  /// header-only predicate, so the core exports the same name.  The body is the mirror's own
+  /// `NILP` (`include/lisp.rs` 843).  Swift: `nsfns.swift` 180, plus `nsterm.swift` 818,
+  /// `nsmenu.swift` 252, `nsselect.swift` 152, `nsfont.swift` 476, `macfont.swift` 741.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn NILP (x: Lisp_Object) -> bool { super::NILP (x) }
+
+  /// C: `# define EQ(x, y)` -> `INLINE bool EQ (Lisp_Object, Lisp_Object)` (src/lisp.h
+  /// 1314-1325, over `BASE_EQ` 390-460) - header-only.  The body is the mirror's own `EQ`
+  /// (`include/lisp.rs` 819, which is C's body line for line, `symbols_with_pos_enabled`
+  /// included).  Swift: `nsfns.swift` 181, plus `nsterm.swift` 137, `nsmenu.swift` 251,
+  /// `nsselect.swift` 151, `nsfont.swift` 478, `macfont.swift` 649, `nsimage.swift` 117 - the
+  /// most widely imported name of this batch.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn EQ (x: Lisp_Object, y: Lisp_Object) -> bool { super::EQ (x, y) }
+
+  /// C: `# define CONSP(x) lisp_h_CONSP (x)` (src/lisp.h 446, over `#define lisp_h_CONSP(x)
+  /// TAGGEDP (x, Lisp_Cons)` 392 and the `INLINE bool (CONSP)` 1455-1458) - the tag test is the
+  /// core's.  Body: the mirror's `CONSP` (`include/lisp.rs` 851).  Swift: `nsfns.swift` 183,
+  /// `nsterm.swift` 1142 (the `FOR_EACH_FRAME` list walker), `nsselect.swift` 153,
+  /// `nsfont.swift` 480, `macfont.swift` 651.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn CONSP (x: Lisp_Object) -> bool { super::CONSP (x) }
+
+  /// C: `INLINE bool SYMBOLP (Lisp_Object)` (src/lisp.h 1074-1079: `BARE_SYMBOL_P (x) ||
+  /// (symbols_with_pos_enabled && SYMBOL_WITH_POS_P (x))`) - header-only.  Body: the mirror's
+  /// `SYMBOLP` (`include/lisp.rs` 639).  Swift: `nsfns.swift` 185, `nsterm.swift` 135,
+  /// `nsselect.swift` 156, `nsfont.swift` 484, `macfont.swift` 653.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn SYMBOLP (x: Lisp_Object) -> bool { super::SYMBOLP (x) }
+
+  /// C: `INLINE bool STRINGP (Lisp_Object)` (src/lisp.h 1581-1584: `TAGGEDP (x, Lisp_String)`)
+  /// - header-only.  Body: the mirror's `STRINGP` (`include/lisp.rs` 919).  Swift:
+  /// `nsfns.swift` 184, `nsterm.swift` 2212 (`ns_lisp_to_color`), `nsmenu.swift` 253,
+  /// `nsselect.swift` 155, `nsimage.swift` 118.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn STRINGP (x: Lisp_Object) -> bool { super::STRINGP (x) }
+
+  /// C: `# define FIXNUMP(x) lisp_h_FIXNUMP (x)` (src/lisp.h 449, over `#define
+  /// lisp_h_FIXNUMP(x) ((XTYPE (x) & (Lisp_Int0 | ~Lisp_Int1)) == Lisp_Int0)` 395 and the
+  /// `INLINE bool (FIXNUMP)` 1263-1266) - header-only.  Body: the mirror's `FIXNUMP`
+  /// (`include/lisp.rs` 721).  Swift: `nsfns.swift` 190, `nsterm.swift` 2230,
+  /// `nsselect.swift` 154, `nsimage.swift` 119, `nsfont.swift` 482, `macfont.swift` 655.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn FIXNUMP (x: Lisp_Object) -> bool { super::FIXNUMP (x) }
+
+  /// C: `# define XCAR(c) lisp_h_XCAR (c)` (src/lisp.h 455, over `#define lisp_h_XCAR(c)
+  /// XCONS (c)->u.s.car` 405 and the `INLINE Lisp_Object (XCAR)` 1492-1497) - the read is
+  /// `struct Lisp_Cons`'s layout, a core-internal fact.  Body: the mirror's `XCAR`
+  /// (`include/lisp.rs` 881).  Swift: `nsfns.swift` 195, `nsterm.swift` 1143, `nsselect.swift`
+  /// 158, `nsfont.swift` 486, `macfont.swift` 784.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn XCAR (c: Lisp_Object) -> Lisp_Object { super::XCAR (c) }
+
+  /// C: `# define XCDR(c) lisp_h_XCDR (c)` (src/lisp.h 456, over `#define lisp_h_XCDR(c)
+  /// XCONS (c)->u.s.u.cdr` 406 and the `INLINE Lisp_Object (XCDR)` 1499-1503).  Body: the
+  /// mirror's `XCDR` (`include/lisp.rs` 884).  Swift: `nsfns.swift` 196, `nsterm.swift` 1144,
+  /// `nsselect.swift` 159, `nsimage.swift` 121, `nsfont.swift` 488, `macfont.swift` 785.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn XCDR (c: Lisp_Object) -> Lisp_Object { super::XCDR (c) }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 8, the one entry of the family whose name is free at the crate root: `XSETFRAME` is a
+   C *macro* (frame.h 926) and the mirror spells it as a `macro_rules!` (`include/frame.rs`
+   202-204), not as a Rust item - macros live in their own namespace, so a crate-root function
+   of the same name is not `E0428`, and the `c_abi_of_mirror_named_items` shape is not needed.
+   (The batch-6 `set_waiting_for_input_flag` is the same situation with a differently spelled
+   macro; the `mirror-named` criterion of status 3.264 item 2 is about *items*.)
+   --------------------------------------------------------------------------------------------- */
+
+/// C: `#define XSETFRAME(a, b) XSETPSEUDOVECTOR (a, b, PVEC_FRAME)` (src/frame.h 926) - the
+/// frame-writing macro the Swift lanes import with the caller's slot first
+/// (`UnsafeMutablePointer<Lisp_Object>`): `nsfns.swift` 711, `nsmenu.swift` 272,
+/// `nsselect.swift` 181, `nsterm.swift` 1594 (paired with `FRAMEP` at 1593).  The body is the
+/// mirror's own macro, so the tag-and-pointer write has one spelling in this tree: it reaches
+/// `XSETPSEUDOVECTOR!` (`include/lisp.rs` 3090-3093) and `XSETVECTOR!`'s `make_lisp_ptr`
+/// (3073), i.e. the same write the core's `FOR_EACH_FRAME` users make.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn XSETFRAME (a: *mut Lisp_Object, b: *mut c_void)
+{
+  unsafe { XSETFRAME! (*a, b); }
 }
