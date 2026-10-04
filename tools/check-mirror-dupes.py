@@ -45,6 +45,13 @@ FN_DECL = re.compile(r"^(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn\s+([A-
 # The name must start with a letter: `const _: () = assert!(…)` is the layout-assertion
 # shape every unit repeats on purpose, and it is not a declaration of anything.
 ITEM_DECL = re.compile(r"^(?:pub\s+)?(?:static\s+mut\s+|const\s+)([A-Za-z]\w*)\s*[:=]")
+# The third namespace, and the one this gate was blind to until xdisp.rs's twenty-fourth slice
+# taught it (status 3.325/3.326): a `macro_rules!` and a `fn` of the same name live in different
+# Rust namespaces, so a unit-side macro does not collide with a mirror's function - it *shadows*
+# nothing and silently answers calls that C answers with the function.  `BUF_BEGV! (buf)` read
+# the raw field while the mirror's `BUF_BEGV (buf)` honours current_buffer and begv_marker, and
+# no declaration gate could see it, because neither side was a redeclaration of the other.
+MACRO_DECL = re.compile(r"^\s*macro_rules!\s*([A-Za-z_]\w*)")
 
 
 def declarations_in(text: str, scope: str, out: dict[str, list[str]]) -> None:
@@ -72,6 +79,7 @@ def scan(path: Path) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
     """
     fns: dict[str, list[str]] = {}
     consts: dict[str, list[str]] = {}
+    macros: dict[str, list[str]] = {}
     out = fns                      # `declarations_in` appends here
     text = path.read_text(encoding="utf-8", errors="replace")
     stack: list[tuple[str, int]] = []             # (module name, brace depth at entry)
@@ -105,15 +113,18 @@ def scan(path: Path) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
             m_item = None if gated else ITEM_DECL.match(line.strip())
             if m_item and line.rstrip().endswith(";"):
                 consts.setdefault(scope, []).append(m_item.group(1))
+            m_macro = None if gated else MACRO_DECL.match(line)
+            if m_macro:
+                macros.setdefault(scope, []).append(m_macro.group(1))
         depth += line.count("{") - line.count("}")
         while stack and depth <= stack[-1][1]:
             stack.pop()
         if extern_depth is not None and depth <= extern_depth:
             extern_depth = None
-    return fns, consts
+    return fns, consts, macros
 
 
-def visible_declarations(mirror: Path) -> tuple[set[str], set[str]]:
+def visible_declarations(mirror: Path) -> tuple[set[str], set[str], set[str]]:
     """What an `include!` of `mirror` puts into the including unit's scope.
 
     Two sets, because the two kinds collide differently.  A *function* declaration in a module
@@ -126,14 +137,18 @@ def visible_declarations(mirror: Path) -> tuple[set[str], set[str]]:
     an `E0428` (that is what status 3.80's `EDOM` sweep walked into).  So only top-level
     constants count.
     """
-    fns, consts = scan(mirror)
+    fns, consts, macros = scan(mirror)
     fn_names = set(fns.get("", []))
     text = mirror.read_text(encoding="utf-8", errors="replace")
     for line in text.split("\n"):
         m = GLOB_USE.match(line)
         if m:
             fn_names.update(fns.get(m.group(1), []))
-    return fn_names, set(consts.get("", []))
+    # A `macro_rules!` is textually scoped: the mirror's own top-level macros land in the unit's
+    # scope at the point of the `include!`, which is where a later unit-side macro of the same
+    # name takes over.  One inside a module does not (no `#[macro_use]` in this tree), so only
+    # the top level counts - the same rule the functions follow for glob-imported modules.
+    return fn_names, set(consts.get("", [])), set(macros.get("", []))
 
 
 def include_graph(unit: Path, seen: set[Path] | None = None) -> set[Path]:
@@ -172,16 +187,25 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
         for unit in sorted(p for p in base.rglob("*.rs")
                            if "include" not in p.relative_to(base).parts):
             graph = include_graph(unit.resolve())
-            unit_fns, unit_consts = scan(unit)
+            unit_fns, unit_consts, unit_macros = scan(unit)
             declared_fns = set(unit_fns.get("", []))
             declared_consts = set(unit_consts.get("", []))
-            if not declared_fns and not declared_consts:
+            declared_macros = set(unit_macros.get("", []))
+            if not declared_fns and not declared_consts and not declared_macros:
                 continue
             for target in sorted(graph):
                 if target not in visible:
                     continue
-                mirror_fns, mirror_consts = visible[target]
-                shared = (declared_fns & mirror_fns) | (declared_consts & mirror_consts)
+                mirror_fns, mirror_consts, mirror_macros = visible[target]
+                # Same-namespace copies, and then the cross-namespace pair a shared name can make:
+                # a unit's macro against anything the mirror declares, and a unit's item against a
+                # mirror's macro.  Both are one construct spelled twice, which P-26 asks to drop.
+                declared = declared_fns | declared_consts | declared_macros
+                mirrored = mirror_fns | mirror_consts | mirror_macros
+                shared = ((declared_fns & mirror_fns) | (declared_consts & mirror_consts)
+                          | (declared_macros & mirror_macros)
+                          | (declared_macros & (mirror_fns | mirror_consts))
+                          | ((declared_fns | declared_consts) & mirror_macros))
                 for name in sorted(shared):
                     out.append((unit.relative_to(root).as_posix(),
                                 mirrors[target].relative_to(root).as_posix(), name))
