@@ -450,8 +450,10 @@ opens at C 20475).  Ticked in the ledger above, bucket by bucket — **measured*
 functions are declared by C right here (no forward declaration to retire).  **No new
 `docs/ports/macro-body-notes.tsv` row is owed** — `--check`'s `does not mention` lines are still
 the two recorded ones (`redisplay_internal`, `set_cursor_from_row`), and `try_cursor_movement`
-carries no `goto`.  Two mirror-gap macros are added under C's own name: `BUF_BEGV` and `BUF_ZV`
-(buffer.h 1399-1400 — `include/buffer.rs` carries `BUF_Z`/`BUF_GPT` but not these two; item 56).
+carries no `goto`.  The integrator's mirror-dupes sweep then found **forty-four** unit-local
+macros shadowing the mirror's — all deleted in the same round, with the unit's exported symbol
+table byte-identical before and after (deviation 179); `--check` stays at 107 and
+`src/xdisp.rs` is 19,518 lines.
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -810,7 +812,9 @@ C 5773).
   (`last_visible_x = INT_MAX`, the `move_it_to` width, `hscroll * FRAME_COLUMN_WIDTH`, the
   `it.bidi_p` left-to-right flip through `Fcurrent_bidi_paragraph_direction`, `hscroll_whole`,
   and `set_horizontal_scroll_bar_hook`), `window_start_acceptable_p`,
-  `Flong_line_optimizations_p`'s `DEFUN` body, and the two mirror-gap macros `BUF_BEGV`/`BUF_ZV`.
+  `Flong_line_optimizations_p`'s `DEFUN` body.  (`BUF_BEGV`/`BUF_ZV` are C's `INLINE`
+  functions at buffer.h 917/951, not `#define`s; the unit names the mirror's `pub fn`s at
+  `include/buffer.rs:923/957`.)
   C 19879-19882 and C 19934-19936 (`#ifdef GLYPH_DEBUG`) are the round's two dead arms.
 ### The transcription that is in place
 
@@ -906,16 +910,18 @@ The twenty-fourth round's range (C 19863-20422) holds two `#if` blocks, both dea
 
 ### Use-site declarations (headers without a mirror, or mirror gaps; each keeps C's prototype in a `/// C:` line)
 
-1. **`window.h`'s accessor macros.**  `include/window.rs` is WIP: it carries the record, the
-   nineteen packed-flag shifts, the read-only accessors, `wset_redisplay`/`fset_redisplay`/
-   `bset_redisplay`'s declarations (module + glob import) and the fringe/margin readers, but
-   not `WINDOW_XFRAME`/`WINDOW_FRAME`, the divider widths, the scroll-bar geometry,
-   `WINDOW_MODE_LINE_HEIGHT`/`_HEADER_LINE_HEIGHT`/`_TAB_LINE_HEIGHT` or the
-   `CURRENT_*_LINE_HEIGHT` family.  Those are defined here under C's own name (PORTING.md
-   0.1-2/P-72 rule 3), the `window.rs` copy verbatim where the text is the same.  The
-   `window.h` prototypes whose *definitions* live in window.c join them: `window_body_width`
-   and `window_body_height` (window.h 1223-1224), declared in the unit's `unsafe extern "C"`
-   block; frame.h 1191's l-value `FRAME_WINDOW_CHANGE` is the two-argument macro next to
+1. **`window.h`'s accessor macros — retired to the mirror.**  `include/window.rs` was WIP and
+   did not carry `WINDOW_XFRAME`/`WINDOW_FRAME`, the divider widths, the frame edges, the
+   scroll-bar geometry, `WINDOW_MODE_LINE_HEIGHT`/`_HEADER_LINE_HEIGHT`/`_TAB_LINE_HEIGHT` or
+   the `CURRENT_*_LINE_HEIGHT` family, so this unit defined them under C's own name (PORTING.md
+   0.1-2/P-72 rule 3).  The mirror finished that work in the interim, and the
+   duplicate-declaration gate — which learned the macro namespace on 2026-10-05 — then found
+   the unit's **44** copies shadowing the mirror's.  **All 44 are deleted this round** and the
+   unit names the mirror's copies; the two bodies that were not token-identical are the same
+   construct, and the mirror's spelling is the C-faithful one (see deviation 179).  The
+   `window.h` prototypes whose *definitions* live in window.c stay declared in the unit's
+   `unsafe extern "C"` block: `window_body_width` and `window_body_height` (window.h
+   1223-1224); frame.h 1191's l-value `FRAME_WINDOW_CHANGE` is the two-argument macro next to
    `frame_bits!` (deviation 25).
 2. **`frame_bits!`/`buffer_bits!`/`it_bits!`.**  `struct frame`'s and `struct buffer`'s
    `bool_bf` members are bit runs in the mirror; the writers are here with C's member name as
@@ -1977,11 +1983,36 @@ The twenty-fourth round's range (C 19863-20422) holds two `#if` blocks, both dea
      `ptrdiff_t`, so `w->hscroll * FRAME_COLUMN_WIDTH (…)` is `((…) as isize) as c_int` and
      `w->hscroll_whole = whole` casts to `ptrdiff_t`; and `scroll_step` is passed as `*mut bool`,
      which is what `*scroll_step = true` (C 20143) writes through.
-177. **`BUF_BEGV` and `BUF_ZV` are unit-local macros** (buffer.h 1399-1400).  `include/buffer.rs`
-     carries `BUF_Z`, `BUF_GPT` and their `_BYTE` twins but not these two, so the unit defines
-     them under C's own name (PORTING.md P-72 rule 3; item 56).
+177. **`BUF_BEGV` and `BUF_ZV` are the mirror's functions, not macros.**  This round first
+     wrote them as unit-local `macro_rules!`; the integrator's 8958c83 removed them, and the
+     finding is worth keeping: C's `BUF_BEGV`/`BUF_ZV` are `INLINE` **functions** (buffer.h
+     917/951, with the `current_buffer` fast path and the `begv_marker`/`zv_marker` branches),
+     not `#define`s, and `include/buffer.rs:923/957` already mirrors them as `pub fn`.  The
+     macros were therefore not a mirror gap but an invented construct — and because Rust keeps
+     macros and functions in separate namespaces, the shadowing was silent; the four call sites
+     (C 20285-20287 and C 20305) had been reading the bare fields instead of calling the mirror.
+     Item 56 is closed as "the unit had one copy too many", not "the mirror is short".
 178. **The two dead `#ifdef GLYPH_DEBUG` arms** (C 19879-19882, C 19934-19936) are recorded, not
      transcribed (the dead-arm list above).
+
+### Deviations, continued (the round's twenty-third pass: the mirror-dupes sweep)
+
+179. **Forty-four unit-local macros deleted as duplicates of the mirror's.**  The
+     `window.h`/`dispextern.h` families this unit had declared for itself (the `WINDOW_*`
+     accessors, the divider widths and frame edges, the scroll-bar geometry, the three
+     `*_LINE_HEIGHT` triples, and the `CURRENT_*_LINE_HEIGHT`/`MATRIX_*_LINE_HEIGHT` family) are
+     carried by `include/window.rs` and `include/dispextern.rs` now; `macro_rules!` textual
+     shadowing meant the unit's copies won at every call site.  Both sides were compared
+     against C before deleting: 37 bodies are token-identical, and the remaining 7 differ only
+     in ways that leave the C reading intact — three `MATRIX_*_LINE_HEIGHT` bodies differ by a
+     trailing `;`, the three `CURRENT_*_LINE_HEIGHT` bodies call
+     `estimate_mode_line_height (XFRAME ((*($w)).frame), …)` (C's `XFRAME ((W)->frame)`) where
+     the unit had routed through `WINDOW_FRAME!`, and `WINDOW_BOTTOM_DIVIDER_WIDTH` reads
+     `WINDOW_PSEUDO_P ($w)` where the unit had `window_bits! ($w, pseudo_window_p)` — the same
+     bit (`WINDOW_PSEUDO_WINDOW_P_SHIFT`).  The mirror's spelling therefore wins in every case;
+     **no unit-side or mirror-side defect was found**, so nothing is handed back for the mirror.
+     `window_bits`/`window_bits_shift` stay: the mirror carries `window_bit` (the reader) and
+     the shift constants, not those two names.
 
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
@@ -2250,9 +2281,11 @@ The twenty-fourth round's range (C 19863-20422) holds two `#if` blocks, both dea
 55. `include/window.rs`: `window_scroll_margin` (window.h 1226; window.c defines it) is declared
     use-site in `src/xdisp.rs` because the mirror chain does not carry it — the §"Use-site
     declarations" 1 block should gain it (deviation 169).
-56. `include/buffer.rs`: `BUF_BEGV`/`BUF_ZV` (buffer.h 1399-1400) are missing from the mirror —
-    `src/xdisp.rs` defines them locally under C's own name (deviation 177).  They belong with the
-    `BUF_Z`/`BUF_GPT` family the mirror already has.
+56. **`include/buffer.rs`: `BUF_BEGV`/`BUF_ZV` — CLOSED, and not a mirror gap.**  Reported by
+    this lane as a missing mirror macro, but C's `BUF_BEGV`/`BUF_ZV` are `INLINE` functions
+    (buffer.h 917/951) and `include/buffer.rs:923/957` already carries them as `pub fn`; the
+    unit's two `macro_rules!` copies were an invented construct and are deleted (integrator
+    8958c83; deviation 177).  No mirror work is owed.
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  The
