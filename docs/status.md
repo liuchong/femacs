@@ -3629,3 +3629,23 @@
   **A 组里没有 lane 的**（`font.h`/`frame.h`/`getopt` 一对/`w32common.h`）就是下一批要派的活。
   ④ 读数：`gen-port-inventory` **590 files、done=566、wip=14、todo=10**；门全绿（`check-declarations` 13/0、
   `check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-verbatim` 4607/0、`layout-check passed`）。
+
+- **3.200 getopt 前缀层闭合（`lib/getopt.in.h` + `lib/getopt-pfx-ext.h`）；A 组从 8 降到 6（2026-10-04）**：
+  ① **实产**（`347b2ef`，签名 `verified=true`，已推 `origin/master`）：这两件是 `tools/audit-wip.py` 的 A 组里
+  **没有 lane 认领**的两行，现在都 **`--check` OK/0 行**。**Rust 能承载的就承载**：`getopt-pfx-ext.rs` 加上守卫
+  （`_GETOPT_PFX_EXT_H`）与 C 60-63 的两个值（`__getopt_argv_const` 作空宏标记、`__getopt_argv_const_is_empty` = 1）
+  ——后者正是 `getopt-ext.rs` 的原型收 `char **argv`、`lib/getopt1.rs` 的 `ARGV_CAST` 是恒等的原因。
+  ② **承载不了的按类登记**（9 条 `excluded-macros.txt`）：三个粘贴宏（`__GETOPT_CONCAT`/`__GETOPT_XCONCAT`/
+  `__GETOPT_ID`，`syntax`——标识符粘贴在 Rust 无拼法，端口在每个使用点写出结果）；三个重命名（`getopt_long`/
+  `getopt_long_only`/`_getopt_internal`，**`linkage`**——端口的表达是声明处的 `#[link_name = "rpl_getopt_long"]`
+  与定义处的 `#[unsafe(export_name = …)]`，实测参照对象 `nm build/emacs-ref/lib/getopt1.o` 定义 `_rpl_getopt_long`）；
+  `getopt.in.h` 的三个瞬时标记（`_GL_SYSTEM_GETOPT`、`__need_system_stdlib_h` 是 `config`；`option` 是
+  include 期的重命名，`syntax`）。两份台账补齐 Decisions + Evidence。
+  ③ **编译证据**：include 链是真的（`lib/getopt1.rs` → `getopt.in.rs` → 两个 pfx 镜像），所以
+  `build-tu lib/getopt1.c` built。`getopt-pfx-core.h` 早在之前就已 OK（台账 0 未勾）。
+  ④ **审计读数**：`tools/audit-wip.py` 的 **A 组 8 → 6**（剩下的 6 条是两件在飞单元 + `src/font.h` 49 行、
+  `src/frame.h` 47 行、`src/w32common.h` 2 行），**C 组仍为 0**。`src/w32common.h` 的两条是 `sysinfo_cache`/
+  `osinfo_cache` 两个 Windows 对象（本 target 无可测类型），做法与 `w32gdiplus.rs` 同型：挂
+  `#[cfg (feature = "windowsnt")]`、照 C 写 C 的名字 ⇒ 留给下一批（连同 `font.h`/`frame.h`，它们没有 lane）。
+  ⑤ 读数：`gen-port-inventory` **590 files、done=568、wip=12、todo=10**；门全绿（`check-declarations` 13/0、
+  `check-globals` 283/0、`check-mirror-dupes` 1/1/0、`layout-check` 90 of 100 + 10 平台独占跳过）。
