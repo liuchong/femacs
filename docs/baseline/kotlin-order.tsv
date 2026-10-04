@@ -10,7 +10,7 @@ order	target	references	ported
 6	femacs/platform/android/kotlin/EmacsActivity.kt	EmacsContextMenu,EmacsDesktopNotification,EmacsMultitaskActivity,EmacsNative,EmacsService,EmacsView,EmacsWindow,EmacsWindowManager	
 7	femacs/platform/android/kotlin/EmacsApplication.kt	EmacsNative	yes
 8	femacs/platform/android/kotlin/EmacsClipboard.kt	EmacsSdk11Clipboard,EmacsSdk8Clipboard	yes
-9	femacs/platform/android/kotlin/EmacsContextMenu.kt	EmacsActivity,EmacsNative,EmacsService,EmacsView,EmacsWindow	
+9	femacs/platform/android/kotlin/EmacsContextMenu.kt	EmacsActivity,EmacsNative,EmacsService,EmacsView,EmacsWindow	yes
 10	femacs/platform/android/kotlin/EmacsCursor.kt	EmacsHandleObject,EmacsService	yes
 11	femacs/platform/android/kotlin/EmacsDesktopNotification.kt	EmacsActivity,EmacsNative,EmacsService	
 12	femacs/platform/android/kotlin/EmacsDialog.kt	EmacsActivity,EmacsDialogButtonLayout,EmacsNative,EmacsOpenActivity,EmacsService	
@@ -25,7 +25,7 @@ order	target	references	ported
 21	femacs/platform/android/kotlin/EmacsInputConnection.kt	EmacsNative,EmacsService,EmacsView	
 22	femacs/platform/android/kotlin/EmacsLauncherPreferencesActivity.kt	EmacsPreferencesActivity	yes
 23	femacs/platform/android/kotlin/EmacsMultitaskActivity.kt	EmacsActivity,EmacsWindowManager	yes
-24	femacs/platform/android/kotlin/EmacsNative.kt	EmacsService	
+24	femacs/platform/android/kotlin/EmacsNative.kt	EmacsService	yes
 25	femacs/platform/android/kotlin/EmacsNoninteractive.kt	EmacsApplication,EmacsNative,EmacsService	yes
 26	femacs/platform/android/kotlin/EmacsOpenActivity.kt	EmacsActivity,EmacsNative,EmacsService	
 27	femacs/platform/android/kotlin/EmacsPixmap.kt	EmacsDrawable,EmacsGC,EmacsHandleObject	yes

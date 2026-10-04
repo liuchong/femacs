@@ -5214,3 +5214,13 @@
   ② **为什么不就地声明**：若在 `xrdb.rs` 里自带一套 `extern "C"`，`XrmDatabase`/`XrmValue`/`XrmStringType` 就会有**两个家**（本文件 + xterm lane 正在建的 `src/include/xlib.rs`）——那正是 PORTING.md 0.1-3"一处声明点"要防的漂移。**顺序只能是"先镜像、后单元"**。
   ③ **因此这条同时是给镜像的验收清单**（xterm lane 的 `include/xlib.rs` 已在建，见 3.312 ④ 的 `XRectangle`/`None`/`Success`）：上面 17 个名字 + `XrmDatabase` 的**唯一拼法**，是 X11 面第一个消费者的实测需求；镜像落地后，`xrdb.c` 才能按 3.316 ⑤ 的流程开（11 函数 + 1 宏 + 2 全局，`cinventory` 已量）。
   ④ **未做**：本轮没有改任何 `femacs/src/{xrdb.rs,xlib.rs}`（前者仍是空单元、后者是在飞文件），没有再动 `docs/baseline/**`；这条是"量清了顺序"，不是"推迟"——X11 面的第一件文件的开工条件第一次变成**可复算的清单**。
+- **3.321 Kotlin 又两件（`EmacsNative` + `EmacsContextMenu`）→ 30/40；并修掉探针缺的第二个"生成类"（Mill 交付 + 集成者修工具，2026-10-05）**：
+  ① **入的两件**：`EmacsNative.kt`（参照 Java **362 → 320**）、`EmacsContextMenu.kt`（**404 → 356**）+ 重生成的 `docs/baseline/kotlin-order.tsv`（**40 target(s), 30 ported, 10 to go**）。
+  `EmacsNative` 是整批里**名字义务最重**的一个：`src/android.h:344` 的 `#define NATIVE_NAME(name) Java_org_gnu_emacs_EmacsNative_##name` 是**命名约定**而不是查表，69 条实现分布在 `android.c` 42 + `androidterm.c` 22 + `androidvfs.c` 5；
+  lane 给了 69 对"Java 声明行 ↔ C 实现行"的逐行对照（如 `getFingerprint` 41↔1462、`initEmacs` 91↔2087、`takeSnapshot` 283↔6359），空安全按 C 体判（8 个有显式 `return NULL` 的写成可空返回：`getProcName`/`getSelectedText`/`getTextAfterCursor`/`getTextBeforeCursor`/`getSelection`/`getExtractedText`/`takeSnapshot`/`displayNameHash`，其余 61 个非空）。
+  `EmacsContextMenu` 走的是**查表**（`androidmenu.c` 103-115）：七个成员逐条对过（`createContextMenu`/`addItem`/`addSubmenu`/`addPane`/`parent`/`display`/`dismiss`），外加**三个静态字段**（`itemAlreadySelected` `Z`、`wasSubmenuSelected` `J`、`lastMenuEventSerial` `I`）——`EmacsActivity.java` 508-529 是按**字段**读的，端口用 companion `@JvmField`（`EmacsApplication.dumpFileName` 的先例）。
+  ② **入库前我自己复检（三项，都是我自己跑的）**：⑴ 探针（**全目录 30 个 `.kt`**）**exit 0 / 0 error / 13 warning**（13 条全是既有文件的）；⑵ **JNI 名字集合双向零差**：Java 的 `public static native` **69** ↔ `emacs/src/` 的 `NATIVE_NAME (...)` **69** ↔ 端口的 `external fun` **69**，`java-only` 与 `C-only` 都是**空**；
+  ⑶ `spikes/kotlin-target-order.py --check` → `40 target(s), 30 ported, 10 to go`。
+  ③ **一个真缺陷（工具层，我修的）**：第一次跑全目录探针 **exit 1**，唯一错误是 `EmacsNative.kt:292: unresolved reference 'EmacsConfig'`。根因不是端口写错，而是**参照树里没有这个类**——它由 Android 构建生成（`emacs/java/Makefile.in` 409-427 的 `cf-stamp-1`：`package org.gnu.emacs; public class EmacsConfig { public static final String[] EMACS_SHARED_LIBRARIES = {$(ALL_DEPENDENCIES)}; }`），所以探针的"拿参照 `.java` 当替身"机制**给不出它**。
+  修法与 `R.kt` 同一条既有约定（**真名字、探针自己的值**）：`spikes/kotlin-compile-probe.sh` 现在也写一份 `$out/EmacsConfig.java`（同一个 `package`/类名/唯一成员，值是空数组，注释里点名 Makefile 的 409-427 行），并把它加进编译命令行；重跑 **exit 0**。
+  **这条同时是 P-83 ⑥"每批收口跑全目录"的正面证据**：per-file 探针（用 Java 替身）看不到它，只有 30 个 `.kt` 一起编才暴露——正是 Mill 上一轮自己补进 P-83 的那条规矩。
