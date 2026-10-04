@@ -6,13 +6,13 @@
 ## Functions defined — 0
 
 ## Macros defined — 4
-- [ ] _GL_ACL_H  (line 21, body 356a192b7913)
-- [ ] aclinfo_free  (line 91, body a29646b15239)
-- [ ] aclinfo_has_xattr  (line 90, body 7cb6efb98ba5)
-- [ ] aclinfo_scontext_free  (line 97, body a29646b15239)
+- [x] _GL_ACL_H  (line 21, body 356a192b7913)
+- [x] aclinfo_free  (line 91, body a29646b15239)
+- [x] aclinfo_has_xattr  (line 90, body 7cb6efb98ba5)
+- [x] aclinfo_scontext_free  (line 97, body a29646b15239)
 
 ## Types and their fields — 1
-- [ ] aclinfo: char* buf, ssize_t size, char* scontext, int scontext_err, int err, char _gl_acl_ch, <aggregate> u
+- [x] aclinfo: char* buf, ssize_t size, char* scontext, int scontext_err, int err, char _gl_acl_ch, <aggregate> u
 
 ## File-scope objects — 0
 
@@ -24,3 +24,17 @@ boxes are the `aclinfo_has_xattr`/`aclinfo_free`/`aclinfo_scontext_free` macros,
 as `false`/`((void) 0)` on this target and the port keeps as a constant and two empty
 macro_rules (the `#if HAVE_LINUX_XATTR_H && HAVE_LISTXATTR` arm is dead: the first is
 undefined).
+
+## Evidence
+
+```
+$ python3 tools/extract-abi.py --check emacs/lib/acl.h femacs/lib/include/acl.rs
+OK emacs/lib/acl.h -> femacs/lib/include/acl.rs            (0 problem rows)
+```
+
+The five boxes above are names the mirror carries: the split guard (`_GL_ACL_H`), the two
+`aclinfo` macros C's live `#else` arm defines (`aclinfo_has_xattr` -> false, `aclinfo_free` ->
+nothing) plus `aclinfo_scontext_free` and the `aclinfo` record itself.  No unit compiles this
+header on the frozen target (`lib/acl.c` and the ACL-aware callers are not in
+`docs/baseline/frozen-build-sources.txt`), so there is no `build-tu` consumer; the check above is
+the evidence.

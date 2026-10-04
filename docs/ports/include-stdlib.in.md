@@ -4,8 +4,8 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 2
-- [ ] _gl_MB_CUR_MAX  (line 761)
-- [ ] rpl_realloc  (line 1468)
+- [x] _gl_MB_CUR_MAX  (line 761)
+- [x] rpl_realloc  (line 1468)
 
 ## Macros defined — 75
 - [x] EXIT_FAILURE  (line 227, body 356a192b7913)
@@ -13,7 +13,7 @@
 - [x] GNULIB_defined_MB_CUR_MAX  (line 773, body 356a192b7913)
 - [x] GNULIB_defined_canonicalize_file_name  (line 478, body 9ef8afe89142)
 - [x] GNULIB_defined_print_stack_trace  (line 1658, body 356a192b7913)
-- [ ] GNULIB_defined_ptsname_r  (line 1104, body 5b235cd3e8f9)
+- [x] GNULIB_defined_ptsname_r  (line 1104, body 5b235cd3e8f9)
 - [x] GNULIB_defined_qsort_r_fn_types  (line 1167, body 356a192b7913)
 - [x] GNULIB_defined_strtod_function  (line 1669, body 356a192b7913)
 - [x] GNULIB_defined_strtof_function  (line 1700, body 356a192b7913)
@@ -25,7 +25,7 @@
 - [x] GNULIB_defined_struct_random_data  (line 101, body 356a192b7913)
 - [x] MB_CUR_MAX  (line 772, body 2c68f29348c2)
 - [x] RAND_MAX  (line 1210, body 75878664309b)
-- [ ] _  (line 53, body 9f3e5dee33b9)
+- [x] _  (line 53, body 9f3e5dee33b9)
 - [x] _Exit  (line 249, body 5a5c37288c19)
 - [x] _GL_ATTRIBUTE_DEALLOC  (line 142, body da39a3ee5e6b)
 - [x] _GL_ATTRIBUTE_DEALLOC_FREE  (line 150, body f761bb1d7fb2)
@@ -48,7 +48,7 @@
 - [x] getprogname  (line 612, body 2c1d6ee37940)
 - [x] getsubopt  (line 655, body 48e2fcbeebaa)
 - [x] initstate  (line 1288, body 46604de2445e)
-- [ ] initstate_r  (line 1399, body a8f79deeafe5)
+- [x] initstate_r  (line 1399, body a8f79deeafe5)
 - [x] malloc  (line 706, body 7d415fafcb1d)
 - [x] mbstowcs  (line 782, body 0db72ecb9205)
 - [x] mbtowc  (line 811, body af870c594f64)
@@ -58,22 +58,22 @@
 - [x] mktemp  (line 999, body 438fbce7d918)
 - [x] posix_memalign  (line 1013, body 8cb5f1892c03)
 - [x] posix_openpt  (line 1042, body ee328d9ea77c)
-- [ ] print_stack_trace  (line 1657, body da39a3ee5e6b)
+- [x] print_stack_trace  (line 1657, body da39a3ee5e6b)
 - [x] ptsname  (line 1068, body 143e6e49d52b)
 - [x] ptsname_r  (line 1093, body f738d5c67b5c)
 - [x] putenv  (line 1143, body 5c2abb6ca4c2)
 - [x] qsort_r  (line 1175, body fc34456603aa)
 - [x] rand  (line 1219, body 83fe29b090b6)
 - [x] random  (line 1236, body 0fa7179661e2)
-- [ ] random_r  (line 1347, body 49c4ac208f3c)
+- [x] random_r  (line 1347, body 49c4ac208f3c)
 - [x] realloc  (line 1479, body 7d6e078f5f15)
-- [ ] reallocarray  (line 1533, body babfe5f7c886)
+- [x] reallocarray  (line 1533, body babfe5f7c886)
 - [x] realpath  (line 1562, body 1c15e1b87fba)
 - [x] setenv  (line 1624, body bdd38f4c7869)
 - [x] setstate  (line 1320, body 95f3841c4013)
-- [ ] setstate_r  (line 1433, body ae2adf211e6a)
+- [x] setstate_r  (line 1433, body ae2adf211e6a)
 - [x] srandom  (line 1262, body f603453ed604)
-- [ ] srandom_r  (line 1371, body 670c5bac7ba7)
+- [x] srandom_r  (line 1371, body 670c5bac7ba7)
 - [x] strtod  (line 1667, body e710349e3dbf)
 - [x] strtof  (line 1698, body 65ef68fba0c9)
 - [x] strtol  (line 1765, body 57fb235bacbd)
@@ -237,12 +237,20 @@
   - `rustc +nightly-2026-10-01 --edition 2024 --crate-type bin -C panic=abort -o /tmp/abip/P
     /tmp/abip/P.rs` (the probe `include!`s this mirror with the `std::ffi` alias set) -> exit 0, and
     running it prints `stdlib.in.rs probe ok: RAND_MAX=2147483647, MB_CUR_MAX=1`, exit 0.
-  - `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-win cargo run -q -p xtask -- layout-check`
-    -> `layout-check: 86 of 97 mirror(s) compiled, 11 platform-exclusive skipped (android-asset.rs,
-    android.rs, androidgui.rs, androidterm.rs, dispextern.rs, gtkutil.rs, haiku_support.rs,
-    haikugui.rs, haikuterm.rs, nsgui.rs, pgtkterm.rs)`, `layout probe ok`, `layout-check passed`,
-    exit 0: this mirror is one of the 97, not of the 11 skips, so it went through rustc inside the
-    shared single-module crate.  (Earlier in this round the same command was red and the *only*
+  - **A correction to this bullet, made in the `stdio.in.h` round (2026-10-04)**: it used to say
+    "this mirror is one of the 97, not of the 11 skips, so it went through rustc inside the shared
+    single-module crate".  That is **wrong**.  `xtask layout-check` seeds `femacs/src/include/*.rs`
+    plus the two `foundation` mirrors and compiles what the `include!` graph *reaches*
+    (`femacs/xtask/src/main.rs` 795-812), so the "97" was the `src/include` seed count and says
+    nothing about a `lib/include` file.  Measured in the later round:
+    `grep -c 'lib/include/stdlib.in.rs' build/femacs/layout_probe.rs` -> `0` and
+    `build/femacs/layout_probe_src/` has no `…_stdlib_in_rs.rs`, while `…_stdbit_in_rs.rs` *is*
+    there (it is reached through `src/include/lisp.rs`).  **The standalone probe above is this
+    file's compile evidence**; `layout-check` compiles it only once some `src/include` mirror
+    includes it (the include-site migration the integrator scheduled for a later round).  The
+    command's own reading was as quoted: `layout-check: 86 of 97 mirror(s) compiled, 11
+    platform-exclusive skipped (…)`, `layout probe ok`, `layout-check passed`, exit 0 - for the
+    crate, not for this file.  (That round the command was red at one point and the *only*
     diagnostic was another lane's untracked `femacs/src/include/textconv.rs`
     (`error: extern block is not supported in `extern` blocks` at 174:5); no diagnostic ever named
     `stdlib.in.rs`, and that lane has since fixed the file - I did not touch it.)

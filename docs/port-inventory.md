@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 580 |
-| 其中 done / wip | 563 / 17 |
+| 其中 done / wip | 566 / 14 |
 | 待开工 | 10 |
 
 ## 2 按目录
@@ -112,7 +112,7 @@
 | `lib/acl-errno-valid.c` | 52 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/acl-errno-valid.rs` | done |
 | `lib/acl-internal.c` | 523 | 11 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/acl-internal.rs` | done |
 | `lib/acl-internal.h` | 284 | 0 | 0 | 40 | 27 | 13 | 0 | L | `femacs/lib/include/acl-internal.rs` | done |
-| `lib/acl.h` | 118 | 0 | 0 | 4 | 1 | 7 | 0 | L | `femacs/lib/include/acl.rs` | wip |
+| `lib/acl.h` | 118 | 0 | 0 | 4 | 1 | 7 | 0 | L | `femacs/lib/include/acl.rs` | done |
 | `lib/acl_entries.c` | 68 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/acl_entries.rs` | done |
 | `lib/alloca.in.h` | 72 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/alloca.in.rs` | done |
 | `lib/allocator.c` | 22 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/allocator.rs` | done |
@@ -156,7 +156,7 @@
 | `lib/errno.in.h` | 270 | 0 | 0 | 74 | 73 | 0 | 0 | L | `femacs/lib/include/errno.in.rs` | done |
 | `lib/euidaccess.c` | 217 | 2 | 0 | 14 | 4 | 0 | 0 | L | `femacs/lib/euidaccess.rs` | done |
 | `lib/execinfo.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/execinfo.rs` | done |
-| `lib/execinfo.in.h` | 69 | 3 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/execinfo.in.rs` | wip |
+| `lib/execinfo.in.h` | 69 | 3 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/execinfo.in.rs` | done |
 | `lib/faccessat.c` | 98 | 2 | 0 | 8 | 0 | 0 | 0 | L | `femacs/lib/faccessat.rs` | done |
 | `lib/fchmodat.c` | 159 | 2 | 0 | 8 | 1 | 0 | 0 | L | `femacs/lib/fchmodat.rs` | done |
 | `lib/fcntl.c` | 663 | 6 | 0 | 4 | 2 | 0 | 0 | L | `femacs/lib/fcntl.rs` | done |
@@ -566,7 +566,7 @@
 | `src/msdos.c` | 4,350 | 96 | 5 | 33 | 22 | 12 | 38 | F | `femacs/src/msdos.rs` | done |
 | `src/msdos.h` | 156 | 0 | 0 | 21 | 7 | 0 | 3 | F | `femacs/src/include/msdos.rs` | done |
 | `src/nsgui.h` | 137 | 0 | 0 | 35 | 19 | 0 | 0 | F | `femacs/src/include/nsgui.rs` | done |
-| `src/nsterm.h` | 1,395 | 0 | 0 | 140 | 21 | 102 | 8 | F | `femacs/src/include/nsterm.rs` | wip |
+| `src/nsterm.h` | 1,395 | 0 | 0 | 140 | 21 | 102 | 8 | F | `femacs/src/include/nsterm.rs` | done |
 | `src/nsxwidget.h` | 82 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/nsxwidget.rs` | done |
 | `src/pdumper.c` | 5,920 | 202 | 4 | 16 | 56 | 92 | 11 | G | `femacs/src/pdumper.rs` | done |
 | `src/pdumper.h` | 281 | 12 | 0 | 5 | 9 | 2 | 1 | G | `femacs/src/include/pdumper.rs` | done |

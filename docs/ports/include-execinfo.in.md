@@ -10,7 +10,7 @@
 
 ## Macros defined — 2
 - [x] _GL_EXECINFO_H  (line 21, body da39a3ee5e6b)
-- [ ] _GL_EXECINFO_INLINE  (line 30, body a960df3ab827)
+- [x] _GL_EXECINFO_INLINE  (line 30, body a960df3ab827)
 
 ## Types and their fields — 0
 
