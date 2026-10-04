@@ -5998,3 +5998,26 @@
      **棘轮的增减只反映它自己那类对象**。
   ③ **未声称**：`--strict` 只说明四本表与 HEAD 的对象/文本精确相等；`swift-import-pending` 的 +26 是**欠账登记**
      （那 26 个名字仍没有提供者，lane 的 `nm -u` 读数是 762 个 undefined）。
+
+- **3.370 `androidmenu.c` 入库：P-86 的第一件，并量出“整类被镜像卡住”（2026-10-05）**：
+  ① **交付形态**：`femacs/src/androidmenu.rs` **1,011 行**（参照 860 行，**C 20-860 全部覆盖**），台账
+     `docs/ports/androidmenu.md` **223 行**（一张 5 行门映射表 + **22 行 C 行号区间表** + Evidence 五组 + 15 条 Deviations）；
+     勾选框一个没用（那本清单对这个文件是空的，P-86 ② 的处置）。
+  ② **我复跑的读数**：`build-tu src/androidmenu.c` → **built**，对象 **336 字节＝空对象**（冻结配置下这文件一行不编译）；
+     `extract-abi --check` 原本 **FAIL / 2 条**（`android_menu_show does not mention goto` + 行漂移 17.6%），
+     我按他给的清单补了 `docs/ports/macro-body-notes.tsv` 一行与 `docs/ports/line-drift-tolerance.tsv` 一行（`androidmenu 0.20 total`）
+     之后 **OK**；`check-port-lines --write-pending` → 棘轮 **96 文件/246,438 行 → 95 文件/245,578 行**（androidmenu 越阈值），
+     门读 `95/95/0`；`check-cond-eval src/androidmenu.c` → `2 conditions, 0 unknown, 0 disagreements`。
+  ③ **翻臂编译的前置阻塞（本件最值钱的读数）**：`rustc --cfg 'feature="have_android"'`（以及再加
+     `not_android_stubify`）对 `build/femacs/units/androidmenu/_root.rs` → **11 条 `^error` 行（10 错 + abort）**，
+     我按文件分类：**10 条全落在被 include 的镜像副本里**（`termhooks` 4、`frame` 3、`keyboard` 2、`dispextern` 1、`androidgui` 1），
+     **落在本单元自己文本里的 0 条**——这正是 lane 用**变异实测**证过的那个陷阱（往单元文本注入类型错误后输出逐字不变 ⇒
+     “本单元 0 错”是空读数）：`Emacs_Cursor` 在 `include/dispextern.rs` 与 `include/androidgui.rs` 重复（`E0428`），
+     `window`/`WINDOWP`/`XWINDOW`、`coding_system`、`buffer` 各自的属主镜像都没有它们 ⇒ **今天没有任何 `have_android` TU 能编过**，
+     所以**所有 android 翻臂读数现在都是空的**。这条已写进 P-86 作为整类的前置条件。
+  ④ **P-86 添六条（⑥-⑪）**：翻臂要把每个子门都设上；图坏时“本单元 0 错”是空的（按文件统计 + 臂触达预检）；
+     整身挂门的文件门要下到 include 图；在项间插项后必须重跑“冻结”档（两门都开的预检看不见）；
+     端口一有 `fn`，`--check` 就不再空跑（所以台账当覆盖证据之外还需基线行，而那两本不在移植者可写范围）；
+     被 `excluded-macros.txt` 排除的宏其前提可被后来的镜像推翻，要由消费单元按 C 的名字定义。
+  ⑤ **未声称**：真臂只做到**类型检查**（而且是在 /tmp 的“臂触达”预检里，不是在仓库构建里）；**冻结配置下这文件一行都没运行**；
+     无设备/模拟器/JNI/菜单显示；`ANDROID_DELETE_LOCAL_REF` 在单元里的宏定义与 `excluded-macros.txt` 尚未对齐（已在 Deviations 记录）。
