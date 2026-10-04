@@ -901,27 +901,48 @@ fn probe_build(args: &[String]) -> i32 {
     }
 }
 
+/// The port of one reference file, by PORTING.md 0.1's layout: a unit keeps the reference's
+/// own directory (`lib/malloc/scratch_buffer_grow.c` -> `lib/malloc/scratch_buffer_grow.rs`)
+/// and a header gets that directory's `include/` (`lib/regex.h` -> `lib/include/regex.rs`,
+/// `lib/malloc/scratch_buffer.h` -> `lib/malloc/include/scratch_buffer.rs`).
+///
+/// The stem search over `UNIT_DIRS` is the fallback, for the directories the port flattens
+/// (`nt/inc/*.c` -> `src/`) and the older flat layout.  It used to be the only rule, and it
+/// answered `lib/malloc/scratch_buffer_grow.c` with a path no port has
+/// (`lib/scratch_buffer_grow.rs`): the first ported file in a *nested* reference directory
+/// is what showed the reference path has to be tried first (tools/extract-abi.py's `pairs()`
+/// already resolves a reference file exactly this way).
+fn port_path(rel: &str, stem: &str) -> Option<String> {
+    let own = if rel.ends_with(".h") {
+        Path::new(rel).parent().unwrap_or(Path::new("")).join("include")
+            .join(format!("{stem}.rs"))
+    } else {
+        Path::new(rel).with_extension("rs")
+    }
+    .to_string_lossy().to_string();
+    if Path::new(&own).is_file() {
+        return Some(own);
+    }
+    let header = rel.ends_with(".h");
+    UNIT_DIRS
+        .iter()
+        .map(|dir| if header { format!("{dir}/include/{stem}.rs") }
+                    else { format!("{dir}/{stem}.rs") })
+        .find(|cand| Path::new(cand).is_file())
+}
+
 fn build_tu(rel: Option<&String>) -> i32 {
     let Some(rel) = rel else { return fail("build-tu needs a reference C file, e.g. src/doprnt.c") };
     let stem = Path::new(rel).file_stem().unwrap_or_default().to_string_lossy().to_string();
     let cname = crate_name (&stem);
     let (crate_root, out) = if rel.ends_with(".h") {
-        // The header mirror lives next to its unit's directory too: lib/regex.h is
-        // femacs/lib/include/regex.rs, not src/include/regex.rs.
-        let unit = UNIT_DIRS
-            .iter()
-            .map(|dir| format!("{dir}/include/{stem}.rs"))
-            .find(|cand| Path::new(cand).is_file())
-            .unwrap_or_else(|| format!("src/include/{stem}.rs"));
+        let unit = port_path(rel, &stem).unwrap_or_else(|| format!("src/include/{stem}.rs"));
         (unit, Path::new(BUILD).join(format!("include_{stem}.o")))
     } else {
-        // A unit lives in one of UNIT_DIRS; `finished_units` looks the same list up, so
-        // `build-tu lib/getline.c` and `build-tu lib-src/etags.c` both work.
-        let unit = UNIT_DIRS
-            .iter()
-            .map(|dir| format!("{dir}/{stem}.rs"))
-            .find(|cand| Path::new(cand).is_file())
-            .unwrap_or_else(|| format!("src/{stem}.rs"));
+        // A unit keeps the reference's own path; `port_path` is what lets
+        // `build-tu lib/getline.c`, `build-tu lib-src/etags.c` and
+        // `build-tu lib/malloc/scratch_buffer_grow.c` all find their file.
+        let unit = port_path(rel, &stem).unwrap_or_else(|| format!("src/{stem}.rs"));
         (unit, Path::new(BUILD).join(format!("{stem}.o")))
     };
     if !Path::new(&crate_root).is_file() {
@@ -1723,19 +1744,29 @@ fn finished_units() -> Result<Vec<String>, String> {
         if stem.starts_with("include-") || stem == "README" {
             continue;
         }
-        // A unit lives in one of UNIT_DIRS; the ledger's stem is the C file's, and the port
-        // map is what pairs them.
-        let unit = UNIT_DIRS
-            .iter()
-            .map(|dir| format!("{dir}/{stem}.rs"))
-            .find(|cand| Path::new(cand).is_file());
-        let Some(unit) = unit else {
-            continue;                                  // header mirror, not a unit
-        };
         let checklist = fs::read_to_string(&ledger).map_err(|e| e.to_string())?;
         if checklist.contains("- [ ]") {
             continue;                                  // still being ported
         }
+        // The ledger's own first line names the reference file (`# emacs/lib/malloc/x.c (56
+        // lines)`), and PORTING.md 0.1's layout is what pairs it with the port; the stem
+        // search over UNIT_DIRS is the same fallback `build_tu` keeps.
+        let unit = checklist.lines().next()
+            .and_then(|line| line.strip_prefix("# emacs/"))
+            .and_then(|line| line.split_once(" (").map(|(path, _)| path.to_string()))
+            // A `.h` ledger is a mirror, never a unit to compile: it is reached through the
+            // units that include it.  (`src/indent.h` has no ledger of its own and reads
+            // `indent.md`, whose first line names the `.c`, so the stem search below still
+            // finds the unit; this filter only stops a header from being handed to rustc.)
+            .filter(|rel| !rel.ends_with(".h"))
+            .and_then(|rel| port_path(&rel, &stem))
+            .or_else(|| UNIT_DIRS
+                .iter()
+                .map(|dir| format!("{dir}/{stem}.rs"))
+                .find(|cand| Path::new(cand).is_file()));
+        let Some(unit) = unit else {
+            continue;                                  // header mirror, not a unit
+        };
         units.push(unit);
     }
     Ok(units)

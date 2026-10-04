@@ -57,12 +57,13 @@ macro_rules! __libc_scratch_buffer_set_array_size {
    };  */
 pub const SCRATCH_BUFFER_SPACE_SIZE: usize = 1024;
 
-/// `<stddef.h>`'s `max_align_t`: the widest scalar alignment of the frozen target
-/// (`long double` on darwin-arm64); only its alignment matters to `__space`.
-#[repr(C, align(16))]
+/// `<stddef.h>`'s `max_align_t` on the frozen target: `long double`, 8 bytes and 8-aligned
+/// (`printf ("%zu %zu", sizeof (max_align_t), _Alignof (max_align_t))` -> `8 8`); only its
+/// alignment matters to `__space`.
+#[repr(C, align(8))]
 #[derive(Clone, Copy)]
 pub struct MaxAlign {
-  pub __opaque: [u8; 32],
+  pub __opaque: [u8; 8],
 }
 
 #[repr(C)]
@@ -85,10 +86,14 @@ pub struct scratch_buffer {
   pub __space: scratch_buffer_space,
 }
 
-/* <stdlib.h>: the one entry scratch_buffer_free needs.  */
+/* <stdlib.h>: the one entry scratch_buffer_free needs.  C's `free` is the generated
+   `<stdlib.h>`'s renamed identifier (`build/emacs-ref/lib/stdlib.h` 883-884: `# undef free`
+   / `# define free rpl_free`), and the frozen objects call it by that name
+   (`nm build/emacs-ref/lib/malloc/scratch_buffer_grow.o` prints `U _rpl_free`), so the port
+   spells `rpl_free` (PORTING.md 10.13, the rpl_mempcpy precedent).  */
 unsafe extern "C" {
-  /* void free (void *ptr);  */
-  pub fn free (ptr: *mut c_void);
+  /* void rpl_free (void *ptr);  */
+  pub fn rpl_free (ptr: *mut c_void);
 }
 
 /* Grow *BUFFER by some arbitrary amount. … (the glibc-imported entry point)  */
@@ -120,7 +125,7 @@ pub unsafe fn scratch_buffer_init (buffer: *mut scratch_buffer)
 pub unsafe fn scratch_buffer_free (buffer: *mut scratch_buffer)
 {
   if (*buffer).data != &mut (*buffer).__space.__c as *mut [c_char] as *mut c_void
-    { free ((*buffer).data); }
+    { rpl_free ((*buffer).data); }
 }
 
 /* Alias for __libc_scratch_buffer_grow.  */

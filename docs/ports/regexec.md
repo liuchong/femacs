@@ -86,22 +86,28 @@
   the regcomp.rs precedent); `nm -g build/femacs/regexec.o` shows exactly that set.
   `re_exec` (C 556-565) is dead (`_REGEX_RE_COMP` and `_LIBC` are both undefined) and has
   no port text.
-- **The dynarray inclusion shim** (PORTING.md 10.13②). C 1438-1441 defines
-  `DYNARRAY_STRUCT`/`DYNARRAY_ELEMENT`/`DYNARRAY_PREFIX` and then textually includes
-  `malloc/dynarray-skeleton.c`; Rust has no pre-processing include, so the port keeps the
-  three bindings as `macro_rules!` (the ledger's four macro rows) and writes the
-  instantiation out once, for the live subset of the skeleton's `#if` arms for this
-  binding: the `regmatch_list` struct with its `u` union and 8-element scratch array, and
-  the template's functions, with the two disabled arms named in comments
-  (`DYNARRAY_ELEMENT_INIT`/`DYNARRAY_ELEMENT_FREE` and `DYNARRAY_FINAL_TYPE` are undefined
-  here). C's anonymous `struct { size_t used; size_t allocated; DYNARRAY_ELEMENT *array; }`
-  and anonymous `union { … } u;` need names in Rust, so the port gives them
-  `regmatch_list_header`/`regmatch_list_u` (no layout change). The template's generic
-  helpers are the four entries of `lib/malloc/dynarray_*.c`; the generated
-  `malloc/dynarray.gl.h` renames them to `__gl_*` and the reference object undefineds
-  `__gl_dynarray_resize`, so the port keeps C's `__libc_dynarray_*` call text and links each
-  through `#[link_name = "__gl_dynarray_…"]`. The skeleton's `<errno.h>` is served by the
-  `include/errno.rs` mirror (its one live use is `regmatch_list_finalize`'s `errno = ENOMEM`).
+- **The dynarray inclusion shim and the template's instantiation** (PORTING.md 10.13②). C
+  1438-1441 defines `DYNARRAY_STRUCT`/`DYNARRAY_ELEMENT`/`DYNARRAY_PREFIX` and then textually
+  includes `malloc/dynarray-skeleton.c`; Rust has no pre-processing include or `##` pasting,
+  so the port keeps the three bindings as `macro_rules!` (the ledger's four macro rows),
+  includes `malloc/dynarray-skeleton.rs` at that position, and instantiates the template's
+  body - the prelude `macro_rules! dynarray_skeleton_body` - once, with the pasted
+  `regmatch_list_*` names and the `regmatch_list`/`regmatch_list_u`/`regmatch_list_header`
+  types as arguments (docs/ports/dynarray-skeleton.md records the parameterisation and the
+  arms this binding selects: `DYNARRAY_ELEMENT_INIT`/`DYNARRAY_ELEMENT_FREE` and
+  `DYNARRAY_FINAL_TYPE` undefined, `DYNARRAY_HAVE_SCRATCH` 1, so the `scratch` member, the
+  empty `free__elements__`, C's `#else` resize arm and the `size_t *lengthp` finalize arm).
+  C's anonymous `struct { size_t used; size_t allocated; DYNARRAY_ELEMENT *array; }` and
+  anonymous `union { … } u;` need names in Rust, so the port gives them
+  `regmatch_list_header`/`regmatch_list_u` (no layout change). The template's generic helpers
+  are the four entries of `lib/malloc/dynarray_*.c`, and their declarations (with the shared
+  header's two structs) now arrive from the `include/dynarray.rs` mirror that
+  `regex_internal.h` 35's `#include <dynarray.h>` names, instead of from this unit's own
+  `unsafe extern "C"` block. The generated `malloc/dynarray.gl.h` renames them, the mirror's
+  declarations carry `#[link_name = "_gl_dynarray_…"]`, and `nm -u build/femacs/regexec.o`
+  now shows the same undefined `_gl_dynarray_resize` the reference object has. The skeleton's
+  `<errno.h>` is served by the `include/errno.rs` mirror (its one live use is
+  `regmatch_list_finalize`'s `errno = ENOMEM`).
 - **`goto` and labels** (PORTING.md 2.2). The file's ~80 `goto`s become labelled blocks and
   loops; each function's shape is recorded in `docs/ports/macro-body-notes.tsv`, one row per
   function, with the missing C keywords. The two `switch` dispatches keep C's case order as
@@ -152,17 +158,19 @@
   `static` in regex_internal.c, and `re_compile_fastmap` is regcomp.c's (renamed to
   `rpl_re_compile_fastmap` by the generated header); the port names each in its own
   `unsafe extern "C"` block with the C site in the comment, exactly as regcomp.rs does.
-  `nm -u build/femacs/regexec.o` shows only those, the four `__gl_dynarray_*` entries and
-  libc.
+  `nm -u build/femacs/regexec.o` shows only those, the dynarray entry the live path uses
+  (`_gl_dynarray_resize`, the same one the reference object undefineds) and libc.
 - **Dead arms.** The file is in `docs/baseline/config/cond-eval-verified.txt`, so the
   `_LIBC` arms (C 157-160, 219-239, 276-278, 287-289, 299-301, 311-313, 338-343, 549-551,
   556-565, 3692-3694, 3778-3783, 3806-3895, 3921-3979) and the three `#if 0` blocks
   (C 119-123, 2293-2297, 2469-2509) are dead; the port carries no text for them and marks
   each spot, which also retires the `find_collation_sequence_value` prototype and
   definition, `__compat_regexec`, `re_exec` and `transit_state_sb`.
-- **Line count.** C 4306 vs the port's 4644 (7.9%); the tolerance row in
-  `docs/ports/line-drift-tolerance.tsv` records why (the written-out dynarray
-  instantiation, the labelled blocks and if/else-if chains, and the unit's fixed costs).
+- **Line count.** C 4306 vs the port's 4359 (1.2%) after the dynarray instantiation moved
+  into `femacs/lib/malloc/dynarray-skeleton.rs`'s macro; the tolerance row in
+  `docs/ports/line-drift-tolerance.tsv` (`regexec 0.15`, whose reason still names the
+  written-out instantiation and now needs a re-take) covers the labelled blocks, the
+  if/else-if chains and the unit's fixed costs.
 - **No new token families.** The file uses the existing `regs_allocated`, `type`,
   `constraint`, `halt`, `has_backref`, `has_constraint`, `context`, `no_sub`,
   `can_be_null`, `fastmap_accurate`, `newline_anchor`, `memcpy`/`sizeof` families from

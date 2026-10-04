@@ -15,11 +15,12 @@
 //
 // `#include <malloc/dynarray-skeleton.c>` (regexec.c 1438-1441) is the inclusion shim
 // PORTING.md 10.13's second clause covers: the template's three bindings are the
-// `DYNARRAY_STRUCT`/`DYNARRAY_ELEMENT`/`DYNARRAY_PREFIX` macros defined at that spot, and
-// the port spells the instantiation out once (same names, same bodies as the skeleton's
-// `#if` arms select for this binding) in the `regmatch_list` block below; the template's
-// generic helpers belong to `lib/malloc/dynarray_*.c`, which the unit names in its own
-// `unsafe extern "C"` block.  `docs/ports/regexec.md` records the choice.
+// `DYNARRAY_STRUCT`/`DYNARRAY_ELEMENT`/`DYNARRAY_PREFIX` macros defined at that spot, and the
+// port instantiates the template once through `femacs/lib/malloc/dynarray-skeleton.rs`'s
+// `dynarray_skeleton_body!` (the strftime_body!/ftoastr_body! shape) in the `regmatch_list`
+// block below; the template's generic helpers belong to `lib/malloc/dynarray_*.c`, and the
+// shared header's declarations arrive from the mirror `include/dynarray.rs` instead of the
+// file's own `unsafe extern "C"` block.  `docs/ports/regexec.md` records the choice.
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
@@ -29,6 +30,11 @@ use std::ffi::{c_char, c_double, c_int, c_long, c_uint, c_ulong, c_void};
 use std::ptr::null_mut;
 
 include!("include/regex_internal.rs");
+/* C: `regex_internal.h` 35's `# ifndef _LIBC / # include <dynarray.h>` - the gnulib wrapper,
+   whose `#else` arm (`<malloc/dynarray.h>`) reaches the shared header.  Its declarations and
+   the renamed symbols' `#[link_name]`s now arrive from this mirror rather than from the
+   file's own block below (PORTING.md 0.1-3).  */
+include!("include/dynarray.rs");
 /* C: the `malloc/dynarray-skeleton.c` expansion below includes <errno.h> (skeleton 91).  */
 include!("include/errno.rs");
 
@@ -137,28 +143,11 @@ unsafe extern "C" {
      regcomp.c 257, whose definition emits the renamed `rpl_re_compile_fastmap`).  */
   #[link_name = "rpl_re_compile_fastmap"]
   pub fn re_compile_fastmap (bufp: *mut re_pattern_buffer) -> c_int;
-  /* The `malloc/dynarray-skeleton.c` instantiation's generic helpers, defined in the
-     (not yet ported) lib/malloc/dynarray_*.c units: `__libc_dynarray_emplace_enlarge`
-     (dynarray_emplace_enlarge.c), `__libc_dynarray_resize` (dynarray_resize.c),
-     `__libc_dynarray_resize_clear` (dynarray_resize_clear.c) and
-     `__libc_dynarray_at_failure` (dynarray_at_failure.c).  */
-  pub fn __libc_dynarray_at_failure (size: usize, index: usize) -> !;
-  /* The generated <malloc/dynarray.gl.h> renames the four glibc entry points to the
-     gnulib `__gl_*` symbols (the reference `regex.o` undefineds `__gl_dynarray_resize`),
-     so the port keeps C's source name and links to the renamed symbol (PORTING.md 10.13).  */
-  #[link_name = "__gl_dynarray_emplace_enlarge"]
-  pub fn __libc_dynarray_emplace_enlarge (list: *mut dynarray_header,
-                                          scratch: *mut c_void, element_size: usize) -> bool;
-  #[link_name = "__gl_dynarray_resize"]
-  pub fn __libc_dynarray_resize (list: *mut dynarray_header, size: usize,
-                                 scratch: *mut c_void, element_size: usize) -> bool;
-  #[link_name = "__gl_dynarray_resize_clear"]
-  pub fn __libc_dynarray_resize_clear (list: *mut dynarray_header, size: usize,
-                                       scratch: *mut c_void, element_size: usize) -> bool;
-  #[link_name = "__gl_dynarray_finalize"]
-  pub fn __libc_dynarray_finalize (list: *mut dynarray_header, scratch: *mut c_void,
-                                   element_size: usize,
-                                   result: *mut dynarray_finalize_result) -> bool;
+  /* The `malloc/dynarray-skeleton.c` instantiation's generic helpers (`__libc_dynarray_*`,
+     defined by lib/malloc/dynarray_*.c) and the shared header's two structs are the mirror
+     `include/dynarray.rs` included above: the port's own `unsafe extern "C"` block does not
+     restate them (PORTING.md 0.1-3), and the mirror's declarations carry the renamed
+     `#[link_name = "_gl_dynarray_…"]` symbols C's wrapper macros spell (PORTING.md 10.13(1)).  */
 }
 
 /* C: the generated <regex.h> renames this definition (`# define regexec rpl_regexec`), and
@@ -1419,10 +1408,12 @@ unsafe fn pop_fail_stack (fs: *mut re_fail_stack_t, pidx: *mut Idx, nregs: Idx,
 }
 
 /* C: `#define DYNARRAY_STRUCT  regmatch_list`, `#define DYNARRAY_ELEMENT regmatch_t`,
-   `#define DYNARRAY_PREFIX  regmatch_list_` (regexec.c 1438-1440) and then
-   `#include <malloc/dynarray-skeleton.c>` (regexec.c 1441).  The three bindings are kept
-   as the macros the gate names; the template's expansion for this binding is written out
-   below (PORTING.md 10.13's second clause, the inclusion-shim rule).  */
+   `#define DYNARRAY_PREFIX  regmatch_list_` (regexec.c 1438-1440), then
+   `#include <malloc/dynarray-skeleton.c>` (regexec.c 1441).  The three bindings stay as the
+   macros the ledger compares; `##` pasting has no Rust counterpart, so the template's body -
+   `femacs/lib/malloc/dynarray-skeleton.rs`'s `dynarray_skeleton_body!` - is instantiated once
+   below with the pasted names C's `DYNARRAY_NAME (…)` would build (PORTING.md 10.13(2), the
+   strftime_body!/ftoastr_body! shape).  */
 macro_rules! DYNARRAY_STRUCT {
     () => { regmatch_list };
 }
@@ -1433,305 +1424,28 @@ macro_rules! DYNARRAY_PREFIX {
     () => { regmatch_list_ };
 }
 
-/// C: `struct dynarray_header` (malloc/dynarray.h 100).
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct dynarray_header {
-  pub used: usize,
-  pub allocated: usize,
-  pub array: *mut c_void,
-}
+/* C: `#include <malloc/dynarray-skeleton.c>` (regexec.c 1441).  */
+include!("malloc/dynarray-skeleton.rs");
 
-/// C: `struct dynarray_finalize_result` (malloc/dynarray.h 145).
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct dynarray_finalize_result {
-  pub array: *mut c_void,
-  pub length: usize,
-}
-
-/// C: the anonymous `struct { size_t used; size_t allocated; DYNARRAY_ELEMENT *array; }`
-/// member of `regmatch_list.u` (dynarray-skeleton.c 133-138); C's tag is anonymous, so the
-/// port gives it a name.
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct regmatch_list_header {
-  pub used: usize,
-  pub allocated: usize,
-  pub array: *mut regmatch_t,
-}
-
-/// C: `union { struct dynarray_header dynarray_abstract; struct { ... } dynarray_header; } u;`
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub union regmatch_list_u {
-  pub dynarray_abstract: dynarray_header,
-  pub dynarray_header: regmatch_list_header,
-}
-
-/* C: `# define DYNARRAY_INITIAL_SIZE (sizeof (DYNARRAY_ELEMENT) > 64 ? 2 : 128 /
-   sizeof (DYNARRAY_ELEMENT))` and `DYNARRAY_HAVE_SCRATCH 1` (dynarray-skeleton.c 115-121);
-   `sizeof (regmatch_t)` is 16 on the frozen target, so the scratch array has 8 elements.  */
-pub const DYNARRAY_INITIAL_SIZE: usize =
-    if std::mem::size_of::<regmatch_t> () > 64 { 2 }
-    else { 128 / std::mem::size_of::<regmatch_t> () };
-
-/// C: `struct regmatch_list` (the `DYNARRAY_STRUCT` instantiation).
-#[repr(C)]
-pub struct regmatch_list {
-  pub u: regmatch_list_u,
-  pub scratch: [regmatch_t; DYNARRAY_INITIAL_SIZE],
-}
-
-/* C: `static inline size_t __dynarray_error_marker (void) { return -1; }`
-   (malloc/dynarray.h 110).  */
-#[inline(always)]
-unsafe fn __dynarray_error_marker () -> usize { -1isize as usize }
-
-/* Internal function.  Call DYNARRAY_ELEMENT_FREE with the array elements.  */
-unsafe fn regmatch_list_free__elements__ (__dynarray_array: *mut regmatch_t,
-                                          __dynarray_used: usize)
-{
-  // C: `#ifdef DYNARRAY_ELEMENT_FREE` (dynarray-skeleton.c 173-178) -- DYNARRAY_ELEMENT_FREE
-  // is undefined for this binding, so the body is empty.
-}
-
-/* Internal function.  Free the non-scratch array allocation.  */
-unsafe fn regmatch_list_free__array__ (list: *mut regmatch_list)
-{
-  if (*list).u.dynarray_header.array != (*list).scratch.as_mut_ptr ()
-    { free ((*list).u.dynarray_header.array as *mut c_void); }
-}
-
-/* Initialize a dynamic array object.  This must be called before any
-   use of the object.  */
-unsafe fn regmatch_list_init (list: *mut regmatch_list)
-{
-  (*list).u.dynarray_header.used = 0;
-  (*list).u.dynarray_header.allocated = DYNARRAY_INITIAL_SIZE;
-  (*list).u.dynarray_header.array = (*list).scratch.as_mut_ptr ();
-}
-
-/* Deallocate the dynamic array and its elements.  */
-unsafe fn regmatch_list_free (list: *mut regmatch_list)
-{
-  regmatch_list_free__elements__
-    ((*list).u.dynarray_header.array, (*list).u.dynarray_header.used);
-  regmatch_list_free__array__ (list);
-  regmatch_list_init (list);
-}
-
-/* Return true if the dynamic array is in an error state.  */
-unsafe fn regmatch_list_has_failed (list: *const regmatch_list) -> bool
-{
-  return (*list).u.dynarray_header.allocated == __dynarray_error_marker ();
-}
-
-/* Mark the dynamic array as failed.  All elements are deallocated as
-   a side effect.  */
-unsafe fn regmatch_list_mark_failed (list: *mut regmatch_list)
-{
-  regmatch_list_free__elements__
-    ((*list).u.dynarray_header.array, (*list).u.dynarray_header.used);
-  regmatch_list_free__array__ (list);
-  (*list).u.dynarray_header.array = (*list).scratch.as_mut_ptr ();
-  (*list).u.dynarray_header.used = 0;
-  (*list).u.dynarray_header.allocated = __dynarray_error_marker ();
-}
-
-/* Return the number of elements which have been added to the dynamic
-   array.  */
-unsafe fn regmatch_list_size (list: *const regmatch_list) -> usize
-{
-  return (*list).u.dynarray_header.used;
-}
-
-/* Return a pointer to the array element at INDEX.  Terminate the
-   process if INDEX is out of bounds.  */
-unsafe fn regmatch_list_at (list: *mut regmatch_list, index: usize) -> *mut regmatch_t
-{
-  if __glibc_unlikely (index >= regmatch_list_size (list))
-    { __libc_dynarray_at_failure (regmatch_list_size (list), index); }
-  return (*list).u.dynarray_header.array.add (index);
-}
-
-/* Return a pointer to the first array element, if any.  For a
-   zero-length array, the pointer can be NULL even though the dynamic
-   array has not entered the failure state.  */
-unsafe fn regmatch_list_begin (list: *mut regmatch_list) -> *mut regmatch_t
-{
-  return (*list).u.dynarray_header.array;
-}
-
-/* Return a pointer one element past the last array element.  For a
-   zero-length array, the pointer can be NULL even though the dynamic
-   array has not entered the failure state.  */
-unsafe fn regmatch_list_end (list: *mut regmatch_list) -> *mut regmatch_t
-{
-  return (*list).u.dynarray_header.array.add ((*list).u.dynarray_header.used);
-}
-
-/* Internal function.  Slow path for the add function below.  */
-unsafe fn regmatch_list_add__ (list: *mut regmatch_list, item: regmatch_t)
-{
-  if __glibc_unlikely
-      (!__libc_dynarray_emplace_enlarge (&mut (*list).u.dynarray_abstract,
-                                         (*list).scratch.as_mut_ptr () as *mut c_void,
-                                         std::mem::size_of::<regmatch_t> ()))
-    {
-      regmatch_list_mark_failed (list);
-      return;
-    }
-
-  /* C: `list->u.dynarray_header.array[list->u.dynarray_header.used++] = item;` (the
-     post-increment is the two statements below).  */
-  *(*list).u.dynarray_header.array.add ((*list).u.dynarray_header.used) = item;
-  (*list).u.dynarray_header.used += 1;
-}
-
-/* Add ITEM at the end of the array, enlarging it by one element.
-   Mark *LIST as failed if the dynamic array allocation size cannot be
-   increased.  */
-unsafe fn regmatch_list_add (list: *mut regmatch_list, item: regmatch_t)
-{
-  /* Do nothing in case of previous error.  */
-  if regmatch_list_has_failed (list)
-    { return; }
-
-  /* Enlarge the array if necessary.  */
-  if __glibc_unlikely ((*list).u.dynarray_header.used
-                       == (*list).u.dynarray_header.allocated)
-    {
-      regmatch_list_add__ (list, item);
-      return;
-    }
-
-  /* C: `list->u.dynarray_header.array[list->u.dynarray_header.used++] = item;`.  */
-  *(*list).u.dynarray_header.array.add ((*list).u.dynarray_header.used) = item;
-  (*list).u.dynarray_header.used += 1;
-}
-
-/* Internal function.  Building block for the emplace functions below.
-   Assumes space for one more element in *LIST.  */
-unsafe fn regmatch_list_emplace__tail__ (list: *mut regmatch_list) -> *mut regmatch_t
-{
-  let result: *mut regmatch_t
-    = (*list).u.dynarray_header.array.add ((*list).u.dynarray_header.used);
-  (*list).u.dynarray_header.used += 1;
-  // C: `#if defined (DYNARRAY_ELEMENT_INIT) ... #elif defined (DYNARRAY_ELEMENT_FREE)
-  // memset (result, 0, sizeof (*result)); #endif` (dynarray-skeleton.c 325-332) -- neither
-  // is defined for this binding.
-  return result;
-}
-
-/* Internal function.  Slow path for the emplace function below.  */
-unsafe fn regmatch_list_emplace__ (list: *mut regmatch_list) -> *mut regmatch_t
-{
-  if __glibc_unlikely
-      (!__libc_dynarray_emplace_enlarge (&mut (*list).u.dynarray_abstract,
-                                         (*list).scratch.as_mut_ptr () as *mut c_void,
-                                         std::mem::size_of::<regmatch_t> ()))
-    {
-      regmatch_list_mark_failed (list);
-      return null_mut ();
-    }
-  return regmatch_list_emplace__tail__ (list);
-}
-
-/* Allocate a place for a new element in *LIST and return a pointer to
-   it.  The pointer can be NULL if the dynamic array cannot be
-   enlarged due to a memory allocation failure.  */
-unsafe fn regmatch_list_emplace (list: *mut regmatch_list) -> *mut regmatch_t
-{
-  /* Do nothing in case of previous error.  */
-  if regmatch_list_has_failed (list)
-    { return null_mut (); }
-
-  /* Enlarge the array if necessary.  */
-  if __glibc_unlikely ((*list).u.dynarray_header.used
-                       == (*list).u.dynarray_header.allocated)
-    { return regmatch_list_emplace__ (list); }
-  return regmatch_list_emplace__tail__ (list);
-}
-
-/* Change the size of *LIST to SIZE.  If SIZE is larger than the
-   existing size, new elements are added (which can be initialized).
-   Otherwise, the list is truncated, and elements are freed.  Return
-   false on memory allocation failure (and mark *LIST as failed).  */
-unsafe fn regmatch_list_resize (list: *mut regmatch_list, size: usize) -> bool
-{
-  if size > (*list).u.dynarray_header.used
-    {
-      let ok: bool;
-      // C: `#if defined (DYNARRAY_ELEMENT_INIT) ... #elif defined (DYNARRAY_ELEMENT_FREE)
-      // ... #else` (dynarray-skeleton.c 383-406) -- neither of the first two is defined for
-      // this binding, so the live arm is the `__libc_dynarray_resize` call below.
-      ok = __libc_dynarray_resize (&mut (*list).u.dynarray_abstract, size,
-                                   (*list).scratch.as_mut_ptr () as *mut c_void,
-                                   std::mem::size_of::<regmatch_t> ());
-      if __glibc_unlikely (!ok)
-        { regmatch_list_mark_failed (list); }
-      return ok;
-    }
-  else
-    {
-      /* The list has shrunk in size.  Free the removed elements.  */
-      regmatch_list_free__elements__
-        ((*list).u.dynarray_header.array.add (size),
-         (*list).u.dynarray_header.used - size);
-      (*list).u.dynarray_header.used = size;
-      return true;
-    }
-}
-
-/* Remove the last element of LIST if it is present.  */
-unsafe fn regmatch_list_remove_last (list: *mut regmatch_list)
-{
-  /* used > 0 implies that the array is the non-failed state.  */
-  if (*list).u.dynarray_header.used > 0
-    {
-      let new_length: usize = (*list).u.dynarray_header.used - 1;
-      // C: `#ifdef DYNARRAY_ELEMENT_FREE` (dynarray-skeleton.c 429-431) -- undefined here.
-      (*list).u.dynarray_header.used = new_length;
-    }
-}
-
-/* Remove all elements from the list.  The elements are freed, but the
-   list itself is not.  */
-unsafe fn regmatch_list_clear (list: *mut regmatch_list)
-{
-  /* free__elements__ does nothing if the list is in the failed
-     state.  */
-  regmatch_list_free__elements__
-    ((*list).u.dynarray_header.array, (*list).u.dynarray_header.used);
-  (*list).u.dynarray_header.used = 0;
-}
-
-/* Transfer the dynamic array to a heap-allocated array and return a
-   pointer to it.  (The `!DYNARRAY_FINAL_TYPE` arm, dynarray-skeleton.c 488-513; the
-   `DYNARRAY_FINAL_TYPE` arm above it is not enabled for this binding.)  */
-unsafe fn regmatch_list_finalize (list: *mut regmatch_list, lengthp: *mut usize)
-                                  -> *mut regmatch_t
-{
-  let mut res: dynarray_finalize_result = std::mem::zeroed ();
-  if __libc_dynarray_finalize (&mut (*list).u.dynarray_abstract,
-                               (*list).scratch.as_mut_ptr () as *mut c_void,
-                               std::mem::size_of::<regmatch_t> (), &mut res)
-    {
-      /* On success, the result owns all the data.  */
-      regmatch_list_init (list);
-      if !lengthp.is_null ()
-        { *lengthp = res.length; }
-      return res.array as *mut regmatch_t;
-    }
-  else
-    {
-      /* On error, we need to free all data.  */
-      regmatch_list_free (list);
-      *errno () = ENOMEM;
-      return null_mut ();
-    }
-}
+/* C 1441's inclusion, expanded for this binding: `DYNARRAY_HAVE_SCRATCH` is 1 and neither
+   `DYNARRAY_ELEMENT_FREE`/`DYNARRAY_ELEMENT_INIT` nor `DYNARRAY_FINAL_TYPE` is defined, so
+   the skeleton's `scratch` member, its empty `free__elements__`, its `#else` resize arm and
+   its `size_t *lengthp` finalize arm are the ones the macro emits; the built object's
+   undefineds are the four `_gl_dynarray_*` entries (the reference `regex.o` undefineds
+   `_gl_dynarray_resize`).  docs/ports/regexec.md and docs/ports/dynarray-skeleton.md record
+   the arms.  */
+dynarray_skeleton_body! (
+  regmatch_list,                    /* DYNARRAY_STRUCT */
+  regmatch_list_u,                  /* the anonymous union */
+  regmatch_list_header,             /* the anonymous struct { used; allocated; array; } */
+  regmatch_t,                       /* DYNARRAY_ELEMENT */
+  DYNARRAY_INITIAL_SIZE! (regmatch_t),
+  regmatch_list_free__elements__, regmatch_list_free__array__, regmatch_list_init,
+  regmatch_list_free, regmatch_list_has_failed, regmatch_list_mark_failed,
+  regmatch_list_size, regmatch_list_at, regmatch_list_begin, regmatch_list_end,
+  regmatch_list_add__, regmatch_list_add, regmatch_list_emplace__tail__,
+  regmatch_list_emplace__, regmatch_list_emplace, regmatch_list_resize,
+  regmatch_list_remove_last, regmatch_list_clear, regmatch_list_finalize);
 
 /* Set the positions where the subexpressions are starts/ends to registers
    PMATCH.
