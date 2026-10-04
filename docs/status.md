@@ -3469,3 +3469,31 @@
   ④ 读数（门修复后）：`gen-port-inventory` **590 files、done=547、wip=21、todo=22**；
   `check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/1/0、
   `check-target-names` 604 .rs/593/0、**`layout-check` passed**（83 of 94 镜像编译、11 平台独占跳过）。
+
+- **3.193 `lib/stdlib.in.h` 落地，并收口四个"其实已经干净、只是台账没勾"的镜像（2026-10-04）**：
+  ① **本轮实产**（`6daa2f2`，签名 `verified=true`，已推 `origin/master`）：`lib/stdlib.in.h`（1,991 行 / 78 项）
+  → `femacs/lib/include/stdlib.in.rs`（274 行：36 `pub fn` + 6 `macro_rules!` + 15 `pub const`），
+  **`--check` OK 且 0 行**；台账 256 行（67 勾 + 1 个**有意保留**的未勾框）。判据是生成头
+  `build/emacs-ref/lib/stdlib.h`（94,510 字节）：34 条活声明的签名逐条来自**判据编译器自己的** `clang -Xclang
+  -ast-dump`（`wchar_t` → `c_int`、`long double` → `c_double`，都实测）；`MB_CUR_MAX` 的模板臂是死的
+  （生成头 1348 行 `#if 0`），活的是系统的 `__mb_cur_max`（镜像声明它并拼成宏）；12 个 `GNULIB_defined_*`
+  见证常量按 `sys_types.in.rs` 先例携带 C 那条臂设的值。
+  ② **我写的共享行**（lane 只读共享表）：`excluded-macros.txt` **9 条**（`reallocarray`、`initstate_r`/
+  `random_r`/`srandom_r`/`setstate_r`、`print_stack_trace`、`GNULIB_defined_ptsname_r`、`_gl_MB_CUR_MAX`、
+  `rpl_realloc`，全是死臂/本 target 无此函数，`kind=config`）+ `macro-body-notes.tsv` **1 条**（`MB_CUR_MAX`
+  的记录体是死臂的 `_gl_MB_CUR_MAX ()`）。写入后本件从"恰好 10 行"变 OK/0 行。
+  ③ **三条裁决**（写进 lane 简报）：**死名字维持 excluded 行**而不是 `#[cfg (feature = "gnulib_x")]` 载体
+  （3.187 的不变量：feature 名必须有 `--cfg` 驱动方，这些名字在本 target 永远没人驱动；且 excluded 表正是这个
+  登记处）；**include 站点迁到 `stdlib.in.rs` 批准但分开做**（一次一个单元、各自 `build-tu`，`stdlib.rs` 作为
+  系统半边保留）；**`struct random_data` 维持台账 deferral**（死臂 + 本 target 无该类型，extractor 打
+  `missing type deferred` 而不是失败——与 `widgetprv`/`emacsgtkfixed` 同类：**未勾框是有意的**）。
+  ④ **收口批次**：`lib/allocator.h`、`lib/careadlinkat.h`、`lib/fseterr.h`、`lib/minmax.h` 四个镜像在树里
+  **本来就是 `--check` OK**，只因台账框没勾而挂在 WIP。本轮逐个补勾 + 补 `## Evidence`（`--check` 末行 +
+  消费者的 `build-tu` 末行：`lib/allocator.c`、`lib/careadlinkat.c`、`lib/fseterr.c`；`minmax.h` 没有自己的
+  单元，证据是 `careadlinkat.rs`/`getrandom.rs`/`nproc.rs` 对它的 `include!`）。其中 **`allocator.h` 关掉了
+  §3.4**（`lib/allocator.c` 需要的 `struct allocator` 镜像一直在，只是没勾）。
+  **两个故意留在 WIP 的**：`src/widgetprv.h`、`src/emacsgtkfixed.h`——它们的 Decisions 写明有记录因缺 X11/GTK
+  头而**deferred**，不是漏做（`widgetprv.rs`/`emacsgtkfixed.rs` 本身在 layout 探针里、编译通过）。
+  ⑤ 读数：`gen-port-inventory` **590 files、done=558、wip=18、todo=14**（本轮 547/21/22）；门全绿
+  （`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-target-names`
+  612 .rs/593/0、**`layout-check` passed**、86 of 97 镜像编译 + 11 平台独占跳过）。
