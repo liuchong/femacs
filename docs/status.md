@@ -3707,3 +3707,26 @@
   `frame.h` 做完先报一次）。
   ⑥ 门：`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-verbatim` 4607/0、
   `layout-check` 89 of 99 + 10 平台独占（本轮它编过 `w32common.rs`）；`check-citations` 12 drift/3 range/0 stale。
+
+- **3.204 `lib/intprops-internal.h` 与 `lib/libc-config.h` 落地（2026-10-04）**：
+  ① **`lib/intprops-internal.h`**（`c1161a8`）：镜像 437 行 / **29 宏**（0 类型、0 常量——抽取器说的"3 类型"
+  实测是三个**常量**，dup 2/4 让常量规则直接跳过、一条都不要求），台账 29/29、`--check` OK/0 行、**0 条共享行**。
+  **按盲读政策落**（该件不在 `cond-eval-verified.txt`、也**不该**在：它的 7 条 disagreement + 1 条 unknown 是本文件自己的
+  `__typeof__` 探针与 `__has_builtin` 表达式，不是配置宏，任何镜像改动都换不来 verified）⇒ 每个 `#if` **两支都带**、
+  死臂各挂一个命名"非冻结一侧"的 feature。判据不是注释而是**直接实测**：`-dM` 带/不带本头对拍 + `comm -13`
+  （`_GL__GENERIC_BOGUS` 在 clang 是 1 ⇒ `_Generic` 臂死、C 274 的 `sizeof` 链活；`_GL_TYPE_SIGNED` 是
+  `(! ((t) 0 < (t) -1))`；`_GL_HAS_BUILTIN_OVERFLOW_P` = `__has_builtin (__builtin_mul_overflow_p)` 而
+  Apple clang 答 0 ⇒ `_GL_INT_NEGATE_OVERFLOW` 走 range 臂；`LLONG_MAX`/`LLONG_MIN` 的 C 93-96 臂死因为
+  `<limits.h>` 已定义）。两条 Rust 词法规则也记进台账：**C 的反斜杠续行不能带进 Rust**（116 处会报
+  `unknown start of token: \`），`?:`/`sizeof`/`__typeof__` **保持 C 文本**（这些宏在端口没有展开点）。
+  ② **`lib/libc-config.h`**（`fd68038`）：这是那五个已端口单元（`tempname`/`canonicalize-lgpl`/`strftime`/`mktime`/
+  `timegm`）在 C 里的**第一个** include，此前**没有镜像**。现在有：`_FEATURES_H`=1、`__GNULIB_CDEFS`/`__inline` 作标记、
+  `__set_errno` 取 fallback 宏（本 target 的 `<errno.h>` 没有它）、`__GNUC_PREREQ`/`__glibc_clang_prereq` 取 0 体、
+  `SHLIB_COMPAT`=0、七个空载 glibc 标记（`attribute_hidden` + 四个 `libc_hidden_*` + `strong_alias`/`weak_alias`）作
+  no-op；`compat_symbol`/`versioned_symbol`（C body 是 `extern int dummy`，glibc 兼容符号机制用的声明）记进
+  `excluded-macros.txt`。全部用绝对 `core::ffi::*`、不取 includer 任何名字 ⇒ **它自成一编译单元**
+  （`build-tu lib/libc-config.h` built），`--check` OK/0 行。**跟随项**：那 7 处本地副本
+  （5 个 `__set_errno!` + `regcomp`/`regexec` 的 `weak_alias!`/`libc_hidden_def!`）现在与镜像**同名**，
+  同 crate 两份定义会报错 ⇒ 已派给 conf_post lane，**一次一个文件**（每个都 `--check` 不变 + `build-tu`）。
+  ③ 读数：`gen-port-inventory` **590 files、done=572、wip=10、todo=8**；`tools/audit-wip.py` 的 A 组仍是 4
+  （`dispextern.h`/`xdisp.c` 在飞 + `frame.h`/`font.h` 已派给 stdio lane）；C 组 0。
