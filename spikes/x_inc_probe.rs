@@ -6,12 +6,13 @@
 // mirrors never had: it supplies the names their C headers take from the system and includes
 // them into one flat namespace, which is what an X translation unit taking them at once is.
 // Same shape as `f_inc_probe.rs` and `win_inc_probe.rs` (docs/status.md 3.102, 3.159);
-// `xsettings.h` and `emacsgtkfixed.h` join it when their mirrors land.
+// `emacsgtkfixed.h` joins it when its mirror lands.
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, clashing_extern_declarations, unused_doc_comments)]
-use std::ffi::{c_int, c_void};
+use std::ffi::{c_char, c_int, c_void};
 
 include!("../femacs/src/include/xgselect.rs");
+include!("../femacs/src/include/xsettings.rs");
 
 // The probe is a compile proof, not a program: every declaration of every mirror above is
 // checked whether or not anything calls it, and no configuration compiles them on this target.

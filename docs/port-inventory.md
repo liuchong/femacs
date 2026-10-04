@@ -23,22 +23,22 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 534 |
-| 其中 done / wip | 518 / 16 |
-| 待开工 | 56 |
+| 已有目标文件 | 540 |
+| 其中 done / wip | 519 / 21 |
+| 待开工 | 50 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 28 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 24 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
-| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 28 |
+| `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 26 |
 
 ## 3 按批次
 
@@ -48,9 +48,9 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 7 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 11 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 9 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 28 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 24 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -108,7 +108,7 @@
 | `lib-src/pop.h` | 75 | 0 | 0 | 5 | 2 | 7 | 2 | F | `femacs/lib-src/include/pop.rs` | done |
 | `lib-src/seccomp-filter.c` | 409 | 5 | 0 | 5 | 2 | 0 | 1 | F | `femacs/lib-src/seccomp-filter.rs` | done |
 | `lib-src/update-game-score.c` | 506 | 16 | 0 | 4 | 2 | 2 | 0 | F | `femacs/lib-src/update-game-score.rs` | done |
-| `lib/_Noreturn.h` | 43 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/_Noreturn.rs` | todo |
+| `lib/_Noreturn.h` | 43 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/_Noreturn.rs` | wip |
 | `lib/acl-errno-valid.c` | 52 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/acl-errno-valid.rs` | done |
 | `lib/acl-internal.c` | 523 | 11 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/acl-internal.rs` | done |
 | `lib/acl-internal.h` | 284 | 0 | 0 | 40 | 27 | 13 | 0 | L | `femacs/lib/include/acl-internal.rs` | done |
@@ -131,7 +131,7 @@
 | `lib/c++defs.h` | 367 | 0 | 0 | 23 | 0 | 0 | 0 | L | `femacs/lib/include/c++defs.rs` | done |
 | `lib/c-ctype.c` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/c-ctype.rs` | done |
 | `lib/c-ctype.h` | 366 | 15 | 0 | 12 | 1 | 0 | 0 | L | `femacs/lib/include/c-ctype.rs` | wip |
-| `lib/c-strcase.h` | 61 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/c-strcase.rs` | todo |
+| `lib/c-strcase.h` | 61 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/c-strcase.rs` | wip |
 | `lib/c-strcasecmp.c` | 51 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/c-strcasecmp.rs` | done |
 | `lib/c-strncasecmp.c` | 51 | 1 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/c-strncasecmp.rs` | done |
 | `lib/canonicalize-lgpl.c` | 474 | 8 | 0 | 13 | 1 | 3 | 0 | L | `femacs/lib/canonicalize-lgpl.rs` | done |
@@ -205,7 +205,7 @@
 | `lib/group-member.c` | 108 | 4 | 0 | 0 | 1 | 2 | 0 | L | `femacs/lib/group-member.rs` | done |
 | `lib/idx.h` | 152 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/idx.rs` | done |
 | `lib/ieee754.in.h` | 215 | 0 | 0 | 8 | 4 | 86 | 0 | L | `femacs/lib/include/ieee754.in.rs` | todo |
-| `lib/ignore-value.h` | 51 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/ignore-value.rs` | todo |
+| `lib/ignore-value.h` | 51 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/ignore-value.rs` | wip |
 | `lib/intprops-internal.h` | 413 | 0 | 0 | 29 | 3 | 0 | 0 | L | `femacs/lib/include/intprops-internal.rs` | todo |
 | `lib/intprops.h` | 377 | 0 | 0 | 38 | 0 | 0 | 0 | L | `femacs/lib/include/intprops.rs` | todo |
 | `lib/inttypes.in.h` | 1,029 | 0 | 0 | 167 | 113 | 0 | 0 | L | `femacs/lib/include/inttypes.in.rs` | todo |
@@ -297,7 +297,7 @@
 | `lib/stdc_leading_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_leading_zeros.rs` | done |
 | `lib/stdc_memreverse8u.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_memreverse8u.rs` | done |
 | `lib/stdc_trailing_zeros.c` | 19 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdc_trailing_zeros.rs` | done |
-| `lib/stdckdint.in.h` | 58 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/stdckdint.in.rs` | todo |
+| `lib/stdckdint.in.h` | 58 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/stdckdint.in.rs` | wip |
 | `lib/stdcountof.in.h` | 124 | 0 | 0 | 4 | 1 | 1 | 0 | L | `femacs/lib/include/stdcountof.in.rs` | todo |
 | `lib/stddef.in.h` | 248 | 0 | 0 | 12 | 2 | 0 | 0 | L | `femacs/lib/include/stddef.in.rs` | todo |
 | `lib/stdint.in.h` | 740 | 0 | 0 | 136 | 9 | 0 | 0 | L | `femacs/lib/include/stdint.in.rs` | done |
@@ -628,7 +628,7 @@
 | `src/vm-limit.c` | 220 | 6 | 0 | 3 | 4 | 0 | 6 | B | `femacs/src/vm-limit.rs` | done |
 | `src/w16select.c` | 692 | 11 | 3 | 11 | 11 | 0 | 1 | F | `femacs/src/w16select.rs` | done |
 | `src/w32.c` | 11,362 | 225 | 0 | 29 | 16 | 27 | 91 | F | `femacs/src/w32.rs` | done |
-| `src/w32.h` | 273 | 0 | 0 | 23 | 21 | 0 | 4 | F | `femacs/src/include/w32.rs` | todo |
+| `src/w32.h` | 273 | 0 | 0 | 23 | 21 | 0 | 4 | F | `femacs/src/include/w32.rs` | wip |
 | `src/w32common.h` | 103 | 1 | 0 | 12 | 2 | 0 | 7 | F | `femacs/src/include/w32common.rs` | wip |
 | `src/w32console.c` | 1,262 | 38 | 5 | 5 | 3 | 0 | 23 | F | `femacs/src/w32console.rs` | done |
 | `src/w32cygwinx.c` | 134 | 2 | 1 | 0 | 0 | 0 | 0 | F | `femacs/src/w32cygwinx.rs` | done |
@@ -670,7 +670,7 @@
 | `src/xrdb.c` | 513 | 11 | 0 | 1 | 1 | 0 | 1 | F | `femacs/src/xrdb.rs` | done |
 | `src/xselect.c` | 3,541 | 61 | 9 | 8 | 2 | 30 | 9 | F | `femacs/src/xselect.rs` | done |
 | `src/xsettings.c` | 1,421 | 28 | 3 | 19 | 26 | 9 | 7 | F | `femacs/src/xsettings.rs` | done |
-| `src/xsettings.h` | 51 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/xsettings.rs` | todo |
+| `src/xsettings.h` | 51 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/xsettings.rs` | done |
 | `src/xsmfns.c` | 581 | 16 | 1 | 5 | 4 | 0 | 7 | F | `femacs/src/xsmfns.rs` | done |
 | `src/xterm.c` | 33,125 | 438 | 0 | 35 | 62 | 33 | 103 | F | `femacs/src/xterm.rs` | done |
 | `src/xterm.h` | 2,045 | 3 | 0 | 99 | 12 | 323 | 14 | F | `femacs/src/include/xterm.rs` | todo |
