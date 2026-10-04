@@ -3335,3 +3335,64 @@
   （`alloc.rs` 三处 `#[cfg (feature = "enable_checking")]` 改成裸 `#[cfg (enable_checking)]`，一改立刻暴露
   `AVAIL_ALLOCA!` 单参调用与 `terminate_due_to_signal` 未声明两个从未被任何编译器读过的缺陷；66 处台账散文旧拼法；
   `[features]` 表删掉"声明了但没有 `--cfg` 驱动方"的 `enable_checking`）。
+
+- **3.187 cfg 卫生第二批：`enable_checking` 改裸 cfg，两个从未被任何编译器读过的缺陷当场现形（2026-10-04）**：
+  ① **本轮的实产**（`9317473`，签名 `verified=true`，已推 `origin/master`）：`femacs/src/alloc.rs` 的三处
+  `#ifdef ENABLE_CHECKING` 文本（C 7342-7356 的 `suppress_checking`/`die`、C 7358-7378 的 `verify_alloca`）
+  原来写 `#[cfg (feature = "enable_checking")]`，改成**裸** `#[cfg (enable_checking)]`——本树其它 checking-only
+  文本都是这个拼法，`xtask` 的 finished-unit 编译正是用 `--cfg enable_checking` 编译它们的。
+  ② **为什么四道门都看不见**：`extract-abi.py --check` 的 token 比对在两侧都先剥掉 `#[…]` 属性（cfg 的名字不进被比对的
+  身体）；`build-tu` 与所有门**不传任何** `--cfg feature=…` ⇒ feature 门控文本被剥掉，"名字写错"与"名字对但没打开"
+  完全同形；检查 pass 找的是裸名字；**没有任何门问"这个 feature 名有没有驱动方"**。更要紧的是 `[features]` 表会让
+  `unexpected_cfgs` 闭嘴，于是声明一个没人驱动的名字**更安静而不是更响**。不变量因此写成：**一个 feature 名只有在某个
+  `--cfg` 产出方（FLIPS 行 / 探针 / 检查 pass）能打开它时才有存在理由**；`enable_checking` 那条已从表里删除
+  （545 行 = 545 个真用到的名字，0 unused）。
+  ③ **轴一改，那段文本立刻报出两个缺陷**（都是"从未被任何编译器读过"的同一类）：`verify_alloca` 写的是
+  `AVAIL_ALLOCA! (i as isize)`，而 port 的宏取两个参数（P-37）→ C 这里是不动 `sa_avail` 的普通 `alloca`，
+  改成直接调栈池 `sa_stack_alloc (i as usize)`（本树其它裸 `alloca` 处的写法，P-05）；`die` 调的
+  `terminate_due_to_signal` 在本单元 include 图里没有声明（C 在 lisp.h 5137，lisp.h 镜像不带它）⇒ 本单元为自己的调用者
+  带一份同 gate 的声明。证据：`build-tu src/alloc.c` built；同一 materialized root 用**pin 的 toolchain**（`rustup run
+  nightly-2026-10-01 rustc`）+ `--cfg enable_checking` → exit 0，`nm -g` 里 `T _die`/`S _suppress_checking` 都在，
+  冻结构建的 `build/femacs/alloc.o` 里两者计数 0（负向对照）；`--check src/alloc.c` OK。
+  ④ 后半是散文：24 个 tracked 台账里 **66 处**旧拼法（我为集成者复算过：`+109 -65`，逐文件对称）；`docs/status.md`
+  的历史条目按裁决**不动**。**数字更正**：我上一轮交代的"229 处"是把 `docs/` 全部 `feature = "…"` 提及（含正确拼法）
+  加总的粗糙统计，真旧拼法只有 66。
+
+- **3.188 `src/keyboard.c` 闭合：14,682 行全文件，并抓出横向传参的真缺陷（2026-10-04）**：
+  ① **本轮的实产**（`9467e60`，签名 `verified=true`，已推 `origin/master`）：第十二轮把 C 13173 `wipe_kboard`
+  一路做到 **C 14682 = `emacs/src/keyboard.c` 的最后一行**（`mark_kboards` 的收尾括号）。`keyboard.rs` **15,360 行**
+  （vs C 14,682 = +4.6%，仍在 5% 默认容忍内、无 tolerance 行），`--check` 的 **missing 行归 0**（函数/subr/defsubr/
+  file-scope object/宏/常量六类全 0），最后一块 scaffold 连同说明注释删除（3→0），`event_head` 结构体按冻结 clang
+  实测落地（sizeof 4 / alignof 2 / var@0 / kind@2 + 4 条 `const _` 断言），78 个 `DEFVAR_*` 持有者一行一个。
+  ② **我做掉的集成项**：`macro-body-notes.tsv` 两行（`syms_of_keyboard` 的位置化 docstring、`is_ignored_event` 的
+  `switch`→`match`，这是 `--check` 仅剩的两条 note 行）；`[features]` 三个名字（`no_interrupt_input`、
+  `no_usable_sigio_or_sigpoll`、`use_lucid`）；台账补上漏掉的 `force_quit_count`（C 12596）并把闭合文件遗留的
+  6 个 subr 框勾上（**329 框全满 → 单元离开 WIP**，inventory 从 543/22 变 545/20）；`undef-pending.txt` 重取
+  （78 个持有者让 21 条棘轮行 stale 消失，30 条新条目**逐条读过**，全是 xdisp/window/regex 这些在飞或未端口单元的依赖）。
+  ③ **抓出一个真缺陷并修**：`src/callint.rs` 的两处 `DEFVAR_KBOARD!` 传的是 C 名字对应的**变量**，而 C 的宏存的是
+  `offsetof (KBOARD, vname##_)`（lisp.h 3525-3530）⇒ 记进 `kbdoffset` 的是指针值，运行时 `prefix-arg` 会读到垃圾
+  （keyboard lane 在按同形改写自己的 8 处时发现，按纪律没动别人的文件）。两处改成
+  `std::mem::offset_of! (kboard, Vprefix_arg_)`，`build-tu src/callint.c` built。**教训**：跨单元宏的实参语义要按 C 的
+  宏体核对，不能按名字猜。
+  ④ 证据：`build-tu src/keyboard.c` built（11 warnings、0 error）；`--check emacs/src/keyboard.c` 0 missing；
+  `check-cond-eval src/keyboard.c` 216 conditions / 0 unknown / 0 disagreements；check-globals 283/0、
+  check-declarations 13/0、check-mirror-dupes 1/1/0、check-verbatim 4607/0、check-target-names 601/593/0 全绿。
+
+- **3.189 `lib/string.in.h` 落地，两个模板自带函数体搬回 owner 镜像（2026-10-04）**：
+  ① **本轮实产**（`c4ed03e`，签名 `verified=true`，已推 `origin/master`）：`lib/string.in.h`（1,852 行、111 个
+  `@NAME@` 占位符）→ `femacs/lib/include/string.in.rs`（391 行），台账 47/47 全勾，`--check` **OK 且无 `- ` 行**。
+  实测：108 个占位符在生成规则里，解析后 **36 个为 `1`**；77 个 `GNULIB_*`/`REPLACE_*` 选择子里 **16 个活**
+  （`MDA_MEMCCPY`…`REPLACE_FREE`），另 61 个是死文本（P-51）；抽取器判不了 `@PLACEHOLDER@`，清单是各臂并集（P-66，台账写明）。
+  ② **归属裁定**：模板自带的两个函数体 `memeq`（C 425-431）/`streq`（C 817-822）从 `string.rs` 搬进本镜像
+  （3.181 对 `stdbit.in.rs` 的同一裁定：body 检查只读镜像自身文本，且一个 crate 里两份同名定义是 `E0428`）；
+  保留 C 自己的形参名 `__s1`/`__s2`/`__n`（body token 门要比）。三个 `_GL_*_INLINE` 写成 `macro_rules!` 而非 `const`
+  （消费者保留同名 `pub const`，第二个 `const` 是 `E0428`，宏与 const 不同命名空间）；`strnul`（C 1302-1305）
+  **故意不写**（`macro_rules!` 按文本顺序遮蔽，会打断 `lib/time_rz.rs:198` 用的那个）。9 个 tracked 消费者
+  `include!` 改指新 owner。
+  ③ **三条负向验证**（改→查→立刻还原）写进台账：活选择子的常量、`streq` 的 body token、以及**死臂**的
+  `rpl_memchr`——第三条证明死的 `#[cfg]` 臂也在被比。顺带纠正两条流传的错引证：`GL_GENERATE_STRING_H_CONDITION`
+  **不存在**（`grep -c '^GL_GENERATE_STRING_H' build/emacs-ref/lib/gnulib.mk` → 0，真因是 `gnulib.mk:3838` 的无条件规则），
+  活选择子是 16 不是 15（漏了 `REPLACE_FREE`）。
+  ④ 新增待裁定项：`lib/include/string.in.rs` 与 `string.rs` **不在 `layout-check` 的 foundation 图里**（没有
+  `src/include/*.rs` include 它们），要让共享门也覆盖它们，需把 `lib/include/string.in.rs` 加进 xtask 的 foundation 列表
+  （待定，见 §3）。
