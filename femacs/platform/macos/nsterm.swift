@@ -45,8 +45,14 @@
 // `ns_query_color` C 2315-2329, `ns_defined_color` C 2332-2354,
 // `ns_query_frame_background_color` C 2357-2363) and **`ns_set_frame_alpha` (C 2366-2398) - the
 // definition the deferred entry `ns_set_frame_alpha_entry` waited for** - so `nm -u` no longer
-// lists `_ns_set_frame_alpha` either.  The next live definition is C 2409's
-// `frame_set_mouse_pixel_position`.
+// lists `_ns_set_frame_alpha` either.  **Round 11 lands C 2401-2621**, the whole Mouse handling
+// section: `frame_set_mouse_pixel_position` (C 2408-2430), `ns_note_mouse_movement`
+// (C 2432-2472), `ns_mouse_position` (C 2475-2595) and `ns_frame_up_to_date` (C 2598-2621).
+// **Round 12 lands C 2624-2761**: `ns_define_frame_cursor` (C 2624-2637), the Keyboard handling
+// banner (C 2641-2645), `ns_convert_key` (C 2648-2663), `get_keysym_name` (C 2666-2677),
+// `right_mod` (C 2680-2684), `nil_or_none` (C 2686-2690) and `ns_get_shifted_character`
+// (C 2692-2761).  The next live definition is C 2789's `ns_clear_frame` (C 2771-2786's
+// `ns_redraw_scroll_bars` is `NS_IMPL_GNUSTEP`-only, i.e. dead for this lane).
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -64,6 +70,10 @@
 import Foundation
 import AppKit
 import ApplicationServices
+// C 70-80: the `NS_IMPL_COCOA` arm's own includes - `#include <Carbon/Carbon.h>` (C 72-73) is
+// what `ns_get_shifted_character` needs (TIS/UCKeyTranslate), and C 74-79's comment about
+// ApplicationServices' UniversalAccess pair is the text round 5's UAZoom block already records.
+import Carbon
 
 // ==========================================================================
 // Lane ABI: C types.
@@ -3019,5 +3029,475 @@ fileprivate func ns_frame_up_to_date(_ f: UnsafeMutableRawPointer?) {
       ns_update_end(f)
       unblock_input()
     }
+  }
+}
+
+// ==========================================================================
+// C 2624-2761: the RIF cursor hook, and the Keyboard handling prologue.
+// ==========================================================================
+
+/// C: `#define FRAME_POINTER_TYPE(f) ((f)->output_data.ns->current_pointer)` (src/nsterm.h 1047) -
+/// the `struct ns_output` member `current_pointer` (src/nsterm.h 977; `Emacs_Cursor` is
+/// `NSCursor *`, src/nsgui.h 62).  The **write** entry already exists for this very C line - the
+/// shim's `ns_output_set_current_pointer` cites nsterm.m 2634 (`docs/ports/abi_shim.md` 96) - so
+/// the port takes the family's member names (`ns_output_text_cursor`/`ns_output_set_text_cursor`
+/// are the pair's own shape) rather than a macro-name entry for the read half; both live behind
+/// the shim's `have_ns` gate, the ratchet's reason for the whole `ns_output_*` family
+/// (status 3.262/3.264).  `nsfns.swift` 312-313 imports the write with this signature.
+@_silgen_name("ns_output_current_pointer")
+func ns_output_current_pointer(_ f: UnsafeMutableRawPointer?) -> NSObject?
+@_silgen_name("ns_output_set_current_pointer")
+func ns_output_set_current_pointer(_ f: UnsafeMutableRawPointer?, _ v: NSObject?)
+/// C: `QCordinary` - src/nsterm.m 11793's own `DEFSYM (QCordinary, ":ordinary")`.  It is **this
+/// file's** symbol, so it is absent from `docs/baseline/globals/symbols.tsv` (a table built from
+/// a configuration that never compiles this file) and the core has to export the name - the
+/// `QCmouse` reading round 2 recorded.
+@_silgen_name("QCordinary") func QCordinary() -> Lisp_Object
+/// C: `Qnone` - `DEFSYM (Qnone, "none")` (src/frame.c 7241); `_Qnone` and `_Qleft` are `S` in
+/// `build/emacs-ref/src/emacs.o`, and the core's globals table already carries it (another unit's
+/// import put it in the ratchet).
+@_silgen_name("Qnone") func Qnone() -> Lisp_Object
+
+/// C 2624-2637: `static void ns_define_frame_cursor (struct frame *f, Emacs_Cursor cursor)` -
+/// "External (RIF): set frame mouse pointer type."  It is C's `define_frame_cursor_hook`, so it
+/// lands as a `fileprivate func`.  C compares and assigns the pointer, so the port keeps identity
+/// comparison (`!==`) rather than an `isEqual:` call.
+fileprivate func ns_define_frame_cursor(_ f: UnsafeMutableRawPointer?, _ cursor: NSObject?) {
+  // C 2630: `NSTRACE ("ns_define_frame_cursor");` - empty at `NSTRACE_ENABLED` 0 (src/nsterm.h
+  // 142-143), so it carries no statement here.
+
+  // C 2631/2634: `FRAME_POINTER_TYPE (f)` read and written.
+  if ns_output_current_pointer(f) !== cursor {
+    let view = FRAME_NS_VIEW(f)
+    ns_output_set_current_pointer(f, cursor)
+    // C 2635: `[[view window] invalidateCursorRectsForView: view];`
+    view?.window?.invalidateCursorRects(for: view!)
+  }
+}
+
+/* ==========================================================================
+
+    Keyboard handling
+
+   ========================================================================== */
+
+/// C 2647-2663: `static unsigned ns_convert_key (unsigned code)` - "Internal call used by
+/// NSView-keyDown."  `countof (convert_ns_to_X_keysym)` is the table's element count; the table
+/// itself is round 1's `fileprivate let convert_ns_to_X_keysym: [UInt32]` (flat `(key, keysym)`
+/// pairs), which is why the two reads carry `Int(keysym)` subscripts.
+fileprivate func ns_convert_key(_ code: UInt32) -> UInt32 {
+  let last_keysym = UInt32(convert_ns_to_X_keysym.count)
+  /* An array would be faster, but less easy to read.  */
+  var keysym: UInt32 = 0
+  while keysym < last_keysym {
+    if code == convert_ns_to_X_keysym[Int(keysym)] {
+      return 0xFF00 | convert_ns_to_X_keysym[Int(keysym) + 1]
+    }
+    keysym += 2
+  }
+  return 0
+  /* if decide to use keyCode and Carbon table, use this line:
+       return code > 0xff ? 0 : 0xFF00 | ns_keycode_to_xkeysym_table[code]; */
+}
+
+/// C 2673: `static char value[16];` - C's **function-scope** static.  Swift has no function-scope
+/// storage, so it is a file-scope buffer of the same size, allocated once: the reference's address
+/// is stable for the process's life and it is never freed there either.  C's static storage is
+/// zero-initialised, hence the `initialize`.
+fileprivate let get_keysym_name_value: UnsafeMutablePointer<CChar> = {
+  let p = UnsafeMutablePointer<CChar>.allocate(capacity: 16)
+  p.initialize(repeating: 0, count: 16)
+  return p
+}()
+
+/// C 2666-2677: `char *get_keysym_name (int keysym)` - "Called by keyboard.c.  Not sure if the
+/// return val is important, except that it be unique."  Declared src/lisp.h 5436, so it keeps C's
+/// name under `@_cdecl`: this unit is where the definition lives, and `keyboard.rs` 8553's
+/// `#[cfg (feature = "have_window_system")]` arm is the Rust side's dead-text carrier of the same
+/// call (its own comment records that it is not declared there).
+@_cdecl("get_keysym_name")
+func get_keysym_name(_ keysym: Int32) -> UnsafeMutablePointer<CChar>? {
+  // C 2674: `NSTRACE ("get_keysym_name");` - empty, as above.
+
+  // C 2675: `snprintf (value, 16, "%d", keysym);` - `snprintf` is variadic and unavailable in
+  // Swift (the reading `docs/ports/nsfns.swift` 3698 gives), so the port builds the same string
+  // and copies it into the same 16-byte buffer, keeping C's bound.
+  let bytes = Array(String(format: "%d", keysym).utf8CString)
+  let n = min(bytes.count, 16)
+  for i in 0..<n {
+    get_keysym_name_value[i] = bytes[i]
+  }
+  return get_keysym_name_value
+}
+
+/// C 2679-2684: `static Lisp_Object right_mod (Lisp_Object left, Lisp_Object right)` - the
+/// `NS_IMPL_COCOA` arm's helper (the `#ifdef` at C 2679 is the live one).
+fileprivate func right_mod(_ left: Lisp_Object, _ right: Lisp_Object) -> Lisp_Object {
+  return EQ(right, Qleft()) ? left : right
+}
+
+/// C 2686-2690: `static bool nil_or_none (Lisp_Object val)` - the same arm.
+fileprivate func nil_or_none(_ val: Lisp_Object) -> Bool {
+  return NILP(val) || EQ(val, Qnone())
+}
+
+/// C 2703: `static UInt32 dead_key_state;` - `ns_get_shifted_character`'s function-scope static,
+/// a file-scope `var` here for the reason `get_keysym_name_value` above records.
+fileprivate var dead_key_state: UInt32 = 0
+
+/// C 2692-2761: `static UniChar ns_get_shifted_character (NSEvent *event)` - "Look up the
+/// character corresponding to the key pressed on the current keyboard layout and the currently
+/// configured shift-like modifiers. …".  The `NS_IMPL_COCOA` arm is the live one, and its Carbon
+/// dependency is C 72-73's `#include <Carbon/Carbon.h>` (`import Carbon` at the top of this file).
+///
+/// `UniChar` is `UInt16` (`UniCharCount` is `Int` in Swift - the SDK has no `UniCharCount` type),
+/// and `[event modifierFlags]`'s `NSUInteger` truncates to C's `UInt32 flags` exactly as the
+/// round-1 `EV_*` accessors do.
+fileprivate func ns_get_shifted_character(_ event: NSEvent) -> UInt16 {
+  /* UCKeyTranslate may return up to 255 characters.  If the buffer
+     isn't large enough then it produces an error.  What kind of
+     keyboard inputs 255 characters in a single keypress?  */
+  var buf = [UniChar](repeating: 0, count: 255)
+  let max_string_length = 255
+  var actual_string_length = 0
+  var result: OSStatus = 0
+
+  // C 2713-2715: `CFDataRef layout_ref = (CFDataRef) TISGetInputSourceProperty
+  // (TISCopyCurrentKeyboardLayoutInputSource (), kTISPropertyUnicodeKeyLayoutData);` then
+  // `UCKeyboardLayout *layout = (UCKeyboardLayout *) CFDataGetBytePtr (layout_ref);`.
+  // `TISCopyCurrentKeyboardLayoutInputSource` follows the Create rule, so Swift takes the +1
+  // (`takeRetainedValue`, and ARC releases it at the end) where C simply leaks it.
+  let layout_ref = TISGetInputSourceProperty(
+    TISCopyCurrentKeyboardLayoutInputSource()!.takeRetainedValue(),
+    kTISPropertyUnicodeKeyLayoutData)
+  // ...and the property hands back a **+0** `CFTypeRef` (`CFDataRef layout_ref = (CFDataRef)
+  // TISGetInputSourceProperty (…)`), so the port borrows it instead of taking a reference it does
+  // not own - `Unmanaged.fromOpaque(…).takeUnretainedValue()`, the reading `macfont.swift` 1541
+  // uses for the same CFTypeRef-to-Swift-CF conversion.
+  let layout_data = Unmanaged<CFData>.fromOpaque(layout_ref!).takeUnretainedValue()
+  let layout = UnsafeRawPointer(CFDataGetBytePtr(layout_data)!)
+    .assumingMemoryBound(to: UCKeyboardLayout.self)
+
+  // C 2717-2718: `UInt32 flags = [event modifierFlags];` and
+  // `UInt32 modifiers = (flags & NSEventModifierFlagShift) ? shiftKey : 0;` - the four Carbon key
+  // masks are `UInt32(…)` conversions of the anonymous-enum constants, as C's implicit
+  // enum-to-`UInt32` arithmetic does (the file's `EV_MODIFIERS2` reads the `UInt32` masks the same
+  // way).
+  let flags = UInt32(truncatingIfNeeded: event.modifierFlags.rawValue)
+  var modifiers: UInt32 = (flags & UInt32(truncatingIfNeeded: NSEvent.ModifierFlags.shift.rawValue)) != 0
+    ? UInt32(shiftKey)
+    : 0
+
+  // C 2720: `NSTRACE ("ns_get_shifted_character");` - empty, as above.
+
+  if (flags & UInt32(truncatingIfNeeded: NSRightAlternateKeyMask))
+       == UInt32(truncatingIfNeeded: NSRightAlternateKeyMask)
+       && nil_or_none(mod_of_kind(right_mod(ns_alternate_modifier, ns_right_alternate_modifier),
+                                  QCordinary())) {
+    modifiers |= UInt32(rightOptionKey)
+  }
+
+  if (flags & UInt32(truncatingIfNeeded: NSLeftAlternateKeyMask))
+       == UInt32(truncatingIfNeeded: NSLeftAlternateKeyMask)
+       && nil_or_none(mod_of_kind(ns_alternate_modifier, QCordinary())) {
+    modifiers |= UInt32(optionKey)
+  }
+
+  if (flags & UInt32(truncatingIfNeeded: NSRightCommandKeyMask))
+       == UInt32(truncatingIfNeeded: NSRightCommandKeyMask)
+       && nil_or_none(mod_of_kind(right_mod(ns_command_modifier, ns_right_command_modifier),
+                                  QCordinary())) {
+    /* Carbon doesn't differentiate between left and right command
+       keys.  */
+    modifiers |= UInt32(cmdKey)
+  }
+
+  if (flags & UInt32(truncatingIfNeeded: NSLeftCommandKeyMask))
+       == UInt32(truncatingIfNeeded: NSLeftCommandKeyMask)
+       && nil_or_none(mod_of_kind(ns_command_modifier, QCordinary())) {
+    modifiers |= UInt32(cmdKey)
+  }
+
+  result = UCKeyTranslate(layout, event.keyCode, UInt16(kUCKeyActionDown),
+                          (modifiers >> 8) & 0xFF, UInt32(LMGetKbdType()),
+                          OptionBits(kUCKeyTranslateNoDeadKeysBit), &dead_key_state,
+                          max_string_length, &actual_string_length, &buf)
+
+  if result != 0 {
+    // C 2751-2752: `NSLog (@"Failed to translate character '%@' with modifiers %x",
+    // [event characters], modifiers);` - `%@` bridges the Swift `String`.
+    NSLog("Failed to translate character '%@' with modifiers %x", event.characters ?? "", modifiers)
+    return 0
+  }
+
+  /* FIXME: What do we do if more than one code unit is returned?  */
+  if actual_string_length > 0 {
+    return buf[0]
+  }
+
+  return 0
+}
+
+/* ==========================================================================
+
+    Block drawing operations
+
+   ========================================================================== */
+
+// C 2771-2786's `ns_redraw_scroll_bars` is inside `#ifdef NS_IMPL_GNUSTEP` - dead for this lane,
+// recorded in the ledger, not transcribed.  The section's live definitions start at C 2789.
+
+/// C: `#define FRAME_ROOT_WINDOW(f) f->root_window` (src/frame.h 1201) - read at C 2805.
+@_silgen_name("FRAME_ROOT_WINDOW")
+func FRAME_ROOT_WINDOW(_ f: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `struct window *XWINDOW (Lisp_Object)` (src/window.h) - the lane's reading is
+/// `docs/ports/nsfns.swift` 195.
+@_silgen_name("XWINDOW") func XWINDOW(_ a: Lisp_Object) -> UnsafeMutableRawPointer?
+/// C: `void mark_window_cursors_off (struct window *)` (src/dispextern.h) - the core's own
+/// `femacs/src/window.rs` 5788 defines it.
+@_silgen_name("mark_window_cursors_off")
+func mark_window_cursors_off(_ w: UnsafeMutableRawPointer?)
+/// C: `#define FRAME_DEFAULT_FACE(f) FACE_FROM_ID_OR_NULL (f, DEFAULT_FACE_ID)` (src/nsterm.h 1043) -
+/// the macro's own name is the entry, the reading `FRAME_TOOLTIP_P`/`FRAME_BACKGROUND_COLOR` take.
+@_silgen_name("FRAME_DEFAULT_FACE")
+func FRAME_DEFAULT_FACE(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: the `struct face` accessors this section reads - `#define NS_FACE_BACKGROUND(f) ((f)->background)`
+/// (src/nsterm.h 1041), the `FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL` pair (src/dispextern.h) and the
+/// three face-id enumerators (`DEFAULT_FACE_ID`, `CHILD_FRAME_BORDER_FACE_ID`,
+/// `INTERNAL_BORDER_FACE_ID`).  `struct face` exists only under `HAVE_WINDOW_SYSTEM`, so these are
+/// its gated-arm entries; the status-3.271 layout probe is the route for a *view* of that record,
+/// which this unit does not need - every access here is a member entry.
+@_silgen_name("NS_FACE_BACKGROUND")
+func NS_FACE_BACKGROUND(_ face: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("FACE_FROM_ID")
+func FACE_FROM_ID(_ f: UnsafeMutableRawPointer?, _ id: Int32) -> UnsafeMutableRawPointer?
+@_silgen_name("FACE_FROM_ID_OR_NULL")
+func FACE_FROM_ID_OR_NULL(_ f: UnsafeMutableRawPointer?, _ id: Int32) -> UnsafeMutableRawPointer?
+@_silgen_name("DEFAULT_FACE_ID") func DEFAULT_FACE_ID() -> Int32
+@_silgen_name("CHILD_FRAME_BORDER_FACE_ID") func CHILD_FRAME_BORDER_FACE_ID() -> Int32
+@_silgen_name("INTERNAL_BORDER_FACE_ID") func INTERNAL_BORDER_FACE_ID() -> Int32
+/// C: `Vface_remapping_alist` - src/xfaces.c's `DEFVAR_LISP ("face-remapping-alist", …)`, a
+/// generated global (the objects hold no symbol of its own), so the core exports a data symbol of
+/// its own name - the `Vframe_list` reading.
+@_silgen_name("Vface_remapping_alist") var Vface_remapping_alist: Lisp_Object
+/// C: `int lookup_basic_face (struct window *, struct frame *, int)` (src/xfaces.c) - the core's
+/// `femacs/src/xfaces.rs` 3753; its return is the **face id** the calls above hand to
+/// `FACE_FROM_ID_OR_NULL`.
+@_silgen_name("lookup_basic_face")
+func lookup_basic_face(_ w: UnsafeMutableRawPointer?, _ f: UnsafeMutableRawPointer?,
+                       _ face_id: Int32) -> Int32
+/// C: `enum glyph_row_area`'s `ANY_AREA = -1` (src/dispextern.h 883) - `window_box`'s area argument.
+@_silgen_name("ANY_AREA") func ANY_AREA() -> Int32
+/// C: `struct run`'s members (src/dispextern.h: `int desired_y, current_y; … int height, nrows;`),
+/// read at C 2865-2874 through the `<record>_<member>` family.
+@_silgen_name("run_current_y") func run_current_y(_ run: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("run_desired_y") func run_desired_y(_ run: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("run_height") func run_height(_ run: UnsafeMutableRawPointer?) -> Int32
+/// C: `struct window`'s member `w->frame` (a `Lisp_Object`), read at C 2855 - the
+/// `window_<member>` family.
+@_silgen_name("window_frame") func window_frame(_ w: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `#define FRAME_INTERNAL_BORDER_WIDTH(f)` / `FRAME_PIXEL_WIDTH(f)` / `FRAME_PIXEL_HEIGHT(f)`
+/// (src/frame.h) and the two margin heights at C 2929-2930 - `FRAME_TOP_MARGIN_HEIGHT (F)`
+/// (src/frame.h 1139's sum of `FRAME_MENU_BAR_HEIGHT`/`FRAME_TAB_BAR_HEIGHT`/
+/// `FRAME_TOOL_BAR_TOP_HEIGHT`) and `FRAME_BOTTOM_MARGIN_HEIGHT (f)` (1151's
+/// `FRAME_TOOL_BAR_BOTTOM_HEIGHT`).  Their bodies read `struct frame` members and other `FRAME_*`
+/// macros, so each keeps its own name as an entry (class A) instead of expanding into `(f)->…`:
+/// the expansion would owe four member entries where one name is owed.  (The AppKit-only body of
+/// `FRAME_NS_TITLEBAR_HEIGHT` is the case that *is* expanded.)
+@_silgen_name("FRAME_INTERNAL_BORDER_WIDTH")
+func FRAME_INTERNAL_BORDER_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_PIXEL_WIDTH") func FRAME_PIXEL_WIDTH(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_PIXEL_HEIGHT") func FRAME_PIXEL_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_TOP_MARGIN_HEIGHT")
+func FRAME_TOP_MARGIN_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("FRAME_BOTTOM_MARGIN_HEIGHT")
+func FRAME_BOTTOM_MARGIN_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
+/// C: `void gui_clear_cursor (struct window *)` (src/dispextern.h; defined src/xdisp.c 35466
+/// **inside `HAVE_WINDOW_SYSTEM`** - the `#ifdef` at xdisp.c 35086 - so the frozen objects have no
+/// `_gui_clear_cursor`, measured): the owed-entry class of status 3.255 ③, like
+/// `remember_mouse_glyph`.
+@_silgen_name("gui_clear_cursor") func gui_clear_cursor(_ w: UnsafeMutableRawPointer?)
+/// C: `void NSRectFill (NSRect)` (AppKit's NSGraphics.h) - Swift marks the `NSRect*` family
+/// unavailable, so it is reached by name, the reading the `NSRectClip`/`NSRectClipList` pair above
+/// already records.
+@_silgen_name("NSRectFill") func NSRectFill(_ rect: NSRect)
+/// C 2909: `[view copyRect:srcRect to:dest];` - `EmacsView -copyRect:to:`, **this file's own
+/// class** (C 9340), so the call site takes the round-5 ruling's deferred shape with the first
+/// selector segment as the entry name (the `beginDrag` reading, `docs/ports/nsselect.swift` 220-223).
+@_silgen_name("copyRect")
+func copyRect_entry(_ view: NSView?, _ srcRect: NSRect, _ dest: NSPoint)
+
+/// C 2788-2820: `void ns_clear_frame (struct frame *f)` - "External (hook): Erase the entire
+/// frame".  Declared src/nsterm.h 1124 (the `clear_frame_hook`), so it keeps C's name under
+/// `@_cdecl`.  C's `NS_IMPL_GNUSTEP` arm at C 2816-2818 (`ns_redraw_scroll_bars (f)`) is dead here:
+/// that function is GNUstep-only (C 2771-2786).
+@_cdecl("ns_clear_frame")
+func ns_clear_frame(_ f: UnsafeMutableRawPointer?) {
+  let view = FRAME_NS_VIEW(f)
+  var r = NSRect.zero
+
+  // C 2798: `NSTRACE_WHEN (NSTRACE_GROUP_UPDATES, "ns_clear_frame");` - empty at
+  // `NSTRACE_ENABLED` 0, so neither its group nor its format string is evaluated.
+
+  /* comes on initial frame because we have
+     after-make-frame-functions = select-frame */
+  if FRAME_DEFAULT_FACE(f) == nil {
+    return
+  }
+
+  // C 2805: `mark_window_cursors_off (XWINDOW (FRAME_ROOT_WINDOW (f)));`
+  mark_window_cursors_off(XWINDOW(FRAME_ROOT_WINDOW(f)))
+
+  // C 2807: `r = [view bounds];`
+  r = view?.bounds ?? .zero
+
+  block_input()
+  ns_focus(f, &r, 1)
+  // C 2811-2812: `[[NSColor colorWithUnsignedLong:NS_FACE_BACKGROUND (FACE_FROM_ID (f,
+  // DEFAULT_FACE_ID))] set];` - the category's `+colorWithUnsignedLong:` above.
+  NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(FACE_FROM_ID(f, DEFAULT_FACE_ID()))).set()
+  NSRectFill(r)
+  ns_unfocus(f)
+
+  unblock_input()
+}
+
+/// C 2823-2846: `static void ns_clear_frame_area (struct frame *f, int x, int y, int width,
+/// int height)` - "External (RIF):  Clear section of frame".  C's `static`, so it lands as a
+/// `fileprivate func`.
+fileprivate func ns_clear_frame_area(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32,
+                                     _ width: Int32, _ height: Int32) {
+  var r = NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(width), CGFloat(height))
+  let view = FRAME_NS_VIEW(f)
+  let face = FRAME_DEFAULT_FACE(f)
+
+  if view == nil || face == nil {
+    return
+  }
+
+  // C 2836: `NSTRACE_WHEN (NSTRACE_GROUP_UPDATES, "ns_clear_frame_area");` - empty, as above.
+
+  // C 2838: `r = NSIntersectionRect (r, [view frame]);`
+  r = NSIntersectionRect(r, view!.frame)
+  ns_focus(f, &r, 1)
+  NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face)).set()
+
+  NSRectFill(r)
+
+  ns_unfocus(f)
+  return
+}
+
+/// C 2849-2916: `static void ns_scroll_run (struct window *w, struct run *run)` - "External
+/// (RIF):  Insert or delete n lines at line vpos."  The `run->…` reads are `struct run` member
+/// entries, and `[view copyRect:to:]` is this unit's own `EmacsView` method (C 9340), i.e. the
+/// deferred entry above.  The `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MAX_ALLOWED <
+/// 101400` arm at C 2910-2912 is dead for this lane (the SDK's value is 260000) and is recorded,
+/// not transcribed.
+fileprivate func ns_scroll_run(_ w: UnsafeMutableRawPointer?, _ run: UnsafeMutableRawPointer?) {
+  let f = XFRAME(window_frame(w))
+  var x: Int32 = 0, y: Int32 = 0, width: Int32 = 0, height: Int32 = 0
+  var from_y: Int32 = 0, to_y: Int32 = 0, bottom_y: Int32 = 0
+
+  // C 2858: `NSTRACE ("ns_scroll_run");` - empty, as above.
+
+  /* Get frame-relative bounding box of the text display area of W,
+     without mode lines.  Include in this box the left and right
+     fringe of W.  */
+  window_box(w, ANY_AREA(), &x, &y, &width, &height)
+
+  from_y = WINDOW_TO_FRAME_PIXEL_Y(w, run_current_y(run))
+  to_y = WINDOW_TO_FRAME_PIXEL_Y(w, run_desired_y(run))
+  bottom_y = y + height
+
+  if to_y < from_y {
+    /* Scrolling up.  Make sure we don't copy part of the mode
+       line at the bottom.  */
+    if from_y + run_height(run) > bottom_y {
+      height = bottom_y - from_y
+    } else {
+      height = run_height(run)
+    }
+
+    /* If the destination is off the top of the current window, don't
+       draw over the window above.  */
+    if to_y < y {
+      let d = y - to_y
+      height -= d
+      to_y += d
+      from_y += d
+    }
+  } else {
+    /* Scrolling down.  Make sure we don't copy over the mode line.
+       at the bottom.  */
+    if to_y + run_height(run) > bottom_y {
+      height = bottom_y - to_y
+    } else {
+      height = run_height(run)
+    }
+  }
+
+  if height == 0 {
+    return
+  }
+
+  block_input()
+
+  gui_clear_cursor(w)
+
+  do {
+    let srcRect = NSMakeRect(CGFloat(x), CGFloat(from_y), CGFloat(width), CGFloat(height))
+    let dest = NSMakePoint(CGFloat(x), CGFloat(to_y))
+    let view = FRAME_NS_VIEW(f)
+
+    copyRect_entry(view, srcRect, dest)
+  }
+
+  unblock_input()
+}
+
+/// C 2919-2960: `static void ns_clear_under_internal_border (struct frame *f)` - the RIF's
+/// internal-border clearing, `fileprivate` because C's is a `static`.  C's `int face_id = (…)` is
+/// the three-way conditional over `FRAME_PARENT_FRAME`/`Vface_remapping_alist`, and the id it
+/// settles on goes to `FACE_FROM_ID_OR_NULL` (with `FRAME_DEFAULT_FACE` as the fallback).
+fileprivate func ns_clear_under_internal_border(_ f: UnsafeMutableRawPointer?) {
+  // C 2922: `NSTRACE ("ns_clear_under_internal_border");` - empty, as above.
+
+  if FRAME_LIVE_P(f) && FRAME_INTERNAL_BORDER_WIDTH(f) > 0 {
+    let border = FRAME_INTERNAL_BORDER_WIDTH(f)
+    let width = FRAME_PIXEL_WIDTH(f)
+    let height = FRAME_PIXEL_HEIGHT(f)
+    let margin = FRAME_TOP_MARGIN_HEIGHT(f)
+    let bottom_margin = FRAME_BOTTOM_MARGIN_HEIGHT(f)
+    let face_id =
+      (FRAME_PARENT_FRAME(f) != nil
+       ? (!NILP(Vface_remapping_alist)
+          ? lookup_basic_face(nil, f, CHILD_FRAME_BORDER_FACE_ID())
+          : CHILD_FRAME_BORDER_FACE_ID())
+       : (!NILP(Vface_remapping_alist)
+          ? lookup_basic_face(nil, f, INTERNAL_BORDER_FACE_ID())
+          : INTERNAL_BORDER_FACE_ID()))
+    var face = FACE_FROM_ID_OR_NULL(f, face_id)
+
+    if face == nil {
+      face = FRAME_DEFAULT_FACE(f)
+    }
+
+    /* Sometimes with new frames we reach this point and have no
+       face.  I'm not sure why we have a live frame but no face, so
+       just give up.  */
+    if face == nil {
+      return
+    }
+
+    ns_focus(f, nil, 1)
+    NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face)).set()
+    NSRectFill(NSMakeRect(0, CGFloat(margin), CGFloat(width), CGFloat(border)))
+    NSRectFill(NSMakeRect(0, 0, CGFloat(border), CGFloat(height)))
+    NSRectFill(NSMakeRect(0, CGFloat(margin), CGFloat(width), CGFloat(border)))
+    NSRectFill(NSMakeRect(CGFloat(width - border), 0, CGFloat(border), CGFloat(height)))
+    NSRectFill(NSMakeRect(0, CGFloat(height - bottom_margin - border),
+                          CGFloat(width), CGFloat(border)))
+    ns_unfocus(f)
   }
 }
