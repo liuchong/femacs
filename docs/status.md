@@ -5729,3 +5729,36 @@
      读数（`586 done` 是清单口径、`96 文件/246,438 行` 是"整身在假条件下"的口径）一起写进 status，就是为了不再单看一个数。
   ④ **未声称**：`0 failing` 只说明"清单与参照在 token/函数/常量/宏体四类上零差异"，**不等于**完成——`docs/port-plan.md` §8 的
      八条（L0-L5、双向兼容、生成物逐字节、`diff -r` 原样树、平台冒烟、性能）本轮一条都没点亮。
+
+- **3.357 xdisp 第 25 轮入库（`redisplay_window` 整函数，+1,287 行），并把它的两个镜像缺陷与一处引文错修掉（2026-10-05）**：
+  ① **交付形态**：`femacs/src/xdisp.rs` **19,505 → 20,784 行**（C **20424-21662**：`redisplay_window` 的文档注释 +
+     整函数含 8 个标签；覆盖区间 **C 468-21662**，下一个活定义 **C 21684 `try_window`**）；台账 `docs/ports/xdisp.md`
+     **2,328 → 2,602 行**（Functions 勾选 218/302、总表 314/415；新增 Round 25 段、Dead arms 第二轮条目 14 个死 `#if`、
+     deviations 180-191、Evidence 整段重写）。
+  ② **lane 的原始读数与我改动后的读数**：他交的是 `build-tu` built + `--check` **108**（比基线 107 **多 1**，并给了不可达
+     107 的论证：停在 C 20824 前欠 2 条 family、跨过 C 21236 欠 `row_containing_pos` 的声明）。我在入库时把两处镜像缺陷
+     修掉后，`--check` 读 **107**：多出来的那条正是 `row_containing_pos is not static in C but has no #[unsafe(no_mangle)]`，
+     它随镜像收下原型而消失；`redisplay_window` 的 `does not mention` 行也从 9 个 token 缩到（另一个函数的）4 个。
+     **如实记一笔**：lane 本轮用了 **7 次 `build-tu`**（纪律写的是"只做必要的一次"），他自己解释了 5 次失败各自暴露的
+     真错（`buffer_bits!` 缺写入臂、`DEFUN!` 实参内插入、括号、19 处名/类型不匹配、镜像宏缺陷）；我按"多编译有害但
+     错误是真的"接受，并在下面把镜像缺陷的成因归位。
+  ③ **我修的三件事（都记进台账/本条，不藏在 diff 里）**：
+     ⑴ **`include/dispextern.rs` 的三个 `DESIRED_*_LINE_HEIGHT` 宏缺 `!`**（`MATRIX_MODE_LINE_HEIGHT ((*$w).desired_matrix)`
+     少了宏调用叹号 ⇒ 展开即 `E0423`，这三个宏**根本不可用**）。修好后把本单元那 6 处"按 C 自身展开拼写"改回
+     **C 的宏名**（`DESIRED_MODE_LINE_HEIGHT! (w)` 等，dispextern.h 1661-1672），注释里写明原因。
+     ⑵ **镜像收下 `row_containing_pos`（dispextern.h 3563-3565）与 `blank_row`（3914）两个原型**。第一次按 crate-root
+     `extern "C" { … }` 写，`build-tu src/xdisp.c` 当场 **E0428 `blank_row` 重复定义**（dispnew.c 是它的**定义**方，
+     xdisp.c 里我还留着脚手声明）⇒ 改成 **模块 + glob 导入**（`pub mod dispextern_late_decls { use super::*; … }` +
+     `use dispextern_late_decls::*;`，即 `include/window.rs` 的 `window_redisplay_decls` 形状，PORTING.md 0.1-10），
+     再把 xdisp 的脚手声明删掉；`build-tu src/{xdisp,dispnew}.c` **2/2 built**。**第一次还顺手抓到另一个 Rust 2024 要求**：
+     `extern` 块必须写 `unsafe extern`。
+     ⑶ **修一处 lane 登记但没修的引文错**：`xdisp.rs` 原写 `dispextern.h 3914: void clear_glyph_row (…)`，而 3914 是
+     `blank_row`、`clear_glyph_row` 在 **3916**（引文门看不见它，因为引文里带括号、不是裸标识符）——已改正。
+  ④ **读数（本轮实跑）**：`extract-abi --check xdisp` **107 行**；`--check dispextern.h` 镜像 **OK**；
+     `check-mirror-dupes` **18/18/0**；`check-citations` **674 files / 0 drift / 0 stale**；`check-declarations`
+     **13 sites / 0 forbidden**；`check-ledger-ticks` **0 failures / 0 carried-elsewhere**。
+  ⑤ **又抓到一处门的盲区（记下来给下一轮）**：上面那个 crate-root `blank_row` 与 xdisp 脚手声明的重复，
+     `check-mirror-dupes` 当时读的是 **0 failure**——即"镜像里 crate-root `extern "C"` 的声明 vs 单元里的声明"这一类它不绑；
+     抓住它的是 **build**（E0428）。这是本会话第二次"编译抓到、重名门没抓到"（第一次是 3.326 的宏命名空间）。
+  ⑥ **未声称**：xdisp 仍是 **WIP**（台账有 101 个未勾项），单元**不能链接**（脚手块 18 条、`--check` 里仍有 74 条
+     `missing function`）；`redisplay_window` 的行为**没有任何运行期/差分验证**；`docs/port-plan.md` §8 的八条一条未点亮。

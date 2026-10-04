@@ -779,8 +779,9 @@ unsafe extern "C" {
   /// ptrdiff_t, ptrdiff_t, bool);` (insdel.c defines it).
   pub fn insert_from_string (string: Lisp_Object, from: ptrdiff_t, from_byte: ptrdiff_t,
 			     nchars: ptrdiff_t, nbytes: ptrdiff_t, inherit: bool);
-  /// C: dispextern.h 3914: `void clear_glyph_row (struct glyph_row *);` (dispnew.c).
+  /// C: dispextern.h 3916: `void clear_glyph_row (struct glyph_row *);` (dispnew.c).
   pub fn clear_glyph_row (row: *mut glyph_row);
+  // dispextern.h 3914's `blank_row` is the dispextern.rs mirror's now (status 3.357).
   /// C: dispextern.h 3908: `void clear_desired_matrices (struct frame *);` (dispnew.c).
   pub fn clear_desired_matrices (f: *mut frame);
   /// C: search.c's `void record_unwind_save_match_data (void);` (lisp.h 4852).
@@ -2226,6 +2227,11 @@ macro_rules! buffer_bits {
     else { (*$b).bits &= ! BUFFER_CLIP_CHANGED; } }};
   (long_line_optimizations_p, $b:expr) =>
     { (*$b).bits & BUFFER_LONG_LINE_OPTIMIZATIONS_P != 0 };
+  /* C 20688's `current_buffer->long_line_optimizations_p = true;` is the write this
+     arm carries (the round that reaches `redisplay_window`'s long-line scan).  */
+  (long_line_optimizations_p, $b:expr, $v:expr) => {{
+    if $v { (*$b).bits |= BUFFER_LONG_LINE_OPTIMIZATIONS_P; }
+    else { (*$b).bits &= ! BUFFER_LONG_LINE_OPTIMIZATIONS_P; } }};
 }
 /* buffer.h 240's `struct buffer_text` carries the same kind of 1-bit member (`redisplay`,
    buffer.h 303) in its own `bits`
@@ -19437,6 +19443,1271 @@ DEFUN! ("long-line-optimizations-p", Flong_line_optimizations_p,
   return if buffer_bits! (long_line_optimizations_p, current_buffer)
 	 { Qt () } else { Qnil () };
 });
+
+
+/* Redisplay leaf window WINDOW.  JUST_THIS_ONE_P means only
+   selected_window is redisplayed.
+
+   We can return without actually redisplaying the window if fonts has been
+   changed on window's frame.  In that case, redisplay_internal will retry.
+
+   As one of the important parts of redisplaying a window, we need to
+   decide whether the previous window-start position (stored in the
+   window's w->start marker position) is still valid, and if it isn't,
+   recompute it.  Some details about that:
+
+    . The previous window-start could be in a continuation line, in
+      which case we need to recompute it when the window width
+      changes.  See compute_window_start_on_continuation_line and its
+      call below.
+
+    . The text that changed since last redisplay could include the
+      previous window-start position.  In that case, we try to salvage
+      what we can from the current glyph matrix by calling
+      try_scrolling, which see.
+
+    . Some Emacs command could force us to use a specific window-start
+      position by setting the window's force_start flag, or gently
+      propose doing that by setting the window's optional_new_start
+      flag.  In these cases, we try using the specified start point if
+      that succeeds (i.e. the window desired matrix is successfully
+      recomputed, and point location is within the window).  In case
+      of optional_new_start, we first check if the specified start
+      position is feasible, i.e. if it will allow point to be
+      displayed in the window.  If using the specified start point
+      fails, e.g., if new fonts are needed to be loaded, we abort the
+      redisplay cycle and leave it up to the next cycle to figure out
+      things.
+
+    . Note that the window's force_start flag is sometimes set by
+      redisplay itself, when it decides that the previous window start
+      point is fine and should be kept.  Search for "goto force_start"
+      below to see the details.  Like the values of window-start
+      specified outside of redisplay, these internally-deduced values
+      are tested for feasibility, and ignored if found to be
+      unfeasible.
+
+    . Note that the function try_window, used to completely redisplay
+      a window, accepts the window's start point as its argument.
+      This is used several times in the redisplay code to control
+      where the window start will be, according to user options such
+      as scroll-conservatively, and also to ensure the screen line
+      showing point will be fully (as opposed to partially) visible on
+      display.  */
+
+unsafe fn
+redisplay_window (window: Lisp_Object, just_this_one_p: bool)
+{
+  let w: *mut window = XWINDOW (window);
+  let f: *mut frame = XFRAME ((*w).frame);
+  let buffer: *mut buffer = XBUFFER ((*w).contents);
+  let old: *mut buffer = current_buffer;
+  let mut lpoint: text_pos = core::mem::zeroed ();
+  let mut opoint: text_pos = core::mem::zeroed ();
+  let mut startp: text_pos = core::mem::zeroed ();
+  let mut update_mode_line: bool;
+  let mut tem: c_int;
+  let mut it: it = core::mem::zeroed ();
+  /* Record it now because it's overwritten.  */
+  let mut current_matrix_up_to_date_p: bool = false;
+  let mut used_current_matrix_p: bool = false;
+  let mut temp_scroll_step: bool = false;
+  let mut count: specpdl_ref = SPECPDL_INDEX ();
+  let mut rc: c_int;
+  let mut centering_position: c_int = -1;
+  let mut last_line_misfit: bool = false;
+  let mut beg_unchanged: ptrdiff_t;
+  let mut end_unchanged: ptrdiff_t;
+  let mut frame_line_height: c_int;
+  let mut margin: c_int;
+  let mut use_desired_matrix: bool;
+  let mut itdata: *mut c_void = core::ptr::null_mut ();
+  let mut lchars_modiff: modiff_count = CHARS_MODIFF! ();
+  let mut ochars_modiff: modiff_count = lchars_modiff;
+
+  SET_TEXT_POS! (lpoint, PT! (), PT_BYTE! ());
+  opoint = lpoint;
+
+/* C 20502-20504's `#ifdef GLYPH_DEBUG` block (`*w->desired_matrix->method = 0`) is dead on
+   this target (P-08; the dead-arm list in `docs/ports/xdisp.md` names it).  */
+
+  if !just_this_one_p && needs_no_redisplay (w)
+    { return; }
+
+  /* Make sure that both W's markers are valid.  */
+  eassert! ((*XMARKER ((*w).start)).buffer as *mut buffer == buffer);
+  eassert! ((*XMARKER ((*w).pointm)).buffer as *mut buffer == buffer);
+
+  reconsider_clip_changes (w);
+  frame_line_height = default_line_pixel_height (w);
+  margin = window_scroll_margin (w, margin_unit::MARGIN_IN_LINES);
+
+
+  /* Has the mode line to be updated?  */
+  update_mode_line = (window_bits! (w, update_mode_line)
+		      || update_mode_lines != 0
+		      || buffer_bits! (clip_changed, buffer)
+		      || buffer_bits! (prevent_redisplay_optimizations_p, buffer));
+
+  if !just_this_one_p
+    /* If `just_this_one_p' is set, we apparently set must_be_updated_p more
+       cleverly elsewhere.  */
+    { window_bits! (w, must_be_updated_p, true); }
+
+/* `redisplay_window` is one 1,188-line C function (C 20475-21662), and its eight C labels
+   are the port's labelled blocks and loops (PORTING.md 2.2, the `compute_x:` /
+   `'too_near_end:` shape): `finish_scroll_bars`, `need_larger_matrices`, `finish_menu_bars`,
+   `done` and `recenter` are jumped to from above, so each one's block opens here and its
+   end is the C label's own site; `force_start`, `try_to_scroll` and `ignore_start` are
+   entered from inside that text and stand where their C labels are.  `recenter` is both a
+   forward target (C 20693, C 20980, C 21059) and a backward one (C 21414, C 21442), so it
+   takes two Rust labels: the `'recenter` block above, and the `'recenter_body` loop whose
+   first iteration is C's label site.  `--check` reports this function's `goto` tokens in
+   its one `does not mention` line: the break/continue spelling is the deviation.  */
+  'finish_scroll_bars: {
+  'need_larger_matrices: {
+  'finish_menu_bars: {
+  'done: {
+  'recenter: {
+  if MINI_WINDOW_P (w)
+    {
+      if w == XWINDOW (echo_area_window)
+	 && !NILP (echo_area_buffer[0])
+	{
+	  if update_mode_line
+	    /* We may have to update a tty frame's menu bar or a
+	       tool-bar.  Example `M-x C-h C-h C-g'.  */
+	    { break 'finish_menu_bars; }
+	  else
+	    /* We've already displayed the echo area glyphs in this window.  */
+	    { break 'finish_scroll_bars; }
+	}
+      else if (w != XWINDOW (minibuf_window)
+	       || minibuf_level == 0)
+	      /* When buffer is nonempty, redisplay window normally.  */
+	      && BUF_Z! (XBUFFER ((*w).contents)) == BUF_BEG (XBUFFER ((*w).contents))
+	      /* Quail displays non-mini buffers in minibuffer window.
+		 In that case, redisplay the window normally.  */
+	      && !NILP (Fmemq ((*w).contents, Vminibuffer_list))
+	{
+	  /* W is a mini-buffer window, but it's not active, so clear
+	     it.  */
+	  let yb: c_int = window_text_bottom_y (w);
+	  let mut row: *mut glyph_row;
+	  let mut y: c_int;
+
+	  y = 0;
+	  row = (*((*w).desired_matrix as *mut glyph_matrix)).rows;
+	  while y < yb
+	    {
+	      blank_row (w, row, y);
+	      y += (*row).height;
+	      row = row.offset (1);
+	    }
+	  break 'finish_scroll_bars;
+	}
+      else if minibuf_level >= 1 && NILP (resize_mini_frames)
+	{
+	  /* We could have a message produced by set-minibuffer-message
+	     displayed in the mini-window as an overlay, so resize the
+	     mini-window if needed.
+
+	     Don't resize the mini-window when minibuffer-only frames
+	     shall be resized automatically to avoid entering an
+	     infinite loop (Bug#80017).  The cause of that looping is
+	     yet undetermined.  */
+	  resize_mini_window (w, false);
+	}
+
+      clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+    }
+
+  /* Otherwise set up data on this window; select its buffer and point
+     value.  */
+  /* Really select the buffer, for the sake of buffer-local
+     variables.  */
+  set_buffer_internal_1 (XBUFFER ((*w).contents));
+
+  current_matrix_up_to_date_p
+    = (window_bits! (w, window_end_valid)
+       && !buffer_bits! (clip_changed, current_buffer)
+       && !buffer_bits! (prevent_redisplay_optimizations_p, current_buffer)
+       && !window_outdated (w)
+       && !composition_break_at_point
+       && !hscrolling_current_line_p (w));
+
+  beg_unchanged = BEG_UNCHANGED! ();
+  end_unchanged = END_UNCHANGED! ();
+
+  SET_TEXT_POS! (opoint, PT! (), PT_BYTE! ());
+  ochars_modiff = CHARS_MODIFF! ();
+
+  specbind (Qinhibit_point_motion_hooks (), Qt ());
+
+  /* When windows_or_buffers_changed is non-zero, we can't rely
+     on the window end being valid, so set it to zero there.  */
+  if windows_or_buffers_changed != 0
+    {
+      /* If window starts on a continuation line, maybe adjust the
+	 window start in case the window's width changed.  */
+      if (*XMARKER ((*w).start)).buffer as *mut buffer == current_buffer
+	{ compute_window_start_on_continuation_line (w); }
+
+      window_bits! (w, window_end_valid, false);
+      /* If so, we also can't rely on current matrix
+	 and should not fool try_cursor_movement below.  */
+      current_matrix_up_to_date_p = false;
+    }
+
+  /* Some sanity checks.  */
+  CHECK_WINDOW_END (w);
+  if Z! () == Z_BYTE! () && CHARPOS! (opoint) != BYTEPOS! (opoint)
+    { emacs_abort (); }
+  if BYTEPOS! (opoint) < CHARPOS! (opoint)
+    { emacs_abort (); }
+
+  if mode_line_update_needed (w)
+    { update_mode_line = true; }
+
+  /* Point refers normally to the selected window.  For any other
+     window, set up appropriate value.  */
+  if !EQ (window, selected_window)
+    {
+      let mut new_pt: ptrdiff_t = marker_position ((*w).pointm);
+      let mut new_pt_byte: ptrdiff_t = marker_byte_position ((*w).pointm);
+
+      if new_pt < BEGV! ()
+	{
+	  new_pt = BEGV! ();
+	  new_pt_byte = BEGV_BYTE! ();
+	  set_marker_both ((*w).pointm, Qnil (), BEGV! (), BEGV_BYTE! ());
+	}
+      else if new_pt > ZV! () - 1
+	{
+	  new_pt = ZV! ();
+	  new_pt_byte = ZV_BYTE! ();
+	  set_marker_both ((*w).pointm, Qnil (), ZV! (), ZV_BYTE! ());
+	}
+
+      /* We don't use SET_PT so that the point-motion hooks don't run.  */
+      TEMP_SET_PT_BOTH (new_pt, new_pt_byte);
+    }
+
+  /* If any of the character widths specified in the display table
+     have changed, invalidate the width run cache.  It's true that
+     this may be a bit late to catch such changes, but the rest of
+     redisplay goes (non-fatally) haywire when the display table is
+     changed, so why should we worry about doing any better?  */
+  if !(*current_buffer).width_run_cache.is_null ()
+      || (!(*current_buffer).base_buffer.is_null ()
+	  && !(*(*current_buffer).base_buffer).width_run_cache.is_null ())
+    {
+      let disptab: *mut Lisp_Char_Table = buffer_display_table ();
+
+      if !disptab_matches_widthtab
+	  (disptab, XVECTOR (BVAR! (current_buffer, width_table_)))
+        {
+	  let mut buf: *mut buffer = current_buffer;
+
+	  if !(*buf).base_buffer.is_null ()
+	    { buf = (*buf).base_buffer; }
+          invalidate_region_cache (buf, (*buf).width_run_cache, BEG as ptrdiff_t, Z! ());
+          recompute_width_table (current_buffer as *mut c_void, disptab);
+        }
+    }
+
+  /* Check whether the buffer to be displayed contains long lines.  */
+  if !NILP (Vlong_line_threshold)
+      && !buffer_bits! (long_line_optimizations_p, current_buffer)
+      && (CHARS_MODIFF! () - UNCHANGED_MODIFIED! () > 8
+	  || buffer_bits! (clip_changed, current_buffer))
+    {
+      let mut cur: ptrdiff_t;
+      let mut next: ptrdiff_t;
+      let mut found: ptrdiff_t = 0;
+      let mut max: ptrdiff_t = 0;
+      let mut threshold: ptrdiff_t;
+      threshold = XFIXNUM (Vlong_line_threshold) as ptrdiff_t;
+      cur = BEGV! ();
+      while cur < ZV! ()
+	{
+	  next = find_newline1 (cur, CHAR_TO_BYTE (cur), 0, -1, 1,
+				&raw mut found, core::ptr::null_mut (), true);
+	  if next - cur > max { max = next - cur; }
+	  if found == 0 || max > threshold { break; }
+	  cur = next;
+	}
+      if max > threshold
+	{ buffer_bits! (long_line_optimizations_p, current_buffer, true); }
+    }
+
+  /* If window-start is screwed up, choose a new one.  */
+  if (*XMARKER ((*w).start)).buffer as *mut buffer != current_buffer
+    { break 'recenter; }
+  SET_TEXT_POS_FROM_MARKER! (startp, (*w).start);
+
+  /* If someone specified a new starting point but did not insist,
+     check whether it can be used.  */
+  if (window_bits! (w, optional_new_start) || window_frozen_p (w))
+      && CHARPOS! (startp) >= BEGV! ()
+      && CHARPOS! (startp) <= ZV! ()
+    {
+      let mut it_charpos: ptrdiff_t;
+
+      window_bits! (w, optional_new_start, false);
+      if !window_bits! (w, force_start)
+	{
+	  start_display (&raw mut it, w, startp);
+	  move_it_to (&raw mut it, PT! (), 0, it.last_visible_y, -1,
+		      MOVE_TO_POS | MOVE_TO_X | MOVE_TO_Y);
+	  /* Record IT's position now, since line_bottom_y might
+	     change that.  */
+	  it_charpos = IT_CHARPOS! (it);
+	  /* Make sure we set the force_start flag only if the cursor
+	     row will be fully visible.  Otherwise, the code under
+	     force_start label below will try to move point back into
+	     view, which is not what the code which sets
+	     optional_new_start wants.  */
+	  if it.current_y == 0 || line_bottom_y (&raw mut it) < it.last_visible_y
+	    {
+	      if it_charpos == PT! ()
+		{ window_bits! (w, force_start, true); }
+	      /* IT may overshoot PT if text at PT is invisible.  */
+	      else if it_charpos > PT! () && CHARPOS! (startp) <= PT! ()
+		{ window_bits! (w, force_start, true); }
+/* C 20726-20734's `#ifdef GLYPH_DEBUG` block (the `w->force_start` test around the two
+   `debug_method_add` calls) is dead on this target (P-08).  */
+	    }
+	}
+    }
+
+  if !BASE_LINE_NUMBER_VALID_P! (w)
+    /* Forget any recorded base line for line number display.  */
+    { (*w).base_line_number = 0; }
+
+/* force_start:  (C 20743 — C's label sits between the `if` above and the `if` below.  The
+   port's label is this loop, whose first iteration begins at the same statement, because
+   C's one backward `goto force_start` (C 21048) is `continue 'force_start`; C's
+   fall-through past the label's region is the loop's trailing `break 'force_start`, which
+   stands where C's `recenter:` label is (C 21155).  */
+  'force_start: loop {
+/* try_to_scroll:  (C 21104 — the six forward `goto try_to_scroll` (C 20848, C 20868,
+   C 20882, C 20936, C 20961, C 21083) are `break 'try_to_scroll`; the block opens here so
+   that they are inside it, and its end is C's label site.)  */
+  'try_to_scroll: {
+/* ignore_start:  (C 20945 — `goto ignore_start` (C 20786) is `break 'ignore_start`; the
+   block opens here so that the jump is inside it, and its end is C's label site.)  */
+  'ignore_start: {
+
+  /* Handle case where place to start displaying has been specified,
+     unless the specified location is outside the accessible range.  */
+  if window_bits! (w, force_start)
+    {
+      /* We set this later on if we have to adjust point.  */
+      let mut new_vpos: c_int = -1;
+
+      window_bits! (w, force_start, false);
+
+      /* The vscroll should be preserved in this case, since
+	 `pixel-scroll-precision-mode' must continue working normally
+	 when a mini-window is resized.  (bug#55312) */
+      if !window_bits! (w, preserve_vscroll_p) && !window_frozen_p (w)
+	{ (*w).vscroll = 0; }
+
+      window_bits! (w, preserve_vscroll_p, false);
+      window_bits! (w, window_end_valid, false);
+
+      /* Redisplay the mode line.  Select the buffer properly for that.
+	 Also, run the hook window-scroll-functions
+	 because we have scrolled.  */
+      /* Note, we do this after clearing force_start because
+	 if there's an error, it is better to forget about force_start
+	 than to get into an infinite loop calling the hook functions
+	 and having them get more errors.  */
+      if !update_mode_line
+	  || !NILP (Vwindow_scroll_functions)
+	{
+	  update_mode_line = true;
+	  window_bits! (w, update_mode_line, true);
+	  startp = run_window_scroll_functions (window, startp);
+	}
+
+      if CHARPOS! (startp) < BEGV! ()
+	{ SET_TEXT_POS! (startp, BEGV! (), BEGV_BYTE! ()); }
+      else if CHARPOS! (startp) > ZV! ()
+	{ SET_TEXT_POS! (startp, ZV! (), ZV_BYTE! ()); }
+
+      /* Reject the specified start location if it is invisible, and
+	 the buffer wants it always visible.  */
+      if !window_start_acceptable_p (window, CHARPOS! (startp))
+	{ break 'ignore_start; }
+
+      /* Redisplay, then check if cursor has been set during the
+	 redisplay.  Give up if new fonts were loaded.  */
+      /* We used to issue a CHECK_MARGINS argument to try_window here,
+	 but this causes scrolling to fail when point begins inside
+	 the scroll margin (bug#148) -- cyd  */
+      clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+      if try_window (window, startp, 0) == 0
+	{
+	  window_bits! (w, force_start, true);
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  break 'need_larger_matrices;
+	}
+
+      if (*w).cursor.vpos < 0
+	{
+	  /* If point does not appear, try to move point so it does
+	     appear.  The desired matrix has been built above, so we
+	     can use it here.  First see if point is in invisible
+	     text, and if so, move it to the first visible buffer
+	     position past that.  */
+	  let mut r: *mut glyph_row = core::ptr::null_mut ();
+	  let invprop: Lisp_Object =
+	    get_char_property_and_overlay (make_fixnum (PT! ()), Qinvisible (),
+					   Qnil (), core::ptr::null_mut ());
+
+	  if TEXT_PROP_MEANS_INVISIBLE! (invprop) != 0
+	    {
+	      let mut alt_pt: ptrdiff_t;
+	      let invprop_end: Lisp_Object =
+		Fnext_single_char_property_change (make_fixnum (PT! ()), Qinvisible (),
+						   Qnil (), Qnil ());
+
+	      if FIXNATP (invprop_end)
+		{ alt_pt = XFIXNAT (invprop_end) as ptrdiff_t; }
+	      else
+		{ alt_pt = ZV! (); }
+	      r = row_containing_pos (w, alt_pt,
+				      (*((*w).desired_matrix as *mut glyph_matrix)).rows,
+				      core::ptr::null_mut (), 0);
+	    }
+	  if !r.is_null ()
+	    { new_vpos = MATRIX_ROW_BOTTOM_Y! (r); }
+	  else	/* Give up and just move to the middle of the window.  */
+	    { new_vpos = window_box_height (w) / 2; }
+	}
+
+      if !cursor_row_fully_visible_p (w, false, false, false)
+	{
+	  /* Point does appear, but on a line partly visible at end of window.
+	     Move it back to a fully-visible line.  */
+	  new_vpos = window_box_height (w);
+	  /* But if window_box_height suggests a Y coordinate that is
+	     not less than we already have, that line will clearly not
+	     be fully visible, so give up and scroll the display.
+	     This can happen when the default face uses a font whose
+	     dimensions are different from the frame's default
+	     font.  */
+	  if new_vpos >= (*w).cursor.y
+	    {
+	      (*w).cursor.vpos = -1;
+	      clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	      break 'try_to_scroll;
+	    }
+	}
+      else if (*w).cursor.vpos >= 0
+	{
+	  /* Some people insist on not letting point enter the scroll
+	     margin, even though this part handles windows that didn't
+	     scroll at all.  */
+          let pixel_margin: c_int = margin * frame_line_height;
+	  let tab_line: bool = window_wants_tab_line (w);
+	  let header_line: bool = window_wants_header_line (w);
+
+	  /* Note: We add an extra FRAME_LINE_HEIGHT, because the loop
+	     below, which finds the row to move point to, advances by
+	     the Y coordinate of the _next_ row, see the definition of
+	     MATRIX_ROW_BOTTOM_Y.  */
+	  if (*w).cursor.vpos < margin + tab_line as c_int + header_line as c_int
+	    {
+	      (*w).cursor.vpos = -1;
+	      clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	      break 'try_to_scroll;
+	    }
+	  else
+	    {
+	      let mut window_height: c_int = window_box_height (w);
+
+	      if tab_line
+		{ window_height += CURRENT_TAB_LINE_HEIGHT! (w); }
+	      if header_line
+		{ window_height += CURRENT_HEADER_LINE_HEIGHT! (w); }
+	      if (*w).cursor.y >= window_height - pixel_margin
+		{
+		  (*w).cursor.vpos = -1;
+		  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+		  break 'try_to_scroll;
+		}
+	    }
+	}
+
+      /* If we need to move point for either of the above reasons,
+	 now actually do it.  */
+      if new_vpos >= 0
+	{
+	  let mut row: *mut glyph_row;
+
+	  row = MATRIX_FIRST_TEXT_ROW! ((*w).desired_matrix as *mut glyph_matrix);
+	  while MATRIX_ROW_BOTTOM_Y! (row) < new_vpos
+		 && !glyph_row_bits! (ends_at_zv_p, row)
+	    { row = row.offset (1); }
+
+	  TEMP_SET_PT_BOTH (MATRIX_ROW_START_CHARPOS! (row),
+			    MATRIX_ROW_START_BYTEPOS! (row));
+
+	  if w != XWINDOW (selected_window)
+	    { set_marker_both ((*w).pointm, Qnil (), PT! (), PT_BYTE! ()); }
+	  else if current_buffer == old
+	    { SET_TEXT_POS! (lpoint, PT! (), PT_BYTE! ()); }
+
+	  set_cursor_from_row (w, row, (*w).desired_matrix as *mut glyph_matrix, 0, 0, 0, 0);
+
+	  /* Re-run pre-redisplay-function so it can update the region
+	     according to the new position of point.  */
+	  /* Other than the cursor, w's redisplay is done so we can set its
+	     redisplay to false.  Also the buffer's redisplay can be set to
+	     false, since propagate_buffer_redisplay should have already
+	     propagated its info to `w' anyway.  */
+	  window_bits! (w, redisplay, false);
+	  buffer_text_bits! (text.redisplay, XBUFFER ((*w).contents), false);
+	  dsafe_calln! (true, Vpre_redisplay_function, Fcons (window, Qnil ()));
+
+	  if window_bits! (w, redisplay)
+	      || buffer_text_bits! (text.redisplay, XBUFFER ((*w).contents))
+	      || ((EQ (Vdisplay_line_numbers, Qrelative ())
+		   || EQ (Vdisplay_line_numbers, Qvisual ()))
+		  && row != MATRIX_FIRST_TEXT_ROW! ((*w).desired_matrix as *mut glyph_matrix))
+	    {
+	      /* Either pre-redisplay-function made changes (e.g. move
+		 the region), or we moved point in a window that is
+		 under display-line-numbers = relative mode.  We need
+		 another round of redisplay.  */
+	      clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	      if try_window (window, startp, 0) == 0
+		{ break 'need_larger_matrices; }
+	    }
+	}
+      if (*w).cursor.vpos < 0
+	  || !cursor_row_fully_visible_p (w, false, false, false)
+	{
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  break 'try_to_scroll;
+	}
+
+/* C 20939-20941's `#ifdef GLYPH_DEBUG` block (`debug_method_add (w, "forced window
+   start")`) is dead on this target (P-08).  */
+      { break 'done; }
+    }
+  }
+  /* ignore_start:  (C 20945 — the fall-through out of C's `force_start` block above lands
+     here, with the `break 'ignore_start` sites.)  */
+
+  /* Handle case where text has not changed, only point, and it has
+     not moved off the frame, and we are not retrying after hscroll.
+     (current_matrix_up_to_date_p is true when retrying.)  */
+  if current_matrix_up_to_date_p
+      && ({ rc = try_cursor_movement (window, startp, &raw mut temp_scroll_step); rc }
+	  != CURSOR_MOVEMENT_CANNOT_BE_USED)
+    {
+      match rc
+	{
+	  CURSOR_MOVEMENT_SUCCESS =>
+	    {
+	      used_current_matrix_p = true;
+	      break 'done;
+	    }
+
+	  CURSOR_MOVEMENT_MUST_SCROLL =>
+	    {
+	      break 'try_to_scroll;
+	    }
+
+	  _ =>
+	    {
+	      emacs_abort ();
+	    }
+	}
+    }
+  /* If current starting point was originally the beginning of a line
+     but no longer is, or if the starting point is invisible but the
+     buffer wants it always visible, find a new starting point.  */
+  else if window_bits! (w, start_at_line_beg)
+	   && ((CHARPOS! (startp) > BEGV! ()
+		&& FETCH_BYTE! (BYTEPOS! (startp) - 1) != b'\n')
+	       || (CHARPOS! (startp) >= BEGV! ()
+		   && CHARPOS! (startp) <= ZV! ()
+		   && !window_start_acceptable_p (window, CHARPOS! (startp))))
+    {
+/* C 20977-20979's `#ifdef GLYPH_DEBUG` block (`debug_method_add (w, "recenter 1")`) is
+   dead on this target (P-08).  */
+      break 'recenter;
+    }
+
+  /* Try scrolling with try_window_id.  Value is > 0 if update has
+     been done, it is -1 if we know that the same window start will
+     not work.  It is 0 if unsuccessful for some other reason.  */
+  else if ({ tem = try_window_id (w); tem } != 0)
+    {
+/* C 20988-20990's `#ifdef GLYPH_DEBUG` block (`debug_method_add (w, "try_window_id
+   %d", tem)`) is dead on this target (P-08).  */
+
+      if frame_bits! (fonts_changed, f)
+	{ break 'need_larger_matrices; }
+      if tem > 0
+	{ break 'done; }
+
+      /* Otherwise try_window_id has returned -1 which means that we
+	 don't want the alternative below this comment to execute.  */
+    }
+  else if CHARPOS! (startp) >= BEGV! ()
+	   && CHARPOS! (startp) <= ZV! ()
+	   && PT! () >= CHARPOS! (startp)
+	   && (CHARPOS! (startp) < ZV! ()
+	       /* Avoid starting at end of buffer.  */
+	       || CHARPOS! (startp) == BEGV! ()
+	       || !window_outdated (w))
+    {
+      let mut d1: c_int = 0;
+      let mut d2: c_int = 0;
+      let mut d5: c_int = 0;
+      let mut d6: c_int = 0;
+      let mut rtop: c_int = 0;
+      let mut rbot: c_int = 0;
+
+      /* If first window line is a continuation line, and window start
+	 is inside the modified region, but the first change is before
+	 current window start, we must select a new window start.
+
+	 However, if this is the result of a down-mouse event (e.g. by
+	 extending the mouse-drag-overlay), we don't want to select a
+	 new window start, since that would change the position under
+	 the mouse, resulting in an unwanted mouse-movement rather
+	 than a simple mouse-click.  */
+      if !window_bits! (w, start_at_line_beg)
+	  && NILP (track_mouse)
+      	  && CHARPOS! (startp) > BEGV! ()
+	  && CHARPOS! (startp) > BEG as ptrdiff_t + beg_unchanged
+	  && CHARPOS! (startp) <= Z! () - end_unchanged
+	  /* Even if w->start_at_line_beg is nil, a new window may
+	     start at a line_beg, since that's how set_buffer_window
+	     sets it.  So, we need to check the return value of
+	     compute_window_start_on_continuation_line.  (See also
+	     bug#197).  */
+	  && (*XMARKER ((*w).start)).buffer as *mut buffer == current_buffer
+	  && compute_window_start_on_continuation_line (w)
+	  /* It doesn't make sense to force the window start like we
+	     do at label force_start if it is already known that point
+	     will not be fully visible in the resulting window, because
+	     doing so will move point from its correct position
+	     instead of scrolling the window to bring point into view.
+	     See bug#9324.  */
+	  && pos_visible_p (w, PT! (), &raw mut d1, &raw mut d2, &raw mut rtop,
+			    &raw mut rbot, &raw mut d5, &raw mut d6)
+	  /* A very tall row could need more than the window height,
+	     in which case we accept that it is partially visible.  */
+	  && (rtop != 0) == (rbot != 0)
+	{
+	  window_bits! (w, force_start, true);
+	  SET_TEXT_POS_FROM_MARKER! (startp, (*w).start);
+/* C 21045-21047's `#ifdef GLYPH_DEBUG` block (`debug_method_add (w, "recomputed window
+   start in continuation line")`) is dead on this target (P-08).  */
+	  continue 'force_start;
+      	}
+
+      /* Don't use the same window-start if it is invisible or covered
+	 by a replacing 'display' property and the buffer requested
+	 the window-start to be always visible.  */
+      if !window_start_acceptable_p (window, CHARPOS! (startp))
+	{
+/* C 21056-21058's `#ifdef GLYPH_DEBUG` block (`debug_method_add (w, "recenter 2")`) is
+   dead on this target (P-08).  */
+	  break 'recenter;
+	}
+
+/* C 21062-21064's `#ifdef GLYPH_DEBUG` block (`debug_method_add (w, "same window
+   start")`) is dead on this target (P-08).  */
+
+      /* Try to redisplay starting at same place as before.
+         If point has not moved off frame, accept the results.  */
+      if !current_matrix_up_to_date_p
+	  /* Don't use try_window_reusing_current_matrix in this case
+	     because a window scroll function can have changed the
+	     buffer.  */
+	  || !NILP (Vwindow_scroll_functions)
+	  || MINI_WINDOW_P (w)
+	  || !({ used_current_matrix_p = try_window_reusing_current_matrix (w);
+		 used_current_matrix_p })
+	{
+/* C 21077's live `IF_DEBUG (debug_method_add (w, "1"));` expands to C's `((void) 0)` on
+   this target (`GLYPH_DEBUG` is undef), so its argument is never evaluated: recorded, not
+   transcribed (P-08).  */
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  if try_window (window, startp, TRY_WINDOW_CHECK_MARGINS) < 0
+	    /* -1 means we need to scroll.
+	       0 means we need new matrices, but fonts_changed
+	       is set in that case, so we will detect it below.  */
+	    { break 'try_to_scroll; }
+	}
+
+      if frame_bits! (fonts_changed, f)
+	{ break 'need_larger_matrices; }
+
+      if (*w).cursor.vpos >= 0
+	{
+	  if !cursor_row_fully_visible_p (w, true, false, false)
+	    {
+	      clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	      last_line_misfit = true;
+	    }
+	    /* Drop through and scroll.  */
+	  else
+	    { break 'done; }
+	}
+      else
+	{ clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix); }
+    }
+  }
+  /* try_to_scroll:  (C 21104 — the fall-through out of C's `ignore_start` text above lands
+     here, with the `break 'try_to_scroll` sites.)  */
+
+  /* Redisplay the mode line.  Select the buffer properly for that.  */
+  if !update_mode_line
+    {
+      update_mode_line = true;
+      window_bits! (w, update_mode_line, true);
+    }
+
+  /* Try to scroll by specified few lines.  */
+  if (0 < scroll_conservatively
+       /* FIXME: the option is supposed to affect minibuffers, but we
+	  test MINI_WINDOW_P, which can also catch uses of
+	  mini-windows for displaying the echo area.  Do we need to
+	  distinguish these two use cases?  */
+       || (scroll_minibuffer_conservatively && MINI_WINDOW_P (w))
+       || 0 < emacs_scroll_step
+       || temp_scroll_step
+       || NUMBERP (BVAR! (current_buffer, scroll_up_aggressively_))
+       || NUMBERP (BVAR! (current_buffer, scroll_down_aggressively_)))
+      && CHARPOS! (startp) >= BEGV! ()
+      && CHARPOS! (startp) <= ZV! ()
+    {
+      /* The function returns -1 if new fonts were loaded, 1 if
+	 successful, 0 if not successful.  */
+      let mut ss: c_int = try_scrolling (window, just_this_one_p,
+			      if scroll_minibuffer_conservatively
+			        && MINI_WINDOW_P (w)
+			       { (SCROLL_LIMIT + 1) as intmax_t }
+			       else { scroll_conservatively as intmax_t },
+			      emacs_scroll_step as intmax_t,
+			      temp_scroll_step, last_line_misfit);
+      match ss
+	{
+	  SCROLLING_SUCCESS =>
+	    {
+	      break 'done;
+	    }
+
+	  SCROLLING_NEED_LARGER_MATRICES =>
+	    {
+	      break 'need_larger_matrices;
+	    }
+
+	  SCROLLING_FAILED =>
+	    {
+	    }
+
+	  _ =>
+	    {
+	      emacs_abort ();
+	    }
+	}
+    }
+
+  /* Finally, just choose a place to start which positions point
+     according to user preferences.  */
+
+  break 'force_start;
+  }
+  }
+  /* recenter:  (C 21155 — the forward `goto recenter` sites (C 20693, C 20980, C 21059)
+     are `break 'recenter`, whose blocks end here; C's label's own body is the
+     `'recenter_body` loop below, whose first iteration starts at the same statement and
+     whose backward `goto recenter` sites (C 21414, C 21442) are `continue 'recenter_body`.
+     C's fall-through past the label's region is the loop's trailing `break 'recenter_body`
+     (C 21445's place).  */
+  'recenter_body: loop {
+/* C 21157-21159's `#ifdef GLYPH_DEBUG` block (`debug_method_add (w, "recenter")`) is dead
+   on this target (P-08).  */
+
+  /* Determine the window start relative to point.  */
+  init_iterator (&raw mut it, w, PT! (), PT_BYTE! (), core::ptr::null_mut (), DEFAULT_FACE_ID);
+  it.current_y = it.last_visible_y;
+  if centering_position < 0
+    {
+      let mut margin_pos: ptrdiff_t = CHARPOS! (startp);
+      let mut aggressive: Lisp_Object;
+      let mut scrolling_up: bool;
+
+      /* If there is a scroll margin at the top of the window, find
+	 its character position.  */
+      if margin != 0
+	  /* Cannot call start_display if startp is not in the
+	     accessible region of the buffer.  This can happen when we
+	     have just switched to a different buffer and/or changed
+	     its restriction.  In that case, startp is initialized to
+	     the character position 1 (BEGV) because we did not yet
+	     have chance to display the buffer even once.  */
+	  && BEGV! () <= CHARPOS! (startp) && CHARPOS! (startp) <= ZV! ()
+	{
+	  let mut it1: it = core::mem::zeroed ();
+	  let mut it1data: *mut c_void = core::ptr::null_mut ();
+
+	  SAVE_IT! (it1, it, it1data);
+	  start_display (&raw mut it1, w, startp);
+	  move_it_vertically (&raw mut it1, margin * frame_line_height);
+	  margin_pos = IT_CHARPOS! (it1);
+	  RESTORE_IT! (&raw mut it, &raw mut it, it1data);
+	}
+      scrolling_up = PT! () > margin_pos;
+      aggressive =
+	if scrolling_up
+	{ BVAR! (current_buffer, scroll_up_aggressively_) }
+	else { BVAR! (current_buffer, scroll_down_aggressively_) };
+
+      if !MINI_WINDOW_P (w)
+	  && (scroll_conservatively > SCROLL_LIMIT as ptrdiff_t || NUMBERP (aggressive))
+	{
+	  let mut pt_offset: c_int = 0;
+
+	  /* Setting scroll-conservatively overrides
+	     scroll-*-aggressively.  */
+	  if scroll_conservatively == 0 && NUMBERP (aggressive)
+	    {
+	      let float_amount: c_double = XFLOATINT (aggressive);
+
+	      pt_offset = (float_amount * (WINDOW_BOX_TEXT_HEIGHT! (w) as c_double)) as c_int;
+	      if pt_offset == 0 && float_amount > 0.0
+		{ pt_offset = 1; }
+	      if pt_offset != 0 && margin > 0
+		{ margin -= 1; }
+	    }
+	  /* Compute how much to move the window start backward from
+	     point so that point will be displayed where the user
+	     wants it.  */
+	  if scrolling_up
+	    {
+	      centering_position = it.last_visible_y;
+	      if pt_offset != 0
+		{ centering_position -= pt_offset; }
+	      centering_position -=
+		(frame_line_height * (1 + margin + last_line_misfit as c_int)
+		 + WINDOW_TAB_LINE_HEIGHT! (w) + WINDOW_HEADER_LINE_HEIGHT! (w));
+	      /* Don't let point enter the scroll margin near top of
+		 the window.  */
+	      if centering_position < margin * frame_line_height
+		{ centering_position = margin * frame_line_height; }
+	    }
+	  else
+	    { centering_position = margin * frame_line_height + pt_offset; }
+	}
+      else
+	/* Set the window start half the height of the window backward
+	   from point.  */
+	{ centering_position = window_box_height (w) / 2; }
+    }
+  if buffer_bits! (long_line_optimizations_p, current_buffer)
+      && it.line_wrap == TRUNCATE
+    {
+      /* For very long and truncated lines, go back using a simplified
+	 method, which ignored any inaccuracies due to line-height
+	 differences, display properties/overlays, etc.  */
+      let mut nlines: c_int = centering_position / frame_line_height;
+
+      while ({ let old: c_int = nlines; nlines -= 1; old }) != 0 && IT_CHARPOS! (it) > BEGV! ()
+	{ back_to_previous_visible_line_start (&raw mut it); }
+      reseat_1 (&raw mut it, it.current.pos, true);
+    }
+  else
+    { move_it_vertically_backward (&raw mut it, centering_position); }
+
+  eassert! (IT_CHARPOS! (it) >= BEGV! ());
+
+  /* The function move_it_vertically_backward may move over more
+     than the specified y-distance.  If it->w is small, e.g. a
+     mini-buffer window, we may end up in front of the window's
+     display area.  Start displaying at the start of the line
+     containing PT in this case.  */
+  if it.current_y <= 0
+    {
+      init_iterator (&raw mut it, w, PT! (), PT_BYTE! (), core::ptr::null_mut (), DEFAULT_FACE_ID);
+      move_it_vertically_backward (&raw mut it, 0);
+      it.current_y = 0;
+    }
+
+  it.hpos = 0; it.wrap_prefix_width = 0; it.current_x = 0;
+
+  /* Set the window start position here explicitly, to avoid an
+     infinite loop in case the functions in window-scroll-functions
+     get errors.  */
+  set_marker_both ((*w).start, Qnil (), IT_CHARPOS! (it), IT_BYTEPOS! (it));
+
+  /* Run scroll hooks.  */
+  startp = run_window_scroll_functions (window, it.current.pos);
+
+  /* We invoke try_window and try_window_reusing_current_matrix below,
+     and they manipulate the bidi cache.  Save and restore the cache
+     state of our iterator, so we could continue using it after that.  */
+  itdata = bidi_shelve_cache ();
+
+  /* Redisplay the window.  */
+  use_desired_matrix = false;
+  if !current_matrix_up_to_date_p
+      || windows_or_buffers_changed != 0
+      || frame_bits! (cursor_type_changed, f)
+      /* Don't use try_window_reusing_current_matrix in this case
+	 because it can have changed the buffer.  */
+      || !NILP (Vwindow_scroll_functions)
+      || !just_this_one_p
+      || MINI_WINDOW_P (w)
+      || !({ used_current_matrix_p = try_window_reusing_current_matrix (w);
+	     used_current_matrix_p })
+    { use_desired_matrix = (try_window (window, startp, 0) == 1); }
+
+  bidi_unshelve_cache (itdata, false);
+
+  /* If new fonts have been loaded (due to fontsets), give up.  We
+     have to start a new redisplay since we need to re-adjust glyph
+     matrices.  */
+  if frame_bits! (fonts_changed, f)
+    { break 'need_larger_matrices; }
+
+  /* If cursor did not appear assume that the middle of the window is
+     in the first line of the window.  Do it again with the next line.
+     (Imagine a window of height 100, displaying two lines of height
+     60.  Moving back 50 from it->last_visible_y will end in the first
+     line.)  */
+  if (*w).cursor.vpos < 0
+    {
+      if window_bits! (w, window_end_valid) && PT! () >= Z! () - (*w).window_end_pos
+	{
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  move_it_by_lines (&raw mut it, 1);
+	  try_window (window, it.current.pos, 0);
+	}
+      else if PT! () < IT_CHARPOS! (it)
+	{
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  move_it_by_lines (&raw mut it, -1);
+	  try_window (window, it.current.pos, 0);
+	}
+      else if scroll_conservatively > SCROLL_LIMIT as ptrdiff_t
+	       && (it.method == GET_FROM_STRING
+		   || overlay_touches_p (IT_CHARPOS! (it)))
+	       && IT_CHARPOS! (it) < ZV! ()
+	{
+	  /* If the window starts with a before-string that spans more
+	     than one screen line, using that position to display the
+	     window might fail to bring point into the view, because
+	     start_display will always start by displaying the string,
+	     whereas the code above determines where to set w->start
+	     by the buffer position of the place where it takes screen
+	     coordinates.  Try to recover by finding the next screen
+	     line that displays buffer text.  */
+	  let pos0: ptrdiff_t = IT_CHARPOS! (it);
+
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  loop {
+	    move_it_by_lines (&raw mut it, 1);
+	    if !(IT_CHARPOS! (it) == pos0) { break; }
+	  }
+	  try_window (window, it.current.pos, 0);
+	}
+      else
+	{
+	  /* Not much we can do about it.  */
+	}
+    }
+
+  /* Consider the following case: Window starts at BEGV, there is
+     invisible, intangible text at BEGV, so that display starts at
+     some point START > BEGV.  It can happen that we are called with
+     PT somewhere between BEGV and START.  Try to handle that case,
+     and similar ones.  */
+  if (*w).cursor.vpos < 0
+    {
+      /* Prefer the desired matrix to the current matrix, if possible,
+	 in the fallback calculations below.  This is because using
+	 the current matrix might completely goof, e.g. if its first
+	 row is after point.  */
+      let matrix: *mut glyph_matrix =
+	if use_desired_matrix { (*w).desired_matrix as *mut glyph_matrix }
+	else { (*w).current_matrix as *mut glyph_matrix };
+      /* First, try locating the proper glyph row for PT.  */
+      let mut row: *mut glyph_row =
+	row_containing_pos (w, PT! (), (*matrix).rows, core::ptr::null_mut (), 0);
+
+      /* Sometimes point is at the beginning of invisible text that is
+	 before the 1st character displayed in the row.  In that case,
+	 row_containing_pos fails to find the row, because no glyphs
+	 with appropriate buffer positions are present in the row.
+	 Therefore, we next try to find the row which shows the 1st
+	 position after the invisible text.  */
+      if row.is_null ()
+	{
+	  let val: Lisp_Object =
+	    get_char_property_and_overlay (make_fixnum (PT! ()), Qinvisible (),
+					   Qnil (), core::ptr::null_mut ());
+
+	  if TEXT_PROP_MEANS_INVISIBLE! (val) != 0
+	    {
+	      let mut alt_pos: ptrdiff_t;
+	      let invis_end: Lisp_Object =
+		Fnext_single_char_property_change (make_fixnum (PT! ()), Qinvisible (),
+						   Qnil (), Qnil ());
+
+	      if FIXNATP (invis_end)
+		{ alt_pos = XFIXNAT (invis_end) as ptrdiff_t; }
+	      else
+		{ alt_pos = ZV! (); }
+	      row = row_containing_pos (w, alt_pos, (*matrix).rows,
+					core::ptr::null_mut (), 0);
+	    }
+	}
+      /* Finally, fall back on the first row of the window after the
+	 tab-line and header line (if any).  This is slightly better
+	 than not displaying the cursor at all.  */
+      if row.is_null ()
+	{
+	  row = (*matrix).rows;
+	  /* Skip the tab-line and header-line rows, if any.  */
+	  if glyph_row_bits! (tab_line_p, row)
+	    { row = row.offset (1); }
+	  if glyph_row_bits! (mode_line_p, row)
+	    { row = row.offset (1); }
+	}
+      set_cursor_from_row (w, row, matrix, 0, 0, 0, 0);
+    }
+
+  if !cursor_row_fully_visible_p (w, false, false, false)
+    {
+      /* If vscroll is enabled, disable it and try again.  */
+      if (*w).vscroll != 0
+	{
+	  (*w).vscroll = 0;
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  continue 'recenter_body;
+	}
+
+      /* Users who set scroll-conservatively to a large number want
+	 point just above/below the scroll margin.  If we ended up
+	 with point's row partially visible, move the window start to
+	 make that row fully visible and out of the margin.  */
+      if scroll_conservatively > SCROLL_LIMIT as ptrdiff_t
+	{
+	  let window_total_lines: c_int
+	    = WINDOW_TOTAL_LINES (w) * FRAME_LINE_HEIGHT (f) / frame_line_height;
+	  let move_down: bool = (*w).cursor.vpos >= window_total_lines / 2;
+
+	  move_it_by_lines (&raw mut it, if move_down { margin + 1 } else { -(margin + 1) } as ptrdiff_t);
+	  clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+	  if 1 == try_window (window, it.current.pos,
+			       TRY_WINDOW_CHECK_MARGINS)
+	    { break 'done; }
+	}
+
+      /* If centering point failed to make the whole line visible,
+	 put point at the top instead.  That has to make the whole line
+	 visible, if it can be done.  */
+      if centering_position == 0
+	{ break 'done; }
+
+      clear_glyph_matrix ((*w).desired_matrix as *mut glyph_matrix);
+      centering_position = 0;
+      continue 'recenter_body;
+    }
+
+  break 'recenter_body;
+  }
+  /* done:  (C 21445 — the fall-through out of C's `recenter` text above lands here, with
+     the `break 'done` sites.)  */
+
+  SET_TEXT_POS_FROM_MARKER! (startp, (*w).start);
+  window_bits! (w, start_at_line_beg, CHARPOS! (startp) == BEGV! ()
+			  || FETCH_BYTE! (BYTEPOS! (startp) - 1) == b'\n');
+
+  /* Display the mode line, header line, and tab-line, if we must.  */
+  if ((update_mode_line
+       /* If window not full width, must redo its mode line
+	  if (a) the window to its side is being redone and
+	  (b) we do a frame-based redisplay.  This is a consequence
+	  of how inverted lines are drawn in frame-based redisplay.  */
+       || (!just_this_one_p
+	   && !FRAME_WINDOW_P (f)
+	   && !WINDOW_FULL_WIDTH_P! (w))
+       /* Line number to display.  */
+       || (*w).base_line_pos > 0
+       /* Column number is displayed and different from the one displayed.  */
+       || ((*w).column_number_displayed != -1
+	   && ((*w).column_number_displayed != current_column ())))
+      /* This means that the window has a mode line.  */
+      && (window_wants_mode_line (w)
+	  || window_wants_header_line (w)
+	  || window_wants_tab_line (w)))
+    {
+      let count1: specpdl_ref = SPECPDL_INDEX ();
+
+      specbind (Qinhibit_quit (), Qt ());
+      display_mode_lines (w);
+      unbind_to (count1, Qnil ());
+
+/* The three `DESIRED_*_LINE_HEIGHT` macros of dispextern.h 1661-1672 are the mirror's now
+   (their missing `!` is fixed in the same commit, 3.357), so C's own macro names are used.  */
+      /* If mode line height has changed, arrange for a thorough
+	 immediate redisplay using the correct mode line height.  */
+      if window_wants_mode_line (w)
+	  && CURRENT_MODE_LINE_HEIGHT! (w) != DESIRED_MODE_LINE_HEIGHT! (w)
+	{
+	  frame_bits! (fonts_changed, f, true);
+	  (*w).mode_line_height = -1;
+	  (*MATRIX_MODE_LINE_ROW! ((*w).current_matrix as *mut glyph_matrix)).height
+	    = DESIRED_MODE_LINE_HEIGHT! (w);
+	}
+
+      /* If tab line height has changed, arrange for a thorough
+	 immediate redisplay using the correct tab line height.  */
+      if window_wants_tab_line (w)
+	  && CURRENT_TAB_LINE_HEIGHT! (w) != DESIRED_TAB_LINE_HEIGHT! (w)
+	{
+	  frame_bits! (fonts_changed, f, true);
+	  (*w).tab_line_height = -1;
+	  (*MATRIX_TAB_LINE_ROW! ((*w).current_matrix as *mut glyph_matrix)).height
+	    = DESIRED_TAB_LINE_HEIGHT! (w);
+	}
+
+      /* If header line height has changed, arrange for a thorough
+	 immediate redisplay using the correct header line height.  */
+      if window_wants_header_line (w)
+	  && CURRENT_HEADER_LINE_HEIGHT! (w) != DESIRED_HEADER_LINE_HEIGHT! (w)
+	{
+	  frame_bits! (fonts_changed, f, true);
+	  (*w).header_line_height = -1;
+	  (*MATRIX_HEADER_LINE_ROW! ((*w).current_matrix as *mut glyph_matrix)).height
+	    = DESIRED_HEADER_LINE_HEIGHT! (w);
+	}
+
+      if frame_bits! (fonts_changed, f)
+	{ break 'need_larger_matrices; }
+    }
+
+  if !line_number_displayed && (*w).base_line_pos != -1
+    {
+      (*w).base_line_pos = 0;
+      (*w).base_line_number = 0;
+    }
+  }
+  /* finish_menu_bars:  (C 21519 — the fall-through out of C's `done` text above lands
+     here, with the `break 'finish_menu_bars` sites.)  */
+
+  /* When we reach a frame's selected window, redo the frame's menu
+     bar, tool bar, tab-bar, and the frame's title.  */
+  if update_mode_line && EQ (FRAME_SELECTED_WINDOW! (f), window)
+    {
+      if FRAME_WINDOW_P (f)
+	{
+/* C 21527-21533's `#ifdef HAVE_EXT_MENU_BAR` arm (`if (FRAME_EXTERNAL_MENU_BAR (f))
+   display_menu_bar (w);`) is dead on this target (P-08); the live `#else` arm follows.  */
+	  if FRAME_MENU_BAR_LINES (f) > 0
+	    { display_menu_bar (w); }
+	}
+      else
+	{
+	  let mut rf: *mut frame = core::ptr::null_mut ();
+
+	  if !FRAME_PARENT_FRAME (f).is_null ()
+	      && FRAME_MENU_BAR_LINES (f) == 0
+	      && ({ rf = root_frame (f); FRAME_MENU_BAR_LINES (rf) }) != 0
+	      && NILP (Fdefault_value (Qtty_menu_open_use_tmm ()))
+	    /* If F is a tty child frame without menu bar, that frame's root
+	       frame has a menu bar and 'tty-menu-open-use-tmm' is nil,
+	       display the menu bar of the root frame's selected window.  */
+	    { display_menu_bar (XWINDOW (FRAME_SELECTED_WINDOW! (rf))); }
+	  else if FRAME_MENU_BAR_LINES (f) > 0
+	    { display_menu_bar (w); }
+	}
+
+/* C 21551-21581's `#ifdef HAVE_WINDOW_SYSTEM` arm (the tab-bar/tool-bar redisplay through
+   `redisplay_tab_bar`/`update_frame_tool_bar`/`gui_consider_frame_title`) is dead on this
+   target (P-08); the live `#else` arm follows.  */
+      if FRAME_TAB_BAR_LINES (f) > 0
+        { display_tab_bar (w); }
+    }
+
+/* C 21584-21605's `#ifdef HAVE_WINDOW_SYSTEM` block (the `update_window_fringes` /
+   `draw_window_fringes` / `gui_draw_*_divider` calls) is dead on this target (P-08).  */
+
+  /* We go to this label, with fonts_changed set, if it is
+     necessary to try again using larger glyph matrices.
+     We have to redeem the scroll bar even in this case,
+     because the loop in redisplay_internal expects that.  */
+  }
+  /* need_larger_matrices:  (C 21611-21612 — C's label's own statement is the empty `;`,
+     and every `break 'need_larger_matrices` above, and the fall-through out of C's
+     `finish_menu_bars` text, land here.)  */
+  }
+  /* finish_scroll_bars:  (C 21613 — the fall-through out of C's `need_larger_matrices`
+     statement above lands here, with the `break 'finish_scroll_bars` sites.)  */
+
+  }
+   if WINDOW_HAS_VERTICAL_SCROLL_BAR! (w) || WINDOW_HAS_HORIZONTAL_SCROLL_BAR (w)
+    {
+      if WINDOW_HAS_VERTICAL_SCROLL_BAR! (w)
+	/* Set the thumb's position and size.  */
+	{ set_vertical_scroll_bar (w); }
+
+      if WINDOW_HAS_HORIZONTAL_SCROLL_BAR (w)
+	/* Set the thumb's position and size.  */
+	{ set_horizontal_scroll_bar (w); }
+
+      /* Note that we actually used the scroll bar attached to this
+	 window, so it shouldn't be deleted at the end of redisplay.  */
+      if !(*FRAME_TERMINAL! (f)).redeem_scroll_bar_hook.is_none ()
+        { (*FRAME_TERMINAL! (f)).redeem_scroll_bar_hook.unwrap () (w as *mut c_void); }
+    }
+
+  /* Restore current_buffer and value of point in it.  The window
+     update may have changed the buffer, so first make sure `opoint'
+     is still valid (Bug#6177).  */
+  if CHARPOS! (opoint) < BEGV! ()
+    { TEMP_SET_PT_BOTH (BEGV! (), BEGV_BYTE! ()); }
+  else if CHARPOS! (opoint) > ZV! ()
+    { TEMP_SET_PT_BOTH (Z! (), Z_BYTE! ()); }
+  else if ochars_modiff == CHARS_MODIFF! ()
+    { TEMP_SET_PT_BOTH (CHARPOS! (opoint), BYTEPOS! (opoint)); }
+  else
+    {
+      /* If the buffer was modified while we were redisplaying it, we
+         cannot trust the correspondence between character and byte
+         positions.  This can happen, for example, if we are
+         redisplaying *Messages* and some Lisp, perhaps invoked by
+         display_mode_lines, signals an error which caused something
+         added/deleted to/from the buffer text.  */
+      TEMP_SET_PT_BOTH (CHARPOS! (opoint), CHAR_TO_BYTE (CHARPOS! (opoint)));
+    }
+  set_buffer_internal_1 (old);
+  /* Avoid an abort in TEMP_SET_PT_BOTH if the buffer has become
+     shorter.  This can be caused by log truncation in *Messages*.  */
+  if CHARPOS! (lpoint) <= ZV! ()
+    {
+      if lchars_modiff == CHARS_MODIFF! ()
+	{ TEMP_SET_PT_BOTH (CHARPOS! (lpoint), BYTEPOS! (lpoint)); }
+      else
+	{ TEMP_SET_PT_BOTH (CHARPOS! (lpoint), CHAR_TO_BYTE (CHARPOS! (lpoint))); }
+    }
+
+  unbind_to (count, Qnil ());
+}
+
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */
 /* ==================================================================== */
@@ -19478,6 +20749,17 @@ unsafe extern "C" {
   fn maybe_produce_line_number (it: *mut it);
   /// C: xdisp.c 1166: `static bool should_produce_line_number (struct it *);`
   fn should_produce_line_number (it: *mut it) -> bool;
+  /// C: xdisp.c 1163: `static bool try_window_reusing_current_matrix (struct window *);`
+  /// (defined later in this unit, at C 21793).
+  fn try_window_reusing_current_matrix (w: *mut window) -> bool;
+  /// C: xdisp.c 1164: `static int try_window_id (struct window *);` (defined at C 22588).
+  fn try_window_id (w: *mut window) -> c_int;
+  /// C: xdisp.c 1168: `static int display_mode_lines (struct window *);` (defined at
+  /// C 28112).
+  fn display_mode_lines (w: *mut window) -> c_int;
+  /// C: xdisp.c 1175: `static void display_menu_bar (struct window *);` (defined at
+  /// C 27761).
+  fn display_menu_bar (w: *mut window);
   /// C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);` (defined
   /// later in this unit; C's is non-`static`).
   fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
@@ -19486,9 +20768,6 @@ unsafe extern "C" {
   fn cursor_row_p (row: *mut glyph_row) -> bool;
   /// C: dispextern.h 3595: `int display_line (struct it *, int);` (xdisp.c defines it at
   /// C 25865).
-  /// C: xdisp.c 1154/20475: `static void redisplay_window (Lisp_Object, bool);`
-  /// (defined later in this unit).
-  fn redisplay_window (window: Lisp_Object, force_p: bool);
   fn display_line (it: *mut it, cursor_vpos: c_int) -> c_int;
   /// C: xdisp.c 1183: `static void compute_line_metrics (struct it *);` (defined later).
   fn compute_line_metrics (it: *mut it);

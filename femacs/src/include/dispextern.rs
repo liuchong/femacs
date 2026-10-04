@@ -2418,17 +2418,17 @@ macro_rules! TEXT_POS_EQUAL_P {
 /// C 1661-1662: `#define DESIRED_MODE_LINE_HEIGHT(W) MATRIX_MODE_LINE_HEIGHT ((W)->desired_matrix)`.
 /// C: #define DESIRED_MODE_LINE_HEIGHT(W) MATRIX_MODE_LINE_HEIGHT ((W)->desired_matrix)
 macro_rules! DESIRED_MODE_LINE_HEIGHT {
-  ($w:expr) => { MATRIX_MODE_LINE_HEIGHT ((*$w).desired_matrix) };
+  ($w:expr) => { MATRIX_MODE_LINE_HEIGHT! ((*$w).desired_matrix) };
 }
 /// C 1666-1667: `#define DESIRED_HEADER_LINE_HEIGHT(W) MATRIX_HEADER_LINE_HEIGHT ((W)->desired_matrix)`.
 /// C: #define DESIRED_HEADER_LINE_HEIGHT(W) MATRIX_HEADER_LINE_HEIGHT ((W)->desired_matrix)
 macro_rules! DESIRED_HEADER_LINE_HEIGHT {
-  ($w:expr) => { MATRIX_HEADER_LINE_HEIGHT ((*$w).desired_matrix) };
+  ($w:expr) => { MATRIX_HEADER_LINE_HEIGHT! ((*$w).desired_matrix) };
 }
 /// C 1671-1672: `#define DESIRED_TAB_LINE_HEIGHT(W) MATRIX_TAB_LINE_HEIGHT ((W)->desired_matrix)`.
 /// C: #define DESIRED_TAB_LINE_HEIGHT(W) MATRIX_TAB_LINE_HEIGHT ((W)->desired_matrix)
 macro_rules! DESIRED_TAB_LINE_HEIGHT {
-  ($w:expr) => { MATRIX_TAB_LINE_HEIGHT ((*$w).desired_matrix) };
+  ($w:expr) => { MATRIX_TAB_LINE_HEIGHT! ((*$w).desired_matrix) };
 }
 
 /// C 1702-1705: `#define VCENTER_BASELINE_OFFSET(FONT, F)` - C's four-term arithmetic over the
@@ -3682,3 +3682,25 @@ const _: () = assert! (core::mem::offset_of! (redisplay_interface, fix_overlappi
     pub static mut unspecified_bg: [c_char; 0];
   }
 }
+
+/* dispextern.h 3563-3565's `row_containing_pos` and 3914's `blank_row`: `xdisp.c`'s
+   `redisplay_window` calls the former before its own definition lands later in that unit, and
+   dispnew.c *defines* the latter.  Declared in a module + glob import because a unit that
+   defines one would otherwise collide with the crate-root declaration (PORTING.md 0.1-10, the
+   `window_redisplay_decls` shape in include/window.rs).  The region around C 3563/C 3914 is not
+   mirrored yet (the WIP note above); these two are here because a ported unit needs their
+   declarations, which is how this mirror grows (status 3.357).  */
+pub mod dispextern_late_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: dispextern.h 3563-3565: `struct glyph_row *row_containing_pos (struct window *,
+    /// ptrdiff_t, struct glyph_row *, struct glyph_row *, int);` (xdisp.c defines it).
+    pub fn row_containing_pos (w: *mut window, charpos: ptrdiff_t, start: *mut glyph_row,
+                               end: *mut glyph_row, dy: c_int) -> *mut glyph_row;
+    /// C: dispextern.h 3914: `void blank_row (struct window *, struct glyph_row *, int);`
+    /// (dispnew.c defines it).
+    pub fn blank_row (w: *mut window, row: *mut glyph_row, vpos: c_int);
+  }
+}
+use dispextern_late_decls::*;

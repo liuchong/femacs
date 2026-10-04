@@ -245,7 +245,7 @@
 - [x] set_vertical_scroll_bar  (line 20268)
 - [x] set_horizontal_scroll_bar  (line 20325)
 - [x] window_start_acceptable_p  (line 20389, static)
-- [ ] redisplay_window  (line 20475, static)
+- [x] redisplay_window  (line 20475, static)
 - [ ] try_window  (line 21684)
 - [ ] try_window_reusing_current_matrix  (line 21793, static)
 - [ ] find_last_row_displaying_text  (line 22261, static)
@@ -432,28 +432,51 @@
 ### Progress (this lane is incremental)
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds C
-19863-20422** — `try_cursor_movement` (the "text unchanged, only point moved" shortcut: the
-scroll-margin probe, the forward and backward row walks with their bidi-reordered second pass,
-the `must_scroll`/`scroll_p`/`rv`/`pt_invis` decisions, the two `do … while` loops that try
-`set_cursor_from_row` on each continuation row, and the `CURSOR_MOVEMENT_*` outcome), the two
-scroll-bar setters `set_vertical_scroll_bar` and `set_horizontal_scroll_bar` (their whole/start/
-end/portion arithmetic, the `window_end_valid`/`long_line_optimizations_p` recomputation, the
-`bidi_p` right-to-left flip and the `set_*_scroll_bar_hook` call), `window_start_acceptable_p`
-(the `make_window_start_visible` gate, the invisible-text and replacing-`display` tests) and the
-`long-line-optimizations-p` subr.  The covered range is now **C 468-20422**.  The next live
-definition is **C 20424's `redisplay_window`** (C 20424-20472 is its doc comment; the function
-opens at C 20475).  Ticked in the ledger above, bucket by bucket — **measured** with
-`grep -c '^- \[x\]'` over each section (`Subrs` 4/13, `Functions` 217/302, `Macros` 31/38,
-`Types and their fields` 2/2, `File-scope objects` 59/60) — **313 of the 415 boxes**
-(217+4+31+2+59); the remaining 102 are untouched.  **The scaffold is untouched** —
-**measured**: the block stays at **fourteen** `fn` entries, because all four of this round's
-functions are declared by C right here (no forward declaration to retire).  **No new
-`docs/ports/macro-body-notes.tsv` row is owed** — `--check`'s `does not mention` lines are still
-the two recorded ones (`redisplay_internal`, `set_cursor_from_row`), and `try_cursor_movement`
-carries no `goto`.  The integrator's mirror-dupes sweep then found **forty-four** unit-local
-macros shadowing the mirror's — all deleted in the same round, with the unit's exported symbol
-table byte-identical before and after (deviation 179); `--check` stays at 107 and
-`src/xdisp.rs` is 19,518 lines.
+20424-21662** — the whole of `redisplay_window`: the reference's doc comment for it (C
+20424-20472), the prologue and the prepare-the-window run (the `needs_no_redisplay`
+early-out, the two marker `eassert`s, `reconsider_clip_changes`/`default_line_pixel_height`/
+`window_scroll_margin`, the `update_mode_line` fold, the `MINI_WINDOW_P` shortcuts with
+their three `goto`s, `set_buffer_internal_1`, the `current_matrix_up_to_date_p` test, the
+`windows_or_buffers_changed` repair, `CHECK_WINDOW_END` and its two `emacs_abort`s, the
+point-marker fixup, the width-run-cache invalidation and the long-line threshold scan), the
+`optional_new_start` feasibility probe, the `force_start` block (the vscroll/mode-line
+repair, the `run_window_scroll_functions` call, `window_start_acceptable_p`, `try_window`,
+the invisible-text cursor fixup through `row_containing_pos`, the
+`cursor_row_fully_visible_p` retries and the `pre-redisplay-function` re-run),
+`ignore_start`'s `try_cursor_movement` switch, the `start_at_line_beg`/`try_window_id`/
+same-window-start alternatives, `try_to_scroll`'s `try_scrolling` call, the whole `recenter`
+body (`init_iterator`, the `centering_position` arithmetic with the `scroll-*-aggressively`
+measurement, `back_to_previous_visible_line_start`/`move_it_vertically_backward`, the two
+`try_window`/`try_window_reusing_current_matrix` passes around `bidi_shelve_cache`, the three
+cursor fallbacks), the `done` block (the mode-line/header-line/tab-line display and the three
+height fixups) and the `finish_menu_bars`/`need_larger_matrices`/`finish_scroll_bars` tail
+(the frame's menu bar, the two scroll-bar setters with `redeem_scroll_bar_hook`, and the
+point/buffer restore).  **The boundary is not the one the brief suggested, and the reason is
+measured**: `--check`'s "does not mention" and family rows are whole-function counts, so the
+suggested C 20424-20693 boundary measures **109** (`- ` 107 -> 109: the
+`long_line_optimizations_p` and `redisplay` families under-count, their missing occurrences
+being C 21236 and C 20913-20918), while the whole function measures **108**; 108 is also the
+floor, because a boundary that stops before C 20824 owes the two family rows instead of the declaration (109),
+one that stops between C 20824 and C 21236 owes both (>= 110), and one that crosses C 21236
+owes `row_containing_pos`'s declaration (item 57) — so **107 is unreachable this round**, and
+the whole function is the boundary that leaves no half-transcribed function behind.  The
+covered range is now **C 468-21662**.  The next live definition is **C 21684's `try_window`**
+(its comment opens at C 21664).  Ticked in the ledger above, bucket by bucket —
+**measured** with `grep -c '^- \[x\]'` over each section
+(`Subrs` 4/13, `Functions` 218/302, `Macros` 31/38, `Types and their fields` 2/2,
+`File-scope objects` 59/60) — **314 of the 415 boxes** (218+4+31+2+59); the remaining 101
+are untouched.  **The scaffold moves by four entries** — **measured**: `redisplay_window`'s
+forward declaration is deleted in the same round its definition lands (the standing rule),
+and this round's five new use-site declarations of this unit's own later definitions
+(`row_containing_pos`, `try_window_reusing_current_matrix`, `try_window_id`,
+`display_mode_lines`, `display_menu_bar`) enter it, so fourteen -> eighteen.  **No new
+`docs/ports/macro-body-notes.tsv` row is owed** — `--check`'s `does not mention` lines go
+from two to three (`redisplay_internal`, `set_cursor_from_row`, and this round's
+`redisplay_window`, whose line names `case`/`default`/`switch` (the port's `match`),
+`goto`, `debug_method_add`/`if_debug` (dead `GLYPH_DEBUG` arms) and the three
+`desired_*_line_height` names (spelled as their own expansions because the mirror's macros
+call the inner name without its `!` — item 58)).  `--check` is at **108** (item 57's row is
+the +1) and `src/xdisp.rs` is 20,795 lines.
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -816,12 +839,87 @@ C 5773).
   functions at buffer.h 917/951, not `#define`s; the unit names the mirror's `pub fn`s at
   `include/buffer.rs:923/957`.)
   C 19879-19882 and C 19934-19936 (`#ifdef GLYPH_DEBUG`) are the round's two dead arms.
+* C 20424-21662 — `redisplay_window`: the doc comment (C 20424-20472) and the whole body.
+  The prologue (`XWINDOW`/`XFRAME`/`XBUFFER` and the reference's twenty-two locals, the three
+  `text_pos` ones fully initialised — deviation 180), the dead `GLYPH_DEBUG` arm of C
+  20502-20504, `SET_TEXT_POS`/`opoint = lpoint`, the `needs_no_redisplay` early-out, the two
+  marker `eassert`s, `reconsider_clip_changes`, `default_line_pixel_height`,
+  `window_scroll_margin (w, MARGIN_IN_LINES)`, the `update_mode_line` fold over
+  `w->update_mode_line`/`update_mode_lines`/`buffer->clip_changed`/
+  `buffer->prevent_redisplay_optimizations_p`, the `must_be_updated_p` store, the
+  `MINI_WINDOW_P` shortcuts (the echo-area window's `finish_menu_bars`/`finish_scroll_bars`
+  jumps, the inactive mini-window's `blank_row` loop over `w->desired_matrix->rows` with its
+  `y += row->height, ++row` increment, the `resize_mini_window` call and the trailing
+  `clear_glyph_matrix`), `set_buffer_internal_1`, the six-clause
+  `current_matrix_up_to_date_p` test, `BEG_UNCHANGED`/`END_UNCHANGED`, `specbind
+  (Qinhibit_point_motion_hooks, Qt)`, the `windows_or_buffers_changed` repair
+  (`compute_window_start_on_continuation_line` plus `window_end_valid`/the `false` flag),
+  `CHECK_WINDOW_END` and the two `Z == Z_BYTE`/`BYTEPOS < CHARPOS` `emacs_abort`s,
+  `mode_line_update_needed`, the point-marker fixup for a non-selected window
+  (`marker_position`/`marker_byte_position`/`set_marker_both`/`TEMP_SET_PT_BOTH` over the
+  `BEGV`/`ZV` clamps), the width-run-cache invalidation (`buffer_display_table`,
+  `disptab_matches_widthtab` against `XVECTOR (BVAR (current_buffer, width_table))`,
+  `invalidate_region_cache` and `recompute_width_table`) and the long-line threshold scan
+  (`XFIXNUM (Vlong_line_threshold)`, the `find_newline1` walk with its `&found` out-parameter
+  and the `long_line_optimizations_p` store);
+  the `optional_new_start` probe (`window_frozen_p`, `start_display`/`move_it_to` with
+  `MOVE_TO_POS|MOVE_TO_X|MOVE_TO_Y`, `line_bottom_y` and the two `force_start` stores);
+  `force_start`: the vscroll/mode-line repair (`preserve_vscroll_p`, `window_end_valid`,
+  `run_window_scroll_functions`), the `BEGV`/`ZV` `startp` clamps, the
+  `window_start_acceptable_p` rejection, `clear_glyph_matrix` + `try_window`, the
+  `cursor.vpos < 0` invisible-text fixup (`get_char_property_and_overlay`,
+  `Fnext_single_char_property_change`, `row_containing_pos`, `MATRIX_ROW_BOTTOM_Y`), the
+  `cursor_row_fully_visible_p` retries with `pixel_margin`/`tab_line`/`header_line` and
+  `CURRENT_TAB_LINE_HEIGHT`/`CURRENT_HEADER_LINE_HEIGHT`, the `new_vpos` walk over
+  `MATRIX_FIRST_TEXT_ROW`/`MATRIX_ROW_BOTTOM_Y`/`ends_at_zv_p` with
+  `MATRIX_ROW_START_CHARPOS`/`_BYTEPOS`, `set_cursor_from_row`, the `w->redisplay`/
+  `text->redisplay` clears with `dsafe_calln (Vpre_redisplay_function, …)` and the
+  `display-line-numbers` re-run, and the closing `cursor_row_fully_visible_p` test;
+  `ignore_start`: the `try_cursor_movement` call with its `switch (rc)` over
+  `CURSOR_MOVEMENT_SUCCESS`/`_MUST_SCROLL`/`default`, the `start_at_line_beg` test that
+  recomputes the window start (`pos_visible_p` with its eight out-parameters and the
+  `(rtop != 0) == (rbot != 0)` acceptance), the `try_window_id` alternative with
+  `f->fonts_changed`, and the continuation-line/invisible-start/`same window start` block
+  (`BEG + beg_unchanged`, `Z - end_unchanged`, `try_window_reusing_current_matrix`,
+  `TRY_WINDOW_CHECK_MARGINS` and the dead `IF_DEBUG` of C 21077);
+  `try_to_scroll`: the mode-line re-raise and the `try_scrolling` call with its `switch (ss)`
+  over `SCROLLING_SUCCESS`/`SCROLLING_NEED_LARGER_MATRICES`/`SCROLLING_FAILED` (the
+  `SCROLL_LIMIT + 1` override and the `SCROLL_LIMIT` clamps on `scroll_conservatively`);
+  `recenter`: `init_iterator` at PT, the `centering_position < 0` measurement
+  (`SAVE_IT`/`RESTORE_IT` around `start_display` + `move_it_vertically`, the
+  `scroll_up_aggressively`/`scroll_down_aggressively` choice via `XFLOATINT` and
+  `WINDOW_BOX_TEXT_HEIGHT`, the `pt_offset` clamp and the `margin * frame_line_height`
+  floor), the truncated-long-line shortcut (`back_to_previous_visible_line_start` with the
+  `nlines--` loop and `reseat_1`) against `move_it_vertically_backward`, the
+  `it.current_x`/`wrap_prefix_width`/`hpos` reset, `set_marker_both (w->start, …)`,
+  `run_window_scroll_functions`, `bidi_shelve_cache`/`bidi_unshelve_cache`, the
+  `try_window`/`try_window_reusing_current_matrix` pass, the `cursor.vpos < 0` retries
+  (`move_it_by_lines` ±1, the `before-string` `do … while`, `overlay_touches_p`), the
+  `row_containing_pos` fallback chain with `use_desired_matrix`, `set_cursor_from_row`, and
+  the `cursor_row_fully_visible_p` tail (`vscroll` reset, the `WINDOW_TOTAL_LINES`/
+  `FRAME_LINE_HEIGHT` `window_total_lines`, `move_it_by_lines` and the
+  `TRY_WINDOW_CHECK_MARGINS` re-try, the `centering_position = 0` path);
+  `done`: `SET_TEXT_POS_FROM_MARKER`, the `start_at_line_beg` recomputation, the mode-line/
+  header-line/tab-line display (`display_mode_lines` under `specbind (Qinhibit_quit, Qt)`,
+  `current_column`, and the three height fixups through `MATRIX_MODE_LINE_ROW`/
+  `MATRIX_TAB_LINE_ROW`/`MATRIX_HEADER_LINE_ROW` and `f->fonts_changed`), and the
+  `base_line_pos`/`base_line_number` reset;
+  `finish_menu_bars`: the frame's menu bar for the selected window (`FRAME_SELECTED_WINDOW`,
+  `FRAME_MENU_BAR_LINES`, the `root_frame` child-frame arm with
+  `Qtty_menu_open_use_tmm`/`Fdefault_value`, and the live `#else` `display_tab_bar` arm),
+  and the `need_larger_matrices`/`finish_scroll_bars` tail (the two setters, the
+  `FRAME_TERMINAL (f)->redeem_scroll_bar_hook` call, the `opoint`/`lpoint` restores with
+  their `CHAR_TO_BYTE` fallbacks, `set_buffer_internal_1 (old)` and `unbind_to (count,
+  Qnil)`).  C 20502-20504, C 20726-20734, C 20939-20941, C 20977-20979, C 20988-20990,
+  C 21045-21047, C 21056-21058, C 21062-21064, C 21157-21159, C 21077's `IF_DEBUG`,
+  C 21527-21533, C 21551-21581 and C 21584-21605 are recorded, not transcribed
+  (the dead-arm list above).
 ### The transcription that is in place
 
-The ledger above is the checklist.  217 of the C file's 302 functions (plus 4 of its 13
+The ledger above is the checklist.  218 of the C file's 302 functions (plus 4 of its 13
 subrs — the three the frozen configuration keeps live and `long-line-optimizations-p`) are defined, in
 C's order, with C's names, C's statements and
-C's comments; `src/xdisp.rs` is 19,778 lines.  Every function that C declares `static` is a
+C's comments; `src/xdisp.rs` is 20,795 lines.  Every function that C declares `static` is a
 plain `unsafe fn` here (and `unsafe extern "C" fn` where it is variadic or its address is
 handed out — `redisplay_trace`, `move_trace`, `dsafe_eval_handler`,
 `funcall_with_backtraces`, `handle_display_prop` (whose address is `it_props[]`'s handler
@@ -907,6 +1005,25 @@ The twenty-fourth round's range (C 19863-20422) holds two `#if` blocks, both dea
   return rc;` (the macro is not defined in `docs/baseline/config/darwin-arm64.macros.tsv`).
 * C 19934-19936 — the same function's `#ifdef GLYPH_DEBUG` `debug_method_add (w, "cursor
   movement")`.  Both keep a pointer comment at the site (deviation 178).
+
+The twenty-fifth round's range (C 20424-21662, `redisplay_window`) holds fourteen dead `#if`
+blocks.  The eleven `#ifdef GLYPH_DEBUG` ones are the reference's own debugging text (the
+macro is `undef` in `docs/baseline/config/darwin-arm64.macros.tsv`): C 20502-20504
+(`*w->desired_matrix->method = 0`), C 20726-20734 (the `w->force_start` test around the two
+`debug_method_add` calls of the `optional_new_start` probe), C 20939-20941 ("forced window
+start"), C 20977-20979 ("recenter 1"), C 20988-20990 (`try_window_id %d`), C 21045-21047
+("recomputed window start in continuation line"), C 21056-21058 ("recenter 2"),
+C 21062-21064 ("same window start") and C 21157-21159 ("recenter").  The tenth is C 21077's
+`IF_DEBUG (debug_method_add (w, "1"));`: `IF_DEBUG`'s live arm is C's `((void) 0)` (its
+`#else`), so the *argument is never evaluated* — and `debug_method_add` is itself a
+`GLYPH_DEBUG`-only declaration, so evaluating it would not link.  The last three are
+`#ifdef`s of the GUI half: C 21527-21533 (`HAVE_EXT_MENU_BAR`'s
+`FRAME_EXTERNAL_MENU_BAR` arm; the live `#else` arm is the `FRAME_MENU_BAR_LINES` test that
+stays), C 21551-21581 (`HAVE_WINDOW_SYSTEM`'s tab-bar/tool-bar block with its inner
+`HAVE_EXT_TOOL_BAR` arm, whose live `#else` is the `FRAME_TAB_BAR_LINES`/`display_tab_bar`
+pair that stays) and C 21584-21605 (`HAVE_WINDOW_SYSTEM`'s `update_window_fringes`/
+`draw_window_fringes`/`gui_draw_*_divider` block).  All fourteen keep a pointer comment at
+the site (the standing shape, deviations 170/178).
 
 ### Use-site declarations (headers without a mirror, or mirror gaps; each keeps C's prototype in a `/// C:` line)
 
@@ -2014,6 +2131,132 @@ The twenty-fourth round's range (C 19863-20422) holds two `#if` blocks, both dea
      `window_bits`/`window_bits_shift` stay: the mirror carries `window_bit` (the reader) and
      the shift constants, not those two names.
 
+10. **This round's six use-site declarations.**  `blank_row` (dispextern.h 3914, defined by
+    `dispnew.c`) and five of this unit's own later definitions — `row_containing_pos`
+    (dispextern.h 3563-3565, defined at C 22472), `try_window_reusing_current_matrix`
+    (xdisp.c 1163, defined at C 21793), `try_window_id` (xdisp.c 1164, defined at C 22588),
+    `display_mode_lines` (xdisp.c 1168, defined at C 28112) and `display_menu_bar`
+    (xdisp.c 1175, defined at C 27761) — are declared in the unit's scaffold with C's
+    prototype in a `/// C:` line (PORTING.md 0.1-12/P-72 rule 3: the four that C declares
+    `static` cannot come from a mirror anyway; `row_containing_pos`'s dispextern.h prototype
+    *could*, and item 57 asks for it).  The four `static` ones leave the ledger's
+    `missing function` rows in place and the two non-`static` ones each cost an `is not
+    static in C but has no #[unsafe(no_mangle)]` row (deviation 184).
+
+### Deviations, continued (the round's twenty-fourth pass: `redisplay_window`)
+
+180. **The eight C labels are the port's labelled blocks and loops** (PORTING.md 2.2).  The five
+     forward targets — `finish_scroll_bars` (C 21613), `need_larger_matrices` (C 21611),
+     `finish_menu_bars` (C 21519), `done` (C 21445) and `recenter` (C 21155) — open as labelled
+     blocks at the top of the function body and *end at the C label's own site*, so each
+     `break 'X` lands on the label's body and the C fall-through reaches the same statement (the
+     `compute_x:` shape, deviation 159); the blocks nest in the C labels' order, which is what
+     makes C's jump spans proper (a `break` needs the label to enclose it).
+     * `recenter` carries **two** Rust labels because C jumps to it from both sides: the
+       `'recenter` block (whose end is C 21154) for the forward jumps (C 20693, C 20980,
+       C 21059) and the `'recenter_body` loop, whose first iteration is C 21155, for the
+       backward ones (C 21414, C 21442 → `continue 'recenter_body`); the loop's trailing
+       `break 'recenter_body` is C's fall-through into `done:`.
+     * `force_start` (C 20743) is a `'force_start: loop`: C's one backward `goto force_start`
+       (C 21048) is `continue 'force_start`, and the loop's trailing `break 'force_start`
+       stands where C's `recenter:` label is — without it the fall-through would re-run the
+       loop (the `'too_near_end`/`'retry` shape, deviations 143/164).
+     * `try_to_scroll` (C 21104) and `ignore_start` (C 20945) are entered from *inside* C's
+       `if (w->force_start)` block (C 20848, 20868, 20882, 20936, 20961, 21083 and C 20786), so
+       their blocks open *before* that `if` — a Rust labelled block cannot open inside a block
+       and close outside it — and end at C 21103 and C 20944 respectively.
+     * `need_larger_matrices`'s own statement is C's empty `;` (C 21612), so the port needs no
+       statement for it: the labelled block closes at C 21610 and both the `break` and C's
+       fall-through landing on the empty statement continue into the `finish_scroll_bars` tail
+       (the `if (must_scroll) ;` shape, deviation 173).
+     * C's eight `goto`s appear as 24 `break`/`continue` statements; `--check` reports the
+       `goto` token in this function's one `does not mention` line.
+181. **The four loops.**  C 20556-20559's `for (y = 0, row = …; y < yb; y += row->height, ++row)`
+     is a `while` with the two init clauses at their declarations and the increment at the
+     body's end (the standing shape), and C 21080-21085's `for (cur = BEGV; cur < ZV; cur =
+     next)` likewise with C's `break` before the increment; C 21338-21340's
+     `do { move_it_by_lines (&it, 1); } while (IT_CHARPOS (it) == pos0)` is
+     `loop { …; if !(cond) { break; } }`; C 21245's `while (nlines-- && …)` is
+     `while ({ let old: c_int = nlines; nlines -= 1; old }) != 0 && …` (the post-decrement shape
+     of deviation 145, parenthesised so the `{` cannot be read as the loop's own body).
+182. **C 21266's chained assignment is three statements.**  `it.current_x = it.wrap_prefix_width =
+     it.hpos = 0;` cannot be one Rust expression (an assignment's value is `()`), so the port
+     writes the three in C's right-to-left evaluation order (`it.hpos = 0;
+     it.wrap_prefix_width = 0; it.current_x = 0;`), which the unit already does for the same
+     C idiom at C 12194.
+183. **Type spellings this round.**  `scroll_conservatively` is `EMACS_INT` (`isize`) and
+     `SCROLL_LIMIT` is `c_int`, so the three `scroll_conservatively > SCROLL_LIMIT` tests read
+     `> SCROLL_LIMIT as ptrdiff_t`; `emacs_scroll_step` is `EMACS_INT` where `try_scrolling`
+     takes `intmax_t`, so the call casts it; `scroll_minibuffer_conservatively` is a `bool` in
+     `globals.rs` (C's `int`), so C's `!= 0` tests are the bare name; `float_amount` is
+     `c_double` and `pt_offset = float_amount * WINDOW_BOX_TEXT_HEIGHT (w)` casts both ways;
+     `BEG + beg_unchanged` is `BEG as ptrdiff_t + beg_unchanged` (deviation 141);
+     `move_it_by_lines`'s argument is `if move_down { margin + 1 } else { -(margin + 1) }` cast
+     to `ptrdiff_t`; `XFIXNAT`/`XFIXNUM` results are `as ptrdiff_t`; `centering_position`,
+     `new_vpos`, `pixel_margin`, `window_height`, `window_total_lines`, `pt_offset`, `nlines`,
+     `ss`, `rc`, `tem` and the `pos_visible_p` out-parameters are `c_int`; the packed members
+     are `window_bits!` (`force_start`, `optional_new_start`, `preserve_vscroll_p`,
+     `start_at_line_beg`, `window_end_valid`, `update_mode_line`, `redisplay`,
+     `must_be_updated_p`), `buffer_bits!` (`clip_changed`,
+     `prevent_redisplay_optimizations_p`, and — **new this round** — the
+     `long_line_optimizations_p` *writer*, C 20688 being its first write in the unit),
+     `buffer_text_bits! (text.redisplay, …)` (both the clear at C 20915 and the read at
+     C 20918) and `frame_bits!` (`fonts_changed`, `cursor_type_changed`); `(*w).cursor.y`/
+     `vpos`, `window_end_pos`, `base_line_pos`, `column_number_displayed`,
+     `mode_line_height`, `tab_line_height`, `header_line_height` and `vscroll` are plain
+     fields.
+184. **`row_containing_pos` is a use-site declaration, and it is this round's one new `--check`
+     row.**  The mirror chain does not carry dispextern.h 3563-3565, so the unit declares it in
+     its scaffold (item 10); because C defines it **in this file** (C 22472) and not `static`,
+     that declaration trips `--check`'s "`is not static` … `no #[unsafe(no_mangle)]`" rule — the
+     class `try_window` and `produce_stretch_glyph` already carry (two of the previous round's
+     107).  **Measured**: 107 -> 108, and this is the round's only growth; the suggested
+     C 20424-20693 boundary measures 109 (see the Progress paragraph).  The row retires when
+     C 22472 lands, or sooner if the mirror takes the prototype (item 57).
+185. **C's `DESIRED_MODE_LINE_HEIGHT (w)` is spelled as its own expansion.**  The mirror's three
+     `DESIRED_*_LINE_HEIGHT` macros call their inner `MATRIX_*_LINE_HEIGHT` names without the
+     `!` a Rust macro call needs, so `DESIRED_MODE_LINE_HEIGHT! (w)` is `E0423` (measured);
+     the six sites (C 21479, 21484, 21490, 21495, 21501, 21506) therefore spell
+     dispextern.h 1661-1662's own expansion, `MATRIX_MODE_LINE_HEIGHT! ((*w).desired_matrix)`
+     and its two siblings, with a note at the site.  The mirror defect is item 58; `--check`
+     then names the three `desired_*_line_height` tokens in this function's one
+     `does not mention` line.
+186. **Three mirror macros that C calls as functions** are called with the `!` they need:
+     `TEXT_PROP_MEANS_INVISIBLE!` (C 20813, C 21378), and `BUF_Z!` (C 20545 — `BUF_BEG` next to
+     it is a mirror *function*, so only the one name carries the `!`).  `if (!try_window (…))`
+     (C 20794, C 20928) is `if try_window (…) == 0`, the mirror's `try_window` returning `c_int`.
+187. **C's two `switch`es are `match`es** (the standing shape): `switch (rc)` over
+     `CURSOR_MOVEMENT_SUCCESS`/`_MUST_SCROLL` with C's `default: emacs_abort ()` as `_` (C
+     20954-20965) and `switch (ss)` over `SCROLLING_SUCCESS`/
+     `SCROLLING_NEED_LARGER_MATRICES`/`SCROLLING_FAILED` (C 21136-21149), where
+     `SCROLLING_FAILED`'s `break` leaves the switch and the port's arm is `{ }`.
+188. **The `{ X = …; X }` block** carries C's assignment-in-expression sites: C 20951's
+     `(rc = try_cursor_movement (…), rc != …)`, C 20986's `(tem = try_window_id (w)) != 0`,
+     C 21074's and C 21291's `!(used_current_matrix_p = try_window_reusing_current_matrix (w))`
+     and C 21541's `FRAME_MENU_BAR_LINES (rf = root_frame (f))` (deviations 135/174's shape).
+189. **`pos_visible_p`'s six out-parameters are zero-initialised** (`d1`/`d2`/`d5`/`d6`/`rtop`/
+     `rbot`, C 21008-21009) and so is `found` in the long-line scan (C 20678): `&raw mut` needs a
+     value and Rust has no partial initialisation (deviation 139's rule, PORTING.md 1.5).
+190. **The three `text_pos` locals are `core::mem::zeroed ()`** (C 20481).  `SET_TEXT_POS`
+     assigns the two fields one at a time, and Rust's definite-initialisation analysis rejects
+     that for a `let` without a value (`E0381`, measured), so `lpoint`/`opoint`/`startp` start
+     zeroed (the `try_scrolling` shape, deviation 168); the `struct it` local is zeroed the
+     same way (C 20484), and C's other uninitialised locals (`tem`, `rc`, `beg_unchanged`,
+     `end_unchanged`, `frame_line_height`, `update_mode_line`, `use_desired_matrix`,
+     `it_charpos`, `new_pt`, `alt_pt`, `aggressive`, `scrolling_up`, `margin_pos`) are declared
+     without a value where every path assigns before the read (the `redisplay_internal` shape).
+191. **Pointer and matrix spellings.**  `w->desired_matrix`/`w->current_matrix` are the mirror's
+     `*mut c_void`, so the rows are `(*((*w).desired_matrix as *mut glyph_matrix)).rows` (the
+     paren rule of deviation 176) and the two row walks advance with `row.offset (1)`;
+     `MATRIX_FIRST_TEXT_ROW!`/`MATRIX_MODE_LINE_ROW!`/`MATRIX_TAB_LINE_ROW!`/
+     `MATRIX_HEADER_LINE_ROW!`/`MATRIX_ROW_BOTTOM_Y!`/`MATRIX_ROW_START_CHARPOS!`/
+     `MATRIX_ROW_START_BYTEPOS!` and `glyph_row_bits! (ends_at_zv_p|tab_line_p|mode_line_p,
+     row)` come from the mirrors; the `redeem_scroll_bar_hook` call passes `w as *mut c_void`
+     (the hook is typed `*mut c_void`, C 21628); `FRAME_SELECTED_WINDOW!` is the unit's own
+     macro (frame.h 1387's l-value form, deviation 146's sibling) and `FRAME_WINDOW_P`/`WINDOWP`
+     are the mirrors'; `specpdl_ref count1` keeps C's name for the mode-line block's
+     `SPECPDL_INDEX`.
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -2221,6 +2464,7 @@ The twenty-fourth round's range (C 19863-20422) holds two `#if` blocks, both dea
     `continue` / `xdisp.c 17104: C's `for (…; CONSP (vlist); vlist = XCDR (vlist))` loop carries
     a `continue`, and the port's `'body:` labelled block holds C's increment at the end of the
     body so every path runs it (PORTING.md 2.2, deviation 133)`.
+
 42. `docs/ports/macro-body-notes.tsv`: **this round owes** `overlay_arrows_changed_p` /
     `continue` / `xdisp.c 17133 and 17136: the same `'body:` shape (deviation 133)`.
 43. `docs/ports/macro-body-notes.tsv`: **this round owes** `update_overlay_arrows` / `continue` /
@@ -2286,43 +2530,73 @@ The twenty-fourth round's range (C 19863-20422) holds two `#if` blocks, both dea
     (buffer.h 917/951) and `include/buffer.rs:923/957` already carries them as `pub fn`; the
     unit's two `macro_rules!` copies were an invented construct and are deleted (integrator
     8958c83; deviation 177).  No mirror work is owed.
+57. `include/dispextern.rs`: **`row_containing_pos` (dispextern.h 3563-3565) and `blank_row`
+    (dispextern.h 3914) are mirror gaps.**  Both are declared at the use site this round (item
+    10).  Taking `row_containing_pos` into the mirror retires the unit's declaration and with it
+    this round's one `--check` growth (deviation 184: 108 -> 107); `blank_row` is `dispnew.c`'s
+    definition, so its declaration costs no row, but the same gap hides it from every other unit
+    that needs it (`dispnew.rs` declares its own copy).
+
+58. `include/dispextern.rs`: the three `DESIRED_MODE_LINE_HEIGHT`/`DESIRED_HEADER_LINE_HEIGHT`/
+    `DESIRED_TAB_LINE_HEIGHT` macros call `MATRIX_MODE_LINE_HEIGHT`/`MATRIX_HEADER_LINE_HEIGHT`/
+    `MATRIX_TAB_LINE_HEIGHT` **without the `!`** (`dispextern.rs` 2421/2426/2431 — measured
+    `E0423` at the first unit that uses them, this one).  Until they are fixed, every user has
+    to spell the expansion (deviation 185); with the `!` added, the six sites in this unit's
+    `redisplay_window` can go back to C's name.
+
+59. `femacs/src/xdisp.rs:782`'s citation reads `dispextern.h 3914: void clear_glyph_row (struct
+    glyph_row *);`, but 3914 is `blank_row`'s line — `clear_glyph_row` is at dispextern.h 3916
+    (measured).  The citation gate cannot see it (the quoted snippet carries parentheses, so it
+    is not a bare identifier), so it stands until a citation round fixes it; this round only
+    records it and cites 3914 for the function that really is there.
+
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  The
-figures below were taken at the 19,778-line revision (through `Flong_line_optimizations_p`,
-C 20422):
+figures below were taken at the 20,795-line revision (through `redisplay_window`, C 21662):
 
 * `build-tu src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, taken **in place at
-  the current workspace state** (after a fix-up loop itemised in the report).  This revision's
-  `xdisp.rs` md5 is `3b656bf824207d48869e4d37d7fc6387` (19,778 lines); the mirrors it was built
-  against, all re-read in the same shell step as the closing `build-tu`, are
-  `include/dispextern.rs 70308d0d00d893a0716364ce8a8a0399` (its `struct it` is gated — item 39;
-  another lane moved it during this round), `include/lisp.rs 44f7b6ab6ee488c8796c5f405f174952`,
-  `include/window.rs b135191988afc9300ab3bf816f5425d6` and
-  `lib/include/stdbit.in.rs bd5e18f5cf4b99d4d0d32412d275bf50` (the last two are other lanes' and
-  mutable); the object is `build/femacs/xdisp.o e5e0c5ffb1b977a2946d02aae3bbcf1e`.  The build
-  prints the same six warnings as the previous rounds; this round adds none;
+  the current workspace state**.  This revision's `xdisp.rs` md5 is
+  `0b19d30c0cdaed1aa779d3207fd939fe` (20,795 lines); the mirrors it was built against, all
+  re-read in the same shell step as the closing gate runs, are
+  `include/dispextern.rs 90dff2b4cd26c38d4e02aa5c83880041`, `include/window.rs
+  cd81ea3d5ad97cd4fb483e6ad237cc89`, `include/lisp.rs c277d40ce82a56f22fbfae19ccf83ebc`,
+  `include/globals.rs 9b742a9ab376158f544d4ae2689f0c2e` and `lib/include/stdbit.in.rs
+  bd5e18f5cf4b99d4d0d32412d275bf50` (the last two are other lanes' and mutable); the object is
+  `build/femacs/xdisp.o e5948e1d43704966d396a41fd3b6160e`.  The build prints the same six
+  warnings as the previous rounds (three `unused doc comment`s in mirrors, two `while true`
+  lint notes and one `unused attribute`); this round adds none — the loop is `'force_start:
+  loop`, not `while true`;
 * `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its
-  last two lines are `- line count drifted 50.3%: C 39805 vs Rust 19778` and
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count falls from 112 to **107**
-  (`missing function` 79 -> 75, `missing subr` 7 -> 6) and gains nothing; `missing macro` stays
-  at 6, `missing defsubr` at 13, `missing file-scope object` at 2, and there is still no
-  `stub or empty body` line.  Every remaining `missing function` names a definition after
-  C 20422 (the earliest is C 20475 `redisplay_window`), with the single exception of the
-  intentional C 15616 `tty_handle_tab_bar_click` gap (item 38);
+  last two lines are `- line count drifted 47.8%: C 39805 vs Rust 20795` and
+  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count goes 107 -> **108**: one
+  `missing function` row retires (`redisplay_window`), one `does not mention` row replaces it
+  (the same function: `goto` — deviation 180; the three
+  `desired_*_line_height` — deviation 185; `case`/`default`/`switch` — deviation 187; and
+  `debug_method_add`/`if_debug` — the dead-arm list above), and
+  item 57's `row_containing_pos` row is the round's only growth (deviation 184).  `missing
+  macro` stays at 6, `missing defsubr` at 13, `missing file-scope object` at 2, `missing subr`
+  at 6, and there is still no `stub or empty body` line.  **The brief's `C 20700` boundary is
+  not reachable under this rule and the round says so** — measured at C 20424-20693 the count
+  is **109** (the two family rows), so the whole function is the smallest-growth boundary;
 * `python3 tools/check-cond-eval.py src/xdisp.c` = `196 conditions, 0 unknown to the evaluator,
-  0 disagreements` (this round's dead arms are deviation 178's);
-* `python3 tools/check-citations.py` = `662 file(s) scanned, 32 drift, 1 range, 306 external,
-  38 allowed, 0 stale`; `femacs/src/xdisp.rs` still has **no** finding;
-* `python3 tools/check-mirror-dupes.py` = `1 duplicate declaration(s), 1 ratchet row(s), 0
-  failure(s)`; the surviving row is the `insdel.rs`/`window.rs` `bset_redisplay` one;
+  0 disagreements` (this round's fourteen dead arms are in the list above);
+* `python3 tools/check-citations.py` = `674 file(s) scanned, 0 drift, 0 range, 349 external,
+  33 allowed, 0 stale`; `femacs/src/xdisp.rs` has **no** finding (the six new `/// C:` lines of
+  this round are clean; the drift/stale rows the previous reading carried were other lanes' and
+  are gone).  Item 59 records the one wrong citation the gate cannot see;
+* `python3 tools/check-mirror-dupes.py` = `18 duplicate declaration(s), 18 ratchet row(s), 0
+  failure(s)` — unchanged (this round adds no unit-local macro);
 * `python3 tools/check-declarations.py` = `13 declaration sites (0 forbidden, 13 allowed
   literals), 0 failures` (none from this unit);
 * `python3 tools/check-verbatim.py` = `6 trees, 4604 files, 0 failures`;
 * `python3 tools/check-globals.py` = `284 units, 0 DEFVAR_* variables without a definition in
   their own unit`;
-* `python3 tools/check-target-names.py` = `627 .rs files, 591 map targets, 0 finding(s)`;
-* `xtask layout-check` = `layout-check passed (see build/femacs/layout_asserts.rs)` (green again;
-  the red at the close of the previous round was another lane's `include/xterm.rs`).
+* `python3 tools/check-target-names.py` = `628 .rs files, 591 map targets, 0 finding(s)`.
 
-(The unit/file counts move with the other lanes; every reading above is from this round's run.)
+`xtask layout-check` was **not** re-run this round: this unit's text adds no `struct` and no
+layout assertion (the round touches no measured record), and the task's reading list is
+`build-tu` plus the three text gates above.  The unit/file counts move with the other lanes
+(`femacs/platform/macos/nsterm.swift`, `femacs/platform/android/kotlin/EmacsWindow.kt` and
+`docs/baseline/port-lines-pending.tsv` are dirty in this checkout and are not this round's);
+every reading above is from this round's own run.
