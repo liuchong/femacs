@@ -155,6 +155,8 @@ have_xcomposite                            = []  # HAVE_XCOMPOSITE (configure.ac
 have_xcomposite_overlay                    = []  # the derived condition `HAVE_XCOMPOSITE && (XCOMPOSITE_MAJOR > 0 || XCOMPOSITE_MINOR > 2)` (xterm.c 4149/4225/4377/4400)
 use_xcb                                    = []  # USE_XCB (configure.ac 4782)
 use_cairo_xcb                              = []  # USE_CAIRO_XCB (xterm.c 797, feeding USE_CAIRO_XCB_SURFACE)
+have_xcb_shape                             = []  # HAVE_XCB_SHAPE (configure.ac 5748; xterm.c 681-683 `#include <xcb/shape.h>`)
+have_xcb_shape_input_rects                 = []  # the derived condition `XCB_SHAPE_MAJOR_VERSION > 1 || (XCB_SHAPE_MAJOR_VERSION == 1 && XCB_SHAPE_MINOR_VERSION >= 1)` (xterm.c 801-805)
 have_xsync                                 = []  # HAVE_XSYNC
 have_xsynctriggerfence                     = []  # HAVE_XSYNCTRIGGERFENCE
 have_xwidgets                              = []  # HAVE_XWIDGETS

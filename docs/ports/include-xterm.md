@@ -178,6 +178,26 @@ tool measures for them, and its reading is the port's remaining work list for th
   the author transcribed 178 by hand; this block is three times that).  An X11 unit that needs one
   takes it from the mirror's text the way C takes it from the header.
 
+### The five members carried on 2026-10-05, and the names this mirror still leaves bare
+
+`struct x_display_info` gained five members, each C's own under C's own guard (`docs/ports/xterm.md`
+§19①): `xcb_connection_t *xcb_connection` and `xcb_visualtype_t *xcb_visual` (C 842-843, inside
+`#ifdef USE_XCB` 841-844) under `use_xcb`, and `bool composite_supported_p` / `int composite_major`
+/ `int composite_minor` (C 922-924, inside `#ifdef HAVE_XCOMPOSITE` 921-925) under
+`have_xcomposite`.  The two xcb pointee types come from the new xcb section of
+`include/xlib.rs`; nothing else of C 823-910 is carried yet, and the missing list is written down in
+§19① rather than implied.
+
+**One thing this mirror itself gets wrong, found while measuring**: `STANDARD_EVENT_SET`
+(C 144-155) is a constant whose body names eleven event masks bare - `KeyPressMask`,
+`ExposureMask`, `ButtonPressMask`, `ButtonReleaseMask`, `PointerMotionMask`, `StructureNotifyMask`,
+`FocusChangeMask`, `LeaveWindowMask`, `EnterWindowMask`, `PropertyChangeMask`,
+`VisibilityChangeMask` - and all eleven are `E0425` under `have_x_windows`: two of them are in
+`include/xlib.rs`'s `x11_constants` module (a module the mirror's own top level does not import
+from) and nine have no home anywhere.  Fixing it is a decision, not a typo - the gate compares a
+macro's body digest, so a path-qualified body needs a `docs/ports/token-aliases.tsv` row, and a
+mirror-level declaration is the `True`/`False` second home (3.270).  Registered, not fixed.
+
 ## Evidence
 
 - `python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs`
@@ -202,8 +222,18 @@ tool measures for them, and its reading is the port's remaining work list for th
      tighter than the shift and the compiler reads it as generic arguments for `T`, measured as
      `expected 'mut' or 'const' keyword in raw pointer type` + `'<<' is interpreted as a start of
      generic arguments for 'c_ulong', not a shift`.
-- **No unit includes this mirror** (`rg -n 'include/xterm' femacs` -> no hits); it is compiled by
-  `xtask layout-check`'s single crate (the `have_x_windows` arm is inert there).
+- **A unit includes this mirror** (`rg -n 'include/xterm' femacs` ->
+  `femacs/src/xterm.rs:655`, the port of C 636's `#include "xterm.h"`, carried since 3.249
+  (`2241507`)): the arm is reached by `build-tu src/xterm.c` as well, so the flip arms in
+  docs/ports/xterm.md §19's Evidence see it.  The "no hits" sentence this line replaces was stale,
+  not wrong when it was first written.  `xtask layout-check`'s single crate still compiles it with
+  the arm inert.
+- The 2026-10-05 readings: `python3 tools/extract-abi.py --check emacs/src/xterm.h
+  femacs/src/include/xterm.rs` -> `OK` (the five new members change nothing the pairing compares);
+  `build-tu src/xterm.h` still stops in the mirror-as-unit class (the `eassert` row above); the
+  plain X11 flip arm still reads `aborting due to 490 previous errors` and this mirror contributes
+  201 of them - 180 `cannot find type`, 14 `cannot find value` (X11 names with no mirror) and the 7
+  `E0133` of its INLINE bodies outside an unsafe block (Decision 13's recorded class).
 - `CARGO_TARGET_DIR=/tmp/femacs-target-s188 cargo run -q -p xtask -- layout-check` ->
   `layout-check: 92 of 102 src mirror(s) compiled, 10 platform-exclusive skipped (...)`,
   `layout probe ok`, `layout-check passed` (this mirror is among the 92).

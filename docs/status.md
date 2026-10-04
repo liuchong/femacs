@@ -6216,3 +6216,64 @@
      没有运行、没有真机或行为验收；被"记录而非转写"的：`NSTRACE` 死宏、`eassume`/`eassert`
      （并因此不导入 `MAX_CHAR`）、`#ifdef GCC_LINT` 的 1 臂、四处 `NS_IMPL_GNUSTEP` 的 `DPS*` 臂、
      stipple 的 `#else` 臂、`ns_set_glyph_string_gc` 里三行 X 端 `gc` 注释。
+
+- **3.379 `have_x_windows` 的头面第 6、7 片：五个成员、七个常量、一整个 xcb 头面（2026-10-05）**：
+  ① **`include/xterm.rs`（+25）——5 个 `x_display_info` 成员，门照 C 抄**：`xcb_connection_t *xcb_connection`
+     与 `xcb_visualtype_t *xcb_visual`（`xterm.h` 实测 841-844，`#ifdef USE_XCB` 842-843）、`bool
+     composite_supported_p` / `int composite_major` / `int composite_minor`（`xterm.h` 实测 921-925，
+     guard 921/925，成员 922-924）。插入位置按 C 的顺序（xcb 对在 C 821 `modmap` 之后，composite 三条在
+     C 911-915 的 xsync 组之后），各自带注释说明 C 823-910 其余成员仍**未携带**。
+  ② **`include/xlib.rs`（258 → 754 行，+497/-1）**：⑴ **7 个常量进 `x11_constants`**，每个带 `/// C:` 引文与
+     实测值（`NormalState` = Xutil.h 147 `1`；`IsViewable` = X.h 447 `2`；`XA_PRIMARY` = Xatom.h 9
+     `((Atom) 1)`；`ButtonPress`/`ButtonRelease` = X.h 183/184 `4`/`5`；`ButtonPressMask`/`ButtonReleaseMask`
+     = X.h 153/154 `(1L<<2)`/`(1L<<3)`），类型按同模块既有行选（`c_int`/`c_ulong`/`c_long`）。
+     ⑵ **新的第四节是 xcb 头面**：`<xcb/xcb.h>`+`<xcb/xproto.h>` 门 `all (have_x_windows, use_xcb)`、
+     `<xcb/shape.h>` 再加 `have_xcb_shape`（对应 C 643-646 与 681-683 的嵌套可达性），内容 6 个标量别名 +
+     不透明 `xcb_connection_t`（P-70 stand-in，与 `jni.rs` 的 `JNIInvokeInterface` 同形）+ 13 个记录
+     （5 cookie / 5 reply / `xcb_generic_error_t` / `xcb_visualtype_t` / `xcb_rectangle_t` /
+     `xcb_rectangle_iterator_t`）+ 2 个**具名枚举**（`xcb_map_state_t`/`xcb_shape_sk_t`）+ 14 个原型
+     （cookie 按值，`r#type` 用 raw ident）。**布局全是量的**：`clang -I/opt/homebrew/include` 的探针给出
+     `xcb_get_property_cookie_t` 4/4、`xcb_get_property_reply_t` 32/4（`format` 1 / `type` 8 /
+     `value_len` 16）、`xcb_get_window_attributes_reply_t` 44/4（`map_state` 26 / `colormap` 28 /
+     `your_event_mask` 36）、`xcb_translate_coordinates_reply_t` 16/4、`xcb_get_geometry_reply_t` 24/4、
+     `xcb_generic_error_t` 36/4、`xcb_shape_get_rectangles_reply_t` 32/4、`xcb_rectangle_t` 8/2、
+     `xcb_rectangle_iterator_t` 16/8、`xcb_visualtype_t` 24/4；断言是活的（改 999 立刻 `E0080`）。
+  ③ **不新建 `Xutil.rs` 的判断（记在这里，理由可复核）**：本机**有** X11 头（`/opt/homebrew/include/X11`，
+     xorgproto 2025.1 + libX11），所以"没有 X11 头 ⇒ text-only"这条不成立；而 `<X11/Xutil.h>` **已经有家**——
+     `src/xrdb.c` 37-41 的五条 include 与 `src/xrdb.rs` 的 "one mirror for the five" 注释把它判给
+     `include/xlib.rs`，`x11_constants` 里本来也住着 `<X11/extensions/shapeconst.h>` 的三行。再建 `Xutil.rs`
+     等于给同一个头造第二处声明点（P-26 / P-72 rule 1），并让 `src/xrdb.rs` 的注释变成假话；要独立镜像时把
+     `NormalState` 搬过去即可。
+  ④ **翻臂编译按文件分类**：同 3.374 的命令（`--cfg 'feature="have_x_windows"'`）读数 **改前 490 / 改后 490**，
+     逐字节不变——这是可预期也必须说清的：本轮加的名字全在 `use_xcb`/`have_xcomposite` 之后，或在
+     `x11_constants` **模块**里，所以只有"名字真正 live 的那条臂"才量得到。把该臂（`have_x_windows` +
+     `use_xcb` + `have_xcb_shape` + `have_xcomposite(_overlay)`）单独读出来：改前只有 **1 条错**（臂连类型检查
+     都没走到：`{ SAFE_FREE! (); }`，C 3607 是 `SAFE_FREE ()`），把复制品补成 C 的形状 `SAFE_FREE! (sa_count)`
+     之后是 **564 条**（499 E0425 + 38 E0308 + 19 E0609 + 7 E0133 + 1 E0080），按文件 unit 362 /
+     `include/xterm.rs` 201 / `systime` 1 / **`include/xlib.rs` 0**。⇒ **`cannot find` 的 xcb 类型/函数 = 0**，
+     镜像的名字全部解析；剩下的 2 条枚举成员要路径限定，38 E0308 是片 6 的 `*mut c_void` 模型（30）与片 7 的
+     隐式转换（8），19 E0609 是 16 条 `c_void` 字段读 + 2 条既有 `sie` + 1 条未携带成员。
+  ⑤ **`build-tu` 与各门**：`src/xterm.c` 改前/改后都 built、`src/xrdb.c` built（`include/xlib.rs` 的既有
+     消费者）；`src/dispextern.h` 单编的失败是"镜像当单元编"的既有类（180 个 `c_int` 等来自单元根 import）。
+     `extract-abi --check src/xterm.h` 镜像 **OK**、`--check src/xterm.c` 仍 **286**（单元未改）；
+     `check-mirror-dupes` **18/18/0**、`check-citations` **675 / 0 drift / 0 stale**（external 350 → 395，
+     +45 是本轮新引的 X.h/Xatom.h/Xutil.h/xcb/*.h 引文）、`check-target-names` **628 .rs / 591 / 0**、
+     `check-dead-file-coverage` **1 / 0**；`check-citation-text` 631 checked / 35 mismatched（全在别的 lane）/
+     221 ranges / 98 unresolved（同一类外部头引文）。
+  ⑥ **集成者这一轮的动作**：按 lane 的工单在 `femacs/xtask/Cargo.toml` 的 `[features]` 表里补上单元已在用、
+     表里却没有的两个名字——`have_xcb_shape`（= `HAVE_XCB_SHAPE`，configure.ac 5748；xterm.c 681-683 的
+     `#include <xcb/shape.h>`）与 `have_xcb_shape_input_rects`（= C 801-805 的派生条件
+     `XCB_SHAPE_MAJOR_VERSION > 1 || (… == 1 && … >= 1)`）；不声明它们，这一臂永远不会被任何配置打开。
+     **P-87 的全量扫描**：`tools/check-all-units.sh` 读 **`checked 83 unit(s), 0 failure(s)`**（工作树里同时有
+     本 lane 的两个镜像与别的在飞文件）。
+  ⑦ **仍未解决（已写进 `docs/ports/xterm.md` §19 与 `include-xterm.md`）**：7 个常量的 8 处裸用要加
+     `use crate::x11_constants::{…}`（`src/xterm.rs` 3677/4040/4064/4069/4071/4075 与 `include/xterm.rs` 103 的两处）；
+     镜像自身 `STANDARD_EVENT_SET`（C 144-155）的 **11 个裸名**（2 个现在有家、9 个全树无家，修法要裁定）；
+     片 6 的 xcb 臂改成片 7 的裸类型拼法并**恢复 C 的 `cookies[i]` 索引**（C 3209-3212/3221-3224/3233/3281）与
+     分配单元（`SAFE_NALLOCA!` 按 `pointee_size`，现在按 1 字节/元素分配、4 字节写入）；片 6 的两个"类型检查
+     之前"的拦路（`SAFE_FREE!` 与 `sa_count` 的块作用域）；片 7 的 8 处显式转换；两个枚举成员的路径限定；
+     `x_own_selection`/`decode_window_system_frame` 从"镜像缺口"改记成单元自持、将来挪回镜像。镜像仍未携带的
+     `x_display_info` 成员已逐个点名（xrender 三条最急：本镜像自己的 `FRAME_CHECK_XR_VERSION` 在
+     `have_xrender` 下引用它们）。
+  ⑧ **未声称**：没有 X11 目标构建、没有链接、没有运行期证据；宽臂必须先补那 1 个宏调用才走到类型检查；
+     `include-xlib.rs` 无对应 C 文件，所以它的证据是臂探针 + 镜像自证 scratch 编译，不是 `--check`。

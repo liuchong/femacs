@@ -596,6 +596,20 @@ pub struct x_display_info
   /* C 820-821: the core modifier map, used when XKB is not present.  `XModifierKeymap` is
      Xlib's; the pointer keeps C's name (this file's convention for X11 types).  */
   pub modmap: *mut XModifierKeymap,   // C: XModifierKeymap *modmap;
+  /* C 823-910 is the run of members C guards with macros the frozen reading leaves undefined
+     (`HAVE_XRANDR`, `HAVE_XRENDER`/`USE_CAIRO`, `USE_XCB`, `HAVE_XDBE`, `HAVE_XINPUT2`,
+     `HAVE_XKB`, `USE_GTK`, `HAVE_XRENDER`, `HAVE_XFIXES`, `HAVE_XINERAMA`) - this round carries
+     the two the ported slices name, at C's own position; the rest are named in `docs/ports/
+     xterm.md`'s report as the same class (a name C's text carries, no member in this mirror). */
+  /* C 841-844: `#ifdef USE_XCB` - the connection this display keeps, and the visual it was
+     created with.  Their pointee types are the xcb mirror's (`include/xlib.rs`'s `use_xcb`
+     section, which is also where C's `<xcb/xproto.h>`/`<xcb/xcb.h>` includes - C 643-646 - are
+     recorded), so C's spelling resolves here; the pair is read by `xterm.c`'s whole `USE_XCB`
+     arm and by nothing else.  */
+  #[cfg (feature = "use_xcb")]
+  pub xcb_connection: *mut xcb_connection_t,   // C: xcb_connection_t *xcb_connection;
+  #[cfg (feature = "use_xcb")]
+  pub xcb_visual: *mut xcb_visualtype_t,   // C: xcb_visualtype_t *xcb_visual;
   /* C 941-950: the screen's dimensions, as last seen in a ConfigureNotify.  */
   /* C 911-915: `#ifdef HAVE_XSYNC` - whether the XSync extension is present, and its
      version.  */
@@ -605,6 +619,17 @@ pub struct x_display_info
   pub xsync_major: c_int,   // C: int xsync_major;
   #[cfg (feature = "have_xsync")]
   pub xsync_minor: c_int,   // C: int xsync_minor;
+  /* C 921-925: `#ifdef HAVE_XCOMPOSITE` - whether the Composite extension is present, and its
+     version.  These are the three members `xterm.c` 4225-4443 names (the arms C guards with
+     `#if defined HAVE_XCOMPOSITE && (XCOMPOSITE_MAJOR > 0 || XCOMPOSITE_MINOR > 2)`, the
+     derived `have_xcomposite_overlay`), and C 918-920 (`HAVE_XINERAMA`) and C 927-932
+     (`HAVE_XSHAPE`) between them are still uncarried (same class as the C 823-910 note above).  */
+  #[cfg (feature = "have_xcomposite")]
+  pub composite_supported_p: bool,   // C: bool composite_supported_p;
+  #[cfg (feature = "have_xcomposite")]
+  pub composite_major: c_int,   // C: int composite_major;
+  #[cfg (feature = "have_xcomposite")]
+  pub composite_minor: c_int,   // C: int composite_minor;
   pub screen_width: c_int,   // C: int screen_width;
   pub screen_height: c_int,   // C: int screen_height;
   pub screen_mm_width: c_int,   // C: int screen_mm_width;

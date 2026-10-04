@@ -1074,13 +1074,14 @@ see, so the port carries it under the derived name **`have_xcomposite_overlay`**
 the frozen table, every line of both arms is dead (`tools/cinventory.py`'s `dead_branch_map`:
 4225-4266 and 4377-4443 all `False`), so nothing in them is demanded by the token check.  The arm
 reads three `x_display_info` members - `composite_supported_p`, `composite_major`,
-`composite_minor` (xterm.h 922-924, inside `#ifdef HAVE_XCOMPOSITE`) - that **no arm of the mirror
-carries** (the `x11_ext` arm defines neither `HAVE_XCOMPOSITE` nor them), so the port names them
-the way the C text does and the gap is in this round's report; `Xatom_NET_WM_CM_Sn` (C 609,
+`composite_minor` (xterm.h 921-925) - that **no arm of the mirror carries** (the `x11_ext` arm
+defines neither `HAVE_XCOMPOSITE` nor them), so the port names them the way the C text does; the
+three members are carried now, under `have_xcomposite` (§19①).  `Xatom_NET_WM_CM_Sn` (C 609,
 ungated) is already in the mirror.
 
-**Seven X11 names the module does not carry stay bare** (Decision 15's ruling; the values are
-measured this round rather than remembered):
+**Seven X11 names the module did not carry, carried in §19③ now** (Decision 15's ruling is what
+kept them bare through this slice; the values below are this round's measurement, and §19③ records
+what still has to happen in the *unit* before they resolve):
 
 | name | header:line | measured value | site |
 | --- | --- | --- | --- |
@@ -1092,9 +1093,10 @@ measured this round rather than remembered):
 | `ButtonPressMask` | X.h 153 | `(1L<<2)` | C 4067 |
 | `ButtonReleaseMask` | X.h 154 | `(1L<<3)` | C 4073 |
 
-`<X11/Xutil.h>` has **no mirror in this tree** (`include/xlib.rs` carries `<X11/Xlib.h>` and
-`<X11/Xresource.h>`), so `NormalState` is a new mirror question rather than a module addition;
-both are requested in this round's report.
+`<X11/Xutil.h>` has no mirror *file* of its own in this tree, and it does not need one: this
+file's five headers are one mirror's business (`src/xrdb.c` 37-41, the "one mirror for the five"
+note in `src/xrdb.rs`), so `NormalState` is a module row like the three `<X11/extensions/
+shapeconst.h>` ones above it, and §19② records the measurement and the reasoning in full.
 
 **Two declarations move into the body.**  `x_dnd_do_unsupported_drop` calls
 `decode_window_system_frame` (declared `frame.h` 1474-1475, defined `frame.c` 124) and
@@ -1103,8 +1105,11 @@ graph reaches no mirror that carries either - `include/frame.rs` records the fra
 text and there is no `xselect.h` mirror at all - so both are transcribed into the function that
 needs them, which is what the xterm.h mirror's own note says the recorded prototype block is for
 (the `font.rs` 413-418 `decode_window_system_frame` block, the `keyboard.rs`
-`haiku_handle_selection_clear` shape).  `x_get_atom_name` (declared `xterm.h` 1844, *defined*
-`xterm.c` 29984) needs none: Rust resolves same-unit items by name.
+`haiku_handle_selection_clear` shape).  **Those two inline declarations are the port's, not this
+mirror's, and they are recorded as such**: if the owning unit lands (`src/xselect.rs`; the block
+`src/frame.rs` will carry `frame.h` 1474-1475 in), the declaration moves back into that mirror and
+the inline copy in `src/xterm.rs` 3982-3988 is deleted (P-26).  `x_get_atom_name` (declared
+`xterm.h` 1844, *defined* `xterm.c` 29984) needs none: Rust resolves same-unit items by name.
 
 **Five port-side shapes, each recorded rather than silent.**
 
@@ -1143,6 +1148,188 @@ only reading that reaches the rest.  `x_dnd_get_target_window` still calls five 
 later slices of this same file (`x_dnd_get_window_proxy`, `x_dnd_get_window_proto`,
 `x_top_window_to_frame`, `x_tooltip_window_to_frame`, `x_get_window_below`), so no X11 link of
 this unit is in reach this round.
+
+### 19. The `have_x_windows` header surface slices 6 and 7 named (2026-10-05)
+
+Slice 7's decision recorded three header gaps "for this round's report" - the five `xterm.h`
+members, the `<X11/Xutil.h>` question and the seven X11 macros - and slice 6's own note recorded a
+fourth: the xcb type names.  This is that round, and its writing set is this lane's two mirrors
+(`src/include/xterm.rs`, `src/include/xlib.rs`) plus this ledger: **no unit changed**, so every
+reading below that moves, moves in the mirror.
+
+**Measurement first, because two of the four questions turn on it.**  This machine *has* the X11
+headers (`xorgproto` + `libX11` under `/opt/homebrew/include/X11`) and the XCB ones
+(`/opt/homebrew/include/xcb`), so neither `<X11/Xutil.h>` nor the xcb half is a `text-only`
+question:
+
+```
+$ ls /opt/homebrew/include/X11/Xutil.h /opt/homebrew/include/xcb/xcb.h
+/opt/homebrew/include/X11/Xutil.h
+/opt/homebrew/include/xcb/xcb.h
+$ grep -n 'define NormalState' /opt/homebrew/include/X11/Xutil.h
+147:#define NormalState 1	/* most applications want to start this way */
+$ grep -n 'define IsViewable\|define ButtonPress\|define ButtonRelease' /opt/homebrew/include/X11/X.h
+153:#define ButtonPressMask			(1L<<2)
+154:#define ButtonReleaseMask		(1L<<3)
+183:#define ButtonPress		4
+184:#define ButtonRelease		5
+447:#define IsViewable		2
+$ grep -n 'define XA_PRIMARY' /opt/homebrew/include/X11/Xatom.h
+9:#define XA_PRIMARY ((Atom) 1)
+```
+
+**① The five `struct x_display_info` members.**  Each is a *record member* - an object - not a
+macro or a typedef, so each is carried as the member C declares, under C's own condition and at
+C's own position in the struct:
+
+| member | C | mirror (gated) |
+| --- | --- | --- |
+| `xcb_connection_t *xcb_connection` | xterm.h 842, inside `#ifdef USE_XCB` (841-844) | `#[cfg (feature = "use_xcb")] pub xcb_connection: *mut xcb_connection_t` |
+| `xcb_visualtype_t *xcb_visual` | xterm.h 843 | `#[cfg (feature = "use_xcb")] pub xcb_visual: *mut xcb_visualtype_t` |
+| `bool composite_supported_p` | xterm.h 922, inside `#ifdef HAVE_XCOMPOSITE` (921-925) | `#[cfg (feature = "have_xcomposite")] pub composite_supported_p: bool` |
+| `int composite_major` | xterm.h 923 | `#[cfg (feature = "have_xcomposite")] pub composite_major: c_int` |
+| `int composite_minor` | xterm.h 924 | `#[cfg (feature = "have_xcomposite")] pub composite_minor: c_int` |
+
+`xterm.h` 841-844 is where the two xcb pointers come from (the round's list wrote 840-843; the
+measured guard is 841 and the fields 842/843), and the composite trio is 922-924 inside 921-925.
+The xcb pair's pointee types are the new xcb mirror's (§④), which is also where C's own
+`<xcb/xproto.h>`/`<xcb/xcb.h>` includes are recorded (`src/xterm.c` 643-646, and again through
+`xterm.h` 117-119's `<X11/Xlib-xcb.h>`).  Both additions are inert in the frozen configuration, and
+the mirror's pairing is unmoved: `extract-abi --check emacs/src/xterm.h
+femacs/src/include/xterm.rs` still reads `OK`.
+
+**The rest of C 823-910 is still uncarried, and the list is now written down** rather than implied:
+`xrandr_supported_p`/`_event_base`/`_error_base`/`_major_version`/`_minor_version` (824-828),
+`last_monitor_attributes_list` (834), `ext_codes` (838), `supports_xdbe` (847), `supports_xi2`,
+`xi2_version`, `xi2_opcode`, `num_devices`, `devices`, `pending_keystroke_time`,
+`pending_keystroke_source`, `client_pointer_device` (851-907), `supports_xkb`, `xkb_event_type`,
+`xkb_desc` (911-916), `prefer_native_input` (919), `xrender_supported_p`/`xrender_major`/
+`xrender_minor` (899-901), `xfixes_supported_p`/`_major`/`_minor`/`_event_base` (905-908),
+`xinerama_supported_p` (918) and `xshape_supported_p`/`_major`/`_minor`/`_event_base`/
+`_error_base` (928-932).  The xrender trio is the one that is *already* referred to by a carried
+span of this mirror: `FRAME_CHECK_XR_VERSION` (`include/xterm.rs`, C 1385-1390) reads all three
+under `have_xrender`, so that macro cannot resolve until they land - the same class as the
+composite trio was, found while measuring it and left on this list because this round's list has
+five names.
+
+**② `<X11/Xutil.h>`: the header is here, and it already has a home - no `Xutil.rs` was created.**
+`src/xrdb.c` 37-41 includes `<X11/Xutil.h>` beside `<X11/Xlib.h>`, `<X11/Xatom.h>`, `<X11/X.h>` and
+`<X11/Xresource.h>`, and this tree recorded those five as *one* mirror's business when
+`include/xlib.rs` landed (`src/xrdb.rs`'s include comment: "one mirror for the five", 3.336).  The
+file's `x11_constants` module already carries a *third-party* header's macros the same way - the
+three `<X11/extensions/shapeconst.h>` rows since 3.336 - so `NormalState` went in beside them.  A
+new `include/Xutil.rs` would have been a second home for a header this tree has already homed
+(P-26 / P-72 rule 1) and would have made `src/xrdb.rs`'s own comment false; if a later round wants
+the header to have a file of its own, moving one constant is the whole change.  So the mirror
+question is answered by *measurement plus the existing home*, not by `text-only`.
+
+**③ The seven constants, each with its own measured basis** (all values verified this round, never
+remembered; each is in the `x11_constants` module, whose rows already cite their own headers):
+
+| name | header:line | C text | Rust | why that type |
+| --- | --- | --- | --- | --- |
+| `NormalState` | Xutil.h 147 | `#define NormalState 1` | `pub const NormalState: c_int = 1` | the `WM_STATE` first long (`xterm.c` 3734's `!= NormalState as c_ulong`) |
+| `IsViewable` | X.h 447 | `#define IsViewable 2` | `pub const IsViewable: c_int = 2` | a `map_state` value, like `IsUnmapped` above it |
+| `XA_PRIMARY` | Xatom.h 9 | `#define XA_PRIMARY ((Atom) 1)` | `pub const XA_PRIMARY: c_ulong = 1` | the three `XA_*` rows above it (`Atom` is `unsigned long`) |
+| `ButtonPress` | X.h 183 | `#define ButtonPress 4` | `pub const ButtonPress: c_int = 4` | an `XEvent` type, like `ClientMessage` above it |
+| `ButtonRelease` | X.h 184 | `#define ButtonRelease 5` | `pub const ButtonRelease: c_int = 5` | as above |
+| `ButtonPressMask` | X.h 153 | `#define ButtonPressMask (1L<<2)` | `pub const ButtonPressMask: c_long = 1 << 2` | a mask, like `NoEventMask`/`PropertyChangeMask` |
+| `ButtonReleaseMask` | X.h 154 | `#define ButtonReleaseMask (1L<<3)` | `pub const ButtonReleaseMask: c_long = 1 << 3` | as above |
+
+**The class those seven leave, named per site.**  They are in a *module*, and the module's own rule
+is that "a consumer imports the few names it needs where it needs them" - so the unit's bare uses
+stay `E0425` until the unit lane adds `use crate::x11_constants::{…}` per function.  On the flip arm
+the eight sites are (measured, `--cfg 'feature="have_x_windows"'`):
+
+```
+  include/xterm.rs:103   ButtonPressMask      (the mirror's own STANDARD_EVENT_SET, see below)
+  include/xterm.rs:103   ButtonReleaseMask    (same)
+  src/xterm.rs:3677      NormalState
+  src/xterm.rs:4040      XA_PRIMARY
+  src/xterm.rs:4064      ButtonPress
+  src/xterm.rs:4069      ButtonPressMask
+  src/xterm.rs:4071      ButtonRelease
+  src/xterm.rs:4075      ButtonReleaseMask
+```
+
+`IsViewable`'s two sites (`src/xterm.rs` 4277 and 4481) are inside the `have_xcomposite_overlay`
+arms, which the plain arm does not enable, so they do not appear in that reading.  The mirror's own
+two are a *second* instance of the same class and a new finding: `STANDARD_EVENT_SET`
+(`include/xterm.rs` 101-104, C 144-155) is a single constant whose body names **eleven** masks bare
+- `KeyPressMask`, `ExposureMask`, `ButtonPressMask`, `ButtonReleaseMask`, `PointerMotionMask`,
+`StructureNotifyMask`, `FocusChangeMask`, `LeaveWindowMask`, `EnterWindowMask`,
+`PropertyChangeMask`, `VisibilityChangeMask` - of which two are now carried by the module and nine
+have no home anywhere in the tree.  Fixing them is a decision this round did not take: the gate
+compares a macro's body *digest*, so qualifying the body's names would need a
+`docs/ports/token-aliases.tsv` row, and declaring them at the mirror's top level would be the
+`True`/`False` shape's second home (3.270's pending move).  It is registered here instead.
+
+**④ The xcb surface gets a mirror, in `include/xlib.rs`.**  The two `xterm.h` members need
+`xcb_connection_t`/`xcb_visualtype_t` to exist, and both of slice 6's and slice 7's spellings need
+the rest of the surface, so `include/xlib.rs` gains a fourth-header section: `<xcb/xcb.h>` and
+`<xcb/xproto.h>` under `all (have_x_windows, use_xcb)`, `<xcb/shape.h>` additionally under
+`have_xcb_shape` (C's own reachability: 643-646, and 681-683 nested inside it).  It carries
+
+* the scalars `xcb_window_t`, `xcb_atom_t`, `xcb_colormap_t`, `xcb_drawable_t`, `xcb_visualid_t`,
+  `xcb_shape_kind_t`, and the opaque `xcb_connection_t` (xcb.h 108's incomplete struct, P-70's
+  stand-in);
+* the records the arms pass **by value** or read fields of - the five cookies, the five replies,
+  `xcb_generic_error_t`, `xcb_visualtype_t`, `xcb_rectangle_t` and `xcb_rectangle_iterator_t` -
+  each with C's field list and a `const` assertion for the size/alignment, and the extra offsets of
+  the members the arms read;
+* the two *named* enums as Rust enums (`xcb_map_state_t`, `xcb_shape_sk_t`; the `xm_drag_style`
+  shape, since C's members are `int` and the arm must cast into the `uint8_t` field/argument);
+* the fourteen procedures, with C's integer widths (`uint8_t`/`uint16_t`/`uint32_t`/`int16_t`,
+  `void *` as `*mut c_void`), and the `r#type` raw identifier for C's `type` member.
+
+Every layout is measured, not remembered: a C probe against `/opt/homebrew/include/xcb` prints the
+sizes, alignments and offsets, and the assertions are *live* - flipping one to a wrong number fails
+the mirror's own compile with `E0080` (the scratch readings are in this round's Evidence).
+
+**The two spellings, and what can and cannot be settled by a mirror.**  With the mirror in place,
+slice 7's spelling is the C-shaped one: its cookie is a `xcb_get_property_cookie_t` passed **by
+value** (C 6996-6998), its reply is a `*mut xcb_get_property_reply_t` whose `format`/`type` it
+reads, and its `free (error as *mut c_void)` is the port's pun for C's `free (error)`.  Slice 6's
+spelling cannot be reconciled with any faithful mirror, and the reasons are all readable from C:
+
+* its cookies/replies/`attrs` are `*mut c_void`/`c_void` locals, so the seven stores at C 3113-3136
+  print `expected c_void, found xcb_get_window_attributes_cookie_t` - the call *returns* a 4-byte
+  record (measured) and the store slot is untyped;
+* C passes `window_attribute_cookies[i]` to the reply call (C 3209-3212, 3221-3224, 3233, 3281),
+  while the port passes the array *base* and never indexes: `*(window_attribute_cookies as *mut
+  c_void) = …` writes offset 0 on every iteration.  That is not only a type error - `SAFE_NALLOCA!`
+  sizes the block from `pointee_size ($buf)`, and `size_of::<c_void>()` is **1** (measured), so the
+  allocation is `nitems` bytes while each store writes four;
+* its field reads are on `c_void` (`attrs.map_state`, `(*reply).format`, `(*coordinates_reply).dst_x`
+  …), which is where the arm's sixteen `no field … on type std::ffi::c_void` errors come from;
+* and two *pre-typing* blockers stop the arm before any of that: `{ SAFE_FREE! (); }` (C 3607 is
+  `SAFE_FREE ()`, but the port's macro takes the `sa_count` expression) and `sa_count` itself,
+  which the port's `#[cfg (feature = "use_xcb")] { … }` block scopes to the cookie block, while C's
+  `#ifdef` adds no braces - C 3094's `USE_SAFE_ALLOCA;` is a *function-scope* declaration that C
+  3607's `SAFE_FREE ()` closes over.
+
+So the unification is a unit-lane edit (slice 6's xcb arm moved onto slice 7's spelling), not a
+mirror choice; the mirror's job was to make C's types exist, and that is what it does.  Slice 7's
+own remaining errors are eight sites of one class - the implicit conversions C performs and the
+port must write out (Decision 14's rule): `XA_ATOM`/`XA_WINDOW` are `c_ulong` in `x11_constants`
+and `xcb_atom_t` is `u32` (four argument sites, three comparisons), and
+`xcb_get_property_value`'s `void *` is the port's `*mut c_void` while `xmdata` is `*mut u8`.
+
+**⑤ Two entries retired, with the rule that replaces them.**  `x_own_selection` (declared xterm.h
+1947-1948, defined `xselect.c` 280) and `decode_window_system_frame` (declared frame.h 1474-1475,
+defined `frame.c` 124) are no longer mirror gaps: the one function that calls them declares them
+inline (`src/xterm.rs` 3982-3988's `unsafe extern "C"`, the `font.rs` 413-418 shape), which is a
+*unit* file this round may not write and which is already in the tree.  They come off this ledger's
+"requested" list; **if the owning unit lands** (`src/xselect.rs`; `src/frame.rs`'s prototype
+block), the declaration moves back into that mirror and the inline copy is deleted - P-26, and the
+same sentence `include-xterm.md` carries for its own prototype block.
+
+**What this round does not claim.**  Nothing was compiled with the features *on* except the
+scratch readings in the Evidence: the frozen `build-tu` prints `built` while compiling none of
+`have_x_windows`, and the plain flip arm's 490 errors are unmoved (every name this round adds is
+behind `use_xcb`, `have_xcomposite` or the `x11_constants` module's own import rule).  No X11
+target build, no link, no runtime evidence; the composite arms, the xcb arms and the `<X11/Xutil.h>`
+value are text + measurement + a mirror-level typecheck only.
 
 ## Evidence
 
@@ -1635,3 +1822,128 @@ error: aborting due to 490 previous errors
 # `include/xterm.rs` 1458-1465's INLINE bodies outside an unsafe block, E0609 is Decision 5's
 # pair, and E0080 is `include/systime.rs` 27's own frozen-configuration assertion.
 ```
+
+### The `have_x_windows` header surface's readings (2026-10-05)
+
+Round 18's Decision 19, measured.  `build-tu` (twice: before and after the mirror edits, since
+`materialize` snapshots the include graph), then the plain flip arm, the mirror self-check and the
+widest X11 arm the ported text names.  Commands verbatim; the error tables are `rustc`'s own.
+
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/x11fix cargo run -q -p xtask -- build-tu src/xterm.c
+built src/xterm.rs -> ../build/femacs/xterm.o
+```
+
+```
+$ rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj -C panic=abort \
+      --cfg 'feature="have_x_windows"' -o /tmp/x11fix-after.o build/femacs/units/xterm/_root.rs
+error: aborting due to 490 previous errors
+  480 E0425   7 E0133   2 E0609   1 E0080
+# by file: _root.rs (the unit, src/xterm.rs) 288, include/xterm.rs 201, include/systime.rs 1 -
+# byte-identical with the before reading, and that is the expected shape: every name this round
+# adds is under `use_xcb`, under `have_xcomposite`, or inside `x11_constants`, and this arm
+# enables none of them.  The eight sites the seven constants leave are listed in Decision 19③.
+```
+
+```
+$ rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj -C panic=abort \
+      --cfg 'feature="have_x_windows"' --cfg 'feature="use_xcb"' --cfg 'feature="have_xcb_shape"' \
+      --cfg 'feature="have_xcomposite"' --cfg 'feature="have_xcomposite_overlay"' \
+      -o /tmp/x11fix-after-xcb.o build/femacs/units/xterm/_root.rs
+# before the mirror landed, the same arm set printed one error and stopped there:
+#   error: unexpected end of macro invocation  ->  `{ SAFE_FREE! (); }` (_root.rs:3504, C 3607)
+# after it, with that one macro invocation patched **on the copy only** to C's own shape
+# (`SAFE_FREE! (sa_count)`), the arm reaches type checking:
+error: aborting due to 564 previous errors
+  499 E0425   38 E0308   19 E0609   7 E0133   1 E0080
+# of the 38 E0308 and 19 E0609: 30 + 16 are slice 6's `*mut c_void` model (Decision 19④), 8 E0308
+# are slice 7's written-out conversions, and `cannot find` on an xcb *type or function* is 0 -
+# the mirror's names all resolve.  The remaining xcb-named E0425 are the two enum members the port
+# must path-qualify (`XCB_MAP_STATE_UNMAPPED`, `XCB_SHAPE_SK_BOUNDING`) and the other classes are
+# the ones Decision 5 and the uncarried `x_display_info` members already own (`sie` x2,
+# `xshape_supported_p` x1).
+# by file: _root.rs 362, include/xterm.rs 201, include/systime.rs 1 - and **include/xlib.rs 0**:
+# the mirror that carries the new xcb section contributes no error to the widest arm.
+```
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.h femacs/src/include/xterm.rs
+OK emacs/src/xterm.h -> femacs/src/include/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs | grep -c '^- '
+286
+$ python3 tools/check-citations.py
+check-citations: 675 file(s) scanned, 0 drift, 0 range, 395 external, 33 allowed, 0 stale
+# 395 external = 350 + this round's 45 header citations (X.h/Xatom.h/Xutil.h/xcb/*.h are not in
+# this tree, so they are counted and never a failure - the class xlib.rs's first rows are already
+# in)
+$ python3 tools/check-declarations.py
+13 declaration sites (0 forbidden, 13 allowed literals), 0 failures
+$ python3 tools/check-mirror-dupes.py
+18 duplicate declaration(s), 18 ratchet row(s), 0 failure(s)
+$ python3 tools/check-target-names.py
+check-target-names: 628 .rs files, 591 map targets, 0 finding(s)
+$ python3 tools/check-dead-file-coverage.py
+1 ledger(s) bound (a C range table), 0 failure(s)
+$ python3 tools/check-citation-text.py | tail -1
+checked 631 / mismatched 35 / ranges 221 / unresolved 98
+# unchanged in kind: the 98 unresolved are the external-header citations (this round's 45 among
+# them), and the 35 mismatched are other lanes' single-line quotes.
+```
+
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/x11fix cargo run -q -p xtask -- build-tu src/xrdb.c
+built src/xrdb.rs -> ../build/femacs/xrdb.o
+$ ... build-tu src/dispextern.h
+error: rustc failed for src/include/dispextern.rs (exit status: 1)
+# 180 `cannot find type c_int`, 22 `ptrdiff_t`, 19 `Lisp_Object`, ... - the documented class of a
+# *mirror compiled on its own* (PORTING.md 0.1-9: those names come from the unit's own includes;
+# include-xterm.md records the same reading for src/xterm.h).  Not attributable to this round: the
+# failing names are unit-root imports, and no version of xlib.rs supplied them.  `xrdb.c`, the
+# consumer this mirror was built for, is `built`.
+```
+
+```
+# the xcb mirror's own typecheck (not a unit flip arm: a scratch crate that includes xlib.rs only)
+$ rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib --emit obj \
+      --cfg 'feature="have_x_windows"' --cfg 'feature="use_xcb"' --cfg 'feature="have_xcb_shape"' \
+      -o /tmp/xcb-mirror-probe.o /tmp/xcb-mirror-probe.rs
+exit 0        # cookies passed by value, reply fields read, the iterator walked - no error
+# ... and the layout assertions are live, not decorative:
+$ sed 's/== 32)/== 999)/' femacs/src/include/xlib.rs > /tmp/xlib-flip.rs   # on the copy only
+error[E0080]: evaluation panicked: assertion failed: core::mem::size_of::<xcb_get_property_reply_t>() == 999
+```
+
+```
+# the layouts, measured against the installed headers (a C probe, compiled and run)
+$ clang -I/opt/homebrew/include -o /tmp/xcb-layout-probe /tmp/xcb-layout-probe.c && /tmp/xcb-layout-probe
+sizeof  xcb_get_property_cookie_t   4        alignof 4
+sizeof  xcb_get_property_reply_t   32        alignof 4    format 1   type 8   value_len 16
+sizeof  xcb_get_window_attributes_cookie_t   4          sizeof  xcb_get_window_attributes_reply_t 44
+                                        alignof 4    map_state 26   colormap 28   your_event_mask 36
+sizeof  xcb_translate_coordinates_cookie_t   4          sizeof  xcb_translate_coordinates_reply_t 16
+                                        alignof 4    child 8    dst_x 12   dst_y 14
+sizeof  xcb_get_geometry_cookie_t   4                    sizeof  xcb_get_geometry_reply_t 24
+                                        alignof 4    root 8     width 16   height 18  border_width 20
+sizeof  xcb_generic_error_t        36        alignof 4    error_code 1   resource_id 4
+sizeof  xcb_shape_get_rectangles_cookie_t   4           sizeof  xcb_shape_get_rectangles_reply_t 32
+                                        alignof 4    rectangles_len 8
+sizeof  xcb_rectangle_t             8        alignof 2    x 0  y 2  width 4  height 6
+sizeof  xcb_rectangle_iterator_t   16        alignof 8    data 0  rem 8  index 12
+sizeof  xcb_visualtype_t           24        alignof 4    visual_id 0  _class 4  colormap_entries 6
+const   XCB_MAP_STATE_UNMAPPED 0        XCB_SHAPE_SK_BOUNDING 0        XCB_SHAPE_SK_INPUT 2
+```
+
+```
+# one more measurement Decision 19④ leans on: the port's `c_void` is one byte wide
+$ rustc --edition 2024 /tmp/cvoid-size2.rs      # const asserts: size_of::<c_void>() == 1, align 1
+asserts held
+```
+
+The two `c_void` readings above are what turn slice 6's `*mut c_void` cookie model from a style
+question into a defect: `SAFE_NALLOCA!` sizes the block with `pointee_size ($buf)` and four-byte
+cookies are stored into it.
+
+The round's last edit of `include/xlib.rs` is a comment re-wording (the xcb section's header note
+and one sentence of `x11_constants`' new comment).  The unit readings above were taken before it -
+a doc comment cannot move an error set, and the mirror self-check was re-run after it and still
+reads `exit 0` with zero errors.
