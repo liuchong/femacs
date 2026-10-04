@@ -75,17 +75,49 @@
 - [x] ns_set_offset  (line 1854) — landed as **`@_cdecl("ns_set_offset")`** - the definition the `ns_set_offset_entry` row of (4) waited for (first called at C 1691); its signature matches `nsfns.swift` 600, and `nm -u` no longer lists `_ns_set_offset` (Evidence)
 - [x] ns_set_window_size  (line 1877, static) — landed as `fileprivate func` (C's `static void`); the `NSTRACE_MSG` arguments are not evaluated (empty macro), and `f->output_data.ns->zooming` is the member pair `ns_output_zooming`/`ns_output_set_zooming`
 - [x] ns_set_window_size_and_position  (line 1920, static) — landed; `FRAME_NS_TITLEBAR_HEIGHT`/`FRAME_TOOLBAR_HEIGHT` are entries, and `compute_offset`/`frame_left_pos`/`frame_top_pos` were already in place
-- [ ] ns_set_no_focus_on_map  (line 2043)
-- [ ] ns_set_appearance_1  (line 2120)
-- [ ] ns_set_appearance  (line 2131)
-- [ ] ns_set_transparent_titlebar  (line 2149)
-- [ ] ns_fullscreen_hook  (line 2169, static)
-- [ ] ns_get_color  (line 2191, static)
-- [ ] ns_lisp_to_color  (line 2301)
-- [ ] ns_query_color  (line 2315, static)
-- [ ] ns_defined_color  (line 2332)
-- [ ] ns_query_frame_background_color  (line 2357, static)
-- [ ] ns_set_frame_alpha  (line 2366, static)
+- [x] ns_set_undecorated  (line 1961) — **a generator gap**, added by hand (see Decisions: the
+      reader's 8-line body lookahead stops at the 8-line doc comment before C 1970's `{`); landed
+      as `@_cdecl("ns_set_undecorated")` (src/nsterm.h 1229), and `[[EmacsWindow alloc]
+      initWithEmacsFrame:]` is the deferred entry `EmacsWindow_initWithEmacsFrame` (`## ABI` (4))
+- [x] ns_set_parent_frame  (line 1999) — **a generator gap** of the same kind (a 21-line comment
+      before the body); landed as `@_cdecl("ns_set_parent_frame")` (src/nsterm.h 1230), and C's
+      `p = XFRAME (new_value)` inside the condition is spelled as three steps (Decisions)
+- [x] ns_set_no_focus_on_map  (line 2043) — landed as `@_cdecl("ns_set_no_focus_on_map")`
+      (src/nsterm.h 1231); the write half of `FRAME_NO_FOCUS_ON_MAP` is the member entry
+      `frame_set_no_focus_on_map`
+- [x] ns_set_no_accept_focus  (line 2061) — **a generator gap** (an 8-line comment before the
+      body); landed as `@_cdecl("ns_set_no_accept_focus")` (src/nsterm.h 1232)
+- [x] ns_set_z_group  (line 2078) — **a generator gap** (an 8-line comment before the body);
+      landed as `@_cdecl("ns_set_z_group")` (src/nsterm.h 1233); `NSNormalWindowLevel` is Swift's
+      `NSWindow.Level.normal`, and the four `z_group_*` are enumerator entries
+- [x] ns_set_appearance_1  (line 2120) — landed as `@_cdecl("ns_set_appearance_1")` (src/nsterm.h
+      1240; imported by `nsfns.swift` 604); the three `ns_appearance_*` are enumerator entries
+- [x] ns_set_appearance  (line 2131) — landed as `@_cdecl("ns_set_appearance")` (src/nsterm.h
+      1241); `NSAppKitVersionNumber10_10` is spelled as Swift's `NSAppKitVersion.macOS10_10`, and
+      `[window setAppearance]` is the deferred entry `setAppearance`
+- [x] ns_set_transparent_titlebar  (line 2149) — landed as
+      `@_cdecl("ns_set_transparent_titlebar")` (src/nsterm.h 1242-1245); the `respondsToSelector:`
+      test is `#selector(getter: NSWindow.titlebarAppearsTransparent)`
+- [x] ns_fullscreen_hook  (line 2169, static) — landed as `fileprivate func` (C's `static`; the
+      reference registers it as `terminal->fullscreen_hook`, C 5936), and `[view handleFS]` is
+      round 7's entry
+- [x] ns_get_color  (line 2191, static) — landed as `fileprivate func`; C reassigns its `name`
+      parameter twice, which the port reads off `nsname` (Decisions), and `parse_color_spec` is the
+      core's own export (`femacs/src/xfaces.rs` 760)
+- [x] ns_lisp_to_color  (line 2301) — landed as `@_cdecl("ns_lisp_to_color")` (src/nsterm.h 1148 -
+      `nsfns.swift` 118-119 imports this signature)
+- [x] ns_query_color  (line 2315, static) — landed as `fileprivate func`; C's `void *col` is typed
+      as `NSColor?` (its two call sites both pass one), and `-unsignedLong` is the unit's own
+      category method
+- [x] ns_defined_color  (line 2332) — landed as `@_cdecl("ns_defined_color")` (src/nsterm.h 1142);
+      `Emacs_Color *` crosses as `UnsafeMutableRawPointer` because `@_cdecl` refuses a pointer to a
+      Swift record (measured)
+- [x] ns_query_frame_background_color  (line 2357, static) — landed as `fileprivate func`;
+      `FRAME_BACKGROUND_COLOR` is the entry `macfont.swift` 756 already imports
+- [x] ns_set_frame_alpha  (line 2366, static) — landed as **`@_cdecl("ns_set_frame_alpha")`** - the
+      definition the `ns_set_frame_alpha_entry` row of (4) waited for (C forward-declares it at
+      C 1579 and calls it first at C 1612/1617), and `nm -u` no longer lists `_ns_set_frame_alpha`
+      (Evidence); `f->alpha[0]`/`[1]` is the member entry `frame_alpha`
 - [ ] frame_set_mouse_pixel_position  (line 2409)
 - [ ] ns_note_mouse_movement  (line 2433, static)
 - [ ] ns_mouse_position  (line 2476, static)
@@ -409,7 +441,11 @@ spelling the same selector is one box and is named where it occurs.)
 - [ ] EV_TRAILER2  (line 455, body bf5ab84e8621) — **held** to C 5013, like `EV_TRAILER` (its callees are C 498's `hold_event` and C 5013's `ns_send_appdefined`)
 - [x] EV_UDMODIFIERS  (line 427, body 89301cbc268c) — landed as `func EV_UDMODIFIERS (_ e: NSEvent) -> Int32`, C's ten comparisons transcribed one for one
 - [x] NO_APPDEFINED_DATA  (line 318, body 9d95217d51d9)  — landed as a file-scope `let` of the same name
-- [ ] NSAppKitVersionNumber10_10  (line 10407, body ed9f6e93628b)
+- [x] NSAppKitVersionNumber10_10  (line 10407, body ed9f6e93628b) — the *name* is used at
+      C 2139 (`ns_set_appearance`) and spelled there as Swift's `NSAppKitVersion.macOS10_10`
+      (class B of the 3.255 ruling: the AppKit apinotes rename the vintage constants, and no
+      symbol is invented); C's own `#define … 1343` fallback at C 10406-10408 is inside the later
+      `-[EmacsWindow setAppearance]` slice, whose box stays where it is
 - [ ] NSAppKitVersionNumber10_9  (line 6262, body 74b10c057ded)
 - [x] NSLeftAlternateKeyMask  (line 355, body a08e8dccf9c4)  — landed as a file-scope `let` of the same name
 - [x] NSLeftCommandKeyMask  (line 353, body 6f54877ddc32)  — landed as a file-scope `let` of the same name
@@ -535,20 +571,32 @@ C 1744-1780, exported), `ns_destroy_window` (C 1782-1810), `compute_offset` (C 1
 after which `nm -u` no longer lists `_ns_set_offset`.  **Round 7 landed C 1493-1743** - the focus hooks (C 1493-1525), the raise/lower pair and their
 dispatcher (C 1527-1578), `ns_frame_rehighlight` (C 1582-1620) and the visibility hooks
 (C 1624-1742, three of them `@_cdecl` exports) - and round 8 lands C 1744-1876, so the covered range is
-now **C 60-1956**.  The next live definition is C 1959's `ns_set_undecorated`.
+now **C 60-1956**.  **Round 10 lands C 1959-2398** - the seven frame-parameter handlers
+`ns_set_undecorated` (C 1961-1996), `ns_set_parent_frame` (C 1999-2040),
+`ns_set_no_focus_on_map` (C 2043-2058), `ns_set_no_accept_focus` (C 2061-2075) and
+`ns_set_z_group` (C 2078-2116), the `NS_IMPL_COCOA` trio `ns_set_appearance_1` (C 2120-2128),
+`ns_set_appearance` (C 2131-2146) and `ns_set_transparent_titlebar` (C 2149-2165),
+`ns_fullscreen_hook` (C 2169-2181), the whole color block `ns_get_color` (C 2191-2297),
+`ns_lisp_to_color` (C 2300-2312), `ns_query_color` (C 2315-2329), `ns_defined_color`
+(C 2332-2354) and `ns_query_frame_background_color` (C 2357-2363), and **`ns_set_frame_alpha`
+(C 2366-2398) - the definition the (4) table's second function row waited for** - so the covered
+range is now **C 60-2398**.  The next live definition is C 2409's `frame_set_mouse_pixel_position`
+(the mouse-handling banner at C 2401-2405 separates them).
 
-Ticked above: **51 of the 145 function boxes** (the generator's 142 plus the three it misses -
-round 5's two and round 6's `ns_focus`) (the twenty-one landed - through round 4's eight -
-and the three dead `nstrace_*`), **16 of the 23 macro boxes** (the eight masks,
-`NO_APPDEFINED_DATA` and the five `EV_*` accessors, plus `DOCK_IGNORE_LIMIT` and the two
-`NS_PARENT_WINDOW_*`; the two held ones stay open), **48 of the 49 file-scope-object boxes**
+Ticked above: **66 of the 149 function boxes** (the generator's 142 plus the seven it misses -
+round 5's two, round 6's `ns_focus` and **round 10's four**, which are the 8-line-lookahead gap
+the round-10 Decision records), **17 of the 23 macro boxes** (the eight masks,
+`NO_APPDEFINED_DATA`, the five `EV_*` accessors, `DOCK_IGNORE_LIMIT`, the two
+`NS_PARENT_WINDOW_*` and round 10's `NSAppKitVersionNumber10_10`; the two held `EV_TRAILER*` and
+the four later ones stay open), **48 of the 49 file-scope-object boxes**
 (the generator's 39 minus its gaps, the 8 hand-added round 1 rows, round 5's two interval
 constants and round 6's `bell_view`), **1 of the 1 type box** (`EmacsMargins`,
 C 650) and **2 of the 8 Objective-C classes** (`NSColor (EmacsColor)` with its four methods, and
 **`EmacsBell`** - the file's first *class*, with its `@interface` declaration and all four
-methods).  The other 94 function boxes, 7 macro boxes, 6 class boxes and 185 method boxes are
-later slices; round 7 adds five rows to the `## ABI` (4) table - three class methods and, for the
-first time, two of this unit's own *functions*.
+methods).  The other 83 function boxes, 6 macro boxes, 6 class boxes and 185 method boxes are
+later slices; round 7 added five rows to the `## ABI` (4) table - three class methods and, for the
+first time, two of this unit's own *functions* - and round 10 added two more, both class methods
+(`EmacsWindow_initWithEmacsFrame`, `setAppearance`).
 
 **The slice's text had been landed before this round but measured with `swiftc -parse`, which
 resolves no names.** This lane's compile gate is `swiftc -parse-as-library -c` (the form
@@ -942,6 +990,82 @@ that signature, so the two units agree.
 (src/nsterm.h 1226-1228) are the frame hooks the redisplay interface calls, so they keep C's names
 under `@_cdecl`.
 
+### Round 10: the frame-parameter handlers, the color block, and the second function row closed
+
+**The generator loses four of this slice's fifteen definitions, and the cause is a lookahead
+window.**  `tools/cinventory.py`'s `function_spans` takes a declarator whose parameter list ends
+its line and looks for the body brace in `range (j + 1, min (j + 9, len (rows)))` - eight lines.
+`ns_set_undecorated` (C 1961, an 8-line doc comment before C 1970's `{`), `ns_set_parent_frame`
+(C 1999, 21 lines), `ns_set_no_accept_focus` (C 2061, 8 lines) and `ns_set_z_group` (C 2078,
+8 lines) all put their `{` on the ninth line or later, so the walk reaches a live non-`{` line
+first and drops the definition; `ns_set_no_focus_on_map` (C 2043, a 7-line comment) and
+`ns_get_color` (C 2191, six lines) are on the inside of the window and stay.  The four are
+**hand-added boxes** above - the family `ns_focus` (C 1236), `ns_ua_zoom_enabled_p` and
+`ns_cg_rect_flip_y` already belong to; `tools/extract-abi.py`'s 142 functions are unchanged by
+this note, and a regeneration would drop them again.  The same window is why
+`docs/baseline/swift-units.tsv` can never hold rows for those four names: this round's
+regeneration request to the integrator therefore asks for **deletions only** (the eleven names
+that did have rows and now match a Swift `func`).
+
+**C's assignment-inside-a-condition has no Swift spelling, and the port keeps the
+short-circuit.**  Three sites: `ns_set_parent_frame`'s `!FRAMEP (new_value) || !FRAME_LIVE_P (p =
+XFRAME (new_value)) || !FRAME_NS_P (p)` (C 2026-2029) becomes three steps, so `XFRAME` still runs
+only when `FRAMEP` failed to reject and `FRAME_NS_P` only when `FRAME_LIVE_P` did; and
+`ns_get_color`'s two `(new = [NSColor selectedText…]) != nil` (C 2215/2230) become the assignment
+plus an `if`.  Swift has no assignment expression, and hoisting any of them would evaluate a
+macro C does not evaluate on that path - PORTING.md 0.3's "语句与顺序" (one C statement is one
+statement, and the definition/`#if` order does not change) is the rule the shape preserves.
+
+**`ns_get_color` reassigns its `const char *name` parameter twice, and its colour-list block
+shadows `name` with an `NSString *`.**  Swift's `String` holds `[nsname UTF8String]`'s bytes, so
+the port keeps `nsname` alone and reads the pointer's two uses (C 2243's `parse_color_spec`
+through `withCString`, C 2252's `name[0]` through `utf8.first`) from it; C's inner `NSString *name`
+(C 2270) is the `for name in clist.allKeys` binding, the same shadow.  `NS_SELECTION_BG_COLOR_DEFAULT`
+and `NS_SELECTION_FG_COLOR_DEFAULT` (src/nsterm.h 1278-1279) are **not** entries: their bodies are
+string literals, so they are spelled in place - class B of the 3.255 ruling, the reading
+`FRAME_NS_TITLEBAR_HEIGHT`/`FRAME_TOOLBAR_HEIGHT` already carry.  `NSNormalWindowLevel` (C
+2095/2100/2106/2111) is the AppKit rename `NSWindow.Level.normal`, and C's `+ 1`/`- 1` become that
+level's `rawValue` arithmetic; `NSAppKitVersionNumber10_10` (C 2139) is
+`NSAppKitVersion.macOS10_10`, the rename the `NSColor (EmacsColor)` category above already uses for
+the 10_7 pair.
+
+**The slice's entries are the 3.255 classes, and the member writes take the shim's own naming.**
+The six `frame_set_<member>` writes follow `femacs/src/abi_shim.md`'s existing export names
+(`frame_set_border_width`, `frame_set_tab_bar_resized`, …), and `nsfns.swift` 573/577 already
+import `frame_set_undecorated`/`frame_set_ns_transparent_titlebar`, so the two units agree
+name for name.  The enumerator families, the seven globals and the header-only accessors stay
+class A: their values are the core's facts (an enumerator's number, a generated global's storage),
+so `femacs/src/abi_shim.rs` exports each name.
+
+**`Emacs_Color` is a Swift `struct` of this unit, and its layout is measured.**  C's
+`typedef struct { unsigned long pixel; unsigned short red, green, blue; } Emacs_Color`
+(src/dispextern.h 49-54) crosses into `ns_defined_color` and
+`ns_query_frame_background_color`; clang reads `sizeof 16, align 8, pixel 0, red 8, green 10,
+blue 12`, and the Swift side reads `size 14, stride 16, align 8` with the same four offsets -
+Swift does not count the tail padding in `size`, and `stride` (16) is the storage unit C's
+`sizeof` names (Evidence).  `@_cdecl` refuses `UnsafeMutablePointer<Emacs_Color>` ("Swift structs
+cannot be represented in Objective-C", measured this round), so the exported
+`ns_defined_color` takes `UnsafeMutableRawPointer?` and re-binds it - the shape round 2's
+`ns_init_events` set for the same refusal.
+
+**`ns_set_frame_alpha` (C 2366) is the definition the (4) table's second function row waited
+for.**  The call sites C 1612/1617 could only take an entry because C itself forward-declares the
+function at C 1579; with the definition landed under `@_cdecl("ns_set_frame_alpha")` the symbol is
+real and `nm -u` no longer lists `_ns_set_frame_alpha`.  C's `dpyinfo->highlight_frame == f` is
+read through round 7's `ns_display_info_highlight_frame` entry (which takes the *frame* the
+`FRAME_DISPLAY_INFO` macro starts from), so the local `dpyinfo` has no separate reading, and
+`f->alpha[0]`/`[1]` is the member entry `frame_alpha`.
+
+**Two new deferred rows.**  `ns_set_undecorated` constructs an `EmacsWindow` (C 1983) and
+`ns_set_appearance` sends it `setAppearance` (C 2144); the class lands at C 9756, so both call
+sites take entries of the `handleFS` shape - `EmacsWindow_initWithEmacsFrame` (the name
+`nsfns.swift` 695's `EmacsView_initFrameFromEmacs` sets) and `setAppearance`.
+
+**One new warning, of C's own kind.**  `swiftc -c` reports `'scanFloat' was deprecated in macOS
+10.15` three times for `ns_get_color`'s three `[scanner scanFloat: &…]` calls (C 2257-2259) - the
+same reading as the `lockFocus`/`unlockFocus` pair the ledger's Evidence already records, so the
+port keeps the calls.
+
 ### The macro-name audit (status 3.251's rule)
 
 `nm -g build/emacs-ref/{src,lib}/*.o` was searched for every macro/INLINE name this unit imports
@@ -983,6 +1107,17 @@ whose expansion is expressible must not become a symbol).
 | `ns_alloc_autorelease_pool` | `extern void *ns_alloc_autorelease_pool (void)` (1168) | `func ns_alloc_autorelease_pool() -> UnsafeMutableRawPointer?` |
 | `ns_release_autorelease_pool` | `extern void ns_release_autorelease_pool (void *)` (1169) | `func ns_release_autorelease_pool(_ pool: UnsafeMutableRawPointer?)` |
 | `ns_frame_scale_factor` | `extern double ns_frame_scale_factor (struct frame *)` (src/nsterm.h 1260) | `func ns_frame_scale_factor(_ f: UnsafeMutableRawPointer?) -> Double` |
+| `ns_set_undecorated` | `extern void ns_set_undecorated (struct frame *, Lisp_Object, Lisp_Object)` (src/nsterm.h 1229) | `func ns_set_undecorated(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object, _ old_value: Lisp_Object)` |
+| `ns_set_parent_frame` | the same shape (src/nsterm.h 1230) | `func ns_set_parent_frame(…)` |
+| `ns_set_no_focus_on_map` | the same shape (src/nsterm.h 1231) | `func ns_set_no_focus_on_map(…)` |
+| `ns_set_no_accept_focus` | the same shape (src/nsterm.h 1232) | `func ns_set_no_accept_focus(…)` |
+| `ns_set_z_group` | the same shape (src/nsterm.h 1233) | `func ns_set_z_group(…)` |
+| `ns_set_appearance_1` | `extern void ns_set_appearance_1 (struct frame *, Lisp_Object)` (src/nsterm.h 1240, `NS_IMPL_COCOA`) | `func ns_set_appearance_1(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object)` |
+| `ns_set_appearance` | `extern void ns_set_appearance (struct frame *, Lisp_Object, Lisp_Object)` (src/nsterm.h 1241) | `func ns_set_appearance(…)` |
+| `ns_set_transparent_titlebar` | `extern void ns_set_transparent_titlebar (struct frame *, Lisp_Object, Lisp_Object)` (src/nsterm.h 1242-1245) | `func ns_set_transparent_titlebar(…)` |
+| `ns_lisp_to_color` | `extern int ns_lisp_to_color (Lisp_Object, NSColor **)` (src/nsterm.h 1148, `__OBJC__`) | `func ns_lisp_to_color(_ color: Lisp_Object, _ col: UnsafeMutablePointer<NSColor?>) -> Int32` |
+| `ns_defined_color` | `extern bool ns_defined_color (struct frame *, const char *, Emacs_Color *, bool, bool)` (src/nsterm.h 1142) | `func ns_defined_color(_ f:, _ name: UnsafePointer<CChar>?, _ color_def: UnsafeMutableRawPointer?, _ alloc: Bool, _ _makeIndex: Bool) -> Bool` |
+| `ns_set_frame_alpha` | `static void ns_set_frame_alpha (struct frame *)` (C 1579's forward declaration; the `set_frame_alpha_hook` at C 5941) | `func ns_set_frame_alpha(_ f: UnsafeMutableRawPointer?)` - **the (4) table's second function row, closed** |
 
 `mod_of_kind`, `ev_modifiers_helper`, `hold_event` and `append2` are C `static`s - no C symbol exists in the reference
 either - so they land as `fileprivate func`s of their own names.  The exported set is exactly
@@ -1031,9 +1166,20 @@ what `nm -g` shows (Evidence).
 | `ns_output_zooming`, `ns_output_set_zooming` | the `struct ns_output` member `f->output_data.ns->zooming` | src/nsterm.h's `struct ns_output` | **open**: member entries |
 | `FRAME_NS_TITLEBAR_HEIGHT`, `FRAME_TOOLBAR_HEIGHT` | **not entries** - the two computed macros (src/nsterm.h 1062-1079) are spelled as Swift bodies instead, per the rule of status 3.251 (see Decisions) | src/nsterm.h 1062-1079 | spelled in place |
 
+| member writes (round 10) | `frame_set_undecorated` (C 1981), `frame_set_no_focus_on_map` (C 2056), `frame_set_no_accept_focus` (C 2074), `frame_set_z_group` (C 2096/2101/2107/2112), `frame_set_ns_appearance` (C 2123/2125/2127), `frame_set_ns_transparent_titlebar` (C 2162) | the `FRAME_*` macros' write halves, per `docs/ports/nsmenu.swift` 311-328 (`<record>_set_<member>`); the first two names are the ones `nsfns.swift` 573/577 already imports | **open**: the core's to export |
+| enumerators (round 10) | `z_group_none`, `z_group_above`, `z_group_below`, `z_group_above_suspended` (src/frame.h 61-67) and `ns_appearance_system_default`, `ns_appearance_aqua`, `ns_appearance_vibrant_dark` (src/frame.h 70-75) | `enum z_group` / `enum ns_appearance_type` | **open**: the core's to export (class A of 3.255 - an enumerator's value is the core's fact) |
+| globals (round 10) | `Qparent_frame`, `Qabove`, `Qabove_suspended`, `Qbelow`, `Qdark`, `Qlight`, `Vframe_alpha_lower_limit` | the `DEFSYM`/`DEFVAR_LISP` carriers (`build/emacs-ref/src/emacs.o` holds `_Qdark` and friends as `S`; `Vframe_alpha_lower_limit` is `globals.f_…`, globals.h 280-281, so it has no symbol until the core exports one) | **open**: the core's to export |
+| `fset_parent_frame` | `INLINE void fset_parent_frame (struct frame *, Lisp_Object)` (src/frame.h 774) | src/frame.h 774 | **open**: `nsfns.swift` 641-642 imports it under this name and signature |
+| member entry `frame_alpha` | the `double alpha[2]` member `f->alpha[0]`/`[1]` (src/frame.h 707-711) | src/frame.h | **open**: the subscript is the entry's second argument |
+| `store_frame_param`, `parse_color_spec`, `error` | `void store_frame_param (struct frame *, Lisp_Object, Lisp_Object)` (src/lisp.h 5117); `bool parse_color_spec (const char *, unsigned short *, unsigned short *, unsigned short *)` (src/dispextern.h 3798); `AVOID error (const char *, ...)` (src/lisp.h 4835) | defined src/frame.c 3872 / src/xfaces.c 987 / src/eval.c (`_error` is `T` there) | **provided**: `femacs/src/frame.rs` 3842 and `femacs/src/xfaces.rs` 760, and the core's `error` the other three Swift units already import |
+| `STRINGP`, `SSDATA`, `SYMBOL_NAME` | `INLINE bool STRINGP` (src/lisp.h 1582), `INLINE char *SSDATA` (src/lisp.h 1658), `INLINE Lisp_Object SYMBOL_NAME` (src/lisp.h 2350) | header-only | **open**: the core's to export (`nsfns.swift` 184/200-201 imports the same three) |
+| `FLOATP`, `XFLOAT_DATA` | `#define FLOATP(x) lisp_h_FLOATP (x)` (src/lisp.h 448), `INLINE double XFLOAT_DATA (Lisp_Object)` (src/lisp.h 3186) | header-only | **open**: the core's to export |
+| `FRAME_BACKGROUND_COLOR` | `#define FRAME_BACKGROUND_COLOR(f) ((f)->output_data.ns->background_color)` (src/nsterm.h 1038) | header-only | **open**: `macfont.swift` 756 imports the same name and type |
+
 `Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
 core exports a C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  The
-two `var` imports (`ns_use_srgb_colorspace`, the seven `ns_*_modifier`s) are data symbols, which
+five `var` imports (`ns_use_srgb_colorspace`, the seven `ns_*_modifier`s, `ns_auto_hide_menu_bar`,
+`Vframe_list`, `visible_bell` and round 10's `Vframe_alpha_lower_limit`) are data symbols, which
 is why `tools/check-swift-units.py` counts only the `func` imports; `nm -u` on the built object
 lists the whole set (Evidence).
 
@@ -1061,18 +1207,29 @@ repeats them until they land.
 | `setParentChildRelationships` (`setParentChildRelationships_entry`) | src/nsterm.m 1687 | `EmacsWindow -setParentChildRelationships`, C 9934 | **deferred** |
 | `ns_set_offset` (`ns_set_offset_entry`) | src/nsterm.m 1691 | this unit's own `ns_set_offset`, C 1854 (the signature `nsfns.swift` 600 already imports) | **landed (round 8, C 1854)** - `_ns_set_offset` left `nm -u` |
 | `setWindowClosing` (`setWindowClosing_entry`) | src/nsterm.m 1757 (`ns_free_frame_resources`) | `EmacsView -setWindowClosing:`, C 7047 | **deferred** |
-| `ns_set_frame_alpha` (`ns_set_frame_alpha_entry`) | src/nsterm.m 1616 | this unit's own `ns_set_frame_alpha`, C 2366; C forward-declares it at C 1622 | **deferred (function)** |
+| `ns_set_frame_alpha` (`ns_set_frame_alpha_entry`) | src/nsterm.m 1612 and 1617 (its two call sites in `ns_frame_rehighlight`) | this unit's own `ns_set_frame_alpha`, C 2366; C forward-declares it at C 1579 | **landed (round 10, C 2366)** - `_ns_set_frame_alpha` left `nm -u`.  (The rows written in round 7 cited C 1616/C 1622; the reference's own lines are 1612/1617 and 1579 - corrected here, the calls and the prototype are the same two.) |
+| `EmacsWindow_initWithEmacsFrame` | src/nsterm.m 1983 (`ns_set_undecorated`) | `EmacsWindow -initWithEmacsFrame:`, C 9759 | **deferred** - the name follows `EmacsView_initFrameFromEmacs` (`nsfns.swift` 695) |
+| `setAppearance` (`setAppearance_entry`) | src/nsterm.m 2144 (`ns_set_appearance`) | `EmacsWindow -setAppearance`, C 10398 | **deferred** |
 
-The last two rows are the ruling's shape applied to **functions**: C itself forward-declares them
-(the reference's own acknowledgement of the forward use), so the call site takes an entry and the
-definition lands at its own C line.
+The `ns_set_offset` and `ns_set_frame_alpha` rows are the ruling's shape applied to **functions**:
+C itself forward-declares them (the reference's own acknowledgement of the forward use), so the
+call site takes an entry and the definition lands at its own C line - and **both are closed now**
+(round 8's C 1854 and round 10's C 2366).  Round 10 adds two more rows of the class family
+(`EmacsWindow_initWithEmacsFrame`, `setAppearance`), the shape `handleFS` /
+`setParentChildRelationships` already have.
 
 ### (3) What other units must supply
 
 * the core: (2)'s ten call entries - `SYMBOLP`, `EQ`, `plist_get`,
   `parse_solitary_modifier`, `Qnil`, `Qleft`, `xrealloc`, `nconc2`, `list1`, `EVENT_INIT` - and
   its **thirteen** data symbols `ns_use_srgb_colorspace`, `QCmouse`, `up_modifier`, `down_modifier`,
-  `hyper_modifier`, `shift_modifier` and the seven `ns_*_modifier` variables.  `QCmouse` and the
+  `hyper_modifier`, `shift_modifier` and the seven `ns_*_modifier` variables.  **Round 10 adds the
+  names its (2) rows carry**: the six `frame_set_*` member writes, the seven enumerators
+  (`z_group_*`, `ns_appearance_*`), the seven globals (`Qparent_frame`, `Qabove`,
+  `Qabove_suspended`, `Qbelow`, `Qdark`, `Qlight`, `Vframe_alpha_lower_limit`), `fset_parent_frame`,
+  the member entry `frame_alpha`, and `STRINGP`/`SSDATA`/`SYMBOL_NAME`/`FLOATP`/`XFLOAT_DATA`/
+  `FRAME_BACKGROUND_COLOR`; `store_frame_param`, `parse_color_spec` and `error` are already the
+  core's (frame.rs 3842, xfaces.rs 760, eval.c's `_error`).  `QCmouse` and the
   seven modifiers are this file's own `DEFSYM`/`DEFVAR_LISP`, so the core has to export them the
   way it exports the rest; `QCmouse` is also absent from `docs/baseline/globals/symbols.tsv`,
   whose table comes from a build that never compiles this file;
@@ -1216,6 +1373,76 @@ definition lands at its own C line.
 * `clang -o /tmp/s188/crt /tmp/s188/crt.c -framework Foundation && /tmp/s188/crt` -> the two
   autorelease-pool runtime symbols exist (`0x18a833dc8 0x18a83403c`), which is the measurement
   behind the `outerpool` decision.
+
+* Round 10's compile, same command: **exit 0**, with **seven** warnings.  Four are C's own
+  `lockFocus`/`unlockFocus` deprecations the lane already carries (C 1217-1219, 1368-1370,
+  1385-1387, 1412-1414 - `'lockFocus()' was deprecated in macOS 10.14` twice and `'unlockFocus()'`
+  twice), and **three are this slice's**: `'scanFloat' was deprecated in macOS 10.15` for
+  `ns_get_color`'s three `[scanner scanFloat: &…]` calls (C 2257-2259).  The two errors fixed on
+  the way were each named by the compiler: `value of type 'NSString' has no member 'withCString'`
+  (the receiver has to be the bridged `String`) and `initialization of immutable value 'dpyinfo'
+  was never used` (the display-info entry takes the frame, not the local).
+* `nm -g /tmp/s188r10/nsterm.o | grep -E ' T _(ns_set_|ns_lisp_to_color|ns_defined_color)'` ->
+  round 10's eleven new C exports: `_ns_set_undecorated`, `_ns_set_parent_frame`,
+  `_ns_set_no_focus_on_map`, `_ns_set_no_accept_focus`, `_ns_set_z_group`, `_ns_set_appearance_1`,
+  `_ns_set_appearance`, `_ns_set_transparent_titlebar`, `_ns_lisp_to_color`, `_ns_defined_color`
+  and **`_ns_set_frame_alpha`**.
+* `nm -u /tmp/s188r10/nsterm.o` -> the slice's imports are `_EmacsWindow_initWithEmacsFrame` and
+  `_setAppearance` (the two new deferred rows), `_frame_set_undecorated`,
+  `_frame_set_no_focus_on_map`, `_frame_set_no_accept_focus`, `_frame_set_z_group`,
+  `_frame_set_ns_appearance`, `_frame_set_ns_transparent_titlebar`, `_frame_alpha`, `_z_group_*`
+  (four), `_ns_appearance_*` (three), `_Qparent_frame`, `_Qabove`, `_Qabove_suspended`, `_Qbelow`,
+  `_Qdark`, `_Qlight`, `_Vframe_alpha_lower_limit`, `_fset_parent_frame`, `_STRINGP`, `_SSDATA`,
+  `_SYMBOL_NAME`, `_FLOATP`, `_XFLOAT_DATA`, `_FIXNUMP`, `_XFIXNUM`, `_FRAME_BACKGROUND_COLOR`,
+  `_store_frame_param`, `_parse_color_spec`, `_error` - and **`_ns_set_frame_alpha` is gone from
+  the list**, which is the (4) table's second function row closing (`grep -c '_ns_set_frame_alpha$'`
+  is 0).
+* The macro/symbol audit for round 10's names (`nm -g build/emacs-ref/src/*.o
+  build/emacs-ref/lib/*.o`, one `grep -E "[ _]NAME$"` per name) -> **0 symbols** for every
+  macro/enumerator/member-entry name the slice imports (`FRAME_UNDECORATED`,
+  `FRAME_NS_TRANSPARENT_TITLEBAR`, `FRAME_NO_FOCUS_ON_MAP`, `FRAME_NO_ACCEPT_FOCUS`,
+  `FRAME_Z_GROUP`, `FRAME_NS_APPEARANCE`, `FRAME_BACKGROUND_COLOR`, `z_group_*` four,
+  `ns_appearance_*` three, `Vframe_alpha_lower_limit`, `FLOATP`, `XFLOAT_DATA`,
+  `EmacsWindow`/`initWithEmacsFrame`, `setAppearance`, `ns_set_frame_alpha`), and **1** for the
+  data/function symbols the core already has: `_Qabove`/`_Qbelow`/`_Qdark`/`_Qlight`/
+  `_Qparent_frame` (all `S` in `build/emacs-ref/src/emacs.o`), `_store_frame_param` (`T` in
+  `frame.o`), `_parse_color_spec` (`T` in `xfaces.o`) and `_error` (`T` in `eval.o`) - so every
+  name of the first group is class A of the 3.255 ruling.
+* `Emacs_Color`'s layout, C side (`clang -std=gnu23 -I build/emacs-ref/src -I build/emacs-ref/lib
+  -I emacs/src -I emacs/lib` on a probe including `<config.h>` and `<dispextern.h>`) ->
+  `Emacs_Color sizeof 16 align 8 pixel 0 red 8 green 10 blue 12`; Swift side
+  (`swiftc -o /tmp/s188r10/layoutprobe femacs/platform/macos/nsterm.swift /tmp/s188r10/main.swift
+  /tmp/s188r10/stubs.c -Xlinker -undefined -Xlinker dynamic_lookup`, then the program) ->
+  `Emacs_Color size 14 stride 16 align 8` and the same four offsets (`pixel 0 red 8 green 10
+  blue 12`).  Swift's `size` omits the tail padding C's `sizeof` rounds up; `stride` (16) is the
+  storage unit and matches C, and the member offsets and the alignment agree member for member.
+* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 142 C
+  definition(s), 87 unported, 98 row(s); 115 C symbol import(s)` and `0 new, 17 stale, 7 Swift
+  unit(s) landed`.  Eleven of the seventeen stale rows are this unit's - the eleven landed names
+  that had rows; the other four this slice landed (the generator gap's) have no row to go stale -
+  and the other six are the in-flight `nsfns.swift` batch.  The
+  manifest is the integrator's table: this unit asks for the deletions, it does not write them.
+* `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures` and `read 630 files (623 .rs 7 .swift)` - unchanged by this slice (the
+  new comments and literals carry no forbidden class).
+* `python3 tools/check-swift-imports.py` -> before this slice `838 import(s) in 7 Swift file(s),
+  5629 core export(s), 616 unprovided, 549 ratchet row(s), 89 failure(s)`; after it `860 import(s)
+  in 7 Swift file(s), 5629 core export(s), 627 unprovided, 538 ratchet row(s), 109 failure(s)`.
+  **The two readings are not from one tool revision**: `tools/check-swift-imports.py` is itself
+  modified in this working tree while this round runs (another lane's or the integrator's edit),
+  and the tree also carries four other lanes' in-flight units.  The comparable part is the
+  `FAIL` **name** diff, and it is this slice's names only: `EmacsWindow_initWithEmacsFrame`,
+  `FLOATP`, `XFLOAT_DATA`, `frame_alpha`, `frame_set_no_accept_focus`, `frame_set_no_focus_on_map`,
+  `frame_set_ns_appearance`, `frame_set_z_group`, `ns_appearance_aqua`,
+  `ns_appearance_system_default`, `ns_appearance_vibrant_dark`, `setAppearance`, `Qabove`,
+  `Qabove_suspended`, `Qbelow`, `Qdark`, `Vframe_alpha_lower_limit`, `z_group_above`,
+  `z_group_above_suspended`, `z_group_below`, `z_group_none` - **21 rows, all additions**.  The
+  slice's other imports were already ratchet rows from the other Swift units
+  (`frame_set_undecorated`, `frame_set_ns_transparent_titlebar`, `FRAME_BACKGROUND_COLOR`,
+  `Qparent_frame`, `Qlight`, `FIXNUMP`, `XFIXNUM`, `STRINGP`, `SSDATA`, `SYMBOL_NAME`,
+  `fset_parent_frame`), or the core already provides them (`store_frame_param`,
+  `parse_color_spec`, `error`).  This unit does not write the ratchet: the integrator's
+  `--write-pending` does.
 
 - **Ruling (3.255, integrator) on this file's macro-name entries.**  Two halves, and the criterion
   is whether the macro's body can be spelled in Swift: **(B) first** - a body that is a pure AppKit

@@ -38,8 +38,15 @@
 // `compute_offset` (C 1812-1852) and **`ns_set_offset` (C 1854-1875) - the definition the
 // deferred entry `ns_set_offset_entry` waited for** - so `nm -u` no longer lists
 // `_ns_set_offset`.  **Round 9 lands C 1877-1956**: `ns_set_window_size` (C 1877-1915) and
-// `ns_set_window_size_and_position` (C 1920-1956).  The next live definition is C 1959's
-// `ns_set_undecorated`.
+// `ns_set_window_size_and_position` (C 1920-1956).  **Round 10 lands C 1959-2398**: the seven
+// frame-parameter handlers (C 1961-2116), the `NS_IMPL_COCOA` trio `ns_set_appearance_1`/
+// `ns_set_appearance`/`ns_set_transparent_titlebar` (C 2120-2165), `ns_fullscreen_hook`
+// (C 2169-2181), the color block (`ns_get_color` C 2191-2297, `ns_lisp_to_color` C 2300-2312,
+// `ns_query_color` C 2315-2329, `ns_defined_color` C 2332-2354,
+// `ns_query_frame_background_color` C 2357-2363) and **`ns_set_frame_alpha` (C 2366-2398) - the
+// definition the deferred entry `ns_set_frame_alpha_entry` waited for** - so `nm -u` no longer
+// lists `_ns_set_frame_alpha` either.  The next live definition is C 2409's
+// `frame_set_mouse_pixel_position`.
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -74,6 +81,19 @@ typealias EmacsCGFloat = CGFloat
 /// the records the later slices carry.
 struct vectorlike_header {
   var size: Int
+}
+
+/// C: `typedef struct { unsigned long pixel; unsigned short red, green, blue; }
+/// Emacs_Color;` (src/dispextern.h 49-54, the `!HAVE_X_WINDOWS` arm that this target selects) -
+/// "XColor-like struct used by non-X code".  It crosses into `ns_defined_color` and
+/// `ns_query_frame_background_color`, whose pointee it is; the layout is measured (Evidence).
+struct Emacs_Color {
+  /// C: `unsigned long pixel;`
+  var pixel: UInt
+  /// C: `unsigned short red, green, blue;` - the declaration order, which is the layout.
+  var red: UInt16
+  var green: UInt16
+  var blue: UInt16
 }
 
 /// C: `struct input_event` (src/termhooks.h 371-412) - the record `emacs_event` points at, and
@@ -2106,4 +2126,578 @@ fileprivate func ns_set_window_size_and_position(_ f: UnsafeMutableRawPointer?, 
   frame_set_size_hint_flags(f, frame_size_hint_flags(f) & ~(XNegative() | YNegative()))
 
   unblock_input()
+}
+
+// ==========================================================================
+// C 1959-2398: the frame-parameter handlers, the color-management block, and
+// the alpha hook's definition (the mouse-handling banner at C 2401-2405 is the next slice).
+//
+// This slice's C constructs that the unit reads or writes and that have no symbol of their own
+// in the reference are entries (the integrator's ruling of status 3.255; the audit quoted in
+// `## Evidence` is the measurement behind the class): the `frame_set_*` member writes, the
+// two enumerator families (`z_group`, `ns_appearance_type`), the `Q*` globals the handlers
+// compare against, and the header-only `Lisp_Object` accessors.  Two call sites take the
+// round-5 ruling's deferred shape - an `EmacsWindow` constructor (C 1983) and one of its
+// methods (C 2144), whose class lands at C 9756 (`## ABI` (4)).
+// ==========================================================================
+
+/// C: `INLINE void fset_parent_frame (struct frame *f, Lisp_Object val)` (src/frame.h 774) -
+/// the setter family `docs/ports/nsmenu.swift` 307 reaches; `nsfns.swift` 641-642 imports the
+/// same name and the same signature.
+@_silgen_name("fset_parent_frame")
+func fset_parent_frame(_ f: UnsafeMutableRawPointer?, _ parent: Lisp_Object)
+/// C: `#define FRAME_UNDECORATED(f) ((f)->undecorated)` (src/frame.h 1239) - the `bool_bf`
+/// member at src/frame.h 449, written at C 1981.  Only the write half is this slice's, and the
+/// name is the one `nsfns.swift` 573-574 already imports.
+@_silgen_name("frame_set_undecorated")
+func frame_set_undecorated(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `#define FRAME_NO_FOCUS_ON_MAP(f) ((f)->no_focus_on_map)` (src/frame.h 1248) - written at
+/// C 2056 (`FRAME_NO_FOCUS_ON_MAP (f) = !NILP (new_value);`).  The macro's read half is the
+/// entry `ns_raise_frame` already carries (`FRAME_NO_FOCUS_ON_MAP`), so the write takes the
+/// member-write name (`<record>_set_<member>`, `docs/ports/nsmenu.swift` 311-328).
+@_silgen_name("frame_set_no_focus_on_map")
+func frame_set_no_focus_on_map(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `#define FRAME_NO_ACCEPT_FOCUS(f) ((f)->no_accept_focus)` (src/frame.h 1249) - written at
+/// C 2074; this slice does not read it.
+@_silgen_name("frame_set_no_accept_focus")
+func frame_set_no_accept_focus(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `#define FRAME_Z_GROUP(f) ((f)->z_group)` (src/frame.h 1250) - the `ENUM_BF (z_group)
+/// z_group : 2` member (src/frame.h 482), written at C 2096/2101/2107/2112, and the four
+/// enumerators of `enum z_group` (src/frame.h 61-67) it is written with.
+@_silgen_name("frame_set_z_group")
+func frame_set_z_group(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("z_group_none") func z_group_none() -> Int32
+@_silgen_name("z_group_above") func z_group_above() -> Int32
+@_silgen_name("z_group_below") func z_group_below() -> Int32
+@_silgen_name("z_group_above_suspended") func z_group_above_suspended() -> Int32
+/// C: `#define FRAME_NS_APPEARANCE(f) ((f)->ns_appearance)` (src/frame.h 1258, the
+/// `NS_IMPL_COCOA` arm) - the `enum ns_appearance_type` member (src/frame.h 70-75 and 737),
+/// written at C 2123/2125/2127 - and the three enumerators of that enum.
+@_silgen_name("frame_set_ns_appearance")
+func frame_set_ns_appearance(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("ns_appearance_system_default") func ns_appearance_system_default() -> Int32
+@_silgen_name("ns_appearance_aqua") func ns_appearance_aqua() -> Int32
+@_silgen_name("ns_appearance_vibrant_dark") func ns_appearance_vibrant_dark() -> Int32
+/// C: `#define FRAME_NS_TRANSPARENT_TITLEBAR(f) ((f)->ns_transparent_titlebar)` (src/frame.h
+/// 1259) - written at C 2162; the write name is the one `nsfns.swift` 577-578 already imports.
+@_silgen_name("frame_set_ns_transparent_titlebar")
+func frame_set_ns_transparent_titlebar(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: the globals this slice compares against - `Qparent_frame` (src/frame.c 7232),
+/// `Qbelow`/`Qabove_suspended` (src/frame.c 7367-7368), `Qabove` (src/window.c 9251) and
+/// `Qdark`/`Qlight` (src/nsfns.m 4207-4208, and src/frame.c 7904-7905).  Each is a C data
+/// symbol in the reference objects (`_Qdark` and friends are `S` in `build/emacs-ref/src/`),
+/// so the core exports one of its own name, the shape `docs/ports/nsfns.swift` 1135-1138 uses.
+@_silgen_name("Qparent_frame") func Qparent_frame() -> Lisp_Object
+@_silgen_name("Qabove") func Qabove() -> Lisp_Object
+@_silgen_name("Qabove_suspended") func Qabove_suspended() -> Lisp_Object
+@_silgen_name("Qbelow") func Qbelow() -> Lisp_Object
+@_silgen_name("Qdark") func Qdark() -> Lisp_Object
+@_silgen_name("Qlight") func Qlight() -> Lisp_Object
+/// C: `void store_frame_param (struct frame *, Lisp_Object, Lisp_Object)` (src/lisp.h 5117,
+/// defined src/frame.c 3872) - the core's `femacs/src/frame.rs` 3842 defines it.
+@_silgen_name("store_frame_param")
+func store_frame_param(_ f: UnsafeMutableRawPointer?, _ prop: Lisp_Object, _ val: Lisp_Object)
+/// C: `AVOID error (const char *, ...)` (src/lisp.h 4835; `_error` is `T` in
+/// `build/emacs-ref/src/eval.o`) - the lane's variadic shape (`nsfns.swift` 103).
+@_silgen_name("error") func error(_ format: UnsafePointer<CChar>, _ args: CVarArg...) -> Never
+/// C: `bool parse_color_spec (const char *, unsigned short *, unsigned short *,
+/// unsigned short *)` (src/dispextern.h 3798, defined src/xfaces.c 987) - the core's
+/// `femacs/src/xfaces.rs` 760 exports the same name and the same `*mut c_ushort` arguments.
+@_silgen_name("parse_color_spec")
+func parse_color_spec(_ spec: UnsafePointer<CChar>?, _ r: UnsafeMutablePointer<UInt16>,
+                      _ g: UnsafeMutablePointer<UInt16>, _ b: UnsafeMutablePointer<UInt16>) -> Bool
+/// C: `INLINE bool STRINGP (Lisp_Object)` (src/lisp.h 1582), `INLINE char *SSDATA (Lisp_Object)`
+/// (src/lisp.h 1658) and `INLINE Lisp_Object SYMBOL_NAME (Lisp_Object)` (src/lisp.h 2350) - the
+/// header-only accessors `ns_lisp_to_color` reads (`docs/ports/nsfns.swift` 184/200-201).
+@_silgen_name("STRINGP") func STRINGP(_ x: Lisp_Object) -> Bool
+@_silgen_name("SSDATA") func SSDATA(_ string: Lisp_Object) -> UnsafeMutablePointer<CChar>
+@_silgen_name("SYMBOL_NAME") func SYMBOL_NAME(_ sym: Lisp_Object) -> Lisp_Object
+/// C: `#define FRAME_BACKGROUND_COLOR(f) ((f)->output_data.ns->background_color)` (src/nsterm.h
+/// 1038) - the entry `macfont.swift` 756 already imports under this name and this type.
+@_silgen_name("FRAME_BACKGROUND_COLOR")
+func FRAME_BACKGROUND_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor?
+/// C: `DEFVAR_LISP ("frame-alpha-lower-limit", Vframe_alpha_lower_limit, …)` (src/frame.c
+/// 7421-7425) - a generated global (`build/emacs-ref/src/globals.h` 280-281 spells it
+/// `globals.f_…`), so the core exports a data symbol of its own name, the shape `Vframe_list`
+/// takes above.
+@_silgen_name("Vframe_alpha_lower_limit") var Vframe_alpha_lower_limit: Lisp_Object
+/// C: `#define FLOATP(x) lisp_h_FLOATP (x)` / `#define FIXNUMP(x) lisp_h_FIXNUMP (x)`
+/// (src/lisp.h 448-449) and `INLINE double XFLOAT_DATA (Lisp_Object)` (src/lisp.h 3186) /
+/// `INLINE EMACS_INT XFIXNUM (Lisp_Object)` (src/lisp.h 1268) - header-only, so the core
+/// exports each under its own name.
+@_silgen_name("FLOATP") func FLOATP(_ x: Lisp_Object) -> Bool
+@_silgen_name("XFLOAT_DATA") func XFLOAT_DATA(_ x: Lisp_Object) -> Double
+@_silgen_name("FIXNUMP") func FIXNUMP(_ x: Lisp_Object) -> Bool
+@_silgen_name("XFIXNUM") func XFIXNUM(_ x: Lisp_Object) -> Int
+/// C: the `double alpha[2]` member of `struct frame` (src/frame.h 707-711: "`alpha[0]`: alpha
+/// transparency of the active frame, `alpha[1]`: alpha transparency of inactive frames") - read
+/// at C 2378/2380 with C's own subscript, which is the entry's second argument.
+@_silgen_name("frame_alpha")
+func frame_alpha(_ f: UnsafeMutableRawPointer?, _ index: Int32) -> Double
+
+// **Deferred entries** (`## ABI` (4)): call sites that precede the definition's C line.
+@_silgen_name("EmacsWindow_initWithEmacsFrame")
+func EmacsWindow_initWithEmacsFrame(_ f: UnsafeMutableRawPointer?) -> AnyObject?
+/// C 2144: `[window setAppearance];` - `EmacsWindow -setAppearance` (C 10398).
+@_silgen_name("setAppearance") func setAppearance_entry(_ window: NSWindow?)
+
+// ==========================================================================
+// C 1960-1956: the seven frame-parameter handlers src/nsterm.h 1229-1245 declares.
+// ==========================================================================
+
+/// C 1960-1996: `void ns_set_undecorated (struct frame *f, Lisp_Object new_value, Lisp_Object
+/// old_value)` - `/* Set frame F's `undecorated' parameter.  If non-nil, F's window-system
+/// window is drawn without decorations, title, minimize/maximize boxes and external borders.
+/// This usually means that the window cannot be dragged, resized, iconified, maximized or
+/// deleted with the mouse.  If nil, draw the frame with all the elements listed above unless
+/// these have been suspended via window manager settings.  */`.  Declared src/nsterm.h 1229, so
+/// it keeps C's name under `@_cdecl`; `nsfns.swift` 457 imports it.
+@_cdecl("ns_set_undecorated")
+func ns_set_undecorated(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                        _ old_value: Lisp_Object) {
+  // C 1971: `NSTRACE ("ns_set_undecorated");` - `NSTRACE` is the empty macro at
+  // `NSTRACE_ENABLED` 0 (src/nsterm.h 142-143/297-302), so it carries no statement here.
+
+  if !EQ(new_value, old_value) {
+    let view = FRAME_NS_VIEW(f)
+    let oldWindow = view?.window
+    var newWindow: NSWindow?
+
+    block_input()
+
+    frame_set_undecorated(f, !NILP(new_value))
+
+    // C 1983: `newWindow = [[EmacsWindow alloc] initWithEmacsFrame:f];` - `EmacsWindow` is
+    // this file's own class and lands at C 9756 (`-initWithEmacsFrame:` C 9759), so the
+    // constructor is the deferred entry above.
+    newWindow = EmacsWindow_initWithEmacsFrame(f) as? NSWindow
+
+    if oldWindow?.isKeyWindow ?? false {
+      newWindow?.makeKeyAndOrderFront(NSApp)
+    }
+
+    newWindow?.setIsVisible(oldWindow?.isVisible ?? false)
+    if oldWindow?.isMiniaturized ?? false {
+      newWindow?.miniaturize(NSApp)
+    }
+
+    oldWindow?.close()
+
+    unblock_input()
+  }
+}
+
+/// C 1998-2040: `void ns_set_parent_frame (struct frame *f, Lisp_Object new_value, Lisp_Object
+/// old_value)` - "Set frame F's `parent-frame' parameter. … On macOS moving a parent frame
+/// moves all its child frames too, keeping their position relative to the parent unaltered.
+/// …".  Declared src/nsterm.h 1230 (`nsfns.swift` 458).
+@_cdecl("ns_set_parent_frame")
+func ns_set_parent_frame(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                         _ old_value: Lisp_Object) {
+  var p: UnsafeMutableRawPointer? = nil
+
+  // C 2024: `NSTRACE ("ns_set_parent_frame");` - empty, as above.
+
+  // C 2026-2029: `if (!NILP (new_value) && (!FRAMEP (new_value) || !FRAME_LIVE_P (p =
+  // XFRAME (new_value)) || !FRAME_NS_P (p)))`.  C's `p = XFRAME (new_value)` sits inside the
+  // condition, where Swift has no assignment expression, so the port spells the same
+  // short-circuit as three steps: `XFRAME` still runs only when `FRAMEP` failed to reject, and
+  // `FRAME_NS_P` only when `FRAME_LIVE_P` did.
+  if !NILP(new_value) {
+    var bad = !FRAMEP(new_value)
+
+    if !bad {
+      p = XFRAME(new_value)
+      bad = !FRAME_LIVE_P(p)
+      if !bad {
+        bad = !FRAME_NS_P(p)
+      }
+    }
+
+    if bad {
+      store_frame_param(f, Qparent_frame(), old_value)
+      error("Invalid specification of `parent-frame'")
+    }
+  }
+
+  fset_parent_frame(f, new_value)
+
+  block_input()
+  // C 2038: `[(EmacsWindow *)[FRAME_NS_VIEW (f) window] setParentChildRelationships];` - the
+  // `EmacsWindow` method whose entry round 7 already carries.
+  setParentChildRelationships_entry(FRAME_NS_VIEW(f)?.window)
+  unblock_input()
+}
+
+/// C 2042-2058: `void ns_set_no_focus_on_map (struct frame *f, Lisp_Object new_value,
+/// Lisp_Object old_value)` - "Set frame F's `no-focus-on-map' parameter which, if non-nil,
+/// means that F's window-system window does not want to receive input focus when it is
+/// mapped. …".  Declared src/nsterm.h 1231 (`nsfns.swift` 459).
+@_cdecl("ns_set_no_focus_on_map")
+func ns_set_no_focus_on_map(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                            _ old_value: Lisp_Object) {
+  // C 2052: `NSTRACE ("ns_set_no_focus_on_map");` - empty, as above.
+
+  if !EQ(new_value, old_value) {
+    frame_set_no_focus_on_map(f, !NILP(new_value))
+  }
+}
+
+/// C 2060-2075: `void ns_set_no_accept_focus (struct frame *f, Lisp_Object new_value,
+/// Lisp_Object old_value)` - "Set frame F's `no-accept-focus' parameter which, if non-nil,
+/// hints that F's window-system window does not want to receive input focus via mouse clicks or
+/// by moving the mouse into it. …".  Declared src/nsterm.h 1232 (`nsfns.swift` 460).
+@_cdecl("ns_set_no_accept_focus")
+func ns_set_no_accept_focus(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                            _ old_value: Lisp_Object) {
+  // C 2071: `NSTRACE ("ns_set_no_accept_focus");` - empty, as above.
+
+  if !EQ(new_value, old_value) {
+    // C 2074 is a single unbraced statement; Swift requires the braces.
+    frame_set_no_accept_focus(f, !NILP(new_value))
+  }
+}
+
+/// C 2077-2116: `void ns_set_z_group (struct frame *f, Lisp_Object new_value, Lisp_Object
+/// old_value)` - "Set frame F's `z-group' parameter.  If `above', F's window-system window is
+/// displayed above all windows that do not have the `above' property set. …".  Declared
+/// src/nsterm.h 1233 (`nsfns.swift` 461).
+@_cdecl("ns_set_z_group")
+func ns_set_z_group(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                    _ old_value: Lisp_Object) {
+  let view = FRAME_NS_VIEW(f)
+  let window = view?.window
+
+  // C 2091: `NSTRACE ("ns_set_z_group");` - empty, as above.
+
+  // C 2095/2100/2106/2111: `window.level = NSNormalWindowLevel [+|-] 1;` - Swift renames the
+  // AppKit constant to `NSWindow.Level.normal`, and C's `+ 1`/`- 1` become the same level's
+  // `rawValue` arithmetic.
+  if NILP(new_value) {
+    window?.level = NSWindow.Level.normal
+    frame_set_z_group(f, z_group_none())
+  } else if EQ(new_value, Qabove()) {
+    window?.level = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue + 1)
+    frame_set_z_group(f, z_group_above())
+  } else if EQ(new_value, Qabove_suspended()) {
+    /* Not sure what level this should be.  */
+    window?.level = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue + 1)
+    frame_set_z_group(f, z_group_above_suspended())
+  } else if EQ(new_value, Qbelow()) {
+    window?.level = NSWindow.Level(rawValue: NSWindow.Level.normal.rawValue - 1)
+    frame_set_z_group(f, z_group_below())
+  } else {
+    error("Invalid z-group specification")
+  }
+}
+
+/// C 2118-2128: `void ns_set_appearance_1 (struct frame *f, Lisp_Object new_value)` - the
+/// helper of the `NS_IMPL_COCOA` arm (the `#ifdef` at C 2118 is the live one).  Declared
+/// src/nsterm.h 1240; `nsfns.swift` 604 imports it.
+@_cdecl("ns_set_appearance_1")
+func ns_set_appearance_1(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object) {
+  if EQ(new_value, Qdark()) {
+    frame_set_ns_appearance(f, ns_appearance_vibrant_dark())
+  } else if EQ(new_value, Qlight()) {
+    frame_set_ns_appearance(f, ns_appearance_aqua())
+  } else {
+    frame_set_ns_appearance(f, ns_appearance_system_default())
+  }
+}
+
+/// C 2130-2146: `void ns_set_appearance (struct frame *f, Lisp_Object new_value, Lisp_Object
+/// old_value)`.  The body is C's `MAC_OS_X_VERSION_MAX_ALLOWED >= 101000` arm, which is live
+/// for this lane's target (the frozen configuration reads 260000).  Declared src/nsterm.h 1241
+/// (`nsfns.swift` 462).
+@_cdecl("ns_set_appearance")
+func ns_set_appearance(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                       _ old_value: Lisp_Object) {
+  let view = FRAME_NS_VIEW(f)
+  let window = view?.window
+
+  // C 2137: `NSTRACE ("ns_set_appearance");` - empty, as above.
+
+  // C 2139: `if (NSAppKitVersionNumber < NSAppKitVersionNumber10_10) return;` - the two AppKit
+  // globals are renamed in Swift (AppKit.apinotes 8624-8626, the reading the `colorForEmacsRed`
+  // category method above records); the fallback `#define NSAppKitVersionNumber10_10 1343` is
+  // C 10406-10408, inside a later slice's `-[EmacsWindow setAppearance]`.
+  if NSAppKitVersion.current.rawValue < NSAppKitVersion.macOS10_10.rawValue {
+    return
+  }
+
+  ns_set_appearance_1(f, new_value)
+
+  // C 2144: `[window setAppearance];` - the deferred entry above.
+  setAppearance_entry(window)
+}
+
+/// C 2148-2165: `void ns_set_transparent_titlebar (struct frame *f, Lisp_Object new_value,
+/// Lisp_Object old_value)`.  C's `MAC_OS_X_VERSION_MAX_ALLOWED >= 101000` arm is the live one.
+/// Declared src/nsterm.h 1242-1245 (`nsfns.swift` 463).
+@_cdecl("ns_set_transparent_titlebar")
+func ns_set_transparent_titlebar(_ f: UnsafeMutableRawPointer?, _ new_value: Lisp_Object,
+                                 _ old_value: Lisp_Object) {
+  let view = FRAME_NS_VIEW(f)
+  let window = view?.window
+
+  // C 2156: `NSTRACE ("ns_set_transparent_titlebar");` - empty, as above.
+
+  // C 2158: `[window respondsToSelector: @selector(titlebarAppearsTransparent)]` - Swift
+  // reaches the getter's selector through `#selector`, the reading
+  // `ns_update_auto_hide_menu_bar` above uses for `setPresentationOptions:`.
+  if (window?.responds(to: #selector(getter: NSWindow.titlebarAppearsTransparent)) ?? false)
+       && !EQ(new_value, old_value) {
+    window?.titlebarAppearsTransparent = !NILP(new_value)
+    frame_set_ns_transparent_titlebar(f, !NILP(new_value))
+  }
+}
+
+/// C 2168-2181: `static void ns_fullscreen_hook (struct frame *f)`.  It is a C `static` (the
+/// reference registers it as `terminal->fullscreen_hook` at C 5936), so it lands as a
+/// `fileprivate func` of its own name.
+fileprivate func ns_fullscreen_hook(_ f: UnsafeMutableRawPointer?) {
+  let view = FRAME_NS_VIEW(f)
+
+  // C 2173: `NSTRACE ("ns_fullscreen_hook");` - empty, as above.
+
+  if !FRAME_VISIBLE_P(f) {
+    return
+  }
+
+  block_input()
+  // C 2179: `[view handleFS];` - the `EmacsView` method whose entry round 7 already carries.
+  handleFS_entry(view)
+  unblock_input()
+}
+
+/* ==========================================================================
+
+    Color management
+
+   ========================================================================== */
+
+/// C 2190-2297: `static int ns_get_color (const char *name, NSColor **col)` - "Parse a color
+/// name", plus C's own note that it "attempt[s] to mimic the X11 platform here, down to
+/// installing an X11 rgb.txt-compatible color list in Emacs.clr".
+///
+/// C reassigns its `const char *name` parameter twice (C 2224/2238) from `[nsname UTF8String]`;
+/// Swift's `String` holds those same bytes, so the port keeps `nsname` alone and reads the two
+/// uses of the pointer (C 2243's `parse_color_spec` and C 2252's `name[0]`) from it.
+fileprivate func ns_get_color(_ name: UnsafePointer<CChar>?,
+                              _ col: UnsafeMutablePointer<NSColor?>) -> Int32 {
+  var new: NSColor? = nil
+  var nsname: NSString = String(cString: name!) as NSString
+
+  // C 2202: `NSTRACE ("ns_get_color(%s, **)", name);` - empty, so its arguments are not
+  // evaluated here either.
+
+  block_input()
+
+  if nsname.isEqual(to: "ns_selection_bg_color") {
+    /* C 2208-2214: the `NS_IMPL_COCOA` arm reads the system's own highlight colour; C's
+       `#else` arm (the other implementation's spelling) is dead in this build.  */
+    let defname = UserDefaults.standard.string(forKey: "AppleHighlightColor")
+    if defname != nil {
+      nsname = defname! as NSString
+    } else {
+      // C 2215: `(new = [NSColor selectedTextBackgroundColor]) != nil` - C's assignment
+      // inside the condition becomes a statement of its own (Swift has no assignment
+      // expression).
+      new = NSColor.selectedTextBackgroundColor
+      if new != nil {
+        col.pointee = new!.colorUsingDefaultColorSpace()
+        unblock_input()
+        return 0
+      } else {
+        /* C 2222: `nsname = NS_SELECTION_BG_COLOR_DEFAULT;` - the macro's body is the string
+           literal at src/nsterm.h 1278, spelled in place (status 3.255's class B: no symbol
+           is invented for a macro whose expansion is a literal).  */
+        nsname = "LightGoldenrod2"
+      }
+    }
+
+    // C 2224: `name = [nsname UTF8String];` - see the note above.
+  } else if nsname.isEqual(to: "ns_selection_fg_color") {
+    /* NOTE: macOS applications normally don't set foreground
+       selection, but text may be unreadable if we don't.  */
+    // C 2230: `if ((new = [NSColor selectedTextColor]) != nil)` - as at C 2215.
+    new = NSColor.selectedTextColor
+    if new != nil {
+      col.pointee = new!.colorUsingDefaultColorSpace()
+      unblock_input()
+      return 0
+    }
+
+    /* C 2237: `nsname = NS_SELECTION_FG_COLOR_DEFAULT;` - src/nsterm.h 1279's `@"Black"`.  */
+    nsname = "Black"
+    // C 2238: `name = [nsname UTF8String];` - see the note above.
+  }
+
+  /* First, check for some sort of numeric specification.  */
+  var r16: UInt16 = 0, g16: UInt16 = 0, b16: UInt16 = 0
+  // C 2243: `parse_color_spec (name, &r16, &g16, &b16)` - `name` is `[nsname UTF8String]`, so
+  // the port hands the entry the same bytes through `withCString`.
+  if (nsname as String).withCString({ parse_color_spec($0, &r16, &g16, &b16) }) {
+    col.pointee = NSColor.colorForEmacsRed(EmacsCGFloat(r16) / 65535.0,
+                                           green: EmacsCGFloat(g16) / 65535.0,
+                                           blue: EmacsCGFloat(b16) / 65535.0,
+                                           alpha: 1.0)
+    unblock_input()
+    return 0
+  } else if (nsname as String).utf8.first == UInt8(ascii: "0")
+              || (nsname as String).utf8.first == UInt8(ascii: "1")
+              || (nsname as String).utf8.first == UInt8(ascii: ".") {
+    /* RGB decimal */
+    let scanner = Scanner(string: nsname as String)
+    var r: Float = 0, g: Float = 0, b: Float = 0
+    if scanner.scanFloat(&r) && r >= 0 && r <= 1
+        && scanner.scanFloat(&g) && g >= 0 && g <= 1
+        && scanner.scanFloat(&b) && b >= 0 && b <= 1 {
+      col.pointee = NSColor.colorForEmacsRed(EmacsCGFloat(r), green: EmacsCGFloat(g),
+                                             blue: EmacsCGFloat(b), alpha: 1.0)
+      unblock_input()
+      return 0
+    }
+  }
+
+  /* Otherwise, color is expected to be from a list */
+  do {
+    /* C 2268-2271 declares `NSEnumerator *lenum, *cenum; NSString *name; NSColorList *clist;`
+       - C's inner `NSString *name` shadows the parameter, and this loop's `name` is the same
+       shadow.  C 2281/2284's `&& new == nil` is the loop's early exit, and the
+       `objectEnumerator` reads of C 2280/2283 are the arrays Swift vends (the reading
+       `nsfns.swift` 3220 records).  */
+    for clist in NSColorList.availableColorLists {
+      if new != nil { break }
+      for name in clist.allKeys {
+        if new != nil { break }
+        // C 2286-2288: `[name compare: nsname options: NSCaseInsensitiveSearch] ==
+        // NSOrderedSame`.
+        if name.compare(nsname as String, options: .caseInsensitive) == .orderedSame {
+          new = clist.color(withKey: name)
+        }
+      }
+    }
+
+    /* C 2273-2278: the `NS_IMPL_GNUSTEP` arm's /* XXX: who is wrong, the requestor or the
+       implementation?  */ rewrite of `nsname` - dead in this build, recorded not
+       transcribed.  (Swift's block comments nest, so C's inner comment survives verbatim.)  */
+  }
+
+  if new != nil {
+    col.pointee = new!.colorUsingDefaultColorSpace()
+  }
+  unblock_input()
+  return new != nil ? 0 : 1
+}
+
+/// C 2299-2312: `int ns_lisp_to_color (Lisp_Object color, NSColor **col)` - "Convert a Lisp
+/// string object to a NS color."  Declared src/nsterm.h 1148 (the `__OBJC__` arm), so it keeps
+/// C's name under `@_cdecl`; `nsfns.swift` 118-119 imports this signature, and its three call
+/// sites pass `&col` for an `NSColor?`.
+@_cdecl("ns_lisp_to_color")
+func ns_lisp_to_color(_ color: Lisp_Object, _ col: UnsafeMutablePointer<NSColor?>) -> Int32 {
+  // C 2306: `NSTRACE ("ns_lisp_to_color");` - empty, as above.
+
+  if STRINGP(color) {
+    return ns_get_color(SSDATA(color), col)
+  } else if SYMBOLP(color) {
+    return ns_get_color(SSDATA(SYMBOL_NAME(color)), col)
+  }
+  return 1
+}
+
+/// C 2314-2329: `static void ns_query_color (void *col, Emacs_Color *color_def)` - "Get ARGB
+/// values out of NSColor col and put them into color_def and set color_def pixel to the ARGB
+/// color."  C's `void *` parameter is the `NSColor *` its two call sites pass (C 2351/2362),
+/// so the port types it; the ARGB extraction is the `NSColor (EmacsColor)` category's
+/// `-unsignedLong` above.
+fileprivate func ns_query_color(_ col: NSColor?, _ color_def: UnsafeMutablePointer<Emacs_Color>) {
+  var r: EmacsCGFloat = 0, g: EmacsCGFloat = 0, b: EmacsCGFloat = 0, a: EmacsCGFloat = 0
+
+  col?.getRed(&r, green: &g, blue: &b, alpha: &a)
+  color_def.pointee.red = UInt16(r * 65535)
+  color_def.pointee.green = UInt16(g * 65535)
+  color_def.pointee.blue = UInt16(b * 65535)
+
+  color_def.pointee.pixel = col!.unsignedLong()
+}
+
+/// C 2331-2354: `bool ns_defined_color (struct frame *f, const char *name, Emacs_Color
+/// *color_def, bool alloc, bool _makeIndex)` - "Return true if named color found, and set
+/// color_def rgb accordingly.  Return false if not found."  Declared src/nsterm.h 1142, so it
+/// keeps C's name under `@_cdecl`.  `@_cdecl` refuses a pointer to a Swift record (measured),
+/// so the `Emacs_Color *` crosses as `UnsafeMutableRawPointer` and is re-bound inside - the
+/// reading round 2's `ns_init_events` records - while the ABI is C's pointer either way.
+@_cdecl("ns_defined_color")
+func ns_defined_color(_ f: UnsafeMutableRawPointer?, _ name: UnsafePointer<CChar>?,
+                      _ color_def: UnsafeMutableRawPointer?, _ alloc: Bool,
+                      _ _makeIndex: Bool) -> Bool {
+  var col: NSColor? = nil
+  // C 2343: `NSTRACE_WHEN (NSTRACE_GROUP_COLOR, "ns_defined_color");` - empty at
+  // `NSTRACE_ENABLED` 0, so neither its group nor its format string is evaluated.
+
+  block_input()
+  if ns_get_color(name, &col) != 0 { /* Color not found  */
+    unblock_input()
+    return false
+  }
+  ns_query_color(col, color_def!.assumingMemoryBound(to: Emacs_Color.self))
+  unblock_input()
+  return true
+}
+
+/// C 2356-2363: `static void ns_query_frame_background_color (struct frame *f, Emacs_Color
+/// *bgcolor)` - "External (hook): Store F's background color into *BGCOLOR".  The reference
+/// registers it as `terminal->query_frame_background_color` (C 5929).
+fileprivate func ns_query_frame_background_color(_ f: UnsafeMutableRawPointer?,
+                                                 _ bgcolor: UnsafeMutablePointer<Emacs_Color>) {
+  ns_query_color(FRAME_BACKGROUND_COLOR(f), bgcolor)
+}
+
+/// C 2365-2398: `static void ns_set_frame_alpha (struct frame *f)` - "change the entire-frame
+/// transparency".  C forward-declares it at C 1579 (`static void ns_set_frame_alpha (struct
+/// frame *f);`) and calls it first at C 1612/1617, which is what put those call sites on the
+/// deferred-entry footing (`ns_set_frame_alpha_entry`, `## ABI` (4)); **this is the definition
+/// that entry waited for**, and the reference also registers it as
+/// `terminal->set_frame_alpha_hook` (C 5941).
+@_cdecl("ns_set_frame_alpha")
+func ns_set_frame_alpha(_ f: UnsafeMutableRawPointer?) {
+  var alpha: Double = 1.0
+  var alpha_min: Double = 1.0
+
+  // C 2375: `NSTRACE ("ns_set_frame_alpha");` - empty, as above.
+
+  // C 2371: `struct ns_display_info *dpyinfo = FRAME_DISPLAY_INFO (f);` - the display-info
+  // member entry round 7 lands takes the *frame* C's `FRAME_DISPLAY_INFO` starts from, the
+  // shape `ns_frame_rehighlight` above already uses, so the local itself has no separate
+  // reading here.
+  // C 2377-2380: `dpyinfo->highlight_frame == f` is that entry; `f->alpha[0]`/`[1]` is the
+  // `frame_alpha` entry above.
+  if ns_display_info_highlight_frame(f) == f {
+    alpha = frame_alpha(f, 0)
+  } else {
+    alpha = frame_alpha(f, 1)
+  }
+
+  // C 2382-2385: `FLOATP`/`XFLOAT_DATA` and `FIXNUMP`/`XFIXNUM` on the generated global
+  // `Vframe_alpha_lower_limit`.
+  if FLOATP(Vframe_alpha_lower_limit) {
+    alpha_min = XFLOAT_DATA(Vframe_alpha_lower_limit)
+  } else if FIXNUMP(Vframe_alpha_lower_limit) {
+    alpha_min = Double(XFIXNUM(Vframe_alpha_lower_limit)) / 100.0
+  }
+
+  if alpha < 0.0 {
+    return
+  } else if 1.0 < alpha {
+    alpha = 1.0
+  } else if 0.0 <= alpha && alpha < alpha_min && alpha_min <= 1.0 {
+    alpha = alpha_min
+  }
+
+  do {
+    let view = FRAME_NS_VIEW(f)
+    view?.window?.alphaValue = EmacsCGFloat(alpha)
+  }
 }
