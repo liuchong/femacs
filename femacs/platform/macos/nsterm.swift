@@ -12,8 +12,14 @@
 // its `NS_SELF_CONTAINED` arm live per `configure.ac` 689-690/2885-2886), `ns_init_pool`
 // (C 560-568), `ns_init_locale` (C 569-600), and the four retain/release/pool hooks "callable
 // from C" (C 602-638).  `EV_TRAILER`/`EV_TRAILER2` (C 448-470) are **held** to C 5013, where
-// their two callees exist (see the note in round 2's block).  The next slice starts at C 641
-// (`ns_menu_bar_should_be_hidden`) and C 650's `struct EmacsMargins`.
+// their two callees exist (see the note in round 2's block).  **Round 4 lands C 641-991**: the
+// menu-bar predicate (C 641-648), `struct EmacsMargins` (C 650-656), the screen margins and the
+// hidden-dock variant (C 659-753), the menu-bar height (C 754-772), `NS_PARENT_WINDOW_*` and the
+// parent-window rect (C 773-807), `ns_row_rect` (C 808-827), `ns_frame_scale_factor` (C 828-891)
+// and `constrain_frame_rect` (C 892-991).  The next live definition is C 1001's
+// `ns_constrain_all_frames`, which needs a ruling: it calls this unit's own `EmacsView`
+// `-isFullscreen` (C 8957), a method of a class that lands much later in the same file (see the
+// report's finding).
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -754,4 +760,325 @@ func ns_alloc_autorelease_pool() -> UnsafeMutableRawPointer? {
 func ns_release_autorelease_pool(_ pool: UnsafeMutableRawPointer?) {
   if pool == nil { return }
   objc_autoreleasePoolPop(pool)
+}
+
+// ==========================================================================
+// C 641-991: the screen geometry, the menu bar, and the window constrainer.
+// ==========================================================================
+
+/// C: `bool ns_auto_hide_menu_bar` - src/nsterm.m 11697's `DEFVAR_LISP ("ns-auto-hide-menu-bar",
+/// …)` (a `Lisp_Object`, set to `Qnil` at 11700).  Imported as the C data symbol the core
+/// exports, the shape round 2 set for the seven `ns_*_modifier` variables and round 1 for
+/// `ns_use_srgb_colorspace`; it is owed until `syms_of_nsterm`'s slice lands.
+@_silgen_name("ns_auto_hide_menu_bar") var ns_auto_hide_menu_bar: Lisp_Object
+
+/// C: `#define NILP(x) lisp_h_NILP (x)` (src/lisp.h 450) - the predicate the generated globals
+/// use; the lane reaches it as a C-ABI entry of its own name (docs/ports/nsfns.swift 176).
+@_silgen_name("NILP") func NILP(_ x: Lisp_Object) -> Bool
+
+/// C: `struct frame *FRAME_PARENT_FRAME (struct frame *f)` (src/frame.h 1234, an INLINE).
+@_silgen_name("FRAME_PARENT_FRAME")
+func FRAME_PARENT_FRAME(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: `#define FRAME_NS_VIEW(f) ((f)->output_data.ns->view)` (src/nsterm.h 1045).
+@_silgen_name("FRAME_NS_VIEW") func FRAME_NS_VIEW(_ f: UnsafeMutableRawPointer?) -> NSView?
+
+/// C: `#define WINDOW_TO_FRAME_PIXEL_Y(W, Y) ((Y) + WINDOW_TOP_EDGE_Y (W))` (src/window.h 1078) -
+/// "Convert window W relative pixel Y to frame pixel coordinates."
+@_silgen_name("WINDOW_TO_FRAME_PIXEL_Y")
+func WINDOW_TO_FRAME_PIXEL_Y(_ w: UnsafeMutableRawPointer?, _ y: Int32) -> Int32
+/// C: `void window_box (struct window *, enum glyph_row_area, int *, int *, int *, int *)`
+/// (src/dispextern.h 3574).
+@_silgen_name("window_box")
+func window_box(_ w: UnsafeMutableRawPointer?, _ area: Int32,
+                _ x: UnsafeMutablePointer<Int32>?, _ y: UnsafeMutablePointer<Int32>?,
+                _ width: UnsafeMutablePointer<Int32>?, _ height: UnsafeMutablePointer<Int32>?)
+
+/// C: the record members this block reads directly and that no C macro or INLINE names
+/// (`row->y`, `row->visible_height`): `struct glyph_row` belongs to the core, so each access is a
+/// C-ABI entry named after the member - the rule `docs/ports/nsmenu.swift` 311-328 states for
+/// `struct frame`'s members and `struct ns_output`'s.
+@_silgen_name("glyph_row_y") func glyph_row_y(_ row: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_row_visible_height")
+func glyph_row_visible_height(_ row: UnsafeMutableRawPointer?) -> Int32
+
+/// C 641-648: `static BOOL ns_menu_bar_should_be_hidden (void)` - "True, if the menu bar should
+/// be hidden."
+fileprivate func ns_menu_bar_should_be_hidden() -> Bool {
+  // C's `[NSApp respondsToSelector:@selector(setPresentationOptions:)]`; Swift exposes that
+  // setter as the `presentationOptions` property, so the selector is the property's setter.
+  !NILP(ns_auto_hide_menu_bar)
+    && NSApp.responds(to: #selector(setter: NSApplication.presentationOptions))
+}
+
+/// C 650-656: `struct EmacsMargins { CGFloat top; CGFloat bottom; CGFloat left; CGFloat right; }`
+/// - what the screen-margin functions pass around.  Measured rather than assumed: `sizeof 32`,
+/// `align 8`, the four members at 0/8/16/24 (Evidence), and the Swift view agrees.
+struct EmacsMargins {
+  var top: CGFloat
+  var bottom: CGFloat
+  var left: CGFloat
+  var right: CGFloat
+}
+
+/// C 659-709: `static struct EmacsMargins ns_screen_margins (NSScreen *screen)` - "The parts of
+/// SCREEN used by the operating system."  C's parameter is an object pointer, and every caller
+/// passes a real screen; the port keeps the pointer's optionality, because C's nil receiver
+/// yields zeroed `NSRect`s rather than crashing (`?? NSRect.zero` below).
+/// `NSTRACE`/`NSTRACE_MSG` are the empty macros at `NSTRACE_ENABLED` 0 (src/nsterm.h 297-307),
+/// so neither carries a statement.
+fileprivate func ns_screen_margins(_ screen: NSScreen?) -> EmacsMargins {
+  var margins = EmacsMargins(top: 0, bottom: 0, left: 0, right: 0)
+
+  let screenFrame = screen?.frame ?? NSRect.zero
+  let screenVisibleFrame = screen?.visibleFrame ?? NSRect.zero
+
+  /* Sometimes, visibleFrame isn't up-to-date with respect to a hidden
+     menu bar, check this explicitly.  */
+  if ns_menu_bar_should_be_hidden() {
+    margins.top = 0
+  } else {
+    let frameTop = screenFrame.origin.y + screenFrame.size.height
+    let visibleFrameTop = (screenVisibleFrame.origin.y
+                           + screenVisibleFrame.size.height)
+
+    margins.top = frameTop - visibleFrameTop
+  }
+
+  do {
+    let frameRight = screenFrame.origin.x + screenFrame.size.width
+    let visibleFrameRight = (screenVisibleFrame.origin.x
+                             + screenVisibleFrame.size.width)
+    margins.right = frameRight - visibleFrameRight
+  }
+
+  margins.bottom = screenVisibleFrame.origin.y - screenFrame.origin.y
+  margins.left = screenVisibleFrame.origin.x - screenFrame.origin.x
+
+  return margins
+}
+
+/* A screen margin between 1 and DOCK_IGNORE_LIMIT (inclusive) is
+   assumed to contain a hidden dock.  macOS currently use 4 pixels for
+   this, however, to be future compatible, a larger value is used.  */
+/// C 708: `#define DOCK_IGNORE_LIMIT 6` - the `int` the comparisons below promote.
+fileprivate let DOCK_IGNORE_LIMIT: CGFloat = 6
+
+/// C 710-753: `static struct EmacsMargins ns_screen_margins_ignoring_hidden_dock (NSScreen
+/// *screen)` - "The parts of SCREEN used by the operating system, excluding the parts reserved
+/// for a hidden dock."
+fileprivate func ns_screen_margins_ignoring_hidden_dock(_ screen: NSScreen?) -> EmacsMargins {
+  var margins = ns_screen_margins(screen)
+
+  /* macOS (currently) reserved 4 pixels along the edge where a hidden
+     dock is located.  Unfortunately, it's not possible to find the
+     location and information about if the dock is hidden.  Instead,
+     it is assumed that if the margin of an edge is less than
+     DOCK_IGNORE_LIMIT, it contains a hidden dock.  */
+  if margins.left <= DOCK_IGNORE_LIMIT {
+    margins.left = 0
+  }
+  if margins.right <= DOCK_IGNORE_LIMIT {
+    margins.right = 0
+  }
+  if margins.top <= DOCK_IGNORE_LIMIT {
+    margins.top = 0
+  }
+  /* Note: This doesn't occur in current versions of macOS, but
+     included for completeness and future compatibility.  */
+  if margins.bottom <= DOCK_IGNORE_LIMIT {
+    margins.bottom = 0
+  }
+
+  return margins
+}
+
+/// C 754-772: `static CGFloat ns_menu_bar_height (NSScreen *screen)` - "The height of the menu
+/// bar, if visible."  (The note that follows it in C - not to use this when fullscreen is
+/// enabled - is C's own text and is kept with the function.)
+fileprivate func ns_menu_bar_height(_ screen: NSScreen?) -> CGFloat {
+  let margins = ns_screen_margins(screen)
+  return margins.top
+}
+
+/// C 773-807: `static NSRect ns_parent_window_rect (struct frame *f)` - "Get the frame rect, in
+/// system coordinates, of the parent window or, if there is no parent window, the main screen."
+///
+/// C's three arms are all `NS_IMPL_COCOA` variants of getting the rect into screen coordinates;
+/// the live one is the last (`MAC_OS_X_VERSION_MIN_REQUIRED` is 260000 here, so the
+/// `convertBaseToScreen:` fallbacks are dead text): `[[parentView window]
+/// convertRectToScreen:parentRect]`.  A nil window yields a zeroed `NSRect` in C, which is what
+/// `?? NSRect.zero` reads.
+fileprivate func ns_parent_window_rect(_ f: UnsafeMutableRawPointer?) -> NSRect {
+  var parentRect: NSRect
+
+  if FRAME_PARENT_FRAME(f) != nil {
+    let parentView = FRAME_NS_VIEW(FRAME_PARENT_FRAME(f))
+    parentRect = parentView!.convert(parentView!.frame, to: nil)
+    parentRect = parentView?.window?.convertToScreen(parentRect) ?? NSRect.zero
+  } else {
+    parentRect = NSScreen.screens[0].frame
+  }
+
+  return parentRect
+}
+
+/* Calculate system coordinates of the left and top of the parent
+   window or, if there is no parent window, the main screen.  */
+/// C 803-804: `#define NS_PARENT_WINDOW_LEFT_POS(f) NSMinX (ns_parent_window_rect (f))` and
+/// `#define NS_PARENT_WINDOW_TOP_POS(f) NSMaxY (ns_parent_window_rect (f))`.
+func NS_PARENT_WINDOW_LEFT_POS(_ f: UnsafeMutableRawPointer?) -> CGFloat {
+  NSMinX(ns_parent_window_rect(f))
+}
+func NS_PARENT_WINDOW_TOP_POS(_ f: UnsafeMutableRawPointer?) -> CGFloat {
+  NSMaxY(ns_parent_window_rect(f))
+}
+
+/// C 808-827: `static NSRect ns_row_rect (struct window *w, struct glyph_row *row, enum
+/// glyph_row_area area)` - "Get the row as an NSRect."
+fileprivate func ns_row_rect(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                             _ area: Int32) -> NSRect {
+  var window_x: Int32 = 0, window_y: Int32 = 0, window_width: Int32 = 0
+
+  window_box(w, area, &window_x, &window_y, &window_width, nil)
+
+  var rect = NSRect.zero
+  rect.origin.x = CGFloat(window_x)
+  rect.origin.y = CGFloat(WINDOW_TO_FRAME_PIXEL_Y(w, max(0, glyph_row_y(row))))
+  rect.origin.y = max(rect.origin.y, CGFloat(window_y))
+  rect.size.width = CGFloat(window_width)
+  rect.size.height = CGFloat(glyph_row_visible_height(row))
+
+  return rect
+}
+
+/// C 828-832 (with the `#if` chain that follows): `double ns_frame_scale_factor (struct frame
+/// *f)`.  Declared src/nsterm.h 1260 and called from src/nsfns.m, so it is a `@_cdecl` export.
+/// The live arm is the last: `MAC_OS_X_VERSION_MIN_REQUIRED` is 260000, so
+/// `[[FRAME_NS_VIEW (f) window] backingScaleFactor]`; the GNUstep `userSpaceScaleFactor` arm and
+/// the `respondsToSelector:@selector(backingScaleFactor:)` arm are the dead text recorded here.
+/// A nil view or window yields 0.0 through C's nil receiver, which `?? 0` reads.
+@_cdecl("ns_frame_scale_factor")
+func ns_frame_scale_factor(_ f: UnsafeMutableRawPointer?) -> Double {
+  Double(FRAME_NS_VIEW(f)?.window?.backingScaleFactor ?? 0)
+}
+
+/* ==========================================================================
+
+    Focus (clipping) and screen update
+
+   ========================================================================== */
+
+//
+// Window constraining
+// -------------------
+//
+// To ensure that the windows are not placed under the menu bar, they
+// are typically moved by the call-back constrainFrameRect. However,
+// by overriding it, it's possible to inhibit this, leaving the window
+// in it's original position.
+//
+// It's possible to hide the menu bar. However, technically, it's only
+// possible to hide it when the application is active. To ensure that
+// this work properly, the menu bar and window constraining are
+// deferred until the application becomes active.
+//
+// Even though it's not possible to manually move a window above the
+// top of the screen, it is allowed if it's done programmatically,
+// when the menu is hidden. This allows the editable area to cover the
+// full screen height.
+//
+// Test cases
+// ----------
+//
+// Use the following extra files:
+//
+//    init.el:
+//       ;; Hide menu and place frame slightly above the top of the screen.
+//       (setq ns-auto-hide-menu-bar t)
+//       (set-frame-position (selected-frame) 0 -20)
+//
+// Test 1:
+//
+//    emacs -Q -l init.el
+//
+//    Result: No menu bar, and the title bar should be above the screen.
+//
+// Test 2:
+//
+//    emacs -Q
+//
+//    Result: Menu bar visible, frame placed immediately below the menu.
+//
+
+/// C 892-991: `static NSRect constrain_frame_rect(NSRect frameRect, bool isFullscreen)` - the
+/// window constrainer the comment above documents.  C's `#if 0` block at 962-985 (the disabled
+/// "don't stretch below the screens" restriction) is skipped by the extractor's own rule and is
+/// recorded here, not transcribed.
+fileprivate func constrain_frame_rect(_ frameRect: NSRect, _ isFullscreen: Bool) -> NSRect {
+  var frameRect = frameRect
+
+  // --------------------
+  // Collect information about the screen the frame is covering.
+  //
+
+  let screens = NSScreen.screens
+  let nr_screens = screens.count
+
+  // The height of the menu bar, if present in any screen the frame is
+  // displayed in.
+  var menu_bar_height: Int32 = 0
+
+  // A rectangle covering all the screen the frame is displayed in.
+  var multiscreenRect = NSMakeRect(0, 0, 0, 0)
+  for i in 0..<nr_screens {
+    let s = screens[i]
+    let scrRect = s.frame
+
+    if NSIntersectionRect(frameRect, scrRect).size.height != 0 {
+      multiscreenRect = NSUnionRect(multiscreenRect, scrRect)
+
+      if !isFullscreen {
+        let screen_menu_bar_height = ns_menu_bar_height(s)
+        menu_bar_height = Int32(max(CGFloat(menu_bar_height), screen_menu_bar_height))
+      }
+    }
+  }
+
+  if multiscreenRect.size.width == 0
+       || multiscreenRect.size.height == 0 {
+    // Failed to find any monitor, give up.
+    return frameRect
+  }
+
+  // --------------------
+  // Find a suitable placement.
+  //
+
+  if ns_menu_bar_should_be_hidden() {
+    // When the menu bar is hidden, the user may place part of the
+    // frame above the top of the screen, for example to hide the
+    // title bar.
+    //
+    // Hence, keep the original position.
+  } else {
+    // Ensure that the frame is below the menu bar, or below the top
+    // of the screen.
+    //
+    // This assume that the menu bar is placed at the top in the
+    // rectangle that covers the monitors.  (It doesn't have to be,
+    // but if it's not it's hard to do anything useful.)
+    let topOfWorkArea = (multiscreenRect.origin.y
+                         + multiscreenRect.size.height
+                         - CGFloat(menu_bar_height))
+
+    let topOfFrame = frameRect.origin.y + frameRect.size.height
+    if topOfFrame > topOfWorkArea {
+      frameRect.origin.y -= topOfFrame - topOfWorkArea
+    }
+  }
+
+  // C's `#if 0` block (C 962-985): "Include the following section to restrict frame to the
+  // screens." - the disabled "ensure frame doesn't stretch below the screens" restriction.
+
+  return frameRect
 }

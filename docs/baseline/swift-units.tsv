@@ -34,7 +34,6 @@ femacs/platform/macos/nsfont.swift	nsfont_draw	src/nsfont.m
 femacs/platform/macos/nsterm.swift	cancel_ns_deferred_UAZoomChangeFocus_timer	src/nsterm.m
 femacs/platform/macos/nsterm.swift	check_native_fs	src/nsterm.m
 femacs/platform/macos/nsterm.swift	compute_offset	src/nsterm.m
-femacs/platform/macos/nsterm.swift	constrain_frame_rect	src/nsterm.m
 femacs/platform/macos/nsterm.swift	frame_set_mouse_pixel_position	src/nsterm.m
 femacs/platform/macos/nsterm.swift	get_keysym_name	src/nsterm.m
 femacs/platform/macos/nsterm.swift	hide_bell	src/nsterm.m
@@ -87,7 +86,6 @@ femacs/platform/macos/nsterm.swift	ns_focus_frame	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_frame_raise_lower	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_frame_rehighlight	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_frame_scale_factor	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_frame_up_to_date	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_free_frame_resources	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_free_pixmap	src/nsterm.m
@@ -108,12 +106,9 @@ femacs/platform/macos/nsterm.swift	ns_make_frame_invisible	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_make_frame_visible	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_make_frame_visible_invisible	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_maybe_dumpglyphs_background	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_menu_bar_height	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_menu_bar_should_be_hidden	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_mouse_position	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_new_font	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_note_mouse_movement	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_parent_window_rect	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_query_color	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_query_frame_background_color	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_raise_frame	src/nsterm.m
@@ -122,10 +117,7 @@ femacs/platform/macos/nsterm.swift	ns_read_socket_1	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redeem_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redraw_scroll_bars	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_ring_bell	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_row_rect	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_run_loop_break	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_screen_margins	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_screen_margins_ignoring_hidden_dock	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_scroll_run	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_select	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_select_1	src/nsterm.m

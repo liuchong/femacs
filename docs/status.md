@@ -4397,3 +4397,29 @@
   ④ 读数（本轮末）：全树台账 **13553 勾 / 570 未勾**（未勾集中在 `nsterm` 333、`xdisp` 143、`nsfns` 80，其余是 3 条以下的小尾巴）；
   `extract-abi --all` 589 done / 1 in progress（`src/xdisp.c`）/ 0 failing；`dead-arms` 337 单元 exit 0；
   `check-declarations` 13/0、`check-undef` 108 pending/0 new、`check-verbatim` 6/4607/0、`check-mirror-dupes` 1/1/0。
+
+- **3.239 两条平台/显示 lane 入库（`xdisp` 第 18 轮 → 16,194 行；`nsterm` 第 4 轮 → 1,084 行），并给 `nsterm` 那条"Swift 声明顺序墙"定了裁决（2026-10-04）**：
+  ① **`xdisp` 第 18 轮（`48edb0f`）**：C 15584-16929（1,346 行 C）——活码 342 行（`tty_get_tab_bar_item`、
+  `hscroll_window_tree`、`hscroll_windows` + 一个 use-site extern），**死臂 955 行**（Tool-bars 整段在 `HAVE_WINDOW_SYSTEM` 内，
+  按 P-08/P-51 记录，三个 subr 按死臂规则留作 `missing subr`），另有 40 行是**刻意缺口**（C 15615-15654
+  `tty_handle_tab_bar_click`：`include/termchar.rs:274` 已声明同名 `extern "C"`，这里再定义就是 `E0428`）。
+  读数：`xdisp.rs` 15,825 → **16,194 行**、函数 179 → **182/302**、`--check` 157 → **156** 行、
+  `does not mention` 归 0（本轮那条 `hscroll_window_tree` / `double` 的共享行已录）。**下一轮起点：C 17006
+  `text_outside_line_unchanged_p`**（lane 自证 C 16940-16997 是 `GLYPH_DEBUG` 死块、不是定义）。
+  ② **`nsterm` 第 4 轮（本条目同批）**：`nsterm.swift` 757 → **1,084 行**（C 641-1000 段的 `ns_menu_bar_should_be_hidden`、
+  `struct EmacsMargins`（clang 实测 32/8，top 0/bottom 8/left 16/right 24）、`ns_screen_margins`、`ns_parent_window_rect`、
+  `ns_row_rect`、`ns_frame_scale_factor`、`constrain_frame_rect` 等），台账 1,003 行；`swiftc -parse-as-library -c` **exit 0**；
+  门读数 `142 C definition(s), 121 unported, 129 row(s); 25 C symbol import(s)`，删除 8 条既落行的 manifest 后
+  **0 new / 0 stale**。形状决定：`ns_auto_hide_menu_bar` 是 **`DEFVAR_LISP`**（C 11697）不是 `DEFVAR_BOOL` ⇒ 按 `Lisp_Object` 导入；
+  `row->y`/`row->visible_height` 走 `nsmenu.swift` 311-328 的"逐成员一条 C-ABI 条目"规则（`glyph_row_y`/`glyph_row_visible_height`，
+  上一轮已进棘轮）；`ns_parent_window_rect`/`ns_frame_scale_factor` 只落活臂（SDK 26 的 `convertRectToScreen:`/`backingScaleFactor`，
+  GNUstep 与 `respondsToSelector:` 回退臂按 P-51 记死）；C 962-985 的 `#if 0` 段不落文本（P-08）。
+  ③ **裁决：Swift 的"声明顺序墙"走"不同 Swift 名 + 同一 C 符号"的自引用条目**（`nsterm` lane 在 C 1001 撞上：
+  `ns_constrain_all_frames` 要 `[view isFullscreen]`，而 `EmacsView` 在 8,000 行之后；C 1001-6000 里约 71 处同类调用点）。
+  规则：调用点前写 `@_silgen_name("<selector>") func <selector>_entry(...)`（接收者在前的 C-ABI 条目），
+  类落地处写 `@_cdecl("<selector>") func <selector>(...)`；**Swift 名不同、C 符号相同** ⇒ 不触发同文件 `invalid redeclaration`
+  （lane 实测同名会触发），链接期 entry 解析到本文件自己的定义（**`macfont_driver` 的先例**：3.220 批准、3.231 验收 `nm -u` 该名字消失）。
+  反对把 `EmacsApp`/`EmacsView`/`EmacsWindow`（C 6225-10610）提前落：那会放弃 C 行序，而类体又反过来调那些自由函数 ⇒
+  每个边界都变判断题。**记账要求**：台账 `## ABI` 增"entry 名 / 首个调用点 C 行 / 待定义的类（C 行）/ 状态"表，
+  每条在定义落地前都是 `## Deferred` 的一行，最终验收 = `nm -u` 里这些 entry 名全部消失；别的单元已经在用的四个条目
+  （`setMiniwindowImage`/`fullscreenState`/`setFSValue`/`beginDrag`）同表。

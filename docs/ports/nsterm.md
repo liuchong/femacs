@@ -39,14 +39,14 @@
 - [x] ns_retain_object  (line 612) — landed as `@_cdecl("ns_retain_object")` (src/nsterm.h 1167; src/image.c 4418); `[(id)obj retain]` is `Unmanaged.retain`, its +1 belonging to the caller
 - [x] ns_alloc_autorelease_pool  (line 622) — landed as `@_cdecl("ns_alloc_autorelease_pool")` (src/nsterm.h 1168; src/thread.c 786); the runtime's pool push
 - [x] ns_release_autorelease_pool  (line 632) — landed as `@_cdecl("ns_release_autorelease_pool")` (src/thread.c 842); C's `ns_release_object (pool)` is a pool pop
-- [ ] ns_menu_bar_should_be_hidden  (line 642, static)
-- [ ] ns_screen_margins  (line 660, static)
-- [ ] ns_screen_margins_ignoring_hidden_dock  (line 711, static)
-- [ ] ns_menu_bar_height  (line 754, static)
-- [ ] ns_parent_window_rect  (line 773, static)
-- [ ] ns_row_rect  (line 808, static)
-- [ ] ns_frame_scale_factor  (line 828)
-- [ ] constrain_frame_rect  (line 892, static)
+- [x] ns_menu_bar_should_be_hidden  (line 642, static) — landed as `fileprivate func ns_menu_bar_should_be_hidden () -> Bool`; `ns_auto_hide_menu_bar` (C 11697) is imported as the data symbol the core exports
+- [x] ns_screen_margins  (line 660, static) — landed; `NSTRACE`/`NSTRACE_MSG` are the empty macros, and C's nil receiver for a screen reads as `?? NSRect.zero`
+- [x] ns_screen_margins_ignoring_hidden_dock  (line 711, static) — landed; `DOCK_IGNORE_LIMIT` (C 708) is a file-scope `let`
+- [x] ns_menu_bar_height  (line 754, static) — landed
+- [x] ns_parent_window_rect  (line 773, static) — landed; the live `convertRectToScreen:` arm (SDK 26), the two `convertBaseToScreen:` fallbacks recorded dead
+- [x] ns_row_rect  (line 808, static) — landed; `window_box` + `WINDOW_TO_FRAME_PIXEL_Y` are entries, and `row->y`/`row->visible_height` are member entries per nsmenu.swift's rule
+- [x] ns_frame_scale_factor  (line 828) — landed as `@_cdecl("ns_frame_scale_factor")` (src/nsterm.h 1260; called src/nsfns.m 3598); the `backingScaleFactor` arm is live, the GNUstep/`respondsToSelector:` arms recorded dead
+- [x] constrain_frame_rect  (line 892, static) — landed; C's `#if 0` restriction (C 962-985) recorded, not transcribed
 - [ ] ns_constrain_all_frames  (line 1001, static)
 - [ ] ns_update_auto_hide_menu_bar  (line 1033, static)
 - [ ] ns_update_begin  (line 1075, static)
@@ -386,7 +386,7 @@ spelling the same selector is one box and is named where it occurs.)
 - [ ] EmacsDocument  (`@implementation` 11404, `@end` 11406)
 
 ## Macros defined — 23
-- [ ] DOCK_IGNORE_LIMIT  (line 708, body c1dfd96eea8c)
+- [x] DOCK_IGNORE_LIMIT  (line 708, body c1dfd96eea8c) — landed as a file-scope `let` (CGFloat, C's `int` promoted at the comparisons)
 - [x] EV_BUTTON  (line 438, body 02ec0a9e0dff) — landed as `func EV_BUTTON (_ e: NSEvent) -> Int`
 - [x] EV_MODIFIERS  (line 425, body 0a951d59f9e1) — landed as `func EV_MODIFIERS (_ e: NSEvent) -> UInt32`
 - [x] EV_MODIFIERS2  (line 397, body 8155b8d11eb3) — landed as `func EV_MODIFIERS2 (_ flags: UInt, _ kind: Lisp_Object) -> UInt32`; C's `NSUInteger`→`unsigned int` conversions are `truncatingIfNeeded:`
@@ -405,13 +405,15 @@ spelling the same selector is one box and is named where it occurs.)
 - [x] NSRightControlKeyMask  (line 352, body 5a769eb9b670)  — landed as a file-scope `let` of the same name
 - [x] NS_FUNCTION_KEY_MASK  (line 350, body 91eddf5a25af)  — landed as a file-scope `let` of the same name
 - [ ] NS_KEYLOG  (line 7241, body b6589fc6ab0d)
-- [ ] NS_PARENT_WINDOW_LEFT_POS  (line 803, body 74769de1ca23)
-- [ ] NS_PARENT_WINDOW_TOP_POS  (line 804, body 7f398f29c646)
+- [x] NS_PARENT_WINDOW_LEFT_POS  (line 803, body 74769de1ca23) — landed as `func NS_PARENT_WINDOW_LEFT_POS (_ f:) -> CGFloat` = `NSMinX (ns_parent_window_rect (f))`
+- [x] NS_PARENT_WINDOW_TOP_POS  (line 804, body 7f398f29c646) — landed as `func NS_PARENT_WINDOW_TOP_POS (_ f:) -> CGFloat` = `NSMaxY (ns_parent_window_rect (f))`
 - [ ] SCROLL_BAR_CONTINUOUS_DELAY  (line 10624, body cea8ad3417bc)
 - [ ] SCROLL_BAR_FIRST_DELAY  (line 10623, body 1b390cd54a0c)
 
 ## Types and their fields — 1
-- [ ] EmacsMargins: CGFloat top, CGFloat bottom, CGFloat left, CGFloat right
+- [x] EmacsMargins: CGFloat top, CGFloat bottom, CGFloat left, CGFloat right — landed as a Swift
+      `struct EmacsMargins`; measured `sizeof 32`, `align 8`, members at 0/8/16/24 on both sides
+      (Evidence)
 
 (Not counted here, the way `docs/ports/nsselect.md` does not count `Lisp_Subr`/`specpdl_ref`: the
 unit also declares a Swift **view** of `struct input_event` (src/termhooks.h 371-412), which this
@@ -489,24 +491,31 @@ file-scope objects (C 295-347), the seven modifier masks (C 349-356) and the fil
 functions `mod_of_kind`/`ev_modifiers_helper` (C 358-389).  **Round 2 landed C 391-519** - the
 `EV_*` accessors' five self-contained macros (C 397-444), the forward declarations recorded
 (C 473-475), `ns_init_events`/`ns_finish_events` (C 484-495) and `hold_event`/`append2`
-(C 498-519).  **Round 3 lands C 522-638** - `ns_relocate` (C 525-557), `ns_init_pool`
+(C 498-519).  **Round 3 landed C 522-638** - `ns_relocate` (C 525-557), `ns_init_pool`
 (C 560-568), `ns_init_locale` (C 569-600) and the four retain/release/pool hooks
 `ns_release_object`/`ns_retain_object`/`ns_alloc_autorelease_pool`/`ns_release_autorelease_pool`
-(C 602-638) - so the covered range is now **C 60-638**, with `EV_TRAILER`/`EV_TRAILER2`
-(C 448-470) held to C 5013 (below).
+(C 602-638).  **Round 4 lands C 641-991** - the menu-bar predicate (C 641-648), `struct
+EmacsMargins` (C 650-656), `ns_screen_margins` and its hidden-dock variant (C 659-753),
+`ns_menu_bar_height` (C 754-772), `ns_parent_window_rect` with the two `NS_PARENT_WINDOW_*`
+macros (C 773-807), `ns_row_rect` (C 808-827), `ns_frame_scale_factor` (C 828-891) and
+`constrain_frame_rect` (C 892-991) - so the covered range is now **C 60-991**, with
+`EV_TRAILER`/`EV_TRAILER2` (C 448-470) held to C 5013 (below).
 
-**The next slice starts at C 641** (`ns_menu_bar_should_be_hidden`, then `struct EmacsMargins`
-at C 650 and `ns_screen_margins` at C 660).
+**The next live definition is C 1001's `ns_constrain_all_frames`**, and it is the lane's next
+design question rather than a transcription: its body calls this unit's own `EmacsView`
+`-isFullscreen` (C 8957), a method of a class that lands 8,000 lines later in the same file.
+Swift resolves the *name* file-wide but needs the class to exist in the compiled file, so the
+free functions' ~71 call sites into `EmacsView`/`EmacsApp` (C 1001-6000) cannot land before the
+classes do.  The two candidate shapes, and the evidence that the second is already the lane's,
+are in this round's report; the ruling decides how the rest of the file is transcribed.
 
-Ticked above: **16 of the 142 function boxes** (the thirteen landed - `mod_of_kind`,
-`ev_modifiers_helper`, `ns_init_events`, `ns_finish_events`, `hold_event`, `append2`,
-`ns_relocate`, `ns_init_pool`, `ns_init_locale`, `ns_release_object`, `ns_retain_object`,
-`ns_alloc_autorelease_pool`, `ns_release_autorelease_pool` - and the three dead `nstrace_*`),
-**13 of the 23 macro boxes** (the eight masks and `NO_APPDEFINED_DATA`, plus the five `EV_*`
-accessors; the two held ones stay open), **39 of the 47 file-scope-object boxes** (31 of the
-generator's 39 plus the 8 hand-added ones), and **1 of the 8 Objective-C classes**
-(`NSColor (EmacsColor)`, all four of its methods).  The other 126 function boxes, 10 macro boxes,
-7 class boxes, 189 method boxes and the one type box (`struct EmacsMargins`, C 650) are later
+Ticked above: **24 of the 142 function boxes** (the twenty-one landed - through round 4's eight -
+and the three dead `nstrace_*`), **16 of the 23 macro boxes** (the eight masks,
+`NO_APPDEFINED_DATA` and the five `EV_*` accessors, plus `DOCK_IGNORE_LIMIT` and the two
+`NS_PARENT_WINDOW_*`; the two held ones stay open), **39 of the 47 file-scope-object boxes**
+(31 of the generator's 39 plus the 8 hand-added ones), **1 of the 1 type box** (`EmacsMargins`,
+C 650) and **1 of the 8 Objective-C classes** (`NSColor (EmacsColor)`, all four of its methods).
+The other 118 function boxes, 7 macro boxes, 7 class boxes and 189 method boxes are later
 slices.
 
 **The slice's text had been landed before this round but measured with `swiftc -parse`, which
@@ -760,6 +769,53 @@ this export's exact signature (`(_ obj: UnsafeMutableRawPointer?)`), so the two 
 `NSTRACE_ENABLED` is 0 (src/nsterm.h 297's `NSTRACE` → 302's empty `NSTRACE_WHEN`), so it carries
 no statement in the port either - the same dead arm round 1 recorded for C 96-149.
 
+### Round 4: the screen geometry, and the forward reference the rest of the file needs
+
+**`EmacsMargins` is measured, not assumed.**  The C side (`clang`, CoreGraphics'
+`CGFloat` = 8 bytes) gives `sizeof 32`, `align 8` and the four members at 0/8/16/24; the Swift
+side's `MemoryLayout` gives the same four numbers, so the view is the record's layout and not a
+guess (`## Evidence`).
+
+**`ns_auto_hide_menu_bar` is a `DEFVAR_LISP`, not a `DEFVAR_BOOL`.**  C 11697 is
+`DEFVAR_LISP ("ns-auto-hide-menu-bar", ns_auto_hide_menu_bar, …)` with `ns_auto_hide_menu_bar =
+Qnil` at 11700, so the import is a `Lisp_Object` data symbol and `ns_menu_bar_should_be_hidden`
+reads it with `NILP` - the same data-symbol shape the briefing asked for, under the type the
+reference actually gives it.
+
+**Two selector/type readings, both measured.**  `[NSApp respondsToSelector:@selector
+(setPresentationOptions:)]`: Swift exposes that setter as a property, so the port tests
+`#selector(setter: NSApplication.presentationOptions)` - the method-reference spelling does not
+compile (`error: type 'NSApplication' has no member 'setPresentationOptions'`).  And
+`ns_frame_scale_factor` returns C's `double` built from `CGFloat` by C's implicit conversion,
+which Swift needs spelled (`Double(…)`, measured error otherwise).
+
+**`row->y`/`row->visible_height` are member entries.**  `ns_row_rect` is this unit's first read of
+a *record member* no macro names, and the lane's rule for that is already written down in
+`docs/ports/nsmenu.swift` 311-328: "the frame members this file reads or writes directly and that
+no C macro or INLINE function names … each access is a C-ABI entry named after the member".  So
+`glyph_row_y`/`glyph_row_visible_height` join that family (owed by the core), and the record
+needs no Swift view - only those two members are read.
+
+**The forward reference, which decides how the rest of the file is transcribed.**
+C 1001's `ns_constrain_all_frames` calls `[view isFullscreen]` - a method of this unit's own
+`EmacsView` (C 8957), a class that lands 8,000 lines later in the same file.  Swift resolves the
+*name* file-wide, but the class has to exist in the compiled file, and this lane's rule is that
+the mirror compiles at every slice, so a free function cannot land before the class it messages.
+Roughly 71 such call sites sit in C 1001-6000.  The two candidate shapes:
+
+* **(a) the classes land early.**  Transcribe `EmacsApp`/`EmacsView`/`EmacsWindow`
+  (C 6225-10610) as whole Swift classes before the free functions that message them.  That
+  abandons C order, and the classes' own bodies call the free functions back, so the order
+  becomes a judgement call at every boundary.
+* **(b) selector-named, receiver-first entries** - the shape *other units already use for this
+  unit's methods*: `nsfns.swift` 390-393 imports `setMiniwindowImage`, `fullscreenState` and
+  `setFSValue`, and `nsselect.swift` 223 imports `beginDrag`; all four are
+  `EmacsView`/`EmacsWindow` methods of *this* file, so this unit is already committed to
+  defining selector-named entries with the receiver first.  Under (b) the free functions call
+  those entries, each entry's body lands beside its class, and C order survives.
+
+**This lane recommends (b)**, and this round's report asks for the ruling before C 1001.
+
 ## ABI
 
 ### (1) C symbols this file defines and exports (`@_cdecl`)
@@ -780,6 +836,7 @@ no statement in the port either - the same dead arm round 1 recorded for C 96-14
 | `ns_retain_object` | `extern void ns_retain_object (void *)` (src/nsterm.h 1167) | `func ns_retain_object(_ obj: UnsafeMutableRawPointer?)` |
 | `ns_alloc_autorelease_pool` | `extern void *ns_alloc_autorelease_pool (void)` (1168) | `func ns_alloc_autorelease_pool() -> UnsafeMutableRawPointer?` |
 | `ns_release_autorelease_pool` | `extern void ns_release_autorelease_pool (void *)` (1169) | `func ns_release_autorelease_pool(_ pool: UnsafeMutableRawPointer?)` |
+| `ns_frame_scale_factor` | `extern double ns_frame_scale_factor (struct frame *)` (src/nsterm.h 1260) | `func ns_frame_scale_factor(_ f: UnsafeMutableRawPointer?) -> Double` |
 
 `mod_of_kind`, `ev_modifiers_helper`, `hold_event` and `append2` are C `static`s - no C symbol exists in the reference
 either - so they land as `fileprivate func`s of their own names.  The exported set is exactly
@@ -806,6 +863,12 @@ what `nm -g` shows (Evidence).
 | `objc_autoreleasePoolPush` | `void *objc_autoreleasePoolPush (void)` | objc/runtime (not Swift-visible) | libobjc |
 | `objc_autoreleasePoolPop` | `void objc_autoreleasePoolPop (void *)` | objc/runtime (not Swift-visible) | libobjc |
 | `fprintf` | `int fprintf (FILE *, const char *, ...)` | stdio.h | libSystem (`docs/ports/nsfont.swift` 1173-1177's reading) |
+| `NILP` | `#define NILP(x) lisp_h_NILP (x)` | src/lisp.h 450 | header-only (`docs/ports/nsfns.swift` 176) |
+| `FRAME_PARENT_FRAME` | `INLINE struct frame *FRAME_PARENT_FRAME (struct frame *)` | src/frame.h 1234 | header-only |
+| `FRAME_NS_VIEW` | `#define FRAME_NS_VIEW(f) ((f)->output_data.ns->view)` | src/nsterm.h 1045 | header-only |
+| `WINDOW_TO_FRAME_PIXEL_Y` | `#define WINDOW_TO_FRAME_PIXEL_Y(W, Y) ((Y) + WINDOW_TOP_EDGE_Y (W))` | src/window.h 1078 | header-only |
+| `window_box` | `void window_box (struct window *, enum glyph_row_area, int *, int *, int *, int *)` | src/dispextern.h 3574 | src/window.c |
+| `glyph_row_y`, `glyph_row_visible_height` | the record members `row->y`, `row->visible_height` | src/dispextern.h (the `struct glyph_row` members) | **open**: member entries, per `docs/ports/nsmenu.swift` 311-328 |
 
 `Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
 core exports a C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  The
@@ -828,8 +891,13 @@ lists the whole set (Evidence).
   `ns_return_types()` and `ns_release_object` (as a callback, 215/793); `emacs.c`'s port will call
   `ns_relocate`/`ns_init_pool`/`ns_init_locale`, `image.c`'s `ns_retain_object`, and `thread.c`'s
   the two pool hooks;
-* nothing new to supply here: round 3's imports are libobjc/libSystem entries ("no new owed
-  symbols" in Decisions).
+* nothing new to supply from round 3: its imports are libobjc/libSystem entries.  Round 4 adds
+  two owed **member entries** (`glyph_row_y`, `glyph_row_visible_height`) to the list above;
+* **the reverse direction - what other units already import from this one** (a contract this
+  unit has to satisfy when its classes land): `nsfns.swift` 390-393 imports
+  `setMiniwindowImage`, `fullscreenState` and `setFSValue` (all `EmacsView` methods) and
+  `nsselect.swift` 223 imports `beginDrag` (an `EmacsWindow` method).  The first three are also
+  the evidence for shape (b) in Decisions.
 
 ## Evidence
 
@@ -884,6 +952,23 @@ lists the whole set (Evidence).
   `_ns_right_control_modifier`, `_ns_use_srgb_colorspace`, `_parse_solitary_modifier`,
   `_plist_get`, `_shift_modifier`, `_up_modifier`, `_xrealloc` (with the Swift runtime and
   AppKit entries; the `var` imports are the non-lazy ones).
+* Round 4's compile, same command: **exit 0, no output**, after two fix-ups the compiler named:
+  `#selector(NSApplication.setPresentationOptions(_:))` does not exist (Swift exposes the setter
+  as a property) and `CGFloat?` does not convert to `Double?` implicitly.
+* `nm -g /tmp/s188r4/nsterm.o | grep ' T _'` -> one new export, `_ns_frame_scale_factor`, plus
+  `___swift_memcpy32_8` - the helper Swift emits for `EmacsMargins`'s 32-byte value copies, which
+  is the record's measured size again.
+* `nm -u /tmp/s188r4/nsterm.o` -> round 4's imports: `_NILP`, `_FRAME_PARENT_FRAME`,
+  `_FRAME_NS_VIEW`, `_WINDOW_TO_FRAME_PIXEL_Y`, `_window_box`, `_glyph_row_y`,
+  `_glyph_row_visible_height`, and the data symbol `_ns_auto_hide_menu_bar`.
+* `EmacsMargins`' layout, C side (`clang -std=gnu23 -I <SDK>/CoreGraphics.framework/Headers …
+  -I <SDK>/Foundation.framework/Headers` on a probe that declares the four `CGFloat` members) ->
+  `sizeof 32 align 8 top 0 bottom 8 left 16 right 24 (CGFloat 8)`.
+* `EmacsMargins`' layout, Swift side (`swiftc -o /tmp/s188r4/layoutprobe
+  femacs/platform/macos/nsterm.swift /tmp/s188r4/main.swift /tmp/s188r4/stubs.c -Xlinker
+  -undefined -Xlinker dynamic_lookup`, then the program) -> `EmacsMargins size 32 align 8 top 0
+  bottom 8 left 16 right 24` (the stub C file defines the data symbols the core still owes, so
+  that dyld can start the program - the same note as the `input_event` probe).
 * `struct input_event`'s layout, C side (`clang -std=gnu23 -I build/emacs-ref/src -I
   build/emacs-ref/lib -I emacs/src -I emacs/lib` on a probe including `<config.h>`, `lisp.h`,
   `systime.h` and `termhooks.h`) -> `sizeof 64 align 8`, `code 4 modifiers 8 x 16 y 24
