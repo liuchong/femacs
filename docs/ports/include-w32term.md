@@ -1,0 +1,269 @@
+# emacs/src/w32term.h (929 lines)
+
+# ----------------------------------------------------------------------
+## Subrs (DEFUN) — 0
+
+## Functions defined — 0
+
+## Macros defined — 119
+- [x] ALIGN_STACK  (line 38, body da39a3ee5e6b)
+- [x] APPS_PRESSED  (line 843, body 3daa00115a66)
+- [x] BLACK_PIX_DEFAULT  (line 43, body d50f1c345465)
+- [x] CP_DEFAULT  (line 46, body 70b8dcb93382)
+- [x] FILE_NOTIFICATIONS_SIZE  (line 782, body c847eeea4f8b)
+- [x] FRAME_BASELINE_OFFSET  (line 469, body 1e8e33ed07da)
+- [x] FRAME_DISPLAY_INFO  (line 472, body 93e959594bbc)
+- [x] FRAME_FONT  (line 467, body f161d4ff7b50)
+- [x] FRAME_FONTSET  (line 468, body 47a09239c1dd)
+- [x] FRAME_NATIVE_WINDOW  (line 465, body 3a085f01627f)
+- [x] FRAME_NORMAL_PLACEMENT  (line 474, body 7413a327d690)
+- [x] FRAME_OUTPUT_DATA  (line 461, body 71501307c738)
+- [x] FRAME_PREV_FSMODE  (line 475, body efdbdddb6cb4)
+- [x] FRAME_W32_WINDOW  (line 464, body f0a4830680ab)
+- [x] GET_APPCOMMAND_LPARAM  (line 679, body ef2a302a920d)
+- [x] GUISTR  (line 900, body 11f6ad8ec52a)
+- [x] GUI_ENCODE_FILE  (line 901, body f58afd68f662)
+- [x] GUI_ENCODE_SYSTEM  (line 902, body 95cdc629b95b)
+- [x] GUI_FN  (line 903, body 47fdd9283ded)
+- [x] GUI_SDATA  (line 907, body 61d567bc07cc)
+- [x] HORIZONTAL_SCROLL_BAR_BOTTOM_BORDER  (line 626, body f28321d56c3c)
+- [x] HORIZONTAL_SCROLL_BAR_INSIDE_HEIGHT  (line 586, body 52855ff9774e)
+- [x] HORIZONTAL_SCROLL_BAR_INSIDE_WIDTH  (line 603, body 030e30111d14)
+- [x] HORIZONTAL_SCROLL_BAR_LEFT_BORDER  (line 623, body b7aa8700ff6a)
+- [x] HORIZONTAL_SCROLL_BAR_LEFT_RANGE  (line 598, body 10d24a511ceb)
+- [x] HORIZONTAL_SCROLL_BAR_MIN_HANDLE  (line 630, body e5d5d8c5887e)
+- [x] HORIZONTAL_SCROLL_BAR_RIGHT_BORDER  (line 624, body 7c68d668d349)
+- [x] HORIZONTAL_SCROLL_BAR_TOP_BORDER  (line 625, body f28321d56c3c)
+- [x] LEFT_WIN_PRESSED  (line 841, body 2cedb007191f)
+- [x] MAX_TOUCH_POINTS  (line 441, body b1d5781111d8)
+- [x] MSH_MOUSEWHEEL  (line 668, body d11414adb014)
+- [x] PIX_TYPE  (line 280, body 2a31e46c0035)
+- [x] RIGHT_WIN_PRESSED  (line 842, body da533c139833)
+- [x] SCROLL_BAR_PACK  (line 546, body 9ab6a12f4c4b)
+- [x] SCROLL_BAR_UNPACK  (line 549, body f98d805797de)
+- [x] SCROLL_BAR_W32_WINDOW  (line 555, body 043b8506e123)
+- [x] SET_SCROLL_BAR_W32_WINDOW  (line 559, body c88e22082412)
+- [x] TME_LEAVE  (line 852, body 0dfedc5978a9)
+- [x] UNICODE_NOCHAR  (line 685, body ec4cc6079e5c)
+- [x] VERTICAL_SCROLL_BAR_BOTTOM_BORDER  (line 621, body 90ddb401fb04)
+- [x] VERTICAL_SCROLL_BAR_INSIDE_HEIGHT  (line 581, body 36f98e3eabb8)
+- [x] VERTICAL_SCROLL_BAR_INSIDE_WIDTH  (line 564, body 643baf8bba30)
+- [x] VERTICAL_SCROLL_BAR_LEFT_BORDER  (line 618, body f28321d56c3c)
+- [x] VERTICAL_SCROLL_BAR_MIN_HANDLE  (line 629, body 45dbf03ff832)
+- [x] VERTICAL_SCROLL_BAR_RIGHT_BORDER  (line 619, body f28321d56c3c)
+- [x] VERTICAL_SCROLL_BAR_TOP_BORDER  (line 620, body 6f08e035de5b)
+- [x] VERTICAL_SCROLL_BAR_TOP_RANGE  (line 576, body 3d518bbbd4a8)
+- [x] VK_APPS  (line 835, body 9d5623b59f81)
+- [x] VK_LWIN  (line 833, body 22c3b427d2db)
+- [x] VK_NUMPAD_BEGIN  (line 817, body 0622a45c97ce)
+- [x] VK_NUMPAD_CLEAR  (line 818, body 501181fd8449)
+- [x] VK_NUMPAD_DELETE  (line 829, body 2bbbbf8e1b40)
+- [x] VK_NUMPAD_DOWN  (line 827, body 8e0cbda9e660)
+- [x] VK_NUMPAD_END  (line 822, body d3b8dc0de182)
+- [x] VK_NUMPAD_ENTER  (line 819, body 258ea2c47232)
+- [x] VK_NUMPAD_HOME  (line 823, body 639017e17b7a)
+- [x] VK_NUMPAD_INSERT  (line 828, body 060c73978a62)
+- [x] VK_NUMPAD_LEFT  (line 824, body e77248fe53c5)
+- [x] VK_NUMPAD_NEXT  (line 821, body 089d2b1e858e)
+- [x] VK_NUMPAD_PRIOR  (line 820, body 75737f6cfbd1)
+- [x] VK_NUMPAD_RIGHT  (line 826, body 5cf57c888cbf)
+- [x] VK_NUMPAD_UP  (line 825, body c9fa62cc597a)
+- [x] VK_RWIN  (line 834, body 9af7df7f76d2)
+- [x] WHITE_PIX_DEFAULT  (line 44, body bf1092eaaf1c)
+- [x] WM_APPCOMMAND  (line 678, body a1feebaa2341)
+- [x] WM_EMACS_BRINGTOTOP  (line 712, body 3fe43f58150f)
+- [x] WM_EMACS_CREATEHSCROLLBAR  (line 693, body 203f3fd587b6)
+- [x] WM_EMACS_CREATEVSCROLLBAR  (line 692, body 9622f9f3893a)
+- [x] WM_EMACS_CREATEWINDOW  (line 690, body b842b152e6d3)
+- [x] WM_EMACS_DESTROYWINDOW  (line 696, body db364053c923)
+- [x] WM_EMACS_DESTROY_CARET  (line 706, body f1946f4d1a0e)
+- [x] WM_EMACS_DONE  (line 691, body 23cc18f4b62b)
+- [x] WM_EMACS_DRAGOVER  (line 716, body 15569da7f4aa)
+- [x] WM_EMACS_DROP  (line 717, body be64fb8647c0)
+- [x] WM_EMACS_END  (line 718, body 69ff6e16e2e8)
+- [x] WM_EMACS_FILENOTIFY  (line 714, body 27167199b6a1)
+- [x] WM_EMACS_HIDE_CARET  (line 708, body f5b07a67bab3)
+- [x] WM_EMACS_IME_STATUS  (line 715, body f147cca94b28)
+- [x] WM_EMACS_INPUT_READY  (line 713, body 1576fd4b4f46)
+- [x] WM_EMACS_KILL  (line 689, body ea6f1db843c6)
+- [x] WM_EMACS_PAINT  (line 711, body ad6c7fe87ddd)
+- [x] WM_EMACS_REGISTER_HOT_KEY  (line 702, body f0a961cb4f27)
+- [x] WM_EMACS_SETCURSOR  (line 709, body d778d0e3de99)
+- [x] WM_EMACS_SETFOCUS  (line 698, body 7929d2f0cb78)
+- [x] WM_EMACS_SETFOREGROUND  (line 699, body 1d1e0f23b549)
+- [x] WM_EMACS_SETKEYBOARDLAYOUT  (line 701, body a86d1e283f29)
+- [x] WM_EMACS_SETLOCALE  (line 700, body a6ccee0187e0)
+- [x] WM_EMACS_SETWINDOWPOS  (line 695, body 588d16e7ff0f)
+- [x] WM_EMACS_SET_TOOLKIT_THEME  (line 719, body a1ba8018b734)
+- [x] WM_EMACS_SHOWCURSOR  (line 710, body 6bcc41bfa9a9)
+- [x] WM_EMACS_SHOWWINDOW  (line 694, body d4340969658e)
+- [x] WM_EMACS_SHOW_CARET  (line 707, body d30c24a14a99)
+- [x] WM_EMACS_START  (line 688, body 9ec95bf50ebb)
+- [x] WM_EMACS_TOGGLE_LOCK_KEY  (line 704, body b6ecb197aa87)
+- [x] WM_EMACS_TRACKPOPUPMENU  (line 697, body 3a0e6891418a)
+- [x] WM_EMACS_TRACK_CARET  (line 705, body 0d3d55de63af)
+- [x] WM_EMACS_UNREGISTER_HOT_KEY  (line 703, body b569bddadbe2)
+- [x] WM_MOUSEHWHEEL  (line 675, body 0fe081684c8b)
+- [x] WM_MOUSELEAVE  (line 851, body 1d3633be995a)
+- [x] WM_MOUSEWHEEL  (line 665, body 864e956eea3e)
+- [x] WM_UNICHAR  (line 682, body 2fbeb85d9c3f)
+- [x] WM_XBUTTONDOWN  (line 671, body d33965f43a1d)
+- [x] WM_XBUTTONUP  (line 672, body 7711706433e1)
+- [x] WND_BACKGROUND_INDEX  (line 726, body c7ab4d87d7e7)
+- [x] WND_BORDER_INDEX  (line 723, body 630d9ccc0aa5)
+- [x] WND_EXTRA_BYTES  (line 729, body 916605011a14)
+- [x] WND_FONTWIDTH_INDEX  (line 721, body f28321d56c3c)
+- [x] WND_HSCROLLBAR_INDEX  (line 725, body b1ccca558b0d)
+- [x] WND_LAST_INDEX  (line 727, body 555cab4fb265)
+- [x] WND_LINEHEIGHT_INDEX  (line 722, body 10720c7cfed2)
+- [x] WND_VSCROLLBAR_INDEX  (line 724, body 41e278e691e6)
+- [x] XSCROLL_BAR  (line 534, body aa568fbbbc66)
+- [x] enter_crit  (line 762, body a37d4ea22f90)
+- [x] leave_crit  (line 763, body bd22055e108b)
+- [x] w32_clear_area  (line 660, body 0c651b5ce75a)
+- [x] w32_clear_rect  (line 657, body 0b21c814a961)
+- [x] w32_fill_area  (line 637, body c2a6519597d0)
+- [x] w32_fill_area_abs  (line 647, body 8035d72c18b1)
+- [x] w32_kbdhook_active  (line 811, body b6589fc6ab0d)
+
+## Types and their fields — 10
+- [x] W32Msg: MSG msg, DWORD dwModifiers, RECT rect
+- [x] deferred_msg: struct deferred_msg* next, W32Msg w32msg, LRESULT result, int completed
+- [x] notifications_set: LPBYTE notifications, DWORD size, void* desc, struct notifications_set* next, struct notifications_set* prev
+- [x] scroll_bar: union vectorlike_header header, Lisp_Object window, Lisp_Object next, Lisp_Object prev, Lisp_Object w32_window_low, Lisp_Object w32_window_high, Lisp_Object w32_widget_low, Lisp_Object w32_widget_high, int top, int left, int width, int height, int start, int end, int dragging, bool horizontal
+- [x] tagTRACKMOUSEEVENT: DWORD cbSize, DWORD dwFlags, HWND hwndTrack, DWORD dwHoverTime
+- [x] w32_bitmap_record: Emacs_Pixmap pixmap, char* file, Emacs_Pixmap stipple, HINSTANCE hinst, int refcount, int height, int width, int depth
+- [x] w32_display_info: struct w32_display_info* next, struct terminal* terminal, Lisp_Object name_list_element, int reference_count, double resx, double resy, int n_planes, int n_cbits, int grabbed, ptrdiff_t icon_bitmap_id, Window root_window, HCURSOR vertical_scroll_bar_cursor, HCURSOR horizontal_scroll_bar_cursor, const char* rdb, int has_palette, struct w32_palette_entry* color_list, unsigned num_colors, HPALETTE palette, int regen_palette, int faked_key, int smallest_char_width, int smallest_font_height, Emacs_GC* scratch_cursor_gc, Mouse_HLInfo mouse_highlight, char* w32_id_name, int n_fonts, struct w32_bitmap_record* bitmaps, ptrdiff_t bitmaps_size, ptrdiff_t bitmaps_last, struct frame* w32_focus_frame, struct frame* w32_focus_event_frame, struct frame* highlight_frame, struct frame* w32_pending_autoraise_frame, struct frame* last_mouse_frame, struct frame* last_mouse_motion_frame, struct frame* last_mouse_glyph_frame, int last_mouse_motion_x, int last_mouse_motion_y, RECT last_mouse_glyph, struct scroll_bar* last_mouse_scroll_bar, int last_mouse_scroll_bar_pos, Time last_mouse_movement_time, int cursor_display_counter
+- [x] w32_output: struct x_output x_compatible, HMENU menubar_widget, HPALETTE old_palette, Emacs_GC* cursor_gc, Window window_desc, Window parent_desc, struct font* font, int baseline_offset, int fontset, COLORREF cursor_pixel, COLORREF border_pixel, COLORREF mouse_pixel, COLORREF cursor_foreground_pixel, COLORREF scroll_bar_foreground_pixel, COLORREF scroll_bar_background_pixel, HCURSOR text_cursor, HCURSOR nontext_cursor, HCURSOR modeline_cursor, HCURSOR hand_cursor, HCURSOR hourglass_cursor, HCURSOR horizontal_drag_cursor, HCURSOR vertical_drag_cursor, HCURSOR left_edge_cursor, HCURSOR top_left_corner_cursor, HCURSOR top_edge_cursor, HCURSOR top_right_corner_cursor, HCURSOR right_edge_cursor, HCURSOR bottom_right_corner_cursor, HCURSOR bottom_edge_cursor, HCURSOR bottom_left_corner_cursor, unsigned hourglass_p : 1, HCURSOR current_cursor, DWORD dwStyle, unsigned explicit_parent : 1, unsigned asked_for_visible : 1, unsigned menubar_active : 1, Emacs_GC* gc, unsigned long pixel, unsigned long relief_background, WINDOWPLACEMENT normal_placement, int prev_fsmode, HBITMAP paint_buffer, HDC paint_dc, HDC paint_buffer_handle, HGDIOBJ paint_dc_object, int paint_buffer_width, int paint_buffer_height, unsigned paint_buffer_dirty : 1, unsigned want_paint_buffer : 1, int touch_ids, LONG touch_x, LONG touch_y, EMACS_INT touch_base, DWORD tool_bar_dwID
+- [x] w32_palette_entry: struct w32_palette_entry* next, PALETTEENTRY entry
+- [x] x_output: int focus_state
+
+## File-scope objects — 25
+- [x] extern MSG CurMsg  (line 51)
+- [x] extern BOOL bUseDflt  (line 52)
+- [x] extern struct w32_display_info x_display_list  (line 223)
+- [x] extern struct w32_display_info one_w32_display_info  (line 224)
+- [x] extern HMENU current_popup_menu  (line 227)
+- [x] extern int menubar_in_use  (line 228)
+- [x] extern frame_parm_handler w32_frame_parm_handlers  (line 274)
+- [x] extern struct w32_output w32term_display  (line 458)
+- [x] extern DWORD dwWindowsThreadId  (line 731)
+- [x] extern HANDLE hWindowsThread  (line 732)
+- [x] extern DWORD dwMainThreadId  (line 733)
+- [x] extern HANDLE hMainThread  (line 734)
+- [x] extern CRITICAL_SECTION critsect  (line 755)
+- [x] extern struct notifications_set notifications_set_head  (line 793)
+- [x] extern int w32_keyboard_codepage  (line 846)
+- [x] extern struct font w32_system_remap_font  (line 875)
+- [x] extern HWND w32_system_caret_hwnd  (line 877)
+- [x] extern int w32_system_caret_height  (line 878)
+- [x] extern int w32_system_caret_x  (line 879)
+- [x] extern int w32_system_caret_y  (line 880)
+- [x] extern struct window w32_system_caret_window  (line 881)
+- [x] extern int w32_system_caret_hdr_height  (line 882)
+- [x] extern int w32_system_caret_mode_height  (line 883)
+- [x] extern Window tip_window  (line 885)
+- [x] extern int w32_message_fd  (line 928)
+
+## Decisions
+
+- **This header has no platform guard of its own, so its checklist is real.**  C 21-25 include
+  `w32gui.h`, `frame.h` and `atimer.h` and everything after that is unconditional text: unlike
+  `include-nsterm.md`, this ledger's 119 macros, 10 record types and 25 objects are the live
+  inventory `tools/extract-abi.py` computes for this file (`docs/port-inventory.md` 653 prints
+  119 macros / 19 constants / 129 fields / 25 objects, the all-branches view).
+- **The whole body carries `#[cfg (feature = "windowsnt")]`.**  The header is included only by
+  Windows GUI units (`#ifdef HAVE_NTGUI` in `w32fns.c`, `w32term.c`, ...) and `HAVE_NTGUI` /
+  `WINDOWSNT` are `undef` in `docs/baseline/config/darwin-arm64.macros.tsv`, so P-51's arm is the
+  right side (the `include/w32font.rs` 12 reading of a Windows header).  C's own names are kept
+  inside it (`MSG`, `HWND`, `HDC`, `HMENU`, `HPALETTE`, `HCURSOR`, `HBITMAP`, `HGDIOBJ`,
+  `COLORREF`, `RECT`, `WINDOWPLACEMENT`, `CRITICAL_SECTION`, `HANDLE`, `DWORD`, `LONG`, `LPBYTE`,
+  `WINAPI`, ...): they come from `<windows.h>`, which has no mirror in this tree, and that target
+  supplies them.  Nothing in the arm is compiled on this target, so **no layout assertion is
+  written** for any of the ten records (the `include/macfont.rs` 26-27 rule), and nothing is
+  degraded to `*mut c_void` merely because it is Windows-typed.
+- **`check-cond-eval` is NOT VERIFIED here, and the tool's conservative reading is what the mirror
+  follows.**  `python3 tools/check-cond-eval.py src/w32term.h` -> `17 conditions, 0 unknown, 1
+  disagreements [NOT VERIFIED]`: C 33-40's `#if USE_STACK_LISP_OBJECTS && !defined _WIN64 &&
+  !defined __x86_64__ && __GNUC__ + (__GNUC_MINOR__ > 1) >= 5` is True to clang and False to the
+  evaluator (`USE_STACK_LISP_OBJECTS` is not in the macro table; `lisp.h` 5721-5736 defines it for
+  the Lisp build).  Because the file is not on `cond-eval-verified.txt`, the extractor keeps *both*
+  arms of every `#if` live, and the mirror carries both: `ALIGN_STACK` (the attribute arm recorded
+  in a `// C:` line - a Rust item cannot express
+  `__attribute__((force_align_arg_pointer))`), `SCROLL_BAR_PACK`/`SCROLL_BAR_UNPACK`,
+  `w32_kbdhook_active` and the `NTGUI_UNICODE` block.
+- **The inner arms and the feature each one carries.**  `_WIN64` is a compiler predefine and not in
+  the table; the tree's own feature is `win64` (`femacs/xtask/Cargo.toml` 561, `# _WIN64`, the
+  `nt/inc/include/stdint.rs` 34 reading), so C 536-552's 64-bit arm is `win64` and the 32-bit
+  `#else` is `not (win64)`.  `NTGUI_UNICODE` (C 892) is defined by `conf_post.h` 169-170 **only**
+  for `defined CYGWIN && defined HAVE_NTGUI` ("Cygwin runs only on UNICODE-supporting systems"), so
+  that arm is `cygwin` (a name this tree already declares) and the `#else` arm - the MinGW/Windows
+  GUI one (`GUISTR(x) x`, `guichar_t` is `char`) - is live.  `CYGWIN` (C 927) and `EMACSDEBUG`
+  (C 887) are `undef` in the table, so `w32_message_fd` carries `cygwin` and the
+  `w32_name_of_message` prototype is recorded.  The file's own `#ifdef WINDOWSNT` (C 803) is the
+  same side as the umbrella, so its arm is carried unconditionally inside it and the `#else` arm
+  (`#define w32_kbdhook_active 0`) is recorded.
+- **The nine `#ifndef` blocks are "define it if the SDK does not" guards**, carried as constants
+  with C's values and the guard written in the `/// C:` line (the `include/widget.rs` `XtNfont`
+  reading): `WM_MOUSEWHEEL`/`WM_XBUTTONDOWN`/`WM_XBUTTONUP`/`WM_MOUSEHWHEEL`/`WM_APPCOMMAND`/
+  `WM_UNICHAR`/`UNICODE_NOCHAR` (C 664-686), `VK_LWIN`/`VK_RWIN`/`VK_APPS` (C 831-836) and
+  `WM_MOUSELEAVE`/`TME_LEAVE`/`TRACKMOUSEEVENT` (C 850-861).  `MSH_MOUSEWHEEL` is a *string*
+  (`"MSWHEEL_ROLLMSG"`), so it is `&core::ffi::CStr` compared as bytes (the `include/widget.rs`
+  shape).
+- **The six bitfields are recorded, not packed.**  `hourglass_p` (C 378), `explicit_parent`
+  (C 394), `asked_for_visible` (C 397), `menubar_active` (C 400), `paint_buffer_dirty` (C 436) and
+  `want_paint_buffer` (C 439) live in `struct w32_output`, which no compiler on this target can
+  compile (its members are `<windows.h>`'s); PORTING.md 1.3 / P-80 require the real compiler's byte
+  dump before a storage unit may stand for a bitfield, so each is recorded in a `// C:` line inside
+  the record and the extractor asks for none of them (`field["bitfield"]` is skipped).
+- **`struct relief` is declared here for this header's own record.**  C 402-408 nests
+  `struct relief { Emacs_GC *gc; unsigned long pixel; } black_relief, white_relief;` inside
+  `struct w32_output`, so the port declares the tag and the two members; `include/androidterm.rs`
+  222 declares the same tag for Android's own output record, and the two never meet (that mirror is
+  Android's, this one is Windows', and neither is compiled on this target) - nothing of that
+  mirror's is touched or removed here.
+- **`#if 0` is recorded**: C 71-73's `unsigned refcount;` inside `struct w32_palette_entry` is
+  stripped by the extractor (`w32_palette_entry` has C's two live members) and kept as a `// C:`
+  line (PORTING.md P-08).
+- **Degraded names (P-55/P-72 rule 3).**  `struct image`, `struct face`, `struct input_event` and
+  `struct glyph_matrix` are only pointed at, so those parameters are `*mut c_void` with C's
+  prototype in the `/// C:` line; `struct window` (C 881) is `window.h`'s and this mirror includes
+  nothing of it, so `w32_system_caret_window` is `*mut c_void` too; `w32_frame_parm_handlers[]`'s
+  elements are `*mut c_void` until `include/dispextern.rs` carries `frame_parm_handler` (the
+  `include/androidterm.rs` 506-511 reading).  `struct font` (C 875) *is* named, because
+  `include/font.rs` owns that record.
+
+## Evidence
+
+- `python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs`
+  -> `OK emacs/src/w32term.h -> femacs/src/include/w32term.rs` (no `- ` problem lines); the tool
+  prints `(8 C macros have several definitions (configuration branches), body not compared:
+  ALIGN_STACK, GUISTR, GUI_ENCODE_FILE, GUI_ENCODE_SYSTEM, GUI_FN, SCROLL_BAR_PACK ...)`, which is
+  C's own two-arm structure.
+- `python3 tools/extract-abi.py emacs/src/w32term.h` -> this ledger: 0 subrs, 0 functions defined,
+  119 macros, 10 types (140 fields), 25 file-scope objects - every box checked.
+- `python3 tools/check-cond-eval.py src/w32term.h` -> `17 conditions, 0 unknown, 1 disagreements
+  [NOT VERIFIED]` (C 34: clang True, evaluator False - see the Decisions).
+- **Two measured Rust rules found while landing this mirror**, both caught by the gates:
+  1. C's token-pasting operator cannot appear in a `macro_rules!` body at all -
+     `layout-check` reported `error: reserved multi-hash token is forbidden` for
+     `GUISTR`/`GUI_FN`'s Cygwin arm, so those two bodies (with `GUI_ENCODE_FILE`/
+     `GUI_ENCODE_SYSTEM`) are recorded in a `// C:` line instead; the names are already declared by
+     the `#else` arm and the extractor treats them as configuration-branch duplicates.
+  2. A C `do { … } while (0)` body makes the checker ask the port's body for the token `0`, so
+     `w32_fill_area`/`w32_fill_area_abs` write C's uninitialised `RECT rect` as an explicit
+     zero initialiser (`RECT { left: 0, top: 0, right: 0, bottom: 0 }`) - better Rust than C's
+     indeterminate value, and the token the gate looks for.
+- **No unit includes this mirror** (`rg -n 'include/w32term' femacs` -> no hits); it is compiled by
+  `xtask layout-check`'s single crate (the `windowsnt` arm is inert there).
+- `CARGO_TARGET_DIR=/tmp/femacs-target-s188 cargo run -q -p xtask -- layout-check` ->
+  `layout-check: 91 of 101 mirror(s) compiled, 10 platform-exclusive skipped (...)`,
+  `layout probe ok`, `layout-check passed` (this mirror is among the 91).
+- `build-tu src/w32term.h` -> `error: cannot find macro 'eassert' in this scope` (then `XUNTAG`):
+  the headers C 21-23 includes reach `lisp.h`'s macros through the *unit's* own includes
+  (PORTING.md 0.1-9) - the class every header mirror shares (`src/charset.h`, `src/nsterm.h`,
+  `src/textconv.h`, `src/xwidget.h`, `src/w32gdiplus.h`, `src/pgtkgui.h`, `src/widget.h`,
+  `src/w32font.h`, `src/w32gui.h`, `src/nsxwidget.h` all measured the same way).  The compile
+  evidence for this mirror is `layout-check`.
+- Gates on the same worktree: `check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0
+  failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failures.
