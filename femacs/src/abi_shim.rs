@@ -1324,6 +1324,21 @@ pub mod c_abi_of_mirror_named_items
   /// `nsselect.swift` 159, `nsimage.swift` 121, `nsfont.swift` 488, `macfont.swift` 785.
   #[unsafe(no_mangle)]
   pub unsafe extern "C" fn XCDR (c: Lisp_Object) -> Lisp_Object { super::XCDR (c) }
+
+  /// C: `INLINE void set_hash_value_slot (struct Lisp_Hash_Table *h, ptrdiff_t idx, Lisp_Object
+  /// val)` (src/lisp.h 3982-3985, `h->key_and_value[2 * idx + 1] = val`) - header-only, and the
+  /// read is `struct Lisp_Hash_Table`'s layout, a core-internal fact.  The port already carries
+  /// the name (`include/lisp.rs` 2505), so the C-ABI spelling stands here and the body calls it;
+  /// the mirror's `idx` is `hash_idx_t` (`include/lisp.rs` 2262, C's `ptrdiff_t` folded to i32),
+  /// while the lane declares the argument `Int` (`macfont.swift` 834), so the conversion is
+  /// explicit and the declaration's width wins (the `## Decisions` rule).
+  /// Swift `macfont.swift` 834-835 (`(UnsafeMutableRawPointer?, Int, Lisp_Object)`), used at
+  /// `macfont.swift` 1703.
+  #[unsafe(no_mangle)]
+  pub unsafe extern "C" fn set_hash_value_slot (h: *mut c_void, idx: c_long, val: Lisp_Object)
+  {
+    super::set_hash_value_slot (h.cast::<Lisp_Hash_Table> (), idx as hash_idx_t, val)
+  }
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -1346,4 +1361,263 @@ pub mod c_abi_of_mirror_named_items
 pub unsafe extern "C" fn XSETFRAME (a: *mut Lisp_Object, b: *mut c_void)
 {
   unsafe { XSETFRAME! (*a, b); }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 10, group 1: `struct frame`'s non-bitfield members the two NS Swift units write or read
+   (the integrator's list, minus the bitfield entries - status 3.272/3.273, their bit numbers are
+   not written out yet - minus `frame_set_fontset`, which batch 5 already landed behind its
+   `have_ns` gate, and minus `set_frame_cursor_types`, which is not a member accessor at all).
+   Every member here is in the frozen arm: frame.h's `struct frame` has no gate over 596-702
+   (the file's only `#if` in that region is 668-672, over `wait_event_type`), and the mirror
+   carries each field ungated in that run (`include/frame.rs` 185-230; the only gated member
+   beside them is `wait_event_type`, cfg at 215 and the field at 216).
+   --------------------------------------------------------------------------------------------- */
+
+/// C: `int total_cols, total_lines;` (frame.h 596) - C's write is `FRAME_TOTAL_COLS (tip_f) =
+/// w->total_cols;` (src/nsfns.m 3462; the macro is `#define FRAME_TOTAL_COLS(f)
+/// ((f)->total_cols)`, frame.h 1068).
+/// Swift `nsfns.swift` 868-869 (`(UnsafeMutableRawPointer?, Int32)`), used at `nsfns.swift` 4361.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_total_cols (f: *mut c_void, v: c_int)
+{
+  unsafe { (*f.cast::<frame> ()).total_cols = v; }
+}
+
+/// C: `int pixel_width, pixel_height;` (frame.h 598) - C's writes are `FRAME_PIXEL_WIDTH (f) =
+/// new_native_width;` (src/frame.c 1098; the macro is frame.h 1066).
+/// Swift `nsfns.swift` 871-872 (`(…, Int32)`), used at `nsfns.swift` 4407.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_pixel_width (f: *mut c_void, v: c_int)
+{
+  unsafe { (*f.cast::<frame> ()).pixel_width = v; }
+}
+
+/// C: `int pixel_width, pixel_height;` (frame.h 598) - C's write is `FRAME_PIXEL_HEIGHT (f) =
+/// new_native_height;` (src/frame.c 1099; the macro is frame.h 1067).
+/// Swift `nsfns.swift` 874-875 (`(…, Int32)`), used at `nsfns.swift` 4408.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_pixel_height (f: *mut c_void, v: c_int)
+{
+  unsafe { (*f.cast::<frame> ()).pixel_height = v; }
+}
+
+/// C: `int border_width;` (frame.h 613, "Border width of the frame window as known by the (X)
+/// window system") - C has no `FRAME_BORDER_WIDTH` macro, and C's read is `int border = fullscreen
+/// ? 0 : f->border_width;` (src/nsfns.m 3560; C's writes are src/nsterm.m 9080/9112/9854).
+/// Swift `nsfns.swift` 908 (`(UnsafeMutableRawPointer?) -> Int32`), used at
+/// `nsfns.swift` 4446.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_border_width (f: *mut c_void) -> c_int
+{
+  unsafe { (*f.cast::<frame> ()).border_width }
+}
+
+/// C: `int size_hint_flags;` (frame.h 610, "The geometry flags for this window") - C's reads are
+/// `if (f->size_hint_flags & XNegative)` / `& YNegative` (src/nsterm.m 1827/1834).
+/// Swift `nsterm.swift` 1884-1885 (`-> Int32`), used at `nsterm.swift` 1981/1989.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_size_hint_flags (f: *mut c_void) -> c_int
+{
+  unsafe { (*f.cast::<frame> ()).size_hint_flags }
+}
+
+/// C: `int size_hint_flags;` (frame.h 610) - C's read-modify-writes are
+/// `f->size_hint_flags &= ~(XNegative|YNegative);` (src/nsterm.m 1871, 1955).
+/// Swift `nsterm.swift` 1886-1887 (`(…, Int32)`), used at `nsterm.swift` 2017/2136.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_size_hint_flags (f: *mut c_void, v: c_int)
+{
+  unsafe { (*f.cast::<frame> ()).size_hint_flags = v; }
+}
+
+/// C: `int config_scroll_bar_width;` (frame.h 693) - C's write is
+/// `FRAME_CONFIG_SCROLL_BAR_WIDTH (f) = NS_SCROLL_BAR_WIDTH_DEFAULT;` (src/nsfns.m 2530; the macro
+/// is frame.h 1286).
+/// Swift `nsfns.swift` 1155-1156 (`(…, Int32)`), used at `nsfns.swift` 3441.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_config_scroll_bar_width (f: *mut c_void, v: c_int)
+{
+  unsafe { (*f.cast::<frame> ()).config_scroll_bar_width = v; }
+}
+
+/// C: `int config_scroll_bar_cols;` (frame.h 694) - C's write is
+/// `FRAME_CONFIG_SCROLL_BAR_COLS (f) = (FRAME_CONFIG_SCROLL_BAR_WIDTH (f) + wid - 1) / wid;`
+/// (src/nsfns.m 2531; the macro is frame.h 1296).
+/// Swift `nsfns.swift` 1159-1160 (`(…, Int32)`), used at `nsfns.swift` 3442.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_config_scroll_bar_cols (f: *mut c_void, v: c_int)
+{
+  unsafe { (*f.cast::<frame> ()).config_scroll_bar_cols = v; }
+}
+
+/// C: `int config_scroll_bar_height;` (frame.h 701) - C's write is
+/// `FRAME_CONFIG_SCROLL_BAR_HEIGHT (f) = NS_SCROLL_BAR_WIDTH_DEFAULT;` (src/nsfns.m 2539; the
+/// macro is frame.h 1291).
+/// Swift `nsfns.swift` 1163-1164 (`(…, Int32)`), used at `nsfns.swift` 3449.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_config_scroll_bar_height (f: *mut c_void, v: c_int)
+{
+  unsafe { (*f.cast::<frame> ()).config_scroll_bar_height = v; }
+}
+
+/// C: `int config_scroll_bar_lines;` (frame.h 702) - C's write is
+/// `FRAME_CONFIG_SCROLL_BAR_LINES (f) = (FRAME_CONFIG_SCROLL_BAR_HEIGHT (f) + height - 1) /
+/// height;` (src/nsfns.m 2540; the macro is frame.h 1301).
+/// Swift `nsfns.swift` 1167-1168 (`(…, Int32)`), used at `nsfns.swift` 3450.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn frame_set_config_scroll_bar_lines (f: *mut c_void, v: c_int)
+{
+  unsafe { (*f.cast::<frame> ()).config_scroll_bar_lines = v; }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   Batch 10, group 2: `struct window`'s non-bitfield members, all of them written or read by
+   `ns_show_tip`'s window-sizing block (src/nsfns.m 3442-3501) and by the two cursor helpers
+   (src/nsfns.m 4024-4025).  `struct window` in window.h has no gate over the members used here
+   (the file's only `#if` in 60-340 is 290-303, `HAVE_TEXT_CONVERSION`), and the mirror carries
+   them ungated (`include/window.rs` 75-115; the `have_window_system` gate starts at 120, on
+   `phys_cursor_type`).  The writers are plain field writes - no mirror item is reached, the
+   `frame_set_*` shape of batches 1/5.
+   --------------------------------------------------------------------------------------------- */
+
+/// C: `int left_col;` (window.h 248, "The upper left corner coordinates of this window, relative
+/// to upper left corner of frame = 0, 0") - C's write is `w->left_col = 0;` (src/nsfns.m 3442).
+/// Swift `nsfns.swift` 917-918 (`(UnsafeMutableRawPointer?, Int32)`), used at `nsfns.swift` 4344.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_left_col (w: *mut c_void, v: c_int)
+{
+  unsafe { (*w.cast::<window> ()).left_col = v; }
+}
+
+/// C: `int top_line;` (window.h 249) - C's write is `w->top_line = 0;` (src/nsfns.m 3443).
+/// Swift `nsfns.swift` 919-920, used at `nsfns.swift` 4345.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_top_line (w: *mut c_void, v: c_int)
+{
+  unsafe { (*w.cast::<window> ()).top_line = v; }
+}
+
+/// C: `int pixel_left;` (window.h 243) - C's write is `w->pixel_left = 0;` (src/nsfns.m 3444).
+/// Swift `nsfns.swift` 921-922, used at `nsfns.swift` 4346.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_pixel_left (w: *mut c_void, v: c_int)
+{
+  unsafe { (*w.cast::<window> ()).pixel_left = v; }
+}
+
+/// C: `int pixel_top;` (window.h 244) - C's write is `w->pixel_top = 0;` (src/nsfns.m 3445).
+/// Swift `nsfns.swift` 923-924, used at `nsfns.swift` 4347.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_pixel_top (w: *mut c_void, v: c_int)
+{
+  unsafe { (*w.cast::<window> ()).pixel_top = v; }
+}
+
+/// C: `int total_cols;` (window.h 264) - C's writes are `w->total_cols = XFIXNAT (XCAR
+/// (Vx_max_tooltip_size));` (src/nsfns.m 3451) and `w->total_cols = 80;` (3456).
+/// Swift `nsfns.swift` 926-927, used at `nsfns.swift` 4352.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_total_cols (w: *mut c_void, v: c_int)
+{
+  unsafe { (*w.cast::<window> ()).total_cols = v; }
+}
+
+/// C: `int total_lines;` (window.h 265) - C's writes are `w->total_lines = XFIXNAT (XCDR
+/// (Vx_max_tooltip_size));` (src/nsfns.m 3452) and `w->total_lines = 40;` (3457).
+/// Swift `nsfns.swift` 929-930, used at `nsfns.swift` 4353.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_total_lines (w: *mut c_void, v: c_int)
+{
+  unsafe { (*w.cast::<window> ()).total_lines = v; }
+}
+
+/// C: `int pixel_width;` (window.h 252) - C's write is `w->pixel_width = w->total_cols *
+/// FRAME_COLUMN_WIDTH (tip_f);` (src/nsfns.m 3460).
+/// Swift `nsfns.swift` 932-933, used at `nsfns.swift` 4359.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_pixel_width (w: *mut c_void, v: c_int)
+{
+  unsafe { (*w.cast::<window> ()).pixel_width = v; }
+}
+
+/// C: `int pixel_height;` (window.h 253) - C's write is `w->pixel_height = w->total_lines *
+/// FRAME_LINE_HEIGHT (tip_f);` (src/nsfns.m 3461).
+/// Swift `nsfns.swift` 935-936, used at `nsfns.swift` 4360.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_set_pixel_height (w: *mut c_void, v: c_int)
+{
+  unsafe { (*w.cast::<window> ()).pixel_height = v; }
+}
+
+/// C: `int total_cols;` (window.h 264) - C's reads are `w->pixel_width = w->total_cols * …`
+/// (src/nsfns.m 3460) and `FRAME_TOTAL_COLS (tip_f) = w->total_cols;` (3462).
+/// Swift `nsfns.swift` 925 (`(UnsafeMutableRawPointer?) -> Int32`), used at `nsfns.swift`
+/// 4359/4361.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_total_cols (w: *mut c_void) -> c_int
+{
+  unsafe { (*w.cast::<window> ()).total_cols }
+}
+
+/// C: `int total_lines;` (window.h 265) - C's read is `w->pixel_height = w->total_lines *
+/// FRAME_LINE_HEIGHT (tip_f);` (src/nsfns.m 3461).
+/// Swift `nsfns.swift` 928, used at `nsfns.swift` 4360.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_total_lines (w: *mut c_void) -> c_int
+{
+  unsafe { (*w.cast::<window> ()).total_lines }
+}
+
+/// C: `int pixel_width;` (window.h 252) - the read counterpart of the write at src/nsfns.m 3460
+/// (`w->pixel_width = w->total_cols * FRAME_COLUMN_WIDTH (tip_f);`); C reads the *height* of the
+/// pair at 3501, the width's own read sites sitting outside these two units.
+/// Swift `nsfns.swift` 931 (`-> Int32`); the lane has declared it but has no call site yet
+/// (measured: `grep -n "window_pixel_width"` over the Swift tree finds the declaration only).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_pixel_width (w: *mut c_void) -> c_int
+{
+  unsafe { (*w.cast::<window> ()).pixel_width }
+}
+
+/// C: `int pixel_height;` (window.h 253) - C's read is `make_fixnum (w->pixel_height)`
+/// (src/nsfns.m 3501).
+/// Swift `nsfns.swift` 934, used at `nsfns.swift` 4389.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_pixel_height (w: *mut c_void) -> c_int
+{
+  unsafe { (*w.cast::<window> ()).pixel_height }
+}
+
+/// C: `struct cursor_pos phys_cursor;` (window.h 332) over `struct cursor_pos { int x, y; … }`
+/// (window.h 91-97, `x` at 94) - C's read is `int x = text_area_x + window->phys_cursor.x;`
+/// (src/nsfns.m 4024).  The lane declares the result `Int` (`macfont`-width, 64 bit) while the
+/// member is `int`, so the declaration wins and the widening is explicit - `c_long` is Darwin's
+/// 64-bit `long`, the same width as Swift's `Int` (the `ns_output_window_desc` `as c_ulong`
+/// precedent of batch 6).
+/// Swift `nsfns.swift` 770 (`(UnsafeMutableRawPointer?) -> Int`), used at `nsfns.swift` 4837.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_phys_cursor_x (w: *mut c_void) -> c_long
+{
+  unsafe { (*w.cast::<window> ()).phys_cursor.x as c_long }
+}
+
+/// C: `struct cursor_pos phys_cursor;` (window.h 332), `y` at window.h 95 - C's read is
+/// `int y = text_area_y + window->phys_cursor.y;` (src/nsfns.m 4025).
+/// Swift `nsfns.swift` 771 (`-> Int`), used at `nsfns.swift` 4838.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_phys_cursor_y (w: *mut c_void) -> c_long
+{
+  unsafe { (*w.cast::<window> ()).phys_cursor.y as c_long }
+}
+
+/// C: `struct glyph_matrix *desired_matrix;` (window.h 225) - C's reads are
+/// `clear_glyph_matrix (w->desired_matrix);` (src/nsfns.m 3476) and
+/// `row = w->desired_matrix->rows;` (3484).  The mirror degrades the pointer (`*mut c_void`,
+/// `include/window.rs` 75), which is what the lane's `UnsafeMutableRawPointer?` asks for.
+/// Swift `nsfns.swift` 937-938, used at `nsfns.swift` 4376.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn window_desired_matrix (w: *mut c_void) -> *mut c_void
+{
+  unsafe { (*w.cast::<window> ()).desired_matrix }
 }
