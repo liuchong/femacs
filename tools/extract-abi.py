@@ -1224,7 +1224,7 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
         # `RE_BACKSLASH_ESCAPE_IN_LISTS`).  Normalising to the decimal value is what
         # the comparison means, and it subsumes the notes rows that exempted the
         # hex spelling one by one.
-        m = re.fullmatch (r"(-?)(0[xX][0-9a-fA-F]+|0[bB][01]+|[0-9]+)[uUlL]*", v)
+        m = re.fullmatch (r"(-?)(0[xX][0-9a-fA-F]+|0[bB][01]+|0[oO][0-7]+|[0-9]+)[uUlL]*", v)
         if m:
             sign, digits = m.group (1), m.group (2)
             # C's octal form is a leading 0 with no `x`/`b` (`0200` is 128, and
@@ -1235,6 +1235,11 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
                 base, digits = 16, digits[2:]
             elif digits[:2].lower () == "0b":
                 base, digits = 2, digits[2:]
+            elif digits[:2].lower () == "0o":
+                # Rust spells an octal literal `0o4000`; C's is `04000` with no prefix of its
+                # own, so without this the port's faithful spelling was reported as a missing
+                # constant (nt/inc/ms-w32.h 132's O_NONBLOCK, found by the nt/inc lane).
+                base, digits = 8, digits[2:]
             elif len (digits) > 1 and digits[0] == "0":
                 base = 8
             else:

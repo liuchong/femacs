@@ -1285,9 +1285,34 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
     }
     let out_path = fs::canonicalize("..").map(|p| p.join("build/load/temacs-port"))
         .unwrap_or_else(|_| PathBuf::from("build/load/temacs-port"));
+    // The reference link pulls `../lib/libgnu.a`, and an archive's members are only linked when
+    // something needs them: `lib/getloadavg.c`'s `nlist` call is in an object the C program never
+    // pulls, while passing every lib object individually would demand that every one of them
+    // resolve (measured: `_nlist`, `_rpl_mempcpy`, ... - symbols C's own link never asks for).
+    // So the port spells the same thing with its own archive, built from its own objects
+    // (nothing of the reference library is linked; goal constraint 2).
+    // Every ported `lib/` unit goes into the archive.  Some of them are files the frozen
+    // configuration cannot compile at all (`lib/getloadavg.c` dies on `#include <a.out.h>`, which
+    // macOS does not have - measured with `make -C build/emacs-ref/lib getloadavg.o`), so the
+    // archive is not the same set as the reference's own; the symbols only those files can
+    // demand are the ratchet's business below, not a reason to drop their text from the link.
+    let archive = "../build/load/libgnu-port.a";
+    let _ = fs::remove_file(archive);
+    let mut ar = Command::new("ar");
+    ar.args(["crs", archive]);
+    for l in &libs {
+        ar.arg(l);
+    }
+    match ar.output() {
+        Ok(o) if o.status.success() => println!("   archiving {} lib object(s) into libgnu-port.a", libs.len()),
+        Ok(o) => return fail(format!("ar: {}", String::from_utf8_lossy(&o.stderr).trim())),
+        Err(e) => return fail(format!("ar: {e}")),
+    }
+    let archive_abs = fs::canonicalize(archive).map(|p| p.display().to_string())
+        .unwrap_or_else(|_| archive.to_string());
     let mut rsp: Vec<String> = vec![format!("-o\n{}", out_path.display())];
     rsp.extend(objs.iter().cloned());
-    rsp.extend(libs.iter().cloned());
+    rsp.push(archive_abs);
     rsp.extend(search.iter().cloned());
     rsp.extend(extra_libs.iter().cloned());
     rsp.push("-lSystem".to_string());
@@ -1327,6 +1352,34 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
             }
         }
     }
+    // The ratchet: `docs/baseline/link-pending.txt` names the symbols the port's link cannot
+    // resolve for a reason that is not a missing port (a unit C cannot compile at all, a libc
+    // API macOS does not export), one `symbol<TAB>reason` row each.  They are reported, not
+    // hidden, and a row nothing matches any more is stale - the two other gates' convention.
+    let mut pending: BTreeMap<String, String> = BTreeMap::new();
+    if let Ok(text) = fs::read_to_string("../docs/baseline/link-pending.txt") {
+        for line in text.lines() {
+            if line.trim().is_empty() || line.starts_with('#') { continue; }
+            let mut parts = line.splitn(2, '\t');
+            if let (Some(sym), Some(reason)) = (parts.next(), parts.next()) {
+                pending.insert(sym.trim().to_string(), reason.trim().to_string());
+            }
+        }
+    }
+    let (known, fresh): (Vec<&(String, Vec<String>)>, Vec<&(String, Vec<String>)>) = undefined
+        .iter().partition(|(name, _)| pending.contains_key(name));
+    if !known.is_empty() {
+        println!("{} undefined symbol(s) are ratcheted in docs/baseline/link-pending.txt:", known.len());
+        for (name, _) in &known {
+            println!("  {name}");
+        }
+    }
+    let stale: Vec<&String> = pending.keys().filter(|s| !undefined.iter().any(|(n, _)| n == *s)).collect();
+    if !stale.is_empty() {
+        println!("{} ratchet row(s) are stale (the symbol now resolves): {}", stale.len(),
+                 stale.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join(" "));
+    }
+
     let mut why: BTreeMap<String, usize> = BTreeMap::new();
     for (_, refs) in &undefined {
         for r in refs { *why.entry(r.clone()).or_default() += 1; }
@@ -1349,6 +1402,7 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
     } else {
         println!("full list: build/load/undefined.txt");
     }
+    println!("undefined: {} total, {} ratcheted, {} new", undefined.len(), known.len(), fresh.len());
     if undefined.is_empty() {
         if out.status.success() {
             println!("link: temacs linked from the port's objects alone");
@@ -1359,12 +1413,12 @@ pub extern \"C\" fn rust_eh_personality () {}\n";
         }
         return fail("the link failed without an undefined-symbol list (the lines above)");
     }
-    if report {
+    if !fresh.is_empty() {
         println!("gate-load --report: {} undefined symbol(s); the list is the L0 worklist", undefined.len());
-        0
-    } else {
-        fail(format!("{} undefined symbol(s) stand between the port and L0", undefined.len()))
+        return fail(format!("{} undefined symbol(s) are not in docs/baseline/link-pending.txt", fresh.len()));
     }
+    println!("gate-load: every unresolved symbol is ratcheted in docs/baseline/link-pending.txt");
+    0
 }
 
 /// Compile every finished translation unit with the **non-frozen** arms selected.

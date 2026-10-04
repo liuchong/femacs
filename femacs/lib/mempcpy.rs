@@ -10,7 +10,7 @@ unsafe extern "C" { pub fn memcpy (dest: *mut c_void, src: *const c_void, n: usi
    live; gnulib's <string.h> renames the identifier to `rpl_mempcpy` in this translation
    unit (which is the symbol doprnt.rs declares), so the port keeps C's function name for
    the ledger and emits C's real symbol through export_name (PORTING.md 10.13).  */
-#[unsafe(no_mangle)]
+#[unsafe(export_name = "rpl_mempcpy")]
 pub unsafe extern "C" fn mempcpy (dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void
 {
   return (memcpy (dest, src, n) as *mut c_char).offset (n as isize) as *mut c_void;

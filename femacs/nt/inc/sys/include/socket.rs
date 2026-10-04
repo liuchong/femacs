@@ -87,10 +87,11 @@ macro_rules! freeaddrinfo { ($($args:tt)*) => { sys_freeaddrinfo ($($args)*) }; 
 pub const F_SETFL: c_int = 4;
 /// C 131: `#define F_SETFD 2`
 pub const F_SETFD: c_int = 2;
-/// C 132: `#define O_NONBLOCK 04000` - C's octal spelling; the mirror writes the same value as
-/// `0x800` because the constant check's normaliser accepts `0x`/`0b`/leading-zero-octal/decimal
-/// on the C side but does not yet read Rust's `0o` spelling (the token scanner does; status 3.34).
-pub const O_NONBLOCK: c_int = 0x800;
+/// C 132: `#define O_NONBLOCK 04000` - C's octal spelling, kept as Rust's `0o4000`.  The
+/// constant check did not read Rust's `0o` prefix when this mirror first landed (the token
+/// scanner did; status 3.34), so the line said `0x800` for one round; `tools/extract-abi.py`'s
+/// `norm_const` reads the prefix now (status 3.112).
+pub const O_NONBLOCK: c_int = 0o4000;
 /// C 133: `#define O_CLOEXEC O_NOINHERIT` - the CRT's own name for the flag.
 pub const O_CLOEXEC: c_int = O_NOINHERIT;
 /// C 134: `#define F_DUPFD_CLOEXEC 0x40000000`

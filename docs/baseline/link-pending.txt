@@ -1,0 +1,7 @@
+# Symbols the port's temacs link cannot resolve for a reason that is *not* a missing port, one
+# `symbol<TAB>reason` row each (the `undef-pending.txt`/`symbol-pending.txt` convention; the
+# reader is `xtask gate-load`).  A row nothing matches any more is stale and must be deleted.
+#
+# The bar for a row: the frozen configuration provably cannot supply the symbol, so no amount of
+# porting can remove it, and the row says what was measured.
+_nlist	lib/getloadavg.c's nlist emulation is live in the port's reading of C's LOAD_AVE_TYPE (C 226), and the file cannot be compiled at all on the frozen target: `make -C build/emacs-ref/lib getloadavg.o` dies with "a.out.h file not found", so the reference has no such object either; macOS exports no `nlist` (a C probe against libSystem fails to link the same way), and the port keeps the file's text because PORTING.md P-42 ports the reference tree's files rather than the frozen link list

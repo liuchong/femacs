@@ -1693,4 +1693,23 @@
   已记入 `docs/ports/keyboard.md`，是下一个镜像任务。它遇到的 `gate-fast` 在 `--all` 汇总前中止（无 traceback、
   约 20 分钟）与集成侧同轮成功跑完的 `checked 447 ported files: 422 done, 25 in progress, 0 failing` 不一致，
   记录为待复查的环境现象。
+- **3.112 链接工单 164 → 163：`rpl_mempcpy` 的定义端正名 + gate-load 的棘轮 + `0o` 常量归一（2026-10-04 第 99 轮第十一批）**：
+  ① **`mempcpy` 的符号**：**生成的** `<string.h>`（`build/emacs-ref/lib/string.h` 1027-1028
+  `# undef mempcpy` / `# define mempcpy rpl_mempcpy`）把每个编译单元里的标识符改名，所以 C 的 `mempcpy.c`
+  定义的是 `rpl_mempcpy`、调用它的 `src/doprnt.c` 284 也编译成它。端口这边却是"定义端 `no_mangle` 出
+  `_mempcpy`、调用端声明 `rpl_mempcpy`"——两边各说各话，`gate-load` 因此报 `_rpl_mempcpy` 未定义。定义端
+  改成 `#[unsafe(export_name = "rpl_mempcpy")]`、`canonicalize-lgpl.rs` 的用点声明与 `__mempcpy!` 宏体改叫
+  `rpl_mempcpy`（它原来声明 `mempcpy`，所以该目标文件要的是 `_mempcpy`）后：`nm build/femacs/mempcpy.o`
+  打 `T _rpl_mempcpy`，**链接工单 164 → 163**。
+  ② **`gate-load` 加棘轮**：`docs/baseline/link-pending.txt`（`符号<TAB>理由`，与 `undef-pending`/
+  `symbol-pending` 同制），只登记"冻结配置**证明**提供不了的符号"——目前 **1 行**：`_nlist` 来自
+  `lib/getloadavg.c` 的 nlist 仿真（C 226 的 `LOAD_AVE_TYPE` 在端口读法是活的），而那个文件在本目标上
+  **根本编不过**（`make -C build/emacs-ref/lib getloadavg.o` → `fatal error: 'a.out.h' file not found`），
+  参照因此也没有它的目标文件，macOS 也不导出 `nlist`（C 探针同样链不上）。门现在把未定义分成
+  "棘轮内 / 新增两堆"，只在有新增时非零退出 ✓。同时撤掉上一版按 `libgnu.a` 成员表过滤对象文件的尝试
+  （那会把端口自己的 GMP 替身 `mini-gmp.o` 排除掉，`_mpz_*` 立刻变成 200+ 条）。
+  ③ **`norm_const` 认 Rust 的 `0o`**：`nt/inc/sys/include/socket.rs` 的 `O_NONBLOCK` 原本为了绕过工具缺口写成
+  `0x800`（lane 报告），现在 `tools/extract-abi.py` 的正则收了 `0[oO][0-7]+`，镜像改回 C 的忠实拼写
+  **`0o4000`** 且 `--check` 仍 `OK`；抽样复核 `src/syntax.c`/`src/charset.c` 等使用 `0o` 的单元不受影响
+  （归一化只会更宽松）。
 

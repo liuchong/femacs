@@ -75,7 +75,7 @@ macro_rules! __getcwd {
 }
 /* C 74's `# define __mempcpy mempcpy`.  */
 macro_rules! __mempcpy {
-    ($dest:expr, $src:expr, $n:expr) => { mempcpy ($dest, $src, $n) };
+    ($dest:expr, $src:expr, $n:expr) => { rpl_mempcpy ($dest, $src, $n) };
 }
 /* C 75's `# define __pathconf pathconf`.  */
 macro_rules! __pathconf {
@@ -113,10 +113,14 @@ pub const GCC_LINT: c_int = 1;
 /* The four declarations this unit needs beyond the mirrors (the md5.rs shape; `strcpy`
    moved into the string mirror, which now carries it).  */
 unsafe extern "C" {
-  /* void *mempcpy (void *dest, const void *src, size_t n);  (lib/mempcpy.c defines the
-     symbol in this build; gnulib's <string.h> declares it as a system function, so no
-     `rpl_` spelling is needed here.)  */
-  pub fn mempcpy (dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void;
+  /* void *mempcpy (void *dest, const void *src, size_t n);  - the **generated** `<string.h>`
+     renames it (`build/emacs-ref/lib/string.h` 1027-1028: `# undef mempcpy` /
+     `# define mempcpy rpl_mempcpy`), so this unit's identifier is `rpl_mempcpy` and
+     `lib/mempcpy.rs` emits that symbol with `#[unsafe(export_name)]` (PORTING.md 10.13).  The
+     declaration used to say `mempcpy`, which made the port's object ask for `_mempcpy` while the
+     definition emitted... `_mempcpy` too - a pair that linked only by accident and that the
+     `token-aliases.tsv` row already covers for the text gate.  */
+  pub fn rpl_mempcpy (dest: *mut c_void, src: *const c_void, n: usize) -> *mut c_void;
   /* char *strdup (const char *s);  */
   pub fn strdup (s: *const c_char) -> *mut c_char;
   /* long pathconf (const char *path, int name);  */
