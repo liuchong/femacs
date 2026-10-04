@@ -6577,3 +6577,29 @@
   ⑥ **未声称**：冻结配置下这 1,102 行**一行都没编进去**（336 字节空对象）；所有读数都是**编译级**——没有 JNI 调用、
      没有字体、没有 frame、没有设备；⑷ 那一档是**替代读数**（补丁具名），不等于"无补丁也能编"；
      font 的布局断言被注掉、frame 的常量是 stand-in、掩码是手写 ⇒ 不声称 Android 窗口系统布局或掩码位序正确。
+
+- **3.393 `enable_checking` 变成 `tools/check-all-units.sh` 的第二腿；83/83 全绿（2026-10-05）**：
+  ① **先纠正一个前提**：`enable_checking` **已经在 `gate-fast` 里**（`build_finished_tus()`，自 3.184 起对同一
+     `_root.rs` 再编一遍），3.387 记的"不属任何闸门"不准确。真正的缺口是**覆盖面**：那一半的单元集合来自
+     `finished_units()`（**台账没有 `- [ ]`**），实测 81/83，差集正是 **`src/process.c` 与 `src/xdisp.c`**
+     ——而 3.387 那条错误就藏在 `xdisp` 里（它台账未完成 ⇒ `gate-fast` 连 `build-tu` 都跳过，
+     `check-all-units.sh` 又不带这个 cfg，于是这个单元此前**没有任何一条腿跑过 checking**）。
+  ② **改动**：`tools/check-all-units.sh` 加第二腿——`build-tu` 已经把 `build/femacs/units/<stem>/_root.rs` 物化好，
+     紧跟着用钉住的工具链对**同一个** `_root.rs` 跑 `--cfg enable_checking`（`--emit=metadata -o <scratch>`，
+     收工 `trap` 清理），读数印成 `checking N unit(s), M unit failure(s)`；失败行按 P-86 ⑦ 的名口
+     **区分"单元文本"与"镜像副本"**。冒烟：3 单元列表 → `checked 3 unit(s), 0 failure(s)` +
+     `checking 3 unit(s), 0 unit failure(s)`（3.7 s；按实测 ≈0.6 s/单元，83 单元整轮约 +50 s）。
+  ③ **实测读数（lane 报的，方法可复算）**：在 `305669b` 的 `git archive` 快照上（源文件 sha256 指纹前后一致）
+     **83 个单元 × checking 腿全绿（exit 0，0 error；unit-text 0 / mirror-copy 0）**；工作树里 `frame`/`xdisp`
+     （别的 lane 在飞）单独补测也绿 ⇒ **这一类现在是空的**。**阳性对照**（证明这条腿不是空读数）：把物化副本里
+     `_root.rs:18902` 临时退回 3.387 之前的写法 → 立刻 `E0609`；还原后 0 错。
+  ④ **两条方法论（都写进脚本注释）**：⑴ **工具链必须钉**——`rust-toolchain.toml` 在 `femacs/` 下，从仓库根用裸 `rustc`
+     会落到 stable 1.98.1，**75/83 假红、134 个 `E0658`**，而且这些 feature-gate 错误**会把真错误挡在后面**
+     （`character` stable 1 错 → nightly 0 错；`xdisp` stable 16 错 → nightly 0 错）；脚本里的 `cd "$root/femacs"` 就是钉它的那一步。
+     ⑵ **不给 `--emit` 会把产物甩在当前目录**：探针那一轮在仓库根留下 **878 MB 的 `lib*.rlib`**（已删），所以第二腿
+     显式写 metadata 到 scratch。
+  ⑤ **未声称**：⑴ 这条腿只到**类型检查**（`--crate-type=lib`、`--emit=metadata`、不链接、不跑测试），不代表运行时行为，
+     也不代表 ABI/layout/symbol/link 任何一层；⑵ 覆盖面只到 `frozen-build-sources.txt` 的 83 个单元与
+     `#[cfg (enable_checking)]` 这**一个轴**——`#[cfg (feature = …)]` 臂（含 `all (feature, enable_checking)` 交集）
+     归 `xtask dead-arms`（`gate-probes`）管，本轮未碰；⑶ **脚本的红路径没有端到端走过**：绿路径是 3 单元冒烟，
+     红路径只在"命令级"被阳性对照证明过（脚本自身的失败分支靠代码审查，未构造真实红灯）；⑷ 工作树读数含在飞编辑（3.339 的两读数规则）。
