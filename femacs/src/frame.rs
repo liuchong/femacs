@@ -348,18 +348,12 @@ unsafe extern "C" {
   pub static mut hashtest_eq: hash_table_test;
 }
 
-/* frame.h 34-45: `enum internal_border_part` (the mirror does not carry it; PORTING.md
-   1.3's type alias plus members in C's order).  */
-pub type internal_border_part = c_int;
-pub const INTERNAL_BORDER_NONE: internal_border_part = 0;
-pub const INTERNAL_BORDER_LEFT_EDGE: internal_border_part = 1;
-pub const INTERNAL_BORDER_TOP_LEFT_CORNER: internal_border_part = 2;
-pub const INTERNAL_BORDER_TOP_EDGE: internal_border_part = 3;
-pub const INTERNAL_BORDER_TOP_RIGHT_CORNER: internal_border_part = 4;
-pub const INTERNAL_BORDER_RIGHT_EDGE: internal_border_part = 5;
-pub const INTERNAL_BORDER_BOTTOM_RIGHT_CORNER: internal_border_part = 6;
-pub const INTERNAL_BORDER_BOTTOM_EDGE: internal_border_part = 7;
-pub const INTERNAL_BORDER_BOTTOM_LEFT_CORNER: internal_border_part = 8;
+/* frame.h 34-45: `enum internal_border_part` is the mirror's item now - the frame.h mirror
+   included at line 70 brings the type and its nine enumerators (status 3.211, the ownership move
+   the mirror's own note asked for).  This unit's copy is retired here so that the two cannot be
+   `E0428`.  (The wording avoids the include-directive spelling on purpose: xtask's dedupe pass
+   reads that spelling as a directive and replaces the whole line - measured, and the reason the
+   first attempt at this comment broke `build-tu src/frame.c`.)  */
 
 /* C's `f->output_method = …` (frame.h 446's `ENUM_BF`); the reader is the mirror's
    `output_method (f)`, and this macro is the writer (PORTING.md 1.3).  */

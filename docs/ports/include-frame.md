@@ -28,7 +28,7 @@
 - [x] FRAME_PARENT_FRAME  (line 1234)
 - [x] SET_FRAME_ICONIFIED  (line 1437)
 - [x] window_system_available  (line 1495)
-- [ ] SET_FRAME_VISIBLE  (line 1537)
+- [x] SET_FRAME_VISIBLE  (line 1537)
 - [x] frame_dimension  (line 1570)
 - [x] FRAME_FRINGE_COLS  (line 1585)
 - [x] FRAME_LEFT_FRINGE_WIDTH  (line 1593)
@@ -40,25 +40,25 @@
 - [x] FRAME_BOTTOM_DIVIDER_WIDTH  (line 1638)
 - [ ] FACE_FROM_ID  (line 1646)
 - [ ] FACE_FROM_ID_OR_NULL  (line 1656)
-- [ ] flush_frame  (line 1914)
+- [x] flush_frame  (line 1914)
 
 ## Macros defined — 139
-- [ ] AUTO_FRAME_ARG  (line 1425, body 769ac627b88c)
-- [ ] CHECK_FRAME  (line 1387, body 01f72077840d)
-- [ ] CHECK_LIVE_FRAME  (line 1390, body 0ae9d7cf2b91)
+- [x] AUTO_FRAME_ARG  (line 1425, body 769ac627b88c)
+- [x] CHECK_FRAME  (line 1387, body 01f72077840d)
+- [x] CHECK_LIVE_FRAME  (line 1390, body 0ae9d7cf2b91)
 - [x] EMACS_FRAME_H  (line 20, body da39a3ee5e6b)
-- [ ] FOR_EACH_FRAME  (line 1404, body 7564f393794a)
+- [x] FOR_EACH_FRAME  (line 1404, body 7564f393794a)
 - [x] FRAME_ANDROID_P  (line 961, body 7cb6efb98ba5)
 - [x] FRAME_BACKGROUND_PIXEL  (line 1376, body bf6ad7d89d52)
 - [x] FRAME_BLINK_OFF_CURSOR  (line 1371, body 67b0fb1def2c)
 - [x] FRAME_BLINK_OFF_CURSOR_WIDTH  (line 1373, body 03f53c56bc6d)
 - [x] FRAME_BOTTOM_MARGIN  (line 1146, body 79f4d67e6940)
 - [x] FRAME_BOTTOM_MARGIN_HEIGHT  (line 1151, body 14e999b114f6)
-- [ ] FRAME_CANON_X_FROM_PIXEL_X  (line 1710, body 5b14eae937e2)
-- [ ] FRAME_CANON_Y_FROM_PIXEL_Y  (line 1719, body 9181ee17c51a)
+- [x] FRAME_CANON_X_FROM_PIXEL_X  (line 1710, body 5b14eae937e2)
+- [x] FRAME_CANON_Y_FROM_PIXEL_Y  (line 1719, body 9181ee17c51a)
 - [x] FRAME_COLS  (line 1075, body 30fd881a25f1)
 - [x] FRAME_COLUMN_WIDTH  (line 1565, body 97db34c66ab0)
-- [ ] FRAME_COL_TO_PIXEL_X  (line 1736, body 4a8784889829)
+- [x] FRAME_COL_TO_PIXEL_X  (line 1736, body 4a8784889829)
 - [x] FRAME_CONDEMNED_SCROLL_BARS  (line 1365, body 17eb00844b59)
 - [x] FRAME_CONFIG_SCROLL_BAR_COLS  (line 1296, body be2478e9ae9b)
 - [x] FRAME_CONFIG_SCROLL_BAR_HEIGHT  (line 1291, body 6194b41530ee)
@@ -83,10 +83,10 @@
 - [x] FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT  (line 1229, body a674ada39a9f)
 - [x] FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT  (line 1230, body a674ada39a9f)
 - [x] FRAME_ICONIFIED_P  (line 1170, body 7742b1544ffe)
-- [ ] FRAME_IMAGE_CACHE  (line 922, body fedd7cf55a6d)
+- [x] FRAME_IMAGE_CACHE  (line 922, body fedd7cf55a6d)
 - [x] FRAME_INITIAL_P  (line 932, body 928ca5040b4d)
-- [ ] FRAME_INNER_HEIGHT  (line 1820, body 65b48da73bd2)
-- [ ] FRAME_INNER_WIDTH  (line 1816, body dfb474bcb6d0)
+- [x] FRAME_INNER_HEIGHT  (line 1820, body 65b48da73bd2)
+- [x] FRAME_INNER_WIDTH  (line 1816, body dfb474bcb6d0)
 - [x] FRAME_INSERTN_COST  (line 1210, body e4b5966a1d9d)
 - [x] FRAME_INSERT_COST  (line 1208, body b6cf1fbffe47)
 - [x] FRAME_KBOARD  (line 919, body 403c8709bf50)
@@ -94,7 +94,7 @@
 - [x] FRAME_LEFT_SCROLL_BAR_COLS  (line 1319, body e5d40bd25ff8)
 - [x] FRAME_LINES  (line 1076, body 372c0b4a5bc3)
 - [x] FRAME_LINE_HEIGHT  (line 1561, body 4218c838d76a)
-- [ ] FRAME_LINE_TO_PIXEL_Y  (line 1732, body 9d533ace5275)
+- [x] FRAME_LINE_TO_PIXEL_Y  (line 1732, body 9d533ace5275)
 - [x] FRAME_LIVE_P  (line 1043, body fe9f32688149)
 - [x] FRAME_MARGINS  (line 1156, body 5d4570af7a2c)
 - [x] FRAME_MARGIN_HEIGHT  (line 1161, body 88a0c974550a)
@@ -104,7 +104,7 @@
 - [x] FRAME_MESSAGE_BUF_SIZE  (line 1385, body 0031c2bd5895)
 - [x] FRAME_MINIBUF_ONLY_P  (line 1046, body 8278024232e6)
 - [x] FRAME_MINIBUF_WINDOW  (line 1198, body 67f2bfd42132)
-- [ ] FRAME_MOUSE_UPDATE  (line 1411, body 90a2b64b485d)
+- [x] FRAME_MOUSE_UPDATE  (line 1411, body 90a2b64b485d)
 - [x] FRAME_MSDOS_P  (line 941, body 7cb6efb98ba5)
 - [x] FRAME_NO_ACCEPT_FOCUS  (line 1265, body a674ada39a9f)
 - [x] FRAME_NO_FOCUS_ON_MAP  (line 1264, body a674ada39a9f)
@@ -115,15 +115,15 @@
 - [x] FRAME_OVERRIDE_REDIRECT  (line 1262, body a674ada39a9f)
 - [x] FRAME_PGTK_P  (line 951, body 7cb6efb98ba5)
 - [x] FRAME_PIXEL_HEIGHT  (line 1067, body f558544b33dc)
-- [ ] FRAME_PIXEL_HEIGHT_TO_TEXT_LINES  (line 1781, body aad7a4760a40)
-- [ ] FRAME_PIXEL_TO_TEXT_HEIGHT  (line 1810, body ead9bbfd1c3c)
-- [ ] FRAME_PIXEL_TO_TEXT_WIDTH  (line 1804, body 351e76ed5004)
+- [x] FRAME_PIXEL_HEIGHT_TO_TEXT_LINES  (line 1781, body aad7a4760a40)
+- [x] FRAME_PIXEL_TO_TEXT_HEIGHT  (line 1810, body ead9bbfd1c3c)
+- [x] FRAME_PIXEL_TO_TEXT_WIDTH  (line 1804, body 351e76ed5004)
 - [x] FRAME_PIXEL_WIDTH  (line 1066, body 14ebe643fac9)
-- [ ] FRAME_PIXEL_WIDTH_TO_TEXT_COLS  (line 1774, body bb0dbb9ca55f)
-- [ ] FRAME_PIXEL_X_FROM_CANON_X  (line 1697, body c2873ad6a998)
-- [ ] FRAME_PIXEL_X_TO_COL  (line 1768, body 2928949deb96)
-- [ ] FRAME_PIXEL_Y_FROM_CANON_Y  (line 1703, body 12326d138e40)
-- [ ] FRAME_PIXEL_Y_TO_LINE  (line 1756, body c6ef1a25ea83)
+- [x] FRAME_PIXEL_WIDTH_TO_TEXT_COLS  (line 1774, body bb0dbb9ca55f)
+- [x] FRAME_PIXEL_X_FROM_CANON_X  (line 1697, body c2873ad6a998)
+- [x] FRAME_PIXEL_X_TO_COL  (line 1768, body 2928949deb96)
+- [x] FRAME_PIXEL_Y_FROM_CANON_Y  (line 1703, body 12326d138e40)
+- [x] FRAME_PIXEL_Y_TO_LINE  (line 1756, body c6ef1a25ea83)
 - [x] FRAME_RES  (line 1018, body 79bb8d9629c4)
 - [x] FRAME_RES_X  (line 1016, body ffbed1418c6d)
 - [x] FRAME_RES_Y  (line 1017, body 79bb8d9629c4)
@@ -138,16 +138,16 @@
 - [x] FRAME_SCROLL_BAR_LINES  (line 1354, body c3c7af6b4a20)
 - [x] FRAME_SELECTED_WINDOW  (line 1204, body 8d9affd0b1cd)
 - [x] FRAME_SKIP_TASKBAR  (line 1263, body a674ada39a9f)
-- [ ] FRAME_SMALLEST_CHAR_WIDTH  (line 1826, body 98538baa3818)
-- [ ] FRAME_SMALLEST_FONT_HEIGHT  (line 1830, body 144c4761556f)
+- [x] FRAME_SMALLEST_CHAR_WIDTH  (line 1826, body 98538baa3818)
+- [x] FRAME_SMALLEST_FONT_HEIGHT  (line 1830, body 144c4761556f)
 - [x] FRAME_TAB_BAR_HEIGHT  (line 1091, body fbd9d6b157db)
 - [x] FRAME_TAB_BAR_LINES  (line 1090, body 4cad5140081d)
 - [x] FRAME_TERMCAP_P  (line 933, body 160b9ad63c45)
-- [ ] FRAME_TEXT_COLS_TO_PIXEL_WIDTH  (line 1742, body 7b7de3550aca)
+- [x] FRAME_TEXT_COLS_TO_PIXEL_WIDTH  (line 1742, body 7b7de3550aca)
 - [x] FRAME_TEXT_HEIGHT  (line 1074, body d62da9d58229)
-- [ ] FRAME_TEXT_LINES_TO_PIXEL_HEIGHT  (line 1748, body 05df9e6d8c8b)
-- [ ] FRAME_TEXT_TO_PIXEL_HEIGHT  (line 1796, body 30ed3124147c)
-- [ ] FRAME_TEXT_TO_PIXEL_WIDTH  (line 1790, body ae2afd94326c)
+- [x] FRAME_TEXT_LINES_TO_PIXEL_HEIGHT  (line 1748, body 05df9e6d8c8b)
+- [x] FRAME_TEXT_TO_PIXEL_HEIGHT  (line 1796, body 30ed3124147c)
+- [x] FRAME_TEXT_TO_PIXEL_WIDTH  (line 1790, body ae2afd94326c)
 - [x] FRAME_TEXT_WIDTH  (line 1073, body 0ffff95eaf80)
 - [x] FRAME_TOOLTIP_P  (line 1270, body 7ef9278e16c2)
 - [x] FRAME_TOOL_BAR_BOTTOM_HEIGHT  (line 1123, body 50f3013f22f7)
@@ -171,15 +171,15 @@
 - [x] FRAME_WINDOW_P  (line 987, body 1379974e8198)
 - [x] FRAME_WINDOW_STATE_CHANGE  (line 1195, body 3147954ae44a)
 - [x] FRAME_X_P  (line 934, body 1d9e8dd80cfc)
-- [ ] FRAME_Z_GROUP  (line 1266, body a41827de359d)
-- [ ] FRAME_Z_GROUP_ABOVE  (line 1268, body 1379974e8198)
-- [ ] FRAME_Z_GROUP_BELOW  (line 1269, body 1379974e8198)
-- [ ] FRAME_Z_GROUP_NONE  (line 1267, body c3e599a9b9ef)
+- [x] FRAME_Z_GROUP  (line 1266, body a41827de359d)
+- [x] FRAME_Z_GROUP_ABOVE  (line 1268, body 1379974e8198)
+- [x] FRAME_Z_GROUP_BELOW  (line 1269, body 1379974e8198)
+- [x] FRAME_Z_GROUP_NONE  (line 1267, body c3e599a9b9ef)
 - [x] MOUSE_HL_INFO  (line 1038, body 7bdaea6e5b2b)
 - [x] SELECTED_FRAME  (line 1526, body 40b81fe06248)
-- [ ] SET_FRAME_GARBAGED  (line 1173, body 7740c4b03c8e)
-- [ ] WINDOW_FRAME  (line 929, body d0a15ef83288)
-- [ ] WINDOW_SYSTEM_RETURN  (line 1471, body 01de564736b0)
+- [x] SET_FRAME_GARBAGED  (line 1173, body 7740c4b03c8e)
+- [x] WINDOW_FRAME  (line 929, body d0a15ef83288)
+- [x] WINDOW_SYSTEM_RETURN  (line 1471, body 01de564736b0)
 - [x] XFRAME  (line 924, body 52a85b0509a9)
 - [x] XSETFRAME  (line 926, body 49c7992aa036)
 
@@ -269,3 +269,128 @@
   window.h copy must be deleted (P-26, one landing point), together with the six units that
   used to declare their own (`window.rs`, `dispnew.rs`, `menu.rs`, `xfaces.rs`, `indent.rs`,
   `minibuf.rs`; all deleted with this change except the in-flight `xdisp.rs`/`keyboard.rs`).
+
+## Decisions (third slice: the geometry, the flag writers and the two remaining enums)
+
+- **STATE: 33 of the 47 gap lines closed, and the two shared rows this file needs are listed
+  below.**  What landed (all in `femacs/src/include/frame.rs`, appended): `enum internal_border_part`
+  is *not* among it - see the ownership bullet - but `enum z_group`'s four members are (C 61-67 is
+  dead-arm text, while C 1266's live `#else` arm of `FRAME_Z_GROUP` names `z_group_none`, the
+  `sys_types.in.rs` reading), the 18 geometry members (C 1697-1830) as `#[inline(always)] pub fn`s
+  over the accessors the second slice already had, `FRAME_Z_GROUP`/`_NONE`/`_ABOVE`/`_BELOW`
+  (C 1266-1269, the live `#else` arm), `FRAME_IMAGE_CACHE` (C 922) and `FRAME_SMALLEST_CHAR_WIDTH`/
+  `_FONT_HEIGHT` (C 1826-1832) as macros over members no ported type has yet, `WINDOW_FRAME` (C 929)
+  as a *function*, `AUTO_FRAME_ARG` (C 1425), `CHECK_FRAME`/`CHECK_LIVE_FRAME` (C 1387-1391, macros
+  because every call site writes `NAME!`), `FRAME_MOUSE_UPDATE` (C 1411), `SET_FRAME_GARBAGED`
+  (C 1173), `SET_FRAME_VISIBLE` (C 1537-1552, `macro_rules!`) and `flush_frame` (C 1914-1921, the
+  same).  The four `missing function` items are three definitions plus one declaration: `SET_FRAME_VISIBLE`
+  and `flush_frame` are landed, and `FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL` are the ownership bullet.
+- **The four functions' liveness, measured**: `clang -E -std=gnu23 -include
+  build/emacs-ref/src/config.h -I build/emacs-ref/src -I emacs/src … emacs/src/frame.h` prints
+  `SET_FRAME_VISIBLE`, `FACE_FROM_ID`, `FACE_FROM_ID_OR_NULL` and `flush_frame` once each (all four
+  live); the same run's `-dM` macro table has **all 33 macros live**, including `FRAME_IMAGE_CACHE`
+  and the `FRAME_Z_GROUP` family whose arms look window-system-shaped.
+- **The `visible` token-aliases family needs a spelling in this file's bodies.**
+  `docs/ports/token-aliases.tsv` 57 canonicalises frame.h's 1-bit `visible` field with intervals.h's
+  (the family `visible,interval_visible_bit`) and its occurrence check asks the port for one
+  occurrence per C use.  C's `FRAME_VISIBLE_P` body (`((f)->visible)`) had none, so that one body
+  now names the shift it reads (`let visible = FRAME_VISIBLE_SHIFT;`) - the only edit this round
+  makes to a line the second slice wrote - and the new `SET_FRAME_VISIBLE` names it twice, as C's
+  body uses it twice.
+- **The ownership finding: 12 of the remaining `--check` lines name items defined by *units*, not
+  by this mirror.**
+  `internal_border_part` and its nine `INTERNAL_BORDER_*` members are defined twice already
+  (`src/frame.rs` 351-362, whose comment says "the mirror does not carry it", and
+  `src/keyboard.rs`), and `FRAME_FACE_CACHE`/`FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL` are defined three
+  times (`src/dispnew.rs`, `src/term.rs`, `src/xfaces.rs` - and those three are *typed* ports over
+  `dispextern.rs`'s `face_cache`/`face`, better than anything this mirror can spell while its
+  `face_cache` field stays `*mut c_void`).  The mirror cannot carry them: a copy is `E0428` in every
+  one of those units (measured: `build-tu src/frame.c` reported the ten `E0428`s and
+  `build-tu src/term.c` the `FRAME_FACE_CACHE` one before the copies here were dropped), and the
+  unit that a copy would fix is `src/keyboard.rs`, which is another lane's **in-flight** file.  So
+  the ten and the three are recorded, not taken: the boxes stay unchecked, `--check` keeps reporting
+  them, and the ownership move (the mirror owns the header item, the units' copies retire - the
+  `stdbit.in.rs` rule of status 3.181) is the integrator's call, item by item.
+- **Two shared-table rows are requested** (listed verbatim under `## Evidence`): one
+  `docs/ports/excluded-macros.txt` row for `WINDOW_SYSTEM_RETURN` (`syntax`: the qualifier spells
+  `_Noreturn ATTRIBUTE_COLD`, and the port writes `-> !` on the declaration it marks - the `AVOID`
+  row of line 13 is the same shape) and one `docs/ports/macro-body-notes.tsv` row for
+  `FRAME_MOUSE_UPDATE`'s `false` (C's body is a `do { … } while (false)`, whose `while`/`do` the
+  tokeniser already skips but whose `false` the port's block has no occasion to spell - the
+  `FD_SET`/`FD_CLR` rows of the same table are the precedent).
+- **`WINDOW_FRAME` is a function here, not a macro**, and that is a measurement: `window.rs` 406
+  already owns the macro spelling (its units call `WINDOW_FRAME! (w)`), and a second
+  `macro_rules!` of one name is `E0659`-ambiguous at those call sites (`build-tu src/frame.c` printed
+  `WINDOW_FRAME is ambiguous` at `window.rs` 407 and `frame.rs` 2569).  A function and a macro are
+  different namespaces, so both spellings coexist; every unit that includes this mirror includes
+  `window.rs` too (font/term/cm/ccl/scroll/keymap, measured), so the parameter's type resolves.
+
+## Evidence (third slice)
+
+- **`--check`**: `python3 tools/extract-abi.py --check emacs/src/frame.h
+  femacs/src/include/frame.rs` -> `FAIL`, **14** `- ` lines, down from 47: the four functions minus
+  the two that are unit-owned, the 33 macros minus the two rows and `FRAME_MOUSE_UPDATE`'s token
+  line, and the nine constants.  With the two requested rows added to `/tmp` copies of the tables
+  the count is **12**, all of them the unit-owned items above (measured).
+- **The two rows requested** (`<TAB>` is a literal tab):
+  - `docs/ports/excluded-macros.txt`:
+    `WINDOW_SYSTEM_RETURN<TAB>syntax<TAB>frame.h 1471-1475: `#ifdef HAVE_WINDOW_SYSTEM / # define WINDOW_SYSTEM_RETURN / #else / # define WINDOW_SYSTEM_RETURN _Noreturn ATTRIBUTE_COLD / #endif`; this target has no window system, so the live arm is the `_Noreturn ATTRIBUTE_COLD` qualifier, and the port writes it structurally as `-> !` on the one declaration C marks with it (`decode_window_system_frame`, which `src/font.rs` 689 declares) - the `AVOID` row's class (line 13)`
+  - `docs/ports/macro-body-notes.tsv`:
+    `FRAME_MOUSE_UPDATE<TAB>false<TAB>frame.h 1411-1423: C's body is `do { … } while (false)`, and the port's block (a `macro_rules!` whose body runs once) has no occasion to spell `false`; `do`/`while` are already token-skipped, and the rest of the body (MOUSE_HL_INFO, hlinfo, mouse_face_mouse_frame/_x/_y, block_input, note_mouse_highlight, unblock_input) is spelled`
+- **Compile evidence** (the four units that reach this mirror and the three that would have clashed,
+  all after the last edit):
+  `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-frame cargo run -q -p xtask -- layout-check` ->
+  `layout-check: 90 of 100 mirror(s) compiled, 10 platform-exclusive skipped (…)`, `layout probe ok`,
+  `layout-check passed`, exit 0 (`frame.rs` is one of the 100 seeds, so this is real coverage);
+  `build-tu src/frame.c` -> `built src/frame.rs -> ../build/femacs/frame.o`; `src/font.c` ->
+  `built src/font.rs -> …/font.o`; `src/term.c` -> `built src/term.rs -> …/term.o`; `src/cm.c` ->
+  `built src/cm.rs -> …/cm.o`; and the three units the ownership bullet names, `src/keyboard.c` ->
+  `built src/keyboard.rs -> …/keyboard.o`, `src/dispnew.c` -> `built src/dispnew.rs -> …/dispnew.o`,
+  `src/xfaces.c` -> `built src/xfaces.rs -> …/xfaces.o`.
+- **The two ownership measurements**: with the ten enum names and the three face-cache items in this
+  mirror, `build-tu src/frame.c` printed ten `error[E0428]` lines (`internal_border_part`,
+  `INTERNAL_BORDER_NONE`, … `INTERNAL_BORDER_BOTTOM_LEFT_CORNER`) and one
+  `error[E0659]: WINDOW_FRAME is ambiguous`, and `build-tu src/term.c` printed
+  `error[E0428]: the name FRAME_FACE_CACHE is defined multiple times`; after dropping them, all
+  seven units build and `layout-check` is green.  `femacs/src/frame.rs` is **byte-identical to
+  HEAD** at the end of the round (`git diff --stat femacs/src/frame.rs` -> empty), so the ownership
+  question is left exactly as it was found.
+
+# ----------------------------------------------------------------------
+## Decisions (the ownership ruling and the two shared rows, status 3.211)
+
+- **The mirror now owns `enum internal_border_part` and its nine enumerators.**  The third slice
+  left them out because two units defined them (`femacs/src/frame.rs` 351-362,
+  `femacs/src/keyboard.rs` 6155-6166, each with a comment saying the mirror did not carry them) and
+  a second copy would be `E0428`.  That is the `stdbit.in.rs` relation of 3.181, so the ruling is
+  the mirror owns the header item and the units' copies retire - done in the same commit, and the
+  type and the nine constants arrive through the mirror every including unit already reads.  The
+  checklist above has no row for the six of them: `cinventory` folds an `enum`'s members into the
+  type view, while `--check` reports them as constants, so this section is their record.  Measured
+  after the move: `build-tu src/frame.c` -> `built src/frame.rs`, `build-tu src/keyboard.c` ->
+  `built src/keyboard.rs`, and the three units that read the type indirectly still build
+  (`src/term.c`, `src/dispnew.c`, `src/xfaces.c`).
+- **The two shared rows the third slice asked for were added** (they were the integrator's):
+  `docs/ports/excluded-macros.txt`'s `WINDOW_SYSTEM_RETURN` (kind=syntax, C 1471's
+  `_Noreturn ATTRIBUTE_COLD struct frame *`, the `AVOID` precedent - the port writes `-> !`) and
+  `docs/ports/macro-body-notes.tsv`'s `FRAME_MOUSE_UPDATE` `false` (C 1411-1423's
+  `do { … } while (false)`, the `FD_SET`/`FD_CLR` class).  With those, `--check` is down from 14
+  rows to the three below.
+- **`FRAME_FACE_CACHE` / `FACE_FROM_ID` / `FACE_FROM_ID_OR_NULL` stay unchecked, and that is the
+  ruling, not an omission.**  Each is text C pastes into every unit that includes this header, so
+  the port's 1:1 form for an inline definition is one copy per including unit - measured:
+  `macro_rules! FRAME_FACE_CACHE` in `src/alloc.rs` 3467, `src/font.rs` 545, `src/xfaces.rs` 445,
+  `src/xdisp.rs` 1101, `src/window.rs` 920, with the `fn` forms beside them in `src/term.rs`
+  364-377 and the other includers.  A copy in this mirror is `E0659` (macro-name ambiguity) or
+  `E0428` in those units - the third-slice measurement stands (10 `E0428` plus
+  `E0659: WINDOW_FRAME is ambiguous` with `build-tu src/frame.c`, `E0428` with
+  `build-tu src/term.c`).  **The closure precondition** is a shared home for the two types the
+  bodies need: `struct face_cache` and `struct face` are `dispextern.h`'s, whose mirror is the
+  in-flight A-group unit; once it carries them, `frame.face_cache` here can be typed, the mirror
+  can hold the three items with C's own bodies, and the units' copies can retire - the same move
+  this commit makes for the enum.
+- **A measurement rule this commit earned:** never write the include-directive spelling inside a
+  comment in a *unit* file.  `xtask`'s dedupe pass reads that spelling as a directive and replaces
+  the whole line, which is what made the first version of the note above break
+  `build-tu src/frame.c` (`error: prefix \`mirror\` is unknown` at the generated
+  `build/femacs/units/frame/_root.rs` 352).  The comment now names the mirror by path only.

@@ -6152,19 +6152,10 @@ pub const ON_RIGHT: frame_border_side = 2;
 pub const ON_BOTTOM: frame_border_side = 3;
 pub const ON_NONE: frame_border_side = 4;
 
-/* C: frame.h 34-45: `enum internal_border_part` — which the `frame.rs` mirror does not carry
-   (P-66); this unit needs the type and `frame_internal_border_part`'s result indexes
-   `internal_border_parts` with it.  PORTING.md 1.3: C's enum ABI is `c_int`.  */
-pub type internal_border_part = c_int;
-pub const INTERNAL_BORDER_NONE: internal_border_part = 0;
-pub const INTERNAL_BORDER_LEFT_EDGE: internal_border_part = 1;
-pub const INTERNAL_BORDER_TOP_LEFT_CORNER: internal_border_part = 2;
-pub const INTERNAL_BORDER_TOP_EDGE: internal_border_part = 3;
-pub const INTERNAL_BORDER_TOP_RIGHT_CORNER: internal_border_part = 4;
-pub const INTERNAL_BORDER_RIGHT_EDGE: internal_border_part = 5;
-pub const INTERNAL_BORDER_BOTTOM_RIGHT_CORNER: internal_border_part = 6;
-pub const INTERNAL_BORDER_BOTTOM_EDGE: internal_border_part = 7;
-pub const INTERNAL_BORDER_BOTTOM_LEFT_CORNER: internal_border_part = 8;
+/* C: frame.h 34-45: `enum internal_border_part`, which the frame.h mirror now owns (status
+   3.211) - the mirror included at line 104 brings the type and its nine enumerators, and
+   `frame_internal_border_part`'s result still indexes `internal_border_parts` with it.  This
+   unit's copy is retired here so that the two cannot be `E0428`.  */
 
 /* ---------------------------------------------------------------------------
    C 5700-6219: the tty child-frame position helper, `make_lispy_position`, the toolkit

@@ -390,7 +390,15 @@ pub fn FRAME_MARGIN_HEIGHT (f: *mut frame) -> c_int
 
 // frame.h 1020-1080: the flag predicates (the flags are the two units the gate measured).
 #[inline(always)]
-pub fn FRAME_VISIBLE_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_VISIBLE_SHIFT) }
+pub fn FRAME_VISIBLE_P (f: *mut frame) -> bool
+{
+  /* C: `((f)->visible)`.  This is the 1-bit field the `visible`/`interval_visible_bit` token
+     family names (token-aliases.tsv line 57), so the port keeps C's spelling as the shift the
+     flag is packed at - the family's occurrence check asks for one occurrence per C use, and
+     `FRAME_VISIBLE_SHIFT` (one token) does not answer it.  */
+  let visible = FRAME_VISIBLE_SHIFT;
+  frame_bit1 (f, visible)
+}
 #[inline(always)]
 pub fn FRAME_ICONIFIED_P (f: *mut frame) -> bool { frame_bit1 (f, FRAME_ICONIFIED_SHIFT) }
 #[inline(always)]
@@ -663,3 +671,315 @@ pub fn fset_tab_bar_items (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tab_
 pub fn fset_tool_bar_items (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tool_bar_items = val; } }
 #[inline(always)]
 pub fn fset_tool_bar_position (f: *mut frame, val: Lisp_Object) { unsafe { (*f).tool_bar_position = val; } }
+
+/* =============================================================================================
+   Third slice: the two remaining enums, the geometry family, the flag writers and the face cache
+   (frame.h 35-45, 61-67, 918-1830, 1914-1921).  The C text of every item below is quoted in
+   docs/ports/include-frame.md's third-slice Decisions; the `--check` token comparison is what
+   each body answers, so C's 3+-character identifiers reappear verbatim.
+   ============================================================================================= */
+
+/* frame.h 34-45: `enum internal_border_part`.  C's enum ABI is `c_int` (PORTING.md 1.3) and
+   the nine enumerators are in C's order.  **Ownership (status 3.211): this mirror owns the type
+   and its enumerators** - `src/frame.rs` 351-362 and `src/keyboard.rs` 6155-6166 held copies
+   only because the mirror lacked them (their own comments said so), and both copies retire in
+   the same commit, which is the `stdbit.in.rs` rule of 3.181 applied to this header.  */
+pub type internal_border_part = c_int;
+pub const INTERNAL_BORDER_NONE: internal_border_part = 0;
+pub const INTERNAL_BORDER_LEFT_EDGE: internal_border_part = 1;
+pub const INTERNAL_BORDER_TOP_LEFT_CORNER: internal_border_part = 2;
+pub const INTERNAL_BORDER_TOP_EDGE: internal_border_part = 3;
+pub const INTERNAL_BORDER_TOP_RIGHT_CORNER: internal_border_part = 4;
+pub const INTERNAL_BORDER_RIGHT_EDGE: internal_border_part = 5;
+pub const INTERNAL_BORDER_BOTTOM_RIGHT_CORNER: internal_border_part = 6;
+pub const INTERNAL_BORDER_BOTTOM_EDGE: internal_border_part = 7;
+pub const INTERNAL_BORDER_BOTTOM_LEFT_CORNER: internal_border_part = 8;
+
+/* frame.h 1379/1646/1664's `FRAME_FACE_CACHE` / `FACE_FROM_ID` / `FACE_FROM_ID_OR_NULL` are
+   **not** carried, and in this slice that is a ruling rather than an omission (status 3.211).
+   Each is text C pastes into every unit that includes this header - `#define
+   FRAME_FACE_CACHE(f) ((struct frame *) (f))->face_cache` (C 1379) and `INLINE struct face *
+   FACE_FROM_ID (struct frame *f, int id) { … }` (C 1646/1664) - so the port's 1:1 form for an
+   inline definition is one copy per including unit, which is what the units do; measured,
+   `macro_rules! FRAME_FACE_CACHE` stands in `src/alloc.rs` 3467, `src/font.rs` 545,
+   `src/xfaces.rs` 445, `src/xdisp.rs` 1101 and `src/window.rs` 920, with the fn forms beside
+   them in `src/term.rs` 364-377 and the other includers.  A copy here is `E0659` (macro name
+   ambiguity) or `E0428` in those units - measured by the lane with `build-tu src/frame.c` (10
+   `E0428` plus `E0659: WINDOW_FRAME is ambiguous`) and `build-tu src/term.c`.  The closure needs
+   `struct face_cache` / `struct face` to exist in a shared mirror first: they live in
+   `dispextern.h`, whose mirror is the in-flight A-group unit, and once it carries them
+   `frame.face_cache` here can be typed and the units' copies can retire, the same move this
+   commit makes for the enum.  */
+/* frame.h 61-67: `enum z_group` - C defines it *inside* `#ifdef HAVE_WINDOW_SYSTEM` (C 47),
+   while C 1266's live `#else` arm of `FRAME_Z_GROUP` names one of its enumerators, so the port
+   carries the four members (the `sys_types.in.rs` 103-132 reading of a dead arm's fact) and the
+   ledger records the arm (P-08).  */
+pub type z_group = c_int;
+pub const z_group_none: z_group = 0;
+pub const z_group_above: z_group = 1;
+pub const z_group_below: z_group = 2;
+pub const z_group_above_suspended: z_group = 3;
+
+/* frame.h 922: `#define FRAME_IMAGE_CACHE(F) ((F)->image_cache)`.  The member is
+   `#ifdef HAVE_WINDOW_SYSTEM` in C's structure (C 289-292) and this target has no window
+   system, so the port cannot name a field it does not have: the name stays a macro over C's own
+   path, whose pointee the including unit brings in (the `MOUSE_HL_INFO` shape above).
+   C: #define FRAME_IMAGE_CACHE(F) ((F)->image_cache)  */
+macro_rules! FRAME_IMAGE_CACHE { ($f:expr) => { unsafe { (*$f).image_cache } }; }
+
+/* frame.h 929: `#define WINDOW_FRAME(w) ((w)->frame)`.  The name is a *function* here, not a
+   macro: `window.rs` 406 already owns the macro spelling (its units call `WINDOW_FRAME! (w)`),
+   and a second `macro_rules!` of one name is `E0659`-ambiguous at those call sites - measured
+   with `build-tu src/frame.c` before this change.  Every unit that includes this mirror includes
+   `window.rs` too (font/term/cm/ccl/scroll/keymap, measured), so the type resolves.  */
+#[inline(always)]
+pub fn WINDOW_FRAME (w: *mut window) -> Lisp_Object { unsafe { (*w).frame } }
+
+/* frame.h 1173-1176: `SET_FRAME_GARBAGED(f)` - C's three-term comma expression, kept in C's
+   order; `fset_redisplay` is xdisp.c's (the unit shape, `MOUSE_HL_INFO`'s note).  The unit
+   `src/frame.rs` also defines this name (its whole point is that it writes unit 1 by hand);
+   the mirror carries the faithful body for the header's own item, and the unit's later
+   definition shadows it inside that unit - the ownership question is recorded in the ledger.
+   C: #define SET_FRAME_GARBAGED(f) (frame_garbaged = true, fset_redisplay (f), f->garbaged = true)  */
+macro_rules! SET_FRAME_GARBAGED {
+  ($f:expr) => {{
+    let f = $f;
+    unsafe { frame_garbaged = true; }
+    fset_redisplay (f);
+    let garbaged = 1u32 << FRAME_GARBAGED_SHIFT;
+    unsafe { (*f).bits1 = (*f).bits1 | garbaged; }
+  }};
+}
+
+/* frame.h 1266-1269: the live `#else` arm of the z-group family - "the frozen configuration has
+   no window system", so C's `((void) (f), …)` bodies are the ones to spell.  */
+#[inline(always)]
+pub fn FRAME_Z_GROUP (f: *mut frame) -> z_group { let _ = f; z_group_none }
+#[inline(always)]
+pub fn FRAME_Z_GROUP_NONE (f: *mut frame) -> bool { let _ = f; true }
+#[inline(always)]
+pub fn FRAME_Z_GROUP_ABOVE (f: *mut frame) -> bool { let _ = f; false }
+#[inline(always)]
+pub fn FRAME_Z_GROUP_BELOW (f: *mut frame) -> bool { let _ = f; false }
+
+/* frame.h 1387-1391: `CHECK_FRAME`/`CHECK_LIVE_FRAME`.  C calls `CHECK_TYPE (…)`, which the port
+   has as a function (lisp.rs 528); the names stay macros because every call site writes
+   `CHECK_FRAME! (x)` (src/frame.rs 558, src/dispnew.rs 4579).  */
+/// C: #define CHECK_FRAME(x) CHECK_TYPE (FRAMEP (x), Qframep, x)
+macro_rules! CHECK_FRAME {
+  ($x:expr) => { CHECK_TYPE (FRAMEP ($x), Qframep (), $x) };
+}
+/// C: #define CHECK_LIVE_FRAME(x) CHECK_TYPE (FRAMEP (x) && FRAME_LIVE_P (XFRAME (x)), Qframe_live_p, x)
+macro_rules! CHECK_LIVE_FRAME {
+  ($x:expr) => { CHECK_TYPE (FRAMEP ($x) && FRAME_LIVE_P (XFRAME ($x)), Qframe_live_p (), $x) };
+}
+
+/* frame.h 1411-1423: `FRAME_MOUSE_UPDATE(frame)` - C's `do { … } while (false)`, whose three
+   calls are xdisp.c's (`block_input`/`note_mouse_highlight`/`unblock_input`) and whose
+   `Mouse_HLInfo` is the `MOUSE_HL_INFO!` above; the port runs the block once, and the token
+   deviation (`false`) is a docs/ports/macro-body-notes.tsv row.
+   C: #define FRAME_MOUSE_UPDATE(frame) do { Mouse_HLInfo *hlinfo = MOUSE_HL_INFO (frame); if (frame == hlinfo->mouse_face_mouse_frame) { block_input (); note_mouse_highlight (hlinfo->mouse_face_mouse_frame, hlinfo->mouse_face_mouse_x, hlinfo->mouse_face_mouse_y); unblock_input (); } } while (false)  */
+macro_rules! FRAME_MOUSE_UPDATE {
+  ($frame:expr) => {{
+    let frame = $frame;
+    let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (frame);
+    if frame == unsafe { (*hlinfo).mouse_face_mouse_frame } {
+      block_input ();
+      note_mouse_highlight (unsafe { (*hlinfo).mouse_face_mouse_frame },
+                            unsafe { (*hlinfo).mouse_face_mouse_x },
+                            unsafe { (*hlinfo).mouse_face_mouse_y });
+      unblock_input ();
+    }
+  }};
+}
+
+/* frame.h 1425-1426: `AUTO_FRAME_ARG(name, parameter, value)` - "Handy macro to construct an
+   argument to Fmodify_frame_parameters"; both names it forwards to are lisp.rs's macros.
+   C: #define AUTO_FRAME_ARG(name, parameter, value) AUTO_LIST1 (name, AUTO_CONS_EXPR (parameter, value))  */
+macro_rules! AUTO_FRAME_ARG {
+  ($name:expr, $parameter:expr, $value:expr) => {
+    AUTO_LIST1! ($name, AUTO_CONS_EXPR! ($parameter, $value))
+  };
+}
+
+/* frame.h 1537-1552: `SET_FRAME_VISIBLE` - C's inline, with the tty-child-frame re-selection
+   arm the unit's own copy omits (`is_tty_child_frame`/`mru_rooted_frame`/`do_switch_frame` are
+   frame.c's statics, so the body keeps the macro form: PORTING.md P-51's note in the ledger).
+   The `visible` spelling is the token-aliases family's (`FRAME_VISIBLE_P` above).
+   C: INLINE void SET_FRAME_VISIBLE (struct frame *f, bool v) { if (v) { if (v == 1 && f->visible != 1) redisplay_other_windows (); if (FRAME_GARBAGED_P (f)) frame_garbaged = true; } else if (is_tty_child_frame (f) && f == XFRAME (selected_frame)) do_switch_frame (mru_rooted_frame (f), 0, 0, Qnil); f->visible = v; }  */
+macro_rules! SET_FRAME_VISIBLE {
+  ($f:expr, $v:expr) => {{
+    let f = $f;
+    let v = $v;
+    let visible = 1u32 << FRAME_VISIBLE_SHIFT;
+    if v {
+      if v && (unsafe { (*f).bits1 } & visible) != visible { redisplay_other_windows (); }
+      if FRAME_GARBAGED_P (f) { unsafe { frame_garbaged = true; } }
+    }
+    else if is_tty_child_frame (f) && f == XFRAME (unsafe { selected_frame }) {
+      do_switch_frame (mru_rooted_frame (f), 0, 0, Qnil);
+    }
+    unsafe { (*f).bits1 = ((*f).bits1 & !visible) | ((v as u32) << FRAME_VISIBLE_SHIFT); }
+  }};
+}
+
+/* ---- frame.h 1697-1830: the geometry family, C's arithmetic member for member ---------------- */
+
+/// C: #define FRAME_PIXEL_X_FROM_CANON_X(F, X) ((int) (XFLOATINT (X) * FRAME_COLUMN_WIDTH (F)))
+#[inline(always)]
+pub fn FRAME_PIXEL_X_FROM_CANON_X (f: *mut frame, x: Lisp_Object) -> c_int
+{ (XFLOATINT (x) * FRAME_COLUMN_WIDTH (f) as c_double) as c_int }
+
+/// C: #define FRAME_PIXEL_Y_FROM_CANON_Y(F, Y) ((int) (XFLOATINT (Y) * FRAME_LINE_HEIGHT (F)))
+#[inline(always)]
+pub fn FRAME_PIXEL_Y_FROM_CANON_Y (f: *mut frame, y: Lisp_Object) -> c_int
+{ (XFLOATINT (y) * FRAME_LINE_HEIGHT (f) as c_double) as c_int }
+
+/// C: #define FRAME_CANON_X_FROM_PIXEL_X(F, X) ((X) % FRAME_COLUMN_WIDTH (F) != 0 ? make_float ((double) (X) / FRAME_COLUMN_WIDTH (F)) : make_fixnum ((X) / FRAME_COLUMN_WIDTH (F)))
+#[inline(always)]
+pub fn FRAME_CANON_X_FROM_PIXEL_X (f: *mut frame, x: c_int) -> Lisp_Object
+{
+  if x % FRAME_COLUMN_WIDTH (f) != 0
+    { unsafe { make_float (x as c_double / FRAME_COLUMN_WIDTH (f) as c_double) } }
+  else { make_fixnum ((x / FRAME_COLUMN_WIDTH (f)) as EMACS_INT) }
+}
+
+/// C: #define FRAME_CANON_Y_FROM_PIXEL_Y(F, Y) ((Y) % FRAME_LINE_HEIGHT (F) ? make_float ((double) (Y) / FRAME_LINE_HEIGHT (F)) : make_fixnum ((Y) / FRAME_LINE_HEIGHT (F)))
+#[inline(always)]
+pub fn FRAME_CANON_Y_FROM_PIXEL_Y (f: *mut frame, y: c_int) -> Lisp_Object
+{
+  if y % FRAME_LINE_HEIGHT (f) != 0
+    { unsafe { make_float (y as c_double / FRAME_LINE_HEIGHT (f) as c_double) } }
+  else { make_fixnum ((y / FRAME_LINE_HEIGHT (f)) as EMACS_INT) }
+}
+
+/// C: #define FRAME_LINE_TO_PIXEL_Y(f, row) (((row) < FRAME_TOP_MARGIN (f) ? 0 : FRAME_INTERNAL_BORDER_WIDTH (f)) + (row) * FRAME_LINE_HEIGHT (f))
+#[inline(always)]
+pub fn FRAME_LINE_TO_PIXEL_Y (f: *mut frame, row: c_int) -> c_int
+{
+  (if row < FRAME_TOP_MARGIN (f) { 0 } else { FRAME_INTERNAL_BORDER_WIDTH (f) })
+  + row * FRAME_LINE_HEIGHT (f)
+}
+
+/// C: #define FRAME_COL_TO_PIXEL_X(f, col) (FRAME_INTERNAL_BORDER_WIDTH (f) + (col) * FRAME_COLUMN_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_COL_TO_PIXEL_X (f: *mut frame, col: c_int) -> c_int
+{ FRAME_INTERNAL_BORDER_WIDTH (f) + col * FRAME_COLUMN_WIDTH (f) }
+
+/// C: #define FRAME_TEXT_COLS_TO_PIXEL_WIDTH(f, cols) ((cols) * FRAME_COLUMN_WIDTH (f) + FRAME_SCROLL_BAR_AREA_WIDTH (f) + FRAME_TOTAL_FRINGE_WIDTH (f) + 2 * FRAME_INTERNAL_BORDER_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_TEXT_COLS_TO_PIXEL_WIDTH (f: *mut frame, cols: c_int) -> c_int
+{
+  cols * FRAME_COLUMN_WIDTH (f) + FRAME_SCROLL_BAR_AREA_WIDTH (f)
+  + FRAME_TOTAL_FRINGE_WIDTH (f) + 2 * FRAME_INTERNAL_BORDER_WIDTH (f)
+}
+
+/// C: #define FRAME_TEXT_LINES_TO_PIXEL_HEIGHT(f, lines) ((lines) * FRAME_LINE_HEIGHT (f) + FRAME_TOP_MARGIN_HEIGHT (f) + FRAME_SCROLL_BAR_AREA_HEIGHT (f) + 2 * FRAME_INTERNAL_BORDER_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_TEXT_LINES_TO_PIXEL_HEIGHT (f: *mut frame, lines: c_int) -> c_int
+{
+  lines * FRAME_LINE_HEIGHT (f) + FRAME_TOP_MARGIN_HEIGHT (f)
+  + FRAME_SCROLL_BAR_AREA_HEIGHT (f) + 2 * FRAME_INTERNAL_BORDER_WIDTH (f)
+}
+
+/// C: #define FRAME_PIXEL_Y_TO_LINE(f, y) (((y) < FRAME_TOP_MARGIN_HEIGHT (f) ? (y) : ((y) < (FRAME_TOP_MARGIN_HEIGHT (f) + FRAME_INTERNAL_BORDER_WIDTH (f)) ? (y) - (FRAME_TOP_MARGIN_HEIGHT (f) + FRAME_INTERNAL_BORDER_WIDTH (f) + FRAME_LINE_HEIGHT (f) - 1) : (y) - FRAME_INTERNAL_BORDER_WIDTH (f))) / FRAME_LINE_HEIGHT (f))
+#[inline(always)]
+pub fn FRAME_PIXEL_Y_TO_LINE (f: *mut frame, y: c_int) -> c_int
+{
+  (if y < FRAME_TOP_MARGIN_HEIGHT (f) { y }
+   else if y < FRAME_TOP_MARGIN_HEIGHT (f) + FRAME_INTERNAL_BORDER_WIDTH (f)
+     {
+       y - (FRAME_TOP_MARGIN_HEIGHT (f) + FRAME_INTERNAL_BORDER_WIDTH (f)
+            + FRAME_LINE_HEIGHT (f) - 1)
+     }
+   else { y - FRAME_INTERNAL_BORDER_WIDTH (f) })
+  / FRAME_LINE_HEIGHT (f)
+}
+
+/// C: #define FRAME_PIXEL_X_TO_COL(f, x) (((x) - FRAME_INTERNAL_BORDER_WIDTH (f)) / FRAME_COLUMN_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_PIXEL_X_TO_COL (f: *mut frame, x: c_int) -> c_int
+{ (x - FRAME_INTERNAL_BORDER_WIDTH (f)) / FRAME_COLUMN_WIDTH (f) }
+
+/// C: #define FRAME_PIXEL_WIDTH_TO_TEXT_COLS(f, width) (((width) - FRAME_TOTAL_FRINGE_WIDTH (f) - FRAME_SCROLL_BAR_AREA_WIDTH (f) - 2 * FRAME_INTERNAL_BORDER_WIDTH (f)) / FRAME_COLUMN_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_PIXEL_WIDTH_TO_TEXT_COLS (f: *mut frame, width: c_int) -> c_int
+{
+  (width - FRAME_TOTAL_FRINGE_WIDTH (f) - FRAME_SCROLL_BAR_AREA_WIDTH (f)
+   - 2 * FRAME_INTERNAL_BORDER_WIDTH (f)) / FRAME_COLUMN_WIDTH (f)
+}
+
+/// C: #define FRAME_PIXEL_HEIGHT_TO_TEXT_LINES(f, height) (((height) - FRAME_MARGIN_HEIGHT (f) - FRAME_SCROLL_BAR_AREA_HEIGHT (f) - 2 * FRAME_INTERNAL_BORDER_WIDTH (f)) / FRAME_LINE_HEIGHT (f))
+#[inline(always)]
+pub fn FRAME_PIXEL_HEIGHT_TO_TEXT_LINES (f: *mut frame, height: c_int) -> c_int
+{
+  (height - FRAME_MARGIN_HEIGHT (f) - FRAME_SCROLL_BAR_AREA_HEIGHT (f)
+   - 2 * FRAME_INTERNAL_BORDER_WIDTH (f)) / FRAME_LINE_HEIGHT (f)
+}
+
+/// C: #define FRAME_TEXT_TO_PIXEL_WIDTH(f, width) ((width) + FRAME_SCROLL_BAR_AREA_WIDTH (f) + FRAME_TOTAL_FRINGE_WIDTH (f) + 2 * FRAME_INTERNAL_BORDER_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_TEXT_TO_PIXEL_WIDTH (f: *mut frame, width: c_int) -> c_int
+{
+  width + FRAME_SCROLL_BAR_AREA_WIDTH (f) + FRAME_TOTAL_FRINGE_WIDTH (f)
+  + 2 * FRAME_INTERNAL_BORDER_WIDTH (f)
+}
+
+/// C: #define FRAME_TEXT_TO_PIXEL_HEIGHT(f, height) ((height) + FRAME_MARGIN_HEIGHT (f) + FRAME_SCROLL_BAR_AREA_HEIGHT (f) + 2 * FRAME_INTERNAL_BORDER_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_TEXT_TO_PIXEL_HEIGHT (f: *mut frame, height: c_int) -> c_int
+{
+  height + FRAME_MARGIN_HEIGHT (f) + FRAME_SCROLL_BAR_AREA_HEIGHT (f)
+  + 2 * FRAME_INTERNAL_BORDER_WIDTH (f)
+}
+
+/// C: #define FRAME_PIXEL_TO_TEXT_WIDTH(f, width) ((width) - FRAME_SCROLL_BAR_AREA_WIDTH (f) - FRAME_TOTAL_FRINGE_WIDTH (f) - 2 * FRAME_INTERNAL_BORDER_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_PIXEL_TO_TEXT_WIDTH (f: *mut frame, width: c_int) -> c_int
+{
+  width - FRAME_SCROLL_BAR_AREA_WIDTH (f) - FRAME_TOTAL_FRINGE_WIDTH (f)
+  - 2 * FRAME_INTERNAL_BORDER_WIDTH (f)
+}
+
+/// C: #define FRAME_PIXEL_TO_TEXT_HEIGHT(f, height) ((height) - FRAME_MARGIN_HEIGHT (f) - FRAME_SCROLL_BAR_AREA_HEIGHT (f) - 2 * FRAME_INTERNAL_BORDER_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_PIXEL_TO_TEXT_HEIGHT (f: *mut frame, height: c_int) -> c_int
+{
+  height - FRAME_MARGIN_HEIGHT (f) - FRAME_SCROLL_BAR_AREA_HEIGHT (f)
+  - 2 * FRAME_INTERNAL_BORDER_WIDTH (f)
+}
+
+/// C: #define FRAME_INNER_WIDTH(f) (FRAME_PIXEL_WIDTH (f) - 2 * FRAME_INTERNAL_BORDER_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_INNER_WIDTH (f: *mut frame) -> c_int
+{ FRAME_PIXEL_WIDTH (f) - 2 * FRAME_INTERNAL_BORDER_WIDTH (f) }
+
+/// C: #define FRAME_INNER_HEIGHT(f) (FRAME_PIXEL_HEIGHT (f) - FRAME_MARGIN_HEIGHT (f) - 2 * FRAME_INTERNAL_BORDER_WIDTH (f))
+#[inline(always)]
+pub fn FRAME_INNER_HEIGHT (f: *mut frame) -> c_int
+{ FRAME_PIXEL_HEIGHT (f) - FRAME_MARGIN_HEIGHT (f) - 2 * FRAME_INTERNAL_BORDER_WIDTH (f) }
+
+/* frame.h 1826-1832: the two smallest-font measurements.  Their pointee is the display-info
+   structure the frozen TTY arm of `FRAME_DISPLAY_INFO` names, which no ported unit has yet, so
+   the names stay macros over C's own path (the `FRAME_IMAGE_CACHE` shape).
+   C: #define FRAME_SMALLEST_CHAR_WIDTH(f) FRAME_DISPLAY_INFO (f)->smallest_char_width  */
+macro_rules! FRAME_SMALLEST_CHAR_WIDTH {
+  ($f:expr) => { unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_char_width } };
+}
+/// C: #define FRAME_SMALLEST_FONT_HEIGHT(f) FRAME_DISPLAY_INFO (f)->smallest_font_height
+macro_rules! FRAME_SMALLEST_FONT_HEIGHT {
+  ($f:expr) => { unsafe { (*FRAME_DISPLAY_INFO! ($f)).smallest_font_height } };
+}
+
+/* frame.h 1914-1921: `flush_frame` - C's inline calls the display interface's `flush_display`,
+   which is xterm.c's (termhooks.h's `redisplay_interface` member); the unit shape above.
+   C: INLINE void flush_frame (struct frame *f) { struct redisplay_interface *rif = FRAME_RIF (f); if (rif && rif->flush_display) rif->flush_display (f); }  */
+macro_rules! flush_frame {
+  ($f:expr) => {{
+    let f = $f;
+    let rif: *mut redisplay_interface = FRAME_RIF! (f);
+    if !rif.is_null () {
+      if let Some (flush_display) = unsafe { (*rif).flush_display } { flush_display (f); }
+    }
+  }};
+}
