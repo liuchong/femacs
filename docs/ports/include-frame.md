@@ -514,3 +514,27 @@ those nine accessors.
 `src/buffer.c` exit 0; `xtask layout-check` passed; `check-declarations` 13 sites / 0 forbidden;
 `check-globals` 284 units / 0; `check-mirror-dupes` 0 failures; `check-verbatim` 4604 files / 0
 failures.
+
+## The unit, not only the shift (status 3.273)
+
+`spikes/gated-layout-probe.py --bits` derives each arm's `(unit, shift, width)` for every flag
+member - the form a mirror needs, since C packs the flags into four-byte units - and writes
+`docs/baseline/frame-bits.tsv` (frozen 37 rows, x11 48, ns_cocoa 48).  The derivation checks out
+against the mirror as it stands: all 37 frozen rows equal the literals already in this file
+(0 mismatches), which is what makes the other two arms' rows usable.
+
+Two numbers decide the next step:
+
+* 32 of the 50 flag members change `(unit, shift)` between the frozen arm and the window-system
+  arms (`visible` is u1+8 frozen and u1+11 in both window-system arms);
+* **five change where they live**: `no_special_glyphs` (u1+27 -> u2+12), `can_set_window_size`
+  (u1+28 -> u2+13), `after_make_frame` (u1+29 -> u2+14), `tab_bar_redisplayed` (u1+30 -> u2+15) and
+  `tab_bar_resized` (u1+31 -> u2+16).  C inserts the window-system flags ahead of them and the run
+  crosses the four-byte boundary.
+
+That is why the frozen numbering is *gated* with the frozen arm rather than merely left as literals.
+The mirror's readers pick the unit by hand (`frame_bit1 (f, …)` for unit 1, `set_frame_flag2!` for
+unit 2), so a window-system configuration needs the unit as data as well as the shift; carrying it
+means either a `(unit, shift)` constant pair per arm (the derived table is written) or a reader that
+dispatches on a unit constant.  Both are model changes for a later pass, and both are measurable
+now.

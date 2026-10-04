@@ -4867,3 +4867,9 @@
   ③ **两处只有 C 说得清的形状**：⑴ `ns_transparent_titlebar` 是**非位域**的 `bool_bf`，而 C 的 `bool_bf` 在本构建里是 `typedef unsigned int`（`conf_post.h:59`），读数也对（596，`z_order` 在 600）⇒ 端口那里写 `c_uint` 并注明，别的 `bool_bf` 仍是位域拼法；⑵ 位序**逐配置不同**（C 把窗口系统的位插进那一串，且放不下的 `ENUM_BF` 会被推到下一个存储单元——实测 `want_fullscreen` 在 X11 臂是 `316:0-3`，比 `tooltip` 的 `315:6` 过一位）。
   ④ **位序这一轮只写冻结臂，并且反过来挡住**：那 37 个 `FRAME_*_SHIFT` 常量与 frame.h 1240-1271 的 9 个 `#else` 形访问器（`FRAME_OVERRIDE_REDIRECT`/`FRAME_SKIP_TASKBAR`/`FRAME_NO_FOCUS_ON_MAP`/`FRAME_NO_ACCEPT_FOCUS`/`FRAME_TOOLTIP_P` 与 z-group 四件）现在都带 `not (have_window_system)`。**理由**：那两个窗口系统臂的编号已经在 `docs/baseline/frame-layout.tsv` 里量到了（三臂：frozen 568 / x11 648 / ns_cocoa 608），但还没抄成常量；宁可让窗口系统构建在第一个访问器处**编不过**，也不要它静悄悄读到错的位。下一步就是把量到的编号写出来（或按 C 的声明顺序推导并用该表逐条复检），同时补那 9 个访问器的 `#if` 体。
   ⑤ **读数**（本修订复跑）：`build-tu src/frame.c`、`src/window.c`、`src/buffer.c` 全 exit 0；`layout-check passed`；`check-declarations` 13 sites/0 forbidden；`check-globals` 284 units/0；`check-mirror-dupes` 0 failure(s)；`check-verbatim` 6 trees/4604 files/0 failures。
+
+- **3.273 位序的下一层：不只是 shift，还有"落在哪个 32 位单元"——5 个成员跨臂换单元（2026-10-05）**：
+  ① **新读数形式**：`spikes/gated-layout-probe.py --bits` 把每个臂的位段导成镜像真正需要的形式 `(unit, shift, width)`（C 把标志打进 4 字节单元），写入 `docs/baseline/frame-bits.tsv`（frozen 37 行、x11 48 行、ns_cocoa 48 行）。
+  ② **导出式与镜像对得上**：frozen 那 37 行与 `femacs/src/include/frame.rs` 里已验过的字面常量**逐条相等（0 处不符）**——这正是另外两个臂的行可以拿来用的前提。
+  ③ **两个决定下一步的数**：⑴ 50 个位成员里 **32 个**在 frozen 与两个窗口系统臂之间 `(unit, shift)` 不同（`visible` frozen u1+8、两个窗口系统臂都是 u1+11）；⑵ **5 个成员连"单元"都换了**：`no_special_glyphs`（u1+27 → u2+12）、`can_set_window_size`（u1+28 → u2+13）、`after_make_frame`（u1+29 → u2+14）、`tab_bar_redisplayed`（u1+30 → u2+15）、`tab_bar_resized`（u1+31 → u2+16）——C 把窗口系统的标志插在它们前面，这一串跨过了 4 字节边界。
+  ④ **因此冻结编号是"带门"而不是"留着字面量"**：镜像的读取端是**手工**选单元的（`frame_bit1 (f, …)` 读 unit 1、`set_frame_flag2!` 写 unit 2），所以窗口系统配置需要把**单元**也当数据；要么每臂一对 `(unit, shift)` 常量（表已生成），要么读取端按单元常量分派。两条都是模型级改动，留给后续一轮；两条现在都有读数可依。

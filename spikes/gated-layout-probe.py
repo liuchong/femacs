@@ -108,12 +108,40 @@ def rows(type_name: str, arm: str, block: str) -> list[tuple[str, str, str]]:
     return out
 
 
+def bit_rows(type_name: str, arm: str, block: str) -> list[tuple[str, str, str, str, str]]:
+    """`(arm, member, unit, shift, width)` for every bitfield member of one arm.
+
+    The derivation a mirror needs: C packs the flags into four-byte units, and a member's unit
+    and shift are `(byte - base) // 4` and the bit within it.  Serialising the *units* rather
+    than only the raw `byte:bits` is what makes a configuration change visible - the frozen arm
+    has `no_special_glyphs` in unit 1 at bit 27 and both window-system arms have it in unit 2 at
+    bit 12, because C inserts the window-system flags ahead of it.
+    """
+    bits = [line for line in block.splitlines() if re.match(r"^\s*\d+:\d+-\d+\s*\|", line)]
+    if not bits:
+        return []
+    first = int(re.match(r"^\s*(\d+):", bits[0]).group(1))
+    base = first - (first % 4)
+    out: list[tuple[str, str, str, str, str]] = []
+    for line in bits:
+        m = re.match(r"^\s*(\d+):(\d+)-(\d+)\s*\|\s+(\S.*?)\s*$", line)
+        byte, lo, hi, decl = int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4)
+        name = decl.split()[-1]
+        unit = (byte - base) // 4 + 1
+        shift = (byte - base - (unit - 1) * 4) * 8 + lo
+        out.append((arm, name, str(unit), str(shift), str(hi - lo + 1)))
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("type_name")
     ap.add_argument("header")
     ap.add_argument("lang", nargs="?", default="c", choices=("c", "objc"))
+    ap.add_argument("--bits", action="store_true",
+                    help="derive each arm's (unit, shift, width) per flag member instead of "
+                         "writing the raw byte:bits table")
     ap.add_argument("--define", action="append", default=[], metavar="MACRO[=VALUE]",
                     help="add a third arm built from the frozen configuration plus these")
     ap.add_argument("--write", metavar="FILE", help="write the readings as a TSV")
@@ -126,6 +154,7 @@ def main() -> int:
     if args.define:
         arms.append(("custom", tuple(f"-D{d}" for d in args.define)))
     table: list[tuple[str, str, str]] = []
+    bit_table: list[tuple[str, str, str, str, str]] = []
     any_ok = False
     for arm, defs in arms:
         block, errors = run_clang(args.type_name, args.header, args.lang, defs)
@@ -133,6 +162,7 @@ def main() -> int:
         if block:
             print(block)
             table += rows(args.type_name, arm, block)
+            bit_table += bit_rows(args.type_name, arm, block)
             any_ok = True
         else:
             table += [(arm, "parse", "no")]
@@ -140,6 +170,20 @@ def main() -> int:
             for line in errors.splitlines()[:4]:
                 print(f"  {line.strip()}")
         print()
+    if args.write and args.bits:
+        if not bit_table:
+            print("refusing to write: no arm had flag members", file=sys.stderr)
+            return 1
+        head = [f"# {args.type_name} from {args.header}: each arm's flag members as C packs them",
+                "# (four-byte units; UNIT is 1-based, SHIFT is the bit within that unit).",
+                "# Derived from `spikes/gated-layout-probe.py --bits`, whose raw byte:bits reading",
+                "# is what the compiler itself printed - a member can move *unit* between",
+                "# configurations, which is why the pair is what a mirror needs.",
+                "arm\tmember\tunit\tshift\twidth"]
+        Path(args.write).write_text("\n".join(head + ["\t".join(r) for r in bit_table]) + "\n",
+                                    encoding="utf-8")
+        print(f"wrote {args.write}: {len(bit_table)} row(s)")
+        return 0
     if args.write:
         if not any_ok:
             print("refusing to write: no arm parsed", file=sys.stderr)
