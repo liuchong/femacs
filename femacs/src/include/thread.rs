@@ -85,6 +85,10 @@ pub struct handler
   pub act_rec: *mut c_void,              // C: `struct bc_frame *act_rec;` (3865, P-55)
   pub poll_suppress_count: c_int,        // 3866
   pub interrupt_input_blocked: c_int,    // 3867
+  // lisp.h 3868-3870: C's `#ifdef HAVE_X_WINDOWS` arm - the depth `eval.c`'s unwind restores
+  // (`x_unwind_errors_to (catch->x_error_handler_depth)`, eval.c 1442, and the store at 1862).
+  #[cfg (feature = "have_x_windows")]
+  pub x_error_handler_depth: c_int,      // 3869 (measured 288; 288 -> 296, P-82 reading)
 }
 
 /* The buffer in which the last search was performed, or Qt if the last search was done in a
