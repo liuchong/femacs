@@ -5072,3 +5072,10 @@
   ② **判据**：这与表里已有的条目是**同一类**（`uint32_t` 与 `u32` 指同一个类型，一侧已跳过、另一侧没跳过只是不对称）；而且跳过更多**类型** token 只会**减少**差异、不可能新增差异——比对的目的（3.243 的 F2：删掉的操作不许被笔记放过）针对的是**操作名**，不是类型名。
   ③ **实测**：`extract-abi --check` 的 `- ` 条数 `src/xterm.c` **313 → 301**（正是那 12 处）；对照三个已知干净单元不变——`src/casetab.c` **0**、`src/doprnt.c` **0**、`src/sort.c` **0**（放宽后仍 0 ⇒ 无回归）。
   ④ **口径**：这是一次**定向**放宽（C 的 8 个定宽整数名，成组写在宏体豁免表里并附理由），不是给宏体比对开新口子；`docs/ports/macro-body-notes.tsv`（逐处笔记）与 `token-aliases.tsv`（身份别名）仍是各自的既定家。
+- **3.305 落地 3.302/3.303 之后重跑四棘轮：逐字节不变（读数如此，不是"没跑"）（2026-10-05）**：
+  ① **跑了**：`tools/reconcile-link-ratchets.sh`（**2m15s**，在它自己的 HEAD worktree 里），四点全部重生成 ——
+  `git diff --numstat docs/baseline/` **空**：`link-pending.txt`、`link-exec-pending.txt`、`swift-units.tsv`、`swift-import-pending.txt`（仍 **610 行**）**逐字节不变**。
+  ② **为什么不变是对的**：3.302 只往**镜像**里加了 15 个带门函数指针成员与一个字段改名（镜像不导出任何符号）；3.303 的 xterm 片 4/5 新增的是 **X11 专属名字**，它们在冻结 target 上本来就在 `unknown` 类里被计数（3.249 ③ 的口径），
+  链接级未定义表因此没有新行，Swift 侧一个 import 也没变。
+  ③ **重生成后的读数（工作树）**：`check-link` **373 undefined / 373 行 / 1 failure / 1 stale(informational)**（那条 failure 仍是 xdisp 在飞的 `_Vmake_cursor_line_fully_visible`）；`--executable` **83 / 83 / 1 failure**；
+  `check-swift-units` **0 new / 3 stale / 7 landed**（3 条 stale 全点名在飞的 `nsterm.swift`）。**没有一条落在 HEAD 上。**
