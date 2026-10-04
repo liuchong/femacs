@@ -3396,3 +3396,35 @@
   ④ 新增待裁定项：`lib/include/string.in.rs` 与 `string.rs` **不在 `layout-check` 的 foundation 图里**（没有
   `src/include/*.rs` include 它们），要让共享门也覆盖它们，需把 `lib/include/string.in.rs` 加进 xtask 的 foundation 列表
   （待定，见 §3）。
+
+- **3.190 `lib/stdbit.in.h` 闭合：家族层落地、八条共享行就位、popcount 回归"宏"的身份（2026-10-04）**：
+  ① **本轮实产**（`150864c`，签名 `verified=true`，已推 `origin/master`）：`femacs/lib/include/stdbit.in.rs` **1,890 行**
+  （242 个 item：110 函数 + 11 宏 + 常量/类型别名）覆盖整份模板，**`--check` OK 且 0 行**；台账 264 框全勾。
+  ② **我做的集成**（lane 只读共享表，行由我写）：`excluded-macros.txt` 3 行（`__popcnt64`、
+  `_gl_stdbit_popcount_supported`、`_gl_stdbit_popcount_wide`——都在 C 836-838 的 `#else` 死臂 / `#ifdef _MSC_VER` 内，
+  `__cpuid`/`__popcnt` 没有 Rust 拼法）；`macro-body-notes.tsv` 5 行（两条 `ull` 后缀：tokeniser 只折叠
+  `u/l/ul/ll`，Rust 只能写 `1u64`；三条 `stdc_memreverse8u16/32/64`：活臂是 `__builtin_bswap*` ⇒ 端口拼
+  `swap_bytes ()`，死臂是 mask 表）。**写入后本件 `--check` 从"恰好 8 行"变 OK/0 行**。
+  另把台账里 5 个未勾框补齐（三个死臂宏 + `_`/`_Bool` 两条 recorded-name 行，按 `include-errno.in.md`/
+  `include-limits.in.md` 对 `_` 的先例），单元因此离开 WIP。
+  ③ **修掉我 3.185 的兜底形态**：我当初把 `_gl_stdbit_popcount{,l,ll}` 写成**函数**解封共享门；lane 用**实测**证明
+  那样会让 `rust_inventory` 的 body 检查去读 MSC **死臂**、多出三条 `does not mention __popcnt /
+  _gl_stdbit_popcount_supported / _gl_stdbit_popcount_wide`。C 839-841 的活臂本来就把它定义成
+  `__builtin_popcount*` 的**宏** ⇒ 改回宏（`macro_rules!`）后门不再索要死臂 token，三个调用点改回 `!`。
+  **教训**：集成者兜底修镜像时，形态也要按 C 的身份选（宏 vs 函数），否则会把门引到死臂上。
+  ④ **新增 tracked 探针**：`spikes/stdbit_family_probe.rs`（212 行）登记进 xtask `PROBES`（15 → **16**）；
+  断言全以标准库同名运算为期望（`is_power_of_two`/`rotate_left|right` 含跨掩码 0/32/33/100/0xFFFF_FFFF/
+  `from_le_bytes`/`to_le_bytes`/`leading_ones`…），覆盖 5 个宽度，**544 checks passed**。三个负向对照里有一条
+  说明**门的边界**：把 `bit_floor_ui` 的 `else { 0 }` 改成 `else { 1 }`，门仍打印 OK（`0` 还留在 `n != 0` 里），
+  而探针 panic `bit_floor_ui 0 left: 1 right: 0` —— 这类"常量值被同文件其它出现掩蔽"的缺陷只有语义探针能抓。
+  ⑤ 三处**不需要共享行**的拼法（都写进台账 Decisions）：`_GL_STDBIT_UINT_FASTN` 是类型宏 ⇒ 另立
+  `pub type`（取值用冻结 clang 的 AST 实测 `unsigned short/int/long long`）；`_GL_STDBIT_MEMCPY` 两侧都过
+  `c_uchar`（C 的 `memcpy` 收 `void *`，`copy_nonoverlapping` 要求同一元素类型）；`_GL_STDBIT_ASSUME_ALIGNED`
+  拼 C 自己的 `#else` 臂 `(ptr)`（活臂 `__builtin_assume_aligned` 原文留在 doc comment，P-55，不造符号）。
+  ⑥ 读数：`gen-port-inventory` **590 files、done=546、wip=19、todo=25**；门全绿（`check-declarations` 13/0、
+  `check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-target-names` 601/593/0、`check-swift-units`
+  0 new/0 stale）；**`layout-check` passed**（83 of 94 镜像编译、11 平台独占跳过）。
+  ⑦ 同轮 lane 侧：**xdisp 第 11 轮**落 C 10063-10877（`IT_POS_VALID_AFTER_MOVE_P` +
+  `move_it_in_display_line_to` 含其体内两个函数内宏；`missing function` 181→180、problem 行 254→251、
+  `xdisp.rs` 11,915 行），它要的那条 `macro-body-notes` 行（`move_it_in_display_line_to` / `goto, uninit`）
+  我**压在闭合时再写**——共享表的行必须能被仓库内的文件验证；同时给它留了两条下一轮的活。
