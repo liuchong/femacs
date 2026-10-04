@@ -18,18 +18,38 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import subprocess
 import sys
 from pathlib import Path
 
 # docs/port-map.md's VERBATIM_DIRS: `<reference dir>` -> `femacs/<same name>`.
 VERBATIM_DIRS = ("lisp", "test", "etc", "doc", "leim", "admin")
+REPO = Path(__file__).resolve().parent.parent
 REFERENCE = Path("emacs")
 TARGET = Path("femacs")
 BLOCK = 1 << 20
 
 
-def files_under(root: Path) -> dict[str, Path]:
-    return {str(p.relative_to(root)): p for p in sorted(root.rglob("*")) if p.is_file()}
+def files_under(repo: Path, prefix: str) -> dict[str, Path]:
+    """The tree's **tracked** files, as `git` sees them, keyed by path relative to the tree.
+
+    A build's generated outputs are not part of the copy.  C's own build writes `subdirs.el`, the
+    `*loaddefs.el` files, ~1,600 `.elc`s and four `admin/` products *into the reference tree*, and
+    the port's copies are of the reference's *source*: walking the filesystem (which is what this
+    did until status 3.267) went red on the four `admin` products a rebuild recreated, and one of
+    them, `charsets.stamp`, holds a timestamp - so it could never have stayed green across builds.
+    `git ls-files` asks the question the rule actually means: does the port carry the reference's
+    files, all of them, byte for byte.
+    """
+    r = subprocess.run(["git", "-C", str(repo), "ls-files", "-z", "--", prefix],
+                       capture_output=True, text=True)
+    out: dict[str, Path] = {}
+    for line in r.stdout.split("\0"):
+        if not line:
+            continue
+        rel = line[len(prefix) + 1:] if line.startswith(prefix + "/") else line
+        out[rel] = repo / line
+    return out
 
 
 def digest(path: Path) -> str:
@@ -54,11 +74,16 @@ def main() -> int:
             print(f"MISSING {src}: the reference tree is not checked out here")
             failures += 1
             continue
+        if not (src / ".git").exists() and not (REPO / ".git").exists():
+            print(f"MISSING git in {src} or {REPO}: the file lists come from the repositories")
+            failures += 1
+            continue
         if not dst.is_dir():
             print(f"TODO    {tree}: {dst} has not been copied yet")
             failures += 1
             continue
-        a, b = files_under(src), files_under(dst)
+        a = files_under(src if (src / ".git").is_dir() else src.parent, tree)
+        b = files_under(REPO, f"{TARGET}/{tree}")
         missing = sorted(set(a) - set(b))
         extra = sorted(set(b) - set(a))
         changed = []
@@ -75,8 +100,9 @@ def main() -> int:
                 print(f"          {rel}")
         else:
             print(f"OK      {tree}: {len(a)} files, byte-identical")
-    total = sum(len(files_under(REFERENCE / t)) for t in args.trees
-                if (REFERENCE / t).is_dir())
+    total = sum(len(files_under(REFERENCE / t if (REFERENCE / t / ".git").is_dir()
+                                else REFERENCE, t))
+                for t in args.trees if (REFERENCE / t).is_dir())
     print(f"{len(args.trees)} trees, {total} files, {failures} failures")
     return 1 if failures else 0
 
