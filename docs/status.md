@@ -3498,3 +3498,27 @@
   ⑤ 读数：`gen-port-inventory` **590 files、done=558、wip=18、todo=14**（本轮 547/21/22）；门全绿
   （`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-target-names`
   612 .rs/593/0、**`layout-check` passed**、86 of 97 镜像编译 + 11 平台独占跳过）。
+
+- **3.194 gnulib 五个小头落地（`warn-on-use` / `ftoastr` / `unlocked-io` / `openat` / `stddef.in`），每个都能当自己的 crate root 编（2026-10-04）**：
+  ① **本轮实产**（`35dadca`，签名 `verified=true`，已推 `origin/master`）：5 个镜像 + 5 个台账，合计
+  `--check` **5×OK/0 行**、`build-tu lib/<h>` **5×built**（`warn-on-use.rs` 35 行、`ftoastr.rs` 160、
+  `unlocked-io.rs` 127、`openat.rs` 58、`stddef.in.rs` 131）。**没有一条共享行**。
+  ② **判据工作**（这五项的价值都在这里）：`warn-on-use.h` 在本 target **整份是死文本**
+  （`check-cond-eval` 12 conditions / 0 unknown / 0 disagreements），镜像就是一条注记（`arg-nonnull.rs` 同形）；
+  `ftoastr.h` 的 `FLT_RADIX == 10` 臂死（实测 `FLT_RADIX` 2），实值仍在 `lib/ftoastr.rs`，镜像只落名字；
+  `unlocked-io.h` **不在 verified 表**（16 conditions / 0 unknown / **9 disagreements**：macOS 自己的 `<stdio.h>`
+  把 8 个 `*_unlocked` 定义成宏，正是每个条件的第二个析取项），所以抽取器盲读、要求全部 32 个名字 ⇒
+  活/死两支都带（14 条死臂各挂 `#[cfg (feature = …)]`）；`openat.h` 的 `!HAVE_OPENAT` 声明支是活臂；
+  `stddef.in.h` 不在 verified 表（34 conditions / 7 unknown / 10 disagreements），活臂由**生成头**
+  `build/emacs-ref/lib/stddef.h` 定（`gl_unreachable` → `core::hint::unreachable_unchecked`、`_GL_STDDEF_H`）。
+  ③ **一条方法**：5 个镜像都遵守"镜像不写 `use`"的仓库约定（否则 `E0252` 会撞包含它的 unit 的 import），
+  标量一律写绝对路径 `core::ffi::*` —— 这正好让 `build-tu lib/<h>` 能把镜像当 crate root 编，编译证据就是
+  台账 Evidence 的末行。（`layout-check` 从 `src/include/*.rs` 出发，覆盖不到 `lib/include/` 的大部分镜像；
+  这是 §3 里挂着的"把 lib 镜像纳入 foundation"那条的另一面。）
+  ④ **裁决**：`_GL_FLOAT_STRLEN_BOUND_L` 那条"可选 excluded 行"**不采纳**——现在放宽的写法保住了 C 的
+  `_gl`/`prec_bound`/`min_10_exp`/`max_10_exp` token，门因此不需要额外行；"调用点给拼好的名字"的先例只在
+  有真实消费者、且列在 notes 行里时才用。三条交接点（`lib/ftoastr.rs` 的重复常量、`lib/utimensat.rs` 66-70 与
+  `lib/openat-die.rs` 10-13 的手抄原型、`openat-die.rs` 15 行那句过时注释）判定为**由我下一轮接线**。
+  ⑤ 读数：`gen-port-inventory` **590 files、done=560、wip=17、todo=13** 门全绿
+  （`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-target-names`
+  612/593/0、`layout-check` 87 of 98 镜像编译 + 11 平台独占跳过）。
