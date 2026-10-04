@@ -3428,3 +3428,25 @@
   `move_it_in_display_line_to` 含其体内两个函数内宏；`missing function` 181→180、problem 行 254→251、
   `xdisp.rs` 11,915 行），它要的那条 `macro-body-notes` 行（`move_it_in_display_line_to` / `goto, uninit`）
   我**压在闭合时再写**——共享表的行必须能被仓库内的文件验证；同时给它留了两条下一轮的活。
+
+- **3.191 `lib/ieee754.in.h` 落地，两个消费者交出各自私有的 union（2026-10-04）**：
+  ① **本轮实产**（`23d162b`，签名 `verified=true`，已推 `origin/master`）：镜像
+  `femacs/lib/include/ieee754.in.rs`（224 行）覆盖 8 宏 + 三个位域 union。**判据与实测都来自冻结 clang**：
+  生成头 `build/emacs-ref/lib/ieee754.h` 的第 20 行把 glibc 臂写成 `#if 0` ⇒ 活臂是 gnulib 的四个 order 旋钮，
+  它们命名 `<endian.h>` 的名字，而本树里那些名字的 owner 是 `lib/include/endian.in.rs`（1234/4321，
+  实测 `BYTE_ORDER` 1234、`BIG_ENDIAN` 4321、`FLOAT_WORD_ORDER` 1234）；三个 union 实测 4/4、8/8、16/8，
+  成员结构体 4/4、8/4、12/4；每个位的位置都由**字节 dump** 固定（探针与输出原文进了台账 Evidence）。
+  ② **两条可复用的形状**：**include guard 的 C body 是 `1`** ⇒ 必须写 `core::ffi::c_int = 1`（`bool = true`
+  会让 body 检查报 `_IEEE754_H does not mention 1`，先例 `byteswap.in.rs` 23）；**位域访问器宏的第一个参数必须是
+  C 自己的成员路径**（`ieee754_double_bits! (ieee_nan.mantissa0, u)`）——这不是风格问题：C 的函数体 token 集合里
+  `ieee_nan` 与 `mantissa0` 是**两个 token**，把变体名放进宏名（`ieee754_double_ieee_nan_bits!`）会丢掉
+  `ieee_nan`，门当场报 `- function float_to_string does not mention ieee_nan`（实测后改回）。
+  另：`long double` 在本 target 是 8 字节 double（`editfns.rs` 197 的 `c_longdouble = c_double` 同一实测），
+  所以第三个 union 的 16 字节 = `ceil (12, 8)`；FFI 类型一律全限定 `core::ffi::*`（裸名在单 crate 布局里是
+  `E0425`，`stdio.rs` 644-653 的既有实测）。
+  ③ **顺手消掉两处"模板还没有镜像"的私有副本**：`src/print.rs`（C 1200-1208 的 NaN 臂）与 `src/lread.rs`
+  （C 4572）各自声明过一份 `union ieee754_double`（P-26/P-62），现在都改成 `include!` 本镜像，本地块删除，
+  它们当年写的测量搬进本台账。两件的 `--check` 结论**不变**（都是 OK），`build-tu src/print.c` 与
+  `build-tu src/lread.c` 都 built。
+  ④ 读数：`gen-port-inventory` **590 files、done=547、wip=21、todo=22**；门全绿（`check-declarations` 13/0、
+  `check-globals` 283/0、`check-mirror-dupes` 1/1/0、`check-target-names` 604 .rs/593/0）。
