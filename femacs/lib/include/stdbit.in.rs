@@ -381,13 +381,13 @@ pub fn stdc_leading_zeros_ui (n: c_uint) -> c_uint { _gl_stdbit_clz (n) as c_uin
 pub fn stdc_leading_zeros_uc (n: c_uchar) -> c_uint
 {
   return stdc_leading_zeros_ui (n as c_uint)
-         - 8 * (std::mem::size_of::<c_uint> () - std::mem::size_of_val (&n)) as c_uint;
+         - 8 * (std::mem::size_of_val (&0u32) - std::mem::size_of_val (&n)) as c_uint;
 }
 #[inline(always)]
 pub fn stdc_leading_zeros_us (n: c_ushort) -> c_uint
 {
   return stdc_leading_zeros_ui (n as c_uint)
-         - 8 * (std::mem::size_of::<c_uint> () - std::mem::size_of_val (&n)) as c_uint;
+         - 8 * (std::mem::size_of_val (&0u32) - std::mem::size_of_val (&n)) as c_uint;
 }
 #[inline(always)]
 pub fn stdc_leading_zeros_ul (n: c_ulong) -> c_uint { _gl_stdbit_clzl (n) as c_uint }
@@ -434,19 +434,33 @@ pub fn stdc_trailing_zeros_ul (n: c_ulong) -> c_uint { _gl_stdbit_ctzl (n) as c_
 #[inline(always)]
 pub fn stdc_trailing_zeros_ull (n: c_ulonglong) -> c_uint { _gl_stdbit_ctzll (n) as c_uint }
 
+/* _gl_stdbit_popcount{,l,ll} (stdbit.in.h 890-960): the live arm is the compiler's
+   `__builtin_popcount*`, which the port spells `count_ones ()` the way `_gl_stdbit_clz` above
+   spells `leading_zeros ()`.  C's builtin returns `int`, so these do too.
+   NOTE (integrator, 3.185): the three call sites below asked for *macros* while this file's
+   own `_gl_stdbit_clz` family is *functions*, so the shared gate could not compile the mirror
+   for five rounds.  This is the minimal repair that keeps C's shape; the lane that owns the
+   file should replace it with its intended definition when it returns to this family.  */
+#[inline(always)]
+pub fn _gl_stdbit_popcount (n: c_uint) -> c_int { n.count_ones () as c_int }
+#[inline(always)]
+pub fn _gl_stdbit_popcountl (n: c_ulong) -> c_int { n.count_ones () as c_int }
+#[inline(always)]
+pub fn _gl_stdbit_popcountll (n: c_ulonglong) -> c_int { n.count_ones () as c_int }
+
 /* stdc_count_ones_ui … _ull (stdbit.in.h 965-992); each calls `_gl_stdbit_popcount*`,
    which is `__builtin_popcount*` - the narrow variants need no adjustment because
    promoting a narrow value cannot add a one bit.  */
 #[inline(always)]
-pub fn stdc_count_ones_ui (n: c_uint) -> c_uint { n.count_ones () }
+pub fn stdc_count_ones_ui (n: c_uint) -> c_uint { _gl_stdbit_popcount (n) as c_uint }
 #[inline(always)]
 pub fn stdc_count_ones_uc (n: c_uchar) -> c_uint { stdc_count_ones_ui (n as c_uint) }
 #[inline(always)]
 pub fn stdc_count_ones_us (n: c_ushort) -> c_uint { stdc_count_ones_ui (n as c_uint) }
 #[inline(always)]
-pub fn stdc_count_ones_ul (n: c_ulong) -> c_uint { n.count_ones () }
+pub fn stdc_count_ones_ul (n: c_ulong) -> c_uint { _gl_stdbit_popcountl (n) as c_uint }
 #[inline(always)]
-pub fn stdc_count_ones_ull (n: c_ulonglong) -> c_uint { n.count_ones () }
+pub fn stdc_count_ones_ull (n: c_ulonglong) -> c_uint { _gl_stdbit_popcountll (n) as c_uint }
 
 /* stdc_bit_width_ui … _ull (stdbit.in.h 1119-1147); each is `8 * sizeof n` minus the
    leading zeros of that width, i.e. C's `8 * sizeof n - stdc_leading_zeros_* (n)`.  */
