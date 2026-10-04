@@ -337,35 +337,17 @@ font_build_object	the reference's own C text declares or defines it (a header ma
 fprintf	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
 fputs	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
 frame_alloc_ns_output	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
-frame_explicit_name	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 frame_name	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-frame_set_background_pixel	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_set_border_width	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 frame_set_can_set_window_size	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
-frame_set_child_frame_border_width	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 frame_set_display_info	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
 frame_set_double_buffered	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_set_explicit_name	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_set_external_menu_bar	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_set_external_tool_bar	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 frame_set_fontset	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
-frame_set_foreground_pixel	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_set_internal_border_width	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 frame_set_menu_bar_items_used	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_set_menu_bar_lines	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 frame_set_no_split	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
 frame_set_ns_transparent_titlebar	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
-frame_set_output_method	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_set_tab_bar_height	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_set_tab_bar_lines	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_set_tab_bar_resized	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 frame_set_terminal	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
 frame_set_undecorated	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
-frame_set_wants_modeline	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 frame_set_was_invisible	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
-frame_tab_bar_redisplayed	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_tab_bar_resized	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
-frame_tab_bar_window	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
 free_menubar_widget_value_tree	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 fset_icon_name	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 fset_menu_bar_items	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
