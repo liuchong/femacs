@@ -335,3 +335,14 @@ probe with no missing member (`struct window`).
 - **`python3 tools/check-mirror-dupes.py`** -> `26 duplicate declaration(s), 18 ratchet row(s),
   8 failure(s)`: the 18 rows are the previous batch's legal two-spelling cases, and the 8 failures
   are the `xdisp.rs` declarations above (this batch's only new hits).
+
+### The `window_part` spelling in the prototypes (3.375)
+
+`window_from_coordinates` and `window_relative_x_coord` took C's `enum window_part` as
+`window_part` until 3.375, which broke three units that include this mirror *without* including
+`dispextern.rs` (`editfns`, `insdel`, `textprop` - two E0425s each, at HEAD, for about ten commits
+after 3.345 landed these prototypes).  C's `window.h` only needs the enum's tag, and this port's
+`window_part` is `pub type window_part = c_int;` (`include/dispextern.rs` 96), so the mirror now
+names the underlying `c_int`: every caller passing a `window_part` is unaffected, and
+`tools/check-all-units.sh` (P-87) reads 83/83 at HEAD.  The prototypes and their C lines are
+unchanged otherwise.
