@@ -2577,3 +2577,24 @@
   gnulib-template 的下一批（`lib/errno.in.h`、`lib/dirent.in.h`）**本轮没能开 lane**。它的方法与先例写在这里备下一轮：
   判据是**生成后的头**（`build/emacs-ref/lib/<name>.h`），不可判的臂按 P-51 以 `#[cfg (feature = "…")]` 承载，
   取值/宽度用冻结 clang 实测；先例见 status 3.131/3.132 与 `docs/ports/include-{stdint.in,fcntl.in,unistd.in}.md`。
+
+- **3.157 `lib/assert.in.h` 镜像落地：一个"什么条目都没有"的头，以及它的那条判不了的条件（2026-10-04）**：
+  ① **实测的"零条目"**：`extract-abi.py lib/assert.in.h` 报 0 subrs / 0 functions / 0 macros / 0 types /
+  0 file-scope objects——这个模板的每一行都是预处理文本（C 25 的 `#include_next <assert.h>`、C 20-22 的
+  `#pragma GCC system_header`、C 23 的 `@PRAGMA_COLUMNS@`、两条注释），所以镜像就是一份**处置记录**
+  （`arg-nonnull.rs`/`c++defs.rs` 同形）：`--check` 因此 **OK**。
+  ② **它唯一的那条条件判不了**：`check-cond-eval.py lib/assert.in.h` 报 `1 conditions, 0 unknown, 1 disagreement`
+  （clang 在这个配置下认为 `__GNUC__` 未定义，求值器的宏表不这么认为）。但**两臂承载的是同一条 `#pragma`**，
+  而 pragma 不是声明 ⇒ 既不需要 P-51 的 `#[cfg]` 臂、也没有值可测；这条 disagreement **如实写进台账**，
+  不是"绕过"。
+  ③ **这个模板没有 include guard，且是它自己说的**：C 17-18 解释"不能加保护，因为 `<assert.h>` 每次包含都要定义
+  `assert`" ⇒ 端口也没有 guard 名可带（与 `root-uid.rs` 的 `ROOT_UID_H_` 正好相反，台账里点了名）。
+  ④ **需要 C 的 `assert` 的单元各自镜像那个宏**：`lib-src/ebrowse.rs` 与 `include/android-asset.rs` 各有
+  `macro_rules! assert` + 冻结 `NDEBUG` 体——两处是**同一构造的同一拼法**，本模板什么都不交给它们；
+  台账把这条"归属"写明，免得后来者以为该由本镜像提供。
+  ⑤ **没有单元包含本镜像，这也是实测的**：参照里它是构建机制生成 `lib/assert.h` 的来源，而**冻结构建里根本没有
+  这个生成头**（`build/emacs-ref/lib/assert.h` 不存在），也没有任何源文件命名它 ⇒ 镜像独立存在。
+  ⑥ 证据：`--check` **OK**；消费者侧 `build-tu lib-src/ebrowse.c` → **built**（它正是"自己镜像 assert"的那类单元）；
+  `check-declarations` 13 sites (0 forbidden)/0、`check-mirror-dupes` 0 failure、`check-globals` 283/0、
+  `check-verbatim` 6 trees/4607 files/0、`check-target-names` 555 `.rs`/593 targets/0 finding；
+  `--all` → **519 ported files: 512 done, 7 in progress, 0 failing**；本行由 `todo` → `done`。
