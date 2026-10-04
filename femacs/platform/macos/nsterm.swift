@@ -2701,3 +2701,323 @@ func ns_set_frame_alpha(_ f: UnsafeMutableRawPointer?) {
     view?.window?.alphaValue = EmacsCGFloat(alpha)
   }
 }
+
+/* ==========================================================================
+
+    Mouse handling
+
+   ========================================================================== */
+
+// C 2408-2621: the section's four functions.  Its entries are the shapes rounds 5-10 settled:
+// per-member entries for `struct frame`/`struct ns_display_info`/`Mouse_HLInfo`, same-name
+// entries for the globals, enumerators and header-only accessors, and receiver-first entries for
+// the messages this unit's own classes (`EmacsView`) and `src/nsmenu.m`'s (`EmacsTooltip`)
+// answer.
+
+/// C: `#define FRAME_TOOLTIP_P(f) ((f)->tooltip)` (src/frame.h 1256, the `HAVE_WINDOW_SYSTEM`
+/// arm) - the `bool_bf tooltip : 1` member (src/frame.h 457), read at C 2544/2560.
+@_silgen_name("FRAME_TOOLTIP_P") func FRAME_TOOLTIP_P(_ f: UnsafeMutableRawPointer?) -> Bool
+/// C: the `struct frame` member `f->mouse_moved` (src/frame.h 434's `bool_bf mouse_moved : 1`),
+/// written at C 2464 (`= 1`) and C 2513 (`= 0`) - a member-write entry
+/// (`<record>_set_<member>`, `docs/ports/nsmenu.swift` 311-328).
+@_silgen_name("frame_set_mouse_moved")
+func frame_set_mouse_moved(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: the `struct ns_display_info` members this section reads or writes.  Each takes the *frame*
+/// C's `FRAME_DISPLAY_INFO` starts from - the shape rounds 7/8's `ns_display_info_*` entries use -
+/// and the rect member is a *pointer* entry because C takes its address
+/// (`r = &dpyinfo->last_mouse_glyph`), which leaves every `r->field` access in Swift.
+@_silgen_name("ns_display_info_set_last_mouse_motion_frame")
+func ns_display_info_set_last_mouse_motion_frame(_ f: UnsafeMutableRawPointer?,
+                                                 _ v: UnsafeMutableRawPointer?)
+@_silgen_name("ns_display_info_last_mouse_glyph")
+func ns_display_info_last_mouse_glyph(_ f: UnsafeMutableRawPointer?)
+  -> UnsafeMutablePointer<NSRect>?
+@_silgen_name("ns_display_info_set_last_mouse_scroll_bar")
+func ns_display_info_set_last_mouse_scroll_bar(_ f: UnsafeMutableRawPointer?,
+                                               _ v: UnsafeMutableRawPointer?)
+@_silgen_name("ns_display_info_last_mouse_frame")
+func ns_display_info_last_mouse_frame(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("ns_display_info_last_mouse_movement_time")
+func ns_display_info_last_mouse_movement_time(_ f: UnsafeMutableRawPointer?) -> UInt
+/// C: the `Mouse_HLInfo` members `mouse_face_mouse_x`/`mouse_face_mouse_y` (src/dispextern.h
+/// 3013's `int mouse_face_mouse_x, mouse_face_mouse_y;`), read at C 2615-2616 through the
+/// `MOUSE_HL_INFO` **handle** - the reading `mouse_highlight_mouse_face_mouse_frame` above uses.
+@_silgen_name("mouse_highlight_mouse_face_mouse_x")
+func mouse_highlight_mouse_face_mouse_x(_ hlinfo: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("mouse_highlight_mouse_face_mouse_y")
+func mouse_highlight_mouse_face_mouse_y(_ hlinfo: UnsafeMutableRawPointer?) -> Int32
+/// C: `track_mouse` - src/keyboard.c's `DEFVAR_LISP ("track-mouse", …)`, which the reference's
+/// generated `globals.h` (852-853) spells `globals.f_track_mouse`: the object has **no
+/// `_track_mouse` symbol** (measured), so the core exports a data symbol of its own name, the
+/// reading `Vframe_list`/`Vframe_alpha_lower_limit` take.
+@_silgen_name("track_mouse") var track_mouse: Lisp_Object
+/// C: `Qdrag_source`/`Qdropping` (`DEFSYM`s; `_Qdrag_source`/`_Qdropping` are `S` in
+/// `build/emacs-ref/src/emacs.o`) and the `enum scroll_bar_part` enumerator
+/// `scroll_bar_above_handle` (src/termhooks.h 37), which has no symbol.
+@_silgen_name("Qdrag_source") func Qdrag_source() -> Lisp_Object
+@_silgen_name("Qdropping") func Qdropping() -> Lisp_Object
+@_silgen_name("scroll_bar_above_handle") func scroll_bar_above_handle() -> Int32
+/// C: `#define XSETINT(a, b) ((a) = make_fixnum (b))` (src/lisp.h 1341) - an *lvalue* macro, so the
+/// entry takes the assignable `Lisp_Object` first, the shape `XSETFRAME` has
+/// (`docs/ports/nsfns.swift` 709-711).
+@_silgen_name("XSETINT")
+func XSETINT(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: Int)
+/// C: `void note_mouse_highlight (struct frame *, int, int)` (src/dispextern.h 3688) - a real
+/// symbol of the ported core (`_note_mouse_highlight` is `T` in `build/emacs-ref/src/xdisp.o`).
+@_silgen_name("note_mouse_highlight")
+func note_mouse_highlight(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32)
+/// C: `void remember_mouse_glyph (struct frame *, int, int, NativeRectangle *)`
+/// (src/dispextern.h 3586; `NativeRectangle` is `NSRect` for this target, src/nsgui.h 80).  The
+/// definition is xdisp.c 2779, **inside `HAVE_WINDOW_SYSTEM`** (the `#ifdef` at xdisp.c 2490),
+/// which the frozen configuration leaves undefined - so the object has no
+/// `_remember_mouse_glyph` (measured), and this is the owed-entry class status 3.255 ③ gives
+/// `frame_set_double_buffered`: the shim exports it under the same gate.
+@_silgen_name("remember_mouse_glyph")
+func remember_mouse_glyph(_ f: UnsafeMutableRawPointer?, _ gx: Int32, _ gy: Int32,
+                          _ rect: UnsafeMutablePointer<NSRect>?)
+/// C: `int fputs (const char *, FILE *)` (stdio.h) - the lane's `@_silgen_name` shape
+/// (`docs/ports/nsfont.swift` 1178; Swift marks the stdio family unavailable).  `stderr` itself
+/// is the C library overlay's own declaration, which this unit already reads at C 569-600.
+@_silgen_name("fputs") func fputs(_ s: UnsafePointer<CChar>, _ stream: UnsafeMutablePointer<FILE>?)
+
+/// C: `[[w delegate] isKindOfClass: [EmacsView class]]` (C 2537) and
+/// `((EmacsView *) [w delegate])->emacsframe` (C 2538) - `EmacsView` is this unit's own class
+/// (C 7039) and lands later, so both are receiver-first entries; the names and signatures are the
+/// ones `nsfns.swift` 689-691 already imports, and **this unit defines them when the class
+/// lands** (the ledger's (3), the reverse direction).
+@_silgen_name("emacs_view_frame")
+func emacs_view_frame(_ view: AnyObject?) -> UnsafeMutableRawPointer?
+@_silgen_name("is_emacs_view") func is_emacs_view(_ obj: AnyObject?) -> Bool
+/// C: `[[w delegate] isKindOfClass: [EmacsTooltip class]]` (C 2534) - `EmacsTooltip` is
+/// `src/nsmenu.m`'s class (`nsmenu.swift`'s `EmacsTooltip`), so this entry's definition belongs
+/// on that side, the way `is_emacs_view`'s belongs here.
+@_silgen_name("is_emacs_tooltip") func is_emacs_tooltip(_ obj: AnyObject?) -> Bool
+
+/// C 2408-2430: `void frame_set_mouse_pixel_position (struct frame *f, int pix_x, int pix_y)` -
+/// "Programmatically reposition mouse pointer in pixel coordinates".  Declared src/frame.h 1882
+/// (the redisplay interface's `set_mouse_pixel_position_hook`), so it keeps C's name under
+/// `@_cdecl`.  C's `#ifdef NS_IMPL_COCOA` arm is the live one; the GNUstep arm (C 2422-2429,
+/// `GSServerForWindow`/`setMouseLocation:onScreen:`) is recorded, not transcribed.
+@_cdecl("frame_set_mouse_pixel_position")
+func frame_set_mouse_pixel_position(_ f: UnsafeMutableRawPointer?, _ pix_x: Int32, _ pix_y: Int32) {
+  // C 2414: `NSTRACE ("frame_set_mouse_pixel_position");` - empty at `NSTRACE_ENABLED` 0
+  // (src/nsterm.h 142-143), so it carries no statement here.
+
+  // C 2417-2421: `CGPointMake (f->left_pos + pix_x, f->top_pos + pix_y +
+  // FRAME_NS_TITLEBAR_HEIGHT (f) + FRAME_TOOLBAR_HEIGHT (f))` then
+  // `CGWarpMouseCursorPosition (mouse_pos)`.  The two macros are this unit's *expanded*
+  // `frame_ns_titlebar_height`/`frame_toolbar_height` (round 9), and `CGWarpMouseCursorPosition`
+  // is CoreGraphics' own call, the reading `CGMainDisplayID`/`CGDisplayBounds` above take.
+  let mouse_pos = CGPoint(x: CGFloat(frame_left_pos(f) + pix_x),
+                          y: CGFloat(frame_top_pos(f) + pix_y
+                                     + frame_ns_titlebar_height(f) + frame_toolbar_height(f)))
+  CGWarpMouseCursorPosition(mouse_pos)
+}
+
+/// C 2432-2472: `static int ns_note_mouse_movement (struct frame *frame, CGFloat x, CGFloat y,
+/// BOOL dragging)` - "Called by EmacsView on mouseMovement events.  Passes on to emacs
+/// mainstream code if we moved off of a rect of interest known as last_mouse_glyph."  It is a C
+/// `static` (an `EmacsView` helper), so it lands as a `fileprivate func`; C's `BOOL` is Swift's
+/// `Bool`.
+fileprivate func ns_note_mouse_movement(_ frame: UnsafeMutableRawPointer?, _ x: CGFloat,
+                                        _ y: CGFloat, _ dragging: Bool) -> Int32 {
+  // C 2441: `struct ns_display_info *dpyinfo = FRAME_DISPLAY_INFO (frame);` - the member entries
+  // below take the frame that macro starts from, so the pointer has no separate reading (round
+  // 10's `ns_set_frame_alpha` records the same shape).
+  var force_update = false
+
+  // C 2445: `// NSTRACE ("note_mouse_movement");` - commented out in C itself, so it stays a
+  // comment here too.
+
+  // C 2447-2448: `dpyinfo->last_mouse_motion_frame = frame;` and
+  // `r = &dpyinfo->last_mouse_glyph;`.
+  ns_display_info_set_last_mouse_motion_frame(frame, frame)
+  let r = ns_display_info_last_mouse_glyph(frame)
+
+  /* If the last rect is too large (ex, xwidget webkit), update at
+     every move, or resizing by dragging modeline or vertical split is
+     very hard to make its way.  */
+  if dragging && (r!.pointee.size.width > 32 || r!.pointee.size.height > 32) {
+    force_update = true
+  }
+
+  /* Note, this doesn't get called for enter/leave, since we don't have a
+     position.  Those are taken care of in the corresponding NSView methods.  */
+
+  /* Has movement gone beyond last rect we were tracking?  */
+  if force_update || x < r!.pointee.origin.x || x >= r!.pointee.origin.x + r!.pointee.size.width
+       || y < r!.pointee.origin.y || y >= r!.pointee.origin.y + r!.pointee.size.height {
+    ns_update_begin(frame)
+    frame_set_mouse_moved(frame, true)
+    // C 2465-2466: C hands `note_mouse_highlight`/`remember_mouse_glyph` the `int` parameters
+    // their own prototypes declare, converting `x`/`y` implicitly; the port spells the same
+    // truncation.
+    note_mouse_highlight(frame, Int32(x), Int32(y))
+    remember_mouse_glyph(frame, Int32(x), Int32(y), r)
+    ns_update_end(frame)
+    return 1
+  }
+
+  return 0
+}
+
+/// C 2475-2595: `static void ns_mouse_position (struct frame **fp, int insist, Lisp_Object
+/// *bar_window, enum scroll_bar_part *part, Lisp_Object *x, Lisp_Object *y, Time *time)` -
+/// "External (hook): inform emacs about mouse position and hit parts. …".  It is C's
+/// `mouse_position_hook`; the body never reads `insist` (C's own signature keeps it).  The
+/// `NS_IMPL_COCOA` arm is the live one - the GNUstep compatibility note inside it (C 2519-2521)
+/// is C's own text - and `view`'s C declaration at the top of the function lives in the one
+/// block that uses it here.
+fileprivate func ns_mouse_position(_ fp: UnsafeMutablePointer<UnsafeMutableRawPointer?>?,
+                                  _ insist: Int32,
+                                  _ bar_window: UnsafeMutablePointer<Lisp_Object>?,
+                                  _ part: UnsafeMutablePointer<Int32>?,
+                                  _ x: UnsafeMutablePointer<Lisp_Object>?,
+                                  _ y: UnsafeMutablePointer<Lisp_Object>?,
+                                  _ time: UnsafeMutablePointer<UInt>?) {
+  var view_position = NSPoint.zero
+  var frame: Lisp_Object = nil
+  var tail: Lisp_Object = nil
+  var f: UnsafeMutableRawPointer? = nil
+  var return_no_frame_flag = false
+  // C 2492-2496: the `NS_IMPL_COCOA` arm's locals (`NSPoint screen_position; NSInteger
+  // window_number; NSWindow *w;`).
+  var screen_position = NSPoint.zero
+  var window_number = 0
+  var w: NSWindow? = nil
+
+  // C 2498: `NSTRACE ("ns_mouse_position");` - empty, as above.
+
+  if fp!.pointee == nil {
+    fputs("Warning: ns_mouse_position () called with null *fp.\n", stderr)
+    return
+  }
+
+  // C 2506: `dpyinfo = FRAME_DISPLAY_INFO (*fp);` - the member entries below take the frame.
+
+  block_input()
+
+  /* Clear the mouse-moved flag for every frame on this display.  */
+  // C 2511-2513: `FOR_EACH_FRAME (tail, frame) if (FRAME_NS_P (XFRAME (frame))) XFRAME
+  // (frame)->mouse_moved = 0;` - the macro is spelled out, the reading
+  // `docs/ports/nsfns.swift` 967 gives and round 5's `ns_constrain_all_frames` already uses.
+  tail = Vframe_list
+  while CONSP(tail) {
+    frame = XCAR(tail)
+    if FRAME_NS_P(XFRAME(frame)) {
+      frame_set_mouse_moved(XFRAME(frame), false)
+    }
+    tail = XCDR(tail)
+  }
+
+  // C 2515: `dpyinfo->last_mouse_scroll_bar = nil;` - `EmacsScroller` is this file's own class
+  // (a later slice), so the member-write entry carries it untyped (P-55).
+  ns_display_info_set_last_mouse_scroll_bar(fp!.pointee, nil)
+
+  // C 2517-2548: the `NS_IMPL_COCOA` arm - "Find the uppermost Emacs frame under the mouse
+  // pointer."  C's `do { … } while (window_number > 0 && !f);` is Swift's `repeat { … } while`.
+  screen_position = NSEvent.mouseLocation
+  window_number = 0
+
+  repeat {
+    window_number = NSWindow.windowNumber(at: screen_position,
+                                          belowWindowWithWindowNumber: window_number)
+    w = NSApp.window(withWindowNumber: window_number)
+
+    if (EQ(track_mouse, Qdrag_source()) || EQ(track_mouse, Qdropping()))
+         && w != nil && is_emacs_tooltip(w!.delegate) {
+      continue
+    }
+
+    if w != nil && is_emacs_view(w!.delegate) {
+      f = emacs_view_frame(w!.delegate)
+    } else if EQ(track_mouse, Qdrag_source()) {
+      break
+    }
+
+    if f != nil && (EQ(track_mouse, Qdrag_source()) || EQ(track_mouse, Qdropping()))
+         && FRAME_TOOLTIP_P(f) {
+      continue
+    }
+  } while window_number > 0 && f == nil
+
+  if f == nil {
+    // C 2552-2554: `f = (dpyinfo->ns_focus_frame ? dpyinfo->ns_focus_frame : SELECTED_FRAME ());
+    // return_no_frame_flag = EQ (track_mouse, Qdrag_source);`
+    let focus = ns_display_info_ns_focus_frame(fp!.pointee)
+    f = (focus != nil ? focus : SELECTED_FRAME())
+    return_no_frame_flag = EQ(track_mouse, Qdrag_source())
+  }
+
+  if !FRAME_NS_P(f) {
+    f = nil
+  }
+
+  if f != nil && FRAME_TOOLTIP_P(f) {
+    f = ns_display_info_last_mouse_frame(fp!.pointee)
+  }
+
+  /* While dropping, use the last mouse frame only if there is no
+     currently focused frame.  */
+  // C 2565-2572 reads `dpyinfo->last_mouse_frame` three times, and the entry is read the same
+  // number of times here.
+  if f == nil && (EQ(track_mouse, Qdropping()) || EQ(track_mouse, Qdrag_source()))
+       && ns_display_info_last_mouse_frame(fp!.pointee) != nil
+       && FRAME_LIVE_P(ns_display_info_last_mouse_frame(fp!.pointee)) {
+    f = ns_display_info_last_mouse_frame(fp!.pointee)
+    return_no_frame_flag = EQ(track_mouse, Qdrag_source())
+  }
+
+  if f != nil && FRAME_NS_P(f) {
+    // C 2486: `id view;` - C declares it at the top and assigns it here, the one block that
+    // uses it.
+    let view = FRAME_NS_VIEW(f)
+
+    // C 2578-2579: `view_position = [[view window] mouseLocationOutsideOfEventStream];
+    // view_position = [view convertPoint: view_position fromView: nil];`
+    view_position = view?.window?.mouseLocationOutsideOfEventStream ?? .zero
+    view_position = view?.convert(view_position, from: nil) ?? .zero
+    // C 2580-2581: the two `CGFloat` arguments land in `remember_mouse_glyph`'s `int`
+    // parameters, C's implicit conversion again; the rect is the member's own address.
+    remember_mouse_glyph(f, Int32(view_position.x), Int32(view_position.y),
+                         ns_display_info_last_mouse_glyph(fp!.pointee))
+    // C 2582: `NSTRACE_POINT ("view_position", view_position);` - empty, as above.
+
+    if bar_window != nil { bar_window!.pointee = Qnil() }
+    if part != nil { part!.pointee = scroll_bar_above_handle() }
+
+    // C 2587-2588: `XSETINT (*x, lrint (view_position.x)); XSETINT (*y, lrint (view_position.y));`
+    // - C's `lrint` is the double overload (`CGFloat` is `double` on this target), so the port
+    // spells it with `Double`.
+    if x != nil { XSETINT(x!, lrint(Double(view_position.x))) }
+    if y != nil { XSETINT(y!, lrint(Double(view_position.y))) }
+    if time != nil { time!.pointee = ns_display_info_last_mouse_movement_time(fp!.pointee) }
+    // C 2591: `*fp = return_no_frame_flag ? NULL : f;`
+    fp!.pointee = return_no_frame_flag ? nil : f
+  }
+
+  unblock_input()
+}
+
+/// C 2598-2621: `static void ns_frame_up_to_date (struct frame *f)` - "External (hook): Fix up
+/// mouse highlighting right after a full update.  Can't use FRAME_MOUSE_UPDATE due to
+/// ns_frame_begin and ns_frame_end calls."  It is C's `frame_up_to_date_hook`.
+fileprivate func ns_frame_up_to_date(_ f: UnsafeMutableRawPointer?) {
+  // C 2605: `NSTRACE_WHEN (NSTRACE_GROUP_UPDATES, "ns_frame_up_to_date");` - empty at
+  // `NSTRACE_ENABLED` 0, so neither its group nor its format string is evaluated.
+
+  if FRAME_NS_P(f) {
+    let hlinfo = MOUSE_HL_INFO(f)
+    if f == mouse_highlight_mouse_face_mouse_frame(hlinfo) {
+      block_input()
+      ns_update_begin(f)
+      // C 2614-2616: the three `hlinfo->…` reads feed `note_mouse_highlight (struct frame *,
+      // int, int)`.
+      note_mouse_highlight(mouse_highlight_mouse_face_mouse_frame(hlinfo),
+                           mouse_highlight_mouse_face_mouse_x(hlinfo),
+                           mouse_highlight_mouse_face_mouse_y(hlinfo))
+      ns_update_end(f)
+      unblock_input()
+    }
+  }
+}

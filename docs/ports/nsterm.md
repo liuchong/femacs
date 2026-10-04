@@ -22,7 +22,7 @@
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
 
-## Functions defined — 142
+## Functions defined — 150
 - [x] nstrace_leave  (line 113)  — dead: `NSTRACE_ENABLED` is 0 (src/nsterm.h 142-143), so the reference does not compile it either - recorded, not transcribed
 - [x] nstrace_restore_global_trace_state  (line 122)  — dead, like the box above
 - [x] nstrace_fullscreen_type_name  (line 129)  — dead, like the box above
@@ -51,8 +51,9 @@
 - [x] ns_update_auto_hide_menu_bar  (line 1033, static) — landed; the whole body is the `NS_IMPL_COCOA` arm, and `NSApplicationPresentationDefault` is Swift's empty option set (`[]`, since `.default` is unavailable)
 - [x] ns_update_begin  (line 1075, static) — landed; `swiftc -c` reports C's own `lockFocus` deprecation (Evidence), and the port keeps the call
 - [x] ns_UAZoomChangeFocus  (line 1162, static) — landed; the receiver is `NSView?` because only `NSView`/`NSWindow` messages are sent to it, and `UAZoomChangeFocus`'s third argument needs `UAZoomChangeFocusType(…)` (the SDK's enum imports as `Int`)
-- [x] ns_focus  (line 1236, static) — landed; **a generator gap** (the reader skips the `static
-      void` split across lines): `NSRectClip`/`NSRectClipList` are AppKit's own C functions,
+- [x] ns_focus  (line 1241, static) — landed; **the comment-stop gap of status 3.260** (this box's
+      old number, 1236, was the hand count of a generator-missed function and pointed at the
+      previous function's last statement): `NSRectClip`/`NSRectClipList` are AppKit's own C functions,
       reached by name because Swift marks them unavailable, and C's NULL-able `NSRect *r` is the
       optional `UnsafePointer<NSRect>?`
 - [x] ns_update_end  (line 1212, static) — landed; the dead `flushWindow` arm (GNUstep/pre-10.14) recorded, and `MOUSE_HL_INFO (f)->mouse_face_defer = 0` is the first member-entry **write** (`mouse_highlight_set_mouse_face_defer`)
@@ -75,20 +76,20 @@
 - [x] ns_set_offset  (line 1854) — landed as **`@_cdecl("ns_set_offset")`** - the definition the `ns_set_offset_entry` row of (4) waited for (first called at C 1691); its signature matches `nsfns.swift` 600, and `nm -u` no longer lists `_ns_set_offset` (Evidence)
 - [x] ns_set_window_size  (line 1877, static) — landed as `fileprivate func` (C's `static void`); the `NSTRACE_MSG` arguments are not evaluated (empty macro), and `f->output_data.ns->zooming` is the member pair `ns_output_zooming`/`ns_output_set_zooming`
 - [x] ns_set_window_size_and_position  (line 1920, static) — landed; `FRAME_NS_TITLEBAR_HEIGHT`/`FRAME_TOOLBAR_HEIGHT` are entries, and `compute_offset`/`frame_left_pos`/`frame_top_pos` were already in place
-- [x] ns_set_undecorated  (line 1961) — **a generator gap**, added by hand (see Decisions: the
-      reader's 8-line body lookahead stops at the 8-line doc comment before C 1970's `{`); landed
+- [x] ns_set_undecorated  (line 1961) — **the status 3.260 generator gap**, added by hand in round
+      10 (the reader stopped at the doc comment before C 1970's `{`; the round-10 Decisions call to
+      it an 8-line lookahead, corrected below); landed
       as `@_cdecl("ns_set_undecorated")` (src/nsterm.h 1229), and `[[EmacsWindow alloc]
       initWithEmacsFrame:]` is the deferred entry `EmacsWindow_initWithEmacsFrame` (`## ABI` (4))
-- [x] ns_set_parent_frame  (line 1999) — **a generator gap** of the same kind (a 21-line comment
-      before the body); landed as `@_cdecl("ns_set_parent_frame")` (src/nsterm.h 1230), and C's
+- [x] ns_set_parent_frame  (line 1999) — **the same 3.260 gap** (a 21-line comment before the
+      body); landed as `@_cdecl("ns_set_parent_frame")` (src/nsterm.h 1230), and C's
       `p = XFRAME (new_value)` inside the condition is spelled as three steps (Decisions)
 - [x] ns_set_no_focus_on_map  (line 2043) — landed as `@_cdecl("ns_set_no_focus_on_map")`
       (src/nsterm.h 1231); the write half of `FRAME_NO_FOCUS_ON_MAP` is the member entry
       `frame_set_no_focus_on_map`
-- [x] ns_set_no_accept_focus  (line 2061) — **a generator gap** (an 8-line comment before the
-      body); landed as `@_cdecl("ns_set_no_accept_focus")` (src/nsterm.h 1232)
-- [x] ns_set_z_group  (line 2078) — **a generator gap** (an 8-line comment before the body);
-      landed as `@_cdecl("ns_set_z_group")` (src/nsterm.h 1233); `NSNormalWindowLevel` is Swift's
+- [x] ns_set_no_accept_focus  (line 2061) — **the same 3.260 gap** (a comment before the body);
+      landed as `@_cdecl("ns_set_no_accept_focus")` (src/nsterm.h 1232)
+- [x] ns_set_z_group  (line 2078) — **the same 3.260 gap** (a comment before the body); landed as `@_cdecl("ns_set_z_group")` (src/nsterm.h 1233); `NSNormalWindowLevel` is Swift's
       `NSWindow.Level.normal`, and the four `z_group_*` are enumerator entries
 - [x] ns_set_appearance_1  (line 2120) — landed as `@_cdecl("ns_set_appearance_1")` (src/nsterm.h
       1240; imported by `nsfns.swift` 604); the three `ns_appearance_*` are enumerator entries
@@ -118,15 +119,19 @@
       definition the `ns_set_frame_alpha_entry` row of (4) waited for (C forward-declares it at
       C 1579 and calls it first at C 1612/1617), and `nm -u` no longer lists `_ns_set_frame_alpha`
       (Evidence); `f->alpha[0]`/`[1]` is the member entry `frame_alpha`
-- [ ] frame_set_mouse_pixel_position  (line 2409)
-- [ ] ns_note_mouse_movement  (line 2433, static)
-- [ ] ns_mouse_position  (line 2476, static)
-- [ ] ns_frame_up_to_date  (line 2599, static)
+- [x] frame_set_mouse_pixel_position  (line 2409) — landed as `@_cdecl("frame_set_mouse_pixel_position")` (src/frame.h 1882, the redisplay interface's `set_mouse_pixel_position_hook`); the two `FRAME_NS_*_HEIGHT` macros are round 9's expanded helpers and `CGWarpMouseCursorPosition` is CoreGraphics' own call
+- [x] ns_note_mouse_movement  (line 2433, static) — landed as `fileprivate func` (C's `static int`); `r = &dpyinfo->last_mouse_glyph` is the *pointer* member entry `ns_display_info_last_mouse_glyph`, so every `r->field` access stays in Swift, and the two `CGFloat` arguments land in `int` parameters (C's implicit truncation)
+- [x] ns_mouse_position  (line 2476, static) — landed as `fileprivate func` (C's `static void`, the `mouse_position_hook`); `FOR_EACH_FRAME` is spelled out, `track_mouse` is a symbol-less generated global, and the `EmacsView`/`EmacsTooltip` kind tests are the receiver-first entries `is_emacs_view`/`is_emacs_tooltip`
+- [x] ns_frame_up_to_date  (line 2599, static) — landed as `fileprivate func` (C's `static void`, the `frame_up_to_date_hook`); the three `hlinfo->…` reads are `Mouse_HLInfo` member entries and `note_mouse_highlight` is a real symbol of the core (`T` in `build/emacs-ref/src/xdisp.o`)
 - [ ] ns_define_frame_cursor  (line 2625, static)
 - [ ] ns_convert_key  (line 2649, static)
 - [ ] get_keysym_name  (line 2667)
 - [ ] right_mod  (line 2681, static)
 - [ ] nil_or_none  (line 2687, static)
+- [ ] ns_get_shifted_character  (line 2693, static) — open; the 3.260 reader fix is what puts it on
+      the list (one of the eight names the comment stop hid).  Its manifest row landed in `aa3e13a`
+      (`docs/baseline/swift-units.tsv` 73, the integrator's reconciliation), so
+      `check-swift-units.py` reads `0 new, 10 stale` again
 - [ ] ns_redraw_scroll_bars  (line 2773, static)
 - [ ] ns_clear_frame  (line 2790)
 - [ ] ns_clear_frame_area  (line 2824, static)
@@ -202,12 +207,12 @@
 - [ ] mark_nsterm  (line 11529)
 - [ ] syms_of_nsterm  (line 11550)
 
-Two definitions the generator's list misses (the reader skips the `static inline CGRect` return
-line and a `static BOOL` split across lines); they are boxes of their own so the checklist is
-complete - a regeneration would drop them, the way `docs/ports/data.md` records its 120-vs-116
-difference:
-- [x] ns_ua_zoom_enabled_p  (line 1102, static) — landed as `fileprivate func ns_ua_zoom_enabled_p () -> Bool`
-- [x] ns_cg_rect_flip_y  (line 1142, static inline) — landed as `fileprivate func ns_cg_rect_flip_y (_ rect: CGRect) -> CGRect`
+Two definitions the pre-3.260 reader missed for the same comment-stop reason as `ns_focus` above
+(the documented declarator is followed by a comment before its `{`); they were added by hand so the
+checklist was complete, and since `tools/cinventory.py`'s fix they are ordinary generator rows -
+the numbers here are the reader's own (1103 and 1131; the boxes' first numbers were hand counts):
+- [x] ns_ua_zoom_enabled_p  (line 1103, static) — landed as `fileprivate func ns_ua_zoom_enabled_p () -> Bool`
+- [x] ns_cg_rect_flip_y  (line 1131, static inline) — landed as `fileprivate func ns_cg_rect_flip_y (_ rect: CGRect) -> CGRect`
 
 
 **8 `@implementation`s, 1 file-local `@interface`, 193 method start lines.**
@@ -581,11 +586,18 @@ now **C 60-1956**.  **Round 10 lands C 1959-2398** - the seven frame-parameter h
 (C 2332-2354) and `ns_query_frame_background_color` (C 2357-2363), and **`ns_set_frame_alpha`
 (C 2366-2398) - the definition the (4) table's second function row waited for** - so the covered
 range is now **C 60-2398**.  The next live definition is C 2409's `frame_set_mouse_pixel_position`
-(the mouse-handling banner at C 2401-2405 separates them).
+- and **round 11 lands C 2401-2621**, the whole Mouse handling section: `frame_set_mouse_pixel_position`
+(C 2408-2430, the `NS_IMPL_COCOA` arm; the GNUstep arm is dead), `ns_note_mouse_movement`
+(C 2432-2472), `ns_mouse_position` (C 2475-2595) and `ns_frame_up_to_date` (C 2598-2621) - so the
+covered range is now **C 60-2621**.  The next live definition is C 2625's `ns_define_frame_cursor`
+(the RIF cursor hook; the Keyboard handling banner is at C 2641-2645).
 
-Ticked above: **66 of the 149 function boxes** (the generator's 142 plus the seven it misses -
-round 5's two, round 6's `ns_focus` and **round 10's four**, which are the 8-line-lookahead gap
-the round-10 Decision records), **17 of the 23 macro boxes** (the eight masks,
+Ticked above: **70 of the 150 function boxes**.  The count is the generator's own again: the
+pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
+declarator to its `{` stopped at the documentation comment in between - status 3.260), the port had
+already written seven of them (round 5's two, round 6's `ns_focus`, round 10's four), and the
+eighth - `ns_get_shifted_character`, C 2693 - is an open box here until its slice lands.  Also
+**17 of the 23 macro boxes** (the eight masks,
 `NO_APPDEFINED_DATA`, the five `EV_*` accessors, `DOCK_IGNORE_LIMIT`, the two
 `NS_PARENT_WINDOW_*` and round 10's `NSAppKitVersionNumber10_10`; the two held `EV_TRAILER*` and
 the four later ones stay open), **48 of the 49 file-scope-object boxes**
@@ -992,20 +1004,22 @@ under `@_cdecl`.
 
 ### Round 10: the frame-parameter handlers, the color block, and the second function row closed
 
-**The generator loses four of this slice's fifteen definitions, and the cause is a lookahead
-window.**  `tools/cinventory.py`'s `function_spans` takes a declarator whose parameter list ends
-its line and looks for the body brace in `range (j + 1, min (j + 9, len (rows)))` - eight lines.
-`ns_set_undecorated` (C 1961, an 8-line doc comment before C 1970's `{`), `ns_set_parent_frame`
-(C 1999, 21 lines), `ns_set_no_accept_focus` (C 2061, 8 lines) and `ns_set_z_group` (C 2078,
-8 lines) all put their `{` on the ninth line or later, so the walk reaches a live non-`{` line
-first and drops the definition; `ns_set_no_focus_on_map` (C 2043, a 7-line comment) and
-`ns_get_color` (C 2191, six lines) are on the inside of the window and stay.  The four are
-**hand-added boxes** above - the family `ns_focus` (C 1236), `ns_ua_zoom_enabled_p` and
-`ns_cg_rect_flip_y` already belong to; `tools/extract-abi.py`'s 142 functions are unchanged by
-this note, and a regeneration would drop them again.  The same window is why
-`docs/baseline/swift-units.tsv` can never hold rows for those four names: this round's
-regeneration request to the integrator therefore asks for **deletions only** (the eleven names
-that did have rows and now match a Swift `func`).
+**The generator loses four of this slice's fifteen definitions.**  *(Corrected in round 11: this
+paragraph first read the loss as an eight-line lookahead window; status 3.260 measured the real
+rule.)*  `tools/cinventory.py`'s `function_spans` walks from the end of a parameter list to the
+line that carries `{`, and it stopped at the first line that was neither dead, nor blank, nor a
+preprocessor line - which for a documented function is **its comment**.  Emacs writes
+`ns_set_undecorated (…)` / `/* … */` / `{`, so the definition was dropped whole, and the
+eight-line window around the walk made that look like a length limit (the longer the comment, the
+more reliably it was lost: `ns_set_no_focus_on_map`'s 7-line comment stayed inside the window,
+`ns_set_undecorated`'s 8-line one did not).  The fix (status 3.260) skips comment lines and raises
+the bound to 64, and this file's generator count goes 142 -> **150**: the four boxes above are
+ordinary generator rows now, and so are the other four names that stop hid - `ns_focus`,
+`ns_ua_zoom_enabled_p`, `ns_cg_rect_flip_y` and C 2693's still-open `ns_get_shifted_character`.
+Because the stop hid the four, `docs/baseline/swift-units.tsv` never held rows for them, so this
+round's regeneration request to the integrator asked for **deletions only** (the eleven names that
+did have rows and now match a Swift `func`); 3.260's one residue, `ns_get_shifted_character`, was
+the row to *add*, and the integrator wrote it in `aa3e13a`.
 
 **C's assignment-inside-a-condition has no Swift spelling, and the port keeps the
 short-circuit.**  Three sites: `ns_set_parent_frame`'s `!FRAMEP (new_value) || !FRAME_LIVE_P (p =
@@ -1066,6 +1080,73 @@ sites take entries of the `handleFS` shape - `EmacsWindow_initWithEmacsFrame` (t
 same reading as the `lockFocus`/`unlockFocus` pair the ledger's Evidence already records, so the
 port keeps the calls.
 
+### Round 11: the whole Mouse handling section, and the `FRAME_NS_VIEW` question the integrator raised
+
+**Scope and shapes.**  Four definitions, C 2409-2621, all of them this file's hooks for the
+redisplay interface: `frame_set_mouse_pixel_position` (C 2408-2430, exported since src/frame.h 1882
+declares it), and the three `static`s `ns_note_mouse_movement` (C 2432-2472), `ns_mouse_position`
+(C 2475-2595, C's `mouse_position_hook`) and `ns_frame_up_to_date` (C 2598-2621, the
+`frame_up_to_date_hook`).  The entries they need are the families rounds 5-10 settled - per-member
+entries, same-name entries for globals/enumerators/header-only accessors, receiver-first entries
+for the two classes' messages - and this round adds two *shapes* to those families:
+`ns_display_info_last_mouse_glyph` is a **pointer** member entry (C takes the member's address at
+C 2448, so every `r->field` access stays in Swift, the way an `NSRect`-typed record member should),
+and `is_emacs_tooltip` is a class-kind test that belongs to `src/nsmenu.m`'s port (C 2534's
+`isKindOfClass: [EmacsTooltip class]`), the mirror of `nsfns.swift` 691's `is_emacs_view`.
+
+**`FRAME_NS_VIEW` stays an entry this round** - the integrator's note offered the class-B route
+for the `ns_output_*` names (declare this file's `struct ns_output` layout prefix, expand
+`f->output_data.ns->view` in Swift, and change the two expanded macro bodies' call sites with it).
+The slice uses `FRAME_NS_VIEW` exactly once (C 2576), and the unit already reads it as an entry in
+twenty-seven places, two of them the `frame_ns_titlebar_height`/`frame_toolbar_height` bodies
+rounds 9-10 recorded; taking the route for one call site would leave two shapes for one macro, and
+the whole-file conversion is a slice of its own (the frame's own path to `output_data` is the part
+the lane has kept behind entries - `frame_output_data_ns`, C 1732's site - so the B route needs
+*both* that prefix and the `ns_output` one).  The ruling's criterion is unchanged and the entry is
+class A by it: the expansion needs a layout fact the core owns.  If the integrator wants the
+conversion, it is the 27 call sites plus the prefix declaration in one go, and this paragraph is
+the record that it was offered and deferred rather than missed.
+
+**`remember_mouse_glyph` is the gated entry of this slice.**  Its declaration (src/dispextern.h
+3586) is live, but its *definition* (src/xdisp.c 2779) sits inside `#ifdef HAVE_WINDOW_SYSTEM`
+(opened at src/xdisp.c 2490), which the frozen configuration leaves undefined: the objects have no
+`_remember_mouse_glyph` (measured), and the same guard explains the other non-static xdisp.c names
+missing from `build/emacs-ref/src/xdisp.o` (`x_y_to_column_row`, `get_glyph_string_clip_rect*`,
+`get_phys_cursor_geometry`).  This is exactly the status 3.255 ③ shape: the ratchet keeps the row
+with the reason that only a window-system build can satisfy it, and the shim exports it under the
+same gate.  `note_mouse_highlight` is the opposite case: the reference defines it (`T` in
+`build/emacs-ref/src/xdisp.o`), so its row is an ordinary core debt that `xdisp.rs`'s landing
+clears.
+
+**`track_mouse` has no symbol in the reference, and the core already carries one.**  C
+2532/2539/2542/2554/2565 compare against it, and the generated `globals.h` (852-853) spells it
+`globals.f_track_mouse`: `nm` over `build/emacs-ref/src/*.o` finds no `_track_mouse` (the only hit
+is `_Finternal_track_mouse`), so the import has to be a data symbol of its own name - the reading
+`Vframe_list`/`Vframe_alpha_lower_limit` already take - and **the ported core already defines it**
+(`nm -g build/femacs/*.o` shows `S _track_mouse`, from `keyboard.rs`'s own writes through the
+flattened `globals.rs`).  So this one needs no shim work at all; the ledger records it because the
+*name* has no reference-side symbol to point at.
+
+**C's implicit conversions, spelled.**  Three of them are in this slice and each keeps C's own
+truncation: `ns_note_mouse_movement`'s `CGFloat x`/`y` land in `note_mouse_highlight`'s and
+`remember_mouse_glyph`'s `int` parameters (`Int32(x)`), and `ns_mouse_position`'s
+`lrint (view_position.x)` is the **double** overload (`CGFloat` is `double` on this target), so the
+port writes `lrint (Double(view_position.x))`.  `XSETINT` is an *lvalue* macro
+(`((a) = make_fixnum (b))`, src/lisp.h 1341), so its entry takes the assignable `Lisp_Object` first -
+`withUnsafeMutablePointer`-free here because C's `*x`/`*y` are already pointers - the `XSETFRAME`
+shape `nsfns.swift` 711 uses.  Two smaller spellings: C's `id view;` at the top of
+`ns_mouse_position` becomes a `let` inside the one block that uses it (C declares it early and
+assigns at C 2576), and `do { … } while (…)` is Swift's `repeat { … } while (…)` (whose
+`continue` re-checks the condition, as C's does).
+
+**`fputs`/`stderr`.**  C's null-`*fp` warning is `fputs (…, stderr)`; `fputs` takes the lane's
+`@_silgen_name` shape (Swift marks the stdio family unavailable - `docs/ports/nsfont.swift` 1178's
+comment), while `stderr` is the C library overlay's own declaration, which this unit has read since
+round 3 (C 569-600).
+
+**No new warning.**  `swiftc -parse-as-library -c` is exit 0 with the same seven warnings the
+previous round carried (four `lockFocus`/`unlockFocus`, three `scanFloat`) - this slice adds none.
+
 ### The macro-name audit (status 3.251's rule)
 
 `nm -g build/emacs-ref/{src,lib}/*.o` was searched for every macro/INLINE name this unit imports
@@ -1118,6 +1199,7 @@ whose expansion is expressible must not become a symbol).
 | `ns_lisp_to_color` | `extern int ns_lisp_to_color (Lisp_Object, NSColor **)` (src/nsterm.h 1148, `__OBJC__`) | `func ns_lisp_to_color(_ color: Lisp_Object, _ col: UnsafeMutablePointer<NSColor?>) -> Int32` |
 | `ns_defined_color` | `extern bool ns_defined_color (struct frame *, const char *, Emacs_Color *, bool, bool)` (src/nsterm.h 1142) | `func ns_defined_color(_ f:, _ name: UnsafePointer<CChar>?, _ color_def: UnsafeMutableRawPointer?, _ alloc: Bool, _ _makeIndex: Bool) -> Bool` |
 | `ns_set_frame_alpha` | `static void ns_set_frame_alpha (struct frame *)` (C 1579's forward declaration; the `set_frame_alpha_hook` at C 5941) | `func ns_set_frame_alpha(_ f: UnsafeMutableRawPointer?)` - **the (4) table's second function row, closed** |
+| `frame_set_mouse_pixel_position` | `extern void frame_set_mouse_pixel_position (struct frame *, int, int)` (src/frame.h 1882) | `func frame_set_mouse_pixel_position(_ f: UnsafeMutableRawPointer?, _ pix_x: Int32, _ pix_y: Int32)` |
 
 `mod_of_kind`, `ev_modifiers_helper`, `hold_event` and `append2` are C `static`s - no C symbol exists in the reference
 either - so they land as `fileprivate func`s of their own names.  The exported set is exactly
@@ -1174,6 +1256,18 @@ what `nm -g` shows (Evidence).
 | `store_frame_param`, `parse_color_spec`, `error` | `void store_frame_param (struct frame *, Lisp_Object, Lisp_Object)` (src/lisp.h 5117); `bool parse_color_spec (const char *, unsigned short *, unsigned short *, unsigned short *)` (src/dispextern.h 3798); `AVOID error (const char *, ...)` (src/lisp.h 4835) | defined src/frame.c 3872 / src/xfaces.c 987 / src/eval.c (`_error` is `T` there) | **provided**: `femacs/src/frame.rs` 3842 and `femacs/src/xfaces.rs` 760, and the core's `error` the other three Swift units already import |
 | `STRINGP`, `SSDATA`, `SYMBOL_NAME` | `INLINE bool STRINGP` (src/lisp.h 1582), `INLINE char *SSDATA` (src/lisp.h 1658), `INLINE Lisp_Object SYMBOL_NAME` (src/lisp.h 2350) | header-only | **open**: the core's to export (`nsfns.swift` 184/200-201 imports the same three) |
 | `FLOATP`, `XFLOAT_DATA` | `#define FLOATP(x) lisp_h_FLOATP (x)` (src/lisp.h 448), `INLINE double XFLOAT_DATA (Lisp_Object)` (src/lisp.h 3186) | header-only | **open**: the core's to export |
+| `FRAME_TOOLTIP_P` | `#define FRAME_TOOLTIP_P(f) ((f)->tooltip)` (src/frame.h 1256) | header-only | **open**: the core's to export |
+| member write `frame_set_mouse_moved` | the `struct frame` member `f->mouse_moved` (src/frame.h 434), written at C 2464/2513 | src/frame.h | **open**: `<record>_set_<member>` |
+| `struct ns_display_info` members (round 11) | `ns_display_info_set_last_mouse_motion_frame` (C 2447), `ns_display_info_last_mouse_glyph` (C 2448's `&dpyinfo->last_mouse_glyph` - a **pointer** entry, `UnsafeMutablePointer<NSRect>?`), `ns_display_info_set_last_mouse_scroll_bar` (C 2515), `ns_display_info_last_mouse_frame` (C 2561/2567/2570), `ns_display_info_last_mouse_movement_time` (C 2590) | src/nsterm.h's `struct ns_display_info` | **open**: the core's to export (each takes the *frame*, the round-7 shape) |
+| `Mouse_HLInfo` members (round 11) | `mouse_highlight_mouse_face_mouse_x`/`_y` (src/dispextern.h 3013) | src/dispextern.h | **open**: they take the `MOUSE_HL_INFO` handle |
+| `track_mouse` | the generated global `globals.h` 852-853 spells `globals.f_track_mouse` | src/keyboard.c's `DEFVAR_LISP` | **provided** by the core's flattened globals: `nm -g build/femacs/*.o` shows `S _track_mouse` (the reference itself has **no `_track_mouse` symbol**, measured, which is why the import has to be a data symbol of its own name rather than a function) |
+| `Qdrag_source`, `Qdropping`, `scroll_bar_above_handle` | two `DEFSYM`s (`S` in `build/emacs-ref/src/emacs.o`) and one `enum scroll_bar_part` enumerator (src/termhooks.h 37) | src/emacs.c / src/termhooks.h | **open**: the core's to export |
+| `XSETINT` | `#define XSETINT(a, b) ((a) = make_fixnum (b))` (src/lisp.h 1341) | header-only | **open**: the lvalue shape `XSETFRAME` has |
+| `fputs` | `int fputs (const char *, FILE *)` | stdio.h | libSystem (`docs/ports/nsfont.swift` 1178; `stderr` is the overlay's) |
+| `note_mouse_highlight` | `void note_mouse_highlight (struct frame *, int, int)` (src/dispextern.h 3688) | defined src/xdisp.c | **open**: the reference defines it (`T` in `build/emacs-ref/src/xdisp.o`) but the ported core only *declares* it (`femacs/src/dispnew.rs` 281) - the definition is `xdisp.rs`'s, still in flight, so the gate reports the name as imported-and-unprovided (Evidence) |
+| `remember_mouse_glyph` | `void remember_mouse_glyph (struct frame *, int, int, NativeRectangle *)` (src/dispextern.h 3586; `NativeRectangle` is `NSRect`, src/nsgui.h 80) | defined xdisp.c 2779, **inside `HAVE_WINDOW_SYSTEM`** (the `#ifdef` at xdisp.c 2490) | **open, gated**: the frozen configuration leaves it undefined, so the object has no symbol and the shim exports it under the same gate - the status 3.255 ③ `frame_set_double_buffered` reading (only a window-system build can satisfy the name) |
+| `emacs_view_frame`, `is_emacs_view` | the `EmacsView` messages C 2537-2538 sends | this unit's own class, C 7039 | **open**: receiver-first entries, defined when the class lands; `nsfns.swift` 689-691 imports the same two names |
+| `is_emacs_tooltip` | `[[w delegate] isKindOfClass: [EmacsTooltip class]]` (C 2534) | `nsmenu.swift`'s `EmacsTooltip` (`src/nsmenu.m` 1421) | **open**: that class's own unit defines it here |
 | `FRAME_BACKGROUND_COLOR` | `#define FRAME_BACKGROUND_COLOR(f) ((f)->output_data.ns->background_color)` (src/nsterm.h 1038) | header-only | **open**: `macfont.swift` 756 imports the same name and type |
 
 `Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
@@ -1229,7 +1323,15 @@ call site takes an entry and the definition lands at its own C line - and **both
   `Qabove_suspended`, `Qbelow`, `Qdark`, `Qlight`, `Vframe_alpha_lower_limit`), `fset_parent_frame`,
   the member entry `frame_alpha`, and `STRINGP`/`SSDATA`/`SYMBOL_NAME`/`FLOATP`/`XFLOAT_DATA`/
   `FRAME_BACKGROUND_COLOR`; `store_frame_param`, `parse_color_spec` and `error` are already the
-  core's (frame.rs 3842, xfaces.rs 760, eval.c's `_error`).  `QCmouse` and the
+  core's (frame.rs 3842, xfaces.rs 760, eval.c's `_error`).  **Round 11 adds the mouse section's**:
+  `FRAME_TOOLTIP_P`, `frame_set_mouse_moved`, the five `ns_display_info_*` last-mouse members, the
+  two `Mouse_HLInfo` coordinates, `Qdrag_source`/`Qdropping`, `scroll_bar_above_handle`, `XSETINT`,
+  `emacs_view_frame`/`is_emacs_view` and `is_emacs_tooltip`; `note_mouse_highlight` is the one
+  whose provider is *in flight* (`xdisp.rs` owns its definition), `track_mouse` and `fputs` are
+  already provided (the core's flattened global and libSystem), and `remember_mouse_glyph` is the
+  gated one (its C text is inside
+  `HAVE_WINDOW_SYSTEM`, so nothing to link against in the frozen build - export it under the same
+  gate, the 3.255 ③ `frame_set_double_buffered` reading).  `QCmouse` and the
   seven modifiers are this file's own `DEFSYM`/`DEFVAR_LISP`, so the core has to export them the
   way it exports the rest; `QCmouse` is also absent from `docs/baseline/globals/symbols.tsv`,
   whose table comes from a build that never compiles this file;
@@ -1241,11 +1343,18 @@ call site takes an entry and the definition lands at its own C line - and **both
   the two pool hooks;
 * nothing new to supply from round 3: its imports are libobjc/libSystem entries.  Round 4 adds
   two owed **member entries** (`glyph_row_y`, `glyph_row_visible_height`) to the list above;
+* `femacs/platform/macos/nsmenu.swift` (another lane's unit), round 11's addition: the
+  `EmacsTooltip` class is landed there, so the `is_emacs_tooltip` entry of (2) - C 2534's
+  `isKindOfClass: [EmacsTooltip class]` - is that side's to define (receiver first, the
+  `is_emacs_view` shape).  This unit imports it and nothing else;
 * **the reverse direction - what other units already import from this one** (a contract this
   unit has to satisfy when its classes land): `nsfns.swift` 390-393 imports
   `setMiniwindowImage`, `fullscreenState` and `setFSValue` (all `EmacsView` methods) and
   `nsselect.swift` 223 imports `beginDrag` (an `EmacsWindow` method).  The first three are also
-  the evidence for shape (b) in Decisions.
+  the evidence for shape (b) in Decisions.  **Round 11 names three more**: `nsfns.swift` 689-691
+  already imports `emacs_view_frame` and `is_emacs_view`, which this unit's own class has to
+  define when it lands (C 7039's `@implementation EmacsView`), and C 2537-2538 in this round are
+  the same two entries read from this side.
 
 ## Evidence
 
@@ -1443,6 +1552,64 @@ call site takes an entry and the definition lands at its own C line - and **both
   `fset_parent_frame`), or the core already provides them (`store_frame_param`,
   `parse_color_spec`, `error`).  This unit does not write the ratchet: the integrator's
   `--write-pending` does.
+
+* Round 11's compile, same command: **exit 0**, the same **seven** warnings round 10 left (four
+  C's own `lockFocus`/`unlockFocus` at C 1217-1219/1368-1370/1385-1387/1412-1414 and three
+  `'scanFloat' was deprecated in macOS 10.15` for C 2257-2259), and no new one - the slice's only
+  new AppKit/stdlib calls (`CGWarpMouseCursorPosition`, `NSEvent.mouseLocation`,
+  `windowNumberAtPoint:belowWindowWithWindowNumber:`, `NSApp windowWithWindowNumber:`,
+  `fputs`) are not deprecated.
+* `nm -g /tmp/s188r11/nsterm.o | grep ' T _frame_set_mouse_pixel_position'` -> the one new C
+  export, `_frame_set_mouse_pixel_position`; the slice's other three definitions are C `static`s and
+  stay Swift-mangled (`grep -cE ' T _(ns_note_mouse_movement|ns_mouse_position|ns_frame_up_to_date)$'`
+  is 0).
+* `nm -u /tmp/s188r11/nsterm.o` -> the slice's own imports: `_FRAME_TOOLTIP_P`,
+  `_frame_set_mouse_moved`, `_ns_display_info_set_last_mouse_motion_frame`,
+  `_ns_display_info_last_mouse_glyph`, `_ns_display_info_set_last_mouse_scroll_bar`,
+  `_ns_display_info_last_mouse_frame`, `_ns_display_info_last_mouse_movement_time`,
+  `_mouse_highlight_mouse_face_mouse_x`/`_y`, `_Qdrag_source`, `_Qdropping`,
+  `_scroll_bar_above_handle`, `_XSETINT`, `_note_mouse_highlight`, `_remember_mouse_glyph`,
+  `_fputs`, `_emacs_view_frame`, `_is_emacs_view`, `_is_emacs_tooltip`, and the data symbol
+  `_track_mouse` (461 undefined names in all, the object's whole set).
+* The symbol audit for this slice's names (`nm -g -A` over `build/emacs-ref/src/*.o` and
+  `build/emacs-ref/lib/*.o`, one `grep -E "[ _]NAME$"` per name): **0** for `FRAME_TOOLTIP_P`,
+  `frame_set_mouse_moved`, all five `ns_display_info_*` last-mouse members,
+  `mouse_highlight_mouse_face_mouse_x`/`_y`, `scroll_bar_above_handle`, `XSETINT`,
+  `track_mouse`, `remember_mouse_glyph` and the three port-named entries
+  (`emacs_view_frame`, `is_emacs_view`, `is_emacs_tooltip`); **1** for `_Qdrag_source`/`_Qdropping`
+  (`S` in `build/emacs-ref/src/emacs.o`) and `_note_mouse_highlight` (`T` in
+  `build/emacs-ref/src/xdisp.o`).  The `track_mouse` and `remember_mouse_glyph` zeros are the two
+  readings the Decisions explain: a generated global with no carrier symbol, and a definition the
+  frozen configuration does not compile.
+* The guard behind `remember_mouse_glyph`: tracking the preprocessor nesting of `src/xdisp.c` to
+  line 2779 gives `#ifdef HAVE_WINDOW_SYSTEM` at **2490**, and `nm
+  build/emacs-ref/src/xdisp.o | grep -i remember` finds nothing at all (`grep -i` over the whole
+  symbol table, not just `-g`); the four non-static xdisp.c names the object is also missing
+  (`x_y_to_column_row`, `get_glyph_string_clip_rects`, `get_glyph_string_clip_rect`,
+  `get_phys_cursor_geometry`) are the same region's.
+* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+  definition(s), 84 unported, 87 row(s); 134 C symbol import(s)` (the C count and the import count
+  are the fixed reader's).  The run that opened this round read `1 new, 10 stale, 7 Swift unit(s)
+  landed`, and the `new` was `ns_get_shifted_character` (C 2693 - the eighth name status 3.260's
+  fix uncovered, with the other seven already landed); the integrator wrote its row in `aa3e13a`,
+  after which the same command reads `0 new, 10 stale, 7 Swift unit(s) landed`, whose ten are this
+  unit's four (the slice's four definitions) and the in-flight `nsfns.swift` batch.
+* `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures`, `read 630 files (623 .rs 7 .swift)` - this slice's comments and literals
+  add no forbidden class.
+* `python3 tools/check-swift-imports.py` -> after the slice's entries: `877 import(s) in 7 Swift
+  file(s), 5640 core export(s), 632 unprovided, 549 ratchet row(s), 105 failure(s)` (94 `FAIL`
+  lines plus the stale-ratchet count).  The `FAIL` names that belong to this slice are **sixteen**,
+  each with the tool's own class: `FRAME_TOOLTIP_P`, `XSETINT` and `remember_mouse_glyph`
+  (`reference-source`), `Qdrag_source`/`Qdropping` (`reference`), `note_mouse_highlight`
+  (`reference` - the reference defines it, `femacs/src/dispnew.rs` 281 only declares it, and the
+  definition is the in-flight `xdisp.rs`'s), `is_emacs_tooltip`, `frame_set_mouse_moved`, the five
+  `ns_display_info_*` last-mouse members and the two `Mouse_HLInfo` coordinates
+  (`unclassified`).  Four of the slice's imports are **not** in the list because something already
+  provides them: `track_mouse` (`S` in `build/femacs/*.o`), `fputs` (libSystem),
+  `emacs_view_frame`/`is_emacs_view` (ratchet rows `nsfns.swift` already asked for).  The count's
+  movement is again not this unit's alone - four lanes' in-flight units sit in the same tree - so
+  the name-level `FAIL` diff is the reading that belongs to the slice.
 
 - **Ruling (3.255, integrator) on this file's macro-name entries.**  Two halves, and the criterion
   is whether the macro's body can be spelled in Swift: **(B) first** - a body that is a pure AppKit
