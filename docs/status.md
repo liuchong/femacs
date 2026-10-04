@@ -5602,3 +5602,23 @@
      `check-declarations 13 sites / 0 forbidden`、`check-mirror-dupes 18/18/0`。
   ⑥ **下一步（门自己指出的）**：把那两条 `INLINE` 搬进 `include/lisp.rs`（C 5234/5240 的位置），再按镜像重名门的规矩删
      `eval.rs` 的本地副本——那之后 `info` 归零。
+
+- **3.351 P-20 结案：`get_act_rec`/`set_act_rec` 进镜像，`eval.rs` 的本地副本删掉（2026-10-05）**：
+  ① **依据**：`PORTING.md` 的 **P-20** 从第一天就写着"待办：thread.rs 落地后补齐"，而 `include/thread.rs` 早已
+     落地（`bc_thread_state` 的 `fp@0` 是实测值）。本件把 C `src/lisp.h` **5233-5243** 那两条 `INLINE` 访问器
+     （`get_act_rec` 读 `th->bc.fp`、`set_act_rec` 写它）放进 `femacs/src/include/lisp.rs`（紧跟 C 的行序，
+     在 5276 的 `maybe_disable_address_randomization` 之前），并删掉 `femacs/src/eval.rs` 里的本地 `unsafe fn`
+     副本与那条"镜像不承载这两条"的说明句；`PORTING.md` 的 P-20 行由 **待办 → 已落地**（写明 3.351 与位置）。
+  ② **新门第一次被"用上"**：3.350 的 `check-ledger-ticks` 之前把这两条报成 `2 carried by another file`
+     （`docs/ports/lisp.md` 勾了、镜像没有、`eval.rs` 有）——本件之后它读
+     **`235 ledger(s) bound, 0 failure(s), 0 carried by another file`**，即那句 `info` 归零，P-20 不再是技术债。
+  ③ **读数**：`build-tu src/eval.c` / `src/sort.c` 都 `built`（调用点在 eval.rs 1464/1847，现在解析到镜像）；
+     `extract-abi --check emacs/src/lisp.h femacs/src/include/lisp.rs` → **OK**；`check-mirror-dupes` → **18/18/0**
+     （镜像新增两条、单元副本已删，重名门没动）；`check-declarations` → **13 sites / 0 forbidden**。
+  ④ **一条副作用与它的处置**（值得记）：往大镜像里插 17 行会把后面所有行号推移，而 `citations-allowlist.tsv`
+     是**按 `文件:行号` 记的** ⇒ 当场 4 条允许行变 `stale`、对应的 4 条 finding 变 `drift`。处置是把那 4 行
+     的**行号 +17**（`4099→4116`、`2753→2770`、`3842→3859`、`3971→3988`），**理由文本一字不改**（它们引的是参照
+     的行号，没有位移）；改后 `check-citations` → **670 files / 0 drift / 0 range / 33 allowed / 0 stale**。
+     `check-citations.py --fix` 在 3.166 就被删掉了（"引文是句子不是字段"），所以这类事只能按报告逐条人工对。
+  ⑤ **未声称**：C 里这两条是**每个翻译单元一份的 `static inline`**，端口按本工程既有的 `INLINE` 约定**只留镜像里
+     一份**（P-20 的解法，不是新偏离）；本件没有运行期验收，只有"单元能编、镜像 ABI 对齐、四道门读绿"。

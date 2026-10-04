@@ -2750,6 +2750,23 @@ pub fn fast_c_string_match_ignore_case (regexp: Lisp_Object, string: *const c_ch
     unsafe { fast_c_string_match_internal (regexp, string, len as ptrdiff_t, Vascii_canon_table) }
 }
 
+/// C: lisp.h 5233-5237: `INLINE struct bc_frame *get_act_rec (struct thread_state *th)
+/// { return th->bc.fp; }`.  `struct bc_frame` is a pointer-only type no mirror carries, so
+/// the accessor speaks the untyped pointer (P-55), and `th->bc` is thread.h's
+/// `bc_thread_state` (`include/thread.rs`, whose `fp` is at 0).  C calls this only from
+/// eval.c's own `static inline` copy; the mirror carries it once (P-20).
+#[inline(always)]
+pub unsafe fn get_act_rec (th: *mut thread_state) -> *mut c_void {
+    unsafe { (*th).bc.fp }
+}
+
+/// C: lisp.h 5239-5243: `INLINE void set_act_rec (struct thread_state *th, struct bc_frame
+/// *act_rec) { th->bc.fp = act_rec; }` - the setter half of the pair above.
+#[inline(always)]
+pub unsafe fn set_act_rec (th: *mut thread_state, act_rec: *mut c_void) {
+    unsafe { (*th).bc.fp = act_rec; }
+}
+
 /// C: lisp.h 5276-5280 (the live arm; `HAVE_PERSONALITY_ADDR_NO_RANDOMIZE` is `undef` in the
 /// frozen configuration, so `sysdep.c`'s two-argument definition is dead text there):
 /// `INLINE int maybe_disable_address_randomization (int argc, char **argv) { return argc; }`.

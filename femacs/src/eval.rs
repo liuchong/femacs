@@ -20,9 +20,9 @@
 // Names C declares in headers whose mirrors do not carry them yet (18 functions, the two
 // `dispextern.h` counters, plus what each `#[cfg]` arm needs) are declared at their use sites
 // below (the bytecode.rs/doc.rs shape, docs/status.md 3.60); the three `V*` objects and the 19
-// `V*`/`defvar` storages this unit's `syms_of_eval` registers are defined here (status 3.29),
-// and `get_act_rec`/`set_act_rec` are the two `INLINE` lisp.h accessors the mirror does not
-// carry yet (P-20), defined locally the way C's `static inline` per-unit copy is.
+// `V*`/`defvar` storages this unit's `syms_of_eval` registers are defined here (status 3.29);
+// `get_act_rec`/`set_act_rec` used to be defined here too - the mirror carries them now
+// (`include/lisp.rs`, P-20's open item closed in 3.351), so this unit only calls them.
 // `docs/ports/eval.md` records every deviation, the two mirror gaps this unit reports
 // (`lisp.rs`'s `safe_calln!` calls `Ffuncall` + `maybe_quit` where C's `safe_calln` calls
 // `safe_funcall`, and `dispextern.h`'s two counters have no mirror declaration), and the
@@ -109,25 +109,6 @@ unsafe extern "C" {
   /// C: lisp.h 4165: `void notify_variable_watchers (Lisp_Object symbol, Lisp_Object newval, Lisp_Object operation, Lisp_Object where);`
   pub fn notify_variable_watchers (symbol: Lisp_Object, newval: Lisp_Object,
                                    operation: Lisp_Object, r#where: Lisp_Object);
-}
-
-/* lisp.h 5233-5243: the two `INLINE` accessors of thread.h's `bc.fp`.  The lisp.rs mirror
-   does not carry them yet (docs/status.md P-20's open item), and they are `static inline`
-   in C, so each translation unit gets its own copy — the port defines them where C's
-   per-unit copy lives, which is also what makes `eval.o` self-contained.  `struct bc_frame`
-   is a pointer-only type no mirror carries (P-55), so it stays the untyped pointer.  */
-/// C: lisp.h 5233: `INLINE struct bc_frame *get_act_rec (struct thread_state *th)`
-#[inline(always)]
-unsafe fn get_act_rec (th: *mut thread_state) -> *mut c_void
-{
-  return (*th).bc.fp;
-}
-
-/// C: lisp.h 5239: `INLINE void set_act_rec (struct thread_state *th, struct bc_frame *act_rec)`
-#[inline(always)]
-unsafe fn set_act_rec (th: *mut thread_state, act_rec: *mut c_void)
-{
-  (*th).bc.fp = act_rec;
 }
 
 /* Non-nil means record all fset's and provide's, to be undone
