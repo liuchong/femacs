@@ -3185,3 +3185,25 @@
   （3.178 立），每轮除 `--check` 外自己再跑一次 `layout-check`。
   ⑥ **`layout-check` 仍红（第三轮）**：根因仍是 Harvey 在飞的 `lib/include/stdbit.in.rs`（现在 639 行，
   当前错误 `expected item after doc comment`）；我已两度告知规矩，等它收口后重跑确认。
+
+- **3.181 `layout-check` 四轮来第一次绿——最后一条红是我的 `ftfont.rs`；`stdbit.in.rs` 成为 C23 API 的 owner（2026-10-04）**：
+  ① **门转绿的根因分成两半**：Harvey 把它造成的两条（`expected item after doc comment`、`c_schar` 未定义——
+  后者按本树既有拼法改成全限定 `core::ffi::c_schar`，与 `stdint.in.rs` 57 拼 `int8_t` 同法）修掉之后，
+  剩下的**唯一**一条红是**我造成的**：`include/ftfont.rs` 结尾那段 `/// C: …` 是个**下面没有 item 的文档注释**
+  （`error: expected item after doc comment`）。已改成普通 `//` 注释并把测量写进文件（"a `///` block with nothing
+  under it does not compile — measured, status 3.181"）。修后 **`layout-check` passed**。**教训**：我为"记录 C 的
+  死文本"写的注释块，在**没有对应 Rust item** 时必须用 `//` 而不是 `///`——这条对全树同类写法都成立（我同时把
+  `include/ftfont.rs` 的其余记录式注释一并检查过）。
+  ② **`stdbit.in.h` 的归属裁定已执行**（`e78caab`，10 个 tracked 文件）：C23 API 面的函数现在**落在
+  `stdbit.in.rs` 自身文本里**（从 `stdbit.rs` 搬入 30 个 + 手写三个新族 `stdc_leading_ones_*`/`stdc_trailing_ones_*`/
+  `stdc_count_zeros_*` + 三个 dispatcher + `_gl_stdbit_popcount_support`）——因为门的 body 检查只读镜像自身文本；
+  `stdbit.rs` 退为"生成头事实 + 4 个通用宏"；`lisp.rs`/五个 `lib/stdc_*.rs`/`byteswap.in.rs` 改指 owner。
+  ③ **它的探针是这轮最硬的一份证据**：不只查 token，还把搬来的 12 个读数对 **Rust 自身的位运算**断言，并逐宽度重放
+  三个新族——**当场抓到它自己写错的期望**（`stdc_leading_ones! (0b111u8)` 它写 3、Rust 说 0），于是把断言从"对字面量"
+  改成"对 Rust 运算"，这正是把"人可能记错"换成"机器说了算"的正确做法。
+  ④ 我写入六条共享行：`_gl_stdbit_clz/clzl/clzll/ctz/ctzl/ctzll`（活臂是编译器内建，端口拼 `u32::leading_zeros ()` 一族）。
+  ⑤ 未收口：`--check` **162 条**（116 functions + 20 macros + 26 token 行，其中 20 条随落地自然消失），**结论已如实写进
+  台账**（121 勾 / 143 未勾），收尾是纯机械活；lane 已排"这一轮吃下"，之后再接 `stdio.in.h`/`stdlib.in.h`（`string.in.h`
+  给了 Boole）。**没有为了变绿硬写两百项**。
+  ⑥ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；五门绿；**`layout-check` passed**；
+  引证门 16 drift / 4 range / 284 external / 36 allowed / 0 stale。
