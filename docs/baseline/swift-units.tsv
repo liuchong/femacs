@@ -41,7 +41,6 @@ femacs/platform/macos/nsterm.swift	ns_default	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_default_font_parameter	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_define_frame_cursor	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_define_fringe_bitmap	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_defined_color	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_delete_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_delete_terminal	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_destroy_fringe_bitmap	src/nsterm.m
@@ -70,8 +69,6 @@ femacs/platform/macos/nsterm.swift	ns_flush_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_frame_up_to_date	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_free_pixmap	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_fullscreen_hook	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_get_color	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_get_glyph_string_clip_rect	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_hide_hourglass	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area	src/nsterm.m
@@ -79,13 +76,10 @@ femacs/platform/macos/nsterm.swift	ns_in_echo_area_1	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_in_echo_area_2	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_initialize_display_info	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_judge_scroll_bars	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_lisp_to_color	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_maybe_dumpglyphs_background	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_mouse_position	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_new_font	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_note_mouse_movement	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_query_color	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_query_frame_background_color	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_read_socket	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_read_socket_1	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_redeem_scroll_bar	src/nsterm.m
@@ -95,13 +89,8 @@ femacs/platform/macos/nsterm.swift	ns_scroll_run	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_select	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_select_1	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_send_appdefined	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_set_appearance	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_set_appearance_1	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_set_frame_alpha	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_glyph_string_gc	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_horizontal_scroll_bar	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_set_no_focus_on_map	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_set_transparent_titlebar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_vertical_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_setup_relief_colors	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_shift_glyphs_for_insert	src/nsterm.m
