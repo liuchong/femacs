@@ -1045,6 +1045,8 @@ unsafe extern "C" {
 			     nchars: ptrdiff_t, nbytes: ptrdiff_t, inherit: bool);
   /// C: dispextern.h 3914: `void clear_glyph_row (struct glyph_row *);` (dispnew.c).
   pub fn clear_glyph_row (row: *mut glyph_row);
+  /// C: dispextern.h 3908: `void clear_desired_matrices (struct frame *);` (dispnew.c).
+  pub fn clear_desired_matrices (f: *mut frame);
   /// C: search.c's `void record_unwind_save_match_data (void);` (lisp.h 4852).
   pub fn record_unwind_save_match_data ();
   /// C: frame.h 1385: `struct frame *root_frame (struct frame *);` (frame.c defines it).
@@ -15760,6 +15762,373 @@ unsafe fn display_tab_bar (w: *mut window)
 
   /* Compute the total height of the lines.  */
   compute_line_metrics (&raw mut it);
+}
+/* Find the tab-bar item at X coordinate and return its information.  */
+unsafe fn tty_get_tab_bar_item (f: *mut frame, x: c_int, prop_idx: *mut c_int,
+				close_p: *mut bool) -> Lisp_Object
+{
+  let mut clen: ptrdiff_t = 0;
+
+  let mut i: c_int = 0;
+  while i < (*f).n_tab_bar_items
+    {
+      let caption: Lisp_Object = AREF ((*f).tab_bar_items, (i * TAB_BAR_ITEM_NSLOTS
+							   + TAB_BAR_ITEM_CAPTION) as isize);
+      if NILP (caption)
+	{ return Qnil (); }
+      clen += SCHARS (caption);
+      if (x as ptrdiff_t) < clen
+	{
+	  *prop_idx = i;
+	  *close_p = !NILP (Fget_text_property (make_fixnum ((SCHARS (caption)
+							      - (clen - x as ptrdiff_t))
+							     as EMACS_INT),
+						Qclose_tab (),
+						caption));
+	  return caption;
+	}
+      i += 1;
+    }
+  return Qnil ();
+}
+
+/* `tty_handle_tab_bar_click` (C 15615-15654) is NOT defined here: `include/termchar.rs`
+   already carries termchar.h 238-239's `extern "C"` declaration of it, and a Rust
+   definition beside that declaration is E0428 (the `set_buffer_internal_1` family, the
+   ledger's integrator item 6).  The definition has to live wherever that declaration is
+   resolved — reported to the integrator.  */
+
+/* For all leaf windows in the window tree rooted at WINDOW, set their
+   hscroll value so that PT is (i) visible in the window, and (ii) so
+   that it is not within a certain margin at the window's left and
+   right border.  Value is true if any window's hscroll has been
+   changed.  */
+
+unsafe fn hscroll_window_tree (window: Lisp_Object) -> bool
+{
+  let mut hscrolled_p: bool = false;
+  let mut hscroll_relative_p: bool = FLOATP (Vhscroll_step);
+  let mut hscroll_step_abs: c_int = 0;
+  let mut hscroll_step_rel: f64 = 0.0;
+  let mut window = window;
+
+  if hscroll_relative_p
+    {
+      hscroll_step_rel = XFLOAT_DATA (Vhscroll_step);
+      if hscroll_step_rel < 0.0
+	{
+	  hscroll_relative_p = false;
+	  hscroll_step_abs = 0;
+	}
+    }
+  else if TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, Vhscroll_step, INT_MAX as EMACS_INT)
+    {
+      hscroll_step_abs = XFIXNUM (Vhscroll_step) as c_int;
+      if hscroll_step_abs < 0
+	{ hscroll_step_abs = 0; }
+    }
+  else
+    { hscroll_step_abs = 0; }
+
+  while WINDOWP (window)
+    {
+      let w: *mut window = XWINDOW (window);
+
+      if WINDOWP ((*w).contents)
+	{ hscrolled_p |= hscroll_window_tree ((*w).contents); }
+      else if (*w).cursor.vpos >= 0
+	       /* Don't allow hscroll in mini-windows that display
+		  echo-area messages.  This is because desired_matrix
+		  of such windows was prepared while momentarily
+		  switched to an echo-area buffer, which is different
+		  from w->contents, and we simply cannot hscroll such
+		  windows safely.  */
+	       && !(w == XWINDOW (echo_area_window)
+		    && !NILP (echo_area_buffer[0]))
+	{
+	  let mut h_margin: c_int;
+	  let text_area_width: c_int;
+	  let mut cursor_row: *mut glyph_row;
+	  let mut bottom_row: *mut glyph_row;
+
+	  bottom_row = MATRIX_BOTTOM_TEXT_ROW! ((*w).desired_matrix as *mut glyph_matrix, w);
+	  if (*w).cursor.vpos < bottom_row.offset_from (
+		(*((*w).desired_matrix as *mut glyph_matrix)).rows) as c_int
+	    { cursor_row = MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix,
+					(*w).cursor.vpos); }
+	  else
+	    { cursor_row = bottom_row.offset (-1); }
+
+	  if !glyph_row_bits! (enabled_p, cursor_row)
+	    {
+	      bottom_row = MATRIX_BOTTOM_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix, w);
+	      if (*w).cursor.vpos < bottom_row.offset_from (
+		    (*((*w).current_matrix as *mut glyph_matrix)).rows) as c_int
+		{ cursor_row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix,
+					    (*w).cursor.vpos); }
+	      else
+		{ cursor_row = bottom_row.offset (-1); }
+	    }
+	  let row_r2l_p: bool = glyph_row_bits! (reversed_p, cursor_row);
+	  let hscl: bool = hscrolling_current_line_p (w);
+	  let mut x_offset: c_int = 0;
+	  /* When line numbers are displayed, we need to account for
+	     the horizontal space they consume.  */
+	  if !NILP (Vdisplay_line_numbers)
+	    {
+	      let mut g: *mut glyph;
+	      if !row_r2l_p
+		{
+		  g = (*cursor_row).glyphs[TEXT_AREA as usize];
+		  while g < (*cursor_row).glyphs[TEXT_AREA as usize]
+			.offset ((*cursor_row).used[TEXT_AREA as usize] as isize)
+		    {
+		      if !(NILP ((*g).object) && (*g).charpos < 0)
+			{ break; }
+		      x_offset += (*g).pixel_width as c_int;
+		      g = g.offset (1);
+		    }
+		}
+	      else
+		{
+		  g = (*cursor_row).glyphs[TEXT_AREA as usize]
+		      .offset ((*cursor_row).used[TEXT_AREA as usize] as isize);
+		  while g > (*cursor_row).glyphs[TEXT_AREA as usize]
+		    {
+		      if !(NILP ((*g.offset (-1)).object)
+			   && (*g.offset (-1)).charpos < 0)
+			{ break; }
+		      x_offset += (*g.offset (-1)).pixel_width as c_int;
+		      g = g.offset (-1);
+		    }
+		}
+	    }
+	  if glyph_row_bits! (truncated_on_left_p, cursor_row)
+	    /* On TTY frames, don't count the left truncation glyph.  */
+	    { x_offset -= is_tty_frame (XFRAME (WINDOW_FRAME! (w))) as c_int; }
+
+	  text_area_width = window_box_width (w, TEXT_AREA);
+
+	  /* Scroll when cursor is inside this scroll margin.  */
+	  h_margin = (clip_to_bounds (0, hscroll_margin as isize, 1000000) as c_int
+		      * WINDOW_FRAME_COLUMN_WIDTH! (w));
+
+	  /* If the position of this window's point has explicitly
+	     changed, no more suspend auto hscrolling.  */
+	  if window_bits! (w, suspend_auto_hscroll)
+	      && NILP (Fequal (Fwindow_point (window),
+			       Fwindow_old_point (window)))
+	    {
+	      window_bits! (w, suspend_auto_hscroll, false);
+	      /* When hscrolling just the current line, and the rest
+		 of lines were temporarily hscrolled, but no longer
+		 are, force thorough redisplay of this window, to show
+		 the effect of disabling hscroll suspension immediately.  */
+	      if (*w).min_hscroll == 0 && (*w).hscroll > 0
+		  && EQ (Fbuffer_local_value (Qauto_hscroll_mode (), (*w).contents),
+			 Qcurrent_line ())
+		{ SET_FRAME_GARBAGED! (XFRAME ((*w).frame)); }
+	    }
+
+	  /* Remember window point.  */
+	  Fset_marker ((*w).old_pointm,
+		       if w == XWINDOW (selected_window)
+		       { make_fixnum (BUF_PT (XBUFFER ((*w).contents))) }
+		       else { Fmarker_position ((*w).pointm) },
+		       (*w).contents);
+
+	  if !NILP (Fbuffer_local_value (Qauto_hscroll_mode (), (*w).contents))
+	      && !window_bits! (w, suspend_auto_hscroll)
+	      /* In some pathological cases, like restoring a window
+		 configuration into a frame that is much smaller than
+		 the one from which the configuration was saved, we
+		 get glyph rows whose start and end have zero buffer
+		 positions, which we cannot handle below.  Just skip
+		 such windows.  */
+	      && (CHARPOS! ((*cursor_row).start.pos)
+		  >= BUF_BEG (XBUFFER ((*w).contents)))
+	      /* For left-to-right rows, hscroll when cursor is either
+		 (i) inside the right hscroll margin, or (ii) if it is
+		 inside the left margin and the window is already
+		 hscrolled.  */
+	      && ((!row_r2l_p
+		   && (((*w).hscroll != 0 && (*w).cursor.x <= h_margin + x_offset)
+		       || (glyph_row_bits! (enabled_p, cursor_row)
+			   && glyph_row_bits! (truncated_on_right_p, cursor_row)
+			   && ((*w).cursor.x >= text_area_width - h_margin))))
+		  /* For right-to-left rows, the logic is similar,
+		     except that rules for scrolling to left and right
+		     are reversed.  E.g., if cursor.x <= h_margin, we
+		     need to hscroll "to the right" unconditionally,
+		     and that will scroll the screen to the left so as
+		     to reveal the next portion of the row.  */
+		  || (row_r2l_p
+		      && ((glyph_row_bits! (enabled_p, cursor_row)
+			   /* FIXME: It is confusing to set the
+			      truncated_on_right_p flag when R2L rows
+			      are actually truncated on the left.  */
+			   && glyph_row_bits! (truncated_on_right_p, cursor_row)
+			   && (*w).cursor.x <= h_margin)
+			  || ((*w).hscroll != 0
+			      && ((*w).cursor.x >= (text_area_width - h_margin
+						    - x_offset)))))
+		  /* This last condition is needed when moving
+		     vertically from an hscrolled line to a short line
+		     that doesn't need to be hscrolled.  If we omit
+		     this condition, the line from which we move will
+		     remain hscrolled.  */
+		  || (hscl
+		      && (*w).hscroll != (*w).min_hscroll
+		      && !glyph_row_bits! (truncated_on_left_p, cursor_row)))
+	    {
+	      let mut it: it = core::mem::zeroed ();
+	      let mut hscroll: ptrdiff_t;
+	      let saved_current_buffer: *mut buffer;
+	      let mut pt: ptrdiff_t;
+	      let mut wanted_x: c_int;
+
+	      /* Find point in a display of infinite width.  */
+	      saved_current_buffer = current_buffer;
+	      current_buffer = XBUFFER ((*w).contents);
+
+	      if w == XWINDOW (selected_window)
+		{ pt = PT! (); }
+	      else
+		{ pt = clip_to_bounds (BEGV! (), marker_position ((*w).pointm), ZV! ()); }
+
+	      /* Move iterator to pt starting at cursor_row->start in
+		 a line with infinite width.  */
+	      init_to_row_start (&raw mut it, w, cursor_row);
+	      if hscl
+		{
+		  it.first_visible_x = window_hscroll_limited (w, it.f)
+				       * FRAME_COLUMN_WIDTH (it.f);
+		}
+	      it.last_visible_x = DISP_INFINITY;
+
+	      let nchars: ptrdiff_t = pt - IT_CHARPOS! (it);
+	      if buffer_bits! (long_line_optimizations_p, current_buffer)
+		  && nchars > large_hscroll_threshold
+		{
+		  /* Special optimization for very long and truncated
+		     lines which need to be hscrolled far to the left:
+		     jump directly to the (approximate) first position
+		     that is visible, instead of slowly walking there.  */
+		  fast_move_it_horizontally (&raw mut it, nchars);
+		  it.current_x += nchars as c_int * FRAME_COLUMN_WIDTH (it.f);
+		}
+	      else
+		{ move_it_in_display_line_to (&raw mut it, pt, -1, MOVE_TO_POS); }
+	      /* If the line ends in an overlay string with a newline,
+		 we might infloop, because displaying the window will
+		 want to put the cursor after the overlay, i.e. at X
+		 coordinate of zero on the next screen line.  So we
+		 use the buffer position prior to the overlay string
+		 instead.  */
+	      if it.method == GET_FROM_STRING && pt > 1
+		{
+		  init_to_row_start (&raw mut it, w, cursor_row);
+		  if hscl
+		    {
+		      it.first_visible_x = (window_hscroll_limited (w, it.f)
+					    * FRAME_COLUMN_WIDTH (it.f));
+		    }
+		  if buffer_bits! (long_line_optimizations_p, current_buffer)
+		      && nchars > large_hscroll_threshold
+		    {
+		      fast_move_it_horizontally (&raw mut it, nchars - 1);
+		      it.current_x += (nchars - 1) as c_int * FRAME_COLUMN_WIDTH (it.f);
+		    }
+		  else
+		    { move_it_in_display_line_to (&raw mut it, pt - 1, -1, MOVE_TO_POS); }
+		}
+	      current_buffer = saved_current_buffer;
+
+	      /* Position cursor in window.  */
+	      if !hscroll_relative_p && hscroll_step_abs == 0
+		{
+		  hscroll = max (0, (it.current_x
+				     - (if ITERATOR_AT_END_OF_LINE_P! (&raw mut it)
+					{ text_area_width - 4 * FRAME_COLUMN_WIDTH (it.f) }
+					else { text_area_width / 2 })) as isize) as ptrdiff_t
+			    / FRAME_COLUMN_WIDTH (it.f) as ptrdiff_t;
+		}
+	      else if (!row_r2l_p
+			&& (*w).cursor.x >= text_area_width - h_margin)
+		       || (row_r2l_p && (*w).cursor.x <= h_margin)
+		{
+		  if hscroll_relative_p
+		    {
+		      wanted_x = (text_area_width as f64 * (1.0 - hscroll_step_rel)
+				  - h_margin as f64) as c_int;
+		    }
+		  else
+		    {
+		      wanted_x = text_area_width
+			       - hscroll_step_abs * FRAME_COLUMN_WIDTH (it.f)
+			       - h_margin;
+		    }
+		  hscroll
+		    = max (0, (it.current_x - wanted_x) as isize) as ptrdiff_t
+		      / FRAME_COLUMN_WIDTH (it.f) as ptrdiff_t;
+		}
+	      else
+		{
+		  if hscroll_relative_p
+		    {
+		      wanted_x =
+			(text_area_width as f64 * hscroll_step_rel) as c_int
+			+ h_margin + x_offset;
+		    }
+		  else
+		    {
+		      wanted_x =
+			hscroll_step_abs * FRAME_COLUMN_WIDTH (it.f)
+			+ h_margin + x_offset;
+		    }
+		  hscroll
+		    = max (0, (it.current_x - wanted_x) as isize) as ptrdiff_t
+		      / FRAME_COLUMN_WIDTH (it.f) as ptrdiff_t;
+		}
+	      hscroll = max (hscroll as isize, (*w).min_hscroll as isize) as ptrdiff_t;
+
+	      /* Don't prevent redisplay optimizations if hscroll
+		 hasn't changed, as it will unnecessarily slow down
+		 redisplay.  */
+	      if (*w).hscroll != hscroll
+		  /* When hscrolling only the current line, we need to
+		     report hscroll even if its value is equal to the
+		     previous one, because the new line might need a
+		     different value.  */
+		  || (hscl && (*w).last_cursor_vpos != (*w).cursor.vpos)
+		{
+		  let b: *mut buffer = XBUFFER ((*w).contents);
+		  buffer_bits! (prevent_redisplay_optimizations_p, b, true);
+		  (*w).hscroll = hscroll;
+		  hscrolled_p = true;
+		}
+	    }
+	}
+
+      window = (*w).next;
+    }
+
+  /* Value is true if hscroll of any leaf window has been changed.  */
+  return hscrolled_p;
+}
+
+/* Set hscroll so that cursor is visible and not inside horizontal
+   scroll margins for all windows in the tree rooted at WINDOW.  See
+   also hscroll_window_tree above.  Value is true if any window's
+   hscroll has been changed.  If it has, desired matrices on the frame
+   of WINDOW are cleared.  */
+
+unsafe fn hscroll_windows (window: Lisp_Object) -> bool
+{
+  let hscrolled_p: bool = hscroll_window_tree (window);
+  if hscrolled_p
+    { clear_desired_matrices (XFRAME (WINDOW_FRAME! (XWINDOW (window)))); }
+  return hscrolled_p;
 }
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */

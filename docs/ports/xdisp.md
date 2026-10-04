@@ -206,10 +206,10 @@
 - [x] restore_frame_selected_window  (line 14563, static)
 - [x] update_tab_bar  (line 14584, static)
 - [x] display_tab_bar  (line 14693, static)
-- [ ] tty_get_tab_bar_item  (line 15586, static)
+- [x] tty_get_tab_bar_item  (line 15586, static)
 - [ ] tty_handle_tab_bar_click  (line 15616)
-- [ ] hscroll_window_tree  (line 16625, static)
-- [ ] hscroll_windows  (line 16923, static)
+- [x] hscroll_window_tree  (line 16625, static)
+- [x] hscroll_windows  (line 16923, static)
 - [ ] text_outside_line_unchanged_p  (line 17006, static)
 - [ ] redisplay  (line 17073)
 - [ ] overlay_arrow_string_or_property  (line 17080, static)
@@ -432,42 +432,39 @@
 ### Progress (this lane is incremental)
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds C
-13995-14783** — the mode-line unwind/title machinery and the menu/tab-bar updates:
-`unwind_format_mode_line` (the 12-element vector restore with its window/frame/buffer order),
-`store_mode_line_noprop_char`/`store_mode_line_noprop` (the `xpalloc`-grown title buffer and
-the `c_string_width` copy), `needs_no_redisplay` with the `REDISPLAY_SOME_P` macro,
-`prepare_menu_bars`, `update_menu_bar` (the live `#else` arms of `HAVE_EXT_MENU_BAR`),
-`restore_selected_window`/`restore_frame_selected_window` (the two `record_unwind_protect`
-callbacks), and `update_tab_bar`/`display_tab_bar` — so the covered range is now
-**C 468-14783** (the earlier rounds' C 468-4323, and the C 4326-4641 / C 4667-4980 /
-C 4983-5647 / C 5650-5896 / C 5897-6762 / C 6763-7562 / C 7573-8430 / C 8437-9246 /
-C 9258-10060 / C 10063-10877 / C 10879-11645 / C 11647-12525 / C 12526-13255 / C 13256-13994
-rounds; the whole `HAVE_WINDOW_SYSTEM` block C 2488-3062 is dead on this target, as are
-C 8687-8736's, this round's `gui_consider_frame_title` C 14124-14227 and the three
-`HAVE_WINDOW_SYSTEM`/`HAVE_EXT_MENU_BAR` arms inside `prepare_menu_bars`/`update_menu_bar`,
-plus `display_tab_bar`'s `HAVE_NTGUI`/`USE_X_TOOLKIT`/`USE_GTK`/`HAVE_NS`/`HAVE_X_WINDOWS`
-chain), plus the `TEMPORARY SCAFFOLD` declarations the ledger needs to name.  **C 14785's
-`#ifdef HAVE_WINDOW_SYSTEM` block** (everything from there through the window-system tab-bar
-code, including `build_desired_tab_bar_string` and `display_tab_bar_line`) **is one more dead
-arm**, so the measured next live definition is **C 15586 `tty_get_tab_bar_item`** (this
-paragraph's earlier draft said C 14787 `display_tab_bar_line`, which the tool's live-only
-missing list disproves — the same "read the number off the tool" rule as deviation 112).  Ticked in the ledger above: 179
-of the 302 function boxes (the three live subrs `set-buffer-redisplay`, `line-pixel-height` and
-`get-display-property` keep their boxes unticked as before), the 3 subr boxes the thirteenth
-round landed, 2 macro boxes and 9 file-scope-object boxes — **269 of the 415 boxes**; the
-remaining 146 are untouched.  **Two scaffold entries are burned**
-(`restore_selected_window`, `restore_frame_selected_window`) and **three are added**
-(`compute_line_metrics` C 1183, `display_mode_element` C 1170-1171, `display_string`
-C 1180-1182 — all this unit's own later definitions) — **measured**: the block goes from
-twelve `fn` entries to thirteen.  `include/dispextern.rs` still has no `struct it` at this
-round's start (md5 `0935d7958ad472a2f41240d7d625c404`, unchanged), so the unit keeps its own
-measured copy.  Seven new use-site externs are declared (`clear_glyph_row`, `menu_bar_items`,
-`tab_bar_items`, `record_unwind_save_match_data`, `root_frame`, `safe_run_hooks`,
-`window_list`), the `TAB_BAR_ITEM_*` enumerators are spelled as constants (positional values
-0-6), the unit gains an l-value `FRAME_SELECTED_WINDOW!` (the `FRAME_WINDOW_CHANGE`
-precedent) and a `text.redisplay` read arm in `buffer_text_bits!`.  **This round owes one
-`docs/ports/macro-body-notes.tsv` row** — `restore_selected_window` / `uninit` (C 14541's
-`Lisp_Object frame UNINIT;`).
+15584-16929** — but **most of that range is one more dead arm**: C 15662-16610 is the whole
+Tool-bars section, which sits inside `#ifdef HAVE_WINDOW_SYSTEM` (the frozen configuration has
+no window system), so the round transcribes only its three live definitions —
+`tty_get_tab_bar_item`, `hscroll_window_tree` (with the `hscroll_step_abs`/`hscroll_step_rel`
+margin arithmetic, the auto-hscroll suspension, the `MATRIX_BOTTOM_TEXT_ROW`/`MATRIX_ROW` row
+choice, the `init_to_row_start` + infinite-width `move_it_in_display_line_to` scan and the
+`hscroll` clamp) and `hscroll_windows`.  `tty_handle_tab_bar_click` (C 15615-15654) is **not**
+defined here: `include/termchar.rs` already carries termchar.h 238-239's `extern "C"`
+declaration of that name, and a Rust definition beside it is E0428 (the
+`set_buffer_internal_1` family — the ledger's integrator item 6); the box stays unticked and
+the gap is reported (item 38).  The covered range is now **C 468-16929** (the earlier rounds'
+C 468-4323, and the C 4326-4641 / C 4667-4980 / C 4983-5647 / C 5650-5896 / C 5897-6762 /
+C 6763-7562 / C 7573-8430 / C 8437-9246 / C 9258-10060 / C 10063-10877 / C 10879-11645 /
+C 11647-12525 / C 12526-13255 / C 13256-13994 / C 13995-14783 rounds).  C 17006's
+`text_outside_line_unchanged_p` is the next live definition, reached after the dead
+`#ifdef GLYPH_DEBUG` block (C 16940-16997, `debug_method_add`).  Ticked in the ledger above, bucket by bucket — **measured** with
+`grep -c '^- \[x\]'` over each section (`Subrs` 3/13, `Functions` 182/302, `Macros` 27/38,
+`Types and their fields` 2/2, `File-scope objects` 58/60) — **272 of the 415 boxes**
+(182+3+27+2+58); the remaining 143 are untouched.  The three live subrs
+`set-buffer-redisplay`, `line-pixel-height` and `get-display-property` keep their `Subrs`
+boxes unticked as before, so the `Subrs` trio is the thirteen-round-earlier one.  (Earlier
+drafts of this sentence listed only the function total plus three round-specific increments
+and still claimed 272, an addition that does not close; the bucket list above is the one that
+does.)
+**No scaffold entry is burned or added this round** — **measured**: the block stays at thirteen
+`fn` entries.  `include/dispextern.rs` now **has** `pub struct it` (C 2815, with
+`len: c_int`@2232 as the ledger's item 31 required) — but the record is inside
+`#[cfg (feature = "dispextern_face_records")]`, and `xtask build-tu` passes **no `--cfg`
+flags at all**, so that record is invisible to every unit build and this unit's own measured
+copy is still what compiles (verified by `rg` + a clean build; the finding is reported as
+item 39).  One new use-site extern is declared (`clear_desired_matrices`, dispextern.h 3908).
+**This round owes one `docs/ports/macro-body-notes.tsv` row** —
+`hscroll_window_tree` / `double` (C 16630's `double hscroll_step_rel`).
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -719,13 +716,24 @@ C 5773).
   swap under `record_unwind_protect`, and `tab_bar_items`/`Fequal_including_properties`), and
   `display_tab_bar` (the TTY `init_iterator` into the frame matrix rows, the row-clearing loop
   through `glyph_row_bits!`, and the `display_string`/`compute_line_metrics` tail).
+* C 15584-16929 — `tty_get_tab_bar_item` (the `SCHARS` walk over `f->tab_bar_items` and the
+  `Fget_text_property`/`Qclose_tab` hit test) and `hscroll_window_tree`/`hscroll_windows` (the
+  `FLOATP`/`TYPE_RANGED_FIXNUMP` step computation, the recursive window-tree walk, the
+  line-number `x_offset` scan over `cursor_row->glyphs`, the `suspend_auto_hscroll` reset with
+  `SET_FRAME_GARBAGED`, the `old_pointm` marker update, the long
+  `!NILP (Fbuffer_local_value (Qauto_hscroll_mode, …))` margin test, and the
+  `init_to_row_start` + `DISP_INFINITY` `move_it_in_display_line_to` /
+  `fast_move_it_horizontally` scan that ends in the `hscroll` clamp and the
+  `prevent_redisplay_optimizations_p` store).  C 15615-15654's `tty_handle_tab_bar_click` and
+  the whole Tool-bars section (C 15656-16610) are recorded, not transcribed (see the Progress
+  paragraph).
 
 ### The transcription that is in place
 
-The ledger above is the checklist.  179 of the C file's 302 functions (plus 3 of its 13
+The ledger above is the checklist.  182 of the C file's 302 functions (plus 3 of its 13
 subrs — the three the frozen configuration keeps live and this round's three) are defined, in
 C's order, with C's names, C's statements and
-C's comments; `src/xdisp.rs` is 15,825 lines.  Every function that C declares `static` is a
+C's comments; `src/xdisp.rs` is 16,194 lines.  Every function that C declares `static` is a
 plain `unsafe fn` here (and `unsafe extern "C" fn` where it is variadic or its address is
 handed out — `redisplay_trace`, `move_trace`, `dsafe_eval_handler`,
 `funcall_with_backtraces`, `handle_display_prop` (whose address is `it_props[]`'s handler
@@ -1624,6 +1632,37 @@ them).
      there from the eleventh round; C's `buffer->text->redisplay` is read in
      `needs_no_redisplay` and `prepare_menu_bars`).
 
+### Deviations, continued (the round's sixteenth pass: the tab-bar hit test and hscroll)
+
+127. **`tty_handle_tab_bar_click` cannot be defined in this unit.**  `include/termchar.rs`
+     already declares it (termchar.h 238-239), and Rust rejects an `extern "C"` declaration
+     plus a definition of the same name in one scope (E0428) — the same family as the ledger's
+     integrator item 6 (`set_buffer_internal_1`), so the unit leaves C 15615-15654 untranslated
+     and reports it (item 38).  `--check` keeps listing it as a missing function.
+128. **`TYPE_RANGED_FIXNUMP` is a function here, not C's type-parameterised macro**: C's
+     `TYPE_RANGED_FIXNUMP (int, Vhscroll_step)` is
+     `TYPE_RANGED_FIXNUMP (INT_MIN as EMACS_INT, Vhscroll_step, INT_MAX as EMACS_INT)` (the
+     `ccl.rs`/`frame.rs` spelling).
+129. **C 16630's `double hscroll_step_rel` is `f64`**, so the token `double` does not appear in
+     the port — this round's one `macro-body-notes.tsv` request (item 40).  Its uses carry
+     C's conversions: `XFLOAT_DATA` yields a double, and the two `wanted_x` computations that
+     mix it with `int` columns write the casts out.
+130. **`w->hscroll`/`min_hscroll` are `ptrdiff_t`** in the window mirror, so `hscroll` stays a
+     `ptrdiff_t` through the clamp (`max (0, …) / FRAME_COLUMN_WIDTH`), while
+     `cursor.x`/`text_area_width`/`h_margin` are `int` — the comparisons are written with C's
+     own promotions.
+131. **`include/dispextern.rs`'s new `pub struct it` is behind `#[cfg (feature =
+     "dispextern_face_records")]`, and `xtask build-tu` passes no `--cfg` at all** (its rustc
+     invocation has only `--edition/--crate-type/--emit/--crate-name` and three `-C` flags), so
+     the mirror's record is invisible to every unit build; this unit's own measured copy is
+     still the definition that compiles (verified by a clean `build-tu`).  The record does
+     carry `len: c_int` at 2232 as item 31 required.  Item 39 reports the gate.
+132. **`MATRIX_BOTTOM_TEXT_ROW`/`MATRIX_ROW` take the matrix pointer**, so the frame/window
+     matrices (which the mirrors type as `*mut c_void`) are cast at the call:
+     `MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix, …)`; the `rows` pointer is
+     `(*((*w).desired_matrix as *mut glyph_matrix)).rows` (the `as`-before-`.` precedence the
+     previous round also hit).
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -1810,34 +1849,53 @@ them).
     the mirrors next to their siblings; `TAB_BAR_ITEM_CAPTION`/`TAB_BAR_ITEM_NSLOTS` (and the
     four enumerators before them) are spelled in this unit because the mirror does not carry
     `enum tab_bar_item_idx`.
+38. `include/termchar.rs`: **`tty_handle_tab_bar_click` needs a home.**  The mirror declares it
+    (termchar.h 238-239) but nothing defines it, and this unit cannot (E0428, deviation 127).
+    Either the mirror's declaration moves somewhere a defining unit can coexist with it (the
+    `window_redisplay_decls` shape item 2 suggests), or the C 15615-15654 body lands in a unit
+    that does not include termchar.h's declaration.  Until then `--check` lists
+    `missing function tty_handle_tab_bar_click` for this unit and the ledger box stays unticked.
+39. `include/dispextern.rs` / `xtask`: the mirror's `pub struct it` (and its
+    `bidi_it`/`composition_it`/`iterator_stack_entry`/`it_stack` neighbours) is gated by
+    `#[cfg (feature = "dispextern_face_records")]`, which `build-tu` never sets — so the record
+    is dead code for every unit.  Either drop the gate or have `build-tu` pass the flag (the
+    3.183 ruling that cfg axes are bare `--cfg` names argues for the former).  When it becomes
+    visible, this unit's own copy and its `composition_it`/`bidi_it`/`iterator_stack_entry`
+    copies must be deleted in the same round (their layouts would clash).
+40. `docs/ports/macro-body-notes.tsv`: **this round owes one row** —
+    `hscroll_window_tree` / `double` / `xdisp.c 16630: C's `double hscroll_step_rel;` is the
+    port's `f64`, so the C token cannot appear (deviation 129)`.
 
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  The
-figures below were taken at the 15,825-line revision (through `display_tab_bar`, C 14783):
+figures below were taken at the 16,194-line revision (through `hscroll_windows`, C 16929):
 
 * `build-tu src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, taken **in place at
-  the current workspace state**, after a four-step fix-up loop (the compiler caught, in order:
-  `buffer_text->redisplay`/`FRAME_PARENT_FRAME`-as-truthiness and the missing
-  `menu_bar_items`/`tab_bar_items`; the `glyph_matrix` deref precedence and the
-  `it`-by-value spellings in `display_tab_bar`; the missing `buffer_text_bits!` read arm;
-  `strlen`'s `usize`, the `rf = …` argument, and `display_string`'s conversions).  This
-  revision's `xdisp.rs` md5 is `5046ba8d6a04af5a25c8d04c8474180f` (15,825 lines) and the
-  mirrors it was built against are `include/dispextern.rs 0935d795…`,
-  `include/lisp.rs d8a14342…`, `include/window.rs d163253b…` and
-  `lib/include/stdbit.in.rs` (another lane's, mutable).  The build prints 6 warnings: 4
-  pre-existing mirror ones and 2 `while_true` from this unit's two `'scan: while true` loops;
+  the current workspace state**, after a three-step fix-up loop (the compiler caught, in order:
+  the E0428 clash with termchar.rs's `tty_handle_tab_bar_click` declaration plus the
+  `TYPE_RANGED_FIXNUMP`/`SET_FRAME_GARBAGED`/`glyph_matrix`-deref/`pixel_width` spellings; then
+  `hscroll`/`min_hscroll`-as-`ptrdiff_t` and the by-value `it`; then the missing
+  `clear_desired_matrices`).  This revision's `xdisp.rs` md5 is
+  `b9950fbb6cc2494d20b86fda8669ff86` (16,194 lines) and the mirrors it was built against are
+  `include/dispextern.rs a1d71da831bba153fe9bd26e70b24cbd` (its `struct it` is gated, see item
+  39), `include/lisp.rs 44f7b6ab6ee488c8796c5f405f174952`, `include/window.rs
+  d163253b3b643d79b39187e77411a4d4` and `lib/include/stdbit.in.rs bd5e18f5cf4b99d4d0d32412d275bf50`
+  (the last two are other lanes' and mutable; every md5 above was re-read in the same shell
+  step as the closing `build-tu`, so the pairing is exact).  The
+  build prints 6 warnings: 4 pre-existing mirror ones and 2 `while_true` from this unit's two
+  `'scan: while true` loops;
 * `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its
-  last two lines are `- line count drifted 60.3%: C 39805 vs Rust 15825` and
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count goes 178 lines to 162 and
-  `missing function` 144 to 113 (this round's ten definitions, plus the macro and the two
-  constants the round spelled); after the integrator's six rows landed the `does not mention`
-  count fell from six to **one** (this round's `uninit` row, item 36).  Every remaining
-  `missing …` line names a definition after C 14783 (the earliest is C 14787
-  `display_tab_bar_line`) and there is still no `stub or empty body` line for this unit;
+  last two lines are `- line count drifted 59.3%: C 39805 vs Rust 16194` and
+  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count stays at 159 lines (the three
+  new definitions retire three `missing function` rows, from 113 to 110, and this round's one
+  `double` row replaces the `uninit` row the integrator landed).  Every remaining `missing …`
+  line names a definition after C 16929 (the earliest is C 17006
+  `text_outside_line_unchanged_p`, after the dead `#ifdef GLYPH_DEBUG` block C 16940-16997) and there is still no `stub or empty body` line;
 * `python3 tools/check-cond-eval.py src/xdisp.c` = `196 conditions, 0 unknown to the evaluator,
-  0 disagreements` (this round's dead arms: C 14124-14227, 14286-14317, 14370-14372,
-  14396-14398, 14431-14435, 14481-14499, 14588-14594, 14701-14735 — all recorded at the site);
+  0 disagreements` (this round's dead arms: C 15615-15654's caller-side twin is live but the
+  function is not defined here, and C 15662-16610 with its nested `HAVE_EXT_TOOL_BAR`/`GLYPH_DEBUG`
+  arms is one recorded dead block);
 * `python3 tools/check-citations.py` = `628 file(s) scanned, 9 drift, 1 range, 284 external,
   38 allowed, 0 stale` — `femacs/src/xdisp.rs` still has **no** finding;
 * `python3 tools/check-mirror-dupes.py` = `1 duplicate declaration(s), 1 ratchet row(s), 0
@@ -1848,7 +1906,7 @@ figures below were taken at the 15,825-line revision (through `display_tab_bar`,
 * `python3 tools/check-verbatim.py` = `6 trees, 4607 files, 0 failures`;
 * `python3 tools/check-globals.py` = `283 units, 0 DEFVAR_* variables without a definition in
   their own unit` (the unit count moves as the other lanes add units; this run's value);
-* `python3 tools/check-target-names.py` = `626 .rs files, 591 map targets, 0 finding(s)`
+* `python3 tools/check-target-names.py` = `626 .rs files, 591 map targets, 0 finding(s)`.
   (the counts move with the other lanes).
   (the file count moves with the other lanes).
 

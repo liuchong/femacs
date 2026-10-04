@@ -1244,3 +1244,4 @@ DEC_TEXT_POS	false	dispextern.h 286-290: C's `do { --(POS).charpos; if (MULTIBYT
 INC_TEXT_POS	false	dispextern.h 291-295: same shape as DEC_TEXT_POS (`do { ++(POS).charpos; … } while (false)`)
 PRODUCE_GLYPHS	false	dispextern.h 648-700: same shape (`do { … } while (false)` around the glyph-row setup)
 restore_selected_window	uninit	xdisp.c 14541: C's `Lisp_Object frame UNINIT;` (in this configuration `UNINIT` is `= {0,}`) has no Rust spelling; the port initialises it to `Qnil ()` (PORTING.md 1.5)
+hscroll_window_tree	double	xdisp.c 16630: C's `double hscroll_step_rel;` is the port's `f64`, so the C token `double` cannot appear (deviation 129)
