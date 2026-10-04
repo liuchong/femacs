@@ -147,55 +147,12 @@ const PRIxMAX: &str = "jx";
 /// fold inside a `const` (print_object's buffer) uses this const-evaluable spelling.
 const fn max_usize (a: usize, b: usize) -> usize { if a > b { a } else { b } }
 
-/* C 43's `#include <ieee754.h>` (gnulib's generated `emacs/lib/ieee754.in.h`, which the
-   frozen target compiles as `build/emacs-ref/lib/ieee754.h`; P-26/P-62 has no mirror for
-   the `*.in.h` templates, so the union is declared here).  The frozen target is
-   little-endian with `_IEEE754_FLOAT_WORD_ORDER == BYTE_ORDER`, so the `ieee_nan` arm is
-   `mantissa1:32; mantissa0:19; quiet_nan:1; exponent:11; negative:1`, which clang packs
-   into two 32-bit units of one 8-byte struct: byte 4..7 hold mantissa0 in bits 0-18,
-   quiet_nan at 19, exponent at 20-30 and negative at 31 (measured with clang: setting
-   mantissa0 = 0x7ffff gives `00 00 00 00 ff ff 07 00`, negative = 1 gives
-   `00 00 00 00 00 00 00 80`, so `sizeof` is 8 and `alignof` 4 — the union's own size is
-   the double's 8).  */
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct ieee754_double_ieee_nan {
-  pub units: [u32; 2],
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub union ieee754_double {
-  pub d: c_double,
-  pub ieee: ieee754_double_ieee,
-  pub ieee_nan: ieee754_double_ieee_nan,
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct ieee754_double_ieee {
-  pub units: [u32; 2],
-}
-const _: () = assert! (std::mem::size_of::<ieee754_double> () == 8);
-const _: () = assert! (std::mem::align_of::<ieee754_double> () == 8);
-const _: () = assert! (std::mem::size_of::<ieee754_double_ieee_nan> () == 8);
-const _: () = assert! (std::mem::align_of::<ieee754_double_ieee_nan> () == 4);
-
-/* The members of `u.ieee_nan` print.c reads, as member-name accessors (PORTING.md
-   1.3/P-80: Rust has no bitfields, so each C member name stays in the port's text).  */
-const IEEE754_NAN_MANTISSA0_MASK: u32 = 0x7ffff;      /* mantissa0 : 19, bits 0-18 */
-const IEEE754_NAN_QUIET_NAN_MASK: u32 = 1 << 19;      /* quiet_nan : 1, bit 19 */
-const IEEE754_NAN_EXPONENT_MASK: u32 = 0x7ff << 20;   /* exponent : 11, bits 20-30 */
-const IEEE754_NAN_NEGATIVE_MASK: u32 = 1 << 31;       /* negative : 1, bit 31 */
-
-/// The three `ieee_nan` members print.c reads, as a member-name accessor macro over the
-/// packed units (PORTING.md 1.3/P-80: Rust has no bitfields, so each C member name stays in
-/// the port's text).  The second argument is the union place C writes `u`, so the expansion
-/// is exactly C's read.
-macro_rules! ieee_nan {
-  (mantissa0, $u:expr) => { ($u.ieee_nan.units[1] & IEEE754_NAN_MANTISSA0_MASK) };
-  (mantissa1, $u:expr) => { ($u.ieee_nan.units[0]) };
-  (negative, $u:expr) => { ($u.ieee_nan.units[1] & IEEE754_NAN_NEGATIVE_MASK) != 0 };
-}
-
+/* C 43's `#include <ieee754.h>`: the mirror of the generated template
+   (`lib/include/ieee754.in.rs`) is the owner now, so the `union ieee754_double` and its
+   `ieee_nan` accessors come from there; the measurements that used to be written out here
+   (clang's packing, sizeof 8, alignof 4 for the member and 8 for the union) are recorded in
+   `docs/ports/include-ieee754.in.md`.  */
+include!("../lib/include/ieee754.in.rs");
 /* The `DEFVAR_*` variables this C file owns: C's storage is `globals.f_<vname>`
    (lisp.h 3495-3530) and `struct emacs_globals globals` is defined once, in alloc.c, so the
    reference object exports `globals` and *no* `V*` symbol for these names.  The port gives
@@ -1375,10 +1332,10 @@ pub unsafe extern "C" fn float_to_string (buf: *mut c_char, data: c_double) -> c
   if isnan! (data)
     {
       let u: ieee754_double = ieee754_double { d: data };
-      let hi: uintmax_t = ieee_nan! (mantissa0, u) as uintmax_t;
+      let hi: uintmax_t = ieee754_double_bits! (ieee_nan.mantissa0, u) as uintmax_t;
       return sprintf (buf, c"-%ju.0e+NaN".as_ptr ()
-		      .add ((! ieee_nan! (negative, u)) as usize),
-		      (hi << 31 << 1) + (ieee_nan! (mantissa1, u) as uintmax_t));
+		      .add ((! ieee754_double_bits! (ieee_nan.negative, u)) as usize),
+		      (hi << 31 << 1) + (ieee754_double_bits! (ieee_nan.mantissa1, u) as uintmax_t));
     }
 
   if NILP (Vfloat_output_format)

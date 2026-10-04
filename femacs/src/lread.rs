@@ -4812,42 +4812,11 @@ unsafe extern "C" fn substitute_in_interval (interval: INTERVAL, arg: *mut c_voi
 #[cfg (feature = "no_ieee_floating_point")]
 static mut not_a_number: [Lisp_Object; 2] = [std::ptr::null_mut (); 2];	// C 4487
 
-/* C 4485-4488's `#if !IEEE_FLOATING_POINT` pair is dead (the frozen `IEEE_FLOATING_POINT`
-   is 1), so C 4572's `#if IEEE_FLOATING_POINT` arm is the live one; the union below is
-   that arm's `union ieee754_double` (gnulib's generated `emacs/lib/ieee754.in.h`, which the
-   frozen target compiles as `build/emacs-ref/lib/ieee754.h`; the P-26/P-62 templates have
-   no mirror, so it is declared here - the print.rs shape, with clang's measured packing:
-   `ieee_nan` is `mantissa1:32; mantissa0:19; quiet_nan:1; exponent:11; negative:1` in two
-   32-bit units, byte 4..7 holding mantissa0 in bits 0-18, quiet_nan at 19, exponent at
-   20-30, negative at 31; sizeof 8, alignof 4 for the member and 8 for the union).  */
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct ieee754_double_ieee_nan {
-  pub units: [u32; 2],
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub struct ieee754_double_ieee {
-  pub units: [u32; 2],
-}
-#[repr(C)]
-#[derive(Clone, Copy)]
-pub union ieee754_double {
-  pub d: c_double,
-  pub ieee: ieee754_double_ieee,
-  pub ieee_nan: ieee754_double_ieee_nan,
-}
-const _: () = assert! (std::mem::size_of::<ieee754_double> () == 8);
-const _: () = assert! (std::mem::align_of::<ieee754_double> () == 8);
-const _: () = assert! (std::mem::size_of::<ieee754_double_ieee_nan> () == 8);
-const _: () = assert! (std::mem::align_of::<ieee754_double_ieee_nan> () == 4);
-
-/* The members of `u.ieee_nan` this unit writes (PORTING.md 1.3/P-80: Rust has no
-   bitfields, so each C member name stays in the port's text).  */
-const IEEE754_NAN_MANTISSA0_MASK: u32 = 0x7ffff;      /* mantissa0 : 19, bits 0-18 */
-const IEEE754_NAN_QUIET_NAN_MASK: u32 = 1 << 19;      /* quiet_nan : 1, bit 19 */
-const IEEE754_NAN_EXPONENT_MASK: u32 = 0x7ff << 20;   /* exponent : 11, bits 20-30 */
-const IEEE754_NAN_NEGATIVE_MASK: u32 = 1 << 31;       /* negative : 1, bit 31 */
+/* C 43-45's `#include <ieee754.h>` (through C 4572's `#if IEEE_FLOATING_POINT` arm) now comes
+   from the mirror of the generated template: `lib/include/ieee754.in.rs` owns the union and
+   the member-name accessors, and the clang measurements that used to be written out here are
+   in `docs/ports/include-ieee754.in.md`.  */
+include!("../lib/include/ieee754.in.rs");
 
 /* Convert the initial prefix of STRING to a number, assuming base BASE.
    ...  */
@@ -4942,14 +4911,14 @@ pub unsafe extern "C" fn string_to_number (string: *const c_char, base: c_int,
 		 .quiet_nan = 1, .mantissa0 = n >> 31 >> 1, .mantissa1 = n } }; value = u.d;`
 		 — the frozen target is little-endian with `_IEEE754_FLOAT_WORD_ORDER ==
 		 BYTE_ORDER`, so the five bitfields pack into one 8-byte struct's two u32 units
-		 (the print.rs declaration below, P-26/P-62: gnulib's `ieee754.in.h` template
-		 has no mirror).  */
+		 (the mirror of gnulib's `ieee754.in.h` template, `lib/include/
+		 ieee754.in.rs`; P-26/P-62).  */
 	      let mut u: ieee754_double = ieee754_double {
 		ieee_nan: ieee754_double_ieee_nan { units: [0, 0] } };
 	      u.ieee_nan.units[0] = n as u32;
-	      u.ieee_nan.units[1] = ((((n >> 31) >> 1) as u32) & IEEE754_NAN_MANTISSA0_MASK)
-		| IEEE754_NAN_QUIET_NAN_MASK
-		| ((0x7ffu32 << 20) & IEEE754_NAN_EXPONENT_MASK);
+	      u.ieee_nan.units[1] = ((((n >> 31) >> 1) as u32) & IEEE754_DOUBLE_NAN_MANTISSA0_MASK)
+		| IEEE754_DOUBLE_NAN_QUIET_NAN_MASK
+		| ((0x7ffu32 << 20) & IEEE754_DOUBLE_NAN_EXPONENT_MASK);
 	      value = u.d;
 	      #[cfg (feature = "no_ieee_floating_point")]
 	      {
