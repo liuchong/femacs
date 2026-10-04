@@ -2895,3 +2895,35 @@
   镜像的按 P-55/P-72③ 降级、**不写布局断言**并说明"未测"），这是 Swift lane 两个函数唯一的 blocker，并顺手删掉
   `sfnt.rs` 里那个只为消 `missing macro PROTOTYPE` 而留的空壳宏（共享行已入表）。
   ④ `gen-port-inventory` 复算：590 files、**done=535、wip=19、todo=36**（本 session 开始时是 505/15/70 一线）。
+
+- **3.168 模块 ABI 家族九个镜像入库：抽取器看不见的记录用"判据自己的编译器"补证（2026-10-04）**：
+  ① **交付**（`7b0a73e`，Windows/DOS lane 的续批）：`src/emacs-module.in.h`（246 行）＋ 8 个
+  `src/module-env-NN.h`（131/3/18/19/0/0/0/12）→ `femacs/src/include/*.rs`，合计 **1,052 行** + 九份台账。
+  ② **我提的端口形态被 lane 用实测推翻**：`include!("module-env-25.rs")` 放进 `struct` 体**编不过**
+  （`error: macros cannot expand to struct fields`，它把命令与错误原文贴在报告里）⇒ 成员拼写落在**主件**的
+  8 个 `#[repr(C)]` 记录里（顺序＝生成头顺序），每个片段镜像各自持有**本文件的 C 原文 + 行号 + 替换点在哪 +
+  为何成员不能在此声明**；`-29/-30/-31` 是 0 字节文件 ⇒ 走 3.157 `lib/assert.in.h` 的**处置记录**形制
+  （并给出"生成头里 `struct emacs_env_28/29/30/31` 同为 320 字节、成员表相同"的实测）。这条推翻了我在简报里的
+  建议，是按证据走而不是按指示走——记在案。
+  ③ **抽取器看不见那 8 个记录**（模板体是 `@module_env_snippet_NN@` 占位符 ⇒ 容器 0 字段），所以 lane **改用判据
+  自己的编译器**取证：对 `build/emacs-ref/src/emacs-module.h`（49,460 字节/1494 行）跑
+  `clang -Xclang -fdump-record-layouts-complete -fsyntax-only` ⇒ 镜像内固化 **62 条 `const _` 断言**
+  （`emacs_runtime` 24；`emacs_env_25` 232、`_26` 240、`_27` 280、`_28`-`_31` 320、`_32` 328，align 均 8），
+  台账另记**穷举核对：9 条记录 × 298 个成员 offset + 9 个 sizeof 全部相等**；`layout-check` **passed**（我复跑），
+  断言每轮求值。
+  ④ **四条 FAIL 的处置**：三个 attribute/noexcept 拼法（`EMACS_NOEXCEPT`/`EMACS_NOEXCEPT_TYPEDEF`/
+  `EMACS_ATTRIBUTE_NONNULL`，`macro_rules!` 产生不了 attribute）与 `EMACS_MAJOR_VERSION`（体是模板自己的
+  `@emacs_major_version@`，无 Rust 拼法 ⇒ 写冻结替换值 32，与生成头 38 行同值）⇒ 由我写入
+  `docs/ports/excluded-macros.txt`（三行 `kind=syntax` + 一行 `kind=config`），台账四个框勾上、Evidence 的 FAIL 段
+  改成"OK + 四点已入表"，复测主件 **OK**、`emacs-module.in.h` 在 `port-inventory` 里 wip → **done**。
+  ⑤ 值得记的一条**坑**（lane 实测）：`tools/cinventory.py` 会把**函数指针成员内部的参数名**
+  （`make_function` 的 `func`、`make_user_ptr` 的 `fin`）也当成字段；若照单给 `gen-layout-fields.py` 生成
+  `offsetof (struct emacs_env_25, func)` 会编译失败——所以**暂不**把 `emacs_env_*` 加进布局白名单，等我先处理这个
+  过滤（记在案，别让后来者踩）。
+  ⑥ 读数：`gen-port-inventory` 590 files、**done=536、wip=18、todo=36**；五门绿（`check-declarations` 13/0、
+  `check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 590 `.rs`/0）；
+  `layout-check` passed（77 of 88 mirror(s) compiled）。
+  ⑦ 其余 lane 状态：xdisp（`xdisp.rs` 8,386 行，C 6763 起在推）、keyboard（C 12538 `handle_interrupt_signal` 起）、
+  Boole（引证复核队列，162 drift + 22 range）、Hilbert（`struct glyph_string` + 删空壳 `PROTOTYPE` 宏）、
+  Mill（`macfont.m` 4,257 行）。Harvey 已排下一批（`pathmax.h`/`dirent-private.h`/`execinfo.in.h`/
+  `widgetprv.h`/`sfntfont.h` 五个小件，余力接 `stdbit.in.h`）。
