@@ -17,8 +17,9 @@ probe asks clang for one type's record layout in the arms below and prints what 
     spikes/gated-layout-probe.py 'struct ns_display_info' nsterm.h objc
     spikes/gated-layout-probe.py 'struct frame' frame.h --write docs/baseline/frame-layout.tsv
 
-Arms: `frozen` (the baseline's own configuration), `ns_cocoa` (what `configure
---with-ns` emits on macOS), and any second arm `--define` builds.  A type that the
+Arms: `frozen` (the baseline's own configuration), `x11` (`HAVE_WINDOW_SYSTEM` +
+`HAVE_X_WINDOWS`, through the machine's own X11 headers), `ns_cocoa` (what `configure
+--with-ns` emits on macOS), and any further arm `--define` builds.  A type that the
 frozen configuration only forward-declares (`struct ns_display_info`, every NS type)
 reads `parse=no` in that arm and is complete in the gated one, so the TSV keeps a
 `parse` row per arm and only an all-arms failure is an error.  A window-system arm
@@ -46,8 +47,16 @@ REFERENCE = REPO / "emacs"
 BUILD = REPO / "build" / "emacs-ref"
 ARMS = (
     ("frozen", ()),
+    # The two window systems this machine can parse: X11 through Homebrew's headers (measured
+    # present), and Cocoa through the SDK.  A shape is a *configuration*: HAVE_WINDOW_SYSTEM
+    # alone leaves dispextern.h without Emacs_Cursor/Display_Info and parses in neither arm.
+    ("x11", ("-DHAVE_WINDOW_SYSTEM=1", "-DHAVE_X_WINDOWS=1")),
     ("ns_cocoa", ("-DHAVE_WINDOW_SYSTEM=1", "-DHAVE_NS=1", "-DNS_IMPL_COCOA=1")),
 )
+# X11's headers are not part of the frozen configuration; they come from the machine
+# (`/opt/homebrew/include/X11/Xlib.h` was measured here).  Absent, the x11 arm reports
+# `parse=no` and the other arms still read.
+X11_INCLUDE = Path("/opt/homebrew/include")
 
 
 def include_flags(lang: str) -> list[str]:
@@ -57,6 +66,8 @@ def include_flags(lang: str) -> list[str]:
         out += ["-I", str(d)]
     if lang == "objc":
         out += ["-I", str(REFERENCE / "nextstep")]
+    if X11_INCLUDE.is_dir():
+        out += ["-I", str(X11_INCLUDE)]
     return out
 
 
