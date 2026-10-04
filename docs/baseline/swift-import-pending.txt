@@ -343,7 +343,6 @@ aref_addr	the reference's own C text declares or defines it (a header macro/INLI
 beginDrag	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 block_input	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 buffer_directory	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-buffer_filename	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 build_string	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 build_unibyte_string	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 colorWithUnsignedLong	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -360,26 +359,20 @@ find_and_return_menu_selection	the reference's own C text declares or defines it
 font_build_object	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 fprintf	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
 fputs	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
-frame_alloc_ns_output	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_name	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+frame_alloc_ns_output	an accessor the mirror names in Rust for a record member the unit reads; the core must export it as a C-ABI entry (the lane's rule) or the Swift unit cannot link
 frame_no_accept_focus	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 frame_output_data_ns	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_can_set_window_size	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 frame_set_config_scroll_bar_cols	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 frame_set_config_scroll_bar_height	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 frame_set_config_scroll_bar_lines	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 frame_set_config_scroll_bar_width	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_display_info	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_double_buffered	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_fontset	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_display_info	an accessor the mirror names in Rust for a record member the unit reads; the core must export it as a C-ABI entry (the lane's rule) or the Swift unit cannot link
+frame_set_double_buffered	an accessor the mirror names in Rust for a record member the unit reads; the core must export it as a C-ABI entry (the lane's rule) or the Swift unit cannot link
+frame_set_fontset	an accessor the mirror names in Rust for a record member the unit reads; the core must export it as a C-ABI entry (the lane's rule) or the Swift unit cannot link
 frame_set_menu_bar_items_used	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_no_split	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 frame_set_ns_transparent_titlebar	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 frame_set_output_data_ns	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 frame_set_size_hint_flags	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_terminal	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_undecorated	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-frame_set_was_invisible	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 frame_size_hint_flags	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 frame_want_fullscreen	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 free_menubar_widget_value_tree	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
@@ -534,8 +527,6 @@ set_waiting_for_input_flag	not found in the reference objects, the SDK or the re
 shift_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 showFontPanel	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 svcsMenu	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-terminal_display_info_ns	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-terminal_id	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 terminal_increment_reference_count	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 terminal_kboard	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 terminal_name	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
@@ -546,8 +537,6 @@ up_modifier	the reference's own C text declares or defines it (a header macro/IN
 update_submenu_strings	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 valid_image_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 waiting_for_input	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-window_contents	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
-window_current_matrix	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
 window_system_available	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 word_size	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 xmint_pointer	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
