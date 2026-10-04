@@ -2837,3 +2837,35 @@
   **`--check` 全部 OK**，但台账的 `## Decisions`/`## Evidence` 还没写完（`include-sfnt.md`/`include-fontset.md`
   还不存在）⇒ **不提前入库**：台账不只是文档，还是闸门的输入（类型延后就是靠"未勾框"读的）。
   ⑤ `gen-port-inventory` 复算：590 files、done=526、wip=18、todo=46。
+
+- **3.166 `sfnt.h`(2151 行)+`fontset.h` 与五个 gnulib 头入库，外加一个"引证检查器"和它被撤回的自动修复（2026-10-04）**：
+  ① **`src/sfnt.h` → `include/sfnt.rs`（2,590 行）**：8 宏 + 68 记录 + 108 个枚举常量 + ~150 条原型（原型是声明不是定义，
+  不进项目清单但属活文本），**76 条手写 `const _` 布局断言**用冻结 clang 实测（`sfnt_interpreter` 480/8、
+  `sfnt_cmap_format_8` 65,560/8、`sfnt_OS_2_table` 72/4…）。死文本 1 处（C 2026-2038 `#ifdef TEST` 的三个钩子成员，
+  按 P-66② 不转写）；一个真冲突 **`typedef unsigned int sfnt_glyph` vs `struct sfnt_glyph`**（C 两个命名空间、
+  Rust 一个）⇒ **record 保留 C 名（闸门要比它的 9 个字段），标量按 P-67 记偏离改名 `sfnt_glyph_index`**，
+  台账写明备选形状。`src/fontset.h` → `include/fontset.rs`（73 行，无死文本，6 处 `struct frame/face *` 按 P-72③ 降级）。
+  ② **两个孤儿的编译器**：新探针 `spikes/sfnt_inc_probe.rs`（供给 `Lisp_Object`/`jmp_buf` 后 `include!` 两个镜像），
+  登记进 `xtask` 的 `PROBES`（14 → 15）。**纪律披露**：lane 自报它改了 `femacs/xtask/src/main.rs`（它的简报说不要动）；
+  我复核后**保留**——与 3.159/3.161/3.163 的登记同例，且我复跑 `probe ../spikes/sfnt_inc_probe.rs` **exit 0**。
+  另加一条共享行 `PROTOTYPE\tsyntax`（`excluded-macros.txt`：sfnt.h 1471-2138 的 21 对 `#define/#undef` 参数表技巧）。
+  ③ **五个 gnulib 头入库**（`10ef0c6`）：`lib/_Noreturn.h`/`c-strcase.h`/`ignore-value.h`/`stdckdint.in.h`/`inttypes.in.h`
+  → `femacs/lib/include/*.rs`（1,477 行）+ 台账，方法沿用 `errno.in`/`dirent.in`（3.159：镜像 `include!` 系统半边 +
+  模板自身文本，有生成头就用生成头当判据），每个镜像各切一个活消费者（`hexl.rs`、`c-strcasecmp.rs`、
+  `c-strncasecmp.rs`、`strtoimax.rs`、`timespec-add.rs`、`timespec-sub.rs`）。
+  ④ **新工具 `tools/check-citations.py`：全仓引证第一次被量**。全树 **998 条** `/// C: <file> <line>` 引证此前无人检查，
+  而引证正是这个项目的主要复核手段。该工具保守地报三类：`range`（引用的行在参照文件里不存在）、`drift`（引证行上的
+  **代码样**反引号串不在引用范围 ±2 行内，但确实出现在同一个参照文件的别处——所以文件对、行号陈旧）、`external`
+  （引的是本树没有的系统/生成头：`jni.h`、`<sys/fileio.h>`、`config.h`…，只计数不算失败）。实测：**162 drift + 22 range + 282 external**。
+  抽查确认是真问题且**不是本次改动引入**：`font.rs:713` 引 `fontset.h 88-89` 而 `emacs/src/fontset.h` 只有 **48 行**
+  （`fs_query_fontset` 实际在 **40** 行、`fontset_ascii` 在 **44**）；`xfaces.rs:552` 引 `font.h 1198-1201` 而 font.h 只有 **1034 行**
+  （`copy_font_spec` 在 **839**）。**这批引证是从另一个（更长的）Emacs 版本抄来的，不是按本仓 pin `fd7afced403` 量的。**
+  ⑤ **一条被撤回的"自动修复"，必须留档**：我先写了 `--fix`（把引用范围改成"同一文件里唯一出现该引号串"的那一行，
+  保留跨度），它改了 **63 处**；复核时发现**至少一处改变了语义**——
+  `include!("include/lisp.rs");  // cm.c 23: lisp.h (globals.h, `emacs_abort`)` 引的是 **C 的 include 行**，括号里的
+  `emacs_abort` 只是"镜像用到的东西"的举例；自动修复把它改成了 122（cm.c 里第一个出现 `emacs_abort` 的行），
+  **这不是修复**。已逐条用日志反向还原（`reverted 63 of 63`，重扫回到 162/22/282），并把 `--fix` 改成**拒绝执行**
+  并在 docstring 里写明原因：**引证是一句话，不是一个字段；这 184 条是复核队列，不是补丁**。
+  ⑥ 读数：`--all` 见下一段；五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、
+  `check-verbatim` 4607/0、`check-target-names` 580 `.rs`/0）；`layout-check` **passed**（`67 of 78 mirror(s) compiled`）；
+  `probe ../spikes/sfnt_inc_probe.rs` exit 0。
