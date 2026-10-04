@@ -6546,3 +6546,34 @@
      `clear_glyph_matrix_rows`/`shift_glyph_matrix`，家在 `dispextern.rs` 镜像缺口）与脚手架里的
      `gui_clear_window_mouse_face` 本轮没有任何机器码；`HAVE_WINDOW_SYSTEM`/`HAVE_NTGUI`/`GLYPH_DEBUG` 各块
      只有文本记录；`build-tu` 4 发（超预算 1 发，如实记）。
+
+- **3.392 P-86 第三件整文件：`androidfont.c`（1,102 行）落地（2026-10-05）**：
+  ① **文件与台账**：`femacs/src/androidfont.rs` **15 → 1,391 行**；`docs/ports/androidfont.md` **27 → 295 行**
+     （46 行 `## C line ranges` 覆盖 C 1-1,102，47 条块间空行免行）。落点：7 个 struct、7 个 file-scope static、
+     **24 个函数**（五个 `android_init_*`、`androidfont_*` 十五个、`syms_of_androidfont_for_pdumper`/
+     `syms_of_androidfont`/`init_androidfont`/`android_finalize_font_entity`）、导出全局 `androidfont_driver`（C 1038-1052）；
+     12 处 C 内宏定义（`FIND_METHOD`×2、`FIND_FIELD`×3、`DO_SYMBOL_FIELD`×2、`DO_CARDINAL_FIELD`×4）按 C 落成函数内
+     `macro_rules!`。**Subr 0 个**。C 的 `#ifndef ANDROID_STUBIFY` **没有 `#else` 臂**——stub 侧就是"什么都不定义"，
+     与 androidmenu 的 3 行 stub 形态不同，台账已对比写明。
+  ② **冻结档**：`build-tu src/androidfont.c` → **built / exit 0 / 336 字节空对象**（两次读数同值）。
+  ③ **翻臂档（三档读数，分得很清）**：⑴ 2×`--cfg` 首跑 **exit 1 / 26 行 error**（5 `E0605`、1 `E0560 draw`、
+     7 `E0609 font 的 window-system 成员`、2 `E0617` 等）；⑵ 修完单元侧后 2×`--cfg` → **exit 1 / 9 错，全在单元文本**，
+     且**全是 `HAVE_WINDOW_SYSTEM` 类名字**；⑶ 加第三个 cfg（`have_window_system`，Android 真实配置）→ **exit 1 / 28 错，
+     全在镜像副本**：`include/frame.rs` 19（11 个 `FRAME_*_SHIFT` + 3 个 scroll-bar 谓词，它的 window-system 区
+     **只用不声明**）、`include/font.rs` 8（`E0080` 布局断言按冻结布局量）、`include/androidterm.rs` 1（`need_buffer_flip`，
+     镜像自己登记过的不可编点）⇒ **单元文本 0 错**。⑷ 臂触达预检（三类补丁具名写在台账里）：**exit 0 / 0 error /
+     225,624 字节对象**，并用**变异实测**证明它不是空读数（注入一处类型错误立刻 `E0308`）。
+  ④ **集成者这一轮的动作**：补 `docs/ports/line-drift-tolerance.tsv` 的 `androidfont` 行（**0.30 / total**，实测 +26.2%）
+     ⇒ `extract-abi --check emacs/src/androidfont.c femacs/src/androidfont.rs` 由"1 条行数漂移"变成 **`OK`（0 条）**。
+     其它读数：`check-dead-file-coverage` **7 ledger(s) bound / 0 failure**、`check-port-lines` 报本件 **stale**（退出棘轮）、
+     `check-citations` 675/0 drift/0 stale、`check-declarations` 13/0/0、`check-carried` 11/11/0、
+     `check-ledger-ticks` 235/0、`check-mirror-dupes` 18/0。NDK 常量是**实测**的（NDK 29 的 clang `--target=aarch64-linux-android24`
+     编过 `_Static_assert (ANDROID_LOG_WARN == 5)` 与 `(ANDROID_LOG_FATAL == 7)`）。
+  ⑤ **仍未解决（点名，交给下一轮）**：⑴ 三个**镜像缺口**要一轮 mirror round + `check-all-units.sh`：`frame.rs` 的
+     window-system 区（11 个 shift 常量 + 3 个谓词）、`font.rs` 那 8 条按冻结布局量的断言（窗口系统布局 2026 年未量）、
+     `androidterm.rs` 的 `FRAME_ANDROID_DRAWABLE` P-80 掩码；⑵ `macro-body-notes.tsv` 还欠 3 条 P-80 行
+     （`need_buffer_flip`/`complete`/`need_cursor_updates`）；⑶ `check-port-lines --write-pending` 与 `gen-port-map.py`
+     的数字要重生成（集成者在批末做）；⑷ lane 的 probe 用了 **4 发**（配额 3），如实记录。
+  ⑥ **未声称**：冻结配置下这 1,102 行**一行都没编进去**（336 字节空对象）；所有读数都是**编译级**——没有 JNI 调用、
+     没有字体、没有 frame、没有设备；⑷ 那一档是**替代读数**（补丁具名），不等于"无补丁也能编"；
+     font 的布局断言被注掉、frame 的常量是 stand-in、掩码是手写 ⇒ 不声称 Android 窗口系统布局或掩码位序正确。
