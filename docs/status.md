@@ -6732,3 +6732,35 @@
      五块 `HAVE_WINDOW_SYSTEM` 死臂按 P-08 记入台账不转录；无运行时证据（无链接、无测试）；
      `it`/`face`/`glyph` 仍是本单元自己的量测副本（`struct face.background` 的偏移 176 有 `face-layout.tsv` 与
      `xfaces.rs` 双证），**未改任何镜像文件**（两个 extern 与 3 个成员/访问器记进 to-do item 71）。
+
+- **3.399 P-86 第四件：`androidterm.c` 第一片 C 1-829（2026-10-05）**：
+  ① **区间**：收在 C 829（`android_handle_ime_event` 的 `}`）——C 836-1892 是**单个 1,056 行的
+     `handle_one_android_event`**，取它之后的边界会到 C 1892（远超 1,000），829 之前又没有别的整件边界。
+     **下一个活定义 = `handle_one_android_event`（C 836-1892）**，其前置声明在 C 834。
+     落点：3 个文件级对象（`x_display_list` 非 static、`any_help_event_p`、`wheel_event_x/y`）、
+     **28 个函数**（7 个按 C 取地址 → `unsafe extern "C" fn`）、5 个单元内 `macro_rules!` 与 3 个 `ANDROID_EVENT_*` 枚举。
+  ② **行数**：`femacs/src/androidterm.rs` **11 → 1,055 行**；台账 24 → **302 行**（41 行区间表连续覆盖 C 1-7,117）。
+  ③ **读数**：冻结档 `build-tu` → built / exit 0 / **336 字节空对象**；**翻臂 `probe`（2 cfg）→ exit 1，17 条 error，
+     按文件分类 镜像 11 / 单元文本 6**——镜像 11 全是 `include/androidterm.rs` 那**三个 `bool_bf` 宏体**（441/452/462），
+     单元文本 6 是 C 332 `MOUSE_HL_INFO` 的 `mouse_face_defer`、C 707-708 `need_cursor_updates`、
+     C 458 `android_frame_rehighlight`（定义在 C 2127）与 C 795-796 需要 `have_text_conversion`（cfg 集没设它，
+     非移植缺陷）。**名字解析没有中止**（与 androidmenu 首读不同），所以这 17 条是该 cfg 集下的完整错误表。
+     `check-dead-file-coverage` **10 ledger(s) bound / 0 failure**；`check-port-lines` → **87 文件 / 203,995 行**
+     （3 stale，含本件）；`check-citations`/`check-declarations`/`check-carried` 全绿。
+  ④ **集成者这一轮的动作**：`macro-body-notes.tsv` 补 **4 行**，每条的 C 依据我都实读核对过——
+     `android_toggle_visible_pointer`（C 288 `goto set_invisibility` / C 300 标签）、`android_focus_changed`
+     （C 484-485 的两处 `= 0` → `null_mut ()`）、`android_detect_focus_change`（C 505 `switch (event->type)`，臂 507/508、`default:` 513）、
+     `android_handle_ime_event`（C 793 的 `switch (event->ime.operation)` 七臂 + C 718 `Lisp_Object text UNINIT;` 的零值化）。
+     补完 `--check` 由 **116 → 112**（余下全是余量 C 830-7,117 的 `missing *` 与行数漂移）。
+     **刻意不加** `line-drift-tolerance.tsv` 行：与 xdisp 同口径（WIP 的漂移是进度标记，不是结构膨胀），
+     该行应在文件落完时按最终密度推导。
+  ⑤ **仍未解决（点名）**：⑴ 三个 `bool_bf` 宏（`FRAME_ANDROID_NEED_BUFFER_FLIP`/`DRAWABLE`/`COMPLETE_P`）要 **P-80 掩码形状**
+     + 三行 notes（这是挡住翻臂的镜像侧主因）；⑵ 镜像轮：`include/frame.rs` 的 window-system 编号与 `MOUSE_HL_INFO` 的
+     Android 臂（现在只有冻结的 TTY 臂）、`include/dispextern.rs` 的 window-system 半；⑶ 8 条 use-site 声明归位
+     （`popup_activated`/`gui_mouse_grabbed`/`buffer_flipping_blocked_p`/`remember_mouse_glyph`/`note_mouse_highlight`/
+     `setup_coding_system`/`detect_input_pending`/`android_create_gc`）+ `struct redisplay_interface` 与 `textconv_decls` 的 glob；
+     ⑷ **本台账同时绑 `androidterm.c` 与 `androidterm.h`**（与 `frame.md` 同族问题），修法是给 header 单独一份台账或改解析规则；
+     ⑸ 预算超支如实记（build-tu 5 发 vs 3、probe 4 发 vs 3，原因逐条在 Evidence）。
+  ⑥ **未声称**：冻结配置下这 829 行**一行都没编进去**；翻臂只是**编译级/类型检查级**读数，没有 JNI 调用、没有 frame、
+     没有光标/铃声/IME 事件被执行；**C 830-7,117 只是登记、没有移植**；`have_window_system` 一路没进 probe，
+     所以"Android 真配置下的正确性"本片给不出读数。
