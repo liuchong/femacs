@@ -1765,3 +1765,24 @@
   **未跑**：`extract-abi.py --all`（20 分钟级，留给整树门那一轮）与 `gate-load`（本次没有改链接相关的代码）。
   同一笔提交里还带上 lane 并发写进 `macro-body-notes.tsv` 的一行 `WINDOW_BOTTOM_DIVIDER_WIDTH`
   （在飞的窗口 lane 的注记，纯追加，不影响本单元）。
+
+- **3.116 `lib-src/pop.c` 入树：整文件死单元（0 定义），以及 `--all` 的复查（2026-10-04 第 100 轮第二批）**：
+  `lib-src/pop.c`（1,703 行）**整文件体在 `#ifdef MAIL_USE_POP` 内**，而冻结表里 `MAIL_USE_POP` 是
+  `undef`（`docs/baseline/config/darwin-arm64.macros.tsv` 2691），所以它是一个按 **3.25/3.49** 政策产出的
+  **空单元**（`femacs/lib-src/pop.rs`，30 行说明、0 定义、0 用点声明——`<pop.h>` 只被死区内的 `#include` 用到）。
+  这不是 stub：**参照对象同样零产出**，实测逐字相同——
+  `nm build/emacs-ref/lib-src/pop.o` 与 `nm build/femacs/pop.o` 都只打 `0000000000000000 t ltmp0`，
+  `size` 两个对象都是 `0 0 0 0 0 0`。（同族先例：`decompress.rs`/`dbusbind.rs`/`dosfns.rs`；`movemail.rs`
+  对同一个门也是"recorded not transcribed"。）
+  集成侧补一笔共享行：`docs/ports/line-drift-tolerance.tsv` 的 `pop 0.99`（端口 30 行 vs C 1,703 行，
+  实测漂移 98.24%，与 `decompress` 同值），补后 `--check emacs/lib-src/pop.c femacs/lib-src/pop.rs` = **`OK`**；
+  `build-tu lib-src/pop.c` = `built`；手工 `rustc --emit=metadata` = exit 0；`check-declarations` 0 forbidden、
+  `check-globals` 274/0、`check-mirror-dupes` **1 ratchet row / 0 failure**（`xdisp.rs` 那 3 条重复声明已被
+  接手的 lane 收敛掉）、`check-verbatim` 6 trees/4607 files/0。
+  **本轮 lane 布局**（都写各自单元、集成者提交）：malloc 的 `scratch_buffer` 簇与 `dynarray` 簇各一条、
+  `lib-src/emacsclient.rs` 一条、`lib-src/ebrowse.rs` 待开工，外加**接手的 xdisp lane**（前一条 lane 的
+  handle 已失效，`femacs/src/xdisp.rs` 是孤儿在飞文件，现由新 lane 从台账边界继续；它已先按 0.1-3 把
+  `window_wants_mode_line`/`window_wants_tab_line` 等重复声明收敛掉）。
+  **`--all` 复查（进行时）**：3.101/3.99 两处 lane 报"`gate-fast` 的 inventory 步骤在打印汇总前中止、无
+  traceback"。本轮实测复跑：`python3 tools/extract-abi.py --all` 的 Python 进程 **RSS 41.9 MB、99% CPU、
+  3 分钟时输出 82 行**（远未到 20 分钟），说明它不是一启动就死；结论待跑完后再补。
