@@ -5713,3 +5713,19 @@
      `--all` 走的那对"头文件镜像"**，所以它漏到了今天。3.356 用 `docs/ports/macro-body-notes.tsv` 的三行收口。
   ④ **未声称**：`586 done` 是**清单口径**（`--check` 对"整身在假条件下"的目标空跑通过）；"完成"仍以
      `docs/port-plan.md` §8 的八条为准（L0-L5、双向兼容、生成物逐字节、`diff -r` 原样树），本轮没有一项被点亮。
+
+- **3.356 3.333 的两条余波收口：三条 `macro-body-notes` 记录，`extract-abi --all` 从 2 failing 到 **0 failing**（2026-10-05）**：
+  ① **处置**（`docs/ports/macro-body-notes.tsv` 添三行，都是"记录偏离 + 理由"，不是掩盖）：
+     `FONT_ADD_LOG`/`FONT_DEFERRED_LOG` 的 `false`——C 的体是 `do { if (! EQ (Vfont_log, Qt)) font_add_log (…); }
+     while (false)`（font.h 1004-1014），端口按 **PORTING.md 2.2** 直接写 `if`，`while (false)` 那个 `false` 没有对应物
+     （与既有 `PDUMPER_RESET` 一行同一类）；`SET_FRAME_GARBAGED` 的 `garbaged`——C 写 `f->garbaged = true`
+     （frame.h 1173-1176），端口写同一个位 `(*$f).bits1 = (*$f).bits1 | (1u32 << FRAME_GARBAGED_SHIFT)`，即 3.333 为镜像
+     选定的 bits1 拼法，成员名 `garbaged` 因此没有对应物。
+  ② **读数（前后都是本轮实跑**）：`python3 tools/extract-abi.py --all` 前 `586 done / 2 WIP / **2 failing**`、`exit 1`；
+     三行落地后 **`588 done / 2 in progress / 0 failing`、`exit 0`**。归零的两条正是 `src/font.h` 与 `src/frame.h` 那对
+     **头文件镜像**（3.355 ③ 命名过）；仍 WIP 的两件是 `src/xdisp.c`（108）与 `src/xterm.c`（300），都是巨型单元按片推进。
+  ③ **这一件的意义**：与 3.349 是**同一个失败模式**——某轮的验收只覆盖"单元"这一对（build-tu + 单元 `--check`），
+     而 `--all` 走的是**头文件↔镜像**这一对，于是"体换了、token 少一个"这种事能活两轮不被人看见。3.355/3.356 把这两个
+     读数（`586 done` 是清单口径、`96 文件/246,438 行` 是"整身在假条件下"的口径）一起写进 status，就是为了不再单看一个数。
+  ④ **未声称**：`0 failing` 只说明"清单与参照在 token/函数/常量/宏体四类上零差异"，**不等于**完成——`docs/port-plan.md` §8 的
+     八条（L0-L5、双向兼容、生成物逐字节、`diff -r` 原样树、平台冒烟、性能）本轮一条都没点亮。
