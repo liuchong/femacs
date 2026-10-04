@@ -1909,10 +1909,22 @@ pub const SCROLL_INFINITY: c_int = 1000000;
    (C 1800-1815) and `HAVE_NS`/`HAVE_XFT`/`HAVE_FREETYPE`'s `extra` are absent from this
    target's layout, exactly as the C compiler lays it out.
 
-   Several units carry a copy of these two records from the time this mirror did not
-   (`src/xfaces.rs` 279-345, `src/window.rs` 878-915, `src/alloc.rs`, `src/xdisp.rs`,
-   `src/font.rs`); retiring those copies is the integrator's step (the `stdbit.in.rs` rule),
-   and the copy here is field-for-field the one `xfaces.rs` asserts.  */
+   **Ruling (status 3.220): the records stay here behind `dispextern_face_records`, and the
+   units keep their live copies.**  Six units carry their own (`src/xfaces.rs` 279-345,
+   `src/window.rs` 878-915, `src/alloc.rs` 3441-3461, `src/term.rs` 308/323,
+   `src/dispnew.rs`, and the two in-flight ones `src/xdisp.rs` and `src/font.rs`), every one of
+   them *typed* (`*mut face` / `*mut font` / `*mut frame`) because those units include
+   `include/font.rs`/`include/frame.rs` in C's order, and all seven include this mirror - so an
+   unconditional copy here is `E0428` in all seven (measured: `build-tu src/dispnew.c` -> "the
+   name `face` is defined multiple times").  Retiring the units' copies - the `stdbit.in.rs`
+   move of 3.181 - is *possible* and measured to cost about three edits in the smallest unit
+   (`src/alloc.rs`: E0308 once and `no field header on type c_void` twice, after its two records
+   were deleted), but it would have to touch two lanes' in-flight files and would downgrade
+   their typed accessors to casts.  The ruling is therefore the cheap one that keeps C's text
+   present: this copy is the arm `xtask dead-arms`/`gate-probes` flips and compiles
+   (`dispextern_face_records` is a row in femacs/xtask/Cargo.toml), and the units' typed copies
+   stay live.  The alternative is recorded here so a later round can take it deliberately.
+   The copy is field-for-field the one `xfaces.rs` asserts.  */
 
 /// C 1787-1937: `struct face`.  Measured with the frozen clang: `sizeof` 280, align 8,
 /// `lface`@0, `id`@160, `foreground`@168, `background`@176, `underline_color`@184,
@@ -1921,6 +1933,7 @@ pub const SCROLL_INFINITY: c_int = 1000000;
 /// `underline_pixels_above_descent_line`@236, the 21 `bool_bf`/`ENUM_BF` bits C declares at
 /// 1893-1935 in one 4-byte storage unit at 240, `hash`@248, `next`@256, `prev`@264,
 /// `ascii_face`@272.
+#[cfg (feature = "dispextern_face_records")]
 #[repr(C)]
 pub struct face
 {
@@ -1951,26 +1964,42 @@ pub struct face
   pub ascii_face: *mut face,
 }
 
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::size_of::<face> () == 280);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::align_of::<face> () == 8);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, id) == 160);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, foreground) == 168);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, background) == 176);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, underline_color) == 184);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, overline_color) == 192);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, strike_through_color) == 200);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, box_color) == 208);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, font) == 216);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, fontset) == 224);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, bits) == 240);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, hash) == 248);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, next) == 256);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face, ascii_face) == 272);
 
 /// C 1991-2009: `struct face_cache`.  Measured: `sizeof` 40, `buckets`@0, `f`@8,
 /// `faces_by_id`@16, `size`@24, `used`@32, and C's one `bool_bf menu_face_changed_p : 1` in
 /// the int unit at 36 (carried as a byte, the P-80 convention - `src/window.rs` 907 spells
 /// the same member `bool`, one byte wide either way).
+#[cfg (feature = "dispextern_face_records")]
 #[repr(C)]
 pub struct face_cache
 {
@@ -1985,12 +2014,19 @@ pub struct face_cache
   pub used: c_int,
   pub menu_face_changed_p: u8,
 }
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::size_of::<face_cache> () == 40);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face_cache, buckets) == 0);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face_cache, f) == 8);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face_cache, size) == 24);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face_cache, used) == 32);
+#[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (std::mem::offset_of! (face_cache, menu_face_changed_p) == 36);
 
 // C: dispextern.h 472-2600's remaining structures (`image`, `image_cache`, `it`) and

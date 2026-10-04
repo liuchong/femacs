@@ -58,6 +58,7 @@ cplusplus                                  = []  # see femacs/lib/include/gettex
 cygwin                                     = []  # Cygwin
 cygwin_win32                               = []  # see femacs/lib/boot-time.rs:288
 debug                                      = []  # DEBUG
+dispextern_face_records                    = []  # see femacs/src/include/dispextern.rs (3.220)
 djgpp_2_3                                  = []  # see femacs/src/include/msdos.rs:26
 dont_reopen_pty                            = []  # DONT_REOPEN_PTY
 dos_nt                                     = []  # DOS_NT
