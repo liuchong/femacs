@@ -3799,3 +3799,26 @@
   ④ 读数：`gen-port-inventory` **590 files、done=576、wip=10、todo=4**（由 575/10/5 推进一格；
   剩 `lib/cdefs.h`(900)、`lib/signal.in.h`(536)、`lib/stdcountof.in.h`(124)、`src/xterm.h`(2,045)）；
   门：`check-declarations` 13/0、`check-mirror-dupes` 1 duplicate/1 ratchet/0、`check-target-names` 622/593/0。
+
+- **3.209 `lib/signal.in.h` 落地：这棵构建里 gnulib 一个名字都不用改（2026-10-04）**：
+  ① 同一套判据（3.207/3.208）的第三件：生成头 `build/emacs-ref/lib/signal.h`（41,625 字节），
+  `check-cond-eval.py lib/signal.in.h` 给 `87 conditions, 34 unknown, 44 disagreements [NOT VERIFIED]`
+  （3.136 已把这一件列进"需要 P-51/P-66 承载"的名单）⇒ 盲读；镜像头部那张表是把模板与生成头**同步走**
+  读出来的字面替换表。
+  ② **活的一半**（也就是镜像的真文本）：`sighandler_t`（`@HAVE_SIGHANDLER_T@` **0**，生成头 663 读 `#if !0`
+  ——SDK 没有这个类型，所以 C 自己的 typedef 就是移植文本）、`SIG2STR_MAX`、`sig2str` 与 `str2sig`
+  （`@GNULIB_SIG2STR@` 1 配 `@HAVE_SIG2STR@`/`@HAVE_STR2SIG@` **0** ⇒ `_GL_FUNCDECL_SYS` 是活声明）、
+  `pthread_sigmask`（`@REPLACE_PTHREAD_SIGMASK@` 0 ⇒ SYS 臂）、C 519-523 的 `SA_NODEFER` fallback，
+  以及 C 78-86 的 `<pthread.h>` 臂（它的 `__APPLE__ && __MACH__` 操作数为真）。
+  ③ **死的一半**（都要带，因为 gnulib 正是"自己定义这些类型"的那一侧）：`@GNULIB_SIGPROCMASK@` 0
+  （整段 C 249-441：`SIG_BLOCK`/`SIG_SETMASK`/`SIG_UNBLOCK`、`GNULIB_defined_signal_blocking`、
+  `verify_NSIG_constraint` 断言 typedef、`_gl_function_taking_int_returning_void_t`、`signal` 改名）、
+  `@GNULIB_SIGACTION@` 0（C 444-515 的 `union sigval`、`struct siginfo_t`、带匿名 `_sa_func` 的
+  `struct sigaction`、`sa_handler`/`sa_sigaction`、`SA_RESETHAND`/`SA_RESTART`）、
+  `@GNULIB_SIGNAL_H_SIGPIPE@` 0、`@GNULIB_RAISE@` 0、`@HAVE_SIGSET_T@` 1、`@HAVE_TYPE_VOLATILE_SIG_ATOMIC_T@` 1。
+  ④ **两半的名字写进台账**：C 41/57 的 `#include_next` 是冻结的 `<signal.h>`，端口那一半的镜像是
+  `signal.rs`（信号号、`sigset_t`、Darwin 的 `union __sigaction_u` + 带实测布局断言的 `struct sigaction`、
+  `SIGPIPE`=13）；本文件是 gnulib 包装层，上面那些读数就是"它在这棵构建里什么都不改"的证明。
+  ⑤ 读数：`gen-port-inventory` **590 files、done=577、wip=10、todo=3**（由 576/10/4 推进一格；
+  剩 `lib/cdefs.h`(900)、`lib/stdcountof.in.h`(124)、`src/xterm.h`(2,045)）；门：`check-declarations` 13/0、
+  `check-mirror-dupes` 1 duplicate/1 ratchet/0（cfg 掉的类型定义没有新增重复）、`check-target-names` 622/593/0。
