@@ -408,3 +408,62 @@ pattern cannot add an offset to a literal ... this family has no counterpart") -
 `widgetprv.h`'s `<anon@27>` is an anonymous aggregate the container check skips by design
 ("anonymous aggregates without an alias skipped - they have no name the two sides could agree
 on").  No mirror text changed in this sweep; only the boxes were ticked.
+
+## The gated arm, measured (status 3.271)
+
+`struct frame` has two arms and until 3.271 only the frozen one had a reading; 3.257 ② and
+3.264 ⑥ recorded the other as "a wall no compile checks".  Half of that is true (the port's
+*gated Rust* cannot be compiled before its platform mirrors exist, 3.262's fourteen errors) and
+half was an assumption: the C side reads, because the frozen build's generated `config.h`
+parses with the macros `configure --with-ns` would emit.  `spikes/gated-layout-probe.py
+'struct frame' frame.h` (PORTING.md P-82) is that reading; the full dump is
+`docs/baseline/frame-layout.tsv` (295 rows, generated - re-run the probe to reproduce it).
+
+| arm | sizeof | align |
+| --- | ---: | ---: |
+| `frozen` | 568 | 8 |
+| `ns_cocoa` (`-DHAVE_WINDOW_SYSTEM=1 -DHAVE_NS=1 -DNS_IMPL_COCOA=1`) | 608 | 8 |
+
+The seventeen members the gated arm adds, with the guard C gives each and the measured position:
+
+| member | frame.h | C guard | `ns_cocoa` |
+| --- | ---: | --- | --- |
+| `tab_bar_window` | 254 | `HAVE_WINDOW_SYSTEM` | 160 |
+| `desired_tab_bar_string` | 257 | `HAVE_WINDOW_SYSTEM` | 168 |
+| `current_tab_bar_string` | 258 | `HAVE_WINDOW_SYSTEM` | 176 |
+| `image_cache` | 292 | `HAVE_WINDOW_SYSTEM` | 216 |
+| `minimize_tab_bar_window_p` | 352 | `HAVE_WINDOW_SYSTEM` | 272:5 |
+| `external_tool_bar` | 367 | `HAVE_EXT_TOOL_BAR` | 272:6 |
+| `external_menu_bar` | 382 | `HAVE_EXT_MENU_BAR` | 273:2 |
+| `tooltip` | 457 | `HAVE_WINDOW_SYSTEM` | 275:6 |
+| `want_fullscreen` | 460 | `HAVE_WINDOW_SYSTEM` | 276:0-3 |
+| `vertical_scroll_bar_type` | 464 | `HAVE_WINDOW_SYSTEM` | 276:4-5 |
+| `horizontal_scroll_bars` | 467 | `HAVE_WINDOW_SYSTEM` | 276:6 |
+| `override_redirect` | 471 | `HAVE_WINDOW_SYSTEM && !HAVE_NTGUI` | 276:7 |
+| `skip_taskbar` | 475 | `HAVE_WINDOW_SYSTEM` | 277:0 |
+| `no_focus_on_map` | 479 | `HAVE_WINDOW_SYSTEM` | 277:1 |
+| `z_group` | 482 | `HAVE_WINDOW_SYSTEM` | 277:2-3 |
+| `ns_appearance` | 737 | `NS_IMPL_COCOA` | 592 |
+| `ns_transparent_titlebar` | 738 | `NS_IMPL_COCOA` | 596 |
+
+What the mirror owes, in one pass.  None of it changes the frozen arm: every row sits behind a
+feature the frozen configuration leaves off, so the frozen layout asserts stay the frozen arm's
+own proof.
+
+1. The four non-bit fields at their C positions, under their own guards.  The two
+   `HAVE_EXT_TOOL_BAR`/`HAVE_EXT_MENU_BAR` bits need those features added to
+   `femacs/xtask/Cargo.toml` first - the port's conditional-compilation table has no row for
+   either today.
+2. The bit block.  The frozen arm's bits live in bytes 240-244 and the gated arm's in 272-279,
+   so the shape stays the same two `u32` units and *every* constant after the first gated bit
+   changes value; each `FRAME_*_SHIFT`/`_MASK` gets a gated second definition read off the
+   table (`glyphs_initialized_p` is 0 in both arms; `tooltip` is 275:6 = word 1 bit 30;
+   `no_focus_on_map` is 277:1 = word 2 bit 9; `borders_respect_alpha_background` is 279:0 =
+   word 2 bit 24), and the bit numbering follows from the byte the measurement gives:
+   word 1 covers 272-275, word 2 covers 276-279.
+3. The accessors C keeps for them (`FRAME_NO_FOCUS_ON_MAP`, `FRAME_NO_ACCEPT_FOCUS`,
+   `FRAME_Z_GROUP`, and the NS ones the Swift lane imports) under the same gates.  The
+   *C-ABI seam* entries themselves are `src/abi_shim.rs`'s (the shim lane's file), which is why
+   the seven `swift-import-pending` rows for this struct stay open until both halves exist.
+4. Record the gated arm as **read, not compiled** until the platform mirrors land: the numbers
+   above come from the C compiler, the Rust side has none yet.
