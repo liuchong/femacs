@@ -5135,3 +5135,19 @@
   ④ **集成者动作（共享表，已做）**：`docs/baseline/citations-allowlist.tsv` 第 37 行 `femacs/src/include/dispextern.rs:544` → **`:567`**（`gui_box` 的插入把该引用行下移 23 行）。
   改前 `check-citations` 报同一条 finding 两次（`drift …:567` + `stale …:544`），改后**两条同时消失**：`662 file(s) scanned, 32 drift, 1 range, 306 external, 38 allowed, **0 stale**`。
   lane 另报的三条既有漂移（`dispextern.rs:1970`、`abi_shim.rs:1051/1061/1100`、两个 Swift 文件各一条）**先不动**（都在本批之前就存在，属"归谁"待定）。
+- **3.312 `struct MonitorInfo` 按门落地；**臂之间不一致**这件事第一次被这条记录量出来（集成者，2026-10-05）**：
+  ① **落地**（Boyle 的候选表交给 `frame.rs` 的那一条）：`femacs/src/include/frame.rs` **1,195 → 1,231 行（+36）**、台账新增一节。内容：
+  `#[cfg (feature = "have_window_system")] #[repr(C)] pub struct MonitorInfo { geom, work: Emacs_Rectangle; mm_width, mm_height: c_int; name: *mut c_char; #[cfg (feature = "have_pgtk")] scale_factor: c_double }` + 两个入口的 `unsafe extern "C"` 声明（`free_monitors`、`make_monitor_attribute_list`，frame.h 1937-1943 声明、frame.c 定义）。
+  ② **这条记录量出的关键事实：带门臂之间不一致，而且分歧在 typedef 不在记录**（`spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h`，我本轮自己跑的原文）：
+
+  | 臂 | `geom`/`work` | 偏移 | sizeof / align |
+  |---|---|---:|---|
+  | frozen | — | — | `incomplete type`（门未开） |
+  | **x11** | `XRectangle`（4 个 short，8 字节；dispextern.h **44** 的 `typedef XRectangle Emacs_Rectangle`） | `mm_width` 16、`mm_height` 20、`name` 24 | **32 / 8** |
+  | **ns_cocoa** | 非 X 的 typedef（4 个 int，16 字节；dispextern.h **67-70**） | `mm_width` 32、`mm_height` 36、`name` 40 | **48 / 8** |
+
+  ③ **因此把 Boyle 交来的读数读准**：它的"48/8、0/16/32/36/40"是 **ns_cocoa 臂**的数；**x11 臂是 32/8**。我第一版注释写成了"x11 与 ns_cocoa 一致"——**已就地改正**（镜子里的错注释比缺注释更坏），台账里两种臂的读数与逐成员偏移都记全。
+  镜像承载的是**非 X 的 typedef**（冻结配置的臂，也是树内每个单元编译时用的那个）；x11 的读数**记在台账里而不复现**，因为复现它要给 `Emacs_Rectangle` 加臂分裂，而那需要 `XRectangle`——**一份 Xlib 镜像，目前没有任何单元有**。
+  ④ **由此命名一条新任务（给 X11/xterm lane，与 3.270 ④ 的 `None`/`Success` 同一份 Xlib 镜像）**：`Emacs_Rectangle` 的臂分裂（`have_x_windows` → `XRectangle` = 4 shorts），受影响的不止这条记录（`androidgui.rs` 的 `NativeRectangle = Emacs_Rectangle`、以及任何 X11 侧记录）。
+  ⑤ **入库前我自己复检**：`extract-abi --check emacs/src/frame.h femacs/src/include/frame.rs` → **OK**；`build-tu src/frame.c` → **built**（冻结臂不含这条记录，读数不变）；
+  带门臂用剪段探针编过：记录原文 + 六个 `assert!`（sizeof 48、align 8、偏移 0/16/32/36/40；对应**非 X** 的 `Emacs_Rectangle`），`rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib -C panic=abort --cfg 'feature="have_window_system"'` → **exit 0（0 error）**。

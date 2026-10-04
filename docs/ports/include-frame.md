@@ -554,3 +554,37 @@ step.
 Evidence: `build-tu src/frame.c` and `src/term.c` exit 0, `xtask layout-check` passed,
 `check-declarations` 13 sites / 0 forbidden, `check-globals` 284 units / 0, `check-mirror-dupes`
 0 failures.
+
+## The multimonitor record lands under its gate, and the arms disagree about it (status 3.312)
+
+`struct MonitorInfo` (frame.h 1928-1935) and its two entry points (1937-1943) sit inside
+`HAVE_WINDOW_SYSTEM`, so the frozen arm parses neither.  They are carried here under
+`#[cfg (feature = "have_window_system")]`:
+
+- the record: `geom`/`work` (`Emacs_Rectangle`, `dispextern.rs`'s non-X typedef), `mm_width`/
+  `mm_height` (`c_int`), `name` (`*mut c_char`) at 0/16/32/36/40, **sizeof 48, align 8**;
+- the one `HAVE_PGTK` member, `scale_factor` (`c_double`), under `feature = "have_pgtk"`: it is
+  the member the arms this machine can read do not have, and PGTK headers are not here (the
+  `struct pgtk_output` ruling, status 3.310);
+- the two declarations frame.h carries and frame.c defines (`free_monitors`,
+  `make_monitor_attribute_list`), in the `include/haiku_support.rs` shape.
+
+**The arms do not agree, and the reason is a typedef, not the record** (measured 3.312,
+`spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h`):
+
+| arm | `geom`/`work` | offsets | sizeof / align |
+| --- | --- | ---: | --- |
+| frozen | — | — | `incomplete type` (the gate is off) |
+| x11 | `XRectangle` (4 shorts, 8 bytes) - `dispextern.h` 44 | `mm_width` 16, `mm_height` 20, `name` 24 | **32 / 8** |
+| ns_cocoa | the non-X typedef (4 ints, 16 bytes) - `dispextern.h` 67-70 | `mm_width` 32, `mm_height` 36, `name` 40 | **48 / 8** |
+
+The mirror carries the non-X typedef, which is the frozen configuration's arm and the one every
+in-tree unit compiles against; the x11 reading is recorded here rather than reproduced, because
+reproducing it means giving `Emacs_Rectangle` an arm split, and that needs `XRectangle` - an Xlib
+mirror no unit has yet (the named task, status 3.294 ③ / 3.312 ④).
+
+Evidence: `extract-abi.py --check emacs/src/frame.h femacs/src/include/frame.rs` OK;
+`build-tu src/frame.c` builds (the frozen arm is unchanged, `MonitorInfo` is not in it); and the
+gated arm was compiled as a cut-out probe - the record above plus `assert!`s on the six numbers,
+`rustup run nightly-2026-10-01 rustc --edition 2024 --crate-type lib -C panic=abort
+--cfg 'feature="have_window_system"'`, exit 0 (0 errors).

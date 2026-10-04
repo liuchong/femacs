@@ -1193,3 +1193,44 @@ macro_rules! flush_frame {
     }
   }};
 }
+
+/* frame.h 1925-1944: the multimonitor data.  `HAVE_WINDOW_SYSTEM` gates both the record and its
+   two entry points, so the frozen arm sees neither; the arms that do define it read sizeof 48 /
+   align 8 with the members at 0 (geom), 16 (work), 32 (mm_width), 36 (mm_height), 40 (name)
+   (`spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h`, measured 3.312).  **The arms do
+   not agree, and the difference is `Emacs_Rectangle` itself**: the x11 arm reads 32 / align 8 with
+   `geom`/`work` as `XRectangle` (4 shorts, 8 bytes each - dispextern.h 44, `#ifdef HAVE_X_WINDOWS`),
+   the ns_cocoa arm reads 48 / align 8 with the non-X typedef this mirror carries (dispextern.h
+   67-70), and the frozen arm reads `incomplete type`.  The mirror keeps the non-X shape (the frozen
+   configuration's) and the x11 divergence is recorded in the ledger; carrying it needs `XRectangle`
+   (an Xlib mirror), which no unit has yet.  The `HAVE_PGTK` member
+   `scale_factor` is carried under its own gate - it is the one member the arms this machine can
+   read do not have, and PGTK headers are not here (`struct pgtk_output`'s ruling, 3.310).
+   C: struct MonitorInfo { Emacs_Rectangle geom, work; int mm_width, mm_height; char *name;
+      #ifdef HAVE_PGTK double scale_factor; #endif };  */
+#[cfg (feature = "have_window_system")]
+#[repr(C)]
+pub struct MonitorInfo
+{
+  pub geom: Emacs_Rectangle,
+  pub work: Emacs_Rectangle,
+  pub mm_width: c_int,
+  pub mm_height: c_int,
+  pub name: *mut c_char,
+  #[cfg (feature = "have_pgtk")]
+  pub scale_factor: c_double,
+}
+
+/* frame.h 1937-1943: the record's two entry points.  They are `extern` declarations in the header
+   and definitions in frame.c (`free_monitors`, `make_monitor_attribute_list`), so the mirror
+   carries the declarations the same way `include/haiku_support.rs` does.
+   C: extern void free_monitors (struct MonitorInfo *monitors, int n_monitors);  */
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  /// C: extern void free_monitors (struct MonitorInfo *monitors, int n_monitors);
+  pub fn free_monitors (monitors: *mut MonitorInfo, n_monitors: c_int);
+  /// C: extern Lisp_Object make_monitor_attribute_list (struct MonitorInfo *monitors, int n_monitors, int primary_monitor, Lisp_Object monitor_frames, const char *source);
+  pub fn make_monitor_attribute_list (monitors: *mut MonitorInfo, n_monitors: c_int,
+                                      primary_monitor: c_int, monitor_frames: Lisp_Object,
+                                      source: *const c_char) -> Lisp_Object;
+}
