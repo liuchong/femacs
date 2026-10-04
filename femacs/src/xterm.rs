@@ -2842,3 +2842,669 @@ unsafe fn x_dnd_free_toplevels (display_alive: bool)
   unbind_to (count, Qnil ());
   unblock_input ();
 }
+
+/* ---- Slice 6: C 3013-3614, `x_dnd_compute_toplevels`.  Two arms run through the whole body -
+   `#ifndef USE_XCB` (the frozen one) and `USE_XCB` - and inside them `HAVE_XSHAPE`,
+   `HAVE_XCB_SHAPE` and `HAVE_XCB_SHAPE_INPUT_RECTS`; every arm is carried under its feature
+   (P-51).  C 3461's `#ifdef ShapeInput` asks whether the X11 shape header is new enough to
+   define the shape-input selector, and the port's `x11_constants` defines it (measured from
+   `X11/extensions/shapeconst.h`), so that block is carried without a gate of its own.  C leaves
+   the `#ifndef USE_XCB` locals uninitialised; the port's zero is PORTING.md 1.5.  */
+
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_dnd_compute_toplevels (dpyinfo: *mut x_display_info) -> c_int
+{
+  use crate::x11_constants::{AnyPropertyType, IsUnmapped, None, PropertyChangeMask,
+			     ShapeBounding, ShapeInput, ShapeNotifyMask, StructureNotifyMask,
+			     Success, XA_CARDINAL, XA_WINDOW};
+
+  let mut r#type: Atom;
+  let mut toplevels: *mut Window;
+  let mut format: c_int;
+  let mut rc: c_int;
+  let mut nitems: c_ulong;
+  let mut bytes_after: c_ulong;
+  let mut i: c_ulong;
+  let mut real_nitems: c_ulong;
+  let mut data: *mut u8 = std::ptr::null_mut ();
+  let mut frame_extents: [c_int; 4];
+
+  #[cfg (not (feature = "use_xcb"))]
+  let mut dest_x: c_int = 0;
+  #[cfg (not (feature = "use_xcb"))]
+  let mut dest_y: c_int = 0;
+  #[cfg (not (feature = "use_xcb"))]
+  let mut wmstate: *mut c_ulong = std::ptr::null_mut ();
+  #[cfg (not (feature = "use_xcb"))]
+  let mut wmstate_items: c_ulong = 0;
+  #[cfg (not (feature = "use_xcb"))]
+  let mut extent_items: c_ulong = 0;
+  #[cfg (not (feature = "use_xcb"))]
+  let mut wmstate_data: *mut u8 = std::ptr::null_mut ();
+  #[cfg (not (feature = "use_xcb"))]
+  let mut extent_data: *mut u8 = std::ptr::null_mut ();
+  #[cfg (not (feature = "use_xcb"))]
+  let mut attrs: XWindowAttributes = std::mem::zeroed ();
+  #[cfg (not (feature = "use_xcb"))]
+  let mut child: Window = 0;
+  #[cfg (not (feature = "use_xcb"))]
+  let mut xm_info: xm_drag_receiver_info = std::mem::zeroed ();
+
+  #[cfg (feature = "use_xcb")]
+  let mut wmstate: *mut u32 = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut fextents: *mut u32 = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut xmdata: *mut u8 = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut window_attribute_cookies: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut translate_coordinate_cookies: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut get_property_cookies: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut xm_property_cookies: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut extent_property_cookies: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut get_geometry_cookies: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut attrs: c_void = unsafe { std::mem::zeroed () };
+  #[cfg (feature = "use_xcb")]
+  let mut attrs_reply: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut coordinates_reply: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut property_reply: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut xm_property_reply: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut extent_property_reply: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut geometry_reply: *mut c_void = std::ptr::null_mut ();
+  #[cfg (feature = "use_xcb")]
+  let mut error: *mut c_void = std::ptr::null_mut ();
+
+  #[cfg (all (feature = "have_xcb_shape"))]
+  let mut bounding_rect_cookies: *mut c_void = std::ptr::null_mut ();
+  #[cfg (all (feature = "have_xcb_shape"))]
+  let mut bounding_rect_reply: *mut c_void = std::ptr::null_mut ();
+  #[cfg (all (feature = "have_xcb_shape"))]
+  let mut bounding_rect_iterator: c_void = unsafe { std::mem::zeroed () };
+
+  #[cfg (all (feature = "have_xcb_shape_input_rects"))]
+  let mut input_rect_cookies: *mut c_void = std::ptr::null_mut ();
+  #[cfg (all (feature = "have_xcb_shape_input_rects"))]
+  let mut input_rect_reply: *mut c_void = std::ptr::null_mut ();
+  #[cfg (all (feature = "have_xcb_shape_input_rects"))]
+  let mut input_rect_iterator: c_void = unsafe { std::mem::zeroed () };
+
+  let mut tem: *mut x_client_list_window;
+
+  #[cfg (all (feature = "have_xshape", not (feature = "have_xcb_shape_input_rects")))]
+  let mut count: c_int = 0;
+  #[cfg (all (feature = "have_xshape", not (feature = "have_xcb_shape_input_rects")))]
+  let mut ordering: c_int = 0;
+  #[cfg (all (feature = "have_xshape", not (feature = "have_xcb_shape_input_rects")))]
+  let mut rects: *mut XRectangle = std::ptr::null_mut ();
+
+  rc = XGetWindowProperty ((*dpyinfo).display, (*dpyinfo).root_window,
+			   (*dpyinfo).Xatom_net_client_list_stacking,
+			   0, LONG_MAX, false, XA_WINDOW, &raw mut r#type,
+			   &raw mut format, &raw mut nitems, &raw mut bytes_after, &raw mut data);
+
+  if rc != Success
+    { return 1; }
+
+  if format != 32 || r#type != XA_WINDOW
+    {
+      XFree (data);
+      return 1;
+    }
+
+  toplevels = data as *mut Window;
+
+  i = 0;
+  real_nitems = 0;
+  while i < nitems
+    {
+      /* Some window managers with built in compositors end up putting tooltips in the client
+	 list, which is silly.  */
+      if x_tooltip_window_to_frame (dpyinfo, *toplevels.offset (i as isize),
+				    std::ptr::null_mut ()).is_null ()
+	{
+	  *toplevels.offset (real_nitems as isize) = *toplevels.offset (i as isize);
+	  real_nitems += 1;
+	}
+      i += 1;
+    }
+
+  nitems = real_nitems;
+
+  #[cfg (feature = "use_xcb")]
+  {
+    USE_SAFE_ALLOCA! (sa_avail, sa_count);
+
+    SAFE_NALLOCA! (sa_avail, window_attribute_cookies, 1, nitems);
+    SAFE_NALLOCA! (sa_avail, translate_coordinate_cookies, 1, nitems);
+    SAFE_NALLOCA! (sa_avail, get_property_cookies, 1, nitems);
+    SAFE_NALLOCA! (sa_avail, xm_property_cookies, 1, nitems);
+    SAFE_NALLOCA! (sa_avail, extent_property_cookies, 1, nitems);
+    SAFE_NALLOCA! (sa_avail, get_geometry_cookies, 1, nitems);
+
+    #[cfg (feature = "have_xcb_shape")]
+    { SAFE_NALLOCA! (sa_avail, bounding_rect_cookies, 1, nitems); }
+
+    #[cfg (feature = "have_xcb_shape_input_rects")]
+    { SAFE_NALLOCA! (sa_avail, input_rect_cookies, 1, nitems); }
+
+    i = 0;
+    while i < nitems
+      {
+	*(window_attribute_cookies as *mut c_void) = xcb_get_window_attributes (
+	  (*dpyinfo).xcb_connection, *toplevels.offset (i as isize) as xcb_window_t);
+	*(translate_coordinate_cookies as *mut c_void) = xcb_translate_coordinates (
+	  (*dpyinfo).xcb_connection, *toplevels.offset (i as isize) as xcb_window_t,
+	  (*dpyinfo).root_window as xcb_window_t, 0, 0);
+	*(get_property_cookies as *mut c_void) = xcb_get_property (
+	  (*dpyinfo).xcb_connection, 0, *toplevels.offset (i as isize) as xcb_window_t,
+	  (*dpyinfo).Xatom_wm_state as xcb_atom_t, 0, 0, 2);
+	*(xm_property_cookies as *mut c_void) = xcb_get_property (
+	  (*dpyinfo).xcb_connection, 0, *toplevels.offset (i as isize) as xcb_window_t,
+	  (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO as xcb_atom_t,
+	  (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO as xcb_atom_t, 0, 4);
+	*(extent_property_cookies as *mut c_void) = xcb_get_property (
+	  (*dpyinfo).xcb_connection, 0, *toplevels.offset (i as isize) as xcb_window_t,
+	  (*dpyinfo).Xatom_net_frame_extents as xcb_atom_t,
+	  XA_CARDINAL as xcb_atom_t, 0, 4);
+	*(get_geometry_cookies as *mut c_void) = xcb_get_geometry (
+	  (*dpyinfo).xcb_connection, *toplevels.offset (i as isize) as xcb_window_t);
+
+	#[cfg (feature = "have_xcb_shape")]
+	{
+	  *(bounding_rect_cookies as *mut c_void) = xcb_shape_get_rectangles (
+	    (*dpyinfo).xcb_connection, *toplevels.offset (i as isize) as xcb_window_t,
+	    XCB_SHAPE_SK_BOUNDING);
+	}
+
+	#[cfg (feature = "have_xcb_shape_input_rects")]
+	{
+	  if (*dpyinfo).xshape_major > 1
+	      || ((*dpyinfo).xshape_major == 1
+		  && (*dpyinfo).xshape_minor >= 1)
+	    {
+	      *(input_rect_cookies as *mut c_void) = xcb_shape_get_rectangles (
+		(*dpyinfo).xcb_connection, *toplevels.offset (i as isize) as xcb_window_t,
+		XCB_SHAPE_SK_INPUT);
+	    }
+	}
+	i += 1;
+      }
+  }
+
+  /* Actually right because _NET_CLIENT_LIST_STACKING has bottom-up order.  */
+  i = 0;
+  while i < nitems
+    {
+      frame_extents[0] = 0;
+      frame_extents[1] = 0;
+      frame_extents[2] = 0;
+      frame_extents[3] = 0;
+
+      #[cfg (not (feature = "use_xcb"))]
+      {
+	x_catch_errors ((*dpyinfo).display);
+	rc = (XGetWindowAttributes ((*dpyinfo).display,
+				    *toplevels.offset (i as isize), &raw mut attrs) != 0
+	      && x_had_errors_p ((*dpyinfo).display) == 0) as c_int;
+
+	if rc != 0
+	  {
+	    rc = (XTranslateCoordinates ((*dpyinfo).display, *toplevels.offset (i as isize),
+					 attrs.root, -attrs.border_width,
+					 -attrs.border_width, &raw mut dest_x,
+					 &raw mut dest_y, &raw mut child) != 0
+		  && x_had_errors_p ((*dpyinfo).display) == 0) as c_int;
+	  }
+	if rc != 0
+	  {
+	    rc = ((XGetWindowProperty ((*dpyinfo).display,
+				       *toplevels.offset (i as isize),
+				       (*dpyinfo).Xatom_wm_state,
+				       0, 2, false, AnyPropertyType,
+				       &raw mut r#type, &raw mut format, &raw mut wmstate_items,
+				       &raw mut bytes_after, &raw mut wmstate_data)
+		   == Success)
+		  && x_had_errors_p ((*dpyinfo).display) == 0
+		  && !wmstate_data.is_null () && wmstate_items == 2
+		  && format == 32) as c_int;
+	  }
+
+	if XGetWindowProperty ((*dpyinfo).display, *toplevels.offset (i as isize),
+			       (*dpyinfo).Xatom_net_frame_extents,
+			       0, 4, false, XA_CARDINAL, &raw mut r#type,
+			       &raw mut format, &raw mut extent_items, &raw mut bytes_after,
+			       &raw mut extent_data) == Success
+	    && x_had_errors_p ((*dpyinfo).display) == 0
+	    && !extent_data.is_null () && extent_items >= 4 && format == 32
+	  {
+	    frame_extents[0] = *(extent_data as *mut c_ulong).offset (0) as c_int;
+	    frame_extents[1] = *(extent_data as *mut c_ulong).offset (1) as c_int;
+	    frame_extents[2] = *(extent_data as *mut c_ulong).offset (2) as c_int;
+	    frame_extents[3] = *(extent_data as *mut c_ulong).offset (3) as c_int;
+	  }
+
+	if !extent_data.is_null ()
+	  { XFree (extent_data); }
+
+	x_uncatch_errors ();
+      }
+
+      #[cfg (feature = "use_xcb")]
+      {
+	rc = true as c_int;
+
+	attrs_reply = xcb_get_window_attributes_reply ((*dpyinfo).xcb_connection,
+						       window_attribute_cookies, &raw mut error);
+
+	if attrs_reply.is_null ()
+	  {
+	    rc = false as c_int;
+	    free (error);
+	  }
+
+	coordinates_reply = xcb_translate_coordinates_reply ((*dpyinfo).xcb_connection,
+							    translate_coordinate_cookies,
+							    &raw mut error);
+
+	if coordinates_reply.is_null ()
+	  {
+	    rc = false as c_int;
+	    free (error);
+	  }
+
+	property_reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,
+						  get_property_cookies, &raw mut error);
+
+	if property_reply.is_null ()
+	  {
+	    rc = false as c_int;
+	    free (error);
+	  }
+
+	/* These requests don't set rc on failure because they aren't required.  */
+
+	xm_property_reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,
+						    xm_property_cookies, &raw mut error);
+
+	if xm_property_reply.is_null ()
+	  { free (error); }
+
+	extent_property_reply = xcb_get_property_reply ((*dpyinfo).xcb_connection,
+							extent_property_cookies,
+							&raw mut error);
+
+	if extent_property_reply.is_null ()
+	  { free (error); }
+	else
+	  {
+	    if xcb_get_property_value_length (extent_property_reply) == 16
+		&& (*extent_property_reply).format == 32
+		&& (*extent_property_reply).r#type == XA_CARDINAL
+	      {
+		fextents = xcb_get_property_value (extent_property_reply);
+		frame_extents[0] = *fextents.offset (0) as c_int;
+		frame_extents[1] = *fextents.offset (1) as c_int;
+		frame_extents[2] = *fextents.offset (2) as c_int;
+		frame_extents[3] = *fextents.offset (3) as c_int;
+	      }
+
+	    free (extent_property_reply);
+	  }
+
+	if !property_reply.is_null ()
+	    && (xcb_get_property_value_length (property_reply) != 8
+		|| (*property_reply).format != 32)
+	  { rc = false as c_int; }
+
+	geometry_reply = xcb_get_geometry_reply ((*dpyinfo).xcb_connection,
+						 get_geometry_cookies, &raw mut error);
+
+	if geometry_reply.is_null ()
+	  {
+	    rc = false as c_int;
+	    free (error);
+	  }
+      }
+
+      if rc != 0
+	{
+	  #[cfg (feature = "use_xcb")]
+	  {
+	    wmstate = xcb_get_property_value (property_reply) as *mut u32;
+	    attrs = *attrs_reply;
+	  }
+	  #[cfg (not (feature = "use_xcb"))]
+	  {
+	    wmstate = wmstate_data as *mut c_ulong;
+	  }
+
+	  tem = xmalloc (std::mem::size_of::<x_client_list_window> ())
+		  as *mut x_client_list_window;
+	  (*tem).window = *toplevels.offset (i as isize);
+	  (*tem).dpy = (*dpyinfo).display;
+	  (*tem).frame_extents_left = frame_extents[0];
+	  (*tem).frame_extents_right = frame_extents[1];
+	  (*tem).frame_extents_top = frame_extents[2];
+	  (*tem).frame_extents_bottom = frame_extents[3];
+
+	  #[cfg (not (feature = "use_xcb"))]
+	  {
+	    (*tem).x = dest_x;
+	    (*tem).y = dest_y;
+	    (*tem).width = attrs.width + attrs.border_width;
+	    (*tem).height = attrs.height + attrs.border_width;
+	    (*tem).mapped_p = attrs.map_state != IsUnmapped;
+	  }
+	  #[cfg (feature = "use_xcb")]
+	  {
+	    (*tem).x = (*coordinates_reply).dst_x - (*geometry_reply).border_width;
+	    (*tem).y = (*coordinates_reply).dst_y - (*geometry_reply).border_width;
+	    (*tem).width = (*geometry_reply).width + (*geometry_reply).border_width;
+	    (*tem).height = (*geometry_reply).height + (*geometry_reply).border_width;
+	    (*tem).mapped_p = attrs.map_state != XCB_MAP_STATE_UNMAPPED;
+	  }
+	  (*tem).next = x_dnd_toplevels;
+	  (*tem).previous_event_mask = attrs.your_event_mask;
+	  (*tem).wm_state = *wmstate.offset (0);
+	  (*tem).xm_protocol_style = xm_drag_style::XM_DRAG_STYLE_NONE as u8;
+
+	  #[cfg (not (feature = "use_xcb"))]
+	  {
+	    if xm_read_drag_receiver_info (dpyinfo, *toplevels.offset (i as isize),
+					   &raw mut xm_info) == 0
+	      { (*tem).xm_protocol_style = xm_info.protocol_style; }
+	  }
+	  #[cfg (feature = "use_xcb")]
+	  {
+	    if !xm_property_reply.is_null ()
+		&& (*xm_property_reply).format == 8
+		&& ((*xm_property_reply).r#type
+		    == (*dpyinfo).Xatom_MOTIF_DRAG_RECEIVER_INFO)
+		&& xcb_get_property_value_length (xm_property_reply) >= 4
+	      {
+		xmdata = xcb_get_property_value (xm_property_reply);
+
+		if *xmdata.offset (1) as c_int <= XM_DRAG_PROTOCOL_VERSION
+		  { (*tem).xm_protocol_style = *xmdata.offset (2); }
+	      }
+	  }
+
+	  #[cfg (feature = "have_xshape")]
+	  {
+	    #[cfg (not (feature = "use_xcb"))]
+	    { (*tem).border_width = attrs.border_width; }
+	    #[cfg (feature = "use_xcb")]
+	    { (*tem).border_width = (*geometry_reply).border_width; }
+	    (*tem).n_bounding_rects = -1;
+	    (*tem).n_input_rects = -1;
+
+	    if (*dpyinfo).xshape_supported_p
+	      {
+		x_ignore_errors_for_next_request (dpyinfo, 0);
+		XShapeSelectInput ((*dpyinfo).display,
+				   *toplevels.offset (i as isize),
+				   ShapeNotifyMask);
+		x_stop_ignoring_errors (dpyinfo);
+
+		#[cfg (not (feature = "have_xcb_shape"))]
+		{
+		  x_catch_errors ((*dpyinfo).display);
+		  rects = XShapeGetRectangles ((*dpyinfo).display,
+					       *toplevels.offset (i as isize),
+					       ShapeBounding,
+					       &raw mut count, &raw mut ordering);
+		  rc = x_had_errors_p ((*dpyinfo).display) as c_int;
+		  x_uncatch_errors_after_check ();
+
+		  /* Does XShapeGetRectangles allocate anything upon an error?  */
+		  if rc == 0
+		    {
+		      (*tem).n_bounding_rects = count;
+		      (*tem).bounding_rects = xmalloc (
+			std::mem::size_of::<XRectangle> () * count as usize) as *mut XRectangle;
+		      std::ptr::copy_nonoverlapping (rects, (*tem).bounding_rects,
+						     count as usize);
+
+		      XFree (rects);
+		    }
+		}
+		#[cfg (feature = "have_xcb_shape")]
+		{
+		  bounding_rect_reply = xcb_shape_get_rectangles_reply (
+		    (*dpyinfo).xcb_connection, bounding_rect_cookies, &raw mut error);
+
+		  if !bounding_rect_reply.is_null ()
+		    {
+		      bounding_rect_iterator
+			= xcb_shape_get_rectangles_rectangles_iterator (bounding_rect_reply);
+		      (*tem).n_bounding_rects = bounding_rect_iterator.rem + 1;
+		      (*tem).bounding_rects = xmalloc (
+			((*tem).n_bounding_rects
+			 * std::mem::size_of::<XRectangle> () as c_int) as usize)
+			as *mut XRectangle;
+		      (*tem).n_bounding_rects = 0;
+
+		      while bounding_rect_iterator.rem != 0
+			{
+			  (*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize).x
+			    = (*bounding_rect_iterator.data).x;
+			  (*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize).y
+			    = (*bounding_rect_iterator.data).y;
+			  (*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize).width
+			    = (*bounding_rect_iterator.data).width;
+			  (*tem).bounding_rects.offset ((*tem).n_bounding_rects as isize).height
+			    = (*bounding_rect_iterator.data).height;
+
+			  (*tem).n_bounding_rects += 1;
+			  xcb_rectangle_next (&raw mut bounding_rect_iterator);
+			}
+
+		      free (bounding_rect_reply);
+		    }
+		  else
+		    { free (error); }
+		}
+
+		#[cfg (feature = "have_xcb_shape_input_rects")]
+		{
+		  if (*dpyinfo).xshape_major > 1
+		      || ((*dpyinfo).xshape_major == 1
+			  && (*dpyinfo).xshape_minor >= 1)
+		    {
+		      input_rect_reply = xcb_shape_get_rectangles_reply (
+			(*dpyinfo).xcb_connection, input_rect_cookies, &raw mut error);
+
+		      if !input_rect_reply.is_null ()
+			{
+			  input_rect_iterator
+			    = xcb_shape_get_rectangles_rectangles_iterator (input_rect_reply);
+			  (*tem).n_input_rects = input_rect_iterator.rem + 1;
+			  (*tem).input_rects = xmalloc (
+			    ((*tem).n_input_rects
+			     * std::mem::size_of::<XRectangle> () as c_int) as usize)
+			    as *mut XRectangle;
+			  (*tem).n_input_rects = 0;
+
+			  while input_rect_iterator.rem != 0
+			    {
+			      (*tem).input_rects.offset ((*tem).n_input_rects as isize).x
+				= (*input_rect_iterator.data).x;
+			      (*tem).input_rects.offset ((*tem).n_input_rects as isize).y
+				= (*input_rect_iterator.data).y;
+			      (*tem).input_rects.offset ((*tem).n_input_rects as isize).width
+				= (*input_rect_iterator.data).width;
+			      (*tem).input_rects.offset ((*tem).n_input_rects as isize).height
+				= (*input_rect_iterator.data).height;
+
+			      (*tem).n_input_rects += 1;
+			      xcb_rectangle_next (&raw mut input_rect_iterator);
+			    }
+
+			  free (input_rect_reply);
+			}
+		      else
+			{ free (error); }
+		    }
+		}
+		#[cfg (not (feature = "have_xcb_shape_input_rects"))]
+		{
+		  /* C 3461's `#ifdef ShapeInput`: the port's `x11_constants` defines it, so the
+		     block is carried (see this slice's note).  */
+		  if (*dpyinfo).xshape_major > 1
+		      || ((*dpyinfo).xshape_major == 1
+			  && (*dpyinfo).xshape_minor >= 1)
+		    {
+		      x_catch_errors ((*dpyinfo).display);
+		      rects = XShapeGetRectangles ((*dpyinfo).display,
+						   *toplevels.offset (i as isize), ShapeInput,
+						   &raw mut count, &raw mut ordering);
+		      rc = x_had_errors_p ((*dpyinfo).display) as c_int;
+		      x_uncatch_errors_after_check ();
+
+		      /* Does XShapeGetRectangles allocate anything upon an error?  */
+		      if rc == 0
+			{
+			  (*tem).n_input_rects = count;
+			  (*tem).input_rects = xmalloc (
+			    std::mem::size_of::<XRectangle> () * count as usize)
+			    as *mut XRectangle;
+			  std::ptr::copy_nonoverlapping (rects, (*tem).input_rects,
+							 count as usize);
+
+			  XFree (rects);
+			}
+		    }
+		}
+	      }
+
+	    /* Handle the common case where the input shape equals the bounding shape.  */
+
+	    if (*tem).n_input_rects != -1
+		&& (*tem).n_bounding_rects == (*tem).n_input_rects
+		&& memcmp ((*tem).bounding_rects as *const c_void,
+			   (*tem).input_rects as *const c_void,
+			   ((*tem).n_input_rects as usize)
+			   * std::mem::size_of::<XRectangle> ()) == 0
+	      {
+		xfree ((*tem).input_rects as *mut c_void);
+		(*tem).n_input_rects = -1;
+	      }
+
+	    /* And the common case where there is no input rect and the bounding rect equals the
+	       window dimensions.  */
+
+	    #[cfg (not (feature = "use_xcb"))]
+	    let dims_ok = (*tem).n_input_rects == -1
+	      && (*tem).n_bounding_rects == 1
+	      && (*tem).bounding_rects.offset (0).width == attrs.width + attrs.border_width
+	      && (*tem).bounding_rects.offset (0).height == attrs.height + attrs.border_width
+	      && (*tem).bounding_rects.offset (0).x == -attrs.border_width
+	      && (*tem).bounding_rects.offset (0).y == -attrs.border_width;
+	    #[cfg (feature = "use_xcb")]
+	    let dims_ok = (*tem).n_input_rects == -1
+	      && (*tem).n_bounding_rects == 1
+	      && (*tem).bounding_rects.offset (0).width
+		 == (*geometry_reply).width + (*geometry_reply).border_width
+	      && (*tem).bounding_rects.offset (0).height
+		 == (*geometry_reply).height + (*geometry_reply).border_width
+	      && (*tem).bounding_rects.offset (0).x == -(*geometry_reply).border_width
+	      && (*tem).bounding_rects.offset (0).y == -(*geometry_reply).border_width;
+
+	    if dims_ok
+	      {
+		xfree ((*tem).bounding_rects as *mut c_void);
+		(*tem).n_bounding_rects = -1;
+	      }
+	  }
+
+	  x_ignore_errors_for_next_request (dpyinfo, 0);
+	  XSelectInput ((*dpyinfo).display, *toplevels.offset (i as isize),
+			(attrs.your_event_mask
+			 | StructureNotifyMask
+			 | PropertyChangeMask));
+	  x_stop_ignoring_errors (dpyinfo);
+
+	  x_dnd_toplevels = tem;
+	}
+      else
+	{
+	  #[cfg (feature = "have_xcb_shape")]
+	  {
+	    if (*dpyinfo).xshape_supported_p
+	      {
+		bounding_rect_reply = xcb_shape_get_rectangles_reply (
+		  (*dpyinfo).xcb_connection, bounding_rect_cookies, &raw mut error);
+
+		if !bounding_rect_reply.is_null ()
+		  { free (bounding_rect_reply); }
+		else
+		  { free (error); }
+	      }
+	  }
+
+	  #[cfg (feature = "have_xcb_shape_input_rects")]
+	  {
+	    if (*dpyinfo).xshape_supported_p
+		&& ((*dpyinfo).xshape_major > 1
+		    || ((*dpyinfo).xshape_major == 1
+			&& (*dpyinfo).xshape_minor >= 1))
+	      {
+		input_rect_reply = xcb_shape_get_rectangles_reply (
+		  (*dpyinfo).xcb_connection, input_rect_cookies, &raw mut error);
+
+		if !input_rect_reply.is_null ()
+		  { free (input_rect_reply); }
+		else
+		  { free (error); }
+	      }
+	  }
+	}
+
+      #[cfg (feature = "use_xcb")]
+      {
+	if !attrs_reply.is_null ()
+	  { free (attrs_reply); }
+
+	if !coordinates_reply.is_null ()
+	  { free (coordinates_reply); }
+
+	if !property_reply.is_null ()
+	  { free (property_reply); }
+
+	if !xm_property_reply.is_null ()
+	  { free (xm_property_reply); }
+
+	if !geometry_reply.is_null ()
+	  { free (geometry_reply); }
+      }
+
+      #[cfg (not (feature = "use_xcb"))]
+      {
+	if !wmstate_data.is_null ()
+	  {
+	    XFree (wmstate_data);
+	    wmstate_data = std::ptr::null_mut ();
+	  }
+      }
+      i += 1;
+    }
+
+  #[cfg (feature = "use_xcb")]
+  { SAFE_FREE! (); }
+
+  if !data.is_null ()
+    { XFree (data); }
+
+  return 0;
+}

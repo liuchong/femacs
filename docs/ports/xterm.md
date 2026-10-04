@@ -819,6 +819,15 @@ P-72 rule 3).  Four `macro-body-notes.tsv` rows cover them; the request is in th
 
 ### 15. Slice 6 (C 3013-3614): the toplevel list, and the `x11_ext` arm's five members
 
+> **Landing note (3.349).**  This tick, this decision and its evidence landed in `c8a3d8a`
+> (3.336, the `xlib.rs` round) as a *whole file*, while the code half - 666 lines of
+> `femacs/src/xterm.rs` carrying `x_dnd_compute_toplevels` - stayed in the lane's working
+> tree.  HEAD then contradicted itself for two rounds: the ledger quoted readings (the `300`
+> below, `build-tu` built, `layout-check passed`) that the committed tree could not produce
+> (`git show HEAD:femacs/src/xterm.rs | grep -c x_dnd_compute_toplevels` was **0** while this
+> file ticked it).  The 3.349 commit lands the code half, so the readings below are now HEAD's
+> own.  Nothing else in this decision changes.
+
 **The function.**  `x_dnd_compute_toplevels` (C 3013-3614, 601 lines) is ticked - the whole
 function, both of its configuration arms carried under their features (P-51):
 

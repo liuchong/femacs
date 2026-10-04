@@ -5557,3 +5557,24 @@
      这是编译级探针，不是资源系统）；`EmacsDesktopNotification.kt`(344) 本身**还没写**，本件只把它的阻塞项拆掉；
      另外 lane 记下一条跨目标约束：`EmacsActivity.onNewIntent` 引用
      `EmacsDesktopNotification.NOTIFICATION_TAG`/`NOTIFICATION_ACTION`，那两件落地时**必须是 `@JvmField`**。
+
+- **3.349 `xterm` 片 6 落地：修掉一处"台账半边入库、代码半边没入"的 HEAD 自相矛盾（2026-10-05）**：
+  ① **怎么发现的**：3.345 我入库时只挑了 `docs/ports/xterm.md` 之外的文件、把 `femacs/src/xterm.rs` 的 +666 行
+     留在工作树（理由：台账未动、来源不明）；本轮追问该 lane 后拿到判据：那是它的 **Slice 6 = C 3013-3614
+     `x_dnd_compute_toplevels`（601 C 行）**，而**台账那一半早在 `c8a3d8a`（3.336）就整文件入库了**——
+     于是 HEAD 自相矛盾：`docs/ports/xterm.md` 第 57 行勾着 `x_dnd_compute_toplevels (line 3013)`、
+     Decision 15 与 Evidence 引着 `300`/`built`/`layout-check passed` 三个读数，而
+     `git show HEAD:femacs/src/xterm.rs | grep -c x_dnd_compute_toplevels` = **0**。成因：**整文件提交台账**时，
+     工作树里的台账已写了下一片的内容，而代码按文件挑选没带上。
+  ② **我自己的复核（不引用 lane 的）**：`git diff --numstat femacs/src/xterm.rs` → **666 insertions, 0 deletions**；
+     函数名在工作树 **2 处**、在 HEAD **0 处**；`build-tu src/xterm.c` → `built src/xterm.rs -> ../build/femacs/xterm.o`；
+     `extract-abi --check emacs/src/xterm.c femacs/src/xterm.rs` → **300** 行，最早一条 missing 是
+     `XTcondemn_scroll_bars`（C 17262，**后面的片**，不是片 6 的缺口）；台账 Decision 15 与 Evidence 的读数
+     与本件一致（它们本来就是按工作树写的）。
+  ③ **为什么这条值得写下来**：本轮的教训是**"整文件台账提交"会把下一片的记录提前带进 HEAD**，而现有四道门
+     （`check-port-lines` 只看行数比、`audit-wip` 只看未勾项、`check-swift-units` 只管 Swift、`--check` 只看
+     ABI 差）**没有一道**比对"台账勾了的名字在不在这棵树里"。本轮先落代码、把台账加一条 landing note；
+     下一步把它做成门（见 3.350）。
+  ④ **未声称**：片 6 的 666 行在冻结构建下**整身 gated**（`build-tu` 编到的是空区间）；真正编译它的 X11 臂探针
+     报 410 条错误，其中**落在片 6 自己文本里的 24 条**全是**已登记**类别（8 条是本文件后面才定义的函数、
+     4 条是镜像已记名的 X11 类型，其余在别的片与镜像里）——"片 6 无新缺口"是**分类后的判断**，不是"探针 green"。
