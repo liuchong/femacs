@@ -6764,3 +6764,34 @@
   ⑥ **未声称**：冻结配置下这 829 行**一行都没编进去**；翻臂只是**编译级/类型检查级**读数，没有 JNI 调用、没有 frame、
      没有光标/铃声/IME 事件被执行；**C 830-7,117 只是登记、没有移植**；`have_window_system` 一路没进 probe，
      所以"Android 真配置下的正确性"本片给不出读数。
+
+- **3.400 P-86 第五件：`haikuterm.c` 第一片 C 1-1044（2026-10-05）**：
+  ① **区间**：收在 C 1044（`haiku_draw_text_decoration` 的 `}`，距 1000 只差 44 行；上一项边界 C 885）。
+     **下一个活定义是 `haiku_draw_string_box`（C 1046-1106）**。落点 **37 个定义 + 10 个文件级对象/宏**，
+     台账 52 行区间表连续覆盖 C 1-4,898（`haiku_fill_underline` C 846-886 含 `switch` + DOTS→DASHES 的 `FALLTHROUGH`，
+     `haiku_draw_text_decoration` C 887-1044）。
+  ② **行数**：`femacs/src/haikuterm.rs` **11 → 1,555 行**；台账 24 → **316 行**。
+  ③ **读数**：冻结档 `build-tu` → built / exit 0 / **336 字节空对象**（2 发，末版用同一 materialized root 复现）；
+     `check-cond-eval src/haikuterm.c` → **5 conditions, 0 unknown, 0 disagreements [VERIFIED]**；
+     `check-dead-file-coverage` **12 ledger(s) bound / 0 failure**；`check-port-lines` **87 文件 / 203,995 行**
+     （3 stale，含本件）；`check-citations`/`check-declarations`/`check-carried` 全绿。
+     **无一档 Haiku 目标编译**（`which` 四种 haiku-gcc 全空、`rustup target list` 无 haiku、brew 无 haiku、
+     全盘无 `be_interface.h`）⇒ 按 P-86 ③⑵ **`text-only`**；lane 另在 `/tmp` 的 harness 上做了只读/写读数
+     （2 cfg 下发 `exit 1 / 78 error`，其中单元文本 6 / 镜像 72）+ **变异对照**（注入后 79 行），并自己标明
+     "那不是 Haiku-target 编译"。
+  ④ **集成者这一轮的动作**：⑴ `macro-body-notes.tsv` 补 **5 行**，C 依据逐条实读并核过端口拼法——
+     `haiku_focus_frame`（C 547 `haiku_frame_raise_lower (frame, 1)`，端口写 `true`）、`haiku_new_focus_frame`
+     （C 560/565 的 `0`/`1` → `false`/`true`）、`haiku_implicitly_set_name`（C 575 `haiku_set_name (f, arg, 0)` → `false`）、
+     `haiku_draw_underwave`（C 764 `float ax, ay, bx, by;` → `f32`）、`haiku_fill_underline`（C 846-886 的 `switch` +
+     C 874 的 `FALLTHROUGH` → `match`）；补完 `--check` **76 → 71**（余下全是 C 1045-4,898 余量的 `missing *` 与行数漂移）。
+     ⑵ **本轮含一处镜像改动**（`femacs/src/include/haikuterm.rs` +10/-3：`FRAME_COMPLETE_P` 加 C 的写臂；
+     `haiku_output_bit_p/_set` 的形参改 `*mut c_void` 内部一次 cast——因为 `FRAME_OUTPUT_DATA` 给的是 P-72 ③
+     的 `*mut c_void`，原签名让每个 `MAKE_FRAME_DIRTY` 展开成 `E0308`），**按 P-87 跑了全量扫描**（读数见下一条）。
+  ⑤ **仍未解决（点名）**：⑴ 镜像轮：`include/frame.rs` 缺 `tooltip` 成员与**全部 window-system 标志编号**
+     （`FRAME_*_SHIFT` 全在 `not(have_window_system)` 下）、`include/dispextern.rs` 缺 `#include "fontset.h"`、
+     19 条 `eassert`/`XUNTAG` 的 include 自足性、9 条 window-system 臂的 `E0080` 布局断言；
+     ⑵ **`include/window.rs` 399 的 `WINDOW_BUFFER_LOCAL_VALUE (w, v)` 形参顺序与 C 的 `(V, W)` 相反**
+     （单元侧已交换实参并注明，镜像该改）；⑶ 15 条 use-site 声明归位 + `struct face`/21 个 `FACE_*` 掩码的镜像副本；
+     ⑷ **刻意不加** `line-drift-tolerance` 行（WIP 口径同 xdisp），该行应在文件落完时按最终密度推导。
+  ⑥ **未声称**：**无 Haiku 构建、无链接、无运行**；③ 的 harness 读数不是 Haiku-target 编译；
+     `build-tu` 的 336 字节空对象只证明"门在、冻结档编不到"，不是新文本的证明；`femacs/platform/haiku/*.cc` 那一侧未触及。

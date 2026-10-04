@@ -246,15 +246,21 @@ pub const HAIKU_OUTPUT_MENU_BAR_OPEN_P_BIT: u8 = 1 << 1;
 pub const HAIKU_OUTPUT_DIRTY_P_BIT: u8 = 1 << 2;
 pub const HAIKU_OUTPUT_COMPLETE_P_BIT: u8 = 1 << 3;
 
+/* The two accessors take the pointer `FRAME_OUTPUT_DATA` yields - the untyped P-72 rule-3
+   member - and cast once inside, which is what lets `FRAME_DIRTY_P`/`FRAME_COMPLETE_P`/
+   `FRAME_HAIKU_DRAWABLE` below pass it straight through (the first consumer, `haikuterm.rs`,
+   measured `E0308 expected *mut haiku_output, found *mut c_void` at every
+   `MAKE_FRAME_DIRTY` expansion while the parameter was `*const haiku_output`).  */
 #[inline(always)]
-pub fn haiku_output_bit_p (o: *const haiku_output, bit: u8) -> bool
+pub fn haiku_output_bit_p (o: *mut c_void, bit: u8) -> bool
 {
-  return (unsafe { (*o).bits } & bit) != 0;
+  return unsafe { (*(o as *mut haiku_output)).bits } & bit != 0;
 }
 
 #[inline(always)]
-pub fn haiku_output_bit_set (o: *mut haiku_output, bit: u8, value: bool)
+pub fn haiku_output_bit_set (o: *mut c_void, bit: u8, value: bool)
 {
+  let o = o as *mut haiku_output;
   unsafe {
     if value
       {
@@ -399,6 +405,7 @@ macro_rules! FRAME_DIRTY_P {
 }
 macro_rules! FRAME_COMPLETE_P {
   ($f:expr) => { haiku_output_bits! (complete_p, FRAME_OUTPUT_DATA! ($f)) };
+  ($f:expr, $v:expr) => { haiku_output_bits! (complete_p, FRAME_OUTPUT_DATA! ($f), $v) };
 }
 macro_rules! MAKE_FRAME_DIRTY {
   ($f:expr) => { FRAME_DIRTY_P! ($f, 1) };
