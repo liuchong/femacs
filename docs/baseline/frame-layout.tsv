@@ -1,0 +1,301 @@
+# struct frame from frame.h (c), read by
+# `spikes/gated-layout-probe.py struct frame frame.h c`:
+# the frozen build's generated config.h, plus the gated macros configure would
+# emit, on the command line.  Columns: arm\tmember\tbyte-offset-or-byte:bits.
+# `parse=no` marks an arm this machine cannot read, with the reason in the run.
+arm	member	offset-or-bits
+frozen	sizeof struct frame	568
+frozen	align struct frame	8
+frozen	union vectorlike_header header	0
+frozen	ptrdiff_t size	0
+frozen	Lisp_Object name	8
+frozen	Lisp_Object icon_name	16
+frozen	Lisp_Object title	24
+frozen	Lisp_Object parent_frame	32
+frozen	Lisp_Object last_mouse_device	40
+frozen	Lisp_Object focus_frame	48
+frozen	Lisp_Object root_window	56
+frozen	Lisp_Object selected_window	64
+frozen	Lisp_Object old_selected_window	72
+frozen	Lisp_Object minibuffer_window	80
+frozen	Lisp_Object param_alist	88
+frozen	Lisp_Object scroll_bars	96
+frozen	Lisp_Object condemned_scroll_bars	104
+frozen	Lisp_Object menu_bar_items	112
+frozen	Lisp_Object face_hash_table	120
+frozen	Lisp_Object menu_bar_vector	128
+frozen	Lisp_Object buffer_predicate	136
+frozen	Lisp_Object buffer_list	144
+frozen	Lisp_Object buried_buffer_list	152
+frozen	Lisp_Object tool_bar_position	160
+frozen	Lisp_Object tab_bar_items	168
+frozen	Lisp_Object tool_bar_items	176
+frozen	struct face_cache * face_cache	184
+frozen	EMACS_UINT id	192
+frozen	int last_tab_bar_item	200
+frozen	int menu_bar_items_used	204
+frozen	struct glyph_pool * current_pool	208
+frozen	struct glyph_pool * desired_pool	216
+frozen	struct glyph_matrix * desired_matrix	224
+frozen	struct glyph_matrix * current_matrix	232
+frozen	bool_bf glyphs_initialized_p	240:0-0
+frozen	bool_bf resized_p	240:1-1
+frozen	bool_bf default_face_done_p	240:2-2
+frozen	bool_bf already_hscrolled_p	240:3-3
+frozen	bool_bf updated_p	240:4-4
+frozen	bool_bf fonts_changed	240:5-5
+frozen	bool_bf cursor_type_changed	240:6-6
+frozen	bool_bf redisplay	240:7-7
+frozen	unsigned int visible	241:0-0
+frozen	bool_bf iconified	241:1-1
+frozen	bool_bf garbaged	241:2-2
+frozen	bool_bf wants_modeline	241:3-3
+frozen	bool_bf auto_raise	241:4-4
+frozen	bool_bf auto_lower	241:5-5
+frozen	bool_bf no_split	241:6-6
+frozen	bool_bf explicit_name	241:7-7
+frozen	bool_bf window_change	242:0-0
+frozen	bool_bf window_state_change	242:1-1
+frozen	bool_bf mouse_moved	242:2-2
+frozen	bool_bf pointer_invisible	242:3-3
+frozen	bool_bf frozen_window_starts	242:4-4
+frozen	enum output_method output_method	242:5-8
+frozen	bool_bf undecorated	243:1-1
+frozen	bool_bf no_accept_focus	243:2-2
+frozen	bool_bf no_special_glyphs	243:3-3
+frozen	bool_bf can_set_window_size	243:4-4
+frozen	bool_bf after_make_frame	243:5-5
+frozen	bool_bf tab_bar_redisplayed	243:6-6
+frozen	bool_bf tab_bar_resized	243:7-7
+frozen	bool_bf tool_bar_redisplayed	244:0-0
+frozen	bool_bf tool_bar_resized	244:1-1
+frozen	bool_bf face_change	244:2-2
+frozen	bool_bf inhibit_clear_image_cache	244:3-3
+frozen	bool_bf new_size_p	244:4-4
+frozen	bool_bf was_invisible	244:5-5
+frozen	bool_bf select_mini_window_flag	244:6-6
+frozen	bool_bf borders_respect_alpha_background	244:7-7
+frozen	int change_stamp	248
+frozen	ptrdiff_t number_of_windows	256
+frozen	int tab_bar_lines	264
+frozen	int tab_bar_height	268
+frozen	int n_tab_bar_rows	272
+frozen	int n_tab_bar_items	276
+frozen	int tool_bar_lines	280
+frozen	int tool_bar_height	284
+frozen	int n_tool_bar_rows	288
+frozen	int n_tool_bar_items	292
+frozen	char * decode_mode_spec_buffer	296
+frozen	int * insert_line_cost	304
+frozen	int * delete_line_cost	312
+frozen	int * insert_n_lines_cost	320
+frozen	int * delete_n_lines_cost	328
+frozen	int text_cols	336
+frozen	int text_lines	340
+frozen	int text_width	344
+frozen	int text_height	348
+frozen	int total_cols	352
+frozen	int total_lines	356
+frozen	int pixel_width	360
+frozen	int pixel_height	364
+frozen	int new_width	368
+frozen	int new_height	372
+frozen	int left_pos	376
+frozen	int top_pos	380
+frozen	int win_gravity	384
+frozen	int size_hint_flags	388
+frozen	int border_width	392
+frozen	int child_frame_border_width	396
+frozen	int internal_border_width	400
+frozen	int right_divider_width	404
+frozen	int bottom_divider_width	408
+frozen	int left_fringe_width	412
+frozen	int right_fringe_width	416
+frozen	int fringe_cols	420
+frozen	int menu_bar_lines	424
+frozen	int menu_bar_height	428
+frozen	int column_width	432
+frozen	int line_height	436
+frozen	struct terminal * terminal	440
+frozen	union output_data output_data	448
+frozen	struct tty_output * tty	448
+frozen	struct x_output * x	448
+frozen	struct w32_output * w32	448
+frozen	struct ns_output * ns	448
+frozen	struct pgtk_output * pgtk	448
+frozen	struct haiku_output * haiku	448
+frozen	struct android_output * android	448
+frozen	struct font_driver_list * font_driver_list	456
+frozen	enum text_cursor_kinds desired_cursor	464
+frozen	int cursor_width	468
+frozen	enum text_cursor_kinds blink_off_cursor	472
+frozen	int blink_off_cursor_width	476
+frozen	int config_scroll_bar_width	480
+frozen	int config_scroll_bar_cols	484
+frozen	int config_scroll_bar_height	488
+frozen	int config_scroll_bar_lines	492
+frozen	intmax_t cost_calculation_baud_rate	496
+frozen	double[2] alpha	504
+frozen	double alpha_background	520
+frozen	double gamma	528
+frozen	int extra_line_spacing	536
+frozen	int extra_line_spacing_above	540
+frozen	unsigned long background_pixel	544
+frozen	unsigned long foreground_pixel	552
+frozen	int z_order	560
+ns_cocoa	sizeof struct frame	608
+ns_cocoa	align struct frame	8
+ns_cocoa	union vectorlike_header header	0
+ns_cocoa	ptrdiff_t size	0
+ns_cocoa	Lisp_Object name	8
+ns_cocoa	Lisp_Object icon_name	16
+ns_cocoa	Lisp_Object title	24
+ns_cocoa	Lisp_Object parent_frame	32
+ns_cocoa	Lisp_Object last_mouse_device	40
+ns_cocoa	Lisp_Object focus_frame	48
+ns_cocoa	Lisp_Object root_window	56
+ns_cocoa	Lisp_Object selected_window	64
+ns_cocoa	Lisp_Object old_selected_window	72
+ns_cocoa	Lisp_Object minibuffer_window	80
+ns_cocoa	Lisp_Object param_alist	88
+ns_cocoa	Lisp_Object scroll_bars	96
+ns_cocoa	Lisp_Object condemned_scroll_bars	104
+ns_cocoa	Lisp_Object menu_bar_items	112
+ns_cocoa	Lisp_Object face_hash_table	120
+ns_cocoa	Lisp_Object menu_bar_vector	128
+ns_cocoa	Lisp_Object buffer_predicate	136
+ns_cocoa	Lisp_Object buffer_list	144
+ns_cocoa	Lisp_Object buried_buffer_list	152
+ns_cocoa	Lisp_Object tab_bar_window	160
+ns_cocoa	Lisp_Object desired_tab_bar_string	168
+ns_cocoa	Lisp_Object current_tab_bar_string	176
+ns_cocoa	Lisp_Object tool_bar_position	184
+ns_cocoa	Lisp_Object tab_bar_items	192
+ns_cocoa	Lisp_Object tool_bar_items	200
+ns_cocoa	struct face_cache * face_cache	208
+ns_cocoa	struct image_cache * image_cache	216
+ns_cocoa	EMACS_UINT id	224
+ns_cocoa	int last_tab_bar_item	232
+ns_cocoa	int menu_bar_items_used	236
+ns_cocoa	struct glyph_pool * current_pool	240
+ns_cocoa	struct glyph_pool * desired_pool	248
+ns_cocoa	struct glyph_matrix * desired_matrix	256
+ns_cocoa	struct glyph_matrix * current_matrix	264
+ns_cocoa	bool_bf glyphs_initialized_p	272:0-0
+ns_cocoa	bool_bf resized_p	272:1-1
+ns_cocoa	bool_bf default_face_done_p	272:2-2
+ns_cocoa	bool_bf already_hscrolled_p	272:3-3
+ns_cocoa	bool_bf updated_p	272:4-4
+ns_cocoa	bool_bf minimize_tab_bar_window_p	272:5-5
+ns_cocoa	bool_bf external_tool_bar	272:6-6
+ns_cocoa	bool_bf fonts_changed	272:7-7
+ns_cocoa	bool_bf cursor_type_changed	273:0-0
+ns_cocoa	bool_bf redisplay	273:1-1
+ns_cocoa	bool_bf external_menu_bar	273:2-2
+ns_cocoa	unsigned int visible	273:3-3
+ns_cocoa	bool_bf iconified	273:4-4
+ns_cocoa	bool_bf garbaged	273:5-5
+ns_cocoa	bool_bf wants_modeline	273:6-6
+ns_cocoa	bool_bf auto_raise	273:7-7
+ns_cocoa	bool_bf auto_lower	274:0-0
+ns_cocoa	bool_bf no_split	274:1-1
+ns_cocoa	bool_bf explicit_name	274:2-2
+ns_cocoa	bool_bf window_change	274:3-3
+ns_cocoa	bool_bf window_state_change	274:4-4
+ns_cocoa	bool_bf mouse_moved	274:5-5
+ns_cocoa	bool_bf pointer_invisible	274:6-6
+ns_cocoa	bool_bf frozen_window_starts	274:7-7
+ns_cocoa	enum output_method output_method	275:0-3
+ns_cocoa	bool_bf undecorated	275:4-4
+ns_cocoa	bool_bf no_accept_focus	275:5-5
+ns_cocoa	bool_bf tooltip	275:6-6
+ns_cocoa	enum fullscreen_type want_fullscreen	276:0-3
+ns_cocoa	enum vertical_scroll_bar_type vertical_scroll_bar_type	276:4-5
+ns_cocoa	bool_bf horizontal_scroll_bars	276:6-6
+ns_cocoa	bool_bf override_redirect	276:7-7
+ns_cocoa	bool_bf skip_taskbar	277:0-0
+ns_cocoa	bool_bf no_focus_on_map	277:1-1
+ns_cocoa	enum z_group z_group	277:2-3
+ns_cocoa	bool_bf no_special_glyphs	277:4-4
+ns_cocoa	bool_bf can_set_window_size	277:5-5
+ns_cocoa	bool_bf after_make_frame	277:6-6
+ns_cocoa	bool_bf tab_bar_redisplayed	277:7-7
+ns_cocoa	bool_bf tab_bar_resized	278:0-0
+ns_cocoa	bool_bf tool_bar_redisplayed	278:1-1
+ns_cocoa	bool_bf tool_bar_resized	278:2-2
+ns_cocoa	bool_bf face_change	278:3-3
+ns_cocoa	bool_bf inhibit_clear_image_cache	278:4-4
+ns_cocoa	bool_bf new_size_p	278:5-5
+ns_cocoa	bool_bf was_invisible	278:6-6
+ns_cocoa	bool_bf select_mini_window_flag	278:7-7
+ns_cocoa	bool_bf borders_respect_alpha_background	279:0-0
+ns_cocoa	int change_stamp	280
+ns_cocoa	ptrdiff_t number_of_windows	288
+ns_cocoa	int tab_bar_lines	296
+ns_cocoa	int tab_bar_height	300
+ns_cocoa	int n_tab_bar_rows	304
+ns_cocoa	int n_tab_bar_items	308
+ns_cocoa	int tool_bar_lines	312
+ns_cocoa	int tool_bar_height	316
+ns_cocoa	int n_tool_bar_rows	320
+ns_cocoa	int n_tool_bar_items	324
+ns_cocoa	char * decode_mode_spec_buffer	328
+ns_cocoa	int * insert_line_cost	336
+ns_cocoa	int * delete_line_cost	344
+ns_cocoa	int * insert_n_lines_cost	352
+ns_cocoa	int * delete_n_lines_cost	360
+ns_cocoa	int text_cols	368
+ns_cocoa	int text_lines	372
+ns_cocoa	int text_width	376
+ns_cocoa	int text_height	380
+ns_cocoa	int total_cols	384
+ns_cocoa	int total_lines	388
+ns_cocoa	int pixel_width	392
+ns_cocoa	int pixel_height	396
+ns_cocoa	int new_width	400
+ns_cocoa	int new_height	404
+ns_cocoa	int left_pos	408
+ns_cocoa	int top_pos	412
+ns_cocoa	int win_gravity	416
+ns_cocoa	int size_hint_flags	420
+ns_cocoa	int border_width	424
+ns_cocoa	int child_frame_border_width	428
+ns_cocoa	int internal_border_width	432
+ns_cocoa	int right_divider_width	436
+ns_cocoa	int bottom_divider_width	440
+ns_cocoa	int left_fringe_width	444
+ns_cocoa	int right_fringe_width	448
+ns_cocoa	int fringe_cols	452
+ns_cocoa	int menu_bar_lines	456
+ns_cocoa	int menu_bar_height	460
+ns_cocoa	int column_width	464
+ns_cocoa	int line_height	468
+ns_cocoa	struct terminal * terminal	472
+ns_cocoa	union output_data output_data	480
+ns_cocoa	struct tty_output * tty	480
+ns_cocoa	struct x_output * x	480
+ns_cocoa	struct w32_output * w32	480
+ns_cocoa	struct ns_output * ns	480
+ns_cocoa	struct pgtk_output * pgtk	480
+ns_cocoa	struct haiku_output * haiku	480
+ns_cocoa	struct android_output * android	480
+ns_cocoa	struct font_driver_list * font_driver_list	488
+ns_cocoa	enum text_cursor_kinds desired_cursor	496
+ns_cocoa	int cursor_width	500
+ns_cocoa	enum text_cursor_kinds blink_off_cursor	504
+ns_cocoa	int blink_off_cursor_width	508
+ns_cocoa	int config_scroll_bar_width	512
+ns_cocoa	int config_scroll_bar_cols	516
+ns_cocoa	int config_scroll_bar_height	520
+ns_cocoa	int config_scroll_bar_lines	524
+ns_cocoa	intmax_t cost_calculation_baud_rate	528
+ns_cocoa	double[2] alpha	536
+ns_cocoa	double alpha_background	552
+ns_cocoa	double gamma	560
+ns_cocoa	int extra_line_spacing	568
+ns_cocoa	int extra_line_spacing_above	572
+ns_cocoa	unsigned long background_pixel	576
+ns_cocoa	unsigned long foreground_pixel	584
+ns_cocoa	enum ns_appearance_type ns_appearance	592
+ns_cocoa	bool_bf ns_transparent_titlebar	596
+ns_cocoa	int z_order	600
