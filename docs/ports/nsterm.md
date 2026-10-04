@@ -69,12 +69,12 @@
 - [x] ns_make_frame_invisible  (line 1678) — landed as `@_cdecl("ns_make_frame_invisible")` (src/nsterm.h 1227)
 - [x] ns_make_frame_visible_invisible  (line 1693, static) — landed
 - [x] ns_iconify_frame  (line 1705) — landed as `@_cdecl("ns_iconify_frame")` (src/nsterm.h 1228)
-- [ ] ns_free_frame_resources  (line 1744)
-- [ ] ns_destroy_window  (line 1784, static)
-- [ ] compute_offset  (line 1816, static)
-- [ ] ns_set_offset  (line 1854)
-- [ ] ns_set_window_size  (line 1877, static)
-- [ ] ns_set_window_size_and_position  (line 1920, static)
+- [x] ns_free_frame_resources  (line 1744) — landed as `@_cdecl("ns_free_frame_resources")` (src/nsterm.h 1187); C's `[x release]` calls are the runtime decrement (`Unmanaged.passUnretained (x).release ()`, round 3's reading), and the three display-info/mouse-highlight member writes are entries
+- [x] ns_destroy_window  (line 1784, static) — landed as `fileprivate func` (C's `static void`); `emacs_abort ()` is the `Never`-returning entry
+- [x] compute_offset  (line 1816, static) — landed as `fileprivate func`; `f->size_hint_flags` is the member entry `frame_size_hint_flags` with `XNegative`/`YNegative` as enumerator entries, and the GNUstep clamp is dead
+- [x] ns_set_offset  (line 1854) — landed as **`@_cdecl("ns_set_offset")`** - the definition the `ns_set_offset_entry` row of (4) waited for (first called at C 1691); its signature matches `nsfns.swift` 600, and `nm -u` no longer lists `_ns_set_offset` (Evidence)
+- [x] ns_set_window_size  (line 1877, static) — landed as `fileprivate func` (C's `static void`); the `NSTRACE_MSG` arguments are not evaluated (empty macro), and `f->output_data.ns->zooming` is the member pair `ns_output_zooming`/`ns_output_set_zooming`
+- [x] ns_set_window_size_and_position  (line 1920, static) — landed; `FRAME_NS_TITLEBAR_HEIGHT`/`FRAME_TOOLBAR_HEIGHT` are entries, and `compute_offset`/`frame_left_pos`/`frame_top_pos` were already in place
 - [ ] ns_set_no_focus_on_map  (line 2043)
 - [ ] ns_set_appearance_1  (line 2120)
 - [ ] ns_set_appearance  (line 2131)
@@ -528,12 +528,16 @@ macros (C 773-807), `ns_row_rect` (C 808-827), `ns_frame_scale_factor` (C 828-89
 the generator misses) and `ns_unfocus` (C 1282-1310), the visible bell's narrative (C 1313-1330),
 **the file's first class** `EmacsBell` (C 1333-1430, its `@interface` and all four methods),
 `bell_view` (C 1433) and `ns_ring_bell` (C 1436-1469); `hide_bell` (C 1471-1491) is dead in this
-build and is recorded.  **Round 7 lands C 1493-1743** - the focus hooks (C 1493-1525), the raise/lower pair and their
+build and is recorded.  **Round 9 lands C 1877-1956**: `ns_set_window_size` (C 1877-1915) and
+`ns_set_window_size_and_position` (C 1920-1956).  **Round 8 landed C 1744-1876**: the frame-resource teardown (`ns_free_frame_resources`
+C 1744-1780, exported), `ns_destroy_window` (C 1782-1810), `compute_offset` (C 1812-1852) and
+**`ns_set_offset` (C 1854-1875) - the definition the (4) table's first function row waited for**,
+after which `nm -u` no longer lists `_ns_set_offset`.  **Round 7 landed C 1493-1743** - the focus hooks (C 1493-1525), the raise/lower pair and their
 dispatcher (C 1527-1578), `ns_frame_rehighlight` (C 1582-1620) and the visibility hooks
-(C 1624-1742, three of them `@_cdecl` exports) - so the covered range is now **C 60-1743**.  The
-next live definition is C 1744's `ns_free_frame_resources`.
+(C 1624-1742, three of them `@_cdecl` exports) - and round 8 lands C 1744-1876, so the covered range is
+now **C 60-1956**.  The next live definition is C 1959's `ns_set_undecorated`.
 
-Ticked above: **45 of the 145 function boxes** (the generator's 142 plus the three it misses -
+Ticked above: **51 of the 145 function boxes** (the generator's 142 plus the three it misses -
 round 5's two and round 6's `ns_focus`) (the twenty-one landed - through round 4's eight -
 and the three dead `nstrace_*`), **16 of the 23 macro boxes** (the eight masks,
 `NO_APPDEFINED_DATA` and the five `EV_*` accessors, plus `DOCK_IGNORE_LIMIT` and the two
@@ -542,7 +546,7 @@ and the three dead `nstrace_*`), **16 of the 23 macro boxes** (the eight masks,
 constants and round 6's `bell_view`), **1 of the 1 type box** (`EmacsMargins`,
 C 650) and **2 of the 8 Objective-C classes** (`NSColor (EmacsColor)` with its four methods, and
 **`EmacsBell`** - the file's first *class*, with its `@interface` declaration and all four
-methods).  The other 100 function boxes, 7 macro boxes, 6 class boxes and 185 method boxes are
+methods).  The other 94 function boxes, 7 macro boxes, 6 class boxes and 185 method boxes are
 later slices; round 7 adds five rows to the `## ABI` (4) table - three class methods and, for the
 first time, two of this unit's own *functions*.
 
@@ -938,6 +942,25 @@ that signature, so the two units agree.
 (src/nsterm.h 1226-1228) are the frame hooks the redisplay interface calls, so they keep C's names
 under `@_cdecl`.
 
+### The macro-name audit (status 3.251's rule)
+
+`nm -g build/emacs-ref/{src,lib}/*.o` was searched for every macro/INLINE name this unit imports
+as an entry: **`FRAME_NS_VIEW`, `FRAME_DISPLAY_INFO`, `MOUSE_HL_INFO`, `SELECTED_FRAME`,
+`WINDOW_TO_FRAME_PIXEL_Y`, `FRAME_NS_TITLEBAR_HEIGHT`, `FRAME_TOOLBAR_HEIGHT`, `NILP`, `CONSP`,
+`XCAR`, `XCDR`, `EQ`, `SYMBOLP`, `FRAME_PARENT_FRAME`, `SET_FRAME_VISIBLE`, `FRAME_VISIBLE_P`,
+`FRAME_LIVE_P`, `FRAME_FOCUS_FRAME`, `fset_focus_frame`, `FRAME_NO_FOCUS_ON_MAP`, `XSETFRAME`,
+`FRAMEP`, `reset_mouse_highlight`, `free_frame_menubar` have zero symbols**, while the true
+functions have them (`change_frame_size` 4, `xfree` 49, `emacs_abort` 37, `free_frame_faces` 3,
+`window_box` 3).  So every macro-name row in `## ABI` (2)-(4) is a name the **core** has to
+export as a shim (the lane's rule for header-only constructs, and what
+`docs/baseline/swift-import-pending.txt` tracks); none of them can come from C or a library.
+
+**The two computed macros are the exception that proves it**: `FRAME_NS_TITLEBAR_HEIGHT` and
+`FRAME_TOOLBAR_HEIGHT` expand to AppKit arithmetic (nsterm.h 1062-1079), so they are spelled as
+Swift bodies (`frame_ns_titlebar_height`/`frame_toolbar_height`) rather than imported, and no
+shim is owed for them - the reading status 3.251 asks for (`fflush_unlocked`'s lesson: a macro
+whose expansion is expressible must not become a symbol).
+
 ## ABI
 
 
@@ -1002,6 +1025,11 @@ what `nm -g` shows (Evidence).
 | `mouse_highlight_set_mouse_face_defer` | the bitfield member `MOUSE_HL_INFO (f)->mouse_face_defer` (src/dispextern.h 3020) | src/dispextern.h | **open**: member-write entry, `<record>_set_<member>` per `docs/ports/nsmenu.swift` 311-328 |
 | `visible_bell` | `DEFVAR_BOOL ("visible-bell", …)` variable | src/dispnew.c | **open**: data symbol, the core's to export |
 | `SELECTED_FRAME` | `#define SELECTED_FRAME() …` | src/frame.h | header-only |
+| `MOUSE_HL_INFO` | `Mouse_HLInfo *MOUSE_HL_INFO (struct frame *)` | src/frame.h 1028 | header-only |
+| member entries (round 8) | `mouse_highlight_mouse_face_mouse_frame`, `ns_display_info_set_ns_focus_frame`, `ns_output_miniimage`, `frame_output_data_ns`/`frame_set_output_data_ns`, `frame_size_hint_flags`/`frame_set_size_hint_flags`, `XNegative`, `YNegative` | the records' members, per `docs/ports/nsmenu.swift` 311-328; a member entry takes the handle C's own expression starts from | **open**: the core's to export |
+| `free_frame_menubar`, `free_frame_faces`, `reset_mouse_highlight`, `xfree`, `emacs_abort`, `change_frame_size` | core functions | src/frame.h 1883 / src/dispextern.h / src/lisp.h / src/dispnew.h | the core |
+| `ns_output_zooming`, `ns_output_set_zooming` | the `struct ns_output` member `f->output_data.ns->zooming` | src/nsterm.h's `struct ns_output` | **open**: member entries |
+| `FRAME_NS_TITLEBAR_HEIGHT`, `FRAME_TOOLBAR_HEIGHT` | **not entries** - the two computed macros (src/nsterm.h 1062-1079) are spelled as Swift bodies instead, per the rule of status 3.251 (see Decisions) | src/nsterm.h 1062-1079 | spelled in place |
 
 `Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
 core exports a C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  The
@@ -1031,7 +1059,8 @@ repeats them until they land.
 | `fsIsNative` (`fsIsNative_entry`) | src/nsterm.m 1655 (`ns_make_frame_visible`) | `EmacsView -fsIsNative`, C 8952 | **deferred** |
 | `handleFS` (`handleFS_entry`) | src/nsterm.m 1663 | `EmacsView -handleFS`, C 9126 | **deferred** |
 | `setParentChildRelationships` (`setParentChildRelationships_entry`) | src/nsterm.m 1687 | `EmacsWindow -setParentChildRelationships`, C 9934 | **deferred** |
-| `ns_set_offset` (`ns_set_offset_entry`) | src/nsterm.m 1691 | this unit's own `ns_set_offset`, C 1854 (the signature `nsfns.swift` 600 already imports) | **deferred (function)** |
+| `ns_set_offset` (`ns_set_offset_entry`) | src/nsterm.m 1691 | this unit's own `ns_set_offset`, C 1854 (the signature `nsfns.swift` 600 already imports) | **landed (round 8, C 1854)** - `_ns_set_offset` left `nm -u` |
+| `setWindowClosing` (`setWindowClosing_entry`) | src/nsterm.m 1757 (`ns_free_frame_resources`) | `EmacsView -setWindowClosing:`, C 7047 | **deferred** |
 | `ns_set_frame_alpha` (`ns_set_frame_alpha_entry`) | src/nsterm.m 1616 | this unit's own `ns_set_frame_alpha`, C 2366; C forward-declares it at C 1622 | **deferred (function)** |
 
 The last two rows are the ruling's shape applied to **functions**: C itself forward-declares them

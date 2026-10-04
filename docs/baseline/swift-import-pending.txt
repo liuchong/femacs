@@ -410,7 +410,6 @@ ns_command_modifier	the reference's own C text declares or defines it (a header 
 ns_control_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_display_info_set_horizontal_scroll_bar_cursor	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
 ns_display_info_set_vertical_scroll_bar_cursor	imported by a Swift unit and provided by nothing yet; ruling pending (see docs/reviews/2026-10-04-swift-import-rulings.md for the method)
-ns_free_frame_resources	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_function_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_lisp_to_color	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_output_background_color	the core must export this C-ABI entry (the Swift unit imports the C construct by name; see docs/reviews/2026-10-04-swift-import-rulings.md)
@@ -460,7 +459,6 @@ ns_set_appearance	the reference's own C text declares or defines it (a header ma
 ns_set_appearance_1	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
 ns_set_no_accept_focus	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_set_no_focus_on_map	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
-ns_set_offset	the reference's own C text declares it (a header macro/INLINE/enumerator or a .c/.m DEFSYM) and the Swift unit imports it by name; the core must export it
 ns_set_parent_frame	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_set_transparent_titlebar	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
 ns_set_undecorated	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it

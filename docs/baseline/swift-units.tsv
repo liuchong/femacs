@@ -9,21 +9,14 @@ femacs/platform/macos/macfont.swift	mac_ctfont_get_glyph_for_cid	src/macfont.m	i
 femacs/platform/macos/macfont.swift	mac_font_copy_default_descriptors_for_language	src/macfont.m
 femacs/platform/macos/macfont.swift	mac_font_copy_default_name_for_charset_and_languages	src/macfont.m
 femacs/platform/macos/nsfns.swift	all_nonzero_ascii	src/nsfns.m
-femacs/platform/macos/nsfns.swift	compute_tip_xy	src/nsfns.m
 femacs/platform/macos/nsfns.swift	count_utf8_chars	src/nsfns.m
-femacs/platform/macos/nsfns.swift	frame_geometry	src/nsfns.m
 femacs/platform/macos/nsfns.swift	interpret_services_menu	src/nsfns.m	in the arm this target does not take (`NS_IMPL_COCOA` is defined, so src/nsfns.m 200-258 is `#ifndef NS_IMPL_COCOA` text); permanent
-femacs/platform/macos/nsfns.swift	ns_create_tip_frame	src/nsfns.m
-femacs/platform/macos/nsfns.swift	ns_make_monitor_attribute_list	src/nsfns.m
 femacs/platform/macos/nsfns.swift	ns_move_tooltip_to_mouse_location	src/nsfns.m
 femacs/platform/macos/nsfns.swift	syms_of_nsfns	src/nsfns.m
-femacs/platform/macos/nsfns.swift	unwind_create_tip_frame	src/nsfns.m
-femacs/platform/macos/nsfns.swift	x_hide_tip	src/nsfns.m
 femacs/platform/macos/nsfont.swift	ns_dump_glyphstring	src/nsfont.m
 femacs/platform/macos/nsfont.swift	nsfont_draw	src/nsfont.m
 femacs/platform/macos/nsterm.swift	cancel_ns_deferred_UAZoomChangeFocus_timer	src/nsterm.m
 femacs/platform/macos/nsterm.swift	check_native_fs	src/nsterm.m
-femacs/platform/macos/nsterm.swift	compute_offset	src/nsterm.m
 femacs/platform/macos/nsterm.swift	frame_set_mouse_pixel_position	src/nsterm.m
 femacs/platform/macos/nsterm.swift	get_keysym_name	src/nsterm.m
 femacs/platform/macos/nsterm.swift	hide_bell	src/nsterm.m
@@ -47,7 +40,6 @@ femacs/platform/macos/nsterm.swift	ns_defined_color	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_delete_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_delete_terminal	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_destroy_fringe_bitmap	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_destroy_window	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_display_pixel_height	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_display_pixel_width	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_displays_reconfigured	src/nsterm.m
@@ -72,7 +64,6 @@ femacs/platform/macos/nsterm.swift	ns_fill_underline	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_flush_display	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_font_desc_to_font_spec	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_frame_up_to_date	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_free_frame_resources	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_free_pixmap	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_fullscreen_hook	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_get_color	src/nsterm.m
@@ -105,11 +96,8 @@ femacs/platform/macos/nsterm.swift	ns_set_frame_alpha	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_glyph_string_gc	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_horizontal_scroll_bar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_no_focus_on_map	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_set_offset	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_transparent_titlebar	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_set_vertical_scroll_bar	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_set_window_size	src/nsterm.m
-femacs/platform/macos/nsterm.swift	ns_set_window_size_and_position	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_setup_relief_colors	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_shift_glyphs_for_insert	src/nsterm.m
 femacs/platform/macos/nsterm.swift	ns_show_hourglass	src/nsterm.m

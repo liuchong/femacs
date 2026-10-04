@@ -33,7 +33,13 @@
 // and the visibility hooks `ns_make_frame_visible` (C 1624-1676, exported),
 // `ns_make_frame_invisible` (C 1678-1691, exported), `ns_make_frame_visible_invisible`
 // (C 1693-1702) and `ns_iconify_frame` (C 1705-1742, exported).  The next live definition is
-// C 1744's `ns_free_frame_resources`.
+// C 1744's `ns_free_frame_resources`.  **Round 8 lands C 1744-1876**: the resource teardown
+// (`ns_free_frame_resources` C 1744-1780, exported), `ns_destroy_window` (C 1782-1810),
+// `compute_offset` (C 1812-1852) and **`ns_set_offset` (C 1854-1875) - the definition the
+// deferred entry `ns_set_offset_entry` waited for** - so `nm -u` no longer lists
+// `_ns_set_offset`.  **Round 9 lands C 1877-1956**: `ns_set_window_size` (C 1877-1915) and
+// `ns_set_window_size_and_position` (C 1920-1956).  The next live definition is C 1959's
+// `ns_set_undecorated`.
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -1800,5 +1806,304 @@ func ns_iconify_frame(_ f: UnsafeMutableRawPointer?) {
      crash, so block it for the duration.  */
   block_input()
   view?.window?.miniaturize(NSApp)
+  unblock_input()
+}
+
+// ==========================================================================
+// C 1744-1876: the frame-resource teardown and the window-placement pair.
+// ==========================================================================
+
+/// C: `Mouse_HLInfo *MOUSE_HL_INFO (struct frame *f)` (src/frame.h 1028's macro) and the
+/// `struct mouse_highlight` member this block reads.  A member entry takes the handle C's own
+/// expression starts from - here the `hlinfo` local, in round 6's write the frame - and its name
+/// always spells the record and the member.
+@_silgen_name("MOUSE_HL_INFO")
+func MOUSE_HL_INFO(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("mouse_highlight_mouse_face_mouse_frame")
+func mouse_highlight_mouse_face_mouse_frame(_ hlinfo: UnsafeMutableRawPointer?)
+  -> UnsafeMutableRawPointer?
+/// C: `void reset_mouse_highlight (Mouse_HLInfo *)` (src/dispextern.h).
+@_silgen_name("reset_mouse_highlight")
+func reset_mouse_highlight(_ hlinfo: UnsafeMutableRawPointer?)
+/// C: the `struct ns_display_info` member write `dpyinfo->ns_focus_frame = 0` - the setter of
+/// round 7's reader.
+@_silgen_name("ns_display_info_set_ns_focus_frame")
+func ns_display_info_set_ns_focus_frame(_ f: UnsafeMutableRawPointer?,
+                                        _ v: UnsafeMutableRawPointer?)
+/// C: `struct ns_output`'s member `f->output_data.ns->miniimage` - the `ns_output_<member>`
+/// family `docs/ports/nsmenu.swift` 311-328 names (`ns_output_in_animation`), and the
+/// `f->output_data.ns` member itself, whose write `nsfns.swift` 717 names
+/// `frame_set_display_info` for the same kind of access.
+@_silgen_name("ns_output_miniimage")
+func ns_output_miniimage(_ f: UnsafeMutableRawPointer?) -> NSImage?
+@_silgen_name("frame_set_output_data_ns")
+func frame_set_output_data_ns(_ f: UnsafeMutableRawPointer?, _ v: UnsafeMutableRawPointer?)
+/// C: the same member read (`xfree (f->output_data.ns);`, C 1776).
+@_silgen_name("frame_output_data_ns")
+func frame_output_data_ns(_ f: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+/// C: `void free_frame_menubar (struct frame *)` (src/frame.h 1883),
+/// `void free_frame_faces (struct frame *)` (src/dispextern.h) and `void xfree (void *)`
+/// (src/lisp.h).
+@_silgen_name("free_frame_menubar") func free_frame_menubar(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("free_frame_faces") func free_frame_faces(_ f: UnsafeMutableRawPointer?)
+@_silgen_name("xfree") func xfree(_ p: UnsafeMutableRawPointer?)
+/// C: `AVOID emacs_abort (void)` (src/lisp.h) - it does not return.
+@_silgen_name("emacs_abort") func emacs_abort() -> Never
+/// C: the `struct frame` member `f->size_hint_flags` (read, and read-modify-written by
+/// `ns_set_offset`) with the two enumerators it is tested against.
+@_silgen_name("frame_size_hint_flags")
+func frame_size_hint_flags(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("frame_set_size_hint_flags")
+func frame_set_size_hint_flags(_ f: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("XNegative") func XNegative() -> Int32
+@_silgen_name("YNegative") func YNegative() -> Int32
+
+/// **A deferred entry**: `[(EmacsView *)view setWindowClosing: YES]` (C 1757) waits for
+/// `EmacsView -setWindowClosing:` (C 7047), so the call site takes the entry and the
+/// `@_cdecl("setWindowClosing")` definition lands beside the class.
+@_silgen_name("setWindowClosing")
+func setWindowClosing_entry(_ view: NSView?, _ closing: Bool)
+
+/// C 1744-1780: `void ns_free_frame_resources (struct frame *f)` - "Free resources of frame F."
+/// Declared src/nsterm.h 1187, so it keeps C's name under `@_cdecl`.  C's `[x release]` calls
+/// are the manual memory management ARC replaces; where the reference *drops* a reference it
+/// owned (`[f->output_data.ns->miniimage release]`, `[view release]`), the port performs the
+/// same decrement through the runtime (`Unmanaged.passUnretained (x).release ()`), the reading
+/// round 3's `ns_release_object` uses.
+@_cdecl("ns_free_frame_resources")
+func ns_free_frame_resources(_ f: UnsafeMutableRawPointer?) {
+  check_window_system(f)
+  let view = FRAME_NS_VIEW(f)
+
+  setWindowClosing_entry(view, true) /* may not have been informed */
+
+  block_input()
+
+  free_frame_menubar(f)
+  free_frame_faces(f)
+
+  if f == ns_display_info_ns_focus_frame(f) {
+    ns_display_info_set_ns_focus_frame(f, nil)
+  }
+  if f == ns_display_info_highlight_frame(f) {
+    ns_display_info_set_highlight_frame(f, nil)
+  }
+  let hlinfo = MOUSE_HL_INFO(f)
+  if f == mouse_highlight_mouse_face_mouse_frame(hlinfo) {
+    reset_mouse_highlight(hlinfo)
+  }
+
+  if ns_output_miniimage(f) != nil {
+    Unmanaged.passUnretained(ns_output_miniimage(f)!).release()
+  }
+
+  view?.window?.close()
+  view?.removeFromSuperview()
+  Unmanaged.passUnretained(view!).release()
+
+  xfree(frame_output_data_ns(f))
+  frame_set_output_data_ns(f, nil)
+
+  unblock_input()
+}
+
+/// C 1782-1810: `static void ns_destroy_window (struct frame *f)` - "External: Delete the
+/// window".  `emacs_abort` does not return, and C's second `FRAME_PARENT_FRAME (f)` test is the
+/// reference's own "pacify a incorrect GCC warning" branch.
+fileprivate func ns_destroy_window(_ f: UnsafeMutableRawPointer?) {
+  check_window_system(f)
+
+  /* If this frame has a parent window, detach it as not doing so can
+     cause a crash in GNUStep.  */
+  if FRAME_PARENT_FRAME(f) != nil {
+    let child = FRAME_NS_VIEW(f)?.window
+    var parent: NSWindow?
+
+    /* Pacify a incorrect GCC warning about FRAME_PARENT_FRAME (f)
+       being NULL.  */
+    if FRAME_PARENT_FRAME(f) != nil {
+      parent = FRAME_NS_VIEW(FRAME_PARENT_FRAME(f))?.window
+    } else {
+      emacs_abort()
+    }
+
+    parent?.removeChildWindow(child!)
+  }
+
+  FRAME_NS_VIEW(f)?.window?.close()
+  ns_free_frame_resources(f)
+  ns_window_num -= 1
+}
+
+/// C 1812-1852: `static NSPoint compute_offset (struct frame *f, NSView *view, int xoff, int
+/// yoff)`.  The `NS_IMPL_GNUSTEP` menu-overlap clamp is the GNUstep arm (dead here).
+fileprivate func compute_offset(_ f: UnsafeMutableRawPointer?, _ view: NSView?,
+                                _ xoff: Int32, _ yoff: Int32) -> NSPoint {
+  /* If there is no parent frame then just convert to screen
+     coordinates, UNLESS we have negative values, in which case I
+     think it's best to position from the bottom and right of the
+     current screen rather than the main screen or whole display.  */
+
+  let parentRect = ns_parent_window_rect(f)
+  let windowFrame = view?.window?.frame ?? .zero
+  var topLeft = NSPoint.zero
+
+  if frame_size_hint_flags(f) & XNegative() != 0 {
+    topLeft.x = NSMaxX(parentRect) - NSWidth(windowFrame) + CGFloat(xoff)
+  } else if FRAME_PARENT_FRAME(f) != nil {
+    topLeft.x = NSMinX(parentRect) + CGFloat(xoff)
+  } else {
+    topLeft.x = CGFloat(xoff)
+  }
+
+  if frame_size_hint_flags(f) & YNegative() != 0 {
+    topLeft.y = NSMinY(parentRect) + NSHeight(windowFrame) - CGFloat(yoff)
+  } else if FRAME_PARENT_FRAME(f) != nil {
+    topLeft.y = NSMaxY(parentRect) - CGFloat(yoff)
+  } else {
+    topLeft.y = NSMaxY(NSScreen.screens[0].frame) - CGFloat(yoff)
+  }
+
+  return topLeft
+}
+
+/// C 1854-1875: `void ns_set_offset (struct frame *f, int xoff, int yoff, int change_grav)` -
+/// "External: Position the window".  Declared src/nsterm.h 1126 - **this is the definition the
+/// deferred entry `ns_set_offset_entry` (first called at C 1691) waits for**, and its signature
+/// is the one `nsfns.swift` 600 imports.
+@_cdecl("ns_set_offset")
+func ns_set_offset(_ f: UnsafeMutableRawPointer?, _ xoff: Int32, _ yoff: Int32,
+                   _ change_grav: Int32) {
+  let view = FRAME_NS_VIEW(f)
+
+  if view == nil {
+    return
+  }
+
+  block_input()
+
+  let topLeft = compute_offset(f, view, xoff, yoff)
+  view?.window?.setFrameTopLeftPoint(topLeft)
+  frame_set_size_hint_flags(f, frame_size_hint_flags(f) & ~(XNegative() | YNegative()))
+
+  unblock_input()
+}
+
+// ==========================================================================
+// C 1877-1956: the window-sizing pair.
+// ==========================================================================
+
+/// C: `struct ns_output`'s member `f->output_data.ns->zooming` (read, and reset to 0) - the
+/// `ns_output_<member>` family `docs/ports/nsmenu.swift` 311-328 names.
+@_silgen_name("ns_output_zooming") func ns_output_zooming(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("ns_output_set_zooming")
+func ns_output_set_zooming(_ f: UnsafeMutableRawPointer?, _ v: Bool)
+/// C: `void change_frame_size (struct frame *, int, int, bool, bool, bool)` (src/dispnew.h) -
+/// C's `NO` is `false`.
+@_silgen_name("change_frame_size")
+func change_frame_size(_ f: UnsafeMutableRawPointer?, _ new_width: Int32, _ new_height: Int32,
+                       _ pretend: Bool, _ delay: Bool, _ safe: Bool)
+/// C: `#define FRAME_NS_TITLEBAR_HEIGHT(f) …` (src/nsterm.h 1062-1068, "Compute pixel height of
+/// the frame's titlebar") and `#define FRAME_TOOLBAR_HEIGHT(f) …` (src/nsterm.h 1071-1079).
+/// **Neither has a symbol anywhere in the port** (measured: `nm -g` over
+/// `build/emacs-ref/{src,lib}/*.o` finds none), so per the integrator's rule of status 3.251 -
+/// a name with no real C symbol cannot be a C-ABI entry - this unit spells each macro's *body*
+/// instead of importing its name.  The bodies need only AppKit and the existing `FRAME_NS_VIEW`
+/// entry.
+fileprivate func frame_ns_titlebar_height(_ f: UnsafeMutableRawPointer?) -> Int32 {
+  let view = FRAME_NS_VIEW(f)
+  if view == nil || NSHeight(view!.frame) == 0 {
+    return 0
+  }
+  let window = view!.window
+  return Int32(NSHeight(window!.frame)
+               - NSHeight(NSWindow.contentRect(forFrameRect: window!.frame,
+                                               styleMask: window!.styleMask)))
+}
+
+fileprivate func frame_toolbar_height(_ f: UnsafeMutableRawPointer?) -> Int32 {
+  let window = FRAME_NS_VIEW(f)?.window
+  let toolbar = window?.toolbar
+  if toolbar == nil || !toolbar!.isVisible {
+    return 0
+  }
+  return Int32(NSHeight(NSWindow.contentRect(forFrameRect: window!.frame,
+                                            styleMask: window!.styleMask))
+               - NSHeight(window!.contentView!.frame))
+}
+
+/// C 1877-1915: `static void ns_set_window_size (struct frame *f, bool change_gravity, int
+/// width, int height)` - "Adjust window pixel size based on native sizes WIDTH and HEIGHT."
+/// The `NSTRACE_*` calls are the empty macros at `NSTRACE_ENABLED` 0, so their arguments
+/// (`FRAME_COLUMN_WIDTH`/`FRAME_LINE_HEIGHT`, `[window frame]`) are not evaluated here either -
+/// the same dead-arm reading rounds 1 and 6 recorded.
+fileprivate func ns_set_window_size(_ f: UnsafeMutableRawPointer?, _ change_gravity: Bool,
+                                    _ width: Int32, _ height: Int32) {
+  let view = FRAME_NS_VIEW(f)
+  let window = view?.window
+
+  if view == nil {
+    return
+  }
+
+  block_input()
+
+  var frameRect = window?.frameRect(forContentRect:
+                                      NSMakeRect(0, 0, CGFloat(width), CGFloat(height))) ?? .zero
+
+  /* Set the origin so the top left of the frame doesn't move.  */
+  frameRect.origin = window?.frame.origin ?? .zero
+  frameRect.origin.y += NSHeight(view!.frame) - CGFloat(height)
+
+  if ns_output_zooming(f) {
+    ns_output_set_zooming(f, false)
+  }
+
+  /* Usually it seems safe to delay changing the frame size, but when a
+     series of actions are taken with no redisplay between them then we
+     can end up using old values so don't delay here.  */
+  change_frame_size(f, width, height, false, false, false)
+
+  window?.setFrame(frameRect, display: false)
+
+  unblock_input()
+}
+
+/// C 1920-1956: `static void ns_set_window_size_and_position (struct frame *f, int width, int
+/// height)` - "Adjust window pixelwise size and position in one operation."
+fileprivate func ns_set_window_size_and_position(_ f: UnsafeMutableRawPointer?, _ width: Int32,
+                                                 _ height: Int32) {
+  let view = FRAME_NS_VIEW(f)
+  let window = view?.window
+
+  if view == nil {
+    return
+  }
+
+  block_input()
+
+  /* Both window frame origin, and the rect that setFrame accepts are
+     anchored to the bottom-left corner of the window.  */
+  let topLeft = compute_offset(f, view, frame_left_pos(f), frame_top_pos(f))
+  let bottomLeft = NSMakePoint(topLeft.x,
+                               /* text-area pixels + decorations. */
+                               topLeft.y - (CGFloat(height)
+                                            + CGFloat(frame_ns_titlebar_height(f))
+                                            + CGFloat(frame_toolbar_height(f))))
+  let frameRect = window?.frameRect(forContentRect: NSMakeRect(bottomLeft.x, bottomLeft.y,
+                                                               CGFloat(width),
+                                                               CGFloat(height))) ?? .zero
+
+  if ns_output_zooming(f) {
+    ns_output_set_zooming(f, false)
+  }
+
+  /* Usually it seems safe to delay changing the frame size, but when a
+     series of actions are taken with no redisplay between them then we
+     can end up using old values so don't delay here.  */
+  change_frame_size(f, width, height, false, false, false)
+  window?.setFrame(frameRect, display: false)
+  frame_set_size_hint_flags(f, frame_size_hint_flags(f) & ~(XNegative() | YNegative()))
+
   unblock_input()
 }
