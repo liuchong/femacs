@@ -3936,3 +3936,10 @@
   ④ **证据**：`--check` → **OK**、台账框全勾；`build-tu lib/stdcountof.in.h` → `built lib/include/stdcountof.in.rs`；
   `check-mirror-dupes` 1/1/0。读数：`gen-port-inventory` **590 files、done=579、wip=10、todo=1**——
   **剩下的唯一一件 todo 是 `src/xterm.h`（2,045 行），在 xterm lane 手里**。
+
+- **3.216 七个单元不再各带一份 libc-config 的名字，改成 include 镜像；外加 `ALIGN_STACK` 的裁决（2026-10-04）**：
+  ① **背景**：3.204 才做出 `femacs/lib/include/libc-config.rs`（`lib/libc-config.h` 的镜像——那七个 unit 在 C 里的**第一个** include，却一直没有镜像）。按 3.181/3.211 的 ownership 规则，名字归镜像，于是七个单元把各自长出来的本地副本撤掉：
+  `tempname`/`mktime`/`canonicalize-lgpl`/`strtol`/`euidaccess` 的 `__set_errno!`，`regcomp`/`regexec` 的 `weak_alias!` 与 `libc_hidden_def!`（`05843b6`）。
+  ② **证据（本轮重测）**：七个 `--check` 全 **OK**；`build-tu lib/{mktime,strtol,tempname}.c` 三件都 **built**；`check-mirror-dupes` 1/1/0、`check-declarations` 13/0；读数 **590 files、done=579、wip=10、todo=1**。
+  ③ **两处形态事实照记**：七个调用点**一个都没改**（镜像形参名不同不算语义，`*errno () = $val` 与 `*errno () = ($val)` 是同一个赋值）；**只有三个 C 文件真的写了 `#include <libc-config.h>`**——`strtol.c`/`euidaccess.c` 走自己的 `#ifndef` 兜底，`regcomp.c`/`regexec.c` 是被 `regex.c` 文本包含的 shim（那行在 `regex.c` 24），所以端口里每个 include 落在它 C 源给出那个名字的位置，出处写在注释里。
+  ④ **裁决（w32term lane 交回的那一处，C 33-40）**：`#if USE_STACK_LISP_OBJECTS && !defined _WIN64 && !defined __x86_64__ && __GNUC__ + (__GNUC_MINOR__ > 1) >= 5`——clang 判 True、求值器判 False，因为 `USE_STACK_LISP_OBJECTS` **不是 config.h 的宏，是 `lisp.h` 的**（C 5721-5736），配置表看不到它。**裁决：保持现状（两支都带）**，理由是这不取决于哪支"活"：属性的那一支（`__attribute__((force_align_arg_pointer))`）Rust 表达不了、按既有做法只记录，端口的文本本来就是空臂——两种读法下镜像的文字都一样，所以没有必要为它改文件；把"clang 的 True 来自 lisp.h"这条写进台账，保守读法就有了出处。
