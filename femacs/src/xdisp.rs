@@ -18899,7 +18899,10 @@ try_cursor_movement (window: Lisp_Object, startp: text_pos,
      than the window.  Now window_end_vpos is int and so never nil, but
      let's leave eassert to check whether it fits in the window.  */
   eassert! (!window_bits! (w, window_end_valid)
-	   || (*w).window_end_vpos < (*(*w).current_matrix).nrows);
+	   || (*w).window_end_vpos < (*((*w).current_matrix as *mut glyph_matrix)).nrows);
+/* C 19892: the mirror types `window.current_matrix` as `*mut c_void`, so the field is reached
+   through the same `as *mut glyph_matrix` cast the unit already uses for the identical C 18387
+   expression (xdisp.rs 17339); `eassert!`'s stripped frozen arm had hidden the wrong spelling.  */
 
   /* Handle case where text has not changed, only point, and it has
      not moved off the frame.  */

@@ -6433,3 +6433,24 @@
      （入口是 95 文件 / 245,578 行 ⇒ 净 −3 文件 / −2,173 行）。
   ③ **未声称**：这只说明这批文件的端口行数越过了阈值，不构成它们"落完"的证据——那由各自台账的
      `## C line ranges` + `check-dead-file-coverage.py`（0 failure）与编译/翻臂读数承担。
+
+- **3.387 xdisp 里那条"冻结构建看不见的类型错误"修掉：`enable_checking` 这条腿本单元过了（2026-10-05）**：
+  ① **改动**：`femacs/src/xdisp.rs:18902`（C 依据 **C 19892**，`try_cursor_movement`）
+     `(*(*w).current_matrix).nrows` → `(*((*w).current_matrix as *mut glyph_matrix)).nrows`
+     —— 写的**不是新拼法**：同一字段的活站点在本单元有 6 处，其中 xdisp.rs 17339 是**逐字相同的姊妹表达式**
+     （C 18387），改动处照的就是它；镜像里没有 `MATRIX_NROWS` 一类访问宏（`grep` 为空），所以只能走既有 cast。
+  ② **审计（同一轮）**：枚举全单元 `eassert!`/`eassume!`/`clobbered_eassert` **115 个语句**，抽出 49 个解引用头——
+     pointee 是镜像 `*mut c_void` 的**只有这一处**；另两处 `(*XMARKER ((*w).start)).buffer as *mut buffer`
+     （C 20494-20495）是 P-72 规则 ③ 的**正确**转换，未动。
+  ③ **读数**：`build-tu src/xdisp.c` → built / exit 0 / 对象 **2,136,144 字节（尺寸不变）**，md5 由
+     `33a0ec8a…` 变 `4b9edbb6…`；受控 A/B（同一 `_root.rs` 路径、只有这一处文本不同）证明
+     `nm -n` 逐字节相同、`__TEXT,__text`/`__cstring`/`__const`/`__DATA,__data`/`subrs`/`compact_unwind` 全部 SAME，
+     唯一不同是 `__DATA,__const` 里 panic/位置表行号**整体 +3**（那 3 行注释）。
+     **`--cfg enable_checking` 探针：改前 exit 1 / 1 条 `E0609 no field nrows` → 改后 exit 0 / 0 条错误**，
+     残余错误 0（不属于任何别的单元/镜像）。
+  ④ **由此产生的一条集成者工单（记在这里）**：`enable_checking` **不是任何常设闸门的一部分**
+     （`check-all-units.sh` 与 `gate-fast` 都不带这个 cfg），所以这类错误会继续静默漂移；要么把它接进某一档
+     （例如 `check-all-units.sh` 的一个可选第二腿），要么就得每轮靠人工探针——**这是下一步要决定的事**。
+  ⑤ **未声称**：编译（类型检查）级证据，不是运行级；"这条腿过了"只覆盖 `xdisp.rs` 及其 include 图这一份
+     materialization；冻结构建里这行**仍然不编译**（`eassert!` 的 live 臂为空是既定语义）；
+     审计是"枚举 + 编译器对拍"，别的单元若有同类站点要各自跑同一探针。

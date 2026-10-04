@@ -2729,13 +2729,24 @@ declarations (`find_last_unchanged_at_beg_row`, `find_first_unchanged_at_end_row
     `redisplay_window` row's class)`, and `row_containing_pos` / `true` / `xdisp.c 22491: C's
     tail `while (true)` is the port's `loop` (Rust's `while true` is not diverging), so the
     `true` token has no site (deviation 197)`.
-63. `femacs/src/xdisp.rs` 18899 (C 19892, `try_cursor_movement`): **a type error the frozen build
-    cannot see.**  `(*(*w).current_matrix).nrows` is inside `eassert!`, whose frozen arm is
-    empty, so `build-tu` never type-checks it; under `--cfg enable_checking` the unit fails
-    with `E0609: no field nrows on type std::ffi::c_void` (measured).  The one-token fix is
-    `(*((*w).current_matrix as *mut glyph_matrix)).nrows`.  Outside this round's C range, so
-    reported only — but it means **`enable_checking` is currently a build leg nobody can
-    pass**, and every `eassert (…->member)` in this unit should be audited the same way.
+63. **CLOSED (3.385, the follow-up fix).**  `femacs/src/xdisp.rs` 18899 (C 19892,
+    `try_cursor_movement`) read `(*(*w).current_matrix).nrows` — a type error that `eassert!`'s
+    empty frozen arm kept out of `build-tu`'s sight.  It is now
+    `(*((*w).current_matrix as *mut glyph_matrix)).nrows`, the unit's existing spelling for the
+    same C field (six live sites; the identical C 18387 expression at xdisp.rs 17339 is the
+    sibling the fix names), with a three-line note at the site giving C 19892.  **The whole-unit
+    audit is closed with it**: all 115 `eassert!`/`eassume!`/`clobbered_eassert` statements were
+    enumerated and their `…->member` derefs extracted (49 of them carry one); the only site whose
+    pointee is a mirror `*mut c_void` was this one, and the two remaining `as *mut` sites
+    (`(*XMARKER ((*w).start)).buffer as *mut buffer` and its `pointm` sibling, C 20494-20495) are
+    the correct P-72-rule-3 conversion.  Readings: the `--cfg enable_checking` probe goes from
+    **exit 1 / `E0609`** to **exit 0 / 0 errors**, with **no error from any other unit or
+    mirror** (the mirrors' own `#[cfg (enable_checking)]` blocks compile clean); the frozen
+    `build-tu` stays **exit 0** with the same six warnings, and the object keeps its size
+    (2,136,144 bytes) while its md5 changes **only** in `__DATA,__const`'s line-number table
+    (every differing word is +3, the note's lines): `__text`, `__cstring`, `__const`, `__data`,
+    `subrs`, `__compact_unwind` and the symbol table are byte-identical (measured, see the Gate
+    evidence section).
 64. `include/dispextern.rs`: **the mirror's `row_containing_pos` declaration is now shadowed in
     this unit.**  The unit defines the name with C's own `struct window *` (`*mut window`,
     deviation 198), so the mirror's `*mut c_void` declaration (dispextern.rs 3703) is only there
@@ -2813,7 +2824,7 @@ them up.
 
 `xtask layout-check` was **not** re-run this round: the unit's text adds no `struct` and no
 layout assertion, and the task's reading list is `build-tu` plus the four text gates above.
-**One extra probe was run** (not one of the four): the same object compiled with `--cfg
-enable_checking` fails with `E0609: no field nrows on type std::ffi::c_void` at
-`xdisp.rs 18899` — an earlier round's text hidden by `eassert!`'s empty frozen arm; to-do
-item 63.
+**The `enable_checking` probe** (not one of the four).  At this revision it fails with
+`E0609: no field nrows on type std::ffi::c_void` at `xdisp.rs 18899` — an earlier round's text
+hidden by `eassert!`'s empty frozen arm; to-do item 63, **fixed in the 3.385 follow-up** (see
+the to-do list for that round's two readings and for the whole-unit audit that closed with it).
