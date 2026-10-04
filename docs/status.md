@@ -6289,3 +6289,22 @@
      （`--write-manifest` / `--write-pending`），工具在 HEAD 上重新推导出同样的 801 行 ⇒ 集成时没有把
      在飞状态夹带进棘轮。
   ④ **未声称**：这只是棘轮与 HEAD 的一致性读数，不是链接、运行或行为验收。
+
+- **3.381 外部库头的声明形状定成规则（P-88），并给出它诞生时的实测（2026-10-05）**：
+  ① **问题**：P-86 要求把整身挂在假条件下的文件照录，而 `<zlib.h>`（`src/decompress.c`）、`<lcms2.h>`
+     （`src/lcms.c`）这类**第三方头在参照树里根本不存在**——`ls femacs/src/include/ | grep -iE
+     'lcms|gnutls|sqlite|zlib|xml'` 只有 `gnutls.rs`（那是**参照的** `src/gnutls.h` 的镜像），
+     `rg -ln '/// C: #include <' femacs/src/*.rs` **零命中** ⇒ "外部头的声明写在哪"此前没有约定，
+     每个这样的文件都会各写各的，或者继续按 P-08 记成空单元。
+  ② **规则（P-88，立即生效）**：声明**写在单元自己里**（`// C <行号>: \`#include <X.h>\`` 起段），
+     **不新建 `femacs/src/include/` 下的文件**——那一层是**参照头**的镜像，`check-target-names.py` 按它
+     认参照目标（`628 .rs files, 591 map targets, 0 finding(s)`），放一个没有对应参照头的文件进去会造出
+     一个无处安放的 finding。每条声明带 `/// C: <头文件那一行的原文>`（P-55 形状），类型 `#[repr(C)]` 且
+     **布局用 clang 探针量**（读数进台账 Evidence；形状见 `docs/ports/xterm.md` §19 的 xcb 段），
+     `#define` 照抄数值，函数写 `unsafe extern "C"`；台账 `## Deviations` 记一行"这一段是外部头的替身"。
+     该外部头若某天进参照树，就搬进 `include/<name>.rs` 并在同一提交里删掉段内副本（P-26/P-70）。
+  ③ **本轮已按这条规则发了工单**：`src/decompress.c`（349 行，HAVE_ZLIB undef）与 `src/lcms.c`
+     （604 行，HAVE_LCMS2 undef）两个整文件交给一个 lane 照 P-86 + P-88 落（本机有 zlib 与
+     `/opt/homebrew/include/lcms2.h`，所以两件都能做翻臂编译，不是 text-only）。
+  ④ **未声称**：这是**规则与工单**，不是两个文件已落地；本机 zlib 与 lcms2 的头存在只说明"翻臂这一档可做"，
+     不构成那两个文件已编译的证据（那是它们自己台账里的事）。
