@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 454 |
-| 其中 done / wip | 422 / 32 |
-| 待开工 | 136 |
+| 已有目标文件 | 482 |
+| 其中 done / wip | 449 / 33 |
+| 待开工 | 108 |
 
 ## 2 按目录
 
@@ -34,10 +34,10 @@
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
 | `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 48 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 5 |
-| `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 9 |
+| `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
-| `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 18 |
-| `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 4 |
+| `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 3 |
+| `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
 | `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 52 |
 
 ## 3 按批次
@@ -48,7 +48,7 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 10 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 68 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 40 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 48 |
 
@@ -346,41 +346,41 @@
 | `lib/verify.h` | 407 | 0 | 0 | 24 | 6 | 1 | 0 | L | `femacs/lib/include/verify.rs` | wip |
 | `lib/warn-on-use.h` | 153 | 0 | 0 | 4 | 0 | 0 | 0 | L | `femacs/lib/include/warn-on-use.rs` | todo |
 | `lwlib/lwlib-Xaw.c` | 844 | 20 | 0 | 0 | 0 | 8 | 1 | F | `femacs/lwlib/lwlib-Xaw.rs` | done |
-| `lwlib/lwlib-Xaw.h` | 29 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/lwlib/include/lwlib-Xaw.rs` | todo |
+| `lwlib/lwlib-Xaw.h` | 29 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/lwlib/include/lwlib-Xaw.rs` | done |
 | `lwlib/lwlib-Xlw.c` | 271 | 13 | 0 | 0 | 0 | 0 | 0 | F | `femacs/lwlib/lwlib-Xlw.rs` | done |
-| `lwlib/lwlib-Xlw.h` | 29 | 0 | 0 | 1 | 0 | 0 | 2 | F | `femacs/lwlib/include/lwlib-Xlw.rs` | todo |
+| `lwlib/lwlib-Xlw.h` | 29 | 0 | 0 | 1 | 0 | 0 | 2 | F | `femacs/lwlib/include/lwlib-Xlw.rs` | done |
 | `lwlib/lwlib-Xm.c` | 1,964 | 57 | 0 | 0 | 4 | 0 | 1 | F | `femacs/lwlib/lwlib-Xm.rs` | done |
-| `lwlib/lwlib-Xm.h` | 58 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/lwlib/include/lwlib-Xm.rs` | todo |
-| `lwlib/lwlib-int.h` | 75 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/lwlib/include/lwlib-int.rs` | todo |
+| `lwlib/lwlib-Xm.h` | 58 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/lwlib/include/lwlib-Xm.rs` | done |
+| `lwlib/lwlib-int.h` | 75 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/lwlib/include/lwlib-int.rs` | done |
 | `lwlib/lwlib-utils.c` | 291 | 12 | 0 | 0 | 0 | 0 | 0 | F | `femacs/lwlib/lwlib-utils.rs` | done |
-| `lwlib/lwlib-utils.h` | 63 | 0 | 0 | 8 | 0 | 0 | 0 | F | `femacs/lwlib/include/lwlib-utils.rs` | todo |
-| `lwlib/lwlib-widget.h` | 105 | 0 | 0 | 1 | 7 | 0 | 0 | F | `femacs/lwlib/include/lwlib-widget.rs` | todo |
+| `lwlib/lwlib-utils.h` | 63 | 0 | 0 | 8 | 0 | 0 | 0 | F | `femacs/lwlib/include/lwlib-utils.rs` | done |
+| `lwlib/lwlib-widget.h` | 105 | 0 | 0 | 1 | 7 | 0 | 0 | F | `femacs/lwlib/include/lwlib-widget.rs` | done |
 | `lwlib/lwlib.c` | 1,330 | 51 | 0 | 3 | 0 | 0 | 1 | F | `femacs/lwlib/lwlib.rs` | done |
-| `lwlib/lwlib.h` | 129 | 0 | 0 | 1 | 13 | 0 | 0 | F | `femacs/lwlib/include/lwlib.rs` | todo |
+| `lwlib/lwlib.h` | 129 | 0 | 0 | 1 | 13 | 0 | 0 | F | `femacs/lwlib/include/lwlib.rs` | done |
 | `lwlib/xlwmenu.c` | 2,920 | 64 | 0 | 7 | 1 | 0 | 6 | F | `femacs/lwlib/xlwmenu.rs` | done |
-| `lwlib/xlwmenu.h` | 87 | 0 | 0 | 44 | 43 | 0 | 1 | F | `femacs/lwlib/include/xlwmenu.rs` | todo |
-| `lwlib/xlwmenuP.h` | 158 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/lwlib/include/xlwmenuP.rs` | todo |
+| `lwlib/xlwmenu.h` | 87 | 0 | 0 | 44 | 43 | 0 | 1 | F | `femacs/lwlib/include/xlwmenu.rs` | done |
+| `lwlib/xlwmenuP.h` | 158 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/lwlib/include/xlwmenuP.rs` | done |
 | `msdos/inttypes.h` | 38 | 0 | 0 | 5 | 2 | 0 | 0 | F | `femacs/msdos/include/inttypes.rs` | done |
 | `msdos/langinfo.h` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/msdos/include/langinfo.rs` | done |
 | `nt/addpm.c` | 347 | 3 | 0 | 6 | 4 | 0 | 0 | F | `femacs/nt/addpm.rs` | done |
 | `nt/cmdproxy.c` | 965 | 17 | 0 | 5 | 1 | 0 | 3 | F | `femacs/nt/cmdproxy.rs` | done |
 | `nt/ddeclient.c` | 81 | 2 | 0 | 3 | 1 | 0 | 0 | F | `femacs/nt/ddeclient.rs` | done |
 | `nt/inc/arpa/inet.h` | 2 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/arpa/include/inet.rs` | done |
-| `nt/inc/dirent.h` | 59 | 0 | 0 | 3 | 2 | 9 | 0 | F | `femacs/nt/inc/include/dirent.rs` | todo |
-| `nt/inc/grp.h` | 36 | 0 | 0 | 1 | 0 | 2 | 0 | F | `femacs/nt/inc/include/grp.rs` | todo |
-| `nt/inc/inttypes.h` | 36 | 0 | 0 | 3 | 0 | 0 | 0 | F | `femacs/nt/inc/include/inttypes.rs` | todo |
-| `nt/inc/langinfo.h` | 64 | 0 | 0 | 23 | 23 | 0 | 0 | F | `femacs/nt/inc/include/langinfo.rs` | todo |
-| `nt/inc/mingw_time.h` | 32 | 0 | 0 | 6 | 3 | 0 | 0 | F | `femacs/nt/inc/include/mingw_time.rs` | todo |
-| `nt/inc/ms-w32.h` | 501 | 0 | 0 | 107 | 35 | 2 | 3 | F | `femacs/nt/inc/include/ms-w32.rs` | todo |
-| `nt/inc/netdb.h` | 2 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/include/netdb.rs` | todo |
-| `nt/inc/netinet/in.h` | 2 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/netinet/include/in.rs` | todo |
-| `nt/inc/netinet/tcp.h` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/netinet/include/tcp.rs` | todo |
-| `nt/inc/nl_types.h` | 25 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/nt/inc/include/nl_types.rs` | todo |
-| `nt/inc/pwd.h` | 29 | 0 | 0 | 1 | 0 | 8 | 0 | F | `femacs/nt/inc/include/pwd.rs` | todo |
-| `nt/inc/signal.h` | 39 | 0 | 0 | 2 | 0 | 0 | 0 | F | `femacs/nt/inc/include/signal.rs` | todo |
-| `nt/inc/stdalign.h` | 20 | 0 | 0 | 5 | 0 | 0 | 0 | F | `femacs/nt/inc/include/stdalign.rs` | todo |
-| `nt/inc/stdbool.h` | 16 | 0 | 0 | 5 | 2 | 0 | 0 | F | `femacs/nt/inc/include/stdbool.rs` | todo |
-| `nt/inc/stdint.h` | 72 | 0 | 0 | 21 | 4 | 0 | 0 | F | `femacs/nt/inc/include/stdint.rs` | todo |
+| `nt/inc/dirent.h` | 59 | 0 | 0 | 3 | 2 | 9 | 0 | F | `femacs/nt/inc/include/dirent.rs` | done |
+| `nt/inc/grp.h` | 36 | 0 | 0 | 1 | 0 | 2 | 0 | F | `femacs/nt/inc/include/grp.rs` | done |
+| `nt/inc/inttypes.h` | 36 | 0 | 0 | 3 | 0 | 0 | 0 | F | `femacs/nt/inc/include/inttypes.rs` | done |
+| `nt/inc/langinfo.h` | 64 | 0 | 0 | 23 | 23 | 0 | 0 | F | `femacs/nt/inc/include/langinfo.rs` | done |
+| `nt/inc/mingw_time.h` | 32 | 0 | 0 | 6 | 3 | 0 | 0 | F | `femacs/nt/inc/include/mingw_time.rs` | done |
+| `nt/inc/ms-w32.h` | 501 | 0 | 0 | 107 | 35 | 2 | 3 | F | `femacs/nt/inc/include/ms-w32.rs` | done |
+| `nt/inc/netdb.h` | 2 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/include/netdb.rs` | done |
+| `nt/inc/netinet/in.h` | 2 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/netinet/include/in.rs` | done |
+| `nt/inc/netinet/tcp.h` | 1 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/netinet/include/tcp.rs` | done |
+| `nt/inc/nl_types.h` | 25 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/nt/inc/include/nl_types.rs` | done |
+| `nt/inc/pwd.h` | 29 | 0 | 0 | 1 | 0 | 8 | 0 | F | `femacs/nt/inc/include/pwd.rs` | done |
+| `nt/inc/signal.h` | 39 | 0 | 0 | 2 | 0 | 0 | 0 | F | `femacs/nt/inc/include/signal.rs` | done |
+| `nt/inc/stdalign.h` | 20 | 0 | 0 | 5 | 0 | 0 | 0 | F | `femacs/nt/inc/include/stdalign.rs` | done |
+| `nt/inc/stdbool.h` | 16 | 0 | 0 | 5 | 2 | 0 | 0 | F | `femacs/nt/inc/include/stdbool.rs` | done |
+| `nt/inc/stdint.h` | 72 | 0 | 0 | 21 | 4 | 0 | 0 | F | `femacs/nt/inc/include/stdint.rs` | wip |
 | `nt/inc/sys/acl.h` | 25 | 0 | 0 | 4 | 3 | 0 | 0 | F | `femacs/nt/inc/sys/include/acl.rs` | done |
 | `nt/inc/sys/file.h` | 12 | 0 | 0 | 5 | 5 | 0 | 0 | F | `femacs/nt/inc/sys/include/file.rs` | done |
 | `nt/inc/sys/ioctl.h` | 6 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/sys/include/ioctl.rs` | done |
@@ -416,15 +416,15 @@
 | `oldXMenu/SetFrz.c` | 47 | 1 | 0 | 0 | 0 | 0 | 0 | F | `femacs/oldXMenu/SetFrz.rs` | done |
 | `oldXMenu/SetPane.c` | 62 | 1 | 0 | 0 | 0 | 0 | 0 | F | `femacs/oldXMenu/SetPane.rs` | done |
 | `oldXMenu/SetSel.c` | 69 | 1 | 0 | 0 | 0 | 0 | 0 | F | `femacs/oldXMenu/SetSel.rs` | done |
-| `oldXMenu/X10.h` | 77 | 0 | 0 | 6 | 5 | 0 | 0 | F | `femacs/oldXMenu/include/X10.rs` | todo |
+| `oldXMenu/X10.h` | 77 | 0 | 0 | 6 | 5 | 0 | 0 | F | `femacs/oldXMenu/include/X10.rs` | done |
 | `oldXMenu/XCrAssoc.c` | 74 | 0 | 0 | 1 | 1 | 0 | 0 | F | `femacs/oldXMenu/XCrAssoc.rs` | done |
 | `oldXMenu/XDelAssoc.c` | 68 | 1 | 0 | 0 | 0 | 0 | 0 | F | `femacs/oldXMenu/XDelAssoc.rs` | done |
 | `oldXMenu/XDestAssoc.c` | 54 | 1 | 0 | 0 | 0 | 0 | 0 | F | `femacs/oldXMenu/XDestAssoc.rs` | done |
 | `oldXMenu/XLookAssoc.c` | 74 | 0 | 0 | 1 | 1 | 0 | 0 | F | `femacs/oldXMenu/XLookAssoc.rs` | done |
 | `oldXMenu/XMakeAssoc.c` | 98 | 1 | 0 | 1 | 1 | 0 | 0 | F | `femacs/oldXMenu/XMakeAssoc.rs` | done |
-| `oldXMenu/XMenu.h` | 292 | 0 | 0 | 27 | 36 | 0 | 1 | F | `femacs/oldXMenu/include/XMenu.rs` | todo |
-| `oldXMenu/XMenuInt.h` | 90 | 0 | 0 | 8 | 3 | 0 | 0 | F | `femacs/oldXMenu/include/XMenuInt.rs` | todo |
-| `oldXMenu/copyright.h` | 18 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/oldXMenu/include/copyright.rs` | todo |
+| `oldXMenu/XMenu.h` | 292 | 0 | 0 | 27 | 36 | 0 | 1 | F | `femacs/oldXMenu/include/XMenu.rs` | done |
+| `oldXMenu/XMenuInt.h` | 90 | 0 | 0 | 8 | 3 | 0 | 0 | F | `femacs/oldXMenu/include/XMenuInt.rs` | done |
+| `oldXMenu/copyright.h` | 18 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/oldXMenu/include/copyright.rs` | done |
 | `oldXMenu/insque.c` | 57 | 2 | 0 | 0 | 0 | 3 | 0 | F | `femacs/oldXMenu/insque.rs` | done |
 | `src/alloc.c` | 7,639 | 209 | 22 | 94 | 40 | 60 | 51 | B | `femacs/src/alloc.rs` | done |
 | `src/android-asset.h` | 528 | 9 | 0 | 0 | 2 | 19 | 1 | F | `femacs/src/include/android-asset.rs` | todo |

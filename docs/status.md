@@ -1639,4 +1639,21 @@
   却在用点当外部符号调 → `include/dispextern.rs` 缺这组内联，与 xdisp lane 的 to-do 一致）、`_rpl_mempcpy`
   （`lib/mempcpy.c` 未移植）、`_sa_stack_alloc`（P-05 栈池未落地）、`_nlist`、`_cursorX`、`_row_hash`。
   `--report` 写 `build/load/undefined.txt`（`符号<TAB>引用它的对象`），这就是 L0 的工单。
+- **3.108 批次 F 的 lwlib / oldXMenu 13 个镜像入树；P-19 的收口口径量清（2026-10-04 第 99 轮第八批）**：
+  ① **`lwlib/`（9）+ `oldXMenu/`（4）镜像**由 lane 产出、集成侧逐个复核：`lwlib.h`、`lwlib-Xaw/Xlw/Xm`、
+  `lwlib-int`、`lwlib-utils`、`lwlib-widget`、`xlwmenu`、`xlwmenuP`、`X10`、`XMenu`、`XMenuInt`、`copyright`
+  ——**13 个 `extract-abi.py --check` 全 `OK`**，13 个台账 `docs/ports/include-*.md` 勾满（0 未勾项），
+  决策/偏离/证据齐（X11 名字 `Widget`/`XmString`/`Xaw...`/`Display`/`XID` 按 P-26/P-72(3) 保留 C 拼写、
+  留给使用方；`oldXMenu/copyright.h` 是**许可正文本身**，按 0.1-19 只留出处行 + 说明的"空镜像"形状）。
+  这些头不被任何 probe 编译（本目标无窗口系统，`USE_X_TOOLKIT`/`HAVE_X11`/`HAVE_X_WINDOWS` 皆 undef），
+  文本门就是全部验收。`check-declarations` 仍 0 failures、`check-mirror-dupes` 仍 0 failures。
+  ② **P-19 的收口口径量清并写进 `PORTING.md` 的 P-19 行**：`specpdl`/`specpdl_end`/`specpdl_ptr`/`current_buffer`
+  在 C 是 `thread.h` 131/135/139/147 的宏，镜像仍声明为 `extern` 存储（这正是 `gate-load` 里 `_specpdl*`/
+  `_current_buffer` 四个未定义符号的来源）。前置条件已齐：`thread.rs` 落地、它的四个 `macro_rules!` 在、
+  `lisp.rs:1439` 已按 C 的 `lisp.h` 2289 `include!("thread.rs")`，所以 `current_thread` 对所有包含 lisp.rs 的单元可见。
+  收口三步（删四个 extern 声明 → 读点 `(current_buffer! () as *mut buffer)`、写点 `current_buffer! () = b as *mut c_void`
+  → `specpdl*` 直接换字段，字段已是有类型的 `*mut specbinding`），**规模实测 876 处 / 49 个文件**
+  （buffer.rs 158、fileio.rs 105、insdel.rs 63、include/buffer.rs 58、editfns.rs 52……），且必须等两个在飞单元
+  （keyboard.rs 12、xdisp.rs 6）落地后**一次做完**，否则中间态会打断它们的构建。
+  ③ **lane 进度**：`nt/inc` 的 19 个里已落 15 个（剩 `stdint.h`、`sys/stat.h`、`sys/socket.h`、`unistd.h` 四个大件）。
 
