@@ -2096,3 +2096,23 @@
   移植的**语义**（横幅要打印、docstring 门要逐字比对），逐条理由在 `docs/baseline/declarations-allowlist.tsv`；
   照抄树（`lisp`/`test`/`etc`/`doc`/`leim`/`admin`，`check-verbatim` 6 trees/4607 files）与 `emacs/` 参照树
   不在范围内（前者是逐字节复制，后者是只读参照）；`docs/` 的中性历史叙述是决定记录，按 3.90/3.100 的定义留下。
+
+- **3.135 `lib/arg-nonnull.h` 的镜像落地（2026-10-04，本轮集成者自己收的小单元）**：这是"待开工 88 → 87"里
+  最干净的一个——整个头只有一条宏，而且不可决定的条件数为 0。
+  ① **宏 `_GL_ARG_NONNULL` 走既有排除行，不在台账里列名**：`docs/ports/excluded-macros.txt` 45 行早就记着
+  `_GL_ARG_NONNULL  syntax  attribute (lib/arg-nonnull.h); no Rust counterpart`——属性是拼写不是语义
+  （PORTING.md 0.3）。冻结目标的 clang 让 C 21 的 `defined __clang__` 项为真，因此活的是 C 22 的
+  `__attribute__ ((__nonnull__ params))`、C 24 的空臂是死文本；**但两臂都产不出 Rust 声明**，所以既不需要
+  P-51 的 `#[cfg]` 载体，也不存在"选错臂"的风险。`tools/extract-abi.py lib/arg-nonnull.h` 生成的台账因此是
+  **0 函数 / 0 宏 / 0 类型 / 0 全局**——这正是"被排除的宏由清单门计数、不由台账计数"的既有口径。
+  ② **C 20 的 `#ifndef _GL_ARG_NONNULL` 是整文件名字守卫**，Rust 无对应物（`xtask` 的包含图去重做同样的事，
+  PORTING.md 0.1-4）。
+  ③ **镜像刻意不被任何单元 include**：参照里也没有——`arg-nonnull.h` 是 gnulib 的 snippet 模块
+  （`emacs/lib/gnulib.mk.in` 3159-3171 安装），`src/`、`lib/` 里搜不到 `#include "arg-nonnull.h"`，宏是靠
+  `system.h` 的聚合文本到达使用者的；端口按 0.1-4/P-61 由聚合体直接取名，所以这个镜像就是一条"处置记录"。
+  证据：`--check emacs/lib/arg-nonnull.h femacs/lib/include/arg-nonnull.rs` → **OK**（无 problem 行）；
+  `check-cond-eval.py lib/arg-nonnull.h` → `2 conditions, 0 unknown to the evaluator, 0 disagreements`；
+  消费者侧 `build-tu lib/getdelim.c` → **built**（`getdelim.rs` 正是自己拼这个被丢掉的属性的两个单元之一）；
+  `check-globals` 283 units / 0、`check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0 failures、
+  `check-mirror-dupes` 0 failures、`check-verbatim` 6 trees/4607 files/0；`port-inventory` 复算
+  **503 个已有目标 = 489 done / 14 wip，待开工 87**（本轮由 488/14/88 推进一格）。

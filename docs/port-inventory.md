@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 502 |
-| 其中 done / wip | 488 / 14 |
-| 待开工 | 88 |
+| 已有目标文件 | 503 |
+| 其中 done / wip | 489 / 14 |
+| 待开工 | 87 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 36 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 35 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 10 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 32 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 36 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 35 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -117,7 +117,7 @@
 | `lib/alloca.in.h` | 72 | 0 | 0 | 2 | 0 | 0 | 0 | L | `femacs/lib/include/alloca.in.rs` | todo |
 | `lib/allocator.c` | 22 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/allocator.rs` | done |
 | `lib/allocator.h` | 68 | 0 | 0 | 1 | 0 | 4 | 0 | L | `femacs/lib/include/allocator.rs` | wip |
-| `lib/arg-nonnull.h` | 26 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/arg-nonnull.rs` | todo |
+| `lib/arg-nonnull.h` | 26 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/include/arg-nonnull.rs` | done |
 | `lib/assert.in.h` | 27 | 0 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/include/assert.in.rs` | todo |
 | `lib/at-func.c` | 142 | 1 | 0 | 5 | 1 | 0 | 0 | L | `femacs/lib/at-func.rs` | done |
 | `lib/attribute.h` | 364 | 0 | 0 | 32 | 0 | 0 | 0 | L | `femacs/lib/include/attribute.rs` | done |
