@@ -69,6 +69,7 @@ pub struct kboard
 // port declares the 16-bit view it is equal to on this target (`u16` at bit 0) next to the
 // complete event.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub union buffered_input_event
 {
   pub kind: u16,                                    // keyboard.h 230 (`kind : EVENT_KIND_WIDTH`)

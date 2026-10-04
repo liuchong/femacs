@@ -107,7 +107,7 @@ struct image {
 @_silgen_name("add_to_log") func add_to_log(_ format: UnsafePointer<CChar>, _ args: CVarArg...)
 @_silgen_name("plist_get") func plist_get(_ plist: Lisp_Object, _ prop: Lisp_Object) -> Lisp_Object
 @_silgen_name("Fcons") func Fcons(_ car: Lisp_Object, _ cdr: Lisp_Object) -> Lisp_Object
-/// C: `Lisp_Object make_float (double)` (declared src/floatfns.c 4652, defined
+/// C: `Lisp_Object make_float (double)` (declared src/lisp.h 4652, defined
 /// src/alloc.c 2507); the reference passes a `float`, which the prototype widens.
 @_silgen_name("make_float") func make_float(_ float_value: Double) -> Lisp_Object
 

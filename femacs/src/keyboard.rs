@@ -478,7 +478,7 @@ unsafe extern "C" {
                                 arg: Lisp_Object, handlers: Lisp_Object,
                                 hfun: unsafe extern "C" fn (Lisp_Object) -> Lisp_Object)
                                 -> Lisp_Object;
-  /// C: coding.h 800: `extern Lisp_Object code_convert_string (Lisp_Object, Lisp_Object,
+  /// C: coding.h 689: `extern Lisp_Object code_convert_string (Lisp_Object, Lisp_Object,
   ///   Lisp_Object, bool, bool, ptrdiff_t);`
   fn code_convert_string (string: Lisp_Object, coding_system: Lisp_Object,
                           nocopy: Lisp_Object, buffer: bool, gc: bool,
@@ -593,7 +593,7 @@ unsafe extern "C" {
   ///   Lisp_Object, Lisp_Object *);`
   fn get_char_property_and_overlay (position: Lisp_Object, prop: Lisp_Object,
                                     object: Lisp_Object, overlay: *mut Lisp_Object) -> Lisp_Object;
-  /// C: term.c (termopts.h/termchar.h 425's `extern bool is_tty_frame (struct frame *);`)
+  /// C: dispextern.h 4012: `bool is_tty_frame (struct frame *f);` (dispnew.c 3490 defines it)
   fn is_tty_frame (f: *mut frame) -> bool;
   /// C: lisp.h 4712: `extern void message3_frame (Lisp_Object, Lisp_Object);`
   fn message3_frame (m: Lisp_Object, frame: *mut frame);
@@ -4645,8 +4645,8 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 
       /* Selection-request events never have frames, they are actually
          instances of 'struct selection_input_event'.  */
-      if !(input_event_bits! (kind, event) == SELECTION_REQUEST_EVENT
-	    || input_event_bits! (kind, event) == SELECTION_CLEAR_EVENT)
+      if !((*event).kind == SELECTION_REQUEST_EVENT as u16
+	    || (*event).kind == SELECTION_CLEAR_EVENT as u16)
 	  && FRAMEP ((*event).ie.frame_or_window)
 	{ *event_frame = XFRAME ((*event).ie.frame_or_window); }
 
@@ -4692,7 +4692,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	}
         #[cfg (feature = "have_haiku")]
         SELECTION_CLEAR_EVENT => {
-	  let copy: input_event = (*event).ie;
+	  let mut copy: input_event = (*event).ie;
 
 	  kbd_fetch_ptr = next_kbd_event (event);
 	  input_pending = readable_events (0);
@@ -4705,7 +4705,7 @@ unsafe fn kbd_buffer_get_event (kbp: *mut *mut KBOARD,
 	  unsafe extern "C" {
 	    pub fn haiku_handle_selection_clear (event: *mut input_event);
 	  }
-	  haiku_handle_selection_clear (&raw const copy);
+	  haiku_handle_selection_clear (&raw mut copy);
 	}
 
         /* C 4264-4275.  */
@@ -5074,8 +5074,8 @@ unsafe fn process_special_events ()
   while event != kbd_store_ptr
     {
       /* If we find a stored X selection request, handle it now.  */
-      if input_event_bits! (kind, event) == SELECTION_REQUEST_EVENT
-	  || input_event_bits! (kind, event) == SELECTION_CLEAR_EVENT
+      if (*event).kind == SELECTION_REQUEST_EVENT as u16
+	  || (*event).kind == SELECTION_CLEAR_EVENT as u16
 	{
 	  /* C 4597-4604: the enclosing `#if defined HAVE_X11 || defined HAVE_PGTK ||
 	     defined HAVE_HAIKU` and its `#ifndef HAVE_HAIKU` / `#else` pair, then C 4605's
@@ -6766,7 +6766,7 @@ unsafe fn line_number_mode_hscroll (start_pos: Lisp_Object, end_pos: Lisp_Object
 	 && down_mouse_line_number_width >= 0
 	 && col_width != down_mouse_line_number_width;
 }
-/* dispextern.h 3410-3430: `enum tab_bar_item_idx` — `TAB_BAR_ITEM_KEY` … `TAB_BAR_ITEM_NSLOTS`
+/* dispextern.h 3407-3430: `enum tab_bar_item_idx` — `TAB_BAR_ITEM_KEY` … `TAB_BAR_ITEM_NSLOTS`
    — has no mirror, and `make_lispy_event`'s two carried `HAVE_WINDOW_SYSTEM` arms are the only
    text in this unit that names its members, so the type and the seven members stand at that use
    site (P-72③; PORTING.md 1.3's constant shape).  */
