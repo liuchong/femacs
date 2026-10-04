@@ -2866,8 +2866,15 @@ pub const BOOL_VECTOR_LENGTH_MAX: isize = MOST_POSITIVE_FIXNUM;
 pub const FLOAT_TO_STRING_BUFSIZE: usize = 350;
 pub const WAIT_READING_MAX: i64 = i64::MAX;
 pub const CHILD_SETUP_ERROR_DESC: &str = "Doing vfork";   // lisp.h 5208 (`#else` of DOS_NT)
-pub const HAVE_EXT_MENU_BAR: bool = true;
-pub const HAVE_EXT_TOOL_BAR: bool = true;
+/* lisp.h 3930-3933: `#if defined (USE_X_TOOLKIT) || defined (HAVE_NTGUI) || defined (HAVE_NS) ||
+   defined (USE_GTK) || defined (HAVE_HAIKU)` defines `HAVE_EXT_MENU_BAR true`, and lisp.h
+   3935-3936 defines `HAVE_EXT_TOOL_BAR true` under `USE_GTK`/`HAVE_NS`.  The frozen
+   darwin-arm64 configuration has none of those (`docs/baseline/config/darwin-arm64.macros.tsv`),
+   so both names are **undefined** in C and their value is `false` - the constants used to say
+   `true`, which no unit reads today (the arms are `#[cfg]`s) but which would take the wrong
+   branch the first time one is written as a value (status 3.110).  */
+pub const HAVE_EXT_MENU_BAR: bool = false;
+pub const HAVE_EXT_TOOL_BAR: bool = false;
 // lisp.h 3201 spells the comparison FLT_RADIX, FLT_MANT_DIG, FLT_MIN_EXP, FLT_MAX_EXP;
 // the order is kept (review D's F9).
 pub const IEEE_FLOATING_POINT: bool =

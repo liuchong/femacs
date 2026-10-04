@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 482 |
-| 其中 done / wip | 449 / 33 |
-| 待开工 | 108 |
+| 已有目标文件 | 485 |
+| 其中 done / wip | 453 / 32 |
+| 待开工 | 105 |
 
 ## 2 按目录
 
@@ -36,7 +36,7 @@
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 5 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
-| `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 3 |
+| `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 0 |
 | `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 52 |
 
@@ -48,7 +48,7 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 10 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 40 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 37 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 48 |
 
@@ -380,18 +380,18 @@
 | `nt/inc/signal.h` | 39 | 0 | 0 | 2 | 0 | 0 | 0 | F | `femacs/nt/inc/include/signal.rs` | done |
 | `nt/inc/stdalign.h` | 20 | 0 | 0 | 5 | 0 | 0 | 0 | F | `femacs/nt/inc/include/stdalign.rs` | done |
 | `nt/inc/stdbool.h` | 16 | 0 | 0 | 5 | 2 | 0 | 0 | F | `femacs/nt/inc/include/stdbool.rs` | done |
-| `nt/inc/stdint.h` | 72 | 0 | 0 | 21 | 4 | 0 | 0 | F | `femacs/nt/inc/include/stdint.rs` | wip |
+| `nt/inc/stdint.h` | 72 | 0 | 0 | 21 | 4 | 0 | 0 | F | `femacs/nt/inc/include/stdint.rs` | done |
 | `nt/inc/sys/acl.h` | 25 | 0 | 0 | 4 | 3 | 0 | 0 | F | `femacs/nt/inc/sys/include/acl.rs` | done |
 | `nt/inc/sys/file.h` | 12 | 0 | 0 | 5 | 5 | 0 | 0 | F | `femacs/nt/inc/sys/include/file.rs` | done |
 | `nt/inc/sys/ioctl.h` | 6 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/sys/include/ioctl.rs` | done |
 | `nt/inc/sys/mman.h` | 31 | 0 | 0 | 9 | 6 | 0 | 0 | F | `femacs/nt/inc/sys/include/mman.rs` | done |
 | `nt/inc/sys/param.h` | 11 | 0 | 0 | 2 | 1 | 0 | 0 | F | `femacs/nt/inc/sys/include/param.rs` | done |
 | `nt/inc/sys/resource.h` | 51 | 0 | 0 | 5 | 3 | 2 | 0 | F | `femacs/nt/inc/sys/include/resource.rs` | done |
-| `nt/inc/sys/socket.h` | 287 | 0 | 0 | 66 | 5 | 0 | 1 | F | `femacs/nt/inc/sys/include/socket.rs` | todo |
-| `nt/inc/sys/stat.h` | 175 | 0 | 0 | 50 | 13 | 38 | 1 | F | `femacs/nt/inc/sys/include/stat.rs` | todo |
+| `nt/inc/sys/socket.h` | 287 | 0 | 0 | 66 | 5 | 0 | 1 | F | `femacs/nt/inc/sys/include/socket.rs` | done |
+| `nt/inc/sys/stat.h` | 175 | 0 | 0 | 50 | 13 | 38 | 1 | F | `femacs/nt/inc/sys/include/stat.rs` | done |
 | `nt/inc/sys/time.h` | 21 | 0 | 0 | 3 | 2 | 2 | 0 | F | `femacs/nt/inc/sys/include/time.rs` | done |
 | `nt/inc/sys/wait.h` | 33 | 0 | 0 | 6 | 5 | 0 | 0 | F | `femacs/nt/inc/sys/include/wait.rs` | done |
-| `nt/inc/unistd.h` | 41 | 0 | 0 | 8 | 6 | 0 | 0 | F | `femacs/nt/inc/include/unistd.rs` | todo |
+| `nt/inc/unistd.h` | 41 | 0 | 0 | 8 | 6 | 0 | 0 | F | `femacs/nt/inc/include/unistd.rs` | done |
 | `nt/runemacs.c` | 270 | 3 | 0 | 1 | 0 | 0 | 0 | F | `femacs/nt/runemacs.rs` | done |
 | `oldXMenu/Activate.c` | 642 | 3 | 0 | 0 | 0 | 0 | 4 | F | `femacs/oldXMenu/Activate.rs` | done |
 | `oldXMenu/AddPane.c` | 121 | 1 | 0 | 0 | 0 | 0 | 0 | F | `femacs/oldXMenu/AddPane.rs` | done |

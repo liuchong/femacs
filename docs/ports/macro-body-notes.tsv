@@ -1086,3 +1086,9 @@ kbd_buffer_get_event	case,default,fallthrough	keyboard.c 4032-4593: C 4223-4530'
 RLIMIT_STACK	rlimit_stack	nt/inc/sys/resource.h 26-27: C's `#define RLIMIT_STACK RLIMIT_STACK` exists so the enum member is also usable inside `#if`; the port's constant has the value 0 and cannot spell its own name as its body (PORTING.md 1.3's enum rule)
 RLIMIT_NOFILE	rlimit_nofile	same as RLIMIT_STACK (resource.h 29-30): the self-referential `#define` is an `#if` spelling, not a value, and the port's constant carries 1
 RLIMIT_NLIMITS	rlimit_nlimits	same as RLIMIT_STACK (resource.h 32-33): the self-referential `#define` is an `#if` spelling, and the port's constant carries the last member's value 2
+CODESET	*	nt/inc/langinfo.h 36: C's `#define CODESET CODESET` is an `#if` spelling of the enum member above it; the port's constant is the whole counterpart (PORTING.md 1.3, the RLIMIT_* shape)
+DAY_*	*	nt/inc/langinfo.h 38-44: each `#define DAY_n DAY_n` is the same `#if` spelling as CODESET's row (the port's enum constant carries the name and the value)
+MON_*	*	nt/inc/langinfo.h 46-57: each `#define MON_n MON_n` is the same `#if` spelling as CODESET's row
+_NL_PAPER_WIDTH	*	nt/inc/langinfo.h 59: self-referential `#define` (see CODESET's row)
+_NL_PAPER_HEIGHT	*	nt/inc/langinfo.h 60: self-referential `#define` (see CODESET's row)
+timer_check_2	continue	keyboard.c 4763-4905: C's two `continue`s re-test the `do { … } while (CONSP (timers) || CONSP (idle_timers))` condition at the body's end, an edge Rust's `continue` does not have; the port makes the body the labelled block `'timers_and_idle_timers` and each `continue` a `break 'timers_and_idle_timers`, with the condition as the loop's break test (PORTING.md 2.2's loop shape)

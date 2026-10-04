@@ -1670,4 +1670,27 @@
   Rust 侧是宏调用，token 门按名字比对 ✓）；`check-mirror-dupes` 仍是 0 failure；`gate-load --report`
   **165 → 164 个未定义符号，`_MOUSE_HL_INFO` 消失**。`docs/ports/include-frame.md` 的第 178 项由此勾上
   （frame.h 的镜像还剩 47 个未勾项，是它的 display/face 结构族，见该台账的 blocked 段）。
+- **3.110 `nt/inc` 19 个镜像入树（27 个全 OK）；lisp.rs 两个条件常量修回 `false`；keyboard lane 第三窗口（2026-10-04 第 99 轮第十批）**：
+  ① **`nt/inc` 批次完成**：lane 落 19 个镜像（`arpa/inet`、`dirent`、`grp`、`inttypes`、`langinfo`、`mingw_time`、
+  `ms-w32`、`netdb`、`netinet/{in,tcp}`、`nl_types`、`pwd`、`signal`、`stdalign`、`stdbool`、`stdint`、
+  `sys/{socket,stat}`、`unistd`），集成侧逐个复核：`nt/inc` 下**27 个 `--check` 全 `OK`**、19 个台账勾满（0 未勾项）。
+  集成时抓到一处**门需要的共享行没落地**：`nt/inc/langinfo.h` 的 22 条自引用 `#define X X`（`CODESET`、
+  `DAY_*`、`MON_*`、`_NL_PAPER_*`）在门里要"宏体的 token 出现在 Rust 文本里"，而镜像只按 1.3 的枚举规则写成常量
+  ——补 **5 行 glob 化的 `docs/ports/macro-body-notes.tsv`**（`CODESET`、`DAY_*`、`MON_*`、两条 `_NL_PAPER_*`）
+  后 `OK`。这些镜像**不被任何 probe 编译**（无 `nt/` 单元被编），文本门是全部验收；`nt/inc/sys/**` 那 8 个
+  另有 `spikes/f_inc_probe.rs` 的编译证据。
+  ② **`include/lisp.rs` 的两个条件常量修回 `false`**（keyboard lane 报的，是"会静默走错分支"的一类）：
+  `HAVE_EXT_MENU_BAR`/`HAVE_EXT_TOOL_BAR` 是 lisp.h 3930-3936 的 `#if defined (USE_X_TOOLKIT) || …` 条件
+  `#define`，冻结表里两个键都**不存在** ⇒ C 里未定义、值为 false，而镜像原写 `true`。今天没有单元按值读它们
+  （都写成 `#[cfg]`），但第一次有人写成 `if HAVE_EXT_*` 就会走错臂。修后 `--check emacs/src/lisp.h` 仍 `OK`。
+  **审计口径**：镜像里的 `pub const NAME: bool = true` 应与 `docs/baseline/config/darwin-arm64.macros.tsv`
+  对账，条件 `#define` 缺席的一律 `false`。
+  ③ **keyboard lane 第三窗口**：C 4594-5698 / 5713-5784 / 6093-6219（+1,304 C 行）落地，`keyboard.rs` 4,938 →
+  **6,304 行**；台账 `[ ]` 176 → 143，`--check` missing 212 → 173，D7 行数漂移 66.4% → 57.1%；它的一条
+  `timer_check_2 continue` 说明行已由集成者补进 `macro-body-notes.tsv`。**裁决**：`keyboard` 的 tolerance 行
+  **现在不加**（3.99 的裁决仍然有效：等单元收口按成品实测再补；WIP 单元的漂移不会让 `--all` FAIL——它按台账
+  未勾项先归 WIP）。它报的镜像缺口（`include/window.rs` 的 `WINDOW_*` 几何宏是 `make_lispy_position` 的前置）
+  已记入 `docs/ports/keyboard.md`，是下一个镜像任务。它遇到的 `gate-fast` 在 `--all` 汇总前中止（无 traceback、
+  约 20 分钟）与集成侧同轮成功跑完的 `checked 447 ported files: 422 done, 25 in progress, 0 failing` 不一致，
+  记录为待复查的环境现象。
 
