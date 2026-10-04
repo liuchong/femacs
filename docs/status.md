@@ -3100,3 +3100,27 @@
   `layout-check` **passed**；`check-swift-units` 0/0；引证门 **72 drift / 4 range / 282 external / 13 allowed / 0 stale**。
   ⑤ 在飞：keyboard 的**收口轮**（C 13173 起，剩 9 函数 + 38 defsubr）、`macfont.swift`（**7,950 行**）、Harvey 的
   `lib/stdbit.in.h`（2,229，刚起步）、Hilbert 的 cfg feature 卫生、Boole 的引证清扫。
+
+- **3.177 `lib/stdbit.in.h` 以"有据可查的 WIP"入库，并修掉姊妹镜像的一处极性错误（2026-10-04）**：
+  ① **交付**（`c07545b`）：`lib/stdbit.in.h`（**2,229 行**，本仓最大 gnulib 模板）→ `femacs/lib/include/stdbit.in.rs`
+  （368 行，**WIP**）+ 台账。这一轮把**能测能验的"设置层"**做绿（22 个 `_GL_STDC_*_INLINE` 拼法宏、25 个
+  `GNULIB_defined_*`、endian/version 宏、`_GL_STDBIT_MEMCPY`、assume-aligned 三件——**61 框全部过门**），
+  把**家族层**（12 个 `_gl_stdbit_*` helper、75 个类型特化 `stdc_*`、24 个 dispatcher/imm8/load8/store8 宏、
+  `__popcnt64`、对象 `_gl_stdbit_popcount_support` C 916）**不写，但逐家族留下 C 行号清单**——**没有在预算内硬写两百个未验条目**，
+  台账写明这是 WIP。**这个取舍是对的**：把它当"做完"才是缺陷。
+  ② **三条实测结论**：**判据是生成头** `build/emacs-ref/lib/stdbit.h`（2,230 行）；**`HAVE_STDBIT_H` 是 undef**
+  ⇒ 系统没有 C23 `<stdbit.h>`，整套 API 由 gnulib 自己生成；`check-cond-eval` 对该文件**判不了**（31 unknown/101 disagreements）
+  ⇒ 条目取各臂并集。**解开算术家族的惯用法**（写进镜像）：C 的 dispatcher 用 `sizeof 0u`/`0ul`/`0ull` 算宽度，
+  端口写 `std::mem::size_of_val (&0u32)`/`(&0u64)`——**同一表达式且保住 C 的字面量 token**。
+  **负向验证**：把值 4321 改成 4322 → `constant __STDC_ENDIAN_BIG__: C 4321 vs Rust 4322` + FAIL ⇒ 该文件的值门是活的。
+  ③ **顺手修一处别人留下的极性错误**（tracked 文件，我改）：`femacs/lib/include/stdbit.rs:3` 原写"The frozen configuration
+  has HAVE_STDBIT_H = 1"，而**生成 config.h 1433 与宏表 1556 都是 `undef`**。注释改成引两处实测读数，并保留原结论——
+  "builtin 臂活"是**编译器**的事实（clang 有 `__builtin_clz/ctz/popcount`），不是系统头存在的事实。这颗文件在 inventory 里
+  **没有配对行**（所以任何门都没读过它），正是 3.153/3.156/3.157 那类"没人读的老注释"——记在案。
+  ④ **归属裁定**：`stdbit.in.rs` 做 owner（C23 API 面的函数声明必须落在它**自身文本**里——lane 实测 `rust_inventory` 的
+  `bodies` 只扫镜像自身，`macros`/`constants`/`statics` 才跟 include 链），`stdbit.rs` 退为"生成头事实"，
+  两者**不得重复声明同一批函数**（否则 `E0428`）；`lisp.rs` 与四个 `lib/stdc_*.rs` 的 extern-inline 单元指向 owner。
+  已排 Harvey 收口（含"每改一个 tracked 文件都列出文件+改动+理由"的要求）。
+  ⑤ 读数：`gen-port-inventory` 590 files、done=541、wip=21、todo=28；五门绿（`check-declarations` 13/0、`check-globals` 283/0、
+  `check-mirror-dupes` 1/0、`check-verbatim` 4607/0、`check-target-names` 598 `.rs`/0）；`layout-check` passed；
+  引证门 **59 drift / 4 range / 284 external**（Boole 续扫）。
