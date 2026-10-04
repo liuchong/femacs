@@ -157,6 +157,19 @@ pub unsafe fn get_proc_addr (handle: *mut c_void, fname: *const c_char) -> VOIDF
    docs/ports/excluded-macros.txt rows (kind=deferred) they need.  C's text is kept above so a
    reader sees what the mirror is not carrying.  */
 
+/// C 35-36: the two caches the getters above read (`get_page_size ()` is
+/// `sysinfo_cache.dwPageSize`).  Their types come from `<windows.h>`, which this target has not
+/// got, so they are carried under the feature that names the other side (PORTING.md P-51) with
+/// C's own type names - that target's `<windows.h>` supplies them, and the items are stripped
+/// before name resolution here.
+/// C: extern SYSTEM_INFO sysinfo_cache;
+/// C: extern OSVERSIONINFO osinfo_cache;
+#[cfg (feature = "windowsnt")]
+unsafe extern "C" {
+  pub static mut sysinfo_cache: SYSTEM_INFO;
+  pub static mut osinfo_cache: OSVERSIONINFO;
+}
+
 /// C 99-101: the `HAVE_HARFBUZZ` arm, dead text on this target (the feature macro is `undef`),
 /// carried under the feature that names the other side (PORTING.md P-51).  `HMODULE` is the
 /// platform's module handle, a pointer at the ABI.

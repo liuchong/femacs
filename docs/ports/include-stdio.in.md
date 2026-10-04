@@ -4,7 +4,7 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 1
-- [ ] getline  (line 1155)
+- [x] getline  (line 1155)
 
 ## Macros defined — 84
 - [x] GNULIB_overrides_asprintf  (line 1823, body da39a3ee5e6b)
@@ -17,7 +17,7 @@
 - [x] GNULIB_overrides_vprintf  (line 2058, body 356a192b7913)
 - [x] GNULIB_overrides_vsnprintf  (line 2139, body 356a192b7913)
 - [x] GNULIB_overrides_vsprintf  (line 2195, body 356a192b7913)
-- [ ] _  (line 59, body defc2be6e613)
+- [x] _  (line 59, body defc2be6e613)
 - [x] _GL_ATTRIBUTE_DEALLOC  (line 121, body da39a3ee5e6b)
 - [x] _GL_ATTRIBUTE_DEALLOC_FREE  (line 260, body 877a21dfea86)
 - [x] _GL_ATTRIBUTE_FORMAT  (line 149, body da39a3ee5e6b)
@@ -40,7 +40,7 @@
 - [x] asprintf  (line 1821, body 39cf986d4553)
 - [x] dprintf  (line 381, body 29c8429408e8)
 - [x] fclose  (line 410, body 61d9c99a5c1a)
-- [ ] fcloseall  (line 434, body e96f42e66f53)
+- [x] fcloseall  (line 434, body e96f42e66f53)
 - [x] fdopen  (line 517, body 3b19e8fce51e)
 - [x] fflush  (line 536, body 2fa6d9c8a545)
 - [x] fgetc  (line 556, body caf4eac54254)
@@ -59,14 +59,14 @@
 - [x] ftell  (line 946, body 4ab3c6970606)
 - [x] ftello  (line 967, body 7b0974ae3025)
 - [x] fwrite  (line 1046, body ef0701aead85)
-- [ ] fwrite_unlocked  (line 1037, body 0d8f81954150)
+- [x] fwrite_unlocked  (line 1037, body 0d8f81954150)
 - [x] getc  (line 1054, body caf4eac54254)
 - [x] getchar  (line 1070, body 07fc0b170b81)
 - [x] getdelim  (line 1092, body 37ea72ae1d14)
 - [x] getline  (line 1164, body 68ae23f939fe)
 - [x] getw  (line 1204, body 993ed9b9f087)
-- [ ] obstack_printf  (line 1256, body 223077dcb765)
-- [ ] obstack_vprintf  (line 1277, body e436d4310324)
+- [x] obstack_printf  (line 1256, body 223077dcb765)
+- [x] obstack_vprintf  (line 1277, body e436d4310324)
 - [x] perror  (line 1317, body 4c32ecdbbebd)
 - [x] popen  (line 1337, body 25929a148623)
 - [x] printf  (line 1432, body 2993eec38537)
@@ -77,7 +77,7 @@
 - [x] remove  (line 1518, body 12ac7b1803c2)
 - [x] rename  (line 1538, body 14ee3cb8f657)
 - [x] renameat  (line 1562, body 69a1f7e95382)
-- [ ] rpl_getdelim  (line 1103, body 4bff44005f8b)
+- [x] rpl_getdelim  (line 1103, body 4bff44005f8b)
 - [x] scanf  (line 1604, body a1b82795ecbf)
 - [x] snprintf  (line 1646, body 16996b94cff3)
 - [x] sprintf  (line 1711, body 4a6d16f9532e)

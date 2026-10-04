@@ -7,9 +7,9 @@
 - [x] get_proc_addr  (line 67)
 
 ## Macros defined — 11
-- [ ] DEF_DLL_FN  (line 77, body d8e52635513d)
-- [ ] LOAD_DLL_FN  (line 82, body 71bae1fa8aee)
-- [ ] LOAD_DLL_FN_OPT  (line 92, body 54cfc5abe4c0)
+- [x] DEF_DLL_FN  (line 77, body d8e52635513d)
+- [x] LOAD_DLL_FN  (line 82, body 71bae1fa8aee)
+- [x] LOAD_DLL_FN_OPT  (line 92, body 54cfc5abe4c0)
 - [x] ROUND_DOWN  (line 27, body 90b552029495)
 - [x] ROUND_UP  (line 26, body 2726c2e9c2f7)
 - [x] W32COMMON_H  (line 22, body da39a3ee5e6b)
@@ -22,8 +22,8 @@
 ## Types and their fields — 0
 
 ## File-scope objects — 7
-- [ ] extern SYSTEM_INFO sysinfo_cache  (line 35)
-- [ ] extern OSVERSIONINFO osinfo_cache  (line 36)
+- [x] extern SYSTEM_INFO sysinfo_cache  (line 35)
+- [x] extern OSVERSIONINFO osinfo_cache  (line 36)
 - [x] extern DWORD_PTR syspage_mask  (line 37)
 - [x] extern int w32_major_version  (line 39)
 - [x] extern int w32_minor_version  (line 40)
@@ -121,3 +121,20 @@
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);
   `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures;
   `check-target-names` 566 .rs files / 593 map targets / 0 findings.
+
+## Evidence
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/w32common.h femacs/src/include/w32common.rs
+OK emacs/src/w32common.h -> femacs/src/include/w32common.rs            (0 problem rows)
+$ cd femacs && cargo run -q -p xtask -- layout-check
+layout-check passed (see build/femacs/layout_asserts.rs)
+```
+
+The three DLL-loader macros were already recorded (`excluded-macros.txt` 149-151, kind=deferred:
+their bodies paste names, use `__VA_ARGS__` and `return` from the enclosing function - none of which
+a `macro_rules!` can spell, so the Windows target that first expands them decides the shape,
+PORTING.md P-22).  The two caches are now carried under `#[cfg (feature = "windowsnt")]` with C's
+type names, the way `w32gdiplus.rs` carries its objects; `layout-check` compiles this mirror (it is
+a `src/include` seed) with the feature off, which is the evidence that the cfg'd items cannot break
+the shared crate.
