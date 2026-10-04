@@ -6393,3 +6393,34 @@
      `HAVE_WINDOW_SYSTEM` ×2）只有 pointer comment 与逐条 C 行号，**没有翻臂编译**（这些宏在冻结表里本来就是 undef，
      没有可编的真臂）；`row_containing_pos` 的签名（`*mut window` 遮蔽镜像的 `*mut c_void`）与三个旧调用点的
      `as *mut c_void` 移除记在 deviation 198。
+
+- **3.385 P-86 的第二件整文件：`androidselect.c`（1,220 行）落地（2026-10-05）**：
+  ① **文件与台账**：`femacs/src/androidselect.rs` **11 → 1,312 行**；`docs/ports/androidselect.md` **24 → 291 行**
+     （34 行 `## C line ranges` 覆盖 C 1-1,220，45 条块间空行免行）。落点：8 个 DEFUN、
+     `android_init_emacs_clipboard` / `android_init_asset_file_descriptor` / `android_init_emacs_desktop_notification`
+     三个初始化器、`android_xfree_inside` / `close_asset_fd` / `extract_fd_offsets` / `android_locate_icon` /
+     `android_notifications_notify_1` / `init_androidselect` / `syms_of_androidselect`，3 个类型、5 个文件级对象、
+     3 处 C 内的 `FIND_METHOD` 宏与 4 个 `goto` 目标（303/336、568/635、459-512/526）。台账显式记下
+     **P-86 推翻旧决定**（旧版写"不在冻结构建里 ⇒ 空单元"，P-86 ① 规定照录；被推翻的是结论，不是旧读数）。
+  ② **冻结档**：`build-tu src/androidselect.c` → **built / exit 0 / 336 字节空对象**（首版与末版各读一次同值）。
+  ③ **翻臂档（如实）**：`--cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'` → **exit 1，5 条 error**
+     （4 条在**镜像副本** `femacs/src/include/window.rs`:346/371/441 `E0425 BUFFERP`、372 `E0425 buffer_local_value`；
+     1 条在单元正文 `E0381`，该次读数后已修）⇒ 图坏在名字解析阶段，**按 P-86 ⑦ 这个读数不能当"本单元 0 错"**。
+     lane 因此另跑**臂触达预检**（只给那两个名字加桩）：**exit 0 / 0 error / 122,688 字节对象**——这是**另一档读数**，
+     台账里分开记。
+  ④ **集成者这一轮的动作（我能证的）**：⑴ `docs/ports/macro-body-notes.tsv` 补 **3 行**（`extract_fd_offsets`、
+     `Fandroid_get_clipboard_targets`、`Fandroid_get_clipboard_data` 的 `goto`；键必须是**C 名**，subr 用 `F…`，
+     第一版写 Lisp 名不生效、复读时发现并改正）；⑵ `docs/ports/line-drift-tolerance.tsv` 补 `androidselect` 行
+     （**0.08 / total**，实测 +7.5%）；⑶ `femacs/xtask/Cargo.toml` 的 `[features]` 补 **两个单元早在用、表里却没有的名字**
+     `android_api_le_11`（C 依据 `androidselect.c` 432/447 的 `__ANDROID_API__ <= 11`）与 `android_api_le_30`（C 478）。
+     补完后 `extract-abi --check emacs/src/androidselect.c femacs/src/androidselect.rs` 由
+     "3 条 goto + 7.5% 行数漂移" 变成 **`OK`（0 条）**。
+  ⑤ **仍未解决（点名，交给下一轮）**：`femacs/src/include/window.rs` 缺 `BUFFERP`（buffer.h 757）与
+     `buffer_local_value`（buffer.h 1264）——**这一条挡住 `have_android` 臂的编译**，属镜像轮（改了要跑
+     `check-all-units.sh`）；`<dlfcn.h>`（`dlopen`/`dlsym`/`RTLD_LAZY`/`RTLD_GLOBAL`，NDK 实测 0x1/0x100）与
+     `<stdio.h>`（`sscanf`、`BUFSIZ` 1024）无镜像；`FUNCTIONP`（lisp.h 4799）应回 `lisp.rs`、
+     `NOTIFICATION_EVENT`（termhooks.h 353-355，值 37）应回 `termhooks.rs`；`ANDROID_DELETE_LOCAL_REF`
+     与 `excluded-macros.txt` 的前提已被 `include/jni.rs` 推翻，尚未对齐。
+  ⑥ **未声称**：只有**编译级**证据——无链接、无 JNI 调用、无设备、无真实 Android 构建；本单元正文的读数来自
+     臂触达预检（另一档），两条 `cfg!` 臂**类型检查过、未执行**；`android_api_le_11/30` 现在才进 manifest，
+     真翻这两条门是下一轮的事。
