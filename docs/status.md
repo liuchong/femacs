@@ -3580,3 +3580,24 @@
   **append-only**（新行覆盖旧行），所以更新应当**追加**而不是原地改（我这次是原地改，因为没有更早的行可保留）。
   ④ 读数：`gen-port-inventory` **590 files、done=562、wip=17、todo=11**；门全绿（`check-declarations` 13/0、
   `check-globals` 283/0、`check-mirror-dupes` 1/1/0、`layout-check` 89 of 99 + 10 平台独占跳过）。
+
+- **3.198 `lib/readutmp.h` 落地；`src/process.c` 被"散文当清单"错记成 WIP（已修）；`boot-time.rs` 接线（2026-10-04）**：
+  ① **实产**（`2e30fb2` + `418142d`，签名 `verified=true`，已推 `origin/master`）：`lib/readutmp.h`（352 行）
+  → `femacs/lib/include/readutmp.rs`，台账 34 框全勾、`--check` **OK/0 行**。判据全部实测：布局探针打印
+  `sizeof 72 / align 8` 与九个偏移（`ut_user` 0 … `ut_exit` 60），镜像把它们写成
+  `const _: () = assert! (…)`；活臂是 `UTMP_STRUCT_NAME utmpx` + `setutxent`/`getutxent`/`endutxent`/`utmpxname`，
+  其余（`utmp_h`、`utxdb_active`、`android`、`glibc_time_bits_64`、六条 `no_*` 路径/常量臂）走 `#[cfg]` 承载。
+  ② **`lib/boot-time.rs` 接线**：该单元原来自己声明五个名字（`UTMP_FILE` + 四个 entry 宏），现在全部改从镜像取；
+  **只留 `UTMP_STRUCT_NAME` 的类型别名**——C 把它写成"用在类型位置的宏"，端口那里必须是类型别名，而类型与宏不同命名空间、
+  与镜像的宏不冲突（镜像的注释也这么说）。`--check` 结论不变（OK）、`build-tu lib/boot-time.c` built。
+  ③ **一个真的账目 bug（已修）**：`src/process.c`（**9,122 行 / 125 函数 / 63 subr**）**其实早就完工**——
+  `--check` OK/0 行、台账 235 框全勾、文件已入库、`build-tu src/process.c` built——但 `gen-port-inventory` 一直把它记成
+  WIP。根因是状态判据用了**裸子串** `"- [ ]" in text`，而该台账的 Evidence 里引着自己的命令
+  `grep -c '^- [ ]' docs/ports/process.md -> 0`，于是**散文里的那五个字符被当成未勾项**。改成"**以 `- [ ]` 开头的行**"
+  （`^\s*- \[ \]`）后，全树只有这一份台账的两种读法不同，**`src/process.c` 记 `done`**——这是本树**最大**的一个单元。
+  这与 3.196（排除文件的续行被当文件名）**同一类**：台账/清单是散文，读者必须对**形状**下约束。
+  ④ 同轮 lane 侧：**xdisp 第 13 轮**（C 11647-12525、879 行；`missing function` 174→164、`missing subr` 10→7、
+  xdisp.rs 13,611 行），它要的 note 行累计 **5 条**，仍压在闭合时由我写；**readutmp lane** 已收到"`intprops` 一对放行 +
+  先查 `intprops-internal.h` 的 C 18 守卫 disagreement"的派工。
+  ⑤ 读数：`gen-port-inventory` **590 files、done=563、wip=17、todo=10**；门全绿
+  （`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/1/0、`layout-check` 89 of 99 + 10 跳过）。
