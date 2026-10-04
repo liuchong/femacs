@@ -5439,3 +5439,27 @@
      （3.270② 的口径），本条的 ③ 是"在此之前"的读数，不冒充入库后的。
   ④ **未声称**：Swift 侧只有**编译级**验收（`swiftc` exit 0），没有 macOS 上的运行验收；43 个待补的名字只是
      登记在棘轮里，不是"已提供"。
+
+- **3.344 一个被"陈旧生成单元"藏了两轮的 HEAD 缺陷：`SET_FRAME_GARBAGED` 的强转打死了 fresh 的 `xdisp`（2026-10-05）**：
+  ① **怎么发现的**：入库完 3.341/3.342/3.343 之后跑 `tools/reconcile-link-ratchets.sh`（四本棘轮的硬前置，
+     3.270②），它在 **HEAD 的 worktree** 里为在飞单元做 **fresh 生成**——`rebuilding at HEAD: … src/xdisp.c`
+     这一步直接 **4 × E0308** 失败，脚本 `set -e` 退出、棘轮一份都没写。**这不是在飞 lane 的问题，是 HEAD 自己的**：
+     报错落在 `include/frame.rs` 的 `SET_FRAME_GARBAGED!`——3.333（`6616269`）把镜像的体改成
+     `fset_redisplay ($f as *mut c_void)`，而 `fset_redisplay` 的**定义**在 `xdisp.c` 自己的单元里
+     （`xdisp.rs:2354`, `(f: *mut frame)`）；在 xdisp 的单元里本地定义**遮蔽**镜像 `window_redisplay_decls`
+     的那条 `*mut c_void` 声明，于是调用点两边类型对不上。3.333 的验收是"七个受影响单元 7/7 built"，
+     **xdisp 不在那七个里** ⇒ 缺陷从 3.333 起就在 HEAD 上，被 `build/femacs/units/xdisp` 的**陈旧生成物**
+     （生成于 3.333 之前，增量构建一直复用它）藏住了。
+  ② **修法（一行 + 一段理由）**：`fset_redisplay ($f as _)`。`as _` 让**每个调用点各自推断**被调者的形参类型：
+     xdisp 的单元推出 `*mut frame`、其余单元推出 `*mut c_void`——**两种拼法在同一个宏里第一次同时成立**。
+     注释里写清为什么不能用任一种固定拼法（`as *mut c_void` 在 xdisp 上 E0308；`as *mut frame` 会在只看得到
+     镜像声明的五个单元上 E0308）。**无行为改动**：指针到指针的转换，两种拼法是同一个 ABI（同地址、同大小），
+     `fset_redisplay` 的符号与调用约定一个字节都没变。
+  ③ **判据（本轮实跑）**：先 `rm -rf build/femacs/units/xdisp` 强制 fresh 生成，再
+     `build-tu src/xdisp.c` → **`built src/xdisp.rs -> ../build/femacs/xdisp.o`**、仍只有那 **6 条** warning；
+     生成物里能读到新体（`build/femacs/units/xdisp/…_include_frame_rs.rs:958: fset_redisplay ($f as _);`）；
+     另外**五个调用者**逐个 `build-tu` 与 `extract-abi --check`：`window`/`term`/`xfaces`/`frame`/`dispnew`
+     **5/5 built + 5/5 OK**；`xdisp` 的 `--check` 仍是 **107** 行（与台账 2305 记的读数一致，未变）。
+  ④ **一条方法论**（写下来给下一轮）：**"build-tu 通过"必须区分"用陈旧生成物通过"与"fresh 生成通过"**——
+     这一轮两个读数差了整整一个 HEAD 缺陷；`reconcile-link-ratchets.sh` 的 fresh 生成恰好是抓它的工具，
+     所以这条流程以后不许跳过。

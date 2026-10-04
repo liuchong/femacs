@@ -947,7 +947,15 @@ pub fn WINDOW_FRAME (w: *mut window) -> Lisp_Object { unsafe { (*w).frame } }
 macro_rules! SET_FRAME_GARBAGED {
   ($f:expr) => {{
     frame_garbaged = true;
-    fset_redisplay ($f as *mut c_void);
+    /* The cast is `as _`, not `as *mut c_void`: the callee's own spelling depends on the
+       unit.  `xdisp.c` *defines* `fset_redisplay (struct frame *)`, so inside its unit the
+       name resolves to that definition and takes `*mut frame`; every other unit sees only
+       `window_redisplay_decls`'s declaration, which spells the same pointer `*mut c_void`
+       (P-72 rule 3).  A cast to either spelling breaks the other half - measured: with
+       `*mut c_void` here a fresh `build-tu src/xdisp.c` fails E0308, and the stale generated
+       unit had hidden it since 3.333.  `as _` infers the callee's parameter type at each
+       call site.  */
+    fset_redisplay ($f as _);
     (*$f).bits1 = (*$f).bits1 | (1u32 << FRAME_GARBAGED_SHIFT);
   }};
 }
