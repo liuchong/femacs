@@ -13,10 +13,15 @@ a port (`^// femacs: generated mirror of the frozen build's`), which is why the 
 `femacs/src/` yet appears in no row of `docs/port-inventory.md` or `docs/port-map.md`; both were
 re-run to confirm it (see `## Evidence`).
 
-## Exports - 43 (all `#[unsafe(no_mangle)] pub unsafe extern "C" fn`, `frame` received as `*mut c_void` by the lanes' habit; the ABI is the Swift declaration's)
+## Exports - 97 (all `#[unsafe(no_mangle)] pub unsafe extern "C" fn`, `frame` received as `*mut c_void` by the lanes' habit; the ABI is the Swift declaration's)
 
-Forty-three: thirty-nine are in the frozen object (`nm -g build/femacs/abi_shim.o`) and the four
-arm-only writers appear when the configuration that owns their member is built (see `## Decisions`).
+Ninety-seven: fifty are in the frozen object (`nm -g build/femacs/abi_shim.o`, 74 `T` symbols
+including the unit's own Rust-internal ones) and the other forty-seven appear when the
+configuration that owns their member is built - the four batch-5 arm-only writers, the
+forty-two `struct ns_output` accessors of batch 6 and batch 6's `face_set_background` (see
+`## Decisions`).  Six of the ninety-seven (the `z_group_*` enumerators and the two `Lisp_Object`
+accessors) stand in a module, `c_abi_of_mirror_named_items`, because the mirrors already spell
+those names in Rust; the module is why the crate root can hold both (measured, `## Evidence`).
 
 | name | Swift import | providing Rust item | C text (line) |
 | --- | --- | --- | --- |
@@ -63,6 +68,62 @@ arm-only writers appear when the configuration that owns their member is built (
 | `frame_set_fontset` | `nsfns.swift` 634 (`(…, Int32)`) | `abi_shim.rs` 433, **`have_ns`** | `#define FRAME_FONTSET(f) ((f)->output_data.ns->fontset)` nsterm.h 1096 (C's writes: nsfns.m 1272, 2994) |
 | `frame_set_display_info` | `nsfns.swift` 716-717 (`(…, UnsafeMutablePointer<ns_display_info>?)`) | `abi_shim.rs` 445, **`have_ns`** | `#define FRAME_DISPLAY_INFO(f) ((f)->output_data.ns->display_info)` nsterm.h 1032 (C's writes: nsfns.m 1280, 2995) |
 | `frame_set_double_buffered` | `nsfns.swift` 495-496 (`(…, Bool)`) | `abi_shim.rs` 465, **`have_ns` + `ns_impl_cocoa`** | `#define FRAME_DOUBLE_BUFFERED(f) ((f)->output_data.ns->double_buffered)` nsterm.h 1052 (inside `#if defined (NS_IMPL_COCOA) && MAC_OS_X_VERSION_MIN_REQUIRED >= 101400`, 1051-1053) |
+| `ns_output_view` | `nsfns.swift` 275 (`(UnsafeMutableRawPointer?) -> NSView?`) | `abi_shim.rs` 511 **`have_ns`** | `EmacsView *view;` nsterm.h 938 (frozen half `void *view;` 948); `FRAME_NS_VIEW` 1045 |
+| `ns_output_miniimage` | `nsfns.swift` 278 (`-> AnyObject?`), `nsterm.swift` 1850 (`-> NSImage?`) | `abi_shim.rs` 523 **`have_ns`** | `id miniimage;` nsterm.h 939 (frozen `void *miniimage;` 949) |
+| `ns_output_cursor_color` | `nsfns.swift` 282 (`-> NSColor?`) | `abi_shim.rs` 536 **`have_ns`** | `NSColor *cursor_color;` nsterm.h 940 (frozen 950); `FRAME_CURSOR_COLOR` 1046 |
+| `ns_output_foreground_color` | `nsfns.swift` 286 (`-> NSColor?`) | `abi_shim.rs` 548 **`have_ns`** | `NSColor *foreground_color;` nsterm.h 941 (frozen 951); `FRAME_FOREGROUND_COLOR` 1037 |
+| `ns_output_background_color` | `nsfns.swift` 290 (`-> NSColor?`) | `abi_shim.rs` 559 **`have_ns`** | `NSColor *background_color;` nsterm.h 942 (frozen 952); `FRAME_BACKGROUND_COLOR` 1038 |
+| `ns_output_icon_top` | `nsfns.swift` 294 (`-> Int32`) | `abi_shim.rs` 569 **`have_ns`** | `int icon_top;` nsterm.h 990 |
+| `ns_output_icon_left` | `nsfns.swift` 297 (`-> Int32`) | `abi_shim.rs` 581 **`have_ns`** | `int icon_left;` nsterm.h 991 |
+| `ns_output_window_desc` | `nsfns.swift` 300 (`-> UInt`) | `abi_shim.rs` 596 **`have_ns`** | `Window window_desc, parent_desc;` nsterm.h 980; `FRAME_NS_WINDOW` 1034 |
+| `ns_output_parent_desc` | `nsfns.swift` 303 (`-> UInt`) | `abi_shim.rs` 608 **`have_ns`** | `Window … parent_desc;` nsterm.h 980 |
+| `ns_output_explicit_parent` | `nsfns.swift` 306 (`-> Bool`) | `abi_shim.rs` 621 **`have_ns`** | `char explicit_parent;` nsterm.h 981 |
+| `ns_output_text_cursor` | `nsfns.swift` 310 (`-> NSObject?`) | `abi_shim.rs` 635 **`have_ns`** | `Emacs_Cursor text_cursor;` nsterm.h 960 |
+| `ns_output_in_animation` | `nsfns.swift` 314, `nsmenu.swift` 326 (`-> Int32`) | `abi_shim.rs` 647 **`have_ns`** | `int in_animation;` nsterm.h 1010 |
+| `ns_output_display_info` | `nsfns.swift` 318 (`-> UnsafeMutablePointer<ns_display_info>`) | `abi_shim.rs` 663 **`have_ns`** | `struct ns_display_info *display_info;` nsterm.h 1004; `FRAME_DISPLAY_INFO` 1032 |
+| `ns_output_zooming` | `nsterm.swift` 2011 (`-> Bool`) | `abi_shim.rs` 674 **`have_ns`** | `int zooming;` nsterm.h 1007 |
+| `ns_output_set_view` | `nsfns.swift` 276 (`(…, NSView?)`) | `abi_shim.rs` 686 **`have_ns`** | `FRAME_NS_VIEW (f) = self;` nsterm.m 8587 |
+| `ns_output_set_miniimage` | `nsfns.swift` 280 (`(…, AnyObject?)`) | `abi_shim.rs` 698 **`have_ns`** | `f->output_data.ns->miniimage = image;` nsfns.m 921, 962 |
+| `ns_output_set_cursor_color` | `nsfns.swift` 284 (`(…, NSColor?)`) | `abi_shim.rs` 711 **`have_ns`** | `FRAME_CURSOR_COLOR (f) = [col retain];` nsfns.m 358 |
+| `ns_output_set_foreground_color` | `nsfns.swift` 288 (`(…, NSColor?)`) | `abi_shim.rs` 724 **`have_ns`** | `f->output_data.ns->foreground_color = col;` nsfns.m 277 |
+| `ns_output_set_background_color` | `nsfns.swift` 292 (`(…, NSColor?)`) | `abi_shim.rs` 737 **`have_ns`** | `f->output_data.ns->background_color = col;` nsfns.m 310 |
+| `ns_output_set_icon_top` | `nsfns.swift` 295 (`(…, Int32)`) | `abi_shim.rs` 749 **`have_ns`** | `= -1;` nsfns.m 1036, `= XFIXNUM (icon_y);` 1048 |
+| `ns_output_set_icon_left` | `nsfns.swift` 298 (`(…, Int32)`) | `abi_shim.rs` 761 **`have_ns`** | `= -1;` nsfns.m 1037, `= XFIXNUM (icon_x);` 1049 |
+| `ns_output_set_window_desc` | `nsfns.swift` 301 (`(…, UInt)`) | `abi_shim.rs` 775 **`have_ns`** | `f->output_data.ns->window_desc = desc_ctr++;` nsfns.m 1285 |
+| `ns_output_set_parent_desc` | `nsfns.swift` 304 (`(…, UInt)`) | `abi_shim.rs` 789 **`have_ns`** | nsfns.m 1288, 1293, 3076 |
+| `ns_output_set_explicit_parent` | `nsfns.swift` 308 (`(…, Bool)`) | `abi_shim.rs` 802 **`have_ns`** | `= 1;` nsfns.m 1289, `= 0;` 1294 |
+| `ns_output_set_current_pointer` | `nsfns.swift` 312 (`(…, NSObject?)`) | `abi_shim.rs` 816 **`have_ns`** | nsfns.m 1498; `FRAME_POINTER_TYPE (f) = cursor;` nsterm.m 2634 |
+| `ns_output_set_text_cursor` | `nsfns.swift` 651 (`(…, NSObject?)`) | `abi_shim.rs` 829 **`have_ns`** | `Emacs_Cursor text_cursor;` nsterm.h 960; write nsfns.m 1478 |
+| `ns_output_set_nontext_cursor` | `nsfns.swift` 653 | `abi_shim.rs` 842 **`have_ns`** | nsterm.h 961; nsfns.m 1479 |
+| `ns_output_set_modeline_cursor` | `nsfns.swift` 655 | `abi_shim.rs` 855 **`have_ns`** | nsterm.h 962; nsfns.m 1480 |
+| `ns_output_set_hand_cursor` | `nsfns.swift` 657 | `abi_shim.rs` 868 **`have_ns`** | nsterm.h 963; nsfns.m 1481 |
+| `ns_output_set_hourglass_cursor` | `nsfns.swift` 659 | `abi_shim.rs` 881 **`have_ns`** | nsterm.h 964; nsfns.m 1482 |
+| `ns_output_set_horizontal_drag_cursor` | `nsfns.swift` 661 | `abi_shim.rs` 894 **`have_ns`** | nsterm.h 965; nsfns.m 1483 |
+| `ns_output_set_vertical_drag_cursor` | `nsfns.swift` 663 | `abi_shim.rs` 907 **`have_ns`** | nsterm.h 966; nsfns.m 1484 |
+| `ns_output_set_left_edge_cursor` | `nsfns.swift` 665 | `abi_shim.rs` 920 **`have_ns`** | nsterm.h 967; nsfns.m 1485 |
+| `ns_output_set_top_left_corner_cursor` | `nsfns.swift` 667 | `abi_shim.rs` 933 **`have_ns`** | nsterm.h 968; nsfns.m 1486 |
+| `ns_output_set_top_edge_cursor` | `nsfns.swift` 669 | `abi_shim.rs` 946 **`have_ns`** | nsterm.h 969; nsfns.m 1487 |
+| `ns_output_set_top_right_corner_cursor` | `nsfns.swift` 671 | `abi_shim.rs` 959 **`have_ns`** | nsterm.h 970; nsfns.m 1488 |
+| `ns_output_set_right_edge_cursor` | `nsfns.swift` 673 | `abi_shim.rs` 972 **`have_ns`** | nsterm.h 971; nsfns.m 1489 |
+| `ns_output_set_bottom_right_corner_cursor` | `nsfns.swift` 675 | `abi_shim.rs` 985 **`have_ns`** | nsterm.h 972; nsfns.m 1490 |
+| `ns_output_set_bottom_edge_cursor` | `nsfns.swift` 677 | `abi_shim.rs` 998 **`have_ns`** | nsterm.h 973; nsfns.m 1491 |
+| `ns_output_set_bottom_left_corner_cursor` | `nsfns.swift` 679 | `abi_shim.rs` 1011 **`have_ns`** | nsterm.h 974; nsfns.m 1492 |
+| `ns_output_set_in_animation` | `nsfns.swift` 316, `nsmenu.swift` 328 (`(…, Int32)`) | `abi_shim.rs` 1023 **`have_ns`** | nsfns.m 1500, nsmenu.m 1109/1111 |
+| `ns_output_set_zooming` | `nsterm.swift` 2012 (`(…, Bool)`) | `abi_shim.rs` 1036 **`have_ns`** | nsterm.m 1907, 1949, 8662 |
+| `glyph_row_y` | `nsterm.swift` 834 (`(UnsafeMutableRawPointer?) -> Int32`) | `abi_shim.rs` 1056 | `int x, y;` dispextern.h 950; C reads `row->y` nsterm.m 818 |
+| `glyph_row_visible_height` | `nsterm.swift` 835-836 (`-> Int32`) | `abi_shim.rs` 1066 | `int visible_height;` dispextern.h 969; C reads nsterm.m 821 |
+| `set_waiting_for_input_flag` | `nsmenu.swift` 407 (`(Bool)`) | `abi_shim.rs` 1085 | `waiting_for_input = 0;` nsmenu.m 202; macro thread.h 185 |
+| `face_set_background` | `nsfns.swift` 475-476 (`(…, UInt)`) | `abi_shim.rs` 1107 **`dispextern_face_records`** | `unsigned long background;` dispextern.h 1819; write nsfns.m 328-329 |
+| `frame_set_no_accept_focus` | `nsterm.swift` 2162-2163 (`(…, Bool)`) | `abi_shim.rs` 1127 | `FRAME_NO_ACCEPT_FOCUS (f) = !NILP (new_value);` nsterm.m 2074; frame.h 411/1249 |
+| `frame_alpha` | `nsterm.swift` 2235-2236 (`(…, Int32) -> Double`) | `abi_shim.rs` 1141 | `double alpha[2];` frame.h 707-711; read nsterm.m 2378/2380 |
+| `z_group_none` | `nsterm.swift` 2169 (`() -> Int32`) | `abi_shim.rs` 1171 **`mirror-named`** | `z_group_none,` frame.h 63 (`enum z_group` 61-67) = 0 |
+| `z_group_above` | `nsterm.swift` 2170 | `abi_shim.rs` 1175 **`mirror-named`** | `z_group_above,` frame.h 64 = 1 |
+| `z_group_below` | `nsterm.swift` 2171 | `abi_shim.rs` 1179 **`mirror-named`** | `z_group_below,` frame.h 65 = 2 |
+| `z_group_above_suspended` | `nsterm.swift` 2172 | `abi_shim.rs` 1183 **`mirror-named`** | `z_group_above_suspended,` frame.h 66 = 3 |
+| `FLOATP` | `nsterm.swift` 2228 (`(Lisp_Object) -> Bool`) | `abi_shim.rs` 1191 **`mirror-named`** | `#define FLOATP(x) lisp_h_FLOATP (x)` lisp.h 448 |
+| `XFLOAT_DATA` | `nsterm.swift` 2229 (`(Lisp_Object) -> Double`) | `abi_shim.rs` 1197 **`mirror-named`** | `INLINE double XFLOAT_DATA (Lisp_Object f)` lisp.h 3186-3189 |
+
+**`ns_output_*` / `ns_output_set_*` (batch 6) and the batch-7 additions**: the `have_ns` mark is the gate of `struct ns_output` (nsterm.h 935-1022, mirrored gated in `include/nsterm.rs` 419-489); `dispextern_face_records` is the gate `include/dispextern.rs` 1941 puts on `struct face`; `mirror-named` means the name is also a Rust item in a mirror, so the C-ABI spelling stands in `c_abi_of_mirror_named_items` (see `## Decisions`).
 
 - [x] `frame_left_pos`
 - [x] `frame_top_pos`
@@ -313,3 +374,13 @@ file gives.
   The general ruling for macro-name entries in this file is in `docs/status.md` 3.255 (B first:
   expand in Swift when the body is expressible there; A only when the expansion needs core-internal
   facts, which is when this shim exports the same-name C-ABI entry).
+
+- **Integrator note (3.262): the four guarded exports are recorded text whose compilation is
+  measured, not assumed.**  Adding the `have_ns` flip to `xtask dead-arms` compiles this file's
+  `#[cfg (feature = "have_ns")]` bodies for the first time: they fail with the platform types the
+  NS region depends on (`CGFloat`, `NSRect`, `NSString`, `NSArray`, `EmacsMenu`, `Window`), which
+  `include/nsterm.rs` 50-52 deliberately leaves to "the platform target".  The one defect the flip
+  caught that was *not* platform-shaped - eleven bare `c_float` spellings in that mirror - is fixed
+  (`core::ffi::c_float`, status 3.91 ②).  The flip is reverted until an AppKit/GNUstep mirror
+  exists; re-adding it is two entries plus the FLIPS array length, and this file's guarded bodies
+  are then compiled rather than merely carried.

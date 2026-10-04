@@ -1588,6 +1588,19 @@ fn dead_arms() -> i32 {
         // HAVE_LOG2 is not gated on a feature (the condition keeps the constant), but
         // the other arm is still C text that has to compile.
         ("", "HAVE_LOG2", "false"),
+        // The NS/Cocoa arms were the second structural pair nothing compiled (the shim lane's
+        // honest note, status 3.257 ③), and 3.262 tried the flip: `("have_ns", "HAVE_NS",
+        // "true")` and `("ns_impl_cocoa", "", "true")` (an empty key means "a feature with no
+        // configuration constant to move") compile the `#[cfg (feature = "have_ns")]` region -
+        // and it does not compile, on purpose rather than by accident: nine errors name the
+        // platform types the region depends on (`CGFloat`, `NSRect`, `NSString`, `NSArray`,
+        // `EmacsMenu`, `Window`), which `include/nsterm.rs` 50-52 says the *platform target*
+        // resolves because the port has no AppKit or GNUstep mirror.  The flip's first finding
+        // was the one defect in that region that is not platform-shaped - eleven bare `c_float`
+        // spellings, now qualified as `core::ffi::c_float` (status 3.91 ②, a mirror must not
+        // depend on the includer's prelude) - and the flip itself waits for the AppKit mirror
+        // that would make the rest resolvable.  Re-adding it is two entries plus the array
+        // length.
     ];
     let root = Path::new("../build/dead-arms");
     let _ = fs::remove_dir_all(root);
@@ -1605,6 +1618,9 @@ fn dead_arms() -> i32 {
     };
     let mut flipped = text;
     for (_, key, value) in FLIPS {
+        if key.is_empty() {
+            continue; // a feature with no configuration constant to flip
+        }
         let mut touched = false;
         let mut out = String::new();
         for line in flipped.lines() {

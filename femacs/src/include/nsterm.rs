@@ -73,7 +73,7 @@ pub type EmacsCGFloat = CGFloat;
 pub type EmacsCGFloat = CGFloat;
 #[cfg (feature = "have_ns")]
 #[cfg (all (not (feature = "ns_impl_cocoa"), not (feature = "ns_impl_gnustep")))]
-pub type EmacsCGFloat = c_float;
+pub type EmacsCGFloat = core::ffi::c_float;
 
 /* C 46-50: "NSFilenamesPboardType is deprecated in macOS 10.14, but NSPasteboardTypeFileURL is
    only available in 10.13".  The Cocoa arm's `MAC_OS_X_VERSION_MIN_REQUIRED >= 101300` test is
@@ -285,11 +285,11 @@ pub struct nsfont_info
 {
   pub font: font,
   pub name: *mut c_char,
-  pub width: c_float,
-  pub height: c_float,
-  pub underpos: c_float,
-  pub underwidth: c_float,
-  pub size: c_float,
+  pub width: core::ffi::c_float,
+  pub height: core::ffi::c_float,
+  pub underpos: core::ffi::c_float,
+  pub underwidth: core::ffi::c_float,
+  pub size: core::ffi::c_float,
   pub nsfont: *mut c_void,          // C: `void *nsfont;` (the `__OBJC__` arm is `NSFont *nsfont;`)
   pub bold: c_char,
   pub ital: c_char,
@@ -882,8 +882,8 @@ unsafe extern "C" {
   pub fn ns_run_loop_break ();
   /// C 1253-1254: `extern unsigned long ns_get_rgb_color (struct frame *f, float r, float g,
   /// float b, float a);`
-  pub fn ns_get_rgb_color (f: *mut frame, r: c_float, g: c_float, b: c_float,
-                           a: c_float) -> c_ulong;
+  pub fn ns_get_rgb_color (f: *mut frame, r: core::ffi::c_float, g: core::ffi::c_float, b: core::ffi::c_float,
+                           a: core::ffi::c_float) -> c_ulong;
   /// C 1257: `extern void ns_init_events (struct input_event *);` - `struct input_event` is
   /// termhooks.h's and this mirror does not include it (C 1256 only forward-declares it), so the
   /// parameter keeps P-55's untyped pointer.
@@ -950,7 +950,7 @@ macro_rules! SCREENMAXBOUND {
 /// C: extern frame_parm_handler ns_frame_parm_handlers[];
 #[cfg (feature = "have_ns")]
 unsafe extern "C" {
-  pub static mut ns_antialias_threshold: c_float;
+  pub static mut ns_antialias_threshold: core::ffi::c_float;
   pub static mut ns_frame_parm_handlers: [*mut c_void; 0];
 }
 

@@ -4796,3 +4796,11 @@
   ② **golden**：`docs/baseline/l0-reference.txt` 记着参照二进制的路径、`--version` 首行与前 16 位 sha256（参照移动过就看得见，而不是静默），每条流的字节夹在显式的 `--- stdout`/`--- end stdout` 标记之间（不必猜最后一个换行属谁）。
   ③ **读数**：参照全过——`19 expression(s), 0 failure(s)`（这是对拍机械**自己**的自检：它对自己的 golden）；**负对照**是没有 dump 的 `build/emacs-ref/src/temacs` → `19/19 failure(s)`（它打印的正是 acceptance.md 记过的那条 "Lisp directory … No such file or directory"），说明对拍真的能分辨。端口侧还没有二进制（reading five），所以 check 侧暂无对象；**端口一链接出来，L0 就是一条命令**。
   ④ 表达式**刻意选成不依赖路径**：任何会打印 build/data 目录的东西属于后面的 rung（那里端口与参照本来就该不同，比较要先归一化）。
+
+- **3.262 把 `have_ns` 臂真的翻过来编译一次：翻牌抓到 11 处裸 `c_float`，剩下的 9 处是"平台目标解析"的账；翻牌本身等 AppKit 镜像（2026-10-05）**：
+  ① **动机**：3.257 ③ 记的 lane 自述——`#[cfg (feature = "have_ns")]` 的那些体（`include/nsterm.rs` 的 NS 区、`abi_shim.rs` 的四个带门导出）**任何配置都没编译过**，`xtask dead-arms` 的 FLIPS 里没有 `HAVE_NS`/`NS_IMPL_COCOA`（P-51 的"承载文本 ≠ 编译它"）。
+  ② **实验**：给 FLIPS 加两条——`("have_ns", "HAVE_NS", "true")` 与 `("ns_impl_cocoa", "", "true")`（空 key = 只翻 feature，没有配置常量可翻，循环里加一个 `continue`；数组长度 6 → 8）。跑 `dead-arms`：**在第 28 个单元 `src/abi_shim.rs` 处失败**，14 条 E0425 全部是"找不到类型"。
+  ③ **第一类是可修的、且是本轮真抓到的缺陷**：**11 处裸 `c_float`**（`include/nsterm.rs` 76、288-292、885-886、953 等）——`c_float` 属 `core::ffi`，正常构建里靠单元 prelude 的 `use` 才可见，**镜子不能依赖包含者的 prelude**（3.91 ② 的成文规则）；翻牌是唯一能看见它的配置。已全部限定为 `core::ffi::c_float`，重跑后这 5 条错误消失（11 处里 5 处落在被编译的臂上）。
+  ④ **第二类是"设计上就要靠平台目标"的**：剩 9 条 E0425 点名 `CGFloat`、`NSRect`、`NSString`、`NSArray`×2、`EmacsMenu`、`Window`×3——正是 `include/nsterm.rs` 50-52 自己写的"**不降级成 `*mut c_void`，因为整段在这里是惰性的：C 自己的名字照抄，平台 target 去解析它们**"。端口**没有 AppKit/GNUstep 的镜像**，所以这 9 个名字今天在任何 Rust 配置下都无法解析。因此：**翻牌回退**（数组长度回 6），并在 FLIPS 的注释里写下这次实验、那个缺陷、以及重新加回来的条件（两条 + 数组长度，等 AppKit 镜像落地）。
+  ⑤ **回退后的读数**：`xtask dead-arms` → **`337 translation unit(s) compiled with the non-frozen arms`、exit 0**（门仍是绿的，且这次实验的所有事实都留在代码注释与这里）。
+  ⑥ **命名下来的任务**：**一个 AppKit/GNUstep 镜像（NS 平台分片）**——它是"让这 9 个名字可解析、并让翻牌重新成立"的前置；在那之前 NS 区的文本状态是"**被承载、且经实测无法编译**"，而不是 3.257 ③ 的"未验证"。
