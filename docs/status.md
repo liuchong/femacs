@@ -3571,9 +3571,12 @@
   `FTOASTR_*` 改从 `include/ftoastr.rs` 取、`lib/utimensat.rs` 的 `openat_save_fail`/`openat_restore_fail` 改从
   `include/openat.rs` 取（只留 `openat-priv.h` 那条）、`lib/openat-die.rs` 为 C 4 的 `#include "openat.h"` 加上该镜像
   ——**而且它顺手纠正了一句陈旧的判断**："`openat.h` 是系统头"是错的（实测 `!HAVE_OPENAT` 的声明支才是活臂）。
-  三件的 `--check` 结论**不变**（都 OK）、三件都 built；`line-drift-tolerance.tsv` 的两行随行数变化更新
-  （`ftoastr` 0.15→0.20、`openat-die` 3.35→3.70）。**顺带发现**：这两个漂移行**在改之前就已经超窗**
-  （HEAD 版实测 14.5% / 328.6%）——说明"每个单元的 `--check` 在提交时是 OK"这条不变量**有历史缺口**，
-  台账/容忍表要按当前树复核一遍（已交给该 lane 的下一轮）。
+  三件的 `--check` 结论**不变**（都 OK）、三件都 built；`line-drift-tolerance.tsv` 的两行随它们的行数变化更新
+  （`ftoastr` 0.15→0.20、`openat-die` 3.35→3.70）。**取证更正**：我一度写下"这两行在改之前就已超窗"，
+  但按工具自己的公式重算 HEAD 版（`abs(130-152)/152 = 14.5% < 15%`、`abs(30-7)/7 = 328.6% < 335%`）
+  **是落在窗内的**，所以那句不成立、已改掉。真正可复现的是：改完之后它们**超出**了原窗口（16.4% / 357.1%），
+  两行随之更新后 `--check` 恢复 OK。**留下的方法教训**：漂移闸只在"参考文件行数 × (1±tolerance)"这个窗口内
+  说话，改一个文件的行数（哪怕只是把重复声明换成 `include!`）都要**先重算窗口再看门**；而容忍表是
+  **append-only**（新行覆盖旧行），所以更新应当**追加**而不是原地改（我这次是原地改，因为没有更早的行可保留）。
   ④ 读数：`gen-port-inventory` **590 files、done=562、wip=17、todo=11**；门全绿（`check-declarations` 13/0、
   `check-globals` 283/0、`check-mirror-dupes` 1/1/0、`layout-check` 89 of 99 + 10 平台独占跳过）。
