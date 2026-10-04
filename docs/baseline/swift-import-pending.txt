@@ -1,0 +1,432 @@
+# C-ABI symbols the Swift units import and the ported core does not provide, yet.
+# Written by `python3 tools/check-swift-imports.py --write-pending` (docs/status.md
+# 3.233).  One `<name>\t<reason>` per line, `nm` spelling.  A new name here is either
+# work the core still owes (a Rust unit must export it) or a system symbol, which says
+# so in its reason; an entry whose import disappeared is stale and must go.
+AREF	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ASET	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ASIZE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+BASE_EQ	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CDR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CDR_SAFE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CGContextSetFontSmoothingStyle	provided by the platform SDK (a .tbd exports it), not by the core
+CGDataProviderCreateWithData	provided by the platform SDK (a .tbd exports it), not by the core
+CGImageCreateCopy	provided by the platform SDK (a .tbd exports it), not by the core
+CGImageMaskCreate	provided by the platform SDK (a .tbd exports it), not by the core
+CHARACTERP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CHECK_FIXNUM	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CHECK_FONT_GET_OBJECT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CHECK_LIST	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CHECK_LIST_END	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CHECK_STRING	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CHECK_SYMBOL	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+CONSP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+DRAW_CURSOR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ENCODE_MENU_STRING	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+EQ	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+EVENT_INIT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+EmacsImage_allocInitFromFile	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+FIXNUMP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_ADD_LOG	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_ADSTYLE_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_AVGWIDTH_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_BASE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_ENTITY_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_EXTRA_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_FAMILY_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_FOUNDRY_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_FULLNAME_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_HEIGHT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_INVALID_CODE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_NAME_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_OBJLIST_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_REGISTRY_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_SET_STYLE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_SIZE_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_SLANT_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_SLANT_NUMERIC	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_SLANT_SYMBOLIC	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_SPACING_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_SPACING_MONO	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_SPACING_PROPORTIONAL	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_TYPE_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_WEIGHT_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_WEIGHT_NUMERIC	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_WEIGHT_SYMBOLIC	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_WIDTH_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FONT_WIDTH_SYMBOLIC	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAMEP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_BACKGROUND_COLOR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_CHILD_FRAME_BORDER_WIDTH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_COLS	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_COLUMN_WIDTH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_CURSOR_COLOR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_DEFAULT_FACE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_DISPLAY_INFO	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_DOUBLE_BUFFERED	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_EXTERNAL_MENU_BAR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_EXTERNAL_TOOL_BAR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_INTERNAL_BORDER_WIDTH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_LINES	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_LINE_HEIGHT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_LIVE_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_MENU_BAR_ITEMS	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_MENU_BAR_LINES	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_MINIBUF_ONLY_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_NATIVE_WINDOW	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_NS_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_NS_VIEW	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_NS_WINDOW	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_SELECTED_WINDOW	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_TAB_BAR_HEIGHT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_TAB_BAR_LINES	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_TEXT_HEIGHT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_TEXT_WIDTH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FRAME_VISIBLE_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FULLSCREEN_HEIGHT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FULLSCREEN_MAXIMIZED	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FULLSCREEN_NONE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+FULLSCREEN_WIDTH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+GSFontEnumerator_availableFontDescriptors	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+GSFontEnumerator_sharedEnumerator	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+HASH_KEY	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+HASH_TABLE_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+HASH_TABLE_SIZE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+HASH_VALUE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+IMAGE_FROM_ID	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_CHAR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_NEW	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_SET_ADJUSTMENT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_SET_ASCENT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_SET_CHAR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_SET_CODE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_SET_DESCENT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_SET_FROM	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_SET_LBEARING	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_SET_RBEARING	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_SET_TO	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGLYPH_SET_WIDTH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGSTRING_FONT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGSTRING_GLYPH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGSTRING_GLYPH_LEN	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGSTRING_HEADER	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+LGSTRING_SET_GLYPH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Lisp_Fwd_Obj	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MAX_UNICODE_CHAR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_ITEM_DEFINITION	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_ITEM_ENABLE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_ITEM_EQUIV_KEY	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_ITEM_HELP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_ITEM_LENGTH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_ITEM_NAME	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_ITEM_SELECTED	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_ITEM_TYPE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_ITEM_VALUE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_PANE_LENGTH	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_PANE_NAME	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_ITEMS_PANE_PREFIX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MENU_KEYMAPS	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+MINI_WINDOW_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+NILP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+NSColor_colorWithUnsignedLong	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+NS_FACE_BACKGROUND	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+NS_FACE_FOREGROUND	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+PSEUDOVECTOR_AREA_BITS	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+PVEC_SUBR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QCLIPBOARD	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QCantialias	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QCdestination	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QCfont_entity	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QCindex	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QClang	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QCminspace	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QCmouse	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QCotf	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QCradio	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QCscript	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QCtest	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QCtoggle	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QFILE_NAME	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QL2R	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QPRIMARY	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QR2L	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+QSECONDARY	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QTARGETS	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QTEXT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QXdndActionCopy	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QXdndActionLink	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QXdndActionMove	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+QXdndActionPrivate	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qactivate_menubar_hook	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qascii_0	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qbackground_color	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qbold	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qchild_frame_border_width	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qcondensed	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qcount	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qcursor_color	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qdebug_on_next_call	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qdelay	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qemoji	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qeq	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qexpanded	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qfile	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qfontsize	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qforeground_color	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qfullscreen	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qfullwidth	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qgif	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qheic	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qheight	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qicon_left	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qicon_top	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qicon_type	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qinhibit_quit	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qinternal_border_width	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qiso10646_1	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qitalic	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qjpeg	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qlambda	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qleft	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qlight	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qmac_ct	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qmenu_bar_update_hook	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qnative_image	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qnil	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qnormal	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qnow	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qns	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qoblique	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qoverriding_local_map	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qoverriding_terminal_local_map	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qpng	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qquote	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qreverse_italic	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qreverse_oblique	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qstring	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qsvg	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qt	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qtab_bar_lines	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qtiff	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qtool_bar_lines	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qtop	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qunbound	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qundefined	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qunicode_bmp	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+Qwebp	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Qwidth	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+RANGED_FIXNUMP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+RES_TYPE_BOOLEAN	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+RES_TYPE_NUMBER	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+RES_TYPE_STRING	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+RES_TYPE_SYMBOL	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+SBYTES	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+SDATA	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+SELECTED_FRAME	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+SET_FRAME_GARBAGED	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+SPECPDL_INDEX	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+SSDATA	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+STRINGP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+STRING_MULTIBYTE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+SYMBOLP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+SYMBOL_NAME	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TERMINALP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TOOL_BAR_IMAGE_ENABLED_SELECTED	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TOOL_BAR_ITEM_CAPTION	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TOOL_BAR_ITEM_ENABLED_P	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TOOL_BAR_ITEM_HELP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TOOL_BAR_ITEM_IMAGES	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TOOL_BAR_ITEM_LABEL	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TOOL_BAR_ITEM_NSLOTS	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TOOL_BAR_ITEM_TYPE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+TYPE_RANGED_FIXNUMP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+VECSIZE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+VECTORP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Vmenu_updating_frame	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Vns_icon_type_alist	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+Votf_script_alist	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+WINDOWP	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XBUFFER	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XCAR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XCDR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XCHAR_TABLE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XFIXNAT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XFIXNUM	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XFONT_OBJECT	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XFRAME	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XHASH_TABLE	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XSETCDR	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XSETFRAME	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+XWINDOW	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+aref_addr	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+beginDrag	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+block_input	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+buffer_filename	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+build_string	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+build_unibyte_string	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+colorWithUnsignedLong	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+createToolbar	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+current_buffer	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+digest_single_submenu	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+down_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+dumped_with_pdumper_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+face_set_background	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+fast_c_string_match_ignore_case	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+fast_string_match	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+find_and_return_menu_selection	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+font_build_object	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+fprintf	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+fputs	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+frame_explicit_name	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_icon_name	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_left_pos	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_menu_bar_items_used	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_menu_bar_vector	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_n_tool_bar_items	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_name	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+frame_param_alist	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_selected_window	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_background_pixel	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_border_width	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_child_frame_border_width	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_double_buffered	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_explicit_name	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_external_menu_bar	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_external_tool_bar	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_foreground_pixel	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_internal_border_width	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_menu_bar_items_used	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_menu_bar_lines	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_output_method	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_tab_bar_height	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_tab_bar_lines	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_tab_bar_resized	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_set_wants_modeline	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_tab_bar_redisplayed	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_tab_bar_resized	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_tab_bar_window	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_title	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_tool_bar_items	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+frame_top_pos	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+free_menubar_widget_value_tree	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+fset_icon_name	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+fset_menu_bar_items	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+fset_menu_bar_vector	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+fset_name	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+fset_tab_bar_window	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+fset_title	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+fullscreenState	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_display_get_arg	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_alpha	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_alpha_background	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_autolower	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_autoraise	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_borders_respect_alpha_background	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_bottom_divider_width	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_font	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_font_backend	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_fullscreen	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_horizontal_scroll_bars	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_left_fringe	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_line_spacing	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_no_special_glyphs	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_right_divider_width	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_right_fringe	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_screen_gamma	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_scroll_bar_height	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_scroll_bar_width	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_unsplittable	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_vertical_scroll_bars	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_set_visibility	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+gui_update_cursor	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+hash_unused_entry_key_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+hyper_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+image_find_image_file	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+image_load_failed_p	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+image_pixmap	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+intern	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+lookup_image	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+make_fixnum	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+make_mint_ptr	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+make_nil_vector	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+make_widget_value	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+maybe_quit	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+mint_ptrp	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_alternate_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_antialias_text	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_clear_frame	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_command_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_control_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_free_frame_resources	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_function_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_lisp_to_color	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_output_background_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_cursor_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_display_info	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_explicit_parent	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_foreground_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_icon_left	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_icon_top	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_in_animation	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_miniimage	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_parent_desc	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_background_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_current_pointer	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_cursor_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_cursor_kind	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_explicit_parent	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_foreground_color	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_icon_left	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_icon_top	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_in_animation	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_miniimage	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_parent_desc	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_text_cursor	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_view	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_set_window_desc	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_text_cursor	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_view	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_output_window_desc	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+ns_right_alternate_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_right_command_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_right_control_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_set_appearance	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_set_no_accept_focus	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_set_no_focus_on_map	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_set_parent_frame	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_set_transparent_titlebar	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_set_undecorated	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_set_z_group	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_use_proxy_icon	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_use_srgb_colorspace	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+ns_use_thin_smoothing	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+objc_autoreleasePoolPop	provided by the platform SDK (a .tbd exports it), not by the core
+objc_autoreleasePoolPush	provided by the platform SDK (a .tbd exports it), not by the core
+output_ns	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+pD	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+pdumper_do_now_and_after_load	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+prepare_image_for_display	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+printf	the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it
+setDoubleBuffered	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+setFSValue	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+setMiniwindowImage	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+set_frame_cursor_types	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+set_hash_value_slot	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+set_waiting_for_input_flag	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+shift_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+svcsMenu	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+terminal_display_info_ns	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+terminal_id	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+terminal_type	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+timespec_valid_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+unsignedLong	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+up_modifier	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+update_submenu_strings	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+valid_image_p	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+waiting_for_input	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+window_contents	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+window_current_matrix	not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling
+window_system_available	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+word_size	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+xmint_pointer	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it
+xvector_contents	the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a .c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it

@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+"""Fail when a Swift unit imports a C-ABI symbol the ported core neither exports nor owns.
+
+Why this exists (docs/status.md 3.231 item 4): the Swift lanes speak to the Rust port only
+through the C ABI - `@_cdecl("<name>")` out of the unit, `@_silgen_name("<name>")` into it - and
+`tools/check-swift-units.py` counts those imports without asking whether anything provides them.
+`ns_use_srgb_colorspace` sat in that gap: `nsterm.swift` and `nsimage.swift` import it, no Rust
+unit exports it, and no gate read it.  `check-undef.py` cannot cover it either: its universe is
+the built *Rust* unit objects, so a Swift-only symbol there would be a row nothing can ever match
+(recorded when the nsterm lane asked to add sixteen of them).
+
+The measurement is the same shape as `check-undef.py`'s:
+
+  * the **imports** are every `@_silgen_name("X")` in `femacs/platform/**/*.swift`;
+  * the **providers** are the symbols the built Rust units export (`nm -g build/femacs/**/*.o`,
+    the same objects `layout-check` and `check-symbols.py` read) plus the `@_cdecl` names the
+    Swift units themselves define;
+  * a name that neither provides is a finding, and `docs/baseline/swift-import-pending.txt` is
+    the ratchet: `<name>\t<reason>`, one per line, appended only by the integrator.
+
+    python3 tools/check-swift-imports.py                # scan, compare with the ratchet
+    python3 tools/check-swift-imports.py --write-pending # rewrite the ratchet from the tree
+    python3 tools/check-swift-imports.py --selftest
+
+System symbols (libobjc's `objc_autoreleasePoolPush`, libSystem's `uname`, AppKit's classes) do
+appear here: they are C-ABI entries this program gets from the platform, not from the core, and
+each one carries that reason in the ratchet rather than being filtered out by a hand-written list
+of prefixes.
+"""
+
+from __future__ import annotations
+
+import argparse
+import glob
+import re
+import subprocess
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+SWIFT_DIRS = ("femacs/platform",)
+OBJECT_GLOBS = ("build/femacs/**/*.o",)
+PENDING = REPO / "docs/baseline/swift-import-pending.txt"
+
+REF_SYMBOLS: set[str] = set()
+SDK_SYMBOLS: set[str] = set()
+
+SILGEN = re.compile(r'@_silgen_name\(\s*"([^"]+)"\s*\)')
+CDECL = re.compile(r'@_cdecl\(\s*"([^"]+)"\s*\)')
+
+
+def swift_sources() -> list[Path]:
+    out: list[Path] = []
+    for base in SWIFT_DIRS:
+        out += sorted((REPO / base).rglob("*.swift"))
+    return out
+
+
+def load_universes() -> None:
+    global REF_SYMBOLS, SDK_SYMBOLS
+    REF_SYMBOLS = nm_names(REF_OBJECT_GLOBS)
+    SDK_SYMBOLS = sdk_symbols()
+
+
+def imports() -> dict[str, set[str]]:
+    """name -> the Swift files that import it with `@_silgen_name`."""
+    found: dict[str, set[str]] = {}
+    for path in swift_sources():
+        rel = path.relative_to(REPO).as_posix()
+        for m in SILGEN.finditer(path.read_text(encoding="utf-8", errors="replace")):
+            found.setdefault(m.group(1), set()).add(rel)
+    return found
+
+
+def swift_exports() -> dict[str, set[str]]:
+    found: dict[str, set[str]] = {}
+    for path in swift_sources():
+        rel = path.relative_to(REPO).as_posix()
+        for m in CDECL.finditer(path.read_text(encoding="utf-8", errors="replace")):
+            found.setdefault(m.group(1), set()).add(rel)
+    return found
+
+
+def core_exports() -> set[str]:
+    """Every symbol the built Rust units export, in `nm` spelling (`_name`)."""
+    names: set[str] = set()
+    objects = [p for g in OBJECT_GLOBS for p in glob.glob(str(REPO / g), recursive=True)]
+    if not objects:
+        print(f"no objects under {OBJECT_GLOBS}; run `xtask build-tu` (or gate-fast) first")
+        raise SystemExit(2)
+    out = subprocess.run(["nm", "-g", *objects], capture_output=True, text=True).stdout
+    for line in out.split("\n"):
+        parts = line.split()
+        if len(parts) >= 3 and parts[1] in ("T", "t", "D", "B", "S", "R", "C"):
+            names.add(parts[2])
+        elif len(parts) == 2 and parts[0] in ("U",):
+            continue
+    return names
+
+
+SDK_FRAMEWORKS = ("AppKit", "Foundation", "CoreGraphics", "CoreText", "CoreFoundation",
+                  "QuartzCore", "CoreImage", "UniformTypeIdentifiers", "CoreServices")
+SDK_LIBS = ("libSystem.B", "libobjc.A")
+REF_OBJECT_GLOBS = ("build/emacs-ref/**/*.o",)
+# The C side of the reference: a name that appears anywhere here is the reference's own construct
+# (a header macro/INLINE/enumerator, a .c/.m file's DEFSYM or its own helper), so the core owes a
+# C-ABI entry for it under C's own name (the lanes' rule, status 3.144).
+REF_SOURCE_GLOBS = ("emacs/src/*.h", "emacs/lib/*.h", "emacs/src/*.c", "emacs/lib/*.c",
+                    "emacs/src/*.m", "emacs/lib-src/*.h", "emacs/lib-src/*.c")
+
+
+def nm_names(globs: tuple[str, ...]) -> set[str]:
+    objects = [p for g in globs for p in glob.glob(str(REPO / g), recursive=True)]
+    if not objects:
+        return set()
+    out = subprocess.run(["nm", "-g", *objects], capture_output=True, text=True).stdout
+    return {line.split()[-1] for line in out.split("\n") if len(line.split()) >= 2}
+
+
+def sdk_symbols() -> set[str]:
+    sdk = subprocess.run(["xcrun", "--show-sdk-path"], capture_output=True, text=True).stdout.strip()
+    if not sdk:
+        return set()
+    paths = [f"{sdk}/usr/lib/{l}.tbd" for l in SDK_LIBS] + [
+        f"{sdk}/System/Library/Frameworks/{f}.framework/{f}.tbd" for f in SDK_FRAMEWORKS]
+    names: set[str] = set()
+    for path in paths:
+        try:
+            txt = Path(path).read_text(errors="ignore")
+        except OSError:
+            continue
+        names |= {"_" + m.group(1) for m in re.finditer(r"^\s*-\s*_(\w+)\s*$", txt, re.M)}
+        for m in re.finditer(r"symbols:\s*\[([^\]]*)\]", txt):
+            names |= {"_" + x for x in re.findall(r"_(\w+)", m.group(1))}
+    return names
+
+
+def referenced_in_headers(name: str) -> bool:
+    """Is `name` a construct of the reference's own C text (a macro, an INLINE, an enum, a DEFSYM)?"""
+    pattern = re.compile(r"(?<![A-Za-z0-9_])" + re.escape(name) + r"(?![A-Za-z0-9_])")
+    for g in REF_SOURCE_GLOBS:
+        for path in glob.glob(str(REPO / g)):
+            if pattern.search(Path(path).read_text(encoding="utf-8", errors="replace")):
+                return True
+    return False
+
+
+def classify(name: str) -> str:
+    """`reference` | `system` | `reference-source` | `rust-side` | `unclassified` (status 3.234).
+
+    `rust-side` is the class the lanes' ABI rule creates: a record member the unit reads through an
+    accessor the mirror names in Rust (`ns_output_view`, `window_current_matrix`), which the core
+    must export as a C-ABI entry before the Swift unit can link to it.
+    """
+    if f"_{name}" in REF_SYMBOLS:
+        return "reference"
+    if f"_{name}" in SDK_SYMBOLS:
+        return "system"
+    if referenced_in_headers(name):
+        return "reference-source"
+    if rust_side_names() and name in rust_side_names():
+        return "rust-side"
+    return "unclassified"
+
+
+RUST_SIDE: set[str] = set()
+
+
+def rust_items() -> set[str]:
+    """Every item name the Rust tree declares with a C-ABI-relevant spelling (`pub fn NAME`)."""
+    names: set[str] = set()
+    for g in ("femacs/src/*.rs", "femacs/src/include/*.rs", "femacs/lib/*.rs",
+              "femacs/lib/include/*.rs"):
+        for path in glob.glob(str(REPO / g)):
+            txt = Path(path).read_text(encoding="utf-8", errors="replace")
+            names |= {m.group(1) for m in re.finditer(r"\bpub\s+(?:unsafe\s+)?(?:extern\s+\"C\"\s+)?fn\s+(\w+)", txt)}
+            names |= {m.group(1) for m in re.finditer(r"\bmacro_rules!\s+(\w+)", txt)}
+    return names
+
+
+def rust_side_names() -> set[str]:
+    global RUST_SIDE
+    if not RUST_SIDE:
+        RUST_SIDE = rust_items()
+    return RUST_SIDE
+
+
+def read_pending() -> dict[str, str]:
+    rows: dict[str, str] = {}
+    if not PENDING.is_file():
+        return rows
+    for raw in PENDING.read_text(encoding="utf-8").splitlines():
+        if not raw.strip() or raw.startswith("#"):
+            continue
+        parts = raw.split("\t")
+        if len(parts) >= 2:
+            rows[parts[0]] = parts[1]
+    return rows
+
+
+def write_pending(rows: dict[str, str]) -> None:
+    body = ["# C-ABI symbols the Swift units import and the ported core does not provide, yet.",
+            "# Written by `python3 tools/check-swift-imports.py --write-pending` (docs/status.md",
+            "# 3.233).  One `<name>\\t<reason>` per line, `nm` spelling.  A new name here is either",
+            "# work the core still owes (a Rust unit must export it) or a system symbol, which says",
+            "# so in its reason; an entry whose import disappeared is stale and must go."]
+    for name in sorted(rows):
+        body.append(f"{name}\t{rows[name]}")
+    PENDING.write_text("\n".join(body) + "\n", encoding="utf-8")
+
+
+def scan(verbose: bool = True) -> tuple[dict[str, set[str]], set[str], dict[str, set[str]]]:
+    imp = imports()
+    sx = swift_exports()
+    core = core_exports()
+    missing = {n: fs for n, fs in imp.items()
+               if n not in sx and n not in core and f"_{n}" not in core}
+    if verbose:
+        for name in sorted(missing):
+            print(f"unprovided\t{classify(name)}\t{name}\t{', '.join(sorted(missing[name]))}")
+    return imp, core, missing
+
+
+SELFTEST = (
+    ("silgen import", '@_silgen_name("Fcons") func Fcons()', ["Fcons"]),
+    ("cdecl export", '@_cdecl("macfont_driver") let macfont_driver = 0', []),
+    ("no annotation", "func plain()", []),
+    ("two on one line", '@_silgen_name("a") var a: Int\n@_silgen_name("b") var b: Int', ["a", "b"]),
+)
+
+
+def selftest() -> int:
+    bad = 0
+    for name, source, want in SELFTEST:
+        got = sorted(SILGEN.findall(source))
+        ok = got == sorted(want)
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
+        bad += 0 if ok else 1
+    print(f"{len(SELFTEST)} cases, {bad} failures")
+    return 1 if bad else 0
+
+
+def reason(name: str) -> str:
+    klass = classify(name)
+    if klass == "reference":
+        return "the reference objects define or reference it (`nm` over build/emacs-ref); the core must export it"
+    if klass == "system":
+        return "provided by the platform SDK (a .tbd exports it), not by the core"
+    if klass == "reference-source":
+        return ("the reference's own C text declares or defines it (a header macro/INLINE/enumerator, or a "
+                ".c/.m DEFSYM), imported by the C-ABI-by-C-name rule (status 3.144); the core must export it")
+    if klass == "rust-side":
+        return ("an accessor the mirror names in Rust for a record member the unit reads; the core must export "
+                "it as a C-ABI entry (the lane's rule) or the Swift unit cannot link")
+    return "not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling"
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--write-pending", action="store_true")
+    ap.add_argument("--report", action="store_true", help="print the review list")
+    ap.add_argument("--selftest", action="store_true")
+    args = ap.parse_args()
+    if args.selftest:
+        return selftest()
+    load_universes()
+    imp, core, missing = scan()
+    if args.write_pending:
+        write_pending({n: reason(n) for n in sorted(missing)})
+        print(f"wrote {PENDING.relative_to(REPO)}: {len(missing)} row(s)")
+        return 0
+    rows = read_pending()
+    failures = 0
+    for name in sorted(set(missing) - set(rows)):
+        print(f"FAIL {name} ({classify(name)}): imported by {', '.join(sorted(missing[name]))} "
+              f"and provided by nothing")
+        failures += 1
+    for name in sorted(set(rows) - set(missing)):
+        print(f"STALE {name}: nothing imports it any more")
+        failures += 1
+    # A ratcheted name that no universe explains is a *review* item, not a failure: the import is
+    # real (the unit compiles), so it is either a C-ABI entry the core still owes under a name only
+    # a lane knows, or a symbol another Swift unit provides.  The ratchet row is where the ruling
+    # goes; `--report` prints the list.  A name that is *new* still fails, above.
+    review = sorted(n for n in set(missing) & set(rows) if classify(n) == "unclassified")
+    if args.report:
+        for name in review:
+            print(f"REVIEW {name}: imported by {', '.join(sorted(missing[name]))}")
+    counts = {k: 0 for k in ("reference", "reference-source", "rust-side", "system", "unclassified")}
+    for name in missing:
+        counts[classify(name)] += 1
+    print(" ".join(f"{k}={v}" for k, v in counts.items()))
+    if review:
+        print(f"({len(review)} ratcheted name(s) need a ruling - `--report` lists them)")
+    print(f"{len(imp)} import(s) in {len(swift_sources())} Swift file(s), "
+          f"{len(core)} core export(s), {len(missing)} unprovided, "
+          f"{len(rows)} ratchet row(s), {failures} failure(s)")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

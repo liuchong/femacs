@@ -4259,3 +4259,21 @@
   ⑤ 附带发现（已有解释，不是回归）：`build-tu src/{lisp,thread,indent,intervals}.h` 四个**头镜像** TU 报 `E0425`
   （`HAVE_PDUMPER`/`HAVE_NATIVE_COMP`）；HEAD 版本同样引用这两个名字 ⇒ 镜像本来不是独立 TU（与 handoff §五 的
   "`lib/include/*` 种子不从 unit 拿标量"同类），不由本轮引入。
+
+- **3.234 新的门 `tools/check-swift-imports.py`：Swift 的 539 条 C-ABI 导入里有 427 条核心还没有导出（2026-10-04）**：
+  ① **缺口的由来**（3.231 ④）：`check-swift-units.py` 只**数**Swift 单元的导入条数，不问有没有人提供；
+  `check-undef.py` 的 universe 是**被移植的 Rust 单元对象**，Swift 的 `.o` 不在其中（所以 nsterm lane 请求把 16 条 Swift 导入写进那条棘轮被我否掉）。
+  结果就是 `ns_use_srgb_colorspace` 这类"核心必须导出 X"的声明**没有任何门在核**。
+  ② **本轮的测量**：新门扫 `femacs/platform/**/*.swift` 的 `@_silgen_name("X")`，与"核心的导出集"（`nm -g build/femacs/**/*.o`）
+  加"Swift 自己 `@_cdecl` 的名字"求差，并把每条未提供的名字分类：
+  `reference` 53（参照对象 define/reference 它）、`reference-source` 298（参照的 C 文本里就是它：头文件宏/INLINE/枚举，或 .c/.m 的 `DEFSYM`）、
+  `system` 6（SDK 的 `.tbd` 提供）、`rust-side` 0、`unclassified` 70（需要人工裁定）。总读数：
+  **539 import(s) / 7 Swift 文件 / 5525 core export(s) / 427 unprovided**。
+  ③ **棘轮**：`docs/baseline/swift-import-pending.txt`（427 行，逐条带分类理由，由 `--write-pending` 生成）。
+  门**绿**（0 failure），规则与其它棘轮一致：**新名字**（不在棘轮里的未提供项）FAIL；**棘轮里已消失的** STALE FAIL；
+  已记账但分类不出来的 70 条按 **REVIEW** 列出（`--report`），不红——它们要么是"核心还欠一个只有 lane 知道的 C-ABI 名字"，
+  要么是别的 Swift 单元（ObjC 类方法等）提供的符号，逐条裁定写进棘轮的 reason 列。
+  ④ **这条读数的意义**：它是**链接阶段的义务清单**。Swift lane 的规则是"宏/INLINE/枚举/记录成员访问器由核心以 C 自己的名字导出成 C-ABI 条目"
+  （status 3.144），而这 427 条里绝大多数是这类构造 ⇒ **现在没有任何 Rust 单元导出它们**，链接阶段一旦开工就会全线失败。
+  这不是 lane 的缺陷（Swift 侧的声明与它们的台账一致），是**核心侧还没实现的 shim**：下一轮起把"按名字导出"做成一个真实的活儿
+  （逐镜像 `#[no_mangle] extern "C"` 包装，或一个专门的 shim 单元），并在每批落地后让那 427 行按"消失即删行"的棘轮规则收缩。
