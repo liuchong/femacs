@@ -311,3 +311,11 @@ names** (`port-owed` 15, `unknown` 48).  On the working tree at that moment the 
 between the two readings is the lanes' progress and nothing else.  That is why the stale-row policy
 above exists: a ratchet regenerated in the working tree is *smaller* than HEAD's, and the next
 clean run would report HEAD's names as new.
+
+**What the link set does *not* contain (measured, same round).**  `docs/baseline/frozen-build-sources.txt`
+lists 106 entries and **not one `.m`/`.mm`**: the frozen configuration builds a terminal-only
+program, so the Swift ports of `src/*.m` (`femacs/platform/macos/`) are another target's text and
+enter a program only when such a target is built - which is what `docs/ports/nsmenu.md`'s decision
+records ("the port carries the target's text rather than a compilable unit").  The executable link
+set is therefore the 163 C-ABI objects and nothing else, and `check-link.py`'s "0 frozen source(s)
+have no built object" is a statement about a complete set rather than a filtered one.
