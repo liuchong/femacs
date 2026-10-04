@@ -1605,10 +1605,10 @@
   Makefile 怎么写就怎么用，含 `-lncurses` 与那串 `-L` 路径），把其中的参照目标文件逐个换成
   `build/femacs/<同名>.o`、把 `../lib/libgnu.a` 换成**端口自己的 `lib/` 单元对象**（端口没有归档，
   混进参照的 `libgnu.a` 就是硬约束 2 禁止的 C/Rust 混链），然后真的链一次；链不上的符号就是 L0 的工单。
-  `gat-load`（严格）非零退出，`--report` 打印后退出 0 并写 `build/load/undefined.txt`（`符号\t引用它的对象`）。
+  `gate-load`（严格）非零退出，`--report` 打印后退出 0 并写 `build/load/undefined.txt`（`符号\t引用它的对象`）。
   **第一次实测**（`--report`）：**230 个未定义符号，来自 44 个对象；零 `duplicate symbol`**——后者是个
   好消息（每个 `.c` 一个 crate 的模型没有在链接层撞名），前者就是 L0 的工作量清单。构成上：
-  ① 在飞单元未收口的部分（`keyboard.o` 引 `_Fdiscard_user` 一族、`xdisp.o`/`window.o` 引
+  ① 在飞单元未收口的部分（`keyboard.o` 引 `_Fdiscard_input` 一族、`xdisp.o`/`window.o` 引
   `_MOUSE_HL_INFO` 等）；② **镜像缺口**被链接层准确点出来：`MOUSE_HL_INFO` 在 C 里是 `dispextern.h` 的
   `INLINE` 函数（参照对象里**没有**这个符号，clang 全内联），端口的 `window.rs` 却在用点把它当外部符号调，
   说明 `include/dispextern.rs` 还缺这个（以及 xdisp lane 列出的 `struct it`、`IT_*`、`PRODUCE_GLYPHS` 等）
