@@ -255,7 +255,40 @@ def reason(name: str) -> str:
     if klass == "rust-side":
         return ("an accessor the mirror names in Rust for a record member the unit reads; the core must export "
                 "it as a C-ABI entry (the lane's rule) or the Swift unit cannot link")
-    return "not found in the reference objects, the SDK or the reference's C and Rust text - check the spelling"
+    # The class the universes cannot explain is *two* things, and 3.257 asked for the reason to say
+    # which instead of suggesting a typo: a C-ABI spelling a Swift unit chose for a C construct
+    # (the unit's own `## ABI` table records that decision, and the core owes the same-name entry -
+    # status 3.255's ruling), or a name to fix.  What is checked here is only what is *true*: the
+    # tail is an identifier of the reference's C text, which is what a member accessor looks like.
+    ev = tail_evidence(name)
+    if ev:
+        tail, path = ev
+        return (f"no universe explains the name itself; `{tail}` is an identifier of the reference's own "
+                f"C text ({path}), which is the shape of a member accessor - if this is the importing "
+                f"Swift unit's C-ABI spelling of that construct, the core owes the same-name entry "
+                f"(docs/status.md 3.255 A) or the unit expands it ((B)); otherwise it is a name to fix")
+    return ("nothing in the reference objects, the SDK or the reference's C and Rust text explains it: "
+            "a name to investigate (a C-ABI spelling only a lane knows, or a spelling to fix)")
+
+
+def tail_evidence(name: str) -> tuple[str, str] | None:
+    """`(tail, path)` when the name's tail is an identifier of the reference's C text.
+
+    `frame_set_no_split` -> `no_split` (frame.h's member) is the shape this looks for; a tail
+    shorter than three characters is skipped because it would match anything.
+    """
+    m = re.match(r"^[a-z]+_(?:set_)?(.+)$", name)
+    if not m:
+        return None
+    tail = m.group(1)
+    if len(tail) < 3:
+        return None
+    pattern = re.compile(r"(?<![A-Za-z0-9_])" + re.escape(tail) + r"(?![A-Za-z0-9_])")
+    for g in REF_SOURCE_GLOBS:
+        for path in sorted(glob.glob(str(REPO / g))):
+            if pattern.search(Path(path).read_text(encoding="utf-8", errors="replace")):
+                return tail, str(Path(path).relative_to(REPO))
+    return None
 
 
 def main() -> int:
@@ -293,6 +326,14 @@ def main() -> int:
     # real (the unit compiles), so it is either a C-ABI entry the core still owes under a name only
     # a lane knows, or a symbol another Swift unit provides.  The ratchet row is where the ruling
     # goes; `--report` prints the list.  A name that is *new* still fails, above.
+    # The review list is one *reporting* class, not one kind of thing, and 3.258 measured what is
+    # in it: of the 82 rows nothing explains, 18 are member accessors (their tail is an identifier
+    # of the reference's C text, so `reason()` names it) and the rest are the Objective-C side -
+    # `EmacsFileDelegate_new`, `EmacsImage_allocInitFromFile`, `GSFontEnumerator_*` - classes and
+    # selectors another Swift unit of this port owns, which the universities here (the reference
+    # objects, the SDK, the reference's C text, the Rust items) cannot see by construction.  So a
+    # row in this list is either a core debt to export, an Objective-C name to attribute to its
+    # Swift unit, or a spelling to fix; the ratchet row's reason is where that is written down.
     review = sorted(n for n in set(missing) & set(rows) if classify(n) == "unclassified")
     if args.report:
         for name in review:
