@@ -220,22 +220,22 @@
 - [x] check_point_in_composition  (line 17255, static)
 - [x] reconsider_clip_changes  (line 17290, static)
 - [x] propagate_buffer_redisplay  (line 17318, static)
-- [ ] redisplay_internal  (line 17351, static)
-- [ ] unwind_redisplay_preserve_echo_area  (line 18238, static)
-- [ ] redisplay_preserve_echo_area  (line 18255)
-- [ ] unwind_redisplay  (line 18284, static)
-- [ ] unwind_display_working_on_window  (line 18293)
-- [ ] mark_window_display_accurate_1  (line 18304, static)
-- [ ] mark_window_display_accurate  (line 18407)
-- [ ] disp_char_vector  (line 18436)
-- [ ] block_buffer_flips  (line 18461, static)
-- [ ] unblock_buffer_flips  (line 18468, static)
-- [ ] buffer_flipping_blocked_p  (line 18486)
-- [ ] redisplay_windows  (line 18499, static)
-- [ ] redisplay_window_error  (line 18522, static)
-- [ ] redisplay_window_0  (line 18540, static)
-- [ ] redisplay_window_1  (line 18548, static)
-- [ ] update_redisplay_ticks  (line 18574)
+- [x] redisplay_internal  (line 17351, static)
+- [x] unwind_redisplay_preserve_echo_area  (line 18238, static)
+- [x] redisplay_preserve_echo_area  (line 18255)
+- [x] unwind_redisplay  (line 18284, static)
+- [x] unwind_display_working_on_window  (line 18293)
+- [x] mark_window_display_accurate_1  (line 18304, static)
+- [x] mark_window_display_accurate  (line 18407)
+- [x] disp_char_vector  (line 18436)
+- [x] block_buffer_flips  (line 18461, static)
+- [x] unblock_buffer_flips  (line 18468, static)
+- [x] buffer_flipping_blocked_p  (line 18486)
+- [x] redisplay_windows  (line 18499, static)
+- [x] redisplay_window_error  (line 18522, static)
+- [x] redisplay_window_0  (line 18540, static)
+- [x] redisplay_window_1  (line 18548, static)
+- [x] update_redisplay_ticks  (line 18574)
 - [ ] set_cursor_from_row  (line 18631, static)
 - [ ] run_window_scroll_functions  (line 19264, static)
 - [ ] cursor_row_fully_visible_p  (line 19305, static)
@@ -423,7 +423,7 @@
 - [x] static Lisp_Object mode_line_string_face  (line 13934, static)
 - [x] static Lisp_Object mode_line_string_face_prop  (line 13935, static)
 - [x] static Lisp_Object Vmode_line_unwind_vector  (line 13940, static)
-- [ ] static int buffer_flip_blocked_depth  (line 18458, static)
+- [x] static int buffer_flip_blocked_depth  (line 18458, static)
 - [ ] static char lots_of_dashes  (line 29431, static)
 
 # ----------------------------------------------------------------------
@@ -432,35 +432,28 @@
 ### Progress (this lane is incremental)
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **This round adds C
-17005-17348** — the redisplay family that sits between the `GLYPH_DEBUG` debug block and the
-giant `redisplay_internal`: `text_outside_line_unchanged_p` (the gap / `BEG_UNCHANGED` /
-overlay-touch / bidi tests), `redisplay` itself (C 17072-17076, one call), the four overlay-arrow
-helpers (`overlay_arrow_string_or_property`, `overlay_arrow_in_current_buffer_p`,
-`overlay_arrows_changed_p`, `update_overlay_arrows`, `overlay_arrow_at_row`),
-`check_point_in_composition`, `reconsider_clip_changes` and `propagate_buffer_redisplay`, plus
-the polling macros `STOP_POLLING`/`RESUME_POLLING` (C 17339-17345).  The covered range is now
-**C 468-17348** (the earlier rounds' C 468-4323, and the C 4326-4641 / C 4667-4980 /
-C 4983-5647 / C 5650-5896 / C 5897-6762 / C 6763-7562 / C 7573-8430 / C 8437-9246 /
-C 9258-10060 / C 10063-10877 / C 10879-11645 / C 11647-12525 / C 12526-13255 / C 13256-13994 /
-C 13995-14783 / C 15584-16929 rounds).  The next live definition is **C 17351
-`redisplay_internal`**: it is *one* function of 886 C lines (17350-18235) with ten `#ifdef` arms
-and the `retry` / `cancel` / `update` / `retry_frame` / `end_of_redisplay` label cluster, and it
-**cannot be split across rounds** (a half-written Rust function does not compile), so it is the
-whole of the next round — 886 C lines, inside this lane's 600-900 band on its own.  Ticked in
-the ledger above, bucket by bucket — **measured** with `grep -c '^- \[x\]'` over each section
-(`Subrs` 3/13, `Functions` 192/302, `Macros` 29/38, `Types and their fields` 2/2, `File-scope
-objects` 58/60) — **284 of the 415 boxes** (192+3+29+2+58); the remaining 131 are untouched.
-The three live subrs `set-buffer-redisplay`, `line-pixel-height` and `get-display-property`
-keep their `Subrs` boxes unticked as before.  **No scaffold entry is burned or added this
-round**: `redisplay_internal` is now *called* by a definition that landed, but the scaffold's
-entry for it must stay until C 17351 is transcribed (C's own forward declaration is C 1149) —
-**measured**: the block stays at thirteen `fn` entries.  `include/dispextern.rs`'s `pub struct
-it` is still gated by `dispextern_face_records` and still invisible to `build-tu` (item 39).
-Four new use-site externs are declared (`overlay_touches_p`, lisp.h 4944;
-`start_polling`/`stop_polling`, keyboard.h 485-486).  **This round owes five
-`docs/ports/macro-body-notes.tsv` rows** — the four `continue` rows
-(`overlay_arrow_in_current_buffer_p`, `overlay_arrows_changed_p`, `update_overlay_arrows`,
-`overlay_arrow_at_row`) and `STOP_POLLING`'s `false` (items 41-45).
+18237-18619** — the redisplay tail between `redisplay_internal` and `set_cursor_from_row`:
+`unwind_redisplay_preserve_echo_area`, `redisplay_preserve_echo_area`,
+`unwind_redisplay` and `unwind_display_working_on_window` (the unwind-protect callbacks),
+`mark_window_display_accurate_1` (the buffer/window "up to date" bookkeeping, C 18304-18398),
+`mark_window_display_accurate` (the recursive window-tree walk), `disp_char_vector`,
+`buffer_flip_blocked_depth` with `block_buffer_flips`/`unblock_buffer_flips`/
+`buffer_flipping_blocked_p`, `redisplay_windows`, the three `redisplay_window_*` condition-case
+functions, and `update_redisplay_ticks` with its function-local statics.  The covered range is
+now **C 468-18619**.  The next live definition is **C 18631 `set_cursor_from_row`** (637 C
+lines, the next round's whole work).  Ticked in the ledger above, bucket by bucket —
+**measured** with `grep -c '^- \[x\]'` over each section (`Subrs` 3/13, `Functions` 208/302,
+`Macros` 29/38, `Types and their fields` 2/2, `File-scope objects` 59/60) — **301 of the 415
+boxes** (208+3+29+2+59); the remaining 114 are untouched.  **The scaffold retires nine entries
+and gains one** (`redisplay_window`, C 1154/20475) — **measured**: the block goes from
+twenty-three `fn` entries to **fifteen**.  Five of the round's definitions are C statics whose
+*address* the port hands out (`unwind_redisplay_preserve_echo_area`, `unwind_redisplay`,
+`redisplay_window_error`, `redisplay_window_0`, `redisplay_window_1`) and are therefore
+`unsafe extern "C" fn` (deviation 152); `disp_char_vector` lives in a glob-imported module
+because `include/disptab.rs:67` declares it at its top level (deviation 153, item 49); and
+`update_redisplay_ticks`'s two function statics are an inline module inside its body, where C
+declares them (deviation 154).  **No new `docs/ports/macro-body-notes.tsv` row is owed this
+round** — `--check`'s only `does not mention` line is the previous round's recorded one.
 
 Unticked and reported, not ticked here (the two rounds before last): 10 function boxes whose
 definitions are in place and which `--check` does not report (`handle_fontified_prop` C 4667,
@@ -738,13 +731,46 @@ C 5773).
   `w->redisplay`), plus the `STOP_POLLING`/`RESUME_POLLING` macros.  `redisplay_internal`
   (C 17350-18235) is *not* here: it is one 886-line function and is the whole of the next
   round.
+* C 17350-18235 — `redisplay_internal`: the early-out tests (`redisplaying_p`,
+  `FRAME_INITIAL_P`/`Vinhibit_redisplay`, `glyphs_initialized_p`), the unwind-protect and
+  `specbind` prelude, the tty `previous_frame`/`set_tty_color_mode` swap, the visible-frame
+  count and `adjust_frame_glyphs`/`SET_FRAME_GARBAGED` repair, `clear_garbaged_frames`,
+  `prepare_menu_bars`, `reconsider_clip_changes`, the echo-area/`resize_mini_window` branch,
+  the `AINC` tallies, the one-line optimization chain (`text_outside_line_unchanged_p` gate,
+  `start_display`/`display_line`, the `increment_matrix_positions` charstart fixup, and the
+  `set_cursor_from_row` variant), the `consider_all_windows_p` frame walk with
+  `redisplay_windows`, `hscroll_windows`, `update_frame` and the
+  `condemn`/`judge_scroll_bars_hook` pair, the single-window path through
+  `internal_condition_case_1 (redisplay_window_1, …, redisplay_window_error)`, the `update:`
+  block's `update_frame`/`combine_updates_for_frame` pair, `mark_window_display_accurate_1`,
+  `update_overlay_arrows`, `RESUME_POLLING` and the tick reset.  C's dead arms inside it
+  (C 17411-17419, C 17760-17766, C 17842-17845, C 17862-17864, C 17997-18001, C 18213-18219
+  and C 18222-18224) are recorded, not transcribed (deviation 149).
+* C 18237-18619 — the redisplay tail: `unwind_redisplay_preserve_echo_area` (the
+  `unblock_buffer_flips` unwind), `redisplay_preserve_echo_area` (the `block_input` /
+  `record_unwind_protect_void` / echo-area `display_last_displayed_message_p` pair around
+  `redisplay_internal`, then `flush_frame` and `unbind_to`), `unwind_redisplay` (clearing
+  `redisplaying_p`), `unwind_display_working_on_window`, `mark_window_display_accurate_1`
+  (the `BUF_*` bookkeeping, the `current_matrix` `buffer`/`begv`/`zv` and its two matrix bits,
+  the `last_point`/`last_mark` update and the `MATRIX_ROW` window-end test),
+  `mark_window_display_accurate` (the recursive walk plus the `update_overlay_arrows`
+  pair), `disp_char_vector` (the `ASCII_CHAR_P` fast path through `dp->ascii` and its
+  `XSUB_CHAR_TABLE`, else `char_table_ref`, with `defalt` as the fallback),
+  `buffer_flip_blocked_depth`/`block_buffer_flips`/`unblock_buffer_flips`/
+  `buffer_flipping_blocked_p` (the `FOR_EACH_FRAME` `buffer_flipping_unblocked_hook` fan-out),
+  `redisplay_windows` (the recursive window walk through
+  `internal_condition_case_1 (redisplay_window_0, …)`), `redisplay_window_error` (the
+  `display_error_modiff` store and the `max_redisplay_ticks` delayed-warning path),
+  `redisplay_window_0`/`redisplay_window_1` and `update_redisplay_ticks` (the tick
+  accumulators and the "takes too long" `error`).  C 18307-18309 and C 18339-18383
+  (`HAVE_TEXT_CONVERSION`) are recorded, not transcribed (deviation 157).
 
 ### The transcription that is in place
 
-The ledger above is the checklist.  192 of the C file's 302 functions (plus 3 of its 13
+The ledger above is the checklist.  208 of the C file's 302 functions (plus 3 of its 13
 subrs — the three the frozen configuration keeps live and this round's three) are defined, in
 C's order, with C's names, C's statements and
-C's comments; `src/xdisp.rs` is 16,570 lines.  Every function that C declares `static` is a
+C's comments; `src/xdisp.rs` is 17,557 lines.  Every function that C declares `static` is a
 plain `unsafe fn` here (and `unsafe extern "C" fn` where it is variadic or its address is
 handed out — `redisplay_trace`, `move_trace`, `dsafe_eval_handler`,
 `funcall_with_backtraces`, `handle_display_prop` (whose address is `it_props[]`'s handler
@@ -1716,6 +1742,95 @@ them).
      and `WINDOW_LEFT_FRINGE_WIDTH! ((*it).w)` (the unit's macro) remain, and both are false on
      a TTY, so the arm is unreachable at run time as well.
 
+### Deviations, continued (the round's eighteenth pass: `redisplay_internal`)
+
+143. **The five labels of `redisplay_internal` are Rust control flow, and each keeps C's name
+     where it can carry one.**
+     * `retry:` is the enclosing `'retry: loop`; C's six backward jumps (`goto retry`, C 17787,
+       17995, 18088, 18108, 18140, 18199) are `continue 'retry`.
+     * `cancel:` is a labelled block `'cancel` inside the optimization `if`, and the six
+       `goto cancel` (C 17658, 17685, 17692, 17770, 17849, 17852) are `break 'cancel`; the
+       label's own statement (`SET_MATRIX_ROW_ENABLED_P`) follows the block, exactly where C
+       falls into it.
+     * `update:` is the tail of the `'update` block, so that both C's `goto update` (C 17767,
+       17794, 17846 → `break 'update`) and C's fall-through out of the `else if
+       (frame_redisplay_p (sf))` prelude reach the same code; the `consider_all_windows_p` arm
+       keeps its own `break 'frame_pass` because C falls out of the whole chain there and never
+       runs `update:`.
+     * `retry_frame:` (C 17898, the only backward label inside the frame walk) is
+       `'retry_frame: loop`; C 17956/17967/17983/18021 are `continue 'retry_frame` and the
+       body's end is `break 'retry_frame`.
+     * `end_of_redisplay:`'s code is after the `'retry` loop: C's `goto end_of_redisplay`
+       (C 17792) and the loop's own fall-through are both its `break 'retry`.
+     * C's `continue` inside a `FOR_EACH_FRAME` body (C 17890, 17912, 17938) cannot be a Rust
+       `continue` (deviation 124's rule), so the body is a `'next_frame:` labelled block and
+       they are `break 'next_frame`.
+144. **`AINC` (C 17604-17609) is a `macro_rules!`** — it declares a local `entry`, so it takes
+     its two arguments (the coding.rs `ONE_MORE_BYTE` shape); `windows_or_buffers_changed` and
+     `update_mode_lines` enter it as `as EMACS_INT` because `make_fixnum` does.
+145. **A post-increment inside a condition.**  C 17994's `garbaged_frame_retries++ <
+     MAX_GARBAGED_FRAME_RETRIES` is `{ let old: c_int = garbaged_frame_retries;
+     garbaged_frame_retries += 1; old } < MAX_GARBAGED_FRAME_RETRIES`, so the comparison sees
+     the old value and the increment still happens.
+146. **The packed members this function reaches.**  Five new `frame_bits!` arms
+     (`already_hscrolled_p` 3, `updated_p` 4, `fonts_changed` 5, `cursor_type_changed` 6,
+     `after_make_frame` 29 — all in `bits1`) and one new `window_bits_shift!` arm
+     (`last_cursor_off_p`, shift 9); `buffer_bits!` gains the *reader* for
+     `prevent_redisplay_optimizations_p` (only its writer existed, C 17624 needs the read).
+147. **`f->root_window` is written the way C writes it** — `(*f).root_window` (C 17964, 18045)
+     rather than through `FRAME_ROOT_WINDOW`, which is also what keeps the C body's token
+     spelled.  `SAVE_MODIFF`/`MODIFF` (C 17530) keep the mirror's `BUF_SAVE_MODIFF!`/
+     `BUF_MODIFF!` instead, which is why they are in this round's tsv row (item 46).
+148. **`redisplay_trace ("redisplay_internal %d\n", redisplaying_p)`** passes
+     `redisplaying_p as c_int`: the mirror types it `bool`, and Rust refuses to hand a `bool`
+     to a variadic C function (the same reason the unit's own `redisplay_trace` takes its
+     arguments through `VaList`).
+149. **The dead arms inside `redisplay_internal`** (all recorded, not transcribed): C
+     17411-17419 (the toolkit and Haiku `popup_activated` tests), C 17760-17763 (GLYPH_DEBUG's
+     `*w->desired_matrix->method = 0` / `debug_method_add`), C 17764-17766
+     (`update_window_fringes`), C 17842-17845 (GLYPH_DEBUG's "optimization 3"), C 17862-17864
+     (`++clear_image_cache_count`), C 17997-18001 (`FRAME_RIF (f)->clear_under_internal_border`),
+     C 18213-18219 (`clear_image_caches`), C 18222-18224 (`ns_set_doc_edited`).
+150. **`mark_window_display_accurate` is now declared in the unit's scaffold** (its definition
+     lands at C 18407, past this round).  The checker then adds a *fourth*
+     "`is not static` … `no #[unsafe(no_mangle)]`" row for it — the class the scaffold's other
+     three already carry, not a new defect (the row disappears when C 18407 lands).
+
+### Deviations, continued (the round's nineteenth pass: the redisplay tail)
+
+151. **Fifteen definitions land between C 18238 and C 18618** — the four unwind-protect
+     callbacks, the two `mark_window_display_accurate*`, `disp_char_vector`, the four
+     buffer-flip functions and their file-scope counter, `redisplay_windows`, the three
+     `redisplay_window_*` condition-case functions and `update_redisplay_ticks`.  Nine of them
+     were the previous round's scaffold entries; the entries are deleted in the same round the
+     definitions arrive.
+152. **Five of them are C statics whose *address* the port hands out** —
+     `unwind_redisplay_preserve_echo_area` and `unwind_redisplay` (to
+     `record_unwind_protect_void`), `redisplay_window_error`, `redisplay_window_0` and
+     `redisplay_window_1` (to `internal_condition_case_1`) — so they are
+     `unsafe extern "C" fn`, not plain `unsafe fn` (the unit's standing rule).
+153. **`disp_char_vector`'s definition lives in `mod disp_char_vector_decl` and is
+     glob-imported.**  `include/disptab.rs:67` declares the name at its mirror's top level, so
+     a plain definition beside it is E0428 (the `tty_handle_tab_bar_click` family); the
+     definition is unchanged and the symbol it emits is the same.  Item 49 asks the mirror to
+     move its declaration into a module, the shape `include/window.rs` already uses for the
+     names a unit defines (`window_redisplay_decls`).
+154. **`update_redisplay_ticks`'s function-local statics** (`cwindow`, `window_ticks`) are an
+     inline `mod update_redisplay_ticks_caches` **inside the function body**, exactly where C
+     declares them, glob-imported one line later (the coding.rs `get_char_bytes_caches`
+     shape).  Keeping the module inside the body also keeps the C body's own `struct window *`
+     token spelled, which `--check` requires.
+155. **Two parameters are `mut`** because C's `for` steps reassign them:
+     `mark_window_display_accurate`'s `window` and `redisplay_windows`'s `window`.
+156. **`ASCII_CHAR_P` takes `isize`** in the mirror, so `disp_char_vector` passes `c as isize`.
+157. **The dead arms of this round** (recorded, not transcribed): C 18307-18309 (the
+     `HAVE_TEXT_CONVERSION` `prev_point`/`prev_mark` declarations) and C 18339-18383 (that
+     arm's `ephemeral_last_point` copy and `report_point_change` call, comment included).
+158. **`buffer_flip_blocked_depth` is the unit's own file-scope object** (C 18458 declares it
+     `static int`), so the port keeps it a plain `static mut` with no `#[unsafe(no_mangle)]`;
+     that retires the ledger's last-but-two file-scope-object box and one `--check` row
+     (`missing file-scope object` 3 -> 2).
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -1935,52 +2050,90 @@ them).
     needs **no** row (its body still mentions `false`).
     (Items 41-44 may also be written as one glob row `overlay_arrow*` plus
     `update_overlay_arrows` if the integrator prefers.)
+46. `docs/ports/macro-body-notes.tsv`: **this round owes one row** — `redisplay_internal` /
+    `end_of_redisplay,goto,modiff,save_modiff` / `xdisp.c 18221/17792: C's `end_of_redisplay:`
+    label and its `goto end_of_redisplay` are the port's `break 'retry` (the label has no Rust
+    site), and `goto` is C's jumping itself; `xdisp.c 17530: C's `SAVE_MODIFF`/`MODIFF` are the
+    mirror's `BUF_SAVE_MODIFF!`/`BUF_MODIFF!` macros (the buffer.rs 1610 spelling), so the C
+    member tokens cannot appear (deviation 147)`.
+47. The scaffold's shape changed: `redisplay_internal` is deleted and eleven forward
+    declarations are added (`unwind_redisplay`, `redisplay_window_error`, `redisplay_window_1`,
+    `mark_window_display_accurate_1`, `block_buffer_flips`, `unblock_buffer_flips`,
+    `mark_window_display_accurate`, `redisplay_windows`, `set_cursor_from_row`,
+    `cursor_row_fully_visible_p`, `display_line`) — 13 -> 23 entries.  Four of them
+    (`unwind_redisplay`, `redisplay_window_error`, `redisplay_window_1`,
+    `set_cursor_from_row`) are C statics whose *address* the port hands out, so they must be
+    `unsafe extern "C" fn` when they land.
+48. `xtask`/the ledger: `--check` now reports one extra non-missing row —
+    `function mark_window_display_accurate is not static in C but has no
+    #[unsafe(no_mangle)] in the port` (deviation 150).  It is not a `missing` regression; it
+    appears because the unit declares the name one round before it defines it.
+49. `include/disptab.rs:67`: **move `disp_char_vector`'s declaration into a module** and
+    glob-import it (the `include/window.rs` `window_redisplay_decls` shape).  Left at its
+    mirror's top level, every unit that *defines* it — `xdisp.c` is the C owner — is E0428;
+    this round worked around it locally (deviation 153).
+50. **The 3.251 link-gate method pointed at xdisp's object found four macro redirects that
+    are declared as symbols.**  `thread.h` defines all of
+    `buffer.h`/`lisp.h`'s `current_buffer` (thread.h 147) and `specpdl` / `specpdl_end` /
+    `specpdl_ptr` (thread.h 131/135/139) as **macros** over `current_thread`, and
+    `include/thread.rs:156/158` already carries the right `macro_rules!` shape — but
+    `include/buffer.rs:27` and `include/lisp.rs:3783-3785` declare them as `extern "C"`
+    statics, which nothing defines, so the port's objects import `_current_buffer`,
+    `_specpdl`, `_specpdl_end`, `_specpdl_ptr` and the final link cannot resolve them
+    (`nm -u build/emacs-ref/src/xdisp.o` has none of the four; `build/femacs/xdisp.o` has
+    all four).  These are the same class as the integrator's `fflush_unlocked`/`VFORK`
+    findings.
+51. **`putc`** (C 12809/12813 in `message_to_stderr`): on this target `putc` is the stdio
+    macro, and the reference object imports `putc_unlocked` instead; the port imports `putc`.
+    It links on macOS (libSystem exports both), but it is not C's expansion — for whichever
+    lane owns that call site.
+52. **Scaffold shape**: nine entries retire and `redisplay_window` (C 1154/20475) is added —
+    23 -> 15 entries.
 ### Gate evidence for this WIP state
 
 See the final report accompanying this ledger, which quotes every gate's last line.  The
-figures below were taken at the 16,570-line revision (through `propagate_buffer_redisplay` and
-the two polling macros, C 17348):
+figures below were taken at the 17,911-line revision (through `update_redisplay_ticks`,
+C 18619):
 
 * `build-tu src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, taken **in place at
-  the current workspace state**, after a four-step fix-up loop (the compiler caught, in order:
-  an `'body:`-block paren from a mis-split C line; then the `for`-loop head that C aligns at
-  seven spaces because its condition sits on the continuation line; then a stray `)` left by
-  C's `if (`; then `propagate_buffer_redisplay`'s `{` — C 17330 carries the whole `for (; …; …)`
-  on one line, so C 17331 is the body's brace, not the increment — then the untranslated
-  `w->last_point` continuation at C 17312; finally, a review pass that the compiler cannot make,
-  the `propagate_buffer_redisplay` increment which the first splice had left *outside* its
-  `while` body — an infinite loop that still compiled, which is why every transcribed loop's
-  increment was then re-checked against its enclosing brace by hand).  This revision's `xdisp.rs` md5 is
-  `a9dbbb9a0da446fe83b51e9701ac5dc2` (16,570 lines) and the mirrors it was built against are
+  the current workspace state**, after a six-step fix-up loop: the `FOR_EACH_FRAME!` body's
+  second brace, the `mark_window_display_accurate` increment placed after its `for` body, a
+  dropped `)` on the `if (...)` line whose closer sits five lines down, the missing final
+  brace (C 18619 is the closing brace of `update_redisplay_ticks`, one line past the range),
+  the `Vdelayed_warnings_list` `if` body without braces, and then the type/ABI batch
+  (`ASCII_CHAR_P` takes `isize`; the two reassigned parameters need `mut`; the five
+  address-taken statics need `extern "C"`; `disp_char_vector` collides with
+  `include/disptab.rs:67`).  This revision's `xdisp.rs` md5 is
+  `52cb3f380028227cc148c26dfd6cecf3` (17,911 lines) and the mirrors it was built against are
   `include/dispextern.rs a1d71da831bba153fe9bd26e70b24cbd` (its `struct it` is gated, see item
-  39), `include/lisp.rs 44f7b6ab6ee488c8796c5f405f174952`, `include/window.rs
-  d163253b3b643d79b39187e77411a4d4` and `lib/include/stdbit.in.rs bd5e18f5cf4b99d4d0d32412d275bf50`
-  (the last two are other lanes' and mutable; every md5 above was re-read in the same shell
-  step as the closing `build-tu`, so the pairing is exact).  The build prints 6 warnings, the
-  same four mirror ones and two `while_true` as last round: the round adds no warning;
+  39), `include/lisp.rs 44f7b6ab6ee488c8796c5f405f174952`,
+  `include/window.rs d163253b3b643d79b39187e77411a4d4` and
+  `lib/include/stdbit.in.rs bd5e18f5cf4b99d4d0d32412d275bf50` (the last two are other lanes'
+  and mutable; every md5 above was re-read in the same shell step as the closing `build-tu`,
+  so the pairing is exact).  The build prints the same 6 warnings as the previous rounds;
+  this round adds none;
 * `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = `FAIL`; its
-  last two lines are `- line count drifted 58.4%: C 39805 vs Rust 16570` and
-  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count falls from 159 to **149**
-  (`missing function` 110 -> 100, `missing macro` 11 -> 9 — `STOP_POLLING` and `RESUME_POLLING`
-  land), and it gains this round's five recorded rows (`does not mention`, items 41-45: the
-  four `continue`s and `STOP_POLLING`'s `false`).  Every remaining `missing function` line names
-  a definition after C 17348 — the earliest are C 17351 `redisplay_internal` and then
-  C 18238 — with the single exception of the intentional C 15616 `tty_handle_tab_bar_click`
-  gap (item 38), and there is still no `stub or empty body` line;
+  last two lines are `- line count drifted 55.0%: C 39805 vs Rust 17911` and
+  `FAIL emacs/src/xdisp.c -> femacs/src/xdisp.rs`.  The count falls from 144 to **126**
+  (`missing function` 99 -> 84, `missing file-scope object` 3 -> 2); `missing macro` stays at
+  8, `missing subr` at 7 and `missing defsubr` at 13, and there is still no
+  `stub or empty body` line.  Every remaining `missing function` line names a definition after
+  C 18619 (the earliest is C 18631 `set_cursor_from_row`), with the single exception of the
+  intentional C 15616 `tty_handle_tab_bar_click` gap (item 38);
 * `python3 tools/check-cond-eval.py src/xdisp.c` = `196 conditions, 0 unknown to the evaluator,
-  0 disagreements` (this round's dead arm is C 17233-17240, the `HAVE_WINDOW_SYSTEM` fringe test
-  inside `overlay_arrow_at_row`, deviation 142);
-* `python3 tools/check-citations.py` = `628 file(s) scanned, 9 drift, 1 range, 284 external,
-  38 allowed, 0 stale` — `femacs/src/xdisp.rs` still has **no** finding;
+  0 disagreements` (this round's dead arms are the two of deviation 157);
+* `python3 tools/check-citations.py` = `629 file(s) scanned, 15 drift, 1 range, 287 external,
+  38 allowed, 0 stale` — all fifteen drifts are in other lanes' files (`femacs/src/abi_shim.rs`,
+  `femacs/platform/macos/macfont.swift`, `nsfont.swift`); `femacs/src/xdisp.rs` still has
+  **no** finding;
 * `python3 tools/check-mirror-dupes.py` = `1 duplicate declaration(s), 1 ratchet row(s), 0
-  failure(s)`; the surviving row is the `insdel.rs`/`window.rs` `bset_redisplay` one, not this
-  unit's;
+  failure(s)`; the surviving row is the `insdel.rs`/`window.rs` `bset_redisplay` one;
 * `python3 tools/check-declarations.py` = `13 declaration sites (0 forbidden, 13 allowed
   literals), 0 failures` (none from this unit);
 * `python3 tools/check-verbatim.py` = `6 trees, 4607 files, 0 failures`;
-* `python3 tools/check-globals.py` = `283 units, 0 DEFVAR_* variables without a definition in
+* `python3 tools/check-globals.py` = `284 units, 0 DEFVAR_* variables without a definition in
   their own unit`;
-* `python3 tools/check-target-names.py` = `626 .rs files, 591 map targets, 0 finding(s)`;
+* `python3 tools/check-target-names.py` = `627 .rs files, 591 map targets, 0 finding(s)`;
 * `xtask layout-check` = `layout-check passed (see build/femacs/layout_asserts.rs)`.
 
 (The unit/file counts move with the other lanes; every reading above is from this round's run.)

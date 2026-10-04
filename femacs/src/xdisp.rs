@@ -582,6 +582,7 @@ macro_rules! window_bits_shift {
     (optional_new_start) => { WINDOW_OPTIONAL_NEW_START_SHIFT };
     (phys_cursor_on_p) => { WINDOW_PHYS_CURSOR_ON_P_SHIFT };
     (cursor_off_p) => { WINDOW_CURSOR_OFF_P_SHIFT };
+    (last_cursor_off_p) => { WINDOW_LAST_CURSOR_OFF_P_SHIFT };
     (must_be_updated_p) => { WINDOW_MUST_BE_UPDATED_P_SHIFT };
     (fringes_outside_margins) => { WINDOW_FRINGES_OUTSIDE_MARGINS_SHIFT };
     (scroll_bars_persistent) => { WINDOW_SCROLL_BARS_PERSISTENT_SHIFT };
@@ -1065,6 +1066,48 @@ unsafe extern "C" {
   /// (keyboard.c defines both).
   pub fn start_polling ();
   pub fn stop_polling ();
+  /// C: lisp.h 4825: `extern void record_unwind_protect_void (void (*) (void));` (alloc.c).
+  pub fn record_unwind_protect_void (function: Option<unsafe extern "C" fn ()>);
+  /// C: lisp.h 4930: `extern void reset_outermost_restrictions (void);` (editfns.c).
+  pub fn reset_outermost_restrictions ();
+  /// C: window.c's `void run_window_change_functions (void);` (window.h 484).
+  pub fn run_window_change_functions ();
+  /// C: dispextern.h 4015: `bool is_tty_root_frame_with_visible_child (struct frame *f);`
+  /// (dispnew.c).
+  pub fn is_tty_root_frame_with_visible_child (f: *mut frame) -> bool;
+  /// C: dispextern.h 3912: `void increment_matrix_positions (struct glyph_matrix *, int, int,
+  /// ptrdiff_t, ptrdiff_t);` (dispnew.c).
+  pub fn increment_matrix_positions (matrix: *mut glyph_matrix, start: c_int, end: c_int,
+                                     delta: ptrdiff_t, delta_bytes: ptrdiff_t);
+  /// C: lisp.h 4806: `extern Lisp_Object internal_condition_case_1 (Lisp_Object (*)
+  /// (Lisp_Object), Lisp_Object, Lisp_Object, Lisp_Object (*) (Lisp_Object));` (eval.c).
+  pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
+                                    arg: Lisp_Object, handlers: Lisp_Object,
+                                    hfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>)
+                                    -> Lisp_Object;
+  /// C: dispextern.h 4016: `void combine_updates (Lisp_Object root_frames);` (dispnew.c).
+  pub fn combine_updates (root_frames: Lisp_Object);
+  /// C: lisp.h 4286: `Lisp_Object memq_no_quit (Lisp_Object, Lisp_Object);` (fns.c).
+  pub fn memq_no_quit (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object;
+  /// C: dispextern.h 3958: `extern void set_tty_color_mode (struct tty_display_info *,
+  /// struct frame *);` (term.c).
+  pub fn set_tty_color_mode (tty: *mut tty_display_info, f: *mut frame);
+  /// C: dispextern.h 3802: `void clear_face_cache (bool);` (xfaces.c defines it).
+  pub fn clear_face_cache (force_p: bool);
+  /// C: dispextern.h 3901: `extern void adjust_frame_glyphs (struct frame *);` (dispnew.c).
+  pub fn adjust_frame_glyphs (f: *mut frame);
+  /// C: dispextern.h 3781-3782: `void request_sigio (void);` / `unrequest_sigio (void);`
+  /// (sysdep.c).
+  pub fn request_sigio ();
+  pub fn unrequest_sigio ();
+}
+
+/* C 348-351: `termopts.h`'s two objects (that header has a mirror, but no unit `include!`s
+   it yet, so every unit that reads them declares them at its own use site — the
+   keyboard.rs/sysdep.rs shape).  */
+unsafe extern "C" {
+  pub static mut interrupt_input: bool;
+  pub static mut interrupts_deferred: bool;
 }
 /* `set_buffer_internal_1` is C's prototype at buffer.h 1261, which C's xdisp.c
    reaches through its own `#include "buffer.h"` (C 485); `include/buffer.rs` already
@@ -2435,6 +2478,8 @@ macro_rules! buffer_bits {
   (prevent_redisplay_optimizations_p, $b:expr, $v:expr) => {{
     if $v { (*$b).bits |= BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P; }
     else { (*$b).bits &= ! BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P; } }};
+  (prevent_redisplay_optimizations_p, $b:expr) =>
+    { (*$b).bits & BUFFER_PREVENT_REDISPLAY_OPTIMIZATIONS_P != 0 };
   (clip_changed, $b:expr) => { (*$b).bits & BUFFER_CLIP_CHANGED != 0 };
   (clip_changed, $b:expr, $v:expr) => {{
     if $v { (*$b).bits |= BUFFER_CLIP_CHANGED; }
@@ -2484,6 +2529,20 @@ macro_rules! frame_bits {
     { (*$f).bits2 >> FRAME_INHIBIT_CLEAR_IMAGE_CACHE_SHIFT & 1 != 0 };
   (inhibit_clear_image_cache, $f:expr, $v:expr) => {
     set_frame_flag2! ($f, FRAME_INHIBIT_CLEAR_IMAGE_CACHE_SHIFT, $v); };
+  /* The five members `redisplay_internal` names (frame.h 344-494).  */
+  (already_hscrolled_p, $f:expr) =>
+    { ((*$f).bits1 >> FRAME_ALREADY_HSCROLLED_P_SHIFT & 1) != 0 };
+  (already_hscrolled_p, $f:expr, $v:expr) =>
+    { set_frame_flag1! ($f, FRAME_ALREADY_HSCROLLED_P_SHIFT, $v); };
+  (updated_p, $f:expr) => { ((*$f).bits1 >> FRAME_UPDATED_P_SHIFT & 1) != 0 };
+  (updated_p, $f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_UPDATED_P_SHIFT, $v); };
+  (fonts_changed, $f:expr) => { ((*$f).bits1 >> FRAME_FONTS_CHANGED_SHIFT & 1) != 0 };
+  (fonts_changed, $f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_FONTS_CHANGED_SHIFT, $v); };
+  (cursor_type_changed, $f:expr) =>
+    { ((*$f).bits1 >> FRAME_CURSOR_TYPE_CHANGED_SHIFT & 1) != 0 };
+  (cursor_type_changed, $f:expr, $v:expr) =>
+    { set_frame_flag1! ($f, FRAME_CURSOR_TYPE_CHANGED_SHIFT, $v); };
+  (after_make_frame, $f:expr) => { ((*$f).bits1 >> FRAME_AFTER_MAKE_FRAME_SHIFT & 1) != 0 };
 }
 
 /* frame.h 300-341's two packed-flag units: the writer behind the `frame_bits!` arms above
@@ -16506,6 +16565,1279 @@ macro_rules! RESUME_POLLING {
 
 /* Perhaps in the future avoid recentering windows if it
    is not necessary; currently that causes some problems.  */
+unsafe fn
+redisplay_internal ()
+{
+  let mut w: *mut window = XWINDOW (selected_window);
+  let mut sw: *mut window;
+  let mut fr: *mut frame;
+  let mut must_finish: bool = false;
+  let mut match_p: bool;
+  let mut tlbufpos: text_pos;
+  let mut tlendpos: text_pos;
+  let mut number_of_visible_frames: c_int;
+  let mut sf: *mut frame;
+  let mut polling_stopped_here: bool = false;
+  let mut tail: Lisp_Object;
+  let mut frame: Lisp_Object;
+
+  /* Set a limit to the number of retries we perform due to horizontal
+     scrolling, this avoids getting stuck in an uninterruptible
+     infinite loop (Bug #24633).  */
+  const MAX_HSCROLL_RETRIES: c_int = 16;
+  let mut hscroll_retries: c_int = 0;
+
+  /* Limit the number of retries for when frame(s) become garbaged as
+     result of redisplaying them.  Some packages set various redisplay
+     hooks, such as window-scroll-functions, to run Lisp that always
+     calls APIs which cause the frame's garbaged flag to become set,
+     so we loop indefinitely.  */
+  const MAX_GARBAGED_FRAME_RETRIES: c_int = 2;
+  let mut garbaged_frame_retries: c_int = 0;
+
+  /* False means that only the selected_window needs to be updated.
+     True means that other windows may need to be updated as well,
+     so we need to consult `needs_no_update` for all windows.  */
+  let mut consider_all_windows_p: bool;
+
+  /* True means redisplay has to redisplay the miniwindow.  */
+  let mut update_miniwindow_p: bool = false;
+
+  redisplay_trace (c"redisplay_internal %d\n".as_ptr (), redisplaying_p as c_int);
+
+  /* I don't think this happens but let's be paranoid.  In particular,
+     this was observed happening when Emacs shuts down due to losing X
+     connection, in which case accessing SELECTED_FRAME and the frame
+     structure is likely to barf.  */
+  if redisplaying_p
+    { return; }
+
+  /* No redisplay if running in batch mode or frame is not yet fully
+     initialized, or redisplay is explicitly turned off by setting
+     Vinhibit_redisplay.  */
+  if ((FRAME_INITIAL_P (SELECTED_FRAME ())
+       && redisplay_skip_initial_frame)
+      || !NILP (Vinhibit_redisplay))
+    { return; }
+
+  /* Don't examine these until after testing Vinhibit_redisplay.
+     When Emacs is shutting down, perhaps because its connection to
+     X has dropped, we should not look at them at all.  */
+  fr = XFRAME ((*w).frame);
+  sf = SELECTED_FRAME ();
+
+  if !frame_bits! (glyphs_initialized_p, fr)
+    { return; }
+
+/* C 17411-17419's two `#if` blocks are dead on this target (P-08):
+     `defined (USE_X_TOOLKIT) || defined (USE_GTK) || defined (HAVE_NS)`'s
+     `popup_activated ()` and `defined (HAVE_HAIKU)`'s `popup_activated_p` are both
+     recorded in docs/ports/xdisp.md, not transcribed.  */
+
+  redisplay_counter += 1;
+
+  /* Record a function that clears redisplaying_p
+     when we leave this function.  */
+  let count: specpdl_ref = SPECPDL_INDEX ();
+  record_unwind_protect_void (Some (unwind_redisplay));
+  redisplaying_p = true;
+  block_buffer_flips ();
+  specbind (Qinhibit_free_realized_faces (), Qnil ());
+
+  /* Record this function, so it appears on the profiler's backtraces.  */
+  record_in_backtrace (Qredisplay_internal_xC_functionx (), core::ptr::null_mut (), 0);
+
+  FOR_EACH_FRAME! (tail, frame, {
+	  frame_bits! (already_hscrolled_p, XFRAME (frame), false); });
+
+  reset_outermost_restrictions ();
+
+ 'retry: loop
+    {
+  /* Remember the currently selected window.  */
+  sw = w;
+
+  forget_escape_and_glyphless_faces ();
+
+  inhibit_free_realized_faces = false;
+
+  /* If face_change, init_iterator will free all realized faces, which
+     includes the faces referenced from current matrices.  So, we
+     can't reuse current matrices in this case.  */
+  if face_change
+    { windows_or_buffers_changed = 47; }
+
+  let mut previous_frame: *mut frame;
+  if is_tty_frame (sf)
+      && { previous_frame = (*FRAME_TTY! (sf)).previous_frame;
+     previous_frame != sf }
+    {
+      if previous_frame.is_null ()
+	  || root_frame (previous_frame) != root_frame (sf)
+	{
+	  /* Since frames on a single terminal share the same display
+	     area, displaying a different frame means redisplay the
+	     whole thing.  */
+	  SET_FRAME_GARBAGED! (sf);
+	  set_tty_color_mode (FRAME_TTY! (sf), sf);
+	}
+      (*FRAME_TTY! (sf)).previous_frame = sf;
+    }
+
+  /* Set the visible flags for all frames.  Do this before checking for
+     resized or garbaged frames; they want to know if their frames are
+     visible.  See the comment in frame.h for FRAME_SAMPLE_VISIBILITY.  */
+  number_of_visible_frames = 0;
+
+  FOR_EACH_FRAME! (tail, frame, {
+	{
+	  let f: *mut frame = XFRAME (frame);
+
+      /* frame_redisplay_p true basically means the frame is visible. */
+	  if frame_redisplay_p (f)
+	    {
+	      number_of_visible_frames += 1;
+	  /* Adjust matrices for visible frames only.  */
+	      if frame_bits! (fonts_changed, f)
+		{
+		  adjust_frame_glyphs (f);
+	      /* Disable all redisplay optimizations for this frame.
+		 This is because adjust_frame_glyphs resets the
+		 enabled_p flag for all glyph rows of all windows, so
+		 many optimizations will fail anyway, and some might
+		 fail to test that flag and do bogus things as
+		 result.  */
+		  SET_FRAME_GARBAGED! (f);
+		  frame_bits! (fonts_changed, f, false);
+		}
+	  /* If cursor type has been changed on the frame
+	     other than selected, consider all frames.  */
+	      if f != sf && frame_bits! (cursor_type_changed, f)
+		{ fset_redisplay (f); }
+	    }
+	  clear_desired_matrices (f);
+    }
+  });
+
+  /* Notice any pending interrupt request to change frame size.  */
+  do_pending_window_change (true);
+
+  /* Clear frames marked as garbaged.  */
+  let current_matrices_cleared: bool = clear_garbaged_frames ();
+
+  /* Build menubar and tool-bar items.  */
+  if NILP (Vmemory_full)
+    { prepare_menu_bars (); }
+
+  /* do_pending_window_change could change the selected_window due to
+     frame resizing which makes the selected window too small.
+     prepare_menu_bars may call lisp hooks and hence also change the
+     selected_window.  */
+  if WINDOWP (selected_window) && { w = XWINDOW (selected_window); w != sw }
+    { sw = w; }
+
+  reconsider_clip_changes (w);
+
+  /* In most cases selected window displays current buffer.  */
+  match_p = XBUFFER ((*w).contents) == current_buffer;
+  if match_p
+    {
+      /* Detect case that we need to write or remove a star in the mode line.  */
+      if (BUF_SAVE_MODIFF! (current_buffer) < BUF_MODIFF! (current_buffer)) != window_bits! (w, last_had_star)
+	{ window_bits! (w, update_mode_line, true); }
+
+      if mode_line_update_needed (w)
+	{ window_bits! (w, update_mode_line, true); }
+
+      /* If reconsider_clip_changes above decided that the narrowing
+	 in the current buffer changed, make sure all other windows
+	 showing that buffer will be redisplayed.  */
+      if buffer_bits! (clip_changed, current_buffer)
+	{ bset_update_mode_line (current_buffer); }
+    }
+
+  /* Normally the message* functions will have already displayed and
+     updated the echo area, but the frame may have been trashed, or
+     the update may have been preempted, so display the echo area
+     again here.  Checking message_cleared_p captures the case that
+     the echo area should be cleared.  */
+  if (!NILP (echo_area_buffer[0]) && !display_last_displayed_message_p)
+      || (!NILP (echo_area_buffer[1]) && display_last_displayed_message_p)
+      || (message_cleared_p
+	  && minibuf_level == 0
+	  /* If the mini-window is currently selected, this means the
+	     echo-area doesn't show through.  */
+	  && !MINI_WINDOW_P (XWINDOW (selected_window)))
+    {
+      echo_area_display (false);
+
+      if message_cleared_p
+	{ update_miniwindow_p = true; }
+
+      must_finish = true;
+
+      /* If we don't display the current message, don't clear the
+	 message_cleared_p flag, because, if we did, we wouldn't clear
+	 the echo area in the next redisplay which doesn't preserve
+	 the echo area.  */
+      if !display_last_displayed_message_p
+	{ message_cleared_p = false; }
+    }
+  else if EQ (selected_window, minibuf_window)
+	   && (buffer_bits! (clip_changed, current_buffer) || window_outdated (w))
+	   && resize_mini_window (w, false)
+    {
+      /* Resized active mini-window to fit the size of what it is
+         showing if its contents might have changed.  */
+      must_finish = true;
+
+      /* If window configuration was changed, frames may have been
+	 marked garbaged.  Clear them or we will experience
+	 surprises wrt scrolling.  */
+      clear_garbaged_frames ();
+    }
+
+  if !NILP (Vrun_hooks)
+    { run_window_change_functions (); }
+
+  if windows_or_buffers_changed != 0 && update_mode_lines == 0
+    /* Code that sets windows_or_buffers_changed doesn't distinguish whether
+       only the windows's contents needs to be refreshed, or whether the
+       mode-lines also need a refresh.  */
+    { update_mode_lines = (if windows_or_buffers_changed == REDISPLAY_SOME
+			 { REDISPLAY_SOME } else { 32 }); }
+
+  /* If specs for an arrow have changed, do thorough redisplay
+     to ensure we remove any arrow that should no longer exist.  */
+  /* Apparently, this is the only case where we update other windows,
+     without updating other mode-lines.  */
+  overlay_arrows_changed_p (true);
+
+  consider_all_windows_p = (update_mode_lines != 0
+			    || windows_or_buffers_changed != 0
+			    || current_matrices_cleared);
+
+/* C 17604-17609: `#define AINC(a,i) { Lisp_Object entry = Fgethash (make_fixnum (i), a,
+   make_fixnum (0)); if (FIXNUMP (entry)) Fputhash (make_fixnum (i), make_fixnum (1 +
+   XFIXNUM (entry)), a); }`.  It declares a local, so it is a `macro_rules!` taking the
+   two arguments (the coding.rs `ONE_MORE_BYTE` shape).  */
+macro_rules! AINC {
+  ($a:expr, $i:expr) => {
+    {
+      let entry: Lisp_Object = Fgethash (make_fixnum ($i), $a, make_fixnum (0));
+      if FIXNUMP (entry)
+        { Fputhash (make_fixnum ($i), make_fixnum (1 + XFIXNUM (entry)), $a); }
+    }
+  };
+}
+
+  AINC! (Vredisplay__all_windows_cause, windows_or_buffers_changed as EMACS_INT);
+  AINC! (Vredisplay__mode_lines_cause, update_mode_lines as EMACS_INT);
+
+  /* Optimize the case that only the line containing the cursor in the
+     selected window has changed.  Variables starting with this_ are
+     set in display_line and record information about the line
+     containing the cursor.  */
+  tlbufpos = this_line_start_pos;
+  tlendpos = this_line_end_pos;
+  'frame_pass: {
+    'update: {
+  if !consider_all_windows_p
+      && CHARPOS! (tlbufpos) > 0
+      && !window_bits! (w, update_mode_line)
+      && !buffer_bits! (clip_changed, current_buffer)
+      && !buffer_bits! (prevent_redisplay_optimizations_p, current_buffer)
+      && frame_redisplay_p (XFRAME ((*w).frame))
+      && !frame_bits! (cursor_type_changed, XFRAME ((*w).frame))
+      && !frame_bits! (face_change, XFRAME ((*w).frame))
+      /* Make sure recorded data applies to current buffer, etc.  */
+      && this_line_buffer == current_buffer
+      && match_p
+      && !window_bits! (w, force_start)
+      && !window_bits! (w, optional_new_start)
+      /* Point must be on the line that we have info recorded about.  */
+      && PT! () >= CHARPOS! (tlbufpos)
+      && PT! () <= Z! () - CHARPOS! (tlendpos)
+      /* FIXME: The following condition is only needed when
+	 significant parts of the buffer are hidden (e.g., under
+	 hs-minor-mode), but there doesn't seem to be a simple way of
+	 detecting that, so we always disable the one-line redisplay
+	 optimizations whenever display-line-numbers-mode is turned on
+	 in the buffer.  */
+      && (NILP (Vdisplay_line_numbers)
+	  || EQ (Vdisplay_line_numbers, Qvisual ()))
+      /* All text outside that line, including its final newline,
+	 must be unchanged.  */
+      && text_outside_line_unchanged_p (w, CHARPOS! (tlbufpos),
+					CHARPOS! (tlendpos))
+      /* If this is a window on a tty root frame displaying a child frame,
+	 the current matrix of W may contain glyphs of that child frame.
+	 Don't try shortcuts that might use the current matrix in this case.  */
+      && !is_tty_root_frame_with_visible_child (XFRAME ((*w).frame))
+    {
+      'cancel: {
+      if CHARPOS! (tlbufpos) > BEGV! ()
+	  && FETCH_BYTE! (BYTEPOS! (tlbufpos) - 1) != b'\n'
+	  && (CHARPOS! (tlbufpos) == ZV! ()
+	      || FETCH_BYTE! (BYTEPOS! (tlbufpos)) == b'\n')
+	/* Former continuation line has disappeared by becoming empty.  */
+	{ break 'cancel; }
+      else if window_outdated (w) || MINI_WINDOW_P (w)
+	{
+	  /* We have to handle the case of continuation around a
+	     wide-column character (see the comment in indent.c around
+	     line 1340).
+
+	     For instance, in the following case:
+
+	     --------  Insert  --------
+	     K_A_N_\\   `a'    K_A_N_a\		`X_' are wide-column chars.
+	     J_I_       ==>    J_I_		`^^' are cursors.
+	     ^^                ^^
+	     --------          --------
+
+	     As we have to redraw the line above, we cannot use this
+	     optimization.  */
+
+	  let mut it: it = core::mem::zeroed ();
+	  let line_height_before: c_int = this_line_pixel_height;
+
+	  /* Note that start_display will handle the case that the
+	     line starting at tlbufpos is a continuation line.  */
+	  start_display (&raw mut it, w, tlbufpos);
+
+	  /* Implementation note: It this still necessary?  */
+	  if it.current_x != this_line_start_x
+	    { break 'cancel; }
+
+	  /* Give up on this optimization if the line starts with a
+	     string with display property that draws on the fringes,
+	     as that might interfere with line-prefix display.  */
+	  if it.sp > 1
+	      && it.method == GET_FROM_IMAGE && it.image_id == -1
+	    { break 'cancel; }
+	  redisplay_trace (c"trying display optimization 1\n".as_ptr ());
+	  (*w).cursor.vpos = -1;
+	  overlay_arrow_seen = false;
+	  it.vpos = this_line_vpos;
+	  it.current_y = this_line_y;
+	  it.glyph_row = MATRIX_ROW! ((*w).desired_matrix as *mut glyph_matrix, this_line_vpos);
+	  display_line (&raw mut it, -1);
+
+	  /* If line contains point, is not continued,
+             and ends at same distance from eob as before, we win.  */
+	  if (*w).cursor.vpos >= 0
+              /* Line is not continued, otherwise this_line_start_pos
+                 would have been set to 0 in display_line.  */
+	      && CHARPOS! (this_line_start_pos) != 0
+	      /* Line ends as before.  */
+	      && CHARPOS! (this_line_end_pos) == CHARPOS! (tlendpos)
+              /* Line has same height as before.  Otherwise other lines
+                 would have to be shifted up or down.  */
+	      && this_line_pixel_height == line_height_before
+	      /* Cannot use this optimization if hscrolling current
+		 line and this line is the current one, because
+		 display_line above is not informed about the
+		 current-line's vpos, and cannot DTRT in that case.  */
+	      && !hscrolling_current_line_p (w)
+	    {
+ 	      /* If this is not the window's last line, we must adjust
+ 		 the charstarts of the lines below.  */
+ 	      if it.current_y < it.last_visible_y
+  		{
+ 		  let row: *mut glyph_row
+ 		    = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, this_line_vpos + 1);
+  		  let mut delta: ptrdiff_t; let mut delta_bytes: ptrdiff_t;
+
+		  /* We used to distinguish between two cases here,
+		     conditioned by Z - CHARPOS (tlendpos) == ZV, for
+		     when the line ends in a newline or the end of the
+		     buffer's accessible portion.  But both cases did
+		     the same, so they were collapsed.  */
+		  delta = (Z! ()
+			   - CHARPOS! (tlendpos)
+			   - MATRIX_ROW_START_CHARPOS! (row));
+		  delta_bytes = (Z_BYTE! ()
+				 - BYTEPOS! (tlendpos)
+				 - MATRIX_ROW_START_BYTEPOS! (row));
+
+  		  increment_matrix_positions ((*w).current_matrix as *mut glyph_matrix,
+					      this_line_vpos + 1,
+					      (*((*w).current_matrix as *mut glyph_matrix)).nrows,
+					      delta, delta_bytes);
+		}
+
+	      /* If this row displays text now but previously didn't,
+		 or vice versa, w->window_end_vpos may have to be
+		 adjusted.  */
+	      if MATRIX_ROW_DISPLAYS_TEXT_P! (it.glyph_row.offset (-1))
+		{
+		  if (*w).window_end_vpos < this_line_vpos
+		    { (*w).window_end_vpos = this_line_vpos; }
+		}
+	      else if (*w).window_end_vpos == this_line_vpos
+		       && this_line_vpos > 0
+		{ (*w).window_end_vpos = this_line_vpos - 1; }
+	      window_bits! (w, window_end_valid, false);
+
+	      /* Update hint: No need to try to scroll in update_window.  */
+	      glyph_matrix_bits! (no_scrolling_p, (*w).desired_matrix as *mut glyph_matrix, true);
+
+/* C 17760-17766's `#ifdef GLYPH_DEBUG` and `#ifdef HAVE_WINDOW_SYSTEM` blocks are dead
+	      on this target (P-08): the `*w->desired_matrix->method = 0` / `debug_method_add
+	      (w, "optimization 1")` pair and `update_window_fringes (w, false)` are recorded,
+	      not transcribed.  */
+	      break 'update;
+	    }
+	  else
+	    { break 'cancel; }
+	}
+      else if /* Cursor position hasn't changed.  */
+	       PT! () == (*w).last_point
+	       /* Make sure the cursor was last displayed
+		  in this window.  Otherwise we have to reposition it.  */
+
+	       /* PXW: Must be converted to pixels, probably.  */
+	       && 0 <= (*w).cursor.vpos
+	       && (*w).cursor.vpos < WINDOW_TOTAL_LINES (w)
+	{
+	  if !must_finish
+	    {
+	      do_pending_window_change (true);
+	      /* If selected_window changed, redisplay again.  */
+	      if WINDOWP (selected_window)
+		  && { w = XWINDOW (selected_window); w != sw }
+		{ continue 'retry; }
+
+		/* We used to always goto end_of_redisplay here, but this
+		 isn't enough if we have a blinking cursor.  */
+	      if window_bits! (w, cursor_off_p) == window_bits! (w, last_cursor_off_p)
+		{ break 'retry; }
+	    }
+	  break 'update;
+	}
+      /* If highlighting the region, or if the cursor is in the echo area,
+	 then we can't just move the cursor.  */
+      else if NILP (Vshow_trailing_whitespace)
+	       && !cursor_in_echo_area
+	       && !composition_break_at_point
+	{
+	  let mut it: it = core::mem::zeroed ();
+	  let mut row: *mut glyph_row;
+
+	  /* Skip from tlbufpos to PT and see where it is.  Note that
+	     PT may be in invisible text.  If so, we will end at the
+	     next visible position.  */
+	  init_iterator (&raw mut it, w, CHARPOS! (tlbufpos), BYTEPOS! (tlbufpos),
+			 core::ptr::null_mut (), DEFAULT_FACE_ID);
+	  it.current_x = this_line_start_x;
+	  it.current_y = this_line_y;
+	  it.wrap_prefix_width = 0;
+	  it.vpos = this_line_vpos;
+
+	  if buffer_bits! (long_line_optimizations_p, current_buffer)
+	      && it.line_wrap == TRUNCATE
+	      && PT! () - CHARPOS! (tlbufpos) > large_hscroll_threshold
+	    {
+	      /* When lines are very long and truncated, jumping to
+		 the next visible line is much faster than slowly
+		 iterating there.  */
+	      reseat_at_next_visible_line_start (&raw mut it, false);
+	      if IT_CHARPOS! (it) <= PT! () /* point moved off this line */
+		{ it.vpos = this_line_vpos + 1; }
+	    }
+	  else
+	    {
+	      /* The call to move_it_to stops in front of PT, but
+		 moves over before-strings.  */
+	      move_it_to (&raw mut it, PT! (), -1, -1, -1, MOVE_TO_POS);
+	    }
+
+	  if it.vpos == this_line_vpos
+	      && { row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, this_line_vpos);
+		  glyph_row_bits! (enabled_p, row) }
+	    {
+	      eassert! (this_line_vpos == it.vpos);
+	      eassert! (this_line_y == it.current_y);
+	      set_cursor_from_row (w, row, (*w).current_matrix as *mut glyph_matrix, 0, 0, 0, 0);
+	      if cursor_row_fully_visible_p (w, false, true, false)
+		{
+/* C 17842-17845's `#ifdef GLYPH_DEBUG` block (`*w->desired_matrix->method = 0`
+		  and `debug_method_add (w, "optimization 3")`) is dead (P-08).  */
+		  { break 'update; }
+		}
+	      else
+		{ break 'cancel; }
+	    }
+	  else
+	    { break 'cancel; }
+	}
+      }
+
+    /* cancel:  (C 17855 — the label has no Rust site; every `goto cancel` is the
+       `break 'cancel` above.)  */
+      /* Text changed drastically or point moved off of line.  */
+      SET_MATRIX_ROW_ENABLED_P! ((*w).desired_matrix as *mut glyph_matrix, this_line_vpos, false);
+    }
+
+  CHARPOS! (this_line_start_pos) = 0;
+  clear_face_cache_count += 1;
+/* C 17862-17864's `#ifdef HAVE_WINDOW_SYSTEM` block (`++clear_image_cache_count`) is
+     dead (C 2716 already records the pair).  */
+
+  /* Build desired matrices, and update the display.  If
+     consider_all_windows_p, do it for all windows on all frames that
+     require redisplay, as specified by their 'redisplay' flag.
+     Otherwise do it for selected_window, only.  */
+
+  if consider_all_windows_p
+    {
+      FOR_EACH_FRAME! (tail, frame, {
+	  frame_bits! (updated_p, XFRAME (frame), false); });
+
+      propagate_buffer_redisplay ();
+
+      let mut tty_root_frames: Lisp_Object = Qnil ();
+      FOR_EACH_FRAME! (tail, frame, {
+	{
+	  'next_frame: {
+	  let f: *mut frame = XFRAME (frame);
+
+	  if is_tty_frame (f)
+	    {
+	      /* Ignore all invisible tty frames, children or root.  */
+	      if !frame_redisplay_p (f)
+		  /* Ignore frames not yet completely made, which we
+		     cannot safely redisplay.  */
+		  || !frame_bits! (after_make_frame, f)
+		{ break 'next_frame; }
+
+	      /* Remember tty root frames which we've seen.  */
+	      if FRAME_PARENT_FRAME (f).is_null ()
+		  && NILP (memq_no_quit (frame, tty_root_frames))
+		{ tty_root_frames = Fcons (frame, tty_root_frames); }
+	    }
+
+	'retry_frame: loop
+	  {
+	    if FRAME_WINDOW_P (f) || is_tty_frame (f) || f == sf
+	    {
+	      /* Only GC scrollbars when we redisplay the whole frame.  */
+	      let gcscrollbars: bool = frame_bits! (redisplay, f) || !REDISPLAY_SOME_P! ();
+	      let f_redisplay_flag: bool = frame_bits! (redisplay, f);
+
+	      /* The X error handler may have deleted that frame before
+		 we went back to retry_frame.  Or this could be a TTY
+		 frame that is not completely made, in which case we
+		 cannot safely redisplay its windows.  This must come
+		 before any accesses to f->terminal.  */
+	      if !FRAME_LIVE_P (f)
+		  || (FRAME_TERMCAP_P (f) && !frame_bits! (after_make_frame, f))
+		{ break 'next_frame; }
+
+	      /* Mark all the scroll bars to be removed; we'll redeem
+		 the ones we want when we redisplay their windows.  */
+	      if gcscrollbars && !(*FRAME_TERMINAL! (f)).condemn_scroll_bars_hook.is_none ()
+		{ (*FRAME_TERMINAL! (f)).condemn_scroll_bars_hook.unwrap () (f as *mut c_void); }
+
+	      if frame_redisplay_p (f)
+		{
+		  /* Don't allow freeing images and faces for this
+		     frame as long as the frame's update wasn't
+		     completed.  This prevents crashes when some Lisp
+		     that runs from the various hooks or font-lock
+		     decides to clear the frame's image cache and face
+		     cache, when the images and faces in those caches
+		     are referenced by the desired matrix.  */
+		  frame_bits! (inhibit_clear_image_cache, f, true);
+		  redisplay_windows (FRAME_ROOT_WINDOW (f));
+		}
+	      /* Remember that the invisible frames need to be redisplayed next
+		 time they're visible.  */
+	      else if !REDISPLAY_SOME_P! ()
+		{ frame_bits! (redisplay, f, true); }
+
+	      /* The X error handler may have deleted that frame.  */
+	      if !FRAME_LIVE_P (f)
+		{ break 'next_frame; }
+
+	      /* Any scroll bars which redisplay_windows should have
+		 nuked should now go away.  */
+	      if gcscrollbars && !(*FRAME_TERMINAL! (f)).judge_scroll_bars_hook.is_none ()
+		{ (*FRAME_TERMINAL! (f)).judge_scroll_bars_hook.unwrap () (f as *mut c_void); }
+
+	      if frame_redisplay_p (f)
+		{
+		  /* If fonts changed on visible frame, display again.  */
+		  if frame_bits! (fonts_changed, f)
+		    {
+		      adjust_frame_glyphs (f);
+		      /* Disable all redisplay optimizations for this
+			 frame.  For the reasons, see the comment near
+			 the previous call to adjust_frame_glyphs above.  */
+		      SET_FRAME_GARBAGED! (f);
+		      frame_bits! (fonts_changed, f, false);
+		      continue 'retry_frame;
+		    }
+
+		  /* See if we have to hscroll.  */
+		  if !frame_bits! (already_hscrolled_p, f)
+		    {
+		      frame_bits! (already_hscrolled_p, f, true);
+		      if hscroll_retries <= MAX_HSCROLL_RETRIES
+			  && hscroll_windows ((*f).root_window)
+                        {
+			  hscroll_retries += 1;
+			  continue 'retry_frame;
+                        }
+		    }
+
+		  /* If the frame's redisplay flag was not set before
+		     we went about redisplaying its windows, but it is
+		     set now, that means we employed some redisplay
+		     optimizations inside redisplay_windows, and
+		     bypassed producing some screen lines.  But if
+		     f->redisplay is now set, it might mean the old
+		     faces are no longer valid (e.g., if redisplaying
+		     some window called some Lisp which defined a new
+		     face or redefined an existing face), so trying to
+		     use them in update_frame will segfault.
+		     Therefore, we must redisplay this frame.  */
+		  if !f_redisplay_flag && frame_bits! (redisplay, f)
+		    { continue 'retry_frame; }
+                  /* In some case (e.g., window resize), we notice
+                     only during window updating that the window
+                     content changed unpredictably (e.g., a GTK
+                     scrollbar moved, or some Lisp hook that winds up
+                     calling adjust_frame_glyphs) and that our
+                     previous estimation of the frame content was
+                     garbage.  We have to start over.  These cases
+                     should be rare, so going all the way back to the
+                     top of redisplay should be good enough.  */
+		  if FRAME_GARBAGED_P (f)
+		      && { let old: c_int = garbaged_frame_retries; garbaged_frame_retries += 1; old } < MAX_GARBAGED_FRAME_RETRIES
+		    { continue 'retry; }
+
+/* C 17997-18001's `#ifdef HAVE_WINDOW_SYSTEM` block is dead on this target (P-08):
+		     the `FRAME_WINDOW_P (f) && FRAME_RIF (f)->clear_under_internal_border (f)`
+		     call is recorded, not transcribed.  */
+		  /* Prevent various kinds of signals during display
+		     update.  stdio is not robust about handling
+		     signals, which can cause an apparent I/O error.  */
+		  if interrupt_input
+		    { unrequest_sigio (); }
+		  STOP_POLLING! (polling_stopped_here);
+
+		  update_frame (f, false);
+		  /* On some platforms (at least MS-Windows), the
+		     scroll_run_hook called from scrolling_window
+		     called from update_frame could set the frame's
+		     garbaged flag, in which case we need to redisplay
+		     the frame.  Don't do that on TTY frames, since we
+		     need to keep the garbaged flag in that case when
+		     the frame has been resized.  */
+		  if FRAME_GARBAGED_P (f)
+		    {
+		      fset_redisplay (f);
+		      frame_bits! (garbaged, f, false);
+		      continue 'retry_frame;
+		    }
+		  frame_bits! (cursor_type_changed, f, false);
+		  frame_bits! (updated_p, f, true);
+		  frame_bits! (inhibit_clear_image_cache, f, false);
+		}
+	    }
+	      break 'retry_frame;
+	  }
+	  }
+	}
+	});
+
+      if CONSP (tty_root_frames)
+	{ combine_updates (tty_root_frames); }
+
+      eassert! (EQ ((*XFRAME (selected_frame)).selected_window, selected_window));
+
+      /* Do the mark_window_display_accurate after all windows have
+	 been redisplayed because this call resets flags in buffers
+	 which are needed for proper redisplay.  */
+      FOR_EACH_FRAME! (tail, frame, {
+	{
+	  let f: *mut frame = XFRAME (frame);
+	  if frame_bits! (updated_p, f)
+	    {
+	      frame_bits! (redisplay, f, false);
+	      frame_bits! (garbaged, f, false);
+	      mark_window_display_accurate ((*f).root_window, true);
+	      if !(*FRAME_TERMINAL! (f)).frame_up_to_date_hook.is_none ()
+		{ (*FRAME_TERMINAL! (f)).frame_up_to_date_hook.unwrap () (f as *mut c_void); }
+	    }
+	}
+	});
+      break 'frame_pass;   /* C falls out of the `if (consider_all_windows_p)` */
+    }
+  else if frame_redisplay_p (sf)
+    {
+      frame_bits! (inhibit_clear_image_cache, sf, true);
+      displayed_buffer = XBUFFER ((*XWINDOW (selected_window)).contents);
+      /* Use list_of_error, not Qerror, so that
+	 we catch only errors and don't run the debugger.  */
+      internal_condition_case_1 (Some (redisplay_window_1), selected_window,
+				 list_of_error,
+				 Some (redisplay_window_error));
+      if update_miniwindow_p
+	{
+	  let mini_window: Lisp_Object = FRAME_MINIBUF_WINDOW (sf);
+
+	  displayed_buffer = XBUFFER ((*XWINDOW (mini_window)).contents);
+	  internal_condition_case_1 (Some (redisplay_window_1), mini_window,
+				     list_of_error,
+				     Some (redisplay_window_error));
+	}
+      }
+
+      /* Compare desired and current matrices, perform output.  */
+
+    /* update:  (C 18072 — the label has no Rust site; `break 'update` from the
+       optimization block is C's `goto update`, and falling out of `'update` above
+       is C's fall-through into the label.)  */
+      /* If fonts changed, display again.  Likewise if redisplay_window_1
+	 above caused some change (e.g., a change in faces) that requires
+	 considering the entire frame again.  */
+      if frame_bits! (fonts_changed, sf) || frame_bits! (redisplay, sf)
+	{
+	  if frame_bits! (redisplay, sf)
+	    {
+	      /* Set this to force a more thorough redisplay.
+		 Otherwise, we might immediately loop back to the
+		 above "else-if" clause (since all the conditions that
+		 led here might still be true), and we will then
+		 infloop, because the selected-frame's redisplay flag
+		 is not (and cannot be) reset.  */
+	      windows_or_buffers_changed = 50;
+	    }
+	  continue 'retry;
+	}
+
+      /* Prevent freeing of realized faces, since desired matrices are
+	 pending that reference the faces we computed and cached.  */
+      inhibit_free_realized_faces = true;
+
+      /* Prevent various kinds of signals during display update.
+	 stdio is not robust about handling signals,
+	 which can cause an apparent I/O error.  */
+      if interrupt_input
+	{ unrequest_sigio (); }
+      STOP_POLLING! (polling_stopped_here);
+
+      if frame_redisplay_p (sf)
+	{
+          if hscroll_retries <= MAX_HSCROLL_RETRIES
+              && hscroll_windows (selected_window)
+            {
+              hscroll_retries += 1;
+              continue 'retry;
+            }
+
+	  window_bits! (XWINDOW (selected_window), must_be_updated_p, true);
+	  update_frame (sf, false);
+
+	  if is_tty_frame (sf)
+	    { combine_updates_for_frame (sf, false); }
+
+	  frame_bits! (cursor_type_changed, sf, false);
+	  frame_bits! (inhibit_clear_image_cache, sf, false);
+	}
+
+      /* We may have called echo_area_display at the top of this
+	 function.  If the echo area is on another frame, that may
+	 have put text on a frame other than the selected one, so the
+	 above call to update_frame would not have caught it.  Catch
+	 it here.  */
+      let mini_window: Lisp_Object = FRAME_MINIBUF_WINDOW (sf);
+      let mini_frame: *mut frame = XFRAME (WINDOW_FRAME! (XWINDOW (mini_window)));
+
+      if mini_frame != sf
+	{
+	  window_bits! (XWINDOW (mini_window), must_be_updated_p, true);
+	  update_frame (mini_frame, false);
+	  if is_tty_frame (mini_frame)
+	    { combine_updates_for_frame (mini_frame, false); }
+	  frame_bits! (cursor_type_changed, mini_frame, false);
+          if hscroll_retries <= MAX_HSCROLL_RETRIES
+              && hscroll_windows (mini_window)
+            {
+              hscroll_retries += 1;
+              continue 'retry;
+            }
+	}
+    }
+  }
+
+  if !consider_all_windows_p
+    {
+      /* This has already been done above if
+	 consider_all_windows_p is set.  */
+      if buffer_text_bits! (text.redisplay, XBUFFER ((*w).contents))
+	  && buffer_window_count (XBUFFER ((*w).contents)) > 1
+	/* This can happen if b->text->redisplay was set during
+	   jit-lock.  */
+	{ propagate_buffer_redisplay (); }
+      mark_window_display_accurate_1 (w, true);
+
+      /* Say overlay arrows are up to date.  */
+      update_overlay_arrows (1);
+
+      if !(*FRAME_TERMINAL! (sf)).frame_up_to_date_hook.is_none ()
+	{ (*FRAME_TERMINAL! (sf)).frame_up_to_date_hook.unwrap () (sf as *mut c_void); }
+    }
+
+  update_mode_lines = 0;
+  windows_or_buffers_changed = 0;
+
+  /* Start SIGIO interrupts coming again.  Having them off during the
+     code above makes it less likely one will discard output, but not
+     impossible, since there might be stuff in the system buffer here.
+     But it is much hairier to try to do anything about that.  */
+  if interrupt_input
+    { request_sigio (); }
+  RESUME_POLLING! (polling_stopped_here);
+
+  /* If a frame has become visible which was not before, redisplay
+     again, so that we display it.  Expose events for such a frame
+     (which it gets when becoming visible) don't call the parts of
+     redisplay constructing glyphs, so simply exposing a frame won't
+     display anything in this case.  So, we have to display these
+     frames here explicitly.  */
+  let mut new_count: c_int = 0;
+
+  FOR_EACH_FRAME! (tail, frame, {
+	{
+	  if frame_redisplay_p (XFRAME (frame))
+	    { new_count += 1; }
+	}
+	});
+
+    if new_count != number_of_visible_frames
+      { windows_or_buffers_changed = 52; }
+
+  /* Change frame size now if a change is pending.  */
+  do_pending_window_change (true);
+
+  /* If we just did a pending size change, or have additional
+     visible frames, or selected_window changed, redisplay again.  */
+  if windows_or_buffers_changed != 0
+      || (WINDOWP (selected_window)
+	  && { w = XWINDOW (selected_window); w != sw })
+    { continue 'retry; }
+
+  /* Clear the face and image caches.
+
+     We used to do this only if consider_all_windows_p.  But the cache
+     needs to be cleared if a timer creates images in the current
+     buffer (e.g. the test case in Bug#6230).  */
+
+  if clear_face_cache_count > CLEAR_FACE_CACHE_COUNT
+    {
+      clear_face_cache (false);
+      clear_face_cache_count = 0;
+    }
+
+/* C 18213-18219's `#ifdef HAVE_WINDOW_SYSTEM` block (`clear_image_cache_count >
+     CLEAR_IMAGE_CACHE_COUNT` and `clear_image_caches (Qnil)`) is dead (C 2716 already
+     records the pair).  */
+
+      break 'retry;
+    }
+  /* end_of_redisplay:  (C 18221 — the label has no Rust site; C's fall-through out of
+     the loop above and its `goto end_of_redisplay` are both the `break 'retry`.)  */
+/* C 18222-18224's `#ifdef HAVE_NS` block (`ns_set_doc_edited ()`) is dead (P-08).  */
+  if interrupt_input && interrupts_deferred
+    { request_sigio (); }
+
+  /* We're done with this redisplay cycle, so reset the tick count in
+     preparation for the next redisplay cycle.  */
+  if max_redisplay_ticks > 0
+    { update_redisplay_ticks (0, core::ptr::null_mut ()); }
+
+  unbind_to (count, Qnil ());
+  RESUME_POLLING! (polling_stopped_here);
+}
+unsafe extern "C" fn
+unwind_redisplay_preserve_echo_area ()
+{
+  unblock_buffer_flips ();
+}
+
+/* Redisplay, but leave alone any recent echo area message unless
+   another message has been requested in its place.
+
+   This is useful in situations where you need to redisplay but no
+   user action has occurred, making it inappropriate for the message
+   area to be cleared.  See tracking_off and
+   wait_reading_process_output for examples of these situations.
+
+   FROM_WHERE is an integer saying from where this function was
+   called.  This is useful for debugging.  */
+
+#[unsafe(no_mangle)] pub unsafe extern "C" fn
+redisplay_preserve_echo_area (from_where: c_int)
+{
+  redisplay_trace (c"redisplay_preserve_echo_area (%d)\n".as_ptr (), from_where);
+
+  block_input ();
+  let count: specpdl_ref = SPECPDL_INDEX ();
+  record_unwind_protect_void (Some (unwind_redisplay_preserve_echo_area));
+  block_buffer_flips ();
+  unblock_input ();
+
+  if !NILP (echo_area_buffer[1])
+    {
+      /* We have a previously displayed message, but no current
+	 message.  Redisplay the previous message.  */
+      display_last_displayed_message_p = true;
+      redisplay_internal ();
+      display_last_displayed_message_p = false;
+    }
+  else
+    { redisplay_internal (); }
+
+  flush_frame (SELECTED_FRAME ());
+  unbind_to (count, Qnil ());
+}
+
+
+/* Function registered with record_unwind_protect in redisplay_internal.  */
+
+unsafe extern "C" fn
+unwind_redisplay ()
+{
+  redisplaying_p = false;
+  unblock_buffer_flips ();
+}
+
+/* Function registered with record_unwind_protect before calling
+   start_display outside of redisplay_internal.  */
+#[unsafe(no_mangle)] pub unsafe extern "C" fn
+unwind_display_working_on_window ()
+{
+  display_working_on_window_p = false;
+}
+
+/* Mark the display of leaf window W as accurate or inaccurate.
+   If ACCURATE_P, mark display of W as accurate.
+   If !ACCURATE_P, arrange for W to be redisplayed the next
+   time redisplay_internal is called.  */
+
+unsafe fn
+mark_window_display_accurate_1 (w: *mut window, accurate_p: bool)
+{
+  let b: *mut buffer = XBUFFER ((*w).contents);
+/* C 18307-18309's `#ifdef HAVE_TEXT_CONVERSION` declarations (`prev_point`,
+     `prev_mark`) are dead on this target (P-08).  */
+
+  (*w).last_modified = if accurate_p { BUF_MODIFF! (b) } else { 0 };
+  (*w).last_overlay_modified = if accurate_p { BUF_OVERLAY_MODIFF! (b) } else { 0 };
+  window_bits! (w, last_had_star, BUF_MODIFF! (b) > BUF_SAVE_MODIFF! (b));
+
+  if accurate_p
+    {
+      buffer_bits! (clip_changed, b, false);
+      buffer_bits! (prevent_redisplay_optimizations_p, b, false);
+      eassert! (buffer_window_count (b) > 0);
+      /* Resetting b->text->redisplay is problematic!
+	 In order to make it safer to do it here, redisplay_internal must
+	 have copied all b->text->redisplay to their respective windows.  */
+      buffer_text_bits! (text.redisplay, b, false);
+
+      BUF_UNCHANGED_MODIFIED! (b) = BUF_MODIFF! (b);
+      BUF_OVERLAY_UNCHANGED_MODIFIED! (b) = BUF_OVERLAY_MODIFF! (b);
+      BUF_BEG_UNCHANGED! (b) = BUF_GPT! (b) - BUF_BEG (b);
+      BUF_END_UNCHANGED! (b) = BUF_Z! (b) - BUF_GPT! (b);
+
+      (*((*w).current_matrix as *mut glyph_matrix)).buffer = b as *mut c_void;
+      (*((*w).current_matrix as *mut glyph_matrix)).begv = BUF_BEGV (b);
+      (*((*w).current_matrix as *mut glyph_matrix)).zv = BUF_ZV (b);
+      glyph_matrix_bits! (header_line_p, (*w).current_matrix as *mut glyph_matrix, window_wants_header_line (w));
+      glyph_matrix_bits! (tab_line_p, (*w).current_matrix as *mut glyph_matrix, window_wants_tab_line (w));
+
+      (*w).last_cursor_vpos = (*w).cursor.vpos;
+      window_bits! (w, last_cursor_off_p, window_bits! (w, cursor_off_p));
+
+/* C 18339-18383's `#ifdef HAVE_TEXT_CONVERSION` block is dead on this target (P-08):
+       the `prev_point`/`prev_mark` saves, the `ephemeral_last_point` copy and the
+       `report_point_change` call (with its own long comment) are recorded, not
+       transcribed.  */
+
+      if w == XWINDOW (selected_window)
+	{ (*w).last_point = BUF_PT (b); }
+      else
+	{ (*w).last_point = marker_position ((*w).pointm); }
+
+      /* w->last_mark is recorded for text conversion purposes.
+         Input methods aren't interested in the value of the mark
+         if it is inactive, so set it to -1 if it's not.  */
+
+      if (*XMARKER (BVAR! (b, mark_))).buffer as *mut buffer == b
+	  && !NILP (BVAR! (b, mark_active_))
+	{ (*w).last_mark = marker_position (BVAR! (b, mark_)); }
+      else
+	{ (*w).last_mark = -1; }
+
+
+      let mut row: *mut glyph_row;
+      /* These conditions should be consistent with CHECK_WINDOW_END.  */
+      if (*w).window_end_vpos < (*((*w).current_matrix as *mut glyph_matrix)).nrows
+	  && { row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, (*w).window_end_vpos);
+	       !glyph_row_bits! (enabled_p, row)
+	       || MATRIX_ROW_DISPLAYS_TEXT_P! (row)
+	       || MATRIX_ROW_VPOS! (row, (*w).current_matrix as *mut glyph_matrix) == 0 }
+	{ window_bits! (w, window_end_valid, true); }
+      window_bits! (w, update_mode_line, false);
+      window_bits! (w, preserve_vscroll_p, false);
+    }
+
+  window_bits! (w, redisplay, !accurate_p);
+}
+
+
+/* Mark the display of windows in the window tree rooted at WINDOW as
+   accurate or inaccurate.  If ACCURATE_P, mark display of
+   windows as accurate.  If !ACCURATE_P, arrange for windows to
+   be redisplayed the next time redisplay_internal is called.  */
+
+#[unsafe(no_mangle)] pub unsafe extern "C" fn
+mark_window_display_accurate (mut window: Lisp_Object, accurate_p: bool)
+{
+  let mut w: *mut window;
+
+  while !NILP (window)
+    {
+      w = XWINDOW (window);
+      if WINDOWP ((*w).contents)
+	{ mark_window_display_accurate ((*w).contents, accurate_p); }
+      else
+	{ mark_window_display_accurate_1 (w, accurate_p); }
+      window = (*w).next;
+    }
+
+  if accurate_p
+    { update_overlay_arrows (1); }
+  else
+    /* Force a thorough redisplay the next time by setting
+       last_arrow_position and last_arrow_string to t, which is
+       unequal to any useful value of Voverlay_arrow_...  */
+    { update_overlay_arrows (-1); }
+}
+
+
+/* Return value in display table DP (Lisp_Char_Table *) for character
+   C.  Since a display table doesn't have any parent, we don't have to
+   follow parent.  Do not call this function directly but use the
+   macro DISP_CHAR_VECTOR.  */
+
+/* disptab.h 55 declares `disp_char_vector` at its mirror top level, and a unit that
+   defines it collides (E0428, the `tty_handle_tab_bar_click` family).  The definition
+   therefore lives in this module and is glob-imported — the shape the mirrors use for a
+   name a unit defines (`window_redisplay_decls`); the emitted symbol is unchanged.  */
+mod disp_char_vector_decl {
+  use super::*;
+
+  #[unsafe(no_mangle)] pub unsafe extern "C" fn
+  disp_char_vector (dp: *mut Lisp_Char_Table, c: c_int) -> Lisp_Object
+  {
+    let mut val: Lisp_Object;
+
+    if ASCII_CHAR_P (c as isize)
+      {
+        val = (*dp).ascii;
+        if SUB_CHAR_TABLE_P (val)
+  	{ val = (*XSUB_CHAR_TABLE (val)).contents[c as usize]; }
+      }
+    else
+      {
+        let mut table: Lisp_Object;
+
+        XSETCHAR_TABLE! (table, dp);
+        val = char_table_ref (table, c);
+      }
+    if NILP (val)
+      { val = (*dp).defalt; }
+    return val;
+  }
+}
+use disp_char_vector_decl::*;
+
+static mut buffer_flip_blocked_depth: c_int = 0;
+
+unsafe fn
+block_buffer_flips ()
+{
+  eassert! (buffer_flip_blocked_depth >= 0);
+  buffer_flip_blocked_depth += 1;
+}
+
+unsafe fn
+unblock_buffer_flips ()
+{
+  eassert! (buffer_flip_blocked_depth > 0);
+  buffer_flip_blocked_depth -= 1;
+  if buffer_flip_blocked_depth == 0
+    {
+      let mut tail: Lisp_Object;
+      let mut frame: Lisp_Object;
+      block_input ();
+      FOR_EACH_FRAME! (tail, frame, {
+        {
+	  let f: *mut frame = XFRAME (frame);
+	  if !(*FRAME_TERMINAL! (f)).buffer_flipping_unblocked_hook.is_none ()
+	    { (*FRAME_TERMINAL! (f)).buffer_flipping_unblocked_hook.unwrap () (f as *mut c_void); }
+	}
+	});
+      unblock_input ();
+    }
+}
+
+#[unsafe(no_mangle)] pub unsafe extern "C" fn
+buffer_flipping_blocked_p () -> bool
+{
+  return buffer_flip_blocked_depth > 0;
+}
+
+
+/***********************************************************************
+			   Window Redisplay
+ ***********************************************************************/
+
+/* Redisplay all leaf windows in the window tree rooted at WINDOW.  */
+
+unsafe fn
+redisplay_windows (mut window: Lisp_Object)
+{
+  while !NILP (window)
+    {
+      let w: *mut window = XWINDOW (window);
+
+      if WINDOWP ((*w).contents)
+	{ redisplay_windows ((*w).contents); }
+      else if BUFFERP ((*w).contents)
+	{
+	  displayed_buffer = XBUFFER ((*w).contents);
+	  /* Use list_of_error, not Qerror, so that
+	     we catch only errors and don't run the debugger.  */
+	  internal_condition_case_1 (Some (redisplay_window_0), window,
+				     list_of_error,
+				     Some (redisplay_window_error));
+	}
+
+      window = (*w).next;
+    }
+}
+
+unsafe extern "C" fn
+redisplay_window_error (error_data: Lisp_Object) -> Lisp_Object
+{
+  (*displayed_buffer).display_error_modiff = BUF_MODIFF! (displayed_buffer);
+
+  /* When in redisplay, the error is captured and not shown.  Arrange
+     for it to be shown later.  */
+  if max_redisplay_ticks > 0
+      && CONSP (error_data)
+      && EQ (XCAR (error_data), Qerror ())
+      && CONSP (XCDR (error_data))
+      && STRINGP (XCAR (XCDR (error_data)))
+    { Vdelayed_warnings_list = Fcons (list2 (XCAR (error_data),
+					   XCAR (XCDR (error_data))),
+				    Vdelayed_warnings_list); }
+  return Qnil ();
+}
+
+unsafe extern "C" fn
+redisplay_window_0 (window: Lisp_Object) -> Lisp_Object
+{
+  if (*displayed_buffer).display_error_modiff < BUF_MODIFF! (displayed_buffer)
+    { redisplay_window (window, false); }
+  return Qnil ();
+}
+
+unsafe extern "C" fn
+redisplay_window_1 (window: Lisp_Object) -> Lisp_Object
+{
+  if (*displayed_buffer).display_error_modiff < BUF_MODIFF! (displayed_buffer)
+    { redisplay_window (window, true); }
+  return Qnil ();
+}
+
+
+/***********************************************************************
+		      Aborting runaway redisplay
+ ***********************************************************************/
+
+/* Update the redisplay-tick count for window W, and signal an error
+   if the tick count is above some threshold, indicating that
+   redisplay of the window takes "too long".
+
+   TICKS is the amount of ticks to add to the W's current count; zero
+   means to initialize the tick count to zero.
+
+   W can be NULL if TICKS is zero: that means unconditionally
+   re-initialize the current tick count to zero.
+
+   W can also be NULL if the caller doesn't know which window is being
+   processed by the display code.  In that case, if TICKS is non-zero,
+   we assume it's the last window that shows the current buffer.  */
+#[unsafe(no_mangle)] pub unsafe extern "C" fn
+update_redisplay_ticks (ticks: c_int, mut w: *mut window)
+{
+  /* This keeps track of the window on which redisplay is working.  */
+  mod update_redisplay_ticks_caches {
+    use super::*;
+
+    pub static mut cwindow: *mut window = core::ptr::null_mut ();
+    pub static mut window_ticks: EMACS_INT = 0;
+  }
+  use update_redisplay_ticks_caches::*;
+
+  /* We only initialize the count if this is a different window or
+     NULL.  Otherwise, this is a call from init_iterator for the same
+     window we tracked before, and we should keep the count.  */
+  if ticks == 0 && w != cwindow
+    {
+      cwindow = w;
+      window_ticks = 0;
+    }
+  /* Some callers can be run in contexts unrelated to display code, so
+     don't abort them and don't update the tick count in those cases.  */
+  if (w.is_null () && !redisplaying_p && !display_working_on_window_p
+      /* We never disable redisplay of a mini-window, since that is
+	 absolutely essential for communicating with Emacs.  */
+      || (!w.is_null () && MINI_WINDOW_P (w)))
+    { return; }
+
+  if ticks > 0
+    { window_ticks += ticks as EMACS_INT; }
+  if max_redisplay_ticks > 0 && window_ticks > max_redisplay_ticks as EMACS_INT
+    {
+      /* In addition to a buffer, this could be a window (for non-leaf
+	 windows, not expected here) or nil (for pseudo-windows like
+	 the one used for the native tool bar).  */
+      let contents: Lisp_Object = if !w.is_null () { (*w).contents } else { Qnil () };
+      let bufname: *const c_char
+	= if NILP (contents)
+	{ SSDATA (BVAR! (current_buffer, name_)) }
+	else if BUFFERP (contents)
+	   { SSDATA (BVAR! (XBUFFER (contents), name_)) }
+	   else { c"<unknown>".as_ptr () };
+
+      windows_or_buffers_changed = 177;
+      /* scrolling_window depends too much on the glyph matrices being
+	 correct, and we cannot guarantee that if we abort the
+	 redisplay of this window.  */
+      if !w.is_null () && !(*w).desired_matrix.is_null ()
+	{ glyph_matrix_bits! (no_scrolling_p, (*w).desired_matrix as *mut glyph_matrix, true); }
+      error (c"Window showing buffer %s takes too long to redisplay".as_ptr (), bufname);
+    }
+}
 /* ==================================================================== */
 /* TEMPORARY SCAFFOLD — MUST BE DELETED BEFORE THIS UNIT IS ACCEPTED    */
 /* ==================================================================== */
@@ -16540,9 +17872,6 @@ unsafe extern "C" {
   /// C: xdisp.c 1170: `static int display_mode_line (struct window *, enum face_id,
   /// Lisp_Object);`
   fn display_mode_line (w: *mut window, face_id: face_id, format: Lisp_Object) -> c_int;
-  /// C: dispextern.h 3721: `extern void update_redisplay_ticks (int, struct window *);`
-  /// (defined later in this unit, C 18574).
-  fn update_redisplay_ticks (ticks: c_int, w: *mut window);
   /// C: xdisp.c 1132: `static void handle_line_prefix (struct it *);` (called by
   /// `move_it_in_display_line_to`; its definition lands later in this unit).
   fn handle_line_prefix (it: *mut it);
@@ -16553,8 +17882,20 @@ unsafe extern "C" {
   /// C: dispextern.h 3573: `int try_window (Lisp_Object, struct text_pos, int);` (defined
   /// later in this unit; C's is non-`static`).
   fn try_window (window: Lisp_Object, pos: text_pos, flags: c_int) -> c_int;
-  /// C: xdisp.c 1149: `static void redisplay_internal (void);` (defined later in this unit).
-  fn redisplay_internal ();
+  /// C: xdisp.c 1158-1160/18631: `static bool set_cursor_from_row (struct window *,
+  /// struct glyph_row *, struct glyph_matrix *, ptrdiff_t, ptrdiff_t, int, int);`
+  fn set_cursor_from_row (w: *mut window, row: *mut glyph_row, matrix: *mut glyph_matrix,
+                          start: ptrdiff_t, start_byte: ptrdiff_t, x: c_int, y: c_int) -> bool;
+  /// C: xdisp.c 1161/19305: `static bool cursor_row_fully_visible_p (struct window *, bool,
+  /// bool, bool);`
+  fn cursor_row_fully_visible_p (w: *mut window, force_p: bool, current_p: bool,
+                                 partially_p: bool) -> bool;
+  /// C: dispextern.h 3595: `int display_line (struct it *, int);` (xdisp.c defines it at
+  /// C 25865).
+  /// C: xdisp.c 1154/20475: `static void redisplay_window (Lisp_Object, bool);`
+  /// (defined later in this unit).
+  fn redisplay_window (window: Lisp_Object, force_p: bool);
+  fn display_line (it: *mut it, cursor_vpos: c_int) -> c_int;
   /// C: xdisp.c 1183: `static void compute_line_metrics (struct it *);` (defined later).
   fn compute_line_metrics (it: *mut it);
   /// C: xdisp.c 1170-1171: `static int display_mode_element (struct it *, int, int, int,
