@@ -20,3 +20,19 @@ pub fn maybe_defer_native_compilation (function_name: Lisp_Object, definition: L
 {
   let _ = (function_name, definition);
 }
+
+/* comp.h 96-98, the same live `#else` branch:
+     static inline
+     void unload_comp_unit (struct Lisp_Native_Comp_Unit *cu)
+     {}                                                                 */
+/// The empty body is the reference's own (comp.h 97-98), not a port stub: with
+/// HAVE_NATIVE_COMP undefined this is what `alloc.c` 3195 links against when its own
+/// `#ifdef HAVE_NATIVE_COMP` arm is taken.  C's parameter is the *incomplete* `struct
+/// Lisp_Native_Comp_Unit` - the field-carrying definition sits in the `#ifdef` branch the
+/// frozen configuration does not compile (P-08), and the port's own copy lives in
+/// `pdumper.rs` under the `native_comp` feature - so a pointer to a type this branch never
+/// defines is spelled `*mut core::ffi::c_void` (PORTING.md P-72 3).
+#[inline(always)]
+pub fn unload_comp_unit (cu: *mut core::ffi::c_void) {
+  let _ = cu;
+}

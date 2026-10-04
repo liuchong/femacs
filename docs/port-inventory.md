@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 500 |
-| 其中 done / wip | 469 / 31 |
-| 待开工 | 90 |
+| 已有目标文件 | 502 |
+| 其中 done / wip | 470 / 32 |
+| 待开工 | 88 |
 
 ## 2 按目录
 
@@ -33,7 +33,7 @@
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
 | `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 36 |
-| `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 2 |
+| `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
@@ -48,7 +48,7 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 10 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 34 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 32 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 36 |
 
@@ -69,7 +69,7 @@
 | `src/macuvs.h` | 9,218 | 0 | 0 | 0 | 0 | 0 | F | done |
 | `src/process.c` | 9,122 | 125 | 63 | 24 | 9 | 20 | D | wip |
 | `src/w32term.c` | 8,414 | 151 | 0 | 11 | 0 | 37 | F | done |
-| `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 0 | 12 | F | todo |
+| `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 0 | 12 | F | wip |
 | `src/androidvfs.c` | 7,950 | 181 | 1 | 5 | 81 | 25 | F | done |
 | `src/frame.c` | 7,907 | 100 | 69 | 0 | 2 | 8 | E | done |
 | `src/xfaces.c` | 7,843 | 101 | 33 | 34 | 3 | 17 | E | done |
@@ -95,9 +95,9 @@
 | `exec/test.c` | 105 | 2 | 0 | 0 | 0 | 0 | 1 | F | `femacs/exec/test.rs` | done |
 | `exec/trace.c` | 2,258 | 24 | 0 | 9 | 5 | 0 | 7 | F | `femacs/exec/trace.rs` | done |
 | `lib-src/asset-directory-tool.c` | 338 | 5 | 0 | 0 | 0 | 5 | 1 | F | `femacs/lib-src/asset-directory-tool.rs` | done |
-| `lib-src/ebrowse.c` | 3,926 | 66 | 0 | 37 | 125 | 41 | 41 | F | `femacs/lib-src/ebrowse.rs` | todo |
+| `lib-src/ebrowse.c` | 3,926 | 66 | 0 | 37 | 125 | 41 | 41 | F | `femacs/lib-src/ebrowse.rs` | wip |
 | `lib-src/emacsclient.c` | 2,524 | 52 | 0 | 11 | 4 | 4 | 15 | F | `femacs/lib-src/emacsclient.rs` | done |
-| `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 62 | 0 | 12 | F | `femacs/lib-src/etags.rs` | todo |
+| `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 62 | 0 | 12 | F | `femacs/lib-src/etags.rs` | wip |
 | `lib-src/hexl.c` | 221 | 3 | 0 | 0 | 0 | 0 | 1 | F | `femacs/lib-src/hexl.rs` | done |
 | `lib-src/make-docfile.c` | 1,232 | 21 | 0 | 0 | 10 | 15 | 6 | F | `femacs/lib-src/make-docfile.rs` | done |
 | `lib-src/make-fingerprint.c` | 178 | 1 | 0 | 2 | 0 | 0 | 1 | F | `femacs/lib-src/make-fingerprint.rs` | done |
@@ -468,7 +468,7 @@
 | `src/coding.h` | 790 | 2 | 0 | 63 | 80 | 72 | 3 | C | `femacs/src/include/coding.rs` | done |
 | `src/commands.h` | 30 | 0 | 0 | 3 | 0 | 0 | 0 | B | `femacs/src/include/commands.rs` | done |
 | `src/comp.c` | 5,857 | 140 | 15 | 91 | 17 | 3 | 4 | E | `femacs/src/comp.rs` | done |
-| `src/comp.h` | 106 | 3 | 0 | 1 | 0 | 11 | 0 | E | `femacs/src/include/comp.rs` | wip |
+| `src/comp.h` | 106 | 3 | 0 | 1 | 0 | 11 | 0 | E | `femacs/src/include/comp.rs` | done |
 | `src/composite.c` | 2,322 | 26 | 6 | 3 | 1 | 3 | 7 | C | `femacs/src/composite.rs` | done |
 | `src/composite.h` | 362 | 5 | 0 | 53 | 20 | 11 | 2 | C | `femacs/src/include/composite.rs` | done |
 | `src/conf_post.h` | 445 | 0 | 0 | 66 | 5 | 0 | 0 | B | `femacs/src/include/conf_post.rs` | todo |

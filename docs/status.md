@@ -1825,3 +1825,30 @@
   501 个端口文件报成 `476 done / 24 in progress / 1 failing`，**唯一那条 FAIL 是 `lib-src/etags.rs`**：
   那条 lane 刚落文件、台账 `docs/ports/etags.md` 还没建（"有端口文件、没有台账"按设计就是 FAIL），已通知
   该 lane 下一个停顿点先落台账；其余 24 条都是有未勾项的 WIP。
+
+- **3.122 `src/comp.h` 镜像收口：`#else` 分支的两个空体 inline，加上三件死文本的记账（2026-10-04 第 100 轮第五批）**：
+  冻结配置里 `HAVE_NATIVE_COMP` 是 `undef`（macros.tsv 1473），所以 comp.h 走 `#else` 分支，那里只有三样：
+  `maybe_defer_native_compilation`（C 92-95）与 `unload_comp_unit`（C 97-98）两个 **`static inline` 空体**（空体是
+  参照自己的，不是端口 stub），以及 `extern void syms_of_comp (void)`（C 100，归 comp.c 自己的单元）。镜像原先只有
+  前者，`--check` 因此报唯一一条 `missing function unload_comp_unit`。本轮补上后者，并把台账里另外三个未勾项
+  记成 **P-08 死文本**：`NATIVE_COMP_UNITP`（C 57）、`XNATIVE_COMP_UNIT`（C 63）与带字段的
+  `struct Lisp_Native_Comp_Unit`（C 30-44）都在 `#ifdef HAVE_NATIVE_COMP` 里，本配置不编译（参照对象里也没有
+  这些名字），只记账不转写。
+  **一处签名偏离（已记台账）**：C 的 `#else` 分支从不定义那个结构体，只在空体 inline 的形参里点它的名——
+  C 允许不完整类型，Rust 不行，于是端口写 `*mut core::ffi::c_void`（PORTING.md P-72③）；带字段的定义在
+  `femacs/src/pdumper.rs`（`native_comp` feature 下），因为拥有它的 `comp.c` 还没移植（batch G）。
+  实测：`extract-abi.py --check emacs/src/comp.h femacs/src/include/comp.rs` = **`OK`**；四个经 `lisp.h` 2168
+  到达本镜像的消费者 —— `src/emacs.c`/`src/alloc.c`/`src/print.c`/`src/pdumper.c` —— 全部 `built`；手工
+  `rustc --emit=metadata`（emacs 单元）= exit 0；`check-mirror-dupes` `1 ratchet row / 0 failure`、
+  `check-declarations` `13 sites (0 forbidden, 13 allowed literals) / 0 failures`、`check-verbatim` 0、
+  `check-globals` `283 units / 0`。`port-inventory` 复算 **590 files, done=470, wip=32, todo=88**。
+  **同一批（未单独提交，随各自单元入树）**：补上 `docs/ports/ebrowse.md`（Arendt 已落 116 KB 的
+  `femacs/lib-src/ebrowse.rs` 但还没建台账——按门的规则"有端口文件、没有台账 = FAIL"，那是当时全树唯一的
+  1 failing；补后台账让它按 WIP 计数，套件回到 **0 failing**）；把两个新程序（`etags.rs`/`ebrowse.rs`）的
+  **5 条 C 自有字面量**登记进 `docs/baseline/declarations-allowlist.tsv`（版本 banner/`COPYRIGHT`/
+  `PACKAGE_NAME`），并修掉 `ebrowse.rs` 里一段**复述版权散文的注释**（0.1-19 的 `decl` 类）。
+  另：keyboard lane 在补完 `make_lispy_position`（C 5785-6099）后交回（6,304 → 6,701 行、两处 P-51 死臂改 `NAME!`、
+  加 7 条用点 extern），已另起 lane 从 `make_lispy_event`（C 6230-7309）继续，并要求它先把台账更新到与产出
+  一致；etags lane 交回 C 143-1659（1,787 行）后暴露出结构性前置——`lang_names` 表要取 31 个语言解析器的地址，
+  而它们定义在 C 3456-7000，Rust 没有前向声明（0.1-12），所以**该单元在解析器落地前不可能编译**，新 lane 已按
+  "先移植 31 个解析器"的顺序派出。
