@@ -5237,3 +5237,9 @@
   （该轮 14 条 `STALE (satisfied)` 不是这次删的——3.319 那次重生成已经删掉了，所以这次的净增正好是 +27。）
   ② **门读数（工作树）**：`check-swift-units` **`0 new, 0 stale, 7 Swift unit(s) landed`**（clean）；`check-link` **`374 undefined / 373 行 / 1 failure`**、`--executable` **`84 / 83 / 1`**——那条 failure 仍是在飞 xdisp 对象里的 `_Fcurrent_bidi_paragraph_direction`（3.315 ② 的实测归属），不是 HEAD 的。
   ③ **没有混进来的东西**：工作树里 `docs/baseline/{frame,window,x_display_info,x_output}-bits.tsv` 与 `spikes/gated-layout-probe.py` 的改动是 **Boyle 的在飞工作**（`--bits` 的 `depth` 列，见 3.318 ④ 那条命名改进）——本次提交**只含两本棘轮**，等它交付时连同探针一起入库，避免把"生成物 vs 生成器"的半途状态写成基线。
+- **3.324 `--bits` 的 `depth` 列落地、四张位表重生成：`x_display_info` 的 6 行现在读作 depth 1（Boyle 交付 + 我复核，2026-10-05）**：
+  ① **入的四张 + 探针**：`docs/baseline/{frame,window,x_display_info,x_output}-bits.tsv` 各加一列 **`depth`**（表头原文：`DEPTH is the member's nesting depth: 0 = this struct's own member, >0 = a member of a record nested inside it and NOT this struct's bit`），
+  `spikes/gated-layout-probe.py` 的 `--bits` 从 clang dump 的缩进层级取 depth。diff：frame **187/139**、window **82/63**、x_display_info **12/12**、x_output **23/23**。
+  ② **入库前我自己复核（两项）**：⑴ 四张表**逐张与"用当前探针重新 `--write` 的结果"逐字节相同**（生成器↔生成物一致，不是半途状态）；⑵ 逐表点 depth：`x_display_info` 的 **6 行全部 depth 1**（正是 3.318 ④ 那条陷阱——它们是**嵌套 `Mouse_HLInfo`** 的位串，现在数据本身就说得明明白白），
+  而 **`frame`（181 行）与 `window`（76 行）里 depth>0 的行是 0**——这回答了 lane 问的第 3 条：两张老位表**从来没有**带这个坑。`x_output` 的 17 行全 depth 0。
+  ③ **格式变更是有意的**（3.318 ⑤ 已记口径）：这三张表**只有探针自己读**（实测），所以加列不破坏任何消费者；位表"一行一个位成员"的语义现在没有歧义。

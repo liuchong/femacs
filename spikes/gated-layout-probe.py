@@ -139,28 +139,58 @@ def rows(type_name: str, arm: str, block: str) -> list[tuple[str, str, str]]:
     return out
 
 
-def bit_rows(type_name: str, arm: str, block: str) -> list[tuple[str, str, str, str, str]]:
-    """`(arm, member, unit, shift, width)` for every bitfield member of one arm.
+def indent_depth(block: str, type_name: str) -> dict[str, int]:
+    """`spaces-after-the-pipe -> nesting depth` for one arm's record dump.
+
+    clang prints a record's members indented two spaces per nesting level
+    (`|   Mouse_HLInfo mouse_highlight` then `|     int mouse_face_beg_row`), and the record's
+    own name line at one space.  The shallowest member indentation is depth 0, each further two
+    spaces one level in; the name line is excluded because it is not a member.
+    """
+    indents = []
+    for line in block.splitlines():
+        m = re.match(r"^\s*[\d:+-]+\s*\|(\s*)(\S.*?)\s*$", line)
+        if m and m.group(2) != type_name:
+            indents.append(len(m.group(1)))
+    if not indents:
+        return {}
+    base = min(indents)
+    return {i: (i - base) // 2 for i in indents}
+
+
+def bit_rows(type_name: str, arm: str,
+             block: str) -> list[tuple[str, str, str, str, str, str]]:
+    """`(arm, member, depth, unit, shift, width)` for every bitfield member of one arm.
 
     The derivation a mirror needs: C packs the flags into four-byte units, and a member's unit
     and shift are `(byte - base) // 4` and the bit within it.  Serialising the *units* rather
     than only the raw `byte:bits` is what makes a configuration change visible - the frozen arm
     has `no_special_glyphs` in unit 1 at bit 27 and both window-system arms have it in unit 2 at
     bit 12, because C inserts the window-system flags ahead of it.
+
+    `depth` is the member's nesting depth in the same dump (`indent_depth`): 0 is a member of
+    THIS record, `>0` is a member of a record nested inside it - a flag of that record, not of
+    this one.  `struct x_display_info` is the case that made the column necessary: its three bit
+    members are all depth 1, because they belong to the `Mouse_HLInfo` it embeds.  Without the
+    column the table cannot tell a reader that, and a mirror built from those rows would be wrong.
     """
-    bits = [line for line in block.splitlines() if re.match(r"^\s*\d+:\d+-\d+\s*\|", line)]
+    depths = indent_depth(block, type_name)
+    bits = [(line, re.match(r"^\s*(\d+):(\d+)-(\d+)\s*\|(\s*)(\S.*?)\s*$", line))
+            for line in block.splitlines() if re.match(r"^\s*\d+:\d+-\d+\s*\|", line)]
+    bits = [(line, m) for line, m in bits if m]
     if not bits:
         return []
-    first = int(re.match(r"^\s*(\d+):", bits[0]).group(1))
+    first = int(bits[0][1].group(1))
     base = first - (first % 4)
-    out: list[tuple[str, str, str, str, str]] = []
-    for line in bits:
-        m = re.match(r"^\s*(\d+):(\d+)-(\d+)\s*\|\s+(\S.*?)\s*$", line)
-        byte, lo, hi, decl = int(m.group(1)), int(m.group(2)), int(m.group(3)), m.group(4)
+    out: list[tuple[str, str, str, str, str, str]] = []
+    for _line, m in bits:
+        byte, lo, hi = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        decl, indent = m.group(5), len(m.group(4))
         name = decl.split()[-1]
         unit = (byte - base) // 4 + 1
         shift = (byte - base - (unit - 1) * 4) * 8 + lo
-        out.append((arm, name, str(unit), str(shift), str(hi - lo + 1)))
+        out.append((arm, name, str(depths.get(indent, 0)), str(unit), str(shift),
+                    str(hi - lo + 1)))
     return out
 
 
@@ -171,8 +201,9 @@ def main() -> int:
     ap.add_argument("header")
     ap.add_argument("lang", nargs="?", default="c", choices=("c", "objc"))
     ap.add_argument("--bits", action="store_true",
-                    help="derive each arm's (unit, shift, width) per flag member instead of "
-                         "writing the raw byte:bits table")
+                    help="derive each arm's (unit, shift, width) per flag member, plus the "
+                         "member's nesting depth (0 = this record, >0 = a record nested in it), "
+                         "instead of writing the raw byte:bits table")
     ap.add_argument("--define", action="append", default=[], metavar="MACRO[=VALUE]",
                     help="add a third arm built from the frozen configuration plus these")
     ap.add_argument("--write", metavar="FILE", help="write the readings as a TSV")
@@ -205,12 +236,12 @@ def main() -> int:
         if not bit_table:
             print("refusing to write: no arm had flag members", file=sys.stderr)
             return 1
-        head = [f"# {args.type_name} from {args.header}: each arm's flag members as C packs them",
-                "# (four-byte units; UNIT is 1-based, SHIFT is the bit within that unit).",
-                "# Derived from `spikes/gated-layout-probe.py --bits`, whose raw byte:bits reading",
-                "# is what the compiler itself printed - a member can move *unit* between",
-                "# configurations, which is why the pair is what a mirror needs.",
-                "arm\tmember\tunit\tshift\twidth"]
+        head = [f"# {args.type_name} from {args.header}: each arm's flag members as C packs them (four-byte units;",
+                "# UNIT is 1-based, SHIFT is the bit within that unit, DEPTH is the member's nesting depth:",
+                "# 0 = this struct's own member, >0 = a member of a record nested inside it and NOT this",
+                "# struct's bit).  Derived from `spikes/gated-layout-probe.py --bits`, whose raw byte:bits",
+                "# reading the compiler printed - a member can move *unit* between configurations.",
+                "arm\tmember\tdepth\tunit\tshift\twidth"]
         Path(args.write).write_text("\n".join(head + ["\t".join(r) for r in bit_table]) + "\n",
                                     encoding="utf-8")
         print(f"wrote {args.write}: {len(bit_table)} row(s)")

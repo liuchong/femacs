@@ -1,139 +1,187 @@
-# struct frame from frame.h: each arm's flag members as C packs them
-# (four-byte units; UNIT is 1-based, SHIFT is the bit within that unit).
-# Derived from `spikes/gated-layout-probe.py --bits`, whose raw byte:bits reading
-# is what the compiler itself printed - a member can move *unit* between
-# configurations, which is why the pair is what a mirror needs.
-arm	member	unit	shift	width
-frozen	glyphs_initialized_p	1	0	1
-frozen	resized_p	1	1	1
-frozen	default_face_done_p	1	2	1
-frozen	already_hscrolled_p	1	3	1
-frozen	updated_p	1	4	1
-frozen	fonts_changed	1	5	1
-frozen	cursor_type_changed	1	6	1
-frozen	redisplay	1	7	1
-frozen	visible	1	8	1
-frozen	iconified	1	9	1
-frozen	garbaged	1	10	1
-frozen	wants_modeline	1	11	1
-frozen	auto_raise	1	12	1
-frozen	auto_lower	1	13	1
-frozen	no_split	1	14	1
-frozen	explicit_name	1	15	1
-frozen	window_change	1	16	1
-frozen	window_state_change	1	17	1
-frozen	mouse_moved	1	18	1
-frozen	pointer_invisible	1	19	1
-frozen	frozen_window_starts	1	20	1
-frozen	output_method	1	21	4
-frozen	undecorated	1	25	1
-frozen	no_accept_focus	1	26	1
-frozen	no_special_glyphs	1	27	1
-frozen	can_set_window_size	1	28	1
-frozen	after_make_frame	1	29	1
-frozen	tab_bar_redisplayed	1	30	1
-frozen	tab_bar_resized	1	31	1
-frozen	tool_bar_redisplayed	2	0	1
-frozen	tool_bar_resized	2	1	1
-frozen	face_change	2	2	1
-frozen	inhibit_clear_image_cache	2	3	1
-frozen	new_size_p	2	4	1
-frozen	was_invisible	2	5	1
-frozen	select_mini_window_flag	2	6	1
-frozen	borders_respect_alpha_background	2	7	1
-x11	glyphs_initialized_p	1	0	1
-x11	resized_p	1	1	1
-x11	default_face_done_p	1	2	1
-x11	already_hscrolled_p	1	3	1
-x11	updated_p	1	4	1
-x11	minimize_tab_bar_window_p	1	5	1
-x11	minimize_tool_bar_window_p	1	6	1
-x11	tool_bar_wraps_p	1	7	1
-x11	fonts_changed	1	8	1
-x11	cursor_type_changed	1	9	1
-x11	redisplay	1	10	1
-x11	visible	1	11	1
-x11	iconified	1	12	1
-x11	garbaged	1	13	1
-x11	wants_modeline	1	14	1
-x11	auto_raise	1	15	1
-x11	auto_lower	1	16	1
-x11	no_split	1	17	1
-x11	explicit_name	1	18	1
-x11	window_change	1	19	1
-x11	window_state_change	1	20	1
-x11	mouse_moved	1	21	1
-x11	pointer_invisible	1	22	1
-x11	frozen_window_starts	1	23	1
-x11	output_method	1	24	4
-x11	undecorated	1	28	1
-x11	no_accept_focus	1	29	1
-x11	tooltip	1	30	1
-x11	want_fullscreen	2	0	4
-x11	vertical_scroll_bar_type	2	4	2
-x11	horizontal_scroll_bars	2	6	1
-x11	override_redirect	2	7	1
-x11	skip_taskbar	2	8	1
-x11	no_focus_on_map	2	9	1
-x11	z_group	2	10	2
-x11	no_special_glyphs	2	12	1
-x11	can_set_window_size	2	13	1
-x11	after_make_frame	2	14	1
-x11	tab_bar_redisplayed	2	15	1
-x11	tab_bar_resized	2	16	1
-x11	tool_bar_redisplayed	2	17	1
-x11	tool_bar_resized	2	18	1
-x11	face_change	2	19	1
-x11	inhibit_clear_image_cache	2	20	1
-x11	new_size_p	2	21	1
-x11	was_invisible	2	22	1
-x11	select_mini_window_flag	2	23	1
-x11	borders_respect_alpha_background	2	24	1
-ns_cocoa	glyphs_initialized_p	1	0	1
-ns_cocoa	resized_p	1	1	1
-ns_cocoa	default_face_done_p	1	2	1
-ns_cocoa	already_hscrolled_p	1	3	1
-ns_cocoa	updated_p	1	4	1
-ns_cocoa	minimize_tab_bar_window_p	1	5	1
-ns_cocoa	external_tool_bar	1	6	1
-ns_cocoa	fonts_changed	1	7	1
-ns_cocoa	cursor_type_changed	1	8	1
-ns_cocoa	redisplay	1	9	1
-ns_cocoa	external_menu_bar	1	10	1
-ns_cocoa	visible	1	11	1
-ns_cocoa	iconified	1	12	1
-ns_cocoa	garbaged	1	13	1
-ns_cocoa	wants_modeline	1	14	1
-ns_cocoa	auto_raise	1	15	1
-ns_cocoa	auto_lower	1	16	1
-ns_cocoa	no_split	1	17	1
-ns_cocoa	explicit_name	1	18	1
-ns_cocoa	window_change	1	19	1
-ns_cocoa	window_state_change	1	20	1
-ns_cocoa	mouse_moved	1	21	1
-ns_cocoa	pointer_invisible	1	22	1
-ns_cocoa	frozen_window_starts	1	23	1
-ns_cocoa	output_method	1	24	4
-ns_cocoa	undecorated	1	28	1
-ns_cocoa	no_accept_focus	1	29	1
-ns_cocoa	tooltip	1	30	1
-ns_cocoa	want_fullscreen	2	0	4
-ns_cocoa	vertical_scroll_bar_type	2	4	2
-ns_cocoa	horizontal_scroll_bars	2	6	1
-ns_cocoa	override_redirect	2	7	1
-ns_cocoa	skip_taskbar	2	8	1
-ns_cocoa	no_focus_on_map	2	9	1
-ns_cocoa	z_group	2	10	2
-ns_cocoa	no_special_glyphs	2	12	1
-ns_cocoa	can_set_window_size	2	13	1
-ns_cocoa	after_make_frame	2	14	1
-ns_cocoa	tab_bar_redisplayed	2	15	1
-ns_cocoa	tab_bar_resized	2	16	1
-ns_cocoa	tool_bar_redisplayed	2	17	1
-ns_cocoa	tool_bar_resized	2	18	1
-ns_cocoa	face_change	2	19	1
-ns_cocoa	inhibit_clear_image_cache	2	20	1
-ns_cocoa	new_size_p	2	21	1
-ns_cocoa	was_invisible	2	22	1
-ns_cocoa	select_mini_window_flag	2	23	1
-ns_cocoa	borders_respect_alpha_background	2	24	1
+# struct frame from frame.h: each arm's flag members as C packs them (four-byte units;
+# UNIT is 1-based, SHIFT is the bit within that unit, DEPTH is the member's nesting depth:
+# 0 = this struct's own member, >0 = a member of a record nested inside it and NOT this
+# struct's bit).  Derived from `spikes/gated-layout-probe.py --bits`, whose raw byte:bits
+# reading the compiler printed - a member can move *unit* between configurations.
+arm	member	depth	unit	shift	width
+frozen	glyphs_initialized_p	0	1	0	1
+frozen	resized_p	0	1	1	1
+frozen	default_face_done_p	0	1	2	1
+frozen	already_hscrolled_p	0	1	3	1
+frozen	updated_p	0	1	4	1
+frozen	fonts_changed	0	1	5	1
+frozen	cursor_type_changed	0	1	6	1
+frozen	redisplay	0	1	7	1
+frozen	visible	0	1	8	1
+frozen	iconified	0	1	9	1
+frozen	garbaged	0	1	10	1
+frozen	wants_modeline	0	1	11	1
+frozen	auto_raise	0	1	12	1
+frozen	auto_lower	0	1	13	1
+frozen	no_split	0	1	14	1
+frozen	explicit_name	0	1	15	1
+frozen	window_change	0	1	16	1
+frozen	window_state_change	0	1	17	1
+frozen	mouse_moved	0	1	18	1
+frozen	pointer_invisible	0	1	19	1
+frozen	frozen_window_starts	0	1	20	1
+frozen	output_method	0	1	21	4
+frozen	undecorated	0	1	25	1
+frozen	no_accept_focus	0	1	26	1
+frozen	no_special_glyphs	0	1	27	1
+frozen	can_set_window_size	0	1	28	1
+frozen	after_make_frame	0	1	29	1
+frozen	tab_bar_redisplayed	0	1	30	1
+frozen	tab_bar_resized	0	1	31	1
+frozen	tool_bar_redisplayed	0	2	0	1
+frozen	tool_bar_resized	0	2	1	1
+frozen	face_change	0	2	2	1
+frozen	inhibit_clear_image_cache	0	2	3	1
+frozen	new_size_p	0	2	4	1
+frozen	was_invisible	0	2	5	1
+frozen	select_mini_window_flag	0	2	6	1
+frozen	borders_respect_alpha_background	0	2	7	1
+x11	glyphs_initialized_p	0	1	0	1
+x11	resized_p	0	1	1	1
+x11	default_face_done_p	0	1	2	1
+x11	already_hscrolled_p	0	1	3	1
+x11	updated_p	0	1	4	1
+x11	minimize_tab_bar_window_p	0	1	5	1
+x11	minimize_tool_bar_window_p	0	1	6	1
+x11	tool_bar_wraps_p	0	1	7	1
+x11	fonts_changed	0	1	8	1
+x11	cursor_type_changed	0	1	9	1
+x11	redisplay	0	1	10	1
+x11	visible	0	1	11	1
+x11	iconified	0	1	12	1
+x11	garbaged	0	1	13	1
+x11	wants_modeline	0	1	14	1
+x11	auto_raise	0	1	15	1
+x11	auto_lower	0	1	16	1
+x11	no_split	0	1	17	1
+x11	explicit_name	0	1	18	1
+x11	window_change	0	1	19	1
+x11	window_state_change	0	1	20	1
+x11	mouse_moved	0	1	21	1
+x11	pointer_invisible	0	1	22	1
+x11	frozen_window_starts	0	1	23	1
+x11	output_method	0	1	24	4
+x11	undecorated	0	1	28	1
+x11	no_accept_focus	0	1	29	1
+x11	tooltip	0	1	30	1
+x11	want_fullscreen	0	2	0	4
+x11	vertical_scroll_bar_type	0	2	4	2
+x11	horizontal_scroll_bars	0	2	6	1
+x11	override_redirect	0	2	7	1
+x11	skip_taskbar	0	2	8	1
+x11	no_focus_on_map	0	2	9	1
+x11	z_group	0	2	10	2
+x11	no_special_glyphs	0	2	12	1
+x11	can_set_window_size	0	2	13	1
+x11	after_make_frame	0	2	14	1
+x11	tab_bar_redisplayed	0	2	15	1
+x11	tab_bar_resized	0	2	16	1
+x11	tool_bar_redisplayed	0	2	17	1
+x11	tool_bar_resized	0	2	18	1
+x11	face_change	0	2	19	1
+x11	inhibit_clear_image_cache	0	2	20	1
+x11	new_size_p	0	2	21	1
+x11	was_invisible	0	2	22	1
+x11	select_mini_window_flag	0	2	23	1
+x11	borders_respect_alpha_background	0	2	24	1
+ns_cocoa	glyphs_initialized_p	0	1	0	1
+ns_cocoa	resized_p	0	1	1	1
+ns_cocoa	default_face_done_p	0	1	2	1
+ns_cocoa	already_hscrolled_p	0	1	3	1
+ns_cocoa	updated_p	0	1	4	1
+ns_cocoa	minimize_tab_bar_window_p	0	1	5	1
+ns_cocoa	external_tool_bar	0	1	6	1
+ns_cocoa	fonts_changed	0	1	7	1
+ns_cocoa	cursor_type_changed	0	1	8	1
+ns_cocoa	redisplay	0	1	9	1
+ns_cocoa	external_menu_bar	0	1	10	1
+ns_cocoa	visible	0	1	11	1
+ns_cocoa	iconified	0	1	12	1
+ns_cocoa	garbaged	0	1	13	1
+ns_cocoa	wants_modeline	0	1	14	1
+ns_cocoa	auto_raise	0	1	15	1
+ns_cocoa	auto_lower	0	1	16	1
+ns_cocoa	no_split	0	1	17	1
+ns_cocoa	explicit_name	0	1	18	1
+ns_cocoa	window_change	0	1	19	1
+ns_cocoa	window_state_change	0	1	20	1
+ns_cocoa	mouse_moved	0	1	21	1
+ns_cocoa	pointer_invisible	0	1	22	1
+ns_cocoa	frozen_window_starts	0	1	23	1
+ns_cocoa	output_method	0	1	24	4
+ns_cocoa	undecorated	0	1	28	1
+ns_cocoa	no_accept_focus	0	1	29	1
+ns_cocoa	tooltip	0	1	30	1
+ns_cocoa	want_fullscreen	0	2	0	4
+ns_cocoa	vertical_scroll_bar_type	0	2	4	2
+ns_cocoa	horizontal_scroll_bars	0	2	6	1
+ns_cocoa	override_redirect	0	2	7	1
+ns_cocoa	skip_taskbar	0	2	8	1
+ns_cocoa	no_focus_on_map	0	2	9	1
+ns_cocoa	z_group	0	2	10	2
+ns_cocoa	no_special_glyphs	0	2	12	1
+ns_cocoa	can_set_window_size	0	2	13	1
+ns_cocoa	after_make_frame	0	2	14	1
+ns_cocoa	tab_bar_redisplayed	0	2	15	1
+ns_cocoa	tab_bar_resized	0	2	16	1
+ns_cocoa	tool_bar_redisplayed	0	2	17	1
+ns_cocoa	tool_bar_resized	0	2	18	1
+ns_cocoa	face_change	0	2	19	1
+ns_cocoa	inhibit_clear_image_cache	0	2	20	1
+ns_cocoa	new_size_p	0	2	21	1
+ns_cocoa	was_invisible	0	2	22	1
+ns_cocoa	select_mini_window_flag	0	2	23	1
+ns_cocoa	borders_respect_alpha_background	0	2	24	1
+x11_ext	glyphs_initialized_p	0	1	0	1
+x11_ext	resized_p	0	1	1	1
+x11_ext	default_face_done_p	0	1	2	1
+x11_ext	already_hscrolled_p	0	1	3	1
+x11_ext	updated_p	0	1	4	1
+x11_ext	minimize_tab_bar_window_p	0	1	5	1
+x11_ext	minimize_tool_bar_window_p	0	1	6	1
+x11_ext	tool_bar_wraps_p	0	1	7	1
+x11_ext	fonts_changed	0	1	8	1
+x11_ext	cursor_type_changed	0	1	9	1
+x11_ext	redisplay	0	1	10	1
+x11_ext	visible	0	1	11	1
+x11_ext	iconified	0	1	12	1
+x11_ext	garbaged	0	1	13	1
+x11_ext	wants_modeline	0	1	14	1
+x11_ext	auto_raise	0	1	15	1
+x11_ext	auto_lower	0	1	16	1
+x11_ext	no_split	0	1	17	1
+x11_ext	explicit_name	0	1	18	1
+x11_ext	window_change	0	1	19	1
+x11_ext	window_state_change	0	1	20	1
+x11_ext	mouse_moved	0	1	21	1
+x11_ext	pointer_invisible	0	1	22	1
+x11_ext	frozen_window_starts	0	1	23	1
+x11_ext	output_method	0	1	24	4
+x11_ext	undecorated	0	1	28	1
+x11_ext	no_accept_focus	0	1	29	1
+x11_ext	tooltip	0	1	30	1
+x11_ext	want_fullscreen	0	2	0	4
+x11_ext	vertical_scroll_bar_type	0	2	4	2
+x11_ext	horizontal_scroll_bars	0	2	6	1
+x11_ext	override_redirect	0	2	7	1
+x11_ext	skip_taskbar	0	2	8	1
+x11_ext	no_focus_on_map	0	2	9	1
+x11_ext	z_group	0	2	10	2
+x11_ext	no_special_glyphs	0	2	12	1
+x11_ext	can_set_window_size	0	2	13	1
+x11_ext	after_make_frame	0	2	14	1
+x11_ext	tab_bar_redisplayed	0	2	15	1
+x11_ext	tab_bar_resized	0	2	16	1
+x11_ext	tool_bar_redisplayed	0	2	17	1
+x11_ext	tool_bar_resized	0	2	18	1
+x11_ext	face_change	0	2	19	1
+x11_ext	inhibit_clear_image_cache	0	2	20	1
+x11_ext	new_size_p	0	2	21	1
+x11_ext	was_invisible	0	2	22	1
+x11_ext	select_mini_window_flag	0	2	23	1
+x11_ext	borders_respect_alpha_background	0	2	24	1

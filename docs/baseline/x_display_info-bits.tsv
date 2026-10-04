@@ -1,12 +1,12 @@
-# struct x_display_info from xterm.h: each arm's flag members as C packs them
-# (four-byte units; UNIT is 1-based, SHIFT is the bit within that unit).
-# Derived from `spikes/gated-layout-probe.py --bits`, whose raw byte:bits reading
-# is what the compiler itself printed - a member can move *unit* between
-# configurations, which is why the pair is what a mirror needs.
-arm	member	unit	shift	width
-x11	mouse_face_past_end	1	0	1
-x11	mouse_face_defer	1	1	1
-x11	mouse_face_hidden	1	2	1
-x11_ext	mouse_face_past_end	1	0	1
-x11_ext	mouse_face_defer	1	1	1
-x11_ext	mouse_face_hidden	1	2	1
+# struct x_display_info from xterm.h: each arm's flag members as C packs them (four-byte units;
+# UNIT is 1-based, SHIFT is the bit within that unit, DEPTH is the member's nesting depth:
+# 0 = this struct's own member, >0 = a member of a record nested inside it and NOT this
+# struct's bit).  Derived from `spikes/gated-layout-probe.py --bits`, whose raw byte:bits
+# reading the compiler printed - a member can move *unit* between configurations.
+arm	member	depth	unit	shift	width
+x11	mouse_face_past_end	1	1	0	1
+x11	mouse_face_defer	1	1	1	1
+x11	mouse_face_hidden	1	1	2	1
+x11_ext	mouse_face_past_end	1	1	0	1
+x11_ext	mouse_face_defer	1	1	1	1
+x11_ext	mouse_face_hidden	1	1	2	1

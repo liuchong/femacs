@@ -1,63 +1,82 @@
-# struct window from window.h: each arm's flag members as C packs them
-# (four-byte units; UNIT is 1-based, SHIFT is the bit within that unit).
-# Derived from `spikes/gated-layout-probe.py --bits`, whose raw byte:bits reading
-# is what the compiler itself printed - a member can move *unit* between
-# configurations, which is why the pair is what a mirror needs.
-arm	member	unit	shift	width
-frozen	mini	1	0	1
-frozen	horizontal	1	1	1
-frozen	update_mode_line	1	2	1
-frozen	last_had_star	1	3	1
-frozen	start_at_line_beg	1	4	1
-frozen	force_start	1	5	1
-frozen	optional_new_start	1	6	1
-frozen	phys_cursor_on_p	1	7	1
-frozen	cursor_off_p	1	8	1
-frozen	last_cursor_off_p	1	9	1
-frozen	must_be_updated_p	1	10	1
-frozen	pseudo_window_p	1	11	1
-frozen	fringes_outside_margins	1	12	1
-frozen	fringes_persistent	1	13	1
-frozen	scroll_bars_persistent	1	14	1
-frozen	window_end_valid	1	15	1
-frozen	redisplay	1	16	1
-frozen	suspend_auto_hscroll	1	17	1
-frozen	preserve_vscroll_p	1	18	1
-x11	mini	1	0	1
-x11	horizontal	1	1	1
-x11	update_mode_line	1	2	1
-x11	last_had_star	1	3	1
-x11	start_at_line_beg	1	4	1
-x11	force_start	1	5	1
-x11	optional_new_start	1	6	1
-x11	phys_cursor_on_p	1	7	1
-x11	cursor_off_p	1	8	1
-x11	last_cursor_off_p	1	9	1
-x11	must_be_updated_p	1	10	1
-x11	pseudo_window_p	1	11	1
-x11	fringes_outside_margins	1	12	1
-x11	fringes_persistent	1	13	1
-x11	scroll_bars_persistent	1	14	1
-x11	window_end_valid	1	15	1
-x11	redisplay	1	16	1
-x11	suspend_auto_hscroll	1	17	1
-x11	preserve_vscroll_p	1	18	1
-ns_cocoa	mini	1	0	1
-ns_cocoa	horizontal	1	1	1
-ns_cocoa	update_mode_line	1	2	1
-ns_cocoa	last_had_star	1	3	1
-ns_cocoa	start_at_line_beg	1	4	1
-ns_cocoa	force_start	1	5	1
-ns_cocoa	optional_new_start	1	6	1
-ns_cocoa	phys_cursor_on_p	1	7	1
-ns_cocoa	cursor_off_p	1	8	1
-ns_cocoa	last_cursor_off_p	1	9	1
-ns_cocoa	must_be_updated_p	1	10	1
-ns_cocoa	pseudo_window_p	1	11	1
-ns_cocoa	fringes_outside_margins	1	12	1
-ns_cocoa	fringes_persistent	1	13	1
-ns_cocoa	scroll_bars_persistent	1	14	1
-ns_cocoa	window_end_valid	1	15	1
-ns_cocoa	redisplay	1	16	1
-ns_cocoa	suspend_auto_hscroll	1	17	1
-ns_cocoa	preserve_vscroll_p	1	18	1
+# struct window from window.h: each arm's flag members as C packs them (four-byte units;
+# UNIT is 1-based, SHIFT is the bit within that unit, DEPTH is the member's nesting depth:
+# 0 = this struct's own member, >0 = a member of a record nested inside it and NOT this
+# struct's bit).  Derived from `spikes/gated-layout-probe.py --bits`, whose raw byte:bits
+# reading the compiler printed - a member can move *unit* between configurations.
+arm	member	depth	unit	shift	width
+frozen	mini	0	1	0	1
+frozen	horizontal	0	1	1	1
+frozen	update_mode_line	0	1	2	1
+frozen	last_had_star	0	1	3	1
+frozen	start_at_line_beg	0	1	4	1
+frozen	force_start	0	1	5	1
+frozen	optional_new_start	0	1	6	1
+frozen	phys_cursor_on_p	0	1	7	1
+frozen	cursor_off_p	0	1	8	1
+frozen	last_cursor_off_p	0	1	9	1
+frozen	must_be_updated_p	0	1	10	1
+frozen	pseudo_window_p	0	1	11	1
+frozen	fringes_outside_margins	0	1	12	1
+frozen	fringes_persistent	0	1	13	1
+frozen	scroll_bars_persistent	0	1	14	1
+frozen	window_end_valid	0	1	15	1
+frozen	redisplay	0	1	16	1
+frozen	suspend_auto_hscroll	0	1	17	1
+frozen	preserve_vscroll_p	0	1	18	1
+x11	mini	0	1	0	1
+x11	horizontal	0	1	1	1
+x11	update_mode_line	0	1	2	1
+x11	last_had_star	0	1	3	1
+x11	start_at_line_beg	0	1	4	1
+x11	force_start	0	1	5	1
+x11	optional_new_start	0	1	6	1
+x11	phys_cursor_on_p	0	1	7	1
+x11	cursor_off_p	0	1	8	1
+x11	last_cursor_off_p	0	1	9	1
+x11	must_be_updated_p	0	1	10	1
+x11	pseudo_window_p	0	1	11	1
+x11	fringes_outside_margins	0	1	12	1
+x11	fringes_persistent	0	1	13	1
+x11	scroll_bars_persistent	0	1	14	1
+x11	window_end_valid	0	1	15	1
+x11	redisplay	0	1	16	1
+x11	suspend_auto_hscroll	0	1	17	1
+x11	preserve_vscroll_p	0	1	18	1
+ns_cocoa	mini	0	1	0	1
+ns_cocoa	horizontal	0	1	1	1
+ns_cocoa	update_mode_line	0	1	2	1
+ns_cocoa	last_had_star	0	1	3	1
+ns_cocoa	start_at_line_beg	0	1	4	1
+ns_cocoa	force_start	0	1	5	1
+ns_cocoa	optional_new_start	0	1	6	1
+ns_cocoa	phys_cursor_on_p	0	1	7	1
+ns_cocoa	cursor_off_p	0	1	8	1
+ns_cocoa	last_cursor_off_p	0	1	9	1
+ns_cocoa	must_be_updated_p	0	1	10	1
+ns_cocoa	pseudo_window_p	0	1	11	1
+ns_cocoa	fringes_outside_margins	0	1	12	1
+ns_cocoa	fringes_persistent	0	1	13	1
+ns_cocoa	scroll_bars_persistent	0	1	14	1
+ns_cocoa	window_end_valid	0	1	15	1
+ns_cocoa	redisplay	0	1	16	1
+ns_cocoa	suspend_auto_hscroll	0	1	17	1
+ns_cocoa	preserve_vscroll_p	0	1	18	1
+x11_ext	mini	0	1	0	1
+x11_ext	horizontal	0	1	1	1
+x11_ext	update_mode_line	0	1	2	1
+x11_ext	last_had_star	0	1	3	1
+x11_ext	start_at_line_beg	0	1	4	1
+x11_ext	force_start	0	1	5	1
+x11_ext	optional_new_start	0	1	6	1
+x11_ext	phys_cursor_on_p	0	1	7	1
+x11_ext	cursor_off_p	0	1	8	1
+x11_ext	last_cursor_off_p	0	1	9	1
+x11_ext	must_be_updated_p	0	1	10	1
+x11_ext	pseudo_window_p	0	1	11	1
+x11_ext	fringes_outside_margins	0	1	12	1
+x11_ext	fringes_persistent	0	1	13	1
+x11_ext	scroll_bars_persistent	0	1	14	1
+x11_ext	window_end_valid	0	1	15	1
+x11_ext	redisplay	0	1	16	1
+x11_ext	suspend_auto_hscroll	0	1	17	1
+x11_ext	preserve_vscroll_p	0	1	18	1
