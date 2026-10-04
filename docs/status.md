@@ -5342,3 +5342,35 @@
   ① **HEAD worktree 读数**（同 3.334 的方法）：`668 file(s) scanned, **28 drift**, 0 range, 402 external, 32 allowed, **1 stale**`。差额逐条对得上：**`abi_shim.rs` 的 20 条**（Turing 的在飞文件，它已修好但未入库）+ **`nsterm.swift` 的 8 条**（Ramanujan 的在飞文件）= 28；那 **1 条 stale** 是本轮搬到 `include/dispextern.rs:587` 的允许行——**HEAD 上那个 587 还不存在**（Ohm 的 +20 行在飞），所以它在 HEAD 上匹配不到 finding。
   ② **结论**：3.338 的"全绿"是**工作树**读数；要 HEAD 也全绿，需要**Turing 的 `abi_shim` 批与 Ohm 的 `Emacs_Rectangle` 两臂**入库（这两件入库后这条门应读 0/0/0，届时我复跑并把 HEAD 读数写进那一条的 status）。
   ③ 这条与 3.315②/3.323② 是同一类口径（工作树 vs HEAD）：**在飞 lane 造成的红不算 HEAD 的红，但也绝不能把工作树的绿当成 HEAD 的绿**——两个数都要写下来。
+
+- **3.340 版本声明这条长期指令的第三半：本仓库自己的散文与清单进扫描面，7 处自述句改成中性表述（2026-10-05）**：
+  ① **指令的读法不变**（3.90/3.134/3.226/3.250/3.269/3.318）：`版本声明不要再说是gnu emacs了` 与 38 秒之后的
+     `把之前的代码中的这种声明也去掉` 是同一条指令的前后两半。前两半在**被移植的树**里早已落地（231 个版本括注
+     压到修订号、268 个复制的声明块不抄、`recital` 类清掉 11 处），本轮复算读数仍是 **13 declaration sites
+     (0 forbidden, 13 allowed literals), 0 failures**——13 条允许项全是 C 自己的字符串（`src/emacs.rs` 的
+     `PACKAGE_NAME`/`RCS_Id`/无担保横幅、`src/callproc.rs` 三条 docstring、`lib-src/etags.rs` 与
+     `lib-src/ebrowse.rs` 的 banner），改它们会让端口的 `--version` 与参照分叉（L0 判据），所以留着并逐条记理由。
+  ② **本轮把门每次打印的"走过的空洞"收成 0**：`read 677 files (624 .rs 35 .kt 7 .swift 6 .s 5 .cc)` 之外，
+     门现在读 **43 own prose/manifest file(s)**（38 `.md` + 3 `.toml` + `LICENSE` + `Cargo.lock`）——
+     根 `README.md`、`PORTING.md`、`LICENSE`、`docs/*.md` 与 `docs/i18n/**`、`femacs/README.md`、
+     三个 `Cargo.toml`、`Cargo.lock` 此前不在任何门的视野里；这一面只关 `version`（`@ <rev> (<产品名> x.y.z)`
+     括注）与 `title`（产品名）两类：**我们自己许可证的名称不是 finding**，不许做的是"文档声明本仓库就是那个产品"。
+     覆盖行因此第一次读 `walked past 0 file(s) of an unscanned kind: none (1 of them read above)`。
+  ③ **7 处自述句逐处改成中性表述**（每处 `git diff` 一行）：`README.md` 与 `docs/i18n/zh-CN/README.md` 的许可句
+     （"与本产品同一许可证"→"采用 **GNU General Public License 第 3 版或更新版本** / GPL-3.0-or-later"）、
+     `docs/plan.md` 与 `docs/i18n/zh-CN/plan.md` 的首段（"某产品的一比一复刻"→"参照树的一比一复刻：`emacs/` 里的
+     每一个 C 源文件"）、`docs/goal.md` 的标题（保留"参照树的 C 源一比一复刻为 Rust"）、`docs/port-master-plan.md`
+     第 3 行、`docs/port-plan.md` D12 的联调判据（"某产品产出的 `.elc`/`.pdmp`"→"参照构建产出的 `.elc`/`.pdmp`"）。
+  ④ **四个被豁免的落点带规模打印**（豁免是读数而不是沉默）：`docs/status.md` 1 file（运行日志，逐字引用用户指令
+     与参照的输出）、`docs/acceptance.md` 1 file（记录**参照程序自己**的 `--version` 输出，是证据）、
+     `docs/baseline/` 0 file（实测值，本面无 `.md`/`.toml`/`.lock`）、`docs/ports/` **602 file**（各单元台账，
+     本来就是 `DOC_DIRS` 的扫描面）。这一行与 3.250/3.295 的两次"门声称读了、其实没读"是同一类防护。
+  ⑤ **自证与负对照**：`--selftest` **41 例 / 0 失败**（新增 4 例：散文里的产品名、散文里的版本括注、我们自己的
+     许可证句不算 finding、只写修订号的标题不算 finding）；**负对照**：`python3 tools/check-declarations.py
+     --root /tmp/prose-neg` 在一棵只有两行违规的假树上当场报 `FAIL README.md: title x1` + `FAIL docs/plan.md:
+     version x1`、**exit 1**；本树读数 `13 declaration sites (0 forbidden, 13 allowed literals), 0 failures`、
+     `read 43 own prose/manifest file(s)`、`walked past 0 ... none (1 of them read above)`、**exit 0**。
+  ⑥ **未声称**：C 自己的 13 条字面量仍在（同①，那是参照语义、不是我们的声明）；`docs/status.md` 与
+     `docs/acceptance.md` 逐字记录参照的输出，故仍含产品名——两者是**测量/日志**；六棵逐字节树按用户指令原样
+     （`check-verbatim` 钉着）；裸 `Emacs` 在注释散文里的 ~54 行"标题式"用词按 3.269③ 不动（那是 C 的解释性
+     散文、不主张身份）；本轮改的都是本仓库自己的句子，未触碰任何在飞 lane 的文件。

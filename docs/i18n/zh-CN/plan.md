@@ -2,7 +2,7 @@
 
 [English](../../plan.md) · **简体中文**
 
-[femacs](../../../README.md) 是对 GNU Emacs 的一比一复刻：参照树里的每一个 C 源文件都变成
+[femacs](../../../README.md) 是对参照树的一比一复刻：`emacs/` 里的每一个 C 源文件都变成
 同名、同标识符、同结构、同语义的 Rust 源文件，Emacs Lisp 树原样复制。
 
 - **基线**：`emacs/` 检出 `fd7afced403`，被 git 忽略且只读。

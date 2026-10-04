@@ -113,6 +113,14 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     `canonicalize-lgpl.rs` 这类**移植的名字**不算），扫描面从 `src`/`lib`/`xtask` 扩到**全部已端口树**
     （批次 F 的 `lib-src`/`exec`/`lwlib`/`oldXMenu`/`nt` 与核心同尺）；`femacs/xtask` 是门自己的源码、
     用散文讲这几类，对它只关 `recital` 这一类（status 3.100）。
+    这条规则现在有第三半，同样是机器门：**本仓库自己的散文与清单**（根 `README.md`、`PORTING.md`、
+    `LICENSE`、`docs/*.md` 与 `docs/i18n/**`、`femacs/README.md`、三个 `Cargo.toml` 与 `Cargo.lock`）
+    此前不在任何门的扫描面里，2026-10-05 的复核在这一面量出 **7 处自述句**（两个"某产品的一比一复刻"
+    的首段、两处"与本产品同一许可证"的许可句、`goal.md` 的标题、总计划第 3 行、联调判据里的产品名），
+    已全部改成中性表述（参照树、参照构建、我们自己的许可证）；`tools/check-declarations.py` 从此把这一面
+    读成 `version`/`title` 两类，**一行都不许有**。四个**被豁免的落点**（`docs/status.md`、
+    `docs/acceptance.md`、`docs/baseline/`、`docs/ports/`）各自带理由，并在每次运行时**打印规模**——
+    那是记录参照，不是本仓库的自我声明（status 3.340）。
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体

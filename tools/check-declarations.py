@@ -54,6 +54,14 @@ where the reference's opening block or its version parenthetical can come back
 without a ported unit ever carrying it; 3.100 found `lib-src/hexl.rs` doing that
 in a tree no gate read, and a ledger is that tree's successor.
 
+This repository's own prose is a scope of its own (status 3.340).  The walk above is
+bounded by *suffix* over the ported trees and by `DOC_DIRS` over the ledgers, so the
+documents that say what this repository *is* - the root README, the plan set, the
+translations, the manifests - were read by nobody; every run printed that bound as
+`walked past ... femacs/xtask/Cargo.toml`.  A prose file has no literals and no comments,
+so the classes that bind it are `version` and `title`: naming *our own* licence is not a
+finding, but a document here may not declare this repository to be the reference product.
+
 Every site, of every class, must be named in
 `docs/baseline/declarations-allowlist.tsv` with a reason, the way
 `symbol-pending.txt` counts a deviation instead of hiding it; the four classes
@@ -105,6 +113,27 @@ RECITAL_TREES = SCAN_DIRS[:-1]
 DOC_DIRS = ("docs/ports",)
 DOC_CLASSES = ("decl", "version", "title")
 ALLOWLIST = REPO / "docs/baseline/declarations-allowlist.tsv"
+
+# This repository's own prose and manifests (status 3.340).  `PROSE_FILES` is named file by
+# file so a manifest that a walk would miss is still read; `PROSE_DIRS` is walked by suffix.
+PROSE_FILES = ("README.md", "PORTING.md", "LICENSE", "femacs/README.md",
+               "femacs/Cargo.toml", "femacs/xtask/Cargo.toml", "femacs/rust-toolchain.toml",
+               "femacs/Cargo.lock")
+PROSE_DIRS = ("docs",)
+PROSE_SUFFIXES = (".md", ".toml", ".lock")
+PROSE_CLASSES = ("version", "title")
+# The sanctioned homes, each with the reason it is left out.  They are counted and named in the
+# run output so an exemption is a reading rather than a silence: the log quotes the user's
+# instructions and the reference's measured output by necessity; `acceptance.md` records what
+# the *reference program* prints (`--version`, `PACKAGE_STRING`), which is evidence about the
+# reference and not a declaration by this repository; `docs/ports` is already the DOC_DIRS
+# scope above.
+PROSE_EXEMPT = (
+    ("docs/status.md", "the running log: quotes the instructions and the reference's output"),
+    ("docs/acceptance.md", "records the reference program's own --version output as evidence"),
+    ("docs/baseline/", "measured values of the frozen reference build"),
+    ("docs/ports/", "the per-unit ledgers (already the DOC_DIRS scope)"),
+)
 
 # The prose every copied declaration block contains, and that no port file may
 # carry in any form (a comment or a literal - the classes below say which).
@@ -328,6 +357,50 @@ def unread_files(root: Path) -> list[str]:
     return out
 
 
+def prose_files(root: Path) -> tuple[list[tuple[str, Path]], dict[str, tuple[int, str]]]:
+    """The repository's own prose/manifests, and the sanctioned homes that were left out.
+
+    `read, exempt`: `read` is `(rel path, path)`; `exempt` maps each sanctioned prefix to
+    the number of files it held and its reason, so a run reports the size it did not read.
+    """
+    read: list[tuple[str, Path]] = []
+    seen: set[str] = set()
+    exempt: dict[str, tuple[int, str]] = {prefix: (0, reason) for prefix, reason in PROSE_EXEMPT}
+    for rel in PROSE_FILES:
+        path = root / rel
+        if path.is_file():
+            read.append((rel, path))
+            seen.add(rel)
+    for base in PROSE_DIRS:
+        for path in sorted((root / base).rglob("*")):
+            if not path.is_file() or path.suffix not in PROSE_SUFFIXES:
+                continue
+            rel = path.relative_to(root).as_posix()
+            if rel in seen:
+                continue
+            for prefix in exempt:
+                if rel == prefix or rel.startswith(prefix):
+                    exempt[prefix] = (exempt[prefix][0] + 1, exempt[prefix][1])
+                    break
+            else:
+                read.append((rel, path))
+    return read, exempt
+
+
+def prose_findings_text(text: str) -> list[tuple[str, str]]:
+    """`(class, line)` for the prose classes this gate binds (`PROSE_CLASSES`)."""
+    out: list[tuple[str, str]] = []
+    for raw in text.split("\n"):
+        klass = classify("", raw, recital=False)
+        if klass in PROSE_CLASSES:
+            out.append((klass, " ".join(raw.split())[:240]))
+    return out
+
+
+def prose_findings(path: Path) -> list[tuple[str, str]]:
+    return prose_findings_text(path.read_text(encoding="utf-8", errors="replace"))
+
+
 def findings(root: Path) -> list[tuple[str, str, str]]:
     """`(path, class, line)` for every declaration this gate knows about."""
     out: list[tuple[str, str, str]] = []
@@ -352,6 +425,9 @@ def findings(root: Path) -> list[tuple[str, str, str]]:
                 klass = classify("", raw_line, recital=False)
                 if klass in DOC_CLASSES:
                     out.append((rel, klass, " ".join(raw_line.split())[:240]))
+    for rel, path in prose_files(root)[0]:
+        for klass, snippet in prose_findings(path):
+            out.append((rel, klass, snippet))
     return out
 
 
@@ -489,6 +565,20 @@ def findings_markdown(text: str) -> list[tuple[str, str, str]]:
     return out
 
 
+SELFTEST_PROSE = (
+    ("prose declares the replication",
+     "[femacs](../README.md) is a one-to-one replication of GNU Emacs: every C source",
+     ["title"]),
+    ("prose carries the removed version line", "`// femacs: port of src/x.c @ fd7afced403 (GNU Emacs 32.0.50).`",
+     ["version"]),
+    ("our own licence sentence is not a finding",
+     "femacs is distributed under the **GNU General Public License, version 3 or later**.",
+     []),
+    ("prose that records the revision in a title", "# GOAL: femacs - the C source of the reference tree, one to one",
+     []),
+)
+
+
 def selftest() -> int:
     bad = 0
     for name, source, want in SELFTEST:
@@ -506,13 +596,19 @@ def selftest() -> int:
         ok = got == sorted(want)
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
         bad += 0 if ok else 1
+    for name, source, want in SELFTEST_PROSE:
+        got = sorted({k for k, _ in prose_findings_text(source)})
+        ok = got == sorted(want)
+        print(f"{'ok  ' if ok else 'FAIL'} {name}: {got or 'none'}")
+        bad += 0 if ok else 1
     for leader, source, want_code, want_comment in SELFTEST_ASM_SPLIT:
         code, comment = scan(source + "\n", ".s")
         ok = code[0].strip() == want_code.strip() and comment[0] == want_comment
         print(f"{'ok  ' if ok else 'FAIL'} assembly `{leader}` split: "
               f"code={code[0]!r} comment={comment[0]!r}")
         bad += 0 if ok else 1
-    total = len(SELFTEST) + len(SELFTEST_DOC) + len(SELFTEST_ASM) + len(SELFTEST_ASM_SPLIT)
+    total = (len(SELFTEST) + len(SELFTEST_DOC) + len(SELFTEST_PROSE) + len(SELFTEST_ASM)
+             + len(SELFTEST_ASM_SPLIT))
     print(f"{total} cases, {bad} failures")
     return 1 if bad else 0
 
@@ -545,6 +641,7 @@ def main() -> int:
     root = Path(args.root)
     read = scanned_files(root)
     skip = unread_files(root)
+    prose, exempt = prose_files(root)
     by_suffix: dict[str, int] = {}
     for _, path in read:
         by_suffix[path.suffix] = by_suffix.get(path.suffix, 0) + 1
@@ -579,9 +676,23 @@ def main() -> int:
     # `.swift` files - the ones transcribing `src/*.m` - were read by nobody.
     spans = " ".join(f"{n} {ext}" for ext, n in sorted(by_suffix.items(), key=lambda kv: -kv[1]))
     print(f"read {len(read)} files ({spans})")
-    if skip:
-        print(f"walked past {len(skip)} file(s) of an unscanned kind: "
-              + ", ".join(sorted(skip)[:8]) + (" ..." if len(skip) > 8 else ""))
+    kinds: dict[str, int] = {}
+    for _, path in prose:
+        kinds[path.suffix or "(no suffix)"] = kinds.get(path.suffix or "(no suffix)", 0) + 1
+    span = " ".join(f"{n} {ext}" for ext, n in sorted(kinds.items(), key=lambda kv: -kv[1]))
+    print(f"read {len(prose)} own prose/manifest file(s) ({span})")
+    if exempt:
+        print("left out (sanctioned, counted): "
+              + "; ".join(f"{prefix} {n} file(s) - {reason}"
+                          for prefix, (n, reason) in exempt.items()))
+    # The bound the walk prints last: `skip` is what the *suffix* walk passed over, and a
+    # file the prose scope reads is no longer part of that hole (3.340 closed its one member,
+    # `femacs/xtask/Cargo.toml`), so the line stays printed with the count it now reads.
+    covered = {rel for rel, _ in prose}
+    rest = [s for s in skip if s not in covered]
+    print(f"walked past {len(rest)} file(s) of an unscanned kind: "
+          + (", ".join(sorted(rest)[:8]) + (" ..." if len(rest) > 8 else "") if rest else "none")
+          + (f" ({len(skip) - len(rest)} of them read above)" if len(rest) != len(skip) else ""))
     return 1 if failures else 0
 
 

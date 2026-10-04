@@ -1,6 +1,6 @@
 # femacs 一比一复刻总计划（巨无霸版）
 
-> **本文件是 femacs 的唯一总计划**：GNU Emacs 的 C 源一比一复刻为 Rust，Emacs Lisp 原样复制。
+> **本文件是 femacs 的唯一总计划**：参照树的 C 源一比一复刻为 Rust，Emacs Lisp 原样复制。
 > 配套文件：
 > [port-inventory.md](port-inventory.md)（590 文件逐文件对照表，生成物）、
 > [port-map.md](port-map.md)（全树映射，生成物）、

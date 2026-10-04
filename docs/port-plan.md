@@ -118,7 +118,7 @@
 
 ### D12 产物与兼容点
 - 定义：`.elc`（字节码版本与编码 cookie）、dump 文件格式、动态模块（`.so`/`.dylib`）、`DOC`（docstring 索引）、`etc/DOC*` 必须双向可加载/可用。
-- 判定：GNU Emacs 产出的 `.elc`/`.pdmp` 在 femacs 可用，反之亦然；用参照编译的模块能被 femacs 加载；`admin/unidata`、`admin/charsets` 生成物逐字节一致。
+- 判定：参照构建产出的 `.elc`/`.pdmp` 在 femacs 可用，反之亦然；用参照编译的模块能被 femacs 加载；`admin/unidata`、`admin/charsets` 生成物逐字节一致。
 - 失败：任一方向不通用 = 阻断。
 
 ## 3. 预备阶段（批次 A：写代码之前，先花时间把风险卖掉）

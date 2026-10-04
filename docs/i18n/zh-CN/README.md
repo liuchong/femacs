@@ -27,5 +27,5 @@
 
 ## 许可证
 
-femacs 与 GNU Emacs 采用同一许可证：**GNU General Public License 第 3 版或更新版本**
-（`GPL-3.0-or-later`）。完整条款见 [LICENSE](../../../LICENSE)。
+femacs 采用 **GNU General Public License 第 3 版或更新版本**（`GPL-3.0-or-later`）。
+完整条款见 [LICENSE](../../../LICENSE)。

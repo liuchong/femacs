@@ -1,4 +1,4 @@
-# GOAL：femacs 一比一复刻 GNU Emacs（C → Rust）—— 执行级
+# GOAL：femacs —— 把参照树的 C 源一比一复刻为 Rust —— 执行级
 
 > 把本文件**整段**作为 goal 粘贴给 Codex。执行到 §10 完成定义全部满足为止；
 > **不许中途停下来问**（唯一例外见 §9）。

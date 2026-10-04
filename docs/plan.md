@@ -1,7 +1,7 @@
 # femacs plan
 
-[femacs](../README.md) is a one-to-one replication of GNU Emacs: every C source
-of the reference tree becomes a Rust source with the same file name, the same
+[femacs](../README.md) is a one-to-one replication of the reference tree: every C
+source of `emacs/` becomes a Rust source with the same file name, the same
 identifiers, the same structures and the same semantics, and the Emacs Lisp
 tree is copied unchanged.
 

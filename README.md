@@ -33,6 +33,5 @@ implementation yet.
 
 ## License
 
-femacs is distributed under the same license as GNU Emacs: the
-**GNU General Public License, version 3 or later** (`GPL-3.0-or-later`). The full text is in
-[LICENSE](LICENSE).
+femacs is distributed under the **GNU General Public License, version 3 or later**
+(`GPL-3.0-or-later`). The full text is in [LICENSE](LICENSE).
