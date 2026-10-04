@@ -6827,3 +6827,21 @@
      ⑷ 预算：`build-tu` **8 发**（超 5），原因（4 发失败迭代）记在台账 Deviations。
   ⑦ **未声称**：无运行/行为证据；NS 的 `exit 0` 是 **harness 读数**（打了三类补丁，不是 `xtask probe` 读数）；
      Windows/Haiku/PGTK/Android 臂**不声称能编或布局正确**；**C 1,096-13,805 只是登记、没有移植**。
+
+- **3.402 本批收口：棘轮 87 文件 / 203,995 行（0 stale），port-map 56.3%，P-87 两腿 83/0（2026-10-05）**：
+  ① **P-87 全量扫描**（3.400 里那处 haiku 镜像改动触发）：`checked 83 unit(s), 0 failure(s)` +
+     `checking 83 unit(s), 0 unit failure(s)` —— 两腿全绿，即这个镜像改动对 83 个受编单元是 no-op（Haiku 不在其中），
+     而这是"改镜像必须证明所有 includer 都能编"这条规则的落法。
+  ② **行数棘轮收口**：`--write-pending` → **87 文件 / 203,995 行（0 new, 0 stale）**；本批入口是 90/229,815
+     ⇒ **净 −3 文件 / −25,820 参照行**（`androidterm.c`/`haikuterm.c`/`image.c` 三件退出 `<10%` 类）。
+  ③ **进度表重生成**：`gen-port-map.py` → **381,951 / 678,320 = 56.3%**（本批入口 55.5%、上一批收口 53.0%）。
+  ④ **门的一行读数**：`check-dead-file-coverage` **13 ledger(s) bound / 0 failure**、`check-mirror-dupes` **18/18/0**、
+     `check-citations` **675 / 0 drift / 0 stale**、`check-declarations` **13 sites / 0 forbidden**。
+  ⑤ **本批落地的四件（3.398-3.401）**：xdisp 第 29 轮（C 23817-25075，11 个定义，+996 行）、`androidterm.c` 第一片
+     （C 1-829，+1,044 行）、`haikuterm.c` 第一片（C 1-1044，+1,544 行）、`image.c` 第一片（C 1-1095，+1,703 行）
+     ——合计约 **+5,300 行端口文本**；另 3.397 的链接棘轮复算（382 行 / 0 failure）。
+  ⑥ **一条方法论（image.c 片带来）**：**多配置只读扫描**比"挑一个配置翻臂"更强——九配置扫描抓到三处翻臂看不见的缺陷
+     （Haiku/Android 臂的 `!(STRINGP (…) != 0)`、`android_create_bitmap_from_data` 的 `c_uint` 形参、
+     四处 `& 0xffffffff` 写 `uint32_t` 缺显式截断）。后续 P-86 轮次应把它当常规动作。
+  ⑦ **未声称**：两腿都只是类型检查级；棘轮量参照行数、port-map 的 56.3% 是行数比而非完成度
+     （清单/布局/符号/subr 与 L0-L5 仍未点亮）；§8 八条里仍只有第 5 条有判据与读数。
