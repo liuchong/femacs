@@ -1215,12 +1215,13 @@ fn probe_programs() -> Result<(), String> {
     // dead on this target (`src/nsgui.h`, `src/nsxwidget.h`): `layout-check` excludes nsgui.rs
     // by data (the `Emacs_Cursor` collision above), and the pair has no consumer at all
     // otherwise (status 3.161).
-    const PROBES: [&str; 13] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
+    const PROBES: [&str; 14] = ["../spikes/inline_probe.rs", "../spikes/accessor_probe.rs",
                                 "../spikes/write_probe.rs", "../spikes/va_probe.rs",
                                 "../spikes/layout.rs", "../spikes/jump.rs", "../spikes/scan.rs",
                                 "../spikes/f_inc_probe.rs", "../spikes/win_inc_probe.rs",
                                 "../spikes/haiku_inc_probe.rs", "../spikes/android_inc_probe.rs",
-                                "../spikes/android_asset_probe.rs", "../spikes/ns_inc_probe.rs"];
+                                "../spikes/android_asset_probe.rs", "../spikes/ns_inc_probe.rs",
+                                "../spikes/x_inc_probe.rs"];
     fs::create_dir_all("../build/probes").ok();
     for probe in PROBES {
         if !Path::new(probe).is_file() {
