@@ -3531,7 +3531,7 @@ unsafe fn font_prepare_cache (f: *mut frame, driver: *const font_driver)
   let cache: Lisp_Object;
   let mut val: Lisp_Object;
 
-  cache = ((*driver).get_cache.unwrap ()) (f);
+  cache = ((*driver).get_cache.unwrap ()) (f as *mut c_void);
   val = XCDR (cache);
   while CONSP (val) && ! EQ (XCAR (XCAR (val)), (*driver).r#type)
     { val = XCDR (val); }
@@ -3555,7 +3555,7 @@ unsafe fn font_finish_cache (f: *mut frame, driver: *const font_driver)
   let mut tmp: Lisp_Object;
 
 
-  cache = ((*driver).get_cache.unwrap ()) (f);
+  cache = ((*driver).get_cache.unwrap ()) (f as *mut c_void);
   val = XCDR (cache);
   while CONSP (val) && ! EQ (XCAR (XCAR (val)), (*driver).r#type)
     {
@@ -3575,7 +3575,7 @@ unsafe fn font_finish_cache (f: *mut frame, driver: *const font_driver)
 
 unsafe fn font_get_cache (f: *mut frame, driver: *const font_driver) -> Lisp_Object
 {
-  let mut val: Lisp_Object = ((*driver).get_cache.unwrap ()) (f);
+  let mut val: Lisp_Object = ((*driver).get_cache.unwrap ()) (f as *mut c_void);
   let r#type: Lisp_Object = (*driver).r#type;
 
   eassert! (CONSP (val));
@@ -3860,7 +3860,7 @@ pub unsafe extern "C" fn font_list_entities (f: *mut frame, spec: Lisp_Object) -
 	    {
 	      let copy: Lisp_Object;
 
-	      val = (((*(*driver_list).driver)).list.unwrap ()) (f, scratch_font_spec);
+	      val = (((*(*driver_list).driver)).list.unwrap ()) (f as *mut c_void, scratch_font_spec);
 	      /* We put zero_vector in the font-cache to indicate that
 		 no fonts matching SPEC were found on the system.
 		 Failure to have this indication in the font cache can
@@ -3933,7 +3933,7 @@ unsafe fn font_matching_entity (f: *mut frame, attrs: *mut Lisp_Object,
 	    { entity = AREF (XCDR (entity), 0); }
 	  else
 	    {
-	      entity = ((*(*driver_list).driver)).r#match.unwrap () (f, work);
+	      entity = ((*(*driver_list).driver)).r#match.unwrap () (f as *mut c_void, work);
 	      if !NILP (entity)
 		{
 		  let copy: Lisp_Object = copy_font_spec (work);
@@ -3987,7 +3987,7 @@ unsafe fn font_open_entity (f: *mut frame, entity: Lisp_Object, mut pixel_size: 
 	  && (*XFONT_OBJECT (fn_)).pixel_size == pixel_size
 	{
 	  if (*((*driver_list).driver)).cached_font_ok.is_none ()
-	      || ((*((*driver_list).driver)).cached_font_ok.unwrap ()) (f, fn_, entity)
+	      || ((*((*driver_list).driver)).cached_font_ok.unwrap ()) (f as *mut c_void, fn_, entity)
 	    { return fn_; }
 	}
       objlist = XCDR (objlist);
@@ -3998,7 +3998,7 @@ unsafe fn font_open_entity (f: *mut frame, entity: Lisp_Object, mut pixel_size: 
   psize = pixel_size;
   loop
     {
-      font_object = ((*((*driver_list).driver)).open_font.unwrap ()) (f, entity, psize);
+      font_object = ((*((*driver_list).driver)).open_font.unwrap ()) (f as *mut c_void, entity, psize);
       if NILP (font_object)
 	{ return Qnil (); }
       font = XFONT_OBJECT (font_object);
@@ -4601,7 +4601,7 @@ pub unsafe extern "C" fn font_prepare_for_face (f: *mut frame, face: *mut face)
     {
       let prepare_face = (*((*(*face).font).driver as *const font_driver)).prepare_face;
       if let Some (p) = prepare_face
-	{ p (f, face as *mut c_void); }
+	{ p (f as *mut c_void, face as *mut c_void); }
     }
 }
 
@@ -4615,7 +4615,7 @@ pub unsafe extern "C" fn font_done_for_face (f: *mut frame, face: *mut face)
     {
       let done_face = (*((*(*face).font).driver as *const font_driver)).done_face;
       if let Some (d) = done_face
-	{ d (f, face as *mut c_void); }
+	{ d (f as *mut c_void, face as *mut c_void); }
     }
 }
 
@@ -4792,7 +4792,7 @@ pub unsafe extern "C" fn font_update_drivers (f: *mut frame,
 		{
 		  let end_for_frame = (*driver).end_for_frame;
 		  if let Some (e) = end_for_frame
-		    { e (f); }
+		    { e (f as *mut c_void); }
 		}
 	      font_finish_cache (f, driver);
 	      (*list).on = false;
@@ -4800,7 +4800,7 @@ pub unsafe extern "C" fn font_update_drivers (f: *mut frame,
 	  else
 	    {
 	      if (*driver).start_for_frame.is_none ()
-		  || ((*driver).start_for_frame.unwrap ()) (f) == 0
+		  || ((*driver).start_for_frame.unwrap ()) (f as *mut c_void) == 0
 		{
 		  font_prepare_cache (f, driver);
 		  (*list).on = true;
@@ -4879,7 +4879,7 @@ pub unsafe extern "C" fn font_update_drivers (f: *mut frame,
 		  continue;
 		}
 	      if (*driver).start_for_frame.is_none ()
-		  || ((*driver).start_for_frame.unwrap ()) (f) == 0
+		  || ((*driver).start_for_frame.unwrap ()) (f as *mut c_void) == 0
 		{
 		  font_prepare_cache (f, driver);
 		  (*list).on = true;
@@ -5569,7 +5569,7 @@ DEFUN! ("font-family-list", Ffont_family_list, Sfont_family_list, 0, 1, 0,
       if (*((*driver_list).driver)).list_family.is_some ()
 	{
 	  let val: Lisp_Object
-	    = ((*((*driver_list).driver)).list_family.unwrap ()) (f);
+	    = ((*((*driver_list).driver)).list_family.unwrap ()) (f as *mut c_void);
 	  let tail: Lisp_Object = list;
 
 	  let mut val: Lisp_Object = val;
@@ -5685,7 +5685,7 @@ pub unsafe extern "C" fn clear_font_cache (f: *mut frame)
 	{
 	  let mut val: Lisp_Object;
 	  let tmp: Lisp_Object;
-	  let cache: Lisp_Object = ((*((*driver_list).driver)).get_cache.unwrap ()) (f);
+	  let cache: Lisp_Object = ((*((*driver_list).driver)).get_cache.unwrap ()) (f as *mut c_void);
 
 	  val = XCDR (cache);
 	  loop
@@ -6470,7 +6470,7 @@ pub unsafe extern "C" fn font_drop_xrender_surfaces (f: *mut frame)
 	{
 	  let drop_xrender_surfaces = (*((*list).driver)).drop_xrender_surfaces;
 	  if let Some (d) = drop_xrender_surfaces
-	    { d (f); }
+	    { d (f as *mut c_void); }
 	}
       list = (*list).next;
     }

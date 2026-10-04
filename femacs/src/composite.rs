@@ -107,20 +107,14 @@ unsafe extern "C" {
    and this unit includes that mirror at C's position (composite.h 28), so a second copy here is
    `E0428` (the face-record move of 3.211/3.220).  */
 
-/* C: font.h 277-404 `struct font` and 589-821 `struct font_driver`.  `struct font`
-   (277-418) now comes from `include/font.rs`; `struct font_driver` is still unmirrored
-   (PORTING.md P-66).  composite.c reaches exactly one field of each — `font->driver`, then
-   `driver->encode_char` — so `font_driver` is declared here as a byte-padded prefix
-   carrying that one field, with its offset measured from the frozen target with clang
-   (`offsetof (struct font_driver, encode_char)` = 96; the `struct composition` "measured,
-   not derived" shape, and the offset is recorded in docs/ports/composite.md).  The
-   mirror's `font.driver` is untyped, so the read below casts (PORTING.md P-72 rule 3).  */
-#[repr(C)]
-pub struct font_driver
-{
-  pub _pad: [u8; 96],
-  pub encode_char: Option<unsafe extern "C" fn (font: *mut font, c: c_int) -> c_uint>,
-}
+/* C: font.h 277-404 `struct font` and 589-821 `struct font_driver`.  Both now come from
+   `include/font.rs` (this unit includes that mirror at C's position, composite.h 28).  The
+   byte-padded `font_driver` prefix this unit carried for `driver->encode_char`
+   (`offsetof (struct font_driver, encode_char)` = 96, measured) **retired here** in 3.238
+   when the mirror grew the whole record: a second definition is `E0428`, the same ownership
+   move as `XFONT_OBJECT` (3.225) and the face records (3.211/3.220).  The mirror's
+   `font.driver` stays untyped and the read below casts (PORTING.md P-72 rule 3);
+   `encode_char` sits at the mirror's measured offset, so the cast resolves to it.  */
 
 /* C: font.h 537-544's `XFONT_OBJECT` is the font mirror's now (font.rs 415-418, status 3.225):
    this unit includes that mirror at C's position (composite.h 28), so a second copy here is
