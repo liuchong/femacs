@@ -90,7 +90,8 @@
 - **3.3 gnulib 包含式 shim**（`dtoastr.c`/`nstrftime.c`/`strtoll.c`）：
   见 PORTING.md 10.13②，须先落共享源码（`ftoastr`/`strftime`/`strtol`）并把共享体写成
   prelude `macro_rules!` 或参数化，再实例化；在此之前不碰这三个文件。
-- **3.4 `lib/allocator.c` 需要 `allocator.h` 镜像**（`struct allocator`），尚未建。
+- ~~3.4 `lib/allocator.c` 需要 `allocator.h` 镜像~~ **已解决（2026-10-04，3.193）**：`femacs/lib/include/allocator.rs` 其实早已写好且有 `lib/allocator.c` 这个消费者，只是台账框没勾而被记成 WIP；本轮补勾 + 补 `build-tu` 证据，`lib/allocator.c` 已可编译。
+- **3.10 `lib/stdcountof.in.h` 的模板条件判不了（P-66 的承载问题）**：`check-cond-eval` 报 `10 conditions, 4 unknown, 5 disagreements [NOT VERIFIED]`（`_GL_GNUC_PREREQ (3, 1) && ! defined `__clang__`` 这类它判不了），所以抽取器的清单是**各臂并集**：C++ 那两段模板（`_gl_verify_type`、`GNULIB_defined_struct__gl_verify_type`）也在清单里，`countof (...)`（`sizeof (A) / sizeof (A)[0] + 0 * _gl_verify_is_array (A)`）是活的。**落它之前要先定两件事**：① 未知条件的承载方式（P-51/P-66；同 `assert.in.h`/`stdckdint.in.h`）；② `countof` 在 5 个已端口单元（`alloc.rs`/`data.rs`/`chartab.rs`/`androidvfs.rs`/`emacs.rs`）里已有各自的拼法，镜像落地时一并决定 re-point。
 - **3.5 `lib/binary-io.c` 整文件在 `#if defined __DJGPP__ || defined __EMX__` 之内**：
   这两个宏不在冻结宏表里，求值器保守地要求两支都活，且 `FLIPS` 无对应开关——移植它需要
   先定"未知条件"的既有政策（P-66 已记录该保守行为），否则会产出永不被编译的死文本。
