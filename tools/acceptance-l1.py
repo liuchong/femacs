@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import re
 import shutil
 import subprocess
 import sys
@@ -29,11 +30,15 @@ REPO = Path(__file__).resolve().parent.parent
 GOLDEN = REPO / "docs/baseline/l1-reference.txt"
 SCRATCH = REPO / "build/lisp-l1"
 SUBTREE = "lisp/emacs-lisp"
+# The tree to copy.  The reference's own (`emacs/lisp/emacs-lisp`, whose `subdirs.el`, `loaddefs`
+# and `.elc`s C's build generated) is the golden side; the port's (`femacs/lisp/emacs-lisp`) is the
+# side that needs its *own* build pass first, which is why the comparison is differential.
+TREE = REPO / "femacs/lisp"
 
 
 def prepare() -> list[Path]:
     """The subtree, copied into the fixed scratch directory, and its `.el` files in order."""
-    src = REPO / "femacs" / SUBTREE
+    src = TREE / SUBTREE.split("/", 1)[1]
     if not src.is_dir():
         raise SystemExit(f"{src.relative_to(REPO)} is missing")
     if SCRATCH.is_dir():
@@ -45,18 +50,57 @@ def prepare() -> list[Path]:
     return files
 
 
-def load_flags() -> list[str]:
-    """`-L` for the scratch copy and for every directory of the tree it came from.
+def dump_lisp_dirs(binary: Path) -> list[str]:
+    """The `lisp` directories the binary's own dump carries, in the order it searches them.
 
-    C's own build passes one `-L` per lisp subdirectory (`make -C lisp`'s
-    `BYTE_COMPILE_FLAGS`), because the libraries a file `require`s live in `lisp/progmodes`,
-    `lisp/net`, ... and the dumped binary's own load path names only the tree root.  The list comes
-    from the port's tree for both sides - it is byte-identical to the reference's
-    (`tools/check-verbatim.py`) - so the invocation does not depend on which binary is being
-    measured.
+    Measured at 3.268, because the order decides which file a `require` finds.  The reference's
+    dump lists its tree root, then 24 subdirectories in *reverse* `make -C lisp` `SUBDIRS` order
+    (`vc use-package url textmodes progmodes play org nxml net mh-e mail leim language
+    international image gnus eshell erc emulation emacs-lisp cedet calendar calc obsolete`).
+    `progmodes` ahead of `cedet` is the whole difference: `bytecomp.el`'s
+    `(eval-when-compile (require 'compile))` finds `progmodes/compile.elc`, while any order that
+    reaches `cedet/srecode` first finds a file that does not provide the feature.
+
+    Returns the entries under that root, as relative paths, in that order.
     """
-    tree = REPO / "femacs/lisp"
-    dirs = [SCRATCH] + sorted(p for p in tree.rglob("*") if p.is_dir())
+    r = subprocess.run([str(binary), "-Q", "--batch", "--eval", "(prin1 load-path)"],
+                       capture_output=True, text=True)
+    paths = re.findall(r'"([^"]*)"', r.stdout)
+    if not paths:
+        raise SystemExit(f"{binary} did not print a load-path")
+    def under(p: str) -> int:
+        return sum(1 for q in paths if q.startswith(p.rstrip("/") + "/"))
+    roots = [p for p in paths if p.rstrip("/").endswith("/lisp") and under(p) > 1]
+    if not roots:
+        raise SystemExit(f"{binary}'s load-path has no lisp directory: {paths}")
+    root = max(roots, key=under)
+    return [p[len(root) + 1:] for p in paths if p.startswith(root.rstrip("/") + "/")]
+
+
+def load_flags(binary: Path) -> list[str]:
+    """`-L` for the scratch copy, the tree's root, and the tree's subdirectories in dump order.
+
+    C's own build compiles with the load path of the dumped program (`make -C lisp` invokes
+    `$(emacs) -f batch-byte-compile`), because the libraries a file `require`s live in
+    `lisp/progmodes`, `lisp/net`, ...  This harness has to name that path itself, and Emacs
+    searches `-L` directories in *command-line order*, ahead of the path its dump carries
+    (`-L /tmp/a -L /tmp/b` gives `load-path` head `(/tmp/a /tmp/b ...)`, measured 3.268).
+
+    Two consequences fix this list's shape, and both are measurements rather than choices: the
+    tree's own root has to be on it, and the subdirectories have to come in the dumped program's
+    own order rather than sorted.  Without either, `(require 'compile)` in `bytecomp.el` finds a
+    subdirectory's `cedet/srecode/compile.elc` - a property of the harness, not of C (3.268).  The
+    scratch copy stays first so that both sides' diagnostics name the same paths; the tree root
+    follows it; the subdirectories come in the order the measured binary searches them, which is
+    the order C's own builds search too.  The list is built from the tree being measured - the
+    port's and the reference's `lisp` trees are byte-identical (`tools/check-verbatim.py`) - so it
+    does not depend on which binary is used beyond that order.
+    """
+    dirs = [SCRATCH, TREE]
+    for rel in dump_lisp_dirs(binary):
+        d = TREE / rel
+        if d.is_dir():
+            dirs.append(d)
     out: list[str] = []
     for d in dirs:
         out += ["-L", str(d)]
@@ -68,8 +112,8 @@ def compile_one(binary: Path, file: Path) -> tuple[int, str]:
     # binaries' *own* load paths differ (the reference's points at its build tree, the port's will
     # point at its own), and a rung that compared those would measure the installation, not the
     # compiler.  The tree itself is byte-identical between the two sides (check-verbatim), so
-    # naming the port's copy on the reference side too keeps the invocation identical.
-    r = subprocess.run([str(binary), "-Q", "--batch", *load_flags(),
+    # naming the same tree on the reference side too keeps the invocation identical.
+    r = subprocess.run([str(binary), "-Q", "--batch", *load_flags(binary),
                         "-f", "batch-byte-compile", str(file)],
                        capture_output=True, text=True)
     return r.returncode, r.stdout + r.stderr
@@ -163,7 +207,13 @@ def main() -> int:
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--golden", metavar="BINARY")
     ap.add_argument("--check", metavar="BINARY")
+    ap.add_argument("--tree", metavar="DIR", default=None,
+                    help="the lisp tree to copy (default femacs/lisp; the reference's own "
+                         "emacs/lisp is the golden side)")
     args = ap.parse_args()
+    global TREE
+    if args.tree:
+        TREE = (REPO / args.tree).resolve() if not Path(args.tree).is_absolute() else Path(args.tree)
     if args.golden:
         return write_golden(Path(args.golden))
     if args.check:
