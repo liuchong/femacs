@@ -61,13 +61,14 @@ mod system {
   }
 }
 
+/* C 13's `#include "openat.h"` now has a mirror (`include/openat.rs`, status 3.194), which owns
+   C 55-56's two `_Noreturn` prototypes; this unit declares only `openat-priv.h`'s entry.  */
+include!("include/openat.rs");
+
 unsafe extern "C" {
   /* openat-priv.h 52: char *openat_proc_name (char buf[OPENAT_BUFFER_SIZE], int fd, char
      const *file);  */
   pub fn openat_proc_name (buf: *mut c_char, fd: c_int, file: *const c_char) -> *mut c_char;
-  /* openat.h 55-56: _Noreturn void openat_save_fail (int) / openat_restore_fail (int);  */
-  pub fn openat_save_fail (err: c_int) -> !;
-  pub fn openat_restore_fail (err: c_int) -> !;
 }
 
 /* openat-priv.h 40-49: `SAFER_ALLOCA (m) ((m) < 4096 - 64 ? (m) : 4096 - 64)` and

@@ -23,16 +23,16 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 578 |
-| 其中 done / wip | 560 / 18 |
-| 待开工 | 12 |
+| 已有目标文件 | 579 |
+| 其中 done / wip | 562 / 17 |
+| 待开工 | 11 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
-| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 9 |
+| `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 8 |
 | `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 0 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
@@ -50,7 +50,7 @@
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 0 |
 | **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 3 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 0 |
-| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 9 |
+| **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 8 |
 
 ## 4 最大的 25 个文件（按行数）
 
@@ -263,7 +263,7 @@
 | `lib/rawmemchr.c` | 158 | 1 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/rawmemchr.rs` | done |
 | `lib/readlink.c` | 114 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/readlink.rs` | done |
 | `lib/readlinkat.c` | 123 | 1 | 0 | 5 | 0 | 0 | 0 | L | `femacs/lib/readlinkat.rs` | done |
-| `lib/readutmp.h` | 352 | 0 | 0 | 32 | 8 | 21 | 0 | L | `femacs/lib/include/readutmp.rs` | todo |
+| `lib/readutmp.h` | 352 | 0 | 0 | 32 | 8 | 21 | 0 | L | `femacs/lib/include/readutmp.rs` | done |
 | `lib/realloc.c` | 101 | 1 | 0 | 2 | 1 | 0 | 0 | L | `femacs/lib/realloc.rs` | done |
 | `lib/regcomp.c` | 3,814 | 63 | 0 | 19 | 2 | 0 | 2 | L | `femacs/lib/regcomp.rs` | done |
 | `lib/regex.c` | 82 | 0 | 0 | 14 | 1 | 0 | 1 | L | `femacs/lib/regex.rs` | done |
@@ -471,7 +471,7 @@
 | `src/comp.h` | 106 | 3 | 0 | 1 | 0 | 11 | 0 | E | `femacs/src/include/comp.rs` | done |
 | `src/composite.c` | 2,322 | 26 | 6 | 3 | 1 | 3 | 7 | C | `femacs/src/composite.rs` | done |
 | `src/composite.h` | 362 | 5 | 0 | 53 | 20 | 11 | 2 | C | `femacs/src/include/composite.rs` | done |
-| `src/conf_post.h` | 445 | 0 | 0 | 66 | 5 | 0 | 0 | B | `femacs/src/include/conf_post.rs` | wip |
+| `src/conf_post.h` | 445 | 0 | 0 | 66 | 5 | 0 | 0 | B | `femacs/src/include/conf_post.rs` | done |
 | `src/cygw32.c` | 139 | 5 | 2 | 0 | 0 | 0 | 0 | F | `femacs/src/cygw32.rs` | done |
 | `src/cygw32.h` | 40 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/src/include/cygw32.rs` | done |
 | `src/data.c` | 4,400 | 60 | 120 | 1 | 12 | 2 | 0 | B | `femacs/src/data.rs` | done |

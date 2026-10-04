@@ -20,15 +20,12 @@ include!("include/limits.in.rs");
 include!("include/stdio.rs");
 include!("include/stdlib.rs");
 
-/* C 30's `"ftoastr.h"` has no mirror (P-26): its flag enum, the `_GL_*_PREC_BOUND` bounds and
-   the `*_BUFSIZE_BOUND` sizes are carried here with the values the frozen darwin-arm64
-   compiler reports (9/17/17 and 21/30/30), and `DBL_MIN` comes from the system `<float.h>`
-   (which also has no mirror).  `MB_LEN_MAX` is in `include/limits.in.rs`.  */
-pub const FTOASTR_LEFT_JUSTIFY: c_int = 1;
-pub const FTOASTR_ALWAYS_SIGNED: c_int = 2;
-pub const FTOASTR_SPACE_POSITIVE: c_int = 4;
-pub const FTOASTR_ZERO_PAD: c_int = 8;
-pub const FTOASTR_UPPER_E: c_int = 16;
+/* C 30's `"ftoastr.h"` now has a mirror (`include/ftoastr.rs`, status 3.194), which owns the five
+   `FTOASTR_*` flags and `_GL_FLOAT_DIG_BITS_BOUND`; the `_GL_*_PREC_BOUND` bounds and the
+   `*_BUFSIZE_BOUND` sizes stay here, with the values the frozen darwin-arm64 compiler reports
+   (9/17/17 and 21/30/30), and `DBL_MIN` comes from the system `<float.h>` (which also has no
+   mirror).  `MB_LEN_MAX` is in `include/limits.in.rs`.  */
+include!("include/ftoastr.rs");
 pub const DBL_MIN: c_double = 2.2250738585072014e-308;
 pub const _GL_FLT_PREC_BOUND: c_int = 9;
 pub const _GL_DBL_PREC_BOUND: c_int = 17;
