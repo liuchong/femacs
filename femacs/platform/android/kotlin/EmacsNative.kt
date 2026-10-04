@@ -222,7 +222,7 @@ class EmacsNative {
     @JvmStatic external fun commitText(window: Long, text: String, position: Int)
     @JvmStatic external fun deleteSurroundingText(window: Long, leftLength: Int, rightLength: Int)
     @JvmStatic external fun finishComposingText(window: Long)
-    @JvmStatic external fun replaceText(window: Long, start: Int, end: Int, text: String, newCursorPosition: Int, attributes: TextAttribute)
+    @JvmStatic external fun replaceText(window: Long, start: Int, end: Int, text: String, newCursorPosition: Int, attributes: TextAttribute?)
     @JvmStatic external fun getSelectedText(window: Long, flags: Int): String?
     @JvmStatic external fun getTextAfterCursor(window: Long, length: Int, flags: Int): String?
     @JvmStatic external fun getTextBeforeCursor(window: Long, length: Int, flags: Int): String?
@@ -235,13 +235,13 @@ class EmacsNative {
     @JvmStatic external fun requestSelectionUpdate(window: Long)
     @JvmStatic external fun requestCursorUpdates(window: Long, mode: Int)
     @JvmStatic external fun clearInputFlags(window: Long)
-    @JvmStatic external fun getSurroundingText(window: Long, left: Int, right: Int, flags: Int): SurroundingText
+    @JvmStatic external fun getSurroundingText(window: Long, left: Int, right: Int, flags: Int): SurroundingText?
     @JvmStatic external fun takeSnapshot(window: Long): TextSnapshot?
 
 
     /* Return the current value of the selection, or -1 upon
      failure.  */
-    @JvmStatic external fun getSelection(window: Long): String?
+    @JvmStatic external fun getSelection(window: Long): IntArray?
 
 
     /* Graphics functions used as replacements for potentially buggy
