@@ -56,8 +56,11 @@
 // `ns_clear_under_internal_border` (C 2919-2960).  **Round 14 lands C 2963-3079**:
 // `ns_after_update_window_line` (C 2963-3019), `ns_shift_glyphs_for_insert` (C 3022-3036), the
 // "Character encoding and metrics" banner (C 3040-3044) and `ns_compute_glyph_string_overhangs`
-// (C 3047-3079) - the next live definition is C 3091's `ns_define_fringe_bitmap` (the Fringe and
-// cursor drawing banner is at C 3083-3087, and its `fringe_bmp` static at C 3089).
+// (C 3047-3079).  **Round 15 lands C 3083-3291**: the Fringe and cursor drawing banner
+// (C 3083-3087), its `fringe_bmp` table (C 3089) and the section's three definitions
+// `ns_define_fringe_bitmap` (C 3091-3195), `ns_destroy_fringe_bitmap` (C 3198-3202) and
+// `ns_draw_fringe_bitmap` (C 3205-3291) - **no new C export** (all three are C `static`s).  The
+// next live definition is C 3294's `ns_draw_window_cursor`.
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -3725,4 +3728,259 @@ fileprivate func ns_compute_glyph_string_overhangs(_ s: UnsafeMutableRawPointer?
                                        - composition_pixel_width(glyph_string_cmp(s)))
     glyph_string_set_left_overhang(s, -composition_lbearing(glyph_string_cmp(s)))
   }
+}
+
+/* ==========================================================================
+
+    Fringe and cursor drawing
+
+   ========================================================================== */
+
+/// C 3089: `static NSMutableDictionary *fringe_bmp;` - this file's own file-scope table, a
+/// `fileprivate var` of the same name (C zero-initialises it to NULL, which is `nil` here).
+fileprivate var fringe_bmp: NSMutableDictionary? = nil
+
+/// C: `#define WINDOW_FRAME(w) ((w)->frame)` (src/frame.h 929) - the macro's own name, read at
+/// C 3228.  The bare member read (`w->frame`, round 13's `window_frame`) and this macro spelling
+/// keep one entry each: PORTING.md 0.2's names-verbatim rule, the way `NS_FACE_BACKGROUND` and
+/// `face_background` are two entries below.
+@_silgen_name("WINDOW_FRAME") func WINDOW_FRAME(_ w: UnsafeMutableRawPointer?) -> Lisp_Object
+/// C: `struct face`'s members `foreground`/`background` (src/dispextern.h), read **bare** at
+/// C 3254/3279/3281 - C does not go through `NS_FACE_BACKGROUND` there, so each spelling gets its
+/// own `<record>_<member>` entry (round 13's `NS_FACE_BACKGROUND` is the macro's).
+@_silgen_name("face_foreground") func face_foreground(_ face: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("face_background") func face_background(_ face: UnsafeMutableRawPointer?) -> UInt
+/// C: `struct draw_fringe_bitmap_params` (src/dispextern.h) - the record `ns_draw_fringe_bitmap`
+/// reads member by member (`face` C 3229, `which` C 3235, `cursor_p`/`overlay_p` C 3235,
+/// `wd`/`h`/`dh` C 3235-3238, `x`/`y` C 3238, `bx`/`by`/`nx`/`ny` C 3240-3241), plus the two
+/// `bool_bf` bitfields.  The record belongs to the core, so each is a member entry.
+@_silgen_name("draw_fringe_bitmap_params_face")
+func draw_fringe_bitmap_params_face(_ p: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("draw_fringe_bitmap_params_which")
+func draw_fringe_bitmap_params_which(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_wd")
+func draw_fringe_bitmap_params_wd(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_h")
+func draw_fringe_bitmap_params_h(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_dh")
+func draw_fringe_bitmap_params_dh(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_x")
+func draw_fringe_bitmap_params_x(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_y")
+func draw_fringe_bitmap_params_y(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_bx")
+func draw_fringe_bitmap_params_bx(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_by")
+func draw_fringe_bitmap_params_by(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_nx")
+func draw_fringe_bitmap_params_nx(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_ny")
+func draw_fringe_bitmap_params_ny(_ p: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("draw_fringe_bitmap_params_cursor_p")
+func draw_fringe_bitmap_params_cursor_p(_ p: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("draw_fringe_bitmap_params_overlay_p")
+func draw_fringe_bitmap_params_overlay_p(_ p: UnsafeMutableRawPointer?) -> Bool
+/// C: `f->output_data.ns->cursor_color` (C 3283) - the `struct ns_output` member read, under the
+/// family name the shim already exports (`docs/ports/abi_shim.md` 74; `nsfns.swift` 282 imports
+/// it with this signature).
+@_silgen_name("ns_output_cursor_color")
+func ns_output_cursor_color(_ f: UnsafeMutableRawPointer?) -> NSColor?
+/// C: `void gui_define_fringe_bitmap (struct frame *, int)` (defined src/fringe.c 1853) and the
+/// global `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` (src/fringe.c 497).
+/// **Neither has a reference-side symbol** (measured): the frozen configuration compiles no
+/// `fringe.c` at all - `femacs/src/fringe.rs` is the empty unit status 3.31 records, its note
+/// quoting the build's empty platform object variables - so both are owed entries, and the
+/// function's row carries the gate the file itself has.
+@_silgen_name("gui_define_fringe_bitmap")
+func gui_define_fringe_bitmap(_ f: UnsafeMutableRawPointer?, _ n: Int32)
+@_silgen_name("max_used_fringe_bitmap") var max_used_fringe_bitmap: Int32
+
+/// C 3091-3195: `static void ns_define_fringe_bitmap (int which, unsigned short *bits, int h,
+/// int w)` - the tracer that turns the bitmap's bit rows into an `NSBezierPath` and caches it in
+/// `fringe_bmp`.  C's `alloca` is `withUnsafeTemporaryAllocation` (the reading `macfont.swift`
+/// 1684/2978 gives), so the `points`/`cur` pointer walk keeps its shape over the temporary
+/// buffer; the C `char` state variables hold the ASCII letters `'n'`/`'e'`/`'s'`/`'w'` and are
+/// `CChar` here.
+fileprivate func ns_define_fringe_bitmap(_ which: Int32, _ bits: UnsafePointer<UInt16>?, _ h: Int32,
+                                         _ w: Int32) {
+  let p = NSBezierPath()
+
+  if fringe_bmp == nil {
+    fringe_bmp = NSMutableDictionary(capacity: 25)
+  }
+
+  withUnsafeTemporaryAllocation(of: UInt8.self, capacity: Int((h + 1) * (w + 1) * 4)) { points in
+    var cur = points.baseAddress!
+
+    /* Find all the outgoing edges in a clockwise path.  That is, we only
+       want to list the edges leaving a point, not the ones entering a
+       point, so we don't double count them.  */
+    for y in 0..<(h + 1) {
+      for x in 0..<(w + 1) {
+        var nw: Int32 = 0, ne: Int32 = 0, se: Int32 = 0, sw: Int32 = 0
+        if x != 0 && y != 0 {
+          nw = Int32(bits![Int(y - 1)]) & (1 << (w - x))
+        }
+
+        if x != 0 && y < h {
+          sw = Int32(bits![Int(y)]) & (1 << (w - x))
+        }
+
+        if x < w && y < h {
+          se = Int32(bits![Int(y)]) & (1 << (w - x - 1))
+        }
+
+        if x < w && y != 0 {
+          ne = Int32(bits![Int(y - 1)]) & (1 << (w - x - 1))
+        }
+
+        cur[0] = (nw == 0 && ne != 0) ? 1 : 0 /* North.  */
+        cur[1] = (ne == 0 && se != 0) ? 1 : 0 /* East.  */
+        cur[2] = (se == 0 && sw != 0) ? 1 : 0 /* South.  */
+        cur[3] = (sw == 0 && nw != 0) ? 1 : 0 /* West.  */
+        cur += 4
+      }
+    }
+
+    /* Find all the points with edges and trace them out.  */
+    var v: Int32 = 0
+    var last: CChar = 0
+    while v < (h + 1) * (w + 1) * 4 {
+      var this: CChar = 0
+      let x = (v / 4) % (w + 1)
+      let y = (v / 4) / (w + 1)
+
+      if points[Int(v + 3)] != 0 {
+        /* West.  */
+        points[Int(v + 3)] = 0
+        v = v - 4
+        this = CChar(UInt8(ascii: "w"))
+      } else if points[Int(v + 1)] != 0 {
+        /* East.  */
+        points[Int(v + 1)] = 0
+        v = v + 4
+        this = CChar(UInt8(ascii: "e"))
+      } else if points[Int(v + 2)] != 0 {
+        /* South.  */
+        points[Int(v + 2)] = 0
+        v = ((y + 1) * (w + 1) + x) * 4
+        this = CChar(UInt8(ascii: "s"))
+      } else if points[Int(v)] != 0 {
+        /* North.  */
+        points[Int(v)] = 0
+        v = ((y - 1) * (w + 1) + x) * 4
+        this = CChar(UInt8(ascii: "n"))
+      } else {
+        /* No edge.  */
+        v = v + 4
+
+        if last != 0 {
+          /* If we reach here we were tracing a shape but have run
+             out of edges, so we must be back to the start (or
+             something's gone wrong).  */
+          p.close()
+          last = 0
+        }
+      }
+
+      if this != 0 {
+        /* If we've found an edge we now need to either move to that
+           point (if it's the start of a shape) or draw a line from
+           the last corner to this point, but only if it's a
+           corner.  */
+        if last == 0 {
+          p.move(to: NSMakePoint(CGFloat(x), CGFloat(y)))
+        } else if last != this {
+          p.line(to: NSMakePoint(CGFloat(x), CGFloat(y)))
+        }
+        last = this
+      }
+    }
+  }
+
+  fringe_bmp!.setObject(p, forKey: NSNumber(value: which))
+}
+
+/// C 3198-3202: `static void ns_destroy_fringe_bitmap (int which)`.
+fileprivate func ns_destroy_fringe_bitmap(_ which: Int32) {
+  fringe_bmp?.removeObject(forKey: NSNumber(value: which))
+}
+
+/// C 3205-3291: `static void ns_draw_fringe_bitmap (struct window *w, struct glyph_row *row,
+/// struct draw_fringe_bitmap_params *p)` - "External (RIF); fringe-related".  The record's
+/// members are the entries above; C's `bmp = [bmp copy]` … `[bmp release]` pair is ARC's own
+/// copy here (no release call - the reading rounds 3/6 record for `[x release]`), and the
+/// `NSTRACE_*` family is empty (`NSTRACE_ENABLED` 0), so C's arguments to it are not evaluated.
+fileprivate func ns_draw_fringe_bitmap(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
+                                       _ p: UnsafeMutableRawPointer?) {
+  let f = XFRAME(WINDOW_FRAME(w))
+  let face = draw_fringe_bitmap_params_face(p)
+  var bmpRect = NSZeroRect
+  let rowRect = ns_row_rect(w, row, ANY_AREA())
+
+  // C 3233-3235: `NSTRACE_WHEN (NSTRACE_GROUP_FRINGE, "ns_draw_fringe_bitmap");` and
+  // `NSTRACE_MSG ("which:%d cursor:%d …", p->which, p->cursor_p, …);` - empty, as above.
+
+  /* Work out the rectangle we will need to clear.  */
+  bmpRect = NSMakeRect(CGFloat(draw_fringe_bitmap_params_x(p)),
+                       CGFloat(draw_fringe_bitmap_params_y(p)),
+                       CGFloat(draw_fringe_bitmap_params_wd(p)),
+                       CGFloat(draw_fringe_bitmap_params_h(p)))
+
+  if draw_fringe_bitmap_params_bx(p) >= 0 {
+    bmpRect = NSUnionRect(bmpRect,
+                          NSMakeRect(CGFloat(draw_fringe_bitmap_params_bx(p)),
+                                     CGFloat(draw_fringe_bitmap_params_by(p)),
+                                     CGFloat(draw_fringe_bitmap_params_nx(p)),
+                                     CGFloat(draw_fringe_bitmap_params_ny(p))))
+  }
+
+  /* Handle partially visible rows.  */
+  bmpRect = NSIntersectionRect(bmpRect, rowRect)
+
+  /* Clip to the bitmap's area.  */
+  ns_focus(f, &bmpRect, 1)
+
+  /* Clear screen unless overlay.  */
+  if !draw_fringe_bitmap_params_overlay_p(p) && !NSIsEmptyRect(bmpRect) {
+    // C 3252: `NSTRACE_RECT ("clearRect", bmpRect);` - empty, as above.
+
+    NSColor.colorWithUnsignedLong(face_background(face)).set()
+    NSRectFill(bmpRect)
+  }
+
+  var bmp = fringe_bmp?.object(forKey: NSNumber(value: draw_fringe_bitmap_params_which(p)))
+    as? NSBezierPath
+
+  if bmp == nil
+       && draw_fringe_bitmap_params_which(p) < max_used_fringe_bitmap {
+    gui_define_fringe_bitmap(f, draw_fringe_bitmap_params_which(p))
+    bmp = fringe_bmp?.object(forKey: NSNumber(value: draw_fringe_bitmap_params_which(p)))
+      as? NSBezierPath
+  }
+
+  if bmp != nil {
+    let transform = NSAffineTransform()
+    var bm_color: NSColor? = nil
+
+    /* Because the image is defined at (0, 0) we need to take a copy
+       and then transform that copy to the new origin.  */
+    bmp = bmp!.copy() as? NSBezierPath
+    transform.translateX(by: CGFloat(draw_fringe_bitmap_params_x(p)),
+                         yBy: CGFloat(draw_fringe_bitmap_params_y(p)
+                                      - draw_fringe_bitmap_params_dh(p)))
+    bmp!.transform(using: transform as AffineTransform)
+
+    if !draw_fringe_bitmap_params_cursor_p(p) {
+      bm_color = NSColor.colorWithUnsignedLong(face_foreground(face))
+    } else if draw_fringe_bitmap_params_overlay_p(p) {
+      bm_color = NSColor.colorWithUnsignedLong(face_background(face))
+    } else {
+      bm_color = ns_output_cursor_color(f)
+    }
+
+    bm_color?.set()
+    bmp!.fill()
+  }
+  ns_unfocus(f)
 }

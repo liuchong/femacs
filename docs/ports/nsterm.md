@@ -141,9 +141,9 @@
 - [x] ns_after_update_window_line  (line 2964, static) — landed as `fileprivate func` (C's `static void`); `eassert` is the no-op of an unset `ENABLE_CHECKING` and C's two comma-expression conditions become nested `if`s (same short-circuit), with `max (0, …)` expanded as `Swift.max` (class B: arithmetic)
 - [x] ns_shift_glyphs_for_insert  (line 3023, static) — landed as `fileprivate func`; the copy is round 13's `copyRect` entry, so the function adds no new name at all
 - [x] ns_compute_glyph_string_overhangs  (line 3048, static) — landed as `fileprivate func`; it **holds** a `struct font_metrics` (measured, Evidence), reaches C's `font->driver->text_extents (…)` as the two-hop pair `font_driver`/`font_driver_text_extents`, and starts the `glyph_string_*` family with the overhang **writes** only (the reads belong to their own slice)
-- [ ] ns_define_fringe_bitmap  (line 3092, static)
-- [ ] ns_destroy_fringe_bitmap  (line 3199, static)
-- [ ] ns_draw_fringe_bitmap  (line 3206, static)
+- [x] ns_define_fringe_bitmap  (line 3092, static) — landed as `fileprivate func` (C's `static void`); C's `alloca` is `withUnsafeTemporaryAllocation` (the reading `macfont.swift` 1684/2978 gives) and the `points`/`cur` pointer walk keeps its shape; the trace state machine's `char` letters are `CChar`s
+- [x] ns_destroy_fringe_bitmap  (line 3199, static) — landed as `fileprivate func`; one `removeObject(forKey:)` on the `fringe_bmp` table below
+- [x] ns_draw_fringe_bitmap  (line 3206, static) — landed as `fileprivate func`; `struct draw_fringe_bitmap_params` is read member by member (13 entries), and C's `bmp = [bmp copy]` … `[bmp release]` pair is ARC's own copy (no release call - the round-3 reading), with `[bmp transformUsingAffineTransform:]` taking the transform `as AffineTransform`
 - [ ] ns_draw_window_cursor  (line 3295, static)
 - [ ] ns_draw_vertical_window_border  (line 3430, static)
 - [ ] ns_draw_window_divider  (line 3453, static)
@@ -521,7 +521,9 @@ the mirror's member names, and its layout is measured rather than assumed - clan
 - [x] static NSRect ns_UAZoom_cursor_rect_old  (line 1155, static) — landed as `NSRect.zero`
 - [x] static BOOL ns_update_was_UAZoomEnabled  (line 1159, static) — landed as `Bool = false`
 - [x] static EmacsBell bell_view  (line 1433, static) — landed as `fileprivate var bell_view: EmacsBell? = nil`; C's `[[EmacsBell alloc] init]` + `[bell_view retain]` is ARC's strong reference to the same ownership
-- [ ] static NSMutableDictionary fringe_bmp  (line 3089, static)
+- [x] static NSMutableDictionary fringe_bmp  (line 3089, static) — landed as
+      `fileprivate var fringe_bmp: NSMutableDictionary?` (C zero-initialises it to NULL, i.e. `nil`);
+      round 15's two writers are `ns_define_fringe_bitmap`/`ns_destroy_fringe_bitmap`
 
 
 The eight names below are `src/nsterm.m` file-scope objects that `extract-abi.py`
@@ -609,10 +611,13 @@ fringe-update preparation `ns_after_update_window_line` (C 2963-3019), `ns_shift
 (C 3022-3036), the "Character encoding and metrics" banner (C 3040-3044) and
 `ns_compute_glyph_string_overhangs` (C 3047-3079) - **no new C export this round** (all three are
 C `static`s) - so the covered range is now **C 60-3079**.  The next live definition is C 3091's
-`ns_define_fringe_bitmap` (the Fringe and cursor drawing banner at C 3083-3087, and its
-`fringe_bmp` static at C 3089, are the next slice's openers).
+**Round 15 lands C 3083-3291**: the Fringe and cursor drawing banner (C 3083-3087), the file's
+last file-scope object `fringe_bmp` (C 3089) and the section's three definitions
+`ns_define_fringe_bitmap` (C 3091-3195), `ns_destroy_fringe_bitmap` (C 3198-3202) and
+`ns_draw_fringe_bitmap` (C 3205-3291) - **no new C export** (all three are C `static`s) - so the
+covered range is now **C 60-3291**.  The next live definition is C 3294's `ns_draw_window_cursor`.
 
-Ticked above: **83 of the 150 function boxes**.  The count is the generator's own again: the
+Ticked above: **86 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
 declarator to its `{` stopped at the documentation comment in between - status 3.260), the port had
 already written seven of them (round 5's two, round 6's `ns_focus`, round 10's four), and the
@@ -620,9 +625,10 @@ eighth - `ns_get_shifted_character`, C 2693 - is an open box here until its slic
 **17 of the 23 macro boxes** (the eight masks,
 `NO_APPDEFINED_DATA`, the five `EV_*` accessors, `DOCK_IGNORE_LIMIT`, the two
 `NS_PARENT_WINDOW_*` and round 10's `NSAppKitVersionNumber10_10`; the two held `EV_TRAILER*` and
-the four later ones stay open), **48 of the 49 file-scope-object boxes**
+the four later ones stay open), **49 of the 49 file-scope-object boxes**
 (the generator's 39 minus its gaps, the 8 hand-added round 1 rows, round 5's two interval
-constants and round 6's `bell_view`), **1 of the 1 type box** (`EmacsMargins`,
+constants, round 6's `bell_view` and round 15's `fringe_bmp` - **the file's last open object
+box**), **1 of the 1 type box** (`EmacsMargins`,
 C 650) and **2 of the 8 Objective-C classes** (`NSColor (EmacsColor)` with its four methods, and
 **`EmacsBell`** - the file's first *class*, with its `@interface` declaration and all four
 methods).  The other 83 function boxes, 6 macro boxes, 6 class boxes and 185 method boxes are
@@ -1346,6 +1352,44 @@ unit's own rule: "it declares only what its own slice reads"), and the reads wil
 slice that reads them - the finding is recorded because it is also the mechanism that keeps an
 unused entry from inflating the import ratchet.
 
+### Round 15: the fringe bitmaps, and one entry per C spelling
+
+**Scope.**  C 3083-3291: the Fringe and cursor drawing banner, the file's last file-scope object
+`fringe_bmp` (C 3089) and three definitions - `ns_define_fringe_bitmap` (C 3091-3195),
+`ns_destroy_fringe_bitmap` (C 3198-3202), `ns_draw_fringe_bitmap` (C 3205-3291).  **No new C
+export**: all three are C `static`s, so this round moves the export count not at all.
+
+**One entry per C spelling, and this round is where the two-spelling cases land.**  C reads the
+same storage through a macro in one place and through the bare member in another, and the entries
+follow C's own text rather than collapsing the two: `WINDOW_FRAME (w)` (src/frame.h 929's
+`((w)->frame)`) is the macro's entry while the bare `w->frame` stays round 13's `window_frame`;
+`face_foreground`/`face_background` are the `struct face` member entries for C 3254/3279/3281's
+bare reads, while `NS_FACE_BACKGROUND` (src/nsterm.h 1041's own macro) stays the macro's entry used
+where C uses *it*; and `f->output_data.ns->cursor_color` (C 3283) takes the family name
+`ns_output_cursor_color` that the shim already exports.  PORTING.md 0.2 asks for names verbatim, so
+each of C's spellings keeps a nameable entry and the port's text stays greppable against the
+reference - the alternative (calling `NS_FACE_BACKGROUND` where C wrote `face->background`) would
+have been a *text* deviation in the other direction, with the same number of owed names either way
+once both spellings appear in the file.
+
+**`alloca`, the copy/release pair, and the trace's `char`s.**  C 3099's
+`alloca ((h + 1) * (w + 1) * 4)` becomes `withUnsafeTemporaryAllocation(of: UInt8.self,
+capacity:)` - the lane's reading for `alloca` (`macfont.swift` 1684/2978) - so the `points`/`cur`
+walk keeps C's shape over the temporary buffer.  C 3274/3288's `bmp = [bmp copy]; … [bmp release];`
+is ARC's own copy (no release call: the reading rounds 3/6 record for `[x release]`), and
+`[bmp transformUsingAffineTransform: transform]` needs the Swift spelling
+`transform(using: transform as AffineTransform)` - the one compiler-named correction this round's
+probe found before the compile.  `ns_define_fringe_bitmap`'s state machine carries C's `char`
+letters (`'n'`/`'e'`/`'s'`/`'w'`) as `CChar`s, with C's truthiness tests written out
+(`last != 0`, `nw == 0 && ne != 0`).
+
+**Two names from a file no configuration compiles.**  `gui_define_fringe_bitmap` (src/fringe.c
+1853) and `max_used_fringe_bitmap` (src/fringe.c 497) have **no symbol in the reference objects**,
+because the frozen configuration compiles no `fringe.c` at all - `femacs/src/fringe.rs` is the
+empty unit status 3.31 records, quoting the build's empty platform object variables.  Both are
+therefore owed entries (the function's row carries the gate the file itself has, the
+`remember_mouse_glyph`/`gui_clear_cursor` family), and the global is a data symbol of the core's.
+
 ### The macro-name audit (status 3.251's rule)
 
 `nm -g build/emacs-ref/{src,lib}/*.o` was searched for every macro/INLINE name this unit imports
@@ -1483,6 +1527,8 @@ what `nm -g` shows (Evidence).
 | `windows_or_buffers_changed` | `int windows_or_buffers_changed` (src/xdisp.c) | src/xdisp.c | **open**: a plain global the objects hold (`C`, common, in `build/emacs-ref/src/xdisp.o`), so the core exports a data symbol of its own name |
 | `font_driver`, `font_driver_text_extents` | `struct font`'s member `driver` and the driver slot `void (*text_extents) (struct font *, const unsigned *, int, struct font_metrics *)` (src/font.h 672-673) | src/font.h | **open**: C's `font->driver->text_extents (…)` as two member entries, the second returning the C function pointer (`@convention(c)`, the slot `macfont.swift` 11162 declares) - no `struct font`/`struct font_driver` view in this unit |
 | `composition_gstring_from_id`, `composition_gstring_width` | `Lisp_Object composition_gstring_from_id (ptrdiff_t)` and `int composition_gstring_width (Lisp_Object, ptrdiff_t, ptrdiff_t, struct font_metrics *)` (src/composite.h) | defined src/composite.c | **provided**: `femacs/src/composite.rs` 758 and 829 |
+| the fringe records (round 15) | `WINDOW_FRAME` (src/frame.h 929, the macro - the bare `w->frame` read stays round 13's `window_frame`, one entry per C spelling), `face_foreground`/`face_background` (the **bare** `struct face` reads C 3254/3279/3281 - `NS_FACE_BACKGROUND` is the macro's entry), the thirteen `draw_fringe_bitmap_params_*` members (src/dispextern.h) and `ns_output_cursor_color` (the `struct ns_output` member read at C 3283, already ratcheted from `nsfns.swift` 282) | src/frame.h / src/dispextern.h / src/nsterm.h | **open**: member/macro entries under `<record>_<member>`, the family `macfont`/`nsmenu` established |
+| `gui_define_fringe_bitmap`, `max_used_fringe_bitmap` | `void gui_define_fringe_bitmap (struct frame *, int)` (src/fringe.c 1853) and `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` (src/fringe.c 497) | src/fringe.c | **open, gated**: the frozen configuration compiles no `fringe.c` at all (`femacs/src/fringe.rs` is the empty unit status 3.31 records), so neither has a reference-side symbol (measured) - the function's row carries the gate the file has, and the global is a data symbol |
 | Carbon and CoreFoundation (round 12) | `TISCopyCurrentKeyboardLayoutInputSource`, `TISGetInputSourceProperty`, `UCKeyTranslate`, `LMGetKbdType`, `kUCKeyActionDown`, `kUCKeyTranslateNoDeadKeysBit` and the four key masks (`shiftKey`/`optionKey`/`rightOptionKey`/`cmdKey`), plus `CFDataGetBytePtr` | Carbon.HIToolbox / CoreFoundation (C 72-73's `#include <Carbon/Carbon.h>`, C 70-80's arm) | **system**: these are *module* calls, not `@_silgen_name` entries - `import Carbon` at the top of the unit - which is a new kind of dependency for this file: the eventual Cocoa link line needs `-framework Carbon` |
 | `FRAME_BACKGROUND_COLOR` | `#define FRAME_BACKGROUND_COLOR(f) ((f)->output_data.ns->background_color)` (src/nsterm.h 1038) | header-only | **open**: `macfont.swift` 756 imports the same name and type |
 
@@ -1580,6 +1626,10 @@ call site takes an entry and the definition lands at its own C line - and **both
   `windows_or_buffers_changed` data symbol.  Provided already: `composition_gstring_from_id`/
   `composition_gstring_width` (`femacs/src/composite.rs` 758/829) and the `struct glyph_row`
   family's first two rows (`glyph_row_y`/`glyph_row_visible_height`);
+* the core, **round 15's names**: `WINDOW_FRAME`, `face_foreground`, `face_background`, the thirteen
+  `draw_fringe_bitmap_params_*` members and - the two from a file no built configuration compiles -
+  `gui_define_fringe_bitmap` and the `max_used_fringe_bitmap` data symbol.  `ns_output_cursor_color`
+  was already ratcheted (its siblings' round-11 batch);
 * `femacs/platform/macos/nsmenu.swift` (another lane's unit), round 11's addition: the
   `EmacsTooltip` class is landed there, so the `is_emacs_tooltip` entry of (2) - C 2534's
   `isKindOfClass: [EmacsTooltip class]` - is that side's to define (receiver first, the
@@ -1982,6 +2032,37 @@ call site takes an entry and the definition lands at its own C line - and **both
   eighteen member entries (`unclassified`) - with the remaining twenty-six the other lanes'
   in-flight units; `windows_or_buffers_changed` and the two `composition_gstring_*` names are not
   in the list (the core provides them).
+
+* Round 15's compile, same command: **exit 0 on the first pass**, the same **seven** warnings the
+  previous rounds carry (four C's own `lockFocus`/`unlockFocus`, three `'scanFloat' was deprecated
+  in macOS 10.15`) and no new one; the compiler's last output line is its
+  `[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>`
+  note and the exit status is 0.  Object: `/tmp/s188r15/nsterm.o`, **md5
+  `f96258c7c3401695638606c93d108888`** (the pre-round-15 revision's was round 14's object).
+* `nm -g /tmp/s188r15/nsterm.o` -> **no new C export** (`grep -cE ' T
+  _(ns_define_fringe_bitmap|ns_destroy_fringe_bitmap|ns_draw_fringe_bitmap)$'` is 0: all three are
+  C `static`s).
+* `nm -u /tmp/s188r15/nsterm.o` -> the slice's 19 imports (`_WINDOW_FRAME`, `_face_foreground`,
+  `_face_background`, the thirteen `_draw_fringe_bitmap_params_*`, `_ns_output_cursor_color`,
+  `_gui_define_fringe_bitmap`, `_max_used_fringe_bitmap`); 594 undefined names in all (547 after
+  round 14).
+* The symbol audit for round 15's names (`nm -g -A` over `build/emacs-ref/src/*.o` and
+  `build/emacs-ref/lib/*.o`, all 19 imports plus the three definitions): **0 for every one of
+  them** - the macros and member entries have no symbol, and `gui_define_fringe_bitmap` /
+  `max_used_fringe_bitmap` do not either because the frozen configuration compiles no `fringe.c`
+  (its note in `femacs/src/fringe.rs` quotes the build's empty `WINDOW_SYSTEM_OBJ=` and the rest).
+* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+  definition(s), 68 unported, 71 row(s); 204 C symbol import(s)` and `0 new, 3 stale, 7 Swift
+  unit(s) landed` - the three stale rows are exactly this slice's three definitions.
+* `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures`, `read 666 files (623 .rs 25 .kt 7 .swift 6 .s 5 .cc)` (the Kotlin, `.s`
+  and `.cc` files are other lanes').
+* `python3 tools/check-swift-imports.py` -> `949 import(s) in 7 Swift file(s), 5687 core export(s),
+  650 unprovided, 632 ratchet row(s), 18 failure(s)`.  **All eighteen `FAIL` names are this
+  lane's** - `WINDOW_FRAME`, `face_foreground`, `face_background`, `gui_define_fringe_bitmap`,
+  `max_used_fringe_bitmap` (`reference-source`) and the thirteen `draw_fringe_bitmap_params_*`
+  (`unclassified`) - with no stale rows and no other lane's names in the list;
+  `ns_output_cursor_color` is already ratcheted (its family's batch), so it is not among them.
 
 - **Ruling (3.255, integrator) on this file's macro-name entries.**  Two halves, and the criterion
   is whether the macro's body can be spelled in Swift: **(B) first** - a body that is a pure AppKit

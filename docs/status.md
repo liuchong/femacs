@@ -5159,3 +5159,11 @@
   `EmacsSurfaceView` 在 `emacs/src/*.c` 与 manifest 里 **0 命中** ⇒ 它**没有 JNI 名字义务**（只在 Java/Kotlin 层被 `EmacsView` 用）。
   ③ **P-83 按实测补三条**（PORTING.md 已改）：④ 增 `@Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")`（两个诊断名，只写前者仍报 4 条 warning）、Java 的续行 `=` 不是 Kotlin 语法（7 处）、局部变量重赋 ⇒ `var`；⑥ 增 **每批收口必须跑全目录探针**（per-file 探针拿参照 **Java** 当替身，看不到"端口自己的子类被 `final` 挡住"——实测 `EmacsLauncherPreferencesActivity` 那条 `this type is final`，只有全 `.kt` 一起编才暴露）。
   ④ **顺带的下一件预量（`EmacsNative`）**：`grep` 对过参照 `EmacsNative.java` 的 **69 个 `public static native`** 与 `emacs/src/` 的 **69 条 `NATIVE_NAME (...)`**，**集合完全相同**；`javap -p -s` 实测 companion 成员在外层类上生成**真 static native**（`()Ljava/lang/String;` 等）⇒ 那 69 个都能按 `@JvmStatic external fun` 落，一次编译探针即可验。
+- **3.314 nsterm 第 15 轮入库：三个 fringe 定义落地，文件级对象 49/49 收口（Ramanujan 交付，2026-10-05）**：
+  ① **入的两件**：`femacs/platform/macos/nsterm.swift` **+260 / −2**（**3,986 行**）、`docs/ports/nsterm.md` **+90 / −9**（未勾框 **261**）。本轮三个 C 定义（正是 manifest 里那三行）：`ns_define_fringe_bitmap`、`ns_destroy_fringe_bitmap`、`ns_draw_fringe_bitmap`，外加 `fringe_bmp` 对象框；
+  台账读数：函数 **83 → 86 / 150**、**文件级对象 48 → 49 / 49（该段收口）**、宏 17/23、类型 1/1。
+  ② **入库前我自己复检**：`swiftc -parse-as-library -c femacs/platform/macos/nsterm.swift` → **exit 0、0 error**；`check-swift-units` 的 **3 条 stale 正好点名本片那三个定义**（"manifest row no longer matches (it landed?)"），其余 0 stale。
+  ③ **本片两条值得留档的读数**：⑴ **一个 C 拼写对应一个条目**——`WINDOW_FRAME`（宏）与第 13 片的 `window_frame`（成员）、`face_foreground`/`face_background`（bare 成员读）与 `NS_FACE_BACKGROUND`（宏）**并存不合并**，理由是 JNI/Swift 按名字导入的是**各自的拼写**；
+  ⑵ **两个名字来自冻结配置不编译的 `src/fringe.c`**（`femacs/src/fringe.rs` 是 3.31 记录的空单元，其注释引用的正是构建里空的 `WINDOW_SYSTEM_OBJ=`）⇒ `gui_define_fringe_bitmap`（fringe.c 1853）与 `max_used_fringe_bitmap`（fringe.c 497）**必须带 `fringe.c` 所属配置的门导出**，是"带门欠账"而不是普通缺名。
+  ④ **共享表两项交给棘轮重生成**（下一轮，见 3.315）：`swift-units.tsv` 删 3 行（本片三个定义）、`swift-import-pending.txt` 加 **18 行**（5 `reference-source`：`WINDOW_FRAME`/`face_foreground`/`face_background`/`gui_define_fringe_bitmap`/`max_used_fringe_bitmap`；13 `unclassified`：`draw_fringe_bitmap_params_*` 的成员条目）。
+  ⑤ **给 shim lane 的工单**（已转给 Turing，作为批⑫的输入）：那 18 个名字，其中 `gui_define_fringe_bitmap` 要带门、`max_used_fringe_bitmap` 是无门数据符号、13 个 params 成员含两个 `bool_bf` 位域、`face_foreground`/`face_background` 是 `struct face` 的 bare 成员条目（与既有宏条目并存）。
