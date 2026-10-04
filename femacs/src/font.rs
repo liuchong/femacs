@@ -97,26 +97,18 @@ include!("include/pdumper.rs");                // C 41: `#include "pdumper.h"`
 /// mirror uses for `enum font_property_index`.
 pub type font_spacing = c_int;
 
-pub const FONT_SPACING_PROPORTIONAL: font_spacing = 0;
-pub const FONT_SPACING_DUAL: font_spacing = 90;
-pub const FONT_SPACING_MONO: font_spacing = 100;
-pub const FONT_SPACING_CHARCELL: font_spacing = 110;
 
 /// C: font.h 271-273: `#define FONT_ENCODING_NOT_DECIDED 255`.
-pub const FONT_ENCODING_NOT_DECIDED: c_int = 255;
 
 /// C: font.h 572-574: `#define FONT_INVALID_CODE 0xFFFFFFFF`.
-pub const FONT_INVALID_CODE: c_uint = 0xFFFFFFFF;
 
 /// C: font.h 584-586: `#define FONT_PIXEL_SIZE_QUANTUM 1`.
-pub const FONT_PIXEL_SIZE_QUANTUM: c_int = 1;
 
 /// C: font.h 561-568: `PT_PER_INCH` (`<math.h>`'s constant on this target;
 /// `HAVE_ANDROID` undef picks the first arm) and the two conversions, which C's bodies use
 /// with double operands.  C's `(POINT) * (DPI) / PT_PER_INCH + 0.5` keeps the argument
 /// order; the port keeps the same expression (a macro is needed because C's `+ 0.5` binds
 /// after the division, and Rust's `as` cannot be written in a `const fn`).
-pub const PT_PER_INCH: c_double = 72.27;
 
 macro_rules! POINT_TO_PIXEL {
   ($point:expr, $dpi:expr) => { ($point) * ($dpi) / PT_PER_INCH + 0.5 };

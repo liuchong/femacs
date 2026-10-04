@@ -169,3 +169,308 @@ pub fn FONT_OBJECT_P (x: Lisp_Object) -> bool
 {
   FONTP (x) && PVSIZE (x) == FONT_OBJECT_MAX as isize
 }
+
+/* ---------------------------------------------------------------------------------------
+   font.h 236-585 and 1004-1010: the style/numeric/log macros and the two "not decided"
+   constants.  Every body below is C's frozen text (arguments as `$`-metavariables) - the
+   policy this port uses for macros whose C spelling is not a Rust expression Rust could
+   evaluate: they are compared by the token gate and nothing in the port expands them.
+   The live arms are the verified reading's (`python3 tools/check-cond-eval.py src/font.h`
+   -> `28 conditions, 0 unknown, 0 disagreements [VERIFIED]`, line 279 of
+   docs/baseline/config/cond-eval-verified.txt), and the arms the frozen target does *not*
+   compile are recorded in docs/ports/include-font.md, not carried - this header's
+   conditions are decided, so the gate does not ask for them.
+   --------------------------------------------------------------------------------------- */
+
+/* C 193-201: `FONT_WEIGHT_NUMERIC`/`FONT_WIDTH_NUMERIC`/`FONT_SLANT_NUMERIC`.  */
+macro_rules! FONT_WEIGHT_NUMERIC {
+  ($font:expr) => { (FIXNUMP (AREF ($font, FONT_WEIGHT_INDEX)) ? (XFIXNUM (AREF ($font, FONT_WEIGHT_INDEX)) >> 8) : -1) };
+}
+macro_rules! FONT_WIDTH_NUMERIC {
+  ($font:expr) => { (FIXNUMP (AREF ($font, FONT_WIDTH_INDEX)) ? (XFIXNUM (AREF ($font, FONT_WIDTH_INDEX)) >> 8) : -1) };
+}
+macro_rules! FONT_SLANT_NUMERIC {
+  ($font:expr) => { (FIXNUMP (AREF ($font, FONT_SLANT_INDEX)) ? (XFIXNUM (AREF ($font, FONT_SLANT_INDEX)) >> 8) : -1) };
+}
+
+/* C 205-217: the `*_SYMBOLIC` and `*_FOR_FACE` queries.  */
+macro_rules! FONT_WEIGHT_SYMBOLIC { ($font:expr) => { font_style_symbolic ($font, FONT_WEIGHT_INDEX, false) }; }
+macro_rules! FONT_SLANT_SYMBOLIC { ($font:expr) => { font_style_symbolic ($font, FONT_SLANT_INDEX, false) }; }
+macro_rules! FONT_WIDTH_SYMBOLIC { ($font:expr) => { font_style_symbolic ($font, FONT_WIDTH_INDEX, false) }; }
+macro_rules! FONT_WEIGHT_FOR_FACE { ($font:expr) => { font_style_symbolic ($font, FONT_WEIGHT_INDEX, true) }; }
+macro_rules! FONT_SLANT_FOR_FACE { ($font:expr) => { font_style_symbolic ($font, FONT_SLANT_INDEX, true) }; }
+macro_rules! FONT_WIDTH_FOR_FACE { ($font:expr) => { font_style_symbolic ($font, FONT_WIDTH_INDEX, true) }; }
+
+/* C 224-230: the `*_NAME_NUMERIC` lifts.  */
+macro_rules! FONT_WEIGHT_NAME_NUMERIC {
+  ($name:expr) => { (font_style_to_value (FONT_WEIGHT_INDEX, $name, false) >> 8) };
+}
+macro_rules! FONT_SLANT_NAME_NUMERIC {
+  ($name:expr) => { (font_style_to_value (FONT_SLANT_INDEX, $name, false) >> 8) };
+}
+macro_rules! FONT_WIDTH_NAME_NUMERIC {
+  ($name:expr) => { (font_style_to_value (FONT_WIDTH_INDEX, $name, false) >> 8) };
+}
+
+/* C 236: `FONT_SET_STYLE (font, prop, val)`.  */
+macro_rules! FONT_SET_STYLE {
+  ($font:expr, $prop:expr, $val:expr) => { ASET ($font, $prop, make_fixnum (font_style_to_value ($prop, $val, true))) };
+}
+
+/* C 244-246: the metrics accessors.  */
+macro_rules! FONT_HEIGHT { ($f:expr) => { (($f)->height) }; }
+macro_rules! FONT_BASE { ($f:expr) => { (($f)->ascent) }; }
+macro_rules! FONT_DESCENT { ($f:expr) => { (($f)->descent) }; }
+macro_rules! FONT_WIDTH { ($f:expr) => { (($f)->max_width) }; }
+
+/* C 273: the "encoding not decided yet" marker, and C 583-585's two code limits.  */
+pub const FONT_ENCODING_NOT_DECIDED: c_int = 255;
+pub const FONT_PIXEL_SIZE_QUANTUM: c_int = 1;
+pub const FONT_INVALID_CODE: c_uint = 0xFFFFFFFF;
+
+/* C 297-302: `enum font_spacing` - its four members, spelled as constants of C's type.  */
+pub const FONT_SPACING_PROPORTIONAL: c_int = 0;
+pub const FONT_SPACING_DUAL: c_int = 90;
+pub const FONT_SPACING_MONO: c_int = 100;
+pub const FONT_SPACING_CHARCELL: c_int = 110;
+
+/* C 552: `XSETFONT (a, b)`.  */
+macro_rules! XSETFONT { ($a:expr, $b:expr) => { XSETPSEUDOVECTOR ($a, $b, PVEC_FONT) }; }
+
+/* C 563: `PT_PER_INCH` - the TeXbook value, which is the live arm (`HAVE_ANDROID` is undef);
+   C 566-570's 160.00 arm is dead and recorded in the ledger.  */
+pub const PT_PER_INCH: f64 = 72.27;
+
+/* C 572, 579: the point/pixel conversions.  */
+macro_rules! POINT_TO_PIXEL { ($point:expr, $dpi:expr) => { (($point) * ($dpi) / PT_PER_INCH + 0.5) }; }
+macro_rules! PIXEL_TO_POINT { ($pixel:expr, $dpi:expr) => { (($pixel) * PT_PER_INCH / ($dpi) + 0.5) }; }
+
+/* C 1004-1011: the two logging macros.  */
+macro_rules! FONT_ADD_LOG {
+  ($action:expr, $arg:expr, $result:expr) => {
+    do { if (! EQ (Vfont_log, Qt)) font_add_log ($action, $arg, $result); } while (false)
+  };
+}
+macro_rules! FONT_DEFERRED_LOG {
+  ($action:expr, $arg:expr, $result:expr) => {
+    do { if (! EQ (Vfont_log, Qt)) font_deferred_log ($action, $arg, $result); } while (false)
+  };
+}
+
+/* font.h 249-256: `struct font_spec` - C 251-255's `union vectorlike_header header;
+   Lisp_Object props[FONT_SPEC_MAX];`.  Measured (Apple clang 21.0.0, `clang -std=gnu23 -O0
+   -I build/emacs-ref/lib -idirafter spikes/shim -I build/emacs-ref/src -I emacs/src
+   -I emacs/lib`, probe recorded in docs/ports/include-font.md): sizeof 112, align 8,
+   header@0, props@8 - which is the same shape `struct font` above uses.  */
+#[repr(C)]
+pub struct font_spec
+{
+  pub header: vectorlike_header,
+  pub props: [Lisp_Object; FONT_SPEC_MAX as usize],
+}
+const _: () = assert! (std::mem::size_of::<font_spec> () == 112);
+const _: () = assert! (std::mem::align_of::<font_spec> () == 8);
+const _: () = assert! (std::mem::offset_of! (font_spec, header) == 0);
+const _: () = assert! (std::mem::offset_of! (font_spec, props) == 8);
+
+/* font.h 258-269: `struct font_entity` - C 259-263's header + `props[FONT_ENTITY_MAX]`, then
+   C 264-268's `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` `bool is_android`
+   (dead: `HAVE_ANDROID` is undef, macros.tsv 1240) which is carried under `have_android`.
+   Measured: sizeof 120, align 8, header@0, props@8.  */
+#[repr(C)]
+pub struct font_entity
+{
+  pub header: vectorlike_header,
+  pub props: [Lisp_Object; FONT_ENTITY_MAX as usize],
+  #[cfg (feature = "have_android")]
+  pub is_android: bool,
+}
+const _: () = assert! (std::mem::size_of::<font_entity> () == 120);
+const _: () = assert! (std::mem::align_of::<font_entity> () == 8);
+const _: () = assert! (std::mem::offset_of! (font_entity, header) == 0);
+const _: () = assert! (std::mem::offset_of! (font_entity, props) == 8);
+
+/* font.h 414-417: `struct font_metrics` - five `short`s (C 416 is one line).  Measured:
+   sizeof 10, align 2, lbearing@0 rbearing@2 width@4 ascent@6 descent@8.  */
+#[repr(C)]
+pub struct font_metrics
+{
+  pub lbearing: c_short,
+  pub rbearing: c_short,
+  pub width: c_short,
+  pub ascent: c_short,
+  pub descent: c_short,
+}
+const _: () = assert! (std::mem::size_of::<font_metrics> () == 10);
+const _: () = assert! (std::mem::align_of::<font_metrics> () == 2);
+const _: () = assert! (std::mem::offset_of! (font_metrics, ascent) == 6);
+const _: () = assert! (std::mem::offset_of! (font_metrics, descent) == 8);
+
+/* font.h 419-429: `struct font_bitmap`.  Measured: sizeof 40, align 8, `bits_per_pixel`@0
+   `rows`@4 `width`@8 `pitch`@12 `buffer`@16 `left`@24 `top`@28 `advance`@32 (the four bytes
+   of padding after `buffer` are C's own, which `repr(C)` reproduces).  */
+#[repr(C)]
+pub struct font_bitmap
+{
+  pub bits_per_pixel: c_int,
+  pub rows: c_int,
+  pub width: c_int,
+  pub pitch: c_int,
+  /// C: `unsigned char *buffer;`
+  pub buffer: *mut c_uchar,
+  pub left: c_int,
+  pub top: c_int,
+  pub advance: c_int,
+}
+const _: () = assert! (std::mem::size_of::<font_bitmap> () == 40);
+const _: () = assert! (std::mem::align_of::<font_bitmap> () == 8);
+const _: () = assert! (std::mem::offset_of! (font_bitmap, buffer) == 16);
+const _: () = assert! (std::mem::offset_of! (font_bitmap, advance) == 32);
+
+/* font.h 824-837: `struct font_driver_list` - "chain of font drivers".  `driver` points at
+   the `struct font_driver` of C 589-821, which this mirror does not carry yet, so it keeps
+   the port's `*const c_void` + `/// C:` spelling (P-72 (3)).  Measured: sizeof 24, align 8,
+   on@0 driver@8 next@16.  */
+#[repr(C)]
+pub struct font_driver_list
+{
+  pub on: bool,
+  /// C: `struct font_driver const *driver;`
+  pub driver: *const c_void,
+  pub next: *mut font_driver_list,
+}
+const _: () = assert! (std::mem::size_of::<font_driver_list> () == 24);
+const _: () = assert! (std::mem::align_of::<font_driver_list> () == 8);
+const _: () = assert! (std::mem::offset_of! (font_driver_list, driver) == 8);
+const _: () = assert! (std::mem::offset_of! (font_driver_list, next) == 16);
+
+/* ---------------------------------------------------------------------------------------
+   font.h 449-560, 902, 1021: the predicate/type-check/pointer-extraction families and the
+   two capability functions.  Bodies are C's own text with the port's spellings (PORTING.md
+   0.1-2/P-55: `eassert!`, `XUNTAG!`, `CHECK_TYPE`, the `Q*` accessors take `()`), each
+   cross-header pointer keeping its `/// C:` prototype line.
+   --------------------------------------------------------------------------------------- */
+
+/* C 445-450: `GC_FONT_SPEC_P`.  */
+pub fn GC_FONT_SPEC_P (x: Lisp_Object) -> bool
+{
+  FONTP (x) && (gc_asize (x) & PSEUDOVECTOR_SIZE_MASK) == FONT_SPEC_MAX as isize
+}
+
+/* C 459-464: `GC_FONT_ENTITY_P`.  */
+pub fn GC_FONT_ENTITY_P (x: Lisp_Object) -> bool
+{
+  FONTP (x) && (gc_asize (x) & PSEUDOVECTOR_SIZE_MASK) == FONT_ENTITY_MAX as isize
+}
+
+/* C 473-478: `GC_FONT_OBJECT_P`.  */
+pub fn GC_FONT_OBJECT_P (x: Lisp_Object) -> bool
+{
+  FONTP (x) && (gc_asize (x) & PSEUDOVECTOR_SIZE_MASK) == FONT_OBJECT_MAX as isize
+}
+
+/* C 484-486: `CHECK_FONT` - "type checking functions for various font-related objects".  */
+pub fn CHECK_FONT (x: Lisp_Object)
+{
+  CHECK_TYPE (FONTP (x), Qfont (), x);
+}
+
+/* C 490-492: `CHECK_FONT_SPEC`.  */
+pub fn CHECK_FONT_SPEC (x: Lisp_Object)
+{
+  CHECK_TYPE (FONT_SPEC_P (x), Qfont_spec (), x);
+}
+
+/* C 496-498: `CHECK_FONT_ENTITY`.  */
+pub fn CHECK_FONT_ENTITY (x: Lisp_Object)
+{
+  CHECK_TYPE (FONT_ENTITY_P (x), Qfont_entity (), x);
+}
+
+/* C 502-504: `CHECK_FONT_OBJECT`.  */
+pub fn CHECK_FONT_OBJECT (x: Lisp_Object)
+{
+  CHECK_TYPE (FONT_OBJECT_P (x), Qfont_object (), x);
+}
+
+/* C 511-516: `XFONT_SPEC` - "C pointer extraction functions for various font-related
+   objects".  */
+pub unsafe fn XFONT_SPEC (p: Lisp_Object) -> *mut font_spec
+{
+  eassert! (FONT_SPEC_P (p));
+  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font_spec)
+}
+
+/* C 518-523: `GC_XFONT_SPEC`.  */
+pub unsafe fn GC_XFONT_SPEC (p: Lisp_Object) -> *mut font_spec
+{
+  eassert! (GC_FONT_SPEC_P (p));
+  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font_spec)
+}
+
+/* C 525-530: `XFONT_ENTITY`.  */
+pub unsafe fn XFONT_ENTITY (p: Lisp_Object) -> *mut font_entity
+{
+  eassert! (FONT_ENTITY_P (p));
+  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font_entity)
+}
+
+/* C 532-537: `GC_XFONT_ENTITY`.  */
+pub unsafe fn GC_XFONT_ENTITY (p: Lisp_Object) -> *mut font_entity
+{
+  eassert! (GC_FONT_ENTITY_P (p));
+  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font_entity)
+}
+
+/* C 539-544: `XFONT_OBJECT`.  */
+pub unsafe fn XFONT_OBJECT (p: Lisp_Object) -> *mut font
+{
+  eassert! (FONT_OBJECT_P (p));
+  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font)
+}
+
+/* C 546-551: `GC_XFONT_OBJECT`.  */
+pub unsafe fn GC_XFONT_OBJECT (p: Lisp_Object) -> *mut font
+{
+  eassert! (GC_FONT_OBJECT_P (p));
+  XUNTAG! (p, Lisp_Type::Lisp_Vectorlike, font)
+}
+
+/* C 555-560: `CHECK_FONT_GET_OBJECT`.  */
+pub unsafe fn CHECK_FONT_GET_OBJECT (x: Lisp_Object) -> *mut font
+{
+  CHECK_FONT_OBJECT (x);
+  XFONT_OBJECT (x)
+}
+
+/* C 899-908: `valid_font_driver`.  `ENABLE_CHECKING` is undef (macros.tsv 872), so the frozen
+   arm is C 903-907's `return true;`; C 902's prototype (the checking build's) is the
+   `extern` declaration, spelled in the port's checking shape (the lisp.rs convention,
+   PORTING.md P-11).  */
+#[cfg (not (enable_checking))]
+pub fn valid_font_driver (d: *const c_void) -> bool
+{
+  let _ = d;                      /* C's `d` is unused in this arm */
+  true
+}
+#[cfg (enable_checking)]
+unsafe extern "C" {
+  /// C: `extern bool valid_font_driver (struct font_driver const *);`
+  pub fn valid_font_driver (d: *const c_void) -> bool;
+}
+
+/* C 1017-1030: `font_data_structures_may_be_ill_formed` - "for use in functions that can be
+   called while garbage-collecting".  The frozen `USE_CAIRO`/`USE_BE_CAIRO` are undef (macros.tsv
+   3857/3858), so C 1023-1026's `return gc_in_progress;` arm is dead and C 1028's `return
+   false;` is live; both are carried so the token gate sees C's whole body.  */
+pub fn font_data_structures_may_be_ill_formed () -> bool
+{
+  #[cfg (any (feature = "use_cairo", feature = "use_be_cairo"))]
+  {
+    gc_in_progress
+  }
+  #[cfg (not (any (feature = "use_cairo", feature = "use_be_cairo")))]
+  {
+    false
+  }
+}
