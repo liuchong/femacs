@@ -4938,3 +4938,9 @@
   ④ **读数**：`spikes/kotlin-target-order.py --check` → **40 目标 / 9 已落 / 31 待做**；九个文件由 `spikes/kotlin-compile-probe.sh` 编译通过（只剩 `EmacsDocumentsProvider` 那两条"参照自己不判空"的 warning，见 3.288 ③）。下一步仍按依赖闭包挑最小簇（下一组候选已在同一条命令里算得）。
 
 - **3.289（续）Kotlin 再落两件：`EmacsFillPolygon`（86 行）、`EmacsFillRectangle`（91 行）——11/40（2026-10-05）**：两件都是 `static perform(...)` 的绘图入口（Kotlin 用 companion member；JNI 不找它们，所以不加 `@JvmStatic`）。`Math.floor/ceil` → `kotlin.math`；Java 的 `static { … }` 初始化块 → companion 属性初始化 + `floatArrayOf`。**P-83 再添一条实测口径 ⑩**：Java 的 `protected` 方法在 Kotlin 里既不包内可见、`internal` 又会改名 ⇒ 同包别类要调的就写 public 并记一句（实测：`EmacsFillRectangle` 调 `EmacsGC.blitOpaqueStipple`，编译器先拒绝 protected，改 public 后过）。读数：**40 目标 / 11 已落 / 29 待做**，十一个文件全部编译通过。
+
+- **3.290 Kotlin 再落两件绘图入口：`EmacsDrawRectangle`（134 行）、`EmacsDrawLine`（160 行）——13/40（2026-10-05）**：
+  ① `EmacsDrawRectangle`：`static final Xfermode` → companion 属性；clip-mask 分支里的临时 bitmap/canvas 与 `setIntersect` 早退照抄；`gc.clip_mask.bitmap` 在端口是可空的 ⇒ 按参照的解引用点 `!!`（P-83 ⑤）。
+  ② `EmacsDrawLine`：`Math.hypot/abs/min/max` → `kotlin.math`；`polyDashPattern` 的 `while (offset >= gc.dashes[i])` 与 dash 相位切换照抄。
+  ③ **又一处"Java 形参被重赋"**（第三例，与 `EmacsDocumentsProvider.projection`、`EmacsGC` 的数组同族）：`polyDashPattern` 在循环里重赋 `x1/y1`，Kotlin 形参不可变 ⇒ 在循环前 `var px1/var py1` 两个局部承接（语义不变，已在文件里记一句）。
+  ④ 读数：**40 目标 / 13 已落 / 27 待做**；十三个文件全部由 `spikes/kotlin-compile-probe.sh` 编译通过（只剩 `EmacsDocumentsProvider` 那两条参照自身不判空的 warning）。

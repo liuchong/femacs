@@ -14,9 +14,9 @@ order	target	references	ported
 10	femacs/platform/android/kotlin/EmacsCursor.kt	EmacsHandleObject,EmacsService	
 11	femacs/platform/android/kotlin/EmacsDesktopNotification.kt	EmacsActivity,EmacsNative,EmacsService	
 12	femacs/platform/android/kotlin/EmacsDialog.kt	EmacsActivity,EmacsDialogButtonLayout,EmacsNative,EmacsOpenActivity,EmacsService	
-13	femacs/platform/android/kotlin/EmacsDrawLine.kt	EmacsDrawable,EmacsGC	
+13	femacs/platform/android/kotlin/EmacsDrawLine.kt	EmacsDrawable,EmacsGC	yes
 14	femacs/platform/android/kotlin/EmacsDrawPoint.kt	EmacsDrawRectangle,EmacsDrawable,EmacsFillRectangle,EmacsGC	
-15	femacs/platform/android/kotlin/EmacsDrawRectangle.kt	EmacsDrawable,EmacsGC	
+15	femacs/platform/android/kotlin/EmacsDrawRectangle.kt	EmacsDrawable,EmacsGC	yes
 16	femacs/platform/android/kotlin/EmacsDrawable.kt	EmacsGC	yes
 17	femacs/platform/android/kotlin/EmacsFillPolygon.kt	EmacsDrawable,EmacsGC	yes
 18	femacs/platform/android/kotlin/EmacsFillRectangle.kt	EmacsDrawable,EmacsGC	yes
