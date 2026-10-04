@@ -139,8 +139,9 @@ struct XCharStruct {
   var descent: Int32
 }
 
-/// C: `struct ns_glyph_layout` (src/nsfont.m 51-71).  Its users (`ns_font_shape`,
-/// `nsfont_shape`) are deferred, but the type is this file's own definition.
+/// C: `struct ns_glyph_layout` (src/nsfont.m 51-71) - the record `ns_glyph_layout` C defines
+/// here; its two users (`ns_font_shape`, src/nsfont.m 1214) are deferred, but the
+/// type is this file's own definition.  (`nsfont_shape` is nsfont.m 1464.)
 struct ns_glyph_layout {
   /// C: `NSRange comp_range;` - `{location, length}` of `NSUInteger`s.
   var comp_range: NSRange
@@ -271,8 +272,9 @@ struct font_metrics {
   var descent: Int16
 }
 
-/// C: `struct font_bitmap` (src/font.h 419-430) - named by the two `font_driver` slots this
-/// file leaves NULL.  Owner mirror: `femacs/src/font.rs` 208 (`sizeof` 40, `buffer`@16,
+/// C: `struct font_bitmap` (src/font.h 419-430) - the record `font_bitmap` named by the two
+/// `font_driver` (src/font.h 400) slots this file leaves NULL.  Owner mirror:
+/// `femacs/src/font.rs` 208 (`sizeof` 40, `buffer`@16,
 /// `left`@24).
 struct font_bitmap {
   var bits_per_pixel: Int32
@@ -285,8 +287,9 @@ struct font_bitmap {
   var advance: Int32
 }
 
-/// C: `struct font_driver` (src/font.h 589-821), the driver record `nsfont_driver` is an
-/// instance of.  The core mirrors it for the frozen configuration (`femacs/src/font.rs` 266:
+/// C: `struct font_driver` (src/font.h 589-821) - the record `font_driver` whose instance
+/// `nsfont_driver` (src/font.h 985) is this lane's.  The core mirrors it for the frozen
+/// configuration (`femacs/src/font.rs` 266:
 /// `sizeof` 208, `draw`/`get_bitmap`/`free_bitmap` behind its `window_system` feature); this
 /// lane mirrors the **windowed** form because this file's target is the NS build - measured in
 /// `## Evidence`: `sizeof` 232, `type`@0, `case_sensitive`@8, `get_cache`@16, `list`@24,
@@ -1201,7 +1204,8 @@ func GSFontEnumerator_sharedEnumerator() -> UnsafeMutableRawPointer?
 @_silgen_name("GSFontEnumerator_availableFontDescriptors")
 func GSFontEnumerator_availableFontDescriptors(_ enumerator: UnsafeMutableRawPointer?) -> NSArray?
 
-/// C's `[textStorage setFont: font]` (src/nsfont.m 1254) is a GNUstep `NSTextStorage`
+/// C's `NSTextStorage` (src/nsfont.m 1220) carries the `[textStorage setFont:font]` call at
+/// src/nsfont.m 1235 as a GNUstep
 /// extension; **macOS does not implement the selector** (an Objective-C message send is not
 /// checked against the interface, which is why the reference compiles), so the port performs
 /// the same effect with a **public API** rather than reaching for a symbol no provider in this
@@ -1274,7 +1278,7 @@ func build_unibyte_string(_ str: UnsafePointer<CChar>?) -> Lisp_Object
 /// `FONT_FULLNAME_INDEX` (182) - the two slots `nsfont_open` fills.
 @_silgen_name("FONT_NAME_INDEX") func FONT_NAME_INDEX() -> Int
 @_silgen_name("FONT_FULLNAME_INDEX") func FONT_FULLNAME_INDEX() -> Int
-/// C: `Lisp_Fwd_Obj` (src/lisp.h 532), the `enum Lisp_Fwd_Type` member `DEFVAR_LISP` stores.
+/// C: `Lisp_Fwd_Obj` (src/lisp.h 527-532), the `enum Lisp_Fwd_Type` member `DEFVAR_LISP` stores.
 @_silgen_name("Lisp_Fwd_Obj") func Lisp_Fwd_Obj() -> UInt8
 /// C: `typedef void (*pdumper_hook) (void);` (src/pdumper.h 87) and
 /// `INLINE void pdumper_do_now_and_after_load (pdumper_hook)` (92-99).

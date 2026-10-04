@@ -1967,8 +1967,8 @@ pub struct face
   pub lface: [Lisp_Object; LFACE_VECTOR_SIZE as usize],
   pub id: c_int,
 
-  // dispextern.h 1797-1811: C's `#ifdef HAVE_WINDOW_SYSTEM` arm of `struct face` - the GC it may
-  // draw with, and the stipple id.  Read from `docs/baseline/face-layout.tsv` (P-82: frozen
+  // dispextern.h 1797-1811: the `gc` (C's three arms) and `stipple` that C adds to the face
+  // record under `#ifdef HAVE_WINDOW_SYSTEM`.  Read from `docs/baseline/face-layout.tsv` (P-82: frozen
   // 280/8, both window-system arms 296/8, `gc` at 168 and `stipple` at 176 in both), which is
   // also why the two window-system arms add the same sixteen bytes.
   #[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]

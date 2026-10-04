@@ -14040,7 +14040,7 @@ pub unsafe extern "C" fn allocate_kboard (r#type: Lisp_Object) -> *mut KBOARD
   all_kboards = kb;
   return kb;
 }
-/* lisp.h 803's `bool_bf declared_special : 1` is one bit of `Lisp_Symbol`'s `bits` unit; the
+/* lisp.h 803's `declared_special` bit (`bool_bf declared_special : 1`) is one bit of `Lisp_Symbol`'s `bits` unit; the
    mirror keeps the storage unit, so the port writes the member through a member-named accessor
    (PORTING.md P-80, one arm per member this file names — the `lread.rs` `set_symbol_bits!`
    shape, which `syms_of_keyboard` needs for C 13978).  */

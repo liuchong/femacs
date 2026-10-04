@@ -231,7 +231,7 @@ pub struct frame
   pub extra_line_spacing_above: c_int,
   pub background_pixel: c_ulong,
   pub foreground_pixel: c_ulong,
-  // frame.h 735-743: the Cocoa tail, and the text-conversion state C embeds before `z_order`.
+  // frame.h 735-747: the Cocoa tail, and the text-conversion state C embeds before `z_order`.
   #[cfg (feature = "ns_impl_cocoa")]
   pub ns_appearance: ns_appearance_type,                   // 737 (measured 592)
   #[cfg (feature = "ns_impl_cocoa")]

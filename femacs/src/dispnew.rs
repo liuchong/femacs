@@ -3632,8 +3632,9 @@ pub fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
 pub const FACE_TTY_DEFAULT_FG_COLOR: c_ulong = -2i64 as c_ulong;
 pub const FACE_TTY_DEFAULT_BG_COLOR: c_ulong = -3i64 as c_ulong;
 
-/* dispextern.h 1445-1446: the two bits `redraw_overlapping_rows` ors together.  The
-   dispextern mirror stops before them.  */
+/* dispextern.h 1445-1446: the `OVERLAPS_PRED`/`OVERLAPS_SUCC` bits that
+   `redraw_overlapping_rows` (dispextern.h 3126) ors together.  The dispextern mirror stops
+   before them.  */
 pub const OVERLAPS_PRED: c_int = (1 << 0);
 pub const OVERLAPS_SUCC: c_int = (1 << 1);
 

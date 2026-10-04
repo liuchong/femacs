@@ -144,8 +144,10 @@ macro_rules! FRAME_CANON_Y_FROM_PIXEL_Y {
    979/983, which this unit includes); the unit's body-identical copies were redundancy
    (P-26).  */
 
-/* frame.h 1163-1226: the packed `bool_bf` flags this file writes (`SELECT_MINI_WINDOW_FLAG`
-   and the window-change flags).  The readers are in the mirror; the writers are here
+/* frame.h 331-441: the `bool_bf` flag run of `struct frame` whose writers this file carries
+   (`select_mini_window_flag` 536, `window_change` 426, `frozen_window_starts` 441; their
+   readers `FRAME_WINDOW_CHANGE`/`FRAME_WINDOWS_FROZEN` are frame.h 1191/1187).  The readers
+   are in the mirror; the writers are here
    (PORTING.md 1.3/P-80).  */
 macro_rules! set_frame_flag1 {
     ($f:expr, $shift:expr, $v:expr) => {
@@ -5439,7 +5441,7 @@ macro_rules! redisplay {
     ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_REDISPLAY_SHIFT, $v) };
 }
 
-/* frame.h 1187: `#define FRAME_WINDOWS_FROZEN(f) (f)->frozen_window_starts` — a `bool_bf`
+/* frame.h 1187: `FRAME_WINDOWS_FROZEN` is `(f)->frozen_window_starts` — a `bool_bf`
    the mirror only reads (`FRAME_WINDOWS_FROZEN`'s `frame_bit1`), so the write goes through
    the pack helper (PORTING.md 1.3/P-80; the `FRAME_WINDOW_CHANGE` shape above).  */
 macro_rules! FRAME_WINDOWS_FROZEN {

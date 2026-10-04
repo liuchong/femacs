@@ -110,7 +110,8 @@ macro_rules! FRAME_PIXEL_HEIGHT { ($f:expr) => { (*$f).pixel_height }; }
 macro_rules! FRAME_FOREGROUND_PIXEL { ($f:expr) => { (*$f).foreground_pixel }; }
 macro_rules! FRAME_BACKGROUND_PIXEL { ($f:expr) => { (*$f).background_pixel }; }
 
-/* frame.h 1790-1823: the pixel/text conversions `adjust_frame_size` is built from.  */
+/* frame.h 1790-1800: the `FRAME_TEXT_TO_PIXEL_WIDTH`/`FRAME_TEXT_TO_PIXEL_HEIGHT`
+   conversions `adjust_frame_size` (frame.h 333) is built from.  */
 macro_rules! FRAME_TEXT_TO_PIXEL_WIDTH {
     ($f:expr, $width:expr) => {
         ($width) + FRAME_SCROLL_BAR_AREA_WIDTH ($f) + FRAME_TOTAL_FRINGE_WIDTH ($f)

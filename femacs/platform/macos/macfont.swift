@@ -171,7 +171,7 @@ struct macfont_cache_uvs {
   var collection: UInt
 }
 
-/// C: `struct macfont_info` (src/macfont.m 79-94) - the record that is cast to `struct font`,
+/// C: `struct macfont_info` (src/macfont.m 73-90) - the record that is cast to `struct font`,
 /// so its first member is `struct font`.  Measured: `sizeof` 264, `font`@0, `macfont`@216,
 /// `cgfont`@224, `screen_font`@232, `cache`@240, `metrics`@248, `metrics_nrows`@256, and the
 /// five bit-fields in the 4-byte unit at 258.  The bit-field unit is stored as two `UInt16`s
@@ -360,7 +360,8 @@ fileprivate let MACFONT_SPACING_MONO: UInt32 = 1
 fileprivate let MACFONT_SPACING_SYNTHETIC_MONO: UInt32 = 2
 
 /// C: `enum { MACFONT_ANTIALIAS_DEFAULT, MACFONT_ANTIALIAS_OFF, MACFONT_ANTIALIAS_ON }`
-/// (src/macfont.m 104-110) - the values of the `antialias` member.
+/// (src/macfont.m 100-104) - `MACFONT_ANTIALIAS_DEFAULT` and its two siblings are the values
+/// of the `antialias` member (`unsigned antialias : 2`, src/macfont.m 84).
 fileprivate let MACFONT_ANTIALIAS_DEFAULT: UInt32 = 0
 fileprivate let MACFONT_ANTIALIAS_OFF: UInt32 = 1
 fileprivate let MACFONT_ANTIALIAS_ON: UInt32 = 2
@@ -743,7 +744,7 @@ func LGLYPH_SET_ADJUSTMENT(_ g: Lisp_Object, _ val: Lisp_Object)
 /// 244-245).
 @_silgen_name("FONT_HEIGHT") func FONT_HEIGHT(_ f: UnsafeMutablePointer<font>?) -> Int32
 @_silgen_name("FONT_BASE") func FONT_BASE(_ f: UnsafeMutablePointer<font>?) -> Int32
-/// C: `DRAW_CURSOR` (src/dispextern.h 1030, `enum draw_glyphs_face`).
+/// C: `DRAW_CURSOR` (src/dispextern.h 1348, `enum draw_glyphs_face`).
 @_silgen_name("DRAW_CURSOR") func DRAW_CURSOR() -> Int32
 /// C: `#define NS_FACE_FOREGROUND(f) ((f)->foreground)` and `NS_FACE_BACKGROUND` (src/nsterm.h
 /// 1040-1041) - constructs of this lane's own header that read `struct face`; the port of
@@ -3894,7 +3895,8 @@ fileprivate func macfont_list_family(_ frame: UnsafeMutableRawPointer?) -> Lisp_
 }
 
 /// C: `macfont_open` (src/macfont.m 2662-2821).  `font_build_object` is the core's own entry
-/// (src/font.c 250) and `VECSIZE (struct macfont_info)` is the `VECSIZE` macro over the
+/// (src/font.c 250);
+/// the macro `VECSIZE` (src/font.c 165) gives this mirror's stride over the
 /// record's C `sizeof` - 264, which is this mirror's **stride** (`MemoryLayout.size` is 262
 /// because Swift's `size` omits the record's trailing padding).  C's `CFRelease (family_name)`
 /// is ARC's, and `font->driver = &macfont_driver` is the getter entry declared above.
@@ -11284,8 +11286,10 @@ func syms_of_macfont() {
   pdumper_do_now_and_after_load(syms_of_macfont_for_pdumper)
 }
 
-/// C: `syms_of_macfont_for_pdumper` (src/macfont.m 4248-4260), the hook `syms_of_macfont`
-/// hands to `pdumper_do_now_and_after_load`; C's `eassert (NILP (macfont_family_cache))` is the
+/// C: `syms_of_macfont_for_pdumper` (src/macfont.m 4248-4256), the hook that
+/// `syms_of_macfont` (src/macfont.m 4225) hands to the pdumper
+/// (`pdumper_do_now_and_after_load`, src/macfont.m 4244); C's
+/// `eassert (NILP (macfont_family_cache))` is the
 /// disabled-arm helper above (the else branch of `dumped_with_pdumper_p ()`).
 fileprivate func syms_of_macfont_for_pdumper() {
   if dumped_with_pdumper_p() {
