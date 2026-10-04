@@ -5006,3 +5006,17 @@
   且重生成面大；命名给下一轮或专门的"新鲜度链"提交。读数到此为止：这条链本轮覆盖 `gen-port-map` + `gen-port-inventory` 两位。
   ④ **复检**：拷回后 `git diff --stat` = 2 文件 / 63 insertions / 63 deletions；`check-declarations` 仍 `13 / 0 / 0`（`read 661 files`，含 6 个 `.s`）、
   `check-kept` 仍 `6 / 0`；worktree 用完即删（`git worktree remove --force`）。
+- **3.297 Kotlin 又四件：字体驱动三件 + `EmacsApplication`，25/40；JNI 的 28 个字段名与 9 个方法名逐个对过（2026-10-05）**：
+  ① **入库四件**（`EmacsFontDriver` 162、`EmacsSdk7FontDriver` 440、`EmacsSdk23FontDriver` 98、`EmacsApplication` 119；参照 Java 180/503/120/159 行）：
+  `EmacsFontDriver` 是抽象基类 + 四个嵌套记录（`FontSpec`/`FontMetrics`/`FontEntity`/`FontObject`，其中 `FontObject` 在 Java 里不是 static ⇒ 端口写 `inner class`，
+  JVM 名仍是 `EmacsFontDriver$FontObject`），八个入口保持 `fun`、`createFontDriver` 在 companion 上带 `@JvmStatic`（P-83 ②⑪）；两个 driver 是它的具体实现。
+  **一处真缺陷已修**：`EmacsApplication.findDumpFile` 的 `val apk: File` 编译不过（`'val' cannot be reassigned`）——参照的 `File apk;` 声明在**方法作用域**、而在 `for` 循环里**每次迭代**赋值（`apk = new File (apkFileName);`），
+  Kotlin 的 `val` 只能赋值一次 ⇒ 改成 `var apk: File`（声明顺序、赋值点、语句形状与参照一致，这是 P-83 ⑨ 那条规则的"多次赋值"情形）。
+  ② **验证（我自己跑的，不引用 lane 的读数）**：`spikes/kotlin-compile-probe.sh` 对四个 `.kt` + 参照 `java/**` 替身 → **exit 0、零诊断**（`EmacsNative.kt` 还没落，探针按设计用参照的同名 `.java` 当替身，所以这一条的通过面是"端口的语法与类型对着**参照的接口**"）。
+  **JNI 名字逐个对**（`emacs/src/androidfont.c` 是唯一按名字找这些类的 C 文件）：`FIND_METHOD` 的八个名字 `list`/`match`/`listFamilies`/`openFont`/`hasChar`/`textExtents`/`encodeChar`/`draw` 与 `GetStaticMethodID("createFontDriver")` **全在**；
+  `FIND_FIELD` 的 **28 个字段名字符串**（`foundry`/`family`/`adstyle`/`registry`/`width`/`weight`/`slant`/`size`/`spacing`/`avgwidth`/`dpi`、`lbearing`/`rbearing`/`ascent`/`descent`、
+  `minWidth`/`maxWidth`/`pixelSize`/`height`/`spaceWidth`/`averageWidth`/`underlineThickness`/`underlinePosition`/`baselineOffset`/`relativeCompose`/`defaultAscent`/`encodingCharset`/`repertoryCharset`）**一个不缺**；
+  字段集与 Java **相等**（Java 的 6 个 `Integer` 装箱字段 → Kotlin `Int?` + `@JvmField`，其余按基本类型）。
+  ③ **读数**：`spikes/kotlin-target-order.py` 重生成 `docs/baseline/kotlin-order.tsv` → `40 target(s), 25 ported, 15 to go`、`--check` 绿；
+  Kotlin 侧剩 15 个目标（`EmacsView`/`EmacsWindow`/`EmacsWindowManager`/`EmacsService`/`EmacsNative`/`EmacsActivity`/`EmacsSurfaceView` 等）。
+  ④ **本轮没有 Rust 编译**（只跑了一次 Kotlin 探针），探针的输出目录是它自己的 `mktemp -d` + `trap` 清理，工作树里没有新产物。
