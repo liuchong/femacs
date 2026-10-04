@@ -168,6 +168,9 @@ def ledger_names(rel: Path) -> list[str]:
     return names
 
 
+fallbacks: list[str] = []
+
+
 def ledger_state(rel: Path, target: Path) -> str:
     if not target.exists():
         return "todo"
@@ -184,13 +187,19 @@ def ledger_state(rel: Path, target: Path) -> str:
         # WIP because its Evidence quotes `grep -c '^- [ ]' … -> 0` (status 3.198).  Same class
         # as 3.196: a ledger is prose, so the reader has to constrain the shape it reads.
         state = "wip" if re.search(r"(?m)^\s*- \[ \]", text) else "done"
-        if first is None:
-            first = state
         m = LEDGER_HEAD.match(text.split("\n", 1)[0])
         if m and m.group(1) != want:
-            continue        # that ledger belongs to a different reference file
+            if first is None:
+                first = name    # a fallback: the unit's ledger, not this file's
+            continue
         return state
-    return first if first is not None else "wip"
+    # A fallback is *not* this file's checklist: the unit's ledger can be fully ticked while the
+    # header's own mirror is half written (status 3.218 - `src/xterm.h` read `done` that way for
+    # the minutes before its lane wrote `include-xterm.md`).  Such a row reads `wip` and the name
+    # is printed, so the class is never silent (P-66).
+    if first is not None:
+        fallbacks.append(f"{rel.as_posix()} (reads {first})")
+    return "wip"
 
 
 def main() -> int:
@@ -257,6 +266,9 @@ def main() -> int:
     out.append("| 指标 | 值 |\n| --- | ---: |")
     for k, v in extras.items():
         out.append(f"| {k} | {int(v):,} |")
+    if fallbacks:
+        print("inventory: " + str(len(fallbacks)) + " file(s) have no checklist of their own "
+              "(unit-ledger fallback, reported as wip): " + "; ".join(sorted(fallbacks)))
     counts = {"done": 0, "wip": 0, "todo": 0}
     for e in entries:
         counts[e["state"]] += 1

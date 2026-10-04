@@ -1174,6 +1174,28 @@ def ledger_for(c: Path, reference: Path, checklists: Path) -> Path | None:
     return first
 
 
+def own_ledger(c: Path, reference: Path, checklists: Path) -> Path | None:
+    """`ledger_for`, but only when the ledger names this file.
+
+    The fallback (`src/indent.h` reads `indent.md`) is how a header without a ledger of its own
+    has always been read, and for *prose* it is right: the unit's ledger documents the header's
+    items too.  It is wrong for the `--all` state machine, where the checklist decides whether
+    differences are the expected "not done yet" or a defect: a unit's fully ticked checklist
+    would stand in for a header whose own mirror is half written.  Measured while the xterm lane
+    was starting `src/include/xterm.rs` - the row read `done` against `xterm.c`'s ledger, while
+    `--check emacs/src/xterm.h femacs/src/include/xterm.rs` reported seven problems.  With this
+    function, a file with no checklist of its own is judged against its *full* item set: a header
+    whose mirror is complete is legitimately `done` (`src/indent.h`), and one that is not is
+    reported, not hidden.
+    """
+    found = ledger_for(c, reference, checklists)
+    if found is None:
+        return None
+    head = found.read_text(encoding="utf-8", errors="replace").split("\n", 1)[0]
+    m = LEDGER_HEAD.match(head)
+    return found if (m and m.group(1) == "emacs/" + c.relative_to(reference).as_posix()) else None
+
+
 def c_live_lines(c_path: Path, total: int) -> int:
     """The reference file's lines the frozen configuration actually compiles.
 
@@ -1991,23 +2013,25 @@ def main() -> int:
         reference, root = Path(args.reference), Path(args.root)
         done = in_progress = failing = 0
         for c, rs in pairs(reference, root):
+            # The checklist has to be the file's *own* (`own_ledger`): a unit's ledger standing
+            # in for a header is what let a half-written header read `done` (status 3.218).
+            checklist = own_ledger(c, reference, Path(args.checklists))
             problems = compare(c, rs, strict_lines=not args.loose_lines, excluded=excluded,
-                               macro_notes=macro_notes,
-                               ledger=ledger_for(c, reference, Path(args.checklists)))
+                               macro_notes=macro_notes, ledger=checklist)
             if not problems:
                 done += 1
                 continue
             # A file that is still being ported keeps its generated checklist with
-            # unchecked boxes; the gate only fails when the checklist says the
-            # file is finished (or when there is no checklist at all).
-            checklist = ledger_for(c, reference, Path(args.checklists))
+            # unchecked boxes; the gate fails when the checklist says the file is
+            # finished, and when there is no checklist of its own at all.
             if checklist is not None and "- [ ]" in checklist.read_text(encoding="utf-8"):
                 in_progress += 1
                 print(f"WIP  {c.relative_to(reference)} -> {rs} "
                       f"({len(problems)} differences, {checklist} has unchecked boxes)")
                 continue
             failing += 1
-            print(f"FAIL {c.relative_to(reference)} -> {rs}")
+            print(f"FAIL {c.relative_to(reference)} -> {rs}"
+                  + ("" if checklist is not None else "  (no checklist of its own)"))
             for problem in problems[:20]:
                 print(f"  - {problem}")
         print(f"\nchecked {done + in_progress + failing} ported files: "
