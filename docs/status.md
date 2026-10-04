@@ -3884,3 +3884,12 @@
   ③ `tools/audit-wip.py` 的 A 组现在是：`dispextern.h`（142 行，在飞）、`font.h`（49）、**`frame.h`（3，全部是本轮
   记录在案的 includer-owned 行）**、`xdisp.c`（176，在飞）。读数：`gen-port-inventory` **590 files、done=577、
   wip=10、todo=3**；门：`check-mirror-dupes` 1/1/0、`check-declarations` 13/0。
+
+- **3.213 两份镜像台账停止复述 3.202 之前的读数（2026-10-04）**：
+  3.202 修掉判据 marker 之后，`check-cond-eval.py` 对这两件的读数变了，而台账还在引旧数字。本轮实测：
+  `lib/unlocked-io.h` → **`16 conditions, 0 unknown, 0 disagreements`**（原来的"9 条不一致"是修正前的假象；
+  系统头那个事实——真 `<stdio.h>` 定义 `clearerr_unlocked` 等——照旧保留，`--write-verified` 重生成后可以进
+  verified 清单）；`lib/stddef.in.h` → **`34 conditions, 7 unknown, 9 disagreements`**，九条全是模板的
+  `@PLACEHOLDER@` 与 guard 条件，且**根因可测**：模板文本里还带 `@` 时 clang 根本判不了探针
+  （`error: missing ')' after 'defined'`），所以那一件的判据是**生成头**而不是对拍；修正前的第十条是
+  C 25 的 `#if __GNUC__ >= 3`，正是 3.202 修掉的那一行。两份都是 intprops lane 交回的更正，集成者重测后入库（`2c22229`）。
