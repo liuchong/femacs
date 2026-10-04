@@ -1,0 +1,181 @@
+# L0 golden: the self-check expressions' outputs on the reference program.
+# Written by `python3 tools/acceptance-l0.py --golden <binary>` (docs/status.md 3.261,
+# docs/acceptance.md).  Compared by `--check <binary>`, which re-runs each expression
+# as `<binary> -Q --batch --eval <program>` and compares (exit code, stdout, stderr)
+# byte for byte.  One record per expression, in this order.
+# binary: build/emacs-ref/src/emacs
+# version: GNU Emacs 32.0.50
+# sha256[0:16]: ea7514dca1b463f5
+
+@@ arith
+$ (princ (+ 1 2))
+--- exit: 0
+--- stdout:
+3
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ bignum
+$ (princ (* 123456789 100000000000))
+--- exit: 0
+--- stdout:
+12345678900000000000
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ ratio
+$ (prin1 (list (/ 7 2) (/ 7.0 2)))
+--- exit: 0
+--- stdout:
+(3 3.5)
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ prin1-list
+$ (prin1 (list 1 2 3))
+--- exit: 0
+--- stdout:
+(1 2 3)
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ closure-mapcar
+$ (prin1 (mapcar (lambda (x) (* x x)) (list 1 2 3)))
+--- exit: 0
+--- stdout:
+(1 4 9)
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ format
+$ (princ (format "%s|%d|%S" "a" 42 'sym))
+--- exit: 0
+--- stdout:
+a|42|sym
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ condition-case
+$ (princ (condition-case e (car 5) (error (format "caught:%s" (car e)))))
+--- exit: 0
+--- stdout:
+caught:wrong-type-argument
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ unwind-protect
+$ (princ (unwind-protect (condition-case nil (error "x") (error 'inner)) (princ "[cleanup]")))
+--- exit: 0
+--- stdout:
+[cleanup]inner
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ string-mutate
+$ (prin1 (let ((s (make-string 3 ?a))) (aset s 1 ?b) s))
+--- exit: 0
+--- stdout:
+"aba"
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ string-bytes
+$ (princ (list (length "héllo") (string-bytes "héllo")))
+--- exit: 0
+--- stdout:
+(5 6)
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ sort-and-append
+$ (prin1 (sort (append (list 3 1) (list 2)) #'<))
+--- exit: 0
+--- stdout:
+(1 2 3)
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ hash-table
+$ (princ (let ((h (make-hash-table))) (puthash 'a 1 h) (puthash 'b 2 h) (gethash 'b h)))
+--- exit: 0
+--- stdout:
+2
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ read-print
+$ (prin1 (read "(1 2 . 3)"))
+--- exit: 0
+--- stdout:
+(1 2 . 3)
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ symbol-name
+$ (princ (format "%s:%s" (symbol-name 'foo) (symbolp 'foo)))
+--- exit: 0
+--- stdout:
+foo:t
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ char-to-string
+$ (prin1 (char-to-string 65))
+--- exit: 0
+--- stdout:
+"A"
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ buffer-roundtrip
+$ (princ (with-temp-buffer (insert "abc") (goto-char 2) (list (buffer-string) (point))))
+--- exit: 0
+--- stdout:
+(abc 2)
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ message-stderr
+$ (progn (message "to stderr") (princ "to stdout"))
+--- exit: 0
+--- stdout:
+to stdout
+--- end stdout
+--- stderr:
+to stderr
+
+--- end stderr
+@@ signal-message
+$ (princ (condition-case e (signal 'wrong-type-argument (list 'integerp "x")) (error (error-message-string e))))
+--- exit: 0
+--- stdout:
+Wrong type argument: integerp, "x"
+--- end stdout
+--- stderr:
+
+--- end stderr
+@@ exit-code
+$ (kill-emacs 3)
+--- exit: 3
+--- stdout:
+
+--- end stdout
+--- stderr:
+
+--- end stderr

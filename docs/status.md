@@ -4790,3 +4790,9 @@
   ③ **实测（全树，两步都量）**：`emacs/src/nsterm.m` 的函数 **142 → 150**（r10 那 4 个现在在列 ✓）；**`tools/extract-abi.py --all` 全树读数不变**：`checked 590 ported files: 588 done, 2 in progress, 0 failing`——即这 8 个名字**早就被端口写出来了**，盲区在**清单**而不在端口（这正是"清单完整性"这一级证据原本的漏洞）。
   ④ **残留一个真缺口**：修好后 `check-swift-units.py` 报 **1 new**：`ns_get_shifted_character`（nsterm.m，**既没有 Swift func 也没有 manifest 行**）——它是盲区里唯一"从未被列过、也确实没落地"的定义；下一次对账会把它写进 `swift-units.tsv`，此后它就是 nsterm lane 的正常清单项。
   ⑤ **口径**：这是**工具正确性**修正（不是口径变化），经全树读数前后一致确认无副作用；`--all` 的两次读数（修前 588/2/0、修后 588/2/0）就是这条断言的证据。
+
+- **3.261 L0 的验收机械落地：19 条自检表达式的 golden + 一条命令的对拍（2026-10-05）**：
+  ① **`tools/acceptance-l0.py`**：`--golden <参照二进制>` 记录 golden、`--check <二进制>` 对拍；每条表达式以 `<binary> -Q --batch --eval <prog>` 跑，比较的三元组是 **(退出码, stdout, stderr)**，逐字节——正是 `docs/port-plan.md` 7.1 的 L0 口径。19 条覆盖：算术（含 bignum 路径）、`prin1`/`princ`/`format`、闭包与 `mapcar`、`condition-case`、`unwind-protect`、字符串改写与 `string-bytes`、`sort`/`append`、哈希表、`read`/`prin1` 往返、`char-to-string`、`with-temp-buffer` 往返、走向 stderr 的 `message`、`error-message-string`，以及 `(kill-emacs 3)`（**退出码本身进比较**）。
+  ② **golden**：`docs/baseline/l0-reference.txt` 记着参照二进制的路径、`--version` 首行与前 16 位 sha256（参照移动过就看得见，而不是静默），每条流的字节夹在显式的 `--- stdout`/`--- end stdout` 标记之间（不必猜最后一个换行属谁）。
+  ③ **读数**：参照全过——`19 expression(s), 0 failure(s)`（这是对拍机械**自己**的自检：它对自己的 golden）；**负对照**是没有 dump 的 `build/emacs-ref/src/temacs` → `19/19 failure(s)`（它打印的正是 acceptance.md 记过的那条 "Lisp directory … No such file or directory"），说明对拍真的能分辨。端口侧还没有二进制（reading five），所以 check 侧暂无对象；**端口一链接出来，L0 就是一条命令**。
+  ④ 表达式**刻意选成不依赖路径**：任何会打印 build/data 目录的东西属于后面的 rung（那里端口与参照本来就该不同，比较要先归一化）。

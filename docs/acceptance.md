@@ -79,3 +79,30 @@ failures`.  Two consequences worth knowing:
   `docs/baseline/config/darwin-arm64.macros.tsv` plus `build/emacs-ref/**`), and regenerating them
   with a different `autoconf` would risk touching *tracked* files (`src/config.in`), so they are
   left absent on purpose.
+
+## L0: the harness and its golden (2026-10-04/05)
+
+```sh
+python3 tools/acceptance-l0.py --golden build/emacs-ref/src/emacs   # record the golden
+python3 tools/acceptance-l0.py --check <binary>                     # compare, byte for byte
+```
+
+Nineteen expressions, each run as `<binary> -Q --batch --eval <program>`, compared as the triple
+`(exit code, stdout, stderr)`: arithmetic (including the bignum path), `prin1`/`princ`/`format`,
+closures and `mapcar`, `condition-case`, `unwind-protect`, string mutation and `string-bytes`,
+`sort`/`append`, hash tables, `read`/`prin1` round-trip, `char-to-string`, a `with-temp-buffer`
+round trip, a `message` that goes to stderr, `error-message-string`, and `(kill-emacs 3)` so the
+*exit code* is part of the comparison.
+
+The golden (`docs/baseline/l0-reference.txt`) records the reference binary's path, its `--version`
+first line and the first 16 hex digits of its sha256, so a golden whose reference has moved is
+visible rather than silent; each stream sits between explicit `--- stdout`/`--- end stdout`
+markers, which is what makes its bytes readable without guessing about the last newline.
+
+**Readings (2026-10-05).**  The reference answers all nineteen (`19 expression(s), 0 failure(s)`,
+a self-test of the harness against its own golden), and the negative control is the dump-less
+`build/emacs-ref/src/temacs`: `19 expression(s), 19 failure(s)` - it prints the same "Lisp
+directory … No such file or directory" warning this file records above, so the harness
+discriminates.  The port's own binary does not link yet (`docs/ports/link.md`, reading five), so
+the check side has nothing to run against; when it does, this is the first rung of the ladder and
+it is one command.
