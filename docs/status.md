@@ -3207,3 +3207,25 @@
   给了 Boole）。**没有为了变绿硬写两百项**。
   ⑥ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；五门绿；**`layout-check` passed**；
   引证门 16 drift / 4 range / 284 external / 36 allowed / 0 stale。
+
+- **3.182 Swift 侧两件工具产物入库：manifest writer 不再吞 reason、UVS 生成器落地（2026-10-04）**：
+  ① **一个我写的工具缺陷被 lane 抓到并已修**（`477434c`）：`tools/check-swift-units.py --write-manifest` 用它自己的
+  三列格式**整文件重写** manifest，把 3.173 刚加的 **reason 第三列吃掉**——macfont 那三条"永远清不掉"的死臂行正靠它说明理由。
+  lane 的止损是"先备份、再恢复、只按 gate 的 16 条 stale 逐行删"，并把这条报给我。**修法**：writer 先 `read_manifest_reasons ()`
+  读回既有行与理由，重写时把理由写回第四列；我顺手验证了一次 round-trip（重写后 `mac_ctfont_get_glyph_for_cid` 那条
+  `…permanent` 仍在）。提交信息里署名"由 notes 被吃掉的那个 lane 发现"。
+  ② **`tools/gen-uvs-swift.py`**（Mill 交付，我复跑）：`macfont.m` 在 `macuvs.h` 里带的 **73,655 个值**的 UVS 表，
+  由生成器写进 Swift 源里 `// gen-uvs-swift: begin`/`end` 标记之间（`--write`），`--check` 证明该块仍与参照一致
+  （`macfont.swift block matches src/macuvs.h (73655 values)`）。**无运行时文件读、无资源包，生成器与生成物都入库**——
+  这正是 3.173 裁决 1 要求的形状；实现细节（18 块字面量用 `+` 连接，单块字面量 Swift 类型检查器做不动）
+  与 `CFDataCreateWithBytesNoCopy (…, kCFAllocatorNull)` 不复制不接管的用法都写进台账。
+  ③ **Mill 这轮其余进展**（`macfont.swift` **8,794 行**，其中 6,178 行是生成的 UVS 数据）：函数 **51/74 已落**（本轮 +16），
+  `swiftc -parse-as-library -c` **exit 0 / 0 warning**，`check-swift-units` **0 new / 0 stale**；`setFont:` 的选择器入口
+  **全部删除**（`nm -u | grep setFont` = 0）改用公有 API 还原效果并记偏离；`macfont_draw` 的阻塞**解除**
+  （`struct glyph_string` 的 owner 镜像已在前几轮落地）。
+  ④ **它建议的下一步我批准**：先把 macfont 收口（`glyph_string` 布局 → `macfont_draw` + 五个 `CG_SET_*` 宏 →
+  驱动核心 → 记录 + getter + `syms_of_macfont*`），闭合后接 **`src/nsfns.m`（4,348 行）**而不是 `nsterm.m`（11,811 行）——
+  三条理由都成立（体积 37%、是本 lane 已在声明的跨文件入口的**属主**、`register_font_driver (&nsfont_driver, f)`
+  是 getter 路线的第一个真实消费者）。
+  ⑤ 读数：`gen-port-inventory` 590 files、done=542、wip=21、todo=27；五门绿 + `layout-check` passed；
+  引证门 16 drift / 4 range / 284 external / 36 allowed / 0 stale（剩 16 条全在在飞文件）。
