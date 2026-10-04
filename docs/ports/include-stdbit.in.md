@@ -4,44 +4,44 @@
 ## Subrs (DEFUN) — 0
 
 ## Functions defined — 173
-- [ ] _gl_stdbit_clz  (line 236)
-- [ ] _gl_stdbit_clzl  (line 241)
-- [ ] _gl_stdbit_clzll  (line 246)
-- [ ] _gl_stdbit_clzl  (line 262)
-- [ ] _gl_stdbit_clz  (line 268)
-- [ ] _gl_stdbit_clzll  (line 273)
-- [ ] _gl_stdbit_clzll  (line 287)
-- [ ] _gl_stdbit_clz  (line 301)
-- [ ] _gl_stdbit_clzl  (line 306)
-- [ ] stdc_leading_zeros_ui  (line 318)
-- [ ] stdc_leading_zeros_uc  (line 324)
-- [ ] stdc_leading_zeros_us  (line 330)
-- [ ] stdc_leading_zeros_ul  (line 336)
-- [ ] stdc_leading_zeros_ull  (line 342)
-- [ ] stdc_leading_ones_uc  (line 367)
-- [ ] stdc_leading_ones_us  (line 373)
-- [ ] stdc_leading_ones_ui  (line 379)
-- [ ] stdc_leading_ones_ul  (line 385)
-- [ ] stdc_leading_ones_ull  (line 391)
-- [ ] _gl_stdbit_ctz  (line 427)
-- [ ] _gl_stdbit_ctzl  (line 432)
-- [ ] _gl_stdbit_ctzll  (line 437)
-- [ ] _gl_stdbit_ctzl  (line 453)
-- [ ] _gl_stdbit_ctz  (line 459)
-- [ ] _gl_stdbit_ctzll  (line 464)
-- [ ] _gl_stdbit_ctz  (line 478)
-- [ ] _gl_stdbit_ctzl  (line 483)
-- [ ] _gl_stdbit_ctzll  (line 488)
-- [ ] stdc_trailing_zeros_ui  (line 500)
-- [ ] stdc_trailing_zeros_uc  (line 506)
-- [ ] stdc_trailing_zeros_us  (line 512)
-- [ ] stdc_trailing_zeros_ul  (line 518)
-- [ ] stdc_trailing_zeros_ull  (line 524)
-- [ ] stdc_trailing_ones_uc  (line 549)
-- [ ] stdc_trailing_ones_us  (line 555)
-- [ ] stdc_trailing_ones_ui  (line 561)
-- [ ] stdc_trailing_ones_ul  (line 567)
-- [ ] stdc_trailing_ones_ull  (line 573)
+- [x] _gl_stdbit_clz  (line 236)
+- [x] _gl_stdbit_clzl  (line 241)
+- [x] _gl_stdbit_clzll  (line 246)
+- [x] _gl_stdbit_clzl  (line 262)
+- [x] _gl_stdbit_clz  (line 268)
+- [x] _gl_stdbit_clzll  (line 273)
+- [x] _gl_stdbit_clzll  (line 287)
+- [x] _gl_stdbit_clz  (line 301)
+- [x] _gl_stdbit_clzl  (line 306)
+- [x] stdc_leading_zeros_ui  (line 318)
+- [x] stdc_leading_zeros_uc  (line 324)
+- [x] stdc_leading_zeros_us  (line 330)
+- [x] stdc_leading_zeros_ul  (line 336)
+- [x] stdc_leading_zeros_ull  (line 342)
+- [x] stdc_leading_ones_uc  (line 367)
+- [x] stdc_leading_ones_us  (line 373)
+- [x] stdc_leading_ones_ui  (line 379)
+- [x] stdc_leading_ones_ul  (line 385)
+- [x] stdc_leading_ones_ull  (line 391)
+- [x] _gl_stdbit_ctz  (line 427)
+- [x] _gl_stdbit_ctzl  (line 432)
+- [x] _gl_stdbit_ctzll  (line 437)
+- [x] _gl_stdbit_ctzl  (line 453)
+- [x] _gl_stdbit_ctz  (line 459)
+- [x] _gl_stdbit_ctzll  (line 464)
+- [x] _gl_stdbit_ctz  (line 478)
+- [x] _gl_stdbit_ctzl  (line 483)
+- [x] _gl_stdbit_ctzll  (line 488)
+- [x] stdc_trailing_zeros_ui  (line 500)
+- [x] stdc_trailing_zeros_uc  (line 506)
+- [x] stdc_trailing_zeros_us  (line 512)
+- [x] stdc_trailing_zeros_ul  (line 518)
+- [x] stdc_trailing_zeros_ull  (line 524)
+- [x] stdc_trailing_ones_uc  (line 549)
+- [x] stdc_trailing_ones_us  (line 555)
+- [x] stdc_trailing_ones_ui  (line 561)
+- [x] stdc_trailing_ones_ul  (line 567)
+- [x] stdc_trailing_ones_ull  (line 573)
 - [ ] stdc_first_leading_zero_uc  (line 598)
 - [ ] stdc_first_leading_zero_us  (line 606)
 - [ ] stdc_first_leading_zero_ui  (line 614)
@@ -68,26 +68,26 @@
 - [ ] _gl_stdbit_popcount  (line 934)
 - [ ] _gl_stdbit_popcountl  (line 941)
 - [ ] _gl_stdbit_popcountll  (line 948)
-- [ ] stdc_count_ones_ui  (line 966)
-- [ ] stdc_count_ones_uc  (line 972)
-- [ ] stdc_count_ones_us  (line 978)
-- [ ] stdc_count_ones_ul  (line 984)
-- [ ] stdc_count_ones_ull  (line 990)
-- [ ] stdc_count_zeros_uc  (line 1015)
-- [ ] stdc_count_zeros_us  (line 1021)
-- [ ] stdc_count_zeros_ui  (line 1027)
-- [ ] stdc_count_zeros_ul  (line 1033)
-- [ ] stdc_count_zeros_ull  (line 1039)
+- [x] stdc_count_ones_ui  (line 966)
+- [x] stdc_count_ones_uc  (line 972)
+- [x] stdc_count_ones_us  (line 978)
+- [x] stdc_count_ones_ul  (line 984)
+- [x] stdc_count_ones_ull  (line 990)
+- [x] stdc_count_zeros_uc  (line 1015)
+- [x] stdc_count_zeros_us  (line 1021)
+- [x] stdc_count_zeros_ui  (line 1027)
+- [x] stdc_count_zeros_ul  (line 1033)
+- [x] stdc_count_zeros_ull  (line 1039)
 - [ ] stdc_has_single_bit_uc  (line 1064)
 - [ ] stdc_has_single_bit_us  (line 1071)
 - [ ] stdc_has_single_bit_ui  (line 1078)
 - [ ] stdc_has_single_bit_ul  (line 1085)
 - [ ] stdc_has_single_bit_ull  (line 1092)
-- [ ] stdc_bit_width_uc  (line 1119)
-- [ ] stdc_bit_width_us  (line 1125)
-- [ ] stdc_bit_width_ui  (line 1131)
-- [ ] stdc_bit_width_ul  (line 1137)
-- [ ] stdc_bit_width_ull  (line 1143)
+- [x] stdc_bit_width_uc  (line 1119)
+- [x] stdc_bit_width_us  (line 1125)
+- [x] stdc_bit_width_ui  (line 1131)
+- [x] stdc_bit_width_ul  (line 1137)
+- [x] stdc_bit_width_ull  (line 1143)
 - [ ] stdc_bit_floor_uc  (line 1171)
 - [ ] stdc_bit_floor_us  (line 1177)
 - [ ] stdc_bit_floor_ui  (line 1183)
@@ -109,10 +109,10 @@
 - [ ] stdc_rotate_right_ul  (line 1381)
 - [ ] stdc_rotate_right_ull  (line 1387)
 - [ ] stdc_memreverse8  (line 1416)
-- [ ] stdc_memreverse8u8  (line 1454)
-- [ ] stdc_memreverse8u16  (line 1460)
-- [ ] stdc_memreverse8u32  (line 1472)
-- [ ] stdc_memreverse8u64  (line 1486)
+- [x] stdc_memreverse8u8  (line 1454)
+- [x] stdc_memreverse8u16  (line 1460)
+- [x] stdc_memreverse8u32  (line 1472)
+- [x] stdc_memreverse8u64  (line 1486)
 - [ ] stdc_load8_beu8  (line 1646)
 - [ ] stdc_load8_beu16  (line 1652)
 - [ ] stdc_load8_beu32  (line 1660)
@@ -257,17 +257,17 @@
 - [ ] stdc_bit_floor  (line 1207, body f266e663fdb9)
 - [ ] stdc_bit_width  (line 1151, body b5631a388588)
 - [ ] stdc_count_ones  (line 998, body 4c82f8864756)
-- [ ] stdc_count_zeros  (line 1047, body d54c60259f75)
+- [x] stdc_count_zeros  (line 1047, body d54c60259f75)
 - [ ] stdc_first_leading_one  (line 699, body 464bd0245f7d)
 - [ ] stdc_first_leading_zero  (line 640, body dd0fda82ca32)
 - [ ] stdc_first_trailing_one  (line 817, body 1b1ff9c96c83)
 - [ ] stdc_first_trailing_zero  (line 758, body 46fdd1cd8c82)
 - [ ] stdc_has_single_bit  (line 1101, body 34d852b11bdc)
-- [ ] stdc_leading_ones  (line 399, body ba433c4c61fc)
+- [x] stdc_leading_ones  (line 399, body ba433c4c61fc)
 - [ ] stdc_leading_zeros  (line 350, body 10aca907d8a9)
 - [ ] stdc_rotate_left  (line 1330, body f51da2f10d52)
 - [ ] stdc_rotate_right  (line 1396, body ba894f7d8715)
-- [ ] stdc_trailing_ones  (line 581, body ec71ecff1b83)
+- [x] stdc_trailing_ones  (line 581, body ec71ecff1b83)
 - [ ] stdc_trailing_zeros  (line 532, body 8b4b9178cbc2)
 
 ## Types and their fields — 0
@@ -329,7 +329,70 @@
   units) to reach it, since two mirrors declaring one function is `E0428` in any crate that sees
   both.  That is an integrator decision about another lane's file, so it is recorded, not taken.
 
+- **Round 2 (ownership move, integrator ruling).**  The C23 API's *functions* now live in **this
+  file's own text**, which is what the ruling asked for and what the earlier measurement requires
+  (`tools/extract-abi.py` reads function bodies only from a mirror's own text).  Concretely: the 30
+  functions `lib/include/stdbit.rs` carried (`_gl_stdbit_clz/clzl/clzll`, `_gl_stdbit_ctz/l/ll`,
+  `stdc_leading_zeros_*`, `stdc_trailing_zeros_*`, `stdc_count_ones_*`, `stdc_bit_width_*`,
+  `stdc_memreverse8u{8,16,32,64}`) moved here with their C-line comments; `lib/include/stdbit.rs`
+  keeps the generated header's **facts** (the builtin-arm readings) and the four generic dispatcher
+  macros, and the seven include sites were repointed at the owner:
+  `src/include/lisp.rs` 19, `lib/stdc_{leading_zeros,trailing_zeros,bit_width,count_ones,memreverse8u}.rs`
+  7 and `lib/include/byteswap.in.rs` 17 - each `include!("…/stdbit.rs")` became
+  `include!("…/stdbit.in.rs")`.  `build-tu` for four of those consumers is in `## Evidence`.
+- **Round 2 also added the three `~n` families and the object**: `stdc_leading_ones_*`,
+  `stdc_trailing_ones_*` and `stdc_count_zeros_*` (C 366-406, 548-585, 1015-1051 - each is the
+  complement's zeros/ones, so Rust's `!n` on exactly the same width is C's `~n` after the
+  promotion and truncation C's prototype performs), their three dispatchers (written with the
+  `sizeof 0u` -> `std::mem::size_of_val (&0u32)` idiom this ledger's first round recorded), and
+  `_gl_stdbit_popcount_support` (C 916, declaration-only, the object `src/`'s units define).
+- **Round 2's compile-state rule (new): a mirror must compile at all times.**  The half-written
+  state this round left behind reddened `xtask layout-check` with two diagnostics, both now fixed:
+  a doc comment followed by nothing (`///` before the family-record block - removed) and
+  `cannot find type c_schar` in `_gl_stdbit_popcount_support`'s declaration.  The second is the
+  general lesson: the single-crate probe's alias set is whatever the foundation mirrors' `use
+  std::ffi::{…}` lists provide, and `c_schar` is not in it - so the type is now spelled
+  `core::ffi::c_schar`, which is exactly how `lib/include/stdint.in.rs` 57 spells `int8_t`, and no
+  bare alias is needed.  Half-written items stay in comments or under `#[cfg (any())]`.
+- **What is still open, classified (162 `- ` lines)**: 116 `missing function` (the helpers
+  `_gl_stdbit_popcount*`/`_gl_stdbit_popcount_supported`/`_gl_stdbit_popcount_wide`, the nine
+  remaining type-specific families - first_leading_zero/one, first_trailing_zero/one, bit_width's
+  siblings `stdc_bit_floor`/`_ceil`, `has_single_bit`, `rotate_left`/`_right`, `memreverse8`,
+  `load8`, `load8_aligned`, `store8`, `store8_aligned` - and `__popcnt64`), 20 `missing macro` (the
+  remaining `stdc_*` dispatchers plus `stdc_imm8*`/`load8`/`store8`/`memreverse8`), and 26
+  *body-token* lines.  The body-token ones split into two classes: **six that are legitimate
+  `docs/ports/macro-body-notes.tsv` rows** (`_gl_stdbit_clz` C 236's `__builtin_clz`, and the same
+  for `clzl`/`clzll`/`ctz`/`ctzl`/`ctzll` - the port spells C's builtin as `u32::leading_zeros ()`
+  / `trailing_zeros ()`, which is the `lisp_h_*` row's class, so a row is the honest record rather
+  than a fake token), and the rest (`stdc_count_ones_*` missing `_gl_stdbit_popcount*`,
+  `stdc_memreverse8u*` missing their hand-written-fallback tokens, `stdc_leading_zeros_uc/us`
+  missing the `sizeof 0u` literal) which the remaining work removes by using the same idioms - the
+  `0` literal in particular comes from the `size_of_val (&0u32)` spelling of `sizeof 0u`.
+
 ## Evidence
+
+- **Round 2's ownership move, verified**: `--check` fell from 185 to 162 `- ` lines and the moved
+  names are no longer reported missing; `build-tu lib/stdc_leading_zeros.c` -> `built
+  lib/stdc_leading_zeros.rs -> ../build/femacs/stdc_leading_zeros.o`, and the same for
+  `lib/stdc_memreverse8u.c`, `lib/byteswap.c` and `lib/stdc_count_ones.c` (the include-graph
+  dedupe is what keeps `stdint.in.rs`, which the owner and the units both include, from being pasted
+  twice).
+- **Semantic probe (not just token checks)**: `/tmp/modprobe4/probe.rs` compiles this mirror with
+  the `std::ffi` alias set and asserts 12 readings of the moved slice against Rust's own operations
+  (`_gl_stdbit_clz (0) == 32`, `_gl_stdbit_ctz (1 << 3) == 3`, `stdc_leading_zeros_uc (1) == 7`,
+  `stdc_count_ones_ui (0xF0) == 4`, `stdc_bit_width_ui (1) == 1`, `stdc_memreverse8u16 (0x1234) ==
+  0x3412`, …), then **every width** of the three new families against `leading_ones`/`trailing_ones`/
+  `count_zeros`, then the seven dispatchers.  `rustc +nightly-2026-10-01 … -o /tmp/modprobe4/probe
+  /tmp/modprobe4/probe.rs` -> exit 0, `/tmp/modprobe4/probe` -> `stdbit owner probe ok`, exit 0.
+  The probe also caught a wrong expectation of mine (I asserted `stdc_leading_ones! (0b111u8) == 3`
+  where Rust's own `leading_ones` says 0) - the mirror was right, which is why the assertions now
+  compare against Rust's operations instead of literals.
+- **Compile state of the shared gate**: `cd femacs && CARGO_TARGET_DIR=/tmp/femacs-target-win cargo
+  run -q -p xtask -- layout-check` -> **red on another lane's in-flight mirror**,
+  `error: expected item after doc comment --> …/femacs_src_include_ftfont_rs.rs:69:1`, with **no
+  diagnostic naming `stdbit.in.rs`** (the two that did - the doc comment and `c_schar` - are
+  fixed).  I did not touch `src/include/ftfont.rs`: it is not in this lane's scope and not in the
+  four files the integrator listed as in flight, so it is reported rather than edited.
 
 - **Judge**: `ls -l build/emacs-ref/lib/stdbit.h` -> `60264` bytes; `grep -c "" build/emacs-ref/lib/stdbit.h`
   -> `2230`; `grep -n HAVE_STDBIT_H build/emacs-ref/src/config.h build/emacs-ref/lib/stdbit.h` ->

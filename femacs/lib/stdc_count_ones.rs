@@ -4,7 +4,7 @@ use std::ffi::{c_char, c_int, c_long, c_schar, c_short, c_uchar, c_uint, c_ulong
 
 include!("include/gnulib_config.rs");
 include!("include/stdint.in.rs");
-include!("include/stdbit.rs");
+include!("include/stdbit.in.rs");
 include!("include/limits.in.rs");
 /* lib/stdc_count_ones.c's dead `#if 1500 <= _MSC_VER` block declares this object.  */
 #[cfg(feature = "msvc")] #[unsafe(no_mangle)]

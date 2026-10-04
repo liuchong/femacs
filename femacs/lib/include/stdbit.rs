@@ -28,153 +28,20 @@
 // Every unit that includes it brings the C names into scope itself, with
 // `use std::ffi::{c_int, c_uchar, c_uint, c_ulong, c_ulonglong, c_ushort};`.
 
-/* stdbit.in.h 236-248: the live `_GL_STDBIT_HAS_BUILTIN_CLZ` arm (`__builtin_clz*` is
-   undefined for 0, hence C's `n ? … : 8 * sizeof n`), returning `int` as C declares.  */
-#[inline(always)]
-pub fn _gl_stdbit_clz (n: c_uint) -> c_int
-{
-  return if n != 0 { n.leading_zeros () as c_int }
-         else { (8 * std::mem::size_of_val (&n)) as c_int };
-}
-#[inline(always)]
-pub fn _gl_stdbit_clzl (n: c_ulong) -> c_int
-{
-  return if n != 0 { n.leading_zeros () as c_int }
-         else { (8 * std::mem::size_of_val (&n)) as c_int };
-}
-#[inline(always)]
-pub fn _gl_stdbit_clzll (n: c_ulonglong) -> c_int
-{
-  return if n != 0 { n.leading_zeros () as c_int }
-         else { (8 * std::mem::size_of_val (&n)) as c_int };
-}
-
-/* stdc_leading_zeros_ui … _ull (stdbit.in.h 317-345); each returns `_gl_stdbit_clz*`'s
-   `int` as the `unsigned int` the declaration names.  */
-#[inline(always)]
-pub fn stdc_leading_zeros_ui (n: c_uint) -> c_uint { _gl_stdbit_clz (n) as c_uint }
-#[inline(always)]
-pub fn stdc_leading_zeros_uc (n: c_uchar) -> c_uint
-{
-  return stdc_leading_zeros_ui (n as c_uint)
-         - 8 * (std::mem::size_of::<c_uint> () - std::mem::size_of_val (&n)) as c_uint;
-}
-#[inline(always)]
-pub fn stdc_leading_zeros_us (n: c_ushort) -> c_uint
-{
-  return stdc_leading_zeros_ui (n as c_uint)
-         - 8 * (std::mem::size_of::<c_uint> () - std::mem::size_of_val (&n)) as c_uint;
-}
-#[inline(always)]
-pub fn stdc_leading_zeros_ul (n: c_ulong) -> c_uint { _gl_stdbit_clzl (n) as c_uint }
-#[inline(always)]
-pub fn stdc_leading_zeros_ull (n: c_ulonglong) -> c_uint { _gl_stdbit_clzll (n) as c_uint }
-
-/* stdbit.in.h 427-439: the live `_GL_STDBIT_HAS_BUILTIN_CTZ` arm, `int` as declared.  */
-#[inline(always)]
-pub fn _gl_stdbit_ctz (n: c_uint) -> c_int
-{
-  return if n != 0 { n.trailing_zeros () as c_int }
-         else { (8 * std::mem::size_of_val (&n)) as c_int };
-}
-#[inline(always)]
-pub fn _gl_stdbit_ctzl (n: c_ulong) -> c_int
-{
-  return if n != 0 { n.trailing_zeros () as c_int }
-         else { (8 * std::mem::size_of_val (&n)) as c_int };
-}
-#[inline(always)]
-pub fn _gl_stdbit_ctzll (n: c_ulonglong) -> c_int
-{
-  return if n != 0 { n.trailing_zeros () as c_int }
-         else { (8 * std::mem::size_of_val (&n)) as c_int };
-}
-
-/* stdc_trailing_zeros_ui … _ull (stdbit.in.h 499-527).  The narrow variants OR in the
-   promoted type's all-ones mask (`(1 + (unsigned char) -1)`) so that a zero argument
-   takes the `8 * sizeof n` arm of the *promoted* width, exactly as C writes it.  */
-#[inline(always)]
-pub fn stdc_trailing_zeros_ui (n: c_uint) -> c_uint { _gl_stdbit_ctz (n) as c_uint }
-#[inline(always)]
-pub fn stdc_trailing_zeros_uc (n: c_uchar) -> c_uint
-{
-  return stdc_trailing_zeros_ui (n as c_uint | (1 + c_uchar::MAX as c_uint));
-}
-#[inline(always)]
-pub fn stdc_trailing_zeros_us (n: c_ushort) -> c_uint
-{
-  return stdc_trailing_zeros_ui (n as c_uint | (1 + c_ushort::MAX as c_uint));
-}
-#[inline(always)]
-pub fn stdc_trailing_zeros_ul (n: c_ulong) -> c_uint { _gl_stdbit_ctzl (n) as c_uint }
-#[inline(always)]
-pub fn stdc_trailing_zeros_ull (n: c_ulonglong) -> c_uint { _gl_stdbit_ctzll (n) as c_uint }
-
-/* stdc_count_ones_ui … _ull (stdbit.in.h 965-992); each calls `_gl_stdbit_popcount*`,
-   which is `__builtin_popcount*` - the narrow variants need no adjustment because
-   promoting a narrow value cannot add a one bit.  */
-#[inline(always)]
-pub fn stdc_count_ones_ui (n: c_uint) -> c_uint { n.count_ones () }
-#[inline(always)]
-pub fn stdc_count_ones_uc (n: c_uchar) -> c_uint { stdc_count_ones_ui (n as c_uint) }
-#[inline(always)]
-pub fn stdc_count_ones_us (n: c_ushort) -> c_uint { stdc_count_ones_ui (n as c_uint) }
-#[inline(always)]
-pub fn stdc_count_ones_ul (n: c_ulong) -> c_uint { n.count_ones () }
-#[inline(always)]
-pub fn stdc_count_ones_ull (n: c_ulonglong) -> c_uint { n.count_ones () }
-
-/* stdc_bit_width_ui … _ull (stdbit.in.h 1119-1147); each is `8 * sizeof n` minus the
-   leading zeros of that width, i.e. C's `8 * sizeof n - stdc_leading_zeros_* (n)`.  */
-#[inline(always)]
-pub fn stdc_bit_width_uc (n: c_uchar) -> c_uint
-{
-  return (8 * std::mem::size_of_val (&n)) as c_uint - stdc_leading_zeros_uc (n);
-}
-#[inline(always)]
-pub fn stdc_bit_width_us (n: c_ushort) -> c_uint
-{
-  return (8 * std::mem::size_of_val (&n)) as c_uint - stdc_leading_zeros_us (n);
-}
-#[inline(always)]
-pub fn stdc_bit_width_ui (n: c_uint) -> c_uint
-{
-  return (8 * std::mem::size_of_val (&n)) as c_uint - stdc_leading_zeros_ui (n);
-}
-#[inline(always)]
-pub fn stdc_bit_width_ul (n: c_ulong) -> c_uint
-{
-  return (8 * std::mem::size_of_val (&n)) as c_uint - stdc_leading_zeros_ul (n);
-}
-#[inline(always)]
-pub fn stdc_bit_width_ull (n: c_ulonglong) -> c_uint
-{
-  return (8 * std::mem::size_of_val (&n)) as c_uint - stdc_leading_zeros_ull (n);
-}
-
-/* stdc_memreverse8u8/16/32/64 (stdbit.in.h 1454-1502): C's `_GL_STDBIT_HAS_BUILTIN_BSWAP*`
-   arms, and C's own note that the ISO C uintN_t spelling is generalised here to
-   uint_leastN_t (same type on this target, stdint.in.rs).  */
-#[inline(always)]
-pub fn stdc_memreverse8u8 (value: uint_least8_t) -> uint_least8_t
-{
-  return value;
-}
-#[inline(always)]
-pub fn stdc_memreverse8u16 (value: uint_least16_t) -> uint_least16_t
-{
-  return value.swap_bytes ();
-}
-#[inline(always)]
-pub fn stdc_memreverse8u32 (value: uint_least32_t) -> uint_least32_t
-{
-  return value.swap_bytes ();
-}
-#[inline(always)]
-pub fn stdc_memreverse8u64 (value: uint_least64_t) -> uint_least64_t
-{
-  return value.swap_bytes ();
-}
+// **Ownership (integrator ruling, current round): the C23 API's *functions* live in
+// `include/stdbit.in.rs`** - the mirror of the template that generated this header - because
+// `tools/extract-abi.py` reads a mirror's *own* text for function bodies (measured: an empty
+// mirror reports 278 missing items, this file's `include!` only 274, and the ten `fn`s it carried
+// were still reported missing), and because two mirrors declaring one function is `E0428` in any
+// crate that sees both.  So this file keeps the generated header's **facts** (the arm readings
+// above) and the **generic dispatcher macros** below, and every unit reaches the functions through
+// the owner: `include!("stdbit.in.rs")`.
+//
+// The functions that used to live here (`_gl_stdbit_clz/clzl/clzll`, `_gl_stdbit_ctz*`,
+// `stdc_leading_zeros_*`, `stdc_trailing_zeros_*`, `stdc_count_ones_*`, `stdc_bit_width_*`,
+// `stdc_memreverse8u{8,16,32,64}`) moved to `stdbit.in.rs` with their C-line comments; what
+// remains to be written there is the rest of the API (the owner's ledger lists it family by
+// family).
 
 /* stdbit.in.h 350-355: `#define stdc_leading_zeros(n) (sizeof (n) == 1 ? … )`.  Rust
    has no `?:` chain, so the same five-way dispatch is an if/else expression; the casts

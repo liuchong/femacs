@@ -63,7 +63,9 @@ pub struct font_info
   pub x_display_id: c_uint,
 }
 
-/// C 89-92: the Cairo arm's one entry point (`USE_CAIRO && HAVE_X_WINDOWS` - dead on this
-/// target, recorded with its guard named).
-/// C: extern void ftcrfont_get_default_font_options (struct x_display_info *,
-/// C:                                               cairo_font_options_t *);
+// C 89-92: the Cairo arm's one entry point (`USE_CAIRO && HAVE_X_WINDOWS` - dead on this
+// target, recorded with its guard named).  A plain comment, not a doc comment: there is no Rust
+// item for it, and a `///` block with nothing under it does not compile (measured: the layout
+// probe's crate reported `expected item after doc comment` at this site, status 3.181).
+// C: extern void ftcrfont_get_default_font_options (struct x_display_info *,
+// C:                                               cairo_font_options_t *);

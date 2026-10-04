@@ -14,7 +14,7 @@
 // emit no symbol; lib/byteswap.rs re-exports them (P-81).
 include!("gnulib_config.rs");
 include!("stdint.in.rs");
-include!("stdbit.rs");
+include!("stdbit.in.rs");
 
 /* C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
 const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");

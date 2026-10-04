@@ -4,7 +4,7 @@ use std::ffi::{c_char, c_int, c_long, c_schar, c_short, c_uchar, c_uint, c_ulong
 
 include!("include/gnulib_config.rs");
 include!("include/stdint.in.rs");
-include!("include/stdbit.rs");
+include!("include/stdbit.in.rs");
 
 /* lib/stdc_leading_zeros.c: the qualifier this translation unit uses (PORTING.md 10.12).  */
 pub const _GL_STDC_LEADING_ZEROS_INLINE: () = _GL_EXTERN_INLINE;
