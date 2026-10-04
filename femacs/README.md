@@ -1,4 +1,4 @@
-# femacs — the Rust replication of GNU Emacs
+# femacs — the Rust rewrite
 
 This directory holds the ported sources and the tooling that builds them.
 
