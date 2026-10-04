@@ -3760,3 +3760,25 @@
   （`docs` 13 处 + 根 `README.md` 1 处许可句）、以及三个被移植单元里 **C 自己的字符串字面量**（`src/emacs.rs` 3、
   `src/callproc.rs` 3、`lib-src/etags.rs` 2；全部在 `declarations-allowlist.tsv` 里——docstring 门要与参照逐字对比，
   改不得）。`check-declarations` **13 sites / 0 forbidden / 13 allowed literals / 0 failures**。
+
+- **3.207 `lib/sys_time.in.h` 落地：模板镜像的活臂由**生成头**决定，而不是 evaluator（2026-10-04）**：
+  ① 判据：`--check emacs/lib/sys_time.in.h femacs/lib/include/sys_time.in.rs` 要的是**所有臂的并集**——
+  **21 宏 + 常量 `GNULIB_defined_struct_timeval` + 类型 `timeval`**（模板里的 `@NAME@` 条件工具读不了，P-66），
+  而 `check-cond-eval.py lib/sys_time.in.h` 给 `31 conditions, 1 unknown, 2 disagreements [NOT VERIFIED]`
+  ⇒ 这一件是**盲读**（P-51）：每个 `#if` 两支都带，死臂挂命名"非冻结一侧"的 feature。
+  ② 活臂全部来自**生成头**（实测，不是表）：`diff <(sed 's/@GUARD_PREFIX@/GL/g' emacs/lib/sys_time.in.h)
+  build/emacs-ref/lib/sys/time.h` 给出每个替换值，其中三条决定形态——`@HAVE_STRUCT_TIMEVAL@`=1（生成头 627 读
+  `#if !1 || 0`）⇒ **C 87-92 自带的 `struct timeval` 与 C 83 的 `timeval rpl_timeval` 都是死的**，端口的活
+  `timeval` 是系统半边 `sys_time.rs`（C 40/45 的 `#include_next`，P-26/P-50）；`@GNULIB_GETTIMEOFDAY@`=1 配
+  `@REPLACE_GETTIMEOFDAY@`=0（生成头 648/649）⇒ **SYS 臂活、`gettimeofday` 不改名**；`@HAVE_WINSOCK2_H@`=0
+  ⇒ winsock2 块（C 64-68）与 18 个 `*_used_without_including_*` 改名（C 142-231）**全死**，挂 `windowsnt`。
+  `_GL_CONFIG_H_INCLUDED`（C 30）与 C 39 的系统头 guard 就是那两条 disagreement 的来源，两者都记进台账表格。
+  ③ **"这一件没有消费者"也是实测的**：`cargo run -p xtask -- build-tu lib/sys_time.in.h` → 3 条 E0425
+  （`timeval`/`c_void`/`c_int`）；同类模板镜像 `build-tu lib/stdlib.in.h` → E0425 `c_int`/`c_char`。原因是
+  `.in.h` 镜像的标量来自 includer（PORTING.md 0.1-9），而本 target 的消费者直接 include **系统半边**
+  （`src/include/systime.rs` 40、`lib/boot-time.rs` 51、`lib/include/boot-time-aux.rs` 34）——这条写进台账
+  `docs/ports/include-sys_time.in.md` 的 Decisions（与 `include-stdlib.in.md` 258 的"无 build-tu 消费者"同形）。
+  ④ 读数：`gen-port-inventory` **590 files、done=575、wip=10、todo=5**（由 573/10/7 推进一格）；
+  **剩下的 5 件 todo**：`lib/cdefs.h`(900)、`lib/signal.in.h`(536)、`lib/stdcountof.in.h`(124)、
+  `lib/sys_select.in.h`(342)、`src/xterm.h`(2,045)（`src/w32term.h` 已被 Poincare lane 落盘、转 wip）。
+  门：`check-declarations` 13/0、`check-mirror-dupes` 1 duplicate/1 ratchet/0、`check-target-names` 621/593/0。
