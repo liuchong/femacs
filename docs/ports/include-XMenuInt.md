@@ -44,7 +44,12 @@ includes this header and no probe compiles it; the text gate is the whole accept
    `docs/ports/excluded-macros.txt` (the `MINI_GMP_LIMB_TYPE` / `file_offset` shape).
 4. `extern int (*_XMEventHandler)(XEvent*);` (C 62) is a nullable C function pointer in a
    variable, so the port's static is `Option<unsafe extern "C" fn (...)>` (P-27).
-5. C 1-19's opening declaration block and C 24-33's title comment are the file's own text; the
+5. C 47-48's two includes form a diamond (`XMenuInt.h` includes `X10.h` and `XMenu.h`, and
+   `XMenu.h` includes `X10.h` again).  C's include guards collapse it; for Rust the equivalent
+   is `xtask`'s include-graph expansion, which de-duplicates by file (PORTING.md 0.1-4), so the
+   two `include!` lines are correct as written even though a plain `rustc` of this mirror alone
+   reports `E0428` for X10's names.
+6. C 1-19's opening declaration block and C 24-33's title comment are the file's own text; the
    opening block is not part of the mirror (PORTING.md 0.1-19).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/oldXMenu/XMenuInt.h

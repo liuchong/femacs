@@ -13,6 +13,16 @@
 // those headers, so they keep C's spelling and are left for the unit that eventually uses
 // this header to supply (PORTING.md P-26/P-72 (3)).
 
+/*
+ * XMenu:	MIT Project Athena, X Window system menu package
+ *
+ *	XMenu.h -	Include file for the MIT Project Athena
+ *			XMenu X window system menu package.
+ *
+ *	Author:		Tony Della Fera, DEC
+ *			August, 1984
+ */
+
 /* C 37: `#include <stdlib.h>` - the port has a <stdlib.h> mirror (`lib/include/stdlib.rs`),
    but this header uses nothing from it, so it is not pulled in (P-26).  C 38's
    `#include <X11/Xutil.h>` has no mirror at all.  */
@@ -214,11 +224,11 @@ pub type XMSelect = _xmselect;
  */
 /// XMenu.h 172: `typedef enum _xmstyle { LEFT, RIGHT, CENTER } XMStyle;`
 pub type XMStyle = c_int;
-/// XMenu.h 173: `LEFT` (the first member: 0)
+/// XMenu.h 173: `LEFT` (the first member: 0) - /* Left oriented object. */
 pub const LEFT: XMStyle = 0;
-/// XMenu.h 174: `RIGHT` (1)
+/// XMenu.h 174: `RIGHT` (1) - /* Right oriented object. */
 pub const RIGHT: XMStyle = 1;
-/// XMenu.h 175: `CENTER` (2)
+/// XMenu.h 175: `CENTER` (2) - /* Center oriented object. */
 pub const CENTER: XMStyle = 2;
 
 /*
@@ -229,9 +239,9 @@ pub const CENTER: XMStyle = 2;
  */
 /// XMenu.h 186: `typedef enum _xmmode { BOX, INVERT } XMMode;`
 pub type XMMode = c_int;
-/// XMenu.h 187: `BOX` (the first member: 0)
+/// XMenu.h 187: `BOX` (the first member: 0) - /* BOXed graphic rendition. */
 pub const BOX: XMMode = 0;
-/// XMenu.h 188: `INVERT` (1)
+/// XMenu.h 188: `INVERT` (1) - /* INVERTed graphic rendition. */
 pub const INVERT: XMMode = 1;
 
 /*
@@ -394,3 +404,4 @@ unsafe extern "C" {
   /// XMenu.h 289: `void XMenuSetAEQ(XMenu *menu, int aeq);`
   pub fn XMenuSetAEQ (menu: *mut XMenu, aeq: c_int);
 }
+/* Don't add after this point. */

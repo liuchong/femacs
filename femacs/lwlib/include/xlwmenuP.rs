@@ -14,7 +14,10 @@
 // <X11/CoreP.h> and <X11/Xlib.h>, and the cairo/Xft ones (`XftDraw`, `XftFont`, `XftColor`)
 // from "lwlib-utils.h" and <X11/Xft/Xft.h>; the port has no mirror for any of those headers,
 // so they keep C's spelling and are left for the unit that eventually uses this header to
-// supply (PORTING.md P-26/P-72 (3)).
+// supply (PORTING.md P-26/P-72 (3)).  `String` is X11's `char *`, and the name collides with
+// the Rust prelude's `std::string::String`: the unit that uses this header must define the
+// alias, because a module item shadows the prelude and a missing alias would silently widen
+// `fontName` from a pointer to a 24-byte `String`.
 //
 // C 26-32's two `#if` regions are dead in the frozen configuration and are carried as
 // `#[cfg (feature = ...)]` text (PORTING.md P-51): the cairo/Xft arm, and the `HAVE_X_I18N`

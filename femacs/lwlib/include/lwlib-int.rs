@@ -76,8 +76,11 @@ pub struct _widget_creation_entry
 pub type widget_creation_entry = _widget_creation_entry;
 
 unsafe extern "C" {
+  /* update all other instances of a widget.  Can be used in a callback when
+     a widget has been used by the user */
   /// lwlib-int.h 65-66: `void lw_internal_update_other_instances (Widget, XtPointer, XtPointer);`
   pub fn lw_internal_update_other_instances (w: Widget, a: XtPointer, b: XtPointer);
+  /* get the widget_value for a widget in a given instance */
   /// lwlib-int.h 69-70: `widget_value* lw_get_widget_value_for_widget (widget_instance *, Widget);`
   pub fn lw_get_widget_value_for_widget (instance: *mut widget_instance,
                                          w: Widget) -> *mut widget_value;

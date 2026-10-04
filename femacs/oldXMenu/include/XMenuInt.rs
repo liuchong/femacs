@@ -12,6 +12,20 @@
 // port has no mirror for that header, so they keep C's spelling and are left for the unit that
 // eventually uses this header to supply (PORTING.md P-26/P-72 (3)).
 
+/*
+ * XMenu:	MIT Project Athena, X Window system menu package
+ *
+ *	XMenuInternal.h - Internal menu system include file for the
+ *			MIT Project Athena XMenu X window system
+ *			menu package.
+ *
+ *	Author:		Tony Della Fera, DEC
+ *			October, 1985
+ */
+
+/* Avoid warnings about redefining NULL by including <stdio.h> first;
+   the other file which wants to define it (<stddef.h> on Ultrix
+   systems) can deal if NULL is already defined, but <stdio.h> can't.  */
 /* C 38's `#include <config.h>`, C 40's `#include <attribute.h>` and C 45's
    `#include <stdio.h>`: this header uses nothing from any of them (the C comment below says
    why `<stdio.h>` is there at all), so none of their mirrors is pulled in (PORTING.md P-26).

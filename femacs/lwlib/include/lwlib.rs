@@ -45,6 +45,7 @@ pub type LWLIB_ID = c_uint;
 /// lwlib.h 64-86: `enum menu_separator` - the port spells the C enum as `c_int` with one
 /// constant per member (PORTING.md 1.3), in C's declaration order.
 pub type menu_separator = c_int;
+/* These values are Motif compatible.  */
 /// lwlib.h 68: `SEPARATOR_NO_LINE` (the first member: 0)
 pub const SEPARATOR_NO_LINE: menu_separator = 0;
 /// lwlib.h 69: `SEPARATOR_SINGLE_LINE` (1)
@@ -63,6 +64,7 @@ pub const SEPARATOR_SHADOW_ETCHED_OUT: menu_separator = 6;
 pub const SEPARATOR_SHADOW_ETCHED_IN_DASH: menu_separator = 7;
 /// lwlib.h 76: `SEPARATOR_SHADOW_ETCHED_OUT_DASH` (8)
 pub const SEPARATOR_SHADOW_ETCHED_OUT_DASH: menu_separator = 8;
+/* The following are supported by Lucid menus.  */
 /// lwlib.h 79: `SEPARATOR_SHADOW_DOUBLE_ETCHED_IN` (9)
 pub const SEPARATOR_SHADOW_DOUBLE_ETCHED_IN: menu_separator = 9;
 /// lwlib.h 80: `SEPARATOR_SHADOW_DOUBLE_ETCHED_OUT` (10)
@@ -118,18 +120,29 @@ unsafe extern "C" {
   pub fn lw_pop_down_all_widgets (id: LWLIB_ID);
   /// lwlib.h 114: `void lw_popup_menu (Widget, XEvent *);`
   pub fn lw_popup_menu (w: Widget, event: *mut XEvent);
+  /* Toolkit independent way of focusing on a Widget at the Xt level. */
   /// lwlib.h 117: `void lw_set_keyboard_focus (Widget parent, Widget w);`
   pub fn lw_set_keyboard_focus (parent: Widget, w: Widget);
+  /* Silly Energize hack to invert the "sheet" button */
   /// lwlib.h 120: `void lw_show_busy (Widget w, Boolean busy);`
   pub fn lw_show_busy (w: Widget, busy: Boolean);
+  /* Silly hack to assist with Lucid/Athena geometry management. */
   /// lwlib.h 123: `void lw_refigure_widget (Widget w, Boolean doit);`
   pub fn lw_refigure_widget (w: Widget, doit: Boolean);
+  /* Toolkit independent way of determining if an event occurred on a
+     menubar.  */
   /// lwlib.h 127: `Boolean lw_window_is_in_menubar (Window win, Widget menubar_widget);`
   pub fn lw_window_is_in_menubar (win: Window, menubar_widget: Widget) -> Boolean;
+  /* Manage resizing: TRUE permits resizing widget w; FALSE disallows it. */
   /// lwlib.h 130: `void lw_allow_resizing (Widget w, Boolean flag);`
   pub fn lw_allow_resizing (w: Widget, flag: Boolean);
+  /* Set up the main window. */
   /// lwlib.h 133-135: `void lw_set_main_areas (Widget parent, Widget menubar, Widget work_area);`
   pub fn lw_set_main_areas (parent: Widget, menubar: Widget, work_area: Widget);
+  /* Value is non-zero if LABEL is a menu separator.  If it is, *TYPE is
+     set to an appropriate enumerator of type enum menu_separator.
+     MOTIF_P non-zero means map separator types not supported by Motif
+     to similar ones that are supported.  */
   /// lwlib.h 142: `int lw_separator_p (const char *label, enum menu_separator *type, int motif_p);`
   pub fn lw_separator_p (label: *const c_char, r#type: *mut menu_separator,
                          motif_p: c_int) -> c_int;

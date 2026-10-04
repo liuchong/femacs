@@ -36,9 +36,13 @@ compiles it; the text gate is the whole acceptance (docs/status.md 3.31/3.102).
    keeps `xft_draw`, `fontSet`, `font_extents`, `default_face`, `xft_font` and the four
    `xft_*` colours in the mirror.  The feature names follow C's own conditions
    (`use_cairo_or_have_xft`, `have_x_i18n`), the `linux_or_android` shape.
-3. Each `typedef struct _tag { ... } NAME;` is the tag struct plus `pub type NAME = _tag;`; the
+3. `String` is X11's `char *` (C 68's `fontName`), and the name collides with the Rust
+   prelude's `std::string::String`: the unit that eventually uses this header must define the
+   alias (a module item shadows the prelude), or the field silently widens from a pointer to a
+   24-byte `String` - a layout change no text gate can see.
+4. Each `typedef struct _tag { ... } NAME;` is the tag struct plus `pub type NAME = _tag;`; the
    anonymous `XlwMenuClassPart` (C 143-146) is the struct named after its typedef.
-4. `extern XlwMenuClassRec xlwMenuClassRec;` (C 156) is a mutable static declaration in the
+5. `extern XlwMenuClassRec xlwMenuClassRec;` (C 156) is a mutable static declaration in the
    `extern` block (PORTING.md 0.1-2).
 
 Evidence: `python3 tools/extract-abi.py --check emacs/lwlib/xlwmenuP.h

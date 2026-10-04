@@ -32,7 +32,7 @@ includes this header and no probe compiles it; the text gate is the whole accept
 1. `Display` and `XID` are X11 names (`<X11/Xlib.h>`) with no mirror in the port; they keep C's
    spelling and are left for the using unit (PORTING.md P-26/P-72 (3)).
 2. The two anonymous `typedef struct { ... }` records (`Vertex`, `XAssocTable`) are named after
-   their typedefs, the `ctags`/`itree` shape used elsewhere in the port (PORTING.md 1.3).
+   their typedefs, the `stdio-impl.rs` `FILE = __sFILE` / `struct itimerval` shape (PORTING.md 1.3).
 3. `XCreateAssocTable`/`XLookUpAssoc` are declarations only; the definitions are the units
    `XCrAssoc.c`/`XLookAssoc.c`, which the frozen configuration does not build (they are the
    empty shapes of docs/status.md 3.31).
