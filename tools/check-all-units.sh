@@ -54,14 +54,17 @@ while read -r line; do
     *) echo "FAIL $line: $out"; fails=$((fails + 1)); continue ;;
   esac
   stem=$(basename "$line"); stem=${stem%.*}
+  # Rust crate names take no hyphens; `lib-src/make-fingerprint.c` and `src/android-emacs.c` do
+  # (measured 2026-10-05: `--crate-name make-fingerprint` is rejected outright).
+  crate=$(printf '%s' "$stem" | tr '-' '_')
   root_rs="$root/build/femacs/units/$stem/_root.rs"
   if [ ! -f "$root_rs" ]; then
     echo "FAIL $line: build-tu left no $root_rs to check"; checking_fails=$((checking_fails + 1)); continue
   fi
   checking_n=$((checking_n + 1))
   cout=$(rustc --edition 2024 --crate-type=lib -C panic=abort -C codegen-units=1 -C opt-level=0 \
-         --cfg enable_checking --crate-name "$stem" --emit=metadata \
-         -o "$scratch/$stem.rmeta" "$root_rs" 2>&1) || {
+         --cfg enable_checking --crate-name "$crate" --emit=metadata \
+         -o "$scratch/$crate.rmeta" "$root_rs" 2>&1) || {
     where=$(printf '%s\n' "$cout" | grep -c "$root_rs" || true)
     echo "FAIL $line (enable_checking): $where error line(s) in the unit text, $(printf '%s\n' "$cout" | grep -c '^error' || true) error(s) total"
     printf '%s\n' "$cout" | grep '^error' | head -3 | sed 's/^/    /'
