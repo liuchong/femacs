@@ -1740,3 +1740,28 @@
   顺带核实：同批工单里的 `_count_lines` **不是**缺陷——C 的 `count_lines` 定义在 `src/xdisp.c:29897`，
   属于在飞 xdisp lane 的余量（`fns.o`/`lread.o` 引用它是忠实的）。
 
+- **3.115 `lib-src/make-docfile.c` 入树：1232 行 C、21 个函数、2 个结构体（2026-10-04 第 100 轮）**：
+  lane 交回完整单元 **`femacs/lib-src/make-docfile.rs`（1,686 行 / C 1,232 行）**与台账
+  **`docs/ports/make-docfile.md`**（`- [ ]` 29 → 0）。集成侧要做的是它无权做的两笔共享行：
+  ① **`docs/ports/macro-body-notes.tsv` 追加 5 行**——`error`/`fatal` + `va_end`（C 的 `va_end (ap);` 与既有的
+  va_list/va_start 同类，P-04）、`write_c_args` + `uninit`（`UNINIT` 在冻结配置为空）、`write_globals` +
+  `break,case,default,switch`（C 的 `switch` 变 `match`，2.2）、`scan_c_stream` + `goto`（C 的 `eof:` 标签与
+  前向 `goto` 变 `'eof` 标签循环，2.2）；② **`docs/ports/line-drift-tolerance.tsv` 追加 `make-docfile 0.38`**——
+  实测漂移 **36.85%**（C 的紧凑风格：一行 `if (…) continue;`、`case …: …; break;`、
+  `do c = getc (infile); while (…)`，在端口里各要一个花括号块，纯粹的花括号行 **504 对 C 的 201**），
+  按"实测 + 0.01"取 0.38（hexl 0.55 / make-fingerprint 0.45 同类）。
+  **死臂**：C 53-58（`#undef fopen` + `<direct.h>`）与 C 60-67（`#undef chdir`）在冻结配置里是**纯预处理器行、
+  没有语句**，按 P-08 记账不转写；证据 `python3 tools/check-cond-eval.py lib-src/make-docfile.c` →
+  `2 conditions, 0 unknown, 0 disagreements [VERIFIED]`。
+  实测（集成者在本次提交的工作树上重跑，不是复述 lane 的数字）：`build-tu lib-src/make-docfile.c` = `built`；
+  `extract-abi.py --check emacs/lib-src/make-docfile.c femacs/lib-src/make-docfile.rs` = **`OK`**
+  （此前 5 条 "does not mention" + 1 条行数；共享行落地后全消）；手工 `rustc --crate-type=lib --emit=metadata`
+  = exit 0；`check-globals` = 274 units / 0 缺定义；`check-declarations` = `8 declaration sites
+  (0 forbidden, 8 allowed literals), 0 failures`；`check-verbatim` = `6 trees, 4607 files, 0 failures`；
+  `check-mirror-dupes` = `4 duplicate declaration(s), 1 ratchet row(s), 3 failure(s)`——**3 条全是别的 lane
+  在飞的配对**（`femacs/src/xdisp.rs` 对 `femacs/src/include/window.rs` 的 `window_wants_mode_line`/
+  `window_wants_tab_line` 等，Sartre/Lagrange 的窗口 lane），没有一条涉及本单元。
+  `docs/port-inventory.md` 复算：**590 files, done=454, wip=32, todo=104**（上一批 done=453/todo=105）。
+  **未跑**：`extract-abi.py --all`（20 分钟级，留给整树门那一轮）与 `gate-load`（本次没有改链接相关的代码）。
+  同一笔提交里还带上 lane 并发写进 `macro-body-notes.tsv` 的一行 `WINDOW_BOTTOM_DIVIDER_WIDTH`
+  （在飞的窗口 lane 的注记，纯追加，不影响本单元）。

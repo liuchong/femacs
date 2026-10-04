@@ -95,6 +95,7 @@ WINDOW_PSEUDO_P	pseudo_window_p	same packed-flag unit (bit 11)
 WINDOW_HAS_FRINGES_OUTSIDE_MARGINS	fringes_outside_margins	same packed-flag unit (bit 12)
 WINDOW_BUFFER	qnil	C passes `Qnil`; the port's nil is the function `lisp_h_Qnil ()` (P-17)
 WINDOW_BUFFER_LOCAL_VALUE	qnil	same (P-17); the call itself is C's `buffer_local_value`
+WINDOW_BOTTOM_DIVIDER_WIDTH	pseudo_window_p	`pseudo_window_p` is one of window.h's nineteen packed 1-bit flags; the port writes C's third disjunct as `WINDOW_PSEUDO_P (w)` (the mirror's reader of `window.bits`, bit 11)
 FRAME_GARBAGED_P	garbaged	frame.h packs these flags into two 4-byte units; the port reads `frame.bits1` and masks
 FRAME_ICONIFIED_P	iconified	same packed-flag unit 1
 FRAME_NO_SPLIT_P	no_split	same packed-flag unit 1
@@ -1092,3 +1093,8 @@ MON_*	*	nt/inc/langinfo.h 46-57: each `#define MON_n MON_n` is the same `#if` sp
 _NL_PAPER_WIDTH	*	nt/inc/langinfo.h 59: self-referential `#define` (see CODESET's row)
 _NL_PAPER_HEIGHT	*	nt/inc/langinfo.h 60: self-referential `#define` (see CODESET's row)
 timer_check_2	continue	keyboard.c 4763-4905: C's two `continue`s re-test the `do { … } while (CONSP (timers) || CONSP (idle_timers))` condition at the body's end, an edge Rust's `continue` does not have; the port makes the body the labelled block `'timers_and_idle_timers` and each `continue` a `break 'timers_and_idle_timers`, with the condition as the loop's break test (PORTING.md 2.2's loop shape)
+error	va_end	make-docfile: C 的 `va_end (ap);` 与既有的 va_list/va_start 同类，P-04（`...` 就是列表），本行补齐 va_end
+fatal	va_end	make-docfile: 同 error 行
+write_c_args	uninit	make-docfile: C 的 `char *ident_start UNINIT;`，UNINIT 在冻结配置为空，端口写它代表的空指针（P-04/1.5，cons_to_unsigned 先例）
+write_globals	break,case,default,switch	make-docfile: C 的 `switch (globals[i].type)` 变 match，臂序照 C（2.2，doprnt/fcntl 先例）
+scan_c_stream	goto	make-docfile: C 的 `eof:` 标签与前向 `goto eof` 变 `'eof` 标签循环（2.2；`eof` 本身经 `EOF` 常量仍在）

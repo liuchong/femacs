@@ -23,9 +23,9 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 485 |
-| 其中 done / wip | 453 / 32 |
-| 待开工 | 105 |
+| 已有目标文件 | 486 |
+| 其中 done / wip | 454 / 32 |
+| 待开工 | 104 |
 
 ## 2 按目录
 
@@ -33,7 +33,7 @@
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
 | `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 48 |
-| `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 5 |
+| `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 4 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 0 |
 | `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
 | `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 0 |
@@ -48,7 +48,7 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 10 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 37 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 36 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 48 |
 
@@ -99,7 +99,7 @@
 | `lib-src/emacsclient.c` | 2,524 | 52 | 0 | 11 | 4 | 4 | 15 | F | `femacs/lib-src/emacsclient.rs` | todo |
 | `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 62 | 0 | 12 | F | `femacs/lib-src/etags.rs` | todo |
 | `lib-src/hexl.c` | 221 | 3 | 0 | 0 | 0 | 0 | 1 | F | `femacs/lib-src/hexl.rs` | done |
-| `lib-src/make-docfile.c` | 1,232 | 21 | 0 | 0 | 10 | 15 | 6 | F | `femacs/lib-src/make-docfile.rs` | todo |
+| `lib-src/make-docfile.c` | 1,232 | 21 | 0 | 0 | 10 | 15 | 6 | F | `femacs/lib-src/make-docfile.rs` | done |
 | `lib-src/make-fingerprint.c` | 178 | 1 | 0 | 2 | 0 | 0 | 1 | F | `femacs/lib-src/make-fingerprint.rs` | done |
 | `lib-src/movemail.c` | 871 | 13 | 0 | 7 | 1 | 0 | 1 | F | `femacs/lib-src/movemail.rs` | done |
 | `lib-src/ntlib.c` | 601 | 24 | 0 | 2 | 0 | 2 | 4 | F | `femacs/lib-src/ntlib.rs` | done |
