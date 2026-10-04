@@ -188,9 +188,6 @@ unsafe extern "C" {
   fn VFORK () -> pid_t;
   /// C: void _exit (int) _Noreturn   -- <unistd.h>
   fn _exit (status: c_int) -> !;
-  /// C: <unistd.h>'s `extern char **environ;` (C 28-30 declares it explicitly only on
-  /// MSDOS; on the frozen target the system header supplies it).
-  pub static mut environ: *mut *mut c_char;
 }
 
 /* `<spawn.h>`: the live `USABLE_POSIX_SPAWN` arm (C 37-50).  Darwin defines
@@ -249,10 +246,9 @@ const TIOCSCTTY: c_ulong = 536900705;
 /// row's twin).
 const SIG_DFL: usize = 0;
 
-/// <unistd.h>: `#define STDIN_FILENO 0`, `STDOUT_FILENO 1`, `STDERR_FILENO 2` (measured).
-const STDIN_FILENO: c_int = 0;
-const STDOUT_FILENO: c_int = 1;
-const STDERR_FILENO: c_int = 2;
+/* <unistd.h>: `STDIN_FILENO`/`STDOUT_FILENO`/`STDERR_FILENO` now come from the unistd.in.rs
+   mirror (2026-10-04); this unit's use-site copies are gone, and the mirror is the single
+   declaration point (PORTING.md 0.1-3/P-26).  */
 
 /// <unistd.h>: `#define _SC_ARG_MAX 1` (the frozen macro table's value; the lib mirrors do
 /// not carry the `sysconf` names).
@@ -328,9 +324,10 @@ pub const CALLPROC_PIPEREAD: c_int = 2;
 /* A bound on the number of file descriptors.  */
 pub const CALLPROC_FDS: c_int = 3;
 
-/* C 28-30's `#ifdef MSDOS` arm declares `extern char **environ;`; the port declares it
-   once, in the use-site block above, because the frozen target's <unistd.h> declares the
-   same object and two declarations of one name are E0428.  */
+/* C 28-30's `#ifdef MSDOS` arm declares `extern char **environ;`.  It now comes from the
+   unistd.in.rs mirror (2026-10-04): the frozen target's <unistd.h> declares the same object,
+   and the port keeps one declaration per name (PORTING.md 0.1-3; two declarations were
+   E0428).  */
 
 /* C 59-64's `#ifdef WINDOWSNT` arm's `#define _P_NOWAIT 1` (from process.h); its three
    `#include`s are the ledger's.  */

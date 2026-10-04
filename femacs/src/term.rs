@@ -215,9 +215,9 @@ unsafe extern "C" {
                   error_name: *mut *const c_char) -> Lisp_Object;
 }
 
-/* C's `O_IGNORE_CTTY` is a GNU extension; the frozen darwin target does not define it
-   (sysdep.rs records the same value).  */
-pub const O_IGNORE_CTTY: c_int = 0;
+/* C's `O_IGNORE_CTTY` is a GNU extension; the frozen darwin target does not define it, and
+   the fcntl mirror this unit includes declares the fallback (0) - one spelling per construct
+   (PORTING.md 0.1-3).  */
 
 /* <stdio.h>'s three streams, with the Darwin spellings cm.rs uses for stdout.  */
 unsafe extern "C" {

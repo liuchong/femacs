@@ -2010,3 +2010,31 @@
   实测：`--all` **489 done / 13 in progress / 0 failing**；`check-mirror-dupes` `1 ratchet row / 0 failure`、
   `check-declarations` `13 sites (0 forbidden, 13 allowed literals) / 0 failures`、`check-verbatim` 0、
   `check-globals` `283 units / 0`；`port-inventory` 复算 **590 files, done=482, wip=20, todo=88**。
+
+- **3.131 七个 gnulib 头镜像收口（sys_types/time/fcntl/gettext + unistd/sys_stat/stdio-impl），以及只有"编译"能发现的三个 `E0428`（2026-10-04 第 100 轮第十四批）**：
+  ① **`sys_types.in.h`**（135 行镜像，16→0）、**`time.in.h`**（233，20→0）、**`fcntl.in.h`**（350，68→0）、
+  **`gettext.h`**（351，45→0）四个按冻结生成头（`build/emacs-ref/lib/{…}`）落地：模板自身定义的与系统头提供的两半
+  都写全，死臂按 P-51 以 `#[cfg (feature = "…")]` 命名 C 条件承载，取值全部用冻结 clang 实测并写进台账。
+  形状上有一处**依赖"first-wins"的写法**需要记录：`fcntl.in.h`/`time.in.h`/`gettext.h` 里"系统已定义、模板的
+  `#ifndef` 臂是死文本"的名字，写成**同名两条臂**（C 的臂在前、`#[cfg]` 门控；冻结值在后、不门控）——
+  抽取器读"第一条定义"因而比对的是 C 的臂，rustc 只编译未门控那条，运行期是冻结值；`acl-internal.rs` 的
+  `MODE_INSIDE_ACL` 是同一先例。若将来评审不接受这个形状，替代是 17 行 `excluded-macros.txt` + 约 20 个
+  调用点改 `NAME!()`。
+  ② **`unistd.in.h`**（330，68→0）、**`sys_stat.in.h`**（290，40→0）、**`stdio-impl.h`**（251，40→0）同理；
+  unistd 的两个 `_GL_*_INLINE` 走排除表（两个单元自己 define 限定名，镜像落名会 `E0428`）。
+  ③ **三个 `E0428` 全部是"编译"发现的、不是静态门发现的**（这条教训由 unistd lane 明确写进台账）：
+  镜像新带的名字与**已竣工单元**的用点副本重复——`src/callproc.rs`（`*_FILENO`/`environ`）、
+  `lib-src/emacsclient.rs`（`STDOUT_FILENO`/`environ`）、`lib/faccessat.rs`（`_GL_INCLUDING_UNISTD_H`），
+  外加本批由集成者修掉的 `lib-src/etags.rs` 的 `pub const STDOUT_FILENO`。**`--all` 与四个 check 门都不编译**，
+  所以这类缺陷只有 `xtask gate-fast`（建单元段）或"逐消费者 build-tu"能看见——本轮先把 `gate-fast` 从
+  "卡在 inventory"推到"能跑到建单元"（3.117/3.129 的收益），它当场就抓出了 emacsclient 与 etags 两条。
+  ④ **keyboard lane 的一处语义修正（值得记）**：前一 lane 把 C 4108-4110 那段
+  `#if defined (USABLE_SIGIO) || defined (USABLE_SIGPOLL)` 里的 `gobble_input ();` 当成死文本（写成
+  `#[cfg (feature = "usable_sigio_or_usable_sigpoll")]`），而冻结表里 **`USABLE_SIGIO 1`**
+  （macros.tsv 3829，clang 实测该条件为真）——那会让一次**活调用被静默丢掉**。本 lane 改成活文本并在台账注明，
+  同一条件在 C 8419-8445、8515-8519 两处也一律按活文本处理。另：keyboard 覆盖 **C 96-8574**（8,030 → 9,355 行，
+  台账 137 → 103 未勾），scaffold 14 → 9；`--check` 的 "does not mention" 已由集成者补 3 行清零。
+  验证：七个镜像 `--check` 全 `OK`；代表消费者 `build-tu` 全 `built`（etags/emacsclient/keyboard/xdisp/callproc/
+  sysdep/fcntl/timefns/regcomp/faccessat/term）；`check-mirror-dupes` `1 ratchet row / 0 failure`、
+  `check-declarations` `13 sites (0 forbidden, 13 allowed literals) / 0 failures`、`check-verbatim` 0、
+  `check-globals` `283 units / 0`；`port-inventory` 复算 **590 files, done=489, wip=13, todo=88**。

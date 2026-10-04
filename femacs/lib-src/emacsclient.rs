@@ -240,8 +240,9 @@ pub const SO_LINGER: c_int = 0x80;
 pub const SO_ERROR: c_int = 0x1007;
 pub const SO_RCVTIMEO: c_int = 0x1006;
 
-/// `<unistd.h>`: `#define STDOUT_FILENO 1` (measured).
-pub const STDOUT_FILENO: c_int = 1;
+/* `<unistd.h>`'s `STDOUT_FILENO` now comes from the unistd.in.rs mirror (2026-10-04); this
+   unit's use-site copy is gone, and the mirror is the single declaration point (PORTING.md
+   0.1-3/P-26).  */
 
 /// `<sys/wait.h>`: `#define WUNTRACED 0x00000002` / `#define WCONTINUED 0x00000010`
 /// (measured).
@@ -326,10 +327,10 @@ unsafe extern "C" {
   pub fn waitpid (pid: pid_t, status: *mut c_int, options: c_int) -> pid_t;
   /// `<unistd.h>`: `size_t confstr (int, char *, size_t);`
   pub fn confstr (name: c_int, buf: *mut c_char, len: size_t) -> size_t;
-  /// `<unistd.h>`'s `extern char **environ;` -- C 2225 reads it in `main`.  On this target the
-  /// system header spells it `(*_NSGetEnviron ())` (the reference object imports
-  /// `__NSGetEnviron`); the port declares the object the way `src/callproc.rs` 191 does.
-  pub static mut environ: *mut *mut c_char;
+  /* `<unistd.h>`'s `environ` now comes from the unistd.in.rs mirror (2026-10-04): C 2225
+     reads it in `main`, and the mirror declares both of the header's arms - the object itself
+     and `(*_NSGetEnviron ())` (which is the spelling this target's system header uses, and the
+     symbol the reference object imports).  The use-site copy is gone (PORTING.md 0.1-3).  */
   /// `<arpa/inet.h>`: `in_addr_t inet_addr (const char *);`
   pub fn inet_addr (cp: *const c_char) -> u32;
   /// `<arpa/inet.h>`: `char *inet_ntoa (struct in_addr);`

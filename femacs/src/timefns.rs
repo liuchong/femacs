@@ -48,7 +48,8 @@
 // seven functions this unit defines (it gained the module + glob import that lets this unit
 // define them without E0428 - see that mirror's note).  Names no mirror carries are declared
 // at their use site (the terminal.rs/filelock.rs shape): `tzalloc`, `tzfree`,
-// `clock_gettime`, `clock`, `synchronize_system_time_locale`, `xputenv`, `PRIdMAX`, `EDOM`.
+// `clock_gettime`, `clock`, `synchronize_system_time_locale`, `xputenv`, `PRIdMAX`, `EDOM`
+// (`tzalloc`/`tzfree` moved to the time.in.rs mirror's declaration module).
 //
 // `#if` classification (PORTING.md 7.2): every condition here is a *constant* condition of
 // the frozen configuration, except the `#include` selections (C 47/202/2051), which the
@@ -105,12 +106,10 @@ const CLOCK_MONOTONIC: c_int = 6;
 #[cfg (feature = "clock_monotonic_coarse")]
 const CLOCK_MONOTONIC_COARSE: c_int = 4;
 
-/* Declared at their use site; the mirrors this unit includes do not carry them.  */
+/* Declared at their use site; the mirrors this unit includes do not carry them.  (The
+   time.in.rs mirror does carry `tzalloc`/`tzfree` now, so those two are read from it -
+   PORTING.md 0.1-3/P-26 one spelling per construct.)  */
 unsafe extern "C" {
-  /* char *tzalloc (char const *);  (time.in.h 512; gnulib's time_rz module)  */
-  fn tzalloc (name: *const c_char) -> timezone_t;
-  /* void tzfree (timezone_t);  (time.in.h 520)  */
-  fn tzfree (tz: timezone_t);
   /* int clock_gettime (clockid_t, struct timespec *);  */
   fn clock_gettime (clockid: c_int, tp: *mut timespec) -> c_int;
   /* clock_t clock (void);  */

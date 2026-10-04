@@ -1156,9 +1156,8 @@ unsafe extern "C" {
   pub fn snprintf (s: *mut c_char, maxlen: size_t, format: *const c_char, ...) -> c_int;
 }
 
-/// `<unistd.h>`: `#define STDOUT_FILENO 1` (measured), the way `lib-src/emacsclient.rs` 243
-/// carries it.
-pub const STDOUT_FILENO: c_int = 1;
+/* `STDOUT_FILENO` comes from the unistd mirror now (the use-site const is gone: the
+   mirror landed it, PORTING.md 0.1-3; `build-tu` found the duplicate as an E0428).  */
 
 /* `<stdlib.h>`: `int system (const char *command);` -- the sysdep.rs 953 declaration is for
    the core; this program has no `lisp.h` mirror, so it declares it here.  */

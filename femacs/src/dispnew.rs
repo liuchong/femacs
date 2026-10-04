@@ -7370,8 +7370,9 @@ macro_rules! AUTO_FRAME_ARG {
   };
 }
 
-/// <unistd.h>: `#define STDIN_FILENO 0` (the callproc.rs measurement).
-const STDIN_FILENO: c_int = 0;
+/* <unistd.h>: `STDIN_FILENO` now comes from the unistd.in.rs mirror (2026-10-04); this unit's
+   use-site copy is gone, and the mirror is the single declaration point (PORTING.md
+   0.1-3/P-26).  */
 
 /// frame.h 1375-1376: `FRAME_FOREGROUND_PIXEL`/`FRAME_BACKGROUND_PIXEL` are C's plain
 /// `foreground_pixel`/`background_pixel` fields.  The mirror has the readers; this unit also

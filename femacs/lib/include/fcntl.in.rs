@@ -1,91 +1,283 @@
-// femacs: WIP mirror of lib/fcntl.in.h (gnulib's <fcntl.h>; PORTING.md P-26).
+// femacs: port of lib/fcntl.in.h @ fd7afced403 (gnulib).
 //
-// As with <sys/stat.h>, C's <fcntl.h> is the system header plus gnulib's aliases and warnings;
-// the frozen configuration leaves every `REPLACE_*` macro zero, so the aliases resolve to the
-// system entries, which is what this mirror declares.
+// gnulib template: "Like <fcntl.h>, but with non-working flags defined to 0."  The frozen
+// target's generated header is build/emacs-ref/lib/fcntl.h, whose placeholders substitute to
+// `_GL_FCNTL_H` (the guard) and `#include_next <fcntl.h>`; its GNULIB_*/REPLACE_*/HAVE_* values
+// are `@GNULIB_CREAT@` 0, `@GNULIB_FCNTL@` 1 / `@REPLACE_FCNTL@` 0 / `@HAVE_FCNTL@` 1,
+// `@GNULIB_OPEN@` 1 / `@REPLACE_OPEN@` 0, `@GNULIB_OPENAT@` 0, `@GNULIB_OPENAT2@` 0 and
+// `@GNULIB_NONBLOCKING@` 0.  The port has neither `#include_next` nor placeholders, so the
+// mirror carries both halves:
 //
-//     $ cat > /tmp/oprobe.c <<'EOF'
-//     #include <fcntl.h>
-//     #include <stdio.h>
-//     int main(void){
-//       printf("O_RDONLY=%d O_WRONLY=%d O_RDWR=%d O_ACCMODE=%d O_CREAT=%d O_EXCL=%d O_TRUNC=%d "
-//              "O_APPEND=%d O_NONBLOCK=%d O_SYNC=%d O_CLOEXEC=%d O_DIRECTORY=%d O_NOFOLLOW=%d\n",
-//              O_RDONLY,O_WRONLY,O_RDWR,O_ACCMODE,O_CREAT,O_EXCL,O_TRUNC,O_APPEND,O_NONBLOCK,
-//              O_SYNC,O_CLOEXEC,O_DIRECTORY,O_NOFOLLOW);
-//       printf("F_GETFL=%d F_SETFL=%d F_DUPFD=%d F_DUPFD_CLOEXEC=%d F_GETFD=%d F_SETFD=%d FD_CLOEXEC=%d\n",
-//              F_GETFL,F_SETFL,F_DUPFD,F_DUPFD_CLOEXEC,F_GETFD,F_SETFD,FD_CLOEXEC);
-//       printf("AT_FDCWD=%d AT_SYMLINK_NOFOLLOW=%d AT_REMOVEDIR=%d AT_SYMLINK_FOLLOW=%d AT_EACCESS=%d\n",
-//              (int) AT_FDCWD, (int) AT_SYMLINK_NOFOLLOW, (int) AT_REMOVEDIR,
-//              (int) AT_SYMLINK_FOLLOW, (int) AT_EACCESS);
-//       return 0; }
-//     EOF
-//     $ clang -o /tmp/oprobe /tmp/oprobe.c && /tmp/oprobe
-//     O_RDONLY=0 O_WRONLY=1 O_RDWR=2 O_ACCMODE=3 O_CREAT=512 O_EXCL=2048 O_TRUNC=1024 O_APPEND=8 O_NONBLOCK=4 O_SYNC=128 O_CLOEXEC=16777216 O_DIRECTORY=1048576 O_NOFOLLOW=256
-//     F_GETFL=3 F_SETFL=4 F_DUPFD=0 F_DUPFD_CLOEXEC=67 F_GETFD=1 F_SETFD=2 FD_CLOEXEC=1
-//     AT_FDCWD=-2 AT_SYMLINK_NOFOLLOW=32 AT_REMOVEDIR=128 AT_SYMLINK_FOLLOW=64 AT_EACCESS=16
+//   * the system half: every name the frozen `<fcntl.h>` (gnulib's, i.e. the system's plus
+//     this header's fix-ups) ends up with.  The frozen values are the ones the reference
+//     build's preprocessor holds, which `docs/baseline/config/darwin-arm64.macros.tsv`
+//     records (`clang -dM -E -std=gnu23 -I build/emacs-ref/src -I build/emacs-ref/lib
+//     -I emacs/src -I emacs/lib`, the probe `tools/gen-cond-macros.py` writes); the mirror
+//     quotes the rows it uses.
+//   * the template's own half: the `#ifndef X / # define X <n>` fallbacks for the flags the
+//     system header does not have (live here: `O_DIRECT`, `O_IGNORE_CTTY`, `O_NOATIME`,
+//     `O_NOLINK`, `O_NOLINKS`, `O_NOTRANS`, `O_RSYNC`, `O_TTY_INIT`, `AT_NO_AUTOMOUNT`,
+//     `O_BINARY`, `O_TEXT`), the `GNULIB_defined_*` witness macros, and the openat2 module's
+//     `struct open_how`/`RESOLVE_*` block (dead: `GNULIB_OPENAT2` is 0).
 //
-// `AT_EMPTY_PATH` is *not* defined by this target (the Linux-only name), which is why
-// `lib/fstatat.c` carries its own `#ifndef AT_EMPTY_PATH # define AT_EMPTY_PATH 0`.  The
-// unchecked boxes of docs/ports/include-fcntl.in.md are the rest of gnulib's header.
+// **The fallbacks of the names the system header *does* define are dead text here.**  P-51 /
+// P-66② keep that text in the mirror under a feature that names its own condition
+// (`#ifndef O_NOFOLLOW` -> `feature = "no_o_nofollow"`), the way
+// lib/include/acl-internal.rs spells MODE_INSIDE_ACL's three arms as one name with one
+// `#[cfg]` each.  The arm C's template spells is written **first**, because
+// `tools/extract-abi.py`'s constant reader takes the first definition of a name and therefore
+// compares C's arm; the frozen arm follows, ungated.  Only rustc's live arm exists in a build
+// (`xtask build-tu`), so the port's values are the frozen ones.
+//
+// C 25-50's special-invocation arm (`__need_system_fcntl_h`), C 41/69's `<sys/stat.h>`
+// include and C 81's `#undef _GL_ALREADY_INCLUDING_FCNTL_H` have no Rust counterpart (no
+// preprocessor); C 47-50/76-79's `<io.h>` arm is `_WIN32`, C 91-93's `<unistd.h>` arm is
+// glibc-only, C 318-329's `_AIX` arm is AIX-only and C 435-445's `_O_BINARY`/BeOS arms are
+// Windows/BeOS-only - all dead on this target (PORTING.md P-66②).
 
-include!("sys_types.in.rs");   // <sys/types.h> (mode_t)
+include!("sys_types.in.rs");   // C 34/62: <sys/types.h> (mode_t, off_t)
+include!("errno.rs");          // C 499's `_GL_OPENAT_ESYMLINK ELOOP` (<errno.h>)
+
+/* C 55/83-84: the double-inclusion guard, `_@GUARD_PREFIX@_FCNTL_H`, whose frozen
+   substitution is `_GL_FCNTL_H` (build/emacs-ref/lib/fcntl.h 55/83).  The template's own
+   spelling reads as `_` to the extractor, which docs/ports/excluded-macros.txt records.
+   C 57/81's `_GL_ALREADY_INCLUDING_FCNTL_H` marks the split around the include-next; the
+   port has no include-next, so it has no live use - carried as C's empty value.  */
+pub const _GL_FCNTL_H: c_int = 1;
+pub const _GL_ALREADY_INCLUDING_FCNTL_H: () = ();
 
 /// gnulib's <fcntl.h> defines `PROMOTED_MODE_T` as the type `open`'s mode argument is promoted
-/// to at the call (`int` on this target - docs/baseline/config/darwin-arm64.macros.tsv 1502);
+/// to at the call (`int` on this target - docs/baseline/config/darwin-arm64.macros.tsv 3204);
 /// `lib/open.c` reads its variadic mode argument with that type.
 pub type PROMOTED_MODE_T = c_int;
 
-/* The access modes and open-time flags (measured above).  */
-pub const O_RDONLY: c_int = 0;
-pub const O_WRONLY: c_int = 1;
-pub const O_RDWR: c_int = 2;
-pub const O_ACCMODE: c_int = 3;
-pub const O_NONBLOCK: c_int = 0x4;
-pub const O_APPEND: c_int = 0x8;
-pub const O_SYNC: c_int = 0x80;
-pub const O_NOFOLLOW: c_int = 0x100;
-pub const O_CREAT: c_int = 0x200;
-pub const O_TRUNC: c_int = 0x400;
-pub const O_EXCL: c_int = 0x800;
-pub const O_DIRECTORY: c_int = 0x100000;
-pub const O_CLOEXEC: c_int = 0x1000000;
-/* gnulib's `#ifndef O_DIRECTORY # define O_DIRECTORY 0x20000000` fallback is dead on this
-   target (the system defines it), so 0x100000 above is the system value.  */
-/* O_SEARCH and O_EXEC are the two POSIX 2008 search/execute flags; this target defines both
-   (measured: 1074790400 = 0x40100000 and 1073741824 = 0x40000000), so gnulib's
-   `#ifndef O_SEARCH # define O_SEARCH O_RDONLY` fallback and its `O_EXEC` twin are dead text.
-   O_PATH is *not* defined here, which is what makes lib/lchmod.c's `#ifdef O_PATH` arm dead.  */
-pub const O_SEARCH: c_int = 0x40100000;
-pub const O_EXEC: c_int = 0x40000000;
-pub const O_NOCTTY: c_int = 0x20000;
-/* gnulib's <fcntl.h> defines the text/binary distinction away on Unix: this target's system
-   header has neither, so gnulib's `#ifndef O_BINARY # define O_BINARY 0` and its `O_TEXT`
-   twin are the live values (they are what lib/pipe2.c's flag check compares against).  */
-pub const O_BINARY: c_int = 0;
-pub const O_TEXT: c_int = 0;
+/* C 288-292: `#ifndef FD_CLOEXEC / # define FD_CLOEXEC 1` - live in form (the system defines
+   it) and equal in value (1).  */
+pub const FD_CLOEXEC: c_int = 1;
 
-/* `fcntl`'s commands and the descriptor flags.  */
+/* C 294-311's `F_*` fix-ups.  The template's fallbacks are the dead arm of a target without
+   the command; the frozen values follow (`darwin-arm64.macros.tsv` 1095/1103/1096).  */
+/* C 305-307's `#ifndef F_DUPFD / # define F_DUPFD 1`.  */
+#[cfg (feature = "no_f_dupfd")]
+pub const F_DUPFD: c_int = 1;
+/// `F_DUPFD 0` (frozen).
 pub const F_DUPFD: c_int = 0;
+/* C 309-311's `#ifndef F_GETFD / # define F_GETFD 2`.  */
+#[cfg (feature = "no_f_getfd")]
+pub const F_GETFD: c_int = 2;
+/// `F_GETFD 1` (frozen).
 pub const F_GETFD: c_int = 1;
+/* C 297-303's `#ifndef F_DUPFD_CLOEXEC / # define F_DUPFD_CLOEXEC 0x40000000`; the `#else`
+   arm's `GNULIB_defined_F_DUPFD_CLOEXEC 0` is the frozen one (the system defines the
+   command), so the witness is 0 here and 1 only in the dead arm.  */
+#[cfg (feature = "no_f_dupfd_cloexec")]
+pub const F_DUPFD_CLOEXEC: c_int = 0x40000000;
+/// `F_DUPFD_CLOEXEC 67` (frozen).
+pub const F_DUPFD_CLOEXEC: c_int = 67;
+#[cfg (feature = "no_f_dupfd_cloexec")]
+pub const GNULIB_defined_F_DUPFD_CLOEXEC: c_int = 1;
+/// C 301-302's `#else` arm: `GNULIB_defined_F_DUPFD_CLOEXEC 0` (frozen).
+pub const GNULIB_defined_F_DUPFD_CLOEXEC: c_int = 0;
+/* `fcntl`'s two remaining standard commands, not part of the template's fix-ups but the
+   system's (lib/fcntl.c's `#ifdef F_*` stack names them; measured in the probe below).  */
 pub const F_SETFD: c_int = 2;
 pub const F_GETFL: c_int = 3;
 pub const F_SETFL: c_int = 4;
-pub const F_DUPFD_CLOEXEC: c_int = 67;
-pub const FD_CLOEXEC: c_int = 1;
 
-/* C 454-490's `AT_*` values: the system header defines all of them on this target, so
-   gnulib's fallbacks (`-3041965`, `4096`, `1`, `4`) are dead text.  */
+/* ---- C 313-450's `O_*` fix-ups -------------------------------------------------------- */
+
+/* The access modes the frozen header ends up with (measured: O_RDONLY=0 O_WRONLY=1 O_RDWR=2
+   ... O_CREAT=512 O_EXCL=2048 O_TRUNC=1024 O_APPEND=8):
+
+       $ clang -I build/emacs-ref/lib -I build/emacs-ref/src -I emacs/src -I emacs/lib ...
+       O_RDONLY=0 O_WRONLY=1 O_RDWR=2 O_ACCMODE=3 O_CREAT=512 O_EXCL=2048 O_TRUNC=1024
+       O_APPEND=8 O_NONBLOCK=4 O_SYNC=128 O_CLOEXEC=16777216 O_DIRECTORY=1048576 O_NOFOLLOW=256
+       F_GETFL=3 F_SETFL=4 F_DUPFD=0 F_DUPFD_CLOEXEC=67 F_GETFD=1 F_SETFD=2 FD_CLOEXEC=1
+       AT_FDCWD=-2 AT_SYMLINK_NOFOLLOW=32 AT_REMOVEDIR=128 AT_SYMLINK_FOLLOW=64 AT_EACCESS=16
+
+   (`darwin-arm64.macros.tsv` carries the same values as the macros' replacement text.)  */
+pub const O_RDONLY: c_int = 0;
+pub const O_WRONLY: c_int = 1;
+pub const O_RDWR: c_int = 2;
+/* C 428-431's `#if ~O_ACCMODE & (O_RDONLY | O_WRONLY | O_RDWR | O_EXEC | O_SEARCH)` is *true*
+   on this target (the system's 3 lacks the O_EXEC/O_SEARCH bits), so gnulib redefines
+   `O_ACCMODE` to that five-flag mask - which `darwin-arm64.macros.tsv` 3077 records and is
+   both the frozen value and the arm the extractor compares.  */
+pub const O_ACCMODE: c_int = O_RDONLY | O_WRONLY | O_RDWR | O_EXEC | O_SEARCH;
+pub const O_CREAT: c_int = 0x200;
+pub const O_TRUNC: c_int = 0x400;
+pub const O_EXCL: c_int = 0x800;
+pub const O_APPEND: c_int = 0x8;
+/* `O_NONBLOCK` has two template arms (`#ifndef O_NONBLOCK / # define O_NONBLOCK O_NDELAY` and
+   the nonblocking module's `0x40000000`), so the extractor does not compare its body
+   (P-24); the frozen value is the system's 0x4 (`darwin-arm64.macros.tsv` 3104).  */
+pub const O_NONBLOCK: c_int = 0x4;
+/* C 336-341's `#ifndef O_CLOEXEC / # define O_CLOEXEC 0x40000000`; two arms as well, and the
+   frozen value is the system's 0x1000000 (`...macros.tsv` 3082).  Its witness
+   `GNULIB_defined_O_CLOEXEC` is 0 in the frozen header (the `#else` arm).  */
+pub const O_CLOEXEC: c_int = 0x1000000;
+pub const GNULIB_defined_O_CLOEXEC: c_int = 0;
+/* C 347-349's `#ifndef O_DIRECTORY / # define O_DIRECTORY 0x20000000` - dead: the system
+   defines it as 0x100000 (`...macros.tsv` 3086).  */
+#[cfg (feature = "no_o_directory")]
+pub const O_DIRECTORY: c_int = 0x20000000;
+/// `O_DIRECTORY 0x00100000` (frozen).
+pub const O_DIRECTORY: c_int = 0x100000;
+/* C 392-394's `#ifndef O_NOFOLLOW / # define O_NOFOLLOW 0` - dead: the system defines it as
+   0x100 (`...macros.tsv` 3100).  */
+#[cfg (feature = "no_o_nofollow")]
+pub const O_NOFOLLOW: c_int = 0;
+/// `O_NOFOLLOW 0x00000100` (frozen).
+pub const O_NOFOLLOW: c_int = 0x100;
+/* C 420-422's `#ifndef O_SYNC / # define O_SYNC 0` - dead: the system's is 0x80 (3114).  */
+#[cfg (feature = "no_o_sync")]
+pub const O_SYNC: c_int = 0;
+/// `O_SYNC 0x0080` (frozen).
+pub const O_SYNC: c_int = 0x80;
+/* C 343-345's `#ifndef O_DIRECT / # define O_DIRECT 0` - live (this target has no O_DIRECT;
+   lchmod.c's `#ifdef O_PATH` arm is dead for the same reason).  */
+pub const O_DIRECT: c_int = 0;
+/* C 351-353's `#ifndef O_DSYNC / # define O_DSYNC 0` - dead: the system's is 0x400000
+   (`...macros.tsv` 3090).  */
+#[cfg (feature = "no_o_dsync")]
+pub const O_DSYNC: c_int = 0;
+/// `O_DSYNC 0x400000` (frozen).
+pub const O_DSYNC: c_int = 0x400000;
+/* C 355-357's `#ifndef O_EXEC / # define O_EXEC O_RDONLY` - dead: the system's is
+   0x40000000 (`...macros.tsv` 3093).  */
+#[cfg (feature = "no_o_exec")]
+pub const O_EXEC: c_int = O_RDONLY;
+/// `O_EXEC 0x40000000` (frozen).
+pub const O_EXEC: c_int = 0x40000000;
+/* C 416-418's `#ifndef O_SEARCH / # define O_SEARCH O_RDONLY` - dead: the system's is
+   `(O_EXEC | O_DIRECTORY)` (`...macros.tsv` 3111, `O_EXEC 0x40000000` +
+   `O_DIRECTORY 0x00100000`), which is 0x40100000 as an int.  */
+#[cfg (feature = "no_o_search")]
+pub const O_SEARCH: c_int = O_RDONLY;
+/// `O_SEARCH (O_EXEC | O_DIRECTORY)` (frozen).
+pub const O_SEARCH: c_int = O_EXEC | O_DIRECTORY;
+/* C 359-361's `#ifndef O_IGNORE_CTTY / # define O_IGNORE_CTTY 0` - live.  */
+pub const O_IGNORE_CTTY: c_int = 0;
+/* C 363-365's `#ifndef O_NDELAY / # define O_NDELAY 0` - dead: the system's `O_NDELAY` is
+   `O_NONBLOCK` (`...macros.tsv` 3097), which is 0x4 here.  */
+#[cfg (feature = "no_o_ndelay")]
+pub const O_NDELAY: c_int = 0;
+/// `O_NDELAY O_NONBLOCK` (frozen).
+pub const O_NDELAY: c_int = O_NONBLOCK;
+/* C 367-369's `#ifndef O_NOATIME / # define O_NOATIME 0` - live.  */
+pub const O_NOATIME: c_int = 0;
+/* C 388-390's `#ifndef O_NOCTTY / # define O_NOCTTY 0` - dead: the system's is 0x20000
+   (`...macros.tsv` 3099).  */
+#[cfg (feature = "no_o_noctty")]
+pub const O_NOCTTY: c_int = 0;
+/// `O_NOCTTY 0x00020000` (frozen).
+pub const O_NOCTTY: c_int = 0x20000;
+/* C 396-406's `O_NOLINK`/`O_NOLINKS`/`O_NOTRANS` and C 408-410's `O_RSYNC`, C 424-426's
+   `O_TTY_INIT` - all live fallbacks (the system has none of them).  */
+pub const O_NOLINK: c_int = 0;
+pub const O_NOLINKS: c_int = 0;
+pub const O_NOTRANS: c_int = 0;
+pub const O_RSYNC: c_int = 0;
+pub const O_TTY_INIT: c_int = 0;
+/* C 433-450's `O_BINARY`/`O_TEXT`: two template arms each, and this target's system header has
+   neither, so the `#ifndef` fallback is the frozen value (0) - it is what lib/pipe2.c's flag
+   check compares against.  */
+pub const O_BINARY: c_int = 0;
+pub const O_TEXT: c_int = 0;
+/* C 375-386's `#if @GNULIB_NONBLOCKING@` block is dead (the frozen substitution is 0), and
+   inside it `# if O_NONBLOCK` is *true* here (0x4 is nonzero), so a target that had the
+   module would take the arm whose witness is 0.  Kept under the feature naming the non-frozen
+   side (P-51).  */
+#[cfg (feature = "gnulib_nonblocking")]
+pub const GNULIB_defined_O_NONBLOCK: c_int = 0;
+
+/* ---- C 452-491's `AT_*` fix-ups ------------------------------------------------------- */
+
+/* All five fallbacks are dead (the system defines every one of them), at the values
+   `darwin-arm64.macros.tsv` 208/219/216/218/207 records.  */
+/* C 465-467's `#ifndef AT_FDCWD / # define AT_FDCWD (-3041965)`.  */
+#[cfg (feature = "no_at_fdcwd")]
+pub const AT_FDCWD: c_int = -3041965;
+/// `AT_FDCWD -2` (frozen).
 pub const AT_FDCWD: c_int = -2;
-pub const AT_SYMLINK_NOFOLLOW: c_int = 32;
-pub const AT_SYMLINK_FOLLOW: c_int = 64;
-pub const AT_REMOVEDIR: c_int = 128;
-pub const AT_EACCESS: c_int = 16;
+/* C 471-473's `#ifndef AT_SYMLINK_NOFOLLOW / # define AT_SYMLINK_NOFOLLOW 4096`.  */
+#[cfg (feature = "no_at_symlink_nofollow")]
+pub const AT_SYMLINK_NOFOLLOW: c_int = 4096;
+/// `AT_SYMLINK_NOFOLLOW 0x0020` (frozen).
+pub const AT_SYMLINK_NOFOLLOW: c_int = 0x20;
+/* C 475-477's `#ifndef AT_REMOVEDIR / # define AT_REMOVEDIR 1`.  */
+#[cfg (feature = "no_at_removedir")]
+pub const AT_REMOVEDIR: c_int = 1;
+/// `AT_REMOVEDIR 0x0080` (frozen).
+pub const AT_REMOVEDIR: c_int = 0x80;
+/* C 480-482's `#ifndef AT_SYMLINK_FOLLOW / # define AT_SYMLINK_FOLLOW 2`.  */
+#[cfg (feature = "no_at_symlink_follow")]
+pub const AT_SYMLINK_FOLLOW: c_int = 2;
+/// `AT_SYMLINK_FOLLOW 0x0040` (frozen).
+pub const AT_SYMLINK_FOLLOW: c_int = 0x40;
+/* C 484-486's `#ifndef AT_EACCESS / # define AT_EACCESS 4`.  */
+#[cfg (feature = "no_at_eaccess")]
+pub const AT_EACCESS: c_int = 4;
+/// `AT_EACCESS 0x0010` (frozen).
+pub const AT_EACCESS: c_int = 0x10;
+/* C 488-491's `#ifndef AT_NO_AUTOMOUNT / # define AT_NO_AUTOMOUNT 0` - live (the Linux-only
+   name); `lib/fstatat.c`'s `AT_EMPTY_PATH` has the same shape at its own use site.  */
+pub const AT_NO_AUTOMOUNT: c_int = 0;
 
-/* C 163-237's `_GL_CXXALIAS_SYS (fcntl, ...)`, `(open, ...)` and `(openat, ...)`: the system
-   entries, since no `REPLACE_*` macro is nonzero in the frozen configuration.  */
-/* The four entries in a whole-import module: `femacs/lib/cloexec.rs` and
-   `femacs/lib/open.rs` define wrappers of their own, and a definition shadows a glob import
-   instead of colliding with it (PORTING.md 0.1-10).  */
+/* C 493-500's `#if defined __FreeBSD__ ... # define _GL_OPENAT_ESYMLINK EMLINK / #elif
+   __NetBSD__ EFTYPE / #else ELOOP`: the frozen target takes the `#else`, and
+   `darwin-arm64.macros.tsv` 4243 records `_GL_OPENAT_ESYMLINK ELOOP`.  */
+pub const _GL_OPENAT_ESYMLINK: c_int = ELOOP;
+
+/* ---- C 248-286's openat2 module (dead: `GNULIB_OPENAT2` is 0) ------------------------- */
+
+/// C 255-262's `struct open_how`.  The whole block is dead text here (`GNULIB_OPENAT2` is 0),
+/// and the field types are whichever arm this target's compiler takes (`__UINT64_TYPE__`, i.e.
+/// `unsigned long long int`); kept under the feature naming the non-frozen side (P-51), where
+/// C's three `unsigned long long` fields are Rust's `u64`.
+#[cfg (feature = "gnulib_openat2")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct open_how
+{
+  pub flags: u64,
+  pub mode: u64,
+  pub resolve: u64,
+}
+
+/* C 263-268's six `RESOLVE_*` values, in C's order (they are the Linux `openat2` flags).  */
+#[cfg (feature = "gnulib_openat2")]
+pub const RESOLVE_NO_XDEV: c_int = 0x01;
+#[cfg (feature = "gnulib_openat2")]
+pub const RESOLVE_NO_MAGICLINKS: c_int = 0x02;
+#[cfg (feature = "gnulib_openat2")]
+pub const RESOLVE_NO_SYMLINKS: c_int = 0x04;
+#[cfg (feature = "gnulib_openat2")]
+pub const RESOLVE_BENEATH: c_int = 0x08;
+#[cfg (feature = "gnulib_openat2")]
+pub const RESOLVE_IN_ROOT: c_int = 0x10;
+#[cfg (feature = "gnulib_openat2")]
+pub const RESOLVE_CACHED: c_int = 0x20;
+
+/* ---- C 145-171's `fcntl` witnesses --------------------------------------------------- */
+
+/* `#if @GNULIB_FCNTL@` is live (1) but `@REPLACE_FCNTL@` is 0 and `@HAVE_FCNTL@` is 1, so
+   both witness macros are dead text and `fcntl` is the system entry (the declaration below).
+   Kept under the features naming each arm's non-frozen side (P-51).  */
+#[cfg (feature = "replace_fcntl")]
+pub const GNULIB_defined_rpl_fcntl: c_int = 1;
+#[cfg (feature = "no_have_fcntl")]
+pub const GNULIB_defined_fcntl: c_int = 1;
+
+/* ---- the system entries C 103-286 declares -------------------------------------------- */
+
+/* C 105-143's `creat` and C 173-218's `open` resolve to `_GL_CXXALIAS_SYS` here
+   (`@REPLACE_CREAT@`/`@REPLACE_OPEN@` are 0 and `@GNULIB_CREAT@`/`@GNULIB_OPEN@`'s live arms
+   are the non-Windows ones), and C 220-246's `openat` to `_GL_CXXALIAS_SYS` as well
+   (`@REPLACE_OPENAT@` 0, `@HAVE_OPENAT@` 1).  C 163's `fcntl` is the system entry too.
+   The four live in a whole-import module: `femacs/lib/cloexec.rs` and `femacs/lib/open.rs`
+   define wrappers of their own, and a definition shadows a glob import instead of colliding
+   with it (PORTING.md 0.1-10).  */
 pub mod fcntl_decls {
   use super::*;
 

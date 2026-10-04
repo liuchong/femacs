@@ -46,6 +46,19 @@
 include!("sys_types.in.rs");   // <sys/types.h> (mode_t, dev_t, ino_t, nlink_t, off_t, ...)
 include!("time.in.rs");        // <time.h> (struct timespec, the st_*timespec members' type)
 
+/* C 78-94's `#ifndef _GL_ATTRIBUTE_NOTHROW` fallback: the attribute that says a function does
+   not throw.  C defines it five times (the C++ arms and the `__attribute__ ((__nothrow__))`
+   arm); the port drops attributes (PORTING.md 0.3) and spells it as the no-op macro its call
+   sites do not need - the `attribute.rs` 184 shape, which this header's own `#ifndef` guard
+   makes a second, identical definition of in C.  */
+macro_rules! _GL_ATTRIBUTE_NOTHROW {
+  () => {};
+}
+
+/* C 172-174: the marker of the dead `#if !GNULIB_defined_struct_stat` arm above (it says "the
+   second half of this header already defined the type").  */
+pub const GNULIB_defined_struct_stat: c_int = 1;
+
 /// The frozen target's `struct stat` (144 bytes, 8-byte alignment; layouts measured above).
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -69,6 +82,27 @@ pub struct stat
   pub st_gen: c_uint,
   pub st_lspare: c_int,
   pub st_qspare: [i64; 2],
+  /* C 118-175's other *definition* of this type - the `#if @GNULIB_OVERRIDES_STRUCT_STAT@`
+     arm, dead on this target - spells the three timestamps as members this target's `stat`
+     does not have: `struct timespec st_atim/st_mtim/st_ctim` in its
+     `#if @WINDOWS_STAT_TIMESPEC@` arm (C 152-158) and `time_t st_atime/st_mtime/st_ctime` in
+     the `#else` arm (C 159-162).  The port has one `stat` (the system's, above), so the other
+     configuration's six members are carried as `#[cfg]`-gated fields under the features that
+     name the C conditions (P-51): the extractor reads this template blind and asks for every
+     field name it can define, while the layout assertions below still measure the live
+     struct.  */
+  #[cfg (feature = "windows_stat_timespec")]
+  pub st_atim: timespec,
+  #[cfg (feature = "windows_stat_timespec")]
+  pub st_mtim: timespec,
+  #[cfg (feature = "windows_stat_timespec")]
+  pub st_ctim: timespec,
+  #[cfg (feature = "no_windows_stat_timespec")]
+  pub st_atime: time_t,
+  #[cfg (feature = "no_windows_stat_timespec")]
+  pub st_mtime: time_t,
+  #[cfg (feature = "no_windows_stat_timespec")]
+  pub st_ctime: time_t,
 }
 
 const _: () = assert! (std::mem::size_of::<stat> () == 144);
@@ -99,18 +133,28 @@ pub const S_IFSOCK: mode_t = 0o140000;
 pub const S_ISUID: mode_t = 0o4000;
 pub const S_ISGID: mode_t = 0o2000;
 pub const S_ISVTX: mode_t = 0o1000;
-pub const S_IRWXU: mode_t = 0o700;
 pub const S_IRUSR: mode_t = 0o400;
 pub const S_IWUSR: mode_t = 0o200;
 pub const S_IXUSR: mode_t = 0o100;
-pub const S_IRWXG: mode_t = 0o070;
-pub const S_IRGRP: mode_t = 0o040;
-pub const S_IWGRP: mode_t = 0o020;
-pub const S_IXGRP: mode_t = 0o010;
-pub const S_IRWXO: mode_t = 0o007;
-pub const S_IROTH: mode_t = 0o004;
-pub const S_IWOTH: mode_t = 0o002;
-pub const S_IXOTH: mode_t = 0o001;
+
+/* C 372-429's `#if !S_IRGRP / # define S_IRGRP (S_IRUSR >> 3)` family: the nine names whose
+   C body is an expression are spelled with C's own expression, because the extractor compares
+   the tokens of the body (the literals above are what C 352-398 define them as, and the
+   system header defines them too - the arms are dead here).  */
+pub const S_IRGRP: mode_t = S_IRUSR >> 3;
+pub const S_IROTH: mode_t = S_IRUSR >> 6;
+pub const S_IWGRP: mode_t = S_IWUSR >> 3;
+pub const S_IWOTH: mode_t = S_IWUSR >> 6;
+pub const S_IXGRP: mode_t = S_IXUSR >> 3;
+pub const S_IXOTH: mode_t = S_IXUSR >> 6;
+pub const S_IRWXU: mode_t = S_IRUSR | S_IWUSR | S_IXUSR;
+pub const S_IRWXG: mode_t = S_IRGRP | S_IWGRP | S_IXGRP;
+pub const S_IRWXO: mode_t = S_IROTH | S_IWOTH | S_IXOTH;
+
+/* C 418-425: the two composed masks gnulib adds for the apps that use them (neither is POSIX
+   and neither is in the system header).  */
+pub const S_IXUGO: mode_t = S_IXUSR | S_IXGRP | S_IXOTH;
+pub const S_IRWXUGO: mode_t = S_IRWXU | S_IRWXG | S_IRWXO;
 
 /* C 230-234's `#ifndef S_ISDIR ... #endif` and its siblings: gnulib's copies of the system
    macros.  The system header defines them on this target, so the arms are dead in C, but the
@@ -172,3 +216,75 @@ macro_rules! S_TYPEISMQ { ($p:expr) => { 0 }; }
 macro_rules! S_TYPEISTMO { ($p:expr) => { 0 }; }
 macro_rules! S_TYPEISSEM { ($p:expr) => { 0 }; }
 macro_rules! S_TYPEISSHM { ($p:expr) => { 0 }; }
+
+/* ---- the template's own half: the `@PLACEHOLDER@` arms the frozen substitution settles ---
+   Every name below is a `#define` of an arm that is dead on this target; each stands under the
+   feature naming the C condition that selects it (P-08/P-51), because `extract-abi.py` reads
+   this template blind and asks for the name (and, for a single-definition macro, its body's
+   tokens).  */
+
+/* C 186-194: `#ifndef S_IFIFO / # ifdef _S_IFIFO / #  define S_IFIFO _S_IFIFO`.  The system
+   header defines `S_IFIFO`, so the arm is dead; the mirror's `S_IFIFO` constant above is the
+   system value and this is C's other spelling of the name.  */
+#[cfg (feature = "no_s_ififo")]
+macro_rules! S_IFIFO { () => { _S_IFIFO } }
+
+/* C 276-291: `# ifdef S_IFNAM / ... / # else / #  define S_ISNAM(m) 0` (and its two
+   neighbours, the V7 / Stellix `S_ISNWK`-family tests C 262-291).  C defines `S_ISNAM`
+   twice, and every one of these bodies is `0` on this target.  */
+macro_rules! S_ISNAM { ($m:expr) => { 0 }; }
+/* C 336-349: the Cray DMF pair.  */
+macro_rules! S_ISOFD { ($p:expr) => { 0 }; }
+macro_rules! S_ISOFL { ($p:expr) => { 0 }; }
+
+/* C 145-171: the field-renaming macros of the other `struct stat` definition (see the
+   `#[cfg]`-gated fields above): in the `#if @WINDOWS_STAT_TIMESPEC@` arm the three names are
+   spelled over the timespec members.  */
+#[cfg (feature = "windows_stat_timespec")]
+macro_rules! st_atime { () => { st_atim.tv_sec } }
+#[cfg (feature = "windows_stat_timespec")]
+macro_rules! st_mtime { () => { st_mtim.tv_sec } }
+#[cfg (feature = "windows_stat_timespec")]
+macro_rules! st_ctime { () => { st_ctim.tv_sec } }
+/* C 172: the arm's "gnulib internal purposes" indicator.  */
+#[cfg (feature = "windows_stat_timespec")]
+pub const _GL_WINDOWS_STAT_TIMESPEC: c_int = 1;
+
+/* C 656-661 / C 678-683: the two `static int rpl_mkdir (char const *name, mode_t mode) {
+   return _mkdir (name); }` definitions of the native-Windows arms (`@REPLACE_MKDIR@` and
+   `@GNULIB_MDA_MKDIR@`).  C defines it as a function; `_mkdir` is not on this target, so the
+   mirror carries the name and C's call as a macro rather than a definition that could never
+   be compiled.  */
+#[cfg (feature = "windows")]
+macro_rules! rpl_mkdir { ($name:expr, $mode:expr) => { _mkdir ($name) } }
+/* C 662/684: the marker that guards the second definition (`#    define
+   GNULIB_defined_rpl_mkdir 1`); C defines the name in two arms, so the extractor asks for
+   presence rather than the body.  */
+#[cfg (feature = "windows")]
+pub const GNULIB_defined_rpl_mkdir: c_int = 1;
+
+/* C 720-722 / C 745-747: the `@REPLACE_MKFIFO@`/`@REPLACE_MKFIFOAT@` renames (dead: no
+   `REPLACE_*` of the frozen configuration is set for either - the four `mknod`/`mknodat`/
+   `futimens`/`utimensat` names of the same family are reached through the declarations
+   above).  */
+#[cfg (feature = "replace_mkfifo")]
+macro_rules! mkfifo { () => { rpl_mkfifo } }
+#[cfg (feature = "replace_mkfifoat")]
+macro_rules! mkfifoat { () => { rpl_mkfifoat } }
+
+/* C 828-886: the `@GNULIB_STAT@`/`@REPLACE_STAT@` block's five platform renames of the
+   `stat` family, all dead here (`@REPLACE_STAT@` is 0).  C's body is `rpl_stat (name, st)`
+   in every one of them, and the AIX / MinGW / MSVC / `@WINDOWS_64_BIT_ST_SIZE@` conditions
+   are the features named.  */
+#[cfg (feature = "aix_large_files")]
+macro_rules! stat64 { ($name:expr, $st:expr) => { rpl_stat ($name, $st) } }
+#[cfg (feature = "windows_64_bit_st_size")]
+macro_rules! _stati64 { ($name:expr, $st:expr) => { rpl_stat ($name, $st) } }
+#[cfg (feature = "windows")]
+macro_rules! _stat32i64 { ($name:expr, $st:expr) => { rpl_stat ($name, $st) } }
+#[cfg (feature = "windows")]
+macro_rules! _stat64 { ($name:expr, $st:expr) => { rpl_stat ($name, $st) } }
+#[cfg (feature = "windows")]
+macro_rules! _stat32 { ($name:expr, $st:expr) => { rpl_stat ($name, $st) } }
+#[cfg (feature = "windows")]
+macro_rules! _stat64i32 { ($name:expr, $st:expr) => { rpl_stat ($name, $st) } }

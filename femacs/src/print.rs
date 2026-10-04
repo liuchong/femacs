@@ -128,8 +128,9 @@ unsafe extern "C" {
     -> c_int;
 }
 
-/// C: <unistd.h>: `#define STDERR_FILENO 2` (the callproc.rs measurement, same target).
-const STDERR_FILENO: c_int = 2;
+/* C: <unistd.h>'s `STDERR_FILENO` now comes from the unistd.in.rs mirror (2026-10-04); this
+   unit's use-site copy is gone, and the mirror is the single declaration point (PORTING.md
+   0.1-3/P-26).  */
 
 /* gnulib's `<inttypes.h>` (P-26/P-50 has no mirror): the frozen target's three format
    macros, measured with clang (`printf ("%s %s %s", PRIdMAX, PRIuMAX, PRIxMAX)` prints

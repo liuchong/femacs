@@ -42,11 +42,10 @@ include!("include/fcntl.in.rs");
    <stdlib.h> and <unistd.h> are the mirrors above (<stdarg.h> has no Rust counterpart: the
    `...` parameter is Rust's varargs, P-04).  */
 
-/* The one frozen-configuration value the live text reads that `src/include/config.rs` does not
-   carry: gnulib's config.h sets `GNULIB_defined_F_DUPFD_CLOEXEC` to 0
-   (docs/baseline/config/darwin-arm64.macros.tsv 599), so this target's <fcntl.h> *does* define
-   F_DUPFD_CLOEXEC and C 506's `have_dupfd_cloexec` starts at 0, not -1.  */
-pub const GNULIB_defined_F_DUPFD_CLOEXEC: c_int = 0;
+/* `GNULIB_defined_F_DUPFD_CLOEXEC` (gnulib's config.h witness, 0 -
+   docs/baseline/config/darwin-arm64.macros.tsv 599) is declared by the fcntl mirror, which
+   this unit includes above; the mirror's `#else` arm is the same 0, so C 506's
+   `have_dupfd_cloexec` starts at 0, not -1 (PORTING.md 0.1-3: one spelling per construct).  */
 
 /* C 170-175's forward declarations (`static int rpl_fcntl_DUPFD (int, int);` and its
    `_CLOEXEC` twin) have no Rust counterpart: Rust's items are order-independent, so the

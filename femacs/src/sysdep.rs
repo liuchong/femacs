@@ -445,12 +445,11 @@ pub const BUFSIZ: usize = 1024;
 pub const _IOFBF: c_int = 0;
 pub const _IOLBF: c_int = 1;
 
-/// `<unistd.h>`: `#define STDIN_FILENO 0`, `STDOUT_FILENO 1`, `STDERR_FILENO 2` (measured;
-/// C 81-83's `#define STDERR_FILENO fileno (GetStdHandle (STD_ERROR_HANDLE))` is the dead
-/// `WINDOWSNT` arm and is carried with the rest of that arm below).
-pub const STDIN_FILENO: c_int = 0;
-pub const STDOUT_FILENO: c_int = 1;
-pub const STDERR_FILENO: c_int = 2;
+/* `<unistd.h>`'s `STDIN_FILENO`/`STDOUT_FILENO`/`STDERR_FILENO` now come from the
+   unistd.in.rs mirror (2026-10-04); this unit's use-site copies are gone, and the mirror is
+   the single declaration point (PORTING.md 0.1-3/P-26).  C 81-83's `#define STDERR_FILENO
+   fileno (GetStdHandle (STD_ERROR_HANDLE))` is the dead `WINDOWSNT` arm and is carried with
+   the rest of that arm below.  */
 
 /// `<unistd.h>`: the entries this unit reaches that `unistd.in.rs` does not carry.
 unsafe extern "C" {

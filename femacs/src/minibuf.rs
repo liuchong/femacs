@@ -76,8 +76,9 @@ include!("include/pdumper.rs");                // C 35: `#include "pdumper.h"`
 /* <stdio.h>: `getchar` and `putchar` now come from the `stdio.rs` mirror (2026-10-04); this
    unit's use-site copies are gone, and the mirror is the single declaration point.  */
 
-/// <unistd.h>: `#define STDIN_FILENO 0` (measured; the callproc.rs shape).
-const STDIN_FILENO: c_int = 0;
+/* <unistd.h>: `STDIN_FILENO` now comes from the unistd.in.rs mirror (2026-10-04); this unit's
+   use-site copy is gone, and the mirror is the single declaration point (PORTING.md
+   0.1-3/P-26).  */
 
 /* C 34's `#include "systty.h"`: `struct emacs_tty` (and the real `struct termios` inside
    it), `CDISABLE` and the three tty declarations now come from `include/systty.rs`, which

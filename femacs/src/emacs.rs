@@ -793,10 +793,9 @@ unsafe extern "C" {
   pub static mut emacs_re_safe_alloca: ptrdiff_t;
 }
 
-/// C: `<unistd.h>` 263-268: the three descriptor constants (measured: 0, 1, 2).
-const STDIN_FILENO: c_int = 0;
-const STDOUT_FILENO: c_int = 1;
-const STDERR_FILENO: c_int = 2;
+/* C: `<unistd.h>` 263-268's three descriptor constants now come from the unistd.in.rs mirror
+   (2026-10-04); this unit's use-site copies are gone, and the mirror is the single
+   declaration point (PORTING.md 0.1-3/P-26).  */
 
 /* -----------------------------------------------------------------------------------------
    C 413.  `using_utf8`: the frozen configuration has HAVE_WCHAR_H (1) and not WINDOWSNT,

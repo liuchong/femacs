@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 502 |
-| 其中 done / wip | 482 / 20 |
+| 其中 done / wip | 487 / 15 |
 | 待开工 | 88 |
 
 ## 2 按目录
@@ -160,7 +160,7 @@
 | `lib/faccessat.c` | 98 | 2 | 0 | 8 | 0 | 0 | 0 | L | `femacs/lib/faccessat.rs` | done |
 | `lib/fchmodat.c` | 159 | 2 | 0 | 8 | 1 | 0 | 0 | L | `femacs/lib/fchmodat.rs` | done |
 | `lib/fcntl.c` | 663 | 6 | 0 | 4 | 2 | 0 | 0 | L | `femacs/lib/fcntl.rs` | done |
-| `lib/fcntl.in.h` | 504 | 0 | 0 | 48 | 38 | 6 | 0 | L | `femacs/lib/include/fcntl.in.rs` | wip |
+| `lib/fcntl.in.h` | 504 | 0 | 0 | 48 | 38 | 6 | 0 | L | `femacs/lib/include/fcntl.in.rs` | done |
 | `lib/fdopendir.c` | 238 | 5 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/fdopendir.rs` | done |
 | `lib/file-has-acl.c` | 986 | 16 | 0 | 8 | 8 | 0 | 0 | L | `femacs/lib/file-has-acl.rs` | done |
 | `lib/filemode.c` | 166 | 3 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/filemode.rs` | done |
@@ -199,7 +199,7 @@
 | `lib/getopt1.c` | 166 | 5 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/getopt1.rs` | done |
 | `lib/getopt_int.h` | 118 | 0 | 0 | 2 | 4 | 9 | 0 | L | `femacs/lib/include/getopt_int.rs` | done |
 | `lib/getrandom.c` | 193 | 2 | 0 | 10 | 4 | 0 | 2 | L | `femacs/lib/getrandom.rs` | done |
-| `lib/gettext.h` | 542 | 18 | 0 | 27 | 4 | 0 | 0 | L | `femacs/lib/include/gettext.rs` | wip |
+| `lib/gettext.h` | 542 | 18 | 0 | 27 | 4 | 0 | 0 | L | `femacs/lib/include/gettext.rs` | done |
 | `lib/gettime.c` | 51 | 2 | 0 | 0 | 0 | 1 | 0 | L | `femacs/lib/gettime.rs` | done |
 | `lib/gettimeofday.c` | 154 | 2 | 0 | 4 | 0 | 0 | 2 | L | `femacs/lib/gettimeofday.rs` | done |
 | `lib/group-member.c` | 108 | 4 | 0 | 0 | 1 | 2 | 0 | L | `femacs/lib/group-member.rs` | done |
@@ -302,7 +302,7 @@
 | `lib/stddef.in.h` | 248 | 0 | 0 | 12 | 2 | 0 | 0 | L | `femacs/lib/include/stddef.in.rs` | todo |
 | `lib/stdint.in.h` | 740 | 0 | 0 | 136 | 9 | 0 | 0 | L | `femacs/lib/include/stdint.in.rs` | wip |
 | `lib/stdio-consolesafe.c` | 202 | 7 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdio-consolesafe.rs` | done |
-| `lib/stdio-impl.h` | 308 | 0 | 0 | 31 | 17 | 8 | 0 | L | `femacs/lib/include/stdio-impl.rs` | wip |
+| `lib/stdio-impl.h` | 308 | 0 | 0 | 31 | 17 | 8 | 0 | L | `femacs/lib/include/stdio-impl.rs` | done |
 | `lib/stdio.in.h` | 2,224 | 1 | 0 | 84 | 11 | 0 | 0 | L | `femacs/lib/include/stdio.in.rs` | todo |
 | `lib/stdlib.c` | 21 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/stdlib.rs` | done |
 | `lib/stdlib.in.h` | 1,991 | 2 | 0 | 75 | 15 | 7 | 0 | L | `femacs/lib/include/stdlib.in.rs` | todo |
@@ -321,7 +321,7 @@
 | `lib/sys-limits.h` | 38 | 0 | 0 | 1 | 1 | 0 | 0 | L | `femacs/lib/include/sys-limits.rs` | done |
 | `lib/sys_random.in.h` | 105 | 0 | 0 | 4 | 2 | 0 | 0 | L | `femacs/lib/include/sys_random.in.rs` | done |
 | `lib/sys_select.in.h` | 342 | 1 | 0 | 25 | 2 | 0 | 0 | L | `femacs/lib/include/sys_select.in.rs` | todo |
-| `lib/sys_stat.in.h` | 995 | 2 | 0 | 71 | 10 | 14 | 0 | L | `femacs/lib/include/sys_stat.in.rs` | wip |
+| `lib/sys_stat.in.h` | 995 | 2 | 0 | 71 | 10 | 14 | 0 | L | `femacs/lib/include/sys_stat.in.rs` | done |
 | `lib/sys_time.in.h` | 235 | 0 | 0 | 22 | 1 | 2 | 0 | L | `femacs/lib/include/sys_time.in.rs` | todo |
 | `lib/sys_types.in.h` | 138 | 0 | 0 | 12 | 6 | 0 | 0 | L | `femacs/lib/include/sys_types.in.rs` | done |
 | `lib/tempname.c` | 284 | 9 | 0 | 16 | 5 | 0 | 0 | L | `femacs/lib/tempname.rs` | done |
@@ -338,7 +338,7 @@
 | `lib/u64.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/u64.rs` | done |
 | `lib/u64.h` | 236 | 14 | 0 | 17 | 2 | 0 | 0 | L | `femacs/lib/include/u64.rs` | done |
 | `lib/unistd.c` | 22 | 0 | 0 | 1 | 0 | 0 | 0 | L | `femacs/lib/unistd.rs` | done |
-| `lib/unistd.in.h` | 2,447 | 2 | 0 | 91 | 10 | 0 | 1 | L | `femacs/lib/include/unistd.in.rs` | wip |
+| `lib/unistd.in.h` | 2,447 | 2 | 0 | 91 | 10 | 0 | 1 | L | `femacs/lib/include/unistd.in.rs` | done |
 | `lib/unlocked-io.h` | 148 | 0 | 0 | 32 | 1 | 0 | 0 | L | `femacs/lib/include/unlocked-io.rs` | todo |
 | `lib/utimens.c` | 690 | 7 | 0 | 5 | 1 | 0 | 2 | L | `femacs/lib/utimens.rs` | done |
 | `lib/utimens.h` | 82 | 1 | 0 | 3 | 0 | 0 | 0 | L | `femacs/lib/include/utimens.rs` | done |

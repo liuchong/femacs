@@ -189,8 +189,11 @@ pub unsafe extern "C" fn re_compile_pattern (pattern: *const c_char, length: usi
 
   if ret == REG_NOERROR
     { return null_mut (); }
-  return gettext! (__re_error_msgid.as_ptr ().add (__re_error_msgid_idx[ret as usize])
-                   as *const c_char);
+  /* C 227's `gettext (...)` is gettext.h's live arm's identity, which the mirror carries as
+     the `gettext` function (PORTING.md 0.1-3: it was the mirror's `gettext!` macro until the
+     mirror landed the arm).  */
+  return gettext (__re_error_msgid.as_ptr ().add (__re_error_msgid_idx[ret as usize])
+                  as *const c_char) as *const c_char;
 }
 weak_alias! (__re_compile_pattern, re_compile_pattern);
 
@@ -470,8 +473,8 @@ pub unsafe extern "C" fn regerror (errcode: c_int, preg: *const regex_t, errbuf:
        Dump core so we can fix it.  */
     { abort (); }
 
-  msg = gettext! (__re_error_msgid.as_ptr ().add (__re_error_msgid_idx[errcode as usize])
-                  as *const c_char);
+  msg = gettext (__re_error_msgid.as_ptr ().add (__re_error_msgid_idx[errcode as usize])
+                 as *const c_char) as *const c_char;
 
   msg_size = strlen (msg) + 1; /* Includes the null.  */
 
