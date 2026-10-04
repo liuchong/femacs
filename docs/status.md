@@ -5020,3 +5020,21 @@
   ③ **读数**：`spikes/kotlin-target-order.py` 重生成 `docs/baseline/kotlin-order.tsv` → `40 target(s), 25 ported, 15 to go`、`--check` 绿；
   Kotlin 侧剩 15 个目标（`EmacsView`/`EmacsWindow`/`EmacsWindowManager`/`EmacsService`/`EmacsNative`/`EmacsActivity`/`EmacsSurfaceView` 等）。
   ④ **本轮没有 Rust 编译**（只跑了一次 Kotlin 探针），探针的输出目录是它自己的 `mktemp -d` + `trap` 清理，工作树里没有新产物。
+- **3.298 abi shim 第⑩批 26 个导出入库（台账收口），四棘轮按新 HEAD 重生成：swift-import 636 → 610（2026-10-05）**：
+  ① **入库**（`6b24abc`，commit message 见下 ⑤ 的教训）：`femacs/src/abi_shim.rs` +274 行 / 0 删除、`docs/ports/abi_shim.md` 台账 +153 / -12，**26 个新导出**——
+  window 侧（`window_set_left_col`/`window_set_top_line`/`window_set_pixel_left`/`window_set_pixel_top`/`window_set_total_cols`/`window_set_total_lines`/`window_set_pixel_width`/`window_set_pixel_height`/
+  `window_total_cols`/`window_total_lines`/`window_pixel_width`/`window_pixel_height`/`window_phys_cursor_x`/`window_phys_cursor_y`/`window_desired_matrix`）、
+  frame 侧（`frame_set_total_cols`/`frame_set_pixel_width`/`frame_set_pixel_height`/`frame_border_width`/`frame_size_hint_flags`/`frame_set_size_hint_flags`/`frame_set_config_scroll_bar_width`/`_cols`/`_height`/`_lines`）、
+  `set_hash_value_slot`。台账 `docs/ports/abi_shim.md` 的**未勾框归 0**（文件开头写着理由：还有未勾项的文件会被 `xtask` 的 `finished_units()` 跳过，于是 shim 不会被 `gate-fast`/`dead-arms` 构建、它已经提供的导出反而读成"缺"）。
+  ② **入库前我自己复检（不引用 lane 的读数）**：`build-tu src/abi_shim.c` **exit 0**（`grep -c '^error'` = 0；输出里那行 `For more information about this error, try rustc --explain E0133` 是 E0133 警告组的收尾句，不是错误）；
+  `check-declarations` **13 / 0 / 0**、`check-kept` **6 / 0**、`check-mirror-dupes` **1 dup / 1 棘轮行 / 0 failure**。**`extract-abi.py --check` 对这件不适用**——它不是参照文件的复刻（C 里没有这些名字），首行是 `check-target-names.py` 接受的 DECLARED 形式
+  （`gen-port-map`/`gen-port-inventory` 重跑确认它不进任何一行；台账的 `## Evidence` 记着这条）。
+  ③ **四棘轮重生成**（`tools/reconcile-link-ratchets.sh`，**3m02s**，在它自己造的 HEAD worktree 里跑）：`docs/baseline/swift-import-pending.txt` **636 → 610 行**（**−26，正好是本批的 26 个名字**——台账里写着"batch 10 的 26 行等集成者的下一次 `--write-pending`"，本轮兑现）；
+  `link-pending.txt`、`link-exec-pending.txt`、`swift-units.tsv` **逐字节不变**（本批的名字全是 Swift 导入行，不是链接行）。`git diff --numstat` = **1 文件 / 0 insertions / 26 deletions**。
+  ④ **重生成后的读数（工作树，即带着四条 lane 的在飞文件）**：`check-link` `373 undefined / 373 行 / 1 failure / 1 stale(informational)`，那 1 条 failure 是 `_Vmake_cursor_line_fully_visible (unknown): referenced and defined by nothing`
+  （xdisp 在飞：`DEFVAR` 的 Lisp 符号在它的工作副本里被引用、还没到定义处）；`check-link --executable` `83 / 83 行 / 1 failure`；`check-swift-units` **0 new / 3 stale / 7 landed**（3 条 stale 全点名 `femacs/platform/macos/nsterm.swift`，是 lane 已落、棘轮行还停在 HEAD 的那几个名字）；
+  `check-swift-imports` `931 import(s) in 7 Swift file(s), 5,687 core export(s), 632 unprovided, 610 ratchet row(s), **22 failure(s)**`——**22 条全部点名 `femacs/platform/macos/nsterm.swift`**（`CHAR_GLYPH`/`COMPOSITE_GLYPH`/`composition_lbearing` 这类它在飞开始导入的名字），
+  即**没有一条 failure 落在 HEAD 上**（HEAD 侧的门与棘轮一致，这正是"先在 HEAD 里造读数、再对账"那条顺序的意义）。
+  ⑤ **教训（工具层，写在这里以免重犯）**：`3440f71`（Kotlin 四件）的 commit message 里两处反引号被 **shell 命令替换**吃掉了（`\`val apk: File\`` 变成空、`apk` 一词变成 `cat` 的输出错误提示）；
+  该提交**已推送**，而 `git push --force` 是硬禁止 ⇒ **不重写历史**（内容与证据以本条与 3.297 为准）。从此提交信息一律写进文件、用 `git commit -S -F <file>`（`6b24abc` 已是这么做的）。
+  ⑥ **清理**：本轮我自己造的两个临时目录已删（`/tmp/femacs-verify` 的 cargo target、`/tmp/{bt-abishim,kotlin-probe}.txt`）；`build/femacs/` 里的对象是工程正常状态、按 3.284 的口径保留。
