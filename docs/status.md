@@ -5123,3 +5123,15 @@
   ④ **由此命名的一条工单（给下一个空出来的 lane）**：**X11 面是本机唯一有实际牵引力的延后块**——本机有 X11 头（`spikes/gated-layout-probe.py` 的 `x11`/`x11_ext` 两条臂就是用它读的）、`src/xterm.c` 已经在这条路上（Ohm 的 lane，3,516 行），而 `src/xfns.c`（**10,662 行**）与 `src/xmenu.c`（2,932）、`src/xrdb.c`（513）、`src/xsmfns.c`（582）、`src/xgselect.c`（296）**还没有 lane**。
   建议顺序（按"本机能否读到它的门与头"排）：`src/xfns.c` → `src/xmenu.c` → `src/xselect.c` → `src/xrdb.c` → `src/xsmfns.c`（`xsmfns` 要 libSM：本机没有 ⇒ 落成政策 B 注 + 台账，或按 xterm 的载文形状落、编译留给 X11 target）。政策与 xterm 同一条：**P-51 载文 + 带门臂 + 读数来自 `x11`/`x11_ext` 探针**，不是空单元（3.299 的 P-85 对 C++ 已经这么定了；C 侧的 X11 文件同理，因为它们的头在本机可读）。
   ⑤ 未做（明确记下）：本轮**没有**改任何 `*_pending.tsv` / 台账 / 端口文件——这是一次量测与工单命名，不是移植。
+- **3.311 "整个类型带门"的清单第一次扫完：13 个真候选 → 本文件落 3 个、交 frame.rs 1 个、按事实推迟 7 个、假候选 2 个（Boyle 交付，2026-10-05）**：
+  ① **入的两件**：`femacs/src/include/dispextern.rs` **+64 / −7**（3,607 → **3,664 行**）、`docs/ports/include-dispextern.md` **+95**（978 → **1,073 行**，含完整候选表与 Evidence）。落地的三条全挂 `have_window_system`：
+  `struct gui_box`（dispextern.h 205-212；4 个 `int` 于 0/4/8/12，**16 / align 4**）、`struct image_cache`（dispextern.h 3368-3385；6 成员于 0/8/16/24/32/40，**48 / align 8**）、`IMAGE_CACHE_BUCKETS_SIZE`（dispextern.h 3387，`= 1009`，同门）。
+  ② **候选表其余各行的判定**（每个都带三臂读数，写在台账里）：**`struct MonitorInfo`（frame.h 1928-1935）** 可落地但不属本文件 ⇒ 交 `frame.rs`（读数：`geom` 0、`work` 16、`mm_width` 32、`mm_height` 36、`name` 40，48/8；消费方是 frame.c 的两个入口与 NS lane）；
+  **7 个按事实推迟**（5 个 `pgtk*` + `Lisp_TS_Parser`/`Lisp_TS_Node`）：本机三臂**都读不了**（`HAVE_PGTK`/`HAVE_TREE_SITTER` 的头不在），且**没有消费者**（`src/pgtkterm.c` 不在冻结构建内、无已端口单元命名这些类型）⇒ 推迟到"该 target 冻结"时镜像/pointee/臂一起到（`include-pgtkterm.md`/`include-treesit.md` 已按 dead-by-construction 记着）；
+  **2 个假候选**：`lib/dynarray.h` 的 `int_array`/`str_array` 在**一段 `/* … */` 文档注释里**，根本不是定义（探针把它读成 incomplete 就是这个原因——**扫描器不剥注释**这条限制值得记下来），`__time_t_must_be_integral` 已由 `lib/include/time.in.rs` 按标记承载（`Lisp_TS_Query` 由单元 `pdumper.rs:2527` 声明，镜像不欠）。
+  ③ **入库前我自己复检**：`extract-abi --check emacs/src/dispextern.h …` → **OK**；`xtask layout-check` → **`layout-check passed`**；`build-tu src/xfaces.c` → **built**；
+  `spikes/mirror-struct-coverage.py` → **`284 mirrored struct(s): 1,136 arm(s) attempted, 320 unreadable …, 0 gap(s)`**（结构体 282 → 284＝两条新记录进了被检查行）。
+  **这行 0 要读准**：它是**工作树**读数——3.309 新臂读出的那 5 条 `x_display_info` XSYNC 缺口已由 **xterm lane 在飞的 `include/xterm.rs`** 补上（5 个名字各命中 1 次，实测）；在 HEAD 上仍是 5 条，等那一片入库。
+  ④ **集成者动作（共享表，已做）**：`docs/baseline/citations-allowlist.tsv` 第 37 行 `femacs/src/include/dispextern.rs:544` → **`:567`**（`gui_box` 的插入把该引用行下移 23 行）。
+  改前 `check-citations` 报同一条 finding 两次（`drift …:567` + `stale …:544`），改后**两条同时消失**：`662 file(s) scanned, 32 drift, 1 range, 306 external, 38 allowed, **0 stale**`。
+  lane 另报的三条既有漂移（`dispextern.rs:1970`、`abi_shim.rs:1051/1061/1100`、两个 Swift 文件各一条）**先不动**（都在本批之前就存在，属"归谁"待定）。

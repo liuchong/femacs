@@ -89,6 +89,29 @@ pub const ON_HORIZONTAL_SCROLL_BAR: window_part = 11;
 pub const ON_RIGHT_DIVIDER: window_part = 12;
 pub const ON_BOTTOM_DIVIDER: window_part = 13;
 
+/* ``box'' structure similar to that found in the X sample server, meaning that X2 and Y2 are not
+   actually the end of the box, but one pixel past the end of the box, which makes checking for
+   overlaps less necessary.  This is convenient to use in every GUI port.  */
+// C's `struct gui_box` (dispextern.h 205-212) sits inside the `#ifdef HAVE_WINDOW_SYSTEM` block
+// that opens at C 182 and closes at C 212, so it is dead text on the frozen target - measured:
+// `spikes/gated-layout-probe.py 'struct gui_box' dispextern.h` reads `incomplete type` in the
+// frozen arm and four `int`s at 0/4/8/12 (`sizeof` 16, `align` 4) in the `x11` and `ns_cocoa`
+// arms.  It is carried under the same feature as `struct image` and `struct glyph_string`; no
+// `const _` assertion accompanies it, for the reason those two record (the frozen C baseline has
+// no keys for it and no tree gate compiles the arm), and the readings above are what a
+// window-system probe would assert.
+#[cfg (feature = "have_window_system")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct gui_box
+{
+  /* Bounds of the box.  */
+  pub x1: c_int,                               // C 208
+  pub y1: c_int,
+  pub x2: c_int,
+  pub y2: c_int,
+}
+
 // dispextern.h 247-250: the two widths of the row's fringe members, carried here with the
 // section that uses them.
 /* Number of bits allocated to store fringe bitmap numbers.  */
@@ -2271,13 +2294,47 @@ pub const IMAGE_BACKGROUND_TRANSPARENT_VALID_SHIFT: u32 = 2;           // C 3291
 #[cfg (feature = "have_window_system")]
 pub const IMAGE_BACKGROUND_TRANSPARENT_VALID_MASK: u32 = 1 << 2;
 
-// What C's 472-2600 span still leaves unmirrored - `image_cache` (dispextern.h 3368), whose
-// `struct image **buckets`/`images` are this header's own - and the 2600-4026 fringe, X-widget
-// and cursor machinery are not mirrored on this target yet; they need `struct
-// frame`/`struct window` (`struct font` is in `include/font.rs` now), and
-// docs/ports/include-dispextern.md tracks the rest of the file's macros, functions and
-// globals.  (`struct image`, C 3215, landed above; `struct it` and its stack, C 2386-2936, are
-// in the module below.)
+/* Cache of images.  Each frame has a cache.  X frames with the same x_display_info share their
+   caches.  */
+// C's `struct image_cache` (dispextern.h 3368-3385), in the same `#ifdef HAVE_WINDOW_SYSTEM`
+// block as `struct image` just above (C 3203-3395), so it takes the same feature and has the
+// same reading: `incomplete type` in the frozen arm, six members at 0/8/16/24/32/40 with
+// `sizeof` 48 and `align` 8 in the `x11` and `ns_cocoa` arms
+// (`spikes/gated-layout-probe.py 'struct image_cache' dispextern.h`).  Its two `struct image **`
+// members name the record above, and `image.rs`'s port and `frame.rs`'s `image_cache` member
+// (degraded to `*mut c_void` under P-72 rule 3 while this record had no owner mirror) are its
+// consumers.
+#[cfg (feature = "have_window_system")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct image_cache
+{
+  /* Hash table of images.  */
+  pub buckets: *mut *mut image,                // C 3372
+  /* Vector mapping image ids to images.  */
+  pub images: *mut *mut image,                 // C 3375
+  /* Allocated size of `images'.  */
+  pub size: ptrdiff_t,                         // C 3378
+  /* Number of images in the cache.  */
+  pub used: ptrdiff_t,                         // C 3381
+  /* Reference count (number of frames sharing this cache).  */
+  pub refcount: ptrdiff_t,                     // C 3384
+  /* Column width by which images whose QCscale property is Qdefault will be scaled ...  */
+  pub scaling_col_width: c_int,                // C 3386
+}
+
+/* Size of bucket vector of image caches.  Should be prime.  */
+// C 3387: `#define IMAGE_CACHE_BUCKETS_SIZE 1009`, in the same gated block.
+#[cfg (feature = "have_window_system")]
+pub const IMAGE_CACHE_BUCKETS_SIZE: c_int = 1009;
+
+// What C's 472-2600 span still leaves unmirrored - `struct image_type` (3367), which only the
+// two image records above name as a pointer - and the 2600-4026 fringe, X-widget and cursor
+// machinery are not mirrored on this target yet; they need `struct frame`/`struct window`
+// (`struct font` is in `include/font.rs` now), and docs/ports/include-dispextern.md tracks the
+// rest of the file's macros, functions and globals.  (`struct image`, C 3215, and
+// `struct image_cache`, C 3368, landed above; `struct it` and its stack, C 2386-2936, are in
+// the module below.)
 
 /* =============================================================================================
    The freely landable remainder, in C order (dispextern.h 105-3834).  Every item below is one

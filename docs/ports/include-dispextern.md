@@ -976,3 +976,98 @@ Evidence: `build-tu src/xfaces.c` and `src/dispnew.c` exit 0; `xtask layout-chec
 - **The frozen gates**: `xtask layout-check` -> `layout-check passed`; `build-tu src/xfaces.c`,
   `src/dispnew.c`, `src/window.c` -> `built …`; `python3 tools/extract-abi.py --check
   emacs/src/dispextern.h femacs/src/include/dispextern.rs` -> `OK …`.
+
+## Decisions (the "whole type gated" sweep, status 3.278 ④)
+
+**The candidate rule.**  Mirrored struct names were collected from *every* `femacs/**/*.rs` (not
+just `src/include`+`lib/include`, which missed e.g. `lib/malloc/include/dynarray.rs`); the C side
+is every `struct NAME {` definition that sits inside a `#if`/`#ifdef`/`#ifndef` region in
+`emacs/{src,lib,nt,oldXMenu,lwlib,lib-src,exec}/**/*.h` whose name no mirror declares.  Each
+survivor was then read with `spikes/gated-layout-probe.py <type> <header>` - the probe's
+`incomplete type` *is* the "whole type is gated" reading (3.278 ①), and a type that reads
+incomplete in all three arms is gated on a macro no arm of this machine turns on.
+
+**13 unique candidates; three classes.**
+
+*Landed here (this file owns them):*
+
+| type | C | gate | frozen | x11 | ns_cocoa | verdict |
+| --- | --- | --- | --- | --- | --- | --- |
+| `gui_box` | dispextern.h 205-212 | `HAVE_WINDOW_SYSTEM` (block 182-212) | incomplete | complete(4) | complete(4) | **landed** (`#[cfg (feature = "have_window_system")]`, 4 `int`s at 0/4/8/12, 16/4) |
+| `image_cache` | dispextern.h 3368-3385 | `HAVE_WINDOW_SYSTEM` (block 3203-3395) | incomplete | complete(6) | complete(6) | **landed** (6 members at 0/8/16/24/32/40, 48/8) |
+| `IMAGE_CACHE_BUCKETS_SIZE` | dispextern.h 3387 | same block | - | - | - | **landed** (`= 1009`, same gate) |
+
+*Landable but another mirror owns the type* (handed over, not touched - the lane rule):
+
+| type | C | gate | frozen | x11 | ns_cocoa | verdict |
+| --- | --- | --- | --- | --- | --- | --- |
+| `MonitorInfo` | frame.h 1929-1937 | `HAVE_WINDOW_SYSTEM` (+`HAVE_PGTK` adds `scale_factor`) | incomplete | complete(13) | complete(13) | **to `frame.rs`**: `geom` 0, `work` 16, `mm_width` 32, `mm_height` 36, `name` 40, 48/8; consumers are `frame.c`'s `free_monitors`/`make_monitor_attribute_list` and the NS lane's `ns_make_monitor_attribute_list` |
+
+*Gated on a macro none of the three arms sets - unreadable everywhere* (no reading is possible
+until an arm exists; both headers are dead-by-construction on this target and both mirrors already
+record that):
+
+| type | C | gate | frozen | x11 | ns_cocoa | verdict |
+| --- | --- | --- | --- | --- | --- | --- |
+| `pgtk_bitmap_record` | pgtkterm.h 43-49 | `HAVE_PGTK` | incomplete | incomplete | incomplete | deferred (no PGTK arm) |
+| `pgtk_device_t` | pgtkterm.h 51-64 | `HAVE_PGTK` | incomplete | incomplete | incomplete | deferred |
+| `pgtk_touch_point` | pgtkterm.h 66-83 | `HAVE_PGTK` | incomplete | incomplete | incomplete | deferred |
+| `pgtk_display_info` | pgtkterm.h 146-281 | `HAVE_PGTK` | incomplete | incomplete | incomplete | deferred |
+| `pgtk_output` | pgtkterm.h 286-455 | `HAVE_PGTK` | incomplete | incomplete | incomplete | deferred |
+| `Lisp_TS_Parser` | treesit.h 35 | `HAVE_TREE_SITTER` | incomplete | incomplete | incomplete | deferred |
+| `Lisp_TS_Node` | treesit.h 128 | `HAVE_TREE_SITTER` | incomplete | incomplete | incomplete | deferred |
+
+*Not candidates after inspection:*
+
+- `int_array` / `str_array` (lib/dynarray.h 197/234) are **inside a `/* … */` documentation
+  comment**, not definitions at all; the probe reads them incomplete for that reason.  (The
+  scanner that produced the candidate list does not strip comments - a limit worth knowing.)
+- `__time_t_must_be_integral` (lib/time.in.h 113) reads `complete(1)` in all three arms and is
+  already carried *as a marker* by `lib/include/time.in.rs` (`GNULIB_defined_struct_time_t_must_be_integral`
+  plus the comment: its only member is a one-bit bitfield, and `time_t = i64` satisfies it by
+  construction).
+- `Lisp_TS_Query` (treesit.h 155) is declared by a **unit**, `femacs/src/pdumper.rs` 2527, so the
+  mirror owes nothing.
+
+**`struct pgtk_output`'s verdict: defer, with a reason, not silently.**  Three facts together:
+its three arms are *all* unreadable (so no reading exists to write a mirror against); its pointees
+are GTK's (`GdkWindow`, `GdkCursor`, `cairo_pattern_t`, `GdkEvent*`, `GtkWidget`), which no mirror
+in this tree declares, so the record cannot be typed from what the port has; and it has **no
+consumer** - `src/pgtkterm.c` is not in the frozen build (`docs/port-map.md` 511-512) and no ported
+unit names any PGTK type.  The same three facts hold for the other four pgtk records above, and
+`docs/ports/include-pgtkterm.md` already records the whole `#ifdef HAVE_PGTK` body as
+dead-by-construction.  **Deferred until a PGTK target is frozen** (then the mirror, the GTK
+pointee mirrors and the arm all arrive together).  The two `treesit.h` records are the same case
+with `include-treesit.md` recording it.
+
+## Evidence (the whole-type-gated sweep)
+
+- **The scan**: candidate rule above; 13 unique types survive (14 rows - lib/time.in.h lists the
+  same `__time_t_must_be_integral` twice because the scanner walks direct and generated listings).
+  Every row's three-arm reading is in the tables above; `frozen=incomplete` for 12 of the 13
+  (`__time_t_must_be_integral` is the complete-everywhere exception).
+- **`spikes/mirror-struct-coverage.py`** -> `284 mirrored struct(s): 1136 arm(s) attempted, 320
+  unreadable …, 5 gap(s)`, and the 5 are `x_display_info`'s in the new **`x11_ext`** arm
+  (`xsync_*`/`server_time_monotonic_p` - `xterm.rs`'s, not this file's).  The two records landed
+  here are now *mirrored* rows (282 -> 284) with 0 gaps of their own, and the `ns_cocoa` section is
+  absent (0 gaps).
+- **The gated arm's own compile** (no tree gate turns `have_window_system` on): `struct gui_box`,
+  `struct image_cache` and the constant cut from this mirror, plus the `struct image` text and
+  `lib/include/time.in.rs`, compiled with `rustup run nightly-2026-10-01 rustc --edition 2024
+  --crate-type lib -C panic=abort --cfg 'feature="have_window_system"'` -> **exit 0** with
+  `size_of::<gui_box> () == 16`/`align 4`/offsets 0/4/8/12, `size_of::<image_cache> () == 48`/
+  `align 8`/offsets 0/8/16/24/32/40 and `IMAGE_CACHE_BUCKETS_SIZE == 1009` asserted; the same probe
+  with `--cfg 'feature="have_x_windows"'` -> exit 0.
+- **The frozen gates**: `xtask layout-check` -> `layout-check passed (see
+  build/femacs/layout_asserts.rs)`; `build-tu src/xfaces.c` / `src/dispnew.c` / `src/window.c` ->
+  `built …`; `python3 tools/extract-abi.py --check emacs/src/dispextern.h
+  femacs/src/include/dispextern.rs` -> `OK …` (the three names are in the extractor's deferred
+  set); `check-cond-eval.py src/dispextern.h` -> `71 conditions, 0 unknown, 0 disagreements`;
+  `check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed literals), 0
+  failures`; `check-mirror-dupes.py` -> `1 duplicate declaration(s), 1 ratchet row(s), 0
+  failure(s)`.
+- **One shared-table row needs the integrator**: `docs/baseline/citations-allowlist.tsv` line 37
+  keys `femacs/src/include/dispextern.rs:544`; this batch's `gui_box` insertion moved that
+  citation to line **567**, so `check-citations` now reports the same finding twice - a `drift` at
+  `:567` and a `stale` allowlist row at `:544`.  Retargeting the row's line number (544 -> 567)
+  is a one-field edit in a shared table, so it is reported rather than made here.
