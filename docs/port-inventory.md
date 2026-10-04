@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 502 |
-| 其中 done / wip | 475 / 27 |
+| 其中 done / wip | 476 / 26 |
 | 待开工 | 88 |
 
 ## 2 按目录
@@ -95,7 +95,7 @@
 | `exec/test.c` | 105 | 2 | 0 | 0 | 0 | 0 | 1 | F | `femacs/exec/test.rs` | done |
 | `exec/trace.c` | 2,258 | 24 | 0 | 9 | 5 | 0 | 7 | F | `femacs/exec/trace.rs` | done |
 | `lib-src/asset-directory-tool.c` | 338 | 5 | 0 | 0 | 0 | 5 | 1 | F | `femacs/lib-src/asset-directory-tool.rs` | done |
-| `lib-src/ebrowse.c` | 3,926 | 66 | 0 | 37 | 125 | 41 | 41 | F | `femacs/lib-src/ebrowse.rs` | wip |
+| `lib-src/ebrowse.c` | 3,926 | 66 | 0 | 37 | 125 | 41 | 41 | F | `femacs/lib-src/ebrowse.rs` | done |
 | `lib-src/emacsclient.c` | 2,524 | 52 | 0 | 11 | 4 | 4 | 15 | F | `femacs/lib-src/emacsclient.rs` | done |
 | `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 62 | 0 | 12 | F | `femacs/lib-src/etags.rs` | wip |
 | `lib-src/hexl.c` | 221 | 3 | 0 | 0 | 0 | 0 | 1 | F | `femacs/lib-src/hexl.rs` | done |

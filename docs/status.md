@@ -1904,3 +1904,28 @@
   重写 limits.in.rs，需同批收敛 rawmemchr.rs 的副本）；`build-tu lib/openat-proc.c` 报
   `cannot find type c_longlong`（同一镜像的新文本用了 `c_longlong`/`c_ulonglong`，但包含它的单元未必 import
   这两个名字——建议镜像里写全限定 `core::ffi::c_longlong`，或按单元 prelude 的既有约定处理）。
+
+- **3.126 `lib-src/ebrowse.c` 入树：4,414 行、150 项全勾，并附本项目第一份成规模的**行为差分**证据（2026-10-04 第 100 轮第九批）**：
+  单元 `femacs/lib-src/ebrowse.rs`（**4,414 行** / C 3,926）落地，`--check` 从不 OK 到 **`OK`** 靠的正是集成者该补的
+  15 条共享行：`macro-body-notes.tsv` 14 条（`switch`→`match` 与 `goto`→标签的必然缺 token，含 `FALLTHROUGH` 合并臂；
+  `version` 的 `PACKAGE_VERSION`/`COPYRIGHT` 被折进一个字面量）+ `line-drift-tolerance.tsv` 的 `ebrowse 0.13`
+  （实测 +12.4%）；台账 150 个框按 `--check` = OK 的读数勾满。
+  **行为差分（本批最有分量的证据）**：lane 把物化单元在 `/tmp` 编成可执行文件（副本改名 `main`，仓库文件未改），
+  与用参照 `ebrowse.c` 编出的二进制并排跑，比对 **BROWSE 输出 / stdout / stderr / 退出码**：
+  参照树全部 661 个 C/C++ 文件（`-x`）、`src|lib|lib-src` 488 文件 × 3 组选项（1,464 次）、26 个 C++ 文件、
+  `--position-info=N`/`-p N` 扫描、550 个生成输入、47 个手写边界用例 × 7 组选项（329 次），以及命令行路径
+  （多文件/stdin/`--files=`/`-a`/`-I`/`--version`/`--help`/`--`/两次 `-o`/非法选项/打不开的文件）——**零差异**。
+  差分抓出并修掉两个真 bug：`yyival` 的 C 无符号回绕（原写法在 debug 断言下直接 abort）、
+  `{"position-info", required_argument}` 被抄成 `no_argument`。这是树里第一次有单元拿到"运行期逐字节对拍"级证据
+  （此前多数单元只有文本/对象层证据；status 3.63 记过"门不是语义证明"的教训）。
+  两条**有意偏离**（都记进台账）：① `is_ident/is_digit/is_white` 声明为 `[c_char; 256]` 而非 C 的 `[255]`
+  （C 的 `IDENTP(0xFF)` 读越界一字节，Rust 会 panic；差分已覆盖 `0xFF` 输入）；② 参照自带的
+  `case 'R'` 首字母吞噬 bug **1:1 复刻、不修**。另外 lane 报告了两个工具建议，值得后续处理：
+  `tools/extract-abi.py` 的 `R_STATIC`/`R_CONST_NAME` 应像 `R_FIELD` 一样接受 `(?:r#)?`（否则 C 的 `static char *in;`
+  在 Rust 只能是 `r#in`，台账误报缺对象）；**`strip_comments` 先判 `"` 后判字符字面量**，`'"'` 这种字面量会把其后的
+  注释当代码——本树 8 个 `.rs` 有该字面量，门因此**少报** token（lane 用自写的准确剥离器复跑，确认实际缺 token 集合
+  就是它delivered的 14 对；工具修不修都能通过，但修了才不会被欠报蒙住）。
+  实测：`--check` = `OK`；`build-tu lib-src/ebrowse.c` = `built`；手工 `rustc --emit=metadata` = exit 0；
+  `check-mirror-dupes` `1 ratchet row / 0 failure`、`check-declarations` `13 sites (0 forbidden, 13 allowed literals)
+  / 0 failures`、`check-verbatim` 0、`check-globals` `283 units / 0`；`port-inventory` 复算
+  **590 files, done=476, wip=26, todo=88**。
