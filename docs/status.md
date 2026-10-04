@@ -5517,3 +5517,23 @@
   ④ **未声称**：没有 X11 运行时验收（本机没有可编 `have_x_windows` 的完整 Xlib 头面）；`x_get_customization_string`
      的 `PBaseSize` 条件按"文件自己平台的活臂"取（冻结宏表里没有这一行，`#else` 的 `_XPrivDisplay` 本配置永不编译，
      就地记录不转写）；整身 gated 意味着**冻结构建下这个单元几乎不编译任何东西**。
+
+- **3.347 四本棘轮在 `ede47b9` 上重生成：两本 link 没动、Swift 那对本轮才动（2026-10-05）**：
+  ① **顺序（3.270② 的硬要求）**：3.345/3.346 两件先各自入库，`tools/reconcile-link-ratchets.sh` 随后在
+     **HEAD 的 worktree** 里为在飞单元做 fresh 生成、写四本棘轮、并以 `--strict` 作后置条件。第一次跑
+     （在 `c88c52d`）**失败**并抓出 3.344 的那个 HEAD 缺陷；`c88c52d` 修好后第二次跑完，本条的读数是
+     **`ede47b9` 这一次**的。
+  ② **读数（四个门各自打印的原文）**：`check-link --strict` → `374 undefined symbol(s) from 76 program +
+     87 libgnu object(s), 374 ratchet row(s), 0 failure(s)`；`check-link --executable --strict` →
+     `84 undefined symbol(s) in the executable link from 163 object(s), 84 ratchet row(s), 0 failure(s)`；
+     `check-swift-units` → `0 new, 0 stale, 7 Swift unit(s) landed`；`check-swift-imports` →
+     `1020 import(s) in 7 Swift file(s), 5733 core export(s), 685 unprovided, 685 ratchet row(s), 0 failure(s)`。
+  ③ **本轮真正改动的只有 Swift 那一对**（`git diff --stat docs/baseline`）：`swift-units.tsv` **−7 行**
+     （nsterm 第 17 片落地的 7 个同名 Swift `func`，`check-swift-units` 之前报的 stale 全部走了），
+     `swift-import-pending.txt` **+43 行**（13 `reference-source` + 1 `reference` + 1 `rust-side` +
+     28 `unclassified`）；两本 link 表**与本轮之前逐字节相同** ⇒ 374/84 这两个数不是本轮"推进"出来的。
+  ④ **口径提醒**：`swift-import-pending` 的 +43 是**欠账清单**（名字还没人提供），`unprovided` 从 647 走到
+     **685**——这是"记下来"，不是"做完了"；`--strict` 的绿只说明**棘轮与对象精确相等**，它不主张链接能过
+     （真链接余量由 `tools/link-probe.py` 那条独立口径量，3.337 记的是 74）。
+  ⑤ **未入库**：`femacs/src/xterm.rs` 的 +666 行切片仍在工作树里（台账无对应轮次，已向该 lane 追问），
+     所以本轮的 374/84/685 都是**不含它**的读数；它入库后这四本要再跑一次。
