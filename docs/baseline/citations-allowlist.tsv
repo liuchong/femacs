@@ -34,7 +34,7 @@ femacs/src/filelock.rs:31	lisp.h 5303-5334 is right; `kill` belongs to the `<sig
 femacs/src/include/androidterm.rs:19	androidgui.h 33-42 is the handle typedefs; `frame` is another mirror's type
 femacs/src/include/charset.rs:27	charset.h 322 is right; `struct charset` is the type the sentence discusses
 femacs/src/include/cm.rs:168	cm.h 123-127 is right; `bool_bf` is the member's type
-femacs/src/include/dispextern.rs:539	dispextern.h 648-661 is right; `struct glyph *` is a parameter type
+femacs/src/include/dispextern.rs:544	dispextern.h 648-661 is right; `struct glyph *` is a parameter type
 femacs/src/include/lisp.rs:2753	lisp.h 5276-5280 is right; the condition is at 5273
 femacs/src/include/lisp.rs:3842	lisp.h 759 is the `lispfwd` typedef; `KBOARD` is the type named in the second half
 femacs/src/include/lisp.rs:3971	lisp.h 4654 is right; `struct buffer` belongs to the third citation on the line

@@ -4099,3 +4099,31 @@
   ⑥ **生成物的一条纪律（本轮实测后没有提交）**：`gen-port-map.py`/`gen-port-inventory.py` 现在跑出来的读数**描述的是工作树**，
   其中 `macfont.swift 11,069`（Mill 在飞）、`alloc.rs 8,268`（历史漂移）、`font.rs`/`include/font.rs`（Ohm 在飞）都不是本提交携带的状态 ⇒
   我按 HEAD 还原了这两个文件，**等这些 lane 入库后的那一轮再一起再生**（生成物不许超前于它所描述的文件）。
+
+- **3.228 `dispextern.h` 的镜像状态复核、那条发现被位移的 allowlist key 重锚，以及 lane 报告的重复项甄别（2026-10-04）**：
+  ① **lane 的 `142 → 104` 切片已经在 `4deb60f`（3.224）入库**，本轮我按"判据要在当前树上取"重新量了一遍，确认状态与台账一致：
+  `--check emacs/src/dispextern.h femacs/src/include/dispextern.rs` 的 `- ` = **104（全部 `missing`，0 条 token 行）**
+  ——对比入库前的 **142（140 missing + `GLYPH_CHAR`/`GLYPH_FACE` 两条 token 行）**。也就是说 lane 报告里那个 106 是它中途的读数，
+  当前树上的权威数字是 104；`femacs/src/include/dispextern.rs` 与 `docs/ports/include-dispextern.md` 在工作树里**没有任何未提交改动**
+  （`git diff` 为空，最后一次改动是 `4deb60f`）。
+  ② **这 104 行是什么**：4 functions + 23 macros + 65 constants + 13 objects，103 个名字里 **102 个由 unit 声明**
+  （逐名 owner 表在台账 `## Evidence`：xdisp.rs 63、dispnew.rs 30、indent.rs 25、window.rs 25、term.rs 25、keyboard.rs 21、
+  xfaces.rs 16、frame.rs 5、bidi.rs 2、eval.rs 2、font.rs 1），**1 个 free：`NativeRectangle`**（共享行 3.224 已写）；
+  抽取器仍 defer 的 5 个类型（`bidi_it`/`composition_it`/`draw_fringe_bitmap_params`/`it`/`redisplay_interface`）**也全是 unit-owned**
+  （`bidi.rs:86`、`dispnew.rs:6828/6855/3569`、`indent.rs:180`、`minibuf.rs:666`）。它们与那 102 个名字是同一件事，归 **3.220 的裁决**
+  （镜像那份挂 `dispextern_face_records` 之类的 flip feature，或落**不 glob-import 的模块**）：本单元唯一已落地的形态决定是
+  `xstrcasecmp` 落在 `dispextern_externs`（`src/font.rs:561` 自己定义同名函数且 include 本镜像 ⇒ 顶层是 `E0428`，实测点名 `font.rs:561`；
+  `bignum.rs`/`cm.rs` 的既成形）。**下一轮按同一张 owner 表推进这 102 + 5**。
+  ③ **lane 请我加的两条共享行是重复项，本轮不追加**：`NativeRectangle` → `docs/ports/excluded-macros.txt`、`IF_DEBUG` 的 `0` →
+  `docs/ports/macro-body-notes.tsv` 两条**在 3.224 就已经写好**（`4deb60f` 的提交信息里也点了这两条）；它的报告写在看到那一轮之前。
+  同一个名字写两行会被门当成重复 key，所以这里只记"它要求的两条已经在了"，不重复写。
+  ④ **本轮真正的改动是那条被位移的引证 key**：这次切片让它下方内容移动 5 行，`docs/baseline/citations-allowlist.tsv` 里唯一一条
+  `femacs/src/include/dispextern.rs:539`（理由：`dispextern.h 648-661` 是对的、`struct glyph *` 是参数类型）失效 ⇒ 重锚到 **:544**
+  （引证本体在文件里就是从 539 挪到 544 的那一条）。复跑：`check-citations` → **628 files / 9 drift / 0 range / 284 external / 38 allowed / 0 stale**
+  （drift 10→9、stale 1→0 一起动，因为那条 finding 现在被 allowlist 正确覆盖）。
+  ⑤ **lane 报的"`src/keyboard.c` 现在红"我复测为不成立**：`build-tu src/keyboard.c` → **built**（exit 0）。它当时看到的
+  `E0609 no field bits on type buffered_input_event` 是 `build/` 里过期对象/前一轮镜像态造成的；**判据要在当前产物上取**。
+  ⑥ 读数（本轮末）：`extract-abi --all` → **checked 590 ported files: 587 done, 3 in progress, 0 failing**（3 个 in progress = 台账未勾满的
+  `include-dispextern` 53、`include-font` 16、`xdisp` 157）；`build-tu src/{font,dispnew,xfaces,bidi,character}.c` **五件全 built**；
+  `layout-check passed`；`check-mirror-dupes` 1 duplicate / 1 ratchet row / 0；`check-globals` 283 units / 0；`check-declarations` 13/0；
+  `check-target-names` 626 .rs / 591 targets / 0。
