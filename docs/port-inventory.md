@@ -23,20 +23,20 @@
 | globals | 1,948 |
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
-| 已有目标文件 | 447 |
-| 其中 done / wip | 415 / 32 |
-| 待开工 | 143 |
+| 已有目标文件 | 454 |
+| 其中 done / wip | 422 / 32 |
+| 待开工 | 136 |
 
 ## 2 按目录
 
 | 目录 | 文件 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | todo |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 3 |
+| `exec/` | 8 | 4,274 | 41 | 0 | 36 | 26 | 96 | 16 | 0 |
 | `lib/` | 237 | 69,423 | 989 | 0 | 2,476 | 685 | 399 | 32 | 48 |
-| `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 6 |
+| `lib-src/` | 14 | 20,960 | 361 | 0 | 150 | 220 | 78 | 88 | 5 |
 | `lwlib/` | 15 | 8,353 | 217 | 0 | 69 | 68 | 8 | 15 | 9 |
-| `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 2 |
-| `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 19 |
+| `msdos/` | 2 | 58 | 0 | 0 | 6 | 2 | 0 | 0 | 0 |
+| `nt/` | 31 | 3,292 | 25 | 0 | 351 | 124 | 63 | 8 | 18 |
 | `oldXMenu/` | 33 | 5,176 | 39 | 0 | 62 | 57 | 3 | 8 | 4 |
 | `src/` | 250 | 566,784 | 8,702 | 1,841 | 4,006 | 2,716 | 5,117 | 1,781 | 52 |
 
@@ -48,7 +48,7 @@
 | **C** | 文本与字符 | buffer/marker/coding/charset 一族 | 36 | 70,340 | 975 | 330 | 717 | 420 | 148 | 0 |
 | **D** | 系统面 | 进程、文件、线程、网络、外部库绑定 | 34 | 61,745 | 1,012 | 269 | 498 | 289 | 128 | 0 |
 | **E** | 显示与终端 | 最大单件：xdisp/dispnew/window/frame/font/term | 50 | 172,942 | 2,240 | 490 | 1,104 | 1,976 | 432 | 10 |
-| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 75 |
+| **F** | 平台后端与工具程序 | X/w32/NS/Haiku/Android/pgtk/MS-DOS + lib-src 等 | 192 | 244,303 | 3,753 | 368 | 1,834 | 2,175 | 981 | 68 |
 | **G** | dump 与模块 | pdumper、emacs-module ABI | 12 | 8,428 | 294 | 5 | 33 | 119 | 16 | 9 |
 | **L** | lib/ 系统层（gnulib 替代） | 随消费者批次插入 | 237 | 69,423 | 989 | 0 | 2,476 | 399 | 32 | 48 |
 
@@ -87,11 +87,11 @@
 | 参照源 | 行 | 函数 | subr | 宏 | 常量 | 字段 | 全局 | 批次 | 目标 | 状态 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- |
 | `exec/exec.c` | 1,185 | 10 | 0 | 3 | 0 | 16 | 8 | F | `femacs/exec/exec.rs` | done |
-| `exec/exec.h` | 215 | 0 | 0 | 1 | 0 | 57 | 0 | F | `femacs/exec/include/exec.rs` | todo |
+| `exec/exec.h` | 215 | 0 | 0 | 1 | 0 | 57 | 0 | F | `femacs/exec/include/exec.rs` | done |
 | `exec/exec1.c` | 94 | 1 | 0 | 0 | 0 | 0 | 0 | F | `femacs/exec/exec1.rs` | done |
-| `exec/mipsel-user.h` | 46 | 0 | 0 | 1 | 0 | 7 | 0 | F | `femacs/exec/include/mipsel-user.rs` | todo |
+| `exec/mipsel-user.h` | 46 | 0 | 0 | 1 | 0 | 7 | 0 | F | `femacs/exec/include/mipsel-user.rs` | done |
 | `exec/mipsfpu.c` | 289 | 4 | 0 | 18 | 18 | 5 | 0 | F | `femacs/exec/mipsfpu.rs` | done |
-| `exec/mipsfpu.h` | 82 | 0 | 0 | 4 | 3 | 11 | 0 | F | `femacs/exec/include/mipsfpu.rs` | todo |
+| `exec/mipsfpu.h` | 82 | 0 | 0 | 4 | 3 | 11 | 0 | F | `femacs/exec/include/mipsfpu.rs` | done |
 | `exec/test.c` | 105 | 2 | 0 | 0 | 0 | 0 | 1 | F | `femacs/exec/test.rs` | done |
 | `exec/trace.c` | 2,258 | 24 | 0 | 9 | 5 | 0 | 7 | F | `femacs/exec/trace.rs` | done |
 | `lib-src/asset-directory-tool.c` | 338 | 5 | 0 | 0 | 0 | 5 | 1 | F | `femacs/lib-src/asset-directory-tool.rs` | done |
@@ -103,7 +103,7 @@
 | `lib-src/make-fingerprint.c` | 178 | 1 | 0 | 2 | 0 | 0 | 1 | F | `femacs/lib-src/make-fingerprint.rs` | done |
 | `lib-src/movemail.c` | 871 | 13 | 0 | 7 | 1 | 0 | 1 | F | `femacs/lib-src/movemail.rs` | done |
 | `lib-src/ntlib.c` | 601 | 24 | 0 | 2 | 0 | 2 | 4 | F | `femacs/lib-src/ntlib.rs` | done |
-| `lib-src/ntlib.h` | 96 | 0 | 0 | 29 | 0 | 0 | 0 | F | `femacs/lib-src/include/ntlib.rs` | todo |
+| `lib-src/ntlib.h` | 96 | 0 | 0 | 29 | 0 | 0 | 0 | F | `femacs/lib-src/include/ntlib.rs` | done |
 | `lib-src/pop.c` | 1,703 | 29 | 0 | 17 | 12 | 2 | 3 | F | `femacs/lib-src/pop.rs` | todo |
 | `lib-src/pop.h` | 75 | 0 | 0 | 5 | 2 | 7 | 2 | F | `femacs/lib-src/include/pop.rs` | done |
 | `lib-src/seccomp-filter.c` | 409 | 5 | 0 | 5 | 2 | 0 | 1 | F | `femacs/lib-src/seccomp-filter.rs` | done |
@@ -360,12 +360,12 @@
 | `lwlib/xlwmenu.c` | 2,920 | 64 | 0 | 7 | 1 | 0 | 6 | F | `femacs/lwlib/xlwmenu.rs` | done |
 | `lwlib/xlwmenu.h` | 87 | 0 | 0 | 44 | 43 | 0 | 1 | F | `femacs/lwlib/include/xlwmenu.rs` | todo |
 | `lwlib/xlwmenuP.h` | 158 | 0 | 0 | 1 | 0 | 0 | 1 | F | `femacs/lwlib/include/xlwmenuP.rs` | todo |
-| `msdos/inttypes.h` | 38 | 0 | 0 | 5 | 2 | 0 | 0 | F | `femacs/msdos/include/inttypes.rs` | todo |
-| `msdos/langinfo.h` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/msdos/include/langinfo.rs` | todo |
+| `msdos/inttypes.h` | 38 | 0 | 0 | 5 | 2 | 0 | 0 | F | `femacs/msdos/include/inttypes.rs` | done |
+| `msdos/langinfo.h` | 20 | 0 | 0 | 1 | 0 | 0 | 0 | F | `femacs/msdos/include/langinfo.rs` | done |
 | `nt/addpm.c` | 347 | 3 | 0 | 6 | 4 | 0 | 0 | F | `femacs/nt/addpm.rs` | done |
 | `nt/cmdproxy.c` | 965 | 17 | 0 | 5 | 1 | 0 | 3 | F | `femacs/nt/cmdproxy.rs` | done |
 | `nt/ddeclient.c` | 81 | 2 | 0 | 3 | 1 | 0 | 0 | F | `femacs/nt/ddeclient.rs` | done |
-| `nt/inc/arpa/inet.h` | 2 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/arpa/include/inet.rs` | todo |
+| `nt/inc/arpa/inet.h` | 2 | 0 | 0 | 0 | 0 | 0 | 0 | F | `femacs/nt/inc/arpa/include/inet.rs` | done |
 | `nt/inc/dirent.h` | 59 | 0 | 0 | 3 | 2 | 9 | 0 | F | `femacs/nt/inc/include/dirent.rs` | todo |
 | `nt/inc/grp.h` | 36 | 0 | 0 | 1 | 0 | 2 | 0 | F | `femacs/nt/inc/include/grp.rs` | todo |
 | `nt/inc/inttypes.h` | 36 | 0 | 0 | 3 | 0 | 0 | 0 | F | `femacs/nt/inc/include/inttypes.rs` | todo |
