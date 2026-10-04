@@ -1618,4 +1618,25 @@
   **顺带核实**（lanes 报的两处镜像缺陷）：`charset.rs` 的 `CHAR_CHARSET_P` `E0308` **不复现**——
   `build-tu src/coding.c` 与 `build-tu src/xdisp.c` 都 `built`，两单元的 `rustc --cfg enable_checking` 都 exit 0；
   `coding.h` 镜像那 5 条 crate-root 声明仍是待办（待 coding 镜像的下一次整理）。
+- **3.107 `gate-load` 第二版：链接交给 rustc，工单从 230 收敛到 165（2026-10-04 第 99 轮第七批）**：
+  第一版用 clang 直接链、报 230 个未定义——**其中约 210 个是 Rust 运行时自己的符号**
+  （`core::panicking::*`、`rust_begin_unwind`、`compiler_builtins`），因为每个单元都是 `--crate-type lib`
+  的目标文件，C 链接器不认识 Rust 运行时。第二版改成**由 rustc 驱动链接**：一个 `#![no_std] #![no_main]`
+  的 bin crate 当 driver（`#![no_main]` 让入口仍是端口自己的 `#[unsafe(no_mangle)] main`），driver 里放
+  端口自己的 `#[panic_handler]`（abort，PORTING.md 424）和一个 no-op `rust_eh_personality`
+  （`libcompiler_builtins` 的预编译 rlib 是给工具链自己的 std 配置编的、带 EH landing pad；panic=abort
+  下没人触发它）——rustc 于是自动把 `libcore`/`libcompiler_builtins` 交给 clang，另补 `-lSystem`
+  （bin crate 自带 `-nodefaultlibs`）。driver 由 xtask 写进 `build/load/driver.rs`（构建脚手架，不是待移植
+  文件），对象与库走 `build/load/link-args.rsp`。
+  实测：**165 个未定义符号，全部是端口自己的缺口**，最集中的是 `keyboard.o`（114 条引用）、`window.o`（68）、
+  `dispnew.o`（41）、`keymap.o`（38）。构成与三个发现：
+  ① **在飞单元的缺口**：keyboard.c 的 `_Fread_char`/`_read_key_sequence`/`_init_keyboard`/`_syms_of_keyboard`
+  与它的 `V*`、xdisp.c 的 `_init_iterator`/`_move_it_*`/`_message*`/`_syms_of_xdisp` 一族（两个 lane 在做）；
+  ② **P-19 的替身没有定义方**：`_current_buffer`（dispnew.o/xdisp.o 引）与 `_specpdl`/`_specpdl_end`/
+  `_specpdl_ptr`（dispnew.o/alloc.o/eval.o 引）在端口里**没有任何单元定义**——C 里它们分别是宏和 `globals`
+  成员，链接层第一次把这件事量化；
+  ③ **镜像/单元缺口**：`_MOUSE_HL_INFO`（C 的 `INLINE` 函数，参照对象里**没有**这个符号；端口的 `window.rs`
+  却在用点当外部符号调 → `include/dispextern.rs` 缺这组内联，与 xdisp lane 的 to-do 一致）、`_rpl_mempcpy`
+  （`lib/mempcpy.c` 未移植）、`_sa_stack_alloc`（P-05 栈池未落地）、`_nlist`、`_cursorX`、`_row_hash`。
+  `--report` 写 `build/load/undefined.txt`（`符号<TAB>引用它的对象`），这就是 L0 的工单。
 

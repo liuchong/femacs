@@ -1186,8 +1186,21 @@ fn probe_programs() -> Result<(), String> {
 /// wrong - the worklist L0 needs, which no other gate can produce (the text gates compare
 /// files, the symbol gate compares exports, the undefined-reference gate works per object
 /// against the SDK's own export list).  `--report` prints the list and exits 0; without it the
-/// command is a gate, and it needs the reference build's tree (`build/emacs-ref/src/Makefile`,
-/// see the batch-F derivation in `docs/baseline/frozen-build-sources.txt`).
+/// command is a gate.
+///
+/// **The link is driven by `rustc`, not by the C compiler**, and that is the whole point of the
+/// driver below.  A unit is a `--crate-type lib` object (PORTING.md 0.1), so it expects the
+/// Rust runtime's own symbols - `core`'s panic machinery, `compiler_builtins`' intrinsics, and
+/// the `rust_begin_unwind` lang item - which a plain `clang` link leaves undefined (measured:
+/// 210 of the first 230 undefined symbols were `core::panicking::*`).  The driver is an empty
+/// `#![no_std] #![no_main]` bin crate with the port's own `#[panic_handler]` (PORTING.md 424:
+/// `panic = "abort"`, and a panic is a defect, so the handler aborts like C's `emacs_abort`),
+/// so rustc hands clang the runtime rlibs and the program's entry stays the port's own `main`
+/// (emacs.rs's `#[unsafe(no_mangle)]` one).  `-nodefaultlibs` comes with the bin crate, hence
+/// the explicit `-lSystem` (libc is what the ported C code calls).  The objects, the port's
+/// `lib/` objects in place of the reference `libgnu.a` (the port has no archive, and mixing the
+/// reference library in is the C/Rust hybrid goal constraint 2 forbids), the frozen `-L` paths
+/// and `-lncurses` all go through a response file.
 fn gate_load(arg: Option<&str>) -> i32 {
     let report = arg == Some("--report");
     let out = match Command::new("make").args(["-C", "../build/emacs-ref/src", "-n", "temacs"]).output() {
@@ -1207,53 +1220,45 @@ fn gate_load(arg: Option<&str>) -> i32 {
     while lines[end].trim_end().ends_with('\\') && end + 1 < lines.len() {
         end += 1;
     }
-    // The command is one `gcc ... temacs.tmp` invocation plus the flags and objects on the
-    // continuation lines the Makefile writes.
-    // Strip the Makefile's line continuations: the backslash-newline pairs are shell syntax,
-    // and leaving them in would make `sh -c` escape the space that follows.
+    // Strip the Makefile's line continuations: the backslash-newline pairs are shell syntax.
     let joined = lines[start..=end].iter()
         .map(|l| l.trim_end().strip_suffix('\\').unwrap_or(l.trim_end()).trim_end())
         .collect::<Vec<&str>>().join(" ");
 
-    // The port's own objects for the `lib/` units stand in for the reference `libgnu.a`: the
-    // port has no archive (each C file is one crate), and mixing the reference library in
-    // would be the C/Rust hybrid the port forbids (goal constraint 2).
-    let mut lib_objs: Vec<String> = Vec::new();
-    if let Ok(rd) = fs::read_dir("lib") {
-        let mut stems: Vec<String> = rd.filter_map(|e| e.ok())
-            .filter_map(|e| e.path().file_stem().map(|s| s.to_string_lossy().into_owned()))
-            .collect();
-        stems.sort();
-        for stem in stems {
-            let p = Path::new(REPO).join("build/femacs").join(format!("{stem}.o"));
-            if p.is_file() {
-                lib_objs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
-            }
-        }
-    }
-
+    let _ = fs::create_dir_all("../build/load");
+    let mut objs: Vec<String> = Vec::new();
+    let mut libs: Vec<String> = Vec::new();
+    let mut search: Vec<String> = Vec::new();
     let mut missing: Vec<String> = Vec::new();
-    let mut tokens: Vec<String> = Vec::new();
+    let mut extra_libs: Vec<String> = Vec::new();
     for tok in joined.split_whitespace() {
         let is_obj = tok.len() > 2 && tok.ends_with(".o")
             && tok[..tok.len() - 2].chars().all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
         if is_obj {
             let p = Path::new(REPO).join("build/femacs").join(tok);
             if p.is_file() {
-                tokens.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
+                objs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
             } else {
                 missing.push(tok.to_string());
-                tokens.push(tok.to_string());
             }
         } else if tok.ends_with("../lib/libgnu.a") {
-            tokens.extend(lib_objs.iter().cloned());
-        } else if tok == "temacs.tmp" {
-            tokens.push(fs::canonicalize("..").map(|p| p.join("build/load/temacs-port"))
-                .unwrap_or_else(|_| PathBuf::from("temacs-port")).display().to_string());
-        } else if tok == "gcc" {
-            tokens.push("clang".to_string());
-        } else {
-            tokens.push(tok.to_string());
+            // the port's own objects for the `lib/` units stand in for the reference archive
+            if let Ok(rd) = fs::read_dir("lib") {
+                let mut stems: Vec<String> = rd.filter_map(|e| e.ok())
+                    .filter_map(|e| e.path().file_stem().map(|s| s.to_string_lossy().into_owned()))
+                    .collect();
+                stems.sort();
+                for stem in stems {
+                    let p = Path::new(REPO).join("build/femacs").join(format!("{stem}.o"));
+                    if p.is_file() {
+                        libs.push(fs::canonicalize(&p).unwrap_or(p).display().to_string());
+                    }
+                }
+            }
+        } else if tok.starts_with("-L") {
+            search.push(tok.to_string());
+        } else if tok == "-lncurses" || tok.starts_with("-l") {
+            extra_libs.push(tok.to_string());
         }
     }
     if !missing.is_empty() {
@@ -1262,29 +1267,60 @@ fn gate_load(arg: Option<&str>) -> i32 {
             return fail(format!("{} reference object(s) have no port object", missing.len()));
         }
     }
-    let cmd = tokens.join(" ");
-    let _ = fs::create_dir_all("../build/load");
+    // The driver: an empty no_std/no_main bin crate + the port's panic handler.
+    const DRIVER: &str = "#![no_std]\n#![no_main]\n\
+// femacs link driver (build scaffolding, not a ported file): rustc links the runtime.\n\
+use core::panic::PanicInfo;\n\
+#[panic_handler]\n\
+fn panic (_info: &PanicInfo) -> ! { unsafe { abort () } }\n\
+unsafe extern \"C\" { fn abort () -> !; }\n\
+// libcompiler_builtins' prebuilt rlib carries EH landing pads (it is built for the\n\
+// toolchain's own std configuration), so it references the C-unmangled\n\
+// rust_eh_personality symbol; nothing raises in a panic=abort link, and the port's panics\n\
+// abort through the handler above, so this no-op satisfies the linker.\n\
+#[unsafe(no_mangle)]\n\
+pub extern \"C\" fn rust_eh_personality () {}\n";
+    if let Err(e) = fs::write("../build/load/driver.rs", DRIVER) {
+        return fail(format!("writing the link driver: {e}"));
+    }
+    let out_path = fs::canonicalize("..").map(|p| p.join("build/load/temacs-port"))
+        .unwrap_or_else(|_| PathBuf::from("build/load/temacs-port"));
+    let mut rsp: Vec<String> = vec![format!("-o\n{}", out_path.display())];
+    rsp.extend(objs.iter().cloned());
+    rsp.extend(libs.iter().cloned());
+    rsp.extend(search.iter().cloned());
+    rsp.extend(extra_libs.iter().cloned());
+    rsp.push("-lSystem".to_string());
+    if let Err(e) = fs::write("../build/load/link-args.rsp", rsp.join("\n") + "\n") {
+        return fail(format!("writing the link response file: {e}"));
+    }
     println!("== gate-load: linking the frozen temacs object list against the port ==");
-    let linked = Command::new("sh").arg("-c").arg(&cmd)
-        .current_dir("../build/emacs-ref/src").output();
-    let out = match linked {
+    println!("   {} port object(s) + {} lib object(s), linked by rustc (panic=abort, no_std driver)",
+             objs.len(), libs.len());
+    let out = match Command::new("rustc")
+        .args(["--edition", "2024", "--crate-type", "bin", "-C", "panic=abort", "-C", "linker=clang"])
+        .arg("../build/load/driver.rs")
+        .arg("-C").arg("link-arg=@../build/load/link-args.rsp")
+        .arg("-o").arg(&out_path)
+        .output()
+    {
         Ok(o) => o,
-        Err(e) => return fail(format!("link: {e}")),
+        Err(e) => return fail(format!("rustc link: {e}")),
     };
     let text = format!("{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
     let mut undefined: Vec<(String, Vec<String>)> = Vec::new();
     let mut current: Option<usize> = None;
     for line in text.lines() {
-        if line.trim_start().starts_with('"') && line.contains(", referenced from:") {
-            // `  "_name", referenced from:` - the name is the first quoted word.
-            let name = line.trim_start().trim_start_matches('"')
-                .split('"').next().unwrap_or("").to_string();
+        let tr = line.trim_start();
+        if tr.starts_with('"') && line.contains(", referenced from:") {
+            let name = tr.trim_start_matches('"').split('"').next().unwrap_or("").to_string();
             undefined.push((name, Vec::new()));
             current = Some(undefined.len() - 1);
-        } else if line.starts_with("      _") || line.starts_with("  _") && line.contains(" in ") {
+        } else if tr.starts_with('_') && tr.contains(" in ") {
             if let Some(i) = current {
                 if let Some((_, referrers)) = undefined.get_mut(i) {
-                    if let Some(obj) = line.split(" in ").nth(1) {
+                    if let Some(obj) = tr.split(" in ").nth(1) {
+                        // the linker writes the object's basename; keep it, drop duplicates later
                         referrers.push(obj.trim().to_string());
                     }
                 }
@@ -1303,7 +1339,6 @@ fn gate_load(arg: Option<&str>) -> i32 {
     }
     let list = undefined.iter()
         .map(|(name, refs)| {
-            // one entry per referencing object, in the order the linker printed them
             let mut seen: Vec<&String> = Vec::new();
             for r in refs { if !seen.contains(&r) { seen.push(r); } }
             format!("{name}\t{}", seen.iter().map(|s| s.as_str()).collect::<Vec<&str>>().join(","))
@@ -1319,8 +1354,6 @@ fn gate_load(arg: Option<&str>) -> i32 {
             println!("link: temacs linked from the port's objects alone");
             return 0;
         }
-        // A link can fail for reasons that are not undefined symbols (a flag the frozen build
-        // passes, a duplicate definition, a missing file); print what it said.
         for line in text.lines().rev().take(15).collect::<Vec<&str>>().into_iter().rev() {
             println!("  {line}");
         }
