@@ -2182,9 +2182,10 @@ fileprivate func ns_set_window_size_and_position(_ f: UnsafeMutableRawPointer?, 
 /// same name and the same signature.
 @_silgen_name("fset_parent_frame")
 func fset_parent_frame(_ f: UnsafeMutableRawPointer?, _ parent: Lisp_Object)
-/// C: `#define FRAME_UNDECORATED(f) ((f)->undecorated)` (src/frame.h 1239) - the `bool_bf`
-/// member at src/frame.h 449, written at C 1981.  Only the write half is this slice's, and the
-/// name is the one `nsfns.swift` 573-574 already imports.
+/// C: src/frame.h 1239's `FRAME_UNDECORATED` (`#define FRAME_UNDECORATED(f) ((f)->undecorated)`) -
+/// the member is src/frame.h 449's `undecorated` (`bool_bf undecorated : 1;`), written at C 1981.
+/// Only the write half is this slice's, and the name is the one `nsfns.swift` 573-574 already
+/// imports.
 @_silgen_name("frame_set_undecorated")
 func frame_set_undecorated(_ f: UnsafeMutableRawPointer?, _ v: Bool)
 /// C: `#define FRAME_NO_FOCUS_ON_MAP(f) ((f)->no_focus_on_map)` (src/frame.h 1248) - written at
@@ -2233,8 +2234,8 @@ func frame_set_ns_transparent_titlebar(_ f: UnsafeMutableRawPointer?, _ v: Bool)
 /// defined src/frame.c 3872) - the core's `femacs/src/frame.rs` 3842 defines it.
 @_silgen_name("store_frame_param")
 func store_frame_param(_ f: UnsafeMutableRawPointer?, _ prop: Lisp_Object, _ val: Lisp_Object)
-/// C: `AVOID error (const char *, ...)` (src/lisp.h 4835; `_error` is `T` in
-/// `build/emacs-ref/src/eval.o`) - the lane's variadic shape (`nsfns.swift` 103).
+/// C: src/lisp.h 4835's `error` (`AVOID error (const char *, ...)`) - the lane's variadic shape
+/// (`nsfns.swift` 103); `_error` is `T` in `build/emacs-ref/src/eval.o`.
 @_silgen_name("error") func error(_ format: UnsafePointer<CChar>, _ args: CVarArg...) -> Never
 /// C: `bool parse_color_spec (const char *, unsigned short *, unsigned short *,
 /// unsigned short *)` (src/dispextern.h 3798, defined src/xfaces.c 987) - the core's
@@ -2750,8 +2751,9 @@ func ns_set_frame_alpha(_ f: UnsafeMutableRawPointer?) {
 // the messages this unit's own classes (`EmacsView`) and `src/nsmenu.m`'s (`EmacsTooltip`)
 // answer.
 
-/// C: `#define FRAME_TOOLTIP_P(f) ((f)->tooltip)` (src/frame.h 1256, the `HAVE_WINDOW_SYSTEM`
-/// arm) - the `bool_bf tooltip : 1` member (src/frame.h 457), read at C 2544/2560.
+/// C: src/frame.h 1256's `FRAME_TOOLTIP_P` (`#define FRAME_TOOLTIP_P(f) ((f)->tooltip)`), inside the
+/// `HAVE_WINDOW_SYSTEM` arm opened at src/frame.h 1241.
+/// The member is src/frame.h 457's `tooltip` (`bool_bf tooltip : 1;`), read at C 2544/2560.
 @_silgen_name("FRAME_TOOLTIP_P") func FRAME_TOOLTIP_P(_ f: UnsafeMutableRawPointer?) -> Bool
 /// C: the `struct frame` member `f->mouse_moved` (src/frame.h 434's `bool_bf mouse_moved : 1`),
 /// written at C 2464 (`= 1`) and C 2513 (`= 0`) - a member-write entry
@@ -2804,8 +2806,9 @@ func XSETINT(_ a: UnsafeMutablePointer<Lisp_Object>, _ b: Int)
 func note_mouse_highlight(_ f: UnsafeMutableRawPointer?, _ x: Int32, _ y: Int32)
 /// C: `void remember_mouse_glyph (struct frame *, int, int, NativeRectangle *)`
 /// (src/dispextern.h 3586; `NativeRectangle` is `NSRect` for this target, src/nsgui.h 80).  The
-/// definition is xdisp.c 2779, **inside `HAVE_WINDOW_SYSTEM`** (the `#ifdef` at xdisp.c 2490),
-/// which the frozen configuration leaves undefined - so the object has no
+/// definition is src/xdisp.c 2779's `remember_mouse_glyph`, inside the `HAVE_WINDOW_SYSTEM` block
+/// opened at src/xdisp.c 2488, which the frozen configuration leaves undefined - so the object
+/// has no
 /// `_remember_mouse_glyph` (measured), and this is the owed-entry class status 3.255 ③ gives
 /// `frame_set_double_buffered`: the shim exports it under the same gate.
 @_silgen_name("remember_mouse_glyph")
@@ -3312,7 +3315,8 @@ func FACE_FROM_ID_OR_NULL(_ f: UnsafeMutableRawPointer?, _ id: Int32) -> UnsafeM
 @_silgen_name("lookup_basic_face")
 func lookup_basic_face(_ w: UnsafeMutableRawPointer?, _ f: UnsafeMutableRawPointer?,
                        _ face_id: Int32) -> Int32
-/// C: `enum glyph_row_area`'s `ANY_AREA = -1` (src/dispextern.h 883) - `window_box`'s area argument.
+/// C: src/dispextern.h 883's `ANY_AREA` (`enum glyph_row_area`'s `ANY_AREA = -1`) - the area
+/// argument `window_box` takes (src/dispextern.h 3574).
 @_silgen_name("ANY_AREA") func ANY_AREA() -> Int32
 /// C: `struct run`'s members (src/dispextern.h: `int desired_y, current_y; … int height, nrows;`),
 /// read at C 2865-2874 through the `<record>_<member>` family.
@@ -3339,7 +3343,8 @@ func FRAME_TOP_MARGIN_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
 @_silgen_name("FRAME_BOTTOM_MARGIN_HEIGHT")
 func FRAME_BOTTOM_MARGIN_HEIGHT(_ f: UnsafeMutableRawPointer?) -> Int32
 /// C: `void gui_clear_cursor (struct window *)` (src/dispextern.h; defined src/xdisp.c 35466
-/// **inside `HAVE_WINDOW_SYSTEM`** - the `#ifdef` at xdisp.c 35086 - so the frozen objects have no
+/// **inside `HAVE_WINDOW_SYSTEM`** - the `#ifdef` at src/xdisp.c 35045 - so the frozen objects have
+/// no
 /// `_gui_clear_cursor`, measured): the owed-entry class of status 3.255 ③, like
 /// `remember_mouse_glyph`.
 @_silgen_name("gui_clear_cursor") func gui_clear_cursor(_ w: UnsafeMutableRawPointer?)
@@ -4030,10 +4035,11 @@ func glyph_row_set_cursor_in_fringe_p(_ row: UnsafeMutableRawPointer?, _ v: Bool
 @_silgen_name("FRAME_FOREGROUND_PIXEL")
 func FRAME_FOREGROUND_PIXEL(_ f: UnsafeMutableRawPointer?) -> UInt
 @_silgen_name("FRAME_CURSOR_COLOR") func FRAME_CURSOR_COLOR(_ f: UnsafeMutableRawPointer?) -> NSColor?
-/// C: the enumerators this slice compares against - `enum glyph_row_area`'s `TEXT_AREA`
-/// (src/dispextern.h 885), `enum draw_glyphs_face`'s `DRAW_CURSOR` (1352), the six
-/// `enum text_cursor_kinds` (DEFAULT_CURSOR -2, NO_CURSOR -1, FILLED_BOX_CURSOR,
-/// HOLLOW_BOX_CURSOR, BAR_CURSOR, HBAR_CURSOR) and the four face ids C 3441/3459-3463 read.
+/// C: the enumerators this slice compares against - src/dispextern.h 885's `TEXT_AREA`
+/// (`enum glyph_row_area`), src/dispextern.h 1352's `DRAW_CURSOR` (`enum draw_glyphs_face`), the six
+/// `enum text_cursor_kinds` (src/dispextern.h 216's `DEFAULT_CURSOR` -2, NO_CURSOR -1,
+/// FILLED_BOX_CURSOR, HOLLOW_BOX_CURSOR, BAR_CURSOR, HBAR_CURSOR) and the four face ids C
+/// 3441/3459-3463 read.
 @_silgen_name("TEXT_AREA") func TEXT_AREA() -> Int32
 @_silgen_name("DRAW_CURSOR") func DRAW_CURSOR() -> Int32
 @_silgen_name("DEFAULT_CURSOR") func DEFAULT_CURSOR() -> Int32
@@ -4053,9 +4059,10 @@ func WINDOW_DIVIDER_LAST_PIXEL_FACE_ID() -> Int32
 @_silgen_name("get_phys_cursor_glyph")
 func get_phys_cursor_glyph(_ w: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
 /// C: the three cursor/fringe helpers no built configuration has a symbol for, all measured:
-/// `get_phys_cursor_geometry` (src/xdisp.c 2707) and `draw_phys_cursor_glyph` (src/xdisp.c 35099)
-/// sit inside `HAVE_WINDOW_SYSTEM` (opened at xdisp.c 2490 and 35086), and `draw_fringe_bitmap`
-/// (src/fringe.c 838) belongs to the file `femacs/src/fringe.rs` records as not compiled at all.
+/// src/xdisp.c 2707's `get_phys_cursor_geometry` and src/xdisp.c 35099's `draw_phys_cursor_glyph`
+/// are the two in `HAVE_WINDOW_SYSTEM` arms (`#ifdef`s at src/xdisp.c 2488 and 35045), and
+/// src/fringe.c 838's `draw_fringe_bitmap` belongs to the file `femacs/src/fringe.rs` records as
+/// not compiled at all.
 /// Each is an owed entry whose row carries that gate (status 3.255 ③ / 3.262's shape).
 @_silgen_name("get_phys_cursor_geometry")
 func get_phys_cursor_geometry(_ w: UnsafeMutableRawPointer?, _ row: UnsafeMutableRawPointer?,
@@ -4271,4 +4278,432 @@ fileprivate func ns_draw_window_divider(_ w: UnsafeMutableRawPointer?, _ x0: Int
   }
 
   ns_unfocus(f)
+}
+
+/// C 3511-3515: `static void ns_show_hourglass (struct frame *f)` - the RIF
+/// `show_hourglass_hook`.  C's whole body is the TODO comment below, so the port keeps the
+/// comment and nothing else; the hook's `f` is unused in C too (the RIF table takes the
+/// signature, not the argument).
+fileprivate func ns_show_hourglass(_ f: UnsafeMutableRawPointer?) {
+  /* TODO: add NSProgressIndicator to all frames.  */
+}
+
+/// C 3517-3521: `static void ns_hide_hourglass (struct frame *f)` - the RIF
+/// `hide_hourglass_hook`, the mirror of the box above; C's body is its TODO comment alone.
+fileprivate func ns_hide_hourglass(_ f: UnsafeMutableRawPointer?) {
+  /* TODO: remove NSProgressIndicator from all frames.  */
+}
+
+/* ==========================================================================
+
+    Glyph drawing operations
+
+   ========================================================================== */
+
+/// C: `int get_glyph_string_clip_rects (struct glyph_string *, NativeRectangle *, int)`
+/// (src/dispextern.h 3661) - defined at src/xdisp.c 2495, **inside that file's
+/// `#ifdef HAVE_WINDOW_SYSTEM` block (opened at 2488)**, so the frozen configuration has no
+/// symbol for it (measured this round): the row carries that gate - status 3.262's shape, the
+/// `get_phys_cursor_geometry` reading of round 16.
+@_silgen_name("get_glyph_string_clip_rects")
+func get_glyph_string_clip_rects(_ s: UnsafeMutableRawPointer?,
+                                 _ rects: UnsafeMutablePointer<NSRect>?, _ n: Int32) -> Int32
+
+/// C 3529-3539: `static int ns_get_glyph_string_clip_rect (struct glyph_string *s,
+/// NativeRectangle *nr)` - "Wrapper utility to account for internal border width on full-width
+/// lines, and allow top full-width rows to hit the frame top.  nr should be pointer to two
+/// successive NSRects.  Number of rects actually used is returned."  `NativeRectangle` is
+/// `NSRect` in this build (src/nsgui.h 80, not the `HAVE_X_WINDOWS` arm's `XRectangle`), so
+/// `nr` is a pointer to two successive `NSRect`s - the shape C's comment names - and both
+/// arguments pass straight through to the core's two-rect call.
+fileprivate func ns_get_glyph_string_clip_rect(_ s: UnsafeMutableRawPointer?,
+                                               _ nr: UnsafeMutablePointer<NSRect>?) -> Int32 {
+  let n = get_glyph_string_clip_rects(s, nr, 2)
+  return n
+}
+
+/// C: `struct glyph_string`'s members (src/dispextern.h 1336-1508) this slice reads - `ybase`
+/// (C 3567/3604/3625), `x` (C 3603/3605/3625), `width` (C 3634), `y`/`height` (C 3699), `f`
+/// (C 3665), `face` (C 3672), `prev` (C 3684), `w` (C 3703), `hl` (C 3664) and `for_overlaps`
+/// (C 3661) - plus the two it **writes** (C 3749-3750, `_set_`).  The record belongs to the core
+/// (`femacs/src/dispextern.rs`), so each access is a member entry under `<record>_<member>`,
+/// the family round 14 opened; `for_overlaps` is an `unsigned : 3` bitfield, so its entry keeps
+/// C's raw value rather than a `Bool`.
+@_silgen_name("glyph_string_ybase")
+func glyph_string_ybase(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_x") func glyph_string_x(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_y") func glyph_string_y(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_width")
+func glyph_string_width(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_height")
+func glyph_string_height(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_f")
+func glyph_string_f(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_face")
+func glyph_string_face(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_prev")
+func glyph_string_prev(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_w")
+func glyph_string_w(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+@_silgen_name("glyph_string_hl") func glyph_string_hl(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_for_overlaps")
+func glyph_string_for_overlaps(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_underline_thickness")
+func glyph_string_underline_thickness(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_set_underline_thickness")
+func glyph_string_set_underline_thickness(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+@_silgen_name("glyph_string_underline_position")
+func glyph_string_underline_position(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_set_underline_position")
+func glyph_string_set_underline_position(_ s: UnsafeMutableRawPointer?, _ v: Int32)
+
+/// C 3553-3591: `static void ns_draw_underwave (struct glyph_string *s, EmacsCGFloat width,
+/// EmacsCGFloat x)` - "Draw a wavy line under glyph string s.  The wave fills wave_height pixels
+/// from y."  C's `int` locals stay `Int32`, `NSPoint a, b` is two `NSPoint`s and the loop's
+/// `odd = !odd` is C's `int` toggle spelled as a conditional; `[NSBezierPath
+/// strokeLineFromPoint:toPoint:]` is Swift's `NSBezierPath.strokeLine(from:to:)` (AppKit's own
+/// rename), and `[[NSGraphicsContext currentContext] saveGraphicsState]` is
+/// `NSGraphicsContext.current?.saveGraphicsState()` (the optional receiver C relies on).
+fileprivate func ns_draw_underwave(_ s: UnsafeMutableRawPointer?, _ width: CGFloat,
+                                   _ x: CGFloat) {
+  let wave_height: Int32 = 3, wave_length: Int32 = 2
+  var y: Int32 = 0, dx: Int32 = 0, dy: Int32 = 0, odd: Int32 = 0, xmax: Int32 = 0
+  var a = NSPoint(), b = NSPoint()
+  var waveClip = NSRect.zero
+
+  dx = wave_length
+  dy = wave_height - 1
+  y = glyph_string_ybase(s) - wave_height + 3
+  xmax = Int32(x + width)
+
+  /* Find and set clipping rectangle */
+  waveClip = NSMakeRect(x, CGFloat(y), width, CGFloat(wave_height))
+  NSGraphicsContext.current?.saveGraphicsState()
+  NSRectClip(waveClip)
+
+  /* Draw the waves */
+  a.x = x - CGFloat(Int32(x) % dx) + 0.5
+  b.x = a.x + CGFloat(dx)
+  odd = Int32(a.x / CGFloat(dx)) % 2
+  a.y = CGFloat(y) + 0.5
+  b.y = a.y
+
+  if odd != 0 {
+    a.y += CGFloat(dy)
+  } else {
+    b.y += CGFloat(dy)
+  }
+
+  while a.x <= CGFloat(xmax) {
+    NSBezierPath.strokeLine(from: a, to: b)
+    a.x = b.x
+    a.y = b.y
+    b.x += CGFloat(dx)
+    b.y = CGFloat(y) + 0.5 + CGFloat(odd * dy)
+    odd = odd == 0 ? 1 : 0
+  }
+
+  /* Restore previous clipping rectangle(s) */
+  NSGraphicsContext.current?.restoreGraphicsState()
+}
+
+/// C 3598-3613: `static void ns_draw_dash (struct glyph_string *s, int width, int segment, int
+/// offset, int thickness)` - "Draw a dashed underline of thickness THICKNESS and width WIDTH
+/// onto the focused frame at a vertical offset of OFFSET from the position of the glyph string
+/// S, with each segment SEGMENT pixels in length."  C's `alloc`/`init`/`release`
+/// `NSBezierPath` is Swift's `NSBezierPath()` (ARC owns the local, so the `[path release]` is
+/// dropped), the `CGFloat pattern[2]` is a local array, and `y_center` keeps C's
+/// `s->ybase + offset + thickness / 2.0` grouping (the last term is the division C writes).
+fileprivate func ns_draw_dash(_ s: UnsafeMutableRawPointer?, _ width: Int32, _ segment: Int32,
+                              _ offset: Int32, _ thickness: Int32) {
+  let y_center = CGFloat(glyph_string_ybase(s) + offset) + CGFloat(thickness) / 2.0
+  let path = NSBezierPath()
+  let pattern: [CGFloat] = [CGFloat(segment), CGFloat(segment)]
+
+  path.setLineDash(pattern, count: 2, phase: CGFloat(glyph_string_x(s)))
+  path.lineWidth = CGFloat(thickness)
+  path.move(to: NSMakePoint(CGFloat(glyph_string_x(s)), y_center))
+  path.line(to: NSMakePoint(CGFloat(glyph_string_x(s) + width), y_center))
+  path.stroke()
+}
+
+/// C: `struct glyph`'s `short ascent, descent;` (src/dispextern.h 506, the two reads at
+/// C 3771-3772) and the `struct face`/`struct font` members the underline/overline/
+/// strike-through block reads: `underline`/`underline_defaulted_p`/`underline_color`/
+/// `underline_at_descent_line_p`/`underline_pixels_above_descent_line` (src/dispextern.h
+/// 1848-1887), the `overline_*` and `strike_through_*` trios (1823-1883) and `struct font`'s
+/// `descent`/`underline_thickness`/`underline_position` (src/font.h 319-332).  Same
+/// member-entry shape as the `glyph_string` family above.
+@_silgen_name("glyph_ascent") func glyph_ascent(_ g: UnsafeMutableRawPointer?) -> Int16
+@_silgen_name("glyph_descent") func glyph_descent(_ g: UnsafeMutableRawPointer?) -> Int16
+@_silgen_name("face_underline") func face_underline(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("face_underline_defaulted_p")
+func face_underline_defaulted_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_underline_color")
+func face_underline_color(_ f: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("face_underline_at_descent_line_p")
+func face_underline_at_descent_line_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_underline_pixels_above_descent_line")
+func face_underline_pixels_above_descent_line(_ f: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("face_overline_p") func face_overline_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_overline_color_defaulted_p")
+func face_overline_color_defaulted_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_overline_color")
+func face_overline_color(_ f: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("face_strike_through_p")
+func face_strike_through_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_strike_through_color_defaulted_p")
+func face_strike_through_color_defaulted_p(_ f: UnsafeMutableRawPointer?) -> Bool
+@_silgen_name("face_strike_through_color")
+func face_strike_through_color(_ f: UnsafeMutableRawPointer?) -> UInt
+@_silgen_name("font_underline_thickness")
+func font_underline_thickness(_ font: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("font_underline_position")
+func font_underline_position(_ font: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("font_descent") func font_descent(_ font: UnsafeMutableRawPointer?) -> Int32
+/// C: `enum face_underline_type` (src/dispextern.h 1767-1780) - the six enumerators the fill
+/// switch and the block's comparisons name.  Class A of the 3.255 ruling, like round 16's
+/// `text_cursor_kinds` batch: an enumerator's number is the core's fact.
+@_silgen_name("FACE_NO_UNDERLINE") func FACE_NO_UNDERLINE() -> Int32
+@_silgen_name("FACE_UNDERLINE_SINGLE") func FACE_UNDERLINE_SINGLE() -> Int32
+@_silgen_name("FACE_UNDERLINE_DOUBLE_LINE") func FACE_UNDERLINE_DOUBLE_LINE() -> Int32
+@_silgen_name("FACE_UNDERLINE_WAVE") func FACE_UNDERLINE_WAVE() -> Int32
+@_silgen_name("FACE_UNDERLINE_DOTS") func FACE_UNDERLINE_DOTS() -> Int32
+@_silgen_name("FACE_UNDERLINE_DASHES") func FACE_UNDERLINE_DASHES() -> Int32
+
+/// C 3620-3652: `static void ns_fill_underline (struct glyph_string *s, enum face_underline_type
+/// style, int position, int thickness)` - "Draw an underline of STYLE onto the focused frame at
+/// an offset of POSITION from the baseline of the glyph string S, S->WIDTH in length, and
+/// THICKNESS in height."  C's `switch` lists `FACE_NO_UNDERLINE` and `FACE_UNDERLINE_WAVE` with
+/// the `default`'s `emacs_abort ()`; Swift has no way to name `default` beside two cases, so
+/// the port keeps the two named cases falling through into the `default` - the same statement,
+/// and the two enumerators stay entries.
+fileprivate func ns_fill_underline(_ s: UnsafeMutableRawPointer?, _ style: Int32,
+                                   _ position: Int32, _ thickness: Int32) {
+  var segment: Int32 = 0
+  var rect = NSRect.zero
+
+  segment = thickness * 3
+
+  switch style {
+  /* FACE_UNDERLINE_DOUBLE_LINE is treated identically to SINGLE, as
+     the second line will be filled by another invocation of this
+     function.  */
+  case FACE_UNDERLINE_SINGLE(), FACE_UNDERLINE_DOUBLE_LINE():
+    rect = NSMakeRect(CGFloat(glyph_string_x(s)), CGFloat(glyph_string_ybase(s) + position),
+                      CGFloat(glyph_string_width(s)), CGFloat(thickness))
+    NSRectFill(rect)
+
+  case FACE_UNDERLINE_DOTS():
+    segment = thickness
+    fallthrough
+
+  case FACE_UNDERLINE_DASHES():
+    ns_draw_dash(s, glyph_string_width(s), segment, position, thickness)
+
+  case FACE_NO_UNDERLINE(), FACE_UNDERLINE_WAVE():
+    fallthrough
+
+  default:
+    emacs_abort()
+  }
+}
+
+/// C: `struct font *font_for_underline_metrics (struct glyph_string *s)` (src/dispextern.h
+/// 3638) - defined at src/xdisp.c 32256, **inside that file's `#ifdef HAVE_WINDOW_SYSTEM`
+/// block (opened at 30717)**, so the frozen build has no symbol for it (measured): the row
+/// carries that gate, the `get_glyph_string_clip_rects` shape above.
+@_silgen_name("font_for_underline_metrics")
+func font_for_underline_metrics(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: `#define WINDOW_BUFFER_LOCAL_VALUE(V, W) (BUFFERP ((W)->contents) ?
+/// buffer_local_value(V, (W)->contents) : Qnil)` (src/window.h 633-636).  Its body needs the
+/// `BUFFERP` predicate and the `buffer_local_value` function - both core facts - so it keeps
+/// its own name as a class-A entry (the 3.255 A exception, the `WINDOW_FRAME` shape) and the
+/// shim exports it; the entry takes the window pointer C's `W` is.
+@_silgen_name("WINDOW_BUFFER_LOCAL_VALUE")
+func WINDOW_BUFFER_LOCAL_VALUE(_ v: Lisp_Object, _ w: UnsafeMutableRawPointer?) -> Lisp_Object
+
+/// C: `INLINE unsigned long XFIXNAT (Lisp_Object)` (src/lisp.h's fixnum accessor family) -
+/// header-only, so class A; `FIXNUMP` was already declared above.
+@_silgen_name("XFIXNAT") func XFIXNAT(_ x: Lisp_Object) -> UInt
+
+/// C: the four `Lisp_Object` symbols the C 3702-3718 block reads.  `Qunbound` and
+/// `Qunderline_minimum_offset` are **provided** - they are `S` data symbols in
+/// `build/emacs-ref/src/emacs.o` (measured this round) - while
+/// `Qx_underline_at_descent_line` and `Qx_use_underline_position_properties` are this file's
+/// own `DEFSYM`s (C 11748/11770) with no reference-side symbol, i.e. **open** in the shim's
+/// sense, the `QCmouse` reading.
+@_silgen_name("Qunbound") func Qunbound() -> Lisp_Object
+@_silgen_name("Qunderline_minimum_offset") func Qunderline_minimum_offset() -> Lisp_Object
+@_silgen_name("Qx_underline_at_descent_line") func Qx_underline_at_descent_line() -> Lisp_Object
+@_silgen_name("Qx_use_underline_position_properties")
+func Qx_use_underline_position_properties() -> Lisp_Object
+
+/// C 3655-3807: `static void ns_draw_text_decoration (struct glyph_string *s, struct face *face,
+/// NSColor *defaultCol, CGFloat width, CGFloat x)` - "Draw underline, overline, and
+/// strike-through on glyph string s."  Four spellings are re-shaped and here recorded:
+/// the assignment-free `val`-family is C's own, but C's `unsigned long` locals (`thickness`,
+/// `position`, `descent`, `minimum_offset`, `h`, `dy`) stay `UInt` and every narrowing back to
+/// the `int` parameters is `truncatingIfNeeded:` (C's implicit conversion, the lane's rule);
+/// `lround (font->descent / 2)` keeps C's **integer** division before the `lround`; the
+/// strike-through's `lrint ((glyph_height - h) / 2)` likewise keeps the unsigned integer
+/// division `h` forces; and `[defaultCol set]` reads through the optional receiver C relies on
+/// (`defaultCol?.set()`).
+fileprivate func ns_draw_text_decoration(_ s: UnsafeMutableRawPointer?,
+                                         _ face: UnsafeMutableRawPointer?,
+                                         _ defaultCol: NSColor?, _ width: CGFloat, _ x: CGFloat) {
+  if glyph_string_for_overlaps(s) != 0 {
+    return
+  }
+
+  if glyph_string_hl(s) == DRAW_CURSOR() {
+    FRAME_BACKGROUND_COLOR(glyph_string_f(s))?.set()
+  } else {
+    defaultCol?.set()
+  }
+
+  /* Do underline.  */
+  if face_underline(face) != 0 {
+    if face_underline(glyph_string_face(s)) == FACE_UNDERLINE_WAVE() {
+      if !face_underline_defaulted_p(face) {
+        NSColor.colorWithUnsignedLong(face_underline_color(face)).set()
+      }
+
+      ns_draw_underwave(s, width, x)
+    } else if face_underline(face) >= FACE_UNDERLINE_SINGLE() {
+      var thickness: UInt = 0
+      var position: UInt = 0
+
+      /* If the prev was underlined, match its appearance.  */
+      if glyph_string_prev(s) != nil
+           && (face_underline(glyph_string_face(glyph_string_prev(s))) != FACE_UNDERLINE_WAVE()
+               && face_underline(glyph_string_face(glyph_string_prev(s)))
+                    >= FACE_UNDERLINE_SINGLE())
+           && glyph_string_underline_thickness(glyph_string_prev(s)) > 0
+           && (face_underline_at_descent_line_p(glyph_string_face(glyph_string_prev(s)))
+               == face_underline_at_descent_line_p(glyph_string_face(s)))
+           && (face_underline_pixels_above_descent_line(glyph_string_face(glyph_string_prev(s)))
+               == face_underline_pixels_above_descent_line(glyph_string_face(s))) {
+        thickness = UInt(truncatingIfNeeded:
+                           glyph_string_underline_thickness(glyph_string_prev(s)))
+        position = UInt(truncatingIfNeeded:
+                          glyph_string_underline_position(glyph_string_prev(s)))
+      } else {
+        let font = font_for_underline_metrics(s)
+        let descent = UInt(truncatingIfNeeded:
+                             glyph_string_y(s) + glyph_string_height(s) - glyph_string_ybase(s))
+        var minimum_offset: UInt = 0
+        var underline_at_descent_line = false
+        var use_underline_position_properties = false
+        var val = WINDOW_BUFFER_LOCAL_VALUE(Qunderline_minimum_offset(), glyph_string_w(s))
+
+        if FIXNUMP(val) {
+          minimum_offset = XFIXNAT(val)
+        } else {
+          minimum_offset = 1
+        }
+
+        val = WINDOW_BUFFER_LOCAL_VALUE(Qx_underline_at_descent_line(), glyph_string_w(s))
+        underline_at_descent_line = (!(NILP(val) || EQ(val, Qunbound()))
+                                     || face_underline_at_descent_line_p(
+                                          glyph_string_face(s)))
+
+        val = WINDOW_BUFFER_LOCAL_VALUE(Qx_use_underline_position_properties(),
+                                        glyph_string_w(s))
+        use_underline_position_properties = !(NILP(val) || EQ(val, Qunbound()))
+
+        /* Use underline thickness of font, defaulting to 1.  */
+        thickness = (font != nil && font_underline_thickness(font) > 0)
+          ? UInt(truncatingIfNeeded: font_underline_thickness(font)) : 1
+
+        /* Determine the offset of underlining from the baseline.  */
+        if underline_at_descent_line {
+          position = (descent - thickness
+                      - UInt(truncatingIfNeeded:
+                               face_underline_pixels_above_descent_line(glyph_string_face(s))))
+        } else if use_underline_position_properties
+                    && font != nil && font_underline_position(font) >= 0 {
+          position = UInt(truncatingIfNeeded: font_underline_position(font))
+        } else if font != nil {
+          position = UInt(truncatingIfNeeded: lround(Double(font_descent(font) / 2)))
+        } else {
+          position = minimum_offset
+        }
+
+        if face_underline_pixels_above_descent_line(glyph_string_face(s)) == 0 {
+          position = max(position, minimum_offset)
+        }
+
+        /* Ensure underlining is not cropped.  */
+        if descent <= position {
+          position = descent - 1
+          thickness = 1
+        } else if descent < position + thickness {
+          thickness = 1
+        }
+      }
+
+      glyph_string_set_underline_thickness(s, Int32(truncatingIfNeeded: thickness))
+      glyph_string_set_underline_position(s, Int32(truncatingIfNeeded: position))
+
+      if !face_underline_defaulted_p(face) {
+        NSColor.colorWithUnsignedLong(face_underline_color(face)).set()
+      }
+
+      ns_fill_underline(s, face_underline(glyph_string_face(s)),
+                        Int32(truncatingIfNeeded: position),
+                        Int32(truncatingIfNeeded: thickness))
+
+      /* Place a second underline above the first if this was
+         requested in the face specification.  */
+
+      if face_underline(glyph_string_face(s)) == FACE_UNDERLINE_DOUBLE_LINE() {
+        /* Compute the position of the second underline.  */
+        position = position - thickness - 1
+        ns_fill_underline(s, face_underline(glyph_string_face(s)),
+                          Int32(truncatingIfNeeded: position),
+                          Int32(truncatingIfNeeded: thickness))
+      }
+    }
+  }
+  /* Do overline.  We follow other terms in using a thickness of 1
+     and ignoring overline_margin.  */
+  if face_overline_p(face) {
+    var r = NSRect.zero
+    r = NSMakeRect(x, CGFloat(glyph_string_y(s)), width, 1)
+
+    if !face_overline_color_defaulted_p(face) {
+      NSColor.colorWithUnsignedLong(face_overline_color(face)).set()
+    }
+
+    NSRectFill(r)
+  }
+
+  /* Do strike-through.  We follow other terms for thickness and
+     vertical position.  */
+  if face_strike_through_p(face) {
+    var r = NSRect.zero
+    /* Y-coordinate and height of the glyph string's first glyph.
+       We cannot use s->y and s->height because those could be
+       larger if there are taller display elements (e.g., characters
+       displayed with a larger font) in the same glyph row.  */
+    let glyph_y = glyph_string_ybase(s) - Int32(glyph_ascent(glyph_string_first_glyph(s)))
+    let glyph_height = (Int32(glyph_ascent(glyph_string_first_glyph(s)))
+                        + Int32(glyph_descent(glyph_string_first_glyph(s))))
+    /* Strike-through width and offset from the glyph string's
+       top edge.  */
+    let h: UInt = 1
+    var dy: UInt = 0
+
+    dy = UInt(truncatingIfNeeded:
+                lrint(Double((UInt(truncatingIfNeeded: glyph_height) - h) / 2)))
+    r = NSMakeRect(x, CGFloat(glyph_y) + CGFloat(dy), width, 1)
+
+    if !face_strike_through_color_defaulted_p(face) {
+      NSColor.colorWithUnsignedLong(face_strike_through_color(face)).set()
+    }
+
+    NSRectFill(r)
+  }
 }

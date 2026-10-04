@@ -147,13 +147,13 @@
 - [x] ns_draw_window_cursor  (line 3295, static) — landed as `fileprivate func` (C's `static void`, the RIF cursor hook); `get_phys_cursor_glyph` is provided by `femacs/src/window.rs` 8078, while `get_phys_cursor_geometry`/`draw_phys_cursor_glyph` (xdisp.c's `HAVE_WINDOW_SYSTEM` arms) and `draw_fringe_bitmap` (fringe.c) are the round's three **gated/dead** owed entries - the 3.262 shape
 - [x] ns_draw_vertical_window_border  (line 3430, static) — landed as `fileprivate func`; one `FACE_FROM_ID_OR_NULL` on `VERTICAL_BORDER_FACE_ID` and one `face_foreground` read (round 15's entry)
 - [x] ns_draw_window_divider  (line 3453, static) — landed as `fileprivate func`; the three divider face ids and `FRAME_FOREGROUND_PIXEL` are new entries, `face_foreground`/`NSRectFill`/`NSFocus`-family are existing ones
-- [ ] ns_show_hourglass  (line 3512, static)
-- [ ] ns_hide_hourglass  (line 3518, static)
-- [ ] ns_get_glyph_string_clip_rect  (line 3530, static)
-- [ ] ns_draw_underwave  (line 3553, static)
-- [ ] ns_draw_dash  (line 3598, static)
-- [ ] ns_fill_underline  (line 3620, static)
-- [ ] ns_draw_text_decoration  (line 3655, static)
+- [x] ns_show_hourglass  (line 3512, static) — landed as `fileprivate func`; the RIF `show_hourglass_hook`, and C's whole body is its TODO comment (the port keeps the comment, so `f` is unused here exactly as it is in C)
+- [x] ns_hide_hourglass  (line 3518, static) — landed as `fileprivate func`; the mirror hook, its body is C's TODO comment alone
+- [x] ns_get_glyph_string_clip_rect  (line 3530, static) — landed as `fileprivate func`; `NativeRectangle` is `NSRect` in this build (src/nsgui.h 80, not the X11 arm's `XRectangle`), and its one call reaches `get_glyph_string_clip_rects` (src/xdisp.c 2495), **gated** inside that file's `HAVE_WINDOW_SYSTEM` block
+- [x] ns_draw_underwave  (line 3553, static) — landed as `fileprivate func`; `NSBezierPath.strokeLine(from:to:)` is AppKit's own Swift rename of `+strokeLineFromPoint:toPoint:`, and the loop's `odd = !odd` is C's `int` toggle
+- [x] ns_draw_dash  (line 3598, static) — landed as `fileprivate func`; C's `alloc`/`init`/`release` `NSBezierPath` is `NSBezierPath()` under ARC (the `[path release]` is dropped, round 3's reading)
+- [x] ns_fill_underline  (line 3620, static) — landed as `fileprivate func`; the six `enum face_underline_type` enumerators are new class-A entries, and C's `FACE_NO_UNDERLINE`/`FACE_UNDERLINE_WAVE`/`default` trio becomes one Swift `default` (the two named cases fall through into it, so both stay entries)
+- [x] ns_draw_text_decoration  (line 3655, static) — landed as `fileprivate func`; `WINDOW_BUFFER_LOCAL_VALUE` stays class A (its body needs `BUFFERP` + `buffer_local_value`), `font_for_underline_metrics` is **gated** (src/xdisp.c 32256, `HAVE_WINDOW_SYSTEM`), and C's `unsigned long` locals narrow back with `truncatingIfNeeded:`
 - [ ] ns_draw_box  (line 3810, static)
 - [ ] ns_setup_relief_colors  (line 3844, static)
 - [ ] ns_draw_relief  (line 3872, static)
@@ -618,14 +618,19 @@ last file-scope object `fringe_bmp` (C 3089) and the section's three definitions
 covered range is now **C 60-3291**.  **Round 16 lands C 3294-3508**: `ns_draw_window_cursor`
 (C 3295-3426, the RIF cursor hook), `ns_draw_vertical_window_border` (C 3430-3449) and
 `ns_draw_window_divider` (C 3453-3508) - **no new C export** again - so the covered range is now
-**C 60-3508**.  The next live definition is C 3512's `ns_show_hourglass` (three lines; the
-`ns_hide_hourglass` and `ns_get_glyph_string_clip_rect` that follow are as short).
+**C 60-3508**.  **Round 17 lands C 3511-3807**: the Glyph drawing operations banner (C 3523-3527),
+the RIF hourglass pair `ns_show_hourglass` (C 3511-3515) and `ns_hide_hourglass` (C 3517-3521) -
+whose whole bodies are their TODO comments - `ns_get_glyph_string_clip_rect` (C 3529-3539),
+`ns_draw_underwave` (C 3553-3591), `ns_draw_dash` (C 3598-3613), `ns_fill_underline`
+(C 3620-3652) and the text-decoration block's `ns_draw_text_decoration` (C 3655-3807) - **no new
+C export** (all seven are C `static`s) - so the covered range is now **C 60-3807**.  The next live
+definition is C 3810's `ns_draw_box`, the first of the box/relief sub-block.
 
-Ticked above: **89 of the 150 function boxes**.  The count is the generator's own again: the
+Ticked above: **96 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
 declarator to its `{` stopped at the documentation comment in between - status 3.260), the port had
 already written seven of them (round 5's two, round 6's `ns_focus`, round 10's four), and the
-eighth - `ns_get_shifted_character`, C 2693 - is an open box here until its slice lands.  Also
+eighth - `ns_get_shifted_character`, C 2693 - landed in round 12.  Also
 **17 of the 23 macro boxes** (the eight masks,
 `NO_APPDEFINED_DATA`, the five `EV_*` accessors, `DOCK_IGNORE_LIMIT`, the two
 `NS_PARENT_WINDOW_*` and round 10's `NSAppKitVersionNumber10_10`; the two held `EV_TRAILER*` and
@@ -635,7 +640,7 @@ constants, round 6's `bell_view` and round 15's `fringe_bmp` - **the file's last
 box**), **1 of the 1 type box** (`EmacsMargins`,
 C 650) and **2 of the 8 Objective-C classes** (`NSColor (EmacsColor)` with its four methods, and
 **`EmacsBell`** - the file's first *class*, with its `@interface` declaration and all four
-methods).  The other 83 function boxes, 6 macro boxes, 6 class boxes and 185 method boxes are
+methods).  The other 54 function boxes, 6 macro boxes, 6 class boxes and 185 method boxes are
 later slices; round 7 added five rows to the `## ABI` (4) table - three class methods and, for the
 first time, two of this unit's own *functions* - and round 10 added two more, both class methods
 (`EmacsWindow_initWithEmacsFrame`, `setAppearance`).
@@ -1147,7 +1152,7 @@ the record that it was offered and deferred rather than missed.
 
 **`remember_mouse_glyph` is the gated entry of this slice.**  Its declaration (src/dispextern.h
 3586) is live, but its *definition* (src/xdisp.c 2779) sits inside `#ifdef HAVE_WINDOW_SYSTEM`
-(opened at src/xdisp.c 2490), which the frozen configuration leaves undefined: the objects have no
+(opened at src/xdisp.c 2488), which the frozen configuration leaves undefined: the objects have no
 `_remember_mouse_glyph` (measured), and the same guard explains the other non-static xdisp.c names
 missing from `build/emacs-ref/src/xdisp.o` (`x_y_to_column_row`, `get_glyph_string_clip_rect*`,
 `get_phys_cursor_geometry`).  This is exactly the status 3.255 ③ shape: the ratchet keeps the row
@@ -1288,7 +1293,7 @@ layout facts.  This is the case `FRAME_NS_TITLEBAR_HEIGHT`/`FRAME_TOOLBAR_HEIGHT
 bodies are pure AppKit arithmetic on the view, which is why they are the expanded sample.
 
 **`gui_clear_cursor` is the round's gated entry.**  Declared in src/dispextern.h, defined at
-src/xdisp.c 35466 **inside `#ifdef HAVE_WINDOW_SYSTEM`** (opened at xdisp.c 35086): the frozen
+src/xdisp.c 35466 **inside `#ifdef HAVE_WINDOW_SYSTEM`** (opened at src/xdisp.c 35045): the frozen
 objects have no `_gui_clear_cursor` (measured, and the same guard is what makes the whole
 `gui_*`/`dump_glyph*` family absent from `xdisp.o`).  Same shape as `remember_mouse_glyph`'s row
 (status 3.255 ③): the shim exports it under the same gate.  `Vface_remapping_alist` is the
@@ -1412,7 +1417,7 @@ that defines `HAVE_WINDOW_SYSTEM`, i.e. the Cocoa target this whole lane is writ
 
 **Three gated/dead functions, each with its own reason.**  The hook reaches
 `get_phys_cursor_geometry` (src/xdisp.c 2707) and `draw_phys_cursor_glyph` (src/xdisp.c 35099) -
-both inside `HAVE_WINDOW_SYSTEM` (the `#ifdef`s at 2490 and 35086), measured absent from
+both inside `HAVE_WINDOW_SYSTEM` (the `#ifdef`s at 2488 and 35045), measured absent from
 `xdisp.o` - and `draw_fringe_bitmap` (src/fringe.c 838), whose *file* no built configuration
 compiles at all (`femacs/src/fringe.rs` is the empty unit status 3.31 records, the same one round
 15's two names came from).  `get_phys_cursor_glyph` is the contrast: src/window.c 8228, no gate,
@@ -1433,6 +1438,68 @@ currentContext];` is `NSGraphicsContext.current` (an optional, so the save/resto
 the live one is the existing `NSRectClip` entry; `[NSBezierPath strokeRect:…]` is Swift's
 `NSBezierPath.stroke(_:)`; and the `NS_IMPL_COCOA` block at C 3378-3386 writes the global round 5
 already landed as `ns_UAZoom_cursor_rect_new`.
+
+### Round 17: the text-decoration block, and a macro kept class A *because of a predicate*
+
+**Scope.**  C 3511-3807: the hourglass pair (C 3511-3521), the Glyph drawing operations banner
+(C 3523-3527), `ns_get_glyph_string_clip_rect` (C 3529-3539), `ns_draw_underwave` (C 3553-3591),
+`ns_draw_dash` (C 3598-3613), `ns_fill_underline` (C 3620-3652) and `ns_draw_text_decoration`
+(C 3655-3807).  **No new C export** - all seven are C `static`s - so `## ABI` (1) is unchanged.
+
+**`NativeRectangle` is `NSRect` for this lane, and the comment says so.**  src/dispextern.h 119's
+`#define NativeRectangle XRectangle` is inside the `HAVE_X_WINDOWS` arm; the Cocoa build falls to
+src/nsgui.h 80's `#define NativeRectangle NSRect`, which is exactly what
+`ns_get_glyph_string_clip_rect`'s own comment means by "nr should be pointer to two successive
+NSRects".  The C signature's `int` return keeps C's `int`, and the body's
+`get_glyph_string_clip_rects (s, nr, 2)` passes both arguments through unchanged.
+
+**Two more gated imports, both from the same class of debt.**  `get_glyph_string_clip_rects`
+(src/xdisp.c 2495) and `font_for_underline_metrics` (src/xdisp.c 32256) sit inside xdisp.c's
+`#ifdef HAVE_WINDOW_SYSTEM` blocks (opened at 2488 and 30717), so the frozen configuration leaves
+both undefined (measured: **0** symbols each in `build/emacs-ref/**/*.o`).  Their rows carry the
+gate and the condition that would re-open them - a build that defines `HAVE_WINDOW_SYSTEM`, i.e.
+the Cocoa target this whole lane is written for (status 3.262's shape, round 16's
+`get_phys_cursor_geometry` reading).
+
+**`WINDOW_BUFFER_LOCAL_VALUE` is the first macro this lane keeps as class A *because of a
+predicate*.**  Its body - `(BUFFERP ((W)->contents) ? buffer_local_value(V, (W)->contents) :
+Qnil)` (src/window.h 633-636) - needs the `BUFFERP` predicate, the `buffer_local_value` function
+and `Qnil`: the 3.255 A criterion ("only the core knows it") applies in full, and unlike the
+layout-family macros there is no way to spell the read from a record this file declares (the
+`struct window` contents slot and the buffer-local machinery are the core's).  So the name stays a
+`@_silgen_name` entry and the shim exports it, with the entry taking the window pointer C's `W`
+is - the shape `WINDOW_FRAME` already has.
+
+**The four `Q*` symbols split in half.**  `Qunbound` and `Qunderline_minimum_offset` are **real
+symbols** of the reference (`S` in `build/emacs-ref/src/emacs.o`), i.e. provided;
+`Qx_underline_at_descent_line` and `Qx_use_underline_position_properties` are this file's own
+`DEFSYM`s (C 11770/11748) and so are **open**, the `QCmouse` reading of round 2.
+
+**Five spellings re-shaped, each recorded.**  C's `unsigned long` locals (`thickness`, `position`,
+`descent`, `minimum_offset`, `h`, `dy`) stay `UInt` and every narrowing back to the `int`
+parameters is `truncatingIfNeeded:` - C's implicit conversion, the lane's rule; `lround
+(font->descent / 2)` keeps C's **integer** division before the `lround` (the reason the port does
+not write `lround(font->descent / 2.0)`); the strike-through's `lrint ((glyph_height - h) / 2)`
+likewise keeps the unsigned integer division `h` forces; `ns_fill_underline`'s `switch` lists the
+two abort cases and the `default` as one Swift `default` (Swift cannot name `default` beside a
+case), with both enumerators still called; and `[defaultCol set]` reads through the optional
+receiver C relies on (`defaultCol?.set()`), as does `NSGraphicsContext.current` in
+`ns_draw_underwave`.  On the ObjC side, `+strokeLineFromPoint:toPoint:` is Swift's
+`NSBezierPath.strokeLine(from:to:)`, `-setLineDash:count:phase:` is `setLineDash(_:count:phase:)`
+(AppKit's own renames, checked against the compiler), and `[[NSBezierPath alloc] init]` /
+`[path release]` is `NSBezierPath()` under ARC.  **One recorded caveat**: the arithmetic on those
+`UInt` locals is Swift's (`position - thickness - 1`, `descent - thickness - …`), and Swift
+*traps* on unsigned underflow where C wraps - the same "not executed, so not exercised" class of
+divergence every pixel-arithmetic site in this lane carries, kept rather than papered over with
+`&-` (no macOS Swift unit in this tree uses the wrapping operators).
+
+**The two hourglass hooks have no body to port.**  C's `ns_show_hourglass`/`ns_hide_hourglass` are
+`TODO` comments inside empty functions; the port keeps the comments and the same empty bodies, so
+the boxes are ticked as *recorded*, not converted.
+
+**One stale sentence in `## Progress` is corrected.**  The round-5 generation note still said
+`ns_get_shifted_character` (C 2693) was "an open box here until its slice lands"; round 12 landed
+it, so the sentence now reads "landed in round 12".
 
 ### The macro-name audit (status 3.251's rule)
 
@@ -1554,14 +1621,14 @@ what `nm -g` shows (Evidence).
 | `XSETINT` | `#define XSETINT(a, b) ((a) = make_fixnum (b))` (src/lisp.h 1341) | header-only | **open**: the lvalue shape `XSETFRAME` has |
 | `fputs` | `int fputs (const char *, FILE *)` | stdio.h | libSystem (`docs/ports/nsfont.swift` 1178; `stderr` is the overlay's) |
 | `note_mouse_highlight` | `void note_mouse_highlight (struct frame *, int, int)` (src/dispextern.h 3688) | defined src/xdisp.c | **open**: the reference defines it (`T` in `build/emacs-ref/src/xdisp.o`) but the ported core only *declares* it (`femacs/src/dispnew.rs` 281) - the definition is `xdisp.rs`'s, still in flight, so the gate reports the name as imported-and-unprovided (Evidence) |
-| `remember_mouse_glyph` | `void remember_mouse_glyph (struct frame *, int, int, NativeRectangle *)` (src/dispextern.h 3586; `NativeRectangle` is `NSRect`, src/nsgui.h 80) | defined xdisp.c 2779, **inside `HAVE_WINDOW_SYSTEM`** (the `#ifdef` at xdisp.c 2490) | **open, gated**: the frozen configuration leaves it undefined, so the object has no symbol and the shim exports it under the same gate - the status 3.255 ③ `frame_set_double_buffered` reading (only a window-system build can satisfy the name) |
+| `remember_mouse_glyph` | `void remember_mouse_glyph (struct frame *, int, int, NativeRectangle *)` (src/dispextern.h 3586; `NativeRectangle` is `NSRect`, src/nsgui.h 80) | defined xdisp.c 2779, **inside `HAVE_WINDOW_SYSTEM`** (the `#ifdef` at xdisp.c 2488) | **open, gated**: the frozen configuration leaves it undefined, so the object has no symbol and the shim exports it under the same gate - the status 3.255 ③ `frame_set_double_buffered` reading (only a window-system build can satisfy the name) |
 | `emacs_view_frame`, `is_emacs_view` | the `EmacsView` messages C 2537-2538 sends | this unit's own class, C 7039 | **open**: receiver-first entries, defined when the class lands; `nsfns.swift` 689-691 imports the same two names |
 | `is_emacs_tooltip` | `[[w delegate] isKindOfClass: [EmacsTooltip class]]` (C 2534) | `nsmenu.swift`'s `EmacsTooltip` (`src/nsmenu.m` 1421) | **open**: that class's own unit defines it here |
 | `ns_output_current_pointer`, `ns_output_set_current_pointer` | the `struct ns_output` member `f->output_data.ns->current_pointer` - `#define FRAME_POINTER_TYPE(f)` (src/nsterm.h 977/1047), read at C 2631 and written at C 2634 | src/nsterm.h | **open**: the family's member names (round 12 takes them rather than a macro-name entry - see Decisions); both sit behind the shim's `have_ns` gate, the **write** half already exists for this very C line (`docs/ports/abi_shim.md` 96), and the read is the one name this slice adds to the ratchet |
 | `QCordinary` | src/nsterm.m 11793's own `DEFSYM (QCordinary, ":ordinary")` | **this file** | **open**: class A - a symbol of this file, absent from `docs/baseline/globals/symbols.tsv` (the `QCmouse` reading of round 2) |
 | `Qnone` | `DEFSYM (Qnone, "none")` (src/frame.c 7241) | src/frame.c | **open**: the core's to export; `_Qnone` is `S` in `build/emacs-ref/src/emacs.o` |
 | the face/window/run records (round 13) | `NS_FACE_BACKGROUND` (src/nsterm.h 1041), `FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL`, `DEFAULT_FACE_ID`/`CHILD_FRAME_BORDER_FACE_ID`/`INTERNAL_BORDER_FACE_ID` (src/dispextern.h), `ANY_AREA` (src/dispextern.h 883), `window_frame` (the `window_<member>` family), `run_current_y`/`run_desired_y`/`run_height` (`struct run`, src/dispextern.h), `FRAME_TOP_MARGIN_HEIGHT`/`FRAME_BOTTOM_MARGIN_HEIGHT` (src/frame.h 1139/1151) | src/nsterm.h / src/dispextern.h / src/frame.h | **open**: the member/enumerator/macro names of a record the unit reaches through entries; `FRAME_TOP_MARGIN_HEIGHT`'s body sums three other `FRAME_*` macros over `struct frame` members, so the expansion would owe four member entries where one name is owed (Decisions) |
-| `gui_clear_cursor` | `void gui_clear_cursor (struct window *)` (src/dispextern.h; defined src/xdisp.c 35466 **inside `HAVE_WINDOW_SYSTEM`**, the `#ifdef` at xdisp.c 35086) | src/xdisp.c | **open, gated**: the frozen configuration leaves it undefined, so the object has no symbol (measured) - the status 3.255 ③ shape again |
+| `gui_clear_cursor` | `void gui_clear_cursor (struct window *)` (src/dispextern.h; defined src/xdisp.c 35466 **inside `HAVE_WINDOW_SYSTEM`**, the `#ifdef` at xdisp.c 35045) | src/xdisp.c | **open, gated**: the frozen configuration leaves it undefined, so the object has no symbol (measured) - the status 3.255 ③ shape again |
 | `Vface_remapping_alist` | src/xfaces.c's `DEFVAR_LISP ("face-remapping-alist", …)` | src/xfaces.c | **provided**: the core's flattened global exports `_Vface_remapping_alist` (measured) |
 | `FRAME_DEFAULT_FACE`, `FRAME_ROOT_WINDOW`, `XWINDOW`, `NS_FACE_BACKGROUND`, `FRAME_INTERNAL_BORDER_WIDTH`, `FRAME_PIXEL_WIDTH`, `FRAME_PIXEL_HEIGHT` | the frame/window/face accessors (src/nsterm.h 1043, src/frame.h 1201/1066, src/window.h) | the reference's headers | **open**: already ratcheted from the other Swift units' imports; round 13 is where this unit starts reading them |
 | `mark_window_cursors_off`, `lookup_basic_face`, `NSRectFill` | `void mark_window_cursors_off (struct window *)` (src/dispextern.h), `int lookup_basic_face (struct window *, struct frame *, int)` (src/xfaces.c), `void NSRectFill (NSRect)` (AppKit) | src/window.c / src/xfaces.c / AppKit's NSGraphics.h | **provided**: the core's own (`femacs/src/window.rs` 5788, `femacs/src/xfaces.rs` 3753) and the SDK's (`system` in the gate's classes) |
@@ -1574,10 +1641,16 @@ what `nm -g` shows (Evidence).
 | the fringe records (round 15) | `WINDOW_FRAME` (src/frame.h 929, the macro - the bare `w->frame` read stays round 13's `window_frame`, one entry per C spelling), `face_foreground`/`face_background` (the **bare** `struct face` reads C 3254/3279/3281 - `NS_FACE_BACKGROUND` is the macro's entry), the thirteen `draw_fringe_bitmap_params_*` members (src/dispextern.h) and `ns_output_cursor_color` (the `struct ns_output` member read at C 3283, already ratcheted from `nsfns.swift` 282) | src/frame.h / src/dispextern.h / src/nsterm.h | **open**: member/macro entries under `<record>_<member>`, the family `macfont`/`nsmenu` established |
 | `gui_define_fringe_bitmap`, `max_used_fringe_bitmap` | `void gui_define_fringe_bitmap (struct frame *, int)` (src/fringe.c 1853) and `int max_used_fringe_bitmap = MAX_STANDARD_FRINGE_BITMAPS;` (src/fringe.c 497) | src/fringe.c | **open, gated**: the frozen configuration compiles no `fringe.c` at all (`femacs/src/fringe.rs` is the empty unit status 3.31 records), so neither has a reference-side symbol (measured) - the function's row carries the gate the file has, and the global is a data symbol |
 | the cursor records (round 16) | `WINDOW_XFRAME` (src/window.h 620's macro), the five `struct window` cursor members `window_set_phys_cursor_type`/`window_set_phys_cursor_on_p`/`window_phys_cursor_width`/`window_set_phys_cursor_width`/`window_phys_cursor_hpos` (**gated**: src/window.h 340-350's `HAVE_WINDOW_SYSTEM` block), the four `struct glyph_row` members `glyph_row_exact_window_width_line_p`/`glyph_row_used` (the `short used[1 + LAST_AREA]` member with C's `TEXT_AREA` subscript as the argument)/`glyph_row_set_cursor_in_fringe_p`/`glyph_row_height`, the two `struct glyph` members `glyph_resolved_level`/`glyph_pixel_width`, the macros `FRAME_CURSOR_WIDTH`/`FRAME_FOREGROUND_PIXEL`, the enumerators `TEXT_AREA`/`DRAW_CURSOR`/six `text_cursor_kinds`/four face ids | src/window.h / src/dispextern.h / src/frame.h | **open**: member/macro/enumerator entries; the five window members keep the gate their C declaration has |
-| `get_phys_cursor_geometry`, `draw_phys_cursor_glyph`, `draw_fringe_bitmap` | `void get_phys_cursor_geometry (struct window *, struct glyph_row *, struct glyph *, int *, int *, int *)` (src/xdisp.c 2707), `void draw_phys_cursor_glyph (struct window *, struct glyph_row *, enum draw_glyphs_face)` (src/xdisp.c 35099), `void draw_fringe_bitmap (struct window *, struct glyph_row *, int)` (src/fringe.c 838) | src/xdisp.c (both inside `HAVE_WINDOW_SYSTEM`, opened at 2490 and 35086) / src/fringe.c (a file no built configuration compiles - `femacs/src/fringe.rs`) | **open, gated**: none has a reference-side symbol (measured), so each row carries its gate - the 3.255 ③ / 3.262 shape |
+| `get_phys_cursor_geometry`, `draw_phys_cursor_glyph`, `draw_fringe_bitmap` | `void get_phys_cursor_geometry (struct window *, struct glyph_row *, struct glyph *, int *, int *, int *)` (src/xdisp.c 2707), `void draw_phys_cursor_glyph (struct window *, struct glyph_row *, enum draw_glyphs_face)` (src/xdisp.c 35099), `void draw_fringe_bitmap (struct window *, struct glyph_row *, int)` (src/fringe.c 838) | src/xdisp.c (both inside `HAVE_WINDOW_SYSTEM`, opened at 2488 and 35045) / src/fringe.c (a file no built configuration compiles - `femacs/src/fringe.rs`) | **open, gated**: none has a reference-side symbol (measured), so each row carries its gate - the 3.255 ③ / 3.262 shape |
 | `get_phys_cursor_glyph` | `struct glyph *get_phys_cursor_glyph (struct window *)` (src/window.h 1186; defined src/window.c 8228, no gate) | src/window.c | **provided**: `femacs/src/window.rs` 8078, and `_get_phys_cursor_glyph` is `T` in `build/emacs-ref/src/window.o` |
 | Carbon and CoreFoundation (round 12) | `TISCopyCurrentKeyboardLayoutInputSource`, `TISGetInputSourceProperty`, `UCKeyTranslate`, `LMGetKbdType`, `kUCKeyActionDown`, `kUCKeyTranslateNoDeadKeysBit` and the four key masks (`shiftKey`/`optionKey`/`rightOptionKey`/`cmdKey`), plus `CFDataGetBytePtr` | Carbon.HIToolbox / CoreFoundation (C 72-73's `#include <Carbon/Carbon.h>`, C 70-80's arm) | **system**: these are *module* calls, not `@_silgen_name` entries - `import Carbon` at the top of the unit - which is a new kind of dependency for this file: the eventual Cocoa link line needs `-framework Carbon` |
 | `FRAME_BACKGROUND_COLOR` | `#define FRAME_BACKGROUND_COLOR(f) ((f)->output_data.ns->background_color)` (src/nsterm.h 1038) | header-only | **open**: `macfont.swift` 756 imports the same name and type |
+| `get_glyph_string_clip_rects`, `font_for_underline_metrics` | `int get_glyph_string_clip_rects (struct glyph_string *, NativeRectangle *, int)` (src/dispextern.h 3661) and `struct font *font_for_underline_metrics (struct glyph_string *)` (src/dispextern.h 3638) | src/xdisp.c 2495 and 32256, both **inside that file's `HAVE_WINDOW_SYSTEM` block** (opened at 2488 and 30717) | **open, gated**: neither has a reference-side symbol (measured this round), so each row carries its gate - the 3.255 ③ / 3.262 shape |
+| `WINDOW_BUFFER_LOCAL_VALUE` | `#define WINDOW_BUFFER_LOCAL_VALUE(V, W) (BUFFERP ((W)->contents) ? buffer_local_value(V, (W)->contents) : Qnil)` (src/window.h 633-636) | header-only | **open**: class A kept *because of a predicate* - the body needs `BUFFERP` and the `buffer_local_value` function, both core facts, so the shim exports the macro's own name (the entry takes the window pointer C's `W` is) |
+| `XFIXNAT` | `INLINE unsigned long XFIXNAT (Lisp_Object)` (src/lisp.h's fixnum accessor family) | header-only | **open**: class A, the `FIXNUMP` reading (round 10); already ratcheted, so it is **not** among this round's `FAIL` names |
+| `Qunbound`, `Qunderline_minimum_offset` | the two generated `Lisp_Object` symbols (src/globals.h's emitter) | src/emacs.c | **provided**: `_Qunbound` and `_Qunderline_minimum_offset` are `S` in `build/emacs-ref/src/emacs.o` (measured); `Qunbound` is already ratcheted, `Qunderline_minimum_offset` is this round's one `reference`-class `FAIL` row |
+| `Qx_underline_at_descent_line`, `Qx_use_underline_position_properties` | this file's own `DEFSYM`s, C 11770 and 11748 | **this file** | **open**: class A - symbols of this file, absent from `docs/baseline/globals/symbols.tsv` (the `QCmouse` reading of round 2) |
+| the text-decoration records (round 17) | the fifteen `struct glyph_string` members (`glyph_string_ybase`/`_x`/`_y`/`_width`/`_height`/`_f`/`_face`/`_prev`/`_w`/`_hl`/`_for_overlaps`, the `_underline_thickness` and `_underline_position` reads plus their two `_set_` writes), the two `struct glyph` members `glyph_ascent`/`glyph_descent` (src/dispextern.h 506), the eleven `struct face` members (`face_underline`, `_underline_defaulted_p`, `_underline_color`, `_underline_at_descent_line_p`, `_underline_pixels_above_descent_line`, `_overline_p`, `_overline_color`, `_overline_color_defaulted_p`, `_strike_through_p`, `_strike_through_color`, `_strike_through_color_defaulted_p`, src/dispextern.h 1823-1887), the three `struct font` members `font_descent`/`font_underline_thickness`/`font_underline_position` (src/font.h 319-332) and the six `enum face_underline_type` enumerators (src/dispextern.h 1767-1780) | src/dispextern.h / src/font.h | **open**: member/enumerator entries under `<record>_<member>`, the family round 14 opened; `for_overlaps` is an `unsigned : 3` bitfield, so its entry keeps C's raw value rather than a `Bool` |
 
 `Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
 core exports a C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  The
@@ -1683,6 +1756,17 @@ call site takes an entry and the definition lands at its own C line - and **both
   three gated/dead functions `get_phys_cursor_geometry`/`draw_phys_cursor_glyph`/
   `draw_fringe_bitmap`.  `get_phys_cursor_glyph` is provided (`window.rs` 8078) and
   `FRAME_CURSOR_COLOR` was already ratcheted (`macfont.swift`'s batch);
+* the core, **round 17's names**: the two gated xdisp.c functions `get_glyph_string_clip_rects`
+  and `font_for_underline_metrics`; `WINDOW_BUFFER_LOCAL_VALUE` (class A: `BUFFERP` +
+  `buffer_local_value`); `XFIXNAT`; the four `Q*` symbols (`Qunbound` and
+  `Qunderline_minimum_offset` provided, the two `Qx_*` this file's own `DEFSYM`s); the fifteen
+  `glyph_string_*` member entries (thirteen reads and the two `_set_` writes); the two `glyph_*`
+  (src/dispextern.h 506); the eleven `face_*`; the three `font_*`; and the six
+  `FACE_UNDERLINE_*`/`FACE_NO_UNDERLINE` enumerators.  `face_underline` is the one the gate files
+  as `rust-side` - the name already appears in the ported Rust text (`femacs/src/xfaces.rs`).
+  Provided already: `NSRectFill`/`NSRectClip` (AppKit), `DRAW_CURSOR`, `glyph_string_first_glyph`,
+  `glyph_string_char2b`, `glyph_string_font` and `enum glyph_type`'s pair; `XFIXNAT` and
+  `Qunbound` already carry ratchet rows (they are not among the 43 `FAIL` names);
 * `femacs/platform/macos/nsmenu.swift` (another lane's unit), round 11's addition: the
   `EmacsTooltip` class is landed there, so the `is_emacs_tooltip` entry of (2) - C 2534's
   `isKindOfClass: [EmacsTooltip class]` - is that side's to define (receiver first, the
@@ -1926,7 +2010,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   readings the Decisions explain: a generated global with no carrier symbol, and a definition the
   frozen configuration does not compile.
 * The guard behind `remember_mouse_glyph`: tracking the preprocessor nesting of `src/xdisp.c` to
-  line 2779 gives `#ifdef HAVE_WINDOW_SYSTEM` at **2490**, and `nm
+  line 2779 gives `#ifdef HAVE_WINDOW_SYSTEM` at **2488**, and `nm
   build/emacs-ref/src/xdisp.o | grep -i remember` finds nothing at all (`grep -i` over the whole
   symbol table, not just `-g`); the four non-static xdisp.c names the object is also missing
   (`x_y_to_column_row`, `get_glyph_string_clip_rects`, `get_glyph_string_clip_rect`,
@@ -2019,7 +2103,7 @@ call site takes an entry and the definition lands at its own C line - and **both
   (`SDK_SYMBOLS`, the AppKit `.tbd`).
 * `gui_clear_cursor`'s guard, measured the way `remember_mouse_glyph`'s was: tracking the
   preprocessor nesting of `src/xdisp.c` to line 35466 gives the `#ifdef HAVE_WINDOW_SYSTEM` at
-  **35086**, and `nm build/emacs-ref/src/xdisp.o | grep -c gui_clear_cursor` is **0**.
+  **35045**, and `nm build/emacs-ref/src/xdisp.o | grep -c gui_clear_cursor` is **0**.
 * The gated-layout probe (status 3.271) - the route for a *gated record's* offsets, which this
   round did not need (every access above is a member entry).  Its existing readings, for the
   record: `docs/baseline/ns_display_info-layout.tsv` -> ns_cocoa `sizeof 280 / align 8` (the frozen
@@ -2136,8 +2220,8 @@ call site takes an entry and the definition lands at its own C line - and **both
   `build/emacs-ref/lib/*.o`): **0** for all twenty-nine new owed names (the macros, the members -
   the five window ones are gated fields the frozen record does not have - and the twelve
   enumerators), and **1** for `_get_phys_cursor_glyph` (`T` in `build/emacs-ref/src/window.o`, the
-  provided one).  `get_phys_cursor_geometry` (xdisp.c 2707, inside the `#ifdef` at 2490),
-  `draw_phys_cursor_glyph` (xdisp.c 35099, inside the one at 35086) and `draw_fringe_bitmap`
+  provided one).  `get_phys_cursor_geometry` (xdisp.c 2707, inside the `#ifdef` at 2488),
+  `draw_phys_cursor_glyph` (xdisp.c 35099, inside the one at 35045) and `draw_fringe_bitmap`
   (fringe.c 838, a file no build compiles) are the three gated/dead zeros.
 * `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
   definition(s), 65 unported, 68 row(s); 235 C symbol import(s)` and `0 new, 3 stale, 7 Swift
@@ -2158,6 +2242,56 @@ call site takes an entry and the definition lands at its own C line - and **both
   `font_driver_text_extents`, the three `glyph_row_*`, `glyph_type`, `max_used_fringe_bitmap`,
   `window_pseudo_window_p`) - i.e. the shim lane's batches ⑪/⑫ have landed their export halves;
   those rows are the integrator's regeneration to drop.
+
+* Round 17's compile, same command: **exit 0 on the first pass**, the same **seven** warnings the
+  previous rounds carry (four C's own `lockFocus`/`unlockFocus`, three `'scanFloat' was deprecated
+  in macOS 10.15`) and **no new one** (the new lines are all above 4,274 and none of them is in
+  the warning list); the compiler's last output line is its
+  `[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>`
+  note and the exit status is 0.  Object `/tmp/s188r17/nsterm.o` **md5
+  `f119b6a67745dd27e65803c602dd2d69`**.
+* `nm -g /tmp/s188r17/nsterm.o` -> **no new C export** (`grep -cE ' [Tt]
+  _(ns_show_hourglass|ns_hide_hourglass|ns_get_glyph_string_clip_rect|ns_draw_underwave|ns_draw_dash|ns_fill_underline|ns_draw_text_decoration)$'`
+  is 0: all seven are C `static`s, so `## ABI` (1) gains no row - the unit's 418 defined
+  `T`/`t`/`D`/`d` symbols are the same set the previous rounds' exports produce).
+* `nm -u /tmp/s188r17/nsterm.o` -> the slice's **45** declared names, **every one of them
+  referenced** (checked name by name, 0 anomalies): the two gated xdisp.c functions,
+  `_WINDOW_BUFFER_LOCAL_VALUE`, `_XFIXNAT`, the four `_Q*`, the fifteen `_glyph_string_*`
+  (thirteen reads plus the two `_set_` writes), `_glyph_ascent`/`_glyph_descent`, the eleven
+  `_face_*`, the three `_font_*` and the six enumerators; **679 undefined names in all** (628 after
+  round 16).
+* The symbol audit for round 17's 45 names (`nm -g -A` over `build/emacs-ref/src/*.o` and
+  `build/emacs-ref/lib/*.o`): **1** for `_Qunbound` and **1** for `_Qunderline_minimum_offset` (both
+  `S` in `build/emacs-ref/src/emacs.o` - the provided pair) and **0 for the other forty-three** -
+  the member entries, the enumerators, `WINDOW_BUFFER_LOCAL_VALUE`, `XFIXNAT` and the two gated
+  functions have no reference-side symbol.
+* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C
+  definition(s), 58 unported, 65 row(s); 280 C symbol import(s)` and `0 new, 7 stale, 7 Swift
+  unit(s) landed`.  The seven stale rows are exactly this slice's seven definitions, i.e. the
+  rows `docs/baseline/swift-units.tsv` still carries for them; the tool's `58 unported` is the
+  ledger's 54 open boxes **plus** the four `recorded, not transcribed` definitions (the three dead
+  `NSTRACE` names and `hide_bell`), which is why it reads four above the ledger's unticked count.
+* `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures`, `read 675 files (624 .rs 33 .kt 7 .swift 6 .s 5 .cc)` (the Kotlin, `.s`
+  and `.cc` files are other lanes').
+* `python3 tools/check-swift-imports.py` -> `1020 import(s) in 7 Swift file(s), 5726 core
+  export(s), 685 unprovided, 642 ratchet row(s), 43 failure(s)`, with
+  `reference=133 reference-source=390 rust-side=1 rust-side-gated=73 system=0 unclassified=88`.
+  **All forty-three `FAIL` names are this lane's** and there are **no `STALE` rows**: thirteen
+  `reference-source` (the six `FACE_*` enumerators, the two `Qx_*`, `WINDOW_BUFFER_LOCAL_VALUE`,
+  `get_glyph_string_clip_rects`, `font_for_underline_metrics`, `glyph_ascent`, `font_descent`),
+  one `reference` (`Qunderline_minimum_offset`), one `rust-side` (`face_underline`) and
+  twenty-eight `unclassified` (the member entries).  `XFIXNAT` and `Qunbound` are the two names of
+  the forty-five that are **not** among them - both already carry ratchet rows - and
+  `Qunbound`/`Qunderline_minimum_offset` are the two the audit found provided.
+* `python3 tools/check-mirror-dupes.py` -> `20 duplicate declaration(s), 111 ratchet row(s), 91
+  failure(s)` on one run and `56 / 111 / 55` on another: the failures are all `STALE` rows naming
+  **other units** (`femacs/src/dispnew.rs`, `femacs/src/xdisp.rs`, `femacs/src/xfaces.rs` -
+  `AUTO_FRAME_ARG`, `CHECK_FRAME`, `SET_FRAME_GARBAGED`, `WINDOW_TAB_LINE_HEIGHT`,
+  `WINDOW_TOP_EDGE_Y`, `WINDOW_XFRAME` and siblings, "from femacs/src/include/frame.rs is gone"),
+  i.e. an in-flight lane regenerating that mirror while this round ran - and
+  `grep -c nsterm docs/baseline/mirror-dupes.tsv` is **0**, so no row of the new duplicate-name
+  ratchet names this unit and the gate does not touch this lane.
 
 - **Ruling (3.255, integrator) on this file's macro-name entries.**  Two halves, and the criterion
   is whether the macro's body can be spelled in Swift: **(B) first** - a body that is a pure AppKit

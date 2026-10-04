@@ -5418,3 +5418,24 @@
   ⑤ **留给下一轮的**：`EmacsDesktopNotification`(344) 卡在 **`R.id`**（探针的生成缺口，属
      `spikes/android-r-from-res.py` 一侧），lane 已把可复算原文写在报告里，我随后按它补生成器；`EmacsService`(2201)
      是最大的剩件。**未声称**：Kotlin 目标只有**编译级**验收（探针 exit 0 + 基线 warning），没有 JVM/设备上的运行验证。
+
+- **3.343 nsterm 第 17 片入库：C 3511-3807，文字装饰块；引文门到这一步在 HEAD 上也该全绿（2026-10-05）**：
+  ① **交付形态**：`femacs/platform/macos/nsterm.swift` **+471 行**（C 3511-3807：Glyph drawing operations 的
+     banner（C 3523-3527）与整块 text-decoration 操作），台账 `docs/ports/nsterm.md` **+180/-23 行**（新增
+     `### Round 17` 章、`### Progress` 的第 17 片段落、`## ABI` 的 6 行、`## Evidence` 的第 17 片读数）。
+     进度行：**`Ticked above: 96 of the 150 function boxes`**，覆盖区间写到 **C 60-3807**，下一个活定义在 C 3810。
+  ② **我自己复跑的读数（不引用 lane 的）**：`swiftc -parse-as-library -c` → **exit 0 / 0 error / 14 条 warning 行**
+     （3 类 deprecation，全部是 AppKit/CoreGraphics 的既有 API：`scanFloat` 6、`lockFocus` 4、`unlockFocus` 4）；
+     文件在验证前后 `md5 e42eeb98916dd4663976c9603b16e5cc` **一致**（lane 已停笔，不是半成品）；
+     `check-citations` 工作树 **0 drift / 0 stale**——本件含 8 条引文改准，以及**两个被反复引用的行号本身是错的**：
+     `xdisp.c` 的 `HAVE_WINDOW_SYSTEM` 守卫是 **2488/35045** 而不是 2490/35086（这对数字在 `nsterm.swift` 里
+     3 处、在本台账里 10 处，**全部改正**，改后两文件 `grep -c "2490\|35086"` 都是 0）。
+  ③ **两项共享表读数（本件入库时是红的，归下一步的棘轮对账）**：`check-swift-units` →
+     `0 new, 7 stale, 7 Swift unit(s) landed`（7 条 stale 全是本片刚落的同名 Swift `func`：
+     `ns_draw_dash`/`ns_draw_text_decoration`/`ns_draw_underwave`/`ns_fill_underline`/
+     `ns_get_glyph_string_clip_rect`/`ns_hide_hourglass`/`ns_show_hourglass`）；
+     `swift-import-pending` 要加 **43 行**（13 `reference-source` + 1 `reference` + 1 `rust-side` + 28 `unclassified`）。
+     **顺序仍是硬要求**：本件先入库，`tools/reconcile-link-ratchets.sh` 在 HEAD 的 worktree 里重生成四本棘轮
+     （3.270② 的口径），本条的 ③ 是"在此之前"的读数，不冒充入库后的。
+  ④ **未声称**：Swift 侧只有**编译级**验收（`swiftc` exit 0），没有 macOS 上的运行验收；43 个待补的名字只是
+     登记在棘轮里，不是"已提供"。
