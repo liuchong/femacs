@@ -1987,3 +1987,26 @@
   实测：四个镜像 `--check` 全 `OK`；`check-mirror-dupes` `1 ratchet row / 0 failure`、`check-declarations`
   `13 sites (0 forbidden, 13 allowed literals) / 0 failures`、`check-verbatim` 0、`check-globals` `283 units / 0`；
   `port-inventory` 复算 **590 files, done=480, wip=22, todo=88**。
+
+- **3.130 `lib-src/etags.c` 整文件入树（9,068 行 / 126 函数全落地），以及 `cinventory` 的"跨行字面量"根因修复（2026-10-04 第 100 轮第十三批）**：
+  ① **单元**：`femacs/lib-src/etags.rs`（1,787 → **9,068 行**，C 8,280）——`--check` = **`OK`**，台账
+  **126/126 函数 + 29/29 宏 + 7 文件级对象** 全勾。31 个语言解析器全部在 **C 原位**落地（此前那条"必须前移到
+  `lang_names` 之前"的偏离判断被证伪：Rust item 与顺序无关，0.1-12 只要求丢掉 C 的前向声明），`build-tu
+  lib-src/etags.c` = `built`、手工 rustc = exit 0。
+  ② **共享行 41 条**（集成者）：35 条 token 行（`switch`/`case`/`default`/`goto`/`FALLTHROUGH` 家族、
+  `PRIdMAX`/`UNINIT`/`fopen_binary`/`UCHAR_MAX`/字面量下标 0/1/`assert`）+ 4 条**消息字面量函数**用 `*` 行
+  （`print_help`/`print_language_names`/`print_version`/`main`——工具对 `*` 行的既有约定是"整个 body 的 token
+  都是字面量自己的文本，家族计数按构造跳过"）+ 1 条 `found` 家族说明 + `line-drift-tolerance.tsv` 的
+  `etags 0.11`（实测 +9.5%）。**顺带发现一处工具口径**：家族下限（`found` 3 次 vs 端口 0 次）是**token 行
+  挡不住**的——只有 `*` 行会让函数循环 `continue`，这条写进注释供后来者照做。
+  ③ **根因修复（`tools/cinventory.py`）**：`globals_` 逐行用 `strip_strings`（一条只认"本行内完整字符串"的
+  正则）剥字面量，于是 **C 的反斜杠续行字面量**（翻译阶段 2 的拼接）从第二行起就"看不见开头引号"，
+  `Forth_help` 那句里的 `code/create/defer/value/variable` 被当成 5 个文件级对象。改成读 `Lines.scan_rows`
+  ——`Lines` 早就为花括号扫描建好的、**跨行**的字面量消隐视图。修完 `--check` 里那 5 条 `missing file-scope
+  object` 直接消失，C 本来就没声明这些名字。**这是"用排除表记账"与"修工具"之间选了后者**。
+  ④ **证据边界（如实记录）**：etags **没有**行为差分（不像 ebrowse 那样有运行期对拍）；lane 做到的是逐处对读
+  + 编绿 + 文本/结构门，唯一由对读抓出的真 bug 是 `hash` 的 `default:`/`case 2:` fallthrough 顺序（原先让字面量
+  分支不可达）。若要与 ebrowse 同级，需另跑一轮 `etags` 输出对拍。
+  实测：`--all` **489 done / 13 in progress / 0 failing**；`check-mirror-dupes` `1 ratchet row / 0 failure`、
+  `check-declarations` `13 sites (0 forbidden, 13 allowed literals) / 0 failures`、`check-verbatim` 0、
+  `check-globals` `283 units / 0`；`port-inventory` 复算 **590 files, done=482, wip=20, todo=88**。

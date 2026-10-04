@@ -1654,7 +1654,12 @@ def globals_(text: str) -> list[dict]:
     struct_depth = 0
     out = []
     for i, line, live in lines:
-        stripped = strip_strings(line)
+        # `Lines.scan_rows` is the cross-line-aware view: `strip_strings` is a per-line regex
+        # and cannot see a literal that *starts* on an earlier line, which is how C's
+        # backslash-continued string literals (translation phase 2 splices them) leaked their
+        # words into this scan - etags.c's `Forth_help` produced five "file-scope objects"
+        # (`code`, `create`, `defer`, `value`, `variable`) that C never declares (status 3.130).
+        stripped = lines.scan_rows[i - 1]
         if not live:
             continue
         if i in inside:

@@ -24,7 +24,7 @@
 | unique_defun_c_names | 1,736 |
 | unique_defun_lisp_names | 1,736 |
 | 已有目标文件 | 502 |
-| 其中 done / wip | 480 / 22 |
+| 其中 done / wip | 482 / 20 |
 | 待开工 | 88 |
 
 ## 2 按目录
@@ -69,7 +69,7 @@
 | `src/macuvs.h` | 9,218 | 0 | 0 | 0 | 0 | 0 | F | done |
 | `src/process.c` | 9,122 | 125 | 63 | 24 | 9 | 20 | D | wip |
 | `src/w32term.c` | 8,414 | 151 | 0 | 11 | 0 | 37 | F | done |
-| `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 0 | 12 | F | wip |
+| `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 0 | 12 | F | done |
 | `src/androidvfs.c` | 7,950 | 181 | 1 | 5 | 81 | 25 | F | done |
 | `src/frame.c` | 7,907 | 100 | 69 | 0 | 2 | 8 | E | done |
 | `src/xfaces.c` | 7,843 | 101 | 33 | 34 | 3 | 17 | E | done |
@@ -97,7 +97,7 @@
 | `lib-src/asset-directory-tool.c` | 338 | 5 | 0 | 0 | 0 | 5 | 1 | F | `femacs/lib-src/asset-directory-tool.rs` | done |
 | `lib-src/ebrowse.c` | 3,926 | 66 | 0 | 37 | 125 | 41 | 41 | F | `femacs/lib-src/ebrowse.rs` | done |
 | `lib-src/emacsclient.c` | 2,524 | 52 | 0 | 11 | 4 | 4 | 15 | F | `femacs/lib-src/emacsclient.rs` | done |
-| `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 62 | 0 | 12 | F | `femacs/lib-src/etags.rs` | wip |
+| `lib-src/etags.c` | 8,280 | 126 | 0 | 31 | 62 | 0 | 12 | F | `femacs/lib-src/etags.rs` | done |
 | `lib-src/hexl.c` | 221 | 3 | 0 | 0 | 0 | 0 | 1 | F | `femacs/lib-src/hexl.rs` | done |
 | `lib-src/make-docfile.c` | 1,232 | 21 | 0 | 0 | 10 | 15 | 6 | F | `femacs/lib-src/make-docfile.rs` | done |
 | `lib-src/make-fingerprint.c` | 178 | 1 | 0 | 2 | 0 | 0 | 1 | F | `femacs/lib-src/make-fingerprint.rs` | done |
@@ -327,7 +327,7 @@
 | `lib/tempname.c` | 284 | 9 | 0 | 16 | 5 | 0 | 0 | L | `femacs/lib/tempname.rs` | done |
 | `lib/tempname.h` | 72 | 0 | 0 | 4 | 3 | 0 | 0 | L | `femacs/lib/include/tempname.rs` | done |
 | `lib/time-internal.h` | 54 | 0 | 0 | 1 | 0 | 3 | 0 | L | `femacs/lib/include/time-internal.rs` | done |
-| `lib/time.in.h` | 646 | 0 | 0 | 26 | 6 | 2 | 0 | L | `femacs/lib/include/time.in.rs` | wip |
+| `lib/time.in.h` | 646 | 0 | 0 | 26 | 6 | 2 | 0 | L | `femacs/lib/include/time.in.rs` | done |
 | `lib/time_r.c` | 49 | 3 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/time_r.rs` | done |
 | `lib/time_rz.c` | 322 | 14 | 0 | 0 | 2 | 0 | 0 | L | `femacs/lib/time_rz.rs` | done |
 | `lib/timegm.c` | 57 | 2 | 0 | 0 | 0 | 0 | 0 | L | `femacs/lib/timegm.rs` | done |
