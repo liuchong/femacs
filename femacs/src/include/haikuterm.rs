@@ -16,17 +16,14 @@
 // (`haikugui.h` and `androidgui.h` declare the same X-compat block) - see
 // docs/ports/include-haikugui.md for the ruling and the 35 measured `E0428`s.
 //
-// Two degradations are recorded rather than invented (both are upstream gaps, not text this
-// header lacks):
-//   * `struct haikufont_info` is **not** mirrored: its first member is a `struct font` **by
-//     value**, and no mirror declares that record yet (`include/font.rs` is a WIP slice whose
-//     `struct font` still lives in the `font.c` unit mirror, and on a Haiku build
-//     `HAVE_WINDOW_SYSTEM` is defined, so that record has thirteen more members than the frozen
-//     target's).  A byte-array stand-in would encode the wrong size for the platform and a
-//     zero-sized one would be a lie; the ledger keeps the box unchecked and the report names it.
-//   * `struct font *font` and `struct font_metrics **metrics` inside `struct haiku_output` keep
-//     the untyped pointer with a `/// C:` line (P-55/P-72 rule 3), the shape
-//     `include/androidterm.rs` uses for the same missing records.
+// Records this header names that have no owner mirror keep the recorded stand-ins (PORTING.md
+// P-55/P-72 rule 3): `struct font_metrics` (`struct haikufont_info.metrics`) and
+// `struct font_driver` (the `haikufont_driver` object, C 226) are `font.h`'s and neither has
+// landed in `include/font.rs`, so those two stay `*mut *mut c_void`/`*mut c_void` with the C text
+// in a `/// C:` line.  `struct font` is **not** in that class: it is `include/font.rs`'s record
+// (font.h 275-418, landed with this header's dependency) and this mirror includes that file, so
+// `struct haikufont_info`'s first member - a `struct font` **by value** - and
+// `struct haiku_output`'s `struct font *font` are spelled with the record, as C does.
 
 // haikuterm.h 20: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const _HAIKU_TERM_H_: bool = true;
@@ -45,6 +42,25 @@ pub const HAVE_CHAR_CACHE_MAX: c_int = 65535;
 
 // haikuterm.h 38's `struct haiku_font_change_event;` is a forward declaration of the tag whose
 // definition lives in haiku_support.h (reached above), so it has no declaration of its own here.
+
+/* The Haiku font driver's font-object record.  Its first member is a `struct font` **by
+   value**, which is why `include/font.rs` had to carry that record first (font.h 275-418);
+   `be_font` is `haikugui.rs`'s `haiku` and `glyphs` is C's own `unsigned short **`.  */
+// haikuterm.h 42-50.
+#[repr(C)]
+pub struct haikufont_info
+{
+  pub font: font,
+  pub be_font: haiku,
+
+  /// C: `struct font_metrics **metrics;` (haikuterm.h 46) - `struct font_metrics` is `font.h`'s
+  /// record and no mirror declares it yet, so only the pointee is untyped and the pointer depth
+  /// C has is kept (PORTING.md P-55/P-72 rule 3, the `w32inevt.rs` `struct frame **` spelling).
+  pub metrics: *mut *mut c_void,
+  pub metrics_nrows: c_short,
+
+  pub glyphs: *mut *mut c_ushort,
+}
 
 /* This is a chain of structures for all the Haiku displays
    currently in use.  There is only ever one, but the rest of Emacs is
@@ -182,8 +198,8 @@ pub struct haiku_output
   /// P-80; the same shape `itree.rs` uses for its three `bool_bf : 1` members).
   pub bits: u8,
 
-  /// C: `struct font *font;` - no mirror declares `struct font` yet (the note at the top).
-  pub font: *mut c_void,
+  /// C: `struct font *font;` (haikuterm.h 174) - `struct font` is `include/font.rs`'s record.
+  pub font: *mut font,
 
   /* The pending position we're waiting for.  */
   pub pending_top: c_int,
@@ -292,7 +308,8 @@ pub mod haikuterm_objs {
     pub static mut x_display_list: *mut haiku_display_info;        // 225
 
     // haikuterm.h 226: `extern struct font_driver const haikufont_driver;` - `struct font_driver`
-    // is font.h's record and no mirror carries it yet, so the object keeps the pointer-sized
+    // is font.h's record and has not landed in `include/font.rs` (`struct font` has; the note at
+    // the top of this file says which records are which), so the object keeps the pointer-sized
     // stand-in (the `androidterm_objs` shape).
     pub static mut haikufont_driver: *mut c_void;
 

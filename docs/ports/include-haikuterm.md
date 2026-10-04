@@ -28,7 +28,7 @@
 - [x] haiku_bitmap_record: haiku img, char* file, int refcount, int height, int width, int depth, uint32_t stipple_foreground, uint32_t stipple_background, void* stipple_bits
 - [x] haiku_display_info: struct haiku_display_info* next, struct terminal* terminal, Lisp_Object name_list_element, Lisp_Object color_map, int n_fonts, int smallest_char_width, int smallest_font_height, struct frame* focused_frame, struct frame* focus_event_frame, struct frame* last_mouse_glyph_frame, struct haiku_bitmap_record* bitmaps, ptrdiff_t bitmaps_size, ptrdiff_t bitmaps_last, int grabbed, int n_planes, int color_p, Lisp_Object rdb, Lisp_Object default_name, Emacs_Cursor vertical_scroll_bar_cursor, Emacs_Cursor horizontal_scroll_bar_cursor, Mouse_HLInfo mouse_highlight, struct frame* highlight_frame, struct frame* last_mouse_frame, struct frame* last_mouse_motion_frame, int last_mouse_motion_x, int last_mouse_motion_y, struct haiku_rect last_mouse_glyph, haiku display, double resx, double resy, Time last_mouse_movement_time, Window root_window, Emacs_Cursor text_cursor, Emacs_Cursor nontext_cursor, Emacs_Cursor modeline_cursor, Emacs_Cursor hand_cursor, Emacs_Cursor hourglass_cursor, Emacs_Cursor horizontal_drag_cursor, Emacs_Cursor vertical_drag_cursor, Emacs_Cursor left_edge_cursor, Emacs_Cursor top_left_corner_cursor, Emacs_Cursor top_edge_cursor, Emacs_Cursor top_right_corner_cursor, Emacs_Cursor right_edge_cursor, Emacs_Cursor bottom_right_corner_cursor, Emacs_Cursor bottom_edge_cursor, Emacs_Cursor bottom_left_corner_cursor, Emacs_Cursor no_cursor
 - [x] haiku_output: struct haiku_display_info* display_info, Emacs_Cursor text_cursor, Emacs_Cursor nontext_cursor, Emacs_Cursor modeline_cursor, Emacs_Cursor hand_cursor, Emacs_Cursor hourglass_cursor, Emacs_Cursor horizontal_drag_cursor, Emacs_Cursor vertical_drag_cursor, Emacs_Cursor left_edge_cursor, Emacs_Cursor top_left_corner_cursor, Emacs_Cursor top_edge_cursor, Emacs_Cursor top_right_corner_cursor, Emacs_Cursor right_edge_cursor, Emacs_Cursor bottom_right_corner_cursor, Emacs_Cursor bottom_edge_cursor, Emacs_Cursor bottom_left_corner_cursor, Emacs_Cursor no_cursor, Emacs_Cursor current_cursor, Emacs_Color cursor_color, Window parent_desc, haiku window, haiku view, haiku menubar, int fontset, int baseline_offset, bool_bf hourglass_p : 1, bool_bf menu_bar_open_p : 1, bool_bf dirty_p : 1, bool_bf complete_p : 1, struct font* font, int pending_top, int pending_left, bool configury_done, uint32_t cursor_fg, struct haiku_menu_bar_click_event* saved_menu_event, int wait_for_event_type, uint32_t black_relief_pixel, uint32_t white_relief_pixel, long relief_background, int frame_x, int frame_y, int fullscreen_mode
-- [ ] haikufont_info: struct font font, haiku be_font, struct font_metrics** metrics, short metrics_nrows, unsigned short** glyphs
+- [x] haikufont_info: struct font font, haiku be_font, struct font_metrics** metrics, short metrics_nrows, unsigned short** glyphs
 - [x] scroll_bar: union vectorlike_header header, Lisp_Object window, Lisp_Object next, Lisp_Object prev, int top, int left, int width, int height, void* scroll_bar, int dragging, int update, int position, int total, bool horizontal, int page_size
 
 ## File-scope objects — 9
@@ -49,22 +49,21 @@
   [VERIFIED]`, all five false): `USE_BE_CAIRO` at C 24-26 (`#include <cairo.h>`), C 296-301
   (`FRAME_CR_CONTEXT`) and C 362-366 (two cairo prototypes), and `HAVE_NATIVE_IMAGE_API` at
   C 352-357 (`haiku_can_use_native_image_api`, `haiku_load_image`, `syms_of_haikuimage`).
-- **`struct haikufont_info` is not mirrored, and its box above stays unchecked.**  Its first
-  member is a `struct font` **by value**, and no mirror declares that record: `include/font.rs`
-  is a WIP slice (50 boxes) whose `struct font` still lives in the `font.c` unit mirror
-  (`femacs/src/font.rs` 256, with a measurement that is the *frozen* configuration's: 184 bytes
-  with the thirteen `HAVE_WINDOW_SYSTEM`-guarded members absent).  On a Haiku build
-  `HAVE_WINDOW_SYSTEM` is defined, so the record has those thirteen members and a different size;
-  a zero-sized stand-in would be a silent layout lie and a byte-array one would encode the wrong
-  size for exactly the platform this header belongs to.  The right fix is upstream: `struct font`
-  (and `font_metrics`, `font_driver`) move from the unit mirror into `include/font.rs` under
-  P-69, and `haikufont_info` lands in the same commit.  Recorded for the integrator.
-- **`struct font *font` / `struct font_metrics **metrics` inside `struct haiku_output`** keep the
-  untyped pointer with a `/// C:` line (PORTING.md P-55/P-72 rule 3), the shape
-  `include/androidterm.rs` 250 uses for the very same missing record; `haikufont_driver`
-  (C 226) and `haiku_frame_parm_handlers` (C 235, element type `frame_parm_handler`, another
-  dispextern.h typedef `include/dispextern.rs` does not carry) keep the pointer-sized stand-ins
-  in `haikuterm_objs`, also following that mirror.
+- **`struct haikufont_info` (C 42-50) is mirrored once its dependency landed.**  Its first member
+  is a `struct font` **by value**, and that record is now `include/font.rs`'s (font.h 275-418,
+  status 3.158: 184 frozen bytes with the eight `HAVE_WINDOW_SYSTEM`-guarded members carried under
+  `#[cfg (feature = "window_system")]`, thirteen hand-written assertions); this mirror includes
+  `font.rs` (C 33), so the member is `pub font: font` and the record's own layout is the measured
+  one.  `be_font` is `haikugui.rs`'s `haiku` and `glyphs` is C's `unsigned short **`.
+- **The one member of that record whose pointee has no owner mirror keeps the stand-in**:
+  `struct font_metrics **metrics` (C 46) is `*mut *mut c_void` with the C text in a `/// C:` line -
+  the pointer depth C has is kept, only the pointee is untyped (PORTING.md P-55/P-72 rule 3, the
+  `w32inevt.rs` `struct frame **` spelling).  `struct font *font` inside `struct haiku_output`
+  (C 174) is **not** in that class any more: the record is nameable here, so it is `*mut font`.
+  What stays untyped is what has no owner mirror at all: `haikufont_driver` (C 226,
+  `struct font_driver`) and `haiku_frame_parm_handlers` (C 235, element type `frame_parm_handler`,
+  another dispextern.h typedef `include/dispextern.rs` does not carry) keep the pointer-sized
+  stand-ins in `haikuterm_objs`.
 - **`glyph_string` / `face`** appear only as pointers in two prototypes and no mirror declares
   them, so those parameters are `*mut c_void` with a `/// C:` line (P-55).
 - **The four `bool_bf … : 1` members of `struct haiku_output`** (C 190-205: `hourglass_p`,
@@ -100,14 +99,11 @@
 ## Evidence
 
 - `python3 tools/extract-abi.py --check emacs/src/haikuterm.h femacs/src/include/haikuterm.rs`
-  -> `FAIL` with exactly one problem, `- missing type haikufont_info`.  The field loop alone did
-  **not** report it (it walks the Rust containers and skips one that is absent), so the ledger box
-  above was the only record until the missing-type check (status 3.149/3.151/3.152) was added: its
-  own comment names this header's `haikufont_info` as the live example.  That problem line is
-  therefore the blocker, not a spelling deviation - the fix is the upstream one in the decision
-  bullet above (move `struct font`/`font_metrics`/`font_driver` into `include/font.rs` under
-  P-69 and land `haikufont_info` in the same commit), and this is the one mirror in the batch
-  whose `--check` is not `OK`.
+  -> `OK emacs/src/haikuterm.h -> femacs/src/include/haikuterm.rs` (no `- ` problem lines), now
+  that `struct haikufont_info` is mirrored.  The missing-type check (status 3.149/3.151/3.152)
+  named this header's record as its live example while `include/font.rs` did not carry
+  `struct font`; the record landed in status 3.158 and the struct in the same pass, which is what
+  turns the problem line into `OK` rather than an exclusion.
 - Compile proof: the Haiku platform probe (`spikes/haiku_inc_probe.rs`), which compiles this
   mirror with `haikugui.rs`, `haiku_support.rs`, `lisp.rs`/`config.rs` and the rest of a Haiku
   translation unit's closure, with `dispextern.rs` read through a module so that the platform's own

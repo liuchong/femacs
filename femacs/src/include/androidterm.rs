@@ -19,9 +19,10 @@
 // `android_gc` (androidgui.h 33-42, 148), `frame.rs` for `frame`, `dispextern.rs` for
 // `Emacs_Rectangle`/`Mouse_HLInfo`/`Emacs_Cursor`/`Emacs_Color`, `termhooks.rs` for `terminal`
 // and `input_event`, `font.rs` for font.h's declarations, `systime.rs` for `Time` (termhooks.h
-// 28 pulls systime.h for it).  Three names have no owner mirror yet and keep the recorded
-// stand-ins: `struct font` (font.rs is a WIP slice without the record), `struct font_driver`
-// (same) and `struct font_entity` (same), plus `struct window *` (window.h is not in this
+// 28 pulls systime.h for it).  `struct font` is `include/font.rs`'s record (font.h 275-418) and
+// this mirror includes that file, so the member that points at it is spelled with the type; the
+// names that still have no owner mirror keep the recorded stand-ins: `struct font_driver` and
+// `struct font_entity` (font.h's, neither landed), `struct window *` (window.h is not in this
 // header's include list) and `struct android_notification_event *` (no mirror anywhere in the
 // tree) - each is spelled `*mut c_void` with the C text in a `/// C:` line, the P-72 rule ③
 // shape dispextern.rs uses for `struct frame *`.
@@ -247,8 +248,8 @@ pub struct android_output
   pub parent_desc: Emacs_Window,
 
   /* Default ASCII font of this frame.  */
-  /// C: `struct font *font;` (androidterm.h 181) - font.rs does not carry `struct font` yet.
-  pub font: *mut c_void,
+  /// C: `struct font *font;` (androidterm.h 181) - `struct font` is `include/font.rs`'s record.
+  pub font: *mut font,
 
   /* The baseline offset of the default ASCII font.  */
   pub baseline_offset: c_int,

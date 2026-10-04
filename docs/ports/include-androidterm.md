@@ -70,14 +70,16 @@
   `input_event`), `font.rs` (font.h), `systime.rs` (`Time`, which termhooks.h 28 pulls in for C).
   `Lisp_Object`/`union vectorlike_header`/`XVECTOR` come from `lisp.rs`, which no `src/` mirror
   includes (0.1-9) - every unit that carries this mirror has it.
-- **Five names have no owner mirror yet and keep a recorded stand-in** (P-72 rule 3, the
-  dispextern.rs `struct frame *` precedent), each with its C text in a `/// C:` line:
-  `struct font *font` (C 181), `struct font_entity *` (C 444) and the two `struct font_driver`
-  objects (C 439/464) - `include/font.rs` is a WIP slice without the driver interface - plus
-  `struct window *` (C 401, window.h is not in this header's include list) and
-  `struct android_notification_event *` (C 474/476, no record anywhere in the ported tree).
-  The objects use `*mut c_void` as the pointer-width stand-in; they become `font_driver` in the
-  commit that lands the driver record in `font.rs`.
+- **`struct font` is named, and four names that have no owner mirror yet keep a recorded
+  stand-in** (P-72 rule 3, the dispextern.rs `struct frame *` precedent), each with its C text in
+  a `/// C:` line.  `struct android_output.font` (C 181) is `*mut font` now that
+  `include/font.rs` carries the record (font.h 275-418) and this mirror includes that file:
+  naming it costs nothing and the `FRAME_FONT` macro below returns what C's does.  The four
+  stand-ins are `struct font_entity *` (C 444) and the two `struct font_driver` objects (C 439/464)
+  - `include/font.rs` still has neither record - plus `struct window *` (C 401, window.h is not in
+  this header's include list) and `struct android_notification_event *` (C 474/476, no record
+  anywhere in the ported tree).  The objects use `*mut c_void` as the pointer-width stand-in; they
+  become `font_driver` in the commit that lands the driver record in `font.rs`.
 - **`android_frame_parm_handlers` is an unbounded extern array**: C writes
   `extern frame_parm_handler android_frame_parm_handlers[];` (C 398) and `frame_parm_handler` is
   dispextern.h 3063's typedef, which `include/dispextern.rs` does not carry yet.  The port uses the
