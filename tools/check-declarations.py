@@ -17,7 +17,9 @@ the worked example of the one class that *stays*.
 
 Four classes are reported, each by `<path>\t<class>\t<count>\t<line>\t<reason>`.  Every
 ported tree is scanned - `femacs/src` and `femacs/lib` plus batch F's own programs and
-libraries (`lib-src`, `exec`, `lwlib`, `oldXMenu`, `nt`); `femacs/xtask` is this gate's own
+libraries (`lib-src`, `exec`, `lwlib`, `oldXMenu`, `nt`) and its non-C platform trees
+(`femacs/platform`: the Swift/Kotlin/C++ targets of `src/*.m`, `java/`, `haiku_*.cc`);
+`femacs/xtask` is this gate's own
 source, scanned for the first three classes and exempt from the fourth:
 
   decl     the copied ownership/licence prose (FSF, "General Public License",
@@ -62,7 +64,11 @@ REPO = Path(__file__).resolve().parent.parent
 # reference block's provenance sentence and no gate read it (status 3.100).  `femacs/xtask`
 # is this gate's own source, not a port.
 SCAN_DIRS = ("femacs/src", "femacs/lib", "femacs/lib-src", "femacs/exec", "femacs/lwlib",
-             "femacs/oldXMenu", "femacs/nt", "femacs/msdos", "femacs/xtask")
+             "femacs/oldXMenu", "femacs/nt", "femacs/msdos",
+             # batch F's non-C platform trees (src/*.m -> Swift, java/ -> Kotlin,
+             # haiku_*.cc -> C++).  They do not exist yet; naming them here is what makes
+             # the rule bind the first file written into them rather than the first review.
+             "femacs/platform", "femacs/xtask")
 # The recital rule binds the ported units and mirrors; `femacs/xtask` explains the rule in
 # its own comments and is outside it (a licence remark about this repository belongs in
 # docs/status.md and the ledger, never in a ported unit).

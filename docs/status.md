@@ -2116,3 +2116,31 @@
   `check-globals` 283 units / 0、`check-declarations` 13 sites (0 forbidden, 13 allowed literals) / 0 failures、
   `check-mirror-dupes` 0 failures、`check-verbatim` 6 trees/4607 files/0；`port-inventory` 复算
   **503 个已有目标 = 489 done / 14 wip，待开工 87**（本轮由 488/14/88 推进一格）。
+
+- **3.136 声明门扩到 batch F 的非 C 平台树 `femacs/platform`，以及"剩余工作"的实测口径（2026-10-04 本轮）**：
+  ① **门先于文件**：3.100 的教训是"没有任何门扫描的树里，`lib-src/hexl.rs` 照样复述了参照的开头块"。
+  `docs/port-map.md` 613-663 行给 batch F 的非 C 目标定的落点是 `femacs/platform/macos/*.swift`、
+  `femacs/platform/android/kotlin/*.kt`、`femacs/platform/haiku/*.cc`，而**这棵树今天还不存在**
+  （`find femacs -name '*.swift'` = 0、`*.kt` = 0、`femacs/platform` 无此目录）。本轮把
+  `tools/check-declarations.py` 的 `SCAN_DIRS` 加进 `femacs/platform`（并写进它的模块文档与注释），
+  这样**写进那里的第一个文件**就受 decl/version/title/recital 四类约束，而不是等第一轮评审才发现。
+  实测：`--selftest` 22 cases / 0 failures；扫描读数不变（`femacs/platform` 为空 ⇒ 仍是
+  13 sites (0 forbidden, 13 allowed literals) / 0 failures）。
+  ② **剩余工作的实测口径**（本轮用工具现场测，不引用旧读数）：
+  - C 侧 590 文件的账：`port-inventory` 复算 **503 个已有目标 = 489 done / 14 wip，待开工 87**；
+    87 个**全部是头文件镜像**（31,374 行 C、219 个函数），其中 62 个是平台/图形头
+    （`src/android*`、`src/haiku*`、`src/w32*`、`src/pgtk*`、`src/gtkutil.h`、`src/xwidget.h`…），
+    这批的冻结分支可判性已逐条实测：`androidgui.h`/`haiku_support.h`/`pgtkterm.h`/`androidterm.h`/
+    `haikuterm.h`/`gtkutil.h`/`xwidget.h`/`treesit.h`/`android.h`/`emacs-icon.h`/`lib/diffseq.h` 全部
+    `0 unknown, 0 disagreements`（可开工），而 `lib/cdefs.h`(30 条不一致)、`lib/signal.in.h`(45)、
+    `lib/dirent.in.h`(39)、`src/conf_post.h`(3+4 unknown)、`lib/intprops.h`(2)、`src/w32term.h`(1)、
+    `src/w32.h`(1) 需要 P-51/P-66 的承载或先修判据，**不是一轮能收的**。
+  - **非 C 平台树 53 文件 / 49,759 行，落地数为 0**：`src/*.m`→Swift 9 文件 / 26,517 行
+    （`nsterm.m` 单件 11,811 行，与 `xdisp.c` 同级的另一个长杆）、`java/`→Kotlin 40 / 15,157、
+    `haiku_*.cc`→C++ 4 / 8,085。本轮据此开了第一条 Swift lane（先做 `src/nsimage.m` 658 行，
+    要求它交回 ABI 两半清单：本文件**导出**的 C 符号与**调用**的 C 符号），并要求它把
+    "Swift 侧用声明式 extern（`@_silgen_name`）对接 Rust 提供的 C ABI、`@_cdecl` 保持导出名不变"
+    的结论写进 `docs/ports/nsimage.md` 的 `## ABI` 一节——**这条规矩定了，剩下 8 个 Swift 文件才分片**。
+  ③ **在飞 lane（本轮结束时）**：keyboard（Pascal，从 C 8587 起）、xdisp（Beauvoir，从 C 4667 起）、
+  mirror A（Dewey：`haikugui.h`/`haiku_support.h`/`androidgui.h`/`android.h`）、
+  mirror B（Tesla：`androidterm.h`/`android-asset.h`/`pgtkterm.h`/`gtkutil.h`）、Swift（Mill：`nsimage.m`）。
