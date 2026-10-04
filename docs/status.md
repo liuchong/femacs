@@ -3018,3 +3018,29 @@
   五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、
   `check-target-names` 596 `.rs`/0）。lane 已按"先攻坚 range、再按密度打 drift"排下一批，目标是把 **tracked 面的
   drift+range 打到 0**（在飞文件除外）。
+
+- **3.173 五个小头入库（三件是处置镜像）、Swift 单元"闭合才入库"的规矩写成文、`macfont.m` 首轮（2026-10-04）**：
+  ① **交付**（`f2a24a5`）：`lib/pathmax.h`(88)/`lib/dirent-private.h`(67)/`lib/execinfo.in.h`(69)/`src/widgetprv.h`(70)/
+  `src/sfntfont.h`(78) → 对应镜像（合计 514 行）+ 五份台账。三件是**处置镜像**：`pathmax.h` 四臂在本目标全死、
+  `PATH_MAX` 的所有权已在 `limits.in.rs` ⇒ 各臂挂 `cfg` 而不重复声明无条件同名（`msdos.rs` 的 `EINPROGRESS` 形制）；
+  `dirent-private.h` 两臂用 `#[cfg (feature = "msvc")]` 分开、**不断言布局**（本机没有 `<windows.h>`）；
+  `execinfo.in.h` **没有判据**（冻结配置不生成 `execinfo.h`）⇒ `lib/assert.in.h` 的处置形制，`_GL_EXECINFO_INLINE`
+  由我写入 `excluded-macros.txt`（`kind=syntax`），复测 **OK**；`widgetprv.h` 是 X-only，**三条记录"只记录不声明"**
+  （它们的类型名来自本机**没有**的 X11 头——两条候选路径实测 `No such file`），所以抽取器在 stderr 报延后而不是 FAIL。
+  `xtask layout-check` **passed**（80 of 91 mirror(s) compiled，`widgetprv.rs`/`sfntfont.rs` 都在其中）。
+  ② **Swift 单元的入库规矩写成文**：**只有"闭合"的 Swift 单元才入库**（`nsimage.swift`/`nsselect.swift` 就是这样进去的），
+  在飞的 `nsfont.swift`（34/36）与 `macfont.swift`（35/74）继续留在树里；这是 3.159 立的"巨型单元不入库"在 Swift 侧的同一读法。
+  ③ **`macfont.m` 首轮**（Mill，未提交）：`macfont.swift` **1,769 行**，74 个 C 定义里 **35 已落**、54 个 `@_silgen_name`
+  入口；我复跑 `swiftc -parse-as-library -c` **exit 0**、`check-swift-units` **0 new / 0 stale**。它报了两条真东西：
+  **（a）`cf_charset_table[]`（macfont.m 681-739）对抽取器不可见**——"数组形态的 `static` 对象"既不进 File-scope objects
+  也不报错，与 3.160 修的六个函数同类（记入工具的 blind-spot 清单）；**（b）`Qmac_ct` 不在
+  `docs/baseline/globals/symbols.tsv`**（那张表只覆盖冻结构建集）⇒ core 要为 macfont.m 自有的 Q 符号补 C-ABI 入口，
+  记成 macOS 目标的待办。
+  ④ **三条裁决**：**UVS 表**放 Swift 文件里（必要时写 `tools/gen-uvs-swift.py` 生成并入库，**不许运行时读外部文件**）；
+  **`[NSTextStorage setFont:]`** 在 macOS 无实现（C 能编译是因为消息发送不校验）⇒ 端口用公有 API 还原**同样的效果**
+  并在台账记成偏离（不许自造符号 provider，不混合链接）；**永远清不掉的 manifest 行**保留并在行上写明理由——
+  `docs/baseline/swift-units.tsv` 因此加了**第三列 reason**（工具只匹配前两列），macfont 的三条永久行
+  （落在 `USE_CT_GLYPH_INFO` / `MIN_REQUIRED < 1090` 死臂里）已注明（`17d83c3`）。
+  ⑤ 读数：五门绿（`check-declarations` 13/0、`check-globals` 283/0、`check-mirror-dupes` 1/0、`check-verbatim` 4607/0、
+  `check-target-names` 596 `.rs`/0）；`check-citations` 80 drift / 15 range / 282 external / 13 allowed / 0 stale（Boole 在攻）；
+  `layout-check` passed；`check-swift-units` 0/0。
