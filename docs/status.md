@@ -4953,3 +4953,9 @@
 
 - **3.292 Kotlin 又三件（`EmacsLauncherPreferencesActivity` 31、`EmacsMultitaskActivity` 57、`EmacsThread` 70）——21/40（2026-10-05）**：三件都编译通过。`EmacsThread` 里保留了参照的 `System.arraycopy` 与 `Arrays.toString`（日志文本是运行期对拍会看的东西，P-83 ①）；`EmacsMultitaskActivity` 的两个覆盖在参照里是 `final` ⇒ 端口写 `final override`——**P-83 新增 ⑫**（Kotlin 覆盖成员默认 open，不写 `final` 就与参照的封闭性不符）。
   读数：**40 目标 / 21 已落 / 19 待做**（剩 12,600 余 Java 行，集中在 UI/服务那几个大件）；二十一个文件全部由探针编译通过。
+
+- **3.294 两条交付入库 + 四棘轮重生成；镜像覆盖率整树归零（2026-10-05）**：
+  ① **入库**：`887f689` xterm lane 补完 `include/xterm.rs` 的 x11 臂（1,439 → 1,570 行，82 条成员：`x_display_info` 的 WMTYPE 枚举、EWMH/SM/XDND atom 族、`x_dnd_atoms` 三元、motif 拖拽 atom、`modmap`、屏幕尺寸、failable-request 计数，外加 5 条 `HAVE_XKB` 虚拟修饰键 atom；`x_output` 的 `black_relief`/`white_relief` 与 C 定义在 `x_output` 体内、端口提升到同级的 `struct relief`）；`c124faa` nsterm 第 13 片（C 60-2960，四个函数框、`ns_clear_frame` 导出、`copyRect:to:` 记作该 lane 首次遇到的多段选择器）。
+  ② **镜像覆盖率整树归零**：`spikes/mirror-struct-coverage.py` 由 3.282 的 **114 条缺口** → **0 条**（282 个结构体、846 个臂尝试、241 个臂"读不了"=该配置不定义该类型或平台头不在）。另外两条口径由 lane 写进台账：端口在 `x_display_info`/`x_output` 上的 `have_x_windows` 门是**按类型可得性收窄**（C 那两个结构无门），以及该工具的 x11 臂**不带扩展宏**（`HAVE_XFIXES`/`HAVE_XSYNC`/`HAVE_XRANDR`/`HAVE_X_I18N`/`HAVE_XINPUT2`）⇒ 这些门下的字段不在读数里（记为工具待办）。
+  ③ **棘轮**（3m14s，脚本内 `--strict` 已过 ⇒ 棘轮文件是 HEAD 一致的）：`swift-units.tsv` **-10 行**（正是 nsterm 13 片列的 10 条）且 `check-swift-units` 读 **0 new / 0 stale / 7 landed**；`swift-import-pending.txt` 621 → **636** 行（nsterm 交来的 16 条）；`link-pending` 373、`link-exec-pending` 83。**工作树当前的 FAIL/NEW 是四条 lane 在飞造成的**（`check-link` 的 `_Vmake_cursor_line_fully_visible` 属 xdisp 第 23 轮、`check-swift-imports` 的 26 条同理），HEAD 侧一致。
+  ④ **一条留给下一轮的核对**：对账脚本把"改动过的镜像 → 包含它的单元"是靠 `grep -l "include/<mirror>"` 找的；若某镜像**被另一个镜像 include**（`include!` 链），它的单元不会被找到、对象可能带在飞状态。本轮脚本的 `--strict` 是绿的，所以这次没有咬到，但值得专门验一次（记在案）。
