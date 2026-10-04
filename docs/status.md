@@ -5963,3 +5963,28 @@
      "参照隐含的非空假定"，**运行期未验证**；`syncRunnable` 的 `as V` 只验证了"返回 NULL 不抛"这一点；SAF 六件与前台通知等
      行为未验证。**另有一条 lane 记下的真话要保留**：`EmacsService` 单独编 exit 0 **不等于**批次绿——本轮之前全目录是红的，
      红的原因正是它落地后才暴露的那 31 处。
+
+- **3.368 nsterm 第 19 片入库：C 4179-4393（image 子块两件），覆盖到 C 60-4393（2026-10-05）**：
+  ① **交付形态**：`femacs/platform/macos/nsterm.swift` **5,272 → 5,720 行**（`git diff --stat` 452 行变化＝lane 的 `+450/−2`），
+     落 `ns_draw_image_relief`(C 4179-4264) 与 `ns_dumpglyphs_image`(C 4266-4393) 两个 `static`；台账
+     `docs/ports/nsterm.md` **2,462 → 2,630 行**（勾选 **101 → 103/150**、新增 Round 19 节、`## ABI` (2) +11 行、
+     Evidence +8 条、文件头区间与下一活定义更新）。覆盖区间 **C 60-4393**，下一个活定义 **C 4396
+     `ns_draw_stretch_glyph_string`**（换到 stretch glyph 块，边界理由与第 18 片同一条规则）。
+  ② **我自己复跑的读数（不引用 lane 的）**：`swiftc -parse-as-library -c` → **exit 0 / 0 error / 14 条 warning 行**
+     （既有那 7 条不同 warning：`lockFocus`×2、`unlockFocus`×2、`scanFloat`×3，无新增）；`check-citations`
+     **675 files / 0 drift / 0 stale**（external 349 → 350，本片新引 NSImage.h）；`check-declarations` **13 sites / 0 forbidden**；
+     `check-swift-units` 读 **0 new / 2 stale**——那 2 行正是本片两个函数（`ns_draw_image_relief`/`ns_dumpglyphs_image`），
+     随下一步的棘轮重生成消失。
+  ③ **本片给别处的账（只登记不造导出）**：新导入 **27 个 C 名字**（13 `reference-source` + 13 `unclassified` + `image_pixmap`
+     命中棘轮既有行）；`nm -u` 里它们**全部仍未定义**（762 个 undefined，第 18 片后是 732）⇒ 核心欠 26 个 C-ABI 出口
+     （`struct image`/`glyph_slice`/`face` 的成员条目与 `image_ascent` 都在 `HAVE_WINDOW_SYSTEM` 那道门后；
+     `image_ascent` 的定义在 `src/image.c`，而该文件的端口 `femacs/src/image.rs` **是空单元**——这是 3.361 的 P-86 那一类）。
+     `nsimage.swift` 欠 5 个 `EmacsImage_*` 拼写（本片 4 个 + 第 18 片的 `EmacsImage_stippleMask`），且那 4 个是本单元**请求**的
+     形状、不是已议定契约（若 shim 车道定成别的拼法，由它定）。
+  ④ **如实记两条**：⑴ lane 本轮编了**两次**——第一次 exit 1，唯一错误是 C 4343 `[doTransform appendTransform:…]` 的
+     **Swift 3 改名**（`'appendTransform' has been renamed to 'append(_:)'`），修 1 行代码 + 1 行注释后重编才 exit 0；
+     我**用当前源码重编了一次**，读数与他的第二次一致（exit 0/14 行）⇒ 那条"编译后再改注释"的隐患由我的重编覆盖。
+     ⑵ **无新 C 出口**（两个都是 `static`，`nm -g` 计数 0），本片代码**不参与冻结配置编译**（`HAVE_NS`/`NS_IMPL_COCOA` 未定义）
+     ⇒ 无运行、无像素/视觉证据；`eabs`/`truncatingIfNeeded:` 那一类"照录但从未执行"的语义仍未验证。
+  ⑤ **未声称**：`image_ascent` 的**函数体没有移植**（只有声明）；`struct image`/`glyph_slice`/`face` 的布局仍是核心的事实；
+     Swift 侧一律编译级。

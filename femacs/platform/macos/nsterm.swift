@@ -65,8 +65,9 @@
 // again no new export - so the covered range is **C 60-3508**.  **Round 17 lands C 3511-3807**
 // (the hourglass pair, the Glyph drawing operations banner and the text-decoration block) and
 // **round 18 lands C 3809-4177** (the box/relief sub-block and the `dumpglyphs` background
-// helper), so the covered range is **C 60-4177**; the next live definition is C 4179's
-// `ns_draw_image_relief`.
+// helper) and **round 19 lands C 4179-4393** (the image sub-block: `ns_draw_image_relief` and
+// `ns_dumpglyphs_image`), so the covered range is **C 60-4393**; the next live definition is
+// C 4396's `ns_draw_stretch_glyph_string`.
 //
 // Swift has no `#include`, so the unit carries the declarations of its C environment.  The three
 // kinds are the lane's (`docs/ports/nsimage.md`'s `## ABI`, `docs/ports/nsselect.md`'s): imports
@@ -5268,5 +5269,452 @@ fileprivate func ns_maybe_dumpglyphs_background(_ s: UnsafeMutableRawPointer?,
       NSRectFill(r)
       glyph_string_set_background_filled_p(s, true)
     }
+  }
+}
+
+// ==========================================================================
+// C 4179-4393: the image sub-block - the relief drawn around an image, and the
+// image glyph itself with its background, transform and cursor box.
+// ==========================================================================
+
+/// C: the `struct image` members this slice reads.
+///
+/// `Emacs_Pixmap pixmap, mask;` is src/dispextern.h 3222
+/// (`typedef id Emacs_Pixmap;`, the NS arm of src/nsgui.h 55-59, so both come
+/// back untyped - `AnyObject?`, the `ns_display_info_bitmaps_img` reading of
+/// round 18).  `int width, height;` is src/dispextern.h 3304, `int relief;` is
+/// src/dispextern.h 3339 and `int hmargin, vmargin;` is src/dispextern.h 3342.
+///
+/// The record is the core's (`femacs/src/include/dispextern.rs` 2147) and the
+/// whole of it sits inside that header's `HAVE_WINDOW_SYSTEM` block, so every
+/// read is a member entry under `image_<member>`, the `face_<member>` family's
+/// shape.
+@_silgen_name("image_pixmap") func image_pixmap(_ img: UnsafeMutableRawPointer?) -> AnyObject?
+@_silgen_name("image_mask") func image_mask(_ img: UnsafeMutableRawPointer?) -> AnyObject?
+@_silgen_name("image_width") func image_width(_ img: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("image_height") func image_height(_ img: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("image_relief") func image_relief(_ img: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("image_hmargin") func image_hmargin(_ img: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("image_vmargin") func image_vmargin(_ img: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `struct glyph_slice`'s four `unsigned : 16` bit members, read as
+/// `s->slice.x` and its siblings at C 4192, 4197, 4199-4200, 4221-4222,
+/// 4253-4260 and 4283, 4287, 4292-4293.
+///
+/// The record is src/dispextern.h 455-460
+/// (`unsigned x` is its first member, 457), and its one use here is the
+/// `struct glyph_slice slice;` member at src/dispextern.h 1489.
+/// It belongs to the core and has no Swift view in this lane, so the four reads
+/// are member entries under `glyph_string_slice_<member>`; C's expressions
+/// promote each 16-bit field to `int`, so the entries keep the promoted `Int32`
+/// value - round 18's `glyph_u_cmp_id` reading.
+@_silgen_name("glyph_string_slice_x")
+func glyph_string_slice_x(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_slice_y")
+func glyph_string_slice_y(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_slice_width")
+func glyph_string_slice_width(_ s: UnsafeMutableRawPointer?) -> Int32
+@_silgen_name("glyph_string_slice_height")
+func glyph_string_slice_height(_ s: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `&s->slice` (C 4186 and 4274) - the *address* of the slice member, which
+/// is what `image_ascent`'s third parameter wants.
+///
+/// It is the family's second *operation* row, next to round 18's
+/// `glyph_advance`, and for the same reason: the record's layout is the core's
+/// fact, so a pointer into it cannot be spelled at the use site.
+@_silgen_name("glyph_string_slice_ptr")
+func glyph_string_slice_ptr(_ s: UnsafeMutableRawPointer?) -> UnsafeMutableRawPointer?
+
+/// C: `int image_ascent (struct image *, struct face *, struct glyph_slice *)`
+/// - declared at src/dispextern.h 3774
+/// (inside the header's `HAVE_WINDOW_SYSTEM` block, opened at src/dispextern.h 3727)
+/// and defined at src/image.c 1911-1912.
+///
+/// src/image.c is one of the files the frozen configuration does not compile
+/// (`docs/baseline/frozen-build-sources.txt`; its port is an empty unit,
+/// `docs/ports/image.md`), so no object holds the symbol and the shim lane owes
+/// the export - the gate files the name (Evidence).  C 4186 and C 4274 are its
+/// two call sites here.
+@_silgen_name("image_ascent")
+func image_ascent(_ img: UnsafeMutableRawPointer?, _ face: UnsafeMutableRawPointer?,
+                  _ slice: UnsafeMutableRawPointer?) -> Int32
+
+/// C: `struct face`'s `int id;` at src/dispextern.h 1795
+/// - the face's index in its cache, read at C 4205, 4225 and 4238.  It sits
+/// *above* the record's own `HAVE_WINDOW_SYSTEM` block, so the member is
+/// ungated; the entry is the member family's shape, like round 18's
+/// `face_box_*`.
+@_silgen_name("face_id") func face_id(_ face: UnsafeMutableRawPointer?) -> Int32
+
+/// C: the three enumerators the box and bar tests name.
+///
+/// `FACE_NO_BOX` is `enum face_box_type`'s first member (the
+/// `s->face->box != FACE_NO_BOX` test at C 4190 and 4282), declared at
+/// src/dispextern.h 1753
+/// - Class A of the 3.255 ruling, like round 18's
+/// `FACE_SIMPLE_BOX`/`FACE_RAISED_BOX`, because an enumerator's number is the
+/// core's fact.  `TOOL_BAR_FACE_ID` and `TAB_BAR_FACE_ID` are the two
+/// `enum face_id` members the bar branches compare against at C 4205, 4225 and
+/// 4238, declared at src/dispextern.h 1964 and src/dispextern.h 1979
+@_silgen_name("FACE_NO_BOX") func FACE_NO_BOX() -> Int32
+@_silgen_name("TOOL_BAR_FACE_ID") func TOOL_BAR_FACE_ID() -> Int32
+@_silgen_name("TAB_BAR_FACE_ID") func TAB_BAR_FACE_ID() -> Int32
+
+/// C: `enum draw_glyphs_face`'s last two enumerators, `DRAW_IMAGE_RAISED` at
+/// src/dispextern.h 1354 and `DRAW_IMAGE_SUNKEN` at src/dispextern.h 1355
+/// (the enum is src/dispextern.h 1348-1356) - the `s->hl` tests at C 4202-4203,
+/// 4213 and 4378-4380; `DRAW_CURSOR` (src/dispextern.h 1352) is round 16's row.
+@_silgen_name("DRAW_IMAGE_RAISED") func DRAW_IMAGE_RAISED() -> Int32
+@_silgen_name("DRAW_IMAGE_SUNKEN") func DRAW_IMAGE_SUNKEN() -> Int32
+
+/// C: the four generated globals the bar geometry reads.
+///
+/// The two thicknesses are `intmax_t` members of the generated `globals` struct
+/// - `intmax_t f_tab_bar_button_relief;` and `intmax_t f_tool_bar_button_relief;`
+/// - so C's `min (…, 1000000)` and `< 0` tests are `Int` here, and the
+/// assignment back to C's `int thick` is the lane's `truncatingIfNeeded:`
+/// narrowing.  The first is declared at globals.h 942-943
+/// and its `DEFVAR_INT` is at src/xdisp.c 38973; the second is declared at
+/// globals.h 944-945 and its own is at src/xdisp.c 38979.
+/// The two margins are `Lisp_Object`s; `Vtab_bar_button_margin` is the
+/// `DEFVAR_LISP` at src/xdisp.c 38965
+/// and `Vtool_bar_button_margin` is the one at src/xdisp.c 38985.
+///
+/// No reference object holds a symbol for any of the four (they are `globals`
+/// fields; `docs/baseline/globals/variables.tsv` 753, 756, 395 and 413 are the
+/// names' source), so the core exports them - the `windows_or_buffers_changed`
+/// row of round 14.
+@_silgen_name("tab_bar_button_relief") var tab_bar_button_relief: Int
+@_silgen_name("tool_bar_button_relief") var tool_bar_button_relief: Int
+@_silgen_name("Vtab_bar_button_margin") var Vtab_bar_button_margin: Lisp_Object
+@_silgen_name("Vtool_bar_button_margin") var Vtool_bar_button_margin: Lisp_Object
+
+/// C: `#define DEFAULT_TAB_BAR_BUTTON_RELIEF 1` at src/dispextern.h 3436 and
+/// `#define DEFAULT_TOOL_BAR_BUTTON_RELIEF 1` at src/dispextern.h 3515
+/// - the two literals the thickness ternaries fall back to.
+///
+/// **Spelled, not imported** (class B of the 3.255 ruling): the expansion is a
+/// literal, so the `DOCK_IGNORE_LIMIT` reading of round 4 applies and no shim is
+/// owed - the exception the `FRAME_NS_TITLEBAR_HEIGHT` pair records.  Both are
+/// `Int` because the ternary's other arm is the `intmax_t` global above, and C's
+/// narrowing to `int thick` happens at the assignment.
+fileprivate let DEFAULT_TAB_BAR_BUTTON_RELIEF: Int = 1
+fileprivate let DEFAULT_TOOL_BAR_BUTTON_RELIEF: Int = 1
+
+/// C: `EmacsImage`'s two `@public` ivars and the two NSImage messages
+/// C 4272-4355 sends.
+///
+/// `NSAffineTransform *transform;` and `BOOL smoothing;` are src/nsterm.h 680-681,
+/// inside the `@interface EmacsImage : NSImage` at src/nsterm.h 670.
+/// The class is another lane's (`nsimage.swift`'s `class EmacsImage: NSImage`)
+/// and this unit has no Swift view of it, so each access crosses as a
+/// receiver-first C-ABI entry - the `EmacsImage_stippleMask` shape of round 18
+/// and the `EmacsTooltip_*` family (`nsfns.swift` 945-953).  `NSAffineTransform`
+/// is the ivar's own type (round 15's `NSAffineTransform()`); the
+/// `drawInRect:fromRect:operation:fraction:respectFlipped:hints:` method is
+/// NSImage's own, declared at NSImage.h 133, so the entry keeps C's six arguments
+/// and their types - `NSCompositingOperation` is what the `beginDrag` row
+/// (`nsselect.swift` 224) does with `NSDragOperation`.
+@_silgen_name("EmacsImage_transform")
+func EmacsImage_transform(_ img: AnyObject?) -> NSAffineTransform?
+@_silgen_name("EmacsImage_smoothing") func EmacsImage_smoothing(_ img: AnyObject?) -> Bool
+@_silgen_name("EmacsImage_size") func EmacsImage_size(_ img: AnyObject?) -> NSSize
+@_silgen_name("EmacsImage_drawInRect")
+func EmacsImage_drawInRect(_ img: AnyObject?, _ dstRect: NSRect, _ srcRect: NSRect,
+                           _ operation: NSCompositingOperation, _ fraction: CGFloat,
+                           _ respectFlipped: Bool, _ hints: NSDictionary?)
+
+/// C 4179-4264: `static void ns_draw_image_relief (struct glyph_string *s)` - the
+/// image's relief, drawn from the slice, the image's margins and the bar
+/// geometry.
+///
+/// Readings this body makes:
+///
+/// * C's `int x1, y1, thick;` and its five `bool` flags are uninitialized
+///   locals, so they take a zero default here (`var x1: Int32 = 0`,
+///   `var raised_p = false`) - the `ns_draw_relief` reading of round 18; C 4251's
+///   chained `top_p = bot_p = left_p = right_p = false;` is kept as its four
+///   assignments.
+/// * C's comma statements - `x -= thick + extra_x, left_p = true;` (C 4253-4254)
+///   and its three siblings at C 4255-4260 - are the two statements they are.
+/// * `eabs (s->img->relief)` (C 4217) is the macro at src/lisp.h 5597,
+///   whose expansion is `((x) < 0 ? -(x) : (x))`; it is spelled (class B): the
+///   read is the entry and the macro's three evaluations of the same expression
+///   have no side effect.  Sharp edge, recorded: the negated `Int32` traps on
+///   `Int32.min` where C's is undefined - the class round 17's unsigned-arithmetic
+///   note already carries, not exercised here.
+/// * The two `min (…, 1000000)` fallbacks and the `extra_x`/`extra_y` arithmetic
+///   narrow C's `intmax_t`/`EMACS_INT` back to `int`, so each is
+///   `Int32(truncatingIfNeeded: …)` - the lane's narrowing rule.
+/// * C's `extra_x = extra_y = XFIXNUM (…) - thick;` (C 4235 and 4248) is spelled
+///   as its two assignments, as C 4251's chain is.
+/// * C's `int x = s->x;` and `int y = s->ybase - image_ascent (…);` are the
+///   entries above; `x`/`y` are `var` because C 4193-4200 and 4254-4256 mutate
+///   them.
+fileprivate func ns_draw_image_relief(_ s: UnsafeMutableRawPointer?) {
+  var x1: Int32 = 0, y1: Int32 = 0, thick: Int32 = 0
+  var raised_p = false, top_p = false, bot_p = false, left_p = false, right_p = false
+  var extra_x: Int32 = 0, extra_y: Int32 = 0
+  var x = glyph_string_x(s)
+  var y = glyph_string_ybase(s) - image_ascent(glyph_string_img(s), glyph_string_face(s),
+                                               glyph_string_slice_ptr(s))
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */
+  if face_box(glyph_string_face(s)) != FACE_NO_BOX()
+       && glyph_left_box_line_p(glyph_string_first_glyph(s))
+       && glyph_string_slice_x(s) == 0 {
+    x += max(face_box_vertical_line_width(glyph_string_face(s)), 0)
+  }
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */
+  if glyph_string_slice_x(s) == 0 {
+    x += image_hmargin(glyph_string_img(s))
+  }
+  if glyph_string_slice_y(s) == 0 {
+    y += image_vmargin(glyph_string_img(s))
+  }
+
+  if glyph_string_hl(s) == DRAW_IMAGE_SUNKEN()
+       || glyph_string_hl(s) == DRAW_IMAGE_RAISED() {
+    if face_id(glyph_string_face(s)) == TAB_BAR_FACE_ID() {
+      thick = Int32(truncatingIfNeeded: tab_bar_button_relief < 0
+                    ? DEFAULT_TAB_BAR_BUTTON_RELIEF
+                    : min(tab_bar_button_relief, 1000000))
+    } else {
+      thick = Int32(truncatingIfNeeded: tool_bar_button_relief < 0
+                    ? DEFAULT_TOOL_BAR_BUTTON_RELIEF
+                    : min(tool_bar_button_relief, 1000000))
+    }
+    raised_p = glyph_string_hl(s) == DRAW_IMAGE_RAISED()
+  } else {
+    thick = image_relief(glyph_string_img(s)) < 0
+      ? -image_relief(glyph_string_img(s)) : image_relief(glyph_string_img(s))
+    raised_p = image_relief(glyph_string_img(s)) > 0
+  }
+
+  x1 = x + glyph_string_slice_width(s) - 1
+  y1 = y + glyph_string_slice_height(s) - 1
+
+  extra_x = 0
+  extra_y = 0
+  if face_id(glyph_string_face(s)) == TAB_BAR_FACE_ID() {
+    if CONSP(Vtab_bar_button_margin)
+         && FIXNUMP(XCAR(Vtab_bar_button_margin))
+         && FIXNUMP(XCDR(Vtab_bar_button_margin)) {
+      extra_x = Int32(truncatingIfNeeded: XFIXNUM(XCAR(Vtab_bar_button_margin)) - Int(thick))
+      extra_y = Int32(truncatingIfNeeded: XFIXNUM(XCDR(Vtab_bar_button_margin)) - Int(thick))
+    } else if FIXNUMP(Vtab_bar_button_margin) {
+      extra_x = Int32(truncatingIfNeeded: XFIXNUM(Vtab_bar_button_margin) - Int(thick))
+      extra_y = Int32(truncatingIfNeeded: XFIXNUM(Vtab_bar_button_margin) - Int(thick))
+    }
+  }
+
+  if face_id(glyph_string_face(s)) == TOOL_BAR_FACE_ID() {
+    if CONSP(Vtool_bar_button_margin)
+         && FIXNUMP(XCAR(Vtool_bar_button_margin))
+         && FIXNUMP(XCDR(Vtool_bar_button_margin)) {
+      extra_x = Int32(truncatingIfNeeded: XFIXNUM(XCAR(Vtool_bar_button_margin)))
+      extra_y = Int32(truncatingIfNeeded: XFIXNUM(XCDR(Vtool_bar_button_margin)))
+    } else if FIXNUMP(Vtool_bar_button_margin) {
+      extra_x = Int32(truncatingIfNeeded: XFIXNUM(Vtool_bar_button_margin))
+      extra_y = Int32(truncatingIfNeeded: XFIXNUM(Vtool_bar_button_margin))
+    }
+  }
+
+  top_p = false
+  bot_p = false
+  left_p = false
+  right_p = false
+
+  if glyph_string_slice_x(s) == 0 {
+    x -= thick + extra_x
+    left_p = true
+  }
+  if glyph_string_slice_y(s) == 0 {
+    y -= thick + extra_y
+    top_p = true
+  }
+  if glyph_string_slice_x(s) + glyph_string_slice_width(s) == image_width(glyph_string_img(s)) {
+    x1 += thick + extra_x
+    right_p = true
+  }
+  if glyph_string_slice_y(s) + glyph_string_slice_height(s) == image_height(glyph_string_img(s)) {
+    y1 += thick + extra_y
+    bot_p = true
+  }
+
+  ns_draw_relief(NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(x1 - x + 1), CGFloat(y1 - y + 1)),
+                 thick, thick, raised_p, top_p, bot_p, left_p, right_p, s)
+}
+
+/// C 4266-4393: `static void ns_dumpglyphs_image (struct glyph_string *s, NSRect r)` -
+/// "Renders an image and associated borders."
+///
+/// Readings this body makes:
+///
+/// * `NSRect r` is **unused in the body** (C 4267's declaration carries it, C 4847
+///   is the caller); it is kept, and Swift warns about neither unused parameters
+///   nor an unread `let`.
+/// * `EmacsImage *img = s->img->pixmap;` (C 4272) is the entry pair, and `img`
+///   stays untyped (`AnyObject?`): the class is `nsimage.swift`'s.  C's
+///   `if (img != nil)` is the same test.
+/// * C's uninitialized locals take a zero default (`var bg_x: Int32 = 0`,
+///   `var br = NSRect.zero`, `var tdCol: NSColor? = nil`) - the round-18 reading.
+/// * C's truthiness tests on `int` members become `!= 0` (the `bg_height >
+///   s->slice.height` head of C 4301-4302 and its five `||` arms), and the two
+///   pointer members are `nil` tests (`s->img->mask`, `s->img->pixmap == 0`) -
+///   Swift has no truthiness.
+/// * `NSColor colorWithUnsignedLong:` is this unit's own category (round 1);
+///   `[col set]` is `?.set()` through the optional receiver C relies on.
+/// * `[NSGraphicsContext currentContext]` is `NSGraphicsContext.current?` (the
+///   round-17 reading), `saveGraphicsState`/`restoreGraphicsState` are its
+///   methods, and `setImageInterpolation:NSImageInterpolationNone` is the Swift
+///   property assignment `imageInterpolation = .none`
+///   (`NSImageInterpolationDefault` is `.default`).
+/// * `[NSAffineTransform transform]` is Swift's `NSAffineTransform()` (round 15),
+///   `translateXBy:yBy:` is `translateX(by:yBy:)` and `concat` is `concat()`.
+///   `img->transform`'s non-nil test binds once (`if let`) instead of C's two
+///   reads, and the value crosses the Foundation `SwiftBridge` into
+///   `append(_:)`'s `AffineTransform` parameter with the `as AffineTransform`
+///   cast round 15 uses for `transform(using:)` - the compiler proved the
+///   rename (`'appendTransform' has been renamed to 'append(_:)'`).
+/// * `[img size].width` is the `EmacsImage_size` entry read twice, exactly the
+///   two messages C 4324 sends;
+///   `[img drawInRect:fromRect:operation:fraction:respectFlipped:hints:]` is the
+///   `EmacsImage_drawInRect` entry with C's own six arguments.
+/// * `abs (s->img->relief)` (C 4388) and `max (…, 0)` (C 4273) keep C's calls -
+///   Swift's `abs`/`max` on `Int32`; `ns_draw_box`'s two `char` flags are the
+///   `Bool` round 18 established, and its `int thickness` arguments convert as
+///   `CGFloat`.
+fileprivate func ns_dumpglyphs_image(_ s: UnsafeMutableRawPointer?, _ r: NSRect) {
+  let img = image_pixmap(glyph_string_img(s))
+  let box_line_vwidth = max(face_box_horizontal_line_width(glyph_string_face(s)), 0)
+  var x = glyph_string_x(s)
+  var y = glyph_string_ybase(s) - image_ascent(glyph_string_img(s), glyph_string_face(s),
+                                               glyph_string_slice_ptr(s))
+  var bg_x: Int32 = 0, bg_y: Int32 = 0, bg_height: Int32 = 0
+  var br = NSRect.zero
+  let face = glyph_string_face(s)
+  var tdCol: NSColor? = nil
+
+  // C 4280: `NSTRACE ("ns_dumpglyphs_image");` - empty at `NSTRACE_ENABLED` 0, like the rest.
+
+  if face_box(face) != FACE_NO_BOX()
+       && glyph_left_box_line_p(glyph_string_first_glyph(s))
+       && glyph_string_slice_x(s) == 0 {
+    x += max(face_box_vertical_line_width(face), 0)
+  }
+
+  bg_x = x
+  bg_y = glyph_string_slice_y(s) == 0 ? glyph_string_y(s) : glyph_string_y(s) + box_line_vwidth
+  bg_height = glyph_string_height(s)
+  /* other terms have this, but was causing problems w/tabbar mode */
+  /* - 2 * box_line_vwidth; */
+
+  if glyph_string_slice_x(s) == 0 { x += image_hmargin(glyph_string_img(s)) }
+  if glyph_string_slice_y(s) == 0 { y += image_vmargin(glyph_string_img(s)) }
+
+  /* Draw BG: if we need larger area than image itself cleared, do that,
+     otherwise, since we composite the image under NS (instead of mucking
+     with its background color), we must clear just the image area.  */
+
+  NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face)).set()
+
+  if bg_height > glyph_string_slice_height(s)
+       || image_hmargin(glyph_string_img(s)) != 0
+       || image_vmargin(glyph_string_img(s)) != 0
+       || image_mask(glyph_string_img(s)) != nil
+       || image_pixmap(glyph_string_img(s)) == nil
+       || glyph_string_width(s) != glyph_string_background_width(s) {
+    br = NSMakeRect(CGFloat(bg_x), CGFloat(bg_y), CGFloat(glyph_string_background_width(s)),
+                    CGFloat(bg_height))
+    glyph_string_set_background_filled_p(s, true)
+  } else {
+    br = NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(glyph_string_slice_width(s)),
+                    CGFloat(glyph_string_slice_height(s)))
+  }
+
+  NSRectFill(br)
+
+  /* Draw the image... do we need to draw placeholder if img == nil?  */
+  if img != nil {
+    /* The idea here is that the clipped area is set in the normal
+       view coordinate system, then we transform the coordinate
+       system so that when we draw the image it is rotated, resized
+       or whatever as required.  This is kind of backwards, but
+       there's no way to apply the transform to the image without
+       creating a whole new bitmap.  */
+    let dr = NSMakeRect(CGFloat(x), CGFloat(y), CGFloat(glyph_string_slice_width(s)),
+                        CGFloat(glyph_string_slice_height(s)))
+    let ir = NSMakeRect(0, 0, EmacsImage_size(img).width, EmacsImage_size(img).height)
+
+    let setOrigin = NSAffineTransform()
+
+    NSGraphicsContext.current?.saveGraphicsState()
+
+    /* Because of the transforms it's difficult to work out what
+       portion of the original, untransformed, image will be drawn,
+       so the clipping area will ensure we draw only the correct
+       bit.  */
+    NSRectClip(dr)
+
+    setOrigin.translateX(by: CGFloat(x - glyph_string_slice_x(s)),
+                         yBy: CGFloat(y - glyph_string_slice_y(s)))
+    setOrigin.concat()
+
+    let doTransform = NSAffineTransform()
+
+    /* ImageMagick images don't have transforms.  */
+    if let transform = EmacsImage_transform(img) {
+      doTransform.append(transform as AffineTransform)
+    }
+
+    doTransform.concat()
+
+    /* Smoothing is the default, so if we don't want smoothing we
+       have to turn it off.  */
+    if !EmacsImage_smoothing(img) {
+      NSGraphicsContext.current?.imageInterpolation = .none
+    }
+
+    EmacsImage_drawInRect(img, ir, ir, NSCompositingOperation.sourceOver, 1.0, true, nil)
+
+    /* Apparently image interpolation is not reset with
+       restoreGraphicsState, so we have to manually reset it.  */
+    if !EmacsImage_smoothing(img) {
+      NSGraphicsContext.current?.imageInterpolation = .default
+    }
+
+    NSGraphicsContext.current?.restoreGraphicsState()
+  }
+
+  if glyph_string_hl(s) == DRAW_CURSOR() {
+    FRAME_CURSOR_COLOR(glyph_string_f(s))?.set()
+    tdCol = NSColor.colorWithUnsignedLong(NS_FACE_BACKGROUND(face))
+  } else {
+    tdCol = NSColor.colorWithUnsignedLong(NS_FACE_FOREGROUND(face))
+  }
+
+  /* Draw underline, overline, strike-through.  */
+  ns_draw_text_decoration(s, face, tdCol, br.size.width, br.origin.x)
+
+  /* If we must draw a relief around the image, do it.  */
+  if image_relief(glyph_string_img(s)) != 0
+       || glyph_string_hl(s) == DRAW_IMAGE_RAISED()
+       || glyph_string_hl(s) == DRAW_IMAGE_SUNKEN() {
+    ns_draw_image_relief(s)
+  }
+
+  /* If there is no mask, the background won't be seen, so draw a
+     rectangle on the image for the cursor.  Do this for all images,
+     getting transparency right is not reliable.  */
+  if glyph_string_hl(s) == DRAW_CURSOR() {
+    var thickness = abs(image_relief(glyph_string_img(s)))
+    if thickness == 0 { thickness = 1 }
+    ns_draw_box(br, CGFloat(thickness), CGFloat(thickness),
+                FRAME_CURSOR_COLOR(glyph_string_f(s)), true, true)
   }
 }

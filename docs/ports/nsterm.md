@@ -174,8 +174,13 @@
       force_p` is `Bool`, the `NS_IMPL_COCOA` stipple arm is the live one (its `#else`'s
       `goto fill;` and the `fill:` label are recorded, not transcribed), and the arm's five
       CoreGraphics calls plus `EmacsImage -stippleMask` (`ns_display_info_bitmaps_img`) are entries
-- [ ] ns_draw_image_relief  (line 4180, static)
-- [ ] ns_dumpglyphs_image  (line 4267, static)
+- [x] ns_draw_image_relief  (line 4180, static) — landed as `fileprivate func`; the four
+      `s->slice` reads are member entries and `&s->slice` is the family's second *operation* row
+      (`glyph_string_slice_ptr`), the `struct image` members and `image_ascent` are entries, and
+      the two `DEFAULT_*_BUTTON_RELIEF` literals plus `eabs` are *spelled* (class B of 3.255)
+- [x] ns_dumpglyphs_image  (line 4267, static) — landed as `fileprivate func` (C's `NSRect r`
+      parameter is unused in the reference's own body and is kept); its four `EmacsImage` accesses
+      are cross-lane entries, and `-appendTransform:` is the compiler's rename `append(_:)`
 - [ ] ns_draw_stretch_glyph_string  (line 4397, static)
 - [ ] ns_draw_glyph_string_foreground  (line 4548, static)
 - [ ] ns_draw_composite_glyph_string_foreground  (line 4568, static)
@@ -642,10 +647,12 @@ C export** (all seven are C `static`s) - so the covered range is now **C 60-3807
 lands C 3809-4177**: `ns_draw_box` (C 3809-3839), `ns_setup_relief_colors` (C 3841-3869),
 `ns_draw_relief` (C 3871-4023), `ns_dumpglyphs_box_or_relief` (C 4026-4089) and
 `ns_maybe_dumpglyphs_background` (C 4091-4177) - **no new C export** (all five are C `static`s) -
-so the covered range is now **C 60-4177**.  The next live definition is C 4179's
-`ns_draw_image_relief`, the first of the image sub-block.
+so the covered range is now **C 60-4177**.  **Round 19 lands C 4179-4393**, the image sub-block:
+`ns_draw_image_relief` (C 4179-4264) and `ns_dumpglyphs_image` (C 4266-4393) - **no new C export**
+again (both are C `static`s) - so the covered range is now **C 60-4393**.  The next live definition
+is C 4396's `ns_draw_stretch_glyph_string`, which opens the stretch-glyph block.
 
-Ticked above: **101 of the 150 function boxes**.  The count is the generator's own again: the
+Ticked above: **103 of the 150 function boxes**.  The count is the generator's own again: the
 pre-3.260 `tools/cinventory.py` could not see **eight** of this file's definitions (the walk from a
 declarator to its `{` stopped at the documentation comment in between - status 3.260), the port had
 already written seven of them (round 5's two, round 6's `ns_focus`, round 10's four), and the
@@ -661,7 +668,7 @@ constants, round 6's `bell_view` and round 15's `fringe_bmp` - **the file's last
 box**), **1 of the 1 type box** (`EmacsMargins`,
 C 650) and **2 of the 8 Objective-C classes** (`NSColor (EmacsColor)` with its four methods, and
 **`EmacsBell`** - the file's first *class*, with its `@interface` declaration and all four
-methods).  The other 49 function boxes, 6 macro boxes, 6 class boxes and 185 method boxes are
+methods).  The other 47 function boxes, 6 macro boxes, 6 class boxes and 185 method boxes are
 later slices; round 7 added five rows to the `## ABI` (4) table - three class methods and, for the
 first time, two of this unit's own *functions* - and round 10 added two more, both class methods
 (`EmacsWindow_initWithEmacsFrame`, `setAppearance`).
@@ -1575,6 +1582,88 @@ so each is a header-only name; `NS_FACE_FOREGROUND` and `FONT_HEIGHT` are alread
 `window_box_right` is the slice's one name with a reference-side symbol (`T` in
 `build/emacs-ref/src/xdisp.o`) - which is why its row reads *provided*.
 
+### Round 19: the image sub-block, the family's first *address-of* row, and macros kept class B
+
+**Scope.**  C 4179-4393: `ns_draw_image_relief` (C 4179-4264) and `ns_dumpglyphs_image`
+(C 4266-4393).  **No new C export** - both are C `static`s - so `## ABI` (1) is unchanged, and the
+two function boxes close (103 of 150).  The boundary is C 4396's `ns_draw_stretch_glyph_string`: it
+opens the stretch-glyph block (the stretch's own background and its `char2b` foreground), a
+different subject from the image's drawing, and the two boxes here are the image *pair* - the
+"coherent sub-block" rule of round 18.
+
+**`struct image` is read through seven member entries, and its two pointer members are `id`.**
+`pixmap`/`mask` are `Emacs_Pixmap`, which the NS arm `typedef`s to `id` (src/nsgui.h 55-59), so
+those two reads come back `AnyObject?` - the `ns_display_info_bitmaps_img` reading of round 18.
+`width`, `height`, `relief`, `hmargin` and `vmargin` are `int` (src/dispextern.h 3304-3342) and
+stay `Int32`.  The whole record sits inside that header's `HAVE_WINDOW_SYSTEM` block, which the
+frozen configuration does not define, so the rows are owed under the same gate the round-13/16
+member rows carry.
+
+**`s->slice` needs four reads *and* an address-of row.**  Its four `unsigned : 16` members
+(src/dispextern.h 455-460) promote to `int` in C's expressions, so
+`glyph_string_slice_x`/`_y`/`_width`/`_height` keep the promoted `Int32` value (the
+`glyph_u_cmp_id` reading of round 18).  `&s->slice` is a fifth name, `glyph_string_slice_ptr`:
+`image_ascent`'s third parameter is a `struct glyph_slice *` and the record's layout is the core's
+fact, so the address cannot be spelled at the use site - the family's second *operation* row after
+`glyph_advance`, for the same reason.
+
+**`image_ascent` is defined in a file no configuration here builds.**  It is declared at
+src/dispextern.h 3774, inside the header's `HAVE_WINDOW_SYSTEM` block (opened at 3727), and defined
+at src/image.c 1911; src/image.c is not in `docs/baseline/frozen-build-sources.txt`, and its port
+(`femacs/src/image.rs`) is an empty unit.  No object holds the symbol, so the row is a shim work
+order rather than a "provided" reading - the class round 17's two gated xdisp.c functions record.
+
+**Two macros are *spelled*, not imported - the (B)-first half of the 3.255 ruling.**
+`#define DEFAULT_TAB_BAR_BUTTON_RELIEF 1` at src/dispextern.h 3436 and
+`#define DEFAULT_TOOL_BAR_BUTTON_RELIEF 1` at 3515 expand to a literal, and src/lisp.h 5597's
+expression macro `eabs` to arithmetic; both are expressible, so the use site spells them
+(file-scope `let`s for the two names, `eabs` inline) and no shim is owed - the exception
+`FRAME_NS_TITLEBAR_HEIGHT`/`FRAME_TOOLBAR_HEIGHT` is.  (2) records them as **not entries**.  One
+sharp edge is recorded with the spelling: the inline `eabs` negates an `Int32`, so it traps on
+`Int32.min` where C's negation is undefined - the class round 17's unsigned-arithmetic note already
+carries, and nothing in this tree exercises it.
+
+**C's `intmax_t` globals narrow at the assignment.**  The two bar thicknesses are generated
+`globals` fields (`intmax_t f_tab_bar_button_relief;`, globals.h 942-943, the `DEFVAR_INT` at
+src/xdisp.c 38973; `intmax_t f_tool_bar_button_relief;`, 944-945 / 38979), so the reads are `Int`
+and `min (…, 1000000)`, the `< 0` tests and the `extra_x`/`extra_y` arithmetic narrow C's way with
+`Int32(truncatingIfNeeded: …)` - the lane's narrowing rule (round 17's six `unsigned long` locals).
+The two margins are `Lisp_Object`s (src/xdisp.c 38965/38985).  None of the four has a reference
+symbol (they are `globals` fields), so all four are class-A rows of the core's shim - the
+`windows_or_buffers_changed` shape.
+
+**C's comma statements and chained assignments are spelled as the statements they are.**  C's
+`x -= thick + extra_x, left_p = true;` and its three siblings (C 4253-4260) are the two statements
+each; C's `extra_x = extra_y = XFIXNUM (…) - thick;` (C 4235/4248) is two assignments; and C 4251's
+`top_p = bot_p = left_p = right_p = false;` is the four assignments Swift needs (the flags are
+initialized at their declaration, so the statement is kept for C's text).  C's uninitialized locals
+(`int x1, y1, thick;`, `int bg_x, bg_y, bg_height;`, `NSColor *tdCol;`) take the round-18 zero
+defaults.
+
+**Four readings of the image body, three of them the compiler's own.**
+① C's `NSRect r` parameter (C 4267) is **unused in the reference's own body** - the port keeps it,
+and Swift warns about neither an unread parameter nor an unread `let`.
+② `[NSAffineTransform transform]` is Swift's `NSAffineTransform()` (round 15) and
+`translateXBy:yBy:` is `translateX(by:yBy:)`, but C 4343's `-appendTransform:` is **renamed**
+`append(_:)` - this round's first compile reported
+`error: 'appendTransform' has been renamed to 'append(_:)'`, and the fix is the compiler's own
+name; the value crosses the Foundation `SwiftBridge` into the `AffineTransform` parameter with the
+`as AffineTransform` cast round 15 uses for `transform(using:)`.
+③ The two interpolation settings are the Swift property: `setImageInterpolation:` with
+`NSImageInterpolationNone` is `imageInterpolation = .none`, `NSImageInterpolationDefault` is
+`.default`, and the compositing operation's case is the prefix-stripped
+`NSCompositingOperation.sourceOver`.
+④ `[img size].width`/`.height` stay two reads of the `EmacsImage_size` entry, exactly the two
+messages C 4324 sends.
+
+**Four cross-lane `EmacsImage` names, all owed to `nsimage.swift`.**  The class's `@public` ivars
+`transform`/`smoothing` (src/nsterm.h 680-681) are not C symbols and this unit has no Swift view of
+the class, so they cross as `EmacsImage_transform`/`EmacsImage_smoothing`; NSImage's own `-size` and
+`-drawInRect:fromRect:operation:fraction:respectFlipped:hints:` (NSImage.h 133) cross as
+`EmacsImage_size`/`EmacsImage_drawInRect` - receiver first, the `EmacsImage_stippleMask` shape of
+round 18 and the `EmacsTooltip_*` family (`nsfns.swift` 945-953).  The gate files all four as
+`unclassified` (Evidence), and (3) carries the work order.
+
 ### The macro-name audit (status 3.251's rule)
 
 `nm -g build/emacs-ref/{src,lib}/*.o` was searched for every macro/INLINE name this unit imports
@@ -1741,6 +1830,19 @@ what `nm -g` shows (Evidence).
 | `ns_display_info_bitmaps_img` | `struct ns_bitmap_record *bitmaps` (src/nsterm.h 873, the record at 810-819) with C's `face->stipple - 1` subscript as the argument, reaching the record's `EmacsImage *img` (813 in the `__OBJC__` arm, `void *` 816 in the frozen one) - C 4119-4120 | src/nsterm.h | **open**: a two-level member entry whose second argument is C's own subscript (the `glyph_row_used` shape) |
 | `EmacsImage_stippleMask` | `- (CGImageRef)stippleMask` (declared src/nsterm.h 696, defined src/nsimage.m 542) | another lane's class (`nsimage.swift`'s `EmacsImage`) | **open**: the `<Class>_<selector>` shape (`EmacsImage_allocInitFromFile`, `nsfns.swift` 402) - that class landed; its C-ABI entry has not |
 
+| `image_pixmap`, `image_mask` | `Emacs_Pixmap pixmap, mask;` (src/dispextern.h 3222) - C 4272's `s->img->pixmap` and C 4302's `s->img->mask` | src/dispextern.h | **open**: the NS arm `typedef`s `Emacs_Pixmap` to `id` (src/nsgui.h 56), so both are `AnyObject?`, the `ns_display_info_bitmaps_img` reading |
+| `image_width`, `image_height`, `image_relief`, `image_hmargin`, `image_vmargin` | `int width, height;` (src/dispextern.h 3304), `int relief;` (3339) and `int hmargin, vmargin;` (3342) - C 4198-4200, 4217-4218, 4257-4259, 4301-4302 | src/dispextern.h | **open**: member entries of the `have_window_system` record |
+| `glyph_string_slice_x`, `glyph_string_slice_y`, `glyph_string_slice_width`, `glyph_string_slice_height` | `struct glyph_slice`'s four `unsigned : 16` members (`unsigned x` at src/dispextern.h 457; the record 455-460), read at C 4192/4197/4199/4221-4222/4253-4260/4283/4287/4292-4293 | src/dispextern.h | **open**: member reads; the fields promote to `int`, so each keeps the promoted `Int32` value |
+| `glyph_string_slice_ptr` | the `&s->slice` of C 4186/4274 - the address of the `struct glyph_slice slice;` member (src/dispextern.h 1489), `image_ascent`'s third argument | src/dispextern.h | **open**: the family's second *operation* row after `glyph_advance` - the record's layout is the core's fact |
+| `image_ascent` | `int image_ascent (struct image *, struct face *, struct glyph_slice *)` (src/dispextern.h 3774, inside the header's `HAVE_WINDOW_SYSTEM` block; defined src/image.c 1911) | src/dispextern.h | **open**: src/image.c is not compiled by the frozen build and its port is an empty unit, so no object holds the symbol |
+| `face_id` | `struct face`'s `int id;` (src/dispextern.h 1795; ungated) - C 4205/4225/4238 | src/dispextern.h | **open**: member entry, the `face_box_*` family's shape |
+| `FACE_NO_BOX`, `TOOL_BAR_FACE_ID`, `TAB_BAR_FACE_ID`, `DRAW_IMAGE_RAISED`, `DRAW_IMAGE_SUNKEN` | the `enum face_box_type` member at src/dispextern.h 1753, the two `enum face_id` members at 1964/1979 and the two `enum draw_glyphs_face` members at 1354/1355 - C 4190-4213 and 4282-4380 test them | src/dispextern.h | **open**: enumerator entries (class A of 3.255) |
+| `tab_bar_button_relief`, `tool_bar_button_relief` | the generated globals `intmax_t f_tab_bar_button_relief;` / `intmax_t f_tool_bar_button_relief;` (globals.h 942-945; the `DEFVAR_INT`s at src/xdisp.c 38973/38979) - C 4206-4212 | generated `globals.h` | **open**: data symbols the core exports (`windows_or_buffers_changed`'s row); `Int`, C's `intmax_t` |
+| `Vtab_bar_button_margin`, `Vtool_bar_button_margin` | the `DEFVAR_LISP` variables at src/xdisp.c 38965/38985 - C 4227-4235 and 4240-4248 | src/xdisp.c | **open**: data symbols (`docs/baseline/globals/variables.tsv` 395/413) |
+| `EmacsImage_transform`, `EmacsImage_smoothing` | `EmacsImage`'s `@public` ivars `NSAffineTransform *transform;` / `BOOL smoothing;` (src/nsterm.h 680-681) - C 4342-4343 and 4349-4359 | another lane's class (`nsimage.swift`'s `EmacsImage`) | **open**: receiver-first C-ABI entries; the class has no C symbol of its own |
+| `EmacsImage_size`, `EmacsImage_drawInRect` | NSImage's `- (NSSize)size` and `- (void)drawInRect:(NSRect)rect fromRect:(NSRect)fromRect operation:(NSCompositingOperation)op fraction:(CGFloat)delta respectFlipped:(BOOL)respectContextIsFlipped hints:(nullable NSDictionary<NSImageHintKey, id> *)hints` (NSImage.h 132-133) - C 4324 and 4353-4355 | another lane's class, on NSImage's own methods | **open**: receiver first, with C's six arguments and `NSCompositingOperation` kept |
+| `DEFAULT_TAB_BAR_BUTTON_RELIEF`, `DEFAULT_TOOL_BAR_BUTTON_RELIEF`, `eabs` | **not entries** - the two literal `#define`s at src/dispextern.h 3436/3515 and the expression macro at src/lisp.h 5597 are spelled at the use site instead, per the (B)-first rule of status 3.251 (see Decisions) | src/dispextern.h / src/lisp.h | spelled in place |
+
 `Qnil`/`Qleft`, the two `INLINE` predicates and `EVENT_INIT` are header-only constructs, so the
 core exports a C-ABI entry under the construct's own name (`docs/ports/nsselect.md` (2)b).  The
 five `var` imports (`ns_use_srgb_colorspace`, the seven `ns_*_modifier`s, `ns_auto_hide_menu_bar`,
@@ -1874,7 +1976,25 @@ call site takes an entry and the definition lands at its own C line - and **both
   `unclassified`, the rounds-13/14 shape - and round 17's forty-three are gone from that list;
 * `femacs/platform/macos/nsimage.swift` (another lane's unit), round 18's addition: the
   `EmacsImage -stippleMask` entry of (2) - C 4120's message - is that side's to define (receiver
-  first, the `EmacsImage_allocInitFromFile` shape).  This unit imports it and nothing else;
+  first, the `EmacsImage_allocInitFromFile` shape).  **Round 19 adds four more of that class's**:
+  the two `@public` ivars `transform`/`smoothing` (src/nsterm.h 680-681) as
+  `EmacsImage_transform`/`EmacsImage_smoothing`, and NSImage's own `-size` /
+  `-drawInRect:fromRect:operation:fraction:respectFlipped:hints:` (NSImage.h 132-133) as
+  `EmacsImage_size`/`EmacsImage_drawInRect` - all five are that side's to define, receiver first,
+  and this unit imports them and nothing else;
+* the core, **round 19's names**: the seven `struct image` reads (`image_pixmap`, `image_mask`,
+  `image_width`, `image_height`, `image_relief`, `image_hmargin`, `image_vmargin`); the five
+  `struct glyph_slice` rows (`glyph_string_slice_x`/`_y`/`_width`/`_height` and the operation row
+  `glyph_string_slice_ptr`); `image_ascent` (src/image.c's - no configuration here compiles that
+  file, so this one is the shim's and not "provided"); `face_id`; the five enumerators
+  (`FACE_NO_BOX`, `TOOL_BAR_FACE_ID`, `TAB_BAR_FACE_ID`, `DRAW_IMAGE_RAISED`,
+  `DRAW_IMAGE_SUNKEN`); and the four generated globals (`tab_bar_button_relief`,
+  `tool_bar_button_relief`, `Vtab_bar_button_margin`, `Vtool_bar_button_margin`, all under the
+  same gate the `windows_or_buffers_changed` row carries).  `image_pixmap` is the one name the
+  **ratchet already carries** (`docs/baseline/swift-import-pending.txt` 583), which is why it is a
+  review row and not a `FAIL`; the gate files **26 of the 27 as `FAIL`** - thirteen
+  `reference-source` and thirteen `unclassified` - and round 18's thirty-six are gone from that
+  list (Evidence);
 * `femacs/platform/macos/nsmenu.swift` (another lane's unit), round 11's addition: the
   `EmacsTooltip` class is landed there, so the `is_emacs_tooltip` entry of (2) - C 2534's
   `isKindOfClass: [EmacsTooltip class]` - is that side's to define (receiver first, the
@@ -2449,6 +2569,54 @@ call site takes an entry and the definition lands at its own C line - and **both
   0 failure(s)` - the in-flight lane's stale rows the round-17 block records are gone this round -
   and `grep -c nsterm docs/baseline/mirror-dupes.tsv` is **0**, so no row of that ratchet names
   this unit.
+
+* Round 19's compile, same command: **exit 0**, the same **seven** warnings the previous rounds
+  carry and no new one (**14** `warning:` lines: the two `lockFocus`/two `unlockFocus`
+  deprecations and the three `'scanFloat' was deprecated in macOS 10.15`); object
+  `/tmp/nsterm19.o`, **md5 `ac18810766ccc2fdce3e02bddd606100`**.  **This round needed two
+  compiles**: the first one's single error was
+  `error: 'appendTransform' has been renamed to 'append(_:)'` on C 4343's message, and the fix
+  touched one `///` line and one code line - the second run is the reading quoted above, and the
+  rename is the only one this slice met.
+* `nm -g /tmp/nsterm19.o` -> **no new C export**: `grep -cE ' T _(ns_draw_image_relief|
+  ns_dumpglyphs_image)$'` is 0 (both are C `static`s); the object's `T _` count is 351, so
+  `## ABI` (1) gains no row.
+* `nm -u /tmp/nsterm19.o` -> the slice's **27** declared names, **every one of them referenced**
+  (checked name by name, 0 anomalies - the first pass of that check used a pattern that required a
+  leading space and reported all 27 missing, a bug in the check, not in the object); **762
+  undefined names in all** (732 after round 18).
+* The symbol audit for round 19's 27 names (`nm -g -A` over `build/emacs-ref/src/*.o` and
+  `build/emacs-ref/lib/*.o`): **0 symbols for all twenty-seven** - the member/operation entries,
+  the five enumerators, the four globals, `face_id`, `image_ascent` and the four `EmacsImage`
+  cross-lane names have none (src/image.c is not compiled, and the globals are `globals` fields).
+* `python3 tools/check-swift-units.py` -> `femacs/platform/macos/nsterm.swift: 150 C definition(s),
+  51 unported, 53 row(s); 347 C symbol import(s)` and `0 new, 2 stale, 7 Swift unit(s) landed`.
+  The two stale rows are exactly this slice's two definitions - the rows
+  `docs/baseline/swift-units.tsv` still carries, the integrator's to drop - and `51 unported` is
+  the ledger's 47 open boxes **plus** the four `recorded, not transcribed` definitions.  (Before
+  this slice: `53 unported`, `324` imports.)
+* `python3 tools/check-swift-imports.py` -> `1088 import(s) in 7 Swift file(s), 5734 core
+  export(s), 746 unprovided, 721 ratchet row(s), 27 failure(s)`, with
+  `reference=132 reference-source=408 rust-side=1 rust-side-gated=73 system=0 unclassified=132`.
+  Twenty-six of the twenty-seven failures are this slice's (thirteen `reference-source`, thirteen
+  `unclassified`); the twenty-seventh is another lane's stale `try_window` row, and
+  `image_pixmap` is not among them because the ratchet already carries a row for it
+  (`docs/baseline/swift-import-pending.txt` 583).  The reading before this slice, same tool and
+  tree, was `1062 / 5734 / 720 / 721 / 1` with `reference=132 reference-source=395 rust-side=1
+  rust-side-gated=73 system=0 unclassified=119`, so the slice's delta is +26 imports, +13
+  `reference-source` and +13 `unclassified` - and the ratchet itself is the integrator's to write.
+* `python3 tools/check-citations.py` -> `675 file(s) scanned, 0 drift, 0 range, 350 external,
+  33 allowed, 0 stale`.  The one new `external` is NSImage.h 133 (the SDK header the
+  `EmacsImage_drawInRect` row cites), and two first-draft citations were re-worded after the
+  first run (`src/dispextern.h 1964` + `TAB_BAR_FACE_ID`, `src/xdisp.c 38965` +
+  `Vtool_bar_button_margin`), so each cited line now ends the sentence it belongs to - the
+  gate wants the snippet that *follows* a cited number to live on the cited line.
+* `python3 tools/check-declarations.py` -> `13 declaration sites (0 forbidden, 13 allowed
+  literals), 0 failures` - unchanged by this slice.
+* `python3 tools/check-mirror-dupes.py` -> `23 duplicate declaration(s), 23 ratchet row(s),
+  0 failure(s)`, and `grep -c nsterm docs/baseline/mirror-dupes.tsv` is **0**, so no row of that
+  ratchet names this unit.  (The same tree read `26 / 18 / 10` before this slice - the drop is
+  other lanes' rows being regenerated while this round ran, not this slice's doing.)
 
 - **Ruling (3.255, integrator) on this file's macro-name entries.**  Two halves, and the criterion
   is whether the macro's body can be spelled in Swift: **(B) first** - a body that is a pure AppKit
