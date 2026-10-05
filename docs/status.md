@@ -9942,3 +9942,24 @@
      `docs/baseline/config/darwin-arm64.macros.tsv` 1433 显示 `HAVE_LISTXATTR = 1`（结论不变、理由要改）。
   ⑤ **未声称**：零行为证据（冻结档在任何 ACL 调用前就写 `ENOTSUP` 返回 0）；五条平台臂未翻；外来平台面的
      ABI（`aclent_t`/`ace_t` 12 字节、`NACLENTRIES` 100、`O_PATH` 0x200000）全是文档值/他平台值，**UNVERIFIED**。
+
+- **3.511 镜像轮第四批：ACL 三处互斥/`#else` 闸门（`lib/file-has-acl.rs` 的两条平台臂因此第一次真被读到）（2026-10-05）**：
+  ① **来源**：`lib/file-has-acl.rs` 的 lane 在 3.510 点名三处镜像缺陷，其中两处让**任何**相关臂都编不过、
+     并且让"同时开两个 feature"的臂变成**空读数**（它把一个注入错误塞进 C 612-777 臂，输出逐字不变 ⇒
+     rustc 在读到本单元前就停了）。
+  ② **改动**：⑴ `femacs/lib/include/acl-internal.rs`：`MODE_INSIDE_ACL` 的三次定义其实是**一条
+     `#if`/`#elif`/`#ifndef` 链**（C 118-121 macOS、C 152-155 Cygwin、C 233-236 兜底）⇒ 兜底加
+     `not (any (use_acl_have_acl_get_file, use_acl_getacl))`、Cygwin 臂加
+     `not (use_acl_have_acl_get_file)`（C 的 `#elif` 就是这层互斥）；⑵ `femacs/lib/include/acl.rs`：
+     `aclinfo_has_xattr`/`aclinfo_free`/`aclinfo_scontext_free` 的三个 `#else` 宏**必须带上与函数定义同一条件**
+     （`use_linux_xattr`，第三个再加 `any (have_smack, use_selinux_selinux_h)`），否则在函数臂里宏会先答、
+     把 C 152/984 两个**活调用点**静默改写；⑶ 顺带修本单元自己的：`acl_ace_nontrivial` 的声明要带
+     C 205-209 的内层 `#ifdef ACE_GETACL`（与 `ace_t` 同条件），否则只有 `use_acl_getacl` 的臂读
+     `cannot find type ace_t`。
+  ③ **读数**：`lib/file-has-acl.rs` 三条臂**全部 exit 0 / 0 error**——macOS/Cygwin+`have_acl_get_fd`+`o_path`
+     （改前 1 条镜像错）、**同时开 `use_acl_have_acl_get_file` 与 `use_acl_getacl` 的臂**（改前是**空读数**，改后先读到 2 条真错、再修到 0）、Solaris `use_acl_ace_getacl` 臂。
+  ④ **验收**：`layout-check` **passed**、`check-all-units` **83 unit(s), 0 failure(s)**（P-87 ①：动过
+     `femacs/{src,lib}/include/*.rs` 必跑）、`check-mirror-dupes` 17/17/0、`extract-abi --check
+     emacs/lib/file-has-acl.c femacs/lib/file-has-acl.rs` 仍 **OK**。
+  ⑤ **未声称**：零行为证据（这三条臂只是**类型检查**）；`acl-internal.rs` 的 `acl_nontrivial` 四份声明、
+     `acl.rs` 的其余平台宏、`errno` 的 `E2BIG`、`sys_acl.rs` 缺的六个名字仍是台账 Owed（下一批镜像轮）。

@@ -185,8 +185,11 @@ unsafe extern "C" {
 
 /* C 150's `# elif HAVE_FACL && defined GETACL`: Solaris and Cygwin < 2.5.  */
 
-/* C 152-155: `#  if defined __CYGWIN__`.  */
-#[cfg (feature = "use_acl_getacl")]
+/* C 152-155: `#  if defined __CYGWIN__`.  **C's `#if`/`#elif` makes this arm the other side of
+   C 118-121**, so the port's gate says the same thing: a configuration cannot be macOS's
+   `HAVE_ACL_GET_FILE` and Cygwin's `HAVE_FACL` at once, and opening both features without the
+   negation is an arm that is not a configuration (status 3.510 measured its `E0428`).  */
+#[cfg (all (feature = "use_acl_getacl", not (feature = "use_acl_have_acl_get_file")))]
 pub const MODE_INSIDE_ACL: c_int = 0;
 
 /* Return 1 if the given ACL is non-trivial.
@@ -289,8 +292,15 @@ unsafe extern "C" {
 }
 
 /* Set to 1 if a file's mode is implicit by the ACL.  */
-/* C 233-236: `# ifndef MODE_INSIDE_ACL / #  define MODE_INSIDE_ACL 1` — the arm that follows
-   every branch, so it is the one a system without its own definition keeps.  */
+/* C 233-236: `# ifndef MODE_INSIDE_ACL / #  define MODE_INSIDE_ACL 1` - the arm that follows
+   every branch, so it is the one a system without its own definition keeps.  **The `#ifndef` is
+   load-bearing in Rust too**: the two arms above (`use_acl_have_acl_get_file` for C 118-121's
+   macOS condition and `use_acl_getacl` for C 152-155's Cygwin one) are *other* definitions of
+   the same name, so an ungated copy here is `E0428` in any arm that opens either - measured by
+   the `lib/file-has-acl.rs` lane (status 3.510), whose arm opening both features stopped
+   rustc inside this mirror before the unit was even read (a mutation in the unit changed
+   nothing, i.e. an empty reading).  */
+#[cfg (not (any (feature = "use_acl_have_acl_get_file", feature = "use_acl_getacl")))]
 pub const MODE_INSIDE_ACL: c_int = 1;
 
 /* C 240-278.  The three entry points take a pointer to it, so it needs C's layout

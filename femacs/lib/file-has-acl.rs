@@ -699,6 +699,14 @@ mod solaris_acl_surface {
     pub fn facl (fildes: c_int, cmd: c_int, nentries: c_int, aclbufp: *mut c_void) -> c_int;
     pub fn acl_trivial (path: *const c_char) -> c_int;
     pub fn acl_nontrivial (count: c_int, entries: *const aclent_t) -> c_int;
+  }
+
+  /* C 205-209's `# ifdef ACE_GETACL` (Solaris 10) declares the `ace_t` predicate inside this
+     same Solaris arm, and `ace_t` itself is declared under that condition above - so this
+     declaration carries it too: `use_acl_getacl` alone is not enough, and the flip read
+     `cannot find type ace_t` without it (status 3.510).  */
+  #[cfg (feature = "use_acl_ace_getacl")]
+  unsafe extern "C" {
     pub fn acl_ace_nontrivial (count: c_int, entries: *const ace_t) -> c_int;
   }
 }

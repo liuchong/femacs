@@ -38,3 +38,15 @@ nothing) plus `aclinfo_scontext_free` and the `aclinfo` record itself.  No unit 
 header on the frozen target (`lib/acl.c` and the ACL-aware callers are not in
 `docs/baseline/frozen-build-sources.txt`), so there is no `build-tu` consumer; the check above is
 the evidence.
+
+## 2026-10-05: the `#else` macros must not answer where the functions live (3.511)
+
+C 88-104 declares `aclinfo_has_xattr`/`aclinfo_free` as *functions* under
+`HAVE_LINUX_XATTR_H && HAVE_LISTXATTR` and defines the same names as macros in the `#else`; C 106-112
+does the same for `aclinfo_scontext_free` under the narrower
+`(… && (HAVE_SMACK || USE_SELINUX_SELINUX_H))`.  Only one arm is compiled in C, but a Rust
+`macro_rules!` is an item: the three macros were ungated, so in an arm where
+`lib/file-has-acl.rs` *defines and calls* the functions (C 142-154, 278-303) the macro answered
+first and silently rewrote two live call sites (C 152 and 984).  They now carry the same
+condition the unit's function definitions do (`use_linux_xattr`, and for the third one also
+`any (have_smack, use_selinux_selinux_h)`), which is C's own `#if`.

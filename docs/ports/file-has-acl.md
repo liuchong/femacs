@@ -207,3 +207,13 @@ two other lanes' in-flight files, `femacs/src/include/dispextern.rs` and `femacs
   progress.  Every reading in `## Evidence` is from the final revision of the port (md5
   `0bc3d507c3ef7f878912df1e0d1e9b17`; the object is byte-identical to the pre-comment-edit
   revision's) and of this ledger.
+
+## 2026-10-05: the `ace_t` predicate carries C's inner gate (3.511)
+
+`acl_ace_nontrivial` is declared by C 205-209's `# ifdef ACE_GETACL`, *inside* the Solaris arm
+C 152-199 - and `ace_t` itself is declared under the same condition.  The unit's in-unit
+declaration of the predicate sat in the `use_acl_getacl` block while the type is gated
+`use_acl_ace_getacl`, so an arm with the former but not the latter read
+`cannot find type ace_t` (status 3.510); it now has its own `#[cfg (feature = "use_acl_ace_getacl")]`
+block.  With that and `docs/ports/include-acl-internal.md`'s mutuality fix, all three arms read
+**exit 0, 0 error**.

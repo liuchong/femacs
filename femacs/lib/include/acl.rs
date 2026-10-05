@@ -41,10 +41,16 @@ pub union aclinfo_u
 const _: () = core::assert! (std::mem::size_of::<aclinfo> () == 184);
 const _: () = core::assert! (std::mem::offset_of! (aclinfo, u) == 28);
 
-/* C 99-104's `#else` arm (live here): the two macros become the constants/helpers the C's own
-   `#else` defines.  */
-/* C 99-104's `#else` arm (live here): `# define aclinfo_has_xattr(ai, xattr) false`.  The
-   arguments are not evaluated, exactly as in C's macro.  */
+/* C 88-104: `#if HAVE_LINUX_XATTR_H && HAVE_LISTXATTR` declares three `aclinfo_*` *functions*
+   and the `#else` arm defines the same names as macros.  C can have both texts because only one
+   arm is compiled; in Rust the macro is an item of its own, so **the `#else` side has to say so**:
+   an ungated macro answers the two live call sites (`lib/file-has-acl.c` 152 and 984) even in an
+   arm where the unit defines and calls the functions - the silent rewrite the
+   `lib/file-has-acl.rs` lane reported (status 3.510).  The feature is the one the unit gates the
+   function definitions with (`use_linux_xattr`), and it names the same condition C's `#if` does.  */
+/* C 99-104's `#else` arm: `# define aclinfo_has_xattr(ai, xattr) false`.  The arguments are not
+   evaluated, exactly as in C's macro.  */
+#[cfg (not (feature = "use_linux_xattr"))]
 macro_rules! aclinfo_has_xattr { ($ai:expr, $xattr:expr) => { false }; }
 
 pub mod acl_decls {
@@ -70,8 +76,13 @@ pub mod acl_decls {
 }
 use acl_decls::*;
 
-/* C 105-112's `# define aclinfo_free(ai) ((void) 0)` (the live arm); `0` is the value C's
-   cast reads, which the ledger compares.  */
+/* C 99-104's `#else` arm: `# define aclinfo_free(ai) ((void) 0)`; `0` is the value C's cast
+   reads, which the ledger compares.  Gated like the one above, and for the same reason.  */
+#[cfg (not (feature = "use_linux_xattr"))]
 macro_rules! aclinfo_free { ($ai:expr) => { { let _ = ($ai); 0 } }; }
-/* C 113-118's `# define aclinfo_scontext_free(s) ((void) 0)` (the live arm).  */
+/* C 106-112: `#if (HAVE_LINUX_XATTR_H && HAVE_LISTXATTR && (HAVE_SMACK ||
+   USE_SELINUX_SELINUX_H))` declares `aclinfo_scontext_free` as a function, so the macro is the
+   `#else` arm of *that* condition - narrower than `use_linux_xattr` alone.  */
+#[cfg (not (all (feature = "use_linux_xattr",
+                 any (feature = "have_smack", feature = "use_selinux_selinux_h"))))]
 macro_rules! aclinfo_scontext_free { ($s:expr) => { { let _ = ($s); 0 } }; }

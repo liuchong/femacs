@@ -137,3 +137,20 @@ shape).
   ported units still OK (the mirror is new; nothing else changed).
 * Not run: `gate-fast`/`gate-probes` (the user runs them).  No behavioural probe: this file is
   declarations and dead arms, so there is nothing to execute on this target.
+
+## 2026-10-05: `MODE_INSIDE_ACL`'s three definitions are one `#ifndef` chain (3.511)
+
+C 118-121 and C 152-155 are the *macOS* and *Cygwin* arms of one `#if`/`#elif` chain, and
+C 233-236 is `# ifndef MODE_INSIDE_ACL / #  define MODE_INSIDE_ACL 1` - the fallback for a system
+with neither.  The mirror had all three ungated against each other, so:
+
+* an arm opening `use_acl_have_acl_get_file` or `use_acl_getacl` alone was this file's `E0428`,
+  and the `lib/file-has-acl.rs` lane's flip of the pair (status 3.510) had rustc stop *here*
+  before the unit was read at all - a mutation inside the unit changed nothing, which is the
+  empty-reading shape P-86 (7) exists to catch;
+* the fallback is now gated `not (any (…))` and the Cygwin arm
+  `all (use_acl_getacl, not (use_acl_have_acl_get_file))`, which is what C's `#if`/`#elif` says:
+  a configuration cannot be both.
+
+Three arms of `lib/file-has-acl.rs` read **0 error** after this (macOS/Cygwin with
+`have_acl_get_fd`+`o_path`, the pair that used to stop early, and the Solaris `ACE_GETACL` one).
