@@ -7660,3 +7660,31 @@
      阶梯里凡打印 `emacs-version`/版本横幅的地方，从此**与参照不同**——这是本条规则明码标价的代价，记在
      这里而不是藏在代码里。`build-tu` **4 发（限 3，超 1，如实报）**。
   ⑥ **顺带**：3.432 的 status 段此前没有随它的提交落地，本次一并入库（该段文本未改）。
+
+- **3.434 treesit 切片 1（C 29-946）：动态加载、语言缓存与 `treesit_load_language`（2026-10-05）**：
+  ① **区间**：C 29-946（收在 `treesit_load_language` 的 `}`）；**下一个活定义 = C 947**。31 行区间表覆盖
+     C 1-5,634（逐块标"本轮转写／仍欠"）。块：文件门 `#if HAVE_TREE_SITTER`、60 条 `DEF_DLL_FN` +
+     `init_treesit_functions`、60 条 `#define` 改名长跑（记账）、文件自带的 Commentary、19 个
+     `Vtreesit_str_*`、三个缓存对象、`treesit_lang_cache_get/_put`、`resolve_language_symbol`、
+     `treesit_load_language` 与两个 `treesit_loaded_lang`/`treesit_lang_cache_entry` 布局断言（clang 实测 16/8、24/8）。
+  ② **行数**：`femacs/src/treesit.rs` **48 → 1,216**；台账 `docs/ports/treesit.md` 37 → **279**。
+  ③ **读数**：冻结 `build-tu` **exit 0**，对象 **2,656 字节**，`nm -g` 只有 `_Ftreesit_available_p` 与
+     `_syms_of_treesit`（`ts_`/`TREESIT` 符号 0 ⇒ 门内一字未漏进冻结配置）；`have_tree_sitter` 臂**只有
+     文本级证据**——本机**没有 libtree-sitter**（头、库、`pkg-config` 全无），且裸 `--cfg` 会撞
+     `include/buffer.rs` 1222 的"特性↔配置"断言（忠实的翻臂是 `xtask dead-arms`，本期未跑）；臂错误
+     从首读 39 条降到 **34 条**（25 条在本单元正文，9 条在 buffer.rs 副本）；`extract-abi --check`
+     **70 → 53 行**（`- ` 行即剩余工作）；`check-dead-file-coverage` 31 行/0 failure、`check-declarations`
+     10/0/0（本提交后）、`check-port-lines` 把 `src/treesit.c` 从棘轮里退出（`stale`）。
+  ④ **真缺陷（两条）**：⑴ **参照自己的一处**：`emacs/src/treesit.c` 864-941 用了 `dynlib_handle_ptr`
+     与四个 `dynlib_*`，而它 include 的五个头**没有任何一条声明它们**（冻结配置永不编译该区，故快照容忍）；
+     端口按 P-26 从属主镜像取，台账 `## Findings` 记名。⑵ 本轮自造并被翻臂读数量出的三条已修
+     （`BUF_Z` 是宏 ⇒ `BUF_Z!`、`xpalloc` 的 size 要 `as ptrdiff_t`、`treesit.h` 镜像边会与单元定义的
+     `syms_of_treesit` 撞 `E0428` ⇒ 撤边）。
+  ⑤ **集成者本轮替它落的账**：`femacs/xtask/Cargo.toml` 登记 **`treesit_language_version_ge_15`** 与
+     **`have_ts_tree_cursor_goto_previous_sibling`**（随 3.437 一起入库）。**欠账（点名）**：本文件改名
+     60 个入口点，按 P-22 后续每处调用点要一对 `#[cfg]` 或每名一个 wrapper——**需 PORTING.md §11 裁定**；
+     `docs/ports/line-drift-tolerance.tsv` 145 的 `treesit` 行仍是 P-08 时期的 `live` 基准（本文件现已
+     **照录**死区，基准应在收尾时改为 `total`；按现行裁决"只给已完成文件写行"，本轮不动）。
+  ⑥ **未声称**：**零运行证据**——tree-sitter 臂**一次都没编过**（无头、无库），本机也没有任何 tree-sitter
+     运行时；C 947-5,634（4 个 DEFUN、linecol/parsing/query/navigation 各段与 `syms_of_treesit` 的门内区）
+     **未移植**；`build-tu` 3 发（限 3）。
