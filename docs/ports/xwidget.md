@@ -562,3 +562,30 @@ evaluator: `0 disagreements`).
   with the exact member list.
 - The stand-in edge this unit will use is already in place at C 30 (`include/gtkutil.rs` first, then
   `include/gtk.rs`), and the 59 names to drop are named in Owed 2; nothing in this file changed.
+
+## P-90's third step (2026-10-05, status 3.481): the move lands
+
+The two blockers the second step measured were inside `include/gtk.rs` (the mirror), so the
+integrator wrote them there and did the move in the same round:
+
+* `include/gtk.rs` (1,654 -> **1,720** lines): the `GdkEvent` union gains its five members
+  (`button`/`scroll`/`motion`/`crossing`/`key`), the four missing records are added
+  (`GdkEventButton`/`GdkEventScroll`/`GdkEventMotion`/`GdkEventCrossing`), `GdkEventKey` is
+  **upgraded from the zero-sized placeholder to the record with `state`/`keyval`** (it is also
+  `pgtkterm.h` 666's pointer parameter type - one surface, one mirror, P-90 ②), and
+  `GtkWidgetClass` gains `style_updated`.
+* `femacs/src/xwidget.rs` (2,321 -> **2,014** lines): C 30's chain gains
+  `include!("include/gtk.rs")` and the **56** declarations that duplicated the mirror are deleted
+  (the set was fixed by the compiler: the edge's 56 `E0428`s and a name-by-name scan agreed
+  exactly).
+
+Readings (my own): arm A (`use_gtk,have_xwidgets,have_x_windows,have_window_system`)
+**51 -> 46** errors (34 `E0425` + 11 `E0133` + 1 `E0609`, **0 `E0428`**); arm C (without
+`have_x_windows`) 45 (33 + 1 + 1, 0 `E0428`); `extract-abi --check` leaves 84 `- missing` rows and
+the 53.2% line drift (the unported remainder) and **no `does not mention` row**; `layout-check`
+passed; `tools/check-all-units.sh` **83/0 + 83/0**.  Two self-inflicted defects were caught by the
+gates and fixed in the same round: a deletion script that treated a declaration with a trailing
+comment as unterminated (it swallowed 43 lines; `rustc`'s `unexpected closing delimiter` caught
+it), and a forgotten `GdkEventKey` record after the placeholder became a comment
+(`layout-check`'s `cannot find type GdkEventKey` caught it).  The records' layout and member
+order stay **UNVERIFIED** - no GDK tree here, and no layout assertion is written.

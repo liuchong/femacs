@@ -111,6 +111,11 @@ include!("include/frame.rs");                  // C 28: `#include "frame.h"`
 include!("include/keyboard.rs");               // C 29: `#include "keyboard.h"`
 #[cfg (feature = "use_gtk")]
 include!("include/gtkutil.rs");                // C 30: `#include "gtkutil.h"`
+#[cfg (feature = "use_gtk")]
+include!("include/gtk.rs");                   // C 30's chain: `"gtkutil.h"` 26's
+                                              // `<gtk/gtk.h>` (P-90 ②, the SDK surface's
+                                              // one mirror); the in-unit segment that
+                                              // duplicated it is gone (3.481)
 /* C 30's `"gtkutil.h"` chain: gtkutil.h 32's `#include "xterm.h"` (the non-PGTK arm) and
    gtkutil.h 29's `#include "pgtkterm.h"` (the PGTK arm).  `include/gtkutil.rs` is a placeholder
    (it carries the include guard alone), so the two edges stand here, at the C position that makes
@@ -163,46 +168,6 @@ unsafe extern "C" {
 
 /* GLib and GObject: `/opt/homebrew/include/glib-2.0` (GLib 2.90.0), `glibconfig.h` from
    `/opt/homebrew/Cellar/glib/2.90.0/lib/glib-2.0/include`.  */
-/// C: gtypes.h 52/55/56/60/61/109: `typedef char gchar;` / `typedef int gint;` / `typedef gint
-/// gboolean;` / `typedef unsigned long gulong;` / `typedef unsigned int guint;` / `typedef void*
-/// gpointer;`
-#[cfg (feature = "use_gtk")]
-pub type gchar = c_char;
-#[cfg (feature = "use_gtk")]
-pub type gint = c_int;
-#[cfg (feature = "use_gtk")]
-pub type gboolean = c_int;
-#[cfg (feature = "use_gtk")]
-pub type gulong = c_ulong;
-#[cfg (feature = "use_gtk")]
-pub type guint = c_uint;
-#[cfg (feature = "use_gtk")]
-pub type gpointer = *mut c_void;
-/// C: glibconfig.h 55/81 (the generated header): `typedef unsigned int guint32;` / `typedef
-/// unsigned long gsize;`
-#[cfg (feature = "use_gtk")]
-pub type guint32 = c_uint;
-#[cfg (feature = "use_gtk")]
-pub type gsize = c_ulong;
-/// C: gmacros.h: `#define TRUE 1` / `#define FALSE 0`.  C 341/393/663 read `TRUE`.  Measured
-/// `sizeof_gboolean=4` (Evidence ⑤).
-#[cfg (feature = "use_gtk")]
-pub const TRUE: gboolean = 1;
-#[cfg (feature = "use_gtk")]
-pub const FALSE: gboolean = 0;
-/// C: glist.h 41-46: `struct _GList { gpointer data; GList *next; GList *prev; };`.  C 885
-/// declares `GList *devices, *tem;` and reads `tem->data`, `tem->next`.  Measured
-/// `sizeof_GList=24 data=0 next=8 prev=16` (Evidence ⑤).
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct _GList
-{
-  pub data: gpointer,        // C: glist.h 43: `gpointer data;`
-  pub next: *mut _GList,     // C: glist.h 44: `GList *next;`
-  pub prev: *mut _GList,     // C: glist.h 45: `GList *prev;`
-}
-#[cfg (feature = "use_gtk")]
-pub type GList = _GList;
 #[cfg (feature = "use_gtk")]
 const _: () = core::assert! (core::mem::size_of::<GList> () == 24);
 #[cfg (feature = "use_gtk")]
@@ -229,34 +194,6 @@ const _: () = core::assert! (core::mem::size_of::<GSList> () == 16);
 const _: () = core::assert! (core::mem::offset_of! (GSList, data) == 0);
 #[cfg (feature = "use_gtk")]
 const _: () = core::assert! (core::mem::offset_of! (GSList, next) == 8);
-/// C: gobject.h: `typedef struct _GObject GObject;` - C 437/660 hand its pointers to
-/// `g_object_set_data`/`G_OBJECT_GET_CLASS`.
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GObject
-{
-  _private: [u8; 0],
-}
-/// C: gclosure.h: `typedef struct _GClosure GClosure;`
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GClosure
-{
-  _private: [u8; 0],
-}
-/// C: gclosure.h: `typedef void (*GClosureNotify) (gpointer data, GClosure *closure);`
-#[cfg (feature = "use_gtk")]
-pub type GClosureNotify =
-  Option<unsafe extern "C" fn (data: gpointer, closure: *mut GClosure)>;
-/// C: gsignal.h 184-206: `typedef enum { G_CONNECT_DEFAULT = 0, G_CONNECT_AFTER = 1 << 0,
-/// G_CONNECT_SWAPPED = 1 << 1 } GConnectFlags;`.  `g_signal_connect`'s own body passes
-/// `(GConnectFlags) 0`.
-#[cfg (feature = "use_gtk")]
-pub type GConnectFlags = c_int;
-/// C: gsignal.h: `typedef void (*GCallback) (void);`.  GTK's function-pointer convention is
-/// `Option<unsafe extern "C" fn …>` (PORTING.md P-27), which is what `G_CALLBACK` produces.
-#[cfg (feature = "use_gtk")]
-pub type GCallback = Option<unsafe extern "C" fn ()>;
 /// C: gobject.h 54: `#define G_OBJECT(object) (G_TYPE_CHECK_INSTANCE_CAST ((object),
 /// G_TYPE_OBJECT, GObject))`, whose own body is `((GObject *) g_type_check_instance_cast
 /// ((GTypeInstance *) (object), (GType) (g_type)))` (gtype.h 528/2668-2672).  The port keeps the
@@ -290,42 +227,12 @@ macro_rules! g_signal_connect {
 }
 #[cfg (feature = "use_gtk")]
 unsafe extern "C" {
-  /// C 361/427/429/431/442/446/452/457/461/465/471: `g_signal_connect (G_OBJECT! (ctx),
-  /// "download-started", G_CALLBACK (webkit_download_cb), xw);`
-  /// C: gsignal.h 440-446: `gulong g_signal_connect_data (gpointer instance, const gchar
-  /// *detailed_signal, GCallback c_handler, gpointer data, GClosureNotify destroy_data,
-  /// GConnectFlags connect_flags);`
-  pub fn g_signal_connect_data (instance: gpointer, detailed_signal: *const gchar,
-                                c_handler: GCallback, data: gpointer,
-                                destroy_data: GClosureNotify,
-                                connect_flags: GConnectFlags) -> gulong;
-  /// C 1165's `alloca` is the port's stack pool (PORTING.md P-05, `src/editfns.rs` 2477) rather
-  /// than this declaration; the name below is C 1175's `g_free`.
-  /// C: gmem.h 74: `void (g_free) (gpointer mem);`
-  pub fn g_free (mem: gpointer);
-  /// C 906: `g_list_free (devices);`
-  /// C: glist.h 53: `void g_list_free (GList *list);`
-  pub fn g_list_free (list: *mut GList);
   /// C 1164: `len = g_slist_length (filenames);`
   /// C: gslist.h 125: `guint g_slist_length (GSList *list);`
   pub fn g_slist_length (list: *mut GSList) -> guint;
   /// C 1171: `g_slist_free (filenames);`
   /// C: gslist.h 52: `void g_slist_free (GSList *list);`
   pub fn g_slist_free (list: *mut GSList);
-  /// C 359/393/? : `g_object_unref (ctx as gpointer);`
-  /// C: gobject.h 515: `void g_object_unref (gpointer object);`
-  pub fn g_object_unref (object: gpointer);
-  /// C 220/638: `g_object_ref (eventcopy->any.window);` / `g_object_ref (xg_event->any.window);`
-  /// C: gobject.h 513: `gpointer g_object_ref (gpointer object);`
-  pub fn g_object_ref (object: gpointer) -> gpointer;
-  /// C 393/394: `g_object_set (G_OBJECT! (settings), "enable-developer-extras", TRUE, NULL);`
-  /// C: gobject.h 455-457: `void g_object_set (gpointer object, const gchar *first_property_name,
-  /// ...);`
-  pub fn g_object_set (object: gpointer, first_property_name: *const gchar, ...);
-  /// C 436/437: `g_object_set_data (G_OBJECT! (xw->widget_osr), XG_XWIDGET, xw);`
-  /// C: gobject.h 597-599: `void g_object_set_data (GObject *object, const gchar *key, gpointer
-  /// data);`
-  pub fn g_object_set_data (object: *mut GObject, key: *const gchar, data: gpointer);
 }
 
 /* ----------------------------------------------------------------------------------------------
@@ -334,132 +241,6 @@ unsafe extern "C" {
    or a record carrying exactly the members C reads, with its layout **UNVERIFIED** (P-88 ②; the
    `src/gtkutil.rs` 494-561 treatment of the same surface, owed to the same mirror).
    ---------------------------------------------------------------------------------------------- */
-/// C: gdk/gdkwindow.h: `typedef struct _GdkWindow GdkWindow;`
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GdkWindow
-{
-  _private: [u8; 0],
-}
-/// C: gdk/gdkdevice.h: `typedef struct _GdkDevice GdkDevice;`
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GdkDevice
-{
-  _private: [u8; 0],
-}
-/// C: gdk/gdkseat.h: `typedef struct _GdkSeat GdkSeat;`
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GdkSeat
-{
-  _private: [u8; 0],
-}
-/// C: gdk/gdktypes.h: `typedef enum { GDK_NOTHING = -1, GDK_DELETE, GDK_DESTROY, GDK_EXPOSE,
-/// GDK_MOTION_NOTIFY, GDK_BUTTON_PRESS, GDK_2BUTTON_PRESS, GDK_DOUBLE_BUTTON_PRESS,
-/// GDK_3BUTTON_PRESS, …, GDK_ENTER_NOTIFY, …, GDK_LEAVE_NOTIFY, …, GDK_SCROLL, …, GDK_KEY_PRESS,
-/// …, GDK_KEY_RELEASE, … } GdkEventType;` - the type C 141's `switch (event->type)` reads.  C's
-/// enum ABI is `c_int` (PORTING.md 1.3); no layout assertion is written and the values below are
-/// placeholders (see the enumerator note).
-#[cfg (feature = "use_gtk")]
-pub type GdkEventType = c_int;
-/// C: gdk/gdktypes.h: `typedef union _GdkEvent GdkEvent;` - the members C reads.  GDK declares
-/// thirteen union members; the port carries the six the reference's text touches (`any`,
-/// `button`, `scroll`, `motion`, `crossing`, `key`) plus the bare `type` member C 680 writes.
-/// **UNVERIFIED**: no GDK header on this machine.
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-#[derive (Clone, Copy)]
-pub struct GdkEventAny
-{
-  pub r#type: GdkEventType,        // C: gdk/gdktypes.h: `GdkEventType type;`
-  pub window: *mut GdkWindow,      // C: gdk/gdktypes.h: `GdkWindow *window;`
-  pub send_event: i8,              // C: gdk/gdktypes.h: `gint8 send_event;`
-}
-/// C: gdk/gdktypes.h: `typedef struct _GdkEventButton GdkEventButton;` - C 148-155 reads and
-/// writes `x`/`y`; **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-#[derive (Clone, Copy)]
-pub struct GdkEventButton
-{
-  pub r#type: GdkEventType,
-  pub window: *mut GdkWindow,
-  pub send_event: i8,
-  pub time: u32,
-  pub x: c_double,                 // C: gdk/gdktypes.h: `gdouble x;`
-  pub y: c_double,                 // C: gdk/gdktypes.h: `gdouble y;`
-}
-/// C: gdk/gdktypes.h: `typedef struct _GdkEventScroll GdkEventScroll;` - C 161-168 reads and
-/// writes `x`/`y`; **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-#[derive (Clone, Copy)]
-pub struct GdkEventScroll
-{
-  pub r#type: GdkEventType,
-  pub window: *mut GdkWindow,
-  pub send_event: i8,
-  pub time: u32,
-  pub x: c_double,
-  pub y: c_double,
-}
-/// C: gdk/gdktypes.h: `typedef struct _GdkEventMotion GdkEventMotion;` - C 174-181 reads and
-/// writes `x`/`y`; **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-#[derive (Clone, Copy)]
-pub struct GdkEventMotion
-{
-  pub r#type: GdkEventType,
-  pub window: *mut GdkWindow,
-  pub send_event: i8,
-  pub time: u32,
-  pub x: c_double,
-  pub y: c_double,
-}
-/// C: gdk/gdktypes.h: `typedef struct _GdkEventCrossing GdkEventCrossing;` - C 188-195 reads and
-/// writes `x`/`y`; **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-#[derive (Clone, Copy)]
-pub struct GdkEventCrossing
-{
-  pub r#type: GdkEventType,
-  pub window: *mut GdkWindow,
-  pub send_event: i8,
-  pub subwindow: *mut GdkWindow,
-  pub time: u32,
-  pub x: c_double,
-  pub y: c_double,
-}
-/// C: gdk/gdktypes.h: `typedef struct _GdkEventKey GdkEventKey;` - C 643-648 writes `keyval` and
-/// `state`; **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-#[derive (Clone, Copy)]
-pub struct GdkEventKey
-{
-  pub r#type: GdkEventType,
-  pub window: *mut GdkWindow,
-  pub send_event: i8,
-  pub time: u32,
-  pub state: c_uint,               // C: gdk/gdktypes.h: `guint state;`
-  pub keyval: c_uint,              // C: gdk/gdktypes.h: `guint keyval;`
-}
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-#[derive (Clone, Copy)]
-pub union GdkEvent
-{
-  pub r#type: GdkEventType,        // C: gdk/gdktypes.h: `GdkEventType type;`
-  pub any: GdkEventAny,            // C: gdk/gdktypes.h: `GdkEventAny any;`
-  pub button: GdkEventButton,      // C: gdk/gdktypes.h: `GdkEventButton button;`
-  pub scroll: GdkEventScroll,      // C: gdk/gdktypes.h: `GdkEventScroll scroll;`
-  pub motion: GdkEventMotion,      // C: gdk/gdktypes.h: `GdkEventMotion motion;`
-  pub crossing: GdkEventCrossing,  // C: gdk/gdktypes.h: `GdkEventCrossing crossing;`
-  pub key: GdkEventKey,            // C: gdk/gdktypes.h: `GdkEventKey key;`
-}
 /// C: gdk/gdktypes.h: `typedef enum { GDK_CROSSING_NORMAL, GDK_CROSSING_SELECTION,
 /// GDK_CROSSING_GTK_GRAB, GDK_CROSSING_GTK_UNGRAB, GDK_CROSSING_STATE_CHANGED,
 /// GDK_CROSSING_TOUCH_BEGIN, GDK_CROSSING_TOUCH_END, GDK_CROSSING_DEVICE_SWITCH } GdkCrossingMode;`
@@ -478,12 +259,6 @@ pub type GdkModifierType = c_int;
 /// GdkSeatCapabilities;` - the flag C 891 asks `gdk_seat_get_slaves` for.  **UNVERIFIED**.
 #[cfg (feature = "use_gtk")]
 pub type GdkSeatCapabilities = c_uint;
-/// C: gdk/gdkdevice.h: `typedef enum { GDK_SOURCE_MOUSE, GDK_SOURCE_PEN, GDK_SOURCE_ERASER,
-/// GDK_SOURCE_CURSOR, GDK_SOURCE_KEYBOARD, GDK_SOURCE_TOUCHSCREEN, GDK_SOURCE_TOUCHPAD,
-/// GDK_SOURCE_TRACKPOINT, GDK_SOURCE_TABLET_PAD } GdkInputSource;` - the type
-/// `gdk_device_get_source` returns, compared at C 901.  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
-pub type GdkInputSource = c_int;
 /// C: gtk/gtkwidget.h / gdk/gdkdevice.h / gdk/gdkseat.h: `#define GDK_DEVICE(object)
 /// (G_TYPE_CHECK_INSTANCE_CAST ((object), GDK_TYPE_DEVICE, GdkDevice))` - C 899's cast keeps the
 /// macro's name and its result type; GDK's cast chain is GLib's and owed (as above).
@@ -499,8 +274,6 @@ macro_rules! GDK_DEVICE {
    value and every `& MASK` still tests a different bit - because PORTING.md forbids inventing
    behaviour and these values are not measurable here.  The real values are owed (`## Owed` 2) and
    each of them is **UNVERIFIED**.  */
-#[cfg (feature = "use_gtk")]
-pub const GDK_NOTHING: GdkEventType = 0;              // placeholder, not GDK's value
 #[cfg (feature = "use_gtk")]
 pub const GDK_BUTTON_PRESS: GdkEventType = 1;         // placeholder, not GDK's value
 #[cfg (feature = "use_gtk")]
@@ -563,26 +336,15 @@ unsafe extern "C" {
   /// C 982: `window = gdk_window_get_parent (window);`
   /// C: gdk/gdkwindow.h: `GdkWindow *gdk_window_get_parent (GdkWindow *window);`
   pub fn gdk_window_get_parent (window: *mut GdkWindow) -> *mut GdkWindow;
-  /// C 1106: `gdk_window_set_cursor (wdesc, xvw->cursor);`
-  /// C: gdk/gdkwindow.h: `void gdk_window_set_cursor (GdkWindow *window, GdkCursor *cursor);`
-  pub fn gdk_window_set_cursor (window: *mut GdkWindow, cursor: *mut GdkCursor);
   /// C 883/914: `gdk_display_get_default_seat (gtk_widget_get_display (FRAME_GTK_WIDGET (f)))`
   /// C: gdk/gdkdisplay.h: `GdkSeat *gdk_display_get_default_seat (GdkDisplay *display);`
   pub fn gdk_display_get_default_seat (display: *mut GdkDisplay) -> *mut GdkSeat;
-  /// C 891: `devices = gdk_seat_get_slaves (seat, GDK_SEAT_CAPABILITY_ALL_POINTING);`
-  /// C: gdk/gdkseat.h: `GList *gdk_seat_get_slaves (GdkSeat *seat, GdkSeatCapabilities
-  /// capabilities);`
-  pub fn gdk_seat_get_slaves (seat: *mut GdkSeat, capabilities: GdkSeatCapabilities)
-    -> *mut GList;
   /// C 908: `return !tem ? gdk_seat_get_pointer (seat) : device;`
   /// C: gdk/gdkseat.h: `GdkDevice *gdk_seat_get_pointer (GdkSeat *seat);`
   pub fn gdk_seat_get_pointer (seat: *mut GdkSeat) -> *mut GdkDevice;
   /// C 920: `return gdk_seat_get_keyboard (seat);`
   /// C: gdk/gdkseat.h: `GdkDevice *gdk_seat_get_keyboard (GdkSeat *seat);`
   pub fn gdk_seat_get_keyboard (seat: *mut GdkSeat) -> *mut GdkDevice;
-  /// C 901: `if (gdk_device_get_source (device) == GDK_SOURCE_TOUCHPAD)`
-  /// C: gdk/gdkdevice.h: `GdkInputSource gdk_device_get_source (GdkDevice *device);`
-  pub fn gdk_device_get_source (device: *mut GdkDevice) -> GdkInputSource;
   /// C 641: `keycode = gdk_unicode_to_keyval (character);`
   /// C: gdk/gdkkeyuni.h: `guint gdk_unicode_to_keyval (guint32 wc);`
   pub fn gdk_unicode_to_keyval (wc: guint32) -> guint;
@@ -591,47 +353,12 @@ unsafe extern "C" {
   /// *embedder);`
   pub fn gdk_offscreen_window_set_embedder (window: *mut GdkWindow, embedder: *mut GdkWindow);
 }
-/// C: gdk/gdkdisplay.h: `typedef struct _GdkDisplay GdkDisplay;`
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GdkDisplay
-{
-  _private: [u8; 0],
-}
-/// C: gdk/gdkcursor.h: `typedef struct _GdkCursor GdkCursor;`
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GdkCursor
-{
-  _private: [u8; 0],
-}
 
 /* ----------------------------------------------------------------------------------------------
    GTK.  Same treatment as GDK above: no GTK tree on this machine, so each citation names the
    header alone, the `GtkWidget`-family pointees are the `[u8; 0]` shape, and the records C reads
    members of carry exactly those members with their layout **UNVERIFIED** (P-88 ②; owed).
    ---------------------------------------------------------------------------------------------- */
-/// C: gtk/gtkwidget.h: `typedef struct _GtkWidget GtkWidget;` (`G_DECLARE_DERIVABLE_TYPE` in GTK3).
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GtkWidget
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkwindow.h: `typedef struct _GtkWindow GtkWindow;`
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GtkWindow
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkcontainer.h: `typedef struct _GtkContainer GtkContainer;`
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GtkContainer
-{
-  _private: [u8; 0],
-}
 /// C: gtk/gtktextview.h: `typedef struct _GtkTextView GtkTextView;`
 #[cfg (feature = "use_gtk")]
 #[repr (C)]
@@ -668,19 +395,6 @@ pub struct GtkFileChooser
 pub struct GtkNativeDialog
 {
   _private: [u8; 0],
-}
-/// C: gtk/gtktypes.h: `typedef struct { gint x, y; gint width, height; } GtkAllocation;`.  C 933
-/// declares one and C 938-988 reads and writes all four members; **UNVERIFIED** (the
-/// `src/gtkutil.rs` 794-801 declaration of the same record, whose size/offsets that ledger owes
-/// too).
-#[cfg (feature = "use_gtk")]
-#[repr (C)]
-pub struct GtkAllocation
-{
-  pub x: gint,          // C: gtk/gtktypes.h: `gint x;`
-  pub y: gint,          // C: gtk/gtktypes.h: `gint y;`
-  pub width: gint,      // C: gtk/gtktypes.h: `gint width;`
-  pub height: gint,     // C: gtk/gtktypes.h: `gint height;`
 }
 /// C: gtk/gtkcontainer.h: `typedef void (*GtkCallback) (GtkWidget *widget, gpointer data);` - the
 /// type of `gtk_container_forall`'s second parameter (C 1002/662).
@@ -765,47 +479,18 @@ macro_rules! G_OBJECT_GET_CLASS {
 }
 #[cfg (feature = "use_gtk")]
 unsafe extern "C" {
-  /// C 153/166/179/193/? : `event->any.window = gtk_widget_get_window (widget);`
-  /// C: gtk/gtkwidget.h: `GdkWindow *gtk_widget_get_window (GtkWidget *widget);`
-  pub fn gtk_widget_get_window (widget: *mut GtkWidget) -> *mut GdkWindow;
-  /// C 752: `widget = gtk_get_event_widget (&event);`
-  /// C: gtk/gtkmain.h: `GtkWidget *gtk_get_event_widget (GdkEvent *event);`
-  pub fn gtk_get_event_widget (event: *mut GdkEvent) -> *mut GtkWidget;
   /// C 830-832/867-869/1036-1037/1053-1054: `gtk_widget_translate_coordinates (…, &xoff, &yoff);`
   /// C: gtk/gtkwidget.h: `gboolean gtk_widget_translate_coordinates (GtkWidget *src_widget,
   /// GtkWidget *dest_widget, int src_x, int src_y, int *dest_x, int *dest_y);`
   pub fn gtk_widget_translate_coordinates (src_widget: *mut GtkWidget, dest_widget: *mut GtkWidget,
                                            src_x: c_int, src_y: c_int, dest_x: *mut c_int,
                                            dest_y: *mut c_int) -> gboolean;
-  /// C 938: `gtk_widget_get_allocation (widget, &new_allocation);`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_get_allocation (GtkWidget *widget, GtkAllocation
-  /// *allocation);`
-  pub fn gtk_widget_get_allocation (widget: *mut GtkWidget, allocation: *mut GtkAllocation);
   /// C 940: `if (gtk_widget_get_has_window (widget))`
   /// C: gtk/gtkwidget.h: `gboolean gtk_widget_get_has_window (GtkWidget *widget);`
   pub fn gtk_widget_get_has_window (widget: *mut GtkWidget) -> gboolean;
-  /// C 946/949: `if (gtk_widget_get_parent (widget) && …)`
-  /// C: gtk/gtkwidget.h: `GtkWidget *gtk_widget_get_parent (GtkWidget *widget);`
-  pub fn gtk_widget_get_parent (widget: *mut GtkWidget) -> *mut GtkWidget;
-  /// C 884/915: `gtk_widget_get_display (FRAME_GTK_WIDGET (f))`
-  /// C: gtk/gtkwidget.h: `GdkDisplay *gtk_widget_get_display (GtkWidget *widget);`
-  pub fn gtk_widget_get_display (widget: *mut GtkWidget) -> *mut GdkDisplay;
-  /// C 667/1103: `if (!gtk_widget_get_realized (temp))` / `if (gtk_widget_get_realized (xvw->widget))`
-  /// C: gtk/gtkwidget.h: `gboolean gtk_widget_get_realized (GtkWidget *widget);`
-  pub fn gtk_widget_get_realized (widget: *mut GtkWidget) -> gboolean;
-  /// C 406: `gtk_widget_set_size_request (GTK_WIDGET (xw->widget_osr), xw->width, xw->height);`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_set_size_request (GtkWidget *widget, gint width, gint
-  /// height);`
-  pub fn gtk_widget_set_size_request (widget: *mut GtkWidget, width: gint, height: gint);
   /// C 408: `gtk_widget_queue_allocate (GTK_WIDGET (xw->widget_osr));`
   /// C: gtk/gtkwidget.h: `void gtk_widget_queue_allocate (GtkWidget *widget);`
   pub fn gtk_widget_queue_allocate (widget: *mut GtkWidget);
-  /// C 421/422: `gtk_widget_show (xw->widget_osr);`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_show (GtkWidget *widget);`
-  pub fn gtk_widget_show (widget: *mut GtkWidget);
-  /// C 668: `gtk_widget_realize (temp);`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_realize (GtkWidget *widget);`
-  pub fn gtk_widget_realize (widget: *mut GtkWidget);
   /// C 222/679/681: `gtk_main_do_event (eventcopy);`
   /// C: gtk/gtkmain.h: `void gtk_main_do_event (GdkEvent *event);`
   pub fn gtk_main_do_event (event: *mut GdkEvent);
@@ -814,18 +499,12 @@ unsafe extern "C" {
   /// callback, gpointer callback_data);`
   pub fn gtk_container_forall (container: *mut GtkContainer, callback: GtkCallback,
                                callback_data: gpointer);
-  /// C 412/417: `gtk_container_add (GTK_CONTAINER (xw->widgetwindow_osr), …);`
-  /// C: gtk/gtkcontainer.h: `void gtk_container_add (GtkContainer *container, GtkWidget *widget);`
-  pub fn gtk_container_add (container: *mut GtkContainer, widget: *mut GtkWidget);
   /// C 347: `gtk_container_check_resize (GTK_CONTAINER (xw->widgetwindow_osr));`
   /// C: gtk/gtkcontainer.h: `void gtk_container_check_resize (GtkContainer *container);`
   pub fn gtk_container_check_resize (container: *mut GtkContainer);
   /// C 549: `widget = gtk_window_get_focus (GTK_WINDOW (xw->widgetwindow_osr));`
   /// C: gtk/gtkwindow.h: `GtkWidget *gtk_window_get_focus (GtkWindow *window);`
   pub fn gtk_window_get_focus (window: *mut GtkWindow) -> *mut GtkWidget;
-  /// C 345: `gtk_window_resize (GTK_WINDOW (xw->widgetwindow_osr), xw->width, xw->height);`
-  /// C: gtk/gtkwindow.h: `void gtk_window_resize (GtkWindow *window, gint width, gint height);`
-  pub fn gtk_window_resize (window: *mut GtkWindow, width: gint, height: gint);
   /// C 670: `gtk_bindings_activate (G_OBJECT! (temp), keycode, modifiers);`
   /// C: gtk/gtkbindings.h: `gboolean gtk_bindings_activate (GObject *object, guint keyval,
   /// GdkModifierType modifiers);`

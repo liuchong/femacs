@@ -539,6 +539,13 @@ pub struct GtkWidgetClass
   /// *natural);`
   pub get_preferred_width:
     Option<unsafe extern "C" fn (widget: *mut GtkWidget, minimum: *mut gint, natural: *mut gint)>,
+  /// C: gtk/gtkwidget.h: `void (*style_updated) (GtkWidget *widget);` - `src/xfns.rs`'s
+  /// in-unit copy carries it (its `gtk_widget_set_app_paintable` neighbour), and it is the
+  /// second blocker of `include/gtkutil.rs`'s C 26 edge: the edge cannot land while the mirror
+  /// and the unit both declare this class record (status 3.481).  The class record's layout is
+  /// GTK's and **UNVERIFIED** here; like the field above, only the members the reference reads
+  /// are carried.
+  pub style_updated: Option<unsafe extern "C" fn (widget: *mut GtkWidget)>,
 }
 /// C: gtk/gtktooltip.h: `typedef struct _GtkTooltip GtkTooltip;`
 #[repr(C)]
@@ -840,6 +847,91 @@ pub union GdkEvent
 {
   pub r#type: GdkEventType,        // C: gdk/gdktypes.h: `GdkEventType type;`
   pub any: GdkEventAny,            // C: gdk/gdktypes.h: `GdkEventAny any;`
+  pub button: GdkEventButton,      // C: gdk/gdktypes.h: `GdkEventButton button;`
+  pub scroll: GdkEventScroll,      // C: gdk/gdktypes.h: `GdkEventScroll scroll;`
+  pub motion: GdkEventMotion,      // C: gdk/gdktypes.h: `GdkEventMotion motion;`
+  pub crossing: GdkEventCrossing,  // C: gdk/gdktypes.h: `GdkEventCrossing crossing;`
+  pub key: GdkEventKey,            // C: gdk/gdktypes.h: `GdkEventKey key;`
+}
+/* The five records the union names.  **One surface, one mirror** (P-90 ①/②): they used to be
+   `src/xwidget.rs`'s in-unit segment (its C 26-30 chain carries `"gtkutil.h"` 26's
+   `<gtk/gtk.h>`), and they stand **ungated** here for the same reason the union does - the file
+   is `include!`d under its includer's own gate (`src/xwidget.rs` uses `use_gtk`,
+   `src/pgtkterm.rs` `have_pgtk`), and the pgtkterm.h 666 reader takes a `GdkEventKey *`.  The
+   port carries the members the reference's text touches and nothing else, so **no layout
+   assertion is written** for them: GDK is not on this machine, the sizes are **UNVERIFIED**,
+   and `GdkEventKey`'s record replaces the zero-sized placeholder this mirror carried while a
+   pointer was all anyone took (status 3.481).  */
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventButton GdkEventButton;` - C 148-155 of
+/// `src/xwidget.c` reads and writes `x`/`y`; **UNVERIFIED**.
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkEventButton
+{
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub time: u32,
+  pub x: c_double,                 // C: gdk/gdktypes.h: `gdouble x;`
+  pub y: c_double,                 // C: gdk/gdktypes.h: `gdouble y;`
+}
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventScroll GdkEventScroll;` - C 161-168 reads and
+/// writes `x`/`y`; **UNVERIFIED**.
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkEventScroll
+{
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub time: u32,
+  pub x: c_double,
+  pub y: c_double,
+}
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventMotion GdkEventMotion;` - C 174-181 reads and
+/// writes `x`/`y`; **UNVERIFIED**.
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkEventMotion
+{
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub time: u32,
+  pub x: c_double,
+  pub y: c_double,
+}
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventCrossing GdkEventCrossing;` - C 188-195 reads and
+/// writes `x`/`y`; **UNVERIFIED**.
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkEventCrossing
+{
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub subwindow: *mut GdkWindow,
+  pub time: u32,
+  pub x: c_double,
+  pub y: c_double,
+}
+
+/// C: gdk/gdktypes.h: `typedef struct _GdkEventKey GdkEventKey;` - the union's `key` member:
+/// C 643-648 of `src/xwidget.c` writes `keyval`/`state` through it, and
+/// `pgtk_im_filter_keypress` (pgtkterm.h 666) takes a pointer to it.  It replaces the
+/// zero-sized placeholder this mirror carried while a pointer was all anyone took - the pointer
+/// readers are unaffected, and the record carries the two members the reference reads (its
+/// layout is GDK's and **UNVERIFIED**).  **UNVERIFIED**.
+#[repr (C)]
+#[derive (Clone, Copy)]
+pub struct GdkEventKey
+{
+  pub r#type: GdkEventType,
+  pub window: *mut GdkWindow,
+  pub send_event: i8,
+  pub time: u32,
+  pub state: c_uint,               // C: gdk/gdktypes.h: `guint state;`
+  pub keyval: c_uint,              // C: gdk/gdktypes.h: `guint keyval;`
 }
 /// C: gdk/gdktypes.h: `typedef struct _GdkVisual GdkVisual;` (C 1735/1741/1745 hold one).
 #[repr (C)]
@@ -1553,12 +1645,9 @@ pub struct _GdkAtom
 }
 pub type GdkAtom = *mut _GdkAtom;
 /// C: gdk/gdkevents.h: `typedef struct _GdkEventKey GdkEventKey;` - `pgtk_im_filter_keypress`'s
-/// second parameter (pgtkterm.h 666).  **UNVERIFIED**.
-#[repr (C)]
-pub struct GdkEventKey
-{
-  _private: [u8; 0],
-}
+/// second parameter (pgtkterm.h 666) **and** the union member `src/xwidget.c` 643-648 writes
+/// `keyval`/`state` through.  The record above (next to the union) is the one definition
+/// (P-90 ②: one surface, one mirror); this comment is the second reader's trail.
 /// C: gdk/gdkevents.h: `typedef struct _GdkEventProperty GdkEventProperty;` -
 /// `pgtk_handle_property_notify`'s parameter (pgtkterm.h 571).  **UNVERIFIED**.
 #[repr (C)]

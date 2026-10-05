@@ -167,3 +167,21 @@ TU.
    second clause.
 3. **`docs/port-map.md` has no row for this file** and none is owed (it is a declared non-port
    artifact, like `include/xlib.rs`); the ledger is the artifact record.
+## P-90's blockers inside this mirror: closed (2026-10-05, status 3.481)
+
+The second step measured two blockers *inside this file* and could not touch them; the integrator
+wrote both:
+
+* the `GdkEvent` union gains `button`/`scroll`/`motion`/`crossing`/`key`, with the four missing
+  records and `GdkEventKey` upgraded from its zero-sized placeholder to the record carrying
+  `state`/`keyval` (the pointer readers - `pgtk_im_filter_keypress`, pgtkterm.h 666 - are
+  unaffected);
+* `GtkWidgetClass` gains `style_updated`, which `src/xfns.rs`'s in-unit copy carries and
+  `include/gtkutil.rs`'s C 26 edge needs.
+
+Measured after them: `src/xwidget.rs`'s move lands (56 duplicate declarations deleted, its arm A
+51 -> 46 errors, 0 `E0428`), `layout-check` passed, `tools/check-all-units.sh` 83/0 + 83/0.  What
+is *not* closed: the moves that still need these names' consumers (`src/xfns.rs`'s three copies,
+`include/gtkutil.rs`'s C 26 edge, `include/pgtkterm.rs`'s C 31 edge) - the declarations now exist,
+the deletions and the edge landings are the next round's.
+

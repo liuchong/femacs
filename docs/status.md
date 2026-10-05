@@ -8919,3 +8919,33 @@
   ⑦ **预算（如实）**：lane 自报 `build-tu` **9 发**（限 3：三发是清单要求的三单元冻结构建、三发是 after
   物化重做、两发终态、一发 xwidget 末态）、`layout-check` 4 次、臂读数脚本 8 轮，`probe` 未跑；
   集成者 `build-tu` **2 发**、`layout-check` 1 发、`check-all-units.sh` 1 发。
+
+- **3.481 P-90 第三条落地：`include/gtk.rs` 补上 GDK 事件记录/union 成员与 `GtkWidgetClass.style_updated`，`src/xwidget.rs` 的 56 条重复声明搬走（2026-10-05）**：
+  ① **镜像（`include/gtk.rs`，1,654 → 1,720 行）**：`GdkEvent` union 从两个成员扩到七个
+  （+`button`/`scroll`/`motion`/`crossing`/`key`），新增四个记录（`GdkEventButton`/`GdkEventScroll`/
+  `GdkEventMotion`/`GdkEventCrossing`），并**把 `GdkEventKey` 从零尺寸占位升级成带 `state`/`keyval`
+  的记录**——它同时是 `pgtkterm.h` 666 的指针参数类型（"一个表面一个镜像"，P-90 ②，指针读者不受影响）；
+  `GtkWidgetClass` 加 `style_updated`（`include/gtkutil.rs` 的 C 26 边的第二个阻塞者）。两处都只带
+  "参照文本读到的成员"，**不写布局断言**（GDK 不在本机，尺寸 UNVERIFIED）。
+  ② **单元（`src/xwidget.rs`，2,321 → 2,014 行）**：C 30 链上补 `#[cfg (feature = "use_gtk")]
+  include!("include/gtk.rs")`，并删掉**56 条**与镜像重名的声明。这个 56 是**量出来的**：加了边之后的
+  56 条 `E0428` 与"两个文件各自声明的名字取交集"的名字集合**逐字相同**（脚本对过集合差为空）。
+  ③ **读数（我自己跑的）**：臂 A（`use_gtk,have_xwidgets,have_x_windows,have_window_system`）
+  **51 → 46 错**（34 `E0425` + 11 `E0133` + 1 `E0609`，**0 `E0428`**）；臂 C（去掉 `have_x_windows`）
+  45 错（33 + 1 + 1，0 `E0428`）；`extract-abi --check` 只剩 84 `- missing` 与 53.2% 漂移（未落 remainder），
+  **没有一条 `does not mention`**；`layout-check` **passed**；`tools/check-all-units.sh`（镜像改动必跑）
+  **83/0 + 83/0**。
+  ④ **两处自造缺陷（门先抓住、当场修，记在这里不藏）**：⑴ 第一版删除脚本把
+  `pub const GDK_NOTHING: GdkEventType = 0;   // placeholder, not GDK's value` 这种**带行尾注释**的
+  单行声明当成"未结束"，一路吞到 43 行之后（括号差 +1）——`rustc` 的 `unexpected closing delimiter`
+  抓住；终止判据改成"去掉行尾注释后以 `;` 结尾"，并加了"每个 chunk 括号必须平衡"的前置断言
+  （56/56 平衡才写盘）。⑵ 我在把 `GdkEventKey` 的占位换成注释时**忘了补带字段的定义**，
+  `layout-check` 报 `cannot find type GdkEventKey` 当即抓住；补上记录后 layout 过。这两条正是
+  "删除/搬运类改动必须跑 layout-check + 全树扫描"的现场证据。
+  ⑤ **未声称**：GTK/GDK 树不在本机 ⇒ 这些记录与 union 的**布局、成员顺序、枚举值全 UNVERIFIED**
+  （本树对 GDK/GTK 记录的一贯做法）；xwidget 的 46/45 错全是镜像缺名与未落 remainder；
+  **零运行证据**；`src/xfns.rs` 的三条副本、`include/gtkutil.rs` 的 C 26 边、`include/pgtkterm.rs`
+  的 C 31 边**尚未落地**——声明齐了，删除与边是下一轮的活。
+  ⑥ **预算（如实，超支）**：`probe` **5 发**（基线 A、加边后、修删除后、补 `GdkEventKey` 后 A、臂 C）、
+  `layout-check` **3 发**（其中 1 发失败＝自造缺陷 ⑵）、`check-all-units.sh` **2 发**（第一发撞到别的
+  lane 在飞的 `src/sound.rs`，第二发才是本条交付状态的读数）、`build-tu` 0 发。
