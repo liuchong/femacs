@@ -12990,3 +12990,21 @@
      端口仍停在 `loaddefs` 的 `Error: error ("Bytecode stack overflow")`（夹具那一步见 3.628：`EMACSLOADPATH="$PWD/femacs/lisp:$PWD/emacs/lisp"`）。
   ⑤ **收口**：`bytecode.rs` 的临时仪表已删除并用 `git show HEAD:` 还原、重建（读数复现同一条 `Bytecode stack overflow`）；工作树除 4 条 lane 的在飞产出外干净。
   ⑥ **预算**：`build-tu` 4 发、`check-link --executable` 4 发、端口运行 5 次、文本对拍 3 处（`thread.h`/`bytecode.c`/`bytecode.rs`）。
+
+- **3.630 字节码栈那处的**真读数**：`bc->fp` 里存的是**一个 Lisp_Object（cons）**，不是帧指针——即有人把 Lisp 对象写进了帧指针字段；
+  而 push/pop 计数是 1/1（不是帧泄漏）——3.629 的"帧链坏"结论就此**推翻**（那是仪表自身在不合法指针上 panic 的假象）（2026-10-05/06）**：
+  ① **读数（决定性）**：在报错点打印 `usedkb/sizekb/pushes/pops/max_stack` 与四个指针 ⇒
+     `usedkb=30011701`（≈29 GB，上限 4096 KB）、`pushes=1 pops=1 max_stack=5`、
+     `stack=0x4e2000000`（合法的 4 MB 块）、**`bc_fp=0xc09c4d3e3`**（低三位 `==3`，即**cons 的 tag**）、
+     `frame_base=bc_fp+0x20`、`fp=frame_base+5*8` —— 后面的算术**都对**，错的是**输入**：`(*current_thread).bc.fp` 被写成了 Lisp 对象 ✔。
+     ⇒ 缺陷是"**把 Lisp_Object 写进了帧指针字段**"（类型混淆写 ✗），不是帧泄漏、也不是上限（3.629 ①已排掉上限）。
+  ② **为什么 3.629 的"帧链坏"是假象**：那次仪表沿 `saved_fp` 走链时在**不合法指针**上解引用（Rust 的 misaligned/invalid deref 检查）而 panic；
+     计数器（本轮）证明帧的压/弹是 1/1 平衡的 ⇒ 「链坏」是**仪表制造**的现象，不再作为证据。
+  ③ **下一轮第一步（点名）**：找**写者**——在 `exec_byte_code` 入口无条件打印 `(*bc).fp`（前 N 次，或只在"值 & 7 != 0"时打印），
+     找出**第一次**它不是栈区指针（`0x4e2…` 这一族）的那次调用；随后看那次调用**之前**刚执行过什么（帧头里的 `fun`/`saved_top`/`saved_pc`
+     就在同一个 32 字节头里，偏移 0/8/16/24 有断言钉着 ⇒ 若某处按**错的偏移**写 `fun`（Lisp_Object ✔），就会正好落在 `saved_fp` 上 ✔）。
+     判据：第一次异常的那次调用 + 它之前的最后一个写者。
+  ④ **未声称**：本件**没有修任何东西**；端口仍停在 `loaddefs` 的 `Error: error ("Bytecode stack overflow")`（夹具路径见 3.628）。
+     ① 只说明了"值被写坏成 Lisp 对象"这一事实与其位置，**没有**指认写者。
+  ⑤ **收口**：`bytecode.rs` 的临时仪表已删、用 `git show HEAD:` 还原并重建（同一条错误复现）；工作树除 4 条 lane 的在飞产出外干净。
+  ⑥ **预算**：`build-tu` 4 发、`check-link --executable` 3 发、端口运行 4 次（都在夹具 load-path 下）。
