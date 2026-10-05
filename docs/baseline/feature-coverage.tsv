@@ -5,25 +5,25 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	1836	47	-	-
-have_x_windows	1120	28	-	HAVE_X_WINDOWS
-have_window_system	1057	22	-	-
+windowsnt	1841	47	-	-
+have_x_windows	1159	28	-	HAVE_X_WINDOWS
+have_window_system	1060	23	-	-
 have_android	1004	33	-	-
 have_pgtk	823	24	-	-
-have_ntgui	740	16	-	-
+have_ntgui	797	16	-	-
 not_android_stubify	700	11	-	-
+use_lucid	466	9	-	-
 use_gtk	445	15	-	-
 msdos	407	15	-	-
-use_lucid	373	9	-	-
 dispextern_face_records	287	4	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
-use_cairo	274	14	-	-
+use_cairo	276	14	-	-
 have_ns	264	12	-	HAVE_NS
 have_haiku	249	15	xtask dead-arms	-
 have_gnutls	248	3	-	-
 have_xft	222	6	-	-
 have_freetype	215	3	-	-
-harfbuzz	210	9	-	-
+harfbuzz	211	10	-	-
 use_motif	209	4	-	-
 use_xcb	171	4	-	-
 have_dbus	158	2	-	-
@@ -39,6 +39,7 @@ have_pthread	87	2	-	-
 windows	83	5	-	-
 have_ext_tool_bar	76	2	-	-
 have_inotify	76	1	-	-
+use_cairo_or_have_xft	75	4	-	-
 ns_impl_gnustep	70	2	-	-
 have_gnutls3	67	1	-	-
 rel_alloc	66	5	-	-
@@ -50,22 +51,21 @@ have_xinput2	51	6	-	-
 have_zlib	51	2	-	-
 test	50	5	-	-
 have_kqueue	49	1	-	-
-use_cairo_or_have_xft	46	4	-	-
 have_xrender	45	6	-	-
 use_gamedir	44	1	-	-
+have_x_i18n	42	5	-	-
 have_gsettings	40	2	-	-
 use_linux_xattr	40	2	-	-
 have_gfilenotify	38	1	-	-
 glyph_debug	36	5	xtask dead-arms	-
 have_alsa	34	1	-	-
 kerberos5	34	1	-	-
+have_libotf	31	3	-	-
 use_acl_ace_getacl	31	2	-	-
 dos_nt	30	5	-	-
 have_text_conversion	30	3	-	-
 kerberos	30	1	-	-
 ns_impl_cocoa	30	6	xtask dead-arms	-
-have_libotf	29	2	-	-
-have_x_i18n	28	4	-	-
 cygwin	27	12	-	-
 have_gconf	26	1	-	-
 have_xcb_shape	26	2	-	-
@@ -91,6 +91,7 @@ freebsd	15	1	-	-
 have_xshape	15	1	-	-
 unsigned	15	1	-	-
 cplusplus	14	3	-	-
+emacs	14	1	-	-
 have_imagemagick	14	1	-	-
 stdc_iso_10646_no_newlocale	14	1	-	-
 dbus_type_unix_fd	12	1	-	-
@@ -160,6 +161,7 @@ have_acl_type_extended	6	1	-	-
 have_aclx_get	6	1	-	-
 have_getgroups	6	1	-	-
 have_xdbe	6	3	-	-
+have_xfixes	6	2	-	-
 have_xkb	6	2	-	-
 libc	6	3	-	-
 libgccjit_have_gcc_jit_version	6	1	-	-
@@ -212,7 +214,6 @@ have_renameat2	4	1	-	-
 have_rsvg	4	1	-	-
 have_ts_tree_cursor_goto_previous_sibling	4	1	-	-
 have_webp	4	1	-	-
-have_xfixes	4	2	-	-
 hesiod	4	1	-	-
 is_ebcdic_host	4	1	-	-
 klibc	4	2	-	-

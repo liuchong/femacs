@@ -10368,3 +10368,47 @@
   ⑥ **预算实报**：lane 侧 `build-tu` **8/3**、`probe` **4/3**（都超支，lane 在自己报告里报了）；集成者：
      `gen-port-map`/`--write-pending`/`feature-coverage` 各 1 发、七道文本门各 1 发、`check-all-units` 1 发、
      `layout-check` 1 发、`extract-abi --check` 2 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.531 镜像轮第十一批：`include/ftfont.rs` 的三个带门成员，`xftfont` 臂 10 错 → 1（2026-10-05）**：
+  ① **对象**：`struct font_info` 把 C 59-62 的 `#ifdef HAVE_LIBOTF`（`bool maybe_otf;` / `OTF *otf;`）与
+     C 65-67 的 `#ifdef HAVE_HARFBUZZ`（`hb_font_t *hb_font;`）记成 `/// C (dead here)` **注释**，而
+     `src/xftfont.rs` 正是**在这两个门下**读它们 ⇒ 该单元臂上 9 条 `E0609 no field`，全部落在**单元自己的行**上
+     （`(*xftfont_info).maybe_otf` C 309、`.otf` C 310/348/350/351、`.hb_font` C 313/355/357/358）。
+  ② **改动**：两组按 C 的位置与门变成真成员（`#[cfg (feature = "have_libotf")]` 两个、
+     `#[cfg (feature = "harfbuzz")] hb_font`），**门的开与关决定布局**（C 就是这样），冻结档下位置不动；
+     `OTF`（`<otf.h>`）与 `hb_font_t`（`<hb.h>`）本树都没有镜像，按 P-72 rule 3 两个指针写无类型 —— 与单元自己的
+     `OTF`/`hb_font_t` 别名（`*mut c_void`，HarfBuzz 14.4.0 实测）一致；文件头的注释同步改写。
+  ③ **读数（主判据 = 臂）**：`probe src/xftfont.rs`（15 个 `--cfg`）：**改前 10 错 → 改后 1 错**（9 条 `E0609` 全消；
+     剩下那条是 `include/systime.rs` 27 的手翻断言，属机制项）；`check-all-units` **83/0**（两腿）、`layout-check`
+     passed、`check-mirror-dupes` 17/17/0、`extract-abi --check emacs/src/xftfont.c femacs/src/xftfont.rs` 仍 **OK**。
+  ④ **未声称**：这是**编译**读数；字段类型是"无类型指针"这一条**已记偏离**（镜像不能命名它拉不进来的类型），
+     `hb_font_t` 的真身是 HarfBuzz 的，`OTF` 的在 libotf 里、本机没有。
+
+- **3.532 `src/xsettings.c` 整文件落地（C 1-1421）：XSETTINGS/GSettings/GConf 面（2026-10-05）**：
+  ① **产出**：`femacs/src/xsettings.rs` 11 → **2192** 行（C 1421，+54.3%），台账 `docs/ports/xsettings.md` 24 → 416 行
+     （`## C line ranges` **40 行**覆盖 C 1-1421；同一张表同时绑 `src/xsettings.h` 的 51 行）；
+     `docs/ports/macro-body-notes.tsv` 由 lane 追加 3 行（`parse_settings` 与 `xft_settings_event` 的
+     `switch→match`、`syms_of_xsettings` 的 `doc`）。**门是构建成员资格**（`configure.ac` 7196/3878）：
+     `any (have_x_windows, have_pgtk)`，落在每个 item 与 include 图上（P-86 ⑧）。
+  ② **集成者落的账**：登记 5 个 feature（`have_gconf`、`cairo_has_ft_font`、`cairo_has_fc_font`、`fc_hint_style`、
+     `glib_version_2_32`，各带 C 宏名与行号）；`docs/ports/line-drift-tolerance.tsv` 一行 `xsettings 0.55 total`；
+     `port-map.md`/`port-lines-pending.tsv`（28 文件 / 38,276 行）/`feature-coverage.tsv`（930 feature）重算。
+  ③ **读数**：`extract-abi --check emacs/src/xsettings.c femacs/src/xsettings.rs` **OK**（加容差行前唯一一行是
+     54.3% 的行数漂移）；`check-all-units` **83/0**（两腿）、`layout-check` passed、七道文本门 0 failure；
+     冻结 `build-tu` **exit 0 / 336 字节空对象**（冻结配置一行也不编它）；lane 的臂读数：**臂 A**（
+     `have_window_system`+`have_x_windows`）1 错、**臂 B**（+`have_pgtk`/`have_gsettings`/`use_cairo`/
+     `glib_version_2_32`/`have_gtk3`）2 错（`include/pgtkgui.rs` 122/130 的 `XrmDatabase`/`XRectangle` 与
+     `include/xlib.rs` 重复），两条臂的**单元侧 0 错**；另有九组子门矩阵（`use_cairo` 族、`have_xft`、`have_gconf`、
+     `use_lucid`…）读数**全部 0 单元错**；变异实测：注入一个类型错 ⇒ **恰 1 条** `E0308` 点名该行（并复读了臂 A）。
+  ④ **lane 自查修掉的真缺陷（记录在案）**：`&CStr` 缺 import、`g_object_get` 与 `include/gtk.rs` 重复、
+     4 条 `unused doc comment`、`title` 类注释里带着参照的 bug 地址、两处 `xsettings` 偏移断言错、
+     `n_settings`/`nlen`/`vlen`/`act_type`/`schema` 未初始化（`E0381`）、一行 `#[cfg]` 跨行写在 `include!` 上方被
+     `xtask` 读成**无门**、`DISPLAY_Info` 别名与 `include/dispextern.rs` 698 撞 `E0428`。
+  ⑤ **它交回的"工具/规则"发现（集成者项，本轮只记账不改）**：`xtask` 的 `include_edges`/`attr_run` **只看当前行
+     行首**，于是**跨行的 `#[cfg]` 写在 `include!` 上方会被读成无门**——这是一个会静默改物化结果的类，`xtask` 该按
+     属性**整段**读（下一个 lane 空闲窗口里改，避免在五条 lane 跑动时换物化语义）。
+  ⑥ **未声称**：零运行证据（没链、没起、没读过一个 GSettings key）；GConf/Xft/GDK/GTK 无头 ⇒ UNVERIFIED；
+     臂读数是本树镜像的"名字与类型"读数，弱于对真 SDK 的构建；54.3% 是**报告值**不是辩护。
+  ⑦ **预算实报**：lane 侧 `build-tu` **4/3**、`probe` **5/3**（都超支，lane 自己报了）；集成者：probe 1 发、
+     `check-all-units` 1 发、`layout-check` 1 发、`gen-port-map`/`--write-pending`/`feature-coverage` 各 1 发、
+     七道门各 1 发、`extract-abi --check` 2 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。

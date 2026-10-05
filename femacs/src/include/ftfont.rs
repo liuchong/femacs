@@ -11,6 +11,8 @@
 // rule): `struct font_info`'s FreeType members (`FT_Size`, `FT_Matrix`) and its XFT arm
 // (`Display`, `XftFont`) are spelled as C spells them, because that target supplies them.  C's
 // *other* arms are dead text here and are recorded rather than mirrored - the `HAVE_LIBOTF` pair
+// (`maybe_otf`/`otf`) and `hb_font` are the exception: they are carried as gated members since
+// status 3.531, because `src/xftfont.rs` reads them under exactly those gates.  The remaining
 // (`maybe_otf`, `otf`), the `HAVE_HARFBUZZ` member (`hb_font`) and the
 // `USE_CAIRO || USE_BE_CAIRO` block (`cr_scaled_font`, `bitmap_position_unit`, `metrics`,
 // `metrics_nrows`) - with their guards named so a cairo/HarfBuzz target knows which `#if` to
@@ -45,8 +47,14 @@ unsafe extern "C" {
 /// names are spelled as C spells them.
 /// C: struct font_info { struct font font; FT_Size ft_size; int index; FT_Matrix matrix;
 /// C:                     Display *display; XftFont *xftfont; unsigned x_display_id; };
-/// C (dead here): #ifdef HAVE_LIBOTF / bool maybe_otf; OTF *otf; / #endif
-/// C (dead here): #ifdef HAVE_HARFBUZZ / hb_font_t *hb_font; / #endif
+/// C 59-62: `#ifdef HAVE_LIBOTF / bool maybe_otf; OTF *otf; / #endif` and C 65-67:
+/// `#ifdef HAVE_HARFBUZZ / hb_font_t *hb_font; / #endif` - carried as *gated members* below
+/// (status 3.531).  They used to be recorded as dead text, and the `xftfont` arm paid for that:
+/// nine `E0609 no field` rows on the unit's own lines (`(*xftfont_info).maybe_otf` C 309, `.otf`
+/// C 310/348/350/351, `.hb_font` C 313/355/357/358) although `have_libotf`/`harfbuzz` are what
+/// the unit's own gates name.  `OTF` (`<otf.h>`) and `hb_font_t` (`<hb.h>`) have no mirror here,
+/// so both pointers are the untyped one (P-72 rule 3) - which is also what the unit's own
+/// `OTF`/`hb_font_t` aliases are (`*mut c_void`, measured against HarfBuzz 14.4.0).
 /// C (dead here): #if defined (USE_CAIRO) || defined (USE_BE_CAIRO) / cairo_scaled_font_t
 /// C: *cr_scaled_font; double bitmap_position_unit; struct font_metrics **metrics;
 /// C: short metrics_nrows; / #else … / #endif
@@ -55,9 +63,15 @@ unsafe extern "C" {
 pub struct font_info
 {
   pub font: font,
+  #[cfg (feature = "have_libotf")]
+  pub maybe_otf: bool,                       // C 60: `bool maybe_otf;`
+  #[cfg (feature = "have_libotf")]
+  pub otf: *mut c_void,                      /// C 61: `OTF *otf;` (P-72 (3))
   pub ft_size: FT_Size,
   pub index: c_int,
   pub matrix: FT_Matrix,
+  #[cfg (feature = "harfbuzz")]
+  pub hb_font: *mut c_void,                  /// C 66: `hb_font_t *hb_font;` (P-72 (3))
   pub display: *mut Display,
   pub xftfont: *mut XftFont,
   pub x_display_id: c_uint,
