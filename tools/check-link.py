@@ -106,6 +106,40 @@ def reference_symbols() -> tuple[set[str], set[str]]:
     return defined, referenced
 
 
+def tbd_names(text: str) -> set[str]:
+    """The symbols a `.tbd` lists.
+
+    Two shapes exist in the SDK: the per-line `- _name` list (tbd-version 2/3)
+    and the inline array the current SDK writes (tbd-version 4:
+    `symbols: [ _a, _b, ... ]`, wrapped over several lines, and the same for
+    `reexported-symbols:`).  Only the first was parsed until status 3.603, and
+    this SDK writes the second - so the "the SDK exports it" half of `classify`
+    matched *nothing* (measured: 0 names out of `libSystem.B.tbd`) and every
+    libc name the reference's own objects do not happen to reference fell into
+    `unknown` (that is the `_strcat` failure of status 3.602).  Both shapes are
+    read now: 9,294 names from `libSystem.B.tbd`, with `_strcat`/`_strlen`/
+    `_memcpy` among them and no port-owned name (`_xmalloc`, `_Vbuffer_defaults`)
+    among them.
+    """
+    names = {"_" + m.group(1) for m in re.finditer(r"^\s*-\s*_(\w+)\s*$", text, re.M)}
+    for key in ("symbols:", "reexported-symbols:"):
+        for m in re.finditer(re.escape(key), text):
+            start = text.find("[", m.end() - 1)
+            if start < 0:
+                continue
+            depth, i = 0, start
+            while i < len(text):
+                if text[i] == "[":
+                    depth += 1
+                elif text[i] == "]":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                i += 1
+            names |= set(re.findall(r"(_[A-Za-z_][A-Za-z0-9_]*)", text[start:i]))
+    return names
+
+
 def sdk_symbols() -> set[str]:
     sdk = subprocess.run(["xcrun", "--show-sdk-path"], capture_output=True, text=True).stdout.strip()
     names: set[str] = set()
@@ -116,7 +150,7 @@ def sdk_symbols() -> set[str]:
             text = Path(path).read_text(errors="ignore")
         except OSError:
             continue
-        names |= {"_" + m.group(1) for m in re.finditer(r"^\s*-\s*_(\w+)\s*$", text, re.M)}
+        names |= tbd_names(text)
     return names
 
 

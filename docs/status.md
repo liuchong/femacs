@@ -12286,3 +12286,31 @@
      另 1 次非预算内 `rustc --emit metadata`（已在 lane 报告里披露）；集成者 `build-tu` **1 发**
      （重建 xdisp.o）、`probe` 0 发、`check-link.py` 4 发、`gen-port-map.py` 1 发、文本门各 1 发。
      lane 的 `/tmp/xdisp-lane` 与集成者的临时文件已删。
+
+- **3.603 L0 链接门转绿：`check-link.py` 的 SDK 符号表解析器修好（它一直读出 0 个符号），棘轮随之重算到 309 行（`--strict` 0 失败 0 陈旧）——L0 链接这一关的读数是 0 failure（2026-10-05）**：
+  ① **两个缺陷一起修**：⑴ `tools/check-link.py` 的 `sdk_symbols()` **只认 `.tbd` 的逐行 `- _name` 形式**
+     （tbd-version 2/3），而本机 SDK 写的是 **tbd-version 4 的内联数组**（`symbols: [ _a, _b, … ]`，跨行
+     折行；`reexported-symbols:` 同形）⇒ 实测该函数对 `libSystem.B.tbd` 返回 **0 个符号**，"SDK 导出它"
+     这半个判据**从来没有生效过**，凡是参照自己的对象**没有**引用到的 libc 名一律落进 `unknown`
+     （这就是 3.602 剩下的那条 `_strcat` 失败）。新增 `tbd_names(text)` 两种形式都读：该文件现在读出
+     **9,294 个名字**，`_strcat`/`_strlen`/`_memcpy` 在内，而 `_xmalloc`/`_Vbuffer_defaults` 这类
+     **本仓库自己的名字不在内**（这正是这一半判据要的性质）；⑵ `docs/baseline/link-pending.txt` 的
+     棘轮：`_strcat` 补一行（理由逐字写明它是 libc、C `xdisp.c` 25665 的调用点被 clang 折掉、
+     SDK 确实导出它），随后 `--write-pending` 重算整本棘轮（**387 → 309 行**：74 行"陈旧"行随 xdisp
+     落地而退出——它们不再 undefined，`--strict` 会逐条判失败，所以这一刻正是收窄它的时机）。
+  ② **读数**：⑴ `python3 tools/check-link.py`：`309 undefined symbol(s) from 76 program + 87 libgnu
+     object(s), 309 ratchet row(s), **0 failure(s)**`，分类 `libc-or-platform 283 + rust-runtime 20 +
+     unknown 6`（6 个 unknown 逐条点名见 3.602 ④）；⑵ `--strict`（把"棘轮行不再成立"也算失败）：同样
+     **0 failure(s)、0 stale**——这是"干净工作树在 HEAD 上重新对账"的那一档，判据就是它；⑶ 与 3.594
+     的记录连起来看：**456 undefined / 118 failure →（补编 lib 86 单元）381 / 17 →（xdisp 第十片）
+     309 / 1 →（本条）309 / 0**。⑷ `python3 -c "ast.parse(...)"` 语法检查通过；本工具无 `--selftest`，
+     所以本条的机器判据是**它自己的两次运行**（默认档与 `--strict` 档）而不是自测。
+  ③ **未声称**：⑴ 这是**符号层**的读数，**不是链接成功的证据**——`check-link.py` 用 `ld -r` 做部分链接并
+     分类未解析名，真正的可执行档要在 `--executable` 那一档（Rust 运行时缝 + C 自己的库行）才谈得上，
+     本轮**没有跑**；⑵ 309 个未解析名里没有一个是本仓库该定义的（`port-owed` = 0），但它们**仍未被解析**：
+     283 个是 libc/平台按设计留给链接期，20 个是 Rust 运行时，6 个是未移植单元的负债；⑶ 0 failure 只说明
+     "没有一个未解析名是没有登记过的"，**不证明任何函数的行为**；⑷ 本条的判据依赖本机 SDK
+     （`xcrun --show-sdk-path`）：换一台没有 SDK 的机器，`sdk_symbols()` 返回空集，那 283 条的分类会退回
+     `unknown`——工具的行为随环境而变，这一点如实记下。
+  ④ **预算**：`check-link.py` 4 发（默认 2、`--write-pending` 1、`--strict` 2）、`ast.parse` 1 发、
+     `rg`/`diff` 若干；`build-tu` 0、`probe` 0；本机未跑 `--executable`；`/tmp/lp-before.txt` 已删。
