@@ -13331,3 +13331,10 @@
   ④ **另一条可选路径（若 ③ 的循环体被内联得看不出基址）**：在 **launch 会话**（`disable-aslr` 生效）里断 `hash_find_with_hash` 的**入口**，入口处 `x0` 就是 `h`（`register read x0` 会打印），但要把它与"最后一次调用"对上——可用 `br modify` 加计数、或先用 `sample` 量出自旋前共发生多少次查找再取第 N 次（成本高，故列为备选）。
   ⑤ **未声称**：**没有**读出那张 jmp_table 的 9 个字，因此 ⑴/⑵ 仍未判定；**没有**抓到写坏它的指令；L3 稳定性仍未达成；`.elc`/`make check`/L4-L5 未动；本轮**无源码改动**（`git diff` 为空）。
   ⑥ **预算**：lldb attach 会话 7 发（`vic3`…`vic12`；其中 5 发抓到自旋）、夹具运行 0 发、Python 过滤若干；`/tmp` 收工删。
+
+- **3.653 补记四：`h` 的确切位置（源码级反汇编给出）与一条 attach 会话的打印故障（2026-10-06）**：
+  ① **`disassemble -n fns::hash_find_with_hash`（按符号名，**不要**用 `-s $pc`——那样会反汇编到被内联的 `<*mut fns::Lisp_X>::is_null` 小函数）**：该函数把参数与循环量**溢出到 `[x29-0x20 … x29-0x68]` 这些帧槽**里，而不是留在被调用者保存寄存器里——这解释了 3.653 补记三里"`x19…x28` 与 ±64B 邻居都找不到表"的负面读数。其中 **`h` 就在 `[x29 - 0x30]`**：反汇编里 `<+40>: ldur x0, [x29, #-0x30]` 紧接着就是把它当**第一个参数**喂给 `hash_index_index (h, hash)`（`+40` 处 x0 载入即 h ✓）。
+     ⇒ **下一轮拿表的最省事路径**：attach 到自旋进程 → `register read fp`（= `x29`）→ `p = *(unsigned long*)($fp - 0x30)` 即那张 jmp_table → 读它的 9 个字（偏移同 3.652 ①：`+8 index / +16 hash / +24 key_and_value / +32 test / +40 next / +48 count 与 +52 next_free / +56 table_size 与 +60 index_bits`）⇒ 判 ⑴（数组被人写过）/ ⑵（从未 thaw）。
+  ② **一条工具上的坑（照实记）**：**attach 会话里 `expr` 设变量 + `memory read` 打印**这一次（`vic13`）整段都没有输出（`vic7`/`vic8` 同类会话是能打印的，区别不明）⇒ 下一轮若再遇到，改走**两条路之一**：⑴ **launch 会话**（`disable-aslr` + 断 `fns::hash_find_with_hash` **入口**，入口处 `x0` 就是 `h`，`register read x0` 一定能打印）；⑵ 把 lldb 输出**重定向到文件**（`-o "log enable -f /tmp/x.log lldb all"` 或 shell 重定向）再离线分析，别依赖管道即时看到。
+  ③ **未声称**：仍未读出那张表的 9 个字（`vic13` 的输出缺失）；⑴/⑵ 仍未判定；L3 稳定性仍未达成；本轮**无源码改动**（`git diff` 为空）。
+  ④ **预算**：lldb 1 发（`disassemble -n`，2.6 s）+ attach 1 发（`vic13`）；`/tmp` 收工删。
