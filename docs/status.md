@@ -10091,3 +10091,23 @@
      `use_cairo || have_xft` 派生（lane 点名）；`w32select` 的其余镜像缺口（`w32term.rs` 的 7 个类型、
      `signal.rs` 与 MinGW 的 `E0428` 对、`errno` 的 `ENOTSUP`/`EOPNOTSUPP` 等）与 `lwlib-int.rs` 的
      `<X11/*>` 真形状实测一并归下一批。
+
+- **3.519 `src/xfont.c` 整文件入库（2026-10-05）**：
+  ① **范围**：`femacs/src/xfont.rs` 11 → **1731** 行（C 1-1166 全落：X core 字体驱动、`xfont_get_pcm`、
+     编解码、`xfont_list*`/`match`/`open`/`close`/`draw`（含 Xrender 臂）/`syms_of_xfont`）；台账
+     `docs/ports/xfont.md` 24 → **346** 行（32 行区间表覆盖 1-1166）。
+  ② **读数**：冻结 `build-tu` **exit 0**（336 字节空对象；首读 32 条错是"未挂门的 static 缓存"的反向读数）；
+     X11 臂（`have_x_windows`+`have_window_system`+`gcc_lint`）**本单元 0 错**，9 条全在镜像
+     （`termhooks.rs`/`xterm.rs` 的 `Time`）；XRender 臂同（14 条全在镜像 + 本单元 0 条）；**变异实测**证明
+     0 错是活读数；`extract-abi --check` 在容差行落地后只剩那行。
+  ③ **集成者登记**：容差行 **`xfont 0.49`**（C 1166 vs 1731 = 48.5%）与 feature **`render_version_ge_0_2`**
+     （C 1006 的 `RENDER_MAJOR > 0 || RENDER_MINOR >= 2` 派生名，与 `xft_version_lt_2_3_6` 同形）；
+     四本生成物重算。
+  ④ **lane 量到的镜像缺口（点名）**：`include/xterm.rs` 的 `Time`（6 处）、`x_display_info` 缺
+     `xrender_supported_p`/`xrender_major`/`xrender_minor`（它自己的 `FRAME_CHECK_XR_VERSION!` 在 `have_xrender`
+     下会 `E0609`）、`pict_format` 的 `XRenderPictFormat`；`include/termhooks.rs` 的 `Time`（3 处）；
+     `include/xlib.rs` 缺 `XFree` 与 4 个记录/12 个入口/3 个 atom（P-90 ① 的搬迁）；镜像宏里点名但无人声明的
+     `x_mark_frame_dirty`（`xterm.rs` 974）与 `font_add_log`（`font.rs` 290）；`struct face` 与 9 个单元自带副本的
+     双定义（status 3.220 的老账）。
+  ⑤ **未声称**：零运行时证据（没连过 X server，没渲染过字形）；两个臂都**停在镜像错误上**，本机没有任何配置
+     能端到端编过本单元；XRender 臂是**本地 rustc 读数**（非 `xtask probe`），台账按诊断标注。
