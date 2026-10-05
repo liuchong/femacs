@@ -3823,13 +3823,13 @@ unsafe fn append_wm_protocols (dpyinfo: *mut x_display_info, f: *mut frame)
 }
 
 /* =====================================================================================
-   C 2724-3085: the XIC (X Input Context) block's first half.
+   C 2724-3956: the XIC (X Input Context) block.
 
    C 2724-2726 is its comment ("Support routines for XIC (X Input Context).") and C 2728 the
    `#ifdef HAVE_X_I18N` that holds everything through C 3956.  C 2729-2736 are five `static`
    forward declarations, which PORTING.md 0.1-12 drops (Rust has no prototypes; every definition
-   they name is an item of this slice except `xic_string_conversion_callback` - C 3838, past the
-   slice - which is recorded in `docs/ports/xfns.md` as a P-91 owed row).
+   they name is an item of this file; the last of them, `xic_string_conversion_callback`
+   (C 3838), is this slice's last function).
 
    The XIM/XIC surface: `<X11/Xlib.h>` 1090-1346's types, the `XIMCaretDirection` enumerators,
    the nine preedit/status masks of Xlib.h 1169-1177, the sixteen `XN*` attribute-name strings
@@ -3941,6 +3941,54 @@ const _: () = core::assert! (core::mem::offset_of! (XIMText, feedback) == 8);
 const _: () = core::assert! (core::mem::offset_of! (XIMText, encoding_is_wchar) == 16);
 #[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
 const _: () = core::assert! (core::mem::offset_of! (XIMText, string) == 24);
+/// C: Xlib.h 1278: `typedef unsigned long XIMStringConversionFeedback;`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIMStringConversionFeedback = c_ulong;
+/// C: Xlib.h 1287-1295's inner union, `union { char *mbs; wchar_t *wcs; } string;` - anonymous in
+/// C, so the port names it after its owner the way `lisp.rs`'s `Lisp_String_s`/`Lisp_String_u`
+/// are named (PORTING.md 1.3).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub union XIMStringConversionText_string
+{
+  pub mbs: *mut c_char,                   // C: char *mbs;
+  pub wcs: *mut c_int,                    // C: wchar_t *wcs; (`wchar_t` is `int` here)
+}
+/// C: Xlib.h 1287-1295: `typedef struct _XIMStringConversionText { unsigned short length;
+/// XIMStringConversionFeedback *feedback; Bool encoding_is_wchar; union { char *mbs; wchar_t *wcs;
+/// } string; } XIMStringConversionText;` - measured `sizeof 32 align 8`, offsets `length 0 feedback
+/// 8 encoding_is_wchar 16 string 24`.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIMStringConversionText
+{
+  pub length: c_ushort,                   // C: unsigned short length;
+  pub feedback: *mut XIMStringConversionFeedback,  // C: XIMStringConversionFeedback *feedback;
+  pub encoding_is_wchar: Bool,            // C: Bool encoding_is_wchar;
+  pub string: XIMStringConversionText_string,      // C: union { … } string;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::size_of::<XIMStringConversionText> () == 32);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMStringConversionText, feedback) == 8);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMStringConversionText, encoding_is_wchar) == 16);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMStringConversionText, string) == 24);
+/// C: Xlib.h 1297: `typedef unsigned short XIMStringConversionPosition;`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIMStringConversionPosition = c_ushort;
+/// C: Xlib.h 1306: `typedef unsigned short XIMStringConversionOperation;`
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub type XIMStringConversionOperation = c_ushort;
+/// C: Xlib.h 1308-1309: `#define XIMStringConversionSubstitution (0x0001)` and `#define
+/// XIMStringConversionRetrieval (0x0002)` (measured `1` and `2`).
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMStringConversionSubstitution: XIMStringConversionOperation = 0x0001;
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+pub const XIMStringConversionRetrieval: XIMStringConversionOperation = 0x0002;
 
 /// C: Xlib.h 1305-1319: `typedef enum { XIMForwardChar, XIMBackwardChar, XIMForwardWord,
 /// XIMBackwardWord, XIMCaretUp, XIMCaretDown, XIMNextLine, XIMPreviousLine, XIMLineStart,
@@ -3972,6 +4020,33 @@ pub const XIMLineEnd: XIMCaretDirection = 9;
 pub const XIMAbsolutePosition: XIMCaretDirection = 10;
 #[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
 pub const XIMDontChange: XIMCaretDirection = 11;
+
+/// C: Xlib.h 1321-1327: `typedef struct _XIMStringConversionCallbackStruct {
+/// XIMStringConversionPosition position; XIMCaretDirection direction;
+/// XIMStringConversionOperation operation; unsigned short factor;
+/// XIMStringConversionText *text; } XIMStringConversionCallbackStruct;` - measured `sizeof 24
+/// align 8`, offsets `position 0 direction 4 operation 8 factor 10 text 16`.
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct XIMStringConversionCallbackStruct
+{
+  pub position: XIMStringConversionPosition,  // C: XIMStringConversionPosition position;
+  pub direction: XIMCaretDirection,       // C: XIMCaretDirection direction;
+  pub operation: XIMStringConversionOperation,  // C: XIMStringConversionOperation operation;
+  pub factor: c_ushort,                   // C: unsigned short factor;
+  pub text: *mut XIMStringConversionText, // C: XIMStringConversionText *text;
+}
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::size_of::<XIMStringConversionCallbackStruct> () == 24);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMStringConversionCallbackStruct, direction) == 4);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMStringConversionCallbackStruct, operation) == 8);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMStringConversionCallbackStruct, factor) == 10);
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+const _: () = core::assert! (core::mem::offset_of! (XIMStringConversionCallbackStruct, text) == 16);
 
 /// C: Xlib.h 1336-1340: `typedef enum { XIMIsInvisible, XIMIsPrimary, XIMIsSecondary }
 /// XIMCaretStyle;` (measured `0/1/2`).
@@ -4200,9 +4275,8 @@ static mut Xxic_preedit_start_callback: XIMCallback =
                                xic_preedit_start_callback as *const ()) }),
   };
 
-/* C 2771-2776.  C's initialiser casts `xic_string_conversion_callback`, whose *definition* is
-   C 3838 - past this slice's boundary - so this is the slice's one P-91 site; the row is in
-   `docs/ports/xfns.md`.  */
+/* C 2771-2776.  C's initialiser casts `xic_string_conversion_callback`, whose definition is C
+   3838 - this file's last function, below this record in the same unit.  */
 #[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
 static mut Xxic_string_conversion_callback: XIMCallback =
   XIMCallback {
@@ -5453,3 +5527,136 @@ unsafe extern "C" fn xic_preedit_draw_callback (xic: XIC, client_data: XPointer,
       (*output).preedit_caret = 0;
     }
 }
+
+/* C 3812-3831.  C's definition has no `static`, so the port keeps it exported (PORTING.md 0.2).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn xic_set_xfontset (f: *mut frame, base_fontname: *const c_char)
+{
+  let mut attr: XVaNestedList;
+  let mut xfs: XFontSet;
+
+  xic_free_xfontset (f);
+
+  xfs = xic_create_xfontset (f);
+
+  attr = XVaCreateNestedList (0, XNFontSet (), xfs, std::ptr::null_mut::<c_void> ());
+  if FRAME_XIC_STYLE! (f) & XIMPreeditPosition != 0
+    { XSetICValues (FRAME_XIC! (f), XNPreeditAttributes (), attr, std::ptr::null_mut::<c_void> ()); }
+  if FRAME_XIC_STYLE! (f) & XIMStatusArea != 0
+    { XSetICValues (FRAME_XIC! (f), XNStatusAttributes (), attr, std::ptr::null_mut::<c_void> ()); }
+  XFree (attr);
+
+  FRAME_XIC_FONTSET! (f) = xfs;
+}
+
+/* String conversion support.  See textconv.c for more details.  */
+
+/* C 3837-3954.  C's four `goto failure` (C 3850, 3907, 3924 and 3943) jump to C 3947's label,
+   which sits after C 3945's `return;`; the port carries it as C 3947's `failure:` label over a
+   labelled block whose handler follows the block (the `'out:` shape above, PORTING.md 2.2).  */
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+use textconv_decls::*;   // C 3919's `textconv_query` (textconv.h 125-126's prototype)
+
+#[cfg (all (feature = "have_x_windows", feature = "have_x_i18n"))]
+unsafe extern "C" fn xic_string_conversion_callback (ic: XIC, client_data: XPointer,
+						     call_data: *mut XIMStringConversionCallbackStruct)
+{
+  let mut request: textconv_callback_struct = std::mem::zeroed ();
+  let mut length: ptrdiff_t = 0;
+  let mut f: *mut frame;
+  let mut rc: c_int;
+
+  'failure: {
+    /* Find the frame associated with this IC.  */
+    f = x_xic_to_frame (ic);
+
+    if f.is_null ()
+      { break 'failure; }
+
+    /* Fill in CALL_DATA as early as possible.  */
+    (*(*call_data).text).feedback = std::ptr::null_mut ();
+    (*(*call_data).text).encoding_is_wchar = False;
+
+    /* Now translate the conversion request to the format understood by
+       textconv.c.  */
+    request.position = (*call_data).position as EMACS_INT;
+
+    match (*call_data).direction
+      {
+	XIMForwardChar =>
+	  { request.direction = TEXTCONV_FORWARD_CHAR; }
+	XIMBackwardChar =>
+	  { request.direction = TEXTCONV_BACKWARD_CHAR; }
+	XIMForwardWord =>
+	  { request.direction = TEXTCONV_FORWARD_WORD; }
+	XIMBackwardWord =>
+	  { request.direction = TEXTCONV_BACKWARD_WORD; }
+	XIMCaretUp =>
+	  { request.direction = TEXTCONV_CARET_UP; }
+	XIMCaretDown =>
+	  { request.direction = TEXTCONV_CARET_DOWN; }
+	XIMNextLine =>
+	  { request.direction = TEXTCONV_NEXT_LINE; }
+	XIMPreviousLine =>
+	  { request.direction = TEXTCONV_PREVIOUS_LINE; }
+	XIMLineStart =>
+	  { request.direction = TEXTCONV_LINE_START; }
+	XIMLineEnd =>
+	  { request.direction = TEXTCONV_LINE_END; }
+	XIMAbsolutePosition =>
+	  { request.direction = TEXTCONV_ABSOLUTE_POSITION; }
+	_ =>
+	  { break 'failure; }
+      }
+
+    /* factor is signed in call_data but is actually a CARD16.  */
+    request.factor = (*call_data).factor;
+
+    if (*call_data).operation == XIMStringConversionSubstitution
+      { request.operation = TEXTCONV_SUBSTITUTION; }
+    else
+      { request.operation = TEXTCONV_RETRIEVAL; }
+
+    /* Now perform the string conversion.  */
+    rc = textconv_query (f, &raw mut request, 0);
+
+    if rc != 0
+      {
+	xfree (request.text.text as *mut c_void);
+	break 'failure;
+      }
+
+    /* Encode the text in the locale coding system and give it back to
+       the input method.  */
+    request.text.text = std::ptr::null_mut ();
+    (*(*call_data).text).string.mbs
+      = x_encode_xim_text (FRAME_DISPLAY_INFO! (f),
+			   request.text.text,
+			   request.text.bytes, std::ptr::null_mut (),
+			   &raw mut length);
+    (*(*call_data).text).length = length as c_ushort;
+
+    /* Free the encoded text.  This is always set to something
+       valid.  */
+    xfree (request.text.text as *mut c_void);
+
+    /* Detect failure.  */
+    if (*(*call_data).text).string.mbs.is_null ()
+      { break 'failure; }
+
+    return;
+  }
+
+  /* failure: */
+  /* Return a string of length 0 using the C library malloc (1)
+     (not malloc (0), to pacify gcc -Walloc-size).  This
+     assumes XFree is able to free data allocated with our malloc
+     wrapper.  */
+  (*(*call_data).text).length = 0;
+  (*(*call_data).text).string.mbs = malloc (1) as *mut c_char;
+}
+
+/* C 3955-3956: the blank and the `#endif` that closes the C 2728 `#ifdef` over this whole XIM
+   block.  Every item of that block carries the gate in its own `#[cfg]`, so the `#endif` is not
+   an item of its own.  */

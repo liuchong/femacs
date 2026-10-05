@@ -1,4 +1,4 @@
-# emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149 and C 2150-3811
+# emacs/src/xfns.c (10662 lines) — slices: C 1-802, C 803-2149, C 2150-3811 and C 3812-3956
 
 > **P-86's first X11 unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
@@ -7,8 +7,8 @@
 > lists no `xfns.o`, so `extract-abi.py`'s checklist for the file is empty and its checkbox
 > sections cannot be coverage evidence.  What follows is P-86 ②'s substitute: the **C line-range
 > table** for this slice, the `## Evidence` readings and the `## Deviations`.  Port:
-> `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice, **5,455 lines** after the third -
-> C 803-2149 and C 2150-3811, whose own ledger sections are at the end of this file - measured
+> `femacs/src/xfns.rs` (**1,120 lines** after slice 1, **3,051 lines** after the second slice, **5,455 lines** after the third, **5,662 lines** after the fourth -
+> C 803-2149, C 2150-3811 and C 3812-3956, whose own ledger sections are at the end of this file - measured
 > with `grep -c ''`), both arms of every `#if` carried.
 >
 > **This ledger replaces the previous revision's conclusion** ("the file is not compiled by the
@@ -160,7 +160,8 @@ defines both features.
 | 3555-3595 | C 3555's blank, C 3556's comment and `x_xim_text_to_utf8_unix` | `have_x_i18n` |
 | 3596-3635 | C 3596's blank, C 3597-3602's comment, C 3603's blank and `x_encode_xim_text` | `have_x_i18n` |
 | 3636-3811 | C 3636's blank and `xic_preedit_draw_callback` (C 3668/3680/3694/3709/3717/3726/3738/3764 the eight `goto im_abort` and C 3802's `im_abort:` label) | `have_x_i18n` |
-| 3812-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 6,851 lines, whose first live definition is `xic_set_xfontset` (C 3813 is its `void`, C 3814 the name) - the next slice's first item | not ported in this slice |
+| 3812-3956 | C 3812's blank, `xic_set_xfontset` (C 3813 the `void`, C 3814 the name; C's definition has no `static`), C 3833-3836's blanks and comment and `xic_string_conversion_callback` (C 3837 the `static void`, C 3850/3907/3924/3943 the four `goto failure`, C 3947 the `failure:` label, C 3956 the `#endif` that closes C 2728) | `have_x_i18n` |
+| 3957-10662 | **the remainder** (C 10662 is the reference's last line): the file's other 6,706 lines, whose first live definition is `x_mark_frame_dirty` (C 3961 is its `void`, C 3962 the name) - the next slice's first item | not ported in this slice |
 
 ## Evidence
 
@@ -885,6 +886,200 @@ failures, `check-port-lines.py` 0 files under ten percent, `check-target-names.p
 - **One P-91 row stands inside this slice**: `Xxic_string_conversion_callback` (C 2771-2776)
   initialises its `callback` from `xic_string_conversion_callback`, whose definition is C 3838 -
   past the boundary.  The row is registered here and the site names the C line it waits for.
+  **Slice 4 lands that definition (C 3837-3954), so this row is closed.**
 - **The 1,500-3,000 C line brief.**  The slice carries 1,662 C lines: the first whole function
   boundary past 1,500 is C 3811, and the boundary before it (C 3635, `x_encode_xim_text`'s `}`) is
   only 1,486.  The remainder row now starts at C 3812.
+
+## Slice 4 (2026-10-05, status 3.6xx - the integrator sets the round number): C 3812-3956
+
+**The slice is C 3812-3956.**  It opens at C 3812, the blank after slice 3's
+`xic_preedit_draw_callback`, and closes at C 3956, the `#endif` that closes the C 2728
+`#ifdef HAVE_X_I18N` - so the whole XIM/XIC block is closed here, at the block's own end.  Two
+definitions: `xic_set_xfontset` (C 3813-3831; C's definition has no `static`, so the port keeps
+`#[unsafe(no_mangle)] pub unsafe extern "C"`) and `xic_string_conversion_callback` (C 3837-3954,
+`static`, with C 3860-3908's twelve-arm `switch (call_data->direction)`, C 3847's `x_xic_to_frame`
+walk and the four `goto failure` at C 3850/3907/3924/3943).  The slice also lands the XIM
+string-conversion surface those two need - `XIMStringConversionFeedback` (Xlib.h 1278),
+`XIMStringConversionText` with its inner union (1287-1295), `XIMStringConversionPosition` (1297),
+`XIMStringConversionOperation` (1306) with `XIMStringConversionSubstitution`/`Retrieval`
+(1308-1309) and `XIMStringConversionCallbackStruct` (1321-1327) - inside the same C 2726
+declaration block slice 3 opened (Xlib.h 1090-1346 is the range that block's comment names), each
+carrying its header line, its measured layout and its `size_of`/`offset_of` assertions.  The
+boundary after C 3956 is C 3961 (`void`) / C 3962 (`x_mark_frame_dirty`), which is where the
+remainder row now starts.  The port's slice is **207 Rust lines** (5,662 - 5,455), 1.43x the C
+slice's 145 lines (slice 3's ratio was 1.45x).
+
+**This slice closes slice 3's one P-91 row.**  Slice 3 recorded that
+`Xxic_string_conversion_callback` (C 2771-2776) initialises its `callback` from
+`xic_string_conversion_callback` while that function's definition (C 3838) lay past its boundary.
+The definition is now an item of this file, so the call resolves; the unit's own comment at that
+record no longer claims a P-91 site.  The `--check` row and the arm row that named it are both
+gone (below).
+
+### Gate mapping (this slice's additions)
+
+| C `#if` / build condition | Port gate | Compiled when |
+| --- | --- | --- |
+| every item (the file gate) | `feature = "have_x_windows"` | an X11 configuration |
+| C 2728-3956 (`HAVE_X_I18N`, the block this slice's two definitions sit in) | `all (feature = "have_x_windows", feature = "have_x_i18n")`, per item - C's block is a preprocessor region and Rust has no region, so each item carries it (the same reading slice 3's block used) | an X11 configuration with XIM |
+| C 3956 (`#endif /* HAVE_X_I18N */`) | no gate of its own: the region's end is not an item, and the port records it in a `/* C 3955-3956: … */` comment | never - recorded, not transcribed |
+| the `textconv_query` declaration (textconv.h 125-126) | `all (feature = "have_x_windows", feature = "have_x_i18n")` on the `use textconv_decls::*;` line, because the mirror that owns the module is included under that same pair at C 40-42 | the same configuration |
+
+### Evidence (this slice)
+
+**① The frozen configuration (`build-tu`).**  Unchanged from slices 1-3: every item sits behind
+`have_x_windows`, so the frozen feature set compiles `include/config.rs` and the `#![allow]`
+attribute and nothing else - `build/femacs/xfns.o` is the **336-byte** empty object (exit 0,
+measured this round).  The unit still *parses* every gated item, so this run also re-reads the
+whole file.
+
+**② The plain-X11 arm** (`--cfg 'feature="have_x_windows"'`, run from `femacs/` so the pinned
+nightly of `rust-toolchain.toml` is used): **exit 1, 4 errors**, all four registered - the
+`include/systime.rs` 27 assertion (slice 1's class), `cannot find function x_display_info_for_name`
+(slice 1's call at C 197; its definition is C 7613, in the remainder), `no field wait_for_wm on
+type x_output` (slice 1's C 729) and `no field alpha_identical_p on type x_output` (slice 3's
+C 2478) - the two `include/xterm.rs` `bool_bf` rows.  **This arm reads nothing of this slice**:
+both of its definitions need `have_x_i18n`, which this `--cfg` set does not turn on.  It is run
+because the brief asks for it and because it is the arm that would catch a file-gate mistake.
+
+**③ The GTK arm** (`have_x_windows`, `have_window_system`, `have_x_i18n`, `have_xdbe`,
+`have_ext_tool_bar`, `have_ext_menu_bar`, `use_gtk`, `have_gtk3`, `use_toolkit_scroll_bars`,
+`glyph_debug`): **exit 1, 20 errors**, every one in a registered class - 9 `GDK_WINDOW_XID`, all of
+them the same site (the mirror's `GTK_WIDGET_TO_X_WIN` body, `include/xterm.rs` 1064 - slice 3's ④
+counted the same nine), 2 `update_mode_line` (E0609 on `window`, slices 2 and 3), `wait_for_wm`,
+`alpha_identical_p`, one `xim_inst_t` (`include/xterm.rs` 168 and 534 - the gating defect the brief
+names), the two `FRAME_MENUBAR_HEIGHT` `void` errors (both read off the `{ (void) ($f); 0 }` body at
+`include/xterm.rs` 1107, at C 3289/3332's two call sites - the other defect the brief names),
+`x_display_info_for_name`, `set_up_x_back_buffer` (C 3972), `tear_down_x_back_buffer` (C 4013) and
+the `include/systime.rs` assertion. **This is the arm that compiles this slice**: the two functions
+and the six declarations span `_root.rs` 5540-5669, and the largest `_root.rs` error line of this
+run is 5142, so **not one error is in this slice's text**; the `textconv_query` call, the
+`textconv_decls` glob, `textconv_callback_struct`, `TEXTCONV_*`, `False`, `XNFontSet`,
+`XSetICValues`, `XVaCreateNestedList`, `malloc`, `x_encode_xim_text` and the new
+`XIMStringConversion*` records all resolve. **The one row this slice removes is visible here**:
+slice 3's ④ counted `cannot find function xic_string_conversion_callback` in this arm's list, and
+this run's list does not contain it. The two runs are *not* a controlled pair - slice 3's ④ also set
+`debug_xic_fontset` and `have_xiccallback_callback`, which this briefed set omits, and neither of
+those can produce that row - so the claim here is the narrower one: that row is absent.
+
+**④ `extract-abi.py --check`**: **164 findings before, 162 after** (`- ` rows; the "before" side is
+this file at `HEAD` read with the same tool, and the "after" side has this slice's one
+`macro-body-notes.tsv` row appended - with the port text in place but before that row the reading
+is 163, i.e. the row relocates one finding rather than deleting it).  By class: `missing function`
+**45 -> 43** (both `xic_set_xfontset` and `xic_string_conversion_callback` leave the list - the
+latter is there because C calls it at C 10163), `missing macro` 1 -> 1 (`RANDR13_LIBRARY`),
+`missing constant` 0 -> 0, `missing file-scope object` 4 -> 4, `missing subr` 53 -> 53,
+`missing defsubr` 45 -> 45, the token findings `function … does not mention …` **14 -> 14** (this
+slice's one - `xic_string_conversion_callback does not mention case, default, goto, switch` - is
+tolerated by the appended row), and the drift row `C 10662 vs Rust 5455` (48.8%) -> `C 10662 vs
+Rust 5662` (**46.9%**), still the row `docs/ports/line-drift-tolerance.tsv` has owed since slice 1.
+The three declaration-site literals this slice adds are prose in comments and a `use` line, so
+`check-declarations.py`'s count is unchanged.
+
+**⑤ The layout measurements.**  `clang -I/opt/homebrew/include` against the installed headers
+(libx11 1.8.13 / xorgproto 2025.1): `XIMStringConversionText` **sizeof 32 align 8**, offsets
+`length 0 feedback 8 encoding_is_wchar 16 string 24`; `XIMStringConversionCallbackStruct`
+**sizeof 24 align 8**, offsets `position 0 direction 4 operation 8 factor 10 text 16`;
+`XIMStringConversionPosition`/`Operation` are 2 bytes, `XIMStringConversionFeedback` is 8, and
+`XIMStringConversionSubstitution`/`Retrieval` read 1/2 (`XIMCaretDirection`'s members are already
+frozen in the port).  Each record's `#[cfg]`-gated `const _: () = core::assert! (…)` rows carry
+the same numbers, so a layout change cannot pass silently.
+
+**⑥ The other gates** (all run at this revision): `check-declarations.py` **0 failures** (17
+declaration sites, 0 forbidden, 17 allowed literals - the same reading as before this slice),
+`check-mirror-dupes.py` **1 failure at the round's last run** (16 duplicates, 17 ratchet rows) - and
+it is not this slice's: the finding is `STALE femacs/src/sysdep.rs: pipe2 from
+femacs/lib/include/unistd.in.rs is gone`, i.e. the in-flight `src/sysdep.rs` another lane is editing
+in this same tree; the same gate read 17/17/0 failures earlier in this round, before that edit
+landed. `check-citations.py` 0 drift, `check-ledger-ticks.py` 0 failures, `check-port-lines.py` 0
+files under ten percent, `check-target-names.py` 0 findings, `check-dead-file-coverage.py` 0
+failures (`info docs/ports/xfns.md: 92 range row(s) cover src/xfns.c (10662 lines; 0 blank
+line(s) between blocks need no row)` - 91 rows before this slice, which split the remainder row in
+two).
+
+**⑦ Budget.**  `build-tu` 1/3, probe 4/3 (`probe` counted as one `rustc` invocation of the
+unit's `_root.rs`: one plain-X11 run from the repository root that picked the wrong toolchain -
+`rustc 1.98.1`, reported `E0658 c_variadic` for a file the pinned nightly compiles, and is
+therefore *not* an arm reading - then the plain-X11 run from `femacs/`, and the GTK run), layout
+`clang` 1 (not a Rust probe).  The over-budget run is the mistoolchained one; it produced no
+reading used in this ledger.
+
+### Deviations (this slice)
+
+- **`goto` -> labelled block.**  `xic_string_conversion_callback`'s four `goto failure` (C 3850,
+  3907, 3924 and 3943) are the port's `'failure: { … }` block, whose `break 'failure` leaves the
+  work and whose handler (C 3947's `failure:`) stands after the block, with C 3945's `return;` kept
+  at the block's end - the same shape `create_frame_xic`'s `'out:` uses (PORTING.md 2.2).  The C
+  case where `f` is null reaches the handler, and so does the port's.  The
+  `docs/ports/macro-body-notes.tsv` row carries the line numbers.
+- **`switch` -> `match`.**  C 3860-3908's `switch (call_data->direction)` becomes a `match` with
+  one arm per `case` (eleven of them, C 3862-3904) and C 3906's `default:` as the `_` arm, which
+  carries C 3907's `goto failure`; C's eleven `break`s have no site (PORTING 2.2).
+- **C's declared-but-assigned locals are zero-initialised.**  `struct textconv_callback_struct
+  request` is written through `&request` and read field by field, and `ptrdiff_t length` is written
+  by `x_encode_xim_text`'s out parameter, so both take the port's zero initialiser
+  (`std::mem::zeroed ()` / `= 0`) - PORTING.md 1.5, the `x_xim_text_to_utf8_unix` shape.
+- **`length` -> `call_data->text->length` is a narrowing store.**  C assigns a `ptrdiff_t` to the
+  `unsigned short` member; the port spells it `length as c_ushort`.
+- **C's statement order is kept where it looks surprising.**  C 3929 sets
+  `request.text.text = NULL;` *before* the `x_encode_xim_text` call at C 3930-3934 that passes
+  `request.text.text`, and frees the same pointer at C 3939; the port keeps the same three
+  statements in the same order (the reference's text, transcribed; measured identical to upstream's
+  at the same line numbers).  No "fix" was invented here.
+- **The `textconv_decls` glob is written at the use site.**  `include/textconv.rs` puts textconv.h's
+  non-Android declarations in `pub mod textconv_decls` and its own header comment names "a glob
+  import", but the frozen mirror does not carry the line, so this unit writes
+  `use textconv_decls::*;` under the same `#[cfg]` pair as the mirror's include (the
+  `src/androidterm.rs` 146-152 shape).  Owed, below.
+- **`XIMStringConversion*` stands at the use site.**  No mirror of this unit's include graph
+  declares the XIM string-conversion surface (the same measurement slice 3 recorded for the rest of
+  the XIM/XIC surface), so P-88 ① applies: the records stand in this unit at C 2726's declaration
+  block, each with its `<X11/Xlib.h>` line and its measured layout.  Owed, below.
+
+### Owed (this slice)
+
+- **`include/xlib.rs` (or its `x11_constants` module)**: `XIMStringConversionFeedback` (Xlib.h
+  1278), `XIMStringConversionText` + `XIMStringConversionText_string` (1287-1295),
+  `XIMStringConversionPosition` (1297), `XIMStringConversionOperation` (1306),
+  `XIMStringConversionSubstitution`/`XIMStringConversionRetrieval` (1308-1309) and
+  `XIMStringConversionCallbackStruct` (1321-1327) - this slice's six use-site declarations, which
+  belong with the rest of the XIM/XIC surface slice 3 already owed to that mirror.  Measured, the
+  reference's only other use of the surface is the `#if 0` test subr at C 10131-10175, so this
+  file is the live consumer.
+- **`include/textconv.rs`**: the `use textconv_decls::*;` glob line its own header comment says the
+  module carries (PORTING.md P-17/P-21); until it lands, every consumer unit writes it at the use
+  site.  `src/androidterm.rs`'s ledger owes the same row.
+- **`docs/ports/line-drift-tolerance.tsv`**: still the `src/xfns.c` row slice 1 recorded (now 46.9%
+  at this revision).
+- **`docs/ports/macro-body-notes.tsv`**: this slice's one appended row (the `switch`/`case`/
+  `default`/`goto` exemptions of `xic_string_conversion_callback`).  Append-only, written by this
+  lane.
+- **`src/xfns.c` itself**: the code already landed calls three functions whose definitions are in
+  the remainder (`set_up_x_back_buffer`, C 3972, and `tear_down_x_back_buffer`, C 4013, from
+  C 869/871; `x_display_info_for_name`, C 7613, from C 197).  Each site is a P-91 row in the arm
+  readings above and waits for the remainder slice.
+- **The three mirror defects this brief names are carried, not owned, by this lane**: the
+  `FRAME_MENUBAR_HEIGHT` body (`include/xterm.rs`, `{ (void) ($f); 0 }`), the `xim_inst_t` gating
+  (`include/xterm.rs` 168/534), and the `bool_bf` member rows (`wait_for_wm`, `alpha_identical_p`,
+  `update_mode_line`, `use_vsync_p`…).  They are cited in ② and ③ and stay owned by the mirror
+  lane that wrote the earlier slices' `## Owed`.
+
+### Not claimed (this slice)
+
+- **No runtime evidence of any kind.**  The frozen configuration compiles nothing from this file
+  and neither arm links anything: nothing here has been executed, and no X11 display, X server,
+  XIM/XIC input method or GTK toolkit was involved (this machine has no GTK tree and no libXt).
+  This unit *does* have its SDK's headers, so both arms were compiled - P-86 ③'s first case -
+  rather than recorded as `text-only`.
+- **The arm readings are `rustc` exit readings, not acceptance.**  ② and ③ count errors inherited
+  from mirrors this lane may not write plus registered P-91 rows; **neither arm is "0 errors" and
+  neither is claimed as a working configuration**.  ③ is what compiles this slice, and its reading
+  is "the round of errors is unchanged in class and one registered row fewer", not "the new code is
+  correct".
+- **The `switch`/`goto` equivalence is a text claim.**  PORTING.md 2.2 puts the per-function
+  equivalence on review; this ledger records the line numbers and the shape, and nothing here
+  measures the two programs against each other.
+- **Two arm readings are not readings of a C configuration** and are not run: `use_gtk` and
+  `use_x_toolkit` together (`E0124` in the mirror's `x_output`, slice 3's ⑤), and
+  `have_ext_tool_bar` without `have_ext_menu_bar` (`include/frame.rs`'s `compile_error!`).
