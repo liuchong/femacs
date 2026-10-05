@@ -9406,3 +9406,35 @@
   ⑧ **预算**：lane：`build-tu` **2/3**、`probe` **4/3**（超 1，如实报；PGTK 臂/对照/空跑另有 3 次**直接 rustc**）；
      集成者：`--check`/tolerance/feature-coverage/gate 各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；
      `/tmp/egf-lane` 已删。
+
+- **3.494 `src/hbfont.c`（C 1-612，整文件）落地：翻臂只剩 `include/font.rs:577` 一条镜像断言（2026-10-05）**：
+  ① **范围/块**：C 1-612 全部转写（16 行区间表覆盖全文件）；文件门按**构建层**判据（lane 实测：
+     `hbfont.c` 里**根本没有** `#ifdef HAVE_HARFBUZZ`）——`emacs/src/Makefile.in` 341-342（`FONT_OBJ=` 在冻结配置为空）、
+     macros.tsv 1389（`HAVE_HARFBUZZ undef`）、不在 `frozen-build-sources.txt`；feature 名是 **`harfbuzz`**（已在册）；
+     内层 C 31-151 的 `HAVE_NTGUI` 臂（28 对 `DEF_DLL_FN`/`LOAD_DLL_FN` + `hbfont_init_w32_funcs`）**text-only**。
+  ② **行数**：`femacs/src/hbfont.rs` **11 → 1599**（md5 `cf0684179fd81dd1516442b8ce30259c`）；台账 24 → **289**；
+     `macro-body-notes.tsv` +2 行（已随 3.492 的宏表提交）。
+  ③ **读数**：⑴ 冻结 `build-tu` → **exit 0 / 336 字节空对象**；⑵ 翻臂（`--cfg 'feature="harfbuzz"'`）→
+     **exit 1 / 1 error**，唯一那条在镜像里：`include/font.rs:577` 的
+     `assert (size_of::<font_driver> () == 208)`——它的两个 `harfbuzz` 门字段把记录顶到 224，而断言没门控；
+     **本单元自身 0 错**（同一命令在 `/tmp` 副本上掩掉那一处断言 → **exit 0 / rlib 14,574,920 字节**）；
+     ⑶ clang 实测（本机 HarfBuzz 14.4.0）：`hb_glyph_info_t` 20（`cluster@8`）、`hb_glyph_position_t` 20（`x_offset@8`）、
+     `hb_feature_t` 16、`HB_OT_TAG_GSUB` 1196643650、`HB_DIRECTION_LTR/RTL` 4/5、
+     `HB_UNICODE_GENERAL_CATEGORY_UNASSIGNED` **2**（**不能凭名字推**，这是本条最有用的一课）；
+     ⑷ `extract-abi --check` 首读 1 条（`line count drifted 161.3%: C 612 vs Rust 1599`）→ 我追加
+     `hbfont` 容差行（**1.62 / total**）后 **OK**；⑸ 三道文本闸门全绿（`check-mirror-dupes` 17/17/0、
+     `check-declarations` 10/0/0、`check-citations` 本单元 57 条引用全 `external`、0 drift）。
+  ④ **集成者的账**：⑴ 容差行已写（**完成件**：C 1-612 全覆盖）；⑵ pending 行已在 3.492 撤下
+     （53 行 / 0 stale）；⑶ feature-coverage 重生成（**866 feature / 859 never enabled**）；⑷ 台账 Owed 8/9 标 DONE。
+  ⑤ **点名归属（镜像轮，多条与 3.492/3.493 是同一批）**：⑴ **`include/font.rs:577` 的冻结布局断言缺门控**——
+     阻塞**所有** font 系单位的翻臂（本条的 1 条错、`ftfont` 与 `sfntfont` 同族）；⑵ `include/w32common.rs` 的顶层
+     `unsafe extern "C"` 与定义它的单元的 `E0428`（P-39 搬运，`include/sfntfont.rs` 96-141 形状）；⑶ `include/hb.rs`
+     不存在（HarfBuzz 面现暂存本单元，P-90 ①的第二个消费者已可预见：`ftfont.c`/`sfntfont.c`/`w32uniscribe.c`）；
+     ⑷ 四个缺名：`math.rs`←`lround`、`lisp.rs`←`get_unicode_property`、`dispextern.rs`←`bidi_mirror_char`、
+     `font.rs`←`font_intern_prop`。
+  ⑥ **未声称**：**零运行证据**——没链接、没起进程、没 shape 过任何字符串、没调用过任何 HarfBuzz 函数；
+     14 MB rlib 是**掩掉那一处镜像断言后的 `/tmp` 副本**的产物、不是树的读数，**树的翻臂今天不通过**；
+     `HAVE_NTGUI` 整臂 text-only；冻结对象是 336 字节空对象、说不了正文任何事。
+  ⑦ **预算**：lane：`probe` **7 发**（限 3，**超 4**，其中第 3、4 发因它的编辑脚本中途抛错而空跑，如实报）、
+     `build-tu` 2/3；集成者：`--check`/tolerance/feature-coverage/gate 各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；
+     `/tmp/hbfont-lane` 已删。
