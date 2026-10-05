@@ -14,8 +14,14 @@
 # port, and a missing generated file is not a defect in the port (3.628).  What it does give is
 # a reproducible reading of how far the loadup gets.
 #
+# `FEMACS_CWD` sets the working directory (default: the repository root).  The dump path needs it:
+# `Snarf-documentation` opens `../etc/DOC`, a path relative to the *build* src directory, and the
+# reference build's own DOC is at `build/emacs-ref/etc/DOC` - so a dump run wants
+# `FEMACS_CWD=$repo/build/emacs-ref/src`.
+#
 #     tools/loadup-fixture.sh --batch          # the ladder reading
-#     tools/loadup-fixture.sh -Q --batch -l FILE
+#     tools/loadup-fixture.sh --batch --temacs=pdump
+#     FEMACS_CWD=$PWD/build/emacs-ref/src tools/loadup-fixture.sh --batch --temacs=pdump
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
@@ -28,5 +34,6 @@ lp="$repo/femacs/lisp"
 for d in "$repo"/femacs/lisp/*/; do lp="$lp:${d%/}"; done
 lp="$lp:$repo/emacs/lisp"
 for d in "$repo"/emacs/lisp/*/; do lp="$lp:${d%/}"; done
-echo "loadup-fixture: $(printf '%s' "$lp" | tr ':' '\n' | wc -l | tr -d ' ') load-path entries, binary $bin" >&2
+cd "${FEMACS_CWD:-$repo}"
+echo "loadup-fixture: $(printf '%s' "$lp" | tr ':' '\n' | wc -l | tr -d ' ') load-path entries, binary $bin, cwd $(pwd)" >&2
 exec env EMACSLOADPATH="$lp" "$bin" "$@"

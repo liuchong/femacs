@@ -13085,3 +13085,11 @@
   ⑤ **未声称**：本件**没有改端口代码**（只加 `tools/` 与状态/PORTING 一行）、没有编译、没有运行读数；它证明的是"651 个站点的载体类型与宏的解引用方式一致"，不是"这些变量在运行期都对"。
   ⑥ **收口**：新增 `tools/check-defvar-carriers.py`；PORTING.md P-97 行由"待补门"改为点名这道门；十一/十一道文本门复跑全绿。
 
+- **3.640 夹具补 cwd：dump 走过 DOC、**进入 pdumper**（`Dumping under the name emacs.pdmp`），新缺陷点名 `dump_emacs_reloc_to_lv` 一侧的 NULL 引用（2026-10-06）**：
+  ① **夹具缺口**：3.639 的停点是 `Opening doc string file: No such file or directory, ../etc/DOC` —— 那是**相对 cwd** 的路径（参照构建的 DOC 在 `build/emacs-ref/etc/DOC`）。`tools/loadup-fixture.sh` 新增 **`FEMACS_CWD`**（默认仓库根；dump 运行用参照构建的 src 目录），并把 cwd 打进 stderr 那行读数里。
+  ② **读数**：`FEMACS_CWD=$PWD/build/emacs-ref/src tools/loadup-fixture.sh --batch --temacs=pdump` ⇒ `^Loading=114`、**`Dumping under the name emacs.pdmp`**、在旁边**生成了 `build/femacs/emacs.pdmp`（0 字节）**、随后 `rc=134`。⇒ **dump 路径真的进入了 pdumper**（这是目标阶梯 L3 的第一段）。
+  ③ **新缺陷（点名到函数）**：`femacs port: panic: panicked at …/units/pdumper/_root.rs:4150:25: null reference constructed`，帧 `dump_emacs_reloc_to_lv`（`pdumper.c` 的 `dump_emacs_reloc_to_lv`，端口 `pdumper.rs` 1861 起）⇐ `drain_reloc_list` ⇐ `Fdump_emacs_portable`。读数换算：单元根副本的行 ≈ 源文件行 + 前缀（本单元前缀约 2289 行），故 4150 落在 `dump_emacs_reloc_to_lv` 的**入口/内联体内**——即在那里对某个可能为 NULL 的指针构造了 Rust 引用（C 允许 `&*p`/`p->field` 在 NULL 上"不真解引用"，Rust 的 `&*null` 直接 panic）。
+  ④ **下一站（点名）**：在该函数及其被内联的调用（`dump_object_self_representing_p` / `dump_emacs_reloc_immediate_lv` / `dump_push` / `list3` / `emacs_offset` / `dump_enqueue_object`）里找那一处 `&*null`，改成原始指针/`addr_of!` 写法；这一类（"C 的 `&*p` 在可能为 NULL 的指针上"）大概率要记成一条新规则并配门。
+  ⑤ **未声称**：**没有 dump 成功**（0 字节文件已删）、没有 `.elc` 装载、没有 `make check`；本轮**没有改端口代码**、没有编译、没有运行除上述一次之外的动作。
+  ⑥ **预算**：dump 运行 1 发；`/tmp/g1.*` 已删；`build/femacs/emacs.pdmp`（0 字节）已删。
+
