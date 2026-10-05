@@ -10172,3 +10172,59 @@
      变通写法。追记在 `docs/ports/include-lisp.md`。
   ④ **未声称**：本条只说明"这条边今天加不进"，**不**说镜像的 include 列表已经与 C 一致（还差
      `<stddef.h>`/`<limits.h>`/`<inttypes.h>`/`<stdarg.h>` 等同样的边）；也没有修工具。
+
+- **3.524 `lisp.h` 30 的 `<string.h>` 边落地：3.523 撤回的那条边，根因**换了一个**（2026-10-05）**：
+  ① **纠正 3.523 的归因**：3.523 把 `E0428` 归到"物化器的 dedupe 按 `include!` 的**书写路径**去重"。本轮复读物化结果
+     （`build/femacs/units/keyboard/_root.rs`）：`lib/include/string.rs` 在这个 TU 里**只到达一次**（物化器把镜像内容
+     内联，留下的唯一一处字符串是本轮新写的注释）⇒ 真正的重复是**单元自己的 in-place 声明**，与物化器无关
+     （`check-mirror-dupes.py` 独立量出 keyboard.rs 7、coding.rs 4、doprnt.rs 1）。3.523 记的那条"欠工具"**撤回**：
+     没有工具缺陷，只有还没搬回镜像的重复声明。
+  ② **改动**：`femacs/src/include/lisp.rs` 按 C 原样加边（C 30 的 `#include <string.h>`）；删掉三处单元的重复声明
+     （`src/coding.rs` 4：memset/memcpy/strncmp/strcpy；`src/keyboard.rs` 7：memcpy/memcmp/strcmp/memset/strcpy/stpcpy/
+     memmove；`src/doprnt.rs` 1：strncmp），并在同一轮把 `check-mirror-dupes.py` 量出的其余同类重复清掉
+     （`src/xfont.rs` 2、`src/ftfont.rs` 1、`src/tparam.rs` 2；前两处是 3.521 把 `font_add_log`/`x_mark_frame_dirty`
+     搬进镜像后留下的副本）。`src/doprnt.rs` 仍在就地声明 `strnlen`/`mempcpy`（镜像没有），注释写明理由。
+  ③ **读数（主判据）**：⑴ `check-all-units` **83 unit(s), 0 failure(s)**（两腿；3.523 那次是 3 failures）；
+     ⑵ `check-mirror-dupes` **17 duplicate / 17 ratchet row / 0 failure**（改前 **17 failure**——那 17 条全是**无理由**的
+     重复，留档的 17 条仍逐条有理由）；⑶ `layout-check` **passed**；⑷ `check-citations` **5 drift / 5 stale → 0 / 0**：
+     边插入 `include/lisp.rs` 24 行把其后 5 条 allowlist 行整体推走 5 行，逐行 +5 复写（3.166 之后 `--fix` 已被移除，
+     工具只给复核队列，改法是人工挪行）；⑸ `check-declarations` **17/0/0**、`check-ledger-ticks` 233 绑定/0、
+     `check-dead-file-coverage` 96 绑定/0、`check-port-lines` 0 new/0 stale、`check-target-names` 629/591/0、
+     `check-verbatim` 6 树/4604 文件/0。
+  ④ **未声称**：镜像的 `<string.h>` **仍不是 C 的那一份**——生成档声明、镜像还没有的名字有 `strnlen`、`mempcpy`、
+     `strncpy`、`strcat`、`strstr`、`strcoll`、`stricmp` 一类，它们此刻仍在 8 个单元就地声明（`sysdep.rs`、`process.rs`、
+     `inotify.rs`、`doprnt.rs`、`lib-src/{etags,emacsclient,pop,update-game-score}.rs`）；其中 `strnlen`/`mempcpy` 各有一个
+     **定义单元**（`lib/strnlen.rs`、`lib/mempcpy.rs`），搬进镜像必须走 `pub mod` + glob 的形状（P-39/P-88⑤，`memmem`
+     那个先例），本轮**没做**；也**没有**修任何工具。
+
+- **3.525 四件入库：`src/fontset.c`、`src/dbusbind.c`、`lwlib/lwlib-Xm.c`、`oldXMenu/Internal.c`（2026-10-05）**：
+  ① **四件的产出**：`femacs/src/fontset.rs` 11 → **2622** 行（C 2257）、`femacs/src/dbusbind.rs` 12 → **3005**（C 2193）、
+     `femacs/lwlib/lwlib-Xm.rs` → **2834**（C 1964）+ `femacs/lwlib/include/lwlib-Xm.rs` 57、`femacs/oldXMenu/Internal.rs`
+     3 → **1163**（C 1023）；四本台账 `docs/ports/{fontset,dbusbind,lwlib-Xm,oldXMenu-Internal}.md` 按 P-86 形状
+     （C 行号区间表 + Evidence + Deviations + Owed），`docs/ports/macro-body-notes.tsv` 由两条 lane 追加
+     （fontset 5 行、Internal 2 行；dbusbind **0** 行——它的 token 比较实测是空跑，加行会声称一个机器不索要的豁免）。
+  ② **集成者替四件落的账（点名）**：⑴ `docs/ports/line-drift-tolerance.tsv` 三行（`Internal 0.15`、`lwlib-Xm 0.45`、
+     `fontset 0.17`，全部 basis `total`）+ **重导 `dbusbind` 那行的理由**（它还写着"空单元 0 code lines"，现在是
+     C 2193 vs 3005 = 37.0%，容差 0.99 不变）；⑵ `femacs/xtask/Cargo.toml` 登记 **17 个 feature**（dbusbind 的 12 +
+     `have_dbus` 本身 + lwlib-Xm 的四个子门 `not_lesstif_version`/`xm_position_index`/`energize`/
+     `xm_version_lt_1002_or_lesstif_lt_84`；`use_motif` 早已在册），每行带 C 的宏名与出处；⑶ 四本生成物重算：
+     `docs/port-map.md`、`docs/baseline/port-lines-pending.tsv`（33 文件 / 50,069 参照行）、
+     `docs/baseline/feature-coverage.tsv`（912 feature / 905 从未启用）。
+  ③ **读数**：⑴ `extract-abi.py --check` 四对**全 OK**；⑵ 上一条列出的七门全绿（本件与 3.524 同一提交）；
+     ⑶ lane 侧臂读数（各自台账）：`fontset` 翻臂 **10 错全在镜像**（`include/fontset.rs` 顶层声明 9 条 `E0428`、
+     `include/font.rs` 的 `font_deferred_log` 4 × `E0425`、`include/nsterm.rs` 4、`include/dispextern.rs` 1639 两条），
+     单元自身 0 错（变异实测背书）；`dbusbind` 翻臂 **10 错全在镜像**（buffer.rs 8、termhooks.rs 2），且它的
+     `--check` 是**空清单**（token 比较对本文件空跑——lane 用改名变异实测证明了这一点）；`lwlib-Xm` 的
+     `use_motif` + `use_x_toolkit` 臂与全子门臂都 **exit 0 / 0 error**；`Internal` 的 `have_x_windows` 臂 exit 0 /
+     0 error（变异实测 1 条 `E0308` 指向注入行）。
+  ④ **未声称（四件都零运行证据）**：冻结配置一个也不编它们（四个 `build-tu` 都是 **336 字节空对象**）——没有建过
+     fontset、没有连过 D-Bus、没有 `XtCreateWidget`、没有开过 XMenu；`dbusbind` 不是 libdbus 构建（对着单元自带的
+     头替身编），Motif/X11/D-Bus 的宽度是 documented 值或**本机 clang 实测**、不是冻结目标实测。**仍欠**：`fontset`
+     的四处镜像缺陷、`dbusbind` 的 7 个名字与 `include/termhooks.rs` 缺 `DBUS_EVENT`、`lwlib-Xm` 的 `dupstring` 家应落
+     `lisp.rs` 镜像（现有两处单元副本）、`Internal` 的 X11 面迁 `include/xlib.rs`、`oldXMenu/include/XMenuInt.rs` 的
+     `_decls` 形状。
+  ⑤ **进度与预算实报**：累计 **493,590 / 678,320 = 72.8%**（上一轮 72.5%，含四件的在飞数）；pending 类从 37 文件 /
+     57,503 行降到 **33 文件 / 50,069 行**（离开的 7,437 参照行正是这四件）。lane 侧 `build-tu`：fontset 3/3、
+     dbusbind 3/3、Internal 3/3、lwlib-Xm 若干；`probe`：fontset **5/3**、dbusbind **4/3**、Internal **4/3**（三次超支，
+     各自台账如实报）；集成者：`check-all-units` 2 发（各约 90 s）、`layout-check` 1 发、**0 发 `build-tu`/`probe`**、
+     0 发 `--all`/`gate-fast`/`cargo test`。

@@ -67,19 +67,16 @@ include!("include/termhooks.rs");           // C 302: `#include "termhooks.h"`
 include!("include/pdumper.rs");             // C 303: `#include "pdumper.h"`
 
 /* Use-site declarations (PORTING.md P-72 ③): names C declares in headers whose mirrors do
-   not carry them.  Each keeps C's own prototype in a `/// C:` line.  */
+   not carry them.  Each keeps C's own prototype in a `/// C:` line.
+
+   The four `<string.h>` names this block used to carry (`memset`, `memcpy`, `strncmp`,
+   `strcpy`) are gone from it: C reaches them through `lisp.h` 30's `#include <string.h>`,
+   which the port's chain now carries (`src/include/lisp.rs`, status 3.524), so keeping the
+   copies here was `E0428` against the mirror's own declarations.  */
 
 unsafe extern "C" {
   /// C: lisp.h 4322: `extern void make_gap_1 (struct buffer *, ptrdiff_t);`
   fn make_gap_1 (b: *mut buffer, delta: ptrdiff_t);
-  /// C: <string.h> `extern void *memset (void *, int, size_t);`
-  fn memset (s: *mut c_void, c: c_int, n: size_t) -> *mut c_void;
-  /// C: <string.h> `extern void *memcpy (void *, const void *, size_t);`
-  fn memcpy (s1: *mut c_void, s2: *const c_void, n: size_t) -> *mut c_void;
-  /// C: <string.h> `extern int strncmp (const char *, const char *, size_t);`
-  fn strncmp (s1: *const c_char, s2: *const c_char, n: size_t) -> c_int;
-  /// C: <string.h> `extern char *strcpy (char *, const char *);`
-  fn strcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char;
   /// C: lisp.h 4349-4351: `extern Lisp_Object del_range_2 (ptrdiff_t, ptrdiff_t, ptrdiff_t, ptrdiff_t, bool);`
   fn del_range_2 (from: ptrdiff_t, from_byte: ptrdiff_t, to: ptrdiff_t, to_byte: ptrdiff_t,
 		  prepare: bool) -> Lisp_Object;

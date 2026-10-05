@@ -45,8 +45,9 @@
 
 // src/doprnt.c 119-127: config.h, stdio.h, stdlib.h, float.h, unistd.h, limits.h, then
 // lisp.h and character.h.  The system headers reach the port through the WIP mirrors that
-// lisp.rs pulls in (stdint/limits/float; P-26), and the four functions this file needs
-// from <stdio.h>/<string.h> are declared below until those mirrors carry them.
+// lisp.rs pulls in (stdint/limits/float; P-26), and the two names this file still needs from
+// <string.h> are declared below until those mirrors carry them (`strncmp` left the block when
+// the lisp.h 30 edge landed, status 3.524).
 include!("include/config.rs");
 include!("../lib/include/stdio.rs");
 include!("include/lisp.rs");
@@ -56,13 +57,16 @@ include!("include/character.rs");
 use core::ffi::VaList;
 
 unsafe extern "C" {
-  // <stdio.h>/<string.h> on the frozen target (HAVE_MEMCPY... the config has no
-  // HAVE_MEMPCPY is undefined, so C's `mempcpy` here is the definition `lib/mempcpy.c`
-  // emits under C's own name: the generated `<string.h>`'s `rpl_mempcpy` rename sits
-  // inside `# if 0` (status 3.205), so the port calls that name too.  clang inlines
-  // the call in the reference object; the port keeps the call.)
+  // `<string.h>`'s `strnlen` and `mempcpy` are not in `lib/include/string.rs` yet, so they stay
+  // declared here; `strncmp` is gone from the block (the mirror carries it, and C reaches it
+  // through lisp.h 30's `#include <string.h>`, status 3.524).
+  //
+  // The frozen config has no `HAVE_MEMPCPY`, so C's `mempcpy` here is the definition
+  // `lib/mempcpy.c` emits under C's own name: the generated `<string.h>`'s `rpl_mempcpy`
+  // rename sits inside `# if 0` (build/emacs-ref/lib/string.h 1022-1027, status 3.205), so the
+  // port calls that name too.  clang inlines the call in the reference object; the port keeps
+  // the call.
   pub fn strnlen (s: *const c_char, maxlen: size_t) -> size_t;
-  pub fn strncmp (a: *const c_char, b: *const c_char, n: size_t) -> c_int;
   pub fn mempcpy (dst: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
   // lisp.h 5548's `xpalloc` is the include/lisp.rs mirror's now (status 3.363).
 }

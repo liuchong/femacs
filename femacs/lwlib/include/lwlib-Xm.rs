@@ -16,7 +16,15 @@ include!("lwlib-int.rs");   // lwlib-Xm.h 22: `#include "lwlib-int.h"`
 // lwlib-Xm.h 19-20: the include guard has no Rust counterpart (PORTING.md 0.1).
 pub const LWLIB_XM_H: bool = true;
 
-unsafe extern "C" {
+/* The declarations live in `lwlib_Xm_decls` + a glob import (the `include/lwlib-Xaw.rs` /
+   `include/lwlib-Xlw.rs` shape, PORTING.md 0.1-10 / P-39): `lwlib/lwlib-Xm.rs`'s port
+   *defines* every function below (and `xm_creation_table`), and a Rust definition cannot share
+   a scope with the foreign declaration of the same name (E0428) - an explicit item shadows a
+   glob import instead.  */
+pub mod lwlib_Xm_decls {
+  use super::*;
+
+  unsafe extern "C" {
   /// lwlib-Xm.h 24: `extern widget_creation_entry xm_creation_table [];` (an incomplete
   /// array; the port declares it with length 0, the lisp.h `my_edata` shape).
   pub static mut xm_creation_table: [widget_creation_entry; 0];
@@ -44,4 +52,6 @@ unsafe extern "C" {
   pub fn xm_set_main_areas (parent: Widget, menubar: Widget, work_area: Widget);
   /// lwlib-Xm.h 55-56: `void xm_manage_resizing (Widget w, Boolean flag);`
   pub fn xm_manage_resizing (w: Widget, flag: Boolean);
+  }
 }
+use lwlib_Xm_decls::*;

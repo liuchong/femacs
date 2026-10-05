@@ -483,35 +483,17 @@ unsafe extern "C" {
   fn code_convert_string (string: Lisp_Object, coding_system: Lisp_Object,
                           nocopy: Lisp_Object, buffer: bool, gc: bool,
                           carryover: ptrdiff_t) -> Lisp_Object;
-  /// C: <string.h>: `void *memcpy (void *restrict, const void *restrict, size_t);` (the
-  /// include list does not pull `lib/include/string.rs` in, the coding.rs shape).
-  fn memcpy (dest: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
-  /// C: <string.h>: `int memcmp (const void *, const void *, size_t);` (the same include-list
-  /// gap as `memcpy` above; the modifier parser is its first reader).
-  fn memcmp (s1: *const c_void, s2: *const c_void, n: size_t) -> c_int;
-  /// C: <string.h>: `int strcmp (const char *, const char *);` (the same include-list gap;
-  ///   `handle_user_signal` is its first reader).
-  fn strcmp (s1: *const c_char, s2: *const c_char) -> c_int;
-  /// C: <string.h>: `void *memset (void *, int, size_t);` (the same include-list gap;
-  ///   `store_user_signal_events` is its first reader).
-  fn memset (s: *mut c_void, c: c_int, n: size_t) -> *mut c_void;
-  /// C: <string.h>: `size_t strnlen (const char *, size_t);` (the same include-list gap;
-  ///   `menu_separator_name_p` is its first reader; `process.rs`/`sysdep.rs` declare their own).
+  /// C: <string.h>: `size_t strnlen (const char *, size_t);` — C reaches `<string.h>` through
+  ///   lisp.h 30, and the mirror that edge pulls in (`lib/include/string.rs`, status 3.524)
+  ///   declares the rest of the family this block used to carry (`memcpy`, `memcmp`, `strcmp`,
+  ///   `memset`, `strcpy`, `stpcpy`, `memmove`; keeping them here was `E0428` against it).
+  ///   `strnlen` is not in the mirror yet, so it stays declared here (`menu_separator_name_p`
+  ///   is its first reader; `process.rs`/`sysdep.rs` declare their own).
   fn strnlen (s: *const c_char, maxlen: size_t) -> size_t;
-  /// C: <string.h>: `char *strcpy (char *restrict, const char *restrict);` (the same
-  ///   include-list gap; `parse_tool_bar_item` is its first reader).
-  fn strcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char;
-  /// C: <string.h>: `char *stpcpy (char *restrict, const char *restrict);` (the same
-  /// include-list gap; `apply_modifiers_uncached` is its first reader).
-  fn stpcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char;
   /// C: lisp.h 4717: `extern ptrdiff_t esprintf (char *, char const *, ...)
   ///   ATTRIBUTE_FORMAT_PRINTF (2, 3);` (doprnt.c; the lisp.rs mirror does not carry it,
   ///   `keymap.rs` declares its own copy).
   fn esprintf (buf: *mut c_char, format: *const c_char, ...) -> ptrdiff_t;
-  /// C: <string.h>: `void *memmove (void *, const void *, size_t);` (the same include-list
-  /// gap as `memcpy` above; `process_special_events`'s carried `HAVE_X11`/`HAVE_PGTK` arm is
-  /// the only user).
-  fn memmove (dest: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
   /// C: frame.h 1508: `extern struct frame *root_frame (struct frame *f);` (frame.c defines
   /// it; `term.rs`/`dispnew.rs` declare it for their own callers, this unit for its own —
   /// P-72③, and the frame.rs mirror does not carry it).

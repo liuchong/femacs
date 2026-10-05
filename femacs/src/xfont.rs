@@ -339,13 +339,10 @@ unsafe extern "C" {
   /// C: font.h 896: `extern void register_font_driver (struct font_driver const *,
   /// struct frame *);`
   pub fn register_font_driver (d: *const font_driver, f: *mut frame);
-  /// C: font.h 1001: `extern void font_add_log (const char *, Lisp_Object, Lisp_Object);` - the
-  /// mirror's own `FONT_ADD_LOG!` body names it (`include/font.rs` 290), so every consumer
-  /// declares it at the use site (the `ftfont.rs` list does the same).
-  pub fn font_add_log (action: *const c_char, arg: Lisp_Object, result: Lisp_Object);
-  /// C: xterm.h 1405: `extern void x_mark_frame_dirty (struct frame *f);` - the mirror's own
-  /// `FRAME_X_DRAWABLE!` body names it (`include/xterm.rs` 974), and no mirror declares it.
-  pub fn x_mark_frame_dirty (f: *mut frame);
+  /// C: font.h 1001 `font_add_log` and C: xterm.h 1405 `x_mark_frame_dirty` are the mirrors'
+  /// own declarations now (`include/font.rs` `FONT_ADD_LOG!` body, `include/xterm.rs`
+  /// `FRAME_X_DRAWABLE!` body; status 3.521 moved them there, 3.524 retired the use-site
+  /// copies this block carried because they were duplicates of them).
   /// C: xterm.h 1003: `extern struct x_display_info *x_display_info_for_display (Display *);`
   pub fn x_display_info_for_display (display: *mut Display) -> *mut x_display_info;
   /// C: xterm.h 1752: `extern void x_catch_errors (Display *);`

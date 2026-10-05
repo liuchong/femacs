@@ -1306,10 +1306,9 @@ unsafe extern "C" {
   /// C: font.h 913-914: `extern Lisp_Object font_put_extra (Lisp_Object font, Lisp_Object prop,
   /// Lisp_Object val);` (font.c defines it).
   pub fn font_put_extra (font: Lisp_Object, prop: Lisp_Object, val: Lisp_Object) -> Lisp_Object;
-  /// C: font.h 1001: `extern void font_add_log (const char *, Lisp_Object, Lisp_Object);`
-  /// (font.c defines it; `include/font.rs`'s `FONT_ADD_LOG!` body - C font.h 1004-1008 - expands
-  /// to this name, which that mirror does not declare).
-  pub fn font_add_log (action: *const c_char, arg: Lisp_Object, result: Lisp_Object);
+  /// C: font.h 1001 `font_add_log` (font.c defines it) is the `include/font.rs` mirror's own
+  /// declaration now - its `FONT_ADD_LOG!` body (C font.h 1004-1008) names it (status 3.521,
+  /// the use-site copy retired by 3.524).
   /// C: font.h 854-855: `extern int font_style_to_value (enum font_property_index prop,
   /// Lisp_Object name, bool noerror);` (font.c defines it; the mirror's `FONT_SET_STYLE!` body
   /// expands to this name, and C 183 calls it directly).

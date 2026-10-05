@@ -20,6 +20,11 @@ include!("../../lib/include/stdbit.in.rs");
 // src/lisp.h 31 includes <float.h> first and <inttypes.h> (hence <stdint.h>) at 32;
 // the port keeps that order (review D's F10 found the two swapped).  gnulib has no
 // wrapper for <float.h>, so that mirror is a system mirror.
+/* C 30: `#include <string.h>` - lisp.h's own list.  The port's chain carried it only when a
+   unit happened to include the mirror itself, so units declared the names in place
+   (`src/keyboard.rs` 486-500 is the worked example).  With this edge those in-place copies
+   are `E0428` and move back to the mirror (P-88 (5), status 3.524).  */
+include!("../../lib/include/string.rs");   // C 30: `#include <string.h>`
 include!("../../lib/include/float.in.rs");
 // src/lisp.h 32 includes <inttypes.h>, which includes <stdint.h>; the port keeps
 // the same chain (lib/inttypes.in.rs will include this file once it exists).

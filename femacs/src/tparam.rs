@@ -27,9 +27,9 @@ include!("include/lisp.rs");
 include!("include/tparam.rs");
 
 unsafe extern "C" {
-  // <string.h> on the frozen target (HAVE_STPCPY is 1, so this is the system stpcpy).
-  pub fn stpcpy (dest: *mut c_char, src: *const c_char) -> *mut c_char;
-  pub fn memcpy (dest: *mut c_void, src: *const c_void, n: size_t) -> *mut c_void;
+  // `<string.h>` is the mirror's own now: C reaches it through lisp.h 30, and the copies this
+  // block carried (`stpcpy` - the system one, HAVE_STPCPY is 1 - and `memcpy`) were duplicates
+  // of `lib/include/string.rs` (status 3.524).
   // <stdlib.h>: the port's stdlib mirror carries the allocator entry points the
   // ported files call; atoi is only used by the dead DEBUG main below.
   pub fn atoi (s: *const c_char) -> c_int;
