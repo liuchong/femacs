@@ -11890,3 +11890,20 @@
      Xlib 面（`XSetWindowAttributes`/`XTextProperty`/`XErrorEvent` + 14 个入口点 + `CurrentTime` + 13 个 `XC_*`）、`include/xterm.rs`
      的 `use_vsync_p`/`update_mode_line`、`include/gtk.rs` 的三个 GtkResizeMode 枚举、Xt 面（本机无 libXt）都记在 `## Owed`。
      **下一段起点 C 2,167**（`x_encode_text`）。
+
+- **3.589 镜像债：`include/w32inevt.rs` 的三条声明搬进 glob 导入模块（`windowsnt` 臂的 3 条 `E0428` 清零）（2026-10-05）**：
+  ① **症状与依据**：该镜像（`emacs/src/w32inevt.h`，22 行）声明三个名字，而**三个都是 `src/w32inevt.c` 的定义**
+     ⇒ 在镜像的 crate 根上，单元自己的定义与它同名同界 ⇒ `windowsnt` 臂读 3 条 `E0428`（这是 3.575 在 `include/w32term.rs`
+     修过、旧交接文档点名的同类）。修法与 3.575 相同：把两块声明移进 `pub mod w32inevt_decls { use super::*; … }` 并
+     `use w32inevt_decls::*;`（crate 根的定义遮蔽 glob 导入，PORTING.md 0.1-10 / P-21）。
+  ② **读数（实测）**：`xtask probe src/w32inevt.rs … --cfg 'feature="windowsnt"'` → 3 条 `E0428` **消失**；
+     该臂**仍有 69 条错**，且**没有一条落在本镜像**：26 条在 `_root.rs`（单元自己的 `<windows.h>` 替身），
+     3 条在 `include/dispextern.rs`、1 条在 `include/w32term.rs`、1 条在 `include/keyboard.rs`。`check-mirror-dupes`
+     仍是 **17 声明 / 17 棘轮行 / 0 failure**（镜像 glob 导入模块里的声明照旧计数）。
+  ③ **顺带更正一份台账**：`docs/ports/include-w32inevt.md` 里"No unit includes this mirror"已过时（现在
+     `src/w32inevt.rs` 453、`src/w32console.rs` 362、`src/w32fns.rs` 144 都 include 它），已在该台账追加一节记明。
+  ④ **门读数（本轮现读，全绿）**：`check-mirror-dupes` 17/17/0、`check-citations` 0 drift / 0 stale、
+     `check-declarations` 0 failures、`check-dead-file-coverage` 145/0、`check-ledger-ticks` 238/0、
+     `check-port-lines` 0/0/0/0、`check-target-names` 0。
+  ⑤ **未声称**：那次 probe 读数只是"**物化镜像图上的 `rustc` 类型检查**"，不是 Windows 编译；该臂离"能编"还有 69 条错
+     （上面点名的四处），本件**只清掉属于本镜像的那 3 条**。

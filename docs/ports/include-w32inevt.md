@@ -61,3 +61,19 @@
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);
   `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures;
   `check-target-names` 0 findings.
+
+## 3.589: the three declarations moved into a glob-imported module
+
+The note above ("No unit includes this mirror") is out of date: `src/w32inevt.rs` 453,
+`src/w32console.rs` 362 and `src/w32fns.rs` 144 all `include!` it now.  All three names this mirror
+declares are `src/w32inevt.c`'s **definitions**, so at the mirror's crate root the `windowsnt` arm
+read three `E0428 ... is defined multiple times`; they now sit in `pub mod w32inevt_decls` that the
+mirror glob-imports (a crate-root definition shadows a glob import, PORTING.md 0.1-10 / P-21 - the
+`include/w32term.rs` `w32term_fn_decls` shape).
+
+Reading (`xtask probe src/w32inevt.rs … --cfg 'feature="windowsnt"'`, 2026-10-05): the three
+`E0428`s are **gone**; the arm still reports **69 errors**, and **none of them is in this mirror** -
+26 are in `_root.rs` (the unit's own `<windows.h>` stand-ins), 3 in `include/dispextern.rs`,
+1 in `include/w32term.rs` and 1 in `include/keyboard.rs`.  `check-mirror-dupes` still reads
+17 duplicate declaration(s) / 17 ratchet row(s) / 0 failure(s), because a declaration inside a
+module the mirror glob-imports is counted.
