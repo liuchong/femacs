@@ -12582,3 +12582,34 @@
   ⑦ **预算**：`build-tu` 3 发（lread/print/print 复建）、`check-link --executable` 4 发、`lldb` 6 次、`sample` 1 次、
      临时仪表 2 轮（`print.rs` 里的 `DBG` 语句**已全部删除并复建验证**）、文本门 1 轮；`build/femacs/units/*` 与 `/tmp` 的
      `probe.el`、四份 `.out` 已清，`.o` 集与可执行件保留。
+
+- **3.616 嵌套 `load` 的 `infile` 恢复写错：外层读取器拿到的是内层那个已关闭的流，elisp 只加载了两个文件就"到底"了（2026-10-05）**：
+  ① **里程碑（可复跑）**：`env EMACSLOADPATH=<repo>/femacs/lisp build/femacs/emacs --batch` 的加载链从
+     `loadup.el → emacs-lisp/debug-early`（2 个）变成 **`loadup.el → debug-early → byte-run → backquote → subr`（5 个）**，
+     并且是在 `subr` 里被**下一处缺陷**打断的（见 ③），不再是"安静地停住"。
+  ② **缺陷：`close_infile_unwind` 的实参**。C 1466 是 `set_unwind_protect_ptr (fd_index, close_infile_unwind, infile)`——
+     传的是**当前（外层）的** `infile`（`infile = &input` 在**之后**一行）；`close_infile_unwind` 干的是
+     `infile = prev_infile`。端口写成了 `std::ptr::addr_of_mut! (input)`（**内层自己的**那块存储）⇒ 内层 `load`
+     展开时把**已关闭的内层流**装回 `infile`，外层读取器接着从 EOF 读 ⇒ 外层 `load` 提前返回，`loadup.el` 只走了第一个
+     `(load …)`，命令循环随后接管（这才是 3.615 里"`Fload` 只有两次"的原因）。改成传 `infile` 后链子接着走。
+  ③ **现在的现场（下一站）**：5 个文件之后在 elisp 里崩，且**崩点随构建/分配器漂移**（同一份代码：`memrchr` 的
+     `attempt to subtract with overflow`；lldb 下 `maybe_resize_hash_table` 的 `copy_nonoverlapping` 前置条件
+     "ranges do not overlap"；`MallocScribble=1` 下 `find_newline → memrchr`；`libgmalloc` 下是
+     `init_window_once → adjust_frame_glyphs → adjust_glyph_matrix`）。共同点是**内存状态被破坏或读到未初始化内存**：
+     最直接的一次是 `memrchr (s = NULL, n >= 8)`（第二次循环里 `longword_ptr.sub (1)` 在 NULL 上做减法才报
+     "subtract with overflow"），栈是 `Fmessage → message3 → log_message → message_dolog → scan_newline →
+     find_newline → memrchr`，即 **`*Messages*` 缓冲区的文本地址**那一侧。
+  ④ **本轮建立起来的三件工具（下一轮直接用）**：⑴ **libgmalloc**（`DYLD_INSERT_LIBRARIES=/usr/lib/libgmalloc.dylib`）
+     给每次 malloc 配守护页，越界**写在写入者**上立刻炸；⑵ **`MallocScribble=1`**（配 `MallocGuardEdges=1`）把未初始化的
+     读暴露出来；⑶ **临时给 `xtask` 的 `build_tu` 加 `-g`**（本轮试过并**已撤回、相关单元已按原样重建**）能拿到源码行号
+     （lldb 里 `bt` 直接带 `fns.rs:…`），这是把"某个 +1144 偏移"变成"某一行"的最短路径。
+  ⑤ **读数**：⑴ 加载链 5 行 `Loading …`（上面）；⑵ 崩溃读数按 ③ 列；⑶ 八道文本门 + `check-carried` 全绿
+     （`check-declarations` 6/0/0、`check-citations` 676 文件/0 drift/0 stale、`check-mirror-dupes` 16/16/0、
+     `check-ledger-ticks` 238/0、`check-dead-file-coverage` 145/0、`check-port-lines` 0/0/0/0、
+     `check-target-names` 0 finding、`check-carried` 11/11/4/0）；⑷ 本件改的是**单元**（`lread.rs`），不动镜像，
+     P-87 两腿不适用；`build-tu` 一发 + 一次可执行链接。
+  ⑥ **未声称**：没有 dump、没有 L1 验收；**崩溃没有修好**——这一件只修好了"链子为什么断在两个文件"，后面的内存破坏
+     仍是**未解决**的问题（③ 的四种读数都只是症状）。临时仪表（`fns.rs` 的两处 `fprintf`、`eval.rs` 的 signal 打印、
+     `lread.rs` 的 Fload 打印、`xtask` 的 `-g`）**已全部删除并复建验证**。
+  ⑦ **预算**：`build-tu` 约 12 发（含三次把仪表清掉后的重建）、`check-link --executable` 约 8 发、`lldb` 10 次、
+     `sample` 1 次；`build/femacs/units/*`、`/tmp` 的临时文件已清。

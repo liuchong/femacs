@@ -431,3 +431,14 @@ name, so the defect was invisible until elisp ran: `defsubr` interns the subr's 
 `docs/baseline/globals/symbols.tsv`'s `lisp_name` column, in that file's index order (the port's
 own 2118-symbol superset, P-29), with the formatting of the previous table kept (four entries a
 line, `c"...".as_ptr ()`).
+
+## 2026-10-05: the nested load handed the outer reader the inner, closed stream (status 3.616)
+
+`Fload` registers `close_infile_unwind` to put the *previous* `infile` back when the load unwinds,
+and C's argument is `infile` - the file the reader returns to (`set_unwind_protect_ptr (fd_index,
+close_infile_unwind, infile)`, lread.c 1466; `infile = &input` comes *after*).  The port passed
+`&input` - the load's *own* stream, which the unwinder then installs as the current one.  So after
+the first nested `(load ...)` of `loadup.el`, the outer reader was reading a closed stream: it saw
+EOF, the outer load returned, and elisp stopped after two files (`loadup.el`,
+`emacs-lisp/debug-early`) while the command loop took over.  With C's argument the chain runs
+`debug-early -> byte-run -> backquote -> subr` and keeps going.

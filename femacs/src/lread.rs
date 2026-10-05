@@ -1626,8 +1626,14 @@ DEFUN! ("load", Fload, Sload, 1, 5, 0,
 	   {
 	     if !file_stream_valid_p! (stream)
 	       { report_file_error (c"Opening stdio stream".as_ptr (), file); }
+	     /* C 1466 passes the *current* `infile` (the file being returned to), and
+		`close_infile_unwind` restores it: the storage `input` is the inner load's own,
+		reachable from `infile` until this load unwinds.  Passing `&input` instead made the
+		unwinder hand the *inner*, closed stream back to the outer reader, whose next read
+		saw EOF - the first nested `(load ...)` of loadup.el therefore ended the outer load,
+		and elisp stopped there (status 3.616).  */
 	     set_unwind_protect_ptr (fd_index, Some (close_infile_unwind),
-				     std::ptr::addr_of_mut! (input) as *mut c_void);
+				     infile as *mut c_void);
 	     input.stream = stream;
 	     input.lookahead = 0;
 	     infile = std::ptr::addr_of_mut! (input);
