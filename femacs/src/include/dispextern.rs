@@ -1555,16 +1555,24 @@ pub const DRAW_IMAGE_SUNKEN: draw_glyphs_face = 5;
    `#[cfg (feature = "have_window_system")]` does (nothing in this tree enables it, so what the
    compiler sees is exactly what clang sees).
 
-   Field types follow P-55/P-72.  `frame`, `window`, `font` and `composition` have owner
-   mirrors (`include/frame.rs`, `include/window.rs`, `include/font.rs`,
-   `include/composite.rs`), and a unit that can enable this feature has them by construction:
-   C's backends include frame.h/window.h/font.h, and `src/nsfont.m` 27-39 includes
-   `dispextern.h`, `composite.h`, `frame.h`, `window.h` and `font.h`.  What has no owner mirror
-   keeps the untyped pointer and the `/// C:` line P-55 asks for: `struct face` (C 1787) is
-   this header's own record and is not mirrored yet, `struct image` (C 3215) landed with this
-   batch, `struct xwidget` is xwidget.h (a todo
-   header in `docs/port-inventory.md`), and `GC`/`HDC`/`struct android_gc` are the platform
-   types of the `gc` blocks below.
+   Field types follow P-55/P-72.  `frame`, `window` and `font` have owner mirrors
+   (`include/frame.rs`, `include/window.rs`, `include/font.rs`), and a unit that can enable
+   this feature has them by construction: C's backends include frame.h/window.h/font.h, and
+   `src/nsfont.m` 27-39 includes `dispextern.h`, `frame.h`, `window.h` and `font.h`.  What has
+   no owner mirror *in this header's own include graph* keeps the untyped pointer and the
+   `/// C:` line P-55 asks for: `struct face` (C 1787) is this header's own record and is not
+   mirrored yet, `struct image` (C 3215) landed with this batch, `struct xwidget` is xwidget.h
+   (a todo header in `docs/port-inventory.md`), and `GC`/`HDC`/`struct android_gc` are the
+   platform types of the `gc` blocks below.
+
+   `struct composition` moved to that second list in status 3.526.  It does have an owner
+   mirror (`include/composite.rs`), but C's dispextern.h does **not** include composite.h - it
+   names the tag only as a pointer (C 1421) - so the "by construction" claim this paragraph
+   used to make about it was false for the live units that take this mirror without
+   composite.h: `src/fontset.c` 36 is the measured one (2 x `E0425 composition` on the
+   `fontset` arm).  `*mut c_void` plus the `/// C:` line is P-72 rule 3's reading of an
+   incomplete type, and the one consumer that reads the member (`src/abi_shim.rs` 1851)
+   already casts it.
 
    The record is **not** layout-asserted: this target has no window-system configuration to
    measure it with, so a `const _` here would be an invented number.  What *is* measured is the
@@ -1636,7 +1644,7 @@ pub struct glyph_string
 
   /* Non-null means this string describes (part of) a static
      composition.  */
-  pub cmp: *mut composition,                   // C 1421
+  pub cmp: *mut c_void,                        /// C: `struct composition *cmp;` (composite.h 148; P-72 (3))
 
   /* If not negative, this string describes a compos.  */
   pub cmp_id: ptrdiff_t,                       // C 1424

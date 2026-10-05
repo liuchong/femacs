@@ -47,8 +47,10 @@
 //   * No layout assertion is written for any record: every one of them holds AppKit, GNUstep or
 //     CoreGraphics members (`NSRect`, `NSString *`, `CGImageRef`, `BOOL`, ...), so no compiler on
 //     this target could measure it (`include/macfont.rs` 26-27, `include/emacsgtkfixed.rs`).
-//   * Nothing is degraded to `*mut c_void` either, because the whole body is inert here: C's own
-//     names are carried and the platform target resolves them.
+//   * Nothing else is degraded to `*mut c_void`, because the whole body is inert here: C's own
+//     names are carried and the platform target resolves them.  The four Objective-C class
+//     pointers of C 774-776 are the measured exception - they are the NS arm's only unresolved
+//     names (status 3.526).
 
 include!("dispextern.rs");       // C 22: `#include "dispextern.h"` (`Emacs_Cursor`, `Mouse_HLInfo`)
 include!("frame.rs");            // C 23: `#include "frame.h"` (`struct frame`)
@@ -206,16 +208,22 @@ pub const RETURN_FRAME_NOW: ns_return_frame_mode = 2;
 
 /* C 774-776: the four objects the `#ifdef __OBJC__` arm ends with ("Apple removed the
    declaration, but kept the implementation" is about the `NSApplication (EmacsApp)` category
-   below them, which is recorded with the rest of the Objective-C region).  */
-/// C: extern NSArray *ns_send_types, *ns_return_types;
-/// C: extern NSString *ns_app_name;
-/// C: extern EmacsMenu *svcsMenu;
+   below them, which is recorded with the rest of the Objective-C region).
+
+   The four classes are AppKit's (Cocoa) or GNUstep's, and this tree declares none of them:
+   P-72 rule 3 lets a mirror name only a type it declares itself or pulls in, so the statics are
+   the untyped `*mut c_void` and the `/// C:` line keeps each class name written down (status
+   3.526; the `coding.rs` `ccl_spec` reading of the same rule).  With C's names these were the
+   `fontset` arm's last four errors (`E0425 cannot find type NSArray/NSString/EmacsMenu`).  */
+/// C: nsterm.h 774: `extern NSArray *ns_send_types, *ns_return_types;`
+/// C: nsterm.h 775: `extern NSString *ns_app_name;`
+/// C: nsterm.h 776: `extern EmacsMenu *svcsMenu;`
 #[cfg (feature = "have_ns")]
 unsafe extern "C" {
-  pub static mut ns_send_types: *mut NSArray;
-  pub static mut ns_return_types: *mut NSArray;
-  pub static mut ns_app_name: *mut NSString;
-  pub static mut svcsMenu: *mut EmacsMenu;
+  pub static mut ns_send_types: *mut c_void;
+  pub static mut ns_return_types: *mut c_void;
+  pub static mut ns_app_name: *mut c_void;
+  pub static mut svcsMenu: *mut c_void;
 }
 
 /* C 795-806: "Special keycodes that we pass down the event chain."  C's implicit type is `int`

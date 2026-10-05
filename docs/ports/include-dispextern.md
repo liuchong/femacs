@@ -316,11 +316,16 @@ femacs/src/include/dispextern.rs` is OK with both arms present.
   W32 and pgtk backends read the same members.  The alternative (an opaque placeholder such as
   `femacs/src/font.rs` 739's `pub struct glyph_string;`) was rejected by the integrator, and
   this is the record's owner: `dispextern.h` is where C defines it.
-- **Field types: named where an owner mirror exists, `*mut c_void` + `/// C:` where not.**
-  `frame`, `window`, `font` and `composition` are named (`include/frame.rs`, `include/window.rs`,
-  `include/font.rs`, `include/composite.rs`), because a unit that enables this feature has them
-  by construction: C's backends include frame.h/window.h/font.h, and `src/nsfont.m` 27-39
-  includes `dispextern.h`, `composite.h`, `frame.h`, `window.h` and `font.h`.  Note the contrast
+- **Field types: named where an owner mirror exists *in this header's include graph*,
+  `*mut c_void` + `/// C:` where not.**
+  `frame`, `window` and `font` are named (`include/frame.rs`, `include/window.rs`,
+  `include/font.rs`), because a unit that enables this feature has them by construction: C's
+  backends include frame.h/window.h/font.h, and `src/nsfont.m` 27-39 includes `dispextern.h`,
+  `frame.h`, `window.h` and `font.h`.  `composition` was named here until status 3.526: it does
+  have an owner mirror (`include/composite.rs`), but C's dispextern.h does **not** include
+  composite.h - it names the tag only as a pointer - and the measured counterexample is
+  `src/fontset.c` 36 (2 x `E0425 composition` on the `fontset` arm), so
+  `glyph_string.cmp` is `*mut c_void` with its `/// C:` line now.  Note the contrast
   with this mirror's *live* text, where the same types degrade (`glyph.frame`,
   dispextern.rs 293; `Mouse_HLInfo.mouse_face_mouse_frame`, 1591; `glyph.buffer`, 686): those
   fields are compiled by every unit that takes this mirror, this record only by a window-system

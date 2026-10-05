@@ -10228,3 +10228,42 @@
      dbusbind 3/3、Internal 3/3、lwlib-Xm 若干；`probe`：fontset **5/3**、dbusbind **4/3**、Internal **4/3**（三次超支，
      各自台账如实报）；集成者：`check-all-units` 2 发（各约 90 s）、`layout-check` 1 发、**0 发 `build-tu`/`probe`**、
      0 发 `--all`/`gate-fast`/`cargo test`。
+
+- **3.526 镜像轮第七批：上一批 landed 单元点名的四处镜像缺陷，`fontset` 臂 10 错 → 0（2026-10-05）**：
+  ① **对象与归属**：四件都是 3.525 landed 的单元在翻臂读数里逐条点名的镜像缺陷（各台账 ④/Owed 有原文），
+     镜像属集成者（P-88 ① / P-72 rule 4 禁止 lane 改）：
+     ⑴ `include/font.rs` 1001-1002 的两个 logger 只声明了 `font_add_log`（3.519 补的），`font_deferred_log`
+        （font.h 1002，font.c 5822 定义，`src/font.rs` 6386 是端口侧定义）没人声明 ⇒ 任何展开
+        `FONT_DEFERRED_LOG!` 而不定义它的单元都是 `E0425`；补进同一个 `font_log_decls` 模块（crate 根副本会是
+        `E0428`，P-39 的 `xterm.rs` `x_bitmap_stipple` 形状）。
+     ⑵ `include/dispextern.rs` 1639 的 `glyph_string.cmp` 写成 `*mut composition`，而 composite.h 的镜像
+        **不在这个头的 include 图里**（C 的 dispextern.h 不 include composite.h，只按指针提到那个 tag）⇒ 按
+        P-72 rule 3"镜像只能命名自己声明或拉进来的类型"改成 `*mut c_void` + `/// C:` 行；该文件正文里
+        "composition 有 owner mirror、消费单元必然见得到"那句**被实测证伪**（反例就是 `src/fontset.c` 36），
+        已连带改写（正文 + `docs/ports/include-dispextern.md` 的同一条）。
+     ⑶ `include/nsterm.rs` 774-776 的四个 Objective-C 类指针（`NSArray`×2、`NSString`、`EmacsMenu`）具名
+        无声明（AppKit/GNUstep 的类，本树一个都没有，别处也无人用它们）⇒ 同一条规则改成 `*mut c_void` +
+        `/// C:` 行；改动只落在 `have_ns` 臂上，冻结档与任何在跑单元不受影响。
+     ⑷ `include/fontset.rs` 的十条原型从顶层搬进 `fontset_decls` 模块 + glob（P-39）——`src/fontset.rs`
+        **定义**其中九条（C 861-1234/1266/1798），顶层副本正是它 C 37 `#include "fontset.h"` 会吃 `E0428`
+        的原因。
+  ② **读数（主判据 = 臂）**：`probe src/fontset.rs`（`have_window_system` + `enable_checking` +
+     `dispextern_face_records` + `have_ns`）：**改前 10 错 → 改后 exit 0 / 0 error / 16 warning /
+     rlib 15,818,928 字节**（10-6 是 ⑴⑵ 的账，剩下的 4 条正是 ⑶）。**变异实测（P-86 ⑦）**：把物化结果
+     （`build/probes/fontset/_root.rs`，2622 行）原样用**仓库钉住的工具链**编（`rustup run nightly-2026-10-01
+     rustc`，与 `xtask probe` 同 flags）→ exit 0 / 0 error；在同一份文本里单元自己的行
+     （`eassert! (face_id >= 0);`）之后注入一个类型错 → **恰 1 条 `E0308` 且点名该行** ⇒ 0 是真读数，不是
+     名字解析中止。（第一次用 PATH 里的 stable 1.98.1 编，多出 `E0658 c_variadic`——那是 P-04 记的工具链
+     差异，不是本树读数，已用钉住的 nightly 复读，两次都记在这里。）
+  ③ **其余门**：`check-all-units` **83 unit(s), 0 failure(s)**（两腿；镜像改动按 P-87 ① 必跑）、`layout-check`
+     passed、`check-mirror-dupes` 17/17/0、`check-citations` **0/0**、`check-declarations` 17/0/0、
+     `check-dead-file-coverage` 96/0、`check-port-lines` 0 new/0 stale、`check-target-names` 0，
+     `extract-abi --check emacs/src/fontset.c femacs/src/fontset.rs` **OK**。
+  ④ **未声称与仍欠**：`fontset` 的 0 错是**编译**读数，不是运行读数（冻结配置一行也不编它，336 字节空对象那件
+     事不变）；⑷ 只是把形状备好——`src/fontset.rs` **仍未**照录 C 37 的 include，因为该镜像的十条原型把
+     `struct frame *`/`struct face *` 写成 `*mut c_void`（P-55 的降级），照录就要给两处调用加 cast 并把两个
+     typed 参数降级；等 P-90 ① 的 frame/face 类型故事落地再一起做，台账 Deviation 13 保持有效。仍然欠：
+     `buffer.rs` 缺 `character.h` 边（8 × `E0425`）、`termhooks.rs` 的 `Emacs_Color`（2 × `E0425`）与
+     `DBUS_EVENT`、`include/systime.rs` 27 的"特性↔配置常量"断言（机制性，忠实读法是 `xtask dead-arms`）。
+  ⑤ **预算与清理**：`probe` 1 发、`check-all-units` 2 发、`layout-check` 2 发、直接 rustc 2 发（变异实测）；
+     未跑 `xtask --all`/`gate-fast`/`cargo test`。

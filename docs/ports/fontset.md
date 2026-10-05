@@ -357,6 +357,15 @@ conversions.  `INT_STRLEN_BOUND (ptrdiff_t)` is 20 on this target (the C express
    not declared (the NS arm's Objective-C surface); and `femacs/src/include/dispextern.rs` 1639:
    `glyph_string.cmp` is `*mut composition` with no `composition` in scope (P-88 ②'s
    untyped-pointer rule).
+
+   **(a)-(d) were fixed by the integrator in status 3.526**: the ten prototypes went into the
+   `fontset_decls` module the mirror glob-imports, `font_deferred_log` joined `font_log_decls`,
+   and the four NS class pointers plus `glyph_string.cmp` became `*mut c_void` with their `/// C:`
+   lines (P-72 rule 3).  The `fontset` arm now reads **exit 0 / 0 error** (was 10).  (a)'s payoff
+   is still deferred: this unit keeps its typed use-site declaration of `face_for_font`, because
+   the mirror spells `struct frame *`/`struct face *` as `*mut c_void` (P-55's degradation) and
+   spelling C 37's include here would force casts at both call sites and downgrade two typed
+   parameters - Deviation 13 stands until the frame/face type story lands (P-90 ①).
 3. **The arm's `TERM_HEADER` choice is a per-target decision** the integrator may want to record:
    `have_ns` is the Darwin terminal header, and Evidence ② shows it also inherits finding 2(c).
    `FRAME_FONTSET` (C 1381, 1671) comes from that header and from nowhere else, so the arm cannot

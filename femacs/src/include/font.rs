@@ -284,16 +284,21 @@ pub const PT_PER_INCH: f64 = 72.27;
 macro_rules! POINT_TO_PIXEL { ($point:expr, $dpi:expr) => { (($point) * ($dpi) / PT_PER_INCH + 0.5) }; }
 macro_rules! PIXEL_TO_POINT { ($pixel:expr, $dpi:expr) => { (($pixel) * PT_PER_INCH / ($dpi) + 0.5) }; }
 
-/* C 1001: `extern void font_add_log (const char *, Lisp_Object, Lisp_Object);` - the function
-   `FONT_ADD_LOG!` below calls.  Nothing declared it, so `src/xfont.rs` and `src/ftfont.rs` each
-   declared it at their use sites (status 3.519).  It sits in a module the mirror glob-imports
-   because `src/font.rs` 6288 *defines* it: a crate-root copy is `E0428` there (P-39, the
-   `xterm.rs` `x_bitmap_stipple` shape).  */
+/* C 1001-1002: the two loggers this header declares - `extern void font_add_log (const char *,
+   Lisp_Object, Lisp_Object);` and `extern void font_deferred_log (const char *,
+   Lisp_Object, Lisp_Object);` - which `FONT_ADD_LOG!` / `FONT_DEFERRED_LOG!` below call.
+   Nothing declared either of them, so `src/xfont.rs` and `src/ftfont.rs` declared `font_add_log`
+   at their use sites (status 3.519) and every unit that expands `FONT_DEFERRED_LOG!` without
+   defining it hit `E0425` (the `fontset` arm measured four of them, status 3.526).  Both sit in
+   a module the mirror glob-imports because `src/font.rs` *defines* them (6288 and 6386): a
+   crate-root copy is `E0428` there (P-39, the `xterm.rs` `x_bitmap_stipple` shape).  */
 pub mod font_log_decls {
   use super::*;
 
   unsafe extern "C" {
     pub fn font_add_log (action: *const c_char, arg: Lisp_Object, result: Lisp_Object);
+    /// C: font.h 1002: `extern void font_deferred_log (const char *, Lisp_Object, Lisp_Object);`
+    pub fn font_deferred_log (action: *const c_char, arg: Lisp_Object, result: Lisp_Object);
   }
 }
 use font_log_decls::*;

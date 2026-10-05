@@ -45,29 +45,38 @@ pub const EMACS_FONTSET_H: bool = true;
 // fontset.h 31: `struct face;` - a forward declaration with no mirror in this tree (seven units
 // carry their own `pub struct face`): see the file note above.
 
-/* The ten entry points, in C's order.  */
-unsafe extern "C" {
-  /// C: void free_face_fontset (struct frame *, struct face *);
-  pub fn free_face_fontset (arg0: *mut c_void, arg1: *mut c_void);
-  /// C: int face_for_char (struct frame *, struct face *, int, ptrdiff_t, Lisp_Object);
-  pub fn face_for_char (arg0: *mut c_void, arg1: *mut c_void, arg2: c_int, arg3: isize,
-                        arg4: Lisp_Object) -> c_int;
-  /// C: Lisp_Object font_for_char (struct face *, int, ptrdiff_t, Lisp_Object);
-  pub fn font_for_char (arg0: *mut c_void, arg1: c_int, arg2: isize,
-                        arg3: Lisp_Object) -> Lisp_Object;
-  /// C: int make_fontset_for_ascii_face (struct frame *, int, struct face *);
-  pub fn make_fontset_for_ascii_face (arg0: *mut c_void, arg1: c_int,
-                                      arg2: *mut c_void) -> c_int;
-  /// C: int fontset_from_font (Lisp_Object);
-  pub fn fontset_from_font (arg0: Lisp_Object) -> c_int;
-  /// C: int fs_query_fontset (Lisp_Object, int);
-  pub fn fs_query_fontset (arg0: Lisp_Object, arg1: c_int) -> c_int;
-  /// C: Lisp_Object list_fontsets (struct frame *, Lisp_Object, int);
-  pub fn list_fontsets (arg0: *mut c_void, arg1: Lisp_Object, arg2: c_int) -> Lisp_Object;
-  /// C: Lisp_Object fontset_name (int);
-  pub fn fontset_name (arg0: c_int) -> Lisp_Object;
-  /// C: Lisp_Object fontset_ascii (int);
-  pub fn fontset_ascii (arg0: c_int) -> Lisp_Object;
-  /// C: int face_for_font (struct frame *, Lisp_Object, struct face *);
-  pub fn face_for_font (arg0: *mut c_void, arg1: Lisp_Object, arg2: *mut c_void) -> c_int;
+/* The ten entry points, in C's order.  They sit in a module the mirror glob-imports
+   because `src/fontset.rs` **defines** nine of them (C 861-1234, 1266, 1798): a crate-root
+   copy is `E0428` in that unit, which is why its C 37 `#include "fontset.h"` could not be
+   spelled until this shape landed (P-39, the `font_log_decls` / `xterm_decls` shape;
+   status 3.526).  */
+pub mod fontset_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C: void free_face_fontset (struct frame *, struct face *);
+    pub fn free_face_fontset (arg0: *mut c_void, arg1: *mut c_void);
+    /// C: int face_for_char (struct frame *, struct face *, int, ptrdiff_t, Lisp_Object);
+    pub fn face_for_char (arg0: *mut c_void, arg1: *mut c_void, arg2: c_int, arg3: isize,
+                          arg4: Lisp_Object) -> c_int;
+    /// C: Lisp_Object font_for_char (struct face *, int, ptrdiff_t, Lisp_Object);
+    pub fn font_for_char (arg0: *mut c_void, arg1: c_int, arg2: isize,
+                          arg3: Lisp_Object) -> Lisp_Object;
+    /// C: int make_fontset_for_ascii_face (struct frame *, int, struct face *);
+    pub fn make_fontset_for_ascii_face (arg0: *mut c_void, arg1: c_int,
+                                        arg2: *mut c_void) -> c_int;
+    /// C: int fontset_from_font (Lisp_Object);
+    pub fn fontset_from_font (arg0: Lisp_Object) -> c_int;
+    /// C: int fs_query_fontset (Lisp_Object, int);
+    pub fn fs_query_fontset (arg0: Lisp_Object, arg1: c_int) -> c_int;
+    /// C: Lisp_Object list_fontsets (struct frame *, Lisp_Object, int);
+    pub fn list_fontsets (arg0: *mut c_void, arg1: Lisp_Object, arg2: c_int) -> Lisp_Object;
+    /// C: Lisp_Object fontset_name (int);
+    pub fn fontset_name (arg0: c_int) -> Lisp_Object;
+    /// C: Lisp_Object fontset_ascii (int);
+    pub fn fontset_ascii (arg0: c_int) -> Lisp_Object;
+    /// C: int face_for_font (struct frame *, Lisp_Object, struct face *);
+    pub fn face_for_font (arg0: *mut c_void, arg1: Lisp_Object, arg2: *mut c_void) -> c_int;
+  }
 }
+use fontset_decls::*;
