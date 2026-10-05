@@ -12953,3 +12953,22 @@
      P-93 表里那些**尚未核对**的站点在核对之前不得当作已通过（下一轮逐处对 C 的 `memcpy` 第三参）。
   ⑥ **预算**：`build-tu` 2 发、`check-link --executable` 2 发、端口运行 3 次、`check-all-units.sh` 1 发（两腿）；
      `build/femacs/units`、`build/probes` 已清。
+
+- **3.628 两个修复合起来之后的下一站：把参照构建**生成**的 Lisp 文件接进 load-path 之后，链走到 `loaddefs` 并撞上 `Bytecode stack overflow`（2026-10-05/06）**：
+  ① **环境那一档怎么过（配方记在这里）**：`charscript` 这类文件是**参照构建生成**的、不在追踪清单里（`emacs/lisp/international/charscript.el`
+     28,303 字节、`emacs/lisp/subdirs.el` 492 字节、1,645 个 `.elc` 都在参照树里 ✔，端口的逐字节树只带追踪文件 ✔）。
+     开发期把**参照树的生成物**接在后面即可：`EMACSLOADPATH="$PWD/femacs/lisp:$PWD/emacs/lisp"`——追踪文件仍先命中端口自己的副本
+     ✔，只有生成物（`charscript.el`/`loaddefs.el`/`subdirs.el`…）落到参照树上 ✔。**这不是端口正确性的证据**，是夹具
+     （与 `docs/acceptance.md` 里 L1 那套"参照构建的生成物"同一性质）。
+  ② **读数**：加这条 load-path 后同一条命令**不再是缺文件**，链走到 **23 行 `Loading`**（`cus-face → faces → loaddefs …`），
+     停在 **`Error: error ("Bytecode stack overflow")`**——即 `loaddefs.el`（第一个**大体量真实 Lisp 负载**）把端口的
+     字节码栈顶爆了。
+  ③ **同形对拍（本轮已做）**：报错点的判据与 C **逐字相同**——`bytecode.c` 515 `if ((char *)fp->next_stack > bc->stack_end) error (...)`
+     与端口 `bytecode.rs` 611 的同一比较 ✔ ⇒ 缺陷**不在这个判据**，而在 **`bc.stack` / `stack_size` / `stack_end` 这一族的建立与增长**
+     （C 的 `exec_byte_code` 起始处那一大段栈的分配/增长，bytecode.c 约 400-495，端口同区间）——下一轮第一步：
+     把那段逐行对拍，重点是"什么时候增长、增长后 `stack_end` 怎么更新、嵌套 `exec_byte_code` 用的是哪个 `bc`"。
+  ④ **本轮已落的两件（回顾）**：3.626 的 GC `alloca` 池标记（17→34 个文件）、3.627 的 bool 向量字节数修复（panic → Lisp 层错误）；
+     本件是它们之后的**第三站**，仍未修。
+  ⑤ **未声称**：没有 dump、没有 L1；②的 23 行是"接上参照生成物"的读数，**不能**当作端口的进度数字（③ 才是它的用处：
+     把下一处缺陷定位到字节码栈的自有记账上）。
+  ⑥ **预算**：本轮 `build-tu` 0 发、`check-link` 0 发、端口运行 3 次、文本对拍 4 处（`bitcode.c`/`bytecode.rs`/load-path/生成物清单）。
