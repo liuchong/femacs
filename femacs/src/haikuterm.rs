@@ -265,35 +265,35 @@ pub struct face
 }
 
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::size_of::<face> () == 280);
+const _: () = core::assert! (std::mem::size_of::<face> () == 280);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::align_of::<face> () == 8);
+const _: () = core::assert! (std::mem::align_of::<face> () == 8);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, id) == 160);
+const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, foreground) == 168);
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, background) == 176);
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 176);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, underline_color) == 184);
+const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, overline_color) == 192);
+const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, strike_through_color) == 200);
+const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, box_color) == 208);
+const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, font) == 216);
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, fontset) == 224);
+const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, bits) == 240);
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, hash) == 248);
+const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, next) == 256);
+const _: () = core::assert! (std::mem::offset_of! (face, next) == 256);
 #[cfg (feature = "have_haiku")]
-const _: () = assert! (std::mem::offset_of! (face, ascii_face) == 272);
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272);
 
 /* The `ENUM_BF (face_box_type) box : 2` / `ENUM_BF (face_underline_type) underline : 3` members
    and the seventeen `bool_bf` members C declares at dispextern.h 1893-1935, in C's declaration

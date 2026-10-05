@@ -181,8 +181,8 @@ pub union emacs_align_type
      `save_window_data`, `scroll_bar`, `xwidget_view` and `xwidget`; recorded in
      docs/ports/alloc.md, not transcribed.  */
 }
-const _: () = assert! (std::mem::size_of::<emacs_align_type> () == 568);
-const _: () = assert! (std::mem::align_of::<emacs_align_type> () == 8);
+const _: () = core::assert! (std::mem::size_of::<emacs_align_type> () == 568);
+const _: () = core::assert! (std::mem::align_of::<emacs_align_type> () == 8);
 
 /* MALLOC_SIZE_NEAR (N) is a good number to pass to malloc when
    allocating a block of memory with size close to N bytes.
@@ -212,8 +212,8 @@ pub const MALLOC_ALIGNMENT: usize = 16;
 pub const MALLOC_ALIGNMENT: usize =
   if 2 * std::mem::size_of::<size_t> () >= alignof! (c_double)
     { 2 * std::mem::size_of::<size_t> () } else { alignof! (c_double) };
-const _: () = assert! (MALLOC_ALIGNMENT == 16);
-const _: () = assert! (! (MALLOC_ALIGNMENT % std::mem::size_of::<size_t> () == 0)
+const _: () = core::assert! (MALLOC_ALIGNMENT == 16);
+const _: () = core::assert! (! (MALLOC_ALIGNMENT % std::mem::size_of::<size_t> () == 0)
                        || MALLOC_ALIGNMENT / std::mem::size_of::<size_t> () > 0);
 
 /* C 210-259 (`#ifdef DOUG_LEA_MALLOC`, undefined on this target) carries
@@ -387,8 +387,8 @@ pub struct gcstat
      The objects themselves are not included (counted as vectors above).  */
   pub total_hash_table_bytes: byte_ct,
 }
-const _: () = assert! (std::mem::size_of::<gcstat> () == 128);
-const _: () = assert! (std::mem::offset_of! (gcstat, total_hash_table_bytes) == 120);
+const _: () = core::assert! (std::mem::size_of::<gcstat> () == 128);
+const _: () = core::assert! (std::mem::offset_of! (gcstat, total_hash_table_bytes) == 120);
 
 static mut gcstat: gcstat = gcstat {
   total_conses: 0, total_free_conses: 0,
@@ -562,9 +562,9 @@ pub struct mem_node
   /* Memory type.  */
   pub r#type: mem_type,
 }
-const _: () = assert! (std::mem::size_of::<mem_node> () == 48);
-const _: () = assert! (std::mem::offset_of! (mem_node, color) == 40);
-const _: () = assert! (std::mem::offset_of! (mem_node, r#type) == 44);
+const _: () = core::assert! (std::mem::size_of::<mem_node> () == 48);
+const _: () = core::assert! (std::mem::offset_of! (mem_node, color) == 40);
+const _: () = core::assert! (std::mem::offset_of! (mem_node, r#type) == 44);
 
 /* Root of the tree describing allocated Lisp memory.  */
 
@@ -717,8 +717,8 @@ macro_rules! COMMON_MULTIPLE {
    anonymous union is not a Rust type, so the port names the union's record and asserts the
    clang-measured value (8).  */
 pub const LISP_ALIGNMENT: usize = alignof! (emacs_align_type);
-const _: () = assert! (LISP_ALIGNMENT == 8);
-const _: () = assert! (LISP_ALIGNMENT % GCALIGNMENT == 0);
+const _: () = core::assert! (LISP_ALIGNMENT == 8);
+const _: () = core::assert! (LISP_ALIGNMENT % GCALIGNMENT == 0);
 
 /* Emacs assumes that malloc (N) returns storage suitably aligned for
    any Lisp object whenever N is a multiple of LISP_ALIGNMENT.
@@ -738,7 +738,7 @@ const _: () = assert! (LISP_ALIGNMENT % GCALIGNMENT == 0);
    Emacs avoids the bug because on this platform it never does anything
    that requires an alignment of 16.  */
 pub const MALLOC_IS_LISP_ALIGNED: bool = true;  /* C 640-641, clang-measured: 16 % 8 == 0 */
-const _: () = assert! (MALLOC_IS_LISP_ALIGNED);
+const _: () = core::assert! (MALLOC_IS_LISP_ALIGNED);
 
 /* Most of Emacs does not assume PTRDIFF_MAX <= SIZE_MAX, and may use
    expressions like min (PTRDIFF_MAX, SIZE_MAX) to port even to
@@ -746,7 +746,7 @@ const _: () = assert! (MALLOC_IS_LISP_ALIGNED);
    However, some parts of Emacs pass nonnegative ptrdiff_t values to
    allocator functions like xmalloc that expect size_t.
    This is portable in practice; check it here to document the assumption.  */
-const _: () = assert! (PTRDIFF_MAX as usize <= SIZE_MAX);
+const _: () = core::assert! (PTRDIFF_MAX as usize <= SIZE_MAX);
 
 macro_rules! MALLOC_PROBE {
   ($size:expr) => {
@@ -830,7 +830,7 @@ pub unsafe extern "C" fn xfree (block: *mut c_void)
 /* Other parts of Emacs pass large int values to allocator functions
    expecting ptrdiff_t.  This is portable in practice, but check it to
    be safe.  */
-const _: () = assert! (INT_MAX as i64 <= PTRDIFF_MAX as i64);
+const _: () = core::assert! (INT_MAX as i64 <= PTRDIFF_MAX as i64);
 
 
 /* Allocate an array of NITEMS items, each of size ITEM_SIZE.
@@ -1148,7 +1148,7 @@ pub const BLOCK_ALIGN: usize = 1 << 15;
 /* C 964: `static_assert (POWER_OF_2 (BLOCK_ALIGN))`.  The port's `POWER_OF_2` is an
    ordinary `fn` and pointer-free arithmetic is not const-evaluable through it, so the
    assertion inlines the same expression.  */
-const _: () = assert! (BLOCK_ALIGN & (BLOCK_ALIGN - 1) == 0);
+const _: () = core::assert! (BLOCK_ALIGN & (BLOCK_ALIGN - 1) == 0);
 
 /* Use aligned_alloc if it or a simple substitute is available.  */
 /* C 969-988: `#if (defined HAVE_ALIGNED_ALLOC || …)` is live, so C defines `USE_ALIGNED_ALLOC`
@@ -1168,7 +1168,7 @@ unsafe fn aligned_alloc (alignment: size_t, size: size_t) -> *mut c_void
 {
   /* POSIX says the alignment must be a power-of-2 multiple of sizeof (void *).
      Verify this for all arguments this function is given.  */
-  const _: () = assert! (! (BLOCK_ALIGN % std::mem::size_of::<*mut c_void> () == 0)
+  const _: () = core::assert! (! (BLOCK_ALIGN % std::mem::size_of::<*mut c_void> () == 0)
                        || ((BLOCK_ALIGN / std::mem::size_of::<*mut c_void> ())
 			   & (BLOCK_ALIGN / std::mem::size_of::<*mut c_void> () - 1)) == 0);
   eassert! (alignment == BLOCK_ALIGN);
@@ -1225,8 +1225,8 @@ pub struct ablock
      the last ablock in an ablocks is not allocated.  */
   pub padding: [c_char; BLOCK_PADDING as usize],
 }
-const _: () = assert! (std::mem::size_of::<ablock> () == 32768);
-const _: () = assert! (std::mem::offset_of! (ablock, abase) == 32760);
+const _: () = core::assert! (std::mem::size_of::<ablock> () == 32768);
+const _: () = core::assert! (std::mem::offset_of! (ablock, abase) == 32760);
 
 /* A bunch of consecutive aligned blocks.  */
 #[repr(C)]
@@ -1234,7 +1234,7 @@ pub struct ablocks
 {
   pub blocks: [ablock; ABLOCKS_SIZE as usize],
 }
-const _: () = assert! (std::mem::size_of::<ablocks> () == 524288);
+const _: () = core::assert! (std::mem::size_of::<ablocks> () == 524288);
 
 /* Size of the block requested from malloc or aligned_alloc.  */
 pub const ABLOCKS_BYTES: usize =
@@ -1443,7 +1443,7 @@ unsafe fn lisp_align_free (block: *mut c_void)
 pub const INTERVAL_BLOCK_SIZE: usize =
   (MALLOC_SIZE_NEAR! (1024) as usize - std::mem::size_of::<*mut interval_block> ())
   / std::mem::size_of::<interval> ();
-const _: () = assert! (INTERVAL_BLOCK_SIZE == 18);
+const _: () = core::assert! (INTERVAL_BLOCK_SIZE == 18);
 
 /* Intervals are allocated in chunks in the form of an interval_block
    structure.  */
@@ -1455,8 +1455,8 @@ pub struct interval_block
   pub intervals: [interval; INTERVAL_BLOCK_SIZE],
   pub next: *mut interval_block,
 }
-const _: () = assert! (std::mem::size_of::<interval_block> () == 1016);
-const _: () = assert! (std::mem::offset_of! (interval_block, next) == 1008);
+const _: () = core::assert! (std::mem::size_of::<interval_block> () == 1016);
+const _: () = core::assert! (std::mem::offset_of! (interval_block, next) == 1008);
 
 /* Current interval block.  Its `next' pointer points to older
    blocks.  */
@@ -1575,7 +1575,7 @@ unsafe fn mark_interval_tree (i: INTERVAL)
 /* Size in bytes of an sblock structure used for small strings.  */
 
 pub const SBLOCK_SIZE: isize = MALLOC_SIZE_NEAR! (8192);
-const _: () = assert! (SBLOCK_SIZE == 8184);
+const _: () = core::assert! (SBLOCK_SIZE == 8184);
 
 /* Strings larger than this are considered large strings.  String data
    for large strings is allocated from individual sblocks.  */
@@ -1603,8 +1603,8 @@ pub struct sdata
 
   pub data: [c_uchar; 0],
 }
-const _: () = assert! (std::mem::size_of::<sdata> () == 8);
-const _: () = assert! (std::mem::offset_of! (sdata, data) == 8);
+const _: () = core::assert! (std::mem::size_of::<sdata> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (sdata, data) == 8);
 
 /* A union describing string memory sub-allocated from an sblock.
    This is where the contents of Lisp strings are stored.
@@ -1642,8 +1642,8 @@ pub union sdata_union
   /* When STRING is null.  */
   pub n: sdata_n,
 }
-const _: () = assert! (std::mem::size_of::<sdata_union> () == 16);
-const _: () = assert! (std::mem::align_of::<sdata_union> () == 8);
+const _: () = core::assert! (std::mem::size_of::<sdata_union> () == 16);
+const _: () = core::assert! (std::mem::align_of::<sdata_union> () == 8);
 
 macro_rules! SDATA_NBYTES {
   ($S:expr) => { (*$S).n.nbytes };
@@ -1653,7 +1653,7 @@ macro_rules! SDATA_DATA {
 }
 
 pub const SDATA_DATA_OFFSET: usize = std::mem::offset_of! (sdata, data);
-const _: () = assert! (SDATA_DATA_OFFSET == 8);
+const _: () = core::assert! (SDATA_DATA_OFFSET == 8);
 
 /* Structure describing a block of memory which is sub-allocated to
    obtain string data memory for strings.  Blocks for small strings
@@ -1673,14 +1673,14 @@ pub struct sblock
   /* String data.  */
   pub data: [sdata_union; 0],
 }
-const _: () = assert! (std::mem::size_of::<sblock> () == 16);
+const _: () = core::assert! (std::mem::size_of::<sblock> () == 16);
 
 /* Number of Lisp strings in a string_block structure.  */
 
 pub const STRING_BLOCK_SIZE: usize =
   (MALLOC_SIZE_NEAR! (1024) as usize - std::mem::size_of::<*mut string_block> ())
   / std::mem::size_of::<Lisp_String> ();
-const _: () = assert! (STRING_BLOCK_SIZE == 31);
+const _: () = core::assert! (STRING_BLOCK_SIZE == 31);
 
 /* Structure describing a block from which Lisp_String structures
    are allocated.  */
@@ -1692,7 +1692,7 @@ pub struct string_block
   pub strings: [Lisp_String; STRING_BLOCK_SIZE],
   pub next: *mut string_block,
 }
-const _: () = assert! (std::mem::size_of::<string_block> () == 1000);
+const _: () = core::assert! (std::mem::size_of::<string_block> () == 1000);
 
 /* Head and tail of the list of sblock structures holding Lisp string
    data.  We always allocate from current_sblock.  The NEXT pointers
@@ -2696,7 +2696,7 @@ pub const FLOAT_BLOCK_SIZE: usize =
      - (std::mem::size_of::<Lisp_Float> () - std::mem::size_of::<bits_word> ()))
     * CHAR_BIT as usize)
    / (std::mem::size_of::<Lisp_Float> () * CHAR_BIT as usize + 1));
-const _: () = assert! (FLOAT_BLOCK_SIZE == 4031);
+const _: () = core::assert! (FLOAT_BLOCK_SIZE == 4031);
 
 macro_rules! GETMARKBIT {
   ($block:expr, $n:expr) => {
@@ -2741,8 +2741,8 @@ pub struct float_block
   pub gcmarkbits: [bits_word; 1 + FLOAT_BLOCK_SIZE / BITS_PER_BITS_WORD as usize],
   pub next: *mut float_block,
 }
-const _: () = assert! (std::mem::size_of::<float_block> () == 32760);
-const _: () = assert! (std::mem::offset_of! (float_block, gcmarkbits) == 32248);
+const _: () = core::assert! (std::mem::size_of::<float_block> () == 32760);
+const _: () = core::assert! (std::mem::offset_of! (float_block, gcmarkbits) == 32248);
 
 macro_rules! XFLOAT_MARKED_P {
   ($fptr:expr) => { GETMARKBIT! (FLOAT_BLOCK! ($fptr), FLOAT_INDEX! ($fptr)) };
@@ -2836,7 +2836,7 @@ pub const CONS_BLOCK_SIZE: usize =
      - (std::mem::size_of::<Lisp_Cons> () - std::mem::size_of::<bits_word> ()))
     * CHAR_BIT as usize)
    / (std::mem::size_of::<Lisp_Cons> () * CHAR_BIT as usize + 1));
-const _: () = assert! (CONS_BLOCK_SIZE == 2030);
+const _: () = core::assert! (CONS_BLOCK_SIZE == 2030);
 
 macro_rules! CONS_BLOCK {
   ($fptr:expr) => {
@@ -2860,8 +2860,8 @@ pub struct cons_block
   pub gcmarkbits: [bits_word; 1 + CONS_BLOCK_SIZE / BITS_PER_BITS_WORD as usize],
   pub next: *mut cons_block,
 }
-const _: () = assert! (std::mem::size_of::<cons_block> () == 32744);
-const _: () = assert! (std::mem::offset_of! (cons_block, gcmarkbits) == 32480);
+const _: () = core::assert! (std::mem::size_of::<cons_block> () == 32744);
+const _: () = core::assert! (std::mem::offset_of! (cons_block, gcmarkbits) == 32480);
 
 macro_rules! XCONS_MARKED_P {
   ($fptr:expr) => { GETMARKBIT! (CONS_BLOCK! ($fptr), CONS_INDEX! ($fptr)) };
@@ -2879,7 +2879,7 @@ macro_rules! XUNMARK_CONS {
    when memory is full.  */
 
 pub const memory_full_cons_threshold: usize = std::mem::size_of::<cons_block> ();
-const _: () = assert! (memory_full_cons_threshold == 32744);
+const _: () = core::assert! (memory_full_cons_threshold == 32744);
 
 /* Current cons_block.  */
 
@@ -3089,7 +3089,7 @@ pub const VECTOR_BLOCK_SIZE: c_int = 4096;
 pub const roundup_size: isize = COMMON_MULTIPLE! (LISP_ALIGNMENT as isize, word_size);
 
 /* Verify assumption described above.  */
-const _: () = assert! (VECTOR_BLOCK_SIZE as isize % roundup_size == 0);
+const _: () = core::assert! (VECTOR_BLOCK_SIZE as isize % roundup_size == 0);
 
 /* Round up X to nearest mult-of-ROUNDUP_SIZE --- use at compile time.  */
 macro_rules! vroundup_ct {
@@ -3104,31 +3104,31 @@ macro_rules! vroundup {
 
 pub const VECTOR_BLOCK_BYTES: isize =
   VECTOR_BLOCK_SIZE as isize - vroundup_ct! (std::mem::size_of::<*mut c_void> () as isize);
-const _: () = assert! (VECTOR_BLOCK_BYTES == 4088);
+const _: () = core::assert! (VECTOR_BLOCK_BYTES == 4088);
 
 /* The current code expects to be able to represent an unused block by
    a single PVEC_FREE object, whose size is limited by the header word.
    (Of course we could use multiple such objects.)  */
-const _: () = assert! (VECTOR_BLOCK_BYTES as usize
+const _: () = core::assert! (VECTOR_BLOCK_BYTES as usize
 		       <= (word_size as usize) << PSEUDOVECTOR_REST_BITS);
 
 /* Size of the minimal vector allocated from block.  */
 
 pub const VBLOCK_BYTES_MIN: isize =
   vroundup_ct! (header_size + std::mem::size_of::<Lisp_Object> () as isize);
-const _: () = assert! (VBLOCK_BYTES_MIN == 16);
+const _: () = core::assert! (VBLOCK_BYTES_MIN == 16);
 
 /* Size of the largest vector allocated from block.  */
 
 pub const VBLOCK_BYTES_MAX: isize = vroundup_ct! ((VECTOR_BLOCK_BYTES / 2) - word_size);
-const _: () = assert! (VBLOCK_BYTES_MAX == 2040);
+const _: () = core::assert! (VBLOCK_BYTES_MAX == 2040);
 
 /* We maintain one free list for each possible block-allocated
    vector size, one for blocks one word bigger,
    and one for all free vectors larger than that.  */
 pub const VECTOR_FREE_LIST_ARRAY_SIZE: isize =
   (VBLOCK_BYTES_MAX - VBLOCK_BYTES_MIN) / roundup_size + 1 + 2;
-const _: () = assert! (VECTOR_FREE_LIST_ARRAY_SIZE == 256);
+const _: () = core::assert! (VECTOR_FREE_LIST_ARRAY_SIZE == 256);
 
 /* Common shortcut to advance vector pointer over a block data.  */
 
@@ -3163,11 +3163,11 @@ pub struct large_vector
 {
   pub next: *mut large_vector,
 }
-const _: () = assert! (std::mem::size_of::<large_vector> () == 8);
+const _: () = core::assert! (std::mem::size_of::<large_vector> () == 8);
 
 pub const large_vector_offset: usize =
   ROUNDUP! (std::mem::size_of::<large_vector> () as isize, LISP_ALIGNMENT as isize) as usize;
-const _: () = assert! (large_vector_offset == 8);
+const _: () = core::assert! (large_vector_offset == 8);
 
 unsafe fn large_vector_vec (p: *mut large_vector) -> *mut Lisp_Vector
 {
@@ -3183,8 +3183,8 @@ pub struct vector_block
   pub data: [c_char; VECTOR_BLOCK_BYTES as usize],
   pub next: *mut vector_block,
 }
-const _: () = assert! (std::mem::size_of::<vector_block> () == 4096);
-const _: () = assert! (std::mem::offset_of! (vector_block, next) == 4088);
+const _: () = core::assert! (std::mem::size_of::<vector_block> () == 4096);
+const _: () = core::assert! (std::mem::offset_of! (vector_block, next) == 4088);
 
 /* Chain of vector blocks.  */
 
@@ -3414,7 +3414,7 @@ pub unsafe extern "C" fn vectorlike_nbytes (hdr: *const vectorlike_header) -> pt
 /// compile time and casts (P-51's note class).
 macro_rules! PSEUDOVEC_STRUCT {
   ($p:expr, $t:ty) => {
-    { const _: () = assert! (header_size + VECSIZE (std::mem::size_of::<$t> ()) * word_size
+    { const _: () = core::assert! (header_size + VECSIZE (std::mem::size_of::<$t> ()) * word_size
 			     <= VBLOCK_BYTES_MAX);
       $p as *mut $t }
   };
@@ -3437,8 +3437,8 @@ pub struct face
   pub font: *mut font,
   _pad1: [u8; 280 - 224],
 }
-const _: () = assert! (std::mem::offset_of! (face, font) == 216);
-const _: () = assert! (std::mem::size_of::<face> () == 280);
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
+const _: () = core::assert! (std::mem::size_of::<face> () == 280);
 
 #[repr(C)]
 pub struct face_cache
@@ -3450,8 +3450,8 @@ pub struct face_cache
   pub used: c_int,
   pub menu_face_changed_p: bool,
 }
-const _: () = assert! (std::mem::size_of::<face_cache> () == 40);
-const _: () = assert! (std::mem::offset_of! (face_cache, used) == 32);
+const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
 
 /// C: frame.h 1379: `#define FRAME_FACE_CACHE(F) (F)->face_cache` — `frame.face_cache` is an
 /// opaque pointer in `include/frame.rs`, so the cast is the use-site conversion (P-72 ③).
@@ -3748,7 +3748,7 @@ pub const VECTOR_ELTS_MAX: ptrdiff_t =
   min! (((min! (PTRDIFF_MAX as usize, SIZE_MAX) as ptrdiff_t) - header_size
 	  - large_vector_offset as isize) / word_size,
 	MOST_POSITIVE_FIXNUM);
-const _: () = assert! (VECTOR_ELTS_MAX == 1152921504606846973);
+const _: () = core::assert! (VECTOR_ELTS_MAX == 1152921504606846973);
 
 /* Value is a pointer to a newly allocated Lisp_Vector structure
    with room for LEN Lisp_Objects.  LEN must be positive and
@@ -4003,7 +4003,7 @@ DEFUN! ("make-closure", Fmake_closure, Smake_closure, 1, MANY, 0,
 
 pub const SYMBOL_BLOCK_SIZE: usize =
   (1020 - std::mem::size_of::<*mut symbol_block> ()) / std::mem::size_of::<Lisp_Symbol> ();
-const _: () = assert! (SYMBOL_BLOCK_SIZE == 21);
+const _: () = core::assert! (SYMBOL_BLOCK_SIZE == 21);
 
 #[repr(C)]
 pub struct symbol_block
@@ -4012,8 +4012,8 @@ pub struct symbol_block
   pub symbols: [Lisp_Symbol; SYMBOL_BLOCK_SIZE],
   pub next: *mut symbol_block,
 }
-const _: () = assert! (std::mem::size_of::<symbol_block> () == 1016);
-const _: () = assert! (std::mem::offset_of! (symbol_block, next) == 1008);
+const _: () = core::assert! (std::mem::size_of::<symbol_block> () == 1016);
+const _: () = core::assert! (std::mem::offset_of! (symbol_block, next) == 1008);
 
 /* C 3652-3667: `#if GC_ASAN_POISON_OBJECTS` is dead; the `__asan_*` bodies are carried in
    docs/ports/alloc.md, and the live `#else` arm's four macros are below.  */
@@ -6904,7 +6904,7 @@ pub struct mark_entry
   pub n: ptrdiff_t,		/* number of values, or 0 if a single value */
   pub u: mark_entry_u,
 }
-const _: () = assert! (std::mem::size_of::<mark_entry> () == 16);
+const _: () = core::assert! (std::mem::size_of::<mark_entry> () == 16);
 
 /* This stack is used during marking for traversing data structures without
    using C recursion.  */
@@ -6915,7 +6915,7 @@ pub struct mark_stack
   pub size: ptrdiff_t,		/* allocated size in entries */
   pub sp: ptrdiff_t,		/* current number of entries */
 }
-const _: () = assert! (std::mem::size_of::<mark_stack> () == 24);
+const _: () = core::assert! (std::mem::size_of::<mark_stack> () == 24);
 
 static mut mark_stk: mark_stack = mark_stack { stack: std::ptr::null_mut (), size: 0, sp: 0 };
 

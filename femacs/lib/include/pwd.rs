@@ -22,12 +22,12 @@ pub struct passwd {
   pub pw_expire: time_t,
 }
 
-const _: () = assert! (std::mem::size_of::<passwd> () == 72);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_name) == 0);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_uid) == 16);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_dir) == 48);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_shell) == 56);
-const _: () = assert! (std::mem::offset_of! (passwd, pw_expire) == 64);
+const _: () = core::assert! (std::mem::size_of::<passwd> () == 72);
+const _: () = core::assert! (std::mem::offset_of! (passwd, pw_name) == 0);
+const _: () = core::assert! (std::mem::offset_of! (passwd, pw_uid) == 16);
+const _: () = core::assert! (std::mem::offset_of! (passwd, pw_dir) == 48);
+const _: () = core::assert! (std::mem::offset_of! (passwd, pw_shell) == 56);
+const _: () = core::assert! (std::mem::offset_of! (passwd, pw_expire) == 64);
 
 unsafe extern "C" {
   /// C: <pwd.h>: `struct passwd *getpwuid (uid_t);`

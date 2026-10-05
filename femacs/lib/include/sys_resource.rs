@@ -32,10 +32,10 @@ pub struct rlimit {
     pub rlim_max: rlim_t,
 }
 
-const _: () = assert! (std::mem::size_of::<rlimit> () == 16);
-const _: () = assert! (std::mem::offset_of! (rlimit, rlim_cur) == 0);
-const _: () = assert! (std::mem::offset_of! (rlimit, rlim_max) == 8);
-const _: () = assert! (std::mem::size_of::<rlim_t> () == 8);
+const _: () = core::assert! (std::mem::size_of::<rlimit> () == 16);
+const _: () = core::assert! (std::mem::offset_of! (rlimit, rlim_cur) == 0);
+const _: () = core::assert! (std::mem::offset_of! (rlimit, rlim_max) == 8);
+const _: () = core::assert! (std::mem::size_of::<rlim_t> () == 8);
 
 /* RLIMIT_AS is 5 on this target (the macro table records the same value).  */
 pub const RLIMIT_AS: c_int = 5;

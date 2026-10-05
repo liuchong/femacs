@@ -6769,173 +6769,173 @@ pub unsafe extern "C" fn syms_of_pdumper ()
    here.
    --------------------------------------------------------------------------- */
 
-const _: () = assert! (core::mem::size_of::<dump_off> () == 4);
-const _: () = assert! (core::mem::size_of::<dump_reloc_type> () == 4);
-const _: () = assert! (core::mem::align_of::<dump_reloc_type> () == 4);
-const _: () = assert! (core::mem::size_of::<emacs_reloc_type> () == 4);
-const _: () = assert! (core::mem::align_of::<emacs_reloc_type> () == 4);
-const _: () = assert! (core::mem::size_of::<reloc_phase> () == 4);
-const _: () = assert! (core::mem::align_of::<reloc_phase> () == 4);
-const _: () = assert! (core::mem::size_of::<cold_op> () == 4);
-const _: () = assert! (core::mem::align_of::<cold_op> () == 4);
-const _: () = assert! (core::mem::size_of::<dump_object_special_offset> () == 4);
-const _: () = assert! (core::mem::align_of::<dump_object_special_offset> () == 4);
-const _: () = assert! (core::mem::size_of::<dump_memory_protection> () == 4);
-const _: () = assert! (core::mem::align_of::<dump_memory_protection> () == 4);
-const _: () = assert! (core::mem::size_of::<dump_section> () == 4);
-const _: () = assert! (core::mem::align_of::<dump_section> () == 4);
-const _: () = assert! (core::mem::size_of::<dump_fixup_type> () == 4);
-const _: () = assert! (core::mem::size_of::<dump_lv_fixup_type> () == 4);
+const _: () = core::assert! (core::mem::size_of::<dump_off> () == 4);
+const _: () = core::assert! (core::mem::size_of::<dump_reloc_type> () == 4);
+const _: () = core::assert! (core::mem::align_of::<dump_reloc_type> () == 4);
+const _: () = core::assert! (core::mem::size_of::<emacs_reloc_type> () == 4);
+const _: () = core::assert! (core::mem::align_of::<emacs_reloc_type> () == 4);
+const _: () = core::assert! (core::mem::size_of::<reloc_phase> () == 4);
+const _: () = core::assert! (core::mem::align_of::<reloc_phase> () == 4);
+const _: () = core::assert! (core::mem::size_of::<cold_op> () == 4);
+const _: () = core::assert! (core::mem::align_of::<cold_op> () == 4);
+const _: () = core::assert! (core::mem::size_of::<dump_object_special_offset> () == 4);
+const _: () = core::assert! (core::mem::align_of::<dump_object_special_offset> () == 4);
+const _: () = core::assert! (core::mem::size_of::<dump_memory_protection> () == 4);
+const _: () = core::assert! (core::mem::align_of::<dump_memory_protection> () == 4);
+const _: () = core::assert! (core::mem::size_of::<dump_section> () == 4);
+const _: () = core::assert! (core::mem::align_of::<dump_section> () == 4);
+const _: () = core::assert! (core::mem::size_of::<dump_fixup_type> () == 4);
+const _: () = core::assert! (core::mem::size_of::<dump_lv_fixup_type> () == 4);
 /* C's `struct dump_remembered_data` is the file's anonymous `struct { void *mem; int sz; }`
    (measured through `sizeof remembered_data / 32`).  */
-const _: () = assert! (core::mem::size_of::<dump_remembered_data> () == 16);
-const _: () = assert! (core::mem::align_of::<dump_remembered_data> () == 8);
-const _: () = assert! (core::mem::offset_of! (dump_remembered_data, mem) == 0);
-const _: () = assert! (core::mem::offset_of! (dump_remembered_data, sz) == 8);
+const _: () = core::assert! (core::mem::size_of::<dump_remembered_data> () == 16);
+const _: () = core::assert! (core::mem::align_of::<dump_remembered_data> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (dump_remembered_data, mem) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dump_remembered_data, sz) == 8);
 
 /* emacs_reloc: 16/8, and its bitfield unit is the 4-byte word at offset 0 (type in bits
    0-2, the signed 29-bit length above it; measured with `type = RELOC_EMACS_EMACS_LV`,
    `length = -3` -> bytes `ed ff ff ff`).  */
-const _: () = assert! (core::mem::size_of::<emacs_reloc> () == 16);
-const _: () = assert! (core::mem::align_of::<emacs_reloc> () == 8);
-const _: () = assert! (core::mem::offset_of! (emacs_reloc, emacs_offset) == 4);
-const _: () = assert! (core::mem::offset_of! (emacs_reloc, u) == 8);
-const _: () = assert! (core::mem::size_of::<emacs_reloc_u> () == 8);
-const _: () = assert! (EMACS_RELOC_TYPE_BITS == 3);
-const _: () = assert! (EMACS_RELOC_LENGTH_BITS == 29);
-const _: () = assert! ((1u32 << EMACS_RELOC_TYPE_BITS as u32) == 8);
+const _: () = core::assert! (core::mem::size_of::<emacs_reloc> () == 16);
+const _: () = core::assert! (core::mem::align_of::<emacs_reloc> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (emacs_reloc, emacs_offset) == 4);
+const _: () = core::assert! (core::mem::offset_of! (emacs_reloc, u) == 8);
+const _: () = core::assert! (core::mem::size_of::<emacs_reloc_u> () == 8);
+const _: () = core::assert! (EMACS_RELOC_TYPE_BITS == 3);
+const _: () = core::assert! (EMACS_RELOC_LENGTH_BITS == 29);
+const _: () = core::assert! ((1u32 << EMACS_RELOC_TYPE_BITS as u32) == 8);
 
 /* dump_reloc: 4/4 (C's `static_assert (sizeof (struct dump_reloc) == sizeof (dump_off))`),
    raw_offset in the low 27 bits, the 5-bit type above it (measured: raw_offset
    0x123456, type RELOC_DUMP_TO_EMACS_LV -> bytes `56 34 12 68`).  */
-const _: () = assert! (core::mem::size_of::<dump_reloc> () == 4);
-const _: () = assert! (core::mem::align_of::<dump_reloc> () == 4);
-const _: () = assert! (DUMP_RELOC_TYPE_BITS == 5);
-const _: () = assert! (DUMP_RELOC_OFFSET_BITS == 27);
-const _: () = assert! ((1u32 << DUMP_RELOC_OFFSET_BITS as u32) == 0x0800_0000);
+const _: () = core::assert! (core::mem::size_of::<dump_reloc> () == 4);
+const _: () = core::assert! (core::mem::align_of::<dump_reloc> () == 4);
+const _: () = core::assert! (DUMP_RELOC_TYPE_BITS == 5);
+const _: () = core::assert! (DUMP_RELOC_OFFSET_BITS == 27);
+const _: () = core::assert! ((1u32 << DUMP_RELOC_OFFSET_BITS as u32) == 0x0800_0000);
 
-const _: () = assert! (core::mem::size_of::<dump_table_locator> () == 8);
-const _: () = assert! (core::mem::align_of::<dump_table_locator> () == 4);
-const _: () = assert! (core::mem::offset_of! (dump_table_locator, offset) == 0);
-const _: () = assert! (core::mem::offset_of! (dump_table_locator, nr_entries) == 4);
+const _: () = core::assert! (core::mem::size_of::<dump_table_locator> () == 8);
+const _: () = core::assert! (core::mem::align_of::<dump_table_locator> () == 4);
+const _: () = core::assert! (core::mem::offset_of! (dump_table_locator, offset) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dump_table_locator, nr_entries) == 4);
 
-const _: () = assert! (core::mem::size_of::<dump_header> () == 100);
-const _: () = assert! (core::mem::align_of::<dump_header> () == 4);
-const _: () = assert! (core::mem::offset_of! (dump_header, magic) == 0);
-const _: () = assert! (core::mem::offset_of! (dump_header, fingerprint) == 16);
-const _: () = assert! (core::mem::offset_of! (dump_header, dump_relocs) == 48);
-const _: () = assert! (core::mem::offset_of! (dump_header, object_starts) == 72);
-const _: () = assert! (core::mem::offset_of! (dump_header, emacs_relocs) == 80);
-const _: () = assert! (core::mem::offset_of! (dump_header, discardable_start) == 88);
-const _: () = assert! (core::mem::offset_of! (dump_header, cold_start) == 92);
-const _: () = assert! (core::mem::offset_of! (dump_header, hash_list) == 96);
+const _: () = core::assert! (core::mem::size_of::<dump_header> () == 100);
+const _: () = core::assert! (core::mem::align_of::<dump_header> () == 4);
+const _: () = core::assert! (core::mem::offset_of! (dump_header, magic) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dump_header, fingerprint) == 16);
+const _: () = core::assert! (core::mem::offset_of! (dump_header, dump_relocs) == 48);
+const _: () = core::assert! (core::mem::offset_of! (dump_header, object_starts) == 72);
+const _: () = core::assert! (core::mem::offset_of! (dump_header, emacs_relocs) == 80);
+const _: () = core::assert! (core::mem::offset_of! (dump_header, discardable_start) == 88);
+const _: () = core::assert! (core::mem::offset_of! (dump_header, cold_start) == 92);
+const _: () = core::assert! (core::mem::offset_of! (dump_header, hash_list) == 96);
 
-const _: () = assert! (core::mem::size_of::<dump_tailq> () == 24);
-const _: () = assert! (core::mem::align_of::<dump_tailq> () == 8);
-const _: () = assert! (core::mem::offset_of! (dump_tailq, head) == 0);
-const _: () = assert! (core::mem::offset_of! (dump_tailq, tail) == 8);
-const _: () = assert! (core::mem::offset_of! (dump_tailq, length) == 16);
+const _: () = core::assert! (core::mem::size_of::<dump_tailq> () == 24);
+const _: () = core::assert! (core::mem::align_of::<dump_tailq> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (dump_tailq, head) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dump_tailq, tail) == 8);
+const _: () = core::assert! (core::mem::offset_of! (dump_tailq, length) == 16);
 
-const _: () = assert! (core::mem::size_of::<dump_queue> () == 120);
-const _: () = assert! (core::mem::align_of::<dump_queue> () == 8);
-const _: () = assert! (core::mem::offset_of! (dump_queue, zero_weight_objects) == 0);
-const _: () = assert! (core::mem::offset_of! (dump_queue, one_weight_normal_objects) == 24);
-const _: () = assert! (core::mem::offset_of! (dump_queue, one_weight_strong_objects) == 48);
-const _: () = assert! (core::mem::offset_of! (dump_queue, fancy_weight_objects) == 72);
-const _: () = assert! (core::mem::offset_of! (dump_queue, link_weights) == 96);
-const _: () = assert! (core::mem::offset_of! (dump_queue, sequence_numbers) == 104);
-const _: () = assert! (core::mem::offset_of! (dump_queue, next_sequence_number) == 112);
+const _: () = core::assert! (core::mem::size_of::<dump_queue> () == 120);
+const _: () = core::assert! (core::mem::align_of::<dump_queue> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (dump_queue, zero_weight_objects) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dump_queue, one_weight_normal_objects) == 24);
+const _: () = core::assert! (core::mem::offset_of! (dump_queue, one_weight_strong_objects) == 48);
+const _: () = core::assert! (core::mem::offset_of! (dump_queue, fancy_weight_objects) == 72);
+const _: () = core::assert! (core::mem::offset_of! (dump_queue, link_weights) == 96);
+const _: () = core::assert! (core::mem::offset_of! (dump_queue, sequence_numbers) == 104);
+const _: () = core::assert! (core::mem::offset_of! (dump_queue, next_sequence_number) == 112);
 
 /* dump_flags: one byte, one bit per member in declaration order (measured: the three set
    flags `dump_object_contents`, `defer_symbols`, `defer_copied_objects` -> byte `a1`).  */
-const _: () = assert! (core::mem::size_of::<dump_flags> () == 1);
-const _: () = assert! (core::mem::align_of::<dump_flags> () == 1);
-const _: () = assert! (DUMP_FLAGS_DUMP_OBJECT_CONTENTS == 0b0000_0001);
-const _: () = assert! (DUMP_FLAGS_RECORD_OBJECT_STARTS == 0b0000_0010);
-const _: () = assert! (DUMP_FLAGS_PACK_OBJECTS == 0b0000_0100);
-const _: () = assert! (DUMP_FLAGS_ASSERT_ALREADY_SEEN == 0b0000_1000);
-const _: () = assert! (DUMP_FLAGS_DEFER_HASH_TABLES == 0b0001_0000);
-const _: () = assert! (DUMP_FLAGS_DEFER_SYMBOLS == 0b0010_0000);
-const _: () = assert! (DUMP_FLAGS_DEFER_COLD_OBJECTS == 0b0100_0000);
-const _: () = assert! (DUMP_FLAGS_DEFER_COPIED_OBJECTS == 0b1000_0000);
+const _: () = core::assert! (core::mem::size_of::<dump_flags> () == 1);
+const _: () = core::assert! (core::mem::align_of::<dump_flags> () == 1);
+const _: () = core::assert! (DUMP_FLAGS_DUMP_OBJECT_CONTENTS == 0b0000_0001);
+const _: () = core::assert! (DUMP_FLAGS_RECORD_OBJECT_STARTS == 0b0000_0010);
+const _: () = core::assert! (DUMP_FLAGS_PACK_OBJECTS == 0b0000_0100);
+const _: () = core::assert! (DUMP_FLAGS_ASSERT_ALREADY_SEEN == 0b0000_1000);
+const _: () = core::assert! (DUMP_FLAGS_DEFER_HASH_TABLES == 0b0001_0000);
+const _: () = core::assert! (DUMP_FLAGS_DEFER_SYMBOLS == 0b0010_0000);
+const _: () = core::assert! (DUMP_FLAGS_DEFER_COLD_OBJECTS == 0b0100_0000);
+const _: () = core::assert! (DUMP_FLAGS_DEFER_COPIED_OBJECTS == 0b1000_0000);
 
-const _: () = assert! (core::mem::size_of::<dump_context> () == 448);
-const _: () = assert! (core::mem::align_of::<dump_context> () == 8);
-const _: () = assert! (core::mem::offset_of! (dump_context, header) == 0);
-const _: () = assert! (core::mem::offset_of! (dump_context, buf) == 104);
-const _: () = assert! (core::mem::offset_of! (dump_context, buf_size) == 112);
-const _: () = assert! (core::mem::offset_of! (dump_context, max_offset) == 116);
-const _: () = assert! (core::mem::offset_of! (dump_context, old_purify_flag) == 120);
-const _: () = assert! (core::mem::offset_of! (dump_context, old_post_gc_hook) == 128);
-const _: () = assert! (core::mem::offset_of! (dump_context, old_process_environment) == 136);
-const _: () = assert! (core::mem::offset_of! (dump_context, fd) == 144);
-const _: () = assert! (core::mem::offset_of! (dump_context, dump_filename) == 152);
-const _: () = assert! (core::mem::offset_of! (dump_context, offset) == 160);
-const _: () = assert! (core::mem::offset_of! (dump_context, obj_offset) == 164);
-const _: () = assert! (core::mem::offset_of! (dump_context, flags) == 168);
-const _: () = assert! (core::mem::offset_of! (dump_context, end_heap) == 172);
-const _: () = assert! (core::mem::offset_of! (dump_context, objects_dumped) == 176);
-const _: () = assert! (core::mem::offset_of! (dump_context, referrers) == 184);
-const _: () = assert! (core::mem::offset_of! (dump_context, current_referrer) == 192);
-const _: () = assert! (core::mem::offset_of! (dump_context, have_current_referrer) == 200);
-const _: () = assert! (core::mem::offset_of! (dump_context, dump_queue) == 208);
-const _: () = assert! (core::mem::offset_of! (dump_context, deferred_hash_tables) == 328);
-const _: () = assert! (core::mem::offset_of! (dump_context, deferred_symbols) == 336);
-const _: () = assert! (core::mem::offset_of! (dump_context, fixups) == 344);
-const _: () = assert! (core::mem::offset_of! (dump_context, staticpro_table) == 352);
-const _: () = assert! (core::mem::offset_of! (dump_context, symbol_aux) == 360);
-const _: () = assert! (core::mem::offset_of! (dump_context, copied_queue) == 368);
-const _: () = assert! (core::mem::offset_of! (dump_context, cold_queue) == 376);
-const _: () = assert! (core::mem::offset_of! (dump_context, dump_relocs) == 384);
-const _: () = assert! (core::mem::offset_of! (dump_context, object_starts) == 408);
-const _: () = assert! (core::mem::offset_of! (dump_context, emacs_relocs) == 416);
-const _: () = assert! (core::mem::offset_of! (dump_context, bignum_data) == 424);
-const _: () = assert! (core::mem::offset_of! (dump_context, hash_tables) == 432);
-const _: () = assert! (core::mem::offset_of! (dump_context, number_hot_relocations) == 440);
-const _: () = assert! (core::mem::offset_of! (dump_context, number_discardable_relocations) == 444);
+const _: () = core::assert! (core::mem::size_of::<dump_context> () == 448);
+const _: () = core::assert! (core::mem::align_of::<dump_context> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, header) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, buf) == 104);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, buf_size) == 112);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, max_offset) == 116);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, old_purify_flag) == 120);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, old_post_gc_hook) == 128);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, old_process_environment) == 136);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, fd) == 144);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, dump_filename) == 152);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, offset) == 160);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, obj_offset) == 164);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, flags) == 168);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, end_heap) == 172);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, objects_dumped) == 176);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, referrers) == 184);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, current_referrer) == 192);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, have_current_referrer) == 200);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, dump_queue) == 208);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, deferred_hash_tables) == 328);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, deferred_symbols) == 336);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, fixups) == 344);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, staticpro_table) == 352);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, symbol_aux) == 360);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, copied_queue) == 368);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, cold_queue) == 376);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, dump_relocs) == 384);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, object_starts) == 408);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, emacs_relocs) == 416);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, bignum_data) == 424);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, hash_tables) == 432);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, number_hot_relocations) == 440);
+const _: () = core::assert! (core::mem::offset_of! (dump_context, number_discardable_relocations) == 444);
 
-const _: () = assert! (core::mem::size_of::<link_weight> () == 4);
-const _: () = assert! (core::mem::align_of::<link_weight> () == 4);
-const _: () = assert! (core::mem::offset_of! (link_weight, value) == 0);
+const _: () = core::assert! (core::mem::size_of::<link_weight> () == 4);
+const _: () = core::assert! (core::mem::align_of::<link_weight> () == 4);
+const _: () = core::assert! (core::mem::offset_of! (link_weight, value) == 0);
 
-const _: () = assert! (core::mem::size_of::<dump_memory_map_spec> () == 32);
-const _: () = assert! (core::mem::align_of::<dump_memory_map_spec> () == 8);
-const _: () = assert! (core::mem::offset_of! (dump_memory_map_spec, fd) == 0);
-const _: () = assert! (core::mem::offset_of! (dump_memory_map_spec, size) == 8);
-const _: () = assert! (core::mem::offset_of! (dump_memory_map_spec, offset) == 16);
-const _: () = assert! (core::mem::offset_of! (dump_memory_map_spec, protection) == 24);
+const _: () = core::assert! (core::mem::size_of::<dump_memory_map_spec> () == 32);
+const _: () = core::assert! (core::mem::align_of::<dump_memory_map_spec> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (dump_memory_map_spec, fd) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dump_memory_map_spec, size) == 8);
+const _: () = core::assert! (core::mem::offset_of! (dump_memory_map_spec, offset) == 16);
+const _: () = core::assert! (core::mem::offset_of! (dump_memory_map_spec, protection) == 24);
 
-const _: () = assert! (core::mem::size_of::<dump_memory_map> () == 56);
-const _: () = assert! (core::mem::align_of::<dump_memory_map> () == 8);
-const _: () = assert! (core::mem::offset_of! (dump_memory_map, spec) == 0);
-const _: () = assert! (core::mem::offset_of! (dump_memory_map, mapping) == 32);
-const _: () = assert! (core::mem::offset_of! (dump_memory_map, release) == 40);
-const _: () = assert! (core::mem::offset_of! (dump_memory_map, private) == 48);
+const _: () = core::assert! (core::mem::size_of::<dump_memory_map> () == 56);
+const _: () = core::assert! (core::mem::align_of::<dump_memory_map> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (dump_memory_map, spec) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dump_memory_map, mapping) == 32);
+const _: () = core::assert! (core::mem::offset_of! (dump_memory_map, release) == 40);
+const _: () = core::assert! (core::mem::offset_of! (dump_memory_map, private) == 48);
 
-const _: () = assert! (core::mem::size_of::<dump_memory_map_heap_control_block> () == 16);
-const _: () = assert! (core::mem::align_of::<dump_memory_map_heap_control_block> () == 8);
-const _: () = assert! (core::mem::offset_of! (dump_memory_map_heap_control_block, refcount) == 0);
-const _: () = assert! (core::mem::offset_of! (dump_memory_map_heap_control_block, mem) == 8);
+const _: () = core::assert! (core::mem::size_of::<dump_memory_map_heap_control_block> () == 16);
+const _: () = core::assert! (core::mem::align_of::<dump_memory_map_heap_control_block> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (dump_memory_map_heap_control_block, refcount) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dump_memory_map_heap_control_block, mem) == 8);
 
-const _: () = assert! (core::mem::size_of::<dump_bitset> () == 16);
-const _: () = assert! (core::mem::align_of::<dump_bitset> () == 8);
-const _: () = assert! (core::mem::offset_of! (dump_bitset, bits) == 0);
-const _: () = assert! (core::mem::offset_of! (dump_bitset, number_words) == 8);
-const _: () = assert! (DUMP_BITSET_WORD_WIDTH == 32);
-const _: () = assert! (core::mem::size_of::<dump_bitset_word> () == 4);
+const _: () = core::assert! (core::mem::size_of::<dump_bitset> () == 16);
+const _: () = core::assert! (core::mem::align_of::<dump_bitset> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (dump_bitset, bits) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dump_bitset, number_words) == 8);
+const _: () = core::assert! (DUMP_BITSET_WORD_WIDTH == 32);
+const _: () = core::assert! (core::mem::size_of::<dump_bitset_word> () == 4);
 
-const _: () = assert! (core::mem::size_of::<pdumper_loaded_dump_private> () == 152);
-const _: () = assert! (core::mem::align_of::<pdumper_loaded_dump_private> () == 8);
-const _: () = assert! (core::mem::offset_of! (pdumper_loaded_dump_private, header) == 0);
-const _: () = assert! (core::mem::offset_of! (pdumper_loaded_dump_private, mark_bits) == 104);
-const _: () = assert! (core::mem::offset_of! (pdumper_loaded_dump_private, last_mark_bits) == 120);
-const _: () = assert! (core::mem::offset_of! (pdumper_loaded_dump_private, load_time) == 136);
-const _: () = assert! (core::mem::offset_of! (pdumper_loaded_dump_private, dump_filename) == 144);
+const _: () = core::assert! (core::mem::size_of::<pdumper_loaded_dump_private> () == 152);
+const _: () = core::assert! (core::mem::align_of::<pdumper_loaded_dump_private> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (pdumper_loaded_dump_private, header) == 0);
+const _: () = core::assert! (core::mem::offset_of! (pdumper_loaded_dump_private, mark_bits) == 104);
+const _: () = core::assert! (core::mem::offset_of! (pdumper_loaded_dump_private, last_mark_bits) == 120);
+const _: () = core::assert! (core::mem::offset_of! (pdumper_loaded_dump_private, load_time) == 136);
+const _: () = core::assert! (core::mem::offset_of! (pdumper_loaded_dump_private, dump_filename) == 144);
 
-const _: () = assert! (core::mem::size_of::<bignum_reload_info> () == 8);
-const _: () = assert! (core::mem::align_of::<bignum_reload_info> () == 4);
-const _: () = assert! (core::mem::offset_of! (bignum_reload_info, data_location) == 0);
-const _: () = assert! (core::mem::offset_of! (bignum_reload_info, nlimbs) == 4);
+const _: () = core::assert! (core::mem::size_of::<bignum_reload_info> () == 8);
+const _: () = core::assert! (core::mem::align_of::<bignum_reload_info> () == 4);
+const _: () = core::assert! (core::mem::offset_of! (bignum_reload_info, data_location) == 0);
+const _: () = core::assert! (core::mem::offset_of! (bignum_reload_info, nlimbs) == 4);
 
 /* The invocation-local `struct candidate` inside dump_queue_dequeue.  */
 #[repr(C)]
@@ -6945,7 +6945,7 @@ struct candidate
   score: c_float,
   sequence: dump_off,
 }
-const _: () = assert! (core::mem::size_of::<candidate> () == 8);
-const _: () = assert! (core::mem::align_of::<candidate> () == 4);
-const _: () = assert! (core::mem::offset_of! (candidate, score) == 0);
-const _: () = assert! (core::mem::offset_of! (candidate, sequence) == 4);
+const _: () = core::assert! (core::mem::size_of::<candidate> () == 8);
+const _: () = core::assert! (core::mem::align_of::<candidate> () == 4);
+const _: () = core::assert! (core::mem::offset_of! (candidate, score) == 0);
+const _: () = core::assert! (core::mem::offset_of! (candidate, sequence) == 4);

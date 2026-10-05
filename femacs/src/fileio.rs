@@ -2828,14 +2828,14 @@ pub union read_non_regular
 {
   pub s: read_non_regular_s,
 }
-const _: () = assert! (std::mem::align_of::<read_non_regular> () % 8 == 0);  // static_assert (GCALIGNED (union read_non_regular));
-const _: () = assert! (std::mem::size_of::<read_non_regular_s> () == 32);
-const _: () = assert! (std::mem::align_of::<read_non_regular_s> () == 8);
-const _: () = assert! (std::mem::offset_of! (read_non_regular_s, fd) == 0);
-const _: () = assert! (std::mem::offset_of! (read_non_regular_s, buf) == 8);
-const _: () = assert! (std::mem::offset_of! (read_non_regular_s, inserted) == 16);
-const _: () = assert! (std::mem::offset_of! (read_non_regular_s, bufsize) == 24);
-const _: () = assert! (std::mem::size_of::<read_non_regular> () == 32);
+const _: () = core::assert! (std::mem::align_of::<read_non_regular> () % 8 == 0);  // static_assert (GCALIGNED (union read_non_regular));
+const _: () = core::assert! (std::mem::size_of::<read_non_regular_s> () == 32);
+const _: () = core::assert! (std::mem::align_of::<read_non_regular_s> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (read_non_regular_s, fd) == 0);
+const _: () = core::assert! (std::mem::offset_of! (read_non_regular_s, buf) == 8);
+const _: () = core::assert! (std::mem::offset_of! (read_non_regular_s, inserted) == 16);
+const _: () = core::assert! (std::mem::offset_of! (read_non_regular_s, bufsize) == 24);
+const _: () = core::assert! (std::mem::size_of::<read_non_regular> () == 32);
 
 unsafe extern "C" fn read_non_regular (state: Lisp_Object) -> Lisp_Object
 {
@@ -5288,10 +5288,10 @@ pub struct auto_save_unwind
   pub stream: *mut FILE,
   pub auto_raise: bool,
 }
-const _: () = assert! (std::mem::size_of::<auto_save_unwind> () == 16);
-const _: () = assert! (std::mem::align_of::<auto_save_unwind> () == 8);
-const _: () = assert! (std::mem::offset_of! (auto_save_unwind, stream) == 0);
-const _: () = assert! (std::mem::offset_of! (auto_save_unwind, auto_raise) == 8);
+const _: () = core::assert! (std::mem::size_of::<auto_save_unwind> () == 16);
+const _: () = core::assert! (std::mem::align_of::<auto_save_unwind> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (auto_save_unwind, stream) == 0);
+const _: () = core::assert! (std::mem::offset_of! (auto_save_unwind, auto_raise) == 8);
 
 unsafe extern "C" fn do_auto_save_unwind (arg: *mut c_void)
 {

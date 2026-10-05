@@ -67,15 +67,15 @@ pub struct utmpx
   pub ut_pad: [c_uint; 16],
 }
 
-const _: () = assert! (std::mem::size_of::<utmpx> () == 640);
-const _: () = assert! (std::mem::offset_of! (utmpx, ut_user) == 0);
-const _: () = assert! (std::mem::offset_of! (utmpx, ut_id) == 256);
-const _: () = assert! (std::mem::offset_of! (utmpx, ut_line) == 260);
-const _: () = assert! (std::mem::offset_of! (utmpx, ut_pid) == 292);
-const _: () = assert! (std::mem::offset_of! (utmpx, ut_type) == 296);
-const _: () = assert! (std::mem::offset_of! (utmpx, ut_tv) == 304);
-const _: () = assert! (std::mem::offset_of! (utmpx, ut_host) == 320);
-const _: () = assert! (std::mem::offset_of! (utmpx, ut_pad) == 576);
+const _: () = core::assert! (std::mem::size_of::<utmpx> () == 640);
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_user) == 0);
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_id) == 256);
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_line) == 260);
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_pid) == 292);
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_type) == 296);
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_tv) == 304);
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_host) == 320);
+const _: () = core::assert! (std::mem::offset_of! (utmpx, ut_pad) == 576);
 
 /// <utmpx.h> 89: `#define BOOT_TIME 2`, the `ut_type` value lib/boot-time.c compares
 /// against (`USER_PROCESS` is 7 and is not named by this unit).

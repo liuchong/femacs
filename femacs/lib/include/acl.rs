@@ -38,8 +38,8 @@ pub union aclinfo_u
   pub _gl_acl_ch: [c_char; 152],
 }
 
-const _: () = assert! (std::mem::size_of::<aclinfo> () == 184);
-const _: () = assert! (std::mem::offset_of! (aclinfo, u) == 28);
+const _: () = core::assert! (std::mem::size_of::<aclinfo> () == 184);
+const _: () = core::assert! (std::mem::offset_of! (aclinfo, u) == 28);
 
 /* C 99-104's `#else` arm (live here): the two macros become the constants/helpers the C's own
    `#else` defines.  */

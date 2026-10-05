@@ -145,7 +145,7 @@ pub const AUTH_KEY_LENGTH: usize = 64;
 pub const socknamesize: c_int =
   (std::mem::size_of::<sockaddr_un> () - std::mem::offset_of! (sockaddr_un, sun_path))
   as c_int;
-const _: () = assert! (socknamesize == 104);
+const _: () = core::assert! (socknamesize == 104);
 
 /// C 1363-1368: `union local_sockaddr { struct sockaddr_un un; struct sockaddr sa; };`
 #[repr(C)]
@@ -155,8 +155,8 @@ pub union local_sockaddr
   pub un: sockaddr_un,   // C 1366
   pub sa: sockaddr,      // C 1367
 }
-const _: () = assert! (std::mem::size_of::<local_sockaddr> () == 106);
-const _: () = assert! (std::mem::offset_of! (local_sockaddr, sa) == 0);
+const _: () = core::assert! (std::mem::size_of::<local_sockaddr> () == 106);
+const _: () = core::assert! (std::mem::offset_of! (local_sockaddr, sa) == 0);
 
 /* The socket ABI and the other system names this program reaches through headers with no
    mirror, declared at the use site (P-26/P-72 (3)).  Every number is measured with the frozen
@@ -169,7 +169,7 @@ pub struct in_addr
 {
   pub s_addr: u32,
 }
-const _: () = assert! (std::mem::size_of::<in_addr> () == 4);
+const _: () = core::assert! (std::mem::size_of::<in_addr> () == 4);
 
 /// `<sys/socket.h>`: `struct sockaddr`, measured 16/1 (`sa_len`@0, `sa_family`@1, `sa_data`@2).
 #[repr(C)]
@@ -180,7 +180,7 @@ pub struct sockaddr
   pub sa_family: u8,
   pub sa_data: [c_char; 14],
 }
-const _: () = assert! (std::mem::size_of::<sockaddr> () == 16);
+const _: () = core::assert! (std::mem::size_of::<sockaddr> () == 16);
 
 /// `<netinet/in.h>`: `struct sockaddr_in`, measured 16/4 (`sin_len`@0, `sin_family`@1,
 /// `sin_port`@2, `sin_addr`@4, `sin_zero`@8).
@@ -194,8 +194,8 @@ pub struct sockaddr_in
   pub sin_addr: in_addr,
   pub sin_zero: [c_char; 8],
 }
-const _: () = assert! (std::mem::size_of::<sockaddr_in> () == 16);
-const _: () = assert! (std::mem::offset_of! (sockaddr_in, sin_addr) == 4);
+const _: () = core::assert! (std::mem::size_of::<sockaddr_in> () == 16);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr_in, sin_addr) == 4);
 
 /// `<sys/un.h>`: `struct sockaddr_un`, measured 106/1 (`sun_len`@0, `sun_family`@1,
 /// `sun_path`@2).
@@ -207,8 +207,8 @@ pub struct sockaddr_un
   pub sun_family: u8,
   pub sun_path: [c_char; 104],
 }
-const _: () = assert! (std::mem::size_of::<sockaddr_un> () == 106);
-const _: () = assert! (std::mem::offset_of! (sockaddr_un, sun_path) == 2);
+const _: () = core::assert! (std::mem::size_of::<sockaddr_un> () == 106);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr_un, sun_path) == 2);
 
 /// `<sys/socket.h>`: `struct linger { int l_onoff; int l_linger; }`, measured 8/4.
 #[repr(C)]
@@ -218,7 +218,7 @@ pub struct linger
   pub l_onoff: c_int,
   pub l_linger: c_int,
 }
-const _: () = assert! (std::mem::size_of::<linger> () == 8);
+const _: () = core::assert! (std::mem::size_of::<linger> () == 8);
 
 /// `<sys/socket.h>`: `typedef __uint32_t socklen_t;` -- the mirror has no `socklen_t`, so it is
 /// declared here with the measured width (the `src/process.rs` 308 shape).
@@ -1279,7 +1279,7 @@ unsafe fn set_tcp_socket (local_server_file: *const c_char) -> HSOCKET! ()
     r#in: sockaddr_in,  // C 1234
     sa: sockaddr,       // C 1235
   }
-  const _: () = assert! (std::mem::size_of::<set_tcp_socket_server> () == 16);
+  const _: () = core::assert! (std::mem::size_of::<set_tcp_socket_server> () == 16);
 
   let mut server: set_tcp_socket_server = std::mem::zeroed ();
   let l_arg: linger = linger { l_onoff: 1, l_linger: 1 };

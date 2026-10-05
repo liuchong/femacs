@@ -13,8 +13,8 @@ pub struct utsname {
   pub machine: [c_char; 256],
 }
 
-const _: () = assert! (std::mem::size_of::<utsname> () == 1280);
-const _: () = assert! (std::mem::offset_of! (utsname, nodename) == 256);
+const _: () = core::assert! (std::mem::size_of::<utsname> () == 1280);
+const _: () = core::assert! (std::mem::offset_of! (utsname, nodename) == 256);
 
 unsafe extern "C" {
   /// C: <sys/utsname.h>: `int uname (struct utsname *);`

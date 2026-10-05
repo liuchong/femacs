@@ -9252,12 +9252,12 @@ pub struct user_signal_info
 
   pub next: *mut user_signal_info,
 }
-const _: () = assert! (std::mem::size_of::<user_signal_info> () == 32);
-const _: () = assert! (std::mem::align_of::<user_signal_info> () == 8);
-const _: () = assert! (std::mem::offset_of! (user_signal_info, sig) == 0);
-const _: () = assert! (std::mem::offset_of! (user_signal_info, name) == 8);
-const _: () = assert! (std::mem::offset_of! (user_signal_info, npending) == 16);
-const _: () = assert! (std::mem::offset_of! (user_signal_info, next) == 24);
+const _: () = core::assert! (std::mem::size_of::<user_signal_info> () == 32);
+const _: () = core::assert! (std::mem::align_of::<user_signal_info> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (user_signal_info, sig) == 0);
+const _: () = core::assert! (std::mem::offset_of! (user_signal_info, name) == 8);
+const _: () = core::assert! (std::mem::offset_of! (user_signal_info, npending) == 16);
+const _: () = core::assert! (std::mem::offset_of! (user_signal_info, next) == 24);
 
 /* List of user signals.  */
 /* C 8465: `static struct user_signal_info *user_signals = NULL;`  */
@@ -11375,12 +11375,12 @@ pub struct keyremap
   pub start: c_int,
   pub end: c_int,
 }
-const _: () = assert! (std::mem::size_of::<keyremap> () == 24);
-const _: () = assert! (std::mem::align_of::<keyremap> () == 8);
-const _: () = assert! (std::mem::offset_of! (keyremap, parent) == 0);
-const _: () = assert! (std::mem::offset_of! (keyremap, map) == 8);
-const _: () = assert! (std::mem::offset_of! (keyremap, start) == 16);
-const _: () = assert! (std::mem::offset_of! (keyremap, end) == 20);
+const _: () = core::assert! (std::mem::size_of::<keyremap> () == 24);
+const _: () = core::assert! (std::mem::align_of::<keyremap> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (keyremap, parent) == 0);
+const _: () = core::assert! (std::mem::offset_of! (keyremap, map) == 8);
+const _: () = core::assert! (std::mem::offset_of! (keyremap, start) == 16);
+const _: () = core::assert! (std::mem::offset_of! (keyremap, end) == 20);
 
 /* Lookup KEY in MAP.
    MAP is a keymap mapping keys to key vectors or functions.
@@ -14231,10 +14231,10 @@ pub struct event_head
   pub var: c_short,
   pub kind: c_short,
 }
-const _: () = assert! (std::mem::size_of::<event_head> () == 4);
-const _: () = assert! (std::mem::align_of::<event_head> () == 2);
-const _: () = assert! (std::mem::offset_of! (event_head, var) == 0);
-const _: () = assert! (std::mem::offset_of! (event_head, kind) == 2);
+const _: () = core::assert! (std::mem::size_of::<event_head> () == 4);
+const _: () = core::assert! (std::mem::align_of::<event_head> () == 2);
+const _: () = core::assert! (std::mem::offset_of! (event_head, var) == 0);
+const _: () = core::assert! (std::mem::offset_of! (event_head, kind) == 2);
 
 /* C's `SYMBOL_INDEX (Qfoo)` is the token-pasting macro `iQfoo`, which the generated globals
    provide as a constant (PORTING.md P-17; the `frame.rs` `frame_parms` precedent).  */

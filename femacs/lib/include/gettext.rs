@@ -38,7 +38,7 @@ pub const _LIBGETTEXT_H: c_int = 1;
 /* C 353-354: `#define GETTEXT_CONTEXT_GLUE "\004"` - the separator between msgctxt and msgid
    in a .mo file.  A string-valued macro keeps its value (PORTING.md 5.1), as a `&CStr`.  */
 pub const GETTEXT_CONTEXT_GLUE: &core::ffi::CStr = c"\x04";
-const _: () = assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
+const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
 
 /* C 60-67's `_LIBGETTEXT_FUNCAST (type, expr)`: `(type) {(expr)}` in the non-C++ arm (C 66)
    and `static_cast <type> (expr)` in the C++ one (C 64) - a cast that only does the conversions
@@ -156,7 +156,7 @@ pub const LC_MESSAGES: c_int = 6;
 macro_rules! pgettext {
   ($msgctxt:literal, $msgid:literal) => {
     unsafe {
-      const _: () = assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
+      const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       pgettext_aux (core::ptr::null (), concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                       as *const c_char, $msgid, LC_MESSAGES)
     }
@@ -165,7 +165,7 @@ macro_rules! pgettext {
 macro_rules! dpgettext {
   ($domainname:expr, $msgctxt:literal, $msgid:literal) => {
     unsafe {
-      const _: () = assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
+      const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       pgettext_aux ($domainname, concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                       as *const c_char, $msgid, LC_MESSAGES)
     }
@@ -174,7 +174,7 @@ macro_rules! dpgettext {
 macro_rules! dcpgettext {
   ($domainname:expr, $msgctxt:literal, $msgid:literal, $category:expr) => {
     unsafe {
-      const _: () = assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
+      const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       pgettext_aux ($domainname, concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                       as *const c_char, $msgid, $category)
     }
@@ -183,7 +183,7 @@ macro_rules! dcpgettext {
 macro_rules! npgettext {
   ($msgctxt:literal, $msgid:literal, $msgidplural:literal, $n:expr) => {
     unsafe {
-      const _: () = assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
+      const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       npgettext_aux (core::ptr::null (), concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                        as *const c_char, $msgid, $msgidplural, $n, LC_MESSAGES)
     }
@@ -192,7 +192,7 @@ macro_rules! npgettext {
 macro_rules! dnpgettext {
   ($domainname:expr, $msgctxt:literal, $msgid:literal, $msgidplural:literal, $n:expr) => {
     unsafe {
-      const _: () = assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
+      const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       npgettext_aux ($domainname, concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                        as *const c_char, $msgid, $msgidplural, $n, LC_MESSAGES)
     }
@@ -202,7 +202,7 @@ macro_rules! dcnpgettext {
   ($domainname:expr, $msgctxt:literal, $msgid:literal, $msgidplural:literal, $n:expr,
    $category:expr) => {
     unsafe {
-      const _: () = assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
+      const _: () = core::assert! (GETTEXT_CONTEXT_GLUE.to_bytes ()[0] == 0x04);
       npgettext_aux ($domainname, concat! ($msgctxt, "\x04", $msgid, "\0").as_ptr ()
                        as *const c_char, $msgid, $msgidplural, $n, $category)
     }

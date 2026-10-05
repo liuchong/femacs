@@ -54,10 +54,10 @@ pub struct mips_elf_abi_flags
 /* Arithmetic from the field types, not a measurement: the two `uint16_t`-aligned halves put
    `isa_ext` at 8 and the four `uint32_t` masks after it, and no mipsel toolchain exists on this
    host to measure with (exec/ is compiled by no configuration the port builds).  */
-const _: () = assert! (std::mem::size_of::<mips_elf_abi_flags> () == 24);
-const _: () = assert! (std::mem::offset_of! (mips_elf_abi_flags, version) == 0);
-const _: () = assert! (std::mem::offset_of! (mips_elf_abi_flags, isa_ext) == 8);
-const _: () = assert! (std::mem::offset_of! (mips_elf_abi_flags, flags2) == 20);
+const _: () = core::assert! (std::mem::size_of::<mips_elf_abi_flags> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (mips_elf_abi_flags, version) == 0);
+const _: () = core::assert! (std::mem::offset_of! (mips_elf_abi_flags, isa_ext) == 8);
+const _: () = core::assert! (std::mem::offset_of! (mips_elf_abi_flags, flags2) == 20);
 
 /* C 63-65: `#define FP_FR0 0`, `#define FP_FR1 1`, `#define FP_FRE 3` - "Floating point
    modes.", in C's order.  */

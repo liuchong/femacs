@@ -217,22 +217,22 @@ pub struct composition_it
   pub width: c_int,                     // 2425, offset 80
 }
 
-const _: () = assert! (std::mem::size_of::<composition_it> () == 88);
-const _: () = assert! (std::mem::align_of::<composition_it> () == 8);
-const _: () = assert! (std::mem::offset_of! (composition_it, stop_pos) == 0);
-const _: () = assert! (std::mem::offset_of! (composition_it, id) == 8);
-const _: () = assert! (std::mem::offset_of! (composition_it, ch) == 16);
-const _: () = assert! (std::mem::offset_of! (composition_it, rule_idx) == 24);
-const _: () = assert! (std::mem::offset_of! (composition_it, lookback) == 32);
-const _: () = assert! (std::mem::offset_of! (composition_it, nglyphs) == 40);
-const _: () = assert! (std::mem::offset_of! (composition_it, reversed_p) == 44);
-const _: () = assert! (std::mem::offset_of! (composition_it, parent_it) == 48);
-const _: () = assert! (std::mem::offset_of! (composition_it, charpos) == 56);
-const _: () = assert! (std::mem::offset_of! (composition_it, nchars) == 64);
-const _: () = assert! (std::mem::offset_of! (composition_it, nbytes) == 68);
-const _: () = assert! (std::mem::offset_of! (composition_it, from) == 72);
-const _: () = assert! (std::mem::offset_of! (composition_it, to) == 76);
-const _: () = assert! (std::mem::offset_of! (composition_it, width) == 80);
+const _: () = core::assert! (std::mem::size_of::<composition_it> () == 88);
+const _: () = core::assert! (std::mem::align_of::<composition_it> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, stop_pos) == 0);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, id) == 8);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, ch) == 16);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, rule_idx) == 24);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, lookback) == 32);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, nglyphs) == 40);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, reversed_p) == 44);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, parent_it) == 48);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, charpos) == 56);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, nchars) == 64);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, nbytes) == 68);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, from) == 72);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, to) == 76);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, width) == 80);
 
 /* C: dispextern.h 2159-2222 `struct bidi_it`: this unit reaches exactly one member of the
    bidi iterator, `scan_dir` (C's `it.bidi_it.scan_dir` in `Fvertical_motion`).  clang
@@ -249,8 +249,8 @@ pub struct bidi_it
   pub _pad_tail: [u8; 2140],
 }
 
-const _: () = assert! (std::mem::size_of::<bidi_it> () == 2328);
-const _: () = assert! (std::mem::offset_of! (bidi_it, scan_dir) == 184);
+const _: () = core::assert! (std::mem::size_of::<bidi_it> () == 2328);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, scan_dir) == 184);
 
 /* C: dispextern.h 2594-2665 `struct iterator_stack_entry`: this unit reaches exactly one
    member, `method` (C's `it.stack[it.sp - 1].method` in `Fvertical_motion`).  clang gives
@@ -265,8 +265,8 @@ pub struct iterator_stack_entry
   pub _pad_tail: [u8; 32],
 }
 
-const _: () = assert! (std::mem::size_of::<iterator_stack_entry> () == 304);
-const _: () = assert! (std::mem::offset_of! (iterator_stack_entry, method) == 268);
+const _: () = core::assert! (std::mem::size_of::<iterator_stack_entry> () == 304);
+const _: () = core::assert! (std::mem::offset_of! (iterator_stack_entry, method) == 268);
 
 /* C: dispextern.h 2430-2934 `struct it`, the display iterator.  dispextern.h is mirrored
    only to its batch-II prefix (P-66), so this record is declared the way composite.rs
@@ -383,34 +383,34 @@ pub struct it
   pub _pad_p: [u8; 24],
 }
 
-const _: () = assert! (std::mem::size_of::<it> () == 4968);
-const _: () = assert! (std::mem::align_of::<it> () == 8);
-const _: () = assert! (std::mem::offset_of! (it, window) == 0);
-const _: () = assert! (std::mem::offset_of! (it, w) == 8);
-const _: () = assert! (std::mem::offset_of! (it, f) == 16);
-const _: () = assert! (std::mem::offset_of! (it, method) == 24);
-const _: () = assert! (std::mem::offset_of! (it, bits) == 112);
-const _: () = assert! (std::mem::offset_of! (it, current) == 336);
-const _: () = assert! (std::mem::offset_of! (it, string_overlays) == 528);
-const _: () = assert! (std::mem::offset_of! (it, string) == 656);
-const _: () = assert! (std::mem::offset_of! (it, from_overlay) == 664);
-const _: () = assert! (std::mem::offset_of! (it, stack) == 672);
-const _: () = assert! (std::mem::offset_of! (it, sp) == 2192);
-const _: () = assert! (std::mem::offset_of! (it, line_wrap) == 2220);
-const _: () = assert! (std::mem::offset_of! (it, c) == 2228);
-const _: () = assert! (std::mem::offset_of! (it, cmp_it) == 2240);
-const _: () = assert! (std::mem::offset_of! (it, image_id) == 2336);
-const _: () = assert! (std::mem::offset_of! (it, first_visible_x) == 2436);
-const _: () = assert! (std::mem::offset_of! (it, last_visible_x) == 2440);
-const _: () = assert! (std::mem::offset_of! (it, area) == 2480);
-const _: () = assert! (std::mem::offset_of! (it, current_x) == 2524);
-const _: () = assert! (std::mem::offset_of! (it, continuation_lines_width) == 2532);
-const _: () = assert! (std::mem::offset_of! (it, current_y) == 2552);
-const _: () = assert! (std::mem::offset_of! (it, vpos) == 2560);
-const _: () = assert! (std::mem::offset_of! (it, hpos) == 2564);
-const _: () = assert! (std::mem::offset_of! (it, lnum_width) == 2584);
-const _: () = assert! (std::mem::offset_of! (it, lnum_pixel_width) == 2588);
-const _: () = assert! (std::mem::offset_of! (it, bidi_it) == 2616);
+const _: () = core::assert! (std::mem::size_of::<it> () == 4968);
+const _: () = core::assert! (std::mem::align_of::<it> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (it, window) == 0);
+const _: () = core::assert! (std::mem::offset_of! (it, w) == 8);
+const _: () = core::assert! (std::mem::offset_of! (it, f) == 16);
+const _: () = core::assert! (std::mem::offset_of! (it, method) == 24);
+const _: () = core::assert! (std::mem::offset_of! (it, bits) == 112);
+const _: () = core::assert! (std::mem::offset_of! (it, current) == 336);
+const _: () = core::assert! (std::mem::offset_of! (it, string_overlays) == 528);
+const _: () = core::assert! (std::mem::offset_of! (it, string) == 656);
+const _: () = core::assert! (std::mem::offset_of! (it, from_overlay) == 664);
+const _: () = core::assert! (std::mem::offset_of! (it, stack) == 672);
+const _: () = core::assert! (std::mem::offset_of! (it, sp) == 2192);
+const _: () = core::assert! (std::mem::offset_of! (it, line_wrap) == 2220);
+const _: () = core::assert! (std::mem::offset_of! (it, c) == 2228);
+const _: () = core::assert! (std::mem::offset_of! (it, cmp_it) == 2240);
+const _: () = core::assert! (std::mem::offset_of! (it, image_id) == 2336);
+const _: () = core::assert! (std::mem::offset_of! (it, first_visible_x) == 2436);
+const _: () = core::assert! (std::mem::offset_of! (it, last_visible_x) == 2440);
+const _: () = core::assert! (std::mem::offset_of! (it, area) == 2480);
+const _: () = core::assert! (std::mem::offset_of! (it, current_x) == 2524);
+const _: () = core::assert! (std::mem::offset_of! (it, continuation_lines_width) == 2532);
+const _: () = core::assert! (std::mem::offset_of! (it, current_y) == 2552);
+const _: () = core::assert! (std::mem::offset_of! (it, vpos) == 2560);
+const _: () = core::assert! (std::mem::offset_of! (it, hpos) == 2564);
+const _: () = core::assert! (std::mem::offset_of! (it, lnum_width) == 2584);
+const _: () = core::assert! (std::mem::offset_of! (it, lnum_pixel_width) == 2588);
+const _: () = core::assert! (std::mem::offset_of! (it, bidi_it) == 2616);
 
 /* `struct it`'s first `bool_bf` run (dispextern.h 2459-2471, one byte at 112): C reads
    `it.string_from_display_prop_p`, which the port spells as the member name plus the mask

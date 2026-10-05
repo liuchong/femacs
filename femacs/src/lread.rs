@@ -141,13 +141,13 @@ macro_rules! file_tell { ($stream:expr) => { ftello ($stream) }; }
 #[derive(Clone, Copy)]
 pub struct android_fd_or_asset { pub fd: c_int, pub asset: *mut c_void }
 #[cfg (feature = "have_android")]
-const _: () = assert! (std::mem::size_of::<android_fd_or_asset> () == 16);
+const _: () = core::assert! (std::mem::size_of::<android_fd_or_asset> () == 16);
 #[cfg (feature = "have_android")]
-const _: () = assert! (std::mem::align_of::<android_fd_or_asset> () == 8);
+const _: () = core::assert! (std::mem::align_of::<android_fd_or_asset> () == 8);
 #[cfg (feature = "have_android")]
-const _: () = assert! (std::mem::offset_of! (android_fd_or_asset, fd) == 0);
+const _: () = core::assert! (std::mem::offset_of! (android_fd_or_asset, fd) == 0);
 #[cfg (feature = "have_android")]
-const _: () = assert! (std::mem::offset_of! (android_fd_or_asset, asset) == 8);
+const _: () = core::assert! (std::mem::offset_of! (android_fd_or_asset, asset) == 8);
 
 #[cfg (feature = "have_android")]
 pub type lread_fd = android_fd_or_asset;
@@ -276,11 +276,11 @@ pub struct infile
   pub lookahead: c_char,                   /* lookahead byte count (`signed char`) */
   pub buf: [c_uchar; MAX_MULTIBYTE_LENGTH as usize - 1], /* lookahead bytes, reversed */
 }
-const _: () = assert! (std::mem::size_of::<infile> () == 16);
-const _: () = assert! (std::mem::align_of::<infile> () == 8);
-const _: () = assert! (std::mem::offset_of! (infile, stream) == 0);
-const _: () = assert! (std::mem::offset_of! (infile, lookahead) == 8);
-const _: () = assert! (std::mem::offset_of! (infile, buf) == 9);
+const _: () = core::assert! (std::mem::size_of::<infile> () == 16);
+const _: () = core::assert! (std::mem::align_of::<infile> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (infile, stream) == 0);
+const _: () = core::assert! (std::mem::offset_of! (infile, lookahead) == 8);
+const _: () = core::assert! (std::mem::offset_of! (infile, buf) == 9);
 
 static mut infile: *mut infile = std::ptr::null_mut ();                 // C 215
 
@@ -302,12 +302,12 @@ pub struct saved_string
   pub length: ptrdiff_t,          /* length of string in buffer */
   pub position: file_offset,      /* position in file the string came from */
 }
-const _: () = assert! (std::mem::size_of::<saved_string> () == 32);
-const _: () = assert! (std::mem::align_of::<saved_string> () == 8);
-const _: () = assert! (std::mem::offset_of! (saved_string, string) == 0);
-const _: () = assert! (std::mem::offset_of! (saved_string, size) == 8);
-const _: () = assert! (std::mem::offset_of! (saved_string, length) == 16);
-const _: () = assert! (std::mem::offset_of! (saved_string, position) == 24);
+const _: () = core::assert! (std::mem::size_of::<saved_string> () == 32);
+const _: () = core::assert! (std::mem::align_of::<saved_string> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (saved_string, string) == 0);
+const _: () = core::assert! (std::mem::offset_of! (saved_string, size) == 8);
+const _: () = core::assert! (std::mem::offset_of! (saved_string, length) == 16);
+const _: () = core::assert! (std::mem::offset_of! (saved_string, position) == 24);
 
 /* The last two strings skipped with #@ (most recent first).  */
 static mut saved_strings: [saved_string; 2] =                            // C 232
@@ -341,13 +341,13 @@ pub struct source
   pub emacs_mule_encoding: bool, /* for file sources, whether the encoding is old emacs-mule */
 }
 pub type source_t = source;
-const _: () = assert! (std::mem::size_of::<source> () == 32);
-const _: () = assert! (std::mem::align_of::<source> () == 8);
-const _: () = assert! (std::mem::offset_of! (source, get) == 0);
-const _: () = assert! (std::mem::offset_of! (source, unget) == 8);
-const _: () = assert! (std::mem::offset_of! (source, object) == 16);
-const _: () = assert! (std::mem::offset_of! (source, multibyte) == 24);
-const _: () = assert! (std::mem::offset_of! (source, emacs_mule_encoding) == 25);
+const _: () = core::assert! (std::mem::size_of::<source> () == 32);
+const _: () = core::assert! (std::mem::align_of::<source> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (source, get) == 0);
+const _: () = core::assert! (std::mem::offset_of! (source, unget) == 8);
+const _: () = core::assert! (std::mem::offset_of! (source, object) == 16);
+const _: () = core::assert! (std::mem::offset_of! (source, multibyte) == 24);
+const _: () = core::assert! (std::mem::offset_of! (source, emacs_mule_encoding) == 25);
 
 /* C 285-336.  */
 unsafe fn init_source (src: *mut source, readcharfun: Lisp_Object)
@@ -801,12 +801,12 @@ pub struct subst
   /* List of subobjects of OBJECT that have already been visited.  */
   pub seen: Lisp_Object,
 }
-const _: () = assert! (std::mem::size_of::<subst> () == 32);
-const _: () = assert! (std::mem::align_of::<subst> () == 8);
-const _: () = assert! (std::mem::offset_of! (subst, object) == 0);
-const _: () = assert! (std::mem::offset_of! (subst, placeholder) == 8);
-const _: () = assert! (std::mem::offset_of! (subst, completed) == 16);
-const _: () = assert! (std::mem::offset_of! (subst, seen) == 24);
+const _: () = core::assert! (std::mem::size_of::<subst> () == 32);
+const _: () = core::assert! (std::mem::align_of::<subst> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (subst, object) == 0);
+const _: () = core::assert! (std::mem::offset_of! (subst, placeholder) == 8);
+const _: () = core::assert! (std::mem::offset_of! (subst, completed) == 16);
+const _: () = core::assert! (std::mem::offset_of! (subst, seen) == 24);
 
 /* C 753-762: `typedef enum { Cookie_None, Cookie_Dyn, Cookie_Lex } lexical_cookie_t;`.  */
 pub const Cookie_None: c_int = 0;
@@ -3011,13 +3011,13 @@ pub struct readbuf_t
   pub heap: *mut c_char,	/* heap allocation or NULL */
   pub count: specpdl_ref,	/* index for cleanup when a heap allocation is used */
 }
-const _: () = assert! (std::mem::size_of::<readbuf_t> () == 40);
-const _: () = assert! (std::mem::align_of::<readbuf_t> () == 8);
-const _: () = assert! (std::mem::offset_of! (readbuf_t, start) == 0);
-const _: () = assert! (std::mem::offset_of! (readbuf_t, end) == 8);
-const _: () = assert! (std::mem::offset_of! (readbuf_t, cur) == 16);
-const _: () = assert! (std::mem::offset_of! (readbuf_t, heap) == 24);
-const _: () = assert! (std::mem::offset_of! (readbuf_t, count) == 32);
+const _: () = core::assert! (std::mem::size_of::<readbuf_t> () == 40);
+const _: () = core::assert! (std::mem::align_of::<readbuf_t> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (readbuf_t, start) == 0);
+const _: () = core::assert! (std::mem::offset_of! (readbuf_t, end) == 8);
+const _: () = core::assert! (std::mem::offset_of! (readbuf_t, cur) == 16);
+const _: () = core::assert! (std::mem::offset_of! (readbuf_t, heap) == 24);
+const _: () = core::assert! (std::mem::offset_of! (readbuf_t, count) == 32);
 
 /* Make more room in the buffer, using heap allocation.  */
 #[inline(never)]
@@ -3787,8 +3787,8 @@ pub enum read_entry_type
   RE_special,			/* "'" | "#'" | "`" | "," | ",@" */
   RE_numbered,			/* "#" (+ DIGIT) "=" */
 }
-const _: () = assert! (std::mem::size_of::<read_entry_type> () == 4);
-const _: () = assert! (std::mem::align_of::<read_entry_type> () == 4);
+const _: () = core::assert! (std::mem::size_of::<read_entry_type> () == 4);
+const _: () = core::assert! (std::mem::align_of::<read_entry_type> () == 4);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -3833,18 +3833,18 @@ pub struct read_stack_entry
   pub r#type: read_entry_type,
   pub u: read_stack_entry_u,
 }
-const _: () = assert! (std::mem::size_of::<read_stack_entry> () == 24);
-const _: () = assert! (std::mem::align_of::<read_stack_entry> () == 8);
-const _: () = assert! (std::mem::offset_of! (read_stack_entry, r#type) == 0);
-const _: () = assert! (std::mem::offset_of! (read_stack_entry, u) == 8);
-const _: () = assert! (std::mem::offset_of! (read_stack_entry_u, list) == 0);
-const _: () = assert! (std::mem::offset_of! (read_stack_entry, u.list.head) == 8);
-const _: () = assert! (std::mem::offset_of! (read_stack_entry, u.list.tail) == 16);
-const _: () = assert! (std::mem::offset_of! (read_stack_entry, u.vector.elems) == 8);
-const _: () = assert! (std::mem::offset_of! (read_stack_entry, u.vector.old_locate_syms) == 16);
-const _: () = assert! (std::mem::offset_of! (read_stack_entry, u.special.symbol) == 8);
-const _: () = assert! (std::mem::offset_of! (read_stack_entry, u.numbered.number) == 8);
-const _: () = assert! (std::mem::offset_of! (read_stack_entry, u.numbered.placeholder) == 16);
+const _: () = core::assert! (std::mem::size_of::<read_stack_entry> () == 24);
+const _: () = core::assert! (std::mem::align_of::<read_stack_entry> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (read_stack_entry, r#type) == 0);
+const _: () = core::assert! (std::mem::offset_of! (read_stack_entry, u) == 8);
+const _: () = core::assert! (std::mem::offset_of! (read_stack_entry_u, list) == 0);
+const _: () = core::assert! (std::mem::offset_of! (read_stack_entry, u.list.head) == 8);
+const _: () = core::assert! (std::mem::offset_of! (read_stack_entry, u.list.tail) == 16);
+const _: () = core::assert! (std::mem::offset_of! (read_stack_entry, u.vector.elems) == 8);
+const _: () = core::assert! (std::mem::offset_of! (read_stack_entry, u.vector.old_locate_syms) == 16);
+const _: () = core::assert! (std::mem::offset_of! (read_stack_entry, u.special.symbol) == 8);
+const _: () = core::assert! (std::mem::offset_of! (read_stack_entry, u.numbered.number) == 8);
+const _: () = core::assert! (std::mem::offset_of! (read_stack_entry, u.numbered.placeholder) == 16);
 
 #[repr(C)]
 pub struct read_stack
@@ -3853,11 +3853,11 @@ pub struct read_stack
   pub size: ptrdiff_t,			/* allocated size in entries */
   pub sp: ptrdiff_t,			/* current number of entries */
 }
-const _: () = assert! (std::mem::size_of::<read_stack> () == 24);
-const _: () = assert! (std::mem::align_of::<read_stack> () == 8);
-const _: () = assert! (std::mem::offset_of! (read_stack, stack) == 0);
-const _: () = assert! (std::mem::offset_of! (read_stack, size) == 8);
-const _: () = assert! (std::mem::offset_of! (read_stack, sp) == 16);
+const _: () = core::assert! (std::mem::size_of::<read_stack> () == 24);
+const _: () = core::assert! (std::mem::align_of::<read_stack> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (read_stack, stack) == 0);
+const _: () = core::assert! (std::mem::offset_of! (read_stack, size) == 8);
+const _: () = core::assert! (std::mem::offset_of! (read_stack, sp) == 16);
 
 static mut rdstack: read_stack = read_stack { stack: std::ptr::null_mut (), size: 0, sp: 0 };
 

@@ -359,35 +359,35 @@ pub struct regexp
 /* The C compiler's layout for the seven types above, measured with clang against the frozen
    configuration; every one of them is `#[repr(C)]` (PORTING.md 1.3, the `const _` shape the
    lib-src programs carry).  */
-const _: () = assert! (std::mem::size_of::<compressor> () == 16);
-const _: () = assert! (std::mem::size_of::<language> () == 56);
-const _: () = assert! (std::mem::size_of::<fdesc> () == 64);
-const _: () = assert! (std::mem::size_of::<node> () == 64);
-const _: () = assert! (std::mem::size_of::<linebuffer> () == 24);
-const _: () = assert! (std::mem::size_of::<argument> () == 24);
-const _: () = assert! (std::mem::size_of::<regexp> () == 72);
-const _: () = assert! (std::mem::offset_of! (language, help) == 8);
-const _: () = assert! (std::mem::offset_of! (language, function) == 16);
-const _: () = assert! (std::mem::offset_of! (language, suffixes) == 24);
-const _: () = assert! (std::mem::offset_of! (language, metasource) == 48);
-const _: () = assert! (std::mem::offset_of! (fdesc, infabsname) == 16);
-const _: () = assert! (std::mem::offset_of! (fdesc, lang) == 40);
-const _: () = assert! (std::mem::offset_of! (fdesc, usecharno) == 56);
-const _: () = assert! (std::mem::offset_of! (fdesc, written) == 57);
-const _: () = assert! (std::mem::offset_of! (node, fdp) == 16);
-const _: () = assert! (std::mem::offset_of! (node, regex) == 32);
-const _: () = assert! (std::mem::offset_of! (node, valid) == 40);
-const _: () = assert! (std::mem::offset_of! (node, lno) == 48);
-const _: () = assert! (std::mem::offset_of! (node, cno) == 56);
-const _: () = assert! (std::mem::offset_of! (linebuffer, len) == 8);
-const _: () = assert! (std::mem::offset_of! (linebuffer, buffer) == 16);
-const _: () = assert! (std::mem::offset_of! (argument, lang) == 8);
-const _: () = assert! (std::mem::offset_of! (argument, what) == 16);
-const _: () = assert! (std::mem::offset_of! (regexp, lang) == 8);
-const _: () = assert! (std::mem::offset_of! (regexp, pat) == 32);
-const _: () = assert! (std::mem::offset_of! (regexp, regs) == 40);
-const _: () = assert! (std::mem::offset_of! (regexp, error_signaled) == 64);
-const _: () = assert! (std::mem::offset_of! (regexp, multi_line) == 66);
+const _: () = core::assert! (std::mem::size_of::<compressor> () == 16);
+const _: () = core::assert! (std::mem::size_of::<language> () == 56);
+const _: () = core::assert! (std::mem::size_of::<fdesc> () == 64);
+const _: () = core::assert! (std::mem::size_of::<node> () == 64);
+const _: () = core::assert! (std::mem::size_of::<linebuffer> () == 24);
+const _: () = core::assert! (std::mem::size_of::<argument> () == 24);
+const _: () = core::assert! (std::mem::size_of::<regexp> () == 72);
+const _: () = core::assert! (std::mem::offset_of! (language, help) == 8);
+const _: () = core::assert! (std::mem::offset_of! (language, function) == 16);
+const _: () = core::assert! (std::mem::offset_of! (language, suffixes) == 24);
+const _: () = core::assert! (std::mem::offset_of! (language, metasource) == 48);
+const _: () = core::assert! (std::mem::offset_of! (fdesc, infabsname) == 16);
+const _: () = core::assert! (std::mem::offset_of! (fdesc, lang) == 40);
+const _: () = core::assert! (std::mem::offset_of! (fdesc, usecharno) == 56);
+const _: () = core::assert! (std::mem::offset_of! (fdesc, written) == 57);
+const _: () = core::assert! (std::mem::offset_of! (node, fdp) == 16);
+const _: () = core::assert! (std::mem::offset_of! (node, regex) == 32);
+const _: () = core::assert! (std::mem::offset_of! (node, valid) == 40);
+const _: () = core::assert! (std::mem::offset_of! (node, lno) == 48);
+const _: () = core::assert! (std::mem::offset_of! (node, cno) == 56);
+const _: () = core::assert! (std::mem::offset_of! (linebuffer, len) == 8);
+const _: () = core::assert! (std::mem::offset_of! (linebuffer, buffer) == 16);
+const _: () = core::assert! (std::mem::offset_of! (argument, lang) == 8);
+const _: () = core::assert! (std::mem::offset_of! (argument, what) == 16);
+const _: () = core::assert! (std::mem::offset_of! (regexp, lang) == 8);
+const _: () = core::assert! (std::mem::offset_of! (regexp, pat) == 32);
+const _: () = core::assert! (std::mem::offset_of! (regexp, regs) == 40);
+const _: () = core::assert! (std::mem::offset_of! (regexp, error_signaled) == 64);
+const _: () = core::assert! (std::mem::offset_of! (regexp, multi_line) == 66);
 
 static mut searchar: c_char = b'/' as c_char;	/* use /.../ searches */
 
@@ -2912,7 +2912,7 @@ pub struct C_stab_entry
   pub c_ext: c_int,
   pub r#type: sym_type
 }
-const _: () = assert! (std::mem::size_of::<C_stab_entry> () == 16);
+const _: () = core::assert! (std::mem::size_of::<C_stab_entry> () == 16);
 /* maximum key range = 36, duplicates = 0 */
 
 unsafe fn hash (str: *const c_char, len: c_int) -> c_int

@@ -105,21 +105,21 @@ pub struct stat
   pub st_ctime: time_t,
 }
 
-const _: () = assert! (std::mem::size_of::<stat> () == 144);
-const _: () = assert! (std::mem::offset_of! (stat, st_dev) == 0);
-const _: () = assert! (std::mem::offset_of! (stat, st_mode) == 4);
-const _: () = assert! (std::mem::offset_of! (stat, st_nlink) == 6);
-const _: () = assert! (std::mem::offset_of! (stat, st_ino) == 8);
-const _: () = assert! (std::mem::offset_of! (stat, st_uid) == 16);
-const _: () = assert! (std::mem::offset_of! (stat, st_gid) == 20);
-const _: () = assert! (std::mem::offset_of! (stat, st_rdev) == 24);
-const _: () = assert! (std::mem::offset_of! (stat, st_atimespec) == 32);
-const _: () = assert! (std::mem::offset_of! (stat, st_mtimespec) == 48);
-const _: () = assert! (std::mem::offset_of! (stat, st_ctimespec) == 64);
-const _: () = assert! (std::mem::offset_of! (stat, st_birthtimespec) == 80);
-const _: () = assert! (std::mem::offset_of! (stat, st_size) == 96);
-const _: () = assert! (std::mem::offset_of! (stat, st_blocks) == 104);
-const _: () = assert! (std::mem::offset_of! (stat, st_blksize) == 112);
+const _: () = core::assert! (std::mem::size_of::<stat> () == 144);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_dev) == 0);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_mode) == 4);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_nlink) == 6);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_ino) == 8);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_uid) == 16);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_gid) == 20);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_rdev) == 24);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_atimespec) == 32);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_mtimespec) == 48);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_ctimespec) == 64);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_birthtimespec) == 80);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_size) == 96);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_blocks) == 104);
+const _: () = core::assert! (std::mem::offset_of! (stat, st_blksize) == 112);
 
 /* The mode bits (the frozen target's <sys/stat.h>, measured above).  */
 pub const S_IFMT: mode_t = 0o170000;

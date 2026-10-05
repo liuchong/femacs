@@ -42,8 +42,8 @@ include!("regex-emacs.rs");                     // thread.h 21: `#include "regex
 #[repr(C, align(4))]
 #[derive(Clone, Copy)]
 pub struct sys_jmp_buf { pub bytes: [u8; 192] }
-const _: () = assert! (std::mem::size_of::<sys_jmp_buf> () == 192);
-const _: () = assert! (std::mem::align_of::<sys_jmp_buf> () == 4);
+const _: () = core::assert! (std::mem::size_of::<sys_jmp_buf> () == 192);
+const _: () = core::assert! (std::mem::align_of::<sys_jmp_buf> () == 4);
 
 /* Byte-code interpreter thread state.  */
 // thread.h 54-60.  `fp` is `struct bc_frame *`, a type no mirror carries and only a pointer
@@ -57,9 +57,9 @@ pub struct bc_thread_state
   pub stack: *mut c_char,       // 62
   pub stack_end: *mut c_char,   // 63
 }
-const _: () = assert! (std::mem::size_of::<bc_thread_state> () == 24);
-const _: () = assert! (std::mem::offset_of! (bc_thread_state, stack) == 8);
-const _: () = assert! (std::mem::offset_of! (bc_thread_state, stack_end) == 16);
+const _: () = core::assert! (std::mem::size_of::<bc_thread_state> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (bc_thread_state, stack) == 8);
+const _: () = core::assert! (std::mem::offset_of! (bc_thread_state, stack_end) == 16);
 
 /// C: lisp.h 3839-3873's `struct handler`.  thread.h only ever takes its address
 /// (`m_handlerlist`/`m_handlerlist_sentinel`, 118-127), but `src/thread.c` pushes one, walks
@@ -134,13 +134,13 @@ pub struct thread_state
   pub next_thread: *mut thread_state,             // 216
   pub bc: bc_thread_state,                        // 218
 }
-const _: () = assert! (std::mem::size_of::<thread_state> () == 472);
-const _: () = assert! (std::mem::offset_of! (thread_state, event_object) == 72);
-const _: () = assert! (std::mem::offset_of! (thread_state, m_specpdl) == 120);
-const _: () = assert! (std::mem::offset_of! (thread_state, m_getcjmp) == 216);
-const _: () = assert! (std::mem::offset_of! (thread_state, thread_id) == 408);
-const _: () = assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 432);
-const _: () = assert! (std::mem::offset_of! (thread_state, bc) == 448);
+const _: () = core::assert! (std::mem::size_of::<thread_state> () == 472);
+const _: () = core::assert! (std::mem::offset_of! (thread_state, event_object) == 72);
+const _: () = core::assert! (std::mem::offset_of! (thread_state, m_specpdl) == 120);
+const _: () = core::assert! (std::mem::offset_of! (thread_state, m_getcjmp) == 216);
+const _: () = core::assert! (std::mem::offset_of! (thread_state, thread_id) == 408);
+const _: () = core::assert! (std::mem::offset_of! (thread_state, not_holding_lock) == 432);
+const _: () = core::assert! (std::mem::offset_of! (thread_state, bc) == 448);
 
 /* thread.h 116-192: the checkpoint machinery.  Each macro is C's own body (PORTING.md
    0.1-18: a mirror defines its macros before their uses).  */
@@ -214,7 +214,7 @@ pub struct lisp_mutex_t
   pub count: c_uint,              // 254
   pub condition: sys_cond_t,      // 256
 }
-const _: () = assert! (std::mem::size_of::<lisp_mutex_t> () == 16);
+const _: () = core::assert! (std::mem::size_of::<lisp_mutex_t> () == 16);
 
 // thread.h 260-268: `struct Lisp_Mutex`.  Measured 32 bytes, alignment 8.
 #[repr(C, align(8))]
@@ -225,7 +225,7 @@ pub struct Lisp_Mutex
   pub name: Lisp_Object,          // 265
   pub mutex: lisp_mutex_t,        // 268
 }
-const _: () = assert! (std::mem::size_of::<Lisp_Mutex> () == 32);
+const _: () = core::assert! (std::mem::size_of::<Lisp_Mutex> () == 32);
 
 // thread.h 269-273: `MUTEXP`.
 #[inline(always)]
@@ -257,7 +257,7 @@ pub struct Lisp_CondVar
   pub name: Lisp_Object,          // 299
   pub cond: sys_cond_t,           // 301
 }
-const _: () = assert! (std::mem::size_of::<Lisp_CondVar> () == 32);
+const _: () = core::assert! (std::mem::size_of::<Lisp_CondVar> () == 32);
 
 // thread.h 303-307: `CONDVARP`.
 #[inline(always)]

@@ -170,7 +170,7 @@ pub struct android_emacs_service
 
 // C 106: `static_assert (sizeof (android_handle) == sizeof (jobject));` - the handle and the JNI
 // handle must stay the same width (PORTING.md P-60 keeps file-level assertions alive).
-const _: () = assert! (std::mem::size_of::<android_handle> () == std::mem::size_of::<jobject> ());
+const _: () = core::assert! (std::mem::size_of::<android_handle> () == std::mem::size_of::<jobject> ());
 
 // C 107: `#define android_resolve_handle(handle) ((jobject) (handle))`.  A cast is not a value, so
 // the port spells it as the inline function `process.rs`'s `ChannelMask` uses for the same shape.

@@ -28,9 +28,9 @@ include!("include/stdint.in.rs");
 include!("include/stdio.rs");
 include!("include/errno.rs");
 
-/// PORTING.md 2.5: C's `static_assert` is `const _: () = assert! (cond);`.
+/// PORTING.md 2.5: C's `static_assert` is `const _: () = core::assert! (cond);`.
 macro_rules! static_assert {
-    ($cond:expr) => { const _: () = assert! ($cond); };
+    ($cond:expr) => { const _: () = core::assert! ($cond); };
 }
 /// intprops.h's `TYPE_MAXIMUM (t)`: the largest value of the type `t`.
 macro_rules! TYPE_MAXIMUM {

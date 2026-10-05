@@ -25,7 +25,7 @@ include!("stdint.in.rs");
 pub const U64_H: c_int = 1;
 
 /* C 26-28's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
-const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
 /* C 71's `# define _GL_U64_MASK32 0xfffffffful` (its comment reads `2**32 - 1.`)
    is the dead arm's mask; the value is kept under the feature naming the non-frozen

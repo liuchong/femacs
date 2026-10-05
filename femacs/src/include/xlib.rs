@@ -44,9 +44,9 @@ pub struct XRectangle
 /// Xlib.h 426-429's record is eight bytes with align 2 (the reading quoted above; `-DHAVE_X_WINDOWS`
 /// clang dump of `struct MonitorInfo`'s two members).
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<XRectangle> () == 8);
+const _: () = core::assert! (core::mem::size_of::<XRectangle> () == 8);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<XRectangle> () == 2);
+const _: () = core::assert! (core::mem::align_of::<XRectangle> () == 2);
 
 #[cfg (feature = "have_x_windows")]
 pub mod x11_constants {
@@ -245,13 +245,13 @@ pub type XrmValuePtr = *mut XrmValue;
 /// against the installed header (this ledger's Evidence), asserted here because a wrong `addr`
 /// width would move every consumer's `<XrmValue>`.
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<XrmValue> () == 16);
+const _: () = core::assert! (core::mem::size_of::<XrmValue> () == 16);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<XrmValue> () == 8);
+const _: () = core::assert! (core::mem::align_of::<XrmValue> () == 8);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XrmValue, size) == 0);
+const _: () = core::assert! (core::mem::offset_of! (XrmValue, size) == 0);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XrmValue, addr) == 8);
+const _: () = core::assert! (core::mem::offset_of! (XrmValue, addr) == 8);
 
 /* The procedures.  `XDefaultScreenOfDisplay` is not named by C's `src/xrdb.c` directly - it is
    what the `DefaultScreenOfDisplay` macro below expands to here; the rest are C 386-486's own
@@ -636,85 +636,85 @@ pub enum xcb_shape_sk_t
    `sizeof`/`alignof` for all of them, and the offsets of the members the `USE_XCB` arm reads.  */
 
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::size_of::<xcb_get_property_cookie_t> () == 4);
+const _: () = core::assert! (core::mem::size_of::<xcb_get_property_cookie_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::align_of::<xcb_get_property_cookie_t> () == 4);
+const _: () = core::assert! (core::mem::align_of::<xcb_get_property_cookie_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::size_of::<xcb_get_property_reply_t> () == 32);
+const _: () = core::assert! (core::mem::size_of::<xcb_get_property_reply_t> () == 32);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::align_of::<xcb_get_property_reply_t> () == 4);
+const _: () = core::assert! (core::mem::align_of::<xcb_get_property_reply_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_get_property_reply_t, format) == 1);
+const _: () = core::assert! (core::mem::offset_of! (xcb_get_property_reply_t, format) == 1);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_get_property_reply_t, r#type) == 8);
+const _: () = core::assert! (core::mem::offset_of! (xcb_get_property_reply_t, r#type) == 8);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_get_property_reply_t, value_len) == 16);
+const _: () = core::assert! (core::mem::offset_of! (xcb_get_property_reply_t, value_len) == 16);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::size_of::<xcb_get_window_attributes_cookie_t> () == 4);
+const _: () = core::assert! (core::mem::size_of::<xcb_get_window_attributes_cookie_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::size_of::<xcb_get_window_attributes_reply_t> () == 44);
+const _: () = core::assert! (core::mem::size_of::<xcb_get_window_attributes_reply_t> () == 44);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::align_of::<xcb_get_window_attributes_reply_t> () == 4);
+const _: () = core::assert! (core::mem::align_of::<xcb_get_window_attributes_reply_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_get_window_attributes_reply_t, map_state) == 26);
+const _: () = core::assert! (core::mem::offset_of! (xcb_get_window_attributes_reply_t, map_state) == 26);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_get_window_attributes_reply_t, colormap) == 28);
+const _: () = core::assert! (core::mem::offset_of! (xcb_get_window_attributes_reply_t, colormap) == 28);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_get_window_attributes_reply_t, your_event_mask) == 36);
+const _: () = core::assert! (core::mem::offset_of! (xcb_get_window_attributes_reply_t, your_event_mask) == 36);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::size_of::<xcb_translate_coordinates_cookie_t> () == 4);
+const _: () = core::assert! (core::mem::size_of::<xcb_translate_coordinates_cookie_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::size_of::<xcb_translate_coordinates_reply_t> () == 16);
+const _: () = core::assert! (core::mem::size_of::<xcb_translate_coordinates_reply_t> () == 16);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::align_of::<xcb_translate_coordinates_reply_t> () == 4);
+const _: () = core::assert! (core::mem::align_of::<xcb_translate_coordinates_reply_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_translate_coordinates_reply_t, dst_x) == 12);
+const _: () = core::assert! (core::mem::offset_of! (xcb_translate_coordinates_reply_t, dst_x) == 12);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_translate_coordinates_reply_t, dst_y) == 14);
+const _: () = core::assert! (core::mem::offset_of! (xcb_translate_coordinates_reply_t, dst_y) == 14);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::size_of::<xcb_get_geometry_cookie_t> () == 4);
+const _: () = core::assert! (core::mem::size_of::<xcb_get_geometry_cookie_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::size_of::<xcb_get_geometry_reply_t> () == 24);
+const _: () = core::assert! (core::mem::size_of::<xcb_get_geometry_reply_t> () == 24);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::align_of::<xcb_get_geometry_reply_t> () == 4);
+const _: () = core::assert! (core::mem::align_of::<xcb_get_geometry_reply_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_get_geometry_reply_t, width) == 16);
+const _: () = core::assert! (core::mem::offset_of! (xcb_get_geometry_reply_t, width) == 16);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_get_geometry_reply_t, height) == 18);
+const _: () = core::assert! (core::mem::offset_of! (xcb_get_geometry_reply_t, height) == 18);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_get_geometry_reply_t, border_width) == 20);
+const _: () = core::assert! (core::mem::offset_of! (xcb_get_geometry_reply_t, border_width) == 20);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::size_of::<xcb_generic_error_t> () == 36);
+const _: () = core::assert! (core::mem::size_of::<xcb_generic_error_t> () == 36);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::align_of::<xcb_generic_error_t> () == 4);
+const _: () = core::assert! (core::mem::align_of::<xcb_generic_error_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::offset_of! (xcb_generic_error_t, error_code) == 1);
+const _: () = core::assert! (core::mem::offset_of! (xcb_generic_error_t, error_code) == 1);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::size_of::<xcb_visualtype_t> () == 24);
+const _: () = core::assert! (core::mem::size_of::<xcb_visualtype_t> () == 24);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb"))]
-const _: () = assert! (core::mem::align_of::<xcb_visualtype_t> () == 4);
+const _: () = core::assert! (core::mem::align_of::<xcb_visualtype_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::size_of::<xcb_rectangle_t> () == 8);
+const _: () = core::assert! (core::mem::size_of::<xcb_rectangle_t> () == 8);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::align_of::<xcb_rectangle_t> () == 2);
+const _: () = core::assert! (core::mem::align_of::<xcb_rectangle_t> () == 2);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::offset_of! (xcb_rectangle_t, width) == 4);
+const _: () = core::assert! (core::mem::offset_of! (xcb_rectangle_t, width) == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::size_of::<xcb_rectangle_iterator_t> () == 16);
+const _: () = core::assert! (core::mem::size_of::<xcb_rectangle_iterator_t> () == 16);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::align_of::<xcb_rectangle_iterator_t> () == 8);
+const _: () = core::assert! (core::mem::align_of::<xcb_rectangle_iterator_t> () == 8);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::offset_of! (xcb_rectangle_iterator_t, rem) == 8);
+const _: () = core::assert! (core::mem::offset_of! (xcb_rectangle_iterator_t, rem) == 8);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::offset_of! (xcb_rectangle_iterator_t, index) == 12);
+const _: () = core::assert! (core::mem::offset_of! (xcb_rectangle_iterator_t, index) == 12);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::size_of::<xcb_shape_get_rectangles_cookie_t> () == 4);
+const _: () = core::assert! (core::mem::size_of::<xcb_shape_get_rectangles_cookie_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::size_of::<xcb_shape_get_rectangles_reply_t> () == 32);
+const _: () = core::assert! (core::mem::size_of::<xcb_shape_get_rectangles_reply_t> () == 32);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::align_of::<xcb_shape_get_rectangles_reply_t> () == 4);
+const _: () = core::assert! (core::mem::align_of::<xcb_shape_get_rectangles_reply_t> () == 4);
 #[cfg (all (feature = "have_x_windows", feature = "use_xcb", feature = "have_xcb_shape"))]
-const _: () = assert! (core::mem::offset_of! (xcb_shape_get_rectangles_reply_t, rectangles_len) == 8);
+const _: () = core::assert! (core::mem::offset_of! (xcb_shape_get_rectangles_reply_t, rectangles_len) == 8);
 
 /* The procedures, in C's own signature: every cookie is passed **by value** (that is what the
    records above are for) and every reply pointer is freed by the caller with `free` (C's own
@@ -904,9 +904,9 @@ pub struct _XExtData
 #[cfg (feature = "have_x_windows")]
 pub type XExtData = _XExtData;
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<XExtData> () == 32);
+const _: () = core::assert! (core::mem::size_of::<XExtData> () == 32);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<XExtData> () == 8);
+const _: () = core::assert! (core::mem::align_of::<XExtData> () == 8);
 
 /// Xlib.h 223-234: `typedef struct { … } Visual;`.  Measured `[sizeof=56, align=8]`.
 #[cfg (feature = "have_x_windows")]
@@ -925,9 +925,9 @@ pub struct Visual
   pub map_entries: c_int,                                   // Xlib.h 233
 }
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<Visual> () == 56);
+const _: () = core::assert! (core::mem::size_of::<Visual> () == 56);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<Visual> () == 8);
+const _: () = core::assert! (core::mem::align_of::<Visual> () == 8);
 
 /// Xlib.h 239-252: `typedef struct { int depth; int nvisuals; Visual *visuals; } Depth;`.
 /// Measured `[sizeof=16, align=8]`.
@@ -941,9 +941,9 @@ pub struct Depth
   pub visuals: *mut Visual,                                 // Xlib.h 251
 }
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<Depth> () == 16);
+const _: () = core::assert! (core::mem::size_of::<Depth> () == 16);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<Depth> () == 8);
+const _: () = core::assert! (core::mem::align_of::<Depth> () == 8);
 
 /// Xlib.h 253-271: `typedef struct { … } Screen;` - "Information about the screen.  The contents
 /// of this structure are implementation dependent."  Measured `[sizeof=128, align=8]`, with the
@@ -976,17 +976,17 @@ pub struct Screen
   pub root_input_mask: c_long,                              // Xlib.h 271  (offset 120)
 }
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<Screen> () == 128);
+const _: () = core::assert! (core::mem::size_of::<Screen> () == 128);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<Screen> () == 8);
+const _: () = core::assert! (core::mem::align_of::<Screen> () == 8);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (Screen, root) == 16);
+const _: () = core::assert! (core::mem::offset_of! (Screen, root) == 16);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (Screen, default_gc) == 72);
+const _: () = core::assert! (core::mem::offset_of! (Screen, default_gc) == 72);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (Screen, cmap) == 80);
+const _: () = core::assert! (core::mem::offset_of! (Screen, cmap) == 80);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (Screen, root_input_mask) == 120);
+const _: () = core::assert! (core::mem::offset_of! (Screen, root_input_mask) == 120);
 
 /// Xlib.h 356-390: `typedef struct _XImage { … } XImage;`.  Measured `[sizeof=136, align=8]`;
 /// the sixteen scalar members up to `obdata` sit at 0/4/8/12/16/24/28/32/36/40/44/48/56/64/72/80
@@ -1034,17 +1034,17 @@ pub struct _XImage
 #[cfg (feature = "have_x_windows")]
 pub type XImage = _XImage;
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<XImage> () == 136);
+const _: () = core::assert! (core::mem::size_of::<XImage> () == 136);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<XImage> () == 8);
+const _: () = core::assert! (core::mem::align_of::<XImage> () == 8);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XImage, data) == 16);
+const _: () = core::assert! (core::mem::offset_of! (XImage, data) == 16);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XImage, red_mask) == 56);
+const _: () = core::assert! (core::mem::offset_of! (XImage, red_mask) == 56);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XImage, obdata) == 80);
+const _: () = core::assert! (core::mem::offset_of! (XImage, obdata) == 80);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XImage, f) == 88);
+const _: () = core::assert! (core::mem::offset_of! (XImage, f) == 88);
 
 /// Xlib.h 404-411: `typedef struct { … } XColor;`.  Measured `[sizeof=16, align=8]` with
 /// `pixel` 0, `red` 8, `green` 10, `blue` 12, `flags` 14, `pad` 15.  `include/xterm.rs` 218
@@ -1062,15 +1062,15 @@ pub struct XColor
   pub pad: c_char,                                          // Xlib.h 410
 }
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<XColor> () == 16);
+const _: () = core::assert! (core::mem::size_of::<XColor> () == 16);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<XColor> () == 8);
+const _: () = core::assert! (core::mem::align_of::<XColor> () == 8);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XColor, red) == 8);
+const _: () = core::assert! (core::mem::offset_of! (XColor, red) == 8);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XColor, flags) == 14);
+const _: () = core::assert! (core::mem::offset_of! (XColor, flags) == 14);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XColor, pad) == 15);
+const _: () = core::assert! (core::mem::offset_of! (XColor, pad) == 15);
 
 /// Xlib.h 469-474: `typedef struct { int max_keypermod; KeyCode *modifiermap; }
 /// XModifierKeymap;`.  Measured `[sizeof=16, align=8]`; `include/xterm.rs` 609 holds a pointer
@@ -1084,9 +1084,9 @@ pub struct XModifierKeymap
   pub modifiermap: *mut KeyCode,                            // Xlib.h 473
 }
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<XModifierKeymap> () == 16);
+const _: () = core::assert! (core::mem::size_of::<XModifierKeymap> () == 16);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<XModifierKeymap> () == 8);
+const _: () = core::assert! (core::mem::align_of::<XModifierKeymap> () == 8);
 
 /// Xutil.h 119-130: `typedef struct { … } XWMHints;`.  Measured `[sizeof=56, align=8]` with
 /// `flags` 0, `input` 8, `initial_state` 12, `icon_pixmap` 16, `icon_window` 24, `icon_x` 32,
@@ -1107,15 +1107,15 @@ pub struct XWMHints
   pub window_group: XID,                                    // Xutil.h 129
 }
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<XWMHints> () == 56);
+const _: () = core::assert! (core::mem::size_of::<XWMHints> () == 56);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<XWMHints> () == 8);
+const _: () = core::assert! (core::mem::align_of::<XWMHints> () == 8);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XWMHints, input) == 8);
+const _: () = core::assert! (core::mem::offset_of! (XWMHints, input) == 8);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XWMHints, icon_window) == 24);
+const _: () = core::assert! (core::mem::offset_of! (XWMHints, icon_window) == 24);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XWMHints, window_group) == 48);
+const _: () = core::assert! (core::mem::offset_of! (XWMHints, window_group) == 48);
 
 /// Xutil.h 287-302: `typedef struct { … } XVisualInfo;`.  Measured `[sizeof=64, align=8]` with
 /// `visual` 0, `visualid` 8, `screen` 16, `depth` 20, `class` 24, `red_mask` 32, `green_mask`
@@ -1138,17 +1138,17 @@ pub struct XVisualInfo
   pub bits_per_rgb: c_int,                                  // Xutil.h 301
 }
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<XVisualInfo> () == 64);
+const _: () = core::assert! (core::mem::size_of::<XVisualInfo> () == 64);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<XVisualInfo> () == 8);
+const _: () = core::assert! (core::mem::align_of::<XVisualInfo> () == 8);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XVisualInfo, screen) == 16);
+const _: () = core::assert! (core::mem::offset_of! (XVisualInfo, screen) == 16);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XVisualInfo, r#class) == 24);
+const _: () = core::assert! (core::mem::offset_of! (XVisualInfo, r#class) == 24);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XVisualInfo, red_mask) == 32);
+const _: () = core::assert! (core::mem::offset_of! (XVisualInfo, red_mask) == 32);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::offset_of! (XVisualInfo, bits_per_rgb) == 60);
+const _: () = core::assert! (core::mem::offset_of! (XVisualInfo, bits_per_rgb) == 60);
 
 /// Xlib.h 969-1005: `typedef union _XEvent { … } XEvent;` - the measured size is 192 bytes with
 /// align 8 (the `long pad[24]` member).  **The 33 member records are not transcribed this
@@ -1160,9 +1160,9 @@ const _: () = assert! (core::mem::offset_of! (XVisualInfo, bits_per_rgb) == 60);
 #[repr(C, align(8))]
 pub struct XEvent { _private: [u8; 192] }
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::size_of::<XEvent> () == 192);
+const _: () = core::assert! (core::mem::size_of::<XEvent> () == 192);
 #[cfg (feature = "have_x_windows")]
-const _: () = assert! (core::mem::align_of::<XEvent> () == 8);
+const _: () = core::assert! (core::mem::align_of::<XEvent> () == 8);
 
 /* Xlib.h's ten procedures the X arms call.  Each keeps C's prototype in its `/// C:` line; the
    three macros among them (`XGetPixel`, `XPutPixel`, `XDestroyImage`) are *macros* in C, not

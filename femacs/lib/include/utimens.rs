@@ -15,7 +15,7 @@ include!("time.in.rs");     // <time.h> (`struct timespec`)
 include!("gnulib_config.rs");  // _GL_CONFIG_H_INCLUDED
 
 /* C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
-const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
 pub mod utimens_decls {
   use super::*;

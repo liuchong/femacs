@@ -50,21 +50,21 @@ pub type XCharStruct = _XCharStruct;
 
 // Measured: `clang -std=gnu23 -O0 -I emacs/src` on a TU that includes this header and prints
 // `sizeof`/`_Alignof`/`offsetof`: 20, 4, and 0/4/8/12/16.
-const _: () = assert! (std::mem::size_of::<_XCharStruct> () == 20);
-const _: () = assert! (std::mem::align_of::<_XCharStruct> () == 4);
-const _: () = assert! (std::mem::offset_of! (_XCharStruct, rbearing) == 0);
-const _: () = assert! (std::mem::offset_of! (_XCharStruct, lbearing) == 4);
-const _: () = assert! (std::mem::offset_of! (_XCharStruct, width) == 8);
-const _: () = assert! (std::mem::offset_of! (_XCharStruct, ascent) == 12);
-const _: () = assert! (std::mem::offset_of! (_XCharStruct, descent) == 16);
+const _: () = core::assert! (std::mem::size_of::<_XCharStruct> () == 20);
+const _: () = core::assert! (std::mem::align_of::<_XCharStruct> () == 4);
+const _: () = core::assert! (std::mem::offset_of! (_XCharStruct, rbearing) == 0);
+const _: () = core::assert! (std::mem::offset_of! (_XCharStruct, lbearing) == 4);
+const _: () = core::assert! (std::mem::offset_of! (_XCharStruct, width) == 8);
+const _: () = core::assert! (std::mem::offset_of! (_XCharStruct, ascent) == 12);
+const _: () = core::assert! (std::mem::offset_of! (_XCharStruct, descent) == 16);
 
 /* C 32-34: "Fake structure from Xlib.h to represent two-byte characters."  `unsigned short` is
    PORTING.md 1.1's `c_ushort`; the frozen clang measures 2 bytes and alignment 2.  */
 pub type unichar = c_ushort;
 pub type XChar2b = unichar;
 
-const _: () = assert! (std::mem::size_of::<XChar2b> () == 2);
-const _: () = assert! (std::mem::align_of::<XChar2b> () == 2);
+const _: () = core::assert! (std::mem::size_of::<XChar2b> () == 2);
+const _: () = core::assert! (std::mem::align_of::<XChar2b> () == 2);
 
 /* C 36-43: the three accessors.  C's `(XChar2b)` cast is the port's `as XChar2b`, and the
    bit masks keep C's spelling (`0x00ff`/`0xff00`).  */
@@ -135,12 +135,12 @@ pub struct XRectangle
   pub height: c_uint,
 }
 
-const _: () = assert! (std::mem::size_of::<XRectangle> () == 16);
-const _: () = assert! (std::mem::align_of::<XRectangle> () == 4);
-const _: () = assert! (std::mem::offset_of! (XRectangle, x) == 0);
-const _: () = assert! (std::mem::offset_of! (XRectangle, y) == 4);
-const _: () = assert! (std::mem::offset_of! (XRectangle, width) == 8);
-const _: () = assert! (std::mem::offset_of! (XRectangle, height) == 12);
+const _: () = core::assert! (std::mem::size_of::<XRectangle> () == 16);
+const _: () = core::assert! (std::mem::align_of::<XRectangle> () == 4);
+const _: () = core::assert! (std::mem::offset_of! (XRectangle, x) == 0);
+const _: () = core::assert! (std::mem::offset_of! (XRectangle, y) == 4);
+const _: () = core::assert! (std::mem::offset_of! (XRectangle, width) == 8);
+const _: () = core::assert! (std::mem::offset_of! (XRectangle, height) == 12);
 
 /* Bit gravity (C 66-77).  C's implicit type is `int`; `frame.c` is the consumer C 66 names.  */
 #[cfg (feature = "have_pgtk")]

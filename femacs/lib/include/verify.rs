@@ -91,7 +91,7 @@ pub const GNULIB_defined_struct__gl_verify_type: c_int = 1;
    `size_of`), and the element type is C's `int _gl_dummy` member.  */
 macro_rules! _GL_VERIFY_TYPE {
   ($r:expr, $diagnostic:expr) => {
-    [c_int; { const _: () = assert! ($r, $diagnostic); 1 }]
+    [c_int; { const _: () = core::assert! ($r, $diagnostic); 1 }]
   };
 }
 
@@ -147,7 +147,7 @@ pub const _ALLOW_KEYWORD_MACROS: c_int = 1;
    second one.  */
 macro_rules! static_assert {
   ($cond:expr $(, $msg:expr)? $(,)?) => {
-    const _: () = assert! ($cond $(, $msg)?);
+    const _: () = core::assert! ($cond $(, $msg)?);
   };
 }
 

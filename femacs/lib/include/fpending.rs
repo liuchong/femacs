@@ -12,7 +12,7 @@ include!("gnulib_config.rs");
 include!("stdio.rs");
 
 /* C 23-26's `#if !_GL_CONFIG_H_INCLUDED / # error "Please include config.h first." / #endif`.  */
-const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
 pub mod fpending_decls {
   use super::*;

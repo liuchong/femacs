@@ -60,7 +60,7 @@ pub struct sigset_t
   pub __val: u32,
 }
 
-const _: () = assert! (std::mem::size_of::<sigset_t> () == 4);
+const _: () = core::assert! (std::mem::size_of::<sigset_t> () == 4);
 
 /// <signal.h>: `#define SIG_BLOCK 1`.
 pub const SIG_BLOCK: c_int = 1;
@@ -104,10 +104,10 @@ pub struct sigaction
   pub sa_flags: c_int,
 }
 
-const _: () = assert! (std::mem::size_of::<sigaction> () == 16);
-const _: () = assert! (std::mem::offset_of! (sigaction, sa_mask) == 8);
-const _: () = assert! (std::mem::offset_of! (sigaction, sa_flags) == 12);
-const _: () = assert! (std::mem::size_of::<__sigaction_u> () == 8);
+const _: () = core::assert! (std::mem::size_of::<sigaction> () == 16);
+const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_mask) == 8);
+const _: () = core::assert! (std::mem::offset_of! (sigaction, sa_flags) == 12);
+const _: () = core::assert! (std::mem::size_of::<__sigaction_u> () == 8);
 
 /* The `sigset_t` operations, in a uniquely-named module + glob import (the stdio.rs shape):
    a unit that defines one of them itself (none does yet, but lib/pthread_sigmask.c wraps

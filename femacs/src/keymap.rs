@@ -566,14 +566,14 @@ pub union map_keymap
 {
   pub s: map_keymap_s,
 }
-const _: () = assert! (std::mem::align_of::<map_keymap> () % 8 == 0);  // static_assert (GCALIGNED (union map_keymap));
-const _: () = assert! (std::mem::size_of::<map_keymap_s> () == 24);
-const _: () = assert! (std::mem::align_of::<map_keymap_s> () == 8);
-const _: () = assert! (std::mem::offset_of! (map_keymap_s, fun) == 0);
-const _: () = assert! (std::mem::offset_of! (map_keymap_s, args) == 8);
-const _: () = assert! (std::mem::offset_of! (map_keymap_s, data) == 16);
-const _: () = assert! (std::mem::size_of::<map_keymap> () == 24);
-const _: () = assert! (std::mem::align_of::<map_keymap> () == 8);
+const _: () = core::assert! (std::mem::align_of::<map_keymap> () % 8 == 0);  // static_assert (GCALIGNED (union map_keymap));
+const _: () = core::assert! (std::mem::size_of::<map_keymap_s> () == 24);
+const _: () = core::assert! (std::mem::align_of::<map_keymap_s> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (map_keymap_s, fun) == 0);
+const _: () = core::assert! (std::mem::offset_of! (map_keymap_s, args) == 8);
+const _: () = core::assert! (std::mem::offset_of! (map_keymap_s, data) == 16);
+const _: () = core::assert! (std::mem::size_of::<map_keymap> () == 24);
+const _: () = core::assert! (std::mem::align_of::<map_keymap> () == 8);
 
 unsafe extern "C" fn map_keymap_char_table_item (args: Lisp_Object, key: Lisp_Object, val: Lisp_Object)
 {
@@ -1916,12 +1916,12 @@ pub struct accessible_keymaps_data {
   pub is_metized: bool,
 }
 
-const _: () = assert! (std::mem::size_of::<accessible_keymaps_data> () == 32);
-const _: () = assert! (std::mem::align_of::<accessible_keymaps_data> () == 8);
-const _: () = assert! (std::mem::offset_of! (accessible_keymaps_data, maps) == 0);
-const _: () = assert! (std::mem::offset_of! (accessible_keymaps_data, tail) == 8);
-const _: () = assert! (std::mem::offset_of! (accessible_keymaps_data, thisseq) == 16);
-const _: () = assert! (std::mem::offset_of! (accessible_keymaps_data, is_metized) == 24);
+const _: () = core::assert! (std::mem::size_of::<accessible_keymaps_data> () == 32);
+const _: () = core::assert! (std::mem::align_of::<accessible_keymaps_data> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (accessible_keymaps_data, maps) == 0);
+const _: () = core::assert! (std::mem::offset_of! (accessible_keymaps_data, tail) == 8);
+const _: () = core::assert! (std::mem::offset_of! (accessible_keymaps_data, thisseq) == 16);
+const _: () = core::assert! (std::mem::offset_of! (accessible_keymaps_data, is_metized) == 24);
 
 unsafe extern "C" fn accessible_keymaps_1 (key: Lisp_Object, cmd: Lisp_Object, args: Lisp_Object, data: *mut c_void)
 /* Use void * data to be compatible with map_keymap_function_t.  */
@@ -2469,14 +2469,14 @@ pub struct where_is_internal_data {
   pub sequences: Lisp_Object,
 }
 
-const _: () = assert! (std::mem::size_of::<where_is_internal_data> () == 40);
-const _: () = assert! (std::mem::align_of::<where_is_internal_data> () == 8);
-const _: () = assert! (std::mem::offset_of! (where_is_internal_data, definition) == 0);
-const _: () = assert! (std::mem::offset_of! (where_is_internal_data, this) == 8);
-const _: () = assert! (std::mem::offset_of! (where_is_internal_data, last) == 16);
-const _: () = assert! (std::mem::offset_of! (where_is_internal_data, last_is_meta) == 24);
-const _: () = assert! (std::mem::offset_of! (where_is_internal_data, noindirect) == 25);
-const _: () = assert! (std::mem::offset_of! (where_is_internal_data, sequences) == 32);
+const _: () = core::assert! (std::mem::size_of::<where_is_internal_data> () == 40);
+const _: () = core::assert! (std::mem::align_of::<where_is_internal_data> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (where_is_internal_data, definition) == 0);
+const _: () = core::assert! (std::mem::offset_of! (where_is_internal_data, this) == 8);
+const _: () = core::assert! (std::mem::offset_of! (where_is_internal_data, last) == 16);
+const _: () = core::assert! (std::mem::offset_of! (where_is_internal_data, last_is_meta) == 24);
+const _: () = core::assert! (std::mem::offset_of! (where_is_internal_data, noindirect) == 25);
+const _: () = core::assert! (std::mem::offset_of! (where_is_internal_data, sequences) == 32);
 
 /* This function can't GC, AFAIK.  */
 /* Return the list of bindings found.  This list is ordered "longest

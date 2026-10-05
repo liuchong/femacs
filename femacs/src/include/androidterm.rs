@@ -76,7 +76,7 @@ pub struct android_bitmap_record
   /* Whether or not there is a mask.  */
   pub have_mask: bool,
 }
-const _: () = assert! (std::mem::size_of::<android_bitmap_record> () == 48);
+const _: () = core::assert! (std::mem::size_of::<android_bitmap_record> () == 48);
 
 /* Per-display information.  */
 // androidterm.h 48-152.  Measured: sizeof 312, alignof 8.  `double` is `f64` (PORTING.md 1.1);
@@ -191,7 +191,7 @@ pub struct android_display_info
   /* The invisible cursor used for pointer blanking.  */
   pub invisible_cursor: android_cursor,
 }
-const _: () = assert! (std::mem::size_of::<android_display_info> () == 312);
+const _: () = core::assert! (std::mem::size_of::<android_display_info> () == 312);
 
 /* Structure representing a single tool (finger or stylus) pressed
    onto a frame.  */
@@ -212,7 +212,7 @@ pub struct android_touch_point
   /* Whether or not the tool is pressed on the tool bar.  */
   pub tool_bar_p: bool,
 }
-const _: () = assert! (std::mem::size_of::<android_touch_point> () == 24);
+const _: () = core::assert! (std::mem::size_of::<android_touch_point> () == 24);
 
 // androidterm.h 249-253: C's nested `struct relief { struct android_gc *gc; unsigned long
 // pixel; }`, the type of the two `black_relief`/`white_relief` members.  A nested struct
@@ -327,15 +327,15 @@ pub struct android_output
   /* The number of characters of extracted text wanted by the IM.  */
   pub extracted_text_hint: c_int,
 }
-const _: () = assert! (std::mem::size_of::<android_output> () == 320);
-const _: () = assert! (std::mem::offset_of! (android_output, hourglass) == 224);
-const _: () = assert! (std::mem::offset_of! (android_output, display_info) == 232);
-const _: () = assert! (std::mem::offset_of! (android_output, bits) == 240);
-const _: () = assert! (std::mem::offset_of! (android_output, black_relief) == 248);
-const _: () = assert! (std::mem::offset_of! (android_output, relief_background) == 280);
-const _: () = assert! (std::mem::offset_of! (android_output, focus_state) == 288);
-const _: () = assert! (std::mem::offset_of! (android_output, touch_points) == 296);
-const _: () = assert! (std::mem::offset_of! (android_output, extracted_text_hint) == 312);
+const _: () = core::assert! (std::mem::size_of::<android_output> () == 320);
+const _: () = core::assert! (std::mem::offset_of! (android_output, hourglass) == 224);
+const _: () = core::assert! (std::mem::offset_of! (android_output, display_info) == 232);
+const _: () = core::assert! (std::mem::offset_of! (android_output, bits) == 240);
+const _: () = core::assert! (std::mem::offset_of! (android_output, black_relief) == 248);
+const _: () = core::assert! (std::mem::offset_of! (android_output, relief_background) == 280);
+const _: () = core::assert! (std::mem::offset_of! (android_output, focus_state) == 288);
+const _: () = core::assert! (std::mem::offset_of! (android_output, touch_points) == 296);
+const _: () = core::assert! (std::mem::offset_of! (android_output, extracted_text_hint) == 312);
 
 // androidterm.h 277-289: the anonymous `enum` whose members are the `focus_state` values
 // (C 295-296's comment says the field is "actually a boolean").  C gives the enumeration no
@@ -398,7 +398,7 @@ pub struct scroll_bar
   /* True if the scroll bar is horizontal.  */
   pub horizontal: bool,
 }
-const _: () = assert! (std::mem::size_of::<scroll_bar> () == 72);
+const _: () = core::assert! (std::mem::size_of::<scroll_bar> () == 72);
 
 /* Return the Android output data for frame F.  */
 // androidterm.h 290 and 291 - two names, one body (`((f)->output_data.android)`), so C lets the

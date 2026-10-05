@@ -141,12 +141,12 @@ pub struct dt_entry_64
 /* The layout is arithmetic from the field types, not a measurement: no aarch64/x86-64 Linux
    toolchain is used by this port and `exec/` is compiled by no configuration it builds
    (docs/baseline/frozen-build-sources.txt's batch-F section).  */
-const _: () = assert! (std::mem::size_of::<elf_header_32> () == 52);
-const _: () = assert! (std::mem::size_of::<program_header_32> () == 32);
-const _: () = assert! (std::mem::size_of::<dt_entry_32> () == 8);
-const _: () = assert! (std::mem::size_of::<elf_header_64> () == 64);
-const _: () = assert! (std::mem::size_of::<program_header_64> () == 56);
-const _: () = assert! (std::mem::size_of::<dt_entry_64> () == 16);
+const _: () = core::assert! (std::mem::size_of::<elf_header_32> () == 52);
+const _: () = core::assert! (std::mem::size_of::<program_header_32> () == 32);
+const _: () = core::assert! (std::mem::size_of::<dt_entry_32> () == 8);
+const _: () = core::assert! (std::mem::size_of::<elf_header_64> () == 64);
+const _: () = core::assert! (std::mem::size_of::<program_header_64> () == 56);
+const _: () = core::assert! (std::mem::size_of::<dt_entry_64> () == 16);
 
 /* C 125-133: "Define some types to the correct values."  C 127-129's `#ifdef EXEC_64` arm
    selects the 64-bit set and C 131-133's `#else` the 32-bit one.  */
@@ -225,8 +225,8 @@ macro_rules! exec_tracee_bits {
     { exec_tracee_bit_set (($t) as *mut exec_tracee, EXEC_TRACEE_NEW_CHILD_BIT, $value) };
 }
 
-const _: () = assert! (std::mem::size_of::<exec_tracee> () == 56);
-const _: () = assert! (std::mem::offset_of! (exec_tracee, bits) == 52);
+const _: () = core::assert! (std::mem::size_of::<exec_tracee> () == 56);
+const _: () = core::assert! (std::mem::offset_of! (exec_tracee, bits) == 52);
 
 /* C 179-186: `#ifdef __aarch64__` - the two register accessors of that host.  */
 #[cfg (feature = "aarch64")]

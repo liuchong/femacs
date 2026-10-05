@@ -1093,10 +1093,10 @@ pub struct ccl_prog_stack
   pub eof_ic: c_int,			/* Instruction Counter to jump on EOF.  */
 }
 
-const _: () = assert! (std::mem::size_of::<ccl_prog_stack> () == 16);
-const _: () = assert! (std::mem::offset_of! (ccl_prog_stack, ccl_prog) == 0);
-const _: () = assert! (std::mem::offset_of! (ccl_prog_stack, ic) == 8);
-const _: () = assert! (std::mem::offset_of! (ccl_prog_stack, eof_ic) == 12);
+const _: () = core::assert! (std::mem::size_of::<ccl_prog_stack> () == 16);
+const _: () = core::assert! (std::mem::offset_of! (ccl_prog_stack, ccl_prog) == 0);
+const _: () = core::assert! (std::mem::offset_of! (ccl_prog_stack, ic) == 8);
+const _: () = core::assert! (std::mem::offset_of! (ccl_prog_stack, eof_ic) == 12);
 
 /* For the moment, we only support depth 256 of stack.  */
 static mut ccl_prog_stack_struct: [ccl_prog_stack; 256] =

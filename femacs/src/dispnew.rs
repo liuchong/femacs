@@ -82,9 +82,9 @@ pub struct dim
   pub height: c_int,
 }
 
-const _: () = assert! (core::mem::size_of::<dim> () == 8);          // clang-measured
-const _: () = assert! (core::mem::offset_of! (dim, width) == 0);
-const _: () = assert! (core::mem::offset_of! (dim, height) == 4);
+const _: () = core::assert! (core::mem::size_of::<dim> () == 8);          // clang-measured
+const _: () = core::assert! (core::mem::offset_of! (dim, width) == 0);
+const _: () = core::assert! (core::mem::offset_of! (dim, height) == 4);
 
 /* C 74-104: the forward declarations (`write_row`, `required_matrix_height`, …).  Rust
    needs no forward declaration for a function defined later in the same unit, so this
@@ -3545,9 +3545,9 @@ pub struct rect
   pub h: c_int,
 }
 
-const _: () = assert! (core::mem::size_of::<rect> () == 16);        // clang-measured
-const _: () = assert! (core::mem::offset_of! (rect, x) == 0);
-const _: () = assert! (core::mem::offset_of! (rect, h) == 12);
+const _: () = core::assert! (core::mem::size_of::<rect> () == 16);        // clang-measured
+const _: () = core::assert! (core::mem::offset_of! (rect, x) == 0);
+const _: () = core::assert! (core::mem::offset_of! (rect, h) == 12);
 
 /// C: dispextern.h 3067-3200: `struct redisplay_interface`.  termhooks.rs degrades
 /// `terminal.rif` to `*mut c_void` (P-72 rule 3), so a unit that reaches into the record must
@@ -3580,16 +3580,16 @@ pub struct redisplay_interface
                                                         overlaps: c_int)>,
 }
 
-const _: () = assert! (core::mem::offset_of! (redisplay_interface, write_glyphs) == 16);
-const _: () = assert! (core::mem::offset_of! (redisplay_interface, clear_end_of_line) == 32);
-const _: () = assert! (core::mem::offset_of! (redisplay_interface, scroll_run_hook) == 40);
-const _: () = assert! (core::mem::offset_of! (redisplay_interface,
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, write_glyphs) == 16);
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, clear_end_of_line) == 32);
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, scroll_run_hook) == 40);
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface,
 					      after_update_window_line_hook) == 48);
-const _: () = assert! (core::mem::offset_of! (redisplay_interface, update_window_begin_hook) == 56);
-const _: () = assert! (core::mem::offset_of! (redisplay_interface, update_window_end_hook) == 64);
-const _: () = assert! (core::mem::offset_of! (redisplay_interface, clear_window_mouse_face) == 80);
-const _: () = assert! (core::mem::offset_of! (redisplay_interface, get_glyph_overhangs) == 88);
-const _: () = assert! (core::mem::offset_of! (redisplay_interface, fix_overlapping_area) == 96);
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, update_window_begin_hook) == 56);
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, update_window_end_hook) == 64);
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, clear_window_mouse_face) == 80);
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, get_glyph_overhangs) == 88);
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, fix_overlapping_area) == 96);
 
 /* C: dispextern.h 1730-1945: `struct face` and `struct face_cache`, and dispextern.h
    1998-2010's `FACE_FROM_ID`.  `xfaces.rs` carries the records for its own unit, which this
@@ -3602,7 +3602,7 @@ pub struct face
   _prefix: [u8; 176],
   pub background: c_ulong,
 }
-const _: () = assert! (core::mem::offset_of! (face, background) == 176);
+const _: () = core::assert! (core::mem::offset_of! (face, background) == 176);
 
 #[repr(C)]
 pub struct face_cache
@@ -3612,8 +3612,8 @@ pub struct face_cache
   _prefix_size: ptrdiff_t,
   pub used: c_int,
 }
-const _: () = assert! (core::mem::offset_of! (face_cache, faces_by_id) == 16);
-const _: () = assert! (core::mem::offset_of! (face_cache, used) == 32);
+const _: () = core::assert! (core::mem::offset_of! (face_cache, faces_by_id) == 16);
+const _: () = core::assert! (core::mem::offset_of! (face_cache, used) == 32);
 
 #[inline(always)]
 fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
@@ -5641,13 +5641,13 @@ pub struct row_entry
   pub next: *mut row_entry,
 }
 
-const _: () = assert! (core::mem::size_of::<row_entry> () == 40);      // clang-measured
-const _: () = assert! (core::mem::offset_of! (row_entry, old_uses) == 0);
-const _: () = assert! (core::mem::offset_of! (row_entry, new_uses) == 4);
-const _: () = assert! (core::mem::offset_of! (row_entry, new_line_number) == 8);
-const _: () = assert! (core::mem::offset_of! (row_entry, bucket) == 16);
-const _: () = assert! (core::mem::offset_of! (row_entry, row) == 24);
-const _: () = assert! (core::mem::offset_of! (row_entry, next) == 32);
+const _: () = core::assert! (core::mem::size_of::<row_entry> () == 40);      // clang-measured
+const _: () = core::assert! (core::mem::offset_of! (row_entry, old_uses) == 0);
+const _: () = core::assert! (core::mem::offset_of! (row_entry, new_uses) == 4);
+const _: () = core::assert! (core::mem::offset_of! (row_entry, new_line_number) == 8);
+const _: () = core::assert! (core::mem::offset_of! (row_entry, bucket) == 16);
+const _: () = core::assert! (core::mem::offset_of! (row_entry, row) == 24);
+const _: () = core::assert! (core::mem::offset_of! (row_entry, next) == 32);
 
 /* A pool to allocate row_entry structures from, and the size of the
    pool.  The pool is reallocated in scrolling_window when we find
@@ -5873,7 +5873,7 @@ unsafe fn scrolling_window (w: *mut window, tab_line_p: c_int) -> c_int
      13, then next_almost_prime_increment_max would be 14, e.g.,
      because next_almost_prime (113) would be 127.  */
   {
-    const _: () = assert! (NEXT_ALMOST_PRIME_LIMIT == 11);
+    const _: () = core::assert! (NEXT_ALMOST_PRIME_LIMIT == 11);
     let next_almost_prime_increment_max: ptrdiff_t = 10;
     let row_table_max: ptrdiff_t =
       (std::cmp::min (PTRDIFF_MAX, SIZE_MAX as isize) / (3 * core::mem::size_of::<*mut row_entry> () as isize)
@@ -6318,8 +6318,8 @@ unsafe fn scrolling (frame: *mut frame)
   let mut free_at_end_vpos: c_int = height;
   let current_matrix: *mut glyph_matrix = (*frame).current_matrix as *mut glyph_matrix;
   let desired_matrix: *mut glyph_matrix = (*frame).desired_matrix as *mut glyph_matrix;
-  const _: () = assert! (core::mem::size_of::<c_int> () <= core::mem::size_of::<c_uint> ());
-  const _: () = assert! (core::mem::align_of::<c_uint> () % core::mem::align_of::<c_int> () == 0);
+  const _: () = core::assert! (core::mem::size_of::<c_int> () <= core::mem::size_of::<c_uint> ());
+  const _: () = core::assert! (core::mem::align_of::<c_uint> () % core::mem::align_of::<c_int> () == 0);
   let old_hash: *mut c_uint;
   USE_SAFE_ALLOCA! (sa_avail, sa_count);
   let mut old_hash_buf: *mut c_uint = core::ptr::null_mut ();
@@ -6824,9 +6824,9 @@ pub struct composition_it
   pub nchars: c_int,
   _pad_c: [u8; 20],
 }
-const _: () = assert! (core::mem::size_of::<composition_it> () == 88);
-const _: () = assert! (core::mem::offset_of! (composition_it, reversed_p) == 44);
-const _: () = assert! (core::mem::offset_of! (composition_it, nchars) == 64);
+const _: () = core::assert! (core::mem::size_of::<composition_it> () == 88);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, reversed_p) == 44);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, nchars) == 64);
 
 /// C: dispextern.h 2159-2222: `struct bidi_it`; only `paragraph_dir` is read here
 /// (clang, frozen target: 2304, sizeof 2328).
@@ -6838,8 +6838,8 @@ pub struct bidi_it
   pub paragraph_dir: bidi_dir_t,
   _pad_b: [u8; 20],
 }
-const _: () = assert! (core::mem::size_of::<bidi_it> () == 2328);
-const _: () = assert! (core::mem::offset_of! (bidi_it, paragraph_dir) == 2304);
+const _: () = core::assert! (core::mem::size_of::<bidi_it> () == 2328);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, paragraph_dir) == 2304);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -6893,25 +6893,25 @@ pub struct it
   _pad_q: [u8; 24],
 }
 
-const _: () = assert! (core::mem::size_of::<it> () == 4968);
-const _: () = assert! (core::mem::align_of::<it> () == 8);
-const _: () = assert! (core::mem::offset_of! (it, f) == 16);
-const _: () = assert! (core::mem::offset_of! (it, current) == 336);
-const _: () = assert! (core::mem::offset_of! (it, string) == 656);
-const _: () = assert! (core::mem::offset_of! (it, what) == 2208);
-const _: () = assert! (core::mem::offset_of! (it, line_wrap) == 2220);
-const _: () = assert! (core::mem::offset_of! (it, cmp_it) == 2240);
-const _: () = assert! (core::mem::offset_of! (it, image_id) == 2336);
-const _: () = assert! (core::mem::offset_of! (it, object) == 2408);
-const _: () = assert! (core::mem::offset_of! (it, first_visible_x) == 2436);
-const _: () = assert! (core::mem::offset_of! (it, last_visible_x) == 2440);
-const _: () = assert! (core::mem::offset_of! (it, glyph_row) == 2472);
-const _: () = assert! (core::mem::offset_of! (it, pixel_width) == 2488);
-const _: () = assert! (core::mem::offset_of! (it, current_x) == 2524);
-const _: () = assert! (core::mem::offset_of! (it, current_y) == 2552);
-const _: () = assert! (core::mem::offset_of! (it, vpos) == 2560);
-const _: () = assert! (core::mem::offset_of! (it, hpos) == 2564);
-const _: () = assert! (core::mem::offset_of! (it, bidi_it) == 2616);
+const _: () = core::assert! (core::mem::size_of::<it> () == 4968);
+const _: () = core::assert! (core::mem::align_of::<it> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (it, f) == 16);
+const _: () = core::assert! (core::mem::offset_of! (it, current) == 336);
+const _: () = core::assert! (core::mem::offset_of! (it, string) == 656);
+const _: () = core::assert! (core::mem::offset_of! (it, what) == 2208);
+const _: () = core::assert! (core::mem::offset_of! (it, line_wrap) == 2220);
+const _: () = core::assert! (core::mem::offset_of! (it, cmp_it) == 2240);
+const _: () = core::assert! (core::mem::offset_of! (it, image_id) == 2336);
+const _: () = core::assert! (core::mem::offset_of! (it, object) == 2408);
+const _: () = core::assert! (core::mem::offset_of! (it, first_visible_x) == 2436);
+const _: () = core::assert! (core::mem::offset_of! (it, last_visible_x) == 2440);
+const _: () = core::assert! (core::mem::offset_of! (it, glyph_row) == 2472);
+const _: () = core::assert! (core::mem::offset_of! (it, pixel_width) == 2488);
+const _: () = core::assert! (core::mem::offset_of! (it, current_x) == 2524);
+const _: () = core::assert! (core::mem::offset_of! (it, current_y) == 2552);
+const _: () = core::assert! (core::mem::offset_of! (it, vpos) == 2560);
+const _: () = core::assert! (core::mem::offset_of! (it, hpos) == 2564);
+const _: () = core::assert! (core::mem::offset_of! (it, bidi_it) == 2616);
 
 /* dispextern.h 2940 and 328-333.  */
 macro_rules! IT_CHARPOS { ($it:expr) => { CHARPOS! (($it).current.pos) }; }

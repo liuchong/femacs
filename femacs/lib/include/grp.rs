@@ -13,10 +13,10 @@ pub struct group {
   pub gr_mem: *mut *mut c_char,
 }
 
-const _: () = assert! (std::mem::size_of::<group> () == 32);
-const _: () = assert! (std::mem::offset_of! (group, gr_name) == 0);
-const _: () = assert! (std::mem::offset_of! (group, gr_gid) == 16);
-const _: () = assert! (std::mem::offset_of! (group, gr_mem) == 24);
+const _: () = core::assert! (std::mem::size_of::<group> () == 32);
+const _: () = core::assert! (std::mem::offset_of! (group, gr_name) == 0);
+const _: () = core::assert! (std::mem::offset_of! (group, gr_gid) == 16);
+const _: () = core::assert! (std::mem::offset_of! (group, gr_mem) == 24);
 
 unsafe extern "C" {
   /// C: <grp.h>: `struct group *getgrgid (gid_t);`

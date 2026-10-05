@@ -41,8 +41,8 @@ pub struct fd_set
   pub fds_bits: [i32; 32],
 }
 
-const _: () = assert! (std::mem::size_of::<fd_set> () == 128);
-const _: () = assert! (std::mem::offset_of! (fd_set, fds_bits) == 0);
+const _: () = core::assert! (std::mem::size_of::<fd_set> () == 128);
+const _: () = core::assert! (std::mem::offset_of! (fd_set, fds_bits) == 0);
 
 unsafe extern "C" {
   /* int select (int, fd_set *restrict, fd_set *restrict, fd_set *restrict,

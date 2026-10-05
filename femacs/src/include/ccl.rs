@@ -94,20 +94,20 @@ pub struct ccl_program
 pub const CCL_PROGRAM_LAST_BLOCK: u8 = 1 << 0;
 pub const CCL_PROGRAM_QUIT_SILENTLY: u8 = 1 << 1;
 
-const _: () = assert! (std::mem::size_of::<ccl_program> () == 88);
-const _: () = assert! (std::mem::align_of::<ccl_program> () == 8);
-const _: () = assert! (std::mem::offset_of! (ccl_program, idx) == 0);
-const _: () = assert! (std::mem::offset_of! (ccl_program, size) == 8);
-const _: () = assert! (std::mem::offset_of! (ccl_program, prog) == 16);
-const _: () = assert! (std::mem::offset_of! (ccl_program, ic) == 24);
-const _: () = assert! (std::mem::offset_of! (ccl_program, eof_ic) == 28);
-const _: () = assert! (std::mem::offset_of! (ccl_program, reg) == 32);
-const _: () = assert! (std::mem::offset_of! (ccl_program, status) == 64);
-const _: () = assert! (std::mem::offset_of! (ccl_program, buf_magnification) == 68);
-const _: () = assert! (std::mem::offset_of! (ccl_program, stack_idx) == 72);
-const _: () = assert! (std::mem::offset_of! (ccl_program, consumed) == 76);
-const _: () = assert! (std::mem::offset_of! (ccl_program, produced) == 80);
-const _: () = assert! (std::mem::offset_of! (ccl_program, bits) == 84);
+const _: () = core::assert! (std::mem::size_of::<ccl_program> () == 88);
+const _: () = core::assert! (std::mem::align_of::<ccl_program> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, idx) == 0);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, size) == 8);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, prog) == 16);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, ic) == 24);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, eof_ic) == 28);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, reg) == 32);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, status) == 64);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, buf_magnification) == 68);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, stack_idx) == 72);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, consumed) == 76);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, produced) == 80);
+const _: () = core::assert! (std::mem::offset_of! (ccl_program, bits) == 84);
 
 /* This data type is used for the spec field of the structure
    coding_system.  */
@@ -119,8 +119,8 @@ pub struct ccl_spec
   pub ccl: ccl_program,
 }
 
-const _: () = assert! (std::mem::size_of::<ccl_spec> () == 88);
-const _: () = assert! (std::mem::offset_of! (ccl_spec, ccl) == 0);
+const _: () = core::assert! (std::mem::size_of::<ccl_spec> () == 88);
+const _: () = core::assert! (std::mem::offset_of! (ccl_spec, ccl) == 0);
 
 // ccl.h 73: `#define CODING_SPEC_CCL_PROGRAM(coding) ((coding)->spec.ccl.ccl)`.  The union
 // member `spec.ccl` and the struct member `.ccl` keep C's spelling; no unit in the port

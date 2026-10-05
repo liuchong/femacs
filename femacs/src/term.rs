@@ -313,9 +313,9 @@ pub struct face_cache
   pub used: c_int,                      // 2004, offset 32
   pub _pad_tail: [u8; 4],               // 2005-2008 (`menu_face_changed_p : 1` + padding)
 }
-const _: () = assert! (std::mem::size_of::<face_cache> () == 40);
-const _: () = assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
-const _: () = assert! (std::mem::offset_of! (face_cache, used) == 32);
+const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -351,11 +351,11 @@ pub fn face_underline (f: *const face) -> face_underline_type
 {
   unsafe { (((*f).bits [0] & FACE_UNDERLINE_MASK) >> FACE_UNDERLINE_SHIFT) as face_underline_type }
 }
-const _: () = assert! (std::mem::size_of::<face> () == 280);
-const _: () = assert! (std::mem::offset_of! (face, foreground) == 168);
-const _: () = assert! (std::mem::offset_of! (face, background) == 176);
-const _: () = assert! (std::mem::offset_of! (face, underline_color) == 184);
-const _: () = assert! (std::mem::offset_of! (face, bits) == 240);
+const _: () = core::assert! (std::mem::size_of::<face> () == 280);
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168);
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 176);
+const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184);
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240);
 
 /* dispextern.h 1998-2010's `FACE_FROM_ID`/`FACE_FROM_ID_OR_NULL` (frame.h 1643-1666) and
    frame.h 1379's `FRAME_FACE_CACHE`.  */
@@ -1794,31 +1794,31 @@ pub struct it
   pub _pad_n: [u8; 24],
 }
 
-const _: () = assert! (std::mem::size_of::<it> () == 4968);
-const _: () = assert! (std::mem::align_of::<it> () == 8);
-const _: () = assert! (std::mem::offset_of! (it, window) == 0);
-const _: () = assert! (std::mem::offset_of! (it, w) == 8);
-const _: () = assert! (std::mem::offset_of! (it, f) == 16);
-const _: () = assert! (std::mem::offset_of! (it, bits) == 112);
-const _: () = assert! (std::mem::offset_of! (it, current) == 336);
-const _: () = assert! (std::mem::offset_of! (it, what) == 2208);
-const _: () = assert! (std::mem::offset_of! (it, face_id) == 2212);
-const _: () = assert! (std::mem::offset_of! (it, bits2) == 2216);
-const _: () = assert! (std::mem::offset_of! (it, c) == 2228);
-const _: () = assert! (std::mem::offset_of! (it, cmp_it) == 2240);
-const _: () = assert! (std::mem::offset_of! (it, char_to_display) == 2328);
-const _: () = assert! (std::mem::offset_of! (it, glyphless_method) == 2332);
-const _: () = assert! (std::mem::offset_of! (it, tab_width) == 2394);
-const _: () = assert! (std::mem::offset_of! (it, object) == 2408);
-const _: () = assert! (std::mem::offset_of! (it, position) == 2416);
-const _: () = assert! (std::mem::offset_of! (it, glyph_row) == 2472);
-const _: () = assert! (std::mem::offset_of! (it, area) == 2480);
-const _: () = assert! (std::mem::offset_of! (it, nglyphs) == 2484);
-const _: () = assert! (std::mem::offset_of! (it, pixel_width) == 2488);
-const _: () = assert! (std::mem::offset_of! (it, current_x) == 2524);
-const _: () = assert! (std::mem::offset_of! (it, lnum_pixel_width) == 2588);
-const _: () = assert! (std::mem::offset_of! (it, bits3) == 2612);
-const _: () = assert! (std::mem::offset_of! (it, bidi_it) == 2616);
+const _: () = core::assert! (std::mem::size_of::<it> () == 4968);
+const _: () = core::assert! (std::mem::align_of::<it> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (it, window) == 0);
+const _: () = core::assert! (std::mem::offset_of! (it, w) == 8);
+const _: () = core::assert! (std::mem::offset_of! (it, f) == 16);
+const _: () = core::assert! (std::mem::offset_of! (it, bits) == 112);
+const _: () = core::assert! (std::mem::offset_of! (it, current) == 336);
+const _: () = core::assert! (std::mem::offset_of! (it, what) == 2208);
+const _: () = core::assert! (std::mem::offset_of! (it, face_id) == 2212);
+const _: () = core::assert! (std::mem::offset_of! (it, bits2) == 2216);
+const _: () = core::assert! (std::mem::offset_of! (it, c) == 2228);
+const _: () = core::assert! (std::mem::offset_of! (it, cmp_it) == 2240);
+const _: () = core::assert! (std::mem::offset_of! (it, char_to_display) == 2328);
+const _: () = core::assert! (std::mem::offset_of! (it, glyphless_method) == 2332);
+const _: () = core::assert! (std::mem::offset_of! (it, tab_width) == 2394);
+const _: () = core::assert! (std::mem::offset_of! (it, object) == 2408);
+const _: () = core::assert! (std::mem::offset_of! (it, position) == 2416);
+const _: () = core::assert! (std::mem::offset_of! (it, glyph_row) == 2472);
+const _: () = core::assert! (std::mem::offset_of! (it, area) == 2480);
+const _: () = core::assert! (std::mem::offset_of! (it, nglyphs) == 2484);
+const _: () = core::assert! (std::mem::offset_of! (it, pixel_width) == 2488);
+const _: () = core::assert! (std::mem::offset_of! (it, current_x) == 2524);
+const _: () = core::assert! (std::mem::offset_of! (it, lnum_pixel_width) == 2588);
+const _: () = core::assert! (std::mem::offset_of! (it, bits3) == 2612);
+const _: () = core::assert! (std::mem::offset_of! (it, bidi_it) == 2616);
 
 pub const IT_MULTIBYTE_P: u8 = 1 << 0;
 pub const IT_STRING_FROM_DISPLAY_PROP_P: u8 = 1 << 3;
@@ -1860,12 +1860,12 @@ pub struct composition_it
   pub to: c_int,                        // 76
   pub width: c_int,                     // 80
 }
-const _: () = assert! (std::mem::size_of::<composition_it> () == 88);
-const _: () = assert! (std::mem::offset_of! (composition_it, id) == 8);
-const _: () = assert! (std::mem::offset_of! (composition_it, ch) == 16);
-const _: () = assert! (std::mem::offset_of! (composition_it, parent_it) == 48);
-const _: () = assert! (std::mem::offset_of! (composition_it, from) == 72);
-const _: () = assert! (std::mem::offset_of! (composition_it, to) == 76);
+const _: () = core::assert! (std::mem::size_of::<composition_it> () == 88);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, id) == 8);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, ch) == 16);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, parent_it) == 48);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, from) == 72);
+const _: () = core::assert! (std::mem::offset_of! (composition_it, to) == 76);
 
 #[repr(C)]
 pub struct bidi_it
@@ -1883,10 +1883,10 @@ pub struct bidi_it
   /// Carries the type's 8-byte alignment (bidi_it holds `ptrdiff_t` members).
   pub _align: [u64; 0],
 }
-const _: () = assert! (std::mem::size_of::<bidi_it> () == 2328);
-const _: () = assert! (std::mem::align_of::<bidi_it> () == 8);
-const _: () = assert! (std::mem::offset_of! (bidi_it, r#type) == 40);
-const _: () = assert! (std::mem::offset_of! (bidi_it, resolved_level) == 52);
+const _: () = core::assert! (std::mem::size_of::<bidi_it> () == 2328);
+const _: () = core::assert! (std::mem::align_of::<bidi_it> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, r#type) == 40);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, resolved_level) == 52);
 
 macro_rules! CHARPOS { ($pos:expr) => { ($pos).charpos }; }
 

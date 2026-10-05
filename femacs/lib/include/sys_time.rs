@@ -58,9 +58,9 @@ pub struct itimerval
   pub it_value: timeval,
 }
 
-const _: () = assert! (std::mem::size_of::<itimerval> () == 32);
-const _: () = assert! (std::mem::offset_of! (itimerval, it_interval) == 0);
-const _: () = assert! (std::mem::offset_of! (itimerval, it_value) == 16);
+const _: () = core::assert! (std::mem::size_of::<itimerval> () == 32);
+const _: () = core::assert! (std::mem::offset_of! (itimerval, it_interval) == 0);
+const _: () = core::assert! (std::mem::offset_of! (itimerval, it_value) == 16);
 
 /* <sys/time.h>'s `setitimer` and the three `ITIMER_*` selectors (measured: `sizeof
    (struct itimerval)` is 32, `ITIMER_REAL` 0, `ITIMER_VIRTUAL` 1, `ITIMER_PROF` 2, the
@@ -75,8 +75,8 @@ unsafe extern "C" {
                     old_value: *mut itimerval) -> c_int;
 }
 
-const _: () = assert! (std::mem::size_of::<timeval> () == 16);
-const _: () = assert! (std::mem::offset_of! (timeval, tv_sec) == 0);
-const _: () = assert! (std::mem::offset_of! (timeval, tv_usec) == 8);
-const _: () = assert! (std::mem::size_of::<time_t> () == 8);
-const _: () = assert! (std::mem::size_of::<suseconds_t> () == 4);
+const _: () = core::assert! (std::mem::size_of::<timeval> () == 16);
+const _: () = core::assert! (std::mem::offset_of! (timeval, tv_sec) == 0);
+const _: () = core::assert! (std::mem::offset_of! (timeval, tv_usec) == 8);
+const _: () = core::assert! (std::mem::size_of::<time_t> () == 8);
+const _: () = core::assert! (std::mem::size_of::<suseconds_t> () == 4);

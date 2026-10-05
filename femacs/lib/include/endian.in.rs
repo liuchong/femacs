@@ -20,7 +20,7 @@ include!("stdint.in.rs");
 include!("byteswap.in.rs");
 
 /* C 50-52's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
-const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
 /* C 20-47: the guard `_@GUARD_PREFIX@_ENDIAN_H` (the frozen target substitutes
    `_GL_ENDIAN_H`), and the three byte-order constants C defines itself.  */

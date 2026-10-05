@@ -121,36 +121,36 @@ pub type font_spacing = c_int;
 /// `XSETFONT` are the mirror's now - its bodies were C's own spelling (unexpandable Rust) until
 /// status 3.328 and 3.333 ported them from this unit's copies, and the unit's copies are gone.
 
-const _: () = assert! (std::mem::size_of::<font_metrics> () == 10);
+const _: () = core::assert! (std::mem::size_of::<font_metrics> () == 10);
 
 
-const _: () = assert! (std::mem::size_of::<font_bitmap> () == 40);
-const _: () = assert! (std::mem::offset_of! (font_bitmap, buffer) == 16);
-const _: () = assert! (std::mem::offset_of! (font_bitmap, left) == 24);
+const _: () = core::assert! (std::mem::size_of::<font_bitmap> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (font_bitmap, buffer) == 16);
+const _: () = core::assert! (std::mem::offset_of! (font_bitmap, left) == 24);
 
 
-const _: () = assert! (std::mem::size_of::<font_spec> () == 112);
-const _: () = assert! (std::mem::offset_of! (font_spec, props) == 8);
+const _: () = core::assert! (std::mem::size_of::<font_spec> () == 112);
+const _: () = core::assert! (std::mem::offset_of! (font_spec, props) == 8);
 
 
-const _: () = assert! (std::mem::size_of::<font_entity> () == 120);
-const _: () = assert! (std::mem::offset_of! (font_entity, props) == 8);
+const _: () = core::assert! (std::mem::size_of::<font_entity> () == 120);
+const _: () = core::assert! (std::mem::offset_of! (font_entity, props) == 8);
 /* C: `struct font` (font.h 275-418) — the record this unit reads through `(*font).driver` —
    comes from `include/font.rs` now (docs/ports/include-font.md); the records the mirror
    still lacks (`struct font_driver`, `struct font_driver_list`, the accessors) stay here.  */
 
 
-const _: () = assert! (std::mem::size_of::<font_driver> () == 208);
-const _: () = assert! (std::mem::offset_of! (font_driver, case_sensitive) == 8);
-const _: () = assert! (std::mem::offset_of! (font_driver, get_cache) == 16);
-const _: () = assert! (std::mem::offset_of! (font_driver, text_extents) == 104);
-const _: () = assert! (std::mem::offset_of! (font_driver, anchor_point) == 112);
-const _: () = assert! (std::mem::offset_of! (font_driver, drop_xrender_surfaces) == 200);
+const _: () = core::assert! (std::mem::size_of::<font_driver> () == 208);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, case_sensitive) == 8);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, get_cache) == 16);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, text_extents) == 104);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, anchor_point) == 112);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, drop_xrender_surfaces) == 200);
 
 
-const _: () = assert! (std::mem::size_of::<font_driver_list> () == 24);
-const _: () = assert! (std::mem::offset_of! (font_driver_list, driver) == 8);
-const _: () = assert! (std::mem::offset_of! (font_driver_list, next) == 16);
+const _: () = core::assert! (std::mem::size_of::<font_driver_list> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (font_driver_list, driver) == 8);
+const _: () = core::assert! (std::mem::offset_of! (font_driver_list, next) == 16);
 
 
 
@@ -214,14 +214,14 @@ pub struct face
   pub ascii_face: *mut face,
 }
 
-const _: () = assert! (std::mem::size_of::<face> () == 280);
-const _: () = assert! (std::mem::align_of::<face> () == 8);
-const _: () = assert! (std::mem::offset_of! (face, id) == 160);
-const _: () = assert! (std::mem::offset_of! (face, foreground) == 168);
-const _: () = assert! (std::mem::offset_of! (face, font) == 216);
-const _: () = assert! (std::mem::offset_of! (face, bits) == 240);
-const _: () = assert! (std::mem::offset_of! (face, hash) == 248);
-const _: () = assert! (std::mem::offset_of! (face, ascii_face) == 272);
+const _: () = core::assert! (std::mem::size_of::<face> () == 280);
+const _: () = core::assert! (std::mem::align_of::<face> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168);
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240);
+const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248);
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272);
 
 /* The `face_box_type`/`face_underline_type` members and the `bool_bf` bits of `struct
    face`, in C's declaration order (dispextern.h 1893-1935).  The port's readers/writers go
@@ -263,9 +263,9 @@ pub struct face_cache
   pub menu_face_changed_p: bool,
 }
 
-const _: () = assert! (std::mem::size_of::<face_cache> () == 40);
-const _: () = assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
-const _: () = assert! (std::mem::offset_of! (face_cache, used) == 32);
+const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
 
 /// C: frame.h 1379: `#define FRAME_FACE_CACHE(F) (F)->face_cache`.  The `frame` mirror
 /// carries the field as `*mut c_void` ("C: `struct face_cache *face_cache`") because

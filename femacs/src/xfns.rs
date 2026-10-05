@@ -180,17 +180,17 @@ pub struct PropMotifWmHints
 /* Measured on this machine with the record's own text (`clang -o mwm mwm.c && ./mwm`, 2026-10-05):
    `sizeof=40 align=8`, offsets `flags 0 functions 8 decorations 16 input_mode 24 status 32`.  */
 #[cfg (all (feature = "have_x_windows", not (feature = "use_motif"), not (feature = "use_gtk")))]
-const _: () = assert! (core::mem::size_of::<PropMotifWmHints> () == 40);
+const _: () = core::assert! (core::mem::size_of::<PropMotifWmHints> () == 40);
 #[cfg (all (feature = "have_x_windows", not (feature = "use_motif"), not (feature = "use_gtk")))]
-const _: () = assert! (core::mem::align_of::<PropMotifWmHints> () == 8);
+const _: () = core::assert! (core::mem::align_of::<PropMotifWmHints> () == 8);
 #[cfg (all (feature = "have_x_windows", not (feature = "use_motif"), not (feature = "use_gtk")))]
-const _: () = assert! (core::mem::offset_of! (PropMotifWmHints, functions) == 8);
+const _: () = core::assert! (core::mem::offset_of! (PropMotifWmHints, functions) == 8);
 #[cfg (all (feature = "have_x_windows", not (feature = "use_motif"), not (feature = "use_gtk")))]
-const _: () = assert! (core::mem::offset_of! (PropMotifWmHints, decorations) == 16);
+const _: () = core::assert! (core::mem::offset_of! (PropMotifWmHints, decorations) == 16);
 #[cfg (all (feature = "have_x_windows", not (feature = "use_motif"), not (feature = "use_gtk")))]
-const _: () = assert! (core::mem::offset_of! (PropMotifWmHints, input_mode) == 24);
+const _: () = core::assert! (core::mem::offset_of! (PropMotifWmHints, input_mode) == 24);
 #[cfg (all (feature = "have_x_windows", not (feature = "use_motif"), not (feature = "use_gtk")))]
-const _: () = assert! (core::mem::offset_of! (PropMotifWmHints, status) == 32);
+const _: () = core::assert! (core::mem::offset_of! (PropMotifWmHints, status) == 32);
 
 #[cfg (all (feature = "have_x_windows", not (feature = "use_motif"), not (feature = "use_gtk")))]
 /// C: xfns.c 159: `#define PROP_MOTIF_WM_HINTS_ELEMENTS 5`

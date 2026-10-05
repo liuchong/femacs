@@ -108,18 +108,18 @@ pub struct gl_utmp_ut_exit
 
 /* The measured layout (clang -std=gnu23, the probe in the ledger).  `struct gl_utmp` is 72
    bytes with 8-byte alignment, and every member sits where the C compiler puts it.  */
-const _: () = assert! (std::mem::size_of::<gl_utmp> () == 72);
-const _: () = assert! (std::mem::align_of::<gl_utmp> () == 8);
-const _: () = assert! (std::mem::offset_of! (gl_utmp, ut_user) == 0);
-const _: () = assert! (std::mem::offset_of! (gl_utmp, ut_id) == 8);
-const _: () = assert! (std::mem::offset_of! (gl_utmp, ut_line) == 16);
-const _: () = assert! (std::mem::offset_of! (gl_utmp, ut_host) == 24);
-const _: () = assert! (std::mem::offset_of! (gl_utmp, ut_ts) == 32);
-const _: () = assert! (std::mem::offset_of! (gl_utmp, ut_pid) == 48);
-const _: () = assert! (std::mem::offset_of! (gl_utmp, ut_session) == 52);
-const _: () = assert! (std::mem::offset_of! (gl_utmp, ut_type) == 56);
-const _: () = assert! (std::mem::offset_of! (gl_utmp, ut_exit) == 60);
-const _: () = assert! (std::mem::size_of::<gl_utmp_ut_exit> () == 8);
+const _: () = core::assert! (std::mem::size_of::<gl_utmp> () == 72);
+const _: () = core::assert! (std::mem::align_of::<gl_utmp> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (gl_utmp, ut_user) == 0);
+const _: () = core::assert! (std::mem::offset_of! (gl_utmp, ut_id) == 8);
+const _: () = core::assert! (std::mem::offset_of! (gl_utmp, ut_line) == 16);
+const _: () = core::assert! (std::mem::offset_of! (gl_utmp, ut_host) == 24);
+const _: () = core::assert! (std::mem::offset_of! (gl_utmp, ut_ts) == 32);
+const _: () = core::assert! (std::mem::offset_of! (gl_utmp, ut_pid) == 48);
+const _: () = core::assert! (std::mem::offset_of! (gl_utmp, ut_session) == 52);
+const _: () = core::assert! (std::mem::offset_of! (gl_utmp, ut_type) == 56);
+const _: () = core::assert! (std::mem::offset_of! (gl_utmp, ut_exit) == 60);
+const _: () = core::assert! (std::mem::size_of::<gl_utmp_ut_exit> () == 8);
 
 /* C 82-89: the macros describing `struct gl_utmp`.  */
 macro_rules! UT_USER { ($ut:expr) => { (*$ut).ut_user } }

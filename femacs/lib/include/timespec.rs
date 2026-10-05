@@ -26,7 +26,7 @@ pub const TIMESPEC_H: bool = true;
 // C's `#if !_GL_CONFIG_H_INCLUDED` / `#error "Please include config.h first."` / `#endif` block:
 // the generated config header sets it (src/config.h 38 of the frozen build), and the
 // port's config.rs — generated from docs/baseline/config/*.json — carries it.
-const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
 /* Inverse resolution of timespec timestamps (in units per second),
    and log base 10 of the inverse resolution.  */

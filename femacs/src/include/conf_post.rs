@@ -58,7 +58,7 @@ macro_rules! GNUC_PREREQ {
 // measured one, and every mirror that packs a `bool_bf` run reproduces the same byte
 // (PORTING.md 1.3).
 pub type bool_bf = bool;
-const _: () = assert! (std::mem::size_of::<bool_bf> () == 1);
+const _: () = core::assert! (std::mem::size_of::<bool_bf> () == 1);
 
 // C 64-88: the two compiler *predicate* families.  Both are excluded by name (rows in
 // docs/ports/excluded-macros.txt) and C's text is kept here for the reader:

@@ -18,7 +18,7 @@ include!("u64.rs");
 pub const SHA512_H: c_int = 1;
 
 /* C 21-23's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
-const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
 /* C 29-31's `#ifndef OPENSSL_API_COMPAT / #define OPENSSL_API_COMPAT 0x10101000L` and
    C 55-58's two `#define GL_OPENSSL_NAME` (384 and 512) are inside the dead OpenSSL arm.  */

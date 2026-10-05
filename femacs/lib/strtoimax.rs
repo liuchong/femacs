@@ -64,7 +64,7 @@ macro_rules! Unsigned { () => { unsigned } }
 pub unsafe extern "C" fn Strtoimax (ptr: *const c_char, endptr: *mut *mut c_char, base: c_int)
   -> intmax_t
 {
-  const _: () = assert! (size_of::<intmax_t> () == size_of::<c_ulong> ()
+  const _: () = core::assert! (size_of::<intmax_t> () == size_of::<c_ulong> ()
 			 || size_of::<intmax_t> () == size_of::<u64> ());
 
   if size_of::<intmax_t> () != size_of::<c_ulong> ()
@@ -78,7 +78,7 @@ pub unsafe extern "C" fn Strtoimax (ptr: *const c_char, endptr: *mut *mut c_char
 pub unsafe extern "C" fn Strtoimax (ptr: *const c_char, endptr: *mut *mut c_char, base: c_int)
   -> uintmax_t
 {
-  const _: () = assert! (size_of::<uintmax_t> () == size_of::<c_ulong> ()
+  const _: () = core::assert! (size_of::<uintmax_t> () == size_of::<c_ulong> ()
 			 || size_of::<uintmax_t> () == size_of::<u64> ());
 
   if size_of::<uintmax_t> () != size_of::<c_ulong> ()

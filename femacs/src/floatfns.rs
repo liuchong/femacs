@@ -156,7 +156,7 @@ macro_rules! signbit {
     };
 }
 
-const _: () = assert! (!cfg! (feature = "no_signbit") || !HAVE_SIGNBIT);
+const _: () = core::assert! (!cfg! (feature = "no_signbit") || !HAVE_SIGNBIT);
 
 DEFUN! ("copysign", Fcopysign, Scopysign, 2, 2, 0,
        doc: "Copy sign of X2 to value of X1, and return the result.\nCause an error if X1 or X2 is not a float.",
@@ -362,7 +362,7 @@ pub unsafe extern "C" fn double_integer_scale (d: c_double) -> c_int
 	  + if isnan! (d) { 2 } else { (exponent == INT_MAX) as c_int } };
 }
 
-const _: () = assert! (!cfg! (feature = "have_haiku") || HAIKU);
+const _: () = core::assert! (!cfg! (feature = "have_haiku") || HAIKU);
 
 /* Convert the Lisp number N to an integer and return a pointer to the
    converted integer, represented as an mpz_t *.  Use *T as a
@@ -512,7 +512,7 @@ macro_rules! emacs_rint {
     ($d:expr) => { rint ($d) };
 }
 
-const _: () = assert! (!cfg! (feature = "no_rint") || !HAVE_RINT);
+const _: () = core::assert! (!cfg! (feature = "no_rint") || !HAVE_RINT);
 
 // C: `#ifndef HAVE_TRUNC double trunc (double d) { return (d < 0 ? ceil : floor) (d); }
 // #endif` — HAVE_TRUNC is 1 in the frozen configuration, so the <math.h> function is
@@ -526,7 +526,7 @@ pub unsafe extern "C" fn trunc (d: c_double) -> c_double
   return if d < 0.0 { ceil (d) } else { floor (d) };
 }
 
-const _: () = assert! (!cfg! (feature = "no_trunc") || !HAVE_TRUNC);
+const _: () = core::assert! (!cfg! (feature = "no_trunc") || !HAVE_TRUNC);
 
 DEFUN! ("ceiling", Fceiling, Sceiling, 1, 2, 0,
        doc: "Return the smallest integer no less than ARG.\nThis rounds the value towards +inf.\nWith optional DIVISOR, return the smallest integer no less than ARG/DIVISOR.",

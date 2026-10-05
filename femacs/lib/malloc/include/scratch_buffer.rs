@@ -110,11 +110,11 @@ pub struct scratch_buffer {
    offsetof (…, length), offsetof (…, __space))` -> `1040 0 8 16`).  `tools/gen-layout-fields.py`'s
    key set does not carry the type, so the mirror states the facts here (PORTING.md 0.1-17's
    generator covers the types it does key).  */
-const _: () = assert!(std::mem::size_of::<scratch_buffer> () == 1040);
-const _: () = assert!(std::mem::align_of::<scratch_buffer> () == 8);
-const _: () = assert!(std::mem::offset_of! (scratch_buffer, data) == 0);
-const _: () = assert!(std::mem::offset_of! (scratch_buffer, length) == 8);
-const _: () = assert!(std::mem::offset_of! (scratch_buffer, __space) == 16);
+const _: () = core::assert!(std::mem::size_of::<scratch_buffer> () == 1040);
+const _: () = core::assert!(std::mem::align_of::<scratch_buffer> () == 8);
+const _: () = core::assert!(std::mem::offset_of! (scratch_buffer, data) == 0);
+const _: () = core::assert!(std::mem::offset_of! (scratch_buffer, length) == 8);
+const _: () = core::assert!(std::mem::offset_of! (scratch_buffer, __space) == 16);
 
 /* `<sys/cdefs.h>`'s branch hints (PORTING.md 2.6): the names and the identity, as
    lib/regcomp.rs spells them.  */

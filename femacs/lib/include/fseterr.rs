@@ -13,7 +13,7 @@ include!("stdio.rs");
 pub const _FSETERR_H: bool = true;
 
 /* C 23-26's `#if !_GL_CONFIG_H_INCLUDED / # error "Please include config.h first." / #endif`.  */
-const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
 pub mod fseterr_decls {
   use super::*;

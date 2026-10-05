@@ -2173,12 +2173,12 @@ pub struct standard_args
   pub priority: c_int,
   pub nargs: c_int,
 }
-const _: () = assert! (std::mem::size_of::<standard_args> () == 24);
-const _: () = assert! (std::mem::align_of::<standard_args> () == 8);
-const _: () = assert! (std::mem::offset_of! (standard_args, name) == 0);
-const _: () = assert! (std::mem::offset_of! (standard_args, longname) == 8);
-const _: () = assert! (std::mem::offset_of! (standard_args, priority) == 16);
-const _: () = assert! (std::mem::offset_of! (standard_args, nargs) == 20);
+const _: () = core::assert! (std::mem::size_of::<standard_args> () == 24);
+const _: () = core::assert! (std::mem::align_of::<standard_args> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (standard_args, name) == 0);
+const _: () = core::assert! (std::mem::offset_of! (standard_args, longname) == 8);
+const _: () = core::assert! (std::mem::offset_of! (standard_args, priority) == 16);
+const _: () = core::assert! (std::mem::offset_of! (standard_args, nargs) == 20);
 
 /* C's array is `static const struct standard_args standard_args[]`; Rust's `static` demands
    `Sync` and a raw pointer is not `Sync`, so the port keeps it `static mut` (the

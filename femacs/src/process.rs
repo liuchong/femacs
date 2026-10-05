@@ -154,22 +154,22 @@ pub struct sockaddr {
   pub sa_family: u8,
   pub sa_data: [c_char; 14],
 }
-const _: () = assert! (std::mem::size_of::<sockaddr> () == 16);
-const _: () = assert! (std::mem::offset_of! (sockaddr, sa_len) == 0);
-const _: () = assert! (std::mem::offset_of! (sockaddr, sa_family) == 1);
-const _: () = assert! (std::mem::offset_of! (sockaddr, sa_data) == 2);
+const _: () = core::assert! (std::mem::size_of::<sockaddr> () == 16);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr, sa_len) == 0);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr, sa_family) == 1);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr, sa_data) == 2);
 
 /* <netinet/in.h>: `struct in_addr { in_addr_t s_addr; }`.  */
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct in_addr { pub s_addr: u32 }
-const _: () = assert! (std::mem::size_of::<in_addr> () == 4);
+const _: () = core::assert! (std::mem::size_of::<in_addr> () == 4);
 
 /* <netinet/in.h>: `struct in6_addr { union { … } __u6_addr; }`, 16 bytes.  */
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct in6_addr { pub __u6_addr8: [u8; 16] }
-const _: () = assert! (std::mem::size_of::<in6_addr> () == 16);
+const _: () = core::assert! (std::mem::size_of::<in6_addr> () == 16);
 
 /* <netinet/in.h>: `struct sockaddr_in`, measured 16/4.  */
 #[repr(C)]
@@ -181,9 +181,9 @@ pub struct sockaddr_in {
   pub sin_addr: in_addr,  // 4
   pub sin_zero: [c_char; 8], // 8
 }
-const _: () = assert! (std::mem::size_of::<sockaddr_in> () == 16);
-const _: () = assert! (std::mem::offset_of! (sockaddr_in, sin_addr) == 4);
-const _: () = assert! (std::mem::offset_of! (sockaddr_in, sin_zero) == 8);
+const _: () = core::assert! (std::mem::size_of::<sockaddr_in> () == 16);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr_in, sin_addr) == 4);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr_in, sin_zero) == 8);
 
 /* <netinet/in.h>: `struct sockaddr_in6`, measured 28/4.  */
 #[repr(C)]
@@ -196,9 +196,9 @@ pub struct sockaddr_in6 {
   pub sin6_addr: in6_addr,    // 8
   pub sin6_scope_id: u32,     // 24
 }
-const _: () = assert! (std::mem::size_of::<sockaddr_in6> () == 28);
-const _: () = assert! (std::mem::offset_of! (sockaddr_in6, sin6_addr) == 8);
-const _: () = assert! (std::mem::offset_of! (sockaddr_in6, sin6_scope_id) == 24);
+const _: () = core::assert! (std::mem::size_of::<sockaddr_in6> () == 28);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr_in6, sin6_addr) == 8);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr_in6, sin6_scope_id) == 24);
 
 /* <sys/un.h>: `struct sockaddr_un`, measured 106/1.  */
 #[repr(C)]
@@ -208,14 +208,14 @@ pub struct sockaddr_un {
   pub sun_family: u8,       // 1
   pub sun_path: [c_char; 104], // 2
 }
-const _: () = assert! (std::mem::size_of::<sockaddr_un> () == 106);
-const _: () = assert! (std::mem::offset_of! (sockaddr_un, sun_path) == 2);
+const _: () = core::assert! (std::mem::size_of::<sockaddr_un> () == 106);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr_un, sun_path) == 2);
 
 /* <sys/socket.h>: `struct sockaddr_storage`, measured 128/8.  */
 #[repr(C, align(8))]
 #[derive(Clone, Copy)]
 pub struct sockaddr_storage { pub ss_bits: [u64; 16] }
-const _: () = assert! (std::mem::size_of::<sockaddr_storage> () == 128);
+const _: () = core::assert! (std::mem::size_of::<sockaddr_storage> () == 128);
 
 /* <net/if_dl.h>: `struct sockaddr_dl`, measured 20/2.  */
 #[repr(C)]
@@ -230,8 +230,8 @@ pub struct sockaddr_dl {
   pub sdl_slen: u8,     // 7
   pub sdl_data: [c_char; 12], // 8
 }
-const _: () = assert! (std::mem::size_of::<sockaddr_dl> () == 20);
-const _: () = assert! (std::mem::offset_of! (sockaddr_dl, sdl_data) == 8);
+const _: () = core::assert! (std::mem::size_of::<sockaddr_dl> () == 20);
+const _: () = core::assert! (std::mem::offset_of! (sockaddr_dl, sdl_data) == 8);
 
 /* <netdb.h>: `struct addrinfo`, measured 48/8.  */
 #[repr(C)]
@@ -246,10 +246,10 @@ pub struct addrinfo {
   pub ai_addr: *mut sockaddr,   // 32
   pub ai_next: *mut addrinfo,   // 40
 }
-const _: () = assert! (std::mem::size_of::<addrinfo> () == 48);
-const _: () = assert! (std::mem::offset_of! (addrinfo, ai_addrlen) == 16);
-const _: () = assert! (std::mem::offset_of! (addrinfo, ai_addr) == 32);
-const _: () = assert! (std::mem::offset_of! (addrinfo, ai_next) == 40);
+const _: () = core::assert! (std::mem::size_of::<addrinfo> () == 48);
+const _: () = core::assert! (std::mem::offset_of! (addrinfo, ai_addrlen) == 16);
+const _: () = core::assert! (std::mem::offset_of! (addrinfo, ai_addr) == 32);
+const _: () = core::assert! (std::mem::offset_of! (addrinfo, ai_next) == 40);
 
 /* <ifaddrs.h>: `struct ifaddrs`, measured 56/8.  */
 #[repr(C)]
@@ -263,8 +263,8 @@ pub struct ifaddrs {
   pub ifa_dstaddr: *mut sockaddr,  // 40
   pub ifa_data: *mut c_void,       // 48
 }
-const _: () = assert! (std::mem::size_of::<ifaddrs> () == 56);
-const _: () = assert! (std::mem::offset_of! (ifaddrs, ifa_addr) == 24);
+const _: () = core::assert! (std::mem::size_of::<ifaddrs> () == 56);
+const _: () = core::assert! (std::mem::offset_of! (ifaddrs, ifa_addr) == 24);
 
 /* <net/if.h>: `struct ifreq { char ifr_name[16]; union { … } ifr_ifru; }`, measured 32/8 —
    the union starts at 16 and `ifr_addr`/`ifr_flags`/`ifr_mtu` all measure 16.  */
@@ -285,8 +285,8 @@ pub struct ifreq {
   pub ifr_name: [c_char; 16],  // 0
   pub ifr_ifru: ifr_ifru,      // 16
 }
-const _: () = assert! (std::mem::size_of::<ifreq> () == 32);
-const _: () = assert! (std::mem::offset_of! (ifreq, ifr_ifru) == 16);
+const _: () = core::assert! (std::mem::size_of::<ifreq> () == 32);
+const _: () = core::assert! (std::mem::offset_of! (ifreq, ifr_ifru) == 16);
 
 /* <netdb.h>: `struct servent`, measured 32/8.  */
 #[repr(C)]
@@ -297,18 +297,18 @@ pub struct servent {
   pub s_port: c_int,             // 16
   pub s_proto: *mut c_char,      // 24
 }
-const _: () = assert! (std::mem::size_of::<servent> () == 32);
+const _: () = core::assert! (std::mem::size_of::<servent> () == 32);
 
 /* <sys/socket.h>: `struct linger { int l_onoff; int l_linger; }`, measured 8/4.  */
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct linger { pub l_onoff: c_int, pub l_linger: c_int }
-const _: () = assert! (std::mem::size_of::<linger> () == 8);
+const _: () = core::assert! (std::mem::size_of::<linger> () == 8);
 
 /* <sys/socket.h>: `typedef __uint32_t socklen_t;` — `pid_t`'s sibling in sys_types; the
    mirror has no `socklen_t`, so it is declared here with the measured width.  */
 pub type socklen_t = u32;
-const _: () = assert! (std::mem::size_of::<socklen_t> () == 4);
+const _: () = core::assert! (std::mem::size_of::<socklen_t> () == 4);
 
 /* <netdb.h>: `struct gaicb` (getaddrinfo_a's request) and `<netdb.h>`'s `GAI_NOWAIT` are only
    visible with `HAVE_GETADDRINFO_A`, which the frozen configuration leaves undefined
@@ -361,7 +361,7 @@ pub union u_sockaddr
   pub in6: sockaddr_in6,      // C 169: `#ifdef AF_INET6`
   pub un: sockaddr_un,        // C 172: `#ifdef HAVE_LOCAL_SOCKETS`
 }
-const _: () = assert! (std::mem::size_of::<u_sockaddr> () == 108);
+const _: () = core::assert! (std::mem::size_of::<u_sockaddr> () == 108);
 
 /* C 176-181: `#ifndef SOCK_CLOEXEC` / `#ifndef SOCK_NONBLOCK` are live on this target (the
    system headers define neither), so the file supplies 0 for both.  */
@@ -501,7 +501,7 @@ pub struct sockaddr_and_len
   pub sa: *mut sockaddr,
   pub len: ptrdiff_t,
 }
-const _: () = assert! (std::mem::size_of::<sockaddr_and_len> () == 16);
+const _: () = core::assert! (std::mem::size_of::<sockaddr_and_len> () == 16);
 /* C 327.  */
 static mut datagram_address: [sockaddr_and_len; FD_SETSIZE as usize] =
   [sockaddr_and_len { sa: std::ptr::null_mut (), len: 0 }; FD_SETSIZE as usize];
@@ -616,11 +616,11 @@ pub struct fd_callback_data
   pub thread: *mut thread_state,
   pub waiting_thread: *mut thread_state,
 }
-const _: () = assert! (std::mem::size_of::<fd_callback_data> () == 40);
-const _: () = assert! (std::mem::offset_of! (fd_callback_data, data) == 8);
-const _: () = assert! (std::mem::offset_of! (fd_callback_data, flags) == 16);
-const _: () = assert! (std::mem::offset_of! (fd_callback_data, thread) == 24);
-const _: () = assert! (std::mem::offset_of! (fd_callback_data, waiting_thread) == 32);
+const _: () = core::assert! (std::mem::size_of::<fd_callback_data> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (fd_callback_data, data) == 8);
+const _: () = core::assert! (std::mem::offset_of! (fd_callback_data, flags) == 16);
+const _: () = core::assert! (std::mem::offset_of! (fd_callback_data, thread) == 24);
+const _: () = core::assert! (std::mem::offset_of! (fd_callback_data, waiting_thread) == 32);
 static mut fd_callback_info: [fd_callback_data; FD_SETSIZE as usize] =
   [fd_callback_data { func: None, data: std::ptr::null_mut (), flags: 0,
                       thread: std::ptr::null_mut (), waiting_thread: std::ptr::null_mut () };
@@ -3142,7 +3142,7 @@ pub struct socket_options
   pub opttype: c_int,
   pub optbit: c_int,
 }
-const _: () = assert! (std::mem::size_of::<socket_options> () == 24);
+const _: () = core::assert! (std::mem::size_of::<socket_options> () == 24);
 /* C 2885: `enum { SOPT_UNKNOWN, SOPT_BOOL, SOPT_INT, SOPT_IFNAME, SOPT_LINGER } opttype;`  */
 pub const SOPT_UNKNOWN: c_int = 0;
 pub const SOPT_BOOL: c_int = 1;
@@ -4505,7 +4505,7 @@ pub struct ifflag_def
   pub flag_bit: c_int,
   pub flag_sym: *const c_char,
 }
-const _: () = assert! (std::mem::size_of::<ifflag_def> () == 16);
+const _: () = core::assert! (std::mem::size_of::<ifflag_def> () == 16);
 
 /* C 4441-4509: `static const struct ifflag_def ifflag_table[]`.  The five `#ifdef`s that
    are dead on this target are carried as cfg-gated constants below.  */
@@ -7376,14 +7376,14 @@ pub struct termios
   pub c_ispeed: c_ulong,
   pub c_ospeed: c_ulong,
 }
-const _: () = assert! (std::mem::size_of::<termios> () == 72);
-const _: () = assert! (std::mem::offset_of! (termios, c_iflag) == 0);
-const _: () = assert! (std::mem::offset_of! (termios, c_oflag) == 8);
-const _: () = assert! (std::mem::offset_of! (termios, c_cflag) == 16);
-const _: () = assert! (std::mem::offset_of! (termios, c_lflag) == 24);
-const _: () = assert! (std::mem::offset_of! (termios, c_cc) == 32);
-const _: () = assert! (std::mem::offset_of! (termios, c_ispeed) == 56);
-const _: () = assert! (std::mem::offset_of! (termios, c_ospeed) == 64);
+const _: () = core::assert! (std::mem::size_of::<termios> () == 72);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_iflag) == 0);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_oflag) == 8);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_cflag) == 16);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_lflag) == 24);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_cc) == 32);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_ispeed) == 56);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_ospeed) == 64);
 /// C: `<termios.h>`'s `c_cc` indices, measured: VINTR 8, VQUIT 9, VSUSP 10.
 pub const VINTR: usize = 8;
 pub const VQUIT: usize = 9;

@@ -49,7 +49,7 @@ include!("limits.in.rs");
 include!("stdint.in.rs");
 
 /// C 20-23: `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.
-const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
 /* C 33-35: `#if defined HAVE_FACL && ! defined GETACLCNT && defined ACL_CNT` — dead, HAVE_FACL
    is undefined on this target; its `ACL_CNT` comes from the Solaris <sys/acl.h>.  */

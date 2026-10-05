@@ -377,8 +377,14 @@ Rust 侧三种形态逐一对应，`suppress_checking` 作为同名全局保留�
 `eassume` → `assume` 语义（`lib/verify.h:389` 的四种平台形态）。另需移植
 `clobbered_eassert`（`eval.c:1373` + 5 处）、`verify` 两态、`static_assert`（91 处）、
 `eassume`（184 处）。
-- `static_assert`（C23 关键字）→ `lisp.rs` 里的同名 `macro_rules!`，展开成
-  `const _: () = assert!(cond);`，调用点写成 `static_assert! (cond);`（A6 实测）。
+- `static_assert`（C23 关键字）→ 各单元自己的同名 `macro_rules!`，展开成
+  `const _: () = core::assert! (cond);`，调用点写成 `static_assert! (cond);`（A6 实测）。
+  **凡"布局/配置断言"（`const _: () = …` 这一族）一律写 `core::assert!`，不写裸 `assert!`**（3.432）：
+  C 的 `<assert.h>` 在一个 TU 里只被读一次，冻结配置定义 `NDEBUG` ⇒ 它的 `assert` 是 `((void) 0)`；
+  端口在有的单元里按 C 的名字保留了这个空体宏，而**经 `include!` 到达的裸 `assert!` 会解析到它**
+  ——轻则 `E0659`，重则**镜像里的布局断言被静默展开成 `()`**（androidvfs 的变异实测量到过）。
+  `core::assert!` 是路径限定宏，不受同名 `macro_rules!` 遮蔽，是这一族唯一安全的写法；
+  3.432 一次性把 2,138 处（106 个文件）改到位。
 
 ### 2.6 数值与内建
 

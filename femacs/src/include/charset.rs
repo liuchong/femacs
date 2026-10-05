@@ -202,25 +202,25 @@ pub const CHARSET_COMPACT_CODES_P: u8 = 1 << 4;
 pub const CHARSET_UNIFIED_P: u8 = 1 << 5;
 
 /* The clang-measured layout of `struct charset` (see the file comment).  */
-const _: () = assert! (std::mem::size_of::<charset> () == 320);
-const _: () = assert! (std::mem::align_of::<charset> () == 8);
-const _: () = assert! (std::mem::offset_of! (charset, id) == 0);
-const _: () = assert! (std::mem::offset_of! (charset, dimension) == 4);
-const _: () = assert! (std::mem::offset_of! (charset, code_space) == 8);
-const _: () = assert! (std::mem::offset_of! (charset, code_space_mask) == 72);
-const _: () = assert! (std::mem::offset_of! (charset, bits) == 80);
-const _: () = assert! (std::mem::offset_of! (charset, iso_final) == 84);
-const _: () = assert! (std::mem::offset_of! (charset, iso_revision) == 88);
-const _: () = assert! (std::mem::offset_of! (charset, emacs_mule_id) == 92);
-const _: () = assert! (std::mem::offset_of! (charset, method) == 96);
-const _: () = assert! (std::mem::offset_of! (charset, min_code) == 100);
-const _: () = assert! (std::mem::offset_of! (charset, max_code) == 104);
-const _: () = assert! (std::mem::offset_of! (charset, char_index_offset) == 108);
-const _: () = assert! (std::mem::offset_of! (charset, min_char) == 112);
-const _: () = assert! (std::mem::offset_of! (charset, max_char) == 116);
-const _: () = assert! (std::mem::offset_of! (charset, invalid_code) == 120);
-const _: () = assert! (std::mem::offset_of! (charset, fast_map) == 124);
-const _: () = assert! (std::mem::offset_of! (charset, code_offset) == 316);
+const _: () = core::assert! (std::mem::size_of::<charset> () == 320);
+const _: () = core::assert! (std::mem::align_of::<charset> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (charset, id) == 0);
+const _: () = core::assert! (std::mem::offset_of! (charset, dimension) == 4);
+const _: () = core::assert! (std::mem::offset_of! (charset, code_space) == 8);
+const _: () = core::assert! (std::mem::offset_of! (charset, code_space_mask) == 72);
+const _: () = core::assert! (std::mem::offset_of! (charset, bits) == 80);
+const _: () = core::assert! (std::mem::offset_of! (charset, iso_final) == 84);
+const _: () = core::assert! (std::mem::offset_of! (charset, iso_revision) == 88);
+const _: () = core::assert! (std::mem::offset_of! (charset, emacs_mule_id) == 92);
+const _: () = core::assert! (std::mem::offset_of! (charset, method) == 96);
+const _: () = core::assert! (std::mem::offset_of! (charset, min_code) == 100);
+const _: () = core::assert! (std::mem::offset_of! (charset, max_code) == 104);
+const _: () = core::assert! (std::mem::offset_of! (charset, char_index_offset) == 108);
+const _: () = core::assert! (std::mem::offset_of! (charset, min_char) == 112);
+const _: () = core::assert! (std::mem::offset_of! (charset, max_char) == 116);
+const _: () = core::assert! (std::mem::offset_of! (charset, invalid_code) == 120);
+const _: () = core::assert! (std::mem::offset_of! (charset, fast_map) == 124);
+const _: () = core::assert! (std::mem::offset_of! (charset, code_offset) == 316);
 
 /* Hash table of charset symbols vs. the corresponding attribute
    vectors.  */
@@ -248,7 +248,7 @@ pub struct charset_table
   pub attributes_table: Lisp_Object,
 }
 
-const _: () = assert! (std::mem::size_of::<charset_table> () == 24);
+const _: () = core::assert! (std::mem::size_of::<charset_table> () == 24);
 
 /* Macros to access information about charset.  */
 

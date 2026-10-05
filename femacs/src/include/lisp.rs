@@ -2850,7 +2850,7 @@ pub fn NATIVE_COMP_FUNCTION_DYNP (a: Lisp_Object) -> bool {
     NATIVE_COMP_FUNCTIONP (a) && !NILP (unsafe { (*XSUBR (a)).lambda_list })
 }
 
-const _: () = assert! (!cfg! (feature = "have_native_comp") || HAVE_NATIVE_COMP);
+const _: () = core::assert! (!cfg! (feature = "have_native_comp") || HAVE_NATIVE_COMP);
 
 #[cfg(feature = "have_native_comp")]
 #[inline(always)]

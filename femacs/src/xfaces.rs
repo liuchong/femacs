@@ -311,21 +311,21 @@ pub struct face
   pub ascii_face: *mut face,
 }
 
-const _: () = assert! (std::mem::size_of::<face> () == 280);
-const _: () = assert! (std::mem::align_of::<face> () == 8);
-const _: () = assert! (std::mem::offset_of! (face, id) == 160);
-const _: () = assert! (std::mem::offset_of! (face, foreground) == 168);
-const _: () = assert! (std::mem::offset_of! (face, background) == 176);
-const _: () = assert! (std::mem::offset_of! (face, underline_color) == 184);
-const _: () = assert! (std::mem::offset_of! (face, overline_color) == 192);
-const _: () = assert! (std::mem::offset_of! (face, strike_through_color) == 200);
-const _: () = assert! (std::mem::offset_of! (face, box_color) == 208);
-const _: () = assert! (std::mem::offset_of! (face, font) == 216);
-const _: () = assert! (std::mem::offset_of! (face, fontset) == 224);
-const _: () = assert! (std::mem::offset_of! (face, bits) == 240);
-const _: () = assert! (std::mem::offset_of! (face, hash) == 248);
-const _: () = assert! (std::mem::offset_of! (face, next) == 256);
-const _: () = assert! (std::mem::offset_of! (face, ascii_face) == 272);
+const _: () = core::assert! (std::mem::size_of::<face> () == 280);
+const _: () = core::assert! (std::mem::align_of::<face> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (face, id) == 160);
+const _: () = core::assert! (std::mem::offset_of! (face, foreground) == 168);
+const _: () = core::assert! (std::mem::offset_of! (face, background) == 176);
+const _: () = core::assert! (std::mem::offset_of! (face, underline_color) == 184);
+const _: () = core::assert! (std::mem::offset_of! (face, overline_color) == 192);
+const _: () = core::assert! (std::mem::offset_of! (face, strike_through_color) == 200);
+const _: () = core::assert! (std::mem::offset_of! (face, box_color) == 208);
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
+const _: () = core::assert! (std::mem::offset_of! (face, fontset) == 224);
+const _: () = core::assert! (std::mem::offset_of! (face, bits) == 240);
+const _: () = core::assert! (std::mem::offset_of! (face, hash) == 248);
+const _: () = core::assert! (std::mem::offset_of! (face, next) == 256);
+const _: () = core::assert! (std::mem::offset_of! (face, ascii_face) == 272);
 
 /* `struct font` (font.h 275-418) comes from `include/font.rs` now; this unit reads `props`,
    `pixel_size` and `average_width` of it (docs/ports/include-font.md).  */
@@ -344,9 +344,9 @@ pub struct face_cache
   pub menu_face_changed_p: u8,
 }
 
-const _: () = assert! (std::mem::size_of::<face_cache> () == 40);
-const _: () = assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
-const _: () = assert! (std::mem::offset_of! (face_cache, used) == 32);
+const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, faces_by_id) == 16);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
 
 /* The `face_box_type`/`face_underline_type` members and the `bool_bf` bits of `struct face`,
    in C's declaration order (dispextern.h 1893-1935).  Every reader and writer goes through
@@ -1217,8 +1217,8 @@ pub struct named_merge_point
   pub prev: *mut named_merge_point,
 }
 
-const _: () = assert! (std::mem::offset_of! (named_merge_point, prev) == 16);
-const _: () = assert! (std::mem::size_of::<named_merge_point> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (named_merge_point, prev) == 16);
+const _: () = core::assert! (std::mem::size_of::<named_merge_point> () == 24);
 
 /* C 1975-2004: if a face merging cycle is detected for FACE_NAME, return false,
    otherwise add NEW_NAMED_MERGE_POINT … as the head of the linked list pointed to by

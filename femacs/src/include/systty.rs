@@ -36,7 +36,7 @@ pub struct emacs_tty
   pub main: termios,
 }
 
-const _: () = assert! (std::mem::size_of::<emacs_tty> () == 72);
+const _: () = core::assert! (std::mem::size_of::<emacs_tty> () == 72);
 
 pub mod systty_decls {
   use super::*;

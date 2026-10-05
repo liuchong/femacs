@@ -35,7 +35,7 @@ macro_rules! md5_stream { () => { __md5_stream } }
 
 /* C 51-54's `#define BLOCKSIZE 32768` and its `#if BLOCKSIZE % 64 != 0 / # error` guard.  */
 pub const BLOCKSIZE: usize = 32768;
-const _: () = assert! (BLOCKSIZE % 64 == 0, "invalid BLOCKSIZE");
+const _: () = core::assert! (BLOCKSIZE % 64 == 0, "invalid BLOCKSIZE");
 
 /* Compute MD5 message digest for bytes read from STREAM.  The
    resulting message digest number will be written into the 16 bytes

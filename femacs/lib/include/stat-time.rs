@@ -39,9 +39,9 @@ include!("sys_stat.in.rs");    // <sys/stat.h> (`struct stat`)
 include!("errno.rs");          // <errno.h> (EOVERFLOW)
 include!("stdcountof.rs");     // <stdcountof.h> (countof)
 
-const _: () = assert! (!cfg! (feature = "stat_time_stat_timespec_ns"),
+const _: () = core::assert! (!cfg! (feature = "stat_time_stat_timespec_ns"),
                        "the frozen configuration defines HAVE_STRUCT_STAT_ST_ATIMESPEC_TV_NSEC");
-const _: () = assert! (!cfg! (feature = "stat_time_member_absent"),
+const _: () = core::assert! (!cfg! (feature = "stat_time_member_absent"),
                        "the frozen configuration's struct stat carries the timespec members");
 
 /* stat-time.h 23: the include guard has no Rust counterpart (PORTING.md 0.1).  */

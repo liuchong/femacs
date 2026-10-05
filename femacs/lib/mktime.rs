@@ -78,8 +78,8 @@ macro_rules! tzset { () => { my_tzset () }; }
 macro_rules! TYPE_SIGNED { ($t:ty) => { <$t>::MIN < 0 }; }
 macro_rules! TYPE_MINIMUM { ($t:ty) => { <$t>::MIN }; }
 macro_rules! TYPE_MAXIMUM { ($t:ty) => { <$t>::MAX }; }
-/* PORTING.md 2.5: C's `static_assert` is `const _: () = assert! (cond);`.  */
-macro_rules! static_assert { ($cond:expr) => { const _: () = assert! ($cond); }; }
+/* PORTING.md 2.5: C's `static_assert` is `const _: () = core::assert! (cond);`.  */
+macro_rules! static_assert { ($cond:expr) => { const _: () = core::assert! ($cond); }; }
 /* <libc-config.h> 46: `# define __set_errno(val) (errno = (val))` is the
    `include/libc-config.rs` mirror's now (P-26, one landing point); the calls below keep C's
    spelling (the mirror's body parenthesises the value, this unit's local copy did not - the

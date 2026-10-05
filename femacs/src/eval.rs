@@ -1201,9 +1201,9 @@ pub struct funcall_with_delayed_message_data
   pub message: *mut Lisp_Object,
   pub timer: *mut atimer,
 }
-const _: () = assert! (std::mem::size_of::<funcall_with_delayed_message_data> () == 16);
-const _: () = assert! (std::mem::offset_of! (funcall_with_delayed_message_data, message) == 0);
-const _: () = assert! (std::mem::offset_of! (funcall_with_delayed_message_data, timer) == 8);
+const _: () = core::assert! (std::mem::size_of::<funcall_with_delayed_message_data> () == 16);
+const _: () = core::assert! (std::mem::offset_of! (funcall_with_delayed_message_data, message) == 0);
+const _: () = core::assert! (std::mem::offset_of! (funcall_with_delayed_message_data, timer) == 8);
 
 unsafe extern "C" fn with_delayed_message_display (timer: *mut atimer)
 {

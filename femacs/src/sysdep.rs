@@ -135,9 +135,9 @@ pub struct winsize {
   pub ws_ypixel: c_ushort,
 }
 
-const _: () = assert! (std::mem::size_of::<winsize> () == 8);
-const _: () = assert! (std::mem::offset_of! (winsize, ws_row) == 0);
-const _: () = assert! (std::mem::offset_of! (winsize, ws_col) == 2);
+const _: () = core::assert! (std::mem::size_of::<winsize> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (winsize, ws_row) == 0);
+const _: () = core::assert! (std::mem::offset_of! (winsize, ws_col) == 2);
 
 /* struct rusage { struct timeval ru_utime, ru_stime; long ru_maxrss; long ru_ixrss;
                   long ru_idrss; long ru_isrss; long ru_minflt; long ru_majflt;
@@ -166,12 +166,12 @@ pub struct rusage {
   pub ru_nivcsw: c_long,
 }
 
-const _: () = assert! (std::mem::size_of::<rusage> () == 144);
-const _: () = assert! (std::mem::offset_of! (rusage, ru_utime) == 0);
-const _: () = assert! (std::mem::offset_of! (rusage, ru_stime) == 16);
-const _: () = assert! (std::mem::offset_of! (rusage, ru_maxrss) == 32);
-const _: () = assert! (std::mem::offset_of! (rusage, ru_minflt) == 64);
-const _: () = assert! (std::mem::offset_of! (rusage, ru_majflt) == 72);
+const _: () = core::assert! (std::mem::size_of::<rusage> () == 144);
+const _: () = core::assert! (std::mem::offset_of! (rusage, ru_utime) == 0);
+const _: () = core::assert! (std::mem::offset_of! (rusage, ru_stime) == 16);
+const _: () = core::assert! (std::mem::offset_of! (rusage, ru_maxrss) == 32);
+const _: () = core::assert! (std::mem::offset_of! (rusage, ru_minflt) == 64);
+const _: () = core::assert! (std::mem::offset_of! (rusage, ru_majflt) == 72);
 
 /* systty.h 66-75: `struct emacs_tty { struct termios main; };` now comes from
    `include/systty.rs` (C 106), with the mirror's measured size assertion.  */
@@ -194,7 +194,7 @@ pub struct siginfo_t {
   pub si_band: c_long,
 }
 
-const _: () = assert! (std::mem::offset_of! (siginfo_t, si_addr) == 24);
+const _: () = core::assert! (std::mem::offset_of! (siginfo_t, si_addr) == 24);
 
 /* signal.h: `typedef struct __darwin_sigaltstack { void *ss_sp; __darwin_size_t ss_size;
    int ss_flags; } stack_t;`  */
@@ -207,10 +207,10 @@ pub struct stack_t {
   pub ss_flags: c_int,
 }
 
-const _: () = assert! (std::mem::size_of::<stack_t> () == 24);
-const _: () = assert! (std::mem::offset_of! (stack_t, ss_sp) == 0);
-const _: () = assert! (std::mem::offset_of! (stack_t, ss_size) == 8);
-const _: () = assert! (std::mem::offset_of! (stack_t, ss_flags) == 16);
+const _: () = core::assert! (std::mem::size_of::<stack_t> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_sp) == 0);
+const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_size) == 8);
+const _: () = core::assert! (std::mem::offset_of! (stack_t, ss_flags) == 16);
 
 /// `<stddef.h>`'s `max_align_t`: the frozen target's widest scalar alignment is 8
 /// (measured: `sizeof (max_align_t)` 8, `_Alignof (max_align_t)` 8), so the port spells it
@@ -226,8 +226,8 @@ pub struct mach_timebase_info_data_t {
   pub denom: u32,
 }
 
-const _: () = assert! (std::mem::size_of::<mach_timebase_info_data_t> () == 8);
-const _: () = assert! (std::mem::offset_of! (mach_timebase_info_data_t, denom) == 4);
+const _: () = core::assert! (std::mem::size_of::<mach_timebase_info_data_t> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (mach_timebase_info_data_t, denom) == 4);
 
 /* <libproc.h> and <sys/resource.h>: the two Darwin rusage records C 4378-4473 reaches.
    `rusage_info_current` is `struct rusage_info_v6` under Darwin's `RUSAGE_INFO_CURRENT`
@@ -246,10 +246,10 @@ pub struct rusage_info_current {
   pub _pad2: [u64; 51],
 }
 
-const _: () = assert! (std::mem::size_of::<rusage_info_current> () == 464);
-const _: () = assert! (std::mem::offset_of! (rusage_info_current, ri_user_time) == 16);
-const _: () = assert! (std::mem::offset_of! (rusage_info_current, ri_system_time) == 24);
-const _: () = assert! (std::mem::offset_of! (rusage_info_current, ri_pageins) == 48);
+const _: () = core::assert! (std::mem::size_of::<rusage_info_current> () == 464);
+const _: () = core::assert! (std::mem::offset_of! (rusage_info_current, ri_user_time) == 16);
+const _: () = core::assert! (std::mem::offset_of! (rusage_info_current, ri_system_time) == 24);
+const _: () = core::assert! (std::mem::offset_of! (rusage_info_current, ri_pageins) == 48);
 
 /// `<libproc.h>`'s `struct proc_taskinfo`, measured: `sizeof` 96, `pti_virtual_size`@0,
 /// `pti_resident_size`@8, `pti_threadnum`@84.
@@ -263,10 +263,10 @@ pub struct proc_taskinfo {
   pub _pad1: [u8; 8],
 }
 
-const _: () = assert! (std::mem::size_of::<proc_taskinfo> () == 96);
-const _: () = assert! (std::mem::offset_of! (proc_taskinfo, pti_virtual_size) == 0);
-const _: () = assert! (std::mem::offset_of! (proc_taskinfo, pti_resident_size) == 8);
-const _: () = assert! (std::mem::offset_of! (proc_taskinfo, pti_threadnum) == 84);
+const _: () = core::assert! (std::mem::size_of::<proc_taskinfo> () == 96);
+const _: () = core::assert! (std::mem::offset_of! (proc_taskinfo, pti_virtual_size) == 0);
+const _: () = core::assert! (std::mem::offset_of! (proc_taskinfo, pti_resident_size) == 8);
+const _: () = core::assert! (std::mem::offset_of! (proc_taskinfo, pti_threadnum) == 84);
 
 /* <sys/sysctl.h>: Darwin's `struct kinfo_proc`, whose `kp_proc` (a `struct extern_proc`)
    and `kp_eproc` (a `struct eproc`) the live Darwin arm of `system_process_attributes`
@@ -289,13 +289,13 @@ pub struct extern_proc {
   pub _pad2: [u8; 36],
 }
 
-const _: () = assert! (std::mem::size_of::<extern_proc> () == 296);
-const _: () = assert! (std::mem::offset_of! (extern_proc, p_starttime) == 0);
-const _: () = assert! (std::mem::offset_of! (extern_proc, p_stat) == 36);
-const _: () = assert! (std::mem::offset_of! (extern_proc, p_pid) == 40);
-const _: () = assert! (std::mem::offset_of! (extern_proc, p_nice) == 242);
-const _: () = assert! (std::mem::offset_of! (extern_proc, p_comm) == 243);
-const _: () = assert! (std::mem::size_of::<[c_char; 17]> () == 17);
+const _: () = core::assert! (std::mem::size_of::<extern_proc> () == 296);
+const _: () = core::assert! (std::mem::offset_of! (extern_proc, p_starttime) == 0);
+const _: () = core::assert! (std::mem::offset_of! (extern_proc, p_stat) == 36);
+const _: () = core::assert! (std::mem::offset_of! (extern_proc, p_pid) == 40);
+const _: () = core::assert! (std::mem::offset_of! (extern_proc, p_nice) == 242);
+const _: () = core::assert! (std::mem::offset_of! (extern_proc, p_comm) == 243);
+const _: () = core::assert! (std::mem::size_of::<[c_char; 17]> () == 17);
 
 /// `<sys/proc.h>`'s `struct _pcred`, measured: `sizeof` 104, `p_svgid`@92.
 #[repr(C)]
@@ -306,8 +306,8 @@ pub struct pcred {
   pub _pad1: [u8; 8],
 }
 
-const _: () = assert! (std::mem::size_of::<pcred> () == 104);
-const _: () = assert! (std::mem::offset_of! (pcred, p_svgid) == 92);
+const _: () = core::assert! (std::mem::size_of::<pcred> () == 104);
+const _: () = core::assert! (std::mem::offset_of! (pcred, p_svgid) == 92);
 
 /// `<sys/proc.h>`'s `struct _ucred`, measured: `sizeof` 76, `cr_uid`@4, `cr_groups`@12
 /// (`gid_t[16]`).
@@ -321,9 +321,9 @@ pub struct ucred {
   pub cr_groups: [gid_t; 16],
 }
 
-const _: () = assert! (std::mem::size_of::<ucred> () == 76);
-const _: () = assert! (std::mem::offset_of! (ucred, cr_uid) == 4);
-const _: () = assert! (std::mem::offset_of! (ucred, cr_groups) == 12);
+const _: () = core::assert! (std::mem::size_of::<ucred> () == 76);
+const _: () = core::assert! (std::mem::offset_of! (ucred, cr_uid) == 4);
+const _: () = core::assert! (std::mem::offset_of! (ucred, cr_groups) == 12);
 
 /// `<sys/proc.h>`'s `struct eproc`, measured: `sizeof` 352, `e_pcred`@16, `e_ucred`@120,
 /// `e_ppid`@264, `e_pgid`@268, `e_tdev`@276, `e_tpgid`@280.
@@ -342,13 +342,13 @@ pub struct eproc {
   pub _pad3: [u8; 68],
 }
 
-const _: () = assert! (std::mem::size_of::<eproc> () == 352);
-const _: () = assert! (std::mem::offset_of! (eproc, e_pcred) == 16);
-const _: () = assert! (std::mem::offset_of! (eproc, e_ucred) == 120);
-const _: () = assert! (std::mem::offset_of! (eproc, e_ppid) == 264);
-const _: () = assert! (std::mem::offset_of! (eproc, e_pgid) == 268);
-const _: () = assert! (std::mem::offset_of! (eproc, e_tdev) == 276);
-const _: () = assert! (std::mem::offset_of! (eproc, e_tpgid) == 280);
+const _: () = core::assert! (std::mem::size_of::<eproc> () == 352);
+const _: () = core::assert! (std::mem::offset_of! (eproc, e_pcred) == 16);
+const _: () = core::assert! (std::mem::offset_of! (eproc, e_ucred) == 120);
+const _: () = core::assert! (std::mem::offset_of! (eproc, e_ppid) == 264);
+const _: () = core::assert! (std::mem::offset_of! (eproc, e_pgid) == 268);
+const _: () = core::assert! (std::mem::offset_of! (eproc, e_tdev) == 276);
+const _: () = core::assert! (std::mem::offset_of! (eproc, e_tpgid) == 280);
 
 /// `<sys/sysctl.h>`'s `struct kinfo_proc`, measured: `sizeof` 648, `kp_proc`@0,
 /// `kp_eproc`@296.
@@ -359,12 +359,12 @@ pub struct kinfo_proc {
   pub kp_eproc: eproc,
 }
 
-const _: () = assert! (std::mem::size_of::<kinfo_proc> () == 648);
-const _: () = assert! (std::mem::offset_of! (kinfo_proc, kp_proc) == 0);
-const _: () = assert! (std::mem::offset_of! (kinfo_proc, kp_eproc) == 296);
-const _: () = assert! (std::mem::offset_of! (kinfo_proc, kp_eproc.e_ucred.cr_uid) == 420);
-const _: () = assert! (std::mem::offset_of! (kinfo_proc, kp_eproc.e_pcred.p_svgid) == 404);
-const _: () = assert! (std::mem::offset_of! (kinfo_proc, kp_proc.p_comm) == 243);
+const _: () = core::assert! (std::mem::size_of::<kinfo_proc> () == 648);
+const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_proc) == 0);
+const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_eproc) == 296);
+const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_eproc.e_ucred.cr_uid) == 420);
+const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_eproc.e_pcred.p_svgid) == 404);
+const _: () = core::assert! (std::mem::offset_of! (kinfo_proc, kp_proc.p_comm) == 243);
 
 /// `<sys/param.h>`: `#define MAXPATHLEN 1024`, `#define NODEV ((dev_t) -1)` (measured).
 pub const MAXPATHLEN: usize = 1024;
@@ -929,9 +929,9 @@ pub struct save_signal {
   pub action: sigaction,
 }
 
-const _: () = assert! (std::mem::size_of::<save_signal> () == 24);
-const _: () = assert! (std::mem::offset_of! (save_signal, code) == 0);
-const _: () = assert! (std::mem::offset_of! (save_signal, action) == 8);
+const _: () = core::assert! (std::mem::size_of::<save_signal> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (save_signal, code) == 0);
+const _: () = core::assert! (std::mem::offset_of! (save_signal, action) == 8);
 
 /// `<signal.h>`: `#define SIGPOLL SIGIO` on the systems that have the name (this target
 /// leaves it undefined, measured), so C 681/1705/2112's `USABLE_SIGPOLL` arms are dead and
@@ -4199,9 +4199,9 @@ pub struct speed_struct {
   pub internal: speed_t,
 }
 
-const _: () = assert! (std::mem::size_of::<speed_struct> () == 16);
-const _: () = assert! (std::mem::offset_of! (speed_struct, value) == 0);
-const _: () = assert! (std::mem::offset_of! (speed_struct, internal) == 8);
+const _: () = core::assert! (std::mem::size_of::<speed_struct> () == 16);
+const _: () = core::assert! (std::mem::offset_of! (speed_struct, value) == 0);
+const _: () = core::assert! (std::mem::offset_of! (speed_struct, internal) == 8);
 
 static speeds: [speed_struct; 21] =
   [

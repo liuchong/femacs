@@ -407,9 +407,9 @@ pub struct charset_map_entries
   pub c: [u8; 0],
 }
 
-const _: () = assert! (std::mem::offset_of! (charset_map_entries, entry) == 0);
-const _: () = assert! (std::mem::offset_of! (charset_map_entries, next) == 0xC0000);
-const _: () = assert! (std::mem::size_of::<charset_map_entries> () == 0xC0008);
+const _: () = core::assert! (std::mem::offset_of! (charset_map_entries, entry) == 0);
+const _: () = core::assert! (std::mem::offset_of! (charset_map_entries, next) == 0xC0000);
+const _: () = core::assert! (std::mem::size_of::<charset_map_entries> () == 0xC0008);
 
 /* Load the mapping information of CHARSET from ENTRIES for
    initializing (CONTROL_FLAG == 0), decoding (CONTROL_FLAG == 1), and

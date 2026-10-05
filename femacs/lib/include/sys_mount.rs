@@ -75,23 +75,23 @@ pub struct statfs {
   pub f_reserved: [u32; 7],
 }
 
-const _: () = assert! (std::mem::size_of::<statfs> () == 2168);
-const _: () = assert! (std::mem::offset_of! (statfs, f_bsize) == 0);
-const _: () = assert! (std::mem::offset_of! (statfs, f_iosize) == 4);
-const _: () = assert! (std::mem::offset_of! (statfs, f_blocks) == 8);
-const _: () = assert! (std::mem::offset_of! (statfs, f_bfree) == 16);
-const _: () = assert! (std::mem::offset_of! (statfs, f_bavail) == 24);
-const _: () = assert! (std::mem::offset_of! (statfs, f_files) == 32);
-const _: () = assert! (std::mem::offset_of! (statfs, f_ffree) == 40);
-const _: () = assert! (std::mem::offset_of! (statfs, f_fsid) == 48);
-const _: () = assert! (std::mem::offset_of! (statfs, f_owner) == 56);
-const _: () = assert! (std::mem::offset_of! (statfs, f_type) == 60);
-const _: () = assert! (std::mem::offset_of! (statfs, f_flags) == 64);
-const _: () = assert! (std::mem::offset_of! (statfs, f_fssubtype) == 68);
-const _: () = assert! (std::mem::offset_of! (statfs, f_fstypename) == 72);
-const _: () = assert! (std::mem::offset_of! (statfs, f_mntonname) == 88);
-const _: () = assert! (std::mem::offset_of! (statfs, f_mntfromname) == 1112);
-const _: () = assert! (std::mem::offset_of! (statfs, f_flags_ext) == 2136);
+const _: () = core::assert! (std::mem::size_of::<statfs> () == 2168);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_bsize) == 0);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_iosize) == 4);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_blocks) == 8);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_bfree) == 16);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_bavail) == 24);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_files) == 32);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_ffree) == 40);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_fsid) == 48);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_owner) == 56);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_type) == 60);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_flags) == 64);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_fssubtype) == 68);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_fstypename) == 72);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_mntonname) == 88);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_mntfromname) == 1112);
+const _: () = core::assert! (std::mem::offset_of! (statfs, f_flags_ext) == 2136);
 
 unsafe extern "C" {
   /* int statfs (const char *path, struct statfs *buf);  */

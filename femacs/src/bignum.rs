@@ -336,8 +336,8 @@ pub const NLIMBS_LIMIT: c_int =
 
 // C's inner `min (PTRDIFF_MAX, SIZE_MAX)` is evaluated in size_t, so the port does that
 // level in `usize` (the signed form collapses the bound to 0 — review B's B-1, a P0).
-const _: () = assert! (GMP_NLIMBS_MAX == 2147483647);
-const _: () = assert! (NLIMBS_LIMIT == 2147483647);
+const _: () = core::assert! (GMP_NLIMBS_MAX == 2147483647);
+const _: () = core::assert! (NLIMBS_LIMIT == 2147483647);
 
 /* Like mpz_size, but tell the compiler the result is a nonnegative int.  */
 

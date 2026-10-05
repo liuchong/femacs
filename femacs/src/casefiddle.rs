@@ -555,7 +555,7 @@ unsafe fn casify_region (flag: case_action, mut b: Lisp_Object, mut e: Lisp_Obje
   // (P-51); this assertion keeps the `cfg` tied to the frozen configuration, so enabling the
   // feature without regenerating `config.rs` fails to compile instead of compiling text that
   // the C side never had (the buffer.rs precedent, P-08/P-34).
-  const _: () = assert! (!cfg! (feature = "have_tree_sitter") || HAVE_TREE_SITTER);
+  const _: () = core::assert! (!cfg! (feature = "have_tree_sitter") || HAVE_TREE_SITTER);
 
   #[cfg (feature = "have_tree_sitter")]
   {

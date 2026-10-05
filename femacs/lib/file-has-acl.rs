@@ -28,9 +28,9 @@ include!("include/acl.rs");            /* C 28: `#include "acl.h"`.  */
 include!("include/acl-internal.rs");   /* C 33: `#include "acl-internal.h"`.  */
 /* C 34's `"attribute.h"` and C 35's `"minmax.h"` are only used by the dead arms above.  */
 
-/// PORTING.md 2.5: C's `static_assert` is `const _: () = assert! (cond);`.
+/// PORTING.md 2.5: C's `static_assert` is `const _: () = core::assert! (cond);`.
 macro_rules! static_assert {
-  ($cond:expr) => { const _: () = assert! ($cond); };
+  ($cond:expr) => { const _: () = core::assert! ($cond); };
 }
 
 /* Check the assumption that UCHAR_MAX < INT_MAX.  */

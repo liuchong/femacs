@@ -111,7 +111,7 @@ pub union aligned_thread_state
 {
   pub s: thread_state,
 }
-const _: () = assert! (std::mem::align_of::<aligned_thread_state> () % 8 == 0);  // static_assert (GCALIGNED (…))
+const _: () = core::assert! (std::mem::align_of::<aligned_thread_state> () % 8 == 0);  // static_assert (GCALIGNED (…))
 
 /// C 54's `PVECHEADERSIZE (PVEC_THREAD, PSEUDOVECSIZE (struct thread_state, event_object),
 /// VECSIZE (struct thread_state))`.  The lisp.rs mirror's `PVECHEADERSIZE` is an

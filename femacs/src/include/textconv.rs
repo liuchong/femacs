@@ -59,12 +59,12 @@ pub struct textconv_interface
   pub notify_conversion: Option<unsafe extern "C" fn (c_ulong)>,
 }
 
-const _: () = assert! (std::mem::size_of::<textconv_interface> () == 32);
-const _: () = assert! (std::mem::align_of::<textconv_interface> () == 8);
-const _: () = assert! (std::mem::offset_of! (textconv_interface, reset) == 0);
-const _: () = assert! (std::mem::offset_of! (textconv_interface, point_changed) == 8);
-const _: () = assert! (std::mem::offset_of! (textconv_interface, compose_region_changed) == 16);
-const _: () = assert! (std::mem::offset_of! (textconv_interface, notify_conversion) == 24);
+const _: () = core::assert! (std::mem::size_of::<textconv_interface> () == 32);
+const _: () = core::assert! (std::mem::align_of::<textconv_interface> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (textconv_interface, reset) == 0);
+const _: () = core::assert! (std::mem::offset_of! (textconv_interface, point_changed) == 8);
+const _: () = core::assert! (std::mem::offset_of! (textconv_interface, compose_region_changed) == 16);
+const _: () = core::assert! (std::mem::offset_of! (textconv_interface, notify_conversion) == 24);
 
 /* C 56-69: `enum textconv_caret_direction` - no explicit values, so the members are declaration
    order and the port spells them as constants over C's own type name (PORTING.md 1.3, the
@@ -104,11 +104,11 @@ pub struct textconv_conversion_text
   pub text: *mut c_char,
 }
 
-const _: () = assert! (std::mem::size_of::<textconv_conversion_text> () == 24);
-const _: () = assert! (std::mem::align_of::<textconv_conversion_text> () == 8);
-const _: () = assert! (std::mem::offset_of! (textconv_conversion_text, length) == 0);
-const _: () = assert! (std::mem::offset_of! (textconv_conversion_text, bytes) == 8);
-const _: () = assert! (std::mem::offset_of! (textconv_conversion_text, text) == 16);
+const _: () = core::assert! (std::mem::size_of::<textconv_conversion_text> () == 24);
+const _: () = core::assert! (std::mem::align_of::<textconv_conversion_text> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (textconv_conversion_text, length) == 0);
+const _: () = core::assert! (std::mem::offset_of! (textconv_conversion_text, bytes) == 8);
+const _: () = core::assert! (std::mem::offset_of! (textconv_conversion_text, text) == 16);
 
 /* C 90-119: "Structure describing a single query submitted by the input method."  Measured:
    sizeof 48, alignof 8, offsets 0/8/12/16/24.  */
@@ -141,13 +141,13 @@ pub struct textconv_callback_struct
   pub text: textconv_conversion_text,
 }
 
-const _: () = assert! (std::mem::size_of::<textconv_callback_struct> () == 48);
-const _: () = assert! (std::mem::align_of::<textconv_callback_struct> () == 8);
-const _: () = assert! (std::mem::offset_of! (textconv_callback_struct, position) == 0);
-const _: () = assert! (std::mem::offset_of! (textconv_callback_struct, direction) == 8);
-const _: () = assert! (std::mem::offset_of! (textconv_callback_struct, factor) == 12);
-const _: () = assert! (std::mem::offset_of! (textconv_callback_struct, operation) == 16);
-const _: () = assert! (std::mem::offset_of! (textconv_callback_struct, text) == 24);
+const _: () = core::assert! (std::mem::size_of::<textconv_callback_struct> () == 48);
+const _: () = core::assert! (std::mem::align_of::<textconv_callback_struct> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (textconv_callback_struct, position) == 0);
+const _: () = core::assert! (std::mem::offset_of! (textconv_callback_struct, direction) == 8);
+const _: () = core::assert! (std::mem::offset_of! (textconv_callback_struct, factor) == 12);
+const _: () = core::assert! (std::mem::offset_of! (textconv_callback_struct, operation) == 16);
+const _: () = core::assert! (std::mem::offset_of! (textconv_callback_struct, text) == 24);
 
 /// C 123: `#define TEXTCONV_SKIP_CONVERSION_REGION (1 << 0)` - the value is compared as C's
 /// token pair (PORTING.md P-44's expression rule); the name is a constant, not a macro, because C

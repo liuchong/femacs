@@ -22,7 +22,7 @@ include!("stdio.rs");
 pub const SHA1_H: c_int = 1;
 
 /* C 23-25's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
-const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
 /* C 31-33's `#ifndef OPENSSL_API_COMPAT / #define OPENSSL_API_COMPAT 0x10101000L` and
    C 58's `#define GL_OPENSSL_NAME 1` are inside the dead OpenSSL arm; the values are

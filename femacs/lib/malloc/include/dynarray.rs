@@ -41,9 +41,9 @@ pub struct dynarray_header {
   pub allocated: usize,
   pub array: *mut c_void,
 }
-const _: () = assert! (std::mem::size_of::<dynarray_header> () == 24);
-const _: () = assert! (std::mem::offset_of! (dynarray_header, allocated) == 8);
-const _: () = assert! (std::mem::offset_of! (dynarray_header, array) == 16);
+const _: () = core::assert! (std::mem::size_of::<dynarray_header> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (dynarray_header, allocated) == 8);
+const _: () = core::assert! (std::mem::offset_of! (dynarray_header, array) == 16);
 
 /* Marker used in the allocated member to indicate that an error was
    encountered.  (C 108-112).  */
@@ -69,8 +69,8 @@ pub struct dynarray_finalize_result {
   pub array: *mut c_void,
   pub length: usize,
 }
-const _: () = assert! (std::mem::size_of::<dynarray_finalize_result> () == 16);
-const _: () = assert! (std::mem::offset_of! (dynarray_finalize_result, length) == 8);
+const _: () = core::assert! (std::mem::size_of::<dynarray_finalize_result> () == 16);
+const _: () = core::assert! (std::mem::offset_of! (dynarray_finalize_result, length) == 8);
 
 /* C 122-166: the five internal entries.  Each keeps C's own name and carries the renamed
    symbol C's `#define`s give it (see the mirror note above).  `_Noreturn` (C 168) is the

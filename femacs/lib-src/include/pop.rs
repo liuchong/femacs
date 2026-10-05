@@ -49,13 +49,13 @@ pub struct _popserver
   pub bits: u8,             /* C 34-35: `bool_bf in_multi : 1; bool_bf trash_started : 1;` */
 }
 
-const _: () = assert! (std::mem::size_of::<_popserver> () == 32);
-const _: () = assert! (std::mem::offset_of! (_popserver, file) == 0);
-const _: () = assert! (std::mem::offset_of! (_popserver, data) == 4);
-const _: () = assert! (std::mem::offset_of! (_popserver, buffer) == 8);
-const _: () = assert! (std::mem::offset_of! (_popserver, buffer_size) == 16);
-const _: () = assert! (std::mem::offset_of! (_popserver, buffer_index) == 20);
-const _: () = assert! (std::mem::offset_of! (_popserver, bits) == 24);
+const _: () = core::assert! (std::mem::size_of::<_popserver> () == 32);
+const _: () = core::assert! (std::mem::offset_of! (_popserver, file) == 0);
+const _: () = core::assert! (std::mem::offset_of! (_popserver, data) == 4);
+const _: () = core::assert! (std::mem::offset_of! (_popserver, buffer) == 8);
+const _: () = core::assert! (std::mem::offset_of! (_popserver, buffer_size) == 16);
+const _: () = core::assert! (std::mem::offset_of! (_popserver, buffer_index) == 20);
+const _: () = core::assert! (std::mem::offset_of! (_popserver, bits) == 24);
 
 /// The two `bool_bf` members of `_popserver`, read and written by name (PORTING.md 1.3/P-80:
 /// C's bitfield access is a load, a mask and a store, which is what this expands to).

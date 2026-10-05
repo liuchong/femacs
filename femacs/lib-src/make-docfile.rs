@@ -762,22 +762,22 @@ pub const DEFUN_pure: c_int = 8;
    `rcsoc_state 72 {pending_spaces 0, pending_newlines 8, in_file 16, buf_ptr 24,
    buf_lim 32, out_file 40, keyword 48, cur_keyword_ptr 56, saw_keyword 64}`
    (docs/ports/make-docfile.md records the probe).  */
-const _: () = assert! (std::mem::size_of::<global> () == 32);
-const _: () = assert! (std::mem::offset_of! (global, r#type) == 0);
-const _: () = assert! (std::mem::offset_of! (global, name) == 8);
-const _: () = assert! (std::mem::offset_of! (global, flags) == 16);
-const _: () = assert! (std::mem::offset_of! (global, v) == 24);
-const _: () = assert! (std::mem::size_of::<global_v> () == 8);
-const _: () = assert! (std::mem::size_of::<rcsoc_state> () == 72);
-const _: () = assert! (std::mem::offset_of! (rcsoc_state, pending_spaces) == 0);
-const _: () = assert! (std::mem::offset_of! (rcsoc_state, pending_newlines) == 8);
-const _: () = assert! (std::mem::offset_of! (rcsoc_state, in_file) == 16);
-const _: () = assert! (std::mem::offset_of! (rcsoc_state, buf_ptr) == 24);
-const _: () = assert! (std::mem::offset_of! (rcsoc_state, buf_lim) == 32);
-const _: () = assert! (std::mem::offset_of! (rcsoc_state, out_file) == 40);
-const _: () = assert! (std::mem::offset_of! (rcsoc_state, keyword) == 48);
-const _: () = assert! (std::mem::offset_of! (rcsoc_state, cur_keyword_ptr) == 56);
-const _: () = assert! (std::mem::offset_of! (rcsoc_state, saw_keyword) == 64);
+const _: () = core::assert! (std::mem::size_of::<global> () == 32);
+const _: () = core::assert! (std::mem::offset_of! (global, r#type) == 0);
+const _: () = core::assert! (std::mem::offset_of! (global, name) == 8);
+const _: () = core::assert! (std::mem::offset_of! (global, flags) == 16);
+const _: () = core::assert! (std::mem::offset_of! (global, v) == 24);
+const _: () = core::assert! (std::mem::size_of::<global_v> () == 8);
+const _: () = core::assert! (std::mem::size_of::<rcsoc_state> () == 72);
+const _: () = core::assert! (std::mem::offset_of! (rcsoc_state, pending_spaces) == 0);
+const _: () = core::assert! (std::mem::offset_of! (rcsoc_state, pending_newlines) == 8);
+const _: () = core::assert! (std::mem::offset_of! (rcsoc_state, in_file) == 16);
+const _: () = core::assert! (std::mem::offset_of! (rcsoc_state, buf_ptr) == 24);
+const _: () = core::assert! (std::mem::offset_of! (rcsoc_state, buf_lim) == 32);
+const _: () = core::assert! (std::mem::offset_of! (rcsoc_state, out_file) == 40);
+const _: () = core::assert! (std::mem::offset_of! (rcsoc_state, keyword) == 48);
+const _: () = core::assert! (std::mem::offset_of! (rcsoc_state, cur_keyword_ptr) == 56);
+const _: () = core::assert! (std::mem::offset_of! (rcsoc_state, saw_keyword) == 64);
 
 /* All the variable names we saw while scanning C sources in `-g' mode.  */
 

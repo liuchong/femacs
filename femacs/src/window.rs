@@ -892,8 +892,8 @@ pub struct face
   pub font: *mut font,
   _pad1: [u8; 280 - 224],
 }
-const _: () = assert! (std::mem::offset_of! (face, font) == 216);
-const _: () = assert! (std::mem::size_of::<face> () == 280);
+const _: () = core::assert! (std::mem::offset_of! (face, font) == 216);
+const _: () = core::assert! (std::mem::size_of::<face> () == 280);
 
 #[repr(C)]
 pub struct face_cache
@@ -905,8 +905,8 @@ pub struct face_cache
   pub used: c_int,
   pub menu_face_changed_p: bool,
 }
-const _: () = assert! (std::mem::size_of::<face_cache> () == 40);
-const _: () = assert! (std::mem::offset_of! (face_cache, used) == 32);
+const _: () = core::assert! (std::mem::size_of::<face_cache> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (face_cache, used) == 32);
 
 /// C: frame.h 1379: `#define FRAME_FACE_CACHE(F) (F)->face_cache` — `frame.face_cache` is an
 /// opaque pointer in `include/frame.rs`, so the cast is the use-site conversion (P-72 ③).
@@ -1694,38 +1694,38 @@ pub struct it
   pub _pad_u: [u8; 24],
 }
 
-const _: () = assert! (std::mem::size_of::<it> () == 4968);
-const _: () = assert! (std::mem::align_of::<it> () == 8);
-const _: () = assert! (std::mem::offset_of! (it, window) == 0);
-const _: () = assert! (std::mem::offset_of! (it, w) == 8);
-const _: () = assert! (std::mem::offset_of! (it, f) == 16);
-const _: () = assert! (std::mem::offset_of! (it, current) == 336);
-const _: () = assert! (std::mem::offset_of! (it, string_overlays) == 528);
-const _: () = assert! (std::mem::offset_of! (it, string) == 656);
-const _: () = assert! (std::mem::offset_of! (it, from_overlay) == 664);
-const _: () = assert! (std::mem::offset_of! (it, sp) == 2192);
-const _: () = assert! (std::mem::offset_of! (it, what) == 2208);
-const _: () = assert! (std::mem::offset_of! (it, face_id) == 2212);
-const _: () = assert! (std::mem::offset_of! (it, c) == 2228);
-const _: () = assert! (std::mem::offset_of! (it, image_id) == 2336);
-const _: () = assert! (std::mem::offset_of! (it, first_visible_x) == 2436);
-const _: () = assert! (std::mem::offset_of! (it, last_visible_x) == 2440);
-const _: () = assert! (std::mem::offset_of! (it, last_visible_y) == 2444);
-const _: () = assert! (std::mem::offset_of! (it, extra_line_spacing) == 2448);
-const _: () = assert! (std::mem::offset_of! (it, max_extra_line_spacing) == 2456);
-const _: () = assert! (std::mem::offset_of! (it, area) == 2480);
-const _: () = assert! (std::mem::offset_of! (it, ascent) == 2492);
-const _: () = assert! (std::mem::offset_of! (it, descent) == 2496);
-const _: () = assert! (std::mem::offset_of! (it, max_ascent) == 2500);
-const _: () = assert! (std::mem::offset_of! (it, max_descent) == 2504);
-const _: () = assert! (std::mem::offset_of! (it, current_x) == 2524);
-const _: () = assert! (std::mem::offset_of! (it, continuation_lines_width) == 2532);
-const _: () = assert! (std::mem::offset_of! (it, current_y) == 2552);
-const _: () = assert! (std::mem::offset_of! (it, vpos) == 2560);
-const _: () = assert! (std::mem::offset_of! (it, hpos) == 2564);
-const _: () = assert! (std::mem::offset_of! (it, lnum_width) == 2584);
-const _: () = assert! (std::mem::offset_of! (it, lnum_pixel_width) == 2588);
-const _: () = assert! (std::mem::offset_of! (it, bidi_it) == 2616);
+const _: () = core::assert! (std::mem::size_of::<it> () == 4968);
+const _: () = core::assert! (std::mem::align_of::<it> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (it, window) == 0);
+const _: () = core::assert! (std::mem::offset_of! (it, w) == 8);
+const _: () = core::assert! (std::mem::offset_of! (it, f) == 16);
+const _: () = core::assert! (std::mem::offset_of! (it, current) == 336);
+const _: () = core::assert! (std::mem::offset_of! (it, string_overlays) == 528);
+const _: () = core::assert! (std::mem::offset_of! (it, string) == 656);
+const _: () = core::assert! (std::mem::offset_of! (it, from_overlay) == 664);
+const _: () = core::assert! (std::mem::offset_of! (it, sp) == 2192);
+const _: () = core::assert! (std::mem::offset_of! (it, what) == 2208);
+const _: () = core::assert! (std::mem::offset_of! (it, face_id) == 2212);
+const _: () = core::assert! (std::mem::offset_of! (it, c) == 2228);
+const _: () = core::assert! (std::mem::offset_of! (it, image_id) == 2336);
+const _: () = core::assert! (std::mem::offset_of! (it, first_visible_x) == 2436);
+const _: () = core::assert! (std::mem::offset_of! (it, last_visible_x) == 2440);
+const _: () = core::assert! (std::mem::offset_of! (it, last_visible_y) == 2444);
+const _: () = core::assert! (std::mem::offset_of! (it, extra_line_spacing) == 2448);
+const _: () = core::assert! (std::mem::offset_of! (it, max_extra_line_spacing) == 2456);
+const _: () = core::assert! (std::mem::offset_of! (it, area) == 2480);
+const _: () = core::assert! (std::mem::offset_of! (it, ascent) == 2492);
+const _: () = core::assert! (std::mem::offset_of! (it, descent) == 2496);
+const _: () = core::assert! (std::mem::offset_of! (it, max_ascent) == 2500);
+const _: () = core::assert! (std::mem::offset_of! (it, max_descent) == 2504);
+const _: () = core::assert! (std::mem::offset_of! (it, current_x) == 2524);
+const _: () = core::assert! (std::mem::offset_of! (it, continuation_lines_width) == 2532);
+const _: () = core::assert! (std::mem::offset_of! (it, current_y) == 2552);
+const _: () = core::assert! (std::mem::offset_of! (it, vpos) == 2560);
+const _: () = core::assert! (std::mem::offset_of! (it, hpos) == 2564);
+const _: () = core::assert! (std::mem::offset_of! (it, lnum_width) == 2584);
+const _: () = core::assert! (std::mem::offset_of! (it, lnum_pixel_width) == 2588);
+const _: () = core::assert! (std::mem::offset_of! (it, bidi_it) == 2616);
 
 DEFUN! ("coordinates-in-window-p", Fcoordinates_in_window_p,
        Scoordinates_in_window_p, 2, 2, 0,

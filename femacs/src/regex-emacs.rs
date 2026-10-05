@@ -982,12 +982,12 @@ pub struct fail_stack_type
   pub avail: ptrdiff_t,	/* Offset of next open position.  */
   pub frame: ptrdiff_t,	/* Offset of the cur constructed frame.  */
 }
-const _: () = assert! (std::mem::size_of::<fail_stack_elt> () == 8);
-const _: () = assert! (std::mem::size_of::<fail_stack_type> () == 32);
-const _: () = assert! (std::mem::offset_of! (fail_stack_type, stack) == 0);
-const _: () = assert! (std::mem::offset_of! (fail_stack_type, size) == 8);
-const _: () = assert! (std::mem::offset_of! (fail_stack_type, avail) == 16);
-const _: () = assert! (std::mem::offset_of! (fail_stack_type, frame) == 24);
+const _: () = core::assert! (std::mem::size_of::<fail_stack_elt> () == 8);
+const _: () = core::assert! (std::mem::size_of::<fail_stack_type> () == 32);
+const _: () = core::assert! (std::mem::offset_of! (fail_stack_type, stack) == 0);
+const _: () = core::assert! (std::mem::offset_of! (fail_stack_type, size) == 8);
+const _: () = core::assert! (std::mem::offset_of! (fail_stack_type, avail) == 16);
+const _: () = core::assert! (std::mem::offset_of! (fail_stack_type, frame) == 24);
 
 macro_rules! FAIL_STACK_EMPTY { () => { fail_stack.frame == 0 }; }
 
@@ -1122,7 +1122,7 @@ pub type regnum_t = c_int;
 /* Macros for the compile stack.  */
 
 pub type pattern_offset_t = c_long;
-const _: () = assert! (c_long::MIN <= -(MAX_BUF_SIZE - 1) as c_long
+const _: () = core::assert! (c_long::MIN <= -(MAX_BUF_SIZE - 1) as c_long
 		       && (MAX_BUF_SIZE - 1) as c_long <= c_long::MAX);
 
 #[repr(C)]
@@ -1134,11 +1134,11 @@ pub struct compile_stack_elt_t
   pub laststart_offset: pattern_offset_t,
   pub regnum: regnum_t,
 }
-const _: () = assert! (std::mem::size_of::<compile_stack_elt_t> () == 32);
-const _: () = assert! (std::mem::offset_of! (compile_stack_elt_t, begalt_offset) == 0);
-const _: () = assert! (std::mem::offset_of! (compile_stack_elt_t, fixup_alt_jump) == 8);
-const _: () = assert! (std::mem::offset_of! (compile_stack_elt_t, laststart_offset) == 16);
-const _: () = assert! (std::mem::offset_of! (compile_stack_elt_t, regnum) == 24);
+const _: () = core::assert! (std::mem::size_of::<compile_stack_elt_t> () == 32);
+const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, begalt_offset) == 0);
+const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, fixup_alt_jump) == 8);
+const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, laststart_offset) == 16);
+const _: () = core::assert! (std::mem::offset_of! (compile_stack_elt_t, regnum) == 24);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -1148,10 +1148,10 @@ pub struct compile_stack_type
   pub size: ptrdiff_t,
   pub avail: ptrdiff_t,		/* Offset of next open position.  */
 }
-const _: () = assert! (std::mem::size_of::<compile_stack_type> () == 24);
-const _: () = assert! (std::mem::offset_of! (compile_stack_type, stack) == 0);
-const _: () = assert! (std::mem::offset_of! (compile_stack_type, size) == 8);
-const _: () = assert! (std::mem::offset_of! (compile_stack_type, avail) == 16);
+const _: () = core::assert! (std::mem::size_of::<compile_stack_type> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (compile_stack_type, stack) == 0);
+const _: () = core::assert! (std::mem::offset_of! (compile_stack_type, size) == 8);
+const _: () = core::assert! (std::mem::offset_of! (compile_stack_type, avail) == 16);
 
 pub const INIT_COMPILE_STACK_SIZE: ptrdiff_t = 32;
 
@@ -1166,11 +1166,11 @@ pub struct range_table_work_area
   pub used: c_int,		/* actually used size in words.  */
   pub bits: c_int,		/* flag to record character classes */
 }
-const _: () = assert! (std::mem::size_of::<range_table_work_area> () == 24);
-const _: () = assert! (std::mem::offset_of! (range_table_work_area, table) == 0);
-const _: () = assert! (std::mem::offset_of! (range_table_work_area, allocated) == 8);
-const _: () = assert! (std::mem::offset_of! (range_table_work_area, used) == 12);
-const _: () = assert! (std::mem::offset_of! (range_table_work_area, bits) == 16);
+const _: () = core::assert! (std::mem::size_of::<range_table_work_area> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (range_table_work_area, table) == 0);
+const _: () = core::assert! (std::mem::offset_of! (range_table_work_area, allocated) == 8);
+const _: () = core::assert! (std::mem::offset_of! (range_table_work_area, used) == 12);
+const _: () = core::assert! (std::mem::offset_of! (range_table_work_area, bits) == 16);
 
 /* Make sure that WORK_AREA can hold N more multibyte characters.
    If it can't get the space, it returns from the surrounding function.  */
@@ -3211,10 +3211,10 @@ pub struct anafirst_data
   pub fastmap: *mut c_char,
   pub match_any_multibyte_characters: bool,
 }
-const _: () = assert! (std::mem::size_of::<anafirst_data> () == 24);
-const _: () = assert! (std::mem::offset_of! (anafirst_data, multibyte) == 0);
-const _: () = assert! (std::mem::offset_of! (anafirst_data, fastmap) == 8);
-const _: () = assert! (std::mem::offset_of! (anafirst_data, match_any_multibyte_characters) == 16);
+const _: () = core::assert! (std::mem::size_of::<anafirst_data> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (anafirst_data, multibyte) == 0);
+const _: () = core::assert! (std::mem::offset_of! (anafirst_data, fastmap) == 8);
+const _: () = core::assert! (std::mem::offset_of! (anafirst_data, match_any_multibyte_characters) == 16);
 
 unsafe extern "C" fn analyze_first_fastmap (mut p: *const re_char, arg: *mut c_void) -> bool
 {
@@ -4142,10 +4142,10 @@ pub struct mutexcl_data
   pub p1: *const re_char,
   pub unconstrained: bool,
 }
-const _: () = assert! (std::mem::size_of::<mutexcl_data> () == 24);
-const _: () = assert! (std::mem::offset_of! (mutexcl_data, bufp) == 0);
-const _: () = assert! (std::mem::offset_of! (mutexcl_data, p1) == 8);
-const _: () = assert! (std::mem::offset_of! (mutexcl_data, unconstrained) == 16);
+const _: () = core::assert! (std::mem::size_of::<mutexcl_data> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (mutexcl_data, bufp) == 0);
+const _: () = core::assert! (std::mem::offset_of! (mutexcl_data, p1) == 8);
+const _: () = core::assert! (std::mem::offset_of! (mutexcl_data, unconstrained) == 16);
 
 unsafe extern "C" fn mutually_exclusive_one (p2: *const re_char, arg: *mut c_void) -> bool
 {

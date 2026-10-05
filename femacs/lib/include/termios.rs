@@ -53,11 +53,11 @@ pub struct termios
   pub c_ospeed: speed_t,   /* 64 */
 }
 
-const _: () = assert! (std::mem::size_of::<termios> () == 72);
-const _: () = assert! (std::mem::offset_of! (termios, c_iflag) == 0);
-const _: () = assert! (std::mem::offset_of! (termios, c_oflag) == 8);
-const _: () = assert! (std::mem::offset_of! (termios, c_cflag) == 16);
-const _: () = assert! (std::mem::offset_of! (termios, c_lflag) == 24);
-const _: () = assert! (std::mem::offset_of! (termios, c_cc) == 32);
-const _: () = assert! (std::mem::offset_of! (termios, c_ispeed) == 56);
-const _: () = assert! (std::mem::offset_of! (termios, c_ospeed) == 64);
+const _: () = core::assert! (std::mem::size_of::<termios> () == 72);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_iflag) == 0);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_oflag) == 8);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_cflag) == 16);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_lflag) == 24);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_cc) == 32);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_ispeed) == 56);
+const _: () = core::assert! (std::mem::offset_of! (termios, c_ospeed) == 64);

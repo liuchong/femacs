@@ -39,7 +39,7 @@ pub struct mipsel_regs
    a 32-element array of them), not a measurement: there is no mipsel toolchain on this host to
    run clang against, and `exec/mipsel-user.h` is compiled by no configuration the port builds
    (docs/baseline/frozen-build-sources.txt's batch-F section).  */
-const _: () = assert! (std::mem::size_of::<mipsel_regs> () == 256 + 6 * 8);
-const _: () = assert! (std::mem::offset_of! (mipsel_regs, gregs) == 0);
-const _: () = assert! (std::mem::offset_of! (mipsel_regs, lo) == 256);
-const _: () = assert! (std::mem::offset_of! (mipsel_regs, cp0_cause) == 256 + 5 * 8);
+const _: () = core::assert! (std::mem::size_of::<mipsel_regs> () == 256 + 6 * 8);
+const _: () = core::assert! (std::mem::offset_of! (mipsel_regs, gregs) == 0);
+const _: () = core::assert! (std::mem::offset_of! (mipsel_regs, lo) == 256);
+const _: () = core::assert! (std::mem::offset_of! (mipsel_regs, cp0_cause) == 256 + 5 * 8);

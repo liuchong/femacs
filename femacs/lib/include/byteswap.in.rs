@@ -17,7 +17,7 @@ include!("stdint.in.rs");
 include!("stdbit.in.rs");
 
 /* C 22-24's `#if !_GL_CONFIG_H_INCLUDED / #error "Please include config.h first."`.  */
-const _: () = assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
+const _: () = core::assert! (_GL_CONFIG_H_INCLUDED, "Please include config.h first.");
 
 /* C 18-19: `#ifndef _GL_BYTESWAP_H` / `#define _GL_BYTESWAP_H 1`.  */
 pub const _GL_BYTESWAP_H: c_int = 1;

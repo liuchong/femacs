@@ -59,12 +59,12 @@ pub union ieee754_float {
   pub ieee_nan: ieee754_float_ieee_nan,
 }
 
-const _: () = assert! (std::mem::size_of::<ieee754_float> () == 4);
-const _: () = assert! (std::mem::align_of::<ieee754_float> () == 4);
-const _: () = assert! (std::mem::size_of::<ieee754_float_ieee> () == 4);
-const _: () = assert! (std::mem::align_of::<ieee754_float_ieee> () == 4);
-const _: () = assert! (std::mem::size_of::<ieee754_float_ieee_nan> () == 4);
-const _: () = assert! (std::mem::align_of::<ieee754_float_ieee_nan> () == 4);
+const _: () = core::assert! (std::mem::size_of::<ieee754_float> () == 4);
+const _: () = core::assert! (std::mem::align_of::<ieee754_float> () == 4);
+const _: () = core::assert! (std::mem::size_of::<ieee754_float_ieee> () == 4);
+const _: () = core::assert! (std::mem::align_of::<ieee754_float_ieee> () == 4);
+const _: () = core::assert! (std::mem::size_of::<ieee754_float_ieee_nan> () == 4);
+const _: () = core::assert! (std::mem::align_of::<ieee754_float_ieee_nan> () == 4);
 
 /* C 79: `#define IEEE754_FLOAT_BIAS 0x7f` (measured 127).  */
 pub const IEEE754_FLOAT_BIAS: core::ffi::c_int = 0x7f;
@@ -122,12 +122,12 @@ pub union ieee754_double {
   pub ieee_nan: ieee754_double_ieee_nan,
 }
 
-const _: () = assert! (std::mem::size_of::<ieee754_double> () == 8);
-const _: () = assert! (std::mem::align_of::<ieee754_double> () == 8);
-const _: () = assert! (std::mem::size_of::<ieee754_double_ieee> () == 8);
-const _: () = assert! (std::mem::align_of::<ieee754_double_ieee> () == 4);
-const _: () = assert! (std::mem::size_of::<ieee754_double_ieee_nan> () == 8);
-const _: () = assert! (std::mem::align_of::<ieee754_double_ieee_nan> () == 4);
+const _: () = core::assert! (std::mem::size_of::<ieee754_double> () == 8);
+const _: () = core::assert! (std::mem::align_of::<ieee754_double> () == 8);
+const _: () = core::assert! (std::mem::size_of::<ieee754_double_ieee> () == 8);
+const _: () = core::assert! (std::mem::align_of::<ieee754_double_ieee> () == 4);
+const _: () = core::assert! (std::mem::size_of::<ieee754_double_ieee_nan> () == 8);
+const _: () = core::assert! (std::mem::align_of::<ieee754_double_ieee_nan> () == 4);
 
 /* C 141: `#define IEEE754_DOUBLE_BIAS 0x3ff` (measured 1023).  */
 pub const IEEE754_DOUBLE_BIAS: core::ffi::c_int = 0x3ff;
@@ -186,12 +186,12 @@ pub union ieee854_long_double {
   pub ieee_nan: ieee854_long_double_ieee_nan,
 }
 
-const _: () = assert! (std::mem::size_of::<ieee854_long_double> () == 16);
-const _: () = assert! (std::mem::align_of::<ieee854_long_double> () == 8);
-const _: () = assert! (std::mem::size_of::<ieee854_long_double_ieee> () == 12);
-const _: () = assert! (std::mem::align_of::<ieee854_long_double_ieee> () == 4);
-const _: () = assert! (std::mem::size_of::<ieee854_long_double_ieee_nan> () == 12);
-const _: () = assert! (std::mem::align_of::<ieee854_long_double_ieee_nan> () == 4);
+const _: () = core::assert! (std::mem::size_of::<ieee854_long_double> () == 16);
+const _: () = core::assert! (std::mem::align_of::<ieee854_long_double> () == 8);
+const _: () = core::assert! (std::mem::size_of::<ieee854_long_double_ieee> () == 12);
+const _: () = core::assert! (std::mem::align_of::<ieee854_long_double_ieee> () == 4);
+const _: () = core::assert! (std::mem::size_of::<ieee854_long_double_ieee_nan> () == 12);
+const _: () = core::assert! (std::mem::align_of::<ieee854_long_double_ieee_nan> () == 4);
 
 /* C 209: `#define IEEE854_LONG_DOUBLE_BIAS 0x3fff` (measured 16383).  */
 pub const IEEE854_LONG_DOUBLE_BIAS: core::ffi::c_int = 0x3fff;

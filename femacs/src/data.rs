@@ -1988,7 +1988,7 @@ pub union Lisp_Val_Fwd {
 // `xtask layout-check` (which compiles only `include/*.rs`) can never carry a
 // `c-layout` key for it: the port asserts the same two facts here instead, the
 // `bignum.rs`/`doprnt.rs` precedent.  Both members are one word wide.
-const _: () = assert! (size_of::<Lisp_Val_Fwd> () == 8 && align_of::<Lisp_Val_Fwd> () == 8);
+const _: () = core::assert! (size_of::<Lisp_Val_Fwd> () == 8 && align_of::<Lisp_Val_Fwd> () == 8);
 
 unsafe fn make_blv (sym: *mut Lisp_Symbol, forwarded: bool,
                     valcontents: Lisp_Val_Fwd) -> *mut Lisp_Buffer_Local_Value

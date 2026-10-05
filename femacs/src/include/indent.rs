@@ -36,14 +36,14 @@ pub struct position
   pub contin: c_int,                    // 31
 }
 
-const _: () = assert! (std::mem::size_of::<position> () == 48);
-const _: () = assert! (std::mem::align_of::<position> () == 8);
-const _: () = assert! (std::mem::offset_of! (position, bufpos) == 0);
-const _: () = assert! (std::mem::offset_of! (position, bytepos) == 8);
-const _: () = assert! (std::mem::offset_of! (position, hpos) == 16);
-const _: () = assert! (std::mem::offset_of! (position, vpos) == 24);
-const _: () = assert! (std::mem::offset_of! (position, prevhpos) == 32);
-const _: () = assert! (std::mem::offset_of! (position, contin) == 40);
+const _: () = core::assert! (std::mem::size_of::<position> () == 48);
+const _: () = core::assert! (std::mem::align_of::<position> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (position, bufpos) == 0);
+const _: () = core::assert! (std::mem::offset_of! (position, bytepos) == 8);
+const _: () = core::assert! (std::mem::offset_of! (position, hpos) == 16);
+const _: () = core::assert! (std::mem::offset_of! (position, vpos) == 24);
+const _: () = core::assert! (std::mem::offset_of! (position, prevhpos) == 32);
+const _: () = core::assert! (std::mem::offset_of! (position, contin) == 40);
 
 /// The prototypes `src/indent.c` defines (PORTING.md 0.1-10): a glob import, so the unit's
 /// own `#[unsafe(no_mangle)] pub unsafe extern "C" fn` definitions are not a second

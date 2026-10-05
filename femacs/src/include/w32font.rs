@@ -53,14 +53,14 @@ pub struct w32_metric_cache
   pub status: c_uchar,
 }
 
-const _: () = assert! (std::mem::size_of::<w32_metric_cache> () == 12);
-const _: () = assert! (std::mem::align_of::<w32_metric_cache> () == 2);
-const _: () = assert! (std::mem::offset_of! (w32_metric_cache, lbearing) == 0);
-const _: () = assert! (std::mem::offset_of! (w32_metric_cache, rbearing) == 2);
-const _: () = assert! (std::mem::offset_of! (w32_metric_cache, width) == 4);
-const _: () = assert! (std::mem::offset_of! (w32_metric_cache, ascent) == 6);
-const _: () = assert! (std::mem::offset_of! (w32_metric_cache, descent) == 8);
-const _: () = assert! (std::mem::offset_of! (w32_metric_cache, status) == 10);
+const _: () = core::assert! (std::mem::size_of::<w32_metric_cache> () == 12);
+const _: () = core::assert! (std::mem::align_of::<w32_metric_cache> () == 2);
+const _: () = core::assert! (std::mem::offset_of! (w32_metric_cache, lbearing) == 0);
+const _: () = core::assert! (std::mem::offset_of! (w32_metric_cache, rbearing) == 2);
+const _: () = core::assert! (std::mem::offset_of! (w32_metric_cache, width) == 4);
+const _: () = core::assert! (std::mem::offset_of! (w32_metric_cache, ascent) == 6);
+const _: () = core::assert! (std::mem::offset_of! (w32_metric_cache, descent) == 8);
+const _: () = core::assert! (std::mem::offset_of! (w32_metric_cache, status) == 10);
 
 /// C 44-46: the three cache states the backend assigns to `status`.
 /// C: #define W32METRIC_NO_ATTEMPT 0 / #define W32METRIC_SUCCESS 1 / #define W32METRIC_FAIL 2

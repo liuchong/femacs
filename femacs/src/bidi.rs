@@ -119,40 +119,40 @@ pub struct bidi_it
   pub bits: u8,                         // first_elt:1 | new_paragraph:1 | frame_window_p:1
 }
 
-const _: () = assert! (std::mem::size_of::<bidi_it> () == 2328);
-const _: () = assert! (std::mem::align_of::<bidi_it> () == 8);
-const _: () = assert! (std::mem::offset_of! (bidi_it, bytepos) == 0);
-const _: () = assert! (std::mem::offset_of! (bidi_it, charpos) == 8);
-const _: () = assert! (std::mem::offset_of! (bidi_it, ch) == 16);
-const _: () = assert! (std::mem::offset_of! (bidi_it, nchars) == 24);
-const _: () = assert! (std::mem::offset_of! (bidi_it, ch_len) == 32);
-const _: () = assert! (std::mem::offset_of! (bidi_it, r#type) == 40);
-const _: () = assert! (std::mem::offset_of! (bidi_it, type_after_wn) == 44);
-const _: () = assert! (std::mem::offset_of! (bidi_it, orig_type) == 48);
-const _: () = assert! (std::mem::offset_of! (bidi_it, resolved_level) == 52);
-const _: () = assert! (std::mem::offset_of! (bidi_it, isolate_level) == 53);
-const _: () = assert! (std::mem::offset_of! (bidi_it, invalid_levels) == 56);
-const _: () = assert! (std::mem::offset_of! (bidi_it, invalid_isolates) == 64);
-const _: () = assert! (std::mem::offset_of! (bidi_it, prev) == 72);
-const _: () = assert! (std::mem::offset_of! (bidi_it, last_strong) == 88);
-const _: () = assert! (std::mem::offset_of! (bidi_it, next_for_neutral) == 104);
-const _: () = assert! (std::mem::offset_of! (bidi_it, prev_for_neutral) == 120);
-const _: () = assert! (std::mem::offset_of! (bidi_it, next_for_ws) == 136);
-const _: () = assert! (std::mem::offset_of! (bidi_it, bracket_pairing_pos) == 152);
-const _: () = assert! (std::mem::offset_of! (bidi_it, bracket_enclosed_type) == 160);
-const _: () = assert! (std::mem::offset_of! (bidi_it, next_en_pos) == 168);
-const _: () = assert! (std::mem::offset_of! (bidi_it, next_en_type) == 176);
-const _: () = assert! (std::mem::offset_of! (bidi_it, sos) == 180);
-const _: () = assert! (std::mem::offset_of! (bidi_it, scan_dir) == 184);
-const _: () = assert! (std::mem::offset_of! (bidi_it, disp_pos) == 192);
-const _: () = assert! (std::mem::offset_of! (bidi_it, disp_prop) == 200);
-const _: () = assert! (std::mem::offset_of! (bidi_it, stack_idx) == 204);
-const _: () = assert! (std::mem::offset_of! (bidi_it, level_stack) == 208);
-const _: () = assert! (std::mem::offset_of! (bidi_it, string) == 2256);
-const _: () = assert! (std::mem::offset_of! (bidi_it, w) == 2296);
-const _: () = assert! (std::mem::offset_of! (bidi_it, paragraph_dir) == 2304);
-const _: () = assert! (std::mem::offset_of! (bidi_it, separator_limit) == 2312);
-const _: () = assert! (std::mem::offset_of! (bidi_it, bits) == 2320);
+const _: () = core::assert! (std::mem::size_of::<bidi_it> () == 2328);
+const _: () = core::assert! (std::mem::align_of::<bidi_it> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, bytepos) == 0);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, charpos) == 8);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, ch) == 16);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, nchars) == 24);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, ch_len) == 32);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, r#type) == 40);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, type_after_wn) == 44);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, orig_type) == 48);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, resolved_level) == 52);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, isolate_level) == 53);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, invalid_levels) == 56);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, invalid_isolates) == 64);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, prev) == 72);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, last_strong) == 88);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, next_for_neutral) == 104);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, prev_for_neutral) == 120);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, next_for_ws) == 136);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, bracket_pairing_pos) == 152);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, bracket_enclosed_type) == 160);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, next_en_pos) == 168);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, next_en_type) == 176);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, sos) == 180);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, scan_dir) == 184);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, disp_pos) == 192);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, disp_prop) == 200);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, stack_idx) == 204);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, level_stack) == 208);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, string) == 2256);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, w) == 2296);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, paragraph_dir) == 2304);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, separator_limit) == 2312);
+const _: () = core::assert! (std::mem::offset_of! (bidi_it, bits) == 2320);
 
 pub const BIDI_IT_FIRST_ELT: u8 = 1 << 0;
 pub const BIDI_IT_NEW_PARAGRAPH: u8 = 1 << 1;
@@ -2600,17 +2600,17 @@ pub struct bpa_stack_entry
    the unit at 16: sizeof 24, align 8 (measured with `-DENABLE_CHECKING`); that variant is
    the one the `--cfg enable_checking` pass compiles (P-51, §3.50).  */
 #[cfg (not (enable_checking))]
-const _: () = assert! (std::mem::size_of::<bpa_stack_entry> () == 12);
+const _: () = core::assert! (std::mem::size_of::<bpa_stack_entry> () == 12);
 #[cfg (not (enable_checking))]
-const _: () = assert! (std::mem::align_of::<bpa_stack_entry> () == 4);
+const _: () = core::assert! (std::mem::align_of::<bpa_stack_entry> () == 4);
 #[cfg (enable_checking)]
-const _: () = assert! (std::mem::size_of::<bpa_stack_entry> () == 24);
+const _: () = core::assert! (std::mem::size_of::<bpa_stack_entry> () == 24);
 #[cfg (enable_checking)]
-const _: () = assert! (std::mem::align_of::<bpa_stack_entry> () == 8);
-const _: () = assert! (std::mem::offset_of! (bpa_stack_entry, close_bracket_char) == 0);
-const _: () = assert! (std::mem::offset_of! (bpa_stack_entry, open_bracket_idx) == 4);
+const _: () = core::assert! (std::mem::align_of::<bpa_stack_entry> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (bpa_stack_entry, close_bracket_char) == 0);
+const _: () = core::assert! (std::mem::offset_of! (bpa_stack_entry, open_bracket_idx) == 4);
 #[cfg (enable_checking)]
-const _: () = assert! (std::mem::offset_of! (bpa_stack_entry, open_bracket_pos) == 8);
+const _: () = core::assert! (std::mem::offset_of! (bpa_stack_entry, open_bracket_pos) == 8);
 
 /* Allow for the two struct bidi_it objects too, since they can be big.
    With MAX_ALLOCA of 16 KiB, this should allow at least 900 slots in the

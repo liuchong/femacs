@@ -75,15 +75,15 @@ pub struct __sFILE
 /// The name C's <stdio.h> gives it, so every unit keeps writing `*mut FILE`.
 pub type FILE = __sFILE;
 
-const _: () = assert! (std::mem::size_of::<__sFILE> () == 152);
-const _: () = assert! (std::mem::offset_of! (__sFILE, _p) == 0);
-const _: () = assert! (std::mem::offset_of! (__sFILE, _r) == 8);
-const _: () = assert! (std::mem::offset_of! (__sFILE, _w) == 12);
-const _: () = assert! (std::mem::offset_of! (__sFILE, _flags) == 16);
-const _: () = assert! (std::mem::offset_of! (__sFILE, _file) == 18);
-const _: () = assert! (std::mem::offset_of! (__sFILE, _bf) == 24);
-const _: () = assert! (std::mem::offset_of! (__sbuf, _base) == 0);
-const _: () = assert! (std::mem::offset_of! (__sbuf, _size) == 8);
+const _: () = core::assert! (std::mem::size_of::<__sFILE> () == 152);
+const _: () = core::assert! (std::mem::offset_of! (__sFILE, _p) == 0);
+const _: () = core::assert! (std::mem::offset_of! (__sFILE, _r) == 8);
+const _: () = core::assert! (std::mem::offset_of! (__sFILE, _w) == 12);
+const _: () = core::assert! (std::mem::offset_of! (__sFILE, _flags) == 16);
+const _: () = core::assert! (std::mem::offset_of! (__sFILE, _file) == 18);
+const _: () = core::assert! (std::mem::offset_of! (__sFILE, _bf) == 24);
+const _: () = core::assert! (std::mem::offset_of! (__sbuf, _base) == 0);
+const _: () = core::assert! (std::mem::offset_of! (__sbuf, _size) == 8);
 
 /* `<stdio.h>`'s stream flags: C 223-240 falls back to its own values only when the system
    header has none, and Darwin defines all eight with the numbers measured above.  */

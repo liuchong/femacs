@@ -134,19 +134,19 @@ pub struct font
   pub driver: *const c_void,
 }
 
-const _: () = assert! (std::mem::size_of::<font> () == 184);
-const _: () = assert! (std::mem::align_of::<font> () == 8);
-const _: () = assert! (std::mem::offset_of! (font, header) == 0);
-const _: () = assert! (std::mem::offset_of! (font, props) == 8);
-const _: () = assert! (std::mem::offset_of! (font, min_width) == 144);
-const _: () = assert! (std::mem::offset_of! (font, max_width) == 148);
-const _: () = assert! (std::mem::offset_of! (font, pixel_size) == 152);
-const _: () = assert! (std::mem::offset_of! (font, height) == 156);
-const _: () = assert! (std::mem::offset_of! (font, space_width) == 160);
-const _: () = assert! (std::mem::offset_of! (font, average_width) == 164);
-const _: () = assert! (std::mem::offset_of! (font, ascent) == 168);
-const _: () = assert! (std::mem::offset_of! (font, descent) == 172);
-const _: () = assert! (std::mem::offset_of! (font, driver) == 176);
+const _: () = core::assert! (std::mem::size_of::<font> () == 184);
+const _: () = core::assert! (std::mem::align_of::<font> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (font, header) == 0);
+const _: () = core::assert! (std::mem::offset_of! (font, props) == 8);
+const _: () = core::assert! (std::mem::offset_of! (font, min_width) == 144);
+const _: () = core::assert! (std::mem::offset_of! (font, max_width) == 148);
+const _: () = core::assert! (std::mem::offset_of! (font, pixel_size) == 152);
+const _: () = core::assert! (std::mem::offset_of! (font, height) == 156);
+const _: () = core::assert! (std::mem::offset_of! (font, space_width) == 160);
+const _: () = core::assert! (std::mem::offset_of! (font, average_width) == 164);
+const _: () = core::assert! (std::mem::offset_of! (font, ascent) == 168);
+const _: () = core::assert! (std::mem::offset_of! (font, descent) == 172);
+const _: () = core::assert! (std::mem::offset_of! (font, driver) == 176);
 
 /* font.h 434-472: the predicates.  */
 #[inline(always)]
@@ -278,10 +278,10 @@ pub struct font_spec
   pub header: vectorlike_header,
   pub props: [Lisp_Object; FONT_SPEC_MAX as usize],
 }
-const _: () = assert! (std::mem::size_of::<font_spec> () == 112);
-const _: () = assert! (std::mem::align_of::<font_spec> () == 8);
-const _: () = assert! (std::mem::offset_of! (font_spec, header) == 0);
-const _: () = assert! (std::mem::offset_of! (font_spec, props) == 8);
+const _: () = core::assert! (std::mem::size_of::<font_spec> () == 112);
+const _: () = core::assert! (std::mem::align_of::<font_spec> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (font_spec, header) == 0);
+const _: () = core::assert! (std::mem::offset_of! (font_spec, props) == 8);
 
 /* font.h 258-269: `struct font_entity` - C 259-263's header + `props[FONT_ENTITY_MAX]`, then
    C 264-268's `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY` `bool is_android`
@@ -305,10 +305,10 @@ pub struct font_entity
 // here.  The three offsets and the alignment hold in both arms - the member is appended - so
 // only the size assertion carries it.
 #[cfg (not (feature = "have_android"))]
-const _: () = assert! (std::mem::size_of::<font_entity> () == 120);
-const _: () = assert! (std::mem::align_of::<font_entity> () == 8);
-const _: () = assert! (std::mem::offset_of! (font_entity, header) == 0);
-const _: () = assert! (std::mem::offset_of! (font_entity, props) == 8);
+const _: () = core::assert! (std::mem::size_of::<font_entity> () == 120);
+const _: () = core::assert! (std::mem::align_of::<font_entity> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (font_entity, header) == 0);
+const _: () = core::assert! (std::mem::offset_of! (font_entity, props) == 8);
 
 /* font.h 414-417: `struct font_metrics` - five `short`s (C 416 is one line).  Measured:
    sizeof 10, align 2, lbearing@0 rbearing@2 width@4 ascent@6 descent@8.  */
@@ -321,10 +321,10 @@ pub struct font_metrics
   pub ascent: c_short,
   pub descent: c_short,
 }
-const _: () = assert! (std::mem::size_of::<font_metrics> () == 10);
-const _: () = assert! (std::mem::align_of::<font_metrics> () == 2);
-const _: () = assert! (std::mem::offset_of! (font_metrics, ascent) == 6);
-const _: () = assert! (std::mem::offset_of! (font_metrics, descent) == 8);
+const _: () = core::assert! (std::mem::size_of::<font_metrics> () == 10);
+const _: () = core::assert! (std::mem::align_of::<font_metrics> () == 2);
+const _: () = core::assert! (std::mem::offset_of! (font_metrics, ascent) == 6);
+const _: () = core::assert! (std::mem::offset_of! (font_metrics, descent) == 8);
 
 /* font.h 419-429: `struct font_bitmap`.  Measured: sizeof 40, align 8, `bits_per_pixel`@0
    `rows`@4 `width`@8 `pitch`@12 `buffer`@16 `left`@24 `top`@28 `advance`@32 (the four bytes
@@ -342,10 +342,10 @@ pub struct font_bitmap
   pub top: c_int,
   pub advance: c_int,
 }
-const _: () = assert! (std::mem::size_of::<font_bitmap> () == 40);
-const _: () = assert! (std::mem::align_of::<font_bitmap> () == 8);
-const _: () = assert! (std::mem::offset_of! (font_bitmap, buffer) == 16);
-const _: () = assert! (std::mem::offset_of! (font_bitmap, advance) == 32);
+const _: () = core::assert! (std::mem::size_of::<font_bitmap> () == 40);
+const _: () = core::assert! (std::mem::align_of::<font_bitmap> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (font_bitmap, buffer) == 16);
+const _: () = core::assert! (std::mem::offset_of! (font_bitmap, advance) == 32);
 
 
 /* ---------------------------------------------------------------------------------------
@@ -574,20 +574,20 @@ pub struct font_driver_list
   pub next: *mut font_driver_list,
 }
 
-const _: () = assert! (std::mem::size_of::<font_driver> () == 208);
-const _: () = assert! (std::mem::align_of::<font_driver> () == 8);
-const _: () = assert! (std::mem::offset_of! (font_driver, r#type) == 0);
-const _: () = assert! (std::mem::offset_of! (font_driver, get_cache) == 16);
-const _: () = assert! (std::mem::offset_of! (font_driver, list) == 24);
-const _: () = assert! (std::mem::offset_of! (font_driver, r#match) == 32);
-const _: () = assert! (std::mem::offset_of! (font_driver, close_font) == 64);
-const _: () = assert! (std::mem::offset_of! (font_driver, text_extents) == 104);
-const _: () = assert! (std::mem::offset_of! (font_driver, otf_capability) == 120);
-const _: () = assert! (std::mem::offset_of! (font_driver, shape) == 152);
-const _: () = assert! (std::mem::offset_of! (font_driver, check) == 160);
-const _: () = assert! (std::mem::offset_of! (font_driver, cached_font_ok) == 184);
-const _: () = assert! (std::mem::offset_of! (font_driver, combining_capability) == 192);
-const _: () = assert! (std::mem::size_of::<font_driver_list> () == 24);
-const _: () = assert! (std::mem::align_of::<font_driver_list> () == 8);
-const _: () = assert! (std::mem::offset_of! (font_driver_list, driver) == 8);
-const _: () = assert! (std::mem::offset_of! (font_driver_list, next) == 16);
+const _: () = core::assert! (std::mem::size_of::<font_driver> () == 208);
+const _: () = core::assert! (std::mem::align_of::<font_driver> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, r#type) == 0);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, get_cache) == 16);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, list) == 24);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, r#match) == 32);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, close_font) == 64);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, text_extents) == 104);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, otf_capability) == 120);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, shape) == 152);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, check) == 160);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, cached_font_ok) == 184);
+const _: () = core::assert! (std::mem::offset_of! (font_driver, combining_capability) == 192);
+const _: () = core::assert! (std::mem::size_of::<font_driver_list> () == 24);
+const _: () = core::assert! (std::mem::align_of::<font_driver_list> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (font_driver_list, driver) == 8);
+const _: () = core::assert! (std::mem::offset_of! (font_driver_list, next) == 16);

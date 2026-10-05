@@ -232,12 +232,12 @@ pub struct print_buffer {
 }
 /* Measured with clang -std=gnu23 on the frozen target: sizeof 32, align 8, buffer@0,
    size@8, pos@16, pos_byte@24.  */
-const _: () = assert! (std::mem::size_of::<print_buffer> () == 32);
-const _: () = assert! (std::mem::align_of::<print_buffer> () == 8);
-const _: () = assert! (std::mem::offset_of! (print_buffer, buffer) == 0);
-const _: () = assert! (std::mem::offset_of! (print_buffer, size) == 8);
-const _: () = assert! (std::mem::offset_of! (print_buffer, pos) == 16);
-const _: () = assert! (std::mem::offset_of! (print_buffer, pos_byte) == 24);
+const _: () = core::assert! (std::mem::size_of::<print_buffer> () == 32);
+const _: () = core::assert! (std::mem::align_of::<print_buffer> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_buffer, buffer) == 0);
+const _: () = core::assert! (std::mem::offset_of! (print_buffer, size) == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_buffer, pos) == 16);
+const _: () = core::assert! (std::mem::offset_of! (print_buffer, pos_byte) == 24);
 
 /* When printing into a buffer, first we put the text in this
    block, then insert it all at once.  */
@@ -302,15 +302,15 @@ pub struct print_context {
 /* Measured with clang -std=gnu23 on the frozen target: sizeof 56, align 8, printcharfun@0,
    old_printcharfun@8, old_point@16, start_point@24, old_point_byte@32,
    start_point_byte@40, specpdl_count@48.  */
-const _: () = assert! (std::mem::size_of::<print_context> () == 56);
-const _: () = assert! (std::mem::align_of::<print_context> () == 8);
-const _: () = assert! (std::mem::offset_of! (print_context, printcharfun) == 0);
-const _: () = assert! (std::mem::offset_of! (print_context, old_printcharfun) == 8);
-const _: () = assert! (std::mem::offset_of! (print_context, old_point) == 16);
-const _: () = assert! (std::mem::offset_of! (print_context, start_point) == 24);
-const _: () = assert! (std::mem::offset_of! (print_context, old_point_byte) == 32);
-const _: () = assert! (std::mem::offset_of! (print_context, start_point_byte) == 40);
-const _: () = assert! (std::mem::offset_of! (print_context, specpdl_count) == 48);
+const _: () = core::assert! (std::mem::size_of::<print_context> () == 56);
+const _: () = core::assert! (std::mem::align_of::<print_context> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_context, printcharfun) == 0);
+const _: () = core::assert! (std::mem::offset_of! (print_context, old_printcharfun) == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_context, old_point) == 16);
+const _: () = core::assert! (std::mem::offset_of! (print_context, start_point) == 24);
+const _: () = core::assert! (std::mem::offset_of! (print_context, old_point_byte) == 32);
+const _: () = core::assert! (std::mem::offset_of! (print_context, start_point_byte) == 40);
+const _: () = core::assert! (std::mem::offset_of! (print_context, specpdl_count) == 48);
 
 unsafe fn print_prepare (mut printcharfun: Lisp_Object) -> print_context
 {
@@ -1505,10 +1505,10 @@ pub union print_pp_entry_u {
   pub values: *mut Lisp_Object,	/* when n > 0 */
 }
 /* Measured with clang -std=gnu23 on the frozen target: sizeof 16, align 8, n@0, u@8.  */
-const _: () = assert! (std::mem::size_of::<print_pp_entry> () == 16);
-const _: () = assert! (std::mem::align_of::<print_pp_entry> () == 8);
-const _: () = assert! (std::mem::offset_of! (print_pp_entry, n) == 0);
-const _: () = assert! (std::mem::offset_of! (print_pp_entry, u) == 8);
+const _: () = core::assert! (std::mem::size_of::<print_pp_entry> () == 16);
+const _: () = core::assert! (std::mem::align_of::<print_pp_entry> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_pp_entry, n) == 0);
+const _: () = core::assert! (std::mem::offset_of! (print_pp_entry, u) == 8);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -1519,11 +1519,11 @@ pub struct print_pp_stack {
 }
 /* Measured with clang -std=gnu23 on the frozen target: sizeof 24, align 8, stack@0,
    size@8, sp@16.  */
-const _: () = assert! (std::mem::size_of::<print_pp_stack> () == 24);
-const _: () = assert! (std::mem::align_of::<print_pp_stack> () == 8);
-const _: () = assert! (std::mem::offset_of! (print_pp_stack, stack) == 0);
-const _: () = assert! (std::mem::offset_of! (print_pp_stack, size) == 8);
-const _: () = assert! (std::mem::offset_of! (print_pp_stack, sp) == 16);
+const _: () = core::assert! (std::mem::size_of::<print_pp_stack> () == 24);
+const _: () = core::assert! (std::mem::align_of::<print_pp_stack> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_pp_stack, stack) == 0);
+const _: () = core::assert! (std::mem::offset_of! (print_pp_stack, size) == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_pp_stack, sp) == 16);
 
 static mut ppstack: print_pp_stack = print_pp_stack {
   stack: std::ptr::null_mut (),
@@ -2356,8 +2356,8 @@ pub enum print_entry_type
     PE_hash = 3,			/* print rest of hash data */
   }
 /* Measured with clang -std=gnu23 on the frozen target: sizeof 4, align 4.  */
-const _: () = assert! (std::mem::size_of::<print_entry_type> () == 4);
-const _: () = assert! (std::mem::align_of::<print_entry_type> () == 4);
+const _: () = core::assert! (std::mem::size_of::<print_entry_type> () == 4);
+const _: () = core::assert! (std::mem::align_of::<print_entry_type> () == 4);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -2421,23 +2421,23 @@ pub struct print_stack_entry {
    list.tortoise_idx@48, dotted_cdr.obj@8, vector.obj@8, vector.size@16, vector.idx@24,
    vector.end@32, vector.truncated@40, hash.obj@8, hash.nobjs@16, hash.idx@24,
    hash.printed@32, hash.truncated@40.  */
-const _: () = assert! (std::mem::size_of::<print_stack_entry> () == 56);
-const _: () = assert! (std::mem::align_of::<print_stack_entry> () == 8);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry, r#type) == 0);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry, u) == 8);
-const _: () = assert! (std::mem::size_of::<print_stack_entry_list> () == 48);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry_list, last) == 0);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry_list, maxlen) == 8);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry_list, tortoise) == 16);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry_list, n) == 24);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry_list, m) == 32);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry_list, tortoise_idx) == 40);
-const _: () = assert! (std::mem::size_of::<print_stack_entry_vector> () == 40);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry_vector, end) == 24);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry_vector, truncated) == 32);
-const _: () = assert! (std::mem::size_of::<print_stack_entry_hash> () == 40);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry_hash, printed) == 24);
-const _: () = assert! (std::mem::offset_of! (print_stack_entry_hash, truncated) == 32);
+const _: () = core::assert! (std::mem::size_of::<print_stack_entry> () == 56);
+const _: () = core::assert! (std::mem::align_of::<print_stack_entry> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry, r#type) == 0);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry, u) == 8);
+const _: () = core::assert! (std::mem::size_of::<print_stack_entry_list> () == 48);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry_list, last) == 0);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry_list, maxlen) == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry_list, tortoise) == 16);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry_list, n) == 24);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry_list, m) == 32);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry_list, tortoise_idx) == 40);
+const _: () = core::assert! (std::mem::size_of::<print_stack_entry_vector> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry_vector, end) == 24);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry_vector, truncated) == 32);
+const _: () = core::assert! (std::mem::size_of::<print_stack_entry_hash> () == 40);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry_hash, printed) == 24);
+const _: () = core::assert! (std::mem::offset_of! (print_stack_entry_hash, truncated) == 32);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -2448,11 +2448,11 @@ pub struct print_stack {
 }
 /* Measured with clang -std=gnu23 on the frozen target: sizeof 24, align 8, stack@0,
    size@8, sp@16.  */
-const _: () = assert! (std::mem::size_of::<print_stack> () == 24);
-const _: () = assert! (std::mem::align_of::<print_stack> () == 8);
-const _: () = assert! (std::mem::offset_of! (print_stack, stack) == 0);
-const _: () = assert! (std::mem::offset_of! (print_stack, size) == 8);
-const _: () = assert! (std::mem::offset_of! (print_stack, sp) == 16);
+const _: () = core::assert! (std::mem::size_of::<print_stack> () == 24);
+const _: () = core::assert! (std::mem::align_of::<print_stack> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_stack, stack) == 0);
+const _: () = core::assert! (std::mem::offset_of! (print_stack, size) == 8);
+const _: () = core::assert! (std::mem::offset_of! (print_stack, sp) == 16);
 
 static mut prstack: print_stack = print_stack {
   stack: std::ptr::null_mut (),

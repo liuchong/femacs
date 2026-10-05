@@ -44,7 +44,7 @@ pub unsafe extern "C" fn rawmemchr (mut s: *const c_void, c_in: c_int) -> *mut c
      configuration constant (PORTING.md 0.1); the assert reads C's widths, so the
      limits mirror's `c_int` is cast to the width arithmetic's `usize`.  */
   const UINTPTR_WIDTH: usize = 64;
-  const _: () = assert! (UINTPTR_WIDTH == UCHAR_WIDTH as usize * size_of::<usize> ());
+  const _: () = core::assert! (UINTPTR_WIDTH == UCHAR_WIDTH as usize * size_of::<usize> ());
 
   let c: u8 = c_in as u8;
 

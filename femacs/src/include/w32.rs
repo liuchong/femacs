@@ -68,7 +68,7 @@ pub const EMACS_W32_H: bool = true;
 /// one condition in this header that is a *hard* exclusion rather than a branch, so the port
 /// expresses it as the assertion that fails when the Cygwin feature is on.  (The frozen
 /// configuration leaves `CYGWIN` undefined, which is why the assertion holds here.)
-const _: () = assert! (!cfg! (feature = "cygwin"));
+const _: () = core::assert! (!cfg! (feature = "cygwin"));
 
 /* File descriptor set emulation.  */
 

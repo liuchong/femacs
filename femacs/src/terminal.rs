@@ -14,7 +14,7 @@
 // <linux/kd.h> and <sys/ioctl.h>; the constant is undefined in the frozen configuration, so
 // that block is dead text and stays behind `feature = "unipair_unicode"` (P-51).  No mirror
 // carries those three headers, and `HAVE_STRUCT_UNIPAIR_UNICODE` has no entry in
-// docs/baseline/config, so no `const _: () = assert!` binds the feature and `dead-arms`
+// docs/baseline/config, so no `const _: () = core::assert!` binds the feature and `dead-arms`
 // cannot flip it (the scroll.rs `glyph_debug` precedent); the arm is therefore text that is
 // never name-resolved.
 //

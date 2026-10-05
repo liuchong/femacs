@@ -1219,7 +1219,7 @@ pub fn BUFFER_CHECK_INDIRECTION (b: *mut buffer)
 // assertion keeps it tied to the frozen configuration: enabling the feature without
 // regenerating the configuration (which is what would add the members' layout keys)
 // fails to compile instead of silently growing unasserted fields (P-08, P-34).
-const _: () = assert! (!cfg! (feature = "have_tree_sitter") || HAVE_TREE_SITTER);
+const _: () = core::assert! (!cfg! (feature = "have_tree_sitter") || HAVE_TREE_SITTER);
 #[cfg(feature = "have_tree_sitter")]
 #[inline(always)]
 pub fn BUF_TS_LINECOL_BEGV (buf: *mut buffer) -> ts_linecol

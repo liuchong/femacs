@@ -38,9 +38,9 @@ pub struct re_registers
   pub start: *mut ptrdiff_t,
   pub end: *mut ptrdiff_t,
 }
-const _: () = assert! (std::mem::size_of::<re_registers> () == 24);
-const _: () = assert! (std::mem::offset_of! (re_registers, start) == 8);
-const _: () = assert! (std::mem::offset_of! (re_registers, end) == 16);
+const _: () = core::assert! (std::mem::size_of::<re_registers> () == 24);
+const _: () = core::assert! (std::mem::offset_of! (re_registers, start) == 8);
+const _: () = core::assert! (std::mem::offset_of! (re_registers, end) == 16);
 
 /* This data structure represents a compiled pattern.  Before calling
    the pattern compiler, the fields 'buffer', 'allocated', 'fastmap',
@@ -102,16 +102,16 @@ pub struct re_pattern_buffer
   // `regex-emacs.c`'s `enum { REGS_UNALLOCATED, REGS_REALLOCATE, REGS_FIXED }` (C 862).
   pub bits: u8,
 }
-const _: () = assert! (std::mem::size_of::<re_pattern_buffer> () == 64);
-const _: () = assert! (std::mem::align_of::<re_pattern_buffer> () == 8);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, buffer) == 0);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, allocated) == 8);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, used) == 16);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, charset_unibyte) == 24);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, fastmap) == 32);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, translate) == 40);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, re_nsub) == 48);
-const _: () = assert! (std::mem::offset_of! (re_pattern_buffer, bits) == 56);
+const _: () = core::assert! (std::mem::size_of::<re_pattern_buffer> () == 64);
+const _: () = core::assert! (std::mem::align_of::<re_pattern_buffer> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (re_pattern_buffer, buffer) == 0);
+const _: () = core::assert! (std::mem::offset_of! (re_pattern_buffer, allocated) == 8);
+const _: () = core::assert! (std::mem::offset_of! (re_pattern_buffer, used) == 16);
+const _: () = core::assert! (std::mem::offset_of! (re_pattern_buffer, charset_unibyte) == 24);
+const _: () = core::assert! (std::mem::offset_of! (re_pattern_buffer, fastmap) == 32);
+const _: () = core::assert! (std::mem::offset_of! (re_pattern_buffer, translate) == 40);
+const _: () = core::assert! (std::mem::offset_of! (re_pattern_buffer, re_nsub) == 48);
+const _: () = core::assert! (std::mem::offset_of! (re_pattern_buffer, bits) == 56);
 
 // C 98-120's bit members, in C's declaration order.
 pub const RE_PATTERN_CAN_BE_NULL: u8 = 1 << 0;

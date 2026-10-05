@@ -424,12 +424,12 @@ pub struct bc_frame {
    numbers.  The type is declared in this unit rather than in a mirror, so
    `tools/gen-layout-fields.py`'s `STRUCTS` list (which names the header a mirrored type
    comes from) does not carry it; docs/ports/bytecode.md records the measurement.  */
-const _: () = assert! (std::mem::size_of::<bc_frame> () == 32);
-const _: () = assert! (std::mem::offset_of! (bc_frame, saved_fp) == 0);
-const _: () = assert! (std::mem::offset_of! (bc_frame, saved_top) == 8);
-const _: () = assert! (std::mem::offset_of! (bc_frame, saved_pc) == 16);
-const _: () = assert! (std::mem::offset_of! (bc_frame, fun) == 24);
-const _: () = assert! (std::mem::offset_of! (bc_frame, next_stack) == 32);
+const _: () = core::assert! (std::mem::size_of::<bc_frame> () == 32);
+const _: () = core::assert! (std::mem::offset_of! (bc_frame, saved_fp) == 0);
+const _: () = core::assert! (std::mem::offset_of! (bc_frame, saved_top) == 8);
+const _: () = core::assert! (std::mem::offset_of! (bc_frame, saved_pc) == 16);
+const _: () = core::assert! (std::mem::offset_of! (bc_frame, fun) == 24);
+const _: () = core::assert! (std::mem::offset_of! (bc_frame, next_stack) == 32);
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn init_bc_thread (bc: *mut bc_thread_state)

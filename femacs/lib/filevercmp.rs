@@ -7,7 +7,7 @@
 // mirror for `UCHAR_MAX`/`INT_MAX`, and C 25's <idx.h> the idx mirror.
 //
 // Deviations (docs/ports/filevercmp.md): `static_assert` is the port's `static_assert!`
-// (PORTING.md 2.5: `const _: () = assert! (…)`), `bool`/`false`/`true` stay Rust's, and the
+// (PORTING.md 2.5: `const _: () = core::assert! (…)`), `bool`/`false`/`true` stay Rust's, and the
 // `switch`es over the ASCII case lists are `match`es with the same arms in the same order.
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_mut, unused_unsafe,
@@ -22,9 +22,9 @@ include!("include/idx.rs");
 include!("include/c-ctype.rs");
 include!("include/filevercmp.rs");
 
-/// PORTING.md 2.5: C's `static_assert` is `const _: () = assert! (cond);`.
+/// PORTING.md 2.5: C's `static_assert` is `const _: () = core::assert! (cond);`.
 macro_rules! static_assert {
-    ($cond:expr) => { const _: () = assert! ($cond); };
+    ($cond:expr) => { const _: () = core::assert! ($cond); };
 }
 
 /* Return the length of a prefix of S that corresponds to the suffix

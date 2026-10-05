@@ -24,8 +24,8 @@ pub type Time = c_ulong;                     // from <X11/X.h>: typedef unsigned
 pub type Time = i64;                         // typedef int64 Time
 #[cfg(not(any(feature = "have_x_windows", feature = "have_haiku")))]
 pub type Time = c_ulong;                     // typedef unsigned long Time
-const _: () = assert! (!cfg! (feature = "have_x_windows") || HAVE_X_WINDOWS);
-const _: () = assert! (!cfg! (feature = "have_haiku") || HAIKU);
+const _: () = core::assert! (!cfg! (feature = "have_x_windows") || HAVE_X_WINDOWS);
+const _: () = core::assert! (!cfg! (feature = "have_haiku") || HAIKU);
 
 /* On some configurations (hpux8.0, X11R4), sys/time.h and X11/Xos.h
    disagree about the name of the guard symbol.  */
@@ -35,7 +35,7 @@ const _: () = assert! (!cfg! (feature = "have_haiku") || HAIKU);
 // docs/ports/include-systime.md).
 #[cfg(feature = "hpux")]
 pub const __TIMEVAL__: bool = true;
-const _: () = assert! (!cfg! (feature = "hpux"));
+const _: () = core::assert! (!cfg! (feature = "hpux"));
 
 include!("../../lib/include/sys_time.rs");      // #include <sys/time.h> for `struct timeval`
 // C: `#undef hz` (AIX's <sys/param.h> defines it) — there is nothing to undefine in the

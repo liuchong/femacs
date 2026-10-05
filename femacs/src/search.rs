@@ -147,16 +147,16 @@ pub struct regexp_cache
 /// Measured with clang against the frozen target: `sizeof` 360, `_Alignof` 8, `next`@0,
 /// `regexp`@8, `f_whitespace_regexp`@16, `syntax_table`@24, `buf`@32, `fastmap`@96,
 /// `posix`@352, `busy`@353.
-const _: () = assert! (std::mem::size_of::<regexp_cache> () == 360);
-const _: () = assert! (std::mem::align_of::<regexp_cache> () == 8);
-const _: () = assert! (std::mem::offset_of! (regexp_cache, next) == 0);
-const _: () = assert! (std::mem::offset_of! (regexp_cache, regexp) == 8);
-const _: () = assert! (std::mem::offset_of! (regexp_cache, f_whitespace_regexp) == 16);
-const _: () = assert! (std::mem::offset_of! (regexp_cache, syntax_table) == 24);
-const _: () = assert! (std::mem::offset_of! (regexp_cache, buf) == 32);
-const _: () = assert! (std::mem::offset_of! (regexp_cache, fastmap) == 96);
-const _: () = assert! (std::mem::offset_of! (regexp_cache, posix) == 352);
-const _: () = assert! (std::mem::offset_of! (regexp_cache, busy) == 353);
+const _: () = core::assert! (std::mem::size_of::<regexp_cache> () == 360);
+const _: () = core::assert! (std::mem::align_of::<regexp_cache> () == 8);
+const _: () = core::assert! (std::mem::offset_of! (regexp_cache, next) == 0);
+const _: () = core::assert! (std::mem::offset_of! (regexp_cache, regexp) == 8);
+const _: () = core::assert! (std::mem::offset_of! (regexp_cache, f_whitespace_regexp) == 16);
+const _: () = core::assert! (std::mem::offset_of! (regexp_cache, syntax_table) == 24);
+const _: () = core::assert! (std::mem::offset_of! (regexp_cache, buf) == 32);
+const _: () = core::assert! (std::mem::offset_of! (regexp_cache, fastmap) == 96);
+const _: () = core::assert! (std::mem::offset_of! (regexp_cache, posix) == 352);
+const _: () = core::assert! (std::mem::offset_of! (regexp_cache, busy) == 353);
 
 /* The instances of that struct.  */
 static mut searchbufs: [regexp_cache; REGEXP_CACHE_SIZE] =  // C 61

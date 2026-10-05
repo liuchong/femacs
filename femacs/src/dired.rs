@@ -85,9 +85,9 @@ pub struct dirent
   pub d_type: u8,
   pub d_name: [c_char; 1024],
 }
-const _: () = assert!(std::mem::size_of::<dirent> () == 1048);
-const _: () = assert!(std::mem::offset_of! (dirent, d_type) == 20);
-const _: () = assert!(std::mem::offset_of! (dirent, d_name) == 21);
+const _: () = core::assert!(std::mem::size_of::<dirent> () == 1048);
+const _: () = core::assert!(std::mem::offset_of! (dirent, d_type) == 20);
+const _: () = core::assert!(std::mem::offset_of! (dirent, d_name) == 21);
 
 /// C: `<dirent.h>`'s `#define DT_UNKNOWN 0`, `DT_DIR 4`, `DT_LNK 10` on the frozen target
 /// (docs/baseline/config/darwin-arm64.macros.tsv 781/776/778); the dirent mirror does not
