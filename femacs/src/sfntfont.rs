@@ -7,8 +7,8 @@
 // `unsafe extern "C" fn` items (PORTING.md 1.4; the androidselect.rs `close_asset_fd` shape).
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
-// C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172 and C 2173-2559.**  The next live
-// definition is `sfnt_open_tables` (C 2633, after `struct sfnt_font_info`).  The ledger `docs/ports/sfntfont.md`
+// C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050, C 2051-2172, C 2173-2559 and C 2560-2742.**
+// The next live definition is `sfntfont_setup_interpreter` (C 2753).  The ledger `docs/ports/sfntfont.md`
 // carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
 // the `## Evidence` readings and the `## Deviations`.
 //
@@ -3093,4 +3093,267 @@ unsafe fn sfntfont_free_raster_cache (cache: *mut sfnt_raster_cache)
 
   (*cache).next = cache;                                   // C 2557
   (*cache).last = cache;                                   // C 2558
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 2560-2742: the "Opening fonts" block's first four items, in C's order - C 2561's form feed and
+   C 2563's `/* Opening fonts.  */` banner, `struct sfnt_font_info` (C 2565-2645), the `open_fonts`
+   list (C 2647-2653), `sfntfont_lookup_glyph` (C 2658-2679), C 2681-2682's forward declaration of
+   `sfntfont_measure_pcm` and `sfntfont_probe_widths` (C 2692-2742).  **The next live definition is
+   C 2753's `sfntfont_setup_interpreter`**, and the ledger's `## C line ranges` names both
+   boundaries.
+
+   `HAVE_MMAP` is 1 in the frozen configuration and its arms have no `#else`, so the two members it
+   guards (C 2572's `next`, C 2632's `glyf_table_mapped`) are **ungated** - slice 1's `sfnt_font_tables`
+   reading; the three `HAVE_HARFBUZZ` members (C 2637/2640/2643) are gated `harfbuzz` and C 2637's
+   `hb_font_t *` is the untyped pointer the mirror uses for that header's records (P-72 (3), the
+   `ftcrfont.rs` 591 alias).  C 2681-2682's forward declaration is C's own device for a caller that
+   precedes its callee: `sfntfont_measure_pcm` is *defined* at C 3504, so its use site here carries
+   a declaration (the `ftfont.rs` 2066 `hbotf_open` shape, P-91 ④) that the C 3504 slice replaces
+   with the definition - the ledger's `## Owed` names it.
+   ---------------------------------------------------------------------------------------------- */
+/// C 2565-2645: `struct sfnt_font_info` - the record the "Opening fonts" block is built on.  Its
+/// layout is **measured** (Evidence ⑲), not remembered (P-88 ②).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+pub struct sfnt_font_info                           // C 2565-2645
+{
+  /* Parent font structure.  */
+  pub font: font,                                   // C 2568
+
+  /* The next font in this chain.  */
+  pub next: *mut sfnt_font_info,                    // C 2572 (C 2570's `#ifdef HAVE_MMAP`, live)
+
+  /* The font description used to create this font.  Used to
+     dereference tables associated with this font.  */
+  pub desc: *mut sfnt_font_desc,                    // C 2577
+
+  /* Various tables required to use the font.  */
+  pub cmap: *mut sfnt_cmap_table,                   // C 2580
+  pub hhea: *mut sfnt_hhea_table,                   // C 2581
+  pub maxp: *mut sfnt_maxp_table,                   // C 2582
+  pub head: *mut sfnt_head_table,                   // C 2583
+  pub hmtx: *mut sfnt_hmtx_table,                   // C 2584
+  pub glyf: *mut sfnt_glyf_table,                   // C 2585
+  pub loca_short: *mut sfnt_loca_table_short,       // C 2586
+  pub loca_long: *mut sfnt_loca_table_long,         // C 2587
+  pub prep: *mut sfnt_prep_table,                   // C 2588
+  pub fpgm: *mut sfnt_fpgm_table,                   // C 2589
+  pub cvt: *mut sfnt_cvt_table,                     // C 2590
+
+  /* The selected character map.  */
+  pub cmap_data: *mut sfnt_cmap_encoding_subtable_data,   // C 2593
+
+  /* Data identifying that character map.  */
+  pub cmap_subtable: sfnt_cmap_encoding_subtable,   // C 2596
+
+  /* The UVS context.  */
+  pub uvs: *mut sfnt_uvs_context,                   // C 2599
+
+  /* Outline cache.  */
+  pub outline_cache: sfnt_outline_cache,            // C 2602
+
+  /* Number of elements in the outline cache.  */
+  pub outline_cache_size: c_int,                    // C 2605
+
+  /* Raster cache.  */
+  pub raster_cache: sfnt_raster_cache,              // C 2608
+
+  /* Number of elements in the raster cache.  */
+  pub raster_cache_size: c_int,                     // C 2611
+
+  /* Interpreter for grid fitting (if enabled).  */
+  pub interpreter: *mut sfnt_interpreter,           // C 2614
+
+  /* Graphics state after the execution of the font and control value
+     programs.  */
+  pub state: sfnt_graphics_state,                   // C 2618
+
+  /* Factor used to convert from em space to pixel space.  */
+  pub scale: sfnt_fixed,                            // C 2621
+
+  /* The blend (configuration of this multiple master font).  */
+  pub blend: sfnt_blend,                            // C 2624
+
+  /* The index of the named instance used to initialize BLEND.
+     -1 if BLEND is not initialized.  */
+  pub instance: c_int,                              // C 2628
+
+  /* Whether or not the glyph table has been mmapped.  */
+  pub glyf_table_mapped: bool,                      // C 2632 (C 2630's `#ifdef HAVE_MMAP`, live)
+
+  #[cfg (feature = "harfbuzz")]
+  /* HarfBuzz font object.  */
+  pub hb_font: *mut c_void,                         // C 2637 (the `hb_font_t *` of C 2635's arm)
+
+  #[cfg (feature = "harfbuzz")]
+  /* File descriptor associated with this font.  */
+  pub fd: c_int,                                    // C 2640
+
+  #[cfg (feature = "harfbuzz")]
+  /* The table directory of the font file.  */
+  pub directory: *mut sfnt_offset_subtable,         // C 2643
+}
+
+/* clang, frozen configuration (`HAVE_MMAP` 1, `HAVE_HARFBUZZ` 0): `sizeof 576`, `_Alignof 8`,
+   `font` 0, `next` 184, `desc` 192, `cmap` 200, `hhea` 208, `maxp` 216, `head` 224, `hmtx` 232,
+   `glyf` 240, `loca_short` 248, `loca_long` 256, `prep` 264, `fpgm` 272, `cvt` 280, `cmap_data`
+   288, `cmap_subtable` 296, `uvs` 304, `outline_cache` 312, `outline_cache_size` 352,
+   `raster_cache` 360, `raster_cache_size` 392, `interpreter` 400, `state` 408, `scale` 512,
+   `blend` 520, `instance` 568, `glyf_table_mapped` 572.  Two other conditions move this record's
+   layout and are therefore outside the reading, as they are for `sfnt_font_tables` above: the
+   three `havfbuzz` members (C 2635-2644 add 24 bytes) and the eight `HAVE_WINDOW_SYSTEM` members
+   of the embedded `struct font` (`font.h` 325-403, 8 bytes each) - hence the two negated gates.
+    */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	    not (feature = "harfbuzz"), not (feature = "have_window_system")))]
+const _: () = {
+  core::assert! (std::mem::size_of::<sfnt_font_info> () == 576);
+  core::assert! (std::mem::align_of::<sfnt_font_info> () == 8);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, font) == 0);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, next) == 184);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, desc) == 192);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, cmap) == 200);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, hhea) == 208);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, maxp) == 216);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, head) == 224);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, hmtx) == 232);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, glyf) == 240);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, loca_short) == 248);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, loca_long) == 256);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, prep) == 264);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, fpgm) == 272);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, cvt) == 280);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, cmap_data) == 288);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, cmap_subtable) == 296);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, uvs) == 304);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, outline_cache) == 312);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, outline_cache_size) == 352);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, raster_cache) == 360);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, raster_cache_size) == 392);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, interpreter) == 400);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, state) == 408);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, scale) == 512);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, blend) == 520);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, instance) == 568);
+  core::assert! (std::mem::offset_of! (sfnt_font_info, glyf_table_mapped) == 572);
+};
+
+/* List of all open fonts.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut open_fonts: *mut sfnt_font_info = std::ptr::null_mut ();      // C 2651
+
+/* `sfntfont_measure_pcm` is declared at C 2681-2682 and *defined* at C 3504, i.e. C's own order
+   puts the caller (`sfntfont_probe_widths`, C 2692) before its callee; the declaration below is
+   the port's use-site spelling of that (the `ftfont.rs` 2066 `hbotf_open` shape, P-91 ④) and the
+   slice that lands C 3504 replaces it with the definition - the ledger's `## Owed` names it.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: 2681-2682: `static int sfntfont_measure_pcm (struct sfnt_font_info *, sfnt_glyph,
+  /// struct font_metrics *);`
+  pub fn sfntfont_measure_pcm (arg0: *mut sfnt_font_info, arg1: sfnt_glyph_index,
+			       arg2: *mut font_metrics) -> c_int;
+}
+
+/* Look up the glyph corresponding to the character C in FONT.  Return
+   0 upon failure, and the glyph otherwise.  */
+
+/// C 2658-2679: `sfntfont_lookup_glyph` - C's `static sfnt_glyph` (the scalar typedef, i.e.
+/// `sfnt_glyph_index` in the port, Deviation 18 (a)).  It reads `font.encoding_charset`, one of the
+/// eight members C guards with `HAVE_WINDOW_SYSTEM` (`font.h` 325-403, and the mirror gates them
+/// with `have_window_system`), so the item carries that gate too - every branch that builds
+/// `sfntfont.o` is a window-system build (`configure.ac` 2645's Android branch, the ledger's Gate
+/// mapping), which is why C itself can read it unconditionally.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	   feature = "have_window_system"))]
+unsafe fn sfntfont_lookup_glyph (font_info: *mut sfnt_font_info, c: c_int) -> sfnt_glyph_index
+{                                                          // C 2658-2679
+  let mut charset: *mut charset;
+  let mut character: sfnt_char;
+  let mut glyph: sfnt_glyph_index;
+
+  charset = CHARSET_FROM_ID! ((*font_info).font.encoding_charset);   // C 2665
+
+  if charset.is_null ()
+    { return 0; }                                          // C 2668
+
+  character = ENCODE_CHAR! (charset, c);                   // C 2670
+
+  if character == CHARSET_INVALID_CODE! (charset)
+    { return 0; }                                          // C 2673
+
+  /* Do the actual lookup with the encoded character.  */
+  glyph = sfnt_lookup_glyph (character, (*font_info).cmap_data);   // C 2676
+
+  return glyph;                                            // C 2678
+}
+
+/* Probe and set FONT_INFO->font.average_width,
+   FONT_INFO->font.space_width, and FONT_INFO->font.min_width
+   according to the tables contained therein.
+
+   As this function generates outlines for all glyphs, outlines for
+   all ASCII characters will be entered into the outline cache as
+   well.  */
+
+/// C 2692-2742: `sfntfont_probe_widths` - its callee `sfntfont_lookup_glyph` carries the
+/// `have_window_system` gate above, so this item does too.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify",
+	   feature = "have_window_system"))]
+unsafe fn sfntfont_probe_widths (font_info: *mut sfnt_font_info)
+{                                                          // C 2692-2742
+  let mut i: c_int;
+  let mut num_characters: c_int;
+  let mut total_width: c_int;
+  let mut glyph: sfnt_glyph_index;
+  /* C 2697's `pcm` is filled by `sfntfont_measure_pcm` at C 2719 before it is read; zero-initialised
+     because its address is taken (PORTING.md 1.5, Deviation 10).  */
+  let mut pcm: font_metrics = std::mem::zeroed ();
+
+  num_characters = 0;                                      // C 2699
+  total_width = 0;                                         // C 2700
+
+  /* First set some reasonable default values.  */
+  (*font_info).font.average_width = (*font_info).font.pixel_size;   // C 2703
+  (*font_info).font.space_width = (*font_info).font.pixel_size;     // C 2704
+  (*font_info).font.min_width = 1;                         // C 2705
+
+  /* Next, loop through the common ASCII characters.  Tally up their
+     advance widths and set space_width if necessary.  */
+  i = 32;                                                  // C 2709
+  while i < 127
+    {
+      glyph = sfntfont_lookup_glyph (font_info, i);        // C 2711
+
+      if glyph == 0
+	{ i += 1; continue; }                              // C 2714
+
+      /* Now look up the metrics of this glyph.  Data from the metrics
+	 table doesn't fit the bill, since variations and instruction
+	 code is not applied to it.  */
+      if sfntfont_measure_pcm (font_info, glyph, &raw mut pcm) != 0
+	{ i += 1; continue; }                              // C 2720
+
+      /* Increase the number of characters.  */
+      num_characters += 1;                                 // C 2723
+
+      /* Add the advance to total_width.  */
+      total_width += pcm.width as c_int;                   // C 2726
+
+      /* Update min_width if it hasn't been set yet or is wider.  */
+      if (*font_info).font.min_width == 1
+	 || (*font_info).font.min_width > pcm.width as c_int   // C 2729-2730
+	{ (*font_info).font.min_width = pcm.width as c_int; }   // C 2731
+
+      /* If i is the space character, set the space width.  Make sure
+	 to round this up.  */
+      if i == 32
+	{ (*font_info).font.space_width = pcm.width as c_int; }   // C 2736
+      i += 1;
+    }
+
+  /* Now, if characters were found, set average_width.  */
+  if num_characters != 0                                   // C 2740
+    { (*font_info).font.average_width = total_width / num_characters; }   // C 2741
 }
