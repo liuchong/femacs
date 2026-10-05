@@ -9,7 +9,7 @@
 - [x] buffer-text-pixel-size  (Fbuffer_text_pixel_size, 0/6, doc 8ad2cd85d9f9, line 12158)
 - [x] display--line-is-continued-p  (Fdisplay__line_is_continued_p, 0/0, doc 198c6180dfb2, line 12216)
 - [x] long-line-optimizations-p  (Flong_line_optimizations_p, 0/0, doc 9778916a82c2, line 20414)
-- [ ] current-bidi-paragraph-direction  (Fcurrent_bidi_paragraph_direction, 0/1, doc 2adae0649377, line 26937)
+- [x] current-bidi-paragraph-direction  (Fcurrent_bidi_paragraph_direction, 0/1, doc 2adae0649377, line 26937)
 - [ ] bidi-find-overridden-directionality  (Fbidi_find_overridden_directionality, 3/4, doc 6e06604b8c32, line 27030)
 - [ ] move-point-visually  (Fmove_point_visually, 1/1, doc 3a8d3658283b, line 27181)
 - [ ] bidi-resolved-levels  (Fbidi_resolved_levels, 0/1, doc e680f6eaa573, line 27637)
@@ -457,7 +457,9 @@ the ellipsis record (`ends_in_ellipsis_p`), the four `*_user_fringe_*` copies,
 `set_cursor_from_row`'s test and the next-row epilogue.  The covered range is now
 **C 468-26935**.  The next live definition is **C 26937's `current-bidi-paragraph-direction`**
 (`Fcurrent_bidi_paragraph_direction`/`Scurrent_bidi_paragraph_direction`, a `DEFUN`); the
-round after it opens there.
+round after it opens there.  **That round is now in (C 26937-27028): the covered range is
+C 468-27028 and the next live definition is C 27030's `bidi-find-overridden-directionality`** -
+the Progress bullet below carries its readings.
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **The round before this one added C
 25077-25863** — the "line numbers and line prefixes" group, the eleven definitions between the
@@ -996,6 +998,15 @@ C 5773).
 * C 25864-26935 — `display_line` (the opening paragraph names every arm); its two `goto
   back_to_wrap` sites and its `at_end_of_line` label are the round's only control-flow work,
   and its `#undef RECORD_MAX_MIN_POS` (C 26934) has no Rust site (the dead-arm list below).
+* C 26937-27028 — `current-bidi-paragraph-direction` (the DEFUN `Fcurrent_bidi_paragraph_direction`
+  / `Scurrent_bidi_paragraph_direction`, 0/1): C's `switch (itb.paragraph_dir)` becomes the port's
+  `match` over `NEUTRAL_DIR`/`L2R`/`R2L` (deviation 246), the uninitialised `struct bidi_it itb`
+  is `core::mem::zeroed ()` (1.5), and `AUTO_STRING (trailing_white_space, "[\f\t ]*\n")` is the
+  `AUTO_STRING!` spelling of the same literal.  It needs one use-site declaration
+  (`fast_looking_at`, item 17) and one `macro-body-notes.tsv` row (`case,default,switch`), and it
+  retires the subr and defsubr the scaffold had carried.  The covered range is now **C 468-27028**;
+  the **next live definition is C 27030's `bidi-find-overridden-directionality`** (`DEFUN`, the
+  Subrs list's ninth unchecked item).
 ### The transcription that is in place
 
 The ledger above is the checklist.  Its tick boxes read 248 of the C file's 302 functions
@@ -1319,6 +1330,12 @@ the in-function `#define` becomes a function-scope `macro_rules!` whose scope is
     `clear_glyph_matrix_rows`/`shift_glyph_matrix`, C's prototype in a `/// C:` line; the
     mirror chain carries none of the three, and `display_line` (C 25906) is this unit's first
     use.  `nm build/femacs/xdisp.o` reads `U _prepare_desired_row`.
+
+17. **One more use-site declaration this round**: `fast_looking_at` (lisp.h 5031-5032, defined by
+    search.c) joins the unit's `unsafe extern "C"` block next to the `bidi_*` group, C's
+    prototype in a `/// C:` line; the lisp.h mirror the chain carries does not have it (bidi.rs
+    declares the same prototype for its own first use), and `current-bidi-paragraph-direction`
+    (C 27007) is this unit's first use.
 
 ### Deviations (each one also named in the report)
 
@@ -2857,6 +2874,27 @@ the in-function `#define` becomes a function-scope `macro_rules!` whose scope is
      `/* UNINIT */` markers' job to say where the C initialisers went (deviation 237), not a
      Rust token.
 
+### Deviations, continued (the round's thirty-first pass: `current-bidi-paragraph-direction`)
+
+246. **`switch` -> `match`** (the family of deviations 244/245 and the `cmgoto` row): C
+     27016-27027's `switch (itb.paragraph_dir)` with its `case L2R`/`case R2L` (each a `return`
+     plus an unreachable `break`) and its `default:` (`emacs_abort ()`) becomes a `match` over the
+     three `bidi_dir_t` constants, the two arms `return`ing and the `_` arm calling
+     `emacs_abort ()`; the `break` token survives in the port because the body's own scan loop
+     uses one (the `macro-body-notes.tsv` row says so).
+247. **Zero-initialised `struct bidi_it itb`** (PORTING.md 1.5, the `UNINIT` family): C declares it
+     uninitialised and `bidi_init_it` fills it; Rust cannot leave it uninitialised, so it is
+     `core::mem::zeroed ()` and every field C sets afterwards is set in C's order.
+248. **C's assignment inside a condition**: `while ((c = FETCH_BYTE (bytepos)) == '\n' || …)` is
+     the port's `while { c = FETCH_BYTE! (bytepos) as c_int; … }` block expression (the
+     `trailing_whitespace_p` shape at C 11764), with `int c` as `c_int` and C's `'\f'` as `b'\x0c'`
+     (`'\n'`/`' '`/`'\t'` keep their spellings).
+249. **`AUTO_STRING (name, "[\f\t ]*\n")`** -> `AUTO_STRING! (name, c"[\x0c\t ]*\n".as_ptr ())`
+     (the macro is the tree's; C's escaped literal is spelled with Rust's escapes).
+250. **`BVAR (buf, field)` -> `BVAR! (buf, field_)`** (buffer.rs 399's macro pastes C's `## _`
+     suffix), and `itb.string.from_disp_str = false` / `unibyte = false` go through this unit's
+     `bidi_string_bits!` arms (the bit-run spelling, P-80) rather than field writes.
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -3362,3 +3400,24 @@ behind); a bare `rustc` from the repository root falls through to stable and rep
 family — the round's only type-level work is the `it_bits!`/`it_bits3_*` accessors over the
 already-measured 96-bit `bits3` run (`struct it`'s byte 2604, whose `const _` assertions are
 unchanged) — and the task's reading list is `build-tu` plus the text gates above.
+
+**This round (C 26937-27028).**  `femacs/src/xdisp.rs` md5 `7d0539d6438f7806f23a006d2c994cc4`
+(25,779 lines; HEAD's revision is 25,692 lines, md5 `25a1231b6aa5e72965c02096b8c3ce02`).
+
+* `cd femacs && CARGO_TARGET_DIR=/tmp/xdisp32 cargo run -q -p xtask -- build-tu src/xdisp.c` =
+  `built src/xdisp.rs -> ../build/femacs/xdisp.o`, **exit 0**, one invocation, object
+  **2,674,432 bytes**, md5 `5dd3b2cc6f03149295d5d8083afcc034` (HEAD's object: 2,661,656 bytes, md5
+  `2a2e940f0960a293ff33b8c234787b7b`), with the same six warnings as every previous round and
+  none added.  `nm build/femacs/xdisp.o` reads `T _Fcurrent_bidi_paragraph_direction` and
+  `s __RNvCs3P4vcM1aRw9_5xdisp33Scurrent_bidi_paragraph_direction`.
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = **71 `- ` lines**
+  (the round's HEAD reading is 72 with this extractor: it retires `missing subr
+  Fcurrent_bidi_paragraph_direction` and `missing defsubr (&raw const
+  Scurrent_bidi_paragraph_direction)`, and adds `subr Fcurrent_bidi_paragraph_direction does not
+  mention case, default, switch`, which the row above answers).  No `does not mention` line
+  remains; the rest are the unported remainder and the three scaffold declarations.
+* `python3 tools/check-ledger-ticks.py` binds the new subr's tick; `check-dead-file-coverage.py`
+  and `check-declarations.py` are unchanged (this unit is not a P-86 range-table file and adds no
+  product-name site).
+* `xtask layout-check` was not re-run: the round adds no `struct`, no field and no layout family
+  (it uses `bidi_it` as bidi.rs declares it).

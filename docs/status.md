@@ -7293,3 +7293,31 @@
      `w32term.c` 切片 2（自 C 1005）、`xfns.c` 切片 1（C 1 起，新建 `docs/ports/xfns.md`）。
   ⑦ **未声称**：本轮**没有编译**（只跑文本门 + `cargo metadata`）；③ 是**读 + 加行**，`does not mention`
      归零只说明"行与 finding 对应"，不说明那些 C 语句的语义已被差分验证。
+
+- **3.420 xdisp 第三十二轮：`current-bidi-paragraph-direction`（C 26937-27028，一个 DEFUN）（2026-10-05）**：
+  ① **区间**：C 26937-27028（`Fcurrent_bidi_paragraph_direction`/`Scurrent_bidi_paragraph_direction`，0/1）。
+     覆盖区间从 C 468-26935 推到 **C 468-27028**；**下一个活定义 = C 27030 的
+     `bidi-find-overridden-directionality`**（DEFUN，Subrs 表第 9 个未勾项）。C 26929 的 `#undef
+     RECORD_MAX_MIN_POS` 与 DEFUN 之间没有别的活定义。
+  ② **行数**：`femacs/src/xdisp.rs` 25,692 → **25,779**（+87 / −0，md5
+     `25a1231b6aa5e72965c02096b8c3ce02` → `7d0539d6438f7806f23a006d2c994cc4`）；台账 `docs/ports/xdisp.md`
+     3,364 → 3,405 行。
+  ③ **读数（命令原文进台账的 Gate evidence）**：⑴ 冻结 `xtask build-tu src/xdisp.c` **exit 0、1 发**，
+     对象 **2,674,432 字节**（HEAD 2,661,656）、md5 `5dd3b2cc6f03149295d5d8083afcc034`，警告仍是原有的 6 条；
+     `nm` 读到 `T _Fcurrent_bidi_paragraph_direction` 与该 subr 的 `Scurrent_bidi_paragraph_direction`
+     静态符号；⑵ `extract-abi --check` **72 → 71 个 `- ` 行**——退掉 `missing subr Fcurrent_bidi_paragraph_direction`
+     与 `missing defsubr (&raw const Scurrent_bidi_paragraph_direction)`，新增的
+     `subr … does not mention case, default, switch` 由本轮新加的 `macro-body-notes.tsv` 一行答掉；
+     `does not mention` 归零；⑶ `check-ledger-ticks` **235 / 0**（新 subr 的 tick 被承载）。
+  ④ **本轮 5 条偏离（246-250，写进台账）**：C 27016-27027 的 `switch`（两个 `case` 各 `return` + 一个
+     `default: emacs_abort ()`）→ 端口的 `match`；C 未初始化的 `struct bidi_it itb` → `core::mem::zeroed ()`（1.5）；
+     C 的 `while ((c = FETCH_BYTE (bytepos)) == '\n' || …)` → 块表达式（`trailing_whitespace_p` 同款），
+     `'\f'` 写 `'\x0c'`；`AUTO_STRING (trailing_white_space, "[\f\t ]*\n")` →
+     `AUTO_STRING! (…, c"[\x0c\t ]*\n".as_ptr ())`；`BVAR (buf, x)` → `BVAR! (buf, x_)`，
+     `itb.string.from_disp_str/unibyte = false` 走本单元的 `bidi_string_bits!` 位串臂。
+  ⑤ **本轮欠账清点**：新加 1 条 use-site 声明（`fast_looking_at`，lisp.h 5031-5032，台账第 17 项）与 1 条
+     `macro-body-notes.tsv` 行（上面那条）；**没有**动任何镜像、`docs/baseline/**` 与别人的文件。
+  ⑥ **在飞（本轮派出，尚无读数）**：`android.c` 切片 2、`w32term.c` 切片 2、`xfns.c` 切片 1、`sfnt.c` 切片 1、
+     `w32.c` 切片 1——5 条 lane，各自独占文件。
+  ⑦ **未声称**：本轮没有运行任何东西；`--cfg enable_checking` 那条腿**本轮没跑**（上一轮的读数仍在台账里，
+     不代表本轮新增的 `eassert!` 语句）；臂读数不适用（xdisp.c 在冻结构建里，`build-tu` 就是真编）。

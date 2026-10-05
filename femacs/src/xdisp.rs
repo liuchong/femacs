@@ -618,6 +618,13 @@ unsafe extern "C" {
   /// C: dispextern.h 3559: `extern ptrdiff_t bidi_level_start (int);` (bidi.c defines
   /// it; `compute_stop_pos` needs it for the backward-scan stop position).
   pub fn bidi_level_start (level: c_int) -> ptrdiff_t;
+  /// C: lisp.h 5031-5032: `extern ptrdiff_t fast_looking_at (Lisp_Object, ptrdiff_t, ptrdiff_t,
+  /// ptrdiff_t, ptrdiff_t, Lisp_Object);` (search.c defines it; `current-bidi-paragraph-direction`
+  /// at C 27007 is this unit's first use - the bidi.rs mirror declares the same prototype for its
+  /// own first use).
+  pub fn fast_looking_at (regexp: Lisp_Object, pos: ptrdiff_t, pos_byte: ptrdiff_t,
+			  limit: ptrdiff_t, limit_byte: ptrdiff_t, object: Lisp_Object)
+			  -> ptrdiff_t;
   /* The face cache's entry points: `dispextern.h` declares them (3806-3833) and xfaces.c
      defines them; the mirror chain this unit includes does not carry them, so they are
      declared here with C's prototypes (PORTING.md 0.1-2/P-72 rule 3).  */
@@ -25690,3 +25697,83 @@ unsafe extern "C" {
 		     field_width: c_int, precision: c_int, max_x: c_int,
 		     multibyte: c_int) -> c_int;
 }
+
+DEFUN! ("current-bidi-paragraph-direction", Fcurrent_bidi_paragraph_direction,
+       Scurrent_bidi_paragraph_direction, 0, 1, 0,
+       doc: "Return paragraph direction at point in BUFFER.\nValue is either `left-to-right' or `right-to-left'.\nIf BUFFER is omitted or nil, it defaults to the current buffer.\n\nParagraph direction determines how the text in the paragraph is displayed.\nIn left-to-right paragraphs, text begins at the left margin of the window\nand the reading direction is generally left to right.  In right-to-left\nparagraphs, text begins at the right margin and is read from right to left.\n\nSee also `bidi-paragraph-direction'.",
+       (buffer: Lisp_Object),
+       {
+  let mut buf: *mut buffer = current_buffer;
+  let old: *mut buffer = buf;
+
+  if !NILP (buffer)
+    {
+      CHECK_BUFFER (buffer);
+      buf = XBUFFER (buffer);
+    }
+
+  if NILP (BVAR! (buf, bidi_display_reordering_))
+      || NILP (BVAR! (buf, enable_multibyte_characters_))
+      /* When we are loading loadup.el, the character property tables
+	 needed for bidi iteration are not yet available.  */
+      || redisplay__inhibit_bidi
+    { return Qleft_to_right (); }
+  else if !NILP (BVAR! (buf, bidi_paragraph_direction_))
+    { return BVAR! (buf, bidi_paragraph_direction_); }
+  else
+    {
+      /* Determine the direction from buffer text.  We could try to
+	 use current_matrix if it is up to date, but this seems fast
+	 enough as it is.  */
+      let mut itb: bidi_it = core::mem::zeroed ();
+      let mut pos: ptrdiff_t = BUF_PT (buf);
+      let mut bytepos: ptrdiff_t = BUF_PT_BYTE (buf);
+      let mut c: c_int = 0;
+      let itb_data: *mut c_void = bidi_shelve_cache ();
+
+      set_buffer_temp (buf);
+      /* bidi_paragraph_init finds the base direction of the paragraph
+	 by searching forward from paragraph start.  We need the base
+	 direction of the current or _previous_ paragraph, so we need
+	 to make sure we are within that paragraph.  To that end, find
+	 the previous non-empty line.  */
+      if pos >= ZV! () && pos > BEGV! ()
+	{ dec_both (&raw mut pos, &raw mut bytepos); }
+      AUTO_STRING! (trailing_white_space, c"[\x0c\t ]*\n".as_ptr ());
+      if fast_looking_at (trailing_white_space, pos, bytepos, ZV! (), ZV_BYTE! (),
+			  Qnil ()) > 0
+	{
+	  while { c = FETCH_BYTE! (bytepos) as c_int;
+		  c == '\n' as c_int || c == ' ' as c_int
+		  || c == '\t' as c_int || c == '\x0c' as c_int }
+	    {
+	      if bytepos <= BEGV_BYTE! ()
+		{ break; }
+	      bytepos -= 1;
+	      pos -= 1;
+	    }
+	  while !CHAR_HEAD_P (FETCH_BYTE! (bytepos) as c_int)
+	    { bytepos -= 1; }
+	}
+      bidi_init_it (pos, bytepos, FRAME_WINDOW_P (SELECTED_FRAME ()), &raw mut itb);
+      itb.paragraph_dir = NEUTRAL_DIR;
+      itb.string.s = core::ptr::null ();
+      itb.string.lstring = Qnil ();
+      itb.string.bufpos = 0;
+      bidi_string_bits! (from_disp_str, &raw mut itb.string, false);
+      bidi_string_bits! (unibyte, &raw mut itb.string, false);
+      /* We have no window to use here for ignoring window-specific
+	 overlays.  Using NULL for window pointer will cause
+	 compute_display_string_pos to use the current buffer.  */
+      itb.w = core::ptr::null_mut ();
+      bidi_paragraph_init (NEUTRAL_DIR, &raw mut itb, true);
+      bidi_unshelve_cache (itb_data, false);
+      set_buffer_temp (old);
+      match itb.paragraph_dir
+	{
+	  L2R => { return Qleft_to_right (); }
+	  R2L => { return Qright_to_left (); }
+	  _ => { emacs_abort (); }
+	}
+    }
+});
