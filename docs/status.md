@@ -7574,3 +7574,36 @@
   ⑦ **未声称**：**零运行证据**（没有 `LoadLibrary`/`GetVersionEx`/注册表/套接字/文件调用，没有 Windows 目标编译、
      没有布局实测）；打桩 harness 的对象**从未运行**，变异测试只证明 harness 真的在编本单元正文；
      C 1198-11,362 **未移植**（271 行读数与 83.8% 漂移是那条边界）。
+
+- **3.431 androidvfs 切片 1（C 1-995）：vnode/vdir 骨架、名字规范化与 Unix 半边（2026-10-05）**：
+  ① **区间**：C 1-995（收在 `android_unix_opendir` 的 `}`）；**下一个活定义 = C 1016 `android_extract_long`**
+     （其间还有 C 999-1002 的注释块与 C 1005/1008/1011 三个文件级对象）；40 行区间表连续覆盖 C 1-7,950。
+     块：`android_vops`(13 成员)/`android_vnode`/`android_special_vnode`、`static_assert (NIL_IS_ZERO)`、
+     9 个 enum 成员、6 个文件级对象、三个 `android_init_*_class`（各带函数内 `FIND_METHOD`）、
+     `EMACS_PATH_MAX`、`android_vfs_canonicalize_name`、`root_vnode` + 11 条前向声明、`unix_vfs_ops`、
+     `android_unix_name` 与 16 个 Unix vnode 操作。
+  ② **行数**：`femacs/src/androidvfs.rs` **11 → 1,429**；台账 `docs/ports/androidvfs.md` 24 → **303**。
+  ③ **读数**：⑴ 冻结 `build-tu` **exit 0 / 336 字节空对象**；⑵ **两条臂都 exit 0**：
+     ②a（文件门 only，C 的 `#else` 臂）**0 error / 4,272 字节对象**、②b（`+ android_api_ge_9`，C 的 `>= 9` 臂）
+     **0 error / 4,216 字节对象**；5 条 warning 全来自被包含的镜像，**本单元自己 0 error 0 warning**；
+     ⑶ `extract-abi --check` **181 → 179 行**（集成者补 2 行 notes 后；178 条 `missing…` 逐条核对**全部落在
+     C 995 之后**）；漂移 82.0%；⑷ `check-dead-file-coverage` 40 行/0 failure、`check-declarations` 14/0/0、
+     `check-mirror-dupes` 19/19/0、`check-citations` 675/0。**预算如实**：`build-tu` 11 发（限 3）、`probe` 5 发（限 3）。
+  ④ **真缺陷（4 条，前两条是系统性的）**：⑴ **`include/android-asset.rs` 的 `macro_rules! assert` 会污染兄弟镜像**——
+     经 `include!` 到达的同名宏属"macro-expanded"，任何兄弟镜像里的 `assert!` 都变 **E0659**（两臂 60+ 条）；
+     代价用**变异实测**量过（把 `dispextern.rs` 的一条布局断言改成 `== 999` 仍编过 ⇒ 该 TU 里镜像的断言被展开成 `()`），
+     本单元自己的断言因此一律写 `core::assert!`；⑵ **P-89 的坑在镜像内部又来一次**（`android-asset.rs` 自己那条
+     带门的 `include!("jni.rs")` 会吞掉 `jni.rs` 的唯一一次包含）⇒ 把本单元自己的 `jni.rs` 边放到 C 51 边之前；
+     ⑶ `struct android_vdir` 与 `include/android.rs` 的 P-70 替身**不能共存**（E0428；用替身则布局 0 字节而 C 是 24）
+     ⇒ 本单元不 include `android.h` 镜像、就地声明那一个名字；⑷ Rust 必补写法（`p[i]`→`*p.offset(i as isize)`、
+     enum→`as c_short`、变参 `open` 的 `mode`、`errno`→`*errno ()` 等）+ 16 处零初始化（1.5）。
+  ⑤ **集成者本轮替它落的账**：`femacs/xtask/Cargo.toml` 补 **`android_api_ge_9`**（C 46 的 `__ANDROID_API__ >= 9`）；
+     `docs/ports/macro-body-notes.tsv` 两行（`android_vfs_canonicalize_name` → `case,default,goto,switch`；
+     `android_unix_name` → `goto`）。
+  ⑥ **本轮的 `gate-fast` 读数（另一件事，记下来免得误读）**：它在**清单步**停下并打印
+     `checked 590 ported files: 577 done, 2 in progress, 11 failing` + `error: inventory differences`
+     ——那 11 个就是**正在切片的单元**（含 4 条新 lane 刚写下的部分文件），是批量推进中的正常态；
+     它没有走到 layout/build-tu 两腿，所以**不能**当作全树编译读数。
+  ⑦ **未声称**：**零运行证据**（没有 JNI 调用、没有 `opendir/readdir/fstatat/rename/symlink`、没有创建/命名/打开过任何
+     vnode、没有 Android 设备或模拟器）；②a/②b 的对象**从未运行**；C 996-7,950 未移植；C 1005 的 `directory_tree`
+     被 include 图"提前回答"，**切片 2 不得当成已移植**（台账已点名）。
