@@ -11343,3 +11343,28 @@
   ⑥ **未声称**：冻结配置**不编**此文件（`build-tu` 只有 336 字节空对象），整件是文本移植——没有 Windows 目标、控制台句柄、
      `INPUT_RECORD`、码页或事件循环被运行；`<windows.h>` 记录与常量全部 **UNVERIFIED**；C 291 的
      `lispy_function_keys` 越界读被端口的**有界索引**取代（台账 Deviations 10 明记这是**故意偏离 C 的 UB**）。
+
+- **3.566 lane 产出收口：`src/dosfns.c` 整文件落地（C 798 → Rust 1,218）（2026-10-05）**：
+  ① **lane 的产出（Ampere）**：`femacs/src/dosfns.rs` 12 → **1,218 行**（md5 `f1762983…`），台账 357 行 / 24 行**连续**区间表
+     覆盖 C 1-798（`port-map.md` 把 `src/dosfns.h` 也绑到这本台账，所以行间不留空档）；文件门 `msdos`（依据：
+     `src/Makefile.in` 306 的 `MSDOS_OBJ` 留空 + `msdos/sed1v2.inp` 136 在 DOS 自己的 make 文件里补上 dosfns.o +
+     冻结 macros 2849 `MSDOS undef`），子门两个（`not (have_x_windows)` 七处、`no_system_malloc` 三处），
+     `check-cond-eval` 读 **11 conditions / 0 disagreements**。它顺带纠正了原骨架两处错（行数写 804 实为 798；
+     "整身死文本 ⇒ 空单元"是 P-86 ① 已废止的读法）。
+  ② **读数**：冻结 `build-tu` 3 发（未超）→ 336 字节（三次同 md5）；臂 `--cfg 'feature="msdos"'` 三念
+     **28 → 12 → 9 条错，落在单元自身 15 → 3 → 0**，最终 9 条**全在镜像副本**（`include/dosfns.rs` 8 条 `E0428`——
+     该镜像顶层声明了本单元**定义**的 8 个名字，与 `w32inevt`/`w32console` 同类；`include/msdos.rs` 的 `EINPROGRESS`
+     撞 `lib/include/errno.rs`）。**P-86 ⑦ 的变异测试本轮没做**（probe 预算用满），替代证据是那三次读数里
+     自身错误 15 → 3 → 0 的精确消失。
+  ③ **人工对拍补 `--check` 的空跑**：`extract-abi --check src/dosfns.c` 是 **OK 但空跑**（`MSDOS` undef ⇒ C 侧清单为空，
+     P-86 ②⑩），所以该 lane 另做了 **10/10 `DEFUN` 头、11/11 `DEFVAR_*` 行、21/21 docstring 逐字节**的人工对拍，
+     并把区间表当作替代覆盖证据。
+  ④ **集成者登记**：**不需要容差行**（`--check` 本已 OK）；`port-map.md` 刷新本件（在飞的 `ftcrfont`/`sfntfont-android`
+     两行回退成已提交值）；`port-lines-pending.tsv` 去掉本件的行 ⇒ **pending 现在只剩 5 文件 / 2,975 参照行**。
+  ⑤ **门读数（本轮现读）**：`check-mirror-dupes` 17/17/0、`check-declarations` 0 failures、
+     `check-dead-file-coverage` **138/0**、`check-ledger-ticks` 236/0、`check-port-lines` 5 文件 / 2,975 行 /
+     0 new / 2 stale、`check-target-names` 0 finding；`check-citations` **1 drift，唯一一条在在飞的
+     `femacs/src/sfntfont-android.rs:823`**（原文已转给该 lane）。
+  ⑥ **未声称**：本机没有 DJGPP，**没有翻臂到 DOS 目标编译、没有布局测量、没有执行任何行为**
+     （无 `int86`/`intdos`/DPMI/内存搬运/鼠标/屏幕/国家信息）；就地声明的 DJGPP 结构全是**文档值 UNVERIFIED**；
+     "整文件转写"不等于"能编/能跑"，`msdos` 臂今天编不过，那是镜像图的状态。

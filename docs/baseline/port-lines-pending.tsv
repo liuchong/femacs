@@ -6,7 +6,6 @@
 reference	c_lines	target_lines	threshold	reason
 lib/c++defs.h	367	22	36	known-unported target (plan batch F)
 oldXMenu/Create.c	752	3	75	known-unported target (plan batch F)
-src/dosfns.c	798	12	79	known-unported target (plan batch F)
 src/ftcrfont.c	826	11	82	known-unported target (plan batch F)
 src/sfntfont-android.c	821	11	82	known-unported target (plan batch F)
 src/w16select.c	692	19	69	known-unported target (plan batch F)
