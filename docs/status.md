@@ -11296,3 +11296,26 @@
   ⑤ **未声称**：冻结配置**不编**这个文件，整件是文本移植；没有行为测试、没有差分、没有设备证据；臂读数是 rustc 对
      **物化镜像图**的读数而**不是 Windows 编译**（本机无 `<windows.h>`），`ucrt` 臂本轮**没有任何读数**编译过它；
      所有记录与常量 **UNVERIFIED**。**在飞**：`src/w32inevt.c`（Mill）、`oldXMenu/Activate.c`（Halley）。
+
+- **3.564 lane 产出收口：`oldXMenu/Activate.c` 整文件落地（C 642 → Rust 926）（2026-10-05）**：
+  ① **lane 的产出（Halley）**：`femacs/oldXMenu/Activate.rs` 3 → **926 行**（md5 `bfbfa03d…`），台账 287 行 / 41 行区间表
+     覆盖 C 1-642；文件门 `have_x_windows` 压在每个项与整张 include 图上；X11 面（`XEvent` 记录、事件/掩码常量、
+     18 个入口点）用 clang 对**本机** xorgproto 2025.1 / libX11 1.8.13 实测后写成（P-88 ①，值仍是本机读数）。
+  ② **读数**：`build-tu` 1 发 exit 0 / 336 字节；臂 `--cfg 'feature="have_x_windows"'` 三念 **69 → 5 → 0 条错**
+     （中间那 5 条全在镜像：`XMenu.rs` 的 `XFontStruct`、`lib/include/stdlib.rs` 的 `c_double`），终版 **exit 0 / 0 error**；
+     它自己修掉六处（C 式 `for`、`use x11_constants::None;` 遮蔽 prelude 的 `None`、`Option<fn>` 直呼、
+     `xlib_surface` 名字不在本单元 crate 根、`XFontStruct` 就地声明、`c_double` 导入）。
+  ③ **它报出的一条真问题（我记账，未修）**：`oldXMenu/Internal.rs` crate 根那条 `include!("../src/include/xlib.rs")`
+     在 `xtask` 的 dedupe 下是**空操作**（每个单元自己的 include 都带 `#[cfg]`，无门边不被 `ungated_reachable` 看见，
+     P-89 的改道规则因此不生效，镜像里那条边先到、吃掉唯一展开位），而 `use xlib_surface::*;` 是私有 `use`
+     不再导出 ⇒ **`Internal.rs` 台账 Evidence 2 的"0 errors"读数可能已经失效**（应回 `E0412` 类错）。
+     这条与 `oldXMenu/Internal.md` 的 Owed 2（镜像侧 `xmenu_int_decls` 包裹）同根，**欠账**。
+  ④ **集成者登记**：容差行 `Activate 0.45`（642 vs 926 = 44.2%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件
+     （在飞的 `w32inevt` 行回退成已提交值）；`port-lines-pending.tsv` 去掉本件的行（**8 文件 / 5,420 参照行**）；
+     `macro-body-notes.tsv` 收下该 lane 追加的 1 行（只追加）。
+  ⑤ **门读数（本轮现读）**：`check-mirror-dupes` 17/17/0、`check-citations` **0 drift / 0 stale**、`check-declarations`
+     0 failures、`check-dead-file-coverage` **135/0**、`check-ledger-ticks` 235/0、`check-port-lines` 8 文件 / 5,420 行 /
+     0 new / 1 stale、`check-target-names` 0 finding。
+  ⑥ **未声称**：本机没有 X11 程序，冻结配置一行都不编，臂读数只是 `rustc` 的**类型检查**（没有画出的菜单、映射的窗口、
+     抓到的指针）；`HAVE_XINPUT2` 那一臂本轮**没有任何臂读数**；X11 布局是本机头文件的读数而非冻结目标的；
+     C 1-114 只按区间记账。**在飞**：`src/w32inevt.c`（Mill）。
