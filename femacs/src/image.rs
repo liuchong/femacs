@@ -151,62 +151,15 @@ include!("include/haikuterm.rs");              // TERM_HEADER: `haikuterm.h`
 #[cfg (all (feature = "have_window_system", feature = "have_android"))]
 include!("include/androidterm.rs");            // TERM_HEADER: `androidterm.h`
 
-/* ----------------------------------------------------------------------------------------------
-   dispextern.h 115-196: the per-platform `Display_Info`, `Emacs_Pix_Container` and
-   `Emacs_Pix_Context` typedefs.  C gets them from `dispextern.h`; `include/dispextern.rs` does not
-   carry them yet (the same gap `src/frame.rs` 6064-6085 records for `Display_Info`), so the six
-   `Display_Info` arms are written here with `frame.rs`'s own text, and the pixel-container pair -
-   which no unit has claimed - is added after them.  `docs/ports/image.md` reports both to their
-   owner.
-   ---------------------------------------------------------------------------------------------- */
+/* dispextern.h 115-196's per-platform `Display_Info`, `Emacs_Pix_Container` and `Emacs_Pix_Context`
+   typedefs now come from `include/dispextern.rs` (3.408's mirror round); this unit keeps only the two
+   arms that mirror deliberately does not carry - the pgtk `Display_Info` below and the w32 pixel pair
+   in the next block - each for the reason written beside it.  */
 
-/// C: dispextern.h 115: `typedef struct x_display_info Display_Info;`
-#[cfg (all (feature = "have_window_system", feature = "have_x_windows"))]
-pub type Display_Info = x_display_info;
-/// C: dispextern.h 136: `typedef struct w32_display_info Display_Info;`
-#[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
-pub type Display_Info = w32_display_info;
-/// C: dispextern.h 145: `typedef struct ns_display_info Display_Info;`
-#[cfg (all (feature = "have_window_system", feature = "have_ns"))]
-pub type Display_Info = ns_display_info;
 /// C: dispextern.h 152: `typedef struct pgtk_display_info Display_Info;`
 #[cfg (all (feature = "have_window_system", feature = "have_pgtk"))]
 pub type Display_Info = pgtk_display_info;
-/// C: dispextern.h 159: `typedef struct haiku_display_info Display_Info;`
-#[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
-pub type Display_Info = haiku_display_info;
-/// C: dispextern.h 165: `typedef struct android_display_info Display_Info;`
-#[cfg (all (feature = "have_window_system", feature = "have_android"))]
-pub type Display_Info = android_display_info;
 
-/* C 121-131: `#ifdef USE_CAIRO`'s "Minimal version of XImage" - an anonymous record, so the port
-   names it after the object C's typedef names (PORTING.md 1.3, the `w32fns.rs` `kbdhook_s`
-   reading).  The layout is C's own four members; `Clang`'s reading of the record is in
-   `docs/ports/image.md`.  */
-/// C: dispextern.h 122-131: `typedef struct { int width, height; char *data; int bytes_per_line; int bits_per_pixel; } *Emacs_Pix_Container;`
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-#[repr(C)]
-pub struct emacs_pix_container
-{
-  pub width: c_int,                                   // C 124
-  pub height: c_int,
-  pub data: *mut c_char,                              // C 125
-  pub bytes_per_line: c_int,                          // C 126
-  pub bits_per_pixel: c_int,                          // C 127
-}
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-pub type Emacs_Pix_Container = *mut emacs_pix_container;
-/* The record's layout, measured with this machine's clang against `dispextern.h` 122-131's own
-   text (`docs/ports/image.md`'s Evidence ④): sizeof **24**, align 8, `data` at 8,
-   `bytes_per_line` at 16, `bits_per_pixel` at 20.  */
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-const _: () = assert! (core::mem::size_of::<emacs_pix_container> () == 24);
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-const _: () = assert! (core::mem::offset_of! (emacs_pix_container, data) == 8);
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-const _: () = assert! (core::mem::offset_of! (emacs_pix_container, bytes_per_line) == 16);
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-const _: () = assert! (core::mem::offset_of! (emacs_pix_container, bits_per_pixel) == 20);
 
 /* C 136-139 and C 166: the other platforms' `Emacs_Pix_Container`, and C 192-196's
    `Emacs_Pix_Context`, which is the container itself unless a platform overrides it (w32 does, with
@@ -222,27 +175,6 @@ pub type Emacs_Pix_Container = *mut c_void;
 /// `include/w32gui.rs` 56 spells the same handle `*mut c_void`.
 #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
 pub type Emacs_Pix_Context = *mut c_void;
-/// C: nsgui.h 56: `typedef id Emacs_Pixmap;` - `id` is an Objective-C pointer, the degrade
-/// `include/nsgui.rs` 54 spells `*mut c_void`.  `include/nsterm.rs`'s include list does not reach
-/// `nsgui.h`'s mirror (C's `nsterm.h` includes it), so the declaration stands here and the ledger
-/// asks for it in the mirror.
-#[cfg (all (feature = "have_window_system", feature = "have_ns"))]
-pub type Emacs_Pixmap = *mut c_void;
-/// C: dispextern.h 146: `typedef Emacs_Pixmap Emacs_Pix_Container;`
-#[cfg (all (feature = "have_window_system", feature = "have_ns"))]
-pub type Emacs_Pix_Container = Emacs_Pixmap;
-/// C: dispextern.h 160: `typedef Emacs_Pixmap Emacs_Pix_Container;`
-#[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
-pub type Emacs_Pix_Container = Emacs_Pixmap;
-/// C: dispextern.h 166: `typedef struct android_image *Emacs_Pix_Container;`
-#[cfg (all (feature = "have_window_system", feature = "have_android"))]
-pub type Emacs_Pix_Container = *mut android_image;
-/// C: dispextern.h 192-196: "Ordinarily an Emacs_Pix_Context is just an Emacs_Pix_Container;
-/// C:   platforms can override this by defining the latter type and defining the conversion macro
-/// C:   PIX_CONTAINER_TO_CONTEXT."
-/// C: dispextern.h 196: `typedef Emacs_Pix_Container Emacs_Pix_Context;`
-#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui")))]
-pub type Emacs_Pix_Context = Emacs_Pix_Container;
 
 /* lisp.h's three declarations this slice calls that `include/lisp.rs` does not carry (the mirror
    gaps `src/fns.rs` 156 and `src/lread.rs` 1888 also record).  Each keeps C's own prototype in a

@@ -473,7 +473,8 @@ unsafe extern "C" fn haiku_get_string_resource (ignored: *mut c_void, name: *con
 #[cfg (feature = "have_haiku")]
 unsafe extern "C" fn haiku_update_size_hints (f: *mut frame)                    // C 140-153
 {
-  if (*f).tooltip
+  /* C's `f->tooltip` is a bit in the flag row, so the mirror's reader is its name.  */
+  if FRAME_TOOLTIP_P (f)
     { return; }
 
   block_input ();
@@ -1420,11 +1421,10 @@ unsafe fn haiku_draw_text_decoration (s: *mut glyph_string, face: *mut face,
 	      let mut minimum_offset: c_ulong = 0;
 	      let mut underline_at_descent_line: bool = false;
 	      let mut use_underline_position_properties: bool = false;
-	      /* `include/window.rs`'s `WINDOW_BUFFER_LOCAL_VALUE (w, v)` takes C's two arguments
-		 in the *other* order - C's macro is `WINDOW_BUFFER_LOCAL_VALUE (V, W)`
-		 (window.h 633) - so every use site swaps them (the mirror gap the ledger owes).  */
-	      let mut val: Lisp_Object = WINDOW_BUFFER_LOCAL_VALUE ((*s).w,
-								    Qunderline_minimum_offset ());
+	      /* `include/window.rs`'s `WINDOW_BUFFER_LOCAL_VALUE` takes C's own order `(V, W)`
+	      since 3.408 fixed the mirror (window.h 633), so the use sites below spell the value
+	      first and the window second.  */
+	      let mut val: Lisp_Object = WINDOW_BUFFER_LOCAL_VALUE (Qunderline_minimum_offset (), (*s).w);
 
 	      /* C's `max` over an `int` and the `EMACS_INT` fixnum, converted to the
 		 `unsigned long` target.  */
@@ -1433,13 +1433,12 @@ unsafe fn haiku_draw_text_decoration (s: *mut glyph_string, face: *mut face,
 	      else
 		{ minimum_offset = 1; }
 
-	      val = WINDOW_BUFFER_LOCAL_VALUE ((*s).w, Qx_underline_at_descent_line ());
+	      val = WINDOW_BUFFER_LOCAL_VALUE (Qx_underline_at_descent_line (), (*s).w);
 	      underline_at_descent_line
 		= (! (NILP (val) || BASE_EQ (val, Qunbound ()))
 		   || face_bits! (underline_at_descent_line_p, GS_FACE! (s)));
 
-	      val = WINDOW_BUFFER_LOCAL_VALUE ((*s).w,
-					       Qx_use_underline_position_properties ());
+	      val = WINDOW_BUFFER_LOCAL_VALUE (Qx_use_underline_position_properties (), (*s).w);
 	      use_underline_position_properties
 		= ! (NILP (val) || BASE_EQ (val, Qunbound ()));
 

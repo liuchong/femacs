@@ -7000,3 +7000,22 @@
      （`fullscreen_type` + `FULLSCREEN_*`）；另 `src/haikuterm.rs` 1423-1441 三处 `WINDOW_BUFFER_LOCAL_VALUE` 调用序与 476 的 `(*f).tooltip`
      要按新镜像对齐。`check_x_display_info` **镜像未落**（加了会让 `check-mirror-dupes` 报与 `frame.rs` 的重复声明，而 ratchet 行在 `docs/baseline/**`），
      故 `src/frame.rs` 6155-6156 的副本**保留**。
+
+- **3.409 3.408 欠的那笔搬运：单元侧副本删掉、调用点对齐（2026-10-05）**：
+  ① **背景**：3.408 的镜像轮落了 `dispextern.rs` 的 window-system 半与 `frame.rs` 的 `enum fullscreen_type`，
+     但 lane 不许碰单元，于是"同提交删除单元副本"（P-26 的搬运规则）**欠了一笔**——那期间这些平台臂的翻臂
+     会停在 `E0428`。这一笔把它补上。
+  ② **改动**：⑴ `femacs/src/image.rs` 删掉镜像已拥有的三块——五份 `Display_Info` 臂（x11/w32/NS/haiku/android）、
+     `USE_CAIRO` 的 `emacs_pix_container` 记录 + 四条断言、NS/haiku/android 三份 `Emacs_Pix_Container` 与
+     默认 `Emacs_Pix_Context` + NS 的 `Emacs_Pixmap`；**保留两份镜像故意不带的**：pgtk 的 `Display_Info`
+     （镜像缺）与 w32 的 `Emacs_Pix_Container`/`Emacs_Pix_Context` 对（C 137-139 要未测的 Windows 类型）；
+     并把该段开头的注释改成"现在来自 `dispextern.rs`"。
+     ⑵ `femacs/src/frame.rs` 与 `femacs/src/w32fns.rs` 各自那一段 `fullscreen_type`/`FULLSCREEN_*` 删掉
+     （两处注释本来就写着"镜像拿到 enum 后必须删，否则 E0428"）。
+     ⑶ `femacs/src/haikuterm.rs` 三处 `WINDOW_BUFFER_LOCAL_VALUE` 调用点改回 **C 的 `(V, W)` 实参序**（3.408 修了镜像），
+     并把 `if (*f).tooltip` 改成 `FRAME_TOOLTIP_P (f)`（C 的 `tooltip` 是 flag run 里的一位，镜像给的是读取器）。
+  ③ **读数**：四个单元冻结档 `build-tu` 全部 **built / exit 0**（`frame`/`w32fns`/`haikuterm` 各 336 字节空对象，
+     `image` 同样 336 字节）；本提交只删单元侧副本与对齐调用点，**不动任何镜像**，所以 P-87 的全量扫描在批末统一跑。
+  ④ **未声称**：这些平台臂的翻臂读数仍是**名字解析级**（3.408 已记：`font.rs` 的 `E0080` 与 haiku/android 的单元文本缺陷
+     在被挡住的后面）；本笔**不改**那些，只把 3.408 欠的搬运补齐。`check_x_display_info` 的镜像条目仍未落
+     （会让 `check-mirror-dupes` 报与 `frame.rs` 的重复），故 `frame.rs` 的副本按 3.408 的说明**保留**。

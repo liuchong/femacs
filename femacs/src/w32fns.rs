@@ -1177,19 +1177,6 @@ pub unsafe extern "C" fn w32_fullscreen_rect (hwnd: HWND, fsmode: c_int, normal:
     }
 }
 
-/* C 517/525/531/537 name the three members of `frame.h` 48-58's `enum fullscreen_type`.
-   `include/frame.rs` does not carry the enum yet (it packs `want_fullscreen` into the `bits`
-   word), so the three members this slice names are declared at the use site (P-72 rule 4) and must
-   be deleted when the mirror gains the enum (E0428 otherwise) - the ledger's owed list.  */
-/// C: enum fullscreen_type { FULLSCREEN_NONE, FULLSCREEN_WIDTH = 0x1, FULLSCREEN_HEIGHT = 0x2,
-/// C: FULLSCREEN_BOTH = 0x3, FULLSCREEN_MAXIMIZED = 0x4, #ifdef HAVE_NTGUI FULLSCREEN_WAIT = 0x8
-/// C: #endif };
-#[cfg (feature = "have_ntgui")]
-pub const FULLSCREEN_WIDTH: c_int = 0x1;
-#[cfg (feature = "have_ntgui")]
-pub const FULLSCREEN_HEIGHT: c_int = 0x2;
-#[cfg (feature = "have_ntgui")]
-pub const FULLSCREEN_BOTH: c_int = 0x3;
 
 #[cfg (feature = "have_ntgui")]
 DEFUN! ("w32-define-rgb-color", Fw32_define_rgb_color,

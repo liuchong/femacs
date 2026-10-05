@@ -4749,20 +4749,6 @@ macro_rules! WINDOW_HANDLE_UINTPTR { ($h:expr) => { ($h) as usize }; }
 #[cfg (feature = "have_window_system")]
 macro_rules! PRIuMAX { () => { "ju" } }
 
-/* frame.h 49-60: `enum fullscreen_type`, itself inside C's `#ifdef HAVE_WINDOW_SYSTEM`; the
-   `HAVE_NTGUI` member `FULLSCREEN_WAIT` (0x8) is that arm's own and is not carried here.  */
-#[cfg (feature = "have_window_system")]
-pub type fullscreen_type = c_int;
-#[cfg (feature = "have_window_system")]
-const FULLSCREEN_NONE: fullscreen_type = 0;                 // C: frame.h 51
-#[cfg (feature = "have_window_system")]
-const FULLSCREEN_WIDTH: fullscreen_type = 0x1;              // C: frame.h 52
-#[cfg (feature = "have_window_system")]
-const FULLSCREEN_HEIGHT: fullscreen_type = 0x2;             // C: frame.h 53
-#[cfg (feature = "have_window_system")]
-const FULLSCREEN_BOTH: fullscreen_type = 0x3;               // C: frame.h 54
-#[cfg (feature = "have_window_system")]
-const FULLSCREEN_MAXIMIZED: fullscreen_type = 0x4;          // C: frame.h 55
 
 /* The two `size_hint_flags` sign bits: xterm.h's X11 header arms and `nsgui.h` 122, `pgtkgui.h`
    85, `w32gui.h` 79, `androidgui.h` 242 and `haikugui.h` 83 all define them as 0x0010/0x0020.  */
