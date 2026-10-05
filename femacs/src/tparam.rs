@@ -224,9 +224,9 @@ unsafe fn tparam1 (string: *const c_char, mut outstring: *mut c_char, len: c_int
 		/* Next following char is 'p' and an arg spec
 		   (0100 plus position of that arg relative to this one)
 		   or 'c' and a constant stored in a character.  */
-		tem = *p.offset (2) as c_int & 0177;
+		tem = *p.offset (2) as c_int & 0o177;
 		if *p.offset (1) as u8 == b'p'
-		  { tem = *argp.offset ((tem - 0100) as isize); }
+		  { tem = *argp.offset ((tem - 0o100) as isize); }
 		if *p as u8 == b'-'
 		  { *argp.offset (0) -= tem; }
 		else if *p as u8 == b'+'
@@ -252,14 +252,14 @@ unsafe fn tparam1 (string: *const c_char, mut outstring: *mut c_char, len: c_int
 
 	    b'n' =>		/* %n means xor each of next two args with 140.  */
 	      {
-		*argp.offset (0) ^= 0140;
-		*argp.offset (1) ^= 0140;
+		*argp.offset (0) ^= 0o140;
+		*argp.offset (1) ^= 0o140;
 	      }
 
 	    b'm' =>		/* %m means xor each of next two args with 177.  */
 	      {
-		*argp.offset (0) ^= 0177;
-		*argp.offset (1) ^= 0177;
+		*argp.offset (0) ^= 0o177;
+		*argp.offset (1) ^= 0o177;
 	      }
 
 	    b'B' =>		/* %B means express arg as BCD char code.  */
@@ -327,7 +327,7 @@ unsafe fn tparam1 (string: *const c_char, mut outstring: *mut c_char, len: c_int
 			{ memory_full_up (); }
 		    }
 		}
-	      *op = (if tem != 0 { tem } else { 0200 }) as c_char;
+	      *op = (if tem != 0 { tem } else { 0o200 }) as c_char;
 	      op = op.offset (1);
 	      drop_arg = true;
 	    }

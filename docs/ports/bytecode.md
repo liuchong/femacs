@@ -251,3 +251,21 @@ label constants and the six `bc_frame` assertions).
 4. Nothing else: no mirror, no `xtask`, no baseline file was edited.  The one mirror gap found
    (`record_in_backtrace`'s dropped return value) is recorded in deviation 11 rather than
    fixed here.
+
+## 2026-10-06: the opcode table's values were decimal readings of C's octal (status 3.633)
+
+`DEFINE!` copied C's octal spellings into Rust, where a leading zero means decimal: **160 of the 168
+opcodes were wrong** (`Bcall` 44 instead of 32, `Bconstant` 300 instead of 192, `Bdiscard` 210
+instead of 136).  The dispatch therefore sent most opcodes to an arm meant for another one: the
+`Bdiscard` the byte compiler emits after every call was swallowed as an operand byte (measured with
+a temporary ring of the last eight opcodes: the fetched sequence was `c0 c1 c2 c3 c4 24 c0 c5`,
+i.e. index 6 - `0o210` - was never fetched), the frame's stack grew one slot per call (measured
+depths 6 and 14 against a `max_stack` of 5) and a `Bconstant` push finally wrote a Lisp_Object over
+the frame header's `saved_fp` - which is the `bc->fp`-holds-a-cons reading of 3.630 and the
+"Bytecode stack overflow" of 3.628.
+
+Fix: `0o` + the same digits (PORTING.md P-94), values checked against C's list one by one (168/168
+equal).  Readings after the fix: `build-tu src/bytecode.c` -> `built`, `extract-abi --check` -> `OK`,
+and the fixture run (`EMACSLOADPATH=...`) goes from **23 to 39 `Loading` lines** with no
+`OVER-PUSH`/`HEADER-BAD`/`Bytecode stack overflow`; it now stops on `file-missing ... "charscript"`,
+the missing *generated* Lisp of 3.627's reading - a harness gap, not a defect in this unit.

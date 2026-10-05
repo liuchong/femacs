@@ -49,3 +49,9 @@
   defined them in this unit, and porting terminfo.c corrected it.  The token check for tparam.c
   is unchanged by the correction (still OK), because the C body reads the same two names.
 
+
+## 2026-10-06: an octal literal was read as decimal (status 3.633)
+
+C's `& 0177`, `- 0100`, `^= 0140` (twice) and `0200` (tparam.c 209/211/235/236/240/241/179) were copied as Rust decimal literals, so their values were 177/100/140/200 where C's are **127/64/96/128** - every digit was read in the wrong base.  The literal is `0o0177` now, so its value is C's; `build-tu` and
+`extract-abi --check` stay `built`/`OK` (xdisp's known `line count drifted 16.1%` row is unchanged -
+this change adds no line).  Gate: `tools/check-octal-literals.py` (PORTING.md P-94).

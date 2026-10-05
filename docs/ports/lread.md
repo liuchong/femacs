@@ -442,3 +442,9 @@ the first nested `(load ...)` of `loadup.el`, the outer reader was reading a clo
 EOF, the outer load returned, and elisp stopped after two files (`loadup.el`,
 `emacs-lisp/debug-early`) while the command loop took over.  With C's argument the chain runs
 `debug-early -> byte-run -> backquote -> subr` and keeps going.
+
+## 2026-10-06: an octal literal was read as decimal (status 3.633)
+
+C's `while (str[from] != 037)` and `c == '_' ? 037` (lread.c 3522/3531) were copied as Rust's `037`, which is **37**, not C's 31 (`^_`).  The literal is `0o037` now, so its value is C's; `build-tu` and
+`extract-abi --check` stay `built`/`OK` (xdisp's known `line count drifted 16.1%` row is unchanged -
+this change adds no line).  Gate: `tools/check-octal-literals.py` (PORTING.md P-94).

@@ -28914,7 +28914,7 @@ display_count_lines (start_byte: ptrdiff_t,
 	    {
 	      if selective_display
 		{
-		  while *cursor != b'\n' as u8 && *cursor != 015
+		  while *cursor != b'\n' as u8 && *cursor != 0o15
 			  && { cursor = cursor.offset (1); cursor != ceiling_addr }
 		    { }
 		  if cursor == ceiling_addr
@@ -28958,7 +28958,7 @@ display_count_lines (start_byte: ptrdiff_t,
 	      if selective_display
 		{
 		  while { cursor = cursor.offset (-1);
-			  cursor >= ceiling_addr && *cursor != b'\n' as u8 && *cursor != 015 }
+			  cursor >= ceiling_addr && *cursor != b'\n' as u8 && *cursor != 0o15 }
 		    { }
 		  if cursor < ceiling_addr
 		    { break; }

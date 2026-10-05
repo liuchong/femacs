@@ -4441,3 +4441,9 @@ mention` row from it or from the accessor sweep (deviation 300 measures that).
 The hole round's own readings are the Evidence section above; the two things it hands the
 integrator are item 14 (the accessor conversion's residual `does not mention` rows in the
 *other* units) and items 11/12 (the drift tolerance and the now-closed box).
+
+## 2026-10-06: an octal literal was read as decimal (status 3.633)
+
+C's `*cursor != 015` (xdisp.c 29944/29984, the bare octal 13 = CR) was copied as Rust's `015`, which is **15** - so the CR check never matched a CR.  The literal is `0o015` now, so its value is C's; `build-tu` and
+`extract-abi --check` stay `built`/`OK` (xdisp's known `line count drifted 16.1%` row is unchanged -
+this change adds no line).  Gate: `tools/check-octal-literals.py` (PORTING.md P-94).

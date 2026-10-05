@@ -137,187 +137,187 @@ DEFINE! (Bstack_ref4, 4);
 DEFINE! (Bstack_ref5, 5);
 DEFINE! (Bstack_ref6, 6);
 DEFINE! (Bstack_ref7, 7);
-DEFINE! (Bvarref, 010);
-DEFINE! (Bvarref1, 011);
-DEFINE! (Bvarref2, 012);
-DEFINE! (Bvarref3, 013);
-DEFINE! (Bvarref4, 014);
-DEFINE! (Bvarref5, 015);
-DEFINE! (Bvarref6, 016);
-DEFINE! (Bvarref7, 017);
-DEFINE! (Bvarset, 020);
-DEFINE! (Bvarset1, 021);
-DEFINE! (Bvarset2, 022);
-DEFINE! (Bvarset3, 023);
-DEFINE! (Bvarset4, 024);
-DEFINE! (Bvarset5, 025);
-DEFINE! (Bvarset6, 026);
-DEFINE! (Bvarset7, 027);
-DEFINE! (Bvarbind, 030);
-DEFINE! (Bvarbind1, 031);
-DEFINE! (Bvarbind2, 032);
-DEFINE! (Bvarbind3, 033);
-DEFINE! (Bvarbind4, 034);
-DEFINE! (Bvarbind5, 035);
-DEFINE! (Bvarbind6, 036);
-DEFINE! (Bvarbind7, 037);
-DEFINE! (Bcall, 040);
-DEFINE! (Bcall1, 041);
-DEFINE! (Bcall2, 042);
-DEFINE! (Bcall3, 043);
-DEFINE! (Bcall4, 044);
-DEFINE! (Bcall5, 045);
-DEFINE! (Bcall6, 046);
-DEFINE! (Bcall7, 047);
-DEFINE! (Bunbind, 050);
-DEFINE! (Bunbind1, 051);
-DEFINE! (Bunbind2, 052);
-DEFINE! (Bunbind3, 053);
-DEFINE! (Bunbind4, 054);
-DEFINE! (Bunbind5, 055);
-DEFINE! (Bunbind6, 056);
-DEFINE! (Bunbind7, 057);
+DEFINE! (Bvarref, 0o010);
+DEFINE! (Bvarref1, 0o011);
+DEFINE! (Bvarref2, 0o012);
+DEFINE! (Bvarref3, 0o013);
+DEFINE! (Bvarref4, 0o014);
+DEFINE! (Bvarref5, 0o015);
+DEFINE! (Bvarref6, 0o016);
+DEFINE! (Bvarref7, 0o017);
+DEFINE! (Bvarset, 0o020);
+DEFINE! (Bvarset1, 0o021);
+DEFINE! (Bvarset2, 0o022);
+DEFINE! (Bvarset3, 0o023);
+DEFINE! (Bvarset4, 0o024);
+DEFINE! (Bvarset5, 0o025);
+DEFINE! (Bvarset6, 0o026);
+DEFINE! (Bvarset7, 0o027);
+DEFINE! (Bvarbind, 0o030);
+DEFINE! (Bvarbind1, 0o031);
+DEFINE! (Bvarbind2, 0o032);
+DEFINE! (Bvarbind3, 0o033);
+DEFINE! (Bvarbind4, 0o034);
+DEFINE! (Bvarbind5, 0o035);
+DEFINE! (Bvarbind6, 0o036);
+DEFINE! (Bvarbind7, 0o037);
+DEFINE! (Bcall, 0o040);
+DEFINE! (Bcall1, 0o041);
+DEFINE! (Bcall2, 0o042);
+DEFINE! (Bcall3, 0o043);
+DEFINE! (Bcall4, 0o044);
+DEFINE! (Bcall5, 0o045);
+DEFINE! (Bcall6, 0o046);
+DEFINE! (Bcall7, 0o047);
+DEFINE! (Bunbind, 0o050);
+DEFINE! (Bunbind1, 0o051);
+DEFINE! (Bunbind2, 0o052);
+DEFINE! (Bunbind3, 0o053);
+DEFINE! (Bunbind4, 0o054);
+DEFINE! (Bunbind5, 0o055);
+DEFINE! (Bunbind6, 0o056);
+DEFINE! (Bunbind7, 0o057);
 
-DEFINE! (Bpophandler, 060);
-DEFINE! (Bpushconditioncase, 061);
-DEFINE! (Bpushcatch, 062);
+DEFINE! (Bpophandler, 0o060);
+DEFINE! (Bpushconditioncase, 0o061);
+DEFINE! (Bpushcatch, 0o062);
 
-DEFINE! (Bnth, 070);
-DEFINE! (Bsymbolp, 071);
-DEFINE! (Bconsp, 072);
-DEFINE! (Bstringp, 073);
-DEFINE! (Blistp, 074);
-DEFINE! (Beq, 075);
-DEFINE! (Bmemq, 076);
-DEFINE! (Bnot, 077);
-DEFINE! (Bcar, 0100);
-DEFINE! (Bcdr, 0101);
-DEFINE! (Bcons, 0102);
-DEFINE! (Blist1, 0103);
-DEFINE! (Blist2, 0104);
-DEFINE! (Blist3, 0105);
-DEFINE! (Blist4, 0106);
-DEFINE! (Blength, 0107);
-DEFINE! (Baref, 0110);
-DEFINE! (Baset, 0111);
-DEFINE! (Bsymbol_value, 0112);
-DEFINE! (Bsymbol_function, 0113);
-DEFINE! (Bset, 0114);
-DEFINE! (Bfset, 0115);
-DEFINE! (Bget, 0116);
-DEFINE! (Bsubstring, 0117);
-DEFINE! (Bconcat2, 0120);
-DEFINE! (Bconcat3, 0121);
-DEFINE! (Bconcat4, 0122);
-DEFINE! (Bsub1, 0123);
-DEFINE! (Badd1, 0124);
-DEFINE! (Beqlsign, 0125);
-DEFINE! (Bgtr, 0126);
-DEFINE! (Blss, 0127);
-DEFINE! (Bleq, 0130);
-DEFINE! (Bgeq, 0131);
-DEFINE! (Bdiff, 0132);
-DEFINE! (Bnegate, 0133);
-DEFINE! (Bplus, 0134);
-DEFINE! (Bmax, 0135);
-DEFINE! (Bmin, 0136);
-DEFINE! (Bmult, 0137);
+DEFINE! (Bnth, 0o070);
+DEFINE! (Bsymbolp, 0o071);
+DEFINE! (Bconsp, 0o072);
+DEFINE! (Bstringp, 0o073);
+DEFINE! (Blistp, 0o074);
+DEFINE! (Beq, 0o075);
+DEFINE! (Bmemq, 0o076);
+DEFINE! (Bnot, 0o077);
+DEFINE! (Bcar, 0o0100);
+DEFINE! (Bcdr, 0o0101);
+DEFINE! (Bcons, 0o0102);
+DEFINE! (Blist1, 0o0103);
+DEFINE! (Blist2, 0o0104);
+DEFINE! (Blist3, 0o0105);
+DEFINE! (Blist4, 0o0106);
+DEFINE! (Blength, 0o0107);
+DEFINE! (Baref, 0o0110);
+DEFINE! (Baset, 0o0111);
+DEFINE! (Bsymbol_value, 0o0112);
+DEFINE! (Bsymbol_function, 0o0113);
+DEFINE! (Bset, 0o0114);
+DEFINE! (Bfset, 0o0115);
+DEFINE! (Bget, 0o0116);
+DEFINE! (Bsubstring, 0o0117);
+DEFINE! (Bconcat2, 0o0120);
+DEFINE! (Bconcat3, 0o0121);
+DEFINE! (Bconcat4, 0o0122);
+DEFINE! (Bsub1, 0o0123);
+DEFINE! (Badd1, 0o0124);
+DEFINE! (Beqlsign, 0o0125);
+DEFINE! (Bgtr, 0o0126);
+DEFINE! (Blss, 0o0127);
+DEFINE! (Bleq, 0o0130);
+DEFINE! (Bgeq, 0o0131);
+DEFINE! (Bdiff, 0o0132);
+DEFINE! (Bnegate, 0o0133);
+DEFINE! (Bplus, 0o0134);
+DEFINE! (Bmax, 0o0135);
+DEFINE! (Bmin, 0o0136);
+DEFINE! (Bmult, 0o0137);
 
-DEFINE! (Bpoint, 0140);
+DEFINE! (Bpoint, 0o0140);
 /* 0141 was Bmark in v17, Bsave_current_buffer in 18-19.  */
-DEFINE! (Bsave_current_buffer_OBSOLETE, 0141);  /* Obsolete since 20. */
-DEFINE! (Bgoto_char, 0142);
-DEFINE! (Binsert, 0143);
-DEFINE! (Bpoint_max, 0144);
-DEFINE! (Bpoint_min, 0145);
-DEFINE! (Bchar_after, 0146);
-DEFINE! (Bfollowing_char, 0147);
-DEFINE! (Bpreceding_char, 0150);
-DEFINE! (Bcurrent_column, 0151);
-DEFINE! (Bindent_to, 0152);
+DEFINE! (Bsave_current_buffer_OBSOLETE, 0o0141);  /* Obsolete since 20. */
+DEFINE! (Bgoto_char, 0o0142);
+DEFINE! (Binsert, 0o0143);
+DEFINE! (Bpoint_max, 0o0144);
+DEFINE! (Bpoint_min, 0o0145);
+DEFINE! (Bchar_after, 0o0146);
+DEFINE! (Bfollowing_char, 0o0147);
+DEFINE! (Bpreceding_char, 0o0150);
+DEFINE! (Bcurrent_column, 0o0151);
+DEFINE! (Bindent_to, 0o0152);
 /* 0153 was Bscan_buffer in v17.  */
-DEFINE! (Beolp, 0154);
-DEFINE! (Beobp, 0155);
-DEFINE! (Bbolp, 0156);
-DEFINE! (Bbobp, 0157);
-DEFINE! (Bcurrent_buffer, 0160);
-DEFINE! (Bset_buffer, 0161);
-DEFINE! (Bsave_current_buffer, 0162);
+DEFINE! (Beolp, 0o0154);
+DEFINE! (Beobp, 0o0155);
+DEFINE! (Bbolp, 0o0156);
+DEFINE! (Bbobp, 0o0157);
+DEFINE! (Bcurrent_buffer, 0o0160);
+DEFINE! (Bset_buffer, 0o0161);
+DEFINE! (Bsave_current_buffer, 0o0162);
 /* 0163 was Bset_mark in v17.  */
-DEFINE! (Binteractive_p, 0164); /* Obsolete since Emacs-24.1.  */
+DEFINE! (Binteractive_p, 0o0164); /* Obsolete since Emacs-24.1.  */
 
-DEFINE! (Bforward_char, 0165);
-DEFINE! (Bforward_word, 0166);
-DEFINE! (Bskip_chars_forward, 0167);
-DEFINE! (Bskip_chars_backward, 0170);
-DEFINE! (Bforward_line, 0171);
-DEFINE! (Bchar_syntax, 0172);
-DEFINE! (Bbuffer_substring, 0173);
-DEFINE! (Bdelete_region, 0174);
-DEFINE! (Bnarrow_to_region, 0175);
-DEFINE! (Bwiden, 0176);
-DEFINE! (Bend_of_line, 0177);
+DEFINE! (Bforward_char, 0o0165);
+DEFINE! (Bforward_word, 0o0166);
+DEFINE! (Bskip_chars_forward, 0o0167);
+DEFINE! (Bskip_chars_backward, 0o0170);
+DEFINE! (Bforward_line, 0o0171);
+DEFINE! (Bchar_syntax, 0o0172);
+DEFINE! (Bbuffer_substring, 0o0173);
+DEFINE! (Bdelete_region, 0o0174);
+DEFINE! (Bnarrow_to_region, 0o0175);
+DEFINE! (Bwiden, 0o0176);
+DEFINE! (Bend_of_line, 0o0177);
 
-DEFINE! (Bconstant2, 0201);
-DEFINE! (Bgoto, 0202);
-DEFINE! (Bgotoifnil, 0203);
-DEFINE! (Bgotoifnonnil, 0204);
-DEFINE! (Bgotoifnilelsepop, 0205);
-DEFINE! (Bgotoifnonnilelsepop, 0206);
-DEFINE! (Breturn, 0207);
-DEFINE! (Bdiscard, 0210);
-DEFINE! (Bdup, 0211);
+DEFINE! (Bconstant2, 0o0201);
+DEFINE! (Bgoto, 0o0202);
+DEFINE! (Bgotoifnil, 0o0203);
+DEFINE! (Bgotoifnonnil, 0o0204);
+DEFINE! (Bgotoifnilelsepop, 0o0205);
+DEFINE! (Bgotoifnonnilelsepop, 0o0206);
+DEFINE! (Breturn, 0o0207);
+DEFINE! (Bdiscard, 0o0210);
+DEFINE! (Bdup, 0o0211);
 
-DEFINE! (Bsave_excursion, 0212);
-DEFINE! (Bsave_window_excursion, 0213); /* Obsolete since Emacs-24.1.  */
-DEFINE! (Bsave_restriction, 0214);
-DEFINE! (Bcatch, 0215);		/* Obsolete since Emacs-25.  */
+DEFINE! (Bsave_excursion, 0o0212);
+DEFINE! (Bsave_window_excursion, 0o0213); /* Obsolete since Emacs-24.1.  */
+DEFINE! (Bsave_restriction, 0o0214);
+DEFINE! (Bcatch, 0o0215);		/* Obsolete since Emacs-25.  */
 
-DEFINE! (Bunwind_protect, 0216);
-DEFINE! (Bcondition_case, 0217);	/* Obsolete since Emacs-25.  */
-DEFINE! (Btemp_output_buffer_setup, 0220); /* Obsolete since Emacs-24.1.  */
-DEFINE! (Btemp_output_buffer_show, 0221);  /* Obsolete since Emacs-24.1.  */
+DEFINE! (Bunwind_protect, 0o0216);
+DEFINE! (Bcondition_case, 0o0217);	/* Obsolete since Emacs-25.  */
+DEFINE! (Btemp_output_buffer_setup, 0o0220); /* Obsolete since Emacs-24.1.  */
+DEFINE! (Btemp_output_buffer_show, 0o0221);  /* Obsolete since Emacs-24.1.  */
 
 /* 0222 was Bunbind_all, never used. */
 
-DEFINE! (Bset_marker, 0223);
-DEFINE! (Bmatch_beginning, 0224);
-DEFINE! (Bmatch_end, 0225);
-DEFINE! (Bupcase, 0226);
-DEFINE! (Bdowncase, 0227);
+DEFINE! (Bset_marker, 0o0223);
+DEFINE! (Bmatch_beginning, 0o0224);
+DEFINE! (Bmatch_end, 0o0225);
+DEFINE! (Bupcase, 0o0226);
+DEFINE! (Bdowncase, 0o0227);
 
-DEFINE! (Bstringeqlsign, 0230);
-DEFINE! (Bstringlss, 0231);
-DEFINE! (Bequal, 0232);
-DEFINE! (Bnthcdr, 0233);
-DEFINE! (Belt, 0234);
-DEFINE! (Bmember, 0235);
-DEFINE! (Bassq, 0236);
-DEFINE! (Bnreverse, 0237);
-DEFINE! (Bsetcar, 0240);
-DEFINE! (Bsetcdr, 0241);
-DEFINE! (Bcar_safe, 0242);
-DEFINE! (Bcdr_safe, 0243);
-DEFINE! (Bnconc, 0244);
-DEFINE! (Bquo, 0245);
-DEFINE! (Brem, 0246);
-DEFINE! (Bnumberp, 0247);
-DEFINE! (Bintegerp, 0250);
+DEFINE! (Bstringeqlsign, 0o0230);
+DEFINE! (Bstringlss, 0o0231);
+DEFINE! (Bequal, 0o0232);
+DEFINE! (Bnthcdr, 0o0233);
+DEFINE! (Belt, 0o0234);
+DEFINE! (Bmember, 0o0235);
+DEFINE! (Bassq, 0o0236);
+DEFINE! (Bnreverse, 0o0237);
+DEFINE! (Bsetcar, 0o0240);
+DEFINE! (Bsetcdr, 0o0241);
+DEFINE! (Bcar_safe, 0o0242);
+DEFINE! (Bcdr_safe, 0o0243);
+DEFINE! (Bnconc, 0o0244);
+DEFINE! (Bquo, 0o0245);
+DEFINE! (Brem, 0o0246);
+DEFINE! (Bnumberp, 0o0247);
+DEFINE! (Bintegerp, 0o0250);
 
 /* 0252-0256 were relative jumps, apparently never used.  */
 
-DEFINE! (BlistN, 0257);
-DEFINE! (BconcatN, 0260);
-DEFINE! (BinsertN, 0261);
+DEFINE! (BlistN, 0o0257);
+DEFINE! (BconcatN, 0o0260);
+DEFINE! (BinsertN, 0o0261);
 
 /* Bstack_ref is code 0.  */
-DEFINE! (Bstack_set,  0262);
-DEFINE! (Bstack_set2, 0263);
-DEFINE! (BdiscardN,   0266);
+DEFINE! (Bstack_set, 0o0262);
+DEFINE! (Bstack_set2, 0o0263);
+DEFINE! (BdiscardN, 0o0266);
 
-DEFINE! (Bswitch, 0267);
+DEFINE! (Bswitch, 0o0267);
 
-DEFINE! (Bconstant, 0300);
+DEFINE! (Bconstant, 0o0300);
   }
 }
 

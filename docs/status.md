@@ -13025,3 +13025,13 @@
   ⑥ **未声称**：本半**一枚都没编译**（`build-tu`/`probe`/`check-all-units`/`layout-check`/`check-link` 全 0 发），**也没有运行读数**：被改的是照抄树里的声明行，证据只到“`check-verbatim` 逐行核对通过 + 六棵树的文件清单与文件数逐个不变”；生成器那三处只有文本读数，没有“本程序把它写出来”的读数（端口仍停在 `loaddefs` 的 `Bytecode stack overflow`，见 3.630）。
   ⑦ **预算**：改写用流式脚本（1,762 个文件，逐文件读写，峰值内存 < 100 MB，用完删）；文本门 `check-verbatim` 3 发（含自测）、`check-declarations` 2 发、其余七道各 1 发；`/tmp/decl2.py`、`/tmp/decl-rows.txt` 已删。
 
+- **3.633 opcode 表整张读错进制：C 的八进制字面量在 Rust 里成了十进制（160/168 条值错）——这是 3.628-3.630 那串怪症状的根；修好后加载链 23 → 39 个文件（2026-10-06）**：
+  ① **怎么找到的**：3.630 留下“`bc->fp` 里是一个 Lisp_Object”这一事实后，本轮先用**硬件写断点**把写者钉在 `unwind_to_catch` 的 `set_act_rec`（合法行为），再用**只在不变量被破坏时才打印**的临时仪表把链条钉到帧的压/弹上：数据入栈撞到帧头（`top == (*bc).fp`）⇒ 帧头的 `saved_fp` 被一个 Lisp 对象盖掉 ⇒ 后来读它就是“cons 当帧指针”。
+  ② **决定性读数**：同一帧里 `top - frame_base` 达到 **6** 与 **14** 格，而该帧的 `max_stack` 是 **5**；最近 8 条指令的环显示端口实际取指序列是 `c0 c1 c2 c3 c4 24 c0 c5`，而这一帧自己的字节串是 `c0 c1 c2 c3 c4 24 88 c0 c5 …`——**索引 6 的 `0x88`（`Bdiscard`）根本没被取到**，被当成上一条调用的操作数吃掉了。
+  ③ **根因**：`DEFINE! (Bcall, 040)` 在 Rust 里是**四十**（Rust 没有八进制字面量，前导 0 仍是十进制），C 的 `040` 是三十二 ⇒ **168 条 opcode 里 160 条的值是错的**（`Bcall` 44/32、`Bconstant` 300/192、`Bdiscard` 210/136…）。于是每次调用都落到为别的 opcode 准备的分支上（`0x24` 落到 `Bvarbind6`，它要 `FETCH` 一个操作数 ⇒ 吃掉紧随的 `Bdiscard`），每调一次栈就长一格。**这一条能一口气解释 3.620 以来的一串“局部缺陷”症状**（正则匹配、`setting-constant (nil)`、`Bytecode stack overflow`、`bc_fp` 是 cons）。
+  ④ **修法**：168 条里 160 条改成 `0o` + **同样的数字**，值逐条对 C 的 `DEFINE` 表核对（**168/168 相等**）；同类的 **11 处**（`lread.rs` 2、`tparam.rs` 7、`xdisp.rs` 2：`037`=37 而 C 是 31、`& 0177`=177 而 C 是 127、`!= 015`=15 而 C 是 CR 13）一并修好。
+  ⑤ **读数**：`build-tu` 四个单元（bytecode/lread/tparam/xdisp）全 `built`；`extract-abi --check` 四单元全 `OK`（xdisp 仍只有 3.366 记过的 `line count drifted 16.1%` 那一行，本件不加行）；夹具运行 `EMACSLOADPATH="$PWD/femacs/lisp:$PWD/emacs/lisp" ./build/femacs/emacs --batch` 的 `Loading` 行数 **23 → 39**，`OVER-PUSH`/`HEADER-BAD`/`Bytecode stack overflow` 全部消失，停点变成 `file-missing … "charscript"`（3.627 记过的**生成物缺失**，不是缺陷），且这些读数是在**清掉仪表后的干净树**上复读的。
+  ⑥ **新门**：`tools/check-octal-literals.py`（623 个 `.rs`、**0 站点**；`--selftest` 10 例；注释/字符串/`c"…"`/raw 串都不算），`PORTING.md` 记作 **P-94**；判据是**值**——`extract-abi` 的常量面此前只比名字与文本，这条门补上值这一面。
+  ⑦ **未声称**：本件**没有 dump、没有 L1**；39 行是夹具读数；字节码修复的运行证据只到“加载链走到 39 行、三条症状消失”，**没有**“某段字节码按预期算出结果”的逐条对拍。
+  ⑧ **预算**：`build-tu` 8 发、`check-link --executable` 4 发、夹具运行 9 次、lldb 3 发（含写断点）；临时仪表已全部清掉（`bytecode.rs` 用 `git show HEAD:` + 只重放 opcode 修正，`eval.rs`/`emacs.rs` 直接还原）；`/tmp` 脚本与 `/tmp/sweep` 收工删。
+

@@ -3716,7 +3716,7 @@ unsafe fn get_lazy_string (val: Lisp_Object) -> Lisp_Object
 
   /* Process quoting with ^A, and find the end of the string,
      which is marked with ^_ (037).  */
-  while *str_.offset (from) != 037
+  while *str_.offset (from) != 0o037
     {
       let mut c: c_int = *str_.offset (from) as c_int;
       from += 1;
@@ -3726,7 +3726,7 @@ unsafe fn get_lazy_string (val: Lisp_Object) -> Lisp_Object
 	  from += 1;
 	  *str_.offset (to) = (if c == 1 { c }
 			       else if c == b'0' as c_int { 0 }
-			       else if c == b'_' as c_int { 037 }
+			       else if c == b'_' as c_int { 0o037 }
 			       else { c }) as c_char;
 	  to += 1;
 	}
