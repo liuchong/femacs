@@ -5,7 +5,6 @@
 # <reference>	<C lines>	<target lines>	<threshold>	<reason>.
 reference	c_lines	target_lines	threshold	reason
 exec/exec.c	1185	3	118	known-unported target (plan batch F)
-exec/mipsfpu.c	289	3	28	known-unported target (plan batch F)
 exec/trace.c	2258	3	225	known-unported target (plan batch F)
 lib-src/asset-directory-tool.c	338	12	33	known-unported target (plan batch F)
 lib-src/ntlib.c	601	12	60	known-unported target (plan batch F)

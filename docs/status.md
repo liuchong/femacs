@@ -8019,3 +8019,21 @@
      与 80.6% 漂移就是那条边界）；lane 的预算如实：`build-tu` 2/3、**`probe` 5 发（限 3，超 2）**，其中第 1-3 发是同一条
      命令的三种输出过滤。另记一条**跨 lane 的事实**：它中途有一发 probe 停在**我正在飞的** `lib/include/signal.rs` 上
      （3.444 的 `sigset_t` 属性错位，全树 74 个单元失败），那发读数不是对它的判定；该缺陷已在 3.444 修掉。
+
+- **3.448 本批收口：五个 landing 一起验，进度 60.9%（2026-10-05）**：
+  ① **本批入库**：3.443 sfntfont 切片 1（+ `include/sfntfont.rs` 的 `E0428`）、3.444 w32proc 切片 1（+ 三个镜像的
+     `E0428` 收口）、3.445 gtkutil 切片 1、3.446 `exec/test.c` 与 `exec/mipsfpu.c` **两个整文件**（+ 三处 `exec/` 镜像
+     潜伏缺陷）、3.447 sfnt 切片 3。本批新增 Rust 约 **9.8k 行**。
+  ② **进度与棘轮**：`tools/gen-port-map.py` → **413,000 / 678,320 = 60.9%**（3.438 收口时是 404,070 = 59.6%）；
+     `tools/check-port-lines.py --write-pending` → **74 文件 / 101,360 行**（上一读 75 / 101,649；本批有文件越过阈值）；
+     `tools/gen-port-inventory.py` → 590 files, **done 587 / wip 3 / todo 0**。
+  ③ **门（本批末的读数）**：**P-87 全树扫描 83/0 + 83/0**（最后一次在 3.446 的镜像改动之后，随后到 3.447 只有单元文件与
+     台账改动，没有镜像改动）；`check-mirror-dupes` **19/19/0**；`check-declarations` **10 行 / 0 forbidden / 0 failures**；
+     `check-dead-file-coverage` **37 ledger / 0 failure**（+3：`test`、`mipsfpu`、`sfntfont`）；`check-ledger-ticks` 234/0。
+  ④ **本批最值得记住的两条**：⑴ **改镜像必须跑全树扫描**——3.444 里 `sigset_t` 的 `#[cfg]` 插错位置让**全树 74 个单元失败**，
+     是同一次扫描读出来的，修好后回到 83/0；⑵ **"没人 include 过的镜像 = 没有门读过的镜像"**——`exec/` 那两条深了一层的
+     `include!` 路径与 `USER_WORD` 的缺失从落地起就存在，直到 `exec/test.rs` 成为第一个 include 它的单元才暴露（P-86 ⑦ 的同类）。
+  ⑤ **在飞**：`src/msdos.c`（4,350）与 `src/xwidget.c`（4,304）两条新 lane 在写；`src/sfnt.c` 的下一个活定义 = C 3616
+     `sfnt_build_append`。
+  ⑥ **未声称**：本批**没有任何运行证据**——所有对象都只到"编译成 `.o`"这一档（没有一个程序被链接或启动）；
+     60.9% 是**行数口径**；§8 的加载阶梯 L0-L5、双向兼容、生成物逐字节、平台冒烟、性能**一条都未点亮**。
