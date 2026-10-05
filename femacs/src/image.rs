@@ -20,9 +20,11 @@
 // table (P-86 ②), the readings of this round (`## Evidence`) and the per-`#if` verdicts
 // (`## Deviations`).
 //
-// **This round's slice is C 1-1095** (the file is 13,805 lines), which ends at the `}` of
-// `image_create_bitmap_from_file` (C 1095).  **The next live definition is `free_bitmap_record`
-// (C 1099-1119)** - the next slice's first item.  The slice holds: the include graph and the
+// **Three slices are ported: C 1-1095, C 1096-2211 and C 2212-3550** (the file is 13,805
+// lines).  **The next live definition is `lookup_image` (C 3556)** - the next slice's first item;
+// C 3550 closes the transformation gate the third slice's `image_set_transform` sits in.  The
+// first slice (C 1-1095) ends at the `}` of `image_create_bitmap_from_file` (C 1095) and holds:
+// the include graph and the
 // per-platform macro/type sections (C 20-222), the forward-declaration block (C 224-246), the six
 // `USE_CAIRO` pixel-container helpers (C 250-368), the two `HAVE_NS` pixel shims (C 374-386), the
 // six bitmap accessors (C 403-496), the `HAVE_PGTK` Cairo-pattern builder (C 505-591),
@@ -328,6 +330,19 @@ pub const CAIRO_STATUS_SUCCESS: cairo_status_t = 0;
 /// C: cairo.h 247 - measured: `CAIRO_EXTEND_REPEAT` **1**
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
 pub const CAIRO_EXTEND_REPEAT: cairo_extend_t = 1;
+/// C: cairo.h 259-266: `typedef enum _cairo_filter { CAIRO_FILTER_FAST, CAIRO_FILTER_GOOD,
+/// CAIRO_FILTER_BEST, CAIRO_FILTER_NEAREST, CAIRO_FILTER_BILINEAR, CAIRO_FILTER_GAUSSIAN } cairo_filter_t;`
+/// - measured on this machine's cairo 1.18.4: `FAST` **0**, `GOOD` **1**, `BEST` **2**,
+/// `NEAREST` **3**, `BILINEAR` **4**, `GAUSSIAN` **5**.  `image_set_transform`'s cairo arm is
+/// their first reader in this unit.
+#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
+pub const CAIRO_FILTER_FAST: cairo_filter_t = 0;
+#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
+pub const CAIRO_FILTER_GOOD: cairo_filter_t = 1;
+#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
+pub const CAIRO_FILTER_BEST: cairo_filter_t = 2;
+#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
+pub const CAIRO_FILTER_NEAREST: cairo_filter_t = 3;
 /// C: cairo.h 460-462: `typedef struct _cairo_matrix { double xx, yx, xy, yy, x0, y0; } cairo_matrix_t;`
 /// - measured: sizeof **48**, align 8; offsets `xx` 0, `yx` 8, `xy` 16, `yy` 24, `x0` 32, `y0` 40
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
@@ -355,6 +370,7 @@ pub struct cairo_user_data_key_t
 /// C: cairo.h 2723: `cairo_public cairo_surface_t *cairo_image_surface_create_for_data (unsigned char *, cairo_format_t, int, int, int);`
 /// C: cairo.h 2620: `cairo_public cairo_status_t cairo_surface_set_user_data (cairo_surface_t *, const cairo_user_data_key_t *, void *, cairo_destroy_func_t);`
 /// C: cairo.h 2930: `cairo_public cairo_pattern_t *cairo_pattern_create_for_surface (cairo_surface_t *);`
+/// C: cairo.h 2934: `cairo_public cairo_pattern_t *cairo_pattern_create_rgb (double, double, double);`
 /// C: cairo.h 3060: `cairo_public void cairo_pattern_get_matrix (cairo_pattern_t *, cairo_matrix_t *);`
 /// C: cairo.h 3057: `cairo_public void cairo_pattern_set_matrix (cairo_pattern_t *, const cairo_matrix_t *);`
 /// C: cairo.h 3132: `cairo_public void cairo_pattern_set_filter (cairo_pattern_t *, cairo_filter_t);`
@@ -379,6 +395,8 @@ unsafe extern "C" {
                                       key: *const cairo_user_data_key_t, user_data: *mut c_void,
                                       destroy: cairo_destroy_func_t) -> cairo_status_t;
   pub fn cairo_pattern_create_for_surface (surface: *mut cairo_surface_t) -> *mut cairo_pattern_t;
+  pub fn cairo_pattern_create_rgb (red: c_double, green: c_double, blue: c_double)
+    -> *mut cairo_pattern_t;
   pub fn cairo_pattern_get_matrix (pattern: *mut cairo_pattern_t, matrix: *mut cairo_matrix_t);
   pub fn cairo_pattern_set_matrix (pattern: *mut cairo_pattern_t, matrix: *const cairo_matrix_t);
   pub fn cairo_pattern_set_filter (pattern: *mut cairo_pattern_t, filter: cairo_filter_t);
@@ -628,8 +646,10 @@ macro_rules! BLUE16_FROM_ULONG { ($color:expr) => { (BLUE_FROM_ULONG! ($color) *
    here and its definition keeps C's place in the slice that reaches it.
    ---------------------------------------------------------------------------------------------- */
 
-/* C 224-229: `image_disable_image`/`image_edge_detection`/`image_compute_scale` - `static`,
-   defined outside this slice, called by nothing here: dropped.  */
+/* C 224-229: `image_disable_image`/`image_edge_detection`/`image_compute_scale` - `static`, all
+   three defined outside this slice: dropped (PORTING.md 0.1-12).  The third is C 2727's own
+   definition in the file's third slice, and the first two are called by C 2606's
+   `postprocess_image`, so their declarations stand in that slice's use-site block.  */
 /* C 231-232: `init_color_table`/`lookup_rgb_color` - `static`: dropped.  */
 /* C 233-236: `#ifdef COLOR_TABLE_SUPPORT`'s `free_color_table`/`colors_in_color_table` - `static`,
    under C 169-173's derived condition: dropped.  */
@@ -639,7 +659,8 @@ macro_rules! BLUE16_FROM_ULONG { ($color:expr) => { (BLUE_FROM_ULONG! ($color) *
    recorded in `docs/ports/image.md` rather than papered over with a stub (the arm is text-only on
    this machine anyway - no Windows toolchain).  */
 /// C: C 244-246: `#if defined (HAVE_WEBP) || defined (HAVE_GIF) / static void anim_prune_animation_cache (Lisp_Object); / #endif` -
-/// a `static` whose definition is C 9184's; nothing here calls it, so C's prototype is dropped.
+/// a `static` whose definition is C 9184's; C 2490's `Fclear_image_cache` is the call site, so
+/// the declaration stands in the third slice's use-site block under this same condition.
 
 /* ----------------------------------------------------------------------------------------------
    C 248-370: `#ifdef USE_CAIRO`'s pixel-container helpers.
@@ -2648,7 +2669,11 @@ unsafe fn free_image (f: *mut frame, img: *mut image)
 {
   if !img.is_null ()
     {
-      let c: *mut image_cache = FRAME_IMAGE_CACHE! (f);
+      /* `include/frame.rs` 186 degrades the member to the untyped pointer (P-72 rule 3, its own
+	 note), so C's `struct image_cache *c = FRAME_IMAGE_CACHE (f);` takes the cast the
+	 `IMAGE_FROM_ID!` above already carries - without it every window-system configuration reads
+	 `E0308 expected *mut image_cache, found *mut c_void` at this line.  */
+      let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
 
       /* Remove IMG from the hash table of its cache.  */
       if !(*img).prev.is_null ()
@@ -3131,4 +3156,1726 @@ unsafe fn image_alloc_image_color (f: *mut frame, img: *mut image, color_name: L
     { result = dflt; }
 
   return result;
+}
+
+
+/* ----------------------------------------------------------------------------------------------
+   C 2212-3550: the file's third slice.
+
+   It holds the "Image Cache" banner (C 2214-2218), C 2219's `static void cache_image (…)`
+   prototype (dropped: PORTING.md 0.1-12; its definition is C 3694's), `make_image_cache`
+   (C 2225-2237), `search_image_cache` (C 2241-2279), `filter_image_spec` (C 2284-2320),
+   `uncache_image` (C 2324-2343), `free_image_cache` (C 2347-2368), `clear_image_cache`
+   (C 2374-2453), `clear_image_caches` (C 2455-2465), `DEFUN ("clear-image-cache")` (C 2467-2506),
+   `image_size_in_bytes` (C 2508-2554), `image_frame_cache_size` (C 2556-2569), `DEFUN
+   ("image-flush")` (C 2571-2604), `postprocess_image` (C 2606-2670), the `HAVE_IMAGEMAGICK ||
+   HAVE_NATIVE_TRANSFORMS` block's `scale_image_size` (C 2676-2698) and `image_get_dimension`
+   (C 2699-2720), `image_compute_scale` (C 2727-2776), the same gate's `compute_image_size`
+   (C 2784-2851), the affine-transform banner and `typedef double matrix3x3[3][3]` (C 2853-2931),
+   `matrix3x3_mult` (C 2933-2946), `compute_image_rotation` (C 2948-2968), the `HAVE_ANDROID`
+   matrix helpers (C 2970-3056) and `image_set_transform` (C 3058-3548).  C 3550 closes the gate;
+   **the next live definition is `lookup_image` (C 3556)** - the next slice's first item.
+
+   The per-`#if` verdicts, the C line-range rows and this round's readings are in
+   `docs/ports/image.md` (`## C line ranges`, `## Evidence`, `## Deviations`).  Names the mirrors
+   this unit includes do not carry stand at the use site with C's own prototype in a `/// C:` line
+   (PORTING.md P-55/P-72 rule 3); names the platform SDKs supply (`<X11/Xlib.h>`, `<windows.h>`,
+   Xrender, cairo, the NDK) keep C's tokens.
+   ---------------------------------------------------------------------------------------------- */
+
+/***********************************************************************
+			     Image Cache
+ ***********************************************************************/
+
+/* C 2219: `static void cache_image (struct frame *f, struct image *img);` - a `static` prototype
+   whose definition is C 3694's, outside this slice.  C's prototype-plus-definition pair in one
+   translation unit has no Rust counterpart (PORTING.md 0.1-12), and Rust's items are
+   order-independent, so the declaration is dropped and the definition keeps C's place.  */
+
+/* Return a new, initialized image cache that is allocated from the
+   heap.  Call free_image_cache to free an image cache.  */
+
+/// C: C 2223-2225: `struct image_cache * make_image_cache (void)` - non-`static`.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn make_image_cache () -> *mut image_cache
+{
+  let c: *mut image_cache = xmalloc (core::mem::size_of::<image_cache> ()) as *mut image_cache;
+
+  (*c).size = 50;
+  /* C's `c->used = c->refcount = 0;` - the two stores.  */
+  (*c).used = 0;
+  (*c).refcount = 0;
+  (*c).images = xmalloc ((((*c).size) as usize) * core::mem::size_of::<*mut image> ())
+		  as *mut *mut image;
+  (*c).buckets = xzalloc (((IMAGE_CACHE_BUCKETS_SIZE) as usize)
+			  * core::mem::size_of::<*mut image> ()) as *mut *mut image;
+  /* This value should never be encountered.  */
+  (*c).scaling_col_width = -1;
+  return c;
+}
+
+/* Find an image matching SPEC in the cache, and return it.  If no
+   image is found, return NULL.  */
+
+/// C: C 2239-2244: `static struct image * search_image_cache (struct frame *f, Lisp_Object spec, EMACS_UINT hash, unsigned long foreground, unsigned long background, int font_size, char *font_family, bool ignore_colors)`
+#[cfg (feature = "have_window_system")]
+unsafe fn search_image_cache (f: *mut frame, spec: Lisp_Object, hash: EMACS_UINT,
+			      foreground: c_ulong, background: c_ulong, font_size: c_int,
+			      font_family: *mut c_char, ignore_colors: bool) -> *mut image
+{
+  let mut img: *mut image;
+  let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
+  let i: c_int = (hash % (IMAGE_CACHE_BUCKETS_SIZE as EMACS_UINT)) as c_int;
+
+  if c.is_null () { return core::ptr::null_mut (); }
+
+  /* If the image spec does not specify a background color, the cached
+     image must have the same background color as the current frame.
+     The foreground color must also match, for the sake of monochrome
+     images.
+
+     In fact, we could ignore the foreground color matching condition
+     for color images, or if the image spec specifies :foreground;
+     similarly we could ignore the background color matching condition
+     for formats that don't use transparency (such as jpeg), or if the
+     image spec specifies :background.  However, the extra memory
+     usage is probably negligible in practice, so we don't bother.  */
+
+  let scale: c_double = image_compute_scale (f, spec, core::ptr::null_mut ());
+
+  /* C's `for (img = c->buckets[i]; img; img = img->next) …` - the `while` with the walk last
+     (`x_create_bitmap_mask`'s shape).  */
+  img = *(*c).buckets.offset (i as isize);
+  while !img.is_null ()
+    {
+      if (*img).hash == hash
+	 && !NILP (Fequal ((*img).spec, spec))
+	 && scale == (*img).scale
+	 && (ignore_colors || ((*img).face_foreground == foreground
+			       && (*img).face_background == background
+			       && (*img).face_font_size == font_size
+			       && (!font_family.is_null ()
+				   && strcmp (font_family, (*img).face_font_family) == 0)))
+	{ break; }
+      img = (*img).next;
+    }
+  return img;
+}
+
+
+/* Filter out image elements that don't affect display, but will
+   disrupt finding the image in the cache.  This should perhaps be
+   user-configurable, but for now it's hard-coded (but new elements
+   can be added at will).  */
+
+/// C: C 2281-2284: `static Lisp_Object filter_image_spec (Lisp_Object spec)`
+#[cfg (feature = "have_window_system")]
+unsafe fn filter_image_spec (spec: Lisp_Object) -> Lisp_Object
+{
+  let mut out: Lisp_Object = Qnil ();
+
+  let is_canvas: bool = EQ (image_spec_value (spec, QCtype (), core::ptr::null_mut ()),
+			    Qcanvas ());
+
+  /* Skip past the `image' element.  */
+  let mut spec: Lisp_Object = spec;
+  if CONSP (spec)
+    { spec = XCDR (spec); }
+
+  while CONSP (spec)
+    {
+      let key: Lisp_Object = XCAR (spec);
+      spec = XCDR (spec);
+      if CONSP (spec)
+	{
+	  let value: Lisp_Object = XCAR (spec);
+	  spec = XCDR (spec);
+
+	  /* Some animation-related data doesn't affect display, but
+	     breaks the image cache.  Furthermore for canvases do not
+	     check the data for equality, such that data can be changed
+	     via mutation to refresh the canvas.  Filter these keys out.
+	  */
+	  if !(if is_canvas
+	       { EQ (key, QCdata ()) }
+	       else
+		 {
+		   EQ (key, QCanimate_buffer ())
+		     || EQ (key, QCanimate_tardiness ())
+		     || EQ (key, QCanimate_position ())
+		 })
+	    {
+	      out = Fcons (value, out);
+	      out = Fcons (key, out);
+	    }
+	}
+    }
+  return out;
+}
+
+/* Search frame F for an image with spec SPEC, and free it.  */
+
+/// C: C 2322-2324: `static void uncache_image (struct frame *f, Lisp_Object spec)`
+#[cfg (feature = "have_window_system")]
+unsafe fn uncache_image (f: *mut frame, spec: Lisp_Object)
+{
+  let mut img: *mut image;
+  let hash: EMACS_UINT = sxhash (filter_image_spec (spec));
+
+  /* Because the background colors are based on the current face, we
+     can have multiple copies of an image with the same spec. We want
+     to remove them all to ensure the user doesn't see an old version
+     of the image when the face changes.  */
+  /* C's `while ((img = search_image_cache (…)))` - the block-in-condition form (`alloc.rs` 794's
+     shape).  */
+  while {
+    img = search_image_cache (f, spec, hash, 0, 0, 0, core::ptr::null_mut (), true);
+    !img.is_null ()
+  }
+    {
+      free_image (f, img);
+      /* As display glyphs may still be referring to the image ID, we
+	 must garbage the frame (Bug#6426).  */
+      SET_FRAME_GARBAGED! (f);
+    }
+}
+
+
+/* Free image cache of frame F.  Be aware that X frames share images
+   caches.  */
+
+/// C: C 2345-2347: `void free_image_cache (struct frame *f)` - non-`static`.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn free_image_cache (f: *mut frame)
+{
+  let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
+  let mut i: ptrdiff_t;
+
+  /* This function assumes the caller already verified that the frame's
+     image cache is non-NULL.  */
+  eassert! (!c.is_null ());
+  /* Cache should not be referenced by any frame when freed.  */
+  eassert! ((*c).refcount == 0);
+
+  i = 0;
+  while i < (*c).used
+    {
+      free_image (f, *(*c).images.offset (i));
+      i += 1;
+    }
+  xfree ((*c).images as *mut c_void);
+  xfree ((*c).buckets as *mut c_void);
+  xfree (c as *mut c_void);
+}
+
+/* Clear image cache of frame F.  FILTER=t means free all images.
+   FILTER=nil means clear only images that haven't been
+   displayed for some time.
+   Else, only free the images which have FILTER in their `dependencies'.
+   Should be called from time to time to reduce the number of loaded images.
+   If image-cache-eviction-delay is non-nil, this frees images in the cache
+   which weren't displayed for at least that many seconds.  */
+
+/// C: C 2372-2374: `void clear_image_cache (struct frame *f, Lisp_Object filter)` - non-`static`.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn clear_image_cache (f: *mut frame, filter: Lisp_Object)
+{
+  let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
+
+  /* C's `f->inhibit_clear_image_cache` is one of `struct frame`'s bit members, which the mirror
+     carries as the `bits2` storage unit plus its shift (frame.rs 718-723; PORTING.md 1.3/P-80).  */
+  if !c.is_null () && !((*f).bits2 >> FRAME_INHIBIT_CLEAR_IMAGE_CACHE_SHIFT & 1 != 0)
+    {
+      let mut i: ptrdiff_t;
+      let mut nfreed: ptrdiff_t = 0;
+
+      /* Block input so that we won't be interrupted by a SIGIO
+	 while being in an inconsistent state.  */
+      block_input ();
+
+      if !NILP (filter)
+	{
+	  /* Filter image cache.  */
+	  i = 0;
+	  while i < (*c).used
+	    {
+	      let img: *mut image = *(*c).images.offset (i);
+	      if !img.is_null ()
+		 && (EQ (Qt (), filter) || !NILP (Fmember (filter, (*img).dependencies)))
+		{
+		  free_image (f, img);
+		  nfreed += 1;
+		}
+	      i += 1;
+	    }
+	}
+      else if FIXNUMP (Vimage_cache_eviction_delay)
+	{
+	  /* Free cache based on timestamp.  */
+	  let mut old: timespec;
+	  let t: timespec;
+	  let mut delay: c_double;
+	  let mut nimages: ptrdiff_t = 0;
+
+	  i = 0;
+	  while i < (*c).used
+	    {
+	      if !(*(*c).images.offset (i)).is_null ()
+		{ nimages += 1; }
+	      i += 1;
+	    }
+
+	  /* If the number of cached images has grown unusually large,
+	     decrease the cache eviction delay (Bug#6230).  */
+	  delay = XFIXNUM (Vimage_cache_eviction_delay) as c_double;
+	  if nimages > 40
+	    { delay = 1600 as c_double * delay / nimages as c_double / nimages as c_double; }
+	  /* C's `max (delay, 1)` is the ternary (`f64` is not `Ord`).  */
+	  delay = if delay > 1 as c_double { delay } else { 1 as c_double };
+
+	  t = current_timespec ();
+	  old = timespec_sub (t, dtotimespec (delay));
+
+	  i = 0;
+	  while i < (*c).used
+	    {
+	      let img: *mut image = *(*c).images.offset (i);
+	      if !img.is_null () && timespec_cmp ((*img).timestamp, old) < 0
+		{
+		  free_image (f, img);
+		  nfreed += 1;
+		}
+	      i += 1;
+	    }
+	}
+
+      /* We may be clearing the image cache because, for example,
+	 Emacs was iconified for a longer period of time.  In that
+	 case, current matrices may still contain references to
+	 images freed above.  So, clear these matrices.  */
+      if nfreed != 0
+	{
+	  let mut tail: Lisp_Object;
+	  let mut frame: Lisp_Object;
+
+	  FOR_EACH_FRAME! (tail, frame, {
+	    let fr: *mut frame = XFRAME (frame);
+	    if FRAME_IMAGE_CACHE! (fr) as *mut image_cache == c
+	      { clear_current_matrices (fr); }
+	  });
+
+	  windows_or_buffers_changed = 19;
+	}
+
+      unblock_input ();
+    }
+}
+
+/// C: C 2455-2456: `void clear_image_caches (Lisp_Object filter)` - non-`static`.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn clear_image_caches (filter: Lisp_Object)
+{
+  /* FIXME: We want to do
+   * struct terminal *t;
+   * for (t = terminal_list; t; t = t->next_terminal)
+   *   clear_image_cache (t, filter); */
+  let mut tail: Lisp_Object;
+  let mut frame: Lisp_Object;
+  FOR_EACH_FRAME! (tail, frame, {
+    if FRAME_WINDOW_P (XFRAME (frame))
+      { clear_image_cache (XFRAME (frame), filter); }
+  });
+}
+
+#[cfg (feature = "have_window_system")]
+DEFUN! ("clear-image-cache", Fclear_image_cache, Sclear_image_cache, 0, 2, 0,
+       doc: "Clear the image and animation caches.\nFILTER nil or a frame means clear all images in the selected frame.\nFILTER t means clear the image caches of all frames.\nAnything else means clear only those images that refer to FILTER,\nwhich is then usually a filename.\n\nThis function also clears the image animation cache.\nANIMATION-FILTER nil means clear all animation cache entries.\nOtherwise, clear the image spec `eq' to ANIMATION-FILTER only\nfrom the animation cache, and do not clear any image caches.\nThis can help reduce memory usage after an animation is stopped\nbut the image is still displayed.",
+       (filter: Lisp_Object, animation_filter: Lisp_Object),
+       {
+  if !NILP (animation_filter)
+    {
+      /* IMAGEP?  */
+      CHECK_CONS (animation_filter);
+      /* C 2488-2491: `#if defined (HAVE_WEBP) || defined (HAVE_GIF)`.  */
+      #[cfg (all (feature = "have_window_system",
+		  any (feature = "have_webp", feature = "have_gif")))]
+      {
+	/* FIXME: Implement the ImageMagick case.  */
+	anim_prune_animation_cache (XCDR (animation_filter));
+      }
+      return Qnil ();
+    }
+
+  if !(NILP (filter) || FRAMEP (filter))
+    { clear_image_caches (filter); }
+  else
+    { clear_image_cache (decode_window_system_frame (filter), Qt ()); }
+
+  /* Also clear the animation caches.  */
+  image_prune_animation_caches (true);
+
+  canvas_free_unused ();
+
+  return Qnil ();
+});
+
+/// C: C 2508-2509: `static intptr_t image_size_in_bytes (struct image *img)`
+#[cfg (feature = "have_window_system")]
+unsafe fn image_size_in_bytes (img: *mut image) -> intptr_t
+{
+  let mut size: intptr_t = 0;
+
+  /* C 2513-2552's five arms are one `#if`/`#elif` chain, so each below excludes the ones before
+     it (the `image_clear_image_1` spelling).  */
+  /* C 2513-2521: `#if defined USE_CAIRO`.  */
+  #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
+  {
+    /* The mirror's `pixmap`/`mask` are the untyped pointer (dispextern.rs's own P-72 rule 3
+       note); this arm's record is `dispextern.rs` 713's `emacs_pix_container`.  */
+    let pm: Emacs_Pixmap = (*img).pixmap as Emacs_Pixmap;
+    if !pm.is_null ()
+      { size += ((*pm).height as ptrdiff_t) * ((*pm).bytes_per_line as ptrdiff_t); }
+    let msk: Emacs_Pixmap = (*img).mask as Emacs_Pixmap;
+    if !msk.is_null ()
+      { size += ((*msk).height as ptrdiff_t) * ((*msk).bytes_per_line as ptrdiff_t); }
+  }
+
+  /* C 2523-2531: `#elif defined HAVE_X_WINDOWS || defined HAVE_ANDROID`.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "use_cairo"),
+	      any (feature = "have_x_windows", feature = "have_android")))]
+  {
+    /* Use a nominal depth of 24 and a bpp of 32 for pixmap and 1 bpp
+       for mask, to avoid having to query the server. */
+    if (*img).pixmap as Emacs_Pixmap != NO_PIXMAP! () as Emacs_Pixmap
+      { size += ((*img).width as ptrdiff_t) * ((*img).height as ptrdiff_t) * 4; }
+    if (*img).mask as Emacs_Pixmap != NO_PIXMAP! () as Emacs_Pixmap
+      { size += ((*img).width as ptrdiff_t) * ((*img).height as ptrdiff_t) / 8; }
+
+    /* C 2528-2531's `img->ximg->data` family.  The mirror's `ximg`/`mask_img` are the untyped
+       pointer, so the reads name the record C's member type is: the X arm's `XImage` (Xlib's,
+       no mirror - the first slice's Xlib-name class) or C 201's own `typedef struct android_image
+       XImage` (`have_android`'s alias above), which is why one spelling serves both arms.  */
+    if !(*img).ximg.is_null () && !(*((*img).ximg as *mut XImage)).data.is_null ()
+      {
+	size += ((*((*img).ximg as *mut XImage)).bytes_per_line as ptrdiff_t)
+		* ((*((*img).ximg as *mut XImage)).height as ptrdiff_t);
+      }
+    if !(*img).mask_img.is_null () && !(*((*img).mask_img as *mut XImage)).data.is_null ()
+      {
+	size += ((*((*img).mask_img as *mut XImage)).bytes_per_line as ptrdiff_t)
+		* ((*((*img).mask_img as *mut XImage)).height as ptrdiff_t);
+      }
+  }
+
+  /* C 2533-2536: `#elif defined HAVE_NS`.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "use_cairo"),
+	      not (feature = "have_x_windows"), not (feature = "have_android"),
+	      feature = "have_ns"))]
+  {
+    if !(*img).pixmap.is_null ()
+      { size += ns_image_size_in_bytes ((*img).pixmap) as intptr_t; }
+    if !(*img).mask.is_null ()
+      { size += ns_image_size_in_bytes ((*img).mask) as intptr_t; }
+  }
+
+  /* C 2538-2541: `#elif defined HAVE_NTGUI`.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "use_cairo"),
+	      not (feature = "have_x_windows"), not (feature = "have_android"),
+	      not (feature = "have_ns"), feature = "have_ntgui"))]
+  {
+    if !(*img).pixmap.is_null ()
+      { size += w32_image_size ((*img).pixmap) as intptr_t; }
+    if !(*img).mask.is_null ()
+      { size += w32_image_size ((*img).mask) as intptr_t; }
+  }
+
+  /* C 2543-2547: `#elif defined HAVE_HAIKU`.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "use_cairo"),
+	      not (feature = "have_x_windows"), not (feature = "have_android"),
+	      not (feature = "have_ns"), not (feature = "have_ntgui"), feature = "have_haiku"))]
+  {
+    if !(*img).pixmap.is_null ()
+      { size += BBitmap_bytes_length ((*img).pixmap) as intptr_t; }
+    if !(*img).mask.is_null ()
+      { size += BBitmap_bytes_length ((*img).mask) as intptr_t; }
+  }
+
+  return size;
+}
+
+/// C: C 2556-2557: `static intptr_t image_frame_cache_size (struct frame *f)`
+#[cfg (feature = "have_window_system")]
+unsafe fn image_frame_cache_size (f: *mut frame) -> intptr_t
+{
+  let c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
+  if c.is_null ()
+    { return 0; }
+
+  let mut total: intptr_t = 0;
+  let mut i: ptrdiff_t = 0;
+  while i < (*c).used
+    {
+      let img: *mut image = *(*c).images.offset (i);
+      total += if !img.is_null () { image_size_in_bytes (img) } else { 0 };
+      i += 1;
+    }
+  return total;
+}
+
+#[cfg (feature = "have_window_system")]
+DEFUN! ("image-flush", Fimage_flush, Simage_flush, 1, 2, 0,
+       doc: "Flush the image with specification SPEC on frame FRAME.\nThis removes the image from the Emacs image cache.  If SPEC specifies\nan image file, the next redisplay of this image will read from the\ncurrent contents of that file.\n\nFRAME nil or omitted means use the selected frame.\nFRAME t means refresh the image on all frames.",
+       (spec: Lisp_Object, frame: Lisp_Object),
+       {
+  if !valid_image_p (spec)
+    { error (c"Invalid image specification".as_ptr ()); }
+
+  if EQ (frame, Qt ())
+    {
+      let mut tail: Lisp_Object;
+      /* C reuses the `frame` parameter as the loop's variable; a `DEFUN!` parameter is immutable
+	 in Rust, so the port shadows it with C's own name (the `terminal.rs` 589 shape, PORTING.md
+	 5.1's note).  */
+      let mut frame: Lisp_Object = frame;
+      FOR_EACH_FRAME! (tail, frame, {
+	let f: *mut frame = XFRAME (frame);
+	if FRAME_WINDOW_P (f)
+	  { uncache_image (f, spec); }
+      });
+    }
+  else
+    { uncache_image (decode_window_system_frame (frame), spec); }
+
+  return Qnil ();
+});
+
+
+/* Compute masks and transform image IMG on frame F, as specified
+   by the image's specification,  */
+
+/// C: C 2604-2606: `static void postprocess_image (struct frame *f, struct image *img)`
+#[cfg (feature = "have_window_system")]
+unsafe fn postprocess_image (f: *mut frame, img: *mut image)
+{
+  /* Manipulation of the image's mask.  */
+  if !(*img).pixmap.is_null ()
+    {
+      let mut conversion: Lisp_Object;
+      let mut spec: Lisp_Object;
+      let mut mask: Lisp_Object;
+
+      spec = (*img).spec;
+
+      /* `:heuristic-mask t'
+	 `:mask heuristic'
+	 means build a mask heuristically.
+	 `:heuristic-mask (R G B)'
+	 `:mask (heuristic (R G B))'
+	 means build a mask from color (R G B) in the
+	 image.
+	 `:mask nil'
+	 means remove a mask, if any.  */
+
+      mask = image_spec_value (spec, QCheuristic_mask (), core::ptr::null_mut ());
+      if !NILP (mask)
+	{ image_build_heuristic_mask (f, img, mask); }
+      else
+	{
+	  /* C's `bool found_p;` - zeroed (PORTING.md 1.5/0.1-13): `&raw mut` of a binding Rust
+	     has not initialised is `E0381`.  */
+	  let mut found_p: bool = false;
+
+	  mask = image_spec_value (spec, QCmask (), &raw mut found_p);
+
+	  if EQ (mask, Qheuristic ())
+	    { image_build_heuristic_mask (f, img, Qt ()); }
+	  else if CONSP (mask) && EQ (XCAR (mask), Qheuristic ())
+	    {
+	      if CONSP (XCDR (mask))
+		{ image_build_heuristic_mask (f, img, XCAR (XCDR (mask))); }
+	      else
+		{ image_build_heuristic_mask (f, img, XCDR (mask)); }
+	    }
+	  else if NILP (mask) && found_p && !(*img).mask.is_null ()
+	    { image_clear_image_1 (f, img, CLEAR_IMAGE_MASK! ()); }
+	}
+
+
+      /* Should we apply an image transformation algorithm?  */
+      conversion = image_spec_value (spec, QCconversion (), core::ptr::null_mut ());
+      if EQ (conversion, Qdisabled ())
+	{ image_disable_image (f, img); }
+      else if EQ (conversion, Qlaplace ())
+	{ image_laplace (f, img); }
+      else if EQ (conversion, Qemboss ())
+	{ image_emboss (f, img); }
+      else if CONSP (conversion) && EQ (XCAR (conversion), Qedge_detection ())
+	{
+	  let mut tem: Lisp_Object;
+	  tem = XCDR (conversion);
+	  if CONSP (tem)
+	    { image_edge_detection (f, img, plist_get (tem, QCmatrix ()),
+				    plist_get (tem, QCcolor_adjustment ())); }
+	}
+    }
+}
+
+/* ----------------------------------------------------------------------------------------------
+   The names the mirrors this unit includes do not carry, declared at the use site with C's own
+   line (PORTING.md P-55/P-72 rule 3).  C's own declarations for the first three are C 224-225 and
+   C 244-246, inside the forward-declaration block, where C's `static` prototype + definition pair
+   in one translation unit was dropped (PORTING.md 0.1-12); their definitions are outside this
+   slice, and this slice's `postprocess_image` (C 2606) and `Fclear_image_cache` (C 2467) are the
+   call sites, so the declarations stand here until those definitions land - the
+   `canvas_prepare_for_display` shape of the second slice.
+   ---------------------------------------------------------------------------------------------- */
+/// C: C 224: `static void image_disable_image (struct frame *, struct image *);`
+/// C: C 225-226: `static void image_edge_detection (struct frame *, struct image *, Lisp_Object, Lisp_Object);`
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn image_disable_image (f: *mut frame, img: *mut image);
+  pub fn image_edge_detection (f: *mut frame, img: *mut image, matrix: Lisp_Object,
+			       color_adjustment: Lisp_Object);
+}
+/// C: C 244-246: `#if defined (HAVE_WEBP) || defined (HAVE_GIF)` / `static void anim_prune_animation_cache (Lisp_Object);` / `#endif`
+#[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
+unsafe extern "C" {
+  pub fn anim_prune_animation_cache (spec: Lisp_Object);
+}
+// C: lisp.h 4250: `EMACS_UINT sxhash (Lisp_Object);` - `include/lisp.rs` does not carry it (a
+// mirror gap; it belongs in that mirror).
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn sxhash (obj: Lisp_Object) -> EMACS_UINT;
+}
+// C: lisp.h 4280: `extern Lisp_Object plist_get (Lisp_Object plist, Lisp_Object prop);` - the same
+// mirror gap.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn plist_get (plist: Lisp_Object, prop: Lisp_Object) -> Lisp_Object;
+}
+// C: dispextern.h 3754: `void image_prune_animation_caches (bool);` - the definition is
+// `image.c`'s own (C 12768's region), outside this slice.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn image_prune_animation_caches (clear: bool);
+}
+// C: dispextern.h 3907: `void clear_current_matrices (struct frame *f);` - the definition is
+// `xdisp.c`'s.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn clear_current_matrices (f: *mut frame);
+}
+/// C: C 127: `static void canvas_free_unused (void);`
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn canvas_free_unused ();
+}
+/// C: math.h 1172-1173: `extern float sinf (float __x) __THROW;` / `extern float cosf (float __x) __THROW;`
+/// `lib/include/math.rs` carries the `double` family only; this file's `HAVE_ANDROID` arm is their
+/// first reader (`matrix_rotate`), and both belong in that mirror.  C's `float` is the port's
+/// `f32` - `c_float` is not in this toolchain's prelude, and `android_transform`'s members
+/// (`include/androidgui.rs` 900-908) are the tree's spelling of C's `float` already.
+#[cfg (all (feature = "have_window_system", feature = "have_android"))]
+unsafe extern "C" {
+  pub fn sinf (x: f32) -> f32;
+  pub fn cosf (x: f32) -> f32;
+}
+/// C: float.h 85: `# define DBL_MAX __DBL_MAX__` (the frozen target's clang reports
+/// `1.79769313486231570815e+308`).  `lib/include/float.in.rs` mirrors the seven `float.h` names
+/// the reference read before this file, and `DBL_MAX` is not one of them; this slice's
+/// `image_set_transform` is its first reader.  It belongs in that mirror (the `sinf` row above).
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
+pub const DBL_MAX: c_double = 1.7976931348623157e+308;
+
+/* C 2671: `#if defined (HAVE_IMAGEMAGICK) || defined (HAVE_NATIVE_TRANSFORMS)` - the two
+   `scale_image_size`/`image_get_dimension` items below and C 2777's second gate's items close it
+   at C 2721.  */
+/* Scale an image size by returning SIZE / DIVISOR * MULTIPLIER,
+   safely rounded and clipped to int range.  */
+
+/// C: C 2674-2676: `static int scale_image_size (int size, double divisor, double multiplier)`
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
+unsafe fn scale_image_size (size: c_int, divisor: c_double, multiplier: c_double) -> c_int
+{
+  if divisor != 0 as c_double
+    {
+      let scaled: c_double = size as c_double * multiplier / divisor;
+      if scaled < INT_MAX as c_double
+	{
+	  /* Use ceil, as rounding can discard fractional SVG pixels.  */
+	  /* C's implicit `double` -> `int` conversion.  */
+	  return ceil (scaled) as c_int;
+	}
+    }
+  return INT_MAX;
+}
+
+/* Return a size, in pixels, from the value specified by SYMBOL, which
+   may be an integer or a pair of the form (VALUE . 'em) where VALUE
+   is a float that is multiplied by the font size to get the final
+   dimension.
+
+   If the value doesn't exist in the image spec, or is invalid, return
+   -1.
+*/
+/// C: C 2697-2699: `static int image_get_dimension (struct image *img, Lisp_Object symbol)`
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
+unsafe fn image_get_dimension (img: *mut image, symbol: Lisp_Object) -> c_int
+{
+  let value: Lisp_Object = image_spec_value ((*img).spec, symbol, core::ptr::null_mut ());
+
+  if FIXNATP (value)
+    { return std::cmp::min (XFIXNAT (value), INT_MAX as EMACS_INT) as c_int; }
+  if CONSP (value) && NUMBERP (CAR (value))
+    {
+      let dim: Lisp_Object = CDR (value);
+
+      if EQ (Qem (), dim)
+	{ return scale_image_size ((*img).face_font_size, 1 as c_double, XFLOATINT (CAR (value))); }
+      if EQ (Qch (), dim)
+	{ return scale_image_size ((*img).face_font_height, 1 as c_double,
+				   XFLOATINT (CAR (value))); }
+      if EQ (Qcw (), dim)
+	{ return scale_image_size ((*img).face_font_width, 1 as c_double,
+				   XFLOATINT (CAR (value))); }
+    }
+  return -1;
+}
+/* C 2721: `#endif` */
+
+/* Calculate the scale of the image.  IMG may be null as it is only
+   required when creating an image, and this function is called from
+   image cache related functions that do not have access to the image
+   structure.  */
+
+/// C: C 2725-2727: `static double image_compute_scale (struct frame *f, Lisp_Object spec, struct image *img)`
+#[cfg (feature = "have_window_system")]
+unsafe fn image_compute_scale (f: *mut frame, spec: Lisp_Object, img: *mut image) -> c_double
+{
+  let mut scale: c_double = 1 as c_double;
+  let value: Lisp_Object = image_spec_value (spec, QCscale (), core::ptr::null_mut ());
+
+  if EQ (value, Qdefault ())
+    {
+      let mut sval: Lisp_Object = Vimage_scaling_factor;
+
+      /* C's `invalid_value:` label.  The label is the head of the block, so C's
+	 `goto invalid_value` is this loop's `continue` (the tree's `goto` shape, PORTING.md 2.2;
+	 `doprnt`/`push_it` are the precedent).  */
+      loop
+	{
+	  if EQ (sval, Qauto ())
+	    {
+	      /* This is a tag with which callers of `clear_image_cache' can
+		 refer to this image and its likenesses.  */
+	      if !img.is_null ()
+		{ (*img).dependencies = Fcons (Qauto (), (*img).dependencies); }
+
+	      /* C's `10.0f` is a `float` literal, so the division is C's own `float` one.  */
+	      scale = if FRAME_COLUMN_WIDTH (f) > 10
+			{ (FRAME_COLUMN_WIDTH (f) as f32 / 10.0f32) as c_double }
+		      else
+			{ 1 as c_double };
+	      break;
+	    }
+	  else if NUMBERP (sval)
+	    {
+	      scale = XFLOATINT (sval);
+	      break;
+	    }
+	  else
+	    {
+	      image_error (c"Invalid `image-scaling-factor': %s".as_ptr (),
+			   Vimage_scaling_factor);
+
+	      /* If Vimage_scaling_factor is set to an invalid value, treat
+		 it as though it were the default.  */
+	      sval = Qauto ();
+	      /* C's `goto invalid_value;` */
+	      continue;
+	    }
+	}
+    }
+  else if NUMBERP (value)
+    {
+      let dval: c_double = XFLOATINT (value);
+      if 0 as c_double <= dval
+	{ scale = dval; }
+    }
+
+  if !img.is_null ()
+    { (*img).scale = scale; }
+
+  return scale;
+}
+
+/* C 2777: `#if defined HAVE_IMAGEMAGICK || defined HAVE_NATIVE_TRANSFORMS` - closed by C 3550
+   `#endif /* HAVE_IMAGEMAGICK || HAVE_NATIVE_TRANSFORMS */`, after `image_set_transform`.  */
+/* Compute the desired size of an image with native size WIDTH x HEIGHT,
+   which is to be displayed on F.  Use IMG to deduce the size.  Store
+   the desired size into *D_WIDTH x *D_HEIGHT.  Store -1 x -1 if the
+   native size is OK.  */
+
+/// C: C 2782-2785: `static void compute_image_size (struct frame *f, double width, double height, struct image *img, int *d_width, int *d_height)`
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
+unsafe fn compute_image_size (f: *mut frame, width: c_double, height: c_double, img: *mut image,
+			      d_width: *mut c_int, d_height: *mut c_int)
+{
+  let scale: c_double = image_compute_scale (f, (*img).spec, img);
+
+  /* If width and/or height is set in the display spec assume we want
+     to scale to those values.  If either h or w is unspecified, the
+     unspecified should be calculated from the specified to preserve
+     aspect ratio.  */
+  let mut desired_width: c_int = image_get_dimension (img, QCwidth ());
+  let mut max_width: c_int;
+  if desired_width < 0
+    { max_width = image_get_dimension (img, QCmax_width ()); }
+  else
+    {
+      desired_width = scale_image_size (desired_width, 1 as c_double, scale);
+      /* :width overrides :max-width. */
+      max_width = -1;
+    }
+
+  let mut desired_height: c_int = image_get_dimension (img, QCheight ());
+  let mut max_height: c_int;
+  if desired_height < 0
+    { max_height = image_get_dimension (img, QCmax_height ()); }
+  else
+    {
+      desired_height = scale_image_size (desired_height, 1 as c_double, scale);
+      /* :height overrides :max-height. */
+      max_height = -1;
+    }
+
+  /* If we have both width/height set explicitly, we skip past all the
+     aspect ratio-preserving computations below. */
+  /* C's `goto out` - the label is the function's tail, so the skip is the flag the tree uses
+     (`fileio.rs` 4880's shape).  */
+  let mut goto_out: bool = false;
+  if 0 <= desired_width && 0 <= desired_height
+    { goto_out = true; }
+
+  if !goto_out
+    {
+      if 0 <= desired_width
+	/* Width known, calculate height. */
+	{ desired_height = scale_image_size (desired_width, width, height); }
+      else if 0 <= desired_height
+	/* Height known, calculate width. */
+	{ desired_width = scale_image_size (desired_height, height, width); }
+      else
+	{
+	  /* C's `width`/`height` are `double` here and `scale_image_size`'s first parameter is
+	     `int`, so this is C's implicit conversion written out.  */
+	  desired_width = scale_image_size (width as c_int, 1 as c_double, scale);
+	  desired_height = scale_image_size (height as c_int, 1 as c_double, scale);
+	}
+
+      if 0 <= max_width && max_width < desired_width
+	{
+	  /* The image is wider than :max-width. */
+	  desired_width = max_width;
+	  desired_height = scale_image_size (desired_width, width, height);
+	}
+
+      if 0 <= max_height && max_height < desired_height
+	{
+	  /* The image is higher than :max-height. */
+	  desired_height = max_height;
+	  desired_width = scale_image_size (desired_height, height, width);
+	}
+    }
+
+  /* out: */
+  *d_width = desired_width;
+  *d_height = desired_height;
+}
+
+/* image_set_rotation and image_set_transform use affine
+   transformation matrices to perform various transforms on the image.
+   The matrix is a 2D array of doubles.  It is laid out like this:
+
+   m[0][0] = m11 | m[1][0] = m12 | m[2][0] = tx
+   --------------+---------------+-------------
+   m[0][1] = m21 | m[1][1] = m22 | m[2][1] = ty
+   --------------+---------------+-------------
+   m[0][2] = 0   | m[1][2] = 0   | m[2][2] = 1
+
+   tx and ty represent translations, m11 and m22 represent scaling
+   transforms and m21 and m12 represent shear transforms.  Most
+   graphics toolkits don't require the third row, however it is
+   necessary for multiplication.
+
+   Transforms are done by creating a matrix for each action we wish to
+   take, then multiplying the transformation matrix by each of those
+   matrices in order (matrix multiplication is not commutative).
+   After we've done that we can use our modified transformation matrix
+   to transform points.  We take the x and y coordinates and convert
+   them into a 3x1 matrix and multiply that by the transformation
+   matrix and it gives us a new, transformed, set of coordinates:
+
+       [m11 m12 tx]   [x]   [m11*x+m12*y+tx*1]   [x']
+       [m21 m22 ty] X [y] = [m21*x+m22*y+ty*1] = [y']
+       [  0   0  1]   [1]   [     0*x+0*y+1*1]   [ 1]
+
+   We don't have to worry about the last step as the graphics toolkit
+   will do it for us.
+
+   The three transforms we are concerned with are translation, scaling
+   and rotation.  The translation matrix looks like this:
+
+       [1 0 tx]
+       [0 1 ty]
+       [0 0  1]
+
+   Where tx and ty are the amount to translate the origin in the x and
+   y coordinates, respectively.  Since we are translating the origin
+   and not the image data itself, it can appear backwards in use, for
+   example to move the image 10 pixels to the right, you would set tx
+   to -10.
+
+   To scale we use:
+
+       [x 0 0]
+       [0 y 0]
+       [0 0 1]
+
+   Where x and y are the amounts to scale in the x and y dimensions.
+   Values smaller than 1 make the image larger, values larger than 1
+   make it smaller.  Negative values flip the image.  For example to
+   double the image size set x and y to 0.5.
+
+   To rotate we use:
+
+       [ cos(r) sin(r) 0]
+       [-sin(r) cos(r) 0]
+       [      0      0 1]
+
+   Where r is the angle of rotation required.  Rotation occurs around
+   the origin, not the center of the image.  Note that this is
+   normally considered a counter-clockwise rotation, however because
+   our y axis is reversed, (0, 0) at the top left, it works as a
+   clockwise rotation.
+
+   The full process of rotating an image is to move the origin to the
+   center of the image (width/2, height/2), perform the rotation, and
+   finally move the origin back to the top left of the image, which
+   may now be a different corner.
+
+   Note that different GUI backends (X, Cairo, w32, NS, Haiku,
+   Android) want the transform matrix defined as transform from the
+   original image to the transformed image, while others want the
+   matrix to describe the transform of the space, which boils down to
+   inverting the matrix.
+
+   It's possible to pre-calculate the matrix multiplications and just
+   generate one transform matrix that will do everything we need in a
+   single step, but the maths for each element is much more complex
+   and performing the steps separately makes for more readable code.  */
+
+/// C: C 2931: `typedef double matrix3x3[3][3];`
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
+type matrix3x3 = [[c_double; 3]; 3];
+
+/// C: C 2933-2934: `static void matrix3x3_mult (matrix3x3 a, matrix3x3 b, matrix3x3 result)`
+/// C's three parameters are `double (*)[3]` (the array typedef decays), so each is the pointer
+/// P-49 spells; the callers pass `…as_mut_ptr ()`.
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
+unsafe fn matrix3x3_mult (a: *mut [c_double; 3], b: *mut [c_double; 3],
+			  result: *mut [c_double; 3])
+{
+  let mut i: c_int = 0;
+  while i < 3
+    {
+      let mut j: c_int = 0;
+      while j < 3
+	{
+	  let mut sum: c_double = 0 as c_double;
+	  let mut k: c_int = 0;
+	  while k < 3
+	    {
+	      sum += (*(a.offset (i as isize)))[k as usize]
+		     * (*(b.offset (k as isize)))[j as usize];
+	      k += 1;
+	    }
+	  (*(result.offset (i as isize)))[j as usize] = sum;
+	  j += 1;
+	}
+      i += 1;
+    }
+}
+
+/// C: C 2948-2949: `static void compute_image_rotation (struct image *img, double *rotation)`
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
+unsafe fn compute_image_rotation (img: *mut image, rotation: *mut c_double)
+{
+  let mut foundp: bool = false;
+  let value: Lisp_Object = image_spec_value ((*img).spec, QCrotation (),
+					     &raw mut foundp);
+  if !foundp
+    { return; }
+  if ! NUMBERP (value)
+    {
+      image_error (c"Invalid image `:rotation' parameter".as_ptr ());
+      return;
+    }
+
+  let reduced_angle: Lisp_Object = Fmod (value, make_fixnum (360));
+  if FLOATP (reduced_angle)
+    { *rotation = XFLOAT_DATA (reduced_angle); }
+  else
+    { *rotation = XFIXNUM (reduced_angle) as c_double; }
+}
+
+/* C 2970: `#ifdef HAVE_ANDROID` - the four matrix helpers below, closed by C 3056's `#endif`.  */
+
+/// C: C 2972-2973: `static void matrix_identity (matrix3x3 matrix)`
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms"),
+	    feature = "have_android"))]
+unsafe fn matrix_identity (matrix: *mut [c_double; 3])
+{
+  memset (matrix as *mut c_void, 0, core::mem::size_of::<matrix3x3> ());
+
+  (*(matrix.offset (0)))[0] = 1.0;
+  (*(matrix.offset (1)))[1] = 1.0;
+  (*(matrix.offset (2)))[2] = 1.0;
+}
+
+/* Translate the matrix TRANSFORM to X, Y, and then perform clockwise
+   rotation by the given angle THETA in radians and translate back.
+   As the transform is being performed in a coordinate system where Y
+   grows downwards, the given angle describes a clockwise
+   rotation.  */
+
+/// C: C 2986-2987: `static void matrix_rotate (matrix3x3 transform, double theta, double x, double y)`
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms"),
+	    feature = "have_android"))]
+unsafe fn matrix_rotate (transform: *mut [c_double; 3], theta: c_double, x: c_double, y: c_double)
+{
+  let mut temp: matrix3x3 = [[0.0; 3]; 3];
+  let mut copy: matrix3x3 = [[0.0; 3]; 3];
+
+  /* 1. Translate the matrix so X and Y are in the center.  */
+
+  matrix_identity (temp.as_mut_ptr ());
+  memcpy (copy.as_mut_ptr () as *mut c_void, transform as *const c_void,
+	  core::mem::size_of::<matrix3x3> ());
+
+  temp[0][2] = x;
+  temp[1][2] = y;
+
+  matrix3x3_mult (copy.as_mut_ptr (), temp.as_mut_ptr (), transform);
+  matrix_identity (temp.as_mut_ptr ());
+  memcpy (copy.as_mut_ptr () as *mut c_void, transform as *const c_void,
+	  core::mem::size_of::<matrix3x3> ());
+
+  /* 2. Rotate the matrix counter-clockwise, assuming a coordinate
+     system where Y grows downwards.  */
+
+  temp[0][0] = cos (theta);
+  temp[0][1] = -sin (theta);
+  temp[1][0] = sinf (theta as f32) as c_double;
+  temp[1][1] = cosf (theta as f32) as c_double;
+
+  matrix3x3_mult (copy.as_mut_ptr (), temp.as_mut_ptr (), transform);
+  matrix_identity (temp.as_mut_ptr ());
+  memcpy (copy.as_mut_ptr () as *mut c_void, transform as *const c_void,
+	  core::mem::size_of::<matrix3x3> ());
+
+  /* 3. Translate back.  */
+
+  temp[0][2] = -x;
+  temp[1][2] = -y;
+
+  matrix3x3_mult (copy.as_mut_ptr (), temp.as_mut_ptr (), transform);
+}
+
+/* Scale the matrix TRANSFORM by -1, and then apply a TX of width, in
+   effect flipping the image horizontally.  */
+
+/// C: C 3026-3027: `static void matrix_mirror_horizontal (matrix3x3 transform, double width)`
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms"),
+	    feature = "have_android"))]
+unsafe fn matrix_mirror_horizontal (transform: *mut [c_double; 3], width: c_double)
+{
+  let mut temp: matrix3x3 = [[0.0; 3]; 3];
+  let mut copy: matrix3x3 = [[0.0; 3]; 3];
+
+  matrix_identity (temp.as_mut_ptr ());
+  memcpy (copy.as_mut_ptr () as *mut c_void, transform as *const c_void,
+	  core::mem::size_of::<matrix3x3> ());
+
+  temp[0][0] = (-1.0f32) as c_double;
+  temp[0][2] = width;
+
+  matrix3x3_mult (copy.as_mut_ptr (), temp.as_mut_ptr (), transform);
+}
+
+/// C: C 3040-3041: `static void matrix_translate (matrix3x3 transform, float tx, float ty)`
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms"),
+	    feature = "have_android"))]
+unsafe fn matrix_translate (transform: *mut [c_double; 3], tx: f32, ty: f32)
+{
+  let mut temp: matrix3x3 = [[0.0; 3]; 3];
+  let mut copy: matrix3x3 = [[0.0; 3]; 3];
+
+  matrix_identity (temp.as_mut_ptr ());
+  memcpy (copy.as_mut_ptr () as *mut c_void, transform as *const c_void,
+	  core::mem::size_of::<matrix3x3> ());
+
+  /* Set the tx and ty.  */
+  temp[0][2] = tx as c_double;
+  temp[1][2] = ty as c_double;
+
+  /* Multiply it with the transform.  */
+  matrix3x3_mult (copy.as_mut_ptr (), temp.as_mut_ptr (), transform);
+}
+
+/* C 3056: `#endif` */
+
+/// C: C 3058-3059: `static void image_set_transform (struct frame *f, struct image *img)`
+#[cfg (all (feature = "have_window_system",
+	    any (feature = "have_imagemagick", feature = "have_native_transforms")))]
+unsafe fn image_set_transform (f: *mut frame, img: *mut image)
+{
+  let mut flip: bool;
+
+  /* C 3063-3072: `#if defined HAVE_HAIKU`.  */
+  #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+  {
+    let identity: matrix3x3 = [[1 as c_double, 0 as c_double, 0 as c_double],
+			       [0 as c_double, 1 as c_double, 0 as c_double],
+			       [0 as c_double, 0 as c_double, 1 as c_double]];
+
+    (*img).use_bilinear_filtering = false;
+
+    memcpy (&raw mut (*img).transform as *mut c_void, &raw const identity as *const c_void,
+	    core::mem::size_of::<matrix3x3> ());
+  }
+
+  /* C 3074-3081: `#if defined HAVE_ANDROID`.  */
+  #[cfg (all (feature = "have_window_system", feature = "have_android"))]
+  let identity: matrix3x3 = [[1 as c_double, 0 as c_double, 0 as c_double],
+			     [0 as c_double, 1 as c_double, 0 as c_double],
+			     [0 as c_double, 0 as c_double, 1 as c_double]];
+
+  /* C 3082-3087: `# if (defined HAVE_IMAGEMAGICK && !defined DONT_CREATE_TRANSFORMED_IMAGEMAGICK_IMAGE)`.
+     `DONT_CREATE_TRANSFORMED_IMAGEMAGICK_IMAGE` is the `have_pgtk` && `have_imagemagick` constant
+     above (C 104-111), so `!defined` is `not (have_pgtk && have_imagemagick)`.  */
+  #[cfg (all (feature = "have_window_system", feature = "have_imagemagick",
+	      not (feature = "have_pgtk")))]
+  if EQ (image_spec_value ((*img).spec, QCtype (), core::ptr::null_mut ()), Qimagemagick ())
+    { return; }
+
+  /* C 3089-3092: `# if !defined USE_CAIRO && defined HAVE_XRENDER`.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "use_cairo"),
+	      feature = "have_xrender"))]
+  if (*img).picture.is_null ()
+    { return; }
+
+  /* Determine size.  */
+  /* C's `int width, height;` are written by `compute_image_size`/the SVG arm before any read;
+     zeroed here because `&raw mut` of a binding Rust has not initialised is `E0381`
+     (PORTING.md 1.5/0.1-13).  */
+  let mut width: c_int = 0;
+  let mut height: c_int = 0;
+
+  /* C 3095-3103: `#ifdef HAVE_RSVG`, whose `if (… SVG …) {…} else` prefix on the
+     `compute_image_size` call below cannot be spelled as a Rust `if`/`else` pair when only one
+     arm compiles (the `keyboard.rs` 826 rule): the gated arm is carried here, and the call keeps
+     C's place below under C's own `#endif` condition.  */
+  #[cfg (all (feature = "have_window_system", feature = "have_rsvg"))]
+  if EQ (image_spec_value ((*img).spec, QCtype (), core::ptr::null_mut ()), Qsvg ())
+    {
+      width = (*img).width / FRAME_SCALE_FACTOR (f);
+      height = (*img).height / FRAME_SCALE_FACTOR (f);
+    }
+  else
+    {
+      compute_image_size (f, (*img).width as c_double, (*img).height as c_double, img,
+			  &raw mut width, &raw mut height);
+    }
+
+  #[cfg (all (feature = "have_window_system", not (feature = "have_rsvg")))]
+  compute_image_size (f, (*img).width as c_double, (*img).height as c_double, img,
+		      &raw mut width, &raw mut height);
+
+  /* Determine rotation.  */
+  let mut rotation: c_double = 0.0;
+  compute_image_rotation (img, &raw mut rotation);
+
+  /* Determine flipping.  */
+  flip = !NILP (image_spec_value ((*img).spec, QCflip (), core::ptr::null_mut ()));
+
+  /* C 3105-3115: `# if defined USE_CAIRO || defined HAVE_XRENDER || defined HAVE_NS || defined
+     HAVE_HAIKU || defined HAVE_ANDROID || defined HAVE_NTGUI`.  */
+  #[cfg (all (feature = "have_window_system",
+	      any (feature = "use_cairo", feature = "have_xrender", feature = "have_ns",
+		   feature = "have_haiku", feature = "have_android", feature = "have_ntgui")))]
+  let mut smoothing: bool;
+  #[cfg (all (feature = "have_window_system",
+	      any (feature = "use_cairo", feature = "have_xrender", feature = "have_ns",
+		   feature = "have_haiku", feature = "have_android", feature = "have_ntgui")))]
+  {
+    /* We want scale up operations to use a nearest neighbor filter to
+       show real pixels instead of munging them, but scale down
+       operations to use a blended filter, to avoid aliasing and the like.  */
+    let s: Lisp_Object = image_spec_value ((*img).spec, QCtransform_smoothing (),
+					   core::ptr::null_mut ());
+    if NILP (s)
+      { smoothing = (width < (*img).width) || (height < (*img).height); }
+    else
+      { smoothing = !NILP (s); }
+  }
+
+  /* C 3117-3119: `#ifdef HAVE_HAIKU`.  */
+  #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+  { (*img).use_bilinear_filtering = smoothing; }
+
+  /* C 3120-3122: `#ifdef HAVE_NTGUI`.  */
+  #[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+  { (*img).smoothing = smoothing; }
+
+  /* Perform scale transformation.  */
+
+  /* C 3126-3141: C's designated initializer's three arms; the elements it does not name are
+     its own zero fill.  */
+  #[cfg (all (feature = "have_window_system",
+	      any (feature = "use_cairo", feature = "have_xrender", feature = "have_android")))]
+  let mut matrix: matrix3x3
+    = [[if !IEEE_FLOATING_POINT && width == 0
+	 { DBL_MAX }
+       else
+	 { (*img).width as c_double / width as c_double },
+	0 as c_double, 0 as c_double],
+       [0 as c_double,
+	if !IEEE_FLOATING_POINT && height == 0
+	  { DBL_MAX }
+	else
+	  { (*img).height as c_double / height as c_double },
+	0 as c_double],
+       [0 as c_double, 0 as c_double, 1 as c_double]];
+  #[cfg (all (feature = "have_window_system",
+	      any (feature = "have_ntgui", feature = "have_ns", feature = "have_haiku"),
+	      not (any (feature = "use_cairo", feature = "have_xrender", feature = "have_android"))))]
+  let mut matrix: matrix3x3
+    = [[if !IEEE_FLOATING_POINT && (*img).width == 0
+	 { DBL_MAX }
+       else
+	 { width as c_double / (*img).width as c_double },
+	0 as c_double, 0 as c_double],
+       [0 as c_double,
+	if !IEEE_FLOATING_POINT && (*img).height == 0
+	  { DBL_MAX }
+	else
+	  { height as c_double / (*img).height as c_double },
+	0 as c_double],
+       [0 as c_double, 0 as c_double, 1 as c_double]];
+  #[cfg (all (feature = "have_window_system",
+	      not (any (feature = "use_cairo", feature = "have_xrender", feature = "have_android",
+			feature = "have_ntgui", feature = "have_ns", feature = "have_haiku"))))]
+  let mut matrix: matrix3x3 = [[1 as c_double, 0 as c_double, 0 as c_double],
+			       [0 as c_double, 1 as c_double, 0 as c_double],
+			       [0 as c_double, 0 as c_double, 1 as c_double]];
+  (*img).width = width;
+  (*img).height = height;
+
+  /* Perform rotation transformation.  */
+
+  let mut rotate_flag: c_int = -1;
+
+  /* Haiku needs this, since the transformation is done on the basis
+     of the view, and not the image.  */
+  /* C 3149-3154: `#if defined HAVE_HAIKU`'s `int extra_tx, extra_ty; extra_tx = 0; extra_ty = 0;`  */
+  #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+  let mut extra_tx: c_int = 0;
+  #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+  let mut extra_ty: c_int = 0;
+
+  if rotation == 0 as c_double && !flip
+    { rotate_flag = 0; }
+  else
+    {
+      /* C 3163-3330: `#ifndef HAVE_ANDROID`, whose width-system arm is C 3165's
+	 `# if (defined USE_CAIRO || defined HAVE_XRENDER || defined HAVE_NTGUI || defined HAVE_NS
+	 || defined HAVE_HAIKU)`.  */
+      #[cfg (all (feature = "have_window_system", not (feature = "have_android"),
+		  any (feature = "use_cairo", feature = "have_xrender", feature = "have_ntgui",
+		       feature = "have_ns", feature = "have_haiku")))]
+      {
+	/* C's `int cos_r, sin_r;` - zeroed (PORTING.md 1.5/0.1-13); every path that reaches
+	   `if (0 < rotate_flag)` has assigned both.  */
+	let mut cos_r: c_int = 0;
+	let mut sin_r: c_int = 0;
+	if rotation == 0 as c_double
+	  {
+	    /* FLIP is always true here.  As this will rotate by 0
+	       degrees, it has no visible effect.  Applying only
+	       translation matrix to the image would be sufficient for
+	       horizontal flipping, but writing special handling for
+	       this case would increase code complexity somewhat.  */
+	    cos_r = 1;
+	    sin_r = 0;
+	    rotate_flag = 1;
+
+	    /* C 3180-3183: `#ifdef HAVE_HAIKU`.  */
+	    #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+	    {
+	      extra_tx = width;
+	      extra_ty = 0;
+	    }
+	  }
+	else if rotation == 90 as c_double
+	  {
+	    width = (*img).height;
+	    height = (*img).width;
+	    cos_r = 0;
+	    sin_r = 1;
+	    rotate_flag = 1;
+
+	    /* C 3189-3193: `#if defined HAVE_HAIKU`.  */
+	    #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+	    {
+	      if !flip
+		{ extra_ty = height; }
+	      extra_tx = 0;
+	    }
+	  }
+	else if rotation == 180 as c_double
+	  {
+	    cos_r = -1;
+	    sin_r = 0;
+	    rotate_flag = 1;
+
+	    /* C 3198-3202: `#ifdef HAVE_HAIKU`.  */
+	    #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+	    {
+	      if !flip
+		{ extra_tx = width; }
+	      extra_ty = height;
+	    }
+	  }
+	else if rotation == 270 as c_double
+	  {
+	    width = (*img).height;
+	    height = (*img).width;
+	    cos_r = 0;
+	    sin_r = -1;
+	    rotate_flag = 1;
+
+	    /* C 3210-3215: `#ifdef HAVE_HAIKU`.  */
+	    #[cfg (all (feature = "have_window_system", feature = "have_haiku"))]
+	    {
+	      extra_tx = width;
+
+	      if flip
+		{ extra_ty = height; }
+	    }
+	  }
+
+	if 0 < rotate_flag
+	  {
+	    /* C 3227-3266: `#  if defined USE_CAIRO || defined HAVE_XRENDER || defined HAVE_ANDROID`.  */
+	    #[cfg (all (feature = "have_window_system",
+			any (feature = "use_cairo", feature = "have_xrender",
+			     feature = "have_android")))]
+	    {
+	      /* 1. Translate so (0, 0) is in the center of the image.  */
+	      let mut t: matrix3x3
+		= [[1 as c_double, 0 as c_double, 0 as c_double],
+		   [0 as c_double, 1 as c_double, 0 as c_double],
+		   [(*img).width as c_double * 0.5, (*img).height as c_double * 0.5, 1 as c_double]];
+	      let mut u: matrix3x3 = [[0.0; 3]; 3];
+	      matrix3x3_mult (t.as_mut_ptr (), matrix.as_mut_ptr (), u.as_mut_ptr ());
+
+	      /* 2. Rotate.  */
+	      let mut rot: matrix3x3
+		= [[cos_r as c_double, -sin_r as c_double, 0 as c_double],
+		   [sin_r as c_double, cos_r as c_double, 0 as c_double],
+		   [0 as c_double, 0 as c_double, 1 as c_double]];
+	      let mut v: matrix3x3 = [[0.0; 3]; 3];
+	      matrix3x3_mult (rot.as_mut_ptr (), u.as_mut_ptr (), v.as_mut_ptr ());
+
+	      /* 3. Translate back.  Flip horizontally if requested.  */
+	      t[2][0] = width as c_double * -0.5;
+	      t[2][1] = height as c_double * -0.5;
+	      if flip
+		{
+		  t[0][0] = -t[0][0];
+		  t[2][0] = -t[2][0];
+		}
+	      matrix3x3_mult (t.as_mut_ptr (), v.as_mut_ptr (), matrix.as_mut_ptr ());
+	    }
+	    /* C 3267-3287: `#  else`.  */
+	    #[cfg (all (feature = "have_window_system",
+			not (any (feature = "use_cairo", feature = "have_xrender",
+				  feature = "have_android"))))]
+	    {
+	      /* 1. Translate so (0, 0) is in the center of the image.  */
+	      let mut t: matrix3x3
+		= [[1 as c_double, 0 as c_double, 0 as c_double],
+		   [0 as c_double, 1 as c_double, 0 as c_double],
+		   [(*img).width as c_double * -0.5, (*img).height as c_double * -0.5, 1 as c_double]];
+	      let mut u: matrix3x3 = [[0.0; 3]; 3];
+	      matrix3x3_mult (matrix.as_mut_ptr (), t.as_mut_ptr (), u.as_mut_ptr ());
+
+	      /* 2. Rotate.  */
+	      let mut rot: matrix3x3
+		= [[cos_r as c_double, sin_r as c_double, 0 as c_double],
+		   [-sin_r as c_double, cos_r as c_double, 0 as c_double],
+		   [0 as c_double, 0 as c_double, 1 as c_double]];
+	      let mut v: matrix3x3 = [[0.0; 3]; 3];
+	      matrix3x3_mult (u.as_mut_ptr (), rot.as_mut_ptr (), v.as_mut_ptr ());
+
+	      /* 3. Translate back.  Flip horizontally if requested.  */
+	      t[2][0] = width as c_double * 0.5;
+	      t[2][1] = height as c_double * 0.5;
+	      if flip { t[0][0] = -t[0][0]; }
+	      matrix3x3_mult (v.as_mut_ptr (), t.as_mut_ptr (), matrix.as_mut_ptr ());
+	    }
+	    (*img).width = width;
+	    (*img).height = height;
+	  }
+      }
+
+      /* C 3331-3492: `#else` (HAVE_ANDROID).  */
+      #[cfg (all (feature = "have_window_system", feature = "have_android"))]
+      {
+	/* Calculate the inverse transform from the destination to the
+	   source.  The matrix is currently identity with scale
+	   applied.
+
+           This code makes more sense to me than what lies above.  But
+           I'm not touching what works.  */
+
+	/* C 3344's `goto bail` - the label is the block's tail, so the skip is this flag (the
+	   `fileio.rs` 4880 shape).  */
+	let mut goto_bail: bool = false;
+	if rotation != 0 as c_double && rotation != 90 as c_double
+	   && rotation != 180 as c_double && rotation != 270 as c_double
+	  {
+	    rotate_flag = 0;
+	    goto_bail = true;
+	  }
+
+	if !goto_bail
+	  {
+	    rotate_flag = 1;
+
+	    /* C's `switch ((int) rotation + (flip ? 1 : 0))`; C has no `default`, so `_` is the
+	       empty one (the `parse_image_spec` `switch`->`match` shape).  */
+	    match (rotation as c_int) + (if flip { 1 } else { 0 })
+	      {
+		0 =>
+		  { }
+
+		90 =>
+		  {
+		    /* Rotate the image 90 degrees clockwise.  IOW, rotate the
+		       destination by 90 degrees counterclockwise, which is 270
+		       degrees clockwise.  */
+		    matrix_rotate (matrix.as_mut_ptr (), M_PI * 1.5, 0 as c_double, 0 as c_double);
+		    matrix_translate (matrix.as_mut_ptr (), (-height) as f32, 0 as f32);
+		  }
+
+		180 =>
+		  {
+		    /* Apply clockwise 180 degree rotation around the
+		       center.  */
+		    matrix_rotate (matrix.as_mut_ptr (), M_PI, width as c_double / 2.0,
+				   height as c_double / 2.0);
+		  }
+
+		270 =>
+		  {
+		    /* Apply 270 degree counterclockwise rotation to the
+		       destination, which is 90 degrees clockwise.  */
+		    matrix_rotate (matrix.as_mut_ptr (), M_PI * 0.5, 0 as c_double, 0 as c_double);
+		    matrix_translate (matrix.as_mut_ptr (), 0 as f32, (-width) as f32);
+		  }
+
+		1 =>
+		  {
+		    /* Flipped.  Apply horizontal flip.  */
+		    matrix_mirror_horizontal (matrix.as_mut_ptr (), width as c_double);
+		  }
+
+		91 =>
+		  {
+		    /* Apply a flip but otherwise treat this the same as 90.  */
+		    matrix_rotate (matrix.as_mut_ptr (), M_PI * 1.5, 0 as c_double, 0 as c_double);
+		    matrix_translate (matrix.as_mut_ptr (), (-height) as f32, 0 as f32);
+		    matrix_mirror_horizontal (matrix.as_mut_ptr (), height as c_double);
+		  }
+
+		181 =>
+		  {
+		    /* Flipped 180 degrees.  Apply a flip and treat this the
+		       same as 180.  */
+		    matrix_rotate (matrix.as_mut_ptr (), M_PI, width as c_double / 2.0,
+				   height as c_double / 2.0);
+		    matrix_mirror_horizontal (matrix.as_mut_ptr (), width as c_double);
+		  }
+
+		271 =>
+		  {
+		    /* Flipped 270 degrees.  Apply a flip and treat this the
+		       same as 270.  */
+		    matrix_rotate (matrix.as_mut_ptr (), M_PI * 0.5, 0 as c_double, 0 as c_double);
+		    matrix_translate (matrix.as_mut_ptr (), 0 as f32, (-width) as f32);
+		    matrix_mirror_horizontal (matrix.as_mut_ptr (), height as c_double);
+		  }
+
+		_ =>
+		  { }
+	      }
+
+	    /* Now set img->width and img->height.  Flip them if the
+	       rotation being applied requires so.  */
+
+	    if rotation != 270 as c_double && rotation != 90 as c_double
+	      {
+		(*img).width = width;
+		(*img).height = height;
+	      }
+	    else
+	      {
+		(*img).height = width;
+		(*img).width = height;
+	      }
+	  }
+	/* bail: */
+      }
+    }
+
+  if rotate_flag < 0
+    {
+      image_error (c"No native support for rotation by %g degrees".as_ptr (),
+		   make_float (rotation));
+    }
+
+  /* C 3494-3548: the six arms of C's store-the-transform chain.  */
+  /* C 3494-3500: `# if defined (HAVE_NS)`.  */
+  #[cfg (all (feature = "have_window_system", feature = "have_ns"))]
+  {
+    /* Under NS the transform is applied to the drawing surface at
+       drawing time, so store it for later.  */
+    ns_image_set_transform ((*img).pixmap, &raw mut matrix as *mut [f64; 3]);
+    ns_image_set_smoothing ((*img).pixmap, smoothing);
+  }
+  /* C 3501-3517: `# elif defined USE_CAIRO`.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ns"),
+	      feature = "use_cairo"))]
+  {
+    /* C's positional initializer is written out with the record's own member names (`cairo.h`
+       460-462's `xx, yx, xy, yy, x0, y0`, the order the clang reading above measured).  */
+    let cr_matrix: cairo_matrix_t
+      = cairo_matrix_t { xx: matrix[0][0], yx: matrix[0][1], xy: matrix[1][0],
+			 yy: matrix[1][1], x0: matrix[2][0], y0: matrix[2][1] };
+    let pattern: *mut cairo_pattern_t
+      = cairo_pattern_create_rgb (0 as c_double, 0 as c_double, 0 as c_double);
+    cairo_pattern_set_matrix (pattern, &raw const cr_matrix);
+
+    /* Performance degrades with CAIRO_FILTER_BEST when using canvas, and possibly
+       we get HW acceleration from CAIRO_FILTER_GOOD */
+    let cairo_filter: c_int;
+    if EQ (image_spec_value ((*img).spec, QCtype (), core::ptr::null_mut ()), Qcanvas ())
+      { cairo_filter = if smoothing { CAIRO_FILTER_GOOD } else { CAIRO_FILTER_NEAREST }; }
+    else
+      { cairo_filter = if smoothing { CAIRO_FILTER_BEST } else { CAIRO_FILTER_NEAREST }; }
+    cairo_pattern_set_filter (pattern, cairo_filter);
+
+    /* Dummy solid color pattern just to record pattern matrix.  */
+    (*img).cr_data = pattern as *mut c_void;
+  }
+  /* C 3518-3536: `# elif defined (HAVE_XRENDER)`.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ns"),
+	      not (feature = "use_cairo"), feature = "have_x_windows", feature = "have_xrender"))]
+  if !(*img).picture.is_null ()
+    {
+      /* C 3520-3528: `XTransform tmat = {{{XDoubleToFixed (…), …}}};` - `XTransform` is
+	 Xrender.h's `struct { XFixed matrix[3][3]; }` and `XFixed`/`XDoubleToFixed` the same
+	 header's; no mirror carries them (the first slice's Xlib-name rule), so the record keeps
+	 C's own member name and its initializer's shape.  */
+      let tmat: XTransform
+	= XTransform {
+	    matrix: [[XDoubleToFixed (matrix[0][0]), XDoubleToFixed (matrix[1][0]),
+		      XDoubleToFixed (matrix[2][0])],
+		     [XDoubleToFixed (matrix[0][1]), XDoubleToFixed (matrix[1][1]),
+		      XDoubleToFixed (matrix[2][1])],
+		     [XDoubleToFixed (matrix[0][2]), XDoubleToFixed (matrix[1][2]),
+		      XDoubleToFixed (matrix[2][2])]] };
+
+      XRenderSetPictureFilter (FRAME_X_DISPLAY! (f), (*img).picture,
+			       if smoothing { FilterBest } else { FilterNearest }, 0, 0);
+      XRenderSetPictureTransform (FRAME_X_DISPLAY! (f), (*img).picture, &raw const tmat);
+
+      if !(*img).mask_picture.is_null ()
+	{
+	  XRenderSetPictureFilter (FRAME_X_DISPLAY! (f), (*img).mask_picture,
+				   if smoothing { FilterBest } else { FilterNearest }, 0, 0);
+	  XRenderSetPictureTransform (FRAME_X_DISPLAY! (f), (*img).mask_picture,
+				      &raw const tmat);
+	}
+    }
+  /* C 3537-3545: `# elif defined HAVE_NTGUI`.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ns"),
+	      not (feature = "use_cairo"), not (feature = "have_x_windows"),
+	      feature = "have_ntgui"))]
+  {
+    /* Store the transform matrix for application at draw time.  */
+    /* The mirror's `xform` member is the untyped pointer its own P-72 rule 3 note records (a
+       by-value `XFORM` is not preserved), so C's six stores have no field to reach; C's text is
+       kept and the arm is this machine's Windows text-only class.  */
+    (*img).xform.eM11 = matrix[0][0];
+    (*img).xform.eM12 = matrix[0][1];
+    (*img).xform.eM21 = matrix[1][0];
+    (*img).xform.eM22 = matrix[1][1];
+    (*img).xform.eDx  = matrix[2][0];
+    (*img).xform.eDy  = matrix[2][1];
+  }
+  /* C 3546-3554: `# elif defined HAVE_HAIKU`.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ns"),
+	      not (feature = "use_cairo"), not (feature = "have_x_windows"),
+	      not (feature = "have_ntgui"), feature = "have_haiku"))]
+  {
+    /* Store the transform in the struct image for later.  */
+    memcpy (&raw mut (*img).transform as *mut c_void, &raw const matrix as *const c_void,
+	    core::mem::size_of::<matrix3x3> ());
+
+    /* Also add the extra translations.   */
+    if rotate_flag != 0
+      {
+	(*img).transform[0][2] = extra_tx as c_double;
+	(*img).transform[1][2] = extra_ty as c_double;
+      }
+  }
+  /* C 3556-3666: `# elif defined HAVE_ANDROID`.  */
+  #[cfg (all (feature = "have_window_system", not (feature = "have_ns"),
+	      not (feature = "use_cairo"), not (feature = "have_x_windows"),
+	      not (feature = "have_ntgui"), not (feature = "have_haiku"),
+	      feature = "have_android"))]
+  {
+    /* Create a new image of the right size, then turn it into a pixmap
+       and set that as img->pixmap.  Destroy img->mask for now (this is
+       not right.)  */
+
+    let mut transformed_image: *mut android_image;
+    let mut image: *mut android_image;
+    let mut transform: android_transform;
+
+    /* If there is no transform, simply return.  */
+    if memcmp (&raw const matrix as *const c_void, &raw const identity as *const c_void,
+	       core::mem::size_of::<matrix3x3> ()) == 0
+      { return; }
+
+    /* First, get the source image.  */
+    image = image_get_x_image (f, img, false);
+
+    /* Make the transformed image.  */
+    transformed_image = android_create_image ((*image).depth as c_uint, ANDROID_Z_PIXMAP,
+					      core::ptr::null_mut (), (*img).width as c_uint,
+					      (*img).height as c_uint);
+
+    /* Allocate memory for that image.  */
+    (*transformed_image).data
+      = xmalloc ((((*transformed_image).bytes_per_line as c_uint)
+		  * ((*transformed_image).height as c_uint)) as usize) as *mut c_char;
+
+    /* Do the transform.  */
+    transform = core::mem::zeroed ();
+    transform.m1 = matrix[0][0] as f32;
+    transform.m2 = matrix[0][1] as f32;
+    transform.m3 = matrix[0][2] as f32;
+    transform.m4 = matrix[1][0] as f32;
+    transform.m5 = matrix[1][1] as f32;
+    transform.m6 = matrix[1][2] as f32;
+
+    if (*image).depth == 24 && smoothing
+      {
+	android_project_image_bilinear (image, transformed_image, &raw mut transform);
+      }
+    else
+      {
+	android_project_image_nearest (image, transformed_image, &raw mut transform);
+      }
+
+    image_unget_x_image (img, false, image);
+
+    /* Now replace the image.  */
+
+    if !(*img).ximg.is_null ()
+      { image_destroy_x_image ((*img).ximg as Emacs_Pix_Container); }
+
+    (*img).ximg = transformed_image as *mut c_void;
+
+    #[cfg (not (feature = "android_stubify"))]
+    {
+      /* Then replace the pixmap.  */
+      android_free_pixmap ((*img).pixmap as android_pixmap);
+
+      /* In case android_create_pixmap signals.  */
+      (*img).pixmap = ANDROID_NONE as *mut c_void;
+      (*img).pixmap = android_create_pixmap ((*img).width as c_uint, (*img).height as c_uint,
+					     (*transformed_image).depth) as *mut c_void;
+      android_put_image ((*img).pixmap as android_pixmap, transformed_image);
+    }
+    #[cfg (feature = "android_stubify")]
+    { emacs_abort (); }
+
+    /* Now, transform the mask.  The mask should be depth 1, and is
+       always transformed using a nearest neighbor filter.  */
+
+    if !(*img).mask_img.is_null () || !(*img).mask.is_null ()
+      {
+	image = image_get_x_image (f, img, true);
+	transformed_image = android_create_image (1 as c_uint, ANDROID_Z_PIXMAP,
+						  core::ptr::null_mut (),
+						  (*img).width as c_uint,
+						  (*img).height as c_uint);
+	(*transformed_image).data
+	  = xmalloc ((((*transformed_image).bytes_per_line as c_uint)
+		      * ((*transformed_image).height as c_uint)) as usize) as *mut c_char;
+	android_project_image_nearest (image, transformed_image, &raw mut transform);
+	image_unget_x_image (img, true, image);
+
+	/* Now replace the image.  */
+
+	if !(*img).mask_img.is_null ()
+	  { image_destroy_x_image ((*img).mask_img as Emacs_Pix_Container); }
+
+	(*img).mask_img = transformed_image as *mut c_void;
+
+	#[cfg (not (feature = "android_stubify"))]
+	{
+	  if !(*img).mask.is_null ()
+	    { android_free_pixmap ((*img).mask as android_pixmap); }
+
+	  (*img).mask = ANDROID_NONE as *mut c_void;
+	  (*img).mask = android_create_pixmap ((*img).width as c_uint, (*img).height as c_uint,
+					       1) as *mut c_void;
+	  android_put_image ((*img).mask as android_pixmap, transformed_image);
+	}
+      }
+
+    /* Done! */
+  }
 }

@@ -7172,3 +7172,35 @@
   ⑨ **未声称**：本轮**没有编译**（只跑文本门：`check-mirror-dupes`、`extract-abi --check/--all`、
      `check-declarations`、`check-dead-file-coverage`）；Android 臂的两处配置**没有跑过**；②的棘轮行是一条
      **带证据的判断**（bionic 头实测 + android.c 两处调用点 + 冻结配置的替换值），不是"语义已验"。
+
+- **3.416 `image.c` 第三片（C 2212-3550）：图像缓存、`postprocess_image`、缩放与变换（2026-10-05）**：
+  ① **区间与块**：C 2212-3550（收在 C 3550 的 `#endif /* HAVE_IMAGEMAGICK || HAVE_NATIVE_TRANSFORMS */`；
+     **下一个活定义 = `lookup_image`（C 3556）**）。块：`make_image_cache`/`search_image_cache`/`filter_image_spec`/
+     `uncache_image`/`free_image_cache`/`clear_image_cache`/`clear_image_caches`/`DEFUN clear-image-cache`/
+     `image_size_in_bytes`/`image_frame_cache_size`/`DEFUN image-flush`/`postprocess_image`/`scale_image_size`/
+     `image_get_dimension`/`image_compute_scale`/`compute_image_size`/`matrix3x3`（三处助手 + 四个 Android 矩阵助手）/
+     `image_set_transform`。
+  ② **行数**：`femacs/src/image.rs` 3,134 → **4,881**（+1,754/−7；本片 Rust 文本 1,719 行对应 C 1,337 行）；
+     `docs/ports/image.md` 717 → **1,044**。
+  ③ **读数（lane 的命令原文）**：⑴ 冻结 `build-tu src/image.c` **3 发全 exit 0**、对象 336 字节、
+     md5 `dbed68837694579185377dbb0821ab62`（与前两片逐字节相同）；⑵ **24 个 cfg 组合**的只读扫描：
+     **本片自身文本 0 个单元文本错**，残留全在第 1/2 片或镜像缺口（`+have_ns` 14 行/28 站点/单元 3/镜像 25、
+     `+have_x_windows` 47/81/29/52、`+have_android+not_android_stubify` 10/18/5/13、`+have_xrender` 50/84/31/53）；
+     ⑶ **arm-reach 预检**（`have_window_system+have_ns+have_native_transforms+dispextern_face_records`，
+     只补 4 个镜像替身）**exit 0 / 0 error / 96,584 字节**；⑷ **变异实测 3 条**（注入类型错→exit 1 且错在变异行；
+     改本片 `DBL_MAX` 名→exit 1 两处；`postprocess_image` 的 `&&`→`||` **exit 0、编译器看不见，如实记**）；
+     ⑸ `extract-abi --check` **139 → 121** 行，其中 2 条是本片定义产生的 token 行 ⇒ **集成者补
+     `macro-body-notes.tsv` 两行后 119**（`clear_image_cache` 的 `inhibit_clear_image_cache,max`——位域访问器与
+     `f64` 没有 `Ord` 而写三目；`image_compute_scale` 的 `goto,invalid_value`——标号块）。
+  ④ **本片抓到并修掉 8 处真缺陷**：4 处在自写文本（`c_float` 不在 prelude、`inhibit_clear_image_cache` 要走 P-80
+     位段、`std::cmp::max` 对 `f64` 非法、`scale_image_size` 少 `as c_int`、少一层括号的解析错、未初始化绑定
+     `&raw mut` 的 `E0381`、`FOR_EACH_FRAME!` 不能写不可变形参、Android 四个矩阵助手少外层门），
+     4 处在**既有文本**——其中 `free_image` 的 `FRAME_IMAGE_CACHE!` 缺 `as *mut image_cache` 强转**每个窗口系统
+     配置都报 `E0308`**（属第 1/2 片遗留）。
+  ⑤ **镜像缺口点名**：`include/frame.rs` 的 `image_cache` 成员仍是 `*mut c_void`（按 P-70 应为 `*mut image_cache`）、
+     `FRAME_WINDOW_P` 的 body 恒 false（语义缺口）、`lisp.rs` 的 `sxhash`/`plist_get`、`float.in.rs` 的 `DBL_MAX`、
+     `math.rs` 的 `sinf`/`cosf`、`nsterm.rs` 的 `NSArray`/`NSString`/`EmacsMenu`、`xlib.rs` 的 XRender 面。
+  ⑥ **欠（点名）**：`have_native_transforms` 与 `have_rsvg` **还没进 `femacs/xtask/Cargo.toml`**（本片两条门只能
+     由 `--cfg` 直接给）；`docs/ports/include-xlib.md` 仍无页（xlib 的偏离记在邻页）。
+  ⑦ **未声称**：只声称"文本 1:1 + 该冻结配置下编过 + 四个臂的预检编过"；**没有任何运行/显示证据**——
+     没跑过重显示、没生成过 glyph matrix、没做过视觉/差分对拍；C 3551-13,805 未移植。
