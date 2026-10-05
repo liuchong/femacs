@@ -77,7 +77,10 @@ pub unsafe fn critical_factorization (needle: *const u8, needle_len: usize,
             /* Suffix is smaller, period is entire prefix so far.  */
             j += k;
             k = 1;
-            p = j - max_suffix;
+            /* C: `p = j - max_suffix;` - `max_suffix` is seeded with `SIZE_MAX`, so the first
+               iteration relies on *unsigned wraparound* (`0 - SIZE_MAX` is 1, the period the
+               algorithm wants); Rust's checked subtraction panics instead (PORTING.md P-96).  */
+            p = j.wrapping_sub (max_suffix);
           }
         else if a == b
           {
@@ -118,7 +121,9 @@ pub unsafe fn critical_factorization (needle: *const u8, needle_len: usize,
             /* Suffix is smaller, period is entire prefix so far.  */
             j += k;
             k = 1;
-            p = j - max_suffix_rev;
+            /* C: `p = j - max_suffix_rev;` - same `SIZE_MAX` seed and the same wraparound
+               (PORTING.md P-96; this is the site the dump path's first `memmem` call panicked on).  */
+            p = j.wrapping_sub (max_suffix_rev);
           }
         else if a == b
           {
@@ -185,10 +190,14 @@ pub unsafe fn two_way_short_needle (haystack: *const u8, mut haystack_len: usize
           if needle_len <= i
             {
               /* Scan for matches in left half.  */
-              i = suffix - 1;
+      /* C: `i = suffix - 1;` - with `suffix == 0` this must wrap to `SIZE_MAX`, which the
+         loop right below tests for (`while i != SIZE_MAX && ...`); PORTING.md P-96.  */
+              i = suffix.wrapping_sub (1);
               while memory < i + 1 && CANON_ELEMENT! (*needle.add (i))
                                       == CANON_ELEMENT! (*haystack.add (i + j))
-                { i -= 1; }
+                /* C: `i--;` - `i == 0` must wrap to `SIZE_MAX`, the sentinel the loop's own test
+   uses (`while i != SIZE_MAX && ...`); PORTING.md P-96.  */
+                { i = i.wrapping_sub (1); }
               if i + 1 < memory + 1
                 { return haystack.add (j) as RETURN_TYPE! (); }
               /* No match, so remember how many repetitions of period
@@ -219,10 +228,10 @@ pub unsafe fn two_way_short_needle (haystack: *const u8, mut haystack_len: usize
           if needle_len <= i
             {
               /* Scan for matches in left half.  */
-              i = suffix - 1;
+              i = suffix.wrapping_sub (1);
               while i != SIZE_MAX && CANON_ELEMENT! (*needle.add (i))
                                      == CANON_ELEMENT! (*haystack.add (i + j))
-                { i -= 1; }
+                { i = i.wrapping_sub (1); }
               if i == SIZE_MAX
                 { return haystack.add (j) as RETURN_TYPE! (); }
               j += period;
@@ -305,10 +314,10 @@ pub unsafe fn two_way_long_needle (haystack: *const u8, haystack_len: usize,
               if needle_len - 1 <= i
                 {
                   /* Scan for matches in left half.  */
-                  i = suffix - 1;
+              i = suffix.wrapping_sub (1);
                   while memory < i + 1 && CANON_ELEMENT! (*needle.add (i))
                                           == CANON_ELEMENT! (*haystack.add (i + j))
-                    { i -= 1; }
+                    { i = i.wrapping_sub (1); }
                   if i + 1 < memory + 1
                     { return haystack.add (j) as RETURN_TYPE! (); }
                   /* No match, so remember how many repetitions of period
@@ -349,10 +358,10 @@ pub unsafe fn two_way_long_needle (haystack: *const u8, haystack_len: usize,
               if needle_len - 1 <= i
                 {
                   /* Scan for matches in left half.  */
-                  i = suffix - 1;
+              i = suffix.wrapping_sub (1);
                   while i != SIZE_MAX && CANON_ELEMENT! (*needle.add (i))
                                          == CANON_ELEMENT! (*haystack.add (i + j))
-                    { i -= 1; }
+                    { i = i.wrapping_sub (1); }
                   if i == SIZE_MAX
                     { return haystack.add (j) as RETURN_TYPE! (); }
                   j += period;

@@ -13059,3 +13059,11 @@
   ④ **未声称**：本件**没有改任何端口代码**（只加 `tools/` 与两份台账/状态）、**没有编译**、没有运行读数；门的完备性有限（改写过的条件不下判），这与覆盖行一起写在工具文档串与 P-95 行里。
   ⑤ **收口**：新增 `tools/check-do-while.py`、`docs/baseline/do-while-allowlist.tsv`；十道文本门复跑全绿（含本道）。
 
+- **3.637 dump 路径开工：先确认它写在哪（安全），再撞上 `str-two-way.h` 镜像里的 10 个无符号回绕点并修好（2026-10-06）**：
+  ① **先查写点（安全边界）**：`lisp/loadup.el` 的 pdump 分支写的是**裸文件名** `emacs.pdmp`，再 `(expand-file-name output invocation-directory)` ⇒ 落在**运行中二进制所在目录**（我们的 `build/femacs/`），**参照树不会被写**（`git -C emacs status --short` 仍为空）；参照构建的调用形状是 `-batch -l loadup --temacs=pdump`（`build/emacs-ref/src/Makefile` 652 行），端口有 `dump-emacs-portable`。⇒ 可以跑。
+  ② **第一处缺陷（本轮修的就是它）**：dump 跑到 `Snarf-documentation` 之前的某次 `string-search` ⇒ `rpl_memmem` panic：`attempt to subtract with overflow`，在 **`lib/str-two-way.h` 的镜像**里。C 的 `size_t` **按设计**回绕：`max_suffix`/`max_suffix_rev` 种子是 `SIZE_MAX`（`p = j - max_*` 第一次就是要回绕成 1）、`i = suffix - 1` 与 `i--` 在 `i == 0` 时必须回绕成 `SIZE_MAX`（紧邻循环正是 `while i != SIZE_MAX`）。
+  ③ **修法**：镜像里 **10 个**站点改成 `wrapping_sub`（2 处 `p = j - max_*`、4 处 `i = suffix - 1`、4 处 `i--`），每处把 C 的原句留在注释里；`PORTING.md` 记作 **P-96**（C 按设计回绕的点必须显式 `wrapping_*`；算法上有界的减法**保持受检**——越界即 panic 是有用信号；`overflow-checks` 保持开启，不许关掉检查来"通过"）。
+  ④ **读数**：`build-tu lib/memmem.c` → `built`；`extract-abi --check emacs/lib/memmem.c femacs/lib/memmem.rs` → **OK**；dump 运行（`tools/loadup-fixture.sh --batch --temacs=pdump`）：`rc=134`、`^Loading=110`、**没有** `.pdmp` 产出——但 panic 已经从 memmem（+6080/+7408/+7504 三处）**移到下一个单元**：`src/data.c` 的 `do_symval_forwarding`（`misaligned pointer dereference: address must be a multiple of 0x8 but is 0x1033a3c8c`，帧 11-13 = `do_symval_forwarding` / `default_value` / `Fdefault_boundp`）⇒ 即本轮**走通了八次 `memmem` 调用**，下一个缺陷已点名（错位的 `Lisp_Object` 解引用）。
+  ⑤ **未声称**：**没有 dump 成功**（没有 `.pdmp`）、没有 `.elc` 装载、没有 `make check`；110 行仍是夹具读数；dump 的写点分析是**代码路径**读数（尚未真正写出文件）。
+  ⑥ **预算**：`build-tu lib/memmem.c` 4 发、`check-link --executable` 3 发、dump 运行 4 发；`/tmp/d*.log|err` 收工删；`build/femacs/` 无 `.pdmp` 残留。
+

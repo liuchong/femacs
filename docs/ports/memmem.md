@@ -52,3 +52,19 @@
   `nm build/femacs/fns.o` → `U _rpl_memmem`, `nm build/femacs/memmem.o` → `T _rpl_memmem`, the
   reference's two lines exactly; `build-tu` built for both units; `--check` `OK` for both files.
 
+
+## 2026-10-06: ten unsigned-wraparound sites in the injected `str-two-way.h` (status 3.637)
+
+The dump path's first `memmem` call panicked - `attempt to subtract with overflow` - in the mirror of
+the search that `lib/memmem.c` injects (`lib/str-two-way.h`).  C's `size_t` arithmetic wraps silently
+and this algorithm *relies* on it: `max_suffix`/`max_suffix_rev` are seeded with `SIZE_MAX`, so the
+first `p = j - max_*` is meant to wrap to 1, and `i = suffix - 1` / `i--` must wrap to `SIZE_MAX`
+because the loop right below tests `i != SIZE_MAX`.  Ten sites now use `wrapping_sub` (2
+critical-factorization `p =`, 4 `i = suffix - 1`, 4 `i--`), each with C's own sentence in a comment;
+PORTING.md P-96 makes that the rule for every place C wraps *by design* and keeps the checked form
+everywhere the algorithm's bounds make the subtraction safe.
+
+Readings: `build-tu lib/memmem.c` -> `built`; `extract-abi --check emacs/lib/memmem.c
+femacs/lib/memmem.rs` -> `OK`; and the dump run now gets through all eight `memmem` calls - the panic
+moves on to `src/data.c`'s `do_symval_forwarding` (a misaligned pointer dereference, 0x1033a3c8c),
+recorded in docs/status.md 3.637 as the next station rather than fixed here.
