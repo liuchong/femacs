@@ -8677,3 +8677,32 @@
   `include/pgtkterm.rs` 的 C 31（挡在 `src/image.rs`/`src/xwidget.rs` 上），连同 `pgtk_emacs_to_gtk_modifiers`，
   都要等各自文件的 P-88 ⑤ 搬运同批收。本轮我 `layout-check` **1 发**、`build-tu` 0 发。
 
+- **3.475 sfnt 切片 6 落地（C 5455-6306，852 行）：字形度量、样式表、TTC 头与 hinting 表（2026-10-05），并定下 P-91**：
+  ① **区间/块**：C 5455-6306（收在 `sfnt_round_f26dot6` 的 `}`）；**本片没有任何 `#if`/`#ifdef`**（区间里只有
+  `#define`/`#undef` 之外的空文本），所以每项只要文件门 + `TEST_STATIC`。块：`sfnt_read_hmtx_table`/
+  `sfnt_lookup_glyph_metrics`/`sfnt_scale_metrics`/`sfnt_get_scale`、"Font style parsing." 段的
+  `sfnt_read_name_table`/`sfnt_find_name`/`sfnt_read_meta_table`/`sfnt_find_metadata`、TTC 头的
+  `sfnt_read_ttc_header`、"TrueType hinting support." 的 `sfnt_read_cvt_table`/`sfnt_read_fpgm_table`/
+  `sfnt_read_prep_table`，以及八个 26.6 定点助手（`sfnt_div_f26dot6`…`sfnt_round_f26dot6`）。
+  ② **行数**：`femacs/src/sfnt.rs` **6,251 → 7,191**（md5 `e41578fca05d6e47e968a84d59537187`）；台账
+  **687 → 745** 行（区间表 49 → **50** 行，末行改 `6307-21215`）。lane 顺带清掉切片 5 漏进文件的一个 form
+  feed 行（端口惯例丢弃 `\f`，Deviation 45）。
+  ③ **集成者落地读数（本轮自己跑的）**：冻结 `build-tu src/sfnt.c` → exit 0 / **336 字节空对象**；
+  `extract-abi --check` 的 `- ` 行 **291 → 269**（其中 `- missing` **268**：函数 138→**118**、宏 147 不变、
+  常量 3 不变、对象/字段 0），非 missing 行**只有那条 66.1% 漂移** ⇒ **本片不产生任何命名行、无需台账新账**；
+  `check-dead-file-coverage` **50 行区间覆盖 `sfnt.c` 21,215 行与 `sfnt.h` 2,151 行 / 0 failure**。
+  ④ **lane 自报读数（不是我的）**：翻臂 `probe … --cfg 'feature="have_android"' --cfg
+  'feature="not_android_stubify"'` → **exit 0 / 0 error / 对象 36,240 字节**（切片 5 = 31,288）；它自查抓到
+  2 条语法错（C 5647/5822 的 `directory->length < required` 里的 `<` 被读成泛型参数）与 5 条 `E0369`/`E0605`
+  （把标量 typedef `sfnt_glyph` 写成记录名）并修掉。**预算：`build-tu` 3/3、翻臂 2/3。**
+  ⑤ **本片停在 C 6306 是个结构性问题，已定成 PORTING.md 的 P-91**：下一项 C 6316
+  `sfnt_init_graphics_state` 调用 C 6308-6310 前向声明的 `sfnt_validate_gs`，而它**定义在 C 10538**
+  （同一文件未移植段）；0.1-12 要求删掉 C 的静态前向声明，而 Rust 里没有"声明"只有"项" ⇒ 只要定义不在文件里，
+  调用点的翻臂读数必然报"找不到函数"。P-91 四条：**移植顺序按依赖闭包、文本位置仍按 C 行序**（Rust 项与顺序
+  无关，所以先落 C 10538 再落 C 6316 不破坏"同顺序"）、台账区间表保持升序（`not ported` 行可与已落行交替）、
+  **翻臂新增一类允许项**「同文件内、C 行号已知但尚未移植的 `static` 定义」（逐站点名它要等的 C 行，随文件
+  填满递减，不许当"已通过"）。
+  ⑥ **未声称**：翻臂那个 36,240 字节对象是**编译**读数（没人运行）；C 6307-21,215 未移植，268 条 `- missing`
+  与 66.1% 漂移即边界；P-91 ④ 那一类允许项会一直存在到相应定义落地；冻结对象是空的（文件门），对正文不说
+  什么。本轮我 `build-tu` **1 发**、翻臂 0 发。
+

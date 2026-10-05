@@ -8,14 +8,16 @@
 // select.
 //
 // **This file is P-86's largest unit (C 21,215 lines) and is being ported in slices.**  The
-// slices so far are C 1-5451: slice 1 (C 1-1112, through `sfnt_read_cmap_table`), slice 2 (the
+// slices so far are C 1-6306: slice 1 (C 1-1112, through `sfnt_read_cmap_table`), slice 2 (the
 // glyph lookup routines, the table readers and the two glyph outline readers, C 1113-2407),
 // slice 3 (the glyph outline decomposition, C 2408-3594), slice 4 (the outline builders and the
-// "ragged" rasterizer, C 3595-4543) and slice 5 (the "exact coverage scaler", C 4544-5451).
-// **The next live definition is C 5468's `sfnt_read_hmtx_table`** - C 5455's "Glyph metrics
-// computation." banner opens the metrics readers.  The ledger `docs/ports/sfnt.md` carries the C
-// line-range table for C 1-5451 plus the "the remainder" row, the `## Evidence` readings and the
-// `## Deviations`.
+// "ragged" rasterizer, C 3595-4543), slice 5 (the "exact coverage scaler", C 4544-5451) and
+// slice 6 (the metrics, name and meta readers, the TrueType collection header and the table
+// readers and fixed-point helpers the interpreter needs, C 5455-6306).  **The next live
+// definition is C 6316's `sfnt_init_graphics_state`** - and it is *blocked*: its only callee,
+// `sfnt_validate_gs` (declared C 6310), is defined at C 10538 in the remainder, which is the
+// ledger's Owed 12.  The ledger `docs/ports/sfnt.md` carries the C line-range table for C 1-6306
+// plus the "the remainder" row, the `## Evidence` readings and the `## Deviations`.
 //
 // The frozen configuration compiles no `sfnt.o`: `configure.ac` 2645 adds `sfnt.o` to
 // `ANDROID_OBJ` only inside the `XCONFIGURE = android` branch (the `REALLY_ANDROID` one,
@@ -5196,7 +5198,6 @@ macro_rules! sfnt_sub {
 macro_rules! sfnt_mul {
   ($a:expr, $b:expr) => { ((($a) as c_uint).wrapping_mul (($b) as c_uint) as c_int) };
 }
-
 
 /* Exact coverage scaler.
 
@@ -6248,4 +6249,943 @@ pub unsafe extern "C" fn sfnt_raster_glyph_outline_exact (outline: *mut sfnt_gly
 
   /* All done.  */
   return data;
+}
+/* Glyph metrics computation.  */
+
+/* Read an hmtx table from the font FD, using the table directory
+   specified as SUBTABLE, the maxp table MAXP, and the hhea table
+   HHEA.
+
+   Return NULL upon failure, and the hmtx table otherwise.
+   HHEA->num_of_long_hor_metrics determines the number of horizontal
+   metrics present, and MAXP->num_glyphs -
+   HHEA->num_of_long_hor_metrics determines the number of left-side
+   bearings present.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_hmtx_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable,
+					       hhea: *mut sfnt_hhea_table,
+					       maxp: *mut sfnt_maxp_table)
+  -> *mut sfnt_hmtx_table                                 // C 5467-5532
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut hmtx: *mut sfnt_hmtx_table;
+  let mut size: size_t;
+  let mut rc: ssize_t;
+  let mut i: c_int;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_HMTX);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Figure out how many bytes are required.  */
+  size = ((*hhea).num_of_long_hor_metrics as size_t
+	  * std::mem::size_of::<sfnt_long_hor_metric> ())
+    + (MAX! (0 as c_int, ((*maxp).num_glyphs as c_int
+			  - (*hhea).num_of_long_hor_metrics as c_int)) as size_t
+       * std::mem::size_of::<int16_t> ());
+
+  /* Check the length matches exactly.  */
+  if (*directory).length as size_t != size
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Now allocate enough to hold all of that along with the table
+     directory structure.  */
+
+  hmtx = xaddmalloc (std::mem::size_of::<sfnt_hmtx_table> (), size)
+    as *mut sfnt_hmtx_table;
+
+  /* Read into hmtx + 1.  */
+  rc = read (fd, hmtx.offset (1) as *mut c_void, size);
+  if rc == -1 || (rc as size_t) < size
+    {
+      xfree (hmtx as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Set pointers to data.  */
+  (*hmtx).h_metrics = hmtx.offset (1) as *mut sfnt_long_hor_metric;
+  (*hmtx).left_side_bearing
+    = (*hmtx).h_metrics.offset ((*hhea).num_of_long_hor_metrics as isize) as *mut int16_t;
+
+  /* Swap what was read.  */
+
+  i = 0;
+  while i < (*hhea).num_of_long_hor_metrics as c_int
+    {
+      sfnt_swap16! (&raw mut (*(*hmtx).h_metrics.offset (i as isize)).advance_width);
+      sfnt_swap16! (&raw mut (*(*hmtx).h_metrics.offset (i as isize)).left_side_bearing);
+      i += 1;
+    }
+
+  while i < (*maxp).num_glyphs as c_int
+    {
+      sfnt_swap16! (&raw mut *(*hmtx).left_side_bearing
+		    .offset ((i - (*hhea).num_of_long_hor_metrics as c_int) as isize));
+      i += 1;
+    }
+
+  /* All done.  */
+  return hmtx;
+}
+
+/* Obtain unscaled glyph metrics for the glyph indexed by GLYPH.
+   Return 0 and the metrics in *METRICS if metrics could be found,
+   else 1.
+
+   HMTX, HHEA and MAXP should be the hmtx, hhea, head, and maxp tables
+   of the font respectively.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_lookup_glyph_metrics (glyph: sfnt_glyph_index,
+						    metrics: *mut sfnt_glyph_metrics,
+						    hmtx: *mut sfnt_hmtx_table,
+						    hhea: *mut sfnt_hhea_table,
+						    maxp: *mut sfnt_maxp_table)
+  -> c_int                                                // C 5541-5575
+{
+  let mut lbearing: c_short;
+  let mut advance: c_ushort;
+
+  if glyph < (*hhea).num_of_long_hor_metrics as c_uint
+    {
+      /* There is a long entry in the hmtx table.  */
+      lbearing = (*(*hmtx).h_metrics.offset (glyph as isize)).left_side_bearing;
+      advance = (*(*hmtx).h_metrics.offset (glyph as isize)).advance_width;
+    }
+  else if (*hhea).num_of_long_hor_metrics != 0
+	   && glyph < (*maxp).num_glyphs as c_uint
+    {
+      /* There is a short entry in the hmtx table.  */
+      lbearing
+	= *(*hmtx).left_side_bearing
+	  .offset ((glyph - (*hhea).num_of_long_hor_metrics as c_uint) as isize);
+      advance
+	= (*(*hmtx).h_metrics
+	   .offset (((*hhea).num_of_long_hor_metrics as c_int - 1) as isize)).advance_width;
+    }
+  else
+    /* No entry corresponds to the glyph.  */
+    { return 1; }
+
+  /* Return unscaled metrics.  */
+  (*metrics).lbearing = lbearing as sfnt_fixed;
+  (*metrics).advance = advance as sfnt_fixed;
+  return 0;
+}
+
+/* Scale the specified glyph metrics by FACTOR.  Set METRICS->lbearing
+   and METRICS->advance to their current values times factor; take the
+   floor of the left bearing and round the advance width.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_scale_metrics (metrics: *mut sfnt_glyph_metrics,
+					     factor: sfnt_fixed)
+{                                                          // C 5581-5592
+  let mut lbearing: sfnt_fixed;
+  let mut advance: sfnt_fixed;
+
+  lbearing = sfnt_mul_fixed ((*metrics).lbearing * 65536, factor);
+  advance = sfnt_mul_fixed ((*metrics).advance * 65536, factor);
+
+  (*metrics).lbearing = sfnt_floor_fixed (lbearing);
+  (*metrics).advance = sfnt_round_fixed (advance);
+}
+
+/* Calculate the factor used to convert em space to device space for a
+   font with the specified HEAD table and PPEM value.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_get_scale (head: *mut sfnt_head_table, ppem: c_int)
+  -> sfnt_fixed                                           // C 5597-5612
+{
+  /* Figure out how to convert from font unit-space to pixel space.
+     To turn one unit to its corresponding pixel size given a ppem of
+     1, the unit must be divided by head->units_per_em.  Then, it must
+     be multiplied by the ppem.  So,
+
+       PIXEL = UNIT / UPEM * PPEM
+
+     which means:
+
+       PIXEL = UNIT * PPEM / UPEM  */
+  return sfnt_div_fixed (ppem, (*head).units_per_em as sfnt_fixed);
+}
+
+/* Font style parsing.  */
+
+/* Read the name table from the given font FD, using the table
+   directory specified as SUBTABLE.  Perform validation on the offsets
+   in the name records.  Return NULL upon failure, else the name
+   table.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_name_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_name_table                                 // C 5623-5768
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut name: *mut sfnt_name_table;
+  let mut required: size_t;
+  let mut rc: ssize_t;
+  let mut i: c_int;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_NAME);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Figure out the minimum that has to be read.  */
+  required = SFNT_ENDOF! (sfnt_name_table, string_offset, uint16_t);
+
+  if ((*directory).length as size_t) < required
+    { return std::ptr::null_mut (); }
+
+  /* Allocate enough to hold the name table and variable length
+     data.  */
+  name = xaddmalloc (std::mem::size_of::<sfnt_name_table> (),
+		     (*directory).length as size_t) as *mut sfnt_name_table;
+
+  /* Read the fixed length data.  */
+  rc = read (fd, name as *mut c_void, required);
+  if rc == -1 || (rc as size_t) < required
+    {
+      xfree (name as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap what was read.  */
+  sfnt_swap16! (&raw mut (*name).format);
+  sfnt_swap16! (&raw mut (*name).count);
+  sfnt_swap16! (&raw mut (*name).string_offset);
+
+  /* Reject unsupported formats.  */
+  if (*name).format != 0
+    {
+      xfree (name as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Set the pointer to the start of the variable length data.  */
+  (*name).name_records = name.offset (1) as *mut sfnt_name_record;
+
+  /* Check there is enough for the name records.  */
+  required = (*directory).length as size_t - required;
+  if required < (*name).count as size_t * std::mem::size_of::<sfnt_name_record> ()
+    {
+      xfree (name as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Read the variable length data.  First, read the name records.  */
+  rc = read (fd, (*name).name_records as *mut c_void,
+	     (*name).count as size_t * std::mem::size_of::<sfnt_name_record> ());
+  if rc == -1 || (rc as size_t) < ((*name).count as size_t
+				   * std::mem::size_of::<sfnt_name_record> ())
+    {
+      xfree (name as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap each of the name records.  */
+  i = 0;
+  while i < (*name).count as c_int
+    {
+      sfnt_swap16! (&raw mut (*(*name).name_records.offset (i as isize)).platform_id);
+      sfnt_swap16! (&raw mut (*(*name).name_records.offset (i as isize)).platform_specific_id);
+      sfnt_swap16! (&raw mut (*(*name).name_records.offset (i as isize)).language_id);
+      sfnt_swap16! (&raw mut (*(*name).name_records.offset (i as isize)).name_id);
+      sfnt_swap16! (&raw mut (*(*name).name_records.offset (i as isize)).length);
+      sfnt_swap16! (&raw mut (*(*name).name_records.offset (i as isize)).offset);
+      i += 1;
+    }
+
+  /* Now, read the name data.  */
+
+  if ((*name).string_offset as size_t) > (*directory).length as size_t
+    {
+      xfree (name as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  required = (*directory).length as size_t - (*name).string_offset as size_t;
+
+  /* It can happen that the string offset comes before the name
+     records, and as a result exceeds the number of bytes
+     previously allocated.  Extend name if that is the case.  */
+
+  if required > ((*directory).length as size_t
+		 - ((*name).count as size_t
+		    * std::mem::size_of::<sfnt_name_record> ()))
+    {
+      let mut size: size_t;
+      let (ckd_size, mul_overflow) = ((*name).count as size_t)
+	.overflowing_mul (std::mem::size_of::<sfnt_name_record> ());
+      size = ckd_size;
+      if mul_overflow
+	{ memory_full_up (); }
+      let (ckd_size, add_overflow) = size.overflowing_add (required);
+      size = ckd_size;
+      if add_overflow
+	{ memory_full_up (); }
+      name = xaddrealloc (name as *mut c_void,
+			  std::mem::size_of::<sfnt_name_table> (),
+			  size) as *mut sfnt_name_table;
+      (*name).name_records = name.offset (1) as *mut sfnt_name_record;
+    }
+
+  /* There is enough space past name->name_records to hold REQUIRED
+     bytes.  Seek to the right offset.  */
+
+  if lseek (fd, (*directory).offset as off_t + (*name).string_offset as off_t,
+	    SEEK_SET) == (-1 as off_t)
+    {
+      xfree (name as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Read REQUIRED bytes into the string data.  */
+  (*name).data = (*name).name_records.offset ((*name).count as isize) as *mut u8;
+  rc = read (fd, (*name).data as *mut c_void, required);
+  if rc == -1 || (rc as size_t) < required
+    {
+      xfree (name as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Now validate each of the name records.  */
+  i = 0;
+  while i < (*name).count as c_int
+    {
+      if (((*(*name).name_records.offset (i as isize)).offset as c_int
+	   + (*(*name).name_records.offset (i as isize)).length as c_int) as size_t)
+	> required
+	{
+	  /* The name is out of bounds! */
+	  xfree (name as *mut c_void);
+	  return std::ptr::null_mut ();
+	}
+      i += 1;
+    }
+
+  /* Return the name table.  */
+  return name;
+}
+
+/* Return a pointer to the name data corresponding with CODE under the
+   name table NAME.  Return the start of the data and the name record
+   under *RECORD upon success, and NULL otherwise.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_find_name (name: *mut sfnt_name_table,
+					 code: sfnt_name_identifier_code,
+					 record: *mut sfnt_name_record)
+  -> *mut c_uchar                                          // C 5774-5792
+{
+  let mut i: c_int;
+
+  i = 0;
+  while i < (*name).count as c_int
+    {
+      if (*(*name).name_records.offset (i as isize)).name_id as c_int == code
+	{
+	  /* The offsets within have already been validated.  */
+	  *record = *(*name).name_records.offset (i as isize);
+	  return (*name).data.offset ((*record).offset as isize);
+	}
+      i += 1;
+    }
+
+  return std::ptr::null_mut ();
+}
+
+/* Read the meta table from the given font FD, using the table
+   directory specified as SUBTABLE.  Perform validation on the offsets
+   in each metadata record.  Return NULL upon failure, else the meta
+   table.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_meta_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_meta_table                                 // C 5799-5916
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut meta: *mut sfnt_meta_table;
+  let mut required: size_t;
+  let mut i: size_t;
+  let mut data_size: size_t;
+  let mut map_size: size_t;
+  let mut offset: size_t;
+  let mut rc: ssize_t;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_META);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Figure out the minimum that has to be read.  */
+  required = SFNT_ENDOF! (sfnt_meta_table, num_data_maps, uint32_t);
+
+  if ((*directory).length as size_t) < required
+    { return std::ptr::null_mut (); }
+
+  /* Allocate enough to hold it.  */
+  meta = xmalloc (std::mem::size_of::<sfnt_meta_table> ()) as *mut sfnt_meta_table;
+
+  /* Read the header.  */
+  rc = read (fd, meta as *mut c_void, required);
+  if rc == -1 || (rc as size_t) < required
+    {
+      xfree (meta as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap what has been read so far.  */
+  sfnt_swap32! (&raw mut (*meta).version);
+  sfnt_swap32! (&raw mut (*meta).flags);
+  sfnt_swap32! (&raw mut (*meta).data_offset);
+  sfnt_swap32! (&raw mut (*meta).num_data_maps);
+
+  /* Make sure the meta is supported.  */
+  if (*meta).version != 1
+    {
+      xfree (meta as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Reallocate the table to hold sizeof *meta + meta->num_data_maps
+     times sizeof meta->data_maps + directory->length bytes.  This is
+     because it is ok for metadata to point into the data map itself,
+     so an unswapped copy of the whole meta contents must be
+     retained.  */
+
+  let (ckd_map_size, mul_overflow) = std::mem::size_of::<sfnt_meta_data_map> ()
+    .overflowing_mul ((*meta).num_data_maps as size_t);
+  map_size = ckd_map_size;
+  if mul_overflow
+      /* Do so while checking for overflow from bad sfnt files.  */
+    {
+      xfree (meta as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+  if (*directory).length as size_t - required < map_size
+    {
+      xfree (meta as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+  let (ckd_data_size, add_overflow) = map_size
+    .overflowing_add ((*directory).length as size_t);
+  data_size = ckd_data_size;
+  if add_overflow
+    {
+      xfree (meta as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Do the reallocation.  */
+  meta = xaddrealloc (meta as *mut c_void, std::mem::size_of::<sfnt_meta_table> (),
+		      data_size) as *mut sfnt_meta_table;
+
+  /* Set pointers to data_maps and data.  */
+  (*meta).data_maps = meta.offset (1) as *mut sfnt_meta_data_map;
+  (*meta).data = (*meta).data_maps.offset ((*meta).num_data_maps as isize) as *mut u8;
+
+  /* Now, seek back.  Read the entire table into meta->data.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    {
+      xfree (meta as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  rc = read (fd, (*meta).data as *mut c_void, (*directory).length as size_t);
+  if rc < (*directory).length as ssize_t
+    {
+      xfree (meta as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Copy the data maps into meta->data_maps and swap them one by
+     one.  */
+  memcpy ((*meta).data_maps as *mut c_void,
+	  (*meta).data.offset (required as isize) as *const c_void,
+	  map_size);
+
+  i = 0;
+  while i < (*meta).num_data_maps as size_t
+    {
+      sfnt_swap32! (&raw mut (*(*meta).data_maps.offset (i as isize)).tag);
+      sfnt_swap32! (&raw mut (*(*meta).data_maps.offset (i as isize)).data_offset);
+      sfnt_swap32! (&raw mut (*(*meta).data_maps.offset (i as isize)).data_length);
+
+      /* Verify the data offsets.  Overflow checking is particularly
+	 important here.  */
+
+      let (ckd_offset, add_overflow)
+	= ((*(*meta).data_maps.offset (i as isize)).data_offset as size_t)
+	  .overflowing_add ((*(*meta).data_maps.offset (i as isize)).data_length as size_t);
+      offset = ckd_offset;
+      if add_overflow
+	{
+	  xfree (meta as *mut c_void);
+	  return std::ptr::null_mut ();
+	}
+
+      if offset > (*directory).length as size_t
+	{
+	  xfree (meta as *mut c_void);
+	  return std::ptr::null_mut ();
+	}
+      i += 1;
+    }
+
+  /* All done.  */
+  return meta;
+}
+
+/* Return a pointer to the metadata corresponding to TAG under the
+   meta table META.  Return the start of the data and the metadata map
+   under *MAP upon success, and NULL otherwise.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_find_metadata (meta: *mut sfnt_meta_table,
+					     tag: sfnt_meta_data_tag,
+					     map: *mut sfnt_meta_data_map)
+  -> *mut c_char                                           // C 5922-5939
+{
+  let mut i: c_int;
+
+  i = 0;
+  while i < (*meta).num_data_maps as c_int
+    {
+      if (*(*meta).data_maps.offset (i as isize)).tag == tag as uint32_t
+	{
+	  *map = *(*meta).data_maps.offset (i as isize);
+	  return ((*meta).data as *mut c_char).offset ((*map).data_offset as isize);
+	}
+      i += 1;
+    }
+
+  return std::ptr::null_mut ();
+}
+
+/* TrueType collection format support.  */
+
+/* Read a TrueType collection header from the font file FD.
+   FD must currently at the start of the file.
+
+   Value is the header upon success, else NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_ttc_header (fd: c_int) -> *mut sfnt_ttc_header
+{                                                          // C 5950-6032
+  let mut ttc: *mut sfnt_ttc_header;
+  let mut size: size_t;
+  let mut i: size_t;
+  let mut rc: ssize_t;
+
+  /* First, allocate only as much as required.  */
+
+  ttc = xmalloc (std::mem::size_of::<sfnt_ttc_header> ()) as *mut sfnt_ttc_header;
+
+  /* Read the version 1.0 data.  */
+
+  size = SFNT_ENDOF! (sfnt_ttc_header, num_fonts, uint32_t);
+  rc = read (fd, ttc as *mut c_void, size);
+  if rc == -1 || (rc as size_t) < size
+    {
+      xfree (ttc as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Now swap what was read.  */
+  sfnt_swap32! (&raw mut (*ttc).ttctag);
+  sfnt_swap32! (&raw mut (*ttc).version);
+  sfnt_swap32! (&raw mut (*ttc).num_fonts);
+
+  /* Verify that the tag is as expected.  */
+  if (*ttc).ttctag != SFNT_TTC_TTCF as uint32_t
+    {
+      xfree (ttc as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Now, read the variable length data.  Make sure to check for
+     overflow.  */
+
+  let (ckd_size, mul_overflow) = ((*ttc).num_fonts as size_t)
+    .overflowing_mul (std::mem::size_of::<uint32_t> ());
+  size = ckd_size;
+  if mul_overflow
+    {
+      xfree (ttc as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  ttc = xaddrealloc (ttc as *mut c_void, std::mem::size_of::<sfnt_ttc_header> (),
+		     size) as *mut sfnt_ttc_header;
+  (*ttc).offset_table = ttc.offset (1) as *mut uint32_t;
+  rc = read (fd, (*ttc).offset_table as *mut c_void, size);
+  if rc == -1 || (rc as size_t) < size
+    {
+      xfree (ttc as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap each of the offsets read.  */
+  i = 0;
+  while i < (*ttc).num_fonts as size_t
+    {
+      sfnt_swap32! (&raw mut *(*ttc).offset_table.offset (i as isize));
+      i += 1;
+    }
+
+  /* Now, look at the version.  If it is earlier than 2.0, then
+     reading is finished.  */
+
+  if (*ttc).version < 0x00020000
+    { return ttc; }
+
+  /* If it is 2.0 or later, then continue to read ul_dsig_tag to
+     ul_dsig_offset.  */
+
+  size = (SFNT_ENDOF! (sfnt_ttc_header, ul_dsig_offset, uint32_t)
+	  - std::mem::offset_of! (sfnt_ttc_header, ul_dsig_tag));
+  rc = read (fd, &raw mut (*ttc).ul_dsig_tag as *mut c_void, size);
+  if rc == -1 || (rc as size_t) < size
+    {
+      xfree (ttc as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap what was read.  */
+  sfnt_swap32! (&raw mut (*ttc).ul_dsig_tag);
+  sfnt_swap32! (&raw mut (*ttc).ul_dsig_length);
+  sfnt_swap32! (&raw mut (*ttc).ul_dsig_offset);
+
+  /* All done.  */
+  return ttc;
+}
+
+/* TrueType hinting support.
+
+   If you do not read the code in this section in conjunction with
+   Apple's TrueType Reference Manual, you will get very confused!
+
+   TrueType fonts don't provide simple hinting meta data, unlike Type
+   2 or CFF fonts.
+
+   Instead, they come with a ``font program'', a bytecode program
+   which is executed upon loading the font, a ``control value
+   program'', executed upon font metrics changing, and then a ``glyph
+   program'' for each glyph, which is run to fit its glyph after
+   scaling.
+
+   The virtual machine which runs this bytecode is arranged as such:
+
+   Firstly, there is a set of registers known as the ``graphics
+   state''.  Each time the point size of a font changes, the ``control
+   value program'' is run to establish the default values of the
+   ``graphics state''.  Then, before each glyph program is run, the
+   ``graphics state'' is set back to the default values.
+
+   Secondly, there is an address space which contains all instructions
+   being run for the current program, which is addressed by the
+   interpreter through its program counter and also by the
+   instructions which push data on to the stack.
+
+   Thirdly, there is a single stack, from which most instructions take
+   their operands and store data.
+
+   Then, there is some memory set aside for each font, the ``storage
+   area'', which is addressed through the RS[] and WS[] instructions,
+   and a ``control value table'', which is the `cvt ' table of the
+   font.
+
+   And finally, there is a ``glyph zone'' which holds points from a
+   scaled glyph outline, and a ``twilight zone'', which holds points
+   used by the font program itself.  Both are addressed indirectly
+   through one of three ``zone pointer'' registers, and are accessible
+   only when a program is being run on behalf of a glyph.  */
+
+
+/* Functions for reading tables used by the TrueType interpreter.  */
+
+/* Read the cvt table (control value table) from the given font FD,
+   using the table directory specified as SUBTABLE.  Swap all values
+   in the control value table.  Return NULL upon failure, else the cvt
+   table.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_cvt_table (fd: c_int,
+					      subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_cvt_table                                  // C 6086-6131
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut required: size_t;
+  let mut i: size_t;
+  let mut rc: ssize_t;
+  let mut cvt: *mut sfnt_cvt_table;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_CVT);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Figure out the minimum amount that has to be read.  */
+  let (ckd_required, add_overflow) = ((*directory).length as size_t)
+    .overflowing_add (std::mem::size_of::<sfnt_cvt_table> ());
+  required = ckd_required;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  /* Allocate enough for that much data.  */
+  cvt = xmalloc (required) as *mut sfnt_cvt_table;
+
+  /* Now set cvt->num_elements as appropriate, and make cvt->values
+     point into the values.  */
+  (*cvt).num_elements = (*directory).length as size_t / 2;
+  (*cvt).values = cvt.offset (1) as *mut sfnt_fword;
+
+  /* Read into cvt.  */
+  rc = read (fd, (*cvt).values as *mut c_void, (*directory).length as size_t);
+  if rc != (*directory).length as ssize_t
+    {
+      xfree (cvt as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Swap each element in the control value table.  */
+  i = 0;
+  while i < (*cvt).num_elements
+    {
+      sfnt_swap16! (&raw mut *(*cvt).values.offset (i as isize));
+      i += 1;
+    }
+
+  /* All done.  */
+  return cvt;
+}
+
+/* Read the fpgm table from the given font FD, using the table
+   directory specified as SUBTABLE.  Value is NULL upon failure, else
+   the fpgm table.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_fpgm_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_fpgm_table                                 // C 6137-6179
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut required: size_t;
+  let mut rc: ssize_t;
+  let mut fpgm: *mut sfnt_fpgm_table;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_FPGM);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Figure out the minimum amount that has to be read.  */
+  let (ckd_required, add_overflow) = ((*directory).length as size_t)
+    .overflowing_add (std::mem::size_of::<sfnt_fpgm_table> ());
+  required = ckd_required;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  /* Allocate enough for that much data.  */
+  fpgm = xaddmalloc (std::mem::size_of::<sfnt_fpgm_table> (),
+		     (*directory).length as size_t) as *mut sfnt_fpgm_table;
+
+  /* Now set fpgm->num_instructions as appropriate, and make
+     fpgm->instructions point to the right place.  */
+
+  (*fpgm).num_instructions = (*directory).length as size_t;
+  (*fpgm).instructions = fpgm.offset (1) as *mut u8;
+
+  /* Read into fpgm.  */
+  rc = read (fd, (*fpgm).instructions as *mut c_void, (*directory).length as size_t);
+  if rc != (*directory).length as ssize_t
+    {
+      xfree (fpgm as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* All done.  */
+  return fpgm;
+}
+
+/* Read the prep table from the given font FD, using the table
+   directory specified as SUBTABLE.  Value is NULL upon failure, else
+   the prep table.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_prep_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_prep_table                                 // C 6185-6227
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut required: size_t;
+  let mut rc: ssize_t;
+  let mut prep: *mut sfnt_prep_table;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_PREP);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Figure out the minimum amount that has to be read.  */
+  let (ckd_required, add_overflow) = ((*directory).length as size_t)
+    .overflowing_add (std::mem::size_of::<sfnt_prep_table> ());
+  required = ckd_required;
+  if add_overflow
+    { return std::ptr::null_mut (); }
+
+  /* Allocate enough for that much data.  */
+  prep = xaddmalloc (std::mem::size_of::<sfnt_prep_table> (),
+		     (*directory).length as size_t) as *mut sfnt_prep_table;
+
+  /* Now set prep->num_instructions as appropriate, and make
+     prep->instructions point to the right place.  */
+
+  (*prep).num_instructions = (*directory).length as size_t;
+  (*prep).instructions = prep.offset (1) as *mut u8;
+
+  /* Read into prep.  */
+  rc = read (fd, (*prep).instructions as *mut c_void, (*directory).length as size_t);
+  if rc != (*directory).length as ssize_t
+    {
+      xfree (prep as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* All done.  */
+  return prep;
+}
+
+/* Interpreter execution environment.  */
+
+/* Divide the specified two 26.6 fixed point numbers X and Y.
+   Return the result.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_div_f26dot6 (x: sfnt_f26dot6, y: sfnt_f26dot6) -> sfnt_f26dot6
+{                                                          // C 6236-6240
+  return (x as int64_t * ((1 << 6) as int64_t) / y as int64_t) as sfnt_f26dot6;
+}
+
+/* Multiply the specified two 26.6 fixed point numbers A and B.
+   Return the result, or an undefined value upon overflow.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_mul_f26dot6 (a: sfnt_f26dot6, b: sfnt_f26dot6) -> sfnt_f26dot6
+{                                                          // C 6245-6249
+  return (a as int64_t * b as int64_t / ((1 << 6) as int64_t)) as sfnt_f26dot6;
+}
+
+/* Multiply the specified two 26.6 fixed point numbers A and B, with
+   rounding.  Return the result, or an undefined value upon
+   overflow.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_mul_f26dot6_round (a: sfnt_f26dot6, b: sfnt_f26dot6) -> sfnt_f26dot6
+{                                                          // C 6255-6259
+  return ((a as int64_t * b as int64_t + ((1 << 5) as int64_t))
+    / ((1 << 6) as int64_t)) as sfnt_f26dot6;
+}
+
+/* Multiply the specified 2.14 number with another signed 32 bit
+   number.  Return the result as a signed 32 bit number.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_mul_f2dot14 (a: sfnt_f2dot14, b: int32_t) -> int32_t
+{                                                          // C 6264-6268
+  return (a as int64_t * b as int64_t / ((1 << 14) as int64_t)) as int32_t;
+}
+
+/* Multiply the specified 26.6 fixed point number X by the specified
+   16.16 fixed point number Y with rounding.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_mul_f26dot6_fixed (x: sfnt_f26dot6, y: sfnt_fixed) -> sfnt_f26dot6
+{                                                          // C 6273-6277
+  return sfnt_mul_fixed_round (x, y);
+}
+
+/* Return the floor of the specified 26.6 fixed point value X.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_floor_f26dot6 (x: sfnt_f26dot6) -> sfnt_f26dot6
+{                                                          // C 6281-6285
+  return (x as uint32_t & 0o37777777700) as sfnt_f26dot6;
+}
+
+/* Return the ceiling of the specified 26.6 fixed point value X.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_ceil_f26dot6 (x: sfnt_f26dot6) -> sfnt_f26dot6
+{                                                          // C 6289-6293
+  return (x + 0o77) & !0o77;
+}
+
+/* Return the 26.6 fixed point value X rounded to the nearest integer
+   value.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_round_f26dot6 (mut x: sfnt_f26dot6) -> sfnt_f26dot6
+{                                                          // C 6298-6306
+  /* Add 0.5.  */
+  x += 0o40;
+
+  /* Remove the fractional.  */
+  return x & !0o77;
 }
