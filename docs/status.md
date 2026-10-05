@@ -12061,3 +12061,23 @@
   ⑥ **未声称**：**无运行期证据**（冻结态是 336 字节空对象；没跑 `LoadLibrary`/`CreateSymbolicLink`/注册表/套接字/卷调用）；
      **无 Windows 目标编译、无布局测量**；arm 读数**被镜像图阻塞**（139 条里 126 条在镜像）；`#if` 判定来自 `check-cond-eval.py`
      且该文件是 `[NOT VERIFIED]`（35 conditions / 5 unknown / 4 disagreements），非 clang。**下一段起点 C 4,174**（`faccessat`）。
+
+- **3.598 镜像债：`src/include/w32.rs` 的 21 条 `E0428` 清零（`windowsnt` 臂 139 → 118 错）；并裁定 lane 报的第三件是**假警报**；同时暴露出一个新类（同一镜像被两条不同相对路径 `include!` 进同一个 crate）（2026-10-05）**：
+  ① **修掉的（真缺陷）**：`include/w32.rs` 的**四个顶层 `unsafe extern "C"` 块**（原 245-252 / 271-339 / 354-490 / 532-544）里
+     声明了 **`src/w32.rs` 自己定义的 21 个名字**（`fd_info`、`w32_valid_pointer_p`、`w32_get_long_filename`、`w32_get_short_filename`、
+     `init_environment`、`dostounix_filename`、`unixtodos_filename`、`map_w32_filename`、`filename_from_*`/`to_*`、
+     `w32_init_file_name_codepage`、`codepage_for_filenames`、`ansi_encode_filename`、`w32_init_current_directory`、`srandom`、`random`、
+     `sys_sleep`、`w32_get_nproc`、`w32_init_random`）——与 3.575/3.589/3.590 同类。四个块整体搬进 **`pub mod w32_file_decls { use super::*; … }`**
+     + `use w32_file_decls::*;`（crate 根定义遮蔽 glob 导入，P-21）。**读数**：`probe src/w32.rs --cfg windowsnt` 的
+     **139 → 118 错**（正好少 21 条 `E0428`）；`extract-abi --check emacs/src/w32.h ↔ femacs/src/include/w32.rs` **OK**；
+     `build-tu src/w32.c` 仍 `built` / **336 字节**（冻结态无项被解门）；七道文本门全绿。
+  ② **裁定（lane 报的 `DebPrint` 是假警报，未改镜像）**：Einstein 说 `include/conf_post.rs` 183 把 `macro_rules! DebPrint` 挂在
+     `feature = "have_ntgui"` 而"C 在任何配置下都定义它"。**逐行读 C 后否掉**：`conf_post.h` 160-167 整块在
+     `#if defined HAVE_NTGUI && !defined DebPrint` 之内，没有 `#else` —— 冻结配置（`HAVE_NTGUI undef`）下 C **根本不定义** `DebPrint`，
+     而端口把 `((void) 0)` 那一臂写成空展开并挂在 `have_ntgui` 下 **与 C 一致**。那条 `E0425` 的真正原因是**翻门组合不真实**：
+     真实的 Windows 配置里 `WINDOWSNT` 与 `HAVE_NTGUI` 同时成立，而 lane 只翻 `windowsnt`。⇒ **不改**。
+  ③ **新暴露的一类（记录，未修）**：同一次 probe 里 `signal_decls`、`acl_decls` 等**模块名**报 `E0428` —— 说明**同一个镜像文件被
+     include! 进同一个 crate 两次**（`src/include/lisp.rs` 1447 → `thread.rs` 32 → `../../lib/include/signal.rs`，而
+     `src/include/syssignal.rs` 18 也用**另一条相对路径**指向同一文件）。C 里 `<signal.h>` 重复包含有 include guard 兜底，Rust 的
+     `include!` 没有 ⇒ 模块名与其中的项都会撞。这条属**工具/镜像图**（`xtask` 物化器的去重规则是否按 canonical path 生效）——
+     与本次 21 条无因果，单独列为下次镜像轮的欠账。
