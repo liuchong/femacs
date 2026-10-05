@@ -8418,3 +8418,23 @@
   这是 P-86 ③⑵ 的 `text-only` 状态，**不是通过**；没有任何 BIOS/远指针/鼠标/屏幕/键盘表被**执行**过；
   C 2423-4,350（26.2%）未移植；`extract-abi` 的 OK 是空清单空跑。本轮 `build-tu` **1 发**、`probe` **0 发**。
 
+- **3.467 批次收口读数（sfnt 4 / gtkutil 2 / msdos 2 三件落地之后，工作树=提交态时跑的）（2026-10-05）**：
+  ① **为什么此时收口**：三件刚落、三条 lane 刚被派出去（sfnt 切片 5 / P-90 镜像轮 / msdos 切片 3），此刻
+  `git status --short` 为空 ⇒ 生成物只反映**已提交**的状态，不会把在飞数字冻进表里（这正是 3.461 起一直
+  推迟这一步的理由）。
+  ② **读数**：⑴ **进度 62.5% = 423,784 / 678,320**（`awk` 扫 `docs/port-map.md` 的 590 条 `.rs` 行；
+  上次 3.459 的 61.9% = 419,667，本批 +4,117 = sfnt +1,068 + gtkutil +1,608 + msdos +1,442 − 1）；
+  ⑵ `tools/gen-port-inventory.py` → **590 files, done=587 wip=3 todo=0**；⑶ `tools/check-port-lines.py
+  --write-pending` → **69 file(s), 88,245 reference line(s)**（**与上次逐字相同**：本批三件的端口都在十个百分点
+  阈值之上，棘轮行本就不该动，`0 new, 0 stale` 是"没动"而不是"没看"）；⑷ `tools/check-all-units.sh`
+  （`CARGO_TARGET_DIR=/tmp/femacs-sweep`）→ **`checked 83 unit(s), 0 failure(s)` + `checking 83 unit(s),
+  0 unit failure(s)`（83/0 + 83/0，与 3.455 同值）**——这是 P-87 的全树扫描，覆盖本批三件落地之后的树；
+  ⑸ 静态门：`check-citations` **0 drift**（绿）、`check-declarations` 10/0/0、`check-mirror-dupes` 19/19/0、
+  `check-ledger-ticks` 234/0、`check-dead-file-coverage` 45 绑定/0 failure。
+  ③ **生成物的实质变化只有 3 行**：`docs/port-map.md` 的 `src/gtkutil.c` 目标格 **11 → 4,200**、`src/msdos.c`
+  **24 → 3,209**、`src/sfnt.c` **3 → 5,181**（`docs/port-inventory.md` 与 `docs/baseline/port-lines-pending.tsv`
+  重写后逐字节不变，故本次不提交它们）。**gtkutil 台账的 Owed 13（生成物滞后）由此关闭。**
+  ④ **未声称**：全树扫描是**编译级**读数（单元 + 镜像的名字/类型检查），不是行为证据，也没有跑 `cargo test`/
+  L0-L5/`--all`；这个快照属于本提交，三条在飞 lane 一写盘就过期；`extract-abi --all` 未跑（其读数会受在飞文件
+  影响，留给下一批收口）。
+
