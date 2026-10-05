@@ -12796,3 +12796,36 @@
      六个单元与 `xtask` 已用 `git show HEAD:` 还原并重建（读数回到 18 行 `Loading`、停在 `macroexp.el`）。
   ⑦ **预算**：`build-tu` 约 20 发（含还原后的 6 发重建）、`check-link --executable` 约 10 发、`lldb` 5 次、
      两端 elisp 探针约 25 次、GC 对照运行 2 次（一次带 `time -l`）；`/tmp` 的探针（`bq*.el`、`pre*.el`、`not.el`、`fs2.el`、`fset.el`、`dc.el`）与日志已清。
+
+- **3.622 GC 缺陷的性质查清：**活结构里读到的是"被 sweep 挂上 cons 自由链的表项的链字"**——即 GC 把**仍然可达的 cons 表项**当死表项回收了（mark 少了一个根）（2026-10-05）**：
+  ① **本轮的判据（可分三步复算）**：⑴ 在 `print_object` 的 symbol 分支把 `XLI (obj)` 打出来（临时仪表），
+     崩溃前最后一次读到的是 `raw=0xbad793640`（跟着的两次是正常的 `0x185a0`、`0xe2e0`）；⑵ 在 `alloc.rs` 里加一个
+     `#[unsafe(no_mangle)] dbg_is_free_cons (p)`（沿 `cons_free_list` 走链，诊断用），让 print 侧直接问
+     "这个值是不是自由链上的表项"——**读数 `asptr_free_cons=1`** ✔；⑶ 另一条独立读数同向：把 `raw` 当**地址**看，
+     它落在**cons 块**里（`mem_insert` 侧记下 938 条分配区间，`raw` 在 `t=1`（`MEM_TYPE_CONS`）的区间内 ✔），
+     而把它当**符号偏移**看（`lispsym + raw`）得到的是**所有活块与已释放块之外**的地址（21 条 `lisp_free` 区间都不含它）✔。
+     ⇒ 那个槽里存的**不是编码过的 Lisp_Object，而是一个裸指针**——正是 cons 自由链的 `u.s.u.chain`
+     （C `alloc.c` 6892-6894：链字与 `u.s.car` 同字，另外把 car 写 `dead_object ()`）。
+  ② **两条排除性读数（免得下一轮重走）**：⑴ 把 `lisp_malloc (…, clearit=false)` 分配到的内存按 `0x5a` 填满后，
+     那个值**没有**变成 `0x5a5a…` ⇒ 不是"从未初始化过的新槽"，而是**被 sweep 写过**的槽 ✔；
+     ⑵ `MallocScribble=1` 让崩点在 `print_object` 内部移动（`+6184` → `+2772`，同一处 `SYMBOL_NAME` 的
+     `ldr x8, [x8, #0x8]`）⇒ 与"读到已归还内存"一致。
+  ③ **机制（写者已定位）**：`sweep_conses`（端口 7439-7441，C 6892-6894）把**判为死**的表项挂上 `cons_free_list`，
+     链字写进与 `car` 同字的位置；端口这段与 C 逐字相同 ⇒ **写者不是缺陷**；缺陷在**为什么这个表项被判死**——
+     即 **mark 阶段漏了一个能到它的根**（这也解释了 3.621 的对照：关掉 GC 就没有这次回收，链能走到 34 个文件）。
+  ④ **下一轮要测的三个候选（按可疑度排序）**：⑴ **当前线程 C 栈的覆盖范围**——C 的 `mark_one_thread` 只扫
+     `[m_stack_bottom, thread->stack_top]`，而 `stack_top` 是**最近一次 `flush_stack_call_func1`**记下的地址
+     （比崩点所在的那几层 C 帧**浅**）；`signal_or_quit`/`macroexp--expand-all` 那条错误路径把错误对象放在
+     **更深的 C 帧**里 ⇒ 要在端口里量：崩点处 `(*current_thread).stack_top` 与当前 SP 的关系，以及 C 在同一处
+     是否也漏（判据：C 侧靠 specpdl/handler 兜住，端口要靠 `mark_one_thread` 的两处 `mark_object` 兜住）。
+     ⑵ **handler 链与 specpdl**：`mark_one_thread` 里 `handler->tag_or_ch`/`handler->val` 与
+     `mark_specpdl (m_specpdl, m_specpdl_ptr)` 的读数（文本上已与 C 对齐，但没有行为读数）。
+     ⑶ **`mark_maybe_pointer` 的 `live_cons_holding` 路径**（`mem_find` 命中后按 `gcmarkbits` 判活）。测法：
+     在 lldb 里 **关掉 ASLR**（`settings set target.disable-aslr true`），从 sweep 的日志拿到那个被误回收表项的地址，
+     在崩点由端口自己走一遍 `handlerlist`/specpdl/Lisp 栈，回答"它到底该由哪个根保住"。
+  ⑤ **未声称**：本件**没有修好任何东西**——GC 仍开着、加载链仍是 17 个文件（18 行 `Loading`，停在 `macroexp.el`）。
+     ① 的三步都是**诊断读数**（仪表已删），不是 GC 正确性的证明；② 是两条排除性对照。
+  ⑥ **收口**：本轮所有临时仪表（`alloc.rs` 的 `dbg_is_free_cons`/分配区间日志/自由表日志/`0x5a` 填充、
+     `print.rs` 的 symbol 原始值打印、`xtask` 的 `-g`）**已全部删除**；`alloc/print/xtask` 用 `git show HEAD:` 还原并重建，
+     读数回到 18 行 `Loading`；`/tmp`（`ranges.txt`、`fl.txt`、`freelog.txt`）已清。
+  ⑦ **预算**：`build-tu` 约 12 发、`check-link --executable` 约 8 发、`lldb` 3 次、端口运行约 10 次。
