@@ -88,6 +88,7 @@ gc_mark_secondary_stack                    = []  # GC_MARK_SECONDARY_STACK
 gcc_lint                                   = []  # GCC_LINT
 gcc_lint_not_clang                         = []  # see femacs/src/eval.rs:1625
 gdk_windowing_wayland                      = []  # GDK_WINDOWING_WAYLAND
+glib_check_version_lt_2_36                 = []  # ! GLIB_CHECK_VERSION (2, 36, 0)
 glibc_copy_file_range_bug_33245            = []  # see femacs/lib/copy-file-range.rs:58
 glibc_io_eof_seen                          = []  # see femacs/lib/include/stdio-impl.rs:125
 glyph_debug                                = []  # GLYPH_DEBUG
@@ -111,6 +112,7 @@ android_api_le_30                          = []  # the derived condition `__ANDR
 android_api_lt_21                          = []  # the port's name for the *other* arm of android.c 972's `#if __ANDROID_API__ >= 21`
 android_api_ge_9                            = []  # the derived condition `__ANDROID_API__ >= 9` (androidvfs.c 46's arm, the asset-manager half)
 have_com_err_h                             = []  # HAVE_COM_ERR_H
+have_gfilenotify                           = []  # HAVE_GFILENOTIFY
 have_kerberos_krb_h                        = []  # HAVE_KERBEROS_KRB_H
 have_kerberosiv_krb_h                      = []  # HAVE_KERBEROSIV_KRB_H
 have_krb5_error_e_text                     = []  # HAVE_KRB5_ERROR_E_TEXT

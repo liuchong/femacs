@@ -9049,3 +9049,46 @@
   与镜像缺名，**不是编译通过**；零运行证据。
   ⑤ **预算**：`probe` 2 发（臂的前后各一）、`build-tu` 0 发、`layout-check` 1 发、
   `check-all-units.sh` 1 发；两条 lane（`src/sqlite.c`、`src/gnutls.c` 片 1）仍在飞。
+
+- **3.485 `src/gfilenotify.c` 整文件落地（C 1-336）：GLib/GIO 面就是本机真头，臂翻臂是真编译（2026-10-05）**：
+  ① **范围**：P-86 的"整身挂假条件"类（`HAVE_GFILENOTIFY` undef，宏表 1376），但它是里面**证据最强的一档**：
+  GLib 2.90 与 GIO 在本机（`/opt/homebrew/include/glib-2.0`）⇒ 翻臂不是"名字解析读数"而是**真编译**。
+  逐行照录 C 1-336：`dir_monitor_callback`（C 46-74 的 `switch`、C 73 的 `goto cleanup`、C 119-120 的两个
+  `g_free`）、四个 DEFUN（`gfile-add-watch`/`-rm-watch`/`-valid-p`/`-monitor-name`，docstring 逐字节照录）、
+  `globals_of_gfilenotify`（C 301-303 的 `#if ! GLIB_CHECK_VERSION (2, 36, 0)` 两臂：门
+  `glib_check_version_lt_2_36`）与 `syms_of_gfilenotify`（十二个 `DEFSYM` + `staticpro` + `Fprovide`）。
+  ② **行数**：`femacs/src/gfilenotify.rs` 11 → **460 行**（md5 `b62ce86fbd1961192a709c36d0081241`）；台账
+  `docs/ports/gfilenotify.md` 22 → **121 行**，11 行**连续**区间表覆盖 C 1-336（`check-dead-file-coverage`
+  **53 ledger / 0 failure**）。
+  ③ **读数（我自己跑的）**：冻结 `build-tu` → exit 0 / **336 字节空对象**；**臂翻臂**
+  `--cfg 'feature="have_gfilenotify"'` → **exit 0 / 0 错 / 19 警告 / rlib 13,070,856 字节**；
+  `extract-abi --check` → **OK、零 `-` 行**（四个 DEFUN 的 Lisp 名、参数个数、交互式规格与 **docstring**
+  都是逐字节比对）；**clang 实测**（进台账 `## Evidence`）：`G_FILE_MONITOR_EVENT_*` = 0..7、
+  `G_FILE_MONITOR_NONE/WATCH_MOUNTS/SEND_MOVED` = 0/1/2、`sizeof (GTypeInstance)` 8 且 `g_class`@0、
+  `sizeof (GTypeClass)` 8 且 `g_type`@0；`check-citations` 0 drift；`check-declarations` 干净；
+  `check-port-lines --write-pending` 撤下本件（63 → **61 文件 / 81,966 参考行**）；全树扫描 **83/0 + 83/0**。
+  ④ **自造缺陷（三轮全由门/编译器先抓住，当场修，如实报）**：⑴ 首轮 28 错——`use std::ffi::{…}` 与镜像的
+  同名导入重复（E0252 ×4，3.477 在 xgselect 上量过的同一形状）、`g_error_free` 与 `include/gtk.rs` 重复
+  （E0428）、四个 `DEFUN!` 缺尾分号、局部 `gflags` 与 lisp.h 的 `struct gflags` 撞名（E0530 ⇒ `gflags_`
+  + Deviation）、以及 `Time`/`Emacs_Color`/`string_char_and_length`/`raw_prev_char_len`/`strcmp`/`strcpy`
+  六个名字要走 C 22-25 的**链**（`systime.rs`/`dispextern.rs`/`character.rs`/`lib/include/string.rs` 四条边，
+  P-86 ⑧）；⑵ 第二轮 11 错——`event.kind` 在镜像里是**位域**（`input_event::bits` 的 `kind : 16`）⇒
+  按 `src/gtkutil.rs` 1757-1770 的 `input_event_bits!` 形状写；`gpointer` 处要显式 cast、C 的 `!gboolean`
+  写成 `== 0`、函数指针用 `G_CALLBACK!`；⑶ 第三轮 1 错——C 208 的
+  `XFIXNUMPTR (watch_descriptor) == monitor` 要在端口里 cast 成 `*mut GFileMonitor` ⇒ 之后 **exit 0**。
+  ⑤ **两条 token 行**（subr 的 token 集把注释剥掉，所以"在注释里点名"不够）：`dir_monitor_callback` →
+  `switch,case,default,goto`（`match` + 单标签块）、`Fgfile_add_watch` → `gcallback`（`G_CALLBACK!`），
+  都按既有机制落进 `docs/ports/macro-body-notes.tsv`；`line-drift-tolerance.tsv` 追加"实测 36.6% + 0.01"
+  的一行，旧空单元行（3.31）按 append-only 被取代。
+  ⑥ **本件的两处结构亮点（照录，不发明）**：`G_TYPE_FROM_INSTANCE!`/`G_OBJECT_TYPE_NAME!` 用的是**真链**
+  （两个 GObject 前导记录是 clang 实测的，所以 `gfile-monitor-name` 读的是
+  `((GTypeInstance *) monitor)->g_class->g_type` 经 `g_type_name`），比 `src/xfns.rs` 那处"把转换链记为欠账"
+  的形状更强；`<gio/gio.h>` 在本树没有镜像、本件是唯一消费者 ⇒ 按 P-88 ① 就地声明（若出现第二个消费者，
+  同提交搬进 `include/gio.rs`）。
+  ⑦ **未声称**：**零运行证据**（13 MB 的 rlib 只是编译产物：没有创建过 `GFileMonitor`、没有监视过任何文件、
+  回调从未被触发）；`glib_check_version_lt_2_36` 臂**从未被编译过**（冻结配置取空臂）；
+  `FILE_NOTIFY_EVENT` 的"按配置取值"仍欠镜像轮（现在单元内、值 28，台账 `## Owed` 1 点名）；
+  冻结对象是 336 字节空对象，对正文零信息。
+  ⑧ **预算**：`probe` **4 发**（首轮 28 错 → 11 错 → 1 错 → exit 0，每发都对应一次真实缺陷修复）、
+  `build-tu` **1 发**、`check-all-units.sh` 1 发；`/tmp/femacs-gf` 收工删除；三条 lane（sqlite、gnutls 片 1、
+  androidfns 片 1）仍在飞。
