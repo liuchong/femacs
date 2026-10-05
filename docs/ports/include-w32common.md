@@ -138,3 +138,22 @@ PORTING.md P-22).  The two caches are now carried under `#[cfg (feature = "windo
 type names, the way `w32gdiplus.rs` carries its objects; `layout-check` compiles this mirror (it is
 a `src/include` seed) with the feature off, which is the evidence that the cfg'd items cannot break
 the shared crate.
+
+# ----------------------------------------------------------------------
+## The nine declarations move into `w32common_decls` (2026-10-05, `docs/ports/w32fns.md` owed 5)
+
+**C 35-51.**  This header's file-scope objects and its one function are all defined in
+`src/w32fns.c` (`syspage_mask`, `w32_major_version`, `w32_minor_version`, `w32_build_number`,
+`os_subtype`, `cache_system_info`, and the two deferred caches), so a crate-root declaration here
+collides with that unit's own item - measured, five `error[E0428]` naming
+`w32common.rs` 80/81/82/83/95 in `xtask probe src/w32fns.rs … --cfg 'feature="have_ntgui"'
+--cfg 'feature="windowsnt"'`.  They now sit in `pub mod w32common_decls` with
+`use w32common_decls::*;` (the `window.rs` 302-367 / `androidterm.rs` 513-537 shape,
+PORTING.md 0.1-10 / P-21); the two `<windows.h>`-typed caches keep their
+`#[cfg (feature = "windowsnt")]` per item, and `GetProcAddress`/`get_proc_addr` stay where they
+were (the loader's own body is the one definition in this mirror).
+
+**Evidence.**  `extract-abi --check emacs/src/w32common.h femacs/src/include/w32common.rs` -> `OK`
+(the three deferred macros and two deferred objects are its recorded deferrals, unchanged);
+`xtask layout-check` passed; `xtask probe src/w32fns.rs` above falls from 12 to 0 `E0428`;
+`check-all-units.sh` 83/0 both legs.

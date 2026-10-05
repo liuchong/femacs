@@ -126,6 +126,44 @@ pub mod x11_constants {
   /// X11/Xutil.h 147: `#define NormalState 1` - "most applications want to start this way"; the
   /// `WM_STATE` property's first-long value (`src/xterm.c` 3734 compares against it).
   pub const NormalState: c_int = 1;
+
+  /* The eleven input-event masks `include/xterm.rs` 144-155's `STANDARD_EVENT_SET` body names
+     (two of them were already here), plus the image format and visual-class values the X arms
+     pass.  Each value is read on this machine's `xorgproto` headers; `STANDARD_EVENT_SET` is the
+     one consumer, and it imports them with a targeted `use` (`include/xterm.rs` 152) rather than
+     a glob, because this module's `None`/`Success` must not shadow the prelude's `None` for a
+     whole unit - the file note above.  */
+  /// X11/X.h 151: `#define KeyPressMask (1L<<0)`.
+  pub const KeyPressMask: c_long = 1 << 0;
+  /// X11/X.h 155: `#define EnterWindowMask (1L<<4)`.
+  pub const EnterWindowMask: c_long = 1 << 4;
+  /// X11/X.h 156: `#define LeaveWindowMask (1L<<5)`.
+  pub const LeaveWindowMask: c_long = 1 << 5;
+  /// X11/X.h 157: `#define PointerMotionMask (1L<<6)`.
+  pub const PointerMotionMask: c_long = 1 << 6;
+  /// X11/X.h 166: `#define ExposureMask (1L<<15)`.
+  pub const ExposureMask: c_long = 1 << 15;
+  /// X11/X.h 167: `#define VisibilityChangeMask (1L<<16)`.
+  pub const VisibilityChangeMask: c_long = 1 << 16;
+  /// X11/X.h 172: `#define FocusChangeMask (1L<<21)`.
+  pub const FocusChangeMask: c_long = 1 << 21;
+  /// X11/X.h 608: `#define ZPixmap 2` - "depth == drawable depth" (`XGetImage`'s `format`).
+  pub const ZPixmap: c_int = 2;
+  /// X11/X.h 704: `#define StaticGray 0`; 705 `GrayScale 1`; 706 `StaticColor 2`; 707
+  /// `PseudoColor 3`; 708 `TrueColor 4`; 709 `DirectColor 5` - the `Visual`/`XVisualInfo`
+  /// `class` values.  `include/xterm.rs` 2231-2241's `visual_class` run reads them.
+  pub const StaticGray: c_int = 0;
+  pub const GrayScale: c_int = 1;
+  pub const StaticColor: c_int = 2;
+  pub const PseudoColor: c_int = 3;
+  pub const TrueColor: c_int = 4;
+  pub const DirectColor: c_int = 5;
+  /// X11/Xutil.h 339-342: `#define BitmapSuccess 0` / `BitmapOpenFailed 1` /
+  /// `BitmapFileInvalid 2` / `BitmapNoMemory 3` - `XReadBitmapFile`'s result values.
+  pub const BitmapSuccess: c_int = 0;
+  pub const BitmapOpenFailed: c_int = 1;
+  pub const BitmapFileInvalid: c_int = 2;
+  pub const BitmapNoMemory: c_int = 3;
 }
 
 /* The Xlib scalar typedefs the gated arms name.  `Bool` is Xlib's own alias for `int` - C spells
@@ -752,3 +790,440 @@ unsafe extern "C" {
   pub fn xcb_shape_get_rectangles_rectangles_iterator
     (r: *const xcb_shape_get_rectangles_reply_t) -> xcb_rectangle_iterator_t;
 }
+
+// ----------------------------------------------------------------------
+// The Xlib surface the port's X arms name (2026-10-05).
+
+/* **Why this section is a module.**  A ported arm declares some of these names itself -
+   `src/image.rs` 232's `pub type Pixmap = c_ulong;` is the measured one, and the x+cairo
+   probe reports `E0428` against a crate-root declaration here.  A glob import is
+   *shadowed* by a crate-root item (PORTING.md 0.1-10 / P-21), so the section sits in a
+   module this file glob-imports: the unit's own spelling stays the live one and every
+   name no arm declares (`StaticColor`, `ZPixmap`, `BitmapSuccess`, `XGetPixel`, ...)
+   resolves through the glob at the crate root.  The `X11/Xlib.h` surface the file's own
+   top level already carried (`XRectangle`, `XPointer`, `Bool`, the Xrm types and the Xrm
+   entry points) stays where it was; this is the same surface, extended.  */
+pub mod xlib_surface {
+  use super::*;
+
+// ----------------------------------------------------------------------
+// The Xlib surface the port's X arms name (2026-10-05).
+
+/* `<X11/Xlib.h>` 66-483's scalar typedefs and the records behind them, plus the ten procedures
+   `docs/ports/image.md`'s x+cairo configuration sweep read as `E0425` (its subject list:
+   `Atom` 124, `Cursor` 19, `Window` 13, `GC` 7 - all of them member types of
+   `include/xterm.rs`'s `x_display_info`/`x_output`, which is why one missing typedef produces
+   dozens of errors).  Each layout below is **measured** on this machine's headers
+   (`/opt/homebrew/include/X11`, `libx11` 1.8.13 + `xorgproto` 2025.1) with
+
+     clang -I/opt/homebrew/include -o probe probe.c && ./probe    # sizeof/alignof/offsetof
+
+   and asserted where it is declared, the `XRectangle`/`XrmValue` practice at the top of this
+   file.  `Display`, `GC` and `XEvent` are the three C itself leaves opaque or does not read
+   here; each says so where it is declared.
+
+   What is deliberately **not** here: `xcb`'s section above is the only other one, and the
+   request/host/font entry points this tree's arms do not call are absent - this mirror grows by
+   the names a ported arm reads (the file note's rule).  `XEvent` is the one gap this round
+   leaves: 33 member records, none of which any ported arm reads a field of (its one use is
+   `include/xterm.rs` 789's `*mut XEvent`), so the type keeps C's measured size and the members
+   are owed (see the ledger).  */
+
+/// X11/X.h 66: `typedef unsigned long XID;`
+#[cfg (feature = "have_x_windows")]
+pub type XID = c_ulong;
+/// X11/X.h 70: `typedef unsigned long Mask;`
+#[cfg (feature = "have_x_windows")]
+pub type Mask = c_ulong;
+/// X11/X.h 74: `typedef unsigned long Atom;` - "Also in Xdefs.h".  Xlib.h 100's
+/// `typedef XID Atom;` is the same width.
+#[cfg (feature = "have_x_windows")]
+pub type Atom = XID;
+/// X11/X.h 76: `typedef unsigned long VisualID;`
+#[cfg (feature = "have_x_windows")]
+pub type VisualID = XID;
+/// X11/X.h 96: `typedef XID Window;`
+#[cfg (feature = "have_x_windows")]
+pub type Window = XID;
+/// X11/X.h 97: `typedef XID Drawable;`
+#[cfg (feature = "have_x_windows")]
+pub type Drawable = XID;
+/// X11/X.h 100: `typedef XID Font;`
+#[cfg (feature = "have_x_windows")]
+pub type Font = XID;
+/// X11/X.h 102: `typedef XID Pixmap;`
+#[cfg (feature = "have_x_windows")]
+pub type Pixmap = XID;
+/// X11/X.h 103: `typedef XID Cursor;`
+#[cfg (feature = "have_x_windows")]
+pub type Cursor = XID;
+/// X11/X.h 104: `typedef XID Colormap;`
+#[cfg (feature = "have_x_windows")]
+pub type Colormap = XID;
+/// X11/X.h 105: `typedef XID GContext;`
+#[cfg (feature = "have_x_windows")]
+pub type GContext = XID;
+/// X11/X.h 106: `typedef XID KeySym;`
+#[cfg (feature = "have_x_windows")]
+pub type KeySym = XID;
+/// X11/X.h 108: `typedef unsigned char KeyCode;` - measured `sizeof (KeyCode) == 1`.
+#[cfg (feature = "have_x_windows")]
+pub type KeyCode = c_uchar;
+
+/// Xlib.h 479-483: "The contents of this structure are implementation dependent.  A Display
+/// should be treated as opaque by application code."  `typedef struct _XDisplay Display;` is
+/// Xlib.h 483; the body (Xlib.h 485-…) is behind `#ifdef XLIB_ILLEGAL_ACCESS`, so the port
+/// declares the tag and the alias and never its members - C's own opacity.
+#[cfg (feature = "have_x_windows")]
+pub struct _XDisplay { _private: [u8; 0] }
+#[cfg (feature = "have_x_windows")]
+pub type Display = _XDisplay;
+
+/// Xlib.h 210-222: "Graphics context.  … A GC should be treated as opaque by application
+/// code."  `typedef struct _XGC … *GC;` - a pointer to a record whose body is behind
+/// `XLIB_ILLEGAL_ACCESS`, so the port declares the tag and the pointer alias.  Measured
+/// `sizeof (GC) == 8`.
+#[cfg (feature = "have_x_windows")]
+pub struct _XGC { _private: [u8; 0] }
+#[cfg (feature = "have_x_windows")]
+pub type GC = *mut _XGC;
+
+/// Xlib.h 144-151: `typedef struct _XExtData { … } XExtData;` - the extension hook every other
+/// record starts with.  Measured `[sizeof=32, align=8]`.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct _XExtData
+{
+  pub number: c_int,                                        // Xlib.h 146
+  pub next: *mut _XExtData,                                 // Xlib.h 147
+  /// Xlib.h 148-150: `int (*free_private)(struct _XExtData *extension);`
+  pub free_private: Option<unsafe extern "C" fn (*mut _XExtData) -> c_int>,
+  pub private_data: XPointer,                               // Xlib.h 151
+}
+#[cfg (feature = "have_x_windows")]
+pub type XExtData = _XExtData;
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<XExtData> () == 32);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::align_of::<XExtData> () == 8);
+
+/// Xlib.h 223-234: `typedef struct { … } Visual;`.  Measured `[sizeof=56, align=8]`.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Visual
+{
+  pub ext_data: *mut XExtData,                              // Xlib.h 225
+  pub visualid: VisualID,                                   // Xlib.h 226
+  /// Xlib.h 229: `int class;` - "class of screen (monochrome, etc.)" (`c_class` under C++).
+  pub r#class: c_int,
+  pub red_mask: c_ulong,                                    // Xlib.h 231
+  pub green_mask: c_ulong,
+  pub blue_mask: c_ulong,
+  pub bits_per_rgb: c_int,                                  // Xlib.h 232
+  pub map_entries: c_int,                                   // Xlib.h 233
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<Visual> () == 56);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::align_of::<Visual> () == 8);
+
+/// Xlib.h 239-252: `typedef struct { int depth; int nvisuals; Visual *visuals; } Depth;`.
+/// Measured `[sizeof=16, align=8]`.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Depth
+{
+  pub depth: c_int,                                         // Xlib.h 249
+  pub nvisuals: c_int,                                      // Xlib.h 250
+  pub visuals: *mut Visual,                                 // Xlib.h 251
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<Depth> () == 16);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::align_of::<Depth> () == 8);
+
+/// Xlib.h 253-271: `typedef struct { … } Screen;` - "Information about the screen.  The contents
+/// of this structure are implementation dependent."  Measured `[sizeof=128, align=8]`, with the
+/// four quoted offsets.  Only pointers to it are used by this tree (`xterm.rs` 375's
+/// `*mut Screen`), but the record is C's public one, so it is carried whole.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct Screen
+{
+  pub ext_data: *mut XExtData,                              // Xlib.h 256
+  pub display: *mut _XDisplay,                              // Xlib.h 257
+  pub root: Window,                                         // Xlib.h 258   (offset 16)
+  pub width: c_int,                                         // Xlib.h 259
+  pub height: c_int,
+  pub mwidth: c_int,                                        // Xlib.h 260
+  pub mheight: c_int,
+  pub ndepths: c_int,                                       // Xlib.h 261
+  pub depths: *mut Depth,                                   // Xlib.h 262
+  pub root_depth: c_int,                                    // Xlib.h 263
+  pub root_visual: *mut Visual,                             // Xlib.h 264
+  pub default_gc: GC,                                       // Xlib.h 265   (offset 72)
+  pub cmap: Colormap,                                       // Xlib.h 266   (offset 80)
+  pub white_pixel: c_ulong,                                 // Xlib.h 267
+  pub black_pixel: c_ulong,
+  pub max_maps: c_int,                                      // Xlib.h 268
+  pub min_maps: c_int,
+  pub backing_store: c_int,                                 // Xlib.h 269
+  pub save_unders: Bool,                                    // Xlib.h 270
+  pub root_input_mask: c_long,                              // Xlib.h 271  (offset 120)
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<Screen> () == 128);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::align_of::<Screen> () == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (Screen, root) == 16);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (Screen, default_gc) == 72);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (Screen, cmap) == 80);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (Screen, root_input_mask) == 120);
+
+/// Xlib.h 356-390: `typedef struct _XImage { … } XImage;`.  Measured `[sizeof=136, align=8]`;
+/// the sixteen scalar members up to `obdata` sit at 0/4/8/12/16/24/28/32/36/40/44/48/56/64/72/80
+/// and the nested `struct funcs f` at 88.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct _XImage_funcs
+{
+  /// Xlib.h 371-381: `struct _XImage *(*create_image)(struct _XDisplay *, Visual *,
+  /// unsigned int, int, int, char *, unsigned int, unsigned int, int, int);`
+  pub create_image: Option<unsafe extern "C" fn (*mut _XDisplay, *mut Visual, c_uint, c_int,
+                                                 c_int, *mut c_char, c_uint, c_uint, c_int,
+                                                 c_int) -> *mut XImage>,
+  pub destroy_image: Option<unsafe extern "C" fn (*mut XImage) -> c_int>,          // Xlib.h 382
+  pub get_pixel: Option<unsafe extern "C" fn (*mut XImage, c_int, c_int) -> c_ulong>, // 383
+  pub put_pixel: Option<unsafe extern "C" fn (*mut XImage, c_int, c_int, c_ulong) -> c_int>, // 384
+  pub sub_image: Option<unsafe extern "C" fn (*mut XImage, c_int, c_int, c_uint, c_uint)
+                                             -> *mut XImage>,                      // Xlib.h 385
+  pub add_pixel: Option<unsafe extern "C" fn (*mut XImage, c_long) -> c_int>,      // Xlib.h 386
+}
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct _XImage
+{
+  pub width: c_int,                                         // Xlib.h 357
+  pub height: c_int,
+  pub xoffset: c_int,                                       // Xlib.h 358
+  pub format: c_int,                                        // Xlib.h 359
+  pub data: *mut c_char,                                    // Xlib.h 360
+  pub byte_order: c_int,                                    // Xlib.h 361
+  pub bitmap_unit: c_int,                                   // Xlib.h 362
+  pub bitmap_bit_order: c_int,                              // Xlib.h 363
+  pub bitmap_pad: c_int,                                    // Xlib.h 364
+  pub depth: c_int,                                         // Xlib.h 365
+  pub bytes_per_line: c_int,                                // Xlib.h 366
+  pub bits_per_pixel: c_int,                                // Xlib.h 367
+  pub red_mask: c_ulong,                                    // Xlib.h 368
+  pub green_mask: c_ulong,                                  // Xlib.h 369
+  pub blue_mask: c_ulong,                                   // Xlib.h 370
+  pub obdata: XPointer,                                     // Xlib.h 371
+  pub f: _XImage_funcs,                                     // Xlib.h 372-388 (offset 88)
+}
+#[cfg (feature = "have_x_windows")]
+pub type XImage = _XImage;
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<XImage> () == 136);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::align_of::<XImage> () == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XImage, data) == 16);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XImage, red_mask) == 56);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XImage, obdata) == 80);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XImage, f) == 88);
+
+/// Xlib.h 404-411: `typedef struct { … } XColor;`.  Measured `[sizeof=16, align=8]` with
+/// `pixel` 0, `red` 8, `green` 10, `blue` 12, `flags` 14, `pad` 15.  `include/xterm.rs` 218
+/// holds one by value (`color_name_cache_entry.rgb`).
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XColor
+{
+  pub pixel: c_ulong,                                       // Xlib.h 407
+  pub red: c_ushort,                                        // Xlib.h 408
+  pub green: c_ushort,
+  pub blue: c_ushort,
+  pub flags: c_char,                                        // Xlib.h 409 ("do_red, do_green, …")
+  pub pad: c_char,                                          // Xlib.h 410
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<XColor> () == 16);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::align_of::<XColor> () == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XColor, red) == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XColor, flags) == 14);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XColor, pad) == 15);
+
+/// Xlib.h 469-474: `typedef struct { int max_keypermod; KeyCode *modifiermap; }
+/// XModifierKeymap;`.  Measured `[sizeof=16, align=8]`; `include/xterm.rs` 609 holds a pointer
+/// to it.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XModifierKeymap
+{
+  pub max_keypermod: c_int,                                 // Xlib.h 472
+  pub modifiermap: *mut KeyCode,                            // Xlib.h 473
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<XModifierKeymap> () == 16);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::align_of::<XModifierKeymap> () == 8);
+
+/// Xutil.h 119-130: `typedef struct { … } XWMHints;`.  Measured `[sizeof=56, align=8]` with
+/// `flags` 0, `input` 8, `initial_state` 12, `icon_pixmap` 16, `icon_window` 24, `icon_x` 32,
+/// `icon_y` 36, `icon_mask` 40, `window_group` 48.  `include/xterm.rs` 787 holds one by value.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XWMHints
+{
+  pub flags: c_long,                                        // Xutil.h 121
+  pub input: Bool,                                          // Xutil.h 122
+  pub initial_state: c_int,                                 // Xutil.h 124
+  pub icon_pixmap: Pixmap,                                  // Xutil.h 125
+  pub icon_window: Window,                                  // Xutil.h 126
+  pub icon_x: c_int,                                        // Xutil.h 127
+  pub icon_y: c_int,
+  pub icon_mask: Pixmap,                                    // Xutil.h 128
+  pub window_group: XID,                                    // Xutil.h 129
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<XWMHints> () == 56);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::align_of::<XWMHints> () == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XWMHints, input) == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XWMHints, icon_window) == 24);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XWMHints, window_group) == 48);
+
+/// Xutil.h 287-302: `typedef struct { … } XVisualInfo;`.  Measured `[sizeof=64, align=8]` with
+/// `visual` 0, `visualid` 8, `screen` 16, `depth` 20, `class` 24, `red_mask` 32, `green_mask`
+/// 40, `blue_mask` 48, `colormap_size` 56, `bits_per_rgb` 60.  `include/xterm.rs` 379 holds one
+/// by value.
+#[cfg (feature = "have_x_windows")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct XVisualInfo
+{
+  pub visual: *mut Visual,                                  // Xutil.h 289
+  pub visualid: VisualID,                                   // Xutil.h 290
+  pub screen: c_int,                                        // Xutil.h 291
+  pub depth: c_int,                                         // Xutil.h 292
+  pub r#class: c_int,                                       // Xutil.h 296 (`c_class` under C++)
+  pub red_mask: c_ulong,                                    // Xutil.h 298
+  pub green_mask: c_ulong,
+  pub blue_mask: c_ulong,
+  pub colormap_size: c_int,                                 // Xutil.h 300
+  pub bits_per_rgb: c_int,                                  // Xutil.h 301
+}
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<XVisualInfo> () == 64);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::align_of::<XVisualInfo> () == 8);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XVisualInfo, screen) == 16);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XVisualInfo, r#class) == 24);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XVisualInfo, red_mask) == 32);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::offset_of! (XVisualInfo, bits_per_rgb) == 60);
+
+/// Xlib.h 969-1005: `typedef union _XEvent { … } XEvent;` - the measured size is 192 bytes with
+/// align 8 (the `long pad[24]` member).  **The 33 member records are not transcribed this
+/// round**: no ported arm reads a member of it (its one use is `include/xterm.rs` 789's
+/// `*mut XEvent`), and the union's own members are 33 nested records of their own.  The type
+/// keeps C's measured shape so a pointer to it is the right size; the members are owed and
+/// recorded in the ledger `docs/ports/include-xlib.md`.
+#[cfg (feature = "have_x_windows")]
+#[repr(C, align(8))]
+pub struct XEvent { _private: [u8; 192] }
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::size_of::<XEvent> () == 192);
+#[cfg (feature = "have_x_windows")]
+const _: () = assert! (core::mem::align_of::<XEvent> () == 8);
+
+/* Xlib.h's ten procedures the X arms call.  Each keeps C's prototype in its `/// C:` line; the
+   three macros among them (`XGetPixel`, `XPutPixel`, `XDestroyImage`) are *macros* in C, not
+   entry points, and are `macro_rules!` here with C's own bodies - declaring them as functions
+   would name symbols libX11 does not export.  */
+
+#[cfg (feature = "have_x_windows")]
+unsafe extern "C" {
+  /// C: Xlib.h 1600-1606: `extern Pixmap XCreateBitmapFromData (Display *, Drawable,
+  /// _Xconst char *, unsigned int, unsigned int);`
+  pub fn XCreateBitmapFromData (display: *mut Display, d: Drawable, data: *const c_char,
+                                width: c_uint, height: c_uint) -> Pixmap;
+  /// C: Xlib.h 3041-3050: `extern int XReadBitmapFile (Display *, Drawable, _Xconst char *,
+  /// unsigned int *, unsigned int *, Pixmap *, int *, int *);`
+  pub fn XReadBitmapFile (display: *mut Display, d: Drawable, filename: *const c_char,
+                          width_return: *mut c_uint, height_return: *mut c_uint,
+                          bitmap_return: *mut Pixmap, x_hot_return: *mut c_int,
+                          y_hot_return: *mut c_int) -> c_int;
+  /// C: Xlib.h 2580-2583: `extern int XFreePixmap (Display *, Pixmap);`
+  pub fn XFreePixmap (display: *mut Display, pixmap: Pixmap) -> c_int;
+  /// C: Xlib.h 1452-1461: `extern XImage *XGetImage (Display *, Drawable, int, int,
+  /// unsigned int, unsigned int, unsigned long, int);`
+  pub fn XGetImage (display: *mut Display, d: Drawable, x: c_int, y: c_int, width: c_uint,
+                    height: c_uint, plane_mask: c_ulong, format: c_int) -> *mut XImage;
+  /// C: Xlib.h 2913-2923: `extern int XPutImage (Display *, Drawable, GC, XImage *, int, int,
+  /// int, int, unsigned int, unsigned int);`
+  pub fn XPutImage (display: *mut Display, d: Drawable, gc: GC, image: *mut XImage,
+                    src_x: c_int, src_y: c_int, dest_x: c_int, dest_y: c_int,
+                    width: c_uint, height: c_uint) -> c_int;
+  /// C: Xlib.h 1580-1585: `extern GC XCreateGC (Display *, Drawable, unsigned long,
+  /// XGCValues *);` - `XGCValues` (Xlib.h 177-203) is a record no ported arm reads, so the
+  /// fourth parameter is the untyped pointer its call sites pass (P-72 rule 3).
+  pub fn XCreateGC (display: *mut Display, d: Drawable, valuemask: c_ulong,
+                    values: *mut c_void) -> GC;
+  /// C: Xlib.h 2571-2574: `extern int XFreeGC (Display *, GC);`
+  pub fn XFreeGC (display: *mut Display, gc: GC) -> c_int;
+}
+
+/// C: Xlib.h 4170's macro form: `#define XDestroyImage(ximg) ((ximg)->f.destroy_image (ximg))`
+/// - three of the "ten procedures" are **macros in C, not entry points** (libX11 exports no such
+/// symbols), so they are the port's inline functions with C's own bodies.  A `macro_rules!` was
+/// the first spelling and the x+cairo probe rejected it: a ported arm calls them with C's call
+/// shape (`XGetPixel (ximg, x, y)`, no `!`), which is a *function* call in Rust
+/// (`E0423: cannot find function … a macro named `XGetPixel` exists in another namespace`).
+/// `f`'s members are `Option`s (PORTING.md P-27: a C function pointer is nullable) and C's body
+/// calls the pointer, so the body is `unwrap_unchecked`.
+#[cfg (feature = "have_x_windows")]
+#[inline(always)]
+pub unsafe fn XDestroyImage (ximg: *mut XImage) -> c_int
+{ ((*ximg).f.destroy_image.unwrap_unchecked ()) (ximg) }
+/// C: Xlib.h 4171's macro form: `#define XGetPixel(ximage, x, y) ((*(ximage)->f.get_pixel)
+/// ((ximage), (x), (y)))`.
+#[cfg (feature = "have_x_windows")]
+#[inline(always)]
+pub unsafe fn XGetPixel (ximage: *mut XImage, x: c_int, y: c_int) -> c_ulong
+{ ((*ximage).f.get_pixel.unwrap_unchecked ()) (ximage, x, y) }
+/// C: Xlib.h 4172's macro form: `#define XPutPixel(ximage, x, y, pixel)
+/// ((*(ximage)->f.put_pixel)((ximage), (x), (y), (pixel)))`.
+#[cfg (feature = "have_x_windows")]
+#[inline(always)]
+pub unsafe fn XPutPixel (ximage: *mut XImage, x: c_int, y: c_int, pixel: c_ulong) -> c_int
+{ ((*ximage).f.put_pixel.unwrap_unchecked ()) (ximage, x, y, pixel) }
+}
+use xlib_surface::*;

@@ -168,3 +168,28 @@ stated: under the frozen configuration nothing changes (the item is still compil
 femacs/src/include/w32gui.rs` -> `OK emacs/src/w32gui.h -> femacs/src/include/w32gui.rs`;
 `python3 tools/check-mirror-dupes.py` -> `18 duplicate declaration(s), 18 ratchet row(s),
 0 failure(s)`.
+
+# ----------------------------------------------------------------------
+## The six declarations move into modules, and C's two casts are written out (2026-10-05)
+
+**C 46-57.**  The header's six prototypes/objects are definitions in the Windows GUI units
+(`w32image.c` implements the image entry points; `w32fns.c` defines C 57's `hinst`), so a
+crate-root declaration here collides with the unit's own item - measured for `hinst` by
+`xtask probe src/w32fns.rs … --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"'`
+(`docs/ports/w32fns.md` owed 5).  They now sit in `pub mod w32gui_fn_decls` and
+`pub mod w32gui_objs` with `use …::*;` after each (the `window.rs` 302-367 shape, PORTING.md
+0.1-10 / P-21).  The block has no `#if` of its own, so neither module carries a `cfg`.
+
+**C 96-112's two conversions.**  C's `CONVERT_TO_EMACS_RECT` assigns `(nr).right - (nr).left`
+(`LONG`, this target's `i32`) to `(xr).width` (`unsigned`, `c_uint`), and
+`CONVERT_FROM_EMACS_RECT` assigns `(xr).x + (xr).width` (`int + unsigned`) to `LONG`.  Rust
+refuses both implicit forms, so each keeps C's own conversion: `as c_uint` on the way in and
+`(x as c_uint).wrapping_add (width) as c_int` on the way out (C computes the sum in `unsigned`
+and converts the result).  Measured before the change: six `E0308`/`E0277` sites in
+`include_w32gui_rs.rs` under the `have_ntgui` + `windowsnt` probe; gone after.
+`STORE_NATIVE_RECT` needed nothing (the same types on both sides).
+
+**Evidence.**  `python3 tools/extract-abi.py --check emacs/src/w32gui.h
+femacs/src/include/w32gui.rs` -> `OK` (its one stderr note, `NativeRectangle`'s recorded Rust
+counterpart, is unchanged); `xtask layout-check` passed; `check-citations` 0 drift;
+`check-mirror-dupes` 18 ratchet rows / 0 failure for this file; `check-all-units.sh` 83/0 both legs.

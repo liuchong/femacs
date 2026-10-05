@@ -198,3 +198,26 @@ position rather than by name - corrected here).
     layout-check passed (see build/femacs/layout_asserts.rs)
 
 (**before** this pass: 1 unchecked box(es); **after**: 0)
+
+# ----------------------------------------------------------------------
+## Four names move into `w32_system_names` (2026-10-05, `docs/ports/w32term.md` owed 11)
+
+**C 31-39 and C 264-265.**  `FD_SETSIZE` and `fd_set` are also declared by
+`lib/include/sys_select.rs` 31/39 and `fchmod`/`fchmodat` by `lib/include/sys_stat.in.rs`
+184-185, so a `windowsnt` crate that reaches both headers cannot compile - measured, four
+`error[E0428]` naming exactly those pairs in `xtask probe src/w32term.rs …
+--cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"'`.  The four now sit in
+`pub mod w32_system_names` with `use w32_system_names::*;` (the same shape as the w32term
+modules), which removes the collision because a crate-root definition shadows a glob import.
+
+**Owed, and not disguised by that move.**  A *real* Windows build has to read C's own values here
+(`FD_SETSIZE` 2048, `MAXDESC` 2048), and the arbitration that expresses C's `#undef`/`#define`
+ordering is a *complementary* gate - `not (feature = "windowsnt")` - on the two `lib/include`
+mirrors, which are outside this lane's writable set (`femacs/lib/include/**`).  Until it lands,
+these names are reachable in a `windowsnt` crate only where nothing else declares them, and the
+`MAXDESC`/`SELECT_TYPE`/`FD_*` items still at this file's top level resolve `FD_SETSIZE`/`fd_set`
+through the glob.
+
+**Evidence.**  `extract-abi --check emacs/src/w32.h femacs/src/include/w32.rs` -> `OK`;
+`xtask layout-check` passed; the `w32term` flip above falls from 26 to 0 `E0428`;
+`check-all-units.sh` 83/0 both legs.

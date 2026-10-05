@@ -817,3 +817,40 @@ gone (it read `bits1` unconditionally, which under arm B would have answered `ic
    (`FAIL femacs/src/frame.rs: check_x_display_info is already declared by
    femacs/src/include/dispextern.rs (in the include graph)`), so it is deliberately **not** added
    (`docs/ports/w32fns.md` owed 9 stays owed).
+
+# ----------------------------------------------------------------------
+## `FRAME_MOUSE_UPDATE` compiles, and its `note_mouse_highlight` is owed (2026-10-05, `docs/ports/w32term.md` owed 9's neighbour)
+
+**C 1411-1423.**  The macro compares `frame` (a `struct frame *`) with
+`hlinfo->mouse_face_mouse_frame` and calls `note_mouse_highlight` (dispextern.h 3688).  Both are
+port problems: this mirror's `Mouse_HLInfo` stores the field as the untyped pointer its includers
+can all name (`include/dispextern.rs` 2072's note - five units include that mirror without
+frame.h), and `note_mouse_highlight` has no declaration in the tree.  The comparison now spells
+the conversion back at its use site, `…mouse_face_mouse_frame } as *mut frame`, which is what
+removed `error[E0308]: expected `*mut frame`, found `*mut c_void`` from the `have_ntgui` +
+`windowsnt` probe.  The call stays owed with `docs/ports/include-dispextern.md`'s four
+(the same `check-mirror-dupes` measurement names `src/androidterm.rs`, `src/dispnew.rs` and
+`src/frame.rs` for `note_mouse_highlight`).
+
+**`FRAME_RES_X`/`FRAME_RES_Y`/`FRAME_RES`/`FRAME_SCALE_FACTOR`'s window-system arms: recorded,
+not carried, and both spellings were measured.**  C's arms read
+`FRAME_DISPLAY_INFO (f)->resx` / `->resy` / `->font_resolution` (frame.h 994-1013) and
+`FRAME_NS_P`/`FRAME_PGTK_P` + `ns_frame_scale_factor`/`pgtk_frame_scale_factor`
+(frame.h 1055-1061), and `FRAME_DISPLAY_INFO` is the *term-header* mirror's `macro_rules!`
+(`include/xterm.rs` 1123, `include/w32term.rs` 587).  `macro_rules!` are textually scoped and
+every unit includes `frame.h` before its `TERM_HEADER` (`src/image.rs` 103 then 137), so:
+
+  * as **functions** the window-system arms cannot see it - measured twice,
+    `error: cannot find macro `FRAME_DISPLAY_INFO` in this scope`, in
+    `xtask probe src/image.rs … --cfg 'feature="have_window_system"' --cfg 'feature="have_x_windows"'
+    --cfg 'feature="use_cairo"'`;
+  * as **`macro_rules!`** the C-shaped call sites stop resolving - the port calls them with C's
+    macro shape and no `!` (`src/font.rs` 864/4256/4442/4450/5376/5923, `src/image.rs`
+    4305-4306, `src/frame.rs` 4640), which only a function answers - and the extractor's body
+    check then reads the window-system arm instead of the frozen one: measured
+    `- macro FRAME_RES_X does not mention default_pixels_per_inch_x` (the file's own rule: the
+    frozen arm must stand first).
+
+Both were tried on this revision and reverted; the note at the macros' position records the two
+readings.  What the arms need is the shape decision this ledger already records for the nine
+`#else`-shaped accessors, not another attempt.

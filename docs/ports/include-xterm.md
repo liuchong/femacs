@@ -297,3 +297,31 @@ is created for them.**  Two facts make it a live question rather than a formalit
   sets `use_cairo` brings the tag (the "a macro body is resolved only where it is expanded" shape,
   applied to a record field).  A mirror must not declare it: P-88 1's rule keeps the reference
   tree's own headers in `femacs/src/include/`, and nothing there corresponds to `cairo.h`.
+
+# ----------------------------------------------------------------------
+## The eleven event masks get a home, and `xlib.rs` grows the X11 surface (2026-10-05)
+
+**The masks.**  `STANDARD_EVENT_SET` (C 144-155) names eleven event masks bare, and every one was
+`E0425` under `have_x_windows`: two were in `include/xlib.rs`'s `x11_constants` module (a module
+this mirror's top level does not glob-import from - `None` would shadow the prelude's
+`Option::None`) and nine had no home anywhere.  The nine others (`KeyPressMask`, `EnterWindowMask`,
+`LeaveWindowMask`, `PointerMotionMask`, `ExposureMask`, `VisibilityChangeMask`,
+`FocusChangeMask`, `ButtonPressMask`, `ButtonReleaseMask`) now sit in that module beside them, and
+C 144-155's constant carries a targeted `use x11_constants::{…}` - the module's documented
+consumption pattern, and what the `True`/`False` pair's 3.270 note anticipated.  The same `use`
+carries `StaticColor`/`StaticGray`/`TrueColor` (C 1884-1891's `x_mutable_colormap`) and
+`ZPixmap`/`BitmapSuccess`, which `src/image.rs` 1463/1922 writes bare through this header's
+`TERM_HEADER` edge.
+
+**`include/xlib.rs`.**  That mirror now carries the Xlib surface the X arms name - the scalar
+typedefs (`XID`, `Mask`, `Atom`, `VisualID`, `Window`, `Drawable`, `Font`, `Pixmap`, `Cursor`,
+`Colormap`, `GContext`, `KeySym`, `KeyCode`), the records `Visual`, `Depth`, `Screen`, `XExtData`,
+`XImage` (with its `funcs` member), `XColor`, `XModifierKeymap`, `XWMHints`, `XVisualInfo`, the
+opaque `Display`/`GC`, and ten procedures - with each layout **measured** on this machine's
+libX11 1.8.13 / xorgproto 2025.1 by a clang `sizeof`/`offsetof` probe and asserted where it is
+declared, plus the format/visual-class/bitmap-result values.  `XGetPixel`/`XPutPixel`/
+`XDestroyImage` are *macros* in `<X11/Xlib.h>`, not entry points, so they are the port's inline
+functions with C's bodies (a `macro_rules!` first draft was rejected: the call sites write C's
+call shape, and `E0423` is what a macro answers there).  The whole section is a glob-imported
+module (`xlib_surface`) because `src/image.rs` 232 declares `Pixmap` itself.  `XEvent`'s 33 member
+records are the one gap left, with C's measured size (192 bytes) and the members recorded as owed.

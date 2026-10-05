@@ -2081,6 +2081,22 @@ pub const MOUSE_FACE_PAST_END: u8 = 1 << 0;   // dispextern.h 3019
 pub const MOUSE_FACE_DEFER: u8 = 1 << 1;      // dispextern.h 3022
 pub const MOUSE_FACE_HIDDEN: u8 = 1 << 2;     // dispextern.h 3023
 
+/* C 3020: `bool_bf mouse_face_defer : 1;` - the middle member of the run above, which C reads
+   and writes as a member and the port spells through the `MOUSE_FACE_DEFER` bit of `bits`
+   (PORTING.md 1.3; `docs/ports/w32term.md` owed 5 asks for the pair).  */
+/// C: `bool_bf mouse_face_defer : 1;`
+#[inline(always)]
+pub fn get_mouse_face_defer (hlinfo: *const Mouse_HLInfo) -> bool
+{ unsafe { (*hlinfo).bits & MOUSE_FACE_DEFER != 0 } }
+#[inline(always)]
+pub fn set_mouse_face_defer (hlinfo: *mut Mouse_HLInfo, value: bool)
+{
+  unsafe {
+    if value { (*hlinfo).bits |= MOUSE_FACE_DEFER }
+    else { (*hlinfo).bits &= !MOUSE_FACE_DEFER }
+  }
+}
+
 // dispextern.h 3966: `enum { SCROLL_INFINITY = 1000000 };`
 pub const SCROLL_INFINITY: c_int = 1000000;
 
@@ -2967,6 +2983,45 @@ const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, flags) 
 #[cfg (feature = "dispextern_face_records")]
 const _: () = assert! (core::mem::offset_of! (draw_fringe_bitmap_params, face) == 56);
 
+/* C 2230-2231: the record's two `bool_bf : 1` members, which PORTING.md 1.3 stores in the
+   `flags` byte above - bit 0 and bit 1 of offset 52 (`abi_shim.rs` 2185-2205's offset probe
+   measured them, and `docs/ports/w32term.md` owed 5 asks for the accessor pair).  C reads and
+   writes them as members; the port's spelling of the same rule is one constant plus the
+   accessors below (the `include/termhooks.rs` `tty->…bit` reading).  */
+/// C: `bool_bf cursor_p : 1;`
+#[cfg (feature = "dispextern_face_records")]
+pub const DRAW_FRINGE_BITMAP_CURSOR_P: u8 = 1 << 0;
+/// C: `bool_bf overlay_p : 1;`
+#[cfg (feature = "dispextern_face_records")]
+pub const DRAW_FRINGE_BITMAP_OVERLAY_P: u8 = 1 << 1;
+
+#[cfg (feature = "dispextern_face_records")]
+#[inline(always)]
+pub fn get_cursor_p (p: *const draw_fringe_bitmap_params) -> bool
+{ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_CURSOR_P != 0 } }
+#[cfg (feature = "dispextern_face_records")]
+#[inline(always)]
+pub fn set_cursor_p (p: *mut draw_fringe_bitmap_params, value: bool)
+{
+  unsafe {
+    if value { (*p).flags |= DRAW_FRINGE_BITMAP_CURSOR_P }
+    else { (*p).flags &= !DRAW_FRINGE_BITMAP_CURSOR_P }
+  }
+}
+#[cfg (feature = "dispextern_face_records")]
+#[inline(always)]
+pub fn get_overlay_p (p: *const draw_fringe_bitmap_params) -> bool
+{ unsafe { (*p).flags & DRAW_FRINGE_BITMAP_OVERLAY_P != 0 } }
+#[cfg (feature = "dispextern_face_records")]
+#[inline(always)]
+pub fn set_overlay_p (p: *mut draw_fringe_bitmap_params, value: bool)
+{
+  unsafe {
+    if value { (*p).flags |= DRAW_FRINGE_BITMAP_OVERLAY_P }
+    else { (*p).flags &= !DRAW_FRINGE_BITMAP_OVERLAY_P }
+  }
+}
+
   /* C 2285-2323: `enum display_element_type`, C's `int` enumerator.  */
   /// C: enum display_element_type { IT_CHARACTER,
   pub const IT_CHARACTER: c_int = 0;
@@ -3841,6 +3896,31 @@ pub mod dispextern_late_decls {
     /// C: dispextern.h 3914: `void blank_row (struct window *, struct glyph_row *, int);`
     /// (dispnew.c defines it; the same `*mut c_void` spelling and reason as above).
     pub fn blank_row (w: *mut c_void, row: *mut glyph_row, vpos: c_int);
+    /// C: dispextern.h 3663: `extern void get_glyph_string_clip_rect (struct glyph_string *,
+    /// NativeRectangle *nr);` - one of the five names `docs/ports/w32term.md` owed 10 lists as
+    /// declared nowhere.  `NativeRectangle` is a *type* macro this mirror deliberately does not
+    /// spell (C 176-181, the note above `dispextern_late_decls`'s neighbour), so the out
+    /// parameter is the untyped pointer its call sites pass (P-72 rule 3), exactly as
+    /// `row_containing_pos` spells `struct window *`.
+    /// C's own guard is `#ifdef HAVE_WINDOW_SYSTEM` (dispextern.h 3660-3674), which is also the
+    /// feature `struct glyph_string` itself carries below.
+    #[cfg (feature = "have_window_system")]
+    pub fn get_glyph_string_clip_rect (s: *mut glyph_string, nr: *mut c_void);
+    /// C: dispextern.h 3676: `extern bool gui_intersect_rectangles (const Emacs_Rectangle *,
+    /// const Emacs_Rectangle *, Emacs_Rectangle *);` - the same `HAVE_WINDOW_SYSTEM` guard.
+    #[cfg (feature = "have_window_system")]
+    pub fn gui_intersect_rectangles (r1: *const Emacs_Rectangle, r2: *const Emacs_Rectangle,
+                                     out: *mut Emacs_Rectangle) -> bool;
+    /* C 3688's `note_mouse_highlight`, C 3711's `gui_define_fringe_bitmap`, C 3719's
+       `buffer_flipping_blocked_p` and C 3813's `lookup_basic_face` are **owed, not declared**,
+       and the measurement is why: each of the four is declared at the crate root of at least one
+       ported unit, and `tools/check-mirror-dupes.py` counts a declaration inside this
+       glob-imported module as the same construct - adding them produced eleven new `FAIL` lines
+       naming `androidterm`/`dispnew`/`font`/`frame`/`haikuterm`/`w32term`/`xdisp` (measured on
+       this revision; reverted).  They land in the commit that deletes those copies, with the
+       ratchet rows `docs/baseline/mirror-dupes.tsv` needs - the `docs/ports/w32term.md` owed-10
+       handoff, and the same shape as C 3993's `check_x_display_info` below.  The two this module
+       *does* carry (`get_glyph_string_clip_rect`, `gui_intersect_rectangles`) had no such copy.  */
     // C: dispextern.h 3993: `extern Display_Info *check_x_display_info (Lisp_Object);` is **not**
     // declared here: `femacs/src/frame.rs` 6155-6156 already declares it at its crate root (the
     // unit's own use-site copy, reached through the `HAVE_WINDOW_SYSTEM` arm of

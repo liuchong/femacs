@@ -7204,3 +7204,30 @@
      由 `--cfg` 直接给）；`docs/ports/include-xlib.md` 仍无页（xlib 的偏离记在邻页）。
   ⑦ **未声称**：只声称"文本 1:1 + 该冻结配置下编过 + 四个臂的预检编过"；**没有任何运行/显示证据**——
      没跑过重显示、没生成过 glyph matrix、没做过视觉/差分对拍；C 3551-13,805 未移植。
+
+- **3.417 镜像轮（第二批）：w32term 的 27 个重名归位，xlib 的 Xlib 面，dispextern/frame 的缺口（2026-10-05）**：
+  ① **落地内容**：`include/w32term.rs` 的 **27 个重名**搬进 `pub mod w32term_fn_decls` / `w32term_objs`
+     （`use super::*;` + `use …::*;`，即 `window.rs` 302-367 / `androidterm.rs` 513-537 的形状，P-21），
+     并连带修掉 `w32fns` 需要的 4 条；`include/xlib.rs` **+475 行**补 Xlib 的记录与过程；`include/dispextern.rs`
+     落 2 个原型 + 位域访问器；`include/frame.rs` 的 `FRAME_MOUSE_UPDATE` 修好；`w32gui`/`w32`/`w32common`
+     三处搬家；台账 7 份同步（`include-{w32term,w32,w32common,w32gui,dispextern,frame,xterm}.md`）。
+  ② **翻臂读数（lane 的原文命令，写进台账）**：
+     `xtask probe src/w32term.rs … --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"'` →
+     **13 行 error / 26 个 `E0428` 之前，12 行 / 0 个 `E0428` 之后**；
+     `xtask probe src/w32fns.rs` 同配置 → **15 行 / 12 个 → 7 行 / 0 个**；
+     `cargo run -p xtask -- layout-check` → `layout probe ok` / `layout-check passed`。
+  ③ **集成者本轮复跑（独立读数）**：`tools/check-all-units.sh` → **`checked 83 unit(s), 0 failure(s)` +
+     `checking 83 unit(s), 0 unit failure(s)`**（P-87 要求的那条；两腿都是 0 失败）；文本门全绿——
+     `check-mirror-dupes` **19/19/0**、`check-declarations` **13 sites / 0 forbidden / 0 failures**、
+     `check-citations` **675 文件 / 0 drift / 0 stale**、`check-ledger-ticks` **235 / 0**、
+     `check-dead-file-coverage` **17 ledger / 0 failure**、`check-carried` **11/11/0**、
+     `check-target-names` **628 .rs / 591 目标 / 0 finding**、`check-swift-units` **0 new / 0 stale**、
+     `check-port-lines` **85 文件 / 187,987 行 / 85 棘轮行 / 0 new / 0 stale**。
+  ④ **仍未解决（点名）**：`include/dispextern.rs` 的 **4 个原型**与 `check_x_display_info`（加了会让
+     `check-mirror-dupes` 与 `frame.rs` 重复，ratchet 行不在本 lane 的白名单里）；
+     `include/xlib.rs` 的 **`XEvent` 的 33 个成员**；`include/frame.rs` 的 `FRAME_RES_*` 的 WS 臂与
+     `HAVE_NTGUI` 旗标段的 `compile_error!`（两种写法都量过，这是树的既有决定）；
+     **`docs/ports/include-xlib.md` 仍无页**（xlib 的偏离记在邻页：`include-dispextern.md` 201/1174、
+     `include-xterm.md` 188/196、`image.md` 187/279/1032）。
+  ⑤ **未声称**：② 是 lane 的读数（命令原文在台账里，我复跑的是 ③ 的 83/0 两腿与文本门）；本轮
+     **没有任何运行证据**——两腿都是编译级。

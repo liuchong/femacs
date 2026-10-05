@@ -124,11 +124,11 @@ pub struct w32_palette_entry
 }
 
 /// C 74-77: `extern void w32_regenerate_palette (struct frame *f); extern void
-/// w32_fullscreen_rect (HWND hwnd, int fsmode, RECT normal, RECT *rect);`
+/// w32_fullscreen_rect (HWND hwnd, int fsmode, RECT normal, RECT *rect);` - `w32fns.c` defines
+/// the second, so its declaration lives in `w32term_fn_decls` below (E0428, P-21).
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
   pub fn w32_regenerate_palette (f: *mut frame);
-  pub fn w32_fullscreen_rect (hwnd: HWND, fsmode: c_int, normal: RECT, rect: *mut RECT);
 }
 
 /* C 83-221: "For each display (currently only one on w32), we have a structure that records
@@ -284,10 +284,9 @@ pub struct w32_display_info
 /// C: extern int menubar_in_use;
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub static mut x_display_list: *mut w32_display_info;
-  pub static mut one_w32_display_info: w32_display_info;
+  // `x_display_list` (C 223), `one_w32_display_info` (C 224) and `menubar_in_use` (C 228) are
+  // defined by `w32fns.c`, so their declarations live in `w32term_objs` below (E0428, P-21).
   pub static mut current_popup_menu: HMENU;
-  pub static mut menubar_in_use: c_int;
 }
 
 /* C 230-274: the entry points, in C's order, ending with the frame-parameter handler table.  */
@@ -321,8 +320,8 @@ unsafe extern "C" {
 /// C 274: `extern frame_parm_handler w32_frame_parm_handlers[];`
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn w32_window_to_frame (dpyinfo: *mut w32_display_info, hwnd: HWND) -> *mut frame;
-  pub fn w32_real_positions (f: *mut frame, xptr: *mut c_int, yptr: *mut c_int);
+  // `w32_window_to_frame` (C 230) and `w32_real_positions` (C 232) are `w32fns.c`'s
+  // definitions: `w32term_fn_decls` below (E0428, P-21).
   pub fn w32_clear_under_internal_border (f: *mut frame);
   pub fn w32_change_tab_bar_height (f: *mut frame, height: c_int);
   pub fn w32_change_tool_bar_height (f: *mut frame, height: c_int);
@@ -334,8 +333,8 @@ unsafe extern "C" {
   pub fn w32_defined_color (f: *mut frame, color_name: *const c_char,
                             color_def: *mut Emacs_Color, alloc: bool,
                             make_index: bool) -> bool;
-  pub fn w32_display_pixel_height (dpyinfo: *mut w32_display_info) -> c_int;
-  pub fn w32_display_pixel_width (dpyinfo: *mut w32_display_info) -> c_int;
+  // `w32_display_pixel_height`/`w32_display_pixel_width` (C 247-248) are defined by this
+  // header's own unit: `w32term_fn_decls` below (E0428, P-21).
   pub fn initialize_frame_menubar (f: *mut frame);
   pub fn w32_dialog_in_progress (in_progress: Lisp_Object);
   pub fn w32_query_frame_background_color (f: *mut frame, bgcolor: *mut Emacs_Color);
@@ -810,13 +809,9 @@ macro_rules! HORIZONTAL_SCROLL_BAR_MIN_HANDLE { () => { (horizontal_scroll_bar_m
 // C 634: `struct frame;` - a forward declaration of `frame.h`'s record (included at C 22).  The
 // port names `frame` directly; the repeat in C is a reminder, not a second declaration.
 
-/// C 636-637: `extern void w32_fill_rect (struct frame *, HDC, COLORREF, RECT *); extern void
-/// w32_clear_window (struct frame *);`
-#[cfg (feature = "windowsnt")]
-unsafe extern "C" {
-  pub fn w32_fill_rect (f: *mut frame, hdc: HDC, pix: COLORREF, rect: *mut RECT);
-  pub fn w32_clear_window (f: *mut frame);
-}
+// C 636-637: `extern void w32_fill_rect (struct frame *, HDC, COLORREF, RECT *); extern void
+// w32_clear_window (struct frame *);` - `w32term.c` defines both, so the declarations live in
+// `w32term_fn_decls` below (E0428, P-21).
 
 /* C 639-661: the four fill/clear macros.  C's bodies are `do { … } while (0)` statements with a
    local `RECT rect`; the port keeps the same statements as a block (Rust has no `do … while`,
@@ -857,7 +852,10 @@ macro_rules! w32_fill_area_abs {
 #[cfg (feature = "windowsnt")]
 macro_rules! w32_clear_rect {
   ($f:expr, $hdc:expr, $lprect:expr) => {
-    { w32_fill_rect ($f, $hdc, FRAME_BACKGROUND_PIXEL ($f), $lprect) }
+    // C's `FRAME_BACKGROUND_PIXEL` is `unsigned long` and `w32_fill_rect`'s third parameter is
+    // `COLORREF` (`DWORD`, the unit's `u32`), so C narrows implicitly; Rust needs the cast
+    // written out (`docs/ports/w32term.md` owed 8's `E0308`).
+    { w32_fill_rect ($f, $hdc, FRAME_BACKGROUND_PIXEL ($f) as COLORREF, $lprect) }
   };
 }
 /// C: #define w32_clear_area(f,hdc,px,py,nx,ny) w32_fill_area (f, hdc,
@@ -865,7 +863,7 @@ macro_rules! w32_clear_rect {
 #[cfg (feature = "windowsnt")]
 macro_rules! w32_clear_area {
   ($f:expr, $hdc:expr, $px:expr, $py:expr, $nx:expr, $ny:expr) => {
-    { w32_fill_area! ($f, $hdc, FRAME_BACKGROUND_PIXEL ($f), $px, $py, $nx, $ny) }
+    { w32_fill_area! ($f, $hdc, FRAME_BACKGROUND_PIXEL ($f) as COLORREF, $px, $py, $nx, $ny) }
   };
 }
 
@@ -990,16 +988,10 @@ pub const WND_LAST_INDEX: c_int = 24;
 #[cfg (feature = "windowsnt")]
 pub const WND_EXTRA_BYTES: c_int = WND_LAST_INDEX;
 
-/// C 731-734: the four thread objects, `DWORD`/`HANDLE` typed as C writes them.
-/// C: extern DWORD dwWindowsThreadId; extern HANDLE hWindowsThread; extern DWORD
-/// C: dwMainThreadId; extern HANDLE hMainThread;
-#[cfg (feature = "windowsnt")]
-unsafe extern "C" {
-  pub static mut dwWindowsThreadId: DWORD;
-  pub static mut hWindowsThread: HANDLE;
-  pub static mut dwMainThreadId: DWORD;
-  pub static mut hMainThread: HANDLE;
-}
+// C 731-734: the four thread objects, `DWORD`/`HANDLE` typed as C writes them.  This header's
+// own unit defines all four, so the declarations live in `w32term_objs` below (E0428, P-21).
+// C: extern DWORD dwWindowsThreadId; extern HANDLE hWindowsThread; extern DWORD
+// C: dwMainThreadId; extern HANDLE hMainThread;
 
 /* C 736-741: the message record `W32Msg` and its queue entry point.  */
 /// C: typedef struct W32Msg { MSG msg; DWORD dwModifiers; RECT rect; } W32Msg;
@@ -1211,11 +1203,8 @@ pub const RIGHT_WIN_PRESSED: c_int = 0x4000;
 pub const APPS_PRESSED: c_int = 0x2000;
 
 /// C 845-846: "The current ANSI input codepage for GUI sessions."
-/// C: extern int w32_keyboard_codepage;
-#[cfg (feature = "windowsnt")]
-unsafe extern "C" {
-  pub static mut w32_keyboard_codepage: c_int;
-}
+/// C: extern int w32_keyboard_codepage;` - `w32term.c` defines it, so the declaration lives in
+/// `w32term_objs` below (E0428, P-21).
 
 /* C 848-861: the Windows 9x/ME and NT 3.x fallbacks: `WM_MOUSELEAVE` (0x02A3), `TME_LEAVE`
    (0x00000002) and the `TRACKMOUSEEVENT` record C defines when the SDK lacks it.  C's `TME_LEAVE`
@@ -1243,13 +1232,9 @@ pub type TRACKMOUSEEVENT = tagTRACKMOUSEEVENT;
 // dispextern.h's records).  The port names neither pointer's pointee; every parameter that takes
 // one is `*mut c_void` below.
 
-/// C 866: `Emacs_GC *XCreateGC (void *, HWND, unsigned long, Emacs_GC *);` - the X-compatibility
-/// entry point `w32fns.c` defines.
-#[cfg (feature = "windowsnt")]
-unsafe extern "C" {
-  pub fn XCreateGC (dpy: *mut c_void, hwnd: HWND, valuemask: c_ulong,
-                    values: *mut Emacs_GC) -> *mut Emacs_GC;
-}
+// C 866: `Emacs_GC *XCreateGC (void *, HWND, unsigned long, Emacs_GC *);` - the X-compatibility
+// entry point `w32fns.c` defines, so the declaration lives in `w32term_fn_decls` below
+// (E0428, P-21).
 
 /* C 868-873: the two lazily loaded GDI entry points.  C's `WINAPI` is the `extern "system"` ABI
    in Rust and a C function pointer is nullable, so each typedef is an `Option<…>` (the
@@ -1273,14 +1258,8 @@ pub type AppendMenuW_Proc
 /// C: extern Window tip_window;
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub static mut w32_system_remap_font: *mut font;
-  pub static mut w32_system_caret_hwnd: HWND;
-  pub static mut w32_system_caret_height: c_int;
-  pub static mut w32_system_caret_x: c_int;
-  pub static mut w32_system_caret_y: c_int;
-  pub static mut w32_system_caret_window: *mut c_void;
-  pub static mut w32_system_caret_hdr_height: c_int;
-  pub static mut w32_system_caret_mode_height: c_int;
+  // `w32_system_remap_font` (C 875) and the seven `w32_system_caret_*` objects (C 877-883) are
+  // `w32term.c`'s definitions, so their declarations live in `w32term_objs` below (E0428, P-21).
   pub static mut tip_window: Window;
 }
 
@@ -1359,8 +1338,8 @@ unsafe extern "C" {
   pub fn w32_popup_dialog (f: *mut frame, header: Lisp_Object, contents: Lisp_Object)
                            -> Lisp_Object;
   pub fn w32_arrow_cursor ();
-  pub fn w32_release_paint_buffer (f: *mut frame);
-  pub fn w32_flip_buffers_if_dirty (f: *mut frame);
+  // `w32_release_paint_buffer`/`w32_flip_buffers_if_dirty` (C 911-912) are this header's own
+  // unit's definitions: `w32term_fn_decls` below (E0428, P-21).
   pub fn syms_of_w32term ();
   pub fn syms_of_w32menu ();
   pub fn syms_of_w32fns ();
@@ -1374,9 +1353,111 @@ unsafe extern "C" {
 
 /// C 927-929: `#ifdef CYGWIN / extern int w32_message_fd; / #endif /* CYGWIN */` - `CYGWIN` is
 /// `undef` in the frozen table, so the object carries that feature (the `cygwin` name this tree
-/// already declares).
+/// already declares).  `w32term.c` defines it, so the declaration lives in `w32term_objs` below
+/// (E0428, P-21).
+
+
+// ----------------------------------------------------------------------
+// The two declaration homes the `HAVE_NTGUI` translation units need (2026-10-05).
+
+/* Twenty-three of the declarations above are names a `HAVE_NTGUI` translation unit *defines*: the
+   unit that includes this mirror through C 22's `#include "w32term.h"` is `src/w32term.c`, and
+   `src/w32fns.c` shares the list.  A mirror declaration at the crate root collides with the
+   unit's own definition as `E0428` the moment that unit is compiled for a Windows target, which
+   is why **no `have_ntgui` translation unit could compile this file**.  Seven are functions and
+   sixteen are file-scope objects:
+
+     functions  XCreateGC (C 866, `w32fns.c`'s definition), w32_fill_rect / w32_clear_window
+                (C 636-637), w32_display_pixel_height / w32_display_pixel_width (C 247-248),
+                w32_release_paint_buffer / w32_flip_buffers_if_dirty (C 911-912);
+     `w32fns.c`'s own four - w32_fullscreen_rect (C 77), w32_window_to_frame (C 230),
+                w32_real_positions (C 232) and the object menubar_in_use (C 228) - are in the
+                same list (`docs/ports/w32fns.md`'s owed 5 measured them);
+     objects    x_display_list / one_w32_display_info (C 223-224, `w32fns.c`'s),
+                dwWindowsThreadId / hWindowsThread / dwMainThreadId / hMainThread (C 731-734),
+                w32_keyboard_codepage (C 846), w32_system_remap_font (C 875), the seven
+                `w32_system_caret_*` (C 877-883) and w32_message_fd (C 928).
+
+   **The fix is the `window.rs` 302-367 `window_fn_decls` / `androidterm.rs` 513-537
+   `androidterm_objs` shape** (PORTING.md 0.1-10 / P-21): the declarations sit in a module this
+   mirror glob-imports, and a crate-root definition *shadows* a glob import, so the unit's own
+   item stays the live one and `tools/check-mirror-dupes.py` sees no duplicate (it counts a
+   declaration with a body as a definition and never as a copy).  Each item keeps the `/// C:`
+   line of the site it moved from, so the citation stays with the declaration.
+
+   Readings (P-87): `xtask probe src/w32term.rs … --cfg 'feature="have_ntgui"'
+   --cfg 'feature="windowsnt"'` reports `26 error[E0428]` before this move - 22 of the names above
+   (`w32_message_fd` needs `cygwin` as well) plus the four `include/w32.rs` collisions this batch
+   fixes separately.  */
+
+/// C 866: `Emacs_GC *XCreateGC (void *, HWND, unsigned long, Emacs_GC *);` - the X-compatibility
+/// entry point `w32fns.c` defines.
+/// C 636-637: `extern void w32_fill_rect (struct frame *, HDC, COLORREF, RECT *); extern void
+/// w32_clear_window (struct frame *);`
+/// C 247-248: `extern int w32_display_pixel_height (struct w32_display_info *); extern int
+/// w32_display_pixel_width (struct w32_display_info *);`
+/// C 911-912: `extern void w32_release_paint_buffer (struct frame *); extern void
+/// w32_flip_buffers_if_dirty (struct frame *);`
 #[cfg (feature = "windowsnt")]
-#[cfg (feature = "cygwin")]
-unsafe extern "C" {
-  pub static mut w32_message_fd: c_int;
+pub mod w32term_fn_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn XCreateGC (dpy: *mut c_void, hwnd: HWND, valuemask: c_ulong,
+                      values: *mut Emacs_GC) -> *mut Emacs_GC;
+    /// C 77: `extern void w32_fullscreen_rect (HWND hwnd, int fsmode, RECT normal, RECT *rect);`
+    pub fn w32_fullscreen_rect (hwnd: HWND, fsmode: c_int, normal: RECT, rect: *mut RECT);
+    /// C 230: `extern struct frame *w32_window_to_frame (struct w32_display_info *, HWND);`
+    pub fn w32_window_to_frame (dpyinfo: *mut w32_display_info, hwnd: HWND) -> *mut frame;
+    /// C 232: `extern void w32_real_positions (struct frame *f, int *xptr, int *yptr);`
+    pub fn w32_real_positions (f: *mut frame, xptr: *mut c_int, yptr: *mut c_int);
+    pub fn w32_fill_rect (f: *mut frame, hdc: HDC, pix: COLORREF, rect: *mut RECT);
+    pub fn w32_clear_window (f: *mut frame);
+    pub fn w32_display_pixel_height (dpyinfo: *mut w32_display_info) -> c_int;
+    pub fn w32_display_pixel_width (dpyinfo: *mut w32_display_info) -> c_int;
+    pub fn w32_release_paint_buffer (f: *mut frame);
+    pub fn w32_flip_buffers_if_dirty (f: *mut frame);
+  }
 }
+#[cfg (feature = "windowsnt")]
+use w32term_fn_decls::*;
+
+/// C: extern struct w32_display_info *x_display_list;
+/// C: extern struct w32_display_info one_w32_display_info;
+/// C: extern DWORD dwWindowsThreadId; extern HANDLE hWindowsThread; extern DWORD
+/// C: dwMainThreadId; extern HANDLE hMainThread;
+/// C: extern int w32_keyboard_codepage;
+/// C: extern struct font *w32_system_remap_font;
+/// C: extern HWND w32_system_caret_hwnd; extern int w32_system_caret_height;
+/// C: extern int w32_system_caret_x; extern int w32_system_caret_y;
+/// C: extern struct window *w32_system_caret_window;
+/// C: extern int w32_system_caret_hdr_height; extern int w32_system_caret_mode_height;
+/// C 928: `extern int w32_message_fd;` (inside C 927-929's `#ifdef CYGWIN`).
+#[cfg (feature = "windowsnt")]
+pub mod w32term_objs {
+  use super::*;
+
+  unsafe extern "C" {
+    pub static mut x_display_list: *mut w32_display_info;
+    pub static mut one_w32_display_info: w32_display_info;
+    /// C 228: `extern int menubar_in_use;`
+    pub static mut menubar_in_use: c_int;
+    pub static mut dwWindowsThreadId: DWORD;
+    pub static mut hWindowsThread: HANDLE;
+    pub static mut dwMainThreadId: DWORD;
+    pub static mut hMainThread: HANDLE;
+    pub static mut w32_keyboard_codepage: c_int;
+    pub static mut w32_system_remap_font: *mut font;
+    pub static mut w32_system_caret_hwnd: HWND;
+    pub static mut w32_system_caret_height: c_int;
+    pub static mut w32_system_caret_x: c_int;
+    pub static mut w32_system_caret_y: c_int;
+    pub static mut w32_system_caret_window: *mut c_void;
+    pub static mut w32_system_caret_hdr_height: c_int;
+    pub static mut w32_system_caret_mode_height: c_int;
+    #[cfg (feature = "cygwin")]
+    pub static mut w32_message_fd: c_int;
+  }
+}
+#[cfg (feature = "windowsnt")]
+use w32term_objs::*;

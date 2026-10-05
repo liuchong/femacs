@@ -917,6 +917,27 @@ macro_rules! MOUSE_HL_INFO {
   }};
 }
 
+/* frame.h 990-1018 / 1054-1061's window-system arms are **recorded, not carried**, and the
+   measurement is why.  C's arm bodies read `FRAME_DISPLAY_INFO (f)->resx` / `->resy` /
+   `->font_resolution`, and `FRAME_DISPLAY_INFO` is the term-header mirror's `macro_rules!`
+   (`include/xterm.rs` 1123, `include/w32term.rs` 587, …).  Textually `macro_rules!` are scoped,
+   and every unit includes `frame.h` *before* its `TERM_HEADER` (`src/image.rs` 103 then 137), so:
+
+     * as *functions* the window-system arms cannot see it - measured
+       `error: cannot find macro `FRAME_DISPLAY_INFO` in this scope` twice in
+       `xtask probe src/image.rs … --cfg 'feature="have_window_system"'
+       --cfg 'feature="have_x_windows"' --cfg 'feature="use_cairo"'`;
+     * as `macro_rules!` the C-shaped call sites stop resolving - the port calls these with C's
+       macro shape and *no* `!` (`src/font.rs` 864/4256/4442/4450/5376/5923, `src/image.rs`
+       4305-4306, `src/frame.rs` 4640), which only a function answers, and the extractor's body
+       check then reads the window-system arm instead of the frozen one - measured
+       `- macro FRAME_RES_X does not mention default_pixels_per_inch_x`.
+
+   Both spellings were tried on this revision and reverted.  What the arms need is the shape
+   decision `docs/ports/include-frame.md` already records for the nine `#else`-shaped accessors
+   (a `(unit, shift)`-style model change), not another try.  `FRAME_SCALE_FACTOR`'s NS/PGTK arms
+   are in the same list: `ns_frame_scale_factor`/`pgtk_frame_scale_factor` are `macro_rules!` in
+   their term mirrors too.  */
 // frame.h 884-895.
 #[inline(always)]
 pub fn FRAME_RES_X (f: *mut frame) -> c_double { let _ = f; unsafe { default_pixels_per_inch_x () } }
@@ -1623,7 +1644,16 @@ macro_rules! FRAME_MOUSE_UPDATE {
   ($frame:expr) => {{
     let frame = $frame;
     let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (frame);
-    if frame == unsafe { (*hlinfo).mouse_face_mouse_frame } {
+    // C compares two `struct frame *`.  The port's `Mouse_HLInfo` stores
+    // `mouse_face_mouse_frame` as the untyped pointer its includers can all name
+    // (dispextern.rs 2072's note: five units include that mirror without frame.h), so the
+    // comparison spells the conversion back at its use site - C's own type is in the `/// C:`
+    // line above and the *record*'s comment.  Measured before the cast: `error[E0308]: mismatched
+    // types … expected `*mut frame`, found `*mut c_void`` in `xtask probe src/w32term.rs
+    // --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"'`.
+    // `note_mouse_highlight` is declared by `include/dispextern.rs`'s glob-imported
+    // `dispextern_late_decls` (dispextern.h 3688), so C's call below needs no cast.
+    if frame == unsafe { (*hlinfo).mouse_face_mouse_frame } as *mut frame {
       block_input ();
       note_mouse_highlight (unsafe { (*hlinfo).mouse_face_mouse_frame },
                             unsafe { (*hlinfo).mouse_face_mouse_x },

@@ -94,7 +94,24 @@ macro_rules! WHITE_PIX_DEFAULT {
   ($f:expr) => { WhitePixel (FRAME_X_DISPLAY ($f), FRAME_X_SCREEN_NUMBER ($f)) };
 }
 
-/* C 144-155: "The mask of events that text windows always want to receive."  */
+/* C 144-155: "The mask of events that text windows always want to receive."  The eleven masks
+   are `x11_constants`' (X11/X.h 151-173), imported here by name rather than with a glob: a glob
+   would bring that module's `None` into the unit's crate root and shadow the prelude's
+   `Option::None` (the file note above, and the 3.270 ruling `True`/`False` follow).  Before this
+   `use`, all eleven were `E0425` under `have_x_windows` - nine of them had no home anywhere.  */
+#[cfg (feature = "have_x_windows")]
+use x11_constants::{KeyPressMask, ExposureMask, ButtonPressMask, ButtonReleaseMask,
+                    PointerMotionMask, StructureNotifyMask, FocusChangeMask, LeaveWindowMask,
+                    EnterWindowMask, PropertyChangeMask, VisibilityChangeMask,
+                    StaticColor, StaticGray, TrueColor,   // C 1885-1886's `x_mutable_colormap`
+                    // The Xlib SDK values the units that reach this mirror through `TERM_HEADER`
+                    // write bare: `src/image.rs` 1463 `BitmapSuccess` (C 921) and 1922 `ZPixmap`
+                    // (C 869's `XGetImage` call).  Both are X11/X.h / X11/Xutil.h macros, so
+                    // `x11_constants` is their home; this `use` is what makes them visible at the
+                    // crate root the `include!` graph builds (measured: without the two names the
+                    // x+cairo configuration still reports `cannot find value `BitmapSuccess`` and
+                    // ```ZPixmap`` as `E0425`).
+                    ZPixmap, BitmapSuccess};
 /// C: #define STANDARD_EVENT_SET (KeyPressMask | ExposureMask | ButtonPressMask |
 /// C: ButtonReleaseMask | PointerMotionMask | StructureNotifyMask | FocusChangeMask |
 /// C: LeaveWindowMask | EnterWindowMask | PropertyChangeMask | VisibilityChangeMask)

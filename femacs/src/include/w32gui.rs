@@ -84,19 +84,39 @@ macro_rules! WINDOW_HANDLE_UINTPTR { ($h:expr) => { ($h) as usize }; }
 /// C: extern bool w32_can_use_native_image_api (Lisp_Object);
 /// C: extern bool w32_gdiplus_startup (void);
 /// C: extern void w32_gdiplus_shutdown (void);
-unsafe extern "C" {
-  pub fn w32_load_image (f: *mut c_void, img: *mut c_void,
-                         spec_file: Lisp_Object, spec_data: Lisp_Object) -> c_int;
-  pub fn w32_can_use_native_image_api (spec: Lisp_Object) -> bool;
-  pub fn w32_gdiplus_startup () -> bool;
-  pub fn w32_gdiplus_shutdown ();
+// The six names are definitions in the Windows GUI units (`w32image.c` implements the image
+// entry points; `w32fns.c` defines C 57's `hinst`), so a crate-root declaration here collides
+// with the unit's own item as `E0428` - measured for `hinst` by
+// `xtask probe src/w32fns.rs … --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"'`
+// (`docs/ports/w32fns.md` owed 5).  The declarations therefore sit in modules this mirror
+// glob-imports, which a crate-root definition shadows (the `window.rs` 302-367 /
+// `androidterm.rs` 513-537 / `w32term.rs` `w32term_fn_decls` shape; PORTING.md 0.1-10 / P-21).
+pub mod w32gui_fn_decls {
+  use super::*;
 
-  /// C 53: `extern size_t w32_image_size (Emacs_Pixmap);`
-  pub fn w32_image_size (pixmap: Emacs_Pixmap) -> usize;
+  unsafe extern "C" {
+    pub fn w32_load_image (f: *mut c_void, img: *mut c_void,
+                           spec_file: Lisp_Object, spec_data: Lisp_Object) -> c_int;
+    pub fn w32_can_use_native_image_api (spec: Lisp_Object) -> bool;
+    pub fn w32_gdiplus_startup () -> bool;
+    pub fn w32_gdiplus_shutdown ();
 
-  /// C 57: `extern HINSTANCE hinst;` - the application instance, a handle.
-  pub static mut hinst: *mut c_void;
+    /// C 53: `extern size_t w32_image_size (Emacs_Pixmap);`
+    pub fn w32_image_size (pixmap: Emacs_Pixmap) -> usize;
+  }
 }
+use w32gui_fn_decls::*;
+
+/// C 57: `extern HINSTANCE hinst;` - the application instance, a handle, which `w32fns.c`
+/// defines.
+pub mod w32gui_objs {
+  use super::*;
+
+  unsafe extern "C" {
+    pub static mut hinst: *mut c_void;
+  }
+}
+use w32gui_objs::*;
 
 /// C 55: `#define FACE_DEFAULT (~0)` - C's `~0` on an `int`, which is `!0` in Rust.
 pub const FACE_DEFAULT: c_int = !0;
@@ -150,6 +170,16 @@ macro_rules! NativeRectangle { () => { RECT }; }
 /// C 96-100 / C 102-106 / C 108-112: the three rectangle conversions.  C's bodies are comma
 /// expressions; Rust has no comma operator, so each body is a block of the same assignments in
 /// C's order (the `haikugui.rs` 70-95 reading of the same block).
+///
+/// **Two of the three carry C's implicit integer conversions as written-out casts** (the
+/// `w32term_fn_decls` block's note and `docs/ports/w32term.md`'s owed 8): this header's
+/// `NativeRectangle` is `RECT` (`LONG`, the unit's `i32`) while `Emacs_Rectangle`'s non-X arm is
+/// `int x, y; unsigned width, height` (C 66-70), so C's `(xr).width = (nr).right - (nr).left`
+/// is an `int`-to-`unsigned` conversion and its `(nr).right = (xr).x + (xr).width` is
+/// `int + unsigned` in unsigned arithmetic, then a conversion to `LONG`.  Rust refuses both
+/// implicit forms (`E0308`/`E0277`, measured by `xtask probe src/w32term.rs … --cfg
+/// 'feature="have_ntgui"' --cfg 'feature="windowsnt"'), so each is spelled with C's own
+/// conversions: the `as c_uint` / `as c_int` the C assignment performs.
 /// C: #define CONVERT_TO_EMACS_RECT(xr,nr)            \
 /// C:   ((xr).x = (nr).left,				\
 /// C:    (xr).y = (nr).top,				\
@@ -160,8 +190,8 @@ macro_rules! CONVERT_TO_EMACS_RECT {
     { {
         ($xr).x = ($nr).left;
         ($xr).y = ($nr).top;
-        ($xr).width = ($nr).right - ($nr).left;
-        ($xr).height = ($nr).bottom - ($nr).top;
+        ($xr).width = (($nr).right - ($nr).left) as c_uint;
+        ($xr).height = (($nr).bottom - ($nr).top) as c_uint;
       } };
 }
 /// C 102-106.
@@ -170,8 +200,8 @@ macro_rules! CONVERT_FROM_EMACS_RECT {
     { {
         ($nr).left = ($xr).x;
         ($nr).top = ($xr).y;
-        ($nr).right = ($xr).x + ($xr).width;
-        ($nr).bottom = ($xr).y + ($xr).height;
+        ($nr).right = (($xr).x as c_uint).wrapping_add (($xr).width) as c_int;
+        ($nr).bottom = (($xr).y as c_uint).wrapping_add (($xr).height) as c_int;
       } };
 }
 /// C 108-112.

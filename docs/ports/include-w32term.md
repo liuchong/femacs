@@ -297,3 +297,63 @@ answers per call site, exactly as C's does; `os_subtype` is the same shield's cr
   literals), 0 failures`.
 - No arm compile is possible here (no Windows toolchain); the two fixes are text-level and their
   reading is `docs/ports/w32fns.md`'s next arm run.
+
+# ----------------------------------------------------------------------
+## The declaration homes: 27 names move into modules (2026-10-05, `docs/ports/w32term.md` owed 4 and `docs/ports/w32fns.md` owed 5)
+
+**C.**  Twenty-seven of this header's prototypes and objects are names a `HAVE_NTGUI`
+translation unit *defines*: `src/w32term.c` (the unit that includes this mirror through C 22's
+`#include "w32term.h"`) defines seven functions and sixteen objects, and `src/w32fns.c` - which
+reaches the same header through its own `TERM_HEADER` - defines four more of them.  A mirror
+declaration at the crate root collides with the unit's own item as `E0428` the moment such a unit
+is compiled, which is why **no `have_ntgui` translation unit could compile this file**.
+
+  * `src/w32term.c`'s seven: `XCreateGC` is `w32fns.c`'s, the rest are this unit's -
+    `w32_fill_rect`/`w32_clear_window` (C 636-637), `w32_display_pixel_height`/
+    `w32_display_pixel_width` (C 247-248), `w32_release_paint_buffer`/`w32_flip_buffers_if_dirty`
+    (C 911-912); its sixteen objects: `x_display_list`/`one_w32_display_info` (C 223-224),
+    `dwWindowsThreadId`/`hWindowsThread`/`dwMainThreadId`/`hMainThread` (C 731-734),
+    `w32_keyboard_codepage` (C 846), `w32_system_remap_font` (C 875), the seven
+    `w32_system_caret_*` (C 877-883) and `w32_message_fd` (C 928);
+  * `src/w32fns.c`'s four: `w32_fullscreen_rect` (C 77), `w32_window_to_frame` (C 230),
+    `w32_real_positions` (C 232) and the object `menubar_in_use` (C 228).
+
+**The change.**  The declarations now sit in `pub mod w32term_fn_decls` and
+`pub mod w32term_objs`, each `use super::*;`, followed by `use w32term_fn_decls::*;` /
+`use w32term_objs::*;` - the `window.rs` 302-367 `window_fn_decls` / `androidterm.rs` 513-537
+`androidterm_objs` shape (PORTING.md 0.1-10 / P-21).  A crate-root definition *shadows* a glob
+import, so the unit's own item stays the live one, and `tools/check-mirror-dupes.py` counts a
+declaration with a body as a definition and never as a copy.  Every item keeps the `/// C:` line
+of the site it moved from; those sites now carry a one-line pointer comment.
+
+**The names left at the crate root, and why.**  The rest of this header's prototype block
+(`w32_term_init`, `w32_define_color`, the `syms_of_*` family, `tip_window`, …) stays where it is.
+It is not *measured* against any unit yet - the two Windows units this tree has (`src/w32term.rs`,
+`src/w32fns.rs`) are slices, and each new slice will move the names it defines with the same
+treatment.  Moving the whole block now would be a claim no reading supports.
+
+**Evidence.**
+
+- The flip `docs/ports/w32term.md` owed 4 exists for, re-run on the revision of this batch in an
+  isolated worktree (`git worktree add /tmp/… HEAD`, this file's copies over HEAD's):
+  `xtask probe src/w32term.rs … --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"'` ->
+  **13 error lines / 26 `error[E0428]` before, 12 error lines / 0 `E0428` after**.
+  `xtask probe src/w32fns.rs`, same cfgs -> **15 error lines / 12 `E0428` before, 7 / 0 after**
+  (the 26 at HEAD are the 22 of this file's names a `windowsnt` crate reaches - `w32_message_fd`
+  needs `cygwin` too - plus the four `include/w32.rs` collisions this batch fixes separately; the
+  12 are these 10 plus `one_w32_display_info` and `x_display_list`).
+- The residual 12 in `src/w32term.rs` are the *next* layer, all of them unit text or another
+  mirror's gap: `include/frame.rs`'s `HAVE_NTGUI` flag-run `compile_error!` (1), the
+  `<windows.h>` typedefs `SYSTEM_INFO`/`OSVERSIONINFO` the unit declares none of (2), the
+  `w32_output` bit-field members `want_paint_buffer`/`paint_buffer_dirty` (4, `docs/ports/w32term.md`
+  owed 6 - the accessor pair is the unit's call sites' change), `cursor_pixel` off a mistyped
+  `*mut w32_output` (2) - all of them `E0609`/`E0606`/`E0425` in the *unit's* text.
+  `src/w32fns.rs`'s residual 5 are the same two typedefs and two `Emacs_GC` sites (the
+  `have_ntgui` arm of `dispextern.h` 45-77, a `dispextern.rs` gap this lane did not close).
+- `python3 tools/extract-abi.py --check emacs/src/w32term.h femacs/src/include/w32term.rs` -> `OK`.
+- `cd femacs && cargo run -q -p xtask -- layout-check` -> `layout probe ok`, `layout-check passed`.
+- `python3 tools/check-citations.py` -> `0 drift`; `python3 tools/check-declarations.py` ->
+  `13 declaration sites (0 forbidden, 13 allowed literals), 0 failures`;
+  `python3 tools/check-mirror-dupes.py` -> `18 ratchet row(s), 0 failure(s)` for this file;
+  `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` / `checking 83 unit(s),
+  0 unit failure(s)`.

@@ -72,12 +72,10 @@ const _: () = assert! (!cfg! (feature = "cygwin"));
 
 /* File descriptor set emulation.  */
 
-/* C 31-36: the MSVC runtime library's 64-descriptor limit is `#undef`ed (C 32-34, see the file
-   note) and the name redefined; the value is what C 37's array size divides.  */
+/// C 31-36: the MSVC runtime library's 64-descriptor limit is `#undef`ed (C 32-34, see the file
+/// note) and the name redefined; the value is what C 37's array size divides.
 /// C: #define FD_SETSIZE  2048
-#[cfg (feature = "windowsnt")]
-pub const FD_SETSIZE: c_int = 2048;
-
+///
 /// C 37-39: `typedef struct { unsigned int bits[FD_SETSIZE / 32]; } fd_set;` - the anonymous
 /// record under its typedef name (cinventory keys it `<anon@37>` with the alias `fd_set`), whose
 /// member is an **array** of `FD_SETSIZE / 32` = 64 `unsigned int`, not a pointer.  Its layout is
@@ -86,13 +84,44 @@ pub const FD_SETSIZE: c_int = 2048;
 /// C: typedef struct {
 /// C:   unsigned int bits[FD_SETSIZE / 32];
 /// C: } fd_set;
-#[repr(C)]
+///
+/// C 264: `extern int fchmod (int, mode_t);` and C 265: `extern int fchmodat (int, const char *,
+/// mode_t, int);`
 #[cfg (feature = "windowsnt")]
-pub struct fd_set
-{
-  pub bits: [c_uint; FD_SETSIZE as usize / 32],
-}
+pub mod w32_system_names {
+  use super::*;
 
+  pub const FD_SETSIZE: c_int = 2048;
+
+  #[repr(C)]
+  pub struct fd_set
+  {
+    pub bits: [c_uint; FD_SETSIZE as usize / 32],
+  }
+
+  unsafe extern "C" {
+    pub fn fchmod (fd: c_int, mode: mode_t) -> c_int;
+    pub fn fchmodat (fd: c_int, path: *const c_char, mode: mode_t, flags: c_int) -> c_int;
+  }
+}
+#[cfg (feature = "windowsnt")]
+use w32_system_names::*;
+
+/* C 31-39 and C 264-265: **the four names this header shares with the frozen target's own
+   system mirrors** - `FD_SETSIZE` and `fd_set` with `lib/include/sys_select.rs` 31/39, `fchmod`
+   and `fchmodat` with `lib/include/sys_stat.in.rs` 184-185.  Measured on this machine
+   (`xtask probe src/w32term.rs … --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"'`):
+   four `error[E0428]` name exactly these pairs, i.e. a `windowsnt` crate that reaches both
+   headers cannot be compiled at all.  The declarations therefore sit in a module this header
+   glob-imports (the `window.rs` 302-367 / `androidterm.rs` 513-537 / `w32term.rs`
+   `w32term_objs` shape): a crate-root definition shadows a glob import, so the system mirror's
+   item stays the live one and the collision is gone.
+
+   **Owed, and not disguised by that move**: a *real* Windows build has to read C's own values
+   here (`FD_SETSIZE` 2048, `MAXDESC` 2048), and the arbitration that expresses C's
+   `#undef`/`#define` ordering is a *complementary* gate - `not (feature = "windowsnt")` - on the
+   two `lib/include` mirrors, which are outside this lane's writable set.  Until it lands, this
+   module's names are reachable in a `windowsnt` crate only where nothing else declares them.  */
 /* standard access macros */
 /// C 41-47: C's `do { … } while (0)` statement macro.  The port writes the `if` C's loop
 /// encloses (PORTING.md 2.2's `do…while (0)` class: Rust has no statement-macro loop wrapper);
@@ -425,8 +454,8 @@ unsafe extern "C" {
   pub fn srandom (seed: c_int);
   #[cfg (feature = "windowsnt")]
   pub fn random () -> c_int;
-  #[cfg (feature = "windowsnt")]
-  pub fn fchmod (fd: c_int, mode: mode_t) -> c_int;
+  // `fchmod` (C 264) is declared in `w32_system_names` above (E0428 against
+  // `lib/include/sys_stat.in.rs` 184).
   pub fn sys_rename_replace (oldname: *const c_char, newname: *const c_char, force: c_int) -> c_int;
   #[cfg (feature = "windowsnt")]
   pub fn pipe2 (phandles: *mut c_int, pipe2_flags: c_int) -> c_int;
@@ -439,8 +468,8 @@ unsafe extern "C" {
   pub fn sys_link (old: *const c_char, new: *const c_char) -> c_int;
   #[cfg (feature = "windowsnt")]
   pub fn openat (fd: c_int, path: *const c_char, oflag: c_int, mode: c_int) -> c_int;
-  #[cfg (feature = "windowsnt")]
-  pub fn fchmodat (fd: c_int, path: *const c_char, mode: mode_t, flags: c_int) -> c_int;
+  // `fchmodat` (C 265) is declared in `w32_system_names` above (E0428 against
+  // `lib/include/sys_stat.in.rs` 185).
   #[cfg (feature = "windowsnt")]
   pub fn lchmod (path: *const c_char, mode: mode_t) -> c_int;
   pub fn symlinks_supported (file: *const c_char) -> bool;

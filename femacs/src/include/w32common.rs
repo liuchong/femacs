@@ -76,12 +76,44 @@ macro_rules! get_w32_minor_version { () => { w32_minor_version }; }
 /// C: extern int    	      w32_major_version;
 /// C: extern int    	      w32_minor_version;
 /// C: extern int    	      w32_build_number;
-unsafe extern "C" {
-  pub static mut syspage_mask: DWORD_PTR;
-  pub static mut w32_major_version: c_int;
-  pub static mut w32_minor_version: c_int;
-  pub static mut w32_build_number: c_int;
+/* C 37-41, C 48 and C 51: the file-scope objects and the one function are all defined in the
+   Windows GUI units (`w32fns.c` defines the four version objects, `os_subtype` and
+   `cache_system_info`), so a crate-root declaration here collides with the unit's own item as
+   `E0428` - measured by `xtask probe src/w32fns.rs … --cfg 'feature="have_ntgui"'
+   --cfg 'feature="windowsnt"'` (`docs/ports/w32fns.md` owed 5).  They therefore sit in a module
+   this mirror glob-imports, which a crate-root definition shadows (the `window.rs` 302-367 /
+   `androidterm.rs` 513-537 / `w32term.rs` `w32term_objs` shape; PORTING.md 0.1-10 / P-21).  The
+   two `<windows.h>`-typed caches below join them for the same reason.  */
+
+/// C 37-41: the page mask and the three version numbers.  **`sysinfo_cache` (C 35) and
+/// `osinfo_cache` (C 36) are deferred**: C declares a `<sysinfoapi.h>`/`<winver.h>` record *by
+/// value*, the port has no mirror of either, and no compiler on this target could measure them -
+/// so no Rust spelling is written rather than an unmeasured one (see the file note above).
+/// C: extern DWORD_PTR      syspage_mask;
+/// C: extern int    	      w32_major_version;
+/// C: extern int    	      w32_minor_version;
+/// C: extern int    	      w32_build_number;
+/// C 48: `extern int os_subtype;` - which of C 43-46's two the running system is.
+/// C 51: `extern void cache_system_info (void);`
+/// C 35-36: `extern SYSTEM_INFO sysinfo_cache;` / `extern OSVERSIONINFO osinfo_cache;`
+pub mod w32common_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub static mut syspage_mask: DWORD_PTR;
+    pub static mut w32_major_version: c_int;
+    pub static mut w32_minor_version: c_int;
+    pub static mut w32_build_number: c_int;
+    pub static mut os_subtype: c_int;
+    pub fn cache_system_info ();
+
+    #[cfg (feature = "windowsnt")]
+    pub static mut sysinfo_cache: SYSTEM_INFO;
+    #[cfg (feature = "windowsnt")]
+    pub static mut osinfo_cache: OSVERSIONINFO;
+  }
 }
+use w32common_decls::*;
 
 /// C 43-46: `enum { OS_SUBTYPE_9X = 1, OS_SUBTYPE_NT };` - the header's anonymous enum, whose
 /// second member is 2 (C's implicit successor).  C leaves the type to the enum; the port spells
@@ -89,15 +121,9 @@ unsafe extern "C" {
 pub const OS_SUBTYPE_9X: c_int = 1;
 pub const OS_SUBTYPE_NT: c_int = 2;
 
-/// C 48: which of the two the running system is.
-/// C: extern int os_subtype;
-unsafe extern "C" {
-  pub static mut os_subtype: c_int;
-
-  /// C 51: `extern void cache_system_info (void);` - fills `sysinfo_cache`/`osinfo_cache`
-  /// (both deferred above) and the three versions.
-  pub fn cache_system_info ();
-}
+// C 48 (`extern int os_subtype;`) and C 51 (`extern void cache_system_info (void);`, which fills
+// `sysinfo_cache`/`osinfo_cache` - both deferred above - and the three versions) sit in
+// `w32common_decls` above with the four version objects (E0428, P-21).
 
 /// C 53-58: the `WINDOWSNT` arm, dead text on this target (the feature macro is `undef`), so it
 /// is carried under the feature that names the other side (PORTING.md P-51).  `intmax_t` is
@@ -156,19 +182,6 @@ pub unsafe fn get_proc_addr (handle: *mut c_void, fname: *const c_char) -> VOIDF
    checklist boxes stay unchecked, and docs/ports/include-w32common.md records the
    docs/ports/excluded-macros.txt rows (kind=deferred) they need.  C's text is kept above so a
    reader sees what the mirror is not carrying.  */
-
-/// C 35-36: the two caches the getters above read (`get_page_size ()` is
-/// `sysinfo_cache.dwPageSize`).  Their types come from `<windows.h>`, which this target has not
-/// got, so they are carried under the feature that names the other side (PORTING.md P-51) with
-/// C's own type names - that target's `<windows.h>` supplies them, and the items are stripped
-/// before name resolution here.
-/// C: extern SYSTEM_INFO sysinfo_cache;
-/// C: extern OSVERSIONINFO osinfo_cache;
-#[cfg (feature = "windowsnt")]
-unsafe extern "C" {
-  pub static mut sysinfo_cache: SYSTEM_INFO;
-  pub static mut osinfo_cache: OSVERSIONINFO;
-}
 
 /// C 99-101: the `HAVE_HARFBUZZ` arm, dead text on this target (the feature macro is `undef`),
 /// carried under the feature that names the other side (PORTING.md P-51).  `HMODULE` is the

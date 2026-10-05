@@ -1221,3 +1221,44 @@ not have; P-87 3):
   recorded HEAD reading is the same 83/0 (`docs/status.md` 3.402), and the batch's one intermediate
   run - `83 unit(s), 1 failure(s)` on `src/sysdep.c` - was this lane's own `androidgui.rs` edge,
   fixed and re-measured (the failure is named in the block above).
+
+# ----------------------------------------------------------------------
+## The bit-field accessors, and the four prototypes that stay owed (2026-10-05, `docs/ports/w32term.md` owed 5 and 10)
+
+**The accessors.**  C stores two `bool_bf : 1` members in
+`struct draw_fringe_bitmap_params` (C 2230-2231, `cursor_p` at bit 0 and `overlay_p` at bit 1 of
+the byte at offset 52) and three in `Mouse_HLInfo` (C 3019-3023, `mouse_face_past_end`/
+`mouse_face_defer`/`mouse_face_hidden`); the mirror records the run as one `flags`/`bits` byte
+(PORTING.md 1.3) with the masks already beside it, and now carries the accessor pair C's member
+access stands for: `get_cursor_p`/`set_cursor_p`, `get_overlay_p`/`set_overlay_p` (with the two
+`DRAW_FRINGE_BITMAP_*` masks) and `get_mouse_face_defer`/`set_mouse_face_defer`.  The bit numbers
+are the measured ones (`abi_shim.rs` 2185-2205's offset probe).
+
+**Two of the five missing prototypes land.**  `get_glyph_string_clip_rect` (C 3663) and
+`gui_intersect_rectangles` (C 3676) are now in `dispextern_late_decls`, gated
+`have_window_system` - C's own guard for both (C 3660-3674) and the feature `struct glyph_string`
+itself carries; `NativeRectangle` is a type macro this mirror deliberately does not spell, so the
+out parameter is the untyped pointer its call sites pass (`row_containing_pos`'s spelling).
+`gui_define_fringe_bitmap` (C 3711) needed nothing further: its definition already exists in this
+tree (`abi_shim.rs` 2240).
+
+**Four stay owed, measured.**  C 3688's `note_mouse_highlight`, C 3711's
+`gui_define_fringe_bitmap`, C 3719's `buffer_flipping_blocked_p` and C 3813's
+`lookup_basic_face` are each declared at the crate root of at least one ported unit, and
+`tools/check-mirror-dupes.py` counts a declaration inside this glob-imported module as the same
+construct: adding all four produced **eleven new `FAIL` lines** (`androidterm` ×
+`buffer_flipping_blocked_p`/`note_mouse_highlight`, `dispnew` × `lookup_basic_face`/
+`note_mouse_highlight`, `font` × `lookup_basic_face`, `frame` × `note_mouse_highlight`,
+`haikuterm` × `buffer_flipping_blocked_p`, `w32term` × `buffer_flipping_blocked_p`/
+`gui_define_fringe_bitmap`/`lookup_basic_face`, `xdisp` × `lookup_basic_face`).  They land in
+the commit that deletes those copies and adds the ratchet rows
+`docs/baseline/mirror-dupes.tsv` needs - both outside this lane's writable set.  Recorded in the
+mirror at the four names' position.
+
+**Evidence.**  `extract-abi --check emacs/src/dispextern.h femacs/src/include/dispextern.rs` ->
+`OK`; `xtask layout-check` passed (the two new prototypes' `have_window_system` gate is what keeps
+`struct glyph_string` from being named in a crate that has not got it - the ungated first draft
+read `E0425: cannot find type glyph_string` in the `have_ntgui` probe); `check-citations` 0 drift;
+`check-declarations` 13 sites / 0 forbidden; `check-mirror-dupes` 18 ratchet rows / 0 failure;
+`check-all-units.sh` 83/0 both legs.  `check_x_display_info` (C 3993) stays **not** declared: the
+note at its position records the same measurement for it (`FAIL femacs/src/frame.rs`).
