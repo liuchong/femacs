@@ -4,5 +4,4 @@
 # unit gates cannot see that it is unported; this list is what sees it.  Columns:
 # <reference>	<C lines>	<target lines>	<threshold>	<reason>.
 reference	c_lines	target_lines	threshold	reason
-lib/c++defs.h	367	22	36	known-unported target (plan batch F)
 src/w32xfns.c	447	11	44	known-unported target (plan batch F)

@@ -11496,3 +11496,35 @@
      碰撞行待搬进 `pub mod …_decls { … } use …::*;`、`w32term.rs` 的 `COLORREF`、`frame.rs` 的 `compile_error!`、
      `include/{lisp,dispextern}.rs` 该承载的 `add_to_log`/`plist_get`/`valid_image_p` 等）记在 `docs/ports/w32image.md`
      的 `## Owed`。该 lane 预算超限已如实记账（`build-tu` 4/3、`probe` 4/3）。
+
+- **3.573 lane 产出收口：`lib/c++defs.h` 整文件落地（C 367 → Rust 507）（2026-10-05）**：
+  ① **lane 的产出（James）**：`femacs/lib/include/c++defs.rs` 22 → **507 行**（md5 `a8669f0d…`；台账
+     `docs/ports/include-c++defs.md` 53 → 309 行，20 行区间表覆盖 C 1-367）。按 P-86 ①「照录，不许 stub」：**23 个宏
+     全部以 C 原名在场** —— 20 个写成**同名 `macro_rules!`**（C 自己的臂在前、带 `#[cfg (feature = "…")]`，冻结 `#else`
+     臂在后；`lib/include/cdefs.rs` 的 `__BEGIN_DECLS`/`__END_DECLS` 是先例），3 个写成 `pub const`
+     （guard + Rust 拼不出的 `_GL_BEGIN_NAMESPACE`/`_GL_END_NAMESPACE`，其 C++ 臂是不平衡的 `namespace … {` / `}`）；
+     C 的注释块**逐字照录为散文**。
+  ② **读数**：`build-tu lib/c++defs.h` 3 发全 **exit 0**（336 字节镜像对象）。**翻臂不是 text-only**：`probe` 3 发全
+     **exit 0**（`cplusplus`+`cplusplus_gnulib_namespace` → rlib 20,616 B；再加 `gnuc_optimize_without_clang`+
+     `gnuc3_or_clang_gnulib_strict_checking` → 20,232 B）；**变异实测**（`pub const _GL_CXXDEFS_H: bool = true` 改 `= 1`
+     → `E0308`）证明探针真在编这个文件。`check-cond-eval.py lib/c++defs.h` → 27 conditions / 1 disagreement（C 17 自己那条
+     guard，改前改后逐字相同，是求值器对"文件自身 `#define`"的能力边界）⇒ 抽取器盲读、两臂都要。
+  ③ **`--check` 的静音与它背后的真读数**：`extract-abi --check` 打 **OK**，但那是"23 个名字在 `excluded-macros.txt` 里都
+     还有行"的静音；把那些行从 /tmp 副本剔掉重跑 → **FAIL，且只有 3 条**（三个变参宏的 `__VA_ARGS__`）⇒ 补上本件的 3 条
+     `macro-body-notes.tsv` 行后同一发 **OK**（即其余 9 个单定义 body 逐 token 相配）。
+  ④ **集成者登记（我）**：容差行 `c++defs 0.39`（367 vs 507 = 38.1%；抽取器当前对 `.h` 镜像跳过行数漂移，此行备将来）；
+     `port-map.md` 刷新本件（在飞的 `w32xfns` 行回退成已提交值 11），`port-lines-pending.tsv` 去掉本件行 ⇒ **pending 只剩
+     1 文件 / 447 参照行**（`src/w32xfns.c`，其 lane 在飞）；**注册 3 个 feature**（`cplusplus_gnulib_namespace`、
+     `gnuc_optimize_without_clang`、`gnuc3_or_clang_gnulib_strict_checking`；同一提交里另有 `have_w32notify`，供在飞的
+     `src/w32xfns.c` lane 用——**那行不算本件产出**）并重生成 `docs/baseline/feature-coverage.tsv`（974 feature，计数随近期
+     四个 windowsnt 件上修）；`excluded-macros.txt` +2 行、`macro-body-notes.tsv` **+3 行**（按行名切分提交，在飞 lane 的
+     2 行留在工作树）。
+  ⑤ **门读数（本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**、`check-declarations`
+     0 failures、`check-dead-file-coverage` **142/0**、`check-ledger-ticks` 238/0、`check-port-lines` **0 new / 1 stale**
+     （那条 stale 是在飞件）、`check-target-names` 0 finding。
+  ⑥ **未声称**：C++ 臂**只被验证为"平衡的 token tree"** —— 没有任何单元展开这些宏，发射出的 token 从未被解析或类型检查，
+     本 lane 也没拿任何 C++ 编译器比过；`probe` 的读数只是 `rustc` 对一个库 crate 的类型检查，不是 C++ 语义等价证明。
+     另报两条工具洞（本件未修，已记台账 `## Owed`）：`check-dead-file-coverage.py` 的 `ledger_for` 缺 `include-` 分支
+     ⇒ **所有 `femacs/lib/include/*.rs`（含早已落地的 `fcntl.in.rs`）的区间表都不进那 142 本**（本件表用该门自己的
+     `parse_ranges`/`coverage_failures` 手工取得读数：20 行 / 0 failure / slack 18）；`excluded-macros.txt` 的 204-226 行是
+     "文件还没有任何 Rust 项"时代的旧样板，现已过时（lane 只许追加，未删）。
