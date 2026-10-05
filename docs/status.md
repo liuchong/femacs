@@ -11997,3 +11997,30 @@
      **语义等价但不是拓扑上的顶层定义**；`power_letter` 无机械门（工具对象表本就不跟踪它）。
      **下一段 C 32,972 `produce_stretch_glyph`**（C 30,717-32,938 是 `HAVE_WINDOW_SYSTEM` 的死臂，记录不转抄）；
      行数目标 37,815，现 29,626，差 **8,189**。
+
+- **3.594 重大度量更正：`lib/` 层从没有脚本编译过——补上之后，链接缺口 **118 → 17**、`port-owed` **101 → 5**，剩下的 17 条全在 xdisp 的未落段里（2026-10-05）**：
+  ① **症状（我自己上一轮读数的错）**：`check-link.py` 报 `port-owed=101`，其中 **59 条来自 `lib/mini-gmp-gnulib.o` 一个对象**；
+     追下去发现 `build/load/libgnu-port.a` **只有一个成员**（`file-has-acl.o`）。
+  ② **根因**：`tools/check-all-units.sh` 的清单是 `docs/baseline/frozen-build-sources.txt`，它列的是**程序**编的源
+     —— gnulib 的 `lib/` 层不在里面（它以 `libgnu.a` 形式参与链接）。于是**没有任何脚本编译过端口的 `lib/` 单元**，
+     `gate-load` 用它兜底组装的 `libgnu-port.a` 几乎是空的，`check-link` 就把端口**明明定义了**的名字（如 `mini-gmp.rs`
+     5,237 行里的 `mpz_add` 等）读成 "port-owed"。
+  ③ **判据（实测，不是推理）**：只补编 `lib/mini-gmp.c` 一个单元 → `port-owed` **101 → 47**、总未解析 **456 → 398**、
+     失败 **118 → 59**。再按 `libgnu.a` 的 **87 个成员**推出 **86 个源**（`lib/<m>.c`、`lib/<m>-gnulib` 去后缀、`lib/malloc/<m>.c`）
+     编完 → `port-owed` **5**、失败 **17**、`lib-or-platform` 262、`rust-runtime` 20、`unknown` 94→**全 17 条都落在 `unknown` 类**。
+  ④ **`lib/` 层第一次被这样扫**：`KEEP_UNITS=1 tools/check-all-units.sh docs/baseline/lib-link-sources.txt`
+     → **`checked 86 unit(s), 0 failure(s)` + `checking 86 unit(s), 0 unit failure(s)`**（两腿全绿，含 `enable_checking` 臂）。
+     新的清单文件 **`docs/baseline/lib-link-sources.txt`** 已提交（带出处与重生成方法），链接集从此可复现。
+  ⑤ **剩下的 17 条是什么（逐名读过）**：**全部**是 `src/xdisp.c` 的未落正文所拥有或引用的名字 ——
+     9 条 `V…` 载体（`Vglobal_mode_string`、`Vline_number_display_limit`、`Vline_prefix`、`Vmode_line_compact`、`Vwrap_prefix`、
+     `Vdisplay_line_numbers_*`、`Vdisplay_fill_column_indicator_*`）由 **`syms_of_xdisp`（C 38,410，未落）** 定义；
+     `_pad_mode_line`（C 33,406，本台账已列为欠账）与 6 个 `#ifdef HAVE_WINDOW_SYSTEM` 的静态助手
+     （`display_fill_column_indicator`、`display_line_numbers_{major_tick,minor_tick,offset,widen}`、`line_number_display_limit_width`）
+     被**端口的 `xdisp.o` 引用**而参照对象不引用 ⇒ 这 6 条是**给下一条 xdisp lane 的复核项**：端口里那几个调用点的 `#[cfg]`
+     是否与 C 的门一致（C 那段是 `HAVE_WINDOW_SYSTEM` 的死臂，台账记的是"记录不转抄"）；另 `_strcat` 是 libc 名，
+     工具把它归进 `unknown` 是分类器的事。
+  ⑥ **结论（改变了下一步动作）**：**L0 的链接缺口今天只剩 xdisp**——不是"lib 层缺一堆"，那是度量假象。下一步顺序应是
+     （i）把 `docs/baseline/lib-link-sources.txt` 并进常规 sweep，（ii）xdisp 续片（`syms_of_xdisp` + `pad_mode_line` + 那 6 条的复核），
+     （iii）再跑 `check-link.py` 看 17 → 0。
+  ⑦ **未声称**：`check-link.py` 量的是 **`ld -r` 部分链接 + `nm -u`**，不是可执行文件、更不是运行；`unknown` 类里的 `V…`
+     是 C 的生成载体（PORTING.md 记过的偏离）与未落单元的混合，工具自己也不区分；本件**没有**改任何移植文件。
