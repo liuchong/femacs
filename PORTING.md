@@ -261,6 +261,21 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     **仍然没动的**（第十半 ⑥⑶ 的理由不变）：版权行（`Copyright (C) … Foundation, Inc.`）、许可正文三句
     （"… is free software …" / "… is distributed in the hope …" / "… along with …"）、指向上游的链接与"怎么拿到新版本"那一类、
     以及手册与 `etc/NEWS` 里作为**叙述**出现的产品名——改它们就是改上游的许可与归属声明。
+    这条规则现在有第十二半（2026-10-06，status 3.641）：**第十一半那句话的其它拼法也收口**。
+    第十一半的替换是**逐行精确**匹配（整行 `This file is part of <参照产品>.`，1,772 行），于是同一句
+    换了拼法或语种的 19 行整片漏在门外：两行少了句点（`lisp/tree-widget.el:9`、`lisp/progmodes/cl-font-lock.el:12`）、
+    `etc/org/README:6` 的 `These files are part of <参照产品>.`、教程里的
+    `This version of the tutorial is a part of <参照产品>.`（`TUTORIAL`、`.cn`、`.nl`，含 `.nl` 自己的英文原文段）
+    与**同一句的译文**（`.cn` 中文两处、`.nl` 荷兰语两处、`.uk` 乌克兰语两处、`.eo` 世界语、`.fa` 波斯语、
+    `.sl` 斯洛文尼亚语、`.he` 希伯来语、`.el_GR` 希腊语两处、`.de` 德语）。字形与第十一半**逐字同形**：
+    **只换产品名那一个 token，其余字符一个都不动**；19 行逐行记进 `docs/baseline/verbatim-substitutions.tsv`
+    （该表 1,796 → **1,815** 行），读数 `6 trees, 4604 files, 1815 sanctioned line(s), 0 failures`。
+    **按判据"不是这一句"的一律不动**（逐条点名）：比较句（`This version of the tutorial, like <参照产品>,
+    is copyrighted` 一族，12 个语种）、否定句（`This file is not … part of …`）、许可正文三句、`ChangeLog*`
+    （历史引用）、`test/`（goal 文本禁止改测试文件），以及**手册成员句**（`@c This is part of the Emacs manual.`
+    与 `@c This is part of the <参照产品> Lisp Reference Manual.`）——主语是**手册**这一文档名，不是本程序的
+    产品身份；动它要连手册自己的标题与交叉引用一起改名，属第十半 ⑥⑶ 的"叙述"那一类，仍未动（**本文档不重复
+    写出那个字面量**，与第八、第十、第十一半同一写法）。
 
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体

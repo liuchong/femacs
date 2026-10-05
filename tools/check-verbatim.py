@@ -22,7 +22,8 @@ membership declaration every copied file opens with (`This file is part of <prod
 subject is *the file*, plus the three generators that write it into generated files and the
 program's own buffer names), are this program's outward identity, so they carry this
 repository's name (`status 3.613`'s criterion for the `.cc` bundle signature,
-`carried-substitutions.tsv`'s shape; the eleventh half is `status 3.632`, 1,796 sites).
+`carried-substitutions.tsv`'s shape; the eleventh half is `status 3.632`, the twelfth `status
+# 3.641` - 1,815 sites).
 `test/` is not among them - the goal text forbids modifying test files - and neither is a
 `ChangeLog*`, which quotes the sentence as history.  Columns
 `<repo-relative target path>\\t<line>\\t<the target's line>\\t<reason>`: every row is read

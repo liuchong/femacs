@@ -1205,14 +1205,14 @@ niet gecontroleerd door een jurist.  Er kunnen derhalve geen rechten
 aan de vertaling worden ontleend.  Na de vertaling volgt het Engelse
 origineel.)
 
-Deze versie van de inleiding is onderdeel van GNU Emacs.  Het valt
+Deze versie van de inleiding is onderdeel van femacs.  Het valt
 onder copyright.  Je mag deze inleiding verspreiden onder bepaalde
 voorwaarden:
 
   Copyright (C) 1985, 1996, 1998, 2001-2026 Free Software Foundation,
   Inc.
 
-  Dit bestand is onderdeel van GNU Emacs.
+  Dit bestand is onderdeel van femacs.
 
   GNU Emacs is vrije software: iedereen mag het verspreiden en/of
   modificeren onder de voorwaarden van de GNU General Public License
@@ -1236,7 +1236,7 @@ delen!
 
 Engels origineel van de copyrightmelding en condities:
 
-This version of the tutorial is a part of GNU Emacs.  It is copyrighted
+This version of the tutorial is a part of femacs.  It is copyrighted
 and comes with permission to distribute copies on certain conditions:
 
   Copyright (C) 1985, 1996, 1998, 2001-2026 Free Software Foundation,

@@ -1121,7 +1121,7 @@ razmnoževanje in razširjanje je dovoljeno pod naslednjimi pogoji:
 
 Copyright © 1985, 1996, 1998, 2001-2026 Free Software Foundation, Inc.
 
-  Ta datoteka je del paketa GNU Emacs.
+  Ta datoteka je del paketa femacs.
 
   GNU Emacs je prost program; lahko ga redistribuirate in/ali prirejate
   po pogojih, določenih v dovoljenju za rabo »GNU General Public License«,

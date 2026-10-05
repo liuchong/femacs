@@ -267,26 +267,27 @@ $ for t in lisp test etc doc leim admin; do echo "$t $(git -C emacs ls-files $t 
 lisp 1627/1627   test 1555/1555   etc 886/886   doc 255/255   leim 28/28   admin 253/253
 
 $ python3 tools/check-verbatim.py
-OK      lisp: 1627 files, byte-identical, 1610 sanctioned line(s)
+OK      lisp: 1627 files, byte-identical, 1612 sanctioned line(s)
 OK      test: 1555 files, byte-identical
-OK      etc: 886 files, byte-identical, 102 sanctioned line(s)
+OK      etc: 886 files, byte-identical, 119 sanctioned line(s)
 OK      doc: 255 files, byte-identical, 18 sanctioned line(s)
 OK      leim: 28 files, byte-identical, 3 sanctioned line(s)
 OK      admin: 253 files, byte-identical, 63 sanctioned line(s)
-6 trees, 4604 files, 1796 sanctioned line(s), 0 failures
+6 trees, 4604 files, 1815 sanctioned line(s), 0 failures
 ```
 
 即：六棵树的**已跟踪文件数逐个相等**，`check-verbatim`（按树、逐文件比对）读 **0 failures**。
-**1,796 行例外**（`docs/baseline/verbatim-substitutions.tsv` 逐行登记，每行一条理由）：其中 24 行是
+**1,815 行例外**（`docs/baseline/verbatim-substitutions.tsv` 逐行登记，每行一条理由）：其中 24 行是
 `lisp/` 里被程序**打印出来**（或以帧/splash 自称、或写进它生成的文件）的产品名字符串（PORTING.md 0.1-19 的
 第十半，status 3.619）；另外 1,772 行是照抄树里**文件自称属于参照产品**的那句话
 （`This file is part of GNU Emacs.` -> `This file is part of femacs.`，只换产品名那一个 token）、
 含三个**生成器**（它们把这句话写进生成的文件）与八个**缓冲区名**站点（`lisp/startup.el`、
-`doc/emacs/entering.texi`）——第十一半（status 3.632，2026-10-06）。**两处按判据不动**：`test/`
+`doc/emacs/entering.texi`）——第十一半（status 3.632，2026-10-06）；**19 行**是**同一句话的其它拼法**——少了句点的两行、`These files are part of …`、`This version of the tutorial is a part of …` 与十种语言的同一句
+（第十二半，status 3.641，2026-10-06）。**两处按判据不动**：`test/`
 （goal 文本禁止改测试文件；它的 647 个文件仍逐字节相同）与 `ChangeLog*`（把这句话当历史引用）；
 版权行与许可正文三句同样不动（第十半 ⑥⑶ 的理由不变）。
 除此之外仍是逐字节相同：一行要不同就必须在表里有行，有行就必被读。
-第十一半之后 `diff -r` 还会在 `lisp`/`etc`/`doc`/`admin` 上打印一批 `Files … differ`，就是这 1,796 行；
+第十一半之后 `diff -r` 还会在 `lisp`/`etc`/`doc`/`admin` 上打印一批 `Files … differ`，就是这 1,815 行；
 `test` 仍是**无差异**。
 **注意**：`emacs/` 是**外部只读检出，不在本仓库的索引里**（`git ls-files emacs/lisp` = 0），
 所以这条判据只能在有该检出的机器上跑（`docs/port-plan.md` §10 已记 CI 的这一限制）。

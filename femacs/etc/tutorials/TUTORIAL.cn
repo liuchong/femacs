@@ -1023,7 +1023,7 @@ Emacs 快速指南（Tutorial）早有两个刘昭宏的中文译本，繁简各
 This tutorial descends from a long line of Emacs tutorials
 starting with the one written by Stuart Cracraft for the original Emacs.
 
-This version of the tutorial is a part of GNU Emacs.  It is copyrighted
+This version of the tutorial is a part of femacs.  It is copyrighted
 and comes with permission to distribute copies on certain conditions:
 
   Copyright (C) 1985, 1996, 1998, 2001-2026 Free Software Foundation,
@@ -1053,12 +1053,12 @@ using, writing, and sharing free software!
 本快速指南沿袭自历史悠久的 Emacs 快速指南，可上溯至 Stuart Cracraft 为最
 初的 Emacs 所作的版本。
 
-本篇指南是 GNU Emacs 的一部分，并允许在下列条件的约束下发行其拷贝：
+本篇指南是 femacs 的一部分，并允许在下列条件的约束下发行其拷贝：
 
    Copyright (C) 1985, 1996, 1998, 2001-2026 Free Software Foundation,
    Inc.
 
-   本文件为 GNU Emacs 的一部分。
+   本文件为 femacs 的一部分。
 
    GNU Emacs 为自由软件；您可依据自由软件基金会所发表的GNU通用公共授权
    条款，对本程序再次发布和/或修改；无论您依据的是本授权的第三版，或
