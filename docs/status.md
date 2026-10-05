@@ -7321,3 +7321,24 @@
      `w32.c` 切片 1——5 条 lane，各自独占文件。
   ⑦ **未声称**：本轮没有运行任何东西；`--cfg enable_checking` 那条腿**本轮没跑**（上一轮的读数仍在台账里，
      不代表本轮新增的 `eassert!` 语句）；臂读数不适用（xdisp.c 在冻结构建里，`build-tu` 就是真编）。
+
+- **3.421 同一轮的第二个 DEFUN：`bidi-find-overridden-directionality`（C 27030-27179）（2026-10-05）**：
+  ① **区间**：C 27030-27179（`Fbidi_find_overridden_directionality`/`Sbidi_find_overridden_directionality`，3/4）。
+     覆盖区间 **C 468-27179**；**下一个活定义 = C 27181 的 `move-point-visually`**（DEFUN，Subrs 表第 10 个未勾项）。
+  ② **行数**：`femacs/src/xdisp.rs` 25,779 → **25,909**（+130）。
+  ③ **读数**：⑴ 冻结 `xtask build-tu src/xdisp.c` **exit 0、1 发**，对象 **2,684,688 字节**
+     （前一件 2,674,432）、md5 `7aaf0b43ac76352217bee6bbdd799c9e`，警告仍是原有 6 条；`nm` 读到
+     `T _Fbidi_find_overridden_directionality` 与该 subr 的静态符号；⑵ `extract-abi --check` **71 → 70 个 `- ` 行**
+     （整轮相对 HEAD 的 72），`does not mention` **0 条**、行数漂移 34.9%（HEAD 35.2%）；⇒ 本件**不欠**
+     `macro-body-notes.tsv` 行。
+  ④ **本轮新增 4 条偏离（251-254，写进台账）**：C 的 `do { … } while (…)` → 端口在末尾取反的 `loop`，
+     C 的空体 `while ((found = …) < from_pos) ;` → 赋值块表达式 + 空 `{ }`；C 的 `ptrdiff_t from_pos,
+     to_pos, from_bpos; void *itb_data;` 与后置的 `ptrdiff_t found;` 按 1.5 **零初始化**（两个分支通过指针
+     参数写 `from_pos`/`to_pos`，Rust 看不见那些写）；DEFUN 的形参被 `validate_region` 取址改写 ⇒ 端口用
+     `let mut from = from;`/`let mut to = to;` 承接（`composite.rs` 1989 同款）；`EQ (…) ? R2L : L2R` 与末尾的
+     三目都写成 `if/else`。
+  ⑤ **台账**：`## Subrs` 两个复选框勾上；Progress 的本轮 bullet 改成两个 DEFUN；use-site 声明加第 18 项
+     （`bidi_find_first_overridden` dispextern.h 3558、`validate_subarray` lisp.h 4261-4262，并写明
+     `CHECK_STRING`/`validate_region`/`decode_live_window`/`find_newline_no_quit` 早已可见的原因）；
+     Gate evidence 追加本件读数。
+  ⑥ **未声称**：同上一条——没有运行；`--cfg enable_checking` 那条腿本轮没跑；没有动镜像/`docs/baseline/**`/别人的文件。

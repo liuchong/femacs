@@ -10,7 +10,7 @@
 - [x] display--line-is-continued-p  (Fdisplay__line_is_continued_p, 0/0, doc 198c6180dfb2, line 12216)
 - [x] long-line-optimizations-p  (Flong_line_optimizations_p, 0/0, doc 9778916a82c2, line 20414)
 - [x] current-bidi-paragraph-direction  (Fcurrent_bidi_paragraph_direction, 0/1, doc 2adae0649377, line 26937)
-- [ ] bidi-find-overridden-directionality  (Fbidi_find_overridden_directionality, 3/4, doc 6e06604b8c32, line 27030)
+- [x] bidi-find-overridden-directionality  (Fbidi_find_overridden_directionality, 3/4, doc 6e06604b8c32, line 27030)
 - [ ] move-point-visually  (Fmove_point_visually, 1/1, doc 3a8d3658283b, line 27181)
 - [ ] bidi-resolved-levels  (Fbidi_resolved_levels, 0/1, doc e680f6eaa573, line 27637)
 - [ ] format-mode-line  (Fformat_mode_line, 1/4, doc 74f1a4c3b665, line 29063)
@@ -457,9 +457,9 @@ the ellipsis record (`ends_in_ellipsis_p`), the four `*_user_fringe_*` copies,
 `set_cursor_from_row`'s test and the next-row epilogue.  The covered range is now
 **C 468-26935**.  The next live definition is **C 26937's `current-bidi-paragraph-direction`**
 (`Fcurrent_bidi_paragraph_direction`/`Scurrent_bidi_paragraph_direction`, a `DEFUN`); the
-round after it opens there.  **That round is now in (C 26937-27028): the covered range is
-C 468-27028 and the next live definition is C 27030's `bidi-find-overridden-directionality`** -
-the Progress bullet below carries its readings.
+round after it opens there.  **That round is now in (C 26937-27179): the covered range is
+C 468-27179 and the next live definition is C 27181's `move-point-visually`** - the Progress
+bullet below carries its readings.
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **The round before this one added C
 25077-25863** — the "line numbers and line prefixes" group, the eleven definitions between the
@@ -998,15 +998,22 @@ C 5773).
 * C 25864-26935 — `display_line` (the opening paragraph names every arm); its two `goto
   back_to_wrap` sites and its `at_end_of_line` label are the round's only control-flow work,
   and its `#undef RECORD_MAX_MIN_POS` (C 26934) has no Rust site (the dead-arm list below).
-* C 26937-27028 — `current-bidi-paragraph-direction` (the DEFUN `Fcurrent_bidi_paragraph_direction`
-  / `Scurrent_bidi_paragraph_direction`, 0/1): C's `switch (itb.paragraph_dir)` becomes the port's
+* C 26937-27179 — the bidi paragraph group's first two DEFUNs.
+  `current-bidi-paragraph-direction` (C 26937-27028, `Fcurrent_bidi_paragraph_direction`/
+  `Scurrent_bidi_paragraph_direction`, 0/1): C's `switch (itb.paragraph_dir)` becomes the port's
   `match` over `NEUTRAL_DIR`/`L2R`/`R2L` (deviation 246), the uninitialised `struct bidi_it itb`
   is `core::mem::zeroed ()` (1.5), and `AUTO_STRING (trailing_white_space, "[\f\t ]*\n")` is the
   `AUTO_STRING!` spelling of the same literal.  It needs one use-site declaration
   (`fast_looking_at`, item 17) and one `macro-body-notes.tsv` row (`case,default,switch`), and it
-  retires the subr and defsubr the scaffold had carried.  The covered range is now **C 468-27028**;
-  the **next live definition is C 27030's `bidi-find-overridden-directionality`** (`DEFUN`, the
-  Subrs list's ninth unchecked item).
+  retires the subr and defsubr the scaffold had carried.
+  `bidi-find-overridden-directionality` (C 27030-27179, `Fbidi_find_overridden_directionality`/
+  `Sbidi_find_overridden_directionality`, 3/4) follows the same C order: the object dispatch
+  (`BUFFERP`/`WINDOWP`/`CHECK_STRING`), the string arm's `validate_subarray` and the buffer arm's
+  `validate_region`, the iterator's setup in both arms, then C's `do { … } while (…)` as a `loop`
+  with the condition negated at the end (deviation 251).  It needs two more use-site declarations
+  (item 18) and owes no `macro-body-notes.tsv` row.  The covered range is now **C 468-27179**; the
+  **next live definition is C 27181's `move-point-visually`** (`DEFUN`, the Subrs list's tenth
+  unchecked item).
 ### The transcription that is in place
 
 The ledger above is the checklist.  Its tick boxes read 248 of the C file's 302 functions
@@ -1336,6 +1343,13 @@ the in-function `#define` becomes a function-scope `macro_rules!` whose scope is
     prototype in a `/// C:` line; the lisp.h mirror the chain carries does not have it (bidi.rs
     declares the same prototype for its own first use), and `current-bidi-paragraph-direction`
     (C 27007) is this unit's first use.
+18. **Two more use-site declarations, from the round's second DEFUN**: `bidi_find_first_overridden`
+    (dispextern.h 3558, defined by bidi.c) and `validate_subarray` (lisp.h 4261-4262, defined by
+    fns.c) join the same block, C's prototypes in `/// C:` lines; the mirror chain carries neither
+    for this unit, and `bidi-find-overridden-directionality` (C 27143 and C 27107) is the first
+    use of each.  (`CHECK_STRING`/`validate_region`/`decode_live_window`/`find_newline_no_quit`
+    were already visible: the first two come from the included `buffer.rs` mirror, the other two
+    from `window.rs`/`search.c`-side declarations this unit already had.)
 
 ### Deviations (each one also named in the report)
 
@@ -2894,6 +2908,22 @@ the in-function `#define` becomes a function-scope `macro_rules!` whose scope is
 250. **`BVAR (buf, field)` -> `BVAR! (buf, field_)`** (buffer.rs 399's macro pastes C's `## _`
      suffix), and `itb.string.from_disp_str = false` / `unibyte = false` go through this unit's
      `bidi_string_bits!` arms (the bit-run spelling, P-80) rather than field writes.
+251. **C's `do { … } while (…)`** in `bidi-find-overridden-directionality` is the port's `loop`
+     with the condition negated at the end (`if !(found == ZV! () && … ) { break; }`), and C's
+     inner empty-bodied `while ((found = bidi_find_first_overridden (&itb)) < from_pos) ;` is the
+     same `while` with an assignment block expression and an empty `{ }` body.
+252. **Definite assignment (PORTING.md 1.5) in the same DEFUN**: C's `ptrdiff_t from_pos, to_pos,
+     from_bpos; void *itb_data;` and the later `ptrdiff_t found;` are zero-initialised in the port
+     because the two arms write `from_pos`/`to_pos` through pointer arguments
+     (`validate_subarray`/`validate_region`) and Rust cannot see those writes; C's assignments and
+     their order are unchanged.
+253. **The DEFUN's own parameters are taken mutable**: C passes `&from`/`&to` to
+     `validate_region`, which may replace them, so the port opens with `let mut from = from;` /
+     `let mut to = to;` (the `composite.rs` 1989 shape) and passes `&raw mut`.
+254. **`EQ (base_dir, Qright_to_left) ? R2L : L2R`** is the port's `if … { R2L } else { L2R }` with
+     the result bound to a `bidi_dir_t` local, and the final
+     `(from_pos <= found && found < to_pos) ? make_fixnum (found) : Qnil` is the port's `return
+     if … { … } else { … };`.
 
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
@@ -3421,3 +3451,9 @@ unchanged) — and the task's reading list is `build-tu` plus the text gates abo
   product-name site).
 * `xtask layout-check` was not re-run: the round adds no `struct`, no field and no layout family
   (it uses `bidi_it` as bidi.rs declares it).
+`bidi-find-overridden-directionality` (C 27030-27179) was added in the same round, after the
+readings above: `build-tu` again exit 0 (one invocation, the same six warnings), object
+**2,684,688 bytes**, md5 `7aaf0b43ac76352217bee6bbdd799c9e`; `nm` reads
+`T _Fbidi_find_overridden_directionality` and its `Sbidi_find_overridden_directionality` static;
+`extract-abi --check` **70 `- ` lines** (the round's HEAD baseline is 72) with no `does not
+mention` line and `line count drifted 34.9%`; `femacs/src/xdisp.rs` is now 25,909 lines.

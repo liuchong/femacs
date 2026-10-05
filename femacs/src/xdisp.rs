@@ -618,6 +618,14 @@ unsafe extern "C" {
   /// C: dispextern.h 3559: `extern ptrdiff_t bidi_level_start (int);` (bidi.c defines
   /// it; `compute_stop_pos` needs it for the backward-scan stop position).
   pub fn bidi_level_start (level: c_int) -> ptrdiff_t;
+  /// C: dispextern.h 3558: `extern ptrdiff_t bidi_find_first_overridden (struct bidi_it *);`
+  /// (bidi.c defines it; `bidi-find-overridden-directionality` at C 27143 is this unit's first
+  /// use).
+  pub fn bidi_find_first_overridden (bidi_it: *mut bidi_it) -> ptrdiff_t;
+  /// C: lisp.h 4261-4262: `extern void validate_subarray (Lisp_Object, Lisp_Object, Lisp_Object,
+  /// ptrdiff_t, ptrdiff_t *, ptrdiff_t *);` (fns.c defines it; C 27107 is this unit's first use).
+  pub fn validate_subarray (array: Lisp_Object, from: Lisp_Object, to: Lisp_Object,
+			    size: ptrdiff_t, from_pos: *mut ptrdiff_t, to_pos: *mut ptrdiff_t);
   /// C: lisp.h 5031-5032: `extern ptrdiff_t fast_looking_at (Lisp_Object, ptrdiff_t, ptrdiff_t,
   /// ptrdiff_t, ptrdiff_t, Lisp_Object);` (search.c defines it; `current-bidi-paragraph-direction`
   /// at C 27007 is this unit's first use - the bidi.rs mirror declares the same prototype for its
@@ -25776,4 +25784,126 @@ DEFUN! ("current-bidi-paragraph-direction", Fcurrent_bidi_paragraph_direction,
 	  _ => { emacs_abort (); }
 	}
     }
+});
+
+DEFUN! ("bidi-find-overridden-directionality", Fbidi_find_overridden_directionality,
+       Sbidi_find_overridden_directionality, 3, 4, 0,
+       doc: "Return position between FROM and TO where directionality was overridden.\n\nThis function returns the first character position in the specified\nregion of OBJECT where characters have their bidirectional\nproperties affected in a way that might make its text look confusingly\non display.  For example, characters whose `bidi-class' property is `L',\ncould be forced to display as `R' by a directional override, and\nlikewise characters whose `bidi-class' is `R' or `AL' that are\nforced to display as `L'.\n\nIf no such character is found, the function returns nil.\n\nOBJECT is a Lisp string or buffer to search for overridden\ndirectionality, and defaults to the current buffer if nil.\nOBJECT can also be a window, in which case the function will search\nthe buffer displayed in that window.  Passing the window instead of\na buffer is preferable when the buffer is displayed in some window,\nbecause this function will then be able to correctly account for\nwindow-specific overlays, which can affect the results.\n\nOptional argument BASE-DIR specifies the base paragraph directory\nof the text.  It should be a symbol, either `left-to-right'\nor `right-to-left', and defaults to `left-to-right'.\n\nStrong directional characters `L', `R', and `AL' can have their\nintrinsic directionality overridden by directional override control\ncharacters RLO (u+202E) and LRO (u+202D).  They can also have their\ndirectionality affected by other formatting control characters: LRE\n(u+202A), RLE (u+202B), LRI (u+2066), and RLI (u+2067).  See the\nfunction `get-char-code-property' for a way to inquire about the\n`bidi-class' property of a character.  Characters whose intrinsic\ndirectionality is weak or neutral, such as numbers or punctuation\ncharacters, can be forced to display in a very different place with\nrespect of its surrounding characters, so as to make the surrounding\ntext confuse the user regarding what the text says.\n\nAlso see the `highlight-confusing-reorderings' function, which can be\nuseful in similar circumstances as this function.",
+       (from: Lisp_Object, to: Lisp_Object, object: Lisp_Object, base_dir: Lisp_Object),
+       {
+  let mut buf: *mut buffer = current_buffer;
+  let old: *mut buffer = buf;
+  let mut w: *mut window = core::ptr::null_mut ();
+  let mut frame_window_p: bool = FRAME_WINDOW_P (SELECTED_FRAME ());
+  let mut itb: bidi_it = core::mem::zeroed ();
+  let mut from_pos: ptrdiff_t = 0;
+  let mut to_pos: ptrdiff_t = 0;
+  let mut from_bpos: ptrdiff_t = 0;
+  let mut itb_data: *mut c_void = core::ptr::null_mut ();
+  let mut from = from;
+  let mut to = to;
+
+  if !NILP (object)
+    {
+      if BUFFERP (object)
+	{ buf = XBUFFER (object); }
+      else if WINDOWP (object)
+	{
+	  w = decode_live_window (object);
+	  buf = XBUFFER ((*w).contents);
+	  frame_window_p = FRAME_WINDOW_P (XFRAME ((*w).frame));
+	}
+      else
+	{ CHECK_STRING (object); }
+    }
+
+  if STRINGP (object)
+    {
+      /* Characters in unibyte strings are always treated by bidi.c as
+	 strong LTR.  */
+      if !STRING_MULTIBYTE (object)
+	  /* When we are loading loadup.el, the character property
+	     tables needed for bidi iteration are not yet
+	     available.  */
+	  || redisplay__inhibit_bidi
+	{ return Qnil (); }
+
+      validate_subarray (object, from, to, SCHARS (object), &raw mut from_pos,
+			 &raw mut to_pos);
+      if from_pos >= SCHARS (object)
+	{ return Qnil (); }
+
+      /* Set up the bidi iterator.  */
+      itb_data = bidi_shelve_cache ();
+      itb.paragraph_dir = NEUTRAL_DIR;
+      itb.string.lstring = object;
+      itb.string.s = core::ptr::null ();
+      itb.string.schars = SCHARS (object);
+      itb.string.bufpos = 0;
+      bidi_string_bits! (from_disp_str, &raw mut itb.string, false);
+      bidi_string_bits! (unibyte, &raw mut itb.string, false);
+      itb.w = w;
+      bidi_init_it (0, 0, frame_window_p, &raw mut itb);
+    }
+  else
+    {
+      /* Nothing this fancy can happen in unibyte buffers, or in a
+	 buffer that disabled reordering, or if FROM is at EOB.  */
+      if NILP (BVAR! (buf, bidi_display_reordering_))
+	  || NILP (BVAR! (buf, enable_multibyte_characters_))
+	  /* When we are loading loadup.el, the character property
+	     tables needed for bidi iteration are not yet
+	     available.  */
+	  || redisplay__inhibit_bidi
+	{ return Qnil (); }
+
+      set_buffer_temp (buf);
+      validate_region (&raw mut from, &raw mut to);
+      from_pos = XFIXNUM (from);
+      to_pos = XFIXNUM (to);
+      if from_pos >= ZV! ()
+	{ return Qnil (); }
+
+      /* Set up the bidi iterator.  */
+      itb_data = bidi_shelve_cache ();
+      from_bpos = CHAR_TO_BYTE (from_pos);
+      if from_pos == BEGV! ()
+	{
+	  itb.charpos = BEGV! ();
+	  itb.bytepos = BEGV_BYTE! ();
+	}
+      else if FETCH_BYTE! (from_bpos - 1) == b'\n'
+	{
+	  itb.charpos = from_pos;
+	  itb.bytepos = from_bpos;
+	}
+      else
+	{ itb.charpos = find_newline_no_quit (from_pos, CHAR_TO_BYTE (from_pos),
+					      -1, &raw mut itb.bytepos); }
+      itb.paragraph_dir = NEUTRAL_DIR;
+      itb.string.s = core::ptr::null ();
+      itb.string.lstring = Qnil ();
+      itb.string.bufpos = 0;
+      bidi_string_bits! (from_disp_str, &raw mut itb.string, false);
+      bidi_string_bits! (unibyte, &raw mut itb.string, false);
+      itb.w = w;
+      bidi_init_it (itb.charpos, itb.bytepos, frame_window_p, &raw mut itb);
+    }
+
+  let mut found: ptrdiff_t = 0;
+  let bdir: bidi_dir_t = if EQ (base_dir, Qright_to_left ()) { R2L } else { L2R };
+  loop
+    {
+      bidi_paragraph_init (bdir, &raw mut itb, false);
+      while { found = bidi_find_first_overridden (&raw mut itb); found < from_pos }
+	{ }
+      if !(found == ZV! () && itb.ch == '\n' as c_int && itb.charpos < to_pos)
+	{ break; }
+    }
+
+  bidi_unshelve_cache (itb_data, false);
+  set_buffer_temp (old);
+
+  return if from_pos <= found && found < to_pos
+	 { make_fixnum (found) } else { Qnil () };
 });
