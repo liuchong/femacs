@@ -7844,3 +7844,18 @@
      我**没有**逐文件统计 590 个文件的 `- ` 行总数变化（只核对了 `--all` 的**文件级**判定差集），所以
      "假 FAIL 一共少了多少条"这个数字**未测**；`emacsclient.c` 从此在 `--all` 里算 done，但它与参照的**运行期**
      一致性仍无任何证据（本批所有单元都只到"编译成对象"这一档）。
+
+- **3.441 `extract-abi` 读不懂"条件导出"：`cfg_attr (not (feature = …), unsafe (no_mangle))` 被当成没导出（2026-10-05）**：
+  ① **症状**：`src/sfnt.rs` 的 `--check` 里 9 条 `function X is not static in C but has no #[unsafe(no_mangle)] in the port`。
+  ② **根因（门的漏读）**：C 的 `TEST_STATIC`（C 121-139：TEST 臂 `static`，**另一臂是空的**）在冻结配置里展开成空
+     ⇒ 这些函数**是外部链接**；端口写成 `#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]`（"非 TEST 配置下导出"，
+     正是冻结配置），而门的 `no_mangle_names` 只认字面量 `#[unsafe(no_mangle)]`。`TEST_STATIC` 在参照里只此一家
+     （`rg -l TEST_STATIC emacs/src/*.c` → 只有 `sfnt.c`，51 处），但对**每一处**都会误报 ⇒ 修门，不加名字名单。
+  ③ **处置**：`no_mangle_names` 的正则加一条**同极性**的 `cfg_attr` 形状（`not (feature = "…")` + `unsafe (no_mangle)`）；
+     **另一极性故意不认**（`feature = "…"` + `no_mangle` 意思是"只在特性打开时导出"，与本规则问的相反）。过程缺陷照记：
+     rustfmt 的 `unsafe (no_mangle)` **带空格**，第一版漏了 `\s*`，读数不变，补上才对上。
+  ④ **读数**：`--check emacs/src/sfnt.c femacs/src/sfnt.rs` 的 9 条**归零**（余下 1 条未落对象 + 86.7% 漂移是 remainder）；
+     `--all` **572 done / 2 wip / 16 failing**，与改前逐条比：文件级差集**只有在飞 lane 的进度**
+     （`gtkutil.rs` 因 lane 正在写而进入，`sfntfont.rs`/`w32proc.rs` 早已在内），**没有任何已落地文件因此掉出或新增 failure**。
+  ⑤ **未声称**：这条**不改任何移植文本**；`--all` 只给**文件级**判定（逐文件 `- ` 行总数未重测）；
+     `#[cfg_attr (feature = …, unsafe (no_mangle))]` 这一极性仍会被当作"没有导出"——这是有意的。

@@ -2025,10 +2025,20 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     # and C's object emits `T _mempcpy` (status 3.205, correcting 3.112).  Rust forbids
     # combining the two attributes, so the port's rule is "one of them"; the exported-name
     # comparison below then still catches an invented symbol.
+    #
+    # A *conditional* export is the same statement, and the port has one spelling for it:
+    # C's `TEST_STATIC` (empty in the frozen configuration, `static` under TEST) becomes
+    # `#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]`, i.e. exported exactly when
+    # the frozen configuration is the one being built - sfnt.c has 51 `TEST_STATIC` uses, and
+    # the rule below read all of them as "the port keeps no symbol".  The other polarity is
+    # deliberately not accepted: `#[cfg_attr (feature = "x", unsafe (no_mangle))]` means the
+    # opposite (exported only where the feature is *on*), which is not what this rule asks.
     no_mangle_names = {name for name in
                        (defined_name_after_attribute(own_text, m.end())
                         for m in re.finditer(
-                            r"#\[unsafe\((?:no_mangle|export_name\s*=\s*\"[^\"]*\")\)\]",
+                            r"#\[unsafe\((?:no_mangle|export_name\s*=\s*\"[^\"]*\")\)\]"
+                            r"|#\[cfg_attr\s*\(not\s*\(feature\s*=\s*\"[^\"]*\"\)\s*,"
+                            r"\s*unsafe\s*\((?:no_mangle|export_name\s*=\s*\"[^\"]*\")\)\s*\)\]",
                             own_text))
                        if name is not None}
 
