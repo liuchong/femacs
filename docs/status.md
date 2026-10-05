@@ -12314,3 +12314,36 @@
      `unknown`——工具的行为随环境而变，这一点如实记下。
   ④ **预算**：`check-link.py` 4 发（默认 2、`--write-pending` 1、`--strict` 2）、`ast.parse` 1 发、
      `rg`/`diff` 若干；`build-tu` 0、`probe` 0；本机未跑 `--executable`；`/tmp/lp-before.txt` 已删。
+
+- **3.604 镜像债：两处"把宏当函数调用"的镜像宏体修好（`VCENTER_BASELINE_OFFSET` 与 `BLACK/WHITE_PIX_DEFAULT`、`GTK_WIDGET_TO_X_WIN`）——`have_x_windows` 翻臂 531 → 508 错、`E0423` 这一类清零（2026-10-05）**：
+  ① **缺陷形状**：镜像是 Rust 文本，C 的宏在本仓库里写成 `macro_rules!`，**调用点上必须写 `NAME! (…)`**；
+     三处宏体里漏了 `!`，于是展开后变成"把宏名当函数调用"（`E0423`）。逐条：⑴
+     `femacs/src/include/dispextern.rs` 的 `VCENTER_BASELINE_OFFSET` 宏体（6 个站点：`FONT_DESCENT`/
+     `FONT_HEIGHT`/`FRAME_FONT`/`FRAME_BASELINE_OFFSET` 四个名字）——C `dispextern.h` 1702-1706，调用点最早
+     出现在 xterm 第九片（C 8649）；⑵ `femacs/src/include/xterm.rs` 的 `BLACK_PIX_DEFAULT`/
+     `WHITE_PIX_DEFAULT`（4 个站点：`FRAME_X_DISPLAY`/`FRAME_X_SCREEN_NUMBER`，C `xterm.h` 的
+     `BlackPixel`/`WhitePixel` 展开）与 `GTK_WIDGET_TO_X_WIN` 的 `GDK_WINDOW_XID`（1 个站点，`use_gtk` 臂）。
+     三处都只改 `!`，宏体其余逐字不动（C 的算术/参数顺序/比较一律照旧）。
+  ② **判据（实测，集成者自己跑）**：`probe src/xterm.rs --cfg 'feature="have_x_windows"'`：**531 → 508 errors**，
+     错误码分布 `E0423 10 → 0`（现在 508 = E0425 313 + E0609 161 + E0614 17 + E0308 13 + E0606 1 +
+     E0381 1 + E0277 1 + E0080 1）；多掉的 13 条是同两个宏展开里被连带压掉的重复诊断。
+  ③ **P-87 两腿（动过镜像必跑）**：`tools/check-all-units.sh` → **`checked 83 unit(s), 0 failure(s)` +
+     `checking 83 unit(s), 0 unit failure(s)`**；`cargo run -p xtask -- layout-check` → **`layout-check passed`**；
+     `tools/check-link.py` → **309 undefined / 0 failure**（与本条无关，复读以证明没被弄坏）；七道文本门：
+     `check-mirror-dupes` 17/17/**0**、`check-citations` 676/0 drift/0 stale、`check-declarations`
+     **17 sites (0 forbidden, 17 allowed literals), 0 failures**、`check-ledger-ticks` 238/0、
+     `check-dead-file-coverage` 145/0、`check-port-lines` 0/0/0/0、`check-target-names` 629 文件/591 目标/0 finding。
+  ④ **这一类还有多大——量过，但本轮不当门用**：我写了个一次性扫描（把注释剥掉，找"在镜像正文里以函数
+     形式调用某个 `macro_rules!` 名字"的位置），**原始命中 305 处**，但**绝大多数是假阳性**——
+     同名的 libc 函数/macro 双身份（`clearerr`/`feof`/`S_ISREG` 家族在 `unlocked-io.rs`/`conf_post.rs` 里是
+     宏，而调用点上另有真正的 extern 声明）、宏体里引用**别的单元的**同名宏、以及块注释剥除后行号错位的
+     引文。**结论照实记**：本轮修的是**有实测读数支撑的那 10 处**（`E0423` 逐条对得上），其余命中**没有
+     当门、也没有批量改**——要把它变成门，得先有真正的宏展开/名字解析（不是正则），那是一件独立的工具活，
+     记在此处而不是藏在扫描脚本里。
+  ⑤ **未声称**：这是**编译级**证据，没有运行、没有链接进程序；修复影响的是**门打开的配置**（冻结配置的
+     83 个单元读数不变正是判据之一）；`use_gtk` 那一处（`GDK_WINDOW_XID`）**本机没有 GTK 工具链**，
+     只是同形状的顺手修正，**没有翻臂读数**；`E0425`/`E0609` 那 474 条仍然是"未移植单元 + 镜像尚未记名的
+     成员"的边界，本条不为它们背书。
+  ⑥ **预算**：`probe` 2 发（同一配置跑两次：一次看尾部读数、一次取错误码分布）、`check-all-units.sh` 1 发、
+     `layout-check` 1 发、`check-link.py` 2 发、七道文本门各 1 发；`build-tu` 0；收工后 `build/femacs/xdisp.o`
+     保留（链接集要用），`/tmp/sweep` 保留（正在用的 cargo target dir）。

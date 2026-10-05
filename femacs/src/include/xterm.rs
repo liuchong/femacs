@@ -98,11 +98,11 @@ pub const N_FAILABLE_REQUESTS: c_int = 128;
 /// C: #define WHITE_PIX_DEFAULT(f) WhitePixel (FRAME_X_DISPLAY (f), FRAME_X_SCREEN_NUMBER (f))
 #[cfg (feature = "have_x_windows")]
 macro_rules! BLACK_PIX_DEFAULT {
-  ($f:expr) => { BlackPixel (FRAME_X_DISPLAY ($f), FRAME_X_SCREEN_NUMBER ($f)) };
+  ($f:expr) => { BlackPixel (FRAME_X_DISPLAY! ($f), FRAME_X_SCREEN_NUMBER! ($f)) };
 }
 #[cfg (feature = "have_x_windows")]
 macro_rules! WHITE_PIX_DEFAULT {
-  ($f:expr) => { WhitePixel (FRAME_X_DISPLAY ($f), FRAME_X_SCREEN_NUMBER ($f)) };
+  ($f:expr) => { WhitePixel (FRAME_X_DISPLAY! ($f), FRAME_X_SCREEN_NUMBER! ($f)) };
 }
 
 /* C 144-155: "The mask of events that text windows always want to receive."  The eleven masks
@@ -1060,7 +1060,7 @@ macro_rules! GTK_WIDGET_TO_X_WIN {
   ($w:expr) => {
     {
       if !($w).is_null () && !gtk_widget_get_window ($w).is_null ()
-        { GDK_WINDOW_XID (gtk_widget_get_window ($w)) }
+        { GDK_WINDOW_XID! (gtk_widget_get_window ($w)) }
       else { 0 }
     }
   };

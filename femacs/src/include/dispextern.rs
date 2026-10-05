@@ -2656,10 +2656,10 @@ macro_rules! DESIRED_TAB_LINE_HEIGHT {
 /// C: #define VCENTER_BASELINE_OFFSET(FONT, F) (FONT_DESCENT (FONT) + (FRAME_LINE_HEIGHT (F) - FONT_HEIGHT (FONT) + (FRAME_LINE_HEIGHT (F) > FONT_HEIGHT (FONT))) / 2 - (FONT_DESCENT (FRAME_FONT (F)) - FRAME_BASELINE_OFFSET (F)))
 macro_rules! VCENTER_BASELINE_OFFSET {
   ($font:expr, $f:expr) => {
-    (FONT_DESCENT ($font)
-     + (FRAME_LINE_HEIGHT ($f) - FONT_HEIGHT ($font)
-        + (FRAME_LINE_HEIGHT ($f) > FONT_HEIGHT ($font)) as c_int) / 2
-     - (FONT_DESCENT (FRAME_FONT ($f)) - FRAME_BASELINE_OFFSET ($f)))
+    (FONT_DESCENT! ($font)
+     + (FRAME_LINE_HEIGHT ($f) - FONT_HEIGHT! ($font)
+        + (FRAME_LINE_HEIGHT ($f) > FONT_HEIGHT! ($font)) as c_int) / 2
+     - (FONT_DESCENT! (FRAME_FONT! ($f)) - FRAME_BASELINE_OFFSET! ($f)))
   };
 }
 
