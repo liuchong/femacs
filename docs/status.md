@@ -8573,3 +8573,31 @@
   `__dpmi_yield`/BIOS/鼠标/屏幕/键盘表/菜单/文件名转换被**执行**过；C 3,469-4,350（20.3%）未移植；
   `extract-abi` 的 OK 是空清单空跑。本轮 `build-tu` **1 发**、`probe` 0 发。
 
+- **3.472 `include/msdos.rs` 的 glob 模块轮：25 个"单元自己定义"的原型搬进 `msdos_decls`（2026-10-05）**：
+  ① **问题**：`include/msdos.rs` 顶层 `extern "C"` 里的 25 个声明与 `src/msdos.rs` 自己的
+  `#[unsafe(no_mangle)]` 定义在同一 crate 里相撞（Rust 每个名字一份）⇒ 每片都涨 E0428（切片 3 时 33 条）。
+  ② **怎么定集合（不需要编译）**：静态求交——镜像的 `pub fn`/`pub static mut` 名字 ∩ 单元的
+  `#[unsafe(no_mangle)]` 定义 = **25** 个（`IT_set_frame_parameters`、6 个 `XMenu*`、`dos_get_saved_screen`、
+  `dos_keyread`/`dos_keysns`、`dos_set_keyboard`/`dos_set_window_size`、`dostounix_filename`、`getdefdir`、
+  `have_mouse`、`initialize_msdos_display`、`internal_terminal_init`、`mouse_init`/`mouse_on`/`mouse_off`/
+  `mouse_moveto`、`rootrelativepath`、`the_only_display_info`、`the_only_tty_output`、`unixtodos_filename`），
+  与 lane 报的 25 逐条相同 ✓——这个方法值得沿用（再跑一次翻臂只为确认，不为找名字）。
+  ③ **处置**：25 条移进 `pub mod msdos_decls { use super::*; … } use msdos_decls::*;`（PORTING.md 0.1-10、
+  `include/syssignal.rs` 29-52 的形状：单元的**定义**遮蔽 glob 导入的声明 = C 自己的"原型 + 定义"），
+  文件 363 → 376 行，只动 `femacs/src/include/msdos.rs`。
+  ④ **读数（集成者自己跑的）**：冻结 `build-tu src/msdos.c` → exit 0 / 336 字节空对象（镜像的**语法**
+  被真正检查，cfg 剥离在解析之后）；翻臂（`--cfg 'feature="msdos"'` + `'feature="dispextern_face_records"'`）
+  **81 errors / 33×E0428 → 56 errors / 8×E0428**（余下 8 条全是该镜像对系统镜像的 *override* 类，见 Owed 2 的
+  后半，不是这一轮的目标）；`layout-check`（把所有 `src/include/*.rs` 编进一个 crate）**没有 msdos 相关错误**
+  （它此刻的 5 条 error 全在在飞的 `include/gtk.rs`，见 ⑤）。
+  ⑤ **本轮顺手抓到的一条真缺陷（别人的在飞件，不是我改的）**：P-90 镜像轮的新 `femacs/src/include/gtk.rs`
+  在 `layout-check` 下有 **5 条 `E0425`**（`VisualID`、`x_display_info`×2、`GtkStyleContext`、
+  `GtkStyleProvider` 五个名字没有声明）——lane 的自检清单里有 `check-mirror-dupes`/`extract-abi`/
+  `check-target-names`，**独缺 `layout-check`**，而那是唯一把镜像**单独**编成 crate 的门，所以在单元上下文里
+  被别的镜像/单元兜住的名字只有它看得见（P-87 ③）。**教训写在这里：镜像轮必须跑 `layout-check`。**
+  已把 5 条原文连同复现命令发回该 lane 修（修的是它自己的 9 个文件，我不替它改镜像），它交回后我再判落地。
+  ⑥ **未声称**：余下 8 条 E0428 仍在（两种候选修法已点名：按 `lib/include/errno.in.rs` 95-99 的"两侧各带门"
+  形状、或删掉本镜像的副本并把系统镜像当唯一的家——两者都要动共享镜像，得配全树扫描，本轮不动）；
+  `msdos` 臂**编不过**（56 错，仍全在镜像图/镜像缺名，本单元文本 0 个行为错）；没有任何运行证据。
+  本轮 `build-tu` **1 发** + 翻臂 **2 发** + `layout-check` **2 发**（限各 3，均为着陆验证）。
+

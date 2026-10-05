@@ -511,7 +511,11 @@ also the one the msdos.h *mirror* resolves to, and the tool reads that pair too:
    `rootrelativepath`).  The shape is `include/syssignal.rs` 29-52
    (`pub mod syssignal_decls` + `use syssignal_decls::*;`) and the rule is PORTING.md 0.1-10.
    Until it lands, **every** `msdos` translation unit that includes `msdos.h` and defines one of
-   those names reports `E0428`, and the count grows with every slice this file gains.  The other
+   those names reports `E0428`, and the count grows with every slice this file gains.  ✅ **Landed by
+   the integrator in 3.472** (the twenty-five declarations moved into `pub mod msdos_decls` with
+   `use msdos_decls::*;`, `femacs/src/include/msdos.rs` 363 -> 376 lines): the arm probe with
+   `msdos` + `dispextern_face_records` went **81 errors / 33 E0428 -> 56 / 8**, and the frozen
+   `build-tu` plus `layout-check` show no new problem.  What remains owed is the *second* half only.  The other
    eight `E0428`s of the same reading are that mirror's *overrides* against
    `lib/include/unistd.in.rs` 39-41, `sys_stat.in.rs` 181-196, `errno.rs` 92 and `fcntl.in.rs`
    118 (the `docs/ports/w32proc.md` Owed 5(a) class): the MS-DOS side is a *deliberate

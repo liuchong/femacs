@@ -79,13 +79,56 @@ macro_rules! tcdrain { ($f:expr) => { _dos_commit ($f) }; }
 /// C: int dos_get_saved_screen (char **, int *, int *);
 /// C: int dos_set_keyboard (int, int);
 /// C: void dos_set_window_size (int *, int *);
+/* C 30-50/C 69-76/C 90-154: the declarations whose definitions live in `src/msdos.c` itself.
+   Rust holds one name per crate, so a declaration at this mirror's top level would be `E0428`
+   against the unit's own `#[unsafe(no_mangle)]` definitions (25 of them, status 3.472); the
+   glob import below lets the unit's *definition* shadow the declaration, which is exactly C's
+   "prototype + definition" split (PORTING.md 0.1-10, the `include/syssignal.rs` 29-52 shape).  */
+pub mod msdos_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    pub fn dos_get_saved_screen (screen: *mut *mut c_char, rows: *mut c_int,
+                               cols: *mut c_int) -> c_int;
+    pub fn dos_set_keyboard (code: c_int, always: c_int) -> c_int;
+    pub fn dos_set_window_size (rows: *mut c_int, cols: *mut c_int);
+    pub fn getdefdir (drive: c_int, dst: *mut c_char) -> c_int;
+    pub fn unixtodos_filename (p: *mut c_char);
+    pub fn dostounix_filename (p: *mut c_char);
+    pub fn rootrelativepath (rel: *mut c_char) -> *mut c_char;
+    pub fn internal_terminal_init ();
+    pub fn initialize_msdos_display (term: *mut c_void);
+    pub static mut have_mouse: c_int;
+    pub fn mouse_init ();
+    pub fn mouse_on ();
+    pub fn mouse_off ();
+    pub fn mouse_moveto (x: c_int, y: c_int);
+    pub fn IT_set_frame_parameters (f: *mut c_void, alist: Lisp_Object);
+    pub fn dos_keysns () -> c_int;
+    pub fn dos_keyread () -> c_int;
+    pub static mut the_only_display_info: tty_display_info;
+    pub static mut the_only_tty_output: tty_output;
+    pub fn XMenuCreate (foo1: *mut Display, foo2: Window, foo3: *mut c_char) -> *mut XMenu;
+    pub fn XMenuAddPane (foo: *mut Display, menu: *mut XMenu, txt: *const c_char,
+                       enable: c_int) -> c_int;
+    pub fn XMenuAddSelection (bar: *mut Display, menu: *mut XMenu, pane: c_int, foo: c_int,
+                            txt: *mut c_char, enable: c_int, help_text: *const c_char) -> c_int;
+    pub fn XMenuLocate (foo0: *mut Display, menu: *mut XMenu, foo1: c_int, foo2: c_int,
+                      x: c_int, y: c_int, ulx: *mut c_int, uly: *mut c_int,
+                      width: *mut c_int, height: *mut c_int);
+    pub fn XMenuActivate (foo: *mut Display, menu: *mut XMenu, pane: *mut c_int,
+                        selidx: *mut c_int, x0: c_int, y0: c_int, ButtonMask: c_uint,
+                        txt: *mut *mut c_char,
+                        help_callback: Option<unsafe extern "C" fn (*const c_char, c_int,
+                                                                    c_int)>);
+    pub fn XMenuDestroy (foo: *mut Display, menu: *mut XMenu);
+  }
+}
+use msdos_decls::*;
+
 unsafe extern "C" {
   pub fn dos_ttraw (tty: *mut tty_display_info) -> c_int;
   pub fn dos_ttcooked () -> c_int;
-  pub fn dos_get_saved_screen (screen: *mut *mut c_char, rows: *mut c_int,
-                               cols: *mut c_int) -> c_int;
-  pub fn dos_set_keyboard (code: c_int, always: c_int) -> c_int;
-  pub fn dos_set_window_size (rows: *mut c_int, cols: *mut c_int);
 }
 
 /// C 36-42: the MS-DOS file-name primitives and the environment/terminal initializers.
@@ -97,13 +140,7 @@ unsafe extern "C" {
 /// C: void internal_terminal_init (void);
 /// C: void initialize_msdos_display (struct terminal *);
 unsafe extern "C" {
-  pub fn getdefdir (drive: c_int, dst: *mut c_char) -> c_int;
-  pub fn unixtodos_filename (p: *mut c_char);
-  pub fn dostounix_filename (p: *mut c_char);
-  pub fn rootrelativepath (rel: *mut c_char) -> *mut c_char;
   pub fn init_environment (argc: c_int, argv: *mut *mut c_char, skip_args: c_int);
-  pub fn internal_terminal_init ();
-  pub fn initialize_msdos_display (term: *mut c_void);
 }
 
 /// C 44-48: the mouse.  C 44's `have_mouse` is the one object this header owns here.
@@ -113,17 +150,11 @@ unsafe extern "C" {
 /// C: void mouse_off (void);
 /// C: void mouse_moveto (int, int);
 unsafe extern "C" {
-  pub static mut have_mouse: c_int;
-  pub fn mouse_init ();
-  pub fn mouse_on ();
-  pub fn mouse_off ();
-  pub fn mouse_moveto (x: c_int, y: c_int);
 }
 
 /// C 50: the frame-parameter hook the MS-DOS display shares with the X builds.
 /// C: void IT_set_frame_parameters (struct frame *, Lisp_Object);
 unsafe extern "C" {
-  pub fn IT_set_frame_parameters (f: *mut c_void, alist: Lisp_Object);
 }
 
 /// C 57-59: the arm for djgpp 2.3 and older, which has no `readlink` in `<unistd.h>`.  Dead
@@ -175,8 +206,6 @@ unsafe extern "C" {
 unsafe extern "C" {
   pub fn msdos_fatal_signal (sig: c_int);
   pub fn syms_of_msdos ();
-  pub fn dos_keysns () -> c_int;
-  pub fn dos_keyread () -> c_int;
   pub fn run_msdos_command (argv: *mut *mut c_char, working_dir: *const c_char,
                             tempin: c_int, tempout: c_int, temperr: c_int,
                             envv: *mut *mut c_char) -> c_int;
@@ -247,8 +276,6 @@ pub type Display_Info = tty_display_info;
 /// C: extern struct tty_display_info the_only_display_info;
 /// C: extern struct tty_output the_only_tty_output;
 unsafe extern "C" {
-  pub static mut the_only_display_info: tty_display_info;
-  pub static mut the_only_tty_output: tty_output;
 }
 
 /// C 107-108: the two accessors.  C 107's body is `((f)->output_data.tty->font)`, which the port
@@ -346,18 +373,4 @@ pub type XMenu = x_menu_struct;
 /// C: 		   char **, void (*callback)(char const *, int, int));
 /// C: void XMenuDestroy (Display *, XMenu *);
 unsafe extern "C" {
-  pub fn XMenuCreate (foo1: *mut Display, foo2: Window, foo3: *mut c_char) -> *mut XMenu;
-  pub fn XMenuAddPane (foo: *mut Display, menu: *mut XMenu, txt: *const c_char,
-                       enable: c_int) -> c_int;
-  pub fn XMenuAddSelection (bar: *mut Display, menu: *mut XMenu, pane: c_int, foo: c_int,
-                            txt: *mut c_char, enable: c_int, help_text: *const c_char) -> c_int;
-  pub fn XMenuLocate (foo0: *mut Display, menu: *mut XMenu, foo1: c_int, foo2: c_int,
-                      x: c_int, y: c_int, ulx: *mut c_int, uly: *mut c_int,
-                      width: *mut c_int, height: *mut c_int);
-  pub fn XMenuActivate (foo: *mut Display, menu: *mut XMenu, pane: *mut c_int,
-                        selidx: *mut c_int, x0: c_int, y0: c_int, ButtonMask: c_uint,
-                        txt: *mut *mut c_char,
-                        help_callback: Option<unsafe extern "C" fn (*const c_char, c_int,
-                                                                    c_int)>);
-  pub fn XMenuDestroy (foo: *mut Display, menu: *mut XMenu);
 }

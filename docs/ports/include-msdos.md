@@ -106,6 +106,16 @@
   C 145-152 are declarations with no checklist row (only the three objects, the one record and the
   21 macros are compared), and they are carried because they are the header's live text.
 
+- **The declarations whose definitions live in `src/msdos.c` sit in a glob-imported module
+  (status 3.472).**  Rust holds one name per crate, so a top-level declaration here is `E0428`
+  against the unit's own `#[unsafe(no_mangle)]` definition; `pub mod msdos_decls { use super::*; … }
+  use msdos_decls::*;` lets the definition shadow the declaration, which is C's own
+  "prototype + definition" split (PORTING.md 0.1-10, the `include/syssignal.rs` 29-52 shape).
+  The set is exactly the intersection of this mirror's declared names with `src/msdos.rs`'s
+  `#[unsafe(no_mangle)]` definitions - **twenty-five** names, computed statically and then confirmed
+  by the arm probe (33 -> 8 `E0428`).  The declarations this mirror keeps at the top level are the
+  ones the unit does *not* define.
+
 ## Evidence
 
 - `python3 tools/extract-abi.py --check emacs/src/msdos.h femacs/src/include/msdos.rs`
