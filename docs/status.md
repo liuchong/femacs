@@ -11100,3 +11100,28 @@
      **预算**：本轮我跑了 `extract-abi --all` **2 发**（A/B，各约 2.5 分钟，都是只读）、定点 `--check` 约 12 发、
      `--selftest` 2 发、文本门 2 轮、`--write-pending`/`gen-port-map` 各 1 发；**零 `build-tu`/零 `probe`**（编译都在 lane 侧）；
      临时文件 `tools/_ea_head_ab.py` 用完即删（A/B 用的 HEAD 版工具，已确认不在树里）。
+
+- **3.557 lane 产出收口：`src/haikufont.c` 整文件落地（C 1480 → Rust 1,961）（2026-10-05）**：
+  ① **lane 的产出（Galileo）**：`femacs/src/haikufont.rs` 11 → **1,961 行**（sha256 `733e6cbe…`），台账 24 → 347 行，
+     44 行区间表覆盖 C 1-1480；文件门 `have_haiku` 压在每个项**与 C 22-39 的整张 include 图**上，本文件自己唯一的
+     `#if` 是 C 1463/1465 的 `USE_BE_CAIRO`（**两臂都带**，`check-cond-eval` 读 `1 condition / 0 disagreements`）；
+     另需 `have_window_system`（configure.ac 3113/7518）。34 个函数/宏簇逐条落成，`prepare_face`（C 921-926）
+     **C 自己就是空体**，端口照抄、没有发明代码。
+  ② **读数**：冻结 `build-tu` 4 发（超 1）全部 exit 0 / **336 字节空对象**（终稿复测 md5 一致）；臂
+     （`have_haiku`+`have_window_system`，nightly）**单元自身 0 error / 0 warning**，唯一 1 条错在镜像副本
+     `include/systime.rs` 28 的 `HAIKU` 断言（既有欠账，`haikuterm.md` Owed 6 / `haikuselect.md` Owed 5 同名）；
+     **变异控制**（C 1151 注入字面量）1 → 2 错且新错点名单元自身行，还原后 sha 不变 ⇒ 读数非空跑。
+     首轮臂读数 20 错，逐轮 6 → 1，全部修在单元内。
+  ③ **集成者登记**：容差行 `haikufont 0.33`（1480 vs 1961 = 32.5%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件
+     （在飞的 `w32dwrite` 行回退成已提交值）；`port-lines-pending.tsv` 去掉本件的行（保留在飞的两行）——
+     **pending 表现在 15 文件 / 12,304 参照行**；该 lane 的 6 行 `macro-body-notes.tsv` 行（`haikufont_{weight,slant,width}_to_lisp`/`haikufont_shape`/`haikufont_draw`/`syms_of_haikufont`）**随 3.556 那次提交一起进了库**（当时我在并发窗口里 `git add` 了整份文件），所以本条提交里这份文件没有差异——**只追加、未重写**的规矩仍然成立。
+  ④ **该 lane 自己修掉的一条**：它首稿的 `font.h 682-698` 引用把 `harfbuzz` 的快照行号写错（应在 font.h 807-820），
+     `check-citations` 报 1 drift，lane 已归位并复测 **0 drift**。
+  ⑤ **门读数（本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**、
+     `check-declarations` **0 failures（17 sites / 0 forbidden）**、`check-dead-file-coverage` **125/0**、
+     `check-ledger-ticks` 234/0、`check-port-lines` 15 文件 / 12,304 参照行 / **0 new / 1 stale**、
+     `check-target-names` 0 finding。
+  ⑥ **未声称**：本机**没有 Haiku SDK**，没有任何 Haiku 目标编译/链接，也没有字体/渲染行为读数（`BFont_*`/`be_*`
+     的实现是 Haiku C++ 半边，不可及）；端口里每个 Haiku 宽度、常量、枚举与原型都是 **C 的拼写**、标 **UNVERIFIED**；
+     `struct face` 的 280/8 → 296/8 是别的记录的实测，不是本件测的。**预算**：我本轮只跑 `--check` 2 发、
+     `--write-pending`/`gen-port-map` 各 1 发、文本门 1 轮；**零 `build-tu`/零 `probe`**（编译都在 lane 侧）。
