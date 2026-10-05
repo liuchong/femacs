@@ -325,11 +325,6 @@ unsafe extern "C" {
   pub fn load_unicows_dll_for_w32fns (hmodule: *mut c_void);
   pub fn globals_of_w32 ();
 
-  /// C 190-191: the two timer entries.
-  /// C: extern void term_timers (void);
-  /// C: extern void init_timers (void);
-  pub fn term_timers ();
-  pub fn init_timers ();
 
   /// C 193-195: the reader thread's three socket/serial waits.
   /// C: extern int _sys_read_ahead (int fd);
@@ -502,6 +497,21 @@ pub mod w32_fn_decls {
   }
 }
 use w32_fn_decls::*;
+
+/* C 190-191's two timer entries are *defined* by `src/w32proc.c`, so (like the three objects
+   above) their declaration sits in a glob-imported module: a crate-root definition shadows a glob
+   import, and at the mirror's top level the same two names were an `E0428` against that unit's
+   definitions (measured, the `windowsnt` arm at status 3.444).  */
+pub mod w32proc_fn_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /* C 190-191: `extern void term_timers (void); extern void init_timers (void);`  */
+    pub fn term_timers ();
+    pub fn init_timers ();
+  }
+}
+use w32proc_fn_decls::*;
 
 /* C 191-193's three objects live in a module with a glob import, because `src/w32.c` *defines*
    them: a crate-root definition shadows a glob import, so the unit is not an `E0428` against the

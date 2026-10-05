@@ -97,6 +97,8 @@ android_api_le_11                          = []  # the derived condition `__ANDR
 android_api_le_30                          = []  # the derived condition `__ANDROID_API__ <= 30` (androidselect.c 478)
 android_api_lt_21                          = []  # the port's name for the *other* arm of android.c 972's `#if __ANDROID_API__ >= 21`
 android_api_ge_9                            = []  # the derived condition `__ANDROID_API__ >= 9` (androidvfs.c 46's arm, the asset-manager half)
+have_langinfo_codeset                      = []  # HAVE_LANGINFO_CODESET
+have_setitimer                             = []  # HAVE_SETITIMER
 have_ts_tree_cursor_goto_previous_sibling  = []  # HAVE_TS_TREE_CURSOR_GOTO_PREVIOUS_SIBLING
 have_zlib                                  = []  # HAVE_ZLIB
 libgccjit_have_gcc_jit_context_new_bitcast = []  # LIBGCCJIT_HAVE_gcc_jit_context_new_bitcast
@@ -104,6 +106,7 @@ libgccjit_have_gcc_jit_global_set_initializer = []  # LIBGCCJIT_HAVE_gcc_jit_glo
 libgccjit_have_gcc_jit_version             = []  # LIBGCCJIT_HAVE_gcc_jit_version
 libgccjit_have_reflection                  = []  # LIBGCCJIT_HAVE_REFLECTION
 lisp_object_is_struct                      = []  # LISP_OBJECT_IS_STRUCT
+mingw64                                    = []  # __MINGW64__
 no_value                                   = []  # the derived condition `!defined HAVE_X_WINDOWS && defined (NoValue)` (frame.c 6538; `NoValue` is the non-X `*gui.h` constant)
 mingw_w64                                  = []  # MINGW_W64 (w32fns.c 38 `#if !defined MINGW_W64 && !defined CYGWIN`, 63 `# ifndef MINGW_W64`)
 ns_self_contained                          = []  # NS_SELF_CONTAINED

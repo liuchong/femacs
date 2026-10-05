@@ -7911,3 +7911,31 @@
   ⑥ **未声称**：**零运行证据**——两个对象都**没跑过**（没开过字体、没读过 name 表、没解析过 style、没识别过 cmap、
      没有一次 `lseek`/`read`/`memmem` 返回）；C 1241-4,222 未移植（48 条 `- missing` 与 63.2% 漂移就是那条边界）；
      lane 自己的预算：`build-tu` 3/3、`probe` 3/3，另有若干次直接 `rustc` 复读（台账 Evidence 已记）。
+
+- **3.444 w32proc 切片 1（C 1-912）：信号仿真、进程组与 itimer；连带一轮三个镜像的 `E0428` 收口（2026-10-05）**：
+  ① **区间**：C 1-912（收在 `alarm` 的 `}`）；**下一个活定义 = C 1052 `wait_objects_thread`**。48 个块、49 行区间表覆盖
+     C 1-4,903（44 个空行不占行）；文件门 `windowsnt`，另有 `mingw64` / `have_ntgui` / `have_langinfo_codeset` /
+     `have_setitimer` 四条内层门。
+  ② **行数**：`femacs/src/w32proc.rs` **16 → 1,537**；台账 `docs/ports/w32proc.md` 24 → **326**。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**；`check-cond-eval` **26 条件 / 0 unknown / [VERIFIED]**；
+     `check-dead-file-coverage` **34 ledger / 0 failure**；`extract-abi --check` 118 条 `- `（39 函数 / 20 subr / 20 defsubr /
+     15 对象 / 12 宏 / 7 常量 + 68.7% 漂移），**全部落在 C 913-4,903 的边界**；`check-mirror-dupes` **19/19/0**。
+  ④ **集成者本轮替它落的账（四件）**：⑴ `macro-body-notes.tsv` 4 行（`sigprocmask`/`w32_raise` →
+     `switch,case,default,break`；`getitimer`/`setitimer` → `__int64`），补后本单元 `does not mention` 归零；
+     ⑵ `femacs/xtask/Cargo.toml` 登记 **`have_langinfo_codeset` / `mingw64` / `have_setitimer`**；⑶ 下面 ⑤ 的三个镜像收口；
+     ⑷ 棘轮读数不变（本件 31.6% > 10%，无行要退）。
+  ⑤ **镜像轮（三个文件，判据都是编出来的）**：⑴ `lib/include/signal.rs`：`signal` 按臂拆开——冻结臂保持 `usize` 形参、
+     `windowsnt` 臂写运行时的函数指针形（**结构性写开**，不引用只有部分 includer 才有的 `signal_handler`，P-87 ③）；
+     `sigset_t` 同样两臂（`windowsnt` = 32 位标量，冻结臂 = Darwin 的 record）。**过程缺陷照记**：第一版把 `#[cfg]` 插在
+     `#[repr(C)] #[derive(Clone, Copy)]` **与 `struct` 之间**，属性落到了类型别名上 ⇒ **全树 74 个单元编译失败**
+     （`E0204 the trait Copy cannot be implemented for this type`），`check-all-units.sh` 当场读出（74 failure），把属性
+     归位后回到 **83/0 + 83/0**——这是"改镜像必须跑全树扫描"这条纪律的又一个判据。⑵ `lib/include/sys_time.rs`：
+     `setitimer` 的声明搬进 `pub mod sys_time_decls { use super::*; … }` + glob 导入（它由 `w32proc.c` **定义**，同一层里
+     两条同名声明即 `E0428`，0.1-10）。⑶ `src/include/w32.rs`：`term_timers`/`init_timers` 同样搬进新的
+     `w32proc_fn_decls` 模块。**判据**：单元里删掉 6 个 `SIG*` 常量与 `SIG_IGN`、两个 extern 副本后，
+     `check-mirror-dupes` 由 **2 failure → 0 failure**；Windows 臂的单元自身锚点错误 **4 → 0**、总错误 **53 → 46 → 43**
+     （余下全在镜像：25 `E0428` + 14 `E0425` + 1 `E0774` + 3 其它）。
+  ⑥ **未声称**：**零运行证据**——没有定时器线程、没有 `GetThreadTimes`、没有一次 `signal`/`raise` 投递，没有 Windows
+     目标编译、没有布局实测；臂读数只是本机 `rustc` 加四个 `--cfg` 的**名字/类型**读数；C 913-4,903 **未移植**
+     （118 条 `- ` 与 68.7% 漂移就是那条边界）。**预算如实报**：lane 自己 `build-tu` 3/3、`probe` 4 发（限 3，超 1）；
+     我这一轮另用 `build-tu` 3 发、`probe` 2 发、全树扫描 3 次。

@@ -1321,3 +1321,7 @@ sfnt_grok_registry	goto	C's `goto fail` legs are a labelled block in the port (s
 sfnt_replace_fonts_p	goto	C's `goto next_instance` is a labelled `continue` (status 3.443)
 sfnt_enum_font_1	bail1,bail2,bail3,bail4,goto,true,underline_position_set	the four `bail` labels are one labelled block's exits in the port; `true` is the first member of C's `enum sfnt_font_serial_status`-shaped literal in the same body, spelled structurally; `underline_position_set` is one of the two `bool : 1` bitfield names the port writes through the `bits` shift constants (status 3.443)
 sfnt_enum_font	bail0,goto	C's `goto bail0` is the port's labelled block exit (status 3.443)
+sigprocmask	switch,case,default,break	C's `switch` on the process-group index is the port's `match`; the `break` after each arm has no Rust spelling (status 3.444)
+w32_raise	switch,case,default,break	C's `switch` on the signal number is the port's `match` (status 3.444)
+getitimer	__int64	C's exit path reads the 64-bit timer word as `__int64`; the port spells the same arithmetic with `i64` over the mirror's `ULARGE_INTEGER`-shaped fields (status 3.444)
+setitimer	__int64	see `getitimer` (status 3.444)

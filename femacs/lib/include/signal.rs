@@ -49,10 +49,17 @@ pub const NSIG: c_int = 32;
 /// handler type (`typedef void (*sig_t) (int);`).
 pub const SIG_IGN: usize = 1;
 
-/* The three entries lib/pthread_sigmask.c and lib/pselect.c reach through <signal.h>.
-   `sigset_t` is Darwin's `struct __darwin_sigset_t { __uint32_t __val; }`; the measurement
+/* <signal.h>'s `sigset_t` has one arm per target.  The runtime arm (`windowsnt`) is MinGW's
+   `_sigset_t`, a 32-bit unsigned scalar, and `src/w32proc.c`'s operations on it (`*set = 0`,
+   `*set |= 1U << signo`, `sizeof (*set) * CHAR_BIT` against `NSIG`) require exactly that.  */
+#[cfg (feature = "windowsnt")]
+pub type sigset_t = c_uint;
+
+/* The frozen arm: Darwin's `struct __darwin_sigset_t { __uint32_t __val; }`, the type the three
+   entries lib/pthread_sigmask.c and lib/pselect.c reach through <signal.h>; the measurement
    (`printf ("%zu %d %d %d", sizeof (sigset_t), SIG_BLOCK, SIG_UNBLOCK, SIG_SETMASK)`)
    prints `4 1 2 3`.  */
+#[cfg (not (feature = "windowsnt"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct sigset_t
@@ -162,7 +169,17 @@ pub mod signal_decls {
     /* void (*signal (int, void (*) (int))) (int);  -- Darwin spells the handler
        `sig_t`; the port passes the handler word through as `usize` so that `SIG_IGN`
        (the integer 1) reaches it unchanged, the only call profiler.c makes.  */
+    #[cfg (not (feature = "windowsnt"))]
     pub fn signal (signum: c_int, handler: usize) -> usize;
+
+    /* The same entry on the runtime arm (`windowsnt`): MinGW's <signal.h> declares the handler
+       as a function pointer, and `src/w32proc.rs` passes a recorded handler of that shape.  The
+       type is written out structurally rather than as `nt/inc/ms-w32.h` 133's `signal_handler`
+       alias, because this mirror is included by units that never see that header and a mirror
+       may not name a type its includers may lack (PORTING.md P-87 ③).  */
+    #[cfg (feature = "windowsnt")]
+    pub fn signal (signum: c_int, handler: Option<unsafe extern "C" fn (c_int)>)
+                 -> Option<unsafe extern "C" fn (c_int)>;
   }
 }
 use signal_decls::*;

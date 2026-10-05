@@ -69,11 +69,20 @@ pub const ITIMER_REAL: c_int = 0;
 pub const ITIMER_VIRTUAL: c_int = 1;
 pub const ITIMER_PROF: c_int = 2;
 
-unsafe extern "C" {
-  /* int setitimer (int, const struct itimerval *, struct itimerval *);  */
-  pub fn setitimer (which: c_int, new_value: *const itimerval,
-                    old_value: *mut itimerval) -> c_int;
+/* `setitimer` is *defined* by `src/w32proc.c` on the runtime arm and only declared here, so its
+   declaration sits in a glob-imported module for the same reason as the entries `src/w32.c`
+   defines in `src/include/w32.rs`: a crate-root definition shadows a glob import, while two
+   declarations of one name in one translation unit are `E0428` (measured at status 3.444).  */
+pub mod sys_time_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /* int setitimer (int, const struct itimerval *, struct itimerval *);  */
+    pub fn setitimer (which: c_int, new_value: *const itimerval,
+                      old_value: *mut itimerval) -> c_int;
+  }
 }
+use sys_time_decls::*;
 
 const _: () = core::assert! (std::mem::size_of::<timeval> () == 16);
 const _: () = core::assert! (std::mem::offset_of! (timeval, tv_sec) == 0);
