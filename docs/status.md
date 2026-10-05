@@ -9000,3 +9000,30 @@
   ⑧ **预算（如实）**：sound lane `build-tu` 5 发（超 2）/`probe` 5 发（超 2）；pop lane `build-tu`
   5 发（超 2）/`probe` 3 发（满）；集成者 `build-tu` 2 发、`probe` 2 发、其余为脚本与门；
   两 lane 的 `/tmp/*-lane` 均已自删。
+
+- **3.483 镜像覆盖类的一笔结案：`unistd.in.rs` 的六个 CRT 名在 `windowsnt` 下让位给 `ntlib.rs`，pop 的 Windows 臂从 6 错到 `exit 0`（2026-10-05）**：
+  ① **问题**：`lib/include/unistd.in.rs` 声明 `getwd`/`getppid`/`getgid`/`getegid`/`fchown`/`sleep`，
+  `lib-src/include/ntlib.rs`（参照自己的 `nt/inc/ntlib.h` 镜像）声明同样六个 ⇒ 任何**同时包含两者**的
+  TU（也就是每个 `WINDOWSNT` 臂）读 6 × `E0428`。C 允许一个名字带两份**兼容**声明（Windows 侧是
+  `int`/`unsigned`，通用镜像是 `pid_t`/`gid_t`/`uid_t`——在 Windows 头下是同一批类型），Rust 不允许。
+  ② **处置**：把**通用镜像里的那六条**在 `windowsnt` 构建下掩掉
+  （`#[cfg (not (feature = "windowsnt"))]`，附一段说明写出判据：平台头自己的拼写才是 Windows TU 该
+  看到的声明），POSIX 侧因此一字不变。`getwd` 是我在 3.479 为 msdos 加进 `unistd.in.rs` 的那一条——
+  同属这笔账，一并处理。
+  ③ **读数（我自己跑的）**：`lib-src/pop.rs` 的 **`windowsnt` 臂：6 错（6×`E0428`，全在 include 图）
+  → `exit 0` / rlib 298,144 字节**（`--cfg 'feature="mail_use_pop"' --cfg 'feature="windowsnt"'`）；
+  该单元 POSIX 侧的门读数为 `exit 0` / 274,640 字节（3.482 的读数，掩码按构造不影响它）；
+  `tools/check-all-units.sh` **83/0 + 83/0**（镜像改动必跑的两腿，本轮补跑）。台账 `docs/ports/pop.md`
+  的 **Owed 7 就此结案**（把判据与两个读数写进去）。
+  ④ **未声称**：Windows 面仍然 **`text-only`**（本机没有 mingw/SDK）：`WSADATA`/`HANDLE`/`WSA*` 常量与
+  码、`EAI_AGAIN` 的 Windows 值、`addrinfo.ai_addrlen` 在 Win64 的宽度、`hes_postoffice` 与 `krb5_*`
+  家族**全部 UNVERIFIED**；这条修复只解决"同一 TU 里同一名字两份声明"，不证明任何 Windows 行为。
+  ⑤ **留给下一轮镜像轮的点名清单（本轮不做）**：`include/lisp.rs` 缺 `emacs_write_sig`（lisp.h 5335）、
+  `emacs_strerror`（5144）、`openp`（4743）、`plist_get`（4280）、`record_unwind_protect_void`（4825）、
+  `message_with_string`；`lib/include/sys_types.in.rs` 缺 `u_int16_t`/`u_int32_t`；`lib/include/string.rs`
+  缺 `strcat`；`include/config.rs` 缺 `DEFAULT_SOUND_DEVICE`/`DEFAULT_ALSA_SOUND_DEVICE`/`SND_SENTRY`。
+  **明确不做**：`ioctl` 与 `SIGPOLL` 按 3.449 的第七半（"几个消费者"只约束镜像、不约束单元）继续留在
+  消费单元就地声明，不为此造新镜像。
+  ⑥ **预算**：`probe` 1 发（pop 的 windowsnt 臂）、`layout-check` 0 发（本轮只改一个镜像文本，
+  两腿里 `check-all-units.sh` 覆盖了它）、`check-all-units.sh` 1 发；两条 lane（`src/sqlite.c` 与
+  `src/gnutls.c` 片 1）已按"最强证据档"派出。

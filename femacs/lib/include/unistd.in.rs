@@ -52,6 +52,15 @@ unsafe extern "C" {
   /// The frozen SDK's `<unistd.h>` 578: `char *getwd (char *)` - declared there with
   /// `__POSIX_C_DEPRECATED(200112L)` (measured on this target's header, not recalled);
   /// `src/msdos.c`'s DJGPP arm is its only caller in the reference (status 3.479).
+  /* The six names `lib-src/ntlib.h` (C 29-38) declares for a `WINDOWSNT` build - `sleep`,
+     `getwd`, `getppid`, `getegid`, `getgid`, `fchown` - are masked here **for that build
+     only**: C lets one name carry two compatible declarations (Windows spells them with
+     `int`/`unsigned`, this mirror with `pid_t`/`gid_t`/`uid_t`, which the Windows headers
+     make the same types), Rust does not, and the platform header's own spelling is the one
+     a Windows translation unit should see.  Measured before the mask: a `windowsnt` arm
+     that includes both mirrors (e.g. `lib-src/pop.rs`) reported six `E0428`s; after it the
+     arm compiles (status 3.483, docs/ports/pop.md Owed 7).  */
+  #[cfg (not (feature = "windowsnt"))]
   pub fn getwd (buf: *mut c_char) -> *mut c_char;
   pub fn access (file: *const c_char, mode: c_int) -> c_int;
   pub fn close (fd: c_int) -> c_int;
@@ -65,17 +74,22 @@ unsafe extern "C" {
   pub fn dup2 (fd: c_int, fd2: c_int) -> c_int;
   pub fn pipe (fildes: *mut c_int) -> c_int;
   pub fn getpid () -> pid_t;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn getppid () -> pid_t;
   pub fn getuid () -> uid_t;
   pub fn geteuid () -> uid_t;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn getgid () -> gid_t;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn getegid () -> gid_t;
   pub fn chown (file: *const c_char, owner: uid_t, group: gid_t) -> c_int;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn fchown (fd: c_int, owner: uid_t, group: gid_t) -> c_int;
   pub fn lchown (file: *const c_char, owner: uid_t, group: gid_t) -> c_int;
   pub fn isatty (fd: c_int) -> c_int;
   /* unsigned int alarm (unsigned int);  (src/atimer.c's two live calls)  */
   pub fn alarm (seconds: c_uint) -> c_uint;
+  #[cfg (not (feature = "windowsnt"))]
   pub fn sleep (seconds: c_uint) -> c_uint;
   pub fn usleep (useconds: c_uint) -> c_int;
   pub fn sysconf (name: c_int) -> c_long;

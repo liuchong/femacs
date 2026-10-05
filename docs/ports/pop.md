@@ -310,6 +310,15 @@ The Windows and Kerberos surfaces cannot be measured here and are marked UNVERIF
    the `lib-src/include/ntlib.rs` mirror declares the same six, so any arm that includes both
    reads 6 x `E0428` (Evidence ③).  Until that is resolved, no Windows flip can claim the arm's
    text compiles (its *own* text is checked - Evidence ③'s mutation reading).
+   ✅ **Closed by the integrator in 3.483**: the six declarations in `lib/include/unistd.in.rs` are
+   masked **for the `windowsnt` build only** (`#[cfg (not (feature = "windowsnt"))]`), because C
+   lets one name carry two compatible declarations (Windows spells them `int`/`unsigned`, the
+   generic mirror spells them `pid_t`/`gid_t`/`uid_t` - the same types under the Windows headers)
+   while Rust does not, and the *platform* header's own spelling is what a Windows unit should
+   see.  Measured: this unit's `windowsnt` arm went from **6 errors to `exit 0`** (a 298,144-byte
+   rlib, `--cfg 'feature="mail_use_pop"' --cfg 'feature="windowsnt"'`), while the `not(windowsnt)`
+   arms are untouched by construction.  What stays owed: the Windows surface is still `text-only`
+   (no mingw here) and Owed 8's values/layouts remain UNVERIFIED.
 8. **The UNVERIFIED surfaces** (no Windows SDK, no Kerberos SDK, no Hesiod library on this
    machine): `WSADATA`, `HANDLE`, the three Windows constants and `WSA*` codes, `EAI_AGAIN`'s
    Windows value (a placeholder), `addrinfo.ai_addrlen`'s width on Win64 (the port carries the
