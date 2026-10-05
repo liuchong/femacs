@@ -10300,3 +10300,15 @@
      掩盖了它，`probe` 才看得见）。
   ⑤ **预算与清理**：`probe` 1 发、`check-all-units` 1 发、`layout-check` 1 发、直接 rustc 2 发（变异实测）、
      六道文本门各 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`；`build/probes/dbusbind/_mut.rs` 已删。
+
+- **3.528 镜像轮第九批：`dispextern.h` C 25 的 `character.h` 边（2026-10-05）**：
+  ① **对象**：`include/dispextern.rs` 此前缺 C 25 的 `#include "character.h"`——C 里它是**无门**的（坐在 include
+     guard 之后、C 27 的 `#ifdef HAVE_X_WINDOWS` 之前），而该镜像自己用了那个头的五个名字（`CHAR_VALID_P`、
+     `CHAR_HEAD_P`、`CHAR_BYTE8_P`、`MAX_CHAR` 及其 `eassert!`），一直靠 `xtask layout-check` 把 foundation
+     镜像强制提前才没炸；`probe`/`build-tu` 只展开文件自己的 include 图（3.527 量到的那条差别），故按 C 25 补边。
+  ② **读数**：`check-all-units` **83 unit(s), 0 failure(s)**（两腿）、`layout-check` passed。
+     `check-mirror-dupes` 全树读作 **1 failure**，但那条在**在跑 lane 的 `femacs/src/xsettings.rs`**（`g_object_get`
+     与 `include/gtk.rs` 的声明重复；lane 在飞文件，本提交不含它）——本条改动自身 0 条。
+     **本件没有臂读数**：当前没有一条已测的臂因为缺这条边而红（`fontset`/`dbusbind` 都从别的边拿到了 character.rs），
+     所以它是**保真**（P-90 ② 的"镜像照抄 C 的 include 列表"）而不是行为修复，如实记。
+  ③ **预算**：`check-all-units` 1 发、`layout-check` 1 发、`check-mirror-dupes` 1 发；未编译任何臂。

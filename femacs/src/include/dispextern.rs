@@ -39,6 +39,15 @@ pub const No_Cursor: *mut c_void = std::ptr::null_mut ();
    is 32 bytes in the x11 arm and 48 in `ns_cocoa`
    (`spikes/gated-layout-probe.py 'struct MonitorInfo' frame.h`, docs/ports/xterm.md Decision 16).
    `<X11/Xlib.h>` is where C's alias comes from (C 29), and `include/xlib.rs` is its mirror.  */
+/* dispextern.h 25: `#include "character.h"` - ungated in C (it sits inside the include guard,
+   before C 27's `#ifdef HAVE_X_WINDOWS`), and this mirror names five of that header's items
+   (`CHAR_VALID_P`, `CHAR_HEAD_P`, `CHAR_BYTE8_P`, `MAX_CHAR` and its `eassert!`).  It relied on
+   `xtask layout-check` forcing the foundation mirrors to the front until status 3.528: `probe`
+   and `build-tu` expand only the file's own include graph, so a unit reaching this mirror
+   without character.h read `cannot find macro CHAR_VALID_P` (the same difference that cost
+   `include/buffer.rs` 8 x `E0425`, status 3.527).  */
+include!("character.rs");                       // C 25: `#include "character.h"`
+
 /* This edge is deliberately **ungated** although C 29's `#include <X11/Xlib.h>` sits in the X11
    arm: `xtask` dedupes `include!` edges (first edge wins, later ones become
    `// [xtask dedupe] … already included`), so a gated edge here takes the slot away from every
