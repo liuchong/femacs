@@ -243,8 +243,11 @@ has since been rewritten.)
    tokens are now used by a real unit for the first time.
 4. **A `docs/ports/macro-body-notes.tsv` row**: `sfnt_read_cmap_table_1` →
    `case,default,switch` (C 973-1010's `switch` is the port's `match`), the row Evidence ③ names.
-5. **Partly done in 3.427** (`alloca.in.rs`'s 26 trailing `///` citations are plain `//` notes now;
-   the arm reads **8 -> 5 errors**, the five being the `time_t`/`timespec` group below) — the rest:
+5. **Done in 3.427 + 3.429** (`alloca.in.rs`'s 26 trailing `///` citations are plain `//` notes now, and the
+   five `time_t`/`timespec` errors were **not a mirror gap at all**: the materializer let the unit's
+   `#ifdef TEST` `<time.h>` edge claim the one expansion of `time.in.rs`, so the always-live reach through
+   `buffer.rs` became a no-op and the names vanished - P-89's root, fixed in `xtask` at 3.429; the arm now
+   reads **exit 0 with a 4,784-byte object**) - the remaining names below:
    `time_t`/`timespec` for
    `lib/include/sys_time.rs`/`sys_select.rs`/`src/include/thread.rs` through `lisp.rs`'s chain.
    `<sys/mman.h>`, `<setjmp.h>` and the TEST arm's `<sys/wait.h>`/`<X11/*>` have no mirror at all;

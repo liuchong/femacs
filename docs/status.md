@@ -7520,3 +7520,25 @@
   ⑤ **仍未解决（点名）**：上头三个臂剩下的缺口（`E0425` 的 `time_t`/`timespec` 与各臂各自的 SDK 名、
      lread 的 `E0610`/`E0422`、keyboard 的 `E0428`）；`TEST_STATIC` 的 Rust 形态；
      `include/sfnt.rs` 之外的镜像轮欠账照旧。
+
+- **3.429 P-89 的根因修掉：materialize 的展开不再让"带门的 include 边"抢走唯一一次包含（2026-10-05）**：
+  ① **症状与真因**：sfnt 的 `have_android` 臂一直报 **5 条 `E0425 time_t`/`timespec`**，3.425 把它记成"镜像缺名"。
+     实测走查证明**名字不缺**：`lib/include/time.in.rs` 36/43 行就声明着它们；坏的是 **展开顺序**——
+     sfnt.rs 的 `<time.h>`/`<timespec.h>`（C 52-53）在 C 里位于 `#ifdef TEST` 内，端口照录成
+     `#[cfg (… feature = "test")] include!(…)`；`materialize` 的 `seen` 是**按文件、不看边上的 `#[cfg]`**
+     （P-89 的原文判据），于是这条**带门的边**占掉了 `time.in.rs` 的唯一一次展开，而**无门**那条
+     （经 `lisp.rs` 链 → `buffer.rs` 16 → `time.in.rs`）被降级成 `// [xtask dedupe] already included`
+     ⇒ 类型从未出现在被编译的文本里。
+  ② **修法**（`femacs/xtask/src/main.rs`）：新增 `include_edges()`（逐行报告每条 `include!` **是否带门**，属性行与
+     include 之间允许空行）与 `ungated_reachable()`（只沿**无门**边做可达性预扫）；`render` 增加沿路径传递的
+     `path_gated`，规则一句话：**凡存在无门路径到达的文件，只在无门那条上展开**，任何带门路径（无论是它自己带门，
+     还是嵌套在带门文件的副本里——第一版只判了前者，实测不够）上的到达一律降级成
+     `// [xtask dedupe] … expands at its ungated reach`。没有无门路径的文件照旧由第一条到达展开 ✓。
+  ③ **读数**：⑴ `cargo check -p xtask` 通过；⑵ **sfnt 的 `have_android + not_android_stubify` 臂：`exit 1 / 5 error`
+     → `exit 0`，产出 4,784 字节对象**（这是该臂第一次编出对象）；⑶ **P-87 两腿 `checked 83 unit(s), 0 failure(s)` +
+     `checking 83 unit(s), 0 unit failure(s)`**——每个单元都要重新 materialize，所以这条读数是这次改动的主要判据；
+     ⑷ `docs/ports/sfnt.md` 的 Owed 5 按此更正（"镜像缺名"→"展开顺序"）。
+  ④ **文档同步**：`PORTING.md` P-89 的第 ③ 条（"根因在 xtask，修它是一项独立工作"，3.408 的工作单）改成"已在 3.429 修掉"，
+     并保留 ① ② 两条纪律（加带门边前先确认目标有无门路径；被咬先按 ② 绕开）。
+  ⑤ **未声称**：本改动只让"带门边不再抢位"，**不声称**任何配置可运行；P-87 两腿是冻结构建，它不覆盖被门挡住的文本；
+     上面那个 4,784 字节对象**从未运行**。

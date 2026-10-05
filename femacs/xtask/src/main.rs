@@ -1797,8 +1797,9 @@ fn materialize(root: &Path, out: &Path) -> Result<PathBuf, String> {
     // relative to the file holding the call.
     let out = canonical(out);
     let root = canonical(root);
-    let mut expand = Expand { out: out.clone(), root: root.clone(), seen: vec![root.clone()] };
-    let text = expand.render(&root)?;
+    let mut expand = Expand { out: out.clone(), root: root.clone(), seen: vec![root.clone()],
+                              ungated: ungated_reachable(&root) };
+    let text = expand.render(&root, false)?;
     let root_file = out.join("_root.rs");
     fs::write(&root_file, text).map_err(|e| format!("{}: {e}", root_file.display()))?;
     // Absolute: the callers that run rustc with a different working directory (dead-arms)
@@ -1812,6 +1813,11 @@ struct Expand {
     out: PathBuf,
     root: PathBuf,
     seen: Vec<PathBuf>,
+    /// The files an *ungated* path reaches from the root (`ungated_reachable`).  A `#[cfg]`-gated
+    /// `include!` must not claim the one expansion slot of one of these: the ungated reach is live
+    /// in every configuration, so it - not the gated one - is the reach that has to expand the
+    /// file.  See the note on `render`.
+    ungated: std::collections::BTreeSet<PathBuf>,
 }
 
 impl Expand {
@@ -1826,24 +1832,45 @@ impl Expand {
     /// first file the walk reaches at that point is expanded recursively, later reaches are
     /// include-guard no-ops.  ROOT's text is returned (it becomes `_root.rs`); every other
     /// file is written to its copy first.
-    fn render(&mut self, path: &Path) -> Result<String, String> {
+    fn render(&mut self, path: &Path, path_gated: bool) -> Result<String, String> {
         let text = fs::read_to_string(path).map_err(|e| format!("{}: {e}", path.display()))?;
         let dir = path.parent().unwrap_or(Path::new(".")).to_path_buf();
         let mut out = String::with_capacity(text.len() + 64);
+        // `true` while the lines just read are attributes (blank lines skipped), so the next
+        // `include!` is known to be inside a `#[cfg…]`.
+        let mut attr_run = false;
         for line in text.split_inclusive('\n') {
             let (body, newline) = match line.strip_suffix('\n') {
                 Some(b) => (b, "\n"),
                 None => (line, ""),
             };
+            // Whether *this* line's own edge is gated; `path_gated` carries the same fact for
+            // every edge above it on the path from the root.
+            let gated_here = attr_run;
             match include_target(line).map(|name| canonical(&dir.join(name))) {
                 Some(target) if target.is_file() => {
                     if self.seen.contains(&target) {
                         out.push_str(&format!("// [xtask dedupe] {} already included{newline}",
                                               target.display()));
+                    } else if (attr_run || path_gated)
+                        && target != self.root
+                        && self.ungated.contains(&target)
+                    {
+                        // P-89's root fix (status 3.429).  A gated `include!` does *not* set C's
+                        // include guard when the gate is off, so it must not consume the file's
+                        // one expansion slot either: an *ungated* reach is live in every
+                        // configuration, so a file that has one expands there and every
+                        // gated-path reach of it (this one, or one nested inside a gated file's
+                        // copy) stays a no-op.  The reverse order is what broke `sfnt.rs`'s
+                        // `#ifdef TEST` `<time.h>`: it suppressed `sys_select.rs`'s own ungated
+                        // one, and five `E0425`s (`time_t`/`timespec`) were the arm's reading.
+                        out.push_str(&format!(
+                            "// [xtask dedupe] {} expands at its ungated reach (this include is under a #[cfg]){newline}",
+                            target.display()));
                     } else {
                         self.seen.push(target.clone());
                         let copy = self.copy_path(&target);
-                        let body_text = self.render(&target)?;
+                        let body_text = self.render(&target, path_gated || gated_here)?;
                         fs::write(&copy, body_text)
                             .map_err(|e| format!("{}: {e}", copy.display()))?;
                         out.push_str(&format!("include!({:?});{newline}",
@@ -1865,9 +1892,61 @@ impl Expand {
                     }
                 }
             }
+            let trimmed = body.trim_start();
+            if trimmed.starts_with("#[") {
+                attr_run = true;
+            } else if !trimmed.is_empty() {
+                attr_run = false;
+            }
         }
         Ok(out)
     }
+}
+
+/// `(gated, target)` for every `include!` line of a file's TEXT, where `gated` is true when the
+/// line is preceded (blank lines skipped) by a `#[cfg…]`/`#[cfg_attr…]` attribute.  A mirror's
+/// comment describing an include is not one: only a real `include!(` line counts.
+fn include_edges(text: &str, dir: &Path) -> Vec<(bool, PathBuf)> {
+    let mut out = Vec::new();
+    let mut attr_run = false;
+    for line in text.lines() {
+        match include_target(line) {
+            Some(name) => {
+                out.push((attr_run, canonical(&dir.join(name))));
+                attr_run = false;
+            }
+            None => {
+                let trimmed = line.trim_start();
+                if trimmed.starts_with("#[") {
+                    attr_run = true;
+                } else if !trimmed.is_empty() {
+                    attr_run = false;
+                }
+            }
+        }
+    }
+    out
+}
+
+/// The files an *ungated* `include!` path reaches from ROOT: the ones every configuration
+/// expands.  `Expand::render` needs this set to keep a `#[cfg]`-gated edge from taking a file's
+/// single expansion slot away from its always-live reach (P-89's root fix, status 3.429).
+fn ungated_reachable(root: &Path) -> std::collections::BTreeSet<PathBuf> {
+    let mut seen = std::collections::BTreeSet::new();
+    let mut stack = vec![root.to_path_buf()];
+    while let Some(path) = stack.pop() {
+        let Ok(text) = fs::read_to_string(&path) else { continue };
+        let dir = path.parent().unwrap_or(Path::new("."));
+        for (gated, target) in include_edges(&text, dir) {
+            if gated || !target.is_file() {
+                continue;
+            }
+            if seen.insert(target.clone()) {
+                stack.push(target);
+            }
+        }
+    }
+    seen
 }
 
 /// Every file the `include!("…")` chain of ROOT reaches, resolved the way rustc does
