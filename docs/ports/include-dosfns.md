@@ -79,3 +79,19 @@
   failures; `check-mirror-dupes` 1 duplicate declaration(s) / 1 ratchet row(s) / 0 failure(s);
   `check-globals` 283 units / 0; `check-verbatim` 6 trees / 4607 files / 0 failures;
   `check-target-names` 576 .rs files / 592 map targets / 0 findings (the file count includes mirrors other lanes landed in the same session).
+
+## 3.590: the eight declarations moved into a glob-imported module
+
+Every name this mirror declares is `src/dosfns.c`'s **definition**, so at the mirror's crate root the
+`msdos` arm of `src/dosfns.rs` read eight `E0428 ... is defined multiple times` (`dos_country_info`,
+`dos_memory_info`, `dos_cleanup`, `syms_of_dosfns`, `init_dosfns`, `msdos_stdcolor_idx`,
+`msdos_stdcolor_name`, `x_set_title`).  They now sit in `pub mod dosfns_decls` that the mirror
+glob-imports (a crate-root definition shadows a glob import, PORTING.md 0.1-10 / P-21 - the
+`include/w32term.rs` `w32term_fn_decls` shape).
+
+The same reading also found a second collision, in `lib/include/errno.rs`: on the MS-DOS build the
+system header has no `EINPROGRESS` (`lib/errno.in.h` 97-98's own comment says so) while
+`src/msdos.h` 80 defines it as 112, so that mirror's `36` now carries `#[cfg (not (feature = "msdos"))]`.
+
+Reading (`xtask probe src/dosfns.rs … --cfg 'feature="msdos"'`, 2026-10-05): **9 errors → exit 0 /
+0 errors**.

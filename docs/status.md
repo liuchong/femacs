@@ -11907,3 +11907,21 @@
      `check-port-lines` 0/0/0/0、`check-target-names` 0。
   ⑤ **未声称**：那次 probe 读数只是"**物化镜像图上的 `rustc` 类型检查**"，不是 Windows 编译；该臂离"能编"还有 69 条错
      （上面点名的四处），本件**只清掉属于本镜像的那 3 条**。
+
+- **3.590 镜像债：`include/dosfns.rs` 的 8 条声明搬进 glob 导入模块 + `errno.rs` 的 `EINPROGRESS` 与 MS-DOS 值分家——`msdos` 臂 **9 错 → exit 0**（2026-10-05）**：
+  ① **症状（实测，不是推断）**：`xtask probe src/dosfns.rs … --cfg 'feature="msdos"'` 读 **9 条 `E0428`**：
+     8 条是**本镜像声明、`src/dosfns.c` 定义**的名字（`dos_country_info`、`dos_memory_info`、`dos_cleanup`、
+     `syms_of_dosfns`、`init_dosfns`、`msdos_stdcolor_idx`、`msdos_stdcolor_name`、`x_set_title`），
+     1 条是 **`EINPROGRESS` 两处定义**（`include/msdos.rs` 232 的 112 与 `lib/include/errno.rs` 92 的 36）。
+  ② **改法一（E0428 类，与 3.575/3.589 同形）**：8 条声明移进 `pub mod dosfns_decls { use super::*; … }`
+     并 `use dosfns_decls::*;`（crate 根定义遮蔽 glob 导入，PORTING.md 0.1-10 / P-21）。
+  ③ **改法二（EINPROGRESS）**：C 的现实是——MS-DOS 构建里 `src/msdos.h` 80 **无条件** `#define EINPROGRESS 112`，
+     而 gnulib 的 `lib/errno.in.h` 97-98 是 `#ifndef EINPROGRESS`（它自己的注释就写着 djgpp 的 `<errno.h>` 没有这个名字），
+     所以该配置下**只有 112 一处定义**；冻结目标（macOS）的系统头有 36。⇒ `lib/include/errno.rs` 的 36 加
+     `#[cfg (not (feature = "msdos"))]`，112 留在 `msdos.rs` 的 `#[cfg (feature = "msdos")]` 上——**一个配置一处定义**。
+  ④ **读数**：同一 `probe` 命令 **exit 0 / 0 error**（9 → 0）；`extract-abi --check emacs/src/dosfns.c femacs/src/dosfns.rs`
+     **OK**、`emacs/lib/errno.in.h` ↔ `errno.in.rs` **OK**；七道文本门全绿（`check-mirror-dupes` **17/17/0**——模块内声明照旧计数、
+     `check-citations` 0 drift、`check-declarations` 0 failures、`check-dead-file-coverage` 145/0、`check-ledger-ticks` 238/0、
+     `check-port-lines` 0/0/0/0、`check-target-names` 0）。
+  ⑤ **未声称**：那条 `exit 0` 是 **`rustc` 对物化镜像图的类型检查**，不是 DJGPP 目标编译、更不是运行——`src/dosfns.c` 在冻结配置里
+     一行不编（336 字节空对象），`__dpmi_int`/far-memory/`dosmem*` 依然没有执行证据；`<dos.h>`/`<dpmi.h>`/`<go32.h>` 的记录仍是 UNVERIFIED。

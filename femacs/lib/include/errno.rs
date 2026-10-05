@@ -88,7 +88,11 @@ pub const EAGAIN: c_int = 35;
 pub const EWOULDBLOCK: c_int = 35;
 /// <errno.h>: `#define EMFILE 24`.
 pub const EMFILE: c_int = 24;
-/// <errno.h>: `#define EINPROGRESS 36`.
+/// <errno.h>: `#define EINPROGRESS 36` - **except on the MS-DOS build**, where the system header
+/// has no such name (`lib/errno.in.h` 97-98 says so in the comment above its own `#ifndef`) and
+/// `src/msdos.h` 80 defines it as 112 first; the two would collide at a crate root that includes
+/// both mirrors (measured 2026-10-05, status 3.590: `E0428` on the `msdos` arm of `src/dosfns.rs`).
+#[cfg (not (feature = "msdos"))]
 pub const EINPROGRESS: c_int = 36;
 /// <errno.h>: `#define EISCONN 56`.
 pub const EISCONN: c_int = 56;
