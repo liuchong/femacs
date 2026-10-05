@@ -6,13 +6,13 @@
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
 windowsnt	1841	47	-	-
-have_x_windows	1160	29	-	HAVE_X_WINDOWS
+have_x_windows	1164	29	-	HAVE_X_WINDOWS
 have_window_system	1060	23	-	-
 have_android	1004	33	-	-
 have_pgtk	825	24	-	-
 have_ntgui	797	16	-	-
 not_android_stubify	700	11	-	-
-use_lucid	469	9	-	-
+use_lucid	473	9	-	-
 use_gtk	445	15	-	-
 msdos	407	15	-	-
 dispextern_face_records	287	4	-	-
@@ -37,9 +37,9 @@ have_x_sm	112	1	-	-
 mail_use_pop	109	1	-	-
 have_pthread	87	2	-	-
 windows	83	5	-	-
+use_cairo_or_have_xft	77	4	-	-
 have_ext_tool_bar	76	2	-	-
 have_inotify	76	1	-	-
-use_cairo_or_have_xft	76	4	-	-
 ns_impl_gnustep	70	2	-	-
 have_gnutls3	67	1	-	-
 rel_alloc	66	5	-	-

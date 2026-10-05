@@ -10456,3 +10456,66 @@
   ⑤ **预算实报**：lane 侧 `build-tu` **3/3**、`probe` **5/3**（超支 2，lane 自己报了）；集成者：`check-all-units`
      1 发、`layout-check` 1 发、生成物 3 发、门 6 发、`extract-abi --check` 2 发、pgtkgui 臂 1 发；未跑
      `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.535 镜像轮第十三批：`GCForeground`/`GCBackground` 按臂分开——X11 臂过去传的是 3，C 传的是 12（2026-10-05）**：
+  ① **对象（一条真行为差异，不是命名问题）**：`include/dispextern.rs` 92-94 把这两个名字**无门**声明成 `0x01`/`0x02`
+     （那是 C 89-90 的 `#else` 臂：`#define GCForeground ANDROID_GC_FOREGROUND`，`1 << 0`），而 X11 臂的值来自
+     `<X11/X.h>` 566-567 的 `(1L<<2)`/`(1L<<3)`。于是**任何 X11 单元**把两者或起来传给 `XCreateGC` 时传的是
+     `3`、C 传的是 `12`——`src/xftfont.c` 85（端口 `xftfont.rs` 1053）就是这一处；该单元只能把这笔账记在台账里
+     （Deviations 10 + Owed），因为它自己再声明一份就是 `E0428`。**clang 实测（本机真头文件）**：
+     `GCForeground=4 GCBackground=8`。
+  ② **改动**：`include/dispextern.rs` 的那对加上 `#[cfg (not (feature = "have_x_windows"))]`（与该文件 65/80 的其余
+     fallback 同一形式），值写成 `1 << 0`/`1 << 1` 并把 C 的宏别名记进注释；`include/xlib.rs` 新增
+     `#[cfg (feature = "have_x_windows")]` 的那对（`1 << 2`/`1 << 3`，注释写明实测值与两臂的分工）。两臂从此互斥。
+  ③ **读数**：`check-all-units` **83 unit(s), 0 failure(s)**（两腿；X11 单元的图里两个名字仍然可解——`xlib.rs` 经
+     `dispextern.rs` 的 C 29 边始终在图上）、`layout-check` passed、`check-mirror-dupes` 17/17/0、
+     `check-citations` 1 drift/1 stale → **0/0**（`dispextern.rs` 的 allowlist 行随 +8 挪到 `:617`）、
+     `check-declarations` 17/0/0、`check-dead-file-coverage` 104/0、`check-target-names` 0；
+     第一次落地时我把这对放进 `xlib.rs` 的 `x11_constants` **模块**里却没有 glob 它 ⇒ `probe src/xftfont.rs`
+     （15 门）读成 **5 错**（`E0425` 找不到这两个名字）；`x11_constants` 是**嵌套模块**，它的条目一直是由使用处
+     **按路径取**的（`widget.rs` 的 `use x11_constants::CopyFromParent;` 形状），于是 `xftfont.rs` 的那一处使用点
+     写成 `use x11_constants::{GCBackground, GCForeground};`，臂回到 **1 错**（`include/systime.rs` 27 的手翻断言），
+     掩码由 3 变成 **12（=C）**，`extract-abi --check emacs/src/xftfont.c femacs/src/xftfont.rs` 仍 **OK**。
+  ④ **未声称**：这是**编译 + 常量值**的读数：没有建过 GC、没有 X 服务器；`include/xlib.rs` 的两条值是 clang 实测，
+     而"传 12 是对的"这一条来自 C 原文（`<X11/X.h>` 的宏）而不是运行观测。
+
+- **3.536 `src/xselect.c` 整文件落地（C 1-3541）：X11 选择/剪贴板面（2026-10-05）**：
+  ① **产出**：`femacs/src/xselect.rs` 8 → **3900** 行（C 3541，+10.1%），台账 `docs/ports/xselect.md` 33 → 305 行
+     （**50 行**区间表连续铺满 C 1-3541）；`docs/ports/macro-body-notes.tsv` 的 11 行由该 lane 追加
+     （其中若干行随 `dba8830a` 一起进了库——那次我提交了整份 notes 文件，**没有按件切**；这批 lane 完成后
+     文件内容与单元一致，故未回退，记在这里以免被读成"凭空多出"）。
+  ② **集成者落的账**：登记 2 个 feature（`have_sys_types_h` = C 30、`trace_selection` = C 72）；
+     `docs/ports/line-drift-tolerance.tsv` 一行 `xselect 0.11 total`；`port-map.md`/`port-lines-pending.tsv`/
+     `feature-coverage.tsv` 重算。
+  ③ **读数**：`extract-abi --check emacs/src/xselect.c femacs/src/xselect.rs` **OK**（加容差行前唯一一行是 10.1%）；
+     `check-all-units` 83/0（两腿）、七道文本门 0 failure；冻结 `build-tu` **exit 0 / 336 字节空对象**；
+     lane 的两条臂各 **3 错、**单元自身 0 条****（`include/xterm.rs` 807 的 `*mut font`、`include/systime.rs` 27 的断言、
+     `include/xterm.rs` 1453-1461 的 `selection_input_event.kind` 缺存储单元 ⇒ C 1385 的 `event->kind` 是 `E0609`，
+     P-80 要求像 `keyboard.rs` 4063-4068 那样给一个 `bits` 单元）；变异实测 **+1 条恰为本单元注入行**；
+     X11 记录与常量是本机 `xorgproto 2025.1`/libX11 的 clang 实测。
+  ④ **未声称**：零运行证据（无 X 服务器、无剪贴板、无 XFIXES 扩展）；两条臂都**没有端到端编译**（3 条错误在镜像里）；
+     `extract-abi --check` 是 token 集合比较不是覆盖证据；正文里的 `// C` 引用**有 124 处故意省略**（台账
+     Deviations 9 记了判据），块级引用与 C 行号区间表才是完整集。
+  ⑤ **预算实报**：lane 侧 `probe` **3/3**、`build-tu` **13/3**（超支 10：4 次是真冻结读数，8 次是诊断用的
+     `materialize`，1 次终稿复读——lane 自己报了）；集成者：`check-all-units` 2 发、`layout-check` 2 发、生成物 3 发、
+     门 8 发、`probe` 1 发、clang 探针 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.537 `lwlib/xlwmenu.c` 整文件落地（C 1-2920）：Lucid 菜单控件（2026-10-05）**：
+  ① **产出**：`femacs/lwlib/xlwmenu.rs` → **4432** 行（C 2920，+51.8%），台账 `docs/ports/xlwmenu.md` 403 行
+     （**84 行**区间表覆盖 `lwlib/xlwmenu.c` 与（按 `<stem>.md` 回退）`lwlib/xlwmenu.h`）；
+     `docs/ports/macro-body-notes.tsv` 的 2 行由该 lane 追加（`DEFAULT_FONTNAME` 的两臂 `macro_rules!`、
+     `draw_separator`/`separator_height` 的 `switch`→`match`）——它们随 `dba8830a` 一起进了库（那次我提交了整份
+     notes 文件），本提交不再重复。
+  ② **集成者落的账**：登记 1 个 feature（`emacs`，C 构建自带的 `-Demacs`）；`docs/ports/line-drift-tolerance.tsv`
+     一行 `xlwmenu 0.52 total`；`port-map.md`/`port-lines-pending.tsv`/`feature-coverage.tsv` 重算。
+  ③ **读数**：`extract-abi --check emacs/lwlib/xlwmenu.c femacs/lwlib/xlwmenu.rs` **OK**（加容差行前唯一一行是
+     51.8% 的行数漂移）；`check-all-units` 83/0（两腿）、七道文本门 0 failure（本单元的两个文件五门皆无 finding）；
+     冻结 `build-tu` **exit 0 / 336 字节空对象**；**文件门臂 `exit 0 / 0 error / 2 warning / rlib 8,278,352 字节**
+     （本批少见的**干净臂**，两条 warning 都在镜像），`+have_x_i18n` → **exit 0 / 0 error / 6 warning / rlib
+     8,316,368 字节**，`use_cairo_or_have_xft` + `have_xft` 臂 → exit 1 / 14 错**全在镜像**；变异实测 **+1 条恰为
+     本单元注入行**（对照 exit 0/0）。
+  ④ **未声称**：零运行证据（没有 Xt/Lucid/cairo/Xft 链接、没建/显示/弹出过菜单）；**Xt/Lucid/Xft/cairo 面没有实测**
+     （台账 Deviations 1：Xlib 半之外每个宽度/偏移/枚举值/资源名都是 C 的拼写，且被省略的成员意味着偏移**明知不是**
+     真值）；`USE_CAIRO` 而无 `HAVE_X_I18N` 的组合在端口里与 C 一样**编译不过**（Finding 1，不是端口缺陷）。
+  ⑤ **预算实报**：lane 侧 `build-tu` **1/3**、`probe` **4/3**（超支 1，lane 在台账 ⑦ 报了）；集成者：
+     `check-all-units` 1 发、生成物 3 发、门 6 发、`extract-abi --check` 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。

@@ -89,9 +89,17 @@ pub struct Emacs_GC
   pub background: c_ulong,
 }
 
-/* Mask values to select foreground/background.  */
-pub const GCForeground: c_int = 0x01;
-pub const GCBackground: c_int = 0x02;
+/* Mask values to select foreground/background.  C 89-90 is the `#else` arm's
+   `#define GCForeground ANDROID_GC_FOREGROUND` / `#define GCBackground ANDROID_GC_BACKGROUND`
+   (both `1 << n`, `include/androidgui.rs` 92-93), and the X11 arm above gets the two names from
+   `<X11/X.h>` 566-567 as `(1L<<2)`/`(1L<<3)` - which is `include/xlib.rs`'s pair now.  The gate is
+   what makes that split real: ungated, this pair handed the X11 arm the value `3` where C passes
+   `12` (measured with clang against the real header: `GCForeground=4 GCBackground=8`), and the
+   `xftfont` unit could only record the divergence in its ledger (status 3.535 fixes it).  */
+#[cfg (not (feature = "have_x_windows"))]
+pub const GCForeground: c_int = 1 << 0;
+#[cfg (not (feature = "have_x_windows"))]
+pub const GCBackground: c_int = 1 << 1;
 
 #[cfg (all (not (feature = "have_window_system"), not (feature = "have_android")))]
 pub type Emacs_Cursor = *mut c_void;

@@ -169,13 +169,13 @@ const _: () = {
   core::assert! (std::mem::offset_of! (XGCValues, background) == 24);
 };
 /* X.h 566-567: `#define GCForeground (1L<<2)` / `#define GCBackground (1L<<3)` - the two value
-   masks C 85 ORs together.  In an X11 build those are 4 and 8; `include/dispextern.rs` 92-94
-   declares the same two names with the Emacs_GC arm's values (`0x01`/`0x02`, the w32/ns GC
-   representation `src/w32term.rs` uses), and the mirror's declarations are *not* gated by arm, so
-   this unit must use them as they stand: a second copy is `E0428` in the ported tree and a
-   `check-mirror-dupes.py` failure (both measured).  The ledger's Deviations 10 and Owed name the
-   mirror arm that has to split the pair - the X11 arm of these two names needs `<X11/X.h>`'s
-   values, and the Emacs_GC pair belongs to the arms that build an `Emacs_GC`.  */
+   masks C 85 ORs together.  The arm split this comment used to ask for landed in status 3.535:
+   `include/dispextern.rs`'s pair is the *fallback* arm's now (`1`/`2`, C's `ANDROID_GC_*` values,
+   gated `not (feature = "have_x_windows")`) and `include/xlib.rs`'s `x11_constants` module
+   carries X11's (`4`/`8`, clang-measured against the real header).  The two names live in that
+   module - it is a nested module, so its items are named through it - and the single use site
+   below does exactly that (the `widget.rs` `use x11_constants::CopyFromParent;` shape).  This is
+   also the ledger's Deviations 10, closed.  */
 /// C: Xlib.h 1839-1842: `extern int XScreenNumberOfScreen (Screen *);` - the name
 /// `include/xterm.rs` 1166's `FRAME_X_SCREEN_NUMBER!` body calls (C 186-187 and 674), which no
 /// mirror declares; Owed 5 names it for `include/xlib.rs`.
@@ -1049,6 +1049,7 @@ unsafe extern "C" fn xftfont_get_colors (f: *mut c_void, face: *mut c_void, gc: 
       let mut bg_done: bool = false;
 
       block_input ();                                       // C 83
+      use x11_constants::{GCBackground, GCForeground};      // X.h 566-567 (status 3.535)
       XGetGCValues (FRAME_X_DISPLAY! ((f as *mut frame)), gc,
 		    (GCForeground | GCBackground) as c_ulong,
 		    &raw mut xgcv);                      // C 84-85

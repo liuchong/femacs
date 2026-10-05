@@ -61,6 +61,16 @@ pub mod x11_constants {
 
   /// X11/X.h 115: `#define None 0L` - "universal null resource or null atom".
   pub const None: c_long = 0;
+  /// X11/X.h 566-567: `#define GCForeground (1L<<2)` / `#define GCBackground (1L<<3)` - the two
+  /// value masks an X11 build ORs into `XCreateGC`'s valuemask (measured with clang against the
+  /// real header: `GCForeground=4 GCBackground=8`).  `include/dispextern.rs`'s pair of the same
+  /// names is the *fallback* arm's (C's `ANDROID_GC_*` values, `1`/`2`) and carries
+  /// `not (feature = "have_x_windows")` so the two arms cannot both be live (status 3.535).
+  #[cfg (feature = "have_x_windows")]
+  pub const GCForeground: c_int = 1 << 2;
+  #[cfg (feature = "have_x_windows")]
+  pub const GCBackground: c_int = 1 << 3;
+
   /// X11/X.h 350: `#define Success 0` - "everything's okay".
   pub const Success: c_int = 0;
   /// X11/X.h 121: `#define CopyFromParent 0L` - the CreateWindow border/colormap value.
