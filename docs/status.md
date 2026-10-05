@@ -7745,3 +7745,36 @@
      相同"）；臂读数只到**名字解析**阶段且撞镜像断言，**不构成两臂可编**；C 824-5,857（`FOR_EACH_TAIL`、
      emit/gimple 段、`load_comp_unit`、`syms_of_comp` 的门内区）**未照录**；**预算如实报**：`build-tu` 5 发、
      `probe` 5 发（限各 3）。
+
+- **3.437 pgtkterm 切片 1（C 1-1078）：设备回调族、`pgtk_free_frame_resources` 与帧几何（2026-10-05）**：
+  ① **区间**：C 1-1078（收在 `pgtk_set_no_accept_focus` 的 `}`）；**下一个活定义 = C 1080 `pgtk_set_z_group`**。
+     34 个函数全部落成（与 C 同名同序）、8 个文件级对象、31 个 `macro_rules!`；33 行区间表同时覆盖
+     `pgtkterm.c` 7,780 行与 `pgtkterm.h` 681 行。
+  ② **行数**：`femacs/src/pgtkterm.rs` **11 → 2,044**；台账 `docs/ports/pgtkterm.md` 24 → **333**。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**（每项都在 `have_pgtk` 之后）；`check-cond-eval`
+     **31 条件 / 0 unknown / 0 disagreements [VERIFIED]**；PGTK 臂 **text-only**：`have_pgtk + have_window_system`
+     读 155-157 条错，**全部可分类**——143 条是 `include/pgtkterm.rs` 占位镜像欠的三条记录
+     （`pgtk_output` 122 / `pgtk_display_info` 14 / `pgtk_device_t` 7）、4 条是定义在 C 1080 之后的调用、
+     8 条是 `include/font.rs` **首次**被 window-system 臂编到的布局断言、`lisp.rs` 的 `VaList` 与 `xwidget.rs`
+     的 unsafe 各 1 条；**本切片自身的语句级错误 0 条**；`extract-abi --check` 195 条 `- `（192 条是未落
+     remainder 的覆盖陈述，真正要基线的只有 2 条 token + 1 条 drift）；`check-dead-file-coverage` 29/0、
+     `check-declarations` 10/0/0、`check-port-lines` 把 `src/pgtkterm.c` 退出棘轮。
+  ④ **真缺陷**：⑴ `pgtk_new_font` 在 C 875-876 是 **static**，首版写成 `#[unsafe(no_mangle)] pub`，
+     被 `--check` 的 "invented exported symbol" 抓住（已改）；⑵ `FRAME_OUTPUT_DATA` 漏译（错写成
+     `FRAME_X_OUTPUT`），被 token 规则抓住；⑶ 三条**镜像侧**缺陷首次被编到（`include/font.rs` 的 8 条布局
+     断言、`include/lisp.rs` 3756 的 `VaList` 需要 unstable `c_variadic`、`include/xwidget.rs` 203 在 unsafe
+     块外解引用裸指针）——是**发现**，归各自镜像轮，已入台账 `## Owed`；⑷ 自伤一处已修：块注释里引 C 的
+     `/*` 触发 `E0758`（与 `docs/ports/w32.md` 记录的首发缺陷同类）。
+  ⑤ **集成者本轮替它落的账**：`docs/ports/macro-body-notes.tsv` 两行（`CLEAR_IF_EQ` → `0,false`；
+     `pgtk_free_frame_resources` → `false`），`femacs/xtask/Cargo.toml` 登记 **`gdk_windowing_wayland`**。
+     **本提交同时把四个 landing 用到的 feature 名一次登记完**（`have_ts_tree_cursor_goto_previous_sibling`、
+     `have_zlib`、`libgccjit_have_{gcc_jit_context_new_bitcast,gcc_jit_global_set_initializer,gcc_jit_version,reflection}`、
+     `lisp_object_is_struct`、`ns_self_contained`、`treesit_language_version_ge_15`、
+     `gdk_windowing_wayland`，共十个）——Cargo.toml 是一个共享文件，按文件落而不是按单元落。
+     **欠账（点名）**：`include/pgtkterm.rs`/`include/gtkutil.rs` 的占位记录要搬回；`GtkAllocation` 布局、
+     `GdkInputSource` 宽度、`GTK_STYLE_PROVIDER_PRIORITY_USER` 的值需 GTK3 主机的 clang 实测（本机**没有 GTK 树**
+     且 `pkg-config` 不存在；cairo 1.18.4 与 GLib 2.90.0 在，`GList` 是 clang 实测 24/8）。
+  ⑥ **未声称**：**零运行证据**——本机没有 GTK 树也没有 PGTK 目标，冻结读数是 336 字节空对象（不编任何新文本），
+     臂读数只是 rustc 在**名字解析/类型**阶段停下的错误清单，"本切片自身 0 错"是很弱的读数（P-86 ⑦ 的变异
+     实验正是说明这类读数不能当编译通过）；C 1079-7,780（`pgtk_set_z_group` 起）**未移植**；**预算如实报**：
+     `build-tu` 6 发（限 3）、`probe` 3 发（限内）。
