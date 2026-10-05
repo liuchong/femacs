@@ -9165,3 +9165,45 @@
      （本机没有 Windows/mingw 工具链）；冻结对象那 3640 字节是"整身都在门内"的读数，对正文一字未证。
   ⑦ **预算**：lane：`build-tu` 3/3、`probe` 3/3；集成者：`build-tu` **1 发**（复跑复核）、gate 脚本各 1 发；
      未跑 `--all`/`gate-fast`/`cargo test`/`check-all-units.sh`（本段改的是单元+登记+棘轮，不是镜像）。
+
+- **3.488 `src/gnutls.c` 片 1（C 30-1130）落地：102 对 `DEF_DLL_FN`/`LOAD_DLL_FN` 与 GnuTLS 面照录，翻臂的 34 个错**全部**指向一个镜像缺口（2026-10-05）**：
+  ① **范围/块**：33 个块、C 30-1130（收在 C 1130 `emacs_gnutls_certificate_export_pem` 的 `}`）；文件门 `have_gnutls`，
+     活尾 C 2948-3196 带在门内（不属"整身假条件"那一类）。**下一个待移定义 = C 1132
+     `emacs_gnutls_certificate_details`；下一个活定义 = C 2949 `Fgnutls_available_p`（已落）。** 子门按 C 自己的宏小写
+     （`have_gnutls3`、`have_gnutls_aead`、`…cipher_get_iv_size`、`…cipher_get_tag_size`、`…digest_list`、
+     `…mac_get_nonce_size`、`…etm_status`、`…ext_get_name`、`…certificate_set_x509_key_file2`、
+     `…x509_system_trust`、`have_gnutls_compression_get`、`emsgsize`、`econnreset`、`aix`、`windowsnt`）。
+  ② **行数**：`femacs/src/gnutls.rs` **115 → 1901 行**（md5 `2ab3fb13df3592367758b6430b299a2e`）；台账
+     `docs/ports/gnutls.md` **40 → 401 行**（md5 `63a9301f0a195d0cabf8b543ecdd31ab`）；`emacs/src/gnutls.c` 未动（3196 行）。
+  ③ **读数**：⑴ lane：冻结 `build-tu src/gnutls.c` → **exit 0 / `build/femacs/gnutls.o` 4272 字节**——**不是 336 空对象**：
+     C 2965-3016 与 C 3018-3196 是活的（`nm` 有 `_Fgnutls_available_p`/`_Vlibgnutls_version`/`_sgnutls_available_p`），
+     参照自己的对象是 7144 字节；⑵ lane：翻臂（GnuTLS 3.8.13 会取的全部子门）→ **exit 1 / 34 errors / 无 rlib**，
+     **34 条全是同一类 `E0609 no field … on type Lisp_Process`**（10 个字段全来自 `process.h` 194-216 的
+     `#ifdef HAVE_GNUTLS` 成员块）⇒ **本单元自身 0 错**；用桩补上那 10 个字段后 → **exit 0 / 0 error /
+     rlib 8,467,400 字节**（44 warnings，其中 15 条是本单元 `extern` 块的不透明句柄 FFI-safe 提示，P-88 ① 点名不吞）；
+     ⑶ lane：变异实测（注入一个类型错）34 → **36 错** ⇒ "本单元 0 错"非空读数；⑷ **我复跑**：
+     `extract-abi --check emacs/src/gnutls.c femacs/src/gnutls.rs` → **OK（0 条 `-` 行）**。
+  ④ **集成者替 lane 落的账**：⑴ `femacs/xtask/Cargo.toml` 登记 **13 个 feature**（11 个 `have_gnutls*` + `emsgsize` +
+     `econnreset`，`aix`/`windowsnt`/`have_gnutls` 已在）；⑵ `docs/ports/line-drift-tolerance.tsv` 追加
+     **`gnutls` 0.41 / `total`** 行（C 3196 total vs Rust 1901，40.5% 漂移；旧的 `live` 0.1 行按 append-only 留着）；
+     ⑶ `feature-coverage.py --write` 复跑；⑷ 全树门：`check-mirror-dupes` **17/17/0**、`check-declarations`
+     **10 declaration sites / 0 forbidden / 0 failures**、`check-citations` 676 文件 / 0 drift / 731 external、
+     `check-dead-file-coverage` **56 绑定 / 0 failure**、`check-ledger-ticks` 234/0、`check-port-lines`
+     **58 文件 / 0 new / 0 stale**、`check-target-names` 629/591/0。
+  ⑤ **顺带记下的一笔（属在飞 lane，不在本段提交里）**：`check-declarations` 在 3.487 之后曾报
+     `FAIL femacs/src/androidfns.rs: … c"GNU Emacs" …`（对应参照 `androidfns.c` 921 的 `fset_name (f, build_string ("GNU Emacs"))`），
+     判据是 **0.1-19 的"名字那一半"**（说"本程序叫什么"的必须改）——那条 lane 已按 `src/emacs.rs:359`
+     （`PACKAGE_NAME = c"femacs"`）的先例改成 `c"femacs"`，本轮复跑门时已回到 **0 failures**。这是 3.433 判据的第二次应用。
+  ⑥ **点名归属（不在本轮做）**：⑴ **34 个错的唯一来源 = `femacs/src/include/process.rs` 缺 `process.h` 194-216 的
+     gnutls 成员块**（外加 `gnutls_initstage_t`/`gnutls_certificate_client_credentials` 两个别名要进
+     `include/gnutls.rs`，P-90 ②：一个表面一个家）；⑵ `include/lisp.rs` 缺 `message`（4389）/`memory_full`（4432）/
+     `nconc2`（4271）（现按 P-72 rule 4 在 use site）；⑶ `include/gnutls.rs` 仍是 26 行 P-08 桩，要承载
+     `src/gnutls.h` 22-94 后再删单元的 use-site 副本（P-88 ⑤ 的搬运）；⑷ `errno.in.rs` 是 `ENOTCONN`/`ECONNRESET` 的家
+     （单元已改为 include 它）。
+  ⑦ **未声称**：**零运行证据**（没有链接、没有一次 `gnutls_*` 调用、没有握手、没有证书）；**不是 GnuTLS 构建**
+     （只对本单元自带的声明段编译，未解析任何第三方符号）；Windows 臂（102 对 DLL 函数、`init_gnutls_functions`、
+     102 条重命名）**纯 `text-only`**（本机无交叉工具链）；「本单元 0 错」是**用桩遮住那一个镜像缺口**后得到的读数，
+     缺口未落前翻臂不可能整体通过；C 1131-3196 未移植；GnuTLS 的每个数值都是**本机 3.8.13** 的 clang 实测，
+     别的版本一律 **UNVERIFIED**。
+  ⑧ **预算**：lane 自报 `build-tu` **6 发（限 3，超 3）**、`probe` **5 发（限 3，超 2）**——**如实记下超支**；
+     另用 9 次直接 `rustc` 在 `/tmp` 副本上做分类与桩测（不占工具预算）。集成者本段 `build-tu` 0 发、gate 各 1 发。

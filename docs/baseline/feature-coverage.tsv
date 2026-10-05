@@ -34,8 +34,8 @@ have_lcms2	54	1	-	-
 have_ext_menu_bar	51	3	-	-
 have_xinput2	51	6	-	-
 have_zlib	51	2	-	-
+have_kqueue	49	1	-	-
 test	49	4	-	-
-have_kqueue	47	1	-	-
 use_gamedir	44	1	-	-
 have_gfilenotify	38	1	-	-
 glyph_debug	36	5	xtask dead-arms	-
