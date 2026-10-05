@@ -1365,3 +1365,8 @@ pgtk_explicitly_set_name	true	C's flag word passes `true` literally into the fra
 pgtk_implicitly_set_name	false	C passes `false` into the frame-flag macro (status 3.461)
 pgtk_set_menu_bar_lines	update_mode_line	C's `f->update_mode_line = true` is the port's `fset_update_mode_line (…)` accessor over the bitfield, so the field name has no site (status 3.461)
 x_change_tool_bar_height	update_mode_line	see `pgtk_set_menu_bar_lines` (status 3.461)
+sfnt_read_fvar_table	goto,alloca	C 13940-14155's `bail:` label and its fourteen `goto bail;` sites become the port's labeled block + `break 'bail` (the sfntfont.rs 690 shape), and C 14096's `alloca` is P-05's `sa_stack_alloc` (the `sfnt_build_outline_edges` precedent, status 3.463) - status 3.478
+sfnt_read_gvar_table	goto	C 14164-14318's thirteen `goto bail;` become the same labeled block (see `sfnt_read_fvar_table`) - status 3.478
+sfnt_read_avar_table	goto	C 14327-14443's `bail:`/`bail1:` labels and their seven `goto bail;`/`goto bail1;` sites become the port's labeled blocks + `break 'bail`/`break 'bail1` (see `sfnt_read_fvar_table`) - status 3.478
+sfnt_read_packed_points	goto	C 14509/14522/14537's three `goto bail;` become the port's `'bail:` block + `break 'bail` (see `sfnt_read_fvar_table`) - status 3.478
+sfnt_validate_gs	switch,case,break	C 10543's `switch (gs->round_state)` and its `case N:` arms with their `break;` become the port's `match` (PORTING.md 2.2; the `doprnt` row's precedent for C's switch syntax) - status 3.478

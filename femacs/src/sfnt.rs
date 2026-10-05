@@ -8,16 +8,22 @@
 // select.
 //
 // **This file is P-86's largest unit (C 21,215 lines) and is being ported in slices.**  The
-// slices so far are C 1-6306: slice 1 (C 1-1112, through `sfnt_read_cmap_table`), slice 2 (the
-// glyph lookup routines, the table readers and the two glyph outline readers, C 1113-2407),
-// slice 3 (the glyph outline decomposition, C 2408-3594), slice 4 (the outline builders and the
-// "ragged" rasterizer, C 3595-4543), slice 5 (the "exact coverage scaler", C 4544-5451) and
-// slice 6 (the metrics, name and meta readers, the TrueType collection header and the table
-// readers and fixed-point helpers the interpreter needs, C 5455-6306).  **The next live
-// definition is C 6316's `sfnt_init_graphics_state`** - and it is *blocked*: its only callee,
-// `sfnt_validate_gs` (declared C 6310), is defined at C 10538 in the remainder, which is the
-// ledger's Owed 12.  The ledger `docs/ports/sfnt.md` carries the C line-range table for C 1-6306
-// plus the "the remainder" row, the `## Evidence` readings and the `## Deviations`.
+// slices so far are C 1-6306 plus slice 7's two out-of-order ranges: slice 1 (C 1-1112, through
+// `sfnt_read_cmap_table`), slice 2 (the glyph lookup routines, the table readers and the two glyph
+// outline readers, C 1113-2407), slice 3 (the glyph outline decomposition, C 2408-3594), slice 4
+// (the outline builders and the "ragged" rasterizer, C 3595-4543), slice 5 (the "exact coverage
+// scaler", C 4544-5451), slice 6 (the metrics, name and meta readers, the TrueType collection
+// header and the table readers and fixed-point helpers the interpreter needs, C 5455-6306) and
+// slice 7 (C 10225-10663, the graphics-state validation family, and C 13918-14554, the glyph
+// variation readers - two ranges at their own C positions, chosen by PORTING.md **P-91 ①**'s
+// dependency closure rather than by walking C's order, because Rust has no prototype for a
+// `static` function: C 6316's `sfnt_init_graphics_state` calls `sfnt_validate_gs`, whose
+// definition C 10538 had to land first).  **The next live definition is C 6316's
+// `sfnt_init_graphics_state`, now unblocked**: its callee is in the file at C 10538's text, and
+// only Owed 12's second half (`sfnt_make_interpreter`'s C 6427-6431 `#ifdef TEST` hooks) and the
+// C 6316-10224 block itself remain.  The ledger `docs/ports/sfnt.md` carries the C line-range
+// table for the fifty-four rows (up to C 21215), the `## Evidence` readings and the
+// `## Deviations`.
 //
 // The frozen configuration compiles no `sfnt.o`: `configure.ac` 2645 adds `sfnt.o` to
 // `ANDROID_OBJ` only inside the `XCONFIGURE = android` branch (the `REALLY_ANDROID` one,
@@ -7189,3 +7195,1253 @@ unsafe fn sfnt_round_f26dot6 (mut x: sfnt_f26dot6) -> sfnt_f26dot6
   /* Remove the fractional.  */
   return x & !0o77;
 }
+/* C 10225-10663: the graphics-state validation family.  It is ported **here**, ahead of the
+   C 6307-10224 block, because of P-91 ①: `sfnt_init_graphics_state` (C 6316) calls
+   `sfnt_validate_gs`, whose definition is C 10538, and Rust has no prototype for a `static`
+   function (PORTING.md 0.1-12).  The text stands in C's own position (P-91 ②) - after slice 6's
+   C 6306 text and before the C 13918 group below.  Every callee is already in this unit
+   (`sfnt_round_f26dot6` C 6298, `sfnt_floor_f26dot6` C 6281, `sfnt_ceil_f26dot6` C 6289, all
+   slice 6, and `sfnt_multiply_divide_signed` C 3696-3714, slice 5), so the group is closed and
+   needs none of P-91 ④'s allowances.  */
+
+/* ``Add engine compensation to X''.  Since engine compensation is not
+   implemented here, this simply returns X.  INTERPRETER is
+   unused.  */
+
+/* C's `static sfnt_f26dot6 sfnt_round_none (…)` is one of the eight `round` callbacks - the
+   type of `sfnt_graphics_state.round` (mirror C 1797) - so it is `unsafe extern "C"` here
+   (PORTING.md 1.4), and the seven below it are the same.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_round_none (x: sfnt_f26dot6, interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10230-10234
+{
+  return x;
+}
+
+/* Round X to the grid after adding engine compensation.  Return the
+   result.  INTERPRETER is unused.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_round_to_grid (x: sfnt_f26dot6, interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10239-10243
+{
+  return sfnt_round_f26dot6 (x);
+}
+
+/* Round X to the nearest half integer or integer and return the
+   result.  INTERPRETER is unused.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_round_to_double_grid (x: sfnt_f26dot6,
+						interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10248-10253
+{
+  return (x + 0o20) & !0o37;
+}
+
+/* Take the floor of X and return the result.  INTERPRETER is
+   unused.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_round_down_to_grid (x: sfnt_f26dot6,
+					      interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10258-10263
+{
+  return sfnt_floor_f26dot6 (x);
+}
+
+/* Take the ceiling of X and return the result.  INTERPRETER is
+   unused.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_round_up_to_grid (x: sfnt_f26dot6,
+					    interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10268-10273
+{
+  return sfnt_ceil_f26dot6 (x);
+}
+
+/* Round X to only the nearest half integer and return the result.
+   INTERPRETER is unused.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_round_to_half_grid (x: sfnt_f26dot6,
+					      interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10278-10283
+{
+  return sfnt_floor_f26dot6 (x) + 32;
+}
+
+/* Round X using the detailed rounding information ``super rounding
+   state'' in INTERPRETER.  Value is the result.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_round_super (x: sfnt_f26dot6, interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10288-10305
+{
+  let mut value: sfnt_f26dot6;
+
+  /* Compute the rounded value.  */
+  value = sfnt_add! ((*interpreter).threshold
+		     - (*interpreter).phase, x);
+  value = sfnt_add! (value & -(*interpreter).period,
+		     (*interpreter).phase);
+
+  /* Remember that since the phase is specified by font instructions,
+     it is possible for the sign to be changed.  In that case, return
+     the phase itself.  */
+
+  return if value < 0 { (*interpreter).phase } else { value };
+}
+
+/* Round X using the detailed rounding information ``super rounding
+   state'' in INTERPRETER, but suitably for values that are multiples
+   of the sqrt of 2.  Value is the result.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_round_super45 (x: sfnt_f26dot6, interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10311-10330
+{
+  let mut value: sfnt_f26dot6;
+
+  /* Compute the rounded value.  */
+
+  value = ((sfnt_add! (x, ((*interpreter).threshold
+			   - (*interpreter).phase))
+	    / (*interpreter).period)
+	   * (*interpreter).period);
+  value = sfnt_add! (value, (*interpreter).phase);
+
+  /* Remember that since the phase is specified by font instructions,
+     it is possible for the sign to be changed.  In that case, return
+     the phase itself.  */
+
+  return if value < 0 { (*interpreter).phase } else { value };
+}
+
+/* Project the specified vector VX and VY onto the unit vector that is
+   INTERPRETER's projection vector, assuming that INTERPRETER's
+   projection vector is on the X axis.
+
+   Value is the magnitude of the projected vector.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_project_onto_x_axis_vector (vx: sfnt_f26dot6, vy: sfnt_f26dot6,
+						      interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10338-10343
+{
+  return vx;
+}
+
+/* Project the specified vector VX and VY onto the unit vector that is
+   INTERPRETER's projection vector, assuming that INTERPRETER's
+   projection vector is on the Y axis.
+
+   Value is the magnitude of the projected vector.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_project_onto_y_axis_vector (vx: sfnt_f26dot6, vy: sfnt_f26dot6,
+						      interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10351-10356
+{
+  return vy;
+}
+
+/* Calculate AX * BX + AY * BY divided by 16384.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_dot_fix_14 (ax: int32_t, ay: int32_t, bx: c_int, by: c_int) -> int32_t
+{                                                          // C 10360-10376
+  let mut xx: int64_t = ax as int64_t * bx as int64_t;
+  let mut yy: int64_t = ay as int64_t * by as int64_t;
+  xx += yy;
+  yy = xx >> 63;
+  xx += 0x2000 + yy;
+
+  /* TrueType fonts rely on "division" here truncating towards
+     negative infinity, so compute the arithmetic right shift in place
+     of division.  */
+  let mut temp: int64_t = -((xx < 0) as int64_t);
+  temp = (temp ^ xx) >> 14 ^ temp;
+  return temp as int32_t;
+}
+
+/* Project the specified vector VX and VY onto the unit vector that is
+   INTERPRETER's projection vector, making only the assumption that the
+   projection vector is a valid unit vector.
+
+   Value is the magnitude of the projected vector.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_project_onto_any_vector (vx: sfnt_f26dot6, vy: sfnt_f26dot6,
+						   interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10384-10391
+{
+  return sfnt_dot_fix_14 (vx, vy,
+			  (*interpreter).state.projection_vector.x as c_int,
+			  (*interpreter).state.projection_vector.y as c_int);
+}
+
+/* Project the specified vector VX and VY onto the unit vector that is
+   INTERPRETER's dual projection vector, making only the assumption
+   that the dual projection vector is a valid unit vector.
+
+   The dual projection vector is a vector that is normally the
+   projection vector, but can be set using the original unscaled
+   coordinates of two points as well.
+
+   Value is the magnitude of the projected vector.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_dual_project_onto_any_vector (vx: sfnt_f26dot6, vy: sfnt_f26dot6,
+							interpreter: *mut sfnt_interpreter)
+  -> sfnt_f26dot6                                        // C 10403-10410
+{
+  return sfnt_dot_fix_14 (vx, vy,
+			  (*interpreter).state.dual_projection_vector.x as c_int,
+			  (*interpreter).state.dual_projection_vector.y as c_int);
+}
+
+/* Move N points at *X, *Y by DISTANCE along INTERPRETER's freedom
+   vector.  Set N flags in *FLAGS where appropriate and when non-NULL.
+
+   Assume both vectors are aligned to the X axis.  */
+
+/* C's two `restrict`-qualified `sfnt_f26dot6 *` parameters (`x` and `y`) drop the qualifier -
+   Rust has no spelling for it - and `flags` is `*mut u8`, C's `unsigned char *`, which is the
+   type `sfnt_graphics_state.move` carries (mirror C 1814-1817).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_move_x (mut x: *mut sfnt_f26dot6, y: *mut sfnt_f26dot6,
+				  mut n: size_t, interpreter: *mut sfnt_interpreter,
+				  distance: sfnt_f26dot6, mut flags: *mut u8)
+{                                                          // C 10417-10430
+  while n != 0
+    {
+      *x = sfnt_add! (*x, distance);
+      x = x.offset (1);
+      n -= 1;
+
+      if !flags.is_null ()
+	{ *flags |= SFNT_POINT_TOUCHED_X as c_uchar; flags = flags.offset (1); }
+    }
+}
+
+/* Move N points at *X, *Y by DISTANCE along INTERPRETER's freedom
+   vector.  Set N flags in *FLAGS where appropriate and when non-NULL.
+
+   Assume both vectors are aligned to the Y axis.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_move_y (x: *mut sfnt_f26dot6, mut y: *mut sfnt_f26dot6,
+				  mut n: size_t, interpreter: *mut sfnt_interpreter,
+				  distance: sfnt_f26dot6, mut flags: *mut u8)
+{                                                          // C 10437-10450
+  while n != 0
+    {
+      *y = sfnt_add! (*y, distance);
+      y = y.offset (1);
+      n -= 1;
+
+      if !flags.is_null ()
+	{ *flags |= SFNT_POINT_TOUCHED_Y as c_uchar; flags = flags.offset (1); }
+    }
+}
+
+/* Move N points at *X, *Y by DISTANCE along INTERPRETER's freedom
+   vector.  Set N flags in *FLAGS where appropriate and when
+   non-NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_move (mut x: *mut sfnt_f26dot6, mut y: *mut sfnt_f26dot6,
+				n: size_t, interpreter: *mut sfnt_interpreter,
+				distance: sfnt_f26dot6, mut flags: *mut u8)
+{                                                          // C 10456-10521
+  let mut versor: sfnt_f26dot6;
+  let mut k: sfnt_f26dot6;
+  let mut dot_product: sfnt_f2dot14;
+  let mut num: size_t;
+  let mut flags_start: *mut u8;
+
+  dot_product = (*interpreter).state.vector_dot_product;
+
+  /* If the vectors are orthogonal, it is impossible to move anywhere,
+     so simply return.  */
+  if dot_product == 0
+    { return; }
+
+  /* Not actually 26.6, but the multiply-divisions below cancel each
+     other out, so the result is 26.6.  */
+  versor = (*interpreter).state.freedom_vector.x as sfnt_f26dot6;
+
+  /* Save flags that it may be restored for the second Y axis
+     loop.  */
+  flags_start = flags;
+
+  if versor != 0
+    {
+      /* Move along X axis, converting the distance to the freedom
+	 vector.  */
+      num = n;
+      k = sfnt_multiply_divide_signed (distance, versor,
+				       dot_product as c_int) as sfnt_f26dot6;
+
+      while num != 0
+	{
+	  *x = sfnt_add! (*x, k);
+	  x = x.offset (1);
+	  num -= 1;
+
+	  if !flags.is_null ()
+	    { *flags |= SFNT_POINT_TOUCHED_X as c_uchar; flags = flags.offset (1); }
+	}
+    }
+
+  flags = flags_start;
+  versor = (*interpreter).state.freedom_vector.y as sfnt_f26dot6;
+
+  if versor != 0
+    {
+      /* Move along Y axis, converting the distance to the freedom
+	 vector.  */
+      num = n;
+      k = sfnt_multiply_divide_signed (distance, versor,
+				       dot_product as c_int) as sfnt_f26dot6;
+
+      while num != 0
+	{
+	  *y = sfnt_add! (*y, k);
+	  y = y.offset (1);
+	  num -= 1;
+
+	  if !flags.is_null ()
+	    { *flags |= SFNT_POINT_TOUCHED_Y as c_uchar; flags = flags.offset (1); }
+	}
+    }
+}
+
+/* Compute the dot product of the two versors A and B with
+   rounding.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_short_frac_dot (a: sfnt_f2dot14, b: sfnt_f2dot14) -> sfnt_f2dot14
+{                                                          // C 10526-10530
+  return (((a as c_long * b as c_long) + 8192) / 16384) as sfnt_f2dot14;
+}
+
+/* Validate the graphics state GS.
+   Establish function pointers for rounding and projection.
+   Establish dot product used to convert vector distances between
+   each other.  */
+
+/* C 10543's `switch (gs->round_state)` is C's arm order kept as the port's `match`; C has **no
+   `default:`**, so C's fall-through-to-nothing tail is the port's `_ => {}` (PORTING.md 2.2, the
+   slice-1 `sfnt_read_cmap_table_1` precedent).  The `switch`/`case` row that owes is Owed 14.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_validate_gs (gs: *mut sfnt_graphics_state)
+{                                                          // C 10537-10633
+  /* Establish the function used for rounding based on the round
+     state.  */
+
+  match (*gs).round_state
+    {
+      5 =>                                               /* Rounding off.  */
+	{ (*gs).round = Some (sfnt_round_none); }
+      0 =>                                               /* Round to half grid.  */
+	{ (*gs).round = Some (sfnt_round_to_half_grid); }
+      1 =>                                               /* Round to grid.  */
+	{ (*gs).round = Some (sfnt_round_to_grid); }
+      2 =>                                               /* Round to double grid.  */
+	{ (*gs).round = Some (sfnt_round_to_double_grid); }
+      4 =>                                               /* Round up to grid.  */
+	{ (*gs).round = Some (sfnt_round_up_to_grid); }
+      3 =>                                               /* Round down to grid.  */
+	{ (*gs).round = Some (sfnt_round_down_to_grid); }
+      6 =>                                               /* Fine grained rounding.  */
+	{ (*gs).round = Some (sfnt_round_super); }
+      7 =>                                               /* Fine grained rounding 45 degree variant.  */
+	{ (*gs).round = Some (sfnt_round_super45); }
+      _ => {}
+    }
+
+  /* Establish the function used for vector projection.
+     When the projection vector is an axis vector, a fast
+     version can be used.  */
+
+  if (*gs).projection_vector.x == 0o40000
+    { (*gs).project = Some (sfnt_project_onto_x_axis_vector); }
+  else if (*gs).projection_vector.y == 0o40000
+    { (*gs).project = Some (sfnt_project_onto_y_axis_vector); }
+  else
+    { (*gs).project = Some (sfnt_project_onto_any_vector); }
+
+  /* Do the same for the dual projection vector.  */
+
+  if (*gs).dual_projection_vector.x == 0o40000
+    { (*gs).dual_project = Some (sfnt_project_onto_x_axis_vector); }
+  else if (*gs).dual_projection_vector.y == 0o40000
+    { (*gs).dual_project = Some (sfnt_project_onto_y_axis_vector); }
+  else
+    { (*gs).dual_project = Some (sfnt_dual_project_onto_any_vector); }
+
+  /* Compute dot product of the freedom and projection vectors.
+     Handle the common case where the freedom vector is aligned
+     to an axis.  */
+
+  if (*gs).freedom_vector.x == 0o40000
+    { (*gs).vector_dot_product = (*gs).projection_vector.x; }
+  else if (*gs).freedom_vector.y == 0o40000
+    { (*gs).vector_dot_product = (*gs).projection_vector.y; }
+  else
+    /* Actually calculate the dot product.  */
+    {
+      (*gs).vector_dot_product
+	= (sfnt_short_frac_dot ((*gs).projection_vector.x,
+				(*gs).freedom_vector.x) as c_int
+	   + sfnt_short_frac_dot ((*gs).projection_vector.y,
+				  (*gs).freedom_vector.y) as c_int) as sfnt_f2dot14;
+    }
+
+  /* If the product is less than 1/16th of a vector, prevent overflow
+     by resetting it to 1.  */
+
+  if (*gs).vector_dot_product > -0x400
+      && (*gs).vector_dot_product < 0x400
+    {
+      (*gs).vector_dot_product = (if (*gs).vector_dot_product < 0
+				  { -0x4000 } else { 0x4000 }) as sfnt_f2dot14;
+    }
+
+  /* Now figure out which function to use to move distances.  Handle
+     the common case where both the freedom and projection vectors are
+     aligned to an axis.  */
+
+  if (*gs).freedom_vector.x == 0o40000
+      && (*gs).projection_vector.x == 0o40000
+    { (*gs).r#move = Some (sfnt_move_x); }
+  else if (*gs).freedom_vector.y == 0o40000
+	   && (*gs).projection_vector.y == 0o40000
+    { (*gs).r#move = Some (sfnt_move_y); }
+  else
+    { (*gs).r#move = Some (sfnt_move); }
+}
+
+/* Set the X and Y versors of the freedom vector of INTERPRETER's
+   graphics state to the specified X and Y, in 2.14 fixed point
+   format.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_set_freedom_vector (interpreter: *mut sfnt_interpreter,
+				   x: sfnt_f2dot14, y: sfnt_f2dot14)
+{                                                          // C 10639-10647
+  (*interpreter).state.freedom_vector.x = x;
+  (*interpreter).state.freedom_vector.y = y;
+
+  sfnt_validate_gs (&raw mut (*interpreter).state);
+}
+
+/* Set the X and Y versors of the projection vector of INTERPRETER's
+   graphics state to the specified X and Y, in 2.14 fixed point
+   format.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_set_projection_vector (interpreter: *mut sfnt_interpreter,
+				      x: sfnt_f2dot14, y: sfnt_f2dot14)
+{                                                          // C 10653-10663
+  (*interpreter).state.projection_vector.x = x;
+  (*interpreter).state.projection_vector.y = y;
+  (*interpreter).state.dual_projection_vector.x = x;
+  (*interpreter).state.dual_projection_vector.y = y;
+
+  sfnt_validate_gs (&raw mut (*interpreter).state);
+}
+
+/* C 13918-14554: the glyph-variation readers, ported at their own C position (P-91 ②).  C 13919's
+   form feed is dropped the way C 343-345's and C 1467-1469's were (the banner text is kept).
+   Every name these four readers call is already in this unit - `sfnt_find_table`, `xmalloc`,
+   `xrealloc`, `xfree`, `xaddrealloc`, `read`, `lseek`, `memcpy`,
+   `sfnt_swap16!`/`sfnt_swap32!`, `SFNT_ENDOF!` and P-05's `sa_stack_alloc` for C 14096's `alloca`
+   - so, like the C 10225 group above, this range needs none of P-91 ④'s allowances.  */
+
+/* Glyph variations.  Instead of defining separate fonts for each
+   combination of weight, width and slant (bold, condensed, italic,
+   etc), some fonts specify a list of ``variation axes'', which are
+   options that accept values consisting of numbers on scales
+   governing deltas applied to select points in their glyphs.
+
+   Particular styles within the font are then supplied as sets of
+   values on these scales to which their respective axes are set,
+   termed ``instances''.
+
+   This optional information is specified in the `fvar' (font
+   variation), `gvar' (glyph variation) and `cvar' (CVT variation)
+   tables in a font file.  */
+
+/* Read an fvar table from the given font FD.  Use the table directory
+   specified in SUBTABLE.
+
+   Return the fvar table upon success, else NULL.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_fvar_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_fvar_table                                // C 13940-14155
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut fvar: *mut sfnt_fvar_table;
+  let mut rc: ssize_t;
+  let mut min_bytes: size_t;
+  let mut ps_size: size_t;
+  let mut non_ps_size: size_t;
+  let mut temp: size_t;
+  let mut pad: size_t;
+  let mut offset: off_t;
+  let mut i: c_int;
+  let mut j: c_int;
+  let mut buffer: *mut c_char;
+  let mut coords: *mut sfnt_fixed;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_FVAR);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  min_bytes = SFNT_ENDOF! (sfnt_fvar_table,
+			   instance_size, uint16_t);
+
+  /* Check that the length is at least min_bytes.  */
+  if ((*directory).length as size_t) < min_bytes
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Allocate enough to hold the fvar table header.  */
+  fvar = xmalloc (std::mem::size_of::<sfnt_fvar_table> ()) as *mut sfnt_fvar_table;
+
+  /* Read the fvar table header.  */
+  buffer = std::ptr::null_mut ();
+
+  'bail: {
+    rc = read (fd, fvar as *mut c_void, min_bytes);
+    if rc == -1 || rc != min_bytes as ssize_t
+      { break 'bail; }
+
+    /* Swap what was read.  */
+    sfnt_swap16! (&raw mut (*fvar).major_version);
+    sfnt_swap16! (&raw mut (*fvar).minor_version);
+    sfnt_swap16! (&raw mut (*fvar).offset_to_data);
+    sfnt_swap16! (&raw mut (*fvar).count_size_pairs);
+    sfnt_swap16! (&raw mut (*fvar).axis_count);
+    sfnt_swap16! (&raw mut (*fvar).axis_size);
+    sfnt_swap16! (&raw mut (*fvar).instance_count);
+    sfnt_swap16! (&raw mut (*fvar).instance_size);
+
+    /* major_version should be 1, and minor_version 0.  */
+
+    if (*fvar).major_version != 1 || (*fvar).minor_version != 0
+      { break 'bail; }
+
+    /* count_size_pairs should be more than 2.  */
+
+    if (*fvar).count_size_pairs < 2
+      { break 'bail; }
+
+    /* Don't try to read tables where the axis format differs.  */
+
+    if (*fvar).axis_size != 20
+      { break 'bail; }
+
+    /* The instance size must either be 2 * sizeof (uint16_t) +
+       axisCount * sizeof (sfnt_fixed), meaning there is no PostScript
+       name identifier, or 3 * sizeof (uint16_t) + axisCount * sizeof
+       (sfnt_fixed), meaning there is.  */
+
+    let (ckd_temp, mul_overflow) = ((*fvar).axis_count as size_t)
+      .overflowing_mul (std::mem::size_of::<sfnt_fixed> ());
+    temp = ckd_temp;
+    if mul_overflow
+      { break 'bail; }
+    let (ckd_non_ps_size, add_overflow) = temp
+      .overflowing_add (2 * std::mem::size_of::<uint16_t> ());
+    non_ps_size = ckd_non_ps_size;
+    if add_overflow
+      { break 'bail; }
+
+    let (ckd_temp, mul_overflow) = ((*fvar).axis_count as size_t)
+      .overflowing_mul (std::mem::size_of::<sfnt_fixed> ());
+    temp = ckd_temp;
+    if mul_overflow
+      { break 'bail; }
+    let (ckd_ps_size, add_overflow) = temp
+      .overflowing_add (3 * std::mem::size_of::<uint16_t> ());
+    ps_size = ckd_ps_size;
+    if add_overflow
+      { break 'bail; }
+
+    if (*fvar).instance_size as size_t != non_ps_size
+	&& (*fvar).instance_size as size_t != ps_size
+      { break 'bail; }
+
+    /* Now compute the offset of the axis data from the start of the
+       font file.  */
+
+    let (ckd_offset, add_overflow) = ((*fvar).offset_to_data as off_t)
+      .overflowing_add ((*directory).offset as off_t);
+    offset = ckd_offset;
+    if add_overflow
+      { break 'bail; }
+
+    /* Seek there.  */
+
+    if lseek (fd, offset, SEEK_SET) != offset
+      { break 'bail; }
+
+    min_bytes = std::mem::size_of::<sfnt_fvar_table> ();
+
+    /* Now, read each axis and instance.  Calculate how much extra data
+       needs to be allocated for the axes and instances: this is
+       fvar->axis_count * sizeof (struct sfnt_variation_axis), some
+       padding, and finally fvar->instance_count * sizeof (struct
+       sfnt_instance) + sizeof (sfnt_fixed) * fvar->instance_count *
+       fvar->axis_count.  */
+
+    let (ckd_temp, mul_overflow) = ((*fvar).axis_count as size_t)
+      .overflowing_mul (std::mem::size_of::<sfnt_variation_axis> ());
+    temp = ckd_temp;
+    if mul_overflow
+      { break 'bail; }
+    let (ckd_min_bytes, add_overflow) = min_bytes.overflowing_add (temp);
+    min_bytes = ckd_min_bytes;
+    if add_overflow
+      { break 'bail; }
+
+    pad = std::mem::align_of::<sfnt_instance> ();
+    pad -= min_bytes & (pad - 1);
+
+    let (ckd_min_bytes, add_overflow) = min_bytes.overflowing_add (pad);
+    min_bytes = ckd_min_bytes;
+    if add_overflow
+      { break 'bail; }
+
+    let (ckd_temp, mul_overflow) = ((*fvar).instance_count as size_t)
+      .overflowing_mul (std::mem::size_of::<sfnt_instance> ());
+    temp = ckd_temp;
+    if mul_overflow
+      { break 'bail; }
+    let (ckd_min_bytes, add_overflow) = min_bytes.overflowing_add (temp);
+    min_bytes = ckd_min_bytes;
+    if add_overflow
+      { break 'bail; }
+
+    let (ckd_temp, mul_overflow) = ((*fvar).instance_count as size_t)
+      .overflowing_mul (std::mem::size_of::<sfnt_fixed> ());
+    temp = ckd_temp;
+    if mul_overflow
+      { break 'bail; }
+    let (ckd_temp, mul_overflow) = temp.overflowing_mul ((*fvar).axis_count as size_t);
+    temp = ckd_temp;
+    if mul_overflow
+      { break 'bail; }
+    let (ckd_min_bytes, add_overflow) = min_bytes.overflowing_add (temp);
+    min_bytes = ckd_min_bytes;
+    if add_overflow
+      { break 'bail; }
+
+    /* Reallocate fvar.  */
+    fvar = xrealloc (fvar as *mut c_void, min_bytes) as *mut sfnt_fvar_table;
+
+    /* Fill in offsets.  */
+    (*fvar).axis = fvar.offset (1) as *mut sfnt_variation_axis;
+    (*fvar).instance
+      = ((*fvar).axis.offset ((*fvar).axis_count as isize) as *mut c_char)
+	.offset (pad as isize) as *mut sfnt_instance;
+
+    /* Read axes.  */
+
+    if ((*directory).length as size_t
+	- SFNT_ENDOF! (sfnt_fvar_table, instance_size, uint16_t)
+	< std::mem::size_of::<sfnt_variation_axis> () * ((*fvar).axis_count as size_t))
+      { break 'bail; }
+
+    rc = read (fd, (*fvar).axis as *mut c_void,
+	       std::mem::size_of::<sfnt_variation_axis> () * ((*fvar).axis_count as size_t));
+    if rc == -1
+	|| rc != (std::mem::size_of::<sfnt_variation_axis> ()
+		  * ((*fvar).axis_count as size_t)) as ssize_t
+      { break 'bail; }
+
+    /* Swap each axis.  */
+
+    i = 0;
+    while i < (*fvar).axis_count as c_int
+      {
+	sfnt_swap32! (&raw mut (*(*fvar).axis.offset (i as isize)).axis_tag);
+	sfnt_swap32! (&raw mut (*(*fvar).axis.offset (i as isize)).min_value);
+	sfnt_swap32! (&raw mut (*(*fvar).axis.offset (i as isize)).default_value);
+	sfnt_swap32! (&raw mut (*(*fvar).axis.offset (i as isize)).max_value);
+	sfnt_swap16! (&raw mut (*(*fvar).axis.offset (i as isize)).flags);
+	sfnt_swap16! (&raw mut (*(*fvar).axis.offset (i as isize)).name_id);
+	i += 1;
+      }
+
+    /* Read each instance.  */
+
+    if (*fvar).instance_size < 1024 * 16
+      { buffer = sa_stack_alloc ((*fvar).instance_size as size_t) as *mut c_char; }
+    else
+      { buffer = xmalloc ((*fvar).instance_size as size_t) as *mut c_char; }
+
+    coords = (*fvar).instance.offset ((*fvar).instance_count as isize) as *mut sfnt_fixed;
+
+    i = 0;
+    while i < (*fvar).instance_count as c_int
+      {
+	rc = read (fd, buffer as *mut c_void, (*fvar).instance_size as size_t);
+	if rc != (*fvar).instance_size as ssize_t
+	  { break 'bail; }
+
+	/* Fill in various fields.  */
+
+	(*(*fvar).instance.offset (i as isize)).name_id
+	  = *(buffer as *mut uint16_t);
+	(*(*fvar).instance.offset (i as isize)).flags
+	  = *(buffer as *mut uint16_t).offset (1);
+	(*(*fvar).instance.offset (i as isize)).ps_name_id = 0;
+
+	sfnt_swap16! (&raw mut (*(*fvar).instance.offset (i as isize)).name_id);
+	sfnt_swap16! (&raw mut (*(*fvar).instance.offset (i as isize)).flags);
+
+	/* Read coordinates.  */
+
+	(*(*fvar).instance.offset (i as isize)).coords = coords;
+	coords = coords.offset ((*fvar).axis_count as isize);
+
+	memcpy ((*(*fvar).instance.offset (i as isize)).coords as *mut c_void,
+		buffer.offset (4) as *const c_void,
+		std::mem::size_of::<sfnt_fixed> () * ((*fvar).axis_count as size_t));
+
+	/* Swap coordinates.  */
+
+	j = 0;
+	while j < (*fvar).axis_count as c_int
+	  {
+	    sfnt_swap32! (&raw mut *(*(*fvar).instance.offset (i as isize)).coords
+			  .offset (j as isize));
+	    j += 1;
+	  }
+
+	/* Read the PostScript name ID if necessary.  If not, set it to
+	   nil.  */
+
+	if (*fvar).instance_size as size_t == ps_size
+	  {
+	    (*(*fvar).instance.offset (i as isize)).ps_name_id
+	      = *(buffer.offset ((4 + (std::mem::size_of::<sfnt_fixed> ()
+				      * ((*fvar).axis_count as size_t))) as isize)
+		  as *mut uint16_t);
+	    sfnt_swap16! (&raw mut (*(*fvar).instance.offset (i as isize)).ps_name_id);
+	  }
+	i += 1;
+      }
+
+    /* Free the temporary buffer.  */
+    if !buffer.is_null () && (*fvar).instance_size >= 1024 * 16
+      { xfree (buffer as *mut c_void); }
+
+    /* Return the fvar table.  */
+    return fvar;
+  } /* 'bail (C 14149) */
+
+  /* bail: */
+  if !buffer.is_null () && (*fvar).instance_size >= 1024 * 16
+    { xfree (buffer as *mut c_void); }
+
+  xfree (fvar as *mut c_void);
+  return std::ptr::null_mut ();
+}
+
+/* Read a gvar table from the given font FD.  Use the table directory
+   specified in SUBTABLE.
+
+   Return the gvar table upon success, else NULL.  */
+
+/* C 14157's form feed is dropped (the C 13919 reading above).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_gvar_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_gvar_table                                // C 14164-14318
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut gvar: *mut sfnt_gvar_table;
+  let mut rc: ssize_t;
+  let mut min_bytes: size_t;
+  let mut off_size: size_t;
+  let mut coordinate_size: size_t;
+  let mut data_size: size_t;
+  let mut i: c_int;
+  let mut offset: off_t;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_GVAR);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  min_bytes = SFNT_ENDOF! (sfnt_gvar_table,
+			   offset_to_data, uint32_t);
+
+  /* Check that the length is at least min_bytes.  */
+  if ((*directory).length as size_t) < min_bytes
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Allocate enough to hold the gvar table header.  */
+  gvar = xmalloc (std::mem::size_of::<sfnt_gvar_table> ()) as *mut sfnt_gvar_table;
+
+  /* Read the gvar table header.  */
+  'bail: {
+    rc = read (fd, gvar as *mut c_void, min_bytes);
+    if rc == -1 || rc != min_bytes as ssize_t
+      { break 'bail; }
+
+    /* Swap what was read.  */
+    sfnt_swap16! (&raw mut (*gvar).version);
+    sfnt_swap16! (&raw mut (*gvar).reserved);
+    sfnt_swap16! (&raw mut (*gvar).axis_count);
+    sfnt_swap16! (&raw mut (*gvar).shared_coord_count);
+    sfnt_swap32! (&raw mut (*gvar).offset_to_coord);
+    sfnt_swap16! (&raw mut (*gvar).glyph_count);
+    sfnt_swap16! (&raw mut (*gvar).flags);
+    sfnt_swap32! (&raw mut (*gvar).offset_to_data);
+
+    if (*gvar).version != 1
+      { break 'bail; }
+
+    if (*gvar).offset_to_data > (*directory).length
+      { break 'bail; }
+
+    /* Figure out the size required for the offset array.  Note that
+       there is one extra offset at the end of the array to mark the
+       size of the last glyph.  */
+
+    if ((*gvar).flags & 1) != 0
+      /* Offsets are long words.  */
+      { off_size = std::mem::size_of::<uint32_t> () * ((*gvar).glyph_count as size_t + 1); }
+    else
+      /* Offsets are words.  */
+      { off_size = std::mem::size_of::<uint16_t> () * ((*gvar).glyph_count as size_t + 1); }
+
+    /* Now figure out the size of the shared coordinates.  */
+    coordinate_size = ((*gvar).shared_coord_count as size_t
+		       * ((*gvar).axis_count as size_t)
+		       * std::mem::size_of::<uint16_t> ());
+
+    /* And the size of the glyph variation data.  */
+    data_size = (*directory).length as size_t - ((*gvar).offset_to_data as size_t);
+
+    /* Wraparound.  */
+    if data_size > (*directory).length as size_t
+      { break 'bail; }
+
+    /* Figure out how big gvar needs to be.  */
+    let (ckd_min_bytes, add_overflow) = coordinate_size.overflowing_add (off_size);
+    min_bytes = ckd_min_bytes;
+    if add_overflow
+      { break 'bail; }
+    let (ckd_min_bytes, add_overflow) = min_bytes.overflowing_add (data_size);
+    min_bytes = ckd_min_bytes;
+    if add_overflow
+      { break 'bail; }
+
+    /* Now allocate enough for all of this extra data.  */
+    gvar = xaddrealloc (gvar as *mut c_void, std::mem::size_of::<sfnt_gvar_table> (),
+			min_bytes) as *mut sfnt_gvar_table;
+
+    /* Start reading offsets.  */
+
+    if ((*gvar).flags & 1) == 0
+      {
+	(*gvar).u.offset_word = gvar.offset (1) as *mut uint16_t;
+	rc = read (fd, (*gvar).u.offset_word as *mut c_void, off_size);
+	if rc != off_size as ssize_t
+	  { break 'bail; }
+
+	i = 0;
+	while i <= (*gvar).glyph_count as c_int
+	  {
+	    sfnt_swap16! (&raw mut *(*gvar).u.offset_word.offset (i as isize));
+	    i += 1;
+	  }
+      }
+    else
+      {
+	(*gvar).u.offset_long = gvar.offset (1) as *mut uint32_t;
+	rc = read (fd, (*gvar).u.offset_long as *mut c_void, off_size);
+	if rc == -1 || rc != off_size as ssize_t
+	  { break 'bail; }
+
+	i = 0;
+	while i <= (*gvar).glyph_count as c_int
+	  {
+	    sfnt_swap32! (&raw mut *(*gvar).u.offset_long.offset (i as isize));
+	    i += 1;
+	  }
+      }
+
+    /* Start reading shared coordinates.  */
+
+    (*gvar).global_coords
+      = (gvar.offset (1) as *mut c_char).offset (off_size as isize) as *mut sfnt_f2dot14;
+
+    if (*gvar).shared_coord_count != 0
+      {
+	let (ckd_offset, add_overflow) = ((*gvar).offset_to_coord as off_t)
+	  .overflowing_add ((*directory).offset as off_t);
+	offset = ckd_offset;
+	if add_overflow
+	  { break 'bail; }
+
+	if lseek (fd, offset, SEEK_SET) != offset
+	  { break 'bail; }
+
+	rc = read (fd, (*gvar).global_coords as *mut c_void, coordinate_size);
+
+	if rc == -1 || rc != coordinate_size as ssize_t
+	  { break 'bail; }
+
+	i = 0;
+	while i < (coordinate_size / std::mem::size_of::<sfnt_f2dot14> ()) as c_int
+	  {
+	    sfnt_swap16! (&raw mut *(*gvar).global_coords.offset (i as isize));
+	    i += 1;
+	  }
+      }
+
+    /* Finally, read the rest of the glyph variation data.  */
+    (*gvar).data_size = data_size;
+    (*gvar).glyph_variation_data
+      = (*gvar).global_coords.offset ((coordinate_size
+				       / std::mem::size_of::<sfnt_f2dot14> ()) as isize) as *mut u8;
+
+    if (*gvar).data_size != 0
+      {
+	let (ckd_offset, add_overflow) = ((*gvar).offset_to_data as off_t)
+	  .overflowing_add ((*directory).offset as off_t);
+	offset = ckd_offset;
+	if add_overflow
+	  { break 'bail; }
+
+	if lseek (fd, offset, SEEK_SET) != offset
+	  { break 'bail; }
+
+	rc = read (fd, (*gvar).glyph_variation_data as *mut c_void, (*gvar).data_size);
+
+	if rc == -1 || rc != (*gvar).data_size as ssize_t
+	  { break 'bail; }
+      }
+
+    /* Return the read gvar table.  */
+    return gvar;
+  } /* 'bail (C 14315) */
+
+  /* bail: */
+  xfree (gvar as *mut c_void);
+  return std::ptr::null_mut ();
+}
+
+/* Read an avar table from the given font FD.  Use the table directory
+   specified in SUBTABLE.
+
+   Return the avar table upon success, else NULL.  */
+
+/* C 14320's form feed is dropped.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_read_avar_table (fd: c_int,
+					       subtable: *mut sfnt_offset_subtable)
+  -> *mut sfnt_avar_table                                // C 14327-14443
+{
+  let mut directory: *mut sfnt_table_directory;
+  let mut avar: *mut sfnt_avar_table;
+  let mut rc: ssize_t;
+  let mut min_size: size_t;
+  let mut size: size_t;
+  let mut i: size_t;
+  let mut k: size_t;
+  let mut j: size_t;
+  let mut buffer: *mut uint16_t;
+  let mut correspondences: *mut sfnt_short_frac_correspondence;
+
+  /* Find the table in the directory.  */
+
+  directory = sfnt_find_table (subtable, SFNT_TABLE_AVAR);
+
+  if directory.is_null ()
+    { return std::ptr::null_mut (); }
+
+  min_size = SFNT_ENDOF! (sfnt_avar_table, axis_count, uint32_t);
+
+  /* Check that the length is at least min_size.  */
+  if ((*directory).length as size_t) < min_size
+    { return std::ptr::null_mut (); }
+
+  /* Seek to the location given in the directory.  */
+  if lseek (fd, (*directory).offset as off_t, SEEK_SET) == (-1 as off_t)
+    { return std::ptr::null_mut (); }
+
+  /* Allocate enough to hold the avar table header.  */
+  avar = xmalloc (std::mem::size_of::<sfnt_avar_table> ()) as *mut sfnt_avar_table;
+
+  /* Read the avar table header.  */
+  'bail: {
+    rc = read (fd, avar as *mut c_void, min_size);
+    if rc == -1 || rc != min_size as ssize_t
+      { break 'bail; }
+
+    /* Swap what was read.  */
+    sfnt_swap32! (&raw mut (*avar).version);
+    sfnt_swap32! (&raw mut (*avar).axis_count);
+
+    if (*avar).version != 0x00010000
+      { break 'bail; }
+
+    if (*avar).axis_count < 0
+      { break 'bail; }
+
+    /* Allocate a buffer that holds the rest of the data.  */
+    size = (*directory).length as size_t - min_size;
+    buffer = xmalloc (size) as *mut uint16_t;
+
+    'bail1: {
+      rc = read (fd, buffer as *mut c_void, size);
+      if rc == -1 || rc != size as ssize_t
+	{ break 'bail1; }
+
+      /* Swap each word.  */
+      i = 0;
+      while i < size / std::mem::size_of::<uint16_t> ()
+	{
+	  sfnt_swap16! (&raw mut *buffer.offset (i as isize));
+	  i += 1;
+	}
+
+      /* Now, determine how big the resulting data needs to be.  Each
+	 struct has a pointer field, and that should be its alignment.  */
+
+      k = 0;
+      min_size = std::mem::size_of::<sfnt_avar_table> ();
+      i = 0;
+      while i < (*avar).axis_count as size_t
+	{
+	  /* Check that k remains within bounds.  */
+	  if k >= size / std::mem::size_of::<uint16_t> ()
+	    { break 'bail1; }
+
+	  /* Now add one struct sfnt_short_frac_segment for each axis and
+	     each of its correspondences.  */
+	  let (ckd_min_size, add_overflow) = min_size
+	    .overflowing_add (std::mem::size_of::<sfnt_short_frac_segment> ());
+	  min_size = ckd_min_size;
+	  if add_overflow
+	    { break 'bail1; }
+	  let (ckd_min_size, add_overflow) = min_size
+	    .overflowing_add (std::mem::size_of::<sfnt_short_frac_correspondence> ()
+			      * (*buffer.offset (k as isize) as size_t));
+	  min_size = ckd_min_size;
+	  if add_overflow
+	    { break 'bail1; }
+
+	  /* Verify that words from here to buffer[1 + buffer[k] * 2], the
+	     next pairCount field, are within bounds.  */
+	  j = k + 1 + (*buffer.offset (k as isize) as size_t) * 2;
+	  if j > size / std::mem::size_of::<uint16_t> ()
+	    { break 'bail1; }
+
+	  /* Move to the next pairCount field.  */
+	  k = j;
+
+	  i += 1;
+	}
+
+      /* Resize avar to min_size and start filling in various
+	 pointers.  */
+      avar = xrealloc (avar as *mut c_void, min_size) as *mut sfnt_avar_table;
+      (*avar).segments = avar.offset (1) as *mut sfnt_short_frac_segment;
+      correspondences
+	= (*avar).segments.offset ((*avar).axis_count as isize)
+	as *mut sfnt_short_frac_correspondence;
+
+      k = 0;
+      i = 0;
+      while i < (*avar).axis_count as size_t
+	{
+	  (*(*avar).segments.offset (i as isize)).pair_count
+	    = *buffer.offset (k as isize);
+	  k += 1;
+	  (*(*avar).segments.offset (i as isize)).correspondence = correspondences;
+
+	  j = 0;
+	  while j < (*(*avar).segments.offset (i as isize)).pair_count as size_t
+	    {
+	      (*correspondences).from_coord = *buffer.offset (k as isize) as sfnt_f2dot14;
+	      k += 1;
+	      (*correspondences).to_coord = *buffer.offset (k as isize) as sfnt_f2dot14;
+	      k += 1;
+	      correspondences = correspondences.offset (1);
+
+	      j += 1;
+	    }
+
+	  i += 1;
+	}
+
+      /* Return the read avar table.  Free buffer.  */
+      xfree (buffer as *mut c_void);
+      return avar;
+    } /* 'bail1 (C 14438) */
+
+    /* bail1: */
+    xfree (buffer as *mut c_void);
+
+    /* C's `bail1:` tail falls through into `bail:`; the port's labelled blocks put `bail:`'s
+       tail after this block, so the fall-through is this `break 'bail`.  */
+    break 'bail;
+  } /* 'bail (C 14440) */
+
+  /* bail: */
+  xfree (avar as *mut c_void);
+  return std::ptr::null_mut ();
+}
+
+/* Read a sequence of packed points starting from DATA.  Return the
+   number of points read in *NPOINTS_RETURN and the array of unpacked
+   points, or NULL upon failure.
+
+   If non-NULL, set LOCATION to DATA plus the number of bytes read
+   upon success.
+
+   Return (uint16_t *) -1 if there are no points at all.
+   In this case, deltas will apply to all points in the glyph,
+   and *NPOINTS_RETURN will be UINT16_MAX.
+
+   END is one byte past the last byte in DATA.  */
+
+/* C 14445's form feed is dropped.  C's three `unsigned char *restrict` parameters drop the
+   `restrict` (no Rust spelling); `(uint16_t *) -1` is the port's `usize::MAX as *mut uint16_t`
+   (the `token-aliases.tsv` row the ledger owes).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_read_packed_points (mut data: *mut c_uchar, npoints_return: *mut uint16_t,
+				   end: *mut c_uchar, location: *mut *mut c_uchar)
+  -> *mut uint16_t                                       // C 14460-14554
+{
+  let mut npoints: c_int;
+  let mut points: *mut uint16_t;
+  let mut i: c_int;
+  let mut first: c_int;
+  let mut control: c_int;
+
+  points = std::ptr::null_mut ();
+  npoints = 0;
+
+  if data >= end
+    { return std::ptr::null_mut (); }
+
+  /* Load the control byte.  */
+  control = *data as c_int;
+  data = data.offset (1);
+
+  if control == 0
+    {
+      *npoints_return = UINT16_MAX as uint16_t;
+      *location = data;
+      return usize::MAX as *mut uint16_t;
+    }
+
+  /* Now figure out the number of points within.  */
+
+  if (control & 0x80) != 0
+    {
+      npoints = control & 0x7f;
+      npoints <<= 8;
+
+      if data >= end
+	{ return std::ptr::null_mut (); }
+
+      npoints |= *data as c_int;
+      data = data.offset (1);
+    }
+  else
+    { npoints = control; }
+
+  /* Start reading points.  */
+  first = 0;
+  i = 0;
+  points = xmalloc (std::mem::size_of::<uint16_t> () * npoints as size_t) as *mut uint16_t;
+
+  'bail: {
+    while i < npoints
+      {
+	if data >= end
+	  { break 'bail; }
+
+	control = *data as c_int;
+	data = data.offset (1);
+
+	if (control & 0x80) != 0
+	  {
+	    /* Next control & 0x7f words are points.  */
+
+	    control &= 0x7f;
+
+	    while control != -1 && i < npoints
+	      {
+		if data >= end || data.offset (1) >= end
+		  { break 'bail; }
+
+		first += ((*data as c_uint) << 8u32) as c_int;
+		data = data.offset (1);
+		first += *data as c_int;
+		data = data.offset (1);
+		*points.offset (i as isize) = first as uint16_t;
+		control -= 1;
+		i += 1;
+	      }
+	  }
+	else
+	  {
+	    /* Next control bytes are points.  */
+
+	    while control != -1 && i < npoints
+	      {
+		if data >= end
+		  { break 'bail; }
+
+		first += *data as c_int;
+		data = data.offset (1);
+		*points.offset (i as isize) = first as uint16_t;
+		control -= 1;
+		i += 1;
+	      }
+	  }
+      }
+
+    /* Return the points read.  */
+    *npoints_return = npoints as uint16_t;
+    *location = data;
+    return points;
+  } /* 'bail (C 14551) */
+
+  /* bail: */
+  xfree (points as *mut c_void);
+  return std::ptr::null_mut ();
+}
+
