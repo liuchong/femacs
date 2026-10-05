@@ -319,3 +319,33 @@ enter a program only when such a target is built - which is what `docs/ports/nsm
 records ("the port carries the target's text rather than a compilable unit").  The executable link
 set is therefore the 163 C-ABI objects and nothing else, and `check-link.py`'s "0 frozen source(s)
 have no built object" is a statement about a complete set rather than a filtered one.
+
+## 2026-10-05 (status 3.594): the `lib/` half of the link set had never been built
+
+Everything above reads `build/femacs/*.o`, and until today **nothing built the port's `lib/` units**:
+`tools/check-all-units.sh` sweeps `docs/baseline/frozen-build-sources.txt`, which is the *program*'s
+source list - the gnulib layer is not in it (it ships as `libgnu.a`).  `gate-load` assembles
+`build/load/libgnu-port.a` out of whatever `lib/*.o` happen to exist, so with nothing built the
+archive held **one** member, and `check-link.py` read **101 `port-owed` symbols that the port
+defines** - 59 of them mini-gmp's alone, whose port is `femacs/lib/mini-gmp.rs` (5,237 lines).
+
+Measured, in this order:
+
+* one extra object (`lib/mini-gmp.c`): `port-owed` **101 -> 47**, undefined 456 -> 398, failures 118 -> 59;
+* the 86 sources of **`docs/baseline/lib-link-sources.txt`** (derived from `ar t
+  build/emacs-ref/lib/libgnu.a`'s 87 members - `lib/<m>.c`, `lib/<m-minus-`-gnulib`>.c`,
+  `lib/malloc/<m>.c`): `port-owed` -> **5**, undefined -> **381**, failures -> **17**, and the sweep
+  itself is clean (`checked 86 unit(s), 0 failure(s)` + `checking 86 unit(s), 0 unit failure(s)`).
+
+So the link set is `build/femacs/<stem>.o` for the program's 76 objects **plus the 86 lib objects**;
+before `check-link.py`, run `KEEP_UNITS=1 tools/check-all-units.sh docs/baseline/lib-link-sources.txt`.
+
+**The 17 that remain are all `src/xdisp.c`**: nine `V...` carriers the unlanded `syms_of_xdisp`
+defines (`Vglobal_mode_string`, `Vline_number_display_limit`, `Vline_prefix`, `Vmode_line_compact`,
+`Vwrap_prefix`, `Vdisplay_line_numbers_{current_absolute,width}`,
+`Vdisplay_fill_column_indicator_{character,column}`), `pad_mode_line` (C 33,406), and six
+`#ifdef HAVE_WINDOW_SYSTEM` helpers (`display_fill_column_indicator`,
+`display_line_numbers_{major_tick,minor_tick,offset,widen}`, `line_number_display_limit_width`) that
+**the port's own `xdisp.o` references where the reference object does not** - a review item for the
+xdisp slice in flight (is the port's `#[cfg]` on those call sites the same as C's?), not a link-set
+artifact.  `_strcat` is a libc name the classifier files under `unknown`.
