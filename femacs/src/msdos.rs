@@ -111,8 +111,14 @@ include!("../lib/include/stdcountof.rs");      // lisp.h 28: `#include <stdcount
 include!("../lib/include/stdio.rs");           // C 37: `#include <stdio.h>` (`fprintf`, `fputc`, `FILE`)
 #[cfg (feature = "msdos")]
 include!("../lib/include/time.in.rs");         // C 38: `#include <time.h>` (`clock_t`)
-/* C 39's `#include <sys/param.h>` has no mirror; no name this slice takes comes from it (the
-   `src/pdumper.rs` 82 reading).  */
+/* C 39's `#include <sys/param.h>` has no mirror; slice 3's two arrays (C 3457's `emacsroot`
+   and C 3462's `result`) are its `MAXPATHLEN`, and the tree spells that constant at the use site
+   with the measured value (the `src/sysdep.rs` 369-370 / `src/pdumper.rs` 218-219 reading).
+   **UNVERIFIED** only in the sense that no `<sys/param.h>` is read here; the number is the
+   frozen target's.  One `## Deviations` entry.  */
+/// <sys/param.h>: `#define MAXPATHLEN 1024`
+#[cfg (feature = "msdos")]
+pub const MAXPATHLEN: usize = 1024;
 #[cfg (feature = "msdos")]
 include!("../lib/include/sys_time.rs");        // C 40: `#include <sys/time.h>`
 
@@ -150,6 +156,7 @@ pub struct RegsX
   pub dx: c_ushort,                     // C 245/259/261/…: `regs.x.dx`
   pub es: c_ushort,                     // C 458/1433: `regs.x.es`
   pub di: c_ushort,                     // C 459/1438: `regs.x.di`
+  pub flags: c_ushort,                  // C 2442: `regs.x.flags` (slice 3)
 }
 /// C 45's `<dos.h>`: the 8-bit halves (`regs.h.…`) of the same block.  **UNVERIFIED** for the
 /// same reason (and the `al`/`ah` half of `ax` is the header's business, not this record's).
@@ -170,13 +177,20 @@ pub union REGS
   pub x: RegsX,
   pub h: RegsH,
 }
-/// C 45's `<dos.h>`: the two interrupt entry points this slice calls.
+/// C 45's `<dos.h>`: the two interrupt entry points this slice calls, and `delay` (slice 3's
+/// `dos_rawgetc`, C 2736).  `delay` has no declaration anywhere in the reference tree (it is a
+/// DJGPP runtime function, like the `Screen*` family), so which DJGPP header supplies it is
+/// unmeasured; the section is `<dos.h>` because that is where this unit's runtime names live.
+/// **UNVERIFIED** for the same missing toolchain (the return type is the call's own use, a
+/// statement).
 /// C: int int86 (int, union REGS *, union REGS *);
 /// C: int intdos (union REGS *, union REGS *);
+/// C: void delay (unsigned);
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
   pub fn int86 (intno: c_int, inregs: *mut REGS, outregs: *mut REGS) -> c_int;
   pub fn intdos (inregs: *mut REGS, outregs: *mut REGS) -> c_int;
+  pub fn delay (msec: c_uint);
 }
 // C 57: `#include <dpmi.h>` (`/* for __dpmi_xxx stuff */`) - the header this section stands for.
 /// C 57's `<dpmi.h>`: `__dpmi_regs`, the DPMI register block `__dpmi_int` passes to a real-mode
@@ -247,6 +261,14 @@ pub union _go32_dpmi_registers
 unsafe extern "C" {
   pub fn _go32_dpmi_simulate_int (vector: c_int, regs: *mut _go32_dpmi_registers);
 }
+/// C 57's `<dpmi.h>`: the cooperative yield `XMenuActivate` busy-waits with (C 3225/3235).
+/// **UNVERIFIED** for the same missing toolchain; the return type is the call's own use (a
+/// statement).
+/// C: void __dpmi_yield (void);
+#[cfg (feature = "msdos")]
+unsafe extern "C" {
+  pub fn __dpmi_yield ();
+}
 // C 58: `#include <sys/farptr.h>` (`/* for _farsetsel, _farnspokeb */`) - the header this
 // section stands for.
 /// C 58's `<sys/farptr.h>`: the far-memory accessors.  `<sys/farptr.h>` spells them as inlines
@@ -281,10 +303,19 @@ include!("../lib/include/unistd.in.rs");       // C 50: `#include <unistd.h>`
    shape - Deviations 13).  */
 #[cfg (feature = "msdos")]
 include!("../lib/include/stdlib.rs");          // unistd.in.h 122-125: `#include <stdlib.h>` (`getenv`)
-/* C 51's `<dir.h>` (`getdisk`), C 52's `#pragma pack(0)` and C 53's `#undef opendir` (C 56's
-   `<io.h>`, `setmode`) belong to names past this slice: the pragma has no Rust counterpart and
-   the `#undef` has none either (the port never spells `opendir` as `<dirent.h>`'s macro).  Two
-   `## Deviations` entries.  */
+// C 51: `#include <dir.h>` (`/* for getdisk */`) - the header this section stands for.
+/// C 51's `<dir.h>`: `getdisk` (C 3377) and `_fixpath` (C 3360).  **UNVERIFIED**: no DJGPP
+/// toolchain, so neither prototype is read from a header; the argument types follow this file's
+/// own call sites (`_fixpath`'s first argument is `in_path`, a `char[4]`).
+/// C: int getdisk (void); int _fixpath (const char *, char *);
+#[cfg (feature = "msdos")]
+unsafe extern "C" {
+  pub fn getdisk () -> c_int;
+  pub fn _fixpath (path: *const c_char, resolved: *mut c_char) -> c_int;
+}
+/* C 52's `#pragma pack(0)` and C 53's `#undef opendir` (C 56's `<io.h>`, `setmode`) still have
+   no counterpart: the pragma has none in Rust and neither does the `#undef` (the port never
+   spells `opendir` as `<dirent.h>`'s macro).  Two `## Deviations` entries.  */
 #[cfg (feature = "msdos")]
 include!("../lib/include/dirent.in.rs");       // C 54: `#include <dirent.h>`
 #[cfg (feature = "msdos")]
@@ -388,7 +419,7 @@ unsafe extern "C" {
 /// C: int ScreenRows (void); int ScreenCols (void); void ScreenGetCursor (int *, int *);
 /// C: void ScreenSetCursor (int, int); void ScreenClear (void); void ScreenVisualBell (void);
 /// C: void _set_screen_lines (int); int dosmemput (const void *, int, int);
-/// C: int ScreenMode (void); void ScreenRetrieve (void *);
+/// C: int ScreenMode (void); void ScreenRetrieve (void *); void ScreenUpdate (void *);
 #[cfg (feature = "msdos")]
 unsafe extern "C" {
   pub static mut ScreenPrimary: c_ulong;
@@ -402,6 +433,7 @@ unsafe extern "C" {
   pub fn dosmemput (buffer: *const c_void, length: c_int, offset: c_int) -> c_int;
   pub fn ScreenMode () -> c_int;
   pub fn ScreenRetrieve (memory: *mut c_void);
+  pub fn ScreenUpdate (memory: *mut c_void);
 }
 
 /* C 89-93: the `spawnve` the local `<process.h>` would have supplied (which C 90-91's comment
@@ -3207,3 +3239,1324 @@ DEFUN! ("recent-doskeys", Frecent_doskeys, Srecent_doskeys, 0, 0, 0,
 
 /* C 2423 is the blank line and C 2424-2426 the banner of `dos_rawgetc`, the next live
    definition; C 2423-4350 is the unported remainder (see `docs/ports/msdos.md`).  */
+
+/* ----------------------------------------------------------------------------------------------
+   C 2423-3468: slice 3 — `dos_rawgetc`, the key-availability pair, the whole MS-DOS X menu
+   simulation (C 2787's `#ifndef HAVE_X_WINDOWS` block) and the DOS/UNIX conversion layer.
+   C 2423 is `dos_rawgetc`'s blank line and C 2424 its banner; C 2425-2759 is the function.
+   ---------------------------------------------------------------------------------------------- */
+
+/* `input_event`'s `kind : 16` shares the mirror's `bits` word with `part : 16`
+   (`include/termhooks.rs` 100-117, PORTING.md 1.3).  C writes `event.kind = x;`, so the port
+   keeps C's member name in a per-unit macro — the `src/androidterm.rs` 201-210 /
+   `src/androidselect.rs` 136-143 shape, body-identical.  */
+#[cfg (feature = "msdos")]
+macro_rules! input_event_bits {
+  (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
+  (kind, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & !INPUT_EVENT_KIND_MASK) | ((($v) as u32) & INPUT_EVENT_KIND_MASK); };
+  (part, $e:expr) => { ((*$e).bits >> INPUT_EVENT_PART_SHIFT) as c_int };
+  (part, $e:expr, $v:expr) => {
+    (*$e).bits = ((*$e).bits & INPUT_EVENT_KIND_MASK)
+                 | (((($v) as u32) & INPUT_EVENT_KIND_MASK) << INPUT_EVENT_PART_SHIFT); };
+}
+
+/* `Mouse_HLInfo`'s third flag bit — `dispextern.h` 3023's `bool_bf mouse_face_hidden : 1`, the
+   `dispextern.rs` 2082 `MOUSE_FACE_HIDDEN` mask.  The mirror carries the `mouse_face_defer` pair
+   but not this one (its own 2084-2095 note records that `docs/ports/w32term.md`'s owed 5 asks for
+   it), and C 2640-2643/2671-2673 read and write the member directly, so this unit names the pair
+   the way its `mouse_moved!` does.  One `## Deviations` entry.  */
+#[cfg (feature = "msdos")]
+macro_rules! mouse_face_hidden {
+  ($h:expr) => { (*$h).bits & MOUSE_FACE_HIDDEN != 0 };
+  ($h:expr, $v:expr) => {
+    (*$h).bits = if ($v) as c_int != 0 { (*$h).bits | MOUSE_FACE_HIDDEN }
+		 else { (*$h).bits & ! MOUSE_FACE_HIDDEN } };
+}
+
+/* Get a char from keyboard.  Function keys are put into the event queue.  */
+#[cfg (feature = "msdos")]
+unsafe fn dos_rawgetc () -> c_int                  // C 2425-2426
+{
+  let mut event: input_event = std::mem::zeroed ();
+  let mut regs: REGS = std::mem::zeroed ();
+  let hlinfo: *mut Mouse_HLInfo = MOUSE_HL_INFO! (SELECTED_FRAME ());
+  EVENT_INIT (&raw mut event);
+
+  /* C 2433-2436: `#ifndef HAVE_X_WINDOWS` - both arms (the `#else` arm is empty in C).  */
+  #[cfg (not (feature = "have_x_windows"))]
+  {
+  /* Maybe put the cursor where it should be.  */
+  IT_cmgoto (SELECTED_FRAME ());
+  }
+
+  /* The following condition is equivalent to `kbhit ()', except that
+     it uses the bios to do its job.  This pleases DESQview/X.  */
+  'dos_rawgetc_keys: while { regs.h.ah = if extended_kbd != 0 { 0x11 } else { 0x01 };
+			     int86 (0x16, &raw mut regs, &raw mut regs);
+			     (regs.x.flags & 0x40) == 0 }
+    {
+      let mut regs: REGS = std::mem::zeroed ();
+      let mut c: c_uchar;
+      let mut modifiers: c_int;
+      let mut sc: c_int;
+      let mut code: c_int = -1;
+      let mut mask: c_int;
+      let mut kp_mode: c_int;
+
+      regs.h.ah = if extended_kbd != 0 { 0x10 } else { 0x00 };
+      int86 (0x16, &raw mut regs, &raw mut regs);
+      c = regs.h.al;
+      sc = regs.h.ah as c_int;
+
+      total_doskeys += 2;
+      ASET (recent_doskeys, recent_doskeys_index as isize, make_fixnum (c as EMACS_INT));
+      recent_doskeys_index+= 1;
+      if recent_doskeys_index == NUM_RECENT_DOSKEYS
+	{ recent_doskeys_index = 0; }
+      ASET (recent_doskeys, recent_doskeys_index as isize, make_fixnum (sc as EMACS_INT));
+      recent_doskeys_index+= 1;
+      if recent_doskeys_index == NUM_RECENT_DOSKEYS
+	{ recent_doskeys_index = 0; }
+
+      modifiers = dos_get_modifiers (&raw mut mask);
+
+      /* C 2465-2473: `#ifndef HAVE_X_WINDOWS` - both arms (the `#else` arm is empty in C).  */
+      #[cfg (not (feature = "have_x_windows"))]
+      {
+      if !NILP (Vdos_display_scancodes)
+	{
+	  let mut buf: [c_char; 11] = [0; 11];
+	  sprintf (&raw mut buf[0], c"%02x:%02x*%04x".as_ptr (),
+		   (sc & 0xff) as c_uint, c as c_uint, mask as c_uint);
+	  dos_direct_output (screen_size_Y - 2, screen_size_X - 12, &raw mut buf[0], 10);
+	}
+      }
+
+      if sc == 0xe0
+	{
+	  match c
+	    {
+	    10 =>		/* Ctrl Grey Enter */
+	      { code = Ctrl | Grey | 4; }
+	    13 =>		/* Grey Enter */
+	      { code = Grey | 4; }
+	    b'/' =>		/* Grey / */
+	      { code = Grey | 0; }
+	    _ =>
+	      { continue 'dos_rawgetc_keys; }
+	    }
+	  c = 0;
+	}
+      else
+	{
+	  /* Try the keyboard-private translation table first.  */
+	  if !(*keyboard).translate_table.is_null ()
+	    {
+	      let mut p: *mut kbd_translate = (*keyboard).translate_table;
+
+	      while (*p).sc != 0
+		{
+		  if (*p).sc as c_int == sc && (*p).ch as c_int == c as c_int
+		    {
+		      code = (*p).code as c_int;
+		      break;
+		    }
+		  p = p.offset (1);
+		}
+	    }
+	  /* If the private table didn't translate it, use the general
+             one.  */
+	  if code == -1
+	    {
+	      /* C's `sc >= countof (…)` is an int-vs-size_t comparison (Deviations 20).  */
+	      if sc as usize >= countof! (ibmpc_translate_map)
+		{ continue 'dos_rawgetc_keys; }
+	      /* C's `(code = ibmpc_translate_map[sc]) == Ignore`, hoisted (Deviations 6).  */
+	      code = ibmpc_translate_map[sc as usize] as c_int;
+	      if code == Ignore
+		{ continue 'dos_rawgetc_keys; }
+	    }
+	}
+
+      if c == 0
+	{
+        /* We only look at the keyboard Ctrl/Shift/Alt keys when
+           Emacs is ready to read a key.  Therefore, if they press
+           `Alt-x' when Emacs is busy, by the time we get to
+           `dos_get_modifiers', they might have already released the
+           Alt key, and Emacs gets just `x', which is BAD.
+           However, for keys with the `Map' property set, the ASCII
+           code returns zero only if Alt is pressed.  So, when we DON'T
+           have to support international_keyboard, we don't have to
+           distinguish between the left and  right Alt keys, and we
+           can set the META modifier for any keys with the `Map'
+           property if they return zero ASCII code (c = 0).  */
+        if (code & Alt) != 0
+	     || ((code & 0xf000) == Map && international_keyboard == 0)
+	    { modifiers |= meta_modifier; }
+	  if (code & Ctrl) != 0
+	    { modifiers |= ctrl_modifier; }
+	  if (code & Shift) != 0
+	    { modifiers |= shift_modifier; }
+	}
+
+      /* C 2543-2635's `switch (code & 0xf000)` falls through twice — `ModFct` into `FctKey`
+	 into `Special`, and `Normal` into `Map` — which `match` cannot express; the port keeps
+	 C's order with a fall-through state (the `src/ccl.rs` 1734 shape) and spells C's
+	 `continue` with the loop label above (`src/bytecode.rs` 835).  C's `break` out of the
+	 switch is this inner loop's `break`.  */
+      let mut sw: c_int = code & 0xf000;
+      loop
+	{
+	  match sw
+	    {
+	    ModFct =>
+	      {
+		if c != 0 && (mask & (SHIFT_P | ALT_P | CTRL_P | HYPER_P | SUPER_P)) == 0
+		  { return c as c_int; }
+		c = 0;		/* Special */
+		sw = FctKey;
+	      }
+	    FctKey =>
+	      {
+		if c != 0
+		  { return c as c_int; }
+		sw = Special;
+	      }
+	    Special =>
+	      {
+		code |= 0xff00;
+		break;
+	      }
+	    Normal =>
+	      {
+		if sc == 0
+		  {
+		    if c == 0	/* ctrl-break */
+		      { continue 'dos_rawgetc_keys; }
+		    return c as c_int;		/* ALT-nnn */
+		  }
+		if keyboard_map_all == 0
+		  {
+		    if c != b' '
+		      { return c as c_int; }
+		    code = c as c_int;
+		    break;
+		  }
+		sw = Map;
+	      }
+	    Map =>
+	      {
+		if c != 0 && (mask & ALT_P) == 0
+		    && !((mask & SHIFT_P) != 0 && (mask & CTRL_P) != 0)
+		  {
+		    if keyboard_map_all == 0
+		      { return c as c_int; }
+		  }
+
+		code &= 0xff;
+		if (mask & ALT_P) != 0 && code <= 10 && code > 0 && (dos_keypad_mode & 0x200) != 0
+		  { mask |= SHIFT_P; }	/* ALT-1 => M-! etc. */
+
+		if (mask & SHIFT_P) != 0
+		  {
+		    code = *(*keyboard).shifted.offset (code as isize) as c_int;
+		    mask -= SHIFT_P;
+		    modifiers &= !shift_modifier;
+		  }
+		else if (mask & ALT_GR_P) != 0 && !(*keyboard).alt_gr.is_null ()
+			&& *(*keyboard).alt_gr.offset (code as isize) != b' ' as c_char
+		  { code = *(*keyboard).alt_gr.offset (code as isize) as c_int; }
+		else
+		  { code = *(*keyboard).unshifted.offset (code as isize) as c_int; }
+		break;
+	      }
+	    KeyPad =>
+	      {
+		code &= 0xff;
+		if c == 0xe0	/* edit key */
+		  { kp_mode = 3; }
+		else if (mask & (NUMLOCK_P|CTRL_P|SHIFT_P|ALT_P)) == NUMLOCK_P /* numlock on */
+		  { kp_mode = (dos_keypad_mode & 0x03) as c_int; }
+		else
+		  { kp_mode = ((dos_keypad_mode >> 4) & 0x03) as c_int; }
+
+		match kp_mode
+		  {
+		  0 =>
+		    {
+		      if code == 10 && dos_decimal_point != 0
+			{ return dos_decimal_point as c_int; }
+		      return keypad_translate_map[code as usize].char_code as c_int;
+		    }
+		  1 =>
+		    {
+		      code = 0xff00 | keypad_translate_map[code as usize].keypad_code as c_int;
+		    }
+		  2 =>
+		    {
+		      code = keypad_translate_map[code as usize].meta_code as c_int;
+		      modifiers = meta_modifier;
+		    }
+		  3 =>
+		    {
+		      code = 0xff00 | keypad_translate_map[code as usize].editkey_code as c_int;
+		    }
+		  _ => {}
+		  }
+		break;
+	      }
+	    Grey =>
+	      {
+		code &= 0xff;
+		kp_mode = if (mask & (NUMLOCK_P|CTRL_P|SHIFT_P|ALT_P)) == NUMLOCK_P
+			  { 0x04 } else { 0x40 };
+		if (dos_keypad_mode & kp_mode as EMACS_INT) != 0
+		  { code = 0xff00 | grey_key_translate_map[code as usize].keypad_code as c_int; }
+		else
+		  { code = grey_key_translate_map[code as usize].char_code as c_int; }
+		break;
+	      }
+	    _ =>
+	      { break; }
+	    }
+	}
+
+      if code == 0
+	{ continue 'dos_rawgetc_keys; }
+
+      if !mouse_face_hidden! (hlinfo) && FIXNUMP (Vmouse_highlight)
+	{
+	  clear_mouse_face (hlinfo);
+	  mouse_face_hidden! (hlinfo, 1);
+	}
+
+      if code >= 0x100
+	{ input_event_bits! (kind, &raw mut event, NON_ASCII_KEYSTROKE_EVENT); }
+      else
+	{ input_event_bits! (kind, &raw mut event, ASCII_KEYSTROKE_EVENT); }
+      event.code = code as c_uint;
+      event.modifiers =	modifiers as c_uint;
+      event.frame_or_window = selected_frame;
+      event.arg = Qnil ();
+      event.timestamp = event_timestamp ();
+      kbd_buffer_store_event (&raw mut event as *mut c_void);
+    }
+
+  if have_mouse > 0 && mouse_preempted == 0
+    {
+      let mut but: c_int;
+      let mut press: c_int;
+      let mut x: c_int;
+      let mut y: c_int;
+      let mut ok: c_int;
+      let mouse_prev_x: c_int = mouse_last_x;
+      let mouse_prev_y: c_int = mouse_last_y;
+      let mut mouse_window: Lisp_Object = Qnil ();
+
+      /* Check for mouse movement *before* buttons.  */
+      mouse_check_moved ();
+
+      /* If the mouse moved from the spot of its last sighting, we
+         might need to update mouse highlight.  */
+      if mouse_last_x != mouse_prev_x || mouse_last_y != mouse_prev_y
+	{
+	  if mouse_face_hidden! (hlinfo)
+	    {
+	      mouse_face_hidden! (hlinfo, 0);
+	      clear_mouse_face (hlinfo);
+	    }
+
+	  /* Generate SELECT_WINDOW_EVENTs when needed.  */
+	  if !NILP (Vmouse_autoselect_window)
+	    {
+	      mouse_window = window_from_coordinates
+		(SELECTED_FRAME () as *mut c_void, mouse_last_x, mouse_last_y,
+		 std::ptr::null_mut (), false, false, false);
+	      /* A window will be selected only when it is not
+		 selected now, and the last mouse movement event was
+		 not in it.  A minibuffer window will be selected iff
+		 it is active.  */
+	      if WINDOWP (mouse_window)
+		  && !EQ (mouse_window, last_mouse_window)
+		  && !EQ (mouse_window, selected_window)
+		{
+		  input_event_bits! (kind, &raw mut event, SELECT_WINDOW_EVENT);
+		  event.frame_or_window = mouse_window;
+		  event.arg = Qnil ();
+		  event.timestamp = event_timestamp ();
+		  kbd_buffer_store_event (&raw mut event as *mut c_void);
+		}
+	      /* Remember the last window where we saw the mouse.  */
+	      last_mouse_window = mouse_window;
+	    }
+
+	  previous_help_echo_string = help_echo_string;
+	  help_echo_string = Qnil ();
+	  help_echo_object = Qnil ();
+	  help_echo_window = Qnil ();
+	  help_echo_pos = -1;
+	  note_mouse_highlight (SELECTED_FRAME (), mouse_last_x, mouse_last_y);
+	  /* If the contents of the global variable help_echo has
+	     changed, generate a HELP_EVENT.  */
+	  if !NILP (help_echo_string) || !NILP (previous_help_echo_string)
+	    { gen_help_event (help_echo_string, selected_frame, help_echo_window,
+			      help_echo_object, help_echo_pos); }
+	}
+
+      but = 0;
+      while but < NUM_MOUSE_BUTTONS
+	{
+	  press = 0;
+	  while press < 2
+	  {
+	    let mut button_num: c_int = but;
+
+	    if press != 0
+	      { ok = mouse_pressed (but, &raw mut x, &raw mut y); }
+	    else
+	      { ok = mouse_released (but, &raw mut x, &raw mut y); }
+	    if ok != 0
+	      {
+		/* Allow a simultaneous press/release of Mouse-1 and
+		   Mouse-2 to simulate Mouse-3 on two-button mice.  */
+		if mouse_button_count == 2 && but < 2
+		  {
+		    let mut x2: c_int;
+		    let mut y2: c_int;	/* don't clobber original coordinates */
+
+		    /* If only one button is pressed, wait 100 msec and
+		       check again.  This way, Speedy Gonzales isn't
+		       punished, while the slow get their chance.  */
+		    if (press != 0 && mouse_pressed (1-but, &raw mut x2, &raw mut y2) != 0)
+			|| (press == 0 && mouse_released (1-but, &raw mut x2, &raw mut y2) != 0)
+		      { button_num = 2; }
+		    else
+		      {
+			delay (100);
+			if (press != 0 && mouse_pressed (1-but, &raw mut x2, &raw mut y2) != 0)
+			    || (press == 0 && mouse_released (1-but, &raw mut x2, &raw mut y2) != 0)
+			  { button_num = 2; }
+		      }
+		  }
+
+		input_event_bits! (kind, &raw mut event, MOUSE_CLICK_EVENT);
+		event.code = button_num as c_uint;
+		event.modifiers = (dos_get_modifiers (std::ptr::null_mut ())
+				   | if press != 0 { down_modifier } else { up_modifier })
+				  as c_uint;
+		event.x = make_fixnum (x as EMACS_INT);
+		event.y = make_fixnum (y as EMACS_INT);
+		event.frame_or_window = selected_frame;
+		event.arg = tty_handle_tab_bar_click (SELECTED_FRAME (), x, y, press != 0,
+						      &raw mut event);
+		event.timestamp = event_timestamp ();
+		kbd_buffer_store_event (&raw mut event as *mut c_void);
+	      }
+	    press += 1;
+	  }
+	  but += 1;
+	}
+    }
+
+  return -1;
+}
+
+#[cfg (feature = "msdos")]
+static mut prev_get_char: c_int = -1;	/* C 2761: `static int prev_get_char = -1;` */
+
+/* Return 1 if a key is ready to be read without suspending execution.  */
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn dos_keysns () -> c_int               // C 2763-2765
+{
+  if prev_get_char != -1
+    { return 1; }
+  else
+    {
+      /* C's `((prev_get_char = dos_rawgetc ()) != -1)` hoists the store (Deviations 6).  */
+      prev_get_char = dos_rawgetc ();
+      return (prev_get_char != -1) as c_int;
+    }
+}
+
+/* Read a key.  Return -1 if no key is ready.  */
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn dos_keyread () -> c_int              // C 2773-2775
+{
+  if prev_get_char != -1
+    {
+      let c: c_int = prev_get_char;
+      prev_get_char = -1;
+      return c;
+    }
+  else
+    { return dos_rawgetc (); }
+}
+
+/* C 2787: `#ifndef HAVE_X_WINDOWS` - the MS-DOS menu simulation, whose C 3303 `#endif` closes
+   it.  Every item below carries `not (feature = "have_x_windows")` on top of the file gate.  */
+
+/* Simulation of X's menus.  Nothing too fancy here -- just make it work
+   for now.
+
+   Actually, I don't know the meaning of all the parameters of the functions
+   here -- I only know how they are called by xmenu.c.  I could of course
+   grab the nearest Xlib manual (down the hall, second-to-last door on the
+   left), but I don't think it's worth the effort.  */
+
+/* These hold text of the current and the previous menu help messages.  */
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+static mut menu_help_message: *const c_char = std::ptr::null ();
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+static mut prev_menu_help_message: *const c_char = std::ptr::null ();
+/* Pane number and item number of the menu item which generated the
+   last menu help message.  */
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+static mut menu_help_paneno: c_int = 0;
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+static mut menu_help_itemno: c_int = 0;
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_menu_create () -> *mut XMenu          // C 2803-2804
+{
+  let mut menu: *mut XMenu;
+
+  menu = xmalloc (std::mem::size_of::<XMenu> ()) as *mut XMenu;
+  /* C's `menu->allocated = menu->count = menu->panecount = menu->width = 0;` is a chained
+     assignment; the port writes the four stores, innermost first (Deviations 21).  */
+  (*menu).width = 0;
+  (*menu).panecount = 0;
+  (*menu).count = 0;
+  (*menu).allocated = 0;
+  return menu;
+}
+
+/* Allocate some (more) memory for MENU ensuring that there is room for one
+   for item.  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_menu_make_room (menu: *mut XMenu)     // C 2816-2817
+{
+  if (*menu).allocated == 0
+    {
+      /* C's `int count = menu->allocated = 10;` hoists the store (Deviations 6).  */
+      (*menu).allocated = 10;
+      let count: c_int = 10;
+      (*menu).text = xmalloc (count as usize * std::mem::size_of::<*mut c_char> ())
+	as *mut *mut c_char;
+      (*menu).submenu = xmalloc (count as usize * std::mem::size_of::<*mut XMenu> ())
+	as *mut *mut XMenu;
+      (*menu).panenumber = xmalloc (count as usize * std::mem::size_of::<c_int> ())
+	as *mut c_int;
+      (*menu).help_text = xmalloc (count as usize * std::mem::size_of::<*const c_char> ())
+	as *mut *const c_char;
+    }
+  else if (*menu).allocated == (*menu).count
+    {
+      /* C's `int count = menu->allocated = menu->allocated + 10;` hoists the store.  */
+      (*menu).allocated = (*menu).allocated + 10;
+      let count: c_int = (*menu).allocated;
+      (*menu).text = xrealloc ((*menu).text as *mut c_void,
+			       count as usize * std::mem::size_of::<*mut c_char> ())
+	as *mut *mut c_char;
+      (*menu).submenu = xrealloc ((*menu).submenu as *mut c_void,
+				  count as usize * std::mem::size_of::<*mut XMenu> ())
+	as *mut *mut XMenu;
+      (*menu).panenumber = xrealloc ((*menu).panenumber as *mut c_void,
+				     count as usize * std::mem::size_of::<c_int> ())
+	as *mut c_int;
+      (*menu).help_text = xrealloc ((*menu).help_text as *mut c_void,
+				    count as usize * std::mem::size_of::<*const c_char> ())
+	as *mut *const c_char;
+    }
+}
+
+/* Search the given menu structure for a given pane number.  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_menu_search_pane (menu: *mut XMenu, pane: c_int) -> *mut XMenu   // C 2839-2840
+{
+  let mut i: c_int;
+  let mut r#try: *mut XMenu;
+
+  i = 0;
+  while i < (*menu).count
+    {
+      if !(*(*menu).submenu.offset (i as isize)).is_null ()
+	{
+	  if pane == *(*menu).panenumber.offset (i as isize)
+	    { return *(*menu).submenu.offset (i as isize); }
+	  r#try = IT_menu_search_pane (*(*menu).submenu.offset (i as isize), pane);
+	  if !r#try.is_null ()
+	    { return r#try; }
+	}
+      i += 1;
+    }
+  return std::ptr::null_mut ();
+}
+
+/* Determine how much screen space a given menu needs.  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_menu_calc_size (menu: *mut XMenu, width: *mut c_int, height: *mut c_int)   // C 2858-2859
+{
+  let mut i: c_int;
+  let mut h2: c_int = 0;	/* C leaves it to the call below (PORTING.md 1.5) */
+  let mut w2: c_int = 0;	/* the same */
+  let mut maxsubwidth: c_int;
+  let mut maxheight: c_int;
+
+  maxsubwidth = 0;
+  maxheight = (*menu).count;
+  i = 0;
+  while i < (*menu).count
+    {
+      if !(*(*menu).submenu.offset (i as isize)).is_null ()
+	{
+	  IT_menu_calc_size (*(*menu).submenu.offset (i as isize), &raw mut w2, &raw mut h2);
+	  if w2 > maxsubwidth { maxsubwidth = w2; }
+	  if i + h2 > maxheight { maxheight = i + h2; }
+	}
+      i += 1;
+    }
+  *width = (*menu).width + maxsubwidth;
+  *height = maxheight;
+}
+
+/* Display MENU at (X,Y) using FACES.  */
+
+/* C 2880-2887's `BUILD_CHAR_GLYPH` is a file-local macro, so the port keeps C's name; C's
+   `(GLYPH).type = CHAR_GLYPH` is the `glyph_bits!` member the mirror names
+   (`include/dispextern.rs` 531-534) and C's do-while is the block (the `SET_CHAR_GLYPH` reading,
+   `docs/ports/macro-body-notes.tsv` 283).  */
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+macro_rules! BUILD_CHAR_GLYPH {
+  ($f:expr, $glyph:expr, $code:expr, $face_id:expr, $padding_p:expr) => { {
+      glyph_bits! (type, $glyph, CHAR_GLYPH);
+      SET_CHAR_GLYPH! ($f, $glyph, $code, $face_id, $padding_p);
+      ($glyph).charpos = -1;
+    } };
+}
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+unsafe fn IT_menu_display (menu: *mut XMenu, y: c_int, x: c_int, pn: c_int,
+			   faces: *mut c_int, disp_help: c_int)   // C 2889-2890
+{
+  let mut i: c_int;
+  let mut j: c_int;
+  let mut face: c_int;
+  let width: c_int;
+  let mut mx: c_int;
+  let mut my: c_int;
+  let mut enabled: c_int;
+  let mut mousehere: c_int;
+  let mut row: c_int;
+  let mut col: c_int;
+  let mut text: *mut glyph;
+  let mut p: *mut glyph;
+  let mut q: *const c_uchar;
+  let sf: *mut frame = SELECTED_FRAME ();
+
+  menu_help_message = std::ptr::null ();
+
+  width = (*menu).width;
+  /* We multiply width by 2 to account for possible control characters.
+     FIXME: cater to non-ASCII characters in menus.  */
+  text = xmalloc ((width * 2 + 2) as usize * std::mem::size_of::<glyph> ()) as *mut glyph;
+  ScreenGetCursor (&raw mut row, &raw mut col);
+  mouse_get_xy (&raw mut mx, &raw mut my);
+  IT_update_begin (sf);
+  i = 0;
+  while i < (*menu).count
+    {
+      let mut max_width: c_int = width + 2;
+
+      cursor_to (sf, y + i, x);
+      enabled
+	= (((*(*menu).submenu.offset (i as isize)).is_null ()
+	    && *(*menu).panenumber.offset (i as isize) != 0)
+	   || !(*(*menu).submenu.offset (i as isize)).is_null ()) as c_int;
+      mousehere = (y + i == my && x <= mx && mx < x + max_width) as c_int;
+      face = *faces.offset ((enabled + mousehere * 2) as isize);
+      /* The following if clause means that we display the menu help
+	 strings even if the menu item is currently disabled.  */
+      if disp_help != 0 && enabled + mousehere * 2 >= 2
+	{
+	  menu_help_message = *(*menu).help_text.offset (i as isize);
+	  menu_help_paneno = pn - 1;
+	  menu_help_itemno = i;
+	}
+      p = text;
+      BUILD_CHAR_GLYPH! (sf as *mut c_void, *p, ' ' as c_uint, face, false);
+      p = p.offset (1);
+      j = 0;
+      q = *(*menu).text.offset (i as isize) as *const c_uchar;
+      while *q != 0
+	{
+	  let c: c_uint = string_char_advance (&raw mut q) as c_uint;
+
+	  if c > 26
+	    {
+	      BUILD_CHAR_GLYPH! (sf as *mut c_void, *p, c, face, false);
+	      p = p.offset (1);
+	    }
+	  else	/* make '^x' */
+	    {
+	      BUILD_CHAR_GLYPH! (sf as *mut c_void, *p, '^' as c_uint, face, false);
+	      p = p.offset (1);
+	      j += 1;
+	      BUILD_CHAR_GLYPH! (sf as *mut c_void, *p, c + 64, face, false);
+	      p = p.offset (1);
+	    }
+	  j += 1;
+	}
+      /* Don't let the menu text overflow into the next screen row.  */
+      if x + max_width > screen_size_X
+	{
+	  max_width = screen_size_X - x;
+	  (*text.offset ((max_width - 1) as isize)).u.ch = b'$' as c_uint;
+	  /* indicate it's truncated */
+	}
+      while j < max_width - 2
+	{
+	  BUILD_CHAR_GLYPH! (sf as *mut c_void, *p, ' ' as c_uint, face, false);
+	  j += 1;
+	  p = p.offset (1);
+	}
+
+      /* 16 is the character code of a character that on DOS terminal
+	 produces a nice-looking right-pointing arrow glyph.  */
+      BUILD_CHAR_GLYPH! (sf as *mut c_void, *p,
+			 if !(*(*menu).submenu.offset (i as isize)).is_null ()
+			 { 16 as c_uint } else { ' ' as c_uint }, face, false);
+      p = p.offset (1);
+      IT_write_glyphs (sf, text, max_width);
+      i += 1;
+    }
+  IT_update_end (sf);
+  cursor_to (sf, row, col);
+  xfree (text as *mut c_void);
+}
+
+/* --------------------------- X Menu emulation ---------------------- */
+
+/* Create a brand new menu structure.  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+#[unsafe(no_mangle)]
+pub unsafe fn XMenuCreate (foo1: *mut Display, foo2: Window, foo3: *mut c_char)
+			   -> *mut XMenu       // C 2968-2969
+{
+  return IT_menu_create ();
+}
+
+/* Create a new pane and place it on the outer-most level.  It is not
+   clear that it should be placed out there, but I don't know what else
+   to do.  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+#[unsafe(no_mangle)]
+pub unsafe fn XMenuAddPane (foo: *mut Display, menu: *mut XMenu, txt: *const c_char,
+			    enable: c_int) -> c_int             // C 2978-2979
+{
+  let mut len: c_int;
+  let mut p: *const c_char;
+
+  if enable == 0
+    { emacs_abort (); }
+
+  IT_menu_make_room (menu);
+  *(*menu).submenu.offset ((*menu).count as isize) = IT_menu_create ();
+  *(*menu).text.offset ((*menu).count as isize) = txt as *mut c_char;
+  /* C's `menu->panenumber[menu->count] = ++menu->panecount;` hoists the pre-increment.  */
+  (*menu).panecount += 1;
+  *(*menu).panenumber.offset ((*menu).count as isize) = (*menu).panecount;
+  *(*menu).help_text.offset ((*menu).count as isize) = std::ptr::null ();
+  (*menu).count += 1;
+
+  /* Adjust length for possible control characters (which will
+     be written as ^x).  */
+  len = strlen (txt) as c_int;
+  p = txt;
+  while *p != 0
+    {
+      if (*p as c_int) < 27
+	{ len += 1; }
+      p = p.offset (1);
+    }
+
+  if len > (*menu).width
+    { (*menu).width = len; }
+
+  return (*menu).panecount;
+}
+
+/* Create a new item in a menu pane.  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+#[unsafe(no_mangle)]
+pub unsafe fn XMenuAddSelection (bar: *mut Display, mut menu: *mut XMenu, pane: c_int,
+				 foo: c_int, txt: *mut c_char, enable: c_int,
+				 help_text: *const c_char) -> c_int   // C 3008-3010
+{
+  let mut len: c_int;
+  let mut p: *mut c_char;
+
+  if pane != 0
+    {
+      /* C's `if (!(menu = IT_menu_search_pane (menu, pane)))`, hoisted (Deviations 6).  */
+      menu = IT_menu_search_pane (menu, pane);
+      if menu.is_null ()
+	{ return XM_FAILURE; }
+    }
+  IT_menu_make_room (menu);
+  *(*menu).submenu.offset ((*menu).count as isize) = std::ptr::null_mut ();
+  *(*menu).text.offset ((*menu).count as isize) = txt;
+  *(*menu).panenumber.offset ((*menu).count as isize) = enable;
+  *(*menu).help_text.offset ((*menu).count as isize) = help_text;
+  (*menu).count += 1;
+
+  /* Adjust length for possible control characters (which will
+     be written as ^x).  */
+  len = strlen (txt) as c_int;
+  p = txt;
+  while *p != 0
+    {
+      if (*p as c_int) < 27
+	{ len += 1; }
+      p = p.offset (1);
+    }
+
+  if len > (*menu).width
+    { (*menu).width = len; }
+
+  return XM_SUCCESS;
+}
+
+/* Decide where the menu would be placed if requested at (X,Y).  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+#[unsafe(no_mangle)]
+pub unsafe fn XMenuLocate (foo0: *mut Display, menu: *mut XMenu, foo1: c_int, foo2: c_int,
+			   x: c_int, y: c_int, ulx: *mut c_int, uly: *mut c_int,
+			   width: *mut c_int, height: *mut c_int)   // C 3039-3041
+{
+  IT_menu_calc_size (menu, width, height);
+  *ulx = x + 1;
+  *uly = y;
+  *width += 2;
+}
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+#[repr(C)]
+pub struct IT_menu_state
+{
+  pub screen_behind: *mut c_void,
+  pub menu: *mut XMenu,
+  pub pane: c_int,
+  pub x: c_int,
+  pub y: c_int,
+}
+
+/* Display menu, wait for user's response, and return that response.  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+#[unsafe(no_mangle)]
+pub unsafe fn XMenuActivate (foo: *mut Display, menu: *mut XMenu, pane: *mut c_int,
+			     selidx: *mut c_int, x0: c_int, y0: c_int, ButtonMask: c_uint,
+			     txt: *mut *mut c_char,
+			     help_callback: Option<unsafe extern "C" fn (*const c_char, c_int,
+									 c_int)>)
+			     -> c_int                      // C 3060-3063
+{
+  let mut state: *mut IT_menu_state;
+  let mut statecount: c_int;
+  let mut x: c_int;
+  let mut y: c_int;
+  let mut i: c_int;
+  let mut b: c_int;
+  let screensize: c_int;
+  let mut leave: c_int;
+  let mut result: c_int;
+  let mut onepane: c_int;
+  let mut title_faces: [c_int; 4] = [0; 4];	/* face to display the menu title */
+  let mut faces: [c_int; 4] = [0; 4];
+  let mut buffers_num_deleted: c_int = 0;
+  let sf: *mut frame = SELECTED_FRAME ();
+  let mut saved_echo_area_message: Lisp_Object;
+  let mut selectface: Lisp_Object;
+  let mut x0 = x0;
+  let mut y0 = y0;
+
+  /* Just in case we got here without a mouse present...  */
+  if have_mouse <= 0
+    { return XM_IA_SELECT; }
+  /* Don't allow non-positive x0 and y0, lest the menu will wrap
+     around the display.  */
+  if x0 <= 0
+    { x0 = 1; }
+  if y0 <= 0
+    { y0 = 1; }
+
+  /* We will process all the mouse events directly, so we had
+     better prevent dos_rawgetc from stealing them from us.  */
+  mouse_preempted += 1;
+
+  /* C's `state = alloca (…)`: the port has no `alloca` (PORTING.md P-05), so the block comes
+     from the stack pool `sa_stack_alloc` serves (Deviations 16).  */
+  state = sa_stack_alloc ((*menu).panecount as usize * std::mem::size_of::<IT_menu_state> ())
+    as *mut IT_menu_state;
+  screensize = screen_size * 2;
+  faces[0]
+    = lookup_derived_face (std::ptr::null_mut::<window> (), sf, Qmsdos_menu_passive_face (),
+			   DEFAULT_FACE_ID, true);
+  faces[1]
+    = lookup_derived_face (std::ptr::null_mut::<window> (), sf, Qmsdos_menu_active_face (),
+			   DEFAULT_FACE_ID, true);
+  selectface = Qmsdos_menu_select_face ();
+  faces[2] = lookup_derived_face (std::ptr::null_mut::<window> (), sf, selectface,
+				  faces[0], true);
+  faces[3] = lookup_derived_face (std::ptr::null_mut::<window> (), sf, selectface,
+				  faces[1], true);
+
+  /* Make sure the menu title is always displayed with
+     `msdos-menu-active-face', no matter where the mouse pointer is.  */
+  i = 0;
+  while i < 4
+    {
+      title_faces[i as usize] = faces[3];
+      i += 1;
+    }
+
+  statecount = 1;
+
+  /* Don't let the title for the "Buffers" popup menu include a
+     digit (which is ugly).
+
+     This is a terrible kludge, but I think the "Buffers" case is
+     the only one where the title includes a number, so it doesn't
+     seem to be necessary to make this more general.  */
+  if strncmp (*(*menu).text.offset (0), c"Buffers 1".as_ptr (), 9) == 0
+    {
+      *(*(*menu).text.offset (0)).offset (7) = 0;	/* '\0' */
+      buffers_num_deleted = 1;
+    }
+
+  /* We need to save the current echo area message, so that we could
+     restore it below, before we exit.  See the commentary below,
+     before the call to message_with_string.  */
+  saved_echo_area_message = Fcurrent_message ();
+  (*state.offset (0)).menu = menu;
+  mouse_off ();
+  /* C's `ScreenRetrieve (state[0].screen_behind = xmalloc (screensize))` hoists the store
+     (Deviations 21).  */
+  (*state.offset (0)).screen_behind = xmalloc (screensize as usize);
+  ScreenRetrieve ((*state.offset (0)).screen_behind);
+
+  /* Turn off the cursor.  Otherwise it shows through the menu
+     panes, which is ugly.  */
+  IT_display_cursor (0);
+
+  /* Display the menu title.  */
+  IT_menu_display (menu, y0 - 1, x0 - 1, 1, &raw mut faces[0], 0);
+  if buffers_num_deleted != 0
+    { *(*(*menu).text.offset (0)).offset (7) = b' ' as c_char; }
+  /* C's `if ((onepane = menu->count == 1 && menu->submenu[0]))`, hoisted (Deviations 6).  */
+  onepane
+    = ((*menu).count == 1 && !(*(*menu).submenu.offset (0)).is_null ()) as c_int;
+  if onepane != 0
+    {
+      (*menu).width = (*(*(*menu).submenu.offset (0))).width;
+      (*state.offset (0)).menu = *(*menu).submenu.offset (0);
+    }
+  else
+    {
+      (*state.offset (0)).menu = menu;
+    }
+  (*state.offset (0)).x = x0 - 1;
+  (*state.offset (0)).y = y0;
+  (*state.offset (0)).pane = onepane;
+
+  mouse_last_x = -1;  /* A hack that forces display.  */
+  leave = 0;
+  while leave == 0
+    {
+      if mouse_visible == 0 { mouse_on (); }
+      mouse_check_moved ();
+      if mouse_moved! (sf)
+	{
+	  mouse_moved! (sf, 0);
+	  result = XM_IA_SELECT;
+	  mouse_get_xy (&raw mut x, &raw mut y);
+	  i = 0;
+	  while i < statecount
+	    {
+	    if (*state.offset (i as isize)).x <= x
+		&& x < (*state.offset (i as isize)).x
+			+ (*(*state.offset (i as isize)).menu).width + 2
+	      {
+		let dy: c_int = y - (*state.offset (i as isize)).y;
+		if 0 <= dy && dy < (*(*state.offset (i as isize)).menu).count
+		  {
+		    if (*(*(*state.offset (i as isize)).menu).submenu.offset (dy as isize))
+			 .is_null ()
+		      {
+			if *(* (*state.offset (i as isize)).menu ).panenumber
+			     .offset (dy as isize) != 0
+			  { result = XM_SUCCESS; }
+			else
+			  { result = XM_IA_SELECT; }
+		      }
+		    *pane = (*state.offset (i as isize)).pane - 1;
+		    *selidx = dy;
+		    /* We hit some part of a menu, so drop extra menus that
+		       have been opened.  That does not include an open and
+		       active submenu.  */
+		    if i != statecount - 2
+			|| *(*(*state.offset (i as isize)).menu).submenu.offset (dy as isize)
+			   != (*state.offset ((i + 1) as isize)).menu
+		      {
+			while i != statecount - 1
+			  {
+			    statecount -= 1;
+			    mouse_off ();
+			    ScreenUpdate ((*state.offset (statecount as isize)).screen_behind);
+			    if screen_virtual_segment != 0
+			      { dosv_refresh_virtual_screen (0, screen_size); }
+			    xfree ((*state.offset (statecount as isize)).screen_behind);
+			  }
+		      }
+		    if i == statecount - 1
+			&& !(*(*(*state.offset (i as isize)).menu).submenu
+			     .offset (dy as isize)).is_null ()
+		      {
+			IT_menu_display ((*state.offset (i as isize)).menu,
+					 (*state.offset (i as isize)).y,
+					 (*state.offset (i as isize)).x,
+					 (*state.offset (i as isize)).pane,
+					 &raw mut faces[0], 1);
+			(*state.offset (statecount as isize)).menu
+			  = *(*(*state.offset (i as isize)).menu).submenu.offset (dy as isize);
+			(*state.offset (statecount as isize)).pane
+			  = *(* (*state.offset (i as isize)).menu).panenumber.offset (dy as isize);
+			mouse_off ();
+			/* C's `ScreenRetrieve (state[…] .screen_behind = xmalloc (screensize))`
+			   hoists the store (Deviations 21).  */
+			(*state.offset (statecount as isize)).screen_behind
+			  = xmalloc (screensize as usize);
+			ScreenRetrieve ((*state.offset (statecount as isize)).screen_behind);
+			(*state.offset (statecount as isize)).x
+			  = (*state.offset (i as isize)).x
+			    + (*(*state.offset (i as isize)).menu).width + 2;
+			(*state.offset (statecount as isize)).y = y;
+			statecount += 1;
+		      }
+		  }
+	      }
+	    i += 1;
+	    }
+	  IT_menu_display ((*state.offset ((statecount - 1) as isize)).menu,
+			   (*state.offset ((statecount - 1) as isize)).y,
+			   (*state.offset ((statecount - 1) as isize)).x,
+			   (*state.offset ((statecount - 1) as isize)).pane,
+			   &raw mut faces[0], 1);
+	}
+      else
+	{
+	  if (!menu_help_message.is_null () || !prev_menu_help_message.is_null ())
+	      && menu_help_message != prev_menu_help_message
+	    {
+	      (help_callback.unwrap ()) (menu_help_message,
+					 menu_help_paneno, menu_help_itemno);
+	      IT_display_cursor (0);
+	      prev_menu_help_message = menu_help_message;
+	    }
+	  /* We are busy-waiting for the mouse to move, so let's be nice
+	     to other Windows applications by releasing our time slice.  */
+	  __dpmi_yield ();
+	}
+      b = 0;
+      while b < mouse_button_count && leave == 0
+	{
+	  /* Only leave if user both pressed and released the mouse, and in
+	     that order.  This avoids popping down the menu pane unless
+	     the user is really done with it.  */
+	  if mouse_pressed (b, &raw mut x, &raw mut y) != 0
+	    {
+	      while mouse_button_depressed (b, &raw mut x, &raw mut y) != 0
+		{ __dpmi_yield (); }
+	      leave = 1;
+	    }
+	  let _ = mouse_released (b, &raw mut x, &raw mut y);	/* C's `(void) …` */
+	  b += 1;
+	}
+    }
+
+  mouse_off ();
+  ScreenUpdate ((*state.offset (0)).screen_behind);
+  if screen_virtual_segment != 0
+    { dosv_refresh_virtual_screen (0, screen_size); }
+
+  /* We have a situation here.  ScreenUpdate has just restored the
+     screen contents as it was before we started drawing this menu.
+     That includes any echo area message that could have been
+     displayed back then.  (In reality, that echo area message will
+     almost always be the ``keystroke echo'' that echoes the sequence
+     of menu items chosen by the user.)  However, if the menu had some
+     help messages, then displaying those messages caused Emacs to
+     forget about the original echo area message.  So when
+     ScreenUpdate restored it, it created a discrepancy between the
+     actual screen contents and what Emacs internal data structures
+     know about it.
+
+     To avoid this conflict, we force Emacs to restore the original
+     echo area message as we found it when we entered this function.
+     The irony of this is that we then erase the restored message
+     right away, so the only purpose of restoring it is so that
+     erasing it works correctly...  */
+  if !NILP (saved_echo_area_message)
+    { message_with_string (c"%s".as_ptr (), saved_echo_area_message, false); }
+  message1 (std::ptr::null ());
+  while statecount != 0
+    {
+      statecount -= 1;
+      xfree ((*state.offset (statecount as isize)).screen_behind);
+    }
+  IT_display_cursor (1);	/* Turn cursor back on.  */
+  /* Clean up any mouse events that are waiting inside Emacs event queue.
+     These events are likely to be generated before the menu was even
+     displayed, probably because the user pressed and released the button
+     (which invoked the menu) too quickly.  If we don't remove these events,
+     Emacs will process them after we return and surprise the user.  */
+  discard_mouse_events ();
+  mouse_clear_clicks ();
+  if !kbd_buffer_events_waiting ()
+    { clear_input_pending (); }
+  /* Allow mouse events generation by dos_rawgetc.  */
+  mouse_preempted -= 1;
+  return result;
+}
+
+/* Dispose of a menu.  */
+
+#[cfg (all (feature = "msdos", not (feature = "have_x_windows")))]
+#[unsafe(no_mangle)]
+pub unsafe fn XMenuDestroy (foo: *mut Display, menu: *mut XMenu)   // C 3286-3287
+{
+  let mut i: c_int;
+  if (*menu).allocated != 0
+    {
+      i = 0;
+      while i < (*menu).count
+	{
+	  if !(*(*menu).submenu.offset (i as isize)).is_null ()
+	    { XMenuDestroy (foo, *(*menu).submenu.offset (i as isize)); }
+	  i += 1;
+	}
+      xfree ((*menu).text as *mut c_void);
+      xfree ((*menu).submenu as *mut c_void);
+      xfree ((*menu).panenumber as *mut c_void);
+      xfree ((*menu).help_text as *mut c_void);
+    }
+  xfree (menu as *mut c_void);
+  /* C's `menu_help_message = prev_menu_help_message = NULL;` is a chained assignment
+     (Deviations 21).  */
+  prev_menu_help_message = std::ptr::null ();
+  menu_help_message = std::ptr::null ();
+}
+
+/* C 3303: `#endif /* !HAVE_X_WINDOWS */` - every item from C 3305 on is gated by the file
+   alone.  */
+
+/* ----------------------- DOS / UNIX conversion --------------------- */
+
+/* C 3307's `void msdos_downcase_filename (unsigned char *);` is C's own forward declaration of
+   the definition at C 3417; the port drops it (PORTING.md 0.1-12, the C 1769 reading).  */
+
+/* Destructively turn backslashes into slashes.  */
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn dostounix_filename (mut p: *mut c_char)   // C 3311-3312
+{
+  msdos_downcase_filename (p as *mut c_uchar);
+
+  while *p != 0
+    {
+      if *p == b'\\' as c_char
+	{ *p = b'/' as c_char; }
+      p = p.offset (1);
+    }
+}
+
+/* Destructively turn slashes into backslashes.  */
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn unixtodos_filename (mut p: *mut c_char)   // C 3326-3327
+{
+  if *p.offset (1) == b':' as c_char && *p >= b'A' as c_char && *p <= b'Z' as c_char
+    {
+      *p += (b'a' - b'A') as c_char;
+      p = p.offset (2);
+    }
+
+  while *p != 0
+    {
+      if *p == b'/' as c_char
+	{ *p = b'\\' as c_char; }
+      p = p.offset (1);
+    }
+}
+
+/* Get the default directory for a given drive.  0=def, 1=A, 2=B, ...  */
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn getdefdir (drive: c_int, dst: *mut c_char) -> c_int   // C 3345-3346
+{
+  let mut in_path: [c_char; 4] = [0; 4];
+  let mut p: *mut c_char = &raw mut in_path[0];
+  let e: c_char = *errno () as c_char;
+
+  /* Generate "X:." (when drive is X) or "." (when drive is 0).  */
+  if drive != 0
+    {
+      *p = (drive + b'A' as c_int - 1) as c_char;
+      p = p.offset (1);
+      *p = b':' as c_char;
+      p = p.offset (1);
+    }
+
+  *p = b'.' as c_char;
+  p = p.offset (1);
+  *p = 0;		/* '\0' */
+  *errno () = 0;
+  _fixpath (&raw mut in_path[0], dst);
+    /* _fixpath can set errno to ENOSYS on non-LFN systems because
+       it queries the LFN support, so ignore that error.  */
+  if (*errno () != 0 && *errno () != ENOSYS) || *dst == 0
+    { return 0; }
+
+  msdos_downcase_filename (dst as *mut c_uchar);
+
+  *errno () = e as c_int;
+  return 1;
+}
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn emacs_root_dir () -> *mut c_char    // C 3372-3373
+{
+  static mut root_dir: [c_char; 4] = [0; 4];
+
+  sprintf (&raw mut root_dir[0], c"%c:/".as_ptr (), b'A' as c_int + getdisk ());
+  root_dir[0] = tolower (root_dir[0] as c_int) as c_char;
+  return &raw mut root_dir[0];
+}
+
+/* Remove all CR's that are followed by a LF.  */
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn crlf_to_lf (n: c_int, mut buf: *mut c_uchar) -> c_int   // C 3384-3385
+{
+  let mut np: *mut c_uchar = buf;
+  let startp: *mut c_uchar = buf;
+  let endp: *mut c_uchar = buf.offset (n as isize);
+
+  if n == 0
+    { return n; }
+  while buf < endp.offset (-1)
+    {
+      if *buf == 0x0d
+	{
+	  buf = buf.offset (1);
+	  if *buf != 0x0a
+	    { *np = 0x0d; np = np.offset (1); }
+	}
+      else
+	{ *np = *buf; np = np.offset (1); buf = buf.offset (1); }
+    }
+  if buf < endp
+    { *np = *buf; np = np.offset (1); buf = buf.offset (1); }
+  return np.offset_from (startp) as c_int;
+}
+
+#[cfg (feature = "msdos")]
+DEFUN! ("msdos-long-file-names", Fmsdos_long_file_names, Smsdos_long_file_names,
+       0, 0, 0,
+       doc: "Return non-nil if long file names are supported on MS-DOS.  ",   // C 3406-3408
+       (),
+       {
+  return if _USE_LFN != 0 { Qt () } else { Qnil () };
+});
+
+/* Convert alphabetic characters in a filename to lower-case.  */
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn msdos_downcase_filename (mut p: *mut c_uchar)   // C 3416-3417
+{
+  /* Always lower-case drive letters a-z, even if the filesystem
+     preserves case in filenames.
+     This is so MSDOS filenames could be compared by string comparison
+     functions that are case-sensitive.  Even case-preserving filesystems
+     do not distinguish case in drive letters.  */
+  if *p.offset (1) == b':' && *p >= b'A' && *p <= b'Z'
+    {
+      *p += b'a' - b'A';
+      p = p.offset (2);
+    }
+
+  /* Under LFN we expect to get pathnames in their true case.  */
+  if NILP (Fmsdos_long_file_names ())
+    {
+      while *p != 0
+	{
+	  if *p >= b'A' && *p <= b'Z'
+	    { *p += b'a' - b'A'; }
+	  p = p.offset (1);
+	}
+    }
+}
+
+#[cfg (feature = "msdos")]
+DEFUN! ("msdos-downcase-filename", Fmsdos_downcase_filename, Smsdos_downcase_filename,
+       1, 1, 0,
+       doc: "Convert alphabetic characters in FILENAME to lower case and return that.\nWhen long filenames are supported, doesn't change FILENAME.\nIf FILENAME is not a string, returns nil.\nThe argument object is never altered--the value is a copy.  ",   // C 3437-3442
+       (filename: Lisp_Object),
+       {
+  let mut tem: Lisp_Object;
+
+  if ! STRINGP (filename)
+    { return Qnil (); }
+
+  tem = Fcopy_sequence (filename);
+  msdos_downcase_filename (SDATA (tem));
+  return tem;
+});
+
+/* The Emacs root directory as determined by init_environment.  */
+
+#[cfg (feature = "msdos")]
+static mut emacsroot: [c_char; MAXPATHLEN] = [0; MAXPATHLEN];
+
+#[cfg (feature = "msdos")]
+#[unsafe(no_mangle)]
+pub unsafe fn rootrelativepath (rel: *mut c_char) -> *mut c_char   // C 3459-3460
+{
+  static mut result: [c_char; MAXPATHLEN + 10] = [0; MAXPATHLEN + 10];
+
+  strcpy (&raw mut result[0], &raw mut emacsroot[0]);
+  strcat (&raw mut result[0], c"/".as_ptr ());
+  strcat (&raw mut result[0], rel);
+  return &raw mut result[0];
+}
+
+/* C 3470-3473 is `init_environment`'s own banner and C 3475 its first line: that function is
+   the next live definition, and C 3469-4350 is the unported remainder (see
+   `docs/ports/msdos.md`).  */

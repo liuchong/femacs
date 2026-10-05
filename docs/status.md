@@ -8539,3 +8539,37 @@
   `- missing`、70.5% 漂移即边界）；`extract-abi --check` 仍 **FAIL 属预期**（该文件只落 29.5%）。
   本轮 `build-tu` **1 发**、`probe` 0 发。
 
+- **3.471 msdos 切片 3 落地（C 2425-3468，1,044 行）：输入、文件名转换与 DOS 面板后半（2026-10-05）**：
+  ① **区间/块**：C 2425-3468（台账区间表末两行 `3454-3468` 收在 `rootrelativepath`，下一行 `3469-4350`
+  是未移植余量）；**下一个活定义 = C 3475 `init_environment`**（C 3470-3473 是它的 banner）。块：
+  `dos_rawgetc` 之后的一整段输入路径（含 C 2543-2635 的 fall-through `switch`，lane 用手写状态机保序）、
+  `dos_keysns`/`dos_keyread` 一族、6 个 XMenu 门面、`dostounix_filename`/`unixtodos_filename`/`getdefdir`/
+  `rootrelativepath`、`crlf_to_lf`、`msdos_downcase_filename` 与两条 `msdos-*` subr、`emacsroot`。
+  ② **行数**：`femacs/src/msdos.rs` **3,209 → 4,562**（md5 `d0cddfc0e226e2ebd807788e2cd585d9`）；台账
+  `docs/ports/msdos.md` **475 → 604** 行（**93 条区间行**，同时覆盖 `src/msdos.c` 4,350 行与
+  `src/msdos.h` 156 行）。
+  ③ **集成者落地读数（本轮自己跑的）**：冻结 `build-tu src/msdos.c` → `built src/msdos.rs ->
+  ../build/femacs/msdos.o`、**336 字节空对象**；`extract-abi --check` → **OK**（**空清单**，P-86 ⑩ 的
+  空跑通过，台账写明不当覆盖证据）；`check-cond-eval src/msdos.c` → **`27 conditions, 0 unknown,
+  0 disagreements [VERIFIED]`**；`check-dead-file-coverage` **46 绑定 / 0 failure**。
+  ④ **lane 自报读数（不是我的）**：翻臂只传两个 `--cfg`（`msdos`、`dispextern_face_records`，与参照 djgpp
+  构建一致）→ **exit 1 / 81 errors / 23 warnings** = **33×E0428 + 47×E0425（28 个不同名字）+ 1×E0609、
+  0 个 E0308**（arm10=90、arm11=82、arm12=81）；按 cfg 一致性筛后 81 错**全部**落在镜像图（E0428 主 span
+  全在镜像）或镜像缺名，**没有一条可归因于 cfg 错配**；它自查另抓到 4 条自造缺陷（`recent_doskeys_index++`
+  照抄 C、6 个 `BUILD_CHAR_GLYPH!` 的 `0` 应为 `false`、`*p != ' '` 缺 `as c_char`、切片 1 的
+  `<dos.h>` 摘要缺 `RegsX.flags`）。**lane 预算：`build-tu` 3/3、`probe` 3/3（未超支）。**
+  ⑤ **记在账上、本轮不动**：**Owed 2**——`include/msdos.rs` 的 25 个同名原型该搬进 glob 模块
+  （E0428 由切片 2 的 13 涨到 25），属**集成者的镜像轮**；**Owed 12**——`lib/include/string.rs` 没有
+  `strcat`（`callproc.rs` 175 / `pdumper.rs` 135 / `xdisp.rs` 711 各自在单元根声明过），按 3.449 的
+  "第七半"（跨单元重复声明按 P-88 ① 就地写）**不需要动镜像**，本单元照此；`Owed 5` 的 28 个缺名
+  （`lookup_derived_face` 6 处、`message_with_string`、`discard_mouse_events`、`gen_help_event`、
+  `clear_input_pending`、`kbd_buffer_events_waiting` 等）同样留给镜像轮。
+  ⑥ **在飞件造成的红读数（不是本单元）**：`check-mirror-dupes` 的 **24 条 failure 全部指向**另一条 lane
+  未入库的 `femacs/src/include/gtk.rs`（P-90 镜像轮进行中）；`check-port-lines` 的 1 stale 行是
+  `src/pgtkterm.h`（同一在飞轮次）；lane 自己 `grep msdos` 为空 ⇒ 本片不新增重复声明。
+  ⑦ **未声称**：**没有 DJGPP 工具链** ⇒ 尺寸/偏移/取值一个数字都没写，`<dos.h>`/`<dir.h>`/`<dpmi.h>`/
+  `<pc.h>`/`<sys/param.h>` 的声明段全部 `UNVERIFIED`；`msdos` 臂**编不过**（81 错全在镜像图/镜像缺名，
+  本单元文本 0 个行为错——P-86 ③⑵ 的 `text-only` 状态，**不是通过**）；没有任何 `int86`/`__dpmi_int`/
+  `__dpmi_yield`/BIOS/鼠标/屏幕/键盘表/菜单/文件名转换被**执行**过；C 3,469-4,350（20.3%）未移植；
+  `extract-abi` 的 OK 是空清单空跑。本轮 `build-tu` **1 发**、`probe` 0 发。
+
