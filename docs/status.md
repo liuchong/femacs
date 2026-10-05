@@ -12901,3 +12901,32 @@
   ⑥ **收口**：临时仪表（`alloc.rs` 的标记日志与 `dbg_is_free_cons`、`print.rs` 的 cons/sym 诊断、`thread.rs` 的加宽扫描）
      已全部删除，三个单元用 `git show HEAD:` 还原并重建（读数回到 18 行）；工作树除 4 条 lane 的在飞产出外干净，`/tmp/mk.txt` 已清。
   ⑦ **预算**：`build-tu` 约 10 发、`check-link --executable` 约 8 发、端口运行约 8 次、lldb 2 次、文本对拍若干。
+
+- **3.626 GC 缺陷定位并修好：端口的 `alloca`（`sa_stack_alloc`）是 malloc 块，**不在任何扫描范围里**，于是 C 靠"活在 `alloca` 内存里"保住的 `Lisp_Object` 会被回收
+  ——`garbage_collect` 现在把池里的块按 `mark_memory` 保守标记，加载链从 **17 个文件推进到 34 个**（2026-10-05）**：
+  ① **根因**：C 的 `alloca` 是**真的 C 栈内存**，`mark_c_stack` 的保守扫描覆盖它；端口的 `alloca` 没有对应物（PORTING.md P-05），
+     `sa_stack_alloc` 每次 `malloc` 一个块并挂在 `sa_stack_top` 上 ⇒ **任何扫描范围都够不着**。C 里正好有一处**必须**把
+     `Lisp_Object` 只放在 `alloca` 里：`internal_lisp_condition_case` 的 clause 表（eval.c 1620，注释明说
+     "SAFE_ALLOCA won't work here due to the setjmp"⇒ 用裸 `alloca`）；端口把这行照译成了 `sa_stack_alloc`，
+    于是那张表对 GC **不可见**。
+  ② **修法**：`garbage_collect` 在 `mark_threads ()` 之后、`process_mark_stack` 之前，沿 `sa_stack_top` 对每个块做一次
+     `mark_memory (base, base + used)`——与 C 对**同一块内存**的栈扫描等价，并写成 P-05 的**第三条偏离**（前两条是"一块一 malloc"与"边界作用域还晚"）。
+  ③ **判据（未加/加上的对照，同一条命令 `EMACSLOADPATH=<repo>/femacs/lisp build/femacs/emacs --batch`）**：
+     **未加之前** 18 行 `Loading`、停在 `macroexp.el`，崩在打印"Eager macro-expansion failure: %S"的错误对象上；
+     **加上之后** 34 行 `Loading`，一路走到 `international/characters.el`，**且不再是 GC 症状**（见 ④）。
+  ④ **下一站（已点名，下一轮直接开）**：`characters.el` 里的 **`Fcopy_sequence` 的 `copy_nonoverlapping` 前置panic**
+     （`ptr::copy_nonoverlapping requires that both pointer arguments are aligned and non-null and the specified memory
+     ranges do not overlap`，栈帧 `Fcopy_sequence + 2516`）——与 3.618 的"字节数当成元素个数"同型，属 Rust 侧指针算术偏离，
+     先看 `fns.rs` 里那个调用的三个实参（指针类型/字节数/重叠）与 C 的 `memcpy` 对不对得上。
+  ⑤ **本轮为此做出的诊断读数（仪表已删，读数留在 status 与 ledger）**：⑴ 那个被回收表项是**free-list 链字**
+     （`dbg_is_free_cons` 探针答 `1`，其 `car` 是 `dead_object` 偏移 `0xe2e0`）；⑵ 它**不在**那一次 GC 的标记日志里
+     （12,360 条标记、未触顶）；⑶ **加宽 C 栈扫描范围无效**；⑷ 活堆 + `alloca` 块扫描只在**自由链**里找到它
+     （3 处命中，都是 `car=dead_object`/`cdr=链指针` 的块）；⑸ 池里**确实**躺着 `Lisp_Object`（sa 块扫描 13 处命中，
+     例如一个 48 字节块里一个）；⑹ `Lisp_Cons` 的 `cdr`/`chain` 同字（镜像与 C 同形）、`sweep_conses`/`mark_object` 的
+     cons 分支/标记栈/哈希表与 obarray 压栈**都**与 C 同形——即缺陷不在这些机器里，而在"扫描范围"这一层。
+  ⑥ **读数（门）**：`check-all-units.sh` **83/0 + 83/0**（两腿）、`extract-abi --check emacs/src/alloc.c femacs/src/alloc.rs` **OK**、
+     八道文本门 + `check-carried` 全绿（`check-declarations` 6/0/0、`check-citations` 0 drift/0 stale、`check-verbatim` 24/0）。
+  ⑦ **未声称**：**没有 dump、没有 L1 验收**；本件的证据是"文件数 17→34 + 崩点换成了另一处缺陷"，不是"GC 全面正确"——
+     下一处崩溃（④）本身就说明后面还有缺陷；`docs/ports/alloc.md` 记了同一件事的台账版本，PORTING.md P-05 增了第三条偏离。
+  ⑧ **预算**：`build-tu` 约 16 发、`check-link --executable` 约 12 发、端口运行约 14 次、`lldb` 2 次、`check-all-units.sh` 1 发（两腿）；
+     `/tmp`（`scan*.txt`、`sa.txt`、`mk.txt`、`roots*.txt`、`fl.txt`、`freelog.txt`）与 `build/femacs/units`、`build/probes` 已清。

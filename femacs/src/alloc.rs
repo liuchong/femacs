@@ -6390,6 +6390,27 @@ pub unsafe extern "C" fn garbage_collect ()
   mark_terminals ();
   mark_kboards ();
   mark_threads ();
+
+  /* C's `alloca` memory is C stack memory, which `mark_c_stack` scans conservatively; the
+     port's `alloca` is `sa_stack_alloc` (`alloca` has no Rust counterpart, PORTING.md P-05),
+     and that allocates each block with `malloc`.  Those blocks are therefore *not* part of any
+     range the conservative scan covers, so a `Lisp_Object` that C keeps alive only by living in
+     `alloca` memory - `internal_lisp_condition_case`'s clause table (eval.c 1620) is one - is
+     invisible to the GC and gets collected while still referenced.  Measured before this fix
+     (status 3.626): the loadup stopped in `macroexp.el` and the recycled cons cell read back
+     through a live list was the free-list chain word; with the blocks marked here the chain
+     reaches `characters.el` instead.  Marking them is the port's substitute for C's stack scan
+     of the same memory, and it runs with the other roots, before `process_mark_stack`.  */
+  {
+    let mut block: *mut sa_stack_block = sa_stack_top;
+    while !block.is_null ()
+      {
+	mark_memory ((*block).base as *const c_void,
+		     ((*block).base as *const u8).offset ((*block).used as isize)
+		       as *const c_void);
+	block = (*block).next;
+      }
+  }
   mark_composite ();
   mark_profiler ();
   /* C 5907-5914 (`#ifdef HAVE_PGTK` / `#ifdef USE_GTK`) is dead.  */

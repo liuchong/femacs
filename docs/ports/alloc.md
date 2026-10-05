@@ -616,3 +616,27 @@ written that way (`process_mark_stack`'s symbol case and `sweep_symbols`); the f
 take the VARALIAS arm for non-alias symbols, which aborted in `SYMBOL_ALIAS`'s `eassume`.  Both
 now read `((*ptr).u.s.bits & SYMBOL_REDIRECT_MASK) >> SYMBOL_REDIRECT_SHIFT`, which is what the
 other 30-odd sites in the tree already write.
+
+## 2026-10-05: the GC did not scan the port's `alloca` blocks (status 3.626)
+
+`alloca` has no Rust counterpart, so the port's `sa_stack_alloc` hands out `malloc`ed blocks
+(P-05, deviations (1) and (2)).  C's `alloca` memory is *C stack* memory, which `mark_c_stack`
+scans conservatively; the port's blocks are not, so any `Lisp_Object` that C keeps alive only by
+living in `alloca` memory is invisible to the GC.  `internal_lisp_condition_case`'s clause table
+(eval.c 1620) is such a place: C puts it in a real `alloca` (`Lisp_Object volatile *clauses`)
+precisely because a `setjmp` rules out `SAFE_ALLOCA` there.
+
+`garbage_collect` now walks `sa_stack_top` right after `mark_threads ()` and calls
+`mark_memory (base, base + used)` for every block - the port's substitute for the stack scan of
+the same memory - and the new block runs before `process_mark_stack`, with the other roots.
+
+Readings (all before/after on the same command, `EMACSLOADPATH=<repo>/femacs/lisp
+build/femacs/emacs --batch`): before the fix the chain stopped in `macroexp.el` (18 `Loading`
+lines) on a crash while printing the eager-macro-expansion error object; the recycled cons cell
+it read back through a live list was a `cons_free_list` chain word (a probe walking the free list
+answered `1` for it), it was absent from that GC's mark log, widening the C-stack scan did not
+help, and a heap scan (mem tree + the `alloca` blocks) found the value only in free-list chain
+cells.  With the blocks marked the same command loads 34 files and stops in
+`international/characters.el` - not on a GC symptom but on the next defect:
+`Fcopy_sequence`'s `copy_nonoverlapping` precondition panic (see status 3.626, which names it as
+the next station).

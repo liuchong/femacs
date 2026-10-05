@@ -745,7 +745,13 @@ DEFUN!("cons", Fcons, Scons, 2, 2, 0,
 | P-02 | `USE_LSB_TAG` 作为 `cfg` 决策，仅支持 true 的 64 位目标 | 已定 | 配置生成器 + 断言 |
 | P-03 | computed goto 只移植 switch 版 | 已定（偏离已记录） | 基准对比 + ERT |
 | P-04 | 变参：`c_variadic`（stable ≥1.99）+ 锁具体 dated nightly | **已定**（2026-10-02，pin `nightly-2026-10-01`） | `doprnt.c` 试跑 + `spikes/va-probe.sh` 6 行 + `docs/ports/va-arg-types.tsv` 的多重集检查（P-45）+ `gate-probes` |
-| P-05 | `alloca`：栈池 + `sa_avail` 记账 + 循环点特判 | **落在 `alloc.rs`（2026-10-04，status 3.113）；spike 仍欠** | 已落地：`sa_stack_alloc`/`sa_stack_release` 两个端口自有入口（`AVAIL_ALLOCA!` 记账后向池要字节），释放挂在 `safe_free` 上，按**严格**深度比较（`depth > 被解开的深度`）释放；两条已记录偏离：① 一次请求一个 malloc 块（不是单一 bump 区——释放是子集，bump 区没法在最后一个块之前还回去）；② 同深度起止的作用域要到更浅的释放才还，池比 C 的栈帧占得多。两个符号是唯一的"端口自有导出"类，两个门（`extract-abi.py` 的 invented 规则、`check-symbols.py` 的 invented 表）都按 `PORT_ONLY` 常量显式放行（其它任何自带 `#[unsafe(no_mangle)]` 而没有 C 定义的名字一律是缺陷）。仍欠：内存压力对拍（与 `record_xmalloc` 路径的对拍）与循环点用例，尤其是 `depth == sa_count` 的兄弟/嵌套作用域与恒在深度 0 的分配 |
+| P-05 | `alloca`：栈池 + `sa_avail` 记账 + 循环点特判 | **落在 `alloc.rs`（2026-10-04，status 3.113）；spike 仍欠** | 已落地：`sa_stack_alloc`/`sa_stack_release` 两个端口自有入口（`AVAIL_ALLOCA!` 记账后向池要字节），释放挂在 `safe_free` 上，按**严格**深度比较（`depth > 被解开的深度`）释放；两条已记录偏离：① 一次请求一个 malloc 块（不是单一 bump 区——释放是子集，bump 区没法在最后一个块之前还回去）；② 同深度起止的作用域要到更浅的释放才还，池比 C 的栈帧占得多。两个符号是唯一的"端口自有导出"类，两个门（`extract-abi.py` 的 invented 规则、`check-symbols.py` 的 invented 表）都按 `PORT_ONLY` 常量显式放行（其它任何自带 `#[unsafe(no_mangle)]` 而没有 C 定义的名字一律是缺陷）。**第三条偏离（2026-10-05，status 3.626，且是修好加载链的那一条）：池里的块必须由 GC 保守标记**。C 的
+`alloca` 是**真的 C 栈内存**，`mark_c_stack` 的保守扫描覆盖它，所以 C 可以放心把 `Lisp_Object` 只放在
+`alloca` 内存里（`internal_lisp_condition_case` 的 clause 表就是一处，eval.c 1620）；端口的 `alloca` 是
+`sa_stack_alloc` 的 **malloc 块**，任何扫描范围都够不着它 ⇒ 只存在池里的 `Lisp_Object` 会被回收到。
+处置：`garbage_collect` 在 `mark_threads ()` 之后、`process_mark_stack` 之前，沿 `sa_stack_top` 对每个块做一次
+`mark_memory (base, base + used)`（与 C 对同一块内存的栈扫描等价）。判据：未加之前加载链停在 `macroexp.el`（17 个文件、
+崩在打印错误对象上），加上之后同一条命令走到 `characters.el`（34 个文件）。仍欠：内存压力对拍（与 `record_xmalloc` 路径的对拍）与循环点用例，尤其是 `depth == sa_count` 的兄弟/嵌套作用域与恒在深度 0 的分配 |
 | P-06 | `static mut` 地址稳定 | 已定 | `staticpro` 断言 |
 | P-07 | docstring 用字符串字面量，`--check` 校验摘要 | 已定 | `docs/baseline/subrs.tsv` |
 | P-08 | `config.h` 需按目标冻结 | **部分完成**：darwin-arm64（minimal）已冻结；GUI/其他目标待冻结 | `docs/baseline/config/*.json` + `xtask gen-config` |
