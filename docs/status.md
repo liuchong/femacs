@@ -11528,3 +11528,42 @@
      ⇒ **所有 `femacs/lib/include/*.rs`（含早已落地的 `fcntl.in.rs`）的区间表都不进那 142 本**（本件表用该门自己的
      `parse_ranges`/`coverage_failures` 手工取得读数：20 行 / 0 failure / slack 18）；`excluded-macros.txt` 的 204-226 行是
      "文件还没有任何 Rust 项"时代的旧样板，现已过时（lane 只许追加，未删）。
+
+- **3.574 最后一件 lane 产出收口：`src/w32xfns.c` 整文件落地（C 447 → Rust 911）——**P-86 的棘轮表清零**（2026-10-05）**：
+  ① **lane 的产出（Heisenberg）**：`femacs/src/w32xfns.rs` 11 → **911 行**（md5 `384a7faf…`；台账
+     `docs/ports/w32xfns.md` 329 行，25 行区间表覆盖 C 1-447）。**门**：文件门 `windowsnt`（`configure.ac` 3019-3051 的
+     非 Cygwin `W32_OBJ` 臂；`nt/inc/ms-w32.h` 23-25 定义 `WINDOWSNT`）落在每个项与 C 20-42 整张 include 图上；三条内层条件
+     的**两臂都带**：C 31 `not (mingw_w64)`、C 66/C 110 `have_w32notify`、C 364 `cygwin`；C 20 `config.h` 是唯一无门边。
+     `check-cond-eval.py src/w32xfns.c` → **8 conditions / 0 unknown / 0 disagreements [VERIFIED]**（八条在冻结配置里全为假
+     ⇒ 本文件在冻结点一行不编）。四个 feature 名全部**早已注册**，本件不需要新注册。
+  ② **读数**：冻结 `build-tu` → `exit 0`、**336 字节**空对象（P-08）。翻臂（`--cfg 'feature="windowsnt"'`，pinned
+     nightly-2026-10-01）→ **17 error**：`include/w32term.rs` **12 × `E0428`**（镜像把这 12 个"本单元会定义的名字"留在
+     crate 根，其余同类早已搬进 `w32term_fn_decls`/`w32term_objs` 并 `use …::*`）+ 2 × `E0425`
+     （`KEY_EVENT_RECORD`、`font`），`_root.rs` 自身 **3 × `E0609`**（镜像 `include/w32term.rs` 523 把 `w32_output` 的两个位域
+     记成注释、没有存储单元，P-80）。额外汇臂（`windowsnt+have_ntgui` / `+have_window_system` / `+have_w32notify`）确认
+     **两个 `HAVE_W32NOTIFY` 臂自身 0 错误**；**变异实测**（`critsect` → `critsect_ZZ` 恰好多 1 条 `E0425`）背书读数非空跑。
+  ③ **集成者登记（我）**：容差行 `w32xfns 1.04`（447 vs 911 = 103.8%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件
+     （11 → 911）；`macro-body-notes.tsv` 收下该 lane 追加的 **2 行**（本件是最后一件，无需再切分）；
+     **`port-lines-pending.tsv` 现在为空表** —— P-86 的棘轮从**起点 25 文件 / 30,844 参照行**一路退到 **0 文件 / 0 行**，
+     这是该表自建立以来第一次清零。**P-86 那一类（"整身挂在冻结配置为假的 `#if` 下"）到此全部落地**：
+     `androidmenu`、`androidterm`、`androidfns`、`w32`、`w32console`、`w32heap`、`w32proc`、`w32select`、`w32inevt`、`w32dwrite`、
+     `w32image`、`w32xfns`、`w16select`、`dosfns`、`pgtkmenu`、`haikufns`、`haikumenu`、`haikuselect`、`haikuterm`、`sfntfont-android`、
+     `ftcrfont`、`oldXMenu/*`、`lib/c++defs.h` 等。
+  ④ **门读数（本轮现读，全绿）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**、
+     `check-declarations` 0 failures、`check-dead-file-coverage` **143/0**、`check-ledger-ticks` 238/0、
+     `check-port-lines` **0 file(s) under ten percent / 0 ratchet row(s) / 0 new / 0 stale**、`check-target-names` 0 finding。
+  ⑤ **未声称**：本件**是文本移植**——冻结配置不编它（336 字节空对象），**没有任何 Windows 目标、临界区、事件、DC、调色板或
+     消息循环被运行**；翻臂读数只是 `rustc` 对**物化镜像图**的类型检查，不是 Windows 编译，"本单元 3 条 finding"也**不等于**
+     臂能链接。`<windows.h>`/`<windowsx.h>`/`<wtsapi32.h>` 的 6 个记录、28 个类型别名、12 个常量、26 个入口点
+     **全部 UNVERIFIED**，布局断言欠着（本机无 Windows/mingw）。**棘轮清零只说明"每个参照文件都有与其体量相称的转写"**，
+     不说明任何一件被编译、被链接或被运行过——§8 的其余七条（清单零差异、布局/符号/subr 全绿、L0–L5、双向兼容、生成物逐字节、
+     `test/` 全绿、平台冒烟、性能）一条都还没到。
+  ⑥ **下一步（镜像轮，立即开工）**：本件与近四件的翻臂读数把同一族**镜像欠账**点了出来，全部在 `femacs/{src,lib}/include/**`
+     （lane 不可写，属集成者）：`include/w32term.rs` 的 **12 个顶层声明入 glob 模块**（消 12 × `E0428`）、`w32term.rs` 523 的
+     `w32_output` 位域存储单元（本件 3 处 + `src/w32term.rs` 5 处）、`KEY_EVENT_RECORD` 与 `font` 两处、
+     `include/w32gdiplus.rs` 的 29 处（w32image lane 报）、`include/w32inevt.rs` 19/27/28、`include/frame.rs` 329 自写的
+     `compile_error!`、`include/character.rs` 缺 `lisp.h` 边、`include/systime.rs` 27-28 的 HAIKU P-51 断言、
+     `include/htfont.rs` 的 `font_info`、`include/haiku_support.rs` 705 缺 `-> bool`、`include/msdos.rs` 的 `EINPROGRESS` 撞
+     `lib/include/errno.rs`。以及两条工具欠账：`check-dead-file-coverage.py` 的 `ledger_for` 缺 `include-` 分支（本日由
+     c++defs lane 复现：所有 `femacs/lib/include/*.rs` 的区间表都不进那 143 本）、`xtask` 的 `gate_states` 对同行
+     `#[cfg] include!` 的判定（P-86 ⑫ 已记为硬要求，修工具仍欠）。
