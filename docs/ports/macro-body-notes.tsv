@@ -1647,3 +1647,18 @@ WHITE_PIX_DEFAULT	FRAME_X_DISPLAY	see the BLACK_PIX_DEFAULT row (xfns.c 1228)
 display_mode_element	case,default,goto	xdisp.c 28463-28955: C's `switch (XTYPE (elt))` with its `default:`/`invalid:` label pair and its two `goto invalid`s is the port's `match` inside the `'switch`/`'invalid` labelled blocks (deviations 281-282), so none of the three tokens can reappear
 decode_mode_spec	case,goto,switch	xdisp.c 29434-29891: C's `switch (c)` on a `register int` is the port's `match` on C's character codes as numeric patterns (deviation 284), and its `goto no_value` is the `'no_value` labelled block (deviation 286) - no `case`/`switch`/`goto` token survives
 display_count_lines	continue,true	xdisp.c 29914-30015: C's `do { ... } while (cursor < ceiling_addr)` is `loop` plus a trailing `if !(cursor < ceiling_addr) { break; }`, the forward scan's inner `do` the same, and the backward scan's `while (true)` is a bare `loop` (deviation 286)
+w32_valid_pointer_p	alloca	C's `alloca (sizeof (MEMORY_BASIC_INFORMATION))` at C 2014 is the port's `SAFE_ALLOCA!`/`USE_SAFE_ALLOCA!` stack pool (PORTING.md P-05, the `xftfont_draw` shape): the token has no Rust counterpart
+filename_to_utf16	break,case,default,switch	C 2704-2748's `switch (codepage)` is the port's `match` (PORTING.md 2.2): each `case` a pattern, `default:` the `_` arm, so `switch`/`case`/`default` and the arms' `break` have no Rust token
+filename_from_utf16	break,case,default,switch	the same `switch`-to-`match` rewrite in C 2760-2805's `switch (codepage)`
+filename_to_ansi	break,case,default,switch	the same `switch`-to-`match` rewrite in C 2811-2856's `switch (codepage)`
+filename_from_ansi	break,case,default,switch	the same `switch`-to-`match` rewrite in C 2863-2908's `switch (codepage)`
+getavg	double	C 2988's `double` locals are the port's `f64` (PORTING.md 1.2): the C token has no Rust spelling
+getloadavg	double	C 3033-3045's `double` arithmetic is the port's `f64`
+explicit_bzero	asm	C's `__asm__ volatile ("" : : "r" (s) : "memory")` compiler barrier (C 3312) is the port's `core::sync::atomic::compiler_fence` (PORTING.md P-13): `asm` has no counterpart token
+unsetenv	alloca	C 3374's `alloca` for the temporary copy is the port's `SAFE_ALLOCA!`/`SAFE_FREE!` pool (P-05)
+init_environment	alloca	C 1078-1080's `alloca` tbuffer is the port's `SAFE_ALLOCA!` pool (P-05)
+map_w32_filename	case,default,fallthrough,switch	C 3760-3874's `switch` is the port's `match` with the labels as patterns and the FALLTHROUGHs duplicated (PORTING.md 2.2), so `switch`/`case`/`default`/`fallthrough` have no Rust token
+sys_readdir	break,case,default,switch	C 3926-3960's `switch (errno)` is the port's `match`
+read_unc_volume	alloca	C 3980's `alloca` for the UNC buffer is the port's `SAFE_ALLOCA!` pool (P-05)
+logon_network_drive	case,default,switch	C 4020-4100's `switch` is the port's `match`
+access_attrs	break,case,default,fallthrough,switch	C 4118-4173's `switch (errno)` is the port's `match`, FALLTHROUGHs duplicated

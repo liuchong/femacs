@@ -12038,3 +12038,26 @@
      （冻结态没有任何项被解门）；`check-mirror-dupes` **17/17/0**；七道文本门全绿。
   ④ **未声称**：本机**无 GTK**，所以只有**配置证据 + 冻结读数 + 文本门**三项支撑，**没有** GTK3 臂的编译读数；
      `use_gtk` 的**内容**守卫（C 37/98/… 的 `#ifdef USE_GTK`）**原样保留**，只是现在位于更正后的文件门之下。
+
+- **3.597 lane 产出收口：`src/w32.c` 第二片落地（C 1,199-4,173；C 11,362 → Rust 6,330 行；`--check` 271 → 168 → 152）（2026-10-05）**：
+  ① **lane 的产出（Einstein）**：`femacs/src/w32.rs` 1,846 → **6,330 行**（+4,484，md5 `d21f6d46…`；台账 `docs/ports/w32.md`
+     350 → 612 行，77 行真实区间覆盖 C 1-4,173，remainder 写成 `4174-11362`）。落 77 个块/2,975 行 C：符号链接、
+     卷与驱动器枚举、`_UNICODE` 两臂、`_WIN32_WINNT >= 0x0501` 两臂、注册表/网络盘、`faccessat`/`access_attrs` 前的一组。
+  ② **读数**：`--check` **271 → 168**（退掉 76 `missing function` + 24 object + 11 macro + 7 constant + 行数行）；`build-tu` 2 发
+     （末发 **exit 0**，336 字节空对象）；`probe windowsnt` 2 发 → **139 errors**，按文件归属：**本单元 13**（全部是已登记类：
+     1 条 P-91 ④ 的 `ltime` 调用点 + 11 条"定义在本文件更后面"的 P-91 ④ 名 + 1 条**镜像门缺陷** `DebPrint`）、
+     socket.rs 70、`include/w32.rs` **21**、signal.rs 14、unistd.in.rs 8、ms-w32.rs 4、sys_time.rs 3、dirent.rs 3、pwd.rs 2、acl.rs 1。
+  ③ **集成者登记（我）**：**容差行 `w32 0.52`**（11,362 vs 6,330 = 44.3%）；**注册 `win32_winnt_ge_0501`**（另 4 个旧门已存在）；
+     **`macro-body-notes.tsv` 追加 15 行**（本片刻意改写的 C 记法：`switch/case/break/default/fallthrough`→`match`、
+     `alloca`→`SAFE_ALLOCA!`、`double`→`f64`、`asm`→`compiler_fence`，逐函数写明理由）⇒ 非 `missing` 类 finding **清零**、
+     总数 168 → **152**；`port-map.md` 刷新本件 + 补上 3.596 忘了重生成的 `xwidget` 行（4,492 → 4,500）。
+  ④ **本件报出的镜像欠账（下次镜像轮，按优先级）**：⑴ `include/w32.rs` 的 `E0428` 名单由 4 涨到 **21**（本单元定义、镜像在
+     `*_decls`/`*_objs` 之外又声明一遍）；⑵ `include/conf_post.rs` 183 的 `DebPrint` **门写反了**——C 在任何配置下都定义它
+     （`#else` 是 `((void) 0)`），端口只挂在 `have_ntgui` 下 ⇒ `windowsnt` 单独打开时解析不到；⑶ 若干 SDK 记录/常量的
+     拼写（`DWORD` 写成 `c_ulong`）、`lib/include/float.in.rs` 缺 `DBL_EPSILON`、`nt/inc/include/dirent.rs` 缺 `_fsize_t`、以及
+     8 组 Windows 记录的布局断言（本机无 SDK，**UNVERIFIED**）。
+  ⑤ **门读数（本轮现读，全绿）**：`check-mirror-dupes` 17/17/0、`check-citations` 0 drift / 0 stale、`check-declarations` 0 failures、
+     `check-dead-file-coverage` 145/0、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、`check-target-names` 0。
+  ⑥ **未声称**：**无运行期证据**（冻结态是 336 字节空对象；没跑 `LoadLibrary`/`CreateSymbolicLink`/注册表/套接字/卷调用）；
+     **无 Windows 目标编译、无布局测量**；arm 读数**被镜像图阻塞**（139 条里 126 条在镜像）；`#if` 判定来自 `check-cond-eval.py`
+     且该文件是 `[NOT VERIFIED]`（35 conditions / 5 unknown / 4 disagreements），非 clang。**下一段起点 C 4,174**（`faccessat`）。

@@ -829,6 +829,7 @@ windows_nt                                 = []  # WINDOWSNT
 windows_stat_inodes                        = []  # WINDOWS_STAT_INODES
 windows_stat_timespec                      = []  # WINDOWS_STAT_TIMESPEC
 windowsnt                                  = []  # WINDOWSNT
+win32_winnt_ge_0501                        = []  # _WIN32_WINNT >= 0x0501 (src/w32.c 2471; registered by the integrator in 3.597)
 words_bigendian                            = []  # WORDS_BIGENDIAN
 xft                                        = []  # HAVE_XFT
 xft_or_freetype                            = []  # see femacs/src/font.rs:5107
