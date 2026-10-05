@@ -1,4 +1,4 @@
-# emacs/src/sfnt.c (21,215 lines) — slices 1-3: C 1-3594
+# emacs/src/sfnt.c (21,215 lines) — slices 1-4: C 1-4543
 
 > **P-86's largest unit, ported in slices.**  The frozen configuration compiles nothing here:
 > `configure.ac` 2645 adds `sfnt.o` to `ANDROID_OBJ` only inside the `XCONFIGURE = android`
@@ -6,8 +6,8 @@
 > 2598, which is why `src/android.c`'s file gate is `have_android` alone and this one is the
 > pair — and `docs/baseline/frozen-build-sources.txt` lists no `sfnt.o`.  What follows is P-86
 > ②'s **C line-range table** for these slices, the `## Evidence` readings and the
-> `## Deviations`.  Port: `femacs/src/sfnt.rs` (4,113 lines, `grep -c ''`; `extract-abi.py`'s
-> own count, 4,113, is the same newline count), both arms of every `#if` carried.
+> `## Deviations`.  Port: `femacs/src/sfnt.rs` (5,181 lines, `grep -c ''`; `extract-abi.py`'s
+> own count, 5,181, is the same newline count), both arms of every `#if` carried.
 >
 > **This file's ledger replaces the previous revision's conclusion** ("the file is not in the
 > frozen build, so the port is the empty unit plus a note"), exactly as `docs/ports/android.md`
@@ -27,7 +27,7 @@
 > it is this ledger's account of what the slices *do* carry, next to the tool's account of what
 > the file still owes.
 >
-> **The slices are C 1-2407.**  Slice 1 is C 1-1112 (through the `}` of `sfnt_read_cmap_table`
+> **The slices are C 1-4543.**  Slice 1 is C 1-1112 (through the `}` of `sfnt_read_cmap_table`
 > at C 1112): the include graph and the TEST harness (C 20-139), `xaddmalloc`/`xaddrealloc`/
 > `MIN`/`MAX` (C 141-160), the file's own note (C 162-191), `sfnt_table_names` (C 195-219), the
 > two swap helpers and their macros (C 221-238), `sfnt_read_table_directory` (C 248-323),
@@ -46,10 +46,24 @@
 > `sfnt_expand_compound_glyph_context` (C 2657-2723), `sfnt_round_fixed` (C 2728-2736),
 > `sfnt_decompose_compound_glyph` (C 2753-3145), `sfnt_lerp_half` (C 3150-3156),
 > `sfnt_decompose_glyph_1` (C 3166-3293), `sfnt_decompose_glyph_2` (C 3306-3433) and the
-> dispatcher `sfnt_decompose_glyph` (C 3470-3594).  **The next live definition is C 3616's
-> `sfnt_build_append`** - C 3596-3610 (the `sfnt_build_glyph_outline_context` record and the
-> `build_outline_context` object the checker still lists as missing) opens the rasterizer
-> section - and the table's last row is "the remainder".
+> dispatcher `sfnt_decompose_glyph` (C 3470-3594).  Slice 4 is C 3595-4543: the record
+> `struct sfnt_build_glyph_outline_context` (C 3596-3606) and the `build_outline_context` object
+> (C 3610) the checker still listed, then the whole **outline builder** - `sfnt_build_append`
+> (C 3616-3674), the fixed-point helpers `sfnt_multiply_divide`/`_rounded`/`_signed` (C 3678-3714),
+> `sfnt_mul_fixed`/`_round` (C 3719-3733), `sfnt_move_to_and_build`/`sfnt_line_to_and_build`
+> (C 3738-3767), `sfnt_div_fixed`/`sfnt_ceil_fixed`/`sfnt_floor_fixed` (C 3772-3792),
+> `sfnt_curve_is_flat`/`sfnt_curve_to_and_build_1`/`sfnt_curve_to_and_build` (C 3798-3879) and
+> `sfnt_build_glyph_outline` (C 3902-3971) - and the whole *"ragged"* (fast) **rasterizer**:
+> `sfnt_poly_coverage` (C 3983-3993), `sfnt_poly_grid_ceil` (C 3998-4003), the anonymous enum's
+> `SFNT_POLY_ALIGNMENT` (C 4005-4008), `sfnt_prepare_raster` (C 4015-4038), the
+> `sfnt_edge_proc`/`sfnt_span_proc` typedefs (C 4040-4042), `sfnt_step_edge` (C 4047-4052),
+> `sfnt_build_outline_edges` (C 4059-4167), `sfnt_edge_sort` (C 4175-4194), `sfnt_poly_edges`
+> (C 4220-4296), `sfnt_saturate_short` (C 4301-4308), `sfnt_fill_span` (C 4313-4435),
+> `sfnt_poly_span` (C 4442-4489), `sfnt_raster_span` (C 4498-4503), `sfnt_raster_edge`
+> (C 4508-4514) and `sfnt_raster_glyph_outline` (C 4519-4543).  **The next live definition is
+> C 4726's `sfnt_build_outline_fedges`** - C 4545-4554's three `sfnt_add`/`sfnt_sub`/`sfnt_mul`
+> macros, C 4558-4650's "Exact coverage scaler." comment and the `struct sfnt_step` family
+> (C 4651-4725) open the *exact* rasterizer - and the table's last row is "the remainder".
 
 ## Gate mapping
 
@@ -64,8 +78,9 @@
 | C 224 / C 232 `#ifndef WORDS_BIGENDIAN` (the two swap helpers' bodies) | `not (feature = "words_bigendian")` (`femacs/xtask/Cargo.toml` 614); the other arm is C's empty body — the big-endian byte order needs no swap, so it is not a branch the port invents | little-endian |
 | C 1827 `#if defined HAVE_MMAP && !defined TEST` … C 1906 `#endif` | `all (file gate, not (feature = "test"))`: `HAVE_MMAP` is 1 on this target and no `have_mmap` feature is registered, so the port carries that half live (C 41's ruling, above) and gates C's `!defined TEST` half.  **C's `#if` has no `#else`**, so the other arm is empty text | a real Android non-TEST configuration |
 | C 1871 `#ifdef HAVE_POSIX_MADVISE` … C 1874 `#elif defined HAVE_MADVISE` … C 1876 `#endif` | `not (feature = "no_have_posix_madvise")` for the live `posix_madvise` arm; `feature = "no_have_posix_madvise"` + `cfg! (feature = "have_madvise")` for the `madvise` arm (the `pdumper.rs` 5281-5284 shape; `docs/baseline/feature-coverage.tsv` 241/436 register both names).  The third arm — neither macro — has no text in C | `posix_madvise`: always on this target (`HAVE_POSIX_MADVISE` is 1, 1492; `HAVE_MADVISE` is 1 too, 1445) |
+| C 4322 `#ifndef NDEBUG` … C 4429 (`sfnt_fill_span`'s `row_end` and its four `eassert`s) | `feature = "no_ndebug"` — the frozen configuration **defines** `NDEBUG` (`docs/baseline/config/darwin-arm64.macros.tsv` 2892), so this is dead text and P-51's rule names the feature after the non-frozen side (the `no_signbit`/`no_rint` shape); C's `#else` is empty, so there is no second arm.  The name is **not registered** yet — Owed 8 | a configuration with `NDEBUG` undefined |
 | C 1837 / C 1891 (`sfnt_map_glyf_table`/`sfnt_unmap_glyf_table` are not `TEST_STATIC`: sfnt.h declares them `extern` at C 1490-1491) | plain `#[unsafe(no_mangle)] pub unsafe extern "C"` under the file gate + `not (feature = "test")` — no `cfg_attr` | a real Android non-TEST configuration |
-| C 34's `#include <stdlib.h>` / C 2451's `abort ()` (this slice's only name from that header) | the file gate; the unit carries C's prototype in a use-site block at C 34's site (`lib/include/stdlib.rs` has `malloc` and friends but not `abort`, the `androidvfs.rs` 228-234 shape) | a real Android configuration |
+| C 34's `#include <stdlib.h>` / C 2451's `abort ()` and slice 4's `abs` (C 3712-3713, C 3812, C 4134) | the file gate; the unit carries C's two prototypes in use-site blocks at C 34's site (`lib/include/stdlib.rs` has `malloc` and friends but neither name, the `androidvfs.rs` 228-234 shape) | a real Android configuration |
 
 `not_android_stubify` is the feature the tree registered for C's `HAVE_ANDROID && !defined
 ANDROID_STUBIFY` (`docs/baseline/feature-coverage.tsv` 640, first used by `alloc.rs` 6428);
@@ -123,9 +138,10 @@ rustc compiles no include from it, which is what ① reads as the 336-byte empty
 | 3157-3293 | `sfnt_decompose_glyph_1` (C 3166-3293; C 3186-3210 the three start-point arms including the `last -= 1; here -= 1` pair whose `size_t` wrap the port keeps, C 3227-3241 the on-curve walk with its `continue`, C 3247-3276 the off-curve inner loop with `goto continue_loop`, C 3279-3289 the `goto exit` and the `exit:` tail) | file gate |
 | 3294-3433 | `sfnt_decompose_glyph_2` (C 3306-3433, the same body over `sfnt_fixed`/`sfnt_f26dot6` instead of `sfnt_fword`) | file gate |
 | 3434-3594 | `sfnt_decompose_glyph` (C 3470-3594; C 3479-3512 the simple-glyph walk, C 3516 the `memset (&context, 0, sizeof context)`, C 3526 the `compound_metrics` save, C 3538-3556 the two `goto`s, C 3581/3588 the `early:`/`fail:` tails with their four `xfree`s each) | file gate |
-| 3595-21215 | **the remainder** — the blank at C 3595 and from C 3596's `struct sfnt_build_glyph_outline_context` through C 21215: `build_outline_context` (C 3610, the object the checker still lists), `sfnt_build_append` (**the next live definition**, C 3616), the outline builders and the rasterizer (C 3644-6426), and the whole TrueType interpreter, `sfnt_interpret_*` (C 6427-21215, including the `#ifdef TEST` programs at C 6437-11000) | not this slice |
+| 3595-4543 | the blank at C 3595, then `struct sfnt_build_glyph_outline_context` (C 3596-3606) and the `build_outline_context` object (C 3610); `sfnt_build_append` (C 3616-3674; C 3645's `ckd_mul`, C 3647's `xaddrealloc`, C 3662-3663 the two chained bounding-box assignments); `sfnt_multiply_divide`/`_rounded`/`_signed` (C 3678-3714), `sfnt_mul_fixed`/`_round` (C 3719-3733), `sfnt_move_to_and_build`/`sfnt_line_to_and_build` (C 3738-3767), `sfnt_div_fixed`/`sfnt_ceil_fixed`/`sfnt_floor_fixed` (C 3772-3792; C 3783/3791's octal masks), `sfnt_curve_is_flat` (C 3798-3815; C 3812's `abs`), `sfnt_curve_to_and_build_1` (C 3822-3854; the three `sfnt_lerp_half` calls), `sfnt_curve_to_and_build` (C 3860-3879) and `sfnt_build_glyph_outline` (C 3902-3971; C 3918's two `sizeof`s, C 3942-3943 the two distortion terms, C 3946-3951 the `Some (…)` callback pair); the form feed and the "Glyph rasterization." banner, `sfnt_poly_coverage` (C 3983-3993), `sfnt_poly_grid_ceil` (C 3998-4003), the anonymous enum's `SFNT_POLY_ALIGNMENT` (C 4005-4008), `sfnt_prepare_raster` (C 4015-4038), the `sfnt_edge_proc`/`sfnt_span_proc` typedefs (C 4040-4042), `sfnt_step_edge` (C 4047-4052), `sfnt_build_outline_edges` (C 4059-4167; C 4069-4072 the `alloca`/`xnmalloc` fork, C 4134's `abs`, the three `continue`s at C 4092/4096/4144), `sfnt_edge_sort` (C 4175-4194), `sfnt_poly_edges` (C 4220-4296; the three pointer-to-pointer walks and the `(a = *prev) && (n = a->next)` condition), `sfnt_saturate_short` (C 4301-4308), `sfnt_fill_span` (C 4313-4435; C 4322-4324's `#ifndef NDEBUG` declaration and the four `eassert`s at C 4367/4385/4414/4428, C 4342's coverage subscript, C 4400/4418/4433 the three `*start++`), `sfnt_poly_span` (C 4442-4489; C 4452's and C 4476's chained assignments), the "Main entry point for outline rasterization." banner and `sfnt_raster_span` (C 4498-4503), `sfnt_raster_edge` (C 4508-4514) and `sfnt_raster_glyph_outline` (C 4519-4543; C 4530-4532 the `ckd` pair, C 4535's `(data + 1)` cell pointer) | file gate / `TEST_STATIC` on `sfnt_build_glyph_outline`, `sfnt_prepare_raster` and `sfnt_raster_glyph_outline`; `feature = "no_ndebug"` inside C 4322 |
+| 4544-21215 | **the remainder** — C 4545-4554's three `sfnt_add`/`sfnt_sub`/`sfnt_mul` macros, C 4558-4650's "Exact coverage scaler." comment and the `struct sfnt_step` family from C 4651 (whose `SFNT_BLOCK_STEPS` is the next missing constant), the exact rasterizer (C 4726's `sfnt_build_outline_fedges` is **the next live definition**, through C 5467), the metrics and name-table readers from C 5468 (`sfnt_read_hmtx_table`, `sfnt_lookup_glyph_metrics`, `sfnt_scale_metrics`, `sfnt_get_scale`, `sfnt_read_name_table`, `sfnt_find_name`) and the whole TrueType interpreter, `sfnt_interpret_*` (through C 21215, including the `#ifdef TEST` programs) | not this slice |
 
-The forty-seven rows above tile C 1-3594 **contiguously** (blank lines included) rather than
+The forty-eight rows above tile C 1-4543 **contiguously** (blank lines included) rather than
 skipping the blanks between blocks: `tools/check-dead-file-coverage.py`'s ledger lookup resolves
 `femacs/src/include/sfnt.rs` (this file's header's mirror) to this same `sfnt.md` through its
 bare-stem fallback, so a table with gaps at blanks would leave `src/sfnt.h`'s non-blank lines
@@ -137,8 +153,8 @@ what the gate requires of the final row.
 **① The frozen configuration (`build-tu`).**
 `cd femacs && CARGO_TARGET_DIR=/tmp/sfnt-lane/cargo cargo run -q -p xtask -- build-tu src/sfnt.c`
 → `built src/sfnt.rs -> ../build/femacs/sfnt.o`, **exit 0**, and `build/femacs/sfnt.o` is
-**336 bytes** — an empty object, measured on the final 4,113-line revision (and on each of the
-two earlier ones: the bytes are the same because the frozen feature set compiles none of them).  That is the expected
+**336 bytes** — an empty object, measured on the final revision (and on each of the earlier
+ones: the bytes are the same because the frozen feature set compiles none of them).  That is the expected
 reading and **not** a proof of the new text: every item sits behind the file gate, so under the
 frozen feature set rustc compiles only `include/config.rs` and the `#![allow]` attribute.  Two
 further `build-tu` runs are part of the same evidence: slice 1's first run reported its syntax
@@ -147,11 +163,18 @@ reported exactly two (`\`<\` is interpreted as a start of generic arguments for 
 `_root.rs` 2033 and 2268 — a cast run against a following `<`, now parenthesised; Deviation 12).
 Slice 3's one run is the clean reading above (exit 0, 336 bytes): its errors were all of the
 *type* class and surfaced in the arm flip instead, which is where the compiler can see them.
+**Slice 4 needed two runs, and its first was a *syntax* reading of this unit's own new text** -
+the class only the frozen build can see, because it parses every item and compiles none:
+`struct fields are separated by \`,\`` ×2 (`_root.rs` 4135, 4138 - C 3599/3602's `;` after a
+struct field), `Rust has no postfix increment operator` ×1 (`_root.rs` 4758 - C 4151's `edge++`)
+and \`<\` is interpreted as a start of generic arguments for \`c_int\`` ×2 (`_root.rs` 5089,
+5105 - C 4473/4487's `raster->height << 16` directly after a cast).  The second run is the clean
+reading above.
 
 **② The arm flip (P-86 ③⑴ — this machine has the NDK, so `text-only` is not allowed).**
 `cargo run -q -p xtask -- probe src/sfnt.rs /tmp/sfnt-lane/sfnt_arm.o --crate-type lib --emit obj
 --cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'`
-→ **exit 0**, `0 errors`, and the object is **12,632 bytes** (slice 2's reading was 10,128); the
+→ **exit 0**, `0 errors`, and the object is **25,856 bytes** (slice 3's reading was 12,632); the
 four warnings are all in *included mirrors*, none in this unit's own text:
 1. `lib/include/stdbit.in.rs` 644 — "unused doc comment";
 2. `src/include/lisp.rs` 3934 — "unused doc comment";
@@ -159,7 +182,14 @@ four warnings are all in *included mirrors*, none in this unit's own text:
 4. `lib/include/unistd.in.rs` 55 — the same for `write`.
 
 (The last two are a rustc lint that fires on the mirror's own declarations; they are not this
-unit's text and this slice cannot remove them.)  **Slice 3's own control reading is the 41-error
+unit's text and this slice cannot remove them.)  **Slice 4's own control reading is the 3-error
+run the fixes below retired**: `2 × E0308` (`y >= edges[edge].top` compared a `size_t` with an
+`sfnt_fixed`, `_root.rs` 4739, and `edges[edge].bottom = y`, 4756, wrote the `size_t` into an
+`sfnt_fixed` - both are C's implicit conversions, written `as size_t`/`as sfnt_fixed`) and
+`1 × E0381` (`n`, `_root.rs` 4899: the `n = a->next` half of the resort loop's condition sits
+inside the `&&`, which the port's initialisation analysis cannot see through; `n` is zeroed now,
+Deviation 30), every one of them at a `_root.rs` line *inside this unit's own text*.  **Slice 3's
+own control reading is the 41-error
 run the fixes below retired**: `29 × E0614` (the port's first spellings of the context arrays —
 `*(*(*context).x_coordinates…`, and `(*context)` on `sfnt_decompose_glyph`'s *local* record — plus
 `*((*(*glyph).simple).end_pts_of_contours…)`'s missing `as size_t`), `6 × E0384` (C mutates its
@@ -185,43 +215,48 @@ unit's names, so that run is recorded as a blocked reading and **not** as a read
 
 **③ Inventory (the live checklist).**
 `python3 tools/extract-abi.py --check emacs/src/sfnt.c femacs/src/sfnt.rs` → **FAIL**, with
-**333 `- missing …` lines — 174 functions, 153 macros, 5 constants (`SFNT_BLOCK_STEPS`,
-`SFNT_POLY_ALIGNMENT`, the three `SFNT_RUN_CONTEXT_*`), 1 file-scope object (`build_outline_context`)**
-— down from 343 (184/153/5/1) at the end of slice 2, i.e. **all 10 of slice 3's own functions
-match** (`sfnt_read_glyph`, `sfnt_free_glyph`, `sfnt_transform_coordinates`,
-`sfnt_expand_compound_glyph_context`, `sfnt_round_fixed`, `sfnt_decompose_compound_glyph`,
-`sfnt_lerp_half`, `sfnt_decompose_glyph_1`, `sfnt_decompose_glyph_2`, `sfnt_decompose_glyph`),
-and **6 named rows, all of them this slice's**:
-`- function sfnt_transform_coordinates does not mention double` (C's `double m1 … m6`, PORTING.md
-1.1's `f64`), `- function sfnt_decompose_compound_glyph does not mention goto, uninit` and the same
-`goto` row for `sfnt_decompose_glyph_1`/`sfnt_decompose_glyph_2`/`sfnt_decompose_glyph` (PORTING.md
-2.2's labelled blocks, and C 2768's `point`/`point2` `UNINIT` locals, which the port zeroes —
-Deviations 18/19), plus `- line count drifted 80.6%: C 21215 vs Rust 4113` (the whole file against
-three slices; slice 1's reading was 93.9%/1,298, slice 2's 86.7%/2,811).  The six rows are owed to
-`docs/ports/macro-body-notes.tsv` (Owed 3).  The nine
-`- function … is not static in C but has no #[unsafe(no_mangle)]` rows and slice 2's two
-`does not mention` rows are **gone from this reading**: `3.441` taught the tool to read the
-`cfg_attr` export, and `3.442` wrote the two rows (this slice's two new `TEST_STATIC` readers,
-`sfnt_read_glyph`/`sfnt_free_glyph`, therefore produce no row either).
+**304 `- missing …` lines — 147 functions, 153 macros, 4 constants (`SFNT_BLOCK_STEPS` and the
+three `SFNT_RUN_CONTEXT_*`), 0 file-scope objects** — down from 333 (174/153/5/1) at the end of
+slice 3, i.e. **all 27 of slice 4's own functions match** (`sfnt_build_append`,
+`sfnt_multiply_divide`, `sfnt_multiply_divide_rounded`, `sfnt_multiply_divide_signed`,
+`sfnt_mul_fixed`, `sfnt_mul_fixed_round`, `sfnt_move_to_and_build`, `sfnt_line_to_and_build`,
+`sfnt_div_fixed`, `sfnt_ceil_fixed`, `sfnt_floor_fixed`, `sfnt_curve_is_flat`,
+`sfnt_curve_to_and_build_1`, `sfnt_curve_to_and_build`, `sfnt_build_glyph_outline`,
+`sfnt_poly_grid_ceil`, `sfnt_prepare_raster`, `sfnt_step_edge`, `sfnt_build_outline_edges`,
+`sfnt_edge_sort`, `sfnt_poly_edges`, `sfnt_saturate_short`, `sfnt_fill_span`, `sfnt_poly_span`,
+`sfnt_raster_span`, `sfnt_raster_edge`, `sfnt_raster_glyph_outline`; the function count falls by
+exactly 27), and the two names the checker listed as missing that this slice defines are gone:
+the constant `SFNT_POLY_ALIGNMENT` (C 4005-4008) and the file-scope object `build_outline_context`
+(C 3610) — the file-scope-object class is now empty.  **One named row is this slice's**:
+`- function sfnt_build_outline_edges does not mention alloca` (C 4070's `alloca` is the port's
+`sa_stack_alloc`, Deviation 23; the row is owed to `docs/ports/macro-body-notes.tsv`, Owed 3).
+The other non-`missing` line is `- line count drifted 75.6%: C 21215 vs Rust 5181` (the whole
+file against four slices; slice 1's reading was 93.9%/1,298, slice 2's 86.7%/2,811, slice 3's
+80.6%/4,113).  The nine `- function … is not static in C but has no #[unsafe(no_mangle)]` rows
+and slice 3's five `does not mention` rows are **gone from this reading** (`3.442` wrote slice 3's
+six rows; `3.441` taught the tool to read the `cfg_attr` export, so this slice's three new
+`TEST_STATIC` readers - `sfnt_build_glyph_outline`, `sfnt_prepare_raster`,
+`sfnt_raster_glyph_outline` - produce no row either).
 
 **④ Other gates (repo root, final revision).**
-`python3 tools/check-dead-file-coverage.py` → **37 ledger(s) bound (a C range table), 0
-failure(s)** (that count moves as the parallel lanes land their ledgers: it read 34 earlier in
-this run), and this ledger is one of them: `info docs/ports/sfnt.md: 47 range row(s) cover
-src/sfnt.c (21215 lines; 0 blank line(s) between blocks need no row)` plus the same 47 rows over
-`src/sfnt.h` (2151 lines, the bare-stem fallback above). —
+`python3 tools/check-dead-file-coverage.py` → **45 ledger(s) bound (a C range table), 0
+failure(s)** (that count moves as the parallel lanes land their ledgers: slice 3's reading was
+37), and this ledger is one of them: `info docs/ports/sfnt.md: 48 range row(s) cover
+src/sfnt.c (21215 lines; 0 blank line(s) between blocks need no row)` plus the same 48 rows over
+`src/sfnt.h` (2151 lines, the bare-stem fallback above) — the row added by this slice is
+`3595-4543`, and the old `3595-21215` row is now `4544-21215`. —
 `python3 tools/check-declarations.py` → **10 declaration sites (0 forbidden, 10 allowed
-literals), 0 failures** (slice 1's first reading named 14/1, and the one failure was
-`femacs/src/android.rs`'s `PACKAGE_STRING` literal — another lane's in-flight file, since
-repaired). —
+literals), 0 failures** (slice 4's `abs` block is the eleventh `unsafe extern "C"` site; the
+count is sites-with-forbidden/with-allowed hits, not blocks). —
 `python3 tools/check-ledger-ticks.py` → **234 ledger(s) bound (a function tick to compare), 0
 failure(s), 0 carried by another file, 356 row(s) with no function tick**, 0 row(s) without a
 ledger. —
 `python3 tools/check-mirror-dupes.py` → **19 duplicate declaration(s), 19 ratchet row(s), 0
 failure(s)**. —
 `python3 tools/check-cond-eval.py src/sfnt.c` → **31 conditions, 0 unknown, 0 disagreements
-[VERIFIED]**, unchanged (slice 3 adds no `#if` of any kind: C 2408-3594 is preprocessor-free, so
-C 1827 and C 1871 remain the only two the two earlier slices carried, inside the 31).
+[VERIFIED]**, unchanged (the C file is frozen, so the evaluator's table cannot move with a port
+change; C 4322's `#ifndef NDEBUG` is the third `#if` inside the ported ranges and the first that
+is not a whole-item gate - it sits inside `sfnt_fill_span`'s body).
 
 ## Deviations
 
@@ -363,6 +398,79 @@ C 1827 and C 1871 remain the only two the two earlier slices carried, inside the
     conversions become (the two `offsets[…] * 2` promotions, the sign extensions of
     `argument1.b`/`d`, `last_point + 1` at `int` width), the `.offset (i as isize)` derefs, the
     `#[cfg]` of the new use-site block.  The whole-file drift falls from 86.7% to 80.6%.
+22. **C's tentative definition of `build_outline_context`.**  C 3610's `static struct
+    sfnt_build_glyph_outline_context build_outline_context;` has no initialiser - i.e. zero - and
+    Rust needs one on the item, so the port writes `unsafe { std::mem::zeroed () }` with a
+    `(tentative)` note (the `android.rs` 458 reading of the same C shape).  The struct itself
+    (C 3596-3606) is `#[repr(C)] #[derive (Clone, Copy)]`, the shape every other record in
+    `sfnt.h` has.
+23. **C 4070's `alloca` is the port's `sa_stack_alloc`.**  The port has no `alloca` at all
+    (PORTING.md P-05; `lib/include/alloca.in.rs` carries no name), so the small-outline arm goes to
+    the stack pool `AVAIL_ALLOCA!`/`SAFE_ALLOCA!` allocate from - the shape `alloc.rs` 7936,
+    `pdumper.rs` 2241, `eval.rs` 1598 and `font.rs` 2530 already use.  C's `edges_alloc` stays
+    `NULL` in that arm, so C 4166's `xfree (edges_alloc)` is the same no-op, and the pool's release
+    rule stays `alloc.rs`'s (C's frame-local `alloca` has no explicit free either).  The C token
+    `alloca` therefore cannot reappear, which is the `- function sfnt_build_outline_edges does not
+    mention alloca` row of Evidence ③ (Owed 3), and the TEST arm's side of the same gap is Owed 9.
+24. **C 4322's `#ifndef NDEBUG` is `feature = "no_ndebug"`.**  The block - `row_end` (C 4323) and
+    the four `eassert`s at C 4367/4385/4414/4428 - is *dead text* in the frozen configuration,
+    which **defines** `NDEBUG` (`docs/baseline/config/darwin-arm64.macros.tsv` 2892, the same
+    measurement `docs/ports/include-conf_post.md` 39 records), so P-51's rule applies and the
+    feature is named after the non-frozen side (the `no_signbit`/`no_rint` shape).  C's `#else` is
+    empty, so there is no second arm to carry.  **The name is not registered** -
+    `docs/baseline/feature-coverage.tsv` and `femacs/xtask/Cargo.toml` are outside this lane's
+    write set - which is Owed 8.
+25. **`xnmalloc`'s two arguments are cast to `isize`.**  C 4072 passes `outline->outline_used` (a
+    `size_t`) and `sizeof *edges` to `xnmalloc`, whose live prototype is `lisp.h` 5544's
+    `void *xnmalloc (ptrdiff_t, ptrdiff_t)` - reached through C 138's include in the non-TEST arm -
+    while C's own TEST-arm definition (C 98-105) takes `size_t`.  The port's single text follows
+    the live arm and casts, the tree's spelling at every other `xnmalloc` call site (`emacs.rs`
+    2308, `profiler.rs` 112); the TEST-arm half of that difference is Owed 9.
+26. **C's chained assignments and its `*p++` are split, in C's order.**  C 3662-3663's
+    `outline->xmin = outline->xmax = x;` and `ymin`/`ymax` twin become two statements each in C's
+    right-to-left order (`composite.md` 139's rule), C 4452's `x0 = x1 = 0;` and C 4476's
+    `x0 = x1 = edge->x;` likewise, and C 4400/4418/4433's `*start++ = sfnt_saturate_short (a)` is
+    the load-then-step pair (`alloc.rs` 257's `*p = …; p = p.offset (1);`).
+27. **C's `for`-loop increments are folded into each `continue`.**  C 4081's
+    `for (i = 0; i < outline->outline_used; ++i)` has three `continue`s (C 4092, 4096, 4144), and
+    Rust's `continue` would skip a trailing `i += 1`, so the port writes `{ i += 1; continue; }` at
+    each of them plus the increment once at the loop's end - the `dispnew.rs` 4644 shape.
+    `sfnt_edge_sort`'s and `sfnt_poly_edges`'s loops have no `continue` and keep the plain form.
+28. **C's `long long int` arithmetic is spelled with the fixed-width aliases.**  C 3678-3714,
+    3719-3733 and 3772-3776's `unsigned long long int`/`long long int` products and quotients are
+    the port's `uint64_t`/`int64_t` with the conversions C performs implicitly (each operand
+    widened by `as`, the result narrowed at the `return`); C 3783/3791's `0177777`/`037777600000`
+    are `0o177777` and `0o37777600000`, the second applied at `uint32_t` width because C's octal
+    constant has type `unsigned int` (`sfnt_fixed` is signed).  C's no-op `(sfnt_fixed)` casts are
+    kept as `as sfnt_fixed` (C 3667-3670's `MIN`/`MAX` arguments, C 3968's `origin` promotion).
+29. **`abs` is a use-site declaration.**  C 34's `#include <stdlib.h>` is mirrored by
+    `lib/include/stdlib.rs`, which carries `malloc` and friends but **neither** `abort` nor `abs`;
+    slice 4 is the first text here to call `abs` (C 3712-3713, C 3812, C 4134), so C's prototype
+    joins `abort`'s block at C 34's site (P-88 ①, Deviation 15's shape).
+30. **Two C locals the port zeroes, and three `mut` parameters.**  C 4226's
+    `struct sfnt_edge *active, **prev, *a, *n;` has `n` read in the resort loop's condition
+    (`(a = *prev) && (n = a->next)` at C 4283), which the port's `while { a = *prev; !a.is_null ()
+    && { n = (*a).next; !n.is_null () } }` cannot hand rustc's initialisation analysis - measured
+    `E0381` - so `n` is zeroed (PORTING.md 1.5).  `sfnt_curve_to_and_build_1`'s three parameters
+    (C 3823-3825), which C passes by address to `sfnt_lerp_half` (`&control0 …`, C 3844-3846),
+    need `mut` bindings for `&raw mut`; the same applies to `sfnt_fill_span`'s `x0`/`x1`
+    (C 4314-4315, written at C 4329/4335).
+31. **Line count**: slice 4 is C 949 lines (C 3595-4543) against the port's +1,068
+    (4,113 → 5,181, +12.5%): the per-item gates, the C-line comments, the `as` casts C's implicit
+    conversions become, the `.offset (i as isize)` and `&raw mut` spellings, the `while { … }`
+    conditions, the four `#[cfg (feature = "no_ndebug")]` blocks and Rust's brace-only lines.  The
+    whole-file drift falls from 80.6% to 75.6%.
+32. **Three of C's own arithmetic edges are carried, not smoothed over** (the reference's bugs are
+    kept, per P-86 ①): the reference's `int` overflow at C 4334 (`x1 > raster->width * 65536`
+    promotes the `unsigned short` to `int`, so a width above 32767 is undefined in C and wraps in
+    practice) is the port's plain `(*raster).width as c_int * 65536`, which a *debug* build would
+    panic on where C wraps -- no reading here can see it (nothing runs) and `wrapping_mul` would
+    be a behaviour C does not have; C 4143/4149's `y >= edges[edge].top` compares a `size_t`
+    against a signed fixed value (so a negative `sfnt_poly_grid_ceil` result wraps to a huge `y`
+    and the edge survives), carried as the two conversions C performs, `as size_t` and
+    `as sfnt_fixed` at C 4159; and C 3849/3852's recursion in `sfnt_curve_to_and_build_1` has no
+    depth limit, which C's own comment ("Maybe apply a recursion limit here?") acknowledges - the
+    port keeps the recursion as it stands.
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
@@ -389,13 +497,23 @@ C 1827 and C 1871 remain the only two the two earlier slices carried, inside the
    `f64`; the `WORDS_PER_DOUBLE`/`json_out_float` rows' shape), `sfnt_decompose_compound_glyph` →
    `goto,uninit` and `sfnt_decompose_glyph_1`/`sfnt_decompose_glyph_2`/`sfnt_decompose_glyph` →
    `goto` (PORTING.md 2.2's labelled blocks, Deviations 18-19; the `uninit` half is C 2768's
-   `point`/`point2` `UNINIT` and C 2765's `need_free`, PORTING.md 1.5).  With those six rows the
-   reading's non-`missing` lines are the line-count row alone.
+   `point`/`point2` `UNINIT` and C 2765's `need_free`, PORTING.md 1.5).  **Slice 4 owes one**:
+   `sfnt_build_outline_edges` → `alloca` (C 4070's `alloca` is the port's `sa_stack_alloc`,
+   Deviation 23; the token cannot reappear because the port has no `alloca` at all).  ✅ **Written by
+   the integrator in 3.463** (`docs/ports/macro-body-notes.tsv`); Evidence ④'s `--check` reading
+   accordingly has no `does not mention` row left.  Evidence ③'s
+   reading shows the earlier rows are all in place and this is the only `does not mention` row
+   left, so with it the reading's non-`missing` lines are the line-count row alone.
 4. **`have_mmap` (or an explicit ruling)** — C 1827's `#if defined HAVE_MMAP && !defined TEST`
    is carried as `not (feature = "test")` alone, because `docs/baseline/feature-coverage.tsv` has
    no `have_mmap` row and slice 1 already ruled C 41's `#ifdef HAVE_MMAP` live.  Either register
    the feature (and gate C 1827-1906 with it here and C 41-43 in slice 1) or record the ruling as
-   the tree's answer for this macro.
+   the tree's answer for this macro.  ✅ **Ruling (3.463, integrator): no feature belongs here.**
+   `HAVE_MMAP` is `1` in the frozen table (`docs/baseline/config/darwin-arm64.macros.tsv` 1469),
+   and C 1827's `#if` has **no `#else`** — the block's last line is C 1907's `#endif /* HAVE_MMAP */`
+   (`awk` over C 1827-1912 prints the nested `#ifdef HAVE_POSIX_MADVISE`/`#endif` pair and that one
+   `#endif`, nothing else) — so `not (feature = "test")` *is* the whole selection and there is no
+   arm text for a `have_mmap`/`no_have_mmap` name to carry.
 5. ~~`time_t`/`timespec` for `lib/include/sys_time.rs`/`sys_select.rs`/`src/include/thread.rs`
    through `lisp.rs`'s chain~~ — **closed in 3.429**: root was P-89's materializer, and the arm
    now reads exit 0.  `<sys/mman.h>` (this slice), `<setjmp.h>` and the TEST arm's
@@ -403,28 +521,49 @@ C 1827 and C 1871 remain the only two the two earlier slices carried, inside the
    `<setjmp.h>`/`<sys/wait.h>`/`<X11/*>`, and takes `mmap`/`munmap`/`posix_madvise`/`madvise`,
    `PROT_READ`, `MAP_PRIVATE`, `MAP_FAILED`, `POSIX_MADV_WILLNEED` and `MADV_WILLNEED` from the
    use-site block (Deviation 13).
-6. **`tools/check-port-lines.py --write-pending`**: this file's ratchet row is stale (80.6%
-   drift after slice 3) — deliberately left to a batch close, so that the rewrite does not encode
+6. **`tools/check-port-lines.py --write-pending`**: this file's ratchet row is stale (75.6%
+   drift after slice 4) — deliberately left to a batch close, so that the rewrite does not encode
    the parallel lanes' in-flight units.
 7. **C 3516's `sizeof context`**: the port's `size_of_val (&context)` (Deviation 17) is the
    *place* spelling the `sizeof` family sanctions, chosen because `size_of::<T> ()` would drop the
    `context` family's occurrence.  Nothing is owed by name here; it is recorded so the next lane
    does not "restore" the type spelling and re-open `family context: … the port 22`.
+8. **`no_ndebug`** — C 4322's `#ifndef NDEBUG` (Deviation 24) is the
+   first `NDEBUG` site in a ported unit.  ✅ **Registered by the integrator in 3.463**:
+   `femacs/xtask/Cargo.toml` carries `no_ndebug = []  # !NDEBUG` and
+   `python3 tools/feature-coverage.py --write` re-recorded the table, so the name is a real feature
+   a `dead-arms` flip can turn on.  **Still owed**: the flip itself — `docs/ports/`'s
+   `xtask dead-arms` FLIPS table has no `no_ndebug` row and `config.rs`'s `NDEBUG` constant is what
+   a flip would have to move with it; the arm is unmeasured text until then.
+9. **This unit's TEST arm** — C's TEST arm gets `alloca` from `<alloca.h>` (C 39, *outside* the
+   `#ifdef TEST`) and `xnmalloc (size_t, size_t)` from C 98-105, while the port's TEST arm has
+   neither: `sa_stack_alloc`'s prototype reaches the non-TEST arm through C 138's `lisp.h`
+   (Deviation 23) and the file's own TEST-arm `xnmalloc` takes `size_t` where the port's call is
+   cast to `isize` (Deviation 25).  No gate builds that arm today (`sfnt.c` is not in
+   `docs/baseline/frozen-build-sources.txt` - `check-all-units.sh` therefore never sweeps it - and
+   the P-86 ③⑴ arm flip passes only the file gate), so this is an owed, unmeasured reading rather
+   than a failed one: the lane that first builds `feature = "test"` here owns it.
 
 ### Not claimed
 
 Every line of these slices is behind gates the frozen configuration leaves false: **① is an
-empty object and the arm reading (②) produced a 12,632-byte object that nothing ran**, so there
+empty object and the arm reading (②) produced a 25,856-byte object that nothing ran**, so there
 is **no runtime evidence of any kind** for this port — no font was opened, no cmap subtable was
-parsed, no table directory was read, no glyph was outlined, no mapping was `mmap`'d, and no
-`read`/`lseek` returned.  C 3595-21215 is **not ported here**; the 333 `- missing …` lines of
-Evidence ③, the 174 missing functions and the 80.6% drift are that boundary.  The
-`.offset (i as isize)` / `usize::MAX` / `overflowing_*` / `wrapping_*` / `size_of_val` / cast
-rewrites are compile-level and were measured by the compiler, not by a running program.  Slice 3's
-ten new definitions are **called by nothing in the port**: `sfnt_read_glyph` and `sfnt_free_glyph`
-have no caller (`sfnt_build_glyph_outline`, C 3916, is the next unit of work that would use them),
-`sfnt_decompose_glyph`'s three callbacks pass through `Option<unsafe extern "C" fn>` values no
-caller supplies yet, and `sfnt_map_glyf_table`/`sfnt_unmap_glyf_table` are still behind
-`not (feature = "test")`, which the frozen configuration leaves false as well.  The `E0614`/
-`E0384`/`E0277`/`E0425`/`E0308` control reading of Evidence ② is a *compiler* reading of the
-errors this slice retired, not a behaviour test.
+parsed, no table directory was read, no glyph was outlined, no curve was flattened, no span was
+filled, no mapping was `mmap`'d, and no `read`/`lseek` returned.  C 4544-21215 is **not ported
+here**; the 304 `- missing …` lines of Evidence ③, the 147 missing functions and the 75.6% drift
+are that boundary.  The `.offset (i as isize)` / `size_of_val` / `wrapping_*` / `overflowing_*` /
+`&raw mut` / cast rewrites are compile-level and were measured by the compiler, not by a running
+program, and so is the whole `feature = "no_ndebug"` arm (nothing flips it yet — Owed 8).  Slice
+4's 27 new definitions are **called only from inside the slice**: `sfnt_build_glyph_outline` and
+`sfnt_raster_glyph_outline` have no caller in the port yet (`sfntfont.c` 2353/2492 call them, and
+`femacs/src/sfntfont.rs` has not reached those lines), the three callback builders are passed to
+`sfnt_decompose_glyph` from `sfnt_build_glyph_outline`, and the rasterizer's two `Some (…)`
+values are the `sfnt_edge_proc` `sfnt_raster_glyph_outline` hands to `sfnt_build_outline_edges`
+and the `sfnt_span_proc` `sfnt_raster_edge` hands to `sfnt_poly_edges`.  Slice 3's
+`sfnt_read_glyph`/`sfnt_free_glyph` are **still** called by nothing in the port either:
+`sfnt_build_glyph_outline` receives them as its `get_glyph`/`free_glyph` arguments, and *its*
+caller is out of slice (`sfntfont.rs`).  `sfnt_map_glyf_table`/`sfnt_unmap_glyf_table` are still
+behind `not (feature = "test")`, which the frozen configuration leaves false as well.  The
+`E0308`/`E0381` control reading of Evidence ② is a *compiler* reading of the errors this slice
+retired, not a behaviour test.

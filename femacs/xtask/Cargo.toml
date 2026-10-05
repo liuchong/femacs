@@ -314,6 +314,7 @@ no_malloc_ptrdiff                          = []  # !HAVE_MALLOC_PTRDIFF
 no_map_anonymous                           = []  # !MAP_ANONYMOUS
 no_map_populate                            = []  # !MAP_POPULATE
 no_map_populate_map_prefault_read          = []  # see femacs/src/pdumper.rs:245
+no_ndebug                                  = []  # !NDEBUG
 no_net_if                                  = []  # see femacs/src/process.rs:4815
 no_noreturn_spelling                       = []  # see femacs/lib/include/_Noreturn.rs:50
 no_o_directory                             = []  # !O_DIRECTORY

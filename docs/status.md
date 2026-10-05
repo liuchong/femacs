@@ -8297,3 +8297,37 @@
   3.433 点名保留的四类（C 的 docstring、`COPYRIGHT` 与许可证文本、`PACKAGE_BUGREPORT`、Haiku bundle 签名）
   **未动**——不重开已裁决的问题，产品身份层的口径仍留待全面验收期判决（3.226 ⑤）。
 
+- **3.463 sfnt 切片 4 落地（C 3595-4543，949 行）：轮廓构建、定点乘除与光栅化（2026-10-05）**：
+  ① **区间/块**：C 3595-4543（收在 `sfnt_raster_glyph_outline` 的 `}`）；**下一个活定义 = C 4726
+  `sfnt_build_outline_fedges`**。27 个新定义：`sfnt_build_glyph_outline` 的四个回调构建器与上下文
+  （`sfnt_build_append`/`sfnt_move_to_and_build`/`sfnt_line_to_and_build`/`sfnt_curve_to_and_build`）、
+  `sfnt_multiply_divide*`/`sfnt_mul_fixed*`/`sfnt_div_fixed`/`sfnt_ceil_fixed`/`sfnt_floor_fixed`、
+  `sfnt_curve_is_flat`，以及光栅化的 `sfnt_poly_*`/`sfnt_raster_*` 家族与 `sfnt_fill_span`
+  （内层 `#ifndef NDEBUG` → `feature = "no_ndebug"`，C 4322）；`sfnt_build_outline_edges` 的 `alloca`
+  走 `sa_stack_alloc`（Deviation 23，其声明经 C 138 的 `lisp.h` 到达非 TEST 臂）。
+  ② **行数**：`femacs/src/sfnt.rs` **4,113 → 5,181**（md5 `c125bfad0391c63d3c9060f68469dc88`）；
+  台账 `docs/ports/sfnt.md` **561 行**（C 区间表 48 行，末行 `4544-21215`）。
+  ③ **集成者落地读数（本轮自己跑的）**：冻结 `build-tu src/sfnt.c` →
+  `built src/sfnt.rs -> ../build/femacs/sfnt.o`、**336 字节空对象**；`extract-abi --check` **FAIL 属预期**
+  （`- ` 行 **304 → 303**，`function sfnt_build_outline_edges does not mention alloca` 已消，剩
+  `- missing constant SFNT_RUN_CONTEXT_GLYPH_PROGRAM` 与 75.6% 漂移两族）；`check-dead-file-coverage`
+  **45 绑定 / 2 failure，且两条全在在飞的 `docs/ports/msdos.md`**（Hegel 已加 `## C line ranges` 标题、
+  行还没填——不是本轮引入，也不动别人的在飞文件）；`check-ledger-ticks` **234 / 0**、
+  `check-mirror-dupes` **19/19/0**、`check-declarations` 10/0/0 均不变。
+  ④ **集成者替它落的账（三条 Owed）**：⑴ **Owed 3** 写 `docs/ports/macro-body-notes.tsv` 的
+  `sfnt_build_outline_edges → alloca` 行（`--check` 的 `does not mention` 行随之归零）；⑵ **Owed 8**
+  登记 `no_ndebug`（`femacs/xtask/Cargo.toml` 的 `no_*` 块按字母序插在 `no_net_if` 前，注释 `# !NDEBUG`）
+  并 `tools/feature-coverage.py --write` 重录表（**792 feature(s), 785 never enabled**；
+  `no_ndebug` 6 sites / 1 file）；⑶ **Owed 4 结案**：`have_mmap` **不需要**任何 feature 名——冻结表的
+  `HAVE_MMAP` 是 `1`（`docs/baseline/config/darwin-arm64.macros.tsv` 1469），且 C 1827 的 `#if`
+  **没有 `#else`**（C 1907 的 `#endif /* HAVE_MMAP */` 就是该块末行，`awk` 扫 C 1827-1912 只有嵌套的
+  `HAVE_POSIX_MADVISE` 一对），所以 `not (feature = "test")` 就是全部选择，判据已写回台账。
+  ⑤ **lane 自报读数（不是我的读数）**：翻臂 `probe … --cfg 'feature="have_android"' --cfg
+  'feature="not_android_stubify"'` **exit 0 / 0 error / 对象 25,856 字节**；`check-cond-eval src/sfnt.c`
+  `31 conditions, 0 unknown, 0 disagreements [VERIFIED]`；lane 预算 `build-tu` 3/3、`probe` 3/3。
+  ⑥ **未声称**：**零运行证据**（①是空对象，②那个 25,856 字节对象没有任何人运行）；C 4544-21215
+  未移植（303 条 `- missing`、147 函数、75.6% 漂移即边界）；`feature = "no_ndebug"` 臂**仍未被任何配置
+  编译过**（本轮的登记只让名字成为真 feature，`dead-arms` 的 FLIPS 里还没有它——Owed 8 的第二半）；
+  本单元 TEST 臂（`sa_stack_alloc` 缺声明、`xnmalloc` 签名差异）**未测量**；`check-port-lines` 的 sfnt
+  棘轮行按 lane 的说明**留给批次收口**（现在重写会把在飞 lane 的瞬态数字冻进表里）；本轮 `build-tu` **1 发**（限 3）。
+

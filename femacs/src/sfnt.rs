@@ -7,13 +7,15 @@
 // `#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]`, which is what the macro's two arms
 // select.
 //
-// **This file is P-86's largest unit (C 21,215 lines) and is being ported in slices.**  This slice
-// is C 1-2407: slice 1 (C 1-1112, through `sfnt_read_cmap_table`) plus the glyph lookup routines
-// (C 1114-1465), the table readers (C 1467-1906: `head`, `hhea`, both `loca` forms, `maxp`, `glyf`
-// and the `HAVE_MMAP` pair) and the two glyph outline readers (C 1908-2407).  **The next live
-// definition is C 2413's `sfnt_read_glyph`.**  The ledger `docs/ports/sfnt.md` carries the C
-// line-range table for C 1-2407 plus the "the remainder" row, the `## Evidence` readings and the
-// `## Deviations`.
+// **This file is P-86's largest unit (C 21,215 lines) and is being ported in slices.**  The
+// slices so far are C 1-4543: slice 1 (C 1-1112, through `sfnt_read_cmap_table`), slice 2 (the
+// glyph lookup routines, the table readers and the two glyph outline readers, C 1113-2407),
+// slice 3 (the glyph outline decomposition, C 2408-3594) and slice 4 (the outline builders and
+// the "ragged" rasterizer, C 3595-4543).  **The next live definition is C 4726's
+// `sfnt_build_outline_fedges`** - C 4545-4554's three `sfnt_add`/`sfnt_sub`/`sfnt_mul` macros and
+// the `struct sfnt_step` family (C 4651-4725) open the *exact* rasterizer.  The ledger
+// `docs/ports/sfnt.md` carries the C line-range table for C 1-4543 plus the "the remainder" row,
+// the `## Evidence` readings and the `## Deviations`.
 //
 // The frozen configuration compiles no `sfnt.o`: `configure.ac` 2645 adds `sfnt.o` to
 // `ANDROID_OBJ` only inside the `XCONFIGURE = android` branch (the `REALLY_ANDROID` one,
@@ -50,6 +52,10 @@
 //     ignored "-Wstringop-overflow"`; there is no Rust counterpart and it is not carried.
 //   * C 224/232's `#ifndef WORDS_BIGENDIAN` is `not (feature = "words_bigendian")`; the other arm
 //     of each swap helper is C's empty body - the big-endian byte order needs no swap.
+//   * C 4322's `#ifndef NDEBUG` (slice 4: `sfnt_fill_span`'s `row_end` and its four `eassert`s)
+//     is `feature = "no_ndebug"`: the frozen configuration *defines* `NDEBUG`, so this is dead
+//     text and the feature names the non-frozen side (P-51's `no_signbit`/`no_rint` rule, the
+//     ledger's Deviation 24).  The name is not registered yet - the ledger's Owed 8.
 
 #![allow(non_camel_case_types, non_snake_case, non_upper_case_globals, dead_code,
          unused_imports, unused_macros, unused_variables, unused_unsafe, static_mut_refs,
@@ -94,6 +100,15 @@ include!("../lib/include/stdlib.rs");                  // C 34: `#include <stdli
 unsafe extern "C" {
   /// C: `_Noreturn void abort (void);`
   pub fn abort () -> !;
+}
+/* `<stdlib.h>`: slice 4 is the first text here to call `abs` (`sfnt_multiply_divide_signed`, C
+   3712-3713, `sfnt_curve_is_flat`, C 3812, and `sfnt_build_outline_edges`, C 4134), and neither
+   `lib/include/stdlib.rs` nor any other mirror in this unit's include graph carries it, so the
+   prototype stands here beside `abort` (the same P-88 ① reading of C 34).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `int abs (int);`
+  pub fn abs (i: c_int) -> c_int;
 }
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 include!("../lib/include/string.rs");                  // C 35: `#include <string.h>` (memcpy)
@@ -4110,4 +4125,1057 @@ unsafe fn sfnt_decompose_glyph (glyph: *mut sfnt_glyph,
   xfree (context.flags as *mut c_void);
   xfree (context.contour_end_points as *mut c_void);
   return 1;
+}
+
+/* C 3595-3610: the record the outline builders communicate through, and the global state object
+   `build_outline_context` that `extract-abi.py`'s inventory still listed as missing at the end of
+   slice 3.  This opens the section the ledger's prose calls "the outline builders and the
+   rasterizer" (C 3644-6426).  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+#[derive (Clone, Copy)]
+pub struct sfnt_build_glyph_outline_context
+{
+  /* The outline being built.  */
+  pub outline: *mut sfnt_glyph_outline,
+
+  /* Factor to multiply positions by to get the pixel width.  */
+  pub factor: sfnt_fixed,
+
+  /* The position of the pen in 16.16 fixed point format.  */
+  pub x: sfnt_fixed,
+  pub y: sfnt_fixed,
+}
+
+/* Global state for sfnt_build_glyph_outline and related
+   functions.  */
+/* C 3610's definition carries no initialiser - a tentative definition, i.e. zero - so the port
+   spells it `zeroed ()` (the android.rs 458 reading of the same C shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static mut build_outline_context: sfnt_build_glyph_outline_context
+  = unsafe { std::mem::zeroed () };
+
+/* Append the given three words FLAGS, X, and Y to the outline
+   currently being built.  Value is the new pointer to outline
+   memory.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_build_append (flags: c_int, x: sfnt_fixed, y: sfnt_fixed)
+  -> *mut sfnt_glyph_outline                       // C 3616-3674
+{
+  let mut outline: *mut sfnt_glyph_outline;
+
+  outline = build_outline_context.outline;
+
+  if x == build_outline_context.x
+      && y == build_outline_context.y
+      /* If the outline is presently empty, the first move_to must be
+	 recorded even if its X and Y are set to origin.  Without this
+	 initial vertex, edges will be generated from the next vertex
+	 onward, and thus be misaligned.  */
+      && (*outline).outline_used != 0
+    /* Ignore redundant motion.  */
+    { return build_outline_context.outline; }
+
+  (*outline).outline_used += 1;
+
+  /* See if the outline has to be extended.  */
+
+  if (*outline).outline_used > (*outline).outline_size
+    {
+      /* This can't overflow, as the old value did not overflow when
+	 multiplied by sizeof *outline->outline.  */
+      (*outline).outline_size = (*outline).outline_used * 2;
+
+      /* Extend the outline to some size past the new size.  */
+      let mut size: size_t;
+      let (ckd_size, mul_overflow)
+	= (*outline).outline_size
+	  .overflowing_mul (std::mem::size_of::<sfnt_glyph_outline_command> ());
+      size = ckd_size;
+      if mul_overflow
+	{ memory_full_up (); }
+      outline = xaddrealloc (outline as *mut c_void,
+			     std::mem::size_of::<sfnt_glyph_outline> (),
+			     size) as *mut sfnt_glyph_outline;
+      (*outline).outline
+	= outline.offset (1) as *mut sfnt_glyph_outline_command;
+    }
+
+  /* Write the outline data.  */
+  (*(*outline).outline.offset (((*outline).outline_used - 1) as isize)).flags = flags;
+  (*(*outline).outline.offset (((*outline).outline_used - 1) as isize)).x = x;
+  (*(*outline).outline.offset (((*outline).outline_used - 1) as isize)).y = y;
+
+  /* Extend outline bounding box.  */
+
+  if (*outline).outline_used == 1
+    {
+      /* These are the first points in the outline.  */
+      (*outline).xmax = x;
+      (*outline).xmin = x;
+      (*outline).ymax = y;
+      (*outline).ymin = y;
+    }
+  else
+    {
+      (*outline).xmin = MIN! (x as sfnt_fixed, (*outline).xmin);
+      (*outline).ymin = MIN! (y as sfnt_fixed, (*outline).ymin);
+      (*outline).xmax = MAX! (x as sfnt_fixed, (*outline).xmax);
+      (*outline).ymax = MAX! (y as sfnt_fixed, (*outline).ymax);
+    }
+
+  return outline;
+}
+
+/* Calculate (A * B) / C with no rounding and return the result.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_multiply_divide (a: c_uint, b: c_uint, c: c_uint) -> c_uint
+{                                                          // C 3678-3682
+  return (a as uint64_t * b as uint64_t / c as uint64_t) as c_uint;
+}
+
+/* Calculate (A * B) / C with rounding and return the result.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_multiply_divide_rounded (a: c_uint, b: c_uint, c: c_uint) -> c_uint
+{                                                          // C 3686-3691
+  return ((a as uint64_t * b as uint64_t + (c / 2) as uint64_t)
+	  / c as uint64_t) as c_uint;
+}
+
+/* The same as sfnt_multiply_divide_rounded, but handle signed values
+   instead.  */
+/* C 3696's `MAYBE_UNUSED` is `attribute.h`'s attribute, a no-op the port drops (the fileio.rs 273
+   reading of the same attribute); the `macro-body-notes.tsv` row it owes is named in the ledger's
+   Owed 3.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_multiply_divide_signed (a: c_int, b: c_int, c: c_int) -> c_int
+{                                                          // C 3696-3714
+  let mut sign: c_int;
+
+  sign = 1;
+
+  if a < 0
+    { sign = -sign; }
+
+  if b < 0
+    { sign = -sign; }
+
+  if c < 0
+    { sign = -sign; }
+
+  return sfnt_multiply_divide_rounded (abs (a) as c_uint, abs (b) as c_uint,
+				       abs (c) as c_uint) as c_int * sign;
+}
+
+/* Multiply the two 16.16 fixed point numbers X and Y.  Return the
+   result regardless of overflow.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_mul_fixed (x: sfnt_fixed, y: sfnt_fixed) -> sfnt_fixed
+{                                                          // C 3719-3723
+  return (x as int64_t * y as int64_t / ((1 << 16) as int64_t)) as sfnt_fixed;
+}
+
+/* Multiply the two 16.16 fixed point numbers X and Y, with rounding
+   of the result.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_mul_fixed_round (x: sfnt_fixed, y: sfnt_fixed) -> sfnt_fixed
+{                                                          // C 3728-3733
+  let mut product: int64_t = x as int64_t * y as int64_t;
+  return ((product + (if product < 0 { -(1 << 15) } else { 1 << 15 }) as int64_t)
+	  / ((1 << 16) as int64_t)) as sfnt_fixed;
+}
+
+/* Set the pen size to the specified point and return.  POINT will be
+   scaled up to the pixel size.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_move_to_and_build (point: sfnt_point, dcontext: *mut c_void)
+{                                                          // C 3738-3749
+  let mut x: sfnt_fixed;
+  let mut y: sfnt_fixed;
+
+  x = sfnt_mul_fixed (build_outline_context.factor, point.x);
+  y = sfnt_mul_fixed (build_outline_context.factor, point.y);
+
+  build_outline_context.outline = sfnt_build_append (0, x, y);
+  build_outline_context.x = x;
+  build_outline_context.y = y;
+}
+
+/* Record a line to the specified point and return.  POINT will be
+   scaled up to the pixel size.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_line_to_and_build (point: sfnt_point, dcontext: *mut c_void)
+{                                                          // C 3754-3767
+  let mut x: sfnt_fixed;
+  let mut y: sfnt_fixed;
+
+  x = sfnt_mul_fixed (build_outline_context.factor, point.x);
+  y = sfnt_mul_fixed (build_outline_context.factor, point.y);
+
+  build_outline_context.outline
+    = sfnt_build_append (SFNT_GLYPH_OUTLINE_LINETO,
+			 x, y);
+  build_outline_context.x = x;
+  build_outline_context.y = y;
+}
+
+/* Divide the two 16.16 fixed point numbers X and Y.  Return the
+   result regardless of overflow.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_div_fixed (x: sfnt_fixed, y: sfnt_fixed) -> sfnt_fixed
+{                                                          // C 3772-3776
+  return (x as int64_t * ((1 << 16) as int64_t) / y as int64_t) as sfnt_fixed;
+}
+
+/* Return the ceiling value of the specified fixed point number X.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_ceil_fixed (x: sfnt_fixed) -> sfnt_fixed
+{                                                          // C 3780-3784
+  return ((x + 0o177777) as uint32_t & 0o37777600000) as sfnt_fixed;
+}
+
+/* Return the floor value of the specified fixed point number X.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_floor_fixed (x: sfnt_fixed) -> sfnt_fixed
+{                                                          // C 3788-3792
+  return (x as uint32_t & 0o37777600000) as sfnt_fixed;
+}
+
+/* Given a curve consisting of three points CONTROL0, CONTROL1 and
+   ENDPOINT, return whether or not the curve is sufficiently small to
+   be approximated by a line between CONTROL0 and ENDPOINT.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_curve_is_flat (control0: sfnt_point, control1: sfnt_point,
+			      endpoint: sfnt_point)
+  -> bool                                                  // C 3798-3815
+{
+  let mut g: sfnt_point = std::mem::zeroed ();
+  let mut h: sfnt_point = std::mem::zeroed ();
+
+  g.x = control1.x - control0.x;
+  g.y = control1.y - control0.y;
+  h.x = endpoint.x - control0.x;
+  h.y = endpoint.y - control0.y;
+
+  /* 1.0 is a constant representing the area covered at which point
+     the curve is considered ``flat''.  */
+  return (abs (sfnt_mul_fixed (g.x, h.y)
+	       - sfnt_mul_fixed (g.y, h.x))
+	  <= 0o200000);
+}
+
+/* Recursively split the splines in the bezier curve formed from
+   CONTROL0, CONTROL1 and ENDPOINT until the area between the curve's
+   two ends is small enough to be considered ``flat''.  Then, turn
+   those ``flat'' curves into lines.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_curve_to_and_build_1 (mut control0: sfnt_point, mut control1: sfnt_point,
+				     mut endpoint: sfnt_point)
+{                                                          // C 3822-3854
+  let mut ab: sfnt_point = std::mem::zeroed ();
+  let mut bc: sfnt_point = std::mem::zeroed ();
+  let mut abbc: sfnt_point = std::mem::zeroed ();
+
+  /* control0, control and endpoint make up the spline.  Figure out
+     its distance from a line.  */
+  if sfnt_curve_is_flat (control0, control1, endpoint)
+    {
+      /* Draw a line to endpoint.  */
+      build_outline_context.outline
+	= sfnt_build_append (SFNT_GLYPH_OUTLINE_LINETO,
+			     endpoint.x, endpoint.y);
+      build_outline_context.x = endpoint.x;
+      build_outline_context.y = endpoint.y;
+    }
+  else
+    {
+      /* Calculate new control points.
+	 Maybe apply a recursion limit here? */
+      sfnt_lerp_half (&raw mut control0, &raw mut control1, &raw mut ab);
+      sfnt_lerp_half (&raw mut control1, &raw mut endpoint, &raw mut bc);
+      sfnt_lerp_half (&raw mut ab, &raw mut bc, &raw mut abbc);
+
+      /* Keep splitting until a flat enough spline results.  */
+      sfnt_curve_to_and_build_1 (control0, ab, abbc);
+
+      /* Then go on with the spline between control1 and endpoint.  */
+      sfnt_curve_to_and_build_1 (abbc, bc, endpoint);
+    }
+}
+
+/* Scale and decompose the specified bezier curve into individual
+   lines.  Then, record each of those lines into the outline being
+   built.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_curve_to_and_build (mut control: sfnt_point,
+					      mut endpoint: sfnt_point,
+					      dcontext: *mut c_void)
+{                                                          // C 3860-3879
+  let mut control0: sfnt_point = std::mem::zeroed ();
+
+  control0.x = build_outline_context.x;
+  control0.y = build_outline_context.y;
+  control.x = sfnt_mul_fixed (control.x,
+			      build_outline_context.factor);
+  control.y = sfnt_mul_fixed (control.y,
+			      build_outline_context.factor);
+  endpoint.x = sfnt_mul_fixed (endpoint.x,
+			       build_outline_context.factor);
+  endpoint.y = sfnt_mul_fixed (endpoint.y,
+			       build_outline_context.factor);
+
+  sfnt_curve_to_and_build_1 (control0, control, endpoint);
+}
+
+/* Non-reentrantly build the outline for the specified GLYPH at the
+   given scale factor.  Return the outline data with a refcount of 0
+   upon success, or NULL upon failure.
+
+   SCALE is a scale factor that converts between em space and device
+   space.
+
+   Use the unscaled glyph METRICS to determine the origin point of the
+   outline, or those of compound glyph components within *GLYPH
+   configured to replace their parents', which if existent are
+   returned in *METRICS.  METRICS should not be altered by GX-derived
+   offsets, as they will be applied to *METRICS if present, following
+   this formula:
+
+     LBEARING = LBEARING - GLYPH->origin_distortion
+     ADVANCE = ADVANCE + GLYPH->advance_distortion
+
+   Call GET_GLYPH and FREE_GLYPH with the specified DCONTEXT to obtain
+   glyphs for compound glyph subcomponents, and GET_METRICS with the
+   provided DCONTEXT for unscaled glyph metrics.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_build_glyph_outline (glyph: *mut sfnt_glyph,
+						   scale: sfnt_fixed,
+						   metrics: *mut sfnt_glyph_metrics,
+						   get_glyph: sfnt_get_glyph_proc,
+						   free_glyph: sfnt_free_glyph_proc,
+						   get_metrics: sfnt_get_metrics_proc,
+						   dcontext: *mut c_void)
+  -> *mut sfnt_glyph_outline                              // C 3902-3971
+{
+  let mut outline: *mut sfnt_glyph_outline;
+  let mut rc: c_int;
+  let mut origin: sfnt_fword;
+
+  std::ptr::write_bytes (&raw mut build_outline_context as *mut u8, 0,
+			 std::mem::size_of_val (&build_outline_context));
+
+  /* Allocate the outline now with enough for 44 words at the end.  */
+  outline = xmalloc (std::mem::size_of::<sfnt_glyph_outline> ()
+		     + 40 * std::mem::size_of::<sfnt_glyph_outline_command> ())
+    as *mut sfnt_glyph_outline;
+  (*outline).outline_size = 40;
+  (*outline).outline_used = 0;
+  (*outline).refcount = 0;
+  (*outline).outline
+    = outline.offset (1) as *mut sfnt_glyph_outline_command;
+
+  /* DCONTEXT will be passed to GET_GLYPH and FREE_GLYPH, so global
+     variables must be used to communicate with the decomposition
+     functions.  */
+  build_outline_context.outline = outline;
+
+  /* Clear outline bounding box.  */
+  (*outline).xmin = 0;
+  (*outline).ymin = 0;
+  (*outline).xmax = 0;
+  (*outline).ymax = 0;
+
+  /* Set the scale factor.  */
+  build_outline_context.factor = scale;
+
+  /* Apply the glyph's advance and origin distortion to METRICS in
+     advance of constructing the glyph outline, which might replace
+     METRICS with the metrics of a compound subglyph.  */
+  (*metrics).lbearing -= (*glyph).origin_distortion as sfnt_fixed;
+  (*metrics).advance += (*glyph).advance_distortion as sfnt_fixed;
+
+  /* Decompose the outline.  */
+  rc = sfnt_decompose_glyph (glyph, metrics,
+			     Some (sfnt_move_to_and_build),
+			     Some (sfnt_line_to_and_build),
+			     Some (sfnt_curve_to_and_build),
+			     get_glyph, free_glyph, get_metrics,
+			     dcontext);
+
+  /* Synchronize the outline object with what might have changed
+     inside sfnt_decompose_glyph.  */
+  outline = build_outline_context.outline;
+
+  if rc != 0
+    {
+      xfree (outline as *mut c_void);
+      return std::ptr::null_mut ();
+    }
+
+  /* Compute the origin position.  Note that the original glyph xmin
+     is first used to calculate the origin point, and the origin
+     distortion is applied to it to get the distorted origin.  */
+
+  origin = ((*glyph).xmin as sfnt_fixed - (*metrics).lbearing) as sfnt_fword;
+  (*outline).origin = sfnt_mul_fixed (origin as sfnt_fixed, scale);
+
+  return outline;
+}
+
+
+/* Glyph rasterization.  The algorithm used here is fairly simple.
+   Each contour is decomposed into lines, which turn into a polygon.
+   Then, a bog standard edge filler is used to turn them into
+   spans.  */
+
+/* Coverage table.  This is a four dimensional array indiced by the Y,
+   then X axis fractional, shifted down to 2 bits.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+static sfnt_poly_coverage: [[c_uchar; 9]; 8] = [
+  [0, 4, 8, 12, 16, 20, 24, 28, 32,],
+  [0, 4, 8, 12, 16, 20, 24, 28, 32,],
+  [0, 4, 8, 12, 16, 20, 24, 28, 32,],
+  [0, 3, 7, 11, 15, 19, 23, 27, 31,],
+  [0, 4, 8, 12, 16, 20, 24, 28, 32,],
+  [0, 4, 8, 12, 16, 20, 24, 28, 32,],
+  [0, 4, 8, 12, 16, 20, 24, 28, 32,],
+  [0, 4, 8, 12, 16, 20, 24, 28, 32,],
+];                                                         // C 3983-3993
+
+/* Return the nearest coordinate on the sample grid no less than
+   F.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_poly_grid_ceil (f: sfnt_fixed) -> sfnt_fixed
+{                                                          // C 3998-4003
+  return (((f + (SFNT_POLY_START - 1))
+	   & !(SFNT_POLY_STEP - 1)) + SFNT_POLY_START);
+}
+
+/* C 4005-4008: C's anonymous enum, so the port declares the same one constant (`c_int`); it is
+   the third of the five constants the checker listed as missing after slice 3.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub const SFNT_POLY_ALIGNMENT: c_int = 4;
+
+/* Initialize the specified RASTER in preparation for displaying spans
+   for OUTLINE, and set RASTER->refcount to 0.  The caller must then
+   set RASTER->cells to a zeroed array of size RASTER->stride *
+   RASTER->height, aligned to RASTER.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_prepare_raster (raster: *mut sfnt_raster,
+					      outline: *mut sfnt_glyph_outline)
+{                                                          // C 4015-4038
+  (*raster).width
+    = ((sfnt_ceil_fixed ((*outline).xmax)
+	- sfnt_floor_fixed ((*outline).xmin)) / 65536) as c_ushort;
+  (*raster).height
+    = ((sfnt_ceil_fixed ((*outline).ymax)
+	- sfnt_floor_fixed ((*outline).ymin)) / 65536) as c_ushort;
+  (*raster).refcount = 0;
+
+  /* Align the raster to a SFNT_POLY_ALIGNMENT byte boundary.  */
+  (*raster).stride
+    = (((*raster).width as c_int
+	+ (SFNT_POLY_ALIGNMENT - 1))
+       & !(SFNT_POLY_ALIGNMENT - 1)) as c_ushort;
+
+  /* Apply outline->origin.  This is 0 by convention in most fonts.
+     However, variable fonts typically change this as variations are
+     applied.  */
+  (*raster).offx
+    = (sfnt_floor_fixed ((*outline).xmin
+			 - (*outline).origin) / 65536) as c_short;
+  (*raster).offy
+    = (sfnt_floor_fixed ((*outline).ymin) / 65536) as c_short;
+}
+
+/* C 4040-4042: C's two function-pointer typedefs for the edge and span consumers.  The port's
+   bare-pointer-to-`Option` spelling is P-27's shape (the mirror's `sfnt_move_to_proc` family).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub type sfnt_edge_proc =
+  Option<unsafe extern "C" fn (*mut sfnt_edge, size_t, *mut c_void)>;   // C 4040-4041
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+pub type sfnt_span_proc =
+  Option<unsafe extern "C" fn (*mut sfnt_edge, sfnt_fixed, *mut c_void)>; // C 4042
+
+/* Move EDGE->x forward, assuming that the scanline has moved upwards
+   by SFNT_POLY_STEP.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_step_edge (edge: *mut sfnt_edge)
+{                                                          // C 4047-4052
+  /* Add step.  */
+  (*edge).x += (*edge).step_x;
+}
+
+/* Build a list of edges for each contour in OUTLINE, applying xmin
+   and ymin as the offset to each edge.  Call EDGE_PROC with DCONTEXT
+   and the resulting edges as arguments.  It is OK to modify the edges
+   given to EDGE_PROC.  Align all edges to the sub-pixel grid.  */
+
+/* C 4068's `void *edges_alloc = NULL;` and C 4070's `alloca`: the port has no `alloca`, so the
+   request goes to the stack pool `AVAIL_ALLOCA!`/`SAFE_ALLOCA!` allocate from (PORTING.md P-05,
+   the alloc.rs 7936 / pdumper.rs 2241 shape); C's `edges_alloc` stays `NULL` in that arm, so
+   C 4166's `xfree (edges_alloc)` is the same no-op.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_build_outline_edges (outline: *mut sfnt_glyph_outline,
+				    edge_proc: sfnt_edge_proc, dcontext: *mut c_void)
+{                                                          // C 4059-4167
+  let mut edges: *mut sfnt_edge;
+  let mut i: size_t;
+  let mut edge: size_t;
+  let mut next_vertex: size_t;
+  let mut dx: sfnt_fixed;
+  let mut dy: sfnt_fixed;
+  let mut bot: sfnt_fixed;
+  let mut step_x: sfnt_fixed;
+  let mut ymin: sfnt_fixed;
+  let mut xmin: sfnt_fixed;
+  let mut top: size_t;
+  let mut bottom: size_t;
+  let mut y: size_t;
+
+  let mut edges_alloc: *mut c_void = std::ptr::null_mut ();
+  if (*outline).outline_used < 1024 * 16 / std::mem::size_of::<sfnt_edge> ()
+    { edges = sa_stack_alloc ((*outline).outline_used
+			      * std::mem::size_of::<sfnt_edge> ()) as *mut sfnt_edge; }
+  else
+    {
+      edges_alloc = xnmalloc ((*outline).outline_used as isize,
+			      std::mem::size_of::<sfnt_edge> () as isize);
+      edges = edges_alloc as *mut sfnt_edge;
+    }
+
+  edge = 0;
+
+  /* ymin and xmin must be the same as the offset used to set offy and
+     offx in rasters.  */
+  ymin = sfnt_floor_fixed ((*outline).ymin);
+  xmin = sfnt_floor_fixed ((*outline).xmin);
+
+  i = 0;
+  while i < (*outline).outline_used
+    {
+      /* Set NEXT_VERTEX to the next point (vertex) in this contour.
+
+	 If i is past the end of the contour, then don't build edges
+	 for this point.  */
+      next_vertex = i + 1;
+
+      if next_vertex == (*outline).outline_used
+	  || ((*(*outline).outline.offset (next_vertex as isize)).flags
+	      & SFNT_GLYPH_OUTLINE_LINETO) == 0
+	{ i += 1; continue; }
+
+      /* Skip past horizontal vertices.  */
+      if (*(*outline).outline.offset (next_vertex as isize)).y
+	== (*(*outline).outline.offset (i as isize)).y
+	{ i += 1; continue; }
+
+      /* Figure out the winding direction.  */
+      if (*(*outline).outline.offset (next_vertex as isize)).y
+	< (*(*outline).outline.offset (i as isize)).y
+	/* Vector will cross imaginary ray from its bottom from the
+	   left of the ray.  Winding is thus 1.  */
+	{ (*(edges.offset (edge as isize))).winding = 1; }
+      else
+	/* Moving clockwise.  Winding is thus -1.  */
+	{ (*(edges.offset (edge as isize))).winding = -1; }
+
+      /* Figure out the top and bottom values of this edge.  If the
+	 next edge is below, top is here and bot is the edge below.
+	 If the next edge is above, then top is there and this is the
+	 bottom.  */
+
+      if (*(*outline).outline.offset (next_vertex as isize)).y
+	< (*(*outline).outline.offset (i as isize)).y
+	{
+	  /* End of edge is below this one (keep in mind this is a
+	     cartesian coordinate system, so smaller values are below
+	     larger ones.) */
+	  top = i;
+	  bottom = next_vertex;
+	}
+      else
+	{
+	  /* End of edge is above this one.  */
+	  bottom = i;
+	  top = next_vertex;
+	}
+
+      bot = ((*(*outline).outline.offset (bottom as isize)).y - ymin);
+      (*(edges.offset (edge as isize))).top
+	= ((*(*outline).outline.offset (top as isize)).y - ymin);
+
+      /* Record the edge.  Rasterization happens from bottom to
+	 up, so record the X at the bottom.  */
+      (*(edges.offset (edge as isize))).x
+	= ((*(*outline).outline.offset (bottom as isize)).x - xmin);
+      dx = ((*(*outline).outline.offset (top as isize)).x
+	    - (*(*outline).outline.offset (bottom as isize)).x);
+      dy = abs ((*(*outline).outline.offset (top as isize)).y
+		- (*(*outline).outline.offset (bottom as isize)).y);
+
+      /* Step to first grid point.  */
+      y = sfnt_poly_grid_ceil (bot) as size_t;
+
+      /* If rounding would make the edge not cover any area, skip this
+	 edge. */
+
+      if y >= (*(edges.offset (edge as isize))).top as size_t
+	{ i += 1; continue; }
+
+      /* Compute the step X.  This is how much X changes for each
+	 increase in Y.  */
+      step_x = sfnt_div_fixed (dx, dy);
+      (*(edges.offset (edge as isize))).next = std::ptr::null_mut ();
+
+      /* Compute the step X scaled to the poly step.  */
+      (*(edges.offset (edge as isize))).step_x
+	= sfnt_mul_fixed (step_x, SFNT_POLY_STEP);
+
+      /* Step to the grid point.  */
+      (*(edges.offset (edge as isize))).x
+	+= sfnt_mul_fixed (step_x, bot.wrapping_sub (y as sfnt_fixed));
+
+      /* Set the bottom position.  */
+      (*(edges.offset (edge as isize))).bottom = y as sfnt_fixed;
+
+      edge += 1;
+      i += 1;
+    }
+
+  if edge != 0
+    { edge_proc.unwrap () (edges, edge, dcontext); }
+  xfree (edges_alloc);
+}
+
+/* Sort an array of SIZE edges to increase by bottom Y position, in
+   preparation for building spans.
+
+   Insertion sort is used because there are usually not very many
+   edges, and anything larger would bloat up the code.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_edge_sort (edges: *mut sfnt_edge, size: size_t)
+{                                                          // C 4175-4194
+  let mut i: ssize_t;
+  let mut j: ssize_t;
+  let mut edge: sfnt_edge;
+
+  i = 1;
+  while (i as size_t) < size
+    {
+      edge = *(edges.offset (i as isize));
+      j = i - 1;
+
+      while j >= 0
+	&& (*(edges.offset (j as isize))).bottom > edge.bottom
+	{
+	  *(edges.offset ((j + 1) as isize)) = *(edges.offset (j as isize));
+	  j -= 1;
+	}
+
+      *(edges.offset ((j + 1) as isize)) = edge;
+      i += 1;
+    }
+}
+
+/* Draw EDGES, an unsorted array of polygon edges of size SIZE.  For
+   each scanline, call SPAN_FUNC with a list of active edges and
+   coverage information, and DCONTEXT.
+
+   Sort each edge in ascending order by the bottommost Y coordinate to
+   which it applies.  Start a loop on the Y coordinate, which starts
+   out at that of the bottommost edge.  For each iteration, add edges
+   that now overlap with Y, keeping them sorted by X.  Poly those
+   edges through SPAN_FUNC.  Then, move upwards by SFNT_POLY_STEP,
+   remove edges that no longer apply, and interpolate the remaining
+   edges' X coordinates.  Repeat until all the edges have been polyed.
+
+   Or alternatively, think of this as such: each edge is actually a
+   vector from its bottom position towards its top most position.
+   Every time Y moves upwards, the position of each edge intersecting
+   with Y is interpolated and added to a list of spans along with
+   winding information that is then given to EDGE_FUNC.
+
+   Anti-aliasing is performed using a coverage map for fractional
+   coordinates, and incrementing the Y axis by SFNT_POLY_STEP instead
+   of 1.  SFNT_POLY_STEP is chosen to always keep Y aligned to a grid
+   placed such that there are always 1 << SFNT_POLY_SHIFT positions
+   available for each integral pixel coordinate.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_poly_edges (edges: *mut sfnt_edge, size: size_t,
+			   span_func: sfnt_span_proc, dcontext: *mut c_void)
+{                                                          // C 4220-4296
+  let mut y: sfnt_fixed;
+  let mut e: size_t;
+  let mut active: *mut sfnt_edge;
+  let mut prev: *mut *mut sfnt_edge;
+  let mut a: *mut sfnt_edge;
+  let mut n: *mut sfnt_edge = std::ptr::null_mut ();
+
+  if size == 0
+    { return; }
+
+  /* Sort edges to ascend by Y-order.  Once again, remember: cartesian
+     coordinates.  */
+  sfnt_edge_sort (edges, size);
+
+  /* Step down line by line.  Find active edges.  */
+
+  y = (*(edges.offset (0))).bottom;
+  active = std::ptr::null_mut ();
+  e = 0;
+
+  while true
+    {
+      /* Add in new edges keeping them sorted.  */
+      while e < size && (*(edges.offset (e as isize))).bottom <= y
+	{
+	  /* Find where to place this edge.  */
+	  prev = &raw mut active;
+	  while { a = *prev; !a.is_null () }
+	    {
+	      if (*a).x > (*(edges.offset (e as isize))).x
+		{ break; }
+	      prev = &raw mut (*a).next;
+	    }
+
+	  (*(edges.offset (e as isize))).next = *prev;
+	  *prev = edges.offset (e as isize);
+	  e += 1;
+	}
+
+      /* Draw this span at the current position.  Y axis antialiasing
+	 is expected to be handled by SPAN_FUNC.  */
+      span_func.unwrap () (active, y, dcontext);
+
+      /* Compute the next Y position.  */
+      y += SFNT_POLY_STEP;
+
+      /* Strip out edges that no longer have effect.  */
+
+      prev = &raw mut active;
+      while { a = *prev; !a.is_null () }
+	{
+	  if (*a).top <= y
+	    { *prev = (*a).next; }
+	  else
+	    { prev = &raw mut (*a).next; }
+	}
+
+      /* Break if all is done.  */
+      if active.is_null () && e == size
+	{ break; }
+
+      /* Step all edges.  */
+      a = active;
+      while !a.is_null ()
+	{
+	  sfnt_step_edge (a);
+	  a = (*a).next;
+	}
+
+      /* Resort on X axis.  */
+      prev = &raw mut active;
+      while { a = *prev; !a.is_null () && { n = (*a).next; !n.is_null () } }
+	{
+	  if (*a).x > (*n).x
+	    {
+	      (*a).next = (*n).next;
+	      (*n).next = a;
+	      *prev = n;
+	      prev = &raw mut active;
+	    }
+	  else
+	    { prev = &raw mut (*a).next; }
+	}
+    }
+}
+
+/* Saturate and convert the given unsigned short value X to an
+   unsigned char.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_saturate_short (x: c_ushort) -> c_uchar
+{                                                          // C 4301-4308
+  if x > 255
+    { return 255; }
+
+  return x as c_uchar;
+}
+
+/* Fill a single span of pixels between X0 and X1 at Y, a raster
+   coordinate, onto RASTER.  */
+
+/* C 4322-4324's `#ifndef NDEBUG` block (`row_end` and every `eassert`) is carried under
+   `feature = "no_ndebug"`: the frozen configuration defines `NDEBUG`, so that arm is dead text
+   (P-51's rule that the feature names the non-frozen side - the `no_signbit`/`no_rint` shape); the
+   feature needs registering, which is the ledger's Owed.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_fill_span (raster: *mut sfnt_raster, y: sfnt_fixed,
+			  mut x0: sfnt_fixed, mut x1: sfnt_fixed)
+{                                                          // C 4313-4435
+  let mut start: *mut u8;
+  let mut coverage: *const u8;
+  let mut left: sfnt_fixed;
+  let mut right: sfnt_fixed;
+  let mut end: sfnt_fixed;
+  let mut w: c_ushort;
+  let mut a: c_ushort;
+  let mut row: c_int;
+  #[cfg (feature = "no_ndebug")]
+  let mut row_end: *mut u8 = std::ptr::null_mut ();
+
+  /* Clip bounds to pixmap.  */
+
+  if x0 < 0
+    { x0 = 0; }
+
+  /* If x1 is greater than the raster width, make sure the last pixel
+     is filled and no more after that.  */
+
+  if x1 > (*raster).width as c_int * 65536
+    { x1 = (*raster).width as c_int * 65536; }
+
+  /* Check for empty spans.  */
+  if x1 <= x0
+    { return; }
+
+  /* Figure out coverage based on Y axis fractional.  */
+  coverage = sfnt_poly_coverage[((y >> (16 - SFNT_POLY_SHIFT))
+				 & SFNT_POLY_MASK) as usize].as_ptr ();
+  row = y >> 16;
+
+  /* Don't fill out of bounds rows.  */
+  if row < 0 || row >= (*raster).height as c_int
+    { return; }
+
+  /* Set start, then start filling according to coverage.  left and
+     right are now .3.  */
+  left = x0 >> (16 - SFNT_POLY_SHIFT);
+  right = x1 >> (16 - SFNT_POLY_SHIFT);
+  start = (*raster).cells.offset ((row * (*raster).stride as c_int) as isize);
+  #[cfg (feature = "no_ndebug")]
+  { row_end = start.offset ((*raster).width as isize); }
+  start = start.offset ((left >> SFNT_POLY_SHIFT) as isize);
+
+  /* If left and right actually lie in the same pixel, just fill with
+     the coverage of both and return.  */
+
+  if (left & !SFNT_POLY_MASK) == (right & !SFNT_POLY_MASK)
+    {
+      #[cfg (feature = "no_ndebug")]
+      /* Assert that start does not exceed the end of the row.  */
+      { eassert! (start <= row_end); }
+
+      w = *(coverage.offset ((right - left) as isize)) as c_ushort;
+      a = (*start as c_int + w as c_int) as c_ushort;
+
+      *start = sfnt_saturate_short (a);
+      return;
+    }
+
+  /* Compute coverage for first pixel, then poly.  The code from here
+     onwards assumes that left and right are on two different
+     pixels.  */
+
+  if (left & SFNT_POLY_MASK) != 0
+    {
+      #[cfg (feature = "no_ndebug")]
+      /* Assert that start does not exceed the end of the row.  */
+      { eassert! (start <= row_end); }
+
+      /* Compute the coverage for the first pixel, and move left past
+	 it.  The coverage is a number from 1 to 7 describing how
+	 ``partially'' covered this pixel is.  */
+
+      end = (left + SFNT_POLY_SAMPLE - 1) & !SFNT_POLY_MASK;
+      end = MIN! (right, end);
+
+      w = *(coverage.offset ((end - left) as isize)) as c_ushort;
+      a = (*start as c_int + w as c_int) as c_ushort;
+
+      /* Now move left past.  */
+      left = end;
+      *start = sfnt_saturate_short (a);
+      start = start.offset (1);
+    }
+
+  /* Clear coverage info for first pixel.  Compute coverage for center
+     pixels.  Note that SFNT_POLY_SAMPLE is used and not
+     SFNT_POLY_MASK, because coverage has a blank column at the
+     start.  */
+  w = *(coverage.offset (SFNT_POLY_SAMPLE as isize)) as c_ushort;
+
+  /* Fill pixels between left and right.  */
+  while left + SFNT_POLY_MASK < right
+    {
+      #[cfg (feature = "no_ndebug")]
+      /* Assert that start does not exceed the end of the row.  */
+      { eassert! (start <= row_end); }
+
+      a = (*start as c_int + w as c_int) as c_ushort;
+      *start = sfnt_saturate_short (a);
+      start = start.offset (1);
+      left += SFNT_POLY_SAMPLE;
+    }
+
+  /* Fill rightmost pixel with any partial coverage.  */
+
+  if (right & SFNT_POLY_MASK) != 0
+    {
+      #[cfg (feature = "no_ndebug")]
+      /* Assert that start does not exceed the end of the row.  */
+      { eassert! (start <= row_end); }
+
+      w = *(coverage.offset ((right - left) as isize)) as c_ushort;
+      a = (*start as c_int + w as c_int) as c_ushort;
+      *start = sfnt_saturate_short (a);
+    }
+}
+
+/* Poly each span starting from START onto RASTER, at position Y.  Y
+   here is still a cartesian coordinate, where the bottom of the
+   raster is 0.  But that is no longer true by the time sfnt_span_fill
+   is called.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfnt_poly_span (start: *mut sfnt_edge, y: sfnt_fixed,
+			  raster: *mut sfnt_raster)
+{                                                          // C 4442-4489
+  let mut edge: *mut sfnt_edge;
+  let mut winding: c_int;
+  let mut x0: sfnt_fixed;
+  let mut x1: sfnt_fixed;
+
+  /* Pacify -Wmaybe-uninitialized; x1 and x0 are only used when edge
+     != start, at which point x0 has already been set.  */
+  x1 = 0;
+  x0 = 0;
+
+  /* Generate the X axis coverage map.  Then poly it onto RASTER.
+     winding on each edge determines the winding direction: when it is
+     positive, winding is 1.  When it is negative, winding is -1.
+
+     Fill each consecutive stretch of spans that are inside the glyph;
+     otherwise, coverage will overlap for some spans, but not
+     others.
+
+     The spans must be terminated with an edge that causes an
+     off-transition, or some spans will not be filled.  */
+
+  winding = 0;
+
+  edge = start;
+  while !edge.is_null ()
+    {
+      if winding == 0
+	{
+	  if edge != start && x0 != x1
+	    /* Draw this section of spans that are on.  */
+	    { sfnt_fill_span (raster, (((*raster).height as c_int) << 16) - y,
+			      x0, x1); }
+
+	  x1 = (*edge).x;
+	  x0 = (*edge).x;
+	}
+      else
+	{ x1 = (*edge).x; }
+
+      winding += (*edge).winding;
+      edge = (*edge).next;
+    }
+
+  /* Draw the last span following the last off-transition.  */
+
+  if winding == 0 && edge != start && x0 != x1
+    { sfnt_fill_span (raster, (((*raster).height as c_int) << 16) - y,
+		      x0, x1); }
+}
+
+
+/* Main entry point for outline rasterization.  */
+
+/* Raster the spans between START and its end to the raster specified
+   as DCONTEXT.  The span's position is Y.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_raster_span (start: *mut sfnt_edge, y: sfnt_fixed,
+				       dcontext: *mut c_void)
+{                                                          // C 4498-4503
+  sfnt_poly_span (start, y, dcontext as *mut sfnt_raster);
+}
+
+/* Generate and poly each span in EDGES onto the raster specified as
+   DCONTEXT.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfnt_raster_edge (edges: *mut sfnt_edge, num_edges: size_t,
+				       dcontext: *mut c_void)
+{                                                          // C 4508-4514
+  sfnt_poly_edges (edges, num_edges, Some (sfnt_raster_span),
+		   dcontext);
+}
+
+/* Generate an alpha mask for the glyph outline OUTLINE.  Value is the
+   alpha mask upon success, NULL upon failure.  */
+
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[cfg_attr (not (feature = "test"), unsafe (no_mangle))]
+pub unsafe extern "C" fn sfnt_raster_glyph_outline (outline: *mut sfnt_glyph_outline)
+  -> *mut sfnt_raster                                     // C 4519-4543
+{
+  let mut raster: sfnt_raster = std::mem::zeroed ();
+  let mut data: *mut sfnt_raster;
+
+  /* Get the raster parameters.  */
+  sfnt_prepare_raster (&raw mut raster, outline);
+
+  /* Allocate the raster data.  Clear the raster; it is easier to use
+     xzalloc and clear everything.  */
+  let mut size: size_t;
+  let (ckd_size, mul_overflow) = (raster.stride as size_t)
+    .overflowing_mul (raster.height as size_t);
+  size = ckd_size;
+  if mul_overflow
+    { memory_full_up (); }
+  let (ckd_size, add_overflow) = size
+    .overflowing_add (std::mem::size_of::<sfnt_raster> ());
+  size = ckd_size;
+  if add_overflow
+    { memory_full_up (); }
+  data = xzalloc (size) as *mut sfnt_raster;
+  *data = raster;
+  (*data).cells = data.offset (1) as *mut u8;
+
+  /* Generate edges for the outline, polying each array of edges to
+     the raster.  */
+  sfnt_build_outline_edges (outline, Some (sfnt_raster_edge),
+			    data as *mut c_void);
+
+  /* All done.  */
+  return data;
 }

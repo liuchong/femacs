@@ -1338,6 +1338,7 @@ sfnt_decompose_compound_glyph	goto,uninit	C's eight `goto bail` legs are a label
 sfnt_decompose_glyph_1	goto	the `goto bail` legs are a labelled block (status 3.447)
 sfnt_decompose_glyph_2	goto	the `goto bail` legs are a labelled block (status 3.447)
 sfnt_decompose_glyph	goto	the `goto bail` legs are a labelled block (status 3.447)
+sfnt_build_outline_edges	alloca	C 4070's `alloca` is the port's `sa_stack_alloc` (`alloc.rs`, reached through C 138's `lisp.h`), which is Deviation 23; the port has no `alloca` spelling at all, so the token cannot reappear (status 3.463)
 main_2	static_assert	C 239's `static_assert (sizeof output == 8 && sizeof output[0] == 4);` is the port's `const _: () = core::assert! (…)`; the macro name itself has no Rust site (status 3.450)
 haiku_len	case,switch	C's `switch` over the twenty-seven event types is the port's `match`; C's fall-through to `emacs_abort ()` is the `_` arm, so neither token has a site (status 3.453)
 check_pgtk_display_info	0	C's `Type == 0`-shaped checks are the port's `null_mut ()`/`is_null ()` tests; the literal 0 has no site (status 3.461)
