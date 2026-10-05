@@ -185,3 +185,33 @@
   **exit 0, 0 `^error` lines**, 89,808-byte object.
 - `python3 tools/check-citations.py` -> `0 drift`, `0 stale` (this file's findings are
   `androidterm.rs:19`'s, above the insertion).
+
+## 2026-10-05: the folded bits get their masks, and the Android arm reads (3.516)
+
+`androidterm.h` 229-247's five `bool_bf` members are folded into `android_output.bits` (a `u8`,
+PORTING.md 1.3), so the three macros that read or write them were **this mirror's known
+uncompilable site**: `(*(*f).output_data.android).need_buffer_flip` dereferences the P-72 (3)
+`*mut c_void`.  They now take the cast its sibling macros already took *and* the P-80 mask shape,
+with the five masks named in C's declaration order (`ANDROID_OUTPUT_HAS_BEEN_VISIBLE` = bit 0 …
+`ANDROID_OUTPUT_NEED_CURSOR_UPDATES` = bit 4) - the `cm.rs` `CM_*` convention, including the rule
+that a **writer** site spells `bits |= MASK` / `bits &= !MASK` and carries a
+`docs/ports/macro-body-notes.tsv` row for C's member name (`src/androidterm.rs` has four such
+sites: two in `show_back_buffer`/`android_update_begin`, one in `android_handle_ime_event`, one in
+the cursor-update request).
+
+**The arm reading this unlocks** (`--cfg have_android --cfg not_android_stubify --cfg
+have_window_system`; the third is required - `tab_bar_window`/`tool_bar_window` are
+`HAVE_WINDOW_SYSTEM` members of `struct frame`, and without it the unit reads four `E0609`s that
+are the arm's fault, not the mirror's):
+
+| unit | errors | of which |
+| --- | --- | --- |
+| `src/androidfns.rs` | **0** | - |
+| `src/androidvfs.rs` | **0** | - |
+| `src/androidmenu.rs` | **0** | - |
+| `src/androidselect.rs` | **0** | - |
+| `src/androidfont.rs` | **0** | - |
+| `src/androidterm.rs` | 19 -> **2** | `E0609 mouse_face_defer` on `Mouse_HLInfo` (the same folding, next) and `E0425 android_frame_rehighlight` (C defines it after this unit's C 1055 slice boundary) |
+
+P-86's warning ("no `have_android` TU can compile today") is **stale as of this reading**: five of
+the six read 0, and the sixth's two are one mirror item and one slice boundary.

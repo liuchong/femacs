@@ -526,7 +526,10 @@ unsafe extern "C" fn android_update_begin (f: *mut frame)            // C 318-32
 {
   /* The frame is no longer complete, as it is in the midst of an
      update.  */
-  FRAME_ANDROID_COMPLETE_P! (f) = false;
+  /* C: `FRAME_ANDROID_COMPLETE_P (f) = false;` - C's macro *is* `((f)->output_data.android->complete)`,
+     a place, and the port's folded byte has no such field: the writer site spells the mask
+     (PORTING.md P-80, the `cm.rs` convention; macro-body row for C's member name).  */
+  (*( (*f).output_data.android as *mut android_output )).bits &= !ANDROID_OUTPUT_COMPLETE;
 }
 
 /* End update of frame F.  This function is installed as a hook in
@@ -551,7 +554,9 @@ unsafe fn show_back_buffer (f: *mut frame)                           // C 336-34
   android_swap_buffers (&raw mut swap_info, 1);
 
   /* Now the back buffer no longer needs to be flipped.  */
-  FRAME_ANDROID_NEED_BUFFER_FLIP! (f) = false;
+  /* C 347: `FRAME_ANDROID_NEED_BUFFER_FLIP (f) = false;` - the same folded bit as above,
+     written through the mask (PORTING.md P-80).  */
+  (*( (*f).output_data.android as *mut android_output )).bits &= !ANDROID_OUTPUT_NEED_BUFFER_FLIP;
 }
 
 /* Flip back buffers on F if it has undrawn content.  */
@@ -923,9 +928,13 @@ unsafe fn android_request_cursor_updates (f: *mut frame, mode: c_int)   // C 687
       android_set_preeditarea (w as *mut c_void, (*w).cursor.x, (*w).cursor.y);
     }
 
-  /* Now say whether or not updates are needed in the future.  */
-  (*(FRAME_OUTPUT_DATA! (f) as *mut android_output)).need_cursor_updates
-    = (mode & ANDROID_CURSOR_UPDATE_MONITOR) != 0;
+  /* C 707-708: `FRAME_OUTPUT_DATA (f)->need_cursor_updates
+     = (mode & ANDROID_CURSOR_UPDATE_MONITOR);` - the folded bit's value write (the member is one
+     bit wide, so C's int expression lands as 0/1; PORTING.md P-80 spells it as the two arms).  */
+  if (mode & ANDROID_CURSOR_UPDATE_MONITOR) != 0
+    { (*(FRAME_OUTPUT_DATA! (f) as *mut android_output)).bits |= ANDROID_OUTPUT_NEED_CURSOR_UPDATES; }
+  else
+    { (*(FRAME_OUTPUT_DATA! (f) as *mut android_output)).bits &= !ANDROID_OUTPUT_NEED_CURSOR_UPDATES; }
 }
 
 /* Handle a single input method event EVENT, delivered to the frame
@@ -995,7 +1004,7 @@ unsafe fn android_handle_ime_event (event: *mut android_event, f: *mut frame)   
 	    (*output).extracted_text_flags = 0;
 	    (*output).extracted_text_token = 0;
 	    (*output).extracted_text_hint = 0;
-	    (*output).need_cursor_updates = false;
+	    (*output).bits &= !ANDROID_OUTPUT_NEED_CURSOR_UPDATES;   /* C: `output->need_cursor_updates = false;` (P-80 mask) */
 	  }
 
 	finish_composing_text (f, (*event).ime.counter,

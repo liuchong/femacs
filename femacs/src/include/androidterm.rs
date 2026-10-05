@@ -412,6 +412,10 @@ macro_rules! FRAME_OUTPUT_DATA {
 
 /* Return the Android window used for displaying data in frame F.  */
 // androidterm.h 294 and 295: `((f)->output_data.android->window)` twice under two names.
+// The two macros below this point (`FRAME_ANDROID_NEED_BUFFER_FLIP` and
+// `FRAME_ANDROID_DRAWABLE`, androidterm.h 300-307) dereference the same member and take the same
+// cast - without it the dereference is of `*mut c_void` and Rust reads `E0609 no field
+// need_buffer_flip on type c_void` (measured 3.516, 13 times across the Android family).
 // `frame.rs` carries the `output_data.android` member as the P-72 rule 3 `*mut c_void`
 // (frame.h 661's `struct android_output *android` is an incomplete tag there, since frame.h
 // does not include this header), and this header owns both the macro and the record, so the
@@ -431,14 +435,22 @@ macro_rules! FRAME_NATIVE_WINDOW {
 /* Return the need-buffer-flip flag for frame F.  */
 // androidterm.h 298-299.  This C body, like FRAME_ANDROID_COMPLETE_P and
 // FRAME_ANDROID_DRAWABLE below, reads a `bool_bf` member that the mirror folds into
-// `android_output.bits` (PORTING.md 1.3).  The C member names stay in the bodies so the token
-// gate compares C's own tokens, but the folded record has no such fields: these three bodies are
-// this mirror's known uncompilable site.  The P-80 mask shape (`bits & MASK != 0`, with mask
-// constants named as cm.rs names `CM_AUTOWRAP`) needs three `docs/ports/macro-body-notes.tsv`
-// rows - that table is shared, so the rows are listed in docs/ports/include-androidterm.md and in
-// the lane report instead of being written here.
+// `android_output.bits` (PORTING.md 1.3/P-80, the `cm.rs` `CM_*` shape).  C 229-247 declares the
+// five `bool_bf` members in this order, so the folded byte's bits are 0..4 in the same order and
+// each member's read is `bits & MASK != 0`; a *writer* site spells `bits |= MASK` / `bits &= !MASK`
+// (the `cm.rs` convention) and carries a `docs/ports/macro-body-notes.tsv` row for the member name
+// C writes, because the folded record has no such field (status 3.516 made these three macros
+// compile - they used to be this mirror's known uncompilable site).
+pub const ANDROID_OUTPUT_HAS_BEEN_VISIBLE: u8 = 1 << 0;
+pub const ANDROID_OUTPUT_ALPHA_IDENTICAL_P: u8 = 1 << 1;
+pub const ANDROID_OUTPUT_COMPLETE: u8 = 1 << 2;
+pub const ANDROID_OUTPUT_NEED_BUFFER_FLIP: u8 = 1 << 3;
+pub const ANDROID_OUTPUT_NEED_CURSOR_UPDATES: u8 = 1 << 4;
+
 macro_rules! FRAME_ANDROID_NEED_BUFFER_FLIP {
-  ($f:expr) => { ((*(*$f).output_data.android).need_buffer_flip) };
+  ($f:expr) => {
+    (((*( (*$f).output_data.android as *mut android_output )).bits & ANDROID_OUTPUT_NEED_BUFFER_FLIP) != 0)
+  };
 }
 
 /* Return the drawable used for rendering to frame F and mark the
@@ -449,7 +461,7 @@ macro_rules! FRAME_ANDROID_NEED_BUFFER_FLIP {
 macro_rules! FRAME_ANDROID_DRAWABLE {
   ($f:expr) => {
     {
-      (*(*$f).output_data.android).need_buffer_flip = true;
+      (*( (*$f).output_data.android as *mut android_output )).bits |= ANDROID_OUTPUT_NEED_BUFFER_FLIP;
       FRAME_ANDROID_WINDOW! ($f)
     }
   };
@@ -459,7 +471,9 @@ macro_rules! FRAME_ANDROID_DRAWABLE {
    while handling async input.  */
 // androidterm.h 311-312.
 macro_rules! FRAME_ANDROID_COMPLETE_P {
-  ($f:expr) => { ((*(*$f).output_data.android).complete) };
+  ($f:expr) => {
+    (((*( (*$f).output_data.android as *mut android_output )).bits & ANDROID_OUTPUT_COMPLETE) != 0)
+  };
 }
 
 // androidterm.h 314-315.  Same P-72 rule 3 cast as FRAME_ANDROID_WINDOW above (the members are

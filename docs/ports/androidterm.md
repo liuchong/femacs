@@ -300,3 +300,14 @@ frame, no cursor, no bell, no IME event.  The arm reading's 17 rows are the comp
 that gate set, but they are still type-check/codegen readings, and the six rows in this unit's own
 text are the named mirror blockers, not measurements of the code's behaviour.  C 830-7117 is
 recorded, not ported.
+
+## 2026-10-05: the four folded-bit writer sites (3.516)
+
+C writes three of `android_output`'s folded bits through macros that are *places*
+(`FRAME_ANDROID_COMPLETE_P (f) = false;` at C 316/469 and `FRAME_ANDROID_NEED_BUFFER_FLIP (f) =
+false;` at C 347) - a Rust macro cannot be one when the bit lives in a byte.  Each site spells the
+mask write instead (PORTING.md P-80, the `cm.rs` convention) and the four functions carry
+`macro-body-notes.tsv` rows for C's member names; `bit`-value writes use C's own two arms (C 707-708
+assigns an `int` to a one-bit field, which lands as 0/1).  With the mirror's masks in place this
+unit's arm goes **19 -> 2 errors**, and both of those are named in
+`docs/ports/include-androidterm.md`.

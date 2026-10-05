@@ -10046,3 +10046,25 @@
   ⑥ **未声称**：零行为证据（堆/blob 链、迁移滞回、`extra_bytes` 记账、`sbrk` 语义都只做转写与类型检查）；
      `M_TOP_PAD`/`mallopt`/`sbrk` 的原型是文档值 **UNVERIFIED**（本机无 glibc `<malloc.h>`）；两结构体无布局断言
      （该文件不在冻结基线里，没有可比的对侧读数）。
+
+- **3.516 Android 家族的臂第一次读通：折叠位取掩码、`androidterm` 的四个写入点（2026-10-05）**：
+  ① **改动**：⑴ `femacs/src/include/androidterm.rs`：`androidterm.h` 229-247 的五个 `bool_bf` 折叠在
+     `android_output.bits` 里，三条宏此前是**本镜像的已知不可编站点**（对 P-72 ③ 的 `*mut c_void` 解引用）；
+     现在按 C 的声明顺序给出五个掩码（bit 0..4）并写成 **P-80 的 `bits & MASK != 0` 形状**（`cm.rs` 的
+     `CM_*` 惯例），写入端由**使用点**写 `bits |= MASK` / `bits &= !MASK`；⑵ `femacs/src/androidterm.rs` 的
+     **四个写入点**（`show_back_buffer`、`android_update_begin`、`android_handle_ime_event` 的 C 707-708、
+     以及 `FRAME_ANDROID_COMPLETE_P (f) = false;` 那处）按同一条惯例落，并补 `macro-body-notes.tsv` 的
+     相应行（C 的成员名不在正文里）；⑶ 顺带纠正**集成者自己上一轮的错误读数**：Android 臂必须带
+     `have_window_system`（`tab_bar_window`/`tool_bar_window` 是 `struct frame` 的 `HAVE_WINDOW_SYSTEM` 成员），
+     不带它的 4 条 `E0609` 是**臂的问题**，不是镜像缺口。
+  ② **读数（Android 家族六个单元，`have_android`+`not_android_stubify`+`have_window_system`）**：
+     `androidfns` **0**、`androidvfs` **0**、`androidmenu` **0**、`androidselect` **0**、`androidfont` **0**、
+     `androidterm` **19 → 2**（剩 `Mouse_HLInfo.mouse_face_defer` 的同一类折叠与 `android_frame_rehighlight`
+     的**切片边界**）。**P-86 的"今天没有任何 have_android TU 能编过"这条警告到此失效**，写进两份台账。
+  ③ **验收**：`layout-check` **passed**、`check-all-units` **83 unit(s), 0 failure(s)**（动过
+     `femacs/src/include/*.rs`）、`check-declarations` **17/0/0**、`extract-abi --check
+     emacs/src/androidterm.c femacs/src/androidterm.rs` 的 token 行清零（剩 112 行都是这一片的
+     `missing function`/`missing file-scope object`＝剩余工作量，切片不写容差行）。
+  ④ **下一批（点名）**：`Mouse_HLInfo` 的同款折叠（dispextern.rs）、`include/w32select.rs` 的三条声明搬 `_decls`、
+     `lwlib/include/lwlib-int.rs` 的 `widget_xft_data` stand-in 与 `xft_data` 门（两条都由 lwlib-Xaw lane 量到）、
+     `signal.rs` vs MinGW 的 15-22 个名字、`include/lisp.rs` 缺的两条系统头边。
