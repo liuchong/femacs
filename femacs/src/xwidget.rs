@@ -5418,6 +5418,149 @@ unsafe extern "C" {
   pub fn XDestroyWindow (display: *mut Display, w: Window) -> c_int;
 }
 
+/* C 2874-2890's `XSetWindowAttributes a;` (slice 9).  This is X11's own record and the layout is
+   **measured** on this machine with `clang -I/opt/homebrew/include` over `<X11/Xlib.h>` (libx11
+   1.8.13): `XSetWindowAttributes 112`, `background_pixmap@0`, `event_mask@72`,
+   `do_not_propagate_mask@80` - the three keys below are those readings, and C 3319's
+   `a.event_mask = …` is the only member this unit writes.  */
+/// C: X11/Xlib.h 286-302: `typedef struct { Pixmap background_pixmap; unsigned long
+/// background_pixel; … long event_mask; long do_not_propagate_mask; Bool override_redirect;
+/// Colormap colormap; Cursor cursor; } XSetWindowAttributes;`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+#[repr (C)]
+pub struct XSetWindowAttributes
+{
+  pub background_pixmap: Pixmap,              // Xlib.h 287
+  pub background_pixel: c_ulong,              // 288
+  pub border_pixmap: Pixmap,                  // 289
+  pub border_pixel: c_ulong,                  // 290
+  pub bit_gravity: c_int,                     // 291
+  pub win_gravity: c_int,                     // 292
+  pub backing_store: c_int,                   // 293
+  pub backing_planes: c_ulong,                // 294
+  pub backing_pixel: c_ulong,                 // 295
+  pub save_under: Bool,                       // 296
+  pub event_mask: c_long,                     // 297
+  pub do_not_propagate_mask: c_long,          // 298
+  pub override_redirect: Bool,                // 299
+  pub colormap: Colormap,                     // 300
+  pub cursor: Cursor,                         // 301
+}
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::size_of::<XSetWindowAttributes> () == 112);
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XSetWindowAttributes, background_pixmap) == 0);
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XSetWindowAttributes, event_mask) == 72);
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+const _: () = core::assert! (core::mem::offset_of! (XSetWindowAttributes, do_not_propagate_mask)
+			     == 80);
+
+/// C: X11/X.h 403: `#define CWEventMask (1L<<11)` - C 2890's `CWEventMask` argument to
+/// `XCreateWindow` (slice 9).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+pub const CWEventMask: c_long = 1 << 11;
+
+/// C 2835's `XMoveResizeWindow`, C 2979's `XResizeWindow`, C 2974's `XUnmapWindow` and C 3343's
+/// `XSetWindowBackground` (slice 9); the prototypes are Xlib.h's own (the `XMoveWindow` family's
+/// shape at line 2694-2710).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+unsafe extern "C" {
+  /// C 2940-2941: `XMoveResizeWindow (xv->dpy, xv->wdesc, x + clip_left, y + clip_top,
+  /// clip_right - clip_left, clip_bottom - clip_top);`
+  /// C: X11/Xlib.h 2835: `int XMoveResizeWindow (Display *display, Window w, int x, int y,
+  /// unsigned int width, unsigned int height);`
+  pub fn XMoveResizeWindow (display: *mut Display, w: Window, x: c_int, y: c_int,
+			    width: c_uint, height: c_uint) -> c_int;
+  /// C 2979-2980: `XResizeWindow (xv->dpy, xv->wdesc, clip_right - clip_left,
+  /// clip_bottom - clip_top);`
+  /// C: X11/Xlib.h 3109: `int XResizeWindow (Display *display, Window w, unsigned int width,
+  /// unsigned int height);`
+  pub fn XResizeWindow (display: *mut Display, w: Window, width: c_uint, height: c_uint) -> c_int;
+  /// C 3024-3025: `XSetWindowBackground (xv->dpy, xv->wdesc, FRAME_BACKGROUND_PIXEL (s->f));`
+  /// C: X11/Xlib.h 3343: `int XSetWindowBackground (Display *display, Window w, unsigned long
+  /// background);`
+  pub fn XSetWindowBackground (display: *mut Display, w: Window, background: c_ulong) -> c_int;
+}
+
+/// C 2921-2925's `cairo_xlib_surface_create` and C 2943-2944's `cairo_xlib_surface_set_size`
+/// (slice 9).  Cairo's Xlib backend: the two entry points the unit's `cairo_surface_t` reads need,
+/// declared at the use site (the `include/gtk.rs` 1384 cairo block is the GTK-side surface's).
+/// C: cairo/cairo-xlib.h 48-53: `cairo_surface_t *cairo_xlib_surface_create (Display *dpy,
+/// Drawable drawable, Visual *visual, int width, int height);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+unsafe extern "C" {
+  pub fn cairo_xlib_surface_create (dpy: *mut Display, drawable: Drawable, visual: *mut Visual,
+				    width: c_int, height: c_int) -> *mut cairo_surface_t;
+  /// C: cairo/cairo-xlib.h 62-65: `void cairo_xlib_surface_set_size (cairo_surface_t *surface,
+  /// int width, int height);`
+  pub fn cairo_xlib_surface_set_size (surface: *mut cairo_surface_t, width: c_int, height: c_int);
+}
+
+/* C 2892-2916's XInput2 block (slice 9).  `XInput2.h` is **not** on this machine (the two XInput2
+   records at 2692/2746 record the same), so the three declarations below are reconstructed from
+   C's use sites and the API's documented definitions - **UNVERIFIED** (`## Owed` 10, which also
+   names `XIEventMask`'s home as `include/xterm.rs`; this unit declares it here until then).  The
+   constants below that are `XI2.h`'s own and are cited from it.  */
+
+/// C: X11/extensions/XInput2.h: `typedef struct { int deviceid; int mask_len; unsigned char
+/// *mask; } XIEventMask;` - C 2892's `mask`.  **UNVERIFIED** (`include/xterm.rs` is its home,
+/// Owed 10; `src/xmenu.rs` 722 carries the same reconstruction).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	   feature = "have_xinput2"))]
+#[repr (C)]
+pub struct XIEventMask
+{
+  pub deviceid: c_int,        // XInput2.h: `int deviceid;`
+  pub mask_len: c_int,        // `int mask_len;`
+  pub mask: *mut c_uchar,     // `unsigned char *mask;`
+}
+/// C: X11/extensions/XI2.h 188: `#define XIAllMasterDevices 1` - C 2901's `mask.deviceid`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	   feature = "have_xinput2"))]
+pub const XIAllMasterDevices: c_int = 1;
+/// C: X11/extensions/XI2.h 194-196: `XI_ButtonPress 4`, `XI_ButtonRelease 5`, `XI_Motion 6` - the
+/// three C 2903-2905 sets.  (`XI_Enter`/`XI_Leave` are declared at 2786/2788 with the rest.)
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	   feature = "have_xinput2"))]
+pub const XI_ButtonPress: c_int = 4;       // XI2.h 194
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	   feature = "have_xinput2"))]
+pub const XI_ButtonRelease: c_int = 5;     // XI2.h 195
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	   feature = "have_xinput2"))]
+pub const XI_Motion: c_int = 6;            // XI2.h 196
+/// C: X11/extensions/XI2.h 223: `#define XI_LASTEVENT XI_GestureSwipeEnd` - C 2893's
+/// `XIMaskLen (XI_LASTEVENT)`.  `XI_GestureSwipeEnd` is not one of the members this tree declares,
+/// so the value XI2.h gives it is carried here as the macro's own sum (the header's line 223).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	   feature = "have_xinput2"))]
+pub const XI_LASTEVENT: c_int = 33;        // XI2.h 223: `XI_GestureSwipeEnd`
+
+/// C: X11/extensions/XInput2.h: `#define XIMaskLen(event) (((event) >> 3) + 1)` - C 2893.
+/// **UNVERIFIED** (reconstructed; see the block's note).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	   feature = "have_xinput2"))]
+macro_rules! XIMaskLen { ($event:expr) => { (($event as c_int) >> 3) + 1 }; }
+/// C: X11/extensions/XInput2.h: `#define XISetMask(ptr, event) (((unsigned char *) (ptr))[((event)
+/// >> 3)] |= (1 << ((event) & 7)))` - C 2903-2913's five (and three more) calls.
+/// **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	   feature = "have_xinput2"))]
+macro_rules! XISetMask {
+  ($ptr:expr, $event:expr) =>
+    { *($ptr).add (($event as usize) >> 3) |= 1u8 << (($event as usize) & 7) };
+}
+/// C: X11/extensions/XInput2.h: `Status XISelectEvents (Display *dpy, Window win, XIEventMask
+/// *masks, int num_masks);` - C 2916's `XISelectEvents (xv->dpy, xv->wdesc, &mask, 1)`.
+/// **UNVERIFIED**.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	   feature = "have_xinput2"))]
+unsafe extern "C" {
+  pub fn XISelectEvents (dpy: *mut Display, win: Window, masks: *mut XIEventMask,
+			 num_masks: c_int) -> c_int;
+}
+
 /// C 3452-3457: `DEFUN ("xwidget-view-lookup", Fxwidget_view_lookup, Sxwidget_view_lookup, 1, 2,
 /// 0, doc: ...)`.
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
@@ -6197,7 +6340,7 @@ pub unsafe extern "C" fn xwidget_end_redisplay (w: *mut window, matrix: *mut gly
 	      let glyph_end: *mut glyph = glyph.add ((*row).used [area as usize] as usize);
 	      while glyph < glyph_end
 		{
-		  if glyph_bits! (type, glyph) == XWIDGET_GLYPH
+		  if glyph_bits! (type, *glyph) == XWIDGET_GLYPH
 		    {
 		      /* The only call to xwidget_end_redisplay is in dispnew.
 			 xwidget_end_redisplay (w->current_matrix);  */
@@ -6404,4 +6547,348 @@ pub unsafe extern "C" fn kill_buffer_xwidgets (buffer: Lisp_Object)
     }
 
   catch_child_signal ();
+}
+
+/// C 2841's `window_box` (dispextern.h's; declared at its use sites - the `src/fringe.rs` 42 shape -
+/// the mirror this unit includes does not reach the name):
+/// C: dispextern.h 3574-3575: `void window_box (struct window *, enum glyph_row_area, int *, int
+/// *, int *, int *);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe extern "C" {
+  fn window_box (w: *mut window, area: glyph_row_area, x: *mut c_int, y: *mut c_int,
+		 width: *mut c_int, height: *mut c_int);
+}
+/// C 2885's `XCreateWindow` (Xlib.h's own prototype; the `XMoveWindow` family's shape above):
+/// C: X11/Xlib.h 1632: `Window XCreateWindow (Display *display, Window parent, int x, int y,
+/// unsigned int width, unsigned int height, unsigned int border_width, int depth, unsigned int
+/// class, Visual *visual, unsigned long valuemask, XSetWindowAttributes *attributes);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+unsafe extern "C" {
+  pub fn XCreateWindow (display: *mut Display, parent: Window, x: c_int, y: c_int,
+			width: c_uint, height: c_uint, border_width: c_uint, depth: c_int,
+			class: c_uint, visual: *mut Visual, valuemask: c_ulong,
+			attributes: *mut XSetWindowAttributes) -> Window;
+}
+
+/* C 2791-3051: the file's last function, `x_draw_xwidget_glyph_string` (slice 9).  With it the
+   unit's text is complete; the C line-range table's 2791-3041 row stops being owed.  */
+
+/// C: 2792-2793: `void` / `x_draw_xwidget_glyph_string (struct glyph_string *s)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn x_draw_xwidget_glyph_string (s: *mut glyph_string)
+{
+  /* This method is called by the redisplay engine and places the
+     xwidget on screen.  Moving and clipping is done here.  Also view
+     initialization.  */
+  let xww: *mut xwidget = (*s).xwidget as *mut xwidget;
+  let mut xv: *mut xwidget_view = xwidget_view_lookup (xww, (*s).w);
+  /* C 2800's four locals are uninitialised and `window_box` writes through them; the port
+     zero-initialises them (PORTING.md 1.5 / P-13, the `src/frame.rs` 1483-1487 shape).  */
+  let mut text_area_x: c_int = 0;
+  let mut text_area_y: c_int = 0;
+  let mut text_area_width: c_int = 0;
+  let mut text_area_height: c_int = 0;
+  let mut clip_right: c_int;
+  let mut clip_bottom: c_int;
+  let mut clip_top: c_int;
+  let mut clip_left: c_int;
+
+  let x: c_int = (*s).x;
+  let y: c_int = (*s).y + ((*s).height / 2) - ((*xww).height / 2);
+
+  /* C 2863/2870's `None` (X11/X.h 115) is used at function scope here, so the import is too
+     (slice 8's `lower_frame_xwidget_views` shape).  */
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+  use x11_constants::None;
+
+  /* Do initialization here in the display loop because there is no
+     other time to know things like window placement etc.  Do not
+     create a new view if we have found one that is usable.  */
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  if xv.is_null ()
+    { xv = xwidget_init_view (xww, s, x, y); }
+
+  (*xv).just_resized = 0;
+  }
+  /* C 2817-2837's `#elif defined NS_IMPL_COCOA` arm.  */
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  if xv.is_null ()
+    {
+      /* Enforce 1 to 1, model and view for macOS Cocoa webkit2.  */
+      if !(*xww).xv.is_null ()
+        {
+          if xwidget_hidden ((*xww).xv)
+            {
+              let mut xvl: Lisp_Object;
+              XSETXWIDGET_VIEW! (xvl, (*xww).xv);
+              Fdelete_xwidget_view (xvl);
+            }
+          else
+            {
+              message (c"You can't share an xwidget (webkit2) among windows.".as_ptr ());
+              return;
+            }
+        }
+      xv = xwidget_init_view (xww, s, x, y);
+    }
+  }
+
+  (*xv).area = (*s).area;
+
+  window_box ((*s).w, (*xv).area, &mut text_area_x, &mut text_area_y,
+              &mut text_area_width, &mut text_area_height);
+
+  /* The port's `max`/`min` are `EMACS_INT`-typed (lisp.rs 3149/3152); C's operands are `int`.  */
+  clip_left = max (0, (text_area_x - x) as isize) as c_int;
+  clip_right = max (clip_left as isize,
+		    min ((*xww).width as isize,
+			 (text_area_x + text_area_width - x) as isize)) as c_int;
+  clip_top = max (0, (text_area_y - y) as isize) as c_int;
+  clip_bottom = max (clip_top as isize,
+		     min ((*xww).height as isize,
+			  (text_area_y + text_area_height - y) as isize)) as c_int;
+
+  /* We are concerned with movement of the onscreen area.  The area
+     might sit still when the widget actually moves.  This happens
+     when an Emacs window border moves across a widget window.  So, if
+     any corner of the outer widget clipping window moves, that counts
+     as movement here, even if it looks like no movement happens
+     because the widget sits still inside the clipping area.  The
+     widget can also move inside the clipping area, which happens
+     later.  */
+  let mut moved: bool = (*xv).x + (*xv).clip_left != x + clip_left
+			|| (*xv).y + (*xv).clip_top != y + clip_top;
+
+  /* C 2762-2764's `#ifdef HAVE_X_WINDOWS`: this one line is the arm's.  */
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+  let wdesc_was_none: bool = (*xv).wdesc == None as Window;
+
+  (*xv).x = x;
+  (*xv).y = y;
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+  {
+  /* The X11 constants this arm reads live in `include/xlib.rs`'s `x11_constants` module (the
+     `None` precedent, slice 3); `CopyFromParent` is the one the module does not re-export at the
+     top level (measured: `E0425` at its three uses).  */
+  use x11_constants::{ButtonPressMask, ButtonReleaseMask, CopyFromParent, EnterWindowMask,
+		      ExposureMask, LeaveWindowMask, PointerMotionMask};
+
+  block_input ();
+  if (*xv).wdesc == None as Window
+    {
+      let mut xvw: Lisp_Object;
+      XSETXWIDGET_VIEW! (xvw, xv);
+      let mut a: XSetWindowAttributes = core::mem::zeroed ();
+      a.event_mask = (ExposureMask | ButtonPressMask | ButtonReleaseMask
+		      | PointerMotionMask | EnterWindowMask | LeaveWindowMask) as c_long;
+
+      if clip_right - clip_left <= 0
+	  || clip_bottom - clip_top <= 0
+	{
+	  unblock_input ();
+	  return;
+	}
+
+      /* C's `CopyFromParent` reaches three parameters of three different types (`int depth`,
+	 `unsigned int class`, `Visual *visual`); the port casts each.  */
+      (*xv).wdesc = XCreateWindow ((*xv).dpy, FRAME_X_WINDOW! ((*s).f),
+				   x + clip_left, y + clip_top,
+				   (clip_right - clip_left) as c_uint,
+				   (clip_bottom - clip_top) as c_uint, 0,
+				   CopyFromParent as c_int, CopyFromParent as c_uint,
+				   CopyFromParent as *mut Visual, CWEventMask as c_ulong, &mut a);
+      #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+	     feature = "have_xinput2"))]
+      {
+      let mut mask: XIEventMask = core::mem::zeroed ();
+      let l: ptrdiff_t = XIMaskLen! (XI_LASTEVENT) as ptrdiff_t;
+      let mut m: *mut c_uchar;
+
+      if (*(FRAME_DISPLAY_INFO! ((*s).f))).supports_xi2
+	{
+	  m = sa_stack_alloc (l as usize) as *mut c_uchar;
+	  mask.mask = m;
+	  memset (m as *mut c_void, 0, l as usize);
+	  mask.mask_len = l as c_int;
+	  mask.deviceid = XIAllMasterDevices;
+
+	  XISetMask! (m, XI_Motion);
+	  XISetMask! (m, XI_ButtonPress);
+	  XISetMask! (m, XI_ButtonRelease);
+	  XISetMask! (m, XI_Enter);
+	  XISetMask! (m, XI_Leave);
+	  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
+		     feature = "have_xinput2", feature = "have_xinput2_4"))]
+	  {
+	  if (*(FRAME_DISPLAY_INFO! ((*s).f))).xi2_version >= 4
+	    {
+	      XISetMask! (m, XI_GesturePinchBegin);
+	      XISetMask! (m, XI_GesturePinchUpdate);
+	      XISetMask! (m, XI_GesturePinchEnd);
+	    }
+	  }
+	  XISelectEvents ((*xv).dpy, (*xv).wdesc, &mut mask, 1);
+	}
+      }
+      XLowerWindow ((*xv).dpy, (*xv).wdesc);
+      XDefineCursor ((*xv).dpy, (*xv).wdesc, (*xv).cursor);
+      (*xv).cr_surface = cairo_xlib_surface_create ((*xv).dpy,
+						    (*xv).wdesc,
+						    (*(FRAME_DISPLAY_INFO! ((*s).f))).visual,
+						    clip_right - clip_left,
+						    clip_bottom - clip_top);
+      (*xv).cr_context = cairo_create ((*xv).cr_surface);
+      Fputhash (make_fixnum ((*xv).wdesc as EMACS_INT), xvw, x_window_to_xwv_map);
+
+      moved = false;
+    }
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
+  {
+  block_input ();
+  }
+
+  /* Has it moved?  */
+  if moved
+    {
+      #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+      {
+      XMoveResizeWindow ((*xv).dpy, (*xv).wdesc, x + clip_left, y + clip_top,
+			 (clip_right - clip_left) as c_uint,
+			 (clip_bottom - clip_top) as c_uint);
+      XFlush ((*xv).dpy);
+      cairo_xlib_surface_set_size ((*xv).cr_surface, clip_right - clip_left,
+				   clip_bottom - clip_top);
+      }
+      /* C 2945-2953's `#elif defined HAVE_PGTK` / `#elif defined NS_IMPL_COCOA` arms.  */
+      #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
+      {
+      gtk_widget_set_size_request ((*xv).widget, clip_right - clip_left,
+				   clip_bottom - clip_top);
+      gtk_fixed_move (GTK_FIXED! (FRAME_GTK_WIDGET! ((*xv).frame)),
+		      (*xv).widget, x + clip_left, y + clip_top);
+      gtk_widget_queue_allocate ((*xv).widget);
+      }
+      #[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "have_pgtk"),
+	     feature = "ns_impl_cocoa"))]
+      {
+      nsxwidget_move_view (xv, x + clip_left, y + clip_top);
+      }
+    }
+
+  /* Clip the widget window if some parts happen to be outside
+     drawable area.  An Emacs window is not a gtk window.  A gtk window
+     covers the entire frame.  Clipping might have changed even if we
+     haven't actually moved; try to figure out when we need to reclip
+     for real.  */
+  /* C 2961-2965: `#ifndef HAVE_PGTK` wraps the *condition* only, so the port spells the
+     condition as a cfg'd local (under PGTK the block is unconditional, which is what `true`
+     means here).  */
+  let clip_changed: bool;
+  #[cfg (not (feature = "have_pgtk"))]
+  {
+  clip_changed = (*xv).clip_right != clip_right
+      || (*xv).clip_bottom != clip_bottom
+      || (*xv).clip_top != clip_top || (*xv).clip_left != clip_left;
+  }
+  #[cfg (feature = "have_pgtk")]
+  {
+  clip_changed = true;
+  }
+  if clip_changed
+    {
+    #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+    {
+    #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+    {
+      if !wdesc_was_none && !moved
+	{
+	  if clip_right - clip_left <= 0
+	      || clip_bottom - clip_top <= 0
+	    {
+	      XUnmapWindow ((*xv).dpy, (*xv).wdesc);
+	      (*xv).hidden = true;
+	    }
+	  else
+	    {
+	      XResizeWindow ((*xv).dpy, (*xv).wdesc, (clip_right - clip_left) as c_uint,
+			     (clip_bottom - clip_top) as c_uint);
+	    }
+	  XFlush ((*xv).dpy);
+	  cairo_xlib_surface_set_size ((*xv).cr_surface, clip_right - clip_left,
+				       clip_bottom - clip_top);
+	}
+    }
+    /* C 2986-2992's `#else` (USE_GTK without HAVE_X_WINDOWS) is the PGTK arm here
+       (`include/xwidget.rs` 145-148 declares `widget` under `all (use_gtk, have_pgtk)`).  */
+    #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
+    {
+      gtk_widget_set_size_request ((*xv).widget, clip_right - clip_left,
+				   clip_bottom - clip_top);
+      gtk_fixed_move (GTK_FIXED! (FRAME_GTK_WIDGET! ((*xv).frame)),
+		      (*xv).widget, x + clip_left, y + clip_top);
+      gtk_widget_queue_allocate ((*xv).widget);
+    }
+    }
+    /* C 2993-2996's `#elif defined NS_IMPL_COCOA` arm.  */
+    #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+    {
+      nsxwidget_resize_view (xv, clip_right - clip_left,
+                             clip_bottom - clip_top);
+      nsxwidget_move_widget_in_view (xv, -clip_left, -clip_top);
+    }
+
+      (*xv).clip_right = clip_right;
+      (*xv).clip_bottom = clip_bottom;
+      (*xv).clip_top = clip_top;
+      (*xv).clip_left = clip_left;
+    }
+
+  /* If emacs wants to repaint the area where the widget lives, queue
+     a redraw.  It seems its possible to get out of sync with emacs
+     redraws so emacs background sometimes shows up instead of the
+     xwidgets background.  It's just a visual glitch though.  */
+  /* When xww->buffer is nil, that means the xwidget has been killed.  */
+  /* C 3021-3027's `else` sits under an `#ifdef HAVE_X_WINDOWS`; Rust has no attribute on an
+     `else`, so the port spells C's pair as the test once and the two arms separately (Deviation).  */
+  let buffer_is_nil: bool = NILP ((*xww).buffer);
+  if !buffer_is_nil
+    {
+      if !xwidget_hidden (xv)
+	{
+	#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+	{
+	  gtk_widget_queue_draw ((*xww).widget_osr);
+	}
+	#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+	{
+	  nsxwidget_set_needsdisplay (xv);
+	}
+	}
+    }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
+  if buffer_is_nil
+    {
+      XSetWindowBackground ((*xv).dpy, (*xv).wdesc,
+			    FRAME_BACKGROUND_PIXEL ((*s).f));
+    }
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3",
+	     any (feature = "have_xinput2", feature = "have_pgtk")))]
+  {
+  if !NILP ((*xww).buffer)
+    {
+      record_osr_embedder (xv);
+      synthesize_focus_in_event ((*xww).widget_osr);
+    }
+  }
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  unblock_input ();
+  }
 }

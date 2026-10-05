@@ -13847,3 +13847,35 @@
   ⑦ **未声称**：C 2791-3041 一行未动（这台单元仍 FAIL，两行）；冻结档编译不到这个文件；三组翻臂都是**编译**不是链接/加载；
      WebKit 类型与枚举值仍是 **UNVERIFIED**；没有跑任何行为。
   ⑧ **预算**：TU 编译 1 发（冻结档）、翻臂探针 6 发（本片 3 × 两轮，含 HEAD 基线 3）、`--check` 4 发、文本门 2 发；`/tmp` 脚本收工删。
+
+- **3.677 `src/xwidget.c` 收官：C 2791-3051（`x_draw_xwidget_glyph_string`，全文件最密的一段）落地 ⇒ 该单元第一次 `--check` **OK**、`extract-abi --all` 从 **566 done / 22 failing** 变成 **567 done / 21 failing**；四组翻臂里 A/B 新增 **0**，C 的 +1 与 XInput2 组的 +2 都是**已登记**的镜像欠账（2026-10-06）**：
+  ① **范围**：C 2793 的 `x_draw_xwidget_glyph_string`——GTK / `NS_IMPL_COCOA` 两条视图初始化手臂、`window_box` 的四个输出、
+     四组 clip 计算、`HAVE_X_WINDOWS` 段（`XCreateWindow` + **实测**的 `XSetWindowAttributes`、`HAVE_XINPUT2`/`HAVE_XINPUT2_4` 的掩码块、
+     `XLowerWindow`/`XDefineCursor`/`cairo_xlib_surface_create`/`Fputhash`）、`HAVE_PGTK`/`NS_IMPL_COCOA` 的 `moved` 与重裁两半，
+     以及结尾的重绘段。C 区间表（两处副本）**每一行都成了 transcribed**。
+  ② **读数（本单元第一次绿）**：`extract-abi --check emacs/src/xwidget.c femacs/src/xwidget.rs` **2 行 → `OK`**：
+     函数那一行随文本退场；行数棘轮那行由 `docs/ports/line-drift-tolerance.tsv` 的新行 **`xwidget 0.61 total`** 回答
+     （正是那张表头描述的类：端口比 C 长，因为**每条手臂都是文本**）。权威单元账：`--all` → **567 done / 2 in progress / 21 failing**。
+     冻结档 `build-tu` 仍是 **336 字节空对象**。
+  ③ **四组翻臂（对 HEAD 同名文件）**：A（`have_x_windows`）51 → **51**、B（`have_pgtk`）13 → **13**、C（无窗口系统）24 → **25**、
+     X（`have_x_windows`+`have_xinput2`+`have_xinput2_4`）73 → **75**。**新增的两类都是登记过的**：C 的那 1 行是
+     `cannot find type glyph_string`（函数形参 `struct glyph_string *s` 落在没有任何配置的手臂集合里，第三片 Deviation 8 的同类），
+     X 的那 2 行是 `x_display_info` 的 `supports_xi2`/`xi2_version`（**Owed 10 自己点名的字段**，家是 `include/xterm.rs`）。
+     除此之外本片在任何手臂里零新增。
+  ④ **四轮修复、十处改动（照实记）**：⑴ `#[cfg]` 挂在 `else` 上（Rust 不允许）⇒ C 3021-3027 的 `#ifdef` 对写成"判一次 + 两条手臂"；
+     ⑵ `XUnmapWindow` 重复定义（本文件 2818 早已声明）；⑶ `CopyFromParent` 在 `x11_constants` 模块里、本单元没有顶层再导出；
+     ⑷ `window_box` 与 `XCreateWindow` 在使用点声明（本单元包含的镜像够不到）；⑸ 8 条 `E0308`（`glyph_bits! (type, *glyph)`、
+     端口的 `max`/`min` 是 `EMACS_INT`、`XMoveResizeWindow`/`XResizeWindow` 收 `unsigned int`）；⑹ `XCreateWindow` 的三个 `CopyFromParent`
+     落到三种参数类型上、`None` 的导入要放函数作用域；⑺ C 2800 的四个 `text_area_*` 是 C 的**未初始化输出**，Rust 在 `&mut` 前要求已初始化
+     （PORTING.md 1.5 / P-13，`src/frame.rs` 1483-1487 的 `window_box` 调用同形）。
+  ⑤ **一处实测、一处重建（都进偏离）**：`XSetWindowAttributes` 是**实测**的（`clang -I/opt/homebrew/include` over `<X11/Xlib.h>`，
+     libx11 1.8.13：`112` 字节、`background_pixmap@0`、`event_mask@72`、`do_not_propagate_mask@80`，四个 `const _` 断言就写它）；
+     XInput2 表面（`XIEventMask`/`XIMaskLen`/`XISetMask`/`XISelectEvents`）是**重建**的（本机没有 `XInput2.h`，每条带 **UNVERIFIED**，
+     `XIEventMask` 的家按 Owed 10 是 `include/xterm.rs`）；`XI2.h` **在**本机，故五个常量按其行号引用。
+  ⑥ **账目**：C 区间表（两处副本）全部 transcribed、新增 Evidence ⑯（a-e，含四组 HEAD 对照表与"新增哪两行"的逐行点名）、
+     `### Slice 9` 的 8 条偏离；Owed 7 改成"文本已完、剩下的都是镜像侧"并点名 Owed 2/8/9/10；
+     `check-dead-file-coverage` 复读 **145 ledger(s), 0 failure(s)**。
+  ⑦ **未声称**：零镜像改动 ⇒ P-87 不适用；冻结档编译不到这个文件；四组翻臂都是**编译**不是链接/加载；WebKit/GDK/XInput2 的类型与枚举值仍是
+     **UNVERIFIED**；那两处已登记缺口（`kill_without_query` 三站点、`x_display_info` 两个字段）**照实带**、没修；没有跑任何行为。
+  ⑧ **预算**：TU 编译 3 发（冻结档，含收官复读）、翻臂探针 20 发（4 组 × 多轮 + HEAD 基线 4）、`--check` 6 发、`--all` 1 发、
+     文本门 2 发；`/tmp` 脚本收工删。

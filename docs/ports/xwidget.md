@@ -202,7 +202,7 @@ block, and the union covers C 1-4304 without a gap.
 | 2282-2331 | C 2283's blank and the three `store_xwidget_*_event` helpers (`store_xwidget_event_string` C 2284-2296, `store_xwidget_download_callback_event` C 2298-2316, `store_xwidget_js_callback_event` C 2318-2331) | file gate |
 | 2332-2716 | C 2333's `#ifdef USE_GTK`: `store_xwidget_display_event` (C 2335-2349), `webkit_ready_to_show` (C 2351-2379), `webkit_create_cb_1`/`webkit_create_cb` (C 2381-2425), `webkit_view_load_changed_cb` (C 2427-2451), `webkit_js_to_lisp` (C 2453-2518), `webkit_javascript_finished_cb` (C 2520-2559), `webkit_download_cb` (C 2561-2574), `webkit_decide_policy_cb` (C 2576-2645), `webkit_script_dialog_cb` (C 2647-2714) and C 2716's `#endif` | `feature = "use_gtk"` |
 | 2717-2790 | `xwidget_init_view` (C 2720-2790), with C 2716's `#endif /* USE_GTK */` and C 2718-2719's comment | file gate - **transcribed** (slice 3, status 3.671) |
-| 2791-3041 | **the remainder between the slices**: C 2793's `x_draw_xwidget_glyph_string` (C 2792-3041) and C 3042's blank | file gate - **owed** |
+| 2791-3041 | C 2791-3051's `x_draw_xwidget_glyph_string` (C 2793) - the file's densest function: the GTK and `NS_IMPL_COCOA` view-init arms, `window_box`'s four outputs, the clip computations, the `HAVE_X_WINDOWS` arm (`XCreateWindow` with the measured `XSetWindowAttributes`, the `HAVE_XINPUT2`/`HAVE_XINPUT2_4` mask block, `XLowerWindow`, `XDefineCursor`, `cairo_xlib_surface_create`, `Fputhash`), the `HAVE_PGTK`/`NS_IMPL_COCOA` halves of `moved` and of the reclip, and the repaint tail | file gate; `have_x_windows`; `have_xinput2` / `have_xinput2_4`; `have_pgtk`; `ns_impl_cocoa` - **transcribed** (slice 9, status 3.677) |
 | 3042-3116 | the `CHECK_WEBKIT_WIDGET` (C 3042-3044) and `WEBKIT_FN_INIT` (C 3047-3050) macros, and the three accessors `xwidget-webkit-uri` (C 3052-3068), `xwidget-webkit-title` (C 3070-3085), `xwidget-webkit-estimated-load-progress` (C 3087-3115) | file gate - **transcribed** (slice 3, status 3.671) |
 | 3117-3307 | the three WebKit subrs `xwidget-webkit-goto-uri` (C 3117-3133), `xwidget-webkit-goto-history` (C 3135-3169), `xwidget-webkit-zoom` (C 3171-3191), `save_script_callback` (C 3193-3215, `static`, in C 3193's `#ifdef USE_GTK`), `xwidget-webkit-execute-script` (C 3217-3250) and `xwidget-resize` (C 3252-3303) with C 3304-3307's blank lines | file gate - **transcribed** (slice 4, status 3.672) |
 | 3308-3547 | `xwidget-size-request` (C 3308-3324), `xwidgetp` (C 3326-3333), `xwidget-view-p` (C 3335-3342), `xwidget-info` (C 3344-3355), `xwidget-view-info` (C 3357-3369), `xwidget-view-model` (C 3371-3379), `xwidget-view-window` (C 3381-3389), `delete-xwidget-view` (C 3392-3450), `xwidget-view-lookup` (C 3452-3476), `xwidget-plist` (C 3478-3486), `xwidget-buffer` (C 3488-3496), `set-xwidget-buffer` (C 3498-3509), `set-xwidget-plist` (C 3511-3523), `set-xwidget-query-on-exit-flag` (C 3525-3537) and `xwidget-query-on-exit-flag` (C 3539-3547) | file gate - **transcribed** (slice 5, status 3.673) |
@@ -353,7 +353,7 @@ Frozen values behind every arm: `USE_GTK undef` (`darwin-arm64.macros.tsv` 3861)
 | 2282-2331 | C 2283's blank and the three `store_xwidget_*_event` helpers (`store_xwidget_event_string` C 2284-2296, `store_xwidget_download_callback_event` C 2298-2316, `store_xwidget_js_callback_event` C 2318-2331) | file gate |
 | 2332-2716 | C 2333's `#ifdef USE_GTK`: `store_xwidget_display_event` (C 2335-2349), `webkit_ready_to_show` (C 2351-2379), `webkit_create_cb_1`/`webkit_create_cb` (C 2381-2425), `webkit_view_load_changed_cb` (C 2427-2451), `webkit_js_to_lisp` (C 2453-2518), `webkit_javascript_finished_cb` (C 2520-2559), `webkit_download_cb` (C 2561-2574), `webkit_decide_policy_cb` (C 2576-2645), `webkit_script_dialog_cb` (C 2647-2714) and C 2716's `#endif` | `feature = "use_gtk"` |
 | 2717-2790 | `xwidget_init_view` (C 2720-2790), with C 2716's `#endif /* USE_GTK */` and C 2718-2719's comment | file gate - **transcribed** (slice 3, status 3.671) |
-| 2791-3041 | **the remainder between the slices**: C 2793's `x_draw_xwidget_glyph_string` (C 2792-3041) and C 3042's blank | file gate - **owed** |
+| 2791-3041 | C 2791-3051's `x_draw_xwidget_glyph_string` (C 2793) - the file's densest function: the GTK and `NS_IMPL_COCOA` view-init arms, `window_box`'s four outputs, the clip computations, the `HAVE_X_WINDOWS` arm (`XCreateWindow` with the measured `XSetWindowAttributes`, the `HAVE_XINPUT2`/`HAVE_XINPUT2_4` mask block, `XLowerWindow`, `XDefineCursor`, `cairo_xlib_surface_create`, `Fputhash`), the `HAVE_PGTK`/`NS_IMPL_COCOA` halves of `moved` and of the reclip, and the repaint tail | file gate; `have_x_windows`; `have_xinput2` / `have_xinput2_4`; `have_pgtk`; `ns_impl_cocoa` - **transcribed** (slice 9, status 3.677) |
 | 3042-3116 | the `CHECK_WEBKIT_WIDGET` (C 3042-3044) and `WEBKIT_FN_INIT` (C 3047-3050) macros, and the three accessors `xwidget-webkit-uri` (C 3052-3068), `xwidget-webkit-title` (C 3070-3085), `xwidget-webkit-estimated-load-progress` (C 3087-3115) | file gate - **transcribed** (slice 3, status 3.671) |
 | 3117-3307 | the three WebKit subrs `xwidget-webkit-goto-uri` (C 3117-3133), `xwidget-webkit-goto-history` (C 3135-3169), `xwidget-webkit-zoom` (C 3171-3191), `save_script_callback` (C 3193-3215, `static`, in C 3193's `#ifdef USE_GTK`), `xwidget-webkit-execute-script` (C 3217-3250) and `xwidget-resize` (C 3252-3303) with C 3304-3307's blank lines | file gate - **transcribed** (slice 4, status 3.672) |
 | 3308-3547 | `xwidget-size-request` (C 3308-3324), `xwidgetp` (C 3326-3333), `xwidget-view-p` (C 3335-3342), `xwidget-info` (C 3344-3355), `xwidget-view-info` (C 3357-3369), `xwidget-view-model` (C 3371-3379), `xwidget-view-window` (C 3381-3389), `delete-xwidget-view` (C 3392-3450), `xwidget-view-lookup` (C 3452-3476), `xwidget-plist` (C 3478-3486), `xwidget-buffer` (C 3488-3496), `set-xwidget-buffer` (C 3498-3509), `set-xwidget-plist` (C 3511-3523), `set-xwidget-query-on-exit-flag` (C 3525-3537) and `xwidget-query-on-exit-flag` (C 3539-3547) | file gate - **transcribed** (slice 5, status 3.673) |
@@ -830,6 +830,44 @@ this unit.  `check-dead-file-coverage.py` re-read after the table change:
 `145 ledger(s), 0 failure(s)`.
 
 
+**⑯ Slice 9 (C 2791-3051): the readings of the round that landed the file's last function
+(2026-10-06, status 3.677).**
+
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **2 -> OK**.
+The last two rows were the drift row and `missing function x_draw_xwidget_glyph_string`; the
+function's row retires with the text, and the drift row was answered by
+`docs/ports/line-drift-tolerance.tsv`'s new `xwidget 0.61 total` row (the class that table's header
+describes: a port that carries *more* text than C because every arm is text).  **The unit is `OK`
+for the first time** - `extract-abi --all` reads it as one more `done` file.
+
+b) **The frozen reading.**  `build-tu src/xwidget.c` -> built, `build/femacs/xwidget.o` **336
+bytes** - the empty object of the P-86 class.
+
+c) **Four arm flips against HEAD's own file**: A (`have_x_windows`) 51 -> **51**, B (`have_pgtk`)
+13 -> **13**, C (no window system) 24 -> **25**, X (`have_x_windows` + `have_xinput2` +
+`have_xinput2_4`) 73 -> **75**.  The two kinds of added row are both *registered*:
+C's one is `cannot find type glyph_string` (the function's `struct glyph_string *s` parameter in an
+arm set no configuration has - slice 3's Deviation 8 class), and X's two are
+`no field supports_xi2` / `no field xi2_version` on `x_display_info` (Owed 10's own list, whose home
+is `include/xterm.rs`).  Nothing else in this slice adds a row in any arm.
+
+d) **The fix iterations behind c (four rounds, ten edits).**  Run 1: the `#[cfg]`'d `else` (Rust has
+no attribute on an `else`; C 3021-3027's `#ifdef` pair is now the test once and two arms), the
+duplicate `XUnmapWindow` (the file already declares it at 2818), `CopyFromParent` (it is in
+`include/xlib.rs`'s `x11_constants` module, which this unit does not re-export at the top level),
+`window_box` (declared at the use site: the mirror this unit includes does not reach it),
+`XCreateWindow` (idem, Xlib.h's own prototype), the eight `E0308`s (`glyph_bits! (type, *glyph)`;
+the port's `max`/`min` are `EMACS_INT`; `XMoveResizeWindow`/`XResizeWindow` take `unsigned int`).
+Run 2: `XCreateWindow`'s three `CopyFromParent` arguments reach three parameter types, and the
+`None`-at-function-scope import.  Run 3: C 2800's four `text_area_*` locals are C's *uninitialised*
+outputs and Rust requires them initialised before `&mut` (PORTING.md 1.5 / P-13, the
+`src/frame.rs` 1483-1487 shape).  Run 4 is the table above.
+
+e) **No mirror was edited**; the X11 record and the XInput2 macros are the unit's own (with the
+clang measurement in the deviation list), so P-87 ①'s legs do not apply.
+`check-dead-file-coverage.py` re-read after the table change: `145 ledger(s), 0 failure(s)`.
+
+
 ## Deviations
 
 1. **Include order.**  C's list starts at `"buffer.h"` (C 22) and reaches `"lisp.h"` at C 25;
@@ -1153,6 +1191,39 @@ this unit.  `check-dead-file-coverage.py` re-read after the table change:
    `kill_buffer_xwidgets`'s inner C block is kept as a bare block (C's own braces).
 
 
+### Slice 9 (C 2791-3051, status 3.677)
+
+1. **C 3021-3027's `else`-under-`#ifdef` is spelled as the test once and two arms**: Rust has no
+   attribute on an `else`, so the port computes `buffer_is_nil` once, runs the `if` body, and puts
+   the `#ifdef HAVE_X_WINDOWS` half in its own cfg'd `if buffer_is_nil`.
+2. **`XSetWindowAttributes` is this unit's own record and its layout is measured**: `clang -I
+   /opt/homebrew/include` over `<X11/Xlib.h>` (libx11 1.8.13) reads `112` bytes with
+   `background_pixmap@0`, `event_mask@72`, `do_not_propagate_mask@80`, which are the four `const _`
+   assertions beside it; the fifteen members are Xlib.h 286-302's, in C's order.
+3. **The XInput2 surface is reconstructed**: `XInput2.h` is not on this machine, so
+   `XIEventMask`, `XIMaskLen`, `XISetMask` and `XISelectEvents` carry the API's documented
+   definitions with **UNVERIFIED** beside them - `include/xterm.rs` is `XIEventMask`'s home
+   (Owed 10, which also names the two `x_display_info` fields this arm needs).  The constants that
+   *are* here (`XIAllMasterDevices` 188, `XI_ButtonPress` 194, `XI_ButtonRelease` 195, `XI_Motion`
+   196, `XI_LASTEVENT` 223) are cited from `X11/extensions/XI2.h` with their lines.
+4. **C's uninitialised `text_area_*` outputs** (C 2800) are zero-initialised (PORTING.md 1.5 /
+   P-13; `src/frame.rs` 1483-1487's `window_box` call is the same shape), because Rust requires a
+   binding to be initialised before `&mut` takes it.
+5. **`max`/`min` are `EMACS_INT`** in the port (`include/lisp.rs` 3149/3152) and C's four clip
+   computations are `int`, so each casts in and out.
+6. **`XCreateWindow`'s `CopyFromParent`** reaches `int depth`, `unsigned int class` and
+   `Visual *visual`; the port casts each, and `CWEventMask` (`X11/X.h` 403) is declared beside the
+   record.
+7. **`window_box`, `XCreateWindow`, `XMoveResizeWindow`, `XResizeWindow`, `XUnmapWindow`,
+   `XSetWindowBackground`, `cairo_xlib_surface_create`, `cairo_xlib_surface_set_size`** are all
+   declared at their use sites with the owning header's line - the file's own surface, where its
+   `XMoveWindow` family already lives (`XUnmapWindow` was already there, which is why this slice
+   first hit an `E0428`).
+8. **The two GTK-without-X11 arms are spelled `have_pgtk`** (C 2986-2992's `#else`), the same
+   reading slice 5 recorded for C 3429-3430: that is the arm in which the record's `widget` member
+   exists.
+
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. `femacs/xtask/Cargo.toml`'s `[features]` table: the three derived-condition names this slice
@@ -1214,15 +1285,15 @@ this unit.  `check-dead-file-coverage.py` re-read after the table change:
    only; **slice 2 flips them** (ARM A11 sets `have_xinput2`/`have_xinput2_4`, Evidence ⑧) but the
    arm cannot *resolve* until `XIEventMask`/`x_display_info` land in `include/xterm.rs` (owed 10),
    so the reading is still a name-resolution one and not a compile.
-7. **The next slice is the file's last one.**  Slices 3-8 (status 3.671-3.676) landed
-   C 2717-2790, C 3042-3116, C 3117-3307, C 3308-3547, C 3548-3770, C 3771-4027 and C 4028-4304;
-   **the only owed text left in this file is C 2791-3041** - C 2793's `x_draw_xwidget_glyph_string`,
-   the densest function in the file (the `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` arms,
-   `XCreateWindow`/`XISelectEvents`/`cairo_xlib_surface_create`).  The `--check` reading is two rows:
-   that function and the line-count drift, so land it and the unit is text-complete; the drift row
-   then needs `docs/ports/line-drift-tolerance.tsv`'s decision (the three `failing` files at the end
-   of status 3.676 are the same class: a port that carries *more* text than C because every arm is
-   text).
+7. **The unit is text-complete and reads `OK`.**  Slices 3-9 (status 3.671-3.677) landed
+   C 2717-2790, C 3042-3116, C 3117-3307, C 3308-3547, C 3548-3770, C 3771-4027, C 4028-4304 and
+   C 2791-3051 - every row of the C line-range table is now `transcribed`, and
+   `extract-abi --check emacs/src/xwidget.c femacs/src/xwidget.rs` reads **OK** (the drift row was
+   answered by `docs/ports/line-drift-tolerance.tsv`'s `xwidget 0.61 total`).  What is left is
+   *mirror* work, not text: Owed 9 (the P-80 storage unit for C 99's `kill_without_query`, three
+   sites), Owed 10 (the XInput2 records and the two `x_display_info` fields; `XIEventMask`'s home),
+   Owed 8 (the GDK event records' members) and Owed 2 (the P-90 ③/④ move of this unit's third-party
+   declarations into `include/gtk.rs`).
 
 
 8. **The mirror's GDK event records need the members this slice reads.**  The ARM A11 reading's 84
