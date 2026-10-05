@@ -7356,3 +7356,31 @@
      use-site 第 18 项已按此改写（`validate_subarray` 从"本轮新增"改成"镜像已有，不声明"）。
   ⑤ **未声称**：只是把这一个 finding 修平；`src/xfns.c` 的棘轮行已 stale（xfns lane 的在飞切片越过 10%），
      留给批次收口时 `--write-pending`。
+
+- **3.423 android 切片 2（C 1038-1869）：线程/事件之后的文件系统与 JNI 入口（2026-10-05）**：
+  ① **区间**：C 1038-1869（收在 `android_init_emacs_pixmap` 的 `}`）；**下一个活定义 = C 1871
+     `android_init_graphics_point`**。块：`android_run_debug_thread`、`android_user_full_name`（C 1083-1090 的
+     `HAVE_STRUCT_PASSWD_PW_GECOS` 对，死臂按 P-51 照录）、`android_is_special_directory`、
+     **`#if 0` 区（C 1124-1360 两个函数）只照录为注释**、`android_get_home_directory`、`android_proc_name`、
+     `android_create_lib_link`、三个 `NATIVE_NAME` JNI 入口（`getFingerprint`/`setEmacsParams`/`getProcName`）、
+     `android_init_emacs_service`（函数内 `FIND_METHOD` 宏 + 41 次调用）、`android_init_emacs_pixmap`。
+  ② **行数**：`femacs/src/android.rs` 1,311 → **2,103**（+798/−6）；`docs/ports/android.md` 345 → **465**；
+     C 覆盖面 1,037 → **1,869 行**。
+  ③ **读数**：⑴ 冻结 `build-tu` **exit 0**、对象 **336 字节空对象**（4 次同值）；⑵ 翻臂 ②a（真臂，无 API 门）
+     **exit 1**，唯一错误是**已登记的镜像缺口** `E0609 no field sa_sigaction`（C 749，切片 1 就记过），
+     **切片 2 自身 0 错**；⑶ 翻臂 ②b（`+ android_api_lt_21`）**exit 0 / 0 error / 17,376 字节对象**；
+     ⑷ `extract-abi --check` **135 → 131 个 `- ` 行**（退掉本片 8 个函数 + `FIND_METHOD`，新增 5 条见台账），
+     漂移 82.7% → **72.3%**；⑸ `check-dead-file-coverage` 50 行区间覆盖 C 7,594 行、**0 failure**。
+  ④ **真缺陷（翻臂编译抓出来的，证明该读数非空）**：生成 `FIND_METHOD!` 调用清单时把两个 `android_init_*`
+     的边界吃掉，`android_init_emacs_pixmap` 的序言与它自己的宏体被删（42 错）⇒ 修好后才有 ③ 的读数。
+     C 自身的两处笔误（C 1564/1578 检查了相邻变量）**原样保留**，记进 Deviations。
+  ⑤ **集成者本轮替它落的账**：`macro-body-notes.tsv` 两行（`android_is_special_directory` → `case,switch`；
+     `android_create_lib_link` → `goto`）——补后 `--check` **131 → 129**；
+     `docs/baseline/declarations-allowlist.tsv` 一行 `literal`（`macro_rules! PACKAGE_STRING`，`<config.h>` 2205
+     的值被 C 1511-1513 拼进初始化日志的 format，属既有 6 行同一类；**lane 明确拒绝**为过门而拆字符串或改名，
+     这是对的）⇒ `check-declarations` 回到 **14 sites / 0 forbidden / 0 failures**。
+  ⑥ **仍未解决（点名）**：`tools/cinventory.py` 的函数扫描看不见 `NATIVE_NAME (x) (…)` 定义 ⇒ `extract-abi`
+     对 3 个 JNI 入口报"invented exported symbol"（工具工作单，不是移植缺陷）；`lib/include/signal.rs` 的 bionic
+     `sa_sigaction`（本次 ②a 的唯一错）；六处就地声明日后搬进镜像；编译预算**两项都超**（`build-tu` 5 发、
+     `probe` 8 发，lane 如实报）。
+  ⑦ **未声称**：无运行证据（无真机/NDK/JNI 调用/线程）；②b 的对象**从未运行**；②a 的基础配置**没有对象**。

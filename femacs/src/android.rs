@@ -7,10 +7,11 @@
 // as a thread body / signal handler, which are `unsafe extern "C" fn` items (a function-pointer
 // parameter cannot be a Rust-ABI item; the androidmenu.rs / androidselect.rs shape).
 //
-// **This file is P-86's largest unit (C 7,594 lines) and is being ported in slices.**  This slice
-// is C 1-1037 (through `android_select`); the next live definition is `android_run_debug_thread`
-// (C 1041-1078).  The ledger `docs/ports/android.md` carries the C line-range table for C 1-1037
-// plus the "the remainder" row, the `## Evidence` readings and the `## Deviations`.
+// **This file is P-86's largest unit (C 7,594 lines) and is being ported in slices.**  Slice 1 is
+// C 1-1037 (through `android_select`) and slice 2 is C 1038-1869 (`android_run_debug_thread`
+// through `android_init_emacs_pixmap`); the next live definition is `android_init_graphics_point`
+// (C 1871).  The ledger `docs/ports/android.md` carries the C line-range table for C 1-1869 plus
+// the "the remainder" row, the `## Evidence` readings and the `## Deviations`.
 //
 // The frozen configuration compiles no `android.o`: `configure.ac` 2598 puts `android.o` in
 // `ANDROID_OBJ` under `AC_DEFINE([HAVE_ANDROID])` (2602), and `docs/baseline/frozen-build-sources.txt`
@@ -53,13 +54,19 @@ include!("include/config.rs");                        // C 20: `#include <config
 #[cfg (feature = "have_android")]
 include!("../lib/include/allocator.rs");              // C 22: `#include <allocator.h>`
 #[cfg (feature = "have_android")]
+include!("../lib/include/careadlinkat.rs");           // C 24: `#include <careadlinkat.h>` (slice 2)
+#[cfg (feature = "have_android")]
 include!("../lib/include/errno.rs");                  // C 25: `#include <errno.h>` (errno, EINTR)
 #[cfg (feature = "have_android")]
 include!("../lib/include/fcntl.in.rs");               // C 26: `#include <fcntl.h>` (open, O_*)
 #[cfg (feature = "have_android")]
+include!("../lib/include/fingerprint.rs");            // C 27: `#include <fingerprint.h>` (slice 2)
+#[cfg (feature = "have_android")]
 include!("../lib/include/limits.in.rs");              // C 30: `#include <limits.h>`
 #[cfg (feature = "have_android")]
 include!("../lib/include/signal.rs");                 // C 34: `#include <signal.h>` (sigset_t, SIG*)
+#[cfg (feature = "have_android")]
+include!("../lib/include/stat-time.rs");              // C 35: `#include <stat-time.h>` (get_stat_mtime)
 #[cfg (feature = "have_android")]
 include!("../lib/include/string.rs");                 // C 37: `#include <string.h>` (strerror, strlen)
 #[cfg (feature = "have_android")]
@@ -87,11 +94,18 @@ include!("include/systime.rs");                       // C 55: `#include "systim
 
 /* C 23 `<assert.h>` names nothing this file uses (the only assertion entry point here is
    `eassert`, from lisp.h) so its gnulib template `lib/include/assert.in.rs` is not reached.
-   C 24 `<careadlinkat.h>`, C 27 `<fingerprint.h>`, C 29 `<libgen.h>`, C 31 `<math.h>`,
-   C 35 `<stat-time.h>`, C 36 `<stdckdint.h>`, C 38 `<timespec.h>`, C 41 `<sys/param.h>` and
+   C 31 `<math.h>`, C 36 `<stdckdint.h>`, C 38 `<timespec.h>`, C 41 `<sys/param.h>` and
    C 54 `<epaths.h>` name nothing in C 1-1037 either, so no item of theirs is carried in this
    slice.  C 28 `<intprops.h>` is the blind mirror no unit includes; the one name this slice
    takes from it is defined below (the androidselect.rs shape).  */
+/* Slice 2 first names one item of four more of these headers, so their edges were added at
+   C's own line above: C 24 `<careadlinkat.h>` (`careadlinkat`, C 1387), C 27
+   `<fingerprint.h>` (`fingerprint`, C 1466-1470), C 35 `<stat-time.h>` (`get_stat_mtime`,
+   C 1609) and - at the use sites below - C 29 `<libgen.h>`, C 30 `<limits.h>`'s `PATH_MAX`
+   (already reached), the `<stdio.h>`/`<string.h>`/`<stdlib.h>` entries the mirrors do not
+   carry (`fdopen`, `getline`, `strdup`, `setenv`) and lisp.h 4247's `hexbuf_digest`.
+   C 29 `<libgen.h>` has no mirror in the tree at all (`ls femacs/lib/include | grep libgen`
+   is empty), so its one name is declared in the unit (P-88 ①).  */
 
 /* C 28: `#include <intprops.h>` - `INT_STRLEN_BOUND (long)`, C 471.  The mirror is blind
    (docs: `lib/include/intprops.rs`) and no unit includes it; the units that need the semantics
@@ -1309,3 +1323,781 @@ pub unsafe fn android_select (nfds: c_int, readfds: *mut fd_set, writefds: *mut 
    remainder: it holds `android_user_full_name`, `android_is_special_directory`, the JNI
    `NATIVE_NAME` entry points, the two file-scope vectors C guards with `__aarch64__`, and C
    7519's `#else` stub arm (`ANDROID_STUBIFY`).  The ledger's last range row names it.  */
+
+
+/* ============================================================================================
+   **Slice 2 (C 1038-1869).**  `android_run_debug_thread` (C 1041-1073) through
+   `android_init_emacs_pixmap` (C 1839-1868), in C's order.  The next live definition is
+   `android_init_graphics_point` (C 1870-1898).  `docs/ports/android.md` carries this slice's
+   C line-range rows, the readings and the deviations.  Everything below is inside C 61's
+   `#ifndef ANDROID_STUBIFY` real arm, so every item carries
+   `all (feature = "have_android", feature = "not_android_stubify")`; C's
+   `#ifdef THREADS_ENABLED` at C 1495-1499 carries `feature = "threads_enabled"` on its live arm
+   (C's `#ifdef` has no `#else` arm: the `#endif` closes it directly).
+   ============================================================================================ */
+
+/* -------------------------------------------------------------------------------------------
+   Slice 2's declaration segment (PORTING.md P-88 ①/③): the names this slice takes from
+   headers whose mirror is absent or does not carry them.  Each declaration keeps C's
+   prototype in a `/// C: …` line (P-55).
+   ------------------------------------------------------------------------------------------- */
+
+/* C 37's `<stdio.h>`.  `lib/include/stdio.rs` is the frozen target's *system* header mirror
+   (P-56) and carries neither entry this slice names; the gnulib *template* mirror
+   `lib/include/stdio.in.rs` does carry both (its 238 and 248), but no unit reaches it
+   (`rg -ln 'stdio.in.rs' femacs/src femacs/lib` is empty), so the unit declares them here
+   (the `sysdep.rs` in-unit shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `<stdio.h>`: `FILE *fdopen (int, const char *);`
+  pub fn fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
+  /// C: `<stdio.h>`: `ssize_t getline (char **, size_t *, FILE *);`
+  pub fn getline (lineptr: *mut *mut c_char, n: *mut size_t, stream: *mut FILE) -> ssize_t;
+}
+
+/* C 37's `<string.h>`: the mirror carries `strlen`/`strncmp`/`memset`/`stpcpy`/`strerror` but
+   no `strdup` declaration (`string.in.rs` 194-199 keeps only the dead `_strdup` redirect), so
+   the unit declares it (the `sysdep.rs` 727 / `lib-src/emacsclient.rs` 302 shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `<string.h>`: `char *strdup (const char *);`
+  pub fn strdup (s: *const c_char) -> *mut c_char;
+}
+
+/* C 37's chain `<stdlib.h>`: `lib/include/stdlib.rs` is the frozen target's system header
+   mirror and carries `malloc`/`realloc`/`calloc`/`free`/`strtod` but not `setenv`; the
+   `stdlib.in.rs` entry (its 248) is unreachable the same way, so the unit declares it (the
+   `sysdep.rs` 956 shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `<stdlib.h>`: `int setenv (const char *, const char *, int);`
+  pub fn setenv (name: *const c_char, value: *const c_char, replace: c_int) -> c_int;
+}
+
+/* C 29's `<libgen.h>` has no mirror anywhere in the tree (`ls femacs/lib/include | grep libgen`
+   is empty; the declaration is the build's system one), so `dirname` is declared here - this
+   unit is the first of the port to name it (the `sysdep.rs` `<pthread.h>` block shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: `<libgen.h>`: `char *dirname (char *);`
+  pub fn dirname (path: *mut c_char) -> *mut c_char;
+}
+
+/* C 51's `lisp.h` 4247 declares `hexbuf_digest` and the `lisp.rs` mirror does not carry it
+   (`emacs.rs` 192-193 declares the same prototype in its own unit), so this unit declares it
+   too (the `sysdep.rs` shape; P-88 ⑤'s "each consumer declares it" reading).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" {
+  /// C: lisp.h 4247: `extern void hexbuf_digest (char *, void const *, int);`
+  pub fn hexbuf_digest (buf: *mut c_char, data: *const c_void, size: c_int);
+}
+
+/* C's `<config.h>` values this slice names.  `config.rs` carries only the generated
+   configuration keys, so the two report strings and `DIRECTORY_SEP` live here (the
+   `dispnew.rs` 70/170 macro shape, the `fileio.rs` 309-312 constant shape).  C 1511-1513 puts
+   `PACKAGE_STRING`/`PACKAGE_BUGREPORT` between string literals, and `concat!` expands a
+   `macro_rules!` call, so those two are macros whose bodies are the frozen values
+   (`build/emacs-ref/src/config.h` 2205/2199); `DIRECTORY_SEP` is a constant because C 1117
+   needs it as a pattern.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! PACKAGE_STRING { () => { "GNU Emacs 32.0.50" }; }
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! PACKAGE_BUGREPORT { () => { "bug-gnu-emacs@gnu.org" }; }
+/* C 1116-1117's two `case` labels need patterns; `case '/'` cannot be written `b'/' as c_char`
+   (a Rust pattern holds no cast - the `data.rs` 2938 shape is a value site), so the character
+   is the constant `config.h` 120 defines for it.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const DIRECTORY_SEP: c_char = b'/' as c_char;
+
+/* C 344's `NATIVE_NAME` is an excluded macro (`docs/ports/excluded-macros.txt`: Rust cannot
+   paste identifiers) whose replacement is the definition site's
+   `#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_<name>")]`, and C 340-342's
+   `ANDROID_DELETE_LOCAL_REF` is excluded for the old "`JNINativeInterface` has no mirror"
+   reason that `include/jni.rs` has since answered, so the unit defines its expansion under C's
+   own name (the androidselect.rs 121-129 shape; P-86 ⑪).  `JNIEXPORT`/`JNICALL` (jni.h) have
+   no mirror and no Rust text: the `pub unsafe extern "C"` signature carries them.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+macro_rules! ANDROID_DELETE_LOCAL_REF {
+  ($r:expr) => { ((*(*android_java_env)).DeleteLocalRef.unwrap ()) (android_java_env, $r) };
+}
+
+/* C 1038-1040: the blank line, C 1039's form feed and the blank that follow `android_select`;
+   the previous slice's text ends there.  */
+
+/* C 1041: `static void *android_run_debug_thread (void *data)`.  C passes its address to
+   `pthread_create` (C 1535), so the item is an `unsafe extern "C" fn` (the
+   `android_run_select_thread` shape).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn android_run_debug_thread (data: *mut c_void) -> *mut c_void
+{
+  let mut file: *mut FILE;
+  let mut fd: c_int;
+  let mut line: *mut c_char;
+  let mut n: size_t;
+
+  /* C leaves these four uninitialised (PORTING.md 1.5).  */
+  file = std::ptr::null_mut ();
+  fd = 0;
+  line = std::ptr::null_mut ();
+  n = 0;
+
+  /* Set the name of this thread's LWP for debugging purposes.  */
+  android_set_task_name (c"`android_debug'".as_ptr ());
+
+  fd = data as intptr_t as c_int;
+  file = fdopen (fd, c"r".as_ptr ());
+
+  if file.is_null ()
+    { return std::ptr::null_mut (); }
+
+  line = std::ptr::null_mut ();
+
+  while true
+    {
+      if getline (&raw mut line, &raw mut n, file) < 0
+	{
+	  free (line as *mut c_void);
+	  break;
+	}
+
+      let __func__: *const c_char = c"android_run_debug_thread".as_ptr ();
+      __android_log_print (ANDROID_LOG_INFO, __func__, c"%s".as_ptr (), line);
+    }
+
+  fclose (file);
+  return std::ptr::null_mut ();
+}
+
+/* C 1074-1079: the blank line, C 1075's form feed, the blank, the two-line comment
+   `/* Intercept USER_FULL_NAME and return something that makes sense if pw->pw_gecos is
+   NULL.  */` and the blank after it.  */
+
+/* C 1081: `char *android_user_full_name (struct passwd *pw)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe fn android_user_full_name (pw: *mut passwd) -> *mut c_char
+{
+  /* C 1083's `#ifdef HAVE_STRUCT_PASSWD_PW_GECOS` is 1 in the frozen configuration
+     (`build/emacs-ref/src/config.h` 1510), so C 1084-1086's arm is the live one and C 1089's
+     `return "Android user";` (the `#else` arm) is dead on this target (the dired.rs
+     `dirent_type` shape, P-51).  */
+  if (*pw).pw_gecos.is_null ()
+    { return c"Android user".as_ptr () as *mut c_char; }
+
+  return (*pw).pw_gecos;
+}
+
+/* C 1092-1098: the blank line, C 1093's form feed, the blank, the three-line comment
+   `/* Return whether or not the specified file NAME designates a file in the directory DIR,
+   which should be an absolute file name.  NAME must be in canonical form.  */` and the blank
+   after it.  */
+
+/* C 1100: `bool android_is_special_directory (const char *name, const char *dir)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe fn android_is_special_directory (mut name: *const c_char, dir: *const c_char) -> bool
+{
+  let len: size_t;
+
+  /* Compare up to strlen (DIR) bytes of NAME with DIR.  */
+
+  len = strlen (dir);
+  if strncmp (name, dir, len) != 0
+    { return false; }
+
+  /* Now see if the character of NAME after len is either a directory
+     separator or a terminating NULL.  */
+
+  name = name.add (len);
+  /* C 1114-1119's `switch (*name)`: two labels and no `default`, so the `_` arm is C's
+     fall-through out of the switch (the android_write_event shape, PORTING.md 0.3).  */
+  match *name
+    {
+      0 => return true,			/* C 1116: `case '\0'`.  */
+      DIRECTORY_SEP => return true,	/* C 1117: `case '/'`.  */
+      _ => {}
+    }
+
+  /* The file name doesn't match.  */
+  return false;
+}
+
+/* C 1124-1360: C 1124's blank line, then `#if 0` (C 1125) … `#endif /* 0 */` (C 1360) around
+   two dead definitions - `android_url_encode` (C 1133-1225, a URL-encoder over a `restrict`
+   byte range whose multibyte-length and `STRING_CHAR` calls are themselves commented out at
+   C 1154 and C 1161) and `android_get_content_name` (C 1232-1358, the `/content' file name to
+   `content://' URI translator; its two `android_url_encode` calls are C 1316 and C 1340, and
+   nothing calls it - androidvfs.c 2957 has a different, static function of the same name).  C's own
+   `#if 0` is dead in every configuration and `tools/extract-abi.py`'s `dead_branch_map` reads
+   the literal `#if 0` as the reference's own dead region, so neither definition is in the
+   inventory and neither owns a `- missing …` line: the port records the region instead of
+   carrying it (the character.rs 91-97 / cm.rs 54-100 precedent).  */
+
+/* C 1361-1364: the blank line and the comment `/* Return the current user's ``home''
+   directory, which is actually the app data directory on Android.  */`.  */
+
+/* C 1365: `const char *android_get_home_directory (void)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(no_mangle)]
+pub unsafe fn android_get_home_directory () -> *const c_char
+{
+  return android_files_dir as *const c_char;
+}
+
+/* C 1370-1374: the blank line and the comment `/* Return the name of the file behind a file
+   descriptor FD by reading /proc/self/fd/.  Value is allocated memory holding the file name
+   upon success, and 0 upon failure.  */`.  */
+
+/* C 1375: `static char *android_proc_name (int fd)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_proc_name (fd: c_int) -> *mut c_char
+{
+  /* C 1378-1379: `char format[sizeof "/proc/self/fd/" + INT_STRLEN_BOUND (int)]`; the
+     literal's `sizeof` is 15 (`/proc/self/fd/` is 14 bytes plus the terminating NUL).  */
+  let mut format: [c_char; std::mem::size_of::<[c_char; 15]> () + INT_STRLEN_BOUND! (c_int)] =
+    [0; std::mem::size_of::<[c_char; 15]> () + INT_STRLEN_BOUND! (c_int)];
+  /* C 1380-1384: the function-local `static struct allocator allocator = { malloc, realloc,
+     free, NULL, }` - the type and the object share C's one name, and Rust's type and value
+     namespaces keep them apart here too.  */
+  static mut allocator: allocator = allocator
+    {
+      /* Fill the allocator with C library malloc functions.  xmalloc
+	 and so aren't thread safe.  */
+      allocate: Some (malloc),
+      reallocate: Some (realloc),
+      free: Some (free),
+      die: None,
+    };
+
+  sprintf (&raw mut format as *mut c_char, c"/proc/self/fd/%d".as_ptr (), fd);
+  return careadlinkat (AT_FDCWD, &raw const format as *const c_char, std::ptr::null_mut (), 0,
+		       &raw const allocator, Some (readlinkat));
+}
+
+/* C 1390-1403: the blank line and the thirteen-line comment `/* Try to guarantee the
+   existence of the `lib' directory within the parent directory of the application files
+   directory. … */`.  */
+
+/* C 1404: `static void android_create_lib_link (void)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_create_lib_link ()
+{
+  let mut filename: *mut c_char;
+  let mut lib_directory: [c_char; PATH_MAX as usize] = [0; PATH_MAX as usize];
+  let mut fd: c_int;
+
+  /* C leaves `filename` and `fd` uninitialised (PORTING.md 1.5).  */
+  filename = std::ptr::null_mut ();
+  fd = 0;
+
+  /* C 1407-1447's `goto success` / `goto failure` and the `success:`/`failure:` labels become
+     the two labelled blocks below (PORTING.md 2.2, the android_set_task_name shape): `goto
+     failure` is `break 'failure` (straight to C's `failure: return;`) and `goto success` is
+     `break 'success` (out of the inner block, to `close (fd)`); C's fall-through from
+     `close (fd)` to the `failure:` tail is the `return;` after the outer block.  */
+
+  'failure: {
+    /* Find the directory containing the files directory.  */
+    filename = dirname (android_files_dir);
+    if filename.is_null ()
+      { break 'failure; }
+
+    /* Now make `lib_directory' the name of the library directory
+       within.  */
+    snprintf (&raw mut lib_directory as *mut c_char, PATH_MAX as usize,
+	      c"%s/lib".as_ptr (), filename);
+
+    /* Try to open this directory.  */
+    fd = open (&raw const lib_directory as *const c_char, O_DIRECTORY);
+
+    'success: {
+      /* If the directory can be opened normally, close it and return
+	 now.  */
+      if fd >= 0
+	{ break 'success; }
+
+      /* Try to unlink the directory in case it's a dangling symbolic
+	 link.  */
+      unlink (&raw const lib_directory as *const c_char);
+
+      /* Otherwise, try to symlink lib_directory to the actual library
+	 directory.  */
+
+      if symlink (android_lib_dir, &raw const lib_directory as *const c_char) != 0
+	{
+	  /* Print a warning message if creating the link fails.  */
+	  let __func__: *const c_char = c"android_create_lib_link".as_ptr ();
+	  __android_log_print (ANDROID_LOG_WARN, __func__,
+			       c"Failed to create symbolic link from application library directory `%s' to its actual location at `%s'".as_ptr (),
+			       &raw const lib_directory as *const c_char, android_files_dir);
+	}
+    }
+
+    /* success: */
+    close (fd);
+  }
+
+  /* failure: */
+  return;
+}
+
+/* C 1448-1460: the blank line, C 1449's form feed, the blank, the comment `/* JNI functions
+   called by Java.  */`, the blank and C 1453-1459's `#ifdef __clang__` / `#pragma clang
+   diagnostic push/ignored` / `#else` / `#pragma GCC diagnostic …` / `#endif` pair.  A pragma
+   has no Rust counterpart and the port emits none either way: the two arms differ only in
+   which compiler's diagnostic is pushed, and the push has no counterpart (the process.rs 340 /
+   timefns.rs 79-81 precedent).  */
+
+/* C 1461-1462: `JNIEXPORT jstring JNICALL NATIVE_NAME (getFingerprint) (JNIEnv *env, jobject
+   object)`; the symbol is C's pasted `Java_org_gnu_emacs_EmacsNative_getFingerprint` (the
+   excluded macro's replacement, `docs/ports/excluded-macros.txt`).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_getFingerprint")]
+pub unsafe extern "C" fn getFingerprint (env: *mut JNIEnv, object: jobject) -> jstring
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();
+
+  /* C 1466's `char buffer[sizeof fingerprint * 2 + 1]`: `fingerprint` is `unsigned char[32]`
+     (lib/include/fingerprint.rs 26), so the array is 65 `char`s.  */
+  let mut buffer: [c_char; std::mem::size_of::<[c_uchar; 32]> () * 2 + 1] =
+    [0; std::mem::size_of::<[c_uchar; 32]> () * 2 + 1];
+
+  memset (&raw mut buffer as *mut c_void, 0, std::mem::size_of_val (&buffer));
+  hexbuf_digest (&raw mut buffer as *mut c_char, (&raw const fingerprint) as *const c_void,
+		 std::mem::size_of::<[c_uchar; 32]> () as c_int);
+
+  return ((*(*env)).NewStringUTF.unwrap ()) (env, &raw const buffer as *const c_char);
+}
+
+/* C 1474: the blank line between the two entry points.  */
+
+
+/* C 1475-1486: `JNIEXPORT void JNICALL NATIVE_NAME (setEmacsParams) (JNIEnv *env, jobject
+   object, jobject local_asset_manager, jobject files_dir, jobject libs_dir, jobject cache_dir,
+   jfloat pixel_density_x, jfloat pixel_density_y, jfloat scaled_density, jint ui_mode, jobject
+   class_path, jobject emacs_service_object, jint api_level)`; the symbol is C's pasted
+   `Java_org_gnu_emacs_EmacsNative_setEmacsParams`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_setEmacsParams")]
+pub unsafe extern "C" fn setEmacsParams (env: *mut JNIEnv, object: jobject,
+					 local_asset_manager: jobject,
+					 files_dir: jobject, libs_dir: jobject,
+					 cache_dir: jobject,
+					 pixel_density_x: jfloat,
+					 pixel_density_y: jfloat,
+					 scaled_density: jfloat,
+					 ui_mode: jint,
+					 class_path: jobject,
+					 emacs_service_object: jobject,
+					 api_level: jint)
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();
+
+  let mut pipefd: [c_int; 2] = [0, 0];
+  let mut thread: pthread_t;
+  let mut java_string: *const c_char;
+  let mut statb: stat;
+
+  /* C leaves `thread`, `java_string` and `statb` uninitialised (PORTING.md 1.5).  */
+  thread = 0;
+  java_string = std::ptr::null ();
+  statb = unsafe { std::mem::zeroed () };
+
+  /* C 1495-1499: `#ifdef THREADS_ENABLED` / save the Java VM / `#endif`.  C's `#ifdef` has no
+     `#else` arm - the `#endif` closes it directly - so there is no second arm to carry and the
+     arm below is the whole of it.  */
+  #[cfg (feature = "threads_enabled")]
+  {
+    /* Save the Java VM.  */
+    if ((*(*env)).GetJavaVM.unwrap ()) (env, &raw mut android_jvm) != 0
+      { emacs_abort (); }
+  }
+
+  /* Set the Android API level early, as it is used by
+     `android_vfs_init'.  */
+  android_api_level = api_level;
+
+  /* This function should only be called from the main thread.  */
+  /* C's three `jfloat` parameters are assigned to the file's `double` objects: the float to
+     double promotion is spelled out (Rust has no implicit conversion - PORTING.md 0.3).  */
+  android_pixel_density_x = pixel_density_x as f64;
+  android_pixel_density_y = pixel_density_y as f64;
+  android_scaled_pixel_density = scaled_density as f64;
+  android_ui_mode = ui_mode;
+
+  /* C 1511-1513's format is the adjacent-literal concatenation `"Initializing " PACKAGE_STRING
+     "...\nPlease report bugs to " PACKAGE_BUGREPORT ".  Thanks.\n"`, which the preprocessor
+     joins into one literal; `concat!` expands a `macro_rules!` call, so the port keeps C's two
+     `<config.h>` object macros as macros above and its pieces verbatim (the dispnew.rs 70/170
+     shape).  */
+  let __func__: *const c_char = c"setEmacsParams".as_ptr ();
+  __android_log_print (ANDROID_LOG_INFO, __func__,
+		       concat! ("Initializing ", PACKAGE_STRING! (),
+				"...\nPlease report bugs to ", PACKAGE_BUGREPORT! (),
+				".  Thanks.\n").as_ptr () as *const c_char);
+
+  if ! emacs_service_object.is_null ()
+    {
+      /* Create a pipe and duplicate it to stdout and stderr.  Next,
+	 make a thread that prints stderr to the system log.
+
+         Notice that this function is called in one of two ways.  The
+         first is when Emacs is being started as a GUI application by
+         the system, and the second is when Emacs is being started by
+         libandroid-emacs.so as an ordinary noninteractive Emacs.
+
+         In the second case, stderr is usually connected to a PTY, so
+         this is unnecessary.  */
+
+      if pipe2 (pipefd.as_mut_ptr (), O_CLOEXEC) < 0
+	{ emacs_abort (); }
+
+      if dup2 (pipefd[1], 2) < 0
+	{ emacs_abort (); }
+      close (pipefd[1]);
+
+      if pthread_create (&raw mut thread, std::ptr::null (), Some (android_run_debug_thread),
+			 pipefd[0] as intptr_t as *mut c_void) != 0
+	{ emacs_abort (); }
+    }
+
+  /* Now set the path to the site load directory.  */
+
+  java_string = ((*(*env)).GetStringUTFChars.unwrap ()) (env, files_dir as jstring,
+							 std::ptr::null_mut ());
+
+  if java_string.is_null ()
+    { emacs_abort (); }
+
+  android_files_dir = strdup (java_string);
+
+  if android_files_dir.is_null ()
+    { emacs_abort (); }
+
+  ((*(*env)).ReleaseStringUTFChars.unwrap ()) (env, files_dir as jstring, java_string);
+
+  java_string = ((*(*env)).GetStringUTFChars.unwrap ()) (env, libs_dir as jstring,
+							 std::ptr::null_mut ());
+
+  if java_string.is_null ()
+    { emacs_abort (); }
+
+  android_lib_dir = strdup (java_string);
+
+  /* C 1564 tests `android_files_dir`, not the object it has just set - and C 1578 does the same
+     after setting `android_cache_dir`.  The port keeps C's text (PORTING.md 0.3); the
+     `## Deviations` section of the ledger records it as a defect carried over from the
+     reference, not introduced here.  */
+  if android_files_dir.is_null ()
+    { emacs_abort (); }
+
+  ((*(*env)).ReleaseStringUTFChars.unwrap ()) (env, libs_dir as jstring, java_string);
+
+  java_string = ((*(*env)).GetStringUTFChars.unwrap ()) (env, cache_dir as jstring,
+							 std::ptr::null_mut ());
+
+  if java_string.is_null ()
+    { emacs_abort (); }
+
+  android_cache_dir = strdup (java_string);
+
+  if android_files_dir.is_null ()
+    { emacs_abort (); }
+
+  ((*(*env)).ReleaseStringUTFChars.unwrap ()) (env, cache_dir as jstring, java_string);
+
+  if ! class_path.is_null ()
+    {
+      java_string = ((*(*env)).GetStringUTFChars.unwrap ()) (env, class_path as jstring,
+							     std::ptr::null_mut ());
+
+      if java_string.is_null ()
+	{ emacs_abort (); }
+
+      android_class_path = strdup (java_string);
+
+      if android_class_path.is_null ()
+	{ emacs_abort (); }
+
+      ((*(*env)).ReleaseStringUTFChars.unwrap ()) (env, class_path as jstring, java_string);
+    }
+
+  /* Derive the installation date from the modification time of the
+     file constitituing the class path.  */
+
+  emacs_installation_time = invalid_timespec ();
+
+  if ! class_path.is_null ()
+    {
+      if stat (android_class_path, &raw mut statb) == 0
+	{ emacs_installation_time = get_stat_mtime (&raw mut statb); }
+    }
+
+  /* Calculate the site-lisp path.  */
+
+  android_site_load_path = malloc ((PATH_MAX + 1) as usize) as *mut c_char;
+
+  if android_site_load_path.is_null ()
+    { emacs_abort (); }
+
+  android_game_path = malloc ((PATH_MAX + 1) as usize) as *mut c_char;
+
+  if android_game_path.is_null ()
+    { emacs_abort (); }
+
+  snprintf (android_site_load_path, PATH_MAX as usize, c"%s/site-lisp".as_ptr (),
+	    android_files_dir);
+  snprintf (android_game_path, PATH_MAX as usize, c"%s/scores".as_ptr (), android_files_dir);
+
+  __android_log_print (ANDROID_LOG_INFO, __func__,
+		       concat! ("Site-lisp directory: %s\n",
+				"Files directory: %s\n",
+				"Native code directory: %s\n",
+				"Game score path: %s\n",
+				"Class path: %s\n").as_ptr () as *const c_char,
+		       android_site_load_path,
+		       android_files_dir,
+		       android_lib_dir, android_game_path,
+		       (if ! android_class_path.is_null ()
+			{ android_class_path }
+			else
+			{ c"None".as_ptr () as *mut c_char }));
+
+  if ! android_class_path.is_null ()
+    /* Set EMACS_CLASS_PATH to the class path where
+       EmacsNoninteractive can be found.  */
+    { setenv (c"EMACS_CLASS_PATH".as_ptr (), android_class_path, 1); }
+
+  /* If the system is Android 5.0 or later, set LANG to en_US.utf8,
+     which is understood by the C library.  In other instances set it
+     to C, a meaningless value, for good measure.  */
+
+  if ! emacs_service_object.is_null ()
+    {
+      if api_level >= 21
+	{ setenv (c"LANG".as_ptr (), c"en_US.utf8".as_ptr (), 1); }
+      else
+	{ setenv (c"LANG".as_ptr (), c"C".as_ptr (), 1); }
+    }
+
+  /* Make a reference to the Emacs service.  */
+
+  if ! emacs_service_object.is_null ()
+    {
+      emacs_service = ((*(*env)).NewGlobalRef.unwrap ()) (env, emacs_service_object);
+
+      if emacs_service.is_null ()
+	{ emacs_abort (); }
+
+      /* If the service is set this Emacs is being initialized as part
+	 of the Emacs application itself.
+
+         Try to create a symlink from where scripts expect Emacs to
+         place its library files to the directory that actually holds
+         them; earlier versions of Android used to do this
+         automatically, but that feature has been removed.  */
+
+      android_create_lib_link ();
+    }
+
+  /* Set up events.  */
+  android_init_events ();
+
+  /* Set up the Android virtual filesystem layer.  */
+  android_vfs_init (env, local_asset_manager);
+
+  /* OK, setup is now complete.  The caller may call initEmacs
+     now.  */
+}
+
+/* C 1688-1689: `JNIEXPORT jobject JNICALL NATIVE_NAME (getProcName) (JNIEnv *env, jobject
+   object, jint fd)`; the symbol is C's pasted `Java_org_gnu_emacs_EmacsNative_getProcName`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[unsafe(export_name = "Java_org_gnu_emacs_EmacsNative_getProcName")]
+pub unsafe extern "C" fn getProcName (env: *mut JNIEnv, object: jobject, fd: jint) -> jobject
+{
+  JNI_STACK_ALIGNMENT_PROLOGUE! ();
+
+  let mut buffer: *mut c_char;
+  let mut length: size_t;
+  let mut array: jbyteArray;
+
+  /* C leaves all three uninitialised (PORTING.md 1.5).  */
+  buffer = std::ptr::null_mut ();
+  length = 0;
+  array = std::ptr::null_mut ();
+
+  /* C 1706's `goto finish` and C 1711's `finish:` label become the labelled block below
+     (PORTING.md 2.2, the android_set_task_name shape); C's `finish:` tail is the one copy
+     after it.  */
+  'finish: {
+    buffer = android_proc_name (fd);
+    if buffer.is_null ()
+      { return std::ptr::null_mut (); }
+
+    /* Return a byte array, as Java strings cannot always encode file
+       names.  */
+    length = strlen (buffer);
+    array = ((*(*env)).NewByteArray.unwrap ()) (env, length as jsize);
+    if array.is_null ()
+      { break 'finish; }
+
+    ((*(*env)).SetByteArrayRegion.unwrap ()) (env, array, 0, length as jsize,
+					      buffer as *const jbyte);
+  }
+
+  /* finish: */
+  free (buffer as *mut c_void);
+  return array;
+}
+
+/* C 1715-1717: the blank line and the comment `/* Initialize service_class, aborting if
+   something goes wrong.  */`.  */
+
+/* C 1718: `static void android_init_emacs_service (void)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_emacs_service ()
+{
+  let mut old: jclass;
+
+  /* C leaves `old` uninitialised (PORTING.md 1.5).  */
+  old = std::ptr::null_mut ();
+
+  service_class.class
+    = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
+						    c"org/gnu/emacs/EmacsService".as_ptr ());
+  eassert! (! service_class.class.is_null ());
+
+  old = service_class.class;
+  service_class.class
+    = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env, old as jobject);
+  ANDROID_DELETE_LOCAL_REF! (old);
+
+  if service_class.class.is_null ()
+    { emacs_abort (); }
+
+  /* C 1737-1742's `#define FIND_METHOD …` and C 1836's `#undef`; Rust's `macro_rules!` scope
+     ends with the block, so the `#undef` has no counterpart (the androidmenu.rs 176-187
+     shape).  The macro's parameter names are C's, so the body's tokens survive.  */
+  macro_rules! FIND_METHOD {
+    ($c_name:ident, $name:expr, $signature:expr) => {
+      service_class.$c_name
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env,
+							  service_class.class,
+							  $name, $signature);
+      eassert! (! service_class.$c_name.is_null ());
+    };
+  }
+
+  FIND_METHOD! (fill_rectangle, c"fillRectangle".as_ptr (),
+                c"(Lorg/gnu/emacs/EmacsDrawable;Lorg/gnu/emacs/EmacsGC;IIII)V".as_ptr ());
+  FIND_METHOD! (fill_polygon, c"fillPolygon".as_ptr (),
+                c"(Lorg/gnu/emacs/EmacsDrawable;Lorg/gnu/emacs/EmacsGC;[Landroid/graphics/Point;)V".as_ptr ());
+  FIND_METHOD! (draw_rectangle, c"drawRectangle".as_ptr (),
+                c"(Lorg/gnu/emacs/EmacsDrawable;Lorg/gnu/emacs/EmacsGC;IIII)V".as_ptr ());
+  FIND_METHOD! (draw_line, c"drawLine".as_ptr (),
+                c"(Lorg/gnu/emacs/EmacsDrawable;Lorg/gnu/emacs/EmacsGC;IIII)V".as_ptr ());
+  FIND_METHOD! (draw_point, c"drawPoint".as_ptr (),
+                c"(Lorg/gnu/emacs/EmacsDrawable;Lorg/gnu/emacs/EmacsGC;II)V".as_ptr ());
+  FIND_METHOD! (ring_bell, c"ringBell".as_ptr (), c"(I)V".as_ptr ());
+  FIND_METHOD! (query_tree, c"queryTree".as_ptr (), c"(Lorg/gnu/emacs/EmacsWindow;)[J".as_ptr ());
+  FIND_METHOD! (get_screen_width, c"getScreenWidth".as_ptr (), c"(Z)I".as_ptr ());
+  FIND_METHOD! (get_screen_height, c"getScreenHeight".as_ptr (), c"(Z)I".as_ptr ());
+  FIND_METHOD! (detect_mouse, c"detectMouse".as_ptr (), c"()Z".as_ptr ());
+  FIND_METHOD! (detect_keyboard, c"detectKeyboard".as_ptr (), c"()Z".as_ptr ());
+  FIND_METHOD! (name_keysym, c"nameKeysym".as_ptr (), c"(I)Ljava/lang/String;".as_ptr ());
+  FIND_METHOD! (browse_url, c"browseUrl".as_ptr (),
+                c"(Ljava/lang/String;Z)Ljava/lang/String;".as_ptr ());
+  FIND_METHOD! (restart_emacs, c"restartEmacs".as_ptr (), c"()V".as_ptr ());
+  FIND_METHOD! (update_ic, c"updateIC".as_ptr (), c"(Lorg/gnu/emacs/EmacsWindow;IIII)V".as_ptr ());
+  FIND_METHOD! (reset_ic, c"resetIC".as_ptr (), c"(Lorg/gnu/emacs/EmacsWindow;I)V".as_ptr ());
+  FIND_METHOD! (open_content_uri, c"openContentUri".as_ptr (),
+                c"(Ljava/lang/String;ZZZ)I".as_ptr ());
+  FIND_METHOD! (check_content_uri, c"checkContentUri".as_ptr (),
+                c"(Ljava/lang/String;ZZ)Z".as_ptr ());
+  FIND_METHOD! (query_battery, c"queryBattery".as_ptr (), c"()[J".as_ptr ());
+  FIND_METHOD! (update_extracted_text, c"updateExtractedText".as_ptr (),
+                c"(Lorg/gnu/emacs/EmacsWindow;Landroid/view/inputmethod/ExtractedText;I)V".as_ptr ());
+  FIND_METHOD! (update_cursor_anchor_info, c"updateCursorAnchorInfo".as_ptr (),
+                c"(Lorg/gnu/emacs/EmacsWindow;FFFF)V".as_ptr ());
+  FIND_METHOD! (get_document_authorities, c"getDocumentAuthorities".as_ptr (),
+                c"()[Ljava/lang/String;".as_ptr ());
+  FIND_METHOD! (request_directory_access, c"requestDirectoryAccess".as_ptr (), c"()I".as_ptr ());
+  FIND_METHOD! (get_document_trees, c"getDocumentTrees".as_ptr (),
+                c"(Ljava/lang/String;)[Ljava/lang/String;".as_ptr ());
+  FIND_METHOD! (document_id_from_name, c"documentIdFromName".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;[Ljava/lang/String;)I".as_ptr ());
+  FIND_METHOD! (get_tree_uri, c"getTreeUri".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;".as_ptr ());
+  FIND_METHOD! (stat_document, c"statDocument".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;Z)[J".as_ptr ());
+  FIND_METHOD! (access_document, c"accessDocument".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;Z)I".as_ptr ());
+  FIND_METHOD! (open_document_directory, c"openDocumentDirectory".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;".as_ptr ());
+  FIND_METHOD! (read_directory_entry, c"readDirectoryEntry".as_ptr (),
+                c"(Landroid/database/Cursor;)Lorg/gnu/emacs/EmacsDirectoryEntry;".as_ptr ());
+  FIND_METHOD! (open_document, c"openDocument".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;ZZZ)Landroid/os/ParcelFileDescriptor;".as_ptr ());
+  FIND_METHOD! (create_document, c"createDocument".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;".as_ptr ());
+  FIND_METHOD! (create_directory, c"createDirectory".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;".as_ptr ());
+  FIND_METHOD! (delete_document, c"deleteDocument".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I".as_ptr ());
+  FIND_METHOD! (rename_document, c"renameDocument".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)I".as_ptr ());
+  FIND_METHOD! (move_document, c"moveDocument".as_ptr (),
+                c"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;".as_ptr ());
+  FIND_METHOD! (valid_authority, c"validAuthority".as_ptr (), c"(Ljava/lang/String;)Z".as_ptr ());
+  FIND_METHOD! (external_storage_available, c"externalStorageAvailable".as_ptr (),
+                c"()Z".as_ptr ());
+  FIND_METHOD! (request_storage_access, c"requestStorageAccess".as_ptr (), c"()V".as_ptr ());
+  FIND_METHOD! (cancel_notification, c"cancelNotification".as_ptr (),
+                c"(Ljava/lang/String;)V".as_ptr ());
+  FIND_METHOD! (relinquish_uri_rights, c"relinquishUriRights".as_ptr (),
+                c"(Ljava/lang/String;)V".as_ptr ());
+}
+
+/* C 1839: `static void android_init_emacs_pixmap (void)`.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn android_init_emacs_pixmap ()
+{
+  let mut old: jclass;
+
+  /* C leaves `old` uninitialised (PORTING.md 1.5).  */
+  old = std::ptr::null_mut ();
+
+  pixmap_class.class
+    = ((*(*android_java_env)).FindClass.unwrap ()) (android_java_env,
+						    c"org/gnu/emacs/EmacsPixmap".as_ptr ());
+  eassert! (! pixmap_class.class.is_null ());
+
+  old = pixmap_class.class;
+  pixmap_class.class
+    = ((*(*android_java_env)).NewGlobalRef.unwrap ()) (android_java_env, old as jobject);
+  ANDROID_DELETE_LOCAL_REF! (old);
+
+  if pixmap_class.class.is_null ()
+    { emacs_abort (); }
+
+  /* C 1858-1863's `#define FIND_METHOD …` and C 1867's `#undef`.  */
+  macro_rules! FIND_METHOD {
+    ($c_name:ident, $name:expr, $signature:expr) => {
+      pixmap_class.$c_name
+	= ((*(*android_java_env)).GetMethodID.unwrap ()) (android_java_env,
+							  pixmap_class.class,
+							  $name, $signature);
+      eassert! (! pixmap_class.$c_name.is_null ());
+    };
+  }
+
+  FIND_METHOD! (constructor_mutable, c"<init>".as_ptr (), c"(III)V".as_ptr ());
+}
+
+/* **Slice boundary.**  C 1869-1870 are the blank lines that separate this slice from the next
+   live definition, `android_init_graphics_point` (C 1871-1898).  Everything from C 1870 to
+   C 7594 is the remainder: the seven other `android_init_*` class tables, `NATIVE_NAME
+   (initEmacs)` and the rest of the JNI entry points, the two `__aarch64__` NEON regions
+   (C 4064-4431) and C 7519's `#else` stub arm (`ANDROID_STUBIFY`).  The ledger's last range
+   row names it.  */
