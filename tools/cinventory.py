@@ -1303,10 +1303,20 @@ def function_spans(text: str) -> list[dict]:
             if re.match(r"^(?:__)?(?:attribute|_GL_ATTRIBUTE)|^ATTRIBUTE_", cand):
                 p -= 1
                 continue
+            # A complete statement is not a specifier: C's declaration-specifier sequence never
+            # contains `;`, and neither `{` nor `}` can appear in one.  The window used to
+            # append such a line and only *then* stop, so everything on it entered `spec`.
+            # src/msdos.c 3909 is `static char dir_pathname[MAXPATHLEN];` directly above C
+            # 3910-3911's `DIR *` / `sys_opendir (…)` - an exported definition - and the
+            # variable's `static` was read as the function's, which made the checker call the
+            # port's `#[unsafe(no_mangle)]` an invented symbol (status 3.478).  Stop before
+            # the line, and do not take `prev` (the return type) from it either.
+            if ";" in cand or "{" in cand or "}" in cand:
+                break
             if not prev:
                 prev = cand
             spec_lines.append(cand)
-            if "(" in cand or ")" in cand or ";" in cand or "{" in cand or "," in cand:
+            if "(" in cand or ")" in cand or "," in cand:
                 break
             p -= 1
         spec = " ".join(spec_lines)
@@ -1948,6 +1958,21 @@ def selftest() -> int:
          "static NSString\n*ns_declared_only (Lisp_Object lang);\n"
          "static void\nplain (void)\n{\n}\n",
          ["ns_lang_to_script", "plain"]),
+        # The specifier window walks *backwards* from the declarator, and it used to take a
+        # complete statement's tokens with it: `static char dir_pathname[MAXPATHLEN];`
+        # (src/msdos.c 3909) sits directly above C 3910-3911's exported `sys_opendir`, and the
+        # variable's `static` made the checker call the port's `#[unsafe(no_mangle)]` invented
+        # (status 3.478).  The second and third cases are the shapes the window exists for.
+        ("functions static: a statement above the declarator does not leak",
+         "static char dir_pathname[MAXPATHLEN];\nDIR *\nsys_opendir (const char *dirname)\n"
+         "{\n  return 0;\n}\n",
+         [("sys_opendir", False)]),
+        ("functions static: a guarded specifier two lines up still counts",
+         "static\n#endif\nint\nrenameat_noreplace (int srcfd)\n{\n  return 0;\n}\n",
+         [("renameat_noreplace", True)]),
+        ("functions static: the specifier on the declarator's own line counts",
+         "static void\nplain (void)\n{\n}\n",
+         [("plain", True)]),
         ("a typedef'd aggregate records its alias, a member does not",
          "typedef struct node_st\n{\n  int a;\n} node;\n"
          "struct Z\n{\n  struct\n  {\n    int b;\n  } spec;\n};\n",
@@ -1955,7 +1980,9 @@ def selftest() -> int:
     ]
     bad = 0
     for name, src, want in cases:
-        if name.startswith("functions:"):
+        if name.startswith("functions static:"):
+            got = [(f["name"], bool(f["static"])) for f in functions(src)]
+        elif name.startswith("functions:"):
             got = [f["name"] for f in functions(src)]
         elif name.startswith("typedef'd"):
             got = [f"{f['container']}.{f['name']}" for f in struct_fields(src)]
