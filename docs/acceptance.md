@@ -242,7 +242,7 @@ directory**, so it must be run with that directory as the working directory), `C
 (`-l emacs-lisp/loaddefs-gen.elc -f loaddefs-generate--emacs-batch <subdirs>`), and the rest in
 compile passes that repeat until they stop making progress.
 
-## 完成定义第 5 条（`lisp/`/`test/` 逐字节一致）：判据与实测（2026-10-05）
+## 完成定义第 5 条（`lisp/`/`test/` 逐字节一致）：判据与实测（2026-10-05，第十一半后复读 10-06）
 
 `docs/port-plan.md` §8 第 5 条要的是"与参照逐字节一致（`diff -r` 无差异）"。**本轮把它量了一遍，
 并把"字面 `diff -r` 与真正的判据差在哪里"钉住**——因为参照检出**在本地被构建过**（冻结基线就是
@@ -257,7 +257,7 @@ compile passes that repeat until they stop making progress.
 | `doc` | 4 条 | `doc/emacs/emacsver.texi`、`doc/man/emacs.1` 等 | `.gitignore:314`/`:315` |
 | `admin` | 4 条 | `*.stamp`、`admin/unidata/*.elc` | `.gitignore:171` `*.stamp`、`:180` `*.elc` |
 | `test` | **无差异** | — | — |
-| `leim` | **无差异** | — | — |
+| `leim` | 3 条 "Files … differ"（第十一半的 3 处声明行，见下） | — | — |
 
 **被参照自己的 `.gitignore` 忽略的文件不是参照内容**（`git -C emacs check-ignore -v` 逐条给出上面的规则行），
 所以第 5 条的判据是**已跟踪内容**，而且它已经是绿的：
@@ -267,16 +267,27 @@ $ for t in lisp test etc doc leim admin; do echo "$t $(git -C emacs ls-files $t 
 lisp 1627/1627   test 1555/1555   etc 886/886   doc 255/255   leim 28/28   admin 253/253
 
 $ python3 tools/check-verbatim.py
-OK      lisp: 1627 files, byte-identical, 24 sanctioned line(s)
-OK      leim: 28 files, byte-identical
-OK      admin: 253 files, byte-identical
-6 trees, 4604 files, 24 sanctioned line(s), 0 failures
+OK      lisp: 1627 files, byte-identical, 1610 sanctioned line(s)
+OK      test: 1555 files, byte-identical
+OK      etc: 886 files, byte-identical, 102 sanctioned line(s)
+OK      doc: 255 files, byte-identical, 18 sanctioned line(s)
+OK      leim: 28 files, byte-identical, 3 sanctioned line(s)
+OK      admin: 253 files, byte-identical, 63 sanctioned line(s)
+6 trees, 4604 files, 1796 sanctioned line(s), 0 failures
 ```
 
 即：六棵树的**已跟踪文件数逐个相等**，`check-verbatim`（按树、逐文件比对）读 **0 failures**。
-**24 行例外**：`lisp/` 里被程序**打印出来**（或以帧/splash 自称、或写进它生成的文件）的产品名字符串按
-`docs/baseline/verbatim-substitutions.tsv` 写本仓库自己的名字——PORTING.md 0.1-19 的第十半（status 3.619）。
+**1,796 行例外**（`docs/baseline/verbatim-substitutions.tsv` 逐行登记，每行一条理由）：其中 24 行是
+`lisp/` 里被程序**打印出来**（或以帧/splash 自称、或写进它生成的文件）的产品名字符串（PORTING.md 0.1-19 的
+第十半，status 3.619）；另外 1,772 行是照抄树里**文件自称属于参照产品**的那句话
+（`This file is part of GNU Emacs.` -> `This file is part of femacs.`，只换产品名那一个 token）、
+含三个**生成器**（它们把这句话写进生成的文件）与八个**缓冲区名**站点（`lisp/startup.el`、
+`doc/emacs/entering.texi`）——第十一半（status 3.632，2026-10-06）。**两处按判据不动**：`test/`
+（goal 文本禁止改测试文件；它的 647 个文件仍逐字节相同）与 `ChangeLog*`（把这句话当历史引用）；
+版权行与许可正文三句同样不动（第十半 ⑥⑶ 的理由不变）。
 除此之外仍是逐字节相同：一行要不同就必须在表里有行，有行就必被读。
+第十一半之后 `diff -r` 还会在 `lisp`/`etc`/`doc`/`admin` 上打印一批 `Files … differ`，就是这 1,796 行；
+`test` 仍是**无差异**。
 **注意**：`emacs/` 是**外部只读检出，不在本仓库的索引里**（`git ls-files emacs/lisp` = 0），
 所以这条判据只能在有该检出的机器上跑（`docs/port-plan.md` §10 已记 CI 的这一限制）。
 

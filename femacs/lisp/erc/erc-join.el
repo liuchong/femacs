@@ -7,7 +7,7 @@
 ;; Keywords: comm, irc
 ;; URL: https://www.emacswiki.org/emacs/ErcAutoJoin
 
-;; This file is part of GNU Emacs.
+;; This file is part of femacs.
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

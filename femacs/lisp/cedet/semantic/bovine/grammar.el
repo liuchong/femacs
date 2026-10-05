@@ -6,7 +6,7 @@
 ;; Created: 26 Aug 2002
 ;; Keywords: syntax
 
-;; This file is part of GNU Emacs.
+;; This file is part of femacs.
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -490,7 +490,7 @@ Menu items are appended to the common grammar menu.")
 	(re-search-forward "^;;; Code:\n")
 	(delete-region copyright-end (match-end 0))
 	(goto-char copyright-end)
-	(insert ";; This file is part of GNU Emacs.
+	(insert ";; This file is part of femacs.
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

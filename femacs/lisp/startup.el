@@ -7,7 +7,7 @@
 ;; Keywords: internal
 ;; Package: emacs
 
-;; This file is part of GNU Emacs.
+;; This file is part of femacs.
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -2235,7 +2235,7 @@ a face or button specification."
 		  (customize-set-variable 'inhibit-startup-screen t)
 		  (customize-mark-to-save 'inhibit-startup-screen)
 		  (custom-save-all))
-		(quit-windows-on "*GNU Emacs*" t)))
+		(quit-windows-on "*femacs*" t)))
      "  ")
     (when (or user-init-file custom-file)
       (let ((checked (create-image "checked.xpm"
@@ -2270,7 +2270,7 @@ a face or button specification."
   "Display fancy startup screen.
 If CONCISE is non-nil, display a concise version of the
 splash screen in another window."
-  (let ((splash-buffer (get-buffer-create "*GNU Emacs*")))
+  (let ((splash-buffer (get-buffer-create "*femacs*")))
     (with-current-buffer splash-buffer
       (let ((inhibit-read-only t))
 	(erase-buffer)
@@ -2313,7 +2313,7 @@ splash screen in another window."
   (let ((frame (fancy-splash-frame)))
     (save-selected-window
       (select-frame frame)
-      (switch-to-buffer "*About GNU Emacs*")
+      (switch-to-buffer "*About femacs*")
       (setq buffer-undo-list t)
       (let ((inhibit-read-only t))
 	(erase-buffer)
@@ -2375,7 +2375,7 @@ If optional argument STARTUP is non-nil, display the startup screen
 after Emacs starts.  If STARTUP is nil, display the About screen.
 If CONCISE is non-nil, display a concise version of the
 splash screen in another window."
-  (let ((splash-buffer (get-buffer-create "*About GNU Emacs*")))
+  (let ((splash-buffer (get-buffer-create "*About femacs*")))
     (with-current-buffer splash-buffer
       (setq buffer-read-only nil)
       (erase-buffer)
@@ -2434,7 +2434,7 @@ splash screen in another window."
       (setq buffer-read-only t)
       (if (and view-read-only (not view-mode))
 	  (view-mode-enter nil 'kill-buffer))
-      (if startup (rename-buffer "*GNU Emacs*" t))
+      (if startup (rename-buffer "*femacs*" t))
       (goto-char (point-min)))
     (if concise
 	(display-buffer splash-buffer)
@@ -2712,13 +2712,13 @@ A fancy display is used on graphic displays, normal otherwise.
 If CONCISE is non-nil, display a concise version of the startup
 screen."
   ;; Prevent recursive calls from server-process-filter.
-  (if (not (get-buffer "*GNU Emacs*"))
+  (if (not (get-buffer "*femacs*"))
       (if (use-fancy-splash-screens-p)
       	  (fancy-startup-screen concise)
       	(normal-splash-screen t concise))))
 
 (defun display-about-screen ()
-  "Display the *About GNU Emacs* buffer.
+  "Display the *About femacs* buffer.
 A fancy display is used on graphic displays, normal otherwise."
   (interactive)
   (if (use-fancy-splash-screens-p)

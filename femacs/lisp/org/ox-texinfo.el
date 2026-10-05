@@ -5,7 +5,7 @@
 ;; Maintainer: Rudolf Adamkovič <rudolf@adamkovic.org>
 ;; Keywords: outlines, hypermedia, calendar, text
 
-;; This file is part of GNU Emacs.
+;; This file is part of femacs.
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

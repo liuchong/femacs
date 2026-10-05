@@ -7,7 +7,7 @@
 ;; URL: https://github.com/waymondo/use-package-ensure-system-package
 ;; Package-Requires: ((use-package "2.1") (system-packages "1.0.4"))
 
-;; This file is part of GNU Emacs.
+;; This file is part of femacs.
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

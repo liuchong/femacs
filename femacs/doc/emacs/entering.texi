@@ -26,7 +26,7 @@ MS-Windows, see @ref{Windows Startup}.)
 
 @cindex startup screen
   When Emacs starts up, the initial frame displays a special buffer
-named @samp{*GNU Emacs*}.  This @dfn{startup screen} contains
+named @samp{*femacs*}.  This @dfn{startup screen} contains
 information about Emacs and @dfn{links} to common tasks that are
 useful for beginning users.  For instance, activating the @samp{Emacs
 Tutorial} link opens the Emacs tutorial; this does the same thing as

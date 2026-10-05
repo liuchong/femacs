@@ -5,7 +5,7 @@
 ;; Author: Rahguzar <rahguzar@zohomail.eu>
 ;; Keywords: convenience, multilingual, input method, Urdu, Balochi, Pashto, Sindhi, Hindko, Brahui
 ;;
-;; This file is part of GNU Emacs.
+;; This file is part of femacs.
 
 ;; GNU Emacs is free software: you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by

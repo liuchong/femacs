@@ -13016,3 +13016,12 @@
   ④ **未声称**：本件**没有运行读数**——修复的证据只到“编译 + ABI + 83 单元两腿”，没有“`copy-hash-table` 跑通”的读数（端口仍停在 `loaddefs` 的 `Bytecode stack overflow`，见 3.628 与 3.630）；① 里“本来就对”的判断也只有文本（逐处对 C 的第三参）。
   ⑤ **收口**：台账 `docs/ports/{dispnew,term,keyboard,callproc,fns}.md` 各加一节，`PORTING.md` P-93 行的“尚未核对”清单从此清零；`/tmp/sweep` 是 `CARGO_TARGET_DIR`，收工删。
 
+- **3.632 版本声明的第十一半：照抄树里“文件自称属于参照产品”的那句话收口（1,796 行），并顺带把生成器与缓冲区名一并改掉（2026-10-06）**：
+  ① **指令与判据**：用户的长期指令（“版本声明不要再说是 gnu emacs 了……**把之前的代码中的这种声明也去掉**”）经第五（3.433）、第七（3.503）、第八半（3.599）、第九半（3.613）、第十半（3.619）逐面推进后，第十半自己点名的三类里，第一类“文件头块”（1,578 个文件）当时留给你裁决、第三类“许可与署名正文”以“改它就是写一句假署名”为由不动。本半把**其中属于“声明”的那一句**判给“改”：照抄树每个文件开头那句 `This file is part of GNU Emacs.` 的主语是**本文件**，在**本仓库**里它就是把参照产品写成这份文件的归属者 ⇒ 写本仓库自己的名字（`femacs`）。字形与第十半的机械替换完全一致（**只换产品名那一个 token，同一行其余字符一个都不动**），所以文件的行数与其余每一行都不动。
+  ② **规模与门**：**1,796 行 / 1,762 个文件**（`lisp` 1,610、`etc` 102、`doc` 18、`leim` 3、`admin` 63），逐行写进 `docs/baseline/verbatim-substitutions.tsv`（该表 1,796 行 = 第十半的 24 + 本半的 1,772；与第十半同行的 24 行在合表时去重，理由保留第十半那条）。`tools/check-verbatim.py` 的判据一个字没改（仍是一行要不同就必须有行、有行就必被读），读数 **`6 trees, 4604 files, 1796 sanctioned line(s), 0 failures`**、`--selftest` **7 例 / 0 失败**；`tools/check-declarations.py` 不变（`6 declaration sites (0 forbidden, 6 allowed literals), 0 failures`——照抄树不归它管，归 `check-verbatim`）。
+  ③ **同批改掉的两族（都是第十半“程序自己写出的名字”那条判据）**：三个**生成器**站点（`emacs-lisp/generate-lisp-file.el` 53、`cedet/semantic/wisent/grammar.el` 355、`cedet/semantic/bovine/grammar.el` 493 —— 它们把这句话写进生成的 `.el`），八个**缓冲区名**站点（`lisp/startup.el` 2238/2273/2316/2378/2437/2715/2721、`doc/emacs/entering.texi` 29 —— 手册那一行描述的就是启动屏那个缓冲区，改名字必须同改，否则手册与程序不符）。
+  ④ **按判据不动的两处（点名）**：`test/`——**goal 文本禁止改测试文件**，它的 647 个文件仍逐字节相同（本半一处未碰）；`ChangeLog*`——它们把这句话当**历史**引用（35 处），不是声明（与第十半不动 `ChangeLog.13` 里 `*GNU Emacs*` 同口径）。
+  ⑤ **仍未动的三类**（第十半 ⑥⑶ 的理由不变，逐条点名）：版权行（`Copyright (C) … Free Software Foundation, Inc.`）、许可正文三句（“… is free software …” / “… is distributed in the hope …” / “… along with …”）、指向上游的链接与“怎么拿到新版本”那一类，以及手册与 `etc/NEWS` 里作为**叙述**出现的产品名——改它们就是改上游的许可与归属声明。`docs/port-plan.md` §8 第 5 条的判据文本没改，例外登记在本文与 `PORTING.md` 0.1-19；`docs/acceptance.md` §5 的读数已复读为 1,796 行。
+  ⑥ **未声称**：本半**一枚都没编译**（`build-tu`/`probe`/`check-all-units`/`layout-check`/`check-link` 全 0 发），**也没有运行读数**：被改的是照抄树里的声明行，证据只到“`check-verbatim` 逐行核对通过 + 六棵树的文件清单与文件数逐个不变”；生成器那三处只有文本读数，没有“本程序把它写出来”的读数（端口仍停在 `loaddefs` 的 `Bytecode stack overflow`，见 3.630）。
+  ⑦ **预算**：改写用流式脚本（1,762 个文件，逐文件读写，峰值内存 < 100 MB，用完删）；文本门 `check-verbatim` 3 发（含自测）、`check-declarations` 2 发、其余七道各 1 发；`/tmp/decl2.py`、`/tmp/decl-rows.txt` 已删。
+

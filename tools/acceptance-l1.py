@@ -93,8 +93,8 @@ def load_flags(binary: Path) -> list[str]:
     scratch copy stays first so that both sides' diagnostics name the same paths; the tree root
     follows it; the subdirectories come in the order the measured binary searches them, which is
     the order C's own builds search too.  The list is built from the tree being measured - the
-    port's and the reference's `lisp` trees differ only in the 24 sanctioned identity lines
-    (`tools/check-verbatim.py`, `docs/baseline/verbatim-substitutions.tsv`) - so it does not depend on
+    port's and the reference's `lisp` trees differ only in the sanctioned identity and declaration
+    lines (`tools/check-verbatim.py`, `docs/baseline/verbatim-substitutions.tsv`) - so it does not depend on
     which binary is used beyond that order.
     """
     dirs = [SCRATCH, TREE]
@@ -113,8 +113,8 @@ def compile_one(binary: Path, file: Path) -> tuple[int, str]:
     # binaries' *own* load paths differ (the reference's points at its build tree, the port's will
     # point at its own), and a rung that compared those would measure the installation, not the
     # compiler.  The tree is the same on both sides here (check-verbatim: identical apart from the
-    # 24 sanctioned identity lines), so naming the same tree on the reference side too keeps the
-    # invocation identical.
+    # sanctioned identity and declaration lines), so naming the same tree on the reference side too
+    # keeps the invocation identical.
     r = subprocess.run([str(binary), "-Q", "--batch", *load_flags(binary),
                         "-f", "batch-byte-compile", str(file)],
                        capture_output=True, text=True)
