@@ -12024,3 +12024,17 @@
      （iii）再跑 `check-link.py` 看 17 → 0。
   ⑦ **未声称**：`check-link.py` 量的是 **`ld -r` 部分链接 + `nm -u`**，不是可执行文件、更不是运行；`unknown` 类里的 `V…`
      是 C 的生成载体（PORTING.md 记过的偏离）与未落单元的混合，工具自己也不区分；本件**没有**改任何移植文件。
+
+- **3.596 保真更正第三件（同一类，evidence 同法）：`src/xwidget.rs` 的文件门从 `use_gtk` 改成 `all (use_gtk, have_gtk3)`（2026-10-05）**：
+  ① **依据**：`configure.ac` **4424-4434**：`XWIDGETS_OBJ="xwidget.o"` 同时位于 `if test "$with_xwidgets" != "no"` **与**
+     `if test "$USE_GTK_TOOLKIT" = "GTK3" && test "$window_system" != "none"` 之内（另有 **4463** 的 Cocoa 臂）；
+     而 `USE_GTK` 是**任意 GTK**（3826），`USE_GTK_TOOLKIT="GTK3"` 与 `AC_DEFINE([HAVE_GTK3])`（3756-3759）同块。
+     ⇒ **GTK2 构建根本不编 `xwidget.o`**，而端口按 `use_gtk` 单独开门会在那种配置里编它 —— 与 3.586/3.587 的 W32 两件同类
+     （把"文件里最宽的那条 `#if`"当成了"编出这个对象的条件"）。
+  ② **改法**：**300 个 cfg 站点**加上 `feature = "have_gtk3"` 合取（224 个简单形 → `all (…)`；76 个已是 `all (use_gtk, …)` 的插入第二个合取项）；
+     **2 个 `ns_impl_cocoa` 站点不动**（它们的文件门该是 Cocoa 臂的，不是 GTK 的），并在文件头注释与台账
+     `docs/ports/xwidget.md` 的 Gate mapping（**该台账有两份重复的映射，两份都改了**）里写明这次更正的证据与前因后果。
+  ③ **读数**：`extract-abi --check` 仍 **81**（名字不变）；`build-tu src/xwidget.c` → `built`、对象**仍 336 字节**
+     （冻结态没有任何项被解门）；`check-mirror-dupes` **17/17/0**；七道文本门全绿。
+  ④ **未声称**：本机**无 GTK**，所以只有**配置证据 + 冻结读数 + 文本门**三项支撑，**没有** GTK3 臂的编译读数；
+     `use_gtk` 的**内容**守卫（C 37/98/… 的 `#ifdef USE_GTK`）**原样保留**，只是现在位于更正后的文件门之下。

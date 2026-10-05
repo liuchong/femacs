@@ -23,11 +23,19 @@
 // (C 1122-1180); **the next slice opens at C 1182's `#ifdef HAVE_X_WINDOWS`** and its first
 // definition is `xv_drag_begin_cb` (C 1184-1200).  C 1181 is the blank the table needs no row for.
 //
-//   * the **file gate** is `feature = "use_gtk"` (the mandate's ruling; C 37's `#ifdef USE_GTK` is
-//     the file's first and widest one, and `USE_GTK` is `undef` at
-//     `docs/baseline/config/darwin-arm64.macros.tsv` 3861), on every item *and on the include
-//     graph* (P-86 ⑧ - an `include!` outside the gate makes the frozen build fail instead of
-//     producing the empty object the class expects);
+//   * the **file gate** is `all (feature = "use_gtk", feature = "have_gtk3")`, on every item *and
+//     on the include graph* (P-86 ⑧ - an `include!` outside the gate makes the frozen build fail
+//     instead of producing the empty object the class expects).  **Corrected 2026-10-05 (status
+//     3.596)**: this used to be `use_gtk` alone, read off C 37's `#ifdef USE_GTK` - but that is the
+//     file's first and widest *content* guard, not the condition that builds the object.
+//     `configure.ac` 4424-4434 adds `XWIDGETS_OBJ="xwidget.o"` inside BOTH `if test
+//     "$with_xwidgets" != "no"` and `if test "$USE_GTK_TOOLKIT" = "GTK3" && test "$window_system"
+//     != "none"` (a second arm at 4463 covers Cocoa), and `USE_GTK` is defined for *any* GTK
+//     (3826) while `USE_GTK_TOOLKIT="GTK3"` is the same block as `AC_DEFINE([HAVE_GTK3])`
+//     (3756-3759) - so a GTK2 build compiles no `xwidget.o` at all, and gating on `use_gtk` alone
+//     compiled the file in a configuration C does not.  The two `ns_impl_cocoa` items are left as
+//     they are (their file gate would be the Cocoa arm's, not GTK's); all `USE_GTK` *content*
+//     guards below are unchanged and now sit under the corrected file gate;
 //   * the slice's own conditions are C 41's `#ifndef HAVE_PGTK` (feature `have_pgtk`), C 47's
 //     `#ifdef HAVE_XINPUT2`, C 50's `#elif defined NS_IMPL_COCOA`, C 61/98/298/329/493/513/527/
 //     739's `#ifdef USE_GTK`, C 62/230/1027's `#ifdef HAVE_X_WINDOWS`, C 64/339/396's
@@ -84,34 +92,34 @@ include!("include/config.rs");                 // C 20: `#include <config.h>`
    the file gate (P-86 ⑧).  C writes this list outside any `#if`, but the reference's build only
    compiles `xwidget.o` when xwidgets are on (configure.ac 4424-4474), so the gate is the file's
    own - a recorded deviation (Deviations 3).  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/lisp.rs");                   // C 25: `#include "lisp.h"`
 /* C 25's `"lisp.h"` chain (lisp.h 30/33): `<string.h>` for `strcmp` (C 595) and `<limits.h>` for
    `INT_MAX` (C 554).  `include/lisp.rs` carries neither mirror (its own note records the
    intprops/sys-limits omission), so the two edges are here, at the C position that makes the
    names visible - the `src/gtkutil.rs` 96-99 shape.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("../lib/include/string.rs");          // lisp.h 30: `#include <string.h>`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("../lib/include/limits.in.rs");       // lisp.h 33: `#include <limits.h>`
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/buffer.rs");                 // C 22: `#include "buffer.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/coding.rs");                 // C 23: `#include "coding.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/xwidget.rs");                // C 24: `#include "xwidget.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/blockinput.rs");             // C 26: `#include "blockinput.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/dispextern.rs");             // C 27: `#include "dispextern.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/frame.rs");                  // C 28: `#include "frame.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/keyboard.rs");               // C 29: `#include "keyboard.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/gtkutil.rs");                // C 30: `#include "gtkutil.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/gtk.rs");                   // C 30's chain: `"gtkutil.h"` 26's
                                               // `<gtk/gtk.h>` (P-90 ②, the SDK surface's
                                               // one mirror); the in-unit segment that
@@ -121,17 +129,17 @@ include!("include/gtk.rs");                   // C 30's chain: `"gtkutil.h"` 26'
    (it carries the include guard alone), so the two edges stand here, at the C position that makes
    the names visible: this slice reads `FRAME_GTK_WIDGET`/`FRAME_GTK_OUTER_WIDGET`/`FRAME_X_OUTPUT`
    /`FRAME_DISPLAY_INFO` and `x_display_info`'s four `*_mod_mask` members through them.  */
-#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "have_pgtk")))]
 include!("include/xterm.rs");                  // gtkutil.h 32: `#include "xterm.h"`
-#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
 include!("include/pgtkterm.rs");               // gtkutil.h 29: `#include "pgtkterm.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/sysstdio.rs");               // C 31: `#include "sysstdio.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/termhooks.rs");              // C 32: `#include "termhooks.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/window.rs");                 // C 33: `#include "window.h"`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("include/process.rs");                // C 34: `#include "process.h"`
 
 /* ----------------------------------------------------------------------------------------------
@@ -150,7 +158,7 @@ include!("include/process.rs");                // C 34: `#include "process.h"`
    femacs/lib/include | grep -i math` is empty), so the one name this slice takes from it stands
    here (P-88 ①).  */
 /// C: math.h: `long int lrint (double x);` (the C library's, present on this machine).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   pub fn lrint (x: c_double) -> c_long;
 }
@@ -168,38 +176,38 @@ unsafe extern "C" {
 
 /* GLib and GObject: `/opt/homebrew/include/glib-2.0` (GLib 2.90.0), `glibconfig.h` from
    `/opt/homebrew/Cellar/glib/2.90.0/lib/glib-2.0/include`.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 const _: () = core::assert! (core::mem::size_of::<GList> () == 24);
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 const _: () = core::assert! (core::mem::offset_of! (GList, data) == 0);
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 const _: () = core::assert! (core::mem::offset_of! (GList, next) == 8);
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 const _: () = core::assert! (core::mem::offset_of! (GList, prev) == 16);
 /// C: gslist.h 41-45: `struct _GSList { gpointer data; GSList *next; };`.  C 1132 declares
 /// `GSList *filenames;` and `GSList *tem;`, and C 1167-1168 reads `tem->data`, `tem->next`.
 /// Measured `sizeof_GSList=16 data=0 next=8` (Evidence ⑤).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct _GSList
 {
   pub data: gpointer,        // C: gslist.h 43: `gpointer data;`
   pub next: *mut _GSList,    // C: gslist.h 44: `GSList *next;`
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GSList = _GSList;
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 const _: () = core::assert! (core::mem::size_of::<GSList> () == 16);
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 const _: () = core::assert! (core::mem::offset_of! (GSList, data) == 0);
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 const _: () = core::assert! (core::mem::offset_of! (GSList, next) == 8);
 /// C: gobject.h 54: `#define G_OBJECT(object) (G_TYPE_CHECK_INSTANCE_CAST ((object),
 /// G_TYPE_OBJECT, GObject))`, whose own body is `((GObject *) g_type_check_instance_cast
 /// ((GTypeInstance *) (object), (GType) (g_type)))` (gtype.h 528/2668-2672).  The port keeps the
 /// macro's name and its result type; GLib's checked-cast chain is recorded as a deviation (the
 /// `src/pgtkterm.rs` 288-296 treatment of the same macro).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! G_OBJECT {
   ($object:expr) => { ($object) as *mut GObject };
 }
@@ -208,7 +216,7 @@ macro_rules! G_OBJECT {
 /// signature-changing `as` cast between fn pointers (`error: non-primitive cast`, measured in
 /// `src/pgtkterm.rs`), so the port spells C's cast as the item address plus a pointer transmute,
 /// and every callback C passes through it is declared `unsafe extern "C" fn` (PORTING.md 1.4).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! G_CALLBACK {
   ($f:expr) => {
     Some (unsafe { core::mem::transmute::<*const (), unsafe extern "C" fn ()> ($f as *const ()) })
@@ -218,14 +226,14 @@ macro_rules! G_CALLBACK {
 /// g_signal_connect_data ((instance), (detailed_signal), (c_handler), (data), NULL,
 /// (GConnectFlags) 0)` - GLib's own body.  C 361/427/429/431/442/446/452/457/461/465/471 are the
 /// eleven call sites.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! g_signal_connect {
   ($instance:expr, $detailed_signal:expr, $c_handler:expr, $data:expr) => {
     g_signal_connect_data ($instance as gpointer, $detailed_signal, $c_handler,
                            $data as gpointer, None, 0 as GConnectFlags)
   };
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   /// C 1164: `len = g_slist_length (filenames);`
   /// C: gslist.h 125: `guint g_slist_length (GSList *list);`
@@ -245,24 +253,24 @@ unsafe extern "C" {
 /// GDK_CROSSING_GTK_GRAB, GDK_CROSSING_GTK_UNGRAB, GDK_CROSSING_STATE_CHANGED,
 /// GDK_CROSSING_TOUCH_BEGIN, GDK_CROSSING_TOUCH_END, GDK_CROSSING_DEVICE_SWITCH } GdkCrossingMode;`
 /// - the type C 271/275 declare parameters of.  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GdkCrossingMode = c_int;
 /// C: gdk/gdktypes.h: `typedef enum { GDK_SHIFT_MASK = 1 << 0, GDK_LOCK_MASK = 1 << 1,
 /// GDK_CONTROL_MASK = 1 << 2, GDK_MOD1_MASK = 1 << 3, … GDK_SUPER_MASK = 1 << 26,
 /// GDK_HYPER_MASK = 1 << 27, GDK_META_MASK = 1 << 28 } GdkModifierType;` - the six C 249-263 ORs
 /// into `mods`.  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GdkModifierType = c_int;
 /// C: gdk/gdkseat.h: `typedef enum { GDK_SEAT_CAPABILITY_NONE, GDK_SEAT_CAPABILITY_POINTER,
 /// GDK_SEAT_CAPABILITY_TOUCH, GDK_SEAT_CAPABILITY_TABLET_STYLUS, GDK_SEAT_CAPABILITY_KEYBOARD,
 /// GDK_SEAT_CAPABILITY_TABLET_PAD, GDK_SEAT_CAPABILITY_ALL_POINTING, GDK_SEAT_CAPABILITY_ALL }
 /// GdkSeatCapabilities;` - the flag C 891 asks `gdk_seat_get_slaves` for.  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GdkSeatCapabilities = c_uint;
 /// C: gtk/gtkwidget.h / gdk/gdkdevice.h / gdk/gdkseat.h: `#define GDK_DEVICE(object)
 /// (G_TYPE_CHECK_INSTANCE_CAST ((object), GDK_TYPE_DEVICE, GdkDevice))` - C 899's cast keeps the
 /// macro's name and its result type; GDK's cast chain is GLib's and owed (as above).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GDK_DEVICE {
   ($o:expr) => { ($o) as *mut GdkDevice };
 }
@@ -274,43 +282,43 @@ macro_rules! GDK_DEVICE {
    value and every `& MASK` still tests a different bit - because PORTING.md forbids inventing
    behaviour and these values are not measurable here.  The real values are owed (`## Owed` 2) and
    each of them is **UNVERIFIED**.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_BUTTON_PRESS: GdkEventType = 1;         // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_BUTTON_RELEASE: GdkEventType = 2;       // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_2BUTTON_PRESS: GdkEventType = 3;        // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_3BUTTON_PRESS: GdkEventType = 4;        // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_SCROLL: GdkEventType = 5;               // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_MOTION_NOTIFY: GdkEventType = 6;        // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_ENTER_NOTIFY: GdkEventType = 7;         // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_LEAVE_NOTIFY: GdkEventType = 8;         // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_KEY_PRESS: GdkEventType = 9;            // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_KEY_RELEASE: GdkEventType = 10;         // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_MOD1_MASK: GdkModifierType = 1 << 0;    // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_META_MASK: GdkModifierType = 1 << 1;    // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_SUPER_MASK: GdkModifierType = 1 << 2;   // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_HYPER_MASK: GdkModifierType = 1 << 3;   // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_CONTROL_MASK: GdkModifierType = 1 << 4; // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_SHIFT_MASK: GdkModifierType = 1 << 5;   // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_SEAT_CAPABILITY_ALL_POINTING: GdkSeatCapabilities = 1 << 0;  // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_SOURCE_TOUCHPAD: GdkInputSource = 0;    // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   /// C 216: `eventcopy = gdk_event_copy (event);`
   /// C: gdk/gdkevents.h: `GdkEvent *gdk_event_copy (const GdkEvent *event);`
@@ -360,21 +368,21 @@ unsafe extern "C" {
    members of carry exactly those members with their layout **UNVERIFIED** (P-88 ②; owed).
    ---------------------------------------------------------------------------------------------- */
 /// C: gtk/gtktextview.h: `typedef struct _GtkTextView GtkTextView;`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct GtkTextView
 {
   _private: [u8; 0],
 }
 /// C: gtk/gtkfilechoosernative.h: `typedef struct _GtkFileChooserNative GtkFileChooserNative;`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct GtkFileChooserNative
 {
   _private: [u8; 0],
 }
 /// C: gtk/gtkfilefilter.h: `typedef struct _GtkFileFilter GtkFileFilter;`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct GtkFileFilter
 {
@@ -382,7 +390,7 @@ pub struct GtkFileFilter
 }
 /// C: gtk/gtkfilechooser.h: `typedef struct _GtkFileChooser GtkFileChooser;` (an interface;
 /// `GTK_FILE_CHOOSER` casts to it).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct GtkFileChooser
 {
@@ -390,7 +398,7 @@ pub struct GtkFileChooser
 }
 /// C: gtk/gtknativedialog.h: `typedef struct _GtkNativeDialog GtkNativeDialog;` (a class in GTK3;
 /// `GTK_NATIVE_DIALOG` casts to it).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct GtkNativeDialog
 {
@@ -398,86 +406,86 @@ pub struct GtkNativeDialog
 }
 /// C: gtk/gtkcontainer.h: `typedef void (*GtkCallback) (GtkWidget *widget, gpointer data);` - the
 /// type of `gtk_container_forall`'s second parameter (C 1002/662).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GtkCallback = Option<unsafe extern "C" fn (widget: *mut GtkWidget, data: gpointer)>;
 /// C: gtk/gtkcontainer.h: `struct _GtkContainerClass { GtkWidgetClass parent_class; … void
 /// (*forall) (GtkContainer *container, gboolean include_internals, GtkCallback callback, gpointer
 /// callback_data); … };` - C 660-663 reads `forall` through `GTK_CONTAINER_CLASS`.  The port
 /// carries that one member and owes the record's other members and the offset (`src/xfns.rs`
 /// 1034-1045's `GtkWidgetClass` precedent).  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct GtkContainerClass
 {
   pub forall: GtkContainerClass_forall,  // C: gtk/gtkcontainer.h: the four-parameter member
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GtkContainerClass_forall =
   Option<unsafe extern "C" fn (container: *mut GtkContainer, include_internals: gboolean,
                                callback: GtkCallback, callback_data: gpointer)>;
 /// C: gtk/gtktypes.h / gtk/gtkenums.h: `GtkResponseType` and `GtkFileChooserAction` - the types
 /// of C 1153/1155's `response` and C 1145's action argument.  C's enum ABI is `c_int`
 /// (PORTING.md 1.3); **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GtkResponseType = c_int;
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GtkFileChooserAction = c_int;
 /// C: gtk/gtk.h: the checked-cast wrappers C 345/347/406/408/412/413/417/549/660/1144/1146/
 /// 1150/1152/1153/1157/1163 uses, each keeping the macro's name and its result type (the GLib
 /// cast chains are owed, as above).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_WIDGET {
   ($o:expr) => { ($o) as *mut GtkWidget };
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_WINDOW {
   ($o:expr) => { ($o) as *mut GtkWindow };
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_CONTAINER {
   ($o:expr) => { ($o) as *mut GtkContainer };
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_CONTAINER_CLASS {
   ($o:expr) => { ($o) as *mut GtkContainerClass };
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_FILE_CHOOSER {
   ($o:expr) => { ($o) as *mut GtkFileChooser };
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_NATIVE_DIALOG {
   ($o:expr) => { ($o) as *mut GtkNativeDialog };
 }
 /// C: gtk/gtk.h: the four type-check macros C 499/655/665/992 asks, each keeping the macro's name
 /// and its result type (`gboolean`).  C's bodies are `G_TYPE_CHECK_INSTANCE_TYPE` chains, which
 /// need the type system the port has not got (the `src/gtkutil.rs` 876-893 treatment).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_IS_TEXT_VIEW {
   ($o:expr) => { (! ($o).is_null ()) };
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_IS_WIDGET {
   ($o:expr) => { (! ($o).is_null ()) };
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_IS_CONTAINER {
   ($o:expr) => { (! ($o).is_null ()) };
 }
 /// C: gtk/gtkenums.h: `GTK_RESPONSE_ACCEPT` (C 1155) and `GTK_FILE_CHOOSER_ACTION_OPEN` (C 1145).
 /// Their values are GTK's; placeholders here (the enumerator note above).  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GTK_RESPONSE_ACCEPT: GtkResponseType = 0;               // placeholder, not GTK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GTK_FILE_CHOOSER_ACTION_OPEN: GtkFileChooserAction = 0; // placeholder, not GTK's value
 /// C: gobject/gobject.h: `#define G_OBJECT_GET_CLASS(object) (G_TYPE_INSTANCE_GET_CLASS ((object),
 /// G_TYPE_OBJECT, GObjectClass))` - C 660's cast; the port keeps the macro's name and its result
 /// type (`gpointer`), and GLib's chain is owed (as above).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! G_OBJECT_GET_CLASS {
   ($o:expr) => { ($o) as gpointer };
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   /// C 830-832/867-869/1036-1037/1053-1054: `gtk_widget_translate_coordinates (…, &xoff, &yoff);`
   /// C: gtk/gtkwidget.h: `gboolean gtk_widget_translate_coordinates (GtkWidget *src_widget,
@@ -548,28 +556,28 @@ unsafe extern "C" {
    a placeholder (the note above).  **UNVERIFIED** (P-88 ②; owed).
    ---------------------------------------------------------------------------------------------- */
 /// C: webkit2/WebKitWebView.h: `typedef struct _WebKitWebView WebKitWebView;`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitWebView
 {
   _private: [u8; 0],
 }
 /// C: webkit2/WebKitWebContext.h: `typedef struct _WebKitWebContext WebKitWebContext;`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitWebContext
 {
   _private: [u8; 0],
 }
 /// C: webkit2/WebKitSettings.h: `typedef struct _WebKitSettings WebKitSettings;`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitSettings
 {
   _private: [u8; 0],
 }
 /// C: webkit2/WebKitHitTestResult.h: `typedef struct _WebKitHitTestResult WebKitHitTestResult;`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitHitTestResult
 {
@@ -577,7 +585,7 @@ pub struct WebKitHitTestResult
 }
 /// C: webkit2/WebKitFileChooserRequest.h: `typedef struct _WebKitFileChooserRequest
 /// WebKitFileChooserRequest;`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitFileChooserRequest
 {
@@ -585,7 +593,7 @@ pub struct WebKitFileChooserRequest
 }
 /// C: webkit2/WebKitScriptDialog.h: `typedef struct _WebKitScriptDialog WebKitScriptDialog;` -
 /// the type C 71's forward declaration names.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitScriptDialog
 {
@@ -593,7 +601,7 @@ pub struct WebKitScriptDialog
 }
 /// C: webkit2/WebKitPolicyDecision.h: `typedef struct _WebKitPolicyDecision
 /// WebKitPolicyDecision;` - the type C 109's forward declaration names.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitPolicyDecision
 {
@@ -601,7 +609,7 @@ pub struct WebKitPolicyDecision
 }
 /// C: webkit2/WebKitNavigationAction.h: `typedef struct _WebKitNavigationAction
 /// WebKitNavigationAction;` - the type C 106's forward declaration names.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitNavigationAction
 {
@@ -609,7 +617,7 @@ pub struct WebKitNavigationAction
 }
 /// C: webkit2/WebKitDownload.h: `typedef struct _WebKitDownload WebKitDownload;` - the type
 /// C 105's forward declaration names.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitDownload
 {
@@ -618,29 +626,29 @@ pub struct WebKitDownload
 /// C: webkit2/WebKitPolicyDecision.h: `typedef enum { WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION,
 /// WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION, WEBKIT_POLICY_DECISION_TYPE_RESPONSE }
 /// WebKitPolicyDecisionType;` - the type C 110's forward declaration names.  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type WebKitPolicyDecisionType = c_int;
 /// C: webkit2/WebKitWebView.h: `typedef enum { WEBKIT_LOAD_STARTED, WEBKIT_LOAD_REDIRECTED,
 /// WEBKIT_LOAD_COMMITTED, WEBKIT_LOAD_FINISHED } WebKitLoadEvent;` - the type C 100's forward
 /// declaration names.  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type WebKitLoadEvent = c_int;
 /// C: webkit2/WebKitSettings.h: `typedef enum { WEBKIT_HARDWARE_ACCELERATION_POLICY_ON_DEMAND,
 /// WEBKIT_HARDWARE_ACCELERATION_POLICY_ALWAYS, WEBKIT_HARDWARE_ACCELERATION_POLICY_NEVER }
 /// WebKitHardwareAccelerationPolicy;` - the type of C 402's argument.  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type WebKitHardwareAccelerationPolicy = c_int;
 /// C: webkit2/WebKitWebView.h: `#define WEBKIT_WEB_VIEW(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj),
 /// WEBKIT_TYPE_WEB_VIEW, WebKitWebView))` - C 380/387/392/413's casts keep the macro's name and
 /// its result type; WebKit's cast chain is GLib's and owed (as above).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! WEBKIT_WEB_VIEW {
   ($o:expr) => { ($o) as *mut WebKitWebView };
 }
 /// C: webkit2/WebKitWebView.h: `#define WEBKIT_IS_WEB_VIEW(obj) (G_TYPE_CHECK_INSTANCE_TYPE
 /// ((obj), WEBKIT_TYPE_WEB_VIEW))` - C 655's test; the port keeps the macro's name and its result
 /// type (`gboolean`), the `GTK_IS_*` treatment above.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! WEBKIT_IS_WEB_VIEW {
   ($o:expr) => { (! ($o).is_null ()) };
 }
@@ -648,22 +656,22 @@ macro_rules! WEBKIT_IS_WEB_VIEW {
 /// `…_LINK`, `…_IMAGE`, `…_MEDIA`, `…_EDITABLE`, `…_SELECTION`, `…_SCROLLBAR` - the six C
 /// 1070-1078 tests.  Bit flags in WebKit's header; the values are WebKit's and are placeholders
 /// here (the enumerator note above).  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_HIT_TEST_RESULT_CONTEXT_EDITABLE: guint = 1 << 0;   // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_HIT_TEST_RESULT_CONTEXT_SELECTION: guint = 1 << 1;  // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_HIT_TEST_RESULT_CONTEXT_DOCUMENT: guint = 1 << 2;   // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_HIT_TEST_RESULT_CONTEXT_SCROLLBAR: guint = 1 << 3;  // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_HIT_TEST_RESULT_CONTEXT_LINK: guint = 1 << 4;       // placeholder
 /// C: webkit2/WebKitSettings.h: `WEBKIT_HARDWARE_ACCELERATION_POLICY_NEVER` (C 402).
 /// **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_HARDWARE_ACCELERATION_POLICY_NEVER:
   WebKitHardwareAccelerationPolicy = 0;                              // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   /// C 337: `WebKitWebContext *webkit_context = webkit_web_context_get_default ();`
   /// C: webkit2/WebKitWebContext.h: `WebKitWebContext *webkit_web_context_get_default (void);`
@@ -731,13 +739,13 @@ unsafe extern "C" {
 
 /* C 56-59: the file's four file-scope objects.  The first three are C's tentative definitions
    (zero words, i.e. `Qnil`); `xwidget_counter`'s initializer is C's own.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 static mut id_to_xwidget_map: Lisp_Object = lisp_h_Qnil ();           // C 56 (tentative, i.e. Qnil)
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 static mut internal_xwidget_view_list: Lisp_Object = lisp_h_Qnil ();  // C 57 (tentative, i.e. Qnil)
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 static mut internal_xwidget_list: Lisp_Object = lisp_h_Qnil ();       // C 58 (tentative, i.e. Qnil)
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 static mut xwidget_counter: u32 = 0;                                  // C 59
 
 /* C 61-77: `#ifdef USE_GTK` with C 62's `#ifdef HAVE_X_WINDOWS` and C 64's
@@ -748,21 +756,21 @@ static mut xwidget_counter: u32 = 0;                                  // C 59
    `pick_embedded_child` (C 740) are inside this slice; `offscreen_damage_event` (C 2247),
    `synthesize_focus_in_event` (C 2110) and `webkit_script_dialog_cb` (C 2647) are in the
    remainder and stay as C's call sites (the `docs/ports/gtkutil.md` Deviations-3 shape).  */
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 static mut x_window_to_xwv_map: Lisp_Object = lisp_h_Qnil ();         // C 63 (tentative, i.e. Qnil)
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows",
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows",
             feature = "webkit_check_version_ge_2_34"))]
 static mut dummy_tooltip_string: Lisp_Object = lisp_h_Qnil ();        // C 65 (tentative, i.e. Qnil)
 
 /* C 79-83: `ALLOCATE_PSEUDOVECTOR` expands to a `allocate_pseudovector` call with `VECSIZE`/
    `PSEUDOVECSIZE` of the record's marker field; `include/lisp.rs` carries the macro.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn allocate_xwidget () -> *mut xwidget                         // C 79-83
 {
   return ALLOCATE_PSEUDOVECTOR! (xwidget, script_callbacks, pvec_type::PVEC_XWIDGET);
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn allocate_xwidget_view () -> *mut xwidget_view               // C 85-89
 {
   return ALLOCATE_PSEUDOVECTOR! (xwidget_view, w, pvec_type::PVEC_XWIDGET_VIEW);
@@ -771,12 +779,12 @@ unsafe fn allocate_xwidget_view () -> *mut xwidget_view               // C 85-89
 /* C 91-92: the two setters.  C writes them as macros over `XSETPSEUDOVECTOR`; the port keeps the
    names and the bodies (PORTING.md 0.2).  */
 /// C: #define XSETXWIDGET(a, b) XSETPSEUDOVECTOR (a, b, PVEC_XWIDGET)
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! XSETXWIDGET {
   ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_XWIDGET) };
 }
 /// C: #define XSETXWIDGET_VIEW(a, b) XSETPSEUDOVECTOR (a, b, PVEC_XWIDGET_VIEW)
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! XSETXWIDGET_VIEW {
   ($a:expr, $b:expr) => { XSETPSEUDOVECTOR! ($a, $b, pvec_type::PVEC_XWIDGET_VIEW) };
 }
@@ -790,7 +798,7 @@ macro_rules! XSETXWIDGET_VIEW {
    `find_widget` declaration (its definition is C 929, inside this slice).  */
 /// C 118-125: `struct widget_search_data { int x; int y; bool foundp; bool first; GtkWidget
 /// *data; };`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 #[derive (Clone, Copy)]
 pub struct widget_search_data
@@ -804,7 +812,7 @@ pub struct widget_search_data
 
 /* C 130-228: `#ifdef HAVE_PGTK`.  C 131-132 is the `mouse_target_changed` forward declaration
    (dropped; its definition is C 1113, inside this slice).  */
-#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
 unsafe fn xw_forward_event_translate (event: *mut GdkEvent, xv: *mut xwidget_view,
                                       xw: *mut xwidget) -> c_int   // C 134-202
 {
@@ -893,7 +901,7 @@ unsafe fn xw_forward_event_translate (event: *mut GdkEvent, xv: *mut xwidget_vie
     }
 }
 
-#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
 unsafe extern "C" fn xw_forward_event_from_view (widget: *mut GtkWidget, event: *mut GdkEvent,
                                                  user_data: gpointer) -> gboolean  // C 204-227
 {
@@ -922,26 +930,26 @@ unsafe extern "C" fn xw_forward_event_from_view (widget: *mut GtkWidget, event: 
 /* C 230-278: `#ifdef HAVE_X_WINDOWS`.  */
 /// C 231-236: `enum xw_crossing_mode { XW_CROSSING_LEFT, XW_CROSSING_ENTERED, XW_CROSSING_NONE };`
 /// - C's own enumeration values.  C's enum ABI is `c_int` (PORTING.md 1.3).
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 pub type xw_crossing_mode = c_int;
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 pub const XW_CROSSING_LEFT: xw_crossing_mode = 0;
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 pub const XW_CROSSING_ENTERED: xw_crossing_mode = 1;
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 pub const XW_CROSSING_NONE: xw_crossing_mode = 2;
 
 /* C 260/262: the two X11 masks this slice reads.  X11 *is* on this machine, so the values are the
    header's own text (`X11/X.h` 221/223); the mirror `include/xlib.rs` does not carry them
    (P-72 rule 4; the two rows are owed there).  */
 /// C: X11/X.h 221: `#define ShiftMask (1<<0)`
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 pub const ShiftMask: c_uint = 1 << 0;
 /// C: X11/X.h 223: `#define ControlMask (1<<2)`
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 pub const ControlMask: c_uint = 1 << 2;
 
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe fn xw_translate_x_modifiers (dpyinfo: *mut x_display_info,
                                     modifiers: c_uint) -> guint    // C 238-266
 {
@@ -980,18 +988,18 @@ unsafe fn xw_translate_x_modifiers (dpyinfo: *mut x_display_info,
    gtkutil.c's, declared `extern` at gtkutil.h 242; `include/gtkutil.rs` carries the guard alone
    (P-72 rule 4; the declaration is owed there), so the `extern` stands here.  */
 /// C: gtkutil.h 242: `extern bool xg_gtk_initialized;`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   pub static mut xg_gtk_initialized: bool;
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 DEFUN! ("make-xwidget", Fmake_xwidget, Smake_xwidget, 4, 7, 0,
        doc: "Make an xwidget of TYPE.\nIf BUFFER is nil, use the current buffer.\nIf BUFFER is a string and no such buffer exists, create it.\nTYPE is a symbol which can take one of the following values:\n\n- webkit\n\nRELATED is nil, or an xwidget.  When constructing a WebKit widget, it\nwill share the same settings and internal subprocess as RELATED.\nReturns the newly constructed xwidget, or nil if construction\nfails.",
        (r#type: Lisp_Object, title: Lisp_Object, width: Lisp_Object, height: Lisp_Object,
         arguments: Lisp_Object, buffer: Lisp_Object, related: Lisp_Object),
        {
-  #[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
   if ! xg_gtk_initialized
     {
       error (c"make-xwidget: GTK has not been initialized".as_ptr ());
@@ -1029,7 +1037,7 @@ DEFUN! ("make-xwidget", Fmake_xwidget, Smake_xwidget, 4, 7, 0,
 
   Fputhash (make_fixnum ((*xw).xwidget_id as EMACS_INT), val, id_to_xwidget_map);
 
-  #[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
   {
   (*xw).widgetwindow_osr = std::ptr::null_mut ();
   (*xw).widget_osr = std::ptr::null_mut ();
@@ -1194,7 +1202,7 @@ DEFUN! ("make-xwidget", Fmake_xwidget, Smake_xwidget, 4, 7, 0,
   return val;
 });
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 DEFUN! ("xwidget-live-p", Fxwidget_live_p, Sxwidget_live_p, 1, 1, 0,
        doc: "Return t if OBJECT is an xwidget that has not been killed.\nValue is nil if OBJECT is not an xwidget or if it has been killed.",
        (object: Lisp_Object),
@@ -1205,7 +1213,7 @@ DEFUN! ("xwidget-live-p", Fxwidget_live_p, Sxwidget_live_p, 1, 1, 0,
 });
 
 /* C 493-502: `#ifdef USE_GTK` - the `forall` callback C 662 hands to `gtk_container_forall`.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" fn set_widget_if_text_view (widget: *mut GtkWidget, data: *mut c_void)
 {
   let pointer: *mut *mut GtkWidget = data as *mut *mut GtkWidget;
@@ -1221,12 +1229,12 @@ unsafe extern "C" fn set_widget_if_text_view (widget: *mut GtkWidget, data: *mut
    C use site (P-72 rule 4; both records are owed): `decode_window_system_frame` (frame.h 1475) and
    `parse_modifiers` (keyboard.h 461).  */
 /// C: frame.h 1475: `extern struct frame *decode_window_system_frame (Lisp_Object);`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   pub fn decode_window_system_frame (frame: Lisp_Object) -> *mut frame;
 }
 /// C: keyboard.h 461: `extern Lisp_Object parse_modifiers (Lisp_Object);`
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   pub fn parse_modifiers (symbol: Lisp_Object) -> Lisp_Object;
 }
@@ -1235,19 +1243,19 @@ unsafe extern "C" {
 /// configuration compiles), so the port declares those 256 slots rather than an incomplete array
 /// the loop at C 592-602 could not index; the definition there carries no `#[unsafe(no_mangle)]`
 /// yet, which a real GTK build needs (Owed 3).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   pub static mut lispy_function_keys: [*const c_char; 256];
 }
 /// C: xterm.h 1809: `extern int x_emacs_to_x_modifiers (struct x_display_info *, intmax_t);`
-#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "have_pgtk")))]
 unsafe extern "C" {
   pub fn x_emacs_to_x_modifiers (dpyinfo: *mut x_display_info, modifiers: intmax_t) -> c_int;
 }
 /// C: pgtkterm.h 678: `extern int pgtk_emacs_to_gtk_modifiers (struct pgtk_display_info *, int);`
 /// (`pgtk_display_info` itself is in `include/pgtkterm.rs`'s placeholder - the recorded mirror
 /// gap, Deviations 6).
-#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
 unsafe extern "C" {
   pub fn pgtk_emacs_to_gtk_modifiers (dpyinfo: *mut pgtk_display_info, modifiers: c_int)
     -> c_int;
@@ -1256,35 +1264,35 @@ unsafe extern "C" {
 /// C: process.h 303: `extern void catch_child_signal (void);` - `include/process.rs` does not
 /// carry it (P-72 rule 4), and `src/process.rs` 8661 defines it without `#[unsafe(no_mangle)]`
 /// yet, which a real GTK build needs (Owed 3).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   pub fn catch_child_signal ();
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 DEFUN! ("xwidget-perform-lispy-event",
        Fxwidget_perform_lispy_event, Sxwidget_perform_lispy_event, 2, 3, 0,
        doc: "Send a lispy event to XWIDGET.\nEVENT should be the event that will be sent.  FRAME should be the\nframe which generated the event, and defaults to the selected frame.\nOn X11, modifier keys will not be processed if FRAME is nil and the\nselected frame is not an X-Windows frame.",
        (xwidget: Lisp_Object, event: Lisp_Object, frame: Lisp_Object),
        {
-  #[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
   let mut f: *mut frame = std::ptr::null_mut ();
-  #[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
   let mut xg_event: *mut GdkEvent;
-  #[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
   let mut klass: *mut GtkContainerClass;
-  #[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
   let mut widget: *mut GtkWidget;
-  #[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
   let mut temp: *mut GtkWidget = std::ptr::null_mut ();
-  #[cfg (all (feature = "use_gtk", feature = "have_xinput2"))]
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_xinput2"))]
   let mut embedder: *mut GdkWindow;
-  #[cfg (all (feature = "use_gtk", feature = "have_xinput2"))]
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_xinput2"))]
   let mut osw: *mut GdkWindow;
 
   CHECK_LIVE_XWIDGET (xwidget);
 
-  #[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
   {
   if ! NILP (frame)
     { f = decode_window_system_frame (frame); }
@@ -1456,7 +1464,7 @@ DEFUN! ("xwidget-perform-lispy-event",
   return Qnil ();
 });
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 DEFUN! ("get-buffer-xwidgets", Fget_buffer_xwidgets, Sget_buffer_xwidgets, 1, 1, 0,
        doc: "Return a list of xwidgets associated with BUFFER.\nBUFFER may be a buffer or the name of one.",
        (buffer: Lisp_Object),
@@ -1487,7 +1495,7 @@ DEFUN! ("get-buffer-xwidgets", Fget_buffer_xwidgets, Sget_buffer_xwidgets, 1, 1,
   return xw_list;
 });
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn xwidget_hidden (xv: *mut xwidget_view) -> bool                 // C 721-725
 {
   return (*xv).hidden;
@@ -1497,7 +1505,7 @@ unsafe fn xwidget_hidden (xv: *mut xwidget_view) -> bool                 // C 72
    declares it `extern`), so it carries `#[unsafe(no_mangle)]` (PORTING.md 0.2); `include/xwidget.rs`
    declares the same name in `xwidget_decls` and its glob import is shadowed by this definition
    (P-17/P-21, the note at that mirror's C 184-230).  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn xwidget_from_id (id: u32) -> *mut xwidget
 {
@@ -1514,7 +1522,7 @@ pub unsafe extern "C" fn xwidget_from_id (id: u32) -> *mut xwidget
    body.  This slice carries C 739-1180 of it; the next slice opens at C 1182's
    `#ifdef HAVE_X_WINDOWS`.  */
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" fn pick_embedded_child (window: *mut GdkWindow, x: c_double, y: c_double,
                                           user_data: gpointer) -> *mut GdkWindow  // C 740-764
 {
@@ -1543,7 +1551,7 @@ unsafe extern "C" fn pick_embedded_child (window: *mut GdkWindow, x: c_double, y
   return gtk_widget_get_window (child);
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn record_osr_embedder (view: *mut xwidget_view)                  // C 766-782
 {
   let mut xw: *mut xwidget;
@@ -1561,7 +1569,7 @@ unsafe fn record_osr_embedder (view: *mut xwidget_view)                  // C 76
   (*xw).embedder_view = view as *mut c_void;
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn find_xwidget_for_offscreen_window (window: *mut GdkWindow) -> *mut xwidget  // C 784-804
 {
   let mut tem: Lisp_Object;
@@ -1585,7 +1593,7 @@ unsafe fn find_xwidget_for_offscreen_window (window: *mut GdkWindow) -> *mut xwi
   return std::ptr::null_mut ();
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" fn from_embedder (window: *mut GdkWindow, x: c_double, y: c_double,
                                     x_out_ptr: gpointer, y_out_ptr: gpointer,
                                     user_data: gpointer)                  // C 806-841
@@ -1626,7 +1634,7 @@ unsafe extern "C" fn from_embedder (window: *mut GdkWindow, x: c_double, y: c_do
   }
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" fn to_embedder (window: *mut GdkWindow, x: c_double, y: c_double,
                                   x_out_ptr: gpointer, y_out_ptr: gpointer,
                                   user_data: gpointer)                    // C 843-878
@@ -1667,7 +1675,7 @@ unsafe extern "C" fn to_embedder (window: *mut GdkWindow, x: c_double, y: c_doub
   }
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn find_suitable_pointer (f: *mut frame, need_smooth: bool) -> *mut GdkDevice  // C 880-909
 {
   let seat: *mut GdkSeat = gdk_display_get_default_seat
@@ -1701,7 +1709,7 @@ unsafe fn find_suitable_pointer (f: *mut frame, need_smooth: bool) -> *mut GdkDe
   return if tem.is_null () { gdk_seat_get_pointer (seat) } else { device };
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn find_suitable_keyboard (f: *mut frame) -> *mut GdkDevice       // C 911-921
 {
   let seat: *mut GdkSeat = gdk_display_get_default_seat
@@ -1713,13 +1721,13 @@ unsafe fn find_suitable_keyboard (f: *mut frame) -> *mut GdkDevice       // C 91
   return gdk_seat_get_keyboard (seat);
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" fn find_widget_cb (widget: *mut GtkWidget, user: *mut c_void)  // C 923-927
 {
   find_widget (widget, user as *mut widget_search_data);
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn find_widget (widget: *mut GtkWidget,
                        data: *mut widget_search_data)                    // C 929-1018
 {
@@ -1815,7 +1823,7 @@ unsafe fn find_widget (widget: *mut GtkWidget,
     }
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn find_widget_at_pos (w: *mut GtkWidget, x: c_int, y: c_int,
                               new_x: *mut c_int, new_y: *mut c_int,
                               pointer_grabs: bool,
@@ -1866,7 +1874,7 @@ unsafe fn find_widget_at_pos (w: *mut GtkWidget, x: c_int, y: c_int,
 /* C 1064-1120: `#ifdef HAVE_PGTK`.  `Emacs_Cursor` is `pgtkgui.rs`'s `*mut c_void` under
    `have_pgtk` (P-55's stand-in for GDK's `GdkCursor *`), which is why C 1106's argument needs the
    `as *mut GdkCursor` the explicit-cast deviation records.  */
-#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
 unsafe fn cursor_for_hit (result: guint, frame: *mut frame) -> Emacs_Cursor  // C 1065-1082
 {
   let mut cursor: Emacs_Cursor = (*FRAME_OUTPUT_DATA! (frame) as *mut pgtk_output).nontext_cursor;
@@ -1885,7 +1893,7 @@ unsafe fn cursor_for_hit (result: guint, frame: *mut frame) -> Emacs_Cursor  // 
   return cursor;
 }
 
-#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
 unsafe fn define_cursors (xw: *mut xwidget, res: *mut WebKitHitTestResult)  // C 1084-1111
 {
   let mut xvw: *mut xwidget_view;
@@ -1915,7 +1923,7 @@ unsafe fn define_cursors (xw: *mut xwidget, res: *mut WebKitHitTestResult)  // C
     }
 }
 
-#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
 unsafe extern "C" fn mouse_target_changed (webview: *mut WebKitWebView,
                                            hitresult: *mut WebKitHitTestResult,
                                            modifiers: guint, xw: gpointer)  // C 1113-1119
@@ -1924,7 +1932,7 @@ unsafe extern "C" fn mouse_target_changed (webview: *mut WebKitWebView,
 }
 /* C 1120: `#endif` (the `HAVE_PGTK` arm).  */
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" fn run_file_chooser_cb (webview: *mut WebKitWebView,
                                           request: *mut WebKitFileChooserRequest,
                                           user_data: gpointer) -> gboolean  // C 1122-1180
@@ -2016,85 +2024,85 @@ unsafe extern "C" fn run_file_chooser_cb (webview: *mut WebKitWebView,
 /// GDK_NOTIFY_INFERIOR, GDK_NOTIFY_NONLINEAR, GDK_NOTIFY_NONLINEAR_VIRTUAL } GdkNotifyType;` -
 /// `xi_translate_notify_detail`'s return type (C 1557) and the type of the `detail` C 1855-1861
 /// and C 1885-1891 write.  **UNVERIFIED**: the five names are distinct placeholders.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GdkNotifyType = c_int;
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_NOTIFY_ANCESTOR: GdkNotifyType = 0;           // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_NOTIFY_VIRTUAL: GdkNotifyType = 1;            // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_NOTIFY_INFERIOR: GdkNotifyType = 2;           // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_NOTIFY_NONLINEAR: GdkNotifyType = 3;          // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_NOTIFY_NONLINEAR_VIRTUAL: GdkNotifyType = 4;  // placeholder, not GDK's value
 /// C: gdk/gdktypes.h: `typedef enum { GDK_CROSSING_NORMAL, GDK_CROSSING_SELECTION,
 /// GDK_CROSSING_GTK_GRAB, GDK_CROSSING_GTK_UNGRAB, GDK_CROSSING_STATE_CHANGED } GdkCrossingMode;`
 /// - the four names C 1344/2056/2068/2096 pass as `entry_crossing`/`exit_crossing`.  The type
 /// itself is declared at C 244-263's surface above.  **UNVERIFIED**: distinct placeholders.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_CROSSING_NORMAL: GdkCrossingMode = 0;         // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_CROSSING_GTK_GRAB: GdkCrossingMode = 1;       // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_CROSSING_GTK_UNGRAB: GdkCrossingMode = 2;     // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_CROSSING_STATE_CHANGED: GdkCrossingMode = 3;  // placeholder, not GDK's value
 /// C: gdk/gdktypes.h: `GDK_BUTTON1_MASK = 1 << 8` (GLib's `GdkModifierType`) - the three C 2038-
 /// 2046 ORs into `xg_event->crossing.state`.  **UNVERIFIED**: distinct placeholder bits.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_BUTTON1_MASK: GdkModifierType = 1 << 8;       // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_BUTTON2_MASK: GdkModifierType = 1 << 9;       // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_BUTTON3_MASK: GdkModifierType = 1 << 10;      // placeholder, not GDK's value
 /// C: gdk/gdktypes.h: `typedef enum { GDK_SCROLL_UP, GDK_SCROLL_DOWN, GDK_SCROLL_LEFT,
 /// GDK_SCROLL_RIGHT, GDK_SCROLL_SMOOTH } GdkScrollDirection;` - C 1370-1377's four writes and
 /// C 1463's.  **UNVERIFIED**: distinct placeholders.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GdkScrollDirection = c_int;
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_SCROLL_UP: GdkScrollDirection = 0;            // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_SCROLL_DOWN: GdkScrollDirection = 1;          // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_SCROLL_LEFT: GdkScrollDirection = 2;          // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_SCROLL_RIGHT: GdkScrollDirection = 3;         // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_SCROLL_SMOOTH: GdkScrollDirection = 4;        // placeholder, not GDK's value
 /// C: gdk/gdktypes.h: `typedef enum { GDK_TOUCHPAD_GESTURE_PHASE_BEGIN,
 /// GDK_TOUCHPAD_GESTURE_PHASE_UPDATE, GDK_TOUCHPAD_GESTURE_PHASE_END,
 /// GDK_TOUCHPAD_GESTURE_PHASE_CANCELED } GdkTouchpadGesturePhase;` - C 1537-1547's three writes.
 /// **UNVERIFIED**: distinct placeholders.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type GdkTouchpadGesturePhase = c_int;
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_TOUCHPAD_GESTURE_PHASE_BEGIN: GdkTouchpadGesturePhase = 0;   // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_TOUCHPAD_GESTURE_PHASE_UPDATE: GdkTouchpadGesturePhase = 1;  // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_TOUCHPAD_GESTURE_PHASE_END: GdkTouchpadGesturePhase = 2;     // placeholder
 /// C: gdk/gdktypes.h: `GDK_FOCUS_CHANGE` / `GDK_TOUCHPAD_PINCH` - the two `GdkEventType` members
 /// C 2121 and C 1521 ask `gdk_event_new` for.  Distinct placeholders (the values above C's list
 /// at C 278-296 stops at 10).  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_FOCUS_CHANGE: GdkEventType = 11;              // placeholder, not GDK's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GDK_TOUCHPAD_PINCH: GdkEventType = 12;            // placeholder, not GDK's value
 /// C: glib/gmacros.h: `#define G_MAXINT32 2147483647` - C 2483's bounds test on `dlen`.  The
 /// value is `INT32_MAX`, the header's own expression.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const G_MAXINT32: c_int = 2147483647;
 /// C: glib/gasyncresult.h: `typedef struct _GAsyncResult GAsyncResult;` - `webkit_web_view_
 /// run_javascript_finish`'s second parameter (C 2533).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct GAsyncResult
 {
   _private: [u8; 0],
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   /// C 1585: `children = g_list_prepend (children, window);`
   /// C: glib/glist.h: `GList *g_list_prepend (GList *list, gpointer data);`
@@ -2135,7 +2143,7 @@ unsafe extern "C" {
 /* The two `gdk/gdkx.h` entry points C 1747-1749 calls: X11-specific (they name `Cursor` and
    `Display`, which this tree carries only under `have_x_windows`), so their declarations carry
    that arm's gate.  */
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe extern "C" {
   /// C 1747: `cursor = gdk_x11_cursor_get_xcursor (xg_cursor);`
   /// C: gdk/gdkx.h: `Cursor gdk_x11_cursor_get_xcursor (GdkCursor *cursor);`
@@ -2145,7 +2153,7 @@ unsafe extern "C" {
   pub fn gdk_x11_cursor_get_xdisplay (cursor: *mut GdkCursor) -> *mut Display;
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! g_clear_pointer {
   ($pp:expr, $destroy:expr) => {
     {
@@ -2160,7 +2168,7 @@ macro_rules! g_clear_pointer {
 /* GTK, continued.  */
 /// C: gtk/gtkwindow.h: `typedef struct _GtkOffscreenWindow GtkOffscreenWindow;` (a `GtkBin`;
 /// `GTK_OFFSCREEN_WINDOW` casts to it) - C 2185/2226 and C 2230.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct GtkOffscreenWindow
 {
@@ -2169,13 +2177,13 @@ pub struct GtkOffscreenWindow
 /// C: gtk/gtkoffscreenwindow.h: `#define GTK_OFFSCREEN_WINDOW(obj) (G_TYPE_CHECK_INSTANCE_CAST
 /// ((obj), GTK_TYPE_OFFSCREEN_WINDOW, GtkOffscreenWindow))` - the `GTK_WIDGET` treatment
 /// (C 429): the port keeps the macro's name and its result type.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_OFFSCREEN_WINDOW {
   ($o:expr) => { ($o) as *mut GtkOffscreenWindow };
 }
 /// C: gtk/gtkentry.h: `typedef struct _GtkEntry GtkEntry;` (a `GtkWidget`; `GTK_ENTRY` casts to
 /// it) - C 2704-2713's entry.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct GtkEntry
 {
@@ -2183,13 +2191,13 @@ pub struct GtkEntry
 }
 /// C: gtk/gtkentry.h: `#define GTK_ENTRY(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), GTK_TYPE_ENTRY,
 /// GtkEntry))` - the `GTK_WIDGET` treatment.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_ENTRY {
   ($o:expr) => { ($o) as *mut GtkEntry };
 }
 /// C: gtk/gtkdialog.h: `typedef struct _GtkDialog GtkDialog;` (a `GtkWindow`; `GTK_DIALOG` casts
 /// to it) - C 2686/2687/2698/2699/2713.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct GtkDialog
 {
@@ -2197,16 +2205,16 @@ pub struct GtkDialog
 }
 /// C: gtk/gtkdialog.h: `#define GTK_DIALOG(obj) (G_TYPE_CHECK_INSTANCE_CAST ((obj), GTK_TYPE_DIALOG,
 /// GtkDialog))` - the `GTK_WIDGET` treatment.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! GTK_DIALOG {
   ($o:expr) => { ($o) as *mut GtkDialog };
 }
 /// C: gtk/gtkenums.h: `GTK_DIALOG_MODAL = 1 << 0` (one of `GtkDialogFlags`) - C 2687/2699's
 /// flags argument.  **UNVERIFIED**: the value is the header's, the flag's task being to differ
 /// from `GTK_DIALOG_DESTROY_WITH_PARENT`.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const GTK_DIALOG_MODAL: c_int = 1 << 0;
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   /// C 2186/2227: `wnd = GTK_OFFSCREEN_WINDOW (w->widgetwindow_osr);`
   /// C: gtk/gtkoffscreenwindow.h: `cairo_surface_t *gtk_offscreen_window_get_surface
@@ -2252,7 +2260,7 @@ unsafe extern "C" {
 /* WebKit, continued.  */
 /// C: webkit2/WebKitJavascriptResult.h: `typedef struct _WebKitJavascriptResult
 /// WebKitJavascriptResult;` - C 2530/2537/2552's value.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitJavascriptResult
 {
@@ -2260,7 +2268,7 @@ pub struct WebKitJavascriptResult
 }
 /// C: webkit2/WebKitURIRequest.h: `typedef struct _WebKitURIRequest WebKitURIRequest;` - C 2565
 /// and C 2601/2608/2637's request.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitURIRequest
 {
@@ -2268,7 +2276,7 @@ pub struct WebKitURIRequest
 }
 /// C: webkit2/WebKitNavigationPolicyDecision.h: `typedef struct _WebKitNavigationPolicyDecision
 /// WebKitNavigationPolicyDecision;` (a `WebKitPolicyDecision`) - C 2586 and C 2624.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitNavigationPolicyDecision
 {
@@ -2276,7 +2284,7 @@ pub struct WebKitNavigationPolicyDecision
 }
 /// C: webkit2/WebKitResponsePolicyDecision.h: `typedef struct _WebKitResponsePolicyDecision
 /// WebKitResponsePolicyDecision;` (a `WebKitPolicyDecision`) - C 2582.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct WebKitResponsePolicyDecision
 {
@@ -2286,14 +2294,14 @@ pub struct WebKitResponsePolicyDecision
 /// (G_TYPE_CHECK_INSTANCE_CAST ((obj), WEBKIT_TYPE_NAVIGATION_POLICY_DECISION,
 /// WebKitNavigationPolicyDecision))` - the `WEBKIT_WEB_VIEW` treatment (C 637): the port keeps
 /// the macro's name and its result type.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! WEBKIT_NAVIGATION_POLICY_DECISION {
   ($o:expr) => { ($o) as *mut WebKitNavigationPolicyDecision };
 }
 /// C: webkit2/WebKitResponsePolicyDecision.h: `#define WEBKIT_RESPONSE_POLICY_DECISION(obj)
 /// (G_TYPE_CHECK_INSTANCE_CAST ((obj), WEBKIT_TYPE_RESPONSE_POLICY_DECISION,
 /// WebKitResponsePolicyDecision))` - the `WEBKIT_WEB_VIEW` treatment.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! WEBKIT_RESPONSE_POLICY_DECISION {
   ($o:expr) => { ($o) as *mut WebKitResponsePolicyDecision };
 }
@@ -2302,62 +2310,62 @@ macro_rules! WEBKIT_RESPONSE_POLICY_DECISION {
 /// WEBKIT_NAVIGATION_TYPE_RELOAD, WEBKIT_NAVIGATION_TYPE_FORM_RESUBMITTED,
 /// WEBKIT_NAVIGATION_TYPE_OTHER } WebKitNavigationType;` - C 2415-2422's five cases.  The six
 /// names are distinct placeholders.  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type WebKitNavigationType = c_int;
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_NAVIGATION_TYPE_LINK_CLICKED: WebKitNavigationType = 0;      // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_NAVIGATION_TYPE_FORM_SUBMITTED: WebKitNavigationType = 1;    // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_NAVIGATION_TYPE_BACK_FORWARD: WebKitNavigationType = 2;      // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_NAVIGATION_TYPE_RELOAD: WebKitNavigationType = 3;            // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_NAVIGATION_TYPE_FORM_RESUBMITTED: WebKitNavigationType = 4;  // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_NAVIGATION_TYPE_OTHER: WebKitNavigationType = 5;             // placeholder
 /// C: webkit2/WebKitScriptDialog.h: `typedef enum { WEBKIT_SCRIPT_DIALOG_ALERT,
 /// WEBKIT_SCRIPT_DIALOG_CONFIRM, WEBKIT_SCRIPT_DIALOG_PROMPT,
 /// WEBKIT_SCRIPT_DIALOG_BEFORE_UNLOAD_CONFIRM } WebKitScriptDialogType;` - C 2683/2701/2709's
 /// four tests.  Distinct placeholders.  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub type WebKitScriptDialogType = c_int;
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_SCRIPT_DIALOG_ALERT: WebKitScriptDialogType = 0;                   // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_SCRIPT_DIALOG_CONFIRM: WebKitScriptDialogType = 1;                 // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_SCRIPT_DIALOG_PROMPT: WebKitScriptDialogType = 2;                  // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_SCRIPT_DIALOG_BEFORE_UNLOAD_CONFIRM: WebKitScriptDialogType = 3;   // placeholder
 /// C: webkit2/WebKitWebView.h: the four `WebKitLoadEvent` members C 2436-2449 switches over
 /// (the type itself is declared at C 627's surface above).  Distinct placeholders.  **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_LOAD_STARTED: WebKitLoadEvent = 0;      // placeholder, not WebKit's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_LOAD_REDIRECTED: WebKitLoadEvent = 1;   // placeholder, not WebKit's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_LOAD_COMMITTED: WebKitLoadEvent = 2;    // placeholder, not WebKit's value
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_LOAD_FINISHED: WebKitLoadEvent = 3;     // placeholder, not WebKit's value
 /// C: webkit2/WebKitPolicyDecision.h: the three `WebKitPolicyDecisionType` members C 2579-2621
 /// switches over (the type itself is declared at C 622's surface above).  Distinct placeholders.
 /// **UNVERIFIED**.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_POLICY_DECISION_TYPE_NAVIGATION_ACTION: WebKitPolicyDecisionType = 0;  // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_POLICY_DECISION_TYPE_NEW_WINDOW_ACTION: WebKitPolicyDecisionType = 1;  // placeholder
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const WEBKIT_POLICY_DECISION_TYPE_RESPONSE: WebKitPolicyDecisionType = 2;           // placeholder
 /// C: javascriptcore/JSValue.h: `typedef struct _JSCValue JSCValue;` - `webkit_js_to_lisp`'s
 /// parameter (C 2454) and C 2544's value.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[repr (C)]
 pub struct JSCValue
 {
   _private: [u8; 0],
 }
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   /// C 2531-2535: `webkit_web_view_run_javascript_finish (WEBKIT_WEB_VIEW (webview), result,
   /// &error);`
@@ -2446,7 +2454,7 @@ unsafe extern "C" {
 /* JavaScriptCore: the eleven `jsc_value_*` entry points `webkit_js_to_lisp` calls (C 2455-2490).
    No JavaScriptCore tree on this machine, so each citation names the header alone and every
    return/argument shape is **UNVERIFIED**.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   /// C 2455: `if (jsc_value_is_string (value))`
   /// C: javascriptcore/JSValue.h: `gboolean jsc_value_is_string (JSCValue *value);`
@@ -2496,7 +2504,7 @@ unsafe extern "C" {
 /// state; unsigned int buttons_len; XIAddData mods; ... } XIEnterEvent;` - C 1993-2035 reads
 /// `event_x`/`event_y`/`root_x`/`root_y`/`time`/`focus`/`mode`/`detail`/`mods.effective`/
 /// `buttons.mask_len`/`buttons.mask`.  **UNVERIFIED**.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 #[repr (C)]
 pub struct XIEnterEvent
 {
@@ -2528,7 +2536,7 @@ pub struct XIEnterEvent
 }
 /// C: X11/extensions/XInput2.h: `typedef struct { int effective; int mask; ... } XIAddData;` -
 /// the `mods` member above (C 2030's `xev->mods.effective`).  **UNVERIFIED**.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 #[repr (C)]
 pub struct XIAddData
 {
@@ -2537,7 +2545,7 @@ pub struct XIAddData
 }
 /// C: X11/extensions/XInput2.h: `typedef struct { int mask_len; unsigned char *mask; }
 /// XIButtonState;` - C 2023-2024's `xev->buttons.mask_len`/`buttons.mask`.  **UNVERIFIED**.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 #[repr (C)]
 pub struct XIButtonState
 {
@@ -2550,7 +2558,7 @@ pub struct XIButtonState
 /// XIAddData mods; int evtype; ... } XIGesturePinchEvent;` - C 1497-1507 reads `event_x`/
 /// `event_y`/`delta_x`/`delta_y`/`delta_angle`/`scale`/`root_x`/`root_y`/`mods.effective`/`evtype`.
 /// **UNVERIFIED**.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2",
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2",
             feature = "have_xinput2_4"))]
 #[repr (C)]
 pub struct XIGesturePinchEvent
@@ -2577,7 +2585,7 @@ pub struct XIGesturePinchEvent
 /// C: X11/extensions/XInput2.h 183: `#define XIMaskIsSet(ptr, event) (((unsigned char*)(ptr))
 /// [(event)>>3] & (1 << ((event) & 7)))` - the header's own body (XInput2.h 183, cited from the
 /// `X11/extensions/XI2.h` this machine has).
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 macro_rules! XIMaskIsSet {
   ($ptr:expr, $event:expr) => {
     ((* ($ptr as *const c_uchar).offset ((($event) >> 3) as isize) as c_int)
@@ -2586,15 +2594,15 @@ macro_rules! XIMaskIsSet {
 /// C: X11/extensions/XI2.h 197-198 and 217-219: `XI_Enter 7`, `XI_Leave 8`,
 /// `XI_GesturePinchBegin 27`, `XI_GesturePinchUpdate 28`, `XI_GesturePinchEnd 29` - the values
 /// are the header's (measured on this machine's `/opt/homebrew/include/X11/extensions/XI2.h`).
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XI_Enter: c_int = 7;                 // XI2.h 197
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XI_Leave: c_int = 8;                 // XI2.h 198
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XI_GesturePinchBegin: c_int = 27;    // XI2.h 217
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XI_GesturePinchUpdate: c_int = 28;   // XI2.h 218
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XI_GesturePinchEnd: c_int = 29;      // XI2.h 219
 
 /* X11, continued: the six entry points C 1219/1225/2160/2170/2188/2193 calls.  X11 *is* on this
@@ -2603,15 +2611,15 @@ pub const XI_GesturePinchEnd: c_int = 29;      // XI2.h 219
 /// C: X11/X.h 216-217: `#define MotionNotify 6` / `#define EnterNotify 7` / `#define LeaveNotify
 /// 8`; X11/X.h 223: `#define GenericEvent 35` - the four event types `xwidget_motion_or_crossing`
 /// compares (C 1951-2065).  Values measured on this machine.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 pub const MotionNotify: c_int = 6;             // X.h 216
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 pub const EnterNotify: c_int = 7;              // X.h 217
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 pub const LeaveNotify: c_int = 8;              // X.h 218
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 pub const GenericEvent: c_int = 35;            // X.h 223
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe extern "C" {
   /// C 2160: `XMoveWindow (xv->dpy, xv->wdesc, xv->x + xv->clip_left, xv->y + xv->clip_top);`
   /// C: X11/Xlib.h: `int XMoveWindow (Display *display, Window w, int x, int y);`
@@ -2640,15 +2648,15 @@ unsafe extern "C" {
    `CONFIG_CHANGED_EVENT` (27, the frozen `HAVE_DBUS`/`THREADS_ENABLED` arms absent), so
    `XWIDGET_EVENT` is 28 and `XWIDGET_DISPLAY_EVENT` 29.  Owed to the mirror (`## Owed` 3).  */
 /// C: termhooks.h 273-281: `#ifdef HAVE_XWIDGETS … , XWIDGET_EVENT … , XWIDGET_DISPLAY_EVENT`.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const XWIDGET_EVENT: c_int = 28;
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 pub const XWIDGET_DISPLAY_EVENT: c_int = 29;
 /// termhooks.h 373-412's `enum event_kind kind : 16` shares `include/termhooks.rs`'s
 /// `input_event::bits` with `part : 16` (PORTING.md 1.3/P-80).  C 2285/2300/2320/2341 write
 /// `event.kind = …`, so the port keeps C's field name in a per-unit macro - the
 /// `src/gfilenotify.rs` 183-189 shape, body-identical.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 macro_rules! input_event_bits {
   (kind, $e:expr) => { ((*$e).bits & INPUT_EVENT_KIND_MASK) as event_kind };
   (kind, $e:expr, $v:expr) => {
@@ -2657,13 +2665,13 @@ macro_rules! input_event_bits {
 /// lisp.h 71-73's `min`/`max` macros (the `src/w32console.rs` 346 shape): C 2069's
 /// `min (5, event->xcrossing.detail)`.  `include/lisp.rs` carries only the `isize` *functions*
 /// of the same names, which the macro coexists with (the `src/alloc.rs` 127 note).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 include!("../lib/include/min-max.rs");
 
 /* gtkutil.h's tooltip preparer (gtkutil.h 207), read by C 1786.  `include/gtkutil.rs` is a
    placeholder that carries the guard alone, so the prototype stands here (P-72 rule 4) and is
    owed (`## Owed` 3).  */
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe extern "C" {
   /// C 1786: `xg_prepare_tooltip (view->frame, dummy_tooltip_string, &tooltip_width,
   /// &tooltip_height);`
@@ -2681,7 +2689,7 @@ unsafe extern "C" {
 /// C: X11/Xlib.h 395-403: `typedef struct { int type; unsigned long serial; Bool send_event;
 /// Display *display; Window window; } XAnyEvent;` - C 1951-2065's `event->type`.  Measured:
 /// `sizeof` 40, `type`@0, `serial`@8, `send_event`@16, `display`@24, `window`@32.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 #[repr (C)]
 pub struct XAnyEvent
 {
@@ -2691,13 +2699,13 @@ pub struct XAnyEvent
   pub display: *mut Display,            // C: Xlib.h: `Display *display;`
   pub window: Window,                   // C: Xlib.h: `Window window;`
 }
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::size_of::<XAnyEvent> () == 40);
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::offset_of! (XAnyEvent, window) == 32);
 /// C: X11/Xlib.h 527-547: the `XMotionEvent` record - C 1963-1987/2078-2085's `event->xmotion`.
 /// Measured: `sizeof` 96, `time`@56, `x`@64, `y`@68, `x_root`@72, `y_root`@76, `state`@80.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 #[repr (C)]
 pub struct XMotionEvent
 {
@@ -2717,16 +2725,16 @@ pub struct XMotionEvent
   pub is_hint: c_char,                  // C: Xlib.h: `char is_hint;`
   pub same_screen: c_int,               // C: Xlib.h: `Bool same_screen;`
 }
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::size_of::<XMotionEvent> () == 96);
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::offset_of! (XMotionEvent, x) == 64);
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::offset_of! (XMotionEvent, state) == 80);
 /// C: X11/Xlib.h 564-593: the `XCrossingEvent` record - C 1964-1969/2053-2065's
 /// `event->xcrossing`.  Measured: `sizeof` 104, `time`@56, `x`@64, `mode`@80, `detail`@84,
 /// `focus`@92, `state`@96.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 #[repr (C)]
 pub struct XCrossingEvent
 {
@@ -2748,16 +2756,16 @@ pub struct XCrossingEvent
   pub focus: c_int,                     // C: Xlib.h: `Bool focus;`
   pub state: c_uint,                    // C: Xlib.h: `unsigned int state;`
 }
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::size_of::<XCrossingEvent> () == 104);
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::offset_of! (XCrossingEvent, mode) == 80);
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::offset_of! (XCrossingEvent, state) == 96);
 /// C: X11/Xlib.h 1168-1180: the `XGenericEventCookie` record - C 1993-1995's
 /// `event->xcookie.evtype`/`data`.  Measured: `sizeof` 56, `evtype`@36, `data`@48 (the same
 /// record `src/xmenu.rs` 417-437 declares).
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 #[repr (C)]
 pub struct XGenericEventCookie
 {
@@ -2770,32 +2778,32 @@ pub struct XGenericEventCookie
   pub cookie: c_uint,                   // C: Xlib.h: `unsigned int cookie;`
   pub data: *mut c_void,                // C: Xlib.h: `void *data;`
 }
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::size_of::<XGenericEventCookie> () == 56);
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::offset_of! (XGenericEventCookie, evtype) == 36);
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 const _: () = core::assert! (core::mem::offset_of! (XGenericEventCookie, data) == 48);
 /// C: X11/extensions/XI2.h 57-61: `#define XINotifyAncestor 0`, `XINotifyVirtual 1`,
 /// `XINotifyInferior 2`, `XINotifyNonlinear 3`, `XINotifyNonlinearVirtual 4` - the five values
 /// `xi_translate_notify_detail` maps (C 1560-1572).  Measured on this machine's
 /// `/opt/homebrew/include/X11/extensions/XI2.h`.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XINotifyAncestor: c_int = 0;             // XI2.h 57
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XINotifyVirtual: c_int = 1;              // XI2.h 58
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XINotifyInferior: c_int = 2;             // XI2.h 59
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XINotifyNonlinear: c_int = 3;            // XI2.h 60
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 pub const XINotifyNonlinearVirtual: c_int = 4;     // XI2.h 61
 
 /* cairo, continued: the three entry points `xv_do_draw`/`xwidget_view_draw_cb` call (C 2191-2199,
    C 2232-2238).  cairo *is* on this machine; the prototypes are the header's own, and
    `include/gtk.rs` carries `cairo_paint`/`cairo_set_source_surface`/`cairo_set_operator` but not
    these three.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   /// C 2191/2233: `cairo_save (xw->cr_context);`
   /// C: cairo.h: `void cairo_save (cairo_t *cr);`
@@ -2818,7 +2826,7 @@ unsafe extern "C" {
 
 /* C 1182-2107: `#ifdef HAVE_X_WINDOWS`.  */
 /// C 1184-1200: the `"drag-begin"` handler `xwidget_button_1` connects.  `view = user_data`.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe extern "C" fn xv_drag_begin_cb (widget: *mut GtkWidget, context: *mut GdkDragContext,
                                        user_data: gpointer)  // C 1184-1200
 {
@@ -2835,7 +2843,7 @@ unsafe extern "C" fn xv_drag_begin_cb (widget: *mut GtkWidget, context: *mut Gdk
 }
 
 /// C 1202-1326: the press/release synthesiser `xwidget_button` shares with the scroll arm.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe fn xwidget_button_1 (view: *mut xwidget_view, down_p: bool, mut x: c_int, mut y: c_int,
                             button: c_int, modifier_state: c_int, time: Time)  // C 1202-1326
 {
@@ -2964,7 +2972,7 @@ unsafe fn xwidget_button_1 (view: *mut xwidget_view, down_p: bool, mut x: c_int,
 
 /* C 1328-1385: `xwidget_button` is one of the file's non-`static` definitions (xwidget.h 217
    declares it `extern`), so it carries `#[unsafe(no_mangle)]` (PORTING.md 0.2).  */
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn xwidget_button (view: *mut xwidget_view, down_p: bool, mut x: c_int,
                                          mut y: c_int, button: c_int, modifier_state: c_int,
@@ -3030,7 +3038,7 @@ pub unsafe extern "C" fn xwidget_button (view: *mut xwidget_view, down_p: bool, 
    `xwidget_pinch`.  The three are the file's non-`static` definitions (xwidget.h 222-227), so
    they carry `#[unsafe(no_mangle)]`; the XInput2 text is carried but never flipped here
    (`## Owed` 6).  */
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn xwidget_motion_notify (view: *mut xwidget_view, x: c_double, y: c_double,
                                                  root_x: c_double, root_y: c_double,
@@ -3085,7 +3093,7 @@ pub unsafe extern "C" fn xwidget_motion_notify (view: *mut xwidget_view, x: c_do
   gdk_event_free (xg_event);
 }
 
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn xwidget_scroll (view: *mut xwidget_view, x: c_double, y: c_double,
                                          dx: c_double, dy: c_double, state: c_uint, time: Time,
@@ -3135,7 +3143,7 @@ pub unsafe extern "C" fn xwidget_scroll (view: *mut xwidget_view, x: c_double, y
   gdk_event_free (xg_event);
 }
 
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2",
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2",
 	    feature = "have_xinput2_4"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn xwidget_pinch (view: *mut xwidget_view,
@@ -3209,7 +3217,7 @@ pub unsafe extern "C" fn xwidget_pinch (view: *mut xwidget_view,
 
 /* C 1555-1575: `#ifdef HAVE_XINPUT2` - the XI notify-detail translator, `GdkNotifyType`'s one
    producer.  */
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows", feature = "have_xinput2"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows", feature = "have_xinput2"))]
 unsafe fn xi_translate_notify_detail (detail: c_int) -> GdkNotifyType  // C 1557-1573
 {
   match detail
@@ -3242,7 +3250,7 @@ unsafe fn xi_translate_notify_detail (detail: c_int) -> GdkNotifyType  // C 1557
 }
 
 /// C 1578-1607: the window-coordinate walk the crossing machinery shares.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe fn window_coords_from_toplevel (mut window: *mut GdkWindow, toplevel: *mut GdkWindow,
                                        x: c_int, y: c_int, out_x: *mut c_int,
                                        out_y: *mut c_int)  // C 1578-1607
@@ -3284,7 +3292,7 @@ unsafe fn window_coords_from_toplevel (mut window: *mut GdkWindow, toplevel: *mu
 }
 
 /// C 1609-1648: the common-ancestor search `xw_maybe_synthesize_crossing` uses.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe fn xw_find_common_ancestor (window: *mut GdkWindow, other: *mut GdkWindow,
                                    toplevel: *mut GdkWindow) -> *mut GdkWindow  // C 1609-1648
 {
@@ -3326,7 +3334,7 @@ unsafe fn xw_find_common_ancestor (window: *mut GdkWindow, other: *mut GdkWindow
 }
 
 /// C 1650-1687: the virtual-notify walk towards the toplevel.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe fn xw_notify_virtual_upwards_until (xv: *mut xwidget_view, window: *mut GdkWindow,
                                            until: *mut GdkWindow, toplevel: *mut GdkWindow,
                                            state: c_uint, x: c_int, y: c_int, time: Time,
@@ -3364,7 +3372,7 @@ unsafe fn xw_notify_virtual_upwards_until (xv: *mut xwidget_view, window: *mut G
 }
 
 /// C 1689-1736: the same walk, collected into a path first so it runs top-down.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe fn xw_notify_virtual_downwards_until (xv: *mut xwidget_view, window: *mut GdkWindow,
                                              until: *mut GdkWindow, toplevel: *mut GdkWindow,
                                              state: c_uint, x: c_int, y: c_int, time: Time,
@@ -3417,7 +3425,7 @@ unsafe fn xw_notify_virtual_downwards_until (xv: *mut xwidget_view, window: *mut
 /// C 1738-1759: the `"notify::cursor"` handler's worker.  C's `Cursor cursor;` is assigned on
 /// both paths before use; the port seeds it for Rust's definite-initialisation (PORTING.md
 /// 0.1-13).
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe fn xw_update_cursor_for_view (xv: *mut xwidget_view,
                                      crossing_window: *mut GdkWindow)  // C 1738-1759
 {
@@ -3444,7 +3452,7 @@ unsafe fn xw_update_cursor_for_view (xv: *mut xwidget_view,
 }
 
 /// C 1761-1767: the `"notify::cursor"` handler `xw_maybe_synthesize_crossing` connects.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe extern "C" fn xw_last_crossing_cursor_cb (window: *mut GdkWindow, spec: *mut GParamSpec,
                                                  user_data: gpointer)  // C 1761-1767
 {
@@ -3453,7 +3461,7 @@ unsafe extern "C" fn xw_last_crossing_cursor_cb (window: *mut GdkWindow, spec: *
 
 /// C 1769-1943: the crossing synthesiser - the file's widest helper, and C 1945's
 /// `xwidget_motion_or_crossing`'s worker.
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 unsafe fn xw_maybe_synthesize_crossing (view: *mut xwidget_view,
                                         current_window: *mut GdkWindow,
                                         x: c_int, y: c_int, crossing: c_int,
@@ -3645,7 +3653,7 @@ unsafe fn xw_maybe_synthesize_crossing (view: *mut xwidget_view,
    (C 1951-1961 and C 1990-1997) is the port's `match` on `event->type`, its middle arm gated by
    `have_xinput2` (Deviation 9); the `XEvent` union's members are read through casts to the member
    records (the file note above, and `docs/ports/include-xlib.md`).  */
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn xwidget_motion_or_crossing (view: *mut xwidget_view,
                                                      event: *const XEvent)  // C 1945-2105
@@ -3828,7 +3836,7 @@ pub unsafe extern "C" fn xwidget_motion_or_crossing (view: *mut xwidget_view,
 /* C 2107: `#endif /* HAVE_X_WINDOWS */` — the HAVE_X_WINDOWS arm ends here.  */
 
 /* C 2110-2133: `synthesize_focus_in_event` (inside the C 739 `USE_GTK` block).  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" fn synthesize_focus_in_event (offscreen_window: *mut GtkWidget)  // C 2110-2133
 {
   let mut wnd: *mut GdkWindow;
@@ -3855,7 +3863,7 @@ unsafe extern "C" fn synthesize_focus_in_event (offscreen_window: *mut GtkWidget
 
 /* C 2135-2147: `#ifdef HAVE_X_WINDOWS`.  `xwidget_view_from_window` is the header's `extern`
    definition (xwidget.h 209), so it carries `#[unsafe(no_mangle)]`.  */
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn xwidget_view_from_window (wdesc: Window) -> *mut xwidget_view  // C 2137-2145
 {
@@ -3869,7 +3877,7 @@ pub unsafe extern "C" fn xwidget_view_from_window (wdesc: Window) -> *mut xwidge
 }
 
 /// C 2150-2167: the two arms C 2153's `#ifdef HAVE_X_WINDOWS` splits.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn xwidget_show_view (xv: *mut xwidget_view)  // C 2150-2167
 {
   (*xv).hidden = false;
@@ -3891,7 +3899,7 @@ unsafe fn xwidget_show_view (xv: *mut xwidget_view)  // C 2150-2167
 }
 
 /// C 2169-2178: the same split for hiding.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn xwidget_hide_view (xv: *mut xwidget_view)  // C 2169-2178
 {
   (*xv).hidden = true;
@@ -3907,7 +3915,7 @@ unsafe fn xwidget_hide_view (xv: *mut xwidget_view)  // C 2169-2178
 }
 
 /* C 2180-2242: `#ifndef HAVE_PGTK`'s `xv_do_draw` and `#else`'s `xwidget_view_draw_cb`.  */
-#[cfg (all (feature = "use_gtk", not (feature = "have_pgtk")))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", not (feature = "have_pgtk")))]
 unsafe fn xv_do_draw (xw: *mut xwidget_view, w: *mut xwidget)  // C 2182-2210
 {
   let mut wnd: *mut GtkOffscreenWindow;
@@ -3940,7 +3948,7 @@ unsafe fn xv_do_draw (xw: *mut xwidget_view, w: *mut xwidget)  // C 2182-2210
   unblock_input ();
 }
 
-#[cfg (all (feature = "use_gtk", feature = "have_pgtk"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_pgtk"))]
 unsafe extern "C" fn xwidget_view_draw_cb (widget: *mut GtkWidget, cr: *mut cairo_t,
                                            data: gpointer)  // C 2214-2240
 {
@@ -3972,7 +3980,7 @@ unsafe extern "C" fn xwidget_view_draw_cb (widget: *mut GtkWidget, cr: *mut cair
 
 /* C 2247-2270: the off-screen master view's damage handler, with C 2258's
    `#ifdef HAVE_X_WINDOWS` arm.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" fn offscreen_damage_event (widget: *mut GtkWidget, event: *mut GdkEvent,
                                              xwidget: gpointer) -> gboolean  // C 2247-2270
 {
@@ -4000,7 +4008,7 @@ unsafe extern "C" fn offscreen_damage_event (widget: *mut GtkWidget, event: *mut
 
 /* C 2272-2280: `#ifdef HAVE_X_WINDOWS` around `xwidget_expose`, the header's `extern` definition
    (xwidget.h 210).  */
-#[cfg (all (feature = "use_gtk", feature = "have_x_windows"))]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "have_x_windows"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn xwidget_expose (xv: *mut xwidget_view)  // C 2274-2279
 {
@@ -4012,7 +4020,7 @@ pub unsafe extern "C" fn xwidget_expose (xv: *mut xwidget_view)  // C 2274-2279
 
 /* C 2284-2331: the three event-string store helpers, all of them the header's `extern`
    definitions (xwidget.h 193-204), so each carries `#[unsafe(no_mangle)]`.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn store_xwidget_event_string (xw: *mut xwidget, eventname: *const c_char,
                                                      eventstr: *const c_char)  // C 2284-2296
@@ -4027,7 +4035,7 @@ pub unsafe extern "C" fn store_xwidget_event_string (xw: *mut xwidget, eventname
   kbd_buffer_store_event (&raw mut event as *mut c_void);
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn store_xwidget_download_callback_event (xw: *mut xwidget,
                                                                 url: *const c_char,
@@ -4048,7 +4056,7 @@ pub unsafe extern "C" fn store_xwidget_download_callback_event (xw: *mut xwidget
   kbd_buffer_store_event (&raw mut event as *mut c_void);
 }
 
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn store_xwidget_js_callback_event (xw: *mut xwidget, proc_: Lisp_Object,
                                                           argument: Lisp_Object)  // C 2318-2331
@@ -4065,7 +4073,7 @@ pub unsafe extern "C" fn store_xwidget_js_callback_event (xw: *mut xwidget, proc
 
 /* C 2333-2716: `#ifdef USE_GTK` - the display-event store and the six WebKit callbacks.  */
 /// C 2335-2349: the display-event store (static).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn store_xwidget_display_event (xw: *mut xwidget, src: *mut xwidget)  // C 2335-2349
 {
   let mut evt: input_event = std::mem::zeroed ();
@@ -4082,7 +4090,7 @@ unsafe fn store_xwidget_display_event (xw: *mut xwidget, src: *mut xwidget)  // 
 }
 
 /// C 2351-2379: the `"ready-to-show"` handler `webkit_create_cb_1` connects.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" fn webkit_ready_to_show (new_view: *mut WebKitWebView,
                                            user_data: gpointer)  // C 2351-2379
 {
@@ -4115,7 +4123,7 @@ unsafe extern "C" fn webkit_ready_to_show (new_view: *mut WebKitWebView,
 }
 
 /// C 2381-2405: the `"create"` handler's first half (static).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn webkit_create_cb_1 (webview: *mut WebKitWebView, xv: *mut xwidget) -> *mut GtkWidget  // C 2381-2405
 {
   let mut related: Lisp_Object;
@@ -4141,7 +4149,7 @@ unsafe fn webkit_create_cb_1 (webview: *mut WebKitWebView, xv: *mut xwidget) -> 
 }
 
 /// C 2407-2425: the `"create"` handler itself (static).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn webkit_create_cb (webview: *mut WebKitWebView,
                             nav_action: *mut WebKitNavigationAction,
                             user_data: gpointer) -> *mut GtkWidget  // C 2407-2425
@@ -4167,7 +4175,7 @@ unsafe fn webkit_create_cb (webview: *mut WebKitWebView,
 /* C 2427-2451: the `"load-changed"` handler.  C's `switch` without `default` is the port's
    `match` with an empty `_` arm (C's own fall-through; Deviation 9), and the definition is
    non-`static`, so it carries `#[unsafe(no_mangle)]`.  */
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn webkit_view_load_changed_cb (webkitwebview: *mut WebKitWebView,
                                                       load_event: WebKitLoadEvent,
@@ -4204,7 +4212,7 @@ pub unsafe extern "C" fn webkit_view_load_changed_cb (webkitwebview: *mut WebKit
 
 /* Recursively convert a JavaScript value to a Lisp value. */
 /// C 2453-2518: `webkit_js_to_lisp` (static).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn webkit_js_to_lisp (value: *mut JSCValue) -> Lisp_Object  // C 2453-2518
 {
   if jsc_value_is_string (value) != 0
@@ -4276,7 +4284,7 @@ unsafe fn webkit_js_to_lisp (value: *mut JSCValue) -> Lisp_Object  // C 2453-251
 }
 
 /// C 2520-2559: the `run-javascript` completion callback (static).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn webkit_javascript_finished_cb (webview: *mut GObject, result: *mut GAsyncResult,
                                          arg: gpointer)  // C 2520-2559
 {
@@ -4317,7 +4325,7 @@ unsafe fn webkit_javascript_finished_cb (webview: *mut GObject, result: *mut GAs
 }
 
 /// C 2561-2574: the `"download-started"` handler.  Non-`static`, so `#[unsafe(no_mangle)]`.
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn webkit_download_cb (webkitwebcontext: *mut WebKitWebContext,
                                              arg1: *mut WebKitDownload,
@@ -4334,7 +4342,7 @@ pub unsafe extern "C" fn webkit_download_cb (webkitwebcontext: *mut WebKitWebCon
 }
 
 /// C 2576-2645: the `"decide-policy"` handler (static).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn webkit_decide_policy_cb (web_view: *mut WebKitWebView,
                                    decision: *mut WebKitPolicyDecision,
                                    type_: WebKitPolicyDecisionType,
@@ -4411,7 +4419,7 @@ unsafe fn webkit_decide_policy_cb (web_view: *mut WebKitWebView,
 
 /// C 2647-2714: the `"script-dialog"` handler (static).  `entry` is C's uninitialised local,
 /// assigned before its only reads; Rust seeds it (PORTING.md 0.1-13).
-#[cfg (feature = "use_gtk")]
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe fn webkit_script_dialog_cb (webview: *mut WebKitWebView,
                                    script_dialog: *mut WebKitScriptDialog,
                                    user: gpointer) -> gboolean  // C 2647-2714

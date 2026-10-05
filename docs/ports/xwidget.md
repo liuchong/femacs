@@ -42,7 +42,10 @@
 > `xv_drag_begin_cb` (C 1184-1200); C 1181 is the blank the table needs no row for.  The remainder
 > (C 1182-4304) is the table's last row.
 >
-> **The file gate is `feature = "use_gtk"`** - the mandate's ruling, and C 37's `#ifdef USE_GTK` is
+> **The file gate is `all (feature = "use_gtk", feature = "have_gtk3")`** (corrected 2026-10-05, status 3.596: it used
+> to be `use_gtk` alone, which is C 37's *content* guard - `configure.ac` 4424-4434 build `XWIDGETS_OBJ="xwidget.o"`
+> only under `USE_GTK_TOOLKIT = "GTK3"`, the same block as `AC_DEFINE([HAVE_GTK3])` at 3756-3759, while `USE_GTK`
+> (3826) covers GTK2 as well).  C 37's `#ifdef USE_GTK` is
 > the file's first and widest one - on every item *and on the include graph* (P-86 ⑧: an
 > `include!` outside the gate makes the frozen build fail instead of producing the empty object the
 > class expects; this slice's C 22-34 list is written outside any `#if` and carries the gate anyway,
@@ -128,12 +131,12 @@
 
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
-| the file itself (`configure.ac` 4422-4474: `XWIDGETS_OBJ="xwidget.o"` at 4434 and 4463, `AC_DEFINE ([HAVE_XWIDGETS], [1])` at 4474) | `feature = "use_gtk"` on every item *and on the include graph* (P-86 ⑧; C 37's `#ifdef USE_GTK` is the file's own gate) | a GTK xwidgets configuration (the mandate's ruling; `## Deviations` 3) |
-| C 37 `#ifdef USE_GTK` … C 50 `#elif defined NS_IMPL_COCOA` … C 52 (the bottom-end include chain) | `feature = "use_gtk"` / `all (feature = "use_gtk", feature = "ns_impl_cocoa")` | GTK / Cocoa |
+| the file itself (`configure.ac` 4422-4474: `XWIDGETS_OBJ="xwidget.o"` inside `with_xwidgets != no` **and** `USE_GTK_TOOLKIT = "GTK3"` at 4434, a second arm at 4463 for Cocoa, `AC_DEFINE ([HAVE_XWIDGETS], [1])` at 4474) | `all (feature = "use_gtk", feature = "have_gtk3")` on every item *and on the include graph* (P-86 ⑧; corrected in 3.596 - `USE_GTK` alone also covers GTK2, where C builds no `xwidget.o`) | a GTK**3** xwidgets configuration; the Cocoa arm is the two `ns_impl_cocoa` items |
+| C 37 `#ifdef USE_GTK` … C 50 `#elif defined NS_IMPL_COCOA` … C 52 (the bottom-end include chain) | `all (feature = "use_gtk", feature = "have_gtk3")` / `all (feature = "use_gtk", feature = "ns_impl_cocoa")` | GTK3 / Cocoa |
 | C 41 `#ifndef HAVE_PGTK` (C 42-43 `<cairo-xlib.h>` + `<X11/Xlib.h>`, C 45 `#else`'s `<gtk/gtk.h>`) | `not (feature = "have_pgtk")` / `feature = "have_pgtk"` | X11 GTK / PGTK |
 | C 47 `#ifdef HAVE_XINPUT2` (C 48 `<X11/extensions/XInput2.h>`) | `feature = "have_xinput2"` | XInput2 |
 | C 62 `#ifdef HAVE_X_WINDOWS` (C 63 `x_window_to_xwv_map`) and C 64 `#if WEBKIT_CHECK_VERSION (2, 34, 0)` (C 65 `dummy_tooltip_string`) | `feature = "have_x_windows"`, then `feature = "webkit_check_version_ge_2_34"` (`## Owed` 1) | X11 GTK with WebKit ≥ 2.34 |
-| C 98 `#ifdef USE_GTK` (C 118-125 `widget_search_data`, C 127 `find_widget`) | `feature = "use_gtk"` | GTK |
+| C 98 `#ifdef USE_GTK` (C 118-125 `widget_search_data`, C 127 `find_widget`) | `all (feature = "use_gtk", feature = "have_gtk3")` | GTK3 |
 | C 130 `#ifdef HAVE_PGTK` (C 134-227) | `all (feature = "use_gtk", feature = "have_pgtk")` | PGTK |
 | C 230 `#ifdef HAVE_X_WINDOWS` (C 231-277) | `all (feature = "use_gtk", feature = "have_x_windows")` | X11 GTK |
 | C 298 `#ifdef USE_GTK` (the `xg_gtk_initialized` check) | `feature = "use_gtk"` | GTK |
@@ -229,7 +232,10 @@ block, and the union covers C 1-4304 without a gap.
 > `xv_drag_begin_cb` (C 1184-1200); C 1181 is the blank the table needs no row for.  The remainder
 > (C 1182-4304) is the table's last row.
 >
-> **The file gate is `feature = "use_gtk"`** - the mandate's ruling, and C 37's `#ifdef USE_GTK` is
+> **The file gate is `all (feature = "use_gtk", feature = "have_gtk3")`** (corrected 2026-10-05, status 3.596: it used
+> to be `use_gtk` alone, which is C 37's *content* guard - `configure.ac` 4424-4434 build `XWIDGETS_OBJ="xwidget.o"`
+> only under `USE_GTK_TOOLKIT = "GTK3"`, the same block as `AC_DEFINE([HAVE_GTK3])` at 3756-3759, while `USE_GTK`
+> (3826) covers GTK2 as well).  C 37's `#ifdef USE_GTK` is
 > the file's first and widest one - on every item *and on the include graph* (P-86 ⑧: an
 > `include!` outside the gate makes the frozen build fail instead of producing the empty object the
 > class expects; this slice's C 22-34 list is written outside any `#if` and carries the gate anyway,
@@ -274,12 +280,12 @@ block, and the union covers C 1-4304 without a gap.
 
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
-| the file itself (`configure.ac` 4422-4474: `XWIDGETS_OBJ="xwidget.o"` at 4434 and 4463, `AC_DEFINE ([HAVE_XWIDGETS], [1])` at 4474) | `feature = "use_gtk"` on every item *and on the include graph* (P-86 ⑧; C 37's `#ifdef USE_GTK` is the file's own gate) | a GTK xwidgets configuration (the mandate's ruling; `## Deviations` 3) |
-| C 37 `#ifdef USE_GTK` … C 50 `#elif defined NS_IMPL_COCOA` … C 52 (the bottom-end include chain) | `feature = "use_gtk"` / `all (feature = "use_gtk", feature = "ns_impl_cocoa")` | GTK / Cocoa |
+| the file itself (`configure.ac` 4422-4474: `XWIDGETS_OBJ="xwidget.o"` inside `with_xwidgets != no` **and** `USE_GTK_TOOLKIT = "GTK3"` at 4434, a second arm at 4463 for Cocoa, `AC_DEFINE ([HAVE_XWIDGETS], [1])` at 4474) | `all (feature = "use_gtk", feature = "have_gtk3")` on every item *and on the include graph* (P-86 ⑧; corrected in 3.596 - `USE_GTK` alone also covers GTK2, where C builds no `xwidget.o`) | a GTK**3** xwidgets configuration; the Cocoa arm is the two `ns_impl_cocoa` items |
+| C 37 `#ifdef USE_GTK` … C 50 `#elif defined NS_IMPL_COCOA` … C 52 (the bottom-end include chain) | `all (feature = "use_gtk", feature = "have_gtk3")` / `all (feature = "use_gtk", feature = "ns_impl_cocoa")` | GTK3 / Cocoa |
 | C 41 `#ifndef HAVE_PGTK` (C 42-43 `<cairo-xlib.h>` + `<X11/Xlib.h>`, C 45 `#else`'s `<gtk/gtk.h>`) | `not (feature = "have_pgtk")` / `feature = "have_pgtk"` | X11 GTK / PGTK |
 | C 47 `#ifdef HAVE_XINPUT2` (C 48 `<X11/extensions/XInput2.h>`) | `feature = "have_xinput2"` | XInput2 |
 | C 62 `#ifdef HAVE_X_WINDOWS` (C 63 `x_window_to_xwv_map`) and C 64 `#if WEBKIT_CHECK_VERSION (2, 34, 0)` (C 65 `dummy_tooltip_string`) | `feature = "have_x_windows"`, then `feature = "webkit_check_version_ge_2_34"` (`## Owed` 1) | X11 GTK with WebKit ≥ 2.34 |
-| C 98 `#ifdef USE_GTK` (C 118-125 `widget_search_data`, C 127 `find_widget`) | `feature = "use_gtk"` | GTK |
+| C 98 `#ifdef USE_GTK` (C 118-125 `widget_search_data`, C 127 `find_widget`) | `all (feature = "use_gtk", feature = "have_gtk3")` | GTK3 |
 | C 130 `#ifdef HAVE_PGTK` (C 134-227) | `all (feature = "use_gtk", feature = "have_pgtk")` | PGTK |
 | C 230 `#ifdef HAVE_X_WINDOWS` (C 231-277) | `all (feature = "use_gtk", feature = "have_x_windows")` | X11 GTK |
 | C 298 `#ifdef USE_GTK` (the `xg_gtk_initialized` check) | `feature = "use_gtk"` | GTK |
