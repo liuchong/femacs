@@ -8178,3 +8178,25 @@
   ⑥ **未声称**：**零运行证据**（没有 `int86`/`intdos`/`__dpmi_int`，没有 BIOS 调用、远指针读写、鼠标、写屏，没有任何
      `IT_*` 入口被调用；没有 DJGPP 目标编译、没有布局测量）；C 1296-4,350 未移植；lane 的预算如实：`build-tu` 6 发、
      臂翻 6 发（限各 3，超支全部花在"臂翻普查→修正→再普查"的迭代上）。
+
+- **3.457 xwidget 切片 1（C 1-1180）：`make-xwidget`、事件翻译与嵌入子窗口（2026-10-05）**：
+  ① **区间**：C 1-1180（收在 `run_file_chooser_cb` 的 `}`）；**下一个活定义 = C 1184 `xv_drag_begin_cb`**。22 行区间表覆盖
+     C 1-4,304（并覆盖 `xwidget.h` 243 行）；文件门 `use_gtk`（C 37），内层 `have_pgtk`/`have_x_windows`/`have_xinput2`/
+     `ns_impl_cocoa` 与三个 `webkit_check_version_ge_2_*` 臂逐条取自 `check-cond-eval`（121 条件 / 0 unknown / [VERIFIED]）。
+  ② **行数**：`femacs/src/xwidget.rs` **11 → 2,321**；台账 24 → **547**。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**；三条臂（A `use_gtk+have_xwidgets+have_x_windows+have_window_system`
+     52 错 / B `+have_pgtk` 43 / C `use_gtk+have_xwidgets` 40），本单元自身 8/21/19，其余全在镜像；**变异实测**（注入一个类型错
+     → 报在单元自身行、摘要 52 → 53）证明读数非空跑；`extract-abi --check` 85 条 `- `（18 函数 / 30 subr / 34 defsubr /
+     2 宏）**全是余下段**，无 `does not mention`、无 invented 行；`check-dead-file-coverage` 44 ledger / 0 failure。
+  ④ **真缺陷（自造 8 类，全被臂编译抓出并修）**：四个 `DEFUN!` 起初没带文件门（冻结 `cannot find macro DEFUN`）、7 处
+     未初始化局部（E0381）、`G_OBJECT (x)` 漏 `!`（15 处 E0423）、裸指针取字段（E0609×3）、裸指针下标（E0608×3）、
+     10 处缺 `as`、`widget_search_data` 缺 `Copy`（E0507）、`lispy_function_keys[off]` 多解一层（E0599）。
+  ⑤ **集成者本轮替它落的账**：`femacs/xtask/Cargo.toml` 登记 **`webkit_check_version_ge_2_16` / `_2_26` / `_2_34`**。
+     **欠账（点名）**：GDK/GTK/WebKit 约 130 个第三方名（GLib/GObject 30、GDK 约 30、GTK 约 45、WebKit 约 26）应搬进
+     `femacs/src/include/gtk.rs`（**P-90**，`gtkutil.rs` 220 名与 `pgtkterm.rs` 的副本同欠）；`include/pgtkterm.rs` 仍是
+     36 行占位（PGTK 臂今日编不过的根）；`include/xterm.rs` 16 条 `E0133`、`include/dispextern.rs` 与 `include/buffer.rs`
+     的缺名；`line-drift-tolerance.tsv` 的 `xwidget` stem 行（本文件未写成）。
+  ⑥ **未声称**：**零运行证据**（无 GTK 树、无 `pkg-config`，所有臂读数是 `text-only` + 名字/类型错分类；没有任何
+     `webkit_*`/`gtk_*` 调用被观察）；**GDK/GTK/WebKit 的布局与 22 个枚举/掩码值是占位 `UNVERIFIED`**（保持分臂互不相同
+     而已，台账 `## Deviations` 7 已记）；C 1181-4,304 未移植；lane 的预算：`build-tu` 2/3、`probe` 0/3（臂读数是物化根上的
+     裸 `rustc`，已声明不是 `xtask probe` 读数）。

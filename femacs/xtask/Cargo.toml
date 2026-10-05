@@ -118,6 +118,9 @@ mingw_w64                                  = []  # MINGW_W64 (w32fns.c 38 `#if !
 ns_self_contained                          = []  # NS_SELF_CONTAINED
 treesit_language_version_ge_15             = []  # TREE_SITTER_LANGUAGE_VERSION >= 15 (src/treesit.c 38, 101)
 unicode                                    = []  # _UNICODE (w32.c 385's `#ifdef _UNICODE`, the `…W`/`…A` name pair)
+webkit_check_version_ge_2_16               = []  # WEBKIT_CHECK_VERSION (2,16,0) (src/xwidget.c)
+webkit_check_version_ge_2_26               = []  # WEBKIT_CHECK_VERSION (2,26,0)
+webkit_check_version_ge_2_34               = []  # WEBKIT_CHECK_VERSION (2,34,0)
 win32_winnt_lt_0501                        = []  # the derived condition `_WIN32_WINNT < 0x0501` (w32.c 248/552, the iphlpapi level raise and the console font arm)
 mingw32_w32api_ge_5_2                      = []  # the derived condition `__MINGW32_MAJOR_VERSION >= 5 && __MINGW32_MINOR_VERSION >= 2` (w32.c 553, the `CONSOLE_FONT_INFO` arm)
 mingw32_w32api_lt_3_15                     = []  # the derived condition `__MINGW32_MAJOR_VERSION < 3 || (== 3 && __MINGW32_MINOR_VERSION < 15)` (w32.c 141, the old-SDK `PROCESS_MEMORY_COUNTERS_EX` arm)
