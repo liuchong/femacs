@@ -13714,3 +13714,33 @@
      而且每组都停在 include 图里（行数逐组点名）；`x_draw_xwidget_glyph_string`（C 2792-3041）一行未动；没有跑任何行为。
   ⑧ **预算**：TU 编译 1 发（xwidget，冻结档）、翻臂探针 6 发（3 组 × 本片/基线）、重链 0 发、`--check` 4 发、
      `check-all-units.sh` 1 发（约 2.5 分钟）、`layout-check` 1 发、文本门 3 发；`/tmp` 的脚本与读数文件收工删。
+
+- **3.672 `src/xwidget.c` 的第四片：C 3117-3307（三个 WebKit subr + `save_script_callback` + `execute-script` + `xwidget-resize`）落地——`--check` 的 `- ` 行 76 → **71**，三组翻臂对 HEAD 新增 **0 行**（A/B/C 都是 0，含上一片那组"没有窗口系统"的人工手臂）；本轮**没有动镜像**，所以 P-87 两条腿不适用（2026-10-06）**：
+  ① **范围**：C 3117-3133 `xwidget-webkit-goto-uri`、C 3135-3169 `xwidget-webkit-goto-history`、
+     C 3171-3191 `xwidget-webkit-zoom`、C 3193-3215 `save_script_callback`（`static`，在 C 3193 的 `#ifdef USE_GTK` 里）、
+     C 3217-3250 `xwidget-webkit-execute-script`、C 3252-3303 `xwidget-resize`（含 C 3304-3307 的空行）。
+     每条 DEFUN 的 `USE_GTK`/`NS_IMPL_COCOA` 两臂都带，`nsxwidget_*` 与 lisp.h 那四名都在使用点声明（P-72 rule 4）。
+  ② **五条名字退场**（76 → 71）：`Fxwidget_webkit_goto_uri`/`_goto_history`/`_zoom`/`_execute_script` 与 `save_script_callback`
+     （外加 `Fxwidget_resize` 的 subr 行）。**四个 `defsubr (&raw const Sxwidget_webkit_*)` 行仍在**——`defsubr` 调用住在
+     `syms_of_xwidget`（C 3928-4035），还在 owed 里：**一个 DEFUN 与它的注册是两行、分两片落地**（这条口径写进了账）。
+     行数棘轮变成 `18.8%: C 4304 vs Rust 5114`。冻结档 `build-tu` 仍是 **336 字节空对象**。
+  ③ **三组翻臂（对 HEAD 的同名文件，HEAD 正好是"第四片之前"）**：A（`+have_x_windows`+`have_window_system`）单元格自身行 **50 → 50，新增 0**；
+     B（`+have_pgtk`）**12 → 12，新增 0**；C（无窗口系统）**23 → 23，新增 0**——这一片在**每一组**都零新增（C 组的 23 是上一片的
+     `glyph_string` 行加既有的 `E0609` 表）。
+  ④ **三轮修复（九处，全在本片自己的文本里，照实记）**：第一轮 `no rules expected uri / script`——`DEFUN!` 的参数模式是
+     `$arg:ident : $ty:ty`，C 那两个"会被赋值的形参"不能写 `mut`，改成函数体开头同名 `let mut` 重绑定（C 3125、C 3230 确实给它们赋值）；
+     第二轮：`GAsyncReadyCallback`（挨着本单元自己的 `GAsyncResult` 声明，`include/gtk.rs` 93-96 的 `GCallback` 形状）、
+     `XFIXNUM` 的 `EMACS_INT` 要转 GLib 的 `gint`、两处 C 的链式赋值（`xw->script_callbacks = cbs = …`，Rust 的 `=` 不是表达式）、
+     `xlispstrdup` 的 `char *` 经 `*mut c_void` 进 `make_mint_ptr`、`check_integer_range` 的上下界是 `intmax_t`（它自己 lisp.h 3773 的声明，
+     不是 `EMACS_INT`）、`redisplay` 在使用点声明（xdisp.c 17073，`keyboard.rs` 680 的形状）；
+     第三轮：`webkit_javascript_finished_cb` 在端口里原是 `unsafe fn`，而 C 3244 把它当 `GAsyncReadyCallback` 传，类型是
+     `unsafe extern "C" fn` ⇒ 定义改成 `extern "C"`（`init_alloc_once_for_pdumper` 的同一处更正，`alloc.rs` 7994）。
+  ⑤ **本轮零镜像改动**：WebKit 两个新记录（`WebKitBackForwardList`/`WebKitBackForwardListItem`）、七个 WebKit 函数、
+     GLib 回调类型与四个使用点声明（`larger_vector` lisp.h 4245、`xlispstrdup` lisp.h 5553、`FUNCTIONP` lisp.h 4799、
+     `redisplay` xdisp.c 17073）全在本单元里（该文件的第三方表面本来就在它的 WebKit 段 553-740）⇒ **P-87 ① 的两条腿不适用**，
+     这一点写在账里，不是在报告里含糊过去。`check-dead-file-coverage` 复读 **145 ledger(s), 0 failure(s)**。
+  ⑥ **账目**：C 区间表两处副本把"3117-4304 一整行"拆成 **3117-3307 transcribed / 3308-4304 owed**；新增 Evidence ⑪（a-e，
+     含 HEAD 对照表与三轮修复）；新增 `### Slice 4` 的 8 条偏离；Owed 7 更新（并点名 `syms_of_xwidget` 是**一次能动最多名字**的那一行）。
+  ⑦ **未声称**：C 2791-3041（`x_draw_xwidget_glyph_string`）与 C 3308-4304 一行未动；冻结档仍编译不到这个文件；
+     三组翻臂都是**编译**不是链接/加载；没有跑任何行为。
+  ⑧ **预算**：TU 编译 1 发（冻结档）、翻臂探针 7 发（本片 3 + HEAD 基线 3 + 一次目录用）、`--check` 4 发、文本门 2 发；`/tmp` 脚本收工删。

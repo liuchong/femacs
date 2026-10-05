@@ -204,7 +204,8 @@ block, and the union covers C 1-4304 without a gap.
 | 2717-2790 | `xwidget_init_view` (C 2720-2790), with C 2716's `#endif /* USE_GTK */` and C 2718-2719's comment | file gate - **transcribed** (slice 3, status 3.671) |
 | 2791-3041 | **the remainder between the slices**: C 2793's `x_draw_xwidget_glyph_string` (C 2792-3041) and C 3042's blank | file gate - **owed** |
 | 3042-3116 | the `CHECK_WEBKIT_WIDGET` (C 3042-3044) and `WEBKIT_FN_INIT` (C 3047-3050) macros, and the three accessors `xwidget-webkit-uri` (C 3052-3068), `xwidget-webkit-title` (C 3070-3085), `xwidget-webkit-estimated-load-progress` (C 3087-3115) | file gate - **transcribed** (slice 3, status 3.671) |
-| 3117-4304 | **the remainder after them**: C 3117's `xwidget-webkit-goto-uri` on to C 4304 - the rest of the ~60 subrs and `syms_of_xwidget`'s `DEFVAR`s | file gate - **owed** |
+| 3117-3307 | the three WebKit subrs `xwidget-webkit-goto-uri` (C 3117-3133), `xwidget-webkit-goto-history` (C 3135-3169), `xwidget-webkit-zoom` (C 3171-3191), `save_script_callback` (C 3193-3215, `static`, in C 3193's `#ifdef USE_GTK`), `xwidget-webkit-execute-script` (C 3217-3250) and `xwidget-resize` (C 3252-3303) with C 3304-3307's blank lines | file gate - **transcribed** (slice 4, status 3.672) |
+| 3308-4304 | **the remainder**: C 3308's `xwidget-size-request` on to C 4304 - the rest of the ~50 subrs, the store/kill helpers and `syms_of_xwidget` (C 3928-4035, which owns the `defsubr`s and `DEFVAR`s) | file gate - **owed** |
 
 ## Evidence` readings and the `## Deviations`.
 >
@@ -351,7 +352,8 @@ Frozen values behind every arm: `USE_GTK undef` (`darwin-arm64.macros.tsv` 3861)
 | 2717-2790 | `xwidget_init_view` (C 2720-2790), with C 2716's `#endif /* USE_GTK */` and C 2718-2719's comment | file gate - **transcribed** (slice 3, status 3.671) |
 | 2791-3041 | **the remainder between the slices**: C 2793's `x_draw_xwidget_glyph_string` (C 2792-3041) and C 3042's blank | file gate - **owed** |
 | 3042-3116 | the `CHECK_WEBKIT_WIDGET` (C 3042-3044) and `WEBKIT_FN_INIT` (C 3047-3050) macros, and the three accessors `xwidget-webkit-uri` (C 3052-3068), `xwidget-webkit-title` (C 3070-3085), `xwidget-webkit-estimated-load-progress` (C 3087-3115) | file gate - **transcribed** (slice 3, status 3.671) |
-| 3117-4304 | **the remainder after them**: C 3117's `xwidget-webkit-goto-uri` on to C 4304 - the rest of the ~60 subrs and `syms_of_xwidget`'s `DEFVAR`s | file gate - **owed** |
+| 3117-3307 | the three WebKit subrs `xwidget-webkit-goto-uri` (C 3117-3133), `xwidget-webkit-goto-history` (C 3135-3169), `xwidget-webkit-zoom` (C 3171-3191), `save_script_callback` (C 3193-3215, `static`, in C 3193's `#ifdef USE_GTK`), `xwidget-webkit-execute-script` (C 3217-3250) and `xwidget-resize` (C 3252-3303) with C 3304-3307's blank lines | file gate - **transcribed** (slice 4, status 3.672) |
+| 3308-4304 | **the remainder**: C 3308's `xwidget-size-request` on to C 4304 - the rest of the ~50 subrs, the store/kill helpers and `syms_of_xwidget` (C 3928-4035, which owns the `defsubr`s and `DEFVAR`s) | file gate - **owed** |
 
 ## Evidence
 
@@ -623,6 +625,56 @@ site; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` and
 (both were run because the edit is a mirror edit; P-87 ①).
 
 
+**⑪ Slice 4 (C 3117-3307): the readings of the round that landed it (2026-10-06, status 3.672).**
+
+a) `python3 tools/extract-abi.py --check emacs/src/xwidget.c femacs/src/xwidget.rs`: **76 -> 71**
+rows.  The five retired are `Fxwidget_webkit_goto_uri`, `Fxwidget_webkit_goto_history`,
+`Fxwidget_webkit_zoom`, `Fxwidget_webkit_execute_script` and `save_script_callback` (plus
+`Fxwidget_resize`'s `subr` row, which slice 3's "second round" had not reached).  **The four
+`defsubr (&raw const Sxwidget_webkit_*)` rows and `Fxwidget_resize`'s own stay**, because the
+`defsubr` calls live in `syms_of_xwidget` (C 3928-4035), which is still owed - a `DEFUN` and its
+registration are two rows and land in two slices.  The drift row is now
+`line count drifted 18.8%: C 4304 vs Rust 5114` (derived from the finished prefix's density, as
+⑨/⑩ say).
+
+b) **The frozen reading.**  `build-tu src/xwidget.c` -> `built ... -> ../build/femacs/xwidget.o`,
+exit 0, **336 bytes** - the empty object of the P-86 class.
+
+c) **The three arm flips, against HEAD's own file** (HEAD is exactly "before slice 4"; P-86 ⑦
+counts by file):
+
+| arm (`use_gtk` + `have_gtk3` + `have_xwidgets` + …) | own-text rows, HEAD | this slice | added |
+| --- | --- | --- | --- |
+| A: `have_x_windows` + `have_window_system` | 50 | **50** | **0** |
+| B: `have_pgtk` + `have_window_system` | 12 | **12** | **0** |
+| C: (no window system) | 23 | **23** | **0** |
+
+All three arms read the same own-text counts as before the slice, i.e. this slice's text
+type-checks in every one of them and adds no row anywhere (ARM C's 23 is slice 3's
+`glyph_string` row plus the pre-existing `E0609` list).
+
+d) **The three fix iterations behind c (nine edits, all this slice's own text).**  Run 1: `no rules
+expected uri / script` - the `DEFUN!` macro's argument pattern is `$arg:ident : $ty:ty`, so C's
+assignable parameters cannot be spelled `mut` there; both are rebound in the body instead (C 3125
+and C 3230 assign them; the `window.rs` 4267 shape).  Run 2: `GAsyncReadyCallback` (declared beside
+the unit's own `GAsyncResult`, the `include/gtk.rs` 93-96 `GCallback`/`GClosureNotify` shape),
+`XFIXNUM`'s `EMACS_INT` into GLib's `gint` (cast), two chained assignments C writes
+(`xw->script_callbacks = cbs = …` - Rust's `=` is not an expression), `xlispstrdup`'s `char *` into
+`make_mint_ptr`'s `Lisp_Object` (cast through `*mut c_void`), `check_integer_range`'s bounds are
+`intmax_t` (its own lisp.h 3773 declaration, not `EMACS_INT`) and `redisplay` (declared at the use
+site: xdisp.c 17073, the `keyboard.rs` 680 shape).  Run 3: `webkit_javascript_finished_cb` is
+`unsafe fn` in the port and C 3244 passes it as a `GAsyncReadyCallback`, whose type is
+`unsafe extern "C" fn` - so the definition becomes `extern "C"` (the
+`init_alloc_once_for_pdumper` correction, `femacs/src/alloc.rs` 7994).  Run 4 is the table above.
+
+e) **No mirror was edited this round**, so P-87 ①'s `check-all-units.sh` / `layout-check` legs do
+not apply: the WebKit record (`WebKitBackForwardList`, `WebKitBackForwardListItem`), the WebKit
+functions, the GLib callback type and the four use-site declarations (`larger_vector` lisp.h 4245,
+`xlispstrdup` lisp.h 5553, `FUNCTIONP` lisp.h 4799, `redisplay` xdisp.c 17073) all live in this
+unit, which is where the file's third-party surface already is (its WebKit block, 553-740).
+`check-dead-file-coverage.py` re-read after the table change: `145 ledger(s), 0 failure(s)`.
+
+
 ## Deviations
 
 1. **Include order.**  C's list starts at `"buffer.h"` (C 22) and reaches `"lisp.h"` at C 25;
@@ -812,6 +864,29 @@ site; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` and
    the file gate admits.
 
 
+### Slice 4 (C 3117-3307, status 3.672)
+
+1. **C's two assignable `DEFUN` parameters are rebound, not `mut`**: the `DEFUN!` macro's pattern
+   is `$arg:ident : $ty:ty`, so `uri` (C 3125) and `script` (C 3230) are bound as
+   `let mut … = …;` at the top of the body (the `window.rs` 4267 / fringe slice 2 shape).
+2. **`GAsyncReadyCallback`** is declared with the unit's own GLib surface (beside `GAsyncResult`),
+   as `Option<unsafe extern "C" fn (…)>` - the `include/gtk.rs` 93-96 shape.
+3. **`webkit_javascript_finished_cb` becomes `unsafe extern "C" fn`**: C 3244 passes it as a
+   `GAsyncReadyCallback`, and C's `static void f (...)` has that type; the port's earlier slice
+   wrote a plain `unsafe fn` because nothing called it through a function pointer yet (the
+   `init_alloc_once_for_pdumper` correction).
+4. **Two chained assignments are split** (`xw->script_callbacks = cbs = make_nil_vector (32);` and
+   `… = cbs = larger_vector (cbs, 1, -1);`) - Rust's `=` is not an expression (the C 1662 shape).
+5. **`XFIXNUM`'s `EMACS_INT` is cast to GLib's `gint`** where C passes it implicitly (C 3158).
+6. **`check_integer_range`'s bounds are `intmax_t`** (lisp.h 3773), not `EMACS_INT`: the two calls
+   cast `0` and `INT_MAX` accordingly.
+7. **`xlispstrdup`'s `char *`** is cast through `*mut c_void` into `make_mint_ptr` (C 3212).
+8. **Four use-site declarations** (this unit, P-72 rule 4): `larger_vector` (lisp.h 4245),
+   `xlispstrdup` (lisp.h 5553), `FUNCTIONP` (lisp.h 4799 - the `androidselect.rs` 145-152 shape)
+   and `redisplay` (xdisp.c 17073 - the `keyboard.rs` 680 shape).  Each is owed to the mirror that
+   should carry it, and this unit's Owed list says so.
+
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. `femacs/xtask/Cargo.toml`'s `[features]` table: the three derived-condition names this slice
@@ -873,11 +948,14 @@ site; `tools/check-all-units.sh` -> `checked 83 unit(s), 0 failure(s)` and
    only; **slice 2 flips them** (ARM A11 sets `have_xinput2`/`have_xinput2_4`, Evidence ⑧) but the
    arm cannot *resolve* until `XIEventMask`/`x_display_info` land in `include/xterm.rs` (owed 10),
    so the reading is still a name-resolution one and not a compile.
-7. **The next slices.**  Slice 3 (status 3.671) landed C 2717-2790 and C 3042-3116; what is left is
-   **C 2791-3041** (C 2793's `x_draw_xwidget_glyph_string`, the densest function in the file: the
-   `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` arms, `XCreateWindow`/`XISelectEvents`/
-   `cairo_xlib_surface_create`) and **C 3117-4304** (the remaining ~55 subrs and `syms_of_xwidget`'s
-   `DEFVAR`s).  The C line-range table carries both as its **owed** rows.
+7. **The next slices.**  Slices 3 and 4 (status 3.671, 3.672) landed C 2717-2790, C 3042-3116 and
+   C 3117-3307; what is left is **C 2791-3041** (C 2793's `x_draw_xwidget_glyph_string`, the
+   densest function in the file: the `HAVE_X_WINDOWS`/`HAVE_PGTK`/`NS_IMPL_COCOA` arms,
+   `XCreateWindow`/`XISelectEvents`/`cairo_xlib_surface_create`) and **C 3308-4304** (the remaining
+   ~50 subrs, the store/kill helpers and `syms_of_xwidget`, C 3928-4035).  **`syms_of_xwidget` is
+   what retires the `defsubr (&raw const S… )` rows of the seven subrs already ported**, so it is
+   the single row that moves the most names.  The C line-range table carries both fronts as its
+   **owed** rows.
 
 
 8. **The mirror's GDK event records need the members this slice reads.**  The ARM A11 reading's 84

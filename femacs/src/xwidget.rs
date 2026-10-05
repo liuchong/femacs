@@ -615,6 +615,22 @@ pub struct WebKitNavigationAction
 {
   _private: [u8; 0],
 }
+/// C: webkit2/WebKitBackForwardList.h: `typedef struct _WebKitBackForwardList
+/// WebKitBackForwardList;` - C 3150's `list` (slice 4).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[repr (C)]
+pub struct WebKitBackForwardList
+{
+  _private: [u8; 0],
+}
+/// C: webkit2/WebKitBackForwardListItem.h: `typedef struct _WebKitBackForwardListItem
+/// WebKitBackForwardListItem;` - C 3151's `it` (slice 4).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+#[repr (C)]
+pub struct WebKitBackForwardListItem
+{
+  _private: [u8; 0],
+}
 /// C: webkit2/WebKitDownload.h: `typedef struct _WebKitDownload WebKitDownload;` - the type
 /// C 105's forward declaration names.
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
@@ -748,6 +764,42 @@ unsafe extern "C" {
   /// `c_double` (the `WebKitHardwareAccelerationPolicy`/`gboolean` spellings above keep GLib's
   /// names because they are types the header itself defines; `gdouble` is a typedef of `double`).
   pub fn webkit_web_view_get_estimated_load_progress (web_view: *mut WebKitWebView) -> c_double;
+  /// C 3154: `webkit_web_view_reload (wkwv);`
+  /// C: webkit2/WebKitWebView.h: `void webkit_web_view_reload (WebKitWebView *web_view);`
+  pub fn webkit_web_view_reload (web_view: *mut WebKitWebView);
+  /// C 3157: `list = webkit_web_view_get_back_forward_list (wkwv);`
+  /// C: webkit2/WebKitWebView.h: `WebKitBackForwardList *webkit_web_view_get_back_forward_list
+  /// (WebKitWebView *web_view);`
+  pub fn webkit_web_view_get_back_forward_list (web_view: *mut WebKitWebView)
+    -> *mut WebKitBackForwardList;
+  /// C 3158: `it = webkit_back_forward_list_get_nth_item (list, XFIXNUM (rel_pos));`
+  /// C: webkit2/WebKitBackForwardList.h: `WebKitBackForwardListItem
+  /// *webkit_back_forward_list_get_nth_item (WebKitBackForwardList *back_forward_list,
+  /// gint index);`
+  pub fn webkit_back_forward_list_get_nth_item (back_forward_list: *mut WebKitBackForwardList,
+						index: c_int) -> *mut WebKitBackForwardListItem;
+  /// C 3163: `webkit_web_view_go_to_back_forward_list_item (wkwv, it);`
+  /// C: webkit2/WebKitWebView.h: `void webkit_web_view_go_to_back_forward_list_item (WebKitWebView
+  /// *web_view, WebKitBackForwardListItem *list_item);`
+  pub fn webkit_web_view_go_to_back_forward_list_item (web_view: *mut WebKitWebView,
+						       list_item: *mut WebKitBackForwardListItem);
+  /// C 3182-3185: `webkit_web_view_set_zoom_level (WEBKIT_WEB_VIEW (xw->widget_osr),
+  /// webkit_web_view_get_zoom_level (WEBKIT_WEB_VIEW (xw->widget_osr)) + zoom_change);`
+  /// C: webkit2/WebKitWebView.h: `void webkit_web_view_set_zoom_level (WebKitWebView *web_view,
+  /// gdouble zoom_level);`
+  pub fn webkit_web_view_set_zoom_level (web_view: *mut WebKitWebView, zoom_level: c_double);
+  /// C 3184-3185: `… webkit_web_view_get_zoom_level (WEBKIT_WEB_VIEW (xw->widget_osr)) …`
+  /// C: webkit2/WebKitWebView.h: `gdouble webkit_web_view_get_zoom_level (WebKitWebView
+  /// *web_view);`
+  pub fn webkit_web_view_get_zoom_level (web_view: *mut WebKitWebView) -> c_double;
+  /// C 3241-3245: `webkit_web_view_run_javascript (WEBKIT_WEB_VIEW (xw->widget_osr),
+  /// script_string, NULL, webkit_javascript_finished_cb, (gpointer) idx);`
+  /// C: webkit2/WebKitWebView.h: `void webkit_web_view_run_javascript (WebKitWebView *web_view,
+  /// const gchar *script, GCancellable *cancellable, GAsyncReadyCallback callback, gpointer
+  /// user_data);`
+  pub fn webkit_web_view_run_javascript (web_view: *mut WebKitWebView, script: *const gchar,
+					 cancellable: *mut c_void,
+					 callback: GAsyncReadyCallback, user_data: gpointer);
 }
 
 /* C 56-59: the file's four file-scope objects.  The first three are C's tentative definitions
@@ -2115,6 +2167,13 @@ pub struct GAsyncResult
 {
   _private: [u8; 0],
 }
+/// C: glib/gasyncresult.h: `typedef void (*GAsyncReadyCallback) (GObject *source_object,
+/// GAsyncResult *res, gpointer user_data);` - C 3244's `webkit_javascript_finished_cb` argument
+/// (slice 4); the `include/gtk.rs` 93-96 `GCallback`/`GClosureNotify` shape.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+pub type GAsyncReadyCallback =
+  Option<unsafe extern "C" fn (source_object: *mut GObject, res: *mut GAsyncResult,
+			       user_data: gpointer)>;
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
 unsafe extern "C" {
   /// C 1585: `children = g_list_prepend (children, window);`
@@ -4298,8 +4357,13 @@ unsafe fn webkit_js_to_lisp (value: *mut JSCValue) -> Lisp_Object  // C 2453-251
 
 /// C 2520-2559: the `run-javascript` completion callback (static).
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
-unsafe fn webkit_javascript_finished_cb (webview: *mut GObject, result: *mut GAsyncResult,
-                                         arg: gpointer)  // C 2520-2559
+/* C 3244 passes this function as `GAsyncReadyCallback`, whose type is
+   `unsafe extern "C" fn (...)`; C's `static void webkit_javascript_finished_cb (...)` has that
+   type, so the port spells it `extern "C"` (the `init_alloc_once_for_pdumper` correction,
+   `femacs/src/alloc.rs` 7994).  */
+unsafe extern "C" fn webkit_javascript_finished_cb (webview: *mut GObject,
+						    result: *mut GAsyncResult,
+						    arg: gpointer)  // C 2520-2559
 {
   let mut error: *mut GError = std::ptr::null_mut ();
   let xw: *mut xwidget = g_object_get_data (G_OBJECT! (webview),
@@ -4511,6 +4575,35 @@ unsafe fn webkit_script_dialog_cb (webview: *mut WebKitWebView,
 }
 /* C 2716: `#endif /* USE_GTK */` — the second `USE_GTK` block ends here; C 2718's
    `xwidget_init_view` is the next lane's first definition.  */
+
+/* Three names lisp.h declares and this slice's bodies call, which the mirrors this unit reaches
+   do not carry yet (P-72 rule 4: a mirror must reach what it needs through its own `include!`s).
+   Each line names the C header it comes from, and the ledger's Owed list records them.  */
+/// C: lisp.h 4245: `extern Lisp_Object larger_vector (Lisp_Object, ptrdiff_t, ptrdiff_t);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe extern "C" {
+  pub fn larger_vector (vec: Lisp_Object, eltcnt: ptrdiff_t, eltbytes: ptrdiff_t)
+    -> Lisp_Object;
+}
+/// C: lisp.h 5553: `extern char *xlispstrdup (Lisp_Object) ATTRIBUTE_MALLOC;`
+/// (alloc.c 842 defines it).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe extern "C" {
+  pub fn xlispstrdup (string: Lisp_Object) -> *mut c_char;
+}
+/// C: xdisp.c 17073: `redisplay (void)` (dispextern.h declares it; the `keyboard.rs` 680
+/// `unsafe extern "C" { fn redisplay (); }` shape).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe extern "C" {
+  pub fn redisplay ();
+}
+/// C: lisp.h 4799: `extern bool FUNCTIONP (Lisp_Object);` (eval.c defines it; the
+/// `androidselect.rs` 145-152 shape - lisp.h also spells it as a macro at 3772, and the port's
+/// `alloc.rs` 142-146 carries that form for its own arm).
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe extern "C" {
+  pub fn FUNCTIONP (object: Lisp_Object) -> bool;
+}
 
 /* C 2716: `#endif /* USE_GTK */`.  This slice is C 2717-2790 and then C 3042-3116; C 2791-3041
    (C 2793's `x_draw_xwidget_glyph_string`) is the unported remainder between them and C 3117-4304
@@ -4750,4 +4843,272 @@ DEFUN! ("xwidget-webkit-estimated-load-progress", Fxwidget_webkit_estimated_load
 #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
 unsafe extern "C" {
   pub fn nsxwidget_webkit_estimated_load_progress (xw: *mut xwidget) -> c_double;
+}
+
+/* C 3117's `DEFUN ("xwidget-webkit-goto-uri", …)` on: slice 4.  The C line-range table's row
+   3117-4304 is still the owed remainder, and this slice lands its first six items (C 3117-3300);
+   C 3301 on is the next slice's.  */
+
+/// C 3117-3120: `DEFUN ("xwidget-webkit-goto-uri", Fxwidget_webkit_goto_uri,
+/// Sxwidget_webkit_goto_uri, 2, 2, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-goto-uri", Fxwidget_webkit_goto_uri, Sxwidget_webkit_goto_uri, 2, 2, 0,
+       doc: "Make the xwidget webkit instance referenced by XWIDGET browse URI.",
+       (xwidget: Lisp_Object, uri: Lisp_Object),
+       {
+  let xw: *mut xwidget = WEBKIT_FN_INIT! (xwidget);
+  /* C 3125 assigns its own `uri` parameter (`uri = ENCODE_FILE (uri);`); a Rust parameter is
+     not a place, so the port rebinds it (the `window.rs` 4267 shape).  */
+  let mut uri: Lisp_Object = uri;
+  CHECK_STRING (uri);
+  uri = ENCODE_FILE (uri);
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  webkit_web_view_load_uri (WEBKIT_WEB_VIEW! ((*xw).widget_osr), SSDATA (uri));
+  catch_child_signal ();
+  }
+  /* C 3130's `#elif defined NS_IMPL_COCOA` arm; the port keeps the file gate on every item
+     (P-86 ⑧), so the arm carries the name - the same shape as slice 3's Cocoa arms.  */
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  nsxwidget_webkit_goto_uri (xw, SSDATA (uri));
+  }
+  return Qnil ();
+});
+
+/// C 3129-3130's `#elif defined NS_IMPL_COCOA` arm's callee.
+/// C: nsxwidget.h 37: `void nsxwidget_webkit_goto_uri (struct xwidget *xw, const char *uri);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_webkit_goto_uri (xw: *mut xwidget, uri: *mut c_char);
+}
+
+/// C 3135-3142: `DEFUN ("xwidget-webkit-goto-history", Fxwidget_webkit_goto_history,
+/// Sxwidget_webkit_goto_history, 2, 2, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-goto-history", Fxwidget_webkit_goto_history,
+       Sxwidget_webkit_goto_history, 2, 2, 0,
+       doc: "Make the XWIDGET webkit the REL-POSth element in load history.\n\nIf REL-POS is 0, the widget will be just reload the current element in\nhistory.  If REL-POS is more or less than 0, the widget will load the\nREL-POSth element around the current spot in the load history.",
+       (xwidget: Lisp_Object, rel_pos: Lisp_Object),
+       {
+  let xw: *mut xwidget = WEBKIT_FN_INIT! (xwidget);
+  CHECK_FIXNUM (rel_pos);
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  let wkwv: *mut WebKitWebView = WEBKIT_WEB_VIEW! ((*xw).widget_osr);
+  let mut list: *mut WebKitBackForwardList;
+  let mut it: *mut WebKitBackForwardListItem;
+
+  if XFIXNUM (rel_pos) == 0
+    { webkit_web_view_reload (wkwv); }
+  else
+    {
+      list = webkit_web_view_get_back_forward_list (wkwv);
+      it = webkit_back_forward_list_get_nth_item (list, XFIXNUM (rel_pos) as c_int);
+
+      if it.is_null ()
+	{ error (c"There is no item at this index".as_ptr ()); }
+
+      webkit_web_view_go_to_back_forward_list_item (wkwv, it);
+    }
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  nsxwidget_webkit_goto_history (xw, XFIXNAT (rel_pos) as c_int);
+  }
+  return Qnil ();
+});
+
+/// C 3165-3166's `#elif defined NS_IMPL_COCOA` arm's callee.
+/// C: nsxwidget.h 38: `void nsxwidget_webkit_goto_history (struct xwidget *xw, int rel_pos);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_webkit_goto_history (xw: *mut xwidget, rel_pos: c_int);
+}
+
+/// C 3171-3174: `DEFUN ("xwidget-webkit-zoom", Fxwidget_webkit_zoom, Sxwidget_webkit_zoom, 2, 2,
+/// 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-zoom", Fxwidget_webkit_zoom, Sxwidget_webkit_zoom, 2, 2, 0,
+       doc: "Change the zoom factor of the xwidget webkit instance referenced by XWIDGET.",
+       (xwidget: Lisp_Object, factor: Lisp_Object),
+       {
+  let xw: *mut xwidget = WEBKIT_FN_INIT! (xwidget);
+  if FLOATP (factor)
+    {
+      let zoom_change: c_double = XFLOAT_DATA (factor);
+
+      #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+      {
+      webkit_web_view_set_zoom_level
+        (WEBKIT_WEB_VIEW! ((*xw).widget_osr),
+         webkit_web_view_get_zoom_level
+         (WEBKIT_WEB_VIEW! ((*xw).widget_osr)) + zoom_change);
+      }
+      #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+      {
+      nsxwidget_webkit_zoom (xw, zoom_change);
+      }
+    }
+  return Qnil ();
+});
+
+/// C 3186-3187's `#elif defined NS_IMPL_COCOA` arm's callee.
+/// C: nsxwidget.h 41: `void nsxwidget_webkit_zoom (struct xwidget *xw, double zoom_change);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_webkit_zoom (xw: *mut xwidget, zoom_change: c_double);
+}
+
+/* C 3193's `#ifdef USE_GTK`; its `#endif` is C 3215.  */
+
+/* Save script and fun in the script/callback save vector and return
+   its index.  */
+
+/// C: 3196-3197: `static ptrdiff_t` / `save_script_callback (struct xwidget *xw, Lisp_Object
+/// script, Lisp_Object fun)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+unsafe fn save_script_callback (xw: *mut xwidget, script: Lisp_Object, fun: Lisp_Object)
+  -> ptrdiff_t
+{
+  let mut cbs: Lisp_Object = (*xw).script_callbacks;
+  if NILP (cbs)
+    { cbs = make_nil_vector (32); (*xw).script_callbacks = cbs; }
+
+  /* Find first free index.  */
+  let mut idx: ptrdiff_t;
+  idx = 0;
+  while !NILP (AREF (cbs, idx))
+    {
+      if idx + 1 == ASIZE (cbs)
+	{
+	  cbs = larger_vector (cbs, 1 as ptrdiff_t, -1 as ptrdiff_t);
+	  (*xw).script_callbacks = cbs;
+	  break;
+	}
+      idx += 1;
+    }
+
+  ASET (cbs, idx, Fcons (make_mint_ptr (xlispstrdup (script) as *mut c_void), fun));
+  return idx;
+}
+
+/// C 3217-3222: `DEFUN ("xwidget-webkit-execute-script", Fxwidget_webkit_execute_script,
+/// Sxwidget_webkit_execute_script, 2, 3, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-webkit-execute-script", Fxwidget_webkit_execute_script,
+       Sxwidget_webkit_execute_script, 2, 3, 0,
+       doc: "Make the Webkit XWIDGET execute JavaScript SCRIPT.\nIf FUN is provided, feed the JavaScript return value to the single\nargument procedure FUN.",
+       (xwidget: Lisp_Object, script: Lisp_Object, fun: Lisp_Object),
+       {
+  let xw: *mut xwidget = WEBKIT_FN_INIT! (xwidget);
+  /* C 3230 assigns its own `script` parameter (`script = ENCODE_SYSTEM (script);`).  */
+  let mut script: Lisp_Object = script;
+  CHECK_STRING (script);
+  if !NILP (fun) && !FUNCTIONP (fun)
+    { wrong_type_argument (Qinvalid_function (), fun); }
+
+  script = ENCODE_SYSTEM (script);
+
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  /* Protect script and fun during GC.  */
+  let idx: intptr_t = save_script_callback (xw, script, fun) as intptr_t;
+
+  /* JavaScript execution happens asynchronously.  If an elisp
+     callback function is provided we pass it to the C callback
+     procedure that retrieves the return value.  */
+  let script_string: *mut c_char
+    = xmint_pointer (XCAR (AREF ((*xw).script_callbacks, idx as ptrdiff_t))) as *mut c_char;
+  webkit_web_view_run_javascript (WEBKIT_WEB_VIEW! ((*xw).widget_osr),
+				  script_string,
+                                  core::ptr::null_mut (), /* cancelable */
+                                  Some (webkit_javascript_finished_cb),
+				  idx as gpointer);
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  nsxwidget_webkit_execute_script (xw, SSDATA (script), fun);
+  }
+  return Qnil ();
+});
+
+/// C 3246-3247's `#elif defined NS_IMPL_COCOA` arm's callee.
+/// C: nsxwidget.h 42-43: `void nsxwidget_webkit_execute_script (struct xwidget *xw, const char
+/// *script, Lisp_Object fun);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_webkit_execute_script (xw: *mut xwidget, script: *mut c_char,
+					  fun: Lisp_Object);
+}
+
+/// C 3252-3253: `DEFUN ("xwidget-resize", Fxwidget_resize, Sxwidget_resize, 3, 3, 0, doc: ...)`.
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+DEFUN! ("xwidget-resize", Fxwidget_resize, Sxwidget_resize, 3, 3, 0,
+       doc: "Resize XWIDGET to NEW_WIDTH, NEW_HEIGHT.",
+       (xwidget: Lisp_Object, new_width: Lisp_Object, new_height: Lisp_Object),
+       {
+  CHECK_LIVE_XWIDGET (xwidget);
+  /* `check_integer_range`'s bounds are C's `intmax_t` (its own declaration, lisp.h 3773).  */
+  let w: c_int = check_integer_range (new_width, 0 as intmax_t, INT_MAX as intmax_t) as c_int;
+  let h: c_int = check_integer_range (new_height, 0 as intmax_t, INT_MAX as intmax_t) as c_int;
+  let xw: *mut xwidget = XXWIDGET (xwidget);
+
+  (*xw).width = w;
+  (*xw).height = h;
+
+  block_input ();
+
+  let mut tail: Lisp_Object = internal_xwidget_view_list;
+  while CONSP (tail)
+    {
+      if XWIDGET_VIEW_P (XCAR (tail))
+        {
+          let xv: *mut xwidget_view = XXWIDGET_VIEW (XCAR (tail));
+          if XXWIDGET ((*xv).model) == xw
+            {
+	      #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+	      {
+	      (*xv).just_resized = 1;
+	      SET_FRAME_GARBAGED! ((*xv).frame);
+	      }
+	      #[cfg (all (not (feature = "use_gtk"), feature = "have_gtk3"))]
+	      {
+	      wset_redisplay (XWINDOW ((*xv).w));
+	      }
+            }
+        }
+      tail = XCDR (tail);
+    }
+
+  redisplay ();
+
+  /* If there is an offscreen widget resize it first.  */
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3"))]
+  {
+  if !(*xw).widget_osr.is_null ()
+    {
+      gtk_window_resize (GTK_WINDOW! ((*xw).widgetwindow_osr), (*xw).width,
+                         (*xw).height);
+      gtk_widget_set_size_request (GTK_WIDGET! ((*xw).widget_osr), (*xw).width,
+                                   (*xw).height);
+
+      gtk_widget_queue_allocate (GTK_WIDGET! ((*xw).widget_osr));
+    }
+  }
+  #[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+  {
+  nsxwidget_resize (xw);
+  }
+  unblock_input ();
+  return Qnil ();
+});
+
+/// C 3297-3298's `#elif defined NS_IMPL_COCOA` arm's callee.
+/// C: nsxwidget.h 55: `void nsxwidget_resize (struct xwidget *xw);`
+#[cfg (all (feature = "use_gtk", feature = "have_gtk3", feature = "ns_impl_cocoa"))]
+unsafe extern "C" {
+  pub fn nsxwidget_resize (xw: *mut xwidget);
 }
