@@ -146,8 +146,19 @@ pub struct uniscribe_font_info
 /// C: void w32_dwrite_free_cached_face (void *cache);
 /// C: void syms_of_w32dwrite (void);
 /// C: extern void globals_of_w32font (void);
+/* C 71-96's non-static entry points, in C's order.  They sit in a module the mirror
+   glob-imports because `src/w32font.rs` **defines** nine of them (`w32font_get_cache`,
+   `w32font_list_internal`, `w32font_match_internal`, `w32font_open_internal`, `w32font_close`,
+   `w32font_has_char`, `w32font_text_extents`, `w32font_draw`, `intern_font_name`): at the crate
+   root those declarations are `E0428` in that unit the moment it includes its own header mirror -
+   measured by the lane's arm reading, ten rows at this mirror's 151-176 (status 3.539).  The
+   module + glob shape is P-39's (`fontset_decls`, `font_log_decls`, `ccl_spec`); the unit's own
+   definitions shadow the glob, so nothing changes for the units that only *call* them.  */
 #[cfg (feature = "windowsnt")]
-unsafe extern "C" {
+pub mod w32font_decls {
+  use super::*;
+
+  unsafe extern "C" {
   pub fn w32font_get_cache (fe: *mut frame) -> Lisp_Object;
   pub fn w32font_list_internal (f: *mut frame, font_spec: Lisp_Object, opentype_only: bool)
                                 -> Lisp_Object;
@@ -174,4 +185,7 @@ unsafe extern "C" {
   pub fn w32_dwrite_free_cached_face (cache: *mut c_void);
   pub fn syms_of_w32dwrite ();
   pub fn globals_of_w32font ();
+  }
 }
+#[cfg (feature = "windowsnt")]
+use w32font_decls::*;

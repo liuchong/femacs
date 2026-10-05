@@ -10551,3 +10551,27 @@
      但本机**没有**那些 SDK 去读它们）。
   ⑤ **预算**：`probe` 2 发（含一次 `/tmp` 目录没建导致的空跑）、`check-all-units` 1 发、`layout-check` 1 发、
      `check-citations` 3 发、`check-mirror-dupes` 2 发、`extract-abi --check` 2 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.539 镜像轮第十五批：`include/w32font.rs` 的十条原型搬进 `w32font_decls` 模块（`w32font` 臂 21 错 → 11）（2026-10-05）**：
+  ① **对象**：该镜像把 C 71-96 的十个非 static 入口点**摆在 crate 根**，其中**九个正是 `src/w32font.rs` 定义的**
+     （`w32font_get_cache`/`w32font_list_internal`/`w32font_match_internal`/`w32font_open_internal`/
+     `w32font_close`/`w32font_has_char`/`w32font_text_extents`/`w32font_draw`/`intern_font_name`）⇒ 那个单元一旦
+     include 自己的头镜像就是 `E0428`：lane 的臂读数里**十条正落在这个镜像的 151-176**，占它 21 条错误行的一半。
+  ② **改法**：整块搬进 `pub mod w32font_decls { use super::*; … }` + `use w32font_decls::*;`（P-39；`fontset_decls`、
+     `font_log_decls`、`ccl_spec` 三个先例），`windowsnt` 门同时留在模块与 glob 上，注释写明实测来源。单元自己
+     的定义会遮蔽 glob，**只调用的单元一点没变** ⇒ 无需改任何单元文本。
+  ③ **读数（主判据 = 臂）**：`probe src/w32font.rs`（`have_ntgui` + `windowsnt` + `have_window_system`）：
+     **21 条错误行 → 11 条**（十条 `E0428` 全消）；剩下的 11 条**正是各 lane 早就点过名的镜像行**，只是此前被 `E0428`
+     挡在解析阶段看不见：4 × `HWND`（`include/w32term.rs`）、`SYSTEM_INFO` 与 `OSVERSIONINFO`
+     （`include/w32common.rs`）、`lib/include/signal.rs` 156 的 `sigset_t`（`(*set).__val` 把标量当结构用，
+     `E0610`/`E0071`）、`include/frame.rs` 那条**自己写明**的 `compile_error!`（HAVE_NTGUI 的 flag run 在本机不可测），
+     外加两行 rustc 的包装行。⇒ **计数降了、类别变得诚实**。`check-all-units` **83 unit(s), 0 failure(s)**（两腿；
+     该块挂在 `windowsnt` 上、冻结档为假，所以冻结读数一格没动）、`layout-check` passed、
+     `extract-abi --check emacs/src/w32font.c femacs/src/w32font.rs` **OK**、`check-citations` 0/0。
+     `check-mirror-dupes` 读作 **1 failure**，但那条是**在飞 lane 的 `femacs/src/haikufns.rs`**（`haiku_term_init`
+     与 `include/haikuterm.rs` 重复），本条目 0 条。
+  ④ **未声称**：仍是**编译**读数，本机无 Windows SDK（`<windows.h>` 的记录仍是 UNVERIFIED）；剩下的 11 条本轮**没有修**，
+     它们是下一批镜像项（`HWND` 归 `w32term.rs`、`SYSTEM_INFO`/`OSVERSIONINFO` 归 `w32common.rs`、`sigset_t` 归
+     `lib/include/signal.rs`、flag run 归 `frame.rs`）。
+  ⑤ **预算**：`probe` 1 发（另有一次 `/tmp` 目录没建导致的空跑）、`check-all-units` 1 发、`layout-check` 1 发、
+     `check-mirror-dupes` 3 发、`check-citations` 1 发、`extract-abi --check` 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
