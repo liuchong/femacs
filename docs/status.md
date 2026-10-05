@@ -11368,3 +11368,24 @@
   ⑥ **未声称**：本机没有 DJGPP，**没有翻臂到 DOS 目标编译、没有布局测量、没有执行任何行为**
      （无 `int86`/`intdos`/DPMI/内存搬运/鼠标/屏幕/国家信息）；就地声明的 DJGPP 结构全是**文档值 UNVERIFIED**；
      "整文件转写"不等于"能编/能跑"，`msdos` 臂今天编不过，那是镜像图的状态。
+
+- **3.567 lane 产出收口：`src/ftcrfont.c` 整文件落地（C 826 → Rust 1,769）（2026-10-05）**：
+  ① **lane 的产出（Bohr）**：`femacs/src/ftcrfont.rs` 11 → **1,769 行**（md5 `d194f28d…`），台账 427 行 / 27 行区间表
+     覆盖 C 1-826；文件门 `any (use_cairo, be_cairo)`（`configure.ac` 7191-7215 三处 `FONT_OBJ` 拼写），33 个条件两臂都带，
+     `check-cond-eval` 读 **33 conditions / 0 disagreements**；**11 个 feature 全部已在 `xtask/Cargo.toml`，无需新登记**。
+  ② **读数**：冻结 `build-tu` 4 发（超 1）→ 336 字节；两臂 `probe`（X11+cairo / Haiku+cairo）各 5 发（超 2）：
+     X11 臂 44 错、Haiku 臂 29 错，**按文件分类后每一条都落在镜像**（`include/ftfont.rs` 的 `font_info` 只有 XFT 臂且整门挂
+     `have_x_windows`；`include/haiku_support.rs` 705 缺 `-> bool`；`include/systime.rs` 27-28 的 P-51 配对断言）；
+     **翻臂预检**（/tmp 物化根 + 镜像补丁，2/4 个补丁）**两臂各 0 error**，并在预检阶段抓出**本单元自身 4 处**真缺陷
+     （`E0507` 从 `*cache` 移出、`E0384` 给不可变形参赋值、`1.0/256` 的 `E0277`、`(*(*x as T))` 的结合序）＋门抓到的
+     1 处重复声明，**全部已修**；**变异实测**把错误锚回单元自身行。
+  ③ **集成者登记**：容差行 `ftcrfont 1.15`（826 vs 1769 = 114.2%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件
+     （在飞的 `sfntfont-android` 行回退成已提交值）；`port-lines-pending.tsv` 去掉本件的行 ⇒ **pending 只剩 5 文件 /
+     2,975 参照行**；`macro-body-notes.tsv` 收下该 lane 追加的 1 行。
+  ④ **门读数（本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**（Sagan 已按我转去的
+     原文把 `sfntfont-android.rs` 的那条 drift 改对）、`check-declarations` 0 failures、`check-dead-file-coverage` **138/0**、
+     `check-ledger-ticks` 236/0、`check-port-lines` 5 文件 / 2,975 行 / 0 new / 1 stale、`check-target-names` 0 finding。
+  ⑤ **未声称**：冻结档只编出 336 字节空对象，**没有任何 cairo/Fontconfig/FreeType/HarfBuzz/Haiku 的行为被运行**，无 ERT、
+     无差分；两臂读数都是 `rustc` 对物化镜像图的读数，"本单元 0 错"只对**带镜像补丁的 /tmp 预检**成立（变异背书）；
+     **pgtk 臂无编译读数**（text-only）；布局数字是本机 clang 读数（cairo 1.18.4 / Fontconfig 2.18.3 / FreeType 2.14.3 /
+     HarfBuzz 14.4.0），libotf 因本机无 `<otf.h>` 标 **UNVERIFIED**。
