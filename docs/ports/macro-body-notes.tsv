@@ -1633,3 +1633,11 @@ lookup_image	background_valid	image.c 3625's `if (! img->background_valid)` read
 image_check_image_size	1	image.c 4072's `return 1;` in a `bool` function is the port's `return true;` (the `check_image_size` row's family); the literal has no counterpart token; every other token of the body is present.
 image_find_image_file	0	image.c 4510's `return image_find_image_fd (file, 0);` writes C's null pointer constant, and the port writes `core::ptr::null_mut ()` for it; the literal has no counterpart token; every other token of the body is present.
 
+x_to_w32_color	alloca	w32fns.c 961: C's `char *approx = alloca (len + 1)` is the port's stack pool `sa_stack_alloc` (PORTING.md P-05, the AVAIL_ALLOCA row)
+w32_regenerate_palette	alloca	w32fns.c 993: C's `(LOGPALETTE *) alloca (sizeof (LOGPALETTE) + …)` is the port's stack pool `sa_stack_alloc` (PORTING.md P-05)
+w32_defined_color	0	w32fns.c 1184: C's `return 0;` for its `bool` return is the port's `false` (the `w32font_list` row's class); the `1` C returns two lines above is the port's `true`
+w32_set_cursor_color	1	w32fns.c 1454-1455: C's `gui_update_cursor (f, 0)`/`(f, 1)` pass C's `int` for the header's `bool`, which the port writes `false`/`true`
+w32_set_menu_bar_lines	boolean	w32fns.c 1724-1725: C's `boolean old`/`boolean new` are `lisp.h`'s `typedef bool boolean`, so the port writes `bool`
+w32_set_title_bar_text	alloca	w32fns.c 2014: C's `title_w = alloca ((tlen + 1) * sizeof (wchar_t))` is the port's stack pool `sa_stack_alloc` (PORTING.md P-05)
+w32_set_name	explicit_name	w32fns.c 2046-2052: C's `f->explicit_name` is the `bool_bf` `frame.h` 417 packs into the frame's flag word, so the port reads and writes it through `frame_flag`/`FRAME_EXPLICIT_NAME` (the `haikufns.rs` 470-476 shape)
+process_dropfiles	wchar	w32fns.c 2505/2517: C's `WCHAR *p` and `wcslen`'s `wchar_t` are the Windows 16-bit wide character, which this unit spells `c_ushort` (`include/w32.rs` 31's reading)

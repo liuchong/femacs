@@ -114,7 +114,53 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 591-833 | `w32_color_map[240]` | file gate |
 | 835-854 | `w32_default_color_map` | file gate |
 | 856-884 | `w32_color_map_lookup` | file gate |
-| 885-12488 | **the remainder of the file** (C 887-932 `add_system_logical_colors_to_map` onward) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 885-932 | `add_system_logical_colors_to_map` (C 890-932's registry walk; the `#if 0`-free half) | file gate |
+| 933-978 | `x_to_w32_color` (C 961's bare `alloca` = the stack pool) | file gate |
+| 979-1016 | `w32_regenerate_palette` (C 993's bare `alloca`; `LOGPALETTE`) | file gate (`#[unsafe(no_mangle)]`) |
+| 1017-1093 | C 1019-1027 `W32_COLOR`/`SET_W32_COLOR`; C 1029-1093 `#if 0` (`w32_map_color`/`w32_unmap_color`) | file gate; the `#if 0` is dead text carried as C's own text in a comment |
+| 1094-1186 | `gamma_correct` (C 1102 `pow`), `w32_defined_color` (C 1140-1142's `W32_COLOR`/`SET_W32_COLOR`) | file gate (`#[unsafe(no_mangle)]` both) |
+| 1187-1208 | `w32_decode_color` | file gate |
+| 1209-1242 | the `gui_set_frame_parameters` comment block and `w32_set_foreground_color` | file gate |
+| 1243-1260 | `w32_set_background_color` | file gate |
+| 1261-1420 | `w32_set_mouse_color` (C 1265-1268 and C 1278-1417 are `#if 0`) | file gate; both `#if 0` regions as C's own text in comments |
+| 1421-1463 | `w32_set_cursor_color` | file gate |
+| 1464-1480 | `w32_set_border_pixel` | file gate |
+| 1481-1497 | `w32_set_border_color` | file gate |
+| 1498-1504 | `w32_set_cursor_type` | file gate |
+| 1505-1531 | `w32_set_icon_type` (C 1517's terminal hook) | file gate |
+| 1532-1583 | `w32_set_icon_name` (C 1552-1583 is `#if 0`) | file gate; the `#if 0` as C's own text in a comment |
+| 1584-1634 | `w32_clear_under_internal_border` (its 1581-1586 doc comment) | file gate (`#[unsafe(no_mangle)]`) |
+| 1635-1666 | `w32_set_child_frame_border_width` | file gate |
+| 1667-1693 | `w32_set_internal_border_width` | file gate |
+| 1694-1750 | `w32_set_menu_bar_lines` | file gate |
+| 1751-1775 | `w32_set_tab_bar_lines` | file gate |
+| 1776-1848 | `w32_change_tab_bar_height` | file gate (`#[unsafe(no_mangle)]`) |
+| 1849-1874 | `w32_set_tool_bar_lines` | file gate |
+| 1875-1908 | `w32_set_tool_bar_position` | file gate |
+| 1909-1930 | `w32_set_inhibit_double_buffering` (C 1921-1924's `want_paint_buffer` bits) | file gate; `w32_output_bits!` (3.575) |
+| 1931-1980 | `w32_change_tool_bar_height` | file gate (`#[unsafe(no_mangle)]`) |
+| 1981-2025 | `w32_set_title_bar_text` (C 1988-1990 `#ifdef __CYGWIN__`; C 2001-2021's UTF-16 half with C 2013's bare `alloca`) | both arms (`cygwin` / `not (cygwin)`); `not (cygwin)` also carries `ntgui_unicode`? no: the UTF-16 half is the non-Cygwin arm's |
+| 2026-2080 | `w32_set_name` (its 2027-2037 comment) | file gate |
+| 2081-2089 | `w32_explicitly_set_name` | file gate |
+| 2090-2098 | `w32_implicitly_set_name` | file gate (`#[unsafe(no_mangle)]`) |
+| 2099-2118 | `w32_set_title` | file gate |
+| 2119-2128 | `w32_set_scroll_bar_default_width` | file gate (`#[unsafe(no_mangle)]`) |
+| 2129-2139 | `w32_set_scroll_bar_default_height` | file gate (`#[unsafe(no_mangle)]`) |
+| 2140-2185 | `w32_set_undecorated` (its 2141-2153 doc comment) | file gate |
+| 2186-2248 | `w32_set_parent_frame` (its 2187-2215 doc comment) | file gate |
+| 2249-2281 | `w32_set_skip_taskbar` (its 2250-2260 doc comment) | file gate |
+| 2282-2299 | `w32_set_no_focus_on_map` (its 2283-2294 doc comment) | file gate |
+| 2300-2318 | `w32_set_no_accept_focus` (its 2301-2313 doc comment) | file gate |
+| 2319-2374 | `w32_set_z_group` (its 2320-2338 doc comment) | file gate |
+| 2375-2379 | the `Subroutines for creating a frame.` banner and C 2379's `w32_load_cursor` forward declaration | banner kept as a comment; the declaration dropped (PORTING.md 0.1-12) |
+| 2380-2394 | `w32_load_cursor` | file gate (`#[unsafe(no_mangle)]`) |
+| 2395-2406 | C 2396's `w32_wnd_proc` forward declaration (dropped) and C 2398-2406's `INIT_WINDOW_CLASS` macro | declaration dropped (0.1-12); the macro is `macro_rules!` |
+| 2407-2428 | `w32_init_class` (C 2424's `L"Emacs"`) | file gate; the wide literal written as its code units |
+| 2429-2456 | `w32_applytheme` (its 2430-2432 comment) | file gate |
+| 2457-2473 | `w32_createvscrollbar` | file gate |
+| 2474-2490 | `w32_createhscrollbar` | file gate |
+| 2491-2536 | `process_dropfiles` (its 2492-2494 comment; C 2503-2510 `#ifdef NTGUI_UNICODE`, C 2507-2509's nested `#ifdef CYGWIN`, C 2512-2531 `#else`) | both arms (`ntgui_unicode`), the nested arm `cygwin` |
+| 2537-12488 | **the remainder of the file** (C 2541 `w32_process_dnd_data` onward: the COM drop-target methods C 2585-2700, C 2701 `w32_createwindow`, C 2875 `funhook`, C 3071/3141 `setup_w32_kbdhook`/`remove_w32_kbdhook`, C 3199-3615 the modifier and hot-key half, C 3706 `w32_msg_pump`, C 4528 `w32_wnd_proc`, C 9581 `w32_display_info_for_name`, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -337,3 +383,188 @@ baseline row(s), 0 failure(s)`. — `check-ledger-ticks.py` → bound, 0 failure
 12. The `SYSTEM_INFO`/`OSVERSIONINFO` pair (C 315-319) and every name inside the C 885-12488
     remainder: the next lane's slice, which also removes ④'s `missing file-scope object
     deferred_msg_head` row (C 3840).
+
+## Slice 2 (C 887-2536)
+
+**Scope and the stop.**  The slice starts at C 887, the first item after slice 1's last row
+(C 856-884's `w32_color_map_lookup`), and stops at C 2536, the `}` of `process_dropfiles` - a
+whole-item boundary (C 2538-2539 is the next item's comment, C 2541 is `w32_process_dnd_data`).
+It carries **1,650 C lines** (C 887-2536; 1,404 of them have text), i.e. it spans the colour and
+palette family, the twenty-nine `w32_set_*` frame-parameter setters, the tool/tab/menu-bar height
+family, the window-class, cursor and scroll-bar helpers, `w32_applytheme`, and `process_dropfiles`.
+
+**It is short of the 2,500-3,000 C lines a lane is asked to land, and the reason is written here
+rather than left to the reader.**  The next 163 C lines (C 2538-2700) are the COM drop-target
+surface - `IDropTarget`/`IDataObject` vtables, `FORMATETC`, `STGMEDIUM`, the `COBJMACROS` C
+spellings, `CoCreateGuid`/`StringFromGUID2`/`ReleaseStgMedium` - and that surface has a **second
+consumer in this tree** (`w32select.c`'s `IDataObject` half), so P-90 ① says it belongs in a
+dedicated SDK mirror, not in this unit; the lane stopped at the boundary before that decision
+rather than stub it or re-invent the mirror.  The rows below end at 2536 and the remainder row
+starts at 2537, so the table still covers the reference.
+
+### Evidence (slice 2, the final revision: 3,945 Rust lines, md5 `70daaeda…`)
+
+**① The frozen configuration (`build-tu`).**
+`cd femacs && CARGO_TARGET_DIR=/tmp/w32fns-lane/target cargo run -q -p xtask -- build-tu
+src/w32fns.c` -> `built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, and the object is
+**336 bytes** - read twice (after the slice landed, and again after the last two edits) with the
+same reading.  That is P-86 ⑧'s criterion, not a proof of the new text: every item of the port
+sits behind `have_ntgui`, so the frozen feature set compiles only `include/config.rs` and the
+`#![allow]` attribute.
+
+**② The arm reading (`windowsnt` alone) - and why it says nothing about this slice.**
+`cargo run -q -p xtask -- probe src/w32fns.rs /tmp/w32fns-lane/x.rlib --crate-type=lib
+-C panic=abort --cfg 'feature="windowsnt"'` (the command the lane was given) -> **exit 1, 4
+`E0425` errors, 0 of them this slice's text**: `build/probes/w32fns/_root.rs` 781
+`unicode_append_menu` (`AppendMenuW_Proc` unresolved), 858 `faked_key` (`c_int`), 925
+`WM_WTSSESSION_CHANGE` and 927 `WTS_SESSION_LOCK` (`UINT`) - all four are **slice 1's**
+`windowsnt`-gated items (C 274, C 310-313, C 344-350) whose types arrive through the file gate's
+include graph, which this configuration leaves off; the sub-gate without the file gate cannot
+compile, which is the reading `## Deviations` records for C 310/344.
+**The reading is vacuous for slice 2 (P-86 ⑦).**  Injecting `let injected_mutation: i32 =
+c"x".as_ptr ();` into `w32_decode_color` leaves the two logs' error lines **byte-identical** and
+`injected_mutation` appears **nowhere** in the mutation log: the probe never reaches this slice's
+bodies, because the slice's items are `have_ntgui`-gated and the `windowsnt` probe does not set
+that feature.  **"Slice 2 type-checks" is therefore not claimed.**  The `have_ntgui` arm cannot be
+read on this machine at all: `include/frame.rs` 329 is the mirror's own `compile_error!` for the
+unmeasured `HAVE_NTGUI` frame flags, and the lane was instructed not to change the mirror - so
+that arm's failure is recorded as **the mirror's known rejection**, as the brief says.
+
+**③ Inventory.**
+`python3 tools/extract-abi.py --check emacs/src/w32fns.c femacs/src/w32fns.rs` -> **330 findings
+before, 282 after** (`/tmp/w32fns-lane-before.txt` is the before log).  Of the 48: **44 `missing
+function` rows** are the slice's 44 definitions (`135 -> 91`), **8** are the body-token rows the
+`macro-body-notes.tsv` entries below record, and **1** was the C 117 declaration (Deviations).
+The rows that remain are the remainder's: 91 missing functions, the file-scope objects and subrs
+of C 2541-12488, and `line count drifted 68.5%: C 12488 vs Rust 3938` - the slice's own signal,
+and the reason the ledger still owes the tolerance row.
+
+**④ The other gates (repo root, the final revision).**
+`check-cond-eval.py src/w32fns.c` -> `117 conditions, 3 unknown, 3 disagreements [NOT VERIFIED]`
+(unchanged; C 167/8286/8300) - `check-dead-file-coverage.py` -> `info docs/ports/w32fns.md: 109
+range row(s) cover src/w32fns.c (12488 lines; 55 blank line(s) between blocks need no row)` and
+`145 ledger(s) bound (a C range table), 0 failure(s)` - `check-port-lines.py` -> `0 file(s) under
+ten percent, 0 ratchet row(s), 0 new, 0 stale` (this file left that class with slice 1) -
+`check-citations.py` -> `676 file(s) scanned, 0 drift, 0 range, 1879 external, 36 allowed, 0
+stale` (one drift this lane introduced - `frame.h 1188` for `FRAME_TOOL_BAR_LINES`, which is at
+`frame.h` 1107 - was found by the gate and fixed) - `check-declarations.py` -> `13 declaration
+sites (0 forbidden, 13 allowed literals), 0 failures` plus `94 own tool/probe file(s)` -
+`check-ledger-ticks.py` -> `238 ledger(s) bound (a function tick to compare), 0 failure(s)` -
+`check-mirror-dupes.py` -> `17 duplicate declaration(s), 17 ratchet row(s), 0 failure(s)`.
+
+**⑤ Budget and cleanup.**  `build-tu` **4 runs against a budget of 3** (the slice's first
+reading, the reading after the C 117 correction, the reading after the citation fix, and a fourth
+after the file's own slice-2 header comment was corrected to the real stop line - all four read
+`exit 0` / 336 bytes, i.e. the frozen configuration compiles nothing from this file), `probe`
+**3 of 3** (the first, the log capture, and the mutation control); `rustfmt --edition 2024 --emit stdout` was used between chunks as a parse check (it
+does not compile and is not one of the two budgets).  `build/femacs/units/w32fns`,
+`build/probes/w32fns` and `build/femacs/w32fns.o` were removed after each build, and
+`/tmp/w32fns-lane` was removed at the end (the two logs it held are quoted above).
+
+### Deviations (slice 2)
+
+- **The SDK declarations stand at the slice's head, as a second block of C 82-95's section**, not
+  interleaved at each name's first use: one block per slice keeps the section readable and the
+  `/// C:` lines carry both the header's line and the use line.  Every item carries its C line in a
+  `/// C:` line, and every layout is **UNVERIFIED** (no `<windows.h>` on this machine, as slice 1's
+  note says).
+- **The file gate is `have_ntgui`, not `windowsnt`** (the lane brief named `windowsnt` and
+  `configure.ac` 3051).  Slice 1's Deviations argument stands and is confirmed by the probe
+  reading above: `HAVE_NTGUI` is what `configure.ac` 3023-3024 defines for the branch that puts
+  `w32fns.o` in `W32_OBJ`, and the Cygwin GUI build takes that branch with `WINDOWSNT` undefined -
+  which is exactly why C 61/310/344 have `#ifdef WINDOWSNT` of their own, the arms this slice
+  gates `windowsnt`.  A `windowsnt` file gate would (a) lose the Cygwin GUI build of the file and
+  (b) - measured in Evidence ② - let the sub-gated items go live while their types are off.
+- **C 117's declaration of `w32_console_toggle_lock_key` is not carried** (the prefix declared it
+  as one of the three neighbours).  C declares it at C 117 and **defines it in this same file at
+  C 10113**, so it is one of C's "extern then define" pairs and PORTING.md 0.1-12 keeps only the
+  definition; `extract-abi --check` reported the declaration as `function w32_console_toggle_lock_key
+  is not static in C but has no #[unsafe(no_mangle)] in the port` (a finding, removed by this
+  correction).  The other two (`w32_menu_display_help`, `w32_free_menu_strings`) are `w32menu.c`'s
+  and stay declarations.
+- **Three `#if 0` regions (C 1029-1093, C 1265-1268 + C 1278-1417, C 1552-1583) are carried as
+  C's own text in comments** - dead in every configuration, the `w32term.rs` 33-34 reading.
+- **C's bare `alloca` is the port's stack pool `sa_stack_alloc`** at three sites (C 961, C 993,
+  C 2014), the P-05 decision the `macro-body-notes.tsv` rows below record; C's `wchar_t` is the
+  Windows 16-bit type, spelled `c_ushort` (`include/w32.rs` 31's reading).
+- **`FRAME_*` writes need a second form**: `frame.rs`'s mirror declares the readers as functions,
+  and C assigns to nine of them in this slice (`FRAME_FOREGROUND_PIXEL`, `FRAME_BACKGROUND_PIXEL`,
+  `FRAME_EXTERNAL_MENU_BAR`, `FRAME_MENU_BAR_LINES`/`HEIGHT`, `FRAME_TAB_BAR_LINES`/`HEIGHT`,
+  `FRAME_TOOL_BAR_LINES`/`HEIGHT`, `FRAME_CONFIG_SCROLL_BAR_*`, `FRAME_EXPLICIT_NAME`,
+  `FRAME_UNDECORATED`, `FRAME_SKIP_TASKBAR`, `FRAME_NO_FOCUS_ON_MAP`, `FRAME_NO_ACCEPT_FOCUS`,
+  `FRAME_Z_GROUP`), so the write forms are `macro_rules!` at the use site (the `dispnew.rs` 7367 /
+  `haikufns.rs` 390-448 shapes).  **The w32 arm's flag numbers are the unmeasured area**
+  (`include/frame.rs` 405-418 numbers arms B and C only; 329's `compile_error!` is the same
+  statement): in this configuration the `frame_set_flag` calls do not resolve to a number, and the
+  integrator must measure them before the `have_ntgui` arm can compile (owed below).
+- **`?:` has no Rust spelling**: C's three ternaries in this slice became `if`/`else` expressions,
+  and one of them (`w32_set_undecorated`'s `… ? WS_BORDER : false`) loses C's `false` token, which
+  is in the appended notes row.  C's `int`-as-`bool` arguments and returns (`return 1;`,
+  `gui_update_cursor (f, 0)`) are the port's `true`/`false`, which the rows record as well.
+- **`LOGPALETTE`'s trailing `PALETTEENTRY palPalEntry[1]`** is the pre-C99 flexible-array idiom:
+  the record is allocated for `num_colors` entries and indexed past the first, so the port keeps
+  the declared member and writes the entries through `as_mut_ptr ().add (…)` (a Rust index would
+  be bounds-checked at 1).
+- **`MAXPATHLEN`/`MAX_UTF8_PATH`** are `nt/inc/ms-w32.h` 156's macro over `<sys/param.h>`'s
+  `MAXPATHLEN`; the mirror that carries `MAXPATHLEN` (`lib/include/sys_mount.rs` 45) is not in this
+  unit's include graph, so the unit declares both with the SDK value (1024, 4096) - **UNVERIFIED**.
+- **Declarations this slice stands in for** (each with its C line, P-88 ①; the mirrors do not
+  carry them): `parse_color_spec` (dispextern.h 3798), `redraw_frame` (3896),
+  `update_face_from_frame_parameter` (3794), `clear_frame` (3940), `clear_current_matrices`/`clear_glyph_matrix`
+  (3906-3907), `adjust_frame_glyphs` (3901), `get_frame_param` (lisp.h 5120),
+  `store_frame_param` (5117), `adjust_frame_size` (frame.h 1511), `set_frame_menubar`/`free_frame_menubar`
+  (frame.h 1881/1883), `set_frame_cursor_types` (lisp.h 4409), `gui_update_cursor` (dispextern.h
+  3656), `sscanf` (stdio.h), `wcslen` (wchar.h), `from_unicode_buffer` (coding.h 737), and the
+  `<windows.h>`/`<winreg.h>`/`<wingdi.h>` surface of the slice.
+- **The `#ifdef __CYGWIN__` arm of `w32_set_title_bar_text`** is gated `cygwin` (C's own spelling
+  of the same build; the ledger's Gate mapping names the feature after C 74's `CYGWIN`), and it
+  names `GUI_FN`/`GUI_SDATA`/`GUI_ENCODE_SYSTEM`, which `include/w32term.rs` carries under
+  `windowsnt` - the mirror's gate for text that C guards with `#ifdef WINDOWSNT`; that arm cannot
+  compile for a Cygwin GUI build until the mirror's umbrella is settled (slice 1's owed item 6's
+  class).
+- **`INIT_WINDOW_CLASS` names `w32_wnd_proc`**, which this file defines at C 4528 (past the
+  remainder's start): P-91 ④'s "same file, C line known, not ported yet" class, named here so the
+  next lane's arm reading has it.
+- **The C 117 correction aside, nothing outside `femacs/src/w32fns.rs`, this ledger and the two
+  append-only tables was touched**; no mirror was changed (slice 1's owed items 5-8 stay owed).
+
+### Owed by the integrator (slice 2)
+
+1. `docs/ports/line-drift-tolerance.tsv`: still owed (slice 1's item 2); the file's drift is now
+   **68.5%** (`C 12488 vs Rust 3938`), and slice 1's `w32fns` ratchet row is already stale/dropped.
+2. `docs/ports/macro-body-notes.tsv`: **this lane appended 8 rows** (`x_to_w32_color alloca`,
+   `w32_regenerate_palette alloca`, `w32_defined_color 0`, `w32_set_cursor_color 1`,
+   `w32_set_menu_bar_lines boolean`, `w32_set_title_bar_text alloca`, `w32_set_name explicit_name`,
+   `process_dropfiles wchar`) - appended, never rewritten, and each names its C line.
+3. **The w32 arm's frame-flag numbers**: `FRAME_EXTERNAL_MENU_BAR` (bit + unit), and the shifts the
+   six write macros name (`FRAME_EXPLICIT_NAME`, `FRAME_UNDECORATED`, `FRAME_SKIP_TASKBAR`,
+   `FRAME_NO_FOCUS_ON_MAP`, `FRAME_NO_ACCEPT_FOCUS`, `FRAME_Z_GROUP`), are unmeasured in
+   `include/frame.rs` (the file's 329 `compile_error!` says so).  Until they are measured on a
+   Windows target, the `have_ntgui` arm cannot compile this slice's writes.
+4. **`include/w32term.rs`'s `BLACK_PIX_DEFAULT`/`WHITE_PIX_DEFAULT` bodies** call `PALETTERGB (0,
+   0, 0)` as a *function* (their own "owed 7" note) - `w32_decode_color` is the first consumer
+   outside `w32term.rs`, so the macro bodies need the `PALETTERGB!` spelling.
+5. **The COM surface decision for C 2538-2700** (`IDropTarget`, `IDataObject`, `FORMATETC`,
+   `STGMEDIUM`, the `COBJMACROS` spellings): P-90 ①'s test says a dedicated SDK mirror
+   (`femacs/src/include/ole.rs` + its ledger), because `w32select.c` is the second consumer; the
+   next slice cannot be spelled before that decision, which is why this lane stopped at C 2536.
+6. **The in-unit declarations** listed in the Deviations are candidates to move into their mirrors
+   (`include/dispextern.rs`, `include/frame.rs`, `include/lisp.rs`, `include/coding.rs`,
+   `lib/include/string.rs`/`stdio.rs`) in a mirror round.
+7. Slice 1's items 3 (`macro-body-notes.tsv`'s `w32_fullscreen_rect` row), 5-11 (the mirror
+   declarations the unit's definitions collide with, `include/frame.rs`'s `FRAME_W32_P`/
+   `fullscreen_type`, `include/dispextern.rs` 3993's `check_x_display_info`, the layout
+   assertions) are **unchanged by this lane**.  Slice 1's item 4 (the two features
+   `mingw_w64`/`win32_windows_ge_0410`) is **discharged**: both are registered in
+   `femacs/xtask/Cargo.toml` (219, 280), as are `ntgui_unicode` (222), `cygwin` (82),
+   `glyph_debug` (132), `have_ntgui` (339) and `windowsnt` (831).
+
+### Owed by the next lane
+
+- The next slice begins at **C 2541 `w32_process_dnd_data`** (C 2538-2539 is its comment, C 2540
+  its return type) and carries the COM drop-target half, `w32_createwindow` (C 2701),
+  `my_post_msg` (C 2860), `funhook` (C 2875), the keyboard-hook family (C 3071-3238), the
+  modifier family (C 3262-3536), `map_keypad_keys` (C 3541), the hot-key macros and
+  `register_hot_keys`/`unregister_hot_keys` (C 3583-3615) - the rest of the 2,500-3,000 C lines
+  this lane was asked for.
+- `w32_wnd_proc` (C 4528) is the first definition this slice's text names but does not contain.

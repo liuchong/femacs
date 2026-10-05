@@ -11790,3 +11790,34 @@
      X11 链接**不可达**。新增欠账逐条记在 `## Owed`：`include/xlib.rs` 的 `XEvent` 33 个成员（本文件 82 处旧 + 46 处新）、
      `xi_scroll_valuator_t` 的两个 bitfield、`x_display_info.ext_codes`/`supports_xkb`、`math.h` 的 `lrint`、切片 6 的
      `*mut c_void` display 模型统一（唯一新增的 `E0308`）。下一段起点 **C 6,991**（`Starting and ending an update`）。
+
+- **3.585 lane 产出收口：`src/w32fns.c` 第二片落地（C 887-2,536；C 12,488 → Rust 3,945 行；`--check` 330 → 282）——并据此裁定一族文件的**文件门**（2026-10-05）**：
+  ① **lane 的产出（Averroes）**：`femacs/src/w32fns.rs` 1,548 → **3,945 行**（md5 `70daaeda…`；台账 `docs/ports/w32fns.md`
+     339 → 570 行，109 行区间表覆盖 C 1-12,488、remainder 写成 `2537-12488`）。落 C 887-2,536（1,650 行 C）：
+     `add_system_logical_colors_to_map` … `process_dropfiles`，含调色板/颜色映射、热键与菜单钩子、光标/标题/名字设置等。
+  ② **读数**：`--check` **330 → 282**（`missing function` 135 → 91）；`check-cond-eval.py src/w32fns.c`
+     117 conditions / 3 disagreements（C 167/8286/8300，**与改前一致**）；`build-tu` 4 发（**超预算 1 发，如实报**），每发 exit 0、336 字节空对象；
+     `probe windowsnt` 3 发 → **exit 1 / 4 条 `E0425`，全在 slice 1 的文本**（`unicode_append_menu`、`faked_key`、
+     `WM_WTSSESSION_CHANGE`、`WTS_SESSION_LOCK`）；**变异实测**证明该探针读对本片是**空读数**（注入错误后输出逐字不变），
+     所以 lane **明确未声称"本片 type-check 通过"** —— 这是本项目要求的诚实口径。
+  ③ **集成者裁定（我，附证据）：本件的文件门是 `have_ntgui`，lane 对、我给它的简报错。** `configure.ac` 3023 `if test "$HAVE_W32" = yes`
+     → 3024 `AC_DEFINE([HAVE_NTGUI])`；**3030-3031** 在**Cygwin 分流（3044）之前**把 `w32fns.o w32menu.o w32reg.o w32font.o
+     w32term.o w32xfns.o w32select.o w32uniscribe.o w32dwrite.o` 放进 `W32_OBJ`；只有 **3052**（非 Cygwin 臂）才追加
+     `w32.o w32console.o w32heap.o w32image.o w32inevt.o w32proc.o`。⇒ **前一组文件的门是 `have_ntgui`，后一组才是 `windowsnt`。**
+  ④ **由这次裁定查出的**保真欠账（已实测计数，**待修**）：`femacs/src/w32select.rs`（`windowsnt` 154 处、`have_ntgui` **0** 处）与
+     `femacs/src/w32xfns.rs`（82 / 0）把**文件门**写成了 `windowsnt`；按 C 的实际结构，它们的文件门应是 `have_ntgui`，而
+     `windowsnt` 只该落在 C 自己 `#ifdef WINDOWSNT` 包住的那几段（w32select.c 只有 **C 828-864** 一段；w32xfns.c 有
+     **C 26-38 / 49-51 / 81-83** 三段）。同族的 `w32font`(202/26)、`w32term`(238/4)、`w32uniscribe`(135/5)、`w32fns`(332/6)、
+     `w32dwrite`(151/0)、`w32menu`(169/0) 门是对的；`w32.rs`/`w32console.rs`/`w32heap.rs`/`w32proc.rs`/`w32image.rs`/`w32inevt.rs`
+     在非 Cygwin 臂、`windowsnt` 也对。**这一条只影响"翻哪一臂"的读数，不影响冻结态（两个门在冻结配置里都是 `undef`）。**
+  ⑤ **集成者登记（我）**：`macro-body-notes.tsv` 收下该 lane 的 **8 行**；`port-map.md` 刷新本件（在飞的 `xfns`/`xwidget` 行回退成已提交值）；
+     **不加容差行**（漂移 68.5% 是"还没落完"的真信号）。
+  ⑥ **门读数（本轮现读）**：`check-port-lines` 0/0/0/0 ✓、`check-dead-file-coverage` 145/0 ✓、`check-ledger-ticks` 238/0 ✓、
+     `check-declarations` 0 failures ✓；**两条红都在在飞文件 `femacs/src/xfns.rs`**：`check-mirror-dupes` 1 failure
+     （`fset_redisplay is already declared by femacs/src/include/window.rs`）与该文件的 1 条 citation drift（`lisp.h 615` 应为 `607`），
+     均属 Nash 的 lane（收口时若仍在，我会修）。
+  ⑦ **未声称**：本片**没有** type-check/编译通过证明（见 ②）；**没有任何 Windows 目标/行为证据**——本机无 SDK、无 mingw，
+     全部 `<windows.h>`/`<winreg.h>`/`<wingdi.h>` 记录为 **UNVERIFIED**，未做布局断言；`have_ntgui` 臂在本机**读不了**
+     （`include/frame.rs` 329 那条自写的 `compile_error!`，因为它要的 frame 标志位数值没在 Windows 上量过）。
+     新增欠账：C 2538-2700 的 **COM drop-target 面**归属（P-90 ① 的第二个消费者是 `w32select.c`，应落 `include/ole.rs` 并各带台账）；
+     `include/w32term.rs` 的 `BLACK_PIX_DEFAULT`/`WHITE_PIX_DEFAULT` 宏体要改用 `PALETTERGB!`。下一段起点 **C 2,541**。
