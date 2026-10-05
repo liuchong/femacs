@@ -982,9 +982,11 @@ unsafe fn print_language_names ()
   puts (c"Compressed files are supported using gzip, bzip2, xz, and zstd.\n\nFor detailed help on a given language use, for example,\netags --help --lang=ada.".as_ptr ());
 }
 
-/// `<config.h>`'s `PACKAGE_NAME` -- the frozen configuration's value, the way `src/emacs.rs`
-/// 435 carries it for the core's banner; `print_version` prints it.
-pub const PACKAGE_NAME: &CStr = c"GNU Emacs";
+/// `<config.h>`'s `PACKAGE_NAME`, carried by this unit the way `src/emacs.rs` carries the
+/// core's; `print_version` prints it, so it is the port's own name for the same reason
+/// (PORTING.md 0.1-19's name half, status 3.433).  The frozen configuration's own value is a
+/// measurement of the reference build and stays in `docs/baseline/config/`.
+pub const PACKAGE_NAME: &CStr = c"femacs";
 /// `<config.h>`'s `PACKAGE_VERSION` (measured: `32.0.50`).
 pub const PACKAGE_VERSION: &CStr = c"32.0.50";
 /// `<config.h>`'s `COPYRIGHT` (measured: the frozen configuration's value).
@@ -992,7 +994,7 @@ pub const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.
 
 unsafe extern "C" fn print_version () -> !
 {
-  fputs (c"etags (GNU Emacs 32.0.50)\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms in ETAGS.README\n".as_ptr (),
+  fputs (c"etags (femacs 32.0.50)\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms in ETAGS.README\n".as_ptr (),
 	 stdout);
   exit (EXIT_SUCCESS);
 }

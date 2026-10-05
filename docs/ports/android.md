@@ -463,3 +463,10 @@ lines are the recorded rows of Owed 8 - none of the six is a port defect.  The `
 configuration compiled to an object (②b, 17,376 bytes) and was not run; the pristine base-config arm
 still stops on `lib/include/signal.rs`'s missing bionic `sa_sigaction` member (②a, Owed 6), so no
 object exists for it.
+
+## 2026-10-05: `PACKAGE_STRING` carries the port's own name (status 3.433)
+
+The startup log line C 1511-1513 builds from this macro is the program's self-declaration, so the
+macro body now spells the port's own name with the same version number; the frozen configuration's
+measured value stays in `docs/baseline/config/` (PORTING.md 0.1-19's name half).  `PACKAGE_BUGREPORT`
+is left as the measured value, which status 3.433 names as the boundary of this half.

@@ -4082,7 +4082,7 @@ unsafe fn usage (error: c_int) -> !
 /* C 3626: `static _Noreturn void version (void)` - the port's `-> !`.  */
 unsafe fn version () -> !
 {
-  fputs (c"ebrowse 32.0.50\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the same terms as Emacs.\n".as_ptr (),
+  fputs (c"ebrowse 32.0.50\nCopyright (C) 2026 Free Software Foundation, Inc.\nThis program is distributed under the terms of the GNU General Public License, version 3 or later.\n".as_ptr (),
 	 stdout);
   exit (EXIT_SUCCESS);
 }

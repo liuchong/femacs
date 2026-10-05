@@ -412,3 +412,11 @@ tokens inside them count as code).
   stdout, stderr and exit status.  Two real defects fell out of it and were fixed: `yyival`'s C
   unsigned wraparound and a `required_argument` copied as `no_argument`.  The probe artefacts live
   in `/tmp`; the ledger asserts nothing about a behavioural run of the build tree.
+
+## 2026-10-05: the banner's third sentence no longer names the reference (status 3.433)
+
+C's banner tells the user the program is distributed under the same terms as the reference
+product.  That sentence is a statement about *this* program, so it now states this repository's
+own terms (`GPL-3.0-or-later`, the value `femacs/Cargo.toml` carries) and drops the name
+(PORTING.md 0.1-19's name half).  The version number, `COPYRIGHT` and the rest of the literal are
+C's, byte for byte.

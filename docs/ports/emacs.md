@@ -279,3 +279,12 @@ The `stdio.rs` mirror now carries `printf` and `perror`, and `stdlib.rs` carries
 so this unit's use-site declaration of `printf` and its two local `EXIT_*` constants are gone:
 the names come from the mirrors, `check-mirror-dupes.py` went from 7 failures to 0, and
 `build-tu src/emacs.c` is `built`.
+
+## 2026-10-05: the name in the version declarations is the port's own (status 3.433)
+
+`PACKAGE_NAME` is what this program calls itself -- `--version` prints it and `emacs-version`
+carries it -- so the constant now spells the port's own name (`femacs`) instead of the frozen
+configuration's measured one, and `RCS_Id` spells it where C's literal carried the reference's.
+The measured value is a measurement of the reference build and stays in `docs/baseline/config/`
+(PORTING.md 0.1-19's name half).  Nothing else moved: the use sites, C's `printf` shapes, the
+`#[unsafe(no_mangle)]` on the object and the other `PACKAGE_*`/`COPYRIGHT` constants are C's.

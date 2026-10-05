@@ -1398,9 +1398,12 @@ unsafe extern "C" {
    `PACKAGE_STRING`/`PACKAGE_BUGREPORT` between string literals, and `concat!` expands a
    `macro_rules!` call, so those two are macros whose bodies are the frozen values
    (`build/emacs-ref/src/config.h` 2205/2199); `DIRECTORY_SEP` is a constant because C 1117
-   needs it as a pattern.  */
+   needs it as a pattern.  `PACKAGE_STRING` is what *this* program calls itself (it is the
+   string C 1511-1513 logs at startup), so it names the port (PORTING.md 0.1-19's name half,
+   status 3.433); the frozen configuration's own value is a measurement and stays in
+   `docs/baseline/config/`.  */
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
-macro_rules! PACKAGE_STRING { () => { "GNU Emacs 32.0.50" }; }
+macro_rules! PACKAGE_STRING { () => { "femacs 32.0.50" }; }
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 macro_rules! PACKAGE_BUGREPORT { () => { "bug-gnu-emacs@gnu.org" }; }
 /* C 1116-1117's two `case` labels need patterns; `case '/'` cannot be written `b'/' as c_char`

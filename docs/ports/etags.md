@@ -477,3 +477,10 @@ reappear.  They are owed note rows (see the end of this file), not port work.
   was checked by reading, and that reading found one real defect (`hash`'s `default:`/`case 2:`
   fallthrough order, which made the literal arm unreachable).  Everything else stays text- and
   object-level; the unit has no differential run like ebrowse's.
+
+## 2026-10-05: `PACKAGE_NAME` carries the port's own name (status 3.433)
+
+`print_version` prints this constant, so it now spells the port's own name (`femacs`) and the
+banner literal C builds from it (`"etags (" PACKAGE_NAME " " PACKAGE_VERSION ")\n" COPYRIGHT`)
+follows that value; the frozen configuration's measured value stays in `docs/baseline/config/`
+(PORTING.md 0.1-19's name half).  The banner's shape, the version number and `COPYRIGHT` are C's.

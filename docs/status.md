@@ -7607,3 +7607,56 @@
   ⑦ **未声称**：**零运行证据**（没有 JNI 调用、没有 `opendir/readdir/fstatat/rename/symlink`、没有创建/命名/打开过任何
      vnode、没有 Android 设备或模拟器）；②a/②b 的对象**从未运行**；C 996-7,950 未移植；C 1005 的 `directory_tree`
      被 include 图"提前回答"，**切片 2 不得当成已移植**（台账已点名）。
+
+- **3.432 布局断言族的静默失效修掉：`const _: () = …` 一律写 `core::assert!`（2,138 处 / 106 文件）（2026-10-05）**：
+  ① **危害（3.431 的 lane 实测到的那条）**：C 的 `<assert.h>` 在**一个 TU 里只被读一次**，冻结配置定义
+     `NDEBUG` ⇒ 它的 `assert (cond)` 展开成 `((void) 0)`、**操作数不求值**。端口在有的单元里按 C 的名字与空体
+     保留了这个宏（`androidvfs.rs` 的 C 23、`include/android-asset.rs` 自己读到的那次），而**经 `include!` 到达的
+     裸 `assert!` 会解析到它**：轻则 `E0659`，重则**镜像里的布局断言被静默展开成 `()`**——lane 的变异实测量过：
+     把 `dispextern.rs` 的 `size_of::<Emacs_Rectangle> () == 16` 改成 `== 999`，当年那个 TU **照样编过**。
+     也就是说：**"布局断言真的在断言"这件事，在一个包含 C `assert` 宏的 TU 里是假的**。
+  ② **处置**：**凡"布局/配置断言"（`const _: () = …` 这一族）一律写 `core::assert!`**——路径限定宏不受同名
+     `macro_rules!` 遮蔽。**一次性改写 2,138 处、106 个文件**（含各单元自己的 `macro_rules! static_assert`
+     展开体）；`PORTING.md` 的 `static_assert` 条目同步改写并写上理由。
+  ③ **读数**：⑴ **P-87 两腿 `checked 83 unit(s), 0 failure(s)` + `checking 83 unit(s), 0 unit failure(s)`**
+     （改动扫到 106 个文件，这是主判据）；⑵ **变异实测（证明断言真的活了）**：基线 = androidvfs 的 ②b 臂
+     （`have_android + not_android_stubify + android_api_ge_9`）**exit 0 / 0 error / 4,216 字节对象**；
+     把 `include/androidterm.rs` 的第一条布局断言从 `== 48` 改成 `== 999` → **`error[E0080]: evaluation panicked:
+     assertion failed: std::mem::size_of::<android_bitmap_record>() == 999`**（改之前同样的变异会静默通过），
+     随后已还原；⑶ `git add` 只收**非在飞**文件 104 个 + `PORTING.md`，4 条 lane 正在写的
+     `xdisp/pgtkterm/comp/treesit` 里那部分改名**随各自落地一起进**（保证任何单次提交里的 TU 自洽）。
+  ④ **未声称**：这是一次**拼写级**的机械改写——它不保证任何一条断言为真，只保证它们**真的被求值**；
+     4 条在飞文件里剩余的约 150 处随它们落地；`assert` 宏到底该由**镜像**还是**单元**定义（C 的 `<assert.h>`
+     在一个 TU 里只有一次读）仍按 3.431 的现场处置留着，未改。
+
+- **3.433 版本声明的第五半：程序"说自己叫什么"的那几处声明也改成本仓库自己的名字（2026-10-05）**：
+  ① **范围与判据**：0.1-19 的前四半管到文件头、注释、复述与工具写出的身份行，但**字符串字面量整类**
+     被留在门外；其中 C 的 docstring 确实是移植语义（`tools/extract-abi.py --check` 逐字比对），而
+     `PACKAGE_NAME`/`PACKAGE_STRING`/`RCS_Id` 与核心、`etags`、`ebrowse` 的版本横幅是**本程序对自己
+     身份的声明**（`--version` 打印它们、`ident(1)` 从可执行文件里读 `RCS_Id`），照抄下来就是一句
+     "本程序是参照产品" ⇒ 按用户判定（2026-10-05："版本声明不要再说是 GNU Emacs 了……把之前的代码中的
+     这种声明也去掉"），**这一类也去掉**。判据一句话：**这句话说的是谁**——说"本程序叫什么"的改，
+     说"参照叫什么"或"对外注册名"的留。
+  ② **改动 6 处 / 4 个单元**：`src/emacs.rs` 的 `PACKAGE_NAME`（`--version` 打印、`emacs-version` 携带）
+     与 `RCS_Id`；`lib-src/etags.rs` 的 `PACKAGE_NAME` 与由它拼出的横幅；`lib-src/ebrowse.rs` 横幅里
+     "本程序按参照产品同样的条款分发"那一句（改写成本仓库自己的条款 `GPL-3.0-or-later`）；
+     `src/android.rs` 的 `PACKAGE_STRING` 宏。一律写本仓库自己的名字 `femacs` + 参照的版本号 `32.0.50`。
+  ③ **保留（点名，不藏着）**：C 的 docstring、`COPYRIGHT` 与许可证文本（署名/许可义务，且它们不声称
+     本程序是参照产品）、`PACKAGE_BUGREPORT`（参照的实测配置值）与 Haiku 的 `application/x-vnd.…`
+     bundle 签名（对外注册名）；参照的**实测值**仍留在 `docs/baseline/config/`。这四处若也要改，是下一句话的事。
+  ④ **读数**：⑴ `check-declarations` **14 → 10 行**、`0 forbidden`、`0 failures`（豁免表随之重写：4 行随
+     改写消失、2 行随横幅文本更新，其余 10 行理由不变）；⑵ `extract-abi --check`：`emacs.c`/`etags.c`/
+     `ebrowse.c` 三个单元仍是 **OK**（改的不是 docstring），`android.c` 仍是**同样的两条 FAIL**
+     （`setEmacsParams` 的 `#[unsafe(no_mangle)]` 与 72.3% 漂移；把 HEAD 版取到 `/tmp` 逐条比过，两条一字不差，
+     漂移里的 Rust 行数 2,103 → 2,106 正是本条加的三行注释）；⑶ 冻结档 `build-tu` **四个单元全部 exit 0**
+     （`emacs.o` 177,536 / `etags.o` 693,000 / `ebrowse.o` 293,216 / `android.o` 336 字节空对象）；
+     ⑷ **目标字符串在目标文件里实测到了**：`strings emacs.o` → `$Id: femacs 32.0.50 (aarch64-apple-darwin25.6.0 PDUMPER) $`、
+     `etags.o` → `etags (femacs 32.0.50)`、`ebrowse.o` → `… under the terms of the GNU General Public License,
+     version 3 or later.`，`nm -g emacs.o` 里 `_RCS_Id` 仍在；⑸ `check-ledger-ticks` **234 行 / 0 failure**（在飞
+     台账会让这个数浮动）、`check-dead-file-coverage` 29 ledger / 0 failure、`check-mirror-dupes` 19/19/0 不动。
+  ⑤ **未声称**：**没有任何运行证据**——四个单元只编到对象，**没有链接、没有启动、没有跑过 `--version`**；
+     `src/android.rs` 的那一处还在冻结配置为假的文件门里，只有文本级证据。与参照 `--version` 的**逐字差异
+     是有意的**：L0/L1 金标不含版本横幅（3.413 已把两个金标的头部改成只写版本号），二者都不受影响；但差分
+     阶梯里凡打印 `emacs-version`/版本横幅的地方，从此**与参照不同**——这是本条规则明码标价的代价，记在
+     这里而不是藏在代码里。`build-tu` **4 发（限 3，超 1，如实报）**。
+  ⑥ **顺带**：3.432 的 status 段此前没有随它的提交落地，本次一并入库（该段文本未改）。

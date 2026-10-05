@@ -349,8 +349,14 @@ unsafe extern "C" {
 /* C's `<config.h>` values this file names; config.rs carries only the generated
    configuration keys, so the rest are constants here (the callproc.rs `<epaths.h>` shape).
    Each value is the frozen configuration's (`docs/baseline/config/darwin-arm64.macros.tsv`
-   / `build/emacs-ref/src/epaths.h`), measured by clang.  */
-const PACKAGE_NAME: &CStr = c"GNU Emacs";
+   / `build/emacs-ref/src/epaths.h`), measured by clang.
+
+   `PACKAGE_NAME` is the exception (PORTING.md 0.1-19's name half, status 3.433): it is what
+   *this* program calls itself -- the string `--version` prints and `emacs-version` carries --
+   so it names the port rather than the reference.  The frozen configuration's own value is a
+   measurement of the reference build and stays where it was measured (`docs/baseline/config/`
+   and `build/emacs-ref/src/config.h`).  */
+const PACKAGE_NAME: &CStr = c"femacs";
 const PACKAGE_VERSION: &CStr = c"32.0.50";
 const PACKAGE_BUGREPORT: &CStr = c"bug-gnu-emacs@gnu.org";
 const COPYRIGHT: &CStr = c"Copyright (C) 2026 Free Software Foundation, Inc.";
@@ -421,14 +427,14 @@ const emacs_bugreport: &CStr = PACKAGE_BUGREPORT;
 /// C 163-167: `extern char const RCS_Id[];` and the definition
 /// `char const EXTERNALLY_VISIBLE RCS_Id[] = "$Id" ": <PACKAGE_NAME> " PACKAGE_VERSION " ("
 /// EMACS_CONFIGURATION " " EMACS_CONFIG_FEATURES ") $";` -- the quote leaves the name
-/// `PACKAGE_NAME` spells out as a placeholder (the literal below carries it once, as C's
-/// does; status 3.73).
+/// `PACKAGE_NAME` spells out as a placeholder (status 3.73), and the literal below carries
+/// the port's own name where C's carried the reference's (0.1-19's name half, status 3.433).
 /// `EXTERNALLY_VISIBLE` is `__attribute__ ((externally_visible))`, one of
 /// `docs/ports/excluded-macros.txt`'s syntax rows; the object is what `ident (1)` reads out
 /// of the program, so the port keeps it as a named object rather than folding the string
 /// into the code that prints versions.
 #[unsafe(no_mangle)]
-pub static RCS_Id: &CStr = c"$Id: GNU Emacs 32.0.50 (aarch64-apple-darwin25.6.0 PDUMPER) $";
+pub static RCS_Id: &CStr = c"$Id: femacs 32.0.50 (aarch64-apple-darwin25.6.0 PDUMPER) $";
 
 /// C 169-170: `Lisp_Object empty_unibyte_string, empty_multibyte_string;` -- the two empty
 /// Lisp strings `make_unibyte_string`/`make_multibyte_string` build any others from.
