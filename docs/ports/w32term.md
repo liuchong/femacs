@@ -514,9 +514,13 @@ errors remain elsewhere - it is not "the unit compiles", and no behaviour was ex
    (C 2230-2231; the measured bits are byte 52 bit 0 and bit 1, `abi_shim.rs` 2185-2205's probe),
    and `Mouse_HLInfo` needs the `get_mouse_face_defer`/`set_…` pair (C 3020) - the `flags`/`bits`
    storage units the mirror records are only half the rule (PORTING.md 1.3).
-6. `include/w32term.rs`: `w32_output` needs the two bitfields' accessors (`paint_buffer_dirty`
-   C 436, `want_paint_buffer` C 439), read at C 329/346/814/826 - the record comment says
-   "recorded, not packed", and this unit is the first consumer that reads them.
+6. ~~`include/w32term.rs`: `w32_output` needs the two bitfields' accessors (`paint_buffer_dirty`
+   C 436, `want_paint_buffer` C 439)~~ - **DONE in 3.575**: the record now keeps C's storage unit as
+   `pub bits: c_uint` (so every offset after it is unchanged, P-80) with `w32_output_bit_get` /
+   `w32_output_bit_set` and the `w32_output_bits!` accessor; the five sites in this unit
+   (C 776/793/1375/1383/1396) and `src/w32xfns.rs`'s three use it.  The member name is the macro's
+   first argument, so the C token survives `--check`, and the read arm returns C's 0/1 value, so the
+   `!= 0` / `== 0` comparisons keep C's spelling.
 7. `include/w32term.rs`: `BLACK_PIX_DEFAULT`/`WHITE_PIX_DEFAULT` (C 43-44) expand to `PALETTERGB`,
    and `enter_crit!`/`leave_crit!` expand to `EnterCriticalSection`/`LeaveCriticalSection`: three
    `<windows.h>`/`<wingdi.h>` names no mirror declares.  A `macro_rules!` body is not resolved

@@ -877,7 +877,7 @@ unsafe fn key_event (event: *mut KEY_EVENT_RECORD, emacs_ev: *mut input_event,
              base character (ie. translating the base key plus shift
              modifier).  */
 	  else if (*event).uChar.AsciiChar == 0
-	    { w32_kbd_patch_key (event, -1); }
+	    { w32_kbd_patch_key (event as *mut c_void, -1); }
 	}
 
       if (w32_console_unicode_input != 0 && (*event).uChar.UnicodeChar == 0)

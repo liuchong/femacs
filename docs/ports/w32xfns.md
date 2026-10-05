@@ -264,52 +264,22 @@ another port carries, and this ledger has no ticked box at all (P-86 ②'s point
 
 ## Owed (nothing here is claimed as done)
 
-1. **`include/w32term.rs`: 12 top-level declarations move into a glob-imported module.**  The mirror
-   declares `prepend_msg` (1007), `critsect` (1032-1035's four) and the eight entry points at
-   1059-1065 at its crate root; this unit *defines* all twelve, so the arm reads 12 `E0428`s.
-   `include/w32term.rs` already has the fix shape (`w32term_fn_decls` 1400, `w32term_objs` 1450,
-   `use …::*;` at 1436/1488) for other names — the same move retires all twelve (P-39/P-21).
-   **`femacs/src/include/**` is not this lane's writable set.**
-2. **`include/w32term.rs`: two unresolved types.**  `KEY_EVENT_RECORD` (mirror 344; C's `w32term.h`
-   261) is a `<wincon.h>` record the *includer* supplies — this unit does not declare it because its
-   own C text never names it, and `src/w32inevt.rs` 155-200 already declares the record in its own
-   stand-in for the unit that needs it.  `font` (mirror 447; C's `w32term.h` 335) is `font.h`'s
-   record, which this graph cannot reach: the fix is the P-72 rule-3 degradation that the same mirror
-   already applies to `w32_system_remap_font` (1428); `src/w32term.rs` includes this mirror too,
-   so its own arm reads the same `E0425`.  The mirror's owner decides.
-3. **`include/w32term.rs` 523: `w32_output`'s two bitfields have no storage unit.**  P-80 requires a
-   storage unit plus a member-dispatch accessor (the `glyph_bits!`/`process_bits!` shape,
-   `src/process.rs` 766); with the accessor, this unit's C 194/207/230 write
-   `w32_output_bits! (paint_buffer_dirty, output[, 1])` / `!w32_output_bits! (want_paint_buffer, …)`
-   and the three `E0609`s of ② disappear.  The same gap costs `src/w32term.rs` five sites
-   (776/793/1375/1383/1396).
-4. **A *stable* toolchain adds one `E0658` in `lib/include/lisp.rs`.**  Its 3761 `verror`
-   declaration names `core::ffi::VaList`; the pinned `nightly-2026-10-01`
-   (`femacs/rust-toolchain.toml`) compiles it, while a stable 1.98.1 run — what a caller whose cwd
-   is outside `femacs/` gets — reports the unstable `c_variadic` feature.  That is the pin's own
-   subject (the manifest's comment records the resolution), not a row of this unit, and it is
-   recorded here only so the two readings of ② are not confused.  With the pinned toolchain the
-   arm's 17 errors are the 12 `E0428`s and 2 `E0425`s of Owed 1/2 plus this unit's three Owed-3
-   sites.
-5. **Every `<windows.h>`/`<windowsx.h>`/`<wtsapi32.h>` name this unit stands in for is
-   `UNVERIFIED`**: the six records (`POINT`, `RECT`, `MSG`, `PALETTEENTRY`, `WINDOWPLACEMENT`,
-   `CRITICAL_SECTION`) plus C 32-35's enum, the 28 type aliases, the twelve constants and the 26
-   entry points.  Their layout
-   assertions (`xtask layout-asserts` reads a C compiler's readings) and their values need a
-   Windows/mingw toolchain, which this machine has not got.
-6. **`docs/port-map.md` 588's port count** still reads 11, and `docs/baseline/port-lines-pending.tsv`
-   8 still carries the stale `src/w32xfns.c / 447 / 11 / 44` ratchet row: the integrator's
-   regeneration (`--write-pending`).  Neither file is this lane's writable set.
-7. **`docs/ports/line-drift-tolerance.tsv` needs one row.**  The reading is `line count drifted
-   103.8%: C 447 vs Rust 911` (911/447 = 2.038), so the row is
-   `w32xfns\t1.04\t<reason>\ttotal` — reason: the `windowsnt` file gate on every item and the whole
-   include graph, both arms of the three inner conditions kept as `#[cfg]` text, and the
-   `<windows.h>` surface declared in place with a `/// C:` line per name (P-88 ①; no SDK on this
-   machine, so every record and value there is UNVERIFIED).  That file is not this lane's writable
-   set, so `extract-abi.py --check` stays `FAIL` with exactly the one finding ⑥ records.
-8. **`docs/ports/macro-body-notes.tsv` was appended, not rewritten** (one `#` header + one row for
-   `drain_message_queue`'s `break,case,switch`), because the working tree already carried another
-   lane's three added lines.
+1. ~~**`include/w32term.rs`: 12 top-level declarations move into a glob-imported module.**~~ -
+   **DONE in 3.575**: `w32term_xfns_decls` / `w32term_xfns_objs` now carry `prepend_msg`, the
+   `critsect` data symbol and the ten entry points, each keeping its `/// C:` line, and the mirror
+   glob-imports both (`use …::*;`) - the `w32term_fn_decls` shape (P-39/P-21).  The twelve `E0428`s
+   are gone: the same arm now reads `exit 0 / 0 error` (probe re-run on the final text).
+2. ~~**`include/w32term.rs`: two unresolved types.**~~ - **DONE in 3.575** by the P-72 rule-3
+   degradation: `w32_kbd_patch_key` (mirror 344) takes the untyped pointer, with the one call site
+   that passes a real record (`src/w32inevt.rs` 880) casting its own `KEY_EVENT_RECORD`, and
+   `w32_output`'s `font` member (mirror 447) is `*mut c_void`, the reading the same mirror already
+   applies to `w32_system_remap_font`.
+3. ~~**`include/w32term.rs` 523: `w32_output`'s two bitfields have no storage unit.**~~ -
+   **DONE in 3.575**: `pub bits: c_uint` keeps C's storage unit and `w32_output_bits!` reaches the
+   members (the `haiku_output_bits!` shape); this unit's three sites (C 194/207/230) and
+   `src/w32term.rs`'s five use it, and the arm's three `E0609`s are gone.  The read arm returns C's
+   0/1 value rather than a `bool` so `!= 0` keeps C's spelling (a `bool` form, the `haiku_output_bits!`
+   choice, would have to drop the comparison and lose two C tokens from the body check).
 
 ## Not claimed
 

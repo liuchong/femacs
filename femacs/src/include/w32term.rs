@@ -341,7 +341,11 @@ unsafe extern "C" {
   pub fn w32_iconify_frame (f: *mut frame);
   pub fn w32_free_frame_resources (f: *mut frame);
   pub fn w32_wm_set_size_hint (f: *mut frame, long_arg: c_long, bool_arg: bool);
-  pub fn w32_kbd_patch_key (event: *mut KEY_EVENT_RECORD, cpId: c_int) -> c_int;
+  /// P-72 rule 3: `KEY_EVENT_RECORD` is `<wincon.h>`'s record and this tree has no Windows
+  /// SDK mirror (each unit that uses it declares its own, the P-88 ① stand-in), so the
+  /// parameter is the untyped pointer.  `src/w32inevt.rs`'s call site casts its own record;
+  /// every other spelling of the name in the port is unchanged.
+  pub fn w32_kbd_patch_key (event: *mut c_void, cpId: c_int) -> c_int;
   pub fn w32_kbd_mods_to_emacs (mods: DWORD, key: WORD) -> c_int;
   pub fn w32con_hide_cursor ();
   pub fn w32con_show_cursor ();
@@ -443,8 +447,10 @@ pub struct w32_output
   /* The window that is the parent of this window. … */
   pub parent_desc: Window,
 
-  /* Default ASCII font of this frame. */
-  pub font: *mut font,
+  /* Default ASCII font of this frame.  P-72 rule 3: `struct font` is `font.h`'s record and this
+     mirror does not pull that header, so the pointer is untyped - the `w32_system_remap_font`
+     reading just below in `w32term_objs`.  */
+  pub font: *mut c_void,
 
   /* The baseline offset of the default ASCII font.  */
   pub baseline_offset: c_int,
@@ -520,8 +526,11 @@ pub struct w32_output
   pub paint_buffer_width: c_int,
   pub paint_buffer_height: c_int,
 
-  // C 436/439: `unsigned paint_buffer_dirty : 1; unsigned want_paint_buffer : 1;` - recorded,
-  // not packed.
+  /* C 436/439: `unsigned paint_buffer_dirty : 1; unsigned want_paint_buffer : 1;` - two 1-bit
+     members sharing one `unsigned` storage unit.  The port keeps that unit as `bits`, so every
+     offset after it is unchanged (PORTING.md 1.3 / P-80), and reaches the two members through
+     `w32_output_bits!` below (the `haiku_output_bits!` shape).  */
+  pub bits: c_uint,
 
   /* Array of dwIDs of presently active touch points, or -1 when
      unpopulated.  */
@@ -538,6 +547,59 @@ pub struct w32_output
   /* Windows identifier of any touch point reserved for the tool bar, or
      -1.  */
   pub tool_bar_dwID: DWORD,
+}
+
+/* C 436/439's two packed members, named after the members C declares (PORTING.md 1.3 / P-80).
+   The three items below are gated with the record they read: `xtask layout-check` compiles a mirror
+   alone as its own crate root, where `w32_output`'s `#[cfg]` is off and an ungated body naming it
+   would not type-check (the `check-all-units.sh` seed rule).  */
+#[cfg (feature = "windowsnt")]
+pub const W32_OUTPUT_PAINT_BUFFER_DIRTY_BIT: c_uint = 1;
+#[cfg (feature = "windowsnt")]
+pub const W32_OUTPUT_WANT_PAINT_BUFFER_BIT: c_uint = 1 << 1;
+
+/// C's member is a 1-bit `unsigned`, so reading it yields 0 or 1; the value form (rather than a
+/// `bool`) keeps C's comparison - `... ->want_paint_buffer != 0` - spelled the same on this side,
+/// tokens and all.
+#[cfg (feature = "windowsnt")]
+#[inline(always)]
+pub fn w32_output_bit_get (o: *mut c_void, bit: c_uint) -> c_uint
+{
+  let bits = unsafe { (*(o as *mut w32_output)).bits };
+  return if bits & bit != 0 { 1 } else { 0 };
+}
+
+#[cfg (feature = "windowsnt")]
+#[inline(always)]
+pub fn w32_output_bit_set (o: *mut c_void, bit: c_uint, value: bool)
+{
+  let o = o as *mut w32_output;
+  unsafe {
+    if value
+      {
+        (*o).bits |= bit;
+      }
+    else
+      {
+        (*o).bits &= ! bit;
+      }
+  }
+}
+
+/// C 436/439: the member name is the macro's first argument, so the C token survives the
+/// `--check` body comparison, and the write form is the second arm - Rust cannot assign to a
+/// field through a macro, so C's `output->paint_buffer_dirty = 1` becomes
+/// `w32_output_bits! (paint_buffer_dirty, output, 1)` (the `haiku_output_bits!` reading, recorded
+/// in docs/ports/w32term.md's Decisions).  The operand is cast to `*mut c_void` here so a
+/// `*mut w32_output` and `FRAME_OUTPUT_DATA!`'s pointer both work.
+#[cfg (feature = "windowsnt")]
+macro_rules! w32_output_bits {
+  (paint_buffer_dirty, $o:expr) => { w32_output_bit_get ($o as *mut c_void, W32_OUTPUT_PAINT_BUFFER_DIRTY_BIT) };
+  (paint_buffer_dirty, $o:expr, $v:expr)
+    => { w32_output_bit_set ($o as *mut c_void, W32_OUTPUT_PAINT_BUFFER_DIRTY_BIT, ($v) != 0) };
+  (want_paint_buffer, $o:expr) => { w32_output_bit_get ($o as *mut c_void, W32_OUTPUT_WANT_PAINT_BUFFER_BIT) };
+  (want_paint_buffer, $o:expr, $v:expr)
+    => { w32_output_bit_set ($o as *mut c_void, W32_OUTPUT_WANT_PAINT_BUFFER_BIT, ($v) != 0) };
 }
 
 /// C 458: `extern struct w32_output w32term_display;`
@@ -1002,10 +1064,7 @@ pub struct W32Msg
   pub dwModifiers: DWORD,
   pub rect: RECT,
 }
-#[cfg (feature = "windowsnt")]
-unsafe extern "C" {
-  pub fn prepend_msg (lpmsg: *mut W32Msg) -> BOOL;
-}
+// `prepend_msg` (C 746) is `src/w32xfns.c`'s definition: `w32term_xfns_decls` below (E0428, P-21).
 
 /* C 747-753: "Structure for recording message when input thread must return a result that
    depends on lisp thread to compute."  */
@@ -1027,13 +1086,9 @@ pub struct deferred_msg
 /// C: extern void init_crit (void); extern void delete_crit (void); extern void signal_quit (void);
 /// C: #define enter_crit() EnterCriticalSection (&critsect)
 /// C: #define leave_crit() LeaveCriticalSection (&critsect)
-#[cfg (feature = "windowsnt")]
-unsafe extern "C" {
-  pub static mut critsect: CRITICAL_SECTION;
-  pub fn init_crit ();
-  pub fn delete_crit ();
-  pub fn signal_quit ();
-}
+// `critsect`/`init_crit`/`delete_crit`/`signal_quit` (C 755-765) are `src/w32xfns.c`'s definitions:
+// `w32term_xfns_objs` and `w32term_xfns_decls` below (E0428, P-21).  `enter_crit`/`leave_crit` stay
+// here because C defines them here, and their expansion names `critsect` at the call site.
 #[cfg (feature = "windowsnt")]
 macro_rules! enter_crit {
   () => { EnterCriticalSection (&raw mut critsect) };
@@ -1056,13 +1111,8 @@ macro_rules! leave_crit {
 /// (struct frame *, Emacs_Color *);`
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn select_palette (f: *mut frame, hdc: HDC);
-  pub fn deselect_palette (f: *mut frame, hdc: HDC);
-  pub fn get_frame_dc (f: *mut frame) -> HDC;
-  pub fn release_frame_dc (f: *mut frame, hDC: HDC) -> c_int;
-  pub fn drain_message_queue () -> c_int;
-  pub fn get_next_msg (msg: *mut W32Msg, blocking: BOOL) -> BOOL;
-  pub fn post_msg (msg: *mut W32Msg) -> BOOL;
+  // C 767-776's seven entry points are `src/w32xfns.c`'s definitions: `w32term_xfns_decls` below
+  // (E0428, P-21).  The four names that stay are `src/w32term.c`'s own.
   /// P-72 rule 3: `HWND` is `<windows.h>`'s handle and this tree has no Windows SDK
   /// mirror, so the parameter is the untyped pointer - every `HWND` spelling in the port
   /// resolves to `*mut c_void` (the `Window`/`Display` reading in `w32gui.rs`), so no
@@ -1486,3 +1536,54 @@ pub mod w32term_objs {
 }
 #[cfg (feature = "windowsnt")]
 use w32term_objs::*;
+
+/// C 746, 755-765 and 767-776: the critical section, the palette/DC entry points and the
+/// message-queue entry points.  All twelve names are defined by `src/w32xfns.c`, so they sit in a
+/// module this mirror glob-imports for the reason the two modules above do (P-21/P-39; a crate-root
+/// definition shadows a glob import, so the unit's own item is the live one).  Measured on the
+/// `w32xfns` arm: at this mirror's crate root they read twelve `E0428`s there (status 3.575).
+/// `CRITICAL_SECTION`, `HDC` and `BOOL` are names a *unit* declares (each unit has its own
+/// `<windows.h>` stand-in), and a nested module's `use super::*` does see them: they are items of
+/// the crate root, not names the crate root glob-imported (the `HMENU` distinction in
+/// `w32term_objs`' note above).
+#[cfg (feature = "windowsnt")]
+pub mod w32term_xfns_decls {
+  use super::*;
+
+  unsafe extern "C" {
+    /// C 746: `extern BOOL prepend_msg (W32Msg *lpmsg);`
+    pub fn prepend_msg (lpmsg: *mut W32Msg) -> BOOL;
+    /// C 757: `extern void init_crit (void); extern void delete_crit (void); extern void
+    /// signal_quit (void);`
+    pub fn init_crit ();
+    pub fn delete_crit ();
+    pub fn signal_quit ();
+    /// C 767-768: `extern void select_palette (struct frame * f, HDC hdc); extern void
+    /// deselect_palette (struct frame * f, HDC hdc);`
+    pub fn select_palette (f: *mut frame, hdc: HDC);
+    pub fn deselect_palette (f: *mut frame, hdc: HDC);
+    /// C 769-770: `extern HDC get_frame_dc (struct frame * f); extern int release_frame_dc (struct
+    /// frame * f, HDC hDC);`
+    pub fn get_frame_dc (f: *mut frame) -> HDC;
+    pub fn release_frame_dc (f: *mut frame, hDC: HDC) -> c_int;
+    /// C 772: `extern int drain_message_queue (void);`
+    pub fn drain_message_queue () -> c_int;
+    /// C 774-775: `extern BOOL get_next_msg (W32Msg *, BOOL); extern BOOL post_msg (W32Msg *);`
+    pub fn get_next_msg (msg: *mut W32Msg, blocking: BOOL) -> BOOL;
+    pub fn post_msg (msg: *mut W32Msg) -> BOOL;
+  }
+}
+#[cfg (feature = "windowsnt")]
+use w32term_xfns_decls::*;
+
+/// C 756: `extern CRITICAL_SECTION critsect;` - the data symbol `src/w32xfns.c` defines.
+#[cfg (feature = "windowsnt")]
+pub mod w32term_xfns_objs {
+  use super::*;
+
+  unsafe extern "C" {
+    pub static mut critsect: CRITICAL_SECTION;
+  }
+}
+#[cfg (feature = "windowsnt")]
+use w32term_xfns_objs::*;

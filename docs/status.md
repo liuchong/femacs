@@ -11567,3 +11567,41 @@
      `lib/include/errno.rs`。以及两条工具欠账：`check-dead-file-coverage.py` 的 `ledger_for` 缺 `include-` 分支（本日由
      c++defs lane 复现：所有 `femacs/lib/include/*.rs` 的区间表都不进那 143 本）、`xtask` 的 `gate_states` 对同行
      `#[cfg] include!` 的判定（P-86 ⑫ 已记为硬要求，修工具仍欠）。
+
+- **3.575 镜像轮第一批量：`include/w32term.rs` 的 15 处欠账清零——`windowsnt` 臂第一次 `exit 0`；并量出真正的复刻欠账（2026-10-05）**：
+  ① **本批修的是镜像（`femacs/src/include/**`，lane 不可写，属集成者）**，共三族、15 个 finding：
+     ⑴ **12 × `E0428`**：`prepend_msg`、`critsect` 与十个入口点是 `src/w32xfns.c` **定义**的名字，镜像却把它们放在 crate 根。
+     新增 `w32term_xfns_decls`/`w32term_xfns_objs` 两个模块并 `use …::*;`（`w32term_fn_decls` 的既有形状，P-39/P-21），
+     每个声明**带着自己的 `/// C:` 行**搬过去，原 C 位置留一行指路注释（`w32_release_paint_buffer` 的同款）。
+     ⑵ **2 × `E0425`**：`KEY_EVENT_RECORD`（`<wincon.h>`，本树无镜像）与 `font`（`font.h`）按 **P-72 rule 3** 降成
+     `*mut c_void`；唯一传真实记录的调用点 `src/w32inevt.rs:880` 加 `as *mut c_void`（C 的实参 token 不变）。
+     ⑶ **3 × `E0609`**：`w32_output` 的两个 1-bit 成员此前只是注释。按 **P-80** 给出存储单元 `pub bits: c_uint`
+     （C 里两个 `unsigned : 1` 共用一个 `unsigned`，所以它**之后的偏移全部不变**）＋ `w32_output_bit_get`/`w32_output_bit_set`
+     ＋ `w32_output_bits!` 访问器（`haiku_output_bits!` 形状），并改掉 8 个调用点（`src/w32term.rs` 5 处、`src/w32xfns.rs` 3 处）。
+     **读臂返回 C 的 0/1 值而不是 `bool`**：C 的 `… != 0` 因此原样保留，body token 检查不掉 token（`haiku_output_bits!` 的
+     `bool` 形态必须删掉比较式，会丢两个 token）。
+  ② **读数**：`src/w32xfns.rs` 的 `windowsnt` 翻臂 **17 error → exit 0 / 0 error**（21 warning，rlib 14,874,760 B）——
+     **本树第一个能编过的 `windowsnt` 单元**。改后 `extract-abi --check` 对 `w32xfns.c`/`w32inevt.c` 仍 **OK**；对
+     `w32term.c` 仍 **FAIL**，但把改前（HEAD 版 `src/w32term.rs`）与改后的 finding 列表逐行 diff ⇒ **零新增**（只少一条）。
+  ③ **P-87① 的连带门（镜像改动必跑）**：`tools/check-all-units.sh` **83/0（两腿）**、`layout-check` **passed**。
+     **layout-check 抓到我本批的一个真错**：三个新项最初没带 `#[cfg (feature = "windowsnt")]`，而该工具会把**每个镜像单独当
+     crate 根**编译，那里 `w32_output` 被 cfg 掉 ⇒ `E0425`；补上 cfg 后转绿。**教训**：镜像里的新项必须与它引用的东西同门，
+     否则"单元编译过"不等于"镜像自检过"。
+  ④ **七道文本门（本轮现读，全绿）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**、
+     `check-declarations` 0 failures、`check-dead-file-coverage` **143/0**、`check-ledger-ticks` 238/0、
+     `check-port-lines` 0/0/0/0、`check-target-names` 0 finding。
+  ⑤ **⚠ 重要更正：P-86 棘轮清零 ≠ 复刻完成。** 那张表只筛"**小于参照 10%**"的文件；按 `docs/port-map.md` 现量：
+     **590 文件 / C 678,320 行 → 目标 546,868 行**（80.6% 的行数比，且 Rust 逐条转写通常更"厚"，所以真实覆盖率更低）。
+     其中 **C 行数 ≥200 的 289 件里有 94 件低于 90%**，合计**缺约 183,400 参照行**；最大缺口：
+     `src/xterm.c`（33,125 → 4,525，13.7%）、`src/xdisp.c`（39,805 → 26,406，66.3%）、`src/sfnt.c`（21,215 → 8,447，39.8%）、
+     `src/w32fns.c`（12,488 → 1,548，12.4%）、`src/xfns.c`（10,662 → 1,116，10.5%）、`src/w32.c`（11,362 → 1,846，16.2%）、
+     `src/image.c`（13,805 → 4,874，35.3%）、`src/androidvfs.c`（18.0%）、`src/pgtkterm.c`（19.2%）、`src/androidterm.c`（15.0%）、
+     `src/android.c`（27.8%）、`src/w32term.c`（8,414 → 2,941，35.0%）、`src/comp.c`（20.4%）、`src/treesit.c`（21.6%）、
+     `src/gtkutil.c`（41.5%）。这些文件的台账记着它们**只落了 C 的某几段切片**（如 `w32term.md` 明写"carries C 1-1949"），
+     所以它们是下一阶段的主战场；`extract-abi --all` 的 failing 数正是从这里来。
+  ⑥ **未声称**：翻臂 `exit 0` 只是 `rustc` 对一个**物化镜像图**的类型检查，**不是 Windows 编译**（本机无 `<windows.h>`）；
+     `w32xfns.c` 在冻结配置里一行不编（336 字节空对象），没有临界区/事件/DC/消息循环被运行；
+     `include/w32term.rs` 仍欠 `KEY_EVENT_RECORD` 的**布局断言**（Owed 5，无 SDK 无法量）、`BLACK_PIX_DEFAULT`/
+     `WHITE_PIX_DEFAULT`/`enter_crit!`/`leave_crit!` 展开所需的三个 `<windows.h>` 名（Owed 7）、以及 `w32output` 之外
+     其余镜像族（`w32gdiplus.rs` 29 处、`w32inevt.rs` 19/27/28、`frame.rs` 329 的 `compile_error!`、`character.rs` 的
+     `lisp.h` 边、`systime.rs`/`htfont.rs`/`haiku_support.rs`/`msdos.rs` 四件）**本批未动**。

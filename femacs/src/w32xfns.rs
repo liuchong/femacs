@@ -615,7 +615,7 @@ pub unsafe extern "C" fn get_frame_dc (f: *mut frame) -> HDC
 	{ w32_release_paint_buffer (f); }
       else
 	{
-	  (*output).paint_buffer_dirty = 1;
+	  w32_output_bits! (paint_buffer_dirty, output, 1);
 	  return (*output).paint_dc;
 	}
     }
@@ -629,7 +629,7 @@ pub unsafe extern "C" fn get_frame_dc (f: *mut frame) -> HDC
       select_palette (f, hdc);
 
       if ! w32_disable_double_buffering
-	  && (*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).want_paint_buffer != 0
+	  && w32_output_bits! (want_paint_buffer, FRAME_OUTPUT_DATA! (f)) != 0
 	{
 	  back_buffer
 	    = CreateCompatibleBitmap (hdc, FRAME_PIXEL_WIDTH (f),
@@ -651,7 +651,7 @@ pub unsafe extern "C" fn get_frame_dc (f: *mut frame) -> HDC
 		  (*output).paint_buffer = back_buffer;
 		  (*output).paint_buffer_width = FRAME_PIXEL_WIDTH (f);
 		  (*output).paint_buffer_height = FRAME_PIXEL_HEIGHT (f);
-		  (*output).paint_buffer_dirty = 1;
+		  w32_output_bits! (paint_buffer_dirty, output, 1);
 
 		  SET_FRAME_GARBAGED! (f);
 

@@ -773,7 +773,7 @@ unsafe fn w32_show_back_buffer (f: *mut frame)
 
   output = FRAME_OUTPUT_DATA! (f) as *mut w32_output;
 
-  if (*output).want_paint_buffer == 0 || w32_disable_double_buffering
+  if w32_output_bits! (want_paint_buffer, output) == 0 || w32_disable_double_buffering
     { return; }
 
   enter_crit! ();
@@ -790,7 +790,7 @@ unsafe fn w32_show_back_buffer (f: *mut frame)
 	      (*output).paint_dc, 0, 0, SRCCOPY);
       ReleaseDC ((*output).window_desc, raw_dc);
 
-      (*output).paint_buffer_dirty = 0;
+      w32_output_bits! (paint_buffer_dirty, output, 0);
     }
 
   leave_crit! ();
@@ -1372,7 +1372,7 @@ unsafe fn w32_frame_up_to_date (f: *mut frame)
   FRAME_MOUSE_UPDATE! (f);
 
   if ! buffer_flipping_blocked_p ()
-      && (*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).paint_buffer_dirty != 0
+      && w32_output_bits! (paint_buffer_dirty, FRAME_OUTPUT_DATA! (f)) != 0
     { w32_show_back_buffer (f); }
 }
 
@@ -1380,7 +1380,7 @@ unsafe fn w32_frame_up_to_date (f: *mut frame)
 #[cfg (feature = "have_ntgui")]
 unsafe fn w32_buffer_flipping_unblocked_hook (f: *mut frame)
 {
-  if (*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).paint_buffer_dirty != 0
+  if w32_output_bits! (paint_buffer_dirty, FRAME_OUTPUT_DATA! (f)) != 0
     { w32_show_back_buffer (f); }
 }
 
@@ -1393,7 +1393,7 @@ pub unsafe extern "C" fn w32_flip_buffers_if_dirty (f: *mut frame)
 {
   if FRAME_W32_P (f)	/* do nothing in TTY frames */
       && ! (*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).paint_buffer.is_null ()
-      && (*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).paint_buffer_dirty != 0
+      && w32_output_bits! (paint_buffer_dirty, FRAME_OUTPUT_DATA! (f)) != 0
       && ! garbaged! (f) && ! buffer_flipping_blocked_p ()
     { w32_show_back_buffer (f); }
 }
