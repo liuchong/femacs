@@ -7,8 +7,8 @@
 // `unsafe extern "C" fn` items (PORTING.md 1.4; the androidselect.rs `close_asset_fd` shape).
 //
 // **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
-// C 1241-1426, C 1427-1604, C 1605-1871 and C 1873-2050.**  The next live definition is
-// `sfntfont_get_glyph` (C 2108, the caching subsystem's).  The ledger `docs/ports/sfntfont.md`
+// C 1241-1426, C 1427-1604, C 1605-1871, C 1873-2050 and C 2051-2172.**  The next live definition
+// is `sfntfont_get_glyph_outline` (C 2198, the caching subsystem's).  The ledger `docs/ports/sfntfont.md`
 // carries P-86 ②'s C line-range table for C 1-4222 (the transcribed rows and the remaining one),
 // the `## Evidence` readings and the `## Deviations`.
 //
@@ -2501,3 +2501,186 @@ pub unsafe extern "C" fn sfntfont_match (f: *mut c_void, font_spec: Lisp_Object)
 pub const SFNT_OUTLINE_CACHE_SIZE: c_int = 256;            // C 2048
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 pub const SFNT_RASTER_CACHE_SIZE: c_int = 128;             // C 2049
+
+/* ----------------------------------------------------------------------------------------------
+   C 2051-2172: the caching subsystem's records and its four helpers, in C's order - C 2052-2058's
+   comment, `struct sfnt_outline_cache` (C 2059-2072), `struct sfnt_raster_cache` (C 2074-2084),
+   `struct sfntfont_get_glyph_outline_dcontext` (C 2086-2102), and then `sfntfont_get_glyph`
+   (C 2108-2134), `sfntfont_free_glyph` (C 2139-2142), `sfntfont_get_metrics` (C 2150-2158) and
+   `sfntfont_dereference_outline` (C 2164-2172), each with its own comment.  **The next live
+   definition is C 2198's `sfntfont_get_glyph_outline`** (its comment is C 2174-2196), and the
+   ledger's `## C line ranges` names both boundaries.
+
+   The three records' layouts are **measured** (`clang -std=gnu23 -O0`, the frozen configuration,
+   Evidence ⑮), not remembered (P-88 ②), and `sfnt_glyph`'s scalar typedef is `sfnt_glyph_index`
+   here (Deviation 18 (a)).  Three of the four helpers have their address taken - C 2313-2314 and
+   C 2355-2357 hand them to the interpret functions - so those carry the C ABI (P-52); only
+   `sfntfont_dereference_outline` is called by name alone (C 2400/2431/3537/3726).
+   ---------------------------------------------------------------------------------------------- */
+/// C 2059-2072: `struct sfnt_outline_cache`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+pub struct sfnt_outline_cache                       // C 2059-2072
+{
+  /* Next and last cache buckets.  */
+  pub next: *mut sfnt_outline_cache,                // C 2062
+  pub last: *mut sfnt_outline_cache,                // C 2062's second declarator
+
+  /* Pointer to outline.  */
+  pub outline: *mut sfnt_glyph_outline,             // C 2065
+
+  /* Reference to glyph metrics.  */
+  pub metrics: sfnt_glyph_metrics,                  // C 2068
+
+  /* What glyph this caches.  */
+  pub glyph: sfnt_glyph_index,                      // C 2071 (the `sfnt_glyph` typedef, Deviation 18 (a))
+}
+
+/* clang, frozen configuration: `sizeof 40`, `_Alignof 8`, `next` 0, `last` 8, `outline` 16,
+   `metrics` 24 (its own 8 bytes), `glyph` 32.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = {
+  core::assert! (std::mem::size_of::<sfnt_outline_cache> () == 40);
+  core::assert! (std::mem::align_of::<sfnt_outline_cache> () == 8);
+  core::assert! (std::mem::offset_of! (sfnt_outline_cache, next) == 0);
+  core::assert! (std::mem::offset_of! (sfnt_outline_cache, last) == 8);
+  core::assert! (std::mem::offset_of! (sfnt_outline_cache, outline) == 16);
+  core::assert! (std::mem::offset_of! (sfnt_outline_cache, metrics) == 24);
+  core::assert! (std::mem::offset_of! (sfnt_outline_cache, glyph) == 32);
+};
+
+/// C 2074-2084: `struct sfnt_raster_cache`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+pub struct sfnt_raster_cache                        // C 2074-2084
+{
+  /* Next and last cache buckets.  */
+  pub next: *mut sfnt_raster_cache,                 // C 2077
+  pub last: *mut sfnt_raster_cache,                 // C 2077's second declarator
+
+  /* Pointer to raster.  */
+  pub raster: *mut sfnt_raster,                     // C 2080
+
+  /* What glyph this caches.  */
+  pub glyph: sfnt_glyph_index,                      // C 2083 (the `sfnt_glyph` typedef)
+}
+
+/* clang, frozen configuration: `sizeof 32`, `_Alignof 8`, `next` 0, `last` 8, `raster` 16,
+   `glyph` 24.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = {
+  core::assert! (std::mem::size_of::<sfnt_raster_cache> () == 32);
+  core::assert! (std::mem::align_of::<sfnt_raster_cache> () == 8);
+  core::assert! (std::mem::offset_of! (sfnt_raster_cache, next) == 0);
+  core::assert! (std::mem::offset_of! (sfnt_raster_cache, last) == 8);
+  core::assert! (std::mem::offset_of! (sfnt_raster_cache, raster) == 16);
+  core::assert! (std::mem::offset_of! (sfnt_raster_cache, glyph) == 24);
+};
+
+/// C 2086-2102: `struct sfntfont_get_glyph_outline_dcontext`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+#[repr(C)]
+pub struct sfntfont_get_glyph_outline_dcontext      // C 2086-2102
+{
+  /* Long and short loca tables.  */
+  pub loca_long: *mut sfnt_loca_table_long,         // C 2089
+  pub loca_short: *mut sfnt_loca_table_short,       // C 2090
+
+  /* glyf table.  */
+  pub glyf: *mut sfnt_glyf_table,                   // C 2093
+
+  /* hmtx, hhea and maxp tables utilized to acquire glyph metrics.  */
+  pub hmtx: *mut sfnt_hmtx_table,                   // C 2096
+  pub hhea: *mut sfnt_hhea_table,                   // C 2097
+  pub maxp: *mut sfnt_maxp_table,                   // C 2098
+
+  /* Variation settings, or NULL.  */
+  pub blend: *mut sfnt_blend,                       // C 2101
+}
+
+/* clang, frozen configuration: `sizeof 56`, `_Alignof 8`, and the seven pointers at 0, 8, 16, 24,
+   32, 40 and 48 in C's order.  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+const _: () = {
+  core::assert! (std::mem::size_of::<sfntfont_get_glyph_outline_dcontext> () == 56);
+  core::assert! (std::mem::align_of::<sfntfont_get_glyph_outline_dcontext> () == 8);
+  core::assert! (std::mem::offset_of! (sfntfont_get_glyph_outline_dcontext, loca_long) == 0);
+  core::assert! (std::mem::offset_of! (sfntfont_get_glyph_outline_dcontext, loca_short) == 8);
+  core::assert! (std::mem::offset_of! (sfntfont_get_glyph_outline_dcontext, glyf) == 16);
+  core::assert! (std::mem::offset_of! (sfntfont_get_glyph_outline_dcontext, hmtx) == 24);
+  core::assert! (std::mem::offset_of! (sfntfont_get_glyph_outline_dcontext, hhea) == 32);
+  core::assert! (std::mem::offset_of! (sfntfont_get_glyph_outline_dcontext, maxp) == 40);
+  core::assert! (std::mem::offset_of! (sfntfont_get_glyph_outline_dcontext, blend) == 48);
+};
+
+/// C 2108-2134: `sfntfont_get_glyph` - C's `static`, and C 2313/C 2355 hand it to the interpreter
+/// as a callback, so it carries the C ABI (P-52).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfntfont_get_glyph (glyph_id: sfnt_glyph_index, dcontext: *mut c_void,
+					 need_free: *mut bool) -> *mut sfnt_glyph
+{                                                          // C 2108-2134
+  let mut tables: *mut sfntfont_get_glyph_outline_dcontext;
+  let mut glyph: *mut sfnt_glyph;
+  /* C 2113's `distortion` is uninitialised and is only ever passed by address to the two
+     variation functions; zero-initialised here (PORTING.md 1.5, Deviation 10).  */
+  let mut distortion: sfnt_metrics_distortion = std::mem::zeroed ();
+
+  tables = dcontext as *mut sfntfont_get_glyph_outline_dcontext;   // C 2115
+  *need_free = true;                                       // C 2116
+
+  glyph = sfnt_read_glyph (glyph_id, (*tables).glyf,
+			   (*tables).loca_short,
+			   (*tables).loca_long);           // C 2118-2120
+
+  if !(*tables).blend.is_null () && !glyph.is_null ()       // C 2122
+    {
+      /* C 2124's `glyph->simple` is a *pointer* (`sfnt.h` 677), so C's truth test is the null
+	 test here (Deviation 21 (a)).  */
+      if !(*glyph).simple.is_null ()
+	{ sfnt_vary_simple_glyph ((*tables).blend, glyph_id, glyph,
+				  &raw mut distortion); }  // C 2125-2126
+      else
+	{ sfnt_vary_compound_glyph ((*tables).blend, glyph_id, glyph,
+				    &raw mut distortion); }   // C 2128-2129
+    }
+
+  /* Note that the distortion is not relevant for compound glyphs.  */
+  return glyph;                                            // C 2133
+}
+
+/// C 2139-2142: `sfntfont_free_glyph` - C's `static`, and C 2314/C 2356 hand it to the
+/// interpreter as a callback (P-52).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfntfont_free_glyph (glyph: *mut sfnt_glyph, dcontext: *mut c_void)
+{                                                          // C 2139-2142
+  sfnt_free_glyph (glyph);                                 // C 2141
+}
+
+/// C 2150-2158: `sfntfont_get_metrics` - C's `static`, and C 2357 hands it to the interpreter as a
+/// callback (P-52).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe extern "C" fn sfntfont_get_metrics (glyph: sfnt_glyph_index,
+					   metrics: *mut sfnt_glyph_metrics,
+					   dcontext: *mut c_void) -> c_int
+{                                                          // C 2150-2158
+  let mut tables: *mut sfntfont_get_glyph_outline_dcontext;
+
+  tables = dcontext as *mut sfntfont_get_glyph_outline_dcontext;   // C 2155
+  return sfnt_lookup_glyph_metrics (glyph, metrics, (*tables).hmtx,
+				    (*tables).hhea, (*tables).maxp);   // C 2156-2157
+}
+
+/// C 2164-2172: `sfntfont_dereference_outline` - C's `static`, called by name only
+/// (C 2400/2431/3537/3726), so it stays a plain `unsafe fn`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_dereference_outline (outline: *mut sfnt_glyph_outline)
+{                                                          // C 2164-2172
+  eassert! ((*outline).refcount > 0);                      // C 2166
+
+  (*outline).refcount -= 1;                                // C 2168's `--outline->refcount`
+
+  if (*outline).refcount != 0
+    { return; }                                            // C 2169
+
+  xfree (outline as *mut c_void);                          // C 2171
+}
