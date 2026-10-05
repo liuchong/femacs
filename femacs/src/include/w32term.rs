@@ -1454,8 +1454,12 @@ pub mod w32term_objs {
   unsafe extern "C" {
   /// C 228's `extern HMENU current_popup_menu;` - `src/w32menu.c` defines it, so it sits here
   /// (P-21/P-39; at this mirror's crate root it was `E0428` in that unit, measured on the
-  /// `w32menu` arm: five rows, status 3.547).
-  pub static mut current_popup_menu: HMENU;
+  /// `w32menu` arm: five rows, status 3.547).  `HMENU` itself is a name a *unit* declares
+  /// (`src/w32menu.rs` 209 and its siblings), so the module cannot spell it - a nested module's
+  /// `use super::*` does not see what the crate root glob-imported, which is exactly how this one
+  /// read `E0425 cannot find type HMENU` in the `w32font` arm (status 3.548).  The untyped
+  /// pointer plus the class name is P-72 rule 3's reading.
+  pub static mut current_popup_menu: *mut c_void;
     pub static mut x_display_list: *mut w32_display_info;
     pub static mut one_w32_display_info: w32_display_info;
     /// C 228: `extern int menubar_in_use;`

@@ -99,7 +99,13 @@ macro_rules! get_w32_minor_version { () => { w32_minor_version }; }
 pub mod w32common_decls {
   use super::*;
 
-  /* C 24's two `<windows.h>` records, declared here on the Windows target's behalf (P-88 (1)):
+  /* The `#[cfg (feature = "windowsnt")]` on both records below is load-bearing, not decoration:
+     their members are `<windows.h>`'s `DWORD`/`WORD`/`LPVOID`/`DWORD_PTR`, which only a unit that
+     carries that surface defines - ungated they made `xtask layout-check`'s probe read twelve
+     `E0425 cannot find type` rows (measured, status 3.548).  The statics that use them are gated
+     the same way.
+
+  C 24's two `<windows.h>` records, declared here on the Windows target's behalf (P-88 (1)):
      the header's own file note names them among the deferrals, and `src/w32fns.c` 10070-10076
      reads `dwPageSize` / `dwOSVersionInfoSize` / `dwBuildNumber` off the two caches below, so
      the *members* have to exist for that arm to compile.  The members and their order are the
@@ -111,6 +117,7 @@ pub mod w32common_decls {
   /// lpMinimumApplicationAddress, lpMaximumApplicationAddress; DWORD_PTR dwActiveProcessorMask;
   /// DWORD dwNumberOfProcessors, dwProcessorType, dwAllocationGranularity; WORD
   /// wProcessorLevel, wProcessorRevision; } SYSTEM_INFO;`
+  #[cfg (feature = "windowsnt")]
   #[repr(C)]
   pub struct SYSTEM_INFO
   {
@@ -128,6 +135,7 @@ pub mod w32common_decls {
   /// C: `<windows.h>`: `typedef struct _OSVERSIONINFOA { DWORD dwOSVersionInfoSize,
   /// dwMajorVersion, dwMinorVersion, dwBuildNumber, dwPlatformId; CHAR szCSDVersion[128]; }
   /// OSVERSIONINFOA;`
+  #[cfg (feature = "windowsnt")]
   #[repr(C)]
   pub struct OSVERSIONINFO
   {

@@ -10787,3 +10787,44 @@
      我把 feature 名写成 `ngui_unicode` 的笔误（登记进 `Cargo.toml` 的名字一直是 `ntgui_unicode`）。
   ⑥ **预算**：`probe` 4 发（两次是自伤后的复读）、`check-all-units` 1 发、`layout-check` 1 发、`check-citations` 2 发、
      `check-mirror-dupes` 1 发、`extract-abi --check` 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`；`/tmp/w32m547` 收工删。
+
+- **3.548 修 3.541/3.547 的两处漏：`layout-check` 从 3.541 起就是坏的，`HMENU` 在嵌套模块里不可命名（2026-10-05）**：
+  ① **第一处漏（3.541 造的，坏了一道主门）**：`femacs/src/include/w32common.rs` 的 `SYSTEM_INFO`/`OSVERSIONINFO`
+     两条记录**没有门**，而它们的成员是 `<windows.h>` 的 `DWORD`/`WORD`/`LPVOID`/`DWORD_PTR` ⇒ 单 crate 的
+     `xtask layout-check` 读 **12 条 `E0425 cannot find type`**，那道门是坏的。改法：两条记录各加
+     `#[cfg (feature = "windowsnt")]`（注释里写明这个门是承重的、不是装饰）。**这条漏从 3.541 一直活到 3.547
+     都没被读出来**：3.547 的提交信息与 status ④ 都写着 "layout-check passed"，**那是错的**——本轮在 HEAD 的
+     worktree（`git worktree add --detach /tmp/f548-wt2 77c74999`）里实跑，`layout-check` 打
+     `error: layout probe failed to compile (exit status: 1)`（14 行 `E0425`）；在 3.541 的 worktree（`dca3e1c7`）
+     里同样失败（12 行 `E0425`）。**根因是读法**：那一轮的验证写成 `a && b && c` 链，`layout-check` 打的是
+     **日志尾巴**，链子没有看它的退出码 ⇒ 记进 `PORTING.md` P-87 ④。
+  ② **第二处漏（3.547 造的，`w32font` 臂多一条）**：3.547 把 `current_popup_menu` 搬进 `w32term_objs` 模块时
+     类型仍写 `HMENU`，而 `HMENU` 只在**单元**里声明（`src/w32menu.rs` 209、`w32fns.rs` 240、`w32select.rs` 194）
+     ——**嵌套模块的 `use super::*` 看不见 crate 根 glob 进来的名字** ⇒ `probe src/w32font.rs`（`have_ntgui` +
+     `windowsnt` + `have_window_system`）读 `E0425 cannot find type HMENU`。改法：按 P-72 rule 3 写
+     `pub static mut current_popup_menu: *mut c_void;`，注释写明缘由。
+  ③ **读数（修后逐条实测）**：⑴ `probe src/w32font.rs`（三 cfg）**只剩 1 条** = `include/frame.rs` 那条自己
+     写明的 `compile_error!`；⑵ `probe src/w32menu.rs`（两 cfg）**7 条** = 6 条单元自身的
+     `E0609 no field menubar_active on w32_output` + `frame.rs` 的 `compile_error!` + 2 行 rustc 包装行
+     （与 3.547 的预测逐条相符，位域项未动）；⑶ `check-all-units.sh` **`checked 83 unit(s), 0 failure(s)` +
+     `checking 83 unit(s), 0 unit failure(s)`**（两腿）；⑷ **`layout-check passed`**（这回按退出码读的，0）；
+     ⑸ 七道文本门：`check-mirror-dupes` 21 重复 / 17 棘轮 / **4 failure——4 条全在 `femacs/src/gmalloc.rs`**
+     （`calloc`/`free`/`malloc`/`realloc` 与 `lib/include/stdlib.rs` 重复，那是 Cicero lane 的在飞文件，不在本提交里）、
+     `check-citations` 676 文件 / 0 drift / 0 stale、`check-declarations` 17 处 / 0 forbidden（在飞 lane 的落库字面量让它从 10 浮动到 17）、`check-ledger-ticks` 233/0、
+     `check-dead-file-coverage` 107/0、`check-port-lines` 21 文件 / 25 棘轮 / 0 new / 4 stale、`check-target-names` 591 目标 / 0 finding。
+  ④ **顺带按用户指令复核"版本声明去产品名"这条长期指令（第八半）**：扣掉六棵逐字节树、参照 `emacs/`、`build/`、
+     `target/`，全仓仍有产品名的**只剩 5 类，每一处都在既有裁决里点名**：`tools/check-declarations.py`（规则自身的
+     记号，每次运行逐条打印）、`docs/status.md`（运行日志引用指令与参照输出）、
+     `docs/baseline/{declarations-allowlist.tsv,config/darwin-arm64.macros.tsv,l0-reference.txt,l1-reference.txt}`
+     （**实测值**）、`docs/acceptance.md`（参照程序自己 `--version` 的输出）、`femacs/src/emacs.rs` 1 行
+     （C 的 `DEFVAR_LISP` **docstring 字面量**，docstring 门逐字比对）。**被移植树里 0 命中**；`@ <rev> (` 的括注在
+     `femacs/{src,lib,lib-src,lwlib,nt,java}` 里只剩 `(gnulib)` 一类（不是产品名）。本仓库自己的身份声明全部写自己的
+     名字、3.433 的六处改动一字未回退：`src/emacs.rs` 的 `PACKAGE_NAME = c"femacs"` 与
+     `RCS_Id = c"$Id: femacs 32.0.50 (aarch64-apple-darwin25.6.0 PDUMPER) $"`、`lib-src/etags.rs` 的
+     `PACKAGE_NAME = c"femacs"`（横幅打 `etags (femacs 32.0.50)`）、`lib-src/ebrowse.rs` 的横幅、
+     `src/android.rs` 的 `PACKAGE_STRING = "femacs 32.0.50"`。
+  ⑤ **未声称**：两处都是**编译/门**读数，没有链接、没有运行；`struct w32_output` 的六个位域仍是 P-80 的政策项
+     （要 Windows 工具链的字节 dump）；`check-mirror-dupes` 的 4 failure 属于在飞 lane，本提交不含它们。
+  ⑥ **预算**：`build-tu` 2 发、`probe` 2 发、`check-all-units` 1 发、`layout-check` 3 发（含两个 worktree 的复读）、
+     文本门 1 轮全跑、`git worktree add/remove` 2 次（`/tmp/f548-wt`、`/tmp/f548-wt2`，已删）；
+     未跑 `xtask --all`/`gate-fast`/`cargo test`；`/tmp/f548`、`/tmp/f548-sweep` 收工删。
