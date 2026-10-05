@@ -1,7 +1,7 @@
 # emacs/src/image.c (13805 lines)
 
-> **The largest file in P-86's class.  Three slices are ported: C 1-1095 (the first batch),
-> C 1096-2211 (the second) and C 2212-3550 (this one).**
+> **The largest file in P-86's class.  Four slices are ported: C 1-1095 (the first batch),
+> C 1096-2211 (the second), C 2212-3550 (the third) and C 3552-4623 (this one).**
 > `configure.ac` 7521 fills `WINDOW_SYSTEM_OBJ="fontset.o fringe.o image.o"` only under
 > `HAVE_WINDOW_SYSTEM`, that macro is `undef` in `docs/baseline/config/darwin-arm64.macros.tsv`
 > (1678), and `docs/baseline/frozen-build-sources.txt` lists no `image.o`, so the frozen
@@ -13,7 +13,7 @@
 > still owe.  P-86 1 applies to the port: **transcription, both arms of every `#if`**, each item
 > behind the file gate (`have_window_system`) plus C's own condition lower-cased, and this ledger
 > records P-86 2's **C line-range table** instead of ticked boxes.  Port: `femacs/src/image.rs`
-> (**4,881 lines** after this batch, measured with `grep -c ''`).
+> (**6,182 lines** after this batch, measured with `grep -c ''`).
 >
 > **The first slice is C 1-1095**, ending at the `}` of `image_create_bitmap_from_file` (C 1095).
 > It holds: the include graph and the platform macro/type sections (C 20-222), the
@@ -49,8 +49,29 @@
 > (C 2784-2851), `image_compute_scale` (C 2727-2776), the affine-transform banner and
 > `typedef double matrix3x3[3][3]` (C 2853-2931), `matrix3x3_mult` (C 2933-2946),
 > `compute_image_rotation` (C 2948-2968), the `HAVE_ANDROID` matrix helpers (C 2970-3056) and
-> `image_set_transform` (C 3058-3548).  **The next live definition is `lookup_image` (C 3556)** -
-> the next slice's first item.
+> `image_set_transform` (C 3058-3548).
+>
+> **This batch is the fourth slice: C 3552-4623**, ending at the `}` of `slurp_image` (C 4617) -
+> the end of the file's "File Handling" section.  It holds `lookup_image` (C 3552-3688),
+> `cache_image` (C 3690-3727), the `HAVE_WEBP || HAVE_GIF` animation-cache block (C 3730-3860:
+> the three records, the `anim_cache` object and `anim_create_cache` /
+> `anim_prune_animation_cache` / `anim_get_animation_cache`), `mark_image` (C 3862-3871),
+> `mark_image_cache` (C 3873-3890), the "X / NS / W32 support code" banner and the
+> `HAVE_X_WINDOWS || HAVE_ANDROID` half of its section (C 3894-4114: `x_check_image_size`,
+> `x_create_x_image_and_pixmap`, `x_destroy_x_image` and the `!USE_CAIRO && HAVE_XRENDER`
+> `x_create_xrender_picture`), `image_check_image_size` (C 4064-4074),
+> `image_create_x_image_and_pixmap_1` (C 4086-4241, the cairo / X-Android / Haiku / Windows / NS
+> arms), `image_destroy_x_image` (C 4246-4267), `gui_put_x_image` (C 4274-4291),
+> `image_create_x_image_and_pixmap` (C 4296-4310), `image_put_x_image` (C 4318-4338),
+> `image_sync_to_pixmaps` (C 4344-4359), the `HAVE_NTGUI` pair `image_get_x_image_or_dc` /
+> `image_unget_x_image_or_dc` (C 4367-4386) and its `#else`'s `image_get_x_image` /
+> `image_unget_x_image` (C 4391-4442), the "File Handling" banner (C 4446-4448),
+> `image_find_image_fd` (C 4456-4501), `image_find_image_file` (C 4507-4511), the Android
+> `close_android_fd` (C 4515-4519), `slurp_file` (C 4528-4595) and `slurp_image` (C 4601-4617).
+> **The next live definition is C 4624's `static bool xbm_file_p (Lisp_Object);`**, whose
+> prototype plus the "XBM images" banner (C 4620-4622) it follows - the next slice's first item,
+> and the 17 prototypes this slice turned into definitions were dropped in place (PORTING.md
+> 0.1-12; each is named in Deviations).
 >
 > **The second slice is `text-only` for five of the six platform arms** (P-86 3-2).  The machine has no
 > Windows toolchain and no Haiku/GTK SDK (`which x86_64-w64-mingw32-gcc i686-w64-mingw32-gcc` is
@@ -231,7 +252,32 @@ above checkable rather than asserted.
 | 2671-2721 | C 2671 `#if defined (HAVE_IMAGEMAGICK) \|\| defined (HAVE_NATIVE_TRANSFORMS)`, C 2672-2675's comment, `scale_image_size` (C 2676-2698), C 2700-2720's comment and `image_get_dimension` (C 2699-2720), C 2721 `#endif` | `any (have_imagemagick, have_native_transforms)`; both `static` |
 | 2723-2776 | `image_compute_scale` (C 2723-2726's comment; C 2733's `invalid_value:` label) | file gate (`static`); the `goto` is the tree's loop shape |
 | 2777-3550 | C 2777's second `#if defined HAVE_IMAGEMAGICK \|\| defined HAVE_NATIVE_TRANSFORMS` … C 3550 `#endif`, holding C 2779-2783's comment and `compute_image_size` (C 2784-2851), C 2853-2931's affine-transform banner and `typedef double matrix3x3[3][3]`, `matrix3x3_mult` (C 2933-2946), `compute_image_rotation` (C 2948-2968), C 2970-3056's `#ifdef HAVE_ANDROID` matrix helpers and `image_set_transform` (C 3058-3548) | `any (have_imagemagick, have_native_transforms)` plus, inside: `have_android` (the four helpers) and `image_set_transform`'s own chains (`have_rsvg`, `use_cairo`/`have_xrender`/`have_ns`/`have_haiku`/`have_android`/`have_ntgui`, the scale-matrix arms and the six store-the-transform arms) - every `#if`'s both arms carried |
-| 3552-13805 | **the remainder of the file** (C 3556 `lookup_image` onward) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 3552-3688 | `lookup_image` (C 3552-3554 C's comment, C 3555-3556 the signature, C 3558-3688 the body) | file gate; **non-`static`, so `#[unsafe(no_mangle)]`** - and the declaration the third slice kept (dispextern.h 3757) is dropped here, since this *is* the definition; the `have_native_transforms` arm of C 3645-3647 |
+| 3691-3727 | `cache_image` (C 3691's comment) | file gate (`static`); C 2219's prototype was already dropped by the third slice |
+| 3730-3860 | `#if defined (HAVE_WEBP) \|\| defined (HAVE_GIF)`: C 3732-3738 `struct gif_anim_handle`, C 3740-3751 `struct webp_anim_handle`, C 3756-3788 `struct anim_cache` (C 3764-3772's nested `union anim_handle`), C 3790 the `anim_cache` object, C 3795-3805 `anim_create_cache`, C 3811-3833 `anim_prune_animation_cache`, C 3835-3858 `anim_get_animation_cache`, C 3860's `#endif` | `any (have_webp, have_gif)` plus the nested `have_gif`/`have_webp`; C 244-246's prototype of `anim_prune_animation_cache` is dropped here (its definition is C 3812) |
+| 3862-3871 | `mark_image` (C 3862's comment) | file gate (`static`) |
+| 3873-3890 | `mark_image_cache` (C 3873-3874's comment; C 3886-3889's `HAVE_WEBP \|\| HAVE_GIF` loop) | file gate; **non-`static`** |
+| 3894-3900 | the "X / NS / W32 support code" banner (C 3894-3898) and C 3900's `#if defined HAVE_X_WINDOWS \|\| defined HAVE_ANDROID` (closed by C 4114, whose `#endif` C mislabels `/* HAVE_X_WINDOWS */`) | file gate + that pair of conditions |
+| 3902-3933 | `x_check_image_size` (C 3905-3907's comment, C 3908-3912's local `enum`, C 3917-3921's `HAVE_ANDROID` pair) | the gate above; both arms of each |
+| 3935-3993 | `x_create_x_image_and_pixmap` (C 3939-3942's two locals, C 3948-3955's pair, C 3975-3983's pair incl. `ANDROID_STUBIFY`, C 4004-4008's pair) | the gate above; both arms |
+| 3995-4009 | `x_destroy_x_image` (C 4004-4008's pair) | the gate above |
+| 4011-4057 | C 4011's `# if !defined USE_CAIRO && defined HAVE_XRENDER`, its comment, `x_create_xrender_picture` (C 4013-4055), C 4056-4057's two `#endif`s | the gate above + `not (use_cairo)`, `have_xrender`; the Xrender surface (`XRenderFindStandardFormat`, `XRenderPictureAttributes`, `PictStandard*`, `CPRepeat`, `RepeatPad`, `XRenderCreatePicture`) is the SDK-name class this machine's headers have but no mirror carries |
+| 4059-4074 | the doc comment (C 4059-4062) and `image_check_image_size` (C 4067-4073) | file gate; both arms |
+| 4076-4241 | the doc comment (C 4076-4084) and `image_create_x_image_and_pixmap_1` (C 4091-4104 `USE_CAIRO`, C 4105-4114 `#elif X \|\| ANDROID` incl. C 4108-4111's nested `HAVE_XRENDER`, C 4116-4138 `HAVE_HAIKU`, C 4140-4228 `HAVE_NTGUI` incl. C 4191-4201's `GNUC_PREREQ` pragma pair, C 4230-4240 `HAVE_NS`) | file gate + those five conditions; the Windows and Haiku arms are `text-only` on this machine |
+| 4244-4267 | the comment (C 4244) and `image_destroy_x_image` (C 4249-4250's gate, C 4251-4266's `#else`; C 4255-4259's block is C's comment alone) | file gate; both arms |
+| 4270-4291 | the comment (C 4270-4272) and `gui_put_x_image` (C 4278-4279, C 4280-4287, C 4288-4289) | file gate + the three-arm `#if`/`#elif`/`#elif` |
+| 4293-4310 | the comment (C 4293-4294) and `image_create_x_image_and_pixmap` (C 4304-4306's nested pair) | file gate + `have_xrender` |
+| 4312-4338 | the comment (C 4312-4316) and `image_put_x_image` (C 4322-4332, C 4333-4336) | file gate + both arms |
+| 4340-4360 | C 4340's `#if (X \|\| ANDROID) && !USE_CAIRO`, the comment, `image_sync_to_pixmaps` (C 4344-4359), C 4360's `#endif` | file gate + that pair; C 1218's prototype is dropped here |
+| 4362-4386 | C 4362's `#ifdef HAVE_NTGUI`, the comment and `image_get_x_image_or_dc` (C 4367-4378) / `image_unget_x_image_or_dc` (C 4380-4386) | file gate + `have_ntgui` (`text-only`); C 1201-1204's prototypes drop here |
+| 4387-4443 | C 4387's `#else  /* !HAVE_NTGUI */`, the comment and `image_get_x_image` (C 4394-4420: C 4394/4396/4415's chain, C 4401/4406's pair) / `image_unget_x_image` (C 4426/4427/4439's chain), C 4443's `#endif` | file gate + `not (have_ntgui)`; C 1206-1208's prototypes drop here |
+| 4446-4454 | the "File Handling" banner (C 4446-4448) and C 4450-4454's comment | file gate |
+| 4456-4501 | `image_find_image_fd` (C 4463-4464, 4469, 4476-4479 and 4483-4484's comments, C 4488-4499's pair) | file gate; both arms; C 750's prototype drops here |
+| 4503-4511 | the comment (C 4503-4505) and `image_find_image_file` (C 4507-4508) | file gate; **non-`static`** |
+| 4513-4521 | C 4513's `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY`, `close_android_fd` (C 4515-4519), C 4521's `#endif` | file gate + that pair; `text-only` |
+| 4523-4595 | the comment (C 4523-4526) and `slurp_file` (C 4531-4559's first arm, C 4560-4592's `#else`) | file gate; both arms; C 749's prototype drops here |
+| 4597-4617 | the comment (C 4597-4599) and `slurp_image` (C 4601-4602) | file gate (`static`); **this slice's last item** |
+| 4620-13805 | **the remainder of the file** (C 4624 `static bool xbm_file_p (Lisp_Object);` onward, after the "XBM images" banner at C 4620-4622) | not in this slice: recorded so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 ## Evidence
 
@@ -644,6 +690,78 @@ C 13805 vs Rust 4881`), the two rows this slice's own definitions produced
 `#[unsafe(no_mangle)] in the port" - no C symbol to link, the slice-2 row's class).  Every row
 except those four is work in the C 3552-13805 remainder (the nearest is `lookup_image`, C 3556).
 
+**18. The fourth slice's two pre-flight gates, and its frozen reading.**
+```
+$ python3 tools/check-cond-eval.py src/image.c
+src/image.c: 435 conditions, 0 unknown, 0 disagreements [VERIFIED]
+$ python3 tools/extract-abi.py --check emacs/src/image.c femacs/src/image.rs     # before this batch
+119 `- ` rows (50 missing functions, 42 missing constants, 10 missing defsubr records, 7 missing
+macros, 5 missing subrs, 2 missing file-scope objects, the line-count row and the two kept
+declarations' rows) -> FAIL
+$ cd femacs && CARGO_TARGET_DIR=/tmp/image-lane/target cargo run -q -p xtask -- build-tu src/image.c
+built src/image.rs -> ../build/femacs/image.o     (exit 0; **336 bytes** - the empty object,
+Evidence 1's reading, because every item sits behind `have_window_system`)
+```
+The `C line ranges` table this round replaces had said "`3552-13805` the remainder": the rows
+above turn **C 3552-4623** (1,072 C lines) into real rows and leave `4620-13805`.
+
+**19. The arm flips (P-86 3), this round.**  Two configurations were compiled, both with
+`--cfg 'feature="dispextern_face_records"'` (the condition `include/dispextern.rs` gates
+`struct face`/`struct face_cache` on, and Owed 4's item).
+
+*The NS configuration* (`have_window_system` + `have_ns` - this machine's own platform, the one
+Evidence 2/9 carry):
+```
+$ rustup run nightly-2026-10-01 rustc --edition 2024 -O build/probes/image/_root.rs \
+    -o /tmp/image-lane/arm-ns.o --crate-type lib --emit obj -C panic=abort \
+    --cfg 'feature="have_window_system"' --cfg 'feature="have_ns"' \
+    --cfg 'feature="dispextern_face_records"'
+-> exit 0, **0 errors**, 19 warnings
+```
+`build/probes/image/_root.rs` is what `xtask probe` materializes (the unit's text with xtask's
+`include!` paths and dedupes; the first reading of this round was the `xtask probe` form itself -
+**exit 1, 12 errors, all 12 in this slice's new text**: `XLIB_BYTES_MAX`'s `<` parsed as a generic
+argument, `eabs` called without its `!`, `builtin_lisp_symbol`'s `usize`, the three `font *` reads,
+`share_image_cache` undeclared, `file_found`'s `E0381`, `face_id` not `mut`, and the two cfg'd
+assignments - all fixed before the reading above).
+
+*The X+cairo configuration* (`have_window_system` + `have_x_windows` + `use_cairo`):
+```
+-> exit 1, **69 `error` diagnostics** (the 70th line is rustc's "aborting due to" summary): **62
+anchored in the unit's text, 7 in mirror copies**; of the 62, **2 are this slice's** and **60 are
+pre-existing** (they are below this slice's first line, `_root.rs` 4854's banner)
+```
+The two in this slice are the **Xlib names no mirror declares** - `XCreateImage` (C 3949) and
+`XCreatePixmap` (C 3976) - i.e. Evidence 3's `XCreateBitmapFromData`/`XReadBitmapFile` class.  The
+60 pre-existing ones are the same configuration's known state: 41 are `no field
+bitmaps`/`bitmaps_last`/`bitmaps_size`/`display`/`root_window` on
+`dispextern_unit_names::x_display_info` (the mirror's X-arm `Display_Info` alias is the *opaque*
+tag while this unit reads the record's members - Owed 16) spread over the **first** slice's
+`image_allocate_bitmap_record` family (C 885-1812) and the **third** slice's rows (C 2750/2937),
+and 19 are `E0308`s in the first slice's `x_create_bitmap_mask` (C 1903/1923/1925's `XGetImage`/
+`XGetPixel` argument types) and the third slice's C 2750/2751/2937.  **Nothing in this slice's own
+text fails to type-check in either flipped configuration except those two SDK names.**
+
+*Not flipped* (P-86 3-2): the **Windows** (`have_ntgui`), **Haiku** (`have_haiku`), **PGTK**
+(`have_pgtk`) and **Android** (`have_android`) arms, and the **plain-X11** (`have_x_windows`
+without `use_cairo`) configuration.  `which x86_64-w64-mingw32-gcc i686-w64-mingw32-gcc` is empty
+and `/opt/homebrew/include` has no `gtk`/`pango`/Haiku tree; the plain-X11 configuration is the
+one where the unit's and the mirror's `Emacs_Pix_Container` X-arm declarations collide (`E0428`,
+Owed 16).  Those arms' evidence is the frozen reading above, the `check-cond-eval` verdicts and
+the per-item C citation, and the ledger says `text-only` for each.
+
+**20. What `--check` still owes, after this batch.**
+`python3 tools/extract-abi.py --check emacs/src/image.c femacs/src/image.rs` reads **105 `- ` rows**
+(119 before, so this batch cleared **16**): 34 missing functions, 42 missing constants, 10 missing
+`defsubr` records, 7 missing macros, 5 missing subrs, 2 missing file-scope objects
+(`canvas_map`, `canvas_list`), the line-count row (`line count drifted 55.2%: C 13805 vs Rust
+6182`), the one kept declaration (`image_prune_animation_caches`, Owed 13), and **three rows this
+slice's own definitions produced**: `lookup_image does not mention background_valid`,
+`image_check_image_size does not mention 1` and `image_find_image_file does not mention 0` (the
+tree's `docs/ports/macro-body-notes.tsv` class - Owed 14).  The thirty-four missing functions are
+the XBM / XPM / canvas / PNG / JPEG / TIFF / GIF / WebP / SVG / ImageMagick readers from C 4624
+onward; the nearest is C 4637's `xbm_image_p` region (whose prototype line C 4624 is).
+
 ## Deviations
 
 - **The two object-like `#define` families are written as `macro_rules!`, one per arm, with C's
@@ -947,6 +1065,82 @@ except those four is work in the C 3552-13805 remainder (the nearest is `lookup_
   (iii) the uninitialised `found_p`/`width`/`height`/`cos_r`/`sin_r` bindings were `E0381`.  The
   four helpers' missing outer gate was the sweep's fourth find.
 
+### The fourth slice's verdicts and deviations (C 3552-4623)
+
+- **A cfg'd *assignment* is not a statement Rust accepts an attribute on.**  Measured twice: `#[cfg
+  (…)] *ximg = XCreateImage (…);` reports `E0658` (`attributes on expressions are experimental`,
+  the `stmt_expr_attributes` gate) plus "removing an expression is not supported in this
+  position", while a cfg'd `let`, call, macro call, `if` or block *is* a legal statement.  So
+  `x_create_x_image_and_pixmap`'s two `*ximg = …` arms are C's own expression inside a block; the
+  rest of the slice needs no wrapper.
+- **C's `if (ximg_in_img) … #ifdef … else if … #else … else … #endif` chains** in
+  `image_get_x_image`/`image_unget_x_image` are the tree's `if`/`else`, with each arm's nested
+  `#if`/`#else` a cfg'd block **inside the `else` body** (an attribute on `else` is not a
+  statement-position attribute either).  Every arm of those chains returns or is the function's
+  last statement, so the rewritten sequence is the same order, the same tests and the same values.
+- **`image_unget_x_image`'s `#ifdef USE_CAIRO` arm holds no statement** - C's own empty side of the
+  `#elif`.  The port carries C 4426 as a comment and emits nothing for it, so under `use_cairo`
+  that function is the empty body C's own arm leaves.
+- **`XLIB_BYTES_MAX`/`X_IMAGE_BYTES_MAX` (C 3908-3912's local `enum`) are `const` items in C's own
+  value types.**  `min (INT_MAX, UINT_MAX)` is C's usual-arithmetic `unsigned int` and the outer
+  `min` an `unsigned long`; `SIZE_MAX` is `usize` in `lib/include/stdint.in.rs` 244, so each
+  comparison takes `SIZE_MAX as c_ulong` (measured `E0308`.
+- **The record's `(Emacs_Pixmap pixmap, mask)` members are the untyped pointers the mirror carries
+  (P-72 rule 3), and the unit's `Emacs_Pix_Container` X arm is `*mut c_void`** (its own first-slice
+  declaration; the mirror's `*mut XImage` copy is the collision Owed 16 names), so C's cast-free
+  reads take the cast at the boundary: `(if !mask_p { (*img).pixmap } else { (*img).mask }) as
+  Emacs_Pixmap`, `… as *mut XImage`, `ximg as Emacs_Pix_Container`.  This is the first slice's
+  "C's implicit conversions are written out" class, and it is what the three `E0606`s of the first
+  probe reading were.
+- **`slurp_file`'s `buf` is declared inside *both* arms of C's `#if`/`#else` and read once after the
+  `#endif`** (C 4534's `char *buf = NULL;` and C 4561's bare `char *buf;`).  Rust's `let` is
+  block-scoped, so the declaration is hoisted to the function and each arm keeps its own
+  initialisation; the Android arm's bare declaration is the port's zero (PORTING.md 1.5/0.1-13),
+  which C's own `buf = NULL;` in that arm's `else` already covers for its paths.
+- **Uninitialised locals are zeroed** (PORTING.md 1.5/0.1-13): `st` in `slurp_file`'s two arms, and
+  `Lisp_Object file_found;` (C 4459) which is written through `openp`'s `storeptr` - `&raw mut` of
+  a binding Rust has not initialised is `E0381` (measured), so it takes C's zero.
+- **C's declarations duplicated across an `#if`/`#else`** (`FILE *display`/`Drawable drawable` at
+  C 3940-3941) are cfg'd `let`s in the arm that has them, and **C's `struct face *face = …`
+  mid-body declaration** (C 3564) is the port's `let face: *mut face = …` at C's own position.
+- **`eabs` is a `macro_rules!` in the mirror**, so C's `eabs (img->relief)` is `eabs! (…)`
+  (measured `E0423`), and **`builtin_lisp_symbol` takes `usize`**, so C's `img->type->type` carries
+  `as usize` (measured `E0308`).
+- **`lookup_image`'s `face_id` is assigned** (C 3563's `face_id = DEFAULT_FACE_ID;`), so the
+  parameter is `mut face_id` - C's own reassignment, no shadowing.
+- **`FRAME_FACE_CACHE`/`FACE_FROM_ID` are the mirror's module** (`frame_face_accessors`, behind
+  `dispextern_face_records`), which this unit does not glob-import, so the unit carries the two
+  live copies at the top of the slice (`src/term.rs` 364-377's shape; the header says why a
+  top-level copy arrives there).  The use-site declarations this slice adds are `share_image_cache`
+  (dispextern.h 3819, `src/frame.rs` 4783-4784's shape), `init_frame_faces`/`recompute_basic_faces`
+  (dispextern.h 3821/3823), `mark_object` (lisp.h 4436) and `fclose_unwind`/`emacs_fdopen`/
+  `sys_fstat` (lisp.h 4977/5320/5305, `src/charset.rs` 91-94 and `src/fileio.rs` 77-78's copies).
+- **The prototypes this slice turns into definitions are dropped in place** (PORTING.md 0.1-12) and
+  the ledger records each: C 244-246's `anim_prune_animation_cache`; C 749's `slurp_file` and
+  C 750's `image_find_image_fd`; C 1195-1198's `image_create_x_image_and_pixmap_1` /
+  `image_destroy_x_image`; C 1201-1204's `_or_dc` pair; C 1206-1208's `image_get_x_image` /
+  `image_unget_x_image`; C 1218's `image_sync_to_pixmaps`; C 1225-1226's `x_create_x_image_and_pixmap`
+  / `x_destroy_x_image`; C 3757's `lookup_image` (the `--check` row "not static in C but has no
+  `#[unsafe(no_mangle)]`" is gone with it).  C 1209-1210's two `#define`s stay - they are C's text
+  at those lines, and the call sites of the other slices read them.
+- **SDK-name classes, kept as C's tokens** (P-86 3-1's registered class, the ledger's Owed 15): the
+  Xrender surface of C 4013-4055 (`XRenderFindStandardFormat`, `XRenderPictureAttributes`,
+  `XRenderPictFormat`, `PictStandardARGB32/RGB24/A8/A4/A1`, `CPRepeat`, `RepeatPad`,
+  `XRenderCreatePicture`) and Xlib's `XCreateImage`/`XCreatePixmap` (C 3949/3976) - this machine's
+  `/opt/homebrew/include` has them (xorgproto 2025.1), no mirror declares them; and the Windows
+  arm's `<windows.h>` names (`BITMAPINFOHEADER`, `BITMAPINFO`, `RGBQUAD`, `HDC`, `HGDIOBJ`,
+  `DWORD`, `CreateCompatibleDC`, `SelectObject`, `DeleteDC`, `CreateDIBSection`, `DIB_PAL_COLORS`,
+  `DIB_RGB_COLORS`, `BI_RGB`, `GetLastError`) plus `get_frame_dc`/`release_frame_dc`, which are
+  `text-only` here.
+- **`CHECK`-style parity for the two windows-only helpers**: C 4191-4201's `GNUC_PREREQ (4, 4, 0)`
+  `#pragma GCC push_options`/`diagnostic ignored`/`pop_options` pair has no Rust counterpart, so the
+  port carries C's lines as C's own comment (the `XCreateBitmapFromData`-class note the first slice
+  keeps for pragmas).
+- **Line count.**  C 1,072 lines (3552-4623) vs **1,308** Rust lines added (4,874 -> 6,182),
+  density **1.22** - lower than the third slice's 1.45 because this slice is mostly ungated code
+  with a handful of platform arms, and it carries C's comments and the `/// C:` citations.  The
+  `docs/ports/line-drift-tolerance.tsv` row is still owed (item 3).
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 1. **`docs/ports/macro-body-notes.tsv`: nine rows for the tokens this slice's own definitions
@@ -1042,6 +1236,55 @@ except those four is work in the C 3552-13805 remainder (the nearest is `lookup_
    `lookup_image`), and `canvas_free_unused` (C 127's `static` prototype, whose definition is
    C 5535's - the `canvas_prepare_for_display` shape).  All three declarations disappear in the
    commits that land their definitions.
+
+14. **`docs/ports/macro-body-notes.tsv`: three rows for the tokens this slice's own definitions
+   cannot mention** (that file is not in this lane's writable set), each with the C body that
+   produces it and the rule: `lookup_image` - `background_valid` (C 3625's bit member, which the
+   mirror carries as the `IMAGE_BACKGROUND_VALID_*` pair, P-80); `image_check_image_size` - `1`
+   (C 4072's `return 1;` in a `bool` function - item 1's `check_image_size` row is the same
+   class); `image_find_image_file` - `0` (C 4510's `image_find_image_fd (file, 0)`, written
+   `core::ptr::null_mut ()`).
+15. **The mirror gaps this slice proved**, each with the file that owns it: `include/xlib.rs` -
+   `XCreateImage` (Xlib.h 1410-1419) and `XCreatePixmap` (Xlib.h 1237-1243), the two names this
+   slice's X arm calls and that mirror does not carry (the X+cairo flip's only two errors in this
+   slice's text), and the **Xrender** surface (`XRenderFindStandardFormat`,
+   `XRenderPictureAttributes`, `XRenderPictFormat`, the five `PictStandard*` values, `CPRepeat`,
+   `RepeatPad`, `XRenderCreatePicture`) - the `!USE_CAIRO && HAVE_XRENDER` arm's class, which
+   `include/xterm.rs`/`include/xlib.rs` do not carry either.  **No mirror file was touched by this
+   lane**, so no `check-all-units.sh` rerun is claimed (that scan is forbidden to this lane
+   anyway), and the 60 pre-existing X+cairo unit-text errors item 16 describes were **not**
+   introduced here.
+16. **Two pre-existing collisions the X arm reads (both below this slice's first line, both found
+   by this round's flip - neither is this slice's own text).**
+   - `include/dispextern.rs` 712 declares `pub type Display_Info =
+     dispextern_unit_names::x_display_info` (the *opaque* tag) with the same gate
+     `src/image.rs` 171-178's dropped X-arm alias had, while this unit reads `bitmaps`,
+     `bitmaps_last`, `bitmaps_size`, `display` and `root_window` off it: **41 of the 60** unit-text
+     errors.  The unit needs the complete record, i.e. its own `pub type Display_Info =
+     x_display_info;` (the `src/frame.rs` 6059 / `src/androidfns.rs` 418 precedent, and C 64's
+     `TERM_HEADER` chain already brings `include/xterm.rs` in) - and then the *mirror's* alias has
+     to give way, since two top-level aliases of one name are `E0428`.  This is a mirror-side
+     decision, which is why this lane did **not** make it.
+   - The unit's `Emacs_Pix_Container` X arm (`src/image.rs` 2551, `*mut c_void`) and
+     `include/dispextern.rs` 739's (`*mut XImage`) carry the same gate
+     (`have_x_windows`, `not (use_cairo)`): the **plain-X11** configuration reads `E0428`, which
+     is why that configuration is not flipped above.  P-26/P-70's same-commit rule wants the
+     unit's copy dropped; this lane left it because the collision is the mirror round's, not this
+     slice's, and dropping it changes the type every one of the first slice's casts names.
+17. **The X+cairo flip's `E0308`s in the first and third slices** (19 of the 60, all pre-existing
+   and outside this slice): `src/image.rs` 1903/1923/1925 (the first slice's `x_create_bitmap_mask`
+   passes `Pixmap`/`c_ulong` where `include/xlib.rs` 1208-1209's `XGetImage`/`XGetPixel` take
+   `c_uint`/`c_int`) and the third slice's C 2750/2751/2937 rows.  Each wants its own slice's
+   hand, and the ledger records them so the next lane does not read them as new.
+18. **`image_prune_animation_caches` (dispextern.h 3754) is still the one kept declaration of this
+   unit** (its definition is C 12768, outside every slice landed so far; `canvas_free_unused`'s
+   C 127 prototype is kept for C 5535's definition, the next slice's).  The `lookup_image` row
+   (item 2) is **satisfied** by this slice: C 3556's definition carries `#[unsafe(no_mangle)]` and
+   the declaration is gone.
+19. **The remainder now starts at C 4624** (`static bool xbm_file_p (Lisp_Object);`, after the
+   "XBM images" banner at C 4620-4622), C 4624-13805 - 9,182 lines, of which the XBM section
+   (C 4624-5505), the canvas section (C 5506-5915), the XPM section (C 5916-6613) and everything
+   after it remain.
 
 ## P-90's second step (2026-10-05): the cairo names the mirror shares moved out
 

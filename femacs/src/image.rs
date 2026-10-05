@@ -1256,19 +1256,16 @@ pub type image_fd = android_fd_or_asset;
 #[cfg (all (feature = "have_window_system", not (all (feature = "have_android", feature = "not_android_stubify"))))]
 pub type image_fd = c_int;
 
-/* C 749-752: the three `static` prototypes of functions this file defines outside this slice -
-   `slurp_file` (C 4529), `image_find_image_fd` (C 4457) and `xbm_read_bitmap_data` (C 5080).  This
-   slice calls all three from its platform arms, so the declarations are kept here (C's own
-   signature, in a `/// C:` line) until their slices land - `docs/ports/image.md`'s owed list, and
-   the reason the arms below resolve at all.  */
-// C: C 749: `static char *slurp_file (image_fd, ptrdiff_t *);`
+/* C 749-752: the three `static` prototypes of functions this file defines outside the first
+   slice - `slurp_file` (C 4529), `image_find_image_fd` (C 4457) and `xbm_read_bitmap_data`
+   (C 5080).  The first slice calls them from its platform arms, so the declarations were kept
+   here (C's own signature, in a `/// C:` line) until their slices land.  The fourth slice's
+   C 4457 and C 4529 **are** the definitions of the first two, so those two prototypes are
+   dropped (PORTING.md 0.1-12) and only C 751-752's stays.  */
+// C: C 751-752: `static bool xbm_read_bitmap_data (struct frame *, char *, char *, int *, int *, char **, bool);`
 #[cfg (all (feature = "have_window_system", any (feature = "have_haiku", feature = "have_ns", feature = "have_pgtk",
             feature = "have_android", feature = "have_ntgui")))]
 unsafe extern "C" {
-  pub fn slurp_file (fd: image_fd, size: *mut ptrdiff_t) -> *mut c_char;
-  // C: C 750: `static Lisp_Object image_find_image_fd (Lisp_Object, image_fd *);`
-  pub fn image_find_image_fd (file: Lisp_Object, pfd: *mut image_fd) -> Lisp_Object;
-  // C: C 751-752: `static bool xbm_read_bitmap_data (struct frame *, char *, char *, int *, int *, char **, bool);`
   pub fn xbm_read_bitmap_data (f: *mut frame, contents: *mut c_char, end: *mut c_char,
                                width: *mut c_int, height: *mut c_int, data: *mut *mut c_char,
                                inhibit_image_error: bool) -> bool;
@@ -1818,37 +1815,18 @@ pub type Picture = c_void;
 #[cfg (all (feature = "have_window_system", feature = "have_xrender"))]
 pub type Picture = c_ulong;
 
-/* C 1195-1198: two `static` prototypes whose definitions are outside this slice; the file's
-   platforms call `image_destroy_x_image` from `image_clear_image_1` and keep C's declaration for
-   the pair (the C 749-752 shape of the first slice; their slices drop these copies).  */
-// C: C 1195-1197: `static bool image_create_x_image_and_pixmap_1 (struct frame *, int, int, int, Emacs_Pix_Container *, Emacs_Pixmap *, Picture *);`
-// C: C 1198: `static void image_destroy_x_image (Emacs_Pix_Container);`
-#[cfg (feature = "have_window_system")]
-unsafe extern "C" {
-  pub fn image_create_x_image_and_pixmap_1 (f: *mut frame, width: c_int, height: c_int,
-					    depth: c_int, ximg: *mut Emacs_Pix_Container,
-					    pixmap: *mut Emacs_Pixmap, picture: *mut Picture) -> bool;
-  pub fn image_destroy_x_image (ximg: Emacs_Pix_Container);
-}
+/* C 1195-1198: two `static` prototypes whose definitions the fourth slice lands (C 4086-4089 and
+   C 4246-4247), so the prototypes are dropped here (PORTING.md 0.1-12: a prototype and its
+   definition in one translation unit have no Rust counterpart).  */
 
 /* C 1200-1211: the X-image accessor pair.  Under `HAVE_NTGUI` they are functions (C 1201-1204,
    defined outside this slice); everywhere else C 1206-1210 declares `image_get_x_image`/
    `image_unget_x_image` and defines the two `_or_dc` wrappers as macros, which the port carries as
    `macro_rules!` (the `GET_PIXEL`/`PUT_PIXEL` rule of this file's own C 67-222 section).  */
-// C: C 1201-1204: `static HDC image_get_x_image_or_dc (struct frame *, struct image *, bool, HGDIOBJ *);` / `static void image_unget_x_image_or_dc (struct image *, bool, HDC, HGDIOBJ);`
-#[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
-unsafe extern "C" {
-  pub fn image_get_x_image_or_dc (f: *mut frame, img: *mut image, mask_p: bool,
-				  dummy: *mut HGDIOBJ) -> HDC;
-  pub fn image_unget_x_image_or_dc (img: *mut image, mask_p: bool, ximg: HDC, dummy: HGDIOBJ);
-}
-// C: C 1206-1207: `static Emacs_Pix_Container image_get_x_image (struct frame *, struct image *, bool);`
-// C: C 1208: `static void image_unget_x_image (struct image *, bool, Emacs_Pix_Container);`
-#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui")))]
-unsafe extern "C" {
-  pub fn image_get_x_image (f: *mut frame, img: *mut image, mask_p: bool) -> Emacs_Pix_Container;
-  pub fn image_unget_x_image (img: *mut image, mask_p: bool, ximg: Emacs_Pix_Container);
-}
+/* C 1201-1204 and C 1206-1208: the two pairs of prototypes; the fourth slice lands all four
+   definitions (C 4367-4369 / C 4380-4382 under `HAVE_NTGUI`, C 4391-4392 / C 4423-4424 under its
+   `#else`), so the prototypes are dropped (PORTING.md 0.1-12) and C 1209-1210's two `#define`s
+   below stay.  */
 /// C: C 1209-1210: `#define image_get_x_image_or_dc(f, img, mask_p, dummy) image_get_x_image (f, img, mask_p)` / `#define image_unget_x_image_or_dc(img, mask_p, ximg, dummy) image_unget_x_image (img, mask_p, ximg)`
 #[cfg (all (feature = "have_window_system", not (feature = "have_ntgui")))]
 macro_rules! image_get_x_image_or_dc {
@@ -1874,24 +1852,15 @@ macro_rules! image_unget_x_image_or_dc {
 }
 
 /* C 1213-1231: `#if defined HAVE_X_WINDOWS || defined HAVE_ANDROID`'s two more `static`
-   prototypes, C's own comment, and the nested `#ifdef HAVE_X_WINDOWS` pair.  */
-// C: C 1218: `static void image_sync_to_pixmaps (struct frame *, struct image *);` (inside C 1215's `#ifndef USE_CAIRO`)
-#[cfg (all (feature = "have_window_system", any (feature = "have_x_windows", feature = "have_android"),
-            not (feature = "use_cairo")))]
-unsafe extern "C" {
-  pub fn image_sync_to_pixmaps (f: *mut frame, img: *mut image);
-}
+   prototypes, C's own comment, and the nested `#ifdef HAVE_X_WINDOWS` pair.  C 1218's
+   `image_sync_to_pixmaps` prototype is dropped (its definition is the fourth slice's C 4344).  */
 /* We are working on X-specific data structures here even with cairo.
    So we use X-specific versions of image construction/destruction
    functions and inline the specific case of four_corners_best.  */
 
-// C: C 1225-1226: `static bool x_create_x_image_and_pixmap (struct frame *, int, int, int, XImage **, Pixmap *);` / `static void x_destroy_x_image (XImage *);`
-#[cfg (all (feature = "have_window_system", any (feature = "have_x_windows", feature = "have_android")))]
-unsafe extern "C" {
-  pub fn x_create_x_image_and_pixmap (f: *mut frame, width: c_int, height: c_int, depth: c_int,
-				      ximg: *mut *mut XImage, pixmap: *mut Pixmap) -> bool;
-  pub fn x_destroy_x_image (ximg: *mut XImage);
-}
+/* C 1225-1226: `static bool x_create_x_image_and_pixmap (…)` / `static void x_destroy_x_image
+   (XImage *);` - the two prototypes are dropped (their definitions are the fourth slice's
+   C 3935-3937 and C 3995-3996).  */
 
 /* Create a mask of a bitmap. Note is this not a perfect mask.
    It's nicer with some borders in this context */
@@ -2111,12 +2080,11 @@ pub unsafe extern "C" fn valid_image_p (object: Lisp_Object) -> bool
    integrator` names the file for each.
    ---------------------------------------------------------------------------------------------- */
 
-// C: dispextern.h 3757: `ptrdiff_t lookup_image (struct frame *, Lisp_Object, int);` - the
-// definition is this file's own (C 12440's region), outside this slice.
-#[cfg (feature = "have_window_system")]
-unsafe extern "C" {
-  pub fn lookup_image (f: *mut frame, spec: Lisp_Object, face_id: c_int) -> ptrdiff_t;
-}
+/* C: dispextern.h 3757: `ptrdiff_t lookup_image (struct frame *, Lisp_Object, int);` - the
+   declaration the third slice needed because the definition was outside it.  The fourth slice's
+   C 3556 **is** the definition, so the declaration is gone from here (PORTING.md 0.1-12: a
+   prototype and its definition in one translation unit have no Rust counterpart) and the unit's
+   `lookup_image` carries `#[unsafe(no_mangle)]`, which is what the `--check` row asked for.  */
 // C: frame.h 1474-1475: `extern WINDOW_SYSTEM_RETURN struct frame * decode_window_system_frame (Lisp_Object);`
 // (`WINDOW_SYSTEM_RETURN` is `_Noreturn ATTRIBUTE_COLD`, which is not part of the type - the
 // `DEFUN!` `noreturn` note in PORTING.md 5.1).
@@ -3734,11 +3702,10 @@ unsafe extern "C" {
   pub fn image_edge_detection (f: *mut frame, img: *mut image, matrix: Lisp_Object,
 			       color_adjustment: Lisp_Object);
 }
-/// C: C 244-246: `#if defined (HAVE_WEBP) || defined (HAVE_GIF)` / `static void anim_prune_animation_cache (Lisp_Object);` / `#endif`
-#[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
-unsafe extern "C" {
-  pub fn anim_prune_animation_cache (spec: Lisp_Object);
-}
+/* C: C 244-246: `#if defined (HAVE_WEBP) || defined (HAVE_GIF)` / `static void
+   anim_prune_animation_cache (Lisp_Object);` / `#endif` - the declaration the third slice kept
+   because the definition was outside it.  The fourth slice's C 3812 **is** the definition, so the
+   declaration is gone (PORTING.md 0.1-12).  */
 // C: lisp.h 4250: `EMACS_UINT sxhash (Lisp_Object);` - `include/lisp.rs` does not carry it (a
 // mirror gap; it belongs in that mirror).
 #[cfg (feature = "have_window_system")]
@@ -4872,3 +4839,1344 @@ unsafe fn image_set_transform (f: *mut frame, img: *mut image)
     /* Done! */
   }
 }
+
+
+/* ----------------------------------------------------------------------------------------------
+   C 3552-3890: the file's fourth slice, part one - the rest of the "Image Cache" section and the
+   two GC marking functions.
+
+   It holds `lookup_image` (C 3552-3688), `cache_image` (C 3690-3727), the `HAVE_WEBP ||
+   HAVE_GIF` animation-cache block's three records and `anim_create_cache` /
+   `anim_prune_animation_cache` / `anim_get_animation_cache` (C 3730-3860), `mark_image`
+   (C 3862-3871) and `mark_image_cache` (C 3873-3890).
+
+   The per-`#if` verdicts, the C line-range rows and this round's readings are in
+   `docs/ports/image.md` (`## C line ranges`, `## Evidence`, `## Deviations`).  Names the mirrors
+   this unit includes do not carry stand at the use site with C's own prototype in a `/// C:` line
+   (PORTING.md P-55/P-72 rule 3); names the platform SDKs supply keep C's tokens.
+   ---------------------------------------------------------------------------------------------- */
+
+/* The names the mirrors this unit includes do not carry, declared at the use site with C's own
+   line (PORTING.md P-55/P-72 rule 3); `docs/ports/image.md` names the file each belongs in.  */
+
+// C: frame.h 1379: `#define FRAME_FACE_CACHE(F) (F)->face_cache`
+// `include/frame.rs` 184 carries the member as the untyped pointer (P-72 rule 3), so the cast the
+// `IMAGE_FROM_ID!` above already needs is repeated here.  C's macro pastes into every unit that
+// includes the header, so the port's live form is one copy per including unit and the mirror's own
+// copy is a module this unit does not glob-import - `src/term.rs` 364-377 is the same shape.
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+fn FRAME_FACE_CACHE (f: *mut frame) -> *mut face_cache
+{ unsafe { (*f).face_cache as *mut face_cache } }
+// C: frame.h 1646-1650: `INLINE struct face * FACE_FROM_ID (struct frame *f, int id)`
+#[cfg (feature = "have_window_system")]
+#[inline(always)]
+fn FACE_FROM_ID (f: *mut frame, id: c_int) -> *mut face
+{
+  eassert! (0 <= id && id < unsafe { (*FRAME_FACE_CACHE (f)).used });
+  unsafe { *(*FRAME_FACE_CACHE (f)).faces_by_id.add (id as usize) }
+}
+// C: dispextern.h 3821: `void init_frame_faces (struct frame *);` - the definition is `xfaces.c`'s.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn init_frame_faces (f: *mut frame);
+}
+// C: dispextern.h 3823: `void recompute_basic_faces (struct frame *);` - the definition is
+// `dispnew.c`'s.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn recompute_basic_faces (f: *mut frame);
+}
+// C: dispextern.h 3819: `extern struct image_cache *share_image_cache (struct frame *f);` - the
+// definition is `xfaces.c`'s; `src/frame.rs` 4783-4784 declares the same name in its own block.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn share_image_cache (f: *mut frame) -> *mut image_cache;
+}
+// C: lisp.h 4436: `extern void mark_object (Lisp_Object);` - the definition is `alloc.c`'s.
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn mark_object (obj: Lisp_Object);
+}
+/// C: dispextern.h 3311-3312: `#define DEFAULT_IMAGE_WIDTH 30` / `#define DEFAULT_IMAGE_HEIGHT 30`
+/// Mirror gap: `include/dispextern.rs` carries the two corner macros and the two ascent constants
+/// around them but not these two.
+#[cfg (feature = "have_window_system")]
+pub const DEFAULT_IMAGE_WIDTH: c_int = 30;
+#[cfg (feature = "have_window_system")]
+pub const DEFAULT_IMAGE_HEIGHT: c_int = 30;
+
+/* Return the id of image with Lisp specification SPEC on frame F.
+   SPEC must be a valid Lisp image specification (see valid_image_p).  */
+
+/// C: C 3555-3556: `ptrdiff_t lookup_image (struct frame *f, Lisp_Object spec, int face_id)` - non-static.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn lookup_image (f: *mut frame, spec: Lisp_Object, mut face_id: c_int)
+  -> ptrdiff_t
+{
+  let mut img: *mut image;
+  let mut hash: EMACS_UINT;
+
+  if FRAME_FACE_CACHE (f).is_null ()
+    { init_frame_faces (f); }
+  if (*FRAME_FACE_CACHE (f)).used == 0
+    { recompute_basic_faces (f); }
+  if face_id < 0 || face_id >= (*FRAME_FACE_CACHE (f)).used
+    { face_id = DEFAULT_FACE_ID; }
+
+  let face: *mut face = FACE_FROM_ID (f, face_id);
+  let mut foreground: c_ulong = (*face).foreground;
+  let mut background: c_ulong = (*face).background;
+  let font_size: c_int = (*((*face).font as *mut font)).pixel_size;
+  let font_family: *mut c_char = SSDATA ((*face).lface[LFACE_FAMILY_INDEX as usize]);
+
+  /* F must be a window-system frame, and SPEC must be a valid image
+     specification.  */
+  eassert! (FRAME_WINDOW_P (f));
+  eassert! (valid_image_p (spec));
+
+  /* Look up SPEC in the hash table of the image cache.  */
+  hash = sxhash (filter_image_spec (spec));
+  img = search_image_cache (f, spec, hash, foreground, background, font_size, font_family, false);
+  if !img.is_null () && (*img).load_failed_p
+    {
+      free_image (f, img);
+      img = core::ptr::null_mut ();
+    }
+
+  /* If not found, create a new image and cache it.  */
+  if img.is_null ()
+    {
+      block_input ();
+      img = make_image (spec, hash);
+      cache_image (f, img);
+      (*img).face_foreground = foreground;
+      (*img).face_background = background;
+      (*img).face_font_size = font_size;
+      (*img).face_font_height = (*((*face).font as *mut font)).height;
+      (*img).face_font_width = (*((*face).font as *mut font)).average_width;
+      let len: ptrdiff_t = (strlen (font_family) + 1) as ptrdiff_t;
+      (*img).face_font_family = xmalloc (len as usize) as *mut c_char;
+      memcpy ((*img).face_font_family as *mut c_void, font_family as *const c_void, len as usize);
+      (*img).load_failed_p
+	= ! (*((*img).r#type as *const image_type)).load_img.unwrap () (f, img);
+
+      /* If we can't load the image, and we don't have a width and
+	 height, use some arbitrary width and height so that we can
+	 draw a rectangle for it.  */
+      if (*img).load_failed_p
+	{
+	  let mut value: Lisp_Object;
+
+	  value = image_spec_value (spec, QCwidth (), core::ptr::null_mut ());
+	  (*img).width = if FIXNUMP (value)
+			   { XFIXNAT (value) as c_int } else { DEFAULT_IMAGE_WIDTH };
+	  value = image_spec_value (spec, QCheight (), core::ptr::null_mut ());
+	  (*img).height = if FIXNUMP (value)
+			    { XFIXNAT (value) as c_int } else { DEFAULT_IMAGE_HEIGHT };
+	}
+      else
+	{
+	  /* Handle image type independent image attributes
+	     `:ascent ASCENT', `:margin MARGIN', `:relief RELIEF',
+	     `:background COLOR'.  */
+	  let mut ascent: Lisp_Object;
+	  let mut margin: Lisp_Object;
+	  let mut relief: Lisp_Object;
+	  let mut bg: Lisp_Object;
+	  let mut relief_bound: c_int;
+
+	  ascent = image_spec_value (spec, QCascent (), core::ptr::null_mut ());
+	  if FIXNUMP (ascent)
+	    { (*img).ascent = XFIXNUM (ascent) as c_int; }
+	  else if EQ (ascent, Qcenter ())
+	    { (*img).ascent = CENTERED_IMAGE_ASCENT; }
+
+	  margin = image_spec_value (spec, QCmargin (), core::ptr::null_mut ());
+	  if FIXNUMP (margin)
+	    { (*img).hmargin = XFIXNUM (margin) as c_int; (*img).vmargin = (*img).hmargin; }
+	  else if CONSP (margin)
+	    {
+	      (*img).hmargin = XFIXNUM (XCAR (margin)) as c_int;
+	      (*img).vmargin = XFIXNUM (XCDR (margin)) as c_int;
+	    }
+
+	  relief = image_spec_value (spec, QCrelief (), core::ptr::null_mut ());
+	  relief_bound = INT_MAX - std::cmp::max ((*img).hmargin, (*img).vmargin);
+	  if RANGED_FIXNUMP (- (relief_bound as EMACS_INT), relief, relief_bound as EMACS_INT)
+	    {
+	      (*img).relief = XFIXNUM (relief) as c_int;
+	      (*img).hmargin += eabs! ((*img).relief) as c_int;
+	      (*img).vmargin += eabs! ((*img).relief) as c_int;
+	    }
+
+	  if (*img).bits & IMAGE_BACKGROUND_VALID_MASK == 0
+	    {
+	      bg = image_spec_value ((*img).spec, QCbackground (), core::ptr::null_mut ());
+	      if !NILP (bg)
+		{
+		  (*img).background = image_alloc_image_color (f, img, bg, background);
+		  /* C's `img->background_valid = 1;` - the bit member's storage unit (P-80).  */
+		  (*img).bits = (*img).bits & !IMAGE_BACKGROUND_VALID_MASK
+				| ((1 as u32) << IMAGE_BACKGROUND_VALID_SHIFT);
+		}
+	    }
+
+	  /* Store the original width and height before transforming the image.  */
+	  (*img).original_width = (*img).width;
+	  (*img).original_height = (*img).height;
+
+	  /* Do image transformations and compute masks, unless we
+	     don't have the image yet.  */
+	  if !EQ (builtin_lisp_symbol ((*((*img).r#type as *const image_type)).r#type as usize),
+		  Qpostscript ())
+	    { postprocess_image (f, img); }
+
+          /* postprocess_image above may modify the image or the mask,
+             relying on the image's real width and height, so
+             image_set_transform must be called after it.  */
+	  /* C 3645-3647: `#ifdef HAVE_NATIVE_TRANSFORMS`.  */
+	  #[cfg (all (feature = "have_window_system", feature = "have_native_transforms"))]
+          image_set_transform (f, img);
+	}
+
+      unblock_input ();
+    }
+
+  /* IMG is now being used, so set its timestamp to the current
+     time.  */
+  (*img).timestamp = current_timespec ();
+
+  /* Value is the image id.  */
+  return (*img).id;
+}
+
+
+/* Cache image IMG in the image cache of frame F.  */
+
+/// C: C 3693-3694: `static void cache_image (struct frame *f, struct image *img)`
+#[cfg (feature = "have_window_system")]
+unsafe fn cache_image (f: *mut frame, img: *mut image)
+{
+  let mut c: *mut image_cache = FRAME_IMAGE_CACHE! (f) as *mut image_cache;
+  let mut i: ptrdiff_t;
+
+  if c.is_null ()
+    {
+      /* C's `c = FRAME_IMAGE_CACHE (f) = share_image_cache (f);` - the two stores.  */
+      c = share_image_cache (f);
+      (*f).image_cache = c as *mut c_void;
+      (*c).refcount += 1;
+    }
+
+  /* Find a free slot in c->images.  */
+  i = 0;
+  while i < (*c).used
+    {
+      if *(*c).images.offset (i as isize) == core::ptr::null_mut ()
+	{ break; }
+      i += 1;
+    }
+
+  /* If no free slot found, maybe enlarge c->images.  */
+  if i == (*c).used && (*c).used == (*c).size
+    { (*c).images = xpalloc ((*c).images as *mut c_void, &raw mut (*c).size, 1, -1,
+			     core::mem::size_of::<*mut image> () as ptrdiff_t)
+		      as *mut *mut image; }
+
+  /* Add IMG to c->images, and assign IMG an id.  */
+  *(*c).images.offset (i as isize) = img;
+  (*img).id = i;
+  if i == (*c).used
+    { (*c).used += 1; }
+
+  /* Add IMG to the cache's hash table.  */
+  i = ((*img).hash % IMAGE_CACHE_BUCKETS_SIZE as EMACS_UINT) as ptrdiff_t;
+  (*img).next = *(*c).buckets.offset (i as isize);
+  if !(*img).next.is_null ()
+    { (*(*img).next).prev = img; }
+  (*img).prev = core::ptr::null_mut ();
+  *(*c).buckets.offset (i as isize) = img;
+}
+
+
+/* C 3730-3860: `#if defined (HAVE_WEBP) || defined (HAVE_GIF)` - the animation-cache section.
+   `<gif_lib.h>` and `<webp/...>` have no file in the reference tree and no mirror, so the two
+   records C names only through a pointer are declared opaque here (P-88: the declarations this
+   unit needs from an SDK stand in the unit, with the SDK header as the citation), the `GtkWidget`
+   shape.  */
+
+/* C 3732-3738: `# ifdef HAVE_GIF`.  */
+/// C: gif_lib.h 247: `typedef struct GifFileType { ... } GifFileType;` - the port never reads a
+/// member of it (the GIF reader is C 9xxx's).
+#[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif"),
+	    feature = "have_gif"))]
+#[repr(C)]
+pub struct gif_anim_handle
+{
+  /// C: `struct GifFileType *gif;`
+  pub gif: *mut c_void,
+  pub pixmap: *mut c_ulong,
+}
+/* C 3740-3751: `# ifdef HAVE_WEBP`.  */
+/// C: webp/demux.h: `typedef struct WebPAnimDecoder WebPAnimDecoder;` - the port never reads a
+/// member of it (the WebP reader is C 9xxx's).
+#[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif"),
+	    feature = "have_webp"))]
+#[repr(C)]
+pub struct webp_anim_handle
+{
+  /* Decoder iterator+compositor.  */
+  /// C: `struct WebPAnimDecoder *dec;`
+  pub dec: *mut c_void,
+  /* Owned copy of input WebP bitstream data consumed by decoder,
+     which it must outlive unchanged.  */
+  pub contents: *mut uint8_t,
+  /* Timestamp in milliseconds of last decoded frame.  */
+  pub timestamp: c_int,
+}
+
+/* To speed animations up, we keep a cache (based on EQ-ness of the
+   image spec/object) where we put the animator iterator.  */
+
+/// C: C 3756-3788: `struct anim_cache` (which forward-references itself through `next`)
+#[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
+#[repr(C)]
+pub struct anim_cache
+{
+  /* 'Key' of this cache entry.
+     Typically the cdr (plist) of an image spec.  */
+  pub spec: Lisp_Object,                       // C 3760
+  /* Image type dependent animation handle (e.g., WebP iterator), freed
+     by 'destructor'.  The union allows maintaining multiple fields per
+     image type and image frame without further heap allocations.  */
+  pub handle: anim_handle,                     // C 3764-3772
+  /* A function to call to free the handle.  */
+  /// C 3774: `void (*destructor) (union anim_handle *);`
+  pub destructor: Option<unsafe extern "C" fn (handle: *mut anim_handle)>,
+  /* Current frame index, and total number of frames.  Note that
+     different image formats may start at different indices.  */
+  pub index: c_int,                            // C 3777: `int index, frames;`
+  pub frames: c_int,
+  /* Animation frame dimensions.  */
+  pub width: c_int,                            // C 3779: `int width, height;`
+  pub height: c_int,
+  /* This is used to be able to say something about the cache size.
+     We don't know how much memory the different libraries actually
+     use here (since these cache structures are opaque), so this is
+     mostly just the size of the original image file.  */
+  pub byte_size: intmax_t,                     // C 3784
+  /* Last time this cache entry was updated.  */
+  pub update_time: timespec,                   // C 3786
+  pub next: *mut anim_cache,                   // C 3787
+}
+
+/* C 3764-3772: the nested `union anim_handle` - one `#[repr(C)]` union whose members are the two
+   per-format records above (PORTING.md 1.4's untagged-union rule).  */
+#[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
+#[repr(C)]
+pub union anim_handle
+{
+  /* C 3766-3768: `# ifdef HAVE_GIF`.  */
+  #[cfg (feature = "have_gif")]
+  pub gif: gif_anim_handle,
+  /* C 3769-3771: `# ifdef HAVE_WEBP`.  */
+  #[cfg (feature = "have_webp")]
+  pub webp: webp_anim_handle,
+}
+
+/// C: C 3790: `static struct anim_cache *anim_cache = NULL;`
+#[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
+static mut anim_cache: *mut anim_cache = core::ptr::null_mut ();
+
+/* Return a new animation cache entry for image SPEC (which need not be
+   an image specification, and is typically its cdr/plist).
+   Freed only by pruning the cache.  */
+
+/// C: C 3795-3796: `static ATTRIBUTE_MALLOC struct anim_cache * anim_create_cache (Lisp_Object spec)`
+/// (`ATTRIBUTE_MALLOC` is an allocator attribute, not part of the type - PORTING.md 8).
+#[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
+unsafe fn anim_create_cache (spec: Lisp_Object) -> *mut anim_cache
+{
+  let cache: *mut anim_cache = xzalloc (core::mem::size_of::<anim_cache> ()) as *mut anim_cache;
+  (*cache).spec = spec;
+  (*cache).index = -1;
+  (*cache).frames = -1;
+  (*cache).width = -1;
+  (*cache).height = -1;
+  return cache;
+}
+
+/* Discard cached images that haven't been used for a minute.  If
+   CLEAR is t, remove all animation cache entries.  If CLEAR is
+   anything other than nil or t, only remove the entries that have a
+   spec `eq' to CLEAR.  */
+
+/// C: C 3811-3812: `static void anim_prune_animation_cache (Lisp_Object clear)`
+#[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
+unsafe fn anim_prune_animation_cache (clear: Lisp_Object)
+{
+  let mut pcache: *mut *mut anim_cache = &raw mut anim_cache;
+  let old: timespec = timespec_sub (current_timespec (), make_timespec (60, 0));
+
+  while !(*pcache).is_null ()
+    {
+      let cache: *mut anim_cache = *pcache;
+      if EQ (clear, Qt ())
+	 || (NILP (clear) && timespec_cmp (old, (*cache).update_time) > 0)
+	 || EQ (clear, (*cache).spec)
+	{
+	  if (*cache).destructor.is_some ()
+	    { ((*cache).destructor.unwrap ()) (&raw mut (*cache).handle); }
+	  *pcache = (*cache).next;
+	  xfree (cache as *mut c_void);
+	}
+      else
+	{ pcache = &raw mut (*cache).next; }
+    }
+}
+
+/// C: C 3835-3836: `static struct anim_cache * anim_get_animation_cache (Lisp_Object spec)`
+#[cfg (all (feature = "have_window_system", any (feature = "have_webp", feature = "have_gif")))]
+unsafe fn anim_get_animation_cache (spec: Lisp_Object) -> *mut anim_cache
+{
+  let mut cache: *mut anim_cache;
+  let mut pcache: *mut *mut anim_cache = &raw mut anim_cache;
+
+  anim_prune_animation_cache (Qnil ());
+
+  /* C's `while (1)` (`loop` is the tree's spelling of it).  */
+  loop
+    {
+      cache = *pcache;
+      if cache.is_null ()
+	{
+          *pcache = anim_create_cache (spec);
+	  cache = *pcache;
+          break;
+        }
+      if EQ (spec, (*cache).spec)
+	{ break; }
+      pcache = &raw mut (*cache).next;
+    }
+
+  (*cache).update_time = current_timespec ();
+  return cache;
+}
+
+/* Mark Lisp objects in image IMG.  */
+
+/// C: C 3863-3864: `static void mark_image (struct image *img)`
+#[cfg (feature = "have_window_system")]
+unsafe fn mark_image (img: *mut image)
+{
+  mark_object ((*img).spec);
+  mark_object ((*img).dependencies);
+
+  if !NILP ((*img).lisp_data)
+    { mark_object ((*img).lisp_data); }
+}
+
+/* Mark every image in image cache C, as well as the global animation
+   cache.  */
+
+/// C: C 3876-3877: `void mark_image_cache (struct image_cache *c)` - non-static.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn mark_image_cache (c: *mut image_cache)
+{
+  if !c.is_null ()
+    {
+      let mut i: ptrdiff_t;
+      i = 0;
+      while i < (*c).used
+	{
+	  if !(*(*c).images.offset (i as isize)).is_null ()
+	    { mark_image (*(*c).images.offset (i as isize)); }
+	  i += 1;
+	}
+    }
+
+  /* C 3886-3889: `#if defined HAVE_WEBP || defined HAVE_GIF`.  */
+  #[cfg (any (feature = "have_webp", feature = "have_gif"))]
+  {
+    let mut cache: *mut anim_cache = anim_cache;
+    while !cache.is_null ()
+      {
+	mark_object ((*cache).spec);
+	cache = (*cache).next;
+      }
+  }
+}
+
+
+/***********************************************************************
+			  X / NS / W32 support code
+             Most of this code is shared with Android to make
+             it easier to maintain.
+ ***********************************************************************/
+
+/* C 3900: `#if defined HAVE_X_WINDOWS || defined HAVE_ANDROID` - it closes at C 4114 (whose
+   `#endif` C mislabels `/* HAVE_X_WINDOWS */`).  C's own banner above is the section's.  */
+
+/* Respect Xlib's limits and Emacs's own for the raster a window-system image may allocate.  */
+
+/// C: C 3902-3903: `static bool x_check_image_size (XImage *ximg, int width, int height)`
+#[cfg (all (feature = "have_window_system", any (feature = "have_x_windows", feature = "have_android")))]
+unsafe fn x_check_image_size (ximg: *mut XImage, width: c_int, height: c_int) -> bool
+{
+  /* Respect Xlib's limits: it cannot deal with images that have more
+     than INT_MAX (and/or UINT_MAX) bytes.  And respect Emacs's limits
+     of PTRDIFF_MAX (and/or SIZE_MAX) bytes for any object.  */
+  /* C's local `enum` - the port's `const` items with C's own value types (`min` of a signed and
+     an unsigned int is C's usual-arithmetic `unsigned int`; the outer `min` is `unsigned long`,
+     which is `PTRDIFF_MAX`).  */
+  const XLIB_BYTES_MAX: c_uint = if (INT_MAX as c_uint) < UINT_MAX { INT_MAX as c_uint } else { UINT_MAX };
+  const X_IMAGE_BYTES_MAX: c_ulong
+    = if (XLIB_BYTES_MAX as c_ulong) < (if (PTRDIFF_MAX as c_ulong) < (SIZE_MAX as c_ulong)
+					{ PTRDIFF_MAX as c_ulong } else { SIZE_MAX as c_ulong })
+	{ XLIB_BYTES_MAX as c_ulong }
+      else
+	{ if (PTRDIFF_MAX as c_ulong) < (SIZE_MAX as c_ulong)
+	    { PTRDIFF_MAX as c_ulong } else { SIZE_MAX as c_ulong } };
+
+  let (mut bitmap_pad, mut depth, mut bytes_per_line): (c_int, c_int, c_int);
+  if !ximg.is_null ()
+    {
+      /* C 3917-3921: `#ifndef HAVE_ANDROID` / `#else`.  */
+      #[cfg (not (feature = "have_android"))]
+      { bitmap_pad = (*ximg).bitmap_pad; }
+      #[cfg (feature = "have_android")]
+      { bitmap_pad = if (*ximg).depth == 1 { 8 } else { 32 }; }
+      depth = (*ximg).depth;
+      bytes_per_line = (*ximg).bytes_per_line;
+    }
+  else
+    {
+      bitmap_pad = 8;
+      depth = 1;
+      bytes_per_line = (width >> 3) + (((width & 7) != 0) as c_int);
+    }
+  return (width <= (INT_MAX - (bitmap_pad - 1)) / depth
+	  && height as c_ulong <= X_IMAGE_BYTES_MAX / bytes_per_line as c_ulong);
+}
+
+/* Create an X image and a pixmap of size WIDTH x HEIGHT for use on
+   frame F.  Set *XIMG and *PIXMAP to the XImage and Pixmap created.  */
+
+/// C: C 3935-3937: `static bool x_create_x_image_and_pixmap (struct frame *f, int width, int height, int depth, XImage **ximg, Pixmap *pixmap)`
+#[cfg (all (feature = "have_window_system", any (feature = "have_x_windows", feature = "have_android")))]
+unsafe fn x_create_x_image_and_pixmap (f: *mut frame, width: c_int, height: c_int,
+				       mut depth: c_int, ximg: *mut *mut XImage,
+				       pixmap: *mut Pixmap) -> bool
+{
+  /* C 3939-3942: `#ifndef HAVE_ANDROID`'s two locals.  */
+  #[cfg (not (feature = "have_android"))]
+  let display: *mut Display = FRAME_X_DISPLAY! (f);
+  #[cfg (not (feature = "have_android"))]
+  let drawable: Drawable = FRAME_X_DRAWABLE! (f);
+
+  eassert! (input_blocked_p ());
+
+  if depth <= 0
+    { depth = (*FRAME_DISPLAY_INFO! (f)).n_planes; }
+  /* C 3948-3955: `#ifndef HAVE_ANDROID` (Xlib's `XCreateImage`) / `#else` (the NDK's).  */
+  /* A cfg'd *assignment* is not a statement Rust accepts an attribute on (only blocks, `let`s,
+     calls and macros are), so both arms are C's expression inside a block.  */
+  #[cfg (not (feature = "have_android"))]
+  {
+    *ximg = XCreateImage (display, FRAME_X_VISUAL! (f), depth as c_uint, ZPixmap, 0,
+			  core::ptr::null_mut (), width as c_uint, height as c_uint,
+			  if depth > 16 { 32 } else if depth > 8 { 16 } else { 8 }, 0);
+  }
+  #[cfg (feature = "have_android")]
+  {
+    *ximg = android_create_image (depth as c_uint, ANDROID_Z_PIXMAP, core::ptr::null_mut (),
+				  width as c_uint, height as c_uint);
+  }
+  if (*ximg).is_null ()
+    {
+      image_error (c"Unable to allocate X image".as_ptr ());
+      return false;
+    }
+
+  if !x_check_image_size (*ximg, width, height)
+    {
+      x_destroy_x_image (*ximg);
+      *ximg = core::ptr::null_mut ();
+      image_error (c"Image too large (%dx%d)".as_ptr (), make_fixnum (width as EMACS_INT),
+		   make_fixnum (height as EMACS_INT));
+      return false;
+    }
+
+  /* Allocate image raster.  */
+  (**ximg).data = xmalloc (((**ximg).bytes_per_line * height) as usize) as *mut c_char;
+
+  /* Allocate a pixmap of the same size.  */
+  /* C 3975-3983: `#ifndef HAVE_ANDROID` / `#else` (`#ifndef ANDROID_STUBIFY` inside it).  */
+  #[cfg (not (feature = "have_android"))]
+  { *pixmap = XCreatePixmap (display, drawable, width as c_uint, height as c_uint, depth as c_uint); }
+  #[cfg (all (feature = "have_android", not (feature = "android_stubify")))]
+  { *pixmap = android_create_pixmap (width as c_uint, height as c_uint, depth) as Pixmap; }
+  #[cfg (all (feature = "have_android", feature = "android_stubify"))]
+  { emacs_abort (); }
+  if *pixmap == NO_PIXMAP! () as Pixmap
+    {
+      x_destroy_x_image (*ximg);
+      *ximg = core::ptr::null_mut ();
+      image_error (c"Unable to create X pixmap".as_ptr ());
+      return false;
+    }
+
+  return true;
+}
+
+/// C: C 3995-3996: `static void x_destroy_x_image (XImage *ximg)`
+#[cfg (all (feature = "have_window_system", any (feature = "have_x_windows", feature = "have_android")))]
+unsafe fn x_destroy_x_image (ximg: *mut XImage)
+{
+  if !(*ximg).data.is_null ()
+    {
+      xfree ((*ximg).data as *mut c_void);
+      (*ximg).data = core::ptr::null_mut ();
+    }
+
+  /* C 4004-4008: `#ifndef HAVE_ANDROID` / `#else`.  */
+  #[cfg (not (feature = "have_android"))]
+  { XDestroyImage (ximg); }
+  #[cfg (feature = "have_android")]
+  { android_destroy_image (ximg as *mut android_image); }
+}
+
+/* C 4011-4056: `# if !defined USE_CAIRO && defined HAVE_XRENDER` - XRender's `Picture` and the
+   attributes/repeat names below are Xrender.h's; no mirror carries them (`include/xlib.rs` carries
+   no Xrender surface), so the arm keeps C's tokens - the `XTransform`/`XDoubleToFixed` rule the
+   third slice's `image_set_transform` already follows, and the ledger records the names.  */
+/* Create and return an XRender Picture for XRender transforms.  */
+
+/// C: C 4013-4014: `static Picture x_create_xrender_picture (struct frame *f, Emacs_Pixmap pixmap, int depth)`
+#[cfg (all (feature = "have_window_system", not (feature = "use_cairo"), feature = "have_x_windows",
+	    feature = "have_xrender"))]
+unsafe fn x_create_xrender_picture (f: *mut frame, pixmap: Emacs_Pixmap, mut depth: c_int)
+  -> Picture
+{
+  /* C's `None` is X11/X.h 115's (`include/xlib.rs`'s `x11_constants`), the `xterm.rs` shape.  */
+  use x11_constants::None;
+  let mut p: Picture = None as Picture;
+  let display: *mut Display = FRAME_X_DISPLAY! (f);
+
+  if (*FRAME_DISPLAY_INFO! (f)).xrender_supported_p
+    {
+      if depth <= 0
+	{ depth = (*FRAME_DISPLAY_INFO! (f)).n_planes; }
+      if depth == 32 || depth == 24 || depth == 8 || depth == 4 || depth == 1
+        {
+          /* FIXME: Do we need to handle all possible bit depths?
+             XRenderFindStandardFormat supports PictStandardARGB32,
+             PictStandardRGB24, PictStandardA8, PictStandardA4,
+             PictStandardA1, and PictStandardNUM (what is this?!).
+
+             XRenderFindFormat may support more, but I don't
+             understand the documentation.  */
+          let mut format: *mut XRenderPictFormat;
+          format = XRenderFindStandardFormat (display,
+                                              if depth == 32 { PictStandardARGB32 }
+                                              else if depth == 24 { PictStandardRGB24 }
+                                              else if depth == 8 { PictStandardA8 }
+                                              else if depth == 4 { PictStandardA4 }
+                                              else { PictStandardA1 });
+
+          /* Set the Picture repeat to "pad".  This means when
+             operations look at pixels outside the image area they
+             will use the value of the nearest real pixel instead of
+             using a transparent black pixel.  */
+          let mut attr: XRenderPictureAttributes;
+          let mut attr_mask: c_ulong = CPRepeat;
+          attr.repeat = RepeatPad;
+
+          p = XRenderCreatePicture (display, pixmap, format, attr_mask, &raw mut attr);
+        }
+      else
+	{ image_error (c"Specified image bit depth is not supported by XRender".as_ptr ()); }
+    }
+
+  return p;
+}
+
+/* Return true if XIMG's size WIDTH x HEIGHT doesn't break the
+   windowing system.
+   WIDTH and HEIGHT must both be positive.
+   If XIMG is null, assume it is a bitmap.  */
+
+/// C: C 4064-4065: `static bool image_check_image_size (Emacs_Pix_Container ximg, int width, int height)`
+#[cfg (feature = "have_window_system")]
+unsafe fn image_check_image_size (ximg: Emacs_Pix_Container, width: c_int, height: c_int) -> bool
+{
+  /* C 4067-4068: `#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO`.
+     The unit's `Emacs_Pix_Container` is the untyped pointer C's X-arm typedef is one word wide as
+     (its own declaration above), so C's cast-free call carries one here.  */
+  #[cfg (all (feature = "have_window_system", any (feature = "have_x_windows", feature = "have_android"),
+	      not (feature = "use_cairo")))]
+  { return x_check_image_size (ximg as *mut XImage, width, height); }
+  /* C 4069-4072: the `#else` arm - C's own FIXME for the NS and NTGUI cases.  */
+  #[cfg (all (feature = "have_window_system",
+	      not (all (any (feature = "have_x_windows", feature = "have_android"),
+			not (feature = "use_cairo")))))]
+  {
+    /* FIXME: Implement this check for the HAVE_NS and HAVE_NTGUI cases.
+       For now, assume that every image size is allowed on these systems.  */
+    return true;
+  }
+}
+
+/* Create an Emacs_Pix_Container and a pixmap of size WIDTH x
+   HEIGHT for use on frame F.  Set *PIMG and *PIXMAP to the
+   Emacs_Pix_Container and Emacs_Pixmap created.  Set (*PIMG)->data
+   to a raster of WIDTH x HEIGHT pixels allocated via xmalloc.  Print
+   error messages via image_error if an error occurs.  Value is true
+   if successful.
+
+   On W32, a DEPTH of zero signifies a 24 bit image, otherwise DEPTH
+   should indicate the bit depth of the image.  */
+
+/// C: C 4086-4089: `static bool image_create_x_image_and_pixmap_1 (struct frame *f, int width, int height, int depth, Emacs_Pix_Container *pimg, Emacs_Pixmap *pixmap, Picture *picture)`
+#[cfg (feature = "have_window_system")]
+unsafe fn image_create_x_image_and_pixmap_1 (f: *mut frame, width: c_int, height: c_int,
+					    mut depth: c_int, pimg: *mut Emacs_Pix_Container,
+					    pixmap: *mut Emacs_Pixmap, picture: *mut Picture)
+  -> bool
+{
+  /* C 4091-4104: `#ifdef USE_CAIRO`.  */
+  #[cfg (feature = "use_cairo")]
+  {
+    eassert! (input_blocked_p ());
+
+    /* Allocate a pixmap of the same size.  */
+    *pixmap = image_create_pix_container (width as c_uint, height as c_uint, depth as c_uint);
+    if *pixmap == NO_PIXMAP! () as Emacs_Pixmap
+      {
+	*pimg = core::ptr::null_mut ();
+	image_error (c"Unable to create X pixmap".as_ptr ());
+	return false;
+      }
+
+    *pimg = *pixmap;
+    return true;
+  }
+  /* C 4105-4114: `#elif defined HAVE_X_WINDOWS || defined HAVE_ANDROID`.  */
+  #[cfg (all (not (feature = "use_cairo"), any (feature = "have_x_windows", feature = "have_android")))]
+  {
+    if !x_create_x_image_and_pixmap (f, width, height, depth,
+				     pimg as *mut *mut XImage, pixmap as *mut Pixmap)
+      { return false; }
+    /* C 4108-4111: the nested `#ifdef HAVE_XRENDER`.  */
+    #[cfg (feature = "have_xrender")]
+    if !picture.is_null ()
+      { *picture = x_create_xrender_picture (f, *pixmap as Emacs_Pixmap, depth); }
+
+    return true;
+  }
+
+  /* C 4116-4138: `#ifdef HAVE_HAIKU` (a second `#if`, not an `#elif`).  */
+  #[cfg (feature = "have_haiku")]
+  {
+    if depth == 0
+      { depth = 24; }
+
+    if depth != 24 && depth != 1
+      {
+	*pimg = core::ptr::null_mut ();
+	image_error (c"Invalid image bit depth specified".as_ptr ());
+	return false;
+      }
+
+    *pixmap = BBitmap_new (width, height, depth == 1);
+
+    if *pixmap == NO_PIXMAP! () as Emacs_Pixmap
+      {
+	*pimg = core::ptr::null_mut ();
+	image_error (c"Unable to create pixmap".as_ptr ());
+	return false;
+      }
+
+    *pimg = *pixmap;
+    return true;
+  }
+
+  /* C 4140-4228: `#ifdef HAVE_NTGUI`.  The Windows arm is text-only on this machine (no
+     `x86_64-w64-mingw32-gcc`), so C's tokens stay and the ledger records the names.  */
+  #[cfg (feature = "have_ntgui")]
+  {
+    let mut header: *mut BITMAPINFOHEADER;
+    let mut hdc: HDC;
+    let mut scanline_width_bits: c_int;
+    let mut remainder: c_int;
+    let mut palette_colors: c_int = 0;
+
+    if depth == 0
+      { depth = 24; }
+
+    if depth != 1 && depth != 4 && depth != 8
+	&& depth != 16 && depth != 24 && depth != 32
+      {
+	image_error (c"Invalid image bit depth specified".as_ptr ());
+	return false;
+      }
+
+    scanline_width_bits = width * depth;
+    remainder = scanline_width_bits % 32;
+
+    if remainder != 0
+      { scanline_width_bits += 32 - remainder; }
+
+    /* Bitmaps with a depth less than 16 need a palette.  */
+    /* BITMAPINFO structure already contains the first RGBQUAD.  */
+    if depth < 16
+      { palette_colors = 1 << (depth - 1); }
+
+    *pimg = xmalloc (core::mem::size_of::<XImage> ()
+		     + (palette_colors as usize) * core::mem::size_of::<RGBQUAD> ())
+	      as Emacs_Pix_Container;
+
+    header = &raw mut (**pimg).info.bmiHeader;
+    memset (&raw mut (**pimg).info as *mut c_void, 0, core::mem::size_of::<BITMAPINFO> ());
+    (*header).biSize = core::mem::size_of::<BITMAPINFOHEADER> () as u32;
+    (*header).biWidth = width;
+    (*header).biHeight = -height;  /* negative indicates a top-down bitmap.  */
+    (*header).biPlanes = 1;
+    (*header).biBitCount = depth;
+    (*header).biCompression = BI_RGB;
+    (*header).biClrUsed = palette_colors as u32;
+
+    /* TODO: fill in palette.  */
+    if depth == 1
+      {
+	(**pimg).info.bmiColors[0].rgbBlue = 0;
+	(**pimg).info.bmiColors[0].rgbGreen = 0;
+	(**pimg).info.bmiColors[0].rgbRed = 0;
+	(**pimg).info.bmiColors[0].rgbReserved = 0;
+	/* bmiColors is a variable-length array declared by w32api
+	   headers as bmiColors[1], which triggers a warning under
+	   -Warray-bounds; shut that up.  */
+	/* C 4191-4194 and C 4199-4201: the `GNUC_PREREQ (4, 4, 0)` pragma pair - C text this
+	   port carries as C's own comment (PORTING.md: a pragma is not a statement).  */
+	(**pimg).info.bmiColors[1].rgbBlue = 255;
+	(**pimg).info.bmiColors[1].rgbGreen = 255;
+	(**pimg).info.bmiColors[1].rgbRed = 255;
+	(**pimg).info.bmiColors[1].rgbReserved = 0;
+      }
+
+    hdc = get_frame_dc (f);
+
+    /* Create a DIBSection and raster array for the bitmap,
+       and store its handle in *pixmap.  */
+    *pixmap = CreateDIBSection (hdc, &raw mut (**pimg).info,
+				if depth < 16 { DIB_PAL_COLORS } else { DIB_RGB_COLORS },
+				/* casting avoids a GCC warning */
+				&raw mut (**pimg).data as *mut *mut c_void,
+				core::ptr::null_mut (), 0) as Emacs_Pixmap;
+
+    /* Realize display palette and garbage all frames. */
+    release_frame_dc (f, hdc);
+
+    if *pixmap == core::ptr::null_mut ()
+      {
+	let err: DWORD = GetLastError ();
+	/* All system errors are < 10000, so the following is safe.  */
+	image_error (c"Unable to create bitmap, error code %d".as_ptr (),
+		     make_fixnum (err as EMACS_INT));
+	image_destroy_x_image (*pimg);
+	*pimg = core::ptr::null_mut ();
+	return false;
+      }
+
+    return true;
+  }
+
+  /* C 4230-4240: `#ifdef HAVE_NS`.  */
+  #[cfg (feature = "have_ns")]
+  {
+    *pixmap = ns_image_for_XPM (width, height, depth);
+    if (*pixmap).is_null ()
+      {
+	*pimg = core::ptr::null_mut ();
+	image_error (c"Unable to allocate NSImage for XPM pixmap".as_ptr ());
+	return false;
+      }
+    *pimg = *pixmap;
+    return true;
+  }
+
+  /* C 4086-4241 has no statement after its last arm: with none of the five compiled the function
+     falls off its end, which C reports as a warning and Rust as a type error (`E0308`).  A
+     window-system configuration always selects one of them (configure.ac 7521 fills
+     `WINDOW_SYSTEM_OBJ` from the same test that picks the platform), so this arm is unreachable in
+     every configuration that exists - the `image_create_bitmap_from_file` shape above.  */
+  #[cfg (not (any (feature = "use_cairo",
+		  any (feature = "have_x_windows", feature = "have_android"),
+		  feature = "have_haiku", feature = "have_ntgui", feature = "have_ns")))]
+  unreachable! ()
+}
+
+
+/* Destroy Emacs_Pix_Container PIMG.  Free data associated with PIMG.  */
+
+/// C: C 4246-4247: `static void image_destroy_x_image (Emacs_Pix_Container pimg)`
+#[cfg (feature = "have_window_system")]
+unsafe fn image_destroy_x_image (pimg: Emacs_Pix_Container)
+{
+  /* C 4249-4250: `#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO`.  */
+  #[cfg (all (any (feature = "have_x_windows", feature = "have_android"), not (feature = "use_cairo")))]
+  x_destroy_x_image (pimg as *mut XImage);
+
+  /* C 4251-4266: the `#else` arm.  */
+  #[cfg (not (all (any (feature = "have_x_windows", feature = "have_android"),
+		   not (feature = "use_cairo"))))]
+  {
+    eassert! (input_blocked_p ());
+    if !pimg.is_null ()
+      {
+	/* C 4255-4259: `#if defined USE_CAIRO || defined HAVE_HAIKU || defined HAVE_NS` - the
+	   block holds C's comment and no statement.  */
+	#[cfg (feature = "have_ntgui")]
+	{
+	  /* Data will be freed by DestroyObject.  */
+	  (**pimg).data = core::ptr::null_mut ();
+	  xfree (pimg);
+	}
+      }
+  }
+}
+
+
+/* Put Emacs_Pix_Container PIMG into pixmap PIXMAP on frame F.
+   WIDTH and HEIGHT are width and height of both the image and
+   pixmap.  */
+
+/// C: C 4274-4276: `static void gui_put_x_image (struct frame *f, Emacs_Pix_Container pimg, Emacs_Pixmap pixmap, int width, int height)`
+#[cfg (feature = "have_window_system")]
+unsafe fn gui_put_x_image (f: *mut frame, pimg: Emacs_Pix_Container, pixmap: Emacs_Pixmap,
+			   width: c_int, height: c_int)
+{
+  /* C 4278-4279: `#if defined USE_CAIRO || defined HAVE_HAIKU || defined HAVE_NS`.  */
+  #[cfg (any (feature = "use_cairo", feature = "have_haiku", feature = "have_ns"))]
+  eassert! (pimg as Emacs_Pixmap == pixmap);
+  /* C 4280-4287: `#elif defined HAVE_X_WINDOWS`.  */
+  #[cfg (all (not (any (feature = "use_cairo", feature = "have_haiku", feature = "have_ns")),
+	      feature = "have_x_windows"))]
+  {
+    let mut gc: GC;
+
+    eassert! (input_blocked_p ());
+    gc = XCreateGC (FRAME_X_DISPLAY! (f), pixmap, 0, core::ptr::null_mut ());
+    XPutImage (FRAME_X_DISPLAY! (f), pixmap, gc, pimg as *mut XImage, 0, 0, 0, 0,
+	       (*(pimg as *mut XImage)).width, (*(pimg as *mut XImage)).height);
+    XFreeGC (FRAME_X_DISPLAY! (f), gc);
+  }
+  /* C 4288-4289: `#elif defined HAVE_ANDROID`.  */
+  #[cfg (all (not (any (feature = "use_cairo", feature = "have_haiku", feature = "have_ns")),
+	      not (feature = "have_x_windows"), feature = "have_android"))]
+  android_put_image (pixmap as android_pixmap, pimg as *mut android_image);
+}
+
+/* Thin wrapper for image_create_x_image_and_pixmap_1, so that it matches
+   with image_put_x_image.  */
+
+/// C: C 4296-4299: `static bool image_create_x_image_and_pixmap (struct frame *f, struct image *img, int width, int height, int depth, Emacs_Pix_Container *ximg, bool mask_p)`
+#[cfg (feature = "have_window_system")]
+unsafe fn image_create_x_image_and_pixmap (f: *mut frame, img: *mut image, width: c_int,
+					   height: c_int, depth: c_int,
+					   ximg: *mut Emacs_Pix_Container, mask_p: bool) -> bool
+{
+  /* C's `(!mask_p ? img->pixmap : img->mask) == NO_PIXMAP` - the record's members are the
+     untyped pointers the mirror carries (P-72 rule 3), so each read names `Emacs_Pixmap`.  */
+  eassert! ((if !mask_p { (*img).pixmap } else { (*img).mask }) as Emacs_Pixmap
+	    == NO_PIXMAP! () as Emacs_Pixmap);
+
+  let mut picture: *mut Picture = core::ptr::null_mut ();
+  /* C 4304-4306: `#if !defined USE_CAIRO && defined HAVE_XRENDER`.  */
+  #[cfg (all (not (feature = "use_cairo"), feature = "have_xrender"))]
+  {
+    picture = if !mask_p { &raw mut (*img).picture } else { &raw mut (*img).mask_picture };
+  }
+  return image_create_x_image_and_pixmap_1 (f, width, height, depth, ximg,
+					    (if !mask_p { &raw mut (*img).pixmap }
+					     else { &raw mut (*img).mask }) as *mut Emacs_Pixmap,
+					    picture);
+}
+
+/* Put pixel image PIMG into image IMG on frame F, as a mask if and only
+   if MASK_P.  On X, this simply records PIMG on a member of IMG, so
+   it can be put into the pixmap afterwards via image_sync_to_pixmaps.
+   On the other platforms, it puts PIMG into the pixmap, then frees
+   the pixel image and its buffer.  */
+
+/// C: C 4318-4320: `static void image_put_x_image (struct frame *f, struct image *img, Emacs_Pix_Container ximg, bool mask_p)`
+#[cfg (feature = "have_window_system")]
+unsafe fn image_put_x_image (f: *mut frame, img: *mut image, ximg: Emacs_Pix_Container,
+			     mask_p: bool)
+{
+  /* C 4322-4332: `#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO`.  */
+  #[cfg (all (any (feature = "have_x_windows", feature = "have_android"), not (feature = "use_cairo")))]
+  {
+    if !mask_p
+      {
+	eassert! ((*img).ximg.is_null ());
+	(*img).ximg = ximg as *mut c_void;
+      }
+    else
+      {
+	eassert! ((*img).mask_img.is_null ());
+	(*img).mask_img = ximg as *mut c_void;
+      }
+  }
+  /* C 4333-4336: the `#else` arm.  */
+  #[cfg (not (all (any (feature = "have_x_windows", feature = "have_android"),
+		   not (feature = "use_cairo"))))]
+  {
+    gui_put_x_image (f, ximg, (if !mask_p { (*img).pixmap } else { (*img).mask }) as Emacs_Pixmap,
+		     (*img).width, (*img).height);
+    image_destroy_x_image (ximg);
+  }
+}
+
+/* C 4340-4360: `#if (defined HAVE_X_WINDOWS || defined HAVE_ANDROID) && !defined USE_CAIRO`.  */
+/* Put the X images recorded in IMG on frame F into pixmaps, then free
+   the X images and their buffers.  */
+
+/// C: C 4344-4345: `static void image_sync_to_pixmaps (struct frame *f, struct image *img)`
+#[cfg (all (feature = "have_window_system", any (feature = "have_x_windows", feature = "have_android"),
+	    not (feature = "use_cairo")))]
+unsafe fn image_sync_to_pixmaps (f: *mut frame, img: *mut image)
+{
+  if !(*img).ximg.is_null ()
+    {
+      gui_put_x_image (f, (*img).ximg as Emacs_Pix_Container, (*img).pixmap as Emacs_Pixmap,
+		       (*img).width, (*img).height);
+      image_destroy_x_image ((*img).ximg as Emacs_Pix_Container);
+      (*img).ximg = core::ptr::null_mut ();
+    }
+  if !(*img).mask_img.is_null ()
+    {
+      gui_put_x_image (f, (*img).mask_img as Emacs_Pix_Container, (*img).mask as Emacs_Pixmap,
+		       (*img).width, (*img).height);
+      image_destroy_x_image ((*img).mask_img as Emacs_Pix_Container);
+      (*img).mask_img = core::ptr::null_mut ();
+    }
+}
+
+/* C 4362-4386: `#ifdef HAVE_NTGUI`.  */
+/* Create a memory device context for IMG on frame F.  It stores the
+   currently selected GDI object into *PREV for future restoration by
+   image_unget_x_image_or_dc.  */
+
+/// C: C 4367-4369: `static HDC image_get_x_image_or_dc (struct frame *f, struct image *img, bool mask_p, HGDIOBJ *prev)`
+#[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+unsafe fn image_get_x_image_or_dc (f: *mut frame, img: *mut image, mask_p: bool,
+				   prev: *mut HGDIOBJ) -> HDC
+{
+  let frame_dc: HDC = get_frame_dc (f);
+  let ximg: HDC = CreateCompatibleDC (frame_dc);
+
+  release_frame_dc (f, frame_dc);
+  *prev = SelectObject (ximg, if !mask_p { (*img).pixmap } else { (*img).mask } as HGDIOBJ);
+
+  return ximg;
+}
+
+/// C: C 4380-4382: `static void image_unget_x_image_or_dc (struct image *img, bool mask_p, HDC ximg, HGDIOBJ prev)`
+#[cfg (all (feature = "have_window_system", feature = "have_ntgui"))]
+unsafe fn image_unget_x_image_or_dc (img: *mut image, mask_p: bool, ximg: HDC, prev: HGDIOBJ)
+{
+  SelectObject (ximg, prev);
+  DeleteDC (ximg);
+}
+
+/* C 4387-4442: `#else  /* !HAVE_NTGUI */`.  */
+/* Get the X image for IMG on frame F.  The resulting X image data
+   should be treated as read-only at least on X.  */
+
+/// C: C 4391-4392: `static Emacs_Pix_Container image_get_x_image (struct frame *f, struct image *img, bool mask_p)`
+#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui")))]
+unsafe fn image_get_x_image (f: *mut frame, img: *mut image, mask_p: bool)
+  -> Emacs_Pix_Container
+{
+  /* C 4394-4395: `#if defined USE_CAIRO || defined (HAVE_HAIKU)`.  */
+  #[cfg (any (feature = "use_cairo", feature = "have_haiku"))]
+  { return (if !mask_p { (*img).pixmap } else { (*img).mask }) as Emacs_Pix_Container; }
+  /* C 4396-4414: `#elif defined HAVE_X_WINDOWS || defined HAVE_ANDROID`.  */
+  #[cfg (all (not (any (feature = "use_cairo", feature = "have_haiku")),
+	      any (feature = "have_x_windows", feature = "have_android")))]
+  {
+    let ximg_in_img: *mut XImage
+      = (if !mask_p { (*img).ximg } else { (*img).mask_img }) as *mut XImage;
+
+    if !ximg_in_img.is_null ()
+      { return ximg_in_img as Emacs_Pix_Container; }
+    /* C 4401-4405: `#ifdef HAVE_XRENDER`.  Every arm of C's chain returns, so C's `else if` is
+       this early-return sequence - the same order, the same tests, the same values.  */
+    #[cfg (feature = "have_xrender")]
+    if !(*img).picture.is_null ()
+      { return XGetImage (FRAME_X_DISPLAY! (f),
+			  (if !mask_p { (*img).pixmap } else { (*img).mask }) as Pixmap,
+			  0, 0, (*img).original_width as c_uint, (*img).original_height as c_uint,
+			  !0i32 as c_ulong, ZPixmap) as Emacs_Pix_Container; }
+    /* C 4406-4409: `#ifndef HAVE_ANDROID`.  */
+    #[cfg (not (feature = "have_android"))]
+    return XGetImage (FRAME_X_DISPLAY! (f),
+		      (if !mask_p { (*img).pixmap } else { (*img).mask }) as Pixmap,
+		      0, 0, (*img).width as c_uint, (*img).height as c_uint,
+		      !0i32 as c_ulong, ZPixmap) as Emacs_Pix_Container;
+    /* C 4410-4414: `#else`.  */
+    #[cfg (feature = "have_android")]
+    return android_get_image ((if !mask_p { (*img).pixmap } else { (*img).mask }) as android_drawable,
+			      ANDROID_Z_PIXMAP) as Emacs_Pix_Container;
+  }
+  /* C 4415-4420: `#elif defined (HAVE_NS)`.  */
+  #[cfg (all (not (any (feature = "use_cairo", feature = "have_haiku")),
+	      not (any (feature = "have_x_windows", feature = "have_android")),
+	      feature = "have_ns"))]
+  {
+    let pixmap: Emacs_Pix_Container
+      = (if !mask_p { (*img).pixmap } else { (*img).mask }) as Emacs_Pix_Container;
+
+    ns_retain_object (pixmap as *mut c_void);
+    return pixmap;
+  }
+}
+
+/// C: C 4423-4424: `static void image_unget_x_image (struct image *img, bool mask_p, Emacs_Pix_Container ximg)`
+#[cfg (all (feature = "have_window_system", not (feature = "have_ntgui")))]
+unsafe fn image_unget_x_image (img: *mut image, mask_p: bool, ximg: Emacs_Pix_Container)
+{
+  /* C 4426: `#ifdef USE_CAIRO` - C's arm holds no statement (the empty side of the `#elif`), so
+     the port carries the line and nothing else; `docs/ports/image.md`'s Deviations records it.  */
+
+  /* C 4427-4438: `#elif defined HAVE_X_WINDOWS || defined HAVE_ANDROID`.  */
+  #[cfg (all (not (feature = "use_cairo"), any (feature = "have_x_windows", feature = "have_android")))]
+  {
+    let ximg_in_img: *mut XImage
+      = (if !mask_p { (*img).ximg } else { (*img).mask_img }) as *mut XImage;
+
+    if !ximg_in_img.is_null ()
+      { eassert! (ximg as *mut XImage == ximg_in_img); }
+    else
+      {
+	/* C 4432-4438: `#ifdef HAVE_ANDROID` / `#else`.  */
+	#[cfg (feature = "have_android")]
+	{ android_destroy_image (ximg as *mut android_image); }
+	#[cfg (not (feature = "have_android"))]
+	{ XDestroyImage (ximg as *mut XImage); }
+      }
+  }
+  /* C 4439-4440: `#elif defined (HAVE_NS)`.  */
+  #[cfg (all (not (feature = "use_cairo"), not (any (feature = "have_x_windows", feature = "have_android")),
+	      feature = "have_ns"))]
+  ns_release_object (ximg as *mut c_void);
+}
+
+
+/***********************************************************************
+			      File Handling
+ ***********************************************************************/
+
+/* Find image file FILE.  Look in data-directory/images, then
+   x-bitmap-file-path.  Value is the full name of the file
+   found, or nil if not found.  If PFD is nonnull store into *PFD a
+   readable file descriptor for the file, opened in binary mode.  If
+   PFD is null, do not open the file.  */
+
+/* The names the mirrors this unit includes do not carry, declared at the use site with C's own
+   line (PORTING.md P-55/P-72 rule 3); `src/charset.rs` 91-94 and `src/fileio.rs` 77-78 declare
+   the same three.  */
+// C: lisp.h 4977: `extern void fclose_unwind (void *);`
+// C: lisp.h 5320: `extern FILE *emacs_fdopen (int, const char *)`
+// C: lisp.h 5305: `extern int sys_fstat (int, struct stat *);`
+#[cfg (feature = "have_window_system")]
+unsafe extern "C" {
+  pub fn fclose_unwind (arg: *mut c_void);
+  pub fn emacs_fdopen (fd: c_int, mode: *const c_char) -> *mut FILE;
+  pub fn sys_fstat (fd: c_int, buf: *mut stat) -> c_int;
+}
+
+/// C: C 4456-4457: `static Lisp_Object image_find_image_fd (Lisp_Object file, image_fd *pfd)`
+#[cfg (feature = "have_window_system")]
+unsafe fn image_find_image_fd (file: Lisp_Object, pfd: *mut image_fd) -> Lisp_Object
+{
+  /* C's `Lisp_Object file_found, search_path;` - `openp` writes `*storeptr`, and `&raw mut` of a
+     binding Rust has not initialised is `E0381`, so both take C's zero (`Qnil`; PORTING.md
+     1.5/0.1-13).  */
+  let mut file_found: Lisp_Object = Qnil ();
+  let mut search_path: Lisp_Object;
+  let mut fd: c_int;
+  let mut platform: *mut c_void;
+
+  /* TODO I think this should use something like image-load-path
+     instead.  Unfortunately, that can contain non-string elements.  */
+  search_path = Fcons (Fexpand_file_name (build_string (c"images".as_ptr ()), Vdata_directory),
+		       Vx_bitmap_file_path);
+
+  /* Try to find FILE in data-directory/images, then x-bitmap-file-path.  */
+  platform = core::ptr::null_mut ();
+  fd = openp (search_path, file, Qnil (), &raw mut file_found,
+	      if !pfd.is_null () { Qt () } else { make_fixnum (R_OK as EMACS_INT) }, false, false,
+	      if !pfd.is_null () { &raw mut platform } else { core::ptr::null_mut () });
+  if fd == -2
+    {
+      /* The file exists locally, but has a file name handler.
+	 (This happens, e.g., under Auto Image File Mode.)
+	 'openp' didn't open the file, so we should, because the
+	 caller expects that.  */
+      let encoded_name: Lisp_Object = ENCODE_FILE (file_found);
+      fd = emacs_open (SSDATA (encoded_name), O_RDONLY, 0);
+    }
+  /* FD is -3 if PLATFORM is set to a valid asset file descriptor on
+     Android.  */
+  else if fd < 0 && fd != -3
+    { return Qnil (); }
+
+  /* C 4488-4499: `#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY` / `#else`.  */
+  #[cfg (not (all (feature = "have_android", not (feature = "android_stubify"))))]
+  if !pfd.is_null ()
+    { *pfd = fd; }
+  #[cfg (all (feature = "have_android", not (feature = "android_stubify")))]
+  if !pfd.is_null ()
+    {
+      /* Construct an asset file descriptor.  */
+      (*pfd).fd = fd;
+      (*pfd).asset = platform;
+    }
+  return file_found;
+}
+
+/* Find image file FILE.  Look in data-directory/images, then
+   x-bitmap-file-path.  Value is the full name of the file found, or
+   nil if not found.  */
+
+/// C: C 4507-4508: `Lisp_Object image_find_image_file (Lisp_Object file)` - non-static.
+#[cfg (feature = "have_window_system")]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn image_find_image_file (file: Lisp_Object) -> Lisp_Object
+{
+  return image_find_image_fd (file, core::ptr::null_mut ());
+}
+
+/* C 4513-4521: `#if defined HAVE_ANDROID && !defined ANDROID_STUBIFY`.  */
+
+/// C: C 4515-4516: `static void close_android_fd (void *ptr)`
+#[cfg (all (feature = "have_window_system", feature = "have_android",
+	    not (feature = "android_stubify")))]
+unsafe fn close_android_fd (ptr: *mut c_void)
+{
+  android_close_asset (*(ptr as *mut android_fd_or_asset));
+}
+
+/* Read FILE into memory.  Value is a pointer to a buffer allocated
+   with xmalloc holding FILE's contents.  Value is null if an error
+   occurred.  FD is a file descriptor open for reading FILE.  Set
+   *SIZE to the size of the file.  */
+
+/// C: C 4528-4529: `static char * slurp_file (image_fd fd, ptrdiff_t *size)`
+#[cfg (feature = "have_window_system")]
+unsafe fn slurp_file (fd: image_fd, size: *mut ptrdiff_t) -> *mut c_char
+{
+  /* C declares `buf` inside both arms below (`char *buf = NULL;` in the first, the uninitialised
+     `char *buf;` in the second) and reads it once, after the `#endif`; Rust's `let` is
+     block-scoped, so the declaration is hoisted to the function and each arm keeps its own
+     initialisation - the second arm's bare declaration is the port's zero (PORTING.md 1.5/0.1-13,
+     and C's `buf = NULL;` in its `else` already covers every path that leaves it set).  */
+  let mut buf: *mut c_char = core::ptr::null_mut ();
+
+  /* C 4531-4559: `#if !defined HAVE_ANDROID || defined ANDROID_STUBIFY`.  */
+  #[cfg (not (all (feature = "have_android", not (feature = "android_stubify"))))]
+  {
+    let fp: *mut FILE = emacs_fdopen (fd, c"rb".as_ptr ());
+    let mut st: stat = core::mem::zeroed ();
+
+    if !fp.is_null ()
+      {
+	let count: specpdl_ref = SPECPDL_INDEX ();
+	record_unwind_protect_ptr (Some (fclose_unwind), fp as *mut c_void);
+
+	if sys_fstat (fileno (fp), &raw mut st) == 0
+	    && 0 <= st.st_size
+	    && (st.st_size as u64) < std::cmp::min (PTRDIFF_MAX as u64, SIZE_MAX as u64)
+	  {
+	    /* Report an error if we read past the purported EOF.
+	       This can happen if the file grows as we read it.  */
+	    let buflen: ptrdiff_t = st.st_size as ptrdiff_t;
+	    buf = xmalloc ((buflen + 1) as usize) as *mut c_char;
+	    if fread (buf as *mut c_void, 1, (buflen + 1) as usize, fp) == buflen as usize
+	      { *size = buflen; }
+	    else
+	      {
+		xfree (buf as *mut c_void);
+		buf = core::ptr::null_mut ();
+	      }
+	  }
+
+	unbind_to (count, Qnil ());
+      }
+  }
+  /* C 4560-4592: the `#else` arm (Android without stubs).  */
+  #[cfg (all (feature = "have_android", not (feature = "android_stubify")))]
+  {
+    let mut st: stat = core::mem::zeroed ();
+    let mut count: specpdl_ref;
+
+    if android_asset_fstat (fd, &raw mut st) == 0
+	&& (0 <= st.st_size
+	    && (st.st_size as u64) < std::cmp::min (PTRDIFF_MAX as u64, SIZE_MAX as u64))
+      {
+	count = SPECPDL_INDEX ();
+	record_unwind_protect_ptr (Some (close_android_fd), &raw mut fd as *mut c_void);
+	buf = xmalloc ((st.st_size + 1) as usize) as *mut c_char;
+
+	/* Read one byte past the end of the file.  That allows
+	   detecting if the file grows as it is being read.  */
+
+	if android_asset_read (fd, buf as *mut c_void, (st.st_size + 1) as size_t)
+	    == st.st_size as ssize_t
+	  { *size = st.st_size as ptrdiff_t; }
+	else
+	  {
+	    xfree (buf as *mut c_void);
+	    buf = core::ptr::null_mut ();
+	  }
+
+	unbind_to (count, Qnil ());
+      }
+    else
+      {
+	buf = core::ptr::null_mut ();
+	android_close_asset (fd);
+      }
+  }
+
+  return buf;
+}
+
+/* Like slurp_file above, but with added error handling.  Value is
+   null if an error occurred.  Set SIZE to the size of the file.
+   IMAGE_TYPE describes the image type (e.g. "PNG").  */
+
+/// C: C 4601-4602: `static char * slurp_image (Lisp_Object filename, ptrdiff_t *size, const char *image_type)`
+#[cfg (feature = "have_window_system")]
+unsafe fn slurp_image (filename: Lisp_Object, size: *mut ptrdiff_t, image_type: *const c_char)
+  -> *mut c_char
+{
+  let mut fd: image_fd = core::mem::zeroed ();
+  let file: Lisp_Object = image_find_image_fd (filename, &raw mut fd);
+  if !STRINGP (file)
+    {
+      image_not_found_error (filename);
+      return core::ptr::null_mut ();
+    }
+  let result: *mut c_char = slurp_file (fd, size);
+  if result.is_null ()
+    { image_error (c"Error loading %s image `%s'".as_ptr (),
+		   build_unibyte_string (image_type), file); }
+  return result;
+}
+

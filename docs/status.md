@@ -11747,3 +11747,24 @@
      两个正式臂都没读到 GDI+ 块、图像绘制与下划线绘制；本片四条 `#[repr(C)]`（`XFORM`/`BITMAP`/`BITMAPINFOHEADER`/`DIBSECTION`）
      与 `sizeof (DIBSECTION)` 全是**拼写、非测量**（Owed 24）；新增 5 条集成者欠账（21-25，含 `include/w32term.rs` 该收
      `w32_image_rotations_p` 的 `*_decls` 迁移、三条镜像 SDK 名缺口、`dispextern.h` 三个 use-site 入口）。
+
+- **3.582 lane 产出收口：`src/image.c` 第四片落地（C 3,552-4,623；C 13,805 → Rust 6,182 行；`--check` 119 → 102）（2026-10-05）**：
+  ① **lane 的产出（Kepler）**：`femacs/src/image.rs` 4,874 → **6,182 行**（+1,308，md5 `dcebc626…`；台账 `docs/ports/image.md`
+     1,065 → 1,308 行），落地 C 3,552-4,623（27 个函数/记录，止于 `slurp_image` 的 `}`，即文件 File Handling 段的收尾）：
+     `lookup_image`、`cache_image`、`HAVE_WEBP||HAVE_GIF` 的动画缓存五件、`mark_image`/`mark_image_cache`、
+     `HAVE_X_WINDOWS||HAVE_ANDROID` 半段的四个 X 助手、`image_check_image_size`、`image_create_x_image_and_pixmap_1`（五臂）、
+     `image_destroy_x_image`、`gui_put_x_image`、`image_create_x_image_and_pixmap`、`image_put_x_image`、`image_sync_to_pixmaps`、
+     `image_get_x_image_or_dc`/`image_unget_x_image_or_dc`、`image_get_x_image`/`image_unget_x_image`、
+     `image_find_image_fd`、`image_find_image_file`、`close_android_fd`、`slurp_file`、`slurp_image`。
+  ② **读数**：`--check` **119 → 102**（`missing function` 50 → 34，常数/宏/defsubr 未动）；`check-cond-eval.py src/image.c`
+     **435 conditions / 0 disagreements [VERIFIED]**；`build-tu` exit 0（336 字节空对象）；翻臂 NS 首发 12 错**全在本件新文本**、修完
+     **exit 0**；翻臂 X+cairo 69 错里**只有 2 条属本件**（`XCreateImage`/`XCreatePixmap`，无镜像承载的 SDK 名类），其余 60 条是既有的
+     `x_display_info` 字段与 `E0308`（都在本件首行之前）。
+  ③ **集成者登记（我）**：**不加容差行**（行数漂移 55.2% 是"还没落完"的真信号）；`macro-body-notes.tsv` 收下该 lane 的 **4 行**
+     （3 行 token note + 1 行段注释）。
+  ④ **本件的实际量**：目标是 C 3,553→约 6,500（≈2,950 行），实落 **1,072 行 C**（约 36%）——lane 如实报了差距与原因（这一段
+     平台臂多、密度 1.22、含 17 处原型删除与 4 类 use-site 新声明），并选择在**段边界**停下保证读数全绿，而不是把 XBM/canvas/XPM
+     切在中间留未验证文本。**下一段 remainder 从 C 4,624 开始**（XBM 4624-5505、canvas 5506-5915、XPM 5916-6613，其后是
+     PNG/JPEG/TIFF/GIF/WebP/SVG/ImageMagick 各读取器）。
+  ⑤ **未声称**：无运行期证据；Windows/Haiku/PGTK/Android/纯 X11 五臂**未翻臂**（本机无 SDK，纯 X11 另有既有 `E0428`），
+     其证据只有冻结读数、`check-cond-eval` 判定与逐项 C 引用；`check-declarations`/`check-mirror-dupes` 都 0 failure 只说明文本层一致。
