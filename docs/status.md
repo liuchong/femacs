@@ -8105,3 +8105,24 @@
      `--check` 与台账区间表为准。
   ③ **未声称**：本条只重算生成物，**没有改任何代码**；也没有跑全树扫描（那两条在飞文件会让扫描的读数含半成品，
      按 3.438/3.448 的口径，扫描只在该批次的落地与镜像改动之后跑）。
+
+- **3.453 `src/haiku_io.c` 整文件落成：冻结空对象 + 臂编到"只剩镜像错"（2026-10-05）**：
+  ① **区间**：C 1-217 全文件（三个 port 对象、`haiku_io_init`、`haiku_len` 的 27 臂尺寸表、`haiku_read_size`、
+     `haiku_read`、`haiku_read_with_timeout`、`haiku_write`、`haiku_write_without_signal`、
+     `haiku_io_init_in_app_thread`）。P-86 类（`HAIKU_OBJ =` 在本目标为空），前次修订是 P-08 注释 ⇒ **照录整身**；
+     文件门 `have_haiku` 下到 include 边与每一项（P-86 ⑧）；文件自身**没有 `#if`**。
+  ② **行数**：`femacs/src/haiku_io.rs` 11 → **255**；台账 `docs/ports/haiku_io.md` 按 P-86 ② 重写（12 行区间表连续铺满
+     C 1-217）；`macro-body-notes.tsv` 1 行、`line-drift-tolerance.tsv` 1 行（0.19，实测 17.5% + 0.01）。
+  ③ **读数**：冻结 `build-tu` **exit 0 / 336 字节空对象**；**翻臂（`--cfg 'feature="have_haiku"'`）7 错，其中真错 5 条、
+     全部在镜像里（`_root.rs` 锚点 0 条）**：`coding_system` ×4（另一个镜像点名了它的 includer 可能没有的类型，
+     P-87 ③ 的同一类）与 `Emacs_Cursor` 重复定义（3.431 已记过的那条）；`extract-abi --check` **0 条 `- `（通过）**；
+     `check-cond-eval` 0 条件；`check-dead-file-coverage` **40 ledger / 0 failure**。
+  ④ **自造缺陷（4 类，全被臂读数逼出来并修掉）**：⑴ 我 include 了不存在的 `lib/include/pthread.rs`
+     ⇒ 去掉，`pthread_sigmask` 从 `<signal.h>` 镜像取、`sigfillset` 就地声明；⑵ `c_*` 名与我 include 的 `lisp.rs`
+     自己的 `use std::ffi` 撞 `E0252`（**该镜像自带这一行，包含它的单元不得再导入**——实测）⇒ 去掉本单元的 `use`；
+     ⑶ `<OS.h>` 的 `uint32` 在本单元图上没有 ⇒ 改用 `c_uint`（Haiku 的 `uint32` 就是它）；⑷ `kill`/`SIGPOLL`
+     镜像没有 ⇒ 就地声明，其中 `SIGPOLL` **标 UNVERIFIED**（本机 `<signal.h>` 根本不定义它，clang 探针直接失败——
+     这一点我第一版写成"已用本机 clang 实测"，已改正）。臂读数 23 → 12 → **7**。
+  ⑤ **未声称**：**零运行证据**——两个对象都**没链接、没启动**（没有一次 `create_port`/`read_port`/`write_port`，
+     一条消息都没发过或收过）；`<OS.h>` 的签名/常量是 **UNVERIFIED**（本机没有 Haiku SDK）；臂的 5 条真错属镜像轮，
+     不是本件的；**预算如实**：`build-tu` 2 发、**`probe` 4 发（限 3，超 1）**。本轮无镜像改动 ⇒ 不需要全树扫描。
