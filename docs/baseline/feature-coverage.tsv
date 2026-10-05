@@ -5,25 +5,26 @@
 # with it; `-` means there is none).  A feature nothing enables is text that has
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
-windowsnt	1817	46	-	-
-have_window_system	1051	21	-	-
+windowsnt	1836	47	-	-
+have_x_windows	1120	28	-	HAVE_X_WINDOWS
+have_window_system	1057	22	-	-
 have_android	1004	33	-	-
-have_x_windows	822	26	-	HAVE_X_WINDOWS
+have_pgtk	823	24	-	-
+have_ntgui	740	16	-	-
 not_android_stubify	700	11	-	-
-have_ntgui	596	15	-	-
-have_pgtk	547	23	-	-
-use_gtk	442	14	-	-
+use_gtk	445	15	-	-
 msdos	407	15	-	-
+use_lucid	373	9	-	-
 dispextern_face_records	287	4	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
+use_cairo	274	14	-	-
 have_ns	264	12	-	HAVE_NS
 have_haiku	249	15	xtask dead-arms	-
 have_gnutls	248	3	-	-
-use_lucid	236	7	-	-
+have_xft	222	6	-	-
 have_freetype	215	3	-	-
+harfbuzz	210	9	-	-
 use_motif	209	4	-	-
-harfbuzz	194	8	-	-
-use_cairo	188	12	-	-
 use_xcb	171	4	-	-
 have_dbus	158	2	-	-
 have_gtk3	150	6	-	-
@@ -49,11 +50,12 @@ have_xinput2	51	6	-	-
 have_zlib	51	2	-	-
 test	50	5	-	-
 have_kqueue	49	1	-	-
+use_cairo_or_have_xft	46	4	-	-
+have_xrender	45	6	-	-
 use_gamedir	44	1	-	-
+have_gsettings	40	2	-	-
 use_linux_xattr	40	2	-	-
-use_cairo_or_have_xft	39	3	-	-
 have_gfilenotify	38	1	-	-
-have_xrender	37	5	-	-
 glyph_debug	36	5	xtask dead-arms	-
 have_alsa	34	1	-	-
 kerberos5	34	1	-	-
@@ -62,8 +64,10 @@ dos_nt	30	5	-	-
 have_text_conversion	30	3	-	-
 kerberos	30	1	-	-
 ns_impl_cocoa	30	6	xtask dead-arms	-
+have_libotf	29	2	-	-
 have_x_i18n	28	4	-	-
 cygwin	27	12	-	-
+have_gconf	26	1	-	-
 have_xcb_shape	26	2	-	-
 use_acl_have_acl_get_file	26	3	-	-
 mingw_w64	25	5	-	-
@@ -72,7 +76,6 @@ have_xsync	24	1	-	-
 have_modules	23	6	-	HAVE_MODULES
 libgccjit_have_gcc_jit_context_new_bitcast	22	1	-	-
 words_bigendian	22	10	-	-
-have_libotf	21	1	-	-
 doug_lea_malloc	20	2	-	-
 have_glib	20	2	-	-
 use_android_assets	20	2	-	-
@@ -95,7 +98,6 @@ djgpp_2_3	12	3	-	-
 enable_checking	12	3	-	-
 have_native_transforms	12	1	-	-
 have_xcb_shape_input_rects	12	1	-	-
-have_xft	12	4	-	-
 have_xinput2_2	12	1	-	-
 poll_for_input	12	2	-	-
 gc_asan_poison_objects	11	1	-	-
@@ -157,6 +159,7 @@ exec_64	6	1	-	-
 have_acl_type_extended	6	1	-	-
 have_aclx_get	6	1	-	-
 have_getgroups	6	1	-	-
+have_xdbe	6	3	-	-
 have_xkb	6	2	-	-
 libc	6	3	-	-
 libgccjit_have_gcc_jit_version	6	1	-	-
@@ -167,13 +170,13 @@ no_use_lsb_tag	6	2	-	-
 no_utmp_x_ut_type	6	2	-	-
 no_value	6	1	-	-
 tandem	6	3	-	-
+trace_selection	6	1	-	-
 use_fortify_level_3	6	1	-	-
 aix	5	3	-	-
 alignof_pthread_cond_t_le_alignof_max_align_t	5	1	-	-
 alignof_pthread_mutex_t_le_alignof_max_align_t	5	1	-	-
 have_android_mmap	5	1	-	-
 have_gpm	5	4	-	-
-have_gsettings	5	1	-	-
 have_personality_addr_no_randomize	5	1	-	-
 have_pthread_setname_np	5	1	-	-
 have_xcomposite_overlay	5	1	-	-
@@ -193,7 +196,9 @@ builtin_overflow_p	4	2	-	-
 cf_dibv5	4	1	-	-
 dragonfly	4	1	-	-
 fc_color	4	1	-	-
+fc_hint_style	4	1	-	-
 gcc_lint	4	3	-	-
+glib_version_2_32	4	1	-	-
 gnu_malloc	4	1	-	-
 gnuc_prereq_11_0	4	1	-	-
 gnulib_getpagesize	4	1	-	-
@@ -207,6 +212,7 @@ have_renameat2	4	1	-	-
 have_rsvg	4	1	-	-
 have_ts_tree_cursor_goto_previous_sibling	4	1	-	-
 have_webp	4	1	-	-
+have_xfixes	4	2	-	-
 hesiod	4	1	-	-
 is_ebcdic_host	4	1	-	-
 klibc	4	2	-	-
@@ -232,18 +238,18 @@ clock_monotonic_coarse	3	1	-	-
 cplusplus_gnuc_prereq_2_8_clang	3	1	-	-
 dbus_version	3	1	-	-
 dbus_version_string	3	1	-	-
+glib_check_version_lt_2_36	3	2	-	-
 gnuc_prereq_4_3	3	1	-	-
 have_dbus_type_is_valid	3	1	-	-
 have_dbus_validate_bus_name	3	1	-	-
 have_dbus_validate_interface	3	1	-	-
 have_dbus_validate_member	3	1	-	-
 have_dbus_validate_path	3	1	-	-
+have_m17n_flt	3	1	-	-
 have_select	3	1	-	-
 have_shared_game_dir	3	1	-	-
 have_sqlite3_load_extension	3	1	-	-
 have_x11_or_have_pgtk	3	1	-	-
-have_xdbe	3	2	-	-
-have_xfixes	3	1	-	-
 i386	3	2	-	-
 inotify_debug	3	1	-	-
 marker_debug	3	1	-	-
@@ -270,6 +276,7 @@ openssl_sha1	3	2	-	-
 openssl_sha256	3	2	-	-
 openssl_sha512	3	2	-	-
 posix_memalign	3	1	-	-
+render_version_ge_0_2	3	2	-	-
 replace_getusershell	3	1	-	-
 replace_struct_timeval	3	1	-	-
 sqlite3_dbconfig_enable_load_extension	3	1	-	-
@@ -284,7 +291,11 @@ android_32bit	2	1	-	-
 android_64bit	2	1	-	-
 arch_cet_status	2	1	-	-
 bufsize	2	1	-	-
+cairo_has_fc_font	2	1	-	-
+cairo_has_ft_font	2	1	-	-
 choose_newest_exe	2	1	-	-
+cleartype_natural_quality	2	1	-	-
+cleartype_quality	2	1	-	-
 cnew_rtscts	2	1	-	-
 cplusplus_201103l	2	1	-	-
 cygwin_or_dos_nt	2	1	-	-
@@ -292,6 +303,7 @@ dbus_num_message_types	2	1	-	-
 edg	2	1	-	-
 estrpip	2	1	-	-
 fc_capability	2	1	-	-
+fc_embolden	2	2	-	-
 fc_fontformat	2	1	-	-
 fc_variable	2	1	-	-
 fortify_use_clang	2	1	-	-
@@ -312,6 +324,7 @@ have_clock_gettime	2	1	-	-
 have_dbus_message_set_allow_interactive_authorization	2	1	-	-
 have_dbus_watch_get_unix_fd	2	1	-	-
 have_decl_strmode	2	1	-	-
+have_ft_face_getcharvariantindex	2	1	-	-
 have_glib_and_not_ns	2	1	-	-
 have_gnutls_certificate_set_x509_key_file2	2	1	-	-
 have_gnutls_cipher_get_iv_size	2	1	-	-
@@ -326,6 +339,7 @@ have_jpeg	2	1	-	-
 have_langinfo_codeset	2	1	-	-
 have_madvise	2	2	-	-
 have_malloc_h	2	1	-	-
+have_otf_get_variation_glyphs	2	1	-	-
 have_png	2	1	-	-
 have_procfs	2	1	-	-
 have_pthread_set_name_np	2	1	-	-
@@ -338,6 +352,7 @@ have_xinput2_4	2	2	-	-
 have_xpm	2	1	-	-
 internal_terminal	2	1	-	-
 iuclc	2	1	-	-
+johab_charset	2	1	-	-
 libgccjit_have_gcc_jit_global_set_initializer	2	1	-	-
 libgccjit_have_reflection	2	1	-	-
 libxml2	2	1	-	-
@@ -452,6 +467,7 @@ use_fortify_level_3_glibc_clang	2	1	-	-
 utmp_ut_name	2	1	-	-
 utxdb_active	2	1	-	-
 v_dsusp	2	1	-	-
+vietnamese_charset	2	1	-	-
 weak_alias	2	1	-	-
 windows_no_mingw32_no_use_windows_threads	2	1	-	-
 windows_nt	2	1	-	-
@@ -523,14 +539,15 @@ econnreset	1	1	-	-
 eff_only_ok	1	1	-	-
 emsgsize	1	1	-	-
 eoverflow	1	1	-	-
-fc_embolden	1	1	-	-
+fc_charcell	1	1	-	-
+fc_dual	1	1	-	-
+ft_bdf_h	1	1	-	-
 gc_cdr_count	1	1	-	-
 gc_check_string_free_list	1	1	-	-
 gc_mark_secondary_stack	1	1	-	-
 gcc_9_3	1	1	-	-
 gcc_lint_not_clang	1	1	-	-
 gcc_lt_7	1	1	-	-
-glib_check_version_lt_2_36	1	1	-	-
 glibc_copy_file_range_bug_33245	1	1	-	-
 gnu_c_without_clang	1	1	-	-
 gnu_linux_glibc	1	1	-	-
@@ -608,6 +625,7 @@ have_mmap_map_fixed	1	1	-	-
 have_pipe_sz	1	1	-	-
 have_setdtablesize	1	1	-	-
 have_so_priority	1	1	-	-
+have_sys_types_h	1	1	-	-
 have_timezone_t	1	1	-	-
 have_utimens	1	1	-	-
 have_x11_or_have_pgtk_or_have_haiku	1	1	-	-
@@ -820,7 +838,6 @@ rand_2g	1	1	-	-
 rand_32767	1	1	-	-
 regex_debug_re_str	1	1	-	-
 regex_libc_weight	1	1	-	-
-render_version_ge_0_2	1	1	-	-
 replace_copy_file_range	1	1	-	-
 replace_dirfd	1	1	-	-
 replace_dup3	1	1	-	-

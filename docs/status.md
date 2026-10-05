@@ -10337,3 +10337,34 @@
      `src/xselect.rs` 的 lane 正在用它 ⇒ 留给那两条 lane 收口后一起做。
   ⑤ **预算与清理**：`probe` 1 发、`check-all-units` 1 发、`layout-check` 1 发、`check-mirror-dupes` 2 发；未跑
      `xtask --all`/`gate-fast`/`cargo test`；`/tmp/gtk529` 已删。
+
+- **3.530 `src/xftfont.c` 整文件落地（C 1-832）：Xft 字体后端（2026-10-05）**：
+  ① **产出**：`femacs/src/xftfont.rs` 11 → **1980** 行（C 832，+138.0%），台账 `docs/ports/xftfont.md` 24 → 398 行
+     （`## C line ranges` 28 行覆盖 C 1-832 无空隙、`## Evidence`/`## Deviations`/`## Owed` 齐全）；
+     `docs/ports/macro-body-notes.tsv` 由 lane 追加 3 行（`xftfont_draw` 的裸 `alloca`、`xftfont_cached_font_ok`
+     的 `goto`、`syms_of_xftfont` 的 `0,doc`）——**只提交了这 3 行**：同一文件里还有在飞 lane 的 3 行，留在工作树
+     不提交（3.504 记过同一形状：共享的 notes 文件按件切）。
+  ② **集成者落的账**：`femacs/xtask/Cargo.toml` 登记 6 个 feature（`have_m17n_flt`、`ft_bdf_h`、`fc_dual`、
+     `fc_charcell`、`have_otf_get_variation_glyphs`、`have_ft_face_getcharvariantindex`，各带 C 宏名与行号）；
+     `docs/ports/line-drift-tolerance.tsv` 一行 `xftfont 1.39 total`；`docs/port-map.md`、
+     `docs/baseline/port-lines-pending.tsv`（28 文件 / 38,276 行）、`docs/baseline/feature-coverage.tsv`（929 feature）
+     重算。
+  ③ **读数**：`extract-abi --check emacs/src/xftfont.c femacs/src/xftfont.rs` **OK**（加容差行前是唯一一行 FAIL：
+     `line count drifted 138.0%`）；`check-all-units` **83 unit(s), 0 failure(s)**（两腿）、`layout-check` passed；
+     七道文本门 0 failure（`check-port-lines` 0 new/0 stale）。冻结 `build-tu` **exit 0 / 336 字节空对象**
+     （`have_xft` 在冻结档为假——那是门的证据，不是正文的证据）；lane 的 15 门翻臂 **exit 1 / 10 错**：**9 条在本单元
+     自己的文本**（`(*xftfont_info).maybe_otf`/`.otf`/`.hb_font`，根因是 `include/ftfont.rs` 的 `struct font_info`
+     把这三个带门成员当死文本——**归属镜像**）、1 条是 `include/systime.rs` 27 的手翻断言；变异实测 10 → 11
+     （恰 1 条 `E0308` 点名注入行）⇒ 读数是实的；lane 另做 `/tmp` 臂触达预检（补三个成员 + 翻 `HAVE_X_WINDOWS`）
+     → **0 错**，并在那里抓到本单元唯一的真缺陷（`matrix` 未初始化，`E0381`，已修）。
+  ④ **未声称**：零运行证据（无显示、无字体、无 pattern/picture）；两条臂读数**都不干净**（9 条本单元 + 1 条镜像断言），
+     0 错那条是 `/tmp` 预检、**不是本树的配置**；三处 Xft 记录是 **libXft 2.3.6 发行版自带头**的读数（本机无
+     `<X11/Xft>`），`OTF`/`OTF_close` 标 UNVERIFIED。
+  ⑤ **仍欠（点名给下一轮镜像，全部带 lane 的实测）**：`include/ftfont.rs` 的 `font_info` 三个带门成员（本单元臂的
+     主要阻塞）、`include/dispextern.rs` 92-94 的 `GCForeground`/`GCBackground` 与 C 的 `(1L<<2)`/`(1L<<3)`
+     **掩码值不同**（本臂拿 3、C 拿 12——这是**行为差异**，不是命名问题）、`include/xlib.rs` 的
+     `XScreenNumberOfScreen`/`XGCValues`/`Region`、`include/dispextern.rs` 1497 的 `glyph_string.clip` 应为
+     `[XRectangle; 2]`、`xtask dead-arms` 的 X11/GTK 翻转项。
+  ⑥ **预算实报**：lane 侧 `build-tu` **8/3**、`probe` **4/3**（都超支，lane 在自己报告里报了）；集成者：
+     `gen-port-map`/`--write-pending`/`feature-coverage` 各 1 发、七道文本门各 1 发、`check-all-units` 1 发、
+     `layout-check` 1 发、`extract-abi --check` 2 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
