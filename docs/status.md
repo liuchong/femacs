@@ -12972,3 +12972,21 @@
   ⑤ **未声称**：没有 dump、没有 L1；②的 23 行是"接上参照生成物"的读数，**不能**当作端口的进度数字（③ 才是它的用处：
      把下一处缺陷定位到字节码栈的自有记账上）。
   ⑥ **预算**：本轮 `build-tu` 0 发、`check-link` 0 发、端口运行 3 次、文本对拍 4 处（`bitcode.c`/`bytecode.rs`/load-path/生成物清单）。
+
+- **3.629 `Bytecode stack overflow` 的两条读数：C 与端口的**上限完全一样**（`bc_thread_state.stack/stack_end` 都是 `char *`，`BC_STACK_SIZE` 就是 512K×8=4 MB 字节），
+  而端口的**帧链是坏的**（沿 `saved_fp` 走链会踩到野指针）⇒ 缺陷在帧的压/弹，不在上限（2026-10-05/06）**：
+  ① **上限对拍（先排掉"端口上限更小"这条）**：C `thread.h` 54 的 `struct bc_thread_state { struct bc_frame *fp; char *stack; char *stack_end; }`
+     ——两个都是 **`char *`**，`init_bc_thread` 里 `stack_end = stack + BC_STACK_SIZE`（`bytecode.c` 337 的宏 = `512*1024*sizeof (Lisp_Object)`），
+     即 **4 MB 字节**；端口 `bytecode.rs` 437/438 的 `(*bc).stack = xmalloc (BC_STACK_SIZE! ())`、
+     `(*bc).stack_end = (*bc).stack.offset (BC_STACK_SIZE! ())` 与之**逐个字段同形** ⇒ **上限一样**（我先前"端口把元素数当字节数"的猜测**被这条推翻**，
+     不再作为候选）。
+  ② **帧链读数（决定性）**：在报错点加一段"沿 `(*bc).fp->saved_fp` 数深度、顺便打印已用/上限"的临时仪表，结果**在那段遍历里 panic**
+     （`bytecode/_root.rs:619`）——即 `saved_fp` 链里出现了**野指针**（不是 NULL 也不是有效帧）。⇒ 端口在某个返回路径上把
+     `bc->fp` 恢复错了（或某处 `saved_fp` 写坏），帧链越长越会撞上限 ⇒ 这才是 `loaddefs` 那处 overflow 的直接原因候选 ✔。
+  ③ **下一轮第一步（点名）**：把**帧的压/弹**逐处与 C 对拍——`exec_byte_code` 入口的 `fp->saved_fp = bc->fp; bc->fp = fp;`（C 524-525 / 端口同处 ✔）与
+     **返回路径**上的 `bc->fp = fp->saved_fp;`（C 的 `Breturn` 一侧；端口同 opcode 分支）——判据：把断点放在"恢复 `bc->fp`"的那条语句上，
+     用 `loaddefs` 那次运行数"压了多少帧/弹了多少帧"，两者不等就是它。
+  ④ **未声称**：① 只排掉了一个候选；② 的 panic 是**仪表**打出来的读数（说明链坏），但不能说明"哪一处写坏了链"；本件**没有修任何东西**，
+     端口仍停在 `loaddefs` 的 `Error: error ("Bytecode stack overflow")`（夹具那一步见 3.628：`EMACSLOADPATH="$PWD/femacs/lisp:$PWD/emacs/lisp"`）。
+  ⑤ **收口**：`bytecode.rs` 的临时仪表已删除并用 `git show HEAD:` 还原、重建（读数复现同一条 `Bytecode stack overflow`）；工作树除 4 条 lane 的在飞产出外干净。
+  ⑥ **预算**：`build-tu` 4 发、`check-link --executable` 4 发、端口运行 5 次、文本对拍 3 处（`thread.h`/`bytecode.c`/`bytecode.rs`）。
