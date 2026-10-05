@@ -7255,3 +7255,41 @@
      `sa_sigaction`（镜像轮）；`docs/ports/include-xlib.md` 建页。
   ⑥ **未声称**：本批只点亮"文本 1:1 + 冻结/检查两腿编过 + 文本门全绿"；加载阶梯（L0-L5）、双向兼容、
      生成物逐字节、原样树 `diff -r`、平台冒烟与性能**一条都还没点亮**。
+
+- **3.419 集成侧欠账：`have_native_transforms` 入表、xdisp 的三条 `does not mention` 收口、xlib 台账建页（2026-10-05）**：
+  ① **范围**：3.416/3.417 两份台账点名"欠集成者"的条目，加上一份**没人点过**的欠账（②）。
+  ② **`femacs/xtask/Cargo.toml` 补 `have_native_transforms`**（3.416 的 Owed 10）：image.c 2671/2777 的
+     `#if defined (HAVE_IMAGEMAGICK) || defined (HAVE_NATIVE_TRANSFORMS)` 两臂与它们门住的
+     `compute_image_size`/`image_set_transform` 段此前只能用 `--cfg` 直接给。**读数**：
+     `cargo metadata --no-deps` → xtask **590 个 feature**、`have_native_transforms` 在表内；
+     `tools/feature-coverage.py` 照常跑完（`enabled:` 行未变）。
+  ③ **xdisp 的三条 `does not mention`（本轮新查出的欠账，此前无人点名）**：
+     `redisplay_internal`（`end_of_redisplay,goto,modiff,save_modiff`）、`set_cursor_from_row`（`goto`）、
+     `redisplay_window`（`case,debug_method_add,default,goto,if_debug,switch`）。逐条读 C 与端口后写成
+     `macro-body-notes.tsv` 三行，理由全部有 C 行号：C 17792 的 `goto end_of_redisplay` 与 C 18221 的标号是
+     端口的 `break 'retry`；C 17530 的 `(SAVE_MODIFF < MODIFF)` 写成两个宏的展开
+     `BUF_SAVE_MODIFF!`/`BUF_MODIFF!`（P-15）；C 19077 的 `goto compute_x` 与 C 19123 的标号是
+     `'compute_x:` 标号块；C 20954/C 21136 的两个 `switch` 是端口的两个 `match`、六个 `goto` 是标号块；
+     `if_debug`/`debug_method_add` 来自 C 21077 的 `IF_DEBUG (debug_method_add (w, "1"))`（调试专用语句，
+     文本对 token 门是活的，端口按 P-08 记 GLYPH_DEBUG 臂为死）。**读数**：
+     `extract-abi --check src/xdisp.c src/xdisp.rs` 的 `^- ` 行 **77 → 72**、`does not mention` **0 条**
+     （另外 2 条 `display_line`/`RECORD_MAX_MIN_POS` 的行此前已在该文件里）。
+  ④ **`docs/ports/include-xlib.md` 建页**：3.417 的 xlib 镜像（+475 行）此前无页，而 `xlib.rs` 自己的头注释
+     引用了"本台账的 Evidence"。**先说清一条前提**：无页**不是**违反约定——`femacs/{src,lib}/include` 有
+     **234 个镜像**、`docs/ports/include-*.md` **251 页**，最大的几个镜像（`lisp.rs`/`config.rs`/`globals.rs`/
+     `jni.rs`）都没有页；建页只是让那句引用成立并给测量一个家。**读数（本轮用 clang 重新量的，不是抄的）**：
+     `XRectangle` 8/2、`XExtData` 32/8、`Visual` 56/8、`Depth` 16/8、`Screen` 128/8、`XImage` 136/8
+     （`data`@16、`f`@88）、`XColor` 16/8（`pixel`@0）、`XModifierKeymap` 16/8、`XWMHints` 56/8、
+     `XVisualInfo` 64/8（`visualid`@8）、`XEvent` 192/8、`XrmValue` 16/8；`ZPixmap`=2、`BitmapSuccess`=0、
+     `StaticGray`=0、`TrueColor`=4（命令原文进页）。页里同时点名两条欠账：**`XEvent` 的 33 个成员**、
+     **XRender 面**（`have_x_windows+have_xrender` 的 text-only 类）。
+  ⑤ **一条本轮的裁决（写下来，避免下一轮重复讨论）**：`lib/include/signal.rs` 的 bionic `sa_sigaction`
+     **不加**。理由：镜像承载的是**冻结配置的形状**，android 台账自己把 Darwin 与 bionic 的差异逐条记档
+     （`sigset_t` 4/8、`sigaction` 16/32、`SIGUSR1`/`SIGIO` 值、`fd_set`/`FD_*`、`errno`），因此平台臂的读数是
+     **打了补丁的预检**（P-86 ⑦ 的既有口径）；把 bionic 成员塞进冻结镜像会同时推翻它的
+     `const _` 冻结布局断言，并让"镜像=冻结形状"这条判据失效。要让平台臂免补丁，正确做法是给该平台一个
+     **自己的形状镜像**（例如 `signal_android.rs`）或按 P-88 在单元内就地声明——那是一件独立工作。
+  ⑥ **在飞（本轮派出，尚无读数）**：`android.c` 切片 2（自 C 1041 `android_run_debug_thread`）、
+     `w32term.c` 切片 2（自 C 1005）、`xfns.c` 切片 1（C 1 起，新建 `docs/ports/xfns.md`）。
+  ⑦ **未声称**：本轮**没有编译**（只跑文本门 + `cargo metadata`）；③ 是**读 + 加行**，`does not mention`
+     归零只说明"行与 finding 对应"，不说明那些 C 语句的语义已被差分验证。

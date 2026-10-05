@@ -100,6 +100,7 @@ mingw_w64                                  = []  # MINGW_W64 (w32fns.c 38 `#if !
 win32_windows_ge_0410                      = []  # the derived condition `_WIN32_WINDOWS >= 0x0410` (w32fns.c 167)
 have_gif                                   = []  # HAVE_GIF (image.c 244 `#if defined (HAVE_WEBP) || defined (HAVE_GIF)`)
 have_imagemagick                           = []  # HAVE_IMAGEMAGICK (image.c 104 `#if defined HAVE_PGTK && defined HAVE_IMAGEMAGICK`)
+have_native_transforms                    = []  # HAVE_NATIVE_TRANSFORMS (image.c 2671/2777's `#if defined (HAVE_IMAGEMAGICK) || defined (HAVE_NATIVE_TRANSFORMS)` arms and the compute_image_size / image_set_transform block they gate)
 have_png                                   = []  # HAVE_PNG (image.c 30 `#if defined HAVE_PNG`)
 have_webp                                  = []  # HAVE_WEBP (image.c 244)
 win32_winnt_lt_0500                        = []  # the derived condition `_WIN32_WINNT < 0x0500 && !defined (MINGW_W64)` (w32term.c 98; WindowsNT)
