@@ -8797,3 +8797,48 @@
   没有链接、没有启动）；**不是 GLib 构建**（编译对象是端口自己的镜像，`include/gtk.rs` 的 GLib 部分引用本机
   真头 GLib 2.90.0，GDK/GTK 部分是占位，值与尺寸仍 UNVERIFIED）；本单元在冻结配置里整段是死文本，没有参照
   对象可做差分（P-86 ⑦ 说的弱读数）。
+
+- **3.478 批次收口：`msdos.c` 与 sfnt 切片 7 落地，镜像第二轮 glob，扫描器的一处 `static` 泄漏被修掉（2026-10-05）**：
+  ① **三件落地 + 一件工具修复**（四个签名提交：
+  `63b5f24` 扫描器、`7800725` sfnt、`ae85a95` msdos + 镜像、本条收口）：⑴ **`emacs/src/msdos.c`
+  C 1-4350 全文件落地**（96 个函数；三个 statics、DJGPP 的 `int86`/`__dpmi_*` 面板、鼠标/屏幕/键盘表、
+  菜单、文件名校验、`select`、子进程与环境变量）；`extract-abi --check` **OK、0 条问题行**——这是第一个
+  *完全*落地的 `#ifdef MSDOS` 类文件。⑵ **sfnt 切片 7**（C 10225-10663 图形状态校验族 + C 13918-14554
+  glyph variation 读者，1,076 C 行）。⑶ **`include/msdos.rs` 第二轮 glob**：十四条声明搬进
+  `pub mod msdos_decls`（本单元与它的 DJGPP 臂定义的名字 + 切片 4 新定义的名字 + `syms_of_win16select`）。
+  ⑷ **`tools/cinventory.py` 的 `static` 泄漏**（msdos 台账 Owed 14 那一条）。
+  ② **行数**：`femacs/src/msdos.rs` 5,716 行（md5 `d48e3090be90c2663ec2900ef343b60d`）、台账 **799 行**；
+  `femacs/src/sfnt.rs` 7,191 → **8,447** 行（md5 `80aed2e1701986817a5de1b3172e313c`）、台账 745 → **942** 行
+  （54 条区间行）；`femacs/src/include/msdos.rs` 363 → **386** 行；`tools/cinventory.py` +29/-2（self-test
+  8 → **11 例**）；`docs/ports/macro-body-notes.tsv` +5 行；`docs/ports/line-drift-tolerance.tsv` +1 行
+  （msdos：空单元行 0.999 被 0.35 的新行取代，实测漂移 31.4%）。
+  ③ **读数（我自己跑的）**：冻结 `build-tu` `src/msdos.c` 与 `src/sfnt.c` → 各 **exit 0 / 336 字节空对象**；
+  `extract-abi --check msdos.c` → **OK（0 问题行）**；`--check sfnt.c` → 244 `- missing` + 60.2% 漂移，
+  **且 `does not mention` 行已归零**（切片 7 的五行由集成者写进 `macro-body-notes.tsv`）；
+  `layout-check` **passed**（cargo exit 0）；`tools/check-all-units.sh`（镜像改动的两腿）**83/0 + 83/0**；
+  `check-citations` 676 文件 / **0 drift**；`check-declarations` 10/0/0；`check-mirror-dupes` 19/19/0；
+  `check-ledger-ticks` 234/0；`check-dead-file-coverage` **49/0**；`check-target-names` 629/591/0。
+  ④ **扫描器那一处泄漏的证据与爆炸半径**：C 3909-3911 是 `static char dir_pathname[MAXPATHLEN];` 紧接
+  `DIR *` / `sys_opendir (…)`（导出定义），而 `function_spans` 的"说明符窗口"往回走时**先把那一行收进
+  `spec` 再停**，于是变量的 `static` 变成了函数的 → `--check` 报"invented exported symbol"（Hegel 用空行
+  实验证明过）。修法：窗口在**以 `;` 结尾或含 `{`/`}` 的行之前**停下，不取该行的 token，也不从它取返回类型；
+  self-test 补三例（语句在声明符上方 / 受 `#if` 保护的两行说明符 / 同一行的说明符）。**爆炸半径实测**：
+  对参照全部 634 个 `.c/.h`（10,930 个 span）前后对比，**恰好两处判定变化**，都是 `static true → false`
+  且都是这个形状——`emacs/src/msdos.c:sys_opendir`（本条要找的）与
+  `emacs/test/manual/etags/c-src/c.c:request`（四个 `static` 对象声明压在一个 K&R 定义上方）。
+  ⑤ **镜像轮的读数**：msdos 臂翻臂（`--cfg 'feature="msdos"' --cfg 'feature="dispextern_face_records"'`，
+  台账 Evidence ② 的同一条命令）**71 错 / 21 E0428 → 58 错 / 8 E0428**；剩下的 8 条全是**覆盖类**：
+  六个系统镜像行（`lib/include/sys_stat.in.rs` 181/185/188/195/196、`lib/include/unistd.in.rs` 41）与本镜像
+  自己的 `EINPROGRESS`/`O_CLOEXEC`（232/241，与系统镜像成对）——逐个点名，留给镜像轮（掩掉**系统**那份才对，
+  MS-DOS 侧要 DJGPP 的值）。lane 自报读数（不是我的）：sfnt 翻臂 **exit 0 / 0 错 / 39,664 字节对象**。
+  ⑥ **未声称**：**零运行证据**（两个空对象只说明文件门是关的）；**msdos 臂在本机编不过**（58 错全在镜像图/
+  镜像缺名，本单元文本 0 错——P-86 ③⑵ 的 text-only 状态），DJGPP 的 `int86`/远指针/BIOS/布局一条都没测过；
+  sfnt 仍有 C 10664-13917 与 C 14555-21215 未移植（244 条 `- missing` 与 60.2% 漂移即边界）；
+  进度 **446,985 / 678,320 = 65.9%**（同一把尺子：八棵被移植树的 Rust 行数；3.467 量到 423,784 = 62.5%，
+  本条比它 +23,201 行）；`docs/port-inventory.md` 复算 **590 files, done=587, wip=3, todo=0**、
+  `port-lines-pending.tsv` **65 文件 / 86,492 行**。
+  ⑦ **预算与一处自造缺陷**：本轮 `build-tu` **2 发**、msdos 臂翻臂 **2 发**、`layout-check` **3 发**
+  （其中**前两发失败**：第一发是我把搬过去的声明放到了 `unsafe extern "C"` 块的**外面**——`layout-check`
+  报 14 条 `free function without a body` 当即抓住，改回把块闭合在声明之后才过；这是本条的自造缺陷，
+  记在这里不藏）、`check-all-units.sh` 1 发；Nietzsche 的 P-90 轮仍在飞，它的文件（`src/image.rs`、
+  `src/pgtkfns.rs`、`include/gtkutil.rs` 与四个 ledger）本轮**一行未碰、未提交**。
