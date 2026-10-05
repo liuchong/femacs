@@ -7417,3 +7417,38 @@
      落地时**才写；这一条同时更正 `docs/ports/image.md` 的 Owed 措辞。
   ⑦ **未声称**：无运行证据（没跑过 X server/XCB/GTK）；四次翻臂都是编译读数且镜像侧都有错，**不声称任何配置可工作**；
      本单元正文仍留 2 条已登记的欠账（`x_display_info_for_name`、镜像缺 `wait_for_wm` 存储）。
+
+- **3.425 sfnt 切片 1（C 1-1112）：表目录、cmap 的七个格式与交换助手（2026-10-05）**：
+  ① **区间**：C 1-1112（收在 `sfnt_read_cmap_table` 的 `}`）；**下一个活定义 = C 1117 `sfnt_lookup_glyph_0`**。
+     23 个函数定义 + `sfnt_table_names` + 4 个宏 + 3 处预处理名；`#ifdef TEST` 两臂、七个分配器、
+     `sfnt_table_names`（18 个槽全部指定、无隐式零）、四个 `sfnt_swap*`（`#ifndef WORDS_BIGENDIAN` 另一臂是 C 的空体）、
+     `sfnt_read_table_directory`/`sfnt_find_table`/`sfnt_read_cmap_format_{0,2,4,6,8,12,14}`/`sfnt_read_24`/
+     `sfnt_read_cmap_table{_1,}`。
+  ② **行数**：`femacs/src/sfnt.rs` **11 → 1,298**（+16.7% 对 C 1,112 行）；台账**新建** `docs/ports/sfnt.md` **263 行**
+     （26 行区间表，同时覆盖 `src/sfnt.c` 21,215 行与 `src/sfnt.h`）。
+  ③ **读数**：⑴ 冻结 `build-tu` **exit 0**、对象 **336 字节空对象**（3 发用满；首发暴露端口自身语法错
+     `unclosed delimiter`，修掉）；⑵ 翻臂预检（`have_android + not_android_stubify`）**exit 1 / 8 个 error，
+     `端口自身正文 0 个`**——8 条全在镜像：`include/sfnt.rs` 2200/2206 的两条 `E0428`、
+     `lib/include/alloca.in.rs` 49 的 `expected item after doc comment`、经 lisp.rs 链到达的 5 条
+     `E0425 time_t/timespec`；**对照读数**（修之前的同一 harness）确实是**本单元正文**的错
+     （36×`E0608`、21×`E0600`、4×`E0308`、3×`E0381`、1×`E0530`）⇒ ② 的"正文 0 错"不是空话；
+     ⑶ `extract-abi --check` **368 → 367 个 `- ` 行**（集成者补 1 行 notes 后）、漂移 93.9%；
+     ⑷ `check-dead-file-coverage` 20 → **21 ledger / 0 failure**。
+  ④ **本片抓到 6 条真缺陷，其中 4 条是"已提交文件里的潜伏缺陷"（值钱的一条）**：
+     ⑴ `lib/include/alloca.in.rs` 尾部是 doc 注释且其后无 item ⇒ 真编时报 `expected item after doc comment`
+     （本单元是该镜像在全树的**第一个使用者**，此前没人编到它）；⑵ `include/sfnt.rs` 把两个共享读者声明放在
+     **顶层** ⇒ 任何定义它们的单元必然 `E0428`，需 `pub mod sfnt_decls { … }`（`include/android.rs` 的形状）；
+     ⑶ `static mut` + 初始化块内 `let` 同名绑定 = `E0530`（**`keyboard.rs` 5607-5610 是同形代码**，在
+     `have_android` 下同样编不过）；⑷ `(-1 as *mut T)` 这类写法**不可编译**（`E0600`），而 `doc.rs` 83、
+     `lread.rs` 2092/2106 都是这个写法——三处都在 `use_android_assets` 门内、从未被编译过；⑸ `extract-abi.py`
+     对本文件仍打印"not compiled by the frozen configuration … Nothing in this file is required here"
+     （工具文本没跟上 P-86 ① 的裁定）；⑹ 台账自己会被 `check-declarations.py` 扫（初稿照抄了 C 1-18 的版权行）。
+  ⑤ **集成者本轮替它落的账**：`macro-body-notes.tsv` 一行（`sfnt_read_cmap_table_1` → `case,default,switch`，
+     C 990-1010 的 `switch (format)` 与 C 992/996/1000/1004 四个 `case`、C 1008 的 `default`）。
+  ⑥ **本次新立的工作单（点名，下一轮可做）**：⑴ 上面 ⑵⑶⑷ 三处**潜伏缺陷**要在各自单元/镜像里改，并给
+     `token-aliases.tsv` 加两行（`(T *) -1` → `usize::MAX as *mut T`；原生指针 `p[i]` → `*(p.offset (i as isize))`）；
+     ⑵ `include/sfnt.rs` 的 `sfnt_decls` 模块（镜像轮，需 `check-all-units.sh`）；⑶ `TEST_STATIC` 的 Rust 形态
+     （`excluded-macros.txt` 或 PORTING.md §11）；⑷ Android 臂还缺的镜像（alloca 注释、`time_t`/`timespec`、
+     mman/setjmp/X11 三类）。
+  ⑦ **未声称**：本片**没有任何运行证据**（没打开过字体、没读 table directory、没解析过一次 cmap）；
+     ② 连目标文件都没产出（错全在镜像），翻臂读数取自与最终修订仅差注释的修订；C 1113-21,215 **未移植**。
