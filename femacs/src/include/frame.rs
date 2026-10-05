@@ -841,10 +841,13 @@ pub fn FRAME_TERMCAP_P (f: *mut frame) -> bool
 pub fn FRAME_X_P (f: *mut frame) -> bool
 { frame_output_method (f) == output_x_window }
 
-// frame.h 933-959: the platform predicates.  Each is C's `#ifndef <platform>` / `#else` pair, and
-// the port carries the platform side under that platform's feature: `FRAME_W32_P` is the one
-// `src/w32fns.rs` names (its ledger's item 8), and the arm reads the same `output_method` field
-// `FRAME_X_P` above does.
+// frame.h 933-963: the platform predicates.  Each is C's `#ifndef <platform>` / `#else` pair, and
+// the port carries the platform side under that platform's feature (`FRAME_W32_P` is the one
+// `src/w32fns.rs` names, its ledger's item 8), reading the same `output_method` field
+// `FRAME_X_P` above does.  The five predicates that used to have only the false arm got their
+// C `#else` arm too: with a window-system feature on, C computes the real comparison and the
+// mirror answering a constant `false` is a *different program* - exactly what the textconv and
+// emacs-module lanes reported as "the mirror's arm hole" (docs/status.md 3.558).
 /// C: #ifndef HAVE_NTGUI / #define FRAME_W32_P(f) false
 #[cfg (not (feature = "have_ntgui"))]
 #[inline(always)]
@@ -853,16 +856,84 @@ pub fn FRAME_W32_P (f: *mut frame) -> bool { let _ = f; false }
 #[cfg (feature = "have_ntgui")]
 #[inline(always)]
 pub fn FRAME_W32_P (f: *mut frame) -> bool { frame_output_method (f) == output_w32 }
+/// C: #ifndef MSDOS / #define FRAME_MSDOS_P(f) false
+#[cfg (not (feature = "msdos"))]
 #[inline(always)]
 pub fn FRAME_MSDOS_P (f: *mut frame) -> bool { let _ = f; false }
+/// C: #else / #define FRAME_MSDOS_P(f) ((f)->output_method == output_msdos_raw)
+#[cfg (feature = "msdos")]
+#[inline(always)]
+pub fn FRAME_MSDOS_P (f: *mut frame) -> bool { frame_output_method (f) == output_msdos_raw }
+/// C: #ifndef HAVE_NS / #define FRAME_NS_P(f) false
+#[cfg (not (feature = "have_ns"))]
 #[inline(always)]
 pub fn FRAME_NS_P (f: *mut frame) -> bool { let _ = f; false }
+/// C: #else / #define FRAME_NS_P(f) ((f)->output_method == output_ns)
+#[cfg (feature = "have_ns")]
+#[inline(always)]
+pub fn FRAME_NS_P (f: *mut frame) -> bool { frame_output_method (f) == output_ns }
+/// C: #ifndef HAVE_PGTK / #define FRAME_PGTK_P(f) false
+#[cfg (not (feature = "have_pgtk"))]
 #[inline(always)]
 pub fn FRAME_PGTK_P (f: *mut frame) -> bool { let _ = f; false }
+/// C: #else / #define FRAME_PGTK_P(f) ((f)->output_method == output_pgtk)
+#[cfg (feature = "have_pgtk")]
+#[inline(always)]
+pub fn FRAME_PGTK_P (f: *mut frame) -> bool { frame_output_method (f) == output_pgtk }
+/// C: #ifndef HAVE_HAIKU / #define FRAME_HAIKU_P(f) false
+#[cfg (not (feature = "have_haiku"))]
 #[inline(always)]
 pub fn FRAME_HAIKU_P (f: *mut frame) -> bool { let _ = f; false }
+/// C: #else / #define FRAME_HAIKU_P(f) ((f)->output_method == output_haiku)
+#[cfg (feature = "have_haiku")]
+#[inline(always)]
+pub fn FRAME_HAIKU_P (f: *mut frame) -> bool { frame_output_method (f) == output_haiku }
+/// C: #ifndef HAVE_ANDROID / #define FRAME_ANDROID_P(f) false
+#[cfg (not (feature = "have_android"))]
 #[inline(always)]
 pub fn FRAME_ANDROID_P (f: *mut frame) -> bool { let _ = f; false }
+/// C: #else / #define FRAME_ANDROID_P(f) ((f)->output_method == output_android)
+#[cfg (feature = "have_android")]
+#[inline(always)]
+pub fn FRAME_ANDROID_P (f: *mut frame) -> bool { frame_output_method (f) == output_android }
+/* frame.h 965-987, `FRAME_WINDOW_P`: C writes six *independent* `#ifdef`s and then an
+   `#ifndef FRAME_WINDOW_P` fallback, so a configuration that defines several window systems ends
+   up with the **last** one.  The arms below keep that order - each is guarded by its own feature
+   and the `not` of every later one - and the last arm is C's `((void) (f), false)`.  */
+/// C: #ifdef HAVE_X_WINDOWS / #define FRAME_WINDOW_P(f) FRAME_X_P (f)
+#[cfg (all (feature = "have_x_windows",
+            not (any (feature = "have_ntgui", feature = "have_ns", feature = "have_pgtk",
+                      feature = "have_haiku", feature = "have_android"))))]
+#[inline(always)]
+pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { FRAME_X_P (f) }
+/// C: #ifdef HAVE_NTGUI / #define FRAME_WINDOW_P(f) FRAME_W32_P (f)
+#[cfg (all (feature = "have_ntgui",
+            not (any (feature = "have_ns", feature = "have_pgtk",
+                      feature = "have_haiku", feature = "have_android"))))]
+#[inline(always)]
+pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { FRAME_W32_P (f) }
+/// C: #ifdef HAVE_NS / #define FRAME_WINDOW_P(f) FRAME_NS_P(f)
+#[cfg (all (feature = "have_ns",
+            not (any (feature = "have_pgtk", feature = "have_haiku",
+                      feature = "have_android"))))]
+#[inline(always)]
+pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { FRAME_NS_P (f) }
+/// C: #ifdef HAVE_PGTK / #define FRAME_WINDOW_P(f) FRAME_PGTK_P(f)
+#[cfg (all (feature = "have_pgtk",
+            not (any (feature = "have_haiku", feature = "have_android"))))]
+#[inline(always)]
+pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { FRAME_PGTK_P (f) }
+/// C: #ifdef HAVE_HAIKU / #define FRAME_WINDOW_P(f) FRAME_HAIKU_P (f)
+#[cfg (all (feature = "have_haiku", not (feature = "have_android")))]
+#[inline(always)]
+pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { FRAME_HAIKU_P (f) }
+/// C: #ifdef HAVE_ANDROID / #define FRAME_WINDOW_P(f) FRAME_ANDROID_P (f)
+#[cfg (feature = "have_android")]
+#[inline(always)]
+pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { FRAME_ANDROID_P (f) }
+/// C: #ifndef FRAME_WINDOW_P / #define FRAME_WINDOW_P(f) ((void) (f), false)
+#[cfg (not (any (feature = "have_x_windows", feature = "have_ntgui", feature = "have_ns",
+                feature = "have_pgtk", feature = "have_haiku", feature = "have_android")))]
 #[inline(always)]
 pub fn FRAME_WINDOW_P (f: *mut frame) -> bool { let _ = f; false }
 

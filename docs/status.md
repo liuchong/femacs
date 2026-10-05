@@ -11125,3 +11125,44 @@
      的实现是 Haiku C++ 半边，不可及）；端口里每个 Haiku 宽度、常量、枚举与原型都是 **C 的拼写**、标 **UNVERIFIED**；
      `struct face` 的 280/8 → 296/8 是别的记录的实测，不是本件测的。**预算**：我本轮只跑 `--check` 2 发、
      `--write-pending`/`gen-port-map` 各 1 发、文本门 1 轮；**零 `build-tu`/零 `probe`**（编译都在 lane 侧）。
+
+- **3.558 两件：`src/w32dwrite.c` 整文件落地（C 1399 → Rust 2,415），`include/frame.rs` 的平台谓词补回 C 的 `#else` 臂与 `FRAME_WINDOW_P` 链（2026-10-05）**：
+  ① **lane 的产出（Banach，w32dwrite）**：`femacs/src/w32dwrite.rs` 27 → **2,415 行**，台账 345 行 / 65 行区间表覆盖
+     C 1-1399；文件门 `have_ntgui` 压在每个项**与 C 36-50 的 include 图**上，4 个条件两臂都带（`INITGUID`、
+     `mingw_w64` 对含 C 545-548 的 `#else`、三个 IUnknown 槽、`harfbuzz`），`check-cond-eval` 读
+     `4 conditions / 0 unknown / 0 disagreements`；`<windows.h>`/COM/DWrite/D2D 的就地站位面（10 个 vtbl + 10 个
+     interface + 4 组枚举 + 7 个记录）全部 **UNVERIFIED**（本机无这些头）。**读数**：冻结 `build-tu` exit 0 /
+     336 字节（终版用等价 rustc 复读）；臂（`have_ntgui`+`windowsnt`+`have_window_system`+`harfbuzz`）
+     **单元自身 0 错**，唯一 1 条是 `include/frame.rs` 329 那条自己写明的 `compile_error!`；7 个配置的免费扫描
+     同形；**变异实测** 1 → 2 错且新错锚在单元自己的行、还原后 md5 一致。
+  ② **镜像改动（我做的）**：`femacs/src/include/frame.rs` 里 `FRAME_MSDOS_P`/`FRAME_NS_P`/`FRAME_PGTK_P`/
+     `FRAME_HAIKU_P`/`FRAME_ANDROID_P` 原来只有 `false` 一条臂（=`#ifndef` 那一半），**C 的 `#else` 那一半整条丢失**；
+     `FRAME_WINDOW_P` 也只有一个恒 `false` 的臂。现在五个谓词补齐 C 的 `#ifndef`/`#else` 对，`FRAME_WINDOW_P` 按
+     **C 的六条独立 `#ifdef` 顺序**（x → ntgui → ns → pgtk → haiku → android，"最后定义者胜"用 `not (…)` 守卫表达）、
+     并以 C 的 `((void) (f), false)` 作兜底臂。这正是 `src/textconv.c` 与 `src/emacs-module.c` 两条 lane 点名过的
+     "镜像缺臂"（它们的窗口系统臂因此拿到恒 `false`，等于**另一个程序**）。
+  ③ **改动后的读数（逐条实测）**：`xtask layout-check` **passed**；`probe src/pgtkselect.rs`（`have_pgtk`+
+     `have_window_system`+`use_gtk`+`have_gtk3`，**这一档里新链真的生效**）读 **6 条错，全是该单元已知的
+     `GdkEventProperty/Selection` 成员缺口（`include/gtk.rs` 的零长站位记录）**——没有一条新错；
+     `probe src/textconv.rs` 基础臂（`have_text_conversion`）**0 错**；`probe src/textconv.rs` 加
+     `have_window_system` 读 3 条错，**全部落在镜像 `include/dispextern.rs`**（796 `Emacs_Pix_Container`、
+     1660 `font`），与 `emacs-module` lane 报的同一行同源，**与本次 frame.rs 改动无关**。
+  ④ **磁盘事故与一条没能跑成的门（照实记）**：本轮 `tools/check-all-units.sh`（P-87 ① 对镜像改动的连带门）**两次
+     都因 `No space left on device` 中止**（第一次 42、第二次 19 个 failure，全部是 `lib-src/pop.c: No space left on
+     device`）⇒ **这条门本轮读数是无效的，不算通过**。当时磁盘：**0.42–0.89 GiB 可用 / 94–97%**，占用来自**别的项目
+     的 `/tmp`**（`/tmp/termini-*`、`/tmp/intent-*` 等，未碰）。我做了什么：清掉本项目自己可清的派生件
+     （`build/femacs/units` 100 MB → 27 MB、`build/probes` 6 MB → 0、`femacs/target` 23 MB、我自己的 `/tmp` 目标目录），
+     并把"磁盘只剩 0.5 GiB、每次编译后立刻清、不要跑整树扫描"的通知发给四条在飞 lane。**欠账**：等磁盘宽松的安静
+     窗口重跑 `check-all-units.sh`（期望 83/0 两腿）并把它补进台账；在此之前本轮镜像改动的证据是 `layout-check`
+     + 三条臂读数，**不是**全量单元扫描。
+  ⑤ **门读数（文本门，本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**、
+     `check-declarations` 0 failures、`check-dead-file-coverage` **126/0**、`check-ledger-ticks` 234/0、
+     `check-port-lines` 13 文件 / 9,919 参照行 / 0 new / 2 stale、`check-target-names` 0 finding；
+     `extract-abi --check src/w32dwrite.c` 加容差行后 **OK**。
+  ⑥ **集成者登记**：容差行 `w32dwrite 0.73`（1399 vs 2415 = 72.6%）；`port-map.md` 只改两行（frame.rs 1,885 → 1,956
+     是本次镜像改动，w32dwrite 27 → 2,415 是本件），三条在飞 lane 的行回退成已提交值；`port-lines-pending.tsv`
+     去掉本件的行（**13 文件 / 9,919 参照行**）；`macro-body-notes.tsv` 收下该 lane append 的 3 行。
+  ⑦ **未声称**：w32dwrite 的臂读数是 **rustc 对物化镜像图**的读数，不是 Windows 编译（本机无 `<windows.h>`/
+     `<dwrite_3.h>`/`<d2d1.h>`/mingw），站位记录与常量全部 UNVERIFIED；`mingw_w64` 与 `<dwrite_3.h>` 两条臂
+     **本机不可编译**（台账已记）；`FRAME_WINDOW_P` 的新臂只在带平台 feature 的档里生效，本轮的验证是
+     pgtkselect/textconv 两条臂 + `layout-check`，**没有**全量扫描背书（见 ④）。
