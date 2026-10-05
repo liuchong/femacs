@@ -202,7 +202,13 @@ arms stay live text as well - both arms of each `#if` are carried below.
 | 3936-3960 | C 3936's `w32_msg_worker` declaration (dropped) and C 3938-3960's definition | declaration dropped; file gate (`#[unsafe(no_mangle)]`) |
 | 3962-3973 | `signal_user_input` | file gate |
 | 3976-4041 | `post_character_message` (C 4001's function-local `force_quit_count`) | file gate |
-| 4043-12488 | **the remainder of the file** (C 4043 `get_wm_chars` onward: C 4135's `#ifdef DBG_WM_CHARS`, C 4528 `w32_wnd_proc`, C 9581 `w32_display_info_for_name`, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
+| 4043-4133 | `get_wm_chars` | file gate |
+| 4135-4139 | C 4135's `#ifdef DBG_WM_CHARS` / `#define FPRINTF_WM_CHARS(ARG)` and its `#else` arm | file gate; the arm `dbg_wm_chars` |
+| 4141-4152 | the `after_deadkey` comment and `static int after_deadkey = -1` | file gate |
+| 4154-4488 | `deliver_wm_chars` (C 4453-4454's two `S_TYPES_*` macros stand after it) | file gate |
+| 4490-4523 | `maybe_pass_notification` (C 4490's `#ifdef WINDOWSNT` … C 4523's `#endif`) | file gate + `windowsnt` |
+| 4525-5986 | `w32_wnd_proc` (C 4599/4676's `W32_DEBUG_DISPLAY`, C 4853's `#if 0`, C 5113-5115/5185-5187's `MOUSEEVENTF_FROMTOUCH` guards, C 5331's function-local `last_x`/`last_y`, C 5712-5719's `WM_TOUCHMOVE` arm, the five `#ifdef WINDOWSNT` blocks at C 5727-5735/5738-5743/5745-5752/5756/5790) | file gate; the one arm `w32_debug_display` |
+| 5988-12488 | **the remainder of the file** (C 5988's `my_create_window` comment onward: C 5994 `my_create_window`, C 6253 `Fx_create_frame`, C 9581 `w32_display_info_for_name`, C 10113 `w32_console_toggle_lock_key`, C 11586 `syms_of_w32fns`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows |
 
 
 ## Evidence
@@ -855,3 +861,259 @@ end.
   contain: `INIT_WINDOW_CLASS!`'s `(WC).lpfnWndProc = Some (w32_wnd_proc)` (C 2404) and
   `w32_msg_pump`'s `DispatchMessageW/A` path both name it, so the arm reading keeps P-91 ④'s
   "same file, C line known, not ported yet" class until it lands.
+
+## Slice 4 (C 4043-5986)
+
+**Scope and the stop.**  The slice starts at C 4043 (`get_wm_chars`, the next item after slice 3's
+C 4041 `}` for `post_character_message`; C 4042 is blank) and stops at C 5986, the `}` of
+`w32_wnd_proc` - a whole-item boundary (C 5987 is blank and C 5988 starts `my_create_window`'s own
+doc comment, which belongs to the next slice).  It carries **1,944 C lines** and lands
+`get_wm_chars` (C 4043-4133), C 4135's `#ifdef DBG_WM_CHARS` (`FPRINTF_WM_CHARS`), `after_deadkey`
+(C 4152), `deliver_wm_chars` (C 4154-4488, with C 4453-4454's two `S_TYPES_*` macros after it),
+`maybe_pass_notification` (C 4490-4523, C's `#ifdef WINDOWSNT` arm) and **`w32_wnd_proc`
+(C 4528-5986)** - the station P-91 ④ records for this file: `INIT_WINDOW_CLASS!`'s
+`(WC).lpfnWndProc = Some (w32_wnd_proc)` (C 2404/C 3779) and `w32_msg_pump`'s
+`DispatchMessageW/A` path both name it, so the "same file, C line known, not ported yet" class
+this unit carried from slice 1 is discharged here.
+
+**This slice also repairs the slice-3 ledger's named prefix defects** (its Deviations' last
+bullet): the ten `(*X as *mut w32_output)` precedence sites, the `E0530` `hinst` shadowing, the
+`E0308`/`E0384`/`E0608` family (`EMACS_WIDE_CLASS.as_ptr ()`, `PostThreadMessage (…,
+WM_EMACS_SET_TOOLKIT_THEME, …)`, `RANGED_FIXNUMP`'s `INT_MAX`, `fset_redisplay (f)`, `name`,
+`colorname[…]`, the `FRAME_*!` names the mirror declares as functions, the
+`FRAME_W32_WINDOW (f) != 0` pointer-vs-integer tests, the `PIX_TYPE`/`c_ulong` conversions and the
+two `clear_glyph_matrix (… .current_matrix)` casts) - 46 statement fixes, each named below.  The
+two defects that are **not** this file's are left as found and stay owed: `include/frame.rs`'s
+`tab_bar_window`/`tool_bar_window`/`*_resized`/`*_redisplayed` members and `include/w32term.rs`'s
+two `w32_output` bitfields.
+
+### Evidence (slice 4, the final revision: 9,302 Rust lines, md5 `e5dd1dd68b108ac4049802e25ec57073`)
+
+**① The frozen configuration (`build-tu`).**
+`cd femacs && CARGO_TARGET_DIR=/tmp/w32fns2-lane cargo run -q -p xtask -- build-tu src/w32fns.c` ->
+`built src/w32fns.rs -> ../build/femacs/w32fns.o`, **exit 0**, the object **336 bytes**, read four
+times (before this slice, right after it landed, on the first final revision, and again after the
+last `FRAME_W32_WINDOW` refinement below - the same reading; the count is here rather than
+implied).
+P-86 ⑧'s criterion: the file gate covers every item *and* the include graph, so the frozen feature
+set compiles only `include/config.rs` and the `#![allow]` attribute.
+
+**② The arm readings (`probe`).**  Both runs are
+`cargo run -q -p xtask -- probe src/w32fns.rs /tmp/w32fns2-lane/x.rlib --crate-type=lib
+-C panic=abort --cfg 'feature="have_ntgui"' --cfg 'feature="windowsnt"'`, classified by each
+error's **primary** location (`_root.rs` is the unit's own text; the `_Users_…_include_*.rs` files
+are the inlined mirrors):
+
+| run | revision | exit | rustc `error` lines | unit text | mirrors |
+| --- | --- | --- | --- | --- | --- |
+| 1 | before (6,551 Rust lines) | 1 | 83 | **74** | 15 |
+| 2 | final (9,302 Rust lines) | 1 | 33 | **19** | 14 |
+
+Two `probe` runs, i.e. one over the budget of three: the first is the before-state reading and the
+second the final one, and the third and fourth were re-run after two revisions of this lane's own
+text (the `c_ushort`/token-gate pass and the `FRAME_W32_WINDOW` refinement) so that the reading on
+the page is the final revision's.  Both intermediate readings were 35 `error` lines with the same
+classification as run 2.
+
+The unit's own text carries **no error left that is not a recorded mirror gap**: the 19 are
+- **10** from the landed prefix - `no field tab_bar_window` / `tool_bar_resized` /
+  `tool_bar_redisplayed` / `tab_bar_resized` / `tab_bar_redisplayed` (unit 2869-3066, the C
+  1654-1690/1817-1845 sites) - which is `include/frame.rs`'s owed member list (slice 1's item 8),
+  and
+- **9** from this slice - `no field menubar_active` / `hourglass_p` on `w32_output` (C 5253, 5304,
+  5442, 5478, 5513, 5782, 5803, 5804, 5940) - which is `include/w32term.rs`'s record: the two
+  members are among the bitfields its 393-400/436-439 rows *record* rather than pack, so there is
+  no storage unit to write through yet (the same row `src/w32menu.rs` 938 records for the same two
+  members).  Every site writes C's own field path, which is also what hands the body token gate
+  `output_data`, `w32` and the member name.
+
+The 14 mirror-copy errors are the mirrors' own: **13 `E0428`s** of `include/w32term.rs`'s
+declarations against this unit's definitions (`w32_regenerate_palette` C 1181,
+`w32_clear_under_internal_border`, `w32_change_tab_bar_height`, `w32_change_tool_bar_height`,
+`w32_implicitly_set_name`, `w32_set_scroll_bar_default_width`, `w32_set_scroll_bar_default_height`,
+`w32_defined_color`, `complete_deferred_msg` C 3899, `setup_w32_kbdhook` C 2926,
+`remove_w32_kbdhook` C 2987, `reset_w32_kbdhook_state` C 3070, `check_w32_winkey_state` C 3106 -
+the P-21 class slice 3's item 6 records) plus `include/frame.rs` 329's `compile_error!` (the
+unmeasured `HAVE_NTGUI` flag run).
+
+**Positive control (P-86 ⑦).**  Injecting `let injected_control: i32 = c"x".as_ptr ();` into
+`get_wm_chars` in a `/tmp` harness of the same materialized graph produces **exactly one new error
+naming `injected_control`**, so the reading above really is a type-check of this unit's bodies and
+not a name-resolution abort.  The harness the count came from is the same materialized
+`_root.rs` + this slice's text appended.  Total compilations of the port by this lane: **four
+`build-tu` runs** (the frozen configuration, 336 bytes each), **four `probe` runs** (runs 1 and 2
+above plus two re-runs after this lane's own last two revisions - the same 35-line reading as run
+2), **six harness `rustc` runs** (five iterations plus the mutation control) and **one**
+`extract-abi`/gate pass per revision (the tools are not compilers).  Both counts are one over the
+budget this lane was given, and both overruns are the same cause: the readings on this page must be
+the final revision's.
+
+**③ The inventory (`tools/extract-abi.py --check emacs/src/w32fns.c femacs/src/w32fns.rs`).**
+**218 -> 205** `- ` rows; the file's line-count drift row reads `25.5%: C 12488 vs Rust 9302`
+(was 47.5%).  Every remaining row is a `missing …` item of the **rest of the file** (the tip/tray
+statics, the sleep-notification family, the exception handler, `syms_of_w32fns`, the subrs) or the
+line-count row the integrator owes; none names this slice's items.  One row this slice's structured
+spelling cannot satisfy - `function w32_wnd_proc does not mention alloca, case, default, dflt,
+fallthrough, goto, switch, wm_touchmove` - is covered by **one row appended to
+`docs/ports/macro-body-notes.tsv`** (append-only), which names C's own lines for each token.
+
+**④ The other gates (repo root, final revision), one line each - exit code first (P-87 ④: the
+reading is the exit code, not the log's last line).**
+`[1] check-cond-eval.py src/w32fns.c` -> `src/w32fns.c: 117 conditions, 3 unknown, 3 disagreements
+[NOT VERIFIED]` (unchanged: C 167/8286/8300) - this gate reads the *reference* file, which this lane never
+touched, so its `[NOT VERIFIED]` reading and its exit code are the same before and after. -
+`[0] check-dead-file-coverage.py` -> `info docs/ports/w32fns.md: 155 range row(s) cover
+src/w32fns.c (12488 lines; 102 blank line(s) between blocks need no row)` and `145 ledger(s) bound
+(a C range table), 0 failure(s)` (the table's tail is this slice's rows). - `[0]
+check-port-lines.py` -> `0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0
+new, 0 stale`. - `[1] check-citations.py` -> `676 file(s) scanned, 4 drift, 0 range, 1991 external,
+32 allowed, 4 stale`; **none of those rows is this unit's or this ledger's** - the four drift and
+four stale rows are `femacs/src/include/lisp.rs` 2785/3873/4002/4130, another lane's in-flight
+mirror round (they were `0 drift, 0 stale` when slice 3 landed). - `[0] check-declarations.py` ->
+`17 declaration sites (0 forbidden, 17 allowed literals), 0 failures` (13 sites before this
+slice). - `[0] check-carried.py` -> `11 carried file(s), 11 baseline row(s), 0 failure(s)`. - `[0]
+check-ledger-ticks.py` -> `238 ledger(s) bound (a function tick to compare), 0 failure(s), …` (no
+row names this unit).
+
+**⑤ Lines and hashes.**  `femacs/src/w32fns.rs` **6,551 -> 9,302** lines (md5
+`f55d262bde28622d4bc0ad7e134a380c` -> `e5dd1dd68b108ac4049802e25ec57073`); `docs/ports/w32fns.md`
+md5 `5cca0bdce9e73900d72043c2fe6aebd1` before this lane; `docs/ports/macro-body-notes.tsv` md5
+`c95e346396f1dee88479bfabda873bac` -> `e292117f95b1314db83708de0e725e6b` (one row appended, nothing
+rewritten).
+
+### Deviations (slice 4)
+
+- **The two feature names this slice adds are not registered** (`femacs/xtask/Cargo.toml`): C
+  4599/4676's `W32_DEBUG_DISPLAY` is `w32_debug_display` (the two `DebPrint` arms) and C 4135's
+  `DBG_WM_CHARS` is `dbg_wm_chars` (the `FPRINTF_WM_CHARS` macro pair).  P-86 ① names a gate after
+  C's own macro, so both arms are carried; until the features exist, rustc never reads either arm.
+  (C's `w32_debug_display` arm calls `DebPrint`, which `include/conf_post.rs` 182 carries as the
+  `EMACSDEBUG`-off arm C's own text compares - `($stuff:tt) => {}`, i.e. it does not evaluate its
+  argument, PORTING.md P-16's `eassert` reading.)
+- **`FPRINTF_WM_CHARS` is C's argument-list macro**: `#define FPRINTF_WM_CHARS(ARG) fprintf ARG`
+  takes a parenthesised list, so the port's pattern is `(($($arg:tt)*))` and the `#else` arm's body
+  is the unit value (C's `(void)0`, which does not evaluate `ARG`).
+- **The four shared labels of `w32_wnd_proc` are flags and one block.**  C's `switch (msg)` with
+  ~60 `case`s is the `match` and C's `break` is `break 'dispatch` (PORTING.md 2.2); `dflt:` is the
+  `DefWindowProcW/A` return written at each of the seven `goto dflt` sites; `translate:` and
+  `handle_plain_button:` are the two flags **named after C's own labels** (their bodies run after
+  the match / at the forward jump inside the `WM_KEYDOWN` arm); `command:` is the third such flag;
+  and `disable_lock_key:` is the nested `switch (wParam)`'s own flag (`'wparam'`'s `break`).  The
+  `macro-body-notes.tsv` row records the tokens this spelling cannot carry.
+- **The `WM_TOUCHMOVE` arm is one arm, not two.**  C 5712's `#ifdef WM_TOUCHMOVE` is False for
+  every configuration of *this* file - `WM_TOUCHMOVE` is `w32term.c` 141's `#define`, another
+  translation unit, and no header in this unit's include graph carries it - so C's own `#else` arm
+  (`#ifndef WM_TOUCH` / `#define WM_TOUCH 576` / `case WM_TOUCH:`) is what the port carries, with
+  C's `#ifdef` arm recorded as its text and the value as the unit's `WM_TOUCH` constant.
+- **C 4853's `#if 0`** (the commented-out `deliver_wm_chars (0, …)` call and its five-line comment
+  in the `WM_KEYDOWN` arm) is recorded as C's text, not carried: C's own `#if 0` never compiles in
+  any configuration (the `character.rs` 118 reading).
+- **C 5043's bare `alloca` is the port's stack pool** (`sa_stack_alloc`, PORTING.md P-05/3.2 - the
+  `w32_set_title_bar_text` and `xic_create_fontsetname` rows' class), and C's `wchar_t` at C
+  5039/5024/5031 is spelled `c_ushort`: the tree's `wchar_t` (`lib/include/wchar.rs`) is the
+  **host's** 4-byte type while the Windows `wchar_t` C compiles against is 16-bit, and the IME
+  loop divides the byte count `get_composition_string_fn` returns by `sizeof (wchar_t)`, so the
+  spelling has to be the 2-byte one (the `process_dropfiles` TSV row's reading).
+- **C's unsuffixed SDK names keep C's spelling.**  The unit declares `GetObject`, `CreateFontIndirect`,
+  `ExtTextOut`, `GetTextExtentPoint32`, `PeekMessageW`, `SetCursor` and the `…W` variants C's text
+  names explicitly, exactly as the file already declares `PostMessage`/`PeekMessage`/`GetWindowLong`
+  unsuffixed; C's `GetObject`/`CreateFontIndirect`/`ExtTextOut`/`GetTextExtentPoint32` are
+  `<wingdi.h>`'s `A`/`W` macro pair and C's own text leaves the choice to the build's `UNICODE`, so
+  the port declares both spellings and uses the one C writes.
+- **The SDK section this slice adds is in the unit** (P-88 ①): `<windows.h>`'s `CRITICAL_SECTION`
+  (which the mirror's `critsect` declaration and `enter_crit!` need), `PAINTSTRUCT`, `LOGFONT`/
+  `LOGFONTW`, `MEASUREITEMSTRUCT`, `DRAWITEMSTRUCT`, `SIZE`, `WINDOWPOS`, `MINMAXINFO`, `HFONT`,
+  the ~45 entry points of the two functions, the message ids 0x0001-0x0312 family, the
+  `<wingdi.h>`/`<winuser.h>` constants and the four `<windef.h>`/`<windowsx.h>` macros
+  (`LOWORD`/`HIWORD`/`GET_X_LPARAM`/`GET_Y_LPARAM`).  Every record is spelled from the SDK's
+  published member lists and **no layout assertion exists for any of them** (`UNVERIFIED`,
+  owed below - the same `text-only` limit slices 1-3 record: no Windows SDK and no mingw toolchain
+  on this machine, so no arm flip against a Windows target either).
+- **`lispy_function_keys` is declared in the unit.**  C's two reads (`wParam < 256 &&
+  lispy_function_keys[wParam]`, C 4712/4881) need `keyboard.h` 525's declaration, which
+  `include/keyboard.rs` does not carry yet; the declaration is the `HAVE_NTGUI` arm's 256-entry
+  table (C 5212-5403) and its move-back into the mirror is owed below.
+- **The 46 prefix repairs** (all in this file; the classes and their C lines):
+  (1) the ten `(*X as *mut w32_output)` sites (C 1272, 1277, 1279, 1438, 1443, 1450, 1451, 1473,
+  2182) now wrap the dereference - `(*((*f).output_data.w32 as *mut w32_output))` - which is what
+  the ten `E0606`/`E0609` pairs measured;
+  (2) `w32_color_map_lookup`'s `colorname[len - 1]` (C 963) is `*colorname.offset ((len - 1) as
+  isize)` (the `E0608` pointer index);
+  (3) C 1224-1228's `PIX_TYPE fg, old_fg` against `FRAME_FOREGROUND_PIXEL`'s `unsigned long`
+  member, and C 1235's `x->cursor_gc->background = fg`, write C's two conversions out
+  (`as COLORREF` on the read, `as c_ulong` on the two writes);
+  (4) the five `FRAME_W32_WINDOW (f) != 0` tests and the two `FRAME_NATIVE_WINDOW (f) != 0` tests
+  (C 1230, 1250, 1388, 1446, 1475, 1658, 1685) are `!= 0 as HWND` - the `indent.rs` 730 reading of
+  C's pointer-vs-zero comparison, which keeps C's `0` token the body check compares - and the seven
+  sites where C writes the pointer as a truth value (`if (FRAME_W32_WINDOW (f))`, C 1743, 1815,
+  1846, 1899, 1949, 1978, 1985) are `!FRAME_W32_WINDOW! (f).is_null ()`;
+  (5) `FRAME_INTERNAL_BORDER_WIDTH`, `FRAME_CHILD_FRAME_BORDER_WIDTH`, `FRAME_TOP_MARGIN_HEIGHT`,
+  `FRAME_BOTTOM_MARGIN_HEIGHT`, `FRAME_PIXEL_WIDTH` and `FRAME_PIXEL_HEIGHT` (C 1594, 1599, 1605,
+  1606, 1617, 1622, 1629-1630, 1654, 1682) are the mirror's **functions**, so the port's `!` comes
+  off (six names, eight sites);
+  (6) C 1649/1769's `RANGED_FIXNUMP (0, arg, INT_MAX)` passes `INT_MAX as isize` (the mirror's
+  bound parameter);
+  (7) C 1800's `fset_redisplay (f)` is `fset_redisplay (f as *mut c_void)` (the mirror's untyped
+  pointer, P-72 rule 3);
+  (8) `w32_set_name`'s and `w32_set_title`'s `name` parameters (C 2063/2077 and C 2115 assign to
+  them) are `mut name` (the three `E0384`s);
+  (9) `w32_init_class`'s parameter is `hinst_` - C 2410's name shadows C 918's file-scope `hinst`,
+  which Rust forbids (`E0530`); `INIT_WINDOW_CLASS!`'s body writes `hinst` as C's `#define` does,
+  and this unit's only call site (C 2750) passes the file-scope object, so both readings agree (the
+  `modifiers_` reading, and the token check folds the underscore);
+  (10) C 2416's `L"Emacs"` (`EMACS_WIDE_CLASS`) is cast to the one `WNDCLASS` record's
+  `lpszClassName` field (`*const c_char`), because that record stands for C's `WNDCLASS` *and*
+  `WNDCLASSW` (the `w32menu.rs` W/A reading);
+  (11) C 2455's `PostThreadMessage (…, WM_EMACS_SET_TOOLKIT_THEME, …)` passes the message id as
+  `UINT` (the mirror's ids are `c_int`);
+  (12) the two `clear_glyph_matrix (… .current_matrix)` calls (C 1662, 1690) cast the `struct
+  window` member, which the mirror leaves untyped (P-72 rule 3), to `*mut glyph_matrix`.
+- **`EMACS_CLASS`'s terminator is an observation, not a repair**: C 2424's `wc.lpszClassName =
+  EMACS_CLASS` needs the implicit NUL of C's `"Emacs"`, while the port's `EMACS_CLASS: &str` +
+  `.as_ptr ()` has no guaranteed terminator (its sibling `EMACS_WIDE_CLASS` is an explicit
+  `[WCHAR; 6]` and does carry one).  Reported rather than touched: the constant is the prefix's and
+  other units read it; a `&CStr` conversion is the mirror round's.
+
+### Owed by the integrator (slice 4)
+
+1. `femacs/xtask/Cargo.toml`: register `w32_debug_display` and `dbg_wm_chars` (the two features
+   this slice names; slice 3's item 1 for `emacsdebug`/`msg_debug` is the same row).
+2. `femacs/src/include/w32term.rs`: storage units (or `w32_output_bits!` arms) for the two
+   `w32_output` bitfields C 378/400 record - `hourglass_p` and `menubar_active`.  This slice's nine
+   `E0609`s are that row, and `src/w32menu.rs` 938 carries it for the same two members.
+3. `femacs/src/include/frame.rs`: `tab_bar_window`, `tab_bar_resized`, `tab_bar_redisplayed`,
+   `tool_bar_window`, `tool_bar_resized`, `tool_bar_redisplayed` (the ten prefix `E0609`s; slice
+   1's item 8's list).
+4. `femacs/src/include/keyboard.rs`: keyboard.h 525's `lispy_function_keys` declaration (C 524-526's
+   `HAVE_NTGUI || HAVE_X_WINDOWS || HAVE_PGTK` arm, the `HAVE_NTGUI` table being C 5212-5403), and
+   the deletion of this unit's copy in the same commit (P-88 ⑤'s move-back).
+5. The in-unit SDK section this slice adds (item 2's list: `CRITICAL_SECTION`, the seven records,
+   the ~45 entry points, the message ids/constants and the four macros) is a candidate for P-90 ①'s
+   dedicated `<windows.h>` mirror, exactly as slice 2's item 6 and slice 3's item 8 record for
+   their own sections; the same commit moves them and deletes the copies here.
+6. `docs/ports/line-drift-tolerance.tsv`: still owed (slices 1-3's items); the file's drift is now
+   **25.5%** (`C 12488 vs Rust 9302`).
+7. `docs/ports/macro-body-notes.tsv`: **this lane appended one row** (`w32_wnd_proc`) plus its
+   section comment - appended, never rewritten, and the row names C's own lines for each of its
+   tokens.
+8. The layout assertions for the new records are **`UNVERIFIED` on this machine** (no Windows SDK,
+   no mingw toolchain): `CRITICAL_SECTION`, `PAINTSTRUCT`, `LOGFONT`, `LOGFONTW`,
+   `MEASUREITEMSTRUCT`, `DRAWITEMSTRUCT`, `SIZE`, `WINDOWPOS`, `MINMAXINFO` join slice 1's item 10
+   and slice 3's item 7 lists - a Windows/mingw clang probe has to measure them.
+9. Slice 1's items 5-9/11, slice 2's items 3-7 (except the `CreateWindow` repair slice 3 made) and
+   slice 3's items 2-8 are **unchanged by this lane**; slice 3's item 4 (the three prefix defects)
+   is discharged by this slice's Deviations, and its item 3's alternative (the line-count row) is
+   item 6 here.
+
+### Owed by the next lane
+
+- The next slice begins at **C 5988** (C's `my_create_window` doc comment; C 5987 is blank) and
+  carries the rest of the file: C 5994 `my_create_window`, C 6253 `x-create-frame`, C 9581
+  `w32_display_info_for_name`, C 10113 `w32_console_toggle_lock_key` and C 11586
+  `syms_of_w32fns` - 6,501 C lines, i.e. more than one slice.
+- `w32_wnd_proc`'s P-91 ④ station is discharged: it is defined in this file now, so
+  `INIT_WINDOW_CLASS!`'s `Some (w32_wnd_proc)` (C 2404/C 3779) and `w32_msg_pump`'s
+  `DispatchMessageW/A` path resolve, and `get_wm_chars`/`deliver_wm_chars` (C 4878's call, C 4802's
+  `deliver_wm_chars (1, …)`) stand at their C positions.
+- The two prefix defect classes this slice could not repair (`include/frame.rs`'s six members and
+  `include/w32term.rs`'s two bitfields) are the next lane's arm-reading-starting point, unchanged.

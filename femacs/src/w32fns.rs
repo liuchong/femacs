@@ -1779,7 +1779,8 @@ unsafe fn x_to_w32_color (colorname: *const c_char) -> Lisp_Object
     {
       let len: c_int = strlen (colorname) as c_int;
 
-      if c_isdigit (colorname[(len - 1) as usize] as c_int)
+      /* C's `colorname[len - 1]` is a pointer index, which Rust writes as `offset` (E0608).  */
+      if c_isdigit (*colorname.offset ((len - 1) as isize) as c_int)
 	{
 	  let mut ptr: *mut c_char;
 	  let approx: *mut c_char = sa_stack_alloc ((len + 1) as usize) as *mut c_char;
@@ -2129,16 +2130,19 @@ unsafe fn w32_set_foreground_color (f: *mut frame, arg: Lisp_Object, oldval: Lis
   let mut fg: PIX_TYPE! ();
   let mut old_fg: PIX_TYPE! ();
 
-  fg = w32_decode_color (f, arg, BLACK_PIX_DEFAULT! (f));
-  old_fg = FRAME_FOREGROUND_PIXEL! (f);
-  FRAME_FOREGROUND_PIXEL! (f) = fg;
+  fg = w32_decode_color (f, arg, BLACK_PIX_DEFAULT! (f)) as COLORREF;
+  /* `PIX_TYPE` is `COLORREF` (`DWORD`) while the `frame` member C reads and writes with
+     `FRAME_FOREGROUND_PIXEL` is C's `unsigned long`, so C narrows on the read and widens on the
+     write; the port writes both conversions out (the `w32_set_background_color` reading).  */
+  old_fg = FRAME_FOREGROUND_PIXEL! (f) as COLORREF;
+  FRAME_FOREGROUND_PIXEL! (f) = fg as c_ulong;
 
-  if FRAME_W32_WINDOW! (f) != 0
+  if FRAME_W32_WINDOW! (f) != 0 as HWND
     {
       if (*x).cursor_pixel == old_fg
 	{
 	  (*x).cursor_pixel = fg;
-	  (*(*x).cursor_gc).background = fg;
+	  (*(*x).cursor_gc).background = fg as c_ulong;
 	}
 
       update_face_from_frame_parameter (f, Qforeground_color (), arg);
@@ -2157,7 +2161,7 @@ unsafe fn w32_set_background_color (f: *mut frame, arg: Lisp_Object, oldval: Lis
   FRAME_BACKGROUND_PIXEL! (f)
     = w32_decode_color (f, arg, WHITE_PIX_DEFAULT! (f)) as c_ulong;
 
-  if FRAME_W32_WINDOW! (f) != 0
+  if FRAME_W32_WINDOW! (f) != 0 as HWND
     {
       SetWindowLong (FRAME_W32_WINDOW! (f), WND_BACKGROUND_INDEX,
 		     FRAME_BACKGROUND_PIXEL! (f) as LONG);
@@ -2198,14 +2202,14 @@ unsafe fn w32_set_mouse_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Obj
   let mut mask_color: c_int;
 
   if ! NILP (arg)
-    { (*(*f).output_data.w32 as *mut w32_output).mouse_pixel
+    { (*((*f).output_data.w32 as *mut w32_output)).mouse_pixel
 	= w32_decode_color (f, arg, BLACK_PIX_DEFAULT! (f)) as COLORREF; }
   mask_color = FRAME_BACKGROUND_PIXEL! (f) as c_int;
 
   /* Don't let pointers be invisible.  */
-  if mask_color == (*(*f).output_data.w32 as *mut w32_output).mouse_pixel as c_int
+  if mask_color == (*((*f).output_data.w32 as *mut w32_output)).mouse_pixel as c_int
 	&& mask_color == FRAME_BACKGROUND_PIXEL! (f) as c_int
-    { (*(*f).output_data.w32 as *mut w32_output).mouse_pixel
+    { (*((*f).output_data.w32 as *mut w32_output)).mouse_pixel
 	= FRAME_FOREGROUND_PIXEL! (f) as COLORREF; }
 
 /* C 1278-1417 is `#if 0 /* TODO : Mouse cursor customization.  */` and C's own preprocessor never
@@ -2374,20 +2378,20 @@ unsafe fn w32_set_cursor_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Ob
   /* Make sure that the cursor color differs from the background color.  */
   if pixel == FRAME_BACKGROUND_PIXEL! (f)
     {
-      pixel = (*(*f).output_data.w32 as *mut w32_output).mouse_pixel as c_ulong;
+      pixel = (*((*f).output_data.w32 as *mut w32_output)).mouse_pixel as c_ulong;
       if pixel == fore_pixel
 	{ fore_pixel = FRAME_BACKGROUND_PIXEL! (f); }
     }
 
-  (*(*f).output_data.w32 as *mut w32_output).cursor_foreground_pixel = fore_pixel as COLORREF;
-  (*(*f).output_data.w32 as *mut w32_output).cursor_pixel = pixel as COLORREF;
+  (*((*f).output_data.w32 as *mut w32_output)).cursor_foreground_pixel = fore_pixel as COLORREF;
+  (*((*f).output_data.w32 as *mut w32_output)).cursor_pixel = pixel as COLORREF;
 
-  if FRAME_W32_WINDOW! (f) != 0
+  if FRAME_W32_WINDOW! (f) != 0 as HWND
     {
       block_input ();
       /* Update frame's cursor_gc.  */
-      (*(*(*f).output_data.w32 as *mut w32_output).cursor_gc).foreground = fore_pixel;
-      (*(*(*f).output_data.w32 as *mut w32_output).cursor_gc).background = pixel;
+      (*(*((*f).output_data.w32 as *mut w32_output)).cursor_gc).foreground = fore_pixel;
+      (*(*((*f).output_data.w32 as *mut w32_output)).cursor_gc).background = pixel;
 
       unblock_input ();
 
@@ -2411,9 +2415,9 @@ unsafe fn w32_set_cursor_color (f: *mut frame, arg: Lisp_Object, oldval: Lisp_Ob
 unsafe fn w32_set_border_pixel (f: *mut frame, pix: c_int)
 {
 
-  (*(*f).output_data.w32 as *mut w32_output).border_pixel = pix as COLORREF;
+  (*((*f).output_data.w32 as *mut w32_output)).border_pixel = pix as COLORREF;
 
-  if FRAME_W32_WINDOW! (f) != 0 && (*f).border_width > 0
+  if FRAME_W32_WINDOW! (f) != 0 as HWND && (*f).border_width > 0
     {
       if FRAME_VISIBLE_P (f)
 	{ redraw_frame (f); }
@@ -2608,14 +2612,14 @@ macro_rules! FRAME_TAB_BAR_HEIGHT {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn w32_clear_under_internal_border (f: *mut frame)
 {
-  let border: c_int = FRAME_INTERNAL_BORDER_WIDTH! (f);
+  let border: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);
 
   /* Clear border if it's larger than before.  */
   if border != 0
     {
-      let width: c_int = FRAME_PIXEL_WIDTH! (f);
-      let height: c_int = FRAME_PIXEL_HEIGHT! (f);
-      let bottom_margin: c_int = FRAME_BOTTOM_MARGIN_HEIGHT! (f);
+      let width: c_int = FRAME_PIXEL_WIDTH (f);
+      let height: c_int = FRAME_PIXEL_HEIGHT (f);
+      let bottom_margin: c_int = FRAME_BOTTOM_MARGIN_HEIGHT (f);
       let face_id: c_int = (if ! FRAME_PARENT_FRAME (f).is_null ()
 			    { if ! NILP (Vface_remapping_alist)
 				{ lookup_basic_face (core::ptr::null_mut (), f,
@@ -2637,7 +2641,7 @@ pub unsafe extern "C" fn w32_clear_under_internal_border (f: *mut frame)
 	  /* Fill border with internal border face.  */
 	  let color: c_ulong = (*face).background;
 
-	  w32_fill_area! (f, hdc, color, 0, FRAME_TOP_MARGIN_HEIGHT! (f),
+	  w32_fill_area! (f, hdc, color, 0, FRAME_TOP_MARGIN_HEIGHT (f),
 			  width, border);
 	  w32_fill_area! (f, hdc, color, 0, 0, border, height);
 	  w32_fill_area! (f, hdc, color, width - border, 0, border, height);
@@ -2646,7 +2650,7 @@ pub unsafe extern "C" fn w32_clear_under_internal_border (f: *mut frame)
 	}
       else
 	{
-	  w32_clear_area! (f, hdc, 0, FRAME_TOP_MARGIN_HEIGHT! (f),
+	  w32_clear_area! (f, hdc, 0, FRAME_TOP_MARGIN_HEIGHT (f),
 			   width, border);
 	  w32_clear_area! (f, hdc, 0, 0, border, height);
 	  w32_clear_area! (f, hdc, width - border, 0, border, height);
@@ -2675,16 +2679,16 @@ unsafe fn w32_set_child_frame_border_width (f: *mut frame, arg: Lisp_Object,
 
   if NILP (arg)
     { border = -1; }
-  else if RANGED_FIXNUMP (0, arg, INT_MAX)
+  else if RANGED_FIXNUMP (0, arg, INT_MAX as isize)
     { border = XFIXNAT (arg) as c_int; }
   else
     { signal_error (c"Invalid child frame border width".as_ptr (), arg); }
 
-  if border != FRAME_CHILD_FRAME_BORDER_WIDTH! (f)
+  if border != FRAME_CHILD_FRAME_BORDER_WIDTH (f)
     {
       (*f).child_frame_border_width = border;
 
-      if FRAME_NATIVE_WINDOW! (f) != 0
+      if FRAME_NATIVE_WINDOW! (f) != 0 as HWND
 	{
 	  adjust_frame_size (f, -1, -1, 3, false, Qchild_frame_border_width ());
 
@@ -2709,11 +2713,11 @@ unsafe fn w32_set_internal_border_width (f: *mut frame, arg: Lisp_Object, oldval
   let argval: c_int = check_integer_range (arg, INT_MIN as intmax_t, INT_MAX as intmax_t) as c_int;
   let border: c_int = max (argval as isize, 0) as c_int;
 
-  if border != FRAME_INTERNAL_BORDER_WIDTH! (f)
+  if border != FRAME_INTERNAL_BORDER_WIDTH (f)
     {
       (*f).internal_border_width = border;
 
-      if FRAME_NATIVE_WINDOW! (f) != 0
+      if FRAME_NATIVE_WINDOW! (f) != 0 as HWND
 	{
 	  adjust_frame_size (f, -1, -1, 3, false, Qinternal_border_width ());
 
@@ -2774,7 +2778,7 @@ unsafe fn w32_set_menu_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lis
 	      adjust_frame_size (f, -1, -1, 2, false, Qmenu_bar_lines ());
 	    }
 
-	  if FRAME_W32_WINDOW! (f) != 0
+	  if !FRAME_W32_WINDOW! (f).is_null ()
 	    { w32_clear_under_internal_border (f); }
 
 	  /* Don't store anything but 1 or 0 in the parameter.  */
@@ -2800,7 +2804,7 @@ unsafe fn w32_set_tab_bar_lines (f: *mut frame, value: Lisp_Object, oldval: Lisp
     { return; }
 
   /* Use VALUE only if an int >= 0.  */
-  if RANGED_FIXNUMP (0, value, INT_MAX)
+  if RANGED_FIXNUMP (0, value, INT_MAX as isize)
     { nlines = XFIXNAT (value) as c_int; }
   else
     { nlines = 0; }
@@ -2836,7 +2840,7 @@ pub unsafe extern "C" fn w32_change_tab_bar_height (f: *mut frame, height: c_int
     { lines = 1; }
 
   /* Make sure we redisplay all windows in this frame.  */
-  fset_redisplay (f);
+  fset_redisplay (f as *mut c_void);
 
   /* Recalculate tab bar and frame text sizes.  */
   FRAME_TAB_BAR_HEIGHT! (f, height);
@@ -2851,14 +2855,15 @@ pub unsafe extern "C" fn w32_change_tab_bar_height (f: *mut frame, height: c_int
      below the tab bar if one is displayed, but is below the menu bar
      if there isn't a tab bar.  The tab bar draws into the area
      below the menu bar.  */
-  if FRAME_W32_WINDOW! (f) != 0 && FRAME_TAB_BAR_HEIGHT (f) == 0
+  if !FRAME_W32_WINDOW! (f).is_null () && FRAME_TAB_BAR_HEIGHT (f) == 0
     {
       clear_frame (f);
       clear_current_matrices (f);
     }
 
   if height < old_height && WINDOWP ((*f).tab_bar_window)
-    { clear_glyph_matrix ((*(XWINDOW ((*f).tab_bar_window) as *mut window)).current_matrix); }
+    { clear_glyph_matrix ((*(XWINDOW ((*f).tab_bar_window)
+			     as *mut window)).current_matrix as *mut glyph_matrix); }
 
   if ! (*f).tab_bar_resized
     {
@@ -2882,7 +2887,7 @@ pub unsafe extern "C" fn w32_change_tab_bar_height (f: *mut frame, height: c_int
      here.  */
   adjust_frame_glyphs (f);
   SET_FRAME_GARBAGED! (f);
-  if FRAME_W32_WINDOW! (f) != 0
+  if !FRAME_W32_WINDOW! (f).is_null ()
     { w32_clear_under_internal_border (f); }
 }
 
@@ -2974,7 +2979,7 @@ unsafe fn w32_set_tool_bar_position (f: *mut frame,
   adjust_frame_glyphs (f);
   SET_FRAME_GARBAGED! (f);
 
-  if FRAME_W32_WINDOW! (f) != 0
+  if !FRAME_W32_WINDOW! (f).is_null ()
     { w32_clear_under_internal_border (f); }
 }
 
@@ -3033,14 +3038,15 @@ pub unsafe extern "C" fn w32_change_tool_bar_height (f: *mut frame, height: c_in
   store_frame_param (f, Qtool_bar_lines (), make_fixnum (lines as EMACS_INT));
   store_frame_param (f, Qheight (), make_fixnum (FRAME_LINES (f) as EMACS_INT));
 
-  if FRAME_W32_WINDOW! (f) != 0 && FRAME_TOOL_BAR_HEIGHT (f) == 0
+  if !FRAME_W32_WINDOW! (f).is_null () && FRAME_TOOL_BAR_HEIGHT (f) == 0
     {
       clear_frame (f);
       clear_current_matrices (f);
     }
 
   if height < old_height && WINDOWP ((*f).tool_bar_window)
-    { clear_glyph_matrix ((*(XWINDOW ((*f).tool_bar_window) as *mut window)).current_matrix); }
+    { clear_glyph_matrix ((*(XWINDOW ((*f).tool_bar_window)
+			     as *mut window)).current_matrix as *mut glyph_matrix); }
 
   if ! (*f).tool_bar_resized
     {
@@ -3062,7 +3068,7 @@ pub unsafe extern "C" fn w32_change_tool_bar_height (f: *mut frame, height: c_in
      here.  */
   adjust_frame_glyphs (f);
   SET_FRAME_GARBAGED! (f);
-  if FRAME_W32_WINDOW! (f) != 0
+  if !FRAME_W32_WINDOW! (f).is_null ()
     { w32_clear_under_internal_border (f); }
 }
 
@@ -3077,7 +3083,7 @@ pub unsafe extern "C" fn w32_change_tool_bar_height (f: *mut frame, height: c_in
 #[cfg (feature = "have_ntgui")]
 unsafe fn w32_set_title_bar_text (f: *mut frame, name: Lisp_Object)
 {
-  if FRAME_W32_WINDOW! (f) != 0
+  if !FRAME_W32_WINDOW! (f).is_null ()
     {
       block_input ();
       /* C 1988-1990: `#ifdef __CYGWIN__` */
@@ -3252,7 +3258,7 @@ macro_rules! FRAME_Z_GROUP {
    with its own `frame_flag` (`FRAME_EXPLICIT_NAME` above is the write form) and `! NILP (name)`
    is the bool C stores; `w32_id_name` is `w32_display_info`'s member and `strcmp` the mirror's.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_name (f: *mut frame, name: Lisp_Object, explicit: bool)
+unsafe fn w32_set_name (f: *mut frame, mut name: Lisp_Object, explicit: bool)
 {
   /* Make sure that requests from lisp code override requests from
      Emacs redisplay code.  */
@@ -3322,7 +3328,7 @@ pub unsafe extern "C" fn w32_implicitly_set_name (f: *mut frame, arg: Lisp_Objec
 
 /* C 2104-2118.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_set_title (f: *mut frame, name: Lisp_Object, old_name: Lisp_Object)
+unsafe fn w32_set_title (f: *mut frame, mut name: Lisp_Object, old_name: Lisp_Object)
 {
   /* Don't change the title if it's already NAME.  */
   if EQ (name, (*f).title)
@@ -3433,7 +3439,7 @@ unsafe fn w32_set_undecorated (f: *mut frame, new_value: Lisp_Object, old_value:
       FRAME_UNDECORATED! (f, false);
     }
 
-  (*(*f).output_data.w32 as *mut w32_output).dwStyle = GetWindowLong (hwnd, GWL_STYLE) as DWORD;
+  (*((*f).output_data.w32 as *mut w32_output)).dwStyle = GetWindowLong (hwnd, GWL_STYLE) as DWORD;
 
   unblock_input ();
 }
@@ -3794,14 +3800,22 @@ macro_rules! INIT_WINDOW_CLASS {
 #[cfg (feature = "have_ntgui")]
 static EMACS_WIDE_CLASS: [WCHAR; 6] = [0x0045, 0x006d, 0x0061, 0x0063, 0x0073, 0x0000];
 
+/* C 2410's parameter name `hinst` shadows the file-scope `hinst` (C 918), which Rust forbids
+   (E0530: a parameter cannot shadow a static - the `post_character_message` `modifiers_`
+   reading), so the port spells the parameter `hinst_` and the token check folds the underscore.
+   `INIT_WINDOW_CLASS!`'s body writes `hinst` as C's `#define` does, and at this unit's only call
+   site (C 2750) C passes the file-scope `hinst` - the same object - so both readings agree.  */
 #[cfg (feature = "have_ntgui")]
-unsafe fn w32_init_class (hinst: HINSTANCE) -> BOOL
+unsafe fn w32_init_class (hinst_: HINSTANCE) -> BOOL
 {
   if w32_unicode_gui != 0
     {
       let mut uwc: WNDCLASSW = core::mem::zeroed ();
       INIT_WINDOW_CLASS! (uwc);
-      uwc.lpszClassName = EMACS_WIDE_CLASS.as_ptr ();
+      /* C 2416's `L"Emacs"` is the code-unit array above; the port's one `WNDCLASS` stands for
+	 C's `WNDCLASS` *and* `WNDCLASSW`, whose `lpszClassName` members are `LPCSTR` and `LPCWSTR`,
+	 so the wide pointer is cast to the field's type here (the `w32menu.rs` W/A reading).  */
+      uwc.lpszClassName = EMACS_WIDE_CLASS.as_ptr () as *const c_char;
 
       return RegisterClassW (&raw const uwc) as BOOL;
     }
@@ -3844,7 +3858,7 @@ unsafe fn w32_applytheme (hwnd: HWND)
 	}
     }
   let dark_mode_p: WPARAM = if w32_darkmode != 0 { 1 } else { 0 };
-  PostThreadMessage (dwMainThreadId, WM_EMACS_SET_TOOLKIT_THEME, dark_mode_p, 0);
+  PostThreadMessage (dwMainThreadId, WM_EMACS_SET_TOOLKIT_THEME as UINT, dark_mode_p, 0);
 }
 
 /* C 2459-2473.  `bar`'s four members are `include/w32term.rs`'s `scroll_bar` (C 483-530), and
@@ -6549,3 +6563,2740 @@ unsafe fn post_character_message (hwnd: HWND, mut msg: UINT, wParam: WPARAM, lPa
 
   my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
 }
+
+/* ============================================================================
+   C 4043-5986: this unit's fourth slice (`docs/ports/w32fns.md`): `get_wm_chars` (C 4043),
+   C 4135's `#ifdef DBG_WM_CHARS`, C 4141-4152's `after_deadkey`, `deliver_wm_chars` (C 4154),
+   `maybe_pass_notification` (C 4490, C's `#ifdef WINDOWSNT` arm) and `w32_wnd_proc` (C 4528) -
+   the window procedure `INIT_WINDOW_CLASS!`'s `(WC).lpfnWndProc = Some (w32_wnd_proc)` (C 2404)
+   and `w32_msg_pump`'s `DispatchMessageW/A` path both name, i.e. the `static` P-91 ④ recorded as
+   "same file, C line known, not ported yet" until this slice.  The C line-range table, the
+   acceptance readings and the deviations are in that ledger.
+   ============================================================================ */
+
+/* The `<windows.h>`/`<winuser.h>`/`<wingdi.h>` entries this slice names.  C's own `#include`
+   block for them is C 60-71 (slice 1's text); these are the ones *this* slice's text is the first
+   in the unit to need, so they stand here the way slice 2's and slice 3's SDK sections do
+   (P-88 ①: a header with no file in the reference tree is declared where its members are used),
+   each with C's own prototype in a `/// C:` line.  The records are spelled from the SDK's
+   published member lists - this machine has no Windows SDK and no mingw toolchain, so **no layout
+   assertion exists for any of them** (P-86 ③⑵'s `text-only`, owed in the ledger).  */
+/// C: typedef struct tagPAINTSTRUCT { HDC hdc; BOOL fErase; RECT rcPaint; BOOL fRestore;
+/// C: BOOL fIncUpdate; BYTE rgbReserved[32]; } PAINTSTRUCT;
+/// C: typedef struct tagLOGFONTA { LONG lfHeight; LONG lfWidth; LONG lfEscapement;
+/// C: LONG lfOrientation; LONG lfWeight; BYTE lfItalic; BYTE lfUnderline; BYTE lfStrikeOut;
+/// C: BYTE lfCharSet; BYTE lfOutPrecision; BYTE lfClipPrecision; BYTE lfQuality;
+/// C: BYTE lfPitchAndFamily; CHAR lfFaceName[LF_FACESIZE]; } LOGFONTA;
+/// C: typedef struct tagLOGFONTW { LONG lfHeight; LONG lfWidth; LONG lfEscapement;
+/// C: LONG lfOrientation; LONG lfWeight; BYTE lfItalic; BYTE lfUnderline; BYTE lfStrikeOut;
+/// C: BYTE lfCharSet; BYTE lfOutPrecision; BYTE lfClipPrecision; BYTE lfQuality;
+/// C: BYTE lfPitchAndFamily; WCHAR lfFaceName[LF_FACESIZE]; } LOGFONTW;
+/// C: typedef struct tagMEASUREITEMSTRUCT { UINT CtlType; UINT CtlID; UINT itemID; UINT itemWidth;
+/// C: UINT itemHeight; ULONG_PTR itemData; } MEASUREITEMSTRUCT, *LPMEASUREITEMSTRUCT;
+/// C: typedef struct tagDRAWITEMSTRUCT { UINT CtlType; UINT CtlID; UINT itemID; UINT itemAction;
+/// C: UINT itemState; HWND hwndItem; HDC hDC; RECT rcItem; ULONG_PTR itemData; } DRAWITEMSTRUCT;
+/// C: typedef struct tagSIZE { LONG cx; LONG cy; } SIZE, *LPSIZE;
+/// C: typedef struct tagWINDOWPOS { HWND hwnd; HWND hwndInsertAfter; int x; int y; int cx;
+/// C: int cy; UINT flags; } WINDOWPOS, *LPWINDOWPOS;
+/// C: typedef struct tagMINMAXINFO { POINT ptReserved; POINT ptMaxSize; POINT ptMaxPosition;
+/// C: POINT ptMinTrackSize; POINT ptMaxTrackSize; } MINMAXINFO, *PMINMAXINFO, *LPMINMAXINFO;
+/// C: typedef HANDLE HFONT;
+/// C: typedef struct _RTL_CRITICAL_SECTION { PRTL_CRITICAL_SECTION_DEBUG DebugInfo;
+/// C: LONG LockCount; LONG RecursionCount; HANDLE OwningThread; HANDLE LockSemaphore;
+/// C: ULONG_PTR SpinCount; } RTL_CRITICAL_SECTION, CRITICAL_SECTION;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct CRITICAL_SECTION
+{
+  pub DebugInfo: *mut c_void,
+  pub LockCount: LONG,
+  pub RecursionCount: LONG,
+  pub OwningThread: HANDLE,
+  pub LockSemaphore: HANDLE,
+  pub SpinCount: ULONG_PTR,
+}
+#[cfg (feature = "have_ntgui")]
+pub type HFONT = *mut c_void;
+#[cfg (feature = "have_ntgui")]
+pub type LPPAINTSTRUCT = *mut PAINTSTRUCT;
+#[cfg (feature = "have_ntgui")]
+pub type LPSIZE = *mut SIZE;
+#[cfg (feature = "have_ntgui")]
+pub type LPMINMAXINFO = *mut MINMAXINFO;
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct PAINTSTRUCT
+{
+  pub hdc: HDC,
+  pub fErase: BOOL,
+  pub rcPaint: RECT,
+  pub fRestore: BOOL,
+  pub fIncUpdate: BOOL,
+  pub rgbReserved: [BYTE; 32],
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct LOGFONT
+{
+  pub lfHeight: LONG,
+  pub lfWidth: LONG,
+  pub lfEscapement: LONG,
+  pub lfOrientation: LONG,
+  pub lfWeight: LONG,
+  pub lfItalic: BYTE,
+  pub lfUnderline: BYTE,
+  pub lfStrikeOut: BYTE,
+  pub lfCharSet: BYTE,
+  pub lfOutPrecision: BYTE,
+  pub lfClipPrecision: BYTE,
+  pub lfQuality: BYTE,
+  pub lfPitchAndFamily: BYTE,
+  pub lfFaceName: [CHAR; 32],
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct LOGFONTW
+{
+  pub lfHeight: LONG,
+  pub lfWidth: LONG,
+  pub lfEscapement: LONG,
+  pub lfOrientation: LONG,
+  pub lfWeight: LONG,
+  pub lfItalic: BYTE,
+  pub lfUnderline: BYTE,
+  pub lfStrikeOut: BYTE,
+  pub lfCharSet: BYTE,
+  pub lfOutPrecision: BYTE,
+  pub lfClipPrecision: BYTE,
+  pub lfQuality: BYTE,
+  pub lfPitchAndFamily: BYTE,
+  pub lfFaceName: [WCHAR; 32],
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MEASUREITEMSTRUCT
+{
+  pub CtlType: UINT,
+  pub CtlID: UINT,
+  pub itemID: UINT,
+  pub itemWidth: UINT,
+  pub itemHeight: UINT,
+  pub itemData: ULONG_PTR,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct DRAWITEMSTRUCT
+{
+  pub CtlType: UINT,
+  pub CtlID: UINT,
+  pub itemID: UINT,
+  pub itemAction: UINT,
+  pub itemState: UINT,
+  pub hwndItem: HWND,
+  pub hDC: HDC,
+  pub rcItem: RECT,
+  pub itemData: ULONG_PTR,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct SIZE
+{
+  pub cx: LONG,
+  pub cy: LONG,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct WINDOWPOS
+{
+  pub hwnd: HWND,
+  pub hwndInsertAfter: HWND,
+  pub x: c_int,
+  pub y: c_int,
+  pub cx: c_int,
+  pub cy: c_int,
+  pub flags: UINT,
+}
+#[cfg (feature = "have_ntgui")]
+#[repr(C)]
+#[derive(Clone, Copy)]
+pub struct MINMAXINFO
+{
+  pub ptReserved: POINT,
+  pub ptMaxSize: POINT,
+  pub ptMaxPosition: POINT,
+  pub ptMinTrackSize: POINT,
+  pub ptMaxTrackSize: POINT,
+}
+
+/* The `<winuser.h>` message ids, the `<wincon.h>`/`<wingdi.h>` constants and the three `VK_*`
+   this slice adds to slice 3's set.  C's own `#define` text is in the `/// C:` lines.  */
+/// C: #define WM_KEYFIRST 0x0100 / #define WM_KEYLAST 0x0109 / #define WM_DEADCHAR 0x0103 /
+/// C: #define WM_SYSCHAR 0x0106 / #define WM_SYSDEADCHAR 0x0107 / #define WM_HOTKEY 0x0312 /
+/// C: #define WM_INPUTLANGCHANGE 0x0051 / #define WM_ERASEBKGND 0x0014 /
+/// C: #define WM_PALETTECHANGED 0x0311 / #define WM_NCACTIVATE 0x0086 /
+/// C: #define WM_MENUSELECT 0x011F / #define WM_MEASUREITEM 0x002C / #define WM_DRAWITEM 0x002B /
+/// C: #define WM_MOUSEACTIVATE 0x0021 / #define WM_ACTIVATEAPP 0x001C / #define WM_ACTIVATE 0x0006 /
+/// C: #define WM_WINDOWPOSCHANGED 0x0047 / #define WM_SHOWWINDOW 0x0018 /
+/// C: #define WM_SETTINGCHANGE 0x001A / #define WM_SETFOCUS 0x0007 / #define WM_KILLFOCUS 0x0008 /
+/// C: #define WM_COMMAND 0x0111 / #define WM_MOVE 0x0003 / #define WM_SIZE 0x0005 /
+/// C: #define WM_CREATE 0x0001 / #define WM_DESTROY 0x0002 / #define WM_CLOSE 0x0010 /
+/// C: #define WM_ENDSESSION 0x0016 / #define WM_WINDOWPOSCHANGING 0x0046 /
+/// C: #define WM_GETMINMAXINFO 0x0024 / #define WM_SETCURSOR 0x0020 / #define WM_HSCROLL 0x0114 /
+/// C: #define WM_VSCROLL 0x0115 / #define WM_LBUTTONDOWN 0x0201 / #define WM_RBUTTONDOWN 0x0204 /
+/// C: #define WM_RBUTTONUP 0x0205 / #define WM_MBUTTONDOWN 0x0207 / #define WM_MBUTTONUP 0x0208 /
+/// C: #define WM_MOUSEFIRST 0x0200 / #define WM_MOUSELAST 0x020E /
+/// C: #define WM_IME_STARTCOMPOSITION 0x010D / #define WM_IME_ENDCOMPOSITION 0x010E
+#[cfg (feature = "have_ntgui")]
+pub const WM_KEYFIRST: c_int = 0x0100;
+#[cfg (feature = "have_ntgui")]
+pub const WM_KEYLAST: c_int = 0x0109;
+#[cfg (feature = "have_ntgui")]
+pub const WM_DEADCHAR: c_int = 0x0103;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SYSCHAR: c_int = 0x0106;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SYSDEADCHAR: c_int = 0x0107;
+#[cfg (feature = "have_ntgui")]
+pub const WM_HOTKEY: c_int = 0x0312;
+#[cfg (feature = "have_ntgui")]
+pub const WM_INPUTLANGCHANGE: c_int = 0x0051;
+#[cfg (feature = "have_ntgui")]
+pub const WM_ERASEBKGND: c_int = 0x0014;
+#[cfg (feature = "have_ntgui")]
+pub const WM_PALETTECHANGED: c_int = 0x0311;
+#[cfg (feature = "have_ntgui")]
+pub const WM_NCACTIVATE: c_int = 0x0086;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MENUSELECT: c_int = 0x011F;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MEASUREITEM: c_int = 0x002C;
+#[cfg (feature = "have_ntgui")]
+pub const WM_DRAWITEM: c_int = 0x002B;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MOUSEACTIVATE: c_int = 0x0021;
+#[cfg (feature = "have_ntgui")]
+pub const WM_ACTIVATEAPP: c_int = 0x001C;
+#[cfg (feature = "have_ntgui")]
+pub const WM_ACTIVATE: c_int = 0x0006;
+#[cfg (feature = "have_ntgui")]
+pub const WM_WINDOWPOSCHANGED: c_int = 0x0047;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SHOWWINDOW: c_int = 0x0018;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SETTINGCHANGE: c_int = 0x001A;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SETFOCUS: c_int = 0x0007;
+#[cfg (feature = "have_ntgui")]
+pub const WM_KILLFOCUS: c_int = 0x0008;
+#[cfg (feature = "have_ntgui")]
+pub const WM_COMMAND: c_int = 0x0111;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MOVE: c_int = 0x0003;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SIZE: c_int = 0x0005;
+#[cfg (feature = "have_ntgui")]
+pub const WM_CREATE: c_int = 0x0001;
+#[cfg (feature = "have_ntgui")]
+pub const WM_DESTROY: c_int = 0x0002;
+#[cfg (feature = "have_ntgui")]
+pub const WM_CLOSE: c_int = 0x0010;
+#[cfg (feature = "have_ntgui")]
+pub const WM_ENDSESSION: c_int = 0x0016;
+#[cfg (feature = "have_ntgui")]
+pub const WM_WINDOWPOSCHANGING: c_int = 0x0046;
+#[cfg (feature = "have_ntgui")]
+pub const WM_GETMINMAXINFO: c_int = 0x0024;
+#[cfg (feature = "have_ntgui")]
+pub const WM_SETCURSOR: c_int = 0x0020;
+#[cfg (feature = "have_ntgui")]
+pub const WM_HSCROLL: c_int = 0x0114;
+#[cfg (feature = "have_ntgui")]
+pub const WM_VSCROLL: c_int = 0x0115;
+#[cfg (feature = "have_ntgui")]
+pub const WM_LBUTTONDOWN: c_int = 0x0201;
+#[cfg (feature = "have_ntgui")]
+pub const WM_RBUTTONDOWN: c_int = 0x0204;
+#[cfg (feature = "have_ntgui")]
+pub const WM_RBUTTONUP: c_int = 0x0205;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MBUTTONDOWN: c_int = 0x0207;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MBUTTONUP: c_int = 0x0208;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MOUSEFIRST: c_int = 0x0200;
+#[cfg (feature = "have_ntgui")]
+pub const WM_MOUSELAST: c_int = 0x020E;
+#[cfg (feature = "have_ntgui")]
+pub const WM_IME_STARTCOMPOSITION: c_int = 0x010D;
+#[cfg (feature = "have_ntgui")]
+pub const WM_IME_ENDCOMPOSITION: c_int = 0x010E;
+/// C 5716-5718: `#ifndef WM_TOUCH / #define WM_TOUCH 576 / #endif`, the "define it if the SDK has
+/// not" guard of C 5714-5719's `#ifdef WM_TOUCHMOVE` arm (that arm is False for every
+/// configuration of *this* file: `WM_TOUCHMOVE` is `w32term.c` 141's `#define`, another
+/// translation unit - the ledger's Deviations record the reading).
+/// C: #define WM_TOUCH 576
+#[cfg (feature = "have_ntgui")]
+pub const WM_TOUCH: c_int = 576;
+/// C 5113-5115/5185-5187: `#ifndef MOUSEEVENTF_FROMTOUCH / #define MOUSEEVENTF_FROMTOUCH
+/// 0xFF515700 / #endif` - the same guard shape (the value is the SDK's).
+/// C: #define MOUSEEVENTF_FROMTOUCH 0xFF515700
+#[cfg (feature = "have_ntgui")]
+pub const MOUSEEVENTF_FROMTOUCH: DWORD = 0xFF515700;
+/// C: #define PM_NOYIELD 0x0002
+#[cfg (feature = "have_ntgui")]
+pub const PM_NOYIELD: UINT = 0x0002;
+/// C: #define HOVER_DEFAULT 0xFFFFFFFF
+#[cfg (feature = "have_ntgui")]
+pub const HOVER_DEFAULT: DWORD = 0xFFFFFFFF;
+/// C: #define CFS_RECT 0x0001
+#[cfg (feature = "have_ntgui")]
+pub const CFS_RECT: DWORD = 0x0001;
+/// C: #define GCS_RESULTSTR 0x0800
+#[cfg (feature = "have_ntgui")]
+pub const GCS_RESULTSTR: DWORD = 0x0800;
+/* C's `UNICODE_NOCHAR` (0xFFFF, `#define UNICODE_NOCHAR 0xFFFF`) is `include/w32term.rs` 962's
+   constant already, so it is not repeated here; C's `wParam == UNICODE_NOCHAR` compares the `UINT`
+   with it, which the port writes out at the use site.  */
+/// C: #define MA_NOACTIVATE 3
+#[cfg (feature = "have_ntgui")]
+pub const MA_NOACTIVATE: LRESULT = 3;
+/// C: #define HTCLIENT 1
+#[cfg (feature = "have_ntgui")]
+pub const HTCLIENT: c_int = 1;
+/// C: #define SM_CYMENUSIZE 51 / #define SM_CXMENUCHECK 71
+#[cfg (feature = "have_ntgui")]
+pub const SM_CYMENUSIZE: c_int = 51;
+#[cfg (feature = "have_ntgui")]
+pub const SM_CXMENUCHECK: c_int = 71;
+/// C: #define FW_BOLD 700 / #define OBJ_FONT 6
+#[cfg (feature = "have_ntgui")]
+pub const FW_BOLD: c_int = 700;
+#[cfg (feature = "have_ntgui")]
+pub const OBJ_FONT: c_int = 6;
+/// C: #define ETO_OPAQUE 0x0002 / #define ODT_MENU 1 / #define SRCCOPY 0x00CC0020
+#[cfg (feature = "have_ntgui")]
+pub const ETO_OPAQUE: UINT = 0x0002;
+#[cfg (feature = "have_ntgui")]
+pub const ODT_MENU: UINT = 1;
+#[cfg (feature = "have_ntgui")]
+pub const SRCCOPY: DWORD = 0x00CC0020;
+/// C: #define TPM_CENTERALIGN 0x0004 / #define TPM_LEFTBUTTON 0x0000 / #define TPM_RIGHTBUTTON
+/// C: 0x0002
+#[cfg (feature = "have_ntgui")]
+pub const TPM_CENTERALIGN: UINT = 0x0004;
+#[cfg (feature = "have_ntgui")]
+pub const TPM_LEFTBUTTON: UINT = 0x0000;
+#[cfg (feature = "have_ntgui")]
+pub const TPM_RIGHTBUTTON: UINT = 0x0002;
+/// C: #define VK_SPACE 0x20 / #define VK_CANCEL 0x03 / #define VK_PAUSE 0x13 /
+/// C: #define VK_PROCESSKEY 0xE5 / #define VK_NUMPAD0 0x60 / #define VK_DIVIDE 0x6F
+#[cfg (feature = "have_ntgui")]
+pub const VK_SPACE: c_int = 0x20;
+#[cfg (feature = "have_ntgui")]
+pub const VK_CANCEL: c_int = 0x03;
+#[cfg (feature = "have_ntgui")]
+pub const VK_PAUSE: c_int = 0x13;
+#[cfg (feature = "have_ntgui")]
+pub const VK_PROCESSKEY: c_int = 0xE5;
+#[cfg (feature = "have_ntgui")]
+pub const VK_NUMPAD0: c_int = 0x60;
+#[cfg (feature = "have_ntgui")]
+pub const VK_DIVIDE: c_int = 0x6F;
+
+/* The entry points of this slice's two functions (C's own prototypes).  */
+/// C: BOOL WINAPI PeekMessageW (LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax,
+/// C: UINT wRemoveMsg);
+/// C: BOOL WINAPI TranslateMessage (const MSG *lpMsg);
+/// C: LPARAM WINAPI GetMessageExtraInfo (void);
+/// C: HWND WINAPI SetCapture (HWND hWnd);
+/// C: BOOL WINAPI ReleaseCapture (void);
+/// C: UINT_PTR WINAPI SetTimer (HWND hWnd, UINT_PTR nIDEvent, UINT uElapse, TIMERPROC lpTimerFunc);
+/// C: BOOL WINAPI KillTimer (HWND hWnd, UINT_PTR uIDEvent);
+/// C: HWND WINAPI SetFocus (HWND hWnd);
+/// C: BOOL WINAPI GetUpdateRect (HWND hWnd, LPRECT lpRect, BOOL bErase);
+/// C: HDC WINAPI BeginPaint (HWND hWnd, LPPAINTSTRUCT lpPaint);
+/// C: BOOL WINAPI EndPaint (HWND hWnd, const PAINTSTRUCT *lpPaint);
+/// C: BOOL WINAPI UnionRect (LPRECT lprcDst, const RECT *lprcSrc1, const RECT *lprcSrc2);
+/// C: BOOL WINAPI BitBlt (HDC hdc, int x, int y, int cx, int cy, HDC hdcSrc, int x1, int y1,
+/// C: DWORD rop);
+/// C: BOOL WINAPI GetClientRect (HWND hWnd, LPRECT lpRect);
+/// C: HDC WINAPI GetDC (HWND hWnd);
+/// C: int WINAPI ReleaseDC (HWND hWnd, HDC hDC);
+/// C: HGDIOBJ WINAPI GetCurrentObject (HDC hdc, UINT type);
+/// C: int WINAPI GetObject (HANDLE h, int c, LPVOID pv); /* the macro's GetObjectW arm is
+/// C: GetObjectW (C 5047), used by the IME arm */
+/// C: int WINAPI GetObjectW (HANDLE h, int c, LPVOID pv);
+/// C: HFONT WINAPI CreateFontIndirect (const LOGFONTA *lplf);
+/// C: HGDIOBJ WINAPI SelectObject (HDC hdc, HGDIOBJ h);
+/// C: BOOL WINAPI GetTextExtentPoint32 (HDC hdc, LPCSTR lpString, int c, LPSIZE psizl);
+/// C: BOOL WINAPI GetTextExtentPoint32W (HDC hdc, LPCWSTR lpString, int c, LPSIZE psizl);
+/// C: BOOL WINAPI ExtTextOut (HDC hdc, int x, int y, UINT options, const RECT *lprect,
+/// C: LPCSTR lpString, UINT c, const INT *lpDx);
+/// C: BOOL WINAPI ExtTextOutW (HDC hdc, int x, int y, UINT options, const RECT *lprect,
+/// C: LPCWSTR lpString, UINT c, const INT *lpDx);
+/// C: BOOL WINAPI TrackPopupMenu (HMENU hMenu, UINT uFlags, int x, int y, int nReserved,
+/// C: HWND hWnd, const RECT *prcRect);
+/// C: ATOM WINAPI CreateCaret (HWND hWnd, HBITMAP hBitmap, int nWidth, int nHeight);
+/// C: BOOL WINAPI SetCaretPos (int X, int Y);
+/// C: BOOL WINAPI ShowCaret (HWND hWnd);
+/// C: BOOL WINAPI HideCaret (HWND hWnd);
+/// C: BOOL WINAPI DestroyCaret (void);
+/// C: void WINAPI RevokeDragDrop (HWND hwnd);
+/// C: BOOL WINAPI DestroyWindow (HWND hWnd);
+/// C: DWORD WINAPI GetWindowThreadProcessId (HWND hWnd, LPDWORD lpdwProcessId);
+/// C: BOOL WINAPI AttachThreadInput (DWORD idAttach, DWORD idAttachTo, BOOL fAttach);
+/// C: BOOL WINAPI SetForegroundWindow (HWND hWnd);
+/// C: BOOL WINAPI BringWindowToTop (HWND hWnd);
+/// C: void WINAPI CoUninitialize (void);
+/// C: HCURSOR WINAPI SetCursor (HCURSOR hCursor);
+/// C: SHORT WINAPI VkKeyScanW (WCHAR ch);
+/// C: LRESULT WINAPI DefWindowProcA (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+/// C: LRESULT WINAPI DefWindowProcW (HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" {
+  pub fn PeekMessageW (lpMsg: *mut MSG, hWnd: HWND, wMsgFilterMin: UINT, wMsgFilterMax: UINT,
+		       wRemoveMsg: UINT) -> BOOL;
+  pub fn TranslateMessage (lpMsg: *const MSG) -> BOOL;
+  pub fn GetMessageExtraInfo () -> LPARAM;
+  pub fn SetCapture (hWnd: HWND) -> HWND;
+  pub fn ReleaseCapture () -> BOOL;
+  pub fn SetTimer (hWnd: HWND, nIDEvent: UINT_PTR, uElapse: UINT, lpTimerFunc: *mut c_void)
+    -> UINT_PTR;
+  pub fn KillTimer (hWnd: HWND, uIDEvent: UINT_PTR) -> BOOL;
+  pub fn SetFocus (hWnd: HWND) -> HWND;
+  pub fn GetUpdateRect (hWnd: HWND, lpRect: LPRECT, bErase: BOOL) -> BOOL;
+  pub fn BeginPaint (hWnd: HWND, lpPaint: LPPAINTSTRUCT) -> HDC;
+  pub fn EndPaint (hWnd: HWND, lpPaint: *const PAINTSTRUCT) -> BOOL;
+  pub fn UnionRect (lprcDst: LPRECT, lprcSrc1: *const RECT, lprcSrc2: *const RECT) -> BOOL;
+  pub fn BitBlt (hdc: HDC, x: c_int, y: c_int, cx: c_int, cy: c_int, hdcSrc: HDC, x1: c_int,
+		 y1: c_int, rop: DWORD) -> BOOL;
+  pub fn GetClientRect (hWnd: HWND, lpRect: LPRECT) -> BOOL;
+  pub fn GetDC (hWnd: HWND) -> HDC;
+  pub fn ReleaseDC (hWnd: HWND, hDC: HDC) -> c_int;
+  pub fn GetCurrentObject (hdc: HDC, r#type: UINT) -> HGDIOBJ;
+  pub fn GetObject (h: HANDLE, c: c_int, pv: LPVOID) -> c_int;
+  pub fn GetObjectW (h: HANDLE, c: c_int, pv: LPVOID) -> c_int;
+  pub fn CreateFontIndirect (lplf: *const LOGFONT) -> HFONT;
+  pub fn SelectObject (hdc: HDC, h: HGDIOBJ) -> HGDIOBJ;
+  pub fn GetTextExtentPoint32 (hdc: HDC, lpString: *const c_char, c: c_int, psizl: LPSIZE)
+    -> BOOL;
+  pub fn GetTextExtentPoint32W (hdc: HDC, lpString: *const c_ushort, c: c_int, psizl: LPSIZE)
+    -> BOOL;
+  pub fn ExtTextOut (hdc: HDC, x: c_int, y: c_int, options: UINT, lprect: *const RECT,
+		     lpString: *const c_char, c: UINT, lpDx: *const c_int) -> BOOL;
+  pub fn ExtTextOutW (hdc: HDC, x: c_int, y: c_int, options: UINT, lprect: *const RECT,
+		      lpString: *const c_ushort, c: UINT, lpDx: *const c_int) -> BOOL;
+  pub fn TrackPopupMenu (hMenu: HMENU, uFlags: UINT, x: c_int, y: c_int, nReserved: c_int,
+			 hWnd: HWND, prcRect: *const RECT) -> BOOL;
+  pub fn CreateCaret (hWnd: HWND, hBitmap: HBITMAP, nWidth: c_int, nHeight: c_int) -> ATOM;
+  pub fn SetCaretPos (X: c_int, Y: c_int) -> BOOL;
+  pub fn ShowCaret (hWnd: HWND) -> BOOL;
+  pub fn HideCaret (hWnd: HWND) -> BOOL;
+  pub fn DestroyCaret () -> BOOL;
+  pub fn RevokeDragDrop (hwnd: HWND);
+  pub fn DestroyWindow (hWnd: HWND) -> BOOL;
+  pub fn GetWindowThreadProcessId (hWnd: HWND, lpdwProcessId: LPDWORD) -> DWORD;
+  pub fn AttachThreadInput (idAttach: DWORD, idAttachTo: DWORD, fAttach: BOOL) -> BOOL;
+  pub fn SetForegroundWindow (hWnd: HWND) -> BOOL;
+  pub fn BringWindowToTop (hWnd: HWND) -> BOOL;
+  pub fn CoUninitialize ();
+  pub fn SetCursor (hCursor: HCURSOR) -> HCURSOR;
+  pub fn VkKeyScanW (ch: WCHAR) -> SHORT;
+  pub fn DefWindowProcA (hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT;
+  pub fn DefWindowProcW (hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT;
+}
+
+/// `<windef.h>`'s two word extractors and `<windowsx.h>`'s two coordinate extractors, which
+/// C 4727, 5042-5043, 5242-5243, 5270-5271, 5332-5333, 5620 and 5920 use.
+/// C: #define LOWORD(l) ((WORD)(((DWORD_PTR)(l)) & 0xffff))
+/// C: #define HIWORD(l) ((WORD)((((DWORD_PTR)(l)) >> 16) & 0xffff))
+/// C: #define GET_X_LPARAM(lp) ((int)(short)LOWORD(lp))
+/// C: #define GET_Y_LPARAM(lp) ((int)(short)HIWORD(lp))
+#[cfg (feature = "have_ntgui")]
+macro_rules! LOWORD { ($l:expr) => { (($l as usize) & 0xffff) as WORD }; }
+#[cfg (feature = "have_ntgui")]
+macro_rules! HIWORD { ($l:expr) => { ((($l as usize) >> 16) & 0xffff) as WORD }; }
+#[cfg (feature = "have_ntgui")]
+macro_rules! GET_X_LPARAM { ($lp:expr) => { LOWORD! ($lp) as i16 as c_int }; }
+#[cfg (feature = "have_ntgui")]
+macro_rules! GET_Y_LPARAM { ($lp:expr) => { HIWORD! ($lp) as i16 as c_int }; }
+
+/* C 5110's `#define MOUSEEVENTF_FROMTOUCH` and C 5348's `tme.dwHoverTime = HOVER_DEFAULT` are
+   above; `TRACKMOUSEEVENT`/`TME_LEAVE`/`WM_MOUSELEAVE`/`WM_MOUSEWHEEL`/`WM_MOUSEHWHEEL`/
+   `WM_XBUTTONDOWN`/`WM_XBUTTONUP`/`WM_APPCOMMAND`/`WM_UNICHAR` and the `VK_LWIN`/`VK_RWIN`/
+   `VK_APPS`/`LEFT|RIGHT_WIN_PRESSED`/`APPS_PRESSED` family come from `include/w32term.rs`
+   (C 664-686 and 831-861 of `w32term.h`), so they are not repeated here.  */
+
+/* The `pointer_invisible` accessor: `frame.h` 437's bitfield is a `struct frame` member (C writes
+   `f->pointer_invisible`, a field no header mirror carries an accessor for), so this unit defines
+   its own per-unit macro over `include/frame.rs`'s shift constant - the `androidterm.rs` 240 /
+   `frame.rs` 334 shape, body-identical.  `hourglass_p`/`menubar_active` are `w32_output` members
+   instead and every use writes C's own field path (`w32menu.rs` 938's reading of the same two
+   members), which is also what hands the body token gate `output_data`, `w32` and the member.  */
+#[cfg (feature = "have_ntgui")]
+macro_rules! set_frame_flag1 {
+  ($f:expr, $shift:expr, $v:expr) => {
+    (*$f).bits1 = ((*$f).bits1 & ! (1u32 << $shift)) | (($v as u32) << $shift)
+  };
+}
+#[cfg (feature = "have_ntgui")]
+macro_rules! pointer_invisible {
+  ($f:expr) => { (*$f).bits1 >> FRAME_POINTER_INVISIBLE_SHIFT & 1 != 0 };
+  ($f:expr, $v:expr) => { set_frame_flag1! ($f, FRAME_POINTER_INVISIBLE_SHIFT, $v) };
+}
+
+/// keyboard.h 525: `extern const char *const lispy_function_keys[];`.  `keyboard.c`'s
+/// `HAVE_NTGUI` arm is the 256-entry table of C 5212-5403, and `w32_wnd_proc` indexes it by
+/// `wParam` (C 4712, 4881), so the declaration carries the reference's own length.
+/// `include/keyboard.rs` does not carry it yet (the ledger's owed row), which is why it stands
+/// here - the P-88 ① shape for a declaration the unit's include graph cannot supply.
+/// C: #if defined HAVE_NTGUI || defined HAVE_X_WINDOWS || defined HAVE_PGTK
+/// C: extern const char *const lispy_function_keys[];
+/// C: #endif
+#[cfg (feature = "have_ntgui")]
+unsafe extern "C" {
+  pub static lispy_function_keys: [*const c_char; 256];
+}
+
+/* C 4043-4133: `get_wm_chars`.  The four message tests of the `while` condition compare C's
+   `UINT msg.message` with the SDK ids, and the port's ids are `c_int` (slice 3's reading), so
+   each comparison writes C's conversion out; `PM_NOREMOVE | PM_NOYIELD` is C's own bit-or of
+   the two `UINT` constants.  C's `*buf++` is `*buf` plus `buf.add (1)`, C's `if (ctrl_cnt)` is
+   the null test, and `code_unit` is C's uninitialised local (`int i = buflen, doubled = 0,
+   code_unit;`, PORTING.md 1.5).  */
+/// C: static int get_wm_chars (HWND aWnd, int *buf, int buflen, int ignore_ctrl, int ctrl,
+/// C:                           int *ctrl_cnt, int *is_dead, int vk, int exp);
+#[cfg (feature = "have_ntgui")]
+unsafe fn get_wm_chars (aWnd: HWND, mut buf: *mut c_int, mut buflen: c_int, ignore_ctrl: c_int,
+			ctrl: c_int, ctrl_cnt: *mut c_int, is_dead: *mut c_int, vk: c_int,
+			exp: c_int) -> c_int
+{
+  let mut msg: MSG = core::mem::zeroed ();
+  /* If doubled is at the end, ignore it.  */
+  let mut i: c_int = buflen;
+  let mut doubled: c_int = 0;
+  /* PORTING.md 1.5: C's `int i = buflen, doubled = 0, code_unit;` leaves `code_unit`
+     uninitialised.  */
+  let mut code_unit: c_int = 0;
+
+  if !ctrl_cnt.is_null ()
+    { *ctrl_cnt = 0; }
+  if !is_dead.is_null ()
+    { *is_dead = -1; }
+  eassert! (w32_unicode_gui != 0);
+  while buflen != 0
+	 /* Should be called only when w32_unicode_gui:  */
+	 && PeekMessageW (&raw mut msg, aWnd, WM_KEYFIRST as UINT, WM_KEYLAST as UINT,
+			  PM_NOREMOVE | PM_NOYIELD) != 0
+	 && (msg.message as c_int == WM_CHAR || msg.message as c_int == WM_SYSCHAR
+	     || msg.message as c_int == WM_DEADCHAR || msg.message as c_int == WM_SYSDEADCHAR
+	     || msg.message as c_int == WM_UNICHAR)
+    {
+      /* We extract character payload, but in this call we handle only the
+	 characters which come BEFORE the next keyup/keydown message.  */
+      let mut dead: c_int;
+
+      GetMessageW (&raw mut msg, aWnd, msg.message, msg.message);
+      dead = if msg.message as c_int == WM_DEADCHAR || msg.message as c_int == WM_SYSDEADCHAR
+	     { 1 } else { 0 };
+      if !is_dead.is_null ()
+	{ *is_dead = if dead != 0 { msg.wParam as c_int } else { -1 }; }
+      if dead != 0
+	{ continue; }
+      code_unit = msg.wParam as c_int;
+      if doubled != 0
+	{
+	  /* Had surrogate.  */
+	  if msg.message as c_int == WM_UNICHAR
+	      || code_unit < 0xDC00 || code_unit > 0xDFFF
+	    { /* Mismatched first surrogate.
+		 Pass both code units as if they were two characters.  */
+	      *buf = doubled;
+	      buf = buf.add (1);
+	      buflen -= 1;
+	      if buflen == 0
+		{ return i; }	/* Drop the 2nd char if at the end of the buffer.  */
+	    }
+	  else	/* see https://en.wikipedia.org/wiki/UTF-16 */
+	    { code_unit = (doubled << 10) + code_unit - 0x35FDC00; }
+	  doubled = 0;
+	}
+      else if code_unit >= 0xD800 && code_unit <= 0xDBFF
+	{
+	  /* Handle mismatched 2nd surrogate the same as a normal character.  */
+	  doubled = code_unit;
+	  continue;
+	}
+
+      /* The only "fake" characters delivered by ToUnicode() or
+	 TranslateMessage() are:
+	 0x01 .. 0x1a for Ctrl-letter, Enter, Tab, Ctrl-Break, Esc, Backspace
+	 0x00 and 0x1b .. 0x1f for Control- []\@^_
+	 0x7f for Control-BackSpace
+	 0x20 for Control-Space */
+      if ignore_ctrl != 0
+	  && (code_unit < 0x20 || code_unit == 0x7f
+	      || (code_unit == 0x20 && ctrl != 0))
+	{
+	  /* Non-character payload in a WM_CHAR
+	     (Ctrl-something pressed, see above).  Ignore, and report.  */
+	  if !ctrl_cnt.is_null ()
+	    { *ctrl_cnt += 1; }
+	  continue;
+	}
+      /* Traditionally, Emacs would ignore the character payload of VK_NUMPAD*
+	 keys, and would treat them later via `function-key-map'.  In addition
+	 to usual 102-key NUMPAD keys, this map also treats `kp-'-variants of
+	 space, tab, enter, separator, equal.  TAB  and EQUAL, apparently,
+	 cannot be generated on Win-GUI branch.  ENTER is already handled
+	 by the code above.  According to `lispy_function_keys', kp_space is
+	 generated by not-extended VK_CLEAR.  (kp-tab !=  VK_OEM_NEC_EQUAL!).
+
+	 We do similarly for backward-compatibility, but ignore only the
+	 characters restorable later by `function-key-map'.  */
+      if code_unit < 0x7f
+	  && ((vk >= VK_NUMPAD0 && vk <= VK_DIVIDE)
+	      || (exp != 0 && ((vk >= VK_PRIOR && vk <= VK_DOWN)
+			       || vk == VK_INSERT || vk == VK_DELETE || vk == VK_CLEAR)))
+	  && !strchr (c"0123456789/*-+.,".as_ptr (), code_unit).is_null ()
+	{ continue; }
+      *buf = code_unit;
+      buf = buf.add (1);
+      buflen -= 1;
+    }
+  return i - buflen;
+}
+
+/* C 4135-4139: `#ifdef DBG_WM_CHARS`.  C's `ARG` is the *argument list* of a call
+   (`FPRINTF_WM_CHARS ((stderr, "…", …))`), so this `macro_rules!`'s pattern is C's own
+   parenthesised list.  The `#else` arm is C's `(void)0`, which does **not** evaluate `ARG`
+   (PORTING.md 2.1/P-16's `eassert` reading), so that body is the unit value.  `dbg_wm_chars` is
+   a feature `femacs/xtask/Cargo.toml` does not register yet (the ledger's owed list), exactly
+   as `emacsdebug`/`msg_debug` above and `w32_debug_display` below.  */
+// C: #ifdef DBG_WM_CHARS
+// C: #  define FPRINTF_WM_CHARS(ARG)	fprintf ARG
+// C: #else
+// C: #  define FPRINTF_WM_CHARS(ARG)	(void)0
+// C: #endif
+#[cfg (all (feature = "have_ntgui", feature = "dbg_wm_chars"))]
+macro_rules! FPRINTF_WM_CHARS {
+  (($($arg:tt)*)) => { fprintf ($($arg)*) };
+}
+#[cfg (all (feature = "have_ntgui", not (feature = "dbg_wm_chars")))]
+macro_rules! FPRINTF_WM_CHARS {
+  (($($arg:tt)*)) => { () };
+}
+
+/* This is a heuristic only.  This is supposed to track the state of the
+   finite automaton in the language environment of Windows.
+
+   However, separate windows (if with the same different language
+   environments!) should  have different values.  Moreover, switching to a
+   non-Emacs window with the same language environment, and using (dead)keys
+   there would change the value stored in the kernel, but not this value.  */
+/* A layout may emit deadkey=0.  It looks like this would reset the state
+   of the kernel's finite automaton (equivalent to emitting 0-length string,
+   which is otherwise impossible in the dead-key map of a layout).
+   Be ready to treat the case when this delivers WM_(SYS)DEADCHAR. */
+/// C 4152: `static int after_deadkey = -1;` - the two comments above are C's own text.
+/// C: static int after_deadkey = -1;
+#[cfg (feature = "have_ntgui")]
+static mut after_deadkey: c_int = -1;
+
+/// C 4154-4488: `static int deliver_wm_chars (int do_translate, HWND hwnd, UINT msg, UINT
+/// wParam, UINT lParam, int legacy_alt_meta)`.  C's five locals of the first declaration are
+/// its uninitialised ones (`int ctrl_cnt, buf[1024], count, is_dead, after_dead = …`; the port
+/// zeroes the four - PORTING.md 1.5); `buf` is filled by `get_wm_chars` through its `int *buf`
+/// parameter.  C's `MSG windows_msg = { hwnd, msg, wParam, lParam, 0, {0,0} };` is the four
+/// field writes plus the zeroed tail the initialiser gives the two others, and the `while
+/// (count--)` at the foot is the post-decrement loop the test spells out (`src/xdisp.rs`'s
+/// deviation-86 shape: the decrement runs on the test that ends the loop too).
+/// C: static int deliver_wm_chars (int do_translate, HWND hwnd, UINT msg, UINT wParam,
+/// C:                           UINT lParam, int legacy_alt_meta);
+#[cfg (feature = "have_ntgui")]
+unsafe fn deliver_wm_chars (do_translate: c_int, hwnd: HWND, msg: UINT, wParam: UINT,
+			    lParam: UINT, legacy_alt_meta: c_int) -> c_int
+{
+  /* An "old style" keyboard description may assign up to 125 UTF-16 code
+     points to a keypress.
+     (However, the "old style" TranslateMessage() would deliver at most 16 of
+     them.)  Be on a safe side, and prepare to treat many more.  */
+  let mut ctrl_cnt: c_int = 0;
+  let mut buf: [c_int; 1024] = [0; 1024];
+  let mut count: c_int = 0;
+  let mut is_dead: c_int = 0;
+  let mut after_dead: c_int = if after_deadkey > 0 { 1 } else { 0 };
+
+  /* Since the keypress processing logic of Windows has a lot of state, it
+     is important to call TranslateMessage() for every keyup/keydown, AND
+     do it exactly once.  (The actual change of state is done by
+     ToUnicode[Ex](), which is called by TranslateMessage().  So one can
+     call ToUnicode[Ex]() instead.)
+
+     The "usual" message pump calls TranslateMessage() for EVERY event.
+     Emacs calls TranslateMessage() very selectively (is it needed for doing
+     some tricky stuff with Win95???  With newer Windows, selectiveness is,
+     most probably, not needed -- and harms a lot).
+
+     So, with the usual message pump, the following call to TranslateMessage()
+     is not needed (and is going to be VERY harmful).  With Emacs's message
+     pump, the call is needed.  */
+  if do_translate != 0
+    {
+      let mut windows_msg: MSG = core::mem::zeroed ();
+
+      windows_msg.hwnd = hwnd;
+      windows_msg.message = msg;
+      windows_msg.wParam = wParam as WPARAM;
+      windows_msg.lParam = lParam as LPARAM;
+
+      windows_msg.time = GetMessageTime () as DWORD;
+      TranslateMessage (&raw const windows_msg);
+    }
+  count = get_wm_chars (hwnd, buf.as_mut_ptr (), countof! (buf) as c_int, 1,
+			/* The message may have been synthesized by
+			   who knows what; be conservative.  */
+			(if modifier_set (VK_LCONTROL) != 0 || modifier_set (VK_RCONTROL) != 0
+			    || modifier_set (VK_CONTROL) != 0 { 1 } else { 0 }),
+			&raw mut ctrl_cnt, &raw mut is_dead, wParam as c_int,
+			(if lParam & 0x1000000 != 0 { 1 } else { 0 }));
+  if count != 0
+    {
+      let mut wmsg: W32Msg = core::mem::zeroed ();
+      let console_modifiers: DWORD = w32_construct_console_modifiers () as DWORD;
+      let mut b: *mut c_int = buf.as_mut_ptr ();
+      let mut strip_ExtraMods: c_int = 1;
+      let mut hairy: c_int = 0;
+      let mut type_CtrlAlt: *const c_char = core::ptr::null ();
+
+      /*  XXXX In fact, there may be another case when we need to do the same:
+	       What happens if the string defined in the LIGATURES has length
+	       0?  Probably, we will get count==0, but the state of the finite
+	       automaton would reset to 0???  */
+      after_deadkey = -1;
+
+      /* wParam is checked when converting CapsLock to Shift; this is a clone
+	 of w32_get_key_modifiers ().  */
+      wmsg.dwModifiers = w32_kbd_mods_to_emacs (console_modifiers, wParam as WORD) as DWORD;
+
+      /* What follows is just heuristics; the correct treatment requires
+	 non-destructive ToUnicode():
+	   https://metacpan.org/dist/UI-KeyboardLayout/view/lib/UI/KeyboardLayout.pm#Can-an-application-on-Windows-accept-keyboard-events?-Part-IV:-application-specific-modifiers
+
+	 What one needs to find is:
+	   * which of the present modifiers AFFECT the resulting char(s)
+	     (so should be stripped, since their EFFECT is "already
+	      taken into account" in the string in buf), and
+	   * which modifiers are not affecting buf, so should be reported to
+	     the application for further treatment.
+
+	 Example: assume that we know:
+	   (A) lCtrl+rCtrl+rAlt modifiers with VK_A key produce a Latin "f"
+	       ("may be logical" in JCUKEN-flavored Russian keyboard flavors);
+	   (B) removing any of lCtrl, rCtrl, rAlt changes the produced char;
+	   (C) Win-modifier is not affecting the produced character
+	       (this is the common case: happens with all "standard" layouts).
+
+	 Suppose the user presses Win+lCtrl+rCtrl+rAlt modifiers with VK_A.
+	 What is the intent of the user?  We need to guess the intent to decide
+	 which event to deliver to the application.
+
+	 This looks like a reasonable logic: since Win- modifier doesn't affect
+	 the output string, the user was pressing Win for SOME OTHER purpose.
+	 So the user wanted to generate Win-SOMETHING event.  Now, what is
+	 something?  If one takes the mantra that "character payload is more
+	 important than the combination of keypresses which resulted in this
+	 payload", then one should ignore lCtrl+rCtrl+rAlt, ignore VK_A, and
+	 assume that the user wanted to generate Win-f.
+
+	 Unfortunately, without non-destructive ToUnicode(), checking (B),(C)
+	 is out of question.  So we use heuristics (hopefully, covering
+	 99.9999% of cases).  */
+
+      /* Another thing to watch for is a possibility to use AltGr-* and
+	 Ctrl-Alt-* with different semantic.
+
+	 Background: the layout defining the KLLF_ALTGR bit are treated
+	 specially by the kernel: when VK_RMENU (=rightAlt, =AltGr) is pressed
+	 (released), a press (release) of VK_LCONTROL is emulated (unless Ctrl
+	 is already down).  As a result, any press/release of AltGr is seen
+	 by applications as a press/release of lCtrl AND rAlt.  This is
+	 applicable, in particular, to ToUnicode[Ex]().  (Keyrepeat is covered
+	 the same way!)
+
+	   NOTE: it IS possible to see bare rAlt even with KLLF_ALTGR; but this
+	   requires a good finger coordination: doing (physically)
+	     Down-lCtrl Down-rAlt Up-lCtrl Down-a
+	   (doing quick enough, so that key repeat of rAlt [which would
+	   generate new "fake" Down-lCtrl events] does not happens before 'a'
+	   is down) results in no "fake" events, so the application will see
+	   only rAlt down when 'a' is pressed.  (However, fake Up-lCtrl WILL
+	   be generated when rAlt goes UP.)
+
+	   In fact, note also that KLLF_ALTGR does not prohibit construction of
+	   rCtrl-rAlt (just press them in this order!).
+
+	 Moreover: "traditional" layouts do not define distinct modifier-masks
+	 for VK_LMENU and VK_RMENU (same for VK_L/RCONTROL).  Instead, they
+	 rely on the KLLF_ALTGR bit to make the behavior of VK_LMENU and
+	 VK_RMENU distinct.  As a corollary, for such layouts, the produced
+	 character is the same for AltGr-* (=rAlt-*) and Ctrl-Alt-* (in any
+	 combination of handedness).  For description of masks, see
+
+	   https://metacpan.org/dist/UI-KeyboardLayout/view/lib/UI/KeyboardLayout.pm#Keyboard-input-on-Windows,-Part-I:-what-is-the-kernel-doing?
+
+	 By default, Emacs was using these coincidences via the following
+	 heuristics: it was treating:
+	  (*) keypresses with lCtrl-rAlt modifiers as if they are carrying
+	      ONLY the character payload (no matter what the actual keyboard
+	      was defining: if lCtrl-lAlt-b was delivering U+05df=beta, then
+	      Emacs saw [beta]; if lCtrl-lAlt-b was undefined in the layout,
+	      the keypress was completely ignored), and
+	  (*) keypresses with the other combinations of handedness of Ctrl-Alt
+	      modifiers (e.g., lCtrl-lAlt) as if they NEVER carry a character
+	      payload (so they were reported "raw": if lCtrl-lAlt-b was
+	      delivering beta, then Emacs saw event [C-A-b], and not [beta]).
+	 This worked good for "traditional" layouts: users could type both
+	 AltGr-x and Ctrl-Alt-x, and one was a character, another a bindable
+	 event.
+
+	 However, for layouts which deliver different characters for AltGr-x
+	 and lCtrl-lAlt-x, this scheme makes the latter character inaccessible
+	 in Emacs.  While it is easy to access functionality of [C-M-x] in
+	 Emacs by other means (for example, by the `controlify' prefix, or
+	 using lCtrl-rCtrl-x, or rCtrl-rAlt-x [in this order]), missing
+	 characters cannot be reconstructed without a tedious manual work.  */
+
+      /* These two cases are often going to be distinguishable, since at most
+	 one of these character is defined with KBDCTRL | KBDMENU modifier
+	 bitmap.  (This heuristic breaks if both lCtrl-lAlt- AND lCtrl-rAlt-
+	 are translated to modifier bitmaps distinct from KBDCTRL | KBDMENU,
+	 or in the cases when lCtrl-lAlt-* and lCtrl-rAlt-* are generally
+	 different, but lCtrl-lAlt-x and lCtrl-rAlt-x happen to deliver the
+	 same character.)
+
+	 So we have 2 chunks of info:
+	   (A) is it lCtrl-rAlt-, or lCtrl-lAlt, or some other combination?
+	   (B) is the delivered character defined with KBDCTRL | KBDMENU bits?
+	 Basing on (A) and (B), we should decide whether to ignore the
+	 delivered character.  (Before, Emacs was completely ignoring (B), and
+	 was treating the 3-state of (A) as a bit.)  This means that we have 6
+	 bits of customization.
+
+	 Additionally, a presence of two Ctrl down may be AltGr-rCtrl-.  */
+
+      /* Strip all non-Shift modifiers if:
+	- more than one UTF-16 code point delivered (can't call VkKeyScanW ())
+	- or the character is a result of combining with a prefix key.  */
+      if after_dead == 0 && count == 1 && *b < 0x10000
+	{
+	  if console_modifiers & (RIGHT_ALT_PRESSED | LEFT_ALT_PRESSED) as DWORD != 0
+	      && console_modifiers & (RIGHT_CTRL_PRESSED | LEFT_CTRL_PRESSED) as DWORD != 0
+	    {
+	      type_CtrlAlt = c"bB".as_ptr ();   /* generic bindable Ctrl-Alt- modifiers */
+	      if console_modifiers & (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED) as DWORD
+		  == (LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED) as DWORD
+		/* double-Ctrl:
+		   e.g. AltGr-rCtrl on some layouts (in this order!) */
+		{ type_CtrlAlt = c"dD".as_ptr (); }
+	      else if console_modifiers & (LEFT_CTRL_PRESSED | LEFT_ALT_PRESSED) as DWORD
+		       == (LEFT_CTRL_PRESSED | LEFT_ALT_PRESSED) as DWORD
+		{ type_CtrlAlt = c"lL".as_ptr (); } /* Ctrl-Alt- modifiers on the left */
+	      else if !NILP (Vw32_recognize_altgr)
+		       && console_modifiers & (RIGHT_ALT_PRESSED | LEFT_CTRL_PRESSED) as DWORD
+			  == (RIGHT_ALT_PRESSED | LEFT_CTRL_PRESSED) as DWORD
+		{ type_CtrlAlt = c"gG".as_ptr (); } /* modifiers as in AltGr */
+	    }
+	  else if wmsg.dwModifiers & (alt_modifier | meta_modifier) as DWORD != 0
+		   || console_modifiers & (LEFT_WIN_PRESSED | RIGHT_WIN_PRESSED
+					   | APPS_PRESSED | SCROLLLOCK_ON) as DWORD != 0
+	    {
+	      /* Pure Alt (or combination of Alt, Win, APPS, scrolllock.  */
+	      type_CtrlAlt = c"aA".as_ptr ();
+	    }
+	  if !type_CtrlAlt.is_null ()
+	    {
+	      /* Out of bound bitmap:  */
+	      let mut r: SHORT = VkKeyScanW (*b as WCHAR);
+	      let mut bitmap: SHORT = 0x1FF;
+
+	      FPRINTF_WM_CHARS! ((stderr, c"VkKeyScanW %#06x %#04x\n".as_ptr (), r as c_int,
+				  wParam));
+	      if r as c_int & 0xFF == wParam as c_int
+		{ bitmap = r >> 8; } /* *b is reachable via simple interface */
+	      else
+		{
+		  /* VkKeyScanW() (essentially) returns the FIRST key with
+		     the specified character; so here the pressed key is the
+		     SECONDARY key producing the character.
+
+		     Essentially, we have no information about the "role" of
+		     modifiers on this key: which contribute into the
+		     produced character (so "are consumed"), and which are
+		     "extra" (must attach to bindable events).
+
+		     The default above would consume ALL modifiers, so the
+		     character is reported "as is".  However, on many layouts
+		     the ordering of the keys (in the layout table) is not
+		     thought out well, so the "secondary" keys are often those
+		     which the users would prefer to use with Alt-CHAR.
+		     (Moreover - with e.g. Czech-QWERTY - the ASCII
+		     punctuation is accessible from two equally [nu]preferable
+		     AltGr-keys.)
+
+		     SO:   Heuristic: if the reported char is ASCII, AND Meta
+		     modifier is a candidate, behave as if Meta is present
+		     (fallback to the legacy branch; bug#23251).
+
+		     (This would break layouts
+		     - delivering ASCII characters
+		     - on SECONDARY keys
+		     - with not Shift/AltGr-like modifier combinations.
+		     All 3 conditions together must be pretty exotic
+		     cases - and a workaround exists: use "primary" keys!) */
+		  if *b < 0x80
+		      && wmsg.dwModifiers & (alt_modifier | meta_modifier
+					     | super_modifier | hyper_modifier) as DWORD != 0
+		    { return 0; }
+		}
+	      if *type_CtrlAlt as c_int == 'a' as c_int /* Simple Alt seen */
+		{
+		  if bitmap as c_int & !1 == 0 /* 1: KBDSHIFT */
+		    {
+		      /* In "traditional" layouts, Alt without Ctrl does not
+			 change the delivered character.  This detects this
+			 situation; it is safe to report this as Alt-something
+			  -- as opposed to delivering the reported character
+			 without modifiers.  */
+		      if legacy_alt_meta != 0
+			  && *b > 0x7f && ('A' as UINT <= wParam && wParam <= 'Z' as UINT)
+			/* For backward-compatibility with older Emacsen, let
+			   this be processed by another branch below (which
+			   would convert it to Alt-Latin char via wParam).  */
+			{ return 0; }
+		    }
+		  else
+		    { hairy = 1; }
+		}
+	      /* Check whether the delivered character(s) is accessible via
+		 KBDCTRL | KBDALT ( | KBDSHIFT ) modifier mask (which is 7).  */
+	      else if (bitmap as c_int & !1) != 6
+		{
+		  /* The character is not accessible via plain Ctrl-Alt(-Shift)
+		     (which is, probably, same as AltGr) modifiers.
+		     Either it was after a prefix key, or is combined with
+		     modifier keys which we don't see, or there is an asymmetry
+		     between left-hand and right-hand modifiers, or other hairy
+		     stuff.  */
+		  hairy = 1;
+		}
+	      /* The best solution is to delegate these tough (but rarely
+		 needed) choices to the user.  Temporarily (???), it is
+		 implemented as C macros.
+
+		 Essentially, there are 3 things to do: return 0 (handle to the
+		 legacy processing code [ignoring the character payload]; keep
+		 some modifiers (so that they will be processed by the binding
+		 system [on top of the character payload]; strip modifiers [so
+		 that `self-insert' is going to be triggered with the character
+		 payload]).
+
+		 The default below should cover 99.9999% of cases:
+		   (a) strip Alt- in the hairy case only;
+		       (stripping = not ignoring)
+		   (l) for lAlt-lCtrl, ignore the char in simple cases only;
+		   (g) for what looks like AltGr, ignore the modifiers;
+		   (d) for what looks like lCtrl-rCtrl-Alt (probably
+		       AltGr-rCtrl), ignore the character in simple cases only;
+		   (b) for other cases of Ctrl-Alt, ignore the character in
+		       simple cases only.
+
+		 Essentially, in all hairy cases, and in looks-like-AltGr case,
+		 we keep the character, ignoring the modifiers.  In all the
+		 other cases, we ignore the delivered character.  */
+	      /* C 4453-4454: `#define S_TYPES_TO_IGNORE_CHARACTER_PAYLOAD "aldb"` and
+		 `#define S_TYPES_TO_REPORT_CHARACTER_PAYLOAD_WITH_MODIFIERS ""`; the two
+		 `strchr` calls below are C's two tests over them.  */
+	      if !strchr (S_TYPES_TO_IGNORE_CHARACTER_PAYLOAD.as_ptr (),
+			  *type_CtrlAlt.offset (hairy as isize) as c_int).is_null ()
+		{ return 0; }
+	      /* If in neither list, report all the modifiers we see COMBINED
+		 WITH the reported character.  */
+	      if !strchr (S_TYPES_TO_REPORT_CHARACTER_PAYLOAD_WITH_MODIFIERS.as_ptr (),
+			  *type_CtrlAlt.offset (hairy as isize) as c_int).is_null ()
+		{ strip_ExtraMods = 0; }
+	    }
+	}
+      if strip_ExtraMods != 0
+	{ wmsg.dwModifiers = wmsg.dwModifiers & shift_modifier as DWORD; }
+
+      signal_user_input ();
+      /* C's `while (count--)`: the post-decrement runs on the test that ends the loop
+	 (deviation 86's rule, the `src/xdisp.rs` 15307 shape).  */
+      loop
+	{
+	  let old: c_int = count;
+	  count -= 1;
+	  if old == 0 { break; }
+	  FPRINTF_WM_CHARS! ((stderr, c"unichar %#06x\n".as_ptr (), *b));
+	  my_post_msg (&raw mut wmsg, hwnd, WM_UNICHAR as UINT, *b as WPARAM,
+				      lParam as LPARAM);
+	  b = b.add (1);
+	}
+      if ctrl_cnt == 0 /* Process ALSO as ctrl */
+	{ return 1; }
+      else
+	{ FPRINTF_WM_CHARS! ((stderr, c"extra ctrl char\n".as_ptr ())); }
+      return -1;
+    }
+  else if is_dead >= 0
+    {
+      FPRINTF_WM_CHARS! ((stderr, c"dead %#06x\n".as_ptr (), is_dead));
+      after_deadkey = is_dead;
+      return 1;
+    }
+  return 0;
+}
+
+/// C 4453-4454 (`#define S_TYPES_TO_IGNORE_CHARACTER_PAYLOAD "aldb"` /
+/// `#define S_TYPES_TO_REPORT_CHARACTER_PAYLOAD_WITH_MODIFIERS ""`).  The two are `strchr`
+/// subjects, so their bytes must be C's - a `&CStr` keeps the terminator (`alloc.rs` 5493's
+/// reading of the same choice).
+/// C: #define S_TYPES_TO_IGNORE_CHARACTER_PAYLOAD "aldb"
+#[cfg (feature = "have_ntgui")]
+pub const S_TYPES_TO_IGNORE_CHARACTER_PAYLOAD: &core::ffi::CStr = c"aldb";
+/// C: #define S_TYPES_TO_REPORT_CHARACTER_PAYLOAD_WITH_MODIFIERS ""
+#[cfg (feature = "have_ntgui")]
+pub const S_TYPES_TO_REPORT_CHARACTER_PAYLOAD_WITH_MODIFIERS: &core::ffi::CStr = c"";
+
+/// C 4490-4523: `#ifdef WINDOWSNT`'s `static void maybe_pass_notification (HWND hwnd)` and its
+/// `#endif` - the whole item is the `windowsnt` arm of the file gate (the Cygwin GUI build has
+/// neither the function nor its callers).  C's `break` leaves the `FOR_EACH_FRAME` loop, which is
+/// the plain `break` inside the mirror's macro body (the increment is at the body's end, so the
+/// exit skips it - `frame.rs` 2836-2845, the `androidterm.rs` 282 reading).  `f` is C's
+/// uninitialised local (PORTING.md 1.5) and `found_frame` guards its use.
+/// C: static void maybe_pass_notification (HWND hwnd);
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
+unsafe fn maybe_pass_notification (hwnd: HWND)
+{
+  if hwnd == kbdhook.notified_wnd
+      && kbdhook.hook_count > 0 && w32_kbdhook_active! ()
+    {
+      let mut tail: Lisp_Object;
+      let mut frame: Lisp_Object;
+      let mut f: *mut frame = core::ptr::null_mut ();
+      let mut found_frame: bool = false;
+
+      FOR_EACH_FRAME! (tail, frame,
+	{
+	  f = XFRAME (frame);
+	  if FRAME_W32_P (f) && !FRAME_OUTPUT_DATA! (f).is_null ()
+	      && FRAME_W32_WINDOW! (f) != hwnd
+	    {
+	      found_frame = true;
+	      break;
+	    }
+	});
+
+      if found_frame && WTSUnRegisterSessionNotification_fn.is_some ()
+	  && WTSRegisterSessionNotification_fn.is_some ()
+	{
+	  /* There is another frame, pass on the session notification.  */
+	  let next_wnd: HWND = FRAME_W32_WINDOW! (f);
+	  (WTSUnRegisterSessionNotification_fn.unwrap ()) (hwnd);
+	  (WTSRegisterSessionNotification_fn.unwrap ()) (next_wnd, NOTIFY_FOR_THIS_SESSION);
+	  kbdhook.notified_wnd = next_wnd;
+	}
+    }
+}
+
+/* Main window procedure */
+
+/// C 4525-5986: `static LRESULT CALLBACK w32_wnd_proc (HWND hwnd, UINT msg, WPARAM wParam,
+/// LPARAM lParam)`.  C's `switch (msg)` is the `match` below and every `case` one arm; C's
+/// `break` (which leaves the switch for the trailing `return 0`) is `break 'dispatch`, the label
+/// this block carries (PORTING.md 2.2).  C's four shared labels are the structured spellings the
+/// ledger's Deviations and the `macro-body-notes.tsv` rows record: `dflt:` is the
+/// `DefWindowProcW/A` return each `goto dflt` writes in place, `translate:` is the `translate`
+/// flag's forward jump inside the `WM_KEYDOWN` arm, `handle_plain_button:` and `command:` are the
+/// two flags whose bodies run after the match in C's own order (C 5251 and C 5708), and
+/// `disable_lock_key:` is the nested switch's own flag (`'wparam'`'s `break`).  `f`, `wmsg`,
+/// `windows_translate` and `key` are C's uninitialised locals (PORTING.md 1.5).
+/// C: static LRESULT CALLBACK w32_wnd_proc (HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+#[cfg (feature = "have_ntgui")]
+unsafe extern "system" fn w32_wnd_proc (hwnd: HWND, mut msg: UINT, mut wParam: WPARAM,
+					lParam: LPARAM) -> LRESULT
+{
+  let mut f: *mut frame = core::ptr::null_mut ();
+  let mut dpyinfo: *mut w32_display_info = &raw mut one_w32_display_info;
+  let mut wmsg: W32Msg = core::mem::zeroed ();
+  let mut windows_translate: c_int = 0;
+  let mut key: c_int = 0;
+  /* C's `handle_plain_button:` and `command:` labels (C 5251, C 5708): a `match` arm cannot be
+     jumped into, so the two bodies run after the match with C's own statements.  */
+  let mut handle_plain_button: bool = false;
+  let mut command: bool = false;
+
+  /* Note that it is okay to call w32_window_to_frame, even though we are
+     not running in the main lisp thread, because frame deletion
+     requires the lisp thread to synchronize with this thread.  Thus, if
+     a frame struct is returned, it can be used without concern that the
+     lisp thread might make it disappear while we are using it.
+
+     NB. Walking the frame list in this thread is safe (as long as
+     writes of Lisp_Object slots are atomic, which they are on Windows).
+     Although delete-frame can destructively modify the frame list while
+     we are walking it, a garbage collection cannot occur until after
+     delete-frame has synchronized with this thread.
+
+     It is also safe to use functions that make GDI calls, such as
+     w32_clear_rect, because these functions must obtain a DC handle
+     from the frame struct using get_frame_dc which is thread-aware.  */
+
+  'dispatch:
+  {
+    match msg as c_int
+      {
+      WM_ERASEBKGND =>
+	{
+	  f = w32_window_to_frame (dpyinfo, hwnd);
+
+	  enter_crit! ();
+	  if !f.is_null () && (w32_disable_double_buffering
+			       || (*(FRAME_OUTPUT_DATA! (f) as *mut w32_output))
+				  .paint_buffer.is_null ())
+	    {
+	      let hdc: HDC = get_frame_dc (f);
+	      GetUpdateRect (hwnd, &raw mut wmsg.rect, FALSE);
+	      w32_clear_rect! (f, hdc, &raw mut wmsg.rect);
+	      release_frame_dc (f, hdc);
+
+	      #[cfg (feature = "w32_debug_display")]
+	      {
+		DebPrint! ((c"WM_ERASEBKGND (frame %p): erasing %d,%d-%d,%d\n".as_ptr (),
+			    f, wmsg.rect.left, wmsg.rect.top,
+			    wmsg.rect.right, wmsg.rect.bottom));
+	      }
+	    }
+	  leave_crit! ();
+	  return 1;
+	}
+      WM_PALETTECHANGED =>
+	{
+	  /* ignore our own changes */
+	  if wParam as HWND != hwnd
+	    {
+	      f = w32_window_to_frame (dpyinfo, hwnd);
+	      if !f.is_null ()
+		/* get_frame_dc will realize our palette and force all
+		   frames to be redrawn if needed. */
+		{ release_frame_dc (f, get_frame_dc (f)); }
+	    }
+	  return 0;
+	}
+      WM_PAINT =>
+	{
+	  let mut paintStruct: PAINTSTRUCT = core::mem::zeroed ();
+	  let mut update_rect: RECT = core::mem::zeroed ();
+	  memset (&raw mut update_rect as *mut c_void, 0,
+		  core::mem::size_of_val (&update_rect));
+
+	  f = w32_window_to_frame (dpyinfo, hwnd);
+	  if f.is_null ()
+	    {
+	      DebPrint! ((c"WM_PAINT received for unknown window %p\n".as_ptr (), hwnd));
+	      return 0;
+	    }
+
+	  /* MSDN Docs say not to call BeginPaint if GetUpdateRect
+	     fails.  Apparently this can happen under some
+	     circumstances.  */
+	  if GetUpdateRect (hwnd, &raw mut update_rect, FALSE) != 0 || !w32_strict_painting
+	    {
+	      enter_crit! ();
+	      BeginPaint (hwnd, &raw mut paintStruct);
+
+	      /* The rectangles returned by GetUpdateRect and BeginPaint
+		 do not always match.  Play it safe by assuming both areas
+		 are invalid.  */
+	      UnionRect (&raw mut wmsg.rect, &raw const update_rect,
+			 &raw const paintStruct.rcPaint);
+
+	      #[cfg (feature = "w32_debug_display")]
+	      {
+		DebPrint! ((c"WM_PAINT (frame %p): painting %d,%d-%d,%d\n".as_ptr (),
+			    f, wmsg.rect.left, wmsg.rect.top,
+			    wmsg.rect.right, wmsg.rect.bottom));
+		DebPrint! ((c"  [update region is %d,%d-%d,%d]\n".as_ptr (),
+			    update_rect.left, update_rect.top,
+			    update_rect.right, update_rect.bottom));
+	      }
+	      /* Under double-buffering, update the frame from the back
+		 buffer, to prevent a "ghost" of the selection dialog to
+		 be left on display while the user selects in the dialog.  */
+	      if w32_selection_dialog_open
+		  && !w32_disable_double_buffering
+		  && !(*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).paint_dc.is_null ()
+		{ BitBlt ((*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).paint_buffer_handle,
+			  0, 0, FRAME_PIXEL_WIDTH (f), FRAME_PIXEL_HEIGHT (f),
+			  (*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).paint_dc, 0, 0, SRCCOPY); }
+
+	      EndPaint (hwnd, &raw const paintStruct);
+	      leave_crit! ();
+
+	      /* Change the message type to prevent Windows from
+		 combining WM_PAINT messages in the Lisp thread's queue,
+		 since Windows assumes that each message queue is
+		 dedicated to one frame and does not bother checking
+		 that hwnd matches before combining them.  */
+	      my_post_msg (&raw mut wmsg, hwnd, WM_EMACS_PAINT as UINT, wParam, lParam);
+
+	      return 0;
+	    }
+
+	  /* If GetUpdateRect returns 0 (meaning there is no update
+	     region), assume the whole window needs to be repainted.  */
+	  GetClientRect (hwnd, &raw mut wmsg.rect);
+	  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	  return 0;
+	}
+      WM_INPUTLANGCHANGE =>
+	{
+	  /* Inform lisp thread of keyboard layout changes.  */
+	  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+
+	  /* The state of the finite automaton is separate per every input
+	     language environment (so it does not change when one switches
+	     to a different window with the same environment).  Moreover,
+	     the experiments show that the state is not remembered when
+	     one switches back to the pre-previous environment.  */
+	  after_deadkey = -1;
+
+	  /* XXXX??? What follows is a COMPLETE misunderstanding of Windows!  */
+
+	  /* Clear dead keys in the keyboard state; for simplicity only
+	     preserve modifier key states.  */
+	  {
+	    let mut i: c_int;
+	    let mut keystate: [BYTE; 256] = [0; 256];
+
+	    GetKeyboardState (keystate.as_mut_ptr ());
+	    i = 0;
+	    while i < 256
+	      {
+		if true
+		    && i != VK_SHIFT
+		    && i != VK_LSHIFT
+		    && i != VK_RSHIFT
+		    && i != VK_CAPITAL
+		    && i != VK_NUMLOCK
+		    && i != VK_SCROLL
+		    && i != VK_CONTROL
+		    && i != VK_LCONTROL
+		    && i != VK_RCONTROL
+		    && i != VK_MENU
+		    && i != VK_LMENU
+		    && i != VK_RMENU
+		    && i != VK_LWIN
+		    && i != VK_RWIN
+		  { keystate[i as usize] = 0; }
+		i += 1;
+	      }
+	    SetKeyboardState (keystate.as_mut_ptr ());
+	  }
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_HOTKEY =>
+	{
+	  /* Synchronize hot keys with normal input.  */
+	  PostMessage (hwnd, WM_KEYDOWN as UINT, HIWORD! (lParam) as WPARAM, 0);
+	  return 0;
+	}
+      WM_KEYUP | WM_SYSKEYUP =>
+	{
+	  record_keyup (wParam as c_uint, lParam as c_uint);
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_KEYDOWN | WM_SYSKEYDOWN =>
+	{
+	  /* C's `goto translate` (C 4741) is this flag: it skips the rest of the keydown body and
+	     lands on the `translate:` label below.  */
+	  let mut translate: bool = false;
+
+	  /* Ignore keystrokes we fake ourself; see below.  */
+	  if (*dpyinfo).faked_key == wParam as c_int
+	    {
+	      (*dpyinfo).faked_key = 0;
+	      /* Make sure TranslateMessage sees them though (as long as
+		 they don't produce WM_CHAR messages).  This ensures that
+		 indicator lights are toggled promptly on Windows 9x, for
+		 example.  */
+	      if wParam < 256 && !lispy_function_keys[wParam as usize].is_null ()
+		{
+		  windows_translate = 1;
+		  translate = true;	/* C's `goto translate`.  */
+		}
+	      else
+		{ return 0; }
+	    }
+
+	  if !translate
+	    {
+	      /* Synchronize modifiers with current keystroke.  */
+	      sync_modifiers ();
+	      record_keydown (wParam as c_uint, lParam as c_uint);
+	      if w32_use_fallback_wm_chars_method
+		{
+		  wParam = map_keypad_keys (wParam as c_uint,
+					    (if lParam & 0x1000000 != 0 { 1 } else { 0 })
+					    ) as WPARAM;
+		}
+
+	      windows_translate = 0;
+
+	      /* C's nested `switch (wParam)`; the `disable_lock_key:` label (C 4790) is the flag
+		 the three lock-key arms `goto`.  */
+	      {
+		let mut disable_lock_key: bool = false;
+
+		'wparam:
+		{
+		  match wParam as c_int
+		    {
+		    VK_LWIN =>
+		      {
+			if !w32_kbdhook_active! () && NILP (Vw32_pass_lwindow_to_system)
+			  {
+			    /* Prevent system from acting on keyup (which opens the
+			       Start menu if no other key was pressed) by simulating a
+			       press of Space which we will ignore.  */
+			    if GetAsyncKeyState (wParam as c_int) as c_int & 1 != 0
+			      {
+				if FIXNUMP (Vw32_phantom_key_code)
+				  { key = XUFIXNUM (Vw32_phantom_key_code) as c_int & 255; }
+				else
+				  { key = VK_SPACE; }
+				(*dpyinfo).faked_key = key;
+				keybd_event (key as BYTE,
+					     MapVirtualKey (key as UINT, 0) as BYTE, 0, 0);
+			      }
+			  }
+			if !NILP (Vw32_lwindow_modifier)
+			  { return 0; }
+		      }
+		    VK_RWIN =>
+		      {
+			if !w32_kbdhook_active! () && NILP (Vw32_pass_rwindow_to_system)
+			  {
+			    if GetAsyncKeyState (wParam as c_int) as c_int & 1 != 0
+			      {
+				if FIXNUMP (Vw32_phantom_key_code)
+				  { key = XUFIXNUM (Vw32_phantom_key_code) as c_int & 255; }
+				else
+				  { key = VK_SPACE; }
+				(*dpyinfo).faked_key = key;
+				keybd_event (key as BYTE,
+					     MapVirtualKey (key as UINT, 0) as BYTE, 0, 0);
+			      }
+			  }
+			if !NILP (Vw32_rwindow_modifier)
+			  { return 0; }
+		      }
+		    VK_APPS =>
+		      {
+			if !NILP (Vw32_apps_modifier)
+			  { return 0; }
+		      }
+		    VK_MENU =>
+		      {
+			if NILP (Vw32_pass_alt_to_system)
+			  /* Prevent DefWindowProc from activating the menu bar if an
+			     Alt key is pressed and released by itself.  */
+			  { return 0; }
+			windows_translate = 1;
+		      }
+		    VK_CAPITAL =>
+		      {
+			/* Decide whether to treat as modifier or function key.  */
+			if NILP (Vw32_enable_caps_lock)
+			  /* C's `goto disable_lock_key`.  */
+			  { disable_lock_key = true; break 'wparam; }
+			windows_translate = 1;
+		      }
+		    VK_NUMLOCK =>
+		      {
+			/* Decide whether to treat as modifier or function key.  */
+			if NILP (Vw32_enable_num_lock)
+			  { disable_lock_key = true; break 'wparam; }
+			windows_translate = 1;
+		      }
+		    VK_SCROLL =>
+		      {
+			/* Decide whether to treat as modifier or function key.  */
+			if NILP (Vw32_scroll_lock_modifier)
+			  { disable_lock_key = true; break 'wparam; }
+			windows_translate = 1;
+		      }
+		    VK_CONTROL | VK_SHIFT | VK_PROCESSKEY =>
+		      {
+			/* VK_PROCESSKEY is generated by IME.  */
+			windows_translate = 1;
+		      }
+		    VK_CANCEL =>
+		      {
+			/* Windows maps Ctrl-Pause (aka Ctrl-Break) into VK_CANCEL,
+			   which is confusing for purposes of key binding; convert
+			   VK_CANCEL events into VK_PAUSE events.  */
+			wParam = VK_PAUSE as WPARAM;
+		      }
+		    VK_PAUSE =>
+		      {
+			/* Windows maps Ctrl-NumLock into VK_PAUSE, which is confusing
+			   for purposes of key binding; convert these back into
+			   VK_NUMLOCK events, at least when we want to see NumLock key
+			   presses.  (Note that there is never any possibility that
+			   VK_PAUSE with Ctrl really is C-Pause as per above.)  */
+			if NILP (Vw32_enable_num_lock) && modifier_set (VK_CONTROL) != 0
+			  { wParam = VK_NUMLOCK as WPARAM; }
+		      }
+		    _ =>
+		      {
+			let mut break_out: bool = false;
+
+			if w32_unicode_gui != 0 && !w32_use_fallback_wm_chars_method
+			  {
+			    /* If this event generates characters or deadkeys, do
+			       not interpret it as a "raw combination of modifiers
+			       and keysym".  Hide deadkeys, and use the generated
+			       character(s) instead of the keysym.  (Backward
+			       compatibility: exceptions for numpad keys generating
+			       0-9 . , / * - +, and for extra-Alt combined with a
+			       non-Latin char.)
+
+			       Try to not report modifiers which have effect on
+			       which character or deadkey is generated.
+
+			       Example (contrived): if rightAlt-? generates f (on a
+			       Cyrillic keyboard layout), and Ctrl, leftAlt do not
+			       affect the generated character, one wants to report
+			       Ctrl-leftAlt-f if the user presses
+			       Ctrl-leftAlt-rightAlt-?.  */
+			    let res: c_int;
+
+			    /* C 4852-4867 is `#if 0` - C's own dead text (the commented-out
+			       `deliver_wm_chars (0, …)` call and its five-line comment),
+			       which the port records instead of carrying (the
+			       `character.rs` 118 `#if 0` reading; C's own `#if 0` never
+			       compiles in any configuration).  */
+			    /* Processing the generated WM_CHAR messages *WHILE* we
+			       handle KEYDOWN/UP event is the best choice, since
+			       without any fuss, we know all 3 of: scancode, virtual
+			       keycode, and expansion.  (Additionally, one knows
+			       boundaries of expansion of different keypresses.)  */
+			    res = deliver_wm_chars (1, hwnd, msg, wParam as UINT, lParam as UINT, 1);
+			    windows_translate = -((res != 0) as c_int);
+			    if res > 0 /* Bound to character(s) or a deadkey */
+			      /* C's `break` out of the nested switch.  */
+			      { break_out = true; }
+			    /* deliver_wm_chars may make some branches after this vestigal.  */
+			  }
+			if !break_out
+			  {
+			    wParam = map_keypad_keys (wParam as c_uint,
+						      (if lParam & 0x1000000 != 0 { 1 } else { 0 })
+						      ) as WPARAM;
+			    /* If not defined as a function key, change it to a WM_CHAR message.  */
+			    if wParam > 255 || lispy_function_keys[wParam as usize].is_null ()
+			      {
+				let modifiers_: DWORD = w32_construct_console_modifiers () as DWORD;
+
+				if !NILP (Vw32_recognize_altgr)
+				    && modifier_set (VK_LCONTROL) != 0
+				    && modifier_set (VK_RMENU) != 0
+				  {
+				    /* Always let TranslateMessage handle AltGr key chords;
+				       for some reason, ToAscii doesn't always process AltGr
+				       chords correctly.  */
+				    windows_translate = 1;
+				  }
+				else if (modifiers_
+					 & (!(SHIFT_PRESSED as DWORD)
+					    & !(CAPSLOCK_ON as DWORD))) != 0
+				  {
+				    /* Handle key chords including any modifiers other
+				       than shift directly, in order to preserve as much
+				       modifier information as possible.  */
+				    if 'A' as WPARAM <= wParam && wParam <= 'Z' as WPARAM
+				      {
+					/* Don't translate modified alphabetic keystrokes,
+					   so the user doesn't need to constantly switch
+					   layout to type control or meta keystrokes when
+					   the normal layout translates alphabetic
+					   characters to non-ascii characters.  */
+					if modifier_set (VK_SHIFT) == 0
+					  { wParam += ('a' as WPARAM - 'A' as WPARAM); }
+					msg = WM_CHAR as UINT;
+				      }
+				    else
+				      {
+					/* Try to handle other keystrokes by determining the
+					   base character (ie. translating the base key plus
+					   shift modifier).  */
+					let mut add: c_int;
+					let mut key_record: KEY_EVENT_RECORD = core::mem::zeroed ();
+
+					key_record.bKeyDown = TRUE;
+					key_record.wRepeatCount = 1;
+					key_record.wVirtualKeyCode = wParam as WORD;
+					key_record.wVirtualScanCode = ((lParam & 0xFF0000) >> 16) as WORD;
+					key_record.uChar.AsciiChar = 0;
+					key_record.dwControlKeyState = modifiers_;
+
+					add = w32_kbd_patch_key (&raw mut key_record as *mut c_void,
+								 w32_keyboard_codepage);
+					/* 0 means an unrecognized keycode, negative means
+					   dead key.  Ignore both.  */
+					/* C's `while (--add >= 0)`: the pre-decrement runs on the
+					   test, and the loop runs while the new value is ≥ 0.  */
+					loop
+					  {
+					    add -= 1;
+					    if add < 0 { break; }
+					    /* Forward asciified character sequence.  */
+					    post_character_message
+					      (hwnd, WM_CHAR as UINT,
+					       key_record.uChar.AsciiChar as u8 as WPARAM, lParam,
+					       w32_get_key_modifiers (wParam as c_uint,
+								      lParam as c_uint) as DWORD);
+					    w32_kbd_patch_key (&raw mut key_record as *mut c_void,
+							       w32_keyboard_codepage);
+					  }
+					return 0;
+				      }
+				  }
+				else
+				  {
+				    /* Let TranslateMessage handle everything else.  */
+				    windows_translate = 1;
+				  }
+			      }
+			  }
+		      }
+		    }
+		}
+
+		if disable_lock_key
+		  {
+		    /* C: `disable_lock_key:` - "Ensure the appropriate lock key state (and indicator
+		       light) remains in the same state. We do this by faking another press of the
+		       relevant key.  Apparently, this really is the only way to toggle the state of
+		       the indicator lights."  */
+		    (*dpyinfo).faked_key = wParam as c_int;
+		    keybd_event (wParam as BYTE, MapVirtualKey (wParam as UINT, 0) as BYTE,
+				 KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+		    keybd_event (wParam as BYTE, MapVirtualKey (wParam as UINT, 0) as BYTE,
+				 KEYEVENTF_EXTENDEDKEY | 0, 0);
+		    keybd_event (wParam as BYTE, MapVirtualKey (wParam as UINT, 0) as BYTE,
+				 KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0);
+		    /* Ensure indicator lights are updated promptly on Windows 9x
+		       (TranslateMessage apparently does this), after forwarding
+		       input event.  */
+		    post_character_message (hwnd, msg, wParam, lParam,
+					    w32_get_key_modifiers (wParam as c_uint,
+								   lParam as c_uint) as DWORD);
+		    windows_translate = 1;
+		  }
+	      }
+
+	      if windows_translate == -1
+		{ break 'dispatch; }
+	    }
+
+	  /* C: `translate:` (C 4869).  C's `MSG windows_msg = { hwnd, msg, wParam, lParam, 0,
+	     {0,0} };` is the four field writes plus the zeroed tail.  */
+	  if windows_translate != 0
+	    {
+	      let mut windows_msg: MSG = core::mem::zeroed ();
+
+	      windows_msg.hwnd = hwnd;
+	      windows_msg.message = msg;
+	      windows_msg.wParam = wParam;
+	      windows_msg.lParam = lParam;
+
+	      windows_msg.time = GetMessageTime () as DWORD;
+	      TranslateMessage (&raw const windows_msg);
+	      return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		(hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	    }
+	  /* C's `FALLTHROUGH` into `case WM_SYSCHAR: case WM_CHAR:`'s body (C 4879-4898), which
+	     the port writes here in C's own statements.  */
+	  if wParam > 255
+	    {
+	      let mut wmsg: W32Msg = core::mem::zeroed ();
+
+	      wmsg.dwModifiers = w32_get_key_modifiers (wParam as c_uint, lParam as c_uint) as DWORD;
+	      signal_user_input ();
+	      my_post_msg (&raw mut wmsg, hwnd, WM_UNICHAR as UINT, wParam, lParam);
+	    }
+	  else
+	    { post_character_message (hwnd, msg, wParam, lParam,
+				      w32_get_key_modifiers (wParam as c_uint,
+							     lParam as c_uint) as DWORD); }
+	  break 'dispatch;
+	}
+
+      WM_SYSCHAR | WM_CHAR =>
+	{
+	  if wParam > 255
+	    {
+	      let mut wmsg: W32Msg = core::mem::zeroed ();
+
+	      wmsg.dwModifiers = w32_get_key_modifiers (wParam as c_uint, lParam as c_uint) as DWORD;
+	      signal_user_input ();
+	      my_post_msg (&raw mut wmsg, hwnd, WM_UNICHAR as UINT, wParam, lParam);
+	    }
+	  else
+	    { post_character_message (hwnd, msg, wParam, lParam,
+				      w32_get_key_modifiers (wParam as c_uint,
+							     lParam as c_uint) as DWORD); }
+	  break 'dispatch;
+	}
+      WM_UNICHAR =>
+	{
+	  /* WM_UNICHAR looks promising from the docs, but the exact
+	     circumstances in which TranslateMessage sends it is one of those
+	     Microsoft secret API things that EU and US courts are supposed
+	     to have put a stop to already. Spy++ shows it being sent to Notepad
+	     and other MS apps, but never to Emacs.
+
+	     Some third party IMEs send it in accordance with the official
+	     documentation though, so handle it here.
+
+	     UNICODE_NOCHAR is used to test for support for this message.
+	     TRUE indicates that the message is supported.  */
+	  if wParam == UNICODE_NOCHAR as WPARAM
+	    { return TRUE as LRESULT; }
+
+	  {
+	    let mut wmsg: W32Msg = core::mem::zeroed ();
+	    wmsg.dwModifiers = w32_get_key_modifiers (wParam as c_uint, lParam as c_uint) as DWORD;
+	    signal_user_input ();
+	    my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	  }
+	  break 'dispatch;
+	}
+      WM_IME_CHAR =>
+	{
+	  /* If we can't get the IME result as Unicode, use default processing,
+	     which will at least allow characters decodable in the system locale
+	     get through.  */
+	  if get_composition_string_fn.is_none ()
+	    {
+	      return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		(hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	    }
+	  else if ignore_ime_char == 0
+	    {
+	      /* C 5039's `wchar_t * buffer;` is the Windows 16-bit wide character, which this unit
+		 spells `c_ushort` (the `process_dropfiles` `macro-body-notes.tsv` row's reading: the
+		 tree's `wchar_t` is the host's 4-byte type).  */
+	      let mut buffer: *mut c_ushort;
+	      let mut size: c_int;
+	      let mut i: c_int;
+	      let mut wmsg: W32Msg = core::mem::zeroed ();
+	      let context: HIMC = (get_ime_context_fn.unwrap ()) (hwnd);
+	      wmsg.dwModifiers =
+		if w32_ignore_modifiers_on_IME_input
+		  { 0 }
+		else
+		  { w32_get_key_modifiers (wParam as c_uint, lParam as c_uint) as DWORD };
+	      /* Get buffer size.  */
+	      size = (get_composition_string_fn.unwrap ())
+		(context, GCS_RESULTSTR, core::ptr::null_mut (), 0) as c_int;
+	      buffer = sa_stack_alloc (size as usize) as *mut c_ushort;
+	      size = (get_composition_string_fn.unwrap ())
+		(context, GCS_RESULTSTR, buffer as *mut c_void, size as DWORD) as c_int;
+	      (release_ime_context_fn.unwrap ()) (hwnd, context);
+
+	      signal_user_input ();
+	      i = 0;
+	      while i < size / core::mem::size_of::<c_ushort> () as c_int
+		{
+		  my_post_msg (&raw mut wmsg, hwnd, WM_UNICHAR as UINT,
+			       *buffer.offset (i as isize) as WPARAM, lParam);
+		  i += 1;
+		}
+	      /* Ignore the messages for the rest of the
+		 characters in the string that was output above.  */
+	      ignore_ime_char = size / core::mem::size_of::<c_ushort> () as c_int - 1;
+	    }
+	  else
+	    { ignore_ime_char -= 1; }
+
+	  break 'dispatch;
+	}
+      WM_IME_STARTCOMPOSITION =>
+	{
+	  if set_ime_composition_window_fn.is_none ()
+	    {
+	      return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		(hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	    }
+	  else
+	    {
+	      let mut form: COMPOSITIONFORM = core::mem::zeroed ();
+	      let mut lf: LOGFONTW = core::mem::zeroed ();
+	      let mut context: HIMC;
+	      let mut w: *mut window;
+
+	      /* Implementation note: The code below does something that
+		 one shouldn't do: it accesses the window object from a
+		 separate thread, while the main (a.k.a. "Lisp") thread
+		 runs and can legitimately delete and even GC it.  That is
+		 why we are extra careful not to futz with a window that
+		 is different from the one recorded when the system caret
+		 coordinates were last modified.  That is also why we are
+		 careful not to move the IME window if the window
+		 described by W was deleted, as indicated by its buffer
+		 field being reset to nil.  */
+	      f = w32_window_to_frame (dpyinfo, hwnd);
+	      if !(!f.is_null () && FRAME_LIVE_P (f))
+		{
+		  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+		}
+	      w = XWINDOW (FRAME_SELECTED_WINDOW (f));
+	      /* Punt if someone changed the frame's selected window
+		 behind our back. */
+	      if w != w32_system_caret_window as *mut window
+		{
+		  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+		}
+
+	      form.dwStyle = CFS_RECT;
+	      form.ptCurrentPos.x = w32_system_caret_x;
+	      form.ptCurrentPos.y = w32_system_caret_y;
+
+	      form.rcArea.left = WINDOW_TEXT_TO_FRAME_PIXEL_X! (w, 0);
+	      form.rcArea.top = (WINDOW_TOP_EDGE_Y! (w)
+				 + w32_system_caret_hdr_height);
+	      form.rcArea.right = (WINDOW_BOX_RIGHT_EDGE_X! (w)
+				   - WINDOW_RIGHT_MARGIN_WIDTH! (w)
+				   - WINDOW_RIGHT_FRINGE_WIDTH! (w));
+	      form.rcArea.bottom = (WINDOW_BOTTOM_EDGE_Y! (w)
+				    - WINDOW_BOTTOM_DIVIDER_WIDTH! (w)
+				    - w32_system_caret_mode_height);
+
+	      /* Punt if the window was deleted behind our back.  */
+	      if !BUFFERP ((*w).contents)
+		{
+		  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+		}
+
+	      context = (get_ime_context_fn.unwrap ()) (hwnd);
+
+	      if context.is_null ()
+		{
+		  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+		}
+
+	      GetObjectW (FONT_HANDLE! (w32_system_remap_font), core::mem::size_of_val (&lf) as c_int,
+			  &raw mut lf as *mut c_void);
+	      (set_ime_composition_font_fn.unwrap ()) (context, &raw mut lf as *mut c_void);
+	      (set_ime_composition_window_fn.unwrap ()) (context, &raw mut form as *mut c_void);
+	      (release_ime_context_fn.unwrap ()) (hwnd, context);
+	    }
+	  /* FIXME: somehow "goto dflt" here instead of "break" causes
+	     popup dialogs, such as the ones shown by File->Open File and
+	     w32-select-font, to become hidden behind their parent frame,
+	     when focus-follows-mouse is in effect.  See bug#11732.  But
+	     if we don't "goto dflt", users of IME cannot type text
+	     supported by the input method...  */
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_IME_ENDCOMPOSITION =>
+	{
+	  ignore_ime_char = 0;
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      /* Simulate middle mouse button events when left and right buttons
+	 are used together, but only if user has two button mouse. */
+      WM_LBUTTONDOWN | WM_RBUTTONDOWN =>
+	{
+	  /* Ignore mouse events produced by a touch screen.  */
+	  /* C 5113-5115: `#ifndef MOUSEEVENTF_FROMTOUCH / #define MOUSEEVENTF_FROMTOUCH
+	     0xFF515700 / #endif` (the constant is above).  */
+	  if GetMessageExtraInfo () as DWORD & MOUSEEVENTF_FROMTOUCH != 0
+	    {
+	      return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		(hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	    }
+
+	  if w32_num_mouse_buttons > 2
+	    { handle_plain_button = true; }	/* C's `goto handle_plain_button`.  */
+	  else
+	    {
+	      let this: c_int = if msg as c_int == WM_LBUTTONDOWN { LMOUSE } else { RMOUSE };
+	      let other: c_int = if msg as c_int == WM_LBUTTONDOWN { RMOUSE } else { LMOUSE };
+
+	      if button_state & this != 0
+		{ return 0; }
+
+	      /* Don't capture mouse when dropping.  */
+	      if button_state == 0 && !EQ (track_mouse, Qdropping ())
+		{ SetCapture (hwnd); }
+
+	      button_state |= this;
+
+	      if button_state & other != 0
+		{
+		  if mouse_button_timer != 0
+		    {
+		      KillTimer (hwnd, mouse_button_timer as UINT_PTR);
+		      mouse_button_timer = 0;
+
+		      /* Generate middle mouse event instead. */
+		      msg = WM_MBUTTONDOWN as UINT;
+		      button_state |= MMOUSE;
+		    }
+		  else if button_state & MMOUSE != 0
+		    {
+		      /* Ignore button event if we've already generated a
+			 middle mouse down event.  This happens if the
+			 user releases and press one of the two buttons
+			 after we've faked a middle mouse event. */
+		      return 0;
+		    }
+		  else
+		    {
+		      /* Flush out saved message. */
+		      post_msg (&raw mut saved_mouse_button_msg);
+		    }
+		  wmsg.dwModifiers = w32_get_modifiers ();
+		  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+		  signal_user_input ();
+
+		  /* Clear message buffer. */
+		  saved_mouse_button_msg.msg.hwnd = core::ptr::null_mut ();
+		}
+	      else
+		{
+		  /* Hold onto message for now. */
+		  mouse_button_timer =
+		    SetTimer (hwnd, MOUSE_BUTTON_ID as UINT_PTR,
+			      w32_mouse_button_tolerance as UINT, core::ptr::null_mut ()) as c_uint;
+		  saved_mouse_button_msg.msg.hwnd = hwnd;
+		  saved_mouse_button_msg.msg.message = msg;
+		  saved_mouse_button_msg.msg.wParam = wParam;
+		  saved_mouse_button_msg.msg.lParam = lParam;
+		  saved_mouse_button_msg.msg.time = GetMessageTime () as DWORD;
+		  saved_mouse_button_msg.dwModifiers = w32_get_modifiers ();
+		}
+	    }
+	  return 0;
+	}
+      WM_LBUTTONUP | WM_RBUTTONUP =>
+	{
+	  /* Ignore mouse events produced by a touch screen.  */
+	  /* C 5185-5187: the same `#ifndef MOUSEEVENTF_FROMTOUCH` guard.  */
+	  if GetMessageExtraInfo () as DWORD & MOUSEEVENTF_FROMTOUCH != 0
+	    {
+	      return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		(hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	    }
+
+	  if w32_num_mouse_buttons > 2
+	    { handle_plain_button = true; }	/* C's `goto handle_plain_button`.  */
+	  else
+	    {
+	      let this: c_int = if msg as c_int == WM_LBUTTONUP { LMOUSE } else { RMOUSE };
+	      let other: c_int = if msg as c_int == WM_LBUTTONUP { RMOUSE } else { LMOUSE };
+
+	      if (button_state & this) == 0
+		{ return 0; }
+
+	      button_state &= !this;
+
+	      if button_state & MMOUSE != 0
+		{
+		  /* Only generate event when second button is released. */
+		  if (button_state & other) == 0
+		    {
+		      msg = WM_MBUTTONUP as UINT;
+		      button_state &= !MMOUSE;
+
+		      if button_state != 0 { emacs_abort (); }
+		    }
+		  else
+		    { return 0; }
+		}
+	      else
+		{
+		  /* Flush out saved message if necessary. */
+		  if !saved_mouse_button_msg.msg.hwnd.is_null ()
+		    {
+		      post_msg (&raw mut saved_mouse_button_msg);
+		    }
+		}
+	      wmsg.dwModifiers = w32_get_modifiers ();
+	      my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	      signal_user_input ();
+
+	      /* Always clear message buffer and cancel timer. */
+	      saved_mouse_button_msg.msg.hwnd = core::ptr::null_mut ();
+	      KillTimer (hwnd, mouse_button_timer as UINT_PTR);
+	      mouse_button_timer = 0;
+
+	      if button_state == 0
+		{ ReleaseCapture (); }
+	    }
+	  return 0;
+	}
+      WM_XBUTTONDOWN | WM_XBUTTONUP =>
+	{
+	  if w32_pass_extra_mouse_buttons_to_system
+	    {
+	      return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		(hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	    }
+	  /* else fall through and process them.  */
+	  handle_plain_button = true;			/* C's `FALLTHROUGH` into `handle_plain_button`.  */
+	}
+      WM_MBUTTONDOWN | WM_MBUTTONUP =>
+	{
+	  handle_plain_button = true;			/* C: the two `case`s label `handle_plain_button`.  */
+	}
+      WM_MOUSEMOVE | WM_HSCROLL | WM_VSCROLL =>
+	{
+	  if msg as c_int == WM_MOUSEMOVE
+	    {
+	      f = w32_window_to_frame (dpyinfo, hwnd);
+	      if !f.is_null ()
+		{
+		  /* Ignore mouse movements as long as the menu is active.
+		     These movements are processed by the window manager
+		     anyway, and it's wrong to handle them as if they happened
+		     on the underlying frame.  */
+		  if (*( (*f).output_data.w32 as *mut w32_output )).menubar_active != 0
+		    { return 0; }
+
+		  /* If the mouse moved, and the mouse pointer is invisible,
+		     make it visible again.  We do this here so as to be able
+		     to show the mouse pointer even when the main
+		     (a.k.a. "Lisp") thread is busy doing something.  */
+		  /* C 5328: C's function-local `static int last_x, last_y;` are the two
+		     file-scope `last_x`/`last_y` above (the `force_quit_count` reading).  */
+		  let x: c_int = GET_X_LPARAM! (lParam);
+		  let y: c_int = GET_Y_LPARAM! (lParam);
+
+		  if pointer_invisible! (f) && (x != last_x || y != last_y)
+		    { pointer_invisible! (f, false); }
+
+		  last_x = x;
+		  last_y = y;
+		}
+
+	      /* If the mouse has just moved into the frame, start tracking
+		 it, so we will be notified when it leaves the frame.  Mouse
+		 tracking only works under W98 and NT4 and later. On earlier
+		 versions, there is no way of telling when the mouse leaves the
+		 frame, so we just have to put up with help-echo and mouse
+		 highlighting remaining while the frame is not active.  */
+	      if track_mouse_event_fn.is_some () && track_mouse_window.is_null ()
+		  /* If the menu bar is active, turning on tracking of mouse
+		     movement events might send these events to the tooltip
+		     frame, if the user happens to move the mouse pointer over
+		     the tooltip.  But since we don't process events for
+		     tooltip frames, this causes Windows to present a
+		     hourglass cursor, which is ugly and unexpected.  So don't
+		     enable tracking mouse events in this case; they will be
+		     restarted when the menu pops down.  (Confusingly, the
+		     menubar_active member of f->output_data.w32, tested
+		     above, is only set when a menu was popped up _not_ from
+		     the frame's menu bar, but via x-popup-menu.)  */
+		  && menubar_in_use == 0
+		{
+		  let mut tme: TRACKMOUSEEVENT = core::mem::zeroed ();
+		  tme.cbSize = core::mem::size_of_val (&tme) as DWORD;
+		  tme.dwFlags = TME_LEAVE as DWORD;
+		  tme.hwndTrack = hwnd;
+		  tme.dwHoverTime = HOVER_DEFAULT;
+
+		  (track_mouse_event_fn.unwrap ()) (&raw mut tme as *mut c_void);
+		  track_mouse_window = hwnd;
+		}
+	      /* C's `FALLTHROUGH` into `case WM_HSCROLL: case WM_VSCROLL:` (C 5349).  */
+	    }
+	  if w32_mouse_move_interval <= 0
+	      || (msg as c_int == WM_MOUSEMOVE && button_state == 0)
+	    {
+	      wmsg.dwModifiers = w32_get_modifiers ();
+	      my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	      return 0;
+	    }
+
+	  /* Hang onto mouse move and scroll messages for a bit, to avoid
+	     sending such events to Emacs faster than it can process them.
+	     If we get more events before the timer from the first message
+	     expires, we just replace the first message. */
+
+	  if saved_mouse_move_msg.msg.hwnd.is_null ()
+	    {
+	      mouse_move_timer =
+		SetTimer (hwnd, MOUSE_MOVE_ID as UINT_PTR, w32_mouse_move_interval as UINT,
+			  core::ptr::null_mut ()) as c_uint;
+	    }
+
+	  /* Hold onto message for now. */
+	  saved_mouse_move_msg.msg.hwnd = hwnd;
+	  saved_mouse_move_msg.msg.message = msg;
+	  saved_mouse_move_msg.msg.wParam = wParam;
+	  saved_mouse_move_msg.msg.lParam = lParam;
+	  saved_mouse_move_msg.msg.time = GetMessageTime () as DWORD;
+	  saved_mouse_move_msg.dwModifiers = w32_get_modifiers ();
+
+	  return 0;
+	}
+      WM_MOUSEWHEEL =>
+	{
+	  wmsg.dwModifiers = w32_get_modifiers ();
+	  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	  signal_user_input ();
+	  return 0;
+	}
+      WM_APPCOMMAND | WM_MOUSEHWHEEL =>
+	{
+	  if msg as c_int == WM_APPCOMMAND && w32_pass_multimedia_buttons_to_system
+	    {
+	      return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+		(hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	    }
+	  /* Otherwise, pass to lisp, the same way we do with mousehwheel.  */
+	  /* C's `FALLTHROUGH` into `case WM_MOUSEHWHEEL:` is the body below; C 5369-5371's
+	     `FIXME!!!  This is never reached so what's the purpose?  If the non-zero return remark
+	     below is right we're doing it wrong all the time.` is C's own note.  */
+	  wmsg.dwModifiers = w32_get_modifiers ();
+	  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	  signal_user_input ();
+	  /* Non-zero must be returned when WM_MOUSEHWHEEL messages are
+	     handled, to prevent the system trying to handle it by faking
+	     scroll bar events.  */
+	  return 1;
+	}
+      WM_TIMER =>
+	{
+	  /* Flush out saved messages if necessary. */
+	  if wParam as c_uint == mouse_button_timer
+	    {
+	      if !saved_mouse_button_msg.msg.hwnd.is_null ()
+		{
+		  post_msg (&raw mut saved_mouse_button_msg);
+		  signal_user_input ();
+		  saved_mouse_button_msg.msg.hwnd = core::ptr::null_mut ();
+		}
+	      KillTimer (hwnd, mouse_button_timer as UINT_PTR);
+	      mouse_button_timer = 0;
+	    }
+	  else if wParam as c_uint == mouse_move_timer
+	    {
+	      if !saved_mouse_move_msg.msg.hwnd.is_null ()
+		{
+		  post_msg (&raw mut saved_mouse_move_msg);
+		  saved_mouse_move_msg.msg.hwnd = core::ptr::null_mut ();
+		}
+	      KillTimer (hwnd, mouse_move_timer as UINT_PTR);
+	      mouse_move_timer = 0;
+	    }
+	  else if wParam as c_uint == menu_free_timer
+	    {
+	      KillTimer (hwnd, menu_free_timer as UINT_PTR);
+	      menu_free_timer = 0;
+	      f = w32_window_to_frame (dpyinfo, hwnd);
+	      /* If a popup menu is active, don't wipe its strings.  */
+	      if menubar_in_use != 0
+		  && current_popup_menu.is_null ()
+		{
+		  /* Free memory used by owner-drawn and help-echo strings.  */
+		  w32_free_menu_strings (hwnd);
+		  if !f.is_null ()
+		    { (*( (*f).output_data.w32 as *mut w32_output )).menubar_active = 0; }
+		  menubar_in_use = 0;
+		}
+	    }
+	  return 0;
+	}
+      WM_NCACTIVATE =>
+	{
+	  /* Windows doesn't send us focus messages when putting up and
+	     taking down a system popup dialog as for Ctrl-Alt-Del on Windows 95.
+	     The only indication we get that something happened is receiving
+	     this message afterwards.  So this is a good time to reset our
+	     keyboard modifiers' state. */
+	  reset_modifiers ();
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_INITMENU =>
+	{
+	  button_state = 0;
+	  ReleaseCapture ();
+	  /* We must ensure menu bar is fully constructed and up to date
+	     before allowing user interaction with it.  To achieve this
+	     we send this message to the lisp thread and wait for a
+	     reply (whose value is not actually needed) to indicate that
+	     the menu bar is now ready for use, so we can now return.
+
+	     To remain responsive in the meantime, we enter a nested message
+	     loop that can process all other messages.
+
+	     However, we skip all this if the message results from calling
+	     TrackPopupMenu - in fact, we must NOT attempt to send the lisp
+	     thread a message because it is blocked on us at this point.  We
+	     set menubar_active before calling TrackPopupMenu to indicate
+	     this (there is no possibility of confusion with real menubar
+	     being active).  */
+
+	  f = w32_window_to_frame (dpyinfo, hwnd);
+	  if !f.is_null ()
+	      && ((*( (*f).output_data.w32 as *mut w32_output )).menubar_active != 0
+		  /* We can receive this message even in the absence of a
+		     menubar (ie. when the system menu is activated) - in this
+		     case we do NOT want to forward the message, otherwise it
+		     will cause the menubar to suddenly appear when the user
+		     had requested it to be turned off!  */
+		  || (*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).menubar_widget.is_null ())
+	    { return 0; }
+
+	  {
+	    let mut msg_buf: deferred_msg = core::mem::zeroed ();
+
+	    /* Detect if message has already been deferred; in this case
+	       we cannot return any sensible value to ignore this.  */
+	    if !find_deferred_msg (hwnd, msg).is_null ()
+	      { emacs_abort (); }
+
+	    menubar_in_use = 1;
+
+	    return send_deferred_msg (&raw mut msg_buf, hwnd, msg, wParam, lParam);
+	  }
+	}
+      WM_EXITMENULOOP =>
+	{
+	  f = w32_window_to_frame (dpyinfo, hwnd);
+
+	  /* If a menu is still active, check again after a short delay,
+	     since Windows often (always?) sends the WM_EXITMENULOOP
+	     before the corresponding WM_COMMAND message.
+	     Don't do this if a popup menu is active, since it is only
+	     menubar menus that require cleaning up in this way.
+	  */
+	  if !f.is_null () && menubar_in_use != 0 && current_popup_menu.is_null ()
+	    {
+	      menu_free_timer = SetTimer (hwnd, MENU_FREE_ID as UINT_PTR,
+					  MENU_FREE_DELAY as UINT,
+					  core::ptr::null_mut ()) as c_uint;
+	    }
+
+	  /* If hourglass cursor should be displayed, display it now.  */
+	  if !f.is_null () && (*( (*f).output_data.w32 as *mut w32_output )).hourglass_p != 0
+	    { SetCursor ((*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).hourglass_cursor); }
+
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_MENUSELECT =>
+	{
+	  /* Direct handling of help_echo in menus.  Should be safe now
+	     that we generate the help_echo by placing a help event in the
+	     keyboard buffer.  */
+	  {
+	    let menu: HMENU = lParam as HMENU;
+	    let menu_item: UINT = LOWORD! (wParam) as UINT;
+	    let flags: UINT = HIWORD! (wParam) as UINT;
+
+	    w32_menu_display_help (hwnd, menu, menu_item, flags);
+	  }
+	  return 0;
+	}
+      WM_MEASUREITEM =>
+	{
+	  f = w32_window_to_frame (dpyinfo, hwnd);
+	  if !f.is_null ()
+	    {
+	      let pMis: *mut MEASUREITEMSTRUCT = lParam as *mut MEASUREITEMSTRUCT;
+
+	      if (*pMis).CtlType == ODT_MENU
+		{
+		  /* Work out dimensions for popup menu titles. */
+		  let title: *mut c_char = (*pMis).itemData as *mut c_char;
+		  let hdc: HDC = GetDC (hwnd);
+		  let mut menu_font: HFONT = GetCurrentObject (hdc, OBJ_FONT as UINT) as HFONT;
+		  let mut menu_logfont: LOGFONT = core::mem::zeroed ();
+		  let old_font: HFONT;
+		  let mut size: SIZE = core::mem::zeroed ();
+
+		  GetObject (menu_font as HANDLE, core::mem::size_of_val (&menu_logfont) as c_int,
+			     &raw mut menu_logfont as *mut c_void);
+		  menu_logfont.lfWeight = FW_BOLD;
+		  menu_font = CreateFontIndirect (&raw const menu_logfont);
+		  old_font = SelectObject (hdc, menu_font as HGDIOBJ) as HFONT;
+
+		  (*pMis).itemHeight = GetSystemMetrics (SM_CYMENUSIZE) as UINT;
+		  if !title.is_null ()
+		    {
+		      if unicode_append_menu.is_some ()
+			{
+			  GetTextExtentPoint32W (hdc, title as *const WCHAR,
+						 wcslen (title as *const WCHAR) as c_int,
+						 &raw mut size);
+			}
+		      else
+			{
+			  GetTextExtentPoint32 (hdc, title, strlen (title) as c_int,
+						&raw mut size);
+			}
+
+		      (*pMis).itemWidth = size.cx as UINT;
+		      if (*pMis).itemHeight < size.cy as UINT
+			{ (*pMis).itemHeight = size.cy as UINT; }
+		    }
+		  else
+		    { (*pMis).itemWidth = 0; }
+
+		  SelectObject (hdc, old_font as HGDIOBJ);
+		  DeleteObject (menu_font as HGDIOBJ);
+		  ReleaseDC (hwnd, hdc);
+		  return TRUE as LRESULT;
+		}
+	    }
+	  return 0;
+	}
+      WM_DRAWITEM =>
+	{
+	  f = w32_window_to_frame (dpyinfo, hwnd);
+	  if !f.is_null ()
+	    {
+	      let pDis: *mut DRAWITEMSTRUCT = lParam as *mut DRAWITEMSTRUCT;
+
+	      if (*pDis).CtlType == ODT_MENU
+		{
+		  /* Draw popup menu title. */
+		  let title: *mut c_char = (*pDis).itemData as *mut c_char;
+		  if !title.is_null ()
+		    {
+		      let hdc: HDC = (*pDis).hDC;
+		      let mut menu_font: HFONT = GetCurrentObject (hdc, OBJ_FONT as UINT) as HFONT;
+		      let mut menu_logfont: LOGFONT = core::mem::zeroed ();
+		      let old_font: HFONT;
+
+		      GetObject (menu_font as HANDLE, core::mem::size_of_val (&menu_logfont) as c_int,
+				 &raw mut menu_logfont as *mut c_void);
+		      menu_logfont.lfWeight = FW_BOLD;
+		      menu_font = CreateFontIndirect (&raw const menu_logfont);
+		      old_font = SelectObject (hdc, menu_font as HGDIOBJ) as HFONT;
+
+		      /* Always draw title as if not selected.  */
+		      if unicode_append_menu.is_some ()
+			{
+			  ExtTextOutW (hdc,
+				       (*pDis).rcItem.left
+				       + GetSystemMetrics (SM_CXMENUCHECK),
+				       (*pDis).rcItem.top,
+				       ETO_OPAQUE, &raw const (*pDis).rcItem,
+				       title as *const WCHAR,
+				       wcslen (title as *const WCHAR) as UINT, core::ptr::null ());
+			}
+		      else
+			{
+			  ExtTextOut (hdc,
+				      (*pDis).rcItem.left
+				      + GetSystemMetrics (SM_CXMENUCHECK),
+				      (*pDis).rcItem.top,
+				      ETO_OPAQUE, &raw const (*pDis).rcItem,
+				      title, strlen (title) as UINT, core::ptr::null ());
+			}
+
+		      SelectObject (hdc, old_font as HGDIOBJ);
+		      DeleteObject (menu_font as HGDIOBJ);
+		    }
+		  return TRUE as LRESULT;
+		}
+	    }
+	  return 0;
+	}
+      WM_MOUSEACTIVATE =>
+	{
+	  /* WM_MOUSEACTIVATE is the only way on Windows to implement the
+	     `no-accept-focus' frame parameter.  This means that one can't
+	     use the mouse to scroll a window on a non-selected frame.  */
+
+	  /* Still not right - can't distinguish between clicks in the
+	     client area of the frame from clicks forwarded from the scroll
+	     bars - may have to hook WM_NCHITTEST to remember the mouse
+	     position and then check if it is in the client area
+	     ourselves.  */
+
+	  /* Discard the mouse click that activates a frame, allowing the
+	     user to click anywhere without changing point (or worse!).
+	     Don't eat mouse clicks on scrollbars though!!  */
+
+	  f = w32_window_to_frame (dpyinfo, hwnd);
+	  if !f.is_null ()
+	      && FRAME_NO_ACCEPT_FOCUS (f) != 0
+	      /* Ignore child frames, they don't accept focus anyway.  */
+	      && FRAME_PARENT_FRAME (f).is_null ()
+	    {
+	      let mut frame: Lisp_Object = Qnil ();
+
+	      XSETFRAME! (frame, f);
+	      if !EQ (selected_frame, frame)
+		/* Don't discard the message, GTK doesn't either.  */
+		{ return MA_NOACTIVATE; } /* ANDEAT; */
+	    }
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_MOUSELEAVE | WM_ACTIVATEAPP | WM_ACTIVATE | WM_WINDOWPOSCHANGED | WM_SHOWWINDOW =>
+	{
+	  /* C's `case WM_MOUSELEAVE:` sets the tracker and `FALLTHROUGH`s into this body.  */
+	  if msg as c_int == WM_MOUSELEAVE
+	    {
+	      /* No longer tracking mouse.  */
+	      track_mouse_window = core::ptr::null_mut ();
+	    }
+
+	  /* Inform lisp thread that a frame might have just been obscured
+	     or exposed, so should recheck visibility of all frames.  */
+	  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_SETTINGCHANGE =>
+	{
+	  /* Inform the Lisp thread that some system-wide setting has
+	     changed, so if Emacs is interested in some of them, it could
+	     update its internal values.  */
+	  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_SETFOCUS =>
+	{
+	  (*dpyinfo).faked_key = 0;
+	  reset_modifiers ();
+	  if !w32_kbdhook_active! ()
+	    { register_hot_keys (hwnd); }
+	  command = true;		/* C's `goto command`.  */
+	}
+      WM_KILLFOCUS =>
+	{
+	  if !w32_kbdhook_active! ()
+	    { unregister_hot_keys (hwnd); }
+	  button_state = 0;
+	  ReleaseCapture ();
+	  /* Relinquish the system caret.  */
+	  if !w32_system_caret_hwnd.is_null ()
+	    {
+	      w32_visible_system_caret_hwnd = core::ptr::null_mut ();
+	      w32_system_caret_hwnd = core::ptr::null_mut ();
+	      DestroyCaret ();
+	    }
+	  command = true;		/* C's `goto command`.  */
+	}
+      WM_COMMAND =>
+	{
+	  menubar_in_use = 0;
+	  f = w32_window_to_frame (dpyinfo, hwnd);
+	  if !f.is_null () && HIWORD! (wParam) == 0
+	    {
+	      if menu_free_timer != 0
+		{
+		  KillTimer (hwnd, menu_free_timer as UINT_PTR);
+		  menu_free_timer = 0;
+		}
+	    }
+	  command = true;		/* C's `FALLTHROUGH` into `case WM_MOVE:`.  */
+	}
+      WM_MOVE | WM_SIZE =>
+	{
+	  command = true;		/* C: the two `case`s label `command:`.  */
+	}
+      WM_TOUCH =>
+	{
+	  /* C 5712-5719's `#ifdef WM_TOUCHMOVE` arm is False for every configuration of this file
+	     (the macro is `w32term.c` 141's `#define`, another translation unit), so C's own
+	     `#else` arm - `#ifndef WM_TOUCH / #define WM_TOUCH 576 / #endif` and `case WM_TOUCH:` -
+	     is what the port carries (the ledger's Deviations record it).  */
+	  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	  /* It is said that DefWindowProc will release the touch
+	     information in the event.  */
+	  return 0;
+	}
+      #[cfg (feature = "windowsnt")]
+      WM_CREATE =>
+	{
+	  setup_w32_kbdhook (hwnd);
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_DESTROY =>
+	{
+	  #[cfg (feature = "windowsnt")]
+	  {
+	    maybe_pass_notification (hwnd);
+	    remove_w32_kbdhook ();
+	  }
+	  CoUninitialize ();
+	  return 0;
+	}
+      #[cfg (feature = "windowsnt")]
+      _ if msg as c_uint == WM_WTSSESSION_CHANGE =>
+	{
+	  if wParam as UINT == WTS_SESSION_LOCK
+	    { reset_w32_kbdhook_state (); }
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_CLOSE =>
+	{
+	  #[cfg (feature = "windowsnt")]
+	  {
+	    maybe_pass_notification (hwnd);
+	  }
+	  wmsg.dwModifiers = w32_get_modifiers ();
+	  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	  return 0;
+	}
+      WM_ENDSESSION | WM_WINDOWPOSCHANGING =>
+	{
+	  if msg as c_int == WM_ENDSESSION
+	    {
+	      my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	      /* Allow time for Emacs to attempt an orderly shutdown.  If we
+		 return, the process will be terminated immediately.  FIXME:
+		 1000 seconds is too long to sleep if the shutdown attempt
+		 fails (see bug#25875).  But if it fails, we want to find out
+		 about it, so let's leave 1000 for now.  */
+	      sleep (1000);
+	      /* C's `FALLTHROUGH` into `case WM_WINDOWPOSCHANGING:`.  */
+	    }
+	  /* Don't restrict the sizing of any kind of frames.  If the window
+	     manager doesn't, there's no reason to do it ourselves.  */
+	  return 0;
+	}
+      WM_GETMINMAXINFO =>
+	{
+	  /* Hack to allow resizing the Emacs frame above the screen size.
+	     Note that Windows 9x limits coordinates to 16-bits.  */
+	  (*(lParam as LPMINMAXINFO)).ptMaxTrackSize.x = 32767;
+	  (*(lParam as LPMINMAXINFO)).ptMaxTrackSize.y = 32767;
+	  return 0;
+	}
+      WM_SETCURSOR =>
+	{
+	  if LOWORD! (lParam) as c_int == HTCLIENT
+	    {
+	      f = w32_window_to_frame (dpyinfo, hwnd);
+	      if !f.is_null ()
+		{
+		  if (*( (*f).output_data.w32 as *mut w32_output )).hourglass_p != 0
+		      && menubar_in_use == 0 && current_popup_menu.is_null ()
+		    { SetCursor ((*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).hourglass_cursor); }
+		  else if pointer_invisible! (f)
+		    { SetCursor (core::ptr::null_mut ()); }
+		  else
+		    { SetCursor ((*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).current_cursor); }
+		}
+
+	      return 0;
+	    }
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);	/* C's `goto dflt`.  */
+	}
+      WM_EMACS_SETCURSOR =>
+	{
+	  let cursor: HCURSOR = wParam as HCURSOR;
+	  f = w32_window_to_frame (dpyinfo, hwnd);
+	  if !f.is_null () && !cursor.is_null ()
+	    {
+	      (*(FRAME_OUTPUT_DATA! (f) as *mut w32_output)).current_cursor = cursor;
+	      /* Don't change the cursor while menu-bar menu is in use.  */
+	      if (*( (*f).output_data.w32 as *mut w32_output )).menubar_active == 0
+		  && (*( (*f).output_data.w32 as *mut w32_output )).hourglass_p == 0
+		{
+		  if pointer_invisible! (f)
+		    { SetCursor (core::ptr::null_mut ()); }
+		  else
+		    { SetCursor (cursor); }
+		}
+	    }
+	  return 0;
+	}
+      WM_EMACS_SHOWCURSOR =>
+	{
+	  ShowCursor ((wParam != 0) as BOOL);
+
+	  return 0;
+	}
+      WM_EMACS_CREATEVSCROLLBAR =>
+	{
+	  return w32_createvscrollbar (wParam as *mut frame,
+				       lParam as *mut scroll_bar) as LRESULT;
+	}
+      WM_EMACS_CREATEHSCROLLBAR =>
+	{
+	  return w32_createhscrollbar (wParam as *mut frame,
+				       lParam as *mut scroll_bar) as LRESULT;
+	}
+      WM_EMACS_SHOWWINDOW =>
+	{
+	  return ShowWindow (wParam as HWND, lParam as c_int) as LRESULT;
+	}
+      WM_EMACS_BRINGTOTOP | WM_EMACS_SETFOREGROUND =>
+	{
+	  let foreground_window: HWND;
+	  let mut foreground_thread: DWORD;
+	  let mut retval: DWORD;
+
+	  /* On NT 5.0, and apparently Windows 98, it is necessary to
+	     attach to the thread that currently has focus in order to
+	     pull the focus away from it.  */
+	  foreground_window = GetForegroundWindow ();
+	  foreground_thread = GetWindowThreadProcessId (foreground_window, core::ptr::null_mut ());
+	  if foreground_window.is_null ()
+	      || foreground_thread == GetCurrentThreadId ()
+	      || AttachThreadInput (GetCurrentThreadId (), foreground_thread, TRUE) == 0
+	    { foreground_thread = 0; }
+
+	  retval = SetForegroundWindow (wParam as HWND) as DWORD;
+	  if msg as c_int == WM_EMACS_BRINGTOTOP
+	    { retval = BringWindowToTop (wParam as HWND) as DWORD; }
+
+	  /* Detach from the previous foreground thread.  */
+	  if foreground_thread != 0
+	    { AttachThreadInput (GetCurrentThreadId (), foreground_thread, FALSE); }
+
+	  /* SetFocus to give/remove focus to/from a child window.  */
+	  if msg as c_int == WM_EMACS_SETFOREGROUND
+	    { SetFocus (wParam as HWND); }
+
+	  return retval as LRESULT;
+	}
+      WM_EMACS_SETWINDOWPOS =>
+	{
+	  let pos: *mut WINDOWPOS = wParam as *mut WINDOWPOS;
+	  return SetWindowPos (hwnd, (*pos).hwndInsertAfter,
+			       (*pos).x, (*pos).y, (*pos).cx, (*pos).cy, (*pos).flags) as LRESULT;
+	}
+      WM_EMACS_DESTROYWINDOW =>
+	{
+	  RevokeDragDrop (wParam as HWND);
+	  return DestroyWindow (wParam as HWND) as LRESULT;
+	}
+      WM_EMACS_HIDE_CARET =>
+	{
+	  return HideCaret (hwnd) as LRESULT;
+	}
+      WM_EMACS_SHOW_CARET =>
+	{
+	  return ShowCaret (hwnd) as LRESULT;
+	}
+      WM_EMACS_DESTROY_CARET =>
+	{
+	  w32_system_caret_hwnd = core::ptr::null_mut ();
+	  w32_visible_system_caret_hwnd = core::ptr::null_mut ();
+	  return DestroyCaret () as LRESULT;
+	}
+      WM_EMACS_TRACK_CARET =>
+	{
+	  /* If there is currently no system caret, create one.  */
+	  if w32_system_caret_hwnd.is_null ()
+	    {
+	      /* Use the default caret width, and avoid changing it
+		 unnecessarily, as it confuses screen reader software.  */
+	      w32_system_caret_hwnd = hwnd;
+	      CreateCaret (hwnd, core::ptr::null_mut (), 0,
+			   w32_system_caret_height);
+	    }
+
+	  if SetCaretPos (w32_system_caret_x, w32_system_caret_y) == 0
+	    { return 0; }
+	  /* Ensure visible caret gets turned on when requested.  */
+	  else if w32_use_visible_system_caret
+		   && w32_visible_system_caret_hwnd != hwnd
+	    {
+	      w32_visible_system_caret_hwnd = hwnd;
+	      return ShowCaret (hwnd) as LRESULT;
+	    }
+	  /* Ensure visible caret gets turned off when requested.  */
+	  else if !w32_use_visible_system_caret
+		   && !w32_visible_system_caret_hwnd.is_null ()
+	    {
+	      w32_visible_system_caret_hwnd = core::ptr::null_mut ();
+	      return HideCaret (hwnd) as LRESULT;
+	    }
+	  else
+	    { return 1; }
+	}
+      WM_EMACS_TRACKPOPUPMENU =>
+	{
+	  let mut flags: UINT;
+	  let pos: *mut POINT;
+	  let mut retval: c_int;
+	  pos = lParam as *mut POINT;
+	  flags = TPM_CENTERALIGN;
+	  if button_state & LMOUSE != 0
+	    { flags |= TPM_LEFTBUTTON; }
+	  else if button_state & RMOUSE != 0
+	    { flags |= TPM_RIGHTBUTTON; }
+
+	  /* We may have done a SetCapture on the initial mouse down
+	     event, so for safety, make sure the capture is canceled
+	     now.  */
+	  ReleaseCapture ();
+	  button_state = 0;
+
+	  /* Use menubar_active to indicate that WM_INITMENU is from
+	     TrackPopupMenu below, and should be ignored.  */
+	  f = w32_window_to_frame (dpyinfo, hwnd);
+	  if !f.is_null ()
+	    { (*( (*f).output_data.w32 as *mut w32_output )).menubar_active = 1; }
+
+	  if TrackPopupMenu (wParam as HMENU, flags, (*pos).x, (*pos).y,
+			     0, hwnd, core::ptr::null ()) != 0
+	    {
+	      let mut amsg: MSG = core::mem::zeroed ();
+	      /* Eat any mouse messages during popupmenu */
+	      while PeekMessage (&raw mut amsg, hwnd, WM_MOUSEFIRST as UINT,
+				 WM_MOUSELAST as UINT, PM_REMOVE) != 0 { }
+	      /* Get the menu selection, if any */
+	      if PeekMessage (&raw mut amsg, hwnd, WM_COMMAND as UINT, WM_COMMAND as UINT,
+			      PM_REMOVE) != 0
+		{
+		  retval = LOWORD! (amsg.wParam) as c_int;
+		}
+	      else
+		{
+		  retval = 0;
+		}
+	    }
+	  else
+	    {
+	      retval = -1;
+	    }
+
+	  return retval as LRESULT;
+	}
+      WM_EMACS_FILENOTIFY =>
+	{
+	  my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	  return 1;
+	}
+      _ =>
+	{
+	  /* Check for messages registered at runtime. */
+	  if msg == msh_mousewheel
+	    {
+	      wmsg.dwModifiers = w32_get_modifiers ();
+	      my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	      signal_user_input ();
+	      return 0;
+	    }
+
+	  /* dflt: */
+	  return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	    (hwnd, msg, wParam, lParam);
+	}
+      }
+
+    if handle_plain_button
+      {
+	/* C: `handle_plain_button:` (C 5251-5321) - the body `case WM_MBUTTONDOWN:` is labelled
+	   with, and the target of the two `goto handle_plain_button`s above.  */
+	let mut up: BOOL = 0;
+	let mut button: c_int = 0;
+
+	/* Ignore middle and extra buttons as long as the menu is active.  */
+	f = w32_window_to_frame (dpyinfo, hwnd);
+	if !f.is_null () && (*( (*f).output_data.w32 as *mut w32_output )).menubar_active != 0
+	  { return 0; }
+
+	if parse_button (msg as c_int, HIWORD! (wParam) as c_int, &raw mut button,
+			 &raw mut up) != 0
+	  {
+	    if up != 0
+	      { ReleaseCapture (); }
+	    /* Don't capture mouse when dropping.  */
+	    else if !EQ (track_mouse, Qdropping ())
+	      { SetCapture (hwnd); }
+	    button = if button == 0 { LMOUSE }
+		     else if button == 1 { MMOUSE }
+		     else { RMOUSE };
+	    if up != 0
+	      { button_state &= !button; }
+	    else
+	      { button_state |= button; }
+	  }
+
+	if !f.is_null () && (msg as c_int == WM_LBUTTONDOWN || msg as c_int == WM_RBUTTONDOWN
+			     || msg as c_int == WM_MBUTTONDOWN || msg as c_int == WM_XBUTTONDOWN)
+	    && FRAME_NO_ACCEPT_FOCUS (f) == 0
+	  /* When clicking into a child frame or when clicking into a
+	     parent frame with the child frame selected and
+	     `no-accept-focus' is not set, select the clicked frame.  */
+	  {
+	    let p: *mut frame = FRAME_PARENT_FRAME (XFRAME (selected_frame));
+
+	    if !FRAME_PARENT_FRAME (f).is_null () || f == p
+	      {
+		SetFocus (hwnd);
+		SetWindowPos (hwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	      }
+	  }
+
+	wmsg.dwModifiers = w32_get_modifiers ();
+	my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	signal_user_input ();
+
+	/* Need to return true for XBUTTON messages, false for others,
+	   to indicate that we processed the message.  */
+	return if msg as c_int == WM_XBUTTONDOWN || msg as c_int == WM_XBUTTONUP { 1 } else { 0 };
+      }
+    if command
+      {
+	/* C: `command:` (C 5708-5712).  */
+	wmsg.dwModifiers = w32_get_modifiers ();
+	my_post_msg (&raw mut wmsg, hwnd, msg, wParam, lParam);
+	return (if w32_unicode_gui != 0 { DefWindowProcW } else { DefWindowProcA })
+	  (hwnd, msg, wParam, lParam);
+      }
+  }
+
+  /* The most common default return code for handled messages is 0.  */
+  0
+}
+
+/// C 5331: C's function-local `static int last_x, last_y;` inside `w32_wnd_proc`'s
+/// `WM_MOUSEMOVE` arm are two objects with static storage duration, which Rust spells at file
+/// scope (the `force_quit_count` reading above); C leaves them uninitialised, so their static
+/// storage is the zero value.
+/// C: static int last_x, last_y;
+#[cfg (feature = "have_ntgui")]
+static mut last_x: c_int = 0;
+#[cfg (feature = "have_ntgui")]
+static mut last_y: c_int = 0;
