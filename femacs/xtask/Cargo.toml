@@ -233,6 +233,7 @@ trace                                      = []  # TRACE (src/w32select.c 144) (
 have_x_sm                                  = []  # HAVE_X_SM (src/xsmfns.c's file gate; registered by the integrator in 3.512)
 trace_selection                             = []  # TRACE_SELECTION (src/xselect.c 72)
 true                                        = []  # TRUE (src/w32menu.c 60 `#ifndef`)
+ucrt                                       = []  # ucrt (nt/cmdproxy.c 49's `#ifdef _UCRT`; registered by the integrator in 3.563)
 use_linux_xattr                            = []  # HAVE_LINUX_XATTR_H && HAVE_LISTXATTR (lib/file-has-acl.c 42-46) (registered by the integrator in 3.510)
 have_smack                                 = []  # HAVE_SMACK (lib/file-has-acl.c's SMACK helpers) (registered by the integrator in 3.510)
 use_pthread                                = []  # use_pthread (src/gmalloc.c 45, 199, 474, 743 and 1163; registered by the integrator in 3.553)

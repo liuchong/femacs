@@ -5,7 +5,6 @@
 # <reference>	<C lines>	<target lines>	<threshold>	<reason>.
 reference	c_lines	target_lines	threshold	reason
 lib/c++defs.h	367	22	36	known-unported target (plan batch F)
-nt/cmdproxy.c	965	3	96	known-unported target (plan batch F)
 oldXMenu/Activate.c	642	3	64	known-unported target (plan batch F)
 oldXMenu/Create.c	752	3	75	known-unported target (plan batch F)
 src/dosfns.c	798	12	79	known-unported target (plan batch F)

@@ -11275,3 +11275,24 @@
      `check-port-lines` 9 文件 / 6,062 参照行 / 0 new / 2 stale、`check-target-names` 0 finding。
   ⑦ **未声称**：本机**没有 Haiku SDK/工具链**，没有任何 Haiku 目标编译或链接，也没有运行/设备行为；所有 Haiku 宽度与常量
      是 C/镜像的写法而非实测（**UNVERIFIED**）；`haiku_support.cc`（C++ 半边）不可及。
+
+- **3.563 lane 产出收口：`nt/cmdproxy.c` 整文件落地（C 965 → Rust 1,337）（2026-10-05）**：
+  ① **lane 的产出（Beauvoir）**：`femacs/nt/cmdproxy.rs` 3 → **1,337 行**（md5 `9e43f0e5…`），台账 263 行 / 36 行区间表
+     覆盖 C 1-965；文件门 `windowsnt` 压在每个项**与整张 include 图**上（`nt/Makefile.in` 的 `OTHERS`，冻结配置
+     不建任何 `nt/` 对象），5 个条件两臂都带（`_UCRT` 对、`__GNUC__` 的两条声明臂按 0.1-12 删、三处 `#if 0` 原位保留），
+     `check-cond-eval` 读 `5 conditions / 0 disagreements`。
+  ② **读数**：冻结 `build-tu` 2 发 exit 0 / **336 字节**；臂（`windowsnt`+`have_ntgui`+`have_window_system`，nightly
+     pin）首读 6 条错（3 条在 `lib/include/stdlib.rs` 副本，属"包含它的单元提供 `c_long/c_double/c_ulong`"的既有惯例；
+     3 条在**单元自身**：`strlen` 的 `usize`→`DWORD`、`envblock`→`LPVOID`、`extern "C"`→`extern "system"`），修毕后
+     **exit 0 / 0 error**（4 条 warning 是 `/// C:` 块落在 `unsafe extern` 上方）；**变异对照**把错误锚回单元自身行
+     ⇒ 读数非空。
+  ③ **集成者登记**：容差行 `cmdproxy 0.39`（965 vs 1337 = 38.5%）⇒ 本件 `--check` **OK**；feature **`ucrt`** 注册进
+     `femacs/xtask/Cargo.toml`（`cargo check -p xtask` exit 0）；`port-map.md` 刷新本件（在飞的 `w32inevt`/`Activate`
+     两行回退成已提交值）；`port-lines-pending.tsv` 去掉本件的行（**8 文件 / 5,420 参照行**）；
+     `macro-body-notes.tsv` 收下该 lane 追加的 8 行（**只追加**）。
+  ④ **门读数（本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**、
+     `check-declarations` 0 failures、`check-dead-file-coverage` **132/0**、`check-ledger-ticks` 234/0、
+     `check-port-lines` 8 文件 / 5,420 行 / 0 new / 2 stale、`check-target-names` 0 finding。
+  ⑤ **未声称**：冻结配置**不编**这个文件，整件是文本移植；没有行为测试、没有差分、没有设备证据；臂读数是 rustc 对
+     **物化镜像图**的读数而**不是 Windows 编译**（本机无 `<windows.h>`），`ucrt` 臂本轮**没有任何读数**编译过它；
+     所有记录与常量 **UNVERIFIED**。**在飞**：`src/w32inevt.c`（Mill）、`oldXMenu/Activate.c`（Halley）。
