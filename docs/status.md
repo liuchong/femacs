@@ -7477,3 +7477,22 @@
   ⑥ **未声称**：**零运行证据**（无 Windows、无 `windows.h`、无 mingw、无布局测量、无对拍/ERT/设备）；
      "本片 0 错"只等于"该臂下没有锚在本片文本上的名字解析/类型错误"，**不等于该单元可编译、更不等于 Windows 配置可用**；
      `--check` 依旧 FAIL（110 行里 109 是余下部分 + 行数行），本文件按 P-86 ② 用区间表 + 读数代替清单通过。
+
+- **3.427 sfnt lane 点名的两处潜伏缺陷已修：`sfnt_decls` 模块与 `alloca.in.rs` 的注释（2026-10-05）**：
+  ① **缘由**：3.425 的 sfnt 臂读数 `exit 1 / 8 error` 里有 3 条**不在本单元正文**，而是两处**已提交文件里的
+     潜伏缺陷**——⑵ `include/sfnt.rs` 把两个共享读者声明放在顶层（任何定义它们的单元必然 `E0428`）；
+     ⑴ `lib/include/alloca.in.rs` 结尾 26 行 `/// C: …` 是**没有 item 承接的 doc 注释**（该镜像在全树的
+     第一个使用者就是 sfnt）。两处都只在门后的臂里才被编到，所以此前十几次提交都没暴露。
+  ② **处置**：⑴ `alloca.in.rs` 的 26 行 `///` 改成 `//`（它们本来就是**引文**，不是文档）；⑵ `include/sfnt.rs`
+     C 1469-2483 的**声明段整段**搬进 `pub mod sfnt_decls { use super::*; … }` 并在其后 `use sfnt_decls::*;`
+     ——crate 根项**遮蔽** glob 导入，所以定义这些名字的单元不再 `E0428`（`window.rs` 302-367 /
+     `include/android.rs` 的形状，P-21）。
+  ③ **读数**：⑴ 冻结 `build-tu src/sfnt.c` **exit 0**、对象仍 336 字节；⑵ **臂触达 `8 → 5 error`**，
+     剩下的 5 条**全是** `E0425 time_t`/`timespec`（经 lisp.rs 链到达 `sys_time.rs`/`sys_select.rs`/`thread.rs`，
+     就是 3.425 ⑥ 那组的下一项）；⑶ **P-87 两腿**：`tools/check-all-units.sh` → `checked 83 unit(s),
+     0 failure(s)` + `checking 83 unit(s), 0 unit failure(s)`（两处镜像改动没有碰坏任何一个冻结单元）。
+  ④ **台账**：`docs/ports/sfnt.md` 的 Owed 第 1 项标 ✅ Done、第 5 项标"部分完成"，并追加一段本轮实测。
+  ⑤ **仍未解决（点名，继承 3.425）**：`time_t`/`timespec` 镜像；`TEST_STATIC` 的 Rust 形态；
+     `(T *) -1`/原生指针下标两条 `token-aliases.tsv` 行；`<sys/mman.h>`/`<setjmp.h>`/TEST 臂的 X11 头无镜像；
+     `keyboard.rs` 5607-5610 的 `static mut` + `let` 遮蔽（`E0530`）与 `doc.rs` 83 / `lread.rs` 2092/2106 的
+     `(-1 as *mut T)`（`E0600`）——同一类潜伏缺陷，下一轮按同一办法修。

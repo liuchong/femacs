@@ -21,29 +21,29 @@
 // future judge that *can* decide this template finds the name.
 pub const _GL_ALLOCA_H: bool = true;
 
-/// C 27-45: `#ifndef alloca` + the platform arm chain.  Only the clang arm is live for the
-/// frozen configuration, and it defines a *macro*, which Rust has no text counterpart for.
-/// C: # if defined __GNUC__ || (__clang_major__ >= 4)
-/// C: #  define alloca __builtin_alloca
-/// C: # elif defined _AIX
-/// C: #  define alloca __alloca
-/// C: # elif defined _MSC_VER
-/// C: #  include <malloc.h>
-/// C: #  define alloca _alloca
-/// C: # elif defined __DECC && defined __VMS
-/// C: #  define alloca __ALLOCA
-/// C: # elif defined __TANDEM && defined _TNS_E_TARGET
-/// C: #  ifdef  __cplusplus
-/// C: extern "C"
-/// C: #  endif
-/// C: void *_alloca (unsigned short);
-/// C: #  pragma intrinsic (_alloca)
-/// C: #  define alloca _alloca
-/// C: # elif defined __MVS__
-/// C: #  include <stdlib.h>
-/// C: # else
-/// C: #  include <stddef.h>
-/// C: #  ifdef  __cplusplus
-/// C: extern "C"
-/// C: #  endif
-/// C: void *alloca (size_t);
+// C 27-45: `#ifndef alloca` + the platform arm chain.  Only the clang arm is live for the
+// frozen configuration, and it defines a *macro*, which Rust has no text counterpart for.
+// C: # if defined __GNUC__ || (__clang_major__ >= 4)
+// C: #  define alloca __builtin_alloca
+// C: # elif defined _AIX
+// C: #  define alloca __alloca
+// C: # elif defined _MSC_VER
+// C: #  include <malloc.h>
+// C: #  define alloca _alloca
+// C: # elif defined __DECC && defined __VMS
+// C: #  define alloca __ALLOCA
+// C: # elif defined __TANDEM && defined _TNS_E_TARGET
+// C: #  ifdef  __cplusplus
+// C: extern "C"
+// C: #  endif
+// C: void *_alloca (unsigned short);
+// C: #  pragma intrinsic (_alloca)
+// C: #  define alloca _alloca
+// C: # elif defined __MVS__
+// C: #  include <stdlib.h>
+// C: # else
+// C: #  include <stddef.h>
+// C: #  ifdef  __cplusplus
+// C: extern "C"
+// C: #  endif
+// C: void *alloca (size_t);

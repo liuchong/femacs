@@ -229,8 +229,8 @@ has since been rewritten.)
 
 ## Owed by the integrator (status per item; nothing here is claimed as done until marked)
 
-1. **`femacs/src/include/sfnt.rs`: the declaration block needs `pub mod sfnt_decls { … } use
-   sfnt_decls::*;`** (the `include/android.rs` shape, P-86's own androidmenu.rs precedent).  Until
+1. ✅ **Done in 3.427** — **`femacs/src/include/sfnt.rs`: the declaration run now sits in
+   `pub mod sfnt_decls { use super::*; … } use sfnt_decls::*;`** (the `include/android.rs` shape, P-86's own androidmenu.rs precedent).  Until
    then the arm flip can never get past `E0428` for the two readers this slice defines, and this
    file's own text is never fully compiled (Evidence ②, item 1).  This mirror is another lane's
    in-flight file (`docs/ports/include-sfnt.md` is its ledger).
@@ -243,8 +243,9 @@ has since been rewritten.)
    tokens are now used by a real unit for the first time.
 4. **A `docs/ports/macro-body-notes.tsv` row**: `sfnt_read_cmap_table_1` →
    `case,default,switch` (C 973-1010's `switch` is the port's `match`), the row Evidence ③ names.
-5. **The mirrors the Android arm still needs, all measured in Evidence ②**: `alloca.in.rs`'s
-   trailing doc comment (fix that file), and `time_t`/`timespec` for
+5. **Partly done in 3.427** (`alloca.in.rs`'s 26 trailing `///` citations are plain `//` notes now;
+   the arm reads **8 -> 5 errors**, the five being the `time_t`/`timespec` group below) — the rest:
+   `time_t`/`timespec` for
    `lib/include/sys_time.rs`/`sys_select.rs`/`src/include/thread.rs` through `lisp.rs`'s chain.
    `<sys/mman.h>`, `<setjmp.h>` and the TEST arm's `<sys/wait.h>`/`<X11/*>` have no mirror at all;
    this slice's own text uses no name from any of them.
@@ -261,3 +262,10 @@ parsed, no `read`/`lseek` returned.  C 1113-21215 is **not ported here**; the 36
 lines of Evidence ③ and the 93.9% drift are that boundary.  The `.offset (i as isize)` /
 `usize::MAX` / `overflowing_*` rewrites are compile-level and were measured by the compiler, not
 by a running program.
+
+**The integrator's 3.427 follow-up, measured.**  After item 1's module and item 5's `alloca.in.rs`
+fix: `build-tu src/sfnt.c` exit 0 (336-byte object, unchanged), the Android arm probe
+(`--cfg 'feature="have_android"' --cfg 'feature="not_android_stubify"'`) reads **5 errors, all
+`E0425 time_t`/`timespec`** where the lane's reading was 8 (two `E0428` and the doc-comment error
+retired), and `tools/check-all-units.sh` gives `checked 83 unit(s), 0 failure(s)` /
+`checking 83 unit(s), 0 unit failure(s)` for the two mirror edits.
