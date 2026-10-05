@@ -260,7 +260,7 @@ def main() -> int:
           f"wrapped across two lines, {sanctioned} enumerated keep(s), {sum(counts.values())} "
           f"classified, {len(failures)} failure(s)")
     print(f"the substitution table carries {rows} row(s) for these trees - the lines the tenth"
-          f" to fourteenth halves renamed")
+          f" to fifteenth halves renamed")
     for line in failures[:20]:
         print(f"          {line}")
     return 1 if failures else 0
