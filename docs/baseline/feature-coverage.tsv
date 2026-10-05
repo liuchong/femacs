@@ -6,31 +6,31 @@
 # never been through rustc (PORTING.md P-51 carries it on purpose).
 feature	sites	files	enabled_by	config_constant
 windowsnt	1004	32	-	-
-have_android	836	29	-	-
+have_android	855	29	-	-
 have_window_system	821	17	-	-
-have_x_windows	659	22	-	HAVE_X_WINDOWS
-use_gtk	583	9	-	-
-not_android_stubify	577	10	-	-
+use_gtk	763	10	-	-
+have_x_windows	678	22	-	HAVE_X_WINDOWS
+not_android_stubify	596	10	-	-
+have_pgtk	510	16	-	-
 have_ntgui	499	12	-	-
-have_pgtk	481	15	-	-
-msdos	290	14	-	-
+msdos	326	14	-	-
 have_native_comp	285	11	xtask dead-arms	HAVE_NATIVE_COMP
 dispextern_face_records	266	4	-	-
 have_ns	261	10	-	HAVE_NS
 have_haiku	211	13	xtask dead-arms	-
 use_xcb	171	4	-	-
 have_tree_sitter	133	7	-	HAVE_TREE_SITTER
+have_gtk3	119	4	-	-
 use_cairo	116	7	-	-
-have_gtk3	89	3	-	-
 windows	83	5	-	-
 have_ext_tool_bar	76	2	-	-
 ns_impl_gnustep	70	2	-	-
 have_lcms2	54	1	-	-
+have_xinput2	52	6	-	-
 have_ext_menu_bar	51	3	-	-
-have_xinput2	51	5	-	-
 have_zlib	51	2	-	-
 glyph_debug	36	5	xtask dead-arms	-
-test	33	4	-	-
+test	34	4	-	-
 have_text_conversion	30	3	-	-
 ns_impl_cocoa	30	6	xtask dead-arms	-
 dos_nt	29	4	-	-
@@ -81,13 +81,13 @@ clang_major_clang_major_5	9	1	-	-
 cygwin_win32	9	3	-	-
 glibc_time_bits_64	9	1	-	-
 gnulib_sigprocmask	9	1	-	-
+gtk_check_version_ge_3_22	9	2	-	-
 harfbuzz	9	5	-	-
 have_xinput2_1	9	1	-	-
 macos_sdk	9	1	-	-
 no_have_builtin_unwind_init	9	1	-	-
 windows_stat_timespec	9	2	-	-
 gnu_linux	8	1	-	-
-gtk_check_version_ge_3_22	8	1	-	-
 have_xcomposite	8	2	-	-
 linux_no_android	8	2	-	-
 no_working_fstatat_zero_flag	8	1	-	-

@@ -2013,7 +2013,12 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
             if m is None:
                 break
             i = m.end()
-        m = re.compile(r'(?:pub\s+)?(?:unsafe\s+)?(?:extern\s+"C"\s+)?fn\s+([A-Za-z_]\w*)').match(text, i)
+        # `extern "system"`/`"stdcall"` are what the port spells C's WINAPI/CALLBACK with
+        # (PORTING.md §5.1), so a definition that keeps C's linkage must be recognised here too:
+        # `nt/runemacs.c`'s `WinMain` is the first non-static WINAPI definition in the tree, and
+        # the narrower rule reported it as missing `#[unsafe(no_mangle)]` (status 3.468).
+        m = re.compile(r'(?:pub\s+)?(?:unsafe\s+)?'
+                       r'(?:extern\s+"(?:C|system|stdcall)"\s+)?fn\s+([A-Za-z_]\w*)').match(text, i)
         return m.group(1) if m else None
 
     # `#[unsafe(export_name = "X")]` exports a symbol the same way `#[unsafe(no_mangle)]`

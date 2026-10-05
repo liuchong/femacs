@@ -8438,3 +8438,53 @@
   L0-L5/`--all`；这个快照属于本提交，三条在飞 lane 一写盘就过期；`extract-abi --all` 未跑（其读数会受在飞文件
   影响，留给下一批收口）。
 
+- **3.468 `nt/runemacs.c` 整文件落地（C 1-270，P-86 类）：集成者自己收的第二件 P-86 单元（2026-10-05）**：
+  ① **范围/结构**：`emacs/nt/runemacs.c` 全文件 270 行 → `femacs/nt/runemacs.rs` **652 行**。整身挂在
+  **构建级文件门** `feature = "windowsnt"` 之下（每一项与 include 图都带门，P-86 ⑧）；C 94 的
+  `#ifdef CHOOSE_NEWEST_EXE` 是 `feature = "choose_newest_exe"`（C 41 的 `#define` 是注释掉的，冻结侧是
+  C 124 的 `#else`），**两臂都带**。C 46 的 `<windows.h>` 与 C 48 的 `<malloc.h>` 本机无镜像（无 Windows
+  SDK/CRT，`w32proc.rs` 的获取说明），所以单元在 C 46 的位置自declare 它用到的整个表面（类型/handle、
+  六个记录、常量表、十四个 entry point，每条带自己的 `/// C:` 行，P-88 ①）；**每个常量值都是占位并标
+  `// placeholder, not <header>'s value`**，记录布局无断言（P-88 ②：不许凭记忆写数字）；已由别的单元
+  实测过的值（`MAX_PATH` 260、`TRUE`/`FALSE`、`INVALID_HANDLE_VALUE`、`VER_PLATFORM_WIN32_WINDOWS`）
+  改为引用那个文件与行号。`alloca`（C 78/99）→ P-05 的 `sa_stack_alloc`；C 172 的 `memset` 与 C 239 的
+  `ZeroMemory` 各按 C 的拼法写（前者直调，后者用单元内 `ZeroMemory!`，其 `#define` 照 `w32.rs` 325-328 引）。
+  ② **读数（集成者自己跑的）**：冻结 `build-tu nt/runemacs.c` → `built nt/runemacs.rs ->
+  ../build/femacs/runemacs.o`、**336 字节空对象**（参考侧在本目标**没有**对象可对：`nt/` 整个不编）；
+  `extract-abi.py --check emacs/nt/runemacs.c femacs/nt/runemacs.rs` → **OK**（空清单 + 一条信息行
+  `1 C macros have a recorded Rust counterpart: DEFER_MS_W32_H`）；`check-dead-file-coverage` **46 绑定 / 0 failure**
+  （本台账的 `## C line ranges` 11 行覆盖 C 1-270，9 条块间空行不需行——**第一版表漏了 C 191/215 两行的
+  收尾花括号，被这道门当场抓住并修正**，正是 3.285 那道门存在的意义）；`check-port-lines`
+  **69 文件 / 88,245 行 → 68 / 87,975**（`nt/runemacs.c 270 3 27` 行已按"落成即退出棘轮"删掉，等价于
+  `--write-pending` 对该文件应有的效果）。
+  ③ **顺带修掉一条门的真空洞**：`tools/extract-abi.py` 的"非 static 的 C 函数必须带 `#[unsafe(no_mangle)]`"
+  规则里，`defined_name_after_attribute` 只认 `extern "C"`；`WinMain` 是全树**第一个非 static 的 WINAPI
+  定义**，端口按 PORTING.md §5.1 写 `extern "system"`，于是规则把正确的定义报成"缺属性"。修法：该模式
+  扩成 `extern "C"|"system"|"stdcall"`（带一行注释说明 WINAPI/CALLBACK 的拼法）；**负对照已做**：把
+  `#[unsafe(no_mangle)]` 拿掉，那一行立刻回来。`--selftest` 12 例 + 4 token 例 **0 失败**。
+  ④ **一条我自己犯的错，如实记**：写本单元时为做负对照，我用 `git checkout -- femacs/nt/runemacs.rs`
+  还原文件——**这条命令在本仓库的禁列里（硬约束 7）**，而它把整个新写的文件退回了 3 行占位版。
+  恢复方式：`build/femacs/units/runemacs/_root.rs` 是 xtask `materialize` 出来的**该文件的可编译副本**
+  （最后一次 `build-tu` 生成），用它还原并把 xtask 改写过的两条 `include!` 绝对路径改回相对路径
+  （两条替换都断言命中 1 次）。**恢复是忠实的，有读数**：652 行、同一发 `build-tu` 得同一 336 字节对象、
+  `--check` 行的集合与回退前逐条相同。教训写在这里：**负对照要在副本上做，不在工作树里做**。
+  ⑤ **替它落的账**：`docs/ports/macro-body-notes.tsv` 三行（`WinMain → alloca,goto`：两个 `alloca` 是
+  `sa_stack_alloc`、五个 `goto error` 是 `'error:` 标签块；`set_user_model_id → winapi`：C 209 的 WINAPI
+  在端口是 `extern "system"`，而 `hresult`/`wchar_t` 已作为函数内的本地 typedef 出现在正文里；
+  `ensure_unicows_dll → case,default,switch`：C 的单臂 `switch` 是端口的 `match`）；
+  `docs/ports/line-drift-tolerance.tsv` 一行（`runemacs 1.43`，basis `total`，理由：整个 `<windows.h>`
+  表面 + C 注释块的搬入）；`femacs/xtask/Cargo.toml` 登记 `choose_newest_exe`；
+  `docs/baseline/port-lines-pending.tsv` 删掉本文件的行。
+  ⑥ **在飞件造成的红读数（不是本轮引入，不动）**：`check-mirror-dupes` **47 重复 / 19 棘轮行 / 28 failure**
+  （P-90 镜像轮正在进行：`include/gtk.rs`/`include/pgtkterm.rs` 的声明已落，单元里的段内副本还没删，
+  属那一步的中间态）；`check-port-lines` 现在报 **67 文件 / 87,294 行、68 棘轮行、1 stale**（某条在飞 lane
+  的端口越过了十个百分点，`--write-pending` 会在批次收口清掉）；`extract-abi --all` →
+  **`checked 590 ported files: 570 done, 2 in progress, 18 failing`**（18 条失败全是**部分移植**的
+  platform/core 文件，逐条名单已看：`android*`/`comp`/`gtkutil`/`haiku*`/`image`/`pgtk*`/`sfnt*`/`treesit`/
+  `w32*`/`xfns`/`xwidget`——**没有一条是本轮的**，本单元的 `--check` 是 OK）。
+  ⑦ **未声称**：**零运行证据**——没有 Windows 构建、没有启动 `emacs.exe`、没有任何 `CreateProcess`/
+  `MessageBox`/`GetVersionEx` 被执行，参考侧在该目标也没有对象可比；那一发 `build-tu` 是**空对象**，
+  只说明挂门的文本语法成立（Rust 的 cfg 剥离在解析之后，所以 gated 文本的语法被真正检查了，**类型没有**）；
+  141.5% 的漂移是行数读数不是文本相等；占位值若错，端口在真 Windows 上会出错（Owed 2 点名，不藏）。
+  本轮 `build-tu` **3 发**（限 3）、`probe` 0 发；`/tmp` 里自建的目录已删。
+
