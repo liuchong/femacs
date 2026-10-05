@@ -19,7 +19,7 @@
 > and the Motif message layouts) and **293** after slice 7 (C 3616-4466, the target-window
 > discovery; slices 3-6 are Decisions 11-15, slice 7 is Decision 18); the list below is that
 > same frozen reading, which is *not* the configuration that compiles the file (Decisions 2); slice
-9 moves it to **212** (Decision 21).
+9 moves it to **212** (Decision 21) and slice 10 (C 9786-11915, Decision 22) to **185**.
 
 # ----------------------------------------------------------------------
 ## Subrs (DEFUN) — 0
@@ -134,33 +134,33 @@
 - [x] x_fill_triangle  (line 9746, static)
 - [x] x_make_point  (line 9760, static)
 - [x] x_inside_rect_p  (line 9771, static)
-- [ ] x_draw_relief_rect  (line 9797, static)
-- [ ] x_draw_box_rect  (line 9999, static)
-- [ ] x_draw_glyph_string_box  (line 10040, static)
-- [ ] x_composite_image  (line 10109, static)
-- [ ] x_draw_image_foreground  (line 10166, static)
-- [ ] x_draw_image_relief  (line 10289, static)
-- [ ] x_draw_image_foreground_1  (line 10383, static)
-- [ ] x_draw_glyph_string_bg_rect  (line 10465, static)
-- [ ] x_draw_image_glyph_string  (line 10496, static)
-- [ ] x_draw_stretch_glyph_string  (line 10636, static)
-- [ ] x_get_scale_factor  (line 10747, static)
-- [ ] x_draw_underwave  (line 10774, static)
-- [ ] x_draw_dash  (line 10850, static)
-- [ ] x_fill_underline  (line 10900, static)
-- [ ] x_draw_glyph_string  (line 10940, static)
-- [ ] x_shift_glyphs_for_insert  (line 11309, static)
-- [ ] x_delete_glyphs  (line 11324, static)
-- [ ] x_clear_area1  (line 11335, static)
-- [ ] x_clear_area  (line 11344)
-- [ ] x_clear_frame  (line 11404, static)
-- [ ] x_send_hourglass_message  (line 11427, static)
-- [ ] x_show_hourglass  (line 11449, static)
-- [ ] x_hide_hourglass  (line 11531, static)
-- [ ] XTflash  (line 11551, static)
-- [ ] XTring_bell  (line 11657, static)
-- [ ] x_ins_del_lines  (line 11696, static)
-- [ ] x_scroll_run  (line 11705, static)
+- [x] x_draw_relief_rect  (line 9797, static)
+- [x] x_draw_box_rect  (line 9999, static)
+- [x] x_draw_glyph_string_box  (line 10040, static)
+- [x] x_composite_image  (line 10109, static)
+- [x] x_draw_image_foreground  (line 10166, static)
+- [x] x_draw_image_relief  (line 10289, static)
+- [x] x_draw_image_foreground_1  (line 10383, static)
+- [x] x_draw_glyph_string_bg_rect  (line 10465, static)
+- [x] x_draw_image_glyph_string  (line 10496, static)
+- [x] x_draw_stretch_glyph_string  (line 10636, static)
+- [x] x_get_scale_factor  (line 10747, static)
+- [x] x_draw_underwave  (line 10774, static)
+- [x] x_draw_dash  (line 10850, static)
+- [x] x_fill_underline  (line 10900, static)
+- [x] x_draw_glyph_string  (line 10940, static)
+- [x] x_shift_glyphs_for_insert  (line 11309, static)
+- [x] x_delete_glyphs  (line 11324, static)
+- [x] x_clear_area1  (line 11335, static)
+- [x] x_clear_area  (line 11344)
+- [x] x_clear_frame  (line 11404, static)
+- [x] x_send_hourglass_message  (line 11427, static)
+- [x] x_show_hourglass  (line 11449, static)
+- [x] x_hide_hourglass  (line 11531, static)
+- [x] XTflash  (line 11551, static)
+- [x] XTring_bell  (line 11657, static)
+- [x] x_ins_del_lines  (line 11696, static)
+- [x] x_scroll_run  (line 11705, static)
 - [ ] x_frame_highlight  (line 11925, static)
 - [ ] x_frame_unhighlight  (line 11952, static)
 - [ ] x_new_focus_frame  (line 11990, static)
@@ -516,6 +516,25 @@ half.  Later slices append their rows.
 | C 8834/8836 `#ifdef GCC_LINT` / `#else` | `feature = "gcc_lint"` / `not (feature = "gcc_lint")` | `GCC_LINT` is 1 in this configuration (conf_post.h 486), so the first arm is the live text |
 | C 8900 `#ifdef USE_LUCID` (inside `USE_X_TOOLKIT`) | `all (feature = "use_x_toolkit", feature = "use_lucid")` | a Lucid widget build |
 | C 9506 / 9562 `#ifdef DEBUG_X_COLORS` | `feature = "debug_x_colors"` | the source-level knob C defines by hand |
+| C 9802 / 9874 `#ifdef USE_CAIRO` (`x_draw_relief_rect`'s two arms) | `feature = "use_cairo"` / `not (feature = "use_cairo")` | a cairo build / none |
+| C 10106 / 10160 `#ifndef USE_CAIRO` (`x_composite_image`) | `not (feature = "use_cairo")` | a non-cairo build |
+| C 10110-10112 / 10117 / 10124 `HAVE_XRENDER` (`x_composite_image`'s parameter and its two calls) | `feature = "have_xrender"` (the C 5105 row's gate, carried on) | an XRender build |
+| C 10498-10504 / 10526 / 10589 `#ifndef USE_CAIRO` (`x_draw_image_glyph_string`) | `not (feature = "use_cairo")` | a non-cairo build |
+| C 10557 `#if defined HAVE_XRENDER && (RENDER_MAJOR > 0 \|\| (RENDER_MINOR >= 2))` | `all (feature = "have_xrender", feature = "have_xrender_0_2")` (the C 6511 row's pair) | an XRender >= 0.2 build |
+| C 10785 / 10842 `#ifdef USE_CAIRO` (`x_draw_underwave`) | `feature = "use_cairo"` / `not (feature = "use_cairo")` | a cairo build / none |
+| C 10853 / 10892 `#ifndef USE_CAIRO` (`x_draw_dash`) | `not (feature = "use_cairo")` / `feature = "use_cairo"` | a non-cairo build / a cairo one |
+| C 11333 `#if defined USE_GTK \|\| !defined USE_CAIRO` (`x_clear_area1`) | `any (feature = "use_gtk", not (feature = "use_cairo"))` | a GTK or non-cairo build |
+| C 11346 / 11397 `#ifdef USE_CAIRO` (`x_clear_area`) | `feature = "use_cairo"` / `not (feature = "use_cairo")` | a cairo build / none |
+| C 11350 / 11358 / 11392 `#ifndef USE_GTK` (`x_clear_area`) | `not (feature = "use_gtk")` | a non-GTK build |
+| C 11355 `#ifdef HAVE_XDBE` (inside that condition) | `feature = "have_xdbe"` (the C 5087 row's gate, carried on) | an Xdbe build |
+| C 11366 `#if defined HAVE_XRENDER && (RENDER_MAJOR > 0 \|\| (RENDER_MINOR >= 2))` (`x_clear_area`) | `all (feature = "have_xrender", feature = "have_xrender_0_2")` | an XRender >= 0.2 build |
+| C 11468 / 11470 `#ifdef USE_X_TOOLKIT` (`x_show_hourglass`) | `feature = "use_x_toolkit"` | an Xt build |
+| C 11476 / 11510 `#ifndef USE_XCB` and C 11489 / 11514 `#else` (`x_show_hourglass`) | `not (feature = "use_xcb")` / `feature = "use_xcb"` | the two XCB arms |
+| C 11479 / 11491 `#ifdef USE_GTK` (`parent`) and C 11538 / 11540 (`x_hide_hourglass`) | `feature = "use_gtk"` / `not (feature = "use_gtk")`, then `not (feature = "use_xcb")` / `feature = "use_xcb"` | the GTK and non-GTK arms |
+| C 11677 `#ifdef HAVE_XKB` (`XTring_bell`) | `feature = "have_xkb"` (the C 4791 row's gate, carried on) | an XKB build |
+| C 11753-11843 `#ifdef HAVE_XWIDGETS` (`x_scroll_run`) | `feature = "have_xwidgets"` | an xwidget build |
+| C 11845 / 11872 `#ifdef USE_CAIRO_XCB_SURFACE` (`x_scroll_run`) | `all (feature = "use_xcb", feature = "use_cairo_xcb")` (the C 6019 row's pair) | an XCB cairo build |
+| C 11853 / 11906 `#ifdef USE_CAIRO` (`x_scroll_run`) | `feature = "use_cairo"` / `not (feature = "use_cairo")` | a cairo build / none |
 
 ## C line ranges
 
@@ -631,7 +650,34 @@ their Decisions, and the ones of slice 9 are in Decision 21.
 | 9659-9707 | `x_setup_relief_color` (C 9668) | the file gate |
 | 9709-9742 | `x_setup_relief_colors` (C 9713) | the file gate |
 | 9744-9785 | `#ifndef USE_CAIRO`: `x_fill_triangle` (C 9746), `x_make_point` (C 9760) and `x_inside_rect_p` (C 9771) | `not (feature = "use_cairo")` |
-| 9786-33125 | **the remainder** (C 9787's `x_draw_relief_rect` comment and C 9796's `static void` on: the rest of the relief/box drawing, the image drawing, the scroll bars, the toolkit/widget code, the mouse and event loop, `XTread_socket`, `x_initialize`, `syms_of_xterm`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows (the next start is **C 9786**, the comment that documents `x_draw_relief_rect`) |
+| 9786-9988 | `x_draw_relief_rect` (C 9797) | the file gate; `use_cairo` for C 9802's arm and `not (feature = "use_cairo")` for C 9874's |
+| 9990-10034 | `x_draw_box_rect` (C 9999) | the file gate |
+| 10036-10103 | `x_draw_glyph_string_box` (C 10040) | the file gate |
+| 10105-10160 | `#ifndef USE_CAIRO`: `x_composite_image` (C 10109) | `not (feature = "use_cairo")`; C 10110-10112's `HAVE_XRENDER` adds the `destination` parameter, so the unit carries one definition per arm under `feature = "have_xrender"` |
+| 10162-10283 | `x_draw_image_foreground` (C 10166) | the file gate; `use_cairo`/`not (feature = "use_cairo")`; `have_xrender` for C 10249-10252's and C 10265-10269's extra argument |
+| 10285-10376 | `x_draw_image_relief` (C 10289) | the file gate |
+| 10378-10458 | `#ifndef USE_CAIRO`: `x_draw_image_foreground_1` (C 10383) | `not (feature = "use_cairo")`; `have_xrender` for C 10425's `None` argument |
+| 10460-10478 | `x_draw_glyph_string_bg_rect` (C 10465) | the file gate |
+| 10480-10630 | `x_draw_image_glyph_string` (C 10496) | the file gate; `not (use_cairo)`/`use_cairo` for C 10498-10504's block, and `have_xrender`+`have_xrender_0_2` for C 10557's `RENDER_MAJOR`/`RENDER_MINOR` pair |
+| 10632-10744 | `x_draw_stretch_glyph_string` (C 10636) | the file gate |
+| 10745-10761 | `x_get_scale_factor` (C 10747) | the file gate |
+| 10763-10843 | `x_draw_underwave` (C 10774) | the file gate; `use_cairo` / `not (feature = "use_cairo")` |
+| 10845-10893 | `x_draw_dash` (C 10850) | the file gate; `not (feature = "use_cairo")` / `use_cairo` |
+| 10895-10935 | `x_fill_underline` (C 10900) | the file gate |
+| 10937-11304 | `x_draw_glyph_string` (C 10940) | the file gate |
+| 11306-11318 | `x_shift_glyphs_for_insert` (C 11309) | the file gate |
+| 11320-11327 | `x_delete_glyphs` (C 11324) | the file gate |
+| 11329-11341 | `#if defined USE_GTK \|\| !defined USE_CAIRO`: `x_clear_area1` (C 11335) and C 11341's `#endif` | `any (feature = "use_gtk", not (feature = "use_cairo"))` |
+| 11342-11398 | `x_clear_area` (C 11344) | the file gate (C's definition is not `static`); `use_cairo`/`not (use_cairo)`; C 11350-11356's `#ifndef USE_GTK` pair and `not (feature = "use_gtk")`, C 11355's `HAVE_XDBE` term; `have_xrender`+`have_xrender_0_2` for C 11366-11377 |
+| 11400-11419 | `x_clear_frame` (C 11404) | the file gate |
+| 11421-11444 | `x_send_hourglass_message` (C 11427) | the file gate |
+| 11446-11526 | `x_show_hourglass` (C 11449) | the file gate; `use_x_toolkit` for C 11468-11472; `use_xcb`/`not (feature = "use_xcb")` for the two blocks, `use_gtk` inside each |
+| 11528-11546 | `x_hide_hourglass` (C 11531) | the file gate; `not (feature = "use_xcb")` / `use_xcb` |
+| 11548-11652 | `XTflash` (C 11551) | the file gate |
+| 11654-11686 | `XTring_bell` (C 11657) | the file gate; `have_xkb`/`not (feature = "have_xkb")` for C 11677-11681 |
+| 11688-11699 | the `Line Dance` banner (C 11688-11690, C's boxed comment), C 11692-11693's comment and `x_ins_del_lines` (C 11696) | the file gate; the banner and the comment are carried as comments (slice 1's `x_push_selection_request` precedent) |
+| 11701-11915 | `x_scroll_run` (C 11705) | the file gate; `have_xwidgets` for C 11753-11843; `all (feature = "use_xcb", feature = "use_cairo_xcb")` for C 11845-11851 and for C 11872-11883's `else if`; `use_cairo` for C 11853-11906 |
+| 11916-33125 | **the remainder** (C 11925's `x_frame_highlight` on: the frame highlight/focus hooks, the FX/pointer blanking, `XTread_socket` and the whole event loop, the toolkit and scroll-bar code, `x_initialize` and `syms_of_xterm`) | not in this slice: recorded here so the table covers the reference (`check-dead-file-coverage.py` requires it), to be replaced by the next lane's rows (the next start is **C 11916**, the comment that documents `x_frame_highlight`) |
 
 ## Decisions
 
@@ -1698,6 +1744,72 @@ cvt pair are Xt text, the two `#ifdef FRAME_DEBUG` blocks are unbuilt by any arm
 `glyph_string`/`face` copies are text whose layouts this target cannot check.  `XtConvertArgRec`
 is not even spellable here.
 
+### 22. Slice 10 (C 9786-11915): the relief and box drawing, the image and glyph-string drawing, the frame clearing, the hourglass and the visible bell, and `x_scroll_run`
+
+Thirty C blocks in the file's order (the `## C line ranges` rows 9786-11915), 27 functions and the
+`Line Dance` banner.  What the slice decided, beyond "transcribe C":
+
+1. **The two arms that change a *signature* get one definition each.**
+   `x_composite_image`'s C 10110-10112 `#ifdef HAVE_XRENDER` adds a `Picture destination`
+   parameter, so the unit carries two definitions under `have_xrender` and
+   `not (feature = "have_xrender")`; `extract-abi.py`'s candidate loop compares the arm the
+   configuration selects.  The three *call* sites that C writes with a cfg'd argument
+   (`x_draw_image_foreground`'s two, `x_draw_image_foreground_1`'s one) are carried as
+   `#[cfg]`'d statement pairs, the `ftfont.rs` 2552 shape - the port's first choice, since a
+   Rust argument list cannot hold a conditional argument.
+2. **Two conditions C writes as `if`/`else if` whose arms are configuration-dependent keep C's
+   chain by nesting**: `x_clear_area`'s `#if defined HAVE_XRENDER …`/`#else` and
+   `x_scroll_run`'s `#ifdef USE_CAIRO_XCB_SURFACE … #else`.  Each computes C's condition once
+   (three cfg'd spellings where `#ifndef USE_GTK` and `#ifdef HAVE_XDBE` both feed it) or nests
+   the selected arm, so the port has one copy of the shared body and C's control flow.
+3. **The `--check` token gate's two switch functions.**  `x_fill_underline`'s
+   `switch (style)` and `x_draw_glyph_string`'s `switch (s->first_glyph->type)` are `match`es,
+   so `switch`/`case`/`default`/`break` cannot reappear and the `FALLTHROUGH` from the DOTS arm
+   is the shared entry stage: two rows are appended to `docs/ports/macro-body-notes.tsv`
+   (1705, 1706) with the `w32_fill_underline`/`haiku_fill_underline` rows' reasoning.
+   `x_draw_glyph_string`'s third token, `cmp`, is C 11015's `s->first_glyph->u.cmp.automatic`,
+   which the port reads through `glyph_u_cmp_bits! (automatic, …)` - a name that does not carry
+   the standalone token, so that row lists it too.  The third row this slice produced,
+   `x_composite_image does not mention dstx, dsty, srcx, srcy`, is answered in the text: C's
+   four parameters are spelled `srcX`/`srcY`/`dstX`/`dstY` and the port keeps C's own names
+   (the `include/xwidget.rs` `xvWindow` practice), which is what the token comparison asks for
+   and what `non_snake_case` (already in the unit's allow list) permits.
+4. **The `face` accessors this unit's copy lacked.**  Slice 9's local `face_bits!` named three
+   members; C 11064-11226 reads six more (`underline`, `underline_defaulted_p`,
+   `underline_at_descent_line_p`, `underline_pixels_above_descent_line` as a *member*,
+   `overline_p`, `overline_color_defaulted_p`, `strike_through_p`,
+   `strike_through_color_defaulted_p`), so the unit's macro grows four masked arms and the
+   constants dispextern.h 1893-1935 gives them, and its `face` copy renames the slice-9
+   placeholder `_pad_underline_pixels` to C's member name (a name-only change; the layout
+   assertions are untouched).  The single source for both is `include/dispextern.rs`'s own
+   `face_bits!` (owed - clause 3 of the Owed list).
+5. **`x_clear_area` is C's one non-`static` definition in the slice**, so the unit exports it
+   under C's name (`#[unsafe(no_mangle)] pub unsafe extern "C"`, the `x_dpyinfo` shape); the
+   five prefix call sites that read `E0425` before this slice resolve because of it (the
+   probe's one *reduction*, below).
+6. **Everything this slice names and no mirror declares stays bare** (P-51/P-86's practice for
+   this file): the Xlib entry points (`XSetForeground`, `XFillRectangle`, `XGetGCValues`,
+   `XDrawLine`, `XSetFillStyle`, `XCopyArea`, `XChangeGC`, `XSetClipMask`,
+   `XSetClipRectangles`, `XSetTSOrigin`, `XClearArea`, `XCreatePixmap`, `XMapRaised`,
+   `XSetDashes`, `XSetLineAttributes`, `XUnmapWindow`, `ConnectionNumber`, `XBell`, `XFlush`,
+   `XSendEvent`, `XCreateWindow`), the X11 constants (`FillSolid`, `FillOpaqueStippled`,
+   `GCFunction`, `GCClipMask`, `GCClipXOrigin`, `GCClipYOrigin`, `GCLineStyle`, `GCLineWidth`,
+   `GXcopy`, `GXinvert`, `LineSolid`, `LineOnOffDash`, `CapButt`, `JoinRound`, `Convex`,
+   `CoordModeOrigin`, `CWCursor`, `CopyFromParent`, `InputOnly`, `Unsorted`), the two records
+   (`XPoint`, `XSetWindowAttributes`), the other units' functions (`window_box`,
+   `window_box_left`, `window_box_left_offset`, `window_box_right`,
+   `cursor_in_mouse_face_p`, `font_for_underline_metrics`, `image_ascent`, `gui_clear_cursor`,
+   `popup_activated`, `detect_input_pending`, `x_scroll_bar_clear`) and this file's own later
+   slices (`x_ignore_errors_for_next_request`, `x_stop_ignoring_errors`).  The ledger's Owed
+   list names them per mirror.  `flush_frame` is the mirror's *macro* (`include/frame.rs`
+   1908), so its site is `flush_frame! (f)`; its body's own `redisplay_interface` gap is the
+   mirror's (clause 4 of the Owed list).
+7. **C's `switch`-free text stays C's**: the `s->first_glyph->type` walks, `s->img->mask`
+   null tests (`XEmacs_Pixmap` is the mirror's `*mut c_void` for `pixmap`/`mask`, so the test is
+   `.is_null ()`), the `unsigned long` underline arithmetic (C's wraps written with
+   `wrapping_sub`, the `haikuterm.rs` 1400-1520 reading of the same code), and the
+   `memset (&attrs, 0, sizeof attrs)` shapes (the unit's line 8560 spelling).
+
 ## Evidence
 
 Readings, in the order they were taken (round 188, 2026-10-04; commands verbatim).
@@ -2516,6 +2628,146 @@ rustc failed for src/xterm.rs (exit status: 1)
 
 ```
 
+### Slice 10's readings (C 9786-11915), as landed and measured (2026-10-05)
+
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xterm2-lane cargo run -q -p xtask -- build-tu src/xterm.c
+warning: 30 warnings emitted
+built src/xterm.rs -> ../build/femacs/xterm.o          # exit 0
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xterm2-lane cargo run -q -p xtask -- build-tu src/xterm.c
+warning: 31 warnings emitted
+built src/xterm.rs -> ../build/femacs/xterm.o          # exit 0, after the fix batch below
+# the warnings are the mirrors' own (unused_doc_comments, unused_parens, unused_attributes,
+# unreachable_code, suspicious_runtime_symbol_definitions); the frozen configuration compiles
+# none of this slice, so build-tu proves parsing and nothing else here.  Two extra
+# `rustc -Zparse-crate-root-only src/xterm.rs` runs (syntax only, no artifact, so not a
+# build-tu reading) were the ones that caught this slice's first text slip: C's
+# `msg.xclient.type` is `r#type` in Rust.
+```
+
+```
+$ cd femacs && CARGO_TARGET_DIR=/tmp/xterm2-lane cargo run -q -p xtask -- probe \
+      src/xterm.rs /tmp/xterm2-lane/x.rlib --crate-type=lib -C panic=abort \
+      --cfg 'feature="have_x_windows"'
+rustc failed for src/xterm.rs (exit status: exit status: 1)
+# before this slice (the checkpoint the round started from):
+#   error: aborting due to 508 previous errors
+#     313 E0425  161 E0609   17 E0614   13 E0308   1 E0606   1 E0381   1 E0277   1 E0080
+#   by file: _root.rs 502, include/xterm.rs 4, include/frame.rs 1, include/systime.rs 1
+# first after (this slice as it was first written):
+#   error: aborting due to 658 previous errors
+#     439 E0425  176 E0609   17 E0614   21 E0308   1 E0423   1 E0606   1 E0381   1 E0277   1 E0080
+# last after (after the fix batch below):
+#   error: aborting due to 636 previous errors
+#     436 E0425  166 E0609   17 E0614   13 E0308   1 E0606   1 E0381   1 E0277   1 E0080
+#   by file: _root.rs 629, include/xterm.rs 4, include/frame.rs 2, include/systime.rs 1
+# the whole delta, and it is arithmetic: _root.rs 502 + 132 (this slice's own lines) - 5 (the five
+# prefix `x_clear_area` call sites this slice's definition resolves - the reading's one reduction)
+# = 629; include/frame.rs 1 + 1 = 2 (the mirror's `flush_frame!` body, whose own
+# `redisplay_interface` gap is named by this slice's one call to it); this slice contributes no
+# E0614, no E0308, no E0423, and moves no other error.
+```
+
+The 132 errors inside this slice's lines, by class (the `--check` and the six gates below were
+re-run after every fix batch):
+
+```
+# E0425 127
+#   Xlib entry points with no mirror row, 68: XSetForeground 14, XFillRectangle 9,
+#     XGetGCValues 7, XDrawLine 6, XSetFillStyle 6, XCopyArea 5, XChangeGC 4, XSetClipMask 2,
+#     XSetClipRectangles 2, XSetTSOrigin 2, XClearArea 1, XCreatePixmap 1, XMapRaised 1,
+#     XSetDashes 1, XSetLineAttributes 1, XUnmapWindow 1, ConnectionNumber 1, XBell 1,
+#     XFlush 1, XSendEvent 1, XCreateWindow 1  (the class slices 1-9 record)
+#   X11 constants with no mirror row, 32: GCFunction 3, FillOpaqueStippled 3, FillSolid 3,
+#     GCClipMask 2, GCClipXOrigin 2, GCClipYOrigin 2, GXcopy 2, GCLineStyle 2, GCLineWidth 2,
+#     Unsorted 2, LineSolid 2, CapButt 1, JoinRound 1, LineOnOffDash 1, CWCursor 1,
+#     InputOnly 1, CopyFromParent 1, GXinvert 1  (Decision 15's rule; each is in `x11_constants`
+#     or in the owed list below)
+#   X11/Xt records with no mirror row, 1: XSetWindowAttributes 1 (XPoint 6 is pre-existing)
+#   other units' functions with no usable row in this graph, 24: get_glyph_string_clip_rect 6,
+#     image_ascent 3, gui_intersect_rectangles 3, window_box 2, window_box_right 2,
+#     window_box_left 1, window_box_left_offset 1, cursor_in_mouse_face_p 1,
+#     font_for_underline_metrics 1, gui_clear_cursor 1, popup_activated 1,
+#     detect_input_pending 1, x_scroll_bar_clear 1  (the first two are the mirror's own
+#     `have_window_system` gate: include/dispextern.rs's `dispextern_late_decls` rows exist but are
+#     not selected by this arm)
+#   this file's own later slices, 2: x_ignore_errors_for_next_request 1, x_stop_ignoring_errors 1
+# E0609 5
+#   `xclient` on the opaque XEvent: 5  (C 11435-11443's five member writes in
+#   `x_send_hourglass_message`; the `r#type` write is one of them, and the 33-member union
+#   `docs/ports/include-xlib.md` owes is the single fix)
+```
+
+The fix batch the last reading follows (four items, each found by the probe and by nothing else -
+the syntax gate sees none of them): `glyph_string_bits! (for_overlaps, …)` is a 3-bit field and
+therefore an `c_int`, so its eight condition sites compare with 0; `x_draw_xwidget_glyph_string`
+takes the mirror's `*mut c_void`; `XCreateGC`'s `XGCValues *` argument is the declared
+`*mut c_void` (the same cast the prefix's own sites write); and `flush_frame` is the mirror's
+macro, not a function (`flush_frame! (f)`).  Three further items are name-level and are *not*
+re-measured by the probe: `x_composite_image`'s four parameters keep C's own spelling
+(`srcX`/`srcY`/`dstX`/`dstY`, what `--check`'s token comparison asks for), `x_scroll_run`'s
+XWIDGETS arm keeps C's own shadowing `int y = view->y + …` (`let mut y`, the C 11803 name), and
+the unit's `face` copy renames slice 9's `_pad_underline_pixels` placeholder to C's
+`underline_pixels_above_descent_line`.  None of the three can move an error count or kind (two
+renames of already-used bindings and a field rename with the same type and offset), the `--check`
+and the six gates were re-run after each, and the round's probe budget (three runs) was spent on
+the two readings above.  The last probe reading therefore predates those three edits by name only.
+
+The other two gates, before and after:
+
+```
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # before
+212
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+$ python3 tools/extract-abi.py --check emacs/src/xterm.c femacs/src/xterm.rs   # after
+185
+FAIL emacs/src/xterm.c -> femacs/src/xterm.rs
+# the rows that moved: 27 missing-function rows of C 9786-11915, minus the three *new* rows this
+# slice's own text produced - `function x_composite_image does not mention dstx, dsty, srcx,
+# srcy` (answered in the text: C's parameter names are kept), `function x_fill_underline does not
+# mention break, case, default, fallthrough, switch` and `function x_draw_glyph_string does not
+# mention break, case, cmp, default, switch` (answered by the two `macro-body-notes.tsv` rows this
+# slice appends, 1705-1706).  212 - 27 + 3 - 3 = 185.
+# the drift row changed with the file: `line count drifted 66.9%: C 33125 vs Rust 10952` ->
+# `line count drifted 59.1%: C 33125 vs Rust 13538`.
+```
+
+```
+$ python3 tools/check-port-lines.py
+0 file(s) under ten percent, 0 reference line(s); 0 ratchet row(s), 0 new, 0 stale
+$ python3 tools/check-dead-file-coverage.py
+info docs/ports/xterm.md: 131 range row(s) cover src/xterm.c (33125 lines; 73 blank line(s)
+between blocks need no row)
+145 ledger(s) bound (a C range table), 0 failure(s)
+$ python3 tools/check-ledger-ticks.py
+238 ledger(s) bound (a function tick to compare), 0 failure(s), 0 carried by another file,
+352 row(s) with no function tick ..., 0 row(s) without a ledger
+# the 27 ticks this round flips are all in the unit's text; the row count is unchanged because
+# this slice adds no function the reference does not have.
+$ python3 tools/check-citations.py
+check-citations: 676 file(s) scanned, 4 drift, 0 range, 1991 external, 32 allowed, 4 stale
+# the drift and stale rows are include/lisp.rs's and image.rs's own (other lanes' files, in flight
+# while this round ran - the reading moved from 5 drift to 4 between two runs of this gate, and no
+# run named this unit or this ledger); the external count grew by this slice's `/// C:` lines
+# (1905 -> 1991 tree-wide, most of them the x11-constants and XGCValues rows).
+$ python3 tools/check-declarations.py
+17 declaration sites (0 forbidden, 17 allowed literals), 0 failures
+$ python3 tools/check-mirror-dupes.py
+16 duplicate declaration(s), 17 ratchet row(s), 1 failure(s)
+# the failure is a STALE row of `femacs/src/sysdep.rs` (`pipe2 from
+# lib/include/unistd.in.rs is gone`), and the count read 18/17/3 an hour earlier - both readings
+# are other lanes' files (image.rs's `cairo_destroy` row came and went); no row names this unit,
+# before or after, and this slice adds no declaration to a mirror.
+$ python3 tools/check-citation-text.py | tail -1
+checked 1156 / mismatched 97 / ranges 789 / unresolved 731
+# the mismatched rows are xfns.rs/xmenu.rs/xselect.rs/xwidget.rs's own; none is in this unit's
+# text or in this ledger.
+```
+
+Line count and hash: `femacs/src/xterm.rs` **10,952 -> 13,538 lines**, md5
+`c6f1b725b1ffc98a2d5618cf61d4cef1` -> `d694654e84e3355e5bf83b8d24f60bc5`; this ledger's own
+`## C line ranges` table grew the 27 rows above and the remainder row moved to `11916-33125`.
+
 ## Owed by the integrator (nothing here is claimed as done)
 
 **1. Two `femacs/xtask/Cargo.toml` rows.**  `have_xrender_0_2` (`RENDER_MAJOR > 0 ||
@@ -2573,11 +2825,13 @@ count is now 82 pre-existing sites plus this slice's 43 (`xclient`) and 3 (`xcon
 ledger's call, not a per-function choice - C's spelling is what the token gate demands and what slices
 2, 5 and 6 already write.
 
-**5. The next slice.**  **C 6991-…** (the `Starting and ending an update` banner, C 6998's
-`#if defined HAVE_XSYNC && !defined USE_GTK && defined HAVE_CLOCK_GETTIME`, and the display
-iterator beyond it); this ledger's `## C line ranges` row `6990-33125` is the remainder that row's
-lane replaces.  The gates it needs are the ones `## Gate mapping` lists plus
-`have_xsync`, `have_xsynctriggerfence` and `have_clock_gettime` for C 6998's block.
+**5. The next slice.**  **C 11916-…** (C 11925's `x_frame_highlight` on: the frame highlight
+and focus hooks, the XFixes pointer blanking, `XTread_socket` and the event loop, the toolkit and
+scroll-bar code, `x_initialize` and `syms_of_xterm`); this ledger's `## C line ranges` row
+`11916-33125` is the remainder that row's lane replaces, and the gates it needs are the ones
+`## Gate mapping` lists.  (This item carried slice 8's next-slice text - "C 6991-…" and the
+`6990-33125` remainder - through slice 9's round, which had already landed that range; slice 10
+corrects it, the same `C 11916` the range table names.)
 
 **6. What moved outside this writing set: nothing.**  `emacs/**` was read-only; no mirror, no
 `xtask`, no `docs/baseline` and no other lane's file changed.  The one append is
@@ -2631,3 +2885,68 @@ lane replaces.  The gates it needs are the ones `## Gate mapping` lists plus
 the table to `/tmp` first and appending, so no other lane's row was rewritten.  The build
 artifacts this round left (`build/femacs/units/xterm`, `build/probes/xterm`, `build/femacs/xterm.o`)
 were deleted after each compile.
+
+**9. One `femacs/xtask/Cargo.toml` row: `have_xkb`.**  This slice's `XTring_bell` carries C 11677's
+`#ifdef HAVE_XKB` (and slice 8's `x_restore_events_after_dnd` already carried C 4791's), and the
+feature table has no `have_xkb` row (measured: `grep -n xkb femacs/xtask/Cargo.toml` finds none),
+so the arm cannot be selected today.  Every other name this slice's arms carry exists:
+`use_cairo`, `use_gtk`, `use_x_toolkit`, `use_xcb`, `use_cairo_xcb`, `have_xdbe`, `have_xrender`,
+`have_xrender_0_2`, `have_xwidgets`.
+
+**10. Mirror rows this slice's carried arms read** (each a `P-26`/`P-55` "the owning mirror takes
+it" note, the same shape Decision 22's clause 6 and slice 9's Owed items have):
+
+* `include/xlib.rs`'s `x11_constants`: the 20 X11 constants this slice's live text names and the
+  module does not carry - `FillSolid`, `FillOpaqueStippled`, `GCFunction`, `GCClipMask`,
+  `GCClipXOrigin`, `GCClipYOrigin`, `GCLineStyle`, `GCLineWidth`, `GXcopy`, `GXinvert`,
+  `LineSolid`, `LineOnOffDash`, `CapButt`, `JoinRound`, `Convex`, `CoordModeOrigin`, `CWCursor`,
+  `CopyFromParent`, `InputOnly`, `Unsorted` - each an `<X11/X.h>`/`<X11/Xlib.h>` value
+  clang-measurable the way that module's rows already are (`docs/ports/include-xlib.md`).
+* `include/xlib.rs`: the `XPoint` record (Xlib.h 322-325) and `XSetWindowAttributes` (Xlib.h
+  243-252, the cursor field this slice's `x_show_hourglass` writes), plus the `XEvent` union the
+  ledger's Decision 20 and `docs/ports/include-xlib.md` already owe - this slice's five `xclient`
+  member writes are five more sites of that class (108 -> 113 in this arm's reading).
+* The dispextern.h prototypes a flip needs and this graph declares nowhere:
+  `get_glyph_string_clip_rect` (C 3663) and `gui_intersect_rectangles` (C 3676) *do* exist in
+  `include/dispextern.rs`'s `dispextern_late_decls`, but under `feature = "have_window_system"`,
+  so a flip that sets `have_x_windows` alone leaves this slice's nine call sites `E0425` (the
+  ledger's evidence above counts them there); `window_box` (C 3574-3575), `window_box_left`
+  (3579), `window_box_left_offset` (3580), `window_box_right` (3581), `font_for_underline_metrics`
+  (3638), `gui_clear_cursor` (3657), `cursor_in_mouse_face_p` (3692), `image_ascent` (3774) and
+  `popup_activated` (3879) have no row anywhere - the `w32term.rs` 1750/3134-3141 use-site
+  declarations are the shape they should take, and `detect_input_pending` (lisp.h 5095) is the
+  same case.
+* `include/frame.rs` 1908-1914's `flush_frame!` body names `redisplay_interface` and no unit of
+  this graph declares it, so *every* call site of that macro reads one `E0425` (`widget.rs` 1400
+  records the same finding; `haikufns.rs` 3664 is another site, and this slice's `XTflash` call
+  path is the third).
+* `include/dispextern.rs`'s own `face_bits!` (and the window mirror's `window_bits!` /
+  `window_box` rows): this slice extends the *unit's* copy with the six accessors C 11064-11226
+  reads, and calls `window_bits! (pseudo_window_p, …)`, which no unit can resolve today
+  (`dispnew.rs` 396 and `fringe.rs` 865 keep their own copies of that macro for the same reason).
+
+**11. Two defects this slice found in slices 1-9's text and did not edit** (they are outside its C
+range; the round attributes them instead, and both readings carry them unchanged):
+
+* **17 `E0614`** (`type \`face\`/\`glyph\` cannot be dereferenced`): the unit's own `face_bits!`,
+  `glyph_u_cmp_bits!` and `glyphless_bits!` dereference their argument, and every one of their
+  call sites passes a *value* rather than a pointer - `face_bits!` at 9687, 9736, 9806, 9856, 9889,
+  9899, 9912, 9952, 10924; `glyph_u_cmp_bits!` at 9836; `glyphless_bits!` at 9974, 9976, 9984,
+  9986, 9994, 9996, 10027.  Each is written `(*((*s).face as *mut face))` (or `(*glyph)`) where
+  the macro's body is `(*$f)…`; the `w32term.rs` 2235 and `haikuterm.rs` 350 call sites show the
+  intended spelling (pass the pointer), which is also what the macro's own `$f:expr` grouping
+  wants.  Slice 9's ledger records these as "the `(*((*s).face as *mut face))` groupings", one of
+  the three fix batches it landed *after* its last probe run - which is why they are 17 in both
+  readings of this round.
+* **2 of the prefix's 13 `E0308`**: `x_draw_glyph_string_background`'s two
+  `if glyph_string_bits! (for_overlaps, (*s))` (9728 and 9750 in the current text) use that
+  macro's `c_int` arm directly as a condition; `!= 0` is the fix, and it is the one this slice's
+  own eight `for_overlaps` sites use.
+
+**12. What this slice does not claim.**  No X11 build, no cairo/GTK/XRender/XCB/xwidget/XKB build
+and no runtime were exercised: the frozen configuration compiles none of this file, the probe
+compiles the plain-X11 arm (`have_x_windows`, no `use_cairo`, no `have_xrender`, no `use_gtk`, no
+`have_xdbe`, no `have_xwidgets`, no `use_xcb`, no `have_xkb`), and everything under those features
+is carried text that **no configuration in this tree has compiled**.  `build-tu` proves parsing;
+the probe's numbers are unresolved names, not behaviour; and nothing here is device, GUI or
+end-to-end evidence for any of the functions this slice lands.

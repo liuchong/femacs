@@ -9513,7 +9513,7 @@ pub struct face
   pub fontset: c_int,               // 1838
   pub box_vertical_line_width: c_int,     // 1848
   pub box_horizontal_line_width: c_int,   // 1849
-  pub _pad_underline_pixels: c_int,       // 1850 (this unit reads none of it)
+  pub underline_pixels_above_descent_line: c_int,   // C 1850
   pub bits: u32,                    // 1851-1861: the `bool_bf`/`ENUM_BF` run at offset 256
   pub _pad_bits: [u8; 4],           // C's padding before `uintptr_t hash`
   pub hash: uintptr_t,              // 1930, offset 264
@@ -9551,11 +9551,43 @@ pub const FACE_BOX_MASK: u32 = 0x3;
 pub const FACE_USE_BOX_COLOR_FOR_SHADOWS_P: u32 = 1 << 5;
 #[cfg (feature = "have_x_windows")]
 pub const FACE_OVERSTRIKE: u32 = 1 << 21;
+/* The six members slice 10's `x_draw_glyph_string`/`x_draw_image_relief` text reads and this
+   unit's copy did not name yet, at the positions dispextern.h 1893-1935 gives them (the
+   `font.rs` 232-253 row of the same record; `include/dispextern.rs`'s own copy is behind
+   `dispextern_face_records`, so the mirror row is owed - P-26/P-80).  */
+#[cfg (feature = "have_x_windows")]
+pub const FACE_UNDERLINE_SHIFT: u32 = 2;
+#[cfg (feature = "have_x_windows")]
+pub const FACE_UNDERLINE_MASK: u32 = 0x7;
+#[cfg (feature = "have_x_windows")]
+pub const FACE_OVERLINE_P: u32 = 1 << 6;
+#[cfg (feature = "have_x_windows")]
+pub const FACE_STRIKE_THROUGH_P: u32 = 1 << 7;
+#[cfg (feature = "have_x_windows")]
+pub const FACE_UNDERLINE_DEFAULTED_P: u32 = 1 << 10;
+#[cfg (feature = "have_x_windows")]
+pub const FACE_OVERLINE_COLOR_DEFAULTED_P: u32 = 1 << 11;
+#[cfg (feature = "have_x_windows")]
+pub const FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P: u32 = 1 << 12;
+#[cfg (feature = "have_x_windows")]
+pub const FACE_UNDERLINE_AT_DESCENT_LINE_P: u32 = 1 << 14;
 #[cfg (feature = "have_x_windows")]
 macro_rules! face_bits {
   (box, $f:expr) => { (((*$f).bits & FACE_BOX_MASK) >> FACE_BOX_SHIFT) as c_int };
+  (underline, $f:expr) =>
+    { (((*$f).bits & FACE_UNDERLINE_MASK) >> FACE_UNDERLINE_SHIFT) as c_int };
   (use_box_color_for_shadows_p, $f:expr) =>
     { ((*$f).bits & FACE_USE_BOX_COLOR_FOR_SHADOWS_P) != 0 };
+  (overline_p, $f:expr) => { ((*$f).bits & FACE_OVERLINE_P) != 0 };
+  (strike_through_p, $f:expr) => { ((*$f).bits & FACE_STRIKE_THROUGH_P) != 0 };
+  (underline_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_UNDERLINE_DEFAULTED_P) != 0 };
+  (overline_color_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_OVERLINE_COLOR_DEFAULTED_P) != 0 };
+  (strike_through_color_defaulted_p, $f:expr) =>
+    { ((*$f).bits & FACE_STRIKE_THROUGH_COLOR_DEFAULTED_P) != 0 };
+  (underline_at_descent_line_p, $f:expr) =>
+    { ((*$f).bits & FACE_UNDERLINE_AT_DESCENT_LINE_P) != 0 };
   (overstrike, $f:expr) => { ((*$f).bits & FACE_OVERSTRIKE) != 0 };
 }
 
@@ -10949,4 +10981,2558 @@ unsafe fn x_inside_rect_p (rects: *mut XRectangle, nrects: c_int, x: c_int, y: c
     }
 
   false
+}
+
+/* ---- Slice 10: C 9786-11915 - the relief and box drawing, the image glyph drawing, the
+   glyph-string drawer, the frame clearing, the hourglass and the visible bell, and
+   `x_scroll_run`.  Slice 9 stopped at C 9785 (`x_inside_rect_p`'s closing brace).
+
+   Every item below carries the file gate `#[cfg (feature = "have_x_windows")]` and each of C's
+   own `#if` conditions its lowercase feature, the口径 slices 1-9 established (the file is not in
+   the frozen build, so the arms are carried per P-51/P-86 rather than dropped).  The names this
+   slice's live text calls that no mirror in this graph declares (Xlib's entry points and the
+   other units' functions - `window_box`, `cursor_in_mouse_face_p`, `image_ascent`, ...) stay
+   bare, the class slices 1-9 record in this ledger; the X11 constants the mirror does not carry
+   (`FillSolid`, `GXcopy`, `Unsorted`, ...) likewise.  Both lists are in the ledger's Decisions.  */
+
+/* C 9786-9988: `x_draw_relief_rect`.  C's `#ifdef USE_CAIRO` arm declares its three locals and
+   calls the two helpers that arm landed with (`x_fill_trapezoid_for_relief`,
+   `x_erase_corners_for_relief`); the `#else` arm declares its six.  `f->output_data.x->…` is
+   written the way slice 9's `x_setup_relief_colors` writes it (`*( … as *mut x_output )`), the
+   local `corners` keeps C's name (the enum type `corners` lives in the type namespace, so the
+   two do not collide), and C 9860's `6, 1` are the two `double` parameters the port's
+   `x_erase_corners_for_relief` takes, so each conversion C makes implicitly is written out.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_relief_rect (f: *mut frame, left_x: c_int, top_y: c_int, right_x: c_int,
+			      bottom_y: c_int, hwidth: c_int, vwidth: c_int, raised_p: bool,
+			      top_p: bool, bot_p: bool, left_p: bool, right_p: bool,
+			      clip_rect: *mut XRectangle)
+{
+  #[cfg (feature = "use_cairo")]
+  {
+    let mut top_left_gc: GC;
+    let mut bottom_right_gc: GC;
+    let mut corners: c_int = 0;
+
+    if raised_p
+      {
+	top_left_gc = (*( (*f).output_data.x as *mut x_output )).white_relief.gc;
+	bottom_right_gc = (*( (*f).output_data.x as *mut x_output )).black_relief.gc;
+      }
+    else
+      {
+	top_left_gc = (*( (*f).output_data.x as *mut x_output )).black_relief.gc;
+	bottom_right_gc = (*( (*f).output_data.x as *mut x_output )).white_relief.gc;
+      }
+
+    x_set_clip_rectangles (f, top_left_gc, clip_rect, 1);
+    x_set_clip_rectangles (f, bottom_right_gc, clip_rect, 1);
+
+    if left_p
+      {
+	x_fill_rectangle (f, top_left_gc, left_x, top_y,
+			  vwidth, bottom_y + 1 - top_y, false);
+	if top_p
+	  { corners |= 1 << (corners::CORNER_TOP_LEFT as c_int); }
+	if bot_p
+	  { corners |= 1 << (corners::CORNER_BOTTOM_LEFT as c_int); }
+      }
+    if right_p
+      {
+	x_fill_rectangle (f, bottom_right_gc, right_x + 1 - vwidth, top_y,
+			  vwidth, bottom_y + 1 - top_y, false);
+	if top_p
+	  { corners |= 1 << (corners::CORNER_TOP_RIGHT as c_int); }
+	if bot_p
+	  { corners |= 1 << (corners::CORNER_BOTTOM_RIGHT as c_int); }
+      }
+    if top_p
+      {
+	if !right_p
+	  {
+	    x_fill_rectangle (f, top_left_gc, left_x, top_y,
+			      right_x + 1 - left_x, hwidth, false);
+	  }
+	else
+	  {
+	    x_fill_trapezoid_for_relief (f, top_left_gc, left_x, top_y,
+					 right_x + 1 - left_x, hwidth, 1);
+	  }
+      }
+    if bot_p
+      {
+	if !left_p
+	  {
+	    x_fill_rectangle (f, bottom_right_gc, left_x, bottom_y + 1 - hwidth,
+			      right_x + 1 - left_x, hwidth, false);
+	  }
+	else
+	  {
+	    x_fill_trapezoid_for_relief (f, bottom_right_gc,
+					 left_x, bottom_y + 1 - hwidth,
+					 right_x + 1 - left_x, hwidth, 0);
+	  }
+      }
+    if left_p && vwidth > 1
+      {
+	x_fill_rectangle (f, bottom_right_gc, left_x, top_y,
+			  1, bottom_y + 1 - top_y, false);
+      }
+    if top_p && hwidth > 1
+      {
+	x_fill_rectangle (f, bottom_right_gc, left_x, top_y,
+			  right_x + 1 - left_x, 1, false);
+      }
+    if corners != 0
+      {
+	XSetBackground (FRAME_X_DISPLAY! (f), top_left_gc,
+			FRAME_BACKGROUND_PIXEL (f));
+	x_erase_corners_for_relief (f, top_left_gc, left_x, top_y,
+				    right_x - left_x + 1, bottom_y - top_y + 1,
+				    6 as c_double, 1 as c_double, corners);
+      }
+
+    x_reset_clip_rectangles (f, top_left_gc);
+    x_reset_clip_rectangles (f, bottom_right_gc);
+  }
+
+  #[cfg (not (feature = "use_cairo"))]
+  {
+    let mut gc: GC;
+    let mut white_gc: GC;
+    let mut black_gc: GC;
+    let mut normal_gc: GC;
+    let mut drawable: Drawable;
+    let mut dpy: *mut Display;
+
+    /* This code is more complicated than it has to be, because of two
+       minor hacks to make the boxes look nicer: (i) if width > 1, draw
+       the outermost line using the black relief.  (ii) Omit the four
+       corner pixels.  */
+
+    white_gc = (*( (*f).output_data.x as *mut x_output )).white_relief.gc;
+    black_gc = (*( (*f).output_data.x as *mut x_output )).black_relief.gc;
+    normal_gc = (*( (*f).output_data.x as *mut x_output )).normal_gc;
+
+    drawable = FRAME_X_DRAWABLE! (f);
+    dpy = FRAME_X_DISPLAY! (f);
+
+    x_set_clip_rectangles (f, white_gc, clip_rect, 1);
+    x_set_clip_rectangles (f, black_gc, clip_rect, 1);
+
+    if raised_p
+      { gc = white_gc; }
+    else
+      { gc = black_gc; }
+
+    /* Draw lines.  */
+
+    if top_p
+      {
+	x_fill_rectangle (f, gc, left_x, top_y,
+			  right_x - left_x + 1, hwidth, false);
+      }
+
+    if left_p
+      {
+	x_fill_rectangle (f, gc, left_x, top_y, vwidth,
+			  bottom_y - top_y + 1, false);
+      }
+
+    if raised_p
+      { gc = black_gc; }
+    else
+      { gc = white_gc; }
+
+    if bot_p
+      {
+	x_fill_rectangle (f, gc, left_x, bottom_y - hwidth + 1,
+			  right_x - left_x + 1, hwidth, false);
+      }
+
+    if right_p
+      {
+	x_fill_rectangle (f, gc, right_x - vwidth + 1, top_y,
+			  vwidth, bottom_y - top_y + 1, false);
+      }
+
+    /* Draw corners.  */
+
+    if bot_p && left_p
+      {
+	x_fill_triangle (f, if raised_p { white_gc } else { black_gc },
+			 x_make_point (left_x, bottom_y - hwidth),
+			 x_make_point (left_x + vwidth, bottom_y - hwidth),
+			 x_make_point (left_x, bottom_y));
+      }
+
+    if top_p && right_p
+      {
+	x_fill_triangle (f, if raised_p { white_gc } else { black_gc },
+			 x_make_point (right_x - vwidth, top_y),
+			 x_make_point (right_x, top_y),
+			 x_make_point (right_x - vwidth, top_y + hwidth));
+      }
+
+    /* Draw outer line.  */
+
+    if top_p && left_p && bot_p && right_p
+	&& hwidth > 1 && vwidth > 1
+      {
+	x_draw_rectangle (f, black_gc, left_x, top_y,
+			  right_x - left_x, bottom_y - top_y);
+      }
+    else
+      {
+	if top_p && hwidth > 1
+	  {
+	    XDrawLine (dpy, drawable, black_gc, left_x, top_y,
+		       right_x + 1, top_y);
+	  }
+
+	if bot_p && hwidth > 1
+	  {
+	    XDrawLine (dpy, drawable, black_gc, left_x, bottom_y,
+		       right_x + 1, bottom_y);
+	  }
+
+	if left_p && vwidth > 1
+	  {
+	    XDrawLine (dpy, drawable, black_gc, left_x, top_y,
+		       left_x, bottom_y + 1);
+	  }
+
+	if right_p && vwidth > 1
+	  {
+	    XDrawLine (dpy, drawable, black_gc, right_x, top_y,
+		       right_x, bottom_y + 1);
+	  }
+      }
+
+    /* Erase corners.  */
+
+    if hwidth > 1 && vwidth > 1
+      {
+	if left_p && top_p && x_inside_rect_p (clip_rect, 1, left_x, top_y)
+	  {
+	    /* This should respect `alpha-background' since it's being
+	       cleared with the background color of the frame.  */
+	    x_clear_point (f, normal_gc, left_x, top_y, true);
+	  }
+
+	if left_p && bot_p && x_inside_rect_p (clip_rect, 1, left_x, bottom_y)
+	  { x_clear_point (f, normal_gc, left_x, bottom_y, true); }
+
+	if right_p && top_p && x_inside_rect_p (clip_rect, 1, right_x, top_y)
+	  { x_clear_point (f, normal_gc, right_x, top_y, true); }
+
+	if right_p && bot_p && x_inside_rect_p (clip_rect, 1, right_x, bottom_y)
+	  { x_clear_point (f, normal_gc, right_x, bottom_y, true); }
+      }
+
+    x_reset_clip_rectangles (f, white_gc);
+    x_reset_clip_rectangles (f, black_gc);
+  }
+}
+
+/* C 9990-10034: `x_draw_box_rect`.  C's `XGCValues xgcv` is filled by `XGetGCValues` before it
+   is read, so the port zero-initialises it (PORTING.md 1.5); `s->gc` is the mirror's
+   `*mut c_void` member and every use casts it to `GC` (the `w32term.rs` 1869 shape).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_box_rect (s: *mut glyph_string, left_x: c_int, top_y: c_int, right_x: c_int,
+			   bottom_y: c_int, hwidth: c_int, vwidth: c_int, left_p: bool,
+			   right_p: bool, clip_rect: *mut XRectangle)
+{
+  use crate::x11_constants::GCForeground;
+
+  let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+  let mut xgcv: XGCValues = std::mem::zeroed ();
+
+  XGetGCValues (display, (*s).gc as GC, GCForeground, &raw mut xgcv);
+  XSetForeground (display, (*s).gc as GC, (*((*s).face as *mut face)).box_color);
+  x_set_clip_rectangles ((*s).f, (*s).gc as GC, clip_rect, 1);
+
+  /* Top.  */
+  x_fill_rectangle ((*s).f, (*s).gc as GC,
+		    left_x, top_y, right_x - left_x + 1, hwidth,
+		    false);
+
+  /* Left.  */
+  if left_p
+    {
+      x_fill_rectangle ((*s).f, (*s).gc as GC,
+			left_x, top_y, vwidth, bottom_y - top_y + 1,
+			false);
+    }
+
+  /* Bottom.  */
+  x_fill_rectangle ((*s).f, (*s).gc as GC,
+		    left_x, bottom_y - hwidth + 1, right_x - left_x + 1, hwidth,
+		    false);
+
+  /* Right.  */
+  if right_p
+    {
+      x_fill_rectangle ((*s).f, (*s).gc as GC,
+			right_x - vwidth + 1, top_y, vwidth, bottom_y - top_y + 1,
+			false);
+    }
+
+  XSetForeground (display, (*s).gc as GC, xgcv.foreground);
+  x_reset_clip_rectangles ((*s).f, (*s).gc as GC);
+}
+
+/* C 10036-10103: `x_draw_glyph_string_box`.  The right-box glyph is looked up the way C's `for`
+   does it (`last_glyph = g++` after the empty body, so the port keeps C's two steps); the
+   glyph-row members `full_width_p` go through the mirror's `glyph_row_bits!`
+   (`include/dispextern.rs` 1107) and the window's `pseudo_window_p` through the `window_bits!`
+   this unit's earlier text already calls (the mirror does not carry it - the ledger's class);
+   `WINDOW_RIGHT_EDGE_X` is the mirror's macro.  `min` is lisp.h's `EMACS_INT` pair, so both
+   operands widen and the result narrows (the `x_alloc_lighter_color` shape), and C's ternary is
+   the port's `if`/`else` expression.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_glyph_string_box (s: *mut glyph_string)
+{
+  let mut hwidth: c_int;
+  let mut vwidth: c_int;
+  let mut left_x: c_int;
+  let mut right_x: c_int;
+  let mut top_y: c_int;
+  let mut bottom_y: c_int;
+  let mut last_x: c_int;
+  let mut raised_p: bool;
+  let mut left_p: bool;
+  let mut right_p: bool;
+  let mut last_glyph: *mut glyph;
+  let mut clip_rect: XRectangle = std::mem::zeroed ();
+  let face: *mut face = (*s).face as *mut face;
+
+  last_x = if glyph_row_bits! (full_width_p, (*s).row)
+	      && !window_bits! (pseudo_window_p, (*s).w)
+    { WINDOW_RIGHT_EDGE_X! ((*s).w) }
+  else
+    { window_box_right ((*s).w, (*s).area) };
+
+  /* The glyph that may have a right box line.  For static
+     compositions and images, the right-box flag is on the first glyph
+     of the glyph string; for other types it's on the last glyph.  */
+  if !(*s).cmp.is_null () || !(*s).img.is_null ()
+    { last_glyph = (*s).first_glyph; }
+  else if glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH
+	   && glyph_u_cmp_bits! (automatic, (*s).first_glyph)
+    {
+      /* For automatic compositions, we need to look up the last glyph
+	 in the composition.  */
+      let end: *mut glyph = (*((*s).row)).glyphs[(*s).area as usize]
+	.offset ((*((*s).row)).used[(*s).area as usize] as isize);
+      let mut g: *mut glyph = (*s).first_glyph;
+
+      last_glyph = g;
+      g = g.offset (1);
+      while g < end && glyph_u_cmp_bits! (automatic, g)
+	    && glyph_u_cmp_bits! (id, g) == (*s).cmp_id
+	    && (*g).slice.cmp.to < (*s).cmp_to
+	{
+	  last_glyph = g;
+	  g = g.offset (1);
+	}
+    }
+  else
+    { last_glyph = (*s).first_glyph.offset ((*s).nchars as isize - 1); }
+
+  vwidth = eabs! ((*face).box_vertical_line_width);
+  hwidth = eabs! ((*face).box_horizontal_line_width);
+  raised_p = face_bits! (box, face) == FACE_RAISED_BOX;
+  left_x = (*s).x;
+  right_x = if glyph_row_bits! (full_width_p, (*s).row)
+	       && glyph_string_bits! (extends_to_end_of_line_p, (*s))
+    { last_x - 1 }
+  else
+    { min (last_x as isize, ((*s).x + (*s).background_width) as isize) as c_int - 1 };
+  top_y = (*s).y;
+  bottom_y = top_y + (*s).height - 1;
+
+  left_p = glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+    || ((*s).hl == DRAW_MOUSE_FACE
+	&& ((*s).prev.is_null ()
+	    || (*((*s).prev)).hl != (*s).hl));
+  right_p = glyph_bits! (right_box_line_p, (*last_glyph))
+    || ((*s).hl == DRAW_MOUSE_FACE
+	&& ((*s).next.is_null ()
+	    || (*((*s).next)).hl != (*s).hl));
+
+  get_glyph_string_clip_rect (s, (&raw mut clip_rect) as *mut c_void);
+
+  if face_bits! (box, face) == FACE_SIMPLE_BOX
+    {
+      x_draw_box_rect (s, left_x, top_y, right_x, bottom_y, hwidth,
+		       vwidth, left_p, right_p, &raw mut clip_rect);
+    }
+  else
+    {
+      x_setup_relief_colors (s);
+      x_draw_relief_rect ((*s).f, left_x, top_y, right_x, bottom_y, hwidth,
+			  vwidth, raised_p, true, true, left_p, right_p,
+			  &raw mut clip_rect);
+    }
+}
+
+/* C 10105-10160: `#ifndef USE_CAIRO` - `x_composite_image`.  C's `#ifdef HAVE_XRENDER` adds the
+   `Picture destination` parameter *and* the two locals, so the port carries one definition per
+   arm (PORTING.md 2.1; `extract-abi.py`'s `bodies_all` compares the arm the configuration
+   selects).  `s->img->picture`/`mask_picture` are the image mirror's `*mut c_void` members (the
+   `picture` pair is gated `have_xrender`), so each is unwrapped before use, and `destination ==
+   None` is C's pointer compare with the mirror's `None` constant (the `x_free_colors` sites'
+   `None as Picture` spelling).  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_cairo"),
+	    feature = "have_xrender"))]
+unsafe fn x_composite_image (s: *mut glyph_string, dest: Pixmap, destination: Picture,
+			     srcX: c_int, srcY: c_int, dstX: c_int, dstY: c_int,
+			     width: c_int, height: c_int)
+{
+  use crate::x11_constants::None;
+
+  let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+
+  let mut default_format: *mut XRenderPictFormat = std::ptr::null_mut ();
+  let mut attr: XRenderPictureAttributes = std::mem::zeroed ();
+
+  if !(*((*s).img)).picture.is_null () && !FRAME_X_PICTURE_FORMAT! ((*s).f).is_null ()
+    {
+      if destination == None as Picture
+	{
+	  /* The destination picture was not specified.  This means we
+	     have to create a picture representing the */
+	  default_format = FRAME_X_PICTURE_FORMAT! ((*s).f);
+	  destination = XRenderCreatePicture (display, dest,
+					      default_format, 0, &raw mut attr);
+
+	  XRenderComposite (display, if !(*((*s).img)).mask_picture.is_null ()
+				      { PictOpOver } else { PictOpSrc },
+			    (*((*s).img)).picture, (*((*s).img)).mask_picture,
+			    destination, srcX, srcY, srcX, srcY,
+			    dstX, dstY, width, height);
+
+	  XRenderFreePicture (display, destination);
+	}
+      else
+	{
+	  XRenderComposite (display, if !(*((*s).img)).mask_picture.is_null ()
+				      { PictOpOver } else { PictOpSrc },
+			    (*((*s).img)).picture, (*((*s).img)).mask_picture,
+			    destination, srcX, srcY, srcX, srcY,
+			    dstX, dstY, width, height);
+	}
+
+      return;
+    }
+
+  XCopyArea (display, (*((*s).img)).pixmap,
+	     dest, (*s).gc as GC,
+	     srcX, srcY,
+	     width, height, dstX, dstY);
+}
+
+#[cfg (all (feature = "have_x_windows", not (feature = "use_cairo"),
+	    not (feature = "have_xrender")))]
+unsafe fn x_composite_image (s: *mut glyph_string, dest: Pixmap,
+			     srcX: c_int, srcY: c_int, dstX: c_int, dstY: c_int,
+			     width: c_int, height: c_int)
+{
+  let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+
+  XCopyArea (display, (*((*s).img)).pixmap,
+	     dest, (*s).gc as GC,
+	     srcX, srcY,
+	     width, height, dstX, dstY);
+}
+
+/* C 10162-10283: `x_draw_image_foreground`.  `image_ascent` is dispextern.h's (this unit's
+   slice-9 text declares nothing for it; the `w32term.rs` 3125-3128 use-site form is the
+   shape and the ledger owes the mirror row), `max` is lisp.h's `EMACS_INT` pair, and the
+   slice coordinates go through the mirror's `glyph_slice_bits!` (`glyph_slice` stores them as
+   four 16-bit members).  The `#ifndef USE_CAIRO` arm sets the GC's clip mask and then composes
+   through `x_composite_image`; C's `s->img->pixmap` null test is the pointer test its type
+   asks for.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_image_foreground (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+  let mut x: c_int = (*s).x;
+  let mut y: c_int = (*s).ybase - image_ascent ((*s).img, face, &raw mut (*s).slice);
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */
+  if face_bits! (box, face) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+      && glyph_slice_bits! (x, (*s).slice) == 0
+    { x += max ((*face).box_vertical_line_width as isize, 0) as c_int; }
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */
+  if glyph_slice_bits! (x, (*s).slice) == 0
+    { x += (*((*s).img)).hmargin; }
+  if glyph_slice_bits! (y, (*s).slice) == 0
+    { y += (*((*s).img)).vmargin; }
+
+  #[cfg (feature = "use_cairo")]
+  {
+    if !(*((*s).img)).cr_data.is_null ()
+      {
+	x_set_glyph_string_clipping (s);
+	x_cr_draw_image ((*s).f, (*s).gc as GC,
+			 (*((*s).img)).cr_data as *mut cairo_pattern_t,
+			 glyph_slice_bits! (x, (*s).slice) as c_int,
+			 glyph_slice_bits! (y, (*s).slice) as c_int,
+			 glyph_slice_bits! (width, (*s).slice) as c_int,
+			 glyph_slice_bits! (height, (*s).slice) as c_int,
+			 x, y, true);
+	if (*((*s).img)).mask.is_null ()
+	  {
+	    /* When the image has a mask, we can expect that at
+	       least part of a mouse highlight or a block cursor will
+	       be visible.  If the image doesn't have a mask, make
+	       a block cursor visible by drawing a rectangle around
+	       the image.  I believe it's looking better if we do
+	       nothing here for mouse-face.  */
+	    if (*s).hl == DRAW_CURSOR
+	      {
+		let relief: c_int = eabs! ((*((*s).img)).relief);
+		x_draw_rectangle ((*s).f, (*s).gc as GC, x - relief, y - relief,
+				  glyph_slice_bits! (width, (*s).slice) as c_int + relief * 2 - 1,
+				  glyph_slice_bits! (height, (*s).slice) as c_int + relief * 2 - 1);
+	      }
+	  }
+      }
+  }
+
+  #[cfg (not (feature = "use_cairo"))]
+  {
+    if !(*((*s).img)).pixmap.is_null ()
+      {
+	if !(*((*s).img)).mask.is_null ()
+	  {
+	    /* We can't set both a clip mask and use XSetClipRectangles
+	       because the latter also sets a clip mask.  We also can't
+	       trust on the shape extension to be available
+	       (XShapeCombineRegion).  So, compute the rectangle to draw
+	       manually.  */
+	    let mask: c_ulong = (GCClipMask | GCClipXOrigin | GCClipYOrigin
+				 | GCFunction) as c_ulong;
+	    let mut xgcv: XGCValues = std::mem::zeroed ();
+	    let mut clip_rect: XRectangle = std::mem::zeroed ();
+	    let mut image_rect: XRectangle = std::mem::zeroed ();
+	    let mut r: XRectangle = std::mem::zeroed ();
+
+	    xgcv.clip_mask = (*((*s).img)).mask as Pixmap;
+	    xgcv.clip_x_origin = x;
+	    xgcv.clip_y_origin = y;
+	    xgcv.function = GXcopy;
+	    XChangeGC (FRAME_X_DISPLAY! ((*s).f), (*s).gc as GC, mask,
+		       &raw mut xgcv as *mut c_void);
+
+	    get_glyph_string_clip_rect (s, (&raw mut clip_rect) as *mut c_void);
+	    image_rect.x = x as c_short;
+	    image_rect.y = y as c_short;
+	    image_rect.width = glyph_slice_bits! (width, (*s).slice) as c_ushort;
+	    image_rect.height = glyph_slice_bits! (height, (*s).slice) as c_ushort;
+	    /* C 10248-10252's `#ifdef HAVE_XRENDER` adds `FRAME_X_PICTURE (s->f)` to the
+	       call, so the port carries one arm per configuration (the `ftfont.rs` 2552
+	       shape); both arms keep C's argument list.  */
+	    #[cfg (feature = "have_xrender")]
+	    {
+	      if gui_intersect_rectangles (&clip_rect, &image_rect, &mut r)
+		{
+		  x_composite_image (s, FRAME_X_DRAWABLE! ((*s).f),
+				     FRAME_X_PICTURE! ((*s).f),
+				     glyph_slice_bits! (x, (*s).slice) as c_int + r.x as c_int - x,
+				     glyph_slice_bits! (y, (*s).slice) as c_int + r.y as c_int - y,
+				     r.x as c_int, r.y as c_int,
+				     r.width as c_int, r.height as c_int);
+		}
+	    }
+	    #[cfg (not (feature = "have_xrender"))]
+	    {
+	      if gui_intersect_rectangles (&clip_rect, &image_rect, &mut r)
+		{
+		  x_composite_image (s, FRAME_X_DRAWABLE! ((*s).f),
+				     glyph_slice_bits! (x, (*s).slice) as c_int + r.x as c_int - x,
+				     glyph_slice_bits! (y, (*s).slice) as c_int + r.y as c_int - y,
+				     r.x as c_int, r.y as c_int,
+				     r.width as c_int, r.height as c_int);
+		}
+	    }
+	  }
+	else
+	  {
+	    let mut clip_rect: XRectangle = std::mem::zeroed ();
+	    let mut image_rect: XRectangle = std::mem::zeroed ();
+	    let mut r: XRectangle = std::mem::zeroed ();
+
+	    get_glyph_string_clip_rect (s, (&raw mut clip_rect) as *mut c_void);
+	    image_rect.x = x as c_short;
+	    image_rect.y = y as c_short;
+	    image_rect.width = glyph_slice_bits! (width, (*s).slice) as c_ushort;
+	    image_rect.height = glyph_slice_bits! (height, (*s).slice) as c_ushort;
+	    /* C 10248-10252's `#ifdef HAVE_XRENDER` adds `FRAME_X_PICTURE (s->f)` to the
+	       call, so the port carries one arm per configuration (the `ftfont.rs` 2552
+	       shape); both arms keep C's argument list.  */
+	    #[cfg (feature = "have_xrender")]
+	    {
+	      if gui_intersect_rectangles (&clip_rect, &image_rect, &mut r)
+		{
+		  x_composite_image (s, FRAME_X_DRAWABLE! ((*s).f),
+				     FRAME_X_PICTURE! ((*s).f),
+				     glyph_slice_bits! (x, (*s).slice) as c_int + r.x as c_int - x,
+				     glyph_slice_bits! (y, (*s).slice) as c_int + r.y as c_int - y,
+				     r.x as c_int, r.y as c_int,
+				     r.width as c_int, r.height as c_int);
+		}
+	    }
+	    #[cfg (not (feature = "have_xrender"))]
+	    {
+	      if gui_intersect_rectangles (&clip_rect, &image_rect, &mut r)
+		{
+		  x_composite_image (s, FRAME_X_DRAWABLE! ((*s).f),
+				     glyph_slice_bits! (x, (*s).slice) as c_int + r.x as c_int - x,
+				     glyph_slice_bits! (y, (*s).slice) as c_int + r.y as c_int - y,
+				     r.x as c_int, r.y as c_int,
+				     r.width as c_int, r.height as c_int);
+		}
+	    }
+
+	    /* When the image has a mask, we can expect that at
+	       least part of a mouse highlight or a block cursor will
+	       be visible.  If the image doesn't have a mask, make
+	       a block cursor visible by drawing a rectangle around
+	       the image.  I believe it's looking better if we do
+	       nothing here for mouse-face.  */
+	    if (*s).hl == DRAW_CURSOR
+	      {
+		let relief: c_int = eabs! ((*((*s).img)).relief);
+		x_draw_rectangle ((*s).f, (*s).gc as GC,
+				  x - relief, y - relief,
+				  glyph_slice_bits! (width, (*s).slice) as c_int + relief * 2 - 1,
+				  glyph_slice_bits! (height, (*s).slice) as c_int + relief * 2 - 1);
+	      }
+	  }
+      }
+    else
+      {
+	/* Draw a rectangle if image could not be loaded.  */
+	x_draw_rectangle ((*s).f, (*s).gc as GC, x, y,
+			  glyph_slice_bits! (width, (*s).slice) as c_int - 1,
+			  glyph_slice_bits! (height, (*s).slice) as c_int - 1);
+      }
+  }
+}
+
+/* C 10285-10376: `x_draw_image_relief`.  `image_ascent` is the dispextern.h prototype the
+   `x_draw_image_foreground` note above records; `tab_bar_button_relief`/`tool_bar_button_relief`
+   are `EMACS_INT` globals (`include/globals.rs` 7121/7124) and lisp.h's `min` is the `EMACS_INT`
+   pair, so C's implicit `EMACS_INT` -> `int` conversion is written at each store.  The two
+   `V*_button_margin` values are `Lisp_Object` globals and go through `CONSP`/`FIXNUMP`/`XCAR`/
+   `XCDR`/`XFIXNUM`; the `Q*` names stay calls because the mirror defines them as functions
+   (P-17).  C's `x -= thick + extra_x, left_p = true;` is the comma operator, so the port puts
+   the two stores on their own lines (the `magic_db` row's class).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_image_relief (s: *mut glyph_string)
+{
+  let face: *mut face = (*s).face as *mut face;
+  let mut x1: c_int;
+  let mut y1: c_int;
+  let mut thick: c_int;
+  let mut raised_p: bool;
+  let mut top_p: bool;
+  let mut bot_p: bool;
+  let mut left_p: bool;
+  let mut right_p: bool;
+  let mut extra_x: c_int;
+  let mut extra_y: c_int;
+  let mut r: XRectangle = std::mem::zeroed ();
+  let mut x: c_int = (*s).x;
+  let mut y: c_int = (*s).ybase - image_ascent ((*s).img, face, &raw mut (*s).slice);
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */
+  if face_bits! (box, face) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+      && glyph_slice_bits! (x, (*s).slice) == 0
+    { x += max ((*face).box_vertical_line_width as isize, 0) as c_int; }
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */
+  if glyph_slice_bits! (x, (*s).slice) == 0
+    { x += (*((*s).img)).hmargin; }
+  if glyph_slice_bits! (y, (*s).slice) == 0
+    { y += (*((*s).img)).vmargin; }
+
+  if (*s).hl == DRAW_IMAGE_SUNKEN
+      || (*s).hl == DRAW_IMAGE_RAISED
+    {
+      if (*face).id == TAB_BAR_FACE_ID
+	{
+	  thick = if tab_bar_button_relief < 0
+	    { DEFAULT_TAB_BAR_BUTTON_RELIEF }
+	  else
+	    { min (tab_bar_button_relief, 1000000) as c_int };
+	}
+      else
+	{
+	  thick = if tool_bar_button_relief < 0
+	    { DEFAULT_TOOL_BAR_BUTTON_RELIEF }
+	  else
+	    { min (tool_bar_button_relief, 1000000) as c_int };
+	}
+      raised_p = (*s).hl == DRAW_IMAGE_RAISED;
+    }
+  else
+    {
+      thick = eabs! ((*((*s).img)).relief);
+      raised_p = (*((*s).img)).relief > 0;
+    }
+
+  x1 = x + glyph_slice_bits! (width, (*s).slice) as c_int - 1;
+  y1 = y + glyph_slice_bits! (height, (*s).slice) as c_int - 1;
+
+  extra_x = 0;
+  extra_y = 0;
+  if (*face).id == TAB_BAR_FACE_ID
+    {
+      if CONSP (Vtab_bar_button_margin)
+	  && FIXNUMP (XCAR (Vtab_bar_button_margin))
+	  && FIXNUMP (XCDR (Vtab_bar_button_margin))
+	{
+	  extra_x = XFIXNUM (XCAR (Vtab_bar_button_margin)) as c_int - thick;
+	  extra_y = XFIXNUM (XCDR (Vtab_bar_button_margin)) as c_int - thick;
+	}
+      else if FIXNUMP (Vtab_bar_button_margin)
+	{
+	  extra_y = XFIXNUM (Vtab_bar_button_margin) as c_int - thick;
+	  extra_x = extra_y;
+	}
+    }
+
+  if (*face).id == TOOL_BAR_FACE_ID
+    {
+      if CONSP (Vtool_bar_button_margin)
+	  && FIXNUMP (XCAR (Vtool_bar_button_margin))
+	  && FIXNUMP (XCDR (Vtool_bar_button_margin))
+	{
+	  extra_x = XFIXNUM (XCAR (Vtool_bar_button_margin)) as c_int;
+	  extra_y = XFIXNUM (XCDR (Vtool_bar_button_margin)) as c_int;
+	}
+      else if FIXNUMP (Vtool_bar_button_margin)
+	{
+	  extra_y = XFIXNUM (Vtool_bar_button_margin) as c_int;
+	  extra_x = extra_y;
+	}
+    }
+
+  top_p = false;
+  bot_p = false;
+  left_p = false;
+  right_p = false;
+
+  if glyph_slice_bits! (x, (*s).slice) == 0
+    { x -= thick + extra_x; left_p = true; }
+  if glyph_slice_bits! (y, (*s).slice) == 0
+    { y -= thick + extra_y; top_p = true; }
+  if glyph_slice_bits! (x, (*s).slice) as c_int + glyph_slice_bits! (width, (*s).slice) as c_int
+       == (*((*s).img)).width
+    { x1 += thick + extra_x; right_p = true; }
+  if glyph_slice_bits! (y, (*s).slice) as c_int + glyph_slice_bits! (height, (*s).slice) as c_int
+       == (*((*s).img)).height
+    { y1 += thick + extra_y; bot_p = true; }
+
+  x_setup_relief_colors (s);
+  get_glyph_string_clip_rect (s, (&raw mut r) as *mut c_void);
+  x_draw_relief_rect ((*s).f, x, y, x1, y1, thick, thick, raised_p,
+		      top_p, bot_p, left_p, right_p, &raw mut r);
+}
+
+/* C 10378-10458: `#ifndef USE_CAIRO` - `x_draw_image_foreground_1`.  `pixmap` is the caller's
+   temporary; the `#ifdef HAVE_XRENDER` adds `None` to the `x_composite_image` call, so that one
+   call is carried per arm (the `ftfont.rs` 2552 shape).  */
+#[cfg (all (feature = "have_x_windows", not (feature = "use_cairo")))]
+unsafe fn x_draw_image_foreground_1 (s: *mut glyph_string, pixmap: Pixmap)
+{
+  use crate::x11_constants::None;
+
+  let face: *mut face = (*s).face as *mut face;
+  let mut x: c_int = 0;
+  let mut y: c_int = (*s).ybase - (*s).y - image_ascent ((*s).img, face, &raw mut (*s).slice);
+
+  /* If first glyph of S has a left box line, start drawing it to the
+     right of that line.  */
+  if face_bits! (box, face) != FACE_NO_BOX
+      && glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+      && glyph_slice_bits! (x, (*s).slice) == 0
+    { x += max ((*face).box_vertical_line_width as isize, 0) as c_int; }
+
+  /* If there is a margin around the image, adjust x- and y-position
+     by that margin.  */
+  if glyph_slice_bits! (x, (*s).slice) == 0
+    { x += (*((*s).img)).hmargin; }
+  if glyph_slice_bits! (y, (*s).slice) == 0
+    { y += (*((*s).img)).vmargin; }
+
+  if !(*((*s).img)).pixmap.is_null ()
+    {
+      let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+
+      if !(*((*s).img)).mask.is_null ()
+	{
+	  /* We can't set both a clip mask and use XSetClipRectangles
+	     because the latter also sets a clip mask.  We also can't
+	     trust on the shape extension to be available
+	     (XShapeCombineRegion).  So, compute the rectangle to draw
+	     manually.  */
+	  let mask: c_ulong = (GCClipMask | GCClipXOrigin | GCClipYOrigin
+			       | GCFunction) as c_ulong;
+	  let mut xgcv: XGCValues = std::mem::zeroed ();
+
+	  xgcv.clip_mask = (*((*s).img)).mask as Pixmap;
+	  xgcv.clip_x_origin = x - glyph_slice_bits! (x, (*s).slice) as c_int;
+	  xgcv.clip_y_origin = y - glyph_slice_bits! (y, (*s).slice) as c_int;
+	  xgcv.function = GXcopy;
+	  XChangeGC (display, (*s).gc as GC, mask, &raw mut xgcv as *mut c_void);
+
+	  #[cfg (feature = "have_xrender")]
+	  {
+	    x_composite_image (s, pixmap,
+			       None as Picture,
+			       glyph_slice_bits! (x, (*s).slice) as c_int,
+			       glyph_slice_bits! (y, (*s).slice) as c_int, x, y,
+			       glyph_slice_bits! (width, (*s).slice) as c_int,
+			       glyph_slice_bits! (height, (*s).slice) as c_int);
+	  }
+	  #[cfg (not (feature = "have_xrender"))]
+	  {
+	    x_composite_image (s, pixmap,
+			       glyph_slice_bits! (x, (*s).slice) as c_int,
+			       glyph_slice_bits! (y, (*s).slice) as c_int, x, y,
+			       glyph_slice_bits! (width, (*s).slice) as c_int,
+			       glyph_slice_bits! (height, (*s).slice) as c_int);
+	  }
+	  XSetClipMask (display, (*s).gc as GC, None as Pixmap);
+	}
+      else
+	{
+	  XCopyArea (display, (*((*s).img)).pixmap, pixmap, (*s).gc as GC,
+		     glyph_slice_bits! (x, (*s).slice) as c_int,
+		     glyph_slice_bits! (y, (*s).slice) as c_int,
+		     glyph_slice_bits! (width, (*s).slice) as c_int,
+		     glyph_slice_bits! (height, (*s).slice) as c_int, x, y);
+
+	  /* When the image has a mask, we can expect that at
+	     least part of a mouse highlight or a block cursor will
+	     be visible.  If the image doesn't have a mask, make
+	     a block cursor visible by drawing a rectangle around
+	     the image.  I believe it's looking better if we do
+	     nothing here for mouse-face.  */
+	  if (*s).hl == DRAW_CURSOR
+	    {
+	      let r: c_int = eabs! ((*((*s).img)).relief);
+	      x_draw_rectangle ((*s).f, (*s).gc as GC, x - r, y - r,
+				glyph_slice_bits! (width, (*s).slice) as c_int + r * 2 - 1,
+				glyph_slice_bits! (height, (*s).slice) as c_int + r * 2 - 1);
+	    }
+	}
+    }
+  else
+    {
+      /* Draw a rectangle if image could not be loaded.  */
+      x_draw_rectangle ((*s).f, (*s).gc as GC, x, y,
+			glyph_slice_bits! (width, (*s).slice) as c_int - 1,
+			glyph_slice_bits! (height, (*s).slice) as c_int - 1);
+    }
+}
+
+/* C 10460-10478: `x_draw_glyph_string_bg_rect`.  The two `XSetFillStyle` calls are Xlib's (no
+   mirror row; the ledger's class).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_glyph_string_bg_rect (s: *mut glyph_string, x: c_int, y: c_int,
+				       w: c_int, h: c_int)
+{
+  if glyph_string_bits! (stippled_p, (*s))
+    {
+      let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+
+      /* Fill background with a stipple pattern.  */
+      XSetFillStyle (display, (*s).gc as GC, FillOpaqueStippled);
+      x_fill_rectangle ((*s).f, (*s).gc as GC, x, y, w, h, true);
+      XSetFillStyle (display, (*s).gc as GC, FillSolid);
+    }
+  else
+    { x_clear_glyph_string_rect (s, x, y, w, h); }
+}
+
+/* C 10480-10630: `x_draw_image_glyph_string`.  C's `#ifndef USE_CAIRO` block declares the two
+   locals and the whole `s->img->mask` arm, so the port carries the mask arm under
+   `not (use_cairo)` and the shared `else` arm under both (its own local declarations in each
+   copy); the inner `#if defined HAVE_XRENDER && (RENDER_MAJOR > 0 || RENDER_MINOR >= 2)` is
+   `all (feature = "have_xrender", feature = "have_xrender_0_2")`, whose `else` C writes outside
+   the `#if` and the port therefore also duplicates.  `s->stippled_p`/`background_filled_p` are
+   bitfields (the `glyph_string_bits!` setters) and `s->row->stipple_p` likewise
+   (`glyph_row_bits!`).  The `memset` is this unit's own line 8560 shape.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_image_glyph_string (s: *mut glyph_string)
+{
+  use crate::x11_constants::{GCBackground, GCForeground, None};
+
+  let face: *mut face = (*s).face as *mut face;
+  let mut box_line_hwidth: c_int = max ((*face).box_vertical_line_width as isize, 0) as c_int;
+  let mut box_line_vwidth: c_int = max ((*face).box_horizontal_line_width as isize, 0) as c_int;
+  let mut height: c_int;
+  #[cfg (not (feature = "use_cairo"))]
+  let mut display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+  #[cfg (not (feature = "use_cairo"))]
+  let mut pixmap: Pixmap = None as Pixmap;
+
+  height = (*s).height;
+  if glyph_slice_bits! (y, (*s).slice) == 0
+    { height -= box_line_vwidth; }
+  if glyph_slice_bits! (y, (*s).slice) as c_int + glyph_slice_bits! (height, (*s).slice) as c_int
+       >= (*((*s).img)).height
+    { height -= box_line_vwidth; }
+
+  /* Fill background with face under the image.  Do it only if row is
+     taller than image or if image has a clip mask to reduce
+     flickering.  */
+  glyph_string_bits! (stippled_p, (*s), (*face).stipple != 0);
+  if height > glyph_slice_bits! (height, (*s).slice) as c_int
+      || (*((*s).img)).hmargin != 0
+      || (*((*s).img)).vmargin != 0
+      || !(*((*s).img)).mask.is_null ()
+      || (*((*s).img)).pixmap.is_null ()
+      || (*s).width != (*s).background_width
+    {
+      if glyph_string_bits! (stippled_p, (*s))
+	{ glyph_row_bits! (stipple_p, (*s).row, true); }
+
+      #[cfg (not (feature = "use_cairo"))]
+      {
+	if !(*((*s).img)).mask.is_null ()
+	  {
+	    /* Create a pixmap as large as the glyph string.  Fill it
+	       with the background color.  Copy the image to it, using
+	       its mask.  Copy the temporary pixmap to the display.  */
+	    let depth: c_int = (*FRAME_DISPLAY_INFO! ((*s).f)).n_planes;
+
+	    /* Create a pixmap as large as the glyph string.  */
+	    pixmap = XCreatePixmap (display, FRAME_X_DRAWABLE! ((*s).f),
+				    (*s).background_width,
+				    (*s).height, depth);
+
+	    /* Don't clip in the following because we're working on the
+	       pixmap.  */
+	    XSetClipMask (display, (*s).gc as GC, None as Pixmap);
+
+	    /* Fill the pixmap with the background color/stipple.  */
+	    if glyph_string_bits! (stippled_p, (*s))
+	      {
+		/* Fill background with a stipple pattern.  */
+		XSetFillStyle (display, (*s).gc as GC, FillOpaqueStippled);
+		XSetTSOrigin (display, (*s).gc as GC, - (*s).x, - (*s).y);
+		XFillRectangle (display, pixmap, (*s).gc as GC,
+				0, 0, (*s).background_width, (*s).height);
+		XSetFillStyle (display, (*s).gc as GC, FillSolid);
+		XSetTSOrigin (display, (*s).gc as GC, 0, 0);
+	      }
+	    else
+	      {
+		let mut xgcv: XGCValues = std::mem::zeroed ();
+
+		#[cfg (all (feature = "have_xrender", feature = "have_xrender_0_2"))]
+		{
+		  if (*FRAME_DISPLAY_INFO! ((*s).f)).alpha_bits != 0
+		      && (*(*s).f).alpha_background != 1.0
+		      && FRAME_CHECK_XR_VERSION! ((*s).f, 0, 2)
+		      && !FRAME_X_PICTURE_FORMAT! ((*s).f).is_null ()
+		    {
+		      let mut xc: XRenderColor = std::mem::zeroed ();
+		      let mut attrs: XRenderPictureAttributes = std::mem::zeroed ();
+		      let mut pict: Picture;
+		      memset (&raw mut attrs as *mut c_void, 0, std::mem::size_of_val (&attrs));
+
+		      pict = XRenderCreatePicture (display, pixmap,
+						   FRAME_X_PICTURE_FORMAT! ((*s).f),
+						   0, &raw mut attrs);
+		      x_xrender_color_from_gc_background ((*s).f, (*s).gc as GC, &raw mut xc, true);
+		      XRenderFillRectangle (FRAME_X_DISPLAY! ((*s).f), PictOpSrc, pict,
+					    &raw mut xc, 0, 0, (*s).background_width, (*s).height);
+		      XRenderFreePicture (display, pict);
+		    }
+		  else
+		    {
+		      XGetGCValues (display, (*s).gc as GC, GCForeground | GCBackground,
+				    &raw mut xgcv);
+		      XSetForeground (display, (*s).gc as GC, xgcv.background);
+		      XFillRectangle (display, pixmap, (*s).gc as GC,
+				      0, 0, (*s).background_width, (*s).height);
+		      XSetForeground (display, (*s).gc as GC, xgcv.foreground);
+		    }
+		}
+		#[cfg (not (all (feature = "have_xrender", feature = "have_xrender_0_2")))]
+		{
+		  XGetGCValues (display, (*s).gc as GC, GCForeground | GCBackground,
+				&raw mut xgcv);
+		  XSetForeground (display, (*s).gc as GC, xgcv.background);
+		  XFillRectangle (display, pixmap, (*s).gc as GC,
+				  0, 0, (*s).background_width, (*s).height);
+		  XSetForeground (display, (*s).gc as GC, xgcv.foreground);
+		}
+	      }
+	  }
+	else
+	  {
+	    let mut x: c_int = (*s).x;
+	    let mut y: c_int = (*s).y;
+	    let mut width: c_int = (*s).background_width;
+
+	    if glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+		&& glyph_slice_bits! (x, (*s).slice) == 0
+	      {
+		x += box_line_hwidth;
+		width -= box_line_hwidth;
+	      }
+
+	    if glyph_slice_bits! (y, (*s).slice) == 0
+	      { y += box_line_vwidth; }
+
+	    x_draw_glyph_string_bg_rect (s, x, y, width, height);
+	  }
+      }
+
+      #[cfg (feature = "use_cairo")]
+      {
+	let mut x: c_int = (*s).x;
+	let mut y: c_int = (*s).y;
+	let mut width: c_int = (*s).background_width;
+
+	if glyph_bits! (left_box_line_p, (*(*s).first_glyph))
+	    && glyph_slice_bits! (x, (*s).slice) == 0
+	  {
+	    x += box_line_hwidth;
+	    width -= box_line_hwidth;
+	  }
+
+	if glyph_slice_bits! (y, (*s).slice) == 0
+	  { y += box_line_vwidth; }
+
+	x_draw_glyph_string_bg_rect (s, x, y, width, height);
+      }
+
+      glyph_string_bits! (background_filled_p, (*s), true);
+    }
+
+  /* Draw the foreground.  */
+  #[cfg (not (feature = "use_cairo"))]
+  {
+    if pixmap != None as Pixmap
+      {
+	x_draw_image_foreground_1 (s, pixmap);
+	x_set_glyph_string_clipping (s);
+	XCopyArea (display, pixmap, FRAME_X_DRAWABLE! ((*s).f), (*s).gc as GC,
+		   0, 0, (*s).background_width, (*s).height, (*s).x, (*s).y);
+	XFreePixmap (display, pixmap);
+      }
+    else
+      { x_draw_image_foreground (s); }
+  }
+
+  #[cfg (feature = "use_cairo")]
+  { x_draw_image_foreground (s); }
+
+  /* If we must draw a relief around the image, do it.  */
+  if (*((*s).img)).relief != 0
+      || (*s).hl == DRAW_IMAGE_RAISED
+      || (*s).hl == DRAW_IMAGE_SUNKEN
+    { x_draw_image_relief (s); }
+}
+
+/* C 10632-10744: `x_draw_stretch_glyph_string`.  `x_stretch_cursor_p` is the `bool` global
+   (`include/globals.rs` 7200), the three window-box readers and `cursor_in_mouse_face_p` stay
+   bare (this graph's use-site declarations live in other units - the ledger's class), the row
+   flags go through `glyph_row_bits!` and the string's through `glyph_string_bits!`, and the two
+   `s->face->gc` reads cast the mirror's untyped `*mut c_void` to `GC`.  `eassert` is the
+   port's macro (P-78).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_stretch_glyph_string (s: *mut glyph_string)
+{
+  use crate::x11_constants::{GCBackground, GCForeground};
+
+  let face: *mut face = (*s).face as *mut face;
+
+  eassert! (glyph_bits! (type, (*(*s).first_glyph)) == STRETCH_GLYPH);
+
+  if (*s).hl == DRAW_CURSOR
+      && !x_stretch_cursor_p
+    {
+      /* If `x-stretch-cursor' is nil, don't draw a block cursor as
+	 wide as the stretch glyph.  */
+      let mut width: c_int;
+      let mut background_width: c_int = (*s).background_width;
+      let mut x: c_int = (*s).x;
+
+      if !glyph_row_bits! (reversed_p, (*s).row)
+	{
+	  let left_x: c_int = window_box_left_offset ((*s).w, TEXT_AREA);
+
+	  if x < left_x
+	    {
+	      background_width -= left_x - x;
+	      x = left_x;
+	    }
+	}
+      else
+	{
+	  /* In R2L rows, draw the cursor on the right edge of the
+	     stretch glyph.  */
+	  let right_x: c_int = window_box_right ((*s).w, TEXT_AREA);
+
+	  if x + background_width > right_x
+	    { background_width -= x - right_x; }
+	  x += background_width;
+	}
+      width = min (FRAME_COLUMN_WIDTH ((*s).f) as isize, background_width as isize) as c_int;
+      if glyph_row_bits! (reversed_p, (*s).row)
+	{ x -= width; }
+
+      /* Draw cursor.  */
+      x_draw_glyph_string_bg_rect (s, x, (*s).y, width, (*s).height);
+
+      /* Clear rest using the GC of the original non-cursor face.  */
+      if width < background_width
+	{
+	  let y: c_int = (*s).y;
+	  let mut w: c_int = background_width - width;
+	  let h: c_int = (*s).height;
+	  let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+	  let mut r: XRectangle = std::mem::zeroed ();
+	  let mut gc: GC;
+
+	  if !glyph_row_bits! (reversed_p, (*s).row)
+	    { x += width; }
+	  else
+	    { x = (*s).x; }
+	  if glyph_row_bits! (mouse_face_p, (*s).row)
+	      && cursor_in_mouse_face_p ((*s).w)
+	    {
+	      x_set_mouse_face_gc (s);
+	      gc = (*s).gc as GC;
+	    }
+	  else
+	    { gc = (*face).gc as GC; }
+
+	  get_glyph_string_clip_rect (s, (&raw mut r) as *mut c_void);
+	  x_set_clip_rectangles ((*s).f, gc, &raw mut r, 1);
+
+	  if (*face).stipple != 0
+	    {
+	      /* Fill background with a stipple pattern.  */
+	      XSetFillStyle (display, gc, FillOpaqueStippled);
+	      x_fill_rectangle ((*s).f, gc, x, y, w, h, true);
+	      XSetFillStyle (display, gc, FillSolid);
+
+	      glyph_row_bits! (stipple_p, (*s).row, true);
+	    }
+	  else
+	    {
+	      let mut xgcv: XGCValues = std::mem::zeroed ();
+	      XGetGCValues (display, gc, GCForeground | GCBackground, &raw mut xgcv);
+	      XSetForeground (display, gc, xgcv.background);
+	      x_fill_rectangle ((*s).f, gc, x, y, w, h, true);
+	      XSetForeground (display, gc, xgcv.foreground);
+	    }
+
+	  x_reset_clip_rectangles ((*s).f, gc);
+	}
+    }
+  else if !glyph_string_bits! (background_filled_p, (*s))
+    {
+      let mut background_width: c_int = (*s).background_width;
+      let mut x: c_int = (*s).x;
+      let text_left_x: c_int = window_box_left ((*s).w, TEXT_AREA);
+
+      /* Don't draw into left fringe or scrollbar area except for
+         header line and mode line.  */
+      if (*s).area == TEXT_AREA
+	  && x < text_left_x && !glyph_row_bits! (mode_line_p, (*s).row)
+	{
+	  background_width -= text_left_x - x;
+	  x = text_left_x;
+	}
+
+      if !glyph_row_bits! (stipple_p, (*s).row)
+	{ glyph_row_bits! (stipple_p, (*s).row, glyph_string_bits! (stippled_p, (*s))); }
+
+      if background_width > 0
+	{
+	  x_draw_glyph_string_bg_rect (s, x, (*s).y,
+				       background_width, (*s).height);
+	}
+    }
+
+  glyph_string_bits! (background_filled_p, (*s), true);
+}
+
+/* C 10745-10761: `x_get_scale_factor`.  `floor` is `<math.h>`'s (the unit's `math.rs`), the
+   two `double` comparisons widen the `int` the way C's usual arithmetic conversions do, and a
+   null DPYINFO skips both (C's `if (dpyinfo)`).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_get_scale_factor (dpyinfo: *mut x_display_info, scale_x: *mut c_int,
+			      scale_y: *mut c_int)
+{
+  let base_res: c_int = 96;
+
+  *scale_x = 1;
+  *scale_y = 1;
+
+  if !dpyinfo.is_null ()
+    {
+      if (*dpyinfo).resx > base_res as c_double
+	{ *scale_x = floor ((*dpyinfo).resx / base_res as c_double) as c_int; }
+      if (*dpyinfo).resy > base_res as c_double
+	{ *scale_y = floor ((*dpyinfo).resy / base_res as c_double) as c_int; }
+    }
+}
+
+/* C 10763-10843: `x_draw_underwave`.  C's declaration block mixes initialised and uninitialised
+   locals, so the port zero-initialises the ones C leaves alone (PORTING.md 1.5) and keeps the
+   two initialised writers as they stand.  The non-cairo arm's `XSetLineAttributes`,
+   `XDrawLine`, `XSetClipRectangles` and `Unsorted` are X11 names with no mirror row (the
+   ledger's class), `(&raw mut (*s).clip) as *mut XRectangle` is this unit's own cast for the
+   `NativeRectangle clip[2]` member (line 9381), and `INT_MAX` is `limits.in.rs` 43.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_underwave (s: *mut glyph_string, decoration_width: c_int)
+{
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! ((*s).f);
+  /* Adjust for scale/HiDPI.  */
+  let mut scale_x: c_int = 0;
+  let mut scale_y: c_int = 0;
+
+  x_get_scale_factor (dpyinfo, &raw mut scale_x, &raw mut scale_y);
+
+  let wave_height: c_int = 3 * scale_y;
+  let wave_length: c_int = 2 * scale_x;
+
+  #[cfg (feature = "use_cairo")]
+  {
+    x_draw_horizontal_wave ((*s).f, (*s).gc as GC, (*s).x, (*s).ybase - wave_height + 3,
+			    decoration_width, wave_height, wave_length);
+  }
+
+  #[cfg (not (feature = "use_cairo"))]
+  {
+    let mut display: *mut Display;
+    let mut dx: c_int;
+    let mut dy: c_int;
+    let mut x0: c_int;
+    let mut y0: c_int;
+    let mut width: c_int;
+    let mut x1: c_int;
+    let mut y1: c_int;
+    let mut x2: c_int;
+    let mut y2: c_int;
+    let mut xmax: c_int;
+    let thickness: c_int = scale_y;
+    let mut odd: bool;
+    let mut wave_clip: XRectangle = std::mem::zeroed ();
+    let mut string_clip: XRectangle = std::mem::zeroed ();
+    let mut final_clip: XRectangle = std::mem::zeroed ();
+
+    dx = wave_length;
+    dy = wave_height - 1;
+    x0 = (*s).x;
+    y0 = (*s).ybase + wave_height / 2 - scale_y;
+    width = decoration_width;
+    xmax = x0 + width;
+
+    /* Find and set clipping rectangle */
+
+    wave_clip.x = x0 as c_short;
+    wave_clip.y = y0 as c_short;
+    wave_clip.width = width as c_ushort;
+    wave_clip.height = wave_height as c_ushort;
+    get_glyph_string_clip_rect (s, (&raw mut string_clip) as *mut c_void);
+
+    if !gui_intersect_rectangles (&wave_clip, &string_clip, &mut final_clip)
+      { return; }
+
+    display = (*dpyinfo).display;
+    XSetClipRectangles (display, (*s).gc as GC, 0, 0, &raw mut final_clip, 1, Unsorted);
+
+    /* Draw the waves */
+
+    x1 = x0 - (x0 % dx);
+    x2 = x1 + dx;
+    odd = ((x1 / dx) & 1) != 0;
+    y1 = y0;
+    y2 = y0;
+
+    if odd
+      { y1 += dy; }
+    else
+      { y2 += dy; }
+
+    if INT_MAX - dx < xmax
+      { emacs_abort (); }
+
+    while x1 <= xmax
+      {
+	XSetLineAttributes (display, (*s).gc as GC, thickness, LineSolid, CapButt,
+			    JoinRound);
+	XDrawLine (display, FRAME_X_DRAWABLE! ((*s).f), (*s).gc as GC, x1, y1, x2, y2);
+	x1 = x2;
+	y1 = y2;
+	x2 += dx;
+	y2 = y0 + odd as c_int * dy;
+	odd = !odd;
+      }
+
+    /* Restore previous clipping rectangle(s) */
+    XSetClipRectangles (display, (*s).gc as GC, 0, 0,
+			(&raw mut (*s).clip) as *mut XRectangle, (*s).num_clips, Unsorted);
+  }
+}
+
+/* C 10845-10893: `x_draw_dash`.  C's `char segment` is the port's `c_char` and `&segment` its
+   `&raw mut` (the `XSetDashes` argument is `char *`); C's `XGCValues gcv` is written field by
+   field and passed whole, so it is zero-initialised first (PORTING.md 1.5).  The two
+   `XChangeGC`/`XSetDashes`/`XDrawLine` calls are X11's, and the cairo arm's `cairo_*` names live
+   in `include/gtk.rs` (the ledger's class).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_dash (f: *mut frame, s: *mut glyph_string, width: c_int,
+		       mut segment: c_char, offset: c_int, thickness: c_int)
+{
+  #[cfg (not (feature = "use_cairo"))]
+  {
+    let mut gcv: XGCValues = std::mem::zeroed ();
+    let mut y_center: c_int;
+
+    /* Configure the GC, the dash pattern and a suitable offset.  */
+    let gc: GC = (*s).gc as GC;
+    let display: *mut Display = FRAME_X_DISPLAY! (f);
+
+    gcv.line_style = LineOnOffDash;
+    gcv.line_width = thickness;
+    XChangeGC (display, (*s).gc as GC, GCLineStyle | GCLineWidth,
+	       &raw mut gcv as *mut c_void);
+    XSetDashes (display, (*s).gc as GC, (*s).x, &raw mut segment as *mut c_char, 1);
+
+    /* Offset the origin of the line by half the line width. */
+    y_center = (*s).ybase + offset + thickness / 2;
+    XDrawLine (display, FRAME_X_DRAWABLE! (f), gc,
+	       (*s).x, y_center, (*s).x + width, y_center);
+
+    /* Restore the initial line style.  */
+    gcv.line_style = LineSolid;
+    gcv.line_width = 1;
+    XChangeGC (display, (*s).gc as GC, GCLineStyle | GCLineWidth,
+	       &raw mut gcv as *mut c_void);
+  }
+
+  #[cfg (feature = "use_cairo")]
+  {
+    let mut y_center: c_double;
+    let mut cr_segment: c_double;
+
+    let cr: *mut cairo_t = x_begin_cr_clip (f, (*s).gc as GC);
+    cr_segment = segment as c_double;
+    y_center = (*s).ybase as c_double + offset as c_double + (thickness / 2.0) as c_double;
+
+    x_set_cr_source_with_gc_foreground (f, (*s).gc as GC, false);
+    cairo_set_dash (cr, &raw mut cr_segment, 1, (*s).x as c_double);
+    cairo_set_line_width (cr, thickness as c_double);
+    cairo_move_to (cr, (*s).x as c_double, y_center);
+    cairo_line_to (cr, ((*s).x + width) as c_double, y_center);
+    cairo_stroke (cr);
+    x_end_cr_clip (f);
+  }
+}
+
+/* C 10895-10935: `x_fill_underline`.  C's `switch` is the port's `match` and the `FALLTHROUGH`
+   from the DOTS arm into the DASHES one is the entry stage the two arms share (PORTING.md 2.2;
+   the `macro-body-notes.tsv` row the `--check` gate asks for is appended by this slice).  C's
+   `char x_segment` holds `min (segment, CHAR_MAX)`, so the port keeps the same narrowing and
+   `CHAR_MAX` is `limits.in.rs`'s.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_fill_underline (f: *mut frame, s: *mut glyph_string,
+			    style: face_underline_type, position: c_int,
+			    decoration_width: c_int, thickness: c_int)
+{
+  let mut segment: c_int;
+  let mut x_segment: c_char;
+
+  segment = thickness * 3;
+
+  match style
+    {
+      /* FACE_UNDERLINE_DOUBLE_LINE is treated identically to SINGLE, as
+	 the second line will be filled by another invocation of this
+	 function.  */
+      FACE_UNDERLINE_SINGLE | FACE_UNDERLINE_DOUBLE_LINE =>
+	{
+	  x_fill_rectangle (f, (*s).gc as GC, (*s).x, (*s).ybase + position,
+			    decoration_width, thickness, false);
+	}
+
+      FACE_UNDERLINE_DOTS | FACE_UNDERLINE_DASHES =>
+	{
+	  if style == FACE_UNDERLINE_DOTS
+	    { segment = thickness; }
+	  x_segment = min (segment as isize, CHAR_MAX as isize) as c_char;
+	  x_draw_dash (f, s, decoration_width, x_segment, position,
+		       thickness);
+	}
+
+      FACE_NO_UNDERLINE | FACE_UNDERLINE_WAVE | _ =>
+	{ emacs_abort (); }
+    }
+}
+
+/* C 10937-11304: `x_draw_glyph_string`.  The three walks C writes as `for` loops keep their
+   bodies and the port's `while` (the `x_get_scroll_valuator_delta` shape); `switch
+   (s->first_glyph->type)` is the port's `match` on the mirror's `glyph_bits!` value with
+   `emacs_abort` for `default:` (the ledger's `macro-body-notes.tsv` row the `--check` gate asks
+   for), `s->first_glyph->u.cmp.automatic` is `glyph_u_cmp_bits!`, and every `bool_bf` member
+   (`for_overlaps`, `background_filled_p`, the face's `underline*`/`overline*`/`strike_through*`
+   family) goes through its accessor.  The underline arithmetic keeps C's `unsigned long`
+   local and therefore C's conversions and wraps (the `haikuterm.rs` 1400-1520 reading of the
+   same code); `position.wrapping_sub (thickness).wrapping_sub (1)` is C 11170's
+   `position = position - thickness - 1;`.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_draw_glyph_string (s: *mut glyph_string)
+{
+  use crate::x11_constants::GCForeground;
+
+  let face: *mut face = (*s).face as *mut face;
+  let mut relief_drawn_p: bool = false;
+
+  /* If S draws into the background of its successors, draw the
+     background of the successors first so that S can draw into it.
+     This makes S->next use XDrawString instead of XDrawImageString.  */
+  if !(*s).next.is_null () && (*s).right_overhang != 0
+      && glyph_string_bits! (for_overlaps, (*s)) == 0
+    {
+      let mut width: c_int;
+      let mut next: *mut glyph_string;
+
+      width = 0;
+      next = (*s).next;
+      while !next.is_null () && width < (*s).right_overhang
+	{
+	  if glyph_bits! (type, (*(*next).first_glyph)) != IMAGE_GLYPH
+	    {
+	      x_set_glyph_string_gc (next);
+	      x_set_glyph_string_clipping (next);
+	      if glyph_bits! (type, (*(*next).first_glyph)) == STRETCH_GLYPH
+		{ x_draw_stretch_glyph_string (next); }
+	      else
+		{ x_draw_glyph_string_background (next, true); }
+	      (*next).num_clips = 0;
+	    }
+	  width += (*next).width;
+	  next = (*next).next;
+	}
+    }
+
+  /* Set up S->gc, set clipping and draw S.  */
+  x_set_glyph_string_gc (s);
+
+  /* Draw relief (if any) in advance for char/composition so that the
+     glyph string can be drawn over it.  */
+  if glyph_string_bits! (for_overlaps, (*s)) == 0
+      && face_bits! (box, face) != FACE_NO_BOX
+      && (glyph_bits! (type, (*(*s).first_glyph)) == CHAR_GLYPH
+	  || glyph_bits! (type, (*(*s).first_glyph)) == COMPOSITE_GLYPH)
+
+    {
+      x_set_glyph_string_clipping (s);
+      x_draw_glyph_string_background (s, true);
+      x_draw_glyph_string_box (s);
+      x_set_glyph_string_clipping (s);
+      relief_drawn_p = true;
+    }
+  else if (*s).clip_head.is_null () /* draw_glyphs didn't specify a clip mask. */
+	   && (*s).clip_tail.is_null ()
+	   && ((!(*s).prev.is_null () && (*((*s).prev)).hl != (*s).hl
+		&& (*s).left_overhang != 0)
+	       || (!(*s).next.is_null () && (*((*s).next)).hl != (*s).hl
+		   && (*s).right_overhang != 0))
+    /* We must clip just this glyph.  left_overhang part has already
+       drawn when s->prev was drawn, and right_overhang part will be
+       drawn later when s->next is drawn. */
+    { x_set_glyph_string_clipping_exactly (s, s); }
+  else
+    { x_set_glyph_string_clipping (s); }
+
+  match glyph_bits! (type, (*(*s).first_glyph))
+    {
+      IMAGE_GLYPH =>
+	{ x_draw_image_glyph_string (s); }
+
+      XWIDGET_GLYPH =>
+	{ x_draw_xwidget_glyph_string (s as *mut c_void); }
+
+      STRETCH_GLYPH =>
+	{ x_draw_stretch_glyph_string (s); }
+
+      CHAR_GLYPH =>
+	{
+	  if glyph_string_bits! (for_overlaps, (*s)) != 0
+	    { glyph_string_bits! (background_filled_p, (*s), true); }
+	  else
+	    { x_draw_glyph_string_background (s, false); }
+	  x_draw_glyph_string_foreground (s);
+	}
+
+      COMPOSITE_GLYPH =>
+	{
+	  if glyph_string_bits! (for_overlaps, (*s)) != 0
+	      || ((*s).cmp_from > 0
+		  && !glyph_u_cmp_bits! (automatic, (*s).first_glyph))
+	    { glyph_string_bits! (background_filled_p, (*s), true); }
+	  else
+	    { x_draw_glyph_string_background (s, true); }
+	  x_draw_composite_glyph_string_foreground (s);
+	}
+
+      GLYPHLESS_GLYPH =>
+	{
+	  if glyph_string_bits! (for_overlaps, (*s)) != 0
+	    { glyph_string_bits! (background_filled_p, (*s), true); }
+	  else
+	    { x_draw_glyph_string_background (s, true); }
+	  x_draw_glyphless_glyph_string_foreground (s);
+	}
+
+      _ =>
+	{ emacs_abort (); }
+    }
+
+  if glyph_string_bits! (for_overlaps, (*s)) == 0
+    {
+      let mut area_x: c_int;
+      let mut area_y: c_int;
+      let mut area_width: c_int;
+      let mut area_height: c_int;
+      let mut area_max_x: c_int;
+      let mut decoration_width: c_int;
+
+      /* Prevent the underline from overwriting surrounding areas
+	 and the fringe.  */
+      window_box ((*s).w, (*s).area, &raw mut area_x, &raw mut area_y,
+		  &raw mut area_width, &raw mut area_height);
+      area_max_x = area_x + area_width - 1;
+
+      decoration_width = (*s).width;
+      if !glyph_row_bits! (mode_line_p, (*s).row)
+	  && !glyph_row_bits! (tab_line_p, (*s).row)
+	  && area_max_x < ((*s).x + decoration_width - 1)
+	{ decoration_width -= ((*s).x + decoration_width - 1) - area_max_x; }
+
+      /* Draw relief if not yet drawn.  */
+      if !relief_drawn_p && face_bits! (box, face) != FACE_NO_BOX
+	{ x_draw_glyph_string_box (s); }
+
+      /* Draw underline.  */
+      if face_bits! (underline, face) != 0
+	{
+	  if face_bits! (underline, face) == FACE_UNDERLINE_WAVE
+	    {
+	      if face_bits! (underline_defaulted_p, face)
+		{ x_draw_underwave (s, decoration_width); }
+	      else
+		{
+		  let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+		  let mut xgcv: XGCValues = std::mem::zeroed ();
+		  XGetGCValues (display, (*s).gc as GC, GCForeground, &raw mut xgcv);
+		  XSetForeground (display, (*s).gc as GC, (*face).underline_color);
+		  x_draw_underwave (s, decoration_width);
+		  XSetForeground (display, (*s).gc as GC, xgcv.foreground);
+		}
+	    }
+	  else if face_bits! (underline, face) >= FACE_UNDERLINE_SINGLE
+	    {
+	      let mut thickness: c_ulong;
+	      let mut position: c_ulong;
+
+	      if !(*s).prev.is_null ()
+		  && (face_bits! (underline, (*((*s).prev)).face as *mut face)
+		      != FACE_UNDERLINE_WAVE
+		      && face_bits! (underline, (*((*s).prev)).face as *mut face)
+			 >= FACE_UNDERLINE_SINGLE)
+		  && (face_bits! (underline_at_descent_line_p,
+				  (*((*s).prev)).face as *mut face)
+		      == face_bits! (underline_at_descent_line_p, face))
+		  && ((*( (*((*s).prev)).face as *mut face )).underline_pixels_above_descent_line
+		      == (*face).underline_pixels_above_descent_line)
+		{
+		  /* We use the same underline style as the previous one.  */
+		  thickness = (*(*s).prev).underline_thickness as c_ulong;
+		  position = (*(*s).prev).underline_position as c_ulong;
+		}
+	      else
+		{
+		  let font: *mut font = font_for_underline_metrics (s);
+		  let mut minimum_offset: c_ulong;
+		  let mut underline_at_descent_line: bool;
+		  let mut use_underline_position_properties: bool;
+		  let mut val: Lisp_Object = (WINDOW_BUFFER_LOCAL_VALUE
+					      (Qunderline_minimum_offset (), (*s).w));
+
+		  if FIXNUMP (val)
+		    { minimum_offset = max (0, XFIXNUM (val)) as c_ulong; }
+		  else
+		    { minimum_offset = 1; }
+
+		  val = (WINDOW_BUFFER_LOCAL_VALUE
+			 (Qx_underline_at_descent_line (), (*s).w));
+		  underline_at_descent_line
+		    = (! (NILP (val) || BASE_EQ (val, Qunbound ()))
+		       || face_bits! (underline_at_descent_line_p, face));
+
+		  val = (WINDOW_BUFFER_LOCAL_VALUE
+			 (Qx_use_underline_position_properties (), (*s).w));
+		  use_underline_position_properties
+		    = ! (NILP (val) || BASE_EQ (val, Qunbound ()));
+
+		  /* Get the underline thickness.  Default is 1 pixel.  */
+		  if !font.is_null () && (*font).underline_thickness > 0
+		    { thickness = (*font).underline_thickness as c_ulong; }
+		  else
+		    { thickness = 1; }
+		  if underline_at_descent_line
+		    {
+		      position = (((*s).height) as c_ulong).wrapping_sub (thickness)
+				 .wrapping_sub (((*s).ybase - (*s).y) as c_ulong)
+				 .wrapping_sub ((*face).underline_pixels_above_descent_line
+						as c_ulong);
+		    }
+		  else
+		    {
+		      /* Get the underline position.  This is the
+			 recommended vertical offset in pixels from
+			 the baseline to the top of the underline.
+			 This is a signed value according to the
+			 specs, and its default is
+
+			 ROUND ((maximum descent) / 2), with
+			 ROUND(x) = floor (x + 0.5)  */
+
+		      if use_underline_position_properties
+			  && !font.is_null () && (*font).underline_position >= 0
+			{ position = (*font).underline_position as c_ulong; }
+		      else if !font.is_null ()
+			{ position = (((*font).descent + 1) / 2) as c_ulong; }
+		      else
+			{ position = minimum_offset; }
+		    }
+
+		  /* Ignore minimum_offset if the amount of pixels was
+		     explicitly specified.  */
+		  if (*face).underline_pixels_above_descent_line == 0
+		    { position = max (position as isize, minimum_offset as isize) as c_ulong; }
+		}
+	      /* Check the sanity of thickness and position.  We should
+		 avoid drawing underline out of the current line area.  */
+	      if (((*s).y + (*s).height) as c_ulong)
+		  <= ((*s).ybase as c_ulong).wrapping_add (position)
+		{ position = (((*s).height - 1) - ((*s).ybase - (*s).y)) as c_ulong; }
+	      if (((*s).y + (*s).height) as c_ulong)
+		  < ((*s).ybase as c_ulong).wrapping_add (position).wrapping_add (thickness)
+		{
+		  thickness = (((*s).y + (*s).height) as c_ulong)
+			      .wrapping_sub ((*s).ybase as c_ulong + position);
+		}
+	      (*s).underline_thickness = thickness as c_int;
+	      (*s).underline_position = position as c_int;
+
+	      {
+		let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+		let mut xgcv: XGCValues = std::mem::zeroed ();
+
+		if !face_bits! (underline_defaulted_p, face)
+		  {
+		    XGetGCValues (display, (*s).gc as GC, GCForeground, &raw mut xgcv);
+		    XSetForeground (display, (*s).gc as GC, (*face).underline_color);
+		  }
+
+		x_fill_underline ((*s).f, s, face_bits! (underline, face),
+				  position as c_int, decoration_width,
+				  thickness as c_int);
+
+		/* Place a second underline above the first if this was
+		   requested in the face specification.  */
+
+		if face_bits! (underline, face) == FACE_UNDERLINE_DOUBLE_LINE
+		  {
+		    /* Compute the position of the second underline.  */
+		    position = position.wrapping_sub (thickness).wrapping_sub (1);
+		    x_fill_underline ((*s).f, s, face_bits! (underline, face),
+				      position as c_int, decoration_width,
+				      thickness as c_int);
+		  }
+
+		if !face_bits! (underline_defaulted_p, face)
+		  { XSetForeground (display, (*s).gc as GC, xgcv.foreground); }
+	      }
+	    }
+	}
+      /* Draw overline.  */
+      if face_bits! (overline_p, face)
+	{
+	  let mut dy: c_ulong = 0;
+	  let h: c_ulong = 1;
+
+	  if face_bits! (overline_color_defaulted_p, face)
+	    {
+	      x_fill_rectangle ((*s).f, (*s).gc as GC, (*s).x,
+				((*s).y as c_ulong + dy) as c_int,
+				decoration_width, h as c_int, false);
+	    }
+	  else
+	    {
+	      let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+	      let mut xgcv: XGCValues = std::mem::zeroed ();
+	      XGetGCValues (display, (*s).gc as GC, GCForeground, &raw mut xgcv);
+	      XSetForeground (display, (*s).gc as GC, (*face).overline_color);
+	      x_fill_rectangle ((*s).f, (*s).gc as GC, (*s).x,
+				((*s).y as c_ulong + dy) as c_int,
+				decoration_width, h as c_int, false);
+	      XSetForeground (display, (*s).gc as GC, xgcv.foreground);
+	    }
+	}
+
+      /* Draw strike-through.  */
+      if face_bits! (strike_through_p, face)
+	{
+	  /* Y-coordinate and height of the glyph string's first
+	     glyph.  We cannot use s->y and s->height because those
+	     could be larger if there are taller display elements
+	     (e.g., characters displayed with a larger font) in the
+	     same glyph row.  */
+	  let glyph_y: c_int = (*s).ybase - (*((*s).first_glyph)).ascent as c_int;
+	  let glyph_height: c_int = (*((*s).first_glyph)).ascent as c_int
+				    + (*((*s).first_glyph)).descent as c_int;
+	  /* Strike-through width and offset from the glyph string's
+	     top edge.  */
+	  let h: c_ulong = 1;
+	  let dy: c_ulong = ((glyph_height as c_ulong).wrapping_sub (h)) / 2;
+
+	  if face_bits! (strike_through_color_defaulted_p, face)
+	    {
+	      x_fill_rectangle ((*s).f, (*s).gc as GC, (*s).x,
+				((glyph_y as c_ulong + dy) as c_int),
+				(*s).width, h as c_int, false);
+	    }
+	  else
+	    {
+	      let display: *mut Display = FRAME_X_DISPLAY! ((*s).f);
+	      let mut xgcv: XGCValues = std::mem::zeroed ();
+	      XGetGCValues (display, (*s).gc as GC, GCForeground, &raw mut xgcv);
+	      XSetForeground (display, (*s).gc as GC, (*face).strike_through_color);
+	      x_fill_rectangle ((*s).f, (*s).gc as GC, (*s).x,
+				((glyph_y as c_ulong + dy) as c_int),
+				decoration_width, h as c_int, false);
+	      XSetForeground (display, (*s).gc as GC, xgcv.foreground);
+	    }
+	}
+
+      if !(*s).prev.is_null ()
+	{
+	  let mut prev: *mut glyph_string;
+
+	  prev = (*s).prev;
+	  while !prev.is_null ()
+	    {
+	      if (*prev).hl != (*s).hl
+		  && (*prev).x + (*prev).width + (*prev).right_overhang > (*s).x
+		{
+		  /* As prev was drawn while clipped to its own area, we
+		     must draw the right_overhang part using s->hl now.  */
+		  let save: draw_glyphs_face = (*prev).hl;
+
+		  (*prev).hl = (*s).hl;
+		  x_set_glyph_string_gc (prev);
+		  x_set_glyph_string_clipping_exactly (s, prev);
+		  if glyph_bits! (type, (*(*prev).first_glyph)) == CHAR_GLYPH
+		    { x_draw_glyph_string_foreground (prev); }
+		  else
+		    { x_draw_composite_glyph_string_foreground (prev); }
+		  x_reset_clip_rectangles ((*prev).f, (*prev).gc as GC);
+		  (*prev).hl = save;
+		  (*prev).num_clips = 0;
+		}
+	      prev = (*prev).prev;
+	    }
+	}
+
+      if !(*s).next.is_null ()
+	{
+	  let mut next: *mut glyph_string;
+
+	  next = (*s).next;
+	  while !next.is_null ()
+	    {
+	      if (*next).hl != (*s).hl
+		  && (*next).x - (*next).left_overhang < (*s).x + (*s).width
+		{
+		  /* As next will be drawn while clipped to its own area,
+		     we must draw the left_overhang part using s->hl now.  */
+		  let save: draw_glyphs_face = (*next).hl;
+
+		  (*next).hl = (*s).hl;
+		  x_set_glyph_string_gc (next);
+		  x_set_glyph_string_clipping_exactly (s, next);
+		  if glyph_bits! (type, (*(*next).first_glyph)) == CHAR_GLYPH
+		    { x_draw_glyph_string_foreground (next); }
+		  else
+		    { x_draw_composite_glyph_string_foreground (next); }
+		  x_reset_clip_rectangles ((*next).f, (*next).gc as GC);
+		  (*next).hl = save;
+		  (*next).num_clips = 0;
+		  (*next).clip_head = (*s).next;
+		}
+	      next = (*next).next;
+	    }
+	}
+    }
+
+  /* Reset clipping.  */
+  x_reset_clip_rectangles ((*s).f, (*s).gc as GC);
+  (*s).num_clips = 0;
+
+  /* Set the stippled flag that tells redisplay whether or not a
+     stipple was actually draw.  */
+
+  if glyph_bits! (type, (*(*s).first_glyph)) != STRETCH_GLYPH
+      && glyph_bits! (type, (*(*s).first_glyph)) != IMAGE_GLYPH
+      && !glyph_row_bits! (stipple_p, (*s).row)
+    { glyph_row_bits! (stipple_p, (*s).row, glyph_string_bits! (stippled_p, (*s))); }
+}
+
+/* C 11306-11318: `x_shift_glyphs_for_insert`.  C's comment sits inside the body and the port
+   keeps it there.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_shift_glyphs_for_insert (f: *mut frame, x: c_int, y: c_int, width: c_int,
+				     height: c_int, shift_by: c_int)
+{
+/* Never called on a GUI frame, see
+   https://lists.gnu.org/r/emacs-devel/2015-05/msg00456.html
+*/
+  XCopyArea (FRAME_X_DISPLAY! (f), FRAME_X_DRAWABLE! (f), FRAME_X_DRAWABLE! (f),
+	     (*( (*f).output_data.x as *mut x_output )).normal_gc,
+	     x, y, width, height,
+	     x + shift_by, y);
+}
+
+/* C 11320-11327: `x_delete_glyphs`.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_delete_glyphs (f: *mut frame, n: c_int)
+{
+  emacs_abort ();
+}
+
+/* C 11329-11340: `#if defined USE_GTK || !defined USE_CAIRO` - `x_clear_area1`.  */
+#[cfg (all (feature = "have_x_windows",
+	    any (feature = "use_gtk", not (feature = "use_cairo"))))]
+unsafe fn x_clear_area1 (dpy: *mut Display, window: Window,
+			 x: c_int, y: c_int, width: c_int, height: c_int, exposures: c_int)
+{
+  eassert! (width > 0 && height > 0);
+  XClearArea (dpy, window, x, y, width, height, exposures);
+}
+
+/* C 11342-11398: `x_clear_area` (C's definition is not `static`, so the unit exports it under
+   C's name - the `x_dpyinfo` shape).  C's two `#ifndef USE_GTK` guards leave the
+   `x_clear_area1` arm out of a GTK build and the `#ifdef HAVE_XDBE` term out of a non-Xdbe one,
+   so the port computes C's condition in three cfg'd spellings and keeps one copy of the shared
+   body; the `#if defined HAVE_XRENDER && (RENDER_MAJOR > 0 || (RENDER_MINOR >= 2))` block and
+   its `else` are the two arms of one `if`, and the else exists in both configurations.  */
+#[cfg (feature = "have_x_windows")]
+#[unsafe(no_mangle)]
+pub unsafe fn x_clear_area (f: *mut frame, x: c_int, y: c_int, width: c_int, height: c_int)
+{
+  #[cfg (feature = "use_cairo")]
+  {
+    let cr: *mut cairo_t;
+
+    eassert! (width > 0 && height > 0);
+
+    cr = x_begin_cr_clip (f, std::ptr::null_mut ());
+    x_set_cr_source_with_gc_background (f, (*( (*f).output_data.x as *mut x_output )).normal_gc,
+					true);
+    cairo_rectangle (cr, x as c_double, y as c_double,
+		     width as c_double, height as c_double);
+    cairo_fill (cr);
+    x_end_cr_clip (f);
+  }
+
+  #[cfg (not (feature = "use_cairo"))]
+  {
+    #[cfg (all (not (feature = "use_gtk"), feature = "have_xdbe"))]
+    let clear_p: bool = (*f).alpha_background != 1.0
+      || FRAME_X_DOUBLE_BUFFERED_P! (f);
+    #[cfg (all (not (feature = "use_gtk"), not (feature = "have_xdbe")))]
+    let clear_p: bool = (*f).alpha_background != 1.0;
+    #[cfg (feature = "use_gtk")]
+    let clear_p: bool = true;
+
+    if clear_p
+      {
+	#[cfg (all (feature = "have_xrender", feature = "have_xrender_0_2"))]
+	{
+	  use crate::x11_constants::None;
+
+	  x_xr_ensure_picture (f);
+	  if (*FRAME_DISPLAY_INFO! (f)).alpha_bits != 0
+	      && FRAME_X_PICTURE! (f) != None as Picture
+	      && (*f).alpha_background != 1.0
+	      && FRAME_CHECK_XR_VERSION! (f, 0, 2)
+	    {
+	      let mut xc: XRenderColor = std::mem::zeroed ();
+	      let gc: GC = (*( (*f).output_data.x as *mut x_output )).normal_gc;
+
+	      x_xr_apply_ext_clip (f, gc);
+	      x_xrender_color_from_gc_background (f, gc, &raw mut xc, true);
+	      XRenderFillRectangle (FRAME_X_DISPLAY! (f),
+				    PictOpSrc, FRAME_X_PICTURE! (f),
+				    &raw mut xc, x, y, width, height);
+	      x_xr_reset_ext_clip (f);
+	      x_mark_frame_dirty (f);
+	    }
+	  else
+	    {
+	      XFillRectangle (FRAME_X_DISPLAY! (f),
+			      FRAME_X_DRAWABLE! (f),
+			      (*( (*f).output_data.x as *mut x_output )).reverse_gc,
+			      x, y, width, height);
+	    }
+	}
+	#[cfg (not (all (feature = "have_xrender", feature = "have_xrender_0_2")))]
+	{
+	  XFillRectangle (FRAME_X_DISPLAY! (f),
+			  FRAME_X_DRAWABLE! (f),
+			  (*( (*f).output_data.x as *mut x_output )).reverse_gc,
+			  x, y, width, height);
+	}
+      }
+    else
+      {
+	#[cfg (not (feature = "use_gtk"))]
+	{
+	  x_clear_area1 (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),
+			 x, y, width, height, False);
+	}
+      }
+  }
+}
+
+/* C 11400-11419: `x_clear_frame`.  `font_drop_xrender_surfaces` is font.h's prototype with no
+   mirror row, declared here the way this unit's `x_drop_xrender_surfaces` declares it (P-55);
+   `x_scroll_bar_clear` is this file's own later slice, so it stays bare.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_clear_frame (f: *mut frame)
+{
+  unsafe extern "C" {
+    /// C: font.h 932: `extern void font_drop_xrender_surfaces (struct frame *f);`
+    pub fn font_drop_xrender_surfaces (f: *mut frame);
+  }
+
+  /* Clearing the frame will erase any cursor, so mark them all as no
+     longer visible.  */
+  mark_window_cursors_off (XWINDOW (FRAME_ROOT_WINDOW (f)));
+
+  block_input ();
+  font_drop_xrender_surfaces (f);
+  x_clear_window (f);
+
+  /* We have to clear the scroll bars.  If we have changed colors or
+     something like that, then they should be notified.  */
+  x_scroll_bar_clear (f);
+
+  unblock_input ();
+}
+
+/* C 11421-11444: `x_send_hourglass_message`.  `msg.xclient`'s members are the opaque-`XEvent`
+   class this ledger records (`include/xlib.rs` 1181 keeps 33 members owed), `ClientMessage` and
+   `NoEventMask` are `x11_constants` rows, `False` is Xlib's with no row, and C's
+   `memset (&msg, 0, sizeof msg)` is this unit's `memset` shape (line 8147).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_send_hourglass_message (f: *mut frame, hourglass_enabled: bool)
+{
+  use crate::x11_constants::{ClientMessage, NoEventMask};
+
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);
+  let mut msg: XEvent = std::mem::zeroed ();
+
+  memset (&raw mut msg as *mut c_void, 0, std::mem::size_of_val (&msg));
+
+  msg.xclient.r#type = ClientMessage;
+  msg.xclient.message_type
+    = (*dpyinfo).Xatom_EMACS_TMP;
+  msg.xclient.format = 8;
+  msg.xclient.window = FRAME_X_WINDOW! (f);
+  msg.xclient.data.b[0] = if hourglass_enabled { 1 } else { 0 };
+
+  XSendEvent ((*dpyinfo).display, FRAME_X_WINDOW! (f),
+	      False, NoEventMask, &raw mut msg);
+}
+
+/* C 11446-11526: `x_show_hourglass`.  C's `#ifdef USE_X_TOOLKIT if (x->widget) #else if
+   (FRAME_OUTER_WINDOW (f)) #endif` and the two `#ifdef USE_GTK parent = …` sites are conditions
+   without a common spelling, so the port keeps one variable per arm (the `ftfont.rs` 2552
+   shape); the `USE_XCB`/non-`USE_XCB` blocks are C's own two alternative bodies.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_show_hourglass (f: *mut frame)
+{
+  let dpy: *mut Display = FRAME_X_DISPLAY! (f);
+
+  if !dpy.is_null ()
+    {
+      let x: *mut x_output = FRAME_X_OUTPUT! (f) as *mut x_output;
+
+      /* If the hourglass window is mapped inside a popup menu, input
+	 could be lost if the menu is popped down and the grab is
+	 relinquished, but the hourglass window is still up.  Just
+	 avoid displaying the hourglass at all while popups are
+	 active.  */
+
+      if popup_activated ()
+	{ return; }
+
+      x_send_hourglass_message (f, true);
+
+      #[cfg (feature = "use_x_toolkit")]
+      let outer_p: bool = !(*x).widget.is_null ();
+      #[cfg (not (feature = "use_x_toolkit"))]
+      let outer_p: bool = FRAME_OUTER_WINDOW! (f) != 0;
+
+      if outer_p
+       {
+         if (*x).hourglass_window == 0
+           {
+	     #[cfg (not (feature = "use_xcb"))]
+	     {
+	       let mask: c_ulong = CWCursor;
+	       let mut attrs: XSetWindowAttributes = std::mem::zeroed ();
+	       #[cfg (feature = "use_gtk")]
+	       let parent: Window = FRAME_X_WINDOW! (f);
+	       #[cfg (not (feature = "use_gtk"))]
+	       let parent: Window = FRAME_OUTER_WINDOW! (f);
+
+	       attrs.cursor = (*x).hourglass_cursor;
+
+	       (*x).hourglass_window = XCreateWindow
+		 (dpy, parent, 0, 0, 32000, 32000, 0, 0,
+		  InputOnly, CopyFromParent, mask, &raw mut attrs);
+	     }
+	     #[cfg (feature = "use_xcb")]
+	     {
+	       let cursor: uint32_t = (*x).hourglass_cursor as uint32_t;
+	       #[cfg (feature = "use_gtk")]
+	       let parent: xcb_window_t = FRAME_X_WINDOW! (f) as xcb_window_t;
+	       #[cfg (not (feature = "use_gtk"))]
+	       let parent: xcb_window_t = FRAME_OUTER_WINDOW! (f) as xcb_window_t;
+
+	       (*x).hourglass_window
+		 = xcb_generate_id ((*FRAME_DISPLAY_INFO! (f)).xcb_connection) as Window;
+
+	       xcb_create_window ((*FRAME_DISPLAY_INFO! (f)).xcb_connection,
+				  XCB_COPY_FROM_PARENT,
+				  (*x).hourglass_window as xcb_window_t,
+				  parent, 0, 0, FRAME_PIXEL_WIDTH (f),
+				  FRAME_PIXEL_HEIGHT (f), 0,
+				  XCB_WINDOW_CLASS_INPUT_ONLY,
+				  XCB_COPY_FROM_PARENT, XCB_CW_CURSOR,
+				  &raw const cursor);
+	     }
+           }
+
+	 #[cfg (not (feature = "use_xcb"))]
+	 {
+	   XMapRaised (dpy, (*x).hourglass_window);
+	   /* Ensure that the spinning hourglass is shown.  */
+	   flush_frame! (f);
+	 }
+	 #[cfg (feature = "use_xcb")]
+	 {
+	   let value: uint32_t = XCB_STACK_MODE_ABOVE;
+
+	   xcb_configure_window ((*FRAME_DISPLAY_INFO! (f)).xcb_connection,
+				 (*x).hourglass_window as xcb_window_t,
+				 XCB_CONFIG_WINDOW_STACK_MODE, &raw const value);
+	   xcb_map_window ((*FRAME_DISPLAY_INFO! (f)).xcb_connection,
+			   (*x).hourglass_window as xcb_window_t);
+	   xcb_flush ((*FRAME_DISPLAY_INFO! (f)).xcb_connection);
+	 }
+       }
+    }
+}
+
+/* C 11528-11546: `x_hide_hourglass`.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_hide_hourglass (f: *mut frame)
+{
+  let x: *mut x_output = FRAME_X_OUTPUT! (f) as *mut x_output;
+
+  /* Watch out for newly created frames.  */
+  if (*x).hourglass_window != 0
+    {
+      #[cfg (not (feature = "use_xcb"))]
+      { XUnmapWindow (FRAME_X_DISPLAY! (f), (*x).hourglass_window); }
+      #[cfg (feature = "use_xcb")]
+      {
+	xcb_unmap_window ((*FRAME_DISPLAY_INFO! (f)).xcb_connection,
+			  (*x).hourglass_window as xcb_window_t);
+      }
+      x_send_hourglass_message (f, false);
+    }
+}
+
+/* C 11548-11652: `XTflash`.  C's two `#if`-less halves are written twice (C repeats them); the
+   `fd_set`/`FD_ZERO`/`FD_SET`/`pselect` names are the ones the unit's `x_sync_wait_for_frame_…`
+   already uses, `detect_input_pending` is lisp.h's prototype with no mirror row, and
+   `ConnectionNumber`/`XCreateGC`/`XFillRectangle`/`XFreeGC` are Xlib's (the ledger's class).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTflash (f: *mut frame)
+{
+  let mut gc: GC;
+  let mut values: XGCValues = std::mem::zeroed ();
+  let mut fds: fd_set = std::mem::zeroed ();
+  let fd: c_int;
+  let mut rc: c_int;
+
+  block_input ();
+  values.function = GXinvert;
+  gc = XCreateGC (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f),
+		  GCFunction, &raw mut values as *mut c_void);
+
+  /* Get the height not including a menu bar widget.  */
+  let height: c_int = FRAME_PIXEL_HEIGHT (f);
+  /* Height of each line to flash.  */
+  let flash_height: c_int = FRAME_LINE_HEIGHT (f);
+  /* These will be the left and right margins of the rectangles.  */
+  let flash_left: c_int = FRAME_INTERNAL_BORDER_WIDTH (f);
+  let flash_right: c_int = FRAME_PIXEL_WIDTH (f) - FRAME_INTERNAL_BORDER_WIDTH (f);
+  let width: c_int = flash_right - flash_left;
+
+  /* If window is tall, flash top and bottom line.  */
+  if height > 3 * FRAME_LINE_HEIGHT (f)
+    {
+      XFillRectangle (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), gc,
+		      flash_left,
+		      (FRAME_INTERNAL_BORDER_WIDTH (f)
+		       + FRAME_TOP_MARGIN_HEIGHT (f)),
+		      width, flash_height);
+      XFillRectangle (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), gc,
+		      flash_left,
+		      (height - flash_height
+		       - FRAME_INTERNAL_BORDER_WIDTH (f)
+		       - FRAME_BOTTOM_MARGIN_HEIGHT (f)),
+		      width, flash_height);
+
+    }
+  else
+    /* If it is short, flash it all.  */
+    {
+      XFillRectangle (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), gc,
+		      flash_left, FRAME_INTERNAL_BORDER_WIDTH (f),
+		      width, height - 2 * FRAME_INTERNAL_BORDER_WIDTH (f));
+    }
+
+  x_flush (f);
+
+  let delay: timespec = make_timespec (0, 150 * 1000 * 1000);
+  let wakeup: timespec = timespec_add (current_timespec (), delay);
+  fd = ConnectionNumber (FRAME_X_DISPLAY! (f));
+
+  /* Keep waiting until past the time wakeup or any input gets
+     available.  */
+  while !detect_input_pending ()
+    {
+      let current: timespec = current_timespec ();
+      let mut timeout: timespec;
+
+      /* Break if result would not be positive.  */
+      if timespec_cmp (wakeup, current) <= 0
+	{ break; }
+
+      /* How long `select' should wait.  */
+      timeout = make_timespec (0, 10 * 1000 * 1000);
+
+      /* Wait for some input to become available on the X
+	 connection.  */
+      FD_ZERO (&raw mut fds);
+      FD_SET (fd, &raw mut fds);
+
+      /* Try to wait that long--but we might wake up sooner.  */
+      rc = pselect (fd + 1, &raw mut fds, std::ptr::null_mut (), std::ptr::null_mut (),
+		    &raw mut timeout, std::ptr::null_mut ());
+
+      /* Some input is available, exit the visible bell.  */
+      if rc >= 0 && FD_ISSET (fd, &fds)
+	{ break; }
+    }
+
+  /* If window is tall, flash top and bottom line.  */
+  if height > 3 * FRAME_LINE_HEIGHT (f)
+    {
+      XFillRectangle (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), gc,
+		      flash_left,
+		      (FRAME_INTERNAL_BORDER_WIDTH (f)
+		       + FRAME_TOP_MARGIN_HEIGHT (f)),
+		      width, flash_height);
+      XFillRectangle (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), gc,
+		      flash_left,
+		      (height - flash_height
+		       - FRAME_INTERNAL_BORDER_WIDTH (f)
+		       - FRAME_BOTTOM_MARGIN_HEIGHT (f)),
+		      width, flash_height);
+    }
+  else
+    /* If it is short, flash it all.  */
+    {
+      XFillRectangle (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), gc,
+		      flash_left, FRAME_INTERNAL_BORDER_WIDTH (f),
+		      width, height - 2 * FRAME_INTERNAL_BORDER_WIDTH (f));
+    }
+
+  XFreeGC (FRAME_X_DISPLAY! (f), gc);
+  x_flush (f);
+
+  unblock_input ();
+}
+
+/* C 11654-11686: `XTring_bell`.  `visible_bell` is the `bool` global (`include/globals.rs`
+   7145), `x_ignore_errors_for_next_request`/`x_stop_ignoring_errors` are this file's own later
+   slices, and the `HAVE_XKB` arm's `None` is the `x11_constants` row.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn XTring_bell (f: *mut frame)
+{
+  let dpy: *mut Display = FRAME_X_DISPLAY! (f);
+
+  if dpy.is_null ()
+    { return; }
+
+  let dpyinfo: *mut x_display_info = FRAME_DISPLAY_INFO! (f);
+
+  if visible_bell
+    { XTflash (f); }
+  else
+    {
+      /* When Emacs is untrusted, Bell requests sometimes generate
+	 Access errors.  This is not in the security extension
+	 specification but seems to be a bug in the X consortium XKB
+	 implementation.  */
+
+      block_input ();
+      x_ignore_errors_for_next_request (dpyinfo, 0);
+      #[cfg (feature = "have_xkb")]
+      {
+	use crate::x11_constants::None;
+
+	XkbBell (FRAME_X_DISPLAY! (f), FRAME_X_WINDOW! (f), 0, None);
+      }
+      #[cfg (not (feature = "have_xkb"))]
+      { XBell (FRAME_X_DISPLAY! (f), 0); }
+      XFlush (FRAME_X_DISPLAY! (f));
+      x_stop_ignoring_errors (dpyinfo);
+      unblock_input ();
+    }
+}
+
+/* Perform an insert-lines or delete-lines operation, inserting N
+   lines or deleting -N lines at vertical position VPOS.  */
+
+/* C 11694-11699: `x_ins_del_lines`.  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_ins_del_lines (f: *mut frame, vpos: c_int, n: c_int)
+{
+  emacs_abort ();
+}
+
+/* C 11701-11915: `x_scroll_run`.  The window/frame box comes from `window_box` and the mirror's
+   `WINDOW_TO_FRAME_PIXEL_Y!`; the two `HAVE_XWIDGETS`/`USE_CAIRO_XCB_SURFACE` blocks and the
+   cairo block's three arms are C's own, and the two `else`/`else if` sites whose conditions are
+   configuration-dependent keep C's chain by nesting the arm the configuration selects.  The
+   `run` fields are the mirror's `struct run` (`include/dispextern.rs` 1981), `gui_clear_cursor`
+   is dispextern.h's prototype with no mirror row, and `XCopyArea`/`XUnmapWindow`/
+   `XMoveResizeWindow`/`XFree`/`XQueryTree`/`XFlushGC` are Xlib's (the ledger's class).  */
+#[cfg (feature = "have_x_windows")]
+unsafe fn x_scroll_run (w: *mut window, run: *mut run)
+{
+  let f: *mut frame = XFRAME ((*w).frame);
+  let mut x: c_int;
+  let mut y: c_int;
+  let mut width: c_int;
+  let mut height: c_int;
+  let mut from_y: c_int;
+  let mut to_y: c_int;
+  let mut bottom_y: c_int;
+
+  /* Get frame-relative bounding box of the text display area of W,
+     without mode lines.  Include in this box the left and right
+     fringe of W.  */
+  window_box (w, ANY_AREA, &raw mut x, &raw mut y, &raw mut width, &raw mut height);
+
+  from_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*run).current_y);
+  to_y = WINDOW_TO_FRAME_PIXEL_Y! (w, (*run).desired_y);
+  bottom_y = y + height;
+
+  if to_y < from_y
+    {
+      /* Scrolling up.  Make sure we don't copy part of the mode
+	 line at the bottom.  */
+      if from_y + (*run).height > bottom_y
+	{ height = bottom_y - from_y; }
+      else
+	{ height = (*run).height; }
+
+      /* Don't draw over the display parts above if destination is off
+         the top of the current window.  */
+      if to_y < y
+	{
+	  let d: c_int = y - to_y;
+	  height -= d;
+	  to_y += d;
+	  from_y += d;
+	}
+    }
+  else
+    {
+      /* Scrolling down.  Make sure we don't copy over the mode line.
+	 at the bottom.  */
+      if to_y + (*run).height > bottom_y
+	{ height = bottom_y - to_y; }
+      else
+	{ height = (*run).height; }
+    }
+
+  block_input ();
+
+  /* Cursor off.  Will be switched on again in gui_update_window_end.  */
+  gui_clear_cursor (w);
+
+  #[cfg (feature = "have_xwidgets")]
+  {
+    /* "Copy" xwidget windows in the area that will be scrolled.  */
+    let dpy: *mut Display = FRAME_X_DISPLAY! (f);
+    let window: Window = FRAME_X_WINDOW! (f);
+
+    let mut root: Window;
+    let mut parent: Window;
+    let mut children: *mut Window;
+    let mut nchildren: c_uint;
+
+    if XQueryTree (dpy, window, &raw mut root, &raw mut parent, &raw mut children,
+		   &raw mut nchildren) != 0
+      {
+	/* Now find xwidget views situated between from_y and to_y, and
+	   attached to w.  */
+	let mut i: c_uint = 0;
+	while i < nchildren
+	  {
+	    let child: Window = *children.offset (i as isize);
+	    let view: *mut xwidget_view = xwidget_view_from_window (child);
+
+	    if !view.is_null () && !(*view).hidden
+	      {
+		let window_y: c_int = (*view).y + (*view).clip_top;
+		let window_height: c_int = (*view).clip_bottom - (*view).clip_top;
+
+		let mut r1: Emacs_Rectangle = std::mem::zeroed ();
+		let mut r2: Emacs_Rectangle = std::mem::zeroed ();
+		let mut result: Emacs_Rectangle = std::mem::zeroed ();
+		r1.x = (*w).pixel_left as c_short;
+		r1.y = from_y as c_short;
+		r1.width = (*w).pixel_width as c_ushort;
+		r1.height = height as c_ushort;
+		r2 = r1;
+		r2.y = window_y as c_short;
+		r2.height = window_height as c_ushort;
+
+		/* The window is offscreen, just unmap it.  */
+		if window_height == 0
+		  {
+		    (*view).hidden = true;
+		    XUnmapWindow (dpy, child);
+		    i += 1;
+		    continue;
+		  }
+
+		let intersects_p: bool =
+		  gui_intersect_rectangles (&r1, &r2, &mut result);
+
+		if XWINDOW ((*view).w) == w && intersects_p
+		  {
+		    /* C's own `int y = view->y + (to_y - from_y);` shadows the box's `y` for
+		       the rest of this block (Rust shadows it the same way).  */
+		    let mut y: c_int = (*view).y + (to_y - from_y);
+		    let mut text_area_x: c_int;
+		    let mut text_area_y: c_int;
+		    let mut text_area_width: c_int;
+		    let mut text_area_height: c_int;
+		    let mut clip_top: c_int;
+		    let mut clip_bottom: c_int;
+
+		    window_box (w, (*view).area, &raw mut text_area_x, &raw mut text_area_y,
+				&raw mut text_area_width, &raw mut text_area_height);
+
+		    (*view).y = y;
+
+		    clip_top = 0;
+		    clip_bottom = (*XXWIDGET ((*view).model)).height;
+
+		    if y < text_area_y
+		      { clip_top = text_area_y - y; }
+
+		    if (y + clip_bottom) > (text_area_y + text_area_height)
+		      {
+			clip_bottom -= (y + clip_bottom) - (text_area_y + text_area_height);
+		      }
+
+		    (*view).clip_top = clip_top;
+		    (*view).clip_bottom = clip_bottom;
+
+		    /* This means the view has moved offscreen.  Unmap
+		       it and hide it here.  */
+		    if ((*view).clip_bottom - (*view).clip_top) <= 0
+		      {
+			(*view).hidden = true;
+			XUnmapWindow (dpy, child);
+		      }
+		    else
+		      {
+			XMoveResizeWindow (dpy, child, (*view).x + (*view).clip_left,
+					   (*view).y + (*view).clip_top,
+					   (*view).clip_right - (*view).clip_left,
+					   (*view).clip_bottom - (*view).clip_top);
+			cairo_xlib_surface_set_size ((*view).cr_surface,
+						     (*view).clip_right - (*view).clip_left,
+						     (*view).clip_bottom - (*view).clip_top);
+		      }
+		    xwidget_expose (view);
+		  }
+	      }
+	    i += 1;
+	  }
+	XFree (children as *mut c_void);
+      }
+  }
+
+  #[cfg (all (feature = "use_xcb", feature = "use_cairo_xcb"))]
+  {
+    /* Some of the following code depends on `normal_gc' being
+       up-to-date on the X server, but doesn't call a routine that will
+       flush it first.  So do this ourselves instead.  */
+    XFlushGC (FRAME_X_DISPLAY! (f),
+	      (*( (*f).output_data.x as *mut x_output )).normal_gc);
+  }
+
+  #[cfg (feature = "use_cairo")]
+  {
+    if !FRAME_CR_CONTEXT! (f).is_null ()
+      {
+	let surface: *mut cairo_surface_t = cairo_get_target (FRAME_CR_CONTEXT! (f));
+	if cairo_surface_get_type (surface) == CAIRO_SURFACE_TYPE_XLIB
+	  {
+	    eassert! (cairo_xlib_surface_get_display (surface)
+		      == FRAME_X_DISPLAY! (f));
+	    eassert! (cairo_xlib_surface_get_drawable (surface)
+		      == FRAME_X_RAW_DRAWABLE! (f));
+	    cairo_surface_flush (surface);
+	    XCopyArea (FRAME_X_DISPLAY! (f),
+		       FRAME_X_DRAWABLE! (f), FRAME_X_DRAWABLE! (f),
+		       (*( (*f).output_data.x as *mut x_output )).normal_gc,
+		       x, from_y,
+		       width, height,
+		       x, to_y);
+	    cairo_surface_mark_dirty_rectangle (surface, x, to_y, width, height);
+	  }
+	else
+	  {
+	    #[cfg (all (feature = "use_xcb", feature = "use_cairo_xcb"))]
+	    {
+	      if cairo_surface_get_type (surface) == CAIRO_SURFACE_TYPE_XCB
+		{
+		  cairo_surface_flush (surface);
+		  xcb_copy_area ((*FRAME_DISPLAY_INFO! (f)).xcb_connection,
+				 FRAME_X_DRAWABLE! (f) as xcb_drawable_t,
+				 FRAME_X_DRAWABLE! (f) as xcb_drawable_t,
+				 XGContextFromGC ((*( (*f).output_data.x as *mut x_output )).normal_gc) as xcb_gcontext_t,
+				 x, from_y, x, to_y, width, height);
+		  cairo_surface_mark_dirty_rectangle (surface, x, to_y, width, height);
+		}
+	      else
+	    {
+	      let s: *mut cairo_surface_t
+		= cairo_surface_create_similar (surface,
+						cairo_surface_get_content (surface),
+						width, height);
+	      let mut cr: *mut cairo_t = cairo_create (s);
+	      cairo_set_source_surface (cr, surface, -x as c_double, -from_y as c_double);
+	      cairo_paint (cr);
+	      cairo_destroy (cr);
+
+	      cr = FRAME_CR_CONTEXT! (f);
+	      cairo_save (cr);
+	      cairo_set_source_surface (cr, s, x as c_double, to_y as c_double);
+	      cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
+	      cairo_rectangle (cr, x as c_double, to_y as c_double,
+			       width as c_double, height as c_double);
+	      cairo_fill (cr);
+	      cairo_restore (cr);
+	      cairo_surface_destroy (s);
+	    }
+	    }
+	    #[cfg (not (all (feature = "use_xcb", feature = "use_cairo_xcb")))]
+	    {
+	      let s: *mut cairo_surface_t
+		= cairo_surface_create_similar (surface,
+						cairo_surface_get_content (surface),
+						width, height);
+	      let mut cr: *mut cairo_t = cairo_create (s);
+	      cairo_set_source_surface (cr, surface, -x as c_double, -from_y as c_double);
+	      cairo_paint (cr);
+	      cairo_destroy (cr);
+
+	      cr = FRAME_CR_CONTEXT! (f);
+	      cairo_save (cr);
+	      cairo_set_source_surface (cr, s, x as c_double, to_y as c_double);
+	      cairo_set_operator (cr, CAIRO_OPERATOR_SOURCE);
+	      cairo_rectangle (cr, x as c_double, to_y as c_double,
+			       width as c_double, height as c_double);
+	      cairo_fill (cr);
+	      cairo_restore (cr);
+	      cairo_surface_destroy (s);
+	    }
+	  }
+      }
+    else
+      {
+	XCopyArea (FRAME_X_DISPLAY! (f),
+		   FRAME_X_DRAWABLE! (f), FRAME_X_DRAWABLE! (f),
+		   (*( (*f).output_data.x as *mut x_output )).normal_gc,
+		   x, from_y,
+		   width, height,
+		   x, to_y);
+      }
+  }
+
+  #[cfg (not (feature = "use_cairo"))]
+  {
+    XCopyArea (FRAME_X_DISPLAY! (f),
+	       FRAME_X_DRAWABLE! (f), FRAME_X_DRAWABLE! (f),
+	       (*( (*f).output_data.x as *mut x_output )).normal_gc,
+	       x, from_y,
+	       width, height,
+	       x, to_y);
+  }
+
+  unblock_input ();
 }
