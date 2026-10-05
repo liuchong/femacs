@@ -11660,3 +11660,27 @@
      `--all` 的 FAIL 名单里**不再有任何镜像**，剩下 22 件全是**单元文件**（5 件正是当前五条 lane 的目标）。
   ⑤ **未声称**：**本提交没有改任何镜像、也没有改任何移植文件** —— 两处都是检查器的读法错，镜像按 P-51/P-80 写的是对的；
      `--all` 的 done 数只说明"清单差异为零"，**不说明任何一件被编译、链接或运行过**；剩下 22 件 failing + 3 件 WIP 才是真欠账。
+
+- **3.578 lane 产出收口：`src/xdisp.c` 推进 10 件（C 39,805 / Rust 26,406 → 27,160 行；`--check` 68 → 58）（2026-10-05）**：
+  ① **lane 的产出（Linnaeus）**：`femacs/src/xdisp.rs` +754 行（md5 `5486db24…`），台账 `docs/ports/xdisp.md` 3,611 → 3,849 行、
+     未勾框 **66 → 44**。新落 10 条（按 C 行号顺序）：`Fbidi_resolved_levels`（C 27637，`DEFUN!`）、`display_menu_bar`(27761)、
+     `deep_copy_glyph_row`(27924)、`display_tty_menu_separator_char`(27954)、`display_tty_menu_separator`(27973)、
+     `display_tty_menu_item`(28008，C 非 static ⇒ `#[unsafe(no_mangle)]`，`llvm-nm` 见 `T _display_tty_menu_item`)、
+     `display_mode_lines`(28112)、`display_mode_line`(28205)、`move_elt_to_front`(28394)、`safe_set_text_properties`(28432)。
+     另**核出 13 个陈旧框**（定义早在、框没勾：10 函数 + 3 宏），按工件核对后勾上并在台账记明——这一类"台账落后于工件"的
+     框正是 `check-ledger-ticks.py` 要防的。
+  ② **读数**：`extract-abi --check` **68 → 58**（剩下的 43 函数/3 宏/3 subr/13 defsubr/2 文件级对象 + 行数漂移，
+     台账 `## Owed` 逐条列了 C 行号）；`check-cond-eval.py src/xdisp.c` **196 conditions / 0 disagreements [VERIFIED]**；
+     `build-tu src/xdisp.c` 3 发（2 发各抓到本单元自身的 `E0609`/`E0384`/`E0608`，改完 **exit 0**）；
+     `probe` 1 发 **exit 0 / 0 error**（rlib 22,263,512 B）；`llvm-nm` 复核两个新导出符号在。
+  ③ **集成者登记（我）**：`port-map.md` 刷新 `src/xdisp.c` 行（26,406 → 27,160），并把在飞的 `image`/`sfnt`/`w32term.c`/`xterm.c`
+     四行**回退成已提交值**；同一次刷新**补上 3.575 漏掉的 `src/include/w32term.rs` 行**（1,488 → 1,589，那是我自己改的镜像，
+     3.575 忘了重生成 port-map）；**本件不加容差行** —— 行数漂移 31.8% 是**"正文还没落完"的真实信号**，加了就等于把欠账藏起来
+     （`image`/`sfnt`/`w32term`/`xterm` 同样没有容差行，口径一致）。
+  ④ **门读数（本轮现读，全绿）**：`check-mirror-dupes` 17/17/0、`check-citations` 0 drift / 0 stale、`check-declarations`
+     0 failures、`check-dead-file-coverage` 143/0、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、`check-target-names` 0。
+  ⑤ **未声称**：本件**只做"C 顺序转写 + 可编译证明"**，没有行为/语义证明（未跑 `cargo test`/`xtask --all`/`gate-fast`/
+     `check-all-units.sh`）；`--check` 仍 **FAIL**（58 条）且行数漂移仍在；`Fbidi_resolved_levels` 的 **defsubr 未注册**
+     （`syms_of_xdisp` 未落），**今天还不能从 Lisp 侧调用**；台账 4 条新欠账（`include/keyboard.rs` 该收的
+     `menu_separator_name_p`/`push_kboard`/`pop_kboard`、`include/dispextern.rs` 该收的 `fill_up_frame_row_with_spaces`）；
+     脚手架函数 11 → 8。

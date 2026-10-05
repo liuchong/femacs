@@ -904,6 +904,20 @@ unsafe extern "C" {
   /// bool);` (dispnew.c defines it; `display_line` at C 25906 is this unit's first use —
   /// the mirror chain does not carry the prototype).
   pub fn prepare_desired_row (w: *mut window, row: *mut glyph_row, mode_line_p: bool);
+  /// C: keyboard.h 473: `extern bool menu_separator_name_p (const char *);` (keyboard.c
+  /// defines it; `display_tty_menu_item` at C 28085 is this unit's first use, and the
+  /// keyboard.h mirror chain does not carry the prototype).
+  pub fn menu_separator_name_p (label: *const c_char) -> bool;
+  /// C: keyboard.h 480: `extern void push_kboard (struct kboard *);` (keyboard.c defines
+  /// it; `display_mode_line` at C 28244 is this unit's first use).
+  pub fn push_kboard (k: *mut kboard);
+  /// C: keyboard.h 481: `extern void pop_kboard (void);` (keyboard.c defines it;
+  /// `display_mode_line` at C 28354 is this unit's first use).
+  pub fn pop_kboard ();
+  /// C: dispextern.h 3929: `extern void fill_up_frame_row_with_spaces (struct frame *,
+  /// struct glyph_row *, int);` (dispnew.c defines it; `deep_copy_glyph_row` at C 27945 is
+  /// this unit's first use — the dispextern.h mirror is a WIP prefix, P-66).
+  pub fn fill_up_frame_row_with_spaces (f: *mut frame, row: *mut glyph_row, n: c_int);
 }
 
 /* C 348-351: `termopts.h`'s two objects (that header has a mirror, but no unit `include!`s
@@ -25673,18 +25687,9 @@ unsafe extern "C" {
   /// C: dispextern.h 3627: `extern void produce_stretch_glyph (struct it *);` (defined
   /// later in this unit; C's is non-`static`).
   fn produce_stretch_glyph (it: *mut it);
-  /// C: xdisp.c 1170: `static int display_mode_line (struct window *, enum face_id,
-  /// Lisp_Object);`
-  fn display_mode_line (w: *mut window, face_id: face_id, format: Lisp_Object) -> c_int;
   /// C: dispextern.h 3689: `extern void gui_clear_window_mouse_face (struct window *);`
   /// (defined later in this unit, at C 37705).
   fn gui_clear_window_mouse_face (w: *mut window);
-  /// C: xdisp.c 1168: `static int display_mode_lines (struct window *);` (defined at
-  /// C 28112).
-  fn display_mode_lines (w: *mut window) -> c_int;
-  /// C: xdisp.c 1175: `static void display_menu_bar (struct window *);` (defined at
-  /// C 27761).
-  fn display_menu_bar (w: *mut window);
   /// C: xdisp.c 1178: `static void pint2str (register char *, register int, register
   /// ptrdiff_t);` (defined later in this unit, at C 29193; C's is `static`).
   fn pint2str (buf: *mut c_char, width: c_int, d: ptrdiff_t);
@@ -26404,3 +26409,752 @@ DEFUN! ("move-point-visually", Fmove_point_visually,
 
   return make_fixnum (PT! ());
 });
+
+/* C 27637-27754's `bidi-resolved-levels`, and C 27761-27946's menu-bar opener
+   (`display_menu_bar` down to `deep_copy_glyph_row`).  C 27756-27759's `Menu Bar` banner is
+   dropped, the `Bidi` banner's shape (deviation 266).  */
+
+DEFUN! ("bidi-resolved-levels", Fbidi_resolved_levels,
+       Sbidi_resolved_levels, 0, 1, 0,
+       doc: "Return the resolved bidirectional levels of characters at VPOS.\n\nThe resolved levels are produced by the Emacs bidi reordering engine\nthat implements the UBA, the Unicode Bidirectional Algorithm.  Please\nread the Unicode Standard Annex 9 (UAX#9) for background information\nabout these levels.\n\nVPOS is the zero-based number of the current window's screen line\nfor which to produce the resolved levels.  If VPOS is nil or omitted,\nit defaults to the screen line of point.  If the window displays a\nheader line, VPOS of zero will report on the header line, and first\nline of text in the window will have VPOS of 1.\n\nValue is an array of resolved levels, indexed by glyph number.\nGlyphs are numbered from zero starting from the beginning of the\nscreen line, i.e. the left edge of the window for left-to-right lines\nand from the right edge for right-to-left lines.  The resolved levels\nare produced only for the window's text area; text in display margins\nis not included.\n\nIf the selected window's display is not up-to-date, or if the specified\nscreen line does not display text, this function returns nil.  It is\nhighly recommended to bind this function to some simple key, like F8,\nin order to avoid these problems.\n\nThis function exists mainly for testing the correctness of the\nEmacs UBA implementation, in particular with the test suite.",
+       (vpos: Lisp_Object),
+       {
+  let w: *mut window = XWINDOW (selected_window);
+  let b: *mut buffer = XBUFFER ((*w).contents);
+  /* C's `int nrow;`/`struct glyph_row *row;` are written by the branches below and read by
+     the guard (PORTING.md 1.5).  */
+  let mut nrow: c_int = 0;
+  let mut row: *mut glyph_row = core::ptr::null_mut ();
+
+  if NILP (vpos)
+    {
+      /* C's `int d1, d2, d3, d4, d5;` are `pos_visible_p`'s five out parameters
+	 (PORTING.md 1.5).  */
+      let mut d1: c_int = 0;
+      let mut d2: c_int = 0;
+      let mut d3: c_int = 0;
+      let mut d4: c_int = 0;
+      let mut d5: c_int = 0;
+
+      pos_visible_p (w, PT! (), &raw mut d1, &raw mut d2, &raw mut d3, &raw mut d4,
+		     &raw mut d5, &raw mut nrow);
+    }
+  else
+    {
+      CHECK_FIXNUM (vpos);
+      nrow = XFIXNUM (vpos) as c_int;
+    }
+
+  /* We require up-to-date glyph matrix for this window.  */
+  if window_bits! (w, window_end_valid)
+      && windows_or_buffers_changed == 0
+      && !b.is_null ()
+      && !buffer_bits! (clip_changed, b)
+      && !buffer_bits! (prevent_redisplay_optimizations_p, b)
+      && !window_outdated (w)
+      && nrow >= 0
+      && nrow < (*((*w).current_matrix as *mut glyph_matrix)).nrows
+      && { row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix, nrow);
+	   glyph_row_bits! (enabled_p, row) }
+      && MATRIX_ROW_DISPLAYS_TEXT_P! (row)
+    {
+      let mut g: *mut glyph;
+      let mut e: *mut glyph;
+      let mut g1: *mut glyph;
+      let mut nglyphs: c_int = 0;
+      let mut i: c_int = 0;
+      let levels: Lisp_Object;
+
+      if !glyph_row_bits! (reversed_p, row)	/* Left-to-right glyph row.  */
+	{
+	  g = (*row).glyphs[TEXT_AREA as usize];
+	  g1 = g;
+	  e = g.offset ((*row).used[TEXT_AREA as usize] as isize);
+
+	  /* Skip over glyphs at the start of the row that was
+	     generated by redisplay for its own needs.  */
+	  while g < e
+		 && NILP ((*g).object)
+		 && (*g).charpos < 0
+	    { g = g.offset (1); }
+	  g1 = g;
+
+	  /* Count the "interesting" glyphs in this row.  */
+	  nglyphs = 0;
+	  while g < e && !NILP ((*g).object)
+	    { nglyphs += 1; g = g.offset (1); }
+
+	  /* Create and fill the array.  */
+	  levels = make_uninit_vector (nglyphs as isize);
+	  i = 0;
+	  while g1 < g
+	    { ASET (levels, i as isize,
+		    make_fixnum (glyph_bits! (resolved_level, *g1) as EMACS_INT));
+	      i += 1; g1 = g1.offset (1); }
+	}
+      else			/* Right-to-left glyph row.  */
+	{
+	  g = (*row).glyphs[TEXT_AREA as usize]
+	    .offset ((*row).used[TEXT_AREA as usize] as isize - 1);
+	  e = (*row).glyphs[TEXT_AREA as usize].offset (-1);
+	  while g > e
+		 && NILP ((*g).object)
+		 && (*g).charpos < 0
+	    { g = g.offset (-1); }
+	  g1 = g;
+	  nglyphs = 0;
+	  while g > e && !NILP ((*g).object)
+	    { nglyphs += 1; g = g.offset (-1); }
+	  levels = make_uninit_vector (nglyphs as isize);
+	  i = 0;
+	  while g1 > g
+	    { ASET (levels, i as isize,
+		    make_fixnum (glyph_bits! (resolved_level, *g1) as EMACS_INT));
+	      i += 1; g1 = g1.offset (-1); }
+	}
+      return levels;
+    }
+  else
+    { return Qnil (); }
+});
+
+/* Redisplay the menu bar in the frame for window W.
+
+   The menu bar of X frames that don't have X toolkit support is
+   displayed in a special window W->frame->menu_bar_window.
+
+   The menu bar of terminal frames is treated specially as far as
+   glyph matrices are concerned.  Menu bar lines are not part of
+   windows, so the update is done directly on the frame matrix rows
+   for the menu bar.  */
+
+unsafe fn
+display_menu_bar (w: *mut window)
+{
+  let f: *mut frame = XFRAME (WINDOW_FRAME! (w));
+  let mut it: it = core::mem::zeroed ();
+  let items: Lisp_Object;
+  let mut i: c_int;
+
+  /* Don't do all this for graphical frames.  */
+  /* C 27769-27791's `#ifdef HAVE_NTGUI`, `#if defined (HAVE_PGTK)`,
+     `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)`, `#ifdef HAVE_NS` and
+     `#ifdef HAVE_HAIKU` arms are dead on this target (the ledger's dead-arm list).  */
+
+  /* Don't do all this if the frame's menu bar is not yet set.  */
+  if NILP (FRAME_MENU_BAR_ITEMS (f))
+    { return; }
+
+  /* C 27797-27816's `#if defined (USE_X_TOOLKIT) || defined (USE_GTK)` and `#elif defined
+     (HAVE_X_WINDOWS) || defined (HAVE_ANDROID)` arms are dead; the live text is C's
+     trailing `else` body (the TTY case).  */
+  {
+    /* This is a TTY frame, i.e. character hpos/vpos are used as
+       pixel x/y.  */
+    init_iterator (&raw mut it, w, -1, -1,
+		   (*((*f).desired_matrix as *mut glyph_matrix)).rows, MENU_FACE_ID);
+    it.first_visible_x = 0;
+    it.last_visible_x = FRAME_COLS (f);
+  }
+
+  /* FIXME: This should be controlled by a user option.  See the
+     comments in redisplay_tool_bar and display_mode_line about
+     this.  */
+  it.paragraph_embedding = L2R;
+
+  /* Clear all rows of the menu bar.  */
+  i = 0;
+  while i < FRAME_MENU_BAR_LINES (f)
+    {
+      let row: *mut glyph_row = it.glyph_row.offset (i as isize);
+      clear_glyph_row (row);
+      glyph_row_bits! (enabled_p, row, true);
+      glyph_row_bits! (full_width_p, row, true);
+      glyph_row_bits! (reversed_p, row, false);
+      i += 1;
+    }
+
+  /* Display all items of the menu bar.  */
+  items = FRAME_MENU_BAR_ITEMS (it.f);
+  i = 0;
+  while i < ASIZE (items) as c_int
+    {
+      let string: Lisp_Object;
+
+      /* Stop at nil string.  */
+      string = AREF (items, (i + 1) as isize);
+      if NILP (string)
+	{ break; }
+
+      /* Remember where item was displayed.  */
+      ASET (items, (i + 3) as isize, make_fixnum (it.hpos as EMACS_INT));
+
+      /* Display the item, pad with one space.  */
+      if it.current_x < it.last_visible_x
+	{
+	  display_string (core::ptr::null (), string, Qnil (), 0, 0, &raw mut it,
+			  (SCHARS (string) + 1) as c_int, 0, 0,
+			  STRING_MULTIBYTE (string) as c_int);
+	}
+      i += 4;
+    }
+
+  /* Fill out the line with spaces.  */
+  if it.current_x < it.last_visible_x
+    { display_string (c"".as_ptr (), Qnil (), Qnil (), 0, 0, &raw mut it, -1, 0, 0, -1); }
+
+  /* Compute the total height of the lines.  */
+  compute_line_metrics (&raw mut it);
+  glyph_row_bits! (full_width_p, it.glyph_row, true);
+  glyph_row_bits! (continued_p, it.glyph_row, false);
+  glyph_row_bits! (truncated_on_left_p, it.glyph_row, false);
+  glyph_row_bits! (truncated_on_right_p, it.glyph_row, false);
+
+  /* C 27876-27914's `#if defined HAVE_WINDOW_SYSTEM && !defined HAVE_EXT_MENU_BAR` arm
+     (the 3D shadow and the menu-bar height adjustment) is dead on this target.  */
+}
+
+/* This code is never used on Android where there are only GUI and
+   initial frames.  */
+
+/* C 27920's `#ifndef HAVE_ANDROID` is live on this target (`HAVE_ANDROID` is undef).  */
+
+/* Deep copy of a glyph row, including the glyphs.  */
+unsafe fn
+deep_copy_glyph_row (f: *mut frame, to: *mut glyph_row, from: *mut glyph_row)
+{
+  let mut pointers: [*mut glyph; (1 + LAST_AREA) as usize] =
+    [core::ptr::null_mut (); (1 + LAST_AREA) as usize];
+  let to_used: c_int = (*to).used[TEXT_AREA as usize] as c_int;
+
+  /* Save glyph pointers of TO.  */
+  memcpy (pointers.as_mut_ptr () as *mut c_void,
+	  (*to).glyphs.as_mut_ptr () as *const c_void,
+	  core::mem::size_of_val (&(*to).glyphs));
+
+  /* Do a structure assignment.  */
+  *to = *from;
+
+  /* Restore original glyph pointers of TO.  */
+  memcpy ((*to).glyphs.as_mut_ptr () as *mut c_void,
+	  pointers.as_mut_ptr () as *const c_void,
+	  core::mem::size_of_val (&(*to).glyphs));
+
+  /* Copy the glyphs.  */
+  memcpy ((*to).glyphs[TEXT_AREA as usize] as *mut c_void,
+	  (*from).glyphs[TEXT_AREA as usize] as *const c_void,
+	  (min ((*from).used[TEXT_AREA as usize] as isize, to_used as isize) as usize)
+	  * core::mem::size_of::<glyph> ());
+
+  /* If we filled only part of the TO row, fill the rest with
+     space_glyph (which will display as empty space).  */
+  if to_used > (*from).used[TEXT_AREA as usize] as c_int
+    { fill_up_frame_row_with_spaces (f, to, to_used); }
+}
+
+/* Return the character to be used for displaying a tty menu separator.
+   C is the character to be used by default.  BOX is the display table
+   entry for the character to be used instead.  It is looked up in
+   standard-display-table.  Value is the character to use.  */
+
+unsafe fn
+display_tty_menu_separator_char (c: c_int, r#box: r#box) -> c_int
+{
+  let mut c: c_int = c;
+  if DISP_TABLE_P (Vstandard_display_table)
+    {
+      let dp: *mut Lisp_Char_Table = XCHAR_TABLE (Vstandard_display_table);
+      let gc: Lisp_Object = FAM_ELEM! ((*dp).extras, r#box as isize);
+      if GLYPH_CODE_P (gc)
+	{ c = GLYPH_CODE_CHAR (gc); }
+    }
+  return c;
+}
+
+/* Produce glyphs for a menu separator on a tty.
+
+   FIXME: This is only a "good enough for now" implementation of menu
+   separators as described in the Elisp info manual.  We should probably
+   ignore menu separators when computing the width of a menu.  */
+
+unsafe fn
+display_tty_menu_separator (it: *mut it, label: *const c_char, width: c_int)
+{
+  let mut c: c_int;
+  if strcmp (label, c"--space".as_ptr ()) == 0
+    { c = ' ' as c_int; }
+  else if strcmp (label, c"--double-line".as_ptr ()) == 0
+    { c = display_tty_menu_separator_char ('=' as c_int, BOX_DOUBLE_HORIZONTAL); }
+  else
+    { c = display_tty_menu_separator_char ('-' as c_int, BOX_HORIZONTAL); }
+  let sep: Lisp_Object = Fmake_string (make_fixnum ((width - 1) as EMACS_INT),
+				      make_fixnum (c as EMACS_INT), Qt ());
+  display_string (SDATA (sep) as *const c_char, sep, Qnil (), 0, 0, it, width, -1, -1, 1);
+}
+
+/* Display one menu item on a TTY, by overwriting the glyphs in the
+   frame F's desired glyph matrix with glyphs produced from the menu
+   item text.  Called from term.c to display TTY drop-down menus one
+   item at a time.
+
+   ITEM_TEXT is the menu item text as a C string.
+
+   FACE_ID is the face ID to be used for this menu item.  FACE_ID
+   could specify one of 3 faces: a face for an enabled item, a face
+   for a disabled item, or a face for a selected item.
+
+   X and Y are coordinates of the first glyph in the frame's desired
+   matrix to be overwritten by the menu item.  Since this is a TTY, Y
+   is the zero-based number of the glyph row and X is the zero-based
+   glyph number in the row, starting from left, where to start
+   displaying the item.
+
+   SUBMENU means this menu item drops down a submenu, which
+   should be indicated by displaying a proper visual cue after the
+   item text.  */
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn
+display_tty_menu_item (item_text: *const c_char, mut width: c_int, face_id: c_int,
+		       x: c_int, y: c_int, submenu: bool)
+{
+  let mut it: it = core::mem::zeroed ();
+  let mut f: *mut frame = SELECTED_FRAME ();
+  let row: *mut glyph_row;
+  let item_len: usize = strlen (item_text) as usize;
+
+  /* FIXME: callers do not seem to guarantee that the length is sane.
+     If it gets close to or greater than INT_MAX, things will go squirrelly.
+     Also, shouldn't this use menu_item_width rather than strlen?  */
+  eassert! (item_len <= (INT_MAX / 2) as usize);
+
+  let mut rf: *mut frame = core::ptr::null_mut ();
+
+  if !FRAME_PARENT_FRAME (f).is_null () && !FRAME_WINDOW_P (f)
+      && FRAME_MENU_BAR_LINES (f) == 0
+      && { rf = root_frame (f); FRAME_MENU_BAR_LINES (rf) != 0 }
+      && NILP (Fdefault_value (Qtty_menu_open_use_tmm ()))
+    { f = rf; }
+
+  let w: *mut window = XWINDOW ((*f).selected_window);
+
+  eassert! (FRAME_TERMCAP_P (f));
+
+  /* Don't write beyond the matrix's last row.  This can happen for
+     TTY screens that are not high enough to show the entire menu.
+     (This is actually a bit of defensive programming, as
+     tty_menu_display already limits the number of menu items to one
+     less than the number of screen lines.)  */
+  if y >= (*((*f).desired_matrix as *mut glyph_matrix)).nrows
+    { return; }
+
+  init_iterator (&raw mut it, w, -1, -1,
+		 (*((*f).desired_matrix as *mut glyph_matrix)).rows.offset (y as isize),
+		 MENU_FACE_ID);
+  it.first_visible_x = 0;
+  it.last_visible_x = FRAME_COLS (f) - 1;
+  row = it.glyph_row;
+  /* Start with the row contents from the current matrix.  */
+  deep_copy_glyph_row (f, row, (*((*f).current_matrix as *mut glyph_matrix)).rows.offset (y as isize));
+  let saved_width: bool = glyph_row_bits! (full_width_p, row);
+  glyph_row_bits! (full_width_p, row, true);
+  let saved_reversed: bool = glyph_row_bits! (reversed_p, row);
+  glyph_row_bits! (reversed_p, row, false);
+  glyph_row_bits! (enabled_p, row, true);
+
+  /* Arrange for the menu item glyphs to start at (X,Y) and have the
+     desired face.  */
+  eassert! (x < (*((*f).desired_matrix as *mut glyph_matrix)).matrix_w);
+  it.hpos = x;
+  it.current_x = it.hpos;
+  it.vpos = y;
+  it.current_y = it.vpos;
+  let saved_used: c_short = (*row).used[TEXT_AREA as usize];
+  let saved_truncated: bool = glyph_row_bits! (truncated_on_right_p, row);
+  (*row).used[TEXT_AREA as usize] = x as c_short;
+  it.face_id = face_id;
+  it.line_wrap = TRUNCATE;
+
+  /* FIXME: This should be controlled by a user option.  See the
+     comments in redisplay_tool_bar and display_mode_line about this.
+     Also, if paragraph_embedding could ever be R2L, changes will be
+     needed to avoid shifting to the right the row characters in
+     term.c:append_glyph.  */
+  it.paragraph_embedding = L2R;
+
+  /* Pad with a space on the left.  */
+  display_string (c" ".as_ptr (), Qnil (), Qnil (), 0, 0, &raw mut it, 1, 0,
+		  FRAME_COLS (f) - 1, -1);
+  width -= 1;
+
+  /* Display the menu item, pad with spaces to WIDTH.  */
+  if submenu
+    {
+      display_string (item_text, Qnil (), Qnil (), 0, 0, &raw mut it,
+		      item_len as c_int, 0, FRAME_COLS (f) - 1, -1);
+      width -= item_len as c_int;
+      /* Indicate with " >" that there's a submenu.  */
+      display_string (c" >".as_ptr (), Qnil (), Qnil (), 0, 0, &raw mut it, width, 0,
+		      FRAME_COLS (f) - 1, -1);
+    }
+  else if menu_separator_name_p (item_text)
+    {
+      display_tty_menu_separator (&raw mut it, item_text, width);
+    }
+  else
+    { display_string (item_text, Qnil (), Qnil (), 0, 0, &raw mut it, width, 0,
+		      FRAME_COLS (f) - 1, -1); }
+
+  (*row).used[TEXT_AREA as usize]
+    = max (saved_used as isize, (*row).used[TEXT_AREA as usize] as isize) as c_short;
+  glyph_row_bits! (truncated_on_right_p, row, saved_truncated);
+  (*row).hash = row_hash (row);
+  glyph_row_bits! (full_width_p, row, saved_width);
+  glyph_row_bits! (reversed_p, row, saved_reversed);
+}
+
+/* Display the mode line, the header line, and the tab-line of window
+   W.  Value is the sum number of mode lines, header lines, and tab
+   lines actually displayed.  */
+
+unsafe fn
+display_mode_lines (w: *mut window) -> c_int
+{
+  let old_selected_window: Lisp_Object = selected_window;
+  let new_frame: Lisp_Object = (*w).frame;
+  let count: specpdl_ref = SPECPDL_INDEX ();
+  let mut n: c_int = 0;
+
+  record_unwind_protect (Some (restore_selected_window), selected_window);
+  record_unwind_protect (Some (restore_frame_selected_window),
+			 (*XFRAME (new_frame)).selected_window);
+
+  if window_wants_mode_line (w)
+    {
+      let window: Lisp_Object;
+      let default_help: Lisp_Object
+	= buffer_local_value (Qmode_line_default_help_echo (), (*w).contents);
+
+      /* Set up mode line help echo.  Do this before selecting w so it
+	 can reasonably tell whether a mouse click will select w.  */
+      XSETWINDOW! (window, w);
+      if FUNCTIONP (default_help)
+	{ wset_mode_line_help_echo (w, dsafe_call1 (default_help, window)); }
+      else if STRINGP (default_help)
+	{ wset_mode_line_help_echo (w, default_help); }
+      else
+	{ wset_mode_line_help_echo (w, Qnil ()); }
+    }
+
+  selected_frame = new_frame;
+  /* FIXME: If we were to allow the mode-line's computation changing the buffer
+     or window's point, then we'd need select_window_1 here as well.  */
+  XSETWINDOW! (selected_window, w);
+  (*XFRAME (new_frame)).selected_window = selected_window;
+
+  /* These will be set while the mode line specs are processed.  */
+  line_number_displayed = false;
+  (*w).column_number_displayed = -1;
+
+  let sel_w: *mut window = XWINDOW (old_selected_window);
+  if window_wants_mode_line (w)
+    {
+      let window_mode_line_format: Lisp_Object = window_parameter (w, Qmode_line_format ());
+
+      /* Select mode line face based on the real selected window.  */
+      display_mode_line (w,
+			 CURRENT_MODE_LINE_ACTIVE_FACE_ID_3! (sel_w, sel_w, w),
+			 if NILP (window_mode_line_format)
+			 { BVAR! (current_buffer, mode_line_format_) }
+			 else
+			 { window_mode_line_format });
+      n += 1;
+    }
+
+  if window_wants_tab_line (w)
+    {
+      let window_tab_line_format: Lisp_Object = window_parameter (w, Qtab_line_format ());
+
+      display_mode_line (w, CURRENT_TAB_LINE_ACTIVE_FACE_ID_3! (sel_w, sel_w, w),
+			 if NILP (window_tab_line_format)
+			 { BVAR! (current_buffer, tab_line_format_) }
+			 else
+			 { window_tab_line_format });
+      n += 1;
+    }
+
+  if window_wants_header_line (w)
+    {
+      let window_header_line_format: Lisp_Object
+	= window_parameter (w, Qheader_line_format ());
+
+      display_mode_line (w, CURRENT_HEADER_LINE_ACTIVE_FACE_ID_3! (sel_w, sel_w, w),
+			 if NILP (window_header_line_format)
+			 { BVAR! (current_buffer, header_line_format_) }
+			 else
+			 { window_header_line_format });
+      n += 1;
+    }
+
+  unbind_to (count, Qnil ());
+
+  if n > 0
+    { window_bits! (w, must_be_updated_p, true); }
+  return n;
+}
+
+
+/* Display mode or header/tab line of window W.  FACE_ID specifies which
+   line to display; it is either MODE_LINE_ACTIVE_FACE_ID,
+   HEADER_LINE_ACTIVE_FACE_ID, HEADER_LINE_INACTIVE_FACE_ID,
+   TAB_LINE_ACTIVE_FACE_ID or TAB_LINE_INACTIVE_FACE_ID.
+   FORMAT is the mode/header/tab line format to display.
+   Value is the pixel height of the mode/header/tab line displayed.  */
+
+unsafe fn
+display_mode_line (w: *mut window, face_id: face_id, format: Lisp_Object) -> c_int
+{
+  let mut it: it = core::mem::zeroed ();
+  let face: *mut face;
+  let count: specpdl_ref = SPECPDL_INDEX ();
+
+  init_iterator (&raw mut it, w, -1, -1, core::ptr::null_mut (), face_id);
+  /* Don't extend on a previously drawn mode-line.
+     This may happen if called from pos_visible_p.  */
+  glyph_row_bits! (enabled_p, it.glyph_row, false);
+  prepare_desired_row (w, it.glyph_row, true);
+
+  glyph_row_bits! (mode_line_p, it.glyph_row, true);
+  if face_id == TAB_LINE_ACTIVE_FACE_ID
+      || face_id == TAB_LINE_INACTIVE_FACE_ID
+    {
+      glyph_row_bits! (tab_line_p, it.glyph_row, true);
+      glyph_matrix_bits! (tab_line_p, (*w).desired_matrix as *mut glyph_matrix, true);
+    }
+  else if face_id == HEADER_LINE_ACTIVE_FACE_ID
+	   || face_id == HEADER_LINE_INACTIVE_FACE_ID
+    { glyph_matrix_bits! (header_line_p, (*w).desired_matrix as *mut glyph_matrix, true); }
+
+  /* FIXME: This should be controlled by a user option.  But
+     supporting such an option is not trivial, since the mode line is
+     made up of many separate strings.  */
+  it.paragraph_embedding = L2R;
+
+  /* C's call passes two `NULL`s (the frame and the buffer) and `false` for
+     SAVE_PROPTRANS; the port's `format_mode_line_unwind_data` spells them
+     `core::ptr::null_mut ()` (the `*mut frame`/`*mut buffer` pair).  */
+  record_unwind_protect (Some (unwind_format_mode_line),
+			 format_mode_line_unwind_data (core::ptr::null_mut (),
+						       core::ptr::null_mut (),
+						       Qnil (), false));
+
+  /* We cannot allow frame-resizing as long as the code below runs,
+     because that could invalidate the it.glyph_row->glyphs pointers.  */
+  dont_resize_frames += 1;
+
+  /* Temporarily make frame's keyboard the current kboard so that
+     kboard-local variables in the mode_line_format will get the right
+     values.  */
+  push_kboard (FRAME_KBOARD (it.f) as *mut kboard);
+  record_unwind_save_match_data ();
+
+  if NILP (Vmode_line_compact)
+      || face_id == HEADER_LINE_ACTIVE_FACE_ID
+      || face_id == HEADER_LINE_INACTIVE_FACE_ID
+      || face_id == TAB_LINE_ACTIVE_FACE_ID
+      || face_id == TAB_LINE_INACTIVE_FACE_ID
+    {
+      mode_line_target = MODE_LINE_DISPLAY;
+      display_mode_element (&raw mut it, 0, 0, 0, format, Qnil (), false);
+    }
+  else
+    {
+      let mode_string: Lisp_Object = Fformat_mode_line (format, Qnil (), Qnil (), Qnil ());
+      if EQ (Vmode_line_compact, Qlong ())
+	  && (WINDOW_TOTAL_COLS (w) as isize) >= SCHARS (mode_string)
+	{
+	  /* The window is wide enough; just display the mode line we
+	     just computed. */
+	  let mut start: Lisp_Object = make_fixnum (0);
+	  let mut end: Lisp_Object;
+	  let mut elt: Lisp_Object;
+
+	  /* Display the mode line string one element by one element.
+	     This is to make the ranges of mouse highlighting
+	     correct.  */
+	  loop
+	    {
+	      end = Fnext_single_property_change (start, Qmode_line_elt_no (),
+						  mode_string, Qnil ());
+	      elt = Fsubstring (mode_string, start, end);
+	      display_string (core::ptr::null (), elt, Qnil (), 0, 0, &raw mut it, 0, 0, 0,
+			      STRING_MULTIBYTE (elt) as c_int);
+	      start = end;
+	      if NILP (end)
+		{ break; }
+	    }
+	}
+      else
+	{
+	  /* Compress the mode line.  */
+	  let mut i: ptrdiff_t = 0;
+	  let mut i_byte: ptrdiff_t = 0;
+	  let mut prev: c_int = 0;
+	  let mut start: Lisp_Object = make_fixnum (0);
+	  let mut end: Lisp_Object;
+	  let mut elt: Lisp_Object = empty_unibyte_string;
+
+	  /* Display the mode line string one element by one element.
+	     This is to make the ranges of mouse highlighting
+	     correct.  */
+	  loop
+	    {
+	      end = Fnext_single_property_change (start,
+						  Qmode_line_elt_no (),
+						  mode_string,
+						  make_fixnum (SCHARS (mode_string) as EMACS_INT));
+	      while i < XFIXNUM (end)
+		{
+		  let mut c: c_int = fetch_string_char_advance (mode_string, &raw mut i,
+							       &raw mut i_byte);
+		  if c == ' ' as c_int && prev == ' ' as c_int
+		    {
+		      let prev_pos: Lisp_Object = make_fixnum ((i - 1) as EMACS_INT);
+		      let display: Lisp_Object = Fget_text_property (prev_pos,
+								    Qdisplay (),
+								    mode_string);
+
+		      /* SPC characters with 'display' properties are not
+			 really "empty", since they have non-trivial visual
+			 effects on the mode line.  */
+		      if NILP (display)
+			{
+			  elt = concat2 (elt, Fsubstring (mode_string,
+							  start,
+							  prev_pos));
+
+			  /* Skip past the rest of the space characters.  */
+			  let mut display: Lisp_Object = Fget_text_property (make_fixnum (i as EMACS_INT),
+									     Qdisplay (),
+									     mode_string);
+			  while c == ' ' as c_int && i < XFIXNUM (end)
+				 && NILP (display)
+			    {
+			      c = fetch_string_char_advance (mode_string,
+							     &raw mut i, &raw mut i_byte);
+			      display = Fget_text_property (make_fixnum (i as EMACS_INT),
+							    Qdisplay (),
+							    mode_string);
+			    }
+
+			  /* Skip the final space no matter how the loop
+			     above ends.  */
+			  if c == ' ' as c_int && NILP (display)
+			    { start = end; }
+			  else
+			    { start = make_fixnum ((i - 1) as EMACS_INT); }
+			}
+		    }
+		  prev = c;
+		}
+
+	      /* Append the final bit.  */
+	      if XFIXNUM (start) < XFIXNUM (end)
+		{ elt = concat2 (elt, Fsubstring (mode_string, start, end)); }
+
+	      display_string (core::ptr::null (), elt, Qnil (), 0, 0, &raw mut it, 0, 0, 0,
+			      STRING_MULTIBYTE (elt) as c_int);
+	      elt = empty_unibyte_string;
+	      start = end;
+	      if !(XFIXNUM (end) < SCHARS (mode_string))
+		{ break; }
+	    }
+	}
+    }
+  pop_kboard ();
+
+  /* Fill up with spaces.  */
+  display_string (c" ".as_ptr (), Qnil (), Qnil (), 0, 0, &raw mut it, 10000, -1, -1, 0);
+
+  compute_line_metrics (&raw mut it);
+  glyph_row_bits! (full_width_p, it.glyph_row, true);
+  glyph_row_bits! (continued_p, it.glyph_row, false);
+  glyph_row_bits! (truncated_on_left_p, it.glyph_row, false);
+  glyph_row_bits! (truncated_on_right_p, it.glyph_row, false);
+
+  /* Make a 3D mode-line have a shadow at its right end.  */
+  face = FACE_FROM_ID (it.f, face_id);
+  extend_face_to_end_of_line (&raw mut it);
+  if face_bits! (box, face) as face_box_type != FACE_NO_BOX
+    {
+      let last: *mut glyph = (*it.glyph_row).glyphs[TEXT_AREA as usize]
+	.offset ((*it.glyph_row).used[TEXT_AREA as usize] as isize - 1);
+      let box_thickness: c_int = (*face).box_vertical_line_width;
+      glyph_bits! (right_box_line_p, *last, true);
+      /* Add back the space for the right box line we subtracted in
+	 init_iterator, since the right_box_line_p flag will make the
+	 glyph wider.  We actually add only as much space as is
+	 available for the last glyph of the modeline and whatever
+	 space is left beyond it, since that glyph could be only
+	 partially visible.  */
+      if box_thickness > 0
+	{ (*last).pixel_width += max (0, (box_thickness
+					  - (it.current_x - it.last_visible_x)) as isize)
+	    as c_short; }
+    }
+
+  unbind_to (count, Qnil ());
+
+  return (*it.glyph_row).height;
+}
+
+/* Move element ELT in LIST to the front of LIST.
+   Return the updated list.  */
+
+unsafe fn
+move_elt_to_front (elt: Lisp_Object, list: Lisp_Object) -> Lisp_Object
+{
+  let mut tail: Lisp_Object;
+  let mut prev: Lisp_Object;
+  let mut tem: Lisp_Object;
+  let mut list: Lisp_Object = list;
+
+  tail = list;
+  prev = Qnil ();
+  while CONSP (tail)
+    {
+      tem = XCAR (tail);
+
+      if EQ (elt, tem)
+	{
+	  /* Splice out the link TAIL.  */
+	  if NILP (prev)
+	    { list = XCDR (tail); }
+	  else
+	    { Fsetcdr (prev, XCDR (tail)); }
+
+	  /* Now make it the first.  */
+	  Fsetcdr (tail, list);
+	  return tail;
+	}
+      else
+	{ prev = tail; }
+      tail = XCDR (tail);
+      maybe_quit ();
+    }
+
+  /* Not found--return unchanged LIST.  */
+  return list;
+}
+
+/* Subroutine to call Fset_text_properties through
+   internal_condition_case_n.  ARGS are the arguments of
+   Fset_text_properties, in order.  */
+
+unsafe extern "C" fn
+safe_set_text_properties (nargs: ptrdiff_t, args: *mut Lisp_Object) -> Lisp_Object
+{
+  eassert! (nargs == 4);
+  return Fset_text_properties (*args.offset (0), *args.offset (1),
+			       *args.offset (2), *args.offset (3));
+}
