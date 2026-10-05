@@ -6,11 +6,11 @@
 // helpers stay plain `unsafe fn` except the two whose address C takes, which become
 // `unsafe extern "C" fn` items (PORTING.md 1.4; the androidselect.rs `close_asset_fd` shape).
 //
-// **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices.**  This slice is
-// C 1-1240 (through the `}` of `sfnt_enum_font`); the next live definition is
-// `sfntfont_charset_for_name` (C 1246-1267, under C 1244's `/* Font discovery and matching.  */`
-// banner).  The ledger `docs/ports/sfntfont.md` carries P-86 ②'s C line-range table for C 1-1240
-// plus the "the remainder" row, the `## Evidence` readings and the `## Deviations`.
+// **This file is P-86's unit `src/sfntfont.c` (4,222 lines), ported in slices: C 1-1240,
+// C 1241-1426 and C 1427-1604.**  The next live definition is `sfntfont_list_1` (C 1613-1825,
+// under C 1605-1611's comment).  The ledger `docs/ports/sfntfont.md` carries P-86 ②'s C line-range
+// table for C 1-4222 (the transcribed rows and the remaining one), the `## Evidence` readings and
+// the `## Deviations`.
 //
 // `configure.ac` 2645 adds `sfntfont.o` to `ANDROID_OBJ` only inside the `XCONFIGURE = android`
 // branch (the `REALLY_ANDROID` one, 2620-2654: `sfnt.o` is on the same line and `android.o` one
@@ -81,6 +81,11 @@ include!("include/lisp.rs");                         // C 25: `#include "lisp.h"
 include!("../lib/include/string.rs");                // lisp.h's `<string.h>`
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 include!("../lib/include/stdcountof.rs");            // lisp.h's `<stdcountof.h>`
+/* `INT_MAX` is `lisp.h` 33's `#include <limits.h>`; `include/lisp.rs` does not carry that edge, so
+   it is here, at the `#include "lisp.h"` that supplies it (the `androidfns.rs` 58 shape; slice 3's
+   `sfntfont_lookup_char` is the user).  */
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+include!("../lib/include/limits.in.rs");             // lisp.h 33's `#include <limits.h>` (INT_MAX)
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
 include!("include/blockinput.rs");                   // C 27: `#include "blockinput.h"`
 #[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
@@ -1773,4 +1778,185 @@ unsafe fn sfntfont_select_cmap (cmap: *mut sfnt_cmap_table,
 
   /* There are no cmaps available to Emacs.  */
   return std::ptr::null_mut ();                          // C 1424
+}
+
+/* ----------------------------------------------------------------------------------------------
+   C 1427-1604: the cmap reader and the character lookup, in C's order - C 1427-1430's comment and
+   `sfntfont_read_cmap` (C 1431-1496), C 1498-1501's comment and `sfntfont_glyph_valid`
+   (C 1502-1515), C 1517-1522's comment and `sfntfont_lookup_char` (C 1524-1585), and C 1587-1594's
+   comment and `sfntfont_registries_compatible_p` (C 1596-1603).  **The next live definition is
+   C 1613's `sfntfont_list_1`** (whose own comment is C 1605-1611), and the ledger's `## C line
+   ranges` names both boundaries.  `emacs_open`/`emacs_close`/`lseek`/`xfree` come from the
+   declarations and the `unistd.in.rs` edge slice 1's include graph already carries; `char_table_ref`
+   (lisp.h 615) and `sfnt_lookup_glyph` (sfnt.h 1478-1479) are the `include/lisp.rs` 3833 and
+   `include/sfnt.rs` 2220 extern blocks; `ENCODE_CHAR!`/`CHARSET_INVALID_CODE!` are
+   `include/charset.rs`'s (charset.h), and `INT_MAX` is the `limits.in.rs` edge added at C 25.
+   ---------------------------------------------------------------------------------------------- */
+/// C 1431-1496: `sfntfont_read_cmap`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_read_cmap (desc: *mut sfnt_font_desc,
+			      cmap: *mut *mut sfnt_cmap_encoding_subtable_data,
+			      subtable: *mut sfnt_cmap_encoding_subtable)
+{                                                          // C 1432-1496
+  let mut font: *mut sfnt_offset_subtable;
+  /* C 1437's `subtables` and C 1438's `data` are written by `sfnt_read_cmap_table` below, so both
+     are zero-initialised (PORTING.md 1.5; Deviation 10's class, the `sfnt_grok_registry` shape).
+      */
+  let mut subtables: *mut sfnt_cmap_encoding_subtable = std::ptr::null_mut ();
+  let mut data: *mut *mut sfnt_cmap_encoding_subtable_data = std::ptr::null_mut ();
+  let mut table: *mut sfnt_cmap_table;
+  let mut fd: c_int;
+  let mut i: c_int;
+
+  /* Pick a character map and place it in *CMAP.  */
+  fd = emacs_open ((*desc).path, O_RDONLY, 0);             // C 1443
+
+  if fd < 0
+    { return; }                                            // C 1446
+
+  /* Seek to the start of the font itself within its collection.  */
+
+  if (*desc).offset != 0
+     && lseek (fd, (*desc).offset, SEEK_SET) != (*desc).offset   // C 1450-1451
+    {
+      emacs_close (fd);
+      return;
+    }
+
+  font = sfnt_read_table_directory (fd);                   // C 1457
+
+  /* Return if FONT is a TrueType collection: the file pointer should
+     already have been moved to the start of the table directory if
+     so.  */
+
+  if font.is_null () || font == usize::MAX as *mut sfnt_offset_subtable   // C 1463
+    {
+      emacs_close (fd);
+      return;
+    }
+
+  table = sfnt_read_cmap_table (fd, font, &raw mut subtables, &raw mut data);   // C 1469
+  xfree (font as *mut c_void);                             // C 1471
+
+  if table.is_null ()
+    {
+      emacs_close (fd);
+      return;
+    }
+
+  /* Now pick the best character map.  */
+
+  *cmap = sfntfont_select_cmap (table, subtables, data, subtable,
+				std::ptr::null_mut ());        // C 1481-1482
+
+  /* Free the cmap data.  */
+
+  i = 0;
+  while i < (*table).num_subtables as c_int                // C 1486
+    {
+      if *(data.offset (i as isize)) != *cmap
+	{ xfree (*(data.offset (i as isize)) as *mut c_void); }   // C 1489
+      i += 1;
+    }
+
+  xfree (data as *mut c_void);                             // C 1492
+  xfree (subtables as *mut c_void);                        // C 1493
+  xfree (table as *mut c_void);                            // C 1494
+  emacs_close (fd);                                        // C 1495
+}
+
+/// C 1502-1515: `sfntfont_glyph_valid`.  C's `sfnt_glyph` local is the *scalar typedef*
+/// (`unsigned int`), which this port spells `sfnt_glyph_index` because `sfnt_glyph` is
+/// `struct sfnt_glyph`'s name here - the rename `docs/ports/macro-body-notes.tsv`'s
+/// `sfnt_lookup_glyph_4` row records.  C's `glyph <= desc->num_glyphs` is an *unsigned*
+/// comparison (the usual arithmetic conversions), so the port casts `num_glyphs` to `c_uint`
+/// rather than the other way round.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_glyph_valid (desc: *mut sfnt_font_desc, font_character: sfnt_char,
+				cmap: *mut sfnt_cmap_encoding_subtable_data) -> bool
+{                                                          // C 1503-1515
+  let glyph: sfnt_glyph_index;
+
+  glyph = sfnt_lookup_glyph (font_character, cmap);        // C 1509
+
+  if glyph == 0
+    { return false; }                                      // C 1512
+
+  return glyph <= (*desc).num_glyphs as c_uint;            // C 1514
+}
+
+/// C 1524-1585: `sfntfont_lookup_char` - the character cache and the cmap it falls back to.  The
+/// two bits C names (`char_cache`'s nil test and C 1546's `desc->cmap_invalid`) are the mirror's
+/// field and the `SFNT_FONT_DESC_CMAP_INVALID` mask (C 164's 1-bit member, Deviation 14), and
+/// C 1543's `?:` is Rust's `if`/`else` (Deviation 9).
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_lookup_char (desc: *mut sfnt_font_desc, character: Lisp_Object,
+				cmap: *mut *mut sfnt_cmap_encoding_subtable_data,
+				subtable: *mut sfnt_cmap_encoding_subtable) -> bool
+{                                                          // C 1525-1585
+  let cached: Lisp_Object;
+  let font_character: sfnt_char;
+  let charset: *mut charset;
+  let present: bool;
+
+  /* Return false for characters that don't fit in a char table.  */
+  if XFIXNUM (character) > INT_MAX as EMACS_INT || XFIXNUM (character) < 0
+    { return false; }                                      // C 1536
+
+  if !NILP ((*desc).char_cache)
+    {
+      cached = char_table_ref ((*desc).char_cache,
+			       XFIXNUM (character) as c_int);   // C 1540-1541
+      if !NILP (cached)
+	{ return if EQ (cached, Qlambda ()) { false } else { true }; }   // C 1543
+    }
+
+  if (*cmap).is_null () && (*desc).bits & SFNT_FONT_DESC_CMAP_INVALID == 0
+    { sfntfont_read_cmap (desc, cmap, subtable); }         // C 1547
+
+  /* Check that a cmap is now present.  */
+  if (*cmap).is_null ()
+    {
+      /* Opening the cmap failed.  Set desc->cmap_invalid to avoid
+	 opening it again.  */
+      (*desc).bits |= SFNT_FONT_DESC_CMAP_INVALID;         // C 1554
+      return false;                                        // C 1555
+    }
+
+  /* Otherwise, encode the character.  */
+
+  charset = sfntfont_charset_for_cmap (*subtable);         // C 1560
+  if charset.is_null ()
+    /* Emacs missing charsets? */
+    { return false; }                                      // C 1563
+
+  font_character = ENCODE_CHAR! (charset, XFIXNUM (character) as c_int);   // C 1565
+
+  if font_character == CHARSET_INVALID_CODE! (charset)
+    { return false; }                                      // C 1568
+
+  /* Now return whether or not the glyph is present.  Noto Sans
+     Georgian comes with a corrupt format 4 cmap table that somehow
+     tries to express glyphs greater than 65565.  */
+  present = sfntfont_glyph_valid (desc, font_character, *cmap);   // C 1573
+
+  /* Cache the result.  Store Qlambda when not present, Qt
+     otherwise.  */
+
+  if NILP ((*desc).char_cache)
+    { (*desc).char_cache = Fmake_char_table (Qfont_lookup_cache (), Qnil ()); }   // C 1579-1580
+
+  Fset_char_table_range ((*desc).char_cache, character,
+			 if present { Qt () } else { Qlambda () });   // C 1582-1583
+  return present;                                          // C 1584
+}
+
+/// C 1596-1603: `sfntfont_registries_compatible_p`.
+#[cfg (all (feature = "have_android", feature = "not_android_stubify"))]
+unsafe fn sfntfont_registries_compatible_p (a: Lisp_Object, b: Lisp_Object) -> bool
+{                                                          // C 1597-1603
+  if EQ (a, Qiso8859_1 ()) && EQ (b, Qiso10646_1 ())
+    { return true; }                                       // C 1600
+
+  return EQ (a, b);                                        // C 1602
 }
