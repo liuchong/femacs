@@ -9342,3 +9342,36 @@
      1 发变异；**如实报，超 lane 口径**）、`layout-check` 1 发、`check-all-units.sh` 1 发（镜像改动必跑）、
      gate 脚本各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/systhread-lane` 与 `/tmp/systhread-measure*`
      收工删除。
+
+- **3.492 `src/pgtkim.c`（C 1-311，整文件）落地；翻臂没通过——10 个错全在 `include/pgtkterm.rs` 的镜像缺口上（2026-10-05）**：
+  ① **范围/块**：C 1-311 全部转写（19 行区间表覆盖全文件、升序、17 处块间空行不设行）；门只有一个
+     `have_pgtk`（文件顶层无 `#if`），子门 `have_gtk3` 由 `configure.ac` 3171-3178（3176 的
+     `AC_DEFINE ([HAVE_PGTK], [1])`）与 3875-3878 的 `PGTK_OBJ` 推出，`use_gtk` 不参与。**无新增 feature**。
+  ② **行数**：`femacs/src/pgtkim.rs` **11 → 605**（md5 `2395efb71ad5d1b54416ba8e0594d57f`）；
+     台账 `docs/ports/pgtkim.md` 24 → **380**；`macro-body-notes.tsv` +1 节标题 +3 行。
+  ③ **读数**：⑴ 冻结 `build-tu src/pgtkim.c` → **exit 0 / `pgtkim.o` 336 字节**（每项都在门内）；
+     ⑵ 翻臂（`have_pgtk` + `have_gtk3`）→ **exit 1 / 10 个错，全部锚定 `include/pgtkterm.rs`**（`Window`×4、
+     `XrmDatabase`×2、`XRectangle`、`atimer`×2、**776 行悬空 doc comment** ⇒ `expected item after doc comment`），
+     **本单元自身 0 错**；用 `/tmp` 副本遮掉镜像缺口后 → 只剩 1 条（`include/lisp.rs` 3756 的 `c_variadic`，
+     镜像已登记的既有行）；⑶ lane 自造的 3 条已被读数抓出并修掉（`g_signal_connect!` 双层包 `G_CALLBACK!`
+     → 6 × `E0605`；`gboolean` 当 `bool` 用 → `E0308`；三个 `&raw mut` 未初始化 → 3 × `E0381`）；
+     ⑷ `extract-abi --check` 首读 4 条 `- ` 行 → 3 条 token 行进 `macro-body-notes.tsv` 后**只剩行数一条**，
+     我追加 `pgtkim` 容差行（`0.96` / `total`，311 vs 605 = 94.5%）后 **OK**。
+  ④ **集成者的账**：⑴ 容差行已写（这是**完成件**——C 1-311 全部转写，与 3.491 的切片不同，切片按 3.434 ⑤ 不写）；
+     ⑵ `check-port-lines --write-pending` 重生成（61 → 58 → **53 ratchet 行 / 0 stale**，本件因 605 行远超阈值退出清单）；
+     ⑶ feature-coverage 无需重生成（无新 feature 名）；⑷ 台账 Owed 1 标 DONE，Owed 2-6 是**镜像轮**的活（见 ⑤）。
+  ⑤ **点名归属（镜像轮，未做）**：⑴ `include/pgtkterm.rs` **772-776 的悬空 doc comment**——`have_pgtk` 下
+     **根本不能解析**（整块在门后 ⇒ 没有任何门看得见），这是本单元翻臂 10 个错的地基，也挡着**每一个**含该镜像的
+     `have_pgtk` TU；⑵ 该镜像的 `pgtk_im_set_cursor_location` 原型把它写成 `(struct frame *, int, int, GdkRectangle)`，
+     而 `pgtkterm.h` 667-668 与 C 213-215 都是四个 `int`；⑶ 340/348 的裸 `atimer` 标签应按 0.1-2 写 `*mut c_void`；
+     ⑷ `include/xlib.rs` 的 `Window`/`XrmDatabase`/`XRectangle` 门应是 `any (have_x_windows, have_pgtk)`；
+     ⑸ 该镜像的 include 顺序把五个参照头排在 `lisp.rs` 之前，消费者会吃 44 条 `cannot find macro`。
+  ⑥ **必须纠正的一条事实（lane 实测，写下来免得再错）**：我给的简报里说"GTK3/GDK 在本机"——**实测不存在**
+     （`gtk-3.0`/`gtk-4.0`/`pango-1.0`/`gdk-pixbuf-2.0` 四个目录全无，也没有 `pkg-config`；本机只有
+     `glib-2.0` 与 `cairo`）。所以本件的工具链面按 P-86 ③⑵ 记 **`text-only`**，但**单元本身是真编译**
+     （Pango 面不依赖系统头，是单元内的占位声明）；同时这也说明前几轮"GTK 在本机"的说法要按目录逐条核实。
+  ⑦ **未声称**：**零运行证据**（没链接、没启动、翻臂**没产出 rlib**）；Pango 的四个记录与五个常量**布局/数值未测**；
+     翻转**不是通过**（10 个错全在镜像）；`src/pgtkim.rs` 只在 `have_pgtk` 门后有内容，冻结对象是 336 字节空对象。
+  ⑧ **预算**：lane：`probe` **4 发**（限 3，超 1）、`build-tu` **2 发**（限内），另 2 次 `/tmp` 上的直接 `rustc --metadata`
+     （桩读数与重建后复读）；集成者：gate 各 1 发、`--check`/tolerance 各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；
+     `/tmp/pgtkim-lane` 收工已删。
