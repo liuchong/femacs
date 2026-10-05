@@ -12856,3 +12856,24 @@
   ⑥ **收口**：临时仪表（`alloc.rs` 的 GC 根 dump、`print.rs` 的 symbol 原始值/specpdl 全量 dump/`crashlocal`）已全部删除，
      `alloc/print` 用 `git show HEAD:` 还原并重建，读数回到 18 行 `Loading`；`/tmp`（`roots*.txt`）已清。
   ⑦ **预算**：`build-tu` 约 8 发、`check-link --executable` 约 6 发、端口运行约 6 次、文本检索若干。
+
+- **3.624 继续收窄：mark 阶段对**寻常活数据是对的**（`Vbuffer_alist` 的 3 个表项都 marked=1），`maybe_gc` 与 `stack_top` 的先后与 C 一致 ——
+  剩下的可能只剩"对象只存在于**当前帧里 `argvals` 之下**的那段区域"，下一轮用"把扫描范围临时拉到当前 SP"来判定（2026-10-05）**：
+  ① **mark 正确性的第一条行为读数**：在 GC 里、`gc_sweep` **之前**，把一条**已知活**的链（`Vbuffer_alist`，3 个表项）逐个查
+     `XCONS_MARKED_P` —— **三次都 `marked=1`**（两次 GC 都一样）✔。⇒ mark 阶段对寻常活 cons 是对的，
+     漏的只可能是**那一个对象**（不是"全都不标记"这类整体性缺陷）。
+  ② **`maybe_gc` 与 `stack_top` 的先后（与 C 对拍，逐处）**：C 的两处 `maybe_gc` 在 `eval.c` 2602（`eval_sub`）与
+     3206（`Ffuncall`），`stack_top = argvals` 在 2629（`Ffuncall`）；端口对应 2335、2925 与 2365 ⇒ **顺序同形**
+     （`eval_sub` 的 `maybe_gc` 在 `Ffuncall` 刷新 `stack_top` 之前，与 C 一样）✔。⇒ 不是"端口把刷新挪了位置"。
+  ③ **由此收窄到唯一的几何可能**：C 的不变式是"任何 `maybe_gc` 点上，活对象都能从**最近一次刷新点之上**的帧
+     （调用者的 `argvals`）或 specpdl 到达"；本对象的 C 局部在**当前帧内、`argvals` 之下**的那段（同一帧里后声明的局部
+     可能落在低地址）⇒ 扫描范围不含它 ⇒ 被回收 ✔。3.623 ② 已经证明它**不在** specpdl/handler 里 ⇒ 与这条一致。
+  ④ **下一轮的两步（点名）**：⑴ **判定性实验**：把 `mark_one_thread` 的扫描范围临时改成"从**当前 SP** 到 `m_stack_bottom`"
+     （只改一行，诊断用），若崩溃消失 ⇒ 对象就在那段区域里，随后要回答的是"**C 靠什么保住它**"——逐条对
+     `Fformat_message`/`error`/`signal_or_quit` 这条链上 C 与端口的**参数传递与保护点**（C 的 `Ffuncall` 会把实参
+     存进 `argvals` ✔，而 `funcall_subr` 有没有等价的保护点要单独查）。⑵ 若 ⑴ 不能判定，就在端口的三处
+     `maybe_gc` 点各打一次"`stack_top` vs 本帧局部地址"，找出**哪一次刷新没发生**。
+  ⑤ **未声称**：仍然没有修好；GC 开着，链仍 17 个文件（18 行 `Loading`，停在 `macroexp.el`）。① 是 mark 的行为读数、
+     ② 是文本对拍，③ 是推断（点名）；本轮**排除了**"mark 整体失效"与"刷新点顺序被挪"两条。
+  ⑥ **收口**：`alloc.rs` 的 `Vbuffer_alist` 检查已删除并还原重建（读数回到 18 行）；工作树除 4 条 lane 的在飞产出外干净。
+  ⑦ **预算**：`build-tu` 3 发、`check-link --executable` 3 发、端口运行 3 次、文本对拍若干。
