@@ -1065,7 +1065,11 @@ unsafe extern "C" {
   pub fn drain_message_queue () -> c_int;
   pub fn get_next_msg (msg: *mut W32Msg, blocking: BOOL) -> BOOL;
   pub fn post_msg (msg: *mut W32Msg) -> BOOL;
-  pub fn complete_deferred_msg (hwnd: HWND, msg: UINT, result: LRESULT);
+  /// P-72 rule 3: `HWND` is `<windows.h>`'s handle and this tree has no Windows SDK
+  /// mirror, so the parameter is the untyped pointer - every `HWND` spelling in the port
+  /// resolves to `*mut c_void` (the `Window`/`Display` reading in `w32gui.rs`), so no
+  /// caller changes.  Same for the five other names below (status 3.540).
+  pub fn complete_deferred_msg (hwnd: *mut c_void, msg: UINT, result: LRESULT);
   pub fn parse_button (a: c_int, b: c_int, c: *mut c_int, d: *mut c_int) -> BOOL;
   pub fn w32_sys_ring_bell (f: *mut frame);
   pub fn w32_query_color (f: *mut frame, color: *mut Emacs_Color);
@@ -1147,7 +1151,7 @@ macro_rules! w32_kbdhook_active {
 // C: #define w32_kbdhook_active 0
 #[cfg (feature = "windowsnt")]
 unsafe extern "C" {
-  pub fn setup_w32_kbdhook (hwnd: HWND);
+  pub fn setup_w32_kbdhook (hwnd: *mut c_void);   // C: `HWND hwnd` (P-72 (3))
   pub fn remove_w32_kbdhook ();
   pub fn reset_w32_kbdhook_state ();
   pub fn check_w32_winkey_state (key: c_int) -> c_int;
@@ -1222,7 +1226,7 @@ pub struct tagTRACKMOUSEEVENT
 {
   pub cbSize: DWORD,
   pub dwFlags: DWORD,
-  pub hwndTrack: HWND,
+  pub hwndTrack: *mut c_void,   // C: `HWND hwndTrack;` (P-72 (3))
   pub dwHoverTime: DWORD,
 }
 #[cfg (feature = "windowsnt")]
@@ -1403,12 +1407,14 @@ pub mod w32term_fn_decls {
   use super::*;
 
   unsafe extern "C" {
-    pub fn XCreateGC (dpy: *mut c_void, hwnd: HWND, valuemask: c_ulong,
+    pub fn XCreateGC (dpy: *mut c_void, hwnd: *mut c_void, valuemask: c_ulong,
                       values: *mut Emacs_GC) -> *mut Emacs_GC;
     /// C 77: `extern void w32_fullscreen_rect (HWND hwnd, int fsmode, RECT normal, RECT *rect);`
-    pub fn w32_fullscreen_rect (hwnd: HWND, fsmode: c_int, normal: RECT, rect: *mut RECT);
+    pub fn w32_fullscreen_rect (hwnd: *mut c_void, fsmode: c_int, normal: RECT,
+                                rect: *mut RECT);   // C: `HWND hwnd` (P-72 (3))
     /// C 230: `extern struct frame *w32_window_to_frame (struct w32_display_info *, HWND);`
-    pub fn w32_window_to_frame (dpyinfo: *mut w32_display_info, hwnd: HWND) -> *mut frame;
+    pub fn w32_window_to_frame (dpyinfo: *mut w32_display_info, hwnd: *mut c_void)
+                                -> *mut frame;   // C: `HWND hwnd` (P-72 (3))
     /// C 232: `extern void w32_real_positions (struct frame *f, int *xptr, int *yptr);`
     pub fn w32_real_positions (f: *mut frame, xptr: *mut c_int, yptr: *mut c_int);
     pub fn w32_fill_rect (f: *mut frame, hdc: HDC, pix: COLORREF, rect: *mut RECT);
@@ -1448,7 +1454,7 @@ pub mod w32term_objs {
     pub static mut hMainThread: HANDLE;
     pub static mut w32_keyboard_codepage: c_int;
     pub static mut w32_system_remap_font: *mut font;
-    pub static mut w32_system_caret_hwnd: HWND;
+    pub static mut w32_system_caret_hwnd: *mut c_void;   // C: `HWND` static (P-72 (3))
     pub static mut w32_system_caret_height: c_int;
     pub static mut w32_system_caret_x: c_int;
     pub static mut w32_system_caret_y: c_int;

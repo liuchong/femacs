@@ -10575,3 +10575,29 @@
      `lib/include/signal.rs`、flag run 归 `frame.rs`）。
   ⑤ **预算**：`probe` 1 发（另有一次 `/tmp` 目录没建导致的空跑）、`check-all-units` 1 发、`layout-check` 1 发、
      `check-mirror-dupes` 3 发、`check-citations` 1 发、`extract-abi --check` 1 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
+
+- **3.540 镜像轮第十六批：`w32term.h` 的六个 `HWND` 按 P-72 rule 3 去类型；一次被我自己撤回的"搬家"照实记（`w32font` 臂 21 错 → 7）（2026-10-05）**：
+  ① **对象**：`include/w32term.rs` 在六个位置（四个原型、一个字段、一个 static）名字里写 `HWND`，而 `<windows.h>` 在本树里
+     没有任何镜像 ⇒ `w32font` 臂读 4 × `E0425 cannot find type HWND`（该 lane 已点名）。
+  ② **第一次尝试（同一轮内撤回，如实记）**：我把 `HWND`/`HDC`/`HBITMAP`/`HCURSOR` 声明进 `include/w32gui.rs`
+     （C 的 typedef 所在处，30-34），再把 `src/w32font.rs`/`src/w32fns.rs`/`src/w32select.rs` 里各自的同名
+     `pub type` **删掉**（P-88 ⑤ 的"单一家"搬移）。读数上这次是成功的（`HWND` 四行消失），**但它错了**：
+     `femacs/src/w32fns.rs` 自己那 49 处 `HWND` 用法（`HWND_DESKTOP` 常量、`GetWindowRect` 等原型）**依赖它自己的
+     别名**，而那两个别名还绑着它自己头文件的 typedef（`extract-abi --check` 把 `.md` 同时绑 `<stem>.c` 与
+     `<stem>.h`）；更要紧的是那些单元的臂**本机读不了**（没有 SDK），搬移等于在**无法验证的文本**上动手。
+     ⇒ 撤回：三个单元的别名按原样恢复（含 `#[cfg]` 与注释位置），`include/w32gui.rs` **逐字节回到改动前**。
+  ③ **保留的改法**：`include/w32term.rs` 的六个名字改成**无类型指针**（**P-72 rule 3**：镜像只能命名自己声明或拉进来的
+     类型；`<windows.h>` 在本树没有家），每个都留 `/// C: … HWND …` 或一段注释说明；关键判据是**本树每一处 `HWND`
+     都解析到 `*mut c_void`**（这正是 `include/w32gui.rs` 给 `Window`/`Display` 的 P-55 读法）⇒ **调用方一处都不用改**。
+  ④ **读数**：`probe src/w32font.rs`（`have_ntgui` + `windowsnt` + `have_window_system`）：**21 条错误行 → 7 条**
+     （十条 `E0428` 归 3.539，四条 `HWND` 归本条）；剩下的 7 条全是已点名的项：`lib/include/signal.rs` 1115/156 的
+     `sigset_t`（把标量当记录用，`E0610`/`E0071`）、`include/w32common.rs` 的 `SYSTEM_INFO` 与 `OSVERSIONINFO`
+     （它自己的 deferral）、`include/frame.rs` 那条**自己写明**的 `compile_error!`（HAVE_NTGUI 的 flag run 本机不可测），
+     外加两行 rustc 包装行。`extract-abi --check`：`w32font` **OK**、`w32select` **OK**（`w32fns` 的 FAIL 是它**尚未移植的
+     函数**那一类，与本次改动无关，且改前就如此）；`check-all-units` **83 unit(s), 0 failure(s)**（两腿）；
+     `check-mirror-dupes` 的 **9 条失败全在在飞 lane 的文件里**（8 × `haikufns.rs`、1 × `w32menu.rs`）；
+     `check-citations` **0 drift / 0 stale**（它那 1 条 `range` 属于在飞的 `haikufns.rs`）。
+  ⑤ **未声称**：仍是**编译**读数；本机无 Windows SDK；`SYSTEM_INFO`/`OSVERSIONINFO`/`sigset_t` 三条**本轮没修**，
+     它们是下一批（记录值只有 documented 可用 ⇒ 必须标 UNVERIFIED）。
+  ⑥ **预算**：`probe` 5 发（其中三次是撤回前那次尝试的复读）、`check-all-units` 3 发、`check-mirror-dupes` 4 发、
+     `check-citations` 2 发、`extract-abi --check` 5 发；未跑 `xtask --all`/`gate-fast`/`cargo test`。
