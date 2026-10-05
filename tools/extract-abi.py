@@ -2038,14 +2038,29 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
     # the rule below read all of them as "the port keeps no symbol".  The other polarity is
     # deliberately not accepted: `#[cfg_attr (feature = "x", unsafe (no_mangle))]` means the
     # opposite (exported only where the feature is *on*), which is not what this rule asks.
-    no_mangle_names = {name for name in
-                       (defined_name_after_attribute(own_text, m.end())
-                        for m in re.finditer(
-                            r"#\[unsafe\((?:no_mangle|export_name\s*=\s*\"[^\"]*\")\)\]"
-                            r"|#\[cfg_attr\s*\(not\s*\(feature\s*=\s*\"[^\"]*\"\)\s*,"
-                            r"\s*unsafe\s*\((?:no_mangle|export_name\s*=\s*\"[^\"]*\")\)\s*\)\]",
-                            own_text))
-                       if name is not None}
+    #
+    # The *symbol* an item exports is what the linker sees, and it is not always the item's
+    # own name: `#[unsafe(export_name = "X")]` renames it.  gmalloc.c is the case that made
+    # this matter - C 61-71 renames `malloc`/`realloc`/`calloc`/`free`/`aligned_alloc` to
+    # `g*` for the file's own calls and C 1657-1691 `#undef`s them and defines the plain
+    # symbols in the same file, so the object exports `_malloc` *and* `_gmalloc`.  Rust
+    # needs one item per symbol and the crate root already has the mirrors' declarations of
+    # those names, so the port names the items `rpl_malloc` and keeps C's symbol in the
+    # attribute.  Reading only the item name made those five read as invented symbols
+    # (docs/status.md 3.553 records the measurement); the check below therefore compares the
+    # exported symbol, in both the plain and the `cfg_attr` spelling.
+    SYMBOL_ATTR = (r"#\[unsafe\((?:(no_mangle)|export_name\s*=\s*\"([^\"]*)\")\)\]"
+                   r"|#\[cfg_attr\s*\(not\s*\(feature\s*=\s*\"[^\"]*\"\)\s*,"
+                   r"\s*unsafe\s*\((?:(no_mangle)|export_name\s*=\s*\"([^\"]*)\")\)\s*\)\]")
+    no_mangle_names = set()
+    exported_symbol: dict[str, str] = {}
+    for m in re.finditer(SYMBOL_ATTR, own_text):
+        name = defined_name_after_attribute(own_text, m.end())
+        if name is None:
+            continue
+        no_mangle_names.add(name)
+        symbol = m.group(2) or m.group(4)
+        exported_symbol[name] = symbol if symbol else name
 
     for f in c["functions"]:
         name = f["name"]
@@ -2101,13 +2116,32 @@ def compare(c_path: Path, rs_path: Path, strict_lines: bool = True,
                         break
         # P-86: a non-`static` definition inside an arm the frozen configuration disables is
         # still a definition in the reference's text, so it backs the port's `no_mangle`.
-        invented = set(no_mangle_names - c_exported - unknown_linkage - PORT_ONLY_EXPORTS)
+        # gmalloc's five are the reason this set is built from the *exported symbols*: an
+        # item named `rpl_malloc` whose attribute says `export_name = "malloc"` exports
+        # `malloc`, and C 1695-2005 defines exactly that non-static function in its own text.
+        symbols = {exported_symbol.get(n, n): n for n in no_mangle_names}
+        invented = set(symbols) - c_exported - unknown_linkage - PORT_ONLY_EXPORTS
         if invented:
-            invented -= whole_reference("function")
-        for name in sorted(invented):
-            problems.append(f"fn {name} carries #[unsafe(no_mangle)] but the reference "
-                            f"does not define a non-static function of that name "
-                            f"(invented exported symbol)")
+            known = whole_reference("function")
+            # gnulib's rename chain is the other half of the same reading: `#define malloc
+            # gmalloc` (gmalloc.c 61-71) makes the *preprocessed* name of the definition this
+            # file writes as `malloc` the symbol `gmalloc`, and the `#undef`+redefinition at
+            # C 1657-1691 puts the plain `malloc` back as a second definition of the same text.
+            # Neither name appears in the raw text as a definition, so a rename target counts as
+            # a real symbol when the word it replaces is itself a function the reference defines
+            # (that is what keeps this from accepting every macro in the tree).
+            for word, target in re.findall(r"#\s*define\s+(\w+)\s+(\w+)\s*$", c_source, re.M):
+                if word in known:
+                    known.add(target)
+            invented -= known
+        for symbol in sorted(invented):
+            name = symbols[symbol]
+            where = (f"fn {name} carries #[unsafe(no_mangle)] and exports `{symbol}`, but the "
+                     f"reference does not define a non-static function of either name"
+                     if symbol != name else
+                     f"fn {name} carries #[unsafe(no_mangle)] but the reference "
+                     f"does not define a non-static function of that name")
+            problems.append(f"{where} (invented exported symbol)")
 
     if (strict_lines and not is_header_like and not empty_unbuilt
             and c["lines"] and r["lines"]):

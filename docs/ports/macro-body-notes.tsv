@@ -1542,3 +1542,20 @@ pgtk_size_for_format	case,default,switch	the `switch` becomes a `match` with `_ 
 pgtk_get_window_property	typeof	C 1158's GNU `typeof (ldata)` cast is the port's `data as *mut c_ulong`
 syms_of_pgtkselect	doc	the seven `DEFVAR_*` calls' `doc:` keyword is the port's third macro argument
 wait_for_property_change_unwind	0	C's pointer-null literal is `std::ptr::null_mut ()` / `.is_null ()`
+malloc	gmalloc	C 66's `#define malloc gmalloc` renames the *symbol*; the port keeps C 882's text name on the item and carries the preprocessor's symbol with `#[unsafe(export_name = "gmalloc")]`, so the macro name has no `macro_rules!` of its own (PORTING.md 0.2; docs/ports/gmalloc.md Deviations)
+realloc	grealloc	C 67's `#define realloc grealloc`; same reading as the malloc row
+calloc	gcalloc	C 68's `#define calloc gcalloc`; same reading as the malloc row
+free	gfree	C 70's `#define free gfree`; same reading as the malloc row.  The item named `free` is C 1213-1224's definition (the `gfree` symbol) and its body is C 1216's, so the macro's body token (`gfree`) is the one token the port's `free` does not carry
+morecore_nolock	goto	C 623's `goto got_heap` is the port's labeled block with `break 'got_heap` (PORTING.md 2.2), which keeps C's label name
+_malloc_internal_nolock	goto	C 751/C 817's `goto out` are the port's labeled block (PORTING.md 2.2)
+_free_internal_nolock	switch,case,default	C 991's `switch (type)` with its `case -1` and `default` labels becomes a `match` (PORTING.md 2.2/P-04)
+_realloc_internal_nolock	switch,case,default,goto	C 1286's `switch (type)` becomes a `match`, and C 1297/1350/1370's `goto out` the labeled block (PORTING.md 2.2)
+aligned_alloc	galigned_alloc	C 1503's `#define aligned_alloc galigned_alloc` renames the *symbol* the way C 66/67/68/70 rename the other four; the port keeps C 1552's text name on the item and carries the preprocessed symbol in `export_name` (same reading as the malloc row; docs/status.md 3.553)
+TEXTCONV_DEBUG	0	C 56`s live arm is the no-op statement ((void) 0), and the port`s `macro_rules! TEXTCONV_DEBUG` expands to `()` without evaluating its arguments either (PORTING.md 2.1; the `EXPLAIN` row above is the same shape)
+textconv_query	case,default,goto,switch	C 299`s `switch (query->direction)` and C 426`s `switch (query->operation)` become `match` arms with `_ =>`, and C 233/243`s two `goto escape1` become the labelled block `escape1` (PORTING.md 2.2; the `do_symval_forwarding` reading)
+locate_and_save_position_in_field	goto	C 1169`s `goto exit` becomes the labelled block `exit` (PORTING.md 2.2)
+handle_pending_conversion_events_1	case,switch,uninit	C 1567`s `switch (operation)` becomes `match` arms with `_ =>` and C 1576`s arm-exit `break` a labelled block; `UNINIT` is C`s empty macro on `buffer` (C 1519), which the port spells as a null pointer with PORTING.md 1.13`s note (PORTING.md 2.2)
+syms_of_textconv	doc	C 2593/2621/2631`s `DEFVAR_LISP` and C 2504`s `DEFUN` carry the docstring as the port macro`s own argument, so `doc` is a metavariable in `lisp.rs` `DEFVAR_LISP!`/`DEFUN!` rather than a token of this body (PORTING.md 2.1)
+# femacs/lwlib/lwlib.rs (C 1-1330): one `switch` chain and one macro whose live arm is a no-op.
+dialog_spec_p	switch,case,default	C 650-672's `switch (name [0])` has ten shared bodies (`case 'E': case 'I': …`), no `break` and a `default:`; the port's `match *name as u8` carries C's ten arms and Rust's exhaustiveness needs neither `case` nor `default` (PORTING.md 2.2; the `lwlib/lwlib-Xaw.rs` `xaw_create_dialog` row's precedent).  Every other token of the body is present.
+EXPLAIN	0	C 331's live arm is the no-op statement `((void) 0)`, and the port's six-parameter `macro_rules! EXPLAIN` expands to `()`: that statement-expression's only non-keyword token is the `0`, which has no site in a Rust body (`void` is already a C type keyword the token rule skips, PORTING.md 2.1).  Every other token of the body is the parameter list.

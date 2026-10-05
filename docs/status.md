@@ -10945,3 +10945,45 @@
      GDK 的原子/模式/原型全是占位值（唯一实测 `G_MAXUINT32` 是 GLib 的），`GtkTargetEntry` 布局 UNVERIFIED；
      行数比不是完成度声明。**预算**：本轮我只跑 `extract-abi --check` 1 发、`gen-port-map`/`gen-port-inventory`/`check-port-lines`
      各 1 发、文本门 1 轮全跑；**零 `build-tu`/零 `probe`**（编译都是 lane 做的）；`/tmp/mbn-wip.tsv` 与 `/tmp/f548*` 收工删。
+
+- **3.553 lane 产出收口：`src/gmalloc.c` 整文件落地（C 1908 → Rust 2,326），并让抽取器读懂"导出的符号"（2026-10-05）**：
+  ① **lane 的产出（Cicero）**：`femacs/src/gmalloc.rs` 11 → **2,326** 行（md5 `e999b3f0…ccec70`），台账 24 → 395 行，
+     80 行区间表连续覆盖 C 1-1908（70 个空行按规则豁免）；文件门 `all (no_system_malloc, not (doug_lea_malloc))`
+     压在每个项**与全部 12 条 `include!` 边**上（归属读数是冻结构建自己的 `GMALLOC_OBJ=` 空、`config.h` 2342 的
+     `#define SYSTEM_MALLOC 1`、`configure.ac` 3308-3317）；C 的 **17 个子门**两臂都带；C 61-71 的重命名链与
+     C 1657-1691 的 `#undef`+重定义照录（`export_name` 带符号、6 个 `macro_rules!` 保留 C 的 token）。
+  ② **读数**：冻结 `build-tu` 6 发（超预算 3：一发是自伤的多行门假对象、一发 `E0425`、其余是三种定稿拼法），
+     全部 exit 0 / **336 字节空对象**（那证明的是"本配置不编它"，不证明正文）；翻臂两档各 **5 个错、0 个落在本单元**
+     （4 枚 `lib/include/stdlib.rs` 的 `E0428` + 1 枚 `lisp.rs` 3761 的 `E0658`）；变异实测（两种读数）**恰好 +1 条
+     `E0308` 且点名注入行**，按字节还原后 sha256 一致；布局 clang 实测 6 个记录 + `pthread_mutex_t`/`PROT_*`，
+     单元里 19 条 `const _: () = assert!(…)` 钉住。
+  ③ **抽取器改动（本轮我做的，这是本条的第二个交付物）**：`extract-abi.py` 原来只按**item 名**比 `no_mangle`，
+     于是 `export_name` 的重命名读不出来——gmalloc 的十个定义因此被判成"5 枚 invented exported symbol"（`rpl_*`）
+     加另外 5 枚（item 名是 C 的 `malloc` 等、符号是 `g*`）。改两处：⑴ 建 `exported_symbol` 表，**比的是符号**而不是
+     item 名（`#[unsafe(export_name = "X")]` 与 `cfg_attr` 两种写法都认），报错文本同时点名 item 与符号；
+     ⑵ 认 gnulib 的**重命名链**：`#define A B` 且 A 是参照里定义过的函数名时，B 也算参照的真实符号
+     （这条让 `g*` 五枚合法，同时不会接受树里任意宏）。**读数**：`--check emacs/src/gmalloc.c femacs/src/gmalloc.rs`
+     从 6 行（5 invented + 漂移）→ **OK**（我先补了容差行 `gmalloc 0.22` = 21.9%）；`--selftest` **12 例 + 4 token 例、0 失败**。
+  ④ **为什么没登记布局**：lane 要求把 `gmalloc_info`/`list`/`alignlist`/`hdr`/`mstats`/`mcheck_status` 加进
+     `tools/gen-layout-fields.py` 的 `STRUCTS`；我加过一版，生成器对 `src/gmalloc.c` 报
+     `warning: struct gmalloc_info not found in the preprocessed …` 并**拒绝**（"a type with zero offset keys…"），
+     因为它读的是**预处理后的头文件体**、而这个记录在 `.c` 里。**已回退**（`gen-layout-fields.py` 与它生成的
+     `spikes/layout_fields.h` 与 HEAD 一致），改记成欠账：这批记录的覆盖率今天由单元自己的 19 条 clang 实测断言承担。
+  ⑤ **feature 注册（我做）**：`femacs/xtask/Cargo.toml` 加 **11 个**（`__gnu_library__`/`__uclibc__`/`_sc_pagesize`/
+     `gc_mcheck`/`gc_protect_malloc_state`/`glibc_2_24`/`glibc_2_34`/`have_getpagesize`/`have_malloc_h`/`have_sbrk`/
+     `use_pthread`，各带 C 行号注释）；`cargo check -p xtask` **exit 0**（新 feature 名不会打死任何 lane 的构建）。
+  ⑥ **共享台账的并发事故（lane 报的，属实，责任在我）**：`docs/ports/macro-body-notes.tsv` 在 20 分钟里被
+     **整文件重写两次**，把 gmalloc 的行清零——那是我的"按行名切片"写法干的（3.551/3.552 两次）。本轮的处置：
+     先把在飞行另存（`/tmp/mbn-wip-553.tsv`），提交后再把它合并回工作树；**lane 少掉的那条 `aligned_alloc` 行**
+     按它的报告重建（含 `galigned_alloc`）。教训已写进流程：**切片前必存、切完必并**。
+  ⑦ **门读数（现读）**：`check-declarations` 0 failures、`check-citations` 0 drift / 0 stale、`check-dead-file-coverage`
+     **119 台账 / 0 failure**、`check-ledger-ticks` 233/0、`check-target-names` 591 目标 / 0 finding；
+     `check-mirror-dupes` **1 failure = `femacs/src/xmenu.rs: XGetGeometry is already declared by
+     femacs/src/include/msdos.rs`**（在飞 lane Feynman，四条原文已转给它）、`check-port-lines` 18 文件 / 16,981 参照行 /
+     0 new / 3 stale（数字随在飞 lane 浮动）。`docs/baseline/port-lines-pending.tsv` 本轮**不动**
+     （gmalloc 的行早在 3.550 的那次 `--write-pending` 就已退出棘轮，工作树与 HEAD 一致）。
+  ⑧ **未声称**：冻结配置**不编**这个文件；翻臂只是本机 `rustc` 的类型检查（不是 C 编译、不是链接），5 个错全在
+     包含图副本里；无链接、无运行、无运行时行为；`GNU_MALLOC`/`DOUG_LEA_MALLOC` 配置本机不存在；
+     `pthread_mutex_t`/`PROT_*`/`mprotect` 是本机 clang 读数而非第二个 SDK 的引文。**预算**：本轮我只跑
+     `extract-abi --check`（多次，同一命令）+ `--selftest` 1 发 + `gen-layout-fields` 2 发 + `cargo check -p xtask` 1 发
+     + 文本门 2 轮；**零 `build-tu`/零 `probe`**（编译都是 lane 做的）；`/tmp/femacs-ck` 收工删。
