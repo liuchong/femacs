@@ -7384,3 +7384,36 @@
      `sa_sigaction`（本次 ②a 的唯一错）；六处就地声明日后搬进镜像；编译预算**两项都超**（`build-tu` 5 发、
      `probe` 8 发，lane 如实报）。
   ⑦ **未声称**：无运行证据（无真机/NDK/JNI 调用/线程）；②b 的对象**从未运行**；②a 的基础配置**没有对象**。
+
+- **3.424 xfns 切片 1（C 1-802）：位置解析、颜色与 alpha（2026-10-05）**：
+  ① **区间**：C 1-802（收在 `x_set_alpha_background` 的 `}`）；**下一个活定义 = C 805
+     `x_set_tool_bar_position`**。块：许可/声明块（drop）、三组 include、`HAVE_X_I18N`/`USE_XCB`/
+     `HAVE_XRANDR`+`Xinerama`/`USE_GTK`/`HAVE_XDBE`/`HAVE_XINPUT2` 各门、`USE_X_TOOLKIT` 大块、
+     `PropMotifWmHints`、`check_x_display_info`、`x_real_pos_and_offsets`（C 206-588，四个查询/翻译段）、
+     `x_real_positions`、`x_relative_mouse_position`、`gamma_correct`、`x_defined_color`、`x_decode_color`、
+     `x_set_wait_for_wm`、`x_set_alpha_background`。
+  ② **行数**：`femacs/src/xfns.rs` **11 → 1,126**（lane 报 1,120，集成者补 `USG` 宏后 +6）；台账**新建**
+     `docs/ports/xfns.md` **365 行**（28 行区间表）。
+  ③ **读数**：⑴ 冻结 `build-tu` **exit 0**、对象 **336 字节空对象**（整身挂门；lane 用了 4 发，**超预算 1**，
+     首发是 `E0758` 未终止块注释）；⑵ **四次翻臂**（`have_x_windows`；再加 `use_xcb/have_x_i18n/glyph_debug/
+     have_xrender/have_xdbe/have_xinput2`；再加 `use_gtk/have_gtk3`；全部门并集）：**本单元正文分别 2 / 3 / 2 / 2
+     条**，镜像侧 21 / 50 / 67 / 74 条（无镜像 SDK 名 + 镜像 INLINE 的 `E0133`），**没有一次是 0 error**——GTK
+     臂只能 `text-only`（本机无 GTK 树）；⑶ `extract-abi --check` **230 → 227 个 `- ` 行**（集成者补 2 行 notes +
+     `USG` 宏后；lane 原始读数是"227 条 missing"），漂移 **89.4%**；⑷ `check-dead-file-coverage` 28 行/0 failure。
+  ④ **真缺陷**：`E0381` 顶层声明零初始化（1.5）；**Window↔`xcb_window_t`/Atom↔`xcb_atom_t` seam** 与 xcb 回复的
+     窄整型回读共 18 个 `E0308` + 3 个参数类型错（C 的隐式转换，端口必须写 `as`）；`E0758`（注释里照抄
+     `Xm/*.h`，Rust 嵌套块注释把它当打开 `/*`，PORTING.md 0.3 明写的陷阱）；`1L` 后缀、镜像宏要 `!`、
+     `bw` 的窄化、`long *fe`、两处 `Emacs_Color`/`XColor` 别名转换；**5 处引用行号按装好的头改正**（不编造）。
+  ⑤ **集成者本轮替它落的账**：2 行 `macro-body-notes.tsv`（`check_x_display_info` → `0`；`x_real_pos_and_offsets`
+     → `uninit`）；在 `xfns.rs` 里按 C 87-95 定义 **`USG` 空标记宏**（C 自己就是 `#define USG` 空定义，
+     先例是 alloc.rs 的 `__MALLOC_HOOK_VOLATILE`/`GC_SETJMP_WORKS`）⇒ 三条 finding 退掉、重编 exit 0 / 336 字节；
+     `femacs/xtask/Cargo.toml` 补 **4 个 feature**：`use_motif`、`have_xaw3d`、`have_xrandr`、`have_xinerama`
+     （`cargo metadata` 读回 **594** 个 feature）。
+  ⑥ **一条裁决（写下来，免得下一轮重复讨论）**：lane 请求给 `xfns.c` 加一条
+     `docs/ports/line-drift-tolerance.tsv` 行（"每个切片都欠，直到末片落地"）。**不加**——实测该表现有 10+ 行
+     **全部是已完成的文件**、且理由都是**结构性**涨落（`fileio` 的 docstring 折叠、`realloc` 的开头块不抄、
+     `terminfo` 的短文件吸收标准头……），**没有任何部分移植的文件在表里**；`line count drifted 89.4%` 是
+     "文件只落了 10.6%"的**如实读数**，不是需要豁免的结构性偏差。⇒ 该行（以及 `image` 的同名欠账）在**各自末片
+     落地时**才写；这一条同时更正 `docs/ports/image.md` 的 Owed 措辞。
+  ⑦ **未声称**：无运行证据（没跑过 X server/XCB/GTK）；四次翻臂都是编译读数且镜像侧都有错，**不声称任何配置可工作**；
+     本单元正文仍留 2 条已登记的欠账（`x_display_info_for_name`、镜像缺 `wait_for_wm` 存储）。
