@@ -9207,3 +9207,48 @@
      别的版本一律 **UNVERIFIED**。
   ⑧ **预算**：lane 自报 `build-tu` **6 发（限 3，超 3）**、`probe` **5 发（限 3，超 2）**——**如实记下超支**；
      另用 9 次直接 `rustc` 在 `/tmp` 副本上做分类与桩测（不占工具预算）。集成者本段 `build-tu` 0 发、gate 各 1 发。
+
+- **3.489 `src/kqueue.c` 整文件（C 1-550）落地；同时纠正 3.488 给自己留的一笔错账（gnutls 的容差行）并登记 msdos 的三个 feature（2026-10-05）**：
+  ① **范围/块**：`femacs/src/kqueue.rs` **706 → 718 行**（md5 `a6c4b5fa0f258938db765980a246eb60`）；台账
+     `docs/ports/kqueue.md` **24 → 239 行**（md5 `22cfc99048225203fea3908c75ff72b1`）；`docs/ports/macro-body-notes.tsv`
+     +1 注释 +3 数据行；`emacs/src/kqueue.c` 未动（550 行 / md5 `e54a2eda62676e4bab9a359fe77bc4ac`）。台账的
+     `## C line ranges` 是 **16 行、升序、连续覆盖 C 1-550** 的表，除 C 1-18（P-86 ① dropped）外**全部 `transcribed`，
+     无 `owed` 行** ⇒ 这一件是"完成件"，按裁决它可以拿到容差行（见 ②）。
+  ② **读数（lane 跑的，数字照抄）**：⑴ 冻结 `build-tu src/kqueue.c` **3 发**：第 1 发 **exit 1 / 3 × `error: cannot
+     find macro DEFUN`**（`DEFUN!` 定义在被门关掉的 `include/lisp.rs` 里 ⇒ 三个 `DEFUN!` 必须自己挂门，P-86 ⑧），
+     补门后 **exit 0 / `build/femacs/kqueue.o` 336 字节**（第 2、3 发同值）。⑵ 翻臂
+     `probe src/kqueue.rs … --cfg 'feature="have_kqueue"'`：首发 **12 错**（本单元自身 2 条：cast 后的 `<` 被当成类型
+     参数起始的语法错、`(*rlim).rlim_cur` 的 `E0614`；镜像副本 10 条），末发 **exit 0 / 0 错 / 14 警告 /
+     rlib 13,154,752 字节**，14 条警告的 span **全在镜像副本**（composite.rs 11、lisp.rs 1、coding.rs 1、
+     stdbit.in.rs 1），本单元自身 **0 条**；⑶ **五门同开**（`have_kqueue` + 四个 `no_*` 让位门）→ **exit 0 /
+     13,153,304 字节**（P-86 ⑥ 的子门全设）；⑷ 变异预检（注入 `list_length (watch_list) + 1.0`）→ **1 错
+     `E0277`**，还原后同命令 0 错 ⇒ 读数非空；⑸ clang 实测：`NOTE_*` = 1/2/4/8/16/32/64、`EVFILT_VNODE` = -4、
+     `EV_ADD` = 1、`EV_ENABLE` = 4、`EV_CLEAR` = 32、`O_NONBLOCK` = 4、`O_RDONLY` = 0、`O_EVTONLY` = 32768、
+     `O_SYMLINK` = 2097152、`O_NOFOLLOW` = 256、`RLIMIT_NOFILE` = 8、`sizeof (kevent)` = 32（ident@0/filter@8/
+     flags@10/fflags@12/data@16/udata@24）、`sizeof (rlimit)` = 16（rlim_cur@0/rlim_max@8）；⑹ **我复跑**
+     `extract-abi --check emacs/src/kqueue.c femacs/src/kqueue.rs` → **OK（0 条 `-` 行）**。
+  ③ **集成者的账**：⑴ `docs/ports/line-drift-tolerance.tsv` 追加 **`kqueue` 0.32 / `total`**（C 550 vs Rust 718，
+     30.5% 漂移 = 实测 + 0.01）；⑵ `feature-coverage.py --write` 复跑（`have_kqueue` 行 **49 sites / 1 file**）；
+     ⑶ `docs/ports/kqueue.md` 的 Owed 1/2/3 标 DONE（pending 棘轮本件无需行——718 行远超 10% 阈值）；
+     ⑷ 全树门：`check-mirror-dupes` **17/17/0**、`check-citations` 676 / 0 drift、`check-declarations` **10 / 0 / 0**、
+     `check-dead-file-coverage` **58 绑定 / 0 failure**、`check-ledger-ticks` 234/0、`check-port-lines`
+     **58 文件 / 0 new / 0 stale**、`check-target-names` 629/591/0。
+  ④ **纠正我 3.488 留下的一个门缺陷（本轮最该记的一笔）**：3.488 我给 **gnutls** 追加了 `total/0.41` 容差行——那条行让一个
+     **只转写了 C 30-1130（40%）** 的文件在 `extract-abi --check` 上读成 **OK**，于是它从两个门（`--check` 只比 live 行、
+     `check-port-lines` 又因行数过半而撤下 pending 行）**同时消失**，即使被退回成 200 行的桩也不会有人报错。这违反
+     **3.434 ⑤ 的裁决："容差行只给已完成文件写"**（treesit/gnutls 这类切片当时就是保持 FAIL 的）。**处置**：按表的
+     append-only 机制再追加一行 `live`/0.1（最新行说话），gnutls 的 `--check` 回到 **FAIL 且只剩行数一条**：
+     `- line count drifted 1433.1%: C 124 live (of 3196) vs Rust 1901` —— 这条读数正是"还有 2,065 行没转写"的自动化提醒。
+     **同一判据下 `androidfns` 不加容差行**（这片只到 C 1-1214，`--check` 保持 FAIL 并列出 110 条 missing，其中 35 条 missing
+     defsubr，那就是它的剩余工作清单）。
+  ⑤ **顺带（我自己发现的欠账）**：`femacs/xtask/Cargo.toml` 登记 **msdos 的三个 feature**（`chdir`、`tzset`、`have_select`，
+     判据分别是 `src/msdos.c` 4252/4281/4158 的三处 `#ifdef`），它们自 msdos 四片落地起一直只在单元里被引用、没进特性表。
+  ⑥ **点名归属（不在本轮做）**：`FILE_NOTIFY_EVENT` 的按配置取值仍是 **kqueue 与 gfilenotify 的同一笔账**
+     （`include/termhooks.rs` 应按配置携带，现在两件各自在单元内声明 28）；kqueue 在单元内表的
+     `<sys/event.h>`/`<sys/resource.h>`/`<fcntl.h>` 段在出现第二个消费者时按 P-88 ⑤/P-90 ② 搬镜像。
+  ⑦ **未声称**：**零运行证据**——没有调用过 `kqueue()`/`kevent()`、没开过 `O_EVTONLY` 文件、没注册过 watch、没收到过
+     事件、没触发过 callback；真臂只到 rlib（类型检查 + codegen，**没有链接进任何程序**）；C 107-274 的目录比较与
+     C 276-336 的事件投递**没有任何行为对拍**；`O_*`/`NOTE_*`/`EV_*` 与两个布局都是**本机 SDK** 的读数。
+  ⑧ **预算**：lane：`build-tu` **3/3**、`probe` **2/3**（另有 7 发**直接 rustc** 在同一物化根上做分类/五门/变异，如实记）；
+     集成者：gate 脚本各 1 发、`build-tu` 0 发、`probe` 0 发；未跑 `--all`/`gate-fast`/`cargo test`/`check-all-units.sh`；
+     `/tmp/kq-lane` 与 `/tmp/kq-measure*` 收工已删。
