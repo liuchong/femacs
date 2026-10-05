@@ -9630,3 +9630,31 @@
   ⑦ **预算**：`build-tu` **2 发**、`probe` **7 发**（逐轮修错，如实报）、`layout-check` 1 发、
      `check-all-units.sh` **2 发**（第一次因磁盘满写不出日志，重跑）、gate 脚本各 1 发；
      未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/xlw.log`、`/tmp/sweep-3500.log` 收工删除。
+
+- **3.501 `src/fringe.c` 片 1（C 1-1364）落地：翻臂 38 错全在三个镜像上，本单元正文 0 错（2026-10-05）**：
+  ① **范围/块**：C 1-1364（止于 C 1364 `update_window_fringes` 的 `}`）；台账 56 行区间表覆盖 C 1-1880
+     （**13 行 owed**）；**下一个待移定义 = C 1370 `destroy_fringe_bitmap`**；门 `have_window_system` +
+     `have_pgtk`（C 33-35 的 `#ifdef HAVE_PGTK` + `pgtkterm.h`）。
+  ② **行数**：`femacs/src/fringe.rs` **11 → 1895**（md5 `b91f7cc0246a95c22f1d2ed7f2365740`）；
+     台账 `docs/ports/fringe.md` 24 → **415**；`macro-body-notes.tsv` +6 行。
+  ③ **读数**：⑴ 冻结 `build-tu` → **exit 0 / 336 字节空对象**（与同类同 md5）；⑵ **翻臂
+     （`have_window_system` + `have_x_windows` + `dispextern_face_records`）→ exit 1 / 38 error / 3 warning，
+     38 条没有一条在本单元正文**：`include/dispextern.rs` **29**（1×`E0428` `max_used_fringe_bitmap`
+     被它放在**顶层**、3×缺 `x_display_info`/`Emacs_Pix_Container`/`Emacs_Cursor`、13×`E0080` face 断言、
+     3×缺 `estimate_mode_line_height`）、`include/font.rs` **8**、`include/systime.rs` **1**；
+     ⑶ **变异实测**（往 `draw_fringe_bitmap` 注入类型错）38 → **39** ⇒ "正文 0 错"是真读数；
+     ⑷ `extract-abi --check` → **17 条 `- `**（9 `missing function` + 4 `missing subr` + 4 `missing defsubr`），
+     **那正是 C 1365-1880 的剩余工作清单** ⇒ 按 3.434 ⑤ **不写容差行**；
+     ⑸ clang 布局实测：`sizeof (fringe_bitmap)` 16 / align 8、位域单元在 offset 8、位 0-7/8-15/16-23/24-25/26。
+  ④ **集成者的账**：无容差行、pending 无行可退、无新 feature；台账 `## Owed` 的 7 条里 5 个是镜像项
+     （见 ⑤）、3 处是 `src/abi_shim.rs` 的替身（随切片 2 按 P-88 ⑤ 删除）。
+  ⑤ **点名归属（镜像轮）**：`include/dispextern.rs` 的三个全局声明要从顶层搬进模块（否则**任何**
+     window-system 臂都 `E0428`）、它的三个缺名与 face 的 13 条断言、`include/font.rs` 的 8 条断言、
+     `include/systime.rs` 27 的 feature↔config 常量同动、`include/dispextern.rs` 缺
+     `estimate_mode_line_height` 边。
+  ⑥ **未声称**：**零行为/链接/加载/显示证据**；**翻臂不是 exit 0**（38 条全在镜像，卡在
+     `include/dispextern.rs` 为主）；C 1433+ 的四个窗口系统臂**完全未编译**；C 1365-1880（516 行）未移植。
+  ⑦ **预算**：lane：`build-tu` **5 发**（限 3，超 2）、`probe` **3/3**、另有 9 次直接 `rustc` 迭代；
+     集成者：gate 脚本各 1 发；未跑 `--all`/`gate-fast`/`cargo test`；`/tmp/fringe-lane` 与 `/tmp/fringe-probe`
+     已删。**环境事故记一笔**：本轮池卷一度 100% 满（本 lane 与我都被 `No space left on device` 打断过一次），
+     各自的中间物删除后恢复。
