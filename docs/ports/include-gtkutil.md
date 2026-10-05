@@ -52,3 +52,26 @@
   mirror is not created yet: this file's own slice was landed without it, and the move-back is
   owed to the round that creates it.  Until then the arm's readings carry the declarations twice
   (once per unit), which is harmless across crates and wrong only inside one TU.
+
+## The C 26 edge's measured blocker set (2026-10-05)
+
+The P-90 round left C 26's `<gtk/gtk.h>` edge owed, naming `src/pgtkfns.rs`'s segment as the
+blocker.  Measured with the edge in place (`#[cfg (feature = "use_gtk")] include!("gtk.rs");` after
+the guard), `python3 tools/check-mirror-dupes.py` reads **35 findings with no ratchet row** - the
+fn/const/macro names this edge would duplicate - plus the `E0428`s its item-namespace names add:
+
+| consumer | tracked hits | what it carries | what it needs |
+| --- | --- | --- | --- |
+| `src/pgtkfns.rs` | 13 | the C 28 third-party segment (32 names) | **moved in this round** through its own stand-in edge (P-88 ⑤); the unit's edge drops when C 26's lands |
+| `src/xwidget.rs` | 21 | the C 30 segment (59 names) | blocked by `include/gtk.rs`'s `GdkEvent` union (4 records + the `key` member) - `docs/ports/xwidget.md` |
+| `src/xfns.rs` | 1 (+2 structs) | `GtkWidget`, `gtk_widget_set_app_paintable`, and `GtkWidgetClass` with `style_updated` | the mirror's `GtkWidgetClass` must carry `style_updated` (it carries `get_preferred_width`, gtkutil.c's member) - a change **inside** `include/gtk.rs` |
+
+So the edge cannot land from a lane whose scope is `include/gtkutil.rs` + the three units: two of
+its consumers need declarations **inside `include/gtk.rs`** (the mirror's own in-flight change -
+`src/xgselect.rs`'s four `gdk_x11_*` gates, status 3.477 - landed at `bbb378d` while this round
+ran, so that file is free for the next one).  The three-step fix, for the round that
+can write that mirror: (1) `GtkWidgetClass` grows `style_updated`; (2) its `GdkEvent` union grows
+`button`/`scroll`/`motion`/`crossing`/`key` (with those four records moved in from
+`src/xwidget.rs`); (3) then `src/xfns.rs`, `src/xwidget.rs` and `src/pgtkfns.rs` drop their copies
+and both stand-in edges come back here.  C 27's `lwlib-widget.h` mirror and C 28-34's two
+terminal-header edges are separate and still owed.

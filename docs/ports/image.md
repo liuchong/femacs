@@ -1042,3 +1042,24 @@ except those four is work in the C 3552-13805 remainder (the nearest is `lookup_
    `lookup_image`), and `canvas_free_unused` (C 127's `static` prototype, whose definition is
    C 5535's - the `canvas_prepare_for_display` shape).  All three declarations disappear in the
    commits that land their definitions.
+
+## P-90's second step (2026-10-05): the cairo names the mirror shares moved out
+
+- **Ten `<cairo.h>` declarations are `include/gtk.rs`'s now** (P-88 ⑤/P-90 ②): `cairo_surface_t`,
+  `cairo_pattern_t`, `cairo_format_t`, `cairo_status_t`, `CAIRO_FORMAT_ARGB32`,
+  `cairo_image_surface_create_for_data`, `cairo_surface_destroy`, `cairo_pattern_type_t`,
+  `CAIRO_PATTERN_TYPE_SURFACE` and `cairo_pattern_get_type`.  The rest of this unit's cairo
+  section stays (that mirror does not carry `cairo_extend_t`, `cairo_filter_t`, `cairo_matrix_t`,
+  `cairo_user_data_key_t`, the other `CAIRO_*` values or the other entry points).
+- **The edge is the unit's own, at C 64's `TERM_HEADER` position**: `#[cfg (all
+  (feature = "have_window_system", feature = "use_cairo"))] include!("include/gtk.rs");` - the
+  mirrors that own C 64's chain (`include/xterm.rs` 98's `<cairo-xlib.h>`, `include/nsterm.rs`)
+  do not carry the edge yet.  It stands **above** the `TERM_HEADER` block on purpose: when
+  `include/pgtkterm.rs`'s C 31 edge lands it is the second reach of the same mirror in this TU and
+  the first reach claims the file's one expansion slot (P-89); measured with the edge below it,
+  xtask expanded the mirror at the pgtkterm reach and this unit's X/cairo arm - where that reach is
+  gated off - lost all ten names (92 errors, 67 of them in the unit).  Above the block: 44.
+- **Arm readings** (same shape and flags as the P-90 note): `have_window_system + have_ns`
+  **17 -> 17** (own 3, mirror 13); `have_window_system + have_x_windows + use_cairo`
+  **45 -> 44** (own 22, mirror 22 -> 21: the `E0425: cannot find type cairo_t` site is the one
+  the edge closes).  No new error class, no new `E0428`.

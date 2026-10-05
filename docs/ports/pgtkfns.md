@@ -364,3 +364,34 @@ no such tree exists here (above); the four records (`GdkPixbuf`, `GtkCssProvider
 11. **The five `#ifdef`s' arm texts.**  C's four `GDK_PIXBUF_VERSION_2_44` `#pragma` lines and the
     four cairo arms' `#ifdef`/`else`/`#endif` tokens have no Rust counterpart (Deviation 4); if the
     fleet wants them occurrence-checked, they are `token-aliases.tsv` rows.
+
+## P-90's second step (2026-10-05): the toolkit segment moved out
+
+- **The in-unit third-party segment is gone** (P-88 ⑤/P-90 ②③): C 28's chain
+  (`<gtk/gtk.h>` through `"gtkutil.h"` 26) used to be declared here - `cairo_surface_type_t` and
+  the four `CAIRO_SURFACE_TYPE_*` (`cursor` C 929/936/943/954), `cairo_region_t`, `gpointer`,
+  `gchar`, `gint`, `gboolean`, `gssize`, `GError`, the five handles `GdkPixbuf`/`GtkCssProvider`/
+  `GtkWidget`/`GtkWindow`/`GdkWindow` with `GTK_WINDOW`, and thirteen entry points - 155 lines in
+  all, and every one of those names is `femacs/src/include/gtk.rs`'s (the third-party surface's
+  single home).  This unit now reaches it through the edge `#[cfg (feature = "have_pgtk")]
+  include!("include/gtk.rs");` at C 28's chain.  **The edge stands in the unit, not in
+  `include/gtkutil.rs`**, which is the C position's owner: that mirror does not carry its C 26 edge
+  yet, and its head note names the measured blocker set (`src/xfns.rs`'s `GtkWidgetClass` needs
+  `include/gtk.rs`'s record to grow a member, and that mirror carries an unlanded change this
+  round) - `## Owed` of `docs/ports/include-gtkutil.md`.  The edge's gate is this file's own,
+  `have_pgtk`; C's `HAVE_PGTK` implies `USE_GTK`, and the narrow arm below is what shows why the
+  reach, not C 24's `USE_GTK`, is the right condition for a stand-in edge.
+- **Arm readings** (`text-only`; `rustc --edition 2024 --crate-type=lib --emit=metadata
+  --crate-name unit_probe -Awarnings build/femacs/units/pgtkfns/_root.rs`, own = a `_root.rs` span,
+  mirror = a copy's, spanless = rustc's `aborting due to N previous errors`):
+  - **narrow** = `have_pgtk + have_window_system`: **67 -> 73** (own 57 -> 63, mirror 9).  The six
+    new errors are two `GtkCssProvider` + four `gtk_css_provider_load_from_data` sites:
+    `include/gtk.rs` gates that GTK3-only class and its loader on `have_gtk3` (gtkutil.c's uses are
+    inside `#ifdef HAVE_GTK3`), while this unit's C text is `HAVE_PGTK`-only (pgtkfns.c 833-890
+    has no `HAVE_GTK3` guard) - so an arm with `have_pgtk` and **no** `have_gtk3` now sees the
+    mirror's gate.  That arm is not a real configuration (configure.ac's pgtk path implies GTK3),
+    and the fix is either to add `have_gtk3` to this reading or to let `include/gtk.rs`'s owner
+    decide the pgtk implication - it is recorded, not papered over.
+  - **wide** = narrow + `use_gtk + have_gtk3 + have_ext_menu_bar + have_ext_tool_bar +
+    gdk_windowing_wayland + have_xwidgets`: **63 -> 63** (own 53, mirror 9) - unmoved, and the
+    segment's 32 names resolve through the mirror there.

@@ -545,3 +545,20 @@ evaluator: `0 disagreements`).
    configuration that can compile them.
 7. **The next slice.**  C 1182-4304, opening at `#ifdef HAVE_X_WINDOWS` with `xv_drag_begin_cb`
    (C 1184-1200); this table's last row is the placeholder for it.
+
+## P-90's second step (2026-10-05): the move is blocked, and the blocker is measured
+
+- **This unit's segment did not move**, and the reason is not this file: `include/gtk.rs`'s
+  `GdkEvent` union carries `r#type`/`any` (the two members `gtkutil.c`/`pgtkterm.c` read), while
+  this unit's own union (C'the seven-member `_GdkEvent`) also carries `button`, `scroll`, `motion`,
+  `crossing` and `key` - and this slice reads `(*xg_event).key.keyval`/`.key.state` at C 1315-1452.
+  Landing the edge that brings the mirror's union in produces
+  `E0428 the name GdkEvent is defined multiple times` plus `E0119`/`E0740`/two `E0609 no field key`
+  (measured: arm A 53 -> 54 with those five classes) unless the union's members move into
+  `include/gtk.rs` too - 4 records (`GdkEventButton`/`Scroll`/`Motion`/`Crossing`) and the `key`
+  member.  That is a change *inside* the mirror, outside this round's write scope (the mirror's own
+  in-flight change, the `src/xgselect.rs` slice's four `gdk_x11_*` gates, landed at `bbb378d`
+  while this round ran), so the move waits for the next one - it is `## Owed` 2's remainder, now
+  with the exact member list.
+- The stand-in edge this unit will use is already in place at C 30 (`include/gtkutil.rs` first, then
+  `include/gtk.rs`), and the 59 names to drop are named in Owed 2; nothing in this file changed.

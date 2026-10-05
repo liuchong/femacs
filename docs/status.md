@@ -8882,3 +8882,40 @@
   ⑥ **预算**：`probe` **3 发**（msdos 补名前/补名后/修缺陷后各一）、`build-tu` **0 发**、
   `layout-check` 1 发、`check-all-units.sh` 1 发；两条 lane 的预算在它们自己的报告里；
   本轮所有 `/tmp/femacs-int` 编译产物在收工时删（`/tmp/femacs-sweep` 是共享扫描缓存，保留）。
+
+- **3.480 P-90 搬运算第二轮落地：pgtkfns 的第三方段与 image 的十条重复声明搬进 `include/gtk.rs`；两条镜像边被镜像自身的两个缺口挡住（2026-10-05）**：
+  ① **落地**：`src/pgtkfns.rs` 的 C 28 段（155 行：cairo/GLib/GDK/GTK 声明与十三个入口点）搬走，
+  改在本单元 C 28 位置补 `#[cfg (feature = "have_pgtk")] include!("include/gtk.rs");`（1,899 → **1,770** 行）；
+  `src/image.rs` 的十条与镜像**重名**的 cairo 声明搬走（其余不重名的留在原地，因为镜像没有），边加在
+  C 64 `TERM_HEADER` 位置**且放在 TERM_HEADER 块之上**（`all (have_window_system, use_cairo)`，4,881 → **4,874**）；
+  `include/gtkutil.rs` 本轮只落证据化注释（31 → **56** 行，把 35 条无 ratchet 的 `mirror-dupes` 读数、
+  三个消费者与"下一步三步修法"写进文件头与台账）。
+  ② **集成者读数（我自己跑的）**：`build-tu src/pgtkfns.c` 与 `src/image.c` → 各 **exit 0**（336 字节空对象同族）；
+  `layout-check` **passed**（cargo exit 0）；`check-mirror-dupes` **19/19/0**；
+  `tools/check-all-units.sh`（镜像改动必跑的两腿）**83/0 + 83/0**；`extract-abi --check` 两单元仍 FAIL——
+  是未落 remainder 的 `- missing` 与 drift（pgtkfns C 3,907 vs Rust 1,770；image C 13,806 vs Rust 4,874），
+  切片边界，不是本轮引入。
+  ③ **lane 自报读数（不是我的）**：`layout-check` exit 0 / `^error` 0；`extract-abi --check` 的
+  **`OK pgtkterm.h` + `OK gtkutil.h`**；`check-target-names` 629 files / 591 targets / 0 finding；
+  `check-ledger-ticks` 234/0；`check-citations` 0 drift；`check-declarations` 10/0/0；
+  臂读数（`text-only`，`--emit=metadata` 的 `_root.rs` 编译）逐条：`image` 的 xcairo 臂 **45 → 44**
+  （−1 是边关掉的那条 `E0425: cannot find type cairo_t`，无新类）、`image` 的 ns 臂 17 → 17、
+  `pgtkfns` wide 臂 63 → 63、`pgtkfns` narrow 臂 67 → **73**（+6 = 2×`GtkCssProvider` +
+  4×`gtk_css_provider_load_from_data`；**是口径不是回归**——`include/gtk.rs` 把 GTK3 独有的这两件门在
+  `have_gtk3`，而 `pgtkfns.c` 833-890 只有 `HAVE_PGTK`，"有 pgtk 没 gtk3"不是真配置：configure.ac 的 pgtk
+  路径蕴含 GTK3。已记 `pgtkfns.md`，没有粉饰）。
+  ④ **自造缺陷（lane 报了并修，记台账）**：`image.rs` 的边最初放在 TERM_HEADER 块**下面**，P-89 的
+  "谁先展开谁占坑"让 `xtask` 在 `include/pgtkterm.rs` 的**带门** reach 处展开 `include/gtk.rs`，
+  于是 X/cairo 臂那一组名字全丢（实测 92 错，unit 自陈 67）；把本单元的 reach 移到块**之上**后回到 44。
+  ⑤ **两条真阻塞（本轮量出来，下一轮的活）**：`include/gtk.rs` 的 `GtkWidgetClass` 缺 `style_updated`
+  （`src/xfns.rs` 的 3 条副本是 `include/gtkutil.rs` C 26 边的**第二个**阻塞者），`GdkEvent` union 缺
+  `button/scroll/motion/crossing/key`（不补则 xwidget 的边一落就是 `E0428 GdkEvent` + `E0119`×2 +
+  `E0740` + `E0609 no field key`×2）。两处都只能改 `include/gtk.rs`（本轮它在飞、随后不在 lane 清单里），
+  所以 `src/xwidget.rs` 的 59 名搬运、`include/gtkutil.rs` 的 C 26 边、`include/pgtkterm.rs` 的 C 31 边
+  三条都停在原地并逐条点名。
+  ⑥ **未声称**：**GTK 树不在本机** ⇒ 全部臂读数是 `text-only`，`include/gtk.rs` 的 GDK/GTK 值与布局仍
+  **UNVERIFIED**；未声称两条镜像边已通、`src/xwidget.rs` 的搬运已完成；narrow 臂的 +6 不是"通过"；
+  两个单元没有运行证据。
+  ⑦ **预算（如实）**：lane 自报 `build-tu` **9 发**（限 3：三发是清单要求的三单元冻结构建、三发是 after
+  物化重做、两发终态、一发 xwidget 末态）、`layout-check` 4 次、臂读数脚本 8 轮，`probe` 未跑；
+  集成者 `build-tu` **2 发**、`layout-check` 1 发、`check-all-units.sh` 1 发。

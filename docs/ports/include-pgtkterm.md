@@ -102,3 +102,12 @@
    `tools/feature-coverage.py` lists them with their sites.  Nothing to register.
 3. **The GDK/GTK layouts and the records' `bool_bf` dispatch** (P-80) are owed to a GTK3 toolchain
    (Owed 2 of `docs/ports/include-gtk.md`).
+
+4. **C 31's `<gtk/gtk.h>` edge is owed** (its comment in `femacs/src/include/pgtkterm.rs` carries
+   the same text).  The three landed consumers that reach this mirror are `src/pgtkterm.rs` (C 48's
+   chain - it has its own edge), `src/image.rs` (C 64's `TERM_HEADER` pgtk arm - it has its own now)
+   and `src/xwidget.rs` (gtkutil.h 29's arm, gated `have_pgtk`).  Landing the edge breaks the last
+   one: `include/gtk.rs`'s `GdkEvent` union lacks the four records + the `key` member this unit's
+   copy carries (measured: `E0428` + `E0119` + `E0740` + `E0609` x2, arm A 53 -> 54).  The edge
+   lands in the round that can write `include/gtk.rs` - `docs/ports/xwidget.md` and
+   `docs/ports/include-gtkutil.md` carry the member list.

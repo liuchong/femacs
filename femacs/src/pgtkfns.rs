@@ -29,27 +29,30 @@
 //     the four cairo arms are carried, with the feature names `cairo_has_pdf_surface`,
 //     `cairo_has_png_functions`, `cairo_has_ps_surface` and `cairo_has_svg_surface` - names this
 //     tree has not registered (the ledger's Owed);
-//   * two mirrors in the include graph are **placeholders**: `include/gtkutil.rs` (every `xg_*`
-//     entry point) and `include/pgtkterm.rs` (the records `pgtk_display_info` and `pgtk_output`, the
-//     `FRAME_*` accessors they back, the twelve `pgtk_*` prototypes and `x_display_list`).  That is
-//     why the names C reaches through `"gtkutil.h"` and `"pgtkterm.h"` are **declared at the use
-//     site** (P-72 rule 4, the `src/xfns.rs` 296-323 shape) and the two record *types* stay the
-//     named gap this unit cannot close (`docs/ports/include-pgtkterm.md`): the port spells them, and
-//     the mirror owes their layout.
+//   * two mirrors in the include graph still owe declarations: `include/gtkutil.rs` (every `xg_*`
+//     entry point) and `include/pgtkterm.rs`'s `pgtk` chain (the `FRAME_*` accessors and the twelve
+//     `pgtk_*` prototypes, which this unit carries itself because `gtkutil.h` 29's `pgtkterm.h` edge
+//     is not in `include/gtkutil.rs` yet).  The GTK/GDK/cairo surface, by contrast, arrives from
+//     `include/gtk.rs`, through this unit's own stand-in edge at C 28's chain, so this file no
+//     longer declares it; the
+//     records the accessors name (`pgtk_display_info`, `pgtk_output`) are `include/pgtkterm.rs`'s
+//     and their layout is the named gap (`docs/ports/include-pgtkterm.md`).
 //
-// **The toolkit layer is declared here (P-88 ①; P-90's move is owed).**  `<gtk/gtk.h>` and the
-// `<gdk/gdk.h>`/`<gdk-pixbuf/gdk-pixbuf.h>`/`<glib-object.h>`/`<cairo.h>` chain behind it are
-// third-party headers with no file in the reference tree, so their declarations stand in this unit
-// rather than in a new file under `femacs/src/include/` - and the layering is *read*, not invented:
+// **The toolkit layer moved out (P-88 ⑤/P-90 ②③).**  `<gtk/gtk.h>` and the
+// `<gdk/gdk.h>`/`<gdk-pixbuf/gdk-pixbuf.h>`/`<glib-object.h>`/`<cairo.h>` chain behind it used to be
+// declared in this unit; they now come from the surface's single home, `femacs/src/include/gtk.rs`,
+// through the stand-in edge this unit carries at C 28's chain (the edge belongs in
+// `include/gtkutil.rs` - `## Owed` of `docs/ports/include-gtkutil.md` - and drops there).  The
+// layering of the declaration is *read*, not invented:
 // **GLib/GObject and cairo are on this machine** (`/opt/homebrew/include/glib-2.0` GLib 2.90.0,
 // `/opt/homebrew/include/cairo` cairo 1.18.4), so every GLib and cairo declaration below quotes the
 // header and line it was read from and `cairo_surface_type_t`'s layout is a **clang reading**
 // (Evidence ②).  **GTK, GDK and gdk-pixbuf are not on this machine** (`ls -d
 // /opt/homebrew/include/gtk-3.0 /opt/homebrew/include/gtk-4.0 /opt/homebrew/include/gdk-pixbuf-2.0`
 // -> all absent; `pkg-config` is not installed; no `gtk/gtk.h` anywhere under `/opt/homebrew`,
-// `/usr/local` or `/Library`), so those records and entry points cite **the header alone, no line**,
-// their records are the never-dereferenced `[u8; 0]` shape (`src/xfns.rs` 1004-1009) and every
-// layout claim about them is UNVERIFIED and owed to a GTK toolchain.
+// `/usr/local` or `/Library`), so `include/gtk.rs`'s citations of theirs name **the header alone,
+// no line**, their records are the never-dereferenced `[u8; 0]` shape and every layout claim about
+// them is UNVERIFIED and owed to a GTK toolchain (`docs/ports/include-gtk.md`).
 //
 // `docs/ports/pgtkfns.md` carries the C line ranges, the acceptance readings, every deviation and
 // the items the integrator owes.  No behaviour of this file was executed anywhere: there is no GTK
@@ -86,6 +89,17 @@ include!("../lib/include/limits.in.rs");       // lisp.h 33: `#include <limits.h
 include!("include/blockinput.rs");             // C 27: `#include "blockinput.h"` (block_input)
 #[cfg (feature = "have_pgtk")]
 include!("include/gtkutil.rs");                // C 28: `#include "gtkutil.h"` (the GTK chain)
+/* C 28's chain: `"gtkutil.h"` 26's `#include <gtk/gtk.h>` (C 24's `USE_GTK`) is where this unit's
+   GTK/GDK/cairo names come from.  `include/gtkutil.rs` does not carry that edge yet (its head note
+   records the measured blocker set - `src/xfns.rs`'s `GtkWidgetClass` needs `include/gtk.rs`'s
+   record to grow a member, a change *inside* that mirror), so the edge stands here, at the C
+   position that makes the names visible - the `src/xwidget.rs` C 30 stand-in shape.
+   It carries **this file's own gate**, `have_pgtk` (every item of this unit is gated on it, and
+   C's `HAVE_PGTK` implies `USE_GTK`, so the gate is the reach's, not a narrowing of C 24); it drops
+   when `include/gtkutil.rs`'s C 26 edge lands (P-88 ⑤; `## Owed` of
+   `docs/ports/include-gtkutil.md`).  */
+#[cfg (feature = "have_pgtk")]
+include!("include/gtk.rs");                    // gtkutil.h 26: `#include <gtk/gtk.h>`
 #[cfg (feature = "have_pgtk")]
 include!("include/window.rs");                 // C 29: `#include "window.h"` (update_mode_lines)
 #[cfg (feature = "have_pgtk")]
@@ -117,160 +131,17 @@ include!("include/frame.rs");                  // pgtkterm.h 24: `#include "fram
 include!("include/dispextern.rs");             // pgtkterm.h 23: `#include "dispextern.h"`
 
 /* ----------------------------------------------------------------------------------------------
-   C 28's chain: `<gtk/gtk.h>`, reached through `"gtkutil.h"` (`gtkutil.h` 25's
-   `#include <gtk/gtk.h>` under `USE_GTK`).  `gtkutil.h`'s mirror is a placeholder, so nothing in
-   that chain arrives in this unit; the third-party names this slice uses are declared here (P-88
-   ①), GLib and cairo from this machine's headers with line citations, GDK, GTK and gdk-pixbuf from
-   the header alone (absent - the port's header comment).
+   C 28's chain: `<gtk/gtk.h>`, reached through `"gtkutil.h"` (`gtkutil.h` 26's
+   `#include <gtk/gtk.h>` under `USE_GTK`).  The chain is live now - the stand-in edge above,
+   at this unit's C 28, carries it (its owner is `include/gtkutil.rs`'s C 26, still owed) - so the
+   third-party names this slice
+   used to declare here (the `cairo_surface_type_t` family, `gpointer`/`gchar`/`gint`/`gboolean`/
+   `gssize`/`GError`, the five `GdkPixbuf`/`GtkCssProvider`/`GtkWidget`/`GtkWindow`/`GdkWindow`
+   handles with `GTK_WINDOW`, and their entry points) come from `include/gtk.rs` through it
+   (P-88 ⑤'s move, P-90 ②; `## Evidence` of `docs/ports/pgtkfns.md`).  The pgtk `FRAME_*` family
+   below is a different chain: it stays until `gtkutil.h` 29's `pgtkterm.h` edge lands in this
+   mirror (P-90's next round).
    ---------------------------------------------------------------------------------------------- */
-
-/* cairo.  `cairo_surface_type_t` is what C 909's `surface_type` stores and the four
-   `CAIRO_SURFACE_TYPE_*` are the arms' values (C 929/936/943/954).  */
-/// C: cairo.h 2563: `typedef enum _cairo_surface_type { CAIRO_SURFACE_TYPE_IMAGE, …,
-/// CAIRO_SURFACE_TYPE_SVG, … } cairo_surface_type_t;` (the enum closes at cairo.h 2589).  Measured
-/// on this machine (`clang -std=gnu23 -I /opt/homebrew/include/cairo`, cairo 1.18.4): `sizeof` 4 -
-/// C's enum ABI is `c_int` (PORTING.md 1.3).
-#[cfg (feature = "have_pgtk")]
-pub type cairo_surface_type_t = c_int;
-#[cfg (feature = "have_pgtk")]
-pub const CAIRO_SURFACE_TYPE_IMAGE: cairo_surface_type_t = 0;   // C: cairo.h 2564
-#[cfg (feature = "have_pgtk")]
-pub const CAIRO_SURFACE_TYPE_PDF: cairo_surface_type_t = 1;     // C: cairo.h 2565
-#[cfg (feature = "have_pgtk")]
-pub const CAIRO_SURFACE_TYPE_PS: cairo_surface_type_t = 2;      // C: cairo.h 2566
-#[cfg (feature = "have_pgtk")]
-pub const CAIRO_SURFACE_TYPE_SVG: cairo_surface_type_t = 10;    // C: cairo.h 2574
-#[cfg (feature = "have_pgtk")]
-const _: () = core::assert! (core::mem::size_of::<cairo_surface_type_t> () == 4);
-/// C: cairo.h 3244: `typedef struct _cairo_region cairo_region_t;` - the pointee of
-/// `gdk_window_set_opaque_region`'s second parameter (C 237 passes `NULL`); the port never
-/// allocates or dereferences one.
-#[cfg (feature = "have_pgtk")]
-pub enum cairo_region_t {}
-
-/* GLib and GObject (both on this machine).  */
-/// C: gtypes.h 109: `typedef void* gpointer;`
-#[cfg (feature = "have_pgtk")]
-pub type gpointer = *mut c_void;
-/// C: gtypes.h 52/55/56: `typedef char gchar;` / `typedef int gint;` / `typedef gint gboolean;`
-#[cfg (feature = "have_pgtk")]
-pub type gchar = c_char;
-#[cfg (feature = "have_pgtk")]
-pub type gint = c_int;
-#[cfg (feature = "have_pgtk")]
-pub type gboolean = gint;
-/// C: glibconfig.h 80: `typedef signed long gssize;` (`gtk_css_provider_load_from_data`'s third
-/// parameter; C 881 passes -1).
-#[cfg (feature = "have_pgtk")]
-pub type gssize = c_long;
-/// C: gerror.h 43: `typedef struct _GError GError;`
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GError
-{
-  _private: [u8; 0],
-}
-/// C: cairo.h 135/164's peers in gdk-pixbuf and GTK: `GdkPixbuf` (C 740), `GtkCssProvider` (C 834)
-/// and `GtkWidget` (C 229 and the whole setter block).  GTK is not on this machine, so these three
-/// carry the never-dereferenced shape and **their layout is UNVERIFIED** (P-88 ②).
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GdkPixbuf
-{
-  _private: [u8; 0],
-}
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkCssProvider
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkwidget.h: `typedef struct _GtkWidget GtkWidget;`
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkWidget
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkwindow.h: `typedef struct _GtkWindow GtkWindow;`
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GtkWindow
-{
-  _private: [u8; 0],
-}
-/// C: gdk/gdkwindow.h: `typedef struct _GdkWindow GdkWindow;` - `gtk_widget_get_window`'s result
-/// and `gdk_window_set_opaque_region`'s first parameter (C 236-237).
-#[cfg (feature = "have_pgtk")]
-#[repr(C)]
-pub struct GdkWindow
-{
-  _private: [u8; 0],
-}
-/// C: gtk/gtkwindow.h: `#define GTK_WINDOW(win) (G_TYPE_CHECK_INSTANCE_CAST ((win), GTK_TYPE_WINDOW,
-/// GtkWindow))`.  The port keeps the macro's name and its result type and drops GLib's checked-cast
-/// chain, exactly as the tree already does for `G_OBJECT`/`GTK_BOX` (`src/pgtkterm.rs` 293-296,
-/// 519-521): the cast is a compile-time no-op on the pointer.  GTK is not on this machine, so the
-/// citation is the header and not a line.
-#[cfg (feature = "have_pgtk")]
-macro_rules! GTK_WINDOW {
-  ($o:expr) => { ($o) as *mut GtkWindow };
-}
-
-#[cfg (feature = "have_pgtk")]
-unsafe extern "C" {
-  /* GLib: measured on this machine.  */
-  /// C: gerror.h 208: `void g_error_free (GError *error);` - C 748's
-  /// `g_error_free (err);`
-  pub fn g_error_free (error: *mut GError);
-  /// C: gobject.h 515: `void g_object_unref (gpointer object);` - C 742/795's
-  /// `g_object_unref (pixbuf);`
-  pub fn g_object_unref (object: gpointer);
-  /* gdk-pixbuf, GDK and GTK: not on this machine, so the citation is the header and not a line
-     (`src/pgtkterm.rs` 504-660 reads the same absence the same way), and every signature below is
-     **UNVERIFIED**.  */
-  /// C 740: `pixbuf = gdk_pixbuf_new_from_file (filename, &err);`
-  /// C: gdk-pixbuf/gdk-pixbuf-core.h: `GdkPixbuf *gdk_pixbuf_new_from_file (const char *filename,
-  /// GError **error);`
-  pub fn gdk_pixbuf_new_from_file (filename: *const c_char, error: *mut *mut GError)
-                                   -> *mut GdkPixbuf;
-  /// C 774: `GdkPixbuf *pixbuf = gdk_pixbuf_new_from_xpm_data (data);`
-  /// C: gdk-pixbuf/gdk-pixbuf-core.h: `GdkPixbuf *gdk_pixbuf_new_from_xpm_data (const char **data);`
-  pub fn gdk_pixbuf_new_from_xpm_data (data: *mut *const c_char) -> *mut GdkPixbuf;
-  /// C 236-237: `gdk_window_set_opaque_region (gtk_widget_get_window (…), NULL);`
-  /// C: gdk/gdkwindow.h: `void gdk_window_set_opaque_region (GdkWindow *window,
-  /// cairo_region_t *region);`
-  pub fn gdk_window_set_opaque_region (window: *mut GdkWindow, region: *mut cairo_region_t);
-  /// C 234: `gtk_widget_set_app_paintable (FRAME_GTK_OUTER_WIDGET (f), f->alpha_background != 1.0);`
-  /// C: gtk/gtkwidget.h: `void gtk_widget_set_app_paintable (GtkWidget *widget,
-  /// gboolean app_paintable);`
-  pub fn gtk_widget_set_app_paintable (widget: *mut GtkWidget, app_paintable: gboolean);
-  /// C 235: `gtk_widget_get_realized (FRAME_GTK_OUTER_WIDGET (f))`
-  /// C: gtk/gtkwidget.h: `gboolean gtk_widget_get_realized (GtkWidget *widget);`
-  pub fn gtk_widget_get_realized (widget: *mut GtkWidget) -> gboolean;
-  /// C 236: `gtk_widget_get_window (FRAME_GTK_OUTER_WIDGET (f))`
-  /// C: gtk/gtkwidget.h: `GdkWindow *gtk_widget_get_window (GtkWidget *widget);`
-  pub fn gtk_widget_get_window (widget: *mut GtkWidget) -> *mut GdkWindow;
-  /// C 741/794: `gtk_window_set_icon (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)), pixbuf);`
-  /// C: gtk/gtkwindow.h: `void gtk_window_set_icon (GtkWindow *window, GdkPixbuf *icon);`
-  pub fn gtk_window_set_icon (window: *mut GtkWindow, icon: *mut GdkPixbuf);
-  /// C 310-311: `gtk_window_set_title (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)),
-  /// SSDATA (encoded_name));`
-  /// C: gtk/gtkwindow.h: `void gtk_window_set_title (GtkWindow *window, const gchar *title);`
-  pub fn gtk_window_set_title (window: *mut GtkWindow, title: *const gchar);
-  /// C 808/810: `gtk_window_stick (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)));` /
-  /// `gtk_window_unstick (GTK_WINDOW (FRAME_GTK_OUTER_WIDGET (f)));`
-  /// C: gtk/gtkwindow.h: `void gtk_window_stick (GtkWindow *window);` / `void gtk_window_unstick
-  /// (GtkWindow *window);`
-  pub fn gtk_window_stick (window: *mut GtkWindow);
-  pub fn gtk_window_unstick (window: *mut GtkWindow);
-  /// C 868/881/891: `gtk_css_provider_load_from_data (css_provider, "", -1, NULL);` and the two
-  /// messages.
-  /// C: gtk/gtkcssprovider.h: `void gtk_css_provider_load_from_data (GtkCssProvider *css_provider,
-  /// const gchar *data, gssize length, GError **error);`
-  pub fn gtk_css_provider_load_from_data (css_provider: *mut GtkCssProvider, data: *const gchar,
-                                          length: gssize, error: *mut *mut GError);
-}
 
 /* ----------------------------------------------------------------------------------------------
    `"pgtkterm.h"` (reached through `"gtkutil.h"` 29's `#include "pgtkterm.h"`): its mirror is a

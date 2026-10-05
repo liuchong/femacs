@@ -136,6 +136,21 @@ include!("../lib/include/sys_types.in.rs");    // C 59-61: `#include <sys/types.
    (the image *libraries*' load path is C 11xxx's), so the C line is named here and no value is
    carried (`src/xrdb.rs` 45-47 / `src/callproc.rs` keep the measured value their files use).  */
 
+/* C 64's `TERM_HEADER` chain is what brings cairo (and GTK) into this unit: `xterm.h` 98's
+   `<cairo-xlib.h>` under `USE_CAIRO` and 69's `<gtk/gtk.h>` under `USE_GTK`, `pgtkterm.h` 31's
+   `<gtk/gtk.h>`, and the NS/Haiku/Android headers' own.  Their declarations are the SDK mirror
+   `femacs/src/include/gtk.rs`'s (P-90 ①/②), and the mirrors that own those C edges do not carry
+   the edge yet (`include/xterm.rs`, `include/nsterm.rs`; `include/pgtkterm.rs`'s C 31 edge is
+   owed for the same reason), so the edge stands here, at the C position that makes the names
+   visible - the `src/xwidget.rs` C 30 stand-in shape.  It carries this unit's cairo block's own
+   condition, C 92's `#ifdef USE_CAIRO`, and it stands **above** the `TERM_HEADER` block on
+   purpose: when `include/pgtkterm.rs`'s C 31 edge lands it is the *second* reach of this same
+   mirror in this TU, and the first reach claims the file's one expansion slot (P-89) - measured
+   with the edge placed below, xtask expanded `include/gtk.rs` at the pgtkterm reach and this
+   unit's X/cairo arm (where that reach is gated off) lost all ten names it needs.  */
+#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
+include!("include/gtk.rs");                    // TERM_HEADER: the cairo surface `include/gtk.rs` carries
+
 /* C 63-65: `#ifdef HAVE_WINDOW_SYSTEM / #include TERM_HEADER / #endif`.  C picks `TERM_HEADER`
    per configuration (configure.ac 7180) and it is one of the six platform terminal headers; the
    port has a mirror for each, so the arm keeps C's shape - one gated `include!` per platform,
@@ -285,26 +300,20 @@ macro_rules! GREEN16_FROM_ULONG { ($color:expr) => { (GREEN_FROM_ULONG! ($color)
 macro_rules! BLUE16_FROM_ULONG { ($color:expr) => { (BLUE_FROM_ULONG! ($color) * 0x101) }; }
 
 /* --- C 92-102: `#ifdef USE_CAIRO` ------------------------------------------------------------
-   cairo is a third-party library header with no file in the reference tree and no mirror, which is
-   exactly P-88's case, so the declarations this slice takes from it stand here rather than in a new
-   file under `femacs/src/include/`, and every constant and record is a **clang reading** from this
-   machine's `/opt/homebrew/include/cairo/cairo.h` (cairo 1.18.4), quoted in the ledger.  */
+   cairo is a third-party library header with no file in the reference tree.  Its declarations are
+   the SDK mirror `femacs/src/include/gtk.rs`'s (P-90 ①② - cairo is part of that surface), and
+   this unit reaches it through the edge below, at C 64's `TERM_HEADER` position; what the unit
+   still declares are the `<cairo.h>` names that mirror does not carry.  Every constant and record
+   here is a **clang reading** from this machine's `/opt/homebrew/include/cairo/cairo.h`
+   (cairo 1.18.4), quoted in the ledger.  */
 /// C: C 100-101: `static unsigned long image_alloc_image_color (struct frame *, struct image *, Lisp_Object, unsigned long);`
 /// The first slice kept this declaration because C 2318's definition was outside it; the second
 /// slice's C 2182-2211 **is** the definition, so the prototype is dropped here (PORTING.md 0.1-12:
 /// a prototype and its definition in one translation unit have no Rust counterpart, and Rust
 /// items are order-independent), and `docs/ports/image.md` records the move.
-/// C: cairo.h 62-64: `typedef struct _cairo cairo_t;` / `typedef struct _cairo_surface cairo_surface_t;` / `typedef struct _cairo_pattern cairo_pattern_t;`
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-pub enum cairo_surface_t {}
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-pub enum cairo_pattern_t {}
-/// C: cairo.h 216: `typedef enum _cairo_format { CAIRO_FORMAT_ARGB32, CAIRO_FORMAT_RGB24, CAIRO_FORMAT_A8, CAIRO_FORMAT_A1, ... } cairo_format_t;`
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-pub type cairo_format_t = c_int;
-/// C: cairo.h 197: `typedef enum _cairo_status { CAIRO_STATUS_SUCCESS = 0, ... } cairo_status_t;`
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-pub type cairo_status_t = c_int;
+/* cairo.h 62-64/197/216's `cairo_surface_t`, `cairo_pattern_t`, `cairo_format_t` and
+   `cairo_status_t` are `include/gtk.rs`'s now, reached through the edge below - the names the two
+   mirrors shared (P-88 ⑤'s move; `## Evidence` of `docs/ports/image.md`).  */
 /// C: cairo.h 246: `typedef enum _cairo_extend { CAIRO_EXTEND_NONE, CAIRO_EXTEND_REPEAT, ... } cairo_extend_t;`
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
 pub type cairo_extend_t = c_int;
@@ -314,10 +323,8 @@ pub type cairo_filter_t = c_int;
 /// C: cairo.h 2691: `typedef void (*cairo_destroy_func_t) (void *);`
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
 pub type cairo_destroy_func_t = Option<unsafe extern "C" fn (data: *mut c_void)>;
-/// C: cairo.h 217-221 - measured: `CAIRO_FORMAT_ARGB32` **0**, `CAIRO_FORMAT_RGB24` **1**,
-/// `CAIRO_FORMAT_A8` **2**, `CAIRO_FORMAT_A1` **3**
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-pub const CAIRO_FORMAT_ARGB32: cairo_format_t = 0;
+/// C: cairo.h 217-221 - measured: `CAIRO_FORMAT_RGB24` **1**, `CAIRO_FORMAT_A8` **2**,
+/// `CAIRO_FORMAT_A1` **3** (`CAIRO_FORMAT_ARGB32` **0** is `include/gtk.rs`'s now).
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
 pub const CAIRO_FORMAT_RGB24: cairo_format_t = 1;
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
@@ -388,9 +395,6 @@ pub struct cairo_user_data_key_t
 #[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
 unsafe extern "C" {
   pub fn cairo_format_stride_for_width (format: cairo_format_t, width: c_int) -> c_int;
-  pub fn cairo_image_surface_create_for_data (data: *mut c_uchar, format: cairo_format_t,
-                                              width: c_int, height: c_int, stride: c_int)
-    -> *mut cairo_surface_t;
   pub fn cairo_surface_set_user_data (surface: *mut cairo_surface_t,
                                       key: *const cairo_user_data_key_t, user_data: *mut c_void,
                                       destroy: cairo_destroy_func_t) -> cairo_status_t;
@@ -402,7 +406,6 @@ unsafe extern "C" {
   pub fn cairo_pattern_set_filter (pattern: *mut cairo_pattern_t, filter: cairo_filter_t);
   pub fn cairo_pattern_get_filter (pattern: *mut cairo_pattern_t) -> cairo_filter_t;
   pub fn cairo_pattern_destroy (pattern: *mut cairo_pattern_t);
-  pub fn cairo_surface_destroy (surface: *mut cairo_surface_t);
   pub fn cairo_surface_status (surface: *mut cairo_surface_t) -> cairo_status_t;
   pub fn cairo_surface_mark_dirty (surface: *mut cairo_surface_t);
   pub fn cairo_surface_flush (surface: *mut cairo_surface_t);
@@ -2220,20 +2223,10 @@ macro_rules! CLEAR_IMAGE_PIXMAP { () => { (1 << 0) }; }
 macro_rules! CLEAR_IMAGE_MASK { () => { (1 << 1) }; }
 #[cfg (feature = "have_window_system")]
 macro_rules! CLEAR_IMAGE_COLORS { () => { (1 << 2) }; }
-/* P-88: two cairo.h names `prepare_image_for_display` (C 1879) takes that the unit's cairo
-   section (C 92-102) does not declare yet; they join it (the section is the `#include` site's
-   declarations, not a new `include/` file).  Clang readings: `CAIRO_PATTERN_TYPE_SURFACE` **1**
-   and `sizeof (cairo_pattern_type_t)` **4**.  */
-/// C: cairo.h 2990-2996: `typedef enum _cairo_pattern_type { CAIRO_PATTERN_TYPE_SOLID, CAIRO_PATTERN_TYPE_SURFACE, ... } cairo_pattern_type_t;`
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-pub type cairo_pattern_type_t = c_int;
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-pub const CAIRO_PATTERN_TYPE_SURFACE: cairo_pattern_type_t = 1;
-/// C: cairo.h 2999-3000: `cairo_public cairo_pattern_type_t cairo_pattern_get_type (cairo_pattern_t *pattern);`
-#[cfg (all (feature = "have_window_system", feature = "use_cairo"))]
-unsafe extern "C" {
-  pub fn cairo_pattern_get_type (pattern: *mut cairo_pattern_t) -> cairo_pattern_type_t;
-}
+/* cairo.h 2990-3000's `cairo_pattern_type_t`, `CAIRO_PATTERN_TYPE_SURFACE` and
+   `cairo_pattern_get_type` - the three names C 1879/545's `cairo_pattern_get_type` call needs -
+   are `include/gtk.rs`'s now (measured there: `CAIRO_PATTERN_TYPE_SURFACE` **1**,
+   `sizeof (cairo_pattern_type_t)` **4**), reached through the edge below.  */
 
 /* Log error message with format string FORMAT and trailing arguments.
    Signaling an error, e.g. when an image cannot be loaded, is not a
