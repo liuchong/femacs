@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
 import re
 import subprocess
 import sys
@@ -26,6 +27,17 @@ HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("cinventory", HERE / "cinventory.py")
 ci = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(ci)
+
+
+# The probe directory.  It is a fixed path because two ledgers cite it as the place a run's
+# probe file lived (docs/ports/nsterm.md 2174, docs/ports/include-readutmp.md 76), and the probe
+# text is deterministic - the same condition regenerates the same file.  What is *not* kept is
+# the file itself: by status 3.681 the directory held **6,128 files / 891 MB**, because nothing
+# ever removed them and the disk filled up twice (the second time mid-run, `OSError: [Errno 28]`).
+# One probe is removed as soon as clang has answered; `FEMACS_COND_EVAL_KEEP=1` keeps them for a
+# failing run's post-mortem.
+PROBE_DIR = Path("/tmp/femacs-cond-eval")
+KEEP_PROBES = bool(os.environ.get("FEMACS_COND_EVAL_KEEP"))
 
 
 def clang_verdict(header: str, prefix: str, expr: str, kind: str,
@@ -40,7 +52,7 @@ def clang_verdict(header: str, prefix: str, expr: str, kind: str,
     is still open in the prefix) tests cleanly.  `-dM` only, so the prefix is never parsed.
     """
     marker = f"EMACS_COND_TAKEN_{tag}"
-    probe = Path("/tmp/femacs-cond-eval") / f"probe_{tag}.c"
+    probe = PROBE_DIR / f"probe_{tag}.c"
     probe.parent.mkdir(parents=True, exist_ok=True)
     # Close the conditionals the prefix left open: an `#elif`'s condition is only reached
     # when every earlier branch of its chain was false, so the defines in those bodies do not
@@ -58,7 +70,10 @@ def clang_verdict(header: str, prefix: str, expr: str, kind: str,
         + f"#define {marker} 1\n#endif\n", encoding="utf-8")
     out = subprocess.run(["clang", "-dM", "-E", "-std=gnu23", *include_dirs, str(probe)],
                          capture_output=True, text=True).stdout
-    return f"#define {marker} " in out
+    taken = f"#define {marker} " in out
+    if not KEEP_PROBES:
+        probe.unlink(missing_ok=True)
+    return taken
 
 
 def main() -> int:

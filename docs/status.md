@@ -13930,3 +13930,9 @@
   ⑦ **文本门现读全绿**：`check-declarations` 17 declaration sites (0 forbidden, 17 allowed literals), 0 failures；`check-citations` 676/0 drift/0 range/2011 external/36 allowed/0 stale；`check-dead-file-coverage` 145/0；`check-port-lines` 0 file(s) under ten percent/0 ratchet row/0 new/0 stale；`check-cond-eval src/sfntfont.c` 27 conditions/0 unknown/0 disagreements。
   ⑧ **未声称**：C 1427-4222 仍未落（39 缺函数 + 2 常量 + 4 文件级对象 + 57.9% 漂移就是它的边界）；本片**零运行时证据**（没有字体文件被打开、没有 cmap 被读、没有 `lseek`/`read`/`memmem` 返回）；`extract-abi --all` 本轮**未跑**（没有单元收口，权威读数仍是 3.680 的 `572 done / 16 failing`）。
   ⑨ **预算**：`build-tu` 1 发、`probe` 2 发（HEAD 基线 + 本片）、`extract-abi --check` 6 发、文本门 6 发、`cond-eval` 1 发；`/tmp` 的脚本与读数收工删；`build/probes/sfntfont`、`build/femacs/units/sfntfont` 收工清，`build/femacs/*.o` 按纪律保留。
+- **3.681a `tools/check-cond-eval.py` 的探针目录不再堆积：一次 `--verified` 全跑本来留下 5,662 个 `probe_*.c`（约 0.5 GB），现在跑完是 0 个文件 / 0 B；`FEMACS_COND_EVAL_KEEP=1` 留给失败复盘（2026-10-06）**：
+  ① **背景（3.680 ⑨ 点名的欠账）**：该工具把每个条件的探针写在固定目录 `/tmp/femacs-cond-eval/probe_<tag>.c`（两条台账引用过这个路径：`docs/ports/nsterm.md` 2174、`docs/ports/include-readutmp.md` 76），**从不清理**——3.680 开工时那里积了 **6,128 个文件 / 891 MB**，磁盘两次被填满（第二次是运行中的 `OSError: [Errno 28]`）。
+  ② **改法（只动这一个文件；路径不变、探针文本不变）**：`clang_verdict` 在 clang 给出答案之后 `probe.unlink (missing_ok=True)`；新增 `PROBE_DIR` 常量（注释写明为什么这个路径不能改）与 `FEMACS_COND_EVAL_KEEP=1` 开关（要复盘失败时把文件留下）。
+  ③ **读数**：⑴ 改后先量对照——同一份 `--verified docs/baseline/config/cond-eval-verified.txt` 全跑 `real 3m12s`，末行 **`5662 conditions, 4 unknown to the evaluator, 0 disagreements`**（与改前逐字相同），**跑完 `ls /tmp/femacs-cond-eval` 为 0 个文件、`du` 0 B**（改前这一条命令就是 5,662 个探针文件的来源）；⑵ 单文件档 `src/sfntfont.c` **27 conditions / 0 unknown / 0 disagreements**（与 3.681 同），跑后同样 0 个文件；⑶ `FEMACS_COND_EVAL_KEEP=1` 下同一命令留下 27 个文件（开关有效）。
+  ④ **未声称**：只改**临时文件的清理**，判定逻辑一字未动（全跑读数逐字未变）；**崩溃**时当次探针仍会留在盘上（`unlink` 只在该次调用正常返回前执行），并发运行仍共用同一目录名——两条都如实记，不改判据、不动那两条台账里的历史路径。
+  ⑤ **预算**：`check-cond-eval` 4 发（单文件 2 发 + 全跑 2 发）；磁盘上这一项从 ~0.5-0.9 GB 变成 0。
