@@ -13210,3 +13210,43 @@
      长期指令"前期复刻期间与 C 尽量一致"⇒ 那一家族留给全面验收期。
   ⑥ **预算**：`check-declarations` 12 发（含自测与三轮修复）、其余文本门 11 发、`git diff`/`sed` 若干；`build-tu` 0、
      `probe` 0、`/tmp` 脚本 6 个与临时读数文件收工删。
+
+- **3.649 L3 稳定性的形状被更正：不是"陈旧 dump"一种，而是"装载把本进程的堆状态弄坏"；三条独立证据 + 一条被推翻的假设（2026-10-06）**：
+  ① **起点**：3.647 把 3.646 的"不稳定"拆成两条——`--batch` 有时不被采纳（进交互循环＝记的"挂"）与启动期 `null pointer
+     dereference`。本轮把三条互不依赖的实测摆在一起，结论与那两条都不同。
+  ② **陈旧 dump 的 A/B（正面证据，机制从 C 读出）**：重链一次（`python3 tools/check-link.py --executable`，它会改进程里的
+     `RUNTIME_TEXT`）而**不重新生成 dump** 就再跑 ⇒ **8/8 SIGSEGV**；同一二进制**重新生成 dump**（`FEMACS_CWD=$PWD/build/emacs-ref/src
+     tools/loadup-fixture.sh --batch --temacs=pdump`）后 ⇒ **8/8 `rc=0` 且打出 `X`**。机制：`emacs_offset()`/`emacs_ptr_at()`
+     以 `emacs_basis ()`（= `&Vpurify_flag`）为基准，偏移是**编译期常量** ⇒ 二进制只要变过一个字节，旧 dump 里每条 emacs
+     reloc 都指错（lldb 现场：`pc == lr == 栈地址`、`udf #0x101`，即从栈上取回了返回地址）。C 用 `lib/fingerprint.c` +
+     `lib-src/make-fingerprint` 的指纹在装载时拒绝这种 dump；**端口这条链还没建**（见 ⑥⑶）。
+  ③ **配对（同二进制 + 现生成 dump）仍然不稳定**：8 次里 **5 次 `rc=0`（打出 `X`）/ 3 次 `rc=134`**；`134` 每次同一条读数：
+     `panicked at build/femacs/units/alloc/_root.rs:2074:3: null pointer dereference occurred`，换算到源文件 = `femacs/src/alloc.rs:2067`
+     （C 1828 `data->string = s;`）⇒ `data = b->next_free == NULL`（C 同一句在 NULL 上也是 UB，这里的 panic 是**忠实后果**，
+     要修的是上游，不是这一句）。
+  ④ **3.647 的"`--batch` 不被采纳"在当前二进制上不成立（更正）**：对 `_noninteractive`（1 字节全局，`nm` 地址
+     `0x100cd694a`，与 `initialized`/`no_site_lisp`/`noninteractive1` 共处一个 4 字节字）下 1 字节硬件写断点、并关掉 ASLR
+     （lldb `settings set target.disable-aslr true`，该设置让失败**确定性复现**）后有**且只有 3 次**写入：初值 0
+     （`strb wzr, [x8, #0x94a]`，main+6040）→ 装载写 `noninteractive1 = 1`（相邻字节，无害）→ **`noninteractive = 1`
+     （batch 分支真的执行了）**，此后一整跑再无写入 ⇒ 真正的失败是**装载之后某处的自旋/报错循环**（`rc=124`，`</dev/null`
+     也不退出），3.647 记的 `cmd_error` 那一跑在当前二进制上复现不到（`br set -r keyboard::cmd_error` 不命中）。
+  ⑤ **两条指向"堆状态"的新实测**：⑴ **崩溃报告**（`~/Library/Logs/DiagnosticReports/emacs-2026-10-05-224652.ips`，上一会话
+     10-05 22:46 留下的现场）的 triggered 线程是 `handle_sigsegv ← xmalloc ← xmalloc ← hash_table_alloc_bytes ←
+     fns::maybe_resize_hash_table ← hash_put ← Fputhash ← eval_sub` ⇒ **装载路径自己的哈希表增长就崩在 `xmalloc` 里**
+     （fault address `0xa8accee838`，指针量级）；⑵ **字符串块状态不在 dump 里**：`&current_sblock`/`&oldest_sblock`/`&large_sblocks`
+     相对 `&Vpurify_flag` 的偏移（`0x65228`/`0x65208`/`0x651f8`）在 `build/femacs/emacs.pdmp` 里按 raw / `<<2` / `<<3` 三种
+     编码搜 ⇒ **0 命中** ⇒ 坏掉的 `next_free` 不是从 dump 恢复来的，是**本进程里被破坏或复用的堆内存**。
+  ⑥ **被推翻的假设（照实记，免得下轮重走）**：`sort_args` 读 `options[]`/`priority[]` 的**未初始化槽位**（C 的同一循环也
+     不初始化"选项参数"那些槽位，C 只是仗着 `xmalloc` 拿到的是新页=0；端口的堆在装载后已被搅动）⇒ 我实现"两个数组分配后
+     各 memset 清零"并重链、重生成 dump 后实测：**ASLR 关 4/4 仍挂、ASLR 开 5/8 成功** ⇒ **不是主因**。探针已用
+     `git show HEAD:femacs/src/emacs.rs > femacs/src/emacs.rs` 还原（工作树与 HEAD 逐字节相同，本轮**没有**任何语义改动进入提交）。
+  ⑦ **下一站（按优先）**：⑴ 在"关 ASLR"下用 `sample`/lldb 定位 rc=124 的自旋点（`/tmp/catch.sh` 形状现成，但当前二进制
+     挂的概率已变低，得按关 ASLR 跑）；⑵ 沿 ⑤⑴ 的现场往回找：装载为什么会崩在 `xmalloc`（重点看装载是否把只读的 dump
+     映射当可写、`hash_table_alloc_bytes` 的 size 参数、以及 `dump_mmap` 交回给分配器的用法）；⑶ 把 C 的指纹链补齐
+     （`lib-src/make-fingerprint` → xtask 生成 `lib/fingerprint.rs` → 装载时比对），让"陈旧 dump"**响亮地失败**而不是随机崩——
+     ② 的 A/B 已经量出缺它的代价；⑷ 三条清楚后再谈 `.elc` 装载与 `make check`。
+  ⑧ **未声称**：**L3 稳定性仍未达成**（配对状态仍 5/8）；**没有** `.elc` 装载、**没有** `make check`、L4/L5 未动；⑤⑴ 的崩溃
+     报告是**上一会话**的现场，不是本轮；③④⑤ 的读数都是**夹具**读数（端口自己的 dump + 端口自己的 `lisp` 树）。
+  ⑨ **预算**：`build-tu` 3 发（instrument / memset / 还原）、`check-link --executable` 3 发、`--temacs=pdump` 3 发、
+     夹具运行 ≈40 发、lldb 7 发、崩溃报告解析 1 发；`/tmp` 脚本与 lldb 脚本收工删；`build/femacs/{emacs,emacs.pdmp}` 保持
+     **同一次构建的一对**（03:08）。
