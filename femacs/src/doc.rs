@@ -80,7 +80,7 @@ macro_rules! doc_lseek { ($($args:tt)*) => { lseek ($($args)*) }; }
 #[cfg (feature = "use_android_assets")]
 mod android_assets {
   pub type doc_fd = *mut c_void;
-  macro_rules! doc_fd_p { ($fd:expr) => { ($fd).asset != (-1 as *mut c_void) }; }
+  macro_rules! doc_fd_p { ($fd:expr) => { ($fd).asset != (usize::MAX as *mut c_void) }; }
   macro_rules! doc_open { ($($args:tt)*) => { android_open_asset ($($args)*) }; }
   macro_rules! doc_read_quit { ($($args:tt)*) => { android_asset_read_quit ($($args)*) }; }
   macro_rules! doc_lseek { ($($args:tt)*) => { android_asset_lseek ($($args)*) }; }

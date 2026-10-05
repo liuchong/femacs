@@ -2089,7 +2089,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
 			platform_fd = android_open_asset (pfn, O_RDONLY, 0);
 
 			if !platform_fd.asset.is_null ()
-			    && platform_fd.asset != (-1 as *mut c_void)
+			    && platform_fd.asset != (usize::MAX as *mut c_void)
 			  {
 			    /* Here, openp found a platform specific
 			       file descriptor.  It can't be a directory
@@ -2103,7 +2103,7 @@ pub unsafe extern "C" fn openp (path: Lisp_Object, str_: Lisp_Object, suffixes: 
 			    return -3;
 			  }
 
-			if platform_fd.asset == (-1 as *mut c_void)
+			if platform_fd.asset == (usize::MAX as *mut c_void)
 			  { fd = -1; }
 			else
 			  { fd = platform_fd.fd; }

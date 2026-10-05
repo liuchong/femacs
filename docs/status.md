@@ -7496,3 +7496,27 @@
      `(T *) -1`/原生指针下标两条 `token-aliases.tsv` 行；`<sys/mman.h>`/`<setjmp.h>`/TEST 臂的 X11 头无镜像；
      `keyboard.rs` 5607-5610 的 `static mut` + `let` 遮蔽（`E0530`）与 `doc.rs` 83 / `lread.rs` 2092/2106 的
      `(-1 as *mut T)`（`E0600`）——同一类潜伏缺陷，下一轮按同一办法修。
+
+- **3.428 同一类潜伏缺陷的第二批：`E0530`（keyboard）与 `E0600`（doc/lread）已修（2026-10-05）**：
+  ① **缘由与实测**：3.425 的 sfnt 臂把这一类点了名——**只在门后的臂里才被编到**的代码从未被编译过。本轮先用一个
+     最小实验坐实根因：`fn f (p: *mut c_void) -> bool { p != (-1 as *mut c_void) }` 在钉住的 nightly 上**真的报
+     `E0600 cannot apply unary operator '-' to type 'usize'`**（该上下文把 `-1` 推成 `usize`，并提示 `usize::MAX`），
+     所以 `doc.rs` 83 与 `lread.rs` 2092/2106 不是"看似有先例"而是**确实编不过**。
+  ② **处置**：⑴ `keyboard.rs` 5606-5699 的 `#[cfg (feature = "have_android")] static mut lispy_function_keys`：
+     初始化块里 `let mut lispy_function_keys` **同名遮蔽了 static**（Rust 的 `E0530`）⇒ 块内那个数组改名 `keys`
+     （**87 处使用点同步改名**，C 的每条 index/value 一字不动，并留注释说明为什么名字不同）；
+     ⑵ `doc.rs` 1 处、`lread.rs` 2 处的 `(-1 as *mut c_void)` → **`(usize::MAX as *mut c_void)`**
+     （C 的 `(void *) -1` 哨兵的字面表达）。
+  ③ **读数**：⑴ 冻结 `build-tu` 三件（keyboard/doc/lread）**都 exit 0**；⑵ 臂探针（同一命令，改后）：
+     `keyboard.rs + have_android` → **3 error（2 `E0425` + 1 `E0428`），`E0530` 归零**；
+     `doc.rs + use_android_assets` → **6 error（4 `E0425` + 2 `E0308`），`E0600` 归零**；
+     `lread.rs + use_android_assets` → **13 error（6 `E0425` + 5 `E0610` + 1 `E0422` + 1 `E0308`），`E0600` 归零**。
+     剩下的**全部是臂里既有的镜像/类型缺口**，不是本轮的改动物（例：lread 的 5 条 `E0610` 是
+     `use_android_assets` 臂里 `fd` 仍是 `i32`、而臂内代码写 `fd.fd`/`fd.asset` 这类字段）。
+  ④ **一条实测裁决**：3.425 建议的两条 `docs/ports/token-aliases.tsv` 行（`(T *) -1` → `usize::MAX as *mut T`；
+     原生指针 `p[i]` → `*(p.offset (i as isize))`）**现在不需要**——`sfnt`/`keyboard`/`doc`/`lread` 四对 `--check`
+     里**没有任何**非 `missing …`/`is not static`/`line count drifted`/`does not mention` 的 finding，
+     而该表也没有"未使用行"校验；⇒ **不加空行**（加了就是无据可验的文档），等真出现 occurrence 检查时再补。
+  ⑤ **仍未解决（点名）**：上头三个臂剩下的缺口（`E0425` 的 `time_t`/`timespec` 与各臂各自的 SDK 名、
+     lread 的 `E0610`/`E0422`、keyboard 的 `E0428`）；`TEST_STATIC` 的 Rust 形态；
+     `include/sfnt.rs` 之外的镜像轮欠账照旧。
