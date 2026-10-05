@@ -11635,3 +11635,28 @@
      兜住的（不是对象读数）；本件**没有编译、没有链接、没有运行任何东西**（读数全是 `nm` 与文本分析）；
      剩下的 **32 件 failing + 3 件 WIP** 才是真正的移植欠账（`image.rs`/`sfnt.rs`/`w32term.rs`/`xdisp.rs`/`xterm.rs`
      等五条 lane 正在落）。
+
+- **3.577 工具更正第二批：`#[cfg]` 门后的结构体字段与"多臂同名宏"此前看不见——9 个镜像的 29 条 finding 是假阳性（`--all` 555 → **565 done / 22 failing**）（2026-10-05）**：
+  ① **症状**：`--all` 里 9 件镜像（`lib/include/{acl-internal,dirent-private,regex_internal,sys_stat.in}.rs`、
+     `lwlib/include/{lwlib-int,lwlib-widget}.rs`、`src/include/{frame,xterm,androidterm}.rs`）报 **29 条**：
+     7 件是 `missing field …`（合计 28 个字段），2 件是 `macro … does not mention {true,false}`。
+  ② **判据（量出来的）**：逐条把镜像的文本与工具读到的字段表对照——**那些字段与 token 镜像里全都有**：
+     `_widget_value` 的 `title`/`change`/`this_one_change`/`toolkit_data`/`free_toolkit_data` 五字段就写在 `#[cfg (feature = …)]`
+     后面（P-51 要求的写法）；`FRAME_WINDOW_P` 的 `false` 就写在**冻结那一臂**（第六个定义）的体内。
+     根因是工具的两处**文本扫描**：
+     ⑴ **字段**：`R_FIELD` 要求字段名前面是**行首/`{`/`,`/`;`**，而 `#[cfg (…)] pub name: T,` 前面是属性收尾的 **`]`** ⇒
+     所有**带 cfg 的字段**（P-51 的整类写法）对检查器**不存在**。
+     ⑵ **宏**：`macro_body_of` 只取**同名第一个**定义的体（`re.search`），而 C 的**活体**可能对应端口里**最后一臂**
+     （`frame.h` 965-987 六个独立 `#ifdef` + `#ifndef` 兜底，冻结配置取的是兜底那臂）。
+  ③ **修法（都在 `tools/extract-abi.py`，属集成者）**：
+     ⑴ `R_FIELD` 增加 `]` 作为前导（并在注释里写清这是 P-51 的条件字段形态）；
+     ⑵ `macro_body_of` 改为**把该名字的**所有**定义（全部 `macro_rules!` 块 + 全部带体的 `fn`）**拼接**后回答——
+     C 的 token 只要在**某一臂**里出现即算 mention，这正是 P-51"两臂都带"的语义；**声明**（`unsafe extern` 块里以 `;` 结束的）不算定义，已排除。
+     另：`docs/ports/macro-body-notes.tsv` **追加 1 行**给 `FRAME_ANDROID_DRAWABLE` 的 `true`——那条不是工具问题：
+     C 写 `…->need_buffer_flip = true`，镜像按 P-80 把它折进 `android_output.bits`（`bits |= …FLIP`），C 的 `= true`
+     确实没有 Rust token（该名字原有第 1427 行覆盖成员名）。
+  ④ **读数**：9 件镜像**逐个复跑 `--check`：9 OK / 0 FAIL**（改前 9 FAIL）；`--all` 由 **555 done / 3 wip / 32 failing**
+     → **565 done / 3 wip / 22 failing**；`extract-abi --selftest` **12 case + 4 token case / 0 failure**（改前改后同）；
+     `--all` 的 FAIL 名单里**不再有任何镜像**，剩下 22 件全是**单元文件**（5 件正是当前五条 lane 的目标）。
+  ⑤ **未声称**：**本提交没有改任何镜像、也没有改任何移植文件** —— 两处都是检查器的读法错，镜像按 P-51/P-80 写的是对的；
+     `--all` 的 done 数只说明"清单差异为零"，**不说明任何一件被编译、链接或运行过**；剩下 22 件 failing + 3 件 WIP 才是真欠账。

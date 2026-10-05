@@ -62,7 +62,11 @@ R_STRUCT = re.compile(r"(?:pub\s+)?(?:unsafe\s+)?(?:struct|union)\s+(?P<name>[A-
 # was complete (docs/status.md 3.555).  A field is recognised by what precedes it instead:
 # the body's start, a `{`, a `,` or a `;`.  That is also what keeps the punctuation inside a
 # field's type (`Option<unsafe extern "C" fn(*mut c_void, c_int)>`) from reading as fields.
-R_FIELD = re.compile(r"(?:\A|[{,;])\s*(?:pub\s+)?(?:r#)?(?P<name>[A-Za-z_]\w*)\s*:", re.M)
+# A field may also be preceded by an attribute's closing bracket: P-51 carries a dead C arm's
+# field as `#[cfg (feature = "...")] pub name: T,`, and without this alternative the field is
+# invisible to the check (measured on lwlib-widget.h: all five of `_widget_value`'s conditional
+# fields reported missing while the mirror carried every one of them, docs/status.md 3.577).
+R_FIELD = re.compile(r"(?:\A|[{,;]|\])\s*(?:pub\s+)?(?:r#)?(?P<name>[A-Za-z_]\w*)\s*:", re.M)
 # `(?:r#)?` as in R_FIELD: C's `static char *in;` is only `r#in` in Rust, and the gate used to
 # report the object as missing (status 3.126's second tool finding).
 R_STATIC = re.compile(r"\b(?:pub\s+)?(?:static|const)\s+(?:mut\s+)?(?:r#)?"
@@ -631,9 +635,26 @@ def c_body_text(text: str, name: str) -> str | None:
 def macro_body_of(rs: dict, name: str) -> str | None:
     """The Rust text that answers for the C macro NAME: macro body, const value or fn."""
     flat = rs["flat_own"]
-    m = re.search(rf"macro_rules!\s*{re.escape(name)}\s*\{{", flat)
-    if m:
-        return block_body(flat, flat.index("{", m.end() - 1))
+    # A name may have several definitions because C had several `#if` branches and P-51 keeps
+    # every arm as text (frame.h's `FRAME_WINDOW_P` has one per window system plus the frozen
+    # `#ifndef` fallback).  Every one of them answers for the C body: the check asks whether the
+    # port *mentions* C's tokens, and which arm carries them is exactly what the configuration
+    # decides - taking one arm at random reported `false` missing on `FRAME_WINDOW_P` while the
+    # mirror spells it in the fallback arm (measured, docs/status.md 3.577).
+    bodies = []
+    for m in re.finditer(rf"macro_rules!\s*{re.escape(name)}\s*\{{", flat):
+        bodies.append(block_body(flat, flat.index("{", m.end() - 1)))
+    for m in re.finditer(rf"\bfn\s+{re.escape(name)}\s*[\\(<]", flat):
+        brace = flat.find("{", m.end())
+        if brace == -1:
+            continue
+        # A declaration (`fn name (…);` in an `unsafe extern` block) has no body of its own;
+        # the next `{` would belong to a later item, so the signature must end in one.
+        if ";" in flat[m.end():brace]:
+            continue
+        bodies.append(block_body(flat, brace))
+    if bodies:
+        return "\n".join(bodies)
     if name in rs["constants"]:
         # A const's value may be a block (`{ let …; … }`); take the whole initialiser
         # rather than the first statement the value scanner stops at.
