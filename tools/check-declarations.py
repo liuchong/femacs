@@ -191,6 +191,20 @@ DECL_PROSE = (
 PRODUCT = ("GNU Emacs", "gnu emacs", "org.gnu.emacs", "org_gnu_emacs", "GNU.Emacs",
            "bug-gnu-emacs", "x-vnd.GNU-emacs")
 
+# The *fragment* forms, added by the thirteenth half (status 3.648).  The eighth half (3.599)
+# recorded this one class as a known gap: the table collected the product's readable names, and
+# these are *path and alias fragments* instead, so a site inside a **comment** was counted
+# nowhere - the ported `nt/`/`w32` units quote C's own `#define` for the registry key the
+# reference program's settings live under, and 3.599's rule says a comment carries no product
+# name.  A defect inside a blind spot of the gate that claims to read the tree, in other words.
+# The bytes themselves stay: each is an *external* name - that registry key, which other
+# programs and the user's own registry settings live under (written twice: prose's single
+# backslashes and a C/Rust literal's doubled ones), the Start Menu folder and shortcut file
+# name, the MCI device alias handed to the sound system, and the window class the X clipboard
+# negotiates - so every site of this class is allowlisted with that reason.
+PRODUCT_FRAGMENTS = ("SOFTWARE\GNU\Emacs", "SOFTWARE\\\\GNU\\\\Emacs",
+                     "GNUEmacs_", "Gnu Emacs", "Emacs.lnk", "Emacs Clipboard")
+
 # The Kept assembly files are the one kind in a scanned tree whose comments are not C's,
 # and the *suffix* is all the walk has (the target is not in the path: `loader-x86.s` and
 # `loader-aarch64.s` share one).  Two leaders, each measured on this tree's six files
@@ -388,13 +402,14 @@ def classify(code: str, comment: str, recital: bool = True) -> str | None:
     product-name handling instead of carrying one; it is off for `femacs/xtask`,
     which is the gate's own source and names the classes in prose on purpose.
     """
-    if any(p in code for p in DECL_PROSE) or any(p in code for p in PRODUCT):
+    if (any(p in code for p in DECL_PROSE) or any(p in code for p in PRODUCT)
+            or any(p in code for p in PRODUCT_FRAGMENTS)):
         return "literal"
     if VERSION_PAREN.search(comment):
         return "version"
     if any(p in comment for p in DECL_PROSE):
         return "decl"
-    if any(p in comment for p in PRODUCT):
+    if any(p in comment for p in PRODUCT) or any(p in comment for p in PRODUCT_FRAGMENTS):
         return "title"
     if recital and RECITAL.search(comment):
         return "recital"
@@ -757,6 +772,10 @@ SELFTEST_TOOL = (
      'IDENTITY = "GNU Emacs 32.0.50"\n', ["literal"]),
     ("a `#` inside a Python string stays a literal",
      'P = r"# GNU Emacs"\n', ["literal"]),
+    ("the registry key spelled as prose is a finding in a comment",
+     "// C 78: `#define REG_ROOT " + chr(34) + "SOFTWARE\\GNU\\Emacs" + chr(34) + "`\n", ["title"]),
+    ("the registry key spelled as a literal is a finding in code",
+     'const R: &CStr = c"SOFTWARE\\\\GNU\\\\Emacs";\n', ["literal"]),
 )
 
 

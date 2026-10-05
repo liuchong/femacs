@@ -554,8 +554,8 @@ macro_rules! DdeCommand {
   };
 }
 
-// C 78: `#define REG_ROOT "SOFTWARE\\GNU\\Emacs"` (the key the reference program's settings live
-// under; a registry path, not a statement of this program's name, so C's bytes are carried).
+// C 78: `#define REG_ROOT` - the registry key the reference program's own settings live under;
+// an external path, not a statement of this program's name, so C's bytes are carried (allowlisted).
 #[cfg (feature = "windowsnt")]
 pub const REG_ROOT: &std::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";
 // C 79-80: `#define REG_APP_PATH "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\emacs.exe"`
@@ -871,8 +871,9 @@ pub unsafe extern "C" fn main (argc: c_int, argv: *mut *mut c_char) -> c_int
       && SHGetSpecialFolderPath (std::ptr::null_mut (), start_folder.as_mut_ptr (),
                                  CSIDL_PROGRAMS, 0) != 0
     {
-      /* C 285: C's own note that there must be enough room for "...\GNU
-         Emacs\Emacs.lnk" (the folder name C 257/288 append and C 294's link name).  */
+      /* C 285: C's own note that there must be enough room for the Start Menu
+         folder name C 257/288 append and the shortcut file name C 294 adds;
+         both are external names, registered in the allowlist.  */
       // C 286
       if strlen (start_folder.as_ptr ()) < (MAX_PATH - 20) as usize
         {

@@ -195,14 +195,21 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     参照的 Android 包名 `org.gnu.…`（第七半已把本仓库自己的包名换掉）类名（该文件尚未移植，`femacs/src/android-emacs.rs` 只有首行与
     一句"冻结配置不编它"的声明）。已落先例：`femacs/src/androidfns.rs` 1271
     （status 3.490）、`femacs/src/xdisp.rs` 的两处（status 3.599）。
-    **对外名称不受这一族影响（照抄）**：`REG_ROOT` 的 `SOFTWARE\GNU\Emacs`、`EMACS_CLASS`/`pgtk_app_name`
-    的 `Emacs` 资源类、`Emacs Clipboard` 窗口类、`GNUEmacs_PlaySound_Device` 设备别名、Haiku 的
-    bundle 签名 `application/x-vnd.…`、`nt/addpm.rs` 的 `\Gnu Emacs` 目录与 `Emacs.lnk` 文件名——它们是**与外部
-    （用户配置、系统注册表、WM、开始菜单）的约定**，改名改的是行为而不是自称；`nt/addpm.rs` 266/297 的
-    "描述改、文件名不改"就是这条边界的先例。
-    **一条点名的表面缺口**：`tools/check-declarations.py` 的 `PRODUCT` 表收的是产品名与注册名的**可读形态**，
-    `SOFTWARE\GNU\Emacs` 与 `GNUEmacs_PlaySound_Device` 这两种**路径/别名片段**不在表里，因此它们不会出现在
-    它报告的站点列表里（2026-10-05 的读数是 18 条）——这是**已知且点名**的（用"没有命中"冒充"不存在"
+    **对外名称不受这一族影响（照抄）**：`src/w32.rs`/`nt/addpm.rs` 的 `REG_ROOT`（注册表路径）、
+    `EMACS_CLASS`/`pgtk_app_name` 的 `Emacs` 资源类、`src/w32select.rs` 的 `CLASSNAME`（窗口类）、
+    `src/sound.rs` 交给声音系统的 MCI 设备别名、Haiku 的 bundle 签名 `application/x-vnd.…`、
+    `nt/addpm.rs` 的开始菜单目录名与快捷方式文件名——它们是**与外部（用户配置、系统注册表、WM、开始菜单）
+    的约定**，改名改的是行为而不是自称；`nt/addpm.rs` 266/297 的"描述改、文件名不改"就是这条边界的先例。
+    **这一族现在有第十三半（2026-10-06，status 3.648）**：第八半把两种**片段形态**（注册表路径与设备别名）
+    记成"门的表里没有、所以不在站点计数内"的**已知缺口**——后果是**移植单元自己的注释**一直引着 C 的宏文本
+    （含那个名字）而门**零命中**：缺陷正好落在"门声称读过这棵树"的盲区里。本半把两种写法（散文里的单反斜杠、
+    C/Rust 字面量里的双反斜杠）都加进门，缺口闭合；站点按判据分开处理：⑴ **注释与台账**里引 C 文本的 12 处
+    改写成"C 的宏名/标识符 + 中性说明"（门对注释零容忍）；⑵ **字面量 11 处**（注册表路径 2、开始菜单目录名 2、
+    快捷方式文件名 2、建组命令 1、MCI 设备别名 3、窗口类 1）逐行登记进 `docs/baseline/declarations-allowlist.tsv`，
+    理由写明"这是与外部约定的名字，不是本程序的自称"。
+    读数（2026-10-06 现读）：`tools/check-declarations.py` → **`17 declaration sites (0 forbidden, 17 allowed literals),
+    0 failures`**（改前 6/0/0）、`--selftest` **53 例 / 0 失败**；三个被改的单元**行数与语句一字未动**（只动注释行），
+    所以本半没有编译、没有重链。
     这条规则现在有第九半（2026-10-05，status 3.613）：**"本程序向外报出的身份"里剩下的那一半也改成本仓库自己的名字**。
     第八半把"本程序默认叫什么"（默认显示名/帧名/帧标题）量清之后，字面量豁免表里还剩两类主语是"本程序"的行，本轮一次收口：
     ⑴ **报缺陷的去处**——参照的实测 bug 地址（冻结 `config.h` 的 `PACKAGE_BUGREPORT`）正是本程序对用户说的"有 bug 请报到这里"，

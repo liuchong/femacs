@@ -4673,8 +4673,8 @@ pub unsafe extern "C" fn sys_putenv (str: *mut c_char) -> c_int
   return _putenv (str);                                                       /* C 2860 */
 }
 
-/* C 2862: `#define REG_ROOT "SOFTWARE\\GNU\\Emacs"` - C's string macro is the port's same-named
-   `&CStr` constant (PORTING.md 2.1), which `init_environment` below passes to `w32_get_resource`.  */
+/* C 2862: `#define REG_ROOT` - C's string macro is the port's same-named `&CStr` constant
+   (PORTING.md 2.1; an external registry path, allowlisted), passed to `w32_get_resource` below.  */
 #[cfg (feature = "windowsnt")]
 pub const REG_ROOT: &core::ffi::CStr = c"SOFTWARE\\GNU\\Emacs";
 

@@ -37,7 +37,7 @@
   statement of its *own* name, so the port passes this repository's own name there (`femacs`),
   PORTING.md 0.1-19's seventh half (status 3.503); the reference's own literal stays in
   `nt/addpm.c` 266/297 and is not carried into this tree.  Every other literal of this file is C's
-  bytes, `REG_ROOT`/`REG_APP_PATH` and the `\Gnu Emacs` folder name included.
+  bytes, `REG_ROOT`/`REG_APP_PATH` and the Start Menu folder name included (allowlisted).
 - **C 74-76's `DdeCommand` macro reaches the caller's `conversation`.**  A `macro_rules!` body
   cannot name its caller's locals (macro hygiene), so that local is an explicit second parameter and
   each of the three call sites passes it - the same limitation PORTING.md's P-22 note records for
@@ -69,7 +69,7 @@
 | 63-64 | `HDDEDATA CALLBACK DdeCallback (…);` (C's forward declaration) | dropped (PORTING.md 0.1-12); the definition follows at C's own line |
 | 66-72 | `DdeCallback` (C's `CALLBACK` = `extern "system"`, non-`static` so it keeps its symbol) | file gate |
 | 74-76 | `#define DdeCommand(str) DdeClientTransaction (…)` | file gate; the caller's `conversation` becomes an explicit parameter (Deviation 4) |
-| 78 | `#define REG_ROOT "SOFTWARE\\GNU\\Emacs"` | file gate; C's bytes (a registry path) |
+| 78 | `#define REG_ROOT` (an external registry path; allowlisted) | file gate; C's bytes |
 | 79-80 | `#define REG_APP_PATH "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\App Paths\\emacs.exe"` | file gate; C's bytes |
 | 82-86 | `static struct entry { const char *name; const char *value; }` | file gate; `pub struct entry` with C's field names |
 | 87-112 | `env_vars[]` and its initializer: C 89-99 the `#ifdef OLD_PATHS` arm, C 100-111 the `#else` (frozen) arm, C 95-97/106-108 the INFOPATH note and the commented-out entry | file gate; C 90-99 `feature = "old_paths"`, C 101-110 `not (feature = "old_paths")`; one `static mut env_vars: [entry; 7]` per arm |

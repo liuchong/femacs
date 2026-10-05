@@ -1810,8 +1810,8 @@ unsafe fn do_play_sound (psz_file_or_data: *const c_char, ui_volume: c_ulong,
 }
 
 /* C 1302-1304's wide literals: Rust has no `L"..."` (the `src/w32fns.rs` 385-393 reading), so the
-   port spells C 1311's `L"open \""` and C 1313's `L"\" alias GNUEmacs_PlaySound_Device wait"` as
-   their UTF-16 code units.  */
+   port spells C 1311's open-quote literal and C 1313's suffix - the MCI device alias this program
+   hands the sound system (allowlisted) - as their UTF-16 code units.  */
 #[cfg (all (feature = "have_sound", feature = "windowsnt"))]
 pub const W_OPEN_QUOTE: [u16; 7] =
   [0x006F, 0x0070, 0x0065, 0x006E, 0x0020, 0x0022, 0x0000];

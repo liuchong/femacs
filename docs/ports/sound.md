@@ -239,8 +239,8 @@ The four `const _: () = core::assert! (…)` in the port carry the first three r
     names are declared where C's `#include` is and no file is added under `femacs/src/include/`;
     the same holds for the five `lisp.h` names, `strcat`/`message_with_string`/`_snprintf`/
     `wcscpy`/`wcscat`, and `u_int32_t`/`u_int16_t`.  Every unmeasured item is marked **UNVERIFIED**.
-13. **Wide-string literals are `[u16; N]` constants** (C 1311/1313's `L"open \""` and
-    `L"\" alias GNUEmacs_PlaySound_Device wait"`), the `src/w32fns.rs` 385-393 shape - Rust has no
+13. **Wide-string literals are `[u16; N]` constants** (C 1311's open-quote literal and C 1313's MCI
+    device alias suffix - an external name), the `src/w32fns.rs` 385-393 shape - Rust has no
     `L"…"` syntax.  `wchar_t` is `c_ushort` (the MinGW 16-bit one, the `src/w32.rs` 31 reading).
 14. **The four layout assertions are the port's own** (measured above, Evidence ⑦); the tool-generated
     set (`xtask layout-asserts`) has no row for these types because the baseline's layout tables carry

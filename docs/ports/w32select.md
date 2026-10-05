@@ -289,7 +289,7 @@ reported - the same resolution-only boundary as ③, measured twice.
     compiled in any configuration this tree builds: `TRACE` is defined nowhere).
 15. **`stdfmt_name` is a `[&CStr; 18]`** rather than C's `const char *[]`: the port's spelling of a C
     string literal is `c"…"` (a `&CStr`) and a use site takes `.as_ptr ()`; the bytes are C's own.
-    `CLASSNAME` in `create_owner` is the same spelling (`c"Emacs Clipboard"`), C's `char[]`.
+    `CLASSNAME` in `create_owner` is the same spelling (the X clipboard's window class; allowlisted), C's `char[]`.
 16. **`convert_dibv5_to_png`'s GDI+ calls go through the mirror's name macros**:
     `include/w32gdiplus.rs` 291-386 carries C 95-141's `#undef`/`#define` pairs as
     `macro_rules! GdipCreateBitmapFromScan0!` etc. (each yielding the `fn_*` object C's `#define`

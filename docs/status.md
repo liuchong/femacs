@@ -13177,3 +13177,36 @@
   ⑤ **下一站（点名）**：⑴ 查 **`argmatch`/`main` 的实参处理**——为什么同一条命令行里 `--batch` 有时匹配不上（端口 `argmatch` 与 C 的 1690-1730 逐句对过开头；可疑点是这次"未采纳"是**整跑二选一**的，像是有状态量在 dump 装载后被改写）；⑵ 给启动期的 **NULL 解引用**取栈（先 `rust_begin_unwind` 断点，必要时对被观测量下写断点）。
   ⑥ **未声称**：**"稳定性达成"没有**；没有 `.elc` 装载、没有 `make check`、没有 L1/L4/L5；②③ 的读数都是**夹具**读数（端口自己的 dump + 端口自己的 `lisp` 树）。
   ⑦ **预算**：本件 **0 编译、0 门改动**；装载运行 8 + 2 + 1 发、`sample` 1 发、lldb 4 发（其中 2 发因落到"交互循环"分支而超时）；`/tmp` 日志与采样文件收工删。
+
+- **3.648 版本声明的第十三半：第八半点名的"片段形态"缺口闭合——门现在看得见注册表路径、设备别名、窗口类与开始菜单名；移植单元自己的注释不再携带那个名字（12 处注释/台账改写、11 处字面量登记、2 例自测）（2026-10-06）**：
+  ① **来源与读法**：用户的长期指令（"版本声明不要再说是 gnu emacs 了……**把之前的代码中的这种声明也去掉**"）经第五（3.433）、
+     第七（3.503）、第八（3.599）、第九（3.613）、第十（3.619）、第十一（3.632）、第十二（3.641）半逐面推进后，本半的入口
+     不再是"哪一句还说自己是参照产品"，而是**"门自己看不见的那一类"**：第八半当时把两种**片段形态**（注册表路径与
+     MCI 设备别名）明确记成"不在 `PRODUCT` 表里，因此不在站点计数内"的**已知缺口**。本轮先量它的后果：**移植单元自己的
+     注释一直引着 C 的宏文本（含那个名字），而 `check-declarations` 零命中** —— 缺陷正好落在"门声称读过这棵树"的盲区里
+     （实读到的正是第八半点名的那三处，加 3 行台账与 `PORTING.md` 自己的 4 行举例）。
+  ② **门（改动）**：`tools/check-declarations.py` 新增 `PRODUCT_FRAGMENTS`（6 个模式：注册表路径的**两种写法**——散文里的
+     单反斜杠与 C/Rust 字面量里的双反斜杠——加设备别名前缀、开始菜单目录名、快捷方式文件名、窗口类名），`classify` 在
+     code 与 comment 两半都查它 ⇒ 注释里出现 = `title`（零容忍）、字面量里出现 = `literal`（逐行登记）；`--selftest`
+     **51 → 53 例 / 0 失败**（新增两例：片段出现在注释里是 `title`、出现在字面量里是 `literal`）。
+  ③ **站点按判据分开处理（本轮实改）**：⑴ **注释与台账 12 处**改写成"C 的宏名/标识符 + 中性说明"，一个字都不引那个名字：
+     `femacs/src/w32.rs` 4676-4677、`femacs/nt/addpm.rs` 557-558 与 873-875、`femacs/src/sound.rs` 1811-1813、
+     `docs/ports/{addpm,sound,w32select}.md` 共 4 行、`PORTING.md` 的两段；⑵ **字面量 11 处**登记进
+     `docs/baseline/declarations-allowlist.tsv`（6 → **17 行**），理由逐行写明"这是与外部约定的名字，不是本程序的自称"：
+     注册表路径 2（`src/w32.rs` 4679、`nt/addpm.rs` 560）、开始菜单目录名 2、快捷方式文件名 2、建组命令 1、MCI 设备别名 3
+     （`src/sound.rs` 1747/1781/1794）、窗口类 1（`src/w32select.rs` 1089）；表头加一段记第十三半。
+  ④ **读数（本轮现读）**：⑴ `python3 tools/check-declarations.py` → **`17 declaration sites (0 forbidden, 17 allowed literals),
+     0 failures`**（改前 6/0/0），`--selftest` **53 例 / 0 失败**；⑵ 其余文本门全绿：`check-citations` 676 文件/0 drift/0 range/
+     1991 external/36 allowed/0 stale、`check-citation-text` 1156 checked/97 mismatched（该审计器是 WIP、无 exit 语义，
+     `sound.rs` 那两条在别的行、与本轮无关）、`check-port-lines` 0/0/0/0、`check-mirror-dupes` 16/16/0、
+     `check-ledger-ticks` 238/0、`check-dead-file-coverage` 145/0、`check-target-names` 629 文件/591 目标/0、
+     `check-carried` 11 文件/4 例外/0、`check-verbatim` 1,815 例外/0、`check-do-while` 0、`check-octal-literals` 0、
+     `check-defvar-carriers` 651/0；⑶ **三个被改的单元行数与语句一字未动**（`git diff` 只有注释行），所以本半没有编译。
+  ⑤ **未声称**：本轮**一枚都没编译、一个程序都没跑**（`build-tu`/`probe`/`check-all-units`/`check-link` 全 0 发），以上全是
+     **文本读数**；改写后的注释**不再携带 C 的宏字面文本**（要看原字面量只能去 `nt/addpm.c`、`src/sound.c`/`src/w32.c`，
+     或允许清单里那一行）；**裸 `Emacs` 那一族仍未动**——3.4847 量过注释 **472 行**（无一条是声明），本半再补一条可复跑读数
+     `rg -c '"[^"]*\bEmacs\b[^"]*"'`（十棵被移植树）**360 行**（含 `/// C …` 引文里的引号；本半之前是 362，减掉的 2 行
+     就是本轮改写的两处引文），判据仍是用户 2026-10-05 的
+     长期指令"前期复刻期间与 C 尽量一致"⇒ 那一家族留给全面验收期。
+  ⑥ **预算**：`check-declarations` 12 发（含自测与三轮修复）、其余文本门 11 发、`git diff`/`sed` 若干；`build-tu` 0、
+     `probe` 0、`/tmp` 脚本 6 个与临时读数文件收工删。
