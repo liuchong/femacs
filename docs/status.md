@@ -12829,3 +12829,30 @@
      `print.rs` 的 symbol 原始值打印、`xtask` 的 `-g`）**已全部删除**；`alloc/print/xtask` 用 `git show HEAD:` 还原并重建，
      读数回到 18 行 `Loading`；`/tmp`（`ranges.txt`、`fl.txt`、`freelog.txt`）已清。
   ⑦ **预算**：`build-tu` 约 12 发、`check-link --executable` 约 8 发、`lldb` 3 次、端口运行约 10 次。
+
+- **3.623 接着 3.622 把"漏的根"量清楚：那个值来自**活 cons 的 cdr 槽**，而在崩点它**既不在 handler 链也不在整条 specpdl 里**，
+  C 栈扫描范围的几何也量了——下一轮的第一步是"被扫描过的活 cons 绝不该在自由链上"这条**自洽检查**（2026-10-05）**：
+  ① **布局读数（决定读的是哪个槽）**：C `lisp.h` 的 `struct Lisp_Cons` 是 `{ car; union { cdr; struct Lisp_Cons *chain; } u; }`
+     ——**自由链的 `chain` 与 `cdr` 同字**（不是 car），而 sweep 另外把 `car` 写 `dead_object ()`（C 6892-6894）；
+     端口的镜像同形。⇒ 崩点读到"tag=0 的裸指针"说明它来自**某个 cons 的 cdr 槽**（打印器把它当 improper 尾巴，
+     走 symbol 分支去取名字）✔——也就是"**一条活链的尾巴被回收**"，而不是"某个槽被写坏"✔。
+  ② **根排查（全部在崩点读）**：把 `(current_thread).m_handlerlist` 前 24 项（`tag_or_ch`/`val`）与**整条**
+     `m_specpdl..m_specpdl_ptr`（264 个字 = 33 项）原样 dump 出来，搜 3.622 那个坏值的两种形态
+     （裸指针 `0x…3f0` 与"若它是编码过的 cons" `0x…3f3`）——**都没有命中** ✔。⇒ 那个对象在崩点**不是**由 specpdl 或
+     handler 链保住的（3.622 的第一次 dump 只取了 specpdl 顶端 120 字，这一次是全量）。
+  ③ **C 栈几何（量了，且与 C 同形）**：`mark_one_thread` 里扫的范围是 `[m_stack_bottom, thread->stack_top]`，
+     而 `stack_top` 只在三处更新（C `alloc.c` 的 `flush_stack_call_func1`、`eval.c` 的 `Ffuncall`、`print.c` 的
+     `print_object`）——端口三处都有。崩点实测：`crashlocal=0x…bc38`（当前帧里一个局部）**低于** `stack_top=0x…c060`
+     0x428 字节，`bottom=0x…f0f58` ⇒ 当前帧在扫描范围**之外** ✔。这与 C 的设计一致（GC 只在 `maybe_gc` 点跑，
+     而那时 `stack_top` 刚被 `Ffuncall` 刷新到当前帧），**所以它不是端口与 C 的差异** ✔——不要把力气花在"把范围改大"上。
+  ④ **下一轮第一步（点名，成本很低）**：**自洽检查**——在任何一次 GC 的 `gc_sweep` 之前，沿 `cons_free_list`
+     逐个检查 `XCONS_MARKED_P`：**被标记过的表项绝不该在自由链上**；命中就把它的地址、所在 cons 块、以及
+     该块里同时被标记的表项数打出来。判据：若命中 ⇒ 缺陷在 sweep 的判死（位测试/位图下标）而不是 mark；
+     若不命中 ⇒ 缺陷在 mark 的**遍历**（例如 cons 的 car/cdr 只压了一个、或 mark 位设在了别处），
+     那时再给 `mark_object` 的 cons 分支加计数（压栈数 vs 表项数）与 `sweep_conses` 的死表项数对拍。
+  ⑤ **未声称**：仍然**没有修好任何东西**——GC 开着、加载链 17 个文件（18 行 `Loading`，停在 `macroexp.el`）；
+     ①②③ 都是诊断读数（仪表已删）。本轮**排除了**两条候选：把 C 栈扫描范围改大（③ 说明与 C 同形）、
+     以及"对象由 specpdl/handler 保住但没被标记"（② 说明它不在那里）。
+  ⑥ **收口**：临时仪表（`alloc.rs` 的 GC 根 dump、`print.rs` 的 symbol 原始值/specpdl 全量 dump/`crashlocal`）已全部删除，
+     `alloc/print` 用 `git show HEAD:` 还原并重建，读数回到 18 行 `Loading`；`/tmp`（`roots*.txt`）已清。
+  ⑦ **预算**：`build-tu` 约 8 发、`check-link --executable` 约 6 发、端口运行约 6 次、文本检索若干。
