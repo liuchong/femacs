@@ -12643,3 +12643,34 @@
      临时仪表（`memrchr` 的 `DBG`、`xtask` 的 `-g`）**已全部删除并复建验证**。
   ⑥ **预算**：`build-tu` 约 8 发、`check-all-units.sh` 1 发（两腿）、`layout-check` 1 发、
      `check-link --executable` 3 发、`lldb` 8 次、`atos` 1 次；`build/femacs/units/*`、`/tmp` 的探针与日志已清。
+
+- **3.618 堆破坏的根因找到并修好：`copy_nonoverlapping` 的"元素个数"当成 C 的"字节数"用了——哈希表第二次 resize 就把堆写穿（2026-10-05）**：
+  ① **缺陷**：`maybe_resize_hash_table` 迁旧向量进新向量，C 写的是 `memcpy (key_and_value, h->key_and_value,
+     2 * old_size * sizeof *key_and_value)`（**字节数**）；端口把同一个字节数交给了 Rust 的
+     `std::ptr::copy_nonoverlapping`，而它的第三个参数是 **`T` 的个数**，指针类型又是 `*mut Lisp_Object`
+     ⇒ 任何**已经装过东西**的表在 resize 时多拷 **8 倍**（`hash` 向量是 `u32`，多拷 4 倍）——三块向量一起写穿新分配，
+     把 malloc 的元数据打坏。这解释了 3.614–3.617 里"每次重建崩点都不一样"的全部现象：`xmalloc` 里 SEGV、
+     `find_newline → memrchr`、`regex` 里 `xnmalloc`、以及**本函数内** `copy_nonoverlapping ... ranges do not
+     overlap` 的 panic（源/目标范围被放大到互相重叠）。两处都改成经 `*const u8`/`*mut u8` 传字节数（与 C 一致）。
+  ② **最小复现（两行 elisp，`-nl -l`）**：`(let ((h (make-hash-table :test 'equal)) (i 0)) (while (< i 2000)
+     (puthash (number-to-string i) i h) (setq i (1+ i))))` —— 修前 **SIGABRT**（copy_nonoverlapping 前置条件），
+     修后**打出收尾的 `princ` 正常退出**。这条最小复现是本轮最有价值的产物：不需要 loadup 就能跑。
+  ③ **读数**：⑴ 最小复现：修前 abort / 修后 survived=1（两次运行、exit 255 是批处理收尾的正常形态）；
+     ⑵ 加载链：修前是**第 5 个文件里的 SEGV**，修后仍是 5 个文件，但错误变成**干净的 Lisp 层错误**
+     `Error: void-function (bound-and-true-p)`——即 elisp 求值真的往前走了（下一个缺陷见 ⑤）；
+     ⑶ `--version` 仍正常、`check-link --executable` **0 undefined**；⑷ 八道文本门 + `check-carried` 全绿
+     （`check-declarations` 6/0/0、`check-citations` 0 drift/0 stale、`check-mirror-dupes` 16/16/0、
+     `check-ledger-ticks` 238/0、`check-dead-file-coverage` 145/0、`check-port-lines` 0/0/0/0、
+     `check-target-names` 0 finding、`check-carried` 11/11/4/0）；本件改的是**单元**（`fns.rs`），不动镜像。
+  ④ **本轮排除的两条错路（记录下来，免得下一轮重走）**：⑴ `libgmalloc`（守护页）在 `adjust_glyph_matrix` 的
+     `bzero` 上报 SEGV，但同一处 `malloc_size (rows)` 实测 **6144**、写入也是 **6144**（恰好到页边界）——这是
+     libc `memset` 尾部向量化写跨进守护页造成的**假阳性**，不是越界；⑵ 我做的"活跃块表"（`xmalloc`/`xrealloc`/
+     `xcalloc`/`xfree` 全挂上）在修这个缺陷之前一次 `WILD FREE`/`OVERLAP` 都没报——说明**不是**野 free；真正的原因是
+     上面那处 8 倍写。
+  ⑤ **下一站（点名）**：`void-function (bound-and-true-p)`。`bound-and-true-p` 是 `lisp/bindings.el`（loadup 第 137 行）
+     里的宏，而报错发生在**加载 `subr`（第 125 行）**时 ⇒ 加载 `subr` 的某一步在做**急切的宏展开**
+     （`subr.el` 里 `bound-and-true-p` 只出现在 defun 体内，正常不会被求值）。C 里 `macroexp.el`（loadup 第 148 行）
+     也在 `subr` 之后才加载，所以下一步要查的是"谁在 `subr` 加载期展开了函数体里的宏"。
+  ⑥ **预算**：`build-tu` 约 14 发（含仪表清理后的重建）、`check-link --executable` 约 8 发、`lldb` 6 次、
+     `otool` 2 次、`atos` 1 次；临时仪表（`fns.rs` 的 `DBG resize`/`dbg_freed_recently`、`alloc.rs` 的活跃块表、
+     `dispnew.rs` 的 `malloc_size` 打印、`xtask` 的 `-g`）**已全部删除并复建验证**，`/tmp` 与 `build/femacs/units/*` 已清。

@@ -380,3 +380,21 @@ because that unit is not ported yet (13,086 C lines), and ratchet entries that a
 (`_Fsubstring_no_properties`, `_Vfeatures`, `_merge`, `_use_dialog_box`, `_string_ascii_p`, and the
 coding.c four this unit's first run absorbed); the ratchet file is the integrator's to re-derive
 (`--write-pending`), since `docs/baseline/*` is outside this lane.
+
+## 2026-10-05: C's byte count, Rust's element count - the hash resize smashed the heap (status 3.618)
+
+`maybe_resize_hash_table` copies the old vectors into the new ones with
+`memcpy (key_and_value, h->key_and_value, 2 * old_size * sizeof *key_and_value)` - a *byte* count.
+The port passed that same byte count to `std::ptr::copy_nonoverlapping`, whose third argument is a
+count of `T`-sized elements, and the pointers were `*mut Lisp_Object`: every resize of a table that
+already had data copied **8x the bytes** (the `hash` vector 4x, `hash_hash_t` being a `u32`), so a
+lookup table's second resize wrote three vectors' worth of memory past the freshly allocated blocks
+and corrupted malloc's metadata.  That is what killed the run at a *different* place after every
+rebuild (`xmalloc`, `find_newline`'s `memrchr`, `re_pattern_buffer`, and a
+`copy_nonoverlapping ... ranges do not overlap` panic inside this very function once the source and
+the destination ranges grew into each other).  Both copies now go through `*const u8`/`*mut u8`, so
+the count is bytes exactly as in C.
+
+Readings: a two-line elisp program - 2000 `(puthash ...)` calls in a loop, run with `-nl -l` - went
+from `SIGABRT` ("ranges do not overlap") to printing its final `princ`; and `loadup` goes from a SEGV
+in the fifth file to a clean Lisp-level error in the same file (documented in docs/status.md 3.618).

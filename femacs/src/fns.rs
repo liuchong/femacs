@@ -5218,7 +5218,13 @@ unsafe fn maybe_resize_hash_table (h: *mut Lisp_Hash_Table)
 	= hash_table_alloc_bytes ((2 * new_size * std::mem::size_of::<Lisp_Object> ()
 				   as ptrdiff_t) as ptrdiff_t) as *mut Lisp_Object;
       if old_size != 0
-	{ std::ptr::copy_nonoverlapping ((*h).key_and_value, key_and_value,
+	{ /* C's `memcpy (key_and_value, h->key_and_value,
+			   2 * old_size * sizeof *key_and_value)` is a *byte* copy; Rust's
+	     `copy_nonoverlapping::<T> (…)` counts T-sized elements, so the byte count must go
+	     through `*mut u8` (status 3.618: the `Lisp_Object` form copied 8x the bytes and
+	     smashed the heap at the second resize of any table).  */
+	  std::ptr::copy_nonoverlapping ((*h).key_and_value as *const u8,
+					 key_and_value as *mut u8,
 					 (2 * old_size
 					  * std::mem::size_of::<Lisp_Object> () as ptrdiff_t)
 					 as usize); }
@@ -5233,7 +5239,8 @@ unsafe fn maybe_resize_hash_table (h: *mut Lisp_Hash_Table)
 	= hash_table_alloc_bytes ((new_size * std::mem::size_of::<hash_hash_t> () as ptrdiff_t)
 				  as ptrdiff_t) as *mut hash_hash_t;
       if old_size != 0
-	{ std::ptr::copy_nonoverlapping ((*h).hash, hash,
+	{ /* same: C's byte count, through `*mut u8`.  */
+	  std::ptr::copy_nonoverlapping ((*h).hash as *const u8, hash as *mut u8,
 					 (old_size
 					  * std::mem::size_of::<hash_hash_t> () as ptrdiff_t)
 					 as usize); }
