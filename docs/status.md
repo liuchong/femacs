@@ -8949,3 +8949,54 @@
   ⑥ **预算（如实，超支）**：`probe` **5 发**（基线 A、加边后、修删除后、补 `GdkEventKey` 后 A、臂 C）、
   `layout-check` **3 发**（其中 1 发失败＝自造缺陷 ⑵）、`check-all-units.sh` **2 发**（第一发撞到别的
   lane 在飞的 `src/sound.rs`，第二发才是本条交付状态的读数）、`build-tu` 0 发。
+
+- **3.482 两件"最强证据档"整文件落地：`src/sound.c`（C 1-1554）与 `lib-src/pop.c`（C 1-1703）（2026-10-05）**：
+  ① **范围**：两件都是 P-86 的"整身挂假条件"类（`HAVE_SOUND` 与 `MAIL_USE_POP` 在冻结表里 undef），
+  本轮按 P-86 ① **逐行照录**：`femacs/src/sound.rs` 27 → **2,027 行**（md5
+  `7256d9a6c228b8546f16b13927d62438`，台账 316 行 / 32 行连续区间表覆盖 C 1-1554）；
+  `femacs/lib-src/pop.rs` 30 → **2,204 行**（md5 `ebe410a3dcf2f6a2fb95d7d29b6694b9`，台账 338 行 /
+  55 行区间表覆盖 `lib-src/pop.c` **与** `lib-src/pop.h`）。
+  ② **读数（我自己跑的）**：两件的冻结 `build-tu` 都是 **exit 0 / 336 字节空对象**；
+  `extract-abi --check` 两件都是 **OK、0 条 `- `**；**翻臂**：`sound.rs`（五门 `have_sound` +
+  三个 soundcard + `have_alsa`）→ **exit 0 / 0 错 / 11 警告 / rlib 8,518,000 字节**；
+  `pop.rs`（`mail_use_pop`）→ **exit 0 / 2 警告 / rlib 274,640 字节**（lane 自报：全 POSIX 子门
+  291,336 字节，且 `mailhost`/`hesiod`/`kerberos`/`kerberos5` 单臂翻转各 0 错）。两件都是本目标里
+  **能被真编译**的证据档（不是 text-only）。lane 的其它读数：`check-cond-eval src/sound.c`
+  30 conditions VERIFIED、`src/pop.c` 31 conditions VERIFIED；`check-dead-file-coverage`
+  **52 ledger / 0 failure**；`check-citations` **0 drift**（sound lane 收下了我在飞行中抓到的 2 条
+  drift 修正）；`check-declarations` 10/0/0。
+  ③ **集成者账（我）**：⑴ `femacs/xtask/Cargo.toml` 登记 **21 个 feature**（pop 的 `mail_use_pop`/
+  `hesiod`/`mailhost`/`kerberos`/`kerberos5`/`have_krb5_h`/`have_krb_h`/`have_kerberosiv_krb_h`/
+  `have_kerberos_krb_h`/`have_com_err_h`/`have_krb5_error_text`/`have_krb5_error_e_text`/
+  `mingw32_version_ge_5000002` + sound 的 `have_sound`/`have_machine_soundcard_h`/
+  `have_sys_soundcard_h`/`have_soundcard_h`/`have_alsa`/`snd_sentry`/`default_alsa_sound_device`/
+  `estrpip`），按字母序插入，**632 → 653** 项。⑵ `check-port-lines.py --write-pending` 把两行撤下
+  （65 → **63 文件 / 83,235 参考行**）。⑶ `docs/ports/line-drift-tolerance.tsv` 各追加"**实测漂移 + 0.01**"
+  的行（pop 29.4% → 0.30、sound 30.4% → 0.31，`total` 基准；旧空单元行按 append-only 规则被取代），
+  追加后两件的 `--check` 仍是 **OK**。
+  ④ **真缺陷（lane 报，我复核）**：pop 首轮 22 错**全在自身文本**（`mut` 参数、C 未初始化局部在 Rust
+  要零值、`in_addr` 缺 `Copy`、POSIX 的 `RECV`/`SEND` 实参个数与 C 53-54 的宏不一致、`/** … **/`
+  被 Rust 读成文档注释、`<pwd.h>` 需要 `time_t`）；sound 的错误队列（`oldset` 的作用域、7 个 ALSA
+  条目初版漏门、两处类型、`!PlaySound (…)` 误用按位非）＋ 我在门上抓到并通报的 2 条 citation drift
+  ＋ 1 条 `check-declarations` 的 **recital** 违例（lane 已把那句许可块说明搬出台账）。两件都做了
+  **变异实测**（往单元文本注入类型错误，读数随之改变）以证明"本单元文本 0 错"不是名字解析中止的空读数
+  （P-86 ⑦）。
+  ⑤ **镜像缺口（点名，留给镜像轮）**：`include/lisp.rs` 缺 `emacs_write_sig`（lisp.h 5335）、
+  `emacs_strerror`（5144）、`openp`（4743）、`plist_get`（4280）、`record_unwind_protect_void`（4825）、
+  `message_with_string`；`lib/include/sys_types.in.rs` 缺 `u_int16_t`/`u_int32_t`；`lib/include/string.rs`
+  缺 `strcat`；`lib/include/signal.rs` 缺 `SIGPOLL`；`include/config.rs` 缺 `DEFAULT_SOUND_DEVICE`/
+  `DEFAULT_ALSA_SOUND_DEVICE`/`SND_SENTRY`；`<sys/ioctl.h>` 仍无树内家（`src/keyboard.rs` 526、
+  `src/sysdep.rs` 487、`src/callproc.rs` 184 各就地声明）。**pop 的 Windows 臂被镜像集卡住**：
+  `lib/include/unistd.in.rs` × `lib-src/include/ntlib.rs` 同时声明 `getwd`/`getppid`/`getgid`/`getegid`/
+  `fchown`/`sleep` ⇒ 6 × `E0428`（其中 `getwd` 是我在 3.479 加进 `unistd.in.rs` 的，属同一笔"覆盖类"账——
+  两个"系统面"镜像必须一次性裁定谁声明这六个 CRT 名，留给镜像轮）。
+  ⑥ **事实更正（lane 提，我照录）**：`docs/port-map.md` 只把 sound 的台账绑到 `src/sound.c` 一行，
+  **pin 的参照里没有 `src/sound.h`** ⇒ 我派活时写的"两个参照都要覆盖"对 sound 不成立；pop 侧确实两个
+  参照（`pop.c`/`pop.h`）都被区间表覆盖。
+  ⑦ **未声称**：**零运行证据**（两个 rlib 都是编译产物，没链接、没启动）；**不是 OSS/ALSA/Windows/
+  POP3 环境**——sound 的 ALSA/Windows 面与 pop 的 Windows 面是 `text-only`，两件自带的替身面
+  （OSS 的 `SNDCTL_*`/`AFMT_*`、ALSA 的枚举与不透明记录、Windows 的 `WSADATA`/`HANDLE`/`WSA*`、
+  Kerberos/Hesiod 的记录）**全部 UNVERIFIED**；没有放过一次声音、没有开过一次 socket、没有收过一次邮件。
+  ⑧ **预算（如实）**：sound lane `build-tu` 5 发（超 2）/`probe` 5 发（超 2）；pop lane `build-tu`
+  5 发（超 2）/`probe` 3 发（满）；集成者 `build-tu` 2 发、`probe` 2 发、其余为脚本与门；
+  两 lane 的 `/tmp/*-lane` 均已自删。
