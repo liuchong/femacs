@@ -7,13 +7,16 @@
 //
 // **This file is one of P-86's class: the frozen configuration compiles none of it.**  `w32select.o`
 // sits in `W32_OBJ` (`emacs/src/Makefile.in` 483, `W32_OBJ=@W32_OBJ@`, filled by the non-Cygwin
-// MinGW arm of `configure.ac` 3051's `HAVE_W32` split - the build whose `nt/inc/ms-w32.h` 25-27
+// `HAVE_W32` test of `configure.ac` 3023-3024, whose 3030-3031 add `w32select.o` to `W32_OBJ` before the
+// Cygwin split at 3044 (corrected 2026-10-05, status 3.587) - the build whose `nt/inc/ms-w32.h` 25-27
 // `#define`s `WINDOWSNT`), and `docs/baseline/frozen-build-sources.txt` lists no `w32select.o` for
 // this target, so `extract-abi.py`'s checklist for the file is empty (P-86 (2)) and the ledger
 // `docs/ports/w32select.md` carries that clause's substitute: the **C line-range table**, the
 // `## Evidence` readings and the `## Deviations`.
 //
-//   * the **file gate** is `feature = "windowsnt"`, on every item *and on the include graph*, which
+//   * the **file gate** is `feature = "have_ntgui"` (corrected 2026-10-05, status 3.587: 3051 is the `else`
+//     of the Cygwin split, not the line that adds this object; 3030-3031 add `w32select.o` for **both**
+//     GUI arms), on every item *and on the include graph*, which
 //     is why the frozen configuration compiles nothing here.  It is `WINDOWSNT`, not `HAVE_NTGUI`:
 //     `w32select.o` is added only by the MinGW arm of the split (the same arm that `#define`s the
 //     name), and the file's text never tests `HAVE_NTGUI` - its one `#ifdef WINDOWSNT` (C 828) is
@@ -129,11 +132,11 @@
    below, at that C position.  */
 include!("include/config.rs");                  // C 75: `#include <config.h>`
 include!("include/conf_post.rs");               // C 75's AH_BOTTOM `#include <conf_post.h>`
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 include!("../nt/inc/include/ms-w32.rs");        // C 75 -> `conf_post.h` 38: `#include <ms-w32.h>`
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 include!("../lib/include/string.rs");           // C 85 -> `lisp.h` 30 / `ms-w32.h` 271: `#include <string.h>`
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 include!("../lib/include/stdlib.rs");           // C 75 -> `ms-w32.h` 410: `#include <stdlib.h>` (`strtol`, `strtoul`)
 
 /* ----------------------------------------------------------------------------------------------
@@ -158,59 +161,59 @@ include!("../lib/include/stdlib.rs");           // C 75 -> `ms-w32.h` 410: `#inc
 /// C: typedef const char *LPCSTR; typedef const void *LPCVOID;
 /// C: typedef DWORD LCID; typedef WORD LANGID; typedef WORD ATOM; typedef DWORD LCTYPE;
 /// C: typedef wchar_t WCHAR;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type BYTE = u8;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type WORD = c_ushort;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type DWORD = u32;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LONG = i32;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type ULONG = u32;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type BOOL = c_int;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type UINT = c_uint;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type UINT_PTR = usize;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LONG_PTR = isize;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type SIZE_T = usize;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type WPARAM = UINT_PTR;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LPARAM = LONG_PTR;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LRESULT = LONG_PTR;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HANDLE = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HWND = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HINSTANCE = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HMENU = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HGLOBAL = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LPVOID = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LPSTR = *mut c_char;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LPCSTR = *const c_char;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LPCVOID = *const c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LCID = DWORD;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LANGID = WORD;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type ATOM = WORD;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LCTYPE = DWORD;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type WCHAR = c_ushort;
 
 /// C 76's `<windows.h>`: `TRUE`/`FALSE`, and the `WINAPI`/`CALLBACK` convention.  The two spelling
@@ -221,11 +224,11 @@ pub type WCHAR = c_ushort;
 /// C: #define WINAPI __stdcall
 /// C: #define CALLBACK __stdcall
 /// C: #define MAX_PATH 260
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const FALSE: BOOL = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const TRUE: BOOL = 1;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const MAX_PATH: usize = 260;
 
 /// C 76's `<windows.h>`: the window-procedure type and the window classes.  `WNDCLASSA` is the
@@ -236,9 +239,9 @@ pub const MAX_PATH: usize = 260;
 /// C: typedef struct tagWNDCLASSA { UINT style; WNDPROC lpfnWndProc; int cbClsExtra; int cbWndExtra;
 /// C:   HINSTANCE hInstance; HICON hIcon; HCURSOR hCursor; HBRUSH hbrBackground;
 /// C:   LPCSTR lpszMenuName; LPCSTR lpszClassName; } WNDCLASSA;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type WNDPROC = Option<unsafe extern "system" fn (HWND, UINT, WPARAM, LPARAM) -> LRESULT>;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct WNDCLASS
@@ -257,7 +260,7 @@ pub struct WNDCLASS
 
 /// C 76's `<windows.h>`: the locale enumeration callback C hands to `EnumSystemLocales` (C 566).
 /// C: typedef BOOL (CALLBACK *LOCALE_ENUMPROCA) (LPSTR);
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LOCALE_ENUMPROCA = Option<unsafe extern "system" fn (LPSTR) -> BOOL>;
 
 /// C 76's `<windows.h>`: the clipboard and locale constants.  C 80-84's `#ifndef CF_DIBV5` block is
@@ -274,51 +277,51 @@ pub type LOCALE_ENUMPROCA = Option<unsafe extern "system" fn (LPSTR) -> BOOL>;
 /// C: #define CP_ACP 0 / #define CP_OEMCP 1
 /// C: #define SORT_DEFAULT 0x0
 /// C: #define LOCALE_NEUTRAL MAKELCID (MAKELANGID (LANG_NEUTRAL, SUBLANG_NEUTRAL), SORT_DEFAULT)
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const GMEM_MOVEABLE: UINT = 0x0002;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const GMEM_DDESHARE: UINT = 0x2000;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const CF_TEXT: UINT = 1;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const CF_OEMTEXT: UINT = 7;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const CF_UNICODETEXT: UINT = 13;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const CF_LOCALE: UINT = 16;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const WM_DESTROY: UINT = 0x0002;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const WM_RENDERFORMAT: UINT = 0x0305;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const WM_RENDERALLFORMATS: UINT = 0x0306;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const WM_DESTROYCLIPBOARD: UINT = 0x0307;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const LCID_INSTALLED: DWORD = 0x00000001;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const LOCALE_IDEFAULTANSICODEPAGE: LCTYPE = 0x00001004;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const LOCALE_IDEFAULTCODEPAGE: LCTYPE = 0x0000000B;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const CP_ACP: UINT = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const CP_OEMCP: UINT = 1;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const SORT_DEFAULT: DWORD = 0x0;
 /// C's `LOCALE_NEUTRAL` is `MAKELCID (MAKELANGID (LANG_NEUTRAL, SUBLANG_NEUTRAL), SORT_DEFAULT)`,
 /// and all three of `LANG_NEUTRAL`/`SUBLANG_NEUTRAL`/`SORT_DEFAULT` are 0, so the value is 0.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const LOCALE_NEUTRAL: LCID = 0;
 
 /// C 76's `<windows.h>`: the two macro pairs C's text uses (C 1086, C 1359 and C 1361).
 /// C: #define MAKELCID(lgid, srtid) ((LCID)(((DWORD)(srtid) << 16) | ((DWORD)(lgid))))
 /// C: #define LANGIDFROMLCID(lcid) ((LANGID)(lcid))
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 macro_rules! MAKELCID {
   ($lgid:expr, $srtid:expr) => { (((($srtid) as DWORD) << 16) | (($lgid) as DWORD)) as LCID };
 }
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 macro_rules! LANGIDFROMLCID {
   ($lcid:expr) => { ($lcid) as LANGID };
 }
@@ -339,7 +342,7 @@ macro_rules! LANGIDFROMLCID {
 // C: WINUSERAPI UINT WINAPI GetACP (void);
 // C: WINUSERAPI UINT WINAPI GetOEMCP (void);
 // C: WINBASEAPI int WINAPI lstrlenW (LPCWSTR);
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "system" {
   pub fn RegisterClass (lpWndClass: *const WNDCLASS) -> ATOM;
   pub fn CreateWindow (lpClassName: LPCSTR, lpWindowName: LPCSTR, dwStyle: DWORD, x: c_int,
@@ -369,7 +372,7 @@ unsafe extern "system" {
 // C: WINBASEAPI BOOL WINAPI GlobalUnlock (HGLOBAL);
 // C: WINBASEAPI HGLOBAL WINAPI GlobalFree (HGLOBAL);
 // C: WINBASEAPI SIZE_T WINAPI GlobalSize (HGLOBAL);
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "system" {
   pub fn OpenClipboard (hWndNewOwner: HWND) -> BOOL;
   pub fn CloseClipboard () -> BOOL;
@@ -391,13 +394,13 @@ unsafe extern "system" {
    the other arm (a SDK that defines it) carries the same two values, which `winuser.h` defines
    itself.  `CF_MAX` is C's `#undef`+`#define` pair: one name per scope in Rust, so it is written
    once with the value both arms give it.  */
-#[cfg (all (feature = "windowsnt", not (feature = "cf_dibv5")))]
+#[cfg (all (feature = "have_ntgui", not (feature = "cf_dibv5")))]
 pub const CF_DIBV5: UINT = 17;
-#[cfg (all (feature = "windowsnt", not (feature = "cf_dibv5")))]
+#[cfg (all (feature = "have_ntgui", not (feature = "cf_dibv5")))]
 pub const CF_MAX: UINT = 18;
-#[cfg (all (feature = "windowsnt", feature = "cf_dibv5"))]
+#[cfg (all (feature = "have_ntgui", feature = "cf_dibv5"))]
 pub const CF_DIBV5: UINT = 17;
-#[cfg (all (feature = "windowsnt", feature = "cf_dibv5"))]
+#[cfg (all (feature = "have_ntgui", feature = "cf_dibv5"))]
 pub const CF_MAX: UINT = 18;
 
 /* C 79's `<gdiplus.h>` (and C 91's `w32gdiplus.h`, whose mirror leaves the GDI+ types to its
@@ -408,9 +411,9 @@ pub const CF_MAX: UINT = 18;
 /// C: typedef enum RotateFlipType { RotateNoneFlipNone = 0, Rotate90FlipNone, Rotate180FlipNone,
 /// C:   Rotate270FlipNone, RotateNoneFlipX, Rotate90FlipX, Rotate180FlipX, Rotate270FlipX,
 /// C:   RotateNoneFlipY = Rotate180FlipX, ... } RotateFlipType;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type GpStatus = c_int;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type GpBitmap = *mut c_void;
 /// C's GDI+ handle and scalar names that `include/w32gdiplus.rs`'s typedef list *uses* without
 /// declaring (its own head note leaves them to the includer: "they come from `<windows.h>` and
@@ -424,33 +427,33 @@ pub type GpBitmap = *mut c_void;
 /// C: typedef UINT32 ARGB; typedef UINT32 PROPID; typedef int InterpolationMode; typedef int GpUnit;
 /// C: typedef void *HDC, *HBITMAP, *HPALETTE, *IStream; typedef VOID (*DrawImageAbort) (VOID *);
 /// C: typedef BOOL (*GetThumbnailImageAbort) (VOID *);
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type GpImage = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type GpGraphics = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type HDC = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type HBITMAP = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type HPALETTE = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type IStream = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type ULONG_PTR = usize;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type INT = c_int;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type ARGB = u32;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type PROPID = u32;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type InterpolationMode = c_int;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type GpUnit = c_int;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type DrawImageAbort = Option<unsafe extern "system" fn (*mut c_void) -> BOOL>;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type GetThumbnailImageAbort = Option<unsafe extern "system" fn (*mut c_void) -> BOOL>;
 /// C's five GDI+ records that only ever cross this graph behind a pointer (the mirror's typedef
 /// list names them; its own note leaves their text to the includer).  PORTING.md 1.2's
@@ -460,36 +463,36 @@ pub type GetThumbnailImageAbort = Option<unsafe extern "system" fn (*mut c_void)
 /// C: typedef struct PropertyItem { ... } PropertyItem;
 /// C: typedef struct ImageCodecInfo { ... } ImageCodecInfo;
 /// C: typedef struct EncoderParameters { ... } EncoderParameters;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 #[repr(C)]
 pub struct GdiplusStartupInput { _private: [u8; 0] }
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 #[repr(C)]
 pub struct GdiplusStartupOutput { _private: [u8; 0] }
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 #[repr(C)]
 pub struct PropertyItem { _private: [u8; 0] }
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 #[repr(C)]
 pub struct ImageCodecInfo { _private: [u8; 0] }
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 #[repr(C)]
 pub struct EncoderParameters { _private: [u8; 0] }
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type PixelFormat = c_int;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type RotateFlipType = c_int;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const Ok: GpStatus = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const RotateNoneFlipY: RotateFlipType = 6;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const PixelFormatAlpha: PixelFormat = 0x00040000;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const PixelFormatGDI: PixelFormat = 0x00020000;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const PixelFormatCanonical: PixelFormat = 0x00200000;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const PixelFormat32bppARGB: PixelFormat =
   10 | (32 << 8) | PixelFormatAlpha | PixelFormatGDI | PixelFormatCanonical;
 
@@ -509,9 +512,9 @@ pub const PixelFormat32bppARGB: PixelFormat =
 /// C:   DWORD bV5GammaBlue; DWORD bV5Intent; DWORD bV5ProfileData; DWORD bV5ProfileSize;
 /// C:   DWORD bV5Reserved; } BITMAPV5HEADER;
 /// C: #define BI_BITFIELDS 3L
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type FXPT2DOT30 = LONG;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct CIEXYZ
@@ -520,7 +523,7 @@ pub struct CIEXYZ
   pub ciexyzY: FXPT2DOT30,
   pub ciexyzZ: FXPT2DOT30,
 }
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct CIEXYZTRIPLE
@@ -529,7 +532,7 @@ pub struct CIEXYZTRIPLE
   pub ciexyzGreen: CIEXYZ,
   pub ciexyzBlue: CIEXYZ,
 }
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct BITMAPV5HEADER
@@ -561,7 +564,7 @@ pub struct BITMAPV5HEADER
 }
 /// C: typedef struct tagRGBQUAD { BYTE rgbBlue; BYTE rgbGreen; BYTE rgbRed; BYTE rgbReserved; }
 /// C:   RGBQUAD;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct RGBQUAD
@@ -571,7 +574,7 @@ pub struct RGBQUAD
   pub rgbRed: BYTE,
   pub rgbReserved: BYTE,
 }
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const BI_BITFIELDS: DWORD = 3;
 
 /// C 77's `<wingdi.h>` / C 79's `<gdiplus.h>`: the GDI+ entry points C 843-858 calls.  The port's
@@ -591,7 +594,7 @@ pub const BI_BITFIELDS: DWORD = 3;
 /// C: typedef struct _GUID { unsigned long Data1; unsigned short Data2; unsigned short Data3;
 /// C:   unsigned char Data4[8]; } GUID;
 /// C: typedef GUID CLSID;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct GUID
@@ -601,22 +604,22 @@ pub struct GUID
   pub Data3: u16,
   pub Data4: [u8; 8],
 }
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub type CLSID = GUID;
 
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 include!("include/lisp.rs");                    // C 85: `#include "lisp.h"` (its C 34 `#include <stdio.h>`: `fprintf`, `sprintf`, `stderr`)
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 include!("include/w32common.rs");               // C 86: `#include "w32common.h"` (`os_subtype`, `OS_SUBTYPE_NT`)
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 include!("include/w32term.rs");                 // C 87: `#include "w32term.h"` (`ALIGN_STACK`, `w32_gdiplus_startup`)
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 include!("include/w32select.rs");               // C 88: `#include "w32select.h"`
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 include!("include/blockinput.rs");              // C 89: `#include "blockinput.h"` (`block_input`, `unblock_input`)
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 include!("include/coding.rs");                  // C 90: `#include "coding.h"` (`coding_system`, `CODING_*`)
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 include!("include/w32gdiplus.rs");              // C 91: `#include "w32gdiplus.h"` (the `Gdip*` entry-point macros)
 
 /* C 93-97: `#ifdef CYGWIN` - the Cygwin GUI build's two extra headers and the `_memccpy` rename.
@@ -647,7 +650,7 @@ include!("include/w32gdiplus.rs");              // C 91: `#include "w32gdiplus.h
 //   but not `strstr` (gnulib's `string.in.rs` 248-253 owns the `rpl_strstr` rename and is not in
 //   this unit's graph).
 // C: `<string.h>`, the runtime's own name: `void *_memccpy (void *, const void *, int, size_t);`
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
   pub fn internal_condition_case_1 (bfun: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
                                     arg: Lisp_Object, handlers: Lisp_Object,
@@ -659,7 +662,7 @@ unsafe extern "C" {
 }
 // C: coding.h 686: `extern void setup_coding_system (Lisp_Object, struct coding_system *);` -
 // `include/coding.rs` carries `encode_coding_object` and `decode_coding_object` but not this one.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
   pub fn setup_coding_system (coding_system: Lisp_Object, coding: *mut coding_system);
 }
@@ -668,7 +671,7 @@ unsafe extern "C" {
 // C 856's call is an implicit declaration - the ledger's Findings.  The declaration stands here
 // with the header's own text.
 // C: w32.h 209: `extern int  filename_to_utf16 (const char *, wchar_t *);`
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 unsafe extern "C" {
   pub fn filename_to_utf16 (ansi: *const c_char, wide: *mut WCHAR) -> c_int;
 }
@@ -698,48 +701,48 @@ unsafe extern "C" {
    every one of them zero (static storage); PORTING.md 1.5's zero-initialisation is that value, and
    a `Lisp_Object` is `lisp_h_Qnil ()` (`NIL_IS_ZERO`, lisp.h 1999).  */
 /// C 120: `static LCID DEFAULT_LCID;`
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut DEFAULT_LCID: LCID = 0;
 /// C 121: `static UINT ANSICP, OEMCP;`
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut ANSICP: UINT = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut OEMCP: UINT = 0;
 /// C 122: `static Lisp_Object QANSICP, QOEMCP;` (this file's own two symbols, not the generated
 /// `globals.rs` set: C 1338-1339 and C 1362-1363 are their only writers).
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut QANSICP: Lisp_Object = lisp_h_Qnil ();
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut QOEMCP: Lisp_Object = lisp_h_Qnil ();
 /// C 125: `static HWND clipboard_owner;`
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut clipboard_owner: HWND = core::ptr::null_mut ();
 /// C 126-128: "A flag to tell WM_DESTROYCLIPBOARD who is to blame this time (just checking
 /// GetClipboardOwner() doesn't work, sadly)."
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut modifying_clipboard: c_int = 0;
 /// C 130-135: "Configured transfer parameters, based on the last inspection of
 /// selection-coding-system."
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut cfg_coding_system: Lisp_Object = lisp_h_Qnil ();
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut cfg_codepage: UINT = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut cfg_lcid: LCID = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut cfg_clipboard_type: UINT = 0;
 /// C 137-142: "The current state for delayed rendering."
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut current_text: Lisp_Object = lisp_h_Qnil ();
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut current_coding_system: Lisp_Object = lisp_h_Qnil ();
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut current_requires_encoding: c_int = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut current_num_nls: c_int = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut current_clipboard_type: UINT = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut current_lcid: LCID = 0;
 
 /* C 144-148: `#if TRACE` - the trace statements the three `ONTRACE` arms carry.  `TRACE` is not
@@ -754,7 +757,7 @@ macro_rules! ONTRACE { ($($stmt:tt)*) => {}; }
 /* C 151-153: "This function assumes that there is no multibyte character in current_text, so we can
    short-cut encoding."  */
 /// C 154-208: `convert_to_handle_as_ascii`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn convert_to_handle_as_ascii () -> HGLOBAL
 {
   let mut htext: HGLOBAL = core::ptr::null_mut ();   // C 156: `HGLOBAL htext = NULL;`
@@ -815,7 +818,7 @@ unsafe fn convert_to_handle_as_ascii () -> HGLOBAL
 /* C 210-213: "This function assumes that there are multibyte or NUL characters in current_text, or
    that we need to construct Unicode.  It runs the text through the encoding machinery."  */
 /// C 214-248: `convert_to_handle_as_coded`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn convert_to_handle_as_coded (coding_system: Lisp_Object) -> HGLOBAL
 {
   let mut htext: HGLOBAL;                            // C 216
@@ -856,7 +859,7 @@ unsafe fn convert_to_handle_as_coded (coding_system: Lisp_Object) -> HGLOBAL
 /* C 250-296: `render`.  C's `Lisp_Object (*code) (Lisp_Object)` parameter of `run_protected`
    (C 393) and of `internal_condition_case_1` (C 408) takes this function's address, so it is
    `extern "C"` like the helper PORTING.md 1.4 requires of every address-taken `static`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "C" fn render (oformat: Lisp_Object) -> Lisp_Object
 {
   let mut htext: HGLOBAL = core::ptr::null_mut ();   // C 252
@@ -907,7 +910,7 @@ unsafe extern "C" fn render (oformat: Lisp_Object) -> Lisp_Object
 }
 
 /// C 298-329: `render_locale`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn render_locale () -> Lisp_Object
 {
   let mut hlocale: HANDLE = core::ptr::null_mut ();   // C 300
@@ -944,7 +947,7 @@ unsafe fn render_locale () -> Lisp_Object
 /* C 331-333: "At the end of the program, we want to ensure that our clipboard data survives us.
    This code will do that."  */
 /// C 334-390: `render_all`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "C" fn render_all (ignore: Lisp_Object) -> Lisp_Object
 {
   ONTRACE! (fprintf (stderr, c"render_all\n".as_ptr ()));                  // C 337
@@ -995,7 +998,7 @@ unsafe extern "C" fn render_all (ignore: Lisp_Object) -> Lisp_Object
 /// C 392-413: `run_protected`.  The function-pointer parameter is the mirror's
 /// `Option<unsafe extern "C" fn …>` shape (PORTING.md 1.4), which is also what
 /// `internal_condition_case_1` takes.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn run_protected (code: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp_Object>,
 			 arg: Lisp_Object)
 {
@@ -1018,7 +1021,7 @@ unsafe fn run_protected (code: Option<unsafe extern "C" fn (Lisp_Object) -> Lisp
 }
 
 /// C 415-422: `lisp_error_handler`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "C" fn lisp_error_handler (error: Lisp_Object) -> Lisp_Object
 {
   Vsignaling_function = Qnil ();                             // C 418
@@ -1032,7 +1035,7 @@ unsafe extern "C" fn lisp_error_handler (error: Lisp_Object) -> Lisp_Object
 /// records as having no Rust item - so no attribute stands here.  C's `switch` is the `match`
 /// below; `WM_DESTROY`'s `break` is the empty arm, which falls through to the `DefWindowProc` call
 /// C's `break` reaches (PORTING.md 2.2).
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "system" fn owner_callback (win: HWND, msg: UINT, wp: WPARAM, lp: LPARAM) -> LRESULT
 {
   match msg                                                        // C 428
@@ -1080,7 +1083,7 @@ unsafe extern "system" fn owner_callback (win: HWND, msg: UINT, wp: WPARAM, lp: 
 }
 
 /// C 462-475: `create_owner`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn create_owner () -> HWND
 {
   let CLASSNAME: &core::ffi::CStr = c"Emacs Clipboard";   // C 465: `static const char CLASSNAME[]`
@@ -1098,7 +1101,7 @@ unsafe fn create_owner () -> HWND
 
 /* C 477: "Called on exit by term_ntproc() in w32.c" */
 /// C 479-488: `term_w32select`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn term_w32select ()
 {
@@ -1111,7 +1114,7 @@ pub unsafe extern "C" fn term_w32select ()
 }
 
 /// C 490-568: `setup_config`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn setup_config ()
 {
   let mut coding_name: *const c_char;      // C 492
@@ -1192,7 +1195,7 @@ unsafe fn setup_config ()
 }
 
 /// C 570-597: `enum_locale_callback`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "system" fn enum_locale_callback (loc_string: *mut c_char) -> BOOL
 {
   let mut lcid: LCID;                                // C 572
@@ -1222,7 +1225,7 @@ unsafe extern "system" fn enum_locale_callback (loc_string: *mut c_char) -> BOOL
 }
 
 /// C 599-617: `cp_from_locale`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn cp_from_locale (lcid: LCID, format: UINT) -> UINT
 {
   let mut buffer: [c_char; 20] = [0; 20];            // C 601: `char buffer[20] = "";`
@@ -1244,7 +1247,7 @@ unsafe fn cp_from_locale (lcid: LCID, format: UINT) -> UINT
 }
 
 /// C 619-628: `coding_from_cp`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn coding_from_cp (codepage: UINT) -> Lisp_Object
 {
   let mut buffer: [c_char; 30] = [0; 30];            // C 621 (zero-initialised, PORTING.md 1.5)
@@ -1255,7 +1258,7 @@ unsafe fn coding_from_cp (codepage: UINT) -> Lisp_Object
 }
 
 /// C 630-656: `validate_coding_system`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn validate_coding_system (coding_system: Lisp_Object) -> Lisp_Object
 {
   let mut eol_type: Lisp_Object;                     // C 632
@@ -1283,7 +1286,7 @@ unsafe fn validate_coding_system (coding_system: Lisp_Object) -> Lisp_Object
 }
 
 /// C 658-677: `setup_windows_coding_system`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn setup_windows_coding_system (coding_system: Lisp_Object, coding: *mut coding_system)
 {
   memset (coding as *mut c_void, 0, core::mem::size_of::<coding_system> ());   // C 662
@@ -1307,7 +1310,7 @@ unsafe fn setup_windows_coding_system (coding_system: Lisp_Object, coding: *mut 
 
 /* C 679-681: "This sets the clipboard data to the given text."  */
 /* C 683-798: `Fw32_set_clipboard_data`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 DEFUN! ("w32-set-clipboard-data", Fw32_set_clipboard_data,
        Sw32_set_clipboard_data, 1, 2, 0,
        doc: "This sets the clipboard data to the given text.",
@@ -1435,7 +1438,7 @@ DEFUN! ("w32-set-clipboard-data", Fw32_set_clipboard_data,
 /// C 803-822: `stdfmt_name`.  C's `const char *[]` keeps C's own strings; the port's spelling of a
 /// C string literal is `c"..."`, so the array's element type is `&CStr` and a use site takes
 /// `.as_ptr ()` (the same bytes C's initialiser has).
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static stdfmt_name: [&core::ffi::CStr; 18] =
 [
   c"UNDEFINED", c"STRING", c"BITMAP", c"METAFILE", c"SYMLINK", c"DIF", c"TIFF", c"OEM_STRING",
@@ -1450,7 +1453,7 @@ static stdfmt_name: [&core::ffi::CStr; 18] =
 /// file only ever exists on that build), and C's `#else` arm - the one-item `return false` - is
 /// carried under the negated gate.  C's `size` parameter is unused in the body, as C's own text
 /// shows.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn convert_dibv5_to_png (data: *mut c_char, size: c_int, temp_file: *mut c_char) -> bool
 {
   #[cfg (feature = "windowsnt")]
@@ -1506,7 +1509,7 @@ unsafe fn convert_dibv5_to_png (data: *mut c_char, size: c_int, temp_file: *mut 
 }
 
 /// C 867-878: `get_clipboard_format_name`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn get_clipboard_format_name (mut format_index: c_int, name: *mut c_char) -> c_int
 {
   *name = 0;                                                             // C 870
@@ -1520,7 +1523,7 @@ unsafe fn get_clipboard_format_name (mut format_index: c_int, name: *mut c_char)
 }
 
 /* C 880-963: `Fw32__get_clipboard_data_media`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 DEFUN! ("w32--get-clipboard-data-media", Fw32__get_clipboard_data_media,
        Sw32__get_clipboard_data_media, 3, 3, 0,
        doc: "Gets media (not plain text) clipboard data in one of the given formats.\n\nFORMATS is a list of formats.\nTEMP-FILE-IN is the name of the file to store the data.\n\nElements in FORMATS are symbols naming a format, such a image/png, or\nimage/jpeg.  For compatibility with X systems, some conventional\nformat names are translated to equivalent MIME types, as configured with\nthe variable 'w32--selection-target-translations'.\n\nThe file named in TEMP-FILE-IN must be created by the caller, and also\ndeleted if required.\n\nReturns nil it there is no such format, or something failed.\nIf it returns t, then the caller should read the file to get the data.\nIf it returns a string, then that is the data and the file is not used.\n\nWhen returning a string, it will be unibyte if IS-TEXTUAL is nil (the\ncontent is binary data).",
@@ -1597,7 +1600,7 @@ DEFUN! ("w32--get-clipboard-data-media", Fw32__get_clipboard_data_media,
 });
 
 /* C 965-1180: `Fw32_get_clipboard_data`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 DEFUN! ("w32-get-clipboard-data", Fw32_get_clipboard_data,
        Sw32_get_clipboard_data, 0, 1, 0,
        doc: "This gets the clipboard data in text format.",
@@ -1823,7 +1826,7 @@ DEFUN! ("w32-get-clipboard-data", Fw32_get_clipboard_data,
 
 /* C 1182: "Support checking for a clipboard selection."  */
 /* C 1184-1226: `Fw32_selection_exists_p`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 DEFUN! ("w32-selection-exists-p", Fw32_selection_exists_p,
        Sw32_selection_exists_p, 0, 2, 0,
        doc: "Whether there is an owner for the given X selection.\nSELECTION should be the name of the selection in question, typically\none of the symbols `PRIMARY', `SECONDARY', or `CLIPBOARD'.  (X expects\nthese literal upper-case names.)  The symbol nil is the same as\n`PRIMARY', and t is the same as `SECONDARY'.\n\nTERMINAL should be a terminal object or a frame specifying the X\nserver to query.  If omitted or nil, that stands for the selected\nframe's display, or the first available X display.",
@@ -1865,7 +1868,7 @@ DEFUN! ("w32-selection-exists-p", Fw32_selection_exists_p,
 
 /* C 1228: "Support enumerating available clipboard selection formats."  */
 /* C 1230-1310: `Fw32_selection_targets`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 DEFUN! ("w32-selection-targets", Fw32_selection_targets,
        Sw32_selection_targets, 0, 2, 0,
        doc: "Return a vector of data formats available in the specified SELECTION.\nSELECTION should be the name of the selection in question, typically\none of the symbols `PRIMARY', `SECONDARY', or `CLIPBOARD'.\nThe symbol nil is the same as `PRIMARY', and t is the same as `SECONDARY'.\n\nTERMINAL should be a terminal object or a frame specifying the X\nserver to query.  If omitted or nil, that stands for the selected\nframe's display, or the first available X display.\n\nThis function currently ignores TERMINAL, and only returns non-nil\nfor `CLIPBOARD'.  The return value is a vector of symbols, each symbol\nrepresenting a data format that is currently available in the clipboard.",
@@ -1945,7 +1948,7 @@ DEFUN! ("w32-selection-targets", Fw32_selection_targets,
 
 /* C 1312-1314: "One-time init.  Called in the un-dumped Emacs, but not in the dumped version."  */
 /// C 1315-1343: `syms_of_w32select`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn syms_of_w32select ()
 {
@@ -1977,7 +1980,7 @@ pub unsafe extern "C" fn syms_of_w32select ()
 
 /* C 1345-1347: "One-time init.  Called in the dumped Emacs, but not in the un-dumped version."  */
 /// C 1348-1370: `globals_of_w32select`.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn globals_of_w32select ()
 {

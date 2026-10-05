@@ -1,7 +1,8 @@
 # emacs/src/w32select.c (1370 lines) — whole file, C 1-1370
 
 > **One of P-86's class: the frozen configuration compiles nothing here.**  `w32select.o` is added to
-> `W32_OBJ` by `emacs/src/Makefile.in` 483 (the non-Cygwin MinGW arm of `configure.ac` 3051's
+> `W32_OBJ` by `emacs/src/Makefile.in` 483 (`configure.ac` 3030-3031, i.e. the whole `HAVE_W32` test of
+> 3023-3024, **before** the Cygwin split at 3044 — corrected 2026-10-05, status 3.587's
 > `HAVE_W32` split - the build whose `nt/inc/ms-w32.h` `#define`s `WINDOWSNT`), and
 > `docs/baseline/frozen-build-sources.txt` lists no `w32select.o` for this target - so
 > `extract-abi.py`'s checklist for the file is empty (P-86 ②) and this ledger is that clause's
@@ -34,11 +35,11 @@
 
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
-| the file itself (`W32_OBJ`'s MinGW arm ⇔ `nt/inc/ms-w32.h`'s `WINDOWSNT`) | `feature = "windowsnt"` (on every item *and* on the include graph) | the non-Cygwin Windows (MinGW) build |
-| C 80 `#ifndef CF_DIBV5` | the C `#define` arm: `all (feature = "windowsnt", not (feature = "cf_dibv5"))`; the SDK arm carries the same two values | the frozen table has no `CF_DIBV5` ⇒ C's own arm |
+| the file itself (`W32_OBJ`, `configure.ac` 3030-3031 under the `HAVE_W32` test) | `feature = "have_ntgui"` (on every item *and* on the include graph; corrected in 3.587) | either Windows GUI build, Cygwin or MinGW |
+| C 80 `#ifndef CF_DIBV5` | the C `#define` arm: `all (feature = "have_ntgui", not (feature = "cf_dibv5"))`; the SDK arm carries the same two values | the frozen table has no `CF_DIBV5` ⇒ C's own arm |
 | C 93 `#ifdef CYGWIN` (the two extra headers and `#define _memccpy memccpy`) | `feature = "cygwin"` | a Cygwin GUI build (the frozen table has `CYGWIN` `undef`) |
 | C 144 `#if TRACE` (`ONTRACE`) | `feature = "trace"` / its negation | `TRACE` is defined nowhere in the tree or the frozen table ⇒ C's `#else` (the empty arm) |
-| C 828 `#ifdef WINDOWSNT` (the GDI+ half of `convert_dibv5_to_png`) | `all (feature = "windowsnt", …)`; the `#else` arm (C 862-864) is `not (feature = "windowsnt")` | the file gate itself; the `#else` is dead on this build |
+| C 828 `#ifdef WINDOWSNT` (the GDI+ half of `convert_dibv5_to_png`; its hoisted type declarations are the port's `all (feature = "have_ntgui", feature = "windowsnt")` items) | `all (feature = "have_ntgui", feature = "windowsnt", …)`; the `#else` arm (C 862-864) is `all (feature = "have_ntgui", not (feature = "windowsnt"))` | the file gate itself; the `#else` is dead on this build |
 
 `tools/check-cond-eval.py src/w32select.c` reads **`4 conditions, 0 unknown, 0 disagreements
 [VERIFIED]`** - those four and nothing else - so the four rows above are the whole conditional text

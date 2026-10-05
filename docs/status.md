@@ -11847,3 +11847,23 @@
      的 Gate mapping 要一并改。`w32font`(202/26)、`w32term`(238/4)、`w32uniscribe`(135/5)、`w32fns`(332/6)、`w32dwrite`(151/0)、
      `w32menu`(169/0) 的门已经是对的；`w32.rs`/`w32console.rs`/`w32heap.rs`/`w32proc.rs`/`w32image.rs`/`w32inevt.rs` 在非 Cygwin 臂，
      `windowsnt` 也对。
+
+- **3.587 保真更正第二件：`src/w32select.rs` 的文件门也从 `windowsnt` 改成 `have_ntgui`（同一配置证据）（2026-10-05）**：
+  ① **依据**：同 3.586 —— `configure.ac` 3023-3024（`HAVE_W32` → `HAVE_NTGUI`）与 **3030-3031**（在 3044 的 Cygwin 分流**之前**
+     把 `w32select.o` 放进 `W32_OBJ`）；`make -C src` 的 `Makefile.in` 483 只是引用 `W32_OBJ`。旧注释引的 3051 是那个 `else`。
+  ② **改法与实测分类**：本文件 151 个顶层 cfg 站点里，**43 个**属于 C 的 `#ifdef WINDOWSNT` 段（C 828-862 的
+     `convert_dibv5_to_png` GDI+ 半边；端口把该段里的**函数局部 typedef/声明提到了文件级**，所以它们带的是 C 845/829/856/857 的引用）
+     ⇒ 改成 `all (feature = "have_ntgui", feature = "windowsnt")`；**108 个**是文件门（C 75/76/80/90/91/120/121/125/130/137/154… 的 include 与
+     自己的声明）⇒ 改成 `have_ntgui`；其中 **C 80 的 `#ifndef CF_DIBV5` 两对**必须保留合取，改成
+     `all (feature = "have_ntgui", not (feature = "cf_dibv5"))` / `all (feature = "have_ntgui", feature = "cf_dibv5")`
+     （这是**第一次机械替换漏掉、被我复核抓回**的 4 行）。函数体里那对 `windowsnt` / `not (windowsnt)` 原样保留（C 的 `#else` 臂）。
+     文件头注释与台账 `docs/ports/w32select.md` 的 Gate mapping（文件行、C 80 行、C 828 行）都改对了。
+  ③ **读数**：`extract-abi --check` → **OK**；`build-tu src/w32select.c` → `built`、对象**仍是 336 字节**（没有任何项被解门）；
+     七道文本门**全绿**（`check-mirror-dupes` 17/17/0、`check-citations` 0 drift、`check-declarations` 0 failures、
+     `check-dead-file-coverage` 145/0、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、`check-target-names` 0）。
+  ④ **未声称**：同样**没有** `have_ntgui` 臂的编译读数（本机读不了它，`include/frame.rs` 329 的 `compile_error!` 挡着），
+     证据是**配置 + 冻结读数 + 文本门**；
+  ⑤ **顺带补上一条我自己在 3.586 漏掉的生成**：`port-map.md` 里 `src/w32xfns.rs` 的行数仍是 911（3.586 改了文件却没重生成），
+     本次刷新成 920；`src/w32select.rs` 同步 2,003 → 2,006。⇒ `w32` 家族里**由 `W32_OBJ` 两处赋值决定的门**现在逐件对上了：
+     `have_ntgui` 一族（`w32fns`/`w32menu`/`w32reg`/`w32font`/`w32term`/`w32xfns`/`w32select`/`w32uniscribe`/`w32dwrite`）与
+     `windowsnt` 一族（`w32`/`w32console`/`w32heap`/`w32image`/`w32inevt`/`w32proc`）。
