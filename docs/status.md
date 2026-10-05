@@ -6905,3 +6905,29 @@
      `disable_line_numbers_overlay_at_eob`、`strcat`）与 `struct it.eol_pos`（本轮把 `_pad_f` 转正）该进镜像。
   ⑥ **未声称**：不声称 `src/xdisp.c` 可编译/链接（`--check` 仍 FAIL、行数漂移 38.6%、77 条未闭合）；
      token 包含检查通过 ≠ 语义等价；`xtask layout-check` 本轮未跑（如实记未跑，不当作通过）。
+
+- **3.406 P-86 第六件：`w32term.c` 第一片 C 1-1002（2026-10-05）**：
+  ① **区间**：收在 C 1002（`w32_define_fringe_bitmap` 的 `}`；C 1000 落在该函数内，最近整项边界就是 1002）。
+     **下一个活定义 = `w32_destroy_fringe_bitmap`（C 1005-1013）**。落点 **28 个定义 + 10 个宏/常量族**，
+     含 include 图、fringe/caret/scroll/codepage 文件级对象、13 个后备缓冲/裁剪/波形/矩形/清窗/透明度/像素尺寸函数、
+     `w32_update_begin`…`w32_flip_buffers_if_dirty` 的 update 段与 `w32_after_update_window_line`/`w32_draw_fringe_bitmap`。
+     59 行区间表**同时满足 `w32term.c` 与 `w32term.h` 两行映射**（理由写在段首）。
+  ② **行数**：`femacs/src/w32term.rs` **11 → 1,592 行**（密度 1.59）；台账 24 → **389 行**（旧"空单元"结论按 P-86 显式推翻）。
+  ③ **读数**：冻结 `build-tu` **6 发全 exit 0 / 336 字节**（超预算，如实记）；**11 配置只读扫描表**（`have_ntgui` 单档 42 条落单元正文，
+     加 `windowsnt` 起 0 条——但 lane **自证那是空读数**：镜像的 E0428/E0425 在名字解析阶段就中止 crate）；
+     **臂触达预检 + 两个变异实测**：注入**类型**错误 → 输出**逐字节不变**（142 block）⇒ **不声称"单元无类型错"**，
+     只有解析层的那 1 条（`w32_clip_to_row`，定义在 C 1739 属下一片）是实测；
+     `check-cond-eval src/w32term.c` **41 conditions, 2 unknown, 0 disagreements [VERIFIED]**；
+     `check-dead-file-coverage` **15 ledger(s) bound / 0 failure**；`--check` **134 行**（133 行是 C 1003-8414 余量）。
+  ④ **集成者这一轮的动作**：`femacs/xtask/Cargo.toml` 补两个 feature——`win32_winnt_lt_0500`
+     （C 依据 `w32term.c` 98 的 `_WIN32_WINNT < 0x0500 && !defined (MINGW_W64)`）与 `win32_winnt_lt_0601`（C 129，实读核过行号）。
+  ⑤ **仍未解决（点名，且这是本轮最大的发现）**：⑴ `include/w32term.rs` 有 **23 个声明与本单元定义重名**（7 函数 + 16 对象）
+     ⇒ 必须走 `*_decls`/`*_objs` 模块化，**在此之前没有任何 `have_ntgui` TU 能编这个文件**；
+     ⑵ `w32_output` 缺 `paint_buffer_dirty`/`want_paint_buffer` 访问器；`BLACK_PIX_DEFAULT`/`WHITE_PIX_DEFAULT`/`enter_crit!`/`leave_crit!`
+     展开到镜像没有的名字；⑶ `dispextern.rs` 缺 `draw_fringe_bitmap_params` 的 `cursor_p`/`overlay_p`、`Mouse_HLInfo.mouse_face_defer`
+     与 5 个原型；⑷ `frame.rs` 的 `FRAME_W32_P` 只有冻结臂、`FRAME_MOUSE_UPDATE` 宏体不可编；⑸ `w32gui.rs` 的矩形转换宏宽度不匹配；
+     ⑹ `w32.rs` 与 lib 镜像的 `FD_SETSIZE`/`fd_set` 等重名；⑺ **Windows 臂的镜像图从来没被编过**（预检 141 条镜像错点名
+     `w32gdiplus.rs` 24 / `w32term.rs` 15 / `frame.rs` 11 个"没人声明"的 SDK 名）——这与 3.313 的 xcb 类同属"镜像从没进过编译面"。
+  ⑥ **未声称**：`text-only`（无 mingw/Windows SDK，无 Windows 目标编译）；**无 `<windows.h>` 的任何布局测量**
+     （`POINT`/`RECT`/`_TOUCHINPUT`/`W32Msg` 未验证）；无链接、无运行；除扫描表那 11 档 cfg 外没有别的臂被编过；
+     C 1003-8,414 只是登记。
