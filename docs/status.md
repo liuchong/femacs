@@ -11468,3 +11468,31 @@
      **无读数**（本机无该目录），端口数据取自参照 Makefile 选中的 `src/bitmaps/*.xbm` 臂；X11 布局是本机 X11 的读数，
      非冻结目标；XBM 是数据不是行为；C 1-48 标题/许可块未转写。台账 6 条欠账（`include/xlib.rs` 该承载的 X11 面、
      `lib/include/stdlib.rs` 缺 `atoi`/`atof`、`XCreateGC` 第四参数定型等）记在 `docs/ports/Create.md` 的 `## Owed`。
+
+- **3.571 lane 产出收口：`src/w32image.c` 整文件落地（C 717 → Rust 1,476）（2026-10-05）**：
+  ① **lane 的产出（Leibniz）**：`femacs/src/w32image.rs` 13 → **1,476 行**（md5 `c042f462…`；台账
+     `docs/ports/w32image.md` 24 → 298 行，27 行区间表覆盖 C 1-717）。**门 = `windowsnt`**，依据写在台账
+     `## Gate mapping`：`configure.ac` **3051** 的 `W32_OBJ="… w32image.o …"` 在 3044 的**非 Cygwin** `else` 臂里，
+     而 3024 的 `HAVE_NTGUI` 对 Cygwin 与原生 Windows **都定义** ⇒ 不能用 `have_ntgui` 当文件门；子门 `have_ntgui` +
+     `have_window_system`。文件自身 4 个 `#if`（C 26/35/42/224 的 `MINGW_W64`/`WINDOWSNT`）两臂都带；
+     `check-cond-eval.py src/w32image.c` → **4 conditions / 0 unknown / 0 disagreements [VERIFIED]**。
+  ② **读数**：冻结 `build-tu` → `exit 0`、**336 字节**空对象（md5 `dbed6883…`，与 `dosfns`/`w32inevt`/`w32select`/
+     `w16select`/`Create` 同族）。翻臂（`windowsnt`+`have_ntgui`+`have_window_system`）→ **exit 1 / 33 error header，
+     落在本单元自身的 0 条**：29 条在 `include/w32gdiplus.rs`（27 个 `fn_*` 与两个入口点的 `E0428`）、3 条在
+     `include/w32term.rs`（1347/1348 的 `E0428` + 1427 `COLORREF` 的 `E0425`）、1 条是 `include/frame.rs` 329 自写的
+     `compile_error!`。首稿读数**30 条锚在 `_root.rs`**（27 条 `cannot find macro Gdip*` = C 41 的 `w32gdiplus.h` 边漏了，
+     5 × `E0530`、3 × `E0614`、2 × `E0308`）**全已修**；**变异实测**背书"本单元 0 错"非空跑（注入 `E0308` 后 34→35，
+     锚在注入行）。
+  ③ **集成者登记（我）**：容差行 `w32image 1.07`（717 vs 1476 = 105.9%）⇒ 本件 `--check` **OK**；`port-map.md` 刷新本件；
+     `port-lines-pending.tsv` 去掉本件行 ⇒ **pending 只剩 2 文件 / 814 参照行**（`lib/c++defs.h`、`src/w32xfns.c`，两条
+     lane 已开）；`macro-body-notes.tsv` 收下该 lane 追加的 2 行；另**登记 `have_w32notify`**（`femacs/xtask/Cargo.toml`，
+     供在飞的 `src/w32xfns.c` lane 用）——该行**不算本件产出**。
+  ④ **门读数（本轮现读）**：`check-mirror-dupes` **17/17/0**、`check-citations` **0 drift / 0 stale**（本件把此前
+     `w32image.rs` 的两条 drift 清掉了）、`check-declarations` 0 failures、`check-dead-file-coverage` **142/0**、
+     `check-ledger-ticks` 238/0、`check-port-lines` **0 new / 0 stale**、`check-target-names` 0 finding。
+  ⑤ **未声称**：**零运行时证据**（冻结配置一行不编，336 字节对象为证）；翻臂读数只是 `rustc` 对**物化镜像图**的类型检查，
+     本机无 `<windows.h>`/`<windowsx.h>`/GDI+ 头 ⇒ 替身记录（13 个）、常量（14 个）与原型**全部 UNVERIFIED**（是文档文本，
+     不是实测），"本单元 0 错"不代表能链接；`IStreamVtbl` 只建模 `Release` 所在的三槽。台账 8 条欠账（31 条 `E0428` 镜像
+     碰撞行待搬进 `pub mod …_decls { … } use …::*;`、`w32term.rs` 的 `COLORREF`、`frame.rs` 的 `compile_error!`、
+     `include/{lisp,dispextern}.rs` 该承载的 `add_to_log`/`plist_get`/`valid_image_p` 等）记在 `docs/ports/w32image.md`
+     的 `## Owed`。该 lane 预算超限已如实记账（`build-tu` 4/3、`probe` 4/3）。
