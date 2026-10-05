@@ -12563,6 +12563,14 @@
      lldb 栈：`Fcommand_error_default_function → print_error_message → …`；`noninteractive=1`、`Vprint_level` = fixnum 10 已实测）。
      也就是说：**loadup 在加载完 `debug-early` 之后没能继续**（输出里只有两条 `Loading …`），而命令循环已经在读输入。
      下一步就是查这条断点：`Fload` 的返回值/错误去哪了、`loadup.el` 的第二个 `(load "emacs-lisp/byte-run")` 为什么没到。
+     **同轮的补充读数（临时仪表，`Fload` 入口打印文件名，已删并复建验证）**：整个一次 `--batch` 运行里 `Fload`
+     只被调用**两次**——`loadup.el`、`emacs-lisp/debug-early`——之后**再没有第三次**（`loadup.el` 里 debug-early
+     之后紧跟着 `(load "emacs-lisp/byte-run")`）。也就是说：**加载 `emacs-lisp/debug-early` 这一步没有走完**
+     （读表单/求值任一环出错），错误沿 `load` 回到顶层的 condition-case；而这时候打印出来的是 `internal-timer-start-idle`
+     这条**次生**错误（它来自 `read_char → timer_start_idle`，是错误处理路径自己走到的），**原始错误被它顶掉了**。
+     所以下一轮的第一件事是**让原始错误露出来**：在 `load` 路径上第一次 `Fsignal` 处取错误符号与数据（或临时让
+     `debug-early` 处理路径不覆盖它），再谈 `internal-timer-start-idle` 的顺序问题（它是 `lisp/emacs-lisp/timer.el`
+     的 Lisp 函数，正常由 loadup 在更后面加载）。
   ⑤ **读数**：⑴ 程序侧：`--version` 仍 exit 0；`--batch` 无 `EMACSLOADPATH` 时打印 void 信息后 exit 255（不再是死循环）；
      `EMACSLOADPATH=…` 时打出上面四条加载行；⑵ 八道文本门 + `check-carried` 全绿（`check-declarations` 6 站点/0 forbidden/0 failures、
      `check-citations` 676 文件/0 drift/0 stale——`lread.rs` 的表少了 1 行、四条允许项无需改、`check-mirror-dupes` 16/16/0、
