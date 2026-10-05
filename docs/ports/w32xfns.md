@@ -20,7 +20,11 @@
 > is unchanged and still true — it is the *conclusion* that is withdrawn, exactly as
 > `docs/ports/w32inevt.md`, `w32select.md`, `w32image.md` and `dosfns.md` record for their own pairs.
 >
-> **The file gate is `windowsnt`, and the arm reading is `windowsnt` alone.**  `HAVE_NTGUI` (3024) is
+> **The file gate is `have_ntgui` (corrected 2026-10-05, status 3.586), and the arm reading is the `have_ntgui` one.**  `configure.ac`
+> 3023-3024 `AC_DEFINE`s `HAVE_NTGUI` under the `HAVE_W32` test, and **3030-3031** put `w32xfns.o` in `W32_OBJ` *before*
+> the Cygwin split at 3044 - so the file is compiled for **both** GUI arms, and only the 3052 arm's six objects
+> (`w32.o w32console.o w32heap.o w32image.o w32inevt.o w32proc.o`) are the `windowsnt`-gated family.  What this header used
+> to say (`HAVE_NTGUI` (3024) is
 > on for *both* the Cygwin and the native Windows GUI build, while `w32xfns.o` joins `W32_OBJ` only
 > in the non-Cygwin arm (3051) — the build whose `nt/inc/ms-w32.h` 23-25 `#define`s `WINDOWSNT`.  The
 > units of that same arm already landed with `windowsnt` as their file gate (`src/w32.rs`,
@@ -44,7 +48,7 @@
 
 | C `#if` / build condition | Port gate | Compiled when |
 | --- | --- | --- |
-| the file itself (`W32_OBJ`, `configure.ac` 3019-3051; the native-Windows `else` of the Cygwin split) | `feature = "windowsnt"` (registered, `femacs/xtask/Cargo.toml` 826), on every item **and on the include graph** (P-86 ⑧) | the native MS Windows GUI build (`nt/inc/ms-w32.h` 23-25 defines `WINDOWSNT`); not the Cygwin GUI build |
+| the file itself (`W32_OBJ`, `configure.ac` 3030-3031 under the `HAVE_W32` test of 3023-3024, i.e. **before** the 3044 Cygwin split) | `feature = "have_ntgui"` (registered), on every item **and on the include graph** (P-86 ⑧); its two `#ifdef WINDOWSNT` blocks (C 26-38, C 49-51) and the two statement sites (C 81-83, C 433-438) additionally carry `feature = "windowsnt"` | either MS Windows GUI build, Cygwin or native (corrected in 3.586; the 3052 arm's six objects are the `windowsnt` family) |
 | C 20 `#include <config.h>` | **no gate** (C has it outside every `#if`; `include/config.rs`) | every build — the file's only ungated edge (P-86 ⑧) |
 | C 21-24 `#include <signal.h>`, `<stdio.h>`, `<windows.h>`, `<windowsx.h>` | the file gate (C itself has them before C 26's `#ifdef`, but no configuration the frozen build reaches compiles this file — the `src/w32fns.rs` 27-35 reading of the same position) | the Windows build; C 23/24 have no file in the reference tree, so their names stand in the port's own sections (P-88 ①) |
 | C 26-38 `#ifdef WINDOWSNT` | the file gate itself | the Windows build; C has no `#else` |

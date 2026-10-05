@@ -13,11 +13,16 @@
 // `docs/ports/w32xfns.md` carries that clause's substitute: the **C line-range table**, the
 // `## Evidence` readings and the `## Deviations`.
 //
-//   * the **file gate** is `feature = "windowsnt"`, on every item *and on the include graph*
+//   * the **file gate** is `feature = "have_ntgui"`, on every item *and on the include graph*
 //     (P-86 ⑧: with the includes outside the gate the frozen compile stops producing its empty
-//     object).  It is `WINDOWSNT`, not `HAVE_NTGUI`: `HAVE_NTGUI` is on for *both* the Cygwin and
-//     the native Windows GUI build (3024), while `w32xfns.o` is added to `W32_OBJ` only in the
-//     non-Cygwin arm (3051) - the build whose `nt/inc/ms-w32.h` 23-25 `#define`s `WINDOWSNT`.
+//     object).  It is `HAVE_NTGUI`, **not** `WINDOWSNT`: `configure.ac` 3023-3024 `AC_DEFINE`s
+//     `HAVE_NTGUI` under the `HAVE_W32` test, and 3030-3031 - *before* the Cygwin split at 3044 -
+//     put `w32xfns.o` in `W32_OBJ` for **both** GUI arms.  The two `#ifdef WINDOWSNT` blocks C has
+//     in this file (C 26-38 and C 49-51) carry `all (feature = "have_ntgui", feature = "windowsnt")`
+//     on their own items; the 3052 arm's six objects (`w32.o`, `w32console.o`, `w32heap.o`,
+//     `w32image.o`, `w32inevt.o`, `w32proc.o`) are the `windowsnt`-gated family, not this one.
+//     (Corrected 2026-10-05, status 3.586: the note above this one claimed 3051 for a year's worth
+//     of lanes' worth of text - it read `sed -n '3051p'`, which is the `else` of the Cygwin split.)
 //     The units of that same arm (`src/w32.rs`, `src/w32heap.rs`, `src/w32proc.rs`,
 //     `src/w32console.rs`) already landed with this gate, so this one does too;
 //   * C 26-38, 49-51, 81-83 and 433-438's `#ifdef WINDOWSNT` is the *same* condition as the file
@@ -56,7 +61,7 @@
 
 include!("include/config.rs");                  // C 20: `#include <config.h>`
 /* C 20's AH_BOTTOM: `#include <conf_post.h>` (`DebPrint`, C 78's use).  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 include!("include/conf_post.rs");
 
 /* C 21-24: the system headers.  None of them is in the build the frozen configuration reaches, so
@@ -64,9 +69,9 @@ include!("include/conf_post.rs");
    `<windowsx.h>` have no file in the reference tree, so this file's own names for them stand in
    the two sections below (P-88 ①: the declaration site is C's own `#include` line, and no file is
    added under `femacs/src/include/`).  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 include!("../lib/include/signal.rs");           // C 21: `#include <signal.h>`
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 include!("../lib/include/stdio.rs");            // C 22: `#include <stdio.h>`
 // C 23: `#include <windows.h>`
 // C 24: `#include <windowsx.h>`
@@ -91,78 +96,78 @@ include!("../lib/include/stdio.rs");            // C 22: `#include <stdio.h>`
 /// C: typedef unsigned char BYTE; typedef unsigned short WORD; typedef unsigned long DWORD;
 /// C: typedef long LONG; typedef unsigned long ULONG; typedef unsigned int UINT; typedef int BOOL;
 /// C: typedef short SHORT; typedef unsigned short USHORT;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type BYTE = u8;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type WORD = c_ushort;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type DWORD = u32;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LONG = i32;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type ULONG = u32;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type UINT = c_uint;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type BOOL = c_int;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type SHORT = c_short;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type USHORT = c_ushort;
 
 /// C 23's handles, each `void *` at the ABI.
 /// C: typedef void *HANDLE; typedef void *HWND; typedef void *HDC; typedef void *HBITMAP;
 /// C: typedef void *HGDIOBJ; typedef void *HMENU; typedef void *HCURSOR; typedef void *HPALETTE;
 /// C: typedef void *HINSTANCE;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HANDLE = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HWND = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HDC = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HBITMAP = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HGDIOBJ = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HMENU = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HCURSOR = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HPALETTE = *mut c_void;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type HINSTANCE = *mut c_void;
 
 /// C 23's three derived scalars and pointer typedefs.
 /// C: typedef DWORD COLORREF; typedef BYTE *LPBYTE; typedef RECT *LPRECT;
 /// C: typedef UINT_PTR WPARAM; typedef LONG_PTR LPARAM; typedef LONG_PTR LRESULT;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type COLORREF = DWORD;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LPBYTE = *mut BYTE;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LPRECT = *mut RECT;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type WPARAM = usize;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LPARAM = isize;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LRESULT = isize;
 /// C 23's `<windows.h>` also supplies the two scalars `include/w32term.rs`'s own record and
 /// function-pointer aliases name (`AppendMenuW_Proc`'s `UINT_PTR`/`LPCWSTR`, C 872-873), so the
 /// stand-in carries them (the `src/w32fns.rs` 226-262 spellings of the same pair).
 /// C: typedef unsigned long long UINT_PTR; typedef const wchar_t *LPCWSTR;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type UINT_PTR = usize;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LPCWSTR = *const c_ushort;
 
 /// C 23's two value macros (`<windef.h>`'s booleans), carried with C's values.
 /// C: #define FALSE 0
 /// C: #define TRUE 1
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const FALSE: BOOL = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const TRUE: BOOL = 1;
 
 /// C 23's `WINAPI` is the `__stdcall` convention, which Rust spells `extern "system"`; the note
@@ -171,7 +176,7 @@ pub const TRUE: BOOL = 1;
 
 /// C 23's `POINT` and `RECT` (`<windef.h>`), spelled from the members this file reads.
 /// C: typedef struct tagPOINT { LONG x; LONG y; } POINT;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct POINT
@@ -180,7 +185,7 @@ pub struct POINT
   pub y: LONG,
 }
 /// C: typedef struct tagRECT { LONG left; LONG top; LONG right; LONG bottom; } RECT;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct RECT
@@ -196,7 +201,7 @@ pub struct RECT
 /// leaves `MSG` to the unit that supplies `<windows.h>`).
 /// C: typedef struct tagMSG { HWND hwnd; UINT message; WPARAM wParam; LPARAM lParam; DWORD time;
 /// C: POINT pt; ... } MSG;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct MSG
@@ -213,7 +218,7 @@ pub struct MSG
 /// `include/w32term.rs`'s records (`w32_palette_entry.entry`, `w32_output.normal_placement`).
 /// C: typedef struct tagPALETTEENTRY { BYTE peRed; BYTE peGreen; BYTE peBlue; BYTE peFlags; }
 /// C: PALETTEENTRY;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct PALETTEENTRY
@@ -225,7 +230,7 @@ pub struct PALETTEENTRY
 }
 /// C: typedef struct tagWINDOWPLACEMENT { UINT length; UINT flags; UINT showCmd; POINT
 /// C: ptMinPosition; POINT ptMaxPosition; RECT rcNormalPosition; } WINDOWPLACEMENT;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct WINDOWPLACEMENT
@@ -243,7 +248,7 @@ pub struct WINDOWPLACEMENT
 /// C: typedef struct _RTL_CRITICAL_SECTION { PRTL_CRITICAL_SECTION_DEBUG DebugInfo; LONG
 /// C: LockCount; LONG RecursionCount; HANDLE OwningThread; HANDLE LockSemaphore; ULONG_PTR
 /// C: SpinCount; } CRITICAL_SECTION, *PCRITICAL_SECTION, *LPCRITICAL_SECTION;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct CRITICAL_SECTION
@@ -255,7 +260,7 @@ pub struct CRITICAL_SECTION
   pub LockSemaphore: HANDLE,
   pub SpinCount: usize,
 }
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub type LPCRITICAL_SECTION = *mut CRITICAL_SECTION;
 
 /// C 23's `<windows.h>` constants this file names: `<winbase.h>`'s `INFINITE`/`GPTR`,
@@ -271,24 +276,24 @@ pub type LPCRITICAL_SECTION = *mut CRITICAL_SECTION;
 /// C: #define WM_MOUSELAST 0x020D
 /// C: #define WM_PAINT 0x000F
 /// C: #define GDI_ERROR (0xFFFFFFFFL)
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const INFINITE: DWORD = 0xFFFFFFFF;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const GPTR: UINT = 0x0040;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const PM_REMOVE: UINT = 0x0001;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const WM_USER: c_int = 0x0400;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const WM_MOUSELAST: c_int = 0x020D;
 /// `WM_PAINT` is compared with `MSG.message` (a `UINT`) at C 303/312, so the port's type is that
 /// field's; `WM_USER`/`WM_MOUSELAST` are `c_int` because `include/w32term.rs`'s own constants add
 /// to them in that type.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const WM_PAINT: UINT = 0x000F;
 /// C's `GDI_ERROR` is `(0xFFFFFFFFL)`; `RealizePalette` returns `UINT` and C's comparison
 /// promotes both sides, so the port's type is the callee's return type.
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 pub const GDI_ERROR: UINT = 0xFFFFFFFF;
 
 /// C 23's `<windows.h>` entry points this file calls: `<synchapi.h>`'s critical-section pair and
@@ -307,7 +312,7 @@ pub const GDI_ERROR: UINT = 0xFFFFFFFF;
 /// C: BOOL WINAPI PeekMessageA (LPMSG, HWND, UINT, UINT, UINT);
 /// C: BOOL WINAPI TranslateMessage (const MSG *); LRESULT WINAPI DispatchMessageA (const MSG *);
 /// C: BOOL WINAPI PostThreadMessageA (DWORD, UINT, WPARAM, LPARAM);
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "system" {
   pub fn InitializeCriticalSection (lpCriticalSection: LPCRITICAL_SECTION);
   pub fn DeleteCriticalSection (lpCriticalSection: LPCRITICAL_SECTION);
@@ -338,7 +343,7 @@ unsafe extern "system" {
 /// C: HPALETTE WINAPI SelectPalette (HDC, HPALETTE, BOOL); UINT WINAPI RealizePalette (HDC);
 /// C: BOOL WINAPI UnionRect (LPRECT, const RECT *, const RECT *);
 /// C: BOOL WINAPI SetRectEmpty (LPRECT);
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "system" {
   pub fn GetDC (hwnd: HWND) -> HDC;
   pub fn ReleaseDC (hwnd: HWND, hdc: HDC) -> c_int;
@@ -358,7 +363,7 @@ unsafe extern "system" {
 /// signature C's use sites need (a `void *` result, which C casts at C 374/403).
 /// C: #define GlobalAllocPtr(flags, cb) (GlobalAlloc(GMEM_MOVEABLE|(flags), (cb)))
 /// C: #define GlobalFreePtr(lp) (GlobalUnlockPtr(lp), (HANDLE)GlobalFree((HGLOBAL)GlobalHandle(lp)))
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "system" {
   pub fn GlobalAllocPtr (flags: UINT, bytes: usize) -> *mut c_void;
   pub fn GlobalFreePtr (lp: *mut c_void) -> *mut c_void;
@@ -372,7 +377,7 @@ unsafe extern "system" {
 // C 27: `/* Override API version to get the required functionality.  */`
 // C 28: `# undef _WIN32_WINNT`
 // C 29: `# define _WIN32_WINNT 0x0501`
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const _WIN32_WINNT: u32 = 0x0501;
 /// C 31-36: "mingw.org's MinGW headers mistakenly omit this enumeration".  `MINGW_W64` is `undef`
 /// in the frozen table, so this arm is the live side of its condition.
@@ -380,7 +385,7 @@ pub const _WIN32_WINNT: u32 = 0x0501;
 /// C: typedef enum _WTS_VIRTUAL_CLASS { WTSVirtualClientData, WTSVirtualFileHandle }
 /// C: WTS_VIRTUAL_CLASS;
 // C: # endif
-#[cfg (all (feature = "windowsnt", not (feature = "mingw_w64")))]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "mingw_w64")))]
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum _WTS_VIRTUAL_CLASS
@@ -388,7 +393,7 @@ pub enum _WTS_VIRTUAL_CLASS
   WTSVirtualClientData = 0,
   WTSVirtualFileHandle = 1,
 }
-#[cfg (all (feature = "windowsnt", not (feature = "mingw_w64")))]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt", not (feature = "mingw_w64")))]
 pub type WTS_VIRTUAL_CLASS = _WTS_VIRTUAL_CLASS;
 /// C 37's `<wtsapi32.h>` - "for WM_WTSSESSION_CHANGE, WTS_SESSION_LOCK".  The header has no file
 /// in the reference tree (P-88 ①), and the two names it is named for stand here; each takes the
@@ -397,9 +402,9 @@ pub type WTS_VIRTUAL_CLASS = _WTS_VIRTUAL_CLASS;
 /// C 37: `#include <wtsapi32.h>	/* for WM_WTSSESSION_CHANGE, WTS_SESSION_LOCK */`
 /// C: #define WM_WTSSESSION_CHANGE 0x02B1
 /// C: #define WTS_SESSION_LOCK 0x7
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const WM_WTSSESSION_CHANGE: c_int = 0x02B1;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 pub const WTS_SESSION_LOCK: WPARAM = 0x7;
 // C 38: `#endif	/* WINDOWSNT */`
 
@@ -408,24 +413,24 @@ pub const WTS_SESSION_LOCK: WPARAM = 0x7;
    edge: `include/lisp.rs` pulls `<string.h>` (its C 30) but not `<stdlib.h>`, and this file's
    `malloc`/`free` (C 70, 120, 121, 124) come from exactly that line, so the mirror is included
    under the `lisp.h` line it belongs to (the `src/w32inevt.rs` 432 reading).  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 include!("../lib/include/stdlib.rs");           // lisp.h's `<stdlib.h>` (C 70's `malloc`, C 120's `free`)
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 include!("include/lisp.rs");                    // C 40: `#include "lisp.h"`
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 include!("include/frame.rs");                   // C 41: `#include "frame.h"`
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 include!("include/w32term.rs");                 // C 42: `#include "w32term.h"`
 
 /* C 44-45: the two allocation macros.  C's bodies keep their own tokens; `GPTR` is the `<winbase.h>`
    flag name declared above.  */
 /// C: #define myalloc(cb) GlobalAllocPtr (GPTR, cb)
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 macro_rules! myalloc {
   ($cb:expr) => { GlobalAllocPtr (GPTR, $cb) };
 }
 /// C: #define myfree(lp) GlobalFreePtr (lp)
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 macro_rules! myfree {
   ($lp:expr) => { GlobalFreePtr ($lp) };
 }
@@ -433,7 +438,7 @@ macro_rules! myfree {
 /// C 47: `CRITICAL_SECTION critsect;` - a non-`static` definition (PORTING.md 0.2), and C's
 /// tentative definition is zero-initialized (PORTING.md 1.5's zeroed form).
 /// C: CRITICAL_SECTION critsect;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub static mut critsect: CRITICAL_SECTION = CRITICAL_SECTION {
   DebugInfo: core::ptr::null_mut (), LockCount: 0, RecursionCount: 0,
@@ -444,7 +449,7 @@ pub static mut critsect: CRITICAL_SECTION = CRITICAL_SECTION {
    `src/w32inevt.rs` 464 shape (no reachable mirror carries it).  */
 // C 49: `#ifdef WINDOWSNT`
 /// C: extern HANDLE keyboard_handle;
-#[cfg (feature = "windowsnt")]
+#[cfg (all (feature = "have_ntgui", feature = "windowsnt"))]
 unsafe extern "C" {
   pub static mut keyboard_handle: HANDLE;
 }
@@ -452,18 +457,18 @@ unsafe extern "C" {
 
 /// C 53: `static HANDLE input_available = NULL;` - C's `static`, so a plain `static mut`.
 /// C: static HANDLE input_available = NULL;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut input_available: HANDLE = core::ptr::null_mut ();
 /// C 54-55: `extern HANDLE interrupt_handle; HANDLE interrupt_handle = NULL;` - C's own prototype
 /// plus the definition's zero value (PORTING.md 0.2/1.5; the `src/w32console.rs` 1736 reading).
 /// C: extern HANDLE interrupt_handle;
 /// C: HANDLE interrupt_handle = NULL;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub static mut interrupt_handle: HANDLE = core::ptr::null_mut ();
 
 /* C 57-92: `init_crit`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn init_crit ()
 {
@@ -491,6 +496,8 @@ pub unsafe extern "C" fn init_crit ()
       { DebPrint! (("Out of memory: can't initialize notifications sets.")); }
   }
 
+  // C 81-83: `#ifdef WINDOWSNT` - the assignment exists only in the native Windows arm.
+  #[cfg (feature = "windowsnt")]
   keyboard_handle = input_available;
 
   /* interrupt_handle is signaled when quit (C-g) is detected, so that
@@ -503,7 +510,7 @@ pub unsafe extern "C" fn init_crit ()
 }
 
 /* C 94-126: `delete_crit`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn delete_crit ()
 {
@@ -540,7 +547,7 @@ pub unsafe extern "C" fn delete_crit ()
 }
 
 /* C 128-134: `signal_quit`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn signal_quit ()
 {
@@ -551,7 +558,7 @@ pub unsafe extern "C" fn signal_quit ()
 
 /* C 136-161: `select_palette`.  `FOR_EACH_FRAME`'s body is the macro's last argument (the
    `include/frame.rs` 793 shape); the two loop variables are C's own block locals.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn select_palette (f: *mut frame, hdc: HDC)
 {
@@ -580,7 +587,7 @@ pub unsafe extern "C" fn select_palette (f: *mut frame, hdc: HDC)
 }
 
 /* C 163-168: `deselect_palette`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn deselect_palette (f: *mut frame, hdc: HDC)
 {
@@ -591,7 +598,7 @@ pub unsafe extern "C" fn deselect_palette (f: *mut frame, hdc: HDC)
 /* C 170-241: `get_frame_dc` (C 170-171's comment above it).  */
 /* Get a DC for frame and select palette for drawing; force an update of
    all frames if palette's mapping changes.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn get_frame_dc (f: *mut frame) -> HDC
 {
@@ -665,7 +672,7 @@ pub unsafe extern "C" fn get_frame_dc (f: *mut frame) -> HDC
 }
 
 /* C 243-261: `release_frame_dc`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn release_frame_dc (f: *mut frame, hdc: HDC) -> c_int
 {
@@ -688,7 +695,7 @@ pub unsafe extern "C" fn release_frame_dc (f: *mut frame, hdc: HDC) -> c_int
 
 /// C 263-267: the queue node.
 /// C: typedef struct int_msg { W32Msg w32msg; struct int_msg *lpNext; } int_msg;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[repr(C)]
 pub struct int_msg
 {
@@ -698,17 +705,17 @@ pub struct int_msg
 
 /// C 269-271: the two ends of the queue and its length - C's `static` objects.
 /// C: static int_msg *lpHead = NULL; static int_msg *lpTail = NULL; static int nQueue = 0;
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut lpHead: *mut int_msg = core::ptr::null_mut ();
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut lpTail: *mut int_msg = core::ptr::null_mut ();
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 static mut nQueue: c_int = 0;
 
 /* C 273-353: `get_next_msg`.  The inner block's `lpCur` and the WM_PAINT consolidation's three
    pointers are C's own locals; C's `memcpy` keeps its `sizeof (W32Msg)` as `size_of` (PORTING.md
    2.1).  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn get_next_msg (lpmsg: *mut W32Msg, bWait: BOOL) -> BOOL
 {
@@ -797,7 +804,7 @@ pub unsafe extern "C" fn get_next_msg (lpmsg: *mut W32Msg, bWait: BOOL) -> BOOL
 /// are not on this file's include graph, so the unit spells it (the `src/w32fns.rs` 117-119
 /// reading of a neighbour's declaration).
 /// C: extern char * w32_strerror (int error_no);
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe extern "C" {
   pub fn w32_strerror (error_no: c_int) -> *mut c_char;
 }
@@ -806,7 +813,7 @@ unsafe extern "C" {
    `feature = "cygwin"` (the frozen table has `CYGWIN` `undef`, so the arm is dead there).  */
 /* Tell the main thread that we have input available; if the main
    thread is blocked in select(), we wake it up here.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 unsafe fn notify_msg_ready ()
 {
   SetEvent (input_available);
@@ -820,7 +827,7 @@ unsafe fn notify_msg_ready ()
 }
 
 /* C 371-398: `post_msg`.  C 374's `(int_msg *)` cast is the port's `as *mut int_msg`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn post_msg (lpmsg: *mut W32Msg) -> BOOL
 {
@@ -857,7 +864,7 @@ pub unsafe extern "C" fn post_msg (lpmsg: *mut W32Msg) -> BOOL
 }
 
 /* C 400-419: `prepend_msg`.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn prepend_msg (lpmsg: *mut W32Msg) -> BOOL
 {
@@ -886,7 +893,7 @@ pub unsafe extern "C" fn prepend_msg (lpmsg: *mut W32Msg) -> BOOL
    constant) - see the ledger's Deviations.  */
 /* Process all messages in the current thread's queue.  Value is 1 if
    one of these messages was WM_EMACS_FILENOTIFY, zero otherwise.  */
-#[cfg (feature = "windowsnt")]
+#[cfg (feature = "have_ntgui")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn drain_message_queue () -> c_int
 {
@@ -897,6 +904,8 @@ pub unsafe extern "C" fn drain_message_queue () -> c_int
     {
       match msg.message as c_int
 	{
+	  #[cfg (feature = "have_ntgui")]
+	  // C 433-438: `#ifdef WINDOWSNT` - the arm exists only in the native Windows arm.
 	  #[cfg (feature = "windowsnt")]
 	  WM_WTSSESSION_CHANGE =>
 	    { if msg.wParam == WTS_SESSION_LOCK { reset_w32_kbdhook_state (); } }

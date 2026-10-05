@@ -11821,3 +11821,29 @@
      （`include/frame.rs` 329 那条自写的 `compile_error!`，因为它要的 frame 标志位数值没在 Windows 上量过）。
      新增欠账：C 2538-2700 的 **COM drop-target 面**归属（P-90 ① 的第二个消费者是 `w32select.c`，应落 `include/ole.rs` 并各带台账）；
      `include/w32term.rs` 的 `BLACK_PIX_DEFAULT`/`WHITE_PIX_DEFAULT` 宏体要改用 `PALETTERGB!`。下一段起点 **C 2,541**。
+
+- **3.586 保真更正：`src/w32xfns.rs` 的**文件门**从 `windowsnt` 改成 `have_ntgui`（3.585 裁定的落地）（2026-10-05）**：
+  ① **依据（配置级，不是猜）**：`configure.ac` 3023-3024 在 `HAVE_W32` 测试里 `AC_DEFINE([HAVE_NTGUI])`；**3030-3031** 在
+     **Cygwin 分流（3044）之前**把 `w32fns.o w32menu.o w32reg.o w32font.o w32term.o` + `w32xfns.o w32select.o w32uniscribe.o
+     w32dwrite.o w32cygwinx.o` 放进 `W32_OBJ`；只有 **3052**（非 Cygwin 臂）追加 `w32.o w32console.o w32heap.o w32image.o
+     w32inevt.o w32proc.o`。⇒ 本文件的**文件门是 `have_ntgui`**，`windowsnt` 只属于 C 自己 `#ifdef WINDOWSNT` 包住的那些片段。
+     （旧注释写的是"`w32xfns.o` 只加在 3051"——3051 是那个 `else` 本身；把 `else` 当成了加对象的行。）
+  ② **改法（逐条对着 C 的结构）**：82 个项/边的 `#[cfg (feature = "windowsnt")]` → `have_ntgui`；**6 个**落在 C 的 WINDOWSNT 片段里的
+     项改成 `all (feature = "have_ntgui", feature = "windowsnt")`（C 26-38 的 `_WIN32_WINNT`、`_WTS_VIRTUAL_CLASS` 枚举与别名、
+     `WM_WTSSESSION_CHANGE`、`WTS_SESSION_LOCK`，以及 C 49-51 的 `keyboard_handle`），其中两个还保留 `not (mingw_w64)`；
+     另有**两条语句级**的同类片段单独上了 `windowsnt`（C 81-83 的 `keyboard_handle = input_available;` 与 C 433-438 的
+     `case WM_WTSSESSION_CHANGE:` **match 臂**——C 里这两处都在 `#ifdef WINDOWSNT` 里，若不加门，`have_ntgui` 单独打开时
+     它们会引用被门掉的常量）。文件头的旧论断已就地更正，台账 `## Gate mapping` 的表行也改了。
+  ③ **读数**：`build-tu src/w32xfns.c` → `built`、对象**仍是 336 字节**（说明**没有任何项被解门**——这是这次改动最关键的一条读数）；
+     `extract-abi --check` → **OK**（容差行按"最新行生效"追加 `w32xfns 1.07`，447 vs 920 = 105.8%，理由里写了这次更正与新增的 9 行）；
+     七道文本门**全绿**（`check-mirror-dupes` 17/17/0、`check-citations` **0 drift / 0 stale**、`check-declarations` 0 failures、
+     `check-dead-file-coverage` 145/0、`check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、`check-target-names` 0）
+     —— 上一轮那两条红（`xfns.rs` 的 citation drift 与 `fset_redisplay` 重复声明）已被那条 lane 自己修掉。
+  ④ **未声称**：**没有** `have_ntgui` 臂的编译读数——本机读不了它（`include/frame.rs` 329 那条自写的 `compile_error!` 要求
+     frame 标志位在 Windows 上的实测值），所以这次更正只有**配置证据 + 冻结读数 + 文本门**三项支撑，**没有翻臂编译证明**；
+     同理 `<windows.h>`/`<wtsapi32.h>` 的记录仍是 UNVERIFIED。
+  ⑤ **同族剩下的欠账（已点名，未做）**：`femacs/src/w32select.rs` 的 154 个 cfg 全是 `windowsnt`（0 个 `have_ntgui`），按同一证据
+     它的文件门也应是 `have_ntgui`，而 `windowsnt` 只该落在 C **828-864** 那一段；它的头部注释与台账 `docs/ports/w32select.md`
+     的 Gate mapping 要一并改。`w32font`(202/26)、`w32term`(238/4)、`w32uniscribe`(135/5)、`w32fns`(332/6)、`w32dwrite`(151/0)、
+     `w32menu`(169/0) 的门已经是对的；`w32.rs`/`w32console.rs`/`w32heap.rs`/`w32proc.rs`/`w32image.rs`/`w32inevt.rs` 在非 Cygwin 臂，
+     `windowsnt` 也对。
