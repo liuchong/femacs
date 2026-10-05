@@ -8037,3 +8037,26 @@
      `sfnt_build_append`。
   ⑥ **未声称**：本批**没有任何运行证据**——所有对象都只到"编译成 `.o`"这一档（没有一个程序被链接或启动）；
      60.9% 是**行数口径**；§8 的加载阶梯 L0-L5、双向兼容、生成物逐字节、平台冒烟、性能**一条都未点亮**。
+
+- **3.449 `exec/exec1.c` 整文件落成；P-90 补第七半（"几个消费者"只约束镜像，不约束单元）（2026-10-05）**：
+  ① **区间**：`exec/exec1.c` **C 1-94 全文件**（`main`：`exec_init` → `getpid` → `fork` → `setpgid` 失败路径
+     → `tracing_execve` → `after_fork` → `exec_waitpid` 循环，按 `WIFEXITED`/`WEXITSTATUS`/`WTERMSIG` 决定退出或
+     `raise`）；P-86 类（冻结配置不编译 `exec/`），前次修订是 3 行的 P-08 注释 ⇒ 按 P-86 ① **照录整身**。
+  ② **行数**：`femacs/exec/exec1.rs` 3 → **119**；台账 `docs/ports/exec1.md` 由生成骨架改成 P-86 台账
+     （`## Gate mapping` + `## C line ranges` 连续铺满 C 1-94 + `## Evidence`/`## Deviations`/`## Owed`）。
+  ③ **读数**：`xtask build-tu exec/exec1.c` → **exit 0 / 3,616 字节对象**；`extract-abi --check` **OK**
+     （**0 条 `- `**——这是整文件完成，不是切片）；`check-cond-eval` 0 条件；`check-dead-file-coverage` **38 ledger /
+     0 failure**；`line-drift-tolerance.tsv` 增一行（`exec1` 0.28，实测 26.6% + 0.01，basis `total`）。
+  ④ **一次真缺陷（自造、编译期抓到）**：我按 P-88 ① 在单元里声明了 `getpid` 与 `perror`，两者**镜像里已经有**
+     （`lib/include/unistd.in.rs` 63、`lib/include/stdio.rs` 63）⇒ 同一 TU 里 `E0428`；删除单元副本后通过。
+     这正是"加 use-site 声明前必须同时查单元与镜像链"的老教训（3.422）。
+  ⑤ **P-90 补第七半（规则，立即生效）**：第五半的"两个及以上消费者 ⇒ 一个专用镜像"**只对镜像成立**——
+     镜像是被 `include!` 进编译单元的文本，两份同名声明在同一个 TU 里就是 `E0428`；而**单元是各自独立的 crate**，
+     `callproc.rs`/`process.rs`/`exec/*.rs` 各声明一次 `<sys/wait.h>` 的 `W*` 宏**没有**这个风险。所以系统宏这类
+     跨单元重复的声明**继续按 P-88 ① 在各单元就地声明**，不因为消费者多就强造镜像；只有当**某个镜像已经是它们的家**
+     时，其余镜像才不许再各写一份。移动它们的时机是"镜像轮"（3.409 的 move-back 形状），不是"第二个消费者出现"。
+     **判据**：本件就是在该补半之前写的（先撞了 `E0428`），补半之后 `exec/test.rs` 与 `exec/exec1.rs` 的同名声明
+     都合法；全树扫描在本轮**不需要**（本件只改单元与文档，没有镜像改动）。
+  ⑥ **未声称**：**零运行证据**——3,616 字节对象**没有链接、没有启动**（没有 `fork`、没有 `tracing_execve`、
+     没有一次 `setpgid`/`exec_waitpid` 的调用）；`exec/` 在冻结配置里一行都不编；`exit`/`fork`/`setpgid`/`abort`/`ssize_t`
+     这五个"镜像还没有"的条目仍是**全树 26 处单元内声明**（实测），搬进镜像是一次独立的 move-back 轮，不是本件。
