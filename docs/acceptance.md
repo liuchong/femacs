@@ -232,7 +232,8 @@ kept only for this build and recorded here; `make all` - the manuals in `info/`,
 instead of failing loudly, and nothing in the ladder needs them yet.  What the ladder did need came
 back: `lisp/subdirs.el`, the `*loaddefs.el`s, **1645 `.elc`**, and `(require 'compile)` succeeds.
 L0 still reads `19 expression(s), 0 failure(s)`, `check-verbatim` reads `6 trees, 4604 files, 0
-failures`, and L1's compile half has the reading in its own section above.
+failures` (plus the 24 sanctioned identity lines of §5), and L1's compile half has the reading in its
+own section above.
 
 The five steps that repair has to reproduce are written down here rather than in code, because a tool
 that cannot run is not evidence: `update-subdirs` per directory (which writes `subdirs.el` **in that
@@ -266,12 +267,16 @@ $ for t in lisp test etc doc leim admin; do echo "$t $(git -C emacs ls-files $t 
 lisp 1627/1627   test 1555/1555   etc 886/886   doc 255/255   leim 28/28   admin 253/253
 
 $ python3 tools/check-verbatim.py
+OK      lisp: 1627 files, byte-identical, 24 sanctioned line(s)
 OK      leim: 28 files, byte-identical
 OK      admin: 253 files, byte-identical
-6 trees, 4604 files, 0 failures
+6 trees, 4604 files, 24 sanctioned line(s), 0 failures
 ```
 
-即：六棵树的**已跟踪文件数逐个相等**，`check-verbatim`（按树、逐文件 `cmp`）读 **0 failures**。
+即：六棵树的**已跟踪文件数逐个相等**，`check-verbatim`（按树、逐文件比对）读 **0 failures**。
+**24 行例外**：`lisp/` 里被程序**打印出来**（或以帧/splash 自称、或写进它生成的文件）的产品名字符串按
+`docs/baseline/verbatim-substitutions.tsv` 写本仓库自己的名字——PORTING.md 0.1-19 的第十半（status 3.619）。
+除此之外仍是逐字节相同：一行要不同就必须在表里有行，有行就必被读。
 **注意**：`emacs/` 是**外部只读检出，不在本仓库的索引里**（`git ls-files emacs/lisp` = 0），
 所以这条判据只能在有该检出的机器上跑（`docs/port-plan.md` §10 已记 CI 的这一限制）。
 

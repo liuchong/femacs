@@ -679,7 +679,7 @@ Commands:                        Equivalent keys in read-only mode:
       ;;(message "forms: proceeding setup (new file)...")
       (progn
 	(insert
-	 "GNU Emacs Forms Mode\n\n"
+	 "femacs Forms Mode\n\n"
 	 (if (file-exists-p forms-file)
 	     (format-message
 	      "No records available in file `%s'\n\n" forms-file)

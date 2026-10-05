@@ -397,7 +397,7 @@
 (defun calc-full-help ()
   (interactive)
   (with-output-to-temp-buffer "*Help*"
-    (princ "GNU Emacs Calculator.\n")
+    (princ "femacs Calculator.\n")
     (princ "  By Dave Gillespie.\n")
     (princ (format "  %s\n\n" emacs-copyright))
     (princ (format-message "Type `h s' for a more detailed summary.\n"))

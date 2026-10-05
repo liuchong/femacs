@@ -173,7 +173,7 @@ Variables: `handwrite-linespace'     (default 12)
     (goto-char (point-min))		;start at beginning
     (switch-to-buffer ps-buf-name)
     (handwrite-insert-header buf-name)
-    (insert "%%Creator: GNU Emacs's handwrite version " emacs-version  "\n")
+    (insert "%%Creator: femacs's handwrite version " emacs-version  "\n")
     (handwrite-insert-preamble)
     (handwrite-insert-info)
     (handwrite-insert-font)

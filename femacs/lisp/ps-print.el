@@ -5321,7 +5321,7 @@ XSTART YSTART are the relative position for the first page in a sheet.")
      ps-adobe-tag
      "%%Title: " (buffer-name)		; Take job name from name of
 					; first buffer printed
-     "\n%%Creator: GNU Emacs " emacs-version
+     "\n%%Creator: femacs " emacs-version
      "\n%%For: " (user-full-name)       ;FIXME: may need encoding!
      "\n%%CreationDate: " (format-time-string "%T %b %d %Y") ;FIXME: encoding!
      "\n%%Orientation: "

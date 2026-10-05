@@ -223,6 +223,24 @@ C 与 Rust 的编译模型必须同构，但不能照抄 `#include` 的物理行
     而 `lisp/` 是**逐字节照抄的六棵树**之一（`tools/check-verbatim.py` 逐字节守，goal 也这么要求）——那个名字因此在**参照的 elisp 正文**里，
     要动它得先动"六棵树逐字节"这条规则；本半不动它，也不把它算作"已清"。
     是不允许的写法）。
+    这条规则现在有第十半（2026-10-05，status 3.619）：**照抄树里"程序自己打印/写出的名字"也改**。第九半点名了唯一
+    关不掉的那个洞——运行期 `M-x emacs-version` 打出的那行文本来自 `lisp/version.el` 的 `format`——而它的判据与 C 侧
+    完全同一条：**这句话说的是谁**。凡**被复制树在运行期打印或写出**、且主语是本程序的字符串，都写本仓库自己的名字：
+    版本横幅（`emacs-version` 的 `format`）、plain splash 的第一行（`Welcome to …` / `This is …`）、fancy splash 与
+    about 屏里的自称、三处"本程序自带的免责声明"、`rcirc-id-string` 与 ERC 发给频道/服务器的版本串、以及程序
+    **生成**的文件里的身份行（`%%Creator:`、iCalendar 的 `PRODID`、命令摘要的 man page 与 texinfo 标题）。
+    **要动照抄树得先有可读的例外**，形状与第九半给 `.cc` 的那张表同源：`docs/baseline/verbatim-substitutions.tsv`
+    逐行记下被替换的那一行与理由（24 行），`tools/check-verbatim.py` 读它——默认仍是逐字节相同，一行要不同就必须有行、
+    有行就必被读（行的文本对不上、行落在文件外、行过时即"已与参照相同"、没有行却是差异，四种都失败），且替换是
+    **机械的**：只换产品名那一个 token，同一行其余字符一个都不动。读数 `6 trees, 4604 files, 24 sanctioned line(s),
+    0 failures`，`--selftest` 7 例 / 0 失败，两次真树变异读数各 1 处；14 个改动文件用**参照自己的 reader** 逐个读完
+    （`read` 24–860 个 form，0 parse 失败）；运行期读数是用 `build/emacs-ref/src/emacs -L femacs/lisp` 载入本仓库的
+    `version.el` 得到的 `femacs 32.0.50 (build …)`，对照组（同一二进制载入参照的 `version.el`）打出的是参照的名字。
+    **本半留下的三类，点名**：⑴ **裸 `Emacs`**（不含产品名前缀）——照抄树里的 `;;` 注释、docstring、splash 的缓冲区名
+    （`*` + 产品名 + `*` 那一种）与引用它的 docstring（1578 个文件的文件头块属此类）；3.226 ⑤ 把这一族留给你裁决，
+    本半不擅自扩（**本文档不重复写出那个字面量**，与第八半同一写法）。⑵ **上游链接与它们的标签**
+    （splash/about 里指向 gnu.org 的那几条、`Getting New Versions` 一类"怎么拿到参照的新版本"）。⑶ **许可与署名正文**
+    （COPYRIGHT、生成器写出的 GPL 头、`etc/`/`doc/`/`test/` 里的说明文字）——改它就是写一句假署名。
 18. **镜像里的宏必须先定义后使用**：`macro_rules!` 只在文本顺序之后可见，而三个 spike
     探针把镜像 `include!` 进一个 `mod`（§0.1-9 要求镜像位置无关），镜像内的函数体
     因此不能调用排在它后面的宏——`call0` 按 lisp.h 3462-3471 的顺序挪到了 `calln!`

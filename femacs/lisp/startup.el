@@ -1861,7 +1861,7 @@ If this is nil, no message will be displayed."
 (defconst fancy-startup-text
   `((:face (variable-pitch font-lock-comment-face)
      "Welcome to "
-     :link ("GNU Emacs"
+     :link ("femacs"
 	    ,(lambda (_button)
                (let ((browse-url-browser-function 'eww-browse-url))
                  (browse-url "https://www.gnu.org/software/emacs/")))
@@ -1917,7 +1917,7 @@ If this is nil, no message will be displayed."
      :link ("View Emacs Manual" ,(lambda (_button) (info-emacs-manual)))
      "\tView the Emacs manual using Info\n"
      :link ("Absence of Warranty" ,(lambda (_button) (describe-no-warranty)))
-     "\tGNU Emacs comes with "
+     "\tfemacs comes with "
      :face (variable-pitch (:slant oblique))
      "ABSOLUTELY NO WARRANTY\n"
      :face variable-pitch
@@ -1933,7 +1933,7 @@ Each element in the list should be a list of strings or pairs
 (defconst fancy-about-text
   `((:face (variable-pitch font-lock-comment-face)
      "This is "
-     :link ("GNU Emacs"
+     :link ("femacs"
 	    ,(lambda (_button)
                (let ((browse-url-browser-function 'eww-browse-url))
                  (browse-url "https://www.gnu.org/software/emacs/")))
@@ -1978,7 +1978,7 @@ Each element in the list should be a list of strings or pairs
                                    (describe-gnu-project))))
      "\tWhy we developed GNU Emacs, and the GNU operating system\n"
      :link ("Absence of Warranty" ,(lambda (_button) (describe-no-warranty)))
-     "\tGNU Emacs comes with "
+     "\tfemacs comes with "
      :face (variable-pitch (:slant oblique))
      "ABSOLUTELY NO WARRANTY\n"
      :face variable-pitch
@@ -2389,7 +2389,7 @@ splash screen in another window."
       ;; The convention for this piece of code is that
       ;; each piece of output starts with one or two newlines
       ;; and does not end with any newlines.
-      (insert (if startup "Welcome to GNU Emacs" "This is GNU Emacs"))
+      (insert (if startup "Welcome to femacs" "This is femacs"))
       (insert
        (if (eq system-type 'gnu/linux)
 	   ", one component of the GNU/Linux operating system.\n"
@@ -2483,7 +2483,7 @@ To quit a partially entered command, type Control-g.\n")
   (insert-button "(Non)Warranty"
 		 'action (lambda (_button) (describe-no-warranty))
 		 'follow-link t)
-  (insert "\t\tGNU Emacs comes with ABSOLUTELY NO WARRANTY\n")
+  (insert "\t\tfemacs comes with ABSOLUTELY NO WARRANTY\n")
   (insert-button "Copying Conditions"
 		 'action (lambda (_button) (describe-copying))
 		 'follow-link t)
@@ -2606,7 +2606,7 @@ If you have no Meta key, you may instead type ESC followed by the character.)"))
   (insert emacs-copyright "\n")
   (insert (substitute-command-keys
 	   "
-GNU Emacs comes with ABSOLUTELY NO WARRANTY; type \\[describe-no-warranty] for "))
+femacs comes with ABSOLUTELY NO WARRANTY; type \\[describe-no-warranty] for "))
   (insert-button "full details"
 		 'action (lambda (_button) (describe-no-warranty))
 		 'follow-link t)
@@ -2652,7 +2652,7 @@ Type \\[describe-distribution] for information on "))
   (insert-button "Absence of Warranty"
 		 'action (lambda (_button) (describe-no-warranty))
 		 'follow-link t)
-  (insert "\tGNU Emacs comes with ABSOLUTELY NO WARRANTY\n")
+  (insert "\tfemacs comes with ABSOLUTELY NO WARRANTY\n")
 
   (insert-button "Copying Conditions"
 		 'action (lambda (_button) (describe-copying))

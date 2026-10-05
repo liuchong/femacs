@@ -1532,7 +1532,7 @@ See `window-dedicated-p' for what that means."
                (calc-trail-display 1 t)))
         (unless calc-inhibit-startup-message
           (message (substitute-command-keys
-                    (concat "Welcome to the GNU Emacs Calculator!  \\<calc-mode-map>"
+                    (concat "Welcome to the femacs Calculator!  \\<calc-mode-map>"
                             "Press \\[calc-help] "
                             (if (featurep 'calc-ext) "or \\[calc-help-prefix] ")
                             "for help, \\[calc-quit] to quit"))))

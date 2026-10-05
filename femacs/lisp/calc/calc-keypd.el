@@ -307,7 +307,7 @@
 	  (split-window win (- (window-height win) height 1))
 	  (set-window-buffer win calcbuf))
 	(select-window old-win)
-	(message "Welcome to GNU Emacs Calc!  Use the left and right mouse buttons")
+	(message "Welcome to femacs Calc!  Use the left and right mouse buttons")
 	(run-hooks 'calc-keypad-start-hook)
 	(and calc-keypad-said-hello interactive
 	     (progn

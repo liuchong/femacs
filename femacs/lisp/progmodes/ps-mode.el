@@ -513,7 +513,7 @@ Typing \\<ps-run-mode-map>\\[ps-run-goto-error] when the cursor is at the number
 (defun ps-mode-show-version ()
   "Show current version of PostScript mode."
   (interactive)
-  (message " *** PostScript Mode (ps-mode) in GNU Emacs %s *** " emacs-version))
+  (message " *** PostScript Mode (ps-mode) in femacs %s *** " emacs-version))
 
 ;; From reporter.el
 (defvar reporter-prompt-for-summary-p)

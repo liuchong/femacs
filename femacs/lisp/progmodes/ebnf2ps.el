@@ -5242,7 +5242,7 @@ killed after process termination."
        (format "%d %d" (1+ ebnf-eps-upper-x) (1+ ebnf-eps-upper-y))
        "\n%%Title: " filename
        "\n%%CreationDate: " (format-time-string "%T %b %d %Y")
-       "\n%%Creator: " (user-full-name) " (using GNU Emacs " emacs-version ")"
+       "\n%%Creator: " (user-full-name) " (using femacs " emacs-version ")"
        "\n%%DocumentNeededResources: font "
        (or ebnf-fonts-required
 	   (setq ebnf-fonts-required

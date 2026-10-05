@@ -12674,3 +12674,53 @@
   ⑥ **预算**：`build-tu` 约 14 发（含仪表清理后的重建）、`check-link --executable` 约 8 发、`lldb` 6 次、
      `otool` 2 次、`atos` 1 次；临时仪表（`fns.rs` 的 `DBG resize`/`dbg_freed_recently`、`alloc.rs` 的活跃块表、
      `dispnew.rs` 的 `malloc_size` 打印、`xtask` 的 `-g`）**已全部删除并复建验证**，`/tmp` 与 `build/femacs/units/*` 已清。
+
+- **3.619 版本声明的第十半：照抄树里"程序自己打印/写出的名字"收口——elisp 的版本横幅、splash 的自称、生成文件里的身份行（2026-10-05）**：
+  ① **来源与判据**：用户的长期指令（"版本声明不要再说是 gnu emacs 了……**把之前的代码中的这种声明也去掉**"）经第五（3.433）、
+    第七（3.503）、第八半（3.599）、第九半（3.613）逐面推进后，第九半自己点名的**唯一**关不掉的洞就是运行期那行文本：
+    `M-x emacs-version` 打出的字符串来自 `lisp/version.el` 的 `format`，而 `lisp/` 是逐字节照抄的六棵树之一
+    （`check-verbatim` 守、goal 也这么要求）。本半就是那句话，判据与 C 侧**完全同一条**——"这句话说的是谁"：
+    凡被复制树在运行期**打印或写出**、且主语是本程序的字符串，都写本仓库自己的名字（`femacs`）。
+  ② **机制（先有可读的例外，再动手）**：形状与第九半给 `.cc` 的 `carried-substitutions.tsv` 同源——新增
+    `docs/baseline/verbatim-substitutions.tsv`（24 行，`<目标路径>\t<行号>\t<该行文本>\t<理由>`），
+    `tools/check-verbatim.py` 读它：默认仍是逐字节相同；一行要不同就必须在表里有行，有行就必被读——
+    **行的文本对不上、行落在文件外、行"已与参照相同"（过时）、没有行却是差异，四种都失败**。替换是**机械的**
+    （只换产品名那一个 token，同一行其余字符一个都不动），所以每一行都能逐字符复核。表里的文本含制表符或反斜杠时
+    按 `\t`/`\\` 转义写（`calc-keypd.el`、`forms.el` 两行就是这种），工具里是 `escape`/`unescape` + 自测的 round-trip 断言。
+    两份把"逐字节相同"写进证据的文件随之改成准确表述：`docs/acceptance.md` §5（含新的读数行）与
+    `tools/acceptance-l1.py` 的两处注释（那里的判据本来就是"两侧载入同一棵树"，不受影响）。
+  ③ **24 个站点（14 个文件，逐条点名）**：版本横幅 `lisp/version.el:111`；splash/about 的自称 `lisp/startup.el` 1864/1936
+    （`Welcome to …`/`This is …` 里的链接文本）与 2392（plain splash 的第一行 "Welcome to …"/"This is …"）；
+    随程序一起打印的免责声明 1920/1981（fancy splash 两处）、2486/2609/2655（plain splash、`describe-no-warranty` 的收尾句、
+    about 屏）；两个 IRC 客户端身份串 `lisp/net/rcirc.el:53`（`rcirc-id-string`）、`lisp/erc/erc.el` 5511（`/SV` 发到频道的那句）
+    与 9585（CTCP VERSION 的应答）；程序**生成**的文件里的身份行 `lisp/ps-print.el:5324`、`lisp/play/handwrite.el:176`、
+    `lisp/progmodes/ebnf2ps.el:5245`（`%%Creator:`）、`lisp/calendar/icalendar.el:253`（iCalendar 的 `PRODID`）、
+    `lisp/help-fns.el` 2445/2497/2500（命令摘要的 `.TH`/`@settitle`/`@unnumbered`）；组件自己的标题行
+    `lisp/calc/calc-help.el:400`、`lisp/calc/calc.el:1535`、`lisp/calc/calc-keypd.el:310`、`lisp/forms.el:682`、
+    `lisp/progmodes/ps-mode.el:516`。
+  ④ **读数（全部实测）**：⑴ `tools/check-verbatim.py` → `6 trees, 4604 files, 24 sanctioned line(s), 0 failures`
+    （六棵树的文件清单与文件数与上一轮**逐个相等**——本件不增删任何文件）；`--selftest` **7 例 / 0 失败**
+    （新增两例：制表符开头的行、转义 round-trip）。⑵ **真树变异**两例各 1 处失败：把 `version.el:111` 改回参照的值 ⇒
+    报"该行已与参照相同（行过时）"；把 `femacs` 改成别的串 ⇒ 报"该行是 …，表里写的是 …"。⑶ 14 个改动文件用
+    **参照自己的 reader** 逐个读完（`read` 24–860 个 form，0 parse 失败）。⑷ **运行期读数**：
+    `build/emacs-ref/src/emacs -Q --batch -L femacs/lisp`（载入**本仓库**的 `version.el`）打出
+    `femacs 32.0.50 (build 1, aarch64-apple-darwin25.6.0)`；**对照组**（同一二进制、`-L emacs/lisp`）打出参照的名字与版本号。
+    ⑸ 文本门：`check-declarations` **6 declaration sites (0 forbidden, 6 allowed literals), 0 failures**（不变）、
+    `check-carried` `11/11/4/0`、`check-mirror-dupes` `16/16/0`、`check-citations` `676 文件 / 0 drift / 0 range / 0 stale`、
+    `check-ledger-ticks` `238/0`、`check-dead-file-coverage` `145/0`、`check-port-lines` `0/0/0/0`、`check-target-names` `0 finding`。
+  ⑤ **未声称**：本件**一枚都没编译**（`build-tu`/`probe`/`check-all-units.sh`/`layout-check`/`check-link` 全 0 发）；
+    被改的是照抄树的 24 行文本，证据只到"参照的 reader 读得完"与"参照的解释器按**本仓库的** `version.el` 打出 femacs 横幅"——
+    **不是本程序打印出来的**（本端口仍停在加载 `subr` 那处缺陷上，见 3.618 ⑤）；其余 23 行没有执行读数，只有文本与 reader 读数。
+  ⑥ **仍然留下的三类（点名，不冒充"已清"）**：⑴ **裸 `Emacs`**（不含产品名前缀）——照抄树的 `;;` 注释、docstring、
+    splash 的缓冲区名与引用它的 docstring（1578 个文件的文件头块属此类）；3.226 ⑤ 把这一族留给你裁决，本半不擅自扩；
+    ⑵ **上游链接与它们的标签**（splash/about 里指向 gnu.org 的那几条、`Getting New Versions` 一类）；
+    ⑶ **许可与署名正文**（COPYRIGHT、生成器写出的 GPL 头、`etc/`/`doc/`/`test/` 里的说明文字）——改它就是写一句假署名。
+    另记一条**读法**：`tools/check-declarations.py` 不扫 `.el`（它按后缀走，六棵树归 `check-verbatim` 管），
+    所以照抄树里的身份行此前**没有门**，本半那张表就是它的门。
+  ⑦ **顺带记下的既有读数（不是本件引入）**：`check-globals` 读 `284 units, 18 DEFVAR_* variables without a definition
+    in their own unit`，18 处全在 6 个**整身死条件**单元里（`dosfns` 11、`haikufns` 1、`msdos` 1、`w16select` 2、
+    `w32font` 1、`w32select` 2）；本件一枚 `.rs` 都没动，留给下一轮。
+  ⑧ **预算**：改 14 个照抄树文件 + `tools/check-verbatim.py`、`docs/acceptance.md`、`tools/acceptance-l1.py`，
+    新建 `docs/baseline/verbatim-substitutions.tsv`；命令：`check-verbatim` 约 8 发（含 2 发真树变异、2 发自测）、
+    `check-declarations` 4 发、参照 reader 1 发（一次读 14 个文件）、对照运行 2 发、其余六道文本门各 1 发；
+    `build-tu`/`probe` 0 发；`/tmp` 的临时脚本已删，无编译产物。

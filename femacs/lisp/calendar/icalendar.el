@@ -250,7 +250,7 @@ timestamp, and your personal domain name."
   :version "31.1")
 
 (defcustom ical:vcalendar-prodid
-  (format "-//gnu.org//GNU Emacs %s//EN" emacs-version)
+  (format "-//gnu.org//femacs %s//EN" emacs-version)
   "The value of the `icalendar-prodid' property for VCALENDAR objects
 produced by this Emacs."
   :type 'string

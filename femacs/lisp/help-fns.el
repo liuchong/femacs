@@ -2442,7 +2442,7 @@ one of them returns non-nil."
       (error "Cannot read file `%s'" file))
   (pop-to-buffer (generate-new-buffer "*man-doc*"))
   (setq buffer-undo-list t)
-  (insert ".TH \"Command Summary for GNU Emacs\"\n"
+  (insert ".TH \"Command Summary for femacs\"\n"
           ".AU Richard M. Stallman\n")
   (insert-file-contents file)
   (let (notfirst)
@@ -2494,10 +2494,10 @@ one of them returns non-nil."
     ;; Write the output header.
     (insert "\\input texinfo  @c -*-texinfo-*-\n"
             "@setfilename emacsdoc.info\n"
-            "@settitle Command Summary for GNU Emacs\n"
+            "@settitle Command Summary for femacs\n"
             "@finalout\n"
             "\n@node Top\n"
-            "@unnumbered Command Summary for GNU Emacs\n\n"
+            "@unnumbered Command Summary for femacs\n\n"
             "@table @asis\n\n"
             "@iftex\n"
             "@global@let@ITEM@item\n"

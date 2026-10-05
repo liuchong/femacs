@@ -5508,7 +5508,7 @@ connection or, with -A, all applicable connections.
 
 (defun erc-cmd-SV ()
   "Say the current ERC and Emacs version into channel."
-  (erc-send-message (format "I'm using ERC %s with GNU Emacs %s (%s%s)%s."
+  (erc-send-message (format "I'm using ERC %s with femacs %s (%s%s)%s."
                             erc-version
                             emacs-version
                             system-configuration
@@ -9582,7 +9582,7 @@ If optional argument HERE is non-nil, insert version number at point.
 If optional argument BOLD-ERC is non-nil, display \"ERC\" as bold."
   (interactive "P")
   (let ((version-string
-         (format "%s %s (IRC client for GNU Emacs %s)"
+         (format "%s %s (IRC client for femacs %s)"
                  (if bold-erc
                      "\C-bERC\C-b"
                    "ERC")

@@ -1,0 +1,35 @@
+# Product-name occurrences inside the six copied trees (`lisp`, `test`, `etc`, `doc`,
+# `leim`, `admin` -> `femacs/<top>/**`), one per line.  PORTING.md 0.1-19 says those trees are
+# copied, and `tools/check-verbatim.py` holds them byte for byte; the tenth half of the rule
+# (status 3.613, 2026-10-05) is the one exception: a *string the reference program prints* that
+# names the reference product as this program's own name, welcome, warranty line or generated-file
+# identity is this program's outward identity, so it carries this repository's name instead.
+# The rule is mechanical - the token is replaced and nothing else on the line changes - and every
+# row is read by the gate: the target's line must be exactly the text below, the reference's line
+# must differ from it, and a row for a file the copy does not carry, or a difference with no row,
+# is a failure.  Columns: <repo-relative target path>\t<line>\t<the target's line>\t<reason>.
+path	line	the target's line	reason
+femacs/lisp/version.el	111	         (format "femacs %s (build %s, %s%s%s%s)%s"	the version string `emacs-version` returns and prints - this program's own version banner (0.1-19's fifth half renamed C's `--version` banner the same way)
+femacs/lisp/startup.el	1864	     :link ("femacs"	the splash/about screen's own name in its `Welcome to …` / `This is …` line: this program's self-declaration (the reference's site URL it links to is unchanged)
+femacs/lisp/startup.el	1920	     "\\tfemacs comes with "	the warranty line the program prints about itself; C's `--version` banner already reads `femacs comes with ABSOLUTELY NO WARRANTY`
+femacs/lisp/startup.el	1936	     :link ("femacs"	the splash/about screen's own name in its `Welcome to …` / `This is …` line: this program's self-declaration (the reference's site URL it links to is unchanged)
+femacs/lisp/startup.el	1981	     "\\tfemacs comes with "	the warranty line the program prints about itself; C's `--version` banner already reads `femacs comes with ABSOLUTELY NO WARRANTY`
+femacs/lisp/startup.el	2392	      (insert (if startup "Welcome to femacs" "This is femacs"))	the plain (non-fancy) splash screen's first line: `Welcome to …` / `This is …` names this program
+femacs/lisp/startup.el	2486	  (insert "\\t\\tfemacs comes with ABSOLUTELY NO WARRANTY\\n")	the warranty line the program prints about itself; C's `--version` banner already reads `femacs comes with ABSOLUTELY NO WARRANTY`
+femacs/lisp/startup.el	2609	femacs comes with ABSOLUTELY NO WARRANTY; type \\\\[describe-no-warranty] for "))	the warranty line the program prints about itself; C's `--version` banner already reads `femacs comes with ABSOLUTELY NO WARRANTY`
+femacs/lisp/startup.el	2655	  (insert "\\tfemacs comes with ABSOLUTELY NO WARRANTY\\n")	the warranty line the program prints about itself; C's `--version` banner already reads `femacs comes with ABSOLUTELY NO WARRANTY`
+femacs/lisp/net/rcirc.el	53	(defconst rcirc-id-string (concat "rcirc on femacs " emacs-version))	`rcirc-id-string`: the client string this program puts on IRC - its outward identity, the same class as the C `RCS_Id`
+femacs/lisp/ps-print.el	5324	     "\\n%%Creator: femacs " emacs-version	the `%%Creator:`/title field of the file the program writes: generated-file identity (0.1-19's fourth half, the mechanical identity lines)
+femacs/lisp/calendar/icalendar.el	253	  (format "-//gnu.org//femacs %s//EN" emacs-version)	the iCalendar `PRODID` the program writes when it exports: generated-file identity
+femacs/lisp/calc/calc-help.el	400	    (princ "femacs Calculator.\\n")	the calculator's own greeting, which the reference prints with the product name; a component of this program
+femacs/lisp/calc/calc.el	1535	                    (concat "Welcome to the femacs Calculator!  \\\\<calc-mode-map>"	the calculator's welcome line, printed when it starts: a component of this program
+femacs/lisp/calc/calc-keypd.el	310	\t(message "Welcome to femacs Calc!  Use the left and right mouse buttons")	the calculator's keypad greeting: a component of this program
+femacs/lisp/forms.el	682	\t "femacs Forms Mode\\n\\n"	the forms mode's own title line (the mode prints it as its banner): a component of this program
+femacs/lisp/erc/erc.el	5511	  (erc-send-message (format "I'm using ERC %s with femacs %s (%s%s)%s."	the ERC `/SV` line sent to the channel: this program's outward identity
+femacs/lisp/erc/erc.el	9585	         (format "%s %s (IRC client for femacs %s)"	the ERC version string a user or server receives (CTCP VERSION): this program's outward identity
+femacs/lisp/play/handwrite.el	176	    (insert "%%Creator: femacs's handwrite version " emacs-version  "\\n")	the `%%Creator:`/title field of the file the program writes: generated-file identity (0.1-19's fourth half, the mechanical identity lines)
+femacs/lisp/progmodes/ebnf2ps.el	5245	       "\\n%%Creator: " (user-full-name) " (using femacs " emacs-version ")"	the `%%Creator:` field of the PostScript this program writes: generated-file identity
+femacs/lisp/progmodes/ps-mode.el	516	  (message " *** PostScript Mode (ps-mode) in femacs %s *** " emacs-version))	the mode's version message in the echo area: this program's own name
+femacs/lisp/help-fns.el	2445	  (insert ".TH \\"Command Summary for femacs\\"\\n"	the `.TH` title of the man page the program generates for the command summary: generated-file identity
+femacs/lisp/help-fns.el	2497	            "@settitle Command Summary for femacs\\n"	the texinfo `@settitle` of the command summary the program generates: generated-file identity
+femacs/lisp/help-fns.el	2500	            "@unnumbered Command Summary for femacs\\n\\n"	the texinfo `@unnumbered` heading of the generated command summary: generated-file identity

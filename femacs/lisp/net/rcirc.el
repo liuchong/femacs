@@ -50,7 +50,7 @@
 (eval-when-compile (require 'subr-x))
 (eval-when-compile (require 'rx))
 
-(defconst rcirc-id-string (concat "rcirc on GNU Emacs " emacs-version))
+(defconst rcirc-id-string (concat "rcirc on femacs " emacs-version))
 
 (defgroup rcirc nil
   "Simple IRC client."
