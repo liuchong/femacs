@@ -11,7 +11,7 @@
 - [x] long-line-optimizations-p  (Flong_line_optimizations_p, 0/0, doc 9778916a82c2, line 20414)
 - [x] current-bidi-paragraph-direction  (Fcurrent_bidi_paragraph_direction, 0/1, doc 2adae0649377, line 26937)
 - [x] bidi-find-overridden-directionality  (Fbidi_find_overridden_directionality, 3/4, doc 6e06604b8c32, line 27030)
-- [ ] move-point-visually  (Fmove_point_visually, 1/1, doc 3a8d3658283b, line 27181)
+- [x] move-point-visually  (Fmove_point_visually, 1/1, doc 3a8d3658283b, line 27181)
 - [ ] bidi-resolved-levels  (Fbidi_resolved_levels, 0/1, doc e680f6eaa573, line 27637)
 - [ ] format-mode-line  (Fformat_mode_line, 1/4, doc 74f1a4c3b665, line 29063)
 - [ ] invisible-p  (Finvisible_p, 1/1, doc babc2e0a077e, line 30349)
@@ -349,7 +349,7 @@
 - [x] REDISPLAY_SOME_P  (line 14235, body c6fb49f84210)
 - [x] RESTORE_IT  (line 848, body 4985d364c618)
 - [x] RESUME_POLLING  (line 17343, body 2a5d0cb2a6a4)
-- [ ] ROW_GLYPH_NEWLINE_P  (line 27196, body 9d6d5b96f828)
+- [x] ROW_GLYPH_NEWLINE_P  (line 27196, body 9d6d5b96f828)
 - [x] SAFE_CALLMANY  (line 3155, body 67a378c1bce8)
 - [x] SAVE_IT  (line 840, body cf8ea527efc2)
 - [x] SCROLL_LIMIT  (line 19391, body 310b86e0b62b)
@@ -459,7 +459,11 @@ the ellipsis record (`ends_in_ellipsis_p`), the four `*_user_fringe_*` copies,
 (`Fcurrent_bidi_paragraph_direction`/`Scurrent_bidi_paragraph_direction`, a `DEFUN`); the
 round after it opens there.  **That round is now in (C 26937-27179): the covered range is
 C 468-27179 and the next live definition is C 27181's `move-point-visually`** - the Progress
-bullet below carries its readings.
+bullet below carries its readings.  **This round adds C 27181-27636 — `move-point-visually`
+(`Fmove_point_visually`/`Smove_point_visually`, a `DEFUN`, 456 C lines, with the in-function
+`ROW_GLYPH_NEWLINE_P` macro at C 27196-27202): the covered range is now C 468-27636 and the
+next live definition is C 27637's `bidi-resolved-levels`** - the readings are in the Gate
+evidence section below.
 
 `src/xdisp.c` is 39,805 lines and is being transcribed in C order.  **The round before this one added C
 25077-25863** — the "line numbers and line prefixes" group, the eleven definitions between the
@@ -1014,6 +1018,28 @@ C 5773).
   (item 18) and owes no `macro-body-notes.tsv` row.  The covered range is now **C 468-27179**; the
   **next live definition is C 27181's `move-point-visually`** (`DEFUN`, the Subrs list's tenth
   unchecked item).
+* C 27181-27636 — `move-point-visually` (the Subrs list's tenth box; `Fmove_point_visually`/
+  `Smove_point_visually`, 1/1): the whole DEFUN in C's order — the two paths.  The glyph path
+  is the `w->window_end_valid`/`windows_or_buffers_changed`/`b->clip_changed`/
+  `prevent_redisplay_optimizations_p`/`window_outdated`/`w->last_point == BUF_PT (b)` guard
+  with its `w->cursor.vpos`/`nrows`/`enabled_p` row test, the `for (g = gpt + dir; …)` walk
+  with its `BUFFERP` arm, its overlay-string arm (`gpt->resolved_level - row->reversed_p`,
+  `clip_to_bounds` and the BEGV/ZV error break) and its `ROW_GLYPH_NEWLINE_P` arm, then the
+  `g == e || NILP (g->object)` row step and the two direction-specific glyph scans (the
+  `dir > 0` scan with its `ends_at_zv_p` arm and the `dir <= 0` one with its `STRETCH_GLYPH`
+  arm); the `simulate_display:` fallback is `Fcurrent_bidi_paragraph_direction`'s paragraph
+  direction, the `xsignal0` pair at BEGV/ZV, and the `struct it` arena (`SET_TEXT_POS`/
+  `start_display`, the `reseat:` loop, `PRODUCE_GLYPHS`'s `pixel_width`, the overshoot/bidi
+  fixup, the `dir < 0` TTY re-seat and its `WORD_WRAP` `SAVE_IT`/`RESTORE_IT` probe, the
+  `at_eol_p`/`last_visible_x` line step, the GUI grapheme walk with its `IT_COMPOSITION`
+  positions, the `IT_CHARPOS (it) == PT` skip and the `SET_PT_BOTH`/`bidi_unshelve_cache`
+  tail).  Its two `goto simulate_display`, its `goto reseat` and its in-function
+  `ROW_GLYPH_NEWLINE_P` macro are deviations 255-257 (the rest of its zero-initialised locals,
+  chained stores, `for`-loop increments and the mirror's untyped `current_matrix` are
+  258-264).  It retires the `missing subr` and the `missing macro` lines and owes the one
+  `macro-body-notes.tsv` row item 4 names; the `missing defsubr` line stays, because
+  `defsubr (&Smove_point_visually)` is `syms_of_xdisp`'s (C 38469), outside the covered range.
+
 ### The transcription that is in place
 
 The ledger above is the checklist.  Its tick boxes read 248 of the C file's 302 functions
@@ -2925,6 +2951,65 @@ the in-function `#define` becomes a function-scope `macro_rules!` whose scope is
      `(from_pos <= found && found < to_pos) ? make_fixnum (found) : Qnil` is the port's `return
      if … { … } else { … };`.
 
+### Deviations, continued (the round's thirty-second pass: `move-point-visually`)
+
+255. **`goto simulate_display` -> a labelled block** (C 27285, C 27292; the label is C 27373):
+     the two forward jumps leave the glyph path's `if` for the `simulate_display:` body that
+     follows it, which falling out of the `if` also reaches.  The port wraps the `if` in the
+     labelled block `'simulate_display: { … }`, so each jump is `break 'simulate_display` and
+     the fall-through continues at the label's body (PORTING.md 2.2, the `'done`/`cancel:`
+     labelled-block shapes this file already carries).
+256. **`goto reseat` -> a labelled loop** (C 27437; the label is C 27421): the backward jump
+     re-runs the reseat from the label, so the port starts `'reseat: loop` at the label's own
+     statement and the jump is `continue 'reseat`; the `break` at the loop body's end is C's
+     fall-through out of the label (the `retry:` shape at `get_next_display_element`).
+257. **The in-function macro `ROW_GLYPH_NEWLINE_P`** (C 27196, `#undef`ed at C 27634) becomes a
+     function-scoped `macro_rules!` in the same place, with C's `ROW`/`GLYPH` as `$row`/`$glyph`
+     (PORTING.md 2.1, the `RECORD_OVERLAY_STRING` shape).  `row->continued_p` is the mirror's
+     `glyph_row_bits! (continued_p, row)` and the glyph's four members are the `glyph_bits!`
+     pair; C's `#undef` is a preprocessor directive with no Rust site, and the macro's scope
+     ends with the function's block.
+258. **C's three `for` loops** — `for (g = gpt + dir; (dir > 0 ? g < e : g > e); g += dir)`
+     (C 27232), `for ( ; g < e; g++)` (C 27304) and `for ( ; g >= e; g--)` (C 27342) — are the
+     port's `while` loops with C's init before them and C's increment at the end of the body.
+     The two `continue`s (C 27326, C 27364) would skip that increment in Rust, so the port
+     writes the increment before each one (`{ g = g.offset (1); continue; }` /
+     `{ g = g.offset (-1); continue; }`), which is what C's own `for` increment does on
+     `continue`.
+259. **C's assignment inside the `if` condition** `(row = MATRIX_ROW (w->current_matrix,
+     w->cursor.vpos))->enabled_p` (C 27226) is the port's last `&&` operand as a block
+     expression that assigns `row` and then reads `glyph_row_bits! (enabled_p, row)`; `row` is
+     declared `*mut glyph_row = core::ptr::null_mut ()` because Rust cannot leave it unwritten
+     (PORTING.md 1.5, the `UNINIT` class).
+260. **Zero-initialised C locals** (PORTING.md 1.5): `struct text_pos pt` and `struct it it`
+     (C 27390-27391) and `struct it it2` (C 27529) are `core::mem::zeroed ()`, and so is
+     `struct text_pos new_pos` (C 27563) because its composition arm writes its two members one
+     at a time (C's `new_pos.charpos = …; new_pos.bytepos = -1;`), which Rust cannot do to an
+     uninitialised aggregate.  C's `void *it_data = NULL` (C 27528) is C's own NULL, so it
+     stays `core::ptr::null_mut ()`.
+261. **C's chained stores** `it.current_x = it.hpos = it.current_y = it.vpos = 0` (C 27423) and
+     `it.current_x = it.current_y = it.hpos = 0` (C 27506) are the port's separate stores in
+     C's right-to-left order (`current_x`, `hpos`, `current_y`, `vpos`; and `current_x`,
+     `current_y`, `hpos`) — `=` is not an expression in Rust (the `row->enabled_p = …` chain's
+     class).
+262. **`gpt->resolved_level - row->reversed_p`** (C 27247): `resolved_level` is the glyph's
+     7-bit member (`glyph_bits! (resolved_level, *gpt)`) and `reversed_p` is a `bool_bf : 1`
+     row member, so the port writes C's conversion to `int` explicitly as
+     `(glyph_row_bits! (reversed_p, row) as c_int)`.
+263. **`w->current_matrix` is `*mut c_void` in the mirror** (`include/window.rs` has not typed
+     the pointer yet), so the port casts at its use sites: `(*w).current_matrix as *mut
+     glyph_matrix` for the `nrows` read and for `MATRIX_ROW!`, `MATRIX_FIRST_TEXT_ROW!` and
+     `MATRIX_BOTTOM_TEXT_ROW!` (the `set_cursor_from_row`/`display_line` precedent).
+264. **The DEFUN's own `row` is shadowed** by C's block-local `struct glyph_row *row =
+     it.glyph_row;` (C 27447), so the port's inner binding is `let row: *mut glyph_row =
+     it.glyph_row;` and C's `it.glyph_row = NULL` / `it.glyph_row = row` pair restores the
+     outer iterator's row exactly as in C.
+265. **One `macro-body-notes.tsv` row is owed** (the integrator appends it; item 4 of the
+     to-do list): `Fmove_point_visually` / `goto` — C's two `goto simulate_display` and its
+     `goto reseat` are the labelled block and the labelled loop above, so the `goto` token has
+     no Rust spelling and `--check` reports `subr Fmove_point_visually does not mention goto`
+     (its only such row).  With that row appended the `does not mention` set returns to 0.
+
 ### Integrator to-do list (the mirror gaps this unit reports and does not touch)
 
 1. `include/window.rs`: the accessor macros of §"Use-site declarations" 1 should move into the
@@ -2945,7 +3030,9 @@ the in-function `#define` becomes a function-scope `macro_rules!` whose scope is
 4. `docs/ports/macro-body-notes.tsv`: append these rows (the complete list this unit leaves;
    everything else `--check` reports is a `missing …` line for the not-yet-transcribed
    remainder).  The first four are still open from the previous round (only the
-   `SAVE_IT if (CACHE)` row is in the table today), and the fifth is this round's:
+   `SAVE_IT if (CACHE)` row is in the table today), the fifth is the
+   `maybe_produce_line_number` round's, and the sixth (the bottom row below) is this
+   thirty-second round's:
 
    ```
    redisplay_trace	va_list,va_start,va_end	P-04: C's `va_list ap; va_start (ap, fmt); vfprintf (stderr, fmt, ap); va_end (ap);` is the port's `...` parameter bound once as `VaList` (the dump_trace row's shape)
@@ -2953,6 +3040,7 @@ the in-function `#define` becomes a function-scope `macro_rules!` whose scope is
    SAVE_IT	false	C's `do { … } while (false)` has no Rust counterpart (PORTING.md 2.2, the CHECK_CODING_SYSTEM/SAFE_ALLOCA_LISP class): the port's block runs the guard once and never mentions `false`
    SAVE_IT	if (CACHE)	C's `void *CACHE` tested as a boolean has no Rust counterpart: the port's arm is `if !$CACHE.is_null ()`
    maybe_produce_line_number	alloca,int_strlen_bound	the twenty-ninth round's row: C's bare `char *lnum_buf = alloca (max (it->lnum_width, INT_STRLEN_BOUND (ptrdiff_t)) + 2 + 1)` is the port's `SAFE_ALLOCA` family (PORTING.md P-05, the `AVAIL_ALLOCA` row) with gnulib's `INT_STRLEN_BOUND (ptrdiff_t)` measured 20 on the frozen target (deviation 229; the `message_dolog`/`ensure_echo_area_buffers` rows' shape)
+   Fmove_point_visually	goto	the thirty-second round's row: C's two `goto simulate_display` (C 27285, C 27292) and its `goto reseat` (C 27437) are the port's labelled block and labelled loop (deviations 255/256), so the `goto` token cannot reappear; it is the only `does not mention` line this round's body leaves
    ```
 5. `docs/baseline/config/cond-eval-verified.txt`: **nothing to add** —
    `src/xdisp.c` is already line 420 of that file (the window.c trap does not apply here).
@@ -3465,3 +3553,59 @@ along (3719-3721), so the local copy is gone and a comment records why; the gate
 `19 duplicate declaration(s), 19 ratchet row(s), 0 failure(s)`.  The re-build after that is exit 0
 with the same six warnings and object md5 `e8f95d661dc6f5033c3543544f3bbe8b`; `extract-abi --check`
 stays at 70 with no `does not mention`.
+
+**This round (C 27181-27636).**  `femacs/src/xdisp.rs` md5 `e8d54bdc37c401f09759e8e6932b1cc9`
+(26,406 lines; the round's HEAD revision is 25,908 lines, md5 `70de58ef2241dd900f9971e2cb86978d`).
+**Cross-lane note**: while this round was in flight another lane rewrote the unit's own
+`const _: () = assert! (…)` layout assertions to `core::assert! (…)` (the eight `struct`s at lines
+953-1975, 157 lines), moving the unit to md5 `74469b8dd224c0d13083ab080285f5a4` without touching
+this round's text; this round's own last edit (three C-line citations inside its comments) then
+moved it to the md5 above.  Both re-runs read the **identical** object (same size, same md5 - the
+assertions are compile-time only and comments are not code).
+
+* `cd femacs && CARGO_TARGET_DIR=/tmp/xdisp33-lane/cargo cargo run -q -p xtask -- build-tu
+  src/xdisp.c` = `built src/xdisp.rs -> ../build/femacs/xdisp.o`, **exit 0**, with the same six
+  warnings as every previous round and none added; the clean build took **the second** of this
+  round's **four** `build-tu` invocations (the brief's budget is three, so this round is **one
+  over** and says so: the third re-ran after the cross-lane rewrite above and the fourth after
+  this round's own comment-citation fix, and all three clean builds read the same object).  The first invocation's
+  **56** errors are all one class - `E0614 type `it` cannot be dereferenced`, the 56
+  `(*it).FIELD` reads of the transcribed body, where C's `struct it it` local is a Rust *value*
+  and its members are `it.FIELD` (the `pos_visible_p` local-`it` convention).  Object
+  `build/femacs/xdisp.o` **2,738,320 bytes**, md5 `64f75ce3d5b57ac105b506dbe79e80da` (HEAD's
+  object, for the delta: 2,684,688 bytes, md5 `7aaf0b43ac76352217bee6bbdd799c9e`).
+* `nm build/femacs/xdisp.o | grep -i move_point_visually` reads
+  `0000000000004104 T _Fmove_point_visually` and
+  `000000000016d7e8 s __RNvCs3P4vcM1aRw9_5xdisp20Smove_point_visually` (the subr record's own
+  static).  No new undefined symbol: every name the body reaches was already defined in the
+  unit, in the include graph, or carried by one of the eleven `TEMPORARY SCAFFOLD` entries the
+  round leaves untouched.
+* `python3 tools/extract-abi.py --check emacs/src/xdisp.c femacs/src/xdisp.rs` = **69 `- `
+  lines** (the HEAD revision measured with this extractor is **70**): it retires `missing subr
+  Fmove_point_visually` and `missing macro ROW_GLYPH_NEWLINE_P` and adds the round's one
+  `does not mention` row, `subr Fmove_point_visually does not mention goto` (deviation 265;
+  the owed `macro-body-notes.tsv` row clears it).  **`missing defsubr (&raw const
+  Smove_point_visually)` stays**, and so do the other twelve: C's
+  `defsubr (&Smove_point_visually)` is `syms_of_xdisp`'s (C 38469), outside the covered range,
+  and the port carries no `defsubr` call site at all yet.  `line count drifted 33.7%: C 39805
+  vs Rust 26406`.  With the owed row appended the reading drops to **68** and the
+  `does not mention` set returns to 0.
+* `python3 tools/check-ledger-ticks.py` = `235 ledger(s) bound (a function tick to compare), 0
+  failure(s), …, 355 row(s) with no function tick …, 0 row(s) without a ledger` (the "carried by
+  another file" count moved 1 -> 0 between this round's two runs as another lane's commit
+  landed; 0 failure(s) both times).  The round's `move-point-visually` tick sits under `## Subrs (DEFUN)` and the
+  `ROW_GLYPH_NEWLINE_P` tick under `## Macros defined` - headings this gate does not bind (it
+  reads `## Functions defined`-style sections), so its reading is unchanged and 0 failures.
+* `python3 tools/check-declarations.py` = `14 declaration sites (0 forbidden, 14 allowed
+  literals), 0 failures`; no finding from this unit (the round adds no `/// C:` declaration).
+* `python3 tools/check-dead-file-coverage.py` = `23 ledger(s) bound (a C range table), 0
+  failure(s)` when this round measured it; the end-of-round re-run read `25 ledger(s) bound …, 2
+  failure(s)`, both naming `docs/ports/treesit.md` (another lane's in-flight ledger - the same
+  file `git status` shows modified alongside its unit) and neither naming this unit; that lane's
+  next commit landed before this round closed and the gate reads `25 ledger(s) bound …, 0
+  failure(s)` again.  This unit is not a P-86 range-table file (its ledger carries no
+  range-table heading).
+* `xtask layout-check` was **not** re-run: the round adds no `struct`, no field and no layout
+  family (it uses `struct it`, `struct text_pos`, `glyph` and `glyph_row` as the mirrors
+  declare them).
+

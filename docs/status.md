@@ -7688,3 +7688,30 @@
   ⑥ **未声称**：**零运行证据**——tree-sitter 臂**一次都没编过**（无头、无库），本机也没有任何 tree-sitter
      运行时；C 947-5,634（4 个 DEFUN、linecol/parsing/query/navigation 各段与 `syms_of_treesit` 的门内区）
      **未移植**；`build-tu` 3 发（限 3）。
+
+- **3.435 xdisp 第三十三轮：`move-point-visually`（C 27181-27636，456 行）（2026-10-05）**：
+  ① **区间/块**：一个 DEFUN 一次落完（`Fmove_point_visually`/`Smove_point_visually`，doc `3a8d3658283b`）。
+     块：函数内宏 `ROW_GLYPH_NEWLINE_P`（C 27196-27202 → 函数作用域 `macro_rules!`，参数 `$row`/`$glyph`）、
+     字形路径的三臂（`BUFFERP`、overlay-string、`ROW_GLYPH_NEWLINE_P`）+ 两个方向的字形扫描、
+     **标号 `simulate_display:`**（C 27373，由 2 处前向 `goto` 与 `if` 落空到达）里的 `struct it` 竞技场、
+     **标号 `reseat:`**（C 27421，1 处后向 `goto`）、`PRODUCE_GLYPHS` 取宽、overshoot/bidi 修正、
+     TTY `WORD_WRAP` 的 `SAVE_IT`/`RESTORE_IT` 探测、GUI 单字素行走、`SET_PT_BOTH`/`bidi_shelve_cache`。
+  ② **行数**：`femacs/src/xdisp.rs` **25,908 → 26,406**（md5 `e8d54bdc…`）；台账 3,467 → **3,611**；
+     覆盖区间 **C 468-27179 → C 468-27636**，**下一个活定义 = C 27637 `bidi-resolved-levels`**。
+  ③ **读数**：冻结 `build-tu` **exit 0**（**4 发，限 3，超 1 如实报**：一发是 56 处 `E0614`、一发因
+     3.432 的 `core::assert!` 扫过本单元而重跑、一发因注释行号修正而重跑，后三发对象逐字节相同），对象
+     **2,738,320 字节**（HEAD 2,684,688），`nm` 见 `_Fmove_point_visually` 且**无新未定义符号**；
+     `extract-abi --check` **70 → 69 行**（退掉 `missing subr Fmove_point_visually` 与
+     `missing macro ROW_GLYPH_NEWLINE_P`，新增唯一一条 `subr Fmove_point_visually does not mention goto`
+     ——**集成者本轮补了 `macro-body-notes.tsv` 的那一行**，补后 `--check` 落到 68 行、`does not mention` 归零）；
+     `check-ledger-ticks`/`check-dead-file-coverage`/`check-declarations`/`check-mirror-dupes`/`check-carried`/
+     `check-citations` 全部 0 failure；行数漂移 33.7% 是**既有**读数，不是本轮新错。
+  ④ **真缺陷**：移植文本本身**未发现**（控制流、语句顺序、名字与错误模型逐条对齐）；lane 自己修掉 4 处
+     注释里的 C 行号抄错，以及一处台账措辞——后者曾让 `check-dead-file-coverage` 把 `docs/ports/xdisp.md`
+     当成 P-86 区间表并要求行（改措辞后回到 0 failure）。
+  ⑤ **点名（留给镜像轮）**：`include/window.rs` 的 `struct window.current_matrix` 仍是 `*mut c_void`
+     （本单元被迫三处 `as *mut glyph_matrix` 强转，deviation 263；`set_cursor_from_row`/`display_line`
+     是同一个 workaround）；`include/dispextern.rs` 的 `ITERATOR_AT_END_OF_LINE_P` 仍未镜像（端口就地定义）。
+  ⑥ **未声称**：**零运行证据**（没有 `move-point-visually` 的光标视觉移动、`simulate_display` 回退、
+     bidi 段向翻转、GUI 字素行走、`WORD_WRAP` 换行探测的任何验证）；`missing defsubr (&raw const
+     Smove_point_visually)` 与另外 12 条要到 `syms_of_xdisp`（C 38469 起）落笔才退；`probe` 0/3。

@@ -953,13 +953,13 @@ pub struct face
   /// C 1936-1937: `hash`, `next`, `prev`, `ascii_face` (offset 244 … 280).
   _pad2: [u8; 36],
 }
-const _: () = assert! (core::mem::size_of::<face> () == 280);
-const _: () = assert! (core::mem::align_of::<face> () == 8);
-const _: () = assert! (core::mem::offset_of! (face, id) == 160);
-const _: () = assert! (core::mem::offset_of! (face, background) == 176);
-const _: () = assert! (core::mem::offset_of! (face, font) == 216);
-const _: () = assert! (core::mem::offset_of! (face, box_vertical_line_width) == 228);
-const _: () = assert! (core::mem::offset_of! (face, bits) == 240);
+const _: () = core::assert! (core::mem::size_of::<face> () == 280);
+const _: () = core::assert! (core::mem::align_of::<face> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (face, id) == 160);
+const _: () = core::assert! (core::mem::offset_of! (face, background) == 176);
+const _: () = core::assert! (core::mem::offset_of! (face, font) == 216);
+const _: () = core::assert! (core::mem::offset_of! (face, box_vertical_line_width) == 228);
+const _: () = core::assert! (core::mem::offset_of! (face, bits) == 240);
 
 pub const FACE_BOX_SHIFT: u32 = 0;
 pub const FACE_BOX_MASK: u32 = 0x3;
@@ -997,9 +997,9 @@ pub struct face_cache
   pub used: c_int,
   pub menu_face_changed_p: bool,
 }
-const _: () = assert! (core::mem::size_of::<face_cache> () == 40);
-const _: () = assert! (core::mem::offset_of! (face_cache, faces_by_id) == 16);
-const _: () = assert! (core::mem::offset_of! (face_cache, used) == 32);
+const _: () = core::assert! (core::mem::size_of::<face_cache> () == 40);
+const _: () = core::assert! (core::mem::offset_of! (face_cache, faces_by_id) == 16);
+const _: () = core::assert! (core::mem::offset_of! (face_cache, used) == 32);
 
 /// C: frame.h 1643-1649: `INLINE struct face *FACE_FROM_ID (struct frame *f, int id);`
 /// (the `eassert` form; `font.rs`/`term.rs` carry the same copy of the record's accessor).
@@ -1170,22 +1170,22 @@ pub struct bidi_it
   pub _pad_tail_b: [u8; 7],
 }
 
-const _: () = assert! (core::mem::size_of::<bidi_it> () == 2328);
-const _: () = assert! (core::mem::offset_of! (bidi_it, bytepos) == 0);
-const _: () = assert! (core::mem::offset_of! (bidi_it, charpos) == 8);
-const _: () = assert! (core::mem::offset_of! (bidi_it, ch) == 16);
-const _: () = assert! (core::mem::offset_of! (bidi_it, nchars) == 24);
-const _: () = assert! (core::mem::offset_of! (bidi_it, ch_len) == 32);
-const _: () = assert! (core::mem::offset_of! (bidi_it, r#type) == 40);
-const _: () = assert! (core::mem::offset_of! (bidi_it, resolved_level) == 52);
-const _: () = assert! (core::mem::offset_of! (bidi_it, scan_dir) == 184);
-const _: () = assert! (core::mem::offset_of! (bidi_it, disp_pos) == 192);
-const _: () = assert! (core::mem::offset_of! (bidi_it, disp_prop) == 200);
-const _: () = assert! (core::mem::offset_of! (bidi_it, level_stack0_level) == 218);
-const _: () = assert! (core::mem::offset_of! (bidi_it, string) == 2256);
-const _: () = assert! (core::mem::offset_of! (bidi_it, w) == 2296);
-const _: () = assert! (core::mem::offset_of! (bidi_it, paragraph_dir) == 2304);
-const _: () = assert! (core::mem::offset_of! (bidi_it, bits) == 2320);
+const _: () = core::assert! (core::mem::size_of::<bidi_it> () == 2328);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, bytepos) == 0);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, charpos) == 8);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, ch) == 16);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, nchars) == 24);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, ch_len) == 32);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, r#type) == 40);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, resolved_level) == 52);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, scan_dir) == 184);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, disp_pos) == 192);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, disp_prop) == 200);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, level_stack0_level) == 218);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, string) == 2256);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, w) == 2296);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, paragraph_dir) == 2304);
+const _: () = core::assert! (core::mem::offset_of! (bidi_it, bits) == 2320);
 
 /* C: dispextern.h 2159 `struct bidi_it`; its three `bool_bf : 1` members (2200-2202) share
    the byte at 2320 (measured `01` for `first_elt`), and C 2207-2208's `BIDI_AT_BASE_LEVEL`
@@ -1249,10 +1249,10 @@ pub struct iterator_stack_entry_u_image
   pub slice: it_slice,                  // 2608
   pub image_id: ptrdiff_t,              // 2609
 }
-const _: () = assert! (core::mem::size_of::<iterator_stack_entry_u_image> () == 48);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry_u_image, object) == 0);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry_u_image, slice) == 8);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry_u_image, image_id) == 40);
+const _: () = core::assert! (core::mem::size_of::<iterator_stack_entry_u_image> () == 48);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry_u_image, object) == 0);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry_u_image, slice) == 8);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry_u_image, image_id) == 40);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -1276,8 +1276,8 @@ pub union iterator_stack_entry_u
   pub stretch: iterator_stack_entry_u_stretch,  // 2614
   pub xwidget: iterator_stack_entry_u_xwidget,  // 2618
 }
-const _: () = assert! (core::mem::size_of::<iterator_stack_entry_u> () == 48);
-const _: () = assert! (core::mem::align_of::<iterator_stack_entry_u> () == 8);
+const _: () = core::assert! (core::mem::size_of::<iterator_stack_entry_u> () == 48);
+const _: () = core::assert! (core::mem::align_of::<iterator_stack_entry_u> () == 8);
 
 #[repr(C)]
 #[derive(Clone, Copy)]
@@ -1333,27 +1333,27 @@ pub struct iterator_stack_entry
   pub font_height: Lisp_Object,         // offset 296
 }
 
-const _: () = assert! (core::mem::size_of::<iterator_stack_entry> () == 304);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, string) == 0);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, string_nchars) == 8);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, end_charpos) == 16);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, stop_charpos) == 24);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, prev_stop) == 32);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, base_level_stop) == 40);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, cmp_it) == 48);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, face_id) == 136);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, u) == 144);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, position) == 192);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, current) == 208);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, from_overlay) == 256);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, area) == 264);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, method) == 268);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, paragraph_embedding) == 272);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, bits) == 276);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, line_wrap) == 280);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, voffset) == 284);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, space_width) == 288);
-const _: () = assert! (core::mem::offset_of! (iterator_stack_entry, font_height) == 296);
+const _: () = core::assert! (core::mem::size_of::<iterator_stack_entry> () == 304);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, string) == 0);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, string_nchars) == 8);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, end_charpos) == 16);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, stop_charpos) == 24);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, prev_stop) == 32);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, base_level_stop) == 40);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, cmp_it) == 48);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, face_id) == 136);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, u) == 144);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, position) == 192);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, current) == 208);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, from_overlay) == 256);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, area) == 264);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, method) == 268);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, paragraph_embedding) == 272);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, bits) == 276);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, line_wrap) == 280);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, voffset) == 284);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, space_width) == 288);
+const _: () = core::assert! (core::mem::offset_of! (iterator_stack_entry, font_height) == 296);
 
 /* C: dispextern.h 2592 `struct iterator_stack_entry`'s one-byte `bool_bf` run (2628-2634), read
    and written by C's member name (measured byte patterns above).  */
@@ -1436,18 +1436,18 @@ pub struct composition_it
   pub _pad_c: [u8; 8],
 }
 
-const _: () = assert! (core::mem::size_of::<composition_it> () == 88);
-const _: () = assert! (core::mem::offset_of! (composition_it, stop_pos) == 0);
-const _: () = assert! (core::mem::offset_of! (composition_it, id) == 8);
-const _: () = assert! (core::mem::offset_of! (composition_it, ch) == 16);
-const _: () = assert! (core::mem::offset_of! (composition_it, nglyphs) == 40);
-const _: () = assert! (core::mem::offset_of! (composition_it, reversed_p) == 44);
-const _: () = assert! (core::mem::offset_of! (composition_it, from) == 72);
-const _: () = assert! (core::mem::offset_of! (composition_it, to) == 76);
-const _: () = assert! (core::mem::offset_of! (composition_it, parent_it) == 48);
-const _: () = assert! (core::mem::offset_of! (composition_it, charpos) == 56);
-const _: () = assert! (core::mem::offset_of! (composition_it, nchars) == 64);
-const _: () = assert! (core::mem::offset_of! (composition_it, nbytes) == 68);
+const _: () = core::assert! (core::mem::size_of::<composition_it> () == 88);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, stop_pos) == 0);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, id) == 8);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, ch) == 16);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, nglyphs) == 40);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, reversed_p) == 44);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, from) == 72);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, to) == 76);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, parent_it) == 48);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, charpos) == 56);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, nchars) == 64);
+const _: () = core::assert! (core::mem::offset_of! (composition_it, nbytes) == 68);
 
 /* C: dispextern.h 2430-2936 `struct it`, the display iterator.  `dispextern.h` is mirrored
    only to its batch-II prefix (P-66), so this record is declared here as this unit's own
@@ -1664,90 +1664,90 @@ pub struct it
   pub _pad_tail: [u8; 4],
 }
 
-const _: () = assert! (core::mem::size_of::<it> () == 4968);
-const _: () = assert! (core::mem::align_of::<it> () == 8);
-const _: () = assert! (core::mem::offset_of! (it, window) == 0);
-const _: () = assert! (core::mem::offset_of! (it, w) == 8);
-const _: () = assert! (core::mem::offset_of! (it, f) == 16);
-const _: () = assert! (core::mem::offset_of! (it, method) == 24);
-const _: () = assert! (core::mem::offset_of! (it, stop_charpos) == 32);
-const _: () = assert! (core::mem::offset_of! (it, end_charpos) == 56);
-const _: () = assert! (core::mem::offset_of! (it, medium_narrowing_begv) == 64);
-const _: () = assert! (core::mem::offset_of! (it, s) == 96);
-const _: () = assert! (core::mem::offset_of! (it, bits) == 112);
-const _: () = assert! (core::mem::offset_of! (it, dp) == 120);
-const _: () = assert! (core::mem::offset_of! (it, dpvec) == 128);
-const _: () = assert! (core::mem::offset_of! (it, dpend) == 136);
-const _: () = assert! (core::mem::offset_of! (it, dpvec_char_len) == 144);
-const _: () = assert! (core::mem::offset_of! (it, dpvec_face_id) == 148);
-const _: () = assert! (core::mem::offset_of! (it, saved_face_id) == 152);
-const _: () = assert! (core::mem::offset_of! (it, ctl_chars) == 160);
-const _: () = assert! (core::mem::offset_of! (it, start) == 288);
-const _: () = assert! (core::mem::offset_of! (it, current) == 336);
-const _: () = assert! (core::mem::offset_of! (it, n_overlay_strings) == 384);
-const _: () = assert! (core::mem::offset_of! (it, overlay_strings_charpos) == 392);
-const _: () = assert! (core::mem::offset_of! (it, overlay_strings) == 400);
-const _: () = assert! (core::mem::offset_of! (it, string_overlays) == 528);
-const _: () = assert! (core::mem::offset_of! (it, string) == 656);
-const _: () = assert! (core::mem::offset_of! (it, from_overlay) == 664);
-const _: () = assert! (core::mem::offset_of! (it, stack) == 672);
-const _: () = assert! (core::mem::offset_of! (it, sp) == 2192);
-const _: () = assert! (core::mem::offset_of! (it, selective) == 2200);
-const _: () = assert! (core::mem::offset_of! (it, what) == 2208);
-const _: () = assert! (core::mem::offset_of! (it, face_id) == 2212);
-const _: () = assert! (core::mem::offset_of! (it, bits2) == 2216);
-const _: () = assert! (core::mem::offset_of! (it, line_wrap) == 2220);
-const _: () = assert! (core::mem::offset_of! (it, base_face_id) == 2224);
-const _: () = assert! (core::mem::offset_of! (it, c) == 2228);
-const _: () = assert! (core::mem::offset_of! (it, len) == 2232);
-const _: () = assert! (core::mem::offset_of! (it, char_to_display) == 2328);
-const _: () = assert! (core::mem::offset_of! (it, char_to_display) == 2328);
-const _: () = assert! (core::mem::offset_of! (it, glyphless_method) == 2332);
-const _: () = assert! (core::mem::offset_of! (it, image_id) == 2336);
-const _: () = assert! (core::mem::offset_of! (it, xwidget) == 2344);
-const _: () = assert! (core::mem::offset_of! (it, slice) == 2352);
-const _: () = assert! (core::mem::offset_of! (it, space_width) == 2384);
-const _: () = assert! (core::mem::offset_of! (it, voffset) == 2392);
-const _: () = assert! (core::mem::offset_of! (it, font_height) == 2400);
-const _: () = assert! (core::mem::offset_of! (it, object) == 2408);
-const _: () = assert! (core::mem::offset_of! (it, position) == 2416);
-const _: () = assert! (core::mem::offset_of! (it, first_visible_x) == 2436);
-const _: () = assert! (core::mem::offset_of! (it, last_visible_x) == 2440);
-const _: () = assert! (core::mem::offset_of! (it, last_visible_y) == 2444);
-const _: () = assert! (core::mem::offset_of! (it, extra_line_spacing) == 2448);
-const _: () = assert! (core::mem::offset_of! (it, max_extra_line_spacing) == 2456);
-const _: () = assert! (core::mem::offset_of! (it, glyph_row) == 2472);
-const _: () = assert! (core::mem::offset_of! (it, area) == 2480);
-const _: () = assert! (core::mem::offset_of! (it, nglyphs) == 2484);
-const _: () = assert! (core::mem::offset_of! (it, pixel_width) == 2488);
-const _: () = assert! (core::mem::offset_of! (it, ascent) == 2492);
-const _: () = assert! (core::mem::offset_of! (it, descent) == 2496);
-const _: () = assert! (core::mem::offset_of! (it, max_ascent) == 2500);
-const _: () = assert! (core::mem::offset_of! (it, max_descent) == 2504);
-const _: () = assert! (core::mem::offset_of! (it, phys_ascent) == 2508);
-const _: () = assert! (core::mem::offset_of! (it, max_phys_descent) == 2520);
-const _: () = assert! (core::mem::offset_of! (it, current_x) == 2524);
-const _: () = assert! (core::mem::offset_of! (it, wrap_prefix_width) == 2528);
-const _: () = assert! (core::mem::offset_of! (it, continuation_lines_width) == 2532);
-const _: () = assert! (core::mem::offset_of! (it, eol_pos) == 2536);
-const _: () = assert! (core::mem::offset_of! (it, current_y) == 2552);
-const _: () = assert! (core::mem::offset_of! (it, first_vpos) == 2556);
-const _: () = assert! (core::mem::offset_of! (it, vpos) == 2560);
-const _: () = assert! (core::mem::offset_of! (it, hpos) == 2564);
-const _: () = assert! (core::mem::offset_of! (it, lnum) == 2568);
-const _: () = assert! (core::mem::offset_of! (it, lnum_bytepos) == 2576);
-const _: () = assert! (core::mem::offset_of! (it, lnum_width) == 2584);
-const _: () = assert! (core::mem::offset_of! (it, lnum_pixel_width) == 2588);
-const _: () = assert! (core::mem::offset_of! (it, pt_lnum) == 2592);
-const _: () = assert! (core::mem::offset_of! (it, cmp_it) == 2240);
-const _: () = assert! (core::mem::offset_of! (it, tab_width) == 2394);
-const _: () = assert! (core::mem::offset_of! (it, truncation_pixel_width) == 2432);
-const _: () = assert! (core::mem::offset_of! (it, continuation_pixel_width) == 2434);
-const _: () = assert! (core::mem::offset_of! (it, paragraph_embedding) == 4944);
-const _: () = assert! (core::mem::offset_of! (it, min_width_property) == 4952);
-const _: () = assert! (core::mem::offset_of! (it, min_width_start) == 4960);
-const _: () = assert! (core::mem::offset_of! (it, stretch_adjust) == 2600);
-const _: () = assert! (core::mem::offset_of! (it, bidi_it) == 2616);
+const _: () = core::assert! (core::mem::size_of::<it> () == 4968);
+const _: () = core::assert! (core::mem::align_of::<it> () == 8);
+const _: () = core::assert! (core::mem::offset_of! (it, window) == 0);
+const _: () = core::assert! (core::mem::offset_of! (it, w) == 8);
+const _: () = core::assert! (core::mem::offset_of! (it, f) == 16);
+const _: () = core::assert! (core::mem::offset_of! (it, method) == 24);
+const _: () = core::assert! (core::mem::offset_of! (it, stop_charpos) == 32);
+const _: () = core::assert! (core::mem::offset_of! (it, end_charpos) == 56);
+const _: () = core::assert! (core::mem::offset_of! (it, medium_narrowing_begv) == 64);
+const _: () = core::assert! (core::mem::offset_of! (it, s) == 96);
+const _: () = core::assert! (core::mem::offset_of! (it, bits) == 112);
+const _: () = core::assert! (core::mem::offset_of! (it, dp) == 120);
+const _: () = core::assert! (core::mem::offset_of! (it, dpvec) == 128);
+const _: () = core::assert! (core::mem::offset_of! (it, dpend) == 136);
+const _: () = core::assert! (core::mem::offset_of! (it, dpvec_char_len) == 144);
+const _: () = core::assert! (core::mem::offset_of! (it, dpvec_face_id) == 148);
+const _: () = core::assert! (core::mem::offset_of! (it, saved_face_id) == 152);
+const _: () = core::assert! (core::mem::offset_of! (it, ctl_chars) == 160);
+const _: () = core::assert! (core::mem::offset_of! (it, start) == 288);
+const _: () = core::assert! (core::mem::offset_of! (it, current) == 336);
+const _: () = core::assert! (core::mem::offset_of! (it, n_overlay_strings) == 384);
+const _: () = core::assert! (core::mem::offset_of! (it, overlay_strings_charpos) == 392);
+const _: () = core::assert! (core::mem::offset_of! (it, overlay_strings) == 400);
+const _: () = core::assert! (core::mem::offset_of! (it, string_overlays) == 528);
+const _: () = core::assert! (core::mem::offset_of! (it, string) == 656);
+const _: () = core::assert! (core::mem::offset_of! (it, from_overlay) == 664);
+const _: () = core::assert! (core::mem::offset_of! (it, stack) == 672);
+const _: () = core::assert! (core::mem::offset_of! (it, sp) == 2192);
+const _: () = core::assert! (core::mem::offset_of! (it, selective) == 2200);
+const _: () = core::assert! (core::mem::offset_of! (it, what) == 2208);
+const _: () = core::assert! (core::mem::offset_of! (it, face_id) == 2212);
+const _: () = core::assert! (core::mem::offset_of! (it, bits2) == 2216);
+const _: () = core::assert! (core::mem::offset_of! (it, line_wrap) == 2220);
+const _: () = core::assert! (core::mem::offset_of! (it, base_face_id) == 2224);
+const _: () = core::assert! (core::mem::offset_of! (it, c) == 2228);
+const _: () = core::assert! (core::mem::offset_of! (it, len) == 2232);
+const _: () = core::assert! (core::mem::offset_of! (it, char_to_display) == 2328);
+const _: () = core::assert! (core::mem::offset_of! (it, char_to_display) == 2328);
+const _: () = core::assert! (core::mem::offset_of! (it, glyphless_method) == 2332);
+const _: () = core::assert! (core::mem::offset_of! (it, image_id) == 2336);
+const _: () = core::assert! (core::mem::offset_of! (it, xwidget) == 2344);
+const _: () = core::assert! (core::mem::offset_of! (it, slice) == 2352);
+const _: () = core::assert! (core::mem::offset_of! (it, space_width) == 2384);
+const _: () = core::assert! (core::mem::offset_of! (it, voffset) == 2392);
+const _: () = core::assert! (core::mem::offset_of! (it, font_height) == 2400);
+const _: () = core::assert! (core::mem::offset_of! (it, object) == 2408);
+const _: () = core::assert! (core::mem::offset_of! (it, position) == 2416);
+const _: () = core::assert! (core::mem::offset_of! (it, first_visible_x) == 2436);
+const _: () = core::assert! (core::mem::offset_of! (it, last_visible_x) == 2440);
+const _: () = core::assert! (core::mem::offset_of! (it, last_visible_y) == 2444);
+const _: () = core::assert! (core::mem::offset_of! (it, extra_line_spacing) == 2448);
+const _: () = core::assert! (core::mem::offset_of! (it, max_extra_line_spacing) == 2456);
+const _: () = core::assert! (core::mem::offset_of! (it, glyph_row) == 2472);
+const _: () = core::assert! (core::mem::offset_of! (it, area) == 2480);
+const _: () = core::assert! (core::mem::offset_of! (it, nglyphs) == 2484);
+const _: () = core::assert! (core::mem::offset_of! (it, pixel_width) == 2488);
+const _: () = core::assert! (core::mem::offset_of! (it, ascent) == 2492);
+const _: () = core::assert! (core::mem::offset_of! (it, descent) == 2496);
+const _: () = core::assert! (core::mem::offset_of! (it, max_ascent) == 2500);
+const _: () = core::assert! (core::mem::offset_of! (it, max_descent) == 2504);
+const _: () = core::assert! (core::mem::offset_of! (it, phys_ascent) == 2508);
+const _: () = core::assert! (core::mem::offset_of! (it, max_phys_descent) == 2520);
+const _: () = core::assert! (core::mem::offset_of! (it, current_x) == 2524);
+const _: () = core::assert! (core::mem::offset_of! (it, wrap_prefix_width) == 2528);
+const _: () = core::assert! (core::mem::offset_of! (it, continuation_lines_width) == 2532);
+const _: () = core::assert! (core::mem::offset_of! (it, eol_pos) == 2536);
+const _: () = core::assert! (core::mem::offset_of! (it, current_y) == 2552);
+const _: () = core::assert! (core::mem::offset_of! (it, first_vpos) == 2556);
+const _: () = core::assert! (core::mem::offset_of! (it, vpos) == 2560);
+const _: () = core::assert! (core::mem::offset_of! (it, hpos) == 2564);
+const _: () = core::assert! (core::mem::offset_of! (it, lnum) == 2568);
+const _: () = core::assert! (core::mem::offset_of! (it, lnum_bytepos) == 2576);
+const _: () = core::assert! (core::mem::offset_of! (it, lnum_width) == 2584);
+const _: () = core::assert! (core::mem::offset_of! (it, lnum_pixel_width) == 2588);
+const _: () = core::assert! (core::mem::offset_of! (it, pt_lnum) == 2592);
+const _: () = core::assert! (core::mem::offset_of! (it, cmp_it) == 2240);
+const _: () = core::assert! (core::mem::offset_of! (it, tab_width) == 2394);
+const _: () = core::assert! (core::mem::offset_of! (it, truncation_pixel_width) == 2432);
+const _: () = core::assert! (core::mem::offset_of! (it, continuation_pixel_width) == 2434);
+const _: () = core::assert! (core::mem::offset_of! (it, paragraph_embedding) == 4944);
+const _: () = core::assert! (core::mem::offset_of! (it, min_width_property) == 4952);
+const _: () = core::assert! (core::mem::offset_of! (it, min_width_start) == 4960);
+const _: () = core::assert! (core::mem::offset_of! (it, stretch_adjust) == 2600);
+const _: () = core::assert! (core::mem::offset_of! (it, bidi_it) == 2616);
 
 /* `struct it`'s three `bool_bf : 1` runs, named member by member (PORTING.md 1.3/P-80;
    the `indent.rs`/`window.rs` `it_bits!` shape).  The byte index is the measured offset
@@ -1975,9 +1975,9 @@ pub struct redisplay_interface
   /// C 3116-3200: the rest of the record (offset 80 … 104).
   _pad1: [u8; 24],
 }
-const _: () = assert! (core::mem::offset_of! (redisplay_interface, produce_glyphs) == 8);
-const _: () = assert! (core::mem::offset_of! (redisplay_interface, flush_display) == 72);
-const _: () = assert! (core::mem::size_of::<redisplay_interface> () == 104);
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, produce_glyphs) == 8);
+const _: () = core::assert! (core::mem::offset_of! (redisplay_interface, flush_display) == 72);
+const _: () = core::assert! (core::mem::size_of::<redisplay_interface> () == 104);
 
 /* C: frame.h 1913-1920: `INLINE void flush_frame (struct frame *f) { struct
    redisplay_interface *rif = FRAME_RIF (f); if (rif && rif->flush_display)
@@ -7813,11 +7813,11 @@ pub struct overlay_entry
 }
 /* clang against the frozen target: sizeof 32, align 8, `overlay`@0, `string`@8,
    `priority`@16, `after_string_p`@24.  */
-const _: () = assert! (core::mem::size_of::<overlay_entry> () == 32);
-const _: () = assert! (core::mem::offset_of! (overlay_entry, overlay) == 0);
-const _: () = assert! (core::mem::offset_of! (overlay_entry, string) == 8);
-const _: () = assert! (core::mem::offset_of! (overlay_entry, priority) == 16);
-const _: () = assert! (core::mem::offset_of! (overlay_entry, after_string_p) == 24);
+const _: () = core::assert! (core::mem::size_of::<overlay_entry> () == 32);
+const _: () = core::assert! (core::mem::offset_of! (overlay_entry, overlay) == 0);
+const _: () = core::assert! (core::mem::offset_of! (overlay_entry, string) == 8);
+const _: () = core::assert! (core::mem::offset_of! (overlay_entry, priority) == 16);
+const _: () = core::assert! (core::mem::offset_of! (overlay_entry, after_string_p) == 24);
 
 
 /* Set up iterator IT from overlay strings at its current position.
@@ -25905,4 +25905,502 @@ DEFUN! ("bidi-find-overridden-directionality", Fbidi_find_overridden_directional
 
   return if from_pos <= found && found < to_pos
 	 { make_fixnum (found) } else { Qnil () };
+});
+
+DEFUN! ("move-point-visually", Fmove_point_visually,
+       Smove_point_visually, 1, 1, 0,
+       doc: "Move point in the visual order in the specified DIRECTION.\nDIRECTION can be 1, meaning move to the right, or -1, which moves to the\nleft.\n\nValue is the new character position of point.",
+       (direction: Lisp_Object),
+       {
+  let w: *mut window = XWINDOW (selected_window);
+  let b: *mut buffer = XBUFFER ((*w).contents);
+  let mut row: *mut glyph_row = core::ptr::null_mut ();
+  let mut dir: c_int;
+  let paragraph_dir: Lisp_Object;
+
+  /* C's `#define ROW_GLYPH_NEWLINE_P` (C 27196-27202, `#undef`ed at C 27634) is a
+     statement-less expression macro, so the port writes it as this function-scoped
+     `macro_rules!` in the same place (PORTING.md 2.1; the `RECORD_OVERLAY_STRING` shape is
+     its statement-form sibling).  C's `#undef` is a preprocessor directive and has no Rust
+     site: the macro's scope ends with this function's block.  */
+  macro_rules! ROW_GLYPH_NEWLINE_P {
+    ($row:expr, $glyph:expr) => {
+      (!glyph_row_bits! (continued_p, $row)
+       && NILP ((*$glyph).object)
+       && glyph_bits! (type, *$glyph) == CHAR_GLYPH
+       && (*$glyph).u.ch == ' ' as c_uint
+       && (*$glyph).charpos >= 0
+       && !glyph_bits! (avoid_cursor_p, *$glyph))
+    };
+  }
+
+  CHECK_FIXNUM (direction);
+  dir = XFIXNUM (direction) as c_int;
+  if dir > 0
+    { dir = 1; }
+  else
+    { dir = -1; }
+
+  /* If current matrix is up-to-date, we can use the information
+     recorded in the glyphs, at least as long as the goal is on the
+     screen.  */
+  /* C's two `goto simulate_display` (C 27285, C 27292) leave the glyph path for the
+     `simulate_display:` label below, which falling out of this `if` reaches too: the port
+     wraps the `if` in this labelled block, so each `goto` is `break 'simulate_display`
+     (PORTING.md 2.2).  */
+  'simulate_display: {
+  if window_bits! (w, window_end_valid)
+      && windows_or_buffers_changed == 0
+      && !b.is_null ()
+      && !buffer_bits! (clip_changed, b)
+      && !buffer_bits! (prevent_redisplay_optimizations_p, b)
+      && !window_outdated (w)
+      /* We rely below on the cursor coordinates to be up to date, but
+	 we cannot trust them if some command moved point since the
+	 last complete redisplay.  */
+      && (*w).last_point == BUF_PT (b)
+      && (*w).cursor.vpos >= 0
+      && (*w).cursor.vpos < (*((*w).current_matrix as *mut glyph_matrix)).nrows
+      && { row = MATRIX_ROW! ((*w).current_matrix as *mut glyph_matrix,
+			      (*w).cursor.vpos);
+	   glyph_row_bits! (enabled_p, row) }
+    {
+      let mut g: *mut glyph = (*row).glyphs[TEXT_AREA as usize];
+      let mut e: *mut glyph
+	= if dir > 0 { g.offset ((*row).used[TEXT_AREA as usize] as isize) }
+	  else { g.offset (-1) };
+      let gpt: *mut glyph = g.offset ((*w).cursor.hpos as isize);
+
+      /* C's `for (g = gpt + dir; …; g += dir)` (C 27232): the port writes C's own init,
+	 test and increment around a `while`.  */
+      g = gpt.offset (dir as isize);
+      while if dir > 0 { g < e } else { g > e }
+	{
+	  if BUFFERP ((*g).object) && (*g).charpos != PT! ()
+	    {
+	      SET_PT ((*g).charpos);
+	      (*w).cursor.vpos = -1;
+	      return make_fixnum (PT! ());
+	    }
+	  else if !NILP ((*g).object) && !EQ ((*g).object, (*gpt).object)
+	    {
+	      let mut new_pos: ptrdiff_t;
+
+	      if BUFFERP ((*gpt).object)
+		{
+		  new_pos = PT! ();
+		  if (glyph_bits! (resolved_level, *gpt)
+		      - (glyph_row_bits! (reversed_p, row) as c_int)) % 2 == 0
+		    { new_pos += (if glyph_row_bits! (reversed_p, row) { -dir } else { dir }) as ptrdiff_t; }
+		  else
+		    { new_pos -= (if glyph_row_bits! (reversed_p, row) { -dir } else { dir }) as ptrdiff_t; }
+		  new_pos = clip_to_bounds (BEGV! (), new_pos, ZV! ());
+		  /* If we didn't move, we've hit BEGV or ZV, so we
+		     need to signal a suitable error.  */
+		  if new_pos == PT! ()
+		    { break; }
+		}
+	      else if BUFFERP ((*g).object)
+		{ new_pos = (*g).charpos; }
+	      else
+		{ break; }
+	      SET_PT (new_pos);
+	      (*w).cursor.vpos = -1;
+	      return make_fixnum (PT! ());
+	    }
+	  else if ROW_GLYPH_NEWLINE_P! (row, g)
+	    {
+	      /* Glyphs inserted at the end of a non-empty line for
+		 positioning the cursor have zero charpos, so we must
+		 deduce the value of point by other means.  */
+	      if (*g).charpos > 0
+		{ SET_PT ((*g).charpos); }
+	      else if glyph_row_bits! (ends_at_zv_p, row) && PT! () != ZV! ()
+		{ SET_PT (ZV! ()); }
+	      else if PT! () != MATRIX_ROW_END_CHARPOS! (row) - 1
+		{ SET_PT (MATRIX_ROW_END_CHARPOS! (row) - 1); }
+	      else
+		{ break; }
+	      (*w).cursor.vpos = -1;
+	      return make_fixnum (PT! ());
+	    }
+	  g = g.offset (dir as isize);
+	}
+      if g == e || NILP ((*g).object)
+	{
+	  if glyph_row_bits! (truncated_on_left_p, row)
+	      || glyph_row_bits! (truncated_on_right_p, row)
+	    { break 'simulate_display; }
+	  if !glyph_row_bits! (reversed_p, row)
+	    { row = row.offset (dir as isize); }
+	  else
+	    { row = row.offset (-(dir as isize)); }
+	  if !(MATRIX_FIRST_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix) <= row
+	       && row < MATRIX_BOTTOM_TEXT_ROW! ((*w).current_matrix as *mut glyph_matrix, w))
+	    { break 'simulate_display; }
+
+	  if dir > 0
+	    {
+	      if glyph_row_bits! (reversed_p, row)
+		  && !glyph_row_bits! (continued_p, row)
+		{
+		  SET_PT (MATRIX_ROW_END_CHARPOS! (row) - 1);
+		  (*w).cursor.vpos = -1;
+		  return make_fixnum (PT! ());
+		}
+	      g = (*row).glyphs[TEXT_AREA as usize];
+	      e = g.offset ((*row).used[TEXT_AREA as usize] as isize);
+	      /* C's `for ( ; g < e; g++)` (C 27304).  */
+	      while g < e
+		{
+		  if BUFFERP ((*g).object)
+		      /* Empty lines have only one glyph, which stands
+			 for the newline, and whose charpos is the
+			 buffer position of the newline.  */
+		      || ROW_GLYPH_NEWLINE_P! (row, g)
+		      /* When the buffer ends in a newline, the line at
+			 EOB also has one glyph, but its charpos is -1.  */
+		      || (glyph_row_bits! (ends_at_zv_p, row)
+			  && !glyph_row_bits! (reversed_p, row)
+			  && NILP ((*g).object)
+			  && glyph_bits! (type, *g) == CHAR_GLYPH
+			  && (*g).u.ch == ' ' as c_uint)
+		    {
+		      if (*g).charpos > 0
+			{ SET_PT ((*g).charpos); }
+		      else if !glyph_row_bits! (reversed_p, row)
+			       && glyph_row_bits! (ends_at_zv_p, row)
+			       && PT! () != ZV! ()
+			{ SET_PT (ZV! ()); }
+		      else
+			/* C's `continue` (C 27326) runs the `for` increment first.  */
+			{ g = g.offset (1); continue; }
+		      (*w).cursor.vpos = -1;
+		      return make_fixnum (PT! ());
+		    }
+		  g = g.offset (1);
+		}
+	    }
+	  else
+	    {
+	      if !glyph_row_bits! (reversed_p, row)
+		  && !glyph_row_bits! (continued_p, row)
+		{
+		  SET_PT (MATRIX_ROW_END_CHARPOS! (row) - 1);
+		  (*w).cursor.vpos = -1;
+		  return make_fixnum (PT! ());
+		}
+	      e = (*row).glyphs[TEXT_AREA as usize];
+	      g = e.offset ((*row).used[TEXT_AREA as usize] as isize - 1);
+	      /* C's `for ( ; g >= e; g--)` (C 27342).  */
+	      while g >= e
+		{
+		  if BUFFERP ((*g).object)
+		      || (ROW_GLYPH_NEWLINE_P! (row, g)
+			  && (*g).charpos > 0)
+		      /* Empty R2L lines on GUI frames have the buffer
+			 position of the newline stored in the stretch
+			 glyph.  */
+		      || glyph_bits! (type, *g) == STRETCH_GLYPH
+		      || (glyph_row_bits! (ends_at_zv_p, row)
+			  && glyph_row_bits! (reversed_p, row)
+			  && NILP ((*g).object)
+			  && glyph_bits! (type, *g) == CHAR_GLYPH
+			  && (*g).u.ch == ' ' as c_uint)
+		    {
+		      if (*g).charpos > 0
+			{ SET_PT ((*g).charpos); }
+		      else if glyph_row_bits! (reversed_p, row)
+			       && glyph_row_bits! (ends_at_zv_p, row)
+			       && PT! () != ZV! ()
+			{ SET_PT (ZV! ()); }
+		      else
+			/* C's `continue` (C 27364) runs the `for` increment first.  */
+			{ g = g.offset (-1); continue; }
+		      (*w).cursor.vpos = -1;
+		      return make_fixnum (PT! ());
+		    }
+		  g = g.offset (-1);
+		}
+	    }
+	}
+    }
+  }
+
+  /* If we wind up here, we failed to move by using the glyphs, so we
+     need to simulate display instead.  */
+
+  if !b.is_null ()
+    { paragraph_dir = Fcurrent_bidi_paragraph_direction ((*w).contents); }
+  else
+    { paragraph_dir = Qleft_to_right (); }
+  if EQ (paragraph_dir, Qright_to_left ())
+    { dir = -dir; }
+  if PT! () <= BEGV! () && dir < 0
+    { xsignal0 (Qbeginning_of_buffer ()); }
+  else if PT! () >= ZV! () && dir > 0
+    { xsignal0 (Qend_of_buffer ()); }
+  else
+    {
+      let mut pt: text_pos = core::mem::zeroed ();
+      let mut it: it = core::mem::zeroed ();
+      let mut pt_x: c_int;
+      let mut pt_wrap_prefix_x: c_int;
+      let mut target_x: c_int;
+      let mut pixel_width: c_int;
+      let mut pt_vpos: c_int;
+      let mut at_eol_p: bool;
+      let mut overshoot_expected: bool = false;
+      let mut target_is_eol_p: bool = false;
+      let mut itdata: *mut c_void = bidi_shelve_cache ();
+
+      /* Setup the arena.  */
+      SET_TEXT_POS! (pt, PT! (), PT_BYTE! ());
+      start_display (&raw mut it, w, pt);
+      /* When lines are truncated, we could be called with point
+	 outside of the windows edges, in which case move_it_*
+	 functions either prematurely stop at window's edge or jump to
+	 the next screen line, whereas we rely below on our ability to
+	 reach point, in order to start from its X coordinate.  So we
+	 need to disregard the window's horizontal extent in that case.  */
+      if it.line_wrap == TRUNCATE
+	{ it.last_visible_x = DISP_INFINITY; }
+
+      if it.cmp_it.id < 0
+	  && it.method == GET_FROM_STRING
+	  && it.area == TEXT_AREA
+	  && it_bits! (string_from_display_prop_p, &raw mut it)
+	  && (it.sp > 0
+	      && it.stack[(it.sp - 1) as usize].method == GET_FROM_BUFFER)
+	{ overshoot_expected = true; }
+
+      /* Find the X coordinate of point.  We start from the beginning
+	 of this or previous line to make sure we are before point in
+	 the logical order (since the move_it_* functions can only
+	 move forward).  */
+      /* C's `reseat:` label with its backward `goto reseat` (C 27437) becomes this labelled
+	 loop (PORTING.md 2.2, the `retry:` shape); C's `it.current_x = it.hpos =
+	 it.current_y = it.vpos = 0` chain (C 27423) is the port's four stores.  */
+      'reseat: loop
+	{
+	  reseat_at_previous_visible_line_start (&raw mut it);
+	  it.current_x = 0;
+	  it.hpos = 0;
+	  it.current_y = 0;
+	  it.vpos = 0;
+	  it.wrap_prefix_width = 0;
+	  if IT_CHARPOS! (it) != PT! ()
+	    {
+	      move_it_to (&raw mut it,
+			  if overshoot_expected { PT! () - 1 } else { PT! () },
+			  -1, -1, -1, MOVE_TO_POS);
+	      /* If we missed point because the character there is
+		 displayed out of a display vector that has more than one
+		 glyph, retry expecting overshoot.  */
+	      if it.method == GET_FROM_DISPLAY_VECTOR
+		  && it.current.dpvec_index > 0
+		  && !overshoot_expected
+		{
+		  overshoot_expected = true;
+		  continue 'reseat;
+		}
+	      else if IT_CHARPOS! (it) != PT! () && !overshoot_expected
+		{ move_it_in_display_line (&raw mut it, PT! (), -1, MOVE_TO_POS); }
+	    }
+	  pt_x = it.current_x;
+	  pt_wrap_prefix_x = it.wrap_prefix_width;
+	  pt_vpos = it.vpos;
+	  break;
+	}
+      if dir > 0 || overshoot_expected
+	{
+	  let row: *mut glyph_row = it.glyph_row;
+
+	  /* When point is at beginning of line, we don't have
+	     information about the glyph there loaded into struct
+	     it.  Calling get_next_display_element fixes that.  */
+	  if pt_x == 0
+	    { get_next_display_element (&raw mut it); }
+	  at_eol_p = ITERATOR_AT_END_OF_LINE_P! (&raw mut it);
+	  it.glyph_row = core::ptr::null_mut ();
+	  PRODUCE_GLYPHS! (&raw mut it);	/* compute it.pixel_width */
+	  it.glyph_row = row;
+	  /* PRODUCE_GLYPHS advances it.current_x, so it must be
+	     restored, lest it become out of sync with its buffer
+	     position.  */
+	  it.current_x = pt_x;
+	  it.wrap_prefix_width = pt_wrap_prefix_x;
+	}
+      else
+	{ at_eol_p = ITERATOR_AT_END_OF_LINE_P! (&raw mut it); }
+      pixel_width = it.pixel_width;
+      if overshoot_expected && at_eol_p
+	{ pixel_width = 0; }
+      else if pixel_width <= 0
+	{ pixel_width = 1; }
+
+      /* If there's a display string (or something similar) at point,
+	 we are actually at the glyph to the left of point, so we need
+	 to correct the X coordinate.  */
+      if overshoot_expected
+	{
+	  if it_bits! (bidi_p, &raw mut it)
+	    { pt_x += pixel_width * it.bidi_it.scan_dir; }
+	  else
+	    { pt_x += pixel_width; }
+	}
+
+      /* Compute target X coordinate, either to the left or to the
+	 right of point.  On TTY frames, all characters have the same
+	 pixel width of 1, so we can use that.  On GUI frames we don't
+	 have an easy way of getting at the pixel width of the
+	 character to the left of point, so we use a different method
+	 of getting to that place.  */
+      if dir > 0
+	{ target_x = pt_x + pixel_width; }
+      else
+	{ target_x = pt_x - (!FRAME_WINDOW_P (it.f)) as c_int * pixel_width; }
+
+      /* Target X coordinate could be one line above or below the line
+	 of point, in which case we need to adjust the target X
+	 coordinate.  Also, if moving to the left, we need to begin at
+	 the left edge of the point's screen line.  */
+      if dir < 0
+	{
+	  if pt_x > 0
+	    {
+	      start_display (&raw mut it, w, pt);
+	      if it.line_wrap == TRUNCATE
+		{ it.last_visible_x = DISP_INFINITY; }
+	      reseat_at_previous_visible_line_start (&raw mut it);
+	      it.current_x = 0;
+	      it.current_y = 0;
+	      it.hpos = 0;
+	      it.wrap_prefix_width = 0;
+	      if pt_vpos != 0
+		{ move_it_by_lines (&raw mut it, pt_vpos as ptrdiff_t); }
+	    }
+	  else
+	    {
+	      move_it_by_lines (&raw mut it, -1);
+	      target_x = it.last_visible_x - (!FRAME_WINDOW_P (it.f)) as c_int;
+	      target_is_eol_p = true;
+	      /* Under word-wrap, we don't know the x coordinate of
+		 the last character displayed on the previous line,
+		 which immediately precedes the wrap point.  To find
+		 out its x coordinate, we try moving to the right
+		 margin of the window, which will stop at the wrap
+		 point, and then reset target_x to point at the
+		 character that precedes the wrap point.  This is not
+		 needed on GUI frames, because (see below) there we
+		 move from the left margin one grapheme cluster at a
+		 time, and stop when we hit the wrap point.  */
+	      if !FRAME_WINDOW_P (it.f) && it.line_wrap == WORD_WRAP
+		{
+		  let mut it_data: *mut c_void = core::ptr::null_mut ();
+		  let mut it2: it = core::mem::zeroed ();
+
+		  SAVE_IT! (it2, it, it_data);
+		  move_it_in_display_line_to (&raw mut it, ZV! (), target_x,
+					      MOVE_TO_POS | MOVE_TO_X);
+		  /* If we arrived at target_x, that _is_ the last
+		     character on the previous line.  */
+		  if it.current_x != target_x
+		    { target_x = it.current_x - 1; }
+		  RESTORE_IT! (&raw mut it, &raw mut it2, it_data);
+		}
+	    }
+	}
+      else
+	{
+	  if at_eol_p
+	      || (target_x >= it.last_visible_x
+		  && it.line_wrap != TRUNCATE)
+	    {
+	      if pt_x > 0
+		{ move_it_by_lines (&raw mut it, 0); }
+	      move_it_by_lines (&raw mut it, 1);
+	      target_x = 0;
+	    }
+	}
+
+      /* Move to the target X coordinate.  */
+      /* On GUI frames, as we don't know the X coordinate of the
+	 character to the left of point, moving point to the left
+	 requires walking, one grapheme cluster at a time, until we
+	 find ourself at a place immediately to the left of the
+	 character at point.  */
+      if FRAME_WINDOW_P (it.f) && dir < 0
+	{
+	  let mut new_pos: text_pos = core::mem::zeroed ();
+	  let mut rc: move_it_result = MOVE_X_REACHED;
+
+	  if it.current_x == 0
+	    { get_next_display_element (&raw mut it); }
+	  if it.what == IT_COMPOSITION
+	    {
+	      new_pos.charpos = it.cmp_it.charpos;
+	      new_pos.bytepos = -1;
+	    }
+	  else
+	    { new_pos = it.current.pos; }
+
+	  while it.current_x + it.pixel_width <= target_x
+		 && (rc == MOVE_X_REACHED
+		     /* Under word-wrap, move_it_in_display_line_to
+			stops at correct coordinates, but sometimes
+			returns MOVE_POS_MATCH_OR_ZV.  */
+		     || (it.line_wrap == WORD_WRAP
+			 && rc == MOVE_POS_MATCH_OR_ZV))
+	    {
+	      let mut new_x: c_int = it.current_x + it.pixel_width;
+
+	      /* For composed characters, we want the position of the
+		 first character in the grapheme cluster (usually, the
+		 composition's base character), whereas it.current
+		 might give us the position of the _last_ one, e.g. if
+		 the composition is rendered in reverse due to bidi
+		 reordering.  */
+	      if it.what == IT_COMPOSITION
+		{
+		  new_pos.charpos = it.cmp_it.charpos;
+		  new_pos.bytepos = -1;
+		}
+	      else
+		{ new_pos = it.current.pos; }
+	      if new_x == it.current_x
+		{ new_x += 1; }
+	      rc = move_it_in_display_line_to (&raw mut it, ZV! (), new_x,
+						MOVE_TO_POS | MOVE_TO_X);
+	      if ITERATOR_AT_END_OF_LINE_P! (&raw mut it) && !target_is_eol_p
+		{ break; }
+	    }
+	  /* The previous position we saw in the loop is the one we
+	     want.  */
+	  if new_pos.bytepos == -1
+	    { new_pos.bytepos = CHAR_TO_BYTE (new_pos.charpos); }
+	  it.current.pos = new_pos;
+	}
+      else if it.current_x != target_x
+	{ move_it_in_display_line_to (&raw mut it, ZV! (), target_x,
+				      MOVE_TO_POS | MOVE_TO_X); }
+
+      /* If we ended up in a display string that covers point, move to
+	 buffer position to the right in the visual order.  */
+      if dir > 0
+	{
+	  while IT_CHARPOS! (it) == PT! ()
+	    {
+	      set_iterator_to_next (&raw mut it, false);
+	      if !get_next_display_element (&raw mut it)
+		{ break; }
+	    }
+	}
+
+      /* Move point to that position.  */
+      SET_PT_BOTH (IT_CHARPOS! (it), IT_BYTEPOS! (it));
+      bidi_unshelve_cache (itdata, false);
+    }
+
+  return make_fixnum (PT! ());
 });
