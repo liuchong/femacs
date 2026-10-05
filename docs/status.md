@@ -11925,3 +11925,24 @@
      `check-port-lines` 0/0/0/0、`check-target-names` 0）。
   ⑤ **未声称**：那条 `exit 0` 是 **`rustc` 对物化镜像图的类型检查**，不是 DJGPP 目标编译、更不是运行——`src/dosfns.c` 在冻结配置里
      一行不编（336 字节空对象），`__dpmi_int`/far-memory/`dosmem*` 依然没有执行证据；`<dos.h>`/`<dpmi.h>`/`<go32.h>` 的记录仍是 UNVERIFIED。
+
+- **3.591 镜像债：5 处"声明丢了返回类型"的原型（`haiku_support.h` ×5、`androidgui.h` ×1 里已修，另 1 处记录在案）（2026-10-05）**：
+  ① **症状**：镜像里的 `pub fn NAME ();` 少写 `-> T`，而 C 的原型有非 `void` 返回类型 ⇒ 任何读返回值的调用点都编不过（或读到 `()`）。
+     本机**没有** Haiku/Android 的 arm 读数，所以这一类只能靠**逐头文件对拍原型**发现。
+  ② **本次修掉（每处都对过 C 的那一行）**：`femacs/src/include/haiku_support.rs` 的
+     `haiku_should_pass_control_tab_to_system`（C 694）、`be_use_subpixel_antialiasing`（C 728）、`be_drag_and_drop_in_progress`（C 741）、
+     `be_lock_font_defaults`（C 769）四处补 `-> bool`（前三处是 `extern bool …(void)`，第四处 C 1341/1380 还会读它的值），
+     以及 `BApplication_setup`（C 542 `extern void *BApplication_setup (void);`）补 `-> *mut c_void`；
+     `femacs/src/include/androidgui.rs` 的 `android_pending`（C 736 `extern int android_pending (void);`）补 `-> c_int`。
+  ③ **顺带修掉一处分身**：`femacs/src/haikufont.rs` 143-157 曾因为该镜像"丢掉 C 的 `bool`"而在单元里自建
+     `mod haiku_support_abi`（`#[link_name]` + 正确原型）绕过去——镜像修好后那份绕法**已经不需要**（本件**未删**它：Haiku 臂在本机无法编译，
+     删除只能靠文本推理；已记为该单元的 owed，留给下一次带读数的修改）。
+  ④ **同一类在树里还剩多少（诚实的量法与局限）**：写了一个**窄判定**的扫描器（只认单行、且返回类型里不含注释文本的 C 原型 +
+     单行且没有 `->` 的 Rust 声明），全树 190 份镜像里**只报出 1 处**（`android_pending`，已修）；更宽的写法会报 154 处，但逐条看
+     绝大多数是**注释被当成返回类型**这类假阳性（`/* … */ extern void`）以及多行原型 —— 所以**"这一类已清干净"不能声称**。
+     **真正的缺口是工具**：`extract-abi --check` 比较的是名字/种类/宏体/常量/字段，**不比较声明的返回类型**；
+     要把它变成门，需要一个像 `cinventory.py` 那样能解析声明的解析器（`cinventory.inventory()` 对**头文件**返回 0 个函数，
+     因为那里只有声明没有定义）——已作为欠账记下。
+  ⑤ **未声称**：本件**没有**任何 arm 读数（Haiku/Android 都编不了），证据是"逐行对拍 C 原型"；七道文本门本轮现读全绿
+     （`check-mirror-dupes` 17/17/0、`check-citations` 0 drift、`check-declarations` 0 failures、`check-dead-file-coverage` 145/0、
+     `check-ledger-ticks` 238/0、`check-port-lines` 0/0/0/0、`check-target-names` 0）。

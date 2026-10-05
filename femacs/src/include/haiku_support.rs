@@ -572,7 +572,7 @@ pub mod haiku_support_decls {
     pub fn be_draw_cross_on_pixmap (arg0: *mut c_void, arg1: c_int, arg2: c_int, arg3: c_int, arg4: c_int, arg5: uint32_t);
     pub fn BBitmap_free (arg0: *mut c_void);
     pub fn BBitmap_dimensions (arg0: *mut c_void, arg1: *mut c_int, arg2: *mut c_int, arg3: *mut c_int, arg4: *mut c_int, arg5: *mut int32_t, arg6: *mut c_int);
-    pub fn BApplication_setup ();
+    pub fn BApplication_setup () -> *mut c_void;   // C: `extern void *BApplication_setup (void);`
     pub fn BWindow_new (arg0: *mut *mut c_void) -> *mut c_void;
     pub fn BWindow_quit (arg0: *mut c_void);
     pub fn BWindow_set_offset (arg0: *mut c_void, arg1: c_int, arg2: c_int);
@@ -688,7 +688,7 @@ pub mod haiku_support_decls {
     pub fn be_get_display_color_cells () -> c_int;   // C 690: `extern int …`
     pub fn be_is_display_grayscale () -> bool;   // C 691: `extern bool …`
     pub fn be_warp_pointer (arg0: c_int, arg1: c_int);
-    pub fn haiku_should_pass_control_tab_to_system ();
+    pub fn haiku_should_pass_control_tab_to_system () -> bool;
     pub fn EmacsView_set_up_double_buffering (arg0: *mut c_void);
     pub fn EmacsView_disable_double_buffering (arg0: *mut c_void);
     pub fn EmacsView_flip_and_blit (arg0: *mut c_void);
@@ -702,7 +702,7 @@ pub mod haiku_support_decls {
     pub fn be_init_font_data ();
     pub fn be_evict_font_cache ();
     pub fn be_get_display_screens () -> c_int;   // C 727: `extern int …`
-    pub fn be_use_subpixel_antialiasing ();
+    pub fn be_use_subpixel_antialiasing () -> bool;
     pub fn be_find_setting (arg0: *const c_char) -> *const c_char;
     pub fn be_list_font_families (arg0: *mut size_t) -> *mut haiku_font_family_or_style;
     pub fn be_font_style_to_flags (arg0: *const c_char, arg1: *mut haiku_font_pattern);
@@ -711,7 +711,7 @@ pub mod haiku_support_decls {
     pub fn be_get_ui_color (arg0: *const c_char, arg1: *mut uint32_t) -> c_int;
     pub fn BMessage_delete (arg0: *mut c_void);
     pub fn be_drag_message (arg0: *mut c_void, arg1: *mut c_void, arg2: bool, arg3: Option<unsafe extern "C" fn ()>, arg4: Option<unsafe extern "C" fn ()>, arg5: Option<unsafe extern "C" fn ()>, arg6: Option<unsafe extern "C" fn () -> bool>) -> bool;
-    pub fn be_drag_and_drop_in_progress ();
+    pub fn be_drag_and_drop_in_progress () -> bool;
     pub fn be_replay_menu_bar_event (arg0: *mut c_void, arg1: *mut haiku_menu_bar_click_event) -> bool;
     pub fn be_select_font (arg0: Option<unsafe extern "C" fn ()>, arg1: Option<unsafe extern "C" fn () -> bool>, arg2: *mut haiku_font_family_or_style, arg3: *mut haiku_font_family_or_style, arg4: *mut c_int, arg5: bool, arg6: c_int, arg7: c_int, arg8: c_int, arg9: bool, arg10: *mut bool) -> bool;
     pub fn be_find_font_indices (arg0: *mut haiku_font_pattern, arg1: *mut c_int, arg2: *mut c_int) -> c_int;
@@ -728,7 +728,7 @@ pub mod haiku_support_decls {
     pub fn be_clear_grab_view ();
     pub fn be_set_use_frame_synchronization (arg0: *mut c_void, arg1: bool);
     pub fn be_listen_font_settings ();
-    pub fn be_lock_font_defaults ();
+    pub fn be_lock_font_defaults () -> bool;
     pub fn be_get_font_default (arg0: haiku_what_font) -> *const c_char;
     pub fn be_get_font_size (arg0: haiku_what_font) -> c_int;
     pub fn be_unlock_font_defaults ();

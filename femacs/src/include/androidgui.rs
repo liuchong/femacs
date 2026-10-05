@@ -916,7 +916,7 @@ pub mod androidgui_decls {
   use super::*;
 
   unsafe extern "C" {
-    pub fn android_pending ();
+    pub fn android_pending () -> c_int;   // C: `extern int android_pending (void);`
     pub fn android_next_event (arg0: *mut android_event);
     pub fn android_check_if_event (arg0: *mut android_event, arg1: Option<unsafe extern "C" fn (*mut android_event, *mut c_void) -> bool>, arg2: *mut c_void) -> bool;
     pub fn android_create_window (arg0: android_window, arg1: c_int, arg2: c_int, arg3: c_int, arg4: c_int, arg5: android_window_value_mask, arg6: *mut android_set_window_attributes) -> android_window;
