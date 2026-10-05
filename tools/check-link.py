@@ -227,16 +227,40 @@ EXEC_PENDING = REPO / "docs/baseline/link-exec-pending.txt"
 EXEC_OUT = REPO / "build/femacs/emacs"
 RUNTIME_SRC = REPO / "build/femacs/rust-runtime-root.rs"
 RUNTIME_OBJ = REPO / "build/femacs/rust-runtime-root.o"
-RUNTIME_TEXT = """// femacs: the whole program's Rust runtime seam, materialized by `tools/check-link.py
-// --executable` (docs/status.md 3.253, docs/ports/link.md).  A unit is compiled with
-// `--crate-type lib --emit obj`, so no unit carries a `#[panic_handler]` and the link owes
-// `rust_begin_unwind`; `_rust_eh_personality` is owed the same way.  Neither belongs to any C
-// file, which is why it lives in `build/` and not in the ported tree.
-#![no_std]
+RUNTIME_TEXT = """#![no_std]
+#![no_main]
+// femacs link driver (build scaffolding, not a ported file): rustc links the runtime.
+//
+// The panic handler *writes* the message to fd 2 before aborting: the first linked program hung
+// inside `rust_begin_unwind` (status 3.611) and a silent `abort` would leave every later defect
+// with the same symptom, so the handler prints `PanicInfo` (which carries the location and the
+// message the compiler generated) and then aborts.
+use core::ffi::{c_int, c_void};
+use core::fmt::Write;
+use core::panic::PanicInfo;
+
+struct Stderr;
+impl Write for Stderr {
+    fn write_str (&mut self, s: &str) -> core::fmt::Result {
+        unsafe { write (2, s.as_ptr () as *const c_void, s.len ()) };
+        Ok (())
+    }
+}
+
+unsafe extern "C" { fn write (fd: c_int, buf: *const c_void, n: usize) -> isize; }
+unsafe extern "C" { fn abort () -> !; }
 
 #[panic_handler]
-fn panic (_info: &core::panic::PanicInfo) -> ! { loop {} }
+fn panic (info: &PanicInfo) -> ! {
+    let mut w = Stderr;
+    let _ = write! (w, "femacs port: panic: {info}\n");
+    unsafe { abort () }
+}
 
+// libcompiler_builtins' prebuilt rlib carries EH landing pads (it is built for the
+// toolchain's own std configuration), so it references the C-unmangled
+// rust_eh_personality symbol; nothing raises in a panic=abort link, and the port's panics
+// abort through the handler above, so this no-op satisfies the linker.
 #[unsafe(no_mangle)]
 pub extern "C" fn rust_eh_personality () {}
 """
@@ -276,6 +300,14 @@ def c_link_libraries() -> tuple[list[str], str]:
     if not (makefile / "Makefile").is_file():
         return [], "build/emacs-ref/src/Makefile is missing (the frozen build tree is needed)"
     r = subprocess.run(["make", "-n", "temacs"], cwd=makefile, capture_output=True, text=True)
+    if "-o temacs" not in r.stdout:
+        # An already-linked `temacs` prints nothing, so the rule is forced dirty the way
+        # docs/status.md 3.601 records: `-W emacs.o` re-prints the link recipe without `-B`
+        # (which would reconfigure the tree and stop at makeinfo).  Before this fallback the
+        # 12 ncurses names below had no library line at all and every executable-link reading
+        # was "undefined: <the frozen configuration's whole -lncurses set>" (status 3.611).
+        r = subprocess.run(["make", "-n", "-W", "emacs.o", "temacs"], cwd=makefile,
+                           capture_output=True, text=True, timeout=600)
     # The recipe is one command written across continued lines (`gcc ... -o temacs.tmp \\`),
     # so the flags come *after* the object list on later lines: join first, split after.
     joined = r.stdout.replace("\\\n", " ")
@@ -297,7 +329,8 @@ def c_link_libraries() -> tuple[list[str], str]:
                 seen.add(t)
                 uniq.append(t)
         return uniq, ""
-    return [], "the `temacs` rule was not found in `make -n temacs`"
+    return [], ("the `temacs` rule was not found in `make -n temacs` or in "
+                "`make -n -W emacs.o temacs`")
 
 
 def executable_link(objs: list[Path]) -> tuple[list[str], str, str]:

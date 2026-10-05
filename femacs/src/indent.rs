@@ -551,7 +551,7 @@ pub unsafe extern "C" fn disptab_matches_widthtab (disptab: *mut Lisp_Char_Table
   for i in 0..256
     {
       if character_width (i, disptab)
-	   != XFIXNAT ((*widthtab).contents[i as usize]) as c_int
+	   != XFIXNAT (FAM_ELEM! ((*widthtab).contents, i)) as c_int
 	{ return false; }
     }
 
@@ -573,7 +573,7 @@ pub unsafe extern "C" fn recompute_width_table (buf: *mut buffer,
 
   for i in 0..256
     {
-      XSETFASTINT! ((*widthtab).contents[i as usize],
+      XSETFASTINT! (FAM_ELEM! ((*widthtab).contents, i),
 		    character_width (i, disptab) as EMACS_INT);
     }
 }

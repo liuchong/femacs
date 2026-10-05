@@ -17687,7 +17687,7 @@ mod disp_char_vector_decl {
       {
         val = (*dp).ascii;
         if SUB_CHAR_TABLE_P (val)
-  	{ val = (*XSUB_CHAR_TABLE (val)).contents[c as usize]; }
+  	{ val = FAM_ELEM! ((*XSUB_CHAR_TABLE (val)).contents, c); }
       }
     else
       {

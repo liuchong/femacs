@@ -12393,3 +12393,53 @@
   ③ **判据**：⑴ `nm -u build/femacs/{emacs,window}.o` 里两个名字**都不再出现**；⑵ `check-link.py --executable`：**14 → 12 undefined、`unknown` 2 → 0**（剩下 12 条全是 `libc-or-platform`，即链接期由 SDK 提供）；⑶ 程序链接档 **309 → 303 undefined / 0 failure**；⑷ **P-87 两腿**：`check-all-units.sh` **83/0 + 83/0**（中途 xdisp 一条 `E0603` 是移动造成的，已顺手修并复跑）、`layout-check passed`；⑸ 七道文本门全绿（`check-citations` 0 drift/0 stale、`check-declarations` 17 sites / 0 failures、其余 0 finding）。
   ④ **未声称**：这仍是**符号层**读数——`--executable` 是未解析名分类，**不是**链接出一个可执行文件、更没有运行；剩下 12 个 libc 名按设计留给链接期，它们是否真的能解析要在**真链接**那一档看（下一步）。
   ⑤ **预算**：`build-tu` 3 发（emacs/window/xdisp）、`check-all-units.sh` 2 发、`layout-check` 2 发、`check-link.py` 3 发、文本门 2 轮；`probe` 0 发；未动任何 lane 在飞文件。
+
+- **3.611 第一次把整个程序链接出来，并开始"第一次运行"的排错：可执行档 0 未解析名、程序能加载（`dyld` 不再报错），三个缺陷按 C 的语义修好，当前停在 `Fput`/`plist_put` 的符号 plist 上（2026-10-05）**：
+  ① **链接这一档**：`check-link.py --executable` 现在打 **`linked build/femacs/emacs - the program has no undefined reference`**，
+     产物 `build/femacs/emacs` **14,584,424 字节**。这一步的前提是两个修复：
+  ⑴ **C 自己的库行此前取不到**——`c_link_libraries ()` 跑 `make -n temacs`，而对**已链好的**目标 make 什么都不打印，于是链接命令里
+     **一条 `-l` 都没有**，12 个 ncurses/terminfo 名字（`_tgetent`/`_tputs`/`_tgoto`…）当然全"未解析"；改成
+     `make -n -W emacs.o temacs`（这正是 docs/status.md 3.601 记过的取法；`-B` 会重配并在 makeinfo 处中止）之后，库行解析为
+     `-L… -lncurses`（与 `docs/acceptance.md` 记的冻结配置外部库集合一致）⇒ **未解析名 12 → 0**。
+  ⑵ **gnulib 的改名**：`sysdep.rs` 自己声明了 `pub fn pipe2`，而 `include/unistd.in.rs` 早已带着 C 的改名宏
+     （`unistd.in.h` 1830-1831 的 `# undef pipe2 / # define pipe2 rpl_pipe2`，拼成 `macro_rules! pipe2`）；单元里的那份**声明把宏遮住了**，
+     于是链接出的程序第一个动态符号就是 `_pipe2`，`dyld` 报 `Symbol not found: _pipe2`。删掉本地声明、调用点写 `pipe2! (…)` 之后，
+     目标文件引用的是 **`_rpl_pipe2`**（参照自己的对象引用的也是它）；`docs/baseline/mirror-dupes.tsv` 里那行"重复声明"随之删除。
+  ② **让 panic 能说话（这一条是排错的地基）**：第一次链接出来的程序**在 `rust_begin_unwind` 里死循环**（反汇编该符号只有
+     `b 0x…ba4` / `b 0x…ba4` 两条指令），所以任何缺陷都表现为"挂住、无输出"。链接缝（`tools/check-link.py` 的 `RUNTIME_TEXT`）
+     的 `#[panic_handler]` 改成**先往 fd 2 写 `PanicInfo`（含位置与编译器给的原因）再 `abort ()`**：从此每次运行都直接点名
+     缺陷的 `文件:行:列` 与原因（`null pointer dereference` / `misaligned pointer dereference: address must be a multiple of 0x8 but is …`）。
+  ③ **跑起来才暴露的三处端口缺陷（逐条带现场）**：
+  ⑴ **`STRING_SET_UNIBYTE` 没有解标签**：它把**打了标签的** Lisp_Object 直接 `.cast::<Lisp_String> ()`，而 C 的宏走
+     `XSTRING`（`XUNTAG`，lisp.h 1624-1630）——`init_obarray_once → define_symbol → make_string → make_unclear_string` 第一次
+     解引用就 `misaligned pointer dereference`。改成 `XSTRING` 之后字符串路径走通。
+  ⑵ **柔性数组成员被直接下标**：P-40 早定了 `FAM_ELEM!` 访问器（七个访问器修过），但**单元里的直接下标**没修——
+     本次把 8 个单元的 **29 处**（`alloc`/`dispnew`/`indent`/`pdumper`/`process`/`xwidget`/`lread`/`xdisp`）改成
+     `FAM_ELEM! (place, idx)`；`pdumper.rs` 那三处走 `*const` 基址，`addr_of_mut!` 不接受，于是补了只读孪生
+     **`FAM_ELEM_RO!`/`fam_base_ro`**（同一套地址算术、`addr_of!`）。第一处现场是 `Fmake_char_table → make_vector` 的
+     `bounds check`（0 长数组下标：`*p.contents[i]`）。
+  ⑶ **两处"照抄走样"**（都发生在 init 路径，都是运行才看见）：
+     a. `set_buffer_internal_2` 的循环尾被写成 `b = old_buf; if ! (true) { break; }`——C 2391-2392 是
+        `while (b != old_buf && (b = old_buf, b))`，即"再看一眼旧缓冲区、若为空就结束"。改动之后的版本是**无限循环**，
+        而首次进入时 `old_buf` 正是 `NULL` ⇒ 第二轮直接 `(*b)` 空指针。已按 C 的两半写回（赋值 + `! b.is_null ()` 判据）。
+     b. `get_minibuffer` 把 C 1054 的 `XSETCAR (cll_tail, …)` 写成了 **`XSETCAR (tail, …)`**——缓冲区列表槽被写成 fixnum，
+        紧接着的 `Fcar (tail)` 拿到 fixnum，`XBUFFER (fixnum)` 解出 `-3` ⇒ 又一个错位解引用。已改名并留注释。
+  ④ **现在的现场（留给下一轮）**：程序跑到 `syms_of_keyboard` 的 `head_table` 循环之外的那批符号注册时，
+     `Fput → plist_put` 里 `wrong_type_argument (…, <一个 cons>)` 失败——`plist_put` 末尾的 C 判据是
+     `if (!NILP (tail)) wrong_type_argument (Qplistp, plist);`，即**送进来的 plist 不是真表**；`lldb` 读数：`wrong_type_argument` 的
+     `x0`（谓词）是一个符号对象、`x1`（值）= `0x0ca4ce84a3`（低 3 位 = 3 = `Lisp_Cons`）。也就是说某个内建符号的 `u.s.plist`
+     读出来是 cons 而不是 nil——**下一轮从这里往下查**（`lispsym` 的初始化 / 符号记录的 plist 字段），现场命令已记：
+     `lldb --batch -o run -k 'thread backtrace' -k 'register read x0 x1' -- ./build/femacs/emacs --version`。
+  ⑤ **判据（本轮全部实测）**：⑴ `tools/check-all-units.sh` **83/0 + 83/0**（改过镜像，P-87 两腿必跑）；⑵ `layout-check`
+     **passed**；⑶ `check-link.py --executable` → `linked … the program has no undefined reference`；⑷ 七道文本门全绿：
+     `check-mirror-dupes` **16 重复 / 16 棘轮 / 0 failure**（删掉 `sysdep.rs` 的 pipe2 行后）、`check-citations`
+     **0 drift / 0 range / 0 stale**（`include/lisp.rs` 四条允许项的行号随本提交 +10/+14 更新）、`check-declarations`
+     **17 sites (0 forbidden, 17 allowed literals), 0 failures**、`check-ledger-ticks` 238/0、`check-dead-file-coverage` 145/0、
+     `check-port-lines` 0/0/0/0、`check-target-names` 0 finding；⑸ 程序侧：`build/femacs/emacs --version` **能加载、能进 init**，
+     目前以 `SIGABRT`（panic 处理器）停在④。
+  ⑥ **未声称**：**没有 L1**——没有 `loadup`、没有任何 elisp 被求值、没有跑过任何验收档（L0/L1 金标）；④之后的所有 init 代码
+     都还没被执行过；上述读数全部来自**单线程、无图形**的一次 `--version` 运行；"链接成功"只说明符号齐了，不说明行为对。
+  ⑦ **预算**：`build-tu` ≈15 发（buffer/minibuf/alloc/pdumper/indent/process/xwidget/dispnew/lread/xdisp/keyboard/emacs/window…，
+     每次 1 秒级）、链接尝试 ≈10 发（每次 ~10 秒）、`check-all-units.sh` 1 发、`layout-check` 1 发、`lldb` ≈10 次、
+     `sample` 3 次；临时诊断（两处 `fprintf` 与一处 head_table 打印）**已全部删除**，`keyboard.rs` 已还原到 HEAD；
+     `/tmp` 的临时件已清，`build/femacs/emacs` 与对象集保留（链接集要用）。

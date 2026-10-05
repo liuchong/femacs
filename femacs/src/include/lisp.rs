@@ -1310,6 +1310,16 @@ macro_rules! FAM_ELEM {
     ($fam:expr, $idx:expr) => { *fam_base (core::ptr::addr_of_mut! ($fam)).add ($idx as usize) };
 }
 
+/// `FAM_ELEM!`'s read-only twin: a `*const` base (`pdumper.rs`'s three reads of a dumped vector)
+/// cannot go through `addr_of_mut!`, and C reads `x->contents[i]` through either qualifier.
+#[inline(always)]
+pub fn fam_base_ro<T, const N: usize> (p: *const [T; N]) -> *const T { p as *const T }
+
+#[macro_export]
+macro_rules! FAM_ELEM_RO {
+    ($fam:expr, $idx:expr) => { *fam_base_ro (core::ptr::addr_of! ($fam)).add ($idx as usize) };
+}
+
 #[inline(always)]
 pub fn AREF (array: Lisp_Object, idx: isize) -> Lisp_Object {
     eassert! (0 <= idx && idx < gc_asize (array));
@@ -3185,11 +3195,15 @@ pub fn TYPE_RANGED_FIXNUMP (lo: EMACS_INT, x: Lisp_Object, hi: EMACS_INT) -> boo
 
 #[inline(always)]
 pub fn STRING_SET_UNIBYTE (str_: *mut Lisp_Object) {
+    /* C: `XSTRING (STR)` (lisp.h 1624-1630), i.e. the object is *untagged* through XUNTAG; casting
+       the tagged word straight to `*mut Lisp_String` leaves the tag bits in the address and Rust's
+       alignment check aborts - the first run of the linked program did exactly that
+       (`init_obarray_once` -> `define_symbol` -> `make_string` -> `make_clear_string`, status 3.611).  */
     unsafe {
-        if (*(*str_).cast::<Lisp_String> ()).u.s.size == 0 {
+        if (*XSTRING (*str_)).u.s.size == 0 {
             *str_ = empty_unibyte_string;
         } else {
-            (*(*str_).cast::<Lisp_String> ()).u.s.size_byte = -1;
+            (*XSTRING (*str_)).u.s.size_byte = -1;
         }
     }
 }

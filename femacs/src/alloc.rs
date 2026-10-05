@@ -2441,7 +2441,7 @@ pub unsafe extern "C" fn make_clear_bool_vector (nbits: EMACS_INT, clearit: bool
   /* Clear padding at end; but only if necessary, to avoid polluting the
      data cache.  */
   if !clearit && nbits % BITS_PER_BITS_WORD as EMACS_INT != 0
-    { (*p).data[(words - 1) as usize] = 0; }
+    { FAM_ELEM! ((*p).data, (words - 1)) = 0; }
 
   XSETVECTOR! (val, p);
   XSETPVECTYPESIZE! (XVECTOR (val), pvec_type::PVEC_BOOL_VECTOR, 0, 0);
@@ -3882,7 +3882,7 @@ DEFUN! ("make-record", Fmake_record, Smake_record, 3, 3, 0,
   let mut i: ptrdiff_t = 1;
   while i < size
     {
-      (*p).contents[i as usize] = init;
+      FAM_ELEM! ((*p).contents, i) = init;
       i += 1;
     }
   return make_lisp_ptr (p as *mut c_void, Lisp_Type::Lisp_Vectorlike);
@@ -3921,7 +3921,7 @@ pub unsafe extern "C" fn make_vector (length: ptrdiff_t, init: Lisp_Object) -> L
       let mut i: ptrdiff_t = 0;
       while i < length
 	{
-	  (*p).contents[i as usize] = init;
+	  FAM_ELEM! ((*p).contents, i) = init;
 	  i += 1;
 	}
     }
@@ -6051,7 +6051,7 @@ unsafe fn visit_vectorlike_root (visitor: gc_root_visitor,
   i = 0;
   while i < size
     {
-      (visitor.visit.unwrap ()) (&raw const (*ptr).contents[i as usize], r#type, visitor.data);
+      (visitor.visit.unwrap ()) (&raw const FAM_ELEM! ((*ptr).contents, i), r#type, visitor.data);
       i += 1;
     }
 }
@@ -6733,7 +6733,7 @@ unsafe fn mark_char_table (ptr: *mut Lisp_Vector, pvectype: pvec_type)
   i = idx;
   while i < size
     {
-      let val: Lisp_Object = (*ptr).contents[i as usize];
+      let val: Lisp_Object = FAM_ELEM! ((*ptr).contents, i);
 
       if FIXNUMP (val)
           || (BARE_SYMBOL_P (val) && symbol_marked_p (XBARE_SYMBOL (val)))

@@ -2260,7 +2260,7 @@ fn dump_pseudovector_lisp_fields (ctx: *mut dump_context, out_hdr: *mut vectorli
   for i in 0..size
     {
       dump_field_lv (ctx, out as *mut c_void, in_ as *const c_void,
-                     unsafe { &raw const (*in_).contents[i as usize] }, WEIGHT_STRONG);
+                     unsafe { &raw const FAM_ELEM_RO! ((*in_).contents, i) }, WEIGHT_STRONG);
     }
 }
 
@@ -2887,7 +2887,7 @@ fn dump_vectorlike_generic (ctx: *mut dump_context, header: *const vectorlike_he
   let prefix_size: dump_off = unsafe { (*ctx).offset } - prefix_start_offset;
   eassert! (prefix_size > 0);
   let skip_start: dump_off = ptrdiff_t_to_dump_off (unsafe {
-    ((&raw const (*v).contents[skip as usize]) as *const c_char).offset_from (v as *const c_char)
+    ((&raw const FAM_ELEM_RO! ((*v).contents, skip)) as *const c_char).offset_from (v as *const c_char)
   });
   eassert! (skip_start >= prefix_size);
   dump_write_zero (ctx, skip_start - prefix_size);
@@ -2902,7 +2902,7 @@ fn dump_vectorlike_generic (ctx: *mut dump_context, header: *const vectorlike_he
   while i < size as dump_off
     {
       let mut out: Lisp_Object = Qnil ();
-      let vslot: *const Lisp_Object = unsafe { &raw const (*v).contents[i as usize] };
+      let vslot: *const Lisp_Object = unsafe { &raw const FAM_ELEM_RO! ((*v).contents, i) };
       /* In the wide case, we're always misaligned.  */
       eassert! (unsafe { (*ctx).offset } as usize % core::mem::size_of_val (&out) == 0);
       dump_object_start (ctx, (&raw mut out) as *mut c_void,
@@ -3383,7 +3383,7 @@ fn fill_pseudovec (header: *mut vectorlike_header, item: Lisp_Object)
   let mut idx: ptrdiff_t = 0;
   while idx < size
     {
-      unsafe { (*v).contents[idx as usize] = item; }
+      unsafe { FAM_ELEM! ((*v).contents, idx) = item; }
       idx += 1;
     }
 }

@@ -2450,8 +2450,12 @@ pub unsafe extern "C" fn set_buffer_internal_2 (b: *mut buffer)
 	}
       /* Do the same with any others that were local to the previous buffer */
       if ! (b != old_buf) { break; }
-      b = old_buf;
-      if ! (true) { break; }
+      /* C 2391-2392: `while (b != old_buf && (b = old_buf, b))` - the comma expression assigns the
+         old buffer and continues only when it is non-null, so the loop runs once per distinct
+         buffer.  The port spells the two halves out: the assignment is the same statement C has,
+         and the `! b.is_null ()` is what C's trailing `b` tests.  */
+      if ! (b != old_buf && { b = old_buf; ! b.is_null () })
+	{ break; }
     }
 }
 

@@ -2031,15 +2031,15 @@ DEFUN! ("format-network-address", Fformat_network_address, Sformat_network_addre
       i = 0;
       while i < nargs
 	{
-	  if (! RANGED_FIXNUMP (0, (*p).contents[i as usize], 65535))
+	  if (! RANGED_FIXNUMP (0, FAM_ELEM! ((*p).contents, i), 65535))
 	    { return Qnil (); }
 
 	  if (nargs <= 5         /* IPv4 */
 	      && i < 4           /* host, not port */
-	      && XFIXNUM ((*p).contents[i as usize]) > 255)
+	      && XFIXNUM (FAM_ELEM! ((*p).contents, i)) > 255)
 	    { return Qnil (); }
 
-	  args[(i + 1) as usize] = (*p).contents[i as usize];
+	  args[(i + 1) as usize] = FAM_ELEM! ((*p).contents, i);
 	  i += 1;
 	}
 
@@ -2881,7 +2881,7 @@ pub unsafe fn conv_sockaddr_to_lisp (sa: *mut sockaddr, len: ptrdiff_t) -> Lisp_
 	address = make_uninit_vector (len);
 	p = XVECTOR (address);
 	len -= 1;
-	(*p).contents[len as usize] = make_fixnum (ntohs ((*sin).sin_port as u16) as EMACS_INT);
+	FAM_ELEM! ((*p).contents, len) = make_fixnum (ntohs ((*sin).sin_port as u16) as EMACS_INT);
 	cp = &raw mut (*sin).sin_addr as *mut u8;
       }
     x if x == AF_INET6 as c_uint =>
@@ -2894,11 +2894,11 @@ pub unsafe fn conv_sockaddr_to_lisp (sa: *mut sockaddr, len: ptrdiff_t) -> Lisp_
 	address = make_uninit_vector (len);
 	p = XVECTOR (address);
 	len -= 1;
-	(*p).contents[len as usize] = make_fixnum (ntohs ((*sin6).sin6_port as u16) as EMACS_INT);
+	FAM_ELEM! ((*p).contents, len) = make_fixnum (ntohs ((*sin6).sin6_port as u16) as EMACS_INT);
 	let mut i: ptrdiff_t = 0;
 	while i < len
 	  {
-	    (*p).contents[i as usize] = make_fixnum (ntohs (*ip6.offset (i as isize)) as EMACS_INT);
+	    FAM_ELEM! ((*p).contents, i) = make_fixnum (ntohs (*ip6.offset (i as isize)) as EMACS_INT);
 	    i += 1;
 	  }
 	return address;
@@ -2931,7 +2931,7 @@ pub unsafe fn conv_sockaddr_to_lisp (sa: *mut sockaddr, len: ptrdiff_t) -> Lisp_
   let mut i: ptrdiff_t = 0;
   while i < len
     {
-      (*p).contents[i as usize] = make_fixnum (*cp as EMACS_INT);
+      FAM_ELEM! ((*p).contents, i) = make_fixnum (*cp as EMACS_INT);
       cp = cp.offset (1);
       i += 1;
     }
@@ -3016,7 +3016,7 @@ unsafe fn conv_lisp_to_sockaddr (family: c_int, address: Lisp_Object, sa: *mut s
 	  let sin: *mut sockaddr_in = sa as *mut sockaddr_in;
 	  len = std::mem::size_of_val (&(*sin).sin_addr) as c_int + 1;
 	  len -= 1;
-	  hostport = XFIXNUM ((*p).contents[len as usize]);
+	  hostport = XFIXNUM (FAM_ELEM! ((*p).contents, len));
 	  (*sin).sin_port = htons (hostport as u16);
 	  cp = &raw mut (*sin).sin_addr as *mut u8;
 	  (*sa).sa_family = family as u8;
@@ -3029,14 +3029,14 @@ unsafe fn conv_lisp_to_sockaddr (family: c_int, address: Lisp_Object, sa: *mut s
 	  let ip6: *mut u16 = &raw mut (*sin6).sin6_addr as *mut u16;
 	  len = (std::mem::size_of_val (&(*sin6).sin6_addr) / 2) as c_int + 1;
 	  len -= 1;
-	  hostport = XFIXNUM ((*p).contents[len as usize]);
+	  hostport = XFIXNUM (FAM_ELEM! ((*p).contents, len));
 	  (*sin6).sin6_port = htons (hostport as u16);
 	  i = 0;
 	  while i < len
 	    {
-	      if (FIXNUMP ((*p).contents[i as usize]))
+	      if (FIXNUMP (FAM_ELEM! ((*p).contents, i)))
 		{
-		  let j: c_int = XFIXNUM ((*p).contents[i as usize]) as c_int & 0xffff;
+		  let j: c_int = XFIXNUM (FAM_ELEM! ((*p).contents, i)) as c_int & 0xffff;
 		  *ip6.offset (i as isize) = ntohs (j as u16);
 		}
 	      i += 1;
@@ -3075,8 +3075,8 @@ unsafe fn conv_lisp_to_sockaddr (family: c_int, address: Lisp_Object, sa: *mut s
   i = 0;
   while i < len
     {
-      if (FIXNUMP ((*p).contents[i as usize]))
-	{ *cp = (XFIXNAT ((*p).contents[i as usize]) & 0xff) as u8; cp = cp.offset (1); }
+      if (FIXNUMP (FAM_ELEM! ((*p).contents, i)))
+	{ *cp = (XFIXNAT (FAM_ELEM! ((*p).contents, i)) & 0xff) as u8; cp = cp.offset (1); }
       i += 1;
     }
 }
@@ -4631,7 +4631,7 @@ unsafe fn network_interface_info (ifname: Lisp_Object) -> Lisp_Object
 	let mut n: c_int = 0;
 	while n < 6
 	  {
-	    (*p).contents[n as usize] = make_fixnum (((&raw const rq.ifr_ifru.ifr_hwaddr.sa_data[0]
+	    FAM_ELEM! ((*p).contents, n) = make_fixnum (((&raw const rq.ifr_ifru.ifr_hwaddr.sa_data[0]
 						       as *const c_char).offset (n as isize)
 						      as *const u8).read () as EMACS_INT);
 	    n += 1;
@@ -4662,7 +4662,7 @@ unsafe fn network_interface_info (ifname: Lisp_Object) -> Lisp_Object
 	  n = 0;
 	  while n < 6
 	    {
-	      (*p).contents[n as usize] = make_fixnum (linkaddr[n as usize] as EMACS_INT);
+	      FAM_ELEM! ((*p).contents, n) = make_fixnum (linkaddr[n as usize] as EMACS_INT);
 	      n += 1;
 	    }
 

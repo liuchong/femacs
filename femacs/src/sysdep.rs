@@ -3706,12 +3706,10 @@ pub unsafe extern "C" fn emacs_pipe (fd: *mut c_int) -> c_int {
   }
   #[cfg (not (feature = "msdos"))]
   {
-    return pipe2 (fd, O_BINARY | O_CLOEXEC);
+    return pipe2! (fd, O_BINARY | O_CLOEXEC);   /* C: `pipe2` is unistd.in.h 1831's rename */
   }
 }
 
-/// `<unistd.h>`: `int pipe2 (int[2], int);` (`unistd.in.rs` does not carry it).
-unsafe extern "C" { pub fn pipe2 (fildes: *mut c_int, flags: c_int) -> c_int; }
 
 /* Approximate posix_close and POSIX_CLOSE_RESTART well enough for Emacs.
    For the background behind this mess, please see Austin Group defect 529

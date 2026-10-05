@@ -4246,7 +4246,7 @@ unsafe fn webkit_js_to_lisp (value: *mut JSCValue) -> Lisp_Object  // C 2453-251
       let mut i: ptrdiff_t = 0;
       while i < n
 	{
-	  (*p).contents[i as usize] =
+	  FAM_ELEM! ((*p).contents, i) =
 	    webkit_js_to_lisp (jsc_value_object_get_property_at_index (value, i as guint));
 	  i += 1;
 	}
@@ -4269,7 +4269,7 @@ unsafe fn webkit_js_to_lisp (value: *mut JSCValue) -> Lisp_Object  // C 2453-251
 	  let name: *const c_char = *properties_names.offset (i as isize);
 	  let property: *mut JSCValue = jsc_value_object_get_property (value, name);
 
-	  (*p).contents[i as usize] =
+	  FAM_ELEM! ((*p).contents, i) =
 	    Fcons (build_string (name), webkit_js_to_lisp (property));
 	  i += 1;
 	}

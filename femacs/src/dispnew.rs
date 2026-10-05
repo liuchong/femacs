@@ -3986,7 +3986,7 @@ unsafe fn box_from_display_table (f: *mut frame, r#box: r#box, g: *mut GLYPH) ->
   if DISP_TABLE_P (Vstandard_display_table)
     {
       let dp: *mut Lisp_Char_Table = XCHAR_TABLE (Vstandard_display_table);
-      let gc: Lisp_Object = (*dp).extras [r#box as usize];
+      let gc: Lisp_Object = FAM_ELEM! ((*dp).extras, r#box);
       if GLYPH_CODE_P (gc)
 	{
 	  SET_GLYPH_FROM_GLYPH_CODE! (*g, gc);

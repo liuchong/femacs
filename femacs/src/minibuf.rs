@@ -1199,7 +1199,10 @@ pub unsafe extern "C" fn get_minibuffer (depth: EMACS_INT) -> Lisp_Object
       cll_tail = list1 (Qnil ());
       Vcommand_loop_level_list = nconc2 (Vcommand_loop_level_list, cll_tail);
     }
-  XSETCAR (tail, make_fixnum (if depth != 0 { command_loop_level } else { 0 }));
+  /* C 1054 writes `cll_tail` here, not `tail`: the port had `tail`, which overwrote the
+     buffer-list slot with a fixnum and made the `Fcar` below dereference a fixnum as a buffer
+     (the first run of the linked program stopped exactly there, status 3.611).  */
+  XSETCAR (cll_tail, make_fixnum (if depth != 0 { command_loop_level } else { 0 }));
   let mut buf: Lisp_Object = Fcar (tail);
   if NILP (buf) || !BUFFER_LIVE_P (XBUFFER (buf))
     {

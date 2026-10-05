@@ -3499,7 +3499,7 @@ unsafe fn sub_char_table_from_rev_list (elems: Lisp_Object, source: *mut source)
   let mut i: ptrdiff_t = 0;
   while i < size - 2
     {
-      (*XSUB_CHAR_TABLE (tbl)).contents[i as usize] = XCAR (elems);
+      FAM_ELEM! ((*XSUB_CHAR_TABLE (tbl)).contents, i) = XCAR (elems);
       elems = XCDR (elems);
       i += 1;
     }
