@@ -4871,15 +4871,22 @@ fn IS_DIRECTORY_SEP (c: c_int) -> bool { c == DIRECTORY_SEP as c_int }
 // body keeps C's statements.
 macro_rules! DEFVAR_PER_BUFFER {
   ($lname:expr, $vname:ident, $predicate:ident, doc: $doc:literal) => {{
+    /* PORTING.md P-100: C's macro puts both fields in the *static initializer*
+       (`offsetof (struct buffer, vname##_)` and `FWDPRED_##predicate_`, buffer.c 5016-5031), so
+       they are right in a process that has just loaded a dump.  Assigning them in the macro body
+       left `offset = 0` there - `store_symval_forwarding` then wrote every buffer-local
+       variable's value into the *buffer's first word*, and `set_minibuffer_mode`'s
+       `setq-local`s corrupted the minibuffer buffer's header (status 3.646).  */
     static mut BO_FWD: Lisp_Fwd = Lisp_Fwd {
       r#type: Lisp_Fwd_Buffer_Obj,
-      u: Lisp_Fwd_u { buf: Lisp_Fwd_buf { offset: 0, predicate: 0, _pad: 0 } },
+      u: Lisp_Fwd_u { buf: Lisp_Fwd_buf {
+        offset: std::mem::offset_of! (buffer, $vname) as u16,
+        predicate: FWDPRED! ($predicate) as u8,
+        _pad: 0 } },
     };
     static_assert! (std::mem::offset_of! (buffer, $vname)
                     < (1 << 8 * std::mem::size_of::<u16> ()));
     unsafe {
-      BO_FWD.u.buf.offset = std::mem::offset_of! (buffer, $vname) as u16;
-      BO_FWD.u.buf.predicate = FWDPRED! ($predicate) as u8;
       defvar_per_buffer (&raw const BO_FWD, $lname.as_ptr () as *const c_char);
     }
   }};

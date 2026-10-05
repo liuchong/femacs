@@ -408,3 +408,15 @@ forces on `Lisp_Overlay.buffer`/`Lisp_Marker.buffer`/`build_marker`/`set_buffer_
 3. **`tools/check-undef.py`'s ratchet**: this unit's object now defines 120 of the names the
    ratchet listed as pending; `check-undef.py --write-pending` should be re-run at the batch
    boundary (it reports `0 new`, so nothing is a defect).
+
+- **`DEFVAR_PER_BUFFER`'s forwarding object is a *static initializer* now (3.646).**  C's macro
+  (buffer.c 5016-5031) spells both fields in the initializer - `offsetof (struct buffer, vname##_)`
+  and `FWDPRED_##predicate_` - so they hold in any process.  The port assigned them in the macro
+  body, which `syms_of_buffer` only runs at *dump* time: after a dump load every per-buffer
+  variable's fwd had `offset = 0`, so `store_symval_forwarding` wrote each buffer-local variable's
+  value at `buffer + 0` - the pseudovector header.  A hardware write watchpoint on the minibuffer
+  buffer (dump offset 5,886,992) caught exactly that write (`0x400000000d02f04b` -> `0xF3F0`) with the
+  stack `store_symval_forwarding <- set_internal <- exec_byte_code <- funcall_lambda <-
+  funcall_general <- Ffuncall <- set_minibuffer_mode <- set_initial_minibuffer_mode`, which is what
+  made `Flocal_variable_p`'s `CHECK_BUFFER` fail afterwards.  The fields are in the initializer now;
+  `tools/check-fwd-static-init.py` covers all six `Lisp_Fwd`-building macros.

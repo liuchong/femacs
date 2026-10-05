@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
-"""The `DEFVAR_*` forwarding objects must be initialized in their *static* initializer.
+"""The `Lisp_Fwd` objects the `DEFVAR_*` macros build must be initialized *statically*.
 
-C's macros spell the forwarding object as a static with the pointer already in it:
+C spells every one of them as a static with its fields already in the initializer:
 
     static struct Lisp_Fwd const o_fwd = {Lisp_Fwd_Obj, .u.objvar = &globals.f_##vname};
+    static const struct Lisp_Fwd bo_fwd = { .type = Lisp_Fwd_Buffer_Obj,
+                                            .u.buf = { .offset = offsetof (struct buffer,
+                                                                           vname##_),
+                                                       .predicate = FWDPRED_##predicate_ } };
 
-(lisp.h 3495-3531, and `DEFVAR_KBOARD`'s `offsetof` the same way), so the pointer is a
-link-time constant that is right in any process - including one that has just *loaded a
-dump*, where `syms_of_*` never runs again.  The port assigned the union member in the macro
-body instead; every one of these objects then held NULL after a dump load and
-`do_symval_forwarding` dereferenced it (status 3.644).
+(lisp.h 3495-3531 for the five `DEFVAR_*`, buffer.c 5016-5031 for `DEFVAR_PER_BUFFER`), so the
+pointers/offsets are link-time constants that are right in any process - including one that has
+just *loaded a dump*, where `syms_of_*` never runs again.  The port assigned them in the macro
+bodies instead, and each instance broke the loaded process in its own way:
 
-For each of the five macros in `femacs/src/include/lisp.rs` this reads: the `static mut
-{ O,I,B,KO }_FWD` initializer names the macro's own member and does not set it to a null/zero
-constant, and the macro body has no `*_FWD.u.<member> = …` assignment.  Readings: `5 macro(s),
-0 failure(s)`; `--selftest` runs the three shapes (the fixed spelling, the runtime assignment,
-and a null initializer).
+  * `DEFVAR_LISP`/`_NOPRO`/`INT`/`BOOL`/`KBOARD`: every forwarding object held NULL after a load,
+    and `do_symval_forwarding` dereferenced it (status 3.644).
+  * `DEFVAR_PER_BUFFER`: `offset` stayed 0, so `store_symval_forwarding` wrote each buffer-local
+    variable's value into the *buffer's first word* - `set_minibuffer_mode`'s `setq-local`s
+    corrupted the minibuffer buffer's pseudovector header, and `Flocal_variable_p`'s
+    `CHECK_BUFFER` then failed on it (status 3.646).
+
+For each macro this reads: the `static …: Lisp_Fwd = Lisp_Fwd { … }` initializer names its union
+member with a non-null/non-zero value (for `buf`, both `offset` and `predicate`), and the macro
+body has no `*_FWD.u.<member> = …` assignment.  Readings: `6 macro(s), 0 failure(s)`;
+`--selftest` runs five shapes against the real files.
 """
 import argparse
 import re
@@ -23,74 +32,94 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-MIRROR = REPO / "femacs" / "src" / "include" / "lisp.rs"
-MACROS = ("DEFVAR_LISP", "DEFVAR_LISP_NOPRO", "DEFVAR_INT", "DEFVAR_BOOL", "DEFVAR_KBOARD")
+LISP_MIRROR = REPO / "femacs" / "src" / "include" / "lisp.rs"
+BUFFER_UNIT = REPO / "femacs" / "src" / "buffer.rs"
+SITES = [(LISP_MIRROR, name) for name in
+         ("DEFVAR_LISP", "DEFVAR_LISP_NOPRO", "DEFVAR_INT", "DEFVAR_BOOL", "DEFVAR_KBOARD")]
+SITES.append((BUFFER_UNIT, "DEFVAR_PER_BUFFER"))
+
 NULLISH = re.compile(r"^(std::ptr::null_mut\s*\(\)|0|null\s*\(\))$")
+STATIC = re.compile(r"static (?:mut )?(\w+)\s*:\s*Lisp_Fwd\s*=\s*Lisp_Fwd\s*\{(.*?)\n\s*\};", re.S)
 
 
-def macro_bodies(text: str) -> dict[str, str]:
-    """`DEFVAR_*` -> its `{{ … }}` body, in file order."""
-    out: dict[str, str] = {}
-    for name in MACROS:
-        m = re.search(r"macro_rules!\s+%s\s*\{" % name, text)
-        if not m:
-            continue
-        i, depth = m.end() - 1, 0
-        for j in range(i, len(text)):
-            if text[j] == "{":
-                depth += 1
-            elif text[j] == "}":
-                depth -= 1
-                if depth == 0:
-                    out[name] = text[i:j + 1]
-                    break
-    return out
+def macro_body(text: str, name: str):
+    m = re.search(r"macro_rules!\s+%s\s*\{" % re.escape(name), text)
+    if m is None:
+        return None
+    i, depth = m.end() - 1, 0
+    for j in range(i, len(text)):
+        if text[j] == "{":
+            depth += 1
+        elif text[j] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[i:j + 1]
+    return None
 
 
-def findings(text: str) -> list[str]:
-    bodies = macro_bodies(text)
+def findings(text: str, name: str) -> list[str]:
+    body = macro_body(text, name)
+    if body is None:
+        return [f"macro {name} is gone from the file"]
+    static = STATIC.search(body)
+    if static is None:
+        return [f"{name}: no `static …: Lisp_Fwd = Lisp_Fwd {{ … }}` initializer"]
+    maker, init = static.group(1), static.group(2)
     out = []
-    for name in MACROS:
-        body = bodies.get(name)
-        if body is None:
-            out.append(f"macro {name} is gone from the mirror")
-            continue
-        static = re.search(r"static mut (\w+): Lisp_Fwd = Lisp_Fwd \{(.*?)\n        \};", body, re.S)
-        if static is None:
-            out.append(f"{name}: no `static mut …: Lisp_Fwd` initializer")
-            continue
-        maker, init = static.group(1), static.group(2)
-        member = re.search(r"u: Lisp_Fwd_u \{ (\w+): ([^}]*)\}", init, re.S)
-        if member is None:
-            out.append(f"{name}: the initializer does not name a union member")
-            continue
-        field, value = member.group(1), member.group(2).strip()
-        if NULLISH.match(value):
-            out.append(f"{name}: {maker}.u.{field} is initialized to a null/zero value")
-        assign = re.search(r"%s\.u\.\w+\s*=" % re.escape(maker), body)
-        if assign is not None:
-            out.append(f"{name}: {maker}'s member is assigned in the macro body "
-                       f"(a loaded dump never runs `syms_of_*`)")
+    member = re.search(r"u:\s*Lisp_Fwd_u\s*\{\s*(\w+):\s*(.*)", init, re.S)
+    if member is None:
+        out.append(f"{name}: the initializer does not name a union member")
+    else:
+        field, value = member.group(1), member.group(2)
+        if value.strip().startswith("Lisp_Fwd_buf"):        # DEFVAR_PER_BUFFER's nested record
+            for sub in ("offset", "predicate"):
+                got = re.search(r"%s:\s*([^,}]+)" % sub, value)
+                if got is None:
+                    out.append(f"{name}: the initializer does not set `buf.{sub}`")
+                elif NULLISH.match(got.group(1).strip()):
+                    out.append(f"{name}: buf.{sub} is initialized to a null/zero value")
+        else:
+            # The value up to the first `,` or `}` - the union's own braces follow it.
+            head = re.match(r"[^,}]*", value.strip()).group(0).strip()
+            if NULLISH.match(head):
+                out.append(f"{name}: {maker}.u.{field} is initialized to a null/zero value")
+    tail = body[static.end():]
+    if re.search(r"\b%s\.u\.\w+(\.\w+)*\s*=" % re.escape(maker), tail):
+        out.append(f"{name}: {maker}'s member is assigned in the macro body "
+                   f"(a loaded dump never runs `syms_of_*`)")
     return out
 
 
 def selftest() -> int:
-    text = MIRROR.read_text(encoding="utf-8")
+    lisp = LISP_MIRROR.read_text(encoding="utf-8")
+    buffer = BUFFER_UNIT.read_text(encoding="utf-8")
+    old_buffer = buffer.replace(
+        """      u: Lisp_Fwd_u { buf: Lisp_Fwd_buf {
+        offset: std::mem::offset_of! (buffer, $vname) as u16,
+        predicate: FWDPRED! ($predicate) as u8,
+        _pad: 0 } },""",
+        "      u: Lisp_Fwd_u { buf: Lisp_Fwd_buf { offset: 0, predicate: 0, _pad: 0 } },").replace(
+        "      defvar_per_buffer (&raw const BO_FWD, $lname.as_ptr () as *const c_char);",
+        "      BO_FWD.u.buf.offset = std::mem::offset_of! (buffer, $vname) as u16;\n"
+        "      BO_FWD.u.buf.predicate = FWDPRED! ($predicate) as u8;\n"
+        "      defvar_per_buffer (&raw const BO_FWD, $lname.as_ptr () as *const c_char);")
     cases = [
-        ("the mirror as it stands", text, 0),
-        ("both LISP macros nulled and one assigned at run time",
-         text.replace("            u: Lisp_Fwd_u { objvar: std::ptr::addr_of_mut! ($vname) },",
-                      "            u: Lisp_Fwd_u { objvar: std::ptr::null_mut () },")
-             .replace("        let _: &core::ffi::CStr = $lname;\n        unsafe {\n            defvar_lisp",
-                      "        let _: &core::ffi::CStr = $lname;\n        unsafe {\n"
-                      "            O_FWD.u.objvar = std::ptr::addr_of_mut! ($vname);\n            defvar_lisp", 1), 3),
-        ("one macro's initializer nulled",
-         text.replace("            u: Lisp_Fwd_u { boolvar: std::ptr::addr_of_mut! ($vname) },",
-                      "            u: Lisp_Fwd_u { boolvar: std::ptr::null_mut () },"), 1),
+        ("the two files as they stand", [(LISP_MIRROR, lisp), (BUFFER_UNIT, buffer)], 0),
+        ("DEFVAR_PER_BUFFER's offset/predicate assigned at run time",
+         [(LISP_MIRROR, lisp), (BUFFER_UNIT, old_buffer)], 3),
+        ("one DEFVAR_* initializer nulled",
+         [(LISP_MIRROR, lisp.replace(
+             "            u: Lisp_Fwd_u { boolvar: std::ptr::addr_of_mut! ($vname) },",
+             "            u: Lisp_Fwd_u { boolvar: std::ptr::null_mut () },")), (BUFFER_UNIT, buffer)], 1),
+        ("DEFVAR_PER_BUFFER removed from the unit",
+         [(LISP_MIRROR, lisp), (BUFFER_UNIT, buffer.replace("macro_rules! DEFVAR_PER_BUFFER", "macro_rules! XX_DEFVAR_PER_BUFFER"))], 1),
+        ("the whole macro gone from the mirror",
+         [(LISP_MIRROR, lisp.replace("macro_rules! DEFVAR_INT", "macro_rules! XX_DEFVAR_INT")), (BUFFER_UNIT, buffer)], 1),
     ]
     bad = 0
-    for name, variant, want in cases:
-        got = len(findings(variant))
+    for name, files, want in cases:
+        got = sum(len(findings(text, macro)) for path, text in files
+                  for macro in [m for p, m in SITES if p == path])
         ok = got == want
         bad += 0 if ok else 1
         print(f"{'ok  ' if ok else 'FAIL'} {name}: {got} failure(s) (want {want})")
@@ -105,9 +134,13 @@ def main() -> int:
     args = ap.parse_args()
     if args.selftest:
         return selftest()
-    text = MIRROR.read_text(encoding="utf-8")
-    rows = findings(text)
-    print(f"read {MIRROR.relative_to(REPO)}: {len(macro_bodies(text))} macro(s) checked")
+    rows, seen = [], set()
+    for path, name in SITES:
+        text = path.read_text(encoding="utf-8")
+        rows.extend(f"{path.relative_to(REPO)}: {row}" for row in findings(text, name))
+        seen.add(path)
+    print("read " + ", ".join(sorted(str(p.relative_to(REPO)) for p in seen))
+          + f": {len(SITES)} macro(s) checked")
     for row in rows:
         print(f"FAIL {row}")
     print(f"{len(rows)} failure(s)")
